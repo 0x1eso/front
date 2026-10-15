@@ -1,4 +1,7 @@
-import { GovernmentId } from "@openfront/engine-api/domestic/DomesticTypes";
+import {
+  GovernmentId,
+  TechId,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import { MILLI } from "@openfront/engine-lib/domestic/Balance";
 import {
   governmentBlock,
@@ -88,14 +91,53 @@ function maybeResearch(
   plan: NationDomesticPlan,
 ): void {
   if (d.currentResearch() !== null) return;
-  for (const tech of plan.techOrder) {
-    if (researchBlock(d.researchedTechs(), false, tech) !== null) continue;
-    // Wait for this tech rather than skipping to a cheaper one.
-    if (d.scienceMilliAvailable() >= TECHS[tech].cost * MILLI) {
-      mg.addExecution(new ResearchExecution(player, tech, false));
-    }
-    return;
+  const tech = nextResearch(d.researchedTechs(), plan.techOrder);
+  // Wait for this tech rather than skipping to a cheaper one.
+  if (tech !== null && d.scienceMilliAvailable() >= TECHS[tech].cost * MILLI) {
+    mg.addExecution(new ResearchExecution(player, tech, false));
   }
+}
+
+/**
+ * The tech a nation researches next: the first unresearched tech in `order`,
+ * or, while that one is still locked, the first tech in `order` that brings
+ * it closer (a missing prerequisite, or one more tech of the era below).
+ * Without this a locked priority tech fell through to the rest of the
+ * order, e.g. a scholar researched every era 1 tech before the second era 2
+ * tech that Computers needs. Null once every tech is researched.
+ */
+export function nextResearch(
+  researched: ReadonlySet<TechId>,
+  order: readonly TechId[],
+): TechId | null {
+  for (const goal of order) {
+    const step = stepTowards(researched, order, goal);
+    if (step !== null) return step;
+  }
+  return null;
+}
+
+/** A tech that can start now and works towards `goal`; null if none does. */
+function stepTowards(
+  researched: ReadonlySet<TechId>,
+  order: readonly TechId[],
+  goal: TechId,
+): TechId | null {
+  const block = researchBlock(researched, false, goal);
+  if (block === null) return goal;
+  // Prerequisites and earlier eras come strictly before `goal`, so this ends.
+  let helpers: readonly TechId[] = [];
+  if (block === "era") {
+    helpers = order.filter((t) => TECHS[t].era === TECHS[goal].era - 1);
+  } else if (block === "prereq") {
+    helpers = TECHS[goal].prereqs;
+  }
+  for (const helper of helpers) {
+    if (researched.has(helper)) continue;
+    const step = stepTowards(researched, order, helper);
+    if (step !== null) return step;
+  }
+  return null;
 }
 
 /** True when it adopted a government this check. */

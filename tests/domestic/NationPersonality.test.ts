@@ -6,7 +6,10 @@ import { PlayerInfo, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { LAW_COOLDOWN_TICKS } from "@openfront/engine-lib/domestic/Balance";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
-import { nationDomesticTick } from "@openfront/engine/execution/nation/NationDomesticBehavior";
+import {
+  nationDomesticTick,
+  nextResearch,
+} from "@openfront/engine/execution/nation/NationDomesticBehavior";
 import {
   BALANCED_RESEARCH_ORDER,
   buildDomesticPlan,
@@ -100,6 +103,62 @@ describe("personality plans", () => {
       );
       expect(isolationist, p).toBe(p === "zealot");
     }
+  });
+});
+
+describe("nextResearch", () => {
+  const scholar = buildDomesticPlan("scholar", new PseudoRandom(3)).techOrder;
+
+  test("follows the order while the next tech is open", () => {
+    expect(nextResearch(new Set(), BALANCED_RESEARCH_ORDER)).toBe("currency");
+    expect(nextResearch(new Set(["currency"]), BALANCED_RESEARCH_ORDER)).toBe(
+      "academia",
+    );
+  });
+
+  test("a locked priority tech pulls in a tech of the era it lacks", () => {
+    // Computers needs a second era 2 tech: railroad is the first era 2
+    // tech in the order, ahead of the era 1 techs listed before it.
+    expect(
+      nextResearch(
+        new Set(["academia", "currency", "scientific_method"]),
+        scholar,
+      ),
+    ).toBe("railroad");
+    // The space program needs a second era 3 tech.
+    expect(
+      nextResearch(
+        new Set([
+          "academia",
+          "currency",
+          "scientific_method",
+          "railroad",
+          "computers",
+        ]),
+        scholar,
+      ),
+    ).toBe("rocketry");
+  });
+
+  test("a locked tech works down through eras and prerequisites", () => {
+    // Nothing of era 1 yet: the space program starts at the first era 1 tech.
+    expect(nextResearch(new Set(), ["space_program", "academia"])).toBe(
+      "academia",
+    );
+    // The Manhattan Project waits for Rocketry, its prerequisite.
+    expect(
+      nextResearch(new Set(["railroad", "banking"]), [
+        "manhattan_project",
+        "radar",
+        "rocketry",
+      ]),
+    ).toBe("rocketry");
+  });
+
+  test("null once every tech is researched", () => {
+    expect(
+      nextResearch(new Set(BALANCED_RESEARCH_ORDER), BALANCED_RESEARCH_ORDER),
+    ).toBeNull();
   });
 });
 
