@@ -188,12 +188,14 @@ function mintGroupToken(): string {
 export function defaultGameServerDeps(): GameServerDeps {
   // A self-hosted server has no API to archive games to or to fetch bought
   // tribe names from: games end unarchived, bots keep their organic names.
+  // Nor does it replay a disputed winner, which only settles the archive:
+  // the vote goes to the no-op archive as it stands.
   const selfHosted = ServerEnv.selfHosted();
   return {
     archive: selfHosted
       ? async () => {}
       : (record) => archive(finalizeGameRecord(record)),
-    replayWinner: replayWinnerInChild,
+    replayWinner: selfHosted ? async () => null : replayWinnerInChild,
     replayPending: () => winnerReplayMetrics.pending,
     fetchTribes: selfHosted ? async () => [] : fetchCustomTribes,
     env: () => ServerEnv.env(),
@@ -651,9 +653,11 @@ export class GameServer {
     });
 
     // Skipped in dev: local testing (multi-tab, the matchmaking e2e) is
-    // inherently same-IP.
+    // inherently same-IP. Skipped self-hosted too: friends playing from one
+    // household share an address, and the public lobbies are theirs alone.
     if (
       this.deps.env() !== GameEnv.Dev &&
+      !ServerEnv.selfHosted() &&
       this.gameConfig.gameType === GameType.Public &&
       this.clients
         .active()

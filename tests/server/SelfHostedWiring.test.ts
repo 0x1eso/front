@@ -7,6 +7,7 @@ import { defaultGameServerDeps } from "../../src/server/GameServer";
 import { FailOpenPrivilegeChecker } from "../../src/server/Privilege";
 import { startPrivilegeChecks } from "../../src/server/PrivilegeRefresher";
 import { startRankedCheckinLoops } from "../../src/server/RankedCheckin";
+import { replayWinnerInChild } from "../../src/server/WinnerReplay";
 
 function spyLog() {
   return { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
@@ -60,6 +61,19 @@ describe("self-hosted server wiring", () => {
     await deps.archive({} as never);
     await expect(deps.fetchTribes([])).resolves.toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // A replay only settles a disputed winner for the archive, and nothing is
+  // archived: it would be a game's worth of simulation in a child process
+  // for nothing.
+  test("replays no disputed winner", async () => {
+    vi.stubEnv("SELF_HOSTED", "true");
+    const deps = defaultGameServerDeps();
+    expect(deps.replayWinner).not.toBe(replayWinnerInChild);
+    await expect(deps.replayWinner({} as never, [])).resolves.toBeNull();
+
+    vi.stubEnv("SELF_HOSTED", "");
+    expect(defaultGameServerDeps().replayWinner).toBe(replayWinnerInChild);
   });
 
   test("a game link preview asks no API about the game", async () => {
