@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/client/Utils")>()),
-  translateText: (key: string) => `[${key}]`,
+  translateText: (key: string, params?: Record<string, unknown>) =>
+    params === undefined ? `[${key}]` : `[${key}:${JSON.stringify(params)}]`,
 }));
 
 // Side-effect import: the custom element must register.
@@ -135,6 +136,20 @@ describe("domestic panel with infinite gold (the engine charges no gold)", () =>
       );
       expect(block?.textContent ?? null).toBe(reason);
       expect(science.disabled).toBe(reason !== null);
+    },
+  );
+
+  it.each([
+    [false, "5.00M"],
+    [true, "0"],
+  ])(
+    "infinite gold %s: the science project's card says it costs %s gold (C8)",
+    async (infinite, gold) => {
+      const panel = await openDrawer(infinite);
+      await showTab(panel, "victory");
+      expect(panel.textContent).toContain(
+        `[domestic.victory.cost_science:${JSON.stringify({ gold })}]`,
+      );
     },
   );
 });

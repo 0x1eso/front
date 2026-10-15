@@ -159,13 +159,13 @@ function renderProject(
     d.governmentTier,
   );
   const hosts = projectHostChoices(me.units(def.hostType));
+  // Infinite gold: the engine charges no gold (VictoryProjectExecution).
+  const gold = renderNumber(infiniteGold ? 0n : def.goldCost);
   const cost =
     kind === "science"
-      ? translateText("domestic.victory.cost_science", {
-          gold: renderNumber(def.goldCost),
-        })
+      ? translateText("domestic.victory.cost_science", { gold })
       : translateText("domestic.victory.cost_political", {
-          gold: renderNumber(def.goldCost),
+          gold,
           political: POLITICAL_PROJECT_POLITICAL,
         });
   return html`
