@@ -333,6 +333,17 @@ export class EngineConfig extends Config {
     return (hc?.infiniteGold ?? false) && player.isLobbyCreator();
   }
 
+  /**
+   * Whether `player` spends no gold: a human with infinite gold (the lobby's
+   * setting, or the host's cheat for the lobby creator). Units cost such a
+   * player nothing, and neither do domestic mode's gold costs.
+   */
+  hasInfiniteGold(player: PlayerLike): boolean {
+    return (
+      player.type() === PlayerType.Human && this.hasInfiniteGoldFor(player)
+    );
+  }
+
   override unitInfo(type: UnitType): EngineUnitInfo {
     const cached = this.engineUnitInfoCache.get(type);
     if (cached !== undefined) {
@@ -362,10 +373,7 @@ export class EngineConfig extends Config {
         return this.costWrapper(() => 5_000_000, UnitType.HydrogenBomb);
       case UnitType.MIRV:
         return (game: Game, player: Player) => {
-          if (
-            player.type() === PlayerType.Human &&
-            this.hasInfiniteGoldFor(player)
-          ) {
+          if (this.hasInfiniteGold(player)) {
             return 0n;
           }
           return this.withDomesticCost(
@@ -459,10 +467,7 @@ export class EngineConfig extends Config {
     ...types: UnitType[]
   ): (g: Game, p: Player, extraUnits?: number) => bigint {
     return (game: Game, player: Player, extraUnits: number = 0) => {
-      if (
-        player.type() === PlayerType.Human &&
-        this.hasInfiniteGoldFor(player)
-      ) {
+      if (this.hasInfiniteGold(player)) {
         return 0n;
       }
       const numUnits = types.reduce(

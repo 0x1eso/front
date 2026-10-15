@@ -24,7 +24,7 @@ export class ResearchExecution implements Execution {
     private payWithGold: boolean,
   ) {}
 
-  init(_mg: Game, _ticks: number): void {
+  init(mg: Game, _ticks: number): void {
     const d = this.player.domestic();
     if (d === null || !this.player.isAlive()) return;
     if (
@@ -37,7 +37,9 @@ export class ResearchExecution implements Execution {
       return;
     }
     const costMilli = TECHS[this.tech].cost * MILLI;
-    if (!payPoints(this.player, d, "science", costMilli, this.payWithGold)) {
+    if (
+      !payPoints(mg, this.player, d, "science", costMilli, this.payWithGold)
+    ) {
       return;
     }
     d.beginResearch(this.tech, researchTicks(this.tech, d.pct("researchTime")));

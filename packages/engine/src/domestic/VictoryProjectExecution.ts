@@ -39,6 +39,7 @@ export class VictoryProjectExecution implements Execution {
       !host.isUnderConstruction()
         ? host.level()
         : null;
+    const infiniteGold = mg.config().hasInfiniteGold(this.player);
     const block = victoryProjectBlock(this.kind, {
       busy: d.victoryProject() !== null,
       qualified: projectQualified(
@@ -47,12 +48,13 @@ export class VictoryProjectExecution implements Execution {
         d.governmentTier(),
       ),
       hostLevel,
-      gold: this.player.gold(),
+      // Infinite gold can always pay the gold cost.
+      gold: infiniteGold ? def.goldCost : this.player.gold(),
       politicalMilli: d.politicalMilliAvailable(),
     });
     if (block !== null) return;
 
-    this.player.removeGold(def.goldCost);
+    if (!infiniteGold) this.player.removeGold(def.goldCost);
     if (def.politicalCostMilli > 0) {
       d.spendPoliticalMilli(def.politicalCostMilli);
     }

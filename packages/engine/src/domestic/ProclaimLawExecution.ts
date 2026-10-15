@@ -39,7 +39,9 @@ export class ProclaimLawExecution implements Execution {
     );
     if (block !== null) return;
     const costMilli = lawCost(laws.size, d.pct("lawCost")) * MILLI;
-    if (!payPoints(this.player, d, "political", costMilli, this.payWithGold)) {
+    if (
+      !payPoints(mg, this.player, d, "political", costMilli, this.payWithGold)
+    ) {
       return;
     }
     d.proclaimLaw(this.law, this.option, mg.ticks());

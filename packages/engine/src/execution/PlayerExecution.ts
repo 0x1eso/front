@@ -126,6 +126,7 @@ export class PlayerExecution implements Execution {
     }
 
     const troopInc = payRecruitment(
+      this.mg,
       this.player,
       this.config.troopIncreaseRate(this.player),
     );

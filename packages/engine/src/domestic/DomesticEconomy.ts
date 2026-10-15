@@ -135,7 +135,7 @@ function payTithe(
  * and feudalism), the government tier, the tithe, troop upkeep and
  * desertion, demobilization down to the recruit target, banking interest,
  * then research progress. The order is fixed so every client runs it
- * identically.
+ * identically. A player with infinite gold pays no gold here.
  */
 export function processDomesticSecond(
   mg: Game,
@@ -144,11 +144,12 @@ export function processDomesticSecond(
 ): void {
   const maxTroops = mg.config().maxTroops(player);
   d.setConditions(activeConditions(player, maxTroops));
+  const infiniteGold = mg.config().hasInfiniteGold(player);
 
   const instituteLevels = finishedLevels(player, UnitType.ResearchInstitute);
   const officeLevels = finishedLevels(player, UnitType.AdminOffice);
   // Communism: institutes and offices run without upkeep.
-  const freeUpkeep = d.hasFlag("noProductionUpkeep");
+  const freeUpkeep = infiniteGold || d.hasFlag("noProductionUpkeep");
   const institutesRun =
     freeUpkeep || payBuildingUpkeep(player, instituteLevels);
   const officesRun = freeUpkeep || payBuildingUpkeep(player, officeLevels);
@@ -168,7 +169,7 @@ export function processDomesticSecond(
     ? applyPct(officeLevels * BUILDING_YIELD_PER_LEVEL, d.pct("adminOutput"))
     : 0;
   const subsidy =
-    d.hasFlag("researchSubsidy") && payResearchSubsidy(player)
+    d.hasFlag("researchSubsidy") && (infiniteGold || payResearchSubsidy(player))
       ? RESEARCH_SUBSIDY_SCIENCE_PER_SEC
       : 0;
   const feudal = d.hasFlag("feudal")
@@ -197,7 +198,7 @@ export function processDomesticSecond(
   const band =
     (maxTroops * (UPKEEP_FREE_BAND_PCT + d.pct("upkeepFreeBand"))) / 100;
   const excess = player.troops() - band;
-  if (excess > 0) {
+  if (excess > 0 && !infiniteGold) {
     const due = BigInt(
       Math.ceil(
         applyPct(
@@ -250,11 +251,16 @@ export function processDomesticSecond(
 /**
  * Charges the recruitment cost (spec §3.4) for `troops` new troops and
  * returns how many the player could pay for. Without enough gold it spends
- * what it has on as many troops as that buys.
+ * what it has on as many troops as that buys. Infinite gold pays nothing.
  */
-export function payRecruitment(player: Player, troops: number): number {
+export function payRecruitment(
+  mg: Game,
+  player: Player,
+  troops: number,
+): number {
   const d = player.domestic();
   if (d === null || troops <= 0) return troops;
+  if (mg.config().hasInfiniteGold(player)) return troops;
   const costPer1000 = applyPct(
     RECRUIT_COST_PER_1000_TROOPS,
     d.pct("recruitCost"),
@@ -314,10 +320,12 @@ export function domesticDefensePostScale(defender: Player): number {
 
 /**
  * Spends `costMilli` of science or political power. A shortfall is paid in
- * gold (spec §3.1) only when `payWithGold` is set and the player has it.
- * Returns false, spending nothing, when the player can't pay.
+ * gold (spec §3.1) only when `payWithGold` is set and the player has it
+ * (infinite gold always has it and pays nothing). Returns false, spending
+ * nothing, when the player can't pay.
  */
 export function payPoints(
+  mg: Game,
   player: Player,
   d: PlayerDomestic,
   resource: "science" | "political",
@@ -340,9 +348,11 @@ export function payPoints(
     return true;
   }
   if (!payWithGold) return false;
-  const gold = shortfallGold(costMilli - available, d.pct("goldPaymentCost"));
-  if (player.gold() < gold) return false;
-  player.removeGold(gold);
+  if (!mg.config().hasInfiniteGold(player)) {
+    const gold = shortfallGold(costMilli - available, d.pct("goldPaymentCost"));
+    if (player.gold() < gold) return false;
+    player.removeGold(gold);
+  }
   spend(available);
   return true;
 }

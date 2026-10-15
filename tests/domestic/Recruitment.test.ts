@@ -35,27 +35,27 @@ describe("recruitment", () => {
   });
 
   test("recruiting costs 50 gold per 1000 troops (35 with conscription)", async () => {
-    const { player } = await readyPlayer();
+    const { game, player } = await readyPlayer();
     player.addGold(1_000_000n);
-    expect(payRecruitment(player, 2000)).toBe(2000);
+    expect(payRecruitment(game, player, 2000)).toBe(2000);
     expect(player.gold()).toBe(999_900n);
     grantTechs(player, "conscription");
-    expect(payRecruitment(player, 2000)).toBe(2000);
+    expect(payRecruitment(game, player, 2000)).toBe(2000);
     expect(player.gold()).toBe(999_830n);
   });
 
   test("recruitment is limited by gold", async () => {
-    const { player } = await readyPlayer();
+    const { game, player } = await readyPlayer();
     player.addGold(30n);
-    expect(payRecruitment(player, 2000)).toBe(600);
+    expect(payRecruitment(game, player, 2000)).toBe(600);
     expect(player.gold()).toBe(0n);
-    expect(payRecruitment(player, 2000)).toBe(0);
+    expect(payRecruitment(game, player, 2000)).toBe(0);
   });
 
   test("players without domestic state recruit for free", async () => {
     const game = await setup("plains", {}, [HUMAN]);
     const player = game.player(HUMAN.id);
-    expect(payRecruitment(player, 2000)).toBe(2000);
+    expect(payRecruitment(game, player, 2000)).toBe(2000);
     expect(player.gold()).toBe(0n);
   });
 
