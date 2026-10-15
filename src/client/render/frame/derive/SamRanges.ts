@@ -8,7 +8,14 @@ export function samRangeResolver(
   game: Pick<GameView, "config" | "playerBySmallID">,
 ): (ownerID: number, baseRange: number) => number {
   return (ownerID, baseRange) => {
-    const owner = game.playerBySmallID(ownerID);
+    let owner: ReturnType<typeof game.playerBySmallID>;
+    try {
+      owner = game.playerBySmallID(ownerID);
+    } catch {
+      // An owner the view doesn't know yet (it throws): don't take the
+      // frame down over a ring, draw its base range.
+      return baseRange;
+    }
     return owner.isPlayer()
       ? game.config().samRangeOf(owner, baseRange)
       : baseRange;

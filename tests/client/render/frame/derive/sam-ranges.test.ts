@@ -20,4 +20,14 @@ describe("samRangeResolver", () => {
     } as any);
     expect(resolve(0, 70)).toBe(70);
   });
+
+  it("leaves a SAM whose owner the view does not know at its base range (C7)", () => {
+    const resolve = samRangeResolver({
+      playerBySmallID: (id: number) => {
+        throw new Error(`small id ${id} not found`);
+      },
+      config: () => ({ samRangeOf: () => 999 }),
+    } as any);
+    expect(resolve(42, 70)).toBe(70);
+  });
 });
