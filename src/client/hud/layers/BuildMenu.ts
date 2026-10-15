@@ -203,7 +203,16 @@ export class BuildMenu extends LitElement implements Controller {
       overflow-y: auto;
     }
     .build-description {
-      font-size: 0.6rem;
+      font-size: 12px;
+      line-height: 1.25;
+      text-align: center;
+    }
+    .build-reason {
+      font-size: 12px;
+      line-height: 1.25;
+      text-align: center;
+      color: #fca5a5;
+      font-weight: 600;
     }
     .build-row {
       display: flex;
@@ -213,8 +222,8 @@ export class BuildMenu extends LitElement implements Controller {
     }
     .build-button {
       position: relative;
-      width: 120px;
-      height: 140px;
+      width: 132px;
+      min-height: 160px;
       border: 2px solid #444;
       background-color: #2c2c2c;
       color: white;
@@ -296,77 +305,6 @@ export class BuildMenu extends LitElement implements Controller {
     .build-count {
       font-weight: bold;
       font-size: 14px;
-    }
-
-    @media (max-width: 768px) {
-      .build-menu {
-        padding: 10px;
-        max-height: 80vh;
-        width: 80vw;
-      }
-      .build-button {
-        width: 140px;
-        height: 120px;
-        margin: 4px;
-        padding: 6px;
-        gap: 5px;
-      }
-      .build-icon {
-        font-size: 28px;
-      }
-      .build-name {
-        font-size: 12px;
-        margin-bottom: 3px;
-      }
-      .build-cost {
-        font-size: 11px;
-      }
-      .build-count {
-        font-weight: bold;
-        font-size: 10px;
-      }
-      .build-count-chip {
-        padding: 1px 5px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .build-menu {
-        padding: 8px;
-        max-height: 70vh;
-      }
-      .build-button {
-        width: calc(50% - 6px);
-        height: 100px;
-        margin: 3px;
-        padding: 4px;
-        border-width: 1px;
-      }
-      .build-icon {
-        font-size: 24px;
-      }
-      .build-name {
-        font-size: 10px;
-        margin-bottom: 2px;
-      }
-      .build-cost {
-        font-size: 9px;
-      }
-      .build-count {
-        font-weight: bold;
-        font-size: 8px;
-      }
-      .build-count-chip {
-        padding: 0 3px;
-      }
-      .build-button img {
-        width: 24px;
-        height: 24px;
-      }
-      .build-cost img {
-        width: 10px;
-        height: 10px;
-      }
     }
   `;
 
@@ -454,7 +392,6 @@ export class BuildMenu extends LitElement implements Controller {
                     @click=${() =>
                       this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
                     ?disabled=${!enabled}
-                    title=${this.disabledReason(buildableUnit, enabled)}
                   >
                     <img
                       src=${item.icon}
@@ -484,6 +421,11 @@ export class BuildMenu extends LitElement implements Controller {
                         class="align-middle"
                       />
                     </span>
+                    ${enabled
+                      ? ""
+                      : html`<span class="build-reason" data-build-reason
+                          >${this.disabledReason(buildableUnit, enabled)}</span
+                        >`}
                     ${item.countable
                       ? html`<div class="build-count-chip">
                           <span class="build-count">${this.count(item)}</span>
