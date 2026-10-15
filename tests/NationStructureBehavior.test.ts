@@ -1105,6 +1105,7 @@ describe("NationStructureBehavior.doHandleStructures — crowded-map exception",
     return {
       config: () => ({
         isUnitDisabled: () => false,
+        domesticMode: () => false,
         gameConfig: () => ({
           difficulty: opts.difficulty ?? Difficulty.Medium,
         }),
