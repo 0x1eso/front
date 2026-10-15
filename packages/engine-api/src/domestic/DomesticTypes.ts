@@ -113,4 +113,31 @@ export interface DomesticData {
   techs: TechId[];
   research: ResearchProgress | null;
   recruitTargetPct: number;
+  /** The running (or just completed) victory project; absent when none. */
+  project?: VictoryProjectProgress;
 }
+
+/** Domestic victory projects (spec §8): the science and the political one. */
+export const VICTORY_PROJECT_KINDS = ["science", "political"] as const;
+export type VictoryProjectKind = (typeof VICTORY_PROJECT_KINDS)[number];
+
+/** A running victory project, as stored and as sent to clients. */
+export interface VictoryProjectProgress {
+  kind: VictoryProjectKind;
+  /** The research institute / admin office the project runs in. */
+  hostUnitId: number;
+  /** 0 once the project is complete. */
+  ticksLeft: number;
+  totalTicks: number;
+  /** Political project only: held back last second because its owner was attacking. */
+  paused: boolean;
+}
+
+/** How a domestic-mode game was won (WinUpdate.reason). */
+export const WIN_REASONS = [
+  "conquest",
+  "science",
+  "political",
+  "score",
+] as const;
+export type WinReason = (typeof WIN_REASONS)[number];
