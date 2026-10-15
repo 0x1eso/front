@@ -2034,14 +2034,22 @@ export class GameServer {
       .replayWinner(this.wireGameStartInfo, turns)
       .then((replayed) => {
         if (replayed === null) {
-          winnerReplayMetrics.outcomes.failed++;
-          this.log.warn("winner replay failed, archiving the vote", {
-            gameID: this.id,
-            reason,
-            voted: voted?.winner,
-            backers,
-            statsAgreed: votedAgreed,
-          });
+          // A self-hosted server never replays (see defaultGameServerDeps):
+          // a null there is the design, not a failure.
+          const disabled = ServerEnv.selfHosted();
+          if (!disabled) winnerReplayMetrics.outcomes.failed++;
+          this.log[disabled ? "info" : "warn"](
+            disabled
+              ? "winner replay disabled, archiving the vote"
+              : "winner replay failed, archiving the vote",
+            {
+              gameID: this.id,
+              reason,
+              voted: voted?.winner,
+              backers,
+              statsAgreed: votedAgreed,
+            },
+          );
           archived = true;
           this.archiveGame(voted, votedAgreed, turns, endTime);
           return;
