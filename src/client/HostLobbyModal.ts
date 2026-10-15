@@ -10,6 +10,11 @@ import {
   isValidGameID,
   TeamCountConfig,
 } from "@openfront/engine-api/Schemas";
+import {
+  CONQUEST_PERCENT_MAX,
+  CONQUEST_PERCENT_MIN,
+  DOMESTIC_CONQUEST_PERCENT,
+} from "@openfront/engine-lib/domestic/Balance";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
 import { GameEnv } from "@openfront/shared/configuration/Env";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -49,6 +54,7 @@ import { JoinLobbyEvent } from "./Main";
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 import { UserSettings } from "./UserSettings";
 import {
+  domesticModeDefaults,
   getBotsForCompactMap,
   getNationsForCompactMap,
   getRandomMapType,
@@ -104,6 +110,7 @@ export class HostLobbyModal extends BaseModal {
   @state() private allowedPublicIds: string = "";
   @state() private waterNukes: boolean = false;
   @state() private domesticMode: boolean = false;
+  @state() private conquestPercent: number | undefined = undefined;
   @state() private lobbyId = "";
   @state() private lobbyUrlSuffix = "";
   @state() private clients: ClientInfo[] = [];
@@ -458,6 +465,22 @@ export class HostLobbyModal extends BaseModal {
         .onInput=${this.handleMaxTimerValueChanges}
         .onKeyDown=${this.handleMaxTimerValueKeyDown}
       ></toggle-input-card>`,
+      ...(this.domesticMode
+        ? [
+            html`<input-card
+              .labelKey=${"game_settings.conquest_percent"}
+              .inputId=${"conquest-percent-value"}
+              .inputMin=${CONQUEST_PERCENT_MIN}
+              .inputMax=${CONQUEST_PERCENT_MAX}
+              .inputStep=${"1"}
+              .inputValue=${this.conquestPercent}
+              .inputAriaLabel=${translateText("game_settings.conquest_percent")}
+              .inputPlaceholder=${String(DOMESTIC_CONQUEST_PERCENT)}
+              .onChange=${this.handleConquestPercentChange}
+              .onKeyDown=${this.handleConquestPercentKeyDown}
+            ></input-card>`,
+          ]
+        : []),
       html`<toggle-input-card
         .labelKey=${"host_modal.player_limit"}
         .checked=${this.playerLimit}
@@ -519,21 +542,27 @@ export class HostLobbyModal extends BaseModal {
         .onInput=${this.handleCustomAllianceMinutesInput}
         .onKeyDown=${this.handleCustomAllianceMinutesKeyDown}
       ></toggle-input-card>`,
-      html`<toggle-input-card
-        .labelKey=${"game_settings.overtime"}
-        .checked=${this.overtime}
-        .inputMin=${1}
-        .inputMax=${120}
-        .inputStep=${1}
-        .inputValue=${this.overtimeStartMinutes}
-        .inputAriaLabel=${translateText("game_settings.overtime")}
-        .inputPlaceholder=${translateText("game_settings.mins_placeholder")}
-        .defaultInputValue=${30}
-        .minValidOnEnable=${1}
-        .onToggle=${this.handleOvertimeToggle}
-        .onInput=${this.handleOvertimeMinutesInput}
-        .onKeyDown=${this.handleOvertimeMinutesKeyDown}
-      ></toggle-input-card>`,
+      ...(this.domesticMode
+        ? []
+        : [
+            html`<toggle-input-card
+              .labelKey=${"game_settings.overtime"}
+              .checked=${this.overtime}
+              .inputMin=${1}
+              .inputMax=${120}
+              .inputStep=${1}
+              .inputValue=${this.overtimeStartMinutes}
+              .inputAriaLabel=${translateText("game_settings.overtime")}
+              .inputPlaceholder=${translateText(
+                "game_settings.mins_placeholder",
+              )}
+              .defaultInputValue=${30}
+              .minValidOnEnable=${1}
+              .onToggle=${this.handleOvertimeToggle}
+              .onInput=${this.handleOvertimeMinutesInput}
+              .onKeyDown=${this.handleOvertimeMinutesKeyDown}
+            ></toggle-input-card>`,
+          ]),
       html`<toggle-input-card
         .labelKey=${"game_settings.gold_multiplier"}
         .checked=${this.goldMultiplier}
@@ -1050,6 +1079,7 @@ export class HostLobbyModal extends BaseModal {
     this.allowedPublicIds = "";
     this.waterNukes = false;
     this.domesticMode = false;
+    this.conquestPercent = undefined;
     this.hostCheatsEnabled = false;
     this.hostCheatInfiniteGold = false;
     this.hostCheatInfiniteTroops = false;
@@ -1155,6 +1185,15 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.domestic_mode":
         this.domesticMode = checked;
+        if (checked) {
+          const defaults = domesticModeDefaults(
+            this.maxTimer,
+            this.maxTimerValue,
+          );
+          this.maxTimer = defaults.maxTimer;
+          this.maxTimerValue = defaults.maxTimerValue;
+          this.overtime = defaults.overtime;
+        }
         this.putGameConfig();
         break;
       case "game_settings.doomsday_clock":
@@ -1514,6 +1553,25 @@ export class HostLobbyModal extends BaseModal {
     return this.clients.filter((c) => c.spectator !== true).length;
   }
 
+  private handleConquestPercentKeyDown = (e: KeyboardEvent) => {
+    preventDisallowedKeys(e, ["-", "+", "e", "E", "."]);
+  };
+
+  private handleConquestPercentChange = (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const value = parseBoundedIntegerFromInput(input, {
+      min: CONQUEST_PERCENT_MIN,
+      max: CONQUEST_PERCENT_MAX,
+    });
+    if (value === undefined) {
+      this.conquestPercent = undefined;
+      input.value = "";
+    } else {
+      this.conquestPercent = value;
+    }
+    this.putGameConfig();
+  };
+
   private handleStartDelayValueKeyDown = (e: KeyboardEvent) => {
     preventDisallowedKeys(e, ["-", "+", "e", "E", "."]);
   };
@@ -1707,6 +1765,9 @@ export class HostLobbyModal extends BaseModal {
               : [],
             waterNukes: this.waterNukes ? true : null,
             domesticMode: this.domesticMode,
+            conquestPercent: this.domesticMode
+              ? (this.conquestPercent ?? null)
+              : null,
             hostCheats: this.hostCheatsEnabled
               ? {
                   infiniteGold: this.hostCheatInfiniteGold || undefined,
