@@ -1,6 +1,7 @@
 import { ReactiveController, ReactiveControllerHost } from "lit";
 import version from "resources/version.txt?raw";
 import { getCosmeticsHash } from "../Cosmetics";
+import { isSelfHosted } from "../SelfHosted";
 import { getGamesPlayed } from "../Utils";
 
 const HELP_SEEN_KEY = "helpSeen";
@@ -53,7 +54,10 @@ class NavNotificationsStore {
     getCosmeticsHash()
       .then((hash: string | null) => {
         const seenHash = localStorage.getItem(STORE_SEEN_HASH_KEY);
-        this._hasNewCosmetics = hash !== null && hash !== seenHash;
+        // A self-hosted page hides the store (and its server answers an
+        // empty catalog): a dot there would only hide the help dot.
+        this._hasNewCosmetics =
+          !isSelfHosted() && hash !== null && hash !== seenHash;
         this.notify();
       })
       .catch(() => {});

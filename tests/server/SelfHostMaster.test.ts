@@ -1,3 +1,5 @@
+import { StreamsFeedSchema } from "@openfront/shared/ApiSchemas";
+import { CosmeticsSchema } from "@openfront/shared/CosmeticSchemas";
 import { SELF_HOST_API_PREFIX } from "@openfront/shared/SelfHost";
 import express from "express";
 import http from "http";
@@ -209,7 +211,7 @@ describe("master in front of a worker", () => {
     for (const [method, path] of [
       ["GET", "/users/@me"],
       ["POST", "/auth/refresh"],
-      ["GET", "/cosmetics.json?rail=web"],
+      ["GET", "/leaderboard/ranked"],
     ]) {
       const res = await fetch(
         `http://${masterHost}${SELF_HOST_API_PREFIX}${path}`,
@@ -218,6 +220,33 @@ describe("master in front of a worker", () => {
       expect(res.status, `${method} ${path}`).toBe(404);
       expect(await res.json()).toEqual({ error: "self_hosted" });
     }
+  });
+
+  // Every page load asks for these. Empty answers in the shapes the client
+  // parses keep the console and the network log free of errors.
+  it("answers an empty cosmetics catalog and streams feed", async () => {
+    const cosmetics = await fetch(
+      `http://${masterHost}${SELF_HOST_API_PREFIX}/cosmetics.json?rail=web`,
+    );
+    expect(cosmetics.status).toBe(200);
+    const catalog = CosmeticsSchema.parse(await cosmetics.json());
+    expect(catalog.patterns).toEqual({});
+    expect(catalog.flags).toEqual({});
+    expect(catalog.subscriptions).toBeUndefined();
+
+    const streams = await fetch(
+      `http://${masterHost}${SELF_HOST_API_PREFIX}/streams.json`,
+    );
+    expect(streams.status).toBe(200);
+    const feed = StreamsFeedSchema.parse(await streams.json());
+    expect(feed.featured).toEqual([]);
+    expect(feed.live).toEqual([]);
+
+    const post = await fetch(
+      `http://${masterHost}${SELF_HOST_API_PREFIX}/cosmetics.json`,
+      { method: "POST" },
+    );
+    expect(post.status).toBe(404);
   });
 });
 
