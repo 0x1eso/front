@@ -28,6 +28,7 @@ import {
 } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { CHEAPEST_TROOP_RATIO } from "../../configuration/EngineConfig";
+import { hasActiveVictoryProject } from "../../domestic/VictoryProjects";
 import { Attack, Game, Player, Unit } from "../../game/Game";
 import {
   canBuildTransportShip,
@@ -594,6 +595,18 @@ export class AiAttackBehavior {
       );
     };
 
+    // Domestic mode (spec §9.4): whoever runs a victory project we can reach
+    // is the first target of Hard & Impossible nations. Off in vanilla, where
+    // the strategy lists below stay exactly as they were.
+    const project = (): boolean => {
+      const owner = pick(
+        (enemies) =>
+          enemies.find((enemy) => hasActiveVictoryProject(enemy)) ?? null,
+      );
+      return owner !== null ? this.sendAttack(owner) : false;
+    };
+    const projectFirst = this.game.config().domesticMode() ? [project] : [];
+
     // Return strategies in order based on difficulty
     // Easy nations get the dumbest order, impossible nations get the smartest order
     // Medium and up retaliate in attackBestTarget, ahead of the ratio checks
@@ -608,10 +621,10 @@ export class AiAttackBehavior {
       case Difficulty.Hard:
         // Strong veryWeak and juicy strats after the distracting hated strat, to make the nations weaker than impossible
         // prettier-ignore
-        return [bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
+        return [...projectFirst, bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
       case Difficulty.Impossible:
         // prettier-ignore
-        return [bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
+        return [...projectFirst, bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
       default:
         assertNever(difficulty);
     }
