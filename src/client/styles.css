@@ -6,6 +6,13 @@
 /* The Steam shell has no ad slots, so it can use the width they reserve. */
 @custom-variant desktop (&:where(.desktop-shell, .desktop-shell *));
 
+/* A self-hosted server has no account API (src/client/SelfHosted.ts):
+   index.html sets html.self-hosted, and whatever needs the API carries
+   .no-self-host. */
+html.self-hosted .no-self-host {
+  display: none !important;
+}
+
 @theme {
   --default-ring-width: 3px;
   --default-ring-color: var(--color-malibu-blue);

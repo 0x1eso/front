@@ -46,6 +46,7 @@ import {
   provisionalXpRules,
   reconcileXp,
 } from "../../ProvisionalXpAtDeath";
+import { isSelfHosted } from "../../SelfHosted";
 import { PlaySoundEffectEvent } from "../../sound/Sounds";
 import { steamSDK } from "../../SteamSDK";
 import { SendWinnerEvent } from "../../Transport";
@@ -397,6 +398,9 @@ export class WinModal extends LitElement implements Controller {
   }
 
   innerHtml() {
+    // Every promo here is OpenFront's (its Steam page, its Discord, its
+    // store), so a self-hosted page shows none of them.
+    if (isSelfHosted()) return html``;
     // The Steam desktop build has nothing to wishlist — fall through to the
     // other promos so the box is never empty.
     const canWishlist = !steamSDK.isOnSteam();

@@ -68,7 +68,10 @@ export class PlayPage extends LitElement {
               class="col-start-3 justify-self-end shrink-0 flex items-center gap-0.5"
             >
               <nav-utility-icons size="mobile"></nav-utility-icons>
-              <nav-account-menu variant="mobile"></nav-account-menu>
+              <nav-account-menu
+                variant="mobile"
+                class="no-self-host"
+              ></nav-account-menu>
             </div>
           </div>
         </div>

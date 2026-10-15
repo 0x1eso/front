@@ -1,5 +1,6 @@
 import { html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { isSelfHosted } from "../SelfHosted";
 import { steamSDK } from "../SteamSDK";
 import { translateText } from "../Utils";
 import { steamStoreUrl } from "./SteamWishlist";
@@ -26,7 +27,8 @@ export class SteamWishlistButton extends LitElement {
   }
 
   render() {
-    if (steamSDK.isOnSteam()) return nothing;
+    // Steam sells OpenFront, not this fork: no promo on a self-hosted page.
+    if (steamSDK.isOnSteam() || isSelfHosted()) return nothing;
 
     return html`
       <a

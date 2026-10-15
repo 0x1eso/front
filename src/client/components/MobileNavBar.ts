@@ -98,7 +98,7 @@ export class MobileNavBar extends LitElement {
           data-i18n="main.play"
         ></button>
         <div
-          class="no-game-portal nav-menu-item flex items-center w-full cursor-pointer"
+          class="no-game-portal no-self-host nav-menu-item flex items-center w-full cursor-pointer"
           data-page="page-item-store"
           @click=${this._notifications.onStoreClick}
         >
@@ -108,19 +108,19 @@ export class MobileNavBar extends LitElement {
             : ""}
         </div>
         <button
-          class="${MOBILE_ITEM} ${currentPage === "page-inventory"
+          class="no-self-host ${MOBILE_ITEM} ${currentPage === "page-inventory"
             ? "active"
             : ""}"
           data-page="page-inventory"
           data-i18n="main.inventory"
         ></button>
         <button
-          class="${MOBILE_ITEM}"
+          class="no-self-host ${MOBILE_ITEM}"
           data-page="page-leaderboard"
           data-i18n="main.leaderboard"
         ></button>
         <button
-          class="no-game-portal ${MOBILE_ITEM}"
+          class="no-game-portal no-self-host ${MOBILE_ITEM}"
           data-page="page-clan"
           data-i18n="main.clans"
         ></button>

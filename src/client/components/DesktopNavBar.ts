@@ -69,7 +69,7 @@ export class DesktopNavBar extends LitElement {
           data-i18n="main.play"
         ></button>
         <!-- Desktop Navigation Menu Items -->
-        <div class="relative no-game-portal">
+        <div class="relative no-game-portal no-self-host">
           <button
             class="nav-menu-item ${currentPage === "page-item-store"
               ? "active"
@@ -90,19 +90,19 @@ export class DesktopNavBar extends LitElement {
             : ""}
         </div>
         <button
-          class="nav-menu-item ${currentPage === "page-inventory"
+          class="no-self-host nav-menu-item ${currentPage === "page-inventory"
             ? "active"
             : ""} text-white/70 hover:text-malibu-blue font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue"
           data-page="page-inventory"
           data-i18n="main.inventory"
         ></button>
         <button
-          class="nav-menu-item text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+          class="no-self-host nav-menu-item text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
           data-page="page-leaderboard"
           data-i18n="main.leaderboard"
         ></button>
         <button
-          class="no-game-portal nav-menu-item text-white/70 hover:text-blue-500 font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-blue-500"
+          class="no-game-portal no-self-host nav-menu-item text-white/70 hover:text-blue-500 font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-blue-500"
           data-page="page-clan"
           data-i18n="main.clans"
         ></button>
@@ -112,7 +112,10 @@ export class DesktopNavBar extends LitElement {
              item list. -->
         <div class="flex items-center gap-1 pl-5 ml-1 border-l border-white/10">
           <nav-utility-icons size="desktop"></nav-utility-icons>
-          <nav-account-menu variant="desktop"></nav-account-menu>
+          <nav-account-menu
+            variant="desktop"
+            class="no-self-host"
+          ></nav-account-menu>
         </div>
       </nav>
     `;

@@ -58,6 +58,16 @@ describe("purchase-nudge-modal", () => {
     expect(await shown()).toBe(true);
   });
 
+  it("never shows on a self-hosted server, which has no store", async () => {
+    window.BOOTSTRAP_CONFIG = { selfHosted: true };
+    try {
+      fireUserMe(null);
+      expect(await shown()).toBe(false);
+    } finally {
+      window.BOOTSTRAP_CONFIG = undefined;
+    }
+  });
+
   it("never shows again once it has been shown", async () => {
     localStorage.setItem("purchaseNudgeShown", "1");
     fireUserMe(false);

@@ -30,6 +30,7 @@ import type { JoinLobbyModal } from "./JoinLobbyModal";
 import { whenModalLoaded } from "./LazyModals";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
+import { isSelfHosted } from "./SelfHosted";
 import {
   backendUnreachableConfirmed,
   isPinnedToAVersion,
@@ -691,7 +692,11 @@ export class GameModeSelector extends LitElement {
               </div>`
             : nothing}
         </div>
-        <div class="grid grid-cols-3 gap-4 h-14 sm:col-span-2 sm:row-start-4">
+        <div
+          class="grid ${isSelfHosted()
+            ? "grid-cols-2"
+            : "grid-cols-3"} gap-4 h-14 sm:col-span-2 sm:row-start-4"
+        >
           ${this.renderSmallActionCard(
             translateText("main.create"),
             this.openHostLobby,
@@ -699,26 +704,29 @@ export class GameModeSelector extends LitElement {
             undefined,
             true,
           )}
-          ${this.renderSmallActionCard(
-            translateText("mode_selector.ranked_title"),
-            this.openRankedMenu,
-            SECONDARY_ACTION,
-            undefined,
-            true,
-            // Ranked admits trusted accounts only. A trusted viewer gets the
-            // green open lock; anyone else meets the red locks and the trust
-            // popup inside the ranked modal. Small, so it clears the label on
-            // narrow (mobile) buttons.
-            this.viewerTrusted
-              ? trustLockIcon(true, {
-                  tooltipTitle: translateText(
-                    "mode_selector.ranked_trust_tooltip_title",
-                  ),
-                  position: "top-1 right-1",
-                  small: true,
-                })
-              : nothing,
-          )}
+          ${isSelfHosted()
+            ? // Ranked matchmaking lives in OpenFront's API.
+              nothing
+            : this.renderSmallActionCard(
+                translateText("mode_selector.ranked_title"),
+                this.openRankedMenu,
+                SECONDARY_ACTION,
+                undefined,
+                true,
+                // Ranked admits trusted accounts only. A trusted viewer gets
+                // the green open lock; anyone else meets the red locks and
+                // the trust popup inside the ranked modal. Small, so it
+                // clears the label on narrow (mobile) buttons.
+                this.viewerTrusted
+                  ? trustLockIcon(true, {
+                      tooltipTitle: translateText(
+                        "mode_selector.ranked_trust_tooltip_title",
+                      ),
+                      position: "top-1 right-1",
+                      small: true,
+                    })
+                  : nothing,
+              )}
           ${this.renderSmallActionCard(
             translateText("main.join"),
             this.openJoinLobby,
