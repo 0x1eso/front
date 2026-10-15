@@ -16,6 +16,7 @@ import { getApiBase } from "./ApiBase";
 import { ClientEnv } from "./ClientEnv";
 import { isDesktopShell } from "./DesktopShell";
 import { pagePin } from "./PagePin";
+import { isSelfHosted } from "./SelfHosted";
 import { isReplayShellHost } from "./VersionedReplay";
 
 // Multi-server v2 (docs/MultiServer.md, "Server list v2"): the API says which
@@ -411,6 +412,8 @@ function warnMalformedOnce(detail: unknown): void {
  */
 function fetchOnce(): Promise<ServerList | null> {
   if (inflight !== null) return inflight;
+  // See startServerListPolling: nothing to ask on a self-hosted page.
+  if (isSelfHosted()) return Promise.resolve(null);
   const site = safeSite();
   if (site === undefined) return Promise.resolve(null);
   inflight = fetchServerList(site)
@@ -440,6 +443,10 @@ function fetchOnce(): Promise<ServerList | null> {
 export function startServerListPolling(): void {
   if (polling) return;
   try {
+    // A self-hosted server is the only server there is, and no API lists
+    // it: the page's own values answer (apply() -> "fallback"), and with no
+    // attempts the reachability gate never closes multiplayer.
+    if (isSelfHosted()) return;
     if (safeSite() === undefined) return;
     if (isReplayShellHost(window.location.hostname)) return;
   } catch {
