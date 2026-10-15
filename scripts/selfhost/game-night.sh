@@ -2,16 +2,20 @@
 # Game night on a self-hosted server (README, "자체 호스팅 (게임 나이트)").
 #
 #   game-night.sh start [--local] [--rebuild]
-#       Build when the commit changed, start the game server with the
+#       Build when the code changed, start the game server with the
 #       self-host settings, wait until it answers, then open the Cloudflare
-#       Tunnel. --local skips the tunnel (http://localhost:3000 or the LAN);
-#       --rebuild builds even when nothing changed.
+#       Tunnel and wait until it connects. Refuses while anything listens on
+#       the server's ports (3000 and one per worker). --local skips the tunnel
+#       (http://localhost:3000 or the LAN); --rebuild builds even when nothing
+#       changed.
 #   game-night.sh stop      Stop the tunnel and the server.
 #   game-night.sh status    Show what is running.
 #   game-night.sh check     Validate the env file, then exit.
 #
 # Settings: .env.selfhost in the repository root (template:
 # scripts/selfhost/selfhost.env.example), or the file SELFHOST_ENV_FILE names.
+# Logs: .selfhost/server.log and tunnel.log; the previous run's are kept as
+# server.log.1 and tunnel.log.1.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -20,7 +24,12 @@ RUN_DIR="$REPO_ROOT/.selfhost"
 SERVER_PID_FILE="$RUN_DIR/server.pid"
 TUNNEL_PID_FILE="$RUN_DIR/tunnel.pid"
 BUILD_STAMP="$REPO_ROOT/static/.selfhost-commit"
-HEALTH_URL="http://127.0.0.1:3000/api/health"
+MASTER_PORT=3000
+HEALTH_URL="http://127.0.0.1:$MASTER_PORT/api/health"
+# What each pid file's process runs (`ps` args): a pid the system has since
+# handed to another program is not ours to signal.
+SERVER_CMD="src/server/Server.ts"
+TUNNEL_CMD="cloudflared"
 
 die() {
     echo "game-night: $*" >&2
@@ -44,6 +53,7 @@ load_env() {
     set +a
     export NUM_WORKERS="${NUM_WORKERS:-2}"
     export INSTANCE_LETTER="${INSTANCE_LETTER:-a}"
+    HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-60}"
 }
 
 check_env() {
@@ -58,6 +68,8 @@ check_env() {
         || die "NUM_WORKERS must be a positive integer, got '$NUM_WORKERS'"
     [[ "$INSTANCE_LETTER" =~ ^[a-z]$ ]] \
         || die "INSTANCE_LETTER must be one lowercase letter, got '$INSTANCE_LETTER'"
+    [[ "$HEALTH_TIMEOUT" =~ ^[1-9][0-9]*$ ]] \
+        || die "HEALTH_TIMEOUT must be a positive number of seconds, got '$HEALTH_TIMEOUT'"
 }
 
 tunnel_config() {
@@ -73,27 +85,89 @@ check_tunnel() {
         || die "no cloudflared config at $(tunnel_config) (README, 처음 한 번)"
 }
 
+# is_running PID_FILE CMD: the pid file names a live process running CMD.
 is_running() {
-    [[ -f "$1" ]] && kill -0 "$(cat "$1")" 2> /dev/null
+    local pid args
+    [[ -f "$1" ]] || return 1
+    pid="$(cat "$1")"
+    [[ "$pid" =~ ^[1-9][0-9]*$ ]] || return 1
+    args="$(ps -ww -o args= -p "$pid" 2> /dev/null)" || return 1
+    [[ "$args" == *"$2"* ]]
+}
+
+# Whether anything listens on 127.0.0.1:PORT: curl exits 7 only when it
+# could not connect at all.
+port_in_use() {
+    local code=0
+    curl -sS -o /dev/null --max-time 3 "http://127.0.0.1:$1/" > /dev/null 2>&1 \
+        || code=$?
+    [[ "$code" != 7 ]]
+}
+
+# A new server cannot bind a taken port and exits, while whatever holds the
+# port (npm run dev, a server started by hand) answers the health check in
+# its place, and the tunnel would open onto it.
+check_ports_free() {
+    local port
+    for port in $(seq "$MASTER_PORT" "$((MASTER_PORT + NUM_WORKERS))"); do
+        if port_in_use "$port"; then
+            die "port $port is already in use (npm run dev, or a server started another way?); stop it first"
+        fi
+    done
+}
+
+# A tracked file differs from HEAD. Untracked files alone are not part of
+# the build.
+tree_dirty() {
+    [[ -n "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no)" ]]
+}
+
+# A hash of everything uncommitted: the diff against HEAD and each untracked
+# file (one may be imported by the changes).
+changes_hash() {
+    (
+        cd "$REPO_ROOT"
+        git diff --no-ext-diff --binary HEAD
+        git ls-files -z --others --exclude-standard \
+            | while IFS= read -r -d '' file; do
+                echo "$(git hash-object -- "$file") $file"
+            done
+    ) | git -C "$REPO_ROOT" hash-object --stdin
+}
+
+# What a build is built from: HEAD's commit, or for uncommitted changes
+# <commit>-dirty-<hash of the changes>. It is the server's GIT_COMMIT and the
+# build stamp, so every edit is a build of its own: start rebuilds it, and a
+# tab loaded from another build fails the server's version check and
+# reloads instead of mis-decoding the game (src/server/Worker.ts). The
+# source links name the commit part (packages/shared/src/Branding.ts).
+build_id() {
+    local head hash
+    head="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+    if ! tree_dirty; then
+        echo "$head"
+        return 0
+    fi
+    hash="$(changes_hash)"
+    echo "${head:0:12}-dirty-${hash:0:12}"
 }
 
 needs_build() {
     [[ -f "$REPO_ROOT/static/index.html" && -f "$BUILD_STAMP" ]] || return 0
-    [[ "$(cat "$BUILD_STAMP")" == "$(git -C "$REPO_ROOT" rev-parse HEAD)" ]] \
-        || return 0
-    [[ -z "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no)" ]] \
-        || return 0
-    return 1
+    [[ "$(cat "$BUILD_STAMP")" != "$1" ]]
 }
 
+# build BUILD_ID. The stamp goes first, so a failed build is never taken
+# for a finished one.
 build() {
+    rm -f "$BUILD_STAMP"
     say "building (npm run build-prod); this takes a few minutes"
     (cd "$REPO_ROOT" && npm run build-prod)
-    git -C "$REPO_ROOT" rev-parse HEAD > "$BUILD_STAMP"
+    echo "$1" > "$BUILD_STAMP"
 }
 
 warn_unpushed() {
-    if [[ -n "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no)" ]]; then
+    if tree_dirty; then
         echo "game-night: warning: the working tree has uncommitted changes. AGPL section 13: the source link must match the code that is running." >&2
     fi
     if [[ -z "$(git -C "$REPO_ROOT" branch -r --contains HEAD 2> /dev/null)" ]]; then
@@ -101,21 +175,56 @@ warn_unpushed() {
     fi
 }
 
+# Keeps the previous run's log as LOG.1.
+rotate_log() {
+    if [[ -f "$1" ]]; then
+        mv -f "$1" "$1.1"
+    fi
+}
+
+server_failed() {
+    stop_group "$SERVER_PID_FILE" "$SERVER_CMD" server
+    die "$1; see $RUN_DIR/server.log"
+}
+
+# The health URL answering counts only while our server is alive, before
+# and after the answer: if it died, whatever answers is not ours.
 wait_healthy() {
     local _
-    for _ in $(seq 1 120); do
-        if curl -fsS "$HEALTH_URL" > /dev/null 2>&1; then
+    for _ in $(seq 1 "$((HEALTH_TIMEOUT * 2))"); do
+        is_running "$SERVER_PID_FILE" "$SERVER_CMD" \
+            || server_failed "the server exited"
+        if curl -fsS --max-time 2 "$HEALTH_URL" > /dev/null 2>&1; then
+            is_running "$SERVER_PID_FILE" "$SERVER_CMD" \
+                || server_failed "the server exited"
             return 0
         fi
-        is_running "$SERVER_PID_FILE" \
-            || die "the server exited; see $RUN_DIR/server.log"
         sleep 0.5
     done
-    die "the server did not become healthy in 60s; see $RUN_DIR/server.log"
+    server_failed "the server did not become healthy in ${HEALTH_TIMEOUT}s"
+}
+
+# Waits for cloudflared to register a connection with Cloudflare. A tunnel
+# that exits takes the server down with it, so start can simply be rerun.
+wait_tunnel() {
+    local _
+    for _ in $(seq 1 60); do
+        if ! is_running "$TUNNEL_PID_FILE" "$TUNNEL_CMD"; then
+            stop_group "$TUNNEL_PID_FILE" "$TUNNEL_CMD" tunnel
+            stop_group "$SERVER_PID_FILE" "$SERVER_CMD" server
+            die "the tunnel exited; see $RUN_DIR/tunnel.log"
+        fi
+        if grep -q "Registered tunnel connection" "$RUN_DIR/tunnel.log" 2> /dev/null; then
+            say "tunnel up: https://$DOMAIN"
+            return 0
+        fi
+        sleep 0.5
+    done
+    echo "game-night: warning: the tunnel has not connected in 30s; see $RUN_DIR/tunnel.log" >&2
 }
 
 start() {
-    local local_only=false rebuild=false arg node_major
+    local local_only=false rebuild=false arg node_major id
     for arg in "$@"; do
         case "$arg" in
             --local) local_only=true ;;
@@ -134,38 +243,50 @@ start() {
         echo "game-night: warning: Node $node_major; the project pins Node 24 (README)" >&2
     fi
     mkdir -p "$RUN_DIR"
-    if is_running "$SERVER_PID_FILE"; then
+    if is_running "$SERVER_PID_FILE" "$SERVER_CMD"; then
         die "already running (game-night.sh stop first)"
     fi
+    # A tunnel whose server is gone, from an earlier start: a new one would
+    # run beside it and its pid file be lost.
+    stop_group "$TUNNEL_PID_FILE" "$TUNNEL_CMD" "leftover tunnel"
+    check_ports_free
     warn_unpushed
-    if $rebuild || needs_build; then
-        build
+    id="$(build_id)"
+    if $rebuild || needs_build "$id"; then
+        build "$id"
+        # The build takes minutes; something may have taken a port meanwhile.
+        check_ports_free
     fi
 
-    GIT_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
-    export GIT_COMMIT
+    export GIT_COMMIT="$id"
+    rotate_log "$RUN_DIR/server.log"
     # setsid: the server becomes its own process group, so stop can signal it
-    # together with tsx's node child and the cluster workers.
+    # together with tsx's node child and the cluster workers. NODE_ENV:
+    # Express answers a bad request without its stack trace.
     (
         cd "$REPO_ROOT"
-        setsid node_modules/.bin/tsx src/server/Server.ts > "$RUN_DIR/server.log" 2>&1 &
+        NODE_ENV=production setsid node_modules/.bin/tsx src/server/Server.ts \
+            > "$RUN_DIR/server.log" 2>&1 &
         echo $! > "$SERVER_PID_FILE"
     )
     say "server starting (log: $RUN_DIR/server.log)"
     wait_healthy
-    say "server up on http://localhost:3000"
+    say "server up on http://localhost:$MASTER_PORT"
 
     if ! $local_only; then
+        rotate_log "$RUN_DIR/tunnel.log"
         setsid cloudflared tunnel --no-autoupdate --config "$(tunnel_config)" \
             run "$TUNNEL_NAME" > "$RUN_DIR/tunnel.log" 2>&1 &
         echo $! > "$TUNNEL_PID_FILE"
-        say "tunnel starting: https://$DOMAIN (log: $RUN_DIR/tunnel.log)"
+        say "tunnel starting (log: $RUN_DIR/tunnel.log)"
+        wait_tunnel
     fi
 }
 
+# stop_group PID_FILE CMD NAME
 stop_group() {
-    local pid_file="$1" name="$2" pid _
-    if ! is_running "$pid_file"; then
+    local pid_file="$1" cmd="$2" name="$3" pid _
+    if ! is_running "$pid_file" "$cmd"; then
         rm -f "$pid_file"
         return 0
     fi
@@ -184,13 +305,13 @@ stop_group() {
 
 status() {
     local health
-    if is_running "$SERVER_PID_FILE"; then
-        health="$(curl -fsS "$HEALTH_URL" 2> /dev/null || echo "not answering")"
+    if is_running "$SERVER_PID_FILE" "$SERVER_CMD"; then
+        health="$(curl -fsS --max-time 2 "$HEALTH_URL" 2> /dev/null || echo "not answering")"
         echo "server: running (pid $(cat "$SERVER_PID_FILE")), health: $health"
     else
         echo "server: stopped"
     fi
-    if is_running "$TUNNEL_PID_FILE"; then
+    if is_running "$TUNNEL_PID_FILE" "$TUNNEL_CMD"; then
         echo "tunnel: running (pid $(cat "$TUNNEL_PID_FILE"))"
     else
         echo "tunnel: stopped"
@@ -203,8 +324,8 @@ case "${1:-}" in
         start "$@"
         ;;
     stop)
-        stop_group "$TUNNEL_PID_FILE" tunnel
-        stop_group "$SERVER_PID_FILE" server
+        stop_group "$TUNNEL_PID_FILE" "$TUNNEL_CMD" tunnel
+        stop_group "$SERVER_PID_FILE" "$SERVER_CMD" server
         ;;
     status)
         status
