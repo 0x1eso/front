@@ -478,6 +478,22 @@ export class Config {
     return 150;
   }
 
+  /**
+   * A SAM's range from its base range (samRange(level), or the interpolated
+   * range while upgrading) with its owner's domestic samRange modifier (the
+   * air-defense law), never past maxSamRange(): the interception search
+   * prunes at that distance. The engine intercepts with it
+   * (EngineConfig.dynamicSamRange) and the client draws its rings with it.
+   */
+  samRangeOf(owner: PlayerLike, baseRange: number): number {
+    const domestic = this.domesticOf(owner);
+    if (domestic === null) return baseRange;
+    const pct = domestic.pct("samRange");
+    return pct === 0
+      ? baseRange
+      : Math.min(this.maxSamRange(), applyPct(baseRange, pct));
+  }
+
   structureMinDist(): number {
     return 15;
   }

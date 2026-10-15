@@ -382,6 +382,10 @@ export class MapRenderer {
   setSAMAllianceClusters(clusters: Map<number, number>): void {
     this.renderer?.setSAMAllianceClusters(clusters);
   }
+  /** SAM rings at each owner's modified range (Config.samRangeOf). */
+  setSamRangeOf(fn: (ownerID: number, baseRange: number) => number): void {
+    this.renderer?.setSamRangeOf(fn);
+  }
 
   // ---- Other ----
 

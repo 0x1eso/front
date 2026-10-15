@@ -1151,6 +1151,11 @@ export class GPURenderer {
     );
   }
 
+  /** SAM rings at each owner's modified range (Config.samRangeOf). */
+  setSamRangeOf(fn: (ownerID: number, baseRange: number) => number): void {
+    this.samRadiusPass.setSamRangeOf(fn);
+  }
+
   setLocalPlayerID(id: number): void {
     if (id === this.localPlayerID) return;
     this.localPlayerID = id;

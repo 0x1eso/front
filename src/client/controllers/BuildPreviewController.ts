@@ -461,7 +461,8 @@ export class BuildPreviewController implements Controller {
       ) {
         continue;
       }
-      const r = this.game.config().samRange(s.level());
+      const config = this.game.config();
+      const r = config.samRangeOf(owner, config.samRange(s.level()));
       sams.push({
         x: this.game.x(s.tile()),
         y: this.game.y(s.tile()),
@@ -511,7 +512,8 @@ export class BuildPreviewController implements Controller {
     switch (u.type) {
       case UnitType.SAMLauncher: {
         const level = this.resolveGhostRangeLevel(u) ?? 1;
-        rangeRadius = this.game.config().samRange(level);
+        const config = this.game.config();
+        rangeRadius = config.samRangeOf(myPlayer, config.samRange(level));
         break;
       }
       case UnitType.AtomBomb:

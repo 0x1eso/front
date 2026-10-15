@@ -177,6 +177,14 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       isUnderConstruction: () => false,
       tile: () => 0,
     };
+    // An enemy SAM; its owner's air-defense law adds 21 tiles (samRangeOf).
+    const enemy = { smallID: () => 9 };
+    const enemySam = {
+      isActive: () => true,
+      owner: () => enemy,
+      level: () => 1,
+      tile: () => 99,
+    };
     const myPlayer = {
       gold: () => 1_000_000n,
       smallID: () => 1,
@@ -204,13 +212,14 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       isImpassable: () => false,
       myPlayer: () => myPlayer,
       players: () => [myPlayer],
-      units: () => [],
+      units: (t: UnitType) => (t === UnitType.SAMLauncher ? [enemySam] : []),
       unit: (id: number) => (id === 42 ? { tile: () => 11 } : undefined),
       ticks: () => 100,
       config: () => ({
         nukeMagnitudes: () => ({ inner: 12, outer: 30 }),
         nukeAllianceBreakThreshold: () => 100,
         samRange: () => 70,
+        samRangeOf: (_owner: unknown, base: number) => base + 21,
         trainStationMaxRange: () => 100,
         defensePostRange: () => 30,
       }),
@@ -375,6 +384,20 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     expect(t.uiState.ghostStructure).toBeNull();
     t.tap(70, 80);
     expect(t.intents().builds).toHaveLength(1);
+  });
+
+  test("SAM ranges are drawn with the engine's samRangeOf (air-defense law) (M3)", async () => {
+    const sam = makeTouchController(UnitType.SAMLauncher);
+    sam.tap(70, 80);
+    await sam.reply(cityAt);
+    expect((sam.controller as any).lastGhostData.rangeRadius).toBe(91);
+
+    const bomb = makeTouchController(UnitType.AtomBomb);
+    bomb.tap(70, 80);
+    await bomb.reply(cityAt);
+    expect((bomb.controller as any).nukeTrajectoryStatic.sams).toEqual([
+      { x: 9, y: 9, r: 91 },
+    ]);
   });
 
   test("a mouse click still builds at once and keeps a bomb armed", async () => {
