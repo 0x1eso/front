@@ -64,8 +64,10 @@ class NavNotificationsStore {
 
     const currentVersion = normalizedVersion();
     const seenVersion = localStorage.getItem(NEWS_SEEN_VERSION_KEY);
+    // A self-hosted build has its own version label on every build and
+    // ships no news: a dot there would light up after each update.
     this._hasNewVersion =
-      seenVersion !== null && seenVersion !== currentVersion;
+      !isSelfHosted() && seenVersion !== null && seenVersion !== currentVersion;
     if (seenVersion === null) {
       localStorage.setItem(NEWS_SEEN_VERSION_KEY, currentVersion);
     }

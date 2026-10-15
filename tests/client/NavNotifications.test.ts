@@ -94,4 +94,22 @@ describe("nav notifications", () => {
       delete (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG;
     }
   });
+
+  // A self-hosted build's version label changes with every build, and no
+  // news ships with it: the bell would light up after each update.
+  it("never lights the news bell on a self-hosted page (C5)", async () => {
+    (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG = {
+      selfHosted: true,
+    };
+    try {
+      // beforeEach: this browser last saw an older version.
+      const bell = host();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(bell.controller.showNewsDot()).toBe(false);
+      expect(bell.controller.showHelpDot()).toBe(true);
+    } finally {
+      delete (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG;
+    }
+  });
 });
