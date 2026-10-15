@@ -343,7 +343,10 @@ export class BuildMenu extends LitElement implements Controller {
   ): string {
     if (enabled) return "";
     if (buildableUnit.locked) return lockedReason(buildableUnit.type);
-    return translateText("build_menu.not_enough_money");
+    const gold = this.game?.myPlayer()?.gold() ?? 0n;
+    return gold < buildableUnit.cost
+      ? translateText("build_menu.not_enough_money")
+      : translateText("build_menu.cant_build_here");
   }
 
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {

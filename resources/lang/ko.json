@@ -178,6 +178,7 @@
     "title": "스테이트크래프트"
   },
   "build_menu": {
+    "cant_build_here": "여기에는 건설할 수 없습니다",
     "desc": {
       "atom_bomb": "소형 폭발을 일으킵니다",
       "city": "최대 인구 수를 증가시킵니다",

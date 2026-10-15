@@ -25,10 +25,13 @@ function unit(
   } as BuildableUnit;
 }
 
-async function openMenu(buildables: BuildableUnit[]): Promise<BuildMenu> {
+async function openMenu(
+  buildables: BuildableUnit[],
+  gold = 0n,
+): Promise<BuildMenu> {
   const menu = document.createElement("build-menu") as BuildMenu;
   menu.game = {
-    myPlayer: () => ({ totalUnitLevels: () => 0 }),
+    myPlayer: () => ({ totalUnitLevels: () => 0, gold: () => gold }),
     config: () => ({ isUnitDisabled: () => false }),
   } as unknown as BuildMenu["game"];
   menu.playerBuildables = buildables;
@@ -65,6 +68,16 @@ describe("build menu on a tablet", () => {
       buttonFor(menu, UnitType.Port).querySelector("[data-build-reason]"),
     ).toBeNull();
     expect(menu.shadowRoot!.querySelectorAll("button[title]")).toHaveLength(0);
+    menu.remove();
+  });
+
+  it("blames the tile, not the gold, when the gold is there (M5)", async () => {
+    const menu = await openMenu([unit(UnitType.Port, false)], 500n);
+    const reason = buttonFor(menu, UnitType.Port).querySelector(
+      "[data-build-reason]",
+    )!.textContent;
+    expect(reason).toContain("[build_menu.cant_build_here]");
+    expect(reason).not.toContain("[build_menu.not_enough_money]");
     menu.remove();
   });
 });

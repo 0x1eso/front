@@ -192,6 +192,7 @@
     "title": "{name}"
   },
   "build_menu": {
+    "cant_build_here": "Can't build here",
     "desc": {
       "admin_office": "Produces political power. Upkeep 50 gold/s per level.",
       "atom_bomb": "Small explosion",
