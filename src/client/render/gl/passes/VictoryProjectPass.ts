@@ -16,6 +16,7 @@ export class VictoryProjectPass {
   private gl: WebGL2RenderingContext;
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;
+  private quadBuf: WebGLBuffer;
 
   private uCamera: WebGLUniformLocation;
   private uCenter: WebGLUniformLocation;
@@ -36,8 +37,8 @@ export class VictoryProjectPass {
     // Unit quad [0,1]
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
-    const quadBuf = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    this.quadBuf = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]),
@@ -72,5 +73,6 @@ export class VictoryProjectPass {
     const gl = this.gl;
     gl.deleteProgram(this.program);
     gl.deleteVertexArray(this.vao);
+    gl.deleteBuffer(this.quadBuf);
   }
 }
