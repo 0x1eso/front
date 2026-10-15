@@ -1,3 +1,4 @@
+import type { DomesticView } from "../domestic/DomesticTypes";
 import { GameMap, TileRef } from "./GameMap";
 import {
   Gold,
@@ -27,6 +28,8 @@ export interface PlayerLike {
   troops(): number;
   gold(): Gold;
   units(type: UnitType): readonly UnitLike[];
+  /** Domestic-mode state; null outside domestic mode and for bots. */
+  domestic(): DomesticView | null;
 }
 
 export interface UnitLike {

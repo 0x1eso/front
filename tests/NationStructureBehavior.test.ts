@@ -1105,6 +1105,7 @@ describe("NationStructureBehavior.doHandleStructures — crowded-map exception",
     return {
       config: () => ({
         isUnitDisabled: () => false,
+        domesticMode: () => false,
         gameConfig: () => ({
           difficulty: opts.difficulty ?? Difficulty.Medium,
         }),
@@ -1118,6 +1119,7 @@ describe("NationStructureBehavior.doHandleStructures — crowded-map exception",
 
   function makeCrowdedPlayer(): any {
     return {
+      isUnitUnavailable: () => false,
       unitsOwned: () => 0, // never owns a city
       numTilesOwned: () => 100_000,
       info: () => ({}),

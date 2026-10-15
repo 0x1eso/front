@@ -184,8 +184,9 @@ export class HomepagePromos extends LitElement {
 
   public close(): void {
     this.adLoaded = false;
-    // index.html stubs window.ramp; without ramp.js (an ad blocker) there is
-    // no destroyUnits and no units to destroy.
+    // This fork's index.html loads no ramp.js (upstream's Playwire ads are
+    // removed), so window.ramp is normally absent: no destroyUnits and no
+    // units to destroy.
     if (typeof window.ramp?.destroyUnits === "function") {
       try {
         // Destroy gutter rails and the header ad; bottom_rail persists into

@@ -1,4 +1,5 @@
 import { ClientID } from "@openfront/engine-api/Schemas";
+import type { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   BuildableUnit,
@@ -31,6 +32,7 @@ import { UserSettings } from "../UserSettings";
 import { PlayerState, PlayerStatic, PlayerTypeEnum } from "../render/types";
 import { themeProvider } from "../theme/ThemeProvider";
 import { type CosmeticOwner, visibleCosmetics } from "./CosmeticVisibility";
+import { DomesticClientView } from "./DomesticClientView";
 import { playerStateFromUpdate, playerStaticFromUpdate } from "./EntityState";
 import { GameView } from "./GameView";
 import { resolvePlayerColors } from "./PlayerColors";
@@ -53,6 +55,7 @@ export class PlayerView implements PlayerLike {
   public static: PlayerStatic;
   /** The equipped cosmetics this client draws. */
   public cosmetics!: PlayerCosmetics;
+  private _domestic: DomesticClientView | null = null;
 
   // Assigned via computeColors() in the constructor; re-assignable on theme change.
   private _territoryColor!: Colord;
@@ -78,6 +81,9 @@ export class PlayerView implements PlayerLike {
     public readonly equippedCosmetics: PlayerCosmetics,
   ) {
     this.state = playerStateFromUpdate(data);
+    this._domestic = data.domestic
+      ? new DomesticClientView(data.domestic)
+      : null;
     // Respect the client-side "Disable emojis" setting: when off, never surface
     // emoji data to any renderer/overlay that reads this shared state (#4430).
     if (!userSettings.emojis()) {
@@ -215,6 +221,9 @@ export class PlayerView implements PlayerLike {
    */
   applyUpdate(pu: PlayerUpdate): void {
     applyStateUpdate(this.state, pu);
+    if (pu.domestic !== undefined) {
+      this._domestic = new DomesticClientView(pu.domestic);
+    }
     // applyStateUpdate refreshes outgoingEmojis every tick; re-apply the
     // "Disable emojis" setting so live emojis stay hidden when it's off (#4430).
     if (!userSettings.emojis()) {
@@ -476,6 +485,15 @@ export class PlayerView implements PlayerLike {
 
   troops(): number {
     return this.state.troops;
+  }
+
+  domestic(): DomesticClientView | null {
+    return this._domestic;
+  }
+
+  /** The last domestic state the worker sent (same object until it changes). */
+  domesticData(): DomesticData | null {
+    return this._domestic?.data ?? null;
   }
 
   totalUnitLevels(type: UnitType): number {

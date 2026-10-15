@@ -1,3 +1,4 @@
+import type { WinReason } from "@openfront/engine-api/domestic/DomesticTypes";
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   AllianceInfo,
@@ -43,6 +44,7 @@ import {
 import { AllPlayersStats, ClientID } from "@openfront/engine-api/Schemas";
 import { MotionPlanRecord } from "@openfront/engine-lib/game/MotionPlans";
 import type { EngineConfig } from "../configuration/EngineConfig";
+import type { PlayerDomestic } from "../domestic/PlayerDomestic";
 import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import type { ExecRecord, SnapshotWriter } from "../snapshot/SnapshotContext";
@@ -111,6 +113,10 @@ export interface UnitParamsMap {
   [UnitType.SAMLauncher]: Record<string, never>;
 
   [UnitType.City]: Record<string, never>;
+
+  [UnitType.ResearchInstitute]: Record<string, never>;
+
+  [UnitType.AdminOffice]: Record<string, never>;
 }
 
 // Type helper to get params type for a specific unit type
@@ -287,6 +293,9 @@ export interface Unit extends UnitLike {
   // Construction phase on structures
   isUnderConstruction(): boolean;
   setUnderConstruction(underConstruction: boolean): void;
+  /** Domestic mode: this structure's modified build time (spec §10.9). */
+  constructionTicks(): number | undefined;
+  setConstructionTicks(ticks: number): void;
 
   // Upgradable Structures
   level(): number;
@@ -320,6 +329,12 @@ export interface Player extends PlayerLike {
   isPlayer(): this is Player;
   toString(): string;
   isLobbyCreator(): boolean;
+  /** Domestic-mode state; null outside domestic mode and for bots. */
+  domestic(): PlayerDomestic | null;
+  /** Domestic mode: `type` needs a tech this player hasn't researched. */
+  isUnitLocked(type: UnitType): boolean;
+  /** Disabled for the game or locked for this player. */
+  isUnitUnavailable(type: UnitType): boolean;
 
   // State & Properties
   isAlive(): boolean;
@@ -566,6 +581,7 @@ export interface Game extends GameLike {
   setWinner(
     winner: Player | Team | null,
     allPlayersStats: AllPlayersStats,
+    reason?: WinReason,
   ): void;
   getWinner(): Player | Team | null;
   config(): EngineConfig;

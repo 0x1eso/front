@@ -79,6 +79,9 @@ const RefusalBodySchema = z.object({
  * this server only with players whose page reads this site's list.
  */
 export function registeredSite(): string | undefined {
+  // A self-hosted server registers nowhere: there is no API to register
+  // with. This also keeps the lobby coordinator (coordinatorUrl) off.
+  if (ServerEnv.selfHosted()) return undefined;
   return ServerEnv.siteHost() ?? ServerEnv.publicHost();
 }
 
@@ -88,6 +91,9 @@ export function registeredSite(): string | undefined {
  * Every deployed host has one and registers under its own site.
  */
 export function checkinBody(liveGames: number): CheckinBody | null {
+  // No check-in, so Master.ts neither registers nor polls map weights, and
+  // schedules this server's public lobbies itself, as under local dev.
+  if (ServerEnv.selfHosted()) return null;
   const host = ServerEnv.publicHost();
   if (host === undefined) return null;
   const machine = ServerEnv.machine();

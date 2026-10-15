@@ -76,7 +76,7 @@ export class NationWarshipBehavior {
 
   maybeSpawnWarship(): boolean {
     if (this.player === null) throw new Error("not initialized");
-    if (this.game.config().isUnitDisabled(UnitType.Warship)) {
+    if (this.player.isUnitUnavailable(UnitType.Warship)) {
       return false;
     }
     if (!this.random.chance(50)) {
@@ -137,7 +137,7 @@ export class NationWarshipBehavior {
 
   // Send out a warship if our transport ship got captured
   private trackTransportShipsAndRetaliate(): void {
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) {
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
       return;
     }
     // Add any currently owned transport ships to our tracking set
@@ -304,7 +304,7 @@ export class NationWarshipBehavior {
   // Send a squad at the fleet blocking our boats, all at once or not at all:
   // Hard as many ships as they have, Impossible one more
   clearSeaLane(blocker: Unit): void {
-    if (this.game.config().isUnitDisabled(UnitType.Warship)) return;
+    if (this.player.isUnitUnavailable(UnitType.Warship)) return;
     const { difficulty } = this.game.config().gameConfig();
     const target = blocker.tile();
     const fleet = this.hostileWarshipsNear(target);
@@ -437,7 +437,7 @@ export class NationWarshipBehavior {
   }
 
   private shouldCounterWarshipInfestation(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.Warship)) {
+    if (this.player.isUnitUnavailable(UnitType.Warship)) {
       return false;
     }
 

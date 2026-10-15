@@ -186,11 +186,18 @@ function mintGroupToken(): string {
 }
 
 export function defaultGameServerDeps(): GameServerDeps {
+  // A self-hosted server has no API to archive games to or to fetch bought
+  // tribe names from: games end unarchived, bots keep their organic names.
+  // Nor does it replay a disputed winner, which only settles the archive:
+  // the vote goes to the no-op archive as it stands.
+  const selfHosted = ServerEnv.selfHosted();
   return {
-    archive: (record) => archive(finalizeGameRecord(record)),
-    replayWinner: replayWinnerInChild,
+    archive: selfHosted
+      ? async () => {}
+      : (record) => archive(finalizeGameRecord(record)),
+    replayWinner: selfHosted ? async () => null : replayWinnerInChild,
     replayPending: () => winnerReplayMetrics.pending,
-    fetchTribes: fetchCustomTribes,
+    fetchTribes: selfHosted ? async () => [] : fetchCustomTribes,
     env: () => ServerEnv.env(),
     turnIntervalMs: () => ServerEnv.turnIntervalMs(),
     telemetry: noopMatchTelemetryEmitter,
@@ -646,9 +653,11 @@ export class GameServer {
     });
 
     // Skipped in dev: local testing (multi-tab, the matchmaking e2e) is
-    // inherently same-IP.
+    // inherently same-IP. Skipped self-hosted too: friends playing from one
+    // household share an address, and the public lobbies are theirs alone.
     if (
       this.deps.env() !== GameEnv.Dev &&
+      !ServerEnv.selfHosted() &&
       this.gameConfig.gameType === GameType.Public &&
       this.clients
         .active()
@@ -2025,14 +2034,22 @@ export class GameServer {
       .replayWinner(this.wireGameStartInfo, turns)
       .then((replayed) => {
         if (replayed === null) {
-          winnerReplayMetrics.outcomes.failed++;
-          this.log.warn("winner replay failed, archiving the vote", {
-            gameID: this.id,
-            reason,
-            voted: voted?.winner,
-            backers,
-            statsAgreed: votedAgreed,
-          });
+          // A self-hosted server never replays (see defaultGameServerDeps):
+          // a null there is the design, not a failure.
+          const disabled = ServerEnv.selfHosted();
+          if (!disabled) winnerReplayMetrics.outcomes.failed++;
+          this.log[disabled ? "info" : "warn"](
+            disabled
+              ? "winner replay disabled, archiving the vote"
+              : "winner replay failed, archiving the vote",
+            {
+              gameID: this.id,
+              reason,
+              voted: voted?.winner,
+              backers,
+              statsAgreed: votedAgreed,
+            },
+          );
           archived = true;
           this.archiveGame(voted, votedAgreed, turns, endTime);
           return;

@@ -92,7 +92,7 @@ The game server only serves `index.html` and the WebSocket. All other assets (JS
 
 ## UI Text / i18n
 
-All user-visible text must go through `translateText()` and have a corresponding entry added to `resources/lang/en.json`. Translations are managed via Crowdin. DO NOT modify any other translation files.
+All user-visible text must go through `translateText()` and have a corresponding entry added to both `resources/lang/en.json` and `resources/lang/ko.json` (this fork plays in Korean and does not use Crowdin). DO NOT modify any other translation files.
 
 ## Testing Patterns
 

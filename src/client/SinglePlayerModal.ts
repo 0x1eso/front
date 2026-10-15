@@ -8,6 +8,11 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { TeamCountConfig } from "@openfront/engine-api/Schemas";
+import {
+  CONQUEST_PERCENT_MAX,
+  CONQUEST_PERCENT_MIN,
+  DOMESTIC_CONQUEST_PERCENT,
+} from "@openfront/engine-lib/domestic/Balance";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
 import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -21,6 +26,7 @@ import "./components/baseComponents/Button";
 import "./components/baseComponents/Modal";
 import { BaseModal } from "./components/BaseModal";
 import "./components/GameConfigSettings";
+import "./components/InputCard";
 import { MEDAL_ORDER, medalIcon } from "./components/map/Medals";
 import "./components/ToggleInputCard";
 import { modalHeader } from "./components/ui/ModalHeader";
@@ -30,10 +36,12 @@ import { GameStartingModal } from "./GameStartingModal";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
+import { isSelfHosted } from "./SelfHosted";
 import { lastUserMeResponse } from "./UserMeBroadcast";
 import { UsernameInput } from "./UsernameInput";
 import { UserSettings } from "./UserSettings";
 import {
+  domesticModeDefaults,
   getBotsForCompactMap,
   getNationsForCompactMap,
   getRandomMapType,
@@ -117,6 +125,8 @@ const DEFAULT_OPTIONS = {
   customAlliances: false,
   customAllianceMinutes: undefined as number | undefined,
   waterNukes: false,
+  domesticMode: false,
+  conquestPercent: undefined as number | undefined,
   doomsdayClock: false,
   doomsdayClockSpeed: "normal" as DoomsdayClockSpeed,
   overtime: false,
@@ -206,6 +216,9 @@ export class SinglePlayerModal extends BaseModal {
   @state() private customAllianceMinutes: number | undefined =
     DEFAULT_OPTIONS.customAllianceMinutes;
   @state() private waterNukes: boolean = DEFAULT_OPTIONS.waterNukes;
+  @state() private domesticMode: boolean = DEFAULT_OPTIONS.domesticMode;
+  @state() private conquestPercent: number | undefined =
+    DEFAULT_OPTIONS.conquestPercent;
   @state() private doomsdayClock: boolean = DEFAULT_OPTIONS.doomsdayClock;
   @state() private doomsdayClockSpeed: DoomsdayClockSpeed =
     DEFAULT_OPTIONS.doomsdayClockSpeed;
@@ -288,7 +301,8 @@ export class SinglePlayerModal extends BaseModal {
   };
 
   private renderNotLoggedInBanner(): TemplateResult {
-    if (gamePortal.isOnGamePortal()) {
+    // A self-hosted server has no accounts to sign in to.
+    if (gamePortal.isOnGamePortal() || isSelfHosted()) {
       return html``;
     }
     return html`<button
@@ -422,6 +436,22 @@ export class SinglePlayerModal extends BaseModal {
         .onInput=${this.handleMaxTimerValueChanges}
         .onKeyDown=${this.handleMaxTimerValueKeyDown}
       ></toggle-input-card>`,
+      ...(this.domesticMode
+        ? [
+            html`<input-card
+              .labelKey=${"game_settings.conquest_percent"}
+              .inputId=${"conquest-percent-value"}
+              .inputMin=${CONQUEST_PERCENT_MIN}
+              .inputMax=${CONQUEST_PERCENT_MAX}
+              .inputStep=${"1"}
+              .inputValue=${this.conquestPercent}
+              .inputAriaLabel=${translateText("game_settings.conquest_percent")}
+              .inputPlaceholder=${String(DOMESTIC_CONQUEST_PERCENT)}
+              .onChange=${this.handleConquestPercentChange}
+              .onKeyDown=${this.handleConquestPercentKeyDown}
+            ></input-card>`,
+          ]
+        : []),
       html`<toggle-input-card
         .labelKey=${"game_settings.gold_multiplier"}
         .checked=${this.goldMultiplier}
@@ -470,21 +500,27 @@ export class SinglePlayerModal extends BaseModal {
         .onInput=${this.handleCustomAllianceMinutesInput}
         .onKeyDown=${this.handleCustomAllianceMinutesKeyDown}
       ></toggle-input-card>`,
-      html`<toggle-input-card
-        .labelKey=${"game_settings.overtime"}
-        .checked=${this.overtime}
-        .inputMin=${1}
-        .inputMax=${120}
-        .inputStep=${1}
-        .inputValue=${this.overtimeStartMinutes}
-        .inputAriaLabel=${translateText("game_settings.overtime")}
-        .inputPlaceholder=${translateText("game_settings.mins_placeholder")}
-        .defaultInputValue=${30}
-        .minValidOnEnable=${1}
-        .onToggle=${this.handleOvertimeToggle}
-        .onInput=${this.handleOvertimeMinutesInput}
-        .onKeyDown=${this.handleOvertimeMinutesKeyDown}
-      ></toggle-input-card>`,
+      ...(this.domesticMode
+        ? []
+        : [
+            html`<toggle-input-card
+              .labelKey=${"game_settings.overtime"}
+              .checked=${this.overtime}
+              .inputMin=${1}
+              .inputMax=${120}
+              .inputStep=${1}
+              .inputValue=${this.overtimeStartMinutes}
+              .inputAriaLabel=${translateText("game_settings.overtime")}
+              .inputPlaceholder=${translateText(
+                "game_settings.mins_placeholder",
+              )}
+              .defaultInputValue=${30}
+              .minValidOnEnable=${1}
+              .onToggle=${this.handleOvertimeToggle}
+              .onInput=${this.handleOvertimeMinutesInput}
+              .onKeyDown=${this.handleOvertimeMinutesKeyDown}
+            ></toggle-input-card>`,
+          ]),
     ];
 
     return html`
@@ -549,6 +585,10 @@ export class SinglePlayerModal extends BaseModal {
                   {
                     labelKey: "game_settings.water_nukes",
                     checked: this.waterNukes,
+                  },
+                  {
+                    labelKey: "game_settings.domestic_mode",
+                    checked: this.domesticMode,
                   },
                   {
                     labelKey: "game_settings.doomsday_clock",
@@ -619,6 +659,8 @@ export class SinglePlayerModal extends BaseModal {
       this.customAlliances !== DEFAULT_OPTIONS.customAlliances ||
       this.customAllianceMinutes !== DEFAULT_OPTIONS.customAllianceMinutes ||
       this.waterNukes !== DEFAULT_OPTIONS.waterNukes ||
+      this.domesticMode !== DEFAULT_OPTIONS.domesticMode ||
+      this.conquestPercent !== DEFAULT_OPTIONS.conquestPercent ||
       this.doomsdayClock !== DEFAULT_OPTIONS.doomsdayClock ||
       // Pace only matters when the mode is on (startGame drops it when off).
       (this.doomsdayClock &&
@@ -695,6 +737,8 @@ export class SinglePlayerModal extends BaseModal {
     this.customAlliances = DEFAULT_OPTIONS.customAlliances;
     this.customAllianceMinutes = DEFAULT_OPTIONS.customAllianceMinutes;
     this.waterNukes = DEFAULT_OPTIONS.waterNukes;
+    this.domesticMode = DEFAULT_OPTIONS.domesticMode;
+    this.conquestPercent = DEFAULT_OPTIONS.conquestPercent;
     this.doomsdayClock = DEFAULT_OPTIONS.doomsdayClock;
     this.doomsdayClockSpeed = DEFAULT_OPTIONS.doomsdayClockSpeed;
     this.overtime = DEFAULT_OPTIONS.overtime;
@@ -793,6 +837,18 @@ export class SinglePlayerModal extends BaseModal {
       case "game_settings.water_nukes":
         this.waterNukes = checked;
         break;
+      case "game_settings.domestic_mode":
+        this.domesticMode = checked;
+        if (checked) {
+          const defaults = domesticModeDefaults(
+            this.maxTimer,
+            this.maxTimerValue,
+          );
+          this.maxTimer = defaults.maxTimer;
+          this.maxTimerValue = defaults.maxTimerValue;
+          this.overtime = defaults.overtime;
+        }
+        break;
       case "game_settings.doomsday_clock":
         this.doomsdayClock = checked;
         break;
@@ -867,6 +923,24 @@ export class SinglePlayerModal extends BaseModal {
   ) => {
     this.overtime = checked;
     this.overtimeStartMinutes = toOptionalNumber(value);
+  };
+
+  private handleConquestPercentKeyDown = (e: KeyboardEvent) => {
+    preventDisallowedKeys(e, ["-", "+", "e", "E", "."]);
+  };
+
+  private handleConquestPercentChange = (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const value = parseBoundedIntegerFromInput(input, {
+      min: CONQUEST_PERCENT_MIN,
+      max: CONQUEST_PERCENT_MAX,
+    });
+    if (value === undefined) {
+      this.conquestPercent = undefined;
+      input.value = "";
+    } else {
+      this.conquestPercent = value;
+    }
   };
 
   private handleOvertimeMinutesKeyDown = (e: KeyboardEvent) => {
@@ -1178,6 +1252,10 @@ export class SinglePlayerModal extends BaseModal {
                   ? { customAllianceDuration: this.customAllianceMinutes ?? 0 }
                   : {}),
                 ...(this.waterNukes ? { waterNukes: true } : {}),
+                ...(this.domesticMode ? { domesticMode: true } : {}),
+                ...(this.domesticMode && this.conquestPercent !== undefined
+                  ? { conquestPercent: this.conquestPercent }
+                  : {}),
                 ...(this.doomsdayClock
                   ? {
                       doomsdayClock: {

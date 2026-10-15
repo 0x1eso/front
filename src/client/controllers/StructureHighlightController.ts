@@ -1,10 +1,11 @@
 /**
- * StructureHighlightController — forwards UnitDisplay hover events to the
- * renderer so matching structures glow while others dim.
+ * StructureHighlightController — forwards the build bar's highlight events to
+ * the renderer so matching structures glow while others dim.
  *
- * UnitDisplay emits ToggleStructureEvent on @mouseenter / @mouseleave for each
- * unit-type button, with a payload of "production source" types
- * (Warship → [Port], AtomBomb → [MissileSilo, SAMLauncher], building → itself).
+ * UnitDisplay emits ToggleStructureEvent when a unit's info card opens and
+ * closes (first tap / build / map press), with a payload of "production
+ * source" types (Warship → [Port], AtomBomb → [MissileSilo, SAMLauncher],
+ * building → itself).
  * This controller just plumbs that payload to view.setHighlightStructureTypes;
  * StructurePass + StructureLevelPass already implement the visual highlight.
  */

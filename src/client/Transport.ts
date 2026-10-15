@@ -1,3 +1,10 @@
+import {
+  GovernmentId,
+  LawId,
+  LawOption,
+  TechId,
+  VictoryProjectKind,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   AllPlayers,
@@ -133,6 +140,36 @@ export class BuildUnitIntentEvent implements GameEvent {
     public readonly tile: TileRef,
     public readonly rocketDirectionUp?: boolean,
     public readonly amount?: number,
+  ) {}
+}
+
+export class ResearchTechIntentEvent implements GameEvent {
+  constructor(
+    public readonly tech: TechId,
+    public readonly payWithGold: boolean,
+  ) {}
+}
+
+export class SetRecruitTargetIntentEvent implements GameEvent {
+  constructor(public readonly percent: number) {}
+}
+
+export class ProclaimLawIntentEvent implements GameEvent {
+  constructor(
+    public readonly law: LawId,
+    public readonly option: LawOption,
+    public readonly payWithGold: boolean,
+  ) {}
+}
+
+export class ChooseGovernmentIntentEvent implements GameEvent {
+  constructor(public readonly government: GovernmentId) {}
+}
+
+export class StartVictoryProjectIntentEvent implements GameEvent {
+  constructor(
+    public readonly kind: VictoryProjectKind,
+    public readonly unitId: number,
   ) {}
 }
 
@@ -311,6 +348,19 @@ export class Transport {
     this.subscribe(SendAttackIntentEvent, (e) => this.onSendAttackIntent(e));
     this.subscribe(SendUpgradeStructureIntentEvent, (e) =>
       this.onSendUpgradeStructureIntent(e),
+    );
+    this.subscribe(ResearchTechIntentEvent, (e) =>
+      this.onResearchTechIntent(e),
+    );
+    this.subscribe(SetRecruitTargetIntentEvent, (e) =>
+      this.onSetRecruitTargetIntent(e),
+    );
+    this.subscribe(ProclaimLawIntentEvent, (e) => this.onProclaimLawIntent(e));
+    this.subscribe(ChooseGovernmentIntentEvent, (e) =>
+      this.onChooseGovernmentIntent(e),
+    );
+    this.subscribe(StartVictoryProjectIntentEvent, (e) =>
+      this.onStartVictoryProjectIntent(e),
     );
     this.subscribe(SendBoatAttackIntentEvent, (e) =>
       this.onSendBoatAttackIntent(e),
@@ -826,6 +876,45 @@ export class Transport {
       unit: event.unitType,
       unitId: event.unitId,
       amount: event.amount,
+    });
+  }
+
+  private onResearchTechIntent(event: ResearchTechIntentEvent) {
+    this.sendIntent({
+      type: "research_tech",
+      tech: event.tech,
+      payWithGold: event.payWithGold,
+    });
+  }
+
+  private onSetRecruitTargetIntent(event: SetRecruitTargetIntentEvent) {
+    this.sendIntent({
+      type: "set_recruit_target",
+      percent: event.percent,
+    });
+  }
+
+  private onProclaimLawIntent(event: ProclaimLawIntentEvent) {
+    this.sendIntent({
+      type: "proclaim_law",
+      law: event.law,
+      option: event.option,
+      payWithGold: event.payWithGold,
+    });
+  }
+
+  private onChooseGovernmentIntent(event: ChooseGovernmentIntentEvent) {
+    this.sendIntent({
+      type: "choose_government",
+      government: event.government,
+    });
+  }
+
+  private onStartVictoryProjectIntent(event: StartVictoryProjectIntentEvent) {
+    this.sendIntent({
+      type: "start_victory_project",
+      kind: event.kind,
+      unitId: event.unitId,
     });
   }
 

@@ -1,8 +1,10 @@
+import { StatKey } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
   Gold,
   PlayerInfo,
   PlayerType,
+  Structures,
   TerrainType,
   TerraNullius,
   Tick,
@@ -14,6 +16,15 @@ import { NukeType } from "@openfront/engine-api/StatsSchemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { exp, log, pow2 } from "@openfront/engine-lib/DetMath";
 import {
+  BUILDING_BASE_COST,
+  BUILDING_MAX_COST,
+  CITY_TAX_PER_LEVEL_PER_TICK,
+} from "@openfront/engine-lib/domestic/Balance";
+import {
+  applyPct,
+  capCombinedPct,
+} from "@openfront/engine-lib/domestic/Modifiers";
+import {
   assertNever,
   sigmoid,
   toInt,
@@ -24,7 +35,14 @@ import type { EngineUnitInfo, Game, Player, Unit } from "../game/Game";
 export interface AttackLogicInput {
   terrain: TerrainType;
   attackTroops: number;
-  attacker: { type: PlayerType; numTiles: number };
+  attacker: {
+    type: PlayerType;
+    numTiles: number;
+    /** Domestic mode: multiplies the attacker's losses (attackLoss); 1 = vanilla. */
+    lossScale?: number;
+    /** Domestic mode: attack or expansion speed (1.3 = 30% faster); 1 = vanilla. */
+    speedScale?: number;
+  };
   /** null when attacking terra nullius. */
   defender: {
     type: PlayerType;
@@ -33,6 +51,10 @@ export interface AttackLogicInput {
     isTraitor: boolean;
     /** Defender is disconnected and on the attacker's team. */
     isDisconnectedTeammate: boolean;
+    /** Domestic mode: defense-post effect scale (1 = vanilla). */
+    defensePostScale?: number;
+    /** Domestic mode: multiplies the defender's losses (defenseLoss); 1 = vanilla. */
+    lossScale?: number;
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
@@ -52,6 +74,17 @@ export interface AttackLogicResult {
    */
   tickFraction: number;
 }
+
+/** Domestic mode: the unit-specific build-cost stat (spec §7.2). */
+const DOMESTIC_COST_STAT: Partial<Record<UnitType, StatKey>> = {
+  [UnitType.Port]: "portCost",
+  [UnitType.MissileSilo]: "siloSamCost",
+  [UnitType.SAMLauncher]: "siloSamCost",
+  [UnitType.AtomBomb]: "nukeCost",
+  [UnitType.HydrogenBomb]: "nukeCost",
+  [UnitType.MIRV]: "nukeCost",
+  [UnitType.DefensePost]: "defensePostCost",
+};
 
 // attackLogic tunables
 const LARGE_TERRITORY_MIDPOINT = 300_000;
@@ -162,9 +195,6 @@ export class EngineConfig extends Config {
   }
   waterNukes(): boolean {
     return this._gameConfig.waterNukes ?? false;
-  }
-  infiniteGold(): boolean {
-    return this._gameConfig.infiniteGold;
   }
   donateGold(): boolean {
     return this._gameConfig.donateGold;
@@ -294,12 +324,6 @@ export class EngineConfig extends Config {
     );
   }
 
-  private hasInfiniteGoldFor(player: PlayerLike): boolean {
-    if (this.infiniteGold()) return true;
-    const hc = this._gameConfig.hostCheats;
-    return (hc?.infiniteGold ?? false) && player.isLobbyCreator();
-  }
-
   override unitInfo(type: UnitType): EngineUnitInfo {
     const cached = this.engineUnitInfoCache.get(type);
     if (cached !== undefined) {
@@ -329,13 +353,14 @@ export class EngineConfig extends Config {
         return this.costWrapper(() => 5_000_000, UnitType.HydrogenBomb);
       case UnitType.MIRV:
         return (game: Game, player: Player) => {
-          if (
-            player.type() === PlayerType.Human &&
-            this.hasInfiniteGoldFor(player)
-          ) {
+          if (this.hasInfiniteGold(player)) {
             return 0n;
           }
-          return 25_000_000n + BigInt(game.mirvsLaunched()) * 15_000_000n;
+          return this.withDomesticCost(
+            player,
+            UnitType.MIRV,
+            25_000_000 + game.mirvsLaunched() * 15_000_000,
+          );
         };
       case UnitType.MissileSilo:
         return this.costWrapper(() => 1_000_000, UnitType.MissileSilo);
@@ -360,6 +385,13 @@ export class EngineConfig extends Config {
           UnitType.Factory,
           UnitType.Port,
         );
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
+        return this.costWrapper(
+          (numUnits: number) =>
+            Math.min(BUILDING_MAX_COST, pow2(numUnits) * BUILDING_BASE_COST),
+          type,
+        );
       case UnitType.TransportShip:
       case UnitType.Shell:
       case UnitType.SAMMissile:
@@ -380,7 +412,8 @@ export class EngineConfig extends Config {
     );
   }
 
-  private goldMultiplierFor(player: PlayerLike): number {
+  /** The lobby's gold multiplier, or the host's cheat one for the lobby creator. */
+  goldMultiplierFor(player: PlayerLike): number {
     const base = this.goldMultiplier();
     const hc = this._gameConfig.hostCheats;
     if (hc?.goldMultiplier && player.isLobbyCreator()) {
@@ -414,10 +447,7 @@ export class EngineConfig extends Config {
     ...types: UnitType[]
   ): (g: Game, p: Player, extraUnits?: number) => bigint {
     return (game: Game, player: Player, extraUnits: number = 0) => {
-      if (
-        player.type() === PlayerType.Human &&
-        this.hasInfiniteGoldFor(player)
-      ) {
+      if (this.hasInfiniteGold(player)) {
         return 0n;
       }
       const numUnits = types.reduce(
@@ -426,8 +456,27 @@ export class EngineConfig extends Config {
           Math.min(player.unitsOwned(type), player.unitsConstructed(type)),
         0,
       );
-      return BigInt(costFn(numUnits + extraUnits));
+      return this.withDomesticCost(
+        player,
+        types[0],
+        costFn(numUnits + extraUnits),
+      );
     };
+  }
+
+  /** Applies domestic build-cost modifiers (spec §7.2) to a base cost. */
+  private withDomesticCost(
+    player: Player,
+    type: UnitType,
+    base: number,
+  ): bigint {
+    const domestic = this.domesticOf(player);
+    if (domestic === null) return BigInt(base);
+    let pct = Structures.has(type) ? domestic.pct("buildCost") : 0;
+    const stat = DOMESTIC_COST_STAT[type];
+    if (stat !== undefined) pct += domestic.pct(stat);
+    pct = capCombinedPct(pct);
+    return pct === 0 ? BigInt(base) : BigInt(Math.round(applyPct(base, pct)));
   }
 
   defaultDonationAmount(sender: PlayerLike): number {
@@ -499,8 +548,10 @@ export class EngineConfig extends Config {
     let { mag, tileCost } = terrainAttackBase(input.terrain);
 
     if (defender !== null && input.defenderHasDefensePost) {
-      mag *= this.defensePostDefenseBonus();
-      tileCost *= this.defensePostSpeedBonus();
+      // scale 1 reproduces the vanilla multipliers exactly.
+      const scale = defender.defensePostScale ?? 1;
+      mag *= 1 + (this.defensePostDefenseBonus() - 1) * scale;
+      tileCost *= 1 + (this.defensePostSpeedBonus() - 1) * scale;
     }
     if (input.falloutRatio !== null) {
       const fallout = this.falloutDefenseModifier(input.falloutRatio);
@@ -518,7 +569,9 @@ export class EngineConfig extends Config {
             (TERRA_NULLIUS_COST_SCALE * tileCost) / attackTroops,
             TERRA_NULLIUS_MIN_COST,
             TERRA_NULLIUS_MAX_COST,
-          ) / tickBudget,
+          ) /
+          tickBudget /
+          (attacker.speedScale ?? 1),
       };
     }
 
@@ -575,15 +628,16 @@ export class EngineConfig extends Config {
       LARGE_ATTACKER_SPEED_DEPTH,
     );
     return {
-      attackerTroopLoss,
-      defenderTroopLoss,
+      attackerTroopLoss: attackerTroopLoss * (attacker.lossScale ?? 1),
+      defenderTroopLoss: defenderTroopLoss * (defender.lossScale ?? 1),
       tickFraction:
         (speedCost *
           tileCost *
           largeAttackerSpeedBonus *
           largeDefenderBonus *
           traitorCostMod) /
-        input.borderSize,
+        input.borderSize /
+        (attacker.speedScale ?? 1),
     };
   }
 
@@ -647,7 +701,23 @@ export class EngineConfig extends Config {
     } else {
       baseRate = 100n;
     }
-    return BigInt(Math.floor(Number(baseRate) * multiplier));
+    const domestic = this.domesticOf(player);
+    if (domestic === null) {
+      return BigInt(Math.floor(Number(baseRate) * multiplier));
+    }
+    let cityLevels = 0;
+    for (const city of player.units(UnitType.City)) {
+      if (!city.isUnderConstruction()) cityLevels += city.level();
+    }
+    const cityTax = applyPct(
+      cityLevels * CITY_TAX_PER_LEVEL_PER_TICK,
+      domestic.pct("cityTax"),
+    );
+    const income = applyPct(
+      Number(baseRate) + cityTax,
+      capCombinedPct(domestic.pct("goldIncome") + domestic.pct("allGold")),
+    );
+    return BigInt(Math.floor(income * multiplier));
   }
 
   nukeSpeed(unitType: UnitType): number {
@@ -679,7 +749,16 @@ export class EngineConfig extends Config {
     return Math.floor(this.SAMCooldown() / 2);
   }
 
+  /** The SAM's range with its owner's domestic modifier (samRangeOf). */
   dynamicSamRange(sam: Unit, currentTick: number): number {
+    return this.samRangeOf(
+      sam.owner(),
+      this.baseDynamicSamRange(sam, currentTick),
+    );
+  }
+
+  /** The SAM's range before domestic modifiers, interpolated while upgrading. */
+  baseDynamicSamRange(sam: Unit, currentTick: number): number {
     const state = sam.samLauncherState();
     if (state === undefined || state.upgradeStartTick === undefined) {
       return this.samRange(sam.level());

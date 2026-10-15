@@ -26,6 +26,7 @@ import {
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { GameView } from "../../view";
+import { lockedReason } from "../domestic/LockReason";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -37,6 +38,8 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
+const researchInstituteIcon = assetUrl("images/ResearchInstituteIconWhite.svg");
+const adminOfficeIcon = assetUrl("images/AdminOfficeIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -118,6 +121,20 @@ export const buildTable: BuildItemDisplay[][] = [
       key: "unit_type.factory",
       countable: true,
     },
+    {
+      unitType: UnitType.ResearchInstitute,
+      icon: researchInstituteIcon,
+      description: "build_menu.desc.research_institute",
+      key: "unit_type.research_institute",
+      countable: true,
+    },
+    {
+      unitType: UnitType.AdminOffice,
+      icon: adminOfficeIcon,
+      description: "build_menu.desc.admin_office",
+      key: "unit_type.admin_office",
+      countable: true,
+    },
   ],
 ];
 
@@ -186,7 +203,16 @@ export class BuildMenu extends LitElement implements Controller {
       overflow-y: auto;
     }
     .build-description {
-      font-size: 0.6rem;
+      font-size: 12px;
+      line-height: 1.25;
+      text-align: center;
+    }
+    .build-reason {
+      font-size: 12px;
+      line-height: 1.25;
+      text-align: center;
+      color: #fca5a5;
+      font-weight: 600;
     }
     .build-row {
       display: flex;
@@ -196,8 +222,8 @@ export class BuildMenu extends LitElement implements Controller {
     }
     .build-button {
       position: relative;
-      width: 120px;
-      height: 140px;
+      width: 132px;
+      min-height: 160px;
       border: 2px solid #444;
       background-color: #2c2c2c;
       color: white;
@@ -280,77 +306,6 @@ export class BuildMenu extends LitElement implements Controller {
       font-weight: bold;
       font-size: 14px;
     }
-
-    @media (max-width: 768px) {
-      .build-menu {
-        padding: 10px;
-        max-height: 80vh;
-        width: 80vw;
-      }
-      .build-button {
-        width: 140px;
-        height: 120px;
-        margin: 4px;
-        padding: 6px;
-        gap: 5px;
-      }
-      .build-icon {
-        font-size: 28px;
-      }
-      .build-name {
-        font-size: 12px;
-        margin-bottom: 3px;
-      }
-      .build-cost {
-        font-size: 11px;
-      }
-      .build-count {
-        font-weight: bold;
-        font-size: 10px;
-      }
-      .build-count-chip {
-        padding: 1px 5px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .build-menu {
-        padding: 8px;
-        max-height: 70vh;
-      }
-      .build-button {
-        width: calc(50% - 6px);
-        height: 100px;
-        margin: 3px;
-        padding: 4px;
-        border-width: 1px;
-      }
-      .build-icon {
-        font-size: 24px;
-      }
-      .build-name {
-        font-size: 10px;
-        margin-bottom: 2px;
-      }
-      .build-cost {
-        font-size: 9px;
-      }
-      .build-count {
-        font-weight: bold;
-        font-size: 8px;
-      }
-      .build-count-chip {
-        padding: 0 3px;
-      }
-      .build-button img {
-        width: 24px;
-        height: 24px;
-      }
-      .build-cost img {
-        width: 10px;
-        height: 10px;
-      }
-    }
   `;
 
   @state()
@@ -380,6 +335,18 @@ export class BuildMenu extends LitElement implements Controller {
     }
 
     return player.totalUnitLevels(item.unitType).toString();
+  }
+
+  private disabledReason(
+    buildableUnit: BuildableUnit,
+    enabled: boolean,
+  ): string {
+    if (enabled) return "";
+    if (buildableUnit.locked) return lockedReason(buildableUnit.type);
+    const gold = this.game?.myPlayer()?.gold() ?? 0n;
+    return gold < buildableUnit.cost
+      ? translateText("build_menu.not_enough_money")
+      : translateText("build_menu.cant_build_here");
   }
 
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {
@@ -428,9 +395,6 @@ export class BuildMenu extends LitElement implements Controller {
                     @click=${() =>
                       this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
                     ?disabled=${!enabled}
-                    title=${!enabled
-                      ? translateText("build_menu.not_enough_money")
-                      : ""}
                   >
                     <img
                       src=${item.icon}
@@ -439,7 +403,10 @@ export class BuildMenu extends LitElement implements Controller {
                       height="40"
                     />
                     <span class="build-name">
-                      ${item.key && translateText(item.key)}
+                      ${item.key &&
+                      translateText(item.key)}${buildableUnit.locked
+                        ? " 🔒"
+                        : ""}
                     </span>
                     <span class="build-description"
                       >${item.description &&
@@ -457,6 +424,11 @@ export class BuildMenu extends LitElement implements Controller {
                         class="align-middle"
                       />
                     </span>
+                    ${enabled
+                      ? ""
+                      : html`<span class="build-reason" data-build-reason
+                          >${this.disabledReason(buildableUnit, enabled)}</span
+                        >`}
                     ${item.countable
                       ? html`<div class="build-count-chip">
                           <span class="build-count">${this.count(item)}</span>

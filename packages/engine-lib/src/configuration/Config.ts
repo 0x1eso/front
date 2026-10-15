@@ -1,3 +1,4 @@
+import { DomesticView } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
   GameType,
@@ -9,6 +10,14 @@ import {
 import { PlayerLike } from "@openfront/engine-api/game/ReadViews";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { pow } from "../DetMath";
+import { BUILDING_CONSTRUCTION_TICKS } from "../domestic/Balance";
+import { DOMESTIC_ONLY_UNITS } from "../domestic/Locks";
+import { applyPct } from "../domestic/Modifiers";
+import { domesticTroopIncrease } from "../domestic/Troops";
+import {
+  domesticConquestPercent,
+  effectiveMaxTimerMinutes,
+} from "../domestic/Victory";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
 import { assertNever } from "../Util";
 
@@ -137,7 +146,8 @@ export class Config {
     const c = this._gameConfig.overtime;
     const d = OVERTIME_DEFAULTS;
     return {
-      enabled: c?.enabled ?? d.enabled,
+      // Domestic mode always ends on its timer: no overtime (spec §8.3).
+      enabled: !this.domesticMode() && (c?.enabled ?? d.enabled),
       startMinutes: c?.startMinutes ?? d.startMinutes,
       // The drop rate is internal (not wire-configurable): always the default.
       dropPercentPerMinute: d.dropPercentPerMinute,
@@ -176,7 +186,31 @@ export class Config {
     return 30;
   }
 
+  domesticMode(): boolean {
+    return this._gameConfig.domesticMode ?? false;
+  }
+
+  /** Land share (percent) that wins by conquest, before any overtime drop. */
+  conquestPercent(): number {
+    return this.domesticMode()
+      ? domesticConquestPercent(this._gameConfig)
+      : PERCENT_TILES_OWNED_TO_WIN;
+  }
+
+  /** Game length in minutes; null when the game has no timer. */
+  maxTimerMinutes(): number | null {
+    return effectiveMaxTimerMinutes(this._gameConfig);
+  }
+
+  /** The player's domestic view in domestic mode; null otherwise (and for bots). */
+  protected domesticOf(player: PlayerLike): DomesticView | null {
+    return this.domesticMode() ? player.domestic() : null;
+  }
+
   isUnitDisabled(unitType: UnitType): boolean {
+    if (DOMESTIC_ONLY_UNITS.has(unitType) && !this.domesticMode()) {
+      return true;
+    }
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
   }
   instantBuild(): boolean {
@@ -193,6 +227,28 @@ export class Config {
   isRandomSpawn(): boolean {
     return this._gameConfig.randomSpawn;
   }
+  infiniteGold(): boolean {
+    return this._gameConfig.infiniteGold;
+  }
+
+  private hasInfiniteGoldFor(player: PlayerLike): boolean {
+    if (this.infiniteGold()) return true;
+    const hc = this._gameConfig.hostCheats;
+    return (hc?.infiniteGold ?? false) && player.isLobbyCreator();
+  }
+
+  /**
+   * Whether `player` spends no gold: a human with infinite gold (the lobby's
+   * setting, or the host's cheat for the lobby creator). Units cost such a
+   * player nothing, and neither do domestic mode's gold costs. Here rather
+   * than in EngineConfig so the client's panel shows what the engine charges.
+   */
+  hasInfiniteGold(player: PlayerLike): boolean {
+    return (
+      player.type() === PlayerType.Human && this.hasInfiniteGoldFor(player)
+    );
+  }
+
   infiniteTroops(): boolean {
     return this._gameConfig.infiniteTroops;
   }
@@ -247,6 +303,15 @@ export class Config {
           upgradable: true,
         };
         break;
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
+        info = {
+          constructionDuration: this.instantBuild()
+            ? 0
+            : BUILDING_CONSTRUCTION_TICKS,
+          upgradable: true,
+        };
+        break;
       case UnitType.TransportShip:
       case UnitType.SAMMissile:
       case UnitType.AtomBomb:
@@ -291,7 +356,7 @@ export class Config {
   }
 
   percentageTilesOwnedToWin(elapsedGameSeconds: number): number {
-    const base = PERCENT_TILES_OWNED_TO_WIN;
+    const base = this.conquestPercent();
     const sd = this.overtimeConfig();
     if (!sd.enabled) {
       return base;
@@ -324,12 +389,17 @@ export class Config {
   }
 
   maxTroops(player: PlayerLike): number {
-    return this.troopCap(player, true);
+    return this.withDomesticMaxTroops(player, this.troopCap(player, true));
   }
 
   /** maxTroops without what cities add */
   maxTroopsWithoutCities(player: PlayerLike): number {
-    return this.troopCap(player, false);
+    return this.withDomesticMaxTroops(player, this.troopCap(player, false));
+  }
+
+  private withDomesticMaxTroops(player: PlayerLike, cap: number): number {
+    const domestic = this.domesticOf(player);
+    return domestic === null ? cap : applyPct(cap, domestic.pct("maxTroops"));
   }
 
   private troopCap(player: PlayerLike, withCities: boolean): number {
@@ -398,6 +468,10 @@ export class Config {
       }
     }
 
+    const domestic = this.domesticOf(player);
+    if (domestic !== null) {
+      return domesticTroopIncrease(player.troops(), toAdd, max, domestic);
+    }
     return Math.min(player.troops() + toAdd, max) - player.troops();
   }
 
@@ -424,6 +498,22 @@ export class Config {
 
   maxSamRange(): number {
     return 150;
+  }
+
+  /**
+   * A SAM's range from its base range (samRange(level), or the interpolated
+   * range while upgrading) with its owner's domestic samRange modifier (the
+   * air-defense law), never past maxSamRange(): the interception search
+   * prunes at that distance. The engine intercepts with it
+   * (EngineConfig.dynamicSamRange) and the client draws its rings with it.
+   */
+  samRangeOf(owner: PlayerLike, baseRange: number): number {
+    const domestic = this.domesticOf(owner);
+    if (domestic === null) return baseRange;
+    const pct = domestic.pct("samRange");
+    return pct === 0
+      ? baseRange
+      : Math.min(this.maxSamRange(), applyPct(baseRange, pct));
   }
 
   structureMinDist(): number {

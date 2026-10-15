@@ -251,7 +251,7 @@ export class NationMIRVBehavior {
 
   considerMIRV(): boolean {
     if (this.player === null) throw new Error("not initialized");
-    if (this.game.config().isUnitDisabled(UnitType.MIRV)) {
+    if (this.player.isUnitUnavailable(UnitType.MIRV)) {
       return false;
     }
     if (this.player.units(UnitType.MissileSilo).length === 0) {

@@ -3,7 +3,6 @@ import {
   isRewardClaimable,
   UserMeResponse,
 } from "@openfront/shared/ApiSchemas";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { toWireGameStartInfo } from "@openfront/shared/SharedUtil";
 import {
@@ -19,7 +18,6 @@ import { ClientEnv } from "src/client/ClientEnv";
 import { renderNavVersion } from "src/client/GameVersion";
 import { responseHasLinkedIdentity } from "./AccountIdentity";
 import { adGatekeeper } from "./AdGatekeeper";
-import { loadAdmiral, onAdmiralMeasured } from "./Admiral";
 import { getUserMe, invalidateUserMe, markNoticeSeen } from "./Api";
 import {
   getDesktopSessionState,
@@ -101,6 +99,7 @@ import {
   withGroupToken,
 } from "./PresenceGroup";
 import type { RewardsModal } from "./RewardsModal";
+import { isSelfHosted, turnstileRequired } from "./SelfHosted";
 import {
   ensureServerList,
   redirectToGameVersion,
@@ -531,7 +530,9 @@ class Client {
     // so rendering the widget there just fails — and replays never
     // send a token anyway (see getTurnstileToken below).
     const turnstilePrefetch =
-      isDesktopShell() || isReplayShellHost(window.location.hostname)
+      isDesktopShell() ||
+      isReplayShellHost(window.location.hostname) ||
+      !turnstileRequired()
         ? null
         : getTurnstileToken();
     // A prefetch that fails is not an error anyone has asked about yet: the
@@ -544,13 +545,6 @@ class Client {
     // Wait for components to render before setting version
     await customElements.whenDefined("mobile-nav-bar");
     await customElements.whenDefined("desktop-nav-bar");
-
-    const openFrontFont = new FontFace(
-      "OpenFront",
-      `url(${assetUrl("fonts/OpenFront.ttf")})`,
-    );
-    document.fonts.add(openFrontFont);
-    openFrontFont.load().catch(() => {});
 
     // The tagged version only, so a player's version reads the same across web
     // and Steam. The build's full identity -- the commit on an untagged build,
@@ -744,22 +738,17 @@ class Client {
       }
       const isAdFree =
         userMeResponse !== false && userMeResponse.player?.adfree === true;
+      // A self-hosted page shows no ads: the ad tags belong to OpenFront.
       window.adsEnabled =
-        !isAdFree && !gamePortal.isOnGamePortal() && !isDesktopShell();
-      // Ad-eligible users only: paid/adfree users must never load Admiral (its
-      // adblock popup fires autonomously once the payload runs). Start watching
-      // adblock state; once a blocker is ever detected the in-game ad is
-      // suppressed forever (persisted) — those users are highly ad-sensitive.
+        !isSelfHosted() &&
+        !isAdFree &&
+        !gamePortal.isOnGamePortal() &&
+        !isDesktopShell();
+      // Ad-eligible users only: start watching adblock state; once a blocker
+      // is ever detected the in-game ad is suppressed forever (persisted) —
+      // those users are highly ad-sensitive. (Upstream's ad-recovery tag,
+      // Admiral, is not loaded: it carries OpenFront's property key.)
       if (window.adsEnabled) {
-        loadAdmiral();
-        // Admiral's read is more reliable than our DOM bait, so use it as a
-        // fast initial signal. A blocker that whitelists this site still shows
-        // ads, so "blocked" means adblocking AND not whitelisted.
-        onAdmiralMeasured((res) => {
-          adGatekeeper.seed(
-            res.adblocking === true && res.whitelisted !== true,
-          );
-        });
         adGatekeeper.start();
       }
       // Before the dispatch: <username-input> reads this store when it picks
@@ -2194,6 +2183,8 @@ class Client {
   ): Promise<string | null> {
     if (
       ClientEnv.env() === GameEnv.Dev ||
+      // A self-hosted server verifies no token (ServerEnv.skipsApiChecks).
+      !turnstileRequired() ||
       isDesktopShell() ||
       // Single-player and replays: no server to verify a token against (and
       // on the CDN replay shells Turnstile cannot load at all). Shared with

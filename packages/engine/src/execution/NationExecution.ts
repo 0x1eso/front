@@ -33,10 +33,15 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { NationAllianceBehavior } from "./nation/NationAllianceBehavior";
+import { nationDomesticTick } from "./nation/NationDomesticBehavior";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
 import { NationStructureBehavior } from "./nation/NationStructureBehavior";
+import {
+  nationProjectKindFor,
+  nationVictoryTick,
+} from "./nation/NationVictoryBehavior";
 import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { SpawnExecution } from "./SpawnExecution";
 import { AiAttackBehavior } from "./utils/AiAttackBehavior";
@@ -112,7 +117,7 @@ export class NationExecution implements Execution {
       this.player.isAlive() &&
       this.mg.config().gameConfig().difficulty !== Difficulty.Easy &&
       this.player.unitsConstructed(UnitType.Port) &&
-      !this.mg.config().isUnitDisabled(UnitType.Warship)
+      !this.player.isUnitUnavailable(UnitType.Warship)
     ) {
       this.warshipBehavior.trackShipsAndRetaliate();
     }
@@ -222,6 +227,14 @@ export class NationExecution implements Execution {
     this.allianceBehavior.handleAllianceExtensionRequests();
     this.mirvBehavior.considerMIRV();
     this.structureBehavior.handleStructures();
+    // Starting a victory project goes before proclaiming laws, so the
+    // project gets the political power first (spec §9.3).
+    nationVictoryTick(
+      this.mg,
+      this.player,
+      nationProjectKindFor(this.mg, this.player),
+    );
+    nationDomesticTick(this.mg, this.player);
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();
     this.attackBehavior.maybeAttack();

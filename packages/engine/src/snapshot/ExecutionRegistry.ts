@@ -1,4 +1,10 @@
 // Every entry is `<ClassName>Snapshot`, exported next to its class.
+import { ChooseGovernmentExecutionSnapshot } from "../domestic/ChooseGovernmentExecution";
+import { DomesticExecutionSnapshot } from "../domestic/DomesticExecution";
+import { ProclaimLawExecutionSnapshot } from "../domestic/ProclaimLawExecution";
+import { ResearchExecutionSnapshot } from "../domestic/ResearchExecution";
+import { SetRecruitTargetExecutionSnapshot } from "../domestic/SetRecruitTargetExecution";
+import { VictoryProjectExecutionSnapshot } from "../domestic/VictoryProjectExecution";
 import { AllianceExtensionExecutionSnapshot } from "../execution/alliance/AllianceExtensionExecution";
 import { AllianceRejectExecutionSnapshot } from "../execution/alliance/AllianceRejectExecution";
 import { AllianceRequestExecutionSnapshot } from "../execution/alliance/AllianceRequestExecution";
@@ -59,10 +65,12 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   AttackExecutionSnapshot,
   BoatRetreatExecutionSnapshot,
   BreakAllianceExecutionSnapshot,
+  ChooseGovernmentExecutionSnapshot,
   CityExecutionSnapshot,
   ConstructionExecutionSnapshot,
   DefensePostExecutionSnapshot,
   DeleteUnitExecutionSnapshot,
+  DomesticExecutionSnapshot,
   DonateGoldExecutionSnapshot,
   DonateTroopsExecutionSnapshot,
   DoomsdayClockExecutionSnapshot,
@@ -80,11 +88,14 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   PauseExecutionSnapshot,
   PlayerExecutionSnapshot,
   PortExecutionSnapshot,
+  ProclaimLawExecutionSnapshot,
   QuickChatExecutionSnapshot,
   RecomputeRailClusterExecutionSnapshot,
+  ResearchExecutionSnapshot,
   RetreatExecutionSnapshot,
   SAMLauncherExecutionSnapshot,
   SAMMissileExecutionSnapshot,
+  SetRecruitTargetExecutionSnapshot,
   ShellExecutionSnapshot,
   SpawnExecutionSnapshot,
   SpawnTimerExecutionSnapshot,
@@ -95,6 +106,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   TransportShipExecutionSnapshot,
   TribeExecutionSnapshot,
   UpgradeStructureExecutionSnapshot,
+  VictoryProjectExecutionSnapshot,
   WarshipExecutionSnapshot,
   WinCheckExecutionSnapshot,
 ] as unknown as readonly ExecutionSnapshotType<unknown>[];

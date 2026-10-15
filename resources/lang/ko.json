@@ -172,7 +172,13 @@
     "title": "계정이 차단되었습니다",
     "until": "{date}까지 차단되었습니다."
   },
+  "branding": {
+    "based_on": "OpenFront 기반",
+    "source_code": "소스 코드",
+    "title": "스테이트크래프트"
+  },
   "build_menu": {
+    "cant_build_here": "여기에는 건설할 수 없습니다",
     "desc": {
       "atom_bomb": "소형 폭발을 일으킵니다",
       "city": "최대 인구 수를 증가시킵니다",
@@ -183,7 +189,9 @@
       "missile_silo": "핵 미사일 발사를 위해 사용됩니다",
       "port": "무역선을 보내 금을 생산합니다",
       "sam_launcher": "들어오는 핵미사일을 방어합니다",
-      "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다"
+      "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다",
+      "admin_office": "정치력을 생산합니다. 레벨당 초당 금 50 유지비.",
+      "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비."
     },
     "not_enough_money": "돈이 부족합니다",
     "upgrade_amount": "x{amount}",
@@ -489,7 +497,7 @@
   "common": {
     "available": "사용 가능",
     "back": "뒤로가기",
-    "backend_unreachable": "OpenFront 서버에 연결할 수 없습니다. 네트워크 연결을 확인하고 다시 시도하세요.",
+    "backend_unreachable": "게임 서버에 연결할 수 없습니다. 네트워크 연결을 확인하고 다시 시도하세요.",
     "cancel": "취소",
     "cap_label": "제한",
     "cap_tooltip": "수령자 잔여 수용량",
@@ -801,7 +809,12 @@
     "trade_ship_captured": "{name}님에게 무역선이 나포되었습니다",
     "unit_destroyed": "당신의 {unit}이(가) 파괴되었습니다",
     "unit_voluntarily_deleted": "유닛이 해산되었습니다",
-    "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다"
+    "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다",
+    "research_complete": "연구 완료: {tech}",
+    "government_tier_reached": "정부 {tier}단계 도달: 국정 패널에서 새 정부를 고를 수 있습니다",
+    "victory_project_complete": "{name}이(가) {project}을(를) 완성했습니다!",
+    "victory_project_failed": "{name}의 {project}이(가) 실패했습니다",
+    "victory_project_started": "{name}이(가) {project}에 착수했습니다! 건물을 빼앗거나 파괴하면 막을 수 있습니다."
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -906,7 +919,9 @@
     "start": "게임 시작",
     "starting": "시작 중...",
     "starting_gold": "시작 금 (M)",
-    "water_nukes": "수몰 폭탄"
+    "water_nukes": "수몰 폭탄",
+    "domestic_mode": "내정 모드",
+    "conquest_percent": "정복 기준 %"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -1009,7 +1024,7 @@
     "preset_colorblind_desc": "색약자를 고려한 영토 및 국경 색상입니다",
     "preset_custom": "사용자 지정",
     "preset_default": "기본값",
-    "preset_default_desc": "표준 OpenFront 스타일입니다",
+    "preset_default_desc": "표준 스타일입니다",
     "preset_delete_confirm": "\"{name}\" 프리셋을 삭제하시겠습니까?",
     "preset_evans_pick": "Evan의 추천",
     "preset_evans_pick_desc": "개발자 Evan이 실제로 플레이할 때 사용하는 설정입니다",
@@ -1039,7 +1054,9 @@
     "territory_alpha_desc": "영토 채우기 불투명도입니다 (낮을수록 지형이 더 비쳐 보입니다)",
     "territory_alpha_label": "영토 불투명도",
     "territory_sat_desc": "영토 채우기 채도입니다 (낮을수록 색상이 흐려집니다)",
-    "territory_sat_label": "영토 채도"
+    "territory_sat_label": "영토 채도",
+    "preset_medium": "중간 (태블릿)",
+    "preset_medium_desc": "낙진 빛, 작은 나라 빛, 배·핵 궤적 같은 무거운 효과를 꺼서 태블릿에서 부드럽게 돌아갑니다"
   },
   "heads_up_message": {
     "catching_up": "따라잡는 중...",
@@ -1128,7 +1145,7 @@
     "radial_title": "방사 메뉴",
     "table_action": "동작",
     "table_key": "키",
-    "troubleshooting_desc": "오픈프론트 플레이 중 성능 문제, 충돌 또는 기타 문제가 발생하는 경우, 일반적인 문제의 진단 및 해결에 대한 도움을 받으려면 문제 해결 페이지를 방문하세요.",
+    "troubleshooting_desc": "플레이 중 성능 문제, 충돌 또는 기타 문제가 발생하는 경우, 일반적인 문제의 진단 및 해결에 대한 도움을 받으려면 문제 해결 페이지를 방문하세요.",
     "ui_attack_ratio": "공격 비율 - 공격 시 사용할 병력의 비율을 나타냅니다. 슬라이더로 공격 비율을 조절할 수 있습니다. 공격군이 방어군보다 많으면 공격 중 손실되는 병력이 줄어들고, 적으면 공격군이 더 큰 피해를 입게 됩니다. 이 효과는 최대 2:1 비율까지만 적용됩니다.",
     "ui_control": "제어판",
     "ui_control_desc": "컨트롤 패널에는 다음과 같은 요소들이 포함되어 있습니다:",
@@ -1148,7 +1165,7 @@
     "ui_wilderness": "무주지",
     "ui_your_team": "나의 팀:",
     "video_tutorial": "동영상 튜토리얼",
-    "video_tutorial_title": "오픈프론트 튜토리얼"
+    "video_tutorial_title": "영상 튜토리얼"
   },
   "host_modal": {
     "anonymous_players": "익명 플레이어",
@@ -1236,14 +1253,14 @@
     "got_it": "알았습니다",
     "how": "방법",
     "later": "나중에",
-    "modal_desc": "현재 브라우저에서는 전체 화면을 지원하지 않지만, 더 몰입감 있는 플레이를 위해 OpenFront를 홈 화면에 추가할 수 있습니다:",
+    "modal_desc": "현재 브라우저에서는 전체 화면을 지원하지 않지만, 더 몰입감 있는 플레이를 위해 이 게임을 홈 화면에 추가할 수 있습니다:",
     "modal_title": "iOS에서 전체 화면 사용",
     "never": "다시 보지 않기",
     "step_add_to_home_label": "홈 스크린에 추가하기",
     "step_open": "홈 화면에서 실행 — 주소창 없이 전체 화면으로 실행됩니다",
     "step_scroll_and_tap": "아래로 스크롤한 다음 탭하세요",
     "step_share": "브라우저의 공유 버튼을 탭하세요",
-    "text": "전체 화면을 이용하려면 OpenFront를 홈 화면에 추가하세요"
+    "text": "전체 화면을 이용하려면 이 게임을 홈 화면에 추가하세요"
   },
   "kick_reason": {
     "admin": "관리자에 의해 추방되었습니다",
@@ -1275,7 +1292,8 @@
     "trainTradeGoldPerMin": "분당 철도 무역 금",
     "troops": "병력",
     "type": "유형",
-    "warships": "군함"
+    "warships": "군함",
+    "score": "점수"
   },
   "leaderboard_modal": {
     "clan": "클랜",
@@ -1520,7 +1538,7 @@
     "dismiss": "닫기",
     "error": "저장하지 못했습니다. 다시 시도해 주세요.",
     "no": "괜찮습니다",
-    "title": "OpenFront의 최신 소식을 받아보시겠습니까?",
+    "title": "게임의 최신 소식을 받아보시겠습니까?",
     "yes": "받아보기"
   },
   "matchmaking_modal": {
@@ -1549,7 +1567,7 @@
     "ranked_pairing_note": "팀 모드에서는 가능한 경우 대기열에 있는 클랜원과 친구가 같은 팀에 배치됩니다. 친구가 먼저 매칭된 후 클랜원이 매칭됩니다. 공정한 게임을 유지하기 위해 등급 차이가 너무 큰 경우 따로 매칭됩니다.",
     "ranked_title": "랭크전",
     "retry_lobbies": "다시 시도",
-    "servers_unreachable": "OpenFront 서버에 연결할 수 없습니다",
+    "servers_unreachable": "게임 서버에 연결할 수 없습니다",
     "teams_count": "{teamCount} 팀",
     "teams_of": "{playersPerTeam}인 {teamCount}개 팀",
     "teams_title": "팀전",
@@ -1862,10 +1880,10 @@
     "processing_fetching": "게임 기록 가져오는 중",
     "processing_simulating": "게임 재생 중: {percent}%",
     "timeline": "리플레이 타임라인",
-    "unavailable_desync": "현재 버전의 OpenFront에서는 이 게임이 올바르게 재생되지 않습니다.",
+    "unavailable_desync": "현재 버전의 게임에서는 이 게임이 올바르게 재생되지 않습니다.",
     "unavailable_failed": "게임 처리에 실패했습니다.",
     "unavailable_not_found": "이 게임을 찾을 수 없습니다.",
-    "unavailable_other_build": "다른 버전의 OpenFront에서 플레이한 게임입니다.",
+    "unavailable_other_build": "다른 버전의 게임에서 플레이한 게임입니다.",
     "unavailable_unreachable": "게임을 다운로드할 수 없습니다. 연결 상태를 확인하고 다시 시도하세요.",
     "watch_classic": "대신 이전 버전의 리플레이 시청"
   },
@@ -2108,7 +2126,7 @@
     "browser": "브라우저",
     "canvas_2d_no_gpu": "캔버스 2D (GPU 없음)",
     "charging": "충전",
-    "chromium_tip": "오픈프론트는 크로미움 기반 브라우저에서 가장 잘 작동합니다.",
+    "chromium_tip": "이 게임은 크로미움 기반 브라우저에서 가장 잘 작동합니다.",
     "copied_to_clipboard": "클립보드에 정보가 복사되었습니다! 도움이 필요하시면 저희 디스코드에 자유롭게 공유해주세요.",
     "device_pixel_ratio": "장치 픽셀 비율",
     "environment": "환경",
@@ -2144,7 +2162,7 @@
       "attack_nations": "국가들이 부족으로 가는 길을 차단했습니다. 대신 인접한 국가를 공격하세요 — 부족보다 강하므로 많은 병력을 데려가세요 . 가장 가까운 대상에는 표적이 표시됩니다. 도시를 건설할 금 {cost}을(를) 모을 때까지 정복하세요 .",
       "attack_ratio": "공격 비율 막대는 공격할 때마다 보낼 병력의 양을 설정합니다. 슬라이더를 드래그하여 조절하세요.",
       "attack_wilderness": "깜빡이는 원은 영토를 나타냅니다. 인접한 미점유 토지를 클릭하여 공격하고 확장하세요.",
-      "buy_city": "도시를 건설할 수 있습니다! {key} 키를 누르거나(또는 제어판 아래의 도시 아이콘 클릭), 영토를 클릭하여 배치하세요. 도시는 최대 병력을 늘려줍니다.",
+      "buy_city": "도시를 건설할 수 있습니다! {key} 키를 누르거나(또는 제어판 아래 도시 아이콘을 두 번 누르세요. 한 번 누르면 설명이 나오고, 두 번째로 누르면 건설이 시작됩니다), 영토를 눌러 배치하세요. 도시는 최대 병력을 늘려줍니다.",
       "buy_defense_post": "이제 방어 초소를 건설하세요: {key} 키를 누른 다음, 국경 근처의 영토를 클릭하세요. 주변 토지에 대한 공격 속도가 크게 느려지며 적에게 훨씬 더 많은 병력 소모를 강요합니다.",
       "buy_factory": "이제 공장을 건설하세요: {key} 키를 누른 다음, 영토를 클릭하여 배치하세요.",
       "buy_port": "다음으로 항구를 건설하세요: {key} 키를 누른 다음, 해안선을 클릭하여 배치하세요.",
@@ -2172,7 +2190,7 @@
     "step_counter": "{current}단계 / 총 {total}단계",
     "step_touch": {
       "attack_wilderness": "깜빡이는 원은 영토를 나타냅니다. 인접한 미점유 토지를 탭한 다음, 메뉴 중앙의 검을 탭하여 공격하세요.",
-      "buy_city": "도시를 건설할 수 있습니다! 영토를 탭하고 렌치(건설) 메뉴를 연 다음 도시를 선택하세요. 도시는 최대 병력을 늘려줍니다.",
+      "buy_city": "도시를 건설할 수 있습니다! 제어판 아래 도시 아이콘을 두 번 누르세요(한 번 누르면 설명이 나오고, 두 번째로 누르면 건설이 시작됩니다). 그런 다음 영토를 눌러 도시를 놓을 자리를 정하고, 그 도시를 한 번 더 눌러 건설하세요. 도시는 최대 병력을 늘려줍니다.",
       "buy_defense_post": "이제 방어 진지를 건설하세요: 국경 근처의 영토를 탭하고 렌치 메뉴를 연 다음 방어 진지를 선택하세요. 주변 토지에 대한 공격 속도가 크게 느려지며 적에게 훨씬 더 많은 병력 소모를 강요합니다.",
       "buy_factory": "이제 공장을 건설하세요: 영토를 탭하고 렌치 메뉴를 연 다음 공장을 선택하세요.",
       "buy_port": "다음으로 항구를 건설하세요: 해안선을 탭하고 렌치 메뉴를 연 다음 항구를 선택하세요.",
@@ -2196,11 +2214,13 @@
     "missile_silo": "미사일 발사대",
     "port": "항구",
     "sam_launcher": "지대공 미사일 발사대",
-    "warship": "군함"
+    "warship": "군함",
+    "admin_office": "행정청",
+    "research_institute": "연구소"
   },
   "update_available": {
     "desktop": "OpenFront의 새로운 버전을 이용할 수 있습니다. 백그라운드에서 다운로드되며, 준비가 완료되면 업데이트 표시줄에서 새로고침하세요.",
-    "message": "OpenFront의 새로운 버전을 이용할 수 있습니다. 업데이트를 위해 페이지를 새로고침합니다."
+    "message": "새로운 버전을 이용할 수 있습니다. 업데이트를 위해 페이지를 새로고침합니다."
   },
   "user_setting": {
     "alert_frame_desc": "경고창을 켜고 끕니다. 활성화하면 배신을 당하거나 지상으로 공격받을 때 경고창이 표시됩니다.",
@@ -2432,10 +2452,343 @@
     "other_won": "{player} 이(가) 이겼습니다!",
     "requeue": "다시 하기",
     "spectate": "관전하기",
-    "support_openfront": "OpenFront를 후원해주세요!",
+    "support_openfront": "이 게임을 후원해주세요!",
     "territory_pattern": "영토 스킨을 구매하고 광고 없이 플레이하세요!",
     "you_won": "나의 승리!",
     "your_team": "우리팀이 승리했습니다!",
     "youtube_tutorial": "도움이 필요하신가요?"
+  },
+  "domestic": {
+    "blocked": {
+      "busy": "다른 연구가 진행 중입니다",
+      "era": "이전 시대 기술 2개가 필요합니다",
+      "prereq": "{tech} 필요"
+    },
+    "branch": {
+      "economy": "경제",
+      "learning": "학문",
+      "military": "군사"
+    },
+    "cost": "과학력 {cost} · {seconds}초",
+    "era": "{era}시대",
+    "locked_requires": "{tech} 연구 필요",
+    "open_panel": "국정",
+    "panel_title": "국정",
+    "pay_with_gold": "금 {gold}으로 연구",
+    "per_sec": "+{value}/초",
+    "political": "정치력",
+    "recruit_target": "징병 상한 {pct}%",
+    "research": "연구",
+    "research_progress": "{tech} 연구 중: {seconds}초 남음",
+    "researched": "연구 완료",
+    "researching": "연구 중",
+    "science": "과학력",
+    "tab_tech": "기술",
+    "tech": {
+      "academia": {
+        "desc": "연구소 생산 +40%",
+        "name": "학술 기관"
+      },
+      "banking": {
+        "desc": "보유 금에 분당 2% 이자 (최대 초당 1,500)",
+        "name": "은행업"
+      },
+      "bureaucracy": {
+        "desc": "행정청 생산 +40%",
+        "name": "관료제"
+      },
+      "computers": {
+        "desc": "과학력 +30%, 정치력 +15%",
+        "name": "컴퓨터"
+      },
+      "conscription": {
+        "desc": "병력 회복 +25%, 징병비 -30%",
+        "name": "징병제"
+      },
+      "currency": {
+        "desc": "도시 세수 +50%",
+        "name": "화폐 주조"
+      },
+      "fortification": {
+        "desc": "방어 기지 효과 +50%, 방어 기지 건설비 -30%",
+        "name": "요새 축성"
+      },
+      "global_trade": {
+        "desc": "무역선 출현 +50%, 동맹과의 무역 수익 +50%",
+        "name": "국제 무역"
+      },
+      "globalization": {
+        "desc": "모든 금 수입 +30%",
+        "name": "세계화"
+      },
+      "industrialization": {
+        "desc": "기차 수익 +50%, 모든 건설비 -15%",
+        "name": "산업화"
+      },
+      "manhattan_project": {
+        "desc": "원자폭탄 해금",
+        "name": "맨해튼 프로젝트"
+      },
+      "mirv": {
+        "desc": "MIRV 해금",
+        "name": "다탄두 미사일"
+      },
+      "navigation": {
+        "desc": "무역선 수익 +40%, 항구 건설비 -25%",
+        "name": "항해술"
+      },
+      "printing_press": {
+        "desc": "정치력 +25%, 법 선포 비용 -15%",
+        "name": "인쇄술"
+      },
+      "radar": {
+        "desc": "SAM 해금",
+        "name": "레이더"
+      },
+      "railroad": {
+        "desc": "공장 해금",
+        "name": "철도"
+      },
+      "rocketry": {
+        "desc": "미사일 기지 해금",
+        "name": "로켓 공학"
+      },
+      "scientific_method": {
+        "desc": "연구 시간 -30%, 과학력 +15%",
+        "name": "과학적 방법"
+      },
+      "space_program": {
+        "desc": "우주 계획 착수 가능 (과학 승리)",
+        "name": "우주 개발"
+      },
+      "steel_ships": {
+        "desc": "전함 해금",
+        "name": "강철 함선"
+      },
+      "thermonuclear": {
+        "desc": "수소폭탄 해금",
+        "name": "열핵 무기"
+      }
+    },
+    "gov": {
+      "chiefdom": {
+        "desc": "효과 없음",
+        "name": "족장제"
+      },
+      "communism": {
+        "desc": "모든 건설비 -30%, 모든 건설 시간 -50%, 연구소·행정청 운영비 없음. 5개년 계획: 연구소·행정청 생산 +50%. 무역 수익 -30%",
+        "name": "공산주의"
+      },
+      "democracy": {
+        "desc": "금 수입 +30%, 과학력 +30%, 부족분 금 결제 비용 -50%. 평화 배당: 공격하지 않는 동안 정치력 +30%. 전쟁 피로: 공격하는 동안 정치력 -50%",
+        "name": "민주주의"
+      },
+      "fascism": {
+        "desc": "병력 회복 +30%, 공격할 때 병력 손실 -25%, 징병비 -50%. 전시 경제: 공격하는 동안 금 수입 +30%. 과학력 -20%, 공격하지 않는 동안 금 수입 -10%",
+        "name": "파시즘"
+      },
+      "monarchy": {
+        "desc": "최대 병력 +20%, 유지비 무료 구간 40%→60%. 봉건제: 도시 레벨마다 정치력 0.2/초. 과학력 -15%",
+        "name": "군주제"
+      },
+      "republic": {
+        "desc": "금 수입 +20%, 무역 수익 +25%. 공공사업: 도시 건설 시간 -50%. 징병비 +25%",
+        "name": "공화정"
+      },
+      "theocracy": {
+        "desc": "정치력 +30%, 방어할 때 병력 손실 -20%. 십일조: 초당 금 100 × √(땅 비율 %). 과학력 -15%. 국교 지정 필요",
+        "name": "신정"
+      }
+    },
+    "gov_active": "현재 정부",
+    "gov_adopt": "수립",
+    "gov_current": "정부: {name}",
+    "gov_locked": "다음 단계까지 바꿀 수 없음",
+    "gov_max_tier": "모든 정부 단계 도달",
+    "gov_needs_tier": "{tier}단계에 열림",
+    "gov_passed": "지나간 단계",
+    "gov_progress": "누적 정치력 {value} / {next} ({tier}단계)",
+    "gov_requires_law": "{law} 필요",
+    "gov_tier": "{tier}단계",
+    "law": {
+      "construction": {
+        "A": {
+          "desc": "모든 건설비 -25%",
+          "name": "인프라 투자"
+        },
+        "B": {
+          "desc": "모든 건설 시간 -50%",
+          "name": "공기 단축"
+        },
+        "name": "건설"
+      },
+      "diplomacy": {
+        "A": {
+          "desc": "동맹과의 무역·기차 수익 +50%",
+          "name": "동맹 우대"
+        },
+        "B": {
+          "desc": "다른 나라와 무역 불가, 정치력 +40%, 방어할 때 병력 손실 -10%",
+          "name": "고립주의"
+        },
+        "name": "외교"
+      },
+      "doctrine": {
+        "A": {
+          "desc": "방어 기지 효과 +40%, 방어할 때 병력 손실 -15%",
+          "name": "방어 우선"
+        },
+        "B": {
+          "desc": "공격 속도 +30%, 방어할 때 병력 손실 +10%",
+          "name": "전격전"
+        },
+        "name": "교리"
+      },
+      "learning": {
+        "A": {
+          "desc": "매초 금 300을 과학력 0.5로 전환 (금이 있을 때만)",
+          "name": "연구 보조금"
+        },
+        "B": {
+          "desc": "행정청 생산 +40%",
+          "name": "행정 개혁"
+        },
+        "name": "학문"
+      },
+      "mobilization": {
+        "A": {
+          "desc": "병력이 최대치의 절반 이하면 병력 회복 +100%",
+          "name": "총동원령"
+        },
+        "B": {
+          "desc": "유지비 무료 구간 40%→60%",
+          "name": "예비군"
+        },
+        "name": "동원"
+      },
+      "nuclear": {
+        "A": {
+          "desc": "미사일 기지·SAM 건설비 -30%, 핵 비용 -20%",
+          "name": "핵 억지력"
+        },
+        "B": {
+          "desc": "SAM 사거리 +30%",
+          "name": "방공망"
+        },
+        "name": "핵"
+      },
+      "opinion": {
+        "A": {
+          "desc": "정치력 +25%",
+          "name": "선전부"
+        },
+        "B": {
+          "desc": "과학력 +20%",
+          "name": "학문의 자유"
+        },
+        "name": "여론"
+      },
+      "religion": {
+        "A": {
+          "desc": "신정 수립 가능, 정치력 +15%, 병력 회복 +15%, 과학력 -10%",
+          "name": "국교 지정"
+        },
+        "B": {
+          "desc": "과학력 +15%, 다른 나라와의 무역 수익 +20%, 빈 땅 확장 속도 +20%",
+          "name": "종교 관용"
+        },
+        "name": "종교"
+      },
+      "service": {
+        "A": {
+          "desc": "최대 병력 +25%, 금 수입 -10%",
+          "name": "국민개병"
+        },
+        "B": {
+          "desc": "병력 유지비 -50%, 공격할 때 병력 손실 -15%",
+          "name": "직업 군대"
+        },
+        "name": "병역"
+      },
+      "taxation": {
+        "A": {
+          "desc": "금 수입 +30%, 병력 회복 -15%",
+          "name": "중과세"
+        },
+        "B": {
+          "desc": "도시 세수 +40%, 도시 건설 시간 -50%",
+          "name": "도시 계획"
+        },
+        "name": "조세"
+      },
+      "trade": {
+        "A": {
+          "desc": "무역선·기차 수익 +40%",
+          "name": "자유무역"
+        },
+        "B": {
+          "desc": "도시 세수 +60%, 다른 나라와의 무역 수익 -30%",
+          "name": "보호무역"
+        },
+        "name": "무역"
+      }
+    },
+    "law_cooldown": "{seconds}초 후 선포 가능",
+    "law_next_cost": "다음 법: 정치력 {cost}",
+    "proclaim": "선포",
+    "proclaim_with_gold": "금 {gold}으로 선포",
+    "proclaimed": "선포함",
+    "rejected": "선택 불가",
+    "tab_government": "정부",
+    "tab_laws": "법률서",
+    "project": {
+      "political": {
+        "desc": "레벨 3 이상 행정청에서 세계 정부를 선포합니다. 다른 나라를 공격하는 동안에는 멈춥니다.",
+        "name": "세계 정부 선포"
+      },
+      "science": {
+        "desc": "레벨 3 이상 연구소에서 우주 계획을 진행합니다.",
+        "name": "우주 계획"
+      }
+    },
+    "tab_victory": "승리",
+    "tap_again_to_confirm": "한 번 더 눌러 확정 (되돌릴 수 없음)",
+    "victory": {
+      "active": "진행 중인 프로젝트",
+      "blocked": {
+        "busy": "다른 프로젝트가 진행 중입니다",
+        "gold": "금이 부족합니다",
+        "host": "레벨 3 이상 건물이 필요합니다",
+        "political": "정치력이 부족합니다",
+        "requirement": "조건을 채우지 못했습니다"
+      },
+      "conquest": "정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
+      "cost_political": "금 {gold} + 정치력 {political} · 4분",
+      "cost_science": "금 {gold} · 4분",
+      "host_level": "{building} Lv. {level}",
+      "no_hosts": "레벨 3 이상 건물이 아직 없습니다",
+      "none_active": "진행 중인 프로젝트가 없습니다",
+      "paused": "(일시 정지: 공격 중)",
+      "progress": "{name}: {project} {pct}%",
+      "requirement_political": "정부 3단계 필요",
+      "requirement_science": "우주 개발 기술 필요",
+      "score": "점수: {score} ({count}명 중 {rank}위)",
+      "start": "착수",
+      "team_conquest": "팀 정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
+      "team_score": "팀 점수: {score} ({count}팀 중 {rank}위)",
+      "time_left": "남은 시간: {time}"
+    },
+    "win_reason": {
+      "conquest": "정복 승리",
+      "political": "정치 승리: 세계 정부 선포",
+      "science": "과학 승리: 우주 계획",
+      "score": "점수 승리"
+    }
+  },
+  "touch_ui": {
+    "needs_port": "항구를 먼저 지으세요",
+    "needs_silo": "미사일 발사대를 먼저 지으세요",
+    "tap_again_to_build": "한 번 더 누르면 건설합니다",
+    "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다"
   }
 }

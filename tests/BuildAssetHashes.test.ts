@@ -41,14 +41,7 @@ describe("hashDirectory", () => {
   it("excludes unhashed root files copied through the build, such as LICENSE", async () => {
     await fs.mkdir(path.join(dir, "assets"), { recursive: true });
     await fs.writeFile(path.join(dir, "assets", "index-abc.js"), "hello");
-    for (const name of [
-      "LICENSE",
-      "ads.txt",
-      "privacy-policy.html",
-      "robots.txt",
-      "terms-of-service.html",
-      "version.txt",
-    ]) {
+    for (const name of ["LICENSE", "robots.txt", "version.txt"]) {
       await fs.writeFile(path.join(dir, name), name);
     }
 

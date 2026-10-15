@@ -1,8 +1,9 @@
 import { GameEnv } from "@openfront/shared/configuration/Env";
+import { SELF_HOST_API_PREFIX } from "@openfront/shared/SelfHost";
 import cluster from "cluster";
 import crypto from "crypto";
 import express from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -26,6 +27,13 @@ import { MasterLobbyService } from "./MasterLobbyService";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
 import { renderAppShell } from "./RenderHtml";
+import { notOnSelfHost, selfHostApiStub } from "./SelfHostApiStub";
+import {
+  connectingIp,
+  proxyToWorkers,
+  proxyUpgradeToWorker,
+  type WorkerRouting,
+} from "./SelfHostProxy";
 import { ServerEnv } from "./ServerEnv";
 import { applyStaticAssetCacheControl } from "./StaticAssetCache";
 
@@ -39,6 +47,17 @@ const log = logger.child({ comp: "m" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Self-hosted (SELF_HOSTED=true): the tunnel reaches only this port, so the
+// master forwards worker traffic itself, in nginx.conf's place (see
+// SelfHostProxy.ts). Ahead of express.json(), which would otherwise consume
+// the bodies it forwards. Not self-hosted, every request passes through.
+const selfHostRouting = (): WorkerRouting => ({
+  numWorkers: ServerEnv.numWorkers(),
+  portOf: (index) => ServerEnv.workerPortByIndex(index),
+  pick: () => Math.floor(Math.random() * ServerEnv.numWorkers()),
+});
+app.use(proxyToWorkers(() => ServerEnv.selfHosted(), selfHostRouting));
 
 app.use(express.json());
 
@@ -75,6 +94,13 @@ const descriptorOpts = () => ({
   // no CDN, and same-origin is what the web client already does there.
   requireCdnBase: ServerEnv.env() === GameEnv.Prod,
 });
+
+// Self-hosted there is no desktop app, nor the CDN production requires for
+// its descriptor: a quiet 404, not a 500 and an error logged per request.
+app.use(
+  "/desktop",
+  notOnSelfHost(() => ServerEnv.selfHosted()),
+);
 
 app.get("/desktop/version.json", async (_req, res) => {
   try {
@@ -115,42 +141,26 @@ app.use(
   rateLimit({
     windowMs: 1000, // 1 second
     max: 20, // 20 requests per IP per second
-  }),
-);
-
-// Apple Pay domain verification (Stripe's universal association file,
-// vendored in resources/public/). Apple fetches this exact path over HTTPS when the
-// domain is registered in the Stripe dashboard, and it must get the raw file:
-// express.static above ignores dotfile paths (so it falls through to here)
-// and the SPA fallback below would answer with the app shell, which makes
-// registration fail with no error anywhere we can see. Registered after the
-// rate limiter so the file read is covered by it. Verify with
-// `curl https://<domain>/.well-known/apple-developer-merchantid-domain-association`.
-app.get(
-  "/.well-known/apple-developer-merchantid-domain-association",
-  (_req, res) => {
-    res.type("text/plain");
-    res.sendFile(
-      path.join(
-        __dirname,
-        "../../resources/public/.well-known/apple-developer-merchantid-domain-association",
+    // Self-hosted: key on the tunnel-reported address, not a forgeable
+    // X-Forwarded-For chain.
+    keyGenerator: (req) =>
+      ipKeyGenerator(
+        ServerEnv.selfHosted() ? connectingIp(req) : (req.ip ?? "unknown"),
       ),
-      // sendFile refuses dotfile path segments (".well-known") by default.
-      // maxAge matters beyond browsers: nginx's proxy cache honours the
-      // upstream Cache-Control, and sendFile's default max-age=0 would veto
-      // the nginx.conf location block that shields this route.
-      { dotfiles: "allow", maxAge: "1d" },
-      (err) => {
-        if (err && !res.headersSent) res.status(404).end();
-      },
-    );
-  },
+  }),
 );
 
 app.use("/api", (_req, res, next) => {
   setNoStoreHeaders(res);
   next();
 });
+
+// Self-hosted pages send what would have gone to OpenFront's API here
+// (src/client/SelfHosted.ts). Not self-hosted, it passes every request on.
+app.use(
+  SELF_HOST_API_PREFIX,
+  selfHostApiStub(() => ServerEnv.selfHosted()),
+);
 
 // Start the master process
 export async function startMaster() {
@@ -241,6 +251,17 @@ export async function startMaster() {
       `Restarted worker ${workerId} (New PID: ${newWorker.process.pid})`,
     );
   });
+
+  if (ServerEnv.selfHosted()) {
+    log.info(
+      "Self-hosted: forwarding worker traffic and answering API calls locally",
+    );
+    server.on("upgrade", (req, socket, head) => {
+      if (!proxyUpgradeToWorker(req, socket, head, selfHostRouting())) {
+        socket.destroy();
+      }
+    });
+  }
 
   const PORT = 3000;
   server.listen(PORT, () => {

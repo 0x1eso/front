@@ -1,3 +1,4 @@
+import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { TileRef } from "./GameMap";
 import {
@@ -206,6 +207,8 @@ export interface UnitUpdate {
   targetTile?: TileRef; // Only for nukes
   health?: number;
   underConstruction?: boolean;
+  /** Domestic mode: this structure's real build time, for the progress bar. */
+  constructionTicks?: number;
   missileTimerQueue: number[];
   level: number;
   hasTrainStation: boolean;
@@ -233,6 +236,8 @@ export interface AttackUpdate {
  * When adding a field here, also wire it into diffPlayerUpdate() and
  * applyStateUpdate() in PlayerStateUpdate.ts — otherwise it is only ever sent on
  * the first emission and later changes are silently dropped.
+ * Exception: `domestic` is not part of the renderer's PlayerState; it is
+ * applied in PlayerView.applyUpdate() instead.
  */
 export interface PlayerUpdate {
   type: GameUpdateType.Player;
@@ -279,6 +284,8 @@ export interface PlayerUpdate {
   betrayals?: number;
   lastDeleteUnitTick?: Tick;
   isLobbyCreator?: boolean;
+  /** Domestic mode only; absent for bots and outside domestic mode. */
+  domestic?: DomesticData;
 }
 
 export interface AllianceView {
@@ -357,6 +364,8 @@ export interface WinUpdate {
   type: GameUpdateType.Win;
   allPlayersStats: AllPlayersStats;
   winner: Winner;
+  /** Domestic mode: how the game was won. Absent in vanilla games. */
+  reason?: WinReason;
 }
 
 export interface HashUpdate {

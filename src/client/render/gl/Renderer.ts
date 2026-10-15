@@ -63,6 +63,7 @@ import { TerrainPass } from "./passes/TerrainPass";
 import { TerritoryPass } from "./passes/TerritoryPass";
 import { TrailPass } from "./passes/TrailPass";
 import { UnitPass } from "./passes/UnitPass";
+import { VictoryProjectPass } from "./passes/VictoryProjectPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
 import type { RenderSettings } from "./RenderSettings";
 import { AffiliationPalette } from "./utils/Affiliation";
@@ -135,6 +136,7 @@ export class GPURenderer {
   private namePass: NamePass;
   private fxPass: FxPass;
   private rangeCirclePass: RangeCirclePass;
+  private victoryProjectPass: VictoryProjectPass;
   private samRadiusPass: SAMRadiusPass;
   private crosshairPass: CrosshairPass;
   private railroadPass: RailroadPass;
@@ -554,6 +556,7 @@ export class GPURenderer {
 
     // --- Range circle (ghost preview radius) ---
     this.rangeCirclePass = new RangeCirclePass(gl);
+    this.victoryProjectPass = new VictoryProjectPass(gl);
 
     // --- SAM radius overlay (dashed green circles during build mode) ---
     this.samRadiusPass = new SAMRadiusPass(gl, mapW, this.settings);
@@ -1110,6 +1113,19 @@ export class GPURenderer {
     this.smallPlayerGlowPass.update(set);
   }
 
+  /** Domestic mode: progress bars and gold rings on victory-project hosts. */
+  setVictoryProjects(progress: ReadonlyMap<number, number>): void {
+    this.barPass.setVictoryProjects(progress);
+    const hosts: { x: number; y: number }[] = [];
+    for (const id of progress.keys()) {
+      const unit = this.lastStructures.get(id);
+      if (unit === undefined) continue;
+      const x = unit.pos % this.mapW;
+      hosts.push({ x, y: (unit.pos - x) / this.mapW });
+    }
+    this.victoryProjectPass.setHosts(hosts);
+  }
+
   // ---------------------------------------------------------------------------
   // Queries
   // ---------------------------------------------------------------------------
@@ -1133,6 +1149,11 @@ export class GPURenderer {
     this.samRadiusPass.setVisible(
       this.samGhostVisible || this.samHighlightVisible,
     );
+  }
+
+  /** SAM rings at each owner's modified range (Config.samRangeOf). */
+  setSamRangeOf(fn: (ownerID: number, baseRange: number) => number): void {
+    this.samRadiusPass.setSamRangeOf(fn);
   }
 
   setLocalPlayerID(id: number): void {
@@ -1367,6 +1388,7 @@ export class GPURenderer {
     if (pe.falloutBloom) this.bloomPass.draw(cam, this.frameTick);
     this.samRadiusPass.draw(cam);
     this.rangeCirclePass.draw(cam);
+    this.victoryProjectPass.draw(cam);
     this.nukeTrajectoryPass.draw(cam);
     this.crosshairPass.draw(cam);
     if (pe.structure) this.structurePass.draw(cam, zoom);
@@ -1504,6 +1526,7 @@ export class GPURenderer {
     this.smallPlayerGlowPass.dispose();
     this.railroadPass.dispose();
     this.rangeCirclePass.dispose();
+    this.victoryProjectPass.dispose();
     this.samRadiusPass.dispose();
     this.crosshairPass.dispose();
     this.structurePass.dispose();

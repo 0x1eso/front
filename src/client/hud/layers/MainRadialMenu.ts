@@ -62,6 +62,10 @@ export class MainRadialMenu implements Controller {
         .radial-tooltip .count {
           color: ${COLORS.tooltip.count};
         }
+        .radial-tooltip .locked {
+          margin-top: 4px;
+          color: ${COLORS.tooltip.locked};
+        }
       `,
     };
 

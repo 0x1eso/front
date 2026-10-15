@@ -186,8 +186,15 @@
     "title": "Your account is banned",
     "until": "Banned until {date}."
   },
+  "branding": {
+    "based_on": "Based on OpenFront",
+    "source_code": "Source code",
+    "title": "{name}"
+  },
   "build_menu": {
+    "cant_build_here": "Can't build here",
     "desc": {
+      "admin_office": "Produces political power. Upkeep 50 gold/s per level.",
       "atom_bomb": "Small explosion",
       "city": "Increases max population",
       "defense_post": "Increases defenses of nearby borders",
@@ -196,6 +203,7 @@
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
       "port": "Sends trade ships to generate gold",
+      "research_institute": "Produces science. Upkeep 50 gold/s per level.",
       "sam_launcher": "Defends against incoming nukes",
       "warship": "Captures trade ships, destroys ships and boats"
     },
@@ -271,7 +279,7 @@
       "coastline": "Please let me get a coastline.",
       "fun": "This game is fun!",
       "go": "Let’s go!",
-      "join_discord": "You should join the OpenFront Discord server!",
+      "join_discord": "You should join the Discord server!",
       "pr": "When will my PR finally get merged...?",
       "strategy": "Nice strategy!",
       "team_up": "Let’s team up against [P1]!"
@@ -572,7 +580,7 @@
   "common": {
     "available": "Available",
     "back": "Back",
-    "backend_unreachable": "Can't reach the OpenFront servers. Check your connection and try again.",
+    "backend_unreachable": "Can't reach the game servers. Check your connection and try again.",
     "cancel": "Cancel",
     "cap_label": "Cap",
     "cap_tooltip": "Recipient’s remaining capacity",
@@ -789,6 +797,333 @@
   "discord_user_header": {
     "avatar_alt": "Avatar"
   },
+  "domestic": {
+    "blocked": {
+      "busy": "Another research is in progress",
+      "era": "Needs 2 techs from the previous era",
+      "prereq": "Needs {tech}"
+    },
+    "branch": {
+      "economy": "Economy",
+      "learning": "Learning",
+      "military": "Military"
+    },
+    "cost": "{cost} science · {seconds}s",
+    "era": "Era {era}",
+    "gov": {
+      "chiefdom": {
+        "desc": "No effects.",
+        "name": "Chieftainship"
+      },
+      "communism": {
+        "desc": "Build costs -30%, build times -50%, no research institute or admin office upkeep. Five-Year Plan: research institute and admin office output +50%. Trade income -30%.",
+        "name": "Communism"
+      },
+      "democracy": {
+        "desc": "Gold income +30%, science +30%, gold payment cost -50%. Peace Dividend: political power +30% while not attacking. War Weariness: political power -50% while attacking.",
+        "name": "Democracy"
+      },
+      "fascism": {
+        "desc": "Troop growth +30%, troop losses when attacking -25%, recruitment cost -50%. War Economy: gold income +30% while attacking. Science -20%, gold income -10% while not attacking.",
+        "name": "Fascism"
+      },
+      "monarchy": {
+        "desc": "Max troops +20%, upkeep-free troops 40% → 60%. Feudalism: +0.2 political power/s per city level. Science -15%.",
+        "name": "Monarchy"
+      },
+      "republic": {
+        "desc": "Gold income +20%, trade income +25%. Public Works: city build time -50%. Recruitment cost +25%.",
+        "name": "Republic"
+      },
+      "theocracy": {
+        "desc": "Political power +30%, troop losses when defending -20%. Tithe: +100 × √(land share %) gold/s. Science -15%. Requires State Religion.",
+        "name": "Theocracy"
+      }
+    },
+    "gov_active": "Current government",
+    "gov_adopt": "Adopt",
+    "gov_current": "Government: {name}",
+    "gov_locked": "Locked until the next tier",
+    "gov_max_tier": "Every government tier reached",
+    "gov_needs_tier": "Unlocks at tier {tier}",
+    "gov_passed": "Tier passed",
+    "gov_progress": "Cumulative political power {value} / {next} for tier {tier}",
+    "gov_requires_law": "Requires {law}",
+    "gov_tier": "Tier {tier}",
+    "law": {
+      "construction": {
+        "A": {
+          "desc": "All build costs -25%",
+          "name": "Infrastructure Investment"
+        },
+        "B": {
+          "desc": "All build times -50%",
+          "name": "Rapid Construction"
+        },
+        "name": "Construction"
+      },
+      "diplomacy": {
+        "A": {
+          "desc": "Trade ship and train income with allies +50%",
+          "name": "Allied Preference"
+        },
+        "B": {
+          "desc": "No trade with other nations, political power +40%, troop losses when defending -10%",
+          "name": "Isolationism"
+        },
+        "name": "Diplomacy"
+      },
+      "doctrine": {
+        "A": {
+          "desc": "Defense post effect +40%, troop losses when defending -15%",
+          "name": "Defense First"
+        },
+        "B": {
+          "desc": "Attack speed +30%, troop losses when defending +10%",
+          "name": "Blitzkrieg"
+        },
+        "name": "Doctrine"
+      },
+      "learning": {
+        "A": {
+          "desc": "Turns 300 gold into 0.5 science every second (while you have the gold)",
+          "name": "Research Subsidies"
+        },
+        "B": {
+          "desc": "Admin office output +40%",
+          "name": "Administrative Reform"
+        },
+        "name": "Learning"
+      },
+      "mobilization": {
+        "A": {
+          "desc": "Troop growth +100% while troops are at most half of max",
+          "name": "Total Mobilization"
+        },
+        "B": {
+          "desc": "Upkeep-free troops 40% → 60% of max",
+          "name": "Reserves"
+        },
+        "name": "Mobilization"
+      },
+      "nuclear": {
+        "A": {
+          "desc": "Missile silo and SAM cost -30%, nuke cost -20%",
+          "name": "Nuclear Deterrence"
+        },
+        "B": {
+          "desc": "SAM range +30%",
+          "name": "Air Defense Network"
+        },
+        "name": "Nuclear Policy"
+      },
+      "opinion": {
+        "A": {
+          "desc": "Political power +25%",
+          "name": "Ministry of Propaganda"
+        },
+        "B": {
+          "desc": "Science +20%",
+          "name": "Academic Freedom"
+        },
+        "name": "Public Opinion"
+      },
+      "religion": {
+        "A": {
+          "desc": "Allows Theocracy, political power +15%, troop growth +15%, science -10%",
+          "name": "State Religion"
+        },
+        "B": {
+          "desc": "Science +15%, trade income with other nations +20%, expansion into unclaimed land +20% faster",
+          "name": "Religious Tolerance"
+        },
+        "name": "Religion"
+      },
+      "service": {
+        "A": {
+          "desc": "Max troops +25%, gold income -10%",
+          "name": "Levée en Masse"
+        },
+        "B": {
+          "desc": "Troop upkeep -50%, troop losses when attacking -15%",
+          "name": "Professional Army"
+        },
+        "name": "Military Service"
+      },
+      "taxation": {
+        "A": {
+          "desc": "Gold income +30%, troop growth -15%",
+          "name": "Heavy Taxation"
+        },
+        "B": {
+          "desc": "City tax +40%, city build time -50%",
+          "name": "Urban Planning"
+        },
+        "name": "Taxation"
+      },
+      "trade": {
+        "A": {
+          "desc": "Trade ship and train income +40%",
+          "name": "Free Trade"
+        },
+        "B": {
+          "desc": "City tax +60%, trade income with other nations -30%",
+          "name": "Protectionism"
+        },
+        "name": "Trade"
+      }
+    },
+    "law_cooldown": "Next proclamation in {seconds}s",
+    "law_next_cost": "Next law: {cost} political power",
+    "locked_requires": "Requires {tech}",
+    "open_panel": "Domestic",
+    "panel_title": "Domestic Affairs",
+    "pay_with_gold": "Pay {gold} gold",
+    "per_sec": "+{value}/s",
+    "political": "Political Power",
+    "proclaim": "Proclaim",
+    "proclaim_with_gold": "Proclaim for {gold} gold",
+    "proclaimed": "Proclaimed",
+    "project": {
+      "political": {
+        "desc": "Proclaim a world government from a level 3+ admin office. Pauses while you attack another nation.",
+        "name": "World Government"
+      },
+      "science": {
+        "desc": "Launch the space program from a level 3+ research institute.",
+        "name": "Space Program"
+      }
+    },
+    "recruit_target": "Recruit up to {pct}%",
+    "rejected": "Closed",
+    "research": "Research",
+    "research_progress": "Researching {tech}: {seconds}s left",
+    "researched": "Researched",
+    "researching": "Researching",
+    "science": "Science",
+    "tab_government": "Government",
+    "tab_laws": "Book of Laws",
+    "tab_tech": "Technology",
+    "tab_victory": "Victory",
+    "tap_again_to_confirm": "Tap again to confirm (permanent)",
+    "tech": {
+      "academia": {
+        "desc": "Research institute output +40%",
+        "name": "Academia"
+      },
+      "banking": {
+        "desc": "Stored gold earns 2% per minute (max 1,500/s)",
+        "name": "Banking"
+      },
+      "bureaucracy": {
+        "desc": "Admin office output +40%",
+        "name": "Bureaucracy"
+      },
+      "computers": {
+        "desc": "Science +30%, political power +15%",
+        "name": "Computers"
+      },
+      "conscription": {
+        "desc": "Troop growth +25%, recruitment cost -30%",
+        "name": "Conscription"
+      },
+      "currency": {
+        "desc": "City tax +50%",
+        "name": "Currency"
+      },
+      "fortification": {
+        "desc": "Defense post effect +50%, defense post cost -30%",
+        "name": "Fortification"
+      },
+      "global_trade": {
+        "desc": "Trade ships spawn +50%, allied trade income +50%",
+        "name": "Global Trade"
+      },
+      "globalization": {
+        "desc": "All gold income +30%",
+        "name": "Globalization"
+      },
+      "industrialization": {
+        "desc": "Train income +50%, structure cost -15%",
+        "name": "Industrialization"
+      },
+      "manhattan_project": {
+        "desc": "Unlocks atom bombs",
+        "name": "Manhattan Project"
+      },
+      "mirv": {
+        "desc": "Unlocks MIRVs",
+        "name": "MIRV"
+      },
+      "navigation": {
+        "desc": "Trade ship income +40%, port cost -25%",
+        "name": "Navigation"
+      },
+      "printing_press": {
+        "desc": "Political power +25%, law cost -15%",
+        "name": "Printing Press"
+      },
+      "radar": {
+        "desc": "Unlocks SAM launchers",
+        "name": "Radar"
+      },
+      "railroad": {
+        "desc": "Unlocks factories",
+        "name": "Railroad"
+      },
+      "rocketry": {
+        "desc": "Unlocks missile silos",
+        "name": "Rocketry"
+      },
+      "scientific_method": {
+        "desc": "Research time -30%, science +15%",
+        "name": "Scientific Method"
+      },
+      "space_program": {
+        "desc": "Enables the Space Program (science victory)",
+        "name": "Space Program"
+      },
+      "steel_ships": {
+        "desc": "Unlocks warships",
+        "name": "Steel Ships"
+      },
+      "thermonuclear": {
+        "desc": "Unlocks hydrogen bombs",
+        "name": "Thermonuclear Weapons"
+      }
+    },
+    "victory": {
+      "active": "Projects in progress",
+      "blocked": {
+        "busy": "Another project is in progress",
+        "gold": "Not enough gold",
+        "host": "Needs a level 3+ building",
+        "political": "Not enough political power",
+        "requirement": "Requirement not met"
+      },
+      "conquest": "Conquest: {pct} of the land (wins above {target}%)",
+      "cost_political": "Costs {gold} gold and {political} political power · 4 min",
+      "cost_science": "Costs {gold} gold · 4 min",
+      "host_level": "{building} Lv. {level}",
+      "no_hosts": "No level 3+ building yet",
+      "none_active": "No projects in progress",
+      "paused": "(paused: attacking)",
+      "progress": "{name}: {project} {pct}%",
+      "requirement_political": "Requires government tier 3",
+      "requirement_science": "Requires the Space Program tech",
+      "score": "Score: {score} (#{rank} of {count})",
+      "start": "Start",
+      "team_conquest": "Team conquest: {pct} of the land (wins above {target}%)",
+      "team_score": "Team score: {score} (#{rank} of {count} teams)",
+      "time_left": "Time left: {time}"
+    },
+    "win_reason": {
+      "conquest": "Victory by conquest",
+      "political": "Political victory: world government",
+      "science": "Science victory: space program",
+      "score": "Victory on score"
+    }
+  },
   "doomsday_clock": {
     "collapsing": "Collapsing -{rate}/s",
     "decay_in": "Decay in {secs}s",
@@ -877,6 +1212,7 @@
     "duration_second": "1 second",
     "duration_seconds_plural": "{seconds} seconds",
     "focus": "Focus",
+    "government_tier_reached": "Government tier {tier} reached: choose a new government in the Domestic panel",
     "hydrogen_bomb_detonated": "{name} - hydrogen bomb detonated",
     "hydrogen_bomb_inbound": "{name} - hydrogen bomb inbound",
     "ignore": "Ignore",
@@ -891,6 +1227,7 @@
     "reject_alliance": "Reject",
     "renew_alliance": "Request to renew",
     "request_alliance": "{name} requests an alliance!",
+    "research_complete": "Research complete: {tech}",
     "retreating": "retreating",
     "sent_emoji": "Sent {name}: {emoji}",
     "sent_emoji_all": "Sent everyone: {emoji}",
@@ -899,6 +1236,9 @@
     "trade_ship_captured": "Your trade ship was captured by {name}",
     "unit_destroyed": "Your {unit} was destroyed",
     "unit_voluntarily_deleted": "Unit voluntarily deleted",
+    "victory_project_complete": "{name} completed the {project}!",
+    "victory_project_failed": "{name}'s {project} failed",
+    "victory_project_started": "{name} started the {project}! Capture or destroy its building to stop it.",
     "wants_to_renew_alliance": "{name} wants to renew your alliance"
   },
   "featured_stream": {
@@ -991,8 +1331,10 @@
   "game_settings": {
     "bots": "Tribes: ",
     "compact_map": "Compact Map",
+    "conquest_percent": "Conquest %",
     "custom_alliances": "Alliance Duration",
     "disable_units": "Disable Units",
+    "domestic_mode": "Domestic Mode",
     "doomsday_clock": "Doomsday Clock",
     "gold_multiplier": "Gold multiplier",
     "infinite_gold": "Infinite gold",
@@ -1110,10 +1452,12 @@
     "preset_colorblind_desc": "Colorblind-friendly territory and border colors",
     "preset_custom": "Custom",
     "preset_default": "Default",
-    "preset_default_desc": "The standard OpenFront look",
+    "preset_default_desc": "The standard look",
     "preset_delete_confirm": "Delete preset \"{name}\"?",
     "preset_evans_pick": "Evan's Pick",
     "preset_evans_pick_desc": "The settings Evan actually plays with",
+    "preset_medium": "Medium (tablet)",
+    "preset_medium_desc": "Turns off the heaviest effects (fallout glow, small-nation glow, boat and nuke trails) so tablets run smoothly",
     "preset_migrated_name": "My settings",
     "preset_name_placeholder": "Preset name",
     "preset_night": "Night",
@@ -1230,7 +1574,7 @@
     "radial_title": "Radial menu",
     "table_action": "Action",
     "table_key": "Key",
-    "troubleshooting_desc": "If you experience performance issues, crashes, or other problems while playing OpenFront, please visit our Troubleshooting page for help diagnosing and fixing common issues:",
+    "troubleshooting_desc": "If you experience performance issues, crashes, or other problems while playing, please visit our Troubleshooting page for help diagnosing and fixing common issues:",
     "ui_attack_ratio": "Attack ratio - The amount of troops that will be used when you attack. You can adjust the attack ratio using the slider. Having more attacking troops than defending troops will make you lose fewer troops in the attack, while having less will increase the damage dealt to your attacking troops. The effect doesn't go beyond ratios of 2:1.",
     "ui_control": "Control panel",
     "ui_control_desc": "The control panel contains the following elements:",
@@ -1250,7 +1594,7 @@
     "ui_wilderness": "Wilderness",
     "ui_your_team": "Your team:",
     "video_tutorial": "Video Tutorial",
-    "video_tutorial_title": "OpenFront.io Tutorial"
+    "video_tutorial_title": "Video Tutorial"
   },
   "host_modal": {
     "anonymous_players": "Anonymous players",
@@ -1339,14 +1683,14 @@
     "got_it": "Got it",
     "how": "How",
     "later": "Later",
-    "modal_desc": "Your browser doesn't support fullscreen, but you can add OpenFront to your Home Screen for an immersive experience:",
+    "modal_desc": "Your browser doesn't support fullscreen, but you can add this game to your Home Screen for an immersive experience:",
     "modal_title": "Fullscreen on iOS",
     "never": "Never",
     "step_add_to_home_label": "Add to Home Screen",
     "step_open": "Open from your Home Screen — launches fullscreen without the address bar",
     "step_scroll_and_tap": "Scroll down and tap",
     "step_share": "Tap the Share button in your browser",
-    "text": "For fullscreen, add OpenFront to your Home Screen"
+    "text": "For fullscreen, add this game to your Home Screen"
   },
   "kick_reason": {
     "admin": "Kicked by an admin",
@@ -1379,6 +1723,7 @@
     "ports": "Ports",
     "rank": "Rank",
     "sams": "SAMs",
+    "score": "Score",
     "shipTradeGoldPerMin": "Ship Trade Gold/min",
     "team": "Team",
     "trainTradeGoldPerMin": "Train Trade Gold/min",
@@ -1447,14 +1792,11 @@
     "menu": "Menu",
     "news": "News",
     "play": "Play",
-    "privacy_policy": "Privacy Policy",
     "quit": "Exit game",
     "settings": "Settings",
     "sign_in": "Sign in",
     "solo": "Solo",
     "store": "Store",
-    "terms_of_service": "Terms of Service",
-    "title": "OpenFront (ALPHA)",
     "troubleshooting": "Troubleshooting",
     "tutorial": "Tutorial",
     "user_avatar_alt": "{username}'s avatar",
@@ -1641,7 +1983,7 @@
     "dismiss": "Dismiss",
     "error": "Couldn't save that. Please try again.",
     "no": "No thanks",
-    "title": "Keep up with OpenFront?",
+    "title": "Keep up with the game?",
     "yes": "Yes please"
   },
   "matchmaking_modal": {
@@ -1687,7 +2029,7 @@
     "ranked_trust_required_title": "Trusted accounts only",
     "ranked_trust_tooltip_title": "Trusted ranked",
     "retry_lobbies": "Retry",
-    "servers_unreachable": "Can't connect to the OpenFront servers",
+    "servers_unreachable": "Can't connect to the game servers",
     "teams_count": "{teamCount} teams",
     "teams_of": "{teamCount} teams of {playersPerTeam}",
     "teams_preset": "{preset} ({teams})",
@@ -2123,10 +2465,10 @@
     "processing_fetching": "Fetching the game record",
     "processing_simulating": "Replaying the game: {percent}%",
     "timeline": "Replay timeline",
-    "unavailable_desync": "This game doesn't replay correctly on this version of OpenFront.",
+    "unavailable_desync": "This game doesn't replay correctly on this version of the game.",
     "unavailable_failed": "Processing this game failed.",
     "unavailable_not_found": "This game could not be found.",
-    "unavailable_other_build": "This game was played on another version of OpenFront.",
+    "unavailable_other_build": "This game was played on another version of the game.",
     "unavailable_unreachable": "The game could not be downloaded. Check your connection and try again.",
     "unverified": "This game's record has no checks, so this replay couldn't be verified against the game that was played.",
     "watch_classic": "Watch the old replay instead"
@@ -2407,13 +2749,19 @@
     "success": "Successfully logged in as {email}!",
     "title": "Logging in..."
   },
+  "touch_ui": {
+    "needs_port": "Build a port first",
+    "needs_silo": "Build a missile silo first",
+    "tap_again_to_build": "Tap again to build",
+    "warship_long_press": "Long-press the map, then drag to select several warships at once"
+  },
   "troubleshooting": {
     "battery": "Battery",
     "battery_level": "Battery Level",
     "browser": "Browser",
     "canvas_2d_no_gpu": "Canvas 2D (no GPU)",
     "charging": "Charging",
-    "chromium_tip": "OpenFront runs best on Chromium-based browsers.",
+    "chromium_tip": "This game runs best on Chromium-based browsers.",
     "copied_to_clipboard": "Info copied to the clipboard! Feel free to share it on our Discord if you need help.",
     "device_pixel_ratio": "Device Pixel Ratio",
     "environment": "Environment",
@@ -2449,7 +2797,7 @@
       "attack_nations": "Nations have cut you off from the tribes. Attack a neighboring nation instead — they're stronger than tribes, so bring plenty of troops. The nearest ones are marked with a target. Conquer them until you have {cost} gold for a City.",
       "attack_ratio": "The attack ratio bar sets how many of your troops are sent out with each attack. Drag the slider to adjust it.",
       "attack_wilderness": "The pulsing ring marks your territory. Click on the unclaimed land next to it to attack and expand.",
-      "buy_city": "You can afford a City! Press {key} (or click the City icon under the control panel), then click your territory to place it. Cities raise your max troops.",
+      "buy_city": "You can afford a City! Press {key} (or tap the City icon under the control panel twice: the first tap shows its card, the second starts building), then tap your territory to place it. Cities raise your max troops.",
       "buy_defense_post": "Now build a Defense Post: press {key}, then click your territory near a border. Attacks on the land around it are much slower and cost the enemy far more troops.",
       "buy_factory": "Now build a Factory: press {key}, then click your territory to place it.",
       "buy_port": "Next, build a Port: press {key}, then click your coastline to place it.",
@@ -2477,7 +2825,7 @@
     "step_counter": "Step {current} of {total}",
     "step_touch": {
       "attack_wilderness": "The pulsing ring marks your territory. Tap the unclaimed land next to it, then tap the sword in the middle of the menu to attack.",
-      "buy_city": "You can afford a City! Tap your territory, open the wrench (Build) menu and pick City. Cities raise your max troops.",
+      "buy_city": "You can afford a City! Tap the City icon under the control panel twice (the first tap shows its card, the second starts building). Then tap your territory to place the City there, and tap it again to build it. Cities raise your max troops.",
       "buy_defense_post": "Now build a Defense Post: tap your territory near a border, open the wrench menu and pick Defense Post. Attacks on the land around it are much slower and cost the enemy far more troops.",
       "buy_factory": "Now build a Factory: tap your territory, open the wrench menu and pick Factory.",
       "buy_port": "Next, build a Port: tap your coastline, open the wrench menu and pick Port.",
@@ -2491,6 +2839,7 @@
     "title": "Tutorial"
   },
   "unit_type": {
+    "admin_office": "Admin Office",
     "atom_bomb": "Atom Bomb",
     "boat": "Boat",
     "city": "City",
@@ -2500,12 +2849,13 @@
     "mirv": "MIRV",
     "missile_silo": "Missile Silo",
     "port": "Port",
+    "research_institute": "Research Institute",
     "sam_launcher": "SAM Launcher",
     "warship": "Warship"
   },
   "update_available": {
     "desktop": "A new version of OpenFront is available. It will download in the background; reload from the update bar once it is ready.",
-    "message": "A new version of OpenFront is available. The page will now refresh to update."
+    "message": "A new version is available. The page will now refresh to update."
   },
   "user_setting": {
     "alert_frame_desc": "Toggle the alert frame. When enabled, the frame will be displayed when you are betrayed or attacked over land.",
@@ -2747,7 +3097,7 @@
     "other_won": "{player} has won!",
     "requeue": "Play Again",
     "spectate": "Spectate",
-    "support_openfront": "Support OpenFront!",
+    "support_openfront": "Support the game!",
     "territory_pattern": "Purchase a territory skin to go ad-free!",
     "you_won": "You Won!",
     "your_team": "Your team won!",

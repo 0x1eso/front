@@ -43,6 +43,10 @@ declare global {
       // standalone deployments (beta, branch previews, dev), desktop, and
       // static pages.
       siteHost?: string;
+      // True on a self-hosted server (SELF_HOSTED=true), one with no
+      // OpenFront API behind it; absent everywhere else. Read through
+      // src/client/SelfHosted.ts.
+      selfHosted?: boolean;
     };
   }
 }

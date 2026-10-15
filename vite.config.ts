@@ -3,6 +3,7 @@ import {
   buildAssetUrl,
 } from "@openfront/shared/AssetPaths";
 import { rewriteAssetsForCdn } from "@openfront/shared/AssetUrls";
+import { EMBLEM_ASSET, GAME_TITLE } from "@openfront/shared/Branding";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "fs";
 import http from "http";
@@ -12,6 +13,7 @@ import { fileURLToPath } from "url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { createHtmlPlugin } from "vite-plugin-html";
 import { configDefaults } from "vitest/config";
+import { gameVersionOverride } from "./src/server/GameVersionOverride";
 import {
   buildPublicAssetManifest,
   copyRootPublicFiles,
@@ -228,8 +230,12 @@ export default defineConfig(({ mode }) => {
       ? JSON.stringify(env.FARO_COLLECTOR_URL)
       : undefined,
     instanceId: JSON.stringify(env.INSTANCE_ID ?? "DEV_ID"),
+    // Raw, not JSON: index.html escapes it itself (<%= %>).
+    gameTitle: GAME_TITLE,
+    // Dev preview of a self-hosted page: SELF_HOSTED=true npm run dev.
+    selfHosted: env.SELF_HOSTED === "true" ? true : undefined,
     manifestHref: buildAssetUrl("manifest.json", assetManifest, cdnBase),
-    faviconHref: buildAssetUrl("images/Favicon.svg", assetManifest, cdnBase),
+    faviconHref: buildAssetUrl(EMBLEM_ASSET, assetManifest, cdnBase),
     gameplayScreenshotUrl: buildAssetUrl(
       "images/GameplayScreenshot.png",
       assetManifest,
@@ -240,12 +246,6 @@ export default defineConfig(({ mode }) => {
       assetManifest,
       cdnBase,
     ),
-    desktopLogoImageUrl: buildAssetUrl(
-      "images/OpenFront.png",
-      assetManifest,
-      cdnBase,
-    ),
-    mobileLogoImageUrl: buildAssetUrl("images/OF.png", assetManifest, cdnBase),
   };
 
   // Vite's HTML transform replaces the source <script src="/src/client/Main.ts">
@@ -387,6 +387,8 @@ export default defineConfig(({ mode }) => {
     },
 
     plugins: [
+      // An untagged self-hosted build's version label (game-night.sh).
+      gameVersionOverride(env.GAME_VERSION),
       ...(!isProduction
         ? [
             serveRootPublicDir(getPublicDir(resourcesDir)),

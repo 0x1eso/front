@@ -33,6 +33,20 @@ export class ServerEnv {
   // read from different sources (process.env vs window.BOOTSTRAP_CONFIG) but
   // the derived logic is identical. Consolidate into a shared helper that
   // takes a source so we don't have to keep them in sync by hand.
+  // SELF_HOSTED=true: this server runs without OpenFront's closed-source API
+  // (README, "자체 호스팅"). Accounts, Turnstile, cosmetics, archives, the
+  // server registry and every other api.<DOMAIN> call are skipped, and guests
+  // play under their browser's persistent ID. Read on every call, like the
+  // identity values below, so a test can stub it.
+  static selfHosted(): boolean {
+    return process.env.SELF_HOSTED === "true";
+  }
+  // Whether account, subscription, payment and Turnstile checks are skipped:
+  // under local dev (no API to ask) and on a self-hosted server (no API at
+  // all). Through env() so a test can stand in for the environment.
+  static skipsApiChecks(): boolean {
+    return ServerEnv.env() === GameEnv.Dev || ServerEnv.selfHosted();
+  }
   static env(): GameEnv {
     return ServerEnv.gameEnv;
   }
@@ -66,6 +80,9 @@ export class ServerEnv {
   static turnstileSiteKey(): string {
     const v = process.env.TURNSTILE_SITE_KEY;
     if (!v) {
+      // A self-hosted page never loads Turnstile (index.html), so it needs
+      // no key; ClientEnv only requires the field to be present.
+      if (ServerEnv.selfHosted()) return "";
       throw new Error("TURNSTILE_SITE_KEY not set");
     }
     return v;
@@ -110,6 +127,13 @@ export class ServerEnv {
     return process.env.CDN_BASE ?? "";
   }
   static jwtIssuer(): string {
+    // Every api.<DOMAIN> URL is built from this, so refusing here is the
+    // backstop for any call site the self-host gates missed: it fails inside
+    // that caller's own error handling instead of reaching for an API that
+    // does not exist.
+    if (ServerEnv.selfHosted()) {
+      throw new Error("self-hosted server has no API (SELF_HOSTED=true)");
+    }
     const audience = ServerEnv.jwtAudience();
     return audience === "localhost"
       ? "http://localhost:8787"

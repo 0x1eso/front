@@ -6,6 +6,7 @@ import {
   zRef,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { domesticTradeShipSpawnRate } from "../domestic/DomesticEconomy";
 import { Execution, Game, Unit } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -84,9 +85,12 @@ export class PortExecution implements Execution {
   shouldSpawnTradeShip(): boolean {
     const numTradeShips = this.mg.unitCount(UnitType.TradeShip);
     for (let i = 0; i < this.port!.level(); i++) {
-      const spawnRate = this.mg
-        .config()
-        .tradeShipSpawnRate(this.tradeShipSpawnRejections, numTradeShips);
+      const spawnRate = domesticTradeShipSpawnRate(
+        this.mg
+          .config()
+          .tradeShipSpawnRate(this.tradeShipSpawnRejections, numTradeShips),
+        this.port!.owner(),
+      );
       if (this.random.chance(spawnRate)) {
         this.tradeShipSpawnRejections = 0;
         return true;

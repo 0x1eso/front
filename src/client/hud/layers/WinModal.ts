@@ -46,6 +46,7 @@ import {
   provisionalXpRules,
   reconcileXp,
 } from "../../ProvisionalXpAtDeath";
+import { isSelfHosted } from "../../SelfHosted";
 import { PlaySoundEffectEvent } from "../../sound/Sounds";
 import { steamSDK } from "../../SteamSDK";
 import { SendWinnerEvent } from "../../Transport";
@@ -119,6 +120,9 @@ export class WinModal extends LitElement implements Controller {
 
   private _title: string;
 
+  /** Domestic mode: why the game was won; empty otherwise. */
+  private _reason = "";
+
   private rand = Math.random();
 
   // Override to prevent shadow DOM creation
@@ -140,6 +144,14 @@ export class WinModal extends LitElement implements Controller {
         <h2 class="m-0 mb-4 text-[26px] text-center text-white shrink-0">
           ${this._title || ""}
         </h2>
+        ${this._reason
+          ? html`<p
+              class="m-0 mb-3 text-center text-base text-amber-300 shrink-0"
+              data-win-reason
+            >
+              ${this._reason}
+            </p>`
+          : ""}
         <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
           <game-xp-panel
             .view=${this.xpView}
@@ -397,6 +409,9 @@ export class WinModal extends LitElement implements Controller {
   }
 
   innerHtml() {
+    // Every promo here is OpenFront's (its Steam page, its Discord, its
+    // store), so a self-hosted page shows none of them.
+    if (isSelfHosted()) return html``;
     // The Steam desktop build has nothing to wishlist — fall through to the
     // other promos so the box is never empty.
     const canWishlist = !steamSDK.isOnSteam();
@@ -779,6 +794,10 @@ export class WinModal extends LitElement implements Controller {
     const winUpdates = updates?.[GameUpdateType.Win] ?? [];
     if (winUpdates.length > 0) void this.updateXp(true);
     winUpdates.forEach((wu) => {
+      this._reason =
+        wu.reason === undefined
+          ? ""
+          : translateText(`domestic.win_reason.${wu.reason}`);
       if (wu.winner === undefined) {
         // Match cancelled (e.g. a ranked 2v2 that didn't fill or fully
         // spawn): the game ends with no winner. Still vote the result to the

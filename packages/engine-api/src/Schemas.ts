@@ -2,6 +2,19 @@ import { zb } from "@openfront/zbin";
 import quickChatData from "resources/QuickChat.json";
 import { z } from "zod";
 import {
+  GOVERNMENT_IDS,
+  LAW_IDS,
+  LAW_OPTIONS,
+  TECH_IDS,
+  VICTORY_PROJECT_KINDS,
+} from "./domestic/DomesticTypes";
+import {
+  CONQUEST_PERCENT_MAX,
+  CONQUEST_PERCENT_MIN,
+  RECRUIT_TARGET_MAX_PCT,
+  RECRUIT_TARGET_MIN_PCT,
+} from "./domestic/Limits";
+import {
   AllPlayers,
   Difficulty,
   Duos,
@@ -46,7 +59,12 @@ export type Intent =
   | KickPlayerIntent
   | TogglePauseIntent
   | UpdateGameConfigIntent
-  | ToggleGameStartTimer;
+  | ToggleGameStartTimer
+  | ResearchTechIntent
+  | SetRecruitTargetIntent
+  | ProclaimLawIntent
+  | ChooseGovernmentIntent
+  | StartVictoryProjectIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -82,6 +100,18 @@ export type UpdateGameConfigIntent = z.infer<
 >;
 export type ToggleGameStartTimer = z.infer<
   typeof ToggleGameStartTimerIntentSchema
+>;
+
+export type ResearchTechIntent = z.infer<typeof ResearchTechIntentSchema>;
+export type SetRecruitTargetIntent = z.infer<
+  typeof SetRecruitTargetIntentSchema
+>;
+export type ProclaimLawIntent = z.infer<typeof ProclaimLawIntentSchema>;
+export type ChooseGovernmentIntent = z.infer<
+  typeof ChooseGovernmentIntentSchema
+>;
+export type StartVictoryProjectIntent = z.infer<
+  typeof StartVictoryProjectIntentSchema
 >;
 
 export type Turn = z.infer<typeof TurnSchema>;
@@ -324,6 +354,16 @@ export const GameConfigSchema = z.object({
   // Stripped from gameStartInfo and from the advertised lobby config: sibling
   // ids are private lobby ids, which are join secrets.
   pool: PoolConfigSchema.optional(),
+  // Domestic mode (this fork): science / political power, tech tree, gold
+  // sinks. Off by default. See docs/superpowers/specs/2026-10-15-domestic-system-design.md.
+  domesticMode: z.boolean().optional(),
+  // Domestic mode: land share (percent) that wins by conquest. Unset means
+  // 70; ignored outside domestic mode (vanilla keeps 80). 100 turns conquest
+  // victory off. Bounds live in domestic/Limits.ts (shared with the UI).
+  conquestPercent: zb
+    .uint({ min: CONQUEST_PERCENT_MIN, max: CONQUEST_PERCENT_MAX })
+    .nullable()
+    .optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -549,6 +589,46 @@ export const ToggleGameStartTimerIntentSchema = z.object({
   type: z.literal("toggle_game_start_timer"),
 });
 
+// Domestic mode: start researching a tech, paying a science shortfall with
+// gold when payWithGold is set.
+export const ResearchTechIntentSchema = z.object({
+  type: z.literal("research_tech"),
+  tech: z.enum(TECH_IDS),
+  payWithGold: z.boolean().optional(),
+});
+
+// Domestic mode: troops stop regrowing at this percent of max troops.
+export const SetRecruitTargetIntentSchema = z.object({
+  type: z.literal("set_recruit_target"),
+  percent: zb.uint({
+    min: RECRUIT_TARGET_MIN_PCT,
+    max: RECRUIT_TARGET_MAX_PCT,
+  }),
+});
+
+// Domestic mode: proclaim one option of a law forever, paying a political
+// shortfall with gold when payWithGold is set.
+export const ProclaimLawIntentSchema = z.object({
+  type: z.literal("proclaim_law"),
+  law: z.enum(LAW_IDS),
+  option: z.enum(LAW_OPTIONS),
+  payWithGold: z.boolean().optional(),
+});
+
+// Domestic mode: adopt a government of the current tier.
+export const ChooseGovernmentIntentSchema = z.object({
+  type: z.literal("choose_government"),
+  government: z.enum(GOVERNMENT_IDS),
+});
+
+// Domestic mode: start a victory project (spec §8.1) in one of the sender's
+// own level 3+ research institutes / admin offices.
+export const StartVictoryProjectIntentSchema = z.object({
+  type: z.literal("start_victory_project"),
+  kind: z.enum(VICTORY_PROJECT_KINDS),
+  unitId: zb.uint(),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -575,6 +655,11 @@ export const IntentSchema = z.discriminatedUnion("type", [
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
   ToggleGameStartTimerIntentSchema,
+  ResearchTechIntentSchema,
+  SetRecruitTargetIntentSchema,
+  ProclaimLawIntentSchema,
+  ChooseGovernmentIntentSchema,
+  StartVictoryProjectIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

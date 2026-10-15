@@ -1022,7 +1022,7 @@ export class UsernameInput extends LitElement {
       <!-- The buttons differ in width, so this resizes the name field — which
            is transparent and left-aligned, so only its invisible right edge
            moves. -->
-      <div class="no-game-portal shrink-0 h-full max-h-[44px]">
+      <div class="no-game-portal no-self-host shrink-0 h-full max-h-[44px]">
         ${this.verifiedActive
           ? this.renderUseCustomButton()
           : this.renderUseVerifiedButton()}

@@ -1,6 +1,7 @@
 import { ReactiveController, ReactiveControllerHost } from "lit";
 import version from "resources/version.txt?raw";
 import { getCosmeticsHash } from "../Cosmetics";
+import { isSelfHosted } from "../SelfHosted";
 import { getGamesPlayed } from "../Utils";
 
 const HELP_SEEN_KEY = "helpSeen";
@@ -53,15 +54,20 @@ class NavNotificationsStore {
     getCosmeticsHash()
       .then((hash: string | null) => {
         const seenHash = localStorage.getItem(STORE_SEEN_HASH_KEY);
-        this._hasNewCosmetics = hash !== null && hash !== seenHash;
+        // A self-hosted page hides the store (and its server answers an
+        // empty catalog): a dot there would only hide the help dot.
+        this._hasNewCosmetics =
+          !isSelfHosted() && hash !== null && hash !== seenHash;
         this.notify();
       })
       .catch(() => {});
 
     const currentVersion = normalizedVersion();
     const seenVersion = localStorage.getItem(NEWS_SEEN_VERSION_KEY);
+    // A self-hosted build has its own version label on every build and
+    // ships no news: a dot there would light up after each update.
     this._hasNewVersion =
-      seenVersion !== null && seenVersion !== currentVersion;
+      !isSelfHosted() && seenVersion !== null && seenVersion !== currentVersion;
     if (seenVersion === null) {
       localStorage.setItem(NEWS_SEEN_VERSION_KEY, currentVersion);
     }

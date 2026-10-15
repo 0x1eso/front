@@ -136,6 +136,19 @@ describe("GameServer.joinClient — environment guards", () => {
       }
     });
 
+    it("is skipped on a self-hosted server, where a household shares one IP", () => {
+      vi.spyOn(ServerEnv, "env").mockReturnValue(GameEnv.Prod);
+      vi.stubEnv("SELF_HOSTED", "true");
+      try {
+        const game = makeGame({ config: { gameType: GameType.Public } });
+        for (const tag of ["a", "b", "c", "d", "e"]) {
+          expect(game.joinClient(sameIp(tag))).toBe("joined");
+        }
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
     it("is skipped in dev, where multi-tab testing is same-IP", () => {
       vi.spyOn(ServerEnv, "env").mockReturnValue(GameEnv.Dev);
       const game = makeGame({ config: { gameType: GameType.Public } });

@@ -1,3 +1,4 @@
+import { TECH_IDS } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
   GameMapSize,
@@ -9,6 +10,7 @@ import {
 import {
   ADMIN_BOT_CLIENT_ID,
   GameConfig,
+  IntentSchema,
   StampedIntent,
   Turn,
 } from "@openfront/engine-api/Schemas";
@@ -62,7 +64,14 @@ const CONFIG: GameConfig = {
   infiniteTroops: false,
   instantBuild: false,
   randomSpawn: false,
+  domesticMode: true,
+  conquestPercent: 100,
 };
+
+// A vanilla config: no domestic fields at all.
+const VANILLA_CONFIG: GameConfig = { ...CONFIG };
+delete VANILLA_CONFIG.domesticMode;
+delete VANILLA_CONFIG.conquestPercent;
 
 // One of every intent type, as stamped intents inside a turn.
 const SAMPLE_INTENTS: StampedIntent[] = [
@@ -114,6 +123,29 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     config: { bots: 5, instantBuild: true },
   },
   { type: "toggle_game_start_timer", clientID: P1 },
+  {
+    type: "proclaim_law",
+    clientID: P1,
+    law: "diplomacy",
+    option: "B",
+    payWithGold: true,
+  },
+  { type: "choose_government", clientID: P2, government: "communism" },
+  {
+    type: "start_victory_project",
+    clientID: P1,
+    kind: "political",
+    unitId: 88,
+  },
+  { type: "research_tech", clientID: P1, tech: TECH_IDS[0] },
+  {
+    type: "research_tech",
+    clientID: P2,
+    tech: TECH_IDS[TECH_IDS.length - 1],
+    payWithGold: true,
+  },
+  { type: "set_recruit_target", clientID: P1, percent: 10 },
+  { type: "set_recruit_target", clientID: P2, percent: 100 },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [
@@ -271,6 +303,13 @@ const LOBBY_MESSAGES: PublicLobbyMessage[] = [
           gameConfig: CONFIG,
           publicGameType: "ffa",
         },
+        {
+          gameID: "vAn1lla0",
+          numClients: 7,
+          startsAt: 1_700_000_030_000,
+          gameConfig: VANILLA_CONFIG,
+          publicGameType: "ffa",
+        },
       ],
       hosted: [
         {
@@ -296,6 +335,14 @@ const LOBBY_MESSAGES: PublicLobbyMessage[] = [
 function viaJson<T>(schema: { parse: (v: unknown) => T }, msg: unknown): T {
   return schema.parse(JSON.parse(JSON.stringify(msg, replacer)));
 }
+
+describe("zbin wire: sample coverage", () => {
+  it("has a sample for every intent type", () => {
+    const all = IntentSchema.options.map((o) => o.shape.type.value).sort();
+    const sampled = [...new Set(SAMPLE_INTENTS.map((i) => i.type))].sort();
+    expect(sampled).toEqual(all);
+  });
+});
 
 describe("zbin wire: server messages", () => {
   it.each(SERVER_MESSAGES.map((m) => [m.type, m] as const))(

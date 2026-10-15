@@ -9,6 +9,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { findClosestBy } from "@openfront/engine-lib/Util";
 import { z } from "zod";
+import { domesticTradeGold } from "../domestic/DomesticEconomy";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
@@ -210,14 +211,17 @@ export class TradeShipExecution implements Execution {
         .stats()
         .boatCapturedTrade(this.tradeShip!.owner(), this.origOwner, gold);
     } else {
-      this.srcPort.owner().addGold(gold, this.srcPort.tile());
-      this._dstPort.owner().addGold(gold, this._dstPort.tile());
-      this.srcPort.owner().addTradeGold(gold);
-      this._dstPort.owner().addTradeGold(gold);
+      const srcOwner = this.srcPort.owner();
+      const dstOwner = this._dstPort.owner();
+      const srcGold = domesticTradeGold(gold, srcOwner, dstOwner, "tradeShip");
+      const dstGold = domesticTradeGold(gold, dstOwner, srcOwner, "tradeShip");
+      srcOwner.addGold(srcGold, this.srcPort.tile());
+      dstOwner.addGold(dstGold, this._dstPort.tile());
+      srcOwner.addTradeGold(srcGold);
+      dstOwner.addTradeGold(dstGold);
       // Record stats
-      this.mg
-        .stats()
-        .boatArriveTrade(this.srcPort.owner(), this._dstPort.owner(), gold);
+      // Each side's stat is what it received (equal outside domestic mode).
+      this.mg.stats().boatArriveTrade(srcOwner, dstOwner, srcGold, dstGold);
     }
     return;
   }

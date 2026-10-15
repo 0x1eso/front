@@ -1,5 +1,6 @@
 import { GameMapType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
+import { DOMESTIC_TIMER_MINUTES } from "@openfront/engine-lib/domestic/Balance";
 
 /**
  * Maps a slider value (0-400) to the nations config value.
@@ -40,6 +41,24 @@ export function toOptionalNumber(
     return Number.isFinite(numeric) ? numeric : undefined;
   }
   return undefined;
+}
+
+/**
+ * Turning domestic mode on (spec §8.3): the game gets a timer, 30 minutes
+ * unless the host already set one, and overtime goes off.
+ */
+export function domesticModeDefaults(
+  maxTimer: boolean,
+  maxTimerValue: number | undefined,
+): { maxTimer: true; maxTimerValue: number; overtime: false } {
+  return {
+    maxTimer: true,
+    maxTimerValue:
+      maxTimer && maxTimerValue !== undefined
+        ? maxTimerValue
+        : DOMESTIC_TIMER_MINUTES,
+    overtime: false,
+  };
 }
 
 export function preventDisallowedKeys(

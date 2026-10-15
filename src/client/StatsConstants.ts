@@ -5,6 +5,8 @@ export const COLUMN_IDS = [
   "player",
   "playerType",
   "team",
+  // Domestic mode only: always shown there, never offered in the menu.
+  "score",
   // Territory.
   "tiles",
   // Economy: balance, then its per-source income rates.

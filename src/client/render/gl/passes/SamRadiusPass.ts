@@ -183,6 +183,14 @@ export class SAMRadiusPass {
   private colorMode: "perspective" | "owner" = "perspective";
   private allianceClusters: Map<number, number> = new Map();
   private lastStructures: Map<number, UnitState> | null = null;
+  /**
+   * A SAM's range from its base range and owner (Config.samRangeOf: the
+   * domestic air-defense law), so the ring is what the engine intercepts at.
+   */
+  private samRangeOf: (ownerID: number, baseRange: number) => number = (
+    _ownerID,
+    baseRange,
+  ) => baseRange;
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -277,6 +285,11 @@ export class SAMRadiusPass {
     if (mode === this.colorMode) return;
     this.colorMode = mode;
     this.rebuild();
+  }
+
+  /** Rings follow SAM ranges from the next rebuild (every tick, setAllies). */
+  setSamRangeOf(fn: (ownerID: number, baseRange: number) => number): void {
+    this.samRangeOf = fn;
   }
 
   setAllianceClusters(clusters: Map<number, number>): void {
@@ -418,9 +431,15 @@ export class SAMRadiusPass {
     ) {
       const elapsed = continuousTick - startTick;
       const progress = Math.max(0, Math.min(1, elapsed / duration));
-      const targetRadius = samRange(u.samUpgradeTargetLevel ?? 0);
+      // Like EngineConfig.dynamicSamRange: interpolate the base ranges, then
+      // apply the owner's modifier.
+      const targetBase = samRange(u.samUpgradeTargetLevel ?? 0);
       const startRange = u.samUpgradeStartRange ?? 0;
-      const currentRadius = startRange + (targetRadius - startRange) * progress;
+      const targetRadius = this.samRangeOf(u.ownerID, targetBase);
+      const currentRadius = this.samRangeOf(
+        u.ownerID,
+        startRange + (targetBase - startRange) * progress,
+      );
 
       // Layer 0: Active operating radius
       circles.push({
@@ -447,11 +466,12 @@ export class SAMRadiusPass {
         spin: isFriendly ? 0.0 : 1.0,
       });
     } else {
+      const radius = this.samRangeOf(u.ownerID, samRange(u.level));
       // Layer 0: Active operating radius
       circles.push({
         x,
         y,
-        radius: samRange(u.level),
+        radius,
         r: color[0],
         g: color[1],
         b: color[2],
@@ -464,7 +484,7 @@ export class SAMRadiusPass {
         circles.push({
           x,
           y,
-          radius: samRange(u.level),
+          radius,
           r: color[0],
           g: color[1],
           b: color[2],

@@ -481,6 +481,23 @@ describe("settling a disputed winner vote by replay", () => {
     expect(archived()[0].info.statsAgreed).toBe(true);
   });
 
+  it("does not warn about a null replay on a self-hosted server", async () => {
+    vi.stubEnv("SELF_HOSTED", "true");
+    try {
+      const { game, clients } = play([A, B]);
+      await vote(clients[0], ["player", A]);
+      await vote(clients[1], ["player", B]);
+      await game.end();
+
+      resolveReplay(null);
+      await archivedOnce();
+      expect(warned("winner replay failed, archiving the vote")).toEqual([]);
+      expect(archived()[0].info.winner).toBeUndefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("archives winnerless, not agreed, when a no-majority replay fails", async () => {
     const { game, clients } = play([A, B]);
     await vote(clients[0], ["player", A]);

@@ -1,8 +1,11 @@
 /**
  * StructurePass — GPU-rendered structures with icon sprites.
  *
- * Renders a filled circle in player color with a white icon overlay,
- * sampled from a pre-built 6-column sprite atlas (generate-sprite-atlases.mjs).
+ * Renders a filled shape in player color with a white icon overlay, sampled
+ * from resources/atlases/icon-atlas.png: one 64×64 column per entry of
+ * STRUCTURE_ATLAS_ORDER. The first six cells came from an upstream generator
+ * that isn't in this repo; the domestic ones are drawn from the SVGs in
+ * resources/atlases/src/.
  *
  * Two LODs based on zoom:
  *   - zoom > 0.5: full icon with circle background
@@ -15,14 +18,7 @@
  */
 
 import type { GhostPreviewData, RendererConfig, UnitState } from "../../types";
-import {
-  UT_CITY,
-  UT_DEFENSE_POST,
-  UT_FACTORY,
-  UT_MISSILE_SILO,
-  UT_PORT,
-  UT_SAM_LAUNCHER,
-} from "../../types";
+import { STRUCTURE_ATLAS_ORDER } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import type { RenderSettings } from "../RenderSettings";
 import {
@@ -42,20 +38,7 @@ const iconAtlasUrl = assetUrl("atlases/icon-atlas.png");
 // Constants
 // ---------------------------------------------------------------------------
 
-/**
- * Structure types in atlas column order.
- * Index = atlas column index.
- */
-const STRUCTURE_ORDER = [
-  UT_CITY,
-  UT_PORT,
-  UT_FACTORY,
-  UT_DEFENSE_POST,
-  UT_SAM_LAUNCHER,
-  UT_MISSILE_SILO,
-] as const;
-
-const ATLAS_COLS = STRUCTURE_ORDER.length;
+const ATLAS_COLS = STRUCTURE_ATLAS_ORDER.length;
 
 // ---------------------------------------------------------------------------
 // Instance data layout
@@ -115,7 +98,7 @@ export class StructurePass {
 
   private instanceCount = 0;
 
-  /** unitType string → atlas column index (0–5) */
+  /** unitType string → atlas column index (STRUCTURE_ATLAS_ORDER) */
   private typeToAtlasCol = new Map<string, number>();
   private mapW: number;
 
@@ -142,11 +125,12 @@ export class StructurePass {
 
     // Build unitType string → atlas column mapping
     for (let i = 0; i < header.unitTypes.length; i++) {
-      const col = STRUCTURE_ORDER.indexOf(
-        header.unitTypes[i] as (typeof STRUCTURE_ORDER)[number],
+      const type = header.unitTypes[i];
+      const col = STRUCTURE_ATLAS_ORDER.indexOf(
+        type as (typeof STRUCTURE_ATLAS_ORDER)[number],
       );
       if (col >= 0) {
-        this.typeToAtlasCol.set(header.unitTypes[i], col);
+        this.typeToAtlasCol.set(type, col);
       }
     }
 
@@ -388,8 +372,8 @@ export class StructurePass {
     // Build per-structure uniform arrays from settings, ordered by atlas column
     const scales = new Float32Array(ATLAS_COLS);
     const fills = new Float32Array(ATLAS_COLS);
-    for (let i = 0; i < STRUCTURE_ORDER.length; i++) {
-      const cfg = ss.shapes[STRUCTURE_ORDER[i]];
+    for (let i = 0; i < ATLAS_COLS; i++) {
+      const cfg = ss.shapes[STRUCTURE_ATLAS_ORDER[i]];
       scales[i] = cfg?.scale ?? 1.0;
       fills[i] = cfg?.iconFill ?? 0.6;
     }

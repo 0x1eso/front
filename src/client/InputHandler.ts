@@ -29,6 +29,18 @@ export class MouseOverEvent implements GameEvent {
     public readonly y: number,
   ) {}
 }
+
+/**
+ * A finger tap on the map in build mode. BuildPreviewController aims the
+ * build ghost there, or builds when the tap lands on the ghost it aimed.
+ */
+export class BuildTapEvent implements GameEvent {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
+}
+
 export class TouchEvent implements GameEvent {
   constructor(
     public readonly x: number,
@@ -307,6 +319,19 @@ export class InputHandler {
   private longPressActive: boolean = false;
   private suppressNextTap: boolean = false;
   private readonly LONG_PRESS_MS = 800;
+  /**
+   * Set when a second finger joins, cleared when the next gesture starts
+   * with one finger on an otherwise empty screen: no release of a pinch or
+   * two-finger pan is a tap (the anchor finger of a pinch barely moves, so
+   * it would otherwise count), nor a finger put back down to re-grip while
+   * another still rests.
+   */
+  private multiTouchGesture: boolean = false;
+  /**
+   * Touch pointers physically down. Not `pointers`: the first release of a
+   * multi-finger gesture clears that while the other fingers still rest.
+   */
+  private touchesDown = new Set<number>();
 
   private moveInterval: NodeJS.Timeout | null = null;
   /** Aborts every window/canvas listener added in
@@ -320,6 +345,8 @@ export class InputHandler {
   private readonly PAN_SPEED = 5;
   private readonly ZOOM_SPEED = 10;
   private readonly DRAG_THRESHOLD_PX = 10;
+  /** Fingers wobble more than a mouse: a touch is still a tap up to here. */
+  private readonly TOUCH_DRAG_THRESHOLD_PX = 16;
 
   private readonly userSettings: UserSettings = new UserSettings();
 
@@ -350,9 +377,23 @@ export class InputHandler {
     this.eventBus.on(UnitSelectionEvent, this.onUnitSelection);
     this.eventBus.off(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.on(EmojiTableVisibleEvent, this.onEmojiTableVisible);
+    this.eventBus.off(AlternateViewEvent, this.onAlternateView);
+    this.eventBus.on(AlternateViewEvent, this.onAlternateView);
+    this.eventBus.off(ToggleCoordinateGridEvent, this.onCoordinateGrid);
+    this.eventBus.on(ToggleCoordinateGridEvent, this.onCoordinateGrid);
 
     this.initializePointerAndKeyboardEvents();
   }
+
+  // The map's on-screen buttons and the settings menu toggle these too.
+  // Follow the bus, so the next key press flips from what is shown.
+  private onAlternateView = (e: AlternateViewEvent) => {
+    this.alternateView = e.alternateView;
+  };
+
+  private onCoordinateGrid = (e: ToggleCoordinateGridEvent) => {
+    this.coordinateGridEnabled = e.enabled;
+  };
 
   private onEmojiTableVisible = (e: EmojiTableVisibleEvent) => {
     this.emojiTableOpen = e.visible;
@@ -421,6 +462,8 @@ export class InputHandler {
     }
     this.longPressActive = false;
     this.suppressNextTap = false;
+    this.multiTouchGesture = false;
+    this.touchesDown.clear();
     this.selectionBoxActive = false;
     this.multiSelectionActive = false;
   }
@@ -956,8 +999,19 @@ export class InputHandler {
 
     this.pointerDown = true;
     this.pointers.set(event.pointerId, event);
+    if (event.pointerType === "touch") {
+      // A primary touch is the only finger on the screen: forget any whose
+      // release never reached us.
+      if (event.isPrimary === true) this.touchesDown.clear();
+      this.touchesDown.add(event.pointerId);
+    }
 
     if (this.pointers.size === 1) {
+      // A finger put back down while another from the gesture still rests
+      // (re-gripping a pinch) is still part of that gesture.
+      if (event.pointerType !== "touch" || this.touchesDown.size <= 1) {
+        this.multiTouchGesture = false;
+      }
       this.lastPointerX = event.clientX;
       this.lastPointerY = event.clientY;
 
@@ -967,7 +1021,7 @@ export class InputHandler {
       this.eventBus.emit(new MouseDownEvent(event.clientX, event.clientY));
 
       // Start long-press timer for touch devices
-      if (event.pointerType === "touch") {
+      if (event.pointerType === "touch" && !this.multiTouchGesture) {
         this.longPressActive = false;
         if (this.longPressTimer !== null) {
           clearTimeout(this.longPressTimer);
@@ -986,6 +1040,7 @@ export class InputHandler {
         }, this.LONG_PRESS_MS);
       }
     } else if (this.pointers.size === 2) {
+      if (this.mapPointerCount() >= 2) this.multiTouchGesture = true;
       // Second finger down — cancel any pending long-press to avoid
       // triggering selection mode mid-pinch
       if (this.longPressTimer !== null) {
@@ -998,6 +1053,15 @@ export class InputHandler {
       }
       this.lastPinchDistance = this.getPinchDistance();
     }
+  }
+
+  /** Fingers down on the map itself (a toast tap is no second finger). */
+  private mapPointerCount(): number {
+    let count = 0;
+    for (const id of this.pointers.keys()) {
+      if (!this.passThroughPointers.has(id)) count++;
+    }
+    return count;
   }
 
   private isGameInputPassThrough(event: PointerEvent): boolean {
@@ -1057,6 +1121,7 @@ export class InputHandler {
   }
 
   private onPointerCancel = (event: PointerEvent): void => {
+    this.touchesDown.delete(event.pointerId);
     if (this.passThroughPointers.has(event.pointerId)) {
       this.cancelPassThroughDrag(event.pointerId);
       return;
@@ -1065,6 +1130,7 @@ export class InputHandler {
   };
 
   onPointerUp(event: PointerEvent) {
+    this.touchesDown.delete(event.pointerId);
     if (event.button === 1) {
       event.preventDefault();
       return;
@@ -1086,6 +1152,9 @@ export class InputHandler {
     if (!this.pointerDown || !this.pointers.has(event.pointerId)) {
       return;
     }
+    // The first release of a multi-finger gesture clears every pointer, so
+    // the other fingers' releases already return above.
+    const endsMultiTouch = this.multiTouchGesture || this.mapPointerCount() > 1;
     this.pointerDown = false;
     this.pointers.clear();
 
@@ -1111,7 +1180,7 @@ export class InputHandler {
       const dist =
         Math.abs(event.clientX - this.lastPointerDownX) +
         Math.abs(event.clientY - this.lastPointerDownY);
-      if (dist >= this.DRAG_THRESHOLD_PX) {
+      if (dist >= this.dragThreshold(event.pointerType)) {
         this.eventBus.emit(
           new WarshipSelectionBoxCompleteEvent(
             this.lastPointerDownX,
@@ -1154,10 +1223,24 @@ export class InputHandler {
     const dist =
       Math.abs(event.x - this.lastPointerDownX) +
       Math.abs(event.y - this.lastPointerDownY);
-    if (dist < this.DRAG_THRESHOLD_PX) {
+    if (dist < this.dragThreshold(event.pointerType)) {
+      if (endsMultiTouch) {
+        // A pinch or two-finger pan ended: not a tap, so it neither builds,
+        // aims nor opens a menu under the finger that lifted first.
+        this.suppressNextTap = false;
+        event.preventDefault();
+        return;
+      }
       if (event.pointerType === "touch") {
         if (this.suppressNextTap) {
           this.suppressNextTap = false;
+          event.preventDefault();
+          return;
+        }
+        if (this.uiState.ghostStructure !== null) {
+          // A finger has no hover: the first tap aims the ghost and shows its
+          // preview, a tap on the aimed ghost builds (BuildPreviewController).
+          this.eventBus.emit(new BuildTapEvent(event.x, event.y));
           event.preventDefault();
           return;
         }
@@ -1264,7 +1347,7 @@ export class InputHandler {
       const distance =
         Math.abs(event.clientX - passThroughOrigin.x) +
         Math.abs(event.clientY - passThroughOrigin.y);
-      if (distance >= this.DRAG_THRESHOLD_PX) {
+      if (distance >= this.dragThreshold(event.pointerType)) {
         this.cancelPassThroughDrag(event.pointerId);
       }
       return;
@@ -1280,7 +1363,7 @@ export class InputHandler {
         const moveDist =
           Math.abs(event.clientX - this.lastPointerDownX) +
           Math.abs(event.clientY - this.lastPointerDownY);
-        if (moveDist >= this.DRAG_THRESHOLD_PX) {
+        if (moveDist >= this.dragThreshold(event.pointerType)) {
           clearTimeout(this.longPressTimer);
           this.longPressTimer = null;
         }
@@ -1497,6 +1580,13 @@ export class InputHandler {
     return !this.gameView.inSpawnPhase() && myPlayer?.isAlive() === true;
   }
 
+  /** How far a press may travel and still count as a tap (spec §14a). */
+  private dragThreshold(pointerType: string): number {
+    return pointerType === "touch"
+      ? this.TOUCH_DRAG_THRESHOLD_PX
+      : this.DRAG_THRESHOLD_PX;
+  }
+
   private getPinchDistance(): number {
     const pointerEvents = Array.from(this.pointers.values());
     const dx = pointerEvents[0].clientX - pointerEvents[1].clientX;
@@ -1550,6 +1640,8 @@ export class InputHandler {
     this.listenerAbort = null;
     this.eventBus.off(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.off(UnitSelectionEvent, this.onUnitSelection);
+    this.eventBus.off(AlternateViewEvent, this.onAlternateView);
+    this.eventBus.off(ToggleCoordinateGridEvent, this.onCoordinateGrid);
     // Includes the 800ms long-press timer a touch pointerdown arms: aborting
     // the listeners does not cancel it, so without this it can still fire
     // after teardown, emitting TouchLongPressStartEvent on the page-global

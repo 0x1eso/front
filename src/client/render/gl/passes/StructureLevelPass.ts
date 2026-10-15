@@ -13,15 +13,7 @@
  */
 
 import type { RendererConfig, UnitState } from "../../types";
-import {
-  STRUCTURE_TYPES,
-  UT_CITY,
-  UT_DEFENSE_POST,
-  UT_FACTORY,
-  UT_MISSILE_SILO,
-  UT_PORT,
-  UT_SAM_LAUNCHER,
-} from "../../types";
+import { STRUCTURE_ATLAS_ORDER, STRUCTURE_TYPES } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import type { RenderSettings } from "../RenderSettings";
 import { createProgram } from "../utils/GlUtils";
@@ -42,16 +34,6 @@ const msdfAtlasUrl = assetUrl("atlases/msdf-atlas.png");
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/** Atlas column order — must match StructurePass. */
-const STRUCTURE_ORDER = [
-  UT_CITY,
-  UT_PORT,
-  UT_FACTORY,
-  UT_DEFENSE_POST,
-  UT_SAM_LAUNCHER,
-  UT_MISSILE_SILO,
-] as const;
 
 /** Max characters per level label (handles up to "99"). */
 const MAX_LEVEL_CHARS = 4;
@@ -143,7 +125,7 @@ export class StructureLevelPass {
   private charCodes = new Uint8Array(MAX_CHARS);
   private cursors = new Float32Array(MAX_CHARS);
 
-  /** unitType string → atlas column index (0–5). */
+  /** unitType string → atlas column index (STRUCTURE_ATLAS_ORDER). */
   private typeToAtlasCol = new Map<string, number>();
   /** Build-button hover highlight bitmask (0 = off). */
   private highlightMask = 0;
@@ -164,10 +146,11 @@ export class StructureLevelPass {
 
     // Build unitType string → atlas column mapping
     for (let i = 0; i < header.unitTypes.length; i++) {
-      const col = STRUCTURE_ORDER.indexOf(
-        header.unitTypes[i] as (typeof STRUCTURE_ORDER)[number],
+      const type = header.unitTypes[i];
+      const col = STRUCTURE_ATLAS_ORDER.indexOf(
+        type as (typeof STRUCTURE_ATLAS_ORDER)[number],
       );
-      if (col >= 0) this.typeToAtlasCol.set(header.unitTypes[i], col);
+      if (col >= 0) this.typeToAtlasCol.set(type, col);
     }
 
     this.kernTable = new Int8Array(CHAR_RANGE * CHAR_RANGE); // digits don't kern

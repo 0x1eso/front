@@ -8,6 +8,7 @@ import { LiveStatsController } from "../controllers/LiveStatsController";
 import { MapLayerController } from "../controllers/MapLayerController";
 import { SoundEffectController } from "../controllers/SoundEffectController";
 import { StructureHighlightController } from "../controllers/StructureHighlightController";
+import { TouchHintController } from "../controllers/TouchHintController";
 import { ViewModeController } from "../controllers/ViewModeController";
 import { WarshipSelectionController } from "../controllers/WarshipSelectionController";
 import { GameStartingModal } from "../GameStartingModal";
@@ -21,6 +22,8 @@ import "../UserSettingModal";
 import type { UserSettingModal } from "../UserSettingModal";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
+import { DomesticHud } from "./domestic/DomesticHud";
+import { DomesticPanel } from "./domestic/DomesticPanel";
 import { FrameProfiler } from "./FrameProfiler";
 import { ActionableEvents } from "./layers/ActionableEvents";
 import { AlertFrame } from "./layers/AlertFrame";
@@ -37,6 +40,7 @@ import { HeadsUpMessage } from "./layers/HeadsUpMessage";
 import { ImmunityTimer } from "./layers/ImmunityTimer";
 import { InGamePromo } from "./layers/InGamePromo";
 import { MainRadialMenu } from "./layers/MainRadialMenu";
+import { MapControls } from "./layers/MapControls";
 import { MultiTabModal } from "./layers/MultiTabModal";
 import { NewLobbyPrompt } from "./layers/NewLobbyPrompt";
 import { PerformanceOverlay } from "./layers/PerformanceOverlay";
@@ -188,6 +192,12 @@ export function createRenderer(
   gameRightSidebar.game = game;
   gameRightSidebar.eventBus = eventBus;
 
+  const mapControls = document.querySelector("map-controls") as MapControls;
+  if (!(mapControls instanceof MapControls)) {
+    console.error("map controls not found");
+  }
+  mapControls.eventBus = eventBus;
+
   const settingsModal = document.querySelector(
     "settings-modal",
   ) as SettingsModal;
@@ -232,6 +242,22 @@ export function createRenderer(
   unitDisplay.game = game;
   unitDisplay.eventBus = eventBus;
   unitDisplay.uiState = uiState;
+
+  const domesticHud = document.querySelector("domestic-hud") as DomesticHud;
+  if (!(domesticHud instanceof DomesticHud)) {
+    console.error("domestic hud not found");
+  }
+  domesticHud.game = game;
+  domesticHud.eventBus = eventBus;
+
+  const domesticPanel = document.querySelector(
+    "domestic-panel",
+  ) as DomesticPanel;
+  if (!(domesticPanel instanceof DomesticPanel)) {
+    console.error("domestic panel not found");
+  }
+  domesticPanel.game = game;
+  domesticPanel.eventBus = eventBus;
 
   const playerPanel = document.querySelector("player-panel") as PlayerPanel;
   if (!(playerPanel instanceof PlayerPanel)) {
@@ -334,6 +360,7 @@ export function createRenderer(
     new AttackingTroopsController(game, eventBus, userSettings, view),
     new SoundEffectController(game, eventBus),
     new AmbienceController(game, eventBus, transformHandler),
+    new TouchHintController(game, userSettings),
     ...(mapLayerController ? [mapLayerController] : []),
     eventsDisplay,
     actionableEvents,
@@ -354,7 +381,10 @@ export function createRenderer(
     gameLeftSidebar,
     unitDisplay,
     gameRightSidebar,
+    mapControls,
     controlPanel,
+    domesticHud,
+    domesticPanel,
     playerInfo,
     winModal,
     newLobbyPrompt,

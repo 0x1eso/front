@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { ClanTagSchema, UsernameSchema } from "@openfront/engine-api/Schemas";
 import { buildAssetUrl } from "@openfront/shared/AssetPaths";
+import { GAME_TITLE } from "@openfront/shared/Branding";
 import { GameInfo } from "@openfront/shared/WireSchemas";
 import { z } from "zod";
 import { getRuntimeAssetManifest } from "./RuntimeAssetManifest";
@@ -217,7 +218,7 @@ export async function buildPreview(
     ? `${mode ?? "Game"} on ${map ?? "Unknown Map"}${gameTypeLabel}`
     : mode && map
       ? `${mode} on ${map}${gameTypeLabel}`
-      : "OpenFront Game";
+      : `${GAME_TITLE} game`;
 
   let description: string;
   if (isFinished) {

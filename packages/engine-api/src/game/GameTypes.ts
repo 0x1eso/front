@@ -207,6 +207,8 @@ export enum UnitType {
   MIRVWarhead = "MIRV Warhead",
   Train = "Train",
   Factory = "Factory",
+  ResearchInstitute = "Research Institute",
+  AdminOffice = "Admin Office",
 }
 
 export enum TrainType {
@@ -236,6 +238,8 @@ export const Structures = unitTypeGroup([
   UnitType.MissileSilo,
   UnitType.Port,
   UnitType.Factory,
+  UnitType.ResearchInstitute,
+  UnitType.AdminOffice,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -360,6 +364,8 @@ export interface BuildableUnit {
   upgradeCosts?: Gold[];
   overlappingRailroads: TileRef[];
   ghostRailPaths: TileRef[][];
+  /** Domestic mode: the unit needs a tech this player hasn't researched. */
+  locked?: boolean;
 }
 
 // Total price of buying `amount` of a buildable in one intent. Upgrades use
@@ -468,6 +474,9 @@ export enum MessageType {
   DONATION_RECEIVED,
   CHAT,
   RENEW_ALLIANCE,
+  RESEARCH_COMPLETE,
+  GOVERNMENT_TIER_REACHED,
+  VICTORY_PROJECT,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -503,6 +512,9 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.DONATION_SENT]: MessageCategory.TRADE,
   [MessageType.DONATION_RECEIVED]: MessageCategory.TRADE,
   [MessageType.CHAT]: MessageCategory.CHAT,
+  [MessageType.RESEARCH_COMPLETE]: MessageCategory.TRADE,
+  [MessageType.GOVERNMENT_TIER_REACHED]: MessageCategory.TRADE,
+  [MessageType.VICTORY_PROJECT]: MessageCategory.ATTACK,
 } as const;
 
 /**

@@ -31,6 +31,7 @@ const COPIED_KEYS = [
   "anonymizeNames",
   "nameReveals",
   "nameRevealPublicIds",
+  "domesticMode",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a
@@ -44,6 +45,7 @@ const NULLABLE_KEYS = [
   "disableAlliances",
   "customAllianceDuration",
   "waterNukes",
+  "conquestPercent",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 type NullableKey = (typeof NULLABLE_KEYS)[number];

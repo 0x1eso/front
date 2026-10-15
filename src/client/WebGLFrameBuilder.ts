@@ -10,7 +10,9 @@ import {
 } from "@openfront/shared/CosmeticSchemas";
 import { colord } from "colord";
 import { getCachedCosmetics } from "./Cosmetics";
+import { samRangeResolver } from "./render/frame/derive/SamRanges";
 import { buildTerrainRowSpans } from "./render/frame/derive/TerrainRowSpans";
+import { deriveVictoryProjects } from "./render/frame/derive/VictoryProjects";
 import { uploadFrameData } from "./render/frame/Upload";
 // Type-only: a value import would pull GPURenderer and its `.glsl?raw` shader
 // imports into any non-Vite consumer (e.g. the Node perf harness).
@@ -159,6 +161,8 @@ export class WebGLFrameBuilder {
   // unit colors, and SAM-radius perspective work. Push it once the local
   // player's update arrives (may take several ticks during join).
   private localPlayerSmallID = 0;
+  private samRangeOf: ((ownerID: number, baseRange: number) => number) | null =
+    null;
 
   constructor(private readonly view: MapRenderer) {
     this.palette = new Float32Array(PALETTE_SIZE * 2 * 4);
@@ -239,6 +243,8 @@ export class WebGLFrameBuilder {
     this.syncLocalPlayer(gameView);
     this.syncSpawnOverlay(gameView);
     this.syncSmallPlayerGlow(gameView);
+    this.syncVictoryProjects(gameView);
+    this.syncSamRanges(gameView);
     this.syncTerrainDeltas(gameView);
     this.syncNukeImpacts(gameView);
     this.resolveDeadUnitExplosions(gameView);
@@ -463,6 +469,19 @@ export class WebGLFrameBuilder {
       }
     }
     this.view.updateSmallPlayerGlow(any ? set : null);
+  }
+
+  /** Domestic mode: push victory-project hosts and their progress each tick. */
+  private syncVictoryProjects(gameView: GameView): void {
+    if (!gameView.config().domesticMode()) return;
+    this.view.setVictoryProjects(deriveVictoryProjects(gameView.playerViews()));
+  }
+
+  /** Domestic mode: SAM rings at each owner's modified range. */
+  private syncSamRanges(gameView: GameView): void {
+    if (!gameView.config().domesticMode()) return;
+    this.samRangeOf ??= samRangeResolver(gameView);
+    this.view.setSamRangeOf(this.samRangeOf);
   }
 
   private syncPlayers(gameView: GameView): void {

@@ -97,15 +97,15 @@ function instrumentStats(game: Game): GoldTally {
   const stats = game.stats();
 
   const boatArriveTrade = stats.boatArriveTrade.bind(stats);
-  stats.boatArriveTrade = (player: Player, target: Player, gold) => {
+  stats.boatArriveTrade = (player: Player, target: Player, gold, ...rest) => {
     tally.trade += 2n * toBigint(gold); // both port owners earn `gold`
     tally.shipsArrived++;
-    boatArriveTrade(player, target, gold);
+    boatArriveTrade(player, target, gold, ...rest);
   };
   const boatCapturedTrade = stats.boatCapturedTrade.bind(stats);
-  stats.boatCapturedTrade = (player: Player, target: Player, gold) => {
+  stats.boatCapturedTrade = (player: Player, target: Player, gold, ...rest) => {
     tally.trade += toBigint(gold);
-    boatCapturedTrade(player, target, gold);
+    boatCapturedTrade(player, target, gold, ...rest);
   };
   const trainSelfTrade = stats.trainSelfTrade.bind(stats);
   stats.trainSelfTrade = (player: Player, gold) => {

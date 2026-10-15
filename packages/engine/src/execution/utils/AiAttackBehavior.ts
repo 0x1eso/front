@@ -13,6 +13,7 @@ import {
   TerraNullius,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { VICTORY_PROJECTS } from "@openfront/engine-lib/domestic/Victory";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
   readVersioned,
@@ -28,6 +29,7 @@ import {
 } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { CHEAPEST_TROOP_RATIO } from "../../configuration/EngineConfig";
+import { hasActiveVictoryProject } from "../../domestic/VictoryProjects";
 import { Attack, Game, Player, Unit } from "../../game/Game";
 import {
   canBuildTransportShip,
@@ -241,14 +243,22 @@ export class AiAttackBehavior {
       if (this.sendAttack(this.game.terraNullius())) return;
     }
 
-    const holdBoats = this.holdsBoatsUnderAttack();
+    // Holding fire for a project still allows a boat to unowned land.
+    const holdFire = this.holdsFireForProject();
+    const holdBoats = holdFire || this.holdsBoatsUnderAttack();
     if (borderingEnemies.length === 0) {
       if (!holdBoats && this.random.chance(5)) {
         this.attackWithRandomBoat();
+      } else if (holdFire && this.random.chance(5)) {
+        this.attackWithRandomBoat([], true);
       }
     } else {
       if (!holdBoats && this.random.chance(10)) {
         this.attackWithRandomBoat(borderingEnemies);
+        return;
+      }
+      if (holdFire && this.random.chance(10)) {
+        this.attackWithRandomBoat(borderingEnemies, true);
         return;
       }
 
@@ -258,10 +268,13 @@ export class AiAttackBehavior {
     this.attackBestTarget(borderingFriends, borderingEnemies);
   }
 
-  private attackWithRandomBoat(borderingEnemies: Player[] = []) {
+  private attackWithRandomBoat(
+    borderingEnemies: Player[] = [],
+    unownedOnly: boolean = false,
+  ) {
     if (this.player === null) throw new Error("not initialized");
 
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) {
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
       return;
     }
 
@@ -282,14 +295,17 @@ export class AiAttackBehavior {
     const src = this.random.randElement(shore);
 
     // First look for high-interest targets (unowned or bot-owned). Mainly relevant for earlygame
-    let found = this.findRandomBoatTarget(src, borderingEnemies, true);
-    if (found === null) {
+    let found = this.findRandomBoatTarget(
+      src,
+      borderingEnemies,
+      true,
+      unownedOnly,
+    );
+    if (found === null && !unownedOnly) {
       // None found? Then look for players
       found = this.findRandomBoatTarget(src, borderingEnemies, false);
-      if (found === null) {
-        return;
-      }
     }
+    if (found === null) return;
     const { tile: dst, launch } = found;
     if (this.sail(launch, dst).blocker !== null) return;
 
@@ -318,6 +334,7 @@ export class AiAttackBehavior {
     tile: TileRef,
     borderingEnemies: Player[],
     highInterestOnly: boolean = false,
+    unownedOnly: boolean = false,
   ): { tile: TileRef; launch: TileRef } | null {
     if (this.player === null) throw new Error("not initialized");
     const x = this.game.x(tile);
@@ -358,7 +375,9 @@ export class AiAttackBehavior {
       }
 
       let matchesCriteria: boolean;
-      if (highInterestOnly) {
+      if (unownedOnly) {
+        matchesCriteria = !owner.isPlayer();
+      } else if (highInterestOnly) {
         // High-interest targeting: prioritize unowned tiles or tiles owned by bots
         matchesCriteria = !owner.isPlayer() || owner.type() === PlayerType.Bot;
       } else {
@@ -389,6 +408,12 @@ export class AiAttackBehavior {
     borderingEnemies: Player[],
   ) {
     const { difficulty } = this.game.config().gameConfig();
+
+    // Domestic mode: world government pauses while we attack, so only answer attacks
+    if (this.holdsFireForProject()) {
+      this.retaliate();
+      return;
+    }
 
     // Hard & Impossible: answer attacks right away, even below the reserve and trigger ratios
     if (
@@ -594,6 +619,18 @@ export class AiAttackBehavior {
       );
     };
 
+    // Domestic mode (spec §9.4): whoever runs a victory project we can reach
+    // is the first target of Hard & Impossible nations. Off in vanilla, where
+    // the strategy lists below stay exactly as they were.
+    const project = (): boolean => {
+      const owner = pick(
+        (enemies) =>
+          enemies.find((enemy) => hasActiveVictoryProject(enemy)) ?? null,
+      );
+      return owner !== null ? this.sendAttack(owner) : false;
+    };
+    const projectFirst = this.game.config().domesticMode() ? [project] : [];
+
     // Return strategies in order based on difficulty
     // Easy nations get the dumbest order, impossible nations get the smartest order
     // Medium and up retaliate in attackBestTarget, ahead of the ratio checks
@@ -608,10 +645,10 @@ export class AiAttackBehavior {
       case Difficulty.Hard:
         // Strong veryWeak and juicy strats after the distracting hated strat, to make the nations weaker than impossible
         // prettier-ignore
-        return [bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
+        return [...projectFirst, bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
       case Difficulty.Impossible:
         // prettier-ignore
-        return [bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
+        return [...projectFirst, bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
       default:
         assertNever(difficulty);
     }
@@ -689,6 +726,19 @@ export class AiAttackBehavior {
       return this.sendRetaliation(attacker);
     }
     return this.sendAttack(attacker, true);
+  }
+
+  /**
+   * Domestic mode: we run a victory project whose progress stops while we
+   * attack another player (world government), so we start no attacks of
+   * our own; terra nullius and answering attacks are fine.
+   */
+  private holdsFireForProject(): boolean {
+    if (!this.game.config().domesticMode()) return false;
+    const project = this.player.domestic()?.victoryProject() ?? null;
+    return (
+      project !== null && VICTORY_PROJECTS[project.kind].pausesWhileAttacking
+    );
   }
 
   // Hard & Impossible keep their troops home while under attack, Medium only sometimes
@@ -953,6 +1003,7 @@ export class AiAttackBehavior {
   }
 
   private isBorderingNukedTerritory(): boolean {
+    // Whether anyone in the game can nuke, not whether we can
     if (this.game.config().isUnitDisabled(UnitType.MissileSilo)) {
       return false;
     }
@@ -1018,7 +1069,7 @@ export class AiAttackBehavior {
   }
 
   private findNearestIslandEnemy(): Player | null {
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) {
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
       return null;
     }
 
@@ -1219,7 +1270,7 @@ export class AiAttackBehavior {
   // Scans shore border tiles (every 10th) for unowned land within 5 water tiles
   // in each cardinal direction, then sends a transport ship to the first match.
   private sendBoatAttackToNearbyTerraNullius(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) return false;
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) return false;
     if (
       this.player.unitCount(UnitType.TransportShip) >=
       this.game.config().boatMaxNumber()
@@ -1563,7 +1614,7 @@ export class AiAttackBehavior {
   // The direct crossing, or if a warship blocks it, the shortest safe one landing elsewhere
   private planBoatRoute(target: Player): BoatRoute | null {
     if (
-      this.game.config().isUnitDisabled(UnitType.TransportShip) ||
+      this.player.isUnitUnavailable(UnitType.TransportShip) ||
       this.player.unitCount(UnitType.TransportShip) >=
         this.game.config().boatMaxNumber()
     ) {

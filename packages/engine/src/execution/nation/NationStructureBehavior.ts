@@ -27,11 +27,16 @@ import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { nearestTileDist, nearestTileDistCapped } from "../Util";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
+import { NationDomesticPlan, nationDomesticPlan } from "./NationPersonality";
 import {
   hasHighStartingGold,
   isSaveUpWithinReach,
   randTerritoryTileArray,
 } from "./NationUtils";
+import {
+  nationHoldsStructuresForProject,
+  nationProjectKindFor,
+} from "./NationVictoryBehavior";
 
 /**
  * Configuration for how many structures of each type a nation should build
@@ -55,6 +60,17 @@ const SAM_RATIO_BY_DIFFICULTY: Record<Difficulty, number> = {
 /** Port ratio per city in team games (not on Easy), where teammates are safe trade partners */
 const TEAM_PORT_RATIO = 1;
 
+/** Domestic mode: research institutes and admin offices per city, by personality. */
+type DomesticBuildingRatios = Pick<
+  NationDomesticPlan,
+  "instituteRatio" | "officeRatio"
+>;
+/** Outside domestic mode both buildings are disabled. */
+const NO_DOMESTIC_BUILDINGS: DomesticBuildingRatios = {
+  instituteRatio: 0,
+  officeRatio: 0,
+};
+
 /**
  * Returns structure ratios relative to city count, adjusted by difficulty and game mode.
  * Cities are always prioritized and built first.
@@ -63,6 +79,7 @@ const TEAM_PORT_RATIO = 1;
 function getStructureRatios(
   difficulty: Difficulty,
   gameMode: GameMode,
+  domestic: DomesticBuildingRatios,
 ): Partial<Record<UnitType, StructureRatioConfig>> {
   const teamPorts =
     gameMode === GameMode.Team && difficulty !== Difficulty.Easy;
@@ -81,6 +98,14 @@ function getStructureRatios(
     },
     [UnitType.MissileSilo]: {
       ratioPerCity: 0.2,
+      perceivedCostIncreasePerOwned: 1,
+    },
+    [UnitType.ResearchInstitute]: {
+      ratioPerCity: domestic.instituteRatio,
+      perceivedCostIncreasePerOwned: 1,
+    },
+    [UnitType.AdminOffice]: {
+      ratioPerCity: domestic.officeRatio,
       perceivedCostIncreasePerOwned: 1,
     },
   };
@@ -226,6 +251,25 @@ const DEFENSE_POST_SAMPLE_ATTEMPTS = 150;
 // Reusable neighbor buffer for hot loops; the simulation is single-threaded.
 const NEIGHBOR_SCRATCH: TileRef[] = [0, 0, 0, 0];
 
+const NUKE_TYPES: readonly UnitType[] = [
+  UnitType.AtomBomb,
+  UnitType.HydrogenBomb,
+  UnitType.MIRV,
+];
+
+/** The gold a nation saves up, and whether reaching it paces placements. */
+interface SaveUpPlan {
+  /** 0 means no saving is needed. */
+  target: Gold;
+  /**
+   * Once the target is reached, structure placement pauses on and off so
+   * NationNukeBehavior can spend the gold (isInPostSaveUpBlockedPhase). Not
+   * when no missile silo can be built, or while domestic-mode techs still
+   * lock the nukes, since then nothing would spend it.
+   */
+  pacesPlacements: boolean;
+}
+
 export class NationStructureBehavior {
   private reachableStationsCache: Array<{
     tile: TileRef;
@@ -288,7 +332,7 @@ export class NationStructureBehavior {
     // are never built as the very first structure.
     if (
       this.placementsCount > 0 &&
-      !this.game.config().isUnitDisabled(UnitType.DefensePost)
+      !this.player.isUnitUnavailable(UnitType.DefensePost)
     ) {
       if (this.tryBuildDefensePost()) {
         return true;
@@ -298,6 +342,18 @@ export class NationStructureBehavior {
       if (this.defensePostNeeded()) {
         return false;
       }
+    }
+
+    // Domestic mode: a Hard+ nation saving up for its victory project builds
+    // nothing else until it can start it (spec §9.3).
+    if (
+      nationHoldsStructuresForProject(
+        this.game,
+        this.player,
+        nationProjectKindFor(this.game, this.player),
+      )
+    ) {
+      return false;
     }
 
     if (this.isOnStructureCooldown()) {
@@ -377,7 +433,7 @@ export class NationStructureBehavior {
     const hostileTroopRatio =
       PROACTIVE_DEFENSE_POST_HOSTILE_TROOP_RATIO[difficulty];
     if (hostileTroopRatio === undefined) return false;
-    if (config.isUnitDisabled(UnitType.DefensePost)) return false;
+    if (this.player.isUnitUnavailable(UnitType.DefensePost)) return false;
     const cityCount = this.cityCount();
     if (cityCount < PROACTIVE_DEFENSE_POST_MIN_CITIES) return false;
 
@@ -593,10 +649,11 @@ export class NationStructureBehavior {
   // 15s ON / 15s OFF, alternating, to allow NationNukeBehavior to spend the gold.
   // Not while the gold covers the target twice, as bulk upgrades leave the target for nukes.
   private isInPostSaveUpBlockedPhase(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.MissileSilo)) {
+    const plan = this.getSaveUpPlan();
+    if (!plan.pacesPlacements) {
       return false;
     }
-    const saveUpTarget = this.getSaveUpTarget();
+    const saveUpTarget = plan.target;
     if (this._postSaveUpStartTick === null) {
       if (this.player.gold() < saveUpTarget) {
         return false;
@@ -616,12 +673,14 @@ export class NationStructureBehavior {
   private doHandleStructures(): boolean {
     this.reachableStationsCache = null;
     const config = this.game.config();
-    const citiesDisabled = config.isUnitDisabled(UnitType.City);
+    const citiesDisabled = this.player.isUnitUnavailable(UnitType.City);
     const cityCount = this.cityCount();
     this._sharedWaterComponents = this.game.sharedWaterComponents(this.player);
     const hasCoastalTiles = this._sharedWaterComponents !== null;
 
-    const missileSilosEnabled = !config.isUnitDisabled(UnitType.MissileSilo);
+    const missileSilosEnabled = !this.player.isUnitUnavailable(
+      UnitType.MissileSilo,
+    );
 
     // High-starting-gold Hard/Impossible nations build a SAM first so their
     // next structures get SAM coverage and aren't clustered under the same nuke target.
@@ -630,9 +689,9 @@ export class NationStructureBehavior {
       this.placementsCount === 0 &&
       (difficulty === Difficulty.Hard ||
         difficulty === Difficulty.Impossible) &&
-      !config.isUnitDisabled(UnitType.AtomBomb) &&
+      !this.player.isUnitUnavailable(UnitType.AtomBomb) &&
       missileSilosEnabled &&
-      !config.isUnitDisabled(UnitType.SAMLauncher) &&
+      !this.player.isUnitUnavailable(UnitType.SAMLauncher) &&
       this.hasHighStartingGold() &&
       this.maybeSpawnStructure(UnitType.SAMLauncher)
     ) {
@@ -652,10 +711,10 @@ export class NationStructureBehavior {
         (difficulty !== Difficulty.Easy && this.startsInTeamSpawnArea()))
     ) {
       const preferredFirst =
-        hasCoastalTiles && !config.isUnitDisabled(UnitType.Port)
+        hasCoastalTiles && !this.player.isUnitUnavailable(UnitType.Port)
           ? UnitType.Port
           : UnitType.Factory;
-      if (config.isUnitDisabled(preferredFirst)) {
+      if (this.player.isUnitUnavailable(preferredFirst)) {
         this.builtCrowdedMapFirstStructure = true;
       } else if (this.maybeSpawnStructure(preferredFirst)) {
         this.builtCrowdedMapFirstStructure = true;
@@ -671,18 +730,21 @@ export class NationStructureBehavior {
     const buildOrder: UnitType[] = [
       UnitType.Port,
       UnitType.Factory,
+      UnitType.ResearchInstitute,
+      UnitType.AdminOffice,
       UnitType.SAMLauncher,
       UnitType.MissileSilo,
     ];
 
+    // Our own silo needs a nuke we can buy (domestic-mode techs included)
     const nukesEnabled =
-      !config.isUnitDisabled(UnitType.AtomBomb) ||
-      !config.isUnitDisabled(UnitType.HydrogenBomb) ||
-      !config.isUnitDisabled(UnitType.MIRV);
+      !this.player.isUnitUnavailable(UnitType.AtomBomb) ||
+      !this.player.isUnitUnavailable(UnitType.HydrogenBomb) ||
+      !this.player.isUnitUnavailable(UnitType.MIRV);
 
     for (const structureType of buildOrder) {
       // Skip disabled structure types
-      if (config.isUnitDisabled(structureType)) {
+      if (this.player.isUnitUnavailable(structureType)) {
         continue;
       }
 
@@ -691,17 +753,13 @@ export class NationStructureBehavior {
         continue;
       }
 
-      // Skip missile silos and SAM launchers if all nukes are disabled
-      if (
-        !nukesEnabled &&
-        (structureType === UnitType.MissileSilo ||
-          structureType === UnitType.SAMLauncher)
-      ) {
+      // Skip missile silos if all nukes are disabled
+      if (!nukesEnabled && structureType === UnitType.MissileSilo) {
         continue;
       }
 
-      // Skip SAM launchers if missile silos are disabled
-      if (!missileSilosEnabled && structureType === UnitType.SAMLauncher) {
+      // Skip SAM launchers if nobody can nuke us
+      if (structureType === UnitType.SAMLauncher && !this.buildsSams()) {
         continue;
       }
 
@@ -723,7 +781,7 @@ export class NationStructureBehavior {
 
   // Cities owned, or a territory-based equivalent when cities are disabled
   private cityCount(): number {
-    if (this.game.config().isUnitDisabled(UnitType.City)) {
+    if (this.player.isUnitUnavailable(UnitType.City)) {
       return Math.max(
         1,
         Math.floor(this.player.numTilesOwned() / TILES_PER_CITY_EQUIVALENT),
@@ -750,6 +808,12 @@ export class NationStructureBehavior {
     );
   }
 
+  private domesticRatios(): DomesticBuildingRatios {
+    return this.game.config().domesticMode()
+      ? nationDomesticPlan(this.player.id())
+      : NO_DOMESTIC_BUILDINGS;
+  }
+
   private shouldBuildStructure(
     type: UnitType,
     cityCount: number,
@@ -766,7 +830,11 @@ export class NationStructureBehavior {
   ): number {
     const gameConfig = this.game.config();
     const { difficulty, gameMode } = gameConfig.gameConfig();
-    const ratios = getStructureRatios(difficulty, gameMode);
+    const ratios = getStructureRatios(
+      difficulty,
+      gameMode,
+      this.domesticRatios(),
+    );
     const config = ratios[type];
     if (config === undefined) {
       return 0;
@@ -778,7 +846,7 @@ export class NationStructureBehavior {
     if (
       type === UnitType.Factory &&
       hasCoastalTiles &&
-      !gameConfig.isUnitDisabled(UnitType.Port)
+      !this.player.isUnitUnavailable(UnitType.Port)
     ) {
       ratio *= FACTORY_COASTAL_RATIO_MULTIPLIER[difficulty];
     }
@@ -880,7 +948,11 @@ export class NationStructureBehavior {
     if (type === UnitType.City) {
       increasePerOwned = CITY_PERCEIVED_COST_INCREASE_PER_OWNED;
     } else {
-      const ratios = getStructureRatios(difficulty, gameMode);
+      const ratios = getStructureRatios(
+        difficulty,
+        gameMode,
+        this.domesticRatios(),
+      );
       const config = ratios[type];
       increasePerOwned = config?.perceivedCostIncreasePerOwned ?? 0.1;
     }
@@ -904,38 +976,110 @@ export class NationStructureBehavior {
    * Returns 0 if no saving is needed.
    */
   private getSaveUpTarget(): Gold {
-    const config = this.game.config();
+    return this.getSaveUpPlan().target;
+  }
 
-    // Just save up for SAMs if missile silos are disabled
-    if (config.isUnitDisabled(UnitType.MissileSilo)) {
-      return this.cost(UnitType.SAMLauncher);
+  private getSaveUpPlan(): SaveUpPlan {
+    // Just save up for SAMs if missile silos are disabled, or while
+    // domestic-mode techs still lock every nuke
+    if (
+      this.player.isUnitUnavailable(UnitType.MissileSilo) ||
+      this.areNukesStillLocked()
+    ) {
+      return { target: this.samSaveUpTarget(), pacesPlacements: false };
     }
 
     // Save up a limited amount in team games, synced with NationNukeBehavior
     // Saving up for a MIRV is not relevant
     if (this.game.config().gameConfig().gameMode === GameMode.Team) {
-      return this.cost(UnitType.HydrogenBomb);
+      // Domestic mode: an atom bomb while Thermonuclear still locks the hydrogen bomb
+      if (!this.player.isUnitLocked(UnitType.HydrogenBomb)) {
+        return {
+          target: this.cost(UnitType.HydrogenBomb),
+          pacesPlacements: true,
+        };
+      }
+      if (!this.player.isUnitUnavailable(UnitType.AtomBomb)) {
+        return { target: this.cost(UnitType.AtomBomb), pacesPlacements: true };
+      }
+      return { target: this.samSaveUpTarget(), pacesPlacements: false };
     }
 
-    const mirvEnabled = !config.isUnitDisabled(UnitType.MIRV);
-    const hydroEnabled = !config.isUnitDisabled(UnitType.HydrogenBomb);
-    const atomEnabled = !config.isUnitDisabled(UnitType.AtomBomb);
+    const mirvEnabled = !this.player.isUnitUnavailable(UnitType.MIRV);
+    const hydroEnabled = !this.player.isUnitUnavailable(UnitType.HydrogenBomb);
+    const atomEnabled = !this.player.isUnitUnavailable(UnitType.AtomBomb);
 
+    let target: Gold;
     // Not for a MIRV that SAMs would shoot down
     if (mirvEnabled && this.isMirvWorthSavingFor()) {
       // Save up for MIRV + Hydrogen Bomb
-      return this.cost(UnitType.MIRV) + this.cost(UnitType.HydrogenBomb);
-    }
-    if (hydroEnabled) {
+      target = this.cost(UnitType.MIRV) + this.cost(UnitType.HydrogenBomb);
+    } else if (hydroEnabled) {
       // Save up for 5 hydrogen bombs
-      return this.cost(UnitType.HydrogenBomb) * 5n;
-    }
-    if (atomEnabled) {
+      target = this.cost(UnitType.HydrogenBomb) * 5n;
+    } else if (atomEnabled) {
       // Save up for 20 atom bombs
-      return this.cost(UnitType.AtomBomb) * 20n;
+      target = this.cost(UnitType.AtomBomb) * 20n;
+    } else {
+      // No nukes enabled, just save up for SAMs
+      target = this.samSaveUpTarget();
     }
-    // No nukes enabled, just save up for SAMs
+    return { target, pacesPlacements: true };
+  }
+
+  /**
+   * A SAM's cost. Domestic mode: 0 while this nation builds no SAMs
+   * (buildsSams), as there's nothing worth saving for yet.
+   */
+  private samSaveUpTarget(): Gold {
+    if (this.game.config().domesticMode() && !this.buildsSams()) {
+      return 0n;
+    }
     return this.cost(UnitType.SAMLauncher);
+  }
+
+  /**
+   * Whether this nation builds SAMs: it can, and someone in the game can
+   * nuke it. That is a question about the game (silos and some nuke not
+   * disabled), not about this nation's own techs. Domestic mode, where techs
+   * lock the nukes: only once a non-friendly player owns a missile silo.
+   */
+  private buildsSams(): boolean {
+    if (this.player.isUnitUnavailable(UnitType.SAMLauncher)) return false;
+    const config = this.game.config();
+    if (
+      config.isUnitDisabled(UnitType.MissileSilo) ||
+      NUKE_TYPES.every((type) => config.isUnitDisabled(type))
+    ) {
+      return false;
+    }
+    return !config.domesticMode() || this.hostileSiloExists();
+  }
+
+  /** Whether a player that isn't friendly to this nation owns a missile silo. */
+  private hostileSiloExists(): boolean {
+    const game = this.game;
+    // Every silo in the game is ours (counts include levels)
+    if (
+      game.unitCount(UnitType.MissileSilo) ===
+      this.player.unitCount(UnitType.MissileSilo)
+    ) {
+      return false;
+    }
+    return game
+      .units(UnitType.MissileSilo)
+      .some((silo) => !this.player.isFriendly(silo.owner()));
+  }
+
+  /**
+   * Domestic mode: no nuke can be bought because techs still lock them (any
+   * others are disabled). Never true without domestic state.
+   */
+  private areNukesStillLocked(): boolean {
+    return (
+      NUKE_TYPES.some((type) => this.player.isUnitLocked(type)) &&
+      NUKE_TYPES.every((type) => this.player.isUnitUnavailable(type))
+    );
   }
 
   private isMirvWorthSavingFor(): boolean {
@@ -1210,6 +1354,9 @@ export class NationStructureBehavior {
     switch (type) {
       case UnitType.City:
         return this.cityValue();
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
+        return this.domesticBuildingValue();
       case UnitType.MissileSilo:
         return this.missileSiloValue();
       case UnitType.Factory:
@@ -1562,6 +1709,29 @@ export class NationStructureBehavior {
           stationRangeSquared,
         ) * structureSpacing;
 
+      return w;
+    };
+  }
+
+  /**
+   * Value function for research institutes and admin offices (domestic
+   * mode): a city's, plus spacing from the other institutes and offices,
+   * so one nuke doesn't take out several.
+   */
+  private domesticBuildingValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const cityValue = this.cityValue();
+    const otherTiles: Set<TileRef> = new Set(
+      this.player
+        .units(UnitType.ResearchInstitute, UnitType.AdminOffice)
+        .map((u) => u.tile()),
+    );
+    const { structureSpacing } = this.spacingConstants();
+
+    return (tile) => {
+      let w = cityValue(tile);
+      const d = nearestTileDist(game, otherTiles, tile);
+      if (d !== Infinity) w += Math.min(d, structureSpacing);
       return w;
     };
   }

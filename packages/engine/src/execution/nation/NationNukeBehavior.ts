@@ -23,6 +23,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { assertNever, boundingBoxTiles } from "@openfront/engine-lib/Util";
 import { z } from "zod";
+import { victoryProjectHosts } from "../../domestic/VictoryProjects";
 import { Game, Player, Unit } from "../../game/Game";
 import { UniversalPathFinding } from "../../pathfinding/PathFinder";
 import type {
@@ -168,13 +169,18 @@ export class NationNukeBehavior {
 
   maybeSendNuke() {
     const silos = this.player.units(UnitType.MissileSilo);
-    const config = this.game.config();
     if (
       silos.length === 0 ||
-      config.isUnitDisabled(UnitType.MissileSilo) ||
-      (config.isUnitDisabled(UnitType.AtomBomb) &&
-        config.isUnitDisabled(UnitType.HydrogenBomb))
+      this.player.isUnitUnavailable(UnitType.MissileSilo) ||
+      (this.player.isUnitUnavailable(UnitType.AtomBomb) &&
+        this.player.isUnitUnavailable(UnitType.HydrogenBomb))
     ) {
+      return;
+    }
+
+    // Domestic mode (spec §9.4): Hard & Impossible nuke a victory project's
+    // building before anything else.
+    if (this.nukeVictoryProjectHost()) {
       return;
     }
 
@@ -245,6 +251,33 @@ export class NationNukeBehavior {
     }
   }
 
+  /** Nukes the first enemy victory-project building we can hit; true if a nuke was sent. */
+  private nukeVictoryProjectHost(): boolean {
+    const config = this.game.config();
+    const { difficulty } = config.gameConfig();
+    if (
+      !config.domesticMode() ||
+      (difficulty !== Difficulty.Hard && difficulty !== Difficulty.Impossible)
+    ) {
+      return false;
+    }
+    for (const host of victoryProjectHosts(this.game)) {
+      const owner = host.owner();
+      if (owner === this.player || this.player.isFriendly(owner, true)) {
+        continue;
+      }
+      const tile = host.tile();
+      for (const nukeType of this.nukeTypesToTry(false)) {
+        if (this.isNukeAlreadyLandingNear(tile, nukeType)) continue;
+        if (this.blastHitsFriendlyLand(tile, nukeType)) continue;
+        if (this.player.canBuild(nukeType, tile) === false) continue;
+        this.sendNuke(tile, nukeType, owner);
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Hydrogen bomb first; on Hard & Impossible, an atom bomb if no spot is worth a hydrogen bomb. */
   private nukeTypesToTry(atomOnly: boolean): NukeType[] {
     const config = this.game.config();
@@ -252,7 +285,7 @@ export class NationNukeBehavior {
     const types: NukeType[] = [];
     if (
       !atomOnly &&
-      !config.isUnitDisabled(UnitType.HydrogenBomb) &&
+      !this.player.isUnitUnavailable(UnitType.HydrogenBomb) &&
       this.player.gold() >= this.getPerceivedNukeCost(UnitType.HydrogenBomb)
     ) {
       types.push(UnitType.HydrogenBomb);
@@ -261,7 +294,7 @@ export class NationNukeBehavior {
       (types.length === 0 ||
         difficulty === Difficulty.Hard ||
         difficulty === Difficulty.Impossible) &&
-      !config.isUnitDisabled(UnitType.AtomBomb) &&
+      !this.player.isUnitUnavailable(UnitType.AtomBomb) &&
       this.player.gold() >= this.getPerceivedNukeCost(UnitType.AtomBomb)
     ) {
       types.push(UnitType.AtomBomb);
@@ -848,7 +881,7 @@ export class NationNukeBehavior {
     }
 
     // If MIRVs are disabled, return the actual cost
-    if (this.game.config().isUnitDisabled(UnitType.MIRV)) {
+    if (this.player.isUnitUnavailable(UnitType.MIRV)) {
       return true;
     }
 
@@ -1273,7 +1306,7 @@ export class NationNukeBehavior {
    * so we need N+1 bombs to destroy it (accounting for all covering SAMs).
    */
   private maybeDestroyEnemySam(nukeTarget: Player): void {
-    if (this.game.config().isUnitDisabled(UnitType.AtomBomb)) {
+    if (this.player.isUnitUnavailable(UnitType.AtomBomb)) {
       return;
     }
 

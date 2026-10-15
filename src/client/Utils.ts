@@ -627,6 +627,8 @@ export function getMessageTypeClasses(type: MessageType): string {
     case MessageType.CAPTURED_ENEMY_UNIT:
     case MessageType.CONQUERED_PLAYER:
     case MessageType.ALLIANCE_ACCEPTED:
+    case MessageType.RESEARCH_COMPLETE:
+    case MessageType.GOVERNMENT_TIER_REACHED:
       return severityColors["success"];
     case MessageType.ATTACK_FAILED:
     case MessageType.ALLIANCE_REJECTED:
@@ -646,6 +648,7 @@ export function getMessageTypeClasses(type: MessageType): string {
     case MessageType.ALLIANCE_EXPIRED:
     case MessageType.NAVAL_INVASION_INBOUND:
     case MessageType.RENEW_ALLIANCE:
+    case MessageType.VICTORY_PROJECT:
       return severityColors["warn"];
     case MessageType.CHAT:
     case MessageType.ALLIANCE_REQUEST:

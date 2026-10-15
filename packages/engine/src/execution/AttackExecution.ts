@@ -23,6 +23,11 @@ import {
 import { assertNever } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { AttackLogicInput } from "../configuration/EngineConfig";
+import {
+  DomesticCombat,
+  domesticCombat,
+  domesticDefensePostScale,
+} from "../domestic/DomesticEconomy";
 import { Attack, Execution, Game, Player } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -303,6 +308,8 @@ export class AttackExecution implements Execution {
     }
 
     const borderSize = this.attack.borderSize() + this.random.nextInt(0, 5);
+    // Domestic combat modifiers hold for the whole tick (1 = vanilla).
+    const combat = domesticCombat(this._owner, targetPlayer);
     // Each tile consumes a fraction of the tick; conquer until it is spent.
     let tickBudget = 1;
 
@@ -343,7 +350,7 @@ export class AttackExecution implements Execution {
       const { attackerTroopLoss, defenderTroopLoss, tickFraction } = this.mg
         .config()
         .attackLogic(
-          this.attackLogicInput(troopCount, tileToConquer, borderSize),
+          this.attackLogicInput(troopCount, tileToConquer, borderSize, combat),
         );
       tickBudget -= tickFraction;
       troopCount -= attackerTroopLoss;
@@ -360,6 +367,7 @@ export class AttackExecution implements Execution {
     attackTroops: number,
     tile: TileRef,
     borderSize: number,
+    combat: Readonly<DomesticCombat>,
   ): AttackLogicInput {
     const defender = this.target.isPlayer() ? this.target : null;
     // Same test as scanning nearbyUnits() for a post owned by the defender
@@ -380,6 +388,8 @@ export class AttackExecution implements Execution {
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
+        lossScale: combat.attackerLoss,
+        speedScale: combat.attackerSpeed,
       },
       defender:
         defender === null
@@ -391,6 +401,8 @@ export class AttackExecution implements Execution {
               isTraitor: defender.isTraitor(),
               isDisconnectedTeammate:
                 defender.isDisconnected() && this._owner.isOnSameTeam(defender),
+              defensePostScale: domesticDefensePostScale(defender),
+              lossScale: combat.defenderLoss,
             },
       defenderHasDefensePost,
       falloutRatio: this.mg.hasFallout(tile)

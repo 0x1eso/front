@@ -75,4 +75,41 @@ describe("nav notifications", () => {
     bell.controller.onStoreClick();
     expect(bell.controller.showHelpDot()).toBe(true);
   });
+
+  // A self-hosted page hides the store and its server answers an empty
+  // catalog, whose hash is "new" to every browser: a dot on the hidden store
+  // would still outrank, and so hide, a newcomer's help dot.
+  it("never counts the store on a self-hosted page", async () => {
+    (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG = {
+      selfHosted: true,
+    };
+    try {
+      localStorage.removeItem("newsSeenVersion");
+      const bar = host();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(bar.controller.showStoreDot()).toBe(false);
+      expect(bar.controller.showHelpDot()).toBe(true);
+    } finally {
+      delete (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG;
+    }
+  });
+
+  // A self-hosted build's version label changes with every build, and no
+  // news ships with it: the bell would light up after each update.
+  it("never lights the news bell on a self-hosted page (C5)", async () => {
+    (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG = {
+      selfHosted: true,
+    };
+    try {
+      // beforeEach: this browser last saw an older version.
+      const bell = host();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(bell.controller.showNewsDot()).toBe(false);
+      expect(bell.controller.showHelpDot()).toBe(true);
+    } finally {
+      delete (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG;
+    }
+  });
 });

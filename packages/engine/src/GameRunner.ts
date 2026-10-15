@@ -25,6 +25,7 @@ import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { EngineConfig } from "./configuration/EngineConfig";
+import { DomesticExecution } from "./domestic/DomesticExecution";
 import { DoomsdayClockExecution } from "./execution/DoomsdayClockExecution";
 import { Executor } from "./execution/ExecutionManager";
 import { RecomputeRailClusterExecution } from "./execution/RecomputeRailClusterExecution";
@@ -187,6 +188,11 @@ export class GameRunner {
       this.game.addExecution(
         ...this.execManager.spawnTribes(this.game.config().bots()),
       );
+    }
+    // Domestic mode only: its second runs before the win check, so a victory
+    // project that completes this second is declared this second.
+    if (this.game.config().domesticMode()) {
+      this.game.addExecution(new DomesticExecution());
     }
     this.game.addExecution(new WinCheckExecution());
     if (this.game.config().doomsdayClockConfig().enabled) {

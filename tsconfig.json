@@ -17,6 +17,8 @@
     "src/scripts",
     "scripts/replay",
     "scripts/split-packages",
+    "scripts/domestic-sim.ts",
+    "scripts/domestic-sim-report.ts",
     "vite.config.ts"
   ],
   "exclude": [

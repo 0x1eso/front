@@ -10,6 +10,7 @@ import {
   Slot,
 } from "../../../src/client/hud/layers/RadialMenuElements";
 import { BuildUnitIntentEvent } from "../../../src/client/Transport";
+import { translateText } from "../../../src/client/Utils";
 import { GameView, PlayerView } from "../../../src/client/view";
 
 vi.mock("../../../src/client/Utils", () => ({
@@ -713,6 +714,60 @@ describe("RadialMenuElements", () => {
       expect(tooltipTexts).toContain("unit_type.atom_bomb");
       expect(tooltipTexts).toContain("unit_type.atom_bomb_desc");
       expect(tooltipTexts.some((text) => text.includes("100"))).toBe(true);
+    });
+  });
+
+  describe("domestic tech locks", () => {
+    function lock(type: UnitType): void {
+      mockPlayerActions.buildableUnits = mockPlayerActions.buildableUnits.map(
+        (bu: any) =>
+          bu.type === type ? { ...bu, canBuild: false, locked: true } : bu,
+      );
+    }
+
+    it("names the required tech in a locked structure's tooltip", () => {
+      lock(UnitType.Factory);
+      const subMenu = buildMenuElement.subMenu!(mockParams);
+      const factory = subMenu.find((item) => item.id === "build_Factory");
+      const city = subMenu.find((item) => item.id === "build_City");
+
+      expect(factory!.tooltipItems!.map((item) => item.text)).toContain(
+        "domestic.locked_requires",
+      );
+      expect(translateText).toHaveBeenCalledWith("domestic.locked_requires", {
+        tech: "domestic.tech.railroad.name",
+      });
+      expect(city!.tooltipItems!.map((item) => item.text)).not.toContain(
+        "domestic.locked_requires",
+      );
+      // On the item itself too, not only in the hover tooltip (M6).
+      expect(factory!.badge).toBe("🔒 domestic.tech.railroad.name");
+      expect(city!.badge).toBeUndefined();
+    });
+
+    it("names the required tech in a locked bomb's tooltip", () => {
+      lock(UnitType.HydrogenBomb);
+      mockParams.selected = {
+        id: () => 2,
+        isPlayer: vi.fn(() => true),
+      } as unknown as PlayerView;
+      const subMenu = attackMenuElement.subMenu!(mockParams);
+      const hydrogen = subMenu.find(
+        (item) => item.id === "attack_Hydrogen Bomb",
+      );
+      const atom = subMenu.find((item) => item.id === "attack_Atom Bomb");
+
+      expect(hydrogen!.tooltipItems!.map((item) => item.text)).toContain(
+        "domestic.locked_requires",
+      );
+      expect(translateText).toHaveBeenCalledWith("domestic.locked_requires", {
+        tech: "domestic.tech.thermonuclear.name",
+      });
+      expect(atom!.tooltipItems!.map((item) => item.text)).not.toContain(
+        "domestic.locked_requires",
+      );
+      expect(hydrogen!.badge).toBe("🔒 domestic.tech.thermonuclear.name");
+      expect(atom!.badge).toBeUndefined();
     });
   });
 

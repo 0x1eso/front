@@ -16,8 +16,7 @@ export interface AssetHash {
 // takes every desktop client to the `failed` state on every launch.
 //
 // static/ is not only hashed content. The build copies a handful of root files
-// through unhashed (LICENSE, ads.txt, privacy-policy.html, robots.txt,
-// terms-of-service.html, version.txt), plus index.html (an EJS template
+// through unhashed (LICENSE, robots.txt, version.txt), plus index.html (an EJS template
 // rendered per-request, not an immutable asset) and asset-manifest.json. An
 // exclusion list has to enumerate all of those correctly forever; an allowlist
 // only has to name the two roots the overlay can actually serve.

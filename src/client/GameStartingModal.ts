@@ -1,5 +1,6 @@
 import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { runningCreditsUrl, runningSourceUrl } from "./SourceLinks";
 import { translateText } from "./Utils";
 
 @customElement("game-starting-modal")
@@ -25,20 +26,31 @@ export class GameStartingModal extends LitElement {
           : "opacity-0 invisible -translate-y-[48%]"}"
       >
         <div
-          class="text-base font-medium tracking-wider uppercase text-white/40 mb-3"
+          class="text-base font-medium tracking-wider uppercase text-white/40 mb-1"
         >
           ${translateText("main.copyright")}
         </div>
+        <div class="text-sm tracking-wider text-white/40 mb-3">
+          ${translateText("branding.based_on")}
+        </div>
         <a
-          href="https://github.com/openfrontio/OpenFrontIO/blob/main/CREDITS.md"
+          href=${runningCreditsUrl()}
           target="_blank"
           rel="noopener noreferrer"
           class="block mb-4 text-lg font-medium tracking-wider uppercase text-malibu-blue no-underline transition-colors duration-200 hover:text-aquarius"
           >${translateText("game_starting_modal.credits")}</a
         >
-        <p class="text-base text-white/40 mb-4">
+        <p class="text-base text-white/40 mb-1">
           ${translateText("game_starting_modal.code_license")}
         </p>
+        <!-- This fork's source code (AGPL v3 section 13). -->
+        <a
+          href=${runningSourceUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block mb-4 text-sm text-malibu-blue no-underline transition-colors duration-200 hover:text-aquarius"
+          >${translateText("branding.source_code")}</a
+        >
         <p
           class="text-xl font-medium tracking-wider text-white bg-white/5 border border-white/10 px-4 py-3 rounded-xl"
         >
