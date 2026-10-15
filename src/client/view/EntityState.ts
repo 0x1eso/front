@@ -70,6 +70,7 @@ export function unitStateFromUpdate(u: UnitUpdate): UnitState {
     trainType: trainTypeToNum(u.trainType),
     loaded: u.loaded ?? null,
     constructionStartTick: null, // GameView fills in createdAt when underConstruction
+    constructionTicks: u.constructionTicks,
     samUpgradeStartTick: u.samUpgrade?.upgradeStartTick ?? null,
     samUpgradeStartRange: u.samUpgrade?.startRange ?? null,
     samUpgradeTargetLevel: u.samUpgrade?.targetLevel ?? null,
@@ -94,6 +95,7 @@ export function applyUnitUpdateInPlace(target: UnitState, u: UnitUpdate): void {
   target.markedForDeletion = u.markedForDeletion;
   target.health = u.health ?? null;
   target.underConstruction = u.underConstruction ?? false;
+  target.constructionTicks = u.constructionTicks;
   target.targetUnitId = u.targetUnitId ?? null;
   target.targetTile = u.targetTile ?? null;
   target.troops = u.troops;
