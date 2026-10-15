@@ -177,7 +177,7 @@ export class DomesticPanel extends LitElement implements Controller {
             ✕
           </button>
         </div>
-        <div role="tablist" class="flex gap-1 px-3 py-2 overflow-x-auto">
+        <div role="tablist" class="flex flex-wrap gap-1 px-3 py-2">
           ${TABS.map(
             (tab) =>
               html`<button

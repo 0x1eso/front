@@ -265,6 +265,15 @@ describe("domestic drawer", () => {
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
   });
 
+  it("wraps the tab row instead of hiding tabs off to the side", async () => {
+    const panel = await openDrawer();
+    const tablist = panel.querySelector('[role="tablist"]')!;
+    // Long English tab names don't fit one row of a 420px drawer; every tab
+    // must stay on screen rather than behind a sideways scroll.
+    expect(tablist.classList).toContain("flex-wrap");
+    expect(tablist.classList).not.toContain("overflow-x-auto");
+  });
+
   it("switches tabs and keeps every control 44px with no tooltips", async () => {
     const panel = await openDrawer();
     for (const tab of TABS) {

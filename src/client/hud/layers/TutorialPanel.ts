@@ -462,7 +462,7 @@ export class TutorialPanel extends LitElement implements Controller {
     return html`
       ${step.manual
         ? html`<button
-            class="min-h-11 px-3 rounded-md bg-malibu-blue hover:bg-aquarius font-semibold text-white"
+            class="min-h-11 min-w-11 px-3 rounded-md bg-malibu-blue hover:bg-aquarius font-semibold text-white"
             @click=${() => this.progress.acknowledge()}
           >
             ${translateText("tutorial.got_it")}
@@ -470,14 +470,14 @@ export class TutorialPanel extends LitElement implements Controller {
         : nothing}
       ${goTo
         ? html`<button
-            class="min-h-11 px-3 rounded-md bg-malibu-blue hover:bg-aquarius font-semibold text-white"
+            class="min-h-11 min-w-11 px-3 rounded-md bg-malibu-blue hover:bg-aquarius font-semibold text-white"
             @click=${() => this.eventBus.emit(new GoToPlayerEvent(goTo))}
           >
             ${translateText("tutorial.go_to")}
           </button>`
         : nothing}
       <button
-        class="min-h-11 px-2 text-gray-400 hover:text-white underline"
+        class="min-h-11 min-w-11 px-2 text-gray-400 hover:text-white underline"
         @click=${() => this.progress.skip()}
       >
         ${translateText("tutorial.skip")}
@@ -489,13 +489,13 @@ export class TutorialPanel extends LitElement implements Controller {
     return html`
       <div class="flex flex-col gap-1.5">
         <button
-          class="min-h-11 rounded-md border border-gray-500 hover:bg-gray-700 px-3 py-2"
+          class="min-h-11 min-w-11 rounded-md border border-gray-500 hover:bg-gray-700 px-3 py-2"
           @click=${() => this.setActive(false)}
         >
           ${translateText("tutorial.hide_for_game")}
         </button>
         <button
-          class="min-h-11 rounded-md border border-gray-500 hover:bg-gray-700 px-3 py-2"
+          class="min-h-11 min-w-11 rounded-md border border-gray-500 hover:bg-gray-700 px-3 py-2"
           @click=${() => this.dismissForever()}
         >
           ${translateText("tutorial.never_show")}

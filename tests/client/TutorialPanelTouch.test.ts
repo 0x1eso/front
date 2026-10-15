@@ -65,7 +65,9 @@ function expectTouchSized(panel: TutorialPanel) {
   const buttons = [...panel.querySelectorAll("button")];
   expect(buttons.length).toBeGreaterThan(0);
   for (const b of buttons) {
+    // 44px tall and at least 44px wide, even for a short word like "Skip".
     expect(b.className).toMatch(/\b(size-11|h-11|min-h-11)\b/);
+    expect(b.className).toMatch(/\b(size-11|min-w-11)\b/);
   }
   // No hover-only tooltips (spec §14a); the ✕ keeps its aria-label.
   expect(panel.querySelectorAll("[title]")).toHaveLength(0);
