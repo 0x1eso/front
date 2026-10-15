@@ -4,6 +4,11 @@ import {
   PlayerType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import {
+  GOVERNMENT_TIER_THRESHOLDS,
+  MILLI,
+  POLITICAL_PROJECT_GOLD,
+} from "@openfront/engine-lib/domestic/Balance";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { nationDomesticTick } from "@openfront/engine/execution/nation/NationDomesticBehavior";
 import {
@@ -65,7 +70,7 @@ describe("a nation saving for its victory project", () => {
 });
 
 /**
- * A Hard zealot at government tier 3 with 3,500 political power, its tier 2
+ * A Hard zealot at government tier 3 with 8,000 political power, its tier 2
  * government already adopted so its domestic check goes on to laws.
  */
 async function zealotAtTier3(withHost: boolean) {
@@ -87,10 +92,12 @@ describe("a zealot saving for world government", () => {
     nationDomesticTick(game, nation);
     executeTicks(game, 1);
     expect(d.proclaimedLaws().size).toBe(0);
-    expect(d.politicalMilliAvailable()).toBe(3_500_000);
+    expect(d.politicalMilliAvailable()).toBe(
+      GOVERNMENT_TIER_THRESHOLDS[2] * MILLI,
+    );
 
     // NationExecution's order: the project step, then the domestic check.
-    nation.addGold(3_000_000n);
+    nation.addGold(POLITICAL_PROJECT_GOLD);
     nationVictoryTick(game, nation, "political");
     nationDomesticTick(game, nation);
     executeTicks(game, 1);

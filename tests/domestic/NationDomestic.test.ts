@@ -7,6 +7,8 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
+import { MILLI } from "@openfront/engine-lib/domestic/Balance";
+import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
@@ -39,7 +41,7 @@ describe("nation domestic behavior", () => {
     const game = await domesticGame();
     const nation = game.addPlayer(NATION);
     conquerSquare(game, nation, 30, 30, 10);
-    nation.domestic()!.addYield(100_000, 0);
+    nation.domestic()!.addYield(TECHS.currency.cost * MILLI, 0);
     nationDomesticTick(game, nation, BALANCED_PLAN);
     executeTicks(game, 1);
     expect(nation.domestic()!.currentResearch()?.tech).toBe("currency");

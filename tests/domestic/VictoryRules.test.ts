@@ -27,8 +27,8 @@ describe("victory projects", () => {
     expect(VICTORY_PROJECTS.science.ticks).toBe(2400);
     expect(VICTORY_PROJECTS.science.pausesWhileAttacking).toBe(false);
     expect(VICTORY_PROJECTS.political.hostType).toBe(UnitType.AdminOffice);
-    expect(VICTORY_PROJECTS.political.goldCost).toBe(3_000_000n);
-    expect(VICTORY_PROJECTS.political.politicalCostMilli).toBe(1_000_000);
+    expect(VICTORY_PROJECTS.political.goldCost).toBe(1_000_000n);
+    expect(VICTORY_PROJECTS.political.politicalCostMilli).toBe(3_000_000);
     expect(VICTORY_PROJECTS.political.ticks).toBe(2400);
     expect(VICTORY_PROJECTS.political.pausesWhileAttacking).toBe(true);
   });
@@ -68,15 +68,22 @@ describe("victory projects", () => {
     expect(
       victoryProjectBlock("political", {
         ...READY,
-        gold: 3_000_000n,
-        politicalMilli: 999_999,
+        gold: 1_000_000n,
+        politicalMilli: 2_999_999,
       }),
     ).toBe("political");
     expect(
       victoryProjectBlock("political", {
         ...READY,
-        gold: 3_000_000n,
-        politicalMilli: 1_000_000,
+        gold: 999_999n,
+        politicalMilli: 3_000_000,
+      }),
+    ).toBe("gold");
+    expect(
+      victoryProjectBlock("political", {
+        ...READY,
+        gold: 1_000_000n,
+        politicalMilli: 3_000_000,
       }),
     ).toBeNull();
   });

@@ -19,14 +19,16 @@ describe("domestic buildings", () => {
     );
   });
 
-  test("cost 100k doubling per owned level, capped at 1M", async () => {
+  test("cost 100k doubling per owned level, capped at 25M", async () => {
     const game = await domesticGame();
     const player = game.player(HUMAN.id);
     const cost = (extra = 0) =>
       game.unitInfo(UnitType.ResearchInstitute).cost(game, player, extra);
     expect(cost()).toBe(100_000n);
     expect(cost(1)).toBe(200_000n);
-    expect(cost(4)).toBe(1_000_000n);
+    expect(cost(4)).toBe(1_600_000n);
+    expect(cost(7)).toBe(12_800_000n);
+    expect(cost(8)).toBe(25_000_000n); // 2^8 × 100k = 25.6M, capped
   });
 
   test("are built through ConstructionExecution and upgradable", async () => {

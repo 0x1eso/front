@@ -65,16 +65,17 @@ describe("PlayerDomestic laws and government", () => {
 
   test("the tier rises with cumulative political power, once per tier", () => {
     const d = new PlayerDomestic();
-    d.addYield(0, 299_999);
+    // Tiers at 800 / 2,800 / 8,000 points.
+    d.addYield(0, 799_999);
     expect(d.refreshGovernmentTier()).toBeNull();
     d.addYield(0, 1);
     expect(d.refreshGovernmentTier()).toBe(1);
     expect(d.refreshGovernmentTier()).toBeNull();
-    d.spendPoliticalMilli(300_000);
-    d.addYield(0, 3_200_000);
+    d.spendPoliticalMilli(800_000);
+    d.addYield(0, 7_200_000);
     expect(d.refreshGovernmentTier()).toBe(3);
     expect(d.governmentTier()).toBe(3);
-    expect(d.cumulativePoliticalMilli()).toBe(3_500_000);
+    expect(d.cumulativePoliticalMilli()).toBe(8_000_000);
   });
 
   test("a new government replaces the old one's effects", () => {
@@ -90,7 +91,7 @@ describe("PlayerDomestic laws and government", () => {
 
   test("toData carries laws, cooldown, tier, government and conditions", () => {
     const d = new PlayerDomestic();
-    d.addYield(0, 300_000);
+    d.addYield(0, 800_000);
     d.refreshGovernmentTier();
     d.proclaimLaw("religion", "A", 10);
     d.chooseGovernment("theocracy", 20);
@@ -135,7 +136,7 @@ describe("PlayerDomestic laws and government", () => {
     const player = game.player(HUMAN.id);
     conquerSquare(game, player, 0, 0, 10);
     const d = player.domestic()!;
-    d.addYield(0, 400_000);
+    d.addYield(0, 800_000);
     d.refreshGovernmentTier();
     d.proclaimLaw("religion", "A", game.ticks());
     d.chooseGovernment("theocracy", game.ticks());
