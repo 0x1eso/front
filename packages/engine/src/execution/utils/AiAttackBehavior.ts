@@ -13,6 +13,7 @@ import {
   TerraNullius,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { VICTORY_PROJECTS } from "@openfront/engine-lib/domestic/Victory";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
   readVersioned,
@@ -242,7 +243,8 @@ export class AiAttackBehavior {
       if (this.sendAttack(this.game.terraNullius())) return;
     }
 
-    const holdBoats = this.holdsBoatsUnderAttack();
+    const holdBoats =
+      this.holdsFireForProject() || this.holdsBoatsUnderAttack();
     if (borderingEnemies.length === 0) {
       if (!holdBoats && this.random.chance(5)) {
         this.attackWithRandomBoat();
@@ -390,6 +392,12 @@ export class AiAttackBehavior {
     borderingEnemies: Player[],
   ) {
     const { difficulty } = this.game.config().gameConfig();
+
+    // Domestic mode: world government pauses while we attack, so only answer attacks
+    if (this.holdsFireForProject()) {
+      this.retaliate();
+      return;
+    }
 
     // Hard & Impossible: answer attacks right away, even below the reserve and trigger ratios
     if (
@@ -702,6 +710,19 @@ export class AiAttackBehavior {
       return this.sendRetaliation(attacker);
     }
     return this.sendAttack(attacker, true);
+  }
+
+  /**
+   * Domestic mode: we run a victory project whose progress stops while we
+   * attack another player (world government), so we start no attacks of
+   * our own; terra nullius and answering attacks are fine.
+   */
+  private holdsFireForProject(): boolean {
+    if (!this.game.config().domesticMode()) return false;
+    const project = this.player.domestic()?.victoryProject() ?? null;
+    return (
+      project !== null && VICTORY_PROJECTS[project.kind].pausesWhileAttacking
+    );
   }
 
   // Hard & Impossible keep their troops home while under attack, Medium only sometimes

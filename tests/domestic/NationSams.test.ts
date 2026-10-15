@@ -28,11 +28,7 @@ async function nationWith(techs: TechId[]) {
   conquerRect(game, nation, 0, 0, 80, 80);
   grantTechs(nation, ...techs);
   for (let i = 0; i < 8; i++) {
-    nation.buildUnit(
-      UnitType.City,
-      game.ref(5 + i * 9, 5 + (i % 3) * 30),
-      {},
-    );
+    nation.buildUnit(UnitType.City, game.ref(5 + i * 9, 5 + (i % 3) * 30), {});
   }
   nation.addGold(100_000_000n);
   const behavior = new NationStructureBehavior(
