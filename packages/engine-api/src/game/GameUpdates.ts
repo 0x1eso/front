@@ -234,6 +234,8 @@ export interface AttackUpdate {
  * When adding a field here, also wire it into diffPlayerUpdate() and
  * applyStateUpdate() in PlayerStateUpdate.ts — otherwise it is only ever sent on
  * the first emission and later changes are silently dropped.
+ * Exception: `domestic` is not part of the renderer's PlayerState; it is
+ * applied in PlayerView.applyUpdate() instead.
  */
 export interface PlayerUpdate {
   type: GameUpdateType.Player;
