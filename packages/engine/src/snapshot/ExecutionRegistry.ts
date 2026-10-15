@@ -4,6 +4,7 @@ import { DomesticExecutionSnapshot } from "../domestic/DomesticExecution";
 import { ProclaimLawExecutionSnapshot } from "../domestic/ProclaimLawExecution";
 import { ResearchExecutionSnapshot } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecutionSnapshot } from "../domestic/SetRecruitTargetExecution";
+import { VictoryProjectExecutionSnapshot } from "../domestic/VictoryProjectExecution";
 import { AllianceExtensionExecutionSnapshot } from "../execution/alliance/AllianceExtensionExecution";
 import { AllianceRejectExecutionSnapshot } from "../execution/alliance/AllianceRejectExecution";
 import { AllianceRequestExecutionSnapshot } from "../execution/alliance/AllianceRequestExecution";
@@ -105,6 +106,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   TransportShipExecutionSnapshot,
   TribeExecutionSnapshot,
   UpgradeStructureExecutionSnapshot,
+  VictoryProjectExecutionSnapshot,
   WarshipExecutionSnapshot,
   WinCheckExecutionSnapshot,
 ] as unknown as readonly ExecutionSnapshotType<unknown>[];

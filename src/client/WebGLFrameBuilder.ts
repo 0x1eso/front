@@ -11,6 +11,7 @@ import {
 import { colord } from "colord";
 import { getCachedCosmetics } from "./Cosmetics";
 import { buildTerrainRowSpans } from "./render/frame/derive/TerrainRowSpans";
+import { deriveVictoryProjects } from "./render/frame/derive/VictoryProjects";
 import { uploadFrameData } from "./render/frame/Upload";
 // Type-only: a value import would pull GPURenderer and its `.glsl?raw` shader
 // imports into any non-Vite consumer (e.g. the Node perf harness).
@@ -239,6 +240,7 @@ export class WebGLFrameBuilder {
     this.syncLocalPlayer(gameView);
     this.syncSpawnOverlay(gameView);
     this.syncSmallPlayerGlow(gameView);
+    this.syncVictoryProjects(gameView);
     this.syncTerrainDeltas(gameView);
     this.syncNukeImpacts(gameView);
     this.resolveDeadUnitExplosions(gameView);
@@ -463,6 +465,12 @@ export class WebGLFrameBuilder {
       }
     }
     this.view.updateSmallPlayerGlow(any ? set : null);
+  }
+
+  /** Domestic mode: push victory-project hosts and their progress each tick. */
+  private syncVictoryProjects(gameView: GameView): void {
+    if (!gameView.config().domesticMode()) return;
+    this.view.setVictoryProjects(deriveVictoryProjects(gameView.playerViews()));
   }
 
   private syncPlayers(gameView: GameView): void {

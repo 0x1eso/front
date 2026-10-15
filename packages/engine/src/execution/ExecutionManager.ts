@@ -10,6 +10,7 @@ import { ChooseGovernmentExecution } from "../domestic/ChooseGovernmentExecution
 import { ProclaimLawExecution } from "../domestic/ProclaimLawExecution";
 import { ResearchExecution } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution";
+import { VictoryProjectExecution } from "../domestic/VictoryProjectExecution";
 import { Execution, Game } from "../game/Game";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
@@ -165,6 +166,8 @@ export class Executor {
         );
       case "choose_government":
         return new ChooseGovernmentExecution(player, intent.government);
+      case "start_victory_project":
+        return new VictoryProjectExecution(player, intent.kind, intent.unitId);
       default:
         throw new Error(`intent type ${intent} not found`);
     }

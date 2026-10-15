@@ -27,11 +27,16 @@ import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { nearestTileDist, nearestTileDistCapped } from "../Util";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
+import { NationDomesticPlan, nationDomesticPlan } from "./NationPersonality";
 import {
   hasHighStartingGold,
   isSaveUpWithinReach,
   randTerritoryTileArray,
 } from "./NationUtils";
+import {
+  nationIsSavingForProject,
+  nationProjectKindFor,
+} from "./NationVictoryBehavior";
 
 /**
  * Configuration for how many structures of each type a nation should build
@@ -55,17 +60,26 @@ const SAM_RATIO_BY_DIFFICULTY: Record<Difficulty, number> = {
 /** Port ratio per city in team games (not on Easy), where teammates are safe trade partners */
 const TEAM_PORT_RATIO = 1;
 
+/** Domestic mode: research institutes and admin offices per city, by personality. */
+type DomesticBuildingRatios = Pick<
+  NationDomesticPlan,
+  "instituteRatio" | "officeRatio"
+>;
+/** Outside domestic mode both buildings are disabled. */
+const NO_DOMESTIC_BUILDINGS: DomesticBuildingRatios = {
+  instituteRatio: 0,
+  officeRatio: 0,
+};
+
 /**
  * Returns structure ratios relative to city count, adjusted by difficulty and game mode.
  * Cities are always prioritized and built first.
  * When cities are disabled, we use TILES_PER_CITY_EQUIVALENT. That's not ideal, nations won't properly upgrade structures, but it's better than nothing. Probably 99.9% of players won't disable cities anyway.
  */
-/** Domestic mode: research institutes and admin offices per city (each). */
-const DOMESTIC_BUILDING_RATIO_PER_CITY = 0.5;
-
 function getStructureRatios(
   difficulty: Difficulty,
   gameMode: GameMode,
+  domestic: DomesticBuildingRatios,
 ): Partial<Record<UnitType, StructureRatioConfig>> {
   const teamPorts =
     gameMode === GameMode.Team && difficulty !== Difficulty.Easy;
@@ -87,11 +101,11 @@ function getStructureRatios(
       perceivedCostIncreasePerOwned: 1,
     },
     [UnitType.ResearchInstitute]: {
-      ratioPerCity: DOMESTIC_BUILDING_RATIO_PER_CITY,
+      ratioPerCity: domestic.instituteRatio,
       perceivedCostIncreasePerOwned: 1,
     },
     [UnitType.AdminOffice]: {
-      ratioPerCity: DOMESTIC_BUILDING_RATIO_PER_CITY,
+      ratioPerCity: domestic.officeRatio,
       perceivedCostIncreasePerOwned: 1,
     },
   };
@@ -328,6 +342,17 @@ export class NationStructureBehavior {
       if (this.defensePostNeeded()) {
         return false;
       }
+    }
+
+    // Domestic mode: a Hard+ nation saving up for its victory project builds
+    // nothing else until it can start it (spec §9.3).
+    if (
+      nationIsSavingForProject(
+        this.player,
+        nationProjectKindFor(this.game, this.player),
+      )
+    ) {
+      return false;
     }
 
     if (this.isOnStructureCooldown()) {
@@ -785,6 +810,12 @@ export class NationStructureBehavior {
     );
   }
 
+  private domesticRatios(): DomesticBuildingRatios {
+    return this.game.config().domesticMode()
+      ? nationDomesticPlan(this.player.id())
+      : NO_DOMESTIC_BUILDINGS;
+  }
+
   private shouldBuildStructure(
     type: UnitType,
     cityCount: number,
@@ -801,7 +832,11 @@ export class NationStructureBehavior {
   ): number {
     const gameConfig = this.game.config();
     const { difficulty, gameMode } = gameConfig.gameConfig();
-    const ratios = getStructureRatios(difficulty, gameMode);
+    const ratios = getStructureRatios(
+      difficulty,
+      gameMode,
+      this.domesticRatios(),
+    );
     const config = ratios[type];
     if (config === undefined) {
       return 0;
@@ -915,7 +950,11 @@ export class NationStructureBehavior {
     if (type === UnitType.City) {
       increasePerOwned = CITY_PERCEIVED_COST_INCREASE_PER_OWNED;
     } else {
-      const ratios = getStructureRatios(difficulty, gameMode);
+      const ratios = getStructureRatios(
+        difficulty,
+        gameMode,
+        this.domesticRatios(),
+      );
       const config = ratios[type];
       increasePerOwned = config?.perceivedCostIncreasePerOwned ?? 0.1;
     }

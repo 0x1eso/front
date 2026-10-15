@@ -51,11 +51,16 @@ const DOMESTIC_ONLY_TYPES = [
   "ProclaimLaw",
   "Research",
   "SetRecruitTarget",
+  "VictoryProject",
 ];
 // Domestic types the 1500-tick scripted game isn't sure to reach: a nation
 // needs 100 political power for a law and 300 for a government tier.
 // tests/domestic/LawsAndGovernment.test.ts covers their snapshots.
-const DOMESTIC_UNSCRIPTED_TYPES = ["ChooseGovernment", "ProclaimLaw"];
+const DOMESTIC_UNSCRIPTED_TYPES = [
+  "ChooseGovernment",
+  "ProclaimLaw",
+  "VictoryProject",
+];
 
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),

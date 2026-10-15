@@ -6,6 +6,7 @@ import {
   Team,
 } from "@openfront/engine-api/game/GameTypes";
 import { z } from "zod";
+import { checkDomesticWin } from "../domestic/DomesticWinCheck";
 import { Execution, Game } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type { ExecRecord, SnapshotReader } from "../snapshot/SnapshotContext";
@@ -34,6 +35,19 @@ export class WinCheckExecution implements Execution {
     if (this.mg === null) throw new Error("Not initialized");
 
     if (this.checkRankedTeamCancelled()) {
+      return;
+    }
+
+    // Domestic mode (this fork) has its own victory rules (spec §8).
+    if (this.mg.config().gameConfig().domesticMode === true) {
+      const win = checkDomesticWin(this.mg);
+      if (win !== null) {
+        this.mg.setWinner(win.winner, this.mg.stats().stats(), win.reason);
+        const name =
+          typeof win.winner === "string" ? win.winner : win.winner.name();
+        console.log(`${name} has won the game (${win.reason})`);
+        this.active = false;
+      }
       return;
     }
 

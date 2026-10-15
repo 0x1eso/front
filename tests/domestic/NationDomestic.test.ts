@@ -14,11 +14,25 @@ import {
   NATION_PEACE_RECRUIT_TARGET_PCT,
   nationDomesticTick,
 } from "@openfront/engine/execution/nation/NationDomesticBehavior";
+import {
+  BALANCED_RESEARCH_ORDER,
+  FALLBACK_LAW_ORDER,
+  NationDomesticPlan,
+} from "@openfront/engine/execution/nation/NationPersonality";
 import { NationStructureBehavior } from "@openfront/engine/execution/nation/NationStructureBehavior";
 import { executeTicks } from "../util/utils";
 import { conquerSquare, domesticGame, grantTechs, HUMAN } from "./util";
 
 const NATION = new PlayerInfo("nation", PlayerType.Nation, null, "nation_id");
+/** Phase 1's single research order, independent of the nation's personality. */
+const BALANCED_PLAN: NationDomesticPlan = {
+  personality: "merchant",
+  techOrder: BALANCED_RESEARCH_ORDER,
+  lawOrder: FALLBACK_LAW_ORDER,
+  governments: ["republic", "democracy"],
+  instituteRatio: 0.5,
+  officeRatio: 0.5,
+};
 
 describe("nation domestic behavior", () => {
   test("starts the first affordable tech and sets the peace recruit target", async () => {
@@ -26,7 +40,7 @@ describe("nation domestic behavior", () => {
     const nation = game.addPlayer(NATION);
     conquerSquare(game, nation, 30, 30, 10);
     nation.domestic()!.addYield(100_000, 0);
-    nationDomesticTick(game, nation);
+    nationDomesticTick(game, nation, BALANCED_PLAN);
     executeTicks(game, 1);
     expect(nation.domestic()!.currentResearch()?.tech).toBe("currency");
     expect(nation.domestic()!.recruitTargetPct()).toBe(

@@ -4,8 +4,12 @@ import { Execution, Game } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type { ExecRecord, SnapshotReader } from "../snapshot/SnapshotContext";
 import { processDomesticSecond } from "./DomesticEconomy";
+import { processVictoryProjectSecond } from "./VictoryProjects";
 
-/** Runs every domestic-mode player's economy once per second (spec §3). */
+/**
+ * Runs every domestic-mode player's economy once per second (spec §3), then
+ * their victory project (spec §8.1) on that second's conditions.
+ */
 export class DomesticExecution implements Execution {
   private mg: Game | undefined = undefined;
 
@@ -21,6 +25,7 @@ export class DomesticExecution implements Execution {
       const d = player.domestic();
       if (d !== null && player.isAlive()) {
         processDomesticSecond(this.mg, player, d);
+        processVictoryProjectSecond(this.mg, player, d);
       }
     }
   }

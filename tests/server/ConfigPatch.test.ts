@@ -51,6 +51,7 @@ const NULLABLE: { [K in keyof GameConfig]?: NonNullable<GameConfig[K]> } = {
   disableAlliances: true,
   customAllianceDuration: 5,
   waterNukes: true,
+  conquestPercent: 60,
 };
 
 describe("applyGameConfigPatch", () => {

@@ -23,6 +23,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { assertNever, boundingBoxTiles } from "@openfront/engine-lib/Util";
 import { z } from "zod";
+import { victoryProjectHosts } from "../../domestic/VictoryProjects";
 import { Game, Player, Unit } from "../../game/Game";
 import { UniversalPathFinding } from "../../pathfinding/PathFinder";
 import type {
@@ -177,6 +178,12 @@ export class NationNukeBehavior {
       return;
     }
 
+    // Domestic mode (spec §9.4): Hard & Impossible nuke a victory project's
+    // building before anything else.
+    if (this.nukeVictoryProjectHost()) {
+      return;
+    }
+
     const choice = this.chooseNukeTarget();
     if (choice === null) {
       return;
@@ -242,6 +249,33 @@ export class NationNukeBehavior {
     if (difficulty === Difficulty.Impossible && !saving) {
       this.maybeDestroyEnemySam(nukeTarget);
     }
+  }
+
+  /** Nukes the first enemy victory-project building we can hit; true if a nuke was sent. */
+  private nukeVictoryProjectHost(): boolean {
+    const config = this.game.config();
+    const { difficulty } = config.gameConfig();
+    if (
+      !config.domesticMode() ||
+      (difficulty !== Difficulty.Hard && difficulty !== Difficulty.Impossible)
+    ) {
+      return false;
+    }
+    for (const host of victoryProjectHosts(this.game)) {
+      const owner = host.owner();
+      if (owner === this.player || this.player.isFriendly(owner, true)) {
+        continue;
+      }
+      const tile = host.tile();
+      for (const nukeType of this.nukeTypesToTry(false)) {
+        if (this.isNukeAlreadyLandingNear(tile, nukeType)) continue;
+        if (this.blastHitsFriendlyLand(tile, nukeType)) continue;
+        if (this.player.canBuild(nukeType, tile) === false) continue;
+        this.sendNuke(tile, nukeType, owner);
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Hydrogen bomb first; on Hard & Impossible, an atom bomb if no spot is worth a hydrogen bomb. */

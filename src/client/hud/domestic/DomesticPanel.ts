@@ -20,6 +20,7 @@ import {
   ChooseGovernmentIntentEvent,
   ProclaimLawIntentEvent,
   ResearchTechIntentEvent,
+  StartVictoryProjectIntentEvent,
 } from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
@@ -28,14 +29,15 @@ import { PlayerView } from "../../view/PlayerView";
 import { ToggleDomesticPanelEvent } from "./DomesticEvents";
 import { renderGovernmentTab } from "./GovernmentTab";
 import { renderLawsTab } from "./LawsTab";
+import { renderVictoryTab } from "./VictoryTab";
 
 const ERAS: readonly Era[] = [1, 2, 3, 4];
 const BRANCHES: readonly Branch[] = ["economy", "military", "learning"];
 
-type DomesticTab = "tech" | "laws" | "government";
-const TABS: readonly DomesticTab[] = ["tech", "laws", "government"];
+type DomesticTab = "tech" | "laws" | "government" | "victory";
+const TABS: readonly DomesticTab[] = ["tech", "laws", "government", "victory"];
 
-/** The domestic panel: technology, book of laws and government tabs. */
+/** The domestic panel: technology, book of laws, government and victory tabs. */
 @customElement("domestic-panel")
 export class DomesticPanel extends LitElement implements Controller {
   public game: GameView;
@@ -127,6 +129,10 @@ export class DomesticPanel extends LitElement implements Controller {
           choose: (government) =>
             this.eventBus.emit(new ChooseGovernmentIntentEvent(government)),
         });
+      case "victory":
+        return renderVictoryTab(this.game, me, d, (kind, unitId) =>
+          this.eventBus.emit(new StartVictoryProjectIntentEvent(kind, unitId)),
+        );
     }
   }
 

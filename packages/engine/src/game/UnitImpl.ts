@@ -751,7 +751,9 @@ export class UnitImpl implements Unit {
   increaseLevel(): void {
     if (this._type === UnitType.SAMLauncher) {
       const currentTick = this.mg.ticks();
-      const currentRange = this.mg.config().dynamicSamRange(this, currentTick);
+      const currentRange = this.mg
+        .config()
+        .baseDynamicSamRange(this, currentTick);
       this._samLauncherState = {
         upgradeStartTick: currentTick,
         startRange: currentRange,

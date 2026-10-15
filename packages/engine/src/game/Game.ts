@@ -1,3 +1,4 @@
+import type { WinReason } from "@openfront/engine-api/domestic/DomesticTypes";
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   AllianceInfo,
@@ -580,6 +581,7 @@ export interface Game extends GameLike {
   setWinner(
     winner: Player | Team | null,
     allPlayersStats: AllPlayersStats,
+    reason?: WinReason,
   ): void;
   getWinner(): Player | Team | null;
   config(): EngineConfig;

@@ -476,6 +476,7 @@ export enum MessageType {
   RENEW_ALLIANCE,
   RESEARCH_COMPLETE,
   GOVERNMENT_TIER_REACHED,
+  VICTORY_PROJECT,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -513,6 +514,7 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.CHAT]: MessageCategory.CHAT,
   [MessageType.RESEARCH_COMPLETE]: MessageCategory.TRADE,
   [MessageType.GOVERNMENT_TIER_REACHED]: MessageCategory.TRADE,
+  [MessageType.VICTORY_PROJECT]: MessageCategory.ATTACK,
 } as const;
 
 /**

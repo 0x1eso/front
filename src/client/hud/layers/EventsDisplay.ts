@@ -277,6 +277,16 @@ export class EventsDisplay extends LitElement implements Controller {
       };
     }
 
+    if (
+      event.message.startsWith("events_display.victory_project_") &&
+      typeof params.project === "string"
+    ) {
+      params = {
+        ...params,
+        project: translateText(`domestic.project.${params.project}.name`),
+      };
+    }
+
     if (params.name === undefined || event.focusPlayerID === undefined) {
       return params;
     }

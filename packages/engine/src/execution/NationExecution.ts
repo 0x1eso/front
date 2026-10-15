@@ -38,6 +38,10 @@ import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
 import { NationStructureBehavior } from "./nation/NationStructureBehavior";
+import {
+  nationProjectKindFor,
+  nationVictoryTick,
+} from "./nation/NationVictoryBehavior";
 import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { SpawnExecution } from "./SpawnExecution";
 import { AiAttackBehavior } from "./utils/AiAttackBehavior";
@@ -223,6 +227,13 @@ export class NationExecution implements Execution {
     this.allianceBehavior.handleAllianceExtensionRequests();
     this.mirvBehavior.considerMIRV();
     this.structureBehavior.handleStructures();
+    // Starting a victory project goes before proclaiming laws, so the
+    // project gets the political power first (spec §9.3).
+    nationVictoryTick(
+      this.mg,
+      this.player,
+      nationProjectKindFor(this.mg, this.player),
+    );
     nationDomesticTick(this.mg, this.player);
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();

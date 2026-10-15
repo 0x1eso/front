@@ -1,3 +1,4 @@
+import type { WinReason } from "@openfront/engine-api/domestic/DomesticTypes";
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   Cell,
@@ -1007,6 +1008,7 @@ export class GameImpl implements Game {
   setWinner(
     winner: Player | Team | null,
     allPlayersStats: AllPlayersStats,
+    reason?: WinReason,
   ): void {
     this._winner = winner;
     // OFM: snapshot final tiles for standings (bots skipped in recordFinalTiles).
@@ -1024,6 +1026,7 @@ export class GameImpl implements Game {
       type: GameUpdateType.Win,
       winner: winner === null ? undefined : this.makeWinner(winner),
       allPlayersStats,
+      ...(reason === undefined ? {} : { reason }),
     });
   }
 

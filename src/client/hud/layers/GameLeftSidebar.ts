@@ -200,6 +200,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
           <player-stats
             class=${this.isPlayerStatsShown ? "block min-w-0" : "hidden"}
             .game=${this.game}
+            .domesticMode=${this.game?.config().gameConfig().domesticMode ===
+            true}
             .eventBus=${this.eventBus}
             .visible=${this.isPlayerStatsShown}
           ></player-stats>
@@ -208,6 +210,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
               ? "block min-w-0"
               : "hidden"}
             .game=${this.game}
+            .domesticMode=${this.game?.config().gameConfig().domesticMode ===
+            true}
             .visible=${this.isTeamStatsShown && this.isTeamGame}
           ></team-stats>
         </div>

@@ -1257,7 +1257,12 @@ export class PlayerImpl implements Player {
   canTrade(other: Player): boolean {
     const embargo =
       other.hasEmbargoAgainst(this) || this.hasEmbargoAgainst(other);
-    return !embargo && other.id() !== this.id();
+    if (embargo || other.id() === this.id()) return false;
+    // Domestic mode: isolationism forbids trade with any other nation.
+    return !(
+      this._domestic?.hasFlag("noForeignTrade") === true ||
+      other.domestic()?.hasFlag("noForeignTrade") === true
+    );
   }
 
   getEmbargoes(): Embargo[] {

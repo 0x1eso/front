@@ -122,6 +122,12 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     payWithGold: true,
   },
   { type: "choose_government", clientID: P2, government: "communism" },
+  {
+    type: "start_victory_project",
+    clientID: P1,
+    kind: "political",
+    unitId: 88,
+  },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

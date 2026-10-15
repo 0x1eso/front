@@ -18,6 +18,7 @@ import { maxHealthWithVeterancy } from "@openfront/engine-lib/game/Veterancy";
 import type { RendererConfig, UnitState } from "../../types";
 import { UT_MISSILE_SILO, UT_SAM_LAUNCHER } from "../../types";
 import type { RenderSettings } from "../RenderSettings";
+import { constructionProgress } from "../utils/ConstructionProgress";
 import { createProgram } from "../utils/GlUtils";
 
 import barFragSrc from "../shaders/bar/bar.frag.glsl?raw";
@@ -66,6 +67,8 @@ export class BarPass {
   private mapW: number;
   private warshipMaxHealth: number;
   private veterancyHealthBonus: number;
+  /** Domestic mode: victory-project host unit id -> progress (0..1). */
+  private projectProgress: ReadonlyMap<number, number> = new Map();
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -127,6 +130,11 @@ export class BarPass {
     gl.vertexAttribDivisor(1, 1);
 
     gl.bindVertexArray(null);
+  }
+
+  /** Domestic mode: hosts of running victory projects and their progress. */
+  setVictoryProjects(progress: ReadonlyMap<number, number>): void {
+    this.projectProgress = progress;
   }
 
   /** Rebuild bar instance data from current unit state. */
@@ -306,13 +314,18 @@ export class BarPass {
       );
     }
 
-    // Construction progress
+    // Domestic victory project: the bar fills as the project advances
+    const project = this.projectProgress.get(unit.id);
+    if (project !== undefined) return project;
+
+    // Construction progress (domestic mode sends the real build time)
     if (unit.underConstruction && unit.constructionStartTick !== null) {
-      const duration =
+      return constructionProgress(
+        unit,
+        gameTick,
         this.config.unitInfo(unit.unitType as UnitType).constructionDuration ??
-        50;
-      const elapsed = gameTick - unit.constructionStartTick;
-      return Math.min(1, Math.max(0, elapsed / duration));
+          50,
+      );
     }
 
     // Missile readiness (Silo / SAM)

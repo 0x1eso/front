@@ -763,7 +763,22 @@ export class EngineConfig extends Config {
     return Math.floor(this.SAMCooldown() / 2);
   }
 
+  /**
+   * The SAM's range with its owner's domestic samRange modifier, never past
+   * maxSamRange() (the interception search prunes at that distance).
+   */
   dynamicSamRange(sam: Unit, currentTick: number): number {
+    const range = this.baseDynamicSamRange(sam, currentTick);
+    const domestic = this.domesticOf(sam.owner());
+    if (domestic === null) return range;
+    const pct = domestic.pct("samRange");
+    return pct === 0
+      ? range
+      : Math.min(this.maxSamRange(), applyPct(range, pct));
+  }
+
+  /** The SAM's range before domestic modifiers, interpolated while upgrading. */
+  baseDynamicSamRange(sam: Unit, currentTick: number): number {
     const state = sam.samLauncherState();
     if (state === undefined || state.upgradeStartTick === undefined) {
       return this.samRange(sam.level());

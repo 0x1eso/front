@@ -74,3 +74,23 @@ export const STAT_CAPS = {
   reductionMinPct: -60,
   increaseMaxPct: 200,
 } as const;
+
+// Victory (spec §8, §11.1).
+/** Land share (percent) that wins by conquest in domestic mode; vanilla keeps 80. */
+export const DOMESTIC_CONQUEST_PERCENT = 70;
+/** Lobby bounds for GameConfig.conquestPercent (100 = no conquest victory). */
+export const CONQUEST_PERCENT_MIN = 30;
+export const CONQUEST_PERCENT_MAX = 100;
+/** Game length when the lobby leaves maxTimerValue unset. */
+export const DOMESTIC_TIMER_MINUTES = 30;
+export const SCIENCE_PROJECT_GOLD = 5_000_000n;
+export const POLITICAL_PROJECT_GOLD = 3_000_000n;
+/** Whole points. */
+export const POLITICAL_PROJECT_POLITICAL = 1000;
+export const VICTORY_PROJECT_SECONDS = 4 * 60;
+export const PROJECT_HOST_MIN_LEVEL = 3;
+export const PROJECT_GOVERNMENT_TIER = 3;
+/** Land, science, political power and gold are worth this much each. */
+export const SCORE_PER_CATEGORY = 25;
+/** A running project adds up to this much, by progress. */
+export const PROJECT_SCORE_MAX = 10;
