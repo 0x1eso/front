@@ -237,6 +237,25 @@ const DEFENSE_POST_SAMPLE_ATTEMPTS = 150;
 // Reusable neighbor buffer for hot loops; the simulation is single-threaded.
 const NEIGHBOR_SCRATCH: TileRef[] = [0, 0, 0, 0];
 
+const NUKE_TYPES: readonly UnitType[] = [
+  UnitType.AtomBomb,
+  UnitType.HydrogenBomb,
+  UnitType.MIRV,
+];
+
+/** The gold a nation saves up, and whether reaching it paces placements. */
+interface SaveUpPlan {
+  /** 0 means no saving is needed. */
+  target: Gold;
+  /**
+   * Once the target is reached, structure placement pauses on and off so
+   * NationNukeBehavior can spend the gold (isInPostSaveUpBlockedPhase). Not
+   * when no missile silo can be built, or while domestic-mode techs still
+   * lock the nukes, since then nothing would spend it.
+   */
+  pacesPlacements: boolean;
+}
+
 export class NationStructureBehavior {
   private reachableStationsCache: Array<{
     tile: TileRef;
@@ -604,10 +623,11 @@ export class NationStructureBehavior {
   // 15s ON / 15s OFF, alternating, to allow NationNukeBehavior to spend the gold.
   // Not while the gold covers the target twice, as bulk upgrades leave the target for nukes.
   private isInPostSaveUpBlockedPhase(): boolean {
-    if (this.player.isUnitUnavailable(UnitType.MissileSilo)) {
+    const plan = this.getSaveUpPlan();
+    if (!plan.pacesPlacements) {
       return false;
     }
-    const saveUpTarget = this.getSaveUpTarget();
+    const saveUpTarget = plan.target;
     if (this._postSaveUpStartTick === null) {
       if (this.player.gold() < saveUpTarget) {
         return false;
@@ -919,40 +939,73 @@ export class NationStructureBehavior {
    * Returns 0 if no saving is needed.
    */
   private getSaveUpTarget(): Gold {
-    // Just save up for SAMs if missile silos are disabled
-    if (this.player.isUnitUnavailable(UnitType.MissileSilo)) {
-      // Domestic mode before Radar: there is nothing worth saving for yet.
-      if (this.player.isUnitLocked(UnitType.SAMLauncher)) {
-        return 0n;
-      }
-      return this.cost(UnitType.SAMLauncher);
+    return this.getSaveUpPlan().target;
+  }
+
+  private getSaveUpPlan(): SaveUpPlan {
+    // Just save up for SAMs if missile silos are disabled, or while
+    // domestic-mode techs still lock every nuke
+    if (
+      this.player.isUnitUnavailable(UnitType.MissileSilo) ||
+      this.areNukesStillLocked()
+    ) {
+      return { target: this.samSaveUpTarget(), pacesPlacements: false };
     }
 
     // Save up a limited amount in team games, synced with NationNukeBehavior
     // Saving up for a MIRV is not relevant
     if (this.game.config().gameConfig().gameMode === GameMode.Team) {
-      return this.cost(UnitType.HydrogenBomb);
+      // Domestic mode: an atom bomb while Thermonuclear still locks the hydrogen bomb
+      if (!this.player.isUnitLocked(UnitType.HydrogenBomb)) {
+        return {
+          target: this.cost(UnitType.HydrogenBomb),
+          pacesPlacements: true,
+        };
+      }
+      if (!this.player.isUnitUnavailable(UnitType.AtomBomb)) {
+        return { target: this.cost(UnitType.AtomBomb), pacesPlacements: true };
+      }
+      return { target: this.samSaveUpTarget(), pacesPlacements: false };
     }
 
     const mirvEnabled = !this.player.isUnitUnavailable(UnitType.MIRV);
     const hydroEnabled = !this.player.isUnitUnavailable(UnitType.HydrogenBomb);
     const atomEnabled = !this.player.isUnitUnavailable(UnitType.AtomBomb);
 
+    let target: Gold;
     // Not for a MIRV that SAMs would shoot down
     if (mirvEnabled && this.isMirvWorthSavingFor()) {
       // Save up for MIRV + Hydrogen Bomb
-      return this.cost(UnitType.MIRV) + this.cost(UnitType.HydrogenBomb);
-    }
-    if (hydroEnabled) {
+      target = this.cost(UnitType.MIRV) + this.cost(UnitType.HydrogenBomb);
+    } else if (hydroEnabled) {
       // Save up for 5 hydrogen bombs
-      return this.cost(UnitType.HydrogenBomb) * 5n;
-    }
-    if (atomEnabled) {
+      target = this.cost(UnitType.HydrogenBomb) * 5n;
+    } else if (atomEnabled) {
       // Save up for 20 atom bombs
-      return this.cost(UnitType.AtomBomb) * 20n;
+      target = this.cost(UnitType.AtomBomb) * 20n;
+    } else {
+      // No nukes enabled, just save up for SAMs
+      target = this.samSaveUpTarget();
     }
-    // No nukes enabled, just save up for SAMs
-    return this.cost(UnitType.SAMLauncher);
+    return { target, pacesPlacements: true };
+  }
+
+  /** A SAM's cost; 0 in domestic mode before Radar, as there's nothing worth saving for yet. */
+  private samSaveUpTarget(): Gold {
+    return this.player.isUnitLocked(UnitType.SAMLauncher)
+      ? 0n
+      : this.cost(UnitType.SAMLauncher);
+  }
+
+  /**
+   * Domestic mode: no nuke can be bought because techs still lock them (any
+   * others are disabled). Never true without domestic state.
+   */
+  private areNukesStillLocked(): boolean {
+    return (
+      NUKE_TYPES.some((type) => this.player.isUnitLocked(type)) &&
+      NUKE_TYPES.every((type) => this.player.isUnitUnavailable(type))
+    );
   }
 
   private isMirvWorthSavingFor(): boolean {

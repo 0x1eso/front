@@ -1,8 +1,12 @@
+import { TechId } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
+  GameMode,
+  Gold,
   PlayerInfo,
   PlayerType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { GameConfig } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
@@ -12,7 +16,7 @@ import {
 } from "@openfront/engine/execution/nation/NationDomesticBehavior";
 import { NationStructureBehavior } from "@openfront/engine/execution/nation/NationStructureBehavior";
 import { executeTicks } from "../util/utils";
-import { conquerSquare, domesticGame, HUMAN } from "./util";
+import { conquerSquare, domesticGame, grantTechs, HUMAN } from "./util";
 
 const NATION = new PlayerInfo("nation", PlayerType.Nation, null, "nation_id");
 
@@ -89,5 +93,95 @@ describe("nation domestic behavior", () => {
       nation.units(UnitType.ResearchInstitute).length +
       nation.units(UnitType.AdminOffice).length;
     expect(built).toBeGreaterThan(0);
+  });
+});
+
+describe("nations don't save gold for locked units", () => {
+  async function savingNation(
+    techs: TechId[],
+    config: Partial<GameConfig> = {},
+  ) {
+    const game = await domesticGame(config);
+    const nation = game.addPlayer(NATION);
+    conquerSquare(game, nation, 0, 0, 40);
+    grantTechs(nation, ...techs);
+    game.endSpawnPhase();
+    const behavior = new NationStructureBehavior(
+      new PseudoRandom(42),
+      game,
+      nation,
+    );
+    const cost = (type: UnitType): Gold =>
+      game.unitInfo(type).cost(game, nation);
+    const saveUpTarget = (): Gold => behavior["getSaveUpTarget"]();
+    const blocked = (): boolean => behavior["isInPostSaveUpBlockedPhase"]();
+    return { game, nation, cost, saveUpTarget, blocked };
+  }
+
+  test("a silo but no Manhattan Project or Radar: saves nothing", async () => {
+    const { nation, saveUpTarget } = await savingNation(["rocketry"]);
+    expect(nation.isUnitUnavailable(UnitType.MissileSilo)).toBe(false);
+    expect(nation.isUnitLocked(UnitType.AtomBomb)).toBe(true);
+    expect(saveUpTarget()).toBe(0n);
+  });
+
+  test("a silo and Radar but no Manhattan Project: saves for a SAM", async () => {
+    const { cost, saveUpTarget } = await savingNation(["rocketry", "radar"]);
+    expect(saveUpTarget()).toBe(cost(UnitType.SAMLauncher));
+  });
+
+  test("no nuke to buy: placements never pause for nuke spending", async () => {
+    const { game, nation, cost, blocked } = await savingNation([
+      "rocketry",
+      "radar",
+    ]);
+    // Between the target and twice the target, where the pause would apply.
+    nation.addGold((cost(UnitType.SAMLauncher) * 3n) / 2n);
+    for (let i = 0; i < 40; i++) {
+      expect(blocked(), `tick ${game.ticks()}`).toBe(false);
+      executeTicks(game, 10);
+    }
+  });
+
+  test("with the Manhattan Project: saves for atom bombs and paces placements", async () => {
+    const { game, nation, cost, saveUpTarget, blocked } = await savingNation([
+      "rocketry",
+      "manhattan_project",
+    ]);
+    const target = cost(UnitType.AtomBomb) * 20n;
+    expect(saveUpTarget()).toBe(target);
+    nation.addGold((target * 3n) / 2n);
+    let everBlocked = false;
+    for (let i = 0; i < 40; i++) {
+      everBlocked ||= blocked();
+      executeTicks(game, 10);
+    }
+    expect(everBlocked).toBe(true);
+  });
+
+  test("team game, only the Manhattan Project: saves for an atom bomb", async () => {
+    const { cost, saveUpTarget } = await savingNation(
+      ["rocketry", "manhattan_project"],
+      { gameMode: GameMode.Team, playerTeams: 2 },
+    );
+    expect(saveUpTarget()).toBe(cost(UnitType.AtomBomb));
+  });
+
+  test("team game with Thermonuclear: saves for a hydrogen bomb", async () => {
+    const { cost, saveUpTarget } = await savingNation(
+      ["rocketry", "manhattan_project", "thermonuclear"],
+      { gameMode: GameMode.Team, playerTeams: 2 },
+    );
+    expect(saveUpTarget()).toBe(cost(UnitType.HydrogenBomb));
+  });
+
+  test("team game, silo but no nukes and no Radar: saves nothing", async () => {
+    const { saveUpTarget, blocked, nation } = await savingNation(["rocketry"], {
+      gameMode: GameMode.Team,
+      playerTeams: 2,
+    });
+    nation.addGold(100_000_000n);
+    expect(saveUpTarget()).toBe(0n);
+    expect(blocked()).toBe(false);
   });
 });
