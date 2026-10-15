@@ -188,6 +188,7 @@
   },
   "build_menu": {
     "desc": {
+      "admin_office": "Produces political power. Upkeep 50 gold/s per level.",
       "atom_bomb": "Small explosion",
       "city": "Increases max population",
       "defense_post": "Increases defenses of nearby borders",
@@ -196,6 +197,7 @@
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
       "port": "Sends trade ships to generate gold",
+      "research_institute": "Produces science. Upkeep 50 gold/s per level.",
       "sam_launcher": "Defends against incoming nukes",
       "warship": "Captures trade ships, destroys ships and boats"
     },
@@ -789,6 +791,119 @@
   "discord_user_header": {
     "avatar_alt": "Avatar"
   },
+  "domestic": {
+    "blocked": {
+      "busy": "Another research is in progress",
+      "era": "Needs 2 techs from the previous era",
+      "prereq": "Needs {tech}"
+    },
+    "branch": {
+      "economy": "Economy",
+      "learning": "Learning",
+      "military": "Military"
+    },
+    "cost": "{cost} science · {seconds}s",
+    "era": "Era {era}",
+    "locked_requires": "Requires {tech}",
+    "open_panel": "Domestic",
+    "panel_title": "Domestic Affairs",
+    "pay_with_gold": "Pay {gold} gold",
+    "per_sec": "+{value}/s",
+    "political": "Political Power",
+    "recruit_target": "Recruit up to {pct}%",
+    "research": "Research",
+    "research_progress": "Researching {tech}: {seconds}s left",
+    "researched": "Researched",
+    "researching": "Researching",
+    "science": "Science",
+    "tab_tech": "Technology",
+    "tech": {
+      "academia": {
+        "desc": "Research institute output +40%",
+        "name": "Academia"
+      },
+      "banking": {
+        "desc": "Stored gold earns 2% per minute (max 1,500/s)",
+        "name": "Banking"
+      },
+      "bureaucracy": {
+        "desc": "Admin office output +40%",
+        "name": "Bureaucracy"
+      },
+      "computers": {
+        "desc": "Science +30%, political power +15%",
+        "name": "Computers"
+      },
+      "conscription": {
+        "desc": "Troop growth +25%, recruitment cost -30%",
+        "name": "Conscription"
+      },
+      "currency": {
+        "desc": "City tax +50%",
+        "name": "Currency"
+      },
+      "fortification": {
+        "desc": "Defense post effect +50%, defense post cost -30%",
+        "name": "Fortification"
+      },
+      "global_trade": {
+        "desc": "Trade ships spawn +50%, allied trade income +50%",
+        "name": "Global Trade"
+      },
+      "globalization": {
+        "desc": "All gold income +30%",
+        "name": "Globalization"
+      },
+      "industrialization": {
+        "desc": "Train income +50%, structure cost -15%",
+        "name": "Industrialization"
+      },
+      "manhattan_project": {
+        "desc": "Unlocks atom bombs",
+        "name": "Manhattan Project"
+      },
+      "mirv": {
+        "desc": "Unlocks MIRVs",
+        "name": "MIRV"
+      },
+      "navigation": {
+        "desc": "Trade ship income +40%, port cost -25%",
+        "name": "Navigation"
+      },
+      "printing_press": {
+        "desc": "Political power +25%, law cost -15%",
+        "name": "Printing Press"
+      },
+      "radar": {
+        "desc": "Unlocks SAM launchers",
+        "name": "Radar"
+      },
+      "railroad": {
+        "desc": "Unlocks factories",
+        "name": "Railroad"
+      },
+      "rocketry": {
+        "desc": "Unlocks missile silos",
+        "name": "Rocketry"
+      },
+      "scientific_method": {
+        "desc": "Research time -30%, science +15%",
+        "name": "Scientific Method"
+      },
+      "space_program": {
+        "desc": "Enables the space race (science victory, coming later)",
+        "name": "Space Program"
+      },
+      "steel_ships": {
+        "desc": "Unlocks warships",
+        "name": "Steel Ships"
+      },
+      "thermonuclear": {
+        "desc": "Unlocks hydrogen bombs",
+        "name": "Thermonuclear Weapons"
+      }
+    }
+  },
   "doomsday_clock": {
     "collapsing": "Collapsing -{rate}/s",
     "decay_in": "Decay in {secs}s",
@@ -891,6 +1006,7 @@
     "reject_alliance": "Reject",
     "renew_alliance": "Request to renew",
     "request_alliance": "{name} requests an alliance!",
+    "research_complete": "Research complete: {tech}",
     "retreating": "retreating",
     "sent_emoji": "Sent {name}: {emoji}",
     "sent_emoji_all": "Sent everyone: {emoji}",
@@ -993,6 +1109,7 @@
     "compact_map": "Compact Map",
     "custom_alliances": "Alliance Duration",
     "disable_units": "Disable Units",
+    "domestic_mode": "Domestic Mode",
     "doomsday_clock": "Doomsday Clock",
     "gold_multiplier": "Gold multiplier",
     "infinite_gold": "Infinite gold",
@@ -2491,6 +2608,7 @@
     "title": "Tutorial"
   },
   "unit_type": {
+    "admin_office": "Admin Office",
     "atom_bomb": "Atom Bomb",
     "boat": "Boat",
     "city": "City",
@@ -2500,6 +2618,7 @@
     "mirv": "MIRV",
     "missile_silo": "Missile Silo",
     "port": "Port",
+    "research_institute": "Research Institute",
     "sam_launcher": "SAM Launcher",
     "warship": "Warship"
   },

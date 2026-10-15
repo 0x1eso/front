@@ -183,7 +183,9 @@
       "missile_silo": "핵 미사일 발사를 위해 사용됩니다",
       "port": "무역선을 보내 금을 생산합니다",
       "sam_launcher": "들어오는 핵미사일을 방어합니다",
-      "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다"
+      "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다",
+      "admin_office": "정치력을 생산합니다. 레벨당 초당 금 50 유지비.",
+      "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비."
     },
     "not_enough_money": "돈이 부족합니다",
     "upgrade_amount": "x{amount}",
@@ -801,7 +803,8 @@
     "trade_ship_captured": "{name}님에게 무역선이 나포되었습니다",
     "unit_destroyed": "당신의 {unit}이(가) 파괴되었습니다",
     "unit_voluntarily_deleted": "유닛이 해산되었습니다",
-    "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다"
+    "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다",
+    "research_complete": "연구 완료: {tech}"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -906,7 +909,8 @@
     "start": "게임 시작",
     "starting": "시작 중...",
     "starting_gold": "시작 금 (M)",
-    "water_nukes": "수몰 폭탄"
+    "water_nukes": "수몰 폭탄",
+    "domestic_mode": "내정 모드"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -2196,7 +2200,9 @@
     "missile_silo": "미사일 발사대",
     "port": "항구",
     "sam_launcher": "지대공 미사일 발사대",
-    "warship": "군함"
+    "warship": "군함",
+    "admin_office": "행정청",
+    "research_institute": "연구소"
   },
   "update_available": {
     "desktop": "OpenFront의 새로운 버전을 이용할 수 있습니다. 백그라운드에서 다운로드되며, 준비가 완료되면 업데이트 표시줄에서 새로고침하세요.",
@@ -2437,5 +2443,118 @@
     "you_won": "나의 승리!",
     "your_team": "우리팀이 승리했습니다!",
     "youtube_tutorial": "도움이 필요하신가요?"
+  },
+  "domestic": {
+    "blocked": {
+      "busy": "다른 연구가 진행 중입니다",
+      "era": "이전 시대 기술 2개가 필요합니다",
+      "prereq": "{tech} 필요"
+    },
+    "branch": {
+      "economy": "경제",
+      "learning": "학문",
+      "military": "군사"
+    },
+    "cost": "과학력 {cost} · {seconds}초",
+    "era": "{era}시대",
+    "locked_requires": "{tech} 연구 필요",
+    "open_panel": "국정",
+    "panel_title": "국정",
+    "pay_with_gold": "금 {gold}으로 연구",
+    "per_sec": "+{value}/초",
+    "political": "정치력",
+    "recruit_target": "징병 상한 {pct}%",
+    "research": "연구",
+    "research_progress": "{tech} 연구 중: {seconds}초 남음",
+    "researched": "연구 완료",
+    "researching": "연구 중",
+    "science": "과학력",
+    "tab_tech": "기술",
+    "tech": {
+      "academia": {
+        "desc": "연구소 생산 +40%",
+        "name": "학술 기관"
+      },
+      "banking": {
+        "desc": "보유 금에 분당 2% 이자 (최대 초당 1,500)",
+        "name": "은행업"
+      },
+      "bureaucracy": {
+        "desc": "행정청 생산 +40%",
+        "name": "관료제"
+      },
+      "computers": {
+        "desc": "과학력 +30%, 정치력 +15%",
+        "name": "컴퓨터"
+      },
+      "conscription": {
+        "desc": "병력 회복 +25%, 징병비 -30%",
+        "name": "징병제"
+      },
+      "currency": {
+        "desc": "도시 세수 +50%",
+        "name": "화폐 주조"
+      },
+      "fortification": {
+        "desc": "방어 기지 효과 +50%, 방어 기지 건설비 -30%",
+        "name": "요새 축성"
+      },
+      "global_trade": {
+        "desc": "무역선 출현 +50%, 동맹과의 무역 수익 +50%",
+        "name": "국제 무역"
+      },
+      "globalization": {
+        "desc": "모든 금 수입 +30%",
+        "name": "세계화"
+      },
+      "industrialization": {
+        "desc": "기차 수익 +50%, 모든 건설비 -15%",
+        "name": "산업화"
+      },
+      "manhattan_project": {
+        "desc": "원자폭탄 해금",
+        "name": "맨해튼 프로젝트"
+      },
+      "mirv": {
+        "desc": "MIRV 해금",
+        "name": "다탄두 미사일"
+      },
+      "navigation": {
+        "desc": "무역선 수익 +40%, 항구 건설비 -25%",
+        "name": "항해술"
+      },
+      "printing_press": {
+        "desc": "정치력 +25%, 법 선포 비용 -15%",
+        "name": "인쇄술"
+      },
+      "radar": {
+        "desc": "SAM 해금",
+        "name": "레이더"
+      },
+      "railroad": {
+        "desc": "공장 해금",
+        "name": "철도"
+      },
+      "rocketry": {
+        "desc": "미사일 기지 해금",
+        "name": "로켓 공학"
+      },
+      "scientific_method": {
+        "desc": "연구 시간 -30%, 과학력 +15%",
+        "name": "과학적 방법"
+      },
+      "space_program": {
+        "desc": "우주 계획 착수 가능 (과학 승리, 이후 단계)",
+        "name": "우주 개발"
+      },
+      "steel_ships": {
+        "desc": "전함 해금",
+        "name": "강철 함선"
+      },
+      "thermonuclear": {
+        "desc": "수소폭탄 해금",
+        "name": "열핵 무기"
+      }
+    }
   }
 }
