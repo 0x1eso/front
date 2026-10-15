@@ -321,10 +321,17 @@ export class InputHandler {
   private readonly LONG_PRESS_MS = 800;
   /**
    * Set when a second finger joins, cleared when the next gesture starts
-   * with one finger: no release of a pinch or two-finger pan is a tap (the
-   * anchor finger of a pinch barely moves, so it would otherwise count).
+   * with one finger on an otherwise empty screen: no release of a pinch or
+   * two-finger pan is a tap (the anchor finger of a pinch barely moves, so
+   * it would otherwise count), nor a finger put back down to re-grip while
+   * another still rests.
    */
   private multiTouchGesture: boolean = false;
+  /**
+   * Touch pointers physically down. Not `pointers`: the first release of a
+   * multi-finger gesture clears that while the other fingers still rest.
+   */
+  private touchesDown = new Set<number>();
 
   private moveInterval: NodeJS.Timeout | null = null;
   /** Aborts every window/canvas listener added in
@@ -456,6 +463,7 @@ export class InputHandler {
     this.longPressActive = false;
     this.suppressNextTap = false;
     this.multiTouchGesture = false;
+    this.touchesDown.clear();
     this.selectionBoxActive = false;
     this.multiSelectionActive = false;
   }
@@ -991,9 +999,17 @@ export class InputHandler {
 
     this.pointerDown = true;
     this.pointers.set(event.pointerId, event);
+    if (event.pointerType === "touch") {
+      // A primary touch is the only finger on the screen: forget any whose
+      // release never reached us.
+      if (event.isPrimary === true) this.touchesDown.clear();
+      this.touchesDown.add(event.pointerId);
+    }
 
     if (this.pointers.size === 1) {
-      this.multiTouchGesture = false;
+      // A finger put back down while another from the gesture still rests
+      // (re-gripping a pinch) is still part of that gesture.
+      if (this.touchesDown.size <= 1) this.multiTouchGesture = false;
       this.lastPointerX = event.clientX;
       this.lastPointerY = event.clientY;
 
@@ -1003,7 +1019,7 @@ export class InputHandler {
       this.eventBus.emit(new MouseDownEvent(event.clientX, event.clientY));
 
       // Start long-press timer for touch devices
-      if (event.pointerType === "touch") {
+      if (event.pointerType === "touch" && !this.multiTouchGesture) {
         this.longPressActive = false;
         if (this.longPressTimer !== null) {
           clearTimeout(this.longPressTimer);
@@ -1103,6 +1119,7 @@ export class InputHandler {
   }
 
   private onPointerCancel = (event: PointerEvent): void => {
+    this.touchesDown.delete(event.pointerId);
     if (this.passThroughPointers.has(event.pointerId)) {
       this.cancelPassThroughDrag(event.pointerId);
       return;
@@ -1111,6 +1128,7 @@ export class InputHandler {
   };
 
   onPointerUp(event: PointerEvent) {
+    this.touchesDown.delete(event.pointerId);
     if (event.button === 1) {
       event.preventDefault();
       return;

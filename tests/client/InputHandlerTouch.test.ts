@@ -196,6 +196,50 @@ describe("InputHandler on a touch screen", () => {
     expect(of(TouchEvent)).toHaveLength(0);
   });
 
+  it.each([UnitType.AtomBomb, null] as const)(
+    "re-gripping during a pinch (ghost %s) is no tap while the thumb still rests (C4)",
+    (type) => {
+      uiState.ghostStructure = type;
+      pointer(canvas, "pointerdown", 100, 100, "touch", 1); // thumb stays down
+      pointer(canvas, "pointerdown", 200, 200, "touch", 2);
+      pointer(window, "pointermove", 260, 260, "touch", 2);
+      pointer(window, "pointerup", 260, 260, "touch", 2);
+      // The index finger comes back to re-grip and lifts without moving.
+      pointer(canvas, "pointerdown", 240, 240, "touch", 3);
+      pointer(window, "pointerup", 241, 240, "touch", 3);
+      pointer(window, "pointerup", 100, 100, "touch", 1);
+
+      expect(of(ZoomEvent).length).toBeGreaterThan(0);
+      expect(of(BuildTapEvent)).toHaveLength(0);
+      expect(of(TouchEvent)).toHaveLength(0);
+      // Every finger is up: the next tap is a tap again.
+      pressMoveRelease(canvas, 0, "touch");
+      expect(of(type === null ? TouchEvent : BuildTapEvent)).toHaveLength(1);
+    },
+  );
+
+  it("a finger whose release never arrived does not block the next taps (C4)", () => {
+    // A finger goes down and its pointerup is lost.
+    pointer(canvas, "pointerdown", 300, 300, "touch", 7);
+    pressMoveRelease(canvas, 0, "touch");
+    // The next touch is the only one on the screen: the browser marks it
+    // primary, and it taps.
+    const down = new Event("pointerdown", { bubbles: true, cancelable: true });
+    Object.assign(down, {
+      pointerId: 8,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+      x: 100,
+      y: 100,
+    });
+    canvas.dispatchEvent(down);
+    pointer(window, "pointerup", 100, 100, "touch", 8);
+    expect(of(TouchEvent).map((e) => [e.x, e.y])).toEqual([[100, 100]]);
+  });
+
   it("the first one-finger tap after a pinch taps again", () => {
     uiState.ghostStructure = UnitType.City;
     pinch();
