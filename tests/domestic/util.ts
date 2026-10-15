@@ -4,13 +4,17 @@ import {
   LawOption,
   TechId,
 } from "@openfront/engine-api/domestic/DomesticTypes";
-import { PlayerInfo, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import {
+  PlayerInfo,
+  PlayerType,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import {
   DOMESTIC_INTERVAL_TICKS,
   LAW_COOLDOWN_TICKS,
 } from "@openfront/engine-lib/domestic/Balance";
-import { Game, Player } from "@openfront/engine/game/Game";
+import { Game, Player, Unit } from "@openfront/engine/game/Game";
 import { setup } from "../util/Setup";
 
 export const HUMAN = new PlayerInfo(
@@ -73,4 +77,33 @@ export function grantGovernment(
   const d = player.domestic();
   if (d === null) throw new Error("player has no domestic state");
   d.chooseGovernment(government, -LAW_COOLDOWN_TICKS);
+}
+
+export function conquerRect(
+  game: Game,
+  player: Player,
+  x0: number,
+  y0: number,
+  width: number,
+  height: number,
+): void {
+  for (let x = x0; x < x0 + width; x++) {
+    for (let y = y0; y < y0 + height; y++) {
+      player.conquer(game.ref(x, y));
+    }
+  }
+}
+
+/** A finished research institute / admin office at `level` (build it before adding gold: building costs gold). */
+export function buildLevel(
+  game: Game,
+  player: Player,
+  type: UnitType.ResearchInstitute | UnitType.AdminOffice,
+  x: number,
+  y: number,
+  level: number,
+): Unit {
+  const unit = player.buildUnit(type, game.ref(x, y), {});
+  for (let l = 1; l < level; l++) unit.increaseLevel();
+  return unit;
 }

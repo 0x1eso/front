@@ -14,6 +14,9 @@ import {
   StatKey,
   TECH_IDS,
   TechId,
+  VICTORY_PROJECT_KINDS,
+  VictoryProjectKind,
+  VictoryProjectProgress,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   LAW_COOLDOWN_TICKS,
@@ -55,14 +58,26 @@ export const DomesticStateSchema = z.object({
   governmentTier: zInt().optional(),
   government: z.enum(GOVERNMENT_IDS).optional(),
   conditions: z.array(z.enum(CONDITIONS)).optional(),
+  // Phase 3; absent in older snapshots and while no project runs.
+  project: z
+    .object({
+      kind: z.enum(VICTORY_PROJECT_KINDS),
+      hostUnitId: zInt(),
+      ticksLeft: zInt(),
+      totalTicks: zInt(),
+      paused: z.boolean(),
+    })
+    .nullable()
+    .optional(),
 });
 export type DomesticState = z.infer<typeof DomesticStateSchema>;
 
 /**
  * A player's domestic-mode state: science and political power (integer
  * milli-points, so accrual stays exact), researched techs, the current
- * research, the recruit target, proclaimed laws, the government and the
- * conditions that conditional modifiers test. Only non-bot players in a
+ * research, the recruit target, proclaimed laws, the government, the
+ * conditions that conditional modifiers test and the victory project. Only
+ * non-bot players in a
  * domestic-mode game have one.
  */
 export class PlayerDomestic implements DomesticView {
@@ -80,6 +95,8 @@ export class PlayerDomestic implements DomesticView {
   private lawCooldownUntil = 0;
   private tier = 0;
   private government: GovernmentId = "chiefdom";
+  /** The running (or just completed) victory project. */
+  private project: VictoryProjectProgress | null = null;
   /** Set once per processed second (DomesticEconomy.activeConditions). */
   private conditions: ReadonlySet<Condition> = new Set<Condition>();
   private totals = new ModifierTotals([]);
@@ -135,6 +152,43 @@ export class PlayerDomestic implements DomesticView {
 
   currentResearch(): ResearchProgress | null {
     return this.research;
+  }
+
+  victoryProject(): VictoryProjectProgress | null {
+    return this.project;
+  }
+
+  beginVictoryProject(
+    kind: VictoryProjectKind,
+    hostUnitId: number,
+    ticks: number,
+  ): void {
+    this.project = {
+      kind,
+      hostUnitId,
+      ticksLeft: ticks,
+      totalTicks: ticks,
+      paused: false,
+    };
+    this.changed();
+  }
+
+  /** One processed second of the project; a paused second doesn't count. */
+  advanceVictoryProject(ticks: number, paused: boolean): void {
+    const p = this.project;
+    if (p === null) return;
+    this.project = {
+      ...p,
+      ticksLeft: paused ? p.ticksLeft : Math.max(0, p.ticksLeft - ticks),
+      paused,
+    };
+    this.changed();
+  }
+
+  clearVictoryProject(): void {
+    if (this.project === null) return;
+    this.project = null;
+    this.changed();
   }
 
   /** Adds one processed second of output. */
@@ -267,6 +321,7 @@ export class PlayerDomestic implements DomesticView {
       governmentTier: this.tier,
       government: this.government,
       conditions: [...this.conditions],
+      ...(this.project === null ? {} : { project: { ...this.project } }),
     };
     return this.domesticDataCache;
   }
@@ -287,6 +342,7 @@ export class PlayerDomestic implements DomesticView {
       governmentTier: this.tier,
       government: this.government,
       conditions: [...this.conditions],
+      ...(this.project === null ? {} : { project: { ...this.project } }),
     };
   }
 
@@ -306,6 +362,7 @@ export class PlayerDomestic implements DomesticView {
     d.tier = s.governmentTier ?? 0;
     d.government = s.government ?? "chiefdom";
     d.conditions = new Set(s.conditions ?? []);
+    d.project = s.project ? { ...s.project } : null;
     d.rebuild();
     return d;
   }
