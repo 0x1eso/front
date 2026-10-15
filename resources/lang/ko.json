@@ -492,7 +492,7 @@
   "common": {
     "available": "사용 가능",
     "back": "뒤로가기",
-    "backend_unreachable": "OpenFront 서버에 연결할 수 없습니다. 네트워크 연결을 확인하고 다시 시도하세요.",
+    "backend_unreachable": "게임 서버에 연결할 수 없습니다. 네트워크 연결을 확인하고 다시 시도하세요.",
     "cancel": "취소",
     "cap_label": "제한",
     "cap_tooltip": "수령자 잔여 수용량",
@@ -1012,7 +1012,7 @@
     "preset_colorblind_desc": "색약자를 고려한 영토 및 국경 색상입니다",
     "preset_custom": "사용자 지정",
     "preset_default": "기본값",
-    "preset_default_desc": "표준 OpenFront 스타일입니다",
+    "preset_default_desc": "표준 스타일입니다",
     "preset_delete_confirm": "\"{name}\" 프리셋을 삭제하시겠습니까?",
     "preset_evans_pick": "Evan의 추천",
     "preset_evans_pick_desc": "개발자 Evan이 실제로 플레이할 때 사용하는 설정입니다",
@@ -1131,7 +1131,7 @@
     "radial_title": "방사 메뉴",
     "table_action": "동작",
     "table_key": "키",
-    "troubleshooting_desc": "오픈프론트 플레이 중 성능 문제, 충돌 또는 기타 문제가 발생하는 경우, 일반적인 문제의 진단 및 해결에 대한 도움을 받으려면 문제 해결 페이지를 방문하세요.",
+    "troubleshooting_desc": "플레이 중 성능 문제, 충돌 또는 기타 문제가 발생하는 경우, 일반적인 문제의 진단 및 해결에 대한 도움을 받으려면 문제 해결 페이지를 방문하세요.",
     "ui_attack_ratio": "공격 비율 - 공격 시 사용할 병력의 비율을 나타냅니다. 슬라이더로 공격 비율을 조절할 수 있습니다. 공격군이 방어군보다 많으면 공격 중 손실되는 병력이 줄어들고, 적으면 공격군이 더 큰 피해를 입게 됩니다. 이 효과는 최대 2:1 비율까지만 적용됩니다.",
     "ui_control": "제어판",
     "ui_control_desc": "컨트롤 패널에는 다음과 같은 요소들이 포함되어 있습니다:",
@@ -1151,7 +1151,7 @@
     "ui_wilderness": "무주지",
     "ui_your_team": "나의 팀:",
     "video_tutorial": "동영상 튜토리얼",
-    "video_tutorial_title": "오픈프론트 튜토리얼"
+    "video_tutorial_title": "영상 튜토리얼"
   },
   "host_modal": {
     "anonymous_players": "익명 플레이어",
@@ -1239,14 +1239,14 @@
     "got_it": "알았습니다",
     "how": "방법",
     "later": "나중에",
-    "modal_desc": "현재 브라우저에서는 전체 화면을 지원하지 않지만, 더 몰입감 있는 플레이를 위해 OpenFront를 홈 화면에 추가할 수 있습니다:",
+    "modal_desc": "현재 브라우저에서는 전체 화면을 지원하지 않지만, 더 몰입감 있는 플레이를 위해 이 게임을 홈 화면에 추가할 수 있습니다:",
     "modal_title": "iOS에서 전체 화면 사용",
     "never": "다시 보지 않기",
     "step_add_to_home_label": "홈 스크린에 추가하기",
     "step_open": "홈 화면에서 실행 — 주소창 없이 전체 화면으로 실행됩니다",
     "step_scroll_and_tap": "아래로 스크롤한 다음 탭하세요",
     "step_share": "브라우저의 공유 버튼을 탭하세요",
-    "text": "전체 화면을 이용하려면 OpenFront를 홈 화면에 추가하세요"
+    "text": "전체 화면을 이용하려면 이 게임을 홈 화면에 추가하세요"
   },
   "kick_reason": {
     "admin": "관리자에 의해 추방되었습니다",
@@ -1552,7 +1552,7 @@
     "ranked_pairing_note": "팀 모드에서는 가능한 경우 대기열에 있는 클랜원과 친구가 같은 팀에 배치됩니다. 친구가 먼저 매칭된 후 클랜원이 매칭됩니다. 공정한 게임을 유지하기 위해 등급 차이가 너무 큰 경우 따로 매칭됩니다.",
     "ranked_title": "랭크전",
     "retry_lobbies": "다시 시도",
-    "servers_unreachable": "OpenFront 서버에 연결할 수 없습니다",
+    "servers_unreachable": "게임 서버에 연결할 수 없습니다",
     "teams_count": "{teamCount} 팀",
     "teams_of": "{playersPerTeam}인 {teamCount}개 팀",
     "teams_title": "팀전",
@@ -2111,7 +2111,7 @@
     "browser": "브라우저",
     "canvas_2d_no_gpu": "캔버스 2D (GPU 없음)",
     "charging": "충전",
-    "chromium_tip": "오픈프론트는 크로미움 기반 브라우저에서 가장 잘 작동합니다.",
+    "chromium_tip": "이 게임은 크로미움 기반 브라우저에서 가장 잘 작동합니다.",
     "copied_to_clipboard": "클립보드에 정보가 복사되었습니다! 도움이 필요하시면 저희 디스코드에 자유롭게 공유해주세요.",
     "device_pixel_ratio": "장치 픽셀 비율",
     "environment": "환경",
@@ -2203,7 +2203,7 @@
   },
   "update_available": {
     "desktop": "OpenFront의 새로운 버전을 이용할 수 있습니다. 백그라운드에서 다운로드되며, 준비가 완료되면 업데이트 표시줄에서 새로고침하세요.",
-    "message": "OpenFront의 새로운 버전을 이용할 수 있습니다. 업데이트를 위해 페이지를 새로고침합니다."
+    "message": "새로운 버전을 이용할 수 있습니다. 업데이트를 위해 페이지를 새로고침합니다."
   },
   "user_setting": {
     "alert_frame_desc": "경고창을 켜고 끕니다. 활성화하면 배신을 당하거나 지상으로 공격받을 때 경고창이 표시됩니다.",
