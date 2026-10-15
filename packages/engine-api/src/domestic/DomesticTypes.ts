@@ -155,4 +155,13 @@ export interface DomesticData {
   techs: TechId[];
   research: ResearchProgress | null;
   recruitTargetPct: number;
+  /** Proclaimed laws (spec §5): category -> chosen option. */
+  laws: Partial<Record<LawId, LawOption>>;
+  /** No law can be proclaimed before this tick. */
+  lawCooldownUntilTick: number;
+  /** Highest government tier reached, 0..3. */
+  governmentTier: number;
+  government: GovernmentId;
+  /** Conditions in force since the last processed second. */
+  conditions: Condition[];
 }

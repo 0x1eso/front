@@ -1,7 +1,15 @@
-import { TechId } from "@openfront/engine-api/domestic/DomesticTypes";
+import {
+  GovernmentId,
+  LawId,
+  LawOption,
+  TechId,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import { PlayerInfo, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
-import { DOMESTIC_INTERVAL_TICKS } from "@openfront/engine-lib/domestic/Balance";
+import {
+  DOMESTIC_INTERVAL_TICKS,
+  LAW_COOLDOWN_TICKS,
+} from "@openfront/engine-lib/domestic/Balance";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { setup } from "../util/Setup";
 
@@ -42,4 +50,27 @@ export function grantTechs(player: Player, ...techs: TechId[]): void {
     d.beginResearch(tech, 0);
     d.advanceResearch(DOMESTIC_INTERVAL_TICKS);
   }
+}
+
+/** Proclaims laws directly, skipping costs, conditions and the cooldown. */
+export function grantLaws(
+  player: Player,
+  laws: Partial<Record<LawId, LawOption>>,
+): void {
+  const d = player.domestic();
+  if (d === null) throw new Error("player has no domestic state");
+  for (const [law, option] of Object.entries(laws) as [LawId, LawOption][]) {
+    // A cooldown that ends at tick 0 leaves the next proclamation open.
+    d.proclaimLaw(law, option, -LAW_COOLDOWN_TICKS);
+  }
+}
+
+/** Adopts a government directly, skipping tier rules and the cooldown. */
+export function grantGovernment(
+  player: Player,
+  government: GovernmentId,
+): void {
+  const d = player.domestic();
+  if (d === null) throw new Error("player has no domestic state");
+  d.chooseGovernment(government, -LAW_COOLDOWN_TICKS);
 }
