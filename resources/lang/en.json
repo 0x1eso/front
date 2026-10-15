@@ -810,6 +810,16 @@
     "pay_with_gold": "Pay {gold} gold",
     "per_sec": "+{value}/s",
     "political": "Political Power",
+    "project": {
+      "political": {
+        "desc": "Proclaim a world government from a level 3+ admin office. Pauses while you attack another nation.",
+        "name": "World Government"
+      },
+      "science": {
+        "desc": "Launch the space program from a level 3+ research institute.",
+        "name": "Space Program"
+      }
+    },
     "recruit_target": "Recruit up to {pct}%",
     "research": "Research",
     "research_progress": "Researching {tech}: {seconds}s left",
@@ -817,6 +827,7 @@
     "researching": "Researching",
     "science": "Science",
     "tab_tech": "Technology",
+    "tab_victory": "Victory",
     "tech": {
       "academia": {
         "desc": "Research institute output +40%",
@@ -891,7 +902,7 @@
         "name": "Scientific Method"
       },
       "space_program": {
-        "desc": "Enables the space race (science victory, coming later)",
+        "desc": "Enables the Space Program (science victory)",
         "name": "Space Program"
       },
       "steel_ships": {
@@ -902,6 +913,35 @@
         "desc": "Unlocks hydrogen bombs",
         "name": "Thermonuclear Weapons"
       }
+    },
+    "victory": {
+      "active": "Projects in progress",
+      "blocked": {
+        "busy": "Another project is in progress",
+        "gold": "Not enough gold",
+        "host": "Needs a level 3+ building",
+        "political": "Not enough political power",
+        "requirement": "Requirement not met"
+      },
+      "conquest": "Conquest: {pct} of the land (wins above {target}%)",
+      "cost_political": "Costs {gold} gold and {political} political power · 4 min",
+      "cost_science": "Costs {gold} gold · 4 min",
+      "host_level": "{building} Lv. {level}",
+      "no_hosts": "No level 3+ building yet",
+      "none_active": "No projects in progress",
+      "paused": "(paused: attacking)",
+      "progress": "{name}: {project} {pct}%",
+      "requirement_political": "Requires government tier 3",
+      "requirement_science": "Requires the Space Program tech",
+      "score": "Score: {score} (#{rank} of {count})",
+      "start": "Start",
+      "time_left": "Time left: {time}"
+    },
+    "win_reason": {
+      "conquest": "Victory by conquest",
+      "political": "Political victory: world government",
+      "science": "Science victory: space program",
+      "score": "Victory on score"
     }
   },
   "doomsday_clock": {
@@ -1015,6 +1055,9 @@
     "trade_ship_captured": "Your trade ship was captured by {name}",
     "unit_destroyed": "Your {unit} was destroyed",
     "unit_voluntarily_deleted": "Unit voluntarily deleted",
+    "victory_project_complete": "{name} completed the {project}!",
+    "victory_project_failed": "{name}'s {project} failed",
+    "victory_project_started": "{name} started the {project}! Capture or destroy its building to stop it.",
     "wants_to_renew_alliance": "{name} wants to renew your alliance"
   },
   "featured_stream": {
@@ -1107,6 +1150,7 @@
   "game_settings": {
     "bots": "Tribes: ",
     "compact_map": "Compact Map",
+    "conquest_percent": "Conquest %",
     "custom_alliances": "Alliance Duration",
     "disable_units": "Disable Units",
     "domestic_mode": "Domestic Mode",
@@ -1496,6 +1540,7 @@
     "ports": "Ports",
     "rank": "Rank",
     "sams": "SAMs",
+    "score": "Score",
     "shipTradeGoldPerMin": "Ship Trade Gold/min",
     "team": "Team",
     "trainTradeGoldPerMin": "Train Trade Gold/min",

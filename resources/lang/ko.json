@@ -804,7 +804,10 @@
     "unit_destroyed": "당신의 {unit}이(가) 파괴되었습니다",
     "unit_voluntarily_deleted": "유닛이 해산되었습니다",
     "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다",
-    "research_complete": "연구 완료: {tech}"
+    "research_complete": "연구 완료: {tech}",
+    "victory_project_complete": "{name}이(가) {project}을(를) 완성했습니다!",
+    "victory_project_failed": "{name}의 {project}이(가) 실패했습니다",
+    "victory_project_started": "{name}이(가) {project}에 착수했습니다! 건물을 빼앗거나 파괴하면 막을 수 있습니다."
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -910,7 +913,8 @@
     "starting": "시작 중...",
     "starting_gold": "시작 금 (M)",
     "water_nukes": "수몰 폭탄",
-    "domestic_mode": "내정 모드"
+    "domestic_mode": "내정 모드",
+    "conquest_percent": "정복 기준 %"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -1279,7 +1283,8 @@
     "trainTradeGoldPerMin": "분당 철도 무역 금",
     "troops": "병력",
     "type": "유형",
-    "warships": "군함"
+    "warships": "군함",
+    "score": "점수"
   },
   "leaderboard_modal": {
     "clan": "클랜",
@@ -2544,7 +2549,7 @@
         "name": "과학적 방법"
       },
       "space_program": {
-        "desc": "우주 계획 착수 가능 (과학 승리, 이후 단계)",
+        "desc": "우주 계획 착수 가능 (과학 승리)",
         "name": "우주 개발"
       },
       "steel_ships": {
@@ -2555,6 +2560,46 @@
         "desc": "수소폭탄 해금",
         "name": "열핵 무기"
       }
+    },
+    "project": {
+      "political": {
+        "desc": "레벨 3 이상 행정청에서 세계 정부를 선포합니다. 다른 나라를 공격하는 동안에는 멈춥니다.",
+        "name": "세계 정부 선포"
+      },
+      "science": {
+        "desc": "레벨 3 이상 연구소에서 우주 계획을 진행합니다.",
+        "name": "우주 계획"
+      }
+    },
+    "tab_victory": "승리",
+    "victory": {
+      "active": "진행 중인 프로젝트",
+      "blocked": {
+        "busy": "다른 프로젝트가 진행 중입니다",
+        "gold": "금이 부족합니다",
+        "host": "레벨 3 이상 건물이 필요합니다",
+        "political": "정치력이 부족합니다",
+        "requirement": "조건을 채우지 못했습니다"
+      },
+      "conquest": "정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
+      "cost_political": "금 {gold} + 정치력 {political} · 4분",
+      "cost_science": "금 {gold} · 4분",
+      "host_level": "{building} Lv. {level}",
+      "no_hosts": "레벨 3 이상 건물이 아직 없습니다",
+      "none_active": "진행 중인 프로젝트가 없습니다",
+      "paused": "(일시 정지: 공격 중)",
+      "progress": "{name}: {project} {pct}%",
+      "requirement_political": "정부 3단계 필요",
+      "requirement_science": "우주 개발 기술 필요",
+      "score": "점수: {score} ({count}명 중 {rank}위)",
+      "start": "착수",
+      "time_left": "남은 시간: {time}"
+    },
+    "win_reason": {
+      "conquest": "정복 승리",
+      "political": "정치 승리: 세계 정부 선포",
+      "science": "과학 승리: 우주 계획",
+      "score": "점수 승리"
     }
   }
 }
