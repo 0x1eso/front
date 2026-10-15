@@ -89,6 +89,9 @@ export async function renderHtmlContent(
     cdnBaseRaw: cdnBase,
     // The game's name for <title>, Open Graph and JSON-LD (Branding.ts).
     gameTitle: GAME_TITLE,
+    // Only when self-hosted: the guarded template line drops out otherwise,
+    // leaving every other deployment's page byte-for-byte as it was.
+    selfHosted: ServerEnv.selfHosted() ? true : undefined,
     gameEnv: JSON.stringify(ServerEnv.gameEnvName()),
     turnstileSiteKey: JSON.stringify(ServerEnv.turnstileSiteKey()),
     jwtAudience: JSON.stringify(ServerEnv.jwtAudience()),

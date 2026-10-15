@@ -389,8 +389,5 @@ describe("PublicAssetManifest", () => {
   test("indexes the real resources/public/", () => {
     const index = buildRootFilesIndex(getPublicDir(path.resolve("resources")));
     expect(index["robots.txt"]).toBe("text/plain; charset=utf-8");
-    expect(
-      index[".well-known/apple-developer-merchantid-domain-association"],
-    ).toBe("text/plain; charset=utf-8");
   });
 });

@@ -34,6 +34,8 @@ describe("fork branding", () => {
       "terms-of-service.html",
       "privacy-policy.html",
       "press",
+      // OpenFront Inc.'s Apple Pay domain verification (its payment identity).
+      ".well-known",
     ]) {
       expect(
         fs.existsSync(path.join(ROOT, "resources", "public", name)),

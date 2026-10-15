@@ -231,6 +231,8 @@ export default defineConfig(({ mode }) => {
     instanceId: JSON.stringify(env.INSTANCE_ID ?? "DEV_ID"),
     // Raw, not JSON: index.html escapes it itself (<%= %>).
     gameTitle: GAME_TITLE,
+    // Dev preview of a self-hosted page: SELF_HOSTED=true npm run dev.
+    selfHosted: env.SELF_HOSTED === "true" ? true : undefined,
     manifestHref: buildAssetUrl("manifest.json", assetManifest, cdnBase),
     faviconHref: buildAssetUrl(EMBLEM_ASSET, assetManifest, cdnBase),
     gameplayScreenshotUrl: buildAssetUrl(

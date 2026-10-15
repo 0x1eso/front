@@ -199,7 +199,7 @@
         cdnBase: <%- cdnBase %>,
         gameEnv: <%- gameEnv %>,<%- typeof cluster !== "undefined" && cluster ? "\n        cluster: " + cluster + "," : "" %><%- typeof instanceLetter !== "undefined" && instanceLetter ? "\n        instanceLetter: " + instanceLetter + "," : "" %>
         turnstileSiteKey: <%- turnstileSiteKey %>,
-        jwtAudience: <%- jwtAudience %>,<%- typeof stripePublishableKey !== "undefined" && stripePublishableKey ? "\n        stripePublishableKey: " + stripePublishableKey + "," : "" %><%- typeof faroCollectorUrl !== "undefined" && faroCollectorUrl ? "\n        faroCollectorUrl: " + faroCollectorUrl + "," : "" %><%- typeof instanceId !== "undefined" && instanceId ? "\n        instanceId: " + instanceId + "," : "" %><%- typeof serverHost !== "undefined" && serverHost ? "\n        serverHost: " + serverHost + "," : "" %><%- typeof siteHost !== "undefined" && siteHost ? "\n        siteHost: " + siteHost + "," : "" %>
+        jwtAudience: <%- jwtAudience %>,<%- typeof stripePublishableKey !== "undefined" && stripePublishableKey ? "\n        stripePublishableKey: " + stripePublishableKey + "," : "" %><%- typeof faroCollectorUrl !== "undefined" && faroCollectorUrl ? "\n        faroCollectorUrl: " + faroCollectorUrl + "," : "" %><%- typeof instanceId !== "undefined" && instanceId ? "\n        instanceId: " + instanceId + "," : "" %><%- typeof serverHost !== "undefined" && serverHost ? "\n        serverHost: " + serverHost + "," : "" %><%- typeof siteHost !== "undefined" && siteHost ? "\n        siteHost: " + siteHost + "," : "" %><%- typeof selfHosted !== "undefined" && selfHosted ? "\n        selfHosted: true," : "" %>
       };
       // Set here rather than from the bundle so the first paint already has the
       // desktop layout. The shell's preload defines openfrontDesktop before
@@ -211,67 +211,29 @@
       ) {
         document.documentElement.classList.add("desktop-shell");
       }
+      // A self-hosted server (SELF_HOSTED=true) has no account API:
+      // styles.css hides everything marked .no-self-host, and no Turnstile
+      // token is ever asked for, so its script is not loaded either.
+      if (window.BOOTSTRAP_CONFIG.selfHosted) {
+        document.documentElement.classList.add("self-hosted");
+      } else {
+        const turnstile = document.createElement("script");
+        turnstile.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+        turnstile.async = true;
+        turnstile.defer = true;
+        document.head.appendChild(turnstile);
+      }
       document.documentElement.style.setProperty(
         "--background-image-url",
         `url("<%- backgroundImageUrl %>")`,
       );
     </script>
 
-    <!-- CrazyGames SDK -->
-    <script
-      src="https://sdk.crazygames.com/crazygames-sdk-v3.js"
-      async
-    ></script>
-
-    <!-- Cloudflare Turnstile -->
-    <script
-      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-      async
-      defer
-    ></script>
-
-    <script data-cfasync="false">
-      window.ramp = window.ramp || {};
-      window.ramp.que = window.ramp.que || [];
-      window.ramp.passiveMode = true;
-    </script>
-
-    <script>
-      window.googletag = window.googletag || { cmd: [] };
-      googletag.cmd.push(function () {
-        googletag.pubads().set("page_url", "http://openfront.io ");
-      });
-    </script>
-
-    <!-- Analytics -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=AW-16702609763"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-
-      gtag("js", new Date());
-      gtag("config", "AW-16702609763");
-    </script>
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-WQGQQ8RDN4"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-
-      gtag("config", "G-WQGQQ8RDN4");
-    </script>
+    <!--
+      This fork loads none of upstream's ad, analytics or portal tags: they
+      carry OpenFront's own account IDs. Turnstile is loaded by the bootstrap
+      script above, and only when the server is not self-hosted.
+    -->
   </head>
 
   <body
@@ -600,19 +562,6 @@
       });
     </script>
 
-    <!-- Analytics -->
-    <script
-      defer
-      src="https://static.cloudflareinsights.com/beacon.min.js"
-      data-cf-beacon='{"token": "03d93e6fefb349c28ee69b408fa25a13"}'
-    ></script>
     <script type="module" src="/src/client/Main.ts"></script>
-    <footer>
-      <script
-        data-cfasync="false"
-        async
-        src="//cdn.intergient.com/1025558/75940/ramp.js"
-      ></script>
-    </footer>
   </body>
 </html>
