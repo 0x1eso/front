@@ -54,7 +54,7 @@ const DOMESTIC_ONLY_TYPES = [
   "VictoryProject",
 ];
 // Domestic types the 1500-tick scripted game isn't sure to reach: a nation
-// needs 100 political power for a law and 300 for a government tier.
+// needs 350 political power for a law and 800 for a government tier.
 // tests/domestic/LawsAndGovernment.test.ts covers their snapshots.
 const DOMESTIC_UNSCRIPTED_TYPES = [
   "ChooseGovernment",
