@@ -39,6 +39,7 @@ import { HeadsUpMessage } from "./layers/HeadsUpMessage";
 import { ImmunityTimer } from "./layers/ImmunityTimer";
 import { InGamePromo } from "./layers/InGamePromo";
 import { MainRadialMenu } from "./layers/MainRadialMenu";
+import { MapControls } from "./layers/MapControls";
 import { MultiTabModal } from "./layers/MultiTabModal";
 import { NewLobbyPrompt } from "./layers/NewLobbyPrompt";
 import { PerformanceOverlay } from "./layers/PerformanceOverlay";
@@ -189,6 +190,12 @@ export function createRenderer(
   }
   gameRightSidebar.game = game;
   gameRightSidebar.eventBus = eventBus;
+
+  const mapControls = document.querySelector("map-controls") as MapControls;
+  if (!(mapControls instanceof MapControls)) {
+    console.error("map controls not found");
+  }
+  mapControls.eventBus = eventBus;
 
   const settingsModal = document.querySelector(
     "settings-modal",
@@ -372,6 +379,7 @@ export function createRenderer(
     gameLeftSidebar,
     unitDisplay,
     gameRightSidebar,
+    mapControls,
     controlPanel,
     domesticHud,
     domesticPanel,
