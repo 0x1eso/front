@@ -628,6 +628,7 @@ export function getMessageTypeClasses(type: MessageType): string {
     case MessageType.CONQUERED_PLAYER:
     case MessageType.ALLIANCE_ACCEPTED:
     case MessageType.RESEARCH_COMPLETE:
+    case MessageType.GOVERNMENT_TIER_REACHED:
       return severityColors["success"];
     case MessageType.ATTACK_FAILED:
     case MessageType.ALLIANCE_REJECTED:
