@@ -36,6 +36,7 @@ import { GameStartingModal } from "./GameStartingModal";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
+import { isSelfHosted } from "./SelfHosted";
 import { lastUserMeResponse } from "./UserMeBroadcast";
 import { UsernameInput } from "./UsernameInput";
 import { UserSettings } from "./UserSettings";
@@ -300,7 +301,8 @@ export class SinglePlayerModal extends BaseModal {
   };
 
   private renderNotLoggedInBanner(): TemplateResult {
-    if (gamePortal.isOnGamePortal()) {
+    // A self-hosted server has no accounts to sign in to.
+    if (gamePortal.isOnGamePortal() || isSelfHosted()) {
       return html``;
     }
     return html`<button
