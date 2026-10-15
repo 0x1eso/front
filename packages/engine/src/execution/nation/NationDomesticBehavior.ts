@@ -15,6 +15,10 @@ import { ResearchExecution } from "../../domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "../../domestic/SetRecruitTargetExecution";
 import { Game, Player } from "../../game/Game";
 import { NationDomesticPlan, nationDomesticPlan } from "./NationPersonality";
+import {
+  nationIsSavingForProject,
+  nationProjectKind,
+} from "./NationVictoryBehavior";
 
 /**
  * Nations start attacks at 50-60% of max troops (AiAttackBehavior's
@@ -43,7 +47,22 @@ export function nationDomesticTick(
   maybeResearch(mg, player, d, p);
   // Adopting a government restarts the law cooldown; laws wait a check.
   if (maybeChooseGovernment(mg, player, d, p)) return;
+  // Political power saved for world government isn't spent on laws.
+  if (isSavingForWorldGovernment(mg, player, p)) return;
   maybeProclaimLaw(mg, player, d, p);
+}
+
+/** Saving up for the political victory project (NationVictoryBehavior). */
+function isSavingForWorldGovernment(
+  mg: Game,
+  player: Player,
+  plan: NationDomesticPlan,
+): boolean {
+  const kind = nationProjectKind(
+    mg.config().gameConfig().difficulty,
+    plan.personality,
+  );
+  return kind === "political" && nationIsSavingForProject(player, kind);
 }
 
 function updateRecruitTarget(
