@@ -155,8 +155,15 @@ function proclaimButton(
         ctx.view.pct("goldPaymentCost"),
       );
   const affordable = ctx.gold >= gold;
-  // The gold amount is part of the key: a new price needs a new confirm.
-  const key = `law:${law}:${option}:gold:${gold}`;
+  // The armed key carries the price it was armed at. The price falls every
+  // second as political points come in, and a confirm holds for any price up
+  // to that one; a higher price needs a new confirm.
+  const priced = `law:${law}:${option}:gold@`;
+  const armedAt = ctx.armed?.startsWith(priced)
+    ? BigInt(ctx.armed.slice(priced.length))
+    : null;
+  const key =
+    armedAt !== null && gold <= armedAt ? ctx.armed! : `${priced}${gold}`;
   return html`<button
       type="button"
       class="${BUTTON} bg-amber-700 hover:bg-amber-600 ${confirmTapClass(

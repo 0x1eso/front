@@ -180,6 +180,69 @@ describe("laws tab", () => {
     expect(proclaim).toHaveBeenCalledWith("trade", "A", true);
   });
 
+  /**
+   * The gold tab of a law whose price moves between the taps: `political`
+   * changes each processed second, and with it the gold still missing.
+   */
+  function goldLaw(political: number) {
+    const proclaim = vi.fn();
+    const root = document.createElement("div");
+    let points = political;
+    const confirm: ConfirmTap = {
+      armed: null,
+      arm(key) {
+        confirm.armed = key;
+        draw();
+      },
+    };
+    const draw = () =>
+      render(
+        renderLawsTab({
+          view: new DomesticClientView({ ...BASE, political: points }),
+          gold: 10_000_000n,
+          infiniteGold: false,
+          nowTick: 0,
+          proclaim,
+          ...confirm,
+        }),
+        root,
+      );
+    draw();
+    return {
+      proclaim,
+      button: () => optionButton(root, "taxation", "B"),
+      /** A processed second changes the political points: the panel redraws. */
+      setPolitical(next: number) {
+        points = next;
+        draw();
+      },
+    };
+  }
+
+  test("a gold price that falls between the taps still proclaims (C2)", () => {
+    const law = goldLaw(40);
+    law.button().click();
+    expect(law.button().textContent).toContain("domestic.tap_again_to_confirm");
+    // One second of political income: the gold price drops.
+    law.setPolitical(43);
+    expect(law.button().textContent).toContain("domestic.tap_again_to_confirm");
+    law.button().click();
+    expect(law.proclaim).toHaveBeenCalledExactlyOnceWith("taxation", "B", true);
+  });
+
+  test("a gold price that rose between the taps asks for a new confirm (C2)", () => {
+    const law = goldLaw(43);
+    law.button().click();
+    // Political points spent elsewhere: the gold price goes up.
+    law.setPolitical(40);
+    expect(law.button().textContent).toContain("domestic.proclaim_with_gold");
+    law.button().click();
+    expect(law.proclaim).not.toHaveBeenCalled();
+    expect(law.button().textContent).toContain("domestic.tap_again_to_confirm");
+    law.button().click();
+    expect(law.proclaim).toHaveBeenCalledExactlyOnceWith("taxation", "B", true);
+  });
+
   test("the cooldown and a missing tech disable the buttons", () => {
     const cooling = mount(
       renderLawsTab({
