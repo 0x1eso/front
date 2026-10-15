@@ -1,8 +1,10 @@
+import { StatKey } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
   Gold,
   PlayerInfo,
   PlayerType,
+  Structures,
   TerrainType,
   TerraNullius,
   Tick,
@@ -16,7 +18,12 @@ import { exp, log, pow2 } from "@openfront/engine-lib/DetMath";
 import {
   BUILDING_BASE_COST,
   BUILDING_MAX_COST,
+  CITY_TAX_PER_LEVEL_PER_TICK,
 } from "@openfront/engine-lib/domestic/Balance";
+import {
+  applyPct,
+  capCombinedPct,
+} from "@openfront/engine-lib/domestic/Modifiers";
 import {
   assertNever,
   sigmoid,
@@ -37,6 +44,8 @@ export interface AttackLogicInput {
     isTraitor: boolean;
     /** Defender is disconnected and on the attacker's team. */
     isDisconnectedTeammate: boolean;
+    /** Domestic mode: defense-post effect scale (1 = vanilla). */
+    defensePostScale?: number;
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
@@ -56,6 +65,17 @@ export interface AttackLogicResult {
    */
   tickFraction: number;
 }
+
+/** Domestic mode: the unit-specific build-cost stat (spec §7.2). */
+const DOMESTIC_COST_STAT: Partial<Record<UnitType, StatKey>> = {
+  [UnitType.Port]: "portCost",
+  [UnitType.MissileSilo]: "siloSamCost",
+  [UnitType.SAMLauncher]: "siloSamCost",
+  [UnitType.AtomBomb]: "nukeCost",
+  [UnitType.HydrogenBomb]: "nukeCost",
+  [UnitType.MIRV]: "nukeCost",
+  [UnitType.DefensePost]: "defensePostCost",
+};
 
 // attackLogic tunables
 const LARGE_TERRITORY_MIDPOINT = 300_000;
@@ -339,7 +359,11 @@ export class EngineConfig extends Config {
           ) {
             return 0n;
           }
-          return 25_000_000n + BigInt(game.mirvsLaunched()) * 15_000_000n;
+          return this.withDomesticCost(
+            player,
+            UnitType.MIRV,
+            25_000_000 + game.mirvsLaunched() * 15_000_000,
+          );
         };
       case UnitType.MissileSilo:
         return this.costWrapper(() => 1_000_000, UnitType.MissileSilo);
@@ -437,8 +461,27 @@ export class EngineConfig extends Config {
           Math.min(player.unitsOwned(type), player.unitsConstructed(type)),
         0,
       );
-      return BigInt(costFn(numUnits + extraUnits));
+      return this.withDomesticCost(
+        player,
+        types[0],
+        costFn(numUnits + extraUnits),
+      );
     };
+  }
+
+  /** Applies domestic build-cost modifiers (spec §7.2) to a base cost. */
+  private withDomesticCost(
+    player: Player,
+    type: UnitType,
+    base: number,
+  ): bigint {
+    const domestic = this.domesticOf(player);
+    if (domestic === null) return BigInt(base);
+    let pct = Structures.has(type) ? domestic.pct("buildCost") : 0;
+    const stat = DOMESTIC_COST_STAT[type];
+    if (stat !== undefined) pct += domestic.pct(stat);
+    pct = capCombinedPct(pct);
+    return pct === 0 ? BigInt(base) : BigInt(Math.round(applyPct(base, pct)));
   }
 
   defaultDonationAmount(sender: PlayerLike): number {
@@ -510,8 +553,10 @@ export class EngineConfig extends Config {
     let { mag, tileCost } = terrainAttackBase(input.terrain);
 
     if (defender !== null && input.defenderHasDefensePost) {
-      mag *= this.defensePostDefenseBonus();
-      tileCost *= this.defensePostSpeedBonus();
+      // scale 1 reproduces the vanilla multipliers exactly.
+      const scale = defender.defensePostScale ?? 1;
+      mag *= 1 + (this.defensePostDefenseBonus() - 1) * scale;
+      tileCost *= 1 + (this.defensePostSpeedBonus() - 1) * scale;
     }
     if (input.falloutRatio !== null) {
       const fallout = this.falloutDefenseModifier(input.falloutRatio);
@@ -658,7 +703,23 @@ export class EngineConfig extends Config {
     } else {
       baseRate = 100n;
     }
-    return BigInt(Math.floor(Number(baseRate) * multiplier));
+    const domestic = this.domesticOf(player);
+    if (domestic === null) {
+      return BigInt(Math.floor(Number(baseRate) * multiplier));
+    }
+    let cityLevels = 0;
+    for (const city of player.units(UnitType.City)) {
+      if (!city.isUnderConstruction()) cityLevels += city.level();
+    }
+    const cityTax = applyPct(
+      cityLevels * CITY_TAX_PER_LEVEL_PER_TICK,
+      domestic.pct("cityTax"),
+    );
+    const income = applyPct(
+      Number(baseRate) + cityTax,
+      capCombinedPct(domestic.pct("goldIncome") + domestic.pct("allGold")),
+    );
+    return BigInt(Math.floor(income * multiplier));
   }
 
   nukeSpeed(unitType: UnitType): number {

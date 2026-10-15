@@ -1,4 +1,5 @@
 import {
+  Gold,
   MessageType,
   PlayerType,
   UnitType,
@@ -18,7 +19,10 @@ import {
   UPKEEP_FREE_BAND_PCT,
   UPKEEP_GOLD_PER_1000_EXCESS,
 } from "@openfront/engine-lib/domestic/Balance";
-import { applyPct } from "@openfront/engine-lib/domestic/Modifiers";
+import {
+  applyPct,
+  capCombinedPct,
+} from "@openfront/engine-lib/domestic/Modifiers";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import type { Game, Player } from "../game/Game";
 import type { PlayerDomestic } from "./PlayerDomestic";
@@ -168,4 +172,45 @@ export function payRecruitment(player: Player, troops: number): number {
   const affordable = Math.floor((Number(gold) * 1000) / costPer1000);
   player.removeGold(gold);
   return Math.min(troops, affordable);
+}
+
+/**
+ * A trade ship or train payout as `recipient` receives it (spec §7.2):
+ * trade, the kind's own stat and allGold always apply; foreignTrade when
+ * the partner is someone else; alliedTrade when the partner is an ally.
+ * Ships and trains pay the same base amount to both sides, so each side
+ * calls this separately.
+ */
+export function domesticTradeGold(
+  base: Gold,
+  recipient: Player,
+  partner: Player,
+  kind: "tradeShip" | "train",
+): Gold {
+  const d = recipient.domestic();
+  if (d === null) return base;
+  let pct = d.pct("trade") + d.pct(kind) + d.pct("allGold");
+  if (partner !== recipient) {
+    pct += d.pct("foreignTrade");
+    if (recipient.isAlliedWith(partner)) pct += d.pct("alliedTrade");
+  }
+  pct = capCombinedPct(pct);
+  return pct === 0 ? base : BigInt(Math.round(applyPct(Number(base), pct)));
+}
+
+/** tradeShipSpawnRate is "1 in N"; tradeShipSpawn +50% divides N by 1.5. */
+export function domesticTradeShipSpawnRate(
+  rate: number,
+  portOwner: Player,
+): number {
+  const d = portOwner.domestic();
+  if (d === null) return rate;
+  const pct = d.pct("tradeShipSpawn");
+  return pct === 0 ? rate : Math.max(1, Math.floor(rate / (1 + pct / 100)));
+}
+
+/** How strongly the defender's defense posts apply (1 = vanilla). */
+export function domesticDefensePostScale(defender: Player): number {
+  const d = defender.domestic();
+  return d === null ? 1 : 1 + d.pct("defensePost") / 100;
 }

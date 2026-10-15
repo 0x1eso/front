@@ -23,6 +23,7 @@ import {
 import { assertNever } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { AttackLogicInput } from "../configuration/EngineConfig";
+import { domesticDefensePostScale } from "../domestic/DomesticEconomy";
 import { Attack, Execution, Game, Player } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -391,6 +392,7 @@ export class AttackExecution implements Execution {
               isTraitor: defender.isTraitor(),
               isDisconnectedTeammate:
                 defender.isDisconnected() && this._owner.isOnSameTeam(defender),
+              defensePostScale: domesticDefensePostScale(defender),
             },
       defenderHasDefensePost,
       falloutRatio: this.mg.hasFallout(tile)

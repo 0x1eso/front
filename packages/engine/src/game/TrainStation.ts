@@ -8,6 +8,7 @@ import {
   zRef,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { domesticTradeGold } from "../domestic/DomesticEconomy";
 import { TrainExecution } from "../execution/TrainExecution";
 import type {
   SnapshotReader,
@@ -40,12 +41,24 @@ class TradeStationStopHandler implements TrainStopHandler {
       );
     // Share revenue with the station owner if it's not the current player
     if (trainOwner !== stationOwner) {
-      stationOwner.addGold(gold, station.tile());
-      stationOwner.addTrainGold(gold);
+      const stationGold = domesticTradeGold(
+        gold,
+        stationOwner,
+        trainOwner,
+        "train",
+      );
+      stationOwner.addGold(stationGold, station.tile());
+      stationOwner.addTrainGold(stationGold);
       mg.stats().trainExternalTrade(stationOwner, gold);
     }
-    trainOwner.addGold(gold, station.tile());
-    trainOwner.addTrainGold(gold);
+    const ownerGold = domesticTradeGold(
+      gold,
+      trainOwner,
+      stationOwner,
+      "train",
+    );
+    trainOwner.addGold(ownerGold, station.tile());
+    trainOwner.addTrainGold(ownerGold);
     mg.stats().trainSelfTrade(trainOwner, gold);
   }
 }
