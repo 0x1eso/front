@@ -137,7 +137,10 @@ export const LAWS: Readonly<Record<LawId, LawDef>> = {
   ),
 };
 
-/** round(100 × 1.5^k): the next law's cost after `proclaimed` laws, before lawCost. */
+/**
+ * The next law's cost after `proclaimed` laws, before lawCost:
+ * round(LAW_BASE_COST × LAW_COST_GROWTH^k).
+ */
 export function lawBaseCost(proclaimed: number): number {
   let cost = LAW_BASE_COST;
   for (let i = 0; i < proclaimed; i++) {

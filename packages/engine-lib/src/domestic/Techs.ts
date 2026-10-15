@@ -130,7 +130,7 @@ export const TECHS: Readonly<Record<TechId, TechDef>> = {
     prereqs: ["thermonuclear"],
     unlocks: [UnitType.MIRV],
   }),
-  // The science-victory project itself arrives in phase 3.
+  // Qualifies for the science victory project (Victory.ts projectQualified).
   space_program: tech("space_program", 4, "learning", {
     prereqs: ["computers"],
     cost: SPACE_PROGRAM_COST,
