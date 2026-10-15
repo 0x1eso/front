@@ -163,7 +163,7 @@ function renderSectionHeader(
   return html`
     <div class="flex items-center gap-4 pb-2 border-b border-white/10">
       <div
-        class="w-8 h-8 rounded-lg flex items-center justify-center ${bgClass} ${colorClass}"
+        class="config-section-icon w-8 h-8 rounded-lg flex items-center justify-center ${bgClass} ${colorClass}"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

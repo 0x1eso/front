@@ -29,7 +29,9 @@
       html.preload {
         visibility: visible !important;
         opacity: 1 !important;
-        background-color: #111827 !important;
+        /* The menus' paper (src/client/atlas.css), so the page does not
+           flash dark before it loads. */
+        background-color: #f4efe4 !important;
       }
 
       html.preload body {
@@ -231,10 +233,6 @@
         turnstile.defer = true;
         document.head.appendChild(turnstile);
       }
-      document.documentElement.style.setProperty(
-        "--background-image-url",
-        `url("<%- backgroundImageUrl %>")`,
-      );
     </script>
 
     <!--
@@ -247,16 +245,11 @@
   <body
     class="select-none font-sans min-h-screen bg-neutral-800 transition-opacity duration-300 ease-in-out flex flex-row flex-wrap content-start"
   >
-    <div id="hex-grid" class="fixed inset-0 -z-50 pointer-events-none">
-      <div
-        id="background-layer"
-        class="absolute inset-x-0 top-0 -bottom-[4cm] bg-cover opacity-30 [filter:brightness(1.0)] dark:[filter:sepia(0.2)_saturate(1.2)_hue-rotate(180deg)_brightness(0.9)]"
-        style="
-          background-image: var(--background-image-url);
-          background-position: center top;
-        "
-      ></div>
-    </div>
+    <!-- Paper and contour lines behind the menus (src/client/atlas.css). -->
+    <div
+      class="atlas-backdrop fixed inset-0 -z-50 pointer-events-none in-[.in-game]:hidden"
+      aria-hidden="true"
+    ></div>
 
     <!-- LEFT SIDEBAR MENU -->
 
@@ -269,14 +262,15 @@
 
     <mobile-nav-bar
       id="sidebar-menu"
-      class="peer [.in-game_&]:hidden z-[40001] fixed left-0 top-0 h-full flex flex-col justify-start overflow-visible bg-black/70 backdrop-blur-xl border-r border-white/10 transition-transform duration-500 ease-out transform -translate-x-full w-[70%] [&.open]:translate-x-0 lg:hidden"
+      class="atlas peer [.in-game_&]:hidden z-[40001] fixed left-0 top-0 h-full flex flex-col justify-start overflow-visible bg-black/70 backdrop-blur-xl border-r border-white/10 transition-transform duration-500 ease-out transform -translate-x-full w-[70%] [&.open]:translate-x-0 lg:hidden"
       role="dialog"
       data-i18n-aria-label="main.menu"
     ></mobile-nav-bar>
 
-    <!-- MAIN CONTENT AREA -->
+    <!-- MAIN CONTENT AREA. .atlas: the light menu theme (atlas.css) covers
+         everything in here; the in-game HUD below keeps the dark one. -->
     <div
-      class="in-[.in-game]:hidden flex-1 basis-full min-w-0 min-h-dvh in-[.page-open]:min-h-0 in-[.page-open]:overflow-hidden relative pt-[var(--top-ad-pad,0px)] in-[.page-open]:pt-[var(--top-ad-height,0px)] transition-[margin] duration-500 ease-out will-change-[margin-left] flex flex-col"
+      class="atlas in-[.in-game]:hidden flex-1 basis-full min-w-0 min-h-dvh in-[.page-open]:min-h-0 in-[.page-open]:overflow-hidden relative pt-[var(--top-ad-pad,0px)] in-[.page-open]:pt-[var(--top-ad-height,0px)] transition-[margin] duration-500 ease-out will-change-[margin-left] flex flex-col"
     >
       <!-- Desktop Top Bar (sticky so it stays visible while the page scrolls,
            offset below the header ad when one is showing; static while an
@@ -459,7 +453,7 @@
     <domestic-panel></domestic-panel>
     <win-modal></win-modal>
     <new-lobby-prompt></new-lobby-prompt>
-    <game-starting-modal></game-starting-modal>
+    <game-starting-modal class="atlas"></game-starting-modal>
     <!-- data-hud-top-right: the open domestic drawer stays below this. -->
     <div
       data-hud-top-right

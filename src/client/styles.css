@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Statecraft's light menu theme; the in-game HUD keeps the dark look. */
+@import "./atlas.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant hover (&:hover);
@@ -156,10 +158,13 @@ body.page-open {
   }
 }
 
+/* --scrollbar-thumb: the light menus (atlas.css) set a dark thumb. A variable
+   because it also has to reach o-modal's shadow root. */
 @media (min-width: 1024px) {
   * {
     scrollbar-width: auto;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.2))
+      transparent;
   }
 }
 
@@ -181,7 +186,7 @@ body.page-open {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.2));
   border-radius: 4px;
 }
 

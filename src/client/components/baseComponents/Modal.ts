@@ -131,7 +131,7 @@ export class OModal extends LitElement {
               aria-selected=${active}
               class="shrink-0 whitespace-nowrap min-h-10 px-2 py-3 text-[11px] leading-4 tracking-wide sm:px-4 sm:text-sm sm:leading-5 sm:tracking-wider font-bold uppercase transition-all relative cursor-pointer ${active
                 ? "text-aquarius"
-                : "text-white/40 hover:text-white/70"}"
+                : "text-[color:var(--o-modal-tab-idle,rgb(255_255_255/0.4))] hover:text-[color:var(--o-modal-tab-hover,rgb(255_255_255/0.7))]"}"
               @click=${() => this.handleTabClick(tab.key)}
             >
               ${tab.label}
@@ -166,8 +166,9 @@ export class OModal extends LitElement {
       !this.inline && this.maxWidth ? `max-width: ${this.maxWidth};` : "";
 
     const hasTabs = this.tabs.length > 0;
+    // --o-modal-panel: the light menus (atlas.css) draw the panel on paper.
     const sectionClass =
-      "relative flex-1 min-h-0 flex flex-col text-white bg-black/70 backdrop-blur-xl lg:rounded-2xl lg:border border-white/10 overflow-hidden";
+      "relative flex-1 min-h-0 flex flex-col text-white bg-[color:var(--o-modal-panel,rgb(0_0_0/0.7))] backdrop-blur-xl lg:rounded-2xl lg:border border-white/10 overflow-hidden";
 
     return html`
       <aside
