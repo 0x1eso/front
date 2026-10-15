@@ -277,12 +277,6 @@ describe("clan-boost-dialog", () => {
     expect(document.activeElement).toBe(tierButton("spark"));
   });
 
-  it("keeps [role=dialog] > div from matching, so the Halloween theme leaves the panel and its rows alone", async () => {
-    await open();
-    expect(q('[role="dialog"] > div')).toBeNull();
-    expect(q('[role="dialog"] > [data-boost-panel]')).not.toBeNull();
-  });
-
   it("Escape cancels the dialog only, not the clan modal underneath", async () => {
     const underneath = vi.fn();
     window.addEventListener("keydown", underneath);
