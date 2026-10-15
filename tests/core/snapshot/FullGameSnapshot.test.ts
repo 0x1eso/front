@@ -44,6 +44,9 @@ interface Reference {
   execTypes: Set<string>;
 }
 
+// Execution types that only a domestic-mode game creates.
+const DOMESTIC_ONLY_TYPES = ["Domestic", "Research", "SetRecruitTarget"];
+
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),
 );
@@ -124,6 +127,9 @@ const VARIANTS: [string, Partial<GameConfig>][] = [
   // Water nukes rewrite terrain and the water graph mid-game.
   ["water nukes", { waterNukes: true }],
   ["teams", { gameMode: GameMode.Team, playerTeams: 2 }],
+  // The domestic economy and troop recruitment, tech locks, and the nations'
+  // research and recruit-target executions.
+  ["domestic", { domesticMode: true }],
 ];
 
 describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
@@ -193,20 +199,22 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
   test(
     "the game exercised every execution type",
     () => {
-      if (Object.keys(overrides).length > 0) return; // checked once, on FFA
-      // Runs during the spawn phase and finishes inside init, so it is never
-      // alive at a tick boundary. BasicExecutions.test.ts covers it directly.
-      // "Domestic", "Research" and "SetRecruitTarget" only exist in domestic
-      // mode, which these games don't use; tests/domestic covers them.
-      const neverStored = new Set([
-        "Pause",
-        "Domestic",
-        "Research",
-        "SetRecruitTarget",
-      ]);
-      const missing = EXECUTION_SNAPSHOT_TYPES.map((t) => t.name).filter(
-        (name) => !reference.execTypes.has(name) && !neverStored.has(name),
-      );
+      // FFA covers every vanilla type and the domestic game the
+      // domestic-only ones; the other variants aren't checked.
+      let expected: string[];
+      if (Object.keys(overrides).length === 0) {
+        // Pause runs during the spawn phase and finishes inside init, so it
+        // is never alive at a tick boundary. BasicExecutions.test.ts covers
+        // it directly.
+        expected = EXECUTION_SNAPSHOT_TYPES.map((t) => t.name).filter(
+          (name) => name !== "Pause" && !DOMESTIC_ONLY_TYPES.includes(name),
+        );
+      } else if (overrides.domesticMode === true) {
+        expected = DOMESTIC_ONLY_TYPES;
+      } else {
+        return;
+      }
+      const missing = expected.filter((name) => !reference.execTypes.has(name));
       expect(missing).toEqual([]);
     },
     TEST_TIMEOUT,
