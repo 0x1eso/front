@@ -1260,8 +1260,8 @@ export class PlayerImpl implements Player {
     if (embargo || other.id() === this.id()) return false;
     // Domestic mode: isolationism forbids trade with any other nation.
     return !(
-      this._domestic?.hasFlag("noForeignTrade") ||
-      other.domestic()?.hasFlag("noForeignTrade")
+      this._domestic?.hasFlag("noForeignTrade") === true ||
+      other.domestic()?.hasFlag("noForeignTrade") === true
     );
   }
 
