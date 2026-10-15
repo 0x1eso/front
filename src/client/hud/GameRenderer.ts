@@ -21,6 +21,8 @@ import "../UserSettingModal";
 import type { UserSettingModal } from "../UserSettingModal";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
+import { DomesticHud } from "./domestic/DomesticHud";
+import { DomesticPanel } from "./domestic/DomesticPanel";
 import { FrameProfiler } from "./FrameProfiler";
 import { ActionableEvents } from "./layers/ActionableEvents";
 import { AlertFrame } from "./layers/AlertFrame";
@@ -233,6 +235,22 @@ export function createRenderer(
   unitDisplay.eventBus = eventBus;
   unitDisplay.uiState = uiState;
 
+  const domesticHud = document.querySelector("domestic-hud") as DomesticHud;
+  if (!(domesticHud instanceof DomesticHud)) {
+    console.error("domestic hud not found");
+  }
+  domesticHud.game = game;
+  domesticHud.eventBus = eventBus;
+
+  const domesticPanel = document.querySelector(
+    "domestic-panel",
+  ) as DomesticPanel;
+  if (!(domesticPanel instanceof DomesticPanel)) {
+    console.error("domestic panel not found");
+  }
+  domesticPanel.game = game;
+  domesticPanel.eventBus = eventBus;
+
   const playerPanel = document.querySelector("player-panel") as PlayerPanel;
   if (!(playerPanel instanceof PlayerPanel)) {
     console.error("player panel not found");
@@ -355,6 +373,8 @@ export function createRenderer(
     unitDisplay,
     gameRightSidebar,
     controlPanel,
+    domesticHud,
+    domesticPanel,
     playerInfo,
     winModal,
     newLobbyPrompt,
