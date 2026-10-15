@@ -120,7 +120,6 @@ describe("fork branding", () => {
 // unused. Locales other than en and ko are left as upstream wrote them.
 const GUEST_VISIBLE_KEYS = [
   "common.backend_unreachable",
-  "mode_selector.servers_unreachable",
   "graphics_setting.preset_default_desc",
   "help_modal.troubleshooting_desc",
   "help_modal.video_tutorial_title",
