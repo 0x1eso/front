@@ -33,8 +33,10 @@ export const UPKEEP_GOLD_PER_1000_EXCESS = 1.5;
 export const DESERTION_PCT_PER_SEC = 1;
 export const DEMOBILIZE_PCT_PER_SEC = 1;
 
-export const RECRUIT_TARGET_MIN_PCT = 10;
-export const RECRUIT_TARGET_MAX_PCT = 100;
+export {
+  RECRUIT_TARGET_MAX_PCT,
+  RECRUIT_TARGET_MIN_PCT,
+} from "@openfront/engine-api/domestic/Limits";
 export const RECRUIT_TARGET_DEFAULT_PCT = 100;
 
 /** Gold per missing point when paying a research shortfall. */
@@ -87,9 +89,11 @@ export const STAT_CAPS = {
 // Victory (spec §8, §11.1).
 /** Land share (percent) that wins by conquest in domestic mode; vanilla keeps 80. */
 export const DOMESTIC_CONQUEST_PERCENT = 70;
-/** Lobby bounds for GameConfig.conquestPercent (100 = no conquest victory). */
-export const CONQUEST_PERCENT_MIN = 30;
-export const CONQUEST_PERCENT_MAX = 100;
+// Lobby bounds for GameConfig.conquestPercent (100 = no conquest victory).
+export {
+  CONQUEST_PERCENT_MAX,
+  CONQUEST_PERCENT_MIN,
+} from "@openfront/engine-api/domestic/Limits";
 /** Game length when the lobby leaves maxTimerValue unset. */
 export const DOMESTIC_TIMER_MINUTES = 30;
 export const SCIENCE_PROJECT_GOLD = 5_000_000n;

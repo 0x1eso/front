@@ -9,6 +9,12 @@ import {
   VICTORY_PROJECT_KINDS,
 } from "./domestic/DomesticTypes";
 import {
+  CONQUEST_PERCENT_MAX,
+  CONQUEST_PERCENT_MIN,
+  RECRUIT_TARGET_MAX_PCT,
+  RECRUIT_TARGET_MIN_PCT,
+} from "./domestic/Limits";
+import {
   AllPlayers,
   Difficulty,
   Duos,
@@ -353,9 +359,11 @@ export const GameConfigSchema = z.object({
   domesticMode: z.boolean().optional(),
   // Domestic mode: land share (percent) that wins by conquest. Unset means
   // 70; ignored outside domestic mode (vanilla keeps 80). 100 turns conquest
-  // victory off. Bounds mirror CONQUEST_PERCENT_MIN/MAX in engine-lib's
-  // domestic/Balance.ts (engine-api can't import engine-lib).
-  conquestPercent: zb.uint({ min: 30, max: 100 }).nullable().optional(),
+  // victory off. Bounds live in domestic/Limits.ts (shared with the UI).
+  conquestPercent: zb
+    .uint({ min: CONQUEST_PERCENT_MIN, max: CONQUEST_PERCENT_MAX })
+    .nullable()
+    .optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -592,7 +600,10 @@ export const ResearchTechIntentSchema = z.object({
 // Domestic mode: troops stop regrowing at this percent of max troops.
 export const SetRecruitTargetIntentSchema = z.object({
   type: z.literal("set_recruit_target"),
-  percent: zb.uint({ min: 10, max: 100 }),
+  percent: zb.uint({
+    min: RECRUIT_TARGET_MIN_PCT,
+    max: RECRUIT_TARGET_MAX_PCT,
+  }),
 });
 
 // Domestic mode: proclaim one option of a law forever, paying a political
