@@ -141,8 +141,15 @@ describe("nations don't save gold for locked units", () => {
     expect(saveUpTarget()).toBe(0n);
   });
 
-  test("a silo and Radar but no Manhattan Project: saves for a SAM", async () => {
-    const { cost, saveUpTarget } = await savingNation(["rocketry", "radar"]);
+  test("a silo and Radar but no Manhattan Project: saves for a SAM once a hostile player owns a silo", async () => {
+    const { game, cost, saveUpTarget } = await savingNation([
+      "rocketry",
+      "radar",
+    ]);
+    expect(saveUpTarget()).toBe(0n);
+    const human = game.player(HUMAN.id);
+    human.conquer(game.ref(90, 90));
+    human.buildUnit(UnitType.MissileSilo, game.ref(90, 90), {});
     expect(saveUpTarget()).toBe(cost(UnitType.SAMLauncher));
   });
 

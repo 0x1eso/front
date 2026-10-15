@@ -735,6 +735,7 @@ export class NationStructureBehavior {
       UnitType.MissileSilo,
     ];
 
+    // Our own silo needs a nuke we can buy (domestic-mode techs included)
     const nukesEnabled =
       !this.player.isUnitUnavailable(UnitType.AtomBomb) ||
       !this.player.isUnitUnavailable(UnitType.HydrogenBomb) ||
@@ -751,17 +752,13 @@ export class NationStructureBehavior {
         continue;
       }
 
-      // Skip missile silos and SAM launchers if all nukes are disabled
-      if (
-        !nukesEnabled &&
-        (structureType === UnitType.MissileSilo ||
-          structureType === UnitType.SAMLauncher)
-      ) {
+      // Skip missile silos if all nukes are disabled
+      if (!nukesEnabled && structureType === UnitType.MissileSilo) {
         continue;
       }
 
-      // Skip SAM launchers if missile silos are disabled
-      if (!missileSilosEnabled && structureType === UnitType.SAMLauncher) {
+      // Skip SAM launchers if nobody can nuke us
+      if (structureType === UnitType.SAMLauncher && !this.buildsSams()) {
         continue;
       }
 
@@ -1029,11 +1026,48 @@ export class NationStructureBehavior {
     return { target, pacesPlacements: true };
   }
 
-  /** A SAM's cost; 0 in domestic mode before Radar, as there's nothing worth saving for yet. */
+  /**
+   * A SAM's cost. Domestic mode: 0 while this nation builds no SAMs
+   * (buildsSams), as there's nothing worth saving for yet.
+   */
   private samSaveUpTarget(): Gold {
-    return this.player.isUnitLocked(UnitType.SAMLauncher)
-      ? 0n
-      : this.cost(UnitType.SAMLauncher);
+    if (this.game.config().domesticMode() && !this.buildsSams()) {
+      return 0n;
+    }
+    return this.cost(UnitType.SAMLauncher);
+  }
+
+  /**
+   * Whether this nation builds SAMs: it can, and someone in the game can
+   * nuke it. That is a question about the game (silos and some nuke not
+   * disabled), not about this nation's own techs. Domestic mode, where techs
+   * lock the nukes: only once a non-friendly player owns a missile silo.
+   */
+  private buildsSams(): boolean {
+    if (this.player.isUnitUnavailable(UnitType.SAMLauncher)) return false;
+    const config = this.game.config();
+    if (
+      config.isUnitDisabled(UnitType.MissileSilo) ||
+      NUKE_TYPES.every((type) => config.isUnitDisabled(type))
+    ) {
+      return false;
+    }
+    return !config.domesticMode() || this.hostileSiloExists();
+  }
+
+  /** Whether a player that isn't friendly to this nation owns a missile silo. */
+  private hostileSiloExists(): boolean {
+    const game = this.game;
+    // Every silo in the game is ours (counts include levels)
+    if (
+      game.unitCount(UnitType.MissileSilo) ===
+      this.player.unitCount(UnitType.MissileSilo)
+    ) {
+      return false;
+    }
+    return game
+      .units(UnitType.MissileSilo)
+      .some((silo) => !this.player.isFriendly(silo.owner()));
   }
 
   /**

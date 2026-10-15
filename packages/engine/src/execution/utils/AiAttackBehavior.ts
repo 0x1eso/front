@@ -966,7 +966,8 @@ export class AiAttackBehavior {
   }
 
   private isBorderingNukedTerritory(): boolean {
-    if (this.player.isUnitUnavailable(UnitType.MissileSilo)) {
+    // Whether anyone in the game can nuke, not whether we can
+    if (this.game.config().isUnitDisabled(UnitType.MissileSilo)) {
       return false;
     }
 
