@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, test } from "vitest";
 import { WebSocket, WebSocketServer } from "ws";
 import { selfHostApiStub } from "../../src/server/SelfHostApiStub";
 import {
+  connectingIp,
   proxyToWorkers,
   proxyUpgradeToWorker,
   workerTarget,
@@ -312,13 +313,43 @@ describe("client addresses through the master", () => {
     expect(wsIps).toEqual(["127.0.0.2", "127.0.0.3"]);
   });
 
+  it("ignores a forged X-Forwarded-For chain", async () => {
+    await get("127.0.0.2", { "x-forwarded-for": "1.2.3.4" });
+    await get("127.0.0.1", {
+      "x-forwarded-for": "1.2.3.4, 198.51.100.9",
+      "cf-connecting-ip": "203.0.113.7",
+    });
+    expect(httpIps).toEqual(["127.0.0.2", "203.0.113.7"]);
+
+    await connect("127.0.0.2", { "x-forwarded-for": "1.2.3.4" });
+    expect(wsIps).toEqual(["127.0.0.2"]);
+  });
+
   it("keeps the client a tunnel reports", async () => {
-    await get("127.0.0.1", { "x-forwarded-for": "203.0.113.7" });
-    await get("127.0.0.1", { "x-forwarded-for": "203.0.113.8" });
+    await get("127.0.0.1", { "cf-connecting-ip": "203.0.113.7" });
+    await get("127.0.0.1", { "cf-connecting-ip": "203.0.113.8" });
     expect(httpIps).toEqual(["203.0.113.7", "203.0.113.8"]);
 
     await connect("127.0.0.1", { "cf-connecting-ip": "203.0.113.7" });
     await connect("127.0.0.1", { "cf-connecting-ip": "203.0.113.8" });
     expect(wsIps).toEqual(["203.0.113.7", "203.0.113.8"]);
+  });
+});
+
+describe("master rate limit key", () => {
+  it("is the tunnel-reported address, not a forged X-Forwarded-For", () => {
+    const req = (headers: Record<string, string>) =>
+      ({ headers, socket: { remoteAddress: "127.0.0.9" } }) as never;
+    expect(connectingIp(req({ "x-forwarded-for": "1.2.3.4" }))).toBe(
+      "127.0.0.9",
+    );
+    expect(
+      connectingIp(
+        req({
+          "x-forwarded-for": "1.2.3.4",
+          "cf-connecting-ip": "203.0.113.7",
+        }),
+      ),
+    ).toBe("203.0.113.7");
   });
 });

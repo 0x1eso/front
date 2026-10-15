@@ -32,31 +32,20 @@ const RANDOM_WORKER_POSTS = new Set([
 ]);
 
 /**
- * The client address the worker should see. Mirrors nginx.conf's
- * `proxy_add_x_forwarded_for`: an incoming X-Forwarded-For (cloudflared sets
- * it) is kept and the connecting socket's address is appended, so the
- * worker's `trust proxy` setting resolves the same client as it did behind
- * nginx. The master is the only public entry point, so an incoming header is
- * trusted no more than nginx trusted it.
+ * The client address the worker should see: Cloudflare's CF-Connecting-IP
+ * (overwritten at the edge, so a client cannot choose it) else the connecting
+ * socket's address (LAN / --local). Incoming X-Forwarded-For is deliberately
+ * ignored: Cloudflare appends to a client-sent chain, so with the worker's
+ * `trust proxy 3` a forged leading entry would win.
  */
-export function forwardedFor(req: http.IncomingMessage): string {
-  const remote = req.socket.remoteAddress ?? "unknown";
-  const incoming = req.headers["x-forwarded-for"];
-  const prior = Array.isArray(incoming) ? incoming.join(", ") : incoming;
-  return prior ? `${prior}, ${remote}` : remote;
-}
-
-/**
- * The address for headers the worker reads directly: Cloudflare's
- * CF-Connecting-IP when present (the worker's WebSocket handler reads it),
- * else the connecting socket, which the worker would otherwise see as the
- * master's own 127.0.0.1.
- */
-function connectingIp(req: http.IncomingMessage): string {
+export function connectingIp(req: http.IncomingMessage): string {
   const cf = req.headers["cf-connecting-ip"];
   if (typeof cf === "string" && cf) return cf;
   return req.socket.remoteAddress ?? "unknown";
 }
+
+/** The X-Forwarded-For sent to the worker: the single client address. */
+export const forwardedFor = connectingIp;
 
 /** Which worker serves a request, or null when the master serves it. */
 export function workerTarget(

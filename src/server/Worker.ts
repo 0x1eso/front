@@ -929,7 +929,10 @@ export async function startWorker() {
 
   // The load balancer will handle routing to this server based on path
   const PORT = ServerEnv.workerPortByIndex(workerId);
-  server.listen(PORT, () => {
+  // Self-hosted: only the master (same host) may reach a worker, so client
+  // addresses can't be chosen by dialing one directly.
+  const listenHost = ServerEnv.selfHosted() ? "127.0.0.1" : undefined;
+  server.listen(PORT, listenHost, () => {
     log.info(`running on http://localhost:${PORT}`);
     log.info(`Handling requests with path prefix /w${workerId}/`);
     // Signal to the master process that this worker is ready

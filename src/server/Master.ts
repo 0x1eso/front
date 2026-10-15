@@ -3,7 +3,7 @@ import { SELF_HOST_API_PREFIX } from "@openfront/shared/SelfHost";
 import cluster from "cluster";
 import crypto from "crypto";
 import express from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -29,6 +29,7 @@ import { startPolling } from "./PollingLoop";
 import { renderAppShell } from "./RenderHtml";
 import { selfHostApiStub } from "./SelfHostApiStub";
 import {
+  connectingIp,
   proxyToWorkers,
   proxyUpgradeToWorker,
   type WorkerRouting,
@@ -133,6 +134,12 @@ app.use(
   rateLimit({
     windowMs: 1000, // 1 second
     max: 20, // 20 requests per IP per second
+    // Self-hosted: key on the tunnel-reported address, not a forgeable
+    // X-Forwarded-For chain.
+    keyGenerator: (req) =>
+      ipKeyGenerator(
+        ServerEnv.selfHosted() ? connectingIp(req) : (req.ip ?? "unknown"),
+      ),
   }),
 );
 
