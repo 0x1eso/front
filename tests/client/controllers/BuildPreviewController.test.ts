@@ -5,8 +5,10 @@ import {
   BuildPreviewController,
   samThreatensNukePreview,
   shouldPreserveGhostAfterBuild,
+  structureIconRadiusPx,
 } from "../../../src/client/controllers/BuildPreviewController";
 import { BuildTapEvent, MouseUpEvent } from "../../../src/client/InputHandler";
+import { createRenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import {
   BuildUnitIntentEvent,
   SendUpgradeStructureIntentEvent,
@@ -166,6 +168,8 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
 
   function makeTouchController(type: UnitType) {
     vi.stubGlobal("requestAnimationFrame", () => 0);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
     const queries: { tile: number | undefined; resolve: () => void }[] = [];
     let answer: (tile: number | undefined) => Answer = () => ({
       canBuild: false,
@@ -242,6 +246,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       updateGhostPreview: vi.fn(),
       updateNukeTrajectory: vi.fn(),
       triggerBlockedFlash: vi.fn(),
+      getSettings: () => createRenderSettings(),
     };
     const uiState = {
       ghostStructure: type,
@@ -279,6 +284,10 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
         for (const q of queries.splice(0)) q.resolve();
         await new Promise((r) => setTimeout(r, 0));
       },
+      /** Time passes with the preview on screen. */
+      wait: (ms: number) => {
+        now += ms;
+      },
       intents: () => ({
         builds: emitted.filter(
           (e): e is BuildUnitIntentEvent => e instanceof BuildUnitIntentEvent,
@@ -296,7 +305,13 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       ? { canBuild: false, canUpgrade: 42 } // the city next to tile 11
       : { canBuild: tile ?? false, canUpgrade: false };
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  /** Long enough for the player to have seen the checked preview. */
+  const SEEN_MS = 350;
 
   test("a tap aims: the ghost is checked at once for that tile and nothing is built", async () => {
     const t = makeTouchController(UnitType.City);
@@ -312,7 +327,8 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     const t = makeTouchController(UnitType.City);
     t.tap(70, 80);
     await t.reply(cityAt);
-    // A fingertip off the first tap still lands on the ghost.
+    t.wait(SEEN_MS);
+    // A fingertip off the first tap still lands on the ghost's icon.
     t.tap(76, 86);
     expect(t.intents().builds.map((b) => [b.unit, b.tile])).toEqual([
       [UnitType.City, 87],
@@ -320,17 +336,42 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     expect(t.uiState.ghostStructure).toBeNull();
   });
 
+  test("a tap on a ghost shown for under 350ms aims again instead of building (C1)", async () => {
+    const t = makeTouchController(UnitType.City);
+    t.tap(70, 80);
+    await t.reply(cityAt);
+    t.wait(SEEN_MS - 50);
+    t.tap(72, 82);
+    expect(t.intents().builds).toHaveLength(0);
+    // A new check for the tile, and the preview shows anew.
+    expect(t.queries.map((q) => q.tile)).toEqual([87]);
+    await t.reply(cityAt);
+    t.wait(SEEN_MS - 50);
+    t.tap(72, 82);
+    expect(t.intents().builds).toHaveLength(0);
+    await t.reply(cityAt);
+    t.wait(SEEN_MS);
+    t.tap(72, 82);
+    expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
+  });
+
   test("a stale check from the previous tile is never confirmed (I1)", async () => {
     const t = makeTouchController(UnitType.City);
     // Aimed next to existing city #42 first: that tile's check says upgrade.
     t.tap(10, 10);
     await t.reply(cityAt);
-    // Re-aim at (7, 8) and confirm before its check is back.
+    t.wait(SEEN_MS);
+    // Re-aim at (7, 8) and tap again before its check is back.
     t.tap(70, 80);
     t.tap(70, 80);
     expect(t.intents().upgrades).toHaveLength(0);
     expect(t.intents().builds).toHaveLength(0);
+    // The early tap is not kept to fire once the check is back (C1).
     await t.reply(cityAt);
+    t.wait(SEEN_MS);
+    expect(t.intents().upgrades).toHaveLength(0);
+    expect(t.intents().builds).toHaveLength(0);
+    t.tap(70, 80);
     expect(t.intents().upgrades).toHaveLength(0);
     expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
   });
@@ -339,6 +380,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     const t = makeTouchController(UnitType.City);
     t.tap(10, 10);
     await t.reply(cityAt);
+    t.wait(SEEN_MS);
     t.tap(10, 10);
     expect(t.intents().upgrades.map((u) => u.unitId)).toEqual([42]);
     expect(t.intents().builds).toHaveLength(0);
@@ -348,10 +390,12 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     const t = makeTouchController(UnitType.City);
     t.tap(70, 80);
     await t.reply(cityAt);
+    t.wait(SEEN_MS);
     t.tap(20, 30);
     expect(t.queries.map((q) => q.tile)).toEqual([32]);
     await t.reply(cityAt);
     expect(t.intents().builds).toHaveLength(0);
+    t.wait(SEEN_MS);
     t.tap(20, 30);
     expect(t.intents().builds.map((b) => b.tile)).toEqual([32]);
   });
@@ -360,10 +404,80 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     const t = makeTouchController(UnitType.City);
     t.tap(70, 80);
     await t.reply(() => ({ canBuild: false, canUpgrade: false }));
+    t.wait(SEEN_MS);
     t.tap(70, 80);
     expect(t.intents().builds).toHaveLength(0);
     expect(t.uiState.ghostStructure).toBe(UnitType.City);
     expect(t.view.triggerBlockedFlash).toHaveBeenCalled();
+  });
+
+  test("a tap 20px from a red (unbuildable) ghost aims again there (C1)", async () => {
+    const t = makeTouchController(UnitType.City);
+    // (7, 8) can't take a city; (9, 8) can.
+    const answer = (tile: number | undefined): Answer =>
+      tile === 87
+        ? { canBuild: false, canUpgrade: false }
+        : { canBuild: tile ?? false, canUpgrade: false };
+    t.tap(70, 80);
+    await t.reply(answer);
+    t.wait(SEEN_MS);
+    // Within the drawn icon, but a red ghost can't be confirmed: re-aim.
+    t.tap(90, 80);
+    expect(t.queries.map((q) => q.tile)).toEqual([89]);
+    expect(t.view.triggerBlockedFlash).not.toHaveBeenCalled();
+    await t.reply(answer);
+    t.wait(SEEN_MS);
+    t.tap(90, 80);
+    expect(t.intents().builds.map((b) => b.tile)).toEqual([89]);
+  });
+
+  test("an atom bomb nudged 25px aims again instead of launching at the old aim (C1)", async () => {
+    const t = makeTouchController(UnitType.AtomBomb);
+    t.tap(70, 80);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.wait(SEEN_MS);
+    // No icon for a bomb: its crosshair counts 22px around the aim.
+    t.tap(95, 80);
+    expect(t.intents().builds).toHaveLength(0);
+    expect(t.queries.map((q) => q.tile)).toEqual([89]);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.wait(SEEN_MS);
+    t.tap(95, 80);
+    expect(t.intents().builds.map((b) => b.tile)).toEqual([89]);
+  });
+
+  test("a port snapped to the coast confirms on its icon there, not on the aimed point", async () => {
+    const t = makeTouchController(UnitType.Port);
+    // Aimed inland at (7, 8): the port snaps to the coast tile (1, 8).
+    const coast = (tile: number | undefined): Answer => ({
+      canBuild: tile === undefined ? false : 81,
+      canUpgrade: false,
+    });
+    t.tap(70, 80);
+    await t.reply(coast);
+    t.wait(SEEN_MS);
+    // The aimed point is ~55px from the icon drawn at (15, 85): aim again.
+    t.tap(70, 80);
+    expect(t.intents().builds).toHaveLength(0);
+    expect(t.queries.map((q) => q.tile)).toEqual([87]);
+    await t.reply(coast);
+    t.wait(SEEN_MS);
+    t.tap(20, 85);
+    expect(t.intents().builds.map((b) => [b.unit, b.tile])).toEqual([
+      [UnitType.Port, 87],
+    ]);
+  });
+
+  test("a fast double tap never launches, even once the check is back (C1)", async () => {
+    const t = makeTouchController(UnitType.AtomBomb);
+    t.tap(70, 80);
+    t.tap(71, 81); // 100-200ms later, the check not back yet
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.wait(SEEN_MS);
+    expect(t.intents().builds).toHaveLength(0);
+    // Seen, then tapped: that launches.
+    t.tap(71, 81);
+    expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
   });
 
   test("an atom bomb tap previews the blast and trajectory; only the second tap launches, then disarms (I3)", async () => {
@@ -376,6 +490,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     expect([ghost.radiusTileX, ghost.radiusTileY]).toEqual([7, 8]);
     expect((t.controller as any).nukeTrajectoryStatic).not.toBeNull();
 
+    t.wait(SEEN_MS);
     t.tap(70, 80);
     expect(
       t.intents().builds.map((b) => [b.unit, b.tile, b.rocketDirectionUp]),
@@ -412,5 +527,28 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     (t.controller as any).requestConfirmStructure(new MouseUpEvent(70, 80));
     expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
     expect(t.uiState.ghostStructure).toBe(UnitType.AtomBomb);
+  });
+});
+
+describe("structureIconRadiusPx (the ghost icon as StructurePass draws it)", () => {
+  const ss = createRenderSettings().structure;
+
+  test("a city icon at the default zoom on a 2x tablet: 15 CSS px", () => {
+    // 1.8 CSS px per tile at dpr 2: zoom 3.6, past the 3x full-size point.
+    expect(structureIconRadiusPx(ss, UnitType.City, 1.8, 2)).toBeCloseTo(15);
+  });
+
+  test("shape scale and close zoom grow the icon", () => {
+    // Zoom 20 (10 CSS px x dpr 2) is past iconGrowZoom 7: x20/7.
+    expect(structureIconRadiusPx(ss, UnitType.City, 10, 2)).toBeCloseTo(
+      (60 * (20 / 7) * 0.5) / 2,
+    );
+    expect(structureIconRadiusPx(ss, UnitType.MissileSilo, 1.8, 2)).toBeCloseTo(
+      15 * 1.55,
+    );
+  });
+
+  test("bombs have no structure icon", () => {
+    expect(structureIconRadiusPx(ss, UnitType.AtomBomb, 1.8, 2)).toBe(0);
   });
 });

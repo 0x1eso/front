@@ -10,7 +10,8 @@
  * hover, so touch build mode takes two taps (BuildTapEvent): the first aims
  * the ghost and checks that tile at once (placement, upgrade target, nuke
  * blast radius, trajectory, SAM threats, ally warning); a second tap on the
- * aimed ghost builds, and only once the check for that very tile is back.
+ * aimed ghost's icon builds, once the check for that very tile says it can
+ * and the player has had GHOST_SEEN_MS to see it. Any other tap aims again.
  */
 
 import { TileRef } from "@openfront/engine-api/game/GameMap";
@@ -35,6 +36,8 @@ import {
   MouseUpEvent,
 } from "../InputHandler";
 import { buildNukeTrajectory, MapRenderer } from "../render/gl";
+import type { RenderSettings } from "../render/gl/RenderSettings";
+import { renderDpr } from "../render/gl/utils/Dpr";
 import type { SAMInfo } from "../render/gl/utils/NukeTrajectory";
 import type { GhostPreviewData } from "../render/types";
 import { TransformHandler } from "../TransformHandler";
@@ -52,10 +55,39 @@ export function shouldPreserveGhostAfterBuild(unitType: UnitType): boolean {
 }
 
 /**
- * A tap within this many CSS px of the aimed ghost confirms it: a target of
- * at least 44px whatever the zoom (a tap on the ghost's tile always counts).
+ * A tap on the aimed ghost's icon, or within this many CSS px of where it is
+ * drawn (a 44px target, and a bomb's crosshair), is a tap on the ghost.
  */
-const GHOST_TAP_RADIUS_PX = 32;
+const GHOST_TAP_MIN_RADIUS_PX = 22;
+
+/** A tapped ghost builds only once its checked preview showed this long. */
+const GHOST_SEEN_MS = 350;
+
+/**
+ * A mousemove this close to the aiming tap is the compat event a browser
+ * sends after a tap; one further away is a mouse taking the ghost back.
+ */
+const COMPAT_MOUSEMOVE_SLOP_PX = 32;
+
+/**
+ * Half the size, in CSS px, of a structure icon as StructurePass draws it
+ * (structure.vert.glsl) at `cssPxPerTile`; 0 for a type with no icon.
+ */
+export function structureIconRadiusPx(
+  ss: RenderSettings["structure"],
+  type: UnitType,
+  cssPxPerTile: number,
+  dpr: number,
+): number {
+  const shape = ss.shapes[type];
+  if (shape === undefined) return 0;
+  const zoom = cssPxPerTile * dpr;
+  let iconScale: number;
+  if (zoom <= ss.dotsZoomThreshold) iconScale = ss.dotScale;
+  else if (zoom >= ss.iconGrowZoom) iconScale = zoom / ss.iconGrowZoom;
+  else iconScale = Math.min(1, zoom / ss.iconScaleFactorZoomedOut);
+  return (ss.iconSize * iconScale * 0.5 * shape.scale) / dpr;
+}
 
 /** Where a touch tap aimed the ghost (see the class comment). */
 interface TouchAim {
@@ -110,8 +142,8 @@ export class BuildPreviewController implements Controller {
   private aim: TouchAim | null = null;
   /** The tile the ghost's buildableUnit was last checked for (null: none yet). */
   private checked: { tile: TileRef | undefined } | null = null;
-  /** Touch: the ghost was tapped before the check for its tile came back. */
-  private touchConfirmPending = false;
+  /** Touch: when the check for the aimed tile came back (null: not yet). */
+  private aimShownAt: number | null = null;
 
   // Buildable validation runs on the snapped tile under the cursor, but the
   // rendered icon follows the cursor at sub-tile precision so motion is
@@ -573,8 +605,9 @@ export class BuildPreviewController implements Controller {
   }
 
   /**
-   * Note which tile the ghost's buildableUnit now describes. A pending touch
-   * confirm goes through once that is the aimed tile (confirmAim checks).
+   * Note which tile the ghost's buildableUnit now describes, and when the
+   * aimed tile's preview first showed. Nothing is built from here: a tap
+   * made before the check came back is not kept to fire later.
    */
   private recordCheck(
     ghostAtQuery: { buildableUnit: BuildableUnit },
@@ -582,20 +615,43 @@ export class BuildPreviewController implements Controller {
   ): void {
     if (this.ghostUnit !== ghostAtQuery) return;
     this.checked = { tile: tileRef };
-    if (this.touchConfirmPending && this.aim?.tile === tileRef) {
-      this.confirmAim();
+    if (
+      this.aim !== null &&
+      this.aim.tile === tileRef &&
+      this.aimShownAt === null
+    ) {
+      this.aimShownAt = performance.now();
     }
   }
 
-  /** Touch: aim the ghost at the tap, or build when it lands on the ghost. */
+  /**
+   * Touch: a tap on the aimed ghost's icon builds it when the check for its
+   * tile is back, says it can, and has been on screen GHOST_SEEN_MS. Any
+   * other tap aims the ghost there instead: one off the icon, one on a red
+   * ghost, and one too soon (a double tap) alike.
+   */
   private onBuildTap(e: BuildTapEvent): void {
     this.syncGhostState();
     if (!this.ghostUnit) return;
-    if (this.aim !== null && this.isOnAimedGhost(e.x, e.y)) {
-      this.confirmAim();
-    } else {
-      this.aimAt(e.x, e.y);
+    const aim = this.aim;
+    if (aim !== null && this.isOnAimedGhost(e.x, e.y)) {
+      const shownAt = this.aimShownAt;
+      const checked = this.checked?.tile === aim.tile && shownAt !== null;
+      const buildable = aim.tile !== undefined && this.isGhostReadyForConfirm();
+      if (checked && buildable) {
+        if (performance.now() - shownAt >= GHOST_SEEN_MS) {
+          this.confirmAim();
+          return;
+        }
+      } else if (checked) {
+        // Red there: say no when the tap is on that very tile.
+        const tapped = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
+        if (tapped.x === aim.cellX && tapped.y === aim.cellY) {
+          this.view.triggerBlockedFlash(aim.cellX + 0.5, aim.cellY + 0.5);
+        }
+      }
     }
+    this.aimAt(e.x, e.y);
   }
 
   private aimAt(x: number, y: number): void {
@@ -620,44 +676,54 @@ export class BuildPreviewController implements Controller {
     this.mousePos.y = y;
     // Whatever was checked before was for another tile.
     this.checked = null;
-    this.touchConfirmPending = false;
+    this.aimShownAt = null;
     this.queryGhost();
   }
 
-  /** On the aimed tile, or within reach of where its ghost is drawn. */
+  /** On the aimed ghost's icon as drawn (at least GHOST_TAP_MIN_RADIUS_PX). */
   private isOnAimedGhost(x: number, y: number): boolean {
     const aim = this.aim;
-    if (aim === null) return false;
-    const tapped = this.transformHandler.screenToWorldCoordinates(x, y);
-    if (tapped.x === aim.cellX && tapped.y === aim.cellY) return true;
-    const near = (worldX: number, worldY: number) => {
-      const s = this.transformHandler.worldToScreenCoordinates(
-        new Cell(worldX, worldY),
-      );
-      return Math.hypot(s.x - x, s.y - y) <= GHOST_TAP_RADIUS_PX;
-    };
-    if (near(aim.worldX, aim.worldY)) return true;
-    // A snapped ghost (a port on the coast...) is drawn on its placement tile.
-    const ghost = this.lastGhostData;
-    return (
-      ghost !== null &&
-      ghost.snapToPlacement === true &&
-      near(ghost.tileX + 0.5, ghost.tileY + 0.5)
+    if (aim === null || !this.ghostUnit) return false;
+    const center = this.transformHandler.worldToScreenCoordinates(
+      new Cell(aim.worldX, aim.worldY),
     );
+    const east = this.transformHandler.worldToScreenCoordinates(
+      new Cell(aim.worldX + 1, aim.worldY),
+    );
+    // MapRenderer.getSettings is {} while there is no renderer.
+    const ss = this.view.getSettings().structure as
+      | RenderSettings["structure"]
+      | undefined;
+    const radius = Math.max(
+      GHOST_TAP_MIN_RADIUS_PX,
+      ss === undefined
+        ? 0
+        : structureIconRadiusPx(
+            ss,
+            this.ghostUnit.buildableUnit.type,
+            Math.hypot(east.x - center.x, east.y - center.y),
+            renderDpr(),
+          ),
+    );
+    // A snapped ghost (a port on the coast...) is drawn on its placement
+    // tile, any other at the aimed point (see cursorLoop).
+    const ghost = this.lastGhostData;
+    const drawnAt =
+      ghost !== null && ghost.snapToPlacement
+        ? new Cell(ghost.tileX + 0.5, ghost.tileY + 0.5)
+        : new Cell(aim.worldX, aim.worldY);
+    const s = this.transformHandler.worldToScreenCoordinates(drawnAt);
+    return Math.hypot(s.x - x, s.y - y) <= radius;
   }
 
   /**
-   * Touch: build the aimed ghost. Only the check made for the aimed tile can
-   * confirm it; until that is back the confirm waits (recordCheck).
+   * Build the aimed ghost. Only the check made for the aimed tile can
+   * confirm it; before that is back nothing happens (and nothing waits).
    */
   private confirmAim(): void {
     const aim = this.aim;
     if (!this.ghostUnit || aim === null || aim.tile === undefined) return;
-    if (this.checked === null || this.checked.tile !== aim.tile) {
-      this.touchConfirmPending = true;
-      return;
-    }
-    this.touchConfirmPending = false;
+    if (this.checked === null || this.checked.tile !== aim.tile) return;
     const bu = this.ghostUnit.buildableUnit;
     if (bu.canUpgrade !== false) {
       this.eventBus.emit(
@@ -817,10 +883,10 @@ export class BuildPreviewController implements Controller {
     if (
       this.aim !== null &&
       Math.hypot(e.x - this.aim.screenX, e.y - this.aim.screenY) >
-        GHOST_TAP_RADIUS_PX
+        COMPAT_MOUSEMOVE_SLOP_PX
     ) {
       this.aim = null;
-      this.touchConfirmPending = false;
+      this.aimShownAt = null;
     }
   }
 
@@ -843,7 +909,7 @@ export class BuildPreviewController implements Controller {
     this.pendingConfirm = null;
     this.aim = null;
     this.checked = null;
-    this.touchConfirmPending = false;
+    this.aimShownAt = null;
     this.ghostUnit = null;
     this.lastGhostData = null;
     this.view.updateGhostPreview(null);
