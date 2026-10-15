@@ -114,6 +114,14 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     config: { bots: 5, instantBuild: true },
   },
   { type: "toggle_game_start_timer", clientID: P1 },
+  {
+    type: "proclaim_law",
+    clientID: P1,
+    law: "diplomacy",
+    option: "B",
+    payWithGold: true,
+  },
+  { type: "choose_government", clientID: P2, government: "communism" },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

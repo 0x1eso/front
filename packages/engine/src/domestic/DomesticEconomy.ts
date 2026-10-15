@@ -32,6 +32,7 @@ import {
   applyPct,
   capCombinedPct,
 } from "@openfront/engine-lib/domestic/Modifiers";
+import { shortfallGold } from "@openfront/engine-lib/domestic/Research";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import type { Game, Player } from "../game/Game";
 import type { PlayerDomestic } from "./PlayerDomestic";
@@ -301,4 +302,39 @@ export function domesticTradeShipSpawnRate(
 export function domesticDefensePostScale(defender: Player): number {
   const d = defender.domestic();
   return d === null ? 1 : 1 + d.pct("defensePost") / 100;
+}
+
+/**
+ * Spends `costMilli` of science or political power. A shortfall is paid in
+ * gold (spec §3.1) only when `payWithGold` is set and the player has it.
+ * Returns false, spending nothing, when the player can't pay.
+ */
+export function payPoints(
+  player: Player,
+  d: PlayerDomestic,
+  resource: "science" | "political",
+  costMilli: number,
+  payWithGold: boolean,
+): boolean {
+  const available =
+    resource === "science"
+      ? d.scienceMilliAvailable()
+      : d.politicalMilliAvailable();
+  const spend = (amount: number): void => {
+    if (resource === "science") {
+      d.spendScienceMilli(amount);
+    } else {
+      d.spendPoliticalMilli(amount);
+    }
+  };
+  if (available >= costMilli) {
+    spend(costMilli);
+    return true;
+  }
+  if (!payWithGold) return false;
+  const gold = shortfallGold(costMilli - available, d.pct("goldPaymentCost"));
+  if (player.gold() < gold) return false;
+  player.removeGold(gold);
+  spend(available);
+  return true;
 }

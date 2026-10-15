@@ -1,5 +1,7 @@
 // Every entry is `<ClassName>Snapshot`, exported next to its class.
+import { ChooseGovernmentExecutionSnapshot } from "../domestic/ChooseGovernmentExecution";
 import { DomesticExecutionSnapshot } from "../domestic/DomesticExecution";
+import { ProclaimLawExecutionSnapshot } from "../domestic/ProclaimLawExecution";
 import { ResearchExecutionSnapshot } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecutionSnapshot } from "../domestic/SetRecruitTargetExecution";
 import { AllianceExtensionExecutionSnapshot } from "../execution/alliance/AllianceExtensionExecution";
@@ -62,6 +64,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   AttackExecutionSnapshot,
   BoatRetreatExecutionSnapshot,
   BreakAllianceExecutionSnapshot,
+  ChooseGovernmentExecutionSnapshot,
   CityExecutionSnapshot,
   ConstructionExecutionSnapshot,
   DefensePostExecutionSnapshot,
@@ -84,6 +87,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   PauseExecutionSnapshot,
   PlayerExecutionSnapshot,
   PortExecutionSnapshot,
+  ProclaimLawExecutionSnapshot,
   QuickChatExecutionSnapshot,
   RecomputeRailClusterExecutionSnapshot,
   ResearchExecutionSnapshot,

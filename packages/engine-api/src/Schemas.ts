@@ -1,7 +1,12 @@
 import { zb } from "@openfront/zbin";
 import quickChatData from "resources/QuickChat.json";
 import { z } from "zod";
-import { TECH_IDS } from "./domestic/DomesticTypes";
+import {
+  GOVERNMENT_IDS,
+  LAW_IDS,
+  LAW_OPTIONS,
+  TECH_IDS,
+} from "./domestic/DomesticTypes";
 import {
   AllPlayers,
   Difficulty,
@@ -49,7 +54,9 @@ export type Intent =
   | UpdateGameConfigIntent
   | ToggleGameStartTimer
   | ResearchTechIntent
-  | SetRecruitTargetIntent;
+  | SetRecruitTargetIntent
+  | ProclaimLawIntent
+  | ChooseGovernmentIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -90,6 +97,10 @@ export type ToggleGameStartTimer = z.infer<
 export type ResearchTechIntent = z.infer<typeof ResearchTechIntentSchema>;
 export type SetRecruitTargetIntent = z.infer<
   typeof SetRecruitTargetIntentSchema
+>;
+export type ProclaimLawIntent = z.infer<typeof ProclaimLawIntentSchema>;
+export type ChooseGovernmentIntent = z.infer<
+  typeof ChooseGovernmentIntentSchema
 >;
 
 export type Turn = z.infer<typeof TurnSchema>;
@@ -574,6 +585,21 @@ export const SetRecruitTargetIntentSchema = z.object({
   percent: zb.uint({ min: 10, max: 100 }),
 });
 
+// Domestic mode: proclaim one option of a law forever, paying a political
+// shortfall with gold when payWithGold is set.
+export const ProclaimLawIntentSchema = z.object({
+  type: z.literal("proclaim_law"),
+  law: z.enum(LAW_IDS),
+  option: z.enum(LAW_OPTIONS),
+  payWithGold: z.boolean().optional(),
+});
+
+// Domestic mode: adopt a government of the current tier.
+export const ChooseGovernmentIntentSchema = z.object({
+  type: z.literal("choose_government"),
+  government: z.enum(GOVERNMENT_IDS),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -602,6 +628,8 @@ export const IntentSchema = z.discriminatedUnion("type", [
   ToggleGameStartTimerIntentSchema,
   ResearchTechIntentSchema,
   SetRecruitTargetIntentSchema,
+  ProclaimLawIntentSchema,
+  ChooseGovernmentIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

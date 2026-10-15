@@ -3,7 +3,6 @@ import { MILLI } from "@openfront/engine-lib/domestic/Balance";
 import {
   researchBlock,
   researchTicks,
-  shortfallGold,
 } from "@openfront/engine-lib/domestic/Research";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
@@ -15,6 +14,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { payPoints } from "./DomesticEconomy";
 
 /** research_tech: pays for a tech and starts researching it (spec §4.1). */
 export class ResearchExecution implements Execution {
@@ -37,18 +37,8 @@ export class ResearchExecution implements Execution {
       return;
     }
     const costMilli = TECHS[this.tech].cost * MILLI;
-    const available = d.scienceMilliAvailable();
-    if (available >= costMilli) {
-      d.spendScienceMilli(costMilli);
-    } else {
-      if (!this.payWithGold) return;
-      const gold = shortfallGold(
-        costMilli - available,
-        d.pct("goldPaymentCost"),
-      );
-      if (this.player.gold() < gold) return;
-      this.player.removeGold(gold);
-      d.spendScienceMilli(available);
+    if (!payPoints(this.player, d, "science", costMilli, this.payWithGold)) {
+      return;
     }
     d.beginResearch(this.tech, researchTicks(this.tech, d.pct("researchTime")));
   }

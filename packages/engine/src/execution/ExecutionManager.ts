@@ -6,6 +6,8 @@ import {
 } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
+import { ChooseGovernmentExecution } from "../domestic/ChooseGovernmentExecution";
+import { ProclaimLawExecution } from "../domestic/ProclaimLawExecution";
 import { ResearchExecution } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution";
 import { Execution, Game } from "../game/Game";
@@ -154,6 +156,15 @@ export class Executor {
         );
       case "set_recruit_target":
         return new SetRecruitTargetExecution(player, intent.percent);
+      case "proclaim_law":
+        return new ProclaimLawExecution(
+          player,
+          intent.law,
+          intent.option,
+          intent.payWithGold ?? false,
+        );
+      case "choose_government":
+        return new ChooseGovernmentExecution(player, intent.government);
       default:
         throw new Error(`intent type ${intent} not found`);
     }
