@@ -1,6 +1,8 @@
 import {
+  creditsUrl,
   GAME_TITLE,
   SOURCE_URL,
+  sourceTreeUrl,
   UPSTREAM_URL,
 } from "@openfront/shared/Branding";
 import fs from "fs";
@@ -77,6 +79,38 @@ describe("fork branding", () => {
   test("the source offer points at this fork's public repository", () => {
     expect(SOURCE_URL).toBe("https://github.com/0x1eso/front");
     expect(UPSTREAM_URL).toBe("https://github.com/openfrontio/OpenFrontIO");
+  });
+
+  // The repository's default branch mirrors upstream, so a bare repository
+  // link would offer OpenFront's code, not the code this server runs.
+  test("the source offer names the commit the server runs", () => {
+    const sha = "0123456789abcdef0123456789abcdef01234567";
+    expect(sourceTreeUrl(sha)).toBe(`${SOURCE_URL}/tree/${sha}`);
+    expect(creditsUrl(sha)).toBe(`${SOURCE_URL}/blob/${sha}/CREDITS.md`);
+    expect(sourceTreeUrl("0123456")).toBe(`${SOURCE_URL}/tree/0123456`);
+  });
+
+  // game-night.sh spells a build of uncommitted changes <commit>-dirty-<hash>.
+  test("a build of uncommitted changes links the commit it was built on", () => {
+    expect(sourceTreeUrl("0123456789ab-dirty-a1b2c3d4e5f6")).toBe(
+      `${SOURCE_URL}/tree/0123456789ab`,
+    );
+    expect(creditsUrl("0123456789ab-dirty-a1b2c3d4e5f6")).toBe(
+      `${SOURCE_URL}/blob/0123456789ab/CREDITS.md`,
+    );
+  });
+
+  test.each([
+    "DEV",
+    "",
+    "unknown",
+    "desktop",
+    "abc",
+    "../../evil",
+    "0123456?x",
+  ])("a build id that names no commit (%j) links the repository", (commit) => {
+    expect(sourceTreeUrl(commit)).toBe(SOURCE_URL);
+    expect(creditsUrl(commit)).toBe(SOURCE_URL);
   });
 });
 

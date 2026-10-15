@@ -1,9 +1,10 @@
 import { assetUrl } from "@openfront/shared/AssetUrls";
-import { SOURCE_URL, UPSTREAM_URL } from "@openfront/shared/Branding";
+import { UPSTREAM_URL } from "@openfront/shared/Branding";
 import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { composeVersionDisplay, desktopVersion } from "../DesktopShell";
 import { currentGameVersion } from "../GameVersion";
+import { runningSourceUrl } from "../SourceLinks";
 import "./SteamWishlistButton";
 
 @customElement("page-footer")
@@ -31,6 +32,7 @@ export class Footer extends LitElement {
   }
 
   render() {
+    const sourceUrl = runningSourceUrl();
     return html`
       <footer
         class="[.in-game_&]:hidden bg-zinc-900/90 backdrop-blur-md flex flex-col items-center justify-center gap-1 pt-1 pb-3 text-white/50 w-full border-t border-white/10 shrink-0 relative z-50 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-0"
@@ -46,7 +48,7 @@ export class Footer extends LitElement {
           >
             <!-- This fork's source code (AGPL v3 section 13). -->
             <a
-              href=${SOURCE_URL}
+              href=${sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               class="opacity-60 hover:opacity-100 hover:scale-110 transition-all"
@@ -93,7 +95,7 @@ export class Footer extends LitElement {
               class="hover:text-white transition-colors"
             ></a>
             <a
-              href=${SOURCE_URL}
+              href=${sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               data-i18n="branding.source_code"

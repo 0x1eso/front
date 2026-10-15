@@ -1,5 +1,6 @@
 import { SOURCE_URL, UPSTREAM_URL } from "@openfront/shared/Branding";
 import { afterEach, describe, expect, it } from "vitest";
+import { ClientEnv } from "../../../src/client/ClientEnv";
 import "../../../src/client/components/DesktopNavBar";
 import "../../../src/client/components/Footer";
 import "../../../src/client/components/MobileNavBar";
@@ -23,8 +24,25 @@ async function mount(tag: string): Promise<Mountable> {
   return el;
 }
 
+const SHA = "bf739f86c4e1d2a3b5c6d7e8f90123456789abcd";
+
+// The page as a server renders it, running commit `gitCommit`.
+function bootstrap(gitCommit: string) {
+  (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG = {
+    gameEnv: "prod",
+    numWorkers: 1,
+    turnstileSiteKey: "",
+    jwtAudience: "play.example.com",
+    instanceId: "test",
+    gitCommit,
+  };
+  ClientEnv.reset();
+}
+
 afterEach(() => {
   document.body.innerHTML = "";
+  delete (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG;
+  ClientEnv.reset();
 });
 
 // LICENSE, AGPL v3 section 7 and section 13. Without a <lang-selector> in the
@@ -39,6 +57,21 @@ describe("footer notices", () => {
     ).not.toBeNull();
     const github = footer.querySelector('img[data-i18n-alt="main.github"]');
     expect(github?.closest("a")?.getAttribute("href")).toBe(SOURCE_URL);
+  });
+
+  // The repository's default branch mirrors upstream: the offer has to name
+  // the commit the server runs.
+  it("links the source of the commit the server runs", async () => {
+    bootstrap(SHA);
+    const footer = await mount("page-footer");
+    const tree = `${SOURCE_URL}/tree/${SHA}`;
+    expect(
+      footer.querySelector(
+        `a[href="${tree}"][data-i18n="branding.source_code"]`,
+      ),
+    ).not.toBeNull();
+    const github = footer.querySelector('img[data-i18n-alt="main.github"]');
+    expect(github?.closest("a")?.getAttribute("href")).toBe(tree);
   });
 
   it("keeps the upstream copyright and says what the game is based on", async () => {
@@ -71,9 +104,18 @@ describe("loading screen notices", () => {
     const modal = await mount("game-starting-modal");
     expect(modal.textContent).toContain("main.copyright");
     expect(modal.textContent).toContain("branding.based_on");
-    expect(modal.querySelector(`a[href="${SOURCE_URL}"]`)).not.toBeNull();
+    // No BOOTSTRAP_CONFIG, so no commit to name: the repository itself.
+    expect(modal.querySelectorAll(`a[href="${SOURCE_URL}"]`)).toHaveLength(2);
+  });
+
+  it("links the source and credits of the commit the server runs", async () => {
+    bootstrap(SHA);
+    const modal = await mount("game-starting-modal");
     expect(
-      modal.querySelector(`a[href="${SOURCE_URL}/blob/main/CREDITS.md"]`),
+      modal.querySelector(`a[href="${SOURCE_URL}/tree/${SHA}"]`),
+    ).not.toBeNull();
+    expect(
+      modal.querySelector(`a[href="${SOURCE_URL}/blob/${SHA}/CREDITS.md"]`),
     ).not.toBeNull();
   });
 });

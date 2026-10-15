@@ -1,6 +1,6 @@
-import { SOURCE_URL } from "@openfront/shared/Branding";
 import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { runningCreditsUrl, runningSourceUrl } from "./SourceLinks";
 import { translateText } from "./Utils";
 
 @customElement("game-starting-modal")
@@ -34,7 +34,7 @@ export class GameStartingModal extends LitElement {
           ${translateText("branding.based_on")}
         </div>
         <a
-          href=${`${SOURCE_URL}/blob/main/CREDITS.md`}
+          href=${runningCreditsUrl()}
           target="_blank"
           rel="noopener noreferrer"
           class="block mb-4 text-lg font-medium tracking-wider uppercase text-malibu-blue no-underline transition-colors duration-200 hover:text-aquarius"
@@ -45,7 +45,7 @@ export class GameStartingModal extends LitElement {
         </p>
         <!-- This fork's source code (AGPL v3 section 13). -->
         <a
-          href=${SOURCE_URL}
+          href=${runningSourceUrl()}
           target="_blank"
           rel="noopener noreferrer"
           class="block mb-4 text-sm text-malibu-blue no-underline transition-colors duration-200 hover:text-aquarius"
