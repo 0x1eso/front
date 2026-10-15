@@ -19,3 +19,6 @@ export const SOURCE_URL = "https://github.com/0x1eso/front";
 
 /** The project this fork is based on. */
 export const UPSTREAM_URL = "https://github.com/openfrontio/OpenFrontIO";
+
+/** Favicon (resources/images/Emblem.svg, drawn for this fork). */
+export const EMBLEM_ASSET = "images/Emblem.svg";

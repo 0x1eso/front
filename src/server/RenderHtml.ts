@@ -1,5 +1,5 @@
 import { buildAssetUrl } from "@openfront/shared/AssetPaths";
-import { GAME_TITLE } from "@openfront/shared/Branding";
+import { EMBLEM_ASSET, GAME_TITLE } from "@openfront/shared/Branding";
 import ejs from "ejs";
 import type { Response } from "express";
 import fs from "fs/promises";
@@ -105,7 +105,7 @@ export async function renderHtmlContent(
         ? undefined
         : JSON.stringify(ServerEnv.faroCollectorUrl()),
     manifestHref: buildAssetUrl("manifest.json", assetManifest, cdnBase),
-    faviconHref: buildAssetUrl("images/Favicon.svg", assetManifest, cdnBase),
+    faviconHref: buildAssetUrl(EMBLEM_ASSET, assetManifest, cdnBase),
     gameplayScreenshotUrl: buildAssetUrl(
       "images/GameplayScreenshot.png",
       assetManifest,
@@ -116,12 +116,6 @@ export async function renderHtmlContent(
       assetManifest,
       cdnBase,
     ),
-    desktopLogoImageUrl: buildAssetUrl(
-      "images/OpenFront.png",
-      assetManifest,
-      cdnBase,
-    ),
-    mobileLogoImageUrl: buildAssetUrl("images/OF.png", assetManifest, cdnBase),
   });
 }
 

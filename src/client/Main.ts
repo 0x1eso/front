@@ -3,7 +3,6 @@ import {
   isRewardClaimable,
   UserMeResponse,
 } from "@openfront/shared/ApiSchemas";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { toWireGameStartInfo } from "@openfront/shared/SharedUtil";
 import {
@@ -544,13 +543,6 @@ class Client {
     // Wait for components to render before setting version
     await customElements.whenDefined("mobile-nav-bar");
     await customElements.whenDefined("desktop-nav-bar");
-
-    const openFrontFont = new FontFace(
-      "OpenFront",
-      `url(${assetUrl("fonts/OpenFront.ttf")})`,
-    );
-    document.fonts.add(openFrontFont);
-    openFrontFont.load().catch(() => {});
 
     // The tagged version only, so a player's version reads the same across web
     // and Steam. The build's full identity -- the commit on an untagged build,

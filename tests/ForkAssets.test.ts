@@ -1,0 +1,77 @@
+import fs from "fs";
+import path from "path";
+
+const ROOT = path.join(__dirname, "..");
+
+// Upstream's all-rights-reserved assets (proprietary/LICENSE: "NOT licensed
+// for use ... outside of OpenFront"). This fork ships none of them, and an
+// upstream merge can bring them back without a conflict, so these tests are
+// what notices.
+const UPSTREAM_ONLY_ASSETS = [
+  "images/Favicon.svg",
+  "images/OF.png",
+  "images/OF.webp",
+  "images/OpenFrontLogoDark.svg",
+  "images/OpenFrontLogo.png",
+  "images/OpenFrontLogo.svg",
+  "images/OpenFront.png",
+  "images/OpenFront.webp",
+  "fonts/OpenFront.ttf",
+  "sounds/effects/game-start-alert.mp3",
+];
+
+function walk(dir: string, rel = ""): string[] {
+  if (!fs.existsSync(path.join(dir, rel))) return [];
+  return fs
+    .readdirSync(path.join(dir, rel), { withFileTypes: true })
+    .flatMap((entry) => {
+      const child = rel === "" ? entry.name : `${rel}/${entry.name}`;
+      return entry.isDirectory() ? walk(dir, child) : [child];
+    })
+    .sort();
+}
+
+function shippedSources(): string[] {
+  const packageSources = fs
+    .readdirSync(path.join(ROOT, "packages"))
+    .flatMap((pkg) =>
+      walk(path.join(ROOT, "packages", pkg, "src")).map(
+        (file) => `packages/${pkg}/src/${file}`,
+      ),
+    );
+  return [
+    "index.html",
+    "vite.config.ts",
+    ...walk(path.join(ROOT, "src")).map((file) => `src/${file}`),
+    ...packageSources,
+  ].filter((file) => /\.(ts|css|html)$/.test(file));
+}
+
+describe("fork asset hygiene", () => {
+  test("proprietary/ holds nothing but upstream's LICENSE", () => {
+    expect(walk(path.join(ROOT, "proprietary"))).toEqual(["LICENSE"]);
+  });
+
+  test("no code or page references an upstream-only asset", () => {
+    const offenders: string[] = [];
+    for (const file of shippedSources()) {
+      const content = fs.readFileSync(path.join(ROOT, file), "utf8");
+      for (const asset of UPSTREAM_ONLY_ASSETS) {
+        if (content.includes(asset)) offenders.push(`${file}: ${asset}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  // The music slots (sounds/music/gameplay.mp3, menu-theme.mp3) ship empty.
+  // A track dropped in must say where it came from.
+  test("every music track in resources/ is credited", () => {
+    const credits = fs.readFileSync(path.join(ROOT, "CREDITS.md"), "utf8");
+    const tracks = walk(path.join(ROOT, "resources/sounds/music")).filter(
+      (file) => !file.startsWith("."),
+    );
+    for (const track of tracks) {
+      expect(credits, track).toContain(track);
+    }
+  });
+});

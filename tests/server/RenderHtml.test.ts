@@ -417,4 +417,12 @@ describe("RenderHtml environment-only render", () => {
     );
     expect(html).not.toContain("https://openfront.io/");
   });
+
+  it("uses the fork's emblem as the favicon and draws no upstream logo", async () => {
+    const html = await renderHtmlContent(REAL_TEMPLATE);
+    expect(html).toMatch(
+      /<link rel="icon" type="image\/svg\+xml" href="[^"]*Emblem[^"]*" \/>/,
+    );
+    expect(html).not.toContain("logo-image-url");
+  });
 });
