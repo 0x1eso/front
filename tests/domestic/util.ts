@@ -107,3 +107,16 @@ export function buildLevel(
   for (let l = 1; l < level; l++) unit.increaseLevel();
   return unit;
 }
+
+/**
+ * Government tier 3 (spec §6.1): 3,500 cumulative political power. Phase 2
+ * raises the stored tier in the per-second processing (refreshGovernmentTier
+ * after addYield), so the helper takes that step itself instead of waiting
+ * for a domestic second.
+ */
+export function reachGovernmentTier3(player: Player): void {
+  const d = player.domestic();
+  if (d === null) throw new Error("player has no domestic state");
+  d.addYield(0, 3_500_000);
+  d.refreshGovernmentTier();
+}
