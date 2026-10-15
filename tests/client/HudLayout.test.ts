@@ -23,6 +23,24 @@ describe("index.html bottom HUD", () => {
     );
   });
 
+  it("anchors the build-bar card above the whole HUD box", () => {
+    // The card (UnitDisplay) has no positioned ancestor inside the bar, so it
+    // opens above this box instead of over the attack-ratio row.
+    const box = doc.querySelector(
+      "[data-bottom-hud] unit-display",
+    )!.parentElement!;
+    expect(box.querySelector("control-panel")).not.toBeNull();
+    expect(box.querySelector("domestic-hud")).not.toBeNull();
+    expect(box.classList).toContain("relative");
+  });
+
+  it("marks the top-right stack the domestic drawer stays below", () => {
+    const stack = doc.querySelector("[data-hud-top-right]");
+    expect(stack).not.toBeNull();
+    expect(stack!.querySelector("game-right-sidebar")).not.toBeNull();
+    expect(stack!.querySelector("replay-panel")).not.toBeNull();
+  });
+
   it("always shows the build bar", () => {
     const bar = doc.querySelector("[data-bottom-hud] unit-display");
     expect(bar).not.toBeNull();

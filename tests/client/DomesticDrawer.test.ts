@@ -1,5 +1,7 @@
 import { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
+import fs from "fs";
+import path from "path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Utils", async (importOriginal) => ({
@@ -11,7 +13,13 @@ import {
   DomesticPanel,
   TABS,
 } from "../../src/client/hud/domestic/DomesticPanel";
+import { MapControls } from "../../src/client/hud/layers/MapControls";
 import { DomesticClientView } from "../../src/client/view/DomesticClientView";
+
+const INDEX = new DOMParser().parseFromString(
+  fs.readFileSync(path.join(__dirname, "..", "..", "index.html"), "utf8"),
+  "text/html",
+);
 
 // Phase-2 fields; the cast keeps this valid as DomesticData grows (phase 3).
 const DATA = {
@@ -73,19 +81,181 @@ async function openDrawer(): Promise<DomesticPanel> {
   return panel;
 }
 
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** jsdom has no layout: give an element the box the browser would. */
+function place(el: Element, b: Box) {
+  el.getBoundingClientRect = () =>
+    ({
+      ...b,
+      x: b.left,
+      y: b.top,
+      width: b.right - b.left,
+      height: b.bottom - b.top,
+      toJSON: () => b,
+    }) as DOMRect;
+}
+
+/** The HUD the open drawer must leave visible, laid out as on a tablet. */
+async function mountHud(width: number, height: number) {
+  vi.stubGlobal("innerWidth", width);
+  vi.stubGlobal("innerHeight", height);
+  const topRight = document.createElement("div");
+  topRight.setAttribute("data-hud-top-right", "");
+  // Sidebar row plus the replay speed panel under it.
+  place(topRight, { left: width - 290, top: 0, right: width, bottom: 150 });
+  const bottomHud = document.createElement("div");
+  bottomHud.setAttribute("data-bottom-hud", "");
+  // Tutorial, control panel, build bar and the domestic row with its toggle.
+  place(bottomHud, {
+    left: 0,
+    top: height - 350,
+    right: width,
+    bottom: height,
+  });
+  const controls = document.createElement("map-controls") as MapControls;
+  expect(controls).toBeInstanceOf(MapControls);
+  controls.eventBus = {
+    on: () => {},
+    emit: () => {},
+  } as unknown as MapControls["eventBus"];
+  document.body.append(topRight, bottomHud, controls);
+  controls.init();
+  await controls.updateComplete;
+  const buttons = controls.firstElementChild!;
+  place(buttons, {
+    left: width - 52,
+    top: height / 2 - 74,
+    right: width - 8,
+    bottom: height / 2 + 74,
+  });
+  return { topRight, bottomHud, buttons };
+}
+
+/** The drawer's inline offsets, in CSS px. */
+function offsets(drawer: HTMLElement) {
+  return {
+    top: parseFloat(drawer.style.top),
+    right: parseFloat(drawer.style.right),
+    bottom: parseFloat(drawer.style.bottom),
+  };
+}
+
+/** Tailwind z-index of an element (z-200, z-[200]). */
+function zIndex(el: Element): number {
+  for (const c of el.classList) {
+    const m = /^z-\[?(\d+)\]?$/.exec(c);
+    if (m) return Number(m[1]);
+  }
+  throw new Error(`no z-index on ${el.outerHTML.slice(0, 80)}`);
+}
+
 describe("domestic drawer", () => {
   afterEach(() => {
     document.body.innerHTML = "";
+    vi.unstubAllGlobals();
   });
 
   it("opens as a right-side drawer that leaves the map visible", async () => {
     const panel = await openDrawer();
     const drawer = panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
     expect(drawer.tagName).toBe("ASIDE");
-    expect(drawer.classList).toContain("right-0");
+    expect(drawer.classList).toContain("fixed");
+    expect(drawer.style.right).not.toBe("");
     expect(drawer.classList).toContain("w-[40vw]");
     // No full-screen backdrop: taps on the map still reach the map.
     expect(panel.querySelector(".inset-0")).toBeNull();
+  });
+
+  it.each([
+    [1024, 768],
+    [1180, 820],
+    [1366, 1024],
+  ])(
+    "at %ix%i it sits between the top-right sidebar, the bottom HUD and the map buttons",
+    async (width, height) => {
+      const hud = await mountHud(width, height);
+      const panel = await openDrawer();
+      const drawer = panel.querySelector<HTMLElement>(
+        "[data-domestic-drawer]",
+      )!;
+      const { top, right, bottom } = offsets(drawer);
+      // Below the sidebar, above the whole bottom HUD (build bar, attack
+      // ratio, the domestic row and its toggle), left of the map buttons:
+      // whatever its width, the drawer covers none of them.
+      expect(top).toBeGreaterThanOrEqual(
+        hud.topRight.getBoundingClientRect().bottom,
+      );
+      expect(height - bottom).toBeLessThanOrEqual(
+        hud.bottomHud.getBoundingClientRect().top,
+      );
+      expect(width - right).toBeLessThanOrEqual(
+        hud.buttons.getBoundingClientRect().left,
+      );
+      // ...and still has room for its tabs and cards.
+      expect(height - bottom - top).toBeGreaterThan(200);
+    },
+  );
+
+  it("follows the HUD when it grows or the screen turns", async () => {
+    const observed: Element[] = [];
+    let onResize: () => void = () => {};
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: () => void) {
+          onResize = cb;
+        }
+        observe(el: Element) {
+          observed.push(el);
+        }
+        disconnect = disconnect;
+      },
+    );
+    const hud = await mountHud(1024, 768);
+    const panel = await openDrawer();
+    expect(observed).toEqual(
+      expect.arrayContaining([hud.topRight, hud.bottomHud, hud.buttons]),
+    );
+    const drawer = () =>
+      panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
+    expect(offsets(drawer()).bottom).toBeGreaterThanOrEqual(350);
+
+    // An incoming attack row makes the bottom HUD taller.
+    place(hud.bottomHud, { left: 0, top: 368, right: 1024, bottom: 768 });
+    onResize();
+    await panel.updateComplete;
+    expect(offsets(drawer()).bottom).toBeGreaterThanOrEqual(400);
+
+    // The replay speed panel closes: the drawer moves up.
+    place(hud.topRight, { left: 734, top: 0, right: 1024, bottom: 52 });
+    window.dispatchEvent(new Event("resize"));
+    await panel.updateComplete;
+    expect(offsets(drawer()).top).toBeLessThan(100);
+    expect(offsets(drawer()).top).toBeGreaterThanOrEqual(52);
+
+    panel.querySelector<HTMLButtonElement>("[data-domestic-close]")!.click();
+    await panel.updateComplete;
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("stacks under the HUD it leaves clear", async () => {
+    const hud = await mountHud(1024, 768);
+    const panel = await openDrawer();
+    const z = zIndex(panel.querySelector("[data-domestic-drawer]")!);
+    // A build-bar card popping up over the drawer stays on top, and the HUD
+    // stays tappable even before the drawer refits to a taller HUD.
+    expect(z).toBeLessThan(zIndex(INDEX.querySelector("[data-bottom-hud]")!));
+    expect(z).toBeLessThan(
+      zIndex(INDEX.querySelector("[data-hud-top-right]")!),
+    );
+    expect(z).toBeLessThan(zIndex(hud.buttons));
   });
 
   it("has one tab button per tab, whatever the tab list holds", async () => {

@@ -13,7 +13,7 @@ import {
 import { Branch, Era, TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
-import { html, LitElement, TemplateResult } from "lit";
+import { html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import {
@@ -42,6 +42,43 @@ export const TABS: readonly DomesticTab[] = [
   "victory",
 ];
 
+/** Space between the drawer and the HUD around it, in CSS px. */
+const DRAWER_GAP = 8;
+
+/**
+ * The HUD the open drawer leaves visible and tappable (spec §14a): it sits
+ * below the top-right sidebar stack, above the whole bottom HUD (build bar,
+ * attack ratio, the domestic row and its toggle) and left of the map buttons.
+ */
+const KEEP_CLEAR = {
+  top: "[data-hud-top-right]",
+  bottom: "[data-bottom-hud]",
+  right: "map-controls > div",
+} as const;
+
+export interface DrawerInsets {
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+function shownRect(selector: string): DOMRect | null {
+  const r = document.querySelector(selector)?.getBoundingClientRect();
+  return r !== undefined && r.width > 0 && r.height > 0 ? r : null;
+}
+
+/** The drawer's offsets from the viewport edges, from where the HUD is now. */
+export function drawerInsets(): DrawerInsets {
+  const top = shownRect(KEEP_CLEAR.top);
+  const bottom = shownRect(KEEP_CLEAR.bottom);
+  const right = shownRect(KEEP_CLEAR.right);
+  return {
+    top: (top?.bottom ?? 0) + DRAWER_GAP,
+    bottom: (bottom ? window.innerHeight - bottom.top : 0) + DRAWER_GAP,
+    right: (right ? window.innerWidth - right.left : 0) + DRAWER_GAP,
+  };
+}
+
 /** The domestic panel: technology, book of laws, government and victory tabs. */
 @customElement("domestic-panel")
 export class DomesticPanel extends LitElement implements Controller {
@@ -51,6 +88,15 @@ export class DomesticPanel extends LitElement implements Controller {
   @state() private open = false;
   @state() private data: DomesticData | null = null;
   @state() private tab: DomesticTab = "tech";
+  @state() private insets: DrawerInsets = {
+    top: DRAWER_GAP,
+    right: DRAWER_GAP,
+    bottom: DRAWER_GAP,
+  };
+  private resizeObserver: ResizeObserver | null = null;
+  private readonly refit = () => {
+    this.insets = drawerInsets();
+  };
 
   createRenderRoot() {
     return this;
@@ -60,6 +106,36 @@ export class DomesticPanel extends LitElement implements Controller {
     this.eventBus.on(ToggleDomesticPanelEvent, () => {
       this.open = !this.open;
     });
+  }
+
+  protected willUpdate(changed: PropertyValues) {
+    if (!changed.has("open")) return;
+    if (this.open) this.startFitting();
+    else this.stopFitting();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopFitting();
+  }
+
+  /** While open, refit whenever the HUD around the drawer changes size. */
+  private startFitting() {
+    this.stopFitting();
+    this.refit();
+    window.addEventListener("resize", this.refit);
+    if (typeof ResizeObserver === "undefined") return;
+    this.resizeObserver = new ResizeObserver(this.refit);
+    for (const selector of Object.values(KEEP_CLEAR)) {
+      const el = document.querySelector(selector);
+      if (el) this.resizeObserver.observe(el);
+    }
+  }
+
+  private stopFitting() {
+    window.removeEventListener("resize", this.refit);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
   }
 
   tick() {
@@ -76,12 +152,15 @@ export class DomesticPanel extends LitElement implements Controller {
     if (!this.open || this.data === null || !me || view === null) return null;
     const d = this.data;
     // A right-side drawer (spec §14a): the map stays visible and playable on
-    // the left, so there is no backdrop. Every tab in TABS gets a button.
+    // the left, so there is no backdrop, and the HUD around it stays clear
+    // (KEEP_CLEAR). It stacks under that HUD, so a build-bar card can pop up
+    // over it. Every tab in TABS gets a button.
+    const { top, right, bottom } = this.insets;
     return html`
       <aside
         data-domestic-drawer
-        class="fixed top-0 right-0 bottom-0 z-[9998] w-[40vw] min-w-[420px] flex flex-col bg-gray-900/95 backdrop-blur-sm text-white text-base shadow-2xl border-l border-white/10"
-        style="padding-top: env(safe-area-inset-top); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom);"
+        class="fixed z-[150] w-[40vw] min-w-[420px] min-h-60 flex flex-col rounded-lg bg-gray-900/95 backdrop-blur-sm text-white text-base shadow-2xl border border-white/10"
+        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px;"
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
         <div class="flex items-center gap-2 px-3 pt-3">

@@ -478,8 +478,10 @@
       <div class="col-start-2 flex flex-col min-w-0 pointer-events-none">
         <attacks-display class="w-full pointer-events-auto"></attacks-display>
         <tutorial-panel class="hidden w-full"></tutorial-panel>
+        <!-- relative: the build-bar card opens above this whole box, so it
+             never covers the attack-ratio row. -->
         <div
-          class="pointer-events-auto bg-gray-800/92 backdrop-blur-sm rounded-t-lg shadow-lg"
+          class="relative pointer-events-auto bg-gray-800/92 backdrop-blur-sm rounded-t-lg shadow-lg"
         >
           <control-panel class="block w-full"></control-panel>
           <unit-display class="block w-full"></unit-display>
@@ -505,7 +507,11 @@
     <win-modal></win-modal>
     <new-lobby-prompt></new-lobby-prompt>
     <game-starting-modal></game-starting-modal>
-    <div class="flex flex-col items-end fixed top-0 right-0 z-1000 gap-2">
+    <!-- data-hud-top-right: the open domestic drawer stays below this. -->
+    <div
+      data-hud-top-right
+      class="flex flex-col items-end fixed top-0 right-0 z-1000 gap-2"
+    >
       <game-right-sidebar></game-right-sidebar>
       <replay-panel></replay-panel>
     </div>

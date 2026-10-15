@@ -328,8 +328,10 @@ export class UnitDisplay extends LitElement implements Controller {
     );
     if (items.length === 0) return null;
 
+    // The bar is not positioned: the card anchors to the HUD box around it
+    // (index.html) and opens above the whole box, clear of the control panel.
     return html`
-      <div class="relative border-t border-white/10 p-1 w-full">
+      <div class="border-t border-white/10 p-1 w-full">
         ${this.renderInfoCard()}
         <div class="flex justify-center gap-1">
           ${items.map((item) => this.renderItem(item))}
@@ -389,7 +391,7 @@ export class UnitDisplay extends LitElement implements Controller {
     return html`
       <div
         data-hotbar-info
-        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[90vw] z-[100] flex flex-col gap-2 p-3 rounded-lg bg-gray-800/95 backdrop-blur-sm shadow-xl text-white text-sm"
+        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[90vw] z-[100] flex flex-col gap-2 p-3 rounded-lg bg-gray-800 border border-white/10 shadow-xl text-white text-sm"
       >
         <div class="flex items-start gap-2">
           <div class="flex-1 text-base font-bold">

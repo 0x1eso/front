@@ -143,6 +143,23 @@ describe("unit-display build bar", () => {
     expect(uiState.ghostStructure).toBeNull();
   });
 
+  it("the card opens above the HUD box, not over the control panel", async () => {
+    const { el } = await mount([buildable(UnitType.City)]);
+    await tap(el, "city");
+    const info = card(el)!;
+    expect(info.classList).toContain("bottom-full");
+    // Nothing between the card and <unit-display> is positioned, so the card
+    // anchors to the box around the control panel, the bar and the domestic
+    // row (index.html; tests/client/HudLayout.test.ts) and opens above it.
+    for (let a = info.parentElement; a && a !== el; a = a.parentElement) {
+      expect(
+        [...a.classList].filter((c) =>
+          /^(relative|absolute|fixed|sticky)$/.test(c),
+        ),
+      ).toEqual([]);
+    }
+  });
+
   it("a locked unit names its tech on the icon and never builds", async () => {
     const { el, uiState } = await mount([
       buildable(UnitType.HydrogenBomb, true),
