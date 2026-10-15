@@ -14,6 +14,10 @@ import { NukeType } from "@openfront/engine-api/StatsSchemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { exp, log, pow2 } from "@openfront/engine-lib/DetMath";
 import {
+  BUILDING_BASE_COST,
+  BUILDING_MAX_COST,
+} from "@openfront/engine-lib/domestic/Balance";
+import {
   assertNever,
   sigmoid,
   toInt,
@@ -359,6 +363,13 @@ export class EngineConfig extends Config {
           (numUnits: number) => Math.min(1_000_000, pow2(numUnits) * 125_000),
           UnitType.Factory,
           UnitType.Port,
+        );
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
+        return this.costWrapper(
+          (numUnits: number) =>
+            Math.min(BUILDING_MAX_COST, pow2(numUnits) * BUILDING_BASE_COST),
+          type,
         );
       case UnitType.TransportShip:
       case UnitType.Shell:

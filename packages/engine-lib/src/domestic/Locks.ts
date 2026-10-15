@@ -24,3 +24,9 @@ export function isLockedByTech(
   const tech = requiredTech(type);
   return tech !== null && !view.hasTech(tech);
 }
+
+/** Structures that exist only in domestic mode (disabled otherwise). */
+export const DOMESTIC_ONLY_UNITS: ReadonlySet<UnitType> = new Set([
+  UnitType.ResearchInstitute,
+  UnitType.AdminOffice,
+]);

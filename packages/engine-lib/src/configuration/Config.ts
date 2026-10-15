@@ -9,6 +9,8 @@ import {
 import { PlayerLike } from "@openfront/engine-api/game/ReadViews";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { pow } from "../DetMath";
+import { BUILDING_CONSTRUCTION_TICKS } from "../domestic/Balance";
+import { DOMESTIC_ONLY_UNITS } from "../domestic/Locks";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
 import { assertNever } from "../Util";
 
@@ -176,7 +178,14 @@ export class Config {
     return 30;
   }
 
+  domesticMode(): boolean {
+    return this._gameConfig.domesticMode ?? false;
+  }
+
   isUnitDisabled(unitType: UnitType): boolean {
+    if (DOMESTIC_ONLY_UNITS.has(unitType) && !this.domesticMode()) {
+      return true;
+    }
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
   }
   instantBuild(): boolean {
@@ -244,6 +253,15 @@ export class Config {
       case UnitType.Factory:
         info = {
           constructionDuration: this.instantBuild() ? 0 : 2 * 10,
+          upgradable: true,
+        };
+        break;
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
+        info = {
+          constructionDuration: this.instantBuild()
+            ? 0
+            : BUILDING_CONSTRUCTION_TICKS,
           upgradable: true,
         };
         break;

@@ -164,6 +164,10 @@ export class ConstructionExecution implements Execution {
       case UnitType.Factory:
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
+        // Output comes from owned levels each second (DomesticExecution).
+        break;
       default:
         console.warn(
           `unit type ${this.constructionType} cannot be constructed`,
@@ -180,6 +184,8 @@ export class ConstructionExecution implements Execution {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
         return true;
       default:
         return false;
