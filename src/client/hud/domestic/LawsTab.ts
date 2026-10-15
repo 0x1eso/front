@@ -27,6 +27,8 @@ import {
 export interface LawsTabContext extends ConfirmTap {
   view: DomesticClientView;
   gold: bigint;
+  /** Config.hasInfiniteGold: the engine charges this player no gold. */
+  infiniteGold: boolean;
   nowTick: number;
   proclaim(law: LawId, option: LawOption, payWithGold: boolean): void;
 }
@@ -146,10 +148,12 @@ function proclaimButton(
       ${confirmTapLabel(ctx, key, translateText("domestic.proclaim"))}
     </button>`;
   }
-  const gold = shortfallGold(
-    (cost - available) * MILLI,
-    ctx.view.pct("goldPaymentCost"),
-  );
+  const gold = ctx.infiniteGold
+    ? 0n
+    : shortfallGold(
+        (cost - available) * MILLI,
+        ctx.view.pct("goldPaymentCost"),
+      );
   const affordable = ctx.gold >= gold;
   // The gold amount is part of the key: a new price needs a new confirm.
   const key = `law:${law}:${option}:gold:${gold}`;

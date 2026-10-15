@@ -81,6 +81,7 @@ describe("laws tab", () => {
       renderLawsTab({
         view,
         gold: 0n,
+        infiniteGold: false,
         nowTick: 0,
         proclaim: vi.fn(),
         ...NO_CONFIRM,
@@ -101,7 +102,14 @@ describe("laws tab", () => {
     const proclaim = vi.fn();
     const view = new DomesticClientView({ ...BASE, political: 400 });
     const root = harness((confirm) =>
-      renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim, ...confirm }),
+      renderLawsTab({
+        view,
+        gold: 0n,
+        infiniteGold: false,
+        nowTick: 0,
+        proclaim,
+        ...confirm,
+      }),
     );
     optionButton(root, "taxation", "B").click();
     expect(proclaim).not.toHaveBeenCalled();
@@ -120,7 +128,14 @@ describe("laws tab", () => {
     const proclaim = vi.fn();
     const view = new DomesticClientView({ ...BASE, political: 400 });
     const root = harness((confirm) =>
-      renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim, ...confirm }),
+      renderLawsTab({
+        view,
+        gold: 0n,
+        infiniteGold: false,
+        nowTick: 0,
+        proclaim,
+        ...confirm,
+      }),
     );
     optionButton(root, "taxation", "B").click();
     optionButton(root, "taxation", "A").click();
@@ -135,6 +150,7 @@ describe("laws tab", () => {
       renderLawsTab({
         view,
         gold: 0n,
+        infiniteGold: false,
         nowTick: 0,
         proclaim: vi.fn(),
         ...NO_CONFIRM,
@@ -148,7 +164,14 @@ describe("laws tab", () => {
     const proclaim = vi.fn();
     // The first law costs 350: 310 missing points at 1,000 gold each.
     const rich = harness((confirm) =>
-      renderLawsTab({ view, gold: 310_000n, nowTick: 0, proclaim, ...confirm }),
+      renderLawsTab({
+        view,
+        gold: 310_000n,
+        infiniteGold: false,
+        nowTick: 0,
+        proclaim,
+        ...confirm,
+      }),
     );
     expect(optionButton(rich, "trade", "A").disabled).toBe(false);
     optionButton(rich, "trade", "A").click();
@@ -166,6 +189,7 @@ describe("laws tab", () => {
           lawCooldownUntilTick: 500,
         }),
         gold: 0n,
+        infiniteGold: false,
         nowTick: 100,
         proclaim: vi.fn(),
         ...NO_CONFIRM,
@@ -180,6 +204,7 @@ describe("laws tab", () => {
       renderLawsTab({
         view: new DomesticClientView({ ...BASE, political: 1000 }),
         gold: 0n,
+        infiniteGold: false,
         nowTick: 0,
         proclaim: vi.fn(),
         ...NO_CONFIRM,

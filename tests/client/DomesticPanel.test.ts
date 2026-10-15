@@ -42,7 +42,10 @@ async function openPanel(d: DomesticData): Promise<DomesticPanel> {
     domestic: () => new DomesticClientView(d),
     gold: () => 0n,
   };
-  panel.game = { myPlayer: () => me } as any;
+  panel.game = {
+    myPlayer: () => me,
+    config: () => ({ hasInfiniteGold: () => false }),
+  } as any;
   let toggle: () => void = () => {};
   panel.eventBus = { on: (_: unknown, cb: () => void) => (toggle = cb) } as any;
   document.body.appendChild(panel);

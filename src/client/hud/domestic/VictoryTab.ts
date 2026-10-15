@@ -121,7 +121,7 @@ export function renderVictoryTab(
     <div class="flex flex-col gap-3 text-sm">
       ${renderConquest(game, standing)}
       ${VICTORY_PROJECT_KINDS.map((kind) =>
-        renderProject(kind, me, d, onStart),
+        renderProject(kind, me, d, onStart, game.config().hasInfiniteGold(me)),
       )}
       ${renderScore(game, standing)} ${renderActive(game)}
     </div>
@@ -150,6 +150,7 @@ function renderProject(
   me: PlayerView,
   d: DomesticData,
   onStart: (kind: VictoryProjectKind, unitId: number) => void,
+  infiniteGold: boolean,
 ): TemplateResult {
   const def = VICTORY_PROJECTS[kind];
   const qualified = projectQualified(
@@ -188,7 +189,8 @@ function renderProject(
               busy: d.project !== undefined,
               qualified,
               hostLevel: host.level,
-              gold: me.gold(),
+              // Like VictoryProjectExecution: infinite gold always pays.
+              gold: infiniteGold ? def.goldCost : me.gold(),
               politicalMilli: d.political * MILLI,
             });
             return html`<div class="flex items-center gap-2 flex-wrap">

@@ -68,6 +68,7 @@ async function openDrawer(): Promise<DomesticPanel> {
       conquestPercent: () => 80,
       maxTimerMinutes: () => 30,
       gameConfig: () => ({ gameMode: GameMode.FFA }),
+      hasInfiniteGold: () => false,
     }),
     elapsedGameSeconds: () => 0,
     playerViews: () => [me],

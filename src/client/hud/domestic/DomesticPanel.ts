@@ -226,6 +226,7 @@ export class DomesticPanel extends LitElement implements Controller {
         return renderLawsTab({
           view,
           gold: me.gold(),
+          infiniteGold: this.game.config().hasInfiniteGold(me),
           nowTick: this.game.ticks(),
           armed: this.armed,
           arm: (key) => (this.armed = key),
@@ -323,10 +324,13 @@ export class DomesticPanel extends LitElement implements Controller {
           ${translateText("domestic.research")}
         </button>`;
       } else {
-        const gold = shortfallGold(
-          (def.cost - d.science) * MILLI,
-          me.domestic()?.pct("goldPaymentCost") ?? 0,
-        );
+        // Infinite gold: the engine charges nothing (payPoints).
+        const gold = this.game.config().hasInfiniteGold(me)
+          ? 0n
+          : shortfallGold(
+              (def.cost - d.science) * MILLI,
+              me.domestic()?.pct("goldPaymentCost") ?? 0,
+            );
         const affordable = me.gold() >= gold;
         status = html`<button
             type="button"

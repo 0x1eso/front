@@ -227,6 +227,28 @@ export class Config {
   isRandomSpawn(): boolean {
     return this._gameConfig.randomSpawn;
   }
+  infiniteGold(): boolean {
+    return this._gameConfig.infiniteGold;
+  }
+
+  private hasInfiniteGoldFor(player: PlayerLike): boolean {
+    if (this.infiniteGold()) return true;
+    const hc = this._gameConfig.hostCheats;
+    return (hc?.infiniteGold ?? false) && player.isLobbyCreator();
+  }
+
+  /**
+   * Whether `player` spends no gold: a human with infinite gold (the lobby's
+   * setting, or the host's cheat for the lobby creator). Units cost such a
+   * player nothing, and neither do domestic mode's gold costs. Here rather
+   * than in EngineConfig so the client's panel shows what the engine charges.
+   */
+  hasInfiniteGold(player: PlayerLike): boolean {
+    return (
+      player.type() === PlayerType.Human && this.hasInfiniteGoldFor(player)
+    );
+  }
+
   infiniteTroops(): boolean {
     return this._gameConfig.infiniteTroops;
   }

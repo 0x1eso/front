@@ -196,9 +196,6 @@ export class EngineConfig extends Config {
   waterNukes(): boolean {
     return this._gameConfig.waterNukes ?? false;
   }
-  infiniteGold(): boolean {
-    return this._gameConfig.infiniteGold;
-  }
   donateGold(): boolean {
     return this._gameConfig.donateGold;
   }
@@ -324,23 +321,6 @@ export class EngineConfig extends Config {
       Math.floor(
         (100 * rejectionModifier) / this.tradeShipSaturation(numTradeShips),
       ),
-    );
-  }
-
-  private hasInfiniteGoldFor(player: PlayerLike): boolean {
-    if (this.infiniteGold()) return true;
-    const hc = this._gameConfig.hostCheats;
-    return (hc?.infiniteGold ?? false) && player.isLobbyCreator();
-  }
-
-  /**
-   * Whether `player` spends no gold: a human with infinite gold (the lobby's
-   * setting, or the host's cheat for the lobby creator). Units cost such a
-   * player nothing, and neither do domestic mode's gold costs.
-   */
-  hasInfiniteGold(player: PlayerLike): boolean {
-    return (
-      player.type() === PlayerType.Human && this.hasInfiniteGoldFor(player)
     );
   }
 
