@@ -335,6 +335,11 @@ export const GameConfigSchema = z.object({
   // Domestic mode (this fork): science / political power, tech tree, gold
   // sinks. Off by default. See docs/superpowers/specs/2026-10-15-domestic-system-design.md.
   domesticMode: z.boolean().optional(),
+  // Domestic mode: land share (percent) that wins by conquest. Unset means
+  // 70; ignored outside domestic mode (vanilla keeps 80). 100 turns conquest
+  // victory off. Bounds mirror CONQUEST_PERCENT_MIN/MAX in engine-lib's
+  // domestic/Balance.ts (engine-api can't import engine-lib).
+  conquestPercent: zb.uint({ min: 30, max: 100 }).nullable().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

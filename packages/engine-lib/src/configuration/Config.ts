@@ -14,6 +14,10 @@ import { BUILDING_CONSTRUCTION_TICKS } from "../domestic/Balance";
 import { DOMESTIC_ONLY_UNITS } from "../domestic/Locks";
 import { applyPct } from "../domestic/Modifiers";
 import { domesticTroopIncrease } from "../domestic/Troops";
+import {
+  domesticConquestPercent,
+  effectiveMaxTimerMinutes,
+} from "../domestic/Victory";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
 import { assertNever } from "../Util";
 
@@ -142,7 +146,8 @@ export class Config {
     const c = this._gameConfig.overtime;
     const d = OVERTIME_DEFAULTS;
     return {
-      enabled: c?.enabled ?? d.enabled,
+      // Domestic mode always ends on its timer: no overtime (spec §8.3).
+      enabled: !this.domesticMode() && (c?.enabled ?? d.enabled),
       startMinutes: c?.startMinutes ?? d.startMinutes,
       // The drop rate is internal (not wire-configurable): always the default.
       dropPercentPerMinute: d.dropPercentPerMinute,
@@ -183,6 +188,18 @@ export class Config {
 
   domesticMode(): boolean {
     return this._gameConfig.domesticMode ?? false;
+  }
+
+  /** Land share (percent) that wins by conquest, before any overtime drop. */
+  conquestPercent(): number {
+    return this.domesticMode()
+      ? domesticConquestPercent(this._gameConfig)
+      : PERCENT_TILES_OWNED_TO_WIN;
+  }
+
+  /** Game length in minutes; null when the game has no timer. */
+  maxTimerMinutes(): number | null {
+    return effectiveMaxTimerMinutes(this._gameConfig);
   }
 
   /** The player's domestic view in domestic mode; null otherwise (and for bots). */
@@ -317,7 +334,7 @@ export class Config {
   }
 
   percentageTilesOwnedToWin(elapsedGameSeconds: number): number {
-    const base = PERCENT_TILES_OWNED_TO_WIN;
+    const base = this.conquestPercent();
     const sd = this.overtimeConfig();
     if (!sd.enabled) {
       return base;

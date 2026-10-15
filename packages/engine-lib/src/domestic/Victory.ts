@@ -1,6 +1,9 @@
 import { VictoryProjectKind } from "@openfront/engine-api/domestic/DomesticTypes";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { GameConfig } from "@openfront/engine-api/Schemas";
 import {
+  DOMESTIC_CONQUEST_PERCENT,
+  DOMESTIC_TIMER_MINUTES,
   MILLI,
   POLITICAL_PROJECT_GOLD,
   POLITICAL_PROJECT_POLITICAL,
@@ -86,4 +89,24 @@ export function victoryProjectBlock(
   if (a.gold < def.goldCost) return "gold";
   if (a.politicalMilli < def.politicalCostMilli) return "political";
   return null;
+}
+
+/**
+ * Game length in minutes; null when there is no timer. Domestic games
+ * always end on a timer (spec §8.3): 30 minutes unless the lobby set one,
+ * including the host lobby's "timer off" (null).
+ */
+export function effectiveMaxTimerMinutes(
+  gc: Pick<GameConfig, "maxTimerValue" | "domesticMode">,
+): number | null {
+  const set = gc.maxTimerValue ?? null;
+  if (set !== null) return set;
+  return gc.domesticMode === true ? DOMESTIC_TIMER_MINUTES : null;
+}
+
+/** Conquest threshold of a domestic game (percent of non-fallout land). */
+export function domesticConquestPercent(
+  gc: Pick<GameConfig, "conquestPercent">,
+): number {
+  return gc.conquestPercent ?? DOMESTIC_CONQUEST_PERCENT;
 }

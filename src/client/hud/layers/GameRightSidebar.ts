@@ -1,4 +1,5 @@
 import { GameType } from "@openfront/engine-api/game/GameTypes";
+import { effectiveMaxTimerMinutes } from "@openfront/engine-lib/domestic/Victory";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
@@ -149,7 +150,9 @@ export class GameRightSidebar extends LitElement implements Controller {
       // Singleplayer has no spawn timer (SpawnTimerExecution isn't added), so
       // the spawn phase doesn't count down — keep the old static display.
       if (this.game.config().gameConfig().gameType === GameType.Singleplayer) {
-        const maxTimerValue = this.game.config().gameConfig().maxTimerValue;
+        const maxTimerValue = effectiveMaxTimerMinutes(
+          this.game.config().gameConfig(),
+        );
         this.timer =
           maxTimerValue !== null && maxTimerValue !== undefined
             ? maxTimerValue * 60
@@ -170,7 +173,9 @@ export class GameRightSidebar extends LitElement implements Controller {
       return;
     }
 
-    const maxTimerValue = this.game.config().gameConfig().maxTimerValue;
+    const maxTimerValue = effectiveMaxTimerMinutes(
+      this.game.config().gameConfig(),
+    );
     if (maxTimerValue !== null && maxTimerValue !== undefined) {
       this.timer = Math.max(0, maxTimerValue * 60 - elapsedSeconds);
       this.maybeShowOneMinuteWarning();
@@ -302,7 +307,9 @@ export class GameRightSidebar extends LitElement implements Controller {
   render() {
     if (this.game === undefined) return html``;
 
-    const maxTimerValue = this.game.config().gameConfig().maxTimerValue;
+    const maxTimerValue = effectiveMaxTimerMinutes(
+      this.game.config().gameConfig(),
+    );
     const isEndTimerActive =
       maxTimerValue !== undefined &&
       maxTimerValue !== null &&
