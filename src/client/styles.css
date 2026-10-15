@@ -773,3 +773,44 @@ unit-display .tutorial-highlight::after {
 .remove-player-btn:hover {
   background: #ef4444;
 }
+
+/* Finger-sized range inputs for the in-game HUD (spec §14a: 44px touch
+   targets). Used by the attack ratio and the domestic recruit slider. */
+.touch-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.touch-range::-webkit-slider-runnable-track {
+  height: 12px;
+  border-radius: 9999px;
+  background: rgb(75 85 99);
+}
+
+.touch-range::-moz-range-track {
+  height: 12px;
+  border-radius: 9999px;
+  background: rgb(75 85 99);
+}
+
+.touch-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  margin-top: -10px;
+  border-radius: 9999px;
+  border: 3px solid white;
+  background: var(--color-aquarius);
+}
+
+.touch-range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  border: 3px solid white;
+  background: var(--color-aquarius);
+}

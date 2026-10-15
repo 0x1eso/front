@@ -54,7 +54,7 @@ describe("control-panel attack ratio", () => {
     expect(uiState.attackRatio).toBeCloseTo(0.2);
   });
 
-  it("renders the calculated troop count alongside percentage in mobile view", async () => {
+  it("renders the calculated troop count alongside the percentage", async () => {
     panel.game = {
       inSpawnPhase: () => false,
       myPlayer: () => ({ isAlive: () => true, troops: () => 100_000 }),
@@ -63,10 +63,8 @@ describe("control-panel attack ratio", () => {
     panel.setVisibile(true);
     await (panel as any).updateComplete;
 
-    const mobileContainer = panel.querySelector(".lg\\:hidden");
-    expect(mobileContainer?.textContent).toContain(
-      "control_panel.attack_ratio",
-    );
+    const label = panel.querySelector("[data-attack-ratio-label]");
+    expect(label?.textContent).toContain("control_panel.attack_ratio");
   });
 
   // <control-panel> sits in index.html, so its (hidden) slider exists on the
