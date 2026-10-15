@@ -24,6 +24,11 @@ function data(techs: DomesticData["techs"]): DomesticData {
     techs,
     research: null,
     recruitTargetPct: 100,
+    laws: {},
+    lawCooldownUntilTick: 0,
+    governmentTier: 0,
+    government: "chiefdom",
+    conditions: [],
   };
 }
 

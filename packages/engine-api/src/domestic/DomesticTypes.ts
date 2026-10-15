@@ -76,6 +76,48 @@ export const CONDITIONS = [
 ] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
+/** Book of Laws categories (spec §5.2), in the spec's order. */
+export const LAW_IDS = [
+  "trade",
+  "taxation",
+  "construction",
+  "learning",
+  "service",
+  "doctrine",
+  "mobilization",
+  "nuclear",
+  "diplomacy",
+  "opinion",
+  "religion",
+] as const;
+export type LawId = (typeof LAW_IDS)[number];
+
+/** A law's two options, as in the spec table (A / B). */
+export const LAW_OPTIONS = ["A", "B"] as const;
+export type LawOption = (typeof LAW_OPTIONS)[number];
+
+/** Spec §6: tier 0, three tier-1 and three tier-2 governments. */
+export const GOVERNMENT_IDS = [
+  "chiefdom",
+  "monarchy",
+  "republic",
+  "theocracy",
+  "democracy",
+  "fascism",
+  "communism",
+] as const;
+export type GovernmentId = (typeof GOVERNMENT_IDS)[number];
+
+/** Effects that aren't a stat percent (the flag table of spec §7.2). */
+export const POLICY_FLAGS = [
+  "noForeignTrade",
+  "noProductionUpkeep",
+  "researchSubsidy",
+  "feudal",
+  "tithe",
+] as const;
+export type PolicyFlag = (typeof POLICY_FLAGS)[number];
+
 export interface Modifier {
   stat: StatKey;
   /** Percent change: +30 means x1.3, -25 means x0.75. */
@@ -113,6 +155,15 @@ export interface DomesticData {
   techs: TechId[];
   research: ResearchProgress | null;
   recruitTargetPct: number;
+  /** Proclaimed laws (spec §5): category -> chosen option. */
+  laws: Partial<Record<LawId, LawOption>>;
+  /** No law can be proclaimed before this tick. */
+  lawCooldownUntilTick: number;
+  /** Highest government tier reached, 0..3. */
+  governmentTier: number;
+  government: GovernmentId;
+  /** Conditions in force since the last processed second. */
+  conditions: Condition[];
   /** The running (or just completed) victory project; absent when none. */
   project?: VictoryProjectProgress;
 }

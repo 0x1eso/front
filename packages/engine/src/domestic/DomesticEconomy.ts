@@ -1,4 +1,8 @@
 import {
+  CONDITIONS,
+  type Condition,
+} from "@openfront/engine-api/domestic/DomesticTypes";
+import {
   Gold,
   MessageType,
   PlayerType,
@@ -11,12 +15,16 @@ import {
   DEMOBILIZE_PCT_PER_SEC,
   DESERTION_PCT_PER_SEC,
   DOMESTIC_INTERVAL_TICKS,
+  FEUDAL_POLITICAL_PER_CITY_LEVEL,
   INTEREST_CAP_PER_SEC,
   INTEREST_DIVISOR_PER_SEC,
   MILLI,
   NATION_YIELD_MULT,
   RECRUIT_COST_PER_1000_TROOPS,
+  RESEARCH_SUBSIDY_GOLD_PER_SEC,
+  RESEARCH_SUBSIDY_SCIENCE_PER_SEC,
   TERRITORY_YIELD_PER_SQRT_PCT,
+  TITHE_GOLD_PER_SQRT_PCT,
   UPKEEP_FREE_BAND_PCT,
   UPKEEP_GOLD_PER_1000_EXCESS,
 } from "@openfront/engine-lib/domestic/Balance";
@@ -24,6 +32,7 @@ import {
   applyPct,
   capCombinedPct,
 } from "@openfront/engine-lib/domestic/Modifiers";
+import { shortfallGold } from "@openfront/engine-lib/domestic/Research";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import type { Game, Player } from "../game/Game";
 import type { PlayerDomestic } from "./PlayerDomestic";
@@ -46,13 +55,10 @@ function payBuildingUpkeep(player: Player, levels: number): boolean {
   return true;
 }
 
-function territoryYield(mg: Game, player: Player): number {
+/** Owned land as a percent of the map's land. */
+function landSharePct(mg: Game, player: Player): number {
   const land = mg.numLandTiles();
-  if (land <= 0) return 0;
-  return (
-    TERRITORY_YIELD_PER_SQRT_PCT *
-    Math.sqrt((player.numTilesOwned() * 100) / land)
-  );
+  return land <= 0 ? 0 : (player.numTilesOwned() * 100) / land;
 }
 
 function yieldMultiplier(mg: Game, player: Player): number {
@@ -69,23 +75,84 @@ function hasInterest(d: PlayerDomestic): boolean {
 }
 
 /**
- * One second of a player's domestic economy (spec §3): building upkeep and
- * output, troop upkeep and desertion, demobilization down to the recruit
- * target, banking interest, then research progress. The order is fixed so
- * every client runs it identically.
+ * The conditions conditional modifiers test this second (spec §7.1). An
+ * attack counts while it targets another player and isn't retreating; a
+ * boat at sea has no attack yet (AttackExecution starts on landing).
+ */
+export function activeConditions(
+  player: Player,
+  maxTroops: number,
+): Set<Condition> {
+  const attacking = player
+    .outgoingAttacks()
+    .some((a) => a.target().isPlayer() && !a.retreating());
+  const holds: Record<Condition, boolean> = {
+    attacking,
+    notAttacking: !attacking,
+    troopsAtMostHalf: player.troops() * 2 <= maxTroops,
+  };
+  // Built in the fixed CONDITIONS order: toData() and snapshots keep it.
+  const out = new Set<Condition>();
+  for (const c of CONDITIONS) {
+    if (holds[c]) out.add(c);
+  }
+  return out;
+}
+
+/** Research subsidies take all 300 gold or nothing. */
+function payResearchSubsidy(player: Player): boolean {
+  if (player.gold() < RESEARCH_SUBSIDY_GOLD_PER_SEC) return false;
+  player.removeGold(RESEARCH_SUBSIDY_GOLD_PER_SEC);
+  return true;
+}
+
+/**
+ * Theocracy's tithe (spec §6.2): 100 × sqrt(land share %) gold a second.
+ * It is part of goldIncome (spec §7.2), so goldIncome and allGold apply, and
+ * the lobby's gold multiplier like the rest of the base income.
+ */
+function payTithe(
+  mg: Game,
+  player: Player,
+  d: PlayerDomestic,
+  sharePct: number,
+): void {
+  const pct = capCombinedPct(d.pct("goldIncome") + d.pct("allGold"));
+  const gold = Math.floor(
+    applyPct(TITHE_GOLD_PER_SQRT_PCT * Math.sqrt(sharePct), pct) *
+      mg.config().goldMultiplier(),
+  );
+  if (gold > 0) player.addGold(BigInt(gold));
+}
+
+/**
+ * One second of a player's domestic economy (spec §3, §5, §6): this
+ * second's conditions, building upkeep and output (with research subsidies
+ * and feudalism), the government tier, the tithe, troop upkeep and
+ * desertion, demobilization down to the recruit target, banking interest,
+ * then research progress. The order is fixed so every client runs it
+ * identically.
  */
 export function processDomesticSecond(
   mg: Game,
   player: Player,
   d: PlayerDomestic,
 ): void {
+  const maxTroops = mg.config().maxTroops(player);
+  d.setConditions(activeConditions(player, maxTroops));
+
   const instituteLevels = finishedLevels(player, UnitType.ResearchInstitute);
   const officeLevels = finishedLevels(player, UnitType.AdminOffice);
-  const institutesRun = payBuildingUpkeep(player, instituteLevels);
-  const officesRun = payBuildingUpkeep(player, officeLevels);
+  // Communism: institutes and offices run without upkeep.
+  const freeUpkeep = d.hasFlag("noProductionUpkeep");
+  const institutesRun =
+    freeUpkeep || payBuildingUpkeep(player, instituteLevels);
+  const officesRun = freeUpkeep || payBuildingUpkeep(player, officeLevels);
 
+  const sharePct = landSharePct(mg, player);
   // Flat base output plus territory, before the science/political modifiers.
-  const landYield = BASE_YIELD_PER_SEC + territoryYield(mg, player);
+  const landYield =
+    BASE_YIELD_PER_SEC + TERRITORY_YIELD_PER_SQRT_PCT * Math.sqrt(sharePct);
   const mult = yieldMultiplier(mg, player);
   const instituteOutput = institutesRun
     ? applyPct(
@@ -96,13 +163,33 @@ export function processDomesticSecond(
   const officeOutput = officesRun
     ? applyPct(officeLevels * BUILDING_YIELD_PER_LEVEL, d.pct("adminOutput"))
     : 0;
+  const subsidy =
+    d.hasFlag("researchSubsidy") && payResearchSubsidy(player)
+      ? RESEARCH_SUBSIDY_SCIENCE_PER_SEC
+      : 0;
+  const feudal = d.hasFlag("feudal")
+    ? finishedLevels(player, UnitType.City) * FEUDAL_POLITICAL_PER_CITY_LEVEL
+    : 0;
   const science =
-    applyPct(landYield + instituteOutput, d.pct("science")) * mult;
+    applyPct(landYield + instituteOutput + subsidy, d.pct("science")) * mult;
   const political =
-    applyPct(landYield + officeOutput, d.pct("political")) * mult;
+    applyPct(landYield + officeOutput + feudal, d.pct("political")) * mult;
   d.addYield(Math.round(science * MILLI), Math.round(political * MILLI));
 
-  const maxTroops = mg.config().maxTroops(player);
+  const tier = d.refreshGovernmentTier();
+  if (tier !== null) {
+    mg.displayMessage(
+      "events_display.government_tier_reached",
+      MessageType.GOVERNMENT_TIER_REACHED,
+      player.id(),
+      undefined,
+      { tier },
+    );
+  }
+  if (d.hasFlag("tithe")) {
+    payTithe(mg, player, d, sharePct);
+  }
+
   const band =
     (maxTroops * (UPKEEP_FREE_BAND_PCT + d.pct("upkeepFreeBand"))) / 100;
   const excess = player.troops() - band;
@@ -215,4 +302,39 @@ export function domesticTradeShipSpawnRate(
 export function domesticDefensePostScale(defender: Player): number {
   const d = defender.domestic();
   return d === null ? 1 : 1 + d.pct("defensePost") / 100;
+}
+
+/**
+ * Spends `costMilli` of science or political power. A shortfall is paid in
+ * gold (spec §3.1) only when `payWithGold` is set and the player has it.
+ * Returns false, spending nothing, when the player can't pay.
+ */
+export function payPoints(
+  player: Player,
+  d: PlayerDomestic,
+  resource: "science" | "political",
+  costMilli: number,
+  payWithGold: boolean,
+): boolean {
+  const available =
+    resource === "science"
+      ? d.scienceMilliAvailable()
+      : d.politicalMilliAvailable();
+  const spend = (amount: number): void => {
+    if (resource === "science") {
+      d.spendScienceMilli(amount);
+    } else {
+      d.spendPoliticalMilli(amount);
+    }
+  };
+  if (available >= costMilli) {
+    spend(costMilli);
+    return true;
+  }
+  if (!payWithGold) return false;
+  const gold = shortfallGold(costMilli - available, d.pct("goldPaymentCost"));
+  if (player.gold() < gold) return false;
+  player.removeGold(gold);
+  spend(available);
+  return true;
 }

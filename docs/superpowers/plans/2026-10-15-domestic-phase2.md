@@ -4,11 +4,28 @@
 
 **Goal:** 내정 모드 2단계를 구현한다. 범위는 법률서(11개 항목, 영구 양자택일, 45초 대기, 늘어나는 비용), 누적 정치력에 따른 정부 단계와 정부 7종, 모든 법·정부 효과(특수 효과, 조건부 보정, 전투·건설 시간·SAM 사거리 보정 포함), 국정 패널의 법률서·정부 탭, AI 성향 4종이다.
 
-**Architecture:** 법·정부 데이터와 규칙(비용, 선포 가능 여부, 정부 단계, 선택 가능 여부, 보정값·플래그 합치기)은 `packages/engine-lib/src/domestic/`의 `Laws.ts`, `Governments.ts`, `Policies.ts`에 둔다. 엔진과 화면이 같은 함수를 쓴다. 플레이어별 상태(선포한 법, 대기 종료 틱, 정부 단계, 현재 정부, 이번 초의 조건)는 1단계의 `PlayerDomestic`에 더한다. 효과는 1단계 연결 지점(`DomesticView.pct()`를 읽는 곳)과 새 연결 지점(전투 계산 입력, 건설 시간, SAM 사거리, `canTrade`, 매초 내정 처리)으로 적용한다. 모드를 끄면 원작과 비트 단위로 같아야 한다.
+**Architecture:** 법·정부 데이터와 규칙(비용, 선포 가능 여부, 정부 단계, 선택 가능 여부, 보정값·플래그 합치기)은 `packages/engine-lib/src/domestic/`의 `Laws.ts`, `Governments.ts`, `Policies.ts`에 둔다. 엔진과 화면이 같은 함수를 쓴다. 특히 보정값 합계(기술 + 법 + 정부, 조건부 포함)는 `Policies.ts`의 `domesticModifiers()` 하나로만 만들고, 엔진의 `PlayerDomestic`과 화면의 `DomesticClientView`가 둘 다 이 함수를 부른다(Task 2). 플레이어별 상태(선포한 법, 대기 종료 틱, 정부 단계, 현재 정부, 이번 초의 조건)는 1단계의 `PlayerDomestic`에 더한다. 효과는 1단계 연결 지점(`DomesticView.pct()`를 읽는 곳)과 새 연결 지점(전투 계산 입력, 건설 시간, SAM 사거리, `canTrade`, 매초 내정 처리)으로 적용한다. 모드를 끄면 원작과 비트 단위로 같아야 한다.
 
 **Tech Stack:** TypeScript 6, Vitest 4, zod + zbin, Lit + Tailwind 4, jq
 
 **Spec:** `docs/superpowers/specs/2026-10-15-domestic-system-design.md` (§5, §6, §7, §9.1–9.2, §10.4, §10.7, §10.9의 2단계 부분). 기반 계획: `docs/superpowers/plans/2026-10-15-domestic-phase1.md`
+
+---
+
+## Reconciliation notes (1단계 구현에 맞춘 수정)
+
+이 계획은 원래 1단계 **계획**의 코드를 보고 쓰였다. 1단계 구현(15개 Task)과 최종 수정(final fix wave 8개 항목, 커밋 `a9aec6266`…`f07785bd8`)을 읽고 다음을 고쳤다. 동작·범위·Decisions(22번 추가 외)는 그대로다.
+
+1. **보정값 합치기를 하나로 (보류된 아키텍처 결정):** 1단계는 엔진(`PlayerDomestic` 생성·`restore`)과 화면(`src/client/view/DomesticClientView.ts`)이 각자 `new ModifierTotals(techModifiers(...))`를 만들었다. Task 2가 `packages/engine-lib/src/domestic/Policies.ts`에 `domesticModifiers(techs, laws, government): ModifierTotals`를 더하고, `PlayerDomestic.rebuild()`와 `DomesticClientView` 생성자가 이것만 쓰게 했다(Decision 22). 테스트: `tests/domestic/PlayerPolicies.test.ts` "techs, laws and the government add up per stat and condition", `tests/client/DomesticClient.test.ts` "agrees with the engine's PlayerDomestic on every stat".
+2. **기본 산출(최종 수정 B):** `Balance.ts`에 `BASE_YIELD_PER_SEC = 1`이 생기고 `TERRITORY_YIELD_PER_SQRT_PCT`가 0.5 → 1.5가 됐다. 땅 1%(테스트의 10×10)는 초당 1 + 1.5×√1 = 2.5다. Task 3의 `processDomesticSecond` 교체 코드가 기본 산출을 유지하도록 고쳤고(`landYield`), `PolicyEconomy.test.ts` 기대값을 다시 계산했다: 보조금 3000/2500, 봉건제 2700/2125, 십일조 3250, 공산주의 4000, 단계 알림 테스트는 297,500 + 2,500 = 300,000. Decision 8의 문구도 고쳤다.
+3. **`FullGameSnapshot.test.ts`(최종 수정 4):** `neverStored`는 없어졌다. 내정 전용 실행 이름 목록 `DOMESTIC_ONLY_TYPES`가 있고 `domestic` 변형 게임이 그 목록 전부를 기대한다. Task 4는 두 이름을 이 목록에 더하고, 1500틱 스크립트 게임이 닿는다는 보장이 없는 두 이름을 `DOMESTIC_UNSCRIPTED_TYPES`로 빼게 바꿨다. Task 4·9의 확인 명령에 이 테스트를 넣었다.
+4. **`shortfallGold`(최종 수정 6):** 정수 퍼센트 계산이 됐다. 2단계 테스트의 값(60,000 / 30,000 금)은 그대로 맞다.
+5. **`NationStructureBehavior`(최종 수정 5):** `getSaveUpTarget`이 `getSaveUpPlan`/`samSaveUpTarget`/`areNukesStillLocked`로 나뉘었다. Task 9는 그 부분을 건드리지 않는다. Task 9의 두 호출 위치 이름을 실제 메서드(`levelsDue`, `getPerceivedCost`)로 적었다. `tests/domestic/NationDomestic.test.ts`에는 "nations don't save gold for locked units" 묶음이 더해졌다. Task 9의 수정 지점(첫 테스트 한 줄, `NATION` 상수 뒤)은 그대로 맞다.
+6. **`DomesticPanel`(최종 수정 7):** `renderTech`가 `researchTicks`로 시간을 보이고, 이를 시험하는 `tests/client/DomesticPanel.test.ts`가 생겼다. 이 테스트의 `DomesticData` 리터럴도 Task 2가 새 필드를 채운다(빠뜨리면 타입 검사 실패와 `lawMapOf(undefined)` 오류). Task 12는 `render()`만 바꾸고 `renderTech`는 그대로 두므로 충돌이 없고, 이 테스트를 Task 12 확인에서도 돌린다(`tests/client` 전체).
+7. **`tests/domestic/util.ts`:** `TechId` import는 한 줄이다(Task 2 Step 1 지점 수정).
+8. **번역 검사:** `tests/TranslationSystem.test.ts`는 Task 3(키 `events_display.government_tier_reached`를 쓰기 시작)부터 Task 12(새 키를 화면이 모두 쓰게 됨)까지 실패한다. 1단계와 같은 순서 문제다. Task 10의 확인 명령에서 빼고 Task 12에 넣었다.
+9. **전투 공식 테스트:** 1단계 `TechEffects.test.ts`는 `EngineConfig.prototype.attackLogic.call(config, i)`를 썼다. Task 5의 `new EngineConfig({} as GameConfig, false)`도 된다(`attackLogic`이 읽는 `defensePostDefenseBonus` 등은 상수를 돌려준다).
+10. **확인 명령 보강:** Task 8에 `TradeShipExecution.test.ts`·`TrainStation.test.ts`(최종 수정 1의 가짜 플레이어)를 넣었고, Task 9·13에 1단계 기록의 기존 실패 `tests/NationGoldPerMinute.test.ts`를 예외로 적었다.
 
 ---
 
@@ -21,7 +38,7 @@
 5. 단계는 누적 정치력이 기준치 **이상**이면 오른다. 판정은 매초 내정 처리 때 하고, 오르면 그 플레이어에게 이벤트 메시지를 한 번 보낸다.
 6. 법 비용은 `round(100 × 1.5^k)`를 먼저 구하고, `lawCost` 보정을 정수 계산(`base × (100 + pct) / 100`)으로 적용해 다시 반올림한다. 부족분 금 결제는 연구와 같은 규칙이다.
 7. 조건부 보정(공격 중/아님/병력 절반 이하)은 매초 내정 처리 시작 때 판정해서 다음 1초 동안 쓴다. 금 수입·병력 회복도 이 값을 쓴다. 후퇴 중인 공격은 공격으로 치지 않는다.
-8. 연구 보조금은 금 300이 다 있을 때만 300을 내고, 과학력 0.5를 생산 기본값(영토+연구소)에 더한다. 그래서 `science` 보정과 AI 난이도 배율을 받는다. 봉건제 정치력(완성된 도시 레벨 × 0.2)도 같은 방식이다.
+8. 연구 보조금은 금 300이 다 있을 때만 300을 내고, 과학력 0.5를 생산 기본값(기본 1/초 + 영토 + 연구소)에 더한다. 그래서 `science` 보정과 AI 난이도 배율을 받는다. 봉건제 정치력(완성된 도시 레벨 × 0.2)도 같은 방식이다.
 9. 십일조는 매초 내정 처리 때 지급한다. `goldIncome`+`allGold` 보정과 로비 금 배율(`goldMultiplier`)을 받는다(호스트 치트 금 배율은 받지 않음).
 10. SAM 사거리 보정 결과는 `maxSamRange()`(150)를 넘지 않는다(엔진의 요격 계산 가지치기가 이 값을 상한으로 쓴다). 업그레이드 중 보간의 시작값은 보정 전 사거리로 저장한다. 화면의 SAM 사거리 원은 2단계에서 보정을 반영하지 않는다.
 11. 건설 시간은 `buildTime`(+도시는 `cityBuildTime`) 합을 −60%로 제한하고 최소 1틱이다. 내정 모드에서만 유닛 업데이트에 실제 건설 시간을 실어 보낸다. 리플레이의 진행 막대는 유닛 종류의 기본 시간을 쓴다.
@@ -35,22 +52,25 @@
 19. 국교 지정의 `unlocksTheocracy`는 플래그가 아니라 신정 정의의 `requiresLaw`로 표현한다.
 20. 국정 패널의 탭은 1단계 패널 안에 직접 만든 탭 버튼으로 한다(1단계 패널이 `BaseModal`을 쓰지 않기 때문).
 21. 인텐트 필드 이름은 1단계(`tech`)처럼 spec의 `lawId`/`govId` 대신 `law`, `option`, `payWithGold`, `government`로 한다.
+22. 보정값 합계는 engine-lib `Policies.ts`의 `domesticModifiers(techs, laws, government)` 하나로만 만든다. 엔진(`PlayerDomestic`)과 화면(`DomesticClientView`)이 각자 합치면 한쪽만 바뀌어 화면 숫자와 실제 효과가 어긋날 수 있다(1단계 최종 리뷰 지적).
 
 ## 시작 전에 (환경)
 
-- 1단계 15개 Task가 모두 끝나고 커밋된 상태에서 시작한다. `npx vitest tests/domestic --run`이 통과해야 한다.
-- 이 계획의 교체·수정 지점은 **1단계 계획의 코드**를 기준으로 쓰였다. 1단계 구현 중 계획과 달라진 부분(리뷰 수정 등)이 있으면 `git log -p -- <파일>`로 확인하고, 이 계획의 교체 코드에 그 변경을 옮긴다.
+- 1단계 15개 Task와 최종 수정(final fix wave, 마지막 커밋 `f07785bd8`)이 모두 커밋된 상태에서 시작한다. `npx vitest tests/domestic --run`이 통과해야 한다.
+- 이 계획의 교체·수정 지점은 1단계 **구현 코드**(`f07785bd8` 기준)에 맞춰 두었다(맨 위 Reconciliation notes). 그 뒤 1단계 파일이 또 바뀌었으면 `git log -p f07785bd8.. -- <파일>`로 확인하고, 이 계획의 교체 코드에 그 변경을 옮긴다.
+- `tests/TranslationSystem.test.ts`는 Task 3부터 Task 12 직전까지 실패한다(Task 3이 쓰는 메시지 키는 Task 10이 만들고, Task 10이 만든 키는 Task 11·12의 화면이 쓴다). 그 사이 Task의 확인 명령에는 넣지 않았고, Task 12 Step 4에서 통과를 확인한다.
 - 프로젝트는 Node 24를 요구한다. 이 PC의 Node 26에서도 테스트·타입 검사가 통과했다(1단계 계획 참고).
 - 작업 브랜치: `domestic-system`
 - 단일 테스트 실행: `npx vitest tests/domestic/<File>.test.ts --run`
 - 커밋 전에 바꾼 파일에 `npx prettier --write <files>`를 실행한다(import 정렬과 안 쓰는 import 제거도 함께 된다).
-- `TestConfig`(`tests/util/TestConfig.ts`)는 `attackLogic`을 고정값으로, `samRange(level)`을 20으로 바꿔 둔다. 전투 공식 자체를 시험할 때는 `new EngineConfig({} as GameConfig, false)`를 쓴다.
+- `TestConfig`(`tests/util/TestConfig.ts`)는 `attackLogic`을 고정값으로, `samRange(level)`을 20으로 바꿔 둔다. 전투 공식 자체를 시험할 때는 `new EngineConfig({} as GameConfig, false)`를 쓴다(1단계 `TechEffects.test.ts`처럼 `EngineConfig.prototype.attackLogic.call(config, i)`로 불러도 같다).
+- 땅 1%(plains 100×100에서 10×10)인 플레이어의 1초 산출은 과학력·정치력 각각 `BASE_YIELD_PER_SEC` 1 + `TERRITORY_YIELD_PER_SQRT_PCT` 1.5 × √1 = 2.5(2,500 milli)다. 테스트 기대값은 `processDomesticSecond`처럼 `Math.round(값 × 1000)`으로 계산한다.
 
 ## Global Constraints
 
 - 엔진 결정성: `packages/engine*`에서 `Math.random`, `Date.now`, `new Date`를 쓰지 않는다. `Math.pow/exp/log/sin...`과 2가 아닌 지수의 `**`도 쓰지 않는다. `Math.sqrt`, `Math.round`, `Math.floor`, `Math.ceil`, `Math.min`, `Math.max`는 허용된다. 거듭제곱은 반복 곱셈으로 한다.
 - 패키지 경계(`tests/LayerBoundaries.test.ts`): `engine-api`는 zod/zbin/resources만, `engine-lib`는 여기에 `engine-api`, `engine`은 여기에 `engine-lib`까지 import할 수 있다. `src/client`는 `engine`을 import하지 않는다. 화면은 `PlayerView.domestic()`과 engine-lib 함수로만 계산한다.
-- 내정 모드 꺼짐이면 동작이 원작과 같아야 한다. 기존 골든 테스트(`tests/AttackLogicGolden.test.ts` 등)는 수정 없이 통과해야 한다(예외: Task 4의 `tests/core/snapshot/FullGameSnapshot.test.ts` `neverStored`에 이름 2개 추가와 `tests/zbin/wire.test.ts` 샘플 인텐트 2개 추가, Task 2·9·10에서 1단계 테스트 3개 수정·확장).
+- 내정 모드 꺼짐이면 동작이 원작과 같아야 한다. 기존 골든 테스트(`tests/AttackLogicGolden.test.ts` 등)는 수정 없이 통과해야 한다(예외: Task 4의 `tests/core/snapshot/FullGameSnapshot.test.ts`에서 내정 전용 실행 목록 `DOMESTIC_ONLY_TYPES`에 이름 2개 추가와 `DOMESTIC_UNSCRIPTED_TYPES` 추가, `tests/zbin/wire.test.ts` 샘플 인텐트 2개 추가, Task 2·9·10에서 1단계 테스트 3개(`tests/client/DomesticClient.test.ts`, `tests/domestic/NationDomestic.test.ts`, `tests/domestic/I18n.test.ts`) 수정·확장).
 - 봇(`PlayerType.Bot`)은 내정 상태가 없다(`domestic()`이 `null`). 법·정부 명령은 아무 효과가 없다.
 - 수치는 spec §5, §6, §11을 따른다. 법·정부 효과는 `Laws.ts`·`Governments.ts`, 나머지 수치는 `Balance.ts`, AI 수치는 `NationPersonality.ts`에 둔다.
 - 모든 보정값 pct는 정수다. 보정값 상한은 1단계 `capPct`/`capCombinedPct`를 따른다(전투 손실 감소 −50%, 기타 감소 −60%, 증가 +200%).
@@ -66,6 +86,7 @@
 3. **감소 보정이 겹침:** 공기 단축 + 도시 계획 + 공산주의처럼 건설 시간 감소가 −100% 넘게 쌓여도 −60%에서 멈추고 0틱이 되지 않아야 한다. 테스트는 Task 1 "stacked cuts are capped at -60%", Task 6 "stacked build-time cuts stop at -60%"다.
 4. **금이 바닥난 상태의 특수 효과:** 연구 보조금은 금 300이 안 되면 아무것도 하지 않고, 공산주의 연구소는 금 0에서도 돌아야 하며, 어떤 경우에도 금이 음수가 되면 안 된다. 테스트는 Task 3 "research subsidy needs the full 300 gold"·"communism runs institutes without upkeep"다.
 5. **법 대기·조건이 걸린 채 재접속(스냅샷):** 선포한 법, 정부, 대기 종료 틱, 이번 초의 조건, 대기 중인 명령이 복원 후에도 같고 이후 틱도 같게 흘러야 한다. 테스트는 Task 2 "snapshot round trip keeps laws, government, cooldown and conditions", Task 4 "laws, government and pending orders survive a snapshot"이다.
+6. **엔진과 화면의 보정값이 어긋남:** 화면이 보여 주는 비용·시간과 엔진이 실제로 쓰는 값이 같으려면 두 쪽 모두 `domesticModifiers()`로 합쳐야 한다. 테스트는 Task 2 "agrees with the engine's PlayerDomestic on every stat"이다.
 
 ---
 
@@ -77,7 +98,7 @@
 | `packages/engine-lib/src/domestic/Balance.ts` (수정) | 법 비용·대기, 정부 기준치, 보조금·봉건제·십일조 수치 |
 | `packages/engine-lib/src/domestic/Laws.ts` (새) | 법 11개 데이터, 비용, 선포 가능 여부 |
 | `packages/engine-lib/src/domestic/Governments.ts` (새) | 정부 7개 데이터, 단계 계산, 선택 가능 여부 |
-| `packages/engine-lib/src/domestic/Policies.ts` (새) | 법 + 정부의 보정값과 플래그 합치기 |
+| `packages/engine-lib/src/domestic/Policies.ts` (새) | 법 + 정부의 보정값과 플래그 합치기, 기술 + 법 + 정부의 보정값 합계 `domesticModifiers()`(엔진·화면 공용, Task 2) |
 | `packages/engine/src/domestic/PlayerDomestic.ts` (수정) | 법·정부·조건 상태, `toData`, 스냅샷 |
 | `packages/engine/src/domestic/DomesticEconomy.ts` (수정) | 조건 판정, 특수 효과, 단계 알림, `payPoints`, 전투·건설 시간 보정 |
 | `packages/engine/src/domestic/ProclaimLawExecution.ts` (새) | `proclaim_law` 명령 |
@@ -817,15 +838,18 @@ git commit -m "feat(domestic): add law and government data, costs and rules"
 
 **Files:**
 - Modify: `packages/engine-api/src/domestic/DomesticTypes.ts` (`DomesticData` 필드)
+- Modify(전체 교체): `packages/engine-lib/src/domestic/Policies.ts` (`domesticModifiers` 추가)
 - Modify(전체 교체): `packages/engine/src/domestic/PlayerDomestic.ts`
 - Modify(전체 교체): `src/client/view/DomesticClientView.ts`
 - Modify: `tests/domestic/util.ts` (`grantLaws`, `grantGovernment`)
-- Modify: `tests/client/DomesticClient.test.ts` (1단계 테스트의 `DomesticData` 리터럴, 새 테스트)
+- Modify: `tests/client/DomesticClient.test.ts` (1단계 테스트의 `DomesticData` 리터럴, 새 테스트 2개)
+- Modify: `tests/client/DomesticPanel.test.ts` (1단계 최종 수정 7이 만든 테스트의 `data()` 리터럴)
 - Test: `tests/domestic/PlayerPolicies.test.ts`
 
 **Interfaces:**
-- Consumes: Task 1의 `policyModifiers`, `policyFlags`, `governmentTier`, `lawMapOf`, `LAW_COOLDOWN_TICKS`; 1단계 `PlayerDomestic`
+- Consumes: Task 1의 `policyModifiers`, `policyFlags`, `governmentTier`, `lawMapOf`, `LAW_COOLDOWN_TICKS`; 1단계 `PlayerDomestic`, `ModifierTotals`, `techModifiers`
 - Produces:
+  - `domesticModifiers(techs: Iterable<TechId>, laws: ReadonlyMap<LawId, LawOption>, government: GovernmentId): ModifierTotals` (`Policies.ts`). 엔진(`PlayerDomestic`)과 화면(`DomesticClientView`)이 보정값 합계를 만드는 유일한 곳이다. 조건부 보정은 합계 안에 조건별로 들어 있고, 각자 지금 조건을 `ModifierTotals.pct(stat, conditions)`에 넘긴다.
   - `DomesticData`에 `laws: Partial<Record<LawId, LawOption>>`, `lawCooldownUntilTick: number`, `governmentTier: number`, `government: GovernmentId`, `conditions: Condition[]`
   - `PlayerDomestic`: `pct(stat)`(현재 조건 반영), `hasFlag(flag: PolicyFlag): boolean`, `activeConditions(): ReadonlySet<Condition>`, `setConditions(c: ReadonlySet<Condition>): void`, `proclaimedLaws(): ReadonlyMap<LawId, LawOption>`, `lawCooldownUntilTick(): number`, `proclaimLaw(law, option, nowTick): void`, `spendPoliticalMilli(amount: number): void`, `governmentTier(): number`, `currentGovernment(): GovernmentId`, `refreshGovernmentTier(): number | null`, `chooseGovernment(government, nowTick): void`
   - `DomesticClientView`: `pct`(조건 반영), `researchedTechs(): ReadonlySet<TechId>`, `laws(): ReadonlyMap<LawId, LawOption>`
@@ -833,7 +857,7 @@ git commit -m "feat(domestic): add law and government data, costs and rules"
 
 - [ ] **Step 1: 테스트 유틸 추가**
 
-`tests/domestic/util.ts`의 import 목록을 다음처럼 바꾼다(첫 두 줄):
+`tests/domestic/util.ts`의 첫 줄 `import { TechId } from "@openfront/engine-api/domestic/DomesticTypes";`를 다음으로 바꾼다:
 
 ```ts
 import {
@@ -885,8 +909,13 @@ export function grantGovernment(
 `tests/domestic/PlayerPolicies.test.ts`:
 
 ```ts
-import { Condition } from "@openfront/engine-api/domestic/DomesticTypes";
+import {
+  Condition,
+  LawId,
+  LawOption,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import { LAW_COOLDOWN_TICKS } from "@openfront/engine-lib/domestic/Balance";
+import { domesticModifiers } from "@openfront/engine-lib/domestic/Policies";
 import { PlayerDomestic } from "@openfront/engine/domestic/PlayerDomestic";
 import { expectSnapshotRoundTrip } from "../util/Snapshot";
 import { conquerSquare, domesticGame, HUMAN } from "./util";
@@ -894,6 +923,20 @@ import { conquerSquare, domesticGame, HUMAN } from "./util";
 function when(...conditions: Condition[]): ReadonlySet<Condition> {
   return new Set(conditions);
 }
+
+describe("domesticModifiers", () => {
+  test("techs, laws and the government add up per stat and condition", () => {
+    const totals = domesticModifiers(
+      ["computers"], // science +30, political +15
+      new Map<LawId, LawOption>([["opinion", "B"]]), // science +20
+      "democracy", // science +30; political +30 in peace, -50 while attacking
+    );
+    expect(totals.pct("science")).toBe(80);
+    expect(totals.pct("political")).toBe(15);
+    expect(totals.pct("political", when("notAttacking"))).toBe(45);
+    expect(totals.pct("political", when("attacking"))).toBe(-35);
+  });
+});
 
 describe("PlayerDomestic laws and government", () => {
   test("a proclaimed law applies its modifiers and starts the cooldown", () => {
@@ -1021,7 +1064,7 @@ describe("PlayerDomestic laws and government", () => {
 - [ ] **Step 3: 실패 확인**
 
 Run: `npx vitest tests/domestic/PlayerPolicies.test.ts --run`
-Expected: FAIL — `d.proclaimLaw is not a function`
+Expected: FAIL — `domesticModifiers is not a function`, `d.proclaimLaw is not a function`
 
 - [ ] **Step 4: DomesticData 필드 추가**
 
@@ -1039,9 +1082,71 @@ Expected: FAIL — `d.proclaimLaw is not a function`
   conditions: Condition[];
 ```
 
-- [ ] **Step 5: PlayerDomestic 교체**
+- [ ] **Step 5: 보정값 합계 함수 하나로 모으기**
 
-`packages/engine/src/domestic/PlayerDomestic.ts` 전체를 다음으로 바꾼다(1단계 내용에 법·정부·조건을 더한 것이다):
+1단계에서는 `PlayerDomestic`(생성·`restore`)과 `DomesticClientView`가 각자 `new ModifierTotals(techModifiers(...))`를 만든다. 둘 다 아래 함수만 쓰게 한다(Decision 22). `packages/engine-lib/src/domestic/Policies.ts` 전체를 다음으로 바꾼다(Task 1 내용에 `domesticModifiers`를 더한 것이다):
+
+```ts
+import {
+  GovernmentId,
+  LawId,
+  LawOption,
+  Modifier,
+  PolicyFlag,
+  TechId,
+} from "@openfront/engine-api/domestic/DomesticTypes";
+import { GOVERNMENTS } from "./Governments";
+import { LAWS } from "./Laws";
+import { ModifierTotals, techModifiers } from "./Modifiers";
+
+/** Modifiers of the proclaimed laws and the current government. */
+export function policyModifiers(
+  laws: ReadonlyMap<LawId, LawOption>,
+  government: GovernmentId,
+): Modifier[] {
+  const out: Modifier[] = [];
+  for (const [law, chosen] of laws) {
+    out.push(...LAWS[law][chosen].modifiers);
+  }
+  out.push(...GOVERNMENTS[government].modifiers);
+  return out;
+}
+
+/** Special effects (spec §7.2's flags) of the laws and the government. */
+export function policyFlags(
+  laws: ReadonlyMap<LawId, LawOption>,
+  government: GovernmentId,
+): Set<PolicyFlag> {
+  const out = new Set<PolicyFlag>();
+  for (const [law, chosen] of laws) {
+    for (const flag of LAWS[law][chosen].flags) out.add(flag);
+  }
+  for (const flag of GOVERNMENTS[government].flags) out.add(flag);
+  return out;
+}
+
+/**
+ * All of a domestic player's modifiers (researched techs, proclaimed laws
+ * and the government), summed per stat and per condition. The engine
+ * (PlayerDomestic) and the client (DomesticClientView) both build their
+ * totals here so they can't drift apart; each passes the conditions in
+ * force to ModifierTotals.pct.
+ */
+export function domesticModifiers(
+  techs: Iterable<TechId>,
+  laws: ReadonlyMap<LawId, LawOption>,
+  government: GovernmentId,
+): ModifierTotals {
+  return new ModifierTotals([
+    ...techModifiers(techs),
+    ...policyModifiers(laws, government),
+  ]);
+}
+```
+
+- [ ] **Step 6: PlayerDomestic 교체**
+
+`packages/engine/src/domestic/PlayerDomestic.ts` 전체를 다음으로 바꾼다(1단계 내용에 법·정부·조건을 더하고, 보정값 합계를 `domesticModifiers`로 만든다):
 
 ```ts
 import {
@@ -1069,13 +1174,10 @@ import {
   RECRUIT_TARGET_MIN_PCT,
 } from "@openfront/engine-lib/domestic/Balance";
 import { governmentTier } from "@openfront/engine-lib/domestic/Governments";
+import { ModifierTotals } from "@openfront/engine-lib/domestic/Modifiers";
 import {
-  ModifierTotals,
-  techModifiers,
-} from "@openfront/engine-lib/domestic/Modifiers";
-import {
+  domesticModifiers,
   policyFlags,
-  policyModifiers,
 } from "@openfront/engine-lib/domestic/Policies";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
@@ -1363,10 +1465,7 @@ export class PlayerDomestic implements DomesticView {
 
   /** Recomputes the modifier totals and flags from techs, laws and government. */
   private rebuild(): void {
-    this.totals = new ModifierTotals([
-      ...techModifiers(this.techs),
-      ...policyModifiers(this.laws, this.government),
-    ]);
+    this.totals = domesticModifiers(this.techs, this.laws, this.government);
     this.flags = policyFlags(this.laws, this.government);
   }
 
@@ -1376,9 +1475,9 @@ export class PlayerDomestic implements DomesticView {
 }
 ```
 
-- [ ] **Step 6: DomesticClientView 교체**
+- [ ] **Step 7: DomesticClientView 교체**
 
-`src/client/view/DomesticClientView.ts` 전체를 다음으로 바꾼다:
+`src/client/view/DomesticClientView.ts` 전체를 다음으로 바꾼다(보정값 합계는 엔진과 같은 `domesticModifiers`로 만든다):
 
 ```ts
 import {
@@ -1391,11 +1490,8 @@ import {
   TechId,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { lawMapOf } from "@openfront/engine-lib/domestic/Laws";
-import {
-  ModifierTotals,
-  techModifiers,
-} from "@openfront/engine-lib/domestic/Modifiers";
-import { policyModifiers } from "@openfront/engine-lib/domestic/Policies";
+import { ModifierTotals } from "@openfront/engine-lib/domestic/Modifiers";
+import { domesticModifiers } from "@openfront/engine-lib/domestic/Policies";
 
 /** Client-side DomesticView over the last DomesticData the worker sent. */
 export class DomesticClientView implements DomesticView {
@@ -1408,10 +1504,8 @@ export class DomesticClientView implements DomesticView {
     this.techSet = new Set(data.techs);
     this.lawMap = lawMapOf(data.laws);
     this.conditionSet = new Set(data.conditions);
-    this.totals = new ModifierTotals([
-      ...techModifiers(data.techs),
-      ...policyModifiers(this.lawMap, data.government),
-    ]);
+    // Same totals as the engine's PlayerDomestic (Decision 22).
+    this.totals = domesticModifiers(data.techs, this.lawMap, data.government);
   }
 
   pct(stat: StatKey): number {
@@ -1436,9 +1530,19 @@ export class DomesticClientView implements DomesticView {
 }
 ```
 
-- [ ] **Step 7: 1단계 화면 테스트 갱신**
+- [ ] **Step 8: 1단계 화면 테스트 갱신**
 
-`tests/client/DomesticClient.test.ts`의 `new DomesticClientView({ ... })` 리터럴에서 `recruitTargetPct: 60,` 뒤에 추가:
+`tests/client/DomesticClient.test.ts` 맨 위 import에 추가:
+
+```ts
+import {
+  Condition,
+  STAT_KEYS,
+} from "@openfront/engine-api/domestic/DomesticTypes";
+import { PlayerDomestic } from "@openfront/engine/domestic/PlayerDomestic";
+```
+
+같은 파일의 `new DomesticClientView({ ... })` 리터럴(테스트 "derives modifiers and techs from the wire data")에서 `recruitTargetPct: 60,` 뒤에 추가:
 
 ```ts
       laws: {},
@@ -1473,18 +1577,48 @@ export class DomesticClientView implements DomesticView {
     expect(view.pct("goldIncome")).toBe(30);
     expect(view.laws().get("trade")).toBe("A");
   });
+
+  test("agrees with the engine's PlayerDomestic on every stat", () => {
+    const d = new PlayerDomestic();
+    for (const tech of [
+      "computers",
+      "conscription",
+      "printing_press",
+    ] as const) {
+      d.beginResearch(tech, 0);
+      d.advanceResearch(10);
+    }
+    d.proclaimLaw("religion", "A", 0);
+    d.proclaimLaw("mobilization", "A", 0);
+    d.chooseGovernment("fascism", 0);
+    d.setConditions(new Set<Condition>(["attacking", "troopsAtMostHalf"]));
+    const view = new DomesticClientView(d.toData());
+    for (const stat of STAT_KEYS) {
+      expect(view.pct(stat), stat).toBe(d.pct(stat));
+    }
+  });
 ```
 
-- [ ] **Step 8: 통과 확인**
+`tests/client/DomesticPanel.test.ts`(1단계 최종 수정 7이 만든 테스트)의 `function data(techs: DomesticData["techs"]): DomesticData` 반환 객체에서 `recruitTargetPct: 100,` 뒤에 추가한다. 없으면 타입 검사가 실패하고, `DomesticClientView`가 `lawMapOf(undefined)`에서 멈춘다:
 
-Run: `npx vitest tests/domestic tests/client/DomesticClient.test.ts tests/core/snapshot --run && npm run typecheck`
-Expected: 모두 PASS(1단계 domestic 테스트 포함), typecheck 오류 없음
+```ts
+    laws: {},
+    lawCooldownUntilTick: 0,
+    governmentTier: 0,
+    government: "chiefdom",
+    conditions: [],
+```
 
-- [ ] **Step 9: 커밋**
+- [ ] **Step 9: 통과 확인**
+
+Run: `npx vitest tests/domestic tests/client/DomesticClient.test.ts tests/client/DomesticPanel.test.ts tests/core/snapshot --run && npm run typecheck`
+Expected: 모두 PASS(1단계 domestic 테스트, `DomesticPanel.test.ts`, `FullGameSnapshot.test.ts`의 `domestic` 변형 포함), typecheck 오류 없음
+
+- [ ] **Step 10: 커밋**
 
 ```bash
-npx prettier --write packages/engine-api/src/domestic packages/engine/src/domestic/PlayerDomestic.ts src/client/view/DomesticClientView.ts tests/domestic tests/client/DomesticClient.test.ts
-git add -A packages/engine-api/src/domestic packages/engine/src/domestic src/client/view tests/domestic tests/client/DomesticClient.test.ts
+npx prettier --write packages/engine-api/src/domestic packages/engine-lib/src/domestic/Policies.ts packages/engine/src/domestic/PlayerDomestic.ts src/client/view/DomesticClientView.ts tests/domestic tests/client/DomesticClient.test.ts tests/client/DomesticPanel.test.ts
+git add -A packages/engine-api/src/domestic packages/engine-lib/src/domestic/Policies.ts packages/engine/src/domestic src/client/view tests/domestic tests/client/DomesticClient.test.ts tests/client/DomesticPanel.test.ts
 git commit -m "feat(domestic): per-player laws, government and condition state"
 ```
 
@@ -1624,6 +1758,8 @@ describe("conditions", () => {
   });
 });
 
+// readyPlayer holds 1% of the land, so each second yields the base 1 plus
+// 1.5 × sqrt(1) = 2.5 science and political power before modifiers.
 describe("special effects", () => {
   test("research subsidy turns 300 gold into 0.5 science a second", async () => {
     const { game, player } = await readyPlayer();
@@ -1631,7 +1767,8 @@ describe("special effects", () => {
     player.addGold(1000n);
     second(game, player);
     expect(player.gold()).toBe(700n);
-    expect(player.domestic()!.scienceMilliAvailable()).toBe(1000);
+    // (2.5 + 0.5) × 1000
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(3000);
   });
 
   test("research subsidy needs the full 300 gold", async () => {
@@ -1640,7 +1777,7 @@ describe("special effects", () => {
     player.addGold(299n);
     second(game, player);
     expect(player.gold()).toBe(299n);
-    expect(player.domestic()!.scienceMilliAvailable()).toBe(500);
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(2500);
   });
 
   test("feudalism: +0.2 political power per city level (monarchy)", async () => {
@@ -1649,8 +1786,10 @@ describe("special effects", () => {
     player.buildUnit(UnitType.City, game.ref(5, 5), {});
     grantGovernment(player, "monarchy");
     second(game, player);
-    expect(player.domestic()!.politicalMilliAvailable()).toBe(700);
-    expect(player.domestic()!.scienceMilliAvailable()).toBe(425);
+    // (2.5 + 1 city level × 0.2) × 1000
+    expect(player.domestic()!.politicalMilliAvailable()).toBe(2700);
+    // Monarchy's science -15%: round(2.5 × 0.85 × 1000)
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(2125);
   });
 
   test("tithe: 100 × sqrt(land share %) gold a second (theocracy)", async () => {
@@ -1658,7 +1797,8 @@ describe("special effects", () => {
     grantGovernment(player, "theocracy");
     second(game, player);
     expect(player.gold()).toBe(100n);
-    expect(player.domestic()!.politicalMilliAvailable()).toBe(650);
+    // Theocracy's political +30%: 2.5 × 1.3 × 1000
+    expect(player.domestic()!.politicalMilliAvailable()).toBe(3250);
   });
 
   test("communism runs institutes without upkeep", async () => {
@@ -1668,7 +1808,8 @@ describe("special effects", () => {
     expect(player.gold()).toBe(0n);
     grantGovernment(player, "communism");
     second(game, player);
-    expect(player.domestic()!.scienceMilliAvailable()).toBe(2000);
+    // Five-year plan: (2.5 + 1 institute level × 1.5) × 1000
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(4000);
     expect(player.gold()).toBe(0n);
   });
 });
@@ -1678,7 +1819,8 @@ describe("government tiers", () => {
     const { game, player } = await readyPlayer();
     const spy = vi.spyOn(game, "displayMessage");
     const d = player.domestic()!;
-    d.addYield(0, 299_600);
+    // One second adds 2,500 milli-points: exactly the 300-point threshold.
+    d.addYield(0, 297_500);
     second(game, player);
     expect(d.governmentTier()).toBe(1);
     expect(spy).toHaveBeenCalledWith(
@@ -1713,11 +1855,11 @@ Expected: FAIL — `activeConditions` is not exported
 
 `packages/engine/src/domestic/DomesticEconomy.ts`:
 - 맨 위에 추가: `import type { Condition } from "@openfront/engine-api/domestic/DomesticTypes";`
-- `@openfront/engine-lib/domestic/Balance` import 목록에 `FEUDAL_POLITICAL_PER_CITY_LEVEL`, `RESEARCH_SUBSIDY_GOLD_PER_SEC`, `RESEARCH_SUBSIDY_SCIENCE_PER_SEC`, `TITHE_GOLD_PER_SQRT_PCT`를 추가한다.
+- `@openfront/engine-lib/domestic/Balance` import 목록(최종 수정으로 `BASE_YIELD_PER_SEC`가 이미 들어 있다)에 `FEUDAL_POLITICAL_PER_CITY_LEVEL`, `RESEARCH_SUBSIDY_GOLD_PER_SEC`, `RESEARCH_SUBSIDY_SCIENCE_PER_SEC`, `TITHE_GOLD_PER_SQRT_PCT`를 추가한다. `BASE_YIELD_PER_SEC`와 `TERRITORY_YIELD_PER_SQRT_PCT`는 Step 7의 코드가 계속 쓴다.
 
 - [ ] **Step 5: 땅 비율 도우미로 교체**
 
-같은 파일의 `function territoryYield(mg: Game, player: Player): number { ... }` 함수 전체를 다음으로 바꾼다:
+같은 파일의 `function territoryYield(mg: Game, player: Player): number { ... }` 함수 전체를 다음으로 바꾼다(땅 비율은 십일조도 쓴다. `territoryYield`를 부르던 `processDomesticSecond`는 Step 7에서 통째로 바뀐다):
 
 ```ts
 /** Owned land as a percent of the map's land. */
@@ -1781,7 +1923,7 @@ function payTithe(
 
 - [ ] **Step 7: processDomesticSecond 교체**
 
-같은 파일의 `processDomesticSecond` 함수 전체(위의 doc 주석 포함)를 다음으로 바꾼다. 유지비 줄부터 끝까지는 1단계와 같다:
+같은 파일의 `processDomesticSecond` 함수 전체(위의 doc 주석 포함)를 다음으로 바꾼다. 최종 수정의 기본 산출(`BASE_YIELD_PER_SEC` + 영토를 보정 전에 더함)은 `landYield`로 그대로 두었고, 유지비 줄부터 끝까지는 1단계와 같다:
 
 ```ts
 /**
@@ -1809,7 +1951,9 @@ export function processDomesticSecond(
   const officesRun = freeUpkeep || payBuildingUpkeep(player, officeLevels);
 
   const sharePct = landSharePct(mg, player);
-  const territory = TERRITORY_YIELD_PER_SQRT_PCT * Math.sqrt(sharePct);
+  // Flat base output plus territory, before the science/political modifiers.
+  const landYield =
+    BASE_YIELD_PER_SEC + TERRITORY_YIELD_PER_SQRT_PCT * Math.sqrt(sharePct);
   const mult = yieldMultiplier(mg, player);
   const instituteOutput = institutesRun
     ? applyPct(
@@ -1828,9 +1972,9 @@ export function processDomesticSecond(
     ? finishedLevels(player, UnitType.City) * FEUDAL_POLITICAL_PER_CITY_LEVEL
     : 0;
   const science =
-    applyPct(territory + instituteOutput + subsidy, d.pct("science")) * mult;
+    applyPct(landYield + instituteOutput + subsidy, d.pct("science")) * mult;
   const political =
-    applyPct(territory + officeOutput + feudal, d.pct("political")) * mult;
+    applyPct(landYield + officeOutput + feudal, d.pct("political")) * mult;
   d.addYield(Math.round(science * MILLI), Math.round(political * MILLI));
 
   const tier = d.refreshGovernmentTier();
@@ -1900,7 +2044,7 @@ export function processDomesticSecond(
 - [ ] **Step 8: 통과 확인**
 
 Run: `npx vitest tests/domestic tests/MessageTypeClasses.test.ts --run && npm run typecheck`
-Expected: 모두 PASS(1단계 `DomesticEconomy.test.ts` 포함 — 특수 효과가 없으면 값이 1단계와 같다), typecheck 오류 없음
+Expected: 모두 PASS(1단계 `DomesticEconomy.test.ts` 포함 — 특수 효과가 없으면 값이 최종 수정 뒤의 1단계 값(2,500 / 2,125 / 3,900 등)과 같다), typecheck 오류 없음. `tests/TranslationSystem.test.ts`는 이제 `events_display.government_tier_reached`가 en.json에 없다고 실패한다. Task 10이 키를 더한다(시작 전에 참고).
 
 - [ ] **Step 9: 커밋**
 
@@ -1922,7 +2066,7 @@ git commit -m "feat(domestic): conditions, policy special effects and tier annou
 - Create: `packages/engine/src/domestic/ChooseGovernmentExecution.ts`
 - Modify: `packages/engine/src/execution/ExecutionManager.ts`
 - Modify: `packages/engine/src/snapshot/ExecutionRegistry.ts`
-- Modify: `tests/core/snapshot/FullGameSnapshot.test.ts` (`neverStored`)
+- Modify: `tests/core/snapshot/FullGameSnapshot.test.ts` (`DOMESTIC_ONLY_TYPES`, 새 `DOMESTIC_UNSCRIPTED_TYPES`)
 - Modify: `tests/zbin/wire.test.ts` (`SAMPLE_INTENTS`)
 - Test: `tests/domestic/LawsAndGovernment.test.ts`
 
@@ -2527,12 +2671,46 @@ import { ProclaimLawExecution } from "../domestic/ProclaimLawExecution";
 
 `packages/engine/src/snapshot/ExecutionRegistry.ts`: import에 `ChooseGovernmentExecutionSnapshot`(`../domestic/ChooseGovernmentExecution`)과 `ProclaimLawExecutionSnapshot`(`../domestic/ProclaimLawExecution`)을 추가하고, `EXECUTION_SNAPSHOT_TYPES`의 `CityExecutionSnapshot,` 바로 앞에 `ChooseGovernmentExecutionSnapshot,`, `PortExecutionSnapshot,` 바로 뒤에 `ProclaimLawExecutionSnapshot,`를 추가한다.
 
-`tests/core/snapshot/FullGameSnapshot.test.ts`의 "the game exercised every execution type" 테스트는 등록된 모든 실행이 원작 스크립트 게임에 나타나야 통과한다. 두 명령은 내정 모드에서만 오므로 `const neverStored = new Set([` 목록(1단계가 이미 항목을 더했을 수 있다)에 다음 두 항목을 추가한다:
+`tests/core/snapshot/FullGameSnapshot.test.ts`의 "the game exercised every execution type" 테스트(1단계 최종 수정으로 `neverStored`는 없어졌다): FFA 변형은 등록된 실행 중 `"Pause"`와 내정 전용 목록 `DOMESTIC_ONLY_TYPES`를 뺀 전부가 스크립트 게임에 나타나기를 기대하고, `domestic` 변형(`{ domesticMode: true }`)은 `DOMESTIC_ONLY_TYPES` 전부를 기대한다. 두 새 명령은 내정 모드에서만 생기므로 내정 전용 목록에 넣는다. 다만 1500틱 스크립트 게임에서 국가가 법(정치력 100)이나 정부 단계(누적 정치력 300)에 닿는다는 보장이 없으므로(국가의 법·정부 선택은 Task 9에서 생긴다) `domestic` 변형의 기대 목록에서는 뺀다. 두 실행의 스냅샷은 이 Task의 "laws, government and pending orders survive a snapshot"이 다룬다.
+
+같은 파일의 선언
 
 ```ts
-        // Domestic-mode intents: the scripted game is vanilla.
-        "ChooseGovernment",
-        "ProclaimLaw",
+// Execution types that only a domestic-mode game creates.
+const DOMESTIC_ONLY_TYPES = ["Domestic", "Research", "SetRecruitTarget"];
+```
+
+를 다음으로 바꾼다:
+
+```ts
+// Execution types that only a domestic-mode game creates.
+const DOMESTIC_ONLY_TYPES = [
+  "ChooseGovernment",
+  "Domestic",
+  "ProclaimLaw",
+  "Research",
+  "SetRecruitTarget",
+];
+// Domestic types the 1500-tick scripted game isn't sure to reach: a nation
+// needs 100 political power for a law and 300 for a government tier.
+// tests/domestic/LawsAndGovernment.test.ts covers their snapshots.
+const DOMESTIC_UNSCRIPTED_TYPES = ["ChooseGovernment", "ProclaimLaw"];
+```
+
+"the game exercised every execution type" 테스트 안의 `domestic` 분기
+
+```ts
+      } else if (overrides.domesticMode === true) {
+        expected = DOMESTIC_ONLY_TYPES;
+```
+
+를 다음으로 바꾼다:
+
+```ts
+      } else if (overrides.domesticMode === true) {
+        expected = DOMESTIC_ONLY_TYPES.filter(
+          (name) => !DOMESTIC_UNSCRIPTED_TYPES.includes(name),
+        );
 ```
 
 `tests/zbin/wire.test.ts`의 `SAMPLE_INTENTS` 배열 끝(`];` 바로 앞)에 추가해서 두 인텐트가 바이너리 왕복 테스트를 거치게 한다:
@@ -2550,8 +2728,8 @@ import { ProclaimLawExecution } from "../domestic/ProclaimLawExecution";
 
 - [ ] **Step 9: 통과 확인**
 
-Run: `npx vitest tests/domestic tests/zbin tests/server --run && npm run typecheck`
-Expected: 모두 PASS(1단계 `ResearchExecution.test.ts` 포함)
+Run: `npx vitest tests/domestic tests/zbin tests/server tests/core/snapshot/FullGameSnapshot.test.ts --run && npm run typecheck`
+Expected: 모두 PASS(1단계 `ResearchExecution.test.ts`, `FullGameSnapshot.test.ts`의 네 변형과 "the game exercised every execution type" 포함)
 
 - [ ] **Step 10: 커밋**
 
@@ -3684,8 +3862,8 @@ Expected: FAIL — "SAM range +30%"에서 `expected 20 to be close to 26`
 
 - [ ] **Step 5: 통과 확인(원작 SAM·무역 테스트 포함)**
 
-Run: `npx vitest tests/domestic tests/core/executions/SAMLauncherExecution.test.ts tests/TradeTrainGolden.test.ts tests/TradeTrainScenarios.test.ts tests/PortExecution.test.ts --run && npm run typecheck`
-Expected: 모두 PASS
+Run: `npx vitest tests/domestic tests/core/executions/SAMLauncherExecution.test.ts tests/core/executions/TradeShipExecution.test.ts tests/core/game/TrainStation.test.ts tests/TradeTrainGolden.test.ts tests/TradeTrainScenarios.test.ts tests/PortExecution.test.ts --run && npm run typecheck`
+Expected: 모두 PASS(`TradeShipExecution.test.ts`·`TrainStation.test.ts`의 가짜 플레이어는 1단계 최종 수정으로 `domestic: () => null`을 갖고, `canTrade`도 가짜 함수라 새 코드를 타지 않는다)
 
 - [ ] **Step 6: 커밋**
 
@@ -4319,7 +4497,7 @@ function getStructureRatios(
     },
 ```
 
-- 클래스 안의 `getStructureRatios(difficulty, gameMode)` 호출 두 곳(`levelsDue`와 지각 비용 계산)을 모두 `getStructureRatios(difficulty, gameMode, this.domesticRatios())`로 바꾼다.
+- 클래스 안의 `const ratios = getStructureRatios(difficulty, gameMode);` 두 곳(`private levelsDue(`와 `private getPerceivedCost(type: UnitType): Gold`)을 모두 `const ratios = getStructureRatios(difficulty, gameMode, this.domesticRatios());`로 바꾼다. 1단계 최종 수정이 바꾼 `getSaveUpTarget`·`getSaveUpPlan`·`isInPostSaveUpBlockedPhase`는 건드리지 않는다.
 - `private shouldBuildStructure(` 메서드 바로 위에 추가:
 
 ```ts
@@ -4332,7 +4510,7 @@ function getStructureRatios(
 
 - [ ] **Step 6: 1단계 AI 테스트 갱신**
 
-`tests/domestic/NationDomestic.test.ts`의 첫 테스트는 1단계의 단일 연구 순서를 기대한다. 성향과 무관하게 하려고 계획을 직접 넘긴다.
+`tests/domestic/NationDomestic.test.ts`의 첫 테스트는 1단계의 단일 연구 순서를 기대한다. 성향과 무관하게 하려고 계획을 직접 넘긴다. 같은 파일의 나머지 테스트(1단계 최종 수정이 더한 "nations don't save gold for locked units" 묶음 포함)는 그대로 둔다. 성향 계획에서도 맞는다(첫 기술은 모두 100 과학력이고, 성향별 건물 비율은 0.25 이상이며, 저축 목표는 비율을 쓰지 않는다).
 
 - import 추가:
 
@@ -4344,7 +4522,7 @@ import {
 } from "@openfront/engine/execution/nation/NationPersonality";
 ```
 
-- `const NATION = new PlayerInfo(...);` 바로 뒤에 추가:
+- `const NATION = new PlayerInfo("nation", PlayerType.Nation, null, "nation_id");` 바로 뒤에 추가:
 
 ```ts
 /** Phase 1's single research order, independent of the nation's personality. */
@@ -4362,8 +4540,8 @@ const BALANCED_PLAN: NationDomesticPlan = {
 
 - [ ] **Step 7: 통과 확인(기존 AI 테스트 포함)**
 
-Run: `npx vitest tests/domestic --run && npx vitest Nation AiAttackBehavior --run && npm run typecheck`
-Expected: 모두 PASS(원작 Nation*·AiAttackBehavior 테스트는 모드 꺼짐이라 변화 없음)
+Run: `npx vitest tests/domestic --run && npx vitest Nation AiAttackBehavior --run && npx vitest tests/core/snapshot/FullGameSnapshot.test.ts --run && npm run typecheck`
+Expected: 모두 PASS(원작 Nation*·AiAttackBehavior 테스트는 모드 꺼짐이라 변화 없음. `NationGoldPerMinute`는 1단계 기록대로 원작 커밋에서도 실패하는 기존 실패이니 그것만 실패하면 통과로 본다. `FullGameSnapshot.test.ts`의 `domestic` 변형은 이제 국가가 법·정부를 고르는 게임을 스냅샷·복원한다)
 
 - [ ] **Step 8: 커밋**
 
@@ -4657,8 +4835,8 @@ Expected: en.json, ko.json에 추가만 있고 기존 줄 삭제는 없다.
 
 - [ ] **Step 6: 통과 확인**
 
-Run: `npx vitest tests/domestic/I18n.test.ts tests/EnJsonSorted.test.ts tests/TranslationSystem.test.ts --run`
-Expected: PASS
+Run: `npx vitest tests/domestic/I18n.test.ts tests/EnJsonSorted.test.ts --run`
+Expected: PASS. `tests/TranslationSystem.test.ts`는 아직 넣지 않는다. 이제 없는 키는 없지만, 새 키 대부분(`domestic.law.*`, `domestic.gov.*`, `domestic.tab_laws` 등)을 쓰는 화면 코드가 Task 11·12에서 생기므로 그때까지 "Unused translation keys"로 실패한다(1단계 Task 11과 같은 순서 문제). Task 12 Step 4에서 확인한다.
 
 - [ ] **Step 7: 커밋**
 
@@ -5434,8 +5612,8 @@ const TABS: readonly DomesticTab[] = ["tech", "laws", "government"];
 
 - [ ] **Step 4: 확인**
 
-Run: `npm run typecheck && npx eslint src/client/hud/domestic src/client/Transport.ts && npx vitest tests/client --run`
-Expected: 오류 없음, 테스트 PASS
+Run: `npm run typecheck && npx eslint src/client/hud/domestic src/client/Transport.ts && npx vitest tests/client tests/TranslationSystem.test.ts tests/domestic/I18n.test.ts --run`
+Expected: 오류 없음, 테스트 PASS. 1단계 최종 수정 7의 `tests/client/DomesticPanel.test.ts`(패널을 열면 기술 카드의 연구 시간이 보인다)도 그대로 통과해야 한다. 기본 탭이 `"tech"`이고 기술 탭은 `this.game.ticks()`를 부르지 않으므로 그 테스트의 가짜 `game`(`myPlayer`만 있음)으로도 그려진다. `TranslationSystem.test.ts`가 Task 3 이후 처음으로 다시 통과한다(탭 이름은 ``translateText(`domestic.tab_${tab}`)``의 동적 접두어 `domestic.tab_`으로 쓰인 것으로 잡힌다). 실패하면 목록에 나온 키를 쓰는 화면 코드나 en.json 항목을 고친다.
 
 - [ ] **Step 5: 커밋**
 
@@ -5454,7 +5632,7 @@ git commit -m "feat(domestic): laws and government tabs in the domestic panel"
 - [ ] **Step 1: 전체 테스트, 타입, 린트**
 
 Run: `npm test 2>&1 | tail -15 && npm run typecheck && npm run lint`
-Expected: 모든 테스트 PASS, typecheck·lint 오류 없음. 원작 테스트(특히 `tests/AttackLogicGolden.test.ts`, `tests/TradeTrainGolden.test.ts`, `tests/core/snapshot`)가 하나라도 깨지면 내정 모드가 꺼진 경로가 원작과 달라진 것이다. 해당 Task로 돌아가 고친다.
+Expected: 모든 테스트 PASS(예외: 1단계 기록대로 원작 커밋에서도 실패하는 `tests/NationGoldPerMinute.test.ts` 하나), typecheck·lint 오류 없음. 원작 테스트(특히 `tests/AttackLogicGolden.test.ts`, `tests/TradeTrainGolden.test.ts`, `tests/core/snapshot`)가 하나라도 깨지면 내정 모드가 꺼진 경로가 원작과 달라진 것이다. 해당 Task로 돌아가 고친다.
 
 - [ ] **Step 2: 실제 게임 실행 확인**
 

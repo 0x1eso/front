@@ -45,7 +45,17 @@ interface Reference {
 }
 
 // Execution types that only a domestic-mode game creates.
-const DOMESTIC_ONLY_TYPES = ["Domestic", "Research", "SetRecruitTarget"];
+const DOMESTIC_ONLY_TYPES = [
+  "ChooseGovernment",
+  "Domestic",
+  "ProclaimLaw",
+  "Research",
+  "SetRecruitTarget",
+];
+// Domestic types the 1500-tick scripted game isn't sure to reach: a nation
+// needs 100 political power for a law and 300 for a government tier.
+// tests/domestic/LawsAndGovernment.test.ts covers their snapshots.
+const DOMESTIC_UNSCRIPTED_TYPES = ["ChooseGovernment", "ProclaimLaw"];
 
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),
@@ -210,7 +220,9 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
           (name) => name !== "Pause" && !DOMESTIC_ONLY_TYPES.includes(name),
         );
       } else if (overrides.domesticMode === true) {
-        expected = DOMESTIC_ONLY_TYPES;
+        expected = DOMESTIC_ONLY_TYPES.filter(
+          (name) => !DOMESTIC_UNSCRIPTED_TYPES.includes(name),
+        );
       } else {
         return;
       }
