@@ -1,4 +1,5 @@
 import { GameEnv } from "@openfront/shared/configuration/Env";
+import { SELF_HOST_API_PREFIX } from "@openfront/shared/SelfHost";
 import cluster from "cluster";
 import crypto from "crypto";
 import express from "express";
@@ -26,6 +27,12 @@ import { MasterLobbyService } from "./MasterLobbyService";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
 import { renderAppShell } from "./RenderHtml";
+import { selfHostApiStub } from "./SelfHostApiStub";
+import {
+  proxyToWorkers,
+  proxyUpgradeToWorker,
+  type WorkerRouting,
+} from "./SelfHostProxy";
 import { ServerEnv } from "./ServerEnv";
 import { applyStaticAssetCacheControl } from "./StaticAssetCache";
 
@@ -39,6 +46,17 @@ const log = logger.child({ comp: "m" });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Self-hosted (SELF_HOSTED=true): the tunnel reaches only this port, so the
+// master forwards worker traffic itself, in nginx.conf's place (see
+// SelfHostProxy.ts). Ahead of express.json(), which would otherwise consume
+// the bodies it forwards. Not self-hosted, every request passes through.
+const selfHostRouting = (): WorkerRouting => ({
+  numWorkers: ServerEnv.numWorkers(),
+  portOf: (index) => ServerEnv.workerPortByIndex(index),
+  pick: () => Math.floor(Math.random() * ServerEnv.numWorkers()),
+});
+app.use(proxyToWorkers(() => ServerEnv.selfHosted(), selfHostRouting));
 
 app.use(express.json());
 
@@ -152,6 +170,13 @@ app.use("/api", (_req, res, next) => {
   next();
 });
 
+// Self-hosted pages send what would have gone to OpenFront's API here
+// (src/client/SelfHosted.ts). Not self-hosted, it passes every request on.
+app.use(
+  SELF_HOST_API_PREFIX,
+  selfHostApiStub(() => ServerEnv.selfHosted()),
+);
+
 // Start the master process
 export async function startMaster() {
   if (!cluster.isPrimary) {
@@ -241,6 +266,17 @@ export async function startMaster() {
       `Restarted worker ${workerId} (New PID: ${newWorker.process.pid})`,
     );
   });
+
+  if (ServerEnv.selfHosted()) {
+    log.info(
+      "Self-hosted: forwarding worker traffic and answering API calls locally",
+    );
+    server.on("upgrade", (req, socket, head) => {
+      if (!proxyUpgradeToWorker(req, socket, head, selfHostRouting())) {
+        socket.destroy();
+      }
+    });
+  }
 
   const PORT = 3000;
   server.listen(PORT, () => {
