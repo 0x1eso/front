@@ -96,6 +96,7 @@ function input(over: Partial<ScoreInput>): ScoreInput {
     science: 0,
     political: 0,
     gold: 0,
+    donationGold: 0,
     projectProgress: 0,
     ...over,
   };

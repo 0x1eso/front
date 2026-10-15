@@ -1198,6 +1198,9 @@ export class PlayerImpl implements Player {
     // the only chance to record how broke they were when the gold landed.
     const recipientGoldBefore = recipient.gold();
     recipient.addGold(removed);
+    // Domestic score (spec §8.2) counts produced gold only: addGold put the
+    // donation in goldEarned, so it is recorded here to be left out.
+    recipient.domestic()?.recordDonationReceived(removed);
     this.mg
       .stats()
       .goldDonationReceived(recipient, removed, recipientGoldBefore);

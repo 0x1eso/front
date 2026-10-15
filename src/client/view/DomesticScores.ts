@@ -18,6 +18,7 @@ export function scoreInputOf(player: PlayerView): ScoreInput | null {
     science: d.cumulativeScience,
     political: d.cumulativePolitical,
     gold: player.goldEarned(),
+    donationGold: d.donationGoldReceived ?? 0,
     projectProgress: projectProgress(d.project),
   };
 }

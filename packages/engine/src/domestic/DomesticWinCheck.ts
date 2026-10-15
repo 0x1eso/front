@@ -28,11 +28,12 @@ const UNSCORED: ScoreInput = {
   science: 0,
   political: 0,
   gold: 0,
+  donationGold: 0,
   projectProgress: 0,
 };
 
-/** Exact engine inputs: milli-points and gold earned. Bots have no domestic state. */
-function scoreInput(p: Player): ScoreInput {
+/** Exact engine inputs: milli-points, gold earned and donated. Bots have no domestic state. */
+export function domesticScoreInput(p: Player): ScoreInput {
   const d = p.domestic();
   if (d === null) return UNSCORED;
   return {
@@ -41,13 +42,14 @@ function scoreInput(p: Player): ScoreInput {
     science: d.cumulativeScienceMilli(),
     political: d.cumulativePoliticalMilli(),
     gold: Number(p.goldEarned()),
+    donationGold: Number(d.donationGoldReceived()),
     projectProgress: projectProgress(d.victoryProject()),
   };
 }
 
 /** One side per player (FFA) or per team, in players() order. The bot team never wins. */
 function sides(players: readonly Player[], teams: boolean): Side[] {
-  const scores = domesticScores(players.map(scoreInput));
+  const scores = domesticScores(players.map(domesticScoreInput));
   if (!teams) {
     return players.map((p, i) => ({
       winner: p,

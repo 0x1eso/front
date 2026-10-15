@@ -10,8 +10,10 @@ export interface ScoreInput {
   science: number;
   /** Cumulative political power produced. */
   political: number;
-  /** Cumulative gold earned (Player.goldEarned). */
+  /** Cumulative gold earned (Player.goldEarned), donations included. */
   gold: number;
+  /** The part of `gold` that came as donations; it doesn't score. */
+  donationGold: number;
   /** 0..1 progress of the player's running victory project; 0 when none. */
   projectProgress: number;
 }
@@ -42,11 +44,18 @@ export function projectProgress(
   return Math.min(1, Math.max(0, (p.totalTicks - p.ticksLeft) / p.totalTicks));
 }
 
+/** Gold the player produced: earned minus what was donated to it. */
+function producedGold(i: ScoreInput): number {
+  return Math.max(0, i.gold - i.donationGold);
+}
+
 /**
  * Spec §8.2: each of land, science, political power and gold earned is
  * worth (mine / everyone's) x 25 points, and a running victory project adds
- * up to 10 by progress. Shared by the engine (the 30-minute judgement) and
- * the client (the live leaderboard), so both rank players the same way.
+ * up to 10 by progress. Donated gold counts for nobody (the giver earned
+ * it, the receiver didn't), so passing gold around changes no score.
+ * Shared by the engine (the 30-minute judgement) and the client (the live
+ * leaderboard), so both rank players the same way.
  */
 export function domesticScores(
   inputs: readonly ScoreInput[],
@@ -60,7 +69,7 @@ export function domesticScores(
     tiles += i.tiles;
     science += i.science;
     political += i.political;
-    gold += i.gold;
+    gold += producedGold(i);
   }
   const share = (value: number, total: number) =>
     total > 0 ? (value / total) * SCORE_PER_CATEGORY : 0;
@@ -69,7 +78,7 @@ export function domesticScores(
     const land = share(i.tiles, tiles);
     const sci = share(i.science, science);
     const pol = share(i.political, political);
-    const economy = share(i.gold, gold);
+    const economy = share(producedGold(i), gold);
     const project =
       PROJECT_SCORE_MAX * Math.min(1, Math.max(0, i.projectProgress));
     return {

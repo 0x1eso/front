@@ -166,6 +166,11 @@ export interface DomesticData {
   conditions: Condition[];
   /** The running (or just completed) victory project; absent when none. */
   project?: VictoryProjectProgress;
+  /**
+   * Gold received as donations since spawn, part of goldEarned. The score
+   * leaves it out (spec §8.2 counts gold earned, not gold passed around).
+   */
+  donationGoldReceived?: number;
 }
 
 /** Domestic victory projects (spec §8): the science and the political one. */

@@ -18,6 +18,7 @@ import {
   VictoryProjectKind,
   VictoryProjectProgress,
 } from "@openfront/engine-api/domestic/DomesticTypes";
+import type { Gold } from "@openfront/engine-api/game/GameTypes";
 import {
   LAW_COOLDOWN_TICKS,
   MILLI,
@@ -69,6 +70,8 @@ export const DomesticStateSchema = z.object({
     })
     .nullable()
     .optional(),
+  // Absent in older snapshots and while nothing was donated.
+  donationGoldReceived: z.bigint().optional(),
 });
 export type DomesticState = z.infer<typeof DomesticStateSchema>;
 
@@ -97,6 +100,8 @@ export class PlayerDomestic implements DomesticView {
   private government: GovernmentId = "chiefdom";
   /** The running (or just completed) victory project. */
   private project: VictoryProjectProgress | null = null;
+  /** Gold received as donations: part of goldEarned, never of the score. */
+  private donationGold: Gold = 0n;
   /** Set once per processed second (DomesticEconomy.activeConditions). */
   private conditions: ReadonlySet<Condition> = new Set<Condition>();
   private totals = new ModifierTotals([]);
@@ -188,6 +193,17 @@ export class PlayerDomestic implements DomesticView {
   clearVictoryProject(): void {
     if (this.project === null) return;
     this.project = null;
+    this.changed();
+  }
+
+  donationGoldReceived(): Gold {
+    return this.donationGold;
+  }
+
+  /** Called with each gold donation the player receives (PlayerImpl.donateGold). */
+  recordDonationReceived(gold: Gold): void {
+    if (gold <= 0n) return;
+    this.donationGold += gold;
     this.changed();
   }
 
@@ -322,6 +338,7 @@ export class PlayerDomestic implements DomesticView {
       government: this.government,
       conditions: [...this.conditions],
       ...(this.project === null ? {} : { project: { ...this.project } }),
+      donationGoldReceived: Number(this.donationGold),
     };
     return this.domesticDataCache;
   }
@@ -343,6 +360,9 @@ export class PlayerDomestic implements DomesticView {
       government: this.government,
       conditions: [...this.conditions],
       ...(this.project === null ? {} : { project: { ...this.project } }),
+      ...(this.donationGold === 0n
+        ? {}
+        : { donationGoldReceived: this.donationGold }),
     };
   }
 
@@ -363,6 +383,7 @@ export class PlayerDomestic implements DomesticView {
     d.government = s.government ?? "chiefdom";
     d.conditions = new Set(s.conditions ?? []);
     d.project = s.project ? { ...s.project } : null;
+    d.donationGold = s.donationGoldReceived ?? 0n;
     d.rebuild();
     return d;
   }
