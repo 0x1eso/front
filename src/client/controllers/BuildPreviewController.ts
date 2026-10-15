@@ -626,9 +626,10 @@ export class BuildPreviewController implements Controller {
 
   /**
    * Touch: a tap on the aimed ghost's icon builds it when the check for its
-   * tile is back, says it can, and has been on screen GHOST_SEEN_MS. Any
-   * other tap aims the ghost there instead: one off the icon, one on a red
-   * ghost, and one too soon (a double tap) alike.
+   * tile is back, says it can, and has been on screen GHOST_SEEN_MS. A tap on
+   * the icon before then does nothing: the aim and its clock stay, and the
+   * tap is not kept to fire later. Any other tap aims the ghost there
+   * instead: one off the icon, and one on a red ghost.
    */
   private onBuildTap(e: BuildTapEvent): void {
     this.syncGhostState();
@@ -637,13 +638,16 @@ export class BuildPreviewController implements Controller {
     if (aim !== null && this.isOnAimedGhost(e.x, e.y)) {
       const shownAt = this.aimShownAt;
       const checked = this.checked?.tile === aim.tile && shownAt !== null;
+      // Still waiting for this tile's check: keep waiting.
+      if (!checked) return;
       const buildable = aim.tile !== undefined && this.isGhostReadyForConfirm();
-      if (checked && buildable) {
+      if (buildable) {
         if (performance.now() - shownAt >= GHOST_SEEN_MS) {
           this.confirmAim();
-          return;
         }
-      } else if (checked) {
+        // Too soon: keep the aim and its clock.
+        return;
+      } else {
         // Red there: say no when the tap is on that very tile.
         const tapped = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
         if (tapped.x === aim.cellX && tapped.y === aim.cellY) {

@@ -336,21 +336,28 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     expect(t.uiState.ghostStructure).toBeNull();
   });
 
-  test("a tap on a ghost shown for under 350ms aims again instead of building (C1)", async () => {
+  test("a tap on a ghost shown for under 350ms builds nothing and keeps the aim and its clock (C1)", async () => {
     const t = makeTouchController(UnitType.City);
     t.tap(70, 80);
     await t.reply(cityAt);
     t.wait(SEEN_MS - 50);
     t.tap(72, 82);
     expect(t.intents().builds).toHaveLength(0);
-    // A new check for the tile, and the preview shows anew.
-    expect(t.queries.map((q) => q.tile)).toEqual([87]);
+    // No new check: the aim stays, and so does the time it has been shown.
+    expect(t.queries).toHaveLength(0);
+    t.wait(50);
+    t.tap(72, 82);
+    expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
+  });
+
+  test("a player tapping the icon every 300ms still builds (C1)", async () => {
+    const t = makeTouchController(UnitType.City);
+    t.tap(70, 80);
     await t.reply(cityAt);
-    t.wait(SEEN_MS - 50);
+    t.wait(300);
     t.tap(72, 82);
     expect(t.intents().builds).toHaveLength(0);
-    await t.reply(cityAt);
-    t.wait(SEEN_MS);
+    t.wait(300);
     t.tap(72, 82);
     expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
   });

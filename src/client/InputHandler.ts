@@ -1009,7 +1009,9 @@ export class InputHandler {
     if (this.pointers.size === 1) {
       // A finger put back down while another from the gesture still rests
       // (re-gripping a pinch) is still part of that gesture.
-      if (this.touchesDown.size <= 1) this.multiTouchGesture = false;
+      if (event.pointerType !== "touch" || this.touchesDown.size <= 1) {
+        this.multiTouchGesture = false;
+      }
       this.lastPointerX = event.clientX;
       this.lastPointerY = event.clientY;
 
