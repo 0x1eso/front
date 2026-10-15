@@ -12,6 +12,9 @@ import { translateText } from "../../Utils";
 import { GameView } from "../../view";
 import { ToggleDomesticPanelEvent } from "./DomesticEvents";
 
+/** Ticks to wait for the engine to apply a recruit target before giving up. */
+const PENDING_TARGET_TICKS = 30;
+
 /** Science, political power, the recruit-target slider and the panel button. */
 @customElement("domestic-hud")
 export class DomesticHud extends LitElement implements Controller {
@@ -21,20 +24,30 @@ export class DomesticHud extends LitElement implements Controller {
   @state() private data: DomesticData | null = null;
   /** Slider value while the intent round-trips. */
   @state() private pendingTarget: number | null = null;
+  private pendingTicks = 0;
 
   createRenderRoot() {
     return this;
   }
 
   tick() {
+    if (this.pendingTicks > 0 && --this.pendingTicks === 0) {
+      this.pendingTarget = null;
+    }
     const me = this.game?.myPlayer();
     const next =
       me && me.isAlive() && !this.game.inSpawnPhase()
         ? me.domesticData()
         : null;
     if (next === this.data) return;
+    const prevPct = this.data?.recruitTargetPct;
     this.data = next;
-    if (next !== null && this.pendingTarget === next.recruitTargetPct) {
+    if (
+      next !== null &&
+      this.pendingTarget !== null &&
+      (next.recruitTargetPct === this.pendingTarget ||
+        next.recruitTargetPct !== prevPct)
+    ) {
       this.pendingTarget = null;
     }
   }
@@ -45,7 +58,13 @@ export class DomesticHud extends LitElement implements Controller {
 
   private onTargetChange(e: Event) {
     const pct = Number((e.target as HTMLInputElement).value);
+    if (pct === this.data?.recruitTargetPct) {
+      this.pendingTarget = null;
+      this.pendingTicks = 0;
+      return;
+    }
     this.pendingTarget = pct;
+    this.pendingTicks = PENDING_TARGET_TICKS;
     this.eventBus.emit(new SetRecruitTargetIntentEvent(pct));
   }
 

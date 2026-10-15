@@ -32,6 +32,8 @@ const HUD_TAGS = [
   "settings-modal",
   "graphics-settings-modal",
   "unit-display",
+  "domestic-hud",
+  "domestic-panel",
   "player-panel",
   "chat-modal",
   "multi-tab-modal",
