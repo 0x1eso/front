@@ -3,6 +3,7 @@ import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import type { ColumnId, StatsTableKind } from "../../../StatsConstants";
 import { formatPercentage, translateText } from "../../../Utils";
 import type { GameView, PlayerView } from "../../../view";
+import { domesticScoreOf } from "../../../view/DomesticScores";
 import {
   allianceIcon,
   cityIcon,
@@ -65,6 +66,8 @@ export interface ColumnDef {
   readonly kinds: readonly StatsTableKind[];
   /** Offered in the ⚙️ menu; non-hideable columns always render. */
   readonly isHideable: boolean;
+  /** Only exists in domestic-mode games (StatsTable.domesticMode). */
+  readonly domesticOnly?: true;
   /** Header is a sort button. True exactly when `value` is set. */
   readonly isOrderable: boolean;
   /** Number behind the column — sorting and team totals. */
@@ -185,6 +188,15 @@ export const COLUMN_DEFS: readonly ColumnDef[] = [
     kinds: ["team"],
     isHideable: false,
     cell: (row) => row.name,
+  }),
+  defineColumn({
+    id: "score",
+    labelKey: "leaderboard.score",
+    headerVisual: { kind: "text", text: "leaderboard.score" },
+    isHideable: false,
+    domesticOnly: true,
+    value: (player, game) => domesticScoreOf(player, game),
+    cell: (row) => row.value.toFixed(1),
   }),
   defineColumn({
     id: "tiles",

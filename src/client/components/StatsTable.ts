@@ -53,6 +53,9 @@ export abstract class StatsTable extends LitElement {
 
   @property({ type: Boolean }) visible = false;
 
+  /** Domestic mode: show the domestic-only columns (the live score). */
+  @property({ type: Boolean }) domesticMode = false;
+
   protected abstract readonly tableKind: StatsTableKind;
   protected abstract buildRows(
     game: GameView,
@@ -120,7 +123,9 @@ export abstract class StatsTable extends LitElement {
   private visibleColumns(): readonly ColumnDef[] {
     const selected = this.userSettings.statsColumns(this.tableKind);
     return columnsFor(this.tableKind).filter(
-      (column) => !column.isHideable || selected.includes(column.id),
+      (column) =>
+        (column.domesticOnly !== true || this.domesticMode) &&
+        (!column.isHideable || selected.includes(column.id)),
     );
   }
 
