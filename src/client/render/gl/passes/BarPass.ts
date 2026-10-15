@@ -66,6 +66,8 @@ export class BarPass {
   private mapW: number;
   private warshipMaxHealth: number;
   private veterancyHealthBonus: number;
+  /** Domestic mode: victory-project host unit id -> progress (0..1). */
+  private projectProgress: ReadonlyMap<number, number> = new Map();
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -127,6 +129,11 @@ export class BarPass {
     gl.vertexAttribDivisor(1, 1);
 
     gl.bindVertexArray(null);
+  }
+
+  /** Domestic mode: hosts of running victory projects and their progress. */
+  setVictoryProjects(progress: ReadonlyMap<number, number>): void {
+    this.projectProgress = progress;
   }
 
   /** Rebuild bar instance data from current unit state. */
@@ -305,6 +312,10 @@ export class BarPass {
         Math.min(1, remaining / this.config.deletionMarkDuration()),
       );
     }
+
+    // Domestic victory project: the bar fills as the project advances
+    const project = this.projectProgress.get(unit.id);
+    if (project !== undefined) return project;
 
     // Construction progress
     if (unit.underConstruction && unit.constructionStartTick !== null) {

@@ -310,6 +310,11 @@ export class MapRenderer {
     this.renderer?.updateSmallPlayerGlow(set);
   }
 
+  /** Domestic mode: host unit id -> victory-project progress (0..1). */
+  setVictoryProjects(progress: ReadonlyMap<number, number>): void {
+    this.renderer?.setVictoryProjects(progress);
+  }
+
   // ---- Map layers ----
 
   /** Set up map-layer passes from the loaded layer data. */
