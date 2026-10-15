@@ -13,6 +13,7 @@ import {
   INTEREST_DIVISOR_PER_SEC,
   MILLI,
   NATION_YIELD_MULT,
+  RECRUIT_COST_PER_1000_TROOPS,
   TERRITORY_YIELD_PER_SQRT_PCT,
   UPKEEP_FREE_BAND_PCT,
   UPKEEP_GOLD_PER_1000_EXCESS,
@@ -143,4 +144,28 @@ export function processDomesticSecond(
       { tech: finished },
     );
   }
+}
+
+/**
+ * Charges the recruitment cost (spec §3.4) for `troops` new troops and
+ * returns how many the player could pay for. Without enough gold it spends
+ * what it has on as many troops as that buys.
+ */
+export function payRecruitment(player: Player, troops: number): number {
+  const d = player.domestic();
+  if (d === null || troops <= 0) return troops;
+  const costPer1000 = applyPct(
+    RECRUIT_COST_PER_1000_TROOPS,
+    d.pct("recruitCost"),
+  );
+  if (costPer1000 <= 0) return troops;
+  const due = BigInt(Math.ceil((troops * costPer1000) / 1000));
+  const gold = player.gold();
+  if (gold >= due) {
+    player.removeGold(due);
+    return troops;
+  }
+  const affordable = Math.floor((Number(gold) * 1000) / costPer1000);
+  player.removeGold(gold);
+  return Math.min(troops, affordable);
 }

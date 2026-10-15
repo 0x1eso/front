@@ -1,3 +1,4 @@
+import { DomesticView } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
   GameType,
@@ -11,6 +12,8 @@ import { GameConfig } from "@openfront/engine-api/Schemas";
 import { pow } from "../DetMath";
 import { BUILDING_CONSTRUCTION_TICKS } from "../domestic/Balance";
 import { DOMESTIC_ONLY_UNITS } from "../domestic/Locks";
+import { applyPct } from "../domestic/Modifiers";
+import { domesticTroopIncrease } from "../domestic/Troops";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
 import { assertNever } from "../Util";
 
@@ -182,6 +185,11 @@ export class Config {
     return this._gameConfig.domesticMode ?? false;
   }
 
+  /** The player's domestic view in domestic mode; null otherwise (and for bots). */
+  protected domesticOf(player: PlayerLike): DomesticView | null {
+    return this.domesticMode() ? player.domestic() : null;
+  }
+
   isUnitDisabled(unitType: UnitType): boolean {
     if (DOMESTIC_ONLY_UNITS.has(unitType) && !this.domesticMode()) {
       return true;
@@ -342,12 +350,17 @@ export class Config {
   }
 
   maxTroops(player: PlayerLike): number {
-    return this.troopCap(player, true);
+    return this.withDomesticMaxTroops(player, this.troopCap(player, true));
   }
 
   /** maxTroops without what cities add */
   maxTroopsWithoutCities(player: PlayerLike): number {
-    return this.troopCap(player, false);
+    return this.withDomesticMaxTroops(player, this.troopCap(player, false));
+  }
+
+  private withDomesticMaxTroops(player: PlayerLike, cap: number): number {
+    const domestic = this.domesticOf(player);
+    return domestic === null ? cap : applyPct(cap, domestic.pct("maxTroops"));
   }
 
   private troopCap(player: PlayerLike, withCities: boolean): number {
@@ -416,6 +429,10 @@ export class Config {
       }
     }
 
+    const domestic = this.domesticOf(player);
+    if (domestic !== null) {
+      return domesticTroopIncrease(player.troops(), toAdd, max, domestic);
+    }
     return Math.min(player.troops() + toAdd, max) - player.troops();
   }
 
