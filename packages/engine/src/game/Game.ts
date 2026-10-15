@@ -293,6 +293,9 @@ export interface Unit extends UnitLike {
   // Construction phase on structures
   isUnderConstruction(): boolean;
   setUnderConstruction(underConstruction: boolean): void;
+  /** Domestic mode: this structure's modified build time (spec §10.9). */
+  constructionTicks(): number | undefined;
+  setConstructionTicks(ticks: number): void;
 
   // Upgradable Structures
   level(): number;

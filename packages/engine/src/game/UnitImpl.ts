@@ -52,6 +52,8 @@ export class UnitImpl implements Unit {
   private _destroyer: Player | undefined = undefined;
   private _lastSetSafeFromPirates: number; // Only for trade ships
   private _underConstruction: boolean = false;
+  /** Domestic mode only: the real build time, sent to the client. */
+  private _constructionTicks: number | undefined = undefined;
   private _lastOwner: PlayerImpl | null = null;
   private _troops: number;
   // Number of missiles in cooldown, if empty all missiles are ready.
@@ -196,6 +198,9 @@ export class UnitImpl implements Unit {
       trainType: this._trainType,
       loaded: this._loaded,
     };
+    if (this._constructionTicks !== undefined) {
+      update.constructionTicks = this._constructionTicks;
+    }
     return update;
   }
 
@@ -547,6 +552,14 @@ export class UnitImpl implements Unit {
     }
   }
 
+  constructionTicks(): number | undefined {
+    return this._constructionTicks;
+  }
+
+  setConstructionTicks(ticks: number): void {
+    this._constructionTicks = ticks;
+  }
+
   hash(): number {
     return this.tile() + simpleHash(this.type()) * this._id;
   }
@@ -738,7 +751,9 @@ export class UnitImpl implements Unit {
   increaseLevel(): void {
     if (this._type === UnitType.SAMLauncher) {
       const currentTick = this.mg.ticks();
-      const currentRange = this.mg.config().dynamicSamRange(this, currentTick);
+      const currentRange = this.mg
+        .config()
+        .baseDynamicSamRange(this, currentTick);
       this._samLauncherState = {
         upgradeStartTick: currentTick,
         startRange: currentRange,
@@ -856,6 +871,10 @@ export class UnitImpl implements Unit {
             duration: this._samLauncherState.duration,
           }
         : null,
+      // Domestic mode only, so vanilla snapshots keep their bytes.
+      ...(this._constructionTicks === undefined
+        ? {}
+        : { constructionTicks: this._constructionTicks }),
     };
   }
 
@@ -906,6 +925,7 @@ export class UnitImpl implements Unit {
     this._samLauncherState = s.samLauncherState
       ? { ...s.samLauncherState }
       : undefined;
+    this._constructionTicks = s.constructionTicks;
   }
 }
 
@@ -968,6 +988,7 @@ export const UnitSnapshot = snapshotType({
         duration: zInt(),
       })
       .nullable(),
+    constructionTicks: zInt().optional(),
   }),
 });
 export type UnitState = z.infer<typeof UnitSnapshot.schema>;

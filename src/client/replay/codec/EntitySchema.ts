@@ -355,7 +355,11 @@ const POSITION: FieldDef<UnitFields> = {
 };
 
 export type PlayerFields = Omit<PlayerState, "smallID">;
-export type UnitFields = Omit<UnitState, "id" | "constructionStartTick">;
+// constructionTicks is domestic-only; replays fall back to the type's duration.
+export type UnitFields = Omit<
+  UnitState,
+  "id" | "constructionStartTick" | "constructionTicks"
+>;
 
 /** Only append. Reordering changes the format (bump REPLAY_VERSION). */
 export const PLAYER_FIELDS: readonly FieldDef<PlayerFields>[] = [

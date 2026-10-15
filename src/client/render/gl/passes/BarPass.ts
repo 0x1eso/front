@@ -18,6 +18,7 @@ import { maxHealthWithVeterancy } from "@openfront/engine-lib/game/Veterancy";
 import type { RendererConfig, UnitState } from "../../types";
 import { UT_MISSILE_SILO, UT_SAM_LAUNCHER } from "../../types";
 import type { RenderSettings } from "../RenderSettings";
+import { constructionProgress } from "../utils/ConstructionProgress";
 import { createProgram } from "../utils/GlUtils";
 
 import barFragSrc from "../shaders/bar/bar.frag.glsl?raw";
@@ -317,13 +318,14 @@ export class BarPass {
     const project = this.projectProgress.get(unit.id);
     if (project !== undefined) return project;
 
-    // Construction progress
+    // Construction progress (domestic mode sends the real build time)
     if (unit.underConstruction && unit.constructionStartTick !== null) {
-      const duration =
+      return constructionProgress(
+        unit,
+        gameTick,
         this.config.unitInfo(unit.unitType as UnitType).constructionDuration ??
-        50;
-      const elapsed = gameTick - unit.constructionStartTick;
-      return Math.min(1, Math.max(0, elapsed / duration));
+          50,
+      );
     }
 
     // Missile readiness (Silo / SAM)

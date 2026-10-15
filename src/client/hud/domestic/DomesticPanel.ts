@@ -16,16 +16,26 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
-import { ResearchTechIntentEvent } from "../../Transport";
+import {
+  ChooseGovernmentIntentEvent,
+  ProclaimLawIntentEvent,
+  ResearchTechIntentEvent,
+} from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
+import type { DomesticClientView } from "../../view/DomesticClientView";
 import { PlayerView } from "../../view/PlayerView";
 import { ToggleDomesticPanelEvent } from "./DomesticEvents";
+import { renderGovernmentTab } from "./GovernmentTab";
+import { renderLawsTab } from "./LawsTab";
 
 const ERAS: readonly Era[] = [1, 2, 3, 4];
 const BRANCHES: readonly Branch[] = ["economy", "military", "learning"];
 
-/** The domestic panel. Phase 1 has the technology tab only. */
+type DomesticTab = "tech" | "laws" | "government";
+const TABS: readonly DomesticTab[] = ["tech", "laws", "government"];
+
+/** The domestic panel: technology, book of laws and government tabs. */
 @customElement("domestic-panel")
 export class DomesticPanel extends LitElement implements Controller {
   public game: GameView;
@@ -33,6 +43,7 @@ export class DomesticPanel extends LitElement implements Controller {
 
   @state() private open = false;
   @state() private data: DomesticData | null = null;
+  @state() private tab: DomesticTab = "tech";
 
   createRenderRoot() {
     return this;
@@ -54,9 +65,9 @@ export class DomesticPanel extends LitElement implements Controller {
 
   render() {
     const me = this.game?.myPlayer();
-    if (!this.open || this.data === null || !me) return null;
+    const view = me?.domestic() ?? null;
+    if (!this.open || this.data === null || !me || view === null) return null;
     const d = this.data;
-    const researched = new Set<TechId>(d.techs);
     return html`
       <div
         class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50"
@@ -67,42 +78,88 @@ export class DomesticPanel extends LitElement implements Controller {
         <div
           class="bg-gray-900 text-white rounded-lg p-4 max-w-[95vw] max-h-[90vh] overflow-auto shadow-xl"
         >
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between gap-4 mb-3">
             <h2 class="text-lg font-bold">
-              ${translateText("domestic.panel_title")} ·
-              ${translateText("domestic.tab_tech")}
+              ${translateText("domestic.panel_title")}
             </h2>
+            <div class="flex gap-1">
+              ${TABS.map(
+                (tab) =>
+                  html`<button
+                    class="px-3 py-1 rounded-sm ${this.tab === tab
+                      ? "bg-sky-700"
+                      : "bg-slate-700 hover:bg-slate-600"}"
+                    @click=${() => (this.tab = tab)}
+                  >
+                    ${translateText(`domestic.tab_${tab}`)}
+                  </button>`,
+              )}
+            </div>
             <button class="px-2" @click=${() => (this.open = false)}>✕</button>
           </div>
-          ${this.renderResearch(d)}
-          <div
-            class="grid gap-2"
-            style="grid-template-columns: auto repeat(3, minmax(11rem, 1fr));"
-          >
-            <div></div>
+          ${this.renderTab(d, view, me)}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderTab(
+    d: DomesticData,
+    view: DomesticClientView,
+    me: PlayerView,
+  ): TemplateResult {
+    switch (this.tab) {
+      case "tech":
+        return this.renderTechTab(d, me);
+      case "laws":
+        return renderLawsTab({
+          view,
+          gold: me.gold(),
+          nowTick: this.game.ticks(),
+          proclaim: (law, option, payWithGold) =>
+            this.eventBus.emit(
+              new ProclaimLawIntentEvent(law, option, payWithGold),
+            ),
+        });
+      case "government":
+        return renderGovernmentTab({
+          view,
+          choose: (government) =>
+            this.eventBus.emit(new ChooseGovernmentIntentEvent(government)),
+        });
+    }
+  }
+
+  private renderTechTab(d: DomesticData, me: PlayerView): TemplateResult {
+    const researched = new Set<TechId>(d.techs);
+    return html`
+      ${this.renderResearch(d)}
+      <div
+        class="grid gap-2"
+        style="grid-template-columns: auto repeat(3, minmax(11rem, 1fr));"
+      >
+        <div></div>
+        ${BRANCHES.map(
+          (b) =>
+            html`<div class="font-bold text-center">
+              ${translateText(`domestic.branch.${b}`)}
+            </div>`,
+        )}
+        ${ERAS.map(
+          (era) => html`
+            <div class="font-bold self-center">
+              ${translateText("domestic.era", { era })}
+            </div>
             ${BRANCHES.map(
               (b) =>
-                html`<div class="font-bold text-center">
-                  ${translateText(`domestic.branch.${b}`)}
+                html`<div class="flex flex-col gap-1">
+                  ${TECH_IDS.filter(
+                    (id) => TECHS[id].era === era && TECHS[id].branch === b,
+                  ).map((id) => this.renderTech(id, d, researched, me))}
                 </div>`,
             )}
-            ${ERAS.map(
-              (era) => html`
-                <div class="font-bold self-center">
-                  ${translateText("domestic.era", { era })}
-                </div>
-                ${BRANCHES.map(
-                  (b) =>
-                    html`<div class="flex flex-col gap-1">
-                      ${TECH_IDS.filter(
-                        (id) => TECHS[id].era === era && TECHS[id].branch === b,
-                      ).map((id) => this.renderTech(id, d, researched, me))}
-                    </div>`,
-                )}
-              `,
-            )}
-          </div>
-        </div>
+          `,
+        )}
       </div>
     `;
   }

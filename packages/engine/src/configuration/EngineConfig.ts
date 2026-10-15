@@ -35,7 +35,14 @@ import type { EngineUnitInfo, Game, Player, Unit } from "../game/Game";
 export interface AttackLogicInput {
   terrain: TerrainType;
   attackTroops: number;
-  attacker: { type: PlayerType; numTiles: number };
+  attacker: {
+    type: PlayerType;
+    numTiles: number;
+    /** Domestic mode: multiplies the attacker's losses (attackLoss); 1 = vanilla. */
+    lossScale?: number;
+    /** Domestic mode: attack or expansion speed (1.3 = 30% faster); 1 = vanilla. */
+    speedScale?: number;
+  };
   /** null when attacking terra nullius. */
   defender: {
     type: PlayerType;
@@ -46,6 +53,8 @@ export interface AttackLogicInput {
     isDisconnectedTeammate: boolean;
     /** Domestic mode: defense-post effect scale (1 = vanilla). */
     defensePostScale?: number;
+    /** Domestic mode: multiplies the defender's losses (defenseLoss); 1 = vanilla. */
+    lossScale?: number;
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
@@ -574,7 +583,9 @@ export class EngineConfig extends Config {
             (TERRA_NULLIUS_COST_SCALE * tileCost) / attackTroops,
             TERRA_NULLIUS_MIN_COST,
             TERRA_NULLIUS_MAX_COST,
-          ) / tickBudget,
+          ) /
+          tickBudget /
+          (attacker.speedScale ?? 1),
       };
     }
 
@@ -631,15 +642,16 @@ export class EngineConfig extends Config {
       LARGE_ATTACKER_SPEED_DEPTH,
     );
     return {
-      attackerTroopLoss,
-      defenderTroopLoss,
+      attackerTroopLoss: attackerTroopLoss * (attacker.lossScale ?? 1),
+      defenderTroopLoss: defenderTroopLoss * (defender.lossScale ?? 1),
       tickFraction:
         (speedCost *
           tileCost *
           largeAttackerSpeedBonus *
           largeDefenderBonus *
           traitorCostMod) /
-        input.borderSize,
+        input.borderSize /
+        (attacker.speedScale ?? 1),
     };
   }
 
@@ -751,7 +763,22 @@ export class EngineConfig extends Config {
     return Math.floor(this.SAMCooldown() / 2);
   }
 
+  /**
+   * The SAM's range with its owner's domestic samRange modifier, never past
+   * maxSamRange() (the interception search prunes at that distance).
+   */
   dynamicSamRange(sam: Unit, currentTick: number): number {
+    const range = this.baseDynamicSamRange(sam, currentTick);
+    const domestic = this.domesticOf(sam.owner());
+    if (domestic === null) return range;
+    const pct = domestic.pct("samRange");
+    return pct === 0
+      ? range
+      : Math.min(this.maxSamRange(), applyPct(range, pct));
+  }
+
+  /** The SAM's range before domestic modifiers, interpolated while upgrading. */
+  baseDynamicSamRange(sam: Unit, currentTick: number): number {
     const state = sam.samLauncherState();
     if (state === undefined || state.upgradeStartTick === undefined) {
       return this.samRange(sam.level());
