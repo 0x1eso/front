@@ -740,6 +740,9 @@ describe("RadialMenuElements", () => {
       expect(city!.tooltipItems!.map((item) => item.text)).not.toContain(
         "domestic.locked_requires",
       );
+      // On the item itself too, not only in the hover tooltip (M6).
+      expect(factory!.badge).toBe("🔒 domestic.tech.railroad.name");
+      expect(city!.badge).toBeUndefined();
     });
 
     it("names the required tech in a locked bomb's tooltip", () => {
@@ -763,6 +766,8 @@ describe("RadialMenuElements", () => {
       expect(atom!.tooltipItems!.map((item) => item.text)).not.toContain(
         "domestic.locked_requires",
       );
+      expect(hydrogen!.badge).toBe("🔒 domestic.tech.thermonuclear.name");
+      expect(atom!.badge).toBeUndefined();
     });
   });
 

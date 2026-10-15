@@ -671,6 +671,24 @@ export class RadialMenu implements Controller {
               .attr("x", arc.centroid(d)[0] - this.config.iconSize / 4)
               .attr("y", arc.centroid(d)[1] + this.config.iconSize / 2 + 7);
           }
+
+          if (d.data.badge) {
+            content
+              .append("text")
+              .attr("class", "item-badge")
+              .attr("text-anchor", "middle")
+              .attr("dominant-baseline", "hanging")
+              .attr("x", arc.centroid(d)[0])
+              .attr("y", arc.centroid(d)[1] + this.config.iconSize / 2 + 1)
+              .attr("fill", "#fca5a5")
+              .attr("stroke", "#111827")
+              .attr("stroke-width", 2)
+              .style("paint-order", "stroke")
+              .attr("font-size", "10px")
+              .attr("font-weight", "bold")
+              .attr("font-family", "Arial, sans-serif")
+              .text(d.data.badge);
+          }
         }
 
         this.menuIcons.set(contentId, content as any);
@@ -1141,8 +1159,8 @@ export class RadialMenu implements Controller {
           if (item.renderType === "allyExtend" && this.params) {
             this.refreshAllyExtendIcon(item, disabled, icon);
           } else {
-            // Update text opacity
-            const textElement = icon.select("text");
+            // Update text opacity (a badge stays readable)
+            const textElement = icon.select("text:not(.item-badge)");
             if (!textElement.empty()) {
               textElement.style("opacity", disabled ? 0.5 : 1);
             }

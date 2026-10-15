@@ -19,7 +19,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { UIState } from "../../UIState";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
-import { lockedReason } from "../domestic/LockReason";
+import { lockedBadge, lockedReason } from "../domestic/LockReason";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
 import { EmojiTable } from "./EmojiTable";
@@ -69,6 +69,8 @@ export interface MenuElement {
   icon?: string;
   text?: string;
   fontSize?: string;
+  /** Short text always shown under the icon (a locked unit's 🔒 + tech). */
+  badge?: string;
   tooltipItems?: TooltipItem[];
   tooltipKeys?: TooltipKey[];
 
@@ -450,6 +452,8 @@ function createMenuElements(
               : COLORS.building
             : COLORS.building,
         icon: item.icon,
+        // Tooltips need hover: a finger sees why on the item itself.
+        badge: locked ? lockedBadge(item.unitType) : undefined,
         tooltipItems: [
           { text: translateText(item.key ?? ""), className: "title" },
           {
