@@ -110,10 +110,19 @@ export const ALL_UNIT_TYPES = [
 ] as const;
 
 /**
- * Domestic-mode structures have no atlas column of their own yet; they are
- * drawn with an existing structure's icon until the atlas gains real ones.
+ * Structure types in icon-atlas column order: index = column of
+ * resources/atlases/icon-atlas.png (one 64×64 cell each). StructurePass and
+ * StructureLevelPass map unit types to columns with it, and structure.frag.glsl
+ * picks each column's frame shape by index. Append new structures at the end
+ * so the existing cells keep their columns.
  */
-export const STRUCTURE_ICON_ALIAS: Readonly<Record<string, string>> = {
-  [UT_RESEARCH_INSTITUTE]: UT_CITY,
-  [UT_ADMIN_OFFICE]: UT_DEFENSE_POST,
-};
+export const STRUCTURE_ATLAS_ORDER = [
+  UT_CITY,
+  UT_PORT,
+  UT_FACTORY,
+  UT_DEFENSE_POST,
+  UT_SAM_LAUNCHER,
+  UT_MISSILE_SILO,
+  UT_RESEARCH_INSTITUTE,
+  UT_ADMIN_OFFICE,
+] as const;

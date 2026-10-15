@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-4 -4 32 32" fill="#ffffff">
+  <!--
+    Admin Office map icon: icon-atlas.png cell 8 (atlas column 7).
+    Drawn for this fork; licensed CC BY-SA 4.0 like the rest of resources/.
+
+    Same classical government building (pediment, three columns, base) as
+    resources/images/AdminOfficeIconWhite.svg (24-unit grid), drawn the way the
+    original atlas cells are: 2x scale with 4 units (8px) of padding in a 64x64
+    cell, solid white on transparent. See research-institute.svg for the
+    command that rebuilds icon-atlas.png from these sources.
+  -->
+  <path d="M12 2 2 7v2h20V7L12 2zM4 11v7h3v-7H4zm6.5 0v7h3v-7h-3zM17 11v7h3v-7h-3zM2 20v2h20v-2H2z"/>
+</svg>

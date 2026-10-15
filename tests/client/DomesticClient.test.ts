@@ -6,11 +6,9 @@ import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { PlayerDomestic } from "@openfront/engine/domestic/PlayerDomestic";
 import {
   ALL_UNIT_TYPES,
-  STRUCTURE_ICON_ALIAS,
+  STRUCTURE_ATLAS_ORDER,
   STRUCTURE_TYPES,
   UT_ADMIN_OFFICE,
-  UT_CITY,
-  UT_DEFENSE_POST,
   UT_RESEARCH_INSTITUTE,
 } from "../../src/client/render/types/UnitType";
 import { DomesticClientView } from "../../src/client/view/DomesticClientView";
@@ -90,11 +88,11 @@ describe("domestic structures in the renderer", () => {
     expect(UT_ADMIN_OFFICE).toBe(UnitType.AdminOffice);
   });
 
-  test("they are structures drawn with a borrowed atlas icon", () => {
+  test("they are structures with icon-atlas columns of their own", () => {
     expect(STRUCTURE_TYPES.has(UT_RESEARCH_INSTITUTE)).toBe(true);
     expect(STRUCTURE_TYPES.has(UT_ADMIN_OFFICE)).toBe(true);
-    expect(STRUCTURE_ICON_ALIAS[UT_RESEARCH_INSTITUTE]).toBe(UT_CITY);
-    expect(STRUCTURE_ICON_ALIAS[UT_ADMIN_OFFICE]).toBe(UT_DEFENSE_POST);
+    expect(STRUCTURE_ATLAS_ORDER.indexOf(UT_RESEARCH_INSTITUTE)).toBe(6);
+    expect(STRUCTURE_ATLAS_ORDER.indexOf(UT_ADMIN_OFFICE)).toBe(7);
     expect(ALL_UNIT_TYPES).toContain(UT_RESEARCH_INSTITUTE);
     expect(ALL_UNIT_TYPES).toContain(UT_ADMIN_OFFICE);
   });
