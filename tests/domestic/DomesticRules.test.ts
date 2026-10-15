@@ -109,6 +109,13 @@ describe("research helpers", () => {
     expect(shortfallGold(1, 0)).toBe(1000n);
     expect(shortfallGold(2500, -50)).toBe(1500n);
   });
+
+  test("shortfallGold uses integer percent math (no float overcharge)", () => {
+    expect(shortfallGold(1000, -30)).toBe(700n);
+    // 3 points at +10%: 3000 * 1.1 is 3300.0000000000005 in floats.
+    expect(shortfallGold(3000, 10)).toBe(3300n);
+    expect(shortfallGold(100_000, 10)).toBe(110_000n);
+  });
 });
 
 describe("locks", () => {

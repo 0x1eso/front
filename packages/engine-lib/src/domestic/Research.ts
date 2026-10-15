@@ -45,7 +45,8 @@ export function shortfallGold(
 ): bigint {
   if (shortMilli <= 0) return 0n;
   const points = Math.ceil(shortMilli / MILLI);
+  // Integer percent math: (1 + pct / 100) in floats can overcharge by 1.
   return BigInt(
-    Math.ceil(points * GOLD_PER_POINT * (1 + goldPaymentCostPct / 100)),
+    Math.ceil((points * GOLD_PER_POINT * (100 + goldPaymentCostPct)) / 100),
   );
 }
