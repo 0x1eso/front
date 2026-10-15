@@ -71,19 +71,19 @@ describe("start_victory_project", () => {
     );
   });
 
-  test("world government costs 3M gold and 1,000 political power, never cumulative", async () => {
+  test("world government costs 1M gold and 3,000 political power, never cumulative", async () => {
     const { game, a } = await twoPlayers();
     const host = buildLevel(game, a, UnitType.AdminOffice, 5, 50, 3);
-    reachGovernmentTier3(a);
-    a.addGold(3_000_000n);
+    reachGovernmentTier3(a); // 8,000 political power
+    a.addGold(1_000_000n);
 
     start(game, a, "political", host.id());
 
     const d = a.domestic()!;
     expect(d.victoryProject()?.kind).toBe("political");
     expect(a.gold()).toBe(0n);
-    expect(d.politicalMilliAvailable()).toBe(2_500_000);
-    expect(d.cumulativePoliticalMilli()).toBe(3_500_000);
+    expect(d.politicalMilliAvailable()).toBe(5_000_000);
+    expect(d.cumulativePoliticalMilli()).toBe(8_000_000);
   });
 
   test("refuses without the requirement, its own level 3 host or the gold", async () => {

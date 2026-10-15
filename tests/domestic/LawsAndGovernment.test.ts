@@ -4,7 +4,13 @@ import {
   LawOption,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { IntentSchema } from "@openfront/engine-api/Schemas";
-import { LAW_COOLDOWN_TICKS } from "@openfront/engine-lib/domestic/Balance";
+import {
+  GOLD_PER_POINT,
+  GOVERNMENT_TIER_THRESHOLDS,
+  LAW_COOLDOWN_TICKS,
+  MILLI,
+} from "@openfront/engine-lib/domestic/Balance";
+import { lawBaseCost, lawCost } from "@openfront/engine-lib/domestic/Laws";
 import { ChooseGovernmentExecution } from "@openfront/engine/domestic/ChooseGovernmentExecution";
 import { ProclaimLawExecution } from "@openfront/engine/domestic/ProclaimLawExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
@@ -18,6 +24,12 @@ import {
   grantTechs,
   HUMAN,
 } from "./util";
+
+/** The first and second law's cost, in milli-points. */
+const FIRST_LAW = lawBaseCost(0) * MILLI;
+const SECOND_LAW = lawBaseCost(1) * MILLI;
+/** Cumulative political power (milli-points) for government tier `tier`. */
+const TIER = (tier: 1 | 2 | 3) => GOVERNMENT_TIER_THRESHOLDS[tier - 1] * MILLI;
 
 async function readyPlayer(): Promise<{ game: Game; player: Player }> {
   const game = await domesticGame();
@@ -46,20 +58,21 @@ describe("ProclaimLawExecution", () => {
   test("spends political power, keeps the cumulative total, applies the law", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(0, 250_000);
+    d.addYield(0, FIRST_LAW + 100_000);
     const t0 = game.ticks();
     proclaim(game, player, "trade", "A");
     expect(d.proclaimedLaws().get("trade")).toBe("A");
-    expect(d.politicalMilliAvailable()).toBe(150_000);
-    expect(d.cumulativePoliticalMilli()).toBe(250_000);
+    expect(d.politicalMilliAvailable()).toBe(100_000);
+    expect(d.cumulativePoliticalMilli()).toBe(FIRST_LAW + 100_000);
     expect(d.pct("trade")).toBe(40);
     expect(d.lawCooldownUntilTick()).toBe(t0 + LAW_COOLDOWN_TICKS);
   });
 
-  test("each law costs more: the second costs 150", async () => {
+  test("each law costs more: the second costs 473", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(0, 249_000);
+    expect(SECOND_LAW).toBe(473_000);
+    d.addYield(0, FIRST_LAW + SECOND_LAW - 1_000);
     proclaim(game, player, "trade", "A");
     executeTicks(game, LAW_COOLDOWN_TICKS);
     proclaim(game, player, "opinion", "A");
@@ -112,7 +125,9 @@ describe("ProclaimLawExecution", () => {
     d.addYield(0, 40_000);
     proclaim(game, player, "trade", "A");
     expect(d.proclaimedLaws().size).toBe(0);
-    player.addGold(59_999n);
+    // The missing points at GOLD_PER_POINT each.
+    const shortfall = BigInt(((FIRST_LAW - 40_000) / MILLI) * GOLD_PER_POINT);
+    player.addGold(shortfall - 1n);
     proclaim(game, player, "trade", "A", true);
     expect(d.proclaimedLaws().size).toBe(0);
     player.addGold(1n);
@@ -127,7 +142,10 @@ describe("ProclaimLawExecution", () => {
     grantGovernment(player, "democracy");
     const d = player.domestic()!;
     d.addYield(0, 40_000);
-    player.addGold(30_000n);
+    // Half the missing points' price.
+    player.addGold(
+      BigInt(((FIRST_LAW - 40_000) / MILLI) * GOLD_PER_POINT) / 2n,
+    );
     proclaim(game, player, "trade", "A", true);
     expect(d.proclaimedLaws().get("trade")).toBe("A");
     expect(player.gold()).toBe(0n);
@@ -137,7 +155,7 @@ describe("ProclaimLawExecution", () => {
     const { game, player } = await readyPlayer();
     grantTechs(player, "printing_press");
     const d = player.domestic()!;
-    d.addYield(0, 85_000);
+    d.addYield(0, lawCost(0, -15) * MILLI);
     proclaim(game, player, "trade", "A");
     expect(d.proclaimedLaws().get("trade")).toBe("A");
     expect(d.politicalMilliAvailable()).toBe(0);
@@ -151,7 +169,7 @@ describe("ChooseGovernmentExecution", () => {
     choose(game, player, "monarchy");
     expect(d.currentGovernment()).toBe("chiefdom");
 
-    d.addYield(0, 300_000);
+    d.addYield(0, TIER(1));
     d.refreshGovernmentTier();
     choose(game, player, "monarchy");
     expect(d.currentGovernment()).toBe("monarchy");
@@ -159,7 +177,7 @@ describe("ChooseGovernmentExecution", () => {
     choose(game, player, "republic");
     expect(d.currentGovernment()).toBe("monarchy");
 
-    d.addYield(0, 1_200_000);
+    d.addYield(0, TIER(2) - TIER(1));
     d.refreshGovernmentTier();
     choose(game, player, "democracy");
     expect(d.currentGovernment()).toBe("democracy");
@@ -170,7 +188,7 @@ describe("ChooseGovernmentExecution", () => {
   test("theocracy needs state religion", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(0, 300_000);
+    d.addYield(0, TIER(1));
     d.refreshGovernmentTier();
     choose(game, player, "theocracy");
     expect(d.currentGovernment()).toBe("chiefdom");
@@ -183,7 +201,7 @@ describe("ChooseGovernmentExecution", () => {
   test("choosing a government ignores the law cooldown but restarts it", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(0, 400_000);
+    d.addYield(0, TIER(1));
     d.refreshGovernmentTier();
     proclaim(game, player, "trade", "A");
     const t1 = game.ticks();
@@ -195,7 +213,7 @@ describe("ChooseGovernmentExecution", () => {
   test("tier 3 still lets a player adopt a tier-2 government", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(0, 3_500_000);
+    d.addYield(0, TIER(3));
     d.refreshGovernmentTier();
     choose(game, player, "republic");
     expect(d.currentGovernment()).toBe("chiefdom");
@@ -208,7 +226,7 @@ describe("laws and governments across snapshots and the wire", () => {
   test("laws, government and pending orders survive a snapshot", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(0, 600_000);
+    d.addYield(0, TIER(1));
     d.refreshGovernmentTier();
     proclaim(game, player, "religion", "A");
     // Still pending when the snapshot is taken.

@@ -60,13 +60,13 @@ describe("domestic-panel research time", () => {
 
   it("shows the base research time without modifiers", async () => {
     const panel = await openPanel(data([]));
-    expect(panel.textContent).toContain("[domestic.cost] cost=250,seconds=30");
+    expect(panel.textContent).toContain("[domestic.cost] cost=300,seconds=30");
   });
 
   it("shows the time after researchTime modifiers", async () => {
     // Scientific method: research time -30%, so 30 s becomes 21 s.
     const panel = await openPanel(data(["scientific_method"]));
-    expect(panel.textContent).toContain("[domestic.cost] cost=250,seconds=21");
+    expect(panel.textContent).toContain("[domestic.cost] cost=300,seconds=21");
     expect(panel.textContent).not.toContain("seconds=30");
   });
 });

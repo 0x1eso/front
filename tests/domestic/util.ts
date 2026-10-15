@@ -12,7 +12,9 @@ import {
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import {
   DOMESTIC_INTERVAL_TICKS,
+  GOVERNMENT_TIER_THRESHOLDS,
   LAW_COOLDOWN_TICKS,
+  MILLI,
 } from "@openfront/engine-lib/domestic/Balance";
 import { Game, Player, Unit } from "@openfront/engine/game/Game";
 import { setup } from "../util/Setup";
@@ -109,7 +111,7 @@ export function buildLevel(
 }
 
 /**
- * Government tier 3 (spec §6.1): 3,500 cumulative political power. Phase 2
+ * Government tier 3 (spec §6.1): 8,000 cumulative political power. Phase 2
  * raises the stored tier in the per-second processing (refreshGovernmentTier
  * after addYield), so the helper takes that step itself instead of waiting
  * for a domestic second.
@@ -117,6 +119,6 @@ export function buildLevel(
 export function reachGovernmentTier3(player: Player): void {
   const d = player.domestic();
   if (d === null) throw new Error("player has no domestic state");
-  d.addYield(0, 3_500_000);
+  d.addYield(0, GOVERNMENT_TIER_THRESHOLDS[2] * MILLI);
   d.refreshGovernmentTier();
 }

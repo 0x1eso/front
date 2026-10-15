@@ -3,8 +3,10 @@
  *
  * Runs nations-only games with domestic mode on, one per seed, and prints
  * when each nation reached the spec §11.2 milestones, then compares the
- * averages with the targets (times may miss by up to 3 minutes). Not part
- * of the test suite: run it by hand after changing Balance.ts.
+ * averages with the targets (times may miss by up to 3 minutes; "strict"
+ * allows no slack). Each milestone counts the nations alive when it is due
+ * (see MilestoneTarget.aliveAt). Not part of the test suite: run it by hand
+ * after changing Balance.ts.
  *
  *   npx tsx scripts/domestic-sim.ts [--map world] [--seeds 3] [--minutes 30]
  *                                   [--difficulty Hard]
@@ -110,13 +112,14 @@ function newRecord(personality: string): NationRecord {
     projectDone: null,
     techs: 0,
     laws: 0,
+    death: null,
   };
 }
 
 /** Records each nation's milestones as of now (called once per second). */
 function sample(game: Game, records: Map<number, NationRecord>): void {
   const minute = game.elapsedGameSeconds() / 60;
-  for (const p of game.players()) {
+  for (const p of game.allPlayers()) {
     if (p.type() !== PlayerType.Nation) continue;
     const d = p.domestic();
     if (d === null) continue;
@@ -124,6 +127,10 @@ function sample(game: Game, records: Map<number, NationRecord>): void {
     if (r === undefined) {
       r = newRecord(nationDomesticPlan(p.id()).personality);
       records.set(p.smallID(), r);
+    }
+    if (!p.isAlive()) {
+      r.death ??= minute;
+      continue;
     }
     const nukes =
       p.unitsConstructed(UnitType.AtomBomb) +
@@ -260,6 +267,7 @@ async function main(): Promise<void> {
           "done",
           "techs",
           "laws",
+          "died",
         ],
         records.map((r) => [
           r.personality,
@@ -270,6 +278,7 @@ async function main(): Promise<void> {
           fmt(r.projectDone),
           String(r.techs),
           String(r.laws),
+          fmt(r.death),
         ]),
       ),
     );
@@ -278,13 +287,14 @@ async function main(): Promise<void> {
   console.log(`\n=== targets (spec §11.2), ${all.length} nations ===`);
   console.log(
     formatTable(
-      ["milestone", "measured", "reached", "target", "verdict"],
+      ["milestone", "measured", "reached", "target", "verdict", "strict"],
       summarize(all).map((row) => [
         row.label,
         fmt(row.measured),
         `${row.reached}/${row.total}`,
         `${row.target[0]}-${row.target[1]}`,
         row.verdict,
+        row.strict,
       ]),
     ),
   );

@@ -9,6 +9,7 @@ function record(
   personality: string,
   firstNuke: number | null,
   projectStart: number | null,
+  death: number | null = null,
 ): NationRecord {
   return {
     personality,
@@ -19,6 +20,7 @@ function record(
     projectDone: null,
     techs: 9,
     laws: 7,
+    death,
   };
 }
 
@@ -63,6 +65,36 @@ describe("domestic sim report", () => {
       measured: 9,
       total: 3,
       verdict: "ok",
+      strict: "ok",
     });
+  });
+
+  test("only nations alive when a milestone is due count", () => {
+    const early = { ...record("merchant", null, null, 3), techs: 2, tier1: 2 };
+    const late = { ...record("merchant", null, null, 25), techs: 12 };
+    const rows = summarize([
+      early,
+      record("merchant", null, null, 10),
+      late,
+      record("merchant", null, null),
+    ]);
+    const byLabel = new Map(rows.map((r) => [r.label, r]));
+    // Tier 1 is due by minute 6: the nation that died at 3 doesn't count.
+    expect(byLabel.get("government tier 1")).toMatchObject({
+      measured: 5,
+      reached: 3,
+      total: 3,
+    });
+    // Techs per game: the nations alive at minute 20, (12 + 9) / 2.
+    expect(byLabel.get("techs per game")).toMatchObject({
+      measured: 10.5,
+      total: 2,
+    });
+  });
+
+  test("strict verdicts allow no slack", () => {
+    const rows = summarize([{ ...record("merchant", null, null), tier1: 3 }]);
+    const tier1 = rows.find((r) => r.label === "government tier 1");
+    expect(tier1).toMatchObject({ verdict: "ok", strict: "below" });
   });
 });

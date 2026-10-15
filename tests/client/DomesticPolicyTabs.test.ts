@@ -60,7 +60,8 @@ describe("laws tab", () => {
     const root = mount(
       renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim: vi.fn() }),
     );
-    expect(root.textContent).toContain('domestic.law_next_cost:{"cost":150}');
+    // The second law: round(350 × 1.35) = 473.
+    expect(root.textContent).toContain('domestic.law_next_cost:{"cost":473}');
     expect(optionCard(root, "trade", "A").textContent).toContain(
       "domestic.proclaimed",
     );
@@ -72,7 +73,7 @@ describe("laws tab", () => {
 
   test("clicking an open option proclaims it", () => {
     const proclaim = vi.fn();
-    const view = new DomesticClientView({ ...BASE, political: 200 });
+    const view = new DomesticClientView({ ...BASE, political: 400 });
     const root = mount(renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim }));
     optionButton(root, "taxation", "B").click();
     expect(proclaim).toHaveBeenCalledWith("taxation", "B", false);
@@ -89,8 +90,9 @@ describe("laws tab", () => {
     expect(optionButton(poor, "trade", "A").disabled).toBe(true);
 
     const proclaim = vi.fn();
+    // The first law costs 350: 310 missing points at 1,000 gold each.
     const rich = mount(
-      renderLawsTab({ view, gold: 60_000n, nowTick: 0, proclaim }),
+      renderLawsTab({ view, gold: 310_000n, nowTick: 0, proclaim }),
     );
     expect(optionButton(rich, "trade", "A").disabled).toBe(false);
     optionButton(rich, "trade", "A").click();
@@ -137,11 +139,11 @@ describe("government tab", () => {
     const view = new DomesticClientView({
       ...BASE,
       governmentTier: 1,
-      cumulativePolitical: 400,
+      cumulativePolitical: 1000,
     });
     const root = mount(renderGovernmentTab({ view, choose }));
     expect(root.textContent).toContain(
-      'domestic.gov_progress:{"value":400,"next":1500,"tier":2}',
+      'domestic.gov_progress:{"value":1000,"next":2800,"tier":2}',
     );
     expect(govCard(root, "monarchy").querySelector("button")).not.toBeNull();
     (govCard(root, "republic").querySelector("button") as HTMLElement).click();

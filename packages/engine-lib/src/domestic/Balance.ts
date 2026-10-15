@@ -16,7 +16,11 @@ export const BUILDING_YIELD_PER_LEVEL = 1;
 /** Research institute / admin office gold upkeep per level. */
 export const BUILDING_UPKEEP_PER_LEVEL = 50n;
 export const BUILDING_BASE_COST = 100_000;
-export const BUILDING_MAX_COST = 1_000_000;
+/**
+ * Cost cap. At 1,000,000 every level past the fourth cost the same, and a
+ * rich trading nation bought one institute up to level 37 (balance sim).
+ */
+export const BUILDING_MAX_COST = 25_000_000;
 export const BUILDING_CONSTRUCTION_TICKS = 5 * 10;
 
 /** Extra base gold per tick per city level (150 gold/s). */
@@ -36,18 +40,23 @@ export const RECRUIT_TARGET_DEFAULT_PCT = 100;
 /** Gold per missing point when paying a research shortfall. */
 export const GOLD_PER_POINT = 1000;
 
-export const TECH_COST_BY_ERA = [100, 250, 500, 1000] as const;
+/** Era 4 is dear: late science outgrows the early game several times over. */
+export const TECH_COST_BY_ERA = [150, 300, 600, 2500] as const;
 export const TECH_SECONDS_BY_ERA = [20, 30, 45, 60] as const;
 export const SPACE_PROGRAM_COST = 4000;
 export const TECHS_REQUIRED_FROM_PREVIOUS_ERA = 2;
 
-/** Book of Laws (spec §5): law k costs round(LAW_BASE_COST × LAW_COST_GROWTH^k). */
-export const LAW_BASE_COST = 100;
-export const LAW_COST_GROWTH = 1.5;
+/**
+ * Book of Laws (spec §5): law k costs round(LAW_BASE_COST × LAW_COST_GROWTH^k)
+ * (350, 473, 638, 861, 1,163 …). A dear first law spreads them out: cheap
+ * ones gave nations three military laws in their first three minutes.
+ */
+export const LAW_BASE_COST = 350;
+export const LAW_COST_GROWTH = 1.35;
 /** After a law or a government choice, no law for 45 s. */
 export const LAW_COOLDOWN_TICKS = 45 * 10;
 /** Cumulative political power (whole points) for government tiers 1, 2, 3. */
-export const GOVERNMENT_TIER_THRESHOLDS = [300, 1500, 3500] as const;
+export const GOVERNMENT_TIER_THRESHOLDS = [800, 2800, 8000] as const;
 
 /** Research subsidies: this much gold a second becomes this much science. */
 export const RESEARCH_SUBSIDY_GOLD_PER_SEC = 300n;
@@ -84,9 +93,13 @@ export const CONQUEST_PERCENT_MAX = 100;
 /** Game length when the lobby leaves maxTimerValue unset. */
 export const DOMESTIC_TIMER_MINUTES = 30;
 export const SCIENCE_PROJECT_GOLD = 5_000_000n;
-export const POLITICAL_PROJECT_GOLD = 3_000_000n;
+/**
+ * World government is paid mostly in political power: an isolationist
+ * zealot earns about 110,000 gold a minute, so 3,000,000 was out of reach.
+ */
+export const POLITICAL_PROJECT_GOLD = 1_000_000n;
 /** Whole points. */
-export const POLITICAL_PROJECT_POLITICAL = 1000;
+export const POLITICAL_PROJECT_POLITICAL = 3000;
 export const VICTORY_PROJECT_SECONDS = 4 * 60;
 export const PROJECT_HOST_MIN_LEVEL = 3;
 export const PROJECT_GOVERNMENT_TIER = 3;

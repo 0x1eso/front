@@ -1,4 +1,6 @@
 import { IntentSchema } from "@openfront/engine-api/Schemas";
+import { GOLD_PER_POINT, MILLI } from "@openfront/engine-lib/domestic/Balance";
+import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { ResearchExecution } from "@openfront/engine/domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "@openfront/engine/domestic/SetRecruitTargetExecution";
@@ -6,6 +8,9 @@ import { Game, Player } from "@openfront/engine/game/Game";
 import { expectSnapshotRoundTrip } from "../util/Snapshot";
 import { executeTicks } from "../util/utils";
 import { conquerSquare, domesticGame, grantTechs, HUMAN } from "./util";
+
+/** An era 1 tech's cost (currency, academia), in milli-points. */
+const ERA1 = TECHS.currency.cost * MILLI;
 
 async function readyPlayer(): Promise<{ game: Game; player: Player }> {
   const game = await domesticGame();
@@ -18,7 +23,7 @@ describe("ResearchExecution", () => {
   test("spends science and starts research", async () => {
     const { game, player } = await readyPlayer();
     const d = player.domestic()!;
-    d.addYield(150_000, 0);
+    d.addYield(ERA1 + 50_000, 0);
     game.addExecution(new ResearchExecution(player, "currency", false));
     executeTicks(game, 1);
     expect(d.currentResearch()).toEqual({
@@ -37,7 +42,9 @@ describe("ResearchExecution", () => {
     executeTicks(game, 1);
     expect(d.currentResearch()).toBeNull();
 
-    player.addGold(59_999n);
+    // The missing points at GOLD_PER_POINT each.
+    const shortfall = BigInt(((ERA1 - 40_000) / MILLI) * GOLD_PER_POINT);
+    player.addGold(shortfall - 1n);
     game.addExecution(new ResearchExecution(player, "currency", true));
     executeTicks(game, 1);
     expect(d.currentResearch()).toBeNull();
@@ -62,13 +69,13 @@ describe("ResearchExecution", () => {
     game.addExecution(new ResearchExecution(player, "academia", false));
     executeTicks(game, 1);
     expect(d.currentResearch()?.tech).toBe("currency");
-    expect(d.scienceMilliAvailable()).toBe(900_000);
+    expect(d.scienceMilliAvailable()).toBe(1_000_000 - ERA1);
   });
 
   test("scientific method shortens research by 30%", async () => {
     const { game, player } = await readyPlayer();
     grantTechs(player, "scientific_method");
-    player.domestic()!.addYield(100_000, 0);
+    player.domestic()!.addYield(ERA1, 0);
     game.addExecution(new ResearchExecution(player, "currency", false));
     executeTicks(game, 1);
     expect(player.domestic()!.currentResearch()?.totalTicks).toBe(140);
@@ -84,7 +91,7 @@ describe("ResearchExecution", () => {
   test("research survives a snapshot and continues identically", async () => {
     const { game, player } = await readyPlayer();
     game.addExecution(new DomesticExecution());
-    player.domestic()!.addYield(100_000, 0);
+    player.domestic()!.addYield(ERA1, 0);
     game.addExecution(new ResearchExecution(player, "currency", false));
     executeTicks(game, 1);
     const restored = await expectSnapshotRoundTrip(game, "plains", 30);

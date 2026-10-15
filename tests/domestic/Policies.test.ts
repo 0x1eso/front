@@ -53,17 +53,18 @@ describe("law data", () => {
     expect(LAWS.nuclear.requires).toBe("manhattan_project");
   });
 
-  test("cost is round(100 × 1.5^k)", () => {
+  test("cost is round(350 × 1.35^k)", () => {
     expect([0, 1, 2, 3, 4, 5, 6].map(lawBaseCost)).toEqual([
-      100, 150, 225, 338, 506, 759, 1139,
+      350, 473, 638, 861, 1163, 1569, 2119,
     ]);
   });
 
   test("lawCost applies the lawCost percent and rounds half up", () => {
-    expect(lawCost(0, 0)).toBe(100);
-    expect(lawCost(0, -15)).toBe(85);
-    expect(lawCost(1, -15)).toBe(128);
-    expect(lawCost(2, -15)).toBe(191);
+    expect(lawCost(0, 0)).toBe(350);
+    // 350 × 0.85 = 297.5, 473 × 0.85 = 402.05, 638 × 0.85 = 542.3
+    expect(lawCost(0, -15)).toBe(298);
+    expect(lawCost(1, -15)).toBe(402);
+    expect(lawCost(2, -15)).toBe(542);
   });
 
   test("lawBlock: proclaimed, then a missing tech, then the cooldown", () => {
@@ -105,13 +106,13 @@ describe("government data", () => {
     });
   });
 
-  test("tiers start at 300 / 1,500 / 3,500 cumulative political power", () => {
-    expect(governmentTier(299_999)).toBe(0);
-    expect(governmentTier(300_000)).toBe(1);
-    expect(governmentTier(1_499_999)).toBe(1);
-    expect(governmentTier(1_500_000)).toBe(2);
-    expect(governmentTier(3_499_999)).toBe(2);
-    expect(governmentTier(3_500_000)).toBe(3);
+  test("tiers start at 800 / 2,800 / 8,000 cumulative political power", () => {
+    expect(governmentTier(799_999)).toBe(0);
+    expect(governmentTier(800_000)).toBe(1);
+    expect(governmentTier(2_799_999)).toBe(1);
+    expect(governmentTier(2_800_000)).toBe(2);
+    expect(governmentTier(7_999_999)).toBe(2);
+    expect(governmentTier(8_000_000)).toBe(3);
   });
 
   test("a tier's governments open once it is reached", () => {

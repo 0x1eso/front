@@ -26,11 +26,11 @@ describe("tech tree data", () => {
   });
 
   test("costs and times follow the era table; space program costs 4000", () => {
-    expect(TECHS.currency.cost).toBe(100);
+    expect(TECHS.currency.cost).toBe(150);
     expect(TECHS.currency.seconds).toBe(20);
-    expect(TECHS.railroad.cost).toBe(250);
-    expect(TECHS.radar.cost).toBe(500);
-    expect(TECHS.mirv.cost).toBe(1000);
+    expect(TECHS.railroad.cost).toBe(300);
+    expect(TECHS.radar.cost).toBe(600);
+    expect(TECHS.mirv.cost).toBe(2500);
     expect(TECHS.mirv.seconds).toBe(60);
     expect(TECHS.space_program.cost).toBe(4000);
   });

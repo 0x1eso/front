@@ -189,8 +189,8 @@ describe("government tiers", () => {
     const { game, player } = await readyPlayer();
     const spy = vi.spyOn(game, "displayMessage");
     const d = player.domestic()!;
-    // One second adds 2,500 milli-points: exactly the 300-point threshold.
-    d.addYield(0, 297_500);
+    // One second adds 2,500 milli-points: exactly the 800-point threshold.
+    d.addYield(0, 797_500);
     second(game, player);
     expect(d.governmentTier()).toBe(1);
     expect(spy).toHaveBeenCalledWith(
