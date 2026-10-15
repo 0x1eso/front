@@ -22,18 +22,18 @@ export interface LawChoice {
   option: LawOption;
 }
 
-/** What one nation researches, proclaims, adopts and builds. */
+/** What one nation researches, proclaims, adopts and builds (shared: read-only). */
 export interface NationDomesticPlan {
-  personality: Personality;
+  readonly personality: Personality;
   /** Priority techs (lightly shuffled), then the rest in balanced order. */
-  techOrder: readonly TechId[];
+  readonly techOrder: readonly TechId[];
   /** Priority laws (lightly shuffled), then FALLBACK_LAW_ORDER's others. */
-  lawOrder: readonly LawChoice[];
+  readonly lawOrder: readonly LawChoice[];
   /** The government to adopt at tier 1 and at tier 2. */
-  governments: readonly [GovernmentId, GovernmentId];
+  readonly governments: readonly [GovernmentId, GovernmentId];
   /** Research institutes / admin offices wanted per city. */
-  instituteRatio: number;
-  officeRatio: number;
+  readonly instituteRatio: number;
+  readonly officeRatio: number;
 }
 
 /** Every tech in a sensible order: what a nation researches after its priorities. */
@@ -187,12 +187,24 @@ export function buildDomesticPlan(
   };
 }
 
+/** Plans by player id; a plan depends on nothing else, so games can share them. */
+const PLAN_CACHE = new Map<PlayerID, NationDomesticPlan>();
+/** Far more nations than any game has; the cache starts over beyond it. */
+const PLAN_CACHE_LIMIT = 4096;
+
 /**
  * The plan for one nation. Seeded from its id with a PRNG of its own, so
  * the nation's shared PRNG stream is untouched and the plan needs no
- * snapshot: it is the same every time it is computed.
+ * snapshot: it is the same every time it is computed. Built once per id,
+ * as nations ask for it many times per structure pass.
  */
 export function nationDomesticPlan(playerId: PlayerID): NationDomesticPlan {
-  const random = new PseudoRandom(simpleHash(`domestic-plan:${playerId}`));
-  return buildDomesticPlan(random.randElement([...PERSONALITIES]), random);
+  let plan = PLAN_CACHE.get(playerId);
+  if (plan === undefined) {
+    const random = new PseudoRandom(simpleHash(`domestic-plan:${playerId}`));
+    plan = buildDomesticPlan(random.randElement([...PERSONALITIES]), random);
+    if (PLAN_CACHE.size >= PLAN_CACHE_LIMIT) PLAN_CACHE.clear();
+    PLAN_CACHE.set(playerId, plan);
+  }
+  return plan;
 }

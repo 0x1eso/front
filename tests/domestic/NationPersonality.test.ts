@@ -67,6 +67,12 @@ describe("personality plans", () => {
     expect([...seen].sort()).toEqual([...PERSONALITIES].sort());
   });
 
+  test("a plan is built once per player id", () => {
+    // Asked for many times per nation each structure pass.
+    expect(nationDomesticPlan("memo")).toBe(nationDomesticPlan("memo"));
+    expect(nationDomesticPlan("memo")).not.toBe(nationDomesticPlan("other"));
+  });
+
   test.each(PERSONALITIES)(
     "%s: every tech once and every law category once",
     (personality) => {
