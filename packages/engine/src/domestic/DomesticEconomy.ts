@@ -1,6 +1,7 @@
 import {
   CONDITIONS,
   type Condition,
+  type StatKey,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Gold,
@@ -337,4 +338,50 @@ export function payPoints(
   player.removeGold(gold);
   spend(available);
   return true;
+}
+
+/** Combat scales from domestic modifiers (spec §7.2); 1 = vanilla. */
+export interface DomesticCombat {
+  /** Multiplies the attacker's troop loss per tile. */
+  attackerLoss: number;
+  /** Divides the tick share each tile costs (1.3 = 30% faster). */
+  attackerSpeed: number;
+  /** Multiplies the defender's troop loss per tile. */
+  defenderLoss: number;
+}
+
+const NO_COMBAT_MODIFIERS: Readonly<DomesticCombat> = {
+  attackerLoss: 1,
+  attackerSpeed: 1,
+  defenderLoss: 1,
+};
+
+function statScale(d: PlayerDomestic | null, stat: StatKey): number {
+  return d === null ? 1 : 1 + d.pct(stat) / 100;
+}
+
+/**
+ * attackLoss and attackSpeed come from the attacker, defenseLoss from the
+ * defender. Expanding into unclaimed land (no defender) only uses
+ * expansionSpeed.
+ */
+export function domesticCombat(
+  attacker: Player,
+  defender: Player | null,
+): Readonly<DomesticCombat> {
+  const a = attacker.domestic();
+  const d = defender === null ? null : defender.domestic();
+  if (a === null && d === null) return NO_COMBAT_MODIFIERS;
+  if (defender === null) {
+    return {
+      attackerLoss: 1,
+      attackerSpeed: statScale(a, "expansionSpeed"),
+      defenderLoss: 1,
+    };
+  }
+  return {
+    attackerLoss: statScale(a, "attackLoss"),
+    attackerSpeed: statScale(a, "attackSpeed"),
+    defenderLoss: statScale(d, "defenseLoss"),
+  };
 }
