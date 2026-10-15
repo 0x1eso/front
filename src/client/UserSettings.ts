@@ -1068,6 +1068,15 @@ export class UserSettings {
     this.setFloat("settings.attackRatio", value);
   }
 
+  /** Whether the touch long-press (warship box-select) hint was shown. */
+  touchLongPressHintShown(): boolean {
+    return this.getBool("settings.touchLongPressHintShown", false);
+  }
+
+  setTouchLongPressHintShown(): void {
+    this.setBool("settings.touchLongPressHintShown", true);
+  }
+
   // Returns {} if missing, unparseable, or fails schema validation.
   graphicsOverrides(): GraphicsOverrides {
     const raw = this.getString(GRAPHICS_KEY, "");
