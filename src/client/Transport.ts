@@ -1,4 +1,9 @@
-import { TechId } from "@openfront/engine-api/domestic/DomesticTypes";
+import {
+  GovernmentId,
+  LawId,
+  LawOption,
+  TechId,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   AllPlayers,
@@ -146,6 +151,18 @@ export class ResearchTechIntentEvent implements GameEvent {
 
 export class SetRecruitTargetIntentEvent implements GameEvent {
   constructor(public readonly percent: number) {}
+}
+
+export class ProclaimLawIntentEvent implements GameEvent {
+  constructor(
+    public readonly law: LawId,
+    public readonly option: LawOption,
+    public readonly payWithGold: boolean,
+  ) {}
+}
+
+export class ChooseGovernmentIntentEvent implements GameEvent {
+  constructor(public readonly government: GovernmentId) {}
 }
 
 export class SendTargetPlayerIntentEvent implements GameEvent {
@@ -329,6 +346,10 @@ export class Transport {
     );
     this.subscribe(SetRecruitTargetIntentEvent, (e) =>
       this.onSetRecruitTargetIntent(e),
+    );
+    this.subscribe(ProclaimLawIntentEvent, (e) => this.onProclaimLawIntent(e));
+    this.subscribe(ChooseGovernmentIntentEvent, (e) =>
+      this.onChooseGovernmentIntent(e),
     );
     this.subscribe(SendBoatAttackIntentEvent, (e) =>
       this.onSendBoatAttackIntent(e),
@@ -859,6 +880,22 @@ export class Transport {
     this.sendIntent({
       type: "set_recruit_target",
       percent: event.percent,
+    });
+  }
+
+  private onProclaimLawIntent(event: ProclaimLawIntentEvent) {
+    this.sendIntent({
+      type: "proclaim_law",
+      law: event.law,
+      option: event.option,
+      payWithGold: event.payWithGold,
+    });
+  }
+
+  private onChooseGovernmentIntent(event: ChooseGovernmentIntentEvent) {
+    this.sendIntent({
+      type: "choose_government",
+      government: event.government,
     });
   }
 
