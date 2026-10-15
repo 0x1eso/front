@@ -8,6 +8,8 @@ export interface NationRecord {
   projectDone: number | null;
   techs: number;
   laws: number;
+  /** When the nation was eliminated; null when it lived to the end. */
+  death: number | null;
 }
 
 export type Verdict = "ok" | "below" | "above" | "never";
@@ -20,6 +22,16 @@ export interface MilestoneTarget {
   target: readonly [number, number];
   /** How far outside the target range still passes (spec §1: ±3 minutes). */
   slack: number;
+  /**
+   * Only nations still alive at this minute count (null: alive at the end
+   * of the run). Most nations of an AI-only world are conquered within ten
+   * minutes; a nation that died early never had the chance to reach a late
+   * milestone, and its frozen tech and law counts aren't a game's worth.
+   * Techs and laws per game look at the nations alive at minute 20, counted
+   * when they died or the run ended: the few nations alive at the end are
+   * often just the conquest winner and its last victims.
+   */
+  aliveAt: number | null;
 }
 
 // Spec §11.2.
@@ -30,6 +42,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.firstNuke,
     target: [10, 12],
     slack: 3,
+    aliveAt: 12,
   },
   {
     label: "government tier 1",
@@ -37,6 +50,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.tier1,
     target: [4, 6],
     slack: 3,
+    aliveAt: 6,
   },
   {
     label: "government tier 2",
@@ -44,6 +58,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.tier2,
     target: [12, 15],
     slack: 3,
+    aliveAt: 15,
   },
   {
     label: "project start (scholar, zealot)",
@@ -51,6 +66,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.projectStart,
     target: [18, 20],
     slack: 3,
+    aliveAt: 20,
   },
   {
     label: "project done (scholar, zealot)",
@@ -58,6 +74,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.projectDone,
     target: [22, 24],
     slack: 3,
+    aliveAt: 24,
   },
   {
     label: "techs per game",
@@ -65,6 +82,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.techs,
     target: [8, 10],
     slack: 0,
+    aliveAt: 20,
   },
   {
     label: "laws per game",
@@ -72,6 +90,7 @@ export const MILESTONE_TARGETS: readonly MilestoneTarget[] = [
     pick: (r) => r.laws,
     target: [6, 8],
     slack: 0,
+    aliveAt: 20,
   },
 ];
 
@@ -102,14 +121,22 @@ export interface MilestoneRow {
   total: number;
   target: readonly [number, number];
   verdict: Verdict;
+  /** The verdict without slack. */
+  strict: Verdict;
+}
+
+function aliveAt(r: NationRecord, minute: number | null): boolean {
+  return r.death === null || (minute !== null && r.death > minute);
 }
 
 export function summarize(records: readonly NationRecord[]): MilestoneRow[] {
   return MILESTONE_TARGETS.map((m) => {
-    const pool =
-      m.personalities.length === 0
-        ? records
-        : records.filter((r) => m.personalities.includes(r.personality));
+    const pool = records.filter(
+      (r) =>
+        aliveAt(r, m.aliveAt) &&
+        (m.personalities.length === 0 ||
+          m.personalities.includes(r.personality)),
+    );
     const values = pool.map(m.pick);
     const measured = mean(values);
     return {
@@ -119,6 +146,7 @@ export function summarize(records: readonly NationRecord[]): MilestoneRow[] {
       total: pool.length,
       target: m.target,
       verdict: milestoneVerdict(measured, m.target, m.slack),
+      strict: milestoneVerdict(measured, m.target, 0),
     };
   });
 }
