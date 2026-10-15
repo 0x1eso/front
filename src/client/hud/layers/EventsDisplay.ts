@@ -267,6 +267,16 @@ export class EventsDisplay extends LitElement implements Controller {
       params = { ...params, unit: translateText(params.unit) };
     }
 
+    if (
+      event.message === "events_display.research_complete" &&
+      typeof params.tech === "string"
+    ) {
+      params = {
+        ...params,
+        tech: translateText(`domestic.tech.${params.tech}.name`),
+      };
+    }
+
     if (params.name === undefined || event.focusPlayerID === undefined) {
       return params;
     }

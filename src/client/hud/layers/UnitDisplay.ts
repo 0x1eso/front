@@ -92,6 +92,9 @@ export class UnitDisplay extends LitElement implements Controller {
 
   private canBuild(item: UnitType): boolean {
     if (this.game?.config().isUnitDisabled(item)) return false;
+    if (this.playerBuildables?.find((bu) => bu.type === item)?.locked) {
+      return false;
+    }
     const player = this.game?.myPlayer();
     switch (item) {
       case UnitType.AtomBomb:

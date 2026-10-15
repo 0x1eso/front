@@ -1,3 +1,4 @@
+import { TechId } from "@openfront/engine-api/domestic/DomesticTypes";
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   AllPlayers,
@@ -134,6 +135,17 @@ export class BuildUnitIntentEvent implements GameEvent {
     public readonly rocketDirectionUp?: boolean,
     public readonly amount?: number,
   ) {}
+}
+
+export class ResearchTechIntentEvent implements GameEvent {
+  constructor(
+    public readonly tech: TechId,
+    public readonly payWithGold: boolean,
+  ) {}
+}
+
+export class SetRecruitTargetIntentEvent implements GameEvent {
+  constructor(public readonly percent: number) {}
 }
 
 export class SendTargetPlayerIntentEvent implements GameEvent {
@@ -311,6 +323,12 @@ export class Transport {
     this.subscribe(SendAttackIntentEvent, (e) => this.onSendAttackIntent(e));
     this.subscribe(SendUpgradeStructureIntentEvent, (e) =>
       this.onSendUpgradeStructureIntent(e),
+    );
+    this.subscribe(ResearchTechIntentEvent, (e) =>
+      this.onResearchTechIntent(e),
+    );
+    this.subscribe(SetRecruitTargetIntentEvent, (e) =>
+      this.onSetRecruitTargetIntent(e),
     );
     this.subscribe(SendBoatAttackIntentEvent, (e) =>
       this.onSendBoatAttackIntent(e),
@@ -826,6 +844,21 @@ export class Transport {
       unit: event.unitType,
       unitId: event.unitId,
       amount: event.amount,
+    });
+  }
+
+  private onResearchTechIntent(event: ResearchTechIntentEvent) {
+    this.sendIntent({
+      type: "research_tech",
+      tech: event.tech,
+      payWithGold: event.payWithGold,
+    });
+  }
+
+  private onSetRecruitTargetIntent(event: SetRecruitTargetIntentEvent) {
+    this.sendIntent({
+      type: "set_recruit_target",
+      percent: event.percent,
     });
   }
 

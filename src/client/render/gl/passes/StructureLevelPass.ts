@@ -14,6 +14,7 @@
 
 import type { RendererConfig, UnitState } from "../../types";
 import {
+  STRUCTURE_ICON_ALIAS,
   STRUCTURE_TYPES,
   UT_CITY,
   UT_DEFENSE_POST,
@@ -164,10 +165,12 @@ export class StructureLevelPass {
 
     // Build unitType string → atlas column mapping
     for (let i = 0; i < header.unitTypes.length; i++) {
+      const type = header.unitTypes[i];
       const col = STRUCTURE_ORDER.indexOf(
-        header.unitTypes[i] as (typeof STRUCTURE_ORDER)[number],
+        (STRUCTURE_ICON_ALIAS[type] ??
+          type) as (typeof STRUCTURE_ORDER)[number],
       );
-      if (col >= 0) this.typeToAtlasCol.set(header.unitTypes[i], col);
+      if (col >= 0) this.typeToAtlasCol.set(type, col);
     }
 
     this.kernTable = new Int8Array(CHAR_RANGE * CHAR_RANGE); // digits don't kern

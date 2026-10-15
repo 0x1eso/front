@@ -30,6 +30,10 @@ export const UT_DEFENSE_POST = "Defense Post" as const;
 export const UT_SAM_LAUNCHER = "SAM Launcher" as const;
 export const UT_MISSILE_SILO = "Missile Silo" as const;
 
+// Domestic mode structures
+export const UT_RESEARCH_INSTITUTE = "Research Institute" as const;
+export const UT_ADMIN_OFFICE = "Admin Office" as const;
+
 // ---------------------------------------------------------------------------
 // Derived sets
 // ---------------------------------------------------------------------------
@@ -41,6 +45,8 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
   UT_DEFENSE_POST,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
+  UT_RESEARCH_INSTITUTE,
+  UT_ADMIN_OFFICE,
 ]);
 
 export const NUKE_TYPES: ReadonlySet<string> = new Set([
@@ -99,4 +105,15 @@ export const ALL_UNIT_TYPES = [
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
   UT_TRAIN,
+  UT_RESEARCH_INSTITUTE,
+  UT_ADMIN_OFFICE,
 ] as const;
+
+/**
+ * Domestic-mode structures have no atlas column of their own yet; they are
+ * drawn with an existing structure's icon until the atlas gains real ones.
+ */
+export const STRUCTURE_ICON_ALIAS: Readonly<Record<string, string>> = {
+  [UT_RESEARCH_INSTITUTE]: UT_CITY,
+  [UT_ADMIN_OFFICE]: UT_DEFENSE_POST,
+};

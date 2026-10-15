@@ -6,6 +6,7 @@ import {
   PlayerBuildableUnitType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { requiredTech } from "@openfront/engine-lib/domestic/Locks";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -37,6 +38,8 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
+const researchInstituteIcon = assetUrl("images/ResearchInstituteIconWhite.svg");
+const adminOfficeIcon = assetUrl("images/AdminOfficeIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -116,6 +119,20 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: factoryIcon,
       description: "build_menu.desc.factory",
       key: "unit_type.factory",
+      countable: true,
+    },
+    {
+      unitType: UnitType.ResearchInstitute,
+      icon: researchInstituteIcon,
+      description: "build_menu.desc.research_institute",
+      key: "unit_type.research_institute",
+      countable: true,
+    },
+    {
+      unitType: UnitType.AdminOffice,
+      icon: adminOfficeIcon,
+      description: "build_menu.desc.admin_office",
+      key: "unit_type.admin_office",
       countable: true,
     },
   ],
@@ -382,6 +399,20 @@ export class BuildMenu extends LitElement implements Controller {
     return player.totalUnitLevels(item.unitType).toString();
   }
 
+  private disabledReason(
+    buildableUnit: BuildableUnit,
+    enabled: boolean,
+  ): string {
+    if (enabled) return "";
+    if (buildableUnit.locked) {
+      const tech = requiredTech(buildableUnit.type);
+      return translateText("domestic.locked_requires", {
+        tech: tech === null ? "" : translateText(`domestic.tech.${tech}.name`),
+      });
+    }
+    return translateText("build_menu.not_enough_money");
+  }
+
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {
     if (buildableUnit.canUpgrade !== false) {
       this.eventBus.emit(
@@ -428,9 +459,7 @@ export class BuildMenu extends LitElement implements Controller {
                     @click=${() =>
                       this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
                     ?disabled=${!enabled}
-                    title=${!enabled
-                      ? translateText("build_menu.not_enough_money")
-                      : ""}
+                    title=${this.disabledReason(buildableUnit, enabled)}
                   >
                     <img
                       src=${item.icon}
@@ -439,7 +468,10 @@ export class BuildMenu extends LitElement implements Controller {
                       height="40"
                     />
                     <span class="build-name">
-                      ${item.key && translateText(item.key)}
+                      ${item.key &&
+                      translateText(item.key)}${buildableUnit.locked
+                        ? " 🔒"
+                        : ""}
                     </span>
                     <span class="build-description"
                       >${item.description &&
