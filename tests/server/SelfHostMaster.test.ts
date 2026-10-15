@@ -3,7 +3,7 @@ import { CosmeticsSchema } from "@openfront/shared/CosmeticSchemas";
 import { SELF_HOST_API_PREFIX } from "@openfront/shared/SelfHost";
 import express from "express";
 import http from "http";
-import type { AddressInfo } from "net";
+import net, { type AddressInfo } from "net";
 import { afterEach, beforeEach, describe, expect, it, test } from "vitest";
 import { WebSocket, WebSocketServer } from "ws";
 import {
@@ -365,6 +365,133 @@ describe("client addresses through the master", () => {
     await connect("127.0.0.1", { "cf-connecting-ip": "203.0.113.7" });
     await connect("127.0.0.1", { "cf-connecting-ip": "203.0.113.8" });
     expect(wsIps).toEqual(["203.0.113.7", "203.0.113.8"]);
+  });
+});
+
+// A connection that ends early on one side must end on the other: a player
+// closing the tab mid-download must not leave the worker streaming into the
+// void, an abandoned upload must not leave the worker waiting for the rest,
+// and a worker dying mid-response must not leave the player waiting forever.
+describe("early endings through the master", () => {
+  let worker: http.Server;
+  let master: http.Server;
+  let masterPort: number;
+  const events: string[] = [];
+
+  function waitFor(event: string, ms = 2000): Promise<boolean> {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const check = () => {
+        if (events.includes(event)) return resolve(true);
+        if (Date.now() - started > ms) return resolve(false);
+        setTimeout(check, 20);
+      };
+      check();
+    });
+  }
+
+  beforeEach(async () => {
+    events.length = 0;
+    worker = http.createServer((req, res) => {
+      if (req.url === "/slow") {
+        res.writeHead(200);
+        const timer = setInterval(() => res.write("x".repeat(1000)), 20);
+        res.on("close", () => {
+          clearInterval(timer);
+          events.push(res.writableFinished ? "slow finished" : "slow cut");
+        });
+        setTimeout(() => res.end(), 5000);
+        return;
+      }
+      if (req.url === "/die") {
+        res.writeHead(200);
+        res.write("partial");
+        setTimeout(() => req.socket.destroy(), 50);
+        return;
+      }
+      req.on("close", () =>
+        events.push(req.complete ? "upload complete" : "upload cut"),
+      );
+      req.resume();
+      req.on("end", () => res.end("ok"));
+    });
+    const workerPort = await listen(worker);
+    const routing = (): WorkerRouting => ({
+      numWorkers: 1,
+      portOf: () => workerPort,
+      pick: () => 0,
+    });
+    const front = express();
+    front.use(proxyToWorkers(() => true, routing));
+    master = http.createServer(front);
+    masterPort = await listen(master);
+  });
+
+  afterEach(async () => {
+    await close(master);
+    await close(worker);
+  });
+
+  it("stops the worker's response when the player goes away", async () => {
+    await new Promise<void>((resolve, reject) => {
+      const req = http.get(
+        { host: "127.0.0.1", port: masterPort, path: "/w0/slow", agent: false },
+        (res) => {
+          res.once("data", () => {
+            req.destroy();
+            resolve();
+          });
+        },
+      );
+      req.on("error", (error) => {
+        if (!req.destroyed) reject(error);
+      });
+    });
+    expect(await waitFor("slow cut")).toBe(true);
+  });
+
+  it("ends the worker's request when the player abandons an upload", async () => {
+    const socket = net.connect(masterPort, "127.0.0.1");
+    await new Promise((resolve) => socket.once("connect", resolve));
+    socket.write(
+      "POST /w0/upload HTTP/1.1\r\nHost: x\r\nContent-Length: 100000\r\n\r\nabc",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    socket.destroy();
+    expect(await waitFor("upload cut")).toBe(true);
+  });
+
+  it("ends the player's response when the worker dies mid-way", async () => {
+    const outcome = await new Promise<string>((resolve) => {
+      const timer = setTimeout(() => resolve("hung"), 2000);
+      http
+        .get(
+          {
+            host: "127.0.0.1",
+            port: masterPort,
+            path: "/w0/die",
+            agent: false,
+          },
+          (res) => {
+            res.on("data", () => {});
+            res.on("end", () => resolve("ended cleanly"));
+            res.on("error", () => resolve("cut"));
+            res.on("aborted", () => resolve("cut"));
+          },
+        )
+        .on("error", () => resolve("cut"))
+        .on("close", () => clearTimeout(timer));
+    });
+    expect(outcome).toBe("cut");
+  });
+
+  it("still forwards a whole upload", async () => {
+    const res = await fetch(`http://127.0.0.1:${masterPort}/w0/upload`, {
+      method: "POST",
+      body: "x".repeat(100_000),
+    });
+    expect(await res.text()).toBe("ok");
+    expect(await waitFor("upload complete")).toBe(true);
   });
 });
 

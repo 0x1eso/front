@@ -99,14 +99,26 @@ export function proxyToWorkers(
       (workerRes) => {
         res.writeHead(workerRes.statusCode ?? 502, workerRes.headers);
         workerRes.pipe(res);
+        // The worker went away mid-response: cut the player's response
+        // rather than leave it waiting for an end that never comes.
+        workerRes.on("error", () => res.destroy());
+        workerRes.on("close", () => {
+          if (!workerRes.complete) res.destroy();
+        });
       },
     );
-    upstream.on("error", (error) => {
-      if (res.headersSent) {
-        res.destroy(error);
+    upstream.on("error", () => {
+      if (res.headersSent || res.destroyed) {
+        res.destroy();
         return;
       }
       res.status(502).json({ error: "worker unavailable" });
+    });
+    // The player went away (mid-upload or mid-download): end the worker's
+    // side too, rather than leave it waiting for the rest of the body or
+    // streaming into a closed connection.
+    res.on("close", () => {
+      if (!res.writableFinished) upstream.destroy();
     });
     req.pipe(upstream);
   };
