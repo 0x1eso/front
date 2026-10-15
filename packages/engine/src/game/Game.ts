@@ -327,6 +327,10 @@ export interface Player extends PlayerLike {
   isLobbyCreator(): boolean;
   /** Domestic-mode state; null outside domestic mode and for bots. */
   domestic(): PlayerDomestic | null;
+  /** Domestic mode: `type` needs a tech this player hasn't researched. */
+  isUnitLocked(type: UnitType): boolean;
+  /** Disabled for the game or locked for this player. */
+  isUnitUnavailable(type: UnitType): boolean;
 
   // State & Properties
   isAlive(): boolean;

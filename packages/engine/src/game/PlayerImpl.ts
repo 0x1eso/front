@@ -33,6 +33,7 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import { ReadonlyTileSet } from "@openfront/engine-api/game/ReadViews";
 import { ClientID } from "@openfront/engine-api/Schemas";
+import { isLockedByTech } from "@openfront/engine-lib/domestic/Locks";
 import { andFN, manhattanDistFN } from "@openfront/engine-lib/game/GameMapImpl";
 import { TileSet } from "@openfront/engine-lib/game/TileSet";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
@@ -746,6 +747,14 @@ export class PlayerImpl implements Player {
 
   domestic(): PlayerDomestic | null {
     return this._domestic;
+  }
+
+  isUnitLocked(type: UnitType): boolean {
+    return isLockedByTech(this._domestic, type);
+  }
+
+  isUnitUnavailable(type: UnitType): boolean {
+    return this.mg.config().isUnitDisabled(type) || this.isUnitLocked(type);
   }
 
   isAlive(): boolean {
@@ -1470,7 +1479,7 @@ export class PlayerImpl implements Player {
     unitType: UnitType,
     knownCost: Gold | null = null,
   ): boolean {
-    if (this.mg.config().isUnitDisabled(unitType)) {
+    if (this.isUnitUnavailable(unitType)) {
       return false;
     }
     const cost = knownCost ?? this.mg.unitInfo(unitType).cost(this.mg, this);
@@ -1584,6 +1593,7 @@ export class PlayerImpl implements Player {
         ghostRailPaths: buildNew
           ? rail.computeGhostRailPaths(u, canBuild as TileRef)
           : [],
+        locked: this.isUnitLocked(u),
       };
     }
 

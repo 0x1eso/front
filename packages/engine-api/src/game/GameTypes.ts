@@ -364,6 +364,8 @@ export interface BuildableUnit {
   upgradeCosts?: Gold[];
   overlappingRailroads: TileRef[];
   ghostRailPaths: TileRef[][];
+  /** Domestic mode: the unit needs a tech this player hasn't researched. */
+  locked?: boolean;
 }
 
 // Total price of buying `amount` of a buildable in one intent. Upgrades use
