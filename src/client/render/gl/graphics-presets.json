@@ -5,6 +5,15 @@
     "overrides": {}
   },
   {
+    "nameKey": "graphics_setting.preset_medium",
+    "descKey": "graphics_setting.preset_medium_desc",
+    "overrides": {
+      "smallPlayerGlow": { "strength": 0 },
+      "passEnabled": { "fallout": false },
+      "cosmetics": { "transportShipTrail": false, "nukeTrail": false }
+    }
+  },
+  {
     "nameKey": "graphics_setting.preset_night",
     "descKey": "graphics_setting.preset_night_desc",
     "overrides": { "lighting": { "ambient": 0.36 } }

@@ -13,7 +13,7 @@ import {
 import { Branch, Era, TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
-import { html, LitElement, TemplateResult } from "lit";
+import { html, LitElement, PropertyValues, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import {
@@ -34,8 +34,50 @@ import { renderVictoryTab } from "./VictoryTab";
 const ERAS: readonly Era[] = [1, 2, 3, 4];
 const BRANCHES: readonly Branch[] = ["economy", "military", "learning"];
 
-type DomesticTab = "tech" | "laws" | "government" | "victory";
-const TABS: readonly DomesticTab[] = ["tech", "laws", "government", "victory"];
+export type DomesticTab = "tech" | "laws" | "government" | "victory";
+export const TABS: readonly DomesticTab[] = [
+  "tech",
+  "laws",
+  "government",
+  "victory",
+];
+
+/** Space between the drawer and the HUD around it, in CSS px. */
+const DRAWER_GAP = 8;
+
+/**
+ * The HUD the open drawer leaves visible and tappable (spec §14a): it sits
+ * below the top-right sidebar stack, above the whole bottom HUD (build bar,
+ * attack ratio, the domestic row and its toggle) and left of the map buttons.
+ */
+const KEEP_CLEAR = {
+  top: "[data-hud-top-right]",
+  bottom: "[data-bottom-hud]",
+  right: "map-controls > div",
+} as const;
+
+export interface DrawerInsets {
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+function shownRect(selector: string): DOMRect | null {
+  const r = document.querySelector(selector)?.getBoundingClientRect();
+  return r !== undefined && r.width > 0 && r.height > 0 ? r : null;
+}
+
+/** The drawer's offsets from the viewport edges, from where the HUD is now. */
+export function drawerInsets(): DrawerInsets {
+  const top = shownRect(KEEP_CLEAR.top);
+  const bottom = shownRect(KEEP_CLEAR.bottom);
+  const right = shownRect(KEEP_CLEAR.right);
+  return {
+    top: (top?.bottom ?? 0) + DRAWER_GAP,
+    bottom: (bottom ? window.innerHeight - bottom.top : 0) + DRAWER_GAP,
+    right: (right ? window.innerWidth - right.left : 0) + DRAWER_GAP,
+  };
+}
 
 /** The domestic panel: technology, book of laws, government and victory tabs. */
 @customElement("domestic-panel")
@@ -46,6 +88,15 @@ export class DomesticPanel extends LitElement implements Controller {
   @state() private open = false;
   @state() private data: DomesticData | null = null;
   @state() private tab: DomesticTab = "tech";
+  @state() private insets: DrawerInsets = {
+    top: DRAWER_GAP,
+    right: DRAWER_GAP,
+    bottom: DRAWER_GAP,
+  };
+  private resizeObserver: ResizeObserver | null = null;
+  private readonly refit = () => {
+    this.insets = drawerInsets();
+  };
 
   createRenderRoot() {
     return this;
@@ -55,6 +106,36 @@ export class DomesticPanel extends LitElement implements Controller {
     this.eventBus.on(ToggleDomesticPanelEvent, () => {
       this.open = !this.open;
     });
+  }
+
+  protected willUpdate(changed: PropertyValues) {
+    if (!changed.has("open")) return;
+    if (this.open) this.startFitting();
+    else this.stopFitting();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopFitting();
+  }
+
+  /** While open, refit whenever the HUD around the drawer changes size. */
+  private startFitting() {
+    this.stopFitting();
+    this.refit();
+    window.addEventListener("resize", this.refit);
+    if (typeof ResizeObserver === "undefined") return;
+    this.resizeObserver = new ResizeObserver(this.refit);
+    for (const selector of Object.values(KEEP_CLEAR)) {
+      const el = document.querySelector(selector);
+      if (el) this.resizeObserver.observe(el);
+    }
+  }
+
+  private stopFitting() {
+    window.removeEventListener("resize", this.refit);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
   }
 
   tick() {
@@ -70,38 +151,54 @@ export class DomesticPanel extends LitElement implements Controller {
     const view = me?.domestic() ?? null;
     if (!this.open || this.data === null || !me || view === null) return null;
     const d = this.data;
+    // A right-side drawer (spec §14a): the map stays visible and playable on
+    // the left, so there is no backdrop, and the HUD around it stays clear
+    // (KEEP_CLEAR). It stacks under that HUD, so a build-bar card can pop up
+    // over it. Every tab in TABS gets a button.
+    const { top, right, bottom } = this.insets;
     return html`
-      <div
-        class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50"
-        @click=${(e: MouseEvent) => {
-          if (e.target === e.currentTarget) this.open = false;
-        }}
+      <aside
+        data-domestic-drawer
+        class="fixed z-[150] w-[40vw] min-w-[420px] min-h-60 flex flex-col rounded-lg bg-gray-900/95 backdrop-blur-sm text-white text-base shadow-2xl border border-white/10"
+        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px;"
+        @contextmenu=${(e: Event) => e.preventDefault()}
       >
-        <div
-          class="bg-gray-900 text-white rounded-lg p-4 max-w-[95vw] max-h-[90vh] overflow-auto shadow-xl"
-        >
-          <div class="flex items-center justify-between gap-4 mb-3">
-            <h2 class="text-lg font-bold">
-              ${translateText("domestic.panel_title")}
-            </h2>
-            <div class="flex gap-1">
-              ${TABS.map(
-                (tab) =>
-                  html`<button
-                    class="px-3 py-1 rounded-sm ${this.tab === tab
-                      ? "bg-sky-700"
-                      : "bg-slate-700 hover:bg-slate-600"}"
-                    @click=${() => (this.tab = tab)}
-                  >
-                    ${translateText(`domestic.tab_${tab}`)}
-                  </button>`,
-              )}
-            </div>
-            <button class="px-2" @click=${() => (this.open = false)}>✕</button>
-          </div>
+        <div class="flex items-center gap-2 px-3 pt-3">
+          <h2 class="flex-1 text-xl font-bold">
+            ${translateText("domestic.panel_title")}
+          </h2>
+          <button
+            type="button"
+            data-domestic-close
+            class="size-11 flex items-center justify-center rounded-md text-2xl hover:bg-white/10"
+            aria-label=${translateText("common.close")}
+            @click=${() => (this.open = false)}
+          >
+            ✕
+          </button>
+        </div>
+        <div role="tablist" class="flex flex-wrap gap-1 px-3 py-2">
+          ${TABS.map(
+            (tab) =>
+              html`<button
+                type="button"
+                role="tab"
+                data-tab=${tab}
+                aria-selected=${String(this.tab === tab)}
+                class="h-11 px-4 shrink-0 rounded-md font-semibold ${this
+                  .tab === tab
+                  ? "bg-sky-700"
+                  : "bg-slate-700 hover:bg-slate-600"}"
+                @click=${() => (this.tab = tab)}
+              >
+                ${translateText(`domestic.tab_${tab}`)}
+              </button>`,
+          )}
+        </div>
+        <div class="flex-1 overflow-y-auto px-3 pb-3">
           ${this.renderTab(d, view, me)}
         </div>
-      </div>
+      </aside>
     `;
   }
 
@@ -138,32 +235,23 @@ export class DomesticPanel extends LitElement implements Controller {
 
   private renderTechTab(d: DomesticData, me: PlayerView): TemplateResult {
     const researched = new Set<TechId>(d.techs);
+    // One column of cards per era: the drawer is too narrow for a
+    // branch-by-era grid, so each card names its branch instead.
     return html`
       ${this.renderResearch(d)}
-      <div
-        class="grid gap-2"
-        style="grid-template-columns: auto repeat(3, minmax(11rem, 1fr));"
-      >
-        <div></div>
-        ${BRANCHES.map(
-          (b) =>
-            html`<div class="font-bold text-center">
-              ${translateText(`domestic.branch.${b}`)}
-            </div>`,
-        )}
+      <div class="flex flex-col gap-4">
         ${ERAS.map(
           (era) => html`
-            <div class="font-bold self-center">
-              ${translateText("domestic.era", { era })}
-            </div>
-            ${BRANCHES.map(
-              (b) =>
-                html`<div class="flex flex-col gap-1">
-                  ${TECH_IDS.filter(
-                    (id) => TECHS[id].era === era && TECHS[id].branch === b,
-                  ).map((id) => this.renderTech(id, d, researched, me))}
-                </div>`,
-            )}
+            <section data-era=${era} class="flex flex-col gap-2">
+              <h3 class="text-lg font-bold">
+                ${translateText("domestic.era", { era })}
+              </h3>
+              ${BRANCHES.flatMap((b) =>
+                TECH_IDS.filter(
+                  (id) => TECHS[id].era === era && TECHS[id].branch === b,
+                ).map((id) => this.renderTech(id, d, researched, me)),
+              )}
+            </section>
           `,
         )}
       </div>
@@ -174,16 +262,16 @@ export class DomesticPanel extends LitElement implements Controller {
     if (d.research === null) return null;
     const done = 1 - d.research.ticksLeft / d.research.totalTicks;
     return html`
-      <div class="mb-3">
-        <div class="text-sm">
+      <div class="mb-4 flex flex-col gap-1">
+        <div class="text-base">
           ${translateText("domestic.research_progress", {
             tech: translateText(`domestic.tech.${d.research.tech}.name`),
             seconds: Math.ceil(d.research.ticksLeft / 10),
           })}
         </div>
-        <div class="h-2 bg-gray-700 rounded-sm">
+        <div class="h-3 bg-gray-700 rounded-sm">
           <div
-            class="h-2 bg-sky-500 rounded-sm"
+            class="h-3 bg-sky-500 rounded-sm"
             style="width: ${Math.round(done * 100)}%"
           ></div>
         </div>
@@ -212,7 +300,8 @@ export class DomesticPanel extends LitElement implements Controller {
         status = this.blockText(block, id, researched);
       } else if (d.science >= def.cost) {
         status = html`<button
-          class="px-2 py-0.5 rounded-sm bg-sky-700 hover:bg-sky-600"
+          type="button"
+          class="min-h-11 px-4 rounded-md text-sm font-semibold bg-sky-700 hover:bg-sky-600"
           @click=${() => this.research(id, false)}
         >
           ${translateText("domestic.research")}
@@ -222,21 +311,36 @@ export class DomesticPanel extends LitElement implements Controller {
           (def.cost - d.science) * MILLI,
           me.domestic()?.pct("goldPaymentCost") ?? 0,
         );
+        const affordable = me.gold() >= gold;
         status = html`<button
-          class="px-2 py-0.5 rounded-sm bg-amber-700 hover:bg-amber-600 disabled:opacity-40"
-          ?disabled=${me.gold() < gold}
-          @click=${() => this.research(id, true)}
-        >
-          ${translateText("domestic.pay_with_gold", {
-            gold: renderNumber(gold),
-          })}
-        </button>`;
+            type="button"
+            class="min-h-11 px-4 rounded-md text-sm font-semibold bg-amber-700 hover:bg-amber-600 disabled:opacity-40"
+            ?disabled=${!affordable}
+            @click=${() => this.research(id, true)}
+          >
+            ${translateText("domestic.pay_with_gold", {
+              gold: renderNumber(gold),
+            })}
+          </button>
+          ${affordable
+            ? null
+            : html`<span data-reason class="block mt-1 text-red-300"
+                >${translateText("build_menu.not_enough_money")}</span
+              >`}`;
       }
     }
     return html`
-      <div class="border ${border} rounded-sm p-2 text-xs flex flex-col gap-1">
-        <div class="font-bold text-sm">
-          ${translateText(`domestic.tech.${id}.name`)}
+      <div
+        data-tech=${id}
+        class="border ${border} rounded-md p-3 text-sm flex flex-col gap-1"
+      >
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-base font-bold"
+            >${translateText(`domestic.tech.${id}.name`)}</span
+          >
+          <span class="text-sm text-gray-400"
+            >${translateText(`domestic.branch.${def.branch}`)}</span
+          >
         </div>
         <div class="text-gray-300">
           ${translateText(`domestic.tech.${id}.desc`)}

@@ -1,3 +1,4 @@
+import { Platform } from "./Platform";
 import builtinPresets from "./render/gl/graphics-presets.json";
 import {
   GraphicsOverridesSchema,
@@ -22,6 +23,9 @@ export const BUILTIN_PRESETS: ReadonlyArray<{
 
 // Serialize with recursively sorted keys so preset equality doesn't depend on
 // the order the settings were touched in.
+/** The built-in preset touch devices start on (spec §14a). */
+export const TOUCH_DEFAULT_PRESET_KEY = "graphics_setting.preset_medium";
+
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) {
@@ -68,8 +72,22 @@ export function parseGraphicsOverridesJson(
  */
 export function migrateLegacyGraphicsSettings(
   userSettings: UserSettings,
+  isTouch: boolean = Platform.isTouch,
 ): void {
   if (userSettings.hasGraphicsPresets()) return;
+  // First run on a tablet or phone: start on the medium preset. Only for a
+  // profile that never changed its graphics; writing the presets key makes
+  // it a one-time default the player can change in settings.
+  if (isTouch && Object.keys(userSettings.graphicsOverrides()).length === 0) {
+    const medium = BUILTIN_PRESETS.find(
+      (preset) => preset.nameKey === TOUCH_DEFAULT_PRESET_KEY,
+    );
+    if (medium !== undefined) {
+      userSettings.setGraphicsOverrides(medium.overrides);
+      userSettings.setGraphicsPresets({});
+      return;
+    }
+  }
   // The old colorblind toggle stored only a boolean (surfaced as
   // palette: "colorblind" by graphicsOverrides()); the Okabe-Ito friend-foe
   // border colors it hardcoded are now override data carried by the

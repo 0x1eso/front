@@ -24,14 +24,17 @@ export interface LawsTabContext {
   proclaim(law: LawId, option: LawOption, payWithGold: boolean): void;
 }
 
+const BUTTON =
+  "min-h-11 px-4 rounded-md text-sm font-semibold disabled:opacity-40";
+
 /** The Book of Laws (spec §10.7): eleven laws, two options each. */
 export function renderLawsTab(ctx: LawsTabContext): TemplateResult {
   const d = ctx.view.data;
   const cost = lawCost(ctx.view.laws().size, ctx.view.pct("lawCost"));
   const cooldownTicks = Math.max(0, d.lawCooldownUntilTick - ctx.nowTick);
   return html`
-    <div class="flex flex-col gap-2">
-      <div class="flex flex-wrap gap-4 text-sm">
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap gap-4 text-base">
         <span>${translateText("domestic.law_next_cost", { cost })}</span>
         ${cooldownTicks > 0
           ? html`<span class="text-amber-400"
@@ -62,11 +65,11 @@ function renderLaw(
   );
   const requires = LAWS[law].requires;
   return html`
-    <div class="border border-gray-600 rounded-sm p-2" data-law=${law}>
-      <div class="font-bold text-sm">
+    <div class="border border-gray-600 rounded-md p-3" data-law=${law}>
+      <div class="text-base font-bold">
         ${translateText(`domestic.law.${law}.name`)}
         ${block === "requires" && requires !== null
-          ? html`<span class="font-normal text-gray-400">
+          ? html`<span class="text-sm font-normal text-red-300">
               ·
               ${translateText("domestic.locked_requires", {
                 tech: translateText(`domestic.tech.${requires}.name`),
@@ -74,7 +77,7 @@ function renderLaw(
             >`
           : null}
       </div>
-      <div class="grid grid-cols-2 gap-2 mt-1">
+      <div class="grid grid-cols-2 gap-2 mt-2">
         ${LAW_OPTIONS.map((option) =>
           renderOption(ctx, law, option, chosen, block, cost),
         )}
@@ -105,7 +108,7 @@ function renderOption(
   }
   return html`
     <div
-      class="border ${border} rounded-sm p-2 text-xs flex flex-col gap-1"
+      class="border ${border} rounded-md p-3 text-sm flex flex-col gap-2"
       data-option=${option}
     >
       <div class="font-bold">${translateText(`${key}.name`)}</div>
@@ -125,7 +128,8 @@ function proclaimButton(
   const available = ctx.view.data.political;
   if (available >= cost) {
     return html`<button
-      class="px-2 py-0.5 rounded-sm bg-sky-700 hover:bg-sky-600 disabled:opacity-40"
+      type="button"
+      class="${BUTTON} bg-sky-700 hover:bg-sky-600"
       ?disabled=${block !== null}
       @click=${() => ctx.proclaim(law, option, false)}
     >
@@ -136,13 +140,20 @@ function proclaimButton(
     (cost - available) * MILLI,
     ctx.view.pct("goldPaymentCost"),
   );
+  const affordable = ctx.gold >= gold;
   return html`<button
-    class="px-2 py-0.5 rounded-sm bg-amber-700 hover:bg-amber-600 disabled:opacity-40"
-    ?disabled=${block !== null || ctx.gold < gold}
-    @click=${() => ctx.proclaim(law, option, true)}
-  >
-    ${translateText("domestic.proclaim_with_gold", {
-      gold: renderNumber(gold),
-    })}
-  </button>`;
+      type="button"
+      class="${BUTTON} bg-amber-700 hover:bg-amber-600"
+      ?disabled=${block !== null || !affordable}
+      @click=${() => ctx.proclaim(law, option, true)}
+    >
+      ${translateText("domestic.proclaim_with_gold", {
+        gold: renderNumber(gold),
+      })}
+    </button>
+    ${block === null && !affordable
+      ? html`<span data-reason class="block mt-1 text-red-300"
+          >${translateText("build_menu.not_enough_money")}</span
+        >`
+      : null}`;
 }

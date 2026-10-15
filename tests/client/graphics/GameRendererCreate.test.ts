@@ -29,6 +29,7 @@ const HUD_TAGS = [
   "new-lobby-prompt",
   "replay-panel",
   "game-right-sidebar",
+  "map-controls",
   "settings-modal",
   "graphics-settings-modal",
   "unit-display",

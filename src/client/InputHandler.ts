@@ -320,6 +320,8 @@ export class InputHandler {
   private readonly PAN_SPEED = 5;
   private readonly ZOOM_SPEED = 10;
   private readonly DRAG_THRESHOLD_PX = 10;
+  /** Fingers wobble more than a mouse: a touch is still a tap up to here. */
+  private readonly TOUCH_DRAG_THRESHOLD_PX = 16;
 
   private readonly userSettings: UserSettings = new UserSettings();
 
@@ -350,9 +352,23 @@ export class InputHandler {
     this.eventBus.on(UnitSelectionEvent, this.onUnitSelection);
     this.eventBus.off(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.on(EmojiTableVisibleEvent, this.onEmojiTableVisible);
+    this.eventBus.off(AlternateViewEvent, this.onAlternateView);
+    this.eventBus.on(AlternateViewEvent, this.onAlternateView);
+    this.eventBus.off(ToggleCoordinateGridEvent, this.onCoordinateGrid);
+    this.eventBus.on(ToggleCoordinateGridEvent, this.onCoordinateGrid);
 
     this.initializePointerAndKeyboardEvents();
   }
+
+  // The map's on-screen buttons and the settings menu toggle these too.
+  // Follow the bus, so the next key press flips from what is shown.
+  private onAlternateView = (e: AlternateViewEvent) => {
+    this.alternateView = e.alternateView;
+  };
+
+  private onCoordinateGrid = (e: ToggleCoordinateGridEvent) => {
+    this.coordinateGridEnabled = e.enabled;
+  };
 
   private onEmojiTableVisible = (e: EmojiTableVisibleEvent) => {
     this.emojiTableOpen = e.visible;
@@ -1111,7 +1127,7 @@ export class InputHandler {
       const dist =
         Math.abs(event.clientX - this.lastPointerDownX) +
         Math.abs(event.clientY - this.lastPointerDownY);
-      if (dist >= this.DRAG_THRESHOLD_PX) {
+      if (dist >= this.dragThreshold(event.pointerType)) {
         this.eventBus.emit(
           new WarshipSelectionBoxCompleteEvent(
             this.lastPointerDownX,
@@ -1154,10 +1170,18 @@ export class InputHandler {
     const dist =
       Math.abs(event.x - this.lastPointerDownX) +
       Math.abs(event.y - this.lastPointerDownY);
-    if (dist < this.DRAG_THRESHOLD_PX) {
+    if (dist < this.dragThreshold(event.pointerType)) {
       if (event.pointerType === "touch") {
         if (this.suppressNextTap) {
           this.suppressNextTap = false;
+          event.preventDefault();
+          return;
+        }
+        if (this.uiState.ghostStructure !== null) {
+          // A finger has no hover, so the build ghost never followed it:
+          // move the ghost to the tap, then confirm there like a mouse click.
+          this.eventBus.emit(new MouseMoveEvent(event.x, event.y));
+          this.eventBus.emit(new MouseUpEvent(event.x, event.y));
           event.preventDefault();
           return;
         }
@@ -1264,7 +1288,7 @@ export class InputHandler {
       const distance =
         Math.abs(event.clientX - passThroughOrigin.x) +
         Math.abs(event.clientY - passThroughOrigin.y);
-      if (distance >= this.DRAG_THRESHOLD_PX) {
+      if (distance >= this.dragThreshold(event.pointerType)) {
         this.cancelPassThroughDrag(event.pointerId);
       }
       return;
@@ -1280,7 +1304,7 @@ export class InputHandler {
         const moveDist =
           Math.abs(event.clientX - this.lastPointerDownX) +
           Math.abs(event.clientY - this.lastPointerDownY);
-        if (moveDist >= this.DRAG_THRESHOLD_PX) {
+        if (moveDist >= this.dragThreshold(event.pointerType)) {
           clearTimeout(this.longPressTimer);
           this.longPressTimer = null;
         }
@@ -1497,6 +1521,13 @@ export class InputHandler {
     return !this.gameView.inSpawnPhase() && myPlayer?.isAlive() === true;
   }
 
+  /** How far a press may travel and still count as a tap (spec §14a). */
+  private dragThreshold(pointerType: string): number {
+    return pointerType === "touch"
+      ? this.TOUCH_DRAG_THRESHOLD_PX
+      : this.DRAG_THRESHOLD_PX;
+  }
+
   private getPinchDistance(): number {
     const pointerEvents = Array.from(this.pointers.values());
     const dx = pointerEvents[0].clientX - pointerEvents[1].clientX;
@@ -1550,6 +1581,8 @@ export class InputHandler {
     this.listenerAbort = null;
     this.eventBus.off(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.off(UnitSelectionEvent, this.onUnitSelection);
+    this.eventBus.off(AlternateViewEvent, this.onAlternateView);
+    this.eventBus.off(ToggleCoordinateGridEvent, this.onCoordinateGrid);
     // Includes the 800ms long-press timer a touch pointerdown arms: aborting
     // the listeners does not cancel it, so without this it can still fire
     // after teardown, emitting TouchLongPressStartEvent on the page-global

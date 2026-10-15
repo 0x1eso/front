@@ -11,6 +11,14 @@
     <title><%= typeof gameTitle !== 'undefined' ? gameTitle : '' %></title>
     <link rel="manifest" href="<%- manifestHref %>" />
     <link rel="icon" type="image/svg+xml" href="<%- faviconHref %>" />
+    <!-- Added to the home screen, the game runs without browser chrome:
+         iOS reads these tags, Android the manifest's display mode. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
 
     <!-- Preload styles -->
     <style>
@@ -400,46 +408,41 @@
     <!-- Game components -->
     <div id="app"></div>
 
-    <!-- Bottom HUD: <sm=column, sm..lg=2col (HUD left | events right), lg+=3col grid centered -->
+    <!-- Bottom HUD: one tablet-landscape layout at every width (spec §14a).
+         The centered 600px column holds attacks, the control panel, the
+         build bar and the domestic HUD; chat and events fill the right
+         column. The side columns shrink to nothing before the page would
+         scroll sideways. -->
     <div
-      class="fixed bottom-0 left-0 w-full z-[200] flex flex-col pointer-events-none sm:flex-row sm:items-end lg:grid lg:grid-cols-[1fr_500px_1fr] lg:items-end min-[1200px]:px-4"
+      data-bottom-hud
+      class="fixed bottom-0 left-0 w-full z-[200] grid grid-cols-[minmax(0,1fr)_600px_minmax(0,1fr)] items-end gap-2 pointer-events-none"
       style="
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
       "
     >
-      <!-- HUD: <sm contents (children join outer flex), sm+ flex-col 460px, lg+ col-2 -->
-      <div
-        class="contents sm:flex sm:flex-col sm:pointer-events-none w-full sm:w-[500px] lg:col-start-2 sm:z-10"
-      >
-        <attacks-display
-          class="w-full pointer-events-auto order-1 sm:order-none"
-        ></attacks-display>
-        <tutorial-panel
-          class="hidden w-full order-3 sm:order-none"
-        ></tutorial-panel>
+      <div class="col-start-2 flex flex-col min-w-0 pointer-events-none">
+        <attacks-display class="w-full pointer-events-auto"></attacks-display>
+        <tutorial-panel class="hidden w-full"></tutorial-panel>
+        <!-- relative: the build-bar card opens above this whole box, so it
+             never covers the attack-ratio row. -->
         <div
-          class="pointer-events-auto bg-gray-800/92 backdrop-blur-sm sm:rounded-tr-lg lg:rounded-t-lg min-[1200px]:rounded-lg shadow-lg order-3 sm:order-none"
+          class="relative pointer-events-auto bg-gray-800/92 backdrop-blur-sm rounded-t-lg shadow-lg"
         >
-          <control-panel class="w-full"></control-panel>
-          <unit-display class="hidden lg:block w-full"></unit-display>
+          <control-panel class="block w-full"></control-panel>
+          <unit-display class="block w-full"></unit-display>
           <domestic-hud class="block w-full"></domestic-hud>
         </div>
       </div>
 
-      <!-- events+chat: <sm between attacks and control (order-2), sm+ right side, lg+ col-3 -->
       <div
-        class="flex flex-col pointer-events-none items-end order-2 sm:order-none sm:flex-1 lg:col-start-3 lg:self-end lg:justify-end"
+        class="col-start-3 flex flex-col justify-end min-w-0 pr-2 pointer-events-none"
       >
-        <chat-display
-          class="w-full sm:w-auto pointer-events-auto"
-        ></chat-display>
-        <events-display
-          class="w-full sm:w-auto pointer-events-auto"
-        ></events-display>
+        <chat-display class="w-full pointer-events-auto"></chat-display>
+        <events-display class="w-full pointer-events-auto"></events-display>
         <actionable-events
-          class="w-full sm:w-auto pointer-events-auto"
+          class="w-full pointer-events-auto"
         ></actionable-events>
       </div>
     </div>
@@ -451,7 +454,11 @@
     <win-modal></win-modal>
     <new-lobby-prompt></new-lobby-prompt>
     <game-starting-modal></game-starting-modal>
-    <div class="flex flex-col items-end fixed top-0 right-0 z-1000 gap-2">
+    <!-- data-hud-top-right: the open domestic drawer stays below this. -->
+    <div
+      data-hud-top-right
+      class="flex flex-col items-end fixed top-0 right-0 z-1000 gap-2"
+    >
       <game-right-sidebar></game-right-sidebar>
       <replay-panel></replay-panel>
     </div>
@@ -471,6 +478,7 @@
     <chat-modal></chat-modal>
     <multi-tab-modal></multi-tab-modal>
     <game-left-sidebar></game-left-sidebar>
+    <map-controls></map-controls>
     <performance-overlay></performance-overlay>
     <player-info-overlay></player-info-overlay>
     <heads-up-message></heads-up-message>

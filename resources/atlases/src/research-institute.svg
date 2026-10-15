@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-4 -4 32 32" fill="#ffffff">
+  <!--
+    Research Institute map icon: icon-atlas.png cell 7 (atlas column 6).
+    Drawn for this fork; licensed CC BY-SA 4.0 like the rest of resources/.
+
+    Same Erlenmeyer-flask silhouette as resources/images/ResearchInstituteIconWhite.svg
+    (24-unit grid), drawn the way the original atlas cells are: 2x scale with
+    4 units (8px) of padding in a 64x64 cell, solid white on transparent.
+
+    Rebuild the atlas from the repo root (keeps the first six cells as-is):
+      rsvg-convert -w 64 -h 64 resources/atlases/src/research-institute.svg -o /tmp/ri.png
+      rsvg-convert -w 64 -h 64 resources/atlases/src/admin-office.svg -o /tmp/ao.png
+      magick resources/atlases/icon-atlas.png -crop 384x64+0+0 +repage /tmp/ri.png /tmp/ao.png \
+        +append +repage -strip PNG32:resources/atlases/icon-atlas.png
+  -->
+  <path d="M9 2h6v2h-1v5.2l5.6 9.7A2 2 0 0 1 17.9 22H6.1a2 2 0 0 1-1.7-3.1L10 9.2V4H9V2zm3 9.1L8.4 17h7.2L12 11.1z"/>
+</svg>

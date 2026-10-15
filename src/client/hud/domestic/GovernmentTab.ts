@@ -26,7 +26,7 @@ export function renderGovernmentTab(ctx: GovernmentTabContext): TemplateResult {
   const d = ctx.view.data;
   return html`
     <div class="flex flex-col gap-3">
-      <div class="text-sm">
+      <div class="text-base">
         ${translateText("domestic.gov_current", {
           name: translateText(`domestic.gov.${d.government}.name`),
         })}
@@ -35,10 +35,10 @@ export function renderGovernmentTab(ctx: GovernmentTabContext): TemplateResult {
       ${renderTierProgress(d)}
       ${CHOOSABLE_TIERS.map(
         (tier) => html`
-          <div class="font-bold">
+          <h3 class="text-lg font-bold">
             ${translateText("domestic.gov_tier", { tier })}
-          </div>
-          <div class="grid grid-cols-3 gap-2">
+          </h3>
+          <div class="flex flex-col gap-2">
             ${GOVERNMENTS_BY_TIER[tier].map((g) => renderGovernment(ctx, g))}
           </div>
         `,
@@ -49,24 +49,24 @@ export function renderGovernmentTab(ctx: GovernmentTabContext): TemplateResult {
 
 function renderTierProgress(d: DomesticData): TemplateResult {
   if (d.governmentTier >= GOVERNMENT_TIER_THRESHOLDS.length) {
-    return html`<div class="text-sm text-green-400">
+    return html`<div class="text-base text-green-400">
       ${translateText("domestic.gov_max_tier")}
     </div>`;
   }
   const next = GOVERNMENT_TIER_THRESHOLDS[d.governmentTier];
   const done = Math.min(1, d.cumulativePolitical / next);
   return html`
-    <div>
-      <div class="text-xs text-gray-300">
+    <div class="flex flex-col gap-1">
+      <div class="text-sm text-gray-300">
         ${translateText("domestic.gov_progress", {
           value: d.cumulativePolitical,
           next,
           tier: d.governmentTier + 1,
         })}
       </div>
-      <div class="h-2 bg-gray-700 rounded-sm">
+      <div class="h-3 bg-gray-700 rounded-sm">
         <div
-          class="h-2 bg-violet-500 rounded-sm"
+          class="h-3 bg-violet-500 rounded-sm"
           style="width: ${Math.round(done * 100)}%"
         ></div>
       </div>
@@ -95,7 +95,8 @@ function renderGovernment(
     status =
       block === null
         ? html`<button
-            class="px-2 py-0.5 rounded-sm bg-violet-700 hover:bg-violet-600"
+            type="button"
+            class="min-h-11 px-4 rounded-md text-sm font-semibold bg-violet-700 hover:bg-violet-600"
             @click=${() => ctx.choose(government)}
           >
             ${translateText("domestic.gov_adopt")}
@@ -104,10 +105,10 @@ function renderGovernment(
   }
   return html`
     <div
-      class="border ${border} rounded-sm p-2 text-xs flex flex-col gap-1"
+      class="border ${border} rounded-md p-3 text-sm flex flex-col gap-1"
       data-government=${government}
     >
-      <div class="font-bold text-sm">
+      <div class="text-base font-bold">
         ${translateText(`domestic.gov.${government}.name`)}
       </div>
       <div class="text-gray-300">

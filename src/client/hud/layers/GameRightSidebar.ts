@@ -29,6 +29,10 @@ const settingsIcon = assetUrl("images/SettingIconWhite.svg");
 const fullscreenIcon = assetUrl("images/FullscreenIconWhite.svg");
 const exitFullscreenIcon = assetUrl("images/ExitFullscreenIconWhite.svg");
 
+/** A finger-sized icon button (spec §14a: 44px touch targets). */
+const ICON_BUTTON =
+  "size-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-white/10 active:bg-white/20";
+
 const LAST_MINUTE_SECONDS = 60;
 const FLASH_TIMER_SECONDS = 30;
 const FLASH_SIDEBAR_SECONDS = 10;
@@ -369,7 +373,7 @@ export class GameRightSidebar extends LitElement implements Controller {
         }
       </style>
       <aside
-        class=${`w-fit flex flex-row items-center gap-3 py-2 px-3 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-bl-lg transition-transform duration-300 ease-out transform text-white ${shouldFlashSidebar ? "game-end-timer-sidebar-flash" : ""} ${
+        class=${`w-fit flex flex-row items-center gap-1 p-1 text-base bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-bl-lg transition-transform duration-300 ease-out transform text-white ${shouldFlashSidebar ? "game-end-timer-sidebar-flash" : ""} ${
           this._isVisible ? "translate-x-0" : "translate-x-full"
         }`}
         @contextmenu=${(e: Event) => e.preventDefault()}
@@ -382,13 +386,20 @@ export class GameRightSidebar extends LitElement implements Controller {
         <!-- Buttons -->
         ${this.maybeRenderReplayButtons()}
 
-        <div class="cursor-pointer" @click=${this.onSettingsButtonClick}>
-          <img src=${settingsIcon} alt="settings" width="20" height="20" />
-        </div>
+        <button
+          type="button"
+          data-sidebar="settings"
+          class=${ICON_BUTTON}
+          @click=${this.onSettingsButtonClick}
+        >
+          <img src=${settingsIcon} alt="settings" width="28" height="28" />
+        </button>
 
         ${document.fullscreenEnabled && !this.hideFullscreenButton
-          ? html`<div
-              class="cursor-pointer"
+          ? html`<button
+              type="button"
+              data-sidebar="fullscreen"
+              class=${ICON_BUTTON}
               @click=${this.onFullscreenButtonClick}
             >
               <img
@@ -396,15 +407,20 @@ export class GameRightSidebar extends LitElement implements Controller {
                 alt=${this.isFullscreen
                   ? translateText("fullscreen.exit")
                   : translateText("fullscreen.enter")}
-                width="20"
-                height="20"
+                width="28"
+                height="28"
               />
-            </div>`
+            </button>`
           : ""}
 
-        <div class="cursor-pointer" @click=${this.onExitButtonClick}>
-          <img src=${exitIcon} alt="exit" width="20" height="20" />
-        </div>
+        <button
+          type="button"
+          data-sidebar="exit"
+          class=${ICON_BUTTON}
+          @click=${this.onExitButtonClick}
+        >
+          <img src=${exitIcon} alt="exit" width="28" height="28" />
+        </button>
       </aside>
       <doomsday-clock-panel
         .game=${this.game}
@@ -432,44 +448,56 @@ export class GameRightSidebar extends LitElement implements Controller {
     return html`
       ${isReplayOrSingleplayer
         ? html`
-            <div class="cursor-pointer" @click=${this.toggleReplayPanel}>
+            <button
+              type="button"
+              data-sidebar="replay"
+              class=${ICON_BUTTON}
+              @click=${this.toggleReplayPanel}
+            >
               <img
                 src=${FastForwardIconSolid}
                 alt="replay"
-                width="20"
-                height="20"
+                width="28"
+                height="28"
               />
-            </div>
+            </button>
           `
         : ""}
       ${showPauseButton
         ? html`
-            <div class="cursor-pointer" @click=${this.onPauseButtonClick}>
+            <button
+              type="button"
+              data-sidebar="pause"
+              class=${ICON_BUTTON}
+              @click=${this.onPauseButtonClick}
+            >
               <img
                 src=${this.isPaused ? playIcon : pauseIcon}
                 alt="play/pause"
-                width="20"
-                height="20"
+                width="28"
+                height="28"
               />
-            </div>
+            </button>
           `
         : ""}
       ${showNewLobbyButton
         ? html`
-            <div
-              class="cursor-pointer ${this.newLobbyRequested
+            <button
+              type="button"
+              data-sidebar="new-lobby"
+              class="${ICON_BUTTON} ${this.newLobbyRequested
                 ? "opacity-50 pointer-events-none"
                 : ""}"
+              aria-label=${translateText("win_modal.new_lobby")}
               @click=${this.onNewLobbyButtonClick}
-              title=${translateText("win_modal.new_lobby")}
             >
               <img
                 src=${newLobbyIcon}
                 alt=${translateText("win_modal.new_lobby")}
-                width="20"
-                height="20"
+                width="28"
+                height="28"
               />
-            </div>
+            </button>
           `
         : ""}
     `;

@@ -30,6 +30,7 @@ import { ClientEnv } from "../client/ClientEnv";
 import { reloadForUpdate, translateText } from "../client/Utils";
 import { isDesktopShell } from "./DesktopShell";
 import { GameMetrics } from "./GameMetrics";
+import { migrateLegacyGraphicsSettings } from "./GraphicsPresets";
 import { showInGameAlert } from "./InGameModal";
 import {
   AutoUpgradeEvent,
@@ -740,6 +741,11 @@ async function createClientGame(
     audioMixer() ?? initAudioMixer(userSettings),
   );
   try {
+    // The one-time graphics migration (a touch device's first run picks the
+    // medium preset) runs before the renderer exists: the renderer is built
+    // with the final settings, and the settings-changed event it fires can't
+    // reach the graphics listeners below before webglBuilder is assigned.
+    migrateLegacyGraphicsSettings(userSettings);
     // Resolve render settings (defaults + user overrides) up front so the
     // renderer is built with the final values — no construct-with-defaults,
     // re-apply-overrides dance, and texture-baking passes (terrain) get the

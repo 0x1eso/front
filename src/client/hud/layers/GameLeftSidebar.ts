@@ -5,7 +5,6 @@ import { Colord } from "colord";
 import { html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import type { Controller } from "../../Controller";
-import { Platform } from "../../Platform";
 import { themeProvider } from "../../theme/ThemeProvider";
 import { getTranslatedPlayerTeamLabel, translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -61,10 +60,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
     if (this.isTeamGame) {
       this.isPlayerTeamLabelVisible = true;
     }
-    // Make it visible by default on large screens
-    if (Platform.isDesktopWidth) {
-      this.showPlayerStatsAfterSpawn = true;
-    }
+    // One layout at every width (spec §14a): the leaderboard opens after spawn.
+    this.showPlayerStatsAfterSpawn = true;
   }
 
   getTickIntervalMs() {
@@ -112,14 +109,14 @@ export class GameLeftSidebar extends LitElement implements Controller {
   render() {
     return html`
       <aside
-        class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto p-2 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-br-lg ${this.isPlayerStatsShown || this.isTeamStatsShown ? "max-[400px]:w-full max-[400px]:rounded-none" : ""} transition-all duration-300 ease-out transform ${
+        class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto p-2 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-br-lg transition-all duration-300 ease-out transform ${
           this.isVisible ? "translate-x-0" : "hidden"
         }`}
         style="margin-top: ${this.barOffset}px;"
       >
-        <div class="flex items-center gap-4 xl:gap-6 text-white">
+        <div class="flex items-center gap-2 text-white">
           <div
-            class="cursor-pointer p-0.5 bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
+            class="cursor-pointer size-11 flex items-center justify-center bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
             @click=${this.togglePlayerStats}
             role="button"
             tabindex="0"
@@ -136,14 +133,14 @@ export class GameLeftSidebar extends LitElement implements Controller {
                 : playerStatsRegularIcon}
               alt=${translateText("help_modal.icon_alt_player_leaderboard") ||
               "Player Leaderboard Icon"}
-              width="20"
-              height="20"
+              width="28"
+              height="28"
             />
           </div>
           ${this.isTeamGame
             ? html`
                 <div
-                  class="cursor-pointer p-0.5 bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
+                  class="cursor-pointer size-11 flex items-center justify-center bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
                   @click=${this.toggleTeamStats}
                   role="button"
                   tabindex="0"
@@ -165,8 +162,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
                     alt=${translateText(
                       "help_modal.icon_alt_team_leaderboard",
                     ) || "Team Leaderboard Icon"}
-                    width="20"
-                    height="20"
+                    width="28"
+                    height="28"
                   />
                 </div>
               `

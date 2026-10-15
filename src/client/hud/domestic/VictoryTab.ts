@@ -99,8 +99,8 @@ function renderProject(
           political: POLITICAL_PROJECT_POLITICAL,
         });
   return html`
-    <div class="border border-gray-600 rounded-sm p-2 flex flex-col gap-1">
-      <div class="font-bold">
+    <div class="border border-gray-600 rounded-md p-3 flex flex-col gap-1">
+      <div class="text-base font-bold">
         ${translateText(`domestic.project.${kind}.name`)}
       </div>
       <div class="text-gray-300">
@@ -130,15 +130,16 @@ function renderProject(
                 })}</span
               >
               <button
-                class="min-h-11 px-3 rounded-sm bg-amber-700 hover:bg-amber-600 disabled:opacity-40"
+                type="button"
+                class="min-h-11 px-4 rounded-md text-sm font-semibold bg-amber-700 hover:bg-amber-600 disabled:opacity-40"
                 ?disabled=${block !== null}
                 @click=${() => onStart(kind, host.id)}
               >
                 ${translateText("domestic.victory.start")}
               </button>
               ${block === null
-                ? ""
-                : html`<span class="text-gray-400"
+                ? null
+                : html`<span data-victory-block class="text-sm text-red-300"
                     >${translateText(`domestic.victory.blocked.${block}`)}</span
                   >`}
             </div>`;
