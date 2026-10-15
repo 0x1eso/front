@@ -12,7 +12,11 @@ export interface NationRecord {
   death: number | null;
 }
 
-export type Verdict = "ok" | "below" | "above" | "never";
+/**
+ * "rare": fewer than half the nations it is about reached it, so its mean
+ * says little. "short": the run ended before the milestone was due.
+ */
+export type Verdict = "ok" | "below" | "above" | "never" | "rare" | "short";
 
 export interface MilestoneTarget {
   label: string;
@@ -129,7 +133,16 @@ function aliveAt(r: NationRecord, minute: number | null): boolean {
   return r.death === null || (minute !== null && r.death > minute);
 }
 
-export function summarize(records: readonly NationRecord[]): MilestoneRow[] {
+/**
+ * One row per milestone. `runMinutes`, the length of the runs: a milestone
+ * due later (MilestoneTarget.aliveAt) is "short" rather than judged on the
+ * nations that merely survived the run (clamping aliveAt to the run would
+ * change nothing, as no nation dies after it ends).
+ */
+export function summarize(
+  records: readonly NationRecord[],
+  runMinutes: number | null = null,
+): MilestoneRow[] {
   return MILESTONE_TARGETS.map((m) => {
     const pool = records.filter(
       (r) =>
@@ -139,14 +152,22 @@ export function summarize(records: readonly NationRecord[]): MilestoneRow[] {
     );
     const values = pool.map(m.pick);
     const measured = mean(values);
+    const reached = values.filter((v) => v !== null).length;
+    const due =
+      runMinutes === null || m.aliveAt === null || runMinutes >= m.aliveAt;
+    const verdict = (slack: number): Verdict => {
+      if (!due) return "short";
+      if (measured !== null && reached * 2 < pool.length) return "rare";
+      return milestoneVerdict(measured, m.target, slack);
+    };
     return {
       label: m.label,
       measured,
-      reached: values.filter((v) => v !== null).length,
+      reached,
       total: pool.length,
       target: m.target,
-      verdict: milestoneVerdict(measured, m.target, m.slack),
-      strict: milestoneVerdict(measured, m.target, 0),
+      verdict: verdict(m.slack),
+      strict: verdict(0),
     };
   });
 }

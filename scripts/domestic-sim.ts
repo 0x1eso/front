@@ -5,8 +5,9 @@
  * when each nation reached the spec §11.2 milestones, then compares the
  * averages with the targets (times may miss by up to 3 minutes; "strict"
  * allows no slack). Each milestone counts the nations alive when it is due
- * (see MilestoneTarget.aliveAt). Not part of the test suite: run it by hand
- * after changing Balance.ts.
+ * (see MilestoneTarget.aliveAt); one fewer than half of them reach is
+ * "rare", one due after the run's end "short". Not part of the test suite:
+ * run it by hand after changing Balance.ts.
  *
  *   npx tsx scripts/domestic-sim.ts [--map world] [--seeds 3] [--minutes 30]
  *                                   [--difficulty Hard]
@@ -288,7 +289,7 @@ async function main(): Promise<void> {
   console.log(
     formatTable(
       ["milestone", "measured", "reached", "target", "verdict", "strict"],
-      summarize(all).map((row) => [
+      summarize(all, opts.minutes).map((row) => [
         row.label,
         fmt(row.measured),
         `${row.reached}/${row.total}`,

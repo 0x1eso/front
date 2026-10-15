@@ -98,3 +98,43 @@ describe("domestic sim report", () => {
     expect(tier1).toMatchObject({ verdict: "ok", strict: "below" });
   });
 });
+
+describe("domestic sim report: reach and run length", () => {
+  test("a milestone fewer than half the nations reach is rare, whatever its mean", () => {
+    const rows = summarize([
+      record("scholar", null, 19),
+      record("scholar", null, null),
+      record("zealot", null, null),
+    ]);
+    expect(
+      rows.find((r) => r.label === "project start (scholar, zealot)"),
+    ).toMatchObject({
+      measured: 19,
+      reached: 1,
+      total: 3,
+      verdict: "rare",
+      strict: "rare",
+    });
+  });
+
+  test("half the nations is enough", () => {
+    const rows = summarize([
+      record("scholar", null, 19),
+      record("zealot", null, null),
+    ]);
+    expect(
+      rows.find((r) => r.label === "project start (scholar, zealot)"),
+    ).toMatchObject({ verdict: "ok", strict: "ok" });
+  });
+
+  test("a milestone due after the run's end is short", () => {
+    const rows = summarize([record("scholar", 11, 19)], 10);
+    const byLabel = new Map(rows.map((r) => [r.label, r]));
+    expect(byLabel.get("government tier 1")).toMatchObject({ verdict: "ok" });
+    expect(byLabel.get("project start (scholar, zealot)")).toMatchObject({
+      verdict: "short",
+      strict: "short",
+    });
+    expect(byLabel.get("techs per game")).toMatchObject({ verdict: "short" });
+  });
+});
