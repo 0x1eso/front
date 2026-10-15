@@ -243,15 +243,22 @@ export class AiAttackBehavior {
       if (this.sendAttack(this.game.terraNullius())) return;
     }
 
-    const holdBoats =
-      this.holdsFireForProject() || this.holdsBoatsUnderAttack();
+    // Holding fire for a project still allows a boat to unowned land.
+    const holdFire = this.holdsFireForProject();
+    const holdBoats = holdFire || this.holdsBoatsUnderAttack();
     if (borderingEnemies.length === 0) {
       if (!holdBoats && this.random.chance(5)) {
         this.attackWithRandomBoat();
+      } else if (holdFire && this.random.chance(5)) {
+        this.attackWithRandomBoat([], true);
       }
     } else {
       if (!holdBoats && this.random.chance(10)) {
         this.attackWithRandomBoat(borderingEnemies);
+        return;
+      }
+      if (holdFire && this.random.chance(10)) {
+        this.attackWithRandomBoat(borderingEnemies, true);
         return;
       }
 
@@ -261,7 +268,10 @@ export class AiAttackBehavior {
     this.attackBestTarget(borderingFriends, borderingEnemies);
   }
 
-  private attackWithRandomBoat(borderingEnemies: Player[] = []) {
+  private attackWithRandomBoat(
+    borderingEnemies: Player[] = [],
+    unownedOnly: boolean = false,
+  ) {
     if (this.player === null) throw new Error("not initialized");
 
     if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
@@ -285,14 +295,17 @@ export class AiAttackBehavior {
     const src = this.random.randElement(shore);
 
     // First look for high-interest targets (unowned or bot-owned). Mainly relevant for earlygame
-    let found = this.findRandomBoatTarget(src, borderingEnemies, true);
-    if (found === null) {
+    let found = this.findRandomBoatTarget(
+      src,
+      borderingEnemies,
+      true,
+      unownedOnly,
+    );
+    if (found === null && !unownedOnly) {
       // None found? Then look for players
       found = this.findRandomBoatTarget(src, borderingEnemies, false);
-      if (found === null) {
-        return;
-      }
     }
+    if (found === null) return;
     const { tile: dst, launch } = found;
     if (this.sail(launch, dst).blocker !== null) return;
 
@@ -321,6 +334,7 @@ export class AiAttackBehavior {
     tile: TileRef,
     borderingEnemies: Player[],
     highInterestOnly: boolean = false,
+    unownedOnly: boolean = false,
   ): { tile: TileRef; launch: TileRef } | null {
     if (this.player === null) throw new Error("not initialized");
     const x = this.game.x(tile);
@@ -361,7 +375,9 @@ export class AiAttackBehavior {
       }
 
       let matchesCriteria: boolean;
-      if (highInterestOnly) {
+      if (unownedOnly) {
+        matchesCriteria = !owner.isPlayer();
+      } else if (highInterestOnly) {
         // High-interest targeting: prioritize unowned tiles or tiles owned by bots
         matchesCriteria = !owner.isPlayer() || owner.type() === PlayerType.Bot;
       } else {
