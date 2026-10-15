@@ -68,6 +68,11 @@ const CONFIG: GameConfig = {
   conquestPercent: 100,
 };
 
+// A vanilla config: no domestic fields at all.
+const VANILLA_CONFIG: GameConfig = { ...CONFIG };
+delete VANILLA_CONFIG.domesticMode;
+delete VANILLA_CONFIG.conquestPercent;
+
 // One of every intent type, as stamped intents inside a turn.
 const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "spawn", clientID: P1, tile: 123456 },
@@ -296,6 +301,13 @@ const LOBBY_MESSAGES: PublicLobbyMessage[] = [
           numClients: 42,
           startsAt: 1_700_000_030_000,
           gameConfig: CONFIG,
+          publicGameType: "ffa",
+        },
+        {
+          gameID: "vAn1lla0",
+          numClients: 7,
+          startsAt: 1_700_000_030_000,
+          gameConfig: VANILLA_CONFIG,
           publicGameType: "ffa",
         },
       ],
