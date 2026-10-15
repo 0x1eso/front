@@ -49,7 +49,7 @@ class TradeStationStopHandler implements TrainStopHandler {
       );
       stationOwner.addGold(stationGold, station.tile());
       stationOwner.addTrainGold(stationGold);
-      mg.stats().trainExternalTrade(stationOwner, gold);
+      mg.stats().trainExternalTrade(stationOwner, stationGold);
     }
     const ownerGold = domesticTradeGold(
       gold,
@@ -59,7 +59,7 @@ class TradeStationStopHandler implements TrainStopHandler {
     );
     trainOwner.addGold(ownerGold, station.tile());
     trainOwner.addTrainGold(ownerGold);
-    mg.stats().trainSelfTrade(trainOwner, gold);
+    mg.stats().trainSelfTrade(trainOwner, ownerGold);
   }
 }
 

@@ -110,7 +110,8 @@ function payResearchSubsidy(player: Player): boolean {
 /**
  * Theocracy's tithe (spec §6.2): 100 × sqrt(land share %) gold a second.
  * It is part of goldIncome (spec §7.2), so goldIncome and allGold apply, and
- * the lobby's gold multiplier like the rest of the base income.
+ * the player's gold multiplier like the rest of the base income. The stats
+ * count it as worker gold.
  */
 function payTithe(
   mg: Game,
@@ -121,9 +122,11 @@ function payTithe(
   const pct = capCombinedPct(d.pct("goldIncome") + d.pct("allGold"));
   const gold = Math.floor(
     applyPct(TITHE_GOLD_PER_SQRT_PCT * Math.sqrt(sharePct), pct) *
-      mg.config().goldMultiplier(),
+      mg.config().goldMultiplierFor(player),
   );
-  if (gold > 0) player.addGold(BigInt(gold));
+  if (gold <= 0) return;
+  player.addGold(BigInt(gold));
+  mg.stats().goldWork(player, gold);
 }
 
 /**
@@ -225,7 +228,11 @@ export function processDomesticSecond(
     const interest = player.gold() / INTEREST_DIVISOR_PER_SEC;
     const paid =
       interest < INTEREST_CAP_PER_SEC ? interest : INTEREST_CAP_PER_SEC;
-    if (paid > 0n) player.addGold(paid);
+    if (paid > 0n) {
+      player.addGold(paid);
+      // Interest is income the economy produced, like the workers'.
+      mg.stats().goldWork(player, paid);
+    }
   }
 
   const finished = d.advanceResearch(DOMESTIC_INTERVAL_TICKS);

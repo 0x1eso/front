@@ -220,7 +220,8 @@ export class TradeShipExecution implements Execution {
       srcOwner.addTradeGold(srcGold);
       dstOwner.addTradeGold(dstGold);
       // Record stats
-      this.mg.stats().boatArriveTrade(srcOwner, dstOwner, gold);
+      // Each side's stat is what it received (equal outside domestic mode).
+      this.mg.stats().boatArriveTrade(srcOwner, dstOwner, srcGold, dstGold);
     }
     return;
   }

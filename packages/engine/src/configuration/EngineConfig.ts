@@ -424,7 +424,8 @@ export class EngineConfig extends Config {
     );
   }
 
-  private goldMultiplierFor(player: PlayerLike): number {
+  /** The lobby's gold multiplier, or the host's cheat one for the lobby creator. */
+  goldMultiplierFor(player: PlayerLike): number {
     const base = this.goldMultiplier();
     const hc = this._gameConfig.hostCheats;
     if (hc?.goldMultiplier && player.isLobbyCreator()) {
