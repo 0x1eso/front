@@ -207,6 +207,8 @@ export interface UnitUpdate {
   targetTile?: TileRef; // Only for nukes
   health?: number;
   underConstruction?: boolean;
+  /** Domestic mode: this structure's real build time, for the progress bar. */
+  constructionTicks?: number;
   missileTimerQueue: number[];
   level: number;
   hasTrainStation: boolean;

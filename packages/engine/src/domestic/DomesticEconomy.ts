@@ -385,3 +385,21 @@ export function domesticCombat(
     defenderLoss: statScale(d, "defenseLoss"),
   };
 }
+
+/**
+ * A structure's build time under buildTime (and cityBuildTime for cities),
+ * capped at -60% together and never below one tick. Instant builds (0)
+ * stay instant.
+ */
+export function domesticConstructionTicks(
+  base: number,
+  player: Player,
+  type: UnitType,
+): number {
+  const d = player.domestic();
+  if (d === null || base <= 0) return base;
+  let pct = d.pct("buildTime");
+  if (type === UnitType.City) pct += d.pct("cityBuildTime");
+  pct = capCombinedPct(pct);
+  return pct === 0 ? base : Math.max(1, Math.round((base * (100 + pct)) / 100));
+}

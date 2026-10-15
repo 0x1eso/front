@@ -6,6 +6,7 @@ import {
   zRef,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { domesticConstructionTicks } from "../domestic/DomesticEconomy";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { UnitTypeSchema } from "../snapshot/CommonSchemas";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -81,8 +82,16 @@ export class ConstructionExecution implements Execution {
         spawnTile,
         {},
       );
-      const duration = info.constructionDuration ?? 0;
+      const duration = domesticConstructionTicks(
+        info.constructionDuration ?? 0,
+        this.player,
+        this.constructionType,
+      );
       if (duration > 0) {
+        if (this.player.domestic() !== null) {
+          // The client's progress bar reads the real build time.
+          this.structure.setConstructionTicks(duration);
+        }
         this.structure.setUnderConstruction(true);
         this.ticksUntilComplete = duration;
         return;
