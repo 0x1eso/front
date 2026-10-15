@@ -5,6 +5,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import {
+  BASE_YIELD_PER_SEC,
   BUILDING_UPKEEP_PER_LEVEL,
   BUILDING_YIELD_PER_LEVEL,
   DEMOBILIZE_PCT_PER_SEC,
@@ -83,7 +84,8 @@ export function processDomesticSecond(
   const institutesRun = payBuildingUpkeep(player, instituteLevels);
   const officesRun = payBuildingUpkeep(player, officeLevels);
 
-  const territory = territoryYield(mg, player);
+  // Flat base output plus territory, before the science/political modifiers.
+  const landYield = BASE_YIELD_PER_SEC + territoryYield(mg, player);
   const mult = yieldMultiplier(mg, player);
   const instituteOutput = institutesRun
     ? applyPct(
@@ -95,9 +97,9 @@ export function processDomesticSecond(
     ? applyPct(officeLevels * BUILDING_YIELD_PER_LEVEL, d.pct("adminOutput"))
     : 0;
   const science =
-    applyPct(territory + instituteOutput, d.pct("science")) * mult;
+    applyPct(landYield + instituteOutput, d.pct("science")) * mult;
   const political =
-    applyPct(territory + officeOutput, d.pct("political")) * mult;
+    applyPct(landYield + officeOutput, d.pct("political")) * mult;
   d.addYield(Math.round(science * MILLI), Math.round(political * MILLI));
 
   const maxTroops = mg.config().maxTroops(player);

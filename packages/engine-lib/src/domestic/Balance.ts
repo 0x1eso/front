@@ -7,8 +7,10 @@ export const DOMESTIC_INTERVAL_TICKS = 10;
 /** Science and political power are stored as integer milli-points. */
 export const MILLI = 1000;
 
+/** Flat science and political output per second for every domestic player. */
+export const BASE_YIELD_PER_SEC = 1;
 /** Territory output: this many points per second per sqrt(land share %). */
-export const TERRITORY_YIELD_PER_SQRT_PCT = 0.5;
+export const TERRITORY_YIELD_PER_SQRT_PCT = 1.5;
 /** Research institute / admin office output per level. */
 export const BUILDING_YIELD_PER_LEVEL = 1;
 /** Research institute / admin office gold upkeep per level. */

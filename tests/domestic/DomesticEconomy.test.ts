@@ -23,13 +23,25 @@ function second(game: Game, player: Player): void {
 }
 
 describe("domestic economy, one second", () => {
-  test("territory yields 0.5 * sqrt(land share %) of each resource", async () => {
+  test("base 1/s plus territory 1.5 * sqrt(land share %) of each resource", async () => {
     const { game, player } = await readyPlayer();
     second(game, player);
     const d = player.domestic()!;
-    expect(d.scienceMilliAvailable()).toBe(500);
-    expect(d.politicalMilliAvailable()).toBe(500);
-    expect(d.cumulativeScienceMilli()).toBe(500);
+    expect(d.scienceMilliAvailable()).toBe(2500);
+    expect(d.politicalMilliAvailable()).toBe(2500);
+    expect(d.cumulativeScienceMilli()).toBe(2500);
+  });
+
+  test("the base yield needs no territory", async () => {
+    const { game, player } = await readyPlayer();
+    const empty = game.addPlayer(
+      new PlayerInfo("empty", PlayerType.Human, null, "empty_id"),
+    );
+    expect(empty.numTilesOwned()).toBe(0);
+    second(game, empty);
+    expect(empty.domestic()!.scienceMilliAvailable()).toBe(1000);
+    expect(empty.domestic()!.politicalMilliAvailable()).toBe(1000);
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(0);
   });
 
   test("nations' output scales with difficulty (Medium x0.85)", async () => {
@@ -39,7 +51,7 @@ describe("domestic economy, one second", () => {
     );
     conquerSquare(game, nation, 50, 50, 10);
     second(game, nation);
-    expect(nation.domestic()!.scienceMilliAvailable()).toBe(425);
+    expect(nation.domestic()!.scienceMilliAvailable()).toBe(2125);
   });
 
   test("an institute adds 1/s for 50 gold/s; academia adds 40%", async () => {
@@ -49,8 +61,8 @@ describe("domestic economy, one second", () => {
     grantTechs(player, "academia");
     const goldBefore = player.gold();
     second(game, player);
-    expect(player.domestic()!.scienceMilliAvailable()).toBe(1900);
-    expect(player.domestic()!.politicalMilliAvailable()).toBe(500);
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(3900);
+    expect(player.domestic()!.politicalMilliAvailable()).toBe(2500);
     expect(player.gold()).toBe(goldBefore - 50n);
   });
 
@@ -60,7 +72,7 @@ describe("domestic economy, one second", () => {
     player.buildUnit(UnitType.ResearchInstitute, game.ref(5, 5), {});
     expect(player.gold()).toBe(0n);
     second(game, player);
-    expect(player.domestic()!.scienceMilliAvailable()).toBe(500);
+    expect(player.domestic()!.scienceMilliAvailable()).toBe(2500);
     expect(player.gold()).toBe(0n);
   });
 
@@ -136,8 +148,8 @@ describe("DomesticExecution", () => {
     game.addExecution(new DomesticExecution());
     executeTicks(game, 1); // init
     executeTicks(game, 10);
-    expect(player.domestic()!.cumulativeScienceMilli()).toBe(500);
+    expect(player.domestic()!.cumulativeScienceMilli()).toBe(2500);
     executeTicks(game, 10);
-    expect(player.domestic()!.cumulativeScienceMilli()).toBe(1000);
+    expect(player.domestic()!.cumulativeScienceMilli()).toBe(5000);
   });
 });
