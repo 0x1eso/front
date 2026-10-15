@@ -152,6 +152,21 @@ build_id() {
     echo "${head:0:12}-dirty-${hash:0:12}"
 }
 
+# The version label the build shows (nav bar, footer): the commit's date and
+# short hash, e.g. 2026.10.15+3e5f4f7, ".dirty" for uncommitted changes.
+# Untagged, it would show resources/version.txt's placeholder; vite.config.ts
+# serves GAME_VERSION in the file's place (src/server/GameVersionOverride.ts).
+game_version() {
+    local head date
+    head="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+    date="$(git -C "$REPO_ROOT" log -1 --format=%cd --date=format:%Y.%m.%d HEAD)"
+    if tree_dirty; then
+        echo "$date+${head:0:7}.dirty"
+    else
+        echo "$date+${head:0:7}"
+    fi
+}
+
 needs_build() {
     [[ -f "$REPO_ROOT/static/index.html" && -f "$BUILD_STAMP" ]] || return 0
     [[ "$(cat "$BUILD_STAMP")" != "$1" ]]
@@ -160,9 +175,11 @@ needs_build() {
 # build BUILD_ID. The stamp goes first, so a failed build is never taken
 # for a finished one.
 build() {
+    local version
+    version="$(game_version)"
     rm -f "$BUILD_STAMP"
-    say "building (npm run build-prod); this takes a few minutes"
-    (cd "$REPO_ROOT" && npm run build-prod)
+    say "building $version (npm run build-prod); this takes a few minutes"
+    (cd "$REPO_ROOT" && GAME_VERSION="$version" npm run build-prod)
     echo "$1" > "$BUILD_STAMP"
 }
 

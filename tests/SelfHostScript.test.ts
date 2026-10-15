@@ -152,7 +152,7 @@ while true; do sleep 0.1; done
 `;
 
 const FAKE_NPM = `#!/usr/bin/env bash
-echo "$*" >> "$FAKE_STATE/npm.log"
+echo "$* GAME_VERSION=\${GAME_VERSION:-}" >> "$FAKE_STATE/npm.log"
 mkdir -p static
 echo built > static/index.html
 `;
@@ -301,7 +301,15 @@ describe("game-night.sh start and stop", { timeout: 60_000 }, () => {
       .trim()
       .split("\n")
       .map((line) => line.split(" "));
-  const lastCommit = () => serverRuns().at(-1)?.[1].replace("GIT_COMMIT=", "");
+  const last = <T>(items: T[]): T => items[items.length - 1];
+  const lastCommit = () => last(serverRuns())[1].replace("GIT_COMMIT=", "");
+  const lastVersion = () =>
+    last(box.read("npm.log").trim().split("\n")).split("GAME_VERSION=")[1];
+  // The label an untagged build shows instead of version.txt's placeholder.
+  const versionOf = (suffix = "") => {
+    const date = box.git("log", "-1", "--format=%cd", "--date=format:%Y.%m.%d");
+    return `${date}+${box.git("rev-parse", "HEAD").slice(0, 7)}${suffix}`;
+  };
 
   test("builds a commit once and serves it as a production server", () => {
     const head = box.git("rev-parse", "HEAD");
@@ -309,6 +317,8 @@ describe("game-night.sh start and stop", { timeout: 60_000 }, () => {
     expect(first.stderr).not.toMatch(/uncommitted/);
     expect(first.status).toBe(0);
     expect(builds()).toBe(1);
+    expect(lastVersion()).toBe(versionOf());
+    expect(lastVersion()).toMatch(/^\d{4}\.\d{2}\.\d{2}\+[0-9a-f]{7}$/);
     expect(serverRuns()).toEqual([
       ["NODE_ENV=production", `GIT_COMMIT=${head}`],
     ]);
@@ -331,6 +341,7 @@ describe("game-night.sh start and stop", { timeout: 60_000 }, () => {
     expect(dirty.status).toBe(0);
     expect(dirty.stderr).toMatch(/uncommitted changes.*AGPL/);
     expect(builds()).toBe(1);
+    expect(lastVersion()).toBe(versionOf(".dirty"));
     const firstDirty = lastCommit();
     expect(firstDirty).toMatch(
       new RegExp(`^${head.slice(0, 12)}-dirty-[0-9a-f]{12}$`),
@@ -356,6 +367,7 @@ describe("game-night.sh start and stop", { timeout: 60_000 }, () => {
     expect(clean.stderr).not.toMatch(/uncommitted/);
     expect(builds()).toBe(3);
     expect(lastCommit()).toBe(head);
+    expect(lastVersion()).toBe(versionOf());
   });
 
   test("an untracked file changes a dirty build", () => {

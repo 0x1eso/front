@@ -13,6 +13,7 @@ import { fileURLToPath } from "url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { createHtmlPlugin } from "vite-plugin-html";
 import { configDefaults } from "vitest/config";
+import { gameVersionOverride } from "./src/server/GameVersionOverride";
 import {
   buildPublicAssetManifest,
   copyRootPublicFiles,
@@ -386,6 +387,8 @@ export default defineConfig(({ mode }) => {
     },
 
     plugins: [
+      // An untagged self-hosted build's version label (game-night.sh).
+      gameVersionOverride(env.GAME_VERSION),
       ...(!isProduction
         ? [
             serveRootPublicDir(getPublicDir(resourcesDir)),
