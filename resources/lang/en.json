@@ -1643,7 +1643,7 @@
     "dismiss": "Dismiss",
     "error": "Couldn't save that. Please try again.",
     "no": "No thanks",
-    "title": "Keep up with OpenFront?",
+    "title": "Keep up with the game?",
     "yes": "Yes please"
   },
   "matchmaking_modal": {
@@ -2125,10 +2125,10 @@
     "processing_fetching": "Fetching the game record",
     "processing_simulating": "Replaying the game: {percent}%",
     "timeline": "Replay timeline",
-    "unavailable_desync": "This game doesn't replay correctly on this version of OpenFront.",
+    "unavailable_desync": "This game doesn't replay correctly on this version of the game.",
     "unavailable_failed": "Processing this game failed.",
     "unavailable_not_found": "This game could not be found.",
-    "unavailable_other_build": "This game was played on another version of OpenFront.",
+    "unavailable_other_build": "This game was played on another version of the game.",
     "unavailable_unreachable": "The game could not be downloaded. Check your connection and try again.",
     "unverified": "This game's record has no checks, so this replay couldn't be verified against the game that was played.",
     "watch_classic": "Watch the old replay instead"
@@ -2749,7 +2749,7 @@
     "other_won": "{player} has won!",
     "requeue": "Play Again",
     "spectate": "Spectate",
-    "support_openfront": "Support OpenFront!",
+    "support_openfront": "Support the game!",
     "territory_pattern": "Purchase a territory skin to go ad-free!",
     "you_won": "You Won!",
     "your_team": "Your team won!",

@@ -79,8 +79,9 @@ describe("fork branding", () => {
 });
 
 // Text a guest meets on this server. These must not present the game as
-// OpenFront. The rest of en.json's OpenFront mentions sit behind account,
-// store and Steam screens, which a self-hosted server hides.
+// OpenFront. Some other strings in en.json still name OpenFront: they sit
+// behind account, store and Steam screens a self-hosted server hides, or are
+// unused. Locales other than en and ko are left as upstream wrote them.
 const GUEST_VISIBLE_KEYS = [
   "common.backend_unreachable",
   "mode_selector.servers_unreachable",
@@ -91,6 +92,10 @@ const GUEST_VISIBLE_KEYS = [
   "ios_banner.text",
   "troubleshooting.chromium_tip",
   "update_available.message",
+  "win_modal.support_openfront",
+  "replay_viewer.unavailable_desync",
+  "replay_viewer.unavailable_other_build",
+  "marketing_consent.title",
 ];
 
 describe.each(["en", "ko"])("%s guest-visible text", (lang) => {
