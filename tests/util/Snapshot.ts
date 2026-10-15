@@ -147,6 +147,8 @@ export const DERIVED_FIELDS = new Set<string>([
   "myUnitCountMemo",
   "myUnitsOwnedMemo",
   "nearbyMemo",
+  // PlayerDomestic
+  "domesticDataCache",
   // SharedWaterCache
   "playerWater",
   // Config / EngineConfig

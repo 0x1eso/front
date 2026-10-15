@@ -43,6 +43,7 @@ import {
 import { AllPlayersStats, ClientID } from "@openfront/engine-api/Schemas";
 import { MotionPlanRecord } from "@openfront/engine-lib/game/MotionPlans";
 import type { EngineConfig } from "../configuration/EngineConfig";
+import type { PlayerDomestic } from "../domestic/PlayerDomestic";
 import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import type { ExecRecord, SnapshotWriter } from "../snapshot/SnapshotContext";
@@ -324,6 +325,8 @@ export interface Player extends PlayerLike {
   isPlayer(): this is Player;
   toString(): string;
   isLobbyCreator(): boolean;
+  /** Domestic-mode state; null outside domestic mode and for bots. */
+  domestic(): PlayerDomestic | null;
 
   // State & Properties
   isAlive(): boolean;

@@ -1,3 +1,4 @@
+import type { DomesticData } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { TileRef } from "./GameMap";
 import {
@@ -279,6 +280,8 @@ export interface PlayerUpdate {
   betrayals?: number;
   lastDeleteUnitTick?: Tick;
   isLobbyCreator?: boolean;
+  /** Domestic mode only; absent for bots and outside domestic mode. */
+  domestic?: DomesticData;
 }
 
 export interface AllianceView {

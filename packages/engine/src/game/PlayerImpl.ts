@@ -56,6 +56,10 @@ import {
 } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import {
+  DomesticStateSchema,
+  PlayerDomestic,
+} from "../domestic/PlayerDomestic";
+import {
   newPlayerInfo,
   playerInfoData,
   PlayerInfoSchema,
@@ -149,6 +153,7 @@ export class PlayerImpl implements Player {
   private _piracyGold: bigint = 0n;
   /** Cumulative gold received from all sources (incremented in addGold). */
   private _goldEarned: bigint = 0n;
+  private _domestic: PlayerDomestic | null = null;
 
   markedTraitorTick = -1;
   markedDoomsdayClockTick = -1;
@@ -217,6 +222,10 @@ export class PlayerImpl implements Player {
     this._troops = toInt(startTroops);
     this._gold = mg.config().startingGold(playerInfo);
     this._pseudo_random = new PseudoRandom(simpleHash(this.playerInfo.id));
+    this._domestic =
+      mg.config().domesticMode() && playerInfo.playerType !== PlayerType.Bot
+        ? new PlayerDomestic()
+        : null;
   }
 
   largestClusterBoundingBox: { min: Cell; max: Cell } | null;
@@ -416,6 +425,7 @@ export class PlayerImpl implements Player {
       betrayals: this._betrayalCount,
       lastDeleteUnitTick: this.lastDeleteUnitTick,
       isLobbyCreator: this.isLobbyCreator(),
+      ...(this._domestic === null ? {} : { domestic: this._domestic.toData() }),
     };
   }
 
@@ -732,6 +742,10 @@ export class PlayerImpl implements Player {
 
   isLobbyCreator(): boolean {
     return this.playerInfo.isLobbyCreator;
+  }
+
+  domestic(): PlayerDomestic | null {
+    return this._domestic;
   }
 
   isAlive(): boolean {
@@ -2039,6 +2053,9 @@ export class PlayerImpl implements Player {
       numUnitsConstructed: Object.entries(this.numUnitsConstructed).map(
         ([type, n]) => [type as UnitType, n],
       ),
+      ...(this._domestic === null
+        ? {}
+        : { domestic: this._domestic.snapshot() }),
     };
   }
 
@@ -2113,6 +2130,7 @@ export class PlayerImpl implements Player {
       : (box as null);
     this.numUnitsConstructed = Object.fromEntries(s.numUnitsConstructed);
     this.nearbyMemo = null;
+    this._domestic = s.domestic ? PlayerDomestic.restore(s.domestic) : null;
   }
 }
 
@@ -2182,6 +2200,7 @@ export const PlayerSnapshot = snapshotType({
       .nullable()
       .optional(),
     numUnitsConstructed: z.array(z.tuple([UnitTypeSchema, zInt()])),
+    domestic: DomesticStateSchema.nullable().optional(),
   }),
 });
 export type PlayerState = z.infer<typeof PlayerSnapshot.schema>;
