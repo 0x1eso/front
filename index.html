@@ -6,7 +6,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <title data-i18n="main.title">OpenFront (ALPHA)</title>
+    <!-- gameTitle: the game's name (packages/shared/src/Branding.ts), from
+         RenderHtml.ts and vite.config.ts. Guarded like every other local. -->
+    <title><%= typeof gameTitle !== 'undefined' ? gameTitle : '' %></title>
     <link rel="manifest" href="<%- manifestHref %>" />
     <link rel="icon" type="image/svg+xml" href="<%- faviconHref %>" />
 
@@ -135,15 +137,16 @@
     </style>
 
     <!-- SEO -->
-    <link rel="canonical" href="https://openfront.io/" />
     <meta
       name="description"
       content="Conquer the world in this multiplayer battle royale! Expand your nation, eliminate opponents, and dominate the map in this fast-paced IO game."
     />
 
     <!-- Open Graph -->
-    <meta property="og:url" content="https://openfront.io/" />
-    <meta property="og:title" content="OpenFront - Battle Royale" />
+    <meta
+      property="og:title"
+      content="<%= typeof gameTitle !== 'undefined' ? gameTitle : '' %>"
+    />
     <meta
       property="og:description"
       content="Conquer the world in this multiplayer battle royale! Expand your nation, eliminate opponents, and dominate the map in this fast-paced IO game."
@@ -156,9 +159,7 @@
       {
         "@context": "https://schema.org",
         "@type": "VideoGame",
-        "name": "OpenFront",
-        "alternateName": "OpenFront.io",
-        "url": "https://openfront.io/",
+        "name": <%- JSON.stringify(typeof gameTitle !== 'undefined' ? gameTitle : '') %>,
         "description": "Conquer the world in this multiplayer battle royale! Expand your nation, eliminate opponents, and dominate the map in this fast-paced IO game.",
         "applicationCategory": "Game",
         "operatingSystem": "Any",
@@ -167,11 +168,11 @@
         "playMode": "MultiPlayer",
         "inLanguage": "en",
         "isAccessibleForFree": true,
-        "sameAs": [
-          "https://github.com/openfrontio/OpenFrontIO",
-          "https://discord.gg/openfront",
-          "https://www.reddit.com/r/OpenFront/"
-        ]
+        "isBasedOn": {
+          "@type": "VideoGame",
+          "name": "OpenFront",
+          "url": "https://github.com/openfrontio/OpenFrontIO"
+        }
       }
     </script>
 

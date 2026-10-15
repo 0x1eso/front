@@ -186,6 +186,9 @@
     "title": "Your account is banned",
     "until": "Banned until {date}."
   },
+  "branding": {
+    "title": "{name}"
+  },
   "build_menu": {
     "desc": {
       "atom_bomb": "Small explosion",
@@ -1454,7 +1457,6 @@
     "solo": "Solo",
     "store": "Store",
     "terms_of_service": "Terms of Service",
-    "title": "OpenFront (ALPHA)",
     "troubleshooting": "Troubleshooting",
     "tutorial": "Tutorial",
     "user_avatar_alt": "{username}'s avatar",

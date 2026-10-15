@@ -1,4 +1,5 @@
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { GAME_TITLE } from "@openfront/shared/Branding";
 import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { desktopSteamLocale } from "./DesktopShell";
@@ -297,7 +298,7 @@ export class LangSelector extends LitElement {
       "tutorial-panel",
     ];
 
-    document.title = this.translateText("main.title") ?? document.title;
+    document.title = this.translateText("branding.title", { name: GAME_TITLE });
 
     document.querySelectorAll("[data-i18n]").forEach((element) => {
       const key = element.getAttribute("data-i18n");

@@ -1,4 +1,5 @@
 import { buildAssetUrl } from "@openfront/shared/AssetPaths";
+import { GAME_TITLE } from "@openfront/shared/Branding";
 import ejs from "ejs";
 import type { Response } from "express";
 import fs from "fs/promises";
@@ -86,6 +87,8 @@ export async function renderHtmlContent(
     // build plugin inject-cdn-base-template rewrites Vite's emitted /assets/
     // refs to use this placeholder.
     cdnBaseRaw: cdnBase,
+    // The game's name for <title>, Open Graph and JSON-LD (Branding.ts).
+    gameTitle: GAME_TITLE,
     gameEnv: JSON.stringify(ServerEnv.gameEnvName()),
     turnstileSiteKey: JSON.stringify(ServerEnv.turnstileSiteKey()),
     jwtAudience: JSON.stringify(ServerEnv.jwtAudience()),

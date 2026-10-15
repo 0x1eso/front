@@ -172,6 +172,9 @@
     "title": "계정이 차단되었습니다",
     "until": "{date}까지 차단되었습니다."
   },
+  "branding": {
+    "title": "스테이트크래프트"
+  },
   "build_menu": {
     "desc": {
       "atom_bomb": "소형 폭발을 일으킵니다",

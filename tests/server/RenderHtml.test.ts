@@ -1,3 +1,4 @@
+import { GAME_TITLE, UPSTREAM_URL } from "@openfront/shared/Branding";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
@@ -398,6 +399,22 @@ describe("RenderHtml environment-only render", () => {
     expect(match).not.toBeNull();
     const data = JSON.parse(match![1]);
     expect(data["@type"]).toBe("VideoGame");
-    expect(data.name).toBe("OpenFront");
+    expect(data.name).toBe(GAME_TITLE);
+    expect(data.isBasedOn).toEqual({
+      "@type": "VideoGame",
+      name: "OpenFront",
+      url: UPSTREAM_URL,
+    });
+  });
+
+  it("titles the page with the game's name and links no openfront.io page", async () => {
+    const html = await renderHtmlContent(REAL_TEMPLATE);
+    expect(html).toContain(`<title>${GAME_TITLE}</title>`);
+    expect(html).toMatch(
+      new RegExp(
+        `<meta\\s+property="og:title"\\s+content="${GAME_TITLE}"\\s*/>`,
+      ),
+    );
+    expect(html).not.toContain("https://openfront.io/");
   });
 });

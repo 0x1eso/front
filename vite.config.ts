@@ -3,6 +3,7 @@ import {
   buildAssetUrl,
 } from "@openfront/shared/AssetPaths";
 import { rewriteAssetsForCdn } from "@openfront/shared/AssetUrls";
+import { GAME_TITLE } from "@openfront/shared/Branding";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "fs";
 import http from "http";
@@ -228,6 +229,8 @@ export default defineConfig(({ mode }) => {
       ? JSON.stringify(env.FARO_COLLECTOR_URL)
       : undefined,
     instanceId: JSON.stringify(env.INSTANCE_ID ?? "DEV_ID"),
+    // Raw, not JSON: index.html escapes it itself (<%= %>).
+    gameTitle: GAME_TITLE,
     manifestHref: buildAssetUrl("manifest.json", assetManifest, cdnBase),
     faviconHref: buildAssetUrl("images/Favicon.svg", assetManifest, cdnBase),
     gameplayScreenshotUrl: buildAssetUrl(
