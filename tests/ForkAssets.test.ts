@@ -84,6 +84,22 @@ describe("fork asset hygiene", () => {
     expect(offenders).toEqual([]);
   });
 
+  // CC BY-SA 4.0: what this fork drew or changed is credited as its own.
+  test("every asset this fork drew or modified is credited", () => {
+    const credits = fs.readFileSync(path.join(ROOT, "CREDITS.md"), "utf8");
+    for (const asset of [
+      "resources/images/Emblem.svg",
+      "resources/images/AdminOfficeIconWhite.svg",
+      "resources/images/ResearchInstituteIconWhite.svg",
+      "resources/atlases/src/admin-office.svg",
+      "resources/atlases/src/research-institute.svg",
+      "resources/atlases/icon-atlas.png",
+    ]) {
+      expect(fs.existsSync(path.join(ROOT, asset)), asset).toBe(true);
+      expect(credits, asset).toContain(asset);
+    }
+  });
+
   // The music slots (sounds/music/gameplay.mp3, menu-theme.mp3) ship empty.
   // A track dropped in must say where it came from.
   test("every music track in resources/ is credited", () => {
