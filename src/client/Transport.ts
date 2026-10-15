@@ -3,6 +3,7 @@ import {
   LawId,
   LawOption,
   TechId,
+  VictoryProjectKind,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
@@ -163,6 +164,13 @@ export class ProclaimLawIntentEvent implements GameEvent {
 
 export class ChooseGovernmentIntentEvent implements GameEvent {
   constructor(public readonly government: GovernmentId) {}
+}
+
+export class StartVictoryProjectIntentEvent implements GameEvent {
+  constructor(
+    public readonly kind: VictoryProjectKind,
+    public readonly unitId: number,
+  ) {}
 }
 
 export class SendTargetPlayerIntentEvent implements GameEvent {
@@ -350,6 +358,9 @@ export class Transport {
     this.subscribe(ProclaimLawIntentEvent, (e) => this.onProclaimLawIntent(e));
     this.subscribe(ChooseGovernmentIntentEvent, (e) =>
       this.onChooseGovernmentIntent(e),
+    );
+    this.subscribe(StartVictoryProjectIntentEvent, (e) =>
+      this.onStartVictoryProjectIntent(e),
     );
     this.subscribe(SendBoatAttackIntentEvent, (e) =>
       this.onSendBoatAttackIntent(e),
@@ -896,6 +907,14 @@ export class Transport {
     this.sendIntent({
       type: "choose_government",
       government: event.government,
+    });
+  }
+
+  private onStartVictoryProjectIntent(event: StartVictoryProjectIntentEvent) {
+    this.sendIntent({
+      type: "start_victory_project",
+      kind: event.kind,
+      unitId: event.unitId,
     });
   }
 
