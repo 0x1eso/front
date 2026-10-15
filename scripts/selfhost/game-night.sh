@@ -99,7 +99,7 @@ is_running() {
 # could not connect at all.
 port_in_use() {
     local code=0
-    curl -sS -o /dev/null --max-time 3 "http://127.0.0.1:$1/" > /dev/null 2>&1 \
+    curl -sS --noproxy '*' -o /dev/null --max-time 3 "http://127.0.0.1:$1/" > /dev/null 2>&1 \
         || code=$?
     [[ "$code" != 7 ]]
 }
@@ -211,7 +211,7 @@ wait_healthy() {
     for _ in $(seq 1 "$((HEALTH_TIMEOUT * 2))"); do
         is_running "$SERVER_PID_FILE" "$SERVER_CMD" \
             || server_failed "the server exited"
-        if curl -fsS --max-time 2 "$HEALTH_URL" > /dev/null 2>&1; then
+        if curl -fsS --noproxy '*' --max-time 2 "$HEALTH_URL" > /dev/null 2>&1; then
             is_running "$SERVER_PID_FILE" "$SERVER_CMD" \
                 || server_failed "the server exited"
             return 0
@@ -323,7 +323,7 @@ stop_group() {
 status() {
     local health
     if is_running "$SERVER_PID_FILE" "$SERVER_CMD"; then
-        health="$(curl -fsS --max-time 2 "$HEALTH_URL" 2> /dev/null || echo "not answering")"
+        health="$(curl -fsS --noproxy '*' --max-time 2 "$HEALTH_URL" 2> /dev/null || echo "not answering")"
         echo "server: running (pid $(cat "$SERVER_PID_FILE")), health: $health"
     else
         echo "server: stopped"

@@ -504,3 +504,14 @@ describe("game-night.sh start and stop", { timeout: 60_000 }, () => {
     },
   );
 });
+
+describe("game-night.sh local curls", () => {
+  test("every curl bypasses proxy variables for 127.0.0.1 and the health URL", () => {
+    const script = fs.readFileSync(SCRIPT, "utf8");
+    const curls = script
+      .split("\n")
+      .filter((l) => /^\s*(if |health="\$\()?curl /.test(l.trimEnd()));
+    expect(curls.length).toBeGreaterThan(0);
+    for (const line of curls) expect(line).toContain("--noproxy '*'");
+  });
+});
