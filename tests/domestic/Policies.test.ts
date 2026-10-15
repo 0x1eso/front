@@ -21,7 +21,6 @@ import {
 } from "@openfront/engine-lib/domestic/Laws";
 import { ModifierTotals } from "@openfront/engine-lib/domestic/Modifiers";
 import {
-  domesticModifierTotals,
   policyFlags,
   policyModifiers,
 } from "@openfront/engine-lib/domestic/Policies";
@@ -203,50 +202,6 @@ describe("policy modifiers and flags", () => {
     const totals = new ModifierTotals(
       policyModifiers(lawsOf(["construction", "B"]), "communism"),
     );
-    expect(totals.pct("buildTime")).toBe(-60);
-  });
-});
-
-describe("domesticModifierTotals", () => {
-  const input = {
-    techs: ["conscription", "computers"] as TechId[],
-    laws: lawsOf(["mobilization", "A"], ["religion", "A"]),
-    government: "democracy" as const,
-    conditions: when(),
-  };
-
-  test("sums the techs, the laws and the government", () => {
-    const totals = domesticModifierTotals(input);
-    // conscription +25, religion A +15
-    expect(totals.pct("troopRegen")).toBe(40);
-    // computers +30, religion A -10, democracy +30
-    expect(totals.pct("science")).toBe(50);
-    // computers +15, religion A +15
-    expect(totals.pct("political")).toBe(30);
-  });
-
-  test("conditional modifiers count only while their condition holds", () => {
-    const war = domesticModifierTotals({
-      ...input,
-      conditions: when("attacking", "troopsAtMostHalf"),
-    });
-    expect(war.pct("troopRegen")).toBe(140);
-    expect(war.pct("political")).toBe(-20);
-    const peace = domesticModifierTotals({
-      ...input,
-      conditions: when("notAttacking"),
-    });
-    expect(peace.pct("troopRegen")).toBe(40);
-    expect(peace.pct("political")).toBe(60);
-  });
-
-  test("the caps apply to the combined sum", () => {
-    const totals = domesticModifierTotals({
-      techs: NO_TECHS,
-      laws: lawsOf(["construction", "B"]),
-      government: "communism",
-      conditions: when(),
-    });
     expect(totals.pct("buildTime")).toBe(-60);
   });
 });

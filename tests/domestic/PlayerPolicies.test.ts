@@ -1,5 +1,10 @@
-import { Condition } from "@openfront/engine-api/domestic/DomesticTypes";
+import {
+  Condition,
+  LawId,
+  LawOption,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import { LAW_COOLDOWN_TICKS } from "@openfront/engine-lib/domestic/Balance";
+import { domesticModifiers } from "@openfront/engine-lib/domestic/Policies";
 import { PlayerDomestic } from "@openfront/engine/domestic/PlayerDomestic";
 import { expectSnapshotRoundTrip } from "../util/Snapshot";
 import {
@@ -13,6 +18,20 @@ import {
 function when(...conditions: Condition[]): ReadonlySet<Condition> {
   return new Set(conditions);
 }
+
+describe("domesticModifiers", () => {
+  test("techs, laws and the government add up per stat and condition", () => {
+    const totals = domesticModifiers(
+      ["computers"], // science +30, political +15
+      new Map<LawId, LawOption>([["opinion", "B"]]), // science +20
+      "democracy", // science +30; political +30 in peace, -50 while attacking
+    );
+    expect(totals.pct("science")).toBe(80);
+    expect(totals.pct("political")).toBe(15);
+    expect(totals.pct("political", when("notAttacking"))).toBe(45);
+    expect(totals.pct("political", when("attacking"))).toBe(-35);
+  });
+});
 
 describe("PlayerDomestic laws and government", () => {
   test("a proclaimed law applies its modifiers and starts the cooldown", () => {

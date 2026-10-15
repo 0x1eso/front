@@ -25,7 +25,7 @@ import {
 import { governmentTier } from "@openfront/engine-lib/domestic/Governments";
 import { ModifierTotals } from "@openfront/engine-lib/domestic/Modifiers";
 import {
-  domesticModifierTotals,
+  domesticModifiers,
   policyFlags,
 } from "@openfront/engine-lib/domestic/Policies";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
@@ -80,16 +80,15 @@ export class PlayerDomestic implements DomesticView {
   private lawCooldownUntil = 0;
   private tier = 0;
   private government: GovernmentId = "chiefdom";
-  /** Set once per processed second (DomesticEconomy). */
+  /** Set once per processed second (DomesticEconomy.activeConditions). */
   private conditions: ReadonlySet<Condition> = new Set<Condition>();
-  /** Modifier totals for the current techs, laws, government and conditions. */
   private totals = new ModifierTotals([]);
   private flags: ReadonlySet<PolicyFlag> = new Set<PolicyFlag>();
   /** toData() result until the next change. */
   private domesticDataCache: DomesticData | null = null;
 
   pct(stat: StatKey): number {
-    return this.totals.pct(stat);
+    return this.totals.pct(stat, this.conditions);
   }
 
   hasTech(tech: TechId): boolean {
@@ -205,7 +204,6 @@ export class PlayerDomestic implements DomesticView {
       return;
     }
     this.conditions = new Set(conditions);
-    this.rebuild();
     this.changed();
   }
 
@@ -312,17 +310,9 @@ export class PlayerDomestic implements DomesticView {
     return d;
   }
 
-  /**
-   * Recomputes the modifier totals (techs, laws, government and the active
-   * conditions) and the policy flags.
-   */
+  /** Recomputes the modifier totals and flags from techs, laws and government. */
   private rebuild(): void {
-    this.totals = domesticModifierTotals({
-      techs: this.techs,
-      laws: this.laws,
-      government: this.government,
-      conditions: this.conditions,
-    });
+    this.totals = domesticModifiers(this.techs, this.laws, this.government);
     this.flags = policyFlags(this.laws, this.government);
   }
 

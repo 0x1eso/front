@@ -1,5 +1,4 @@
 import {
-  Condition,
   GovernmentId,
   LawId,
   LawOption,
@@ -37,35 +36,20 @@ export function policyFlags(
   return out;
 }
 
-/** Everything a player's domestic modifiers depend on. */
-export interface DomesticModifierInput {
-  techs: Iterable<TechId>;
-  laws: ReadonlyMap<LawId, LawOption>;
-  government: GovernmentId;
-  /** Conditional modifiers count only for these conditions. */
-  conditions: ReadonlySet<Condition>;
-}
-
 /**
- * The modifier totals of a player's techs, laws and government, with each
- * conditional modifier counted only while its condition holds, so `pct(stat)`
- * needs no conditions. PlayerDomestic (engine) and DomesticClientView (client)
- * both build their totals here, so the two sides agree on every percent.
+ * All of a domestic player's modifiers (researched techs, proclaimed laws
+ * and the government), summed per stat and per condition. The engine
+ * (PlayerDomestic) and the client (DomesticClientView) both build their
+ * totals here so they can't drift apart; each passes the conditions in
+ * force to ModifierTotals.pct.
  */
-export function domesticModifierTotals(
-  input: DomesticModifierInput,
+export function domesticModifiers(
+  techs: Iterable<TechId>,
+  laws: ReadonlyMap<LawId, LawOption>,
+  government: GovernmentId,
 ): ModifierTotals {
-  const active: Modifier[] = [];
-  const all = [
-    ...techModifiers(input.techs),
-    ...policyModifiers(input.laws, input.government),
-  ];
-  for (const m of all) {
-    if (m.when === undefined) {
-      active.push(m);
-    } else if (input.conditions.has(m.when)) {
-      active.push({ stat: m.stat, pct: m.pct });
-    }
-  }
-  return new ModifierTotals(active);
+  return new ModifierTotals([
+    ...techModifiers(techs),
+    ...policyModifiers(laws, government),
+  ]);
 }

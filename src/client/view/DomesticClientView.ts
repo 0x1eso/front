@@ -1,4 +1,5 @@
 import {
+  Condition,
   DomesticData,
   DomesticView,
   LawId,
@@ -8,28 +9,25 @@ import {
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { lawMapOf } from "@openfront/engine-lib/domestic/Laws";
 import { ModifierTotals } from "@openfront/engine-lib/domestic/Modifiers";
-import { domesticModifierTotals } from "@openfront/engine-lib/domestic/Policies";
+import { domesticModifiers } from "@openfront/engine-lib/domestic/Policies";
 
 /** Client-side DomesticView over the last DomesticData the worker sent. */
 export class DomesticClientView implements DomesticView {
   private readonly techSet: ReadonlySet<TechId>;
   private readonly lawMap: ReadonlyMap<LawId, LawOption>;
-  /** Built like the engine's (domesticModifierTotals), conditions included. */
+  private readonly conditionSet: ReadonlySet<Condition>;
   private readonly totals: ModifierTotals;
 
   constructor(public readonly data: DomesticData) {
     this.techSet = new Set(data.techs);
     this.lawMap = lawMapOf(data.laws);
-    this.totals = domesticModifierTotals({
-      techs: data.techs,
-      laws: this.lawMap,
-      government: data.government,
-      conditions: new Set(data.conditions),
-    });
+    this.conditionSet = new Set(data.conditions);
+    // Same totals as the engine's PlayerDomestic (Decision 22).
+    this.totals = domesticModifiers(data.techs, this.lawMap, data.government);
   }
 
   pct(stat: StatKey): number {
-    return this.totals.pct(stat);
+    return this.totals.pct(stat, this.conditionSet);
   }
 
   hasTech(tech: TechId): boolean {
