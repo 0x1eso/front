@@ -1,4 +1,4 @@
-import type { DomesticData } from "../domestic/DomesticTypes";
+import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { TileRef } from "./GameMap";
 import {
@@ -362,6 +362,8 @@ export interface WinUpdate {
   type: GameUpdateType.Win;
   allPlayersStats: AllPlayersStats;
   winner: Winner;
+  /** Domestic mode: how the game was won. Absent in vanilla games. */
+  reason?: WinReason;
 }
 
 export interface HashUpdate {
