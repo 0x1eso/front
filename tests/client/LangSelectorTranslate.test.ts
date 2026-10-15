@@ -1,3 +1,4 @@
+import { GAME_TITLE } from "@openfront/shared/Branding";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LangSelector } from "../../src/client/LangSelector";
 
@@ -25,7 +26,7 @@ describe("LangSelector applyTranslation", () => {
       <span data-i18n="test.bogus">untouched</span>
     `;
     const selector = makeSelector({
-      "main.title": "OpenFront",
+      "branding.title": "{name}",
       "test.hello": "Hello",
       // Malformed map value: translateText hands it back as null, which the
       // loop must skip with a warning instead of blanking the node.
@@ -41,7 +42,15 @@ describe("LangSelector applyTranslation", () => {
       document.querySelector('[data-i18n="test.bogus"]')!.textContent,
     ).toBe("untouched");
     expect(warn).toHaveBeenCalledWith("Translation key not found: test.bogus");
-    expect(document.title).toBe("OpenFront");
+    expect(document.title).toBe(GAME_TITLE);
+  });
+
+  it("titles the page in the player's language", () => {
+    const selector = makeSelector({ "branding.title": "스테이트크래프트" });
+
+    (selector as unknown as { applyTranslation(): void }).applyTranslation();
+
+    expect(document.title).toBe("스테이트크래프트");
   });
 });
 

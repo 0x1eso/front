@@ -1,6 +1,5 @@
 import { ID, isValidGameID } from "@openfront/engine-api/Schemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
-import { GameEnv } from "@openfront/shared/configuration/Env";
 import { generateID, replacer } from "@openfront/shared/SharedUtil";
 import {
   ClientMessage,
@@ -47,7 +46,7 @@ import { resolveVerifiedJoin } from "./Privilege";
 
 import { MapPlaylist } from "./MapPlaylist";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
-import { PrivilegeRefresher } from "./PrivilegeRefresher";
+import { startPrivilegeChecks } from "./PrivilegeRefresher";
 import { startRankedCheckinLoops } from "./RankedCheckin";
 import { rejoinOrClose } from "./Rejoin";
 import { ServerEnv } from "./ServerEnv";
@@ -114,13 +113,7 @@ export async function startWorker() {
     initWorkerMetrics(gm, lobbyService, singleplayerPresence);
   }
 
-  const privilegeRefresher = new PrivilegeRefresher(
-    ServerEnv.jwtIssuer() + "/cosmetics.json",
-    ServerEnv.apiKey(),
-    ServerEnv.jwtIssuer() + "/reserved_clan_tags",
-    log,
-  );
-  privilegeRefresher.start();
+  const privileges = startPrivilegeChecks(log);
 
   // Ahead of everything that can reject a request — the worker-prefix check
   // below and the rate limiter further down — so that a 404 or a 429 still
@@ -352,9 +345,9 @@ export async function startWorker() {
         return res.status(409).json({ error: "listing_max_players_too_low" });
       }
 
-      // Dev has no subscription backend; skip the check so the feature is
-      // testable locally (same precedent as Turnstile).
-      if (ServerEnv.env() !== GameEnv.Dev) {
+      // Dev and self-hosted servers have no subscription backend; skip the
+      // check (same precedent as Turnstile).
+      if (!ServerEnv.skipsApiChecks()) {
         const userMe = await getUserMe(token);
         if (userMe.type === "error") {
           log.warn(
@@ -424,9 +417,9 @@ export async function startWorker() {
         queueForPublic: () => game.queueForPublic(),
       },
       auth.persistentId,
-      // Dev has no payment backend; skip the charge so the feature is
-      // testable locally (same precedent as the listing subscription check).
-      ServerEnv.env() === GameEnv.Dev
+      // Dev and self-hosted servers have no payment backend; skip the charge
+      // (same precedent as the listing subscription check).
+      ServerEnv.skipsApiChecks()
         ? async () => ({ type: "success" })
         : () => payForLobbyQueue(token, game.id),
     );
@@ -627,7 +620,9 @@ export async function startWorker() {
         // API. Runs before the rejoin attempt so a pre-start identity
         // change on refresh is screened before it is applied.
         let verifySkipped = false;
-        if (ServerEnv.env() !== GameEnv.Dev) {
+        // Dev and self-hosted servers have no join_verify to ask: the local
+        // censorPlayer screen above stands.
+        if (!ServerEnv.skipsApiChecks()) {
           const game = gm.game(clientMsg.gameID);
           const stored = game?.storedIdentity(persistentId) ?? null;
           const isReadmit = game?.wasAdmitted(persistentId) ?? false;
@@ -790,9 +785,7 @@ export async function startWorker() {
         // Enforce clan tag ownership: a player can wear a tag only if they're
         // a member; a real clan they're not in (or an unverifiable tag) is
         // dropped to prevent impersonation. Fictional tags pass through.
-        const resolution = privilegeRefresher
-          .get()
-          .resolveClanTag(clanTag, ownedClanTags);
+        const resolution = privileges().resolveClanTag(clanTag, ownedClanTags);
         if (resolution.dropped) {
           log.warn("Dropped clan tag: player is not a member", {
             persistentID: persistentId,
@@ -802,9 +795,10 @@ export async function startWorker() {
         }
         const resolvedClanTag = resolution.tag;
 
-        const cosmeticResult = privilegeRefresher
-          .get()
-          .isAllowed(flares ?? [], clientMsg.cosmetics ?? {});
+        const cosmeticResult = privileges().isAllowed(
+          flares ?? [],
+          clientMsg.cosmetics ?? {},
+        );
 
         if (cosmeticResult.type === "forbidden") {
           log.warn(`Forbidden: ${cosmeticResult.reason}`, {
@@ -935,7 +929,10 @@ export async function startWorker() {
 
   // The load balancer will handle routing to this server based on path
   const PORT = ServerEnv.workerPortByIndex(workerId);
-  server.listen(PORT, () => {
+  // Self-hosted: only the master (same host) may reach a worker, so client
+  // addresses can't be chosen by dialing one directly.
+  const listenHost = ServerEnv.selfHosted() ? "127.0.0.1" : undefined;
+  server.listen(PORT, listenHost, () => {
     log.info(`running on http://localhost:${PORT}`);
     log.info(`Handling requests with path prefix /w${workerId}/`);
     // Signal to the master process that this worker is ready

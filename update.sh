@@ -367,14 +367,13 @@ else
     upload_versioned "${VERSION_PREFIX}/desktop/version.json" \
         "$DESKTOP_VERSION" "application/json" || exit 1
 
-    # resources/public/ (policy pages, robots.txt, press/, .well-known/): the
+    # resources/public/ (robots.txt, .well-known/): the
     # site has no origin behind the Worker, so it serves these from here, by
     # the index the build wrote. Directory entries ("press/") have no file of
     # their own.
     ROOT_FILES_INDEX="$STATIC_DIR/root-files.json"
-    if ! jq -e '.["privacy-policy.html"] and .["terms-of-service.html"]' \
-        "$ROOT_FILES_INDEX" > /dev/null; then
-        echo "❌ The root-files index is missing or lacks the policy pages"
+    if ! jq -e '.["robots.txt"]' "$ROOT_FILES_INDEX" > /dev/null; then
+        echo "❌ The root-files index is missing or lacks robots.txt"
         exit 1
     fi
     while IFS= read -r ROOT_PATH; do

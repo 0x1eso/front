@@ -9,6 +9,7 @@ import {
 import { ServerList } from "@openfront/shared/ServerList";
 import { JWK } from "jose";
 import { z } from "zod";
+import { isSelfHosted, selfHostApiBase } from "./SelfHosted";
 
 /**
  * No server is known: the API's list has not loaded (or carries none for
@@ -245,6 +246,8 @@ export class ClientEnv {
     return ClientEnv.get().gitCommit;
   }
   static jwtIssuer(): string {
+    // Same as getApiBase(): a self-hosted page asks its own server's stub.
+    if (isSelfHosted()) return selfHostApiBase();
     const audience = ClientEnv.jwtAudience();
     return audience === "localhost"
       ? "http://localhost:8787"

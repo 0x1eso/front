@@ -1,5 +1,6 @@
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
+import { isSelfHosted } from "../SelfHosted";
 import { steamSDK } from "../SteamSDK";
 import { translateText } from "../Utils";
 
@@ -106,7 +107,8 @@ export class SteamWishlist extends LitElement {
   // (index.html), and an iframe whose color scheme differs from its
   // document's gets an opaque white backdrop, a white strip under the card.
   render() {
-    if (steamSDK.isOnSteam()) return nothing;
+    // Steam sells OpenFront, not this fork: no promo on a self-hosted page.
+    if (steamSDK.isOnSteam() || isSelfHosted()) return nothing;
 
     const frameWidth = Math.min(
       WIDGET_WIDTH,

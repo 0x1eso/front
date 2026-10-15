@@ -1,10 +1,13 @@
 import { ClientEnv } from "./ClientEnv";
+import { isSelfHosted, selfHostApiBase } from "./SelfHosted";
 
 // The account/shop API origin (api.<audience>). Lives apart from Api.ts so
 // modules that Api.ts itself depends on (ServerList) can reach it without an
 // import cycle; Api.ts re-exports both for its existing importers.
 
 export function getApiBase() {
+  // A self-hosted page has no API: its calls go to its own server's stub.
+  if (isSelfHosted()) return selfHostApiBase();
   const domainname = getAudience();
 
   if (domainname === "localhost") {

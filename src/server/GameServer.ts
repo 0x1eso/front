@@ -186,11 +186,16 @@ function mintGroupToken(): string {
 }
 
 export function defaultGameServerDeps(): GameServerDeps {
+  // A self-hosted server has no API to archive games to or to fetch bought
+  // tribe names from: games end unarchived, bots keep their organic names.
+  const selfHosted = ServerEnv.selfHosted();
   return {
-    archive: (record) => archive(finalizeGameRecord(record)),
+    archive: selfHosted
+      ? async () => {}
+      : (record) => archive(finalizeGameRecord(record)),
     replayWinner: replayWinnerInChild,
     replayPending: () => winnerReplayMetrics.pending,
-    fetchTribes: fetchCustomTribes,
+    fetchTribes: selfHosted ? async () => [] : fetchCustomTribes,
     env: () => ServerEnv.env(),
     turnIntervalMs: () => ServerEnv.turnIntervalMs(),
     telemetry: noopMatchTelemetryEmitter,

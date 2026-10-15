@@ -8,6 +8,7 @@ import {
   PrivilegeChecker,
   PrivilegeCheckerImpl,
 } from "./Privilege";
+import { ServerEnv } from "./ServerEnv";
 
 // Refreshes the privilege checker every 3 minutes.
 // WARNING: This fails open if cosmetics.json is not available.
@@ -105,4 +106,25 @@ export class PrivilegeRefresher {
       throw error;
     }
   }
+}
+
+/**
+ * The privilege checker a worker consults on every join: polls the API's
+ * cosmetics catalog and clan registry, except on a self-hosted server, which
+ * has neither and keeps the fail-open checker (catalog cosmetics dropped,
+ * clan tags kept) for its whole life.
+ */
+export function startPrivilegeChecks(log: Logger): () => PrivilegeChecker {
+  if (ServerEnv.selfHosted()) {
+    const failOpen = new FailOpenPrivilegeChecker();
+    return () => failOpen;
+  }
+  const refresher = new PrivilegeRefresher(
+    ServerEnv.jwtIssuer() + "/cosmetics.json",
+    ServerEnv.apiKey(),
+    ServerEnv.jwtIssuer() + "/reserved_clan_tags",
+    log,
+  );
+  void refresher.start();
+  return () => refresher.get();
 }

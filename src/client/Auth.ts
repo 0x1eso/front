@@ -9,6 +9,7 @@ import type { DesktopSessionState, SessionFailureKind } from "./DesktopShell";
 import { desktopLinkGate, isDesktopShell } from "./DesktopShell";
 import { gamePortal, type GamePortalName } from "./GamePortal";
 import { showInGameAlert } from "./InGameModal";
+import { isSelfHosted } from "./SelfHosted";
 import type { SteamTicketResult } from "./SteamSDK";
 import { steamSDK } from "./SteamSDK";
 import { generateCryptoRandomUUID, translateText } from "./Utils";
@@ -486,6 +487,14 @@ async function refreshJwt(): Promise<void> {
 }
 
 async function doRefreshJwt(): Promise<void> {
+  // A self-hosted server has no accounts: every player is a guest under
+  // their persistent ID, so there is no session to refresh. Never reaching
+  // /auth/refresh also means no 401 can log the guest out, which would
+  // delete that ID between creating a lobby and joining it.
+  if (isSelfHosted()) {
+    __jwt = null;
+    return;
+  }
   if (steamSDK.isOnSteam()) {
     const result = await steamSDK.getTicket();
     if (result.ok) {

@@ -5,7 +5,6 @@ import {
   UserMeResponseSchema,
 } from "@openfront/shared/ApiSchemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
-import { GameEnv } from "@openfront/shared/configuration/Env";
 import { PersistentIdSchema } from "@openfront/shared/WireSchemas";
 import { jwtVerify } from "jose";
 import { z } from "zod";
@@ -23,7 +22,9 @@ export async function verifyClientToken(
   token: string,
 ): Promise<TokenVerificationResult> {
   if (PersistentIdSchema.safeParse(token).success) {
-    if (ServerEnv.env() === GameEnv.Dev) {
+    // A guest's browser-made id: fine where there is no API to vouch for
+    // anyone (dev, and every player on a self-hosted server).
+    if (ServerEnv.skipsApiChecks()) {
       return { type: "success", persistentId: token, claims: null };
     } else {
       return {
@@ -31,6 +32,14 @@ export async function verifyClientToken(
         message: "persistent ID not allowed in production",
       };
     }
+  }
+  if (ServerEnv.selfHosted()) {
+    // No API, so no keys to check an account token against: on a
+    // self-hosted server everyone plays as a guest.
+    return {
+      type: "error",
+      message: "account tokens are not accepted on a self-hosted server",
+    };
   }
   try {
     const issuer = ServerEnv.jwtIssuer();

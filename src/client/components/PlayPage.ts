@@ -1,7 +1,7 @@
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
 import "./CosmeticBackground";
+import "./GameWordmark";
 import "./NavAccountMenu";
 import "./NavUtilityIcons";
 import "./NewsBox";
@@ -58,11 +58,7 @@ export class PlayPage extends LitElement {
             <div
               class="col-start-2 flex items-center justify-center text-malibu-blue min-w-0"
             >
-              <img
-                src=${assetUrl("images/OpenFrontLogo.svg")}
-                alt="OpenFront"
-                class="h-full w-auto"
-              />
+              <game-wordmark compact></game-wordmark>
             </div>
 
             <!-- Right slot: bell, help, settings and the profile control. The menu is
@@ -72,7 +68,10 @@ export class PlayPage extends LitElement {
               class="col-start-3 justify-self-end shrink-0 flex items-center gap-0.5"
             >
               <nav-utility-icons size="mobile"></nav-utility-icons>
-              <nav-account-menu variant="mobile"></nav-account-menu>
+              <nav-account-menu
+                variant="mobile"
+                class="no-self-host"
+              ></nav-account-menu>
             </div>
           </div>
         </div>

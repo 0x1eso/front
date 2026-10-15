@@ -113,7 +113,9 @@ export class GameStartAlertController implements ReactiveController {
 
   private loadSound(): Howl {
     this.sound ??= new Howl({
-      src: [assetUrl("sounds/effects/game-start-alert.mp3")],
+      // Upstream's own chime is all-rights-reserved (proprietary/); the
+      // in-game start cue (resources/, CC BY-SA) stands in.
+      src: [assetUrl("sounds/effects/game-start.mp3")],
     });
     return this.sound;
   }
