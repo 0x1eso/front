@@ -261,7 +261,7 @@ export class AiAttackBehavior {
   private attackWithRandomBoat(borderingEnemies: Player[] = []) {
     if (this.player === null) throw new Error("not initialized");
 
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) {
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
       return;
     }
 
@@ -953,7 +953,7 @@ export class AiAttackBehavior {
   }
 
   private isBorderingNukedTerritory(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.MissileSilo)) {
+    if (this.player.isUnitUnavailable(UnitType.MissileSilo)) {
       return false;
     }
 
@@ -1018,7 +1018,7 @@ export class AiAttackBehavior {
   }
 
   private findNearestIslandEnemy(): Player | null {
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) {
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
       return null;
     }
 
@@ -1219,7 +1219,7 @@ export class AiAttackBehavior {
   // Scans shore border tiles (every 10th) for unowned land within 5 water tiles
   // in each cardinal direction, then sends a transport ship to the first match.
   private sendBoatAttackToNearbyTerraNullius(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.TransportShip)) return false;
+    if (this.player.isUnitUnavailable(UnitType.TransportShip)) return false;
     if (
       this.player.unitCount(UnitType.TransportShip) >=
       this.game.config().boatMaxNumber()
@@ -1563,7 +1563,7 @@ export class AiAttackBehavior {
   // The direct crossing, or if a warship blocks it, the shortest safe one landing elsewhere
   private planBoatRoute(target: Player): BoatRoute | null {
     if (
-      this.game.config().isUnitDisabled(UnitType.TransportShip) ||
+      this.player.isUnitUnavailable(UnitType.TransportShip) ||
       this.player.unitCount(UnitType.TransportShip) >=
         this.game.config().boatMaxNumber()
     ) {

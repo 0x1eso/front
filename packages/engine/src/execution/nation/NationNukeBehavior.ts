@@ -168,12 +168,11 @@ export class NationNukeBehavior {
 
   maybeSendNuke() {
     const silos = this.player.units(UnitType.MissileSilo);
-    const config = this.game.config();
     if (
       silos.length === 0 ||
-      config.isUnitDisabled(UnitType.MissileSilo) ||
-      (config.isUnitDisabled(UnitType.AtomBomb) &&
-        config.isUnitDisabled(UnitType.HydrogenBomb))
+      this.player.isUnitUnavailable(UnitType.MissileSilo) ||
+      (this.player.isUnitUnavailable(UnitType.AtomBomb) &&
+        this.player.isUnitUnavailable(UnitType.HydrogenBomb))
     ) {
       return;
     }
@@ -252,7 +251,7 @@ export class NationNukeBehavior {
     const types: NukeType[] = [];
     if (
       !atomOnly &&
-      !config.isUnitDisabled(UnitType.HydrogenBomb) &&
+      !this.player.isUnitUnavailable(UnitType.HydrogenBomb) &&
       this.player.gold() >= this.getPerceivedNukeCost(UnitType.HydrogenBomb)
     ) {
       types.push(UnitType.HydrogenBomb);
@@ -261,7 +260,7 @@ export class NationNukeBehavior {
       (types.length === 0 ||
         difficulty === Difficulty.Hard ||
         difficulty === Difficulty.Impossible) &&
-      !config.isUnitDisabled(UnitType.AtomBomb) &&
+      !this.player.isUnitUnavailable(UnitType.AtomBomb) &&
       this.player.gold() >= this.getPerceivedNukeCost(UnitType.AtomBomb)
     ) {
       types.push(UnitType.AtomBomb);
@@ -848,7 +847,7 @@ export class NationNukeBehavior {
     }
 
     // If MIRVs are disabled, return the actual cost
-    if (this.game.config().isUnitDisabled(UnitType.MIRV)) {
+    if (this.player.isUnitUnavailable(UnitType.MIRV)) {
       return true;
     }
 
@@ -1273,7 +1272,7 @@ export class NationNukeBehavior {
    * so we need N+1 bombs to destroy it (accounting for all covering SAMs).
    */
   private maybeDestroyEnemySam(nukeTarget: Player): void {
-    if (this.game.config().isUnitDisabled(UnitType.AtomBomb)) {
+    if (this.player.isUnitUnavailable(UnitType.AtomBomb)) {
       return;
     }
 

@@ -1118,6 +1118,7 @@ describe("NationStructureBehavior.doHandleStructures — crowded-map exception",
 
   function makeCrowdedPlayer(): any {
     return {
+      isUnitUnavailable: () => false,
       unitsOwned: () => 0, // never owns a city
       numTilesOwned: () => 100_000,
       info: () => ({}),

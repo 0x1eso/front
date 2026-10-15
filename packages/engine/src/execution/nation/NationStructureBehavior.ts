@@ -60,6 +60,9 @@ const TEAM_PORT_RATIO = 1;
  * Cities are always prioritized and built first.
  * When cities are disabled, we use TILES_PER_CITY_EQUIVALENT. That's not ideal, nations won't properly upgrade structures, but it's better than nothing. Probably 99.9% of players won't disable cities anyway.
  */
+/** Domestic mode: research institutes and admin offices per city (each). */
+const DOMESTIC_BUILDING_RATIO_PER_CITY = 0.5;
+
 function getStructureRatios(
   difficulty: Difficulty,
   gameMode: GameMode,
@@ -81,6 +84,14 @@ function getStructureRatios(
     },
     [UnitType.MissileSilo]: {
       ratioPerCity: 0.2,
+      perceivedCostIncreasePerOwned: 1,
+    },
+    [UnitType.ResearchInstitute]: {
+      ratioPerCity: DOMESTIC_BUILDING_RATIO_PER_CITY,
+      perceivedCostIncreasePerOwned: 1,
+    },
+    [UnitType.AdminOffice]: {
+      ratioPerCity: DOMESTIC_BUILDING_RATIO_PER_CITY,
       perceivedCostIncreasePerOwned: 1,
     },
   };
@@ -288,7 +299,7 @@ export class NationStructureBehavior {
     // are never built as the very first structure.
     if (
       this.placementsCount > 0 &&
-      !this.game.config().isUnitDisabled(UnitType.DefensePost)
+      !this.player.isUnitUnavailable(UnitType.DefensePost)
     ) {
       if (this.tryBuildDefensePost()) {
         return true;
@@ -377,7 +388,7 @@ export class NationStructureBehavior {
     const hostileTroopRatio =
       PROACTIVE_DEFENSE_POST_HOSTILE_TROOP_RATIO[difficulty];
     if (hostileTroopRatio === undefined) return false;
-    if (config.isUnitDisabled(UnitType.DefensePost)) return false;
+    if (this.player.isUnitUnavailable(UnitType.DefensePost)) return false;
     const cityCount = this.cityCount();
     if (cityCount < PROACTIVE_DEFENSE_POST_MIN_CITIES) return false;
 
@@ -593,7 +604,7 @@ export class NationStructureBehavior {
   // 15s ON / 15s OFF, alternating, to allow NationNukeBehavior to spend the gold.
   // Not while the gold covers the target twice, as bulk upgrades leave the target for nukes.
   private isInPostSaveUpBlockedPhase(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.MissileSilo)) {
+    if (this.player.isUnitUnavailable(UnitType.MissileSilo)) {
       return false;
     }
     const saveUpTarget = this.getSaveUpTarget();
@@ -616,12 +627,14 @@ export class NationStructureBehavior {
   private doHandleStructures(): boolean {
     this.reachableStationsCache = null;
     const config = this.game.config();
-    const citiesDisabled = config.isUnitDisabled(UnitType.City);
+    const citiesDisabled = this.player.isUnitUnavailable(UnitType.City);
     const cityCount = this.cityCount();
     this._sharedWaterComponents = this.game.sharedWaterComponents(this.player);
     const hasCoastalTiles = this._sharedWaterComponents !== null;
 
-    const missileSilosEnabled = !config.isUnitDisabled(UnitType.MissileSilo);
+    const missileSilosEnabled = !this.player.isUnitUnavailable(
+      UnitType.MissileSilo,
+    );
 
     // High-starting-gold Hard/Impossible nations build a SAM first so their
     // next structures get SAM coverage and aren't clustered under the same nuke target.
@@ -630,9 +643,9 @@ export class NationStructureBehavior {
       this.placementsCount === 0 &&
       (difficulty === Difficulty.Hard ||
         difficulty === Difficulty.Impossible) &&
-      !config.isUnitDisabled(UnitType.AtomBomb) &&
+      !this.player.isUnitUnavailable(UnitType.AtomBomb) &&
       missileSilosEnabled &&
-      !config.isUnitDisabled(UnitType.SAMLauncher) &&
+      !this.player.isUnitUnavailable(UnitType.SAMLauncher) &&
       this.hasHighStartingGold() &&
       this.maybeSpawnStructure(UnitType.SAMLauncher)
     ) {
@@ -652,10 +665,10 @@ export class NationStructureBehavior {
         (difficulty !== Difficulty.Easy && this.startsInTeamSpawnArea()))
     ) {
       const preferredFirst =
-        hasCoastalTiles && !config.isUnitDisabled(UnitType.Port)
+        hasCoastalTiles && !this.player.isUnitUnavailable(UnitType.Port)
           ? UnitType.Port
           : UnitType.Factory;
-      if (config.isUnitDisabled(preferredFirst)) {
+      if (this.player.isUnitUnavailable(preferredFirst)) {
         this.builtCrowdedMapFirstStructure = true;
       } else if (this.maybeSpawnStructure(preferredFirst)) {
         this.builtCrowdedMapFirstStructure = true;
@@ -671,18 +684,20 @@ export class NationStructureBehavior {
     const buildOrder: UnitType[] = [
       UnitType.Port,
       UnitType.Factory,
+      UnitType.ResearchInstitute,
+      UnitType.AdminOffice,
       UnitType.SAMLauncher,
       UnitType.MissileSilo,
     ];
 
     const nukesEnabled =
-      !config.isUnitDisabled(UnitType.AtomBomb) ||
-      !config.isUnitDisabled(UnitType.HydrogenBomb) ||
-      !config.isUnitDisabled(UnitType.MIRV);
+      !this.player.isUnitUnavailable(UnitType.AtomBomb) ||
+      !this.player.isUnitUnavailable(UnitType.HydrogenBomb) ||
+      !this.player.isUnitUnavailable(UnitType.MIRV);
 
     for (const structureType of buildOrder) {
       // Skip disabled structure types
-      if (config.isUnitDisabled(structureType)) {
+      if (this.player.isUnitUnavailable(structureType)) {
         continue;
       }
 
@@ -723,7 +738,7 @@ export class NationStructureBehavior {
 
   // Cities owned, or a territory-based equivalent when cities are disabled
   private cityCount(): number {
-    if (this.game.config().isUnitDisabled(UnitType.City)) {
+    if (this.player.isUnitUnavailable(UnitType.City)) {
       return Math.max(
         1,
         Math.floor(this.player.numTilesOwned() / TILES_PER_CITY_EQUIVALENT),
@@ -778,7 +793,7 @@ export class NationStructureBehavior {
     if (
       type === UnitType.Factory &&
       hasCoastalTiles &&
-      !gameConfig.isUnitDisabled(UnitType.Port)
+      !this.player.isUnitUnavailable(UnitType.Port)
     ) {
       ratio *= FACTORY_COASTAL_RATIO_MULTIPLIER[difficulty];
     }
@@ -904,10 +919,12 @@ export class NationStructureBehavior {
    * Returns 0 if no saving is needed.
    */
   private getSaveUpTarget(): Gold {
-    const config = this.game.config();
-
     // Just save up for SAMs if missile silos are disabled
-    if (config.isUnitDisabled(UnitType.MissileSilo)) {
+    if (this.player.isUnitUnavailable(UnitType.MissileSilo)) {
+      // Domestic mode before Radar: there is nothing worth saving for yet.
+      if (this.player.isUnitLocked(UnitType.SAMLauncher)) {
+        return 0n;
+      }
       return this.cost(UnitType.SAMLauncher);
     }
 
@@ -917,9 +934,9 @@ export class NationStructureBehavior {
       return this.cost(UnitType.HydrogenBomb);
     }
 
-    const mirvEnabled = !config.isUnitDisabled(UnitType.MIRV);
-    const hydroEnabled = !config.isUnitDisabled(UnitType.HydrogenBomb);
-    const atomEnabled = !config.isUnitDisabled(UnitType.AtomBomb);
+    const mirvEnabled = !this.player.isUnitUnavailable(UnitType.MIRV);
+    const hydroEnabled = !this.player.isUnitUnavailable(UnitType.HydrogenBomb);
+    const atomEnabled = !this.player.isUnitUnavailable(UnitType.AtomBomb);
 
     // Not for a MIRV that SAMs would shoot down
     if (mirvEnabled && this.isMirvWorthSavingFor()) {
@@ -1209,6 +1226,8 @@ export class NationStructureBehavior {
   ): ((tile: TileRef) => number) | null {
     switch (type) {
       case UnitType.City:
+      case UnitType.ResearchInstitute:
+      case UnitType.AdminOffice:
         return this.cityValue();
       case UnitType.MissileSilo:
         return this.missileSiloValue();

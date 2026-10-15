@@ -33,6 +33,7 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { NationAllianceBehavior } from "./nation/NationAllianceBehavior";
+import { nationDomesticTick } from "./nation/NationDomesticBehavior";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
@@ -112,7 +113,7 @@ export class NationExecution implements Execution {
       this.player.isAlive() &&
       this.mg.config().gameConfig().difficulty !== Difficulty.Easy &&
       this.player.unitsConstructed(UnitType.Port) &&
-      !this.mg.config().isUnitDisabled(UnitType.Warship)
+      !this.player.isUnitUnavailable(UnitType.Warship)
     ) {
       this.warshipBehavior.trackShipsAndRetaliate();
     }
@@ -222,6 +223,7 @@ export class NationExecution implements Execution {
     this.allianceBehavior.handleAllianceExtensionRequests();
     this.mirvBehavior.considerMIRV();
     this.structureBehavior.handleStructures();
+    nationDomesticTick(this.mg, this.player);
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();
     this.attackBehavior.maybeAttack();
