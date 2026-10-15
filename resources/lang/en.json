@@ -804,18 +804,189 @@
     },
     "cost": "{cost} science · {seconds}s",
     "era": "Era {era}",
+    "gov": {
+      "chiefdom": {
+        "desc": "No effects.",
+        "name": "Chieftainship"
+      },
+      "communism": {
+        "desc": "Build costs -30%, build times -50%, no research institute or admin office upkeep. Five-Year Plan: research institute and admin office output +50%. Trade income -30%.",
+        "name": "Communism"
+      },
+      "democracy": {
+        "desc": "Gold income +30%, science +30%, gold payment cost -50%. Peace Dividend: political power +30% while not attacking. War Weariness: political power -50% while attacking.",
+        "name": "Democracy"
+      },
+      "fascism": {
+        "desc": "Troop growth +30%, troop losses when attacking -25%, recruitment cost -50%. War Economy: gold income +30% while attacking. Science -20%, gold income -10% while not attacking.",
+        "name": "Fascism"
+      },
+      "monarchy": {
+        "desc": "Max troops +20%, upkeep-free troops 40% → 60%. Feudalism: +0.2 political power/s per city level. Science -15%.",
+        "name": "Monarchy"
+      },
+      "republic": {
+        "desc": "Gold income +20%, trade income +25%. Public Works: city build time -50%. Recruitment cost +25%.",
+        "name": "Republic"
+      },
+      "theocracy": {
+        "desc": "Political power +30%, troop losses when defending -20%. Tithe: +100 × √(land share %) gold/s. Science -15%. Requires State Religion.",
+        "name": "Theocracy"
+      }
+    },
+    "gov_active": "Current government",
+    "gov_adopt": "Adopt",
+    "gov_current": "Government: {name}",
+    "gov_locked": "Locked until the next tier",
+    "gov_max_tier": "Every government tier reached",
+    "gov_needs_tier": "Unlocks at tier {tier}",
+    "gov_passed": "Tier passed",
+    "gov_progress": "Cumulative political power {value} / {next} for tier {tier}",
+    "gov_requires_law": "Requires {law}",
+    "gov_tier": "Tier {tier}",
+    "law": {
+      "construction": {
+        "A": {
+          "desc": "All build costs -25%",
+          "name": "Infrastructure Investment"
+        },
+        "B": {
+          "desc": "All build times -50%",
+          "name": "Rapid Construction"
+        },
+        "name": "Construction"
+      },
+      "diplomacy": {
+        "A": {
+          "desc": "Trade ship and train income with allies +50%",
+          "name": "Allied Preference"
+        },
+        "B": {
+          "desc": "No trade with other nations, political power +40%, troop losses when defending -10%",
+          "name": "Isolationism"
+        },
+        "name": "Diplomacy"
+      },
+      "doctrine": {
+        "A": {
+          "desc": "Defense post effect +40%, troop losses when defending -15%",
+          "name": "Defense First"
+        },
+        "B": {
+          "desc": "Attack speed +30%, troop losses when defending +10%",
+          "name": "Blitzkrieg"
+        },
+        "name": "Doctrine"
+      },
+      "learning": {
+        "A": {
+          "desc": "Turns 300 gold into 0.5 science every second (while you have the gold)",
+          "name": "Research Subsidies"
+        },
+        "B": {
+          "desc": "Admin office output +40%",
+          "name": "Administrative Reform"
+        },
+        "name": "Learning"
+      },
+      "mobilization": {
+        "A": {
+          "desc": "Troop growth +100% while troops are at most half of max",
+          "name": "Total Mobilization"
+        },
+        "B": {
+          "desc": "Upkeep-free troops 40% → 60% of max",
+          "name": "Reserves"
+        },
+        "name": "Mobilization"
+      },
+      "nuclear": {
+        "A": {
+          "desc": "Missile silo and SAM cost -30%, nuke cost -20%",
+          "name": "Nuclear Deterrence"
+        },
+        "B": {
+          "desc": "SAM range +30%",
+          "name": "Air Defense Network"
+        },
+        "name": "Nuclear Policy"
+      },
+      "opinion": {
+        "A": {
+          "desc": "Political power +25%",
+          "name": "Ministry of Propaganda"
+        },
+        "B": {
+          "desc": "Science +20%",
+          "name": "Academic Freedom"
+        },
+        "name": "Public Opinion"
+      },
+      "religion": {
+        "A": {
+          "desc": "Allows Theocracy, political power +15%, troop growth +15%, science -10%",
+          "name": "State Religion"
+        },
+        "B": {
+          "desc": "Science +15%, trade income with other nations +20%, expansion into unclaimed land +20% faster",
+          "name": "Religious Tolerance"
+        },
+        "name": "Religion"
+      },
+      "service": {
+        "A": {
+          "desc": "Max troops +25%, gold income -10%",
+          "name": "Levée en Masse"
+        },
+        "B": {
+          "desc": "Troop upkeep -50%, troop losses when attacking -15%",
+          "name": "Professional Army"
+        },
+        "name": "Military Service"
+      },
+      "taxation": {
+        "A": {
+          "desc": "Gold income +30%, troop growth -15%",
+          "name": "Heavy Taxation"
+        },
+        "B": {
+          "desc": "City tax +40%, city build time -50%",
+          "name": "Urban Planning"
+        },
+        "name": "Taxation"
+      },
+      "trade": {
+        "A": {
+          "desc": "Trade ship and train income +40%",
+          "name": "Free Trade"
+        },
+        "B": {
+          "desc": "City tax +60%, trade income with other nations -30%",
+          "name": "Protectionism"
+        },
+        "name": "Trade"
+      }
+    },
+    "law_cooldown": "Next proclamation in {seconds}s",
+    "law_next_cost": "Next law: {cost} political power",
     "locked_requires": "Requires {tech}",
     "open_panel": "Domestic",
     "panel_title": "Domestic Affairs",
     "pay_with_gold": "Pay {gold} gold",
     "per_sec": "+{value}/s",
     "political": "Political Power",
+    "proclaim": "Proclaim",
+    "proclaim_with_gold": "Proclaim for {gold} gold",
+    "proclaimed": "Proclaimed",
     "recruit_target": "Recruit up to {pct}%",
+    "rejected": "Closed",
     "research": "Research",
     "research_progress": "Researching {tech}: {seconds}s left",
     "researched": "Researched",
     "researching": "Researching",
     "science": "Science",
+    "tab_government": "Government",
+    "tab_laws": "Book of Laws",
     "tab_tech": "Technology",
     "tech": {
       "academia": {
@@ -992,6 +1163,7 @@
     "duration_second": "1 second",
     "duration_seconds_plural": "{seconds} seconds",
     "focus": "Focus",
+    "government_tier_reached": "Government tier {tier} reached: choose a new government in the Domestic panel",
     "hydrogen_bomb_detonated": "{name} - hydrogen bomb detonated",
     "hydrogen_bomb_inbound": "{name} - hydrogen bomb inbound",
     "ignore": "Ignore",
