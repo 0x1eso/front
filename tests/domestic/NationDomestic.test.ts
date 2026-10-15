@@ -1,5 +1,6 @@
 import { TechId } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
+  Difficulty,
   GameMode,
   Gold,
   PlayerInfo,
@@ -7,9 +8,11 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
+import { NukeMagnitude } from "@openfront/engine-lib/configuration/Config";
 import { MILLI } from "@openfront/engine-lib/domestic/Balance";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
+import { EngineConfig } from "@openfront/engine/configuration/EngineConfig";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import {
@@ -22,8 +25,16 @@ import {
   NationDomesticPlan,
 } from "@openfront/engine/execution/nation/NationPersonality";
 import { NationStructureBehavior } from "@openfront/engine/execution/nation/NationStructureBehavior";
+import { setup } from "../util/Setup";
+import { TestConfig } from "../util/TestConfig";
 import { executeTicks } from "../util/utils";
-import { conquerSquare, domesticGame, grantTechs, HUMAN } from "./util";
+import {
+  conquerRect,
+  conquerSquare,
+  domesticGame,
+  grantTechs,
+  HUMAN,
+} from "./util";
 
 const NATION = new PlayerInfo("nation", PlayerType.Nation, null, "nation_id");
 /** Phase 1's single research order, independent of the nation's personality. */
@@ -110,6 +121,50 @@ describe("nation domestic behavior", () => {
       nation.units(UnitType.AdminOffice).length;
     expect(built).toBeGreaterThan(0);
   });
+});
+
+/** Nations space structures by the atom bomb's radius, which TestConfig shrinks to 1. */
+class RealNukeRadiusConfig extends TestConfig {
+  nukeMagnitudes(type: UnitType): NukeMagnitude {
+    return EngineConfig.prototype.nukeMagnitudes.call(this, type);
+  }
+}
+
+describe("nations spread their institutes and offices", () => {
+  test("no two stand close together, so one nuke takes out few", async () => {
+    const game = await setup(
+      "big_plains",
+      { difficulty: Difficulty.Hard, domesticMode: true },
+      [HUMAN],
+      undefined,
+      RealNukeRadiusConfig,
+    );
+    const nation = game.addPlayer(NATION);
+    conquerRect(game, nation, 0, 0, 180, 180);
+    nation.addGold(500_000_000n);
+    const behavior = new NationStructureBehavior(
+      new PseudoRandom(2),
+      game,
+      nation,
+    );
+    for (let i = 0; i < 150; i++) {
+      behavior.handleStructures();
+      executeTicks(game, 30);
+    }
+    const tiles = nation
+      .units(UnitType.ResearchInstitute, UnitType.AdminOffice)
+      .map((u) => u.tile());
+    expect(tiles.length).toBeGreaterThanOrEqual(8);
+    let closest = Infinity;
+    for (let i = 0; i < tiles.length; i++) {
+      for (let j = i + 1; j < tiles.length; j++) {
+        closest = Math.min(closest, game.manhattanDist(tiles[i], tiles[j]));
+      }
+    }
+    // Placed like cities they stood about 15 tiles apart; an atom bomb's
+    // outer radius is 30.
+    expect(closest).toBeGreaterThanOrEqual(25);
+  }, 30_000);
 });
 
 describe("nations don't save gold for locked units", () => {

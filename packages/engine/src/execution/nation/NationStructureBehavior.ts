@@ -1353,9 +1353,10 @@ export class NationStructureBehavior {
   ): ((tile: TileRef) => number) | null {
     switch (type) {
       case UnitType.City:
+        return this.cityValue();
       case UnitType.ResearchInstitute:
       case UnitType.AdminOffice:
-        return this.cityValue();
+        return this.domesticBuildingValue();
       case UnitType.MissileSilo:
         return this.missileSiloValue();
       case UnitType.Factory:
@@ -1708,6 +1709,29 @@ export class NationStructureBehavior {
           stationRangeSquared,
         ) * structureSpacing;
 
+      return w;
+    };
+  }
+
+  /**
+   * Value function for research institutes and admin offices (domestic
+   * mode): a city's, plus spacing from the other institutes and offices,
+   * so one nuke doesn't take out several.
+   */
+  private domesticBuildingValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const cityValue = this.cityValue();
+    const otherTiles: Set<TileRef> = new Set(
+      this.player
+        .units(UnitType.ResearchInstitute, UnitType.AdminOffice)
+        .map((u) => u.tile()),
+    );
+    const { structureSpacing } = this.spacingConstants();
+
+    return (tile) => {
+      let w = cityValue(tile);
+      const d = nearestTileDist(game, otherTiles, tile);
+      if (d !== Infinity) w += Math.min(d, structureSpacing);
       return w;
     };
   }
