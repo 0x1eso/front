@@ -115,13 +115,24 @@ async function mountHud(width: number, height: number) {
   place(topRight, { left: width - 290, top: 0, right: width, bottom: 150 });
   const bottomHud = document.createElement("div");
   bottomHud.setAttribute("data-bottom-hud", "");
-  // Tutorial, control panel, build bar and the domestic row with its toggle.
+  // The whole bottom HUD: its height follows the tallest column, here the
+  // events and chat column on the right.
   place(bottomHud, {
     left: 0,
     top: height - 350,
     right: width,
     bottom: height,
   });
+  const rows = document.createElement("div");
+  rows.setAttribute("data-bottom-hud-rows", "");
+  // Its fixed rows: control panel, build bar and the domestic row.
+  place(rows, {
+    left: width / 2 - 300,
+    top: height - 180,
+    right: width / 2 + 300,
+    bottom: height,
+  });
+  bottomHud.append(rows);
   const controls = document.createElement("map-controls") as MapControls;
   expect(controls).toBeInstanceOf(MapControls);
   controls.eventBus = {
@@ -138,7 +149,7 @@ async function mountHud(width: number, height: number) {
     right: width - 8,
     bottom: height / 2 + 74,
   });
-  return { topRight, bottomHud, buttons };
+  return { topRight, bottomHud, rows, buttons };
 }
 
 /** The drawer's inline offsets, in CSS px. */
@@ -189,20 +200,20 @@ describe("domestic drawer", () => {
         "[data-domestic-drawer]",
       )!;
       const { top, right, bottom } = offsets(drawer);
-      // Below the sidebar, above the whole bottom HUD (build bar, attack
-      // ratio, the domestic row and its toggle), left of the map buttons:
-      // whatever its width, the drawer covers none of them.
+      // Below the sidebar, above the bottom HUD's fixed rows (build bar,
+      // attack ratio, the domestic row and its toggle), left of the map
+      // buttons: whatever its width, the drawer covers none of them.
       expect(top).toBeGreaterThanOrEqual(
         hud.topRight.getBoundingClientRect().bottom,
       );
       expect(height - bottom).toBeLessThanOrEqual(
-        hud.bottomHud.getBoundingClientRect().top,
+        hud.rows.getBoundingClientRect().top,
       );
       expect(width - right).toBeLessThanOrEqual(
         hud.buttons.getBoundingClientRect().left,
       );
       // ...and still has room for its tabs and cards.
-      expect(height - bottom - top).toBeGreaterThan(200);
+      expect(height - bottom - top).toBeGreaterThan(300);
     },
   );
 
@@ -225,17 +236,26 @@ describe("domestic drawer", () => {
     const hud = await mountHud(1024, 768);
     const panel = await openDrawer();
     expect(observed).toEqual(
-      expect.arrayContaining([hud.topRight, hud.bottomHud, hud.buttons]),
+      expect.arrayContaining([hud.topRight, hud.rows, hud.buttons]),
     );
     const drawer = () =>
       panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
-    expect(offsets(drawer()).bottom).toBeGreaterThanOrEqual(350);
+    expect(offsets(drawer()).bottom).toBeGreaterThanOrEqual(180);
+    const before = offsets(drawer()).bottom;
 
-    // An incoming attack row makes the bottom HUD taller.
-    place(hud.bottomHud, { left: 0, top: 368, right: 1024, bottom: 768 });
+    // Events and chat pile up in the right column: the bottom HUD grows, but
+    // the drawer keeps its height (M8) -- that column draws over it.
+    place(hud.bottomHud, { left: 0, top: 200, right: 1024, bottom: 768 });
+    onResize();
+    window.dispatchEvent(new Event("resize"));
+    await panel.updateComplete;
+    expect(offsets(drawer()).bottom).toBe(before);
+
+    // The fixed rows grow (the domestic row appears): the drawer moves up.
+    place(hud.rows, { left: 212, top: 538, right: 812, bottom: 768 });
     onResize();
     await panel.updateComplete;
-    expect(offsets(drawer()).bottom).toBeGreaterThanOrEqual(400);
+    expect(offsets(drawer()).bottom).toBeGreaterThanOrEqual(230);
 
     // The replay speed panel closes: the drawer moves up.
     place(hud.topRight, { left: 734, top: 0, right: 1024, bottom: 52 });
@@ -247,6 +267,17 @@ describe("domestic drawer", () => {
     panel.querySelector<HTMLButtonElement>("[data-domestic-close]")!.click();
     await panel.updateComplete;
     expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("keeps clear of the box with the control panel, build bar and domestic row", () => {
+    const rows = INDEX.querySelector("[data-bottom-hud-rows]")!;
+    expect(rows).not.toBeNull();
+    for (const tag of ["control-panel", "unit-display", "domestic-hud"]) {
+      expect(rows.querySelector(tag)).not.toBeNull();
+    }
+    // Not the events and chat column, whose height changes all game.
+    expect(rows.querySelector("events-display")).toBeNull();
+    expect(rows.querySelector("chat-display")).toBeNull();
   });
 
   it("stacks under the HUD it leaves clear", async () => {

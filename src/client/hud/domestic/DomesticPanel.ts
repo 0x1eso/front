@@ -47,12 +47,15 @@ const DRAWER_GAP = 8;
 
 /**
  * The HUD the open drawer leaves visible and tappable (spec §14a): it sits
- * below the top-right sidebar stack, above the whole bottom HUD (build bar,
- * attack ratio, the domestic row and its toggle) and left of the map buttons.
+ * below the top-right sidebar stack, above the bottom HUD's fixed rows
+ * (attack ratio, build bar, the domestic row and its toggle) and left of the
+ * map buttons. Not above the whole bottom HUD: its events and chat column
+ * grows and shrinks all game, and would make the drawer jump. That column
+ * and the attacks above the rows stack over the drawer instead.
  */
 const KEEP_CLEAR = {
   top: "[data-hud-top-right]",
-  bottom: "[data-bottom-hud]",
+  bottom: "[data-bottom-hud-rows]",
   right: "map-controls > div",
 } as const;
 
