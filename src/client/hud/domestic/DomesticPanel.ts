@@ -7,6 +7,7 @@ import { MILLI } from "@openfront/engine-lib/domestic/Balance";
 import {
   ResearchBlock,
   researchBlock,
+  researchTicks,
   shortfallGold,
 } from "@openfront/engine-lib/domestic/Research";
 import { Branch, Era, TECHS } from "@openfront/engine-lib/domestic/Techs";
@@ -180,7 +181,8 @@ export class DomesticPanel extends LitElement implements Controller {
         <div class="text-gray-400">
           ${translateText("domestic.cost", {
             cost: def.cost,
-            seconds: def.seconds,
+            seconds:
+              researchTicks(id, me.domestic()?.pct("researchTime") ?? 0) / 10,
           })}
         </div>
         <div>${status}</div>
