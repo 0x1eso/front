@@ -15,6 +15,7 @@ import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
+import { lockedReason } from "../domestic/LockReason";
 import {
   atomBombIcon,
   cityIcon,
@@ -90,11 +91,16 @@ export class UnitDisplay extends LitElement implements Controller {
     return 0n;
   }
 
+  /** Domestic mode: the unit still needs a tech (never true otherwise). */
+  private locked(item: UnitType): boolean {
+    return (
+      this.playerBuildables?.find((bu) => bu.type === item)?.locked === true
+    );
+  }
+
   private canBuild(item: UnitType): boolean {
     if (this.game?.config().isUnitDisabled(item)) return false;
-    if (this.playerBuildables?.find((bu) => bu.type === item)?.locked) {
-      return false;
-    }
+    if (this.locked(item)) return false;
     const player = this.game?.myPlayer();
     switch (item) {
       case UnitType.AtomBomb:
@@ -269,6 +275,13 @@ export class UnitDisplay extends LitElement implements Controller {
                       class="mt-1 px-2 py-1 text-[10px] text-cyan-300 border-t border-white/10"
                     >
                       ⇧ ${translateText("build_menu.warship_shift_hint")}
+                    </div>`
+                  : null}
+                ${this.locked(unitType)
+                  ? html`<div
+                      class="mt-1 px-2 py-1 text-[10px] text-red-300 border-t border-white/10"
+                    >
+                      ${lockedReason(unitType)}
                     </div>`
                   : null}
                 <div class="flex items-center justify-center gap-1">

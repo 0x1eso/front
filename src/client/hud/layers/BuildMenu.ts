@@ -6,7 +6,6 @@ import {
   PlayerBuildableUnitType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
-import { requiredTech } from "@openfront/engine-lib/domestic/Locks";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -27,6 +26,7 @@ import {
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { GameView } from "../../view";
+import { lockedReason } from "../domestic/LockReason";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -404,12 +404,7 @@ export class BuildMenu extends LitElement implements Controller {
     enabled: boolean,
   ): string {
     if (enabled) return "";
-    if (buildableUnit.locked) {
-      const tech = requiredTech(buildableUnit.type);
-      return translateText("domestic.locked_requires", {
-        tech: tech === null ? "" : translateText(`domestic.tech.${tech}.name`),
-      });
-    }
+    if (buildableUnit.locked) return lockedReason(buildableUnit.type);
     return translateText("build_menu.not_enough_money");
   }
 

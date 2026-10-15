@@ -19,6 +19,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { UIState } from "../../UIState";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import { lockedReason } from "../domestic/LockReason";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
 import { EmojiTable } from "./EmojiTable";
@@ -111,6 +112,7 @@ export const COLORS = {
   tooltip: {
     cost: "#f59e0b",
     count: "#94a3b8",
+    locked: "#f87171",
   },
   chat: {
     default: "#6366f1",
@@ -431,6 +433,9 @@ function createMenuElements(
           : !BuildableAttacks.has(item.unitType)),
     )
     .map((item: BuildItemDisplay) => {
+      const locked = params.playerActions.buildableUnits.some(
+        (bu) => bu.type === item.unitType && bu.locked === true,
+      );
       return {
         id: `${elementIdPrefix}_${item.unitType}`,
         name: item.key
@@ -451,6 +456,9 @@ function createMenuElements(
             text: translateText(item.description ?? ""),
             className: "description",
           },
+          locked
+            ? { text: lockedReason(item.unitType), className: "locked" }
+            : null,
           {
             text: `${renderNumber(params.buildMenu.cost(item))} ${translateText("player_panel.gold")}`,
             className: "cost",
