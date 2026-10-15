@@ -49,6 +49,9 @@ export function registerGamePreviewRoute(opts: {
     gameID: string,
   ): Promise<ExternalGameInfo | null> => {
     if (!gameIDSchema.safeParse(gameID).success) return null;
+    // Archived games live in the API, which a self-hosted server lacks: a
+    // preview there shows live lobbies only.
+    if (ServerEnv.selfHosted()) return null;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1500);

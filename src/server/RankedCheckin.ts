@@ -301,6 +301,8 @@ function createClanWarsGame(
  * mode — over a single shared gate, so a drain is announced once.
  */
 export function startRankedCheckinLoops(deps: RankedCheckinDeps): void {
+  // Ranked matchmaking lives in the API; a self-hosted server has none.
+  if (ServerEnv.selfHosted()) return;
   const gate = new RankedCheckinGate(deps.isActive, deps.log);
   for (const mode of ["1v1", "2v2", "ffa", "clanwars"] as const) {
     startPolling(
