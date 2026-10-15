@@ -1,5 +1,7 @@
 // Every entry is `<ClassName>Snapshot`, exported next to its class.
 import { DomesticExecutionSnapshot } from "../domestic/DomesticExecution";
+import { ResearchExecutionSnapshot } from "../domestic/ResearchExecution";
+import { SetRecruitTargetExecutionSnapshot } from "../domestic/SetRecruitTargetExecution";
 import { AllianceExtensionExecutionSnapshot } from "../execution/alliance/AllianceExtensionExecution";
 import { AllianceRejectExecutionSnapshot } from "../execution/alliance/AllianceRejectExecution";
 import { AllianceRequestExecutionSnapshot } from "../execution/alliance/AllianceRequestExecution";
@@ -84,9 +86,11 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   PortExecutionSnapshot,
   QuickChatExecutionSnapshot,
   RecomputeRailClusterExecutionSnapshot,
+  ResearchExecutionSnapshot,
   RetreatExecutionSnapshot,
   SAMLauncherExecutionSnapshot,
   SAMMissileExecutionSnapshot,
+  SetRecruitTargetExecutionSnapshot,
   ShellExecutionSnapshot,
   SpawnExecutionSnapshot,
   SpawnTimerExecutionSnapshot,

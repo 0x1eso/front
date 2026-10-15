@@ -1,6 +1,7 @@
 import { zb } from "@openfront/zbin";
 import quickChatData from "resources/QuickChat.json";
 import { z } from "zod";
+import { TECH_IDS } from "./domestic/DomesticTypes";
 import {
   AllPlayers,
   Difficulty,
@@ -46,7 +47,9 @@ export type Intent =
   | KickPlayerIntent
   | TogglePauseIntent
   | UpdateGameConfigIntent
-  | ToggleGameStartTimer;
+  | ToggleGameStartTimer
+  | ResearchTechIntent
+  | SetRecruitTargetIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -82,6 +85,11 @@ export type UpdateGameConfigIntent = z.infer<
 >;
 export type ToggleGameStartTimer = z.infer<
   typeof ToggleGameStartTimerIntentSchema
+>;
+
+export type ResearchTechIntent = z.infer<typeof ResearchTechIntentSchema>;
+export type SetRecruitTargetIntent = z.infer<
+  typeof SetRecruitTargetIntentSchema
 >;
 
 export type Turn = z.infer<typeof TurnSchema>;
@@ -552,6 +560,20 @@ export const ToggleGameStartTimerIntentSchema = z.object({
   type: z.literal("toggle_game_start_timer"),
 });
 
+// Domestic mode: start researching a tech, paying a science shortfall with
+// gold when payWithGold is set.
+export const ResearchTechIntentSchema = z.object({
+  type: z.literal("research_tech"),
+  tech: z.enum(TECH_IDS),
+  payWithGold: z.boolean().optional(),
+});
+
+// Domestic mode: troops stop regrowing at this percent of max troops.
+export const SetRecruitTargetIntentSchema = z.object({
+  type: z.literal("set_recruit_target"),
+  percent: zb.uint({ min: 10, max: 100 }),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -578,6 +600,8 @@ export const IntentSchema = z.discriminatedUnion("type", [
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
   ToggleGameStartTimerIntentSchema,
+  ResearchTechIntentSchema,
+  SetRecruitTargetIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

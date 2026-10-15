@@ -196,9 +196,14 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
       if (Object.keys(overrides).length > 0) return; // checked once, on FFA
       // Runs during the spawn phase and finishes inside init, so it is never
       // alive at a tick boundary. BasicExecutions.test.ts covers it directly.
-      // "Domestic" is only added in domestic mode, which these games don't use;
-      // tests/domestic covers it.
-      const neverStored = new Set(["Pause", "Domestic"]);
+      // "Domestic", "Research" and "SetRecruitTarget" only exist in domestic
+      // mode, which these games don't use; tests/domestic covers them.
+      const neverStored = new Set([
+        "Pause",
+        "Domestic",
+        "Research",
+        "SetRecruitTarget",
+      ]);
       const missing = EXECUTION_SNAPSHOT_TYPES.map((t) => t.name).filter(
         (name) => !reference.execTypes.has(name) && !neverStored.has(name),
       );

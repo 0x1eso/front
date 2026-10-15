@@ -6,6 +6,8 @@ import {
 } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
+import { ResearchExecution } from "../domestic/ResearchExecution";
+import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution";
 import { Execution, Game } from "../game/Game";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
@@ -144,6 +146,14 @@ export class Executor {
         return new MarkDisconnectedExecution(player, intent.isDisconnected);
       case "toggle_pause":
         return new PauseExecution(player, intent.paused);
+      case "research_tech":
+        return new ResearchExecution(
+          player,
+          intent.tech,
+          intent.payWithGold ?? false,
+        );
+      case "set_recruit_target":
+        return new SetRecruitTargetExecution(player, intent.percent);
       default:
         throw new Error(`intent type ${intent} not found`);
     }
