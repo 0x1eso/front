@@ -296,6 +296,7 @@ export class LangSelector extends LitElement {
       "steam-wishlist-button",
       "streaming-now",
       "tutorial-panel",
+      "game-wordmark",
     ];
 
     document.title = this.translateText("branding.title", { name: GAME_TITLE });

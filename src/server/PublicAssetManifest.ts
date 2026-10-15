@@ -249,8 +249,9 @@ export function getResourcesDir(rootDir: string = process.cwd()): string {
 }
 
 // Everything under resources/public/ is served verbatim at the site root, with
-// stable URLs: the policy pages, robots.txt, the press kit (whose image URLs
-// outlets hotlink), and Apple Pay's domain-verification file.
+// stable URLs: robots.txt and Apple Pay's domain-verification file. (Upstream's
+// ads.txt, policy pages and press kit are removed in this fork on purpose;
+// tests/Branding.test.ts keeps them out.)
 export function getPublicDir(resourcesDir: string): string {
   return path.join(resourcesDir, "public");
 }

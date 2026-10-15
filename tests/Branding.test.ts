@@ -16,6 +16,32 @@ function readJson(relativePath: string): any {
 // "© OpenFront and Contributors" visible (7(b)) and must not use "OpenFront"
 // as its primary title (7(c)). AGPL section 13 obliges offering the source.
 describe("fork branding", () => {
+  test("every language file that has it carries the based-on line", () => {
+    expect(readJson("resources/lang/en.json").branding.based_on).toBe(
+      "Based on OpenFront",
+    );
+    expect(readJson("resources/lang/ko.json").branding.based_on).toContain(
+      "OpenFront",
+    );
+  });
+
+  // LICENSE section 7(c): OpenFront Inc.'s own documents and ad-seller list
+  // must not be served from this fork's site root. A merge from upstream
+  // brings them back; this fails when it does.
+  test("upstream's public documents are not served as the fork's", () => {
+    for (const name of [
+      "ads.txt",
+      "terms-of-service.html",
+      "privacy-policy.html",
+      "press",
+    ]) {
+      expect(
+        fs.existsSync(path.join(ROOT, "resources", "public", name)),
+        `resources/public/${name}`,
+      ).toBe(false);
+    }
+  });
+
   test("the game is not titled OpenFront", () => {
     expect(GAME_TITLE.length).toBeGreaterThan(0);
     expect(GAME_TITLE).toBe(GAME_TITLE.trim());

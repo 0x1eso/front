@@ -173,6 +173,8 @@
     "until": "{date}까지 차단되었습니다."
   },
   "branding": {
+    "based_on": "OpenFront 기반",
+    "source_code": "소스 코드",
     "title": "스테이트크래프트"
   },
   "build_menu": {

@@ -187,6 +187,8 @@
     "until": "Banned until {date}."
   },
   "branding": {
+    "based_on": "Based on OpenFront",
+    "source_code": "Source code",
     "title": "{name}"
   },
   "build_menu": {
@@ -1450,13 +1452,11 @@
     "menu": "Menu",
     "news": "News",
     "play": "Play",
-    "privacy_policy": "Privacy Policy",
     "quit": "Exit game",
     "settings": "Settings",
     "sign_in": "Sign in",
     "solo": "Solo",
     "store": "Store",
-    "terms_of_service": "Terms of Service",
     "troubleshooting": "Troubleshooting",
     "tutorial": "Tutorial",
     "user_avatar_alt": "{username}'s avatar",
