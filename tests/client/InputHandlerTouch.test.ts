@@ -3,6 +3,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AlternateViewEvent,
+  BuildTapEvent,
   ContextMenuEvent,
   InputHandler,
   MouseMoveEvent,
@@ -10,6 +11,7 @@ import {
   ToggleCoordinateGridEvent,
   TouchEvent,
   TouchLongPressStartEvent,
+  ZoomEvent,
 } from "../../src/client/InputHandler";
 import type { UIState } from "../../src/client/UIState";
 import { KEYBINDS_KEY, UserSettings } from "../../src/client/UserSettings";
@@ -24,10 +26,11 @@ function pointer(
   x: number,
   y: number,
   pointerType: PointerType,
+  pointerId = 1,
 ): void {
   const event = new Event(type, { bubbles: true, cancelable: true });
   Object.assign(event, {
-    pointerId: 1,
+    pointerId,
     pointerType,
     button: 0,
     clientX: x,
@@ -73,6 +76,8 @@ describe("InputHandler on a touch screen", () => {
     eventBus.on(TouchLongPressStartEvent, (e) => seen.push(e));
     eventBus.on(AlternateViewEvent, (e) => seen.push(e));
     eventBus.on(ToggleCoordinateGridEvent, (e) => seen.push(e));
+    eventBus.on(BuildTapEvent, (e) => seen.push(e));
+    eventBus.on(ZoomEvent, (e) => seen.push(e));
     uiState = {
       attackRatio: 0.2,
       ghostStructure: null,
@@ -125,17 +130,23 @@ describe("InputHandler on a touch screen", () => {
     expect(of(TouchLongPressStartEvent)).toHaveLength(0);
   });
 
-  it("in build mode a tap places the ghost where the finger landed", () => {
+  it("in build mode a tap goes to the build ghost, not the menu", () => {
     uiState.ghostStructure = UnitType.City;
     pressMoveRelease(canvas, 0, "touch");
 
     expect(of(TouchEvent)).toHaveLength(0);
-    const moves = of(MouseMoveEvent);
-    const ups = of(MouseUpEvent);
-    expect(moves.map((e) => [e.x, e.y])).toEqual([[100, 100]]);
-    expect(ups.map((e) => [e.x, e.y])).toEqual([[100, 100]]);
-    // The ghost moves under the finger before the confirm reads its tile.
-    expect(seen.indexOf(moves[0])).toBeLessThan(seen.indexOf(ups[0]));
+    expect(of(BuildTapEvent).map((e) => [e.x, e.y])).toEqual([[100, 100]]);
+    // The tap only aims: BuildPreviewController builds on a second tap on
+    // the aimed ghost, never straight from this release.
+    expect(of(MouseUpEvent)).toHaveLength(0);
+  });
+
+  it("a mouse click in build mode still builds at once", () => {
+    uiState.ghostStructure = UnitType.City;
+    pressMoveRelease(canvas, 0, "mouse");
+
+    expect(of(MouseUpEvent).map((e) => [e.x, e.y])).toEqual([[100, 100]]);
+    expect(of(BuildTapEvent)).toHaveLength(0);
   });
 
   it("after build mode ends a tap goes back to the menu path", () => {
@@ -144,8 +155,52 @@ describe("InputHandler on a touch screen", () => {
     uiState.ghostStructure = null;
     pressMoveRelease(canvas, 0, "touch");
 
-    expect(of(MouseUpEvent)).toHaveLength(1);
+    expect(of(BuildTapEvent)).toHaveLength(1);
     expect(of(TouchEvent)).toHaveLength(1);
+  });
+
+  /** Thumb anchored at (100,100), index finger spreading from (200,200). */
+  function pinch(): void {
+    pointer(canvas, "pointerdown", 100, 100, "touch", 1);
+    pointer(canvas, "pointerdown", 200, 200, "touch", 2);
+    pointer(window, "pointermove", 250, 250, "touch", 2);
+    pointer(window, "pointermove", 300, 300, "touch", 2);
+    // The thumb lifts first, having wobbled 3px: that is no tap.
+    pointer(window, "pointerup", 102, 101, "touch", 1);
+    pointer(window, "pointerup", 300, 300, "touch", 2);
+  }
+
+  it.each([UnitType.City, UnitType.AtomBomb] as const)(
+    "a pinch in build mode (%s) zooms without aiming or building",
+    (type) => {
+      uiState.ghostStructure = type;
+      pinch();
+
+      expect(of(ZoomEvent).length).toBeGreaterThan(0);
+      expect(of(BuildTapEvent)).toHaveLength(0);
+      expect(of(MouseUpEvent)).toHaveLength(0);
+    },
+  );
+
+  it("a pinch outside build mode opens no menu", () => {
+    pinch();
+    expect(of(ZoomEvent).length).toBeGreaterThan(0);
+    expect(of(TouchEvent)).toHaveLength(0);
+  });
+
+  it("a two-finger tap is not a tap either, whichever finger lifts first", () => {
+    pointer(canvas, "pointerdown", 100, 100, "touch", 1);
+    pointer(canvas, "pointerdown", 160, 100, "touch", 2);
+    pointer(window, "pointerup", 160, 100, "touch", 2);
+    pointer(window, "pointerup", 100, 100, "touch", 1);
+    expect(of(TouchEvent)).toHaveLength(0);
+  });
+
+  it("the first one-finger tap after a pinch taps again", () => {
+    uiState.ghostStructure = UnitType.City;
+    pinch();
+    pressMoveRelease(canvas, 0, "touch");
+    expect(of(BuildTapEvent).map((e) => [e.x, e.y])).toEqual([[100, 100]]);
   });
 
   it("follows a grid toggle made elsewhere, so M flips what is shown", () => {

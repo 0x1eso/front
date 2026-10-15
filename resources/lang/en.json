@@ -2821,7 +2821,7 @@
     "step_counter": "Step {current} of {total}",
     "step_touch": {
       "attack_wilderness": "The pulsing ring marks your territory. Tap the unclaimed land next to it, then tap the sword in the middle of the menu to attack.",
-      "buy_city": "You can afford a City! Tap the City icon under the control panel twice (the first tap shows its card, the second starts building), then tap your territory to place it. Cities raise your max troops.",
+      "buy_city": "You can afford a City! Tap the City icon under the control panel twice (the first tap shows its card, the second starts building). Then tap your territory to place the City there, and tap it again to build it. Cities raise your max troops.",
       "buy_defense_post": "Now build a Defense Post: tap your territory near a border, open the wrench menu and pick Defense Post. Attacks on the land around it are much slower and cost the enemy far more troops.",
       "buy_factory": "Now build a Factory: tap your territory, open the wrench menu and pick Factory.",
       "buy_port": "Next, build a Port: tap your coastline, open the wrench menu and pick Port.",

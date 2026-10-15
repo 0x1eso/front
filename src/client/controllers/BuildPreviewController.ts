@@ -5,12 +5,19 @@
  * crosshair) lives in the WebGL renderer. This controller owns the state:
  * it queries buildables for the cursor tile, tracks whether the placement
  * is valid, and pushes preview data straight to the WebGL view.
+ *
+ * A mouse builds on click: the ghost already hovered there. A finger has no
+ * hover, so touch build mode takes two taps (BuildTapEvent): the first aims
+ * the ghost and checks that tile at once (placement, upgrade target, nuke
+ * blast radius, trajectory, SAM threats, ally warning); a second tap on the
+ * aimed ghost builds, and only once the check for that very tile is back.
  */
 
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   BuildableUnit,
   bulkCost,
+  Cell,
   PlayerBuildableUnitType,
   Structures,
   UnitType,
@@ -22,6 +29,7 @@ import {
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
 import {
+  BuildTapEvent,
   ConfirmGhostStructureEvent,
   MouseMoveEvent,
   MouseUpEvent,
@@ -41,6 +49,26 @@ import { GameView } from "../view";
 /** True for nuke types (AtomBomb, HydrogenBomb): ghost is preserved after placement so user can place multiple or keep selection (Enter/key confirm). */
 export function shouldPreserveGhostAfterBuild(unitType: UnitType): boolean {
   return unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb;
+}
+
+/**
+ * A tap within this many CSS px of the aimed ghost confirms it: a target of
+ * at least 44px whatever the zoom (a tap on the ghost's tile always counts).
+ */
+const GHOST_TAP_RADIUS_PX = 32;
+
+/** Where a touch tap aimed the ghost (see the class comment). */
+interface TouchAim {
+  /** The tap on screen, to tell a follow-up compat mousemove from a mouse. */
+  screenX: number;
+  screenY: number;
+  /** The tapped world point: the ghost stays there while the map pans. */
+  worldX: number;
+  worldY: number;
+  cellX: number;
+  cellY: number;
+  /** The tile the ghost is checked for; undefined off the map or impassable. */
+  tile: TileRef | undefined;
 }
 
 // tSamIntercept value used to flag an untargetable (impassable) destination:
@@ -78,6 +106,12 @@ export class BuildPreviewController implements Controller {
   private readonly mousePos = { x: 0, y: 0 };
   private lastGhostQueryAt: number = 0;
   private pendingConfirm: MouseUpEvent | null = null;
+  /** Touch: the aimed ghost, or null until the first tap (mouse: always null). */
+  private aim: TouchAim | null = null;
+  /** The tile the ghost's buildableUnit was last checked for (null: none yet). */
+  private checked: { tile: TileRef | undefined } | null = null;
+  /** Touch: the ghost was tapped before the check for its tile came back. */
+  private touchConfirmPending = false;
 
   // Buildable validation runs on the snapped tile under the cursor, but the
   // rendered icon follows the cursor at sub-tile precision so motion is
@@ -108,11 +142,16 @@ export class BuildPreviewController implements Controller {
   init() {
     this.eventBus.on(MouseMoveEvent, (e) => this.moveGhost(e));
     this.eventBus.on(MouseUpEvent, (e) => this.requestConfirmStructure(e));
-    this.eventBus.on(ConfirmGhostStructureEvent, () =>
+    this.eventBus.on(BuildTapEvent, (e) => this.onBuildTap(e));
+    this.eventBus.on(ConfirmGhostStructureEvent, () => {
+      if (this.aim !== null) {
+        this.confirmAim();
+        return;
+      }
       this.requestConfirmStructure(
         new MouseUpEvent(this.mousePos.x, this.mousePos.y),
-      ),
-    );
+      );
+    });
 
     // Re-emit the ghost each render frame at the cursor's current world
     // position (sub-tile). Buildable validation still runs on the snapped
@@ -125,10 +164,7 @@ export class BuildPreviewController implements Controller {
       const ghost = this.lastGhostData;
       const traj = this.nukeTrajectoryStatic;
       if (ghost !== null || traj !== null) {
-        const w = this.transformHandler.screenToWorldCoordinatesFloat(
-          this.mousePos.x,
-          this.mousePos.y,
-        );
+        const w = this.ghostWorldPos();
         if (ghost !== null) {
           // The range circle (defense post / SAM / nuke radius) normally
           // follows the cursor, so smooth it the same way as the icon. When
@@ -207,13 +243,32 @@ export class BuildPreviewController implements Controller {
 
     const now = performance.now();
     if (now - this.lastGhostQueryAt < 50) return;
-    this.lastGhostQueryAt = now;
-    let tileRef: TileRef | undefined;
-    let trajectoryTileRef: TileRef | undefined;
-    const tile = this.transformHandler.screenToWorldCoordinates(
+    this.queryGhost();
+  }
+
+  /** Where the ghost is drawn: the aimed point on touch, else the cursor. */
+  private ghostWorldPos(): { x: number; y: number } {
+    if (this.aim !== null) return { x: this.aim.worldX, y: this.aim.worldY };
+    return this.transformHandler.screenToWorldCoordinatesFloat(
       this.mousePos.x,
       this.mousePos.y,
     );
+  }
+
+  /** Check the ghost's tile now (the hover throttle aside) and preview it. */
+  private queryGhost(): void {
+    if (!this.ghostUnit) return;
+    this.lastGhostQueryAt = performance.now();
+    const ghostAtQuery = this.ghostUnit;
+    let tileRef: TileRef | undefined;
+    let trajectoryTileRef: TileRef | undefined;
+    const tile =
+      this.aim !== null
+        ? { x: this.aim.cellX, y: this.aim.cellY }
+        : this.transformHandler.screenToWorldCoordinates(
+            this.mousePos.x,
+            this.mousePos.y,
+          );
     if (this.game.isValidCoord(tile.x, tile.y)) {
       tileRef = this.game.ref(tile.x, tile.y);
       trajectoryTileRef = tileRef;
@@ -275,11 +330,13 @@ export class BuildPreviewController implements Controller {
             canUpgrade: false,
           });
           this.pendingConfirm = null;
+          this.recordCheck(ghostAtQuery, tileRef);
           this.emitGhostPreview(tileRef, targetingAlly, trajectoryTileRef);
           return;
         }
 
         this.ghostUnit.buildableUnit = unit;
+        this.recordCheck(ghostAtQuery, tileRef);
 
         if (this.pendingConfirm !== null) {
           const ev = this.pendingConfirm;
@@ -513,6 +570,131 @@ export class BuildPreviewController implements Controller {
     };
   }
 
+  /**
+   * Note which tile the ghost's buildableUnit now describes. A pending touch
+   * confirm goes through once that is the aimed tile (confirmAim checks).
+   */
+  private recordCheck(
+    ghostAtQuery: { buildableUnit: BuildableUnit },
+    tileRef: TileRef | undefined,
+  ): void {
+    if (this.ghostUnit !== ghostAtQuery) return;
+    this.checked = { tile: tileRef };
+    if (this.touchConfirmPending && this.aim?.tile === tileRef) {
+      this.confirmAim();
+    }
+  }
+
+  /** Touch: aim the ghost at the tap, or build when it lands on the ghost. */
+  private onBuildTap(e: BuildTapEvent): void {
+    this.syncGhostState();
+    if (!this.ghostUnit) return;
+    if (this.aim !== null && this.isOnAimedGhost(e.x, e.y)) {
+      this.confirmAim();
+    } else {
+      this.aimAt(e.x, e.y);
+    }
+  }
+
+  private aimAt(x: number, y: number): void {
+    const w = this.transformHandler.screenToWorldCoordinatesFloat(x, y);
+    const cellX = Math.floor(w.x);
+    const cellY = Math.floor(w.y);
+    let tile: TileRef | undefined;
+    if (this.game.isValidCoord(cellX, cellY)) {
+      tile = this.game.ref(cellX, cellY);
+      if (this.game.isImpassable(tile)) tile = undefined;
+    }
+    this.aim = {
+      screenX: x,
+      screenY: y,
+      worldX: w.x,
+      worldY: w.y,
+      cellX,
+      cellY,
+      tile,
+    };
+    this.mousePos.x = x;
+    this.mousePos.y = y;
+    // Whatever was checked before was for another tile.
+    this.checked = null;
+    this.touchConfirmPending = false;
+    this.queryGhost();
+  }
+
+  /** On the aimed tile, or within reach of where its ghost is drawn. */
+  private isOnAimedGhost(x: number, y: number): boolean {
+    const aim = this.aim;
+    if (aim === null) return false;
+    const tapped = this.transformHandler.screenToWorldCoordinates(x, y);
+    if (tapped.x === aim.cellX && tapped.y === aim.cellY) return true;
+    const near = (worldX: number, worldY: number) => {
+      const s = this.transformHandler.worldToScreenCoordinates(
+        new Cell(worldX, worldY),
+      );
+      return Math.hypot(s.x - x, s.y - y) <= GHOST_TAP_RADIUS_PX;
+    };
+    if (near(aim.worldX, aim.worldY)) return true;
+    // A snapped ghost (a port on the coast...) is drawn on its placement tile.
+    const ghost = this.lastGhostData;
+    return (
+      ghost !== null &&
+      ghost.snapToPlacement === true &&
+      near(ghost.tileX + 0.5, ghost.tileY + 0.5)
+    );
+  }
+
+  /**
+   * Touch: build the aimed ghost. Only the check made for the aimed tile can
+   * confirm it; until that is back the confirm waits (recordCheck).
+   */
+  private confirmAim(): void {
+    const aim = this.aim;
+    if (!this.ghostUnit || aim === null || aim.tile === undefined) return;
+    if (this.checked === null || this.checked.tile !== aim.tile) {
+      this.touchConfirmPending = true;
+      return;
+    }
+    this.touchConfirmPending = false;
+    const bu = this.ghostUnit.buildableUnit;
+    if (bu.canUpgrade !== false) {
+      this.eventBus.emit(
+        new SendUpgradeStructureIntentEvent(
+          bu.canUpgrade,
+          bu.type,
+          this.uiState.upgradeMultiplier || 1,
+        ),
+      );
+      this.removeGhostStructure();
+      return;
+    }
+    if (bu.canBuild === false) {
+      // The ghost shows why (red, ally warning...): say no, stay in build mode.
+      this.view.triggerBlockedFlash(aim.cellX + 0.5, aim.cellY + 0.5);
+      return;
+    }
+    if (this.shouldBlockRecentAllyNuke(aim.tile, bu.type)) return;
+    this.emitBuildIntent(bu.type, aim.tile);
+    // A finger can't hover to aim the next bomb, so none stays armed.
+    this.removeGhostStructure();
+  }
+
+  private emitBuildIntent(unitType: UnitType, targetTile: TileRef): void {
+    const isNuke = unitType === UnitType.AtomBomb;
+    const rocketDirectionUp =
+      unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb
+        ? this.uiState.rocketDirectionUp
+        : undefined;
+    this.eventBus.emit(
+      new BuildUnitIntentEvent(
+        unitType,
+        targetTile,
+        rocketDirectionUp,
+        isNuke ? this.uiState.upgradeMultiplier || 1 : undefined,
+      ),
+    );
+  }
+
   private isGhostReadyForConfirm(): boolean {
     if (!this.ghostUnit) return false;
     const bu = this.ghostUnit.buildableUnit;
@@ -559,19 +741,7 @@ export class BuildPreviewController implements Controller {
         return;
       }
 
-      const isNuke = unitType === UnitType.AtomBomb;
-      const rocketDirectionUp =
-        unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb
-          ? this.uiState.rocketDirectionUp
-          : undefined;
-      this.eventBus.emit(
-        new BuildUnitIntentEvent(
-          unitType,
-          targetTile,
-          rocketDirectionUp,
-          isNuke ? this.uiState.upgradeMultiplier || 1 : undefined,
-        ),
-      );
+      this.emitBuildIntent(unitType, targetTile);
       if (!shouldPreserveGhostAfterBuild(unitType)) {
         this.removeGhostStructure();
       }
@@ -640,6 +810,16 @@ export class BuildPreviewController implements Controller {
   private moveGhost(e: MouseMoveEvent) {
     this.mousePos.x = e.x;
     this.mousePos.y = e.y;
+    // A mouse moving off takes the ghost back; the compat mousemove a
+    // browser sends after a tap, at the tap, keeps the aim.
+    if (
+      this.aim !== null &&
+      Math.hypot(e.x - this.aim.screenX, e.y - this.aim.screenY) >
+        GHOST_TAP_RADIUS_PX
+    ) {
+      this.aim = null;
+      this.touchConfirmPending = false;
+    }
   }
 
   private createGhostStructure(type: PlayerBuildableUnitType | null) {
@@ -659,6 +839,9 @@ export class BuildPreviewController implements Controller {
 
   private clearGhostStructure() {
     this.pendingConfirm = null;
+    this.aim = null;
+    this.checked = null;
+    this.touchConfirmPending = false;
     this.ghostUnit = null;
     this.lastGhostData = null;
     this.view.updateGhostPreview(null);

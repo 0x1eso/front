@@ -29,6 +29,18 @@ export class MouseOverEvent implements GameEvent {
     public readonly y: number,
   ) {}
 }
+
+/**
+ * A finger tap on the map in build mode. BuildPreviewController aims the
+ * build ghost there, or builds when the tap lands on the ghost it aimed.
+ */
+export class BuildTapEvent implements GameEvent {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
+}
+
 export class TouchEvent implements GameEvent {
   constructor(
     public readonly x: number,
@@ -307,6 +319,12 @@ export class InputHandler {
   private longPressActive: boolean = false;
   private suppressNextTap: boolean = false;
   private readonly LONG_PRESS_MS = 800;
+  /**
+   * Set when a second finger joins, cleared when the next gesture starts
+   * with one finger: no release of a pinch or two-finger pan is a tap (the
+   * anchor finger of a pinch barely moves, so it would otherwise count).
+   */
+  private multiTouchGesture: boolean = false;
 
   private moveInterval: NodeJS.Timeout | null = null;
   /** Aborts every window/canvas listener added in
@@ -437,6 +455,7 @@ export class InputHandler {
     }
     this.longPressActive = false;
     this.suppressNextTap = false;
+    this.multiTouchGesture = false;
     this.selectionBoxActive = false;
     this.multiSelectionActive = false;
   }
@@ -974,6 +993,7 @@ export class InputHandler {
     this.pointers.set(event.pointerId, event);
 
     if (this.pointers.size === 1) {
+      this.multiTouchGesture = false;
       this.lastPointerX = event.clientX;
       this.lastPointerY = event.clientY;
 
@@ -1002,6 +1022,7 @@ export class InputHandler {
         }, this.LONG_PRESS_MS);
       }
     } else if (this.pointers.size === 2) {
+      if (this.mapPointerCount() >= 2) this.multiTouchGesture = true;
       // Second finger down — cancel any pending long-press to avoid
       // triggering selection mode mid-pinch
       if (this.longPressTimer !== null) {
@@ -1014,6 +1035,15 @@ export class InputHandler {
       }
       this.lastPinchDistance = this.getPinchDistance();
     }
+  }
+
+  /** Fingers down on the map itself (a toast tap is no second finger). */
+  private mapPointerCount(): number {
+    let count = 0;
+    for (const id of this.pointers.keys()) {
+      if (!this.passThroughPointers.has(id)) count++;
+    }
+    return count;
   }
 
   private isGameInputPassThrough(event: PointerEvent): boolean {
@@ -1102,6 +1132,9 @@ export class InputHandler {
     if (!this.pointerDown || !this.pointers.has(event.pointerId)) {
       return;
     }
+    // The first release of a multi-finger gesture clears every pointer, so
+    // the other fingers' releases already return above.
+    const endsMultiTouch = this.multiTouchGesture || this.mapPointerCount() > 1;
     this.pointerDown = false;
     this.pointers.clear();
 
@@ -1171,6 +1204,13 @@ export class InputHandler {
       Math.abs(event.x - this.lastPointerDownX) +
       Math.abs(event.y - this.lastPointerDownY);
     if (dist < this.dragThreshold(event.pointerType)) {
+      if (endsMultiTouch) {
+        // A pinch or two-finger pan ended: not a tap, so it neither builds,
+        // aims nor opens a menu under the finger that lifted first.
+        this.suppressNextTap = false;
+        event.preventDefault();
+        return;
+      }
       if (event.pointerType === "touch") {
         if (this.suppressNextTap) {
           this.suppressNextTap = false;
@@ -1178,10 +1218,9 @@ export class InputHandler {
           return;
         }
         if (this.uiState.ghostStructure !== null) {
-          // A finger has no hover, so the build ghost never followed it:
-          // move the ghost to the tap, then confirm there like a mouse click.
-          this.eventBus.emit(new MouseMoveEvent(event.x, event.y));
-          this.eventBus.emit(new MouseUpEvent(event.x, event.y));
+          // A finger has no hover: the first tap aims the ghost and shows its
+          // preview, a tap on the aimed ghost builds (BuildPreviewController).
+          this.eventBus.emit(new BuildTapEvent(event.x, event.y));
           event.preventDefault();
           return;
         }
