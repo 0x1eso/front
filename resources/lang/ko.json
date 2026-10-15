@@ -2772,6 +2772,8 @@
       "requirement_science": "우주 개발 기술 필요",
       "score": "점수: {score} ({count}명 중 {rank}위)",
       "start": "착수",
+      "team_conquest": "팀 정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
+      "team_score": "팀 점수: {score} ({count}팀 중 {rank}위)",
       "time_left": "남은 시간: {time}"
     },
     "win_reason": {

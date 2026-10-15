@@ -1,5 +1,5 @@
 import { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { GameMode, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import fs from "fs";
 import path from "path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -64,7 +64,11 @@ async function openDrawer(): Promise<DomesticPanel> {
     ticks: () => 0,
     numLandTiles: () => 100,
     numTilesWithFallout: () => 0,
-    config: () => ({ conquestPercent: () => 80, maxTimerMinutes: () => 30 }),
+    config: () => ({
+      conquestPercent: () => 80,
+      maxTimerMinutes: () => 30,
+      gameConfig: () => ({ gameMode: GameMode.FFA }),
+    }),
     elapsedGameSeconds: () => 0,
     playerViews: () => [me],
   } as unknown as DomesticPanel["game"];

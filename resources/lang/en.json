@@ -1111,6 +1111,8 @@
       "requirement_science": "Requires the Space Program tech",
       "score": "Score: {score} (#{rank} of {count})",
       "start": "Start",
+      "team_conquest": "Team conquest: {pct} of the land (wins above {target}%)",
+      "team_score": "Team score: {score} (#{rank} of {count} teams)",
       "time_left": "Time left: {time}"
     },
     "win_reason": {

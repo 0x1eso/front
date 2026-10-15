@@ -4,6 +4,11 @@ import {
   VictoryProjectKind,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
+  ColoredTeams,
+  GameMode,
+  Team,
+} from "@openfront/engine-api/game/GameTypes";
+import {
   MILLI,
   POLITICAL_PROJECT_POLITICAL,
   PROJECT_HOST_MIN_LEVEL,
@@ -42,6 +47,63 @@ export function projectHostChoices(
     .sort((a, b) => b.level - a.level || a.id - b.id);
 }
 
+/** Where the side the engine judges for me stands (spec §8). */
+export interface VictoryStanding {
+  /** Team game: my team is judged, by its summed land and score. */
+  team: boolean;
+  tiles: number;
+  score: number;
+  /** 1-based rank by score among the sides, of `count`. */
+  rank: number;
+  count: number;
+}
+
+/**
+ * Like the engine's win check (DomesticWinCheck): in team games each team's
+ * alive players' land and scores add up (the bot team never wins); in a
+ * free-for-all every scored player stands alone.
+ */
+export function victoryStanding(
+  game: GameView,
+  me: PlayerView,
+): VictoryStanding {
+  const scores = domesticScoreMap(game);
+  const myTeam =
+    game.config().gameConfig().gameMode === GameMode.Team ? me.team() : null;
+  if (myTeam === null) {
+    const ranked = [...scores.entries()].sort(
+      (a, b) => b[1].total - a[1].total,
+    );
+    return {
+      team: false,
+      tiles: me.numTilesOwned(),
+      score: scores.get(me.smallID())?.total ?? 0,
+      rank: ranked.findIndex(([id]) => id === me.smallID()) + 1,
+      count: ranked.length,
+    };
+  }
+  const sides = new Map<Team, { tiles: number; score: number }>();
+  for (const p of game.playerViews()) {
+    const team = p.team();
+    if (!p.isAlive() || team === null || team === ColoredTeams.Bot) continue;
+    const side = sides.get(team) ?? { tiles: 0, score: 0 };
+    side.tiles += p.numTilesOwned();
+    side.score += scores.get(p.smallID())?.total ?? 0;
+    sides.set(team, side);
+  }
+  const ranked = [...sides.entries()].sort(
+    (a, b) => b[1].score - a[1].score || b[1].tiles - a[1].tiles,
+  );
+  const mine = sides.get(myTeam) ?? { tiles: 0, score: 0 };
+  return {
+    team: true,
+    tiles: mine.tiles,
+    score: mine.score,
+    rank: ranked.findIndex(([team]) => team === myTeam) + 1,
+    count: ranked.length,
+  };
+}
+
 const BUILDING_KEY: Readonly<Record<VictoryProjectKind, string>> = {
   science: "unit_type.research_institute",
   political: "unit_type.admin_office",
@@ -54,22 +116,29 @@ export function renderVictoryTab(
   d: DomesticData,
   onStart: (kind: VictoryProjectKind, unitId: number) => void,
 ): TemplateResult {
+  const standing = victoryStanding(game, me);
   return html`
     <div class="flex flex-col gap-3 text-sm">
-      ${renderConquest(game, me)}
+      ${renderConquest(game, standing)}
       ${VICTORY_PROJECT_KINDS.map((kind) =>
         renderProject(kind, me, d, onStart),
       )}
-      ${renderScore(game, me)} ${renderActive(game)}
+      ${renderScore(game, standing)} ${renderActive(game)}
     </div>
   `;
 }
 
-function renderConquest(game: GameView, me: PlayerView): TemplateResult {
+function renderConquest(
+  game: GameView,
+  standing: VictoryStanding,
+): TemplateResult {
   const land = game.numLandTiles() - game.numTilesWithFallout();
-  const share = land > 0 ? me.numTilesOwned() / land : 0;
+  const share = land > 0 ? standing.tiles / land : 0;
+  const key = standing.team
+    ? "domestic.victory.team_conquest"
+    : "domestic.victory.conquest";
   return html`<div>
-    ${translateText("domestic.victory.conquest", {
+    ${translateText(key, {
       pct: formatPercentage(share),
       target: game.config().conquestPercent(),
     })}
@@ -148,22 +217,24 @@ function renderProject(
   `;
 }
 
-function renderScore(game: GameView, me: PlayerView): TemplateResult {
-  const scores = domesticScoreMap(game);
-  const ranked = [...scores.entries()].sort((a, b) => b[1].total - a[1].total);
-  const rank = ranked.findIndex(([id]) => id === me.smallID()) + 1;
-  const mine = scores.get(me.smallID())?.total ?? 0;
+function renderScore(
+  game: GameView,
+  standing: VictoryStanding,
+): TemplateResult {
   const limit = game.config().maxTimerMinutes();
   const left =
     limit === null
       ? null
       : Math.max(0, limit * 60 - Math.floor(game.elapsedGameSeconds()));
   return html`<div>
-    ${translateText("domestic.victory.score", {
-      score: mine.toFixed(1),
-      rank,
-      count: ranked.length,
-    })}
+    ${translateText(
+      standing.team ? "domestic.victory.team_score" : "domestic.victory.score",
+      {
+        score: standing.score.toFixed(1),
+        rank: standing.rank,
+        count: standing.count,
+      },
+    )}
     ${left === null
       ? ""
       : html` ·
