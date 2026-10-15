@@ -18,7 +18,6 @@ import { ClientEnv } from "src/client/ClientEnv";
 import { renderNavVersion } from "src/client/GameVersion";
 import { responseHasLinkedIdentity } from "./AccountIdentity";
 import { adGatekeeper } from "./AdGatekeeper";
-import { loadAdmiral, onAdmiralMeasured } from "./Admiral";
 import { getUserMe, invalidateUserMe, markNoticeSeen } from "./Api";
 import {
   getDesktopSessionState,
@@ -745,20 +744,11 @@ class Client {
         !isAdFree &&
         !gamePortal.isOnGamePortal() &&
         !isDesktopShell();
-      // Ad-eligible users only: paid/adfree users must never load Admiral (its
-      // adblock popup fires autonomously once the payload runs). Start watching
-      // adblock state; once a blocker is ever detected the in-game ad is
-      // suppressed forever (persisted) — those users are highly ad-sensitive.
+      // Ad-eligible users only: start watching adblock state; once a blocker
+      // is ever detected the in-game ad is suppressed forever (persisted) —
+      // those users are highly ad-sensitive. (Upstream's ad-recovery tag,
+      // Admiral, is not loaded: it carries OpenFront's property key.)
       if (window.adsEnabled) {
-        loadAdmiral();
-        // Admiral's read is more reliable than our DOM bait, so use it as a
-        // fast initial signal. A blocker that whitelists this site still shows
-        // ads, so "blocked" means adblocking AND not whitelisted.
-        onAdmiralMeasured((res) => {
-          adGatekeeper.seed(
-            res.adblocking === true && res.whitelisted !== true,
-          );
-        });
         adGatekeeper.start();
       }
       // Before the dispatch: <username-input> reads this store when it picks

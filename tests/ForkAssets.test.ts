@@ -63,6 +63,27 @@ describe("fork asset hygiene", () => {
     expect(offenders).toEqual([]);
   });
 
+  // OpenFront's own marks outside proprietary/: served from resources/ even
+  // when nothing references them.
+  test("upstream's event artwork is not shipped", () => {
+    for (const asset of ["images/OfmWintersLogo.png"]) {
+      expect(fs.existsSync(path.join(ROOT, "resources", asset)), asset).toBe(
+        false,
+      );
+    }
+  });
+
+  // OpenFront's ad-recovery tag (Admiral) carries its property key and loads
+  // a third-party script with full page access. This fork shows no ads.
+  test("no page loads OpenFront's ad-recovery tag", () => {
+    const offenders = shippedSources().filter((file) =>
+      /\/Admiral["']|loadAdmiral|window\.admiral|introjava\.com/.test(
+        fs.readFileSync(path.join(ROOT, file), "utf8"),
+      ),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   // The music slots (sounds/music/gameplay.mp3, menu-theme.mp3) ship empty.
   // A track dropped in must say where it came from.
   test("every music track in resources/ is credited", () => {
