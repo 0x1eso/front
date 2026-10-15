@@ -4,6 +4,7 @@ import {
   BUILTIN_PRESETS,
   migrateLegacyGraphicsSettings,
   parseGraphicsOverridesJson,
+  TOUCH_DEFAULT_PRESET_KEY,
 } from "../src/client/GraphicsPresets";
 import builtinPresets from "../src/client/render/gl/graphics-presets.json";
 import { GraphicsOverridesSchema } from "../src/client/render/gl/GraphicsOverrides";
@@ -174,5 +175,50 @@ describe("parseGraphicsOverridesJson", () => {
     expect(
       parseGraphicsOverridesJson('{"accessibility":{"colorblind":true}}'),
     ).toBe(null);
+  });
+});
+
+describe("touch first-run graphics (spec §14a)", () => {
+  const userSettings = new UserSettings();
+  const medium = () =>
+    BUILTIN_PRESETS.find((p) => p.nameKey === TOUCH_DEFAULT_PRESET_KEY)!;
+
+  beforeEach(() => {
+    userSettings.removeCached(GRAPHICS_KEY);
+    userSettings.removeCached(GRAPHICS_PRESETS_KEY);
+  });
+
+  it("starts a fresh touch profile on the medium preset", () => {
+    migrateLegacyGraphicsSettings(userSettings, true);
+    expect(userSettings.graphicsOverrides()).toEqual(medium().overrides);
+    expect(userSettings.graphicsPresets()).toEqual({});
+  });
+
+  it("applies only once, so a later change sticks", () => {
+    migrateLegacyGraphicsSettings(userSettings, true);
+    userSettings.setGraphicsOverrides({});
+    migrateLegacyGraphicsSettings(userSettings, true);
+    expect(userSettings.graphicsOverrides()).toEqual({});
+  });
+
+  it("keeps a touch player's existing custom graphics", () => {
+    userSettings.setGraphicsOverrides({ name: { nameScaleFactor: 2 } });
+    migrateLegacyGraphicsSettings(userSettings, true);
+    expect(userSettings.graphicsOverrides()).toEqual({
+      name: { nameScaleFactor: 2 },
+    });
+  });
+
+  it("leaves mouse players on the default look", () => {
+    migrateLegacyGraphicsSettings(userSettings, false);
+    expect(userSettings.graphicsOverrides()).toEqual({});
+  });
+
+  it("the medium preset turns off the heavy passes", () => {
+    const settings = createRenderSettings();
+    applyGraphicsOverrides(settings, medium().overrides);
+    expect(settings.smallPlayerGlow.strength).toBe(0);
+    expect(settings.passEnabled.falloutBloom).toBe(false);
+    expect(settings.passEnabled.falloutLight).toBe(false);
   });
 });
