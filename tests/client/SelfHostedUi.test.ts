@@ -89,38 +89,74 @@ describe("what a self-hosted page hides", () => {
           page,
         ).not.toBeNull();
       }
-      expect(
-        bar.querySelector('[data-page="page-play"]')?.closest(".no-self-host"),
-      ).toBeNull();
     },
   );
 
-  it.each(["desktop-nav-bar", "play-page"])(
-    "%s marks the account menu",
-    async (tag) => {
-      boot(true);
-      const el = await mount(tag);
-      expect(
-        el
-          .querySelector("nav-account-menu")
-          ?.classList.contains("no-self-host"),
-      ).toBe(true);
-    },
-  );
-
-  it("offers no Ranked button, and keeps Create and Join", async () => {
+  it("keeps the way home: the wordmark in the desktop bar", async () => {
     boot(true);
-    const selector = await mount("game-mode-selector");
-    expect(selector.textContent).not.toContain("mode_selector.ranked_title");
-    expect(selector.textContent).toContain("main.create");
-    expect(selector.textContent).toContain("main.join");
+    const bar = await mount("desktop-nav-bar");
+    const home = bar.querySelector('[data-page="page-play"]');
+    expect(home?.querySelector("game-wordmark")).not.toBeNull();
+    expect(home?.closest(".no-self-host")).toBeNull();
   });
 
-  it("control: a page that is not self-hosted keeps Ranked", async () => {
-    boot(false);
-    const selector = await mount("game-mode-selector");
-    expect(selector.textContent).toContain("mode_selector.ranked_title");
+  it("hides the news bell (upstream's changelog) but keeps help and settings", async () => {
+    boot(true);
+    const icons = await mount("nav-utility-icons");
+    expect(
+      icons.querySelector('[data-page="page-news"]')?.closest(".no-self-host"),
+    ).not.toBeNull();
+    for (const page of ["page-help", "page-settings"]) {
+      expect(
+        icons.querySelector(`[data-page="${page}"]`)?.closest(".no-self-host"),
+        page,
+      ).toBeNull();
+    }
   });
+
+  it("hides the menu button, whose every item needs the account API", async () => {
+    boot(true);
+    const page = await mount("play-page");
+    expect(
+      page.querySelector("#hamburger-btn")?.classList.contains("no-self-host"),
+    ).toBe(true);
+  });
+
+  it("offers no clan tag, and does not send one stored before", async () => {
+    type Input = Mountable & { getClanTag(): string | null };
+    try {
+      // Control: off a self-hosted server the stored tag is picked up.
+      localStorage.setItem("username", "Friend");
+      localStorage.setItem("clanTag", "WOLF");
+      boot(false);
+      const upstream = (await mount("username-input")) as Input;
+      expect(upstream.querySelector("#clan-tag-button")).not.toBeNull();
+      expect(upstream.getClanTag()).toBe("WOLF");
+      upstream.remove();
+
+      localStorage.setItem("clanTag", "WOLF");
+      boot(true);
+      const input = (await mount("username-input")) as Input;
+      expect(input.querySelector("#clan-tag-button")).toBeNull();
+      expect(input.getClanTag()).toBeNull();
+    } finally {
+      localStorage.removeItem("username");
+      localStorage.removeItem("clanTag");
+    }
+  });
+
+  // Ranked needs OpenFront's API, but this fork's home menu has no Ranked
+  // button on any page: it is Solo, Create and Join.
+  it.each([true, false])(
+    "offers no Ranked button, and keeps Create and Join (self-hosted: %s)",
+    async (selfHosted) => {
+      boot(selfHosted);
+      const selector = await mount("game-mode-selector");
+      expect(selector.textContent).not.toContain("mode_selector.ranked_title");
+      expect(selector.textContent).toContain("main.create");
+      expect(selector.textContent).toContain("main.join");
+    },
+  );
 
   it("shows no Steam promo", async () => {
     boot(true);

@@ -1,20 +1,9 @@
-import { GameMapType, GameType } from "@openfront/engine-api/game/GameTypes";
-import { UserMeResponse } from "@openfront/shared/ApiSchemas";
-import { PublicGameInfo, PublicGames } from "@openfront/shared/WireSchemas";
+import { GameType } from "@openfront/engine-api/game/GameTypes";
+import { PublicGames } from "@openfront/shared/WireSchemas";
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { ClientEnv } from "src/client/ClientEnv";
 import { getDesktopSessionState } from "./Auth";
 import "./components/IOSAddToHomeScreenBanner";
-import {
-  canJoinTrustedLobby,
-  lobbyCard,
-  mapAspectRatios,
-  trustLockIcon,
-  trustRequiredDialog,
-  viewerIsSignedIn,
-  viewerIsTrusted,
-} from "./components/LobbyCard";
 import {
   getDesktopUpdateState,
   isDesktopShell,
@@ -23,49 +12,28 @@ import {
   type DesktopSessionState,
   type DesktopUpdateState,
 } from "./DesktopShell";
-import { gamePortal } from "./GamePortal";
 import type { HostLobbyModal } from "./HostLobbyModal";
 import { showInGameAlert } from "./InGameModal";
 import type { JoinLobbyModal } from "./JoinLobbyModal";
 import { whenModalLoaded } from "./LazyModals";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
-import { isSelfHosted } from "./SelfHosted";
 import {
   backendUnreachableConfirmed,
   isPinnedToAVersion,
-  MANUAL_RETRY_COOLDOWN_MS,
   manualRetryAvailable,
-  refreshServerList,
   retryServerList,
   type BackendReachabilityDetail,
 } from "./ServerList";
 import type { SinglePlayerModal } from "./SinglePlayerModal";
-import { lastUserMeResponse } from "./UserMeBroadcast";
 import { UsernameInput } from "./UsernameInput";
-import {
-  calculateServerTimeOffset,
-  getGameModeLabel,
-  getGamesPlayed,
-  getSecondsUntilServerTimestamp,
-  reloadForUpdate,
-  renderDuration,
-  showToast,
-  translateText,
-} from "./Utils";
+import { reloadForUpdate, showToast, translateText } from "./Utils";
 import { isReplayShellHost } from "./VersionedReplay";
 
-const PRIMARY_ACTION =
-  "bg-malibu-blue hover:bg-aquarius active:bg-malibu-blue/80 hover:scale-y-105 hover:scale-x-[1.01]";
-const SECONDARY_ACTION =
-  "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]";
-const DISABLED = "opacity-50 cursor-not-allowed pointer-events-none";
-/** Tutorial card: the panel's gold, dark text for contrast. */
-const TUTORIAL_ACTION =
-  "bg-cyber-yellow hover:bg-yellow-300 active:bg-cyber-yellow/80 !text-gray-900 hover:scale-y-105 hover:scale-x-[1.01]";
-
-/** The Tutorial card shows beside Solo until the player has played this many games. */
-const TUTORIAL_CARD_MAX_GAMES = 5;
+// The home menu (Statecraft is played among friends, so the homepage is
+// just the three ways into a game; atlas.css draws the buttons).
+const PRIMARY_ACTION = "atlas-action atlas-action-primary";
+const SECONDARY_ACTION = "atlas-action atlas-action-secondary";
 
 /**
  * THE REACHABILITY RULE (OPE-439). Stated once, here; every other call site
@@ -87,13 +55,12 @@ const TUTORIAL_CARD_MAX_GAMES = 5;
  *   reportMultiplayerRefusal.
  *
  *   NOT GATED (socket-sourced): anything whose target arrived over a live
- *   game-server socket -- every card in the public lobby feed, in both the
- *   homepage selector and the detailed browser -- and every join that reaches
- *   Main's funnel (shouldBlockJoin). The card's very existence is proof that
- *   the game server behind it is up and talking to us, which is the only
- *   liveness that join needs. Refusing there could only ever reject a join
- *   that is already under way, over the health of an unrelated API. These
- *   neither dim nor refuse on reachability: they call
+ *   game-server socket -- every card in the detailed lobby browser -- and
+ *   every join that reaches Main's funnel (shouldBlockJoin). The card's very
+ *   existence is proof that the game server behind it is up and talking to
+ *   us, which is the only liveness that join needs. Refusing there could
+ *   only ever reject a join that is already under way, over the health of an
+ *   unrelated API. These neither dim nor refuse on reachability: they call
  *   shouldBlockSocketSourcedAction, which is the same predicate with the
  *   reachability input nailed shut.
  *
@@ -154,9 +121,8 @@ export function shouldBlockMultiplayerAction(
  * Whether the public-lobby feed should be closed rather than kept open.
  *
  * A gated desktop session refuses every join the feed could offer, so keeping
- * the socket open only spends a connection on cards nobody can use and shows
- * a spinner that never resolves into anything playable. Close it and say
- * "offline" instead; it reopens when the session comes back.
+ * the socket open only spends a connection on rooms nobody can join. Close it
+ * instead; it reopens when the session comes back.
  *
  * Reachability is deliberately NOT an input, by the rule at the top of this
  * file: the feed is socket-sourced, and the list API's health says nothing
@@ -282,9 +248,9 @@ export function joinIsGateable(lobby: JoinLobbyEvent): boolean {
  * is live, then the refusal closes the join modal, which leaves the lobby and
  * resets the URL.
  *
- * The controls one step earlier in the funnel -- the lobby cards in this
- * component and in DetailedGameViewModal, which are where a "public" join
- * comes from -- hold to the same rule for the same reason, so a card is
+ * The controls one step earlier in the funnel -- the lobby cards in
+ * DetailedGameViewModal, which are where a "public" join comes from -- hold
+ * to the same rule for the same reason, so a card is
  * neither dimmed nor refused over a list-API outage.
  */
 export function shouldBlockJoin(
@@ -301,16 +267,11 @@ export class GameModeSelector extends LitElement {
   @state() private lobbies: PublicGames | null = null;
   @state() private inputValid: boolean = true;
   @state() private desktopUpdateState: DesktopUpdateState | null = null;
-  @state() private viewerTrusted: boolean = false;
-  @state() private viewerSignedIn: boolean = false;
-  @state() private showTrustRequired: boolean = false;
   @state() private desktopSessionState: DesktopSessionState | null = null;
   // The DEBOUNCED outage signal, not the raw per-attempt one: see
   // multiplayerAllowedForBackend for why one missed heartbeat must not dim
   // these buttons.
   @state() private backendOutage = false;
-  private serverTimeOffset: number = 0;
-  private defaultLobbyTime: number = 0;
 
   // True from join-lobby until leave-lobby: the player is waiting in (or
   // loading into) a lobby. This socket is NOT scoped to the homepage — Main.ts
@@ -321,14 +282,6 @@ export class GameModeSelector extends LitElement {
   // player is back at the menu). Kept apart from the socket's own state so a
   // session change can close and reopen the feed without forgetting that.
   private feedWanted = false;
-  // The socket ran out of fast attempts and is only re-dialing slowly;
-  // cleared by the next start() or snapshot.
-  @state() private feedGaveUp = false;
-  // Held for the same cooldown as the other Retry affordances, on this
-  // component's own clock: refreshServerList fires a real request per press
-  // (past its 1s floor), so this is what stops a player leaning on it.
-  @state() private retryCoolingDown = false;
-  private retryCooldownTimer: number | undefined;
   // An update/drain signal arrived during a lobby wait; prompt on leave-lobby.
   private updateDeferred = false;
 
@@ -337,9 +290,7 @@ export class GameModeSelector extends LitElement {
     {
       onUpdateAvailable: () => this.handleUpdateAvailable(),
       onGaveUp: () => {
-        // Nothing is loading any more, and cards from a feed that has died
-        // are lobbies the player cannot join.
-        this.feedGaveUp = true;
+        // A feed that has died no longer knows which rooms are open.
         this.lobbies = null;
       },
     },
@@ -395,7 +346,6 @@ export class GameModeSelector extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.defaultLobbyTime = ClientEnv.gameCreationRate() / 1000;
     window.addEventListener(
       "username-validity-change",
       this.handleValidityChange,
@@ -404,10 +354,6 @@ export class GameModeSelector extends LitElement {
       "desktop-update-state",
       this.onDesktopUpdateState,
     );
-    document.addEventListener("userMeResponse", this.onUserMe);
-    // play-page renders this after Main may already have broadcast.
-    const last = lastUserMeResponse();
-    if (last !== null) this.applyUserMe(last.response);
     if (isDesktopShell()) {
       // Seed BOTH from their current values. This element is rendered by
       // <play-page> on a Lit microtask, so it cannot exist yet when the status
@@ -446,8 +392,6 @@ export class GameModeSelector extends LitElement {
 
   disconnectedCallback() {
     this.stop();
-    window.clearTimeout(this.retryCooldownTimer);
-    this.retryCoolingDown = false;
     window.removeEventListener(
       "username-validity-change",
       this.handleValidityChange,
@@ -456,7 +400,6 @@ export class GameModeSelector extends LitElement {
       "desktop-update-state",
       this.onDesktopUpdateState,
     );
-    document.removeEventListener("userMeResponse", this.onUserMe);
     document.removeEventListener(
       "desktop-session-state",
       this.onDesktopSessionState,
@@ -490,22 +433,6 @@ export class GameModeSelector extends LitElement {
     this.desktopUpdateState = (e as CustomEvent<DesktopUpdateState>).detail;
   };
 
-  private onUserMe = (e: Event) => {
-    this.applyUserMe((e as CustomEvent<UserMeResponse | false>).detail);
-  };
-
-  private applyUserMe(me: UserMeResponse | false): void {
-    this.viewerSignedIn = viewerIsSignedIn(me);
-    this.viewerTrusted = viewerIsTrusted(me);
-    // A portal sign-in surfaces as a userMeResponse without a linked
-    // identity, so re-read the SDK profile alongside it.
-    if (gamePortal.isOnGamePortal()) {
-      void gamePortal.getUserProfile().then((user) => {
-        if (user !== null) this.viewerSignedIn = true;
-      });
-    }
-  }
-
   private onDesktopSessionState = (e: Event) => {
     const next = (e as CustomEvent<DesktopSessionState>).detail;
     const wasSuspended = lobbyFeedSuspended(this.desktopSessionState);
@@ -515,7 +442,6 @@ export class GameModeSelector extends LitElement {
     if (suspended) {
       this.closeLobbyFeed();
     } else {
-      this.feedGaveUp = false;
       this.lobbySocket.start();
     }
   };
@@ -531,8 +457,8 @@ export class GameModeSelector extends LitElement {
     this.lobbySocket.stop();
   }
 
-  // Also drops the snapshot: a card from a feed we have closed is a lobby the
-  // player cannot join, and the hero slot reads `null` as "show why".
+  // Also drops the snapshot: a feed we have closed no longer knows which
+  // rooms are open.
   private closeLobbyFeed() {
     this.lobbySocket.stop();
     this.lobbies = null;
@@ -556,247 +482,74 @@ export class GameModeSelector extends LitElement {
     this.openLobbyFeed();
   }
 
-  private openLobbyFeed(refreshList = false) {
+  private openLobbyFeed() {
     this.feedWanted = true;
-    this.feedGaveUp = false;
     if (lobbyFeedSuspended(this.desktopSessionState)) {
       // The session may have dropped while Main had the feed stopped, in
-      // which case the snapshot from before the game is still here and its
-      // cards would render as joinable.
+      // which case the snapshot from before the game is still here.
       this.lobbies = null;
       return;
     }
-    this.lobbySocket.start({ refreshList });
+    this.lobbySocket.start();
   }
-
-  /**
-   * Whether an empty hero slot should say "offline" instead of spinning. The
-   * feed is closed on a gated session, so nothing is loading; on a confirmed
-   * outage it may still be connecting, but a spinner that the status bar
-   * contradicts reads as broken, and the feed reconnects on its own if the
-   * server answers.
-   */
-  private offlineForLobbies(): boolean {
-    return (
-      lobbyFeedSuspended(this.desktopSessionState) ||
-      this.backendOutage ||
-      this.feedGaveUp
-    );
-  }
-
-  private renderLobbiesUnavailable() {
-    // A gated desktop session has its remedy in the status bar, and the feed
-    // stays closed until it is taken, so a Retry here could only do nothing.
-    const canRetry = !lobbyFeedSuspended(this.desktopSessionState);
-    // "Offline" is only ever said of a gated desktop session. An outage is
-    // our servers not answering, which is not the player being offline.
-    const message = !canRetry
-      ? "mode_selector.offline_lobbies"
-      : this.backendOutage
-        ? "mode_selector.servers_unreachable"
-        : "mode_selector.lobbies_unreachable";
-    return html`<div
-      class="flex flex-col items-center justify-center gap-3 h-44 sm:h-full rounded-xl bg-surface/60 px-6 text-center text-sm font-medium text-white/60"
-    >
-      ${translateText(message)}
-      ${canRetry
-        ? html`<button
-            class="px-4 py-2 rounded-md bg-malibu-blue hover:bg-aquarius text-white text-sm font-medium uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-malibu-blue"
-            ?disabled=${this.retryCoolingDown}
-            @click=${this.retryLobbies}
-          >
-            ${translateText("mode_selector.retry_lobbies")}
-          </button>`
-        : nothing}
-    </div>`;
-  }
-
-  private retryLobbies = () => {
-    if (this.retryCoolingDown) return;
-    this.retryCoolingDown = true;
-    this.retryCooldownTimer = window.setTimeout(() => {
-      this.retryCoolingDown = false;
-    }, MANUAL_RETRY_COOLDOWN_MS);
-    // Only a feed that gave up is reopened: one still inside its fast
-    // attempts is already dialing, and restarting it would throw that attempt
-    // away. The socket refreshes the list itself before it dials.
-    if (this.feedGaveUp && this.feedWanted) {
-      this.openLobbyFeed(true);
-      return;
-    }
-    // Shown over a feed that has not given up, this is a confirmed outage,
-    // which only an answer from the list API clears.
-    void refreshServerList();
-  };
 
   private handleLobbiesUpdate(lobbies: PublicGames) {
     this.lobbies = lobbies;
-    this.feedGaveUp = false;
-    this.serverTimeOffset = calculateServerTimeOffset(lobbies.serverTime);
     document.dispatchEvent(
       new CustomEvent("public-lobbies-update", {
         detail: { payload: lobbies },
       }),
     );
-    this.requestUpdate();
-
-    const allGames = Object.values(lobbies.games ?? {}).flat();
-    for (const game of allGames) {
-      mapAspectRatios.ensure(game.gameConfig?.gameMap as GameMapType, () =>
-        this.requestUpdate(),
-      );
-    }
   }
 
+  /**
+   * The home menu: Solo, then the two ways into a room among friends. The
+   * public lobby list, the upcoming column, Ranked and the tutorial card are
+   * gone from this fork's homepage (the tutorial stays on the help page).
+   */
   render() {
-    const ffa = this.lobbies?.games?.["ffa"]?.[0];
-    const teams = this.lobbies?.games?.["team"]?.[0];
-    const special = this.lobbies?.games?.["special"]?.[0];
-    // The hero slot holds the spinner, then the FFA card; loaded without one
-    // it goes and the upcoming column takes the whole row.
-    const heroSlot = this.lobbies === null || ffa !== undefined;
-    // A lone secondary card takes both of the column's card rows.
-    const cardRows =
-      teams && special
-        ? { special: "sm:row-start-2", teams: "sm:row-start-3" }
-        : {
-            special: "sm:row-start-2 sm:row-span-2",
-            teams: "sm:row-start-2 sm:row-span-2",
-          };
-
-    // DOM is in phone order; sm+ places the same elements onto a grid and
-    // reading-flow keeps focus order following the rows (Chromium only).
     return html`
-      <div
-        class="flex flex-col gap-4 w-full px-4 pb-4 mx-auto sm:px-0 sm:pb-0 sm:grid sm:grid-cols-[2fr_1fr] sm:grid-rows-[auto_min(24rem,40vh)_auto_auto] desktop:sm:grid-rows-[auto_40vh_auto_auto] sm:[reading-flow:grid-rows]"
-      >
+      <div class="flex flex-col gap-3 w-full">
         <ios-add-to-home-screen-banner
-          class="no-game-portal [&:empty]:hidden sm:col-span-2 sm:row-start-1"
+          class="no-game-portal [&:empty]:hidden"
         ></ios-add-to-home-screen-banner>
-
-        <div class="flex gap-4 h-14 sm:col-span-2 sm:row-start-3">
-          <div class="flex-[2]">
-            ${this.renderSmallActionCard(
-              translateText("main.solo"),
-              this.openSinglePlayerModal,
-              PRIMARY_ACTION,
-            )}
-          </div>
-          ${getGamesPlayed() < TUTORIAL_CARD_MAX_GAMES
-            ? html`<div class="flex-1">
-                ${this.renderSmallActionCard(
-                  translateText("main.tutorial"),
-                  this.startTutorial,
-                  TUTORIAL_ACTION,
-                )}
-              </div>`
-            : nothing}
-        </div>
-        <div
-          class="grid ${isSelfHosted()
-            ? "grid-cols-2"
-            : "grid-cols-3"} gap-4 h-14 sm:col-span-2 sm:row-start-4"
-        >
-          ${this.renderSmallActionCard(
+        ${this.renderAction(
+          translateText("main.solo"),
+          this.openSinglePlayerModal,
+          PRIMARY_ACTION,
+          SOLO_ICON,
+        )}
+        <div class="grid grid-cols-2 gap-3">
+          ${this.renderAction(
             translateText("main.create"),
             this.openHostLobby,
             SECONDARY_ACTION,
+            CREATE_ICON,
             undefined,
             true,
           )}
-          ${isSelfHosted()
-            ? // Ranked matchmaking lives in OpenFront's API.
-              nothing
-            : this.renderSmallActionCard(
-                translateText("mode_selector.ranked_title"),
-                this.openRankedMenu,
-                SECONDARY_ACTION,
-                undefined,
-                true,
-                // Ranked admits trusted accounts only. A trusted viewer gets
-                // the green open lock; anyone else meets the red locks and
-                // the trust popup inside the ranked modal. Small, so it
-                // clears the label on narrow (mobile) buttons.
-                this.viewerTrusted
-                  ? trustLockIcon(true, {
-                      tooltipTitle: translateText(
-                        "mode_selector.ranked_trust_tooltip_title",
-                      ),
-                      position: "top-1 right-1",
-                      small: true,
-                    })
-                  : nothing,
-              )}
-          ${this.renderSmallActionCard(
+          ${this.renderAction(
             translateText("main.join"),
             this.openJoinLobby,
             SECONDARY_ACTION,
+            JOIN_ICON,
             this.hostedLobbyCount(),
             true,
           )}
         </div>
-
-        ${heroSlot
-          ? html`<div class="min-w-0 sm:col-start-1 sm:row-start-2">
-              ${ffa
-                ? this.renderLobbyCard(ffa, getGameModeLabel(ffa.gameConfig!))
-                : this.offlineForLobbies()
-                  ? this.renderLobbiesUnavailable()
-                  : html`<div
-                      class="flex items-center justify-center h-44 sm:h-full"
-                    >
-                      <span
-                        class="size-24 rounded-full border-[6px] border-blue-500/30 border-t-blue-500 animate-spin"
-                      ></span>
-                    </div>`}
-            </div>`
-          : nothing}
-
-        <!-- Always rendered: the heading is the only way into the lobby browser. -->
-        <section
-          class="flex flex-col gap-4 min-w-0 sm:grid sm:grid-rows-[auto_1fr_1fr] sm:row-start-2 sm:min-h-0 sm:[reading-flow:grid-rows] ${heroSlot
-            ? "sm:col-start-2"
-            : "sm:col-start-1 sm:col-span-2"}"
-        >
-          ${teams
-            ? html`<div class="min-w-0 sm:min-h-0 ${cardRows.teams}">
-                ${this.renderLobbyCard(
-                  teams,
-                  getGameModeLabel(teams.gameConfig!),
-                )}
-              </div>`
-            : nothing}
-          ${special
-            ? html`<div class="min-w-0 sm:min-h-0 ${cardRows.special}">
-                ${this.renderLobbyCard(
-                  special,
-                  getGameModeLabel(special.gameConfig!),
-                )}
-              </div>`
-            : nothing}
-          ${this.renderUpcomingHeading()}
-        </section>
-
-        ${this.showTrustRequired
-          ? trustRequiredDialog(
-              this.viewerSignedIn,
-              () => (this.showTrustRequired = false),
-            )
-          : nothing}
       </div>
     `;
   }
 
   /**
-   * Refuses an API-DEPENDENT action (Create, Ranked, Join by code) and tells
-   * the player why. Returns true when the caller should stop.
+   * Refuses an API-DEPENDENT action (Create, Join by code) and tells the
+   * player why. Returns true when the caller should stop.
    *
    * The reachability half applies here -- see the rule at the top of this
-   * file: none of these three can resolve a server without the list API. A
-   * lobby card goes through blockedFromLobbyJoin below instead.
+   * file: neither can resolve a server without the list API.
    *
    * Deliberately NOT implemented with the `disabled` attribute the way
-   * renderSmallActionCard handles invalid input: a disabled control (and
+   * renderAction handles invalid input: a disabled control (and
    * `pointer-events-none` alongside it) swallows the click, leaving nothing to
    * trigger the wiggle -- and, on the web, nothing to trigger the retry that
    * reportMultiplayerRefusal makes of it. The button stays clickable and
@@ -815,36 +568,6 @@ export class GameModeSelector extends LitElement {
     return true;
   }
 
-  /**
-   * The same, for the public-lobby card: the desktop states still refuse, a
-   * list-API outage never does. Its lobby came over a live game-server socket
-   * (the rule at the top of this file), so there is no reachability reason to
-   * refuse and nothing to retry -- hence `false` to the refusal report, which
-   * leaves the desktop wiggle as the only feedback.
-   */
-  private blockedFromLobbyJoin(): boolean {
-    if (
-      !shouldBlockSocketSourcedAction(
-        this.desktopUpdateState,
-        this.desktopSessionState,
-      )
-    )
-      return false;
-    reportMultiplayerRefusal(false);
-    return true;
-  }
-
-  private openRankedMenu = () => {
-    if (this.blockedFromApiAction()) return;
-    if (!this.validateUsername()) return;
-    window.showPage?.("page-ranked");
-  };
-
-  private openDetailedView = () => {
-    if (!this.validateUsername()) return;
-    window.showPage?.("page-detailed-view");
-  };
-
   private openSinglePlayerModal = () => {
     if (!this.validateUsername()) return;
     whenModalLoaded("single-player-modal", () =>
@@ -852,12 +575,6 @@ export class GameModeSelector extends LitElement {
         document.querySelector("single-player-modal") as SinglePlayerModal
       )?.open(),
     );
-  };
-
-  // Handled in Main, which also serves the help page's tutorial button.
-  private startTutorial = () => {
-    if (!this.validateUsername()) return;
-    document.dispatchEvent(new CustomEvent("start-tutorial"));
   };
 
   private openHostLobby = () => {
@@ -876,79 +593,21 @@ export class GameModeSelector extends LitElement {
     );
   };
 
-  // Number of open hosted lobbies waiting in the browser; shown as a chip
-  // on the Join button.
-  /**
-   * The heading over the upcoming column, and the way to the lobby browser now
-   * that the Detailed View button is gone. Heading and link are one control:
-   * side by side they were two runs of small uppercase text, and neither read
-   * as clickable. A heading may hold a button, so the h2 survives.
-   *
-   * Dims and stops responding on an invalid username, as the button it
-   * replaces did: openDetailedView's own check is a silent backstop that
-   * assumes its control already looks disabled.
-   */
-  /** Heading over the upcoming column; also the link to the lobby browser. */
-  private renderUpcomingHeading() {
-    const count = this.advertisedLobbyCount();
-    return html`
-      <h2 class="min-w-0 sm:row-start-1">
-        <button
-          @click=${this.openDetailedView}
-          ?disabled=${!this.inputValid}
-          class="group/upcoming flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-2.5 pr-1.5 transition-colors hover:border-malibu-blue/50 hover:bg-malibu-blue/15 ${this
-            .inputValid
-            ? ""
-            : DISABLED}"
-        >
-          <span
-            class="truncate text-sm font-bold uppercase tracking-widest text-white/70 group-hover/upcoming:text-white"
-            >${translateText("public_lobby.upcoming")}</span
-          >
-          <span
-            class="flex shrink-0 items-center gap-0.5 rounded bg-malibu-blue py-0.5 pl-2 pr-1 text-xs font-bold uppercase tracking-wider text-white group-hover/upcoming:bg-aquarius"
-          >
-            ${count > 0
-              ? translateText("public_lobby.see_all", { count })
-              : nothing}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              class="size-4"
-              aria-hidden="true"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </span>
-        </button>
-      </h2>
-    `;
-  }
-
-  /** Every lobby the browser lists, hosted included. */
-  private advertisedLobbyCount(): number {
-    return Object.values(this.lobbies?.games ?? {}).flat().length;
-  }
-
+  // Rooms other players host and list, waiting in the browser; shown as a
+  // count on the Join button.
   private hostedLobbyCount(): number {
     return this.lobbies?.games?.hosted?.length ?? 0;
   }
 
-  private renderSmallActionCard(
+  private renderAction(
     title: string,
     onClick: () => void,
-    bgClass: string = SECONDARY_ACTION,
+    variantClass: string,
+    icon: TemplateResult,
     badge?: number,
-    // Only the three multiplayer action cards (create/ranked/join) pass this;
-    // the solo card is never gated (see openSinglePlayerModal) and must never
-    // show as disabled here.
+    // Only the multiplayer actions (create/join) pass this; Solo is never
+    // gated (see openSinglePlayerModal) and must never show as disabled here.
     gated: boolean = false,
-    adornment: TemplateResult | typeof nothing = nothing,
   ) {
     const blocked =
       gated &&
@@ -962,85 +621,60 @@ export class GameModeSelector extends LitElement {
         @click=${onClick}
         ?disabled=${!this.inputValid}
         aria-disabled=${blocked}
-        class="relative flex items-center justify-center w-full h-full rounded-lg ${bgClass} transition-all duration-200 text-sm lg:text-base font-medium text-white uppercase tracking-wider text-center ${!this
-          .inputValid
-          ? DISABLED
-          : blocked
-            ? "opacity-50 cursor-not-allowed"
-            : ""}"
+        class="${variantClass} ${blocked ? "atlas-action-blocked" : ""}"
       >
-        ${title}
+        ${icon}
+        <span>${title}</span>
         ${badge
-          ? html`<span
-              class="absolute -top-2 -right-2 min-w-[1.375rem] h-[1.375rem] px-1.5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold tracking-normal"
-              >${badge}</span
-            >`
+          ? html`<span class="atlas-action-badge">${badge}</span>`
           : nothing}
-        ${adornment}
       </button>
     `;
   }
-
-  private renderLobbyCard(
-    lobby: PublicGameInfo,
-    titleContent: string | TemplateResult,
-  ) {
-    const timeRemaining = lobby.startsAt
-      ? getSecondsUntilServerTimestamp(lobby.startsAt, this.serverTimeOffset)
-      : undefined;
-
-    let timeDisplay: string;
-    let timeDisplayUppercase = false;
-    if (timeRemaining === undefined) {
-      timeDisplay = renderDuration(this.defaultLobbyTime);
-    } else if (timeRemaining > 0) {
-      timeDisplay = renderDuration(timeRemaining);
-    } else {
-      timeDisplay = translateText("public_lobby.starting_game");
-      timeDisplayUppercase = true;
-    }
-
-    // Gated, not disabled: `disabled` (which the option below sets, together
-    // with pointer-events-none) swallows the click, and the click is what
-    // makes the update bar wiggle. `blocked` only dims and reports
-    // aria-disabled; validateAndJoin does the refusing.
-    //
-    // Socket-sourced, so a list-API outage neither dims this nor refuses it:
-    // the same predicate validateAndJoin uses, for the reason in the rule at
-    // the top of this file.
-    return lobbyCard({
-      lobby,
-      subtitle: titleContent,
-      timeDisplay,
-      timeDisplayUppercase,
-      disabled: !this.inputValid,
-      blocked: shouldBlockSocketSourcedAction(
-        this.desktopUpdateState,
-        this.desktopSessionState,
-      ),
-      viewerTrusted: this.viewerTrusted,
-      onClick: () => this.validateAndJoin(lobby),
-    });
-  }
-
-  private validateAndJoin(lobby: PublicGameInfo) {
-    if (this.blockedFromLobbyJoin()) return;
-    if (!this.validateUsername()) return;
-    if (!canJoinTrustedLobby(lobby, this.viewerTrusted)) {
-      this.showTrustRequired = true;
-      return;
-    }
-
-    this.dispatchEvent(
-      new CustomEvent("join-lobby", {
-        detail: {
-          gameID: lobby.gameID,
-          source: "public",
-          publicLobbyInfo: lobby,
-        } as JoinLobbyEvent,
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
 }
+
+/** A single figure: playing alone. */
+const SOLO_ICON = html`<svg
+  viewBox="0 0 24 24"
+  class="atlas-action-icon"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.8"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  <circle cx="12" cy="8" r="3.5" />
+  <path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" />
+</svg>`;
+
+/** A plus: opening a new room. */
+const CREATE_ICON = html`<svg
+  viewBox="0 0 24 24"
+  class="atlas-action-icon"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.8"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+  <path d="M12 8v8M8 12h8" />
+</svg>`;
+
+/** Walking through a door: entering a friend's room. */
+const JOIN_ICON = html`<svg
+  viewBox="0 0 24 24"
+  class="atlas-action-icon"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.8"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+  <path d="M9 16l4-4-4-4" />
+  <path d="M13 12H3" />
+</svg>`;

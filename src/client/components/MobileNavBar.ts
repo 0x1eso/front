@@ -91,12 +91,8 @@ export class MobileNavBar extends LitElement {
             ></div>
           </div>
         </div>
-        <!-- Mobile Navigation Menu Items (same order as the desktop bar) -->
-        <button
-          class="${MOBILE_ITEM} ${currentPage === "page-play" ? "active" : ""}"
-          data-page="page-play"
-          data-i18n="main.play"
-        ></button>
+        <!-- Mobile Navigation Menu Items (same order as the desktop bar;
+             the wordmark in the top bar is the way home) -->
         <div
           class="no-game-portal no-self-host nav-menu-item flex items-center w-full cursor-pointer"
           data-page="page-item-store"

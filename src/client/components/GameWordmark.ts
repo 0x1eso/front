@@ -14,13 +14,20 @@ export class GameWordmark extends LitElement {
   /** The name alone, smaller, for the mobile top bar. */
   @property({ type: Boolean }) compact = false;
 
+  /** "start" sets both lines flush left, as in the desktop nav bar. */
+  @property({ type: String }) align: "center" | "start" = "center";
+
   createRenderRoot() {
     return this;
   }
 
   render() {
     return html`
-      <div class="flex flex-col items-center leading-none select-none">
+      <div
+        class="flex flex-col ${this.align === "start"
+          ? "items-start"
+          : "items-center"} leading-none select-none"
+      >
         <span
           class="game-wordmark-title font-extrabold uppercase tracking-[0.2em] text-white ${this
             .compact

@@ -22,6 +22,7 @@ import {
   type ClaimGrace,
   type ResolvedPlayerName,
 } from "./PlayerName";
+import { isSelfHosted } from "./SelfHosted";
 import {
   parseSteamGrantStore,
   STEAM_GRANT_NOTICE_KEY,
@@ -155,6 +156,9 @@ export class UsernameInput extends LitElement {
 
   // Clans aren't supported on portals — hide the tag input and never submit one.
   private readonly onGamePortal = gamePortal.isOnGamePortal();
+  // Nor on a self-hosted server: clans live in OpenFront's API. A tag stored
+  // before the server went self-hosted is not loaded, so it is never sent.
+  private readonly selfHosted = isSelfHosted();
   // Steam identity is fixed for the session (no login/logout events like
   // the portals), so it's only used to seed the name once in connectedCallback.
   private readonly onSteam = steamSDK.isOnSteam();
@@ -762,7 +766,7 @@ export class UsernameInput extends LitElement {
     const storedUsername = this.onGamePortal
       ? null
       : localStorage.getItem(usernameKey);
-    if (storedUsername) {
+    if (storedUsername && !this.selfHosted) {
       this.clanTag = localStorage.getItem(clanTagKey) ?? "";
     }
     // No persona yet — it arrives asynchronously and reseeds in
@@ -801,7 +805,8 @@ export class UsernameInput extends LitElement {
       <!-- The name field takes whatever the tag picker and trailing button
            leave, so the row always fills the strip. -->
       <div class="flex items-center w-full h-full gap-1.5 sm:gap-2">
-        ${this.renderClanControl()} ${this.renderNameControl()}
+        ${this.selfHosted ? null : this.renderClanControl()}
+        ${this.renderNameControl()}
       </div>
       <!-- One positioned slot, stacked. An error and the reservation reminder
            are not alternatives: the error is transient and self-inflicted

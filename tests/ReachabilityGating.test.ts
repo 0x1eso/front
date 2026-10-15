@@ -1,10 +1,4 @@
 // @vitest-environment jsdom
-import { GameMapType, GameMode } from "@openfront/engine-api/game/GameTypes";
-import type { GameConfig } from "@openfront/engine-api/Schemas";
-import type {
-  PublicGameInfo,
-  PublicGames,
-} from "@openfront/shared/WireSchemas";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClientEnv } from "../src/client/ClientEnv";
 import { shouldBlockMultiplayerAction } from "../src/client/GameModeSelector";
@@ -19,18 +13,10 @@ import {
 
 // The component opens a public-lobby WebSocket the moment it connects. jsdom
 // has no WebSocket worth talking to and this file is about the gate, not the
-// lobby list, so the socket is a no-op -- except for retaining the update
-// callback the real socket would drive off the wire, which is the only way a
-// public-lobby card (one of the gated entry points) ever renders.
-const { lobbiesCallbackRef } = vi.hoisted(() => ({
-  lobbiesCallbackRef: { current: null as ((g: PublicGames) => void) | null },
-}));
-
+// lobby list, so the socket is a no-op. (This fork's homepage has no
+// public-lobby cards, so Create and Join are the gated entry points here.)
 vi.mock("../src/client/LobbySocket", () => ({
   PublicLobbySocket: class {
-    constructor(onUpdate: (g: PublicGames) => void) {
-      lobbiesCallbackRef.current = onUpdate;
-    }
     start(): void {}
     stop(): void {}
   },
@@ -61,7 +47,6 @@ let selector: HTMLElement & { updateComplete: Promise<unknown> };
 let joinOpen: ReturnType<typeof vi.fn>;
 let hostOpen: ReturnType<typeof vi.fn>;
 let wiggle: ReturnType<typeof vi.fn>;
-let joinLobby: ReturnType<typeof vi.fn>;
 let messages: string[];
 let fetchMock: ReturnType<typeof vi.fn>;
 // Added to the real clock, so a test can step past the manual-retry cooldown
@@ -76,20 +61,7 @@ function stub(tag: string, methods: Record<string, unknown>): void {
   document.body.appendChild(el);
 }
 
-function publicLobby(gameID: string): PublicGameInfo {
-  return {
-    gameID,
-    numClients: 3,
-    publicGameType: "ffa",
-    gameConfig: {
-      gameMap: GameMapType.World,
-      gameMode: GameMode.FFA,
-      maxPlayers: 8,
-    } as unknown as GameConfig,
-  };
-}
-
-/** Mounts <game-mode-selector> with one rendered public-lobby card. */
+/** Mounts <game-mode-selector>. */
 async function mountSelector(): Promise<
   HTMLElement & { updateComplete: Promise<unknown> }
 > {
@@ -97,11 +69,6 @@ async function mountSelector(): Promise<
     updateComplete: Promise<unknown>;
   };
   document.body.appendChild(el);
-  await el.updateComplete;
-  lobbiesCallbackRef.current?.({
-    serverTime: Date.now(),
-    games: { ffa: [publicLobby("public-1")] },
-  });
   await el.updateComplete;
   return el;
 }
@@ -111,15 +78,6 @@ function clickEveryButton(): number {
   const buttons = Array.from(selector.querySelectorAll("button"));
   for (const button of buttons) button.click();
   return buttons.length;
-}
-
-/**
- * The rendered public-lobby card's button. Socket-sourced: whatever the
- * server-list API is doing, this one must keep working (the reachability rule
- * at the top of GameModeSelector.ts).
- */
-function lobbyCardButton(): HTMLButtonElement | null {
-  return selector.querySelector("button.group");
 }
 
 /** Announces a reachability change the way the heartbeat does. */
@@ -173,7 +131,6 @@ beforeEach(() => {
   joinOpen = vi.fn();
   hostOpen = vi.fn();
   wiggle = vi.fn();
-  joinLobby = vi.fn();
   stub("join-lobby-modal", { open: joinOpen });
   stub("host-lobby-modal", { open: hostOpen });
   stub("single-player-modal", { open: vi.fn() });
@@ -182,18 +139,14 @@ beforeEach(() => {
   // cannot key on whether this element exists.
   stub("desktop-status-bar", { wiggle });
   (window as { showPage?: (id: string) => void }).showPage = vi.fn();
-  document.addEventListener("join-lobby", joinLobby as EventListener);
 
   messages = [];
   window.addEventListener("show-message", (e) => {
     messages.push((e as CustomEvent).detail?.message);
   });
-
-  lobbiesCallbackRef.current = null;
 });
 
 afterEach(() => {
-  document.removeEventListener("join-lobby", joinLobby as EventListener);
   document.body.innerHTML = "";
   window.BOOTSTRAP_CONFIG = undefined;
   ClientEnv.reset();
@@ -238,7 +191,7 @@ describe("the multiplayer entry points while the backend is unreachable", () => 
   });
 
   it("dims and refuses the API-DEPENDENT entry points once the outage is confirmed", async () => {
-    // Create, Ranked and Join-by-code each have to resolve a server for
+    // Create and Join-by-code each have to resolve a server for
     // something nothing has told this client about, so a dead list API really
     // does mean the click cannot work.
     selector = await mountSelector();
@@ -251,42 +204,6 @@ describe("the multiplayer entry points while the backend is unreachable", () => 
 
     expect(joinOpen).not.toHaveBeenCalled();
     expect(hostOpen).not.toHaveBeenCalled();
-  });
-
-  it("still joins the public lobby card during a confirmed outage", async () => {
-    // The rule (GameModeSelector, top of file): this lobby arrived over a
-    // live game-server socket, which is the only liveness the join needs. The
-    // server-list API's health says nothing about that server, and Main's
-    // funnel would let the very same join through -- so refusing here would
-    // only reject a join that is already under way.
-    selector = await mountSelector();
-    await announce(false, true);
-
-    const card = lobbyCardButton();
-    expect(card).not.toBeNull();
-    card!.click();
-
-    expect(joinLobby).toHaveBeenCalled();
-    expect(joinLobby.mock.calls[0][0].detail.gameID).toBe("public-1");
-  });
-
-  it("does not dim the public lobby card during a confirmed outage", async () => {
-    selector = await mountSelector();
-    await announce(false, true);
-
-    expect(lobbyCardButton()?.getAttribute("aria-disabled")).toBe("false");
-  });
-
-  it("says nothing when a card click goes through during an outage", async () => {
-    // The toast is for a REFUSAL. A join that proceeded has nothing to
-    // apologise for, and telling the player the servers are unreachable while
-    // taking them into a game would be a lie.
-    selector = await mountSelector();
-    await announce(false, true);
-
-    lobbyCardButton()!.click();
-
-    expect(messages).toEqual([]);
   });
 
   it("says why, on the web, where there is no status bar to read", async () => {
@@ -349,9 +266,6 @@ describe("the multiplayer entry points while the backend is unreachable", () => 
     clickEveryButton();
     expect(joinOpen).not.toHaveBeenCalled();
     expect(hostOpen).not.toHaveBeenCalled();
-    // ...and the card that came over the socket still joins, from the same
-    // seed.
-    expect(joinLobby).toHaveBeenCalled();
   });
 
   it("does not gate a selector that mounted after an attempt SUCCEEDED", async () => {
@@ -477,17 +391,6 @@ describe("a refused multiplayer click on the web", () => {
 
     clickEveryButton();
 
-    expect(fetchMock.mock.calls.length).toBe(before);
-  });
-
-  it("does not probe on a card click that goes through", async () => {
-    // Socket-sourced: it was never refused, so there is nothing to retry.
-    await mountGated();
-    const before = fetchMock.mock.calls.length;
-
-    lobbyCardButton()!.click();
-
-    expect(joinLobby).toHaveBeenCalled();
     expect(fetchMock.mock.calls.length).toBe(before);
   });
 });

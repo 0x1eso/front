@@ -16,8 +16,8 @@ vi.mock("@openfront/shared/AssetUrls", () => ({
   assetUrl: (path: string) => path,
 }));
 
-// Rendering play-page mounts its children too (steam-wishlist, cosmetic
-// background, …), and some reach for browser APIs jsdom doesn't ship.
+// Rendering play-page mounts its children too (the home menu, the name
+// field, …), and some reach for browser APIs jsdom doesn't ship.
 vi.stubGlobal(
   "ResizeObserver",
   class {
@@ -72,5 +72,41 @@ describe("play-page mobile top bar", () => {
       // their SDK prompt, so no platform-specific button is needed.
       expect(rightSlot()).toEqual(["nav-utility-icons", "nav-account-menu"]);
     });
+  });
+});
+
+// This fork's homepage is the name field and the three actions on one plate:
+// no news banner, Streaming Now, cosmetic strip or Steam promo around them.
+describe("play-page body", () => {
+  let el: PlayPage;
+
+  beforeEach(async () => {
+    if (!customElements.get("play-page")) {
+      customElements.define("play-page", PlayPage);
+    }
+    el = document.createElement("play-page") as PlayPage;
+    document.body.appendChild(el);
+    await el.updateComplete;
+  });
+
+  afterEach(() => el?.remove());
+
+  it("holds the name field and the home menu on one plate", () => {
+    const plate = el.querySelector(".atlas-plate")!;
+    expect(plate).not.toBeNull();
+    expect(plate.querySelector("username-input")).not.toBeNull();
+    expect(plate.querySelector("game-mode-selector")).not.toBeNull();
+    expect(plate.querySelector('[data-i18n="main.name_label"]')).not.toBeNull();
+  });
+
+  it("has no news, streams, cosmetic strip or store promo", () => {
+    for (const tag of [
+      "news-box",
+      "streaming-now",
+      "cosmetic-background",
+      "steam-wishlist",
+    ]) {
+      expect(el.querySelector(tag), tag).toBeNull();
+    }
   });
 });

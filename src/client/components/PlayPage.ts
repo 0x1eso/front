@@ -1,12 +1,8 @@
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
-import "./CosmeticBackground";
 import "./GameWordmark";
 import "./NavAccountMenu";
 import "./NavUtilityIcons";
-import "./NewsBox";
-import "./SteamWishlist";
-import "./StreamingNow";
 
 @customElement("play-page")
 export class PlayPage extends LitElement {
@@ -16,10 +12,7 @@ export class PlayPage extends LitElement {
 
   render() {
     return html`
-      <div
-        id="page-play"
-        class="flex flex-col gap-2 w-full px-0 lg:px-4 min-h-0"
-      >
+      <div id="page-play" class="flex flex-col flex-1 w-full min-h-0">
         <token-login class="absolute"></token-login>
         <rewards-modal class="absolute"></rewards-modal>
 
@@ -30,9 +23,10 @@ export class PlayPage extends LitElement {
           <div
             class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center h-14 px-2 gap-2"
           >
+            <!-- no-self-host: every item in the menu needs the account API. -->
             <button
               id="hamburger-btn"
-              class="col-start-1 justify-self-start h-10 shrink-0 aspect-[4/3] flex text-white/90 rounded-md items-center justify-center transition-colors"
+              class="no-self-host col-start-1 justify-self-start h-10 shrink-0 aspect-[4/3] flex text-white/90 rounded-md items-center justify-center transition-colors"
               data-i18n-aria-label="main.menu"
               aria-expanded="false"
               aria-controls="sidebar-menu"
@@ -76,53 +70,28 @@ export class PlayPage extends LitElement {
           </div>
         </div>
 
-        <!-- Top strip: news + identity on the left, Streaming Now on the right. The 2fr/1fr
-             split only exists while the panel is live (.streaming-live via has-[]) —
-             otherwise the left column takes the full row. -->
+        <!-- Mobile: spacer for the fixed top bar -->
         <div
-          class="w-full pb-4 lg:pb-0 flex flex-col gap-4 sm:-mx-4 sm:w-[calc(100%+2rem)] lg:mx-0 lg:w-full lg:grid lg:grid-cols-1 lg:has-[.streaming-live]:grid-cols-[2fr_1fr] lg:gap-4 lg:items-stretch"
+          class="lg:hidden shrink-0 h-[calc(env(safe-area-inset-top)+56px)]"
+        ></div>
+
+        <!-- The home plate (atlas.css): who you are, and the three ways into
+             a game. Statecraft is played among friends, so there is no lobby
+             list, news or promo strip around it. -->
+        <section
+          class="atlas-plate mx-auto my-auto w-[calc(100%-2rem)] max-w-[34rem]"
         >
-          <!-- Mobile: spacer for fixed top bar -->
-          <div
-            class="lg:hidden h-[calc(env(safe-area-inset-top)+56px)] -mb-4"
-          ></div>
-
-          <!-- Left column: news banner + identity row, stacked tight. -->
-          <div class="flex flex-col gap-2 min-w-0">
-            <news-box></news-box>
-
-            <!-- Identity row: username over the currently selected cosmetic background. -->
-            <div
-              class="relative bg-surface border-y border-white/10 overflow-visible flex items-center sm:min-h-[60px] sm:flex-1 sm:z-20 sm:border-y-0 sm:rounded-xl"
-            >
-              <!-- Selected skin/pattern fills the bubble like the player's territory in game. -->
-              <cosmetic-background
-                class="absolute inset-0 z-0 overflow-hidden sm:rounded-xl pointer-events-none"
-              ></cosmetic-background>
-              <div
-                class="relative z-10 flex h-full w-full min-w-0 items-center bg-surface/80 p-1 sm:rounded-xl"
-              >
-                <username-input
-                  class="flex-1 min-w-0 h-10 sm:h-[50px]"
-                ></username-input>
-              </div>
-            </div>
+          <p
+            class="atlas-eyebrow"
+            aria-hidden="true"
+            data-i18n="main.name_label"
+          ></p>
+          <div class="atlas-field relative">
+            <username-input class="block w-full h-14"></username-input>
           </div>
-
-          <!-- Right column: Streaming Now (desktop only), stretched to the left column's
-               full height so the top strip has no dead space. -->
-          <streaming-now
-            class="hidden lg:flex lg:h-full lg:flex-col w-full min-w-0"
-          ></streaming-now>
-        </div>
-
-        <game-mode-selector></game-mode-selector>
-
-        <!-- Desktop gets the compact footer button instead. -->
-        <steam-wishlist
-          campaign="home_mobile"
-          class="block px-2 pb-4 lg:hidden"
-        ></steam-wishlist>
+          <div class="atlas-rule" aria-hidden="true"></div>
+          <game-mode-selector></game-mode-selector>
+        </section>
       </div>
     `;
   }

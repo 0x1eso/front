@@ -113,7 +113,10 @@ export class NavUtilityIcons extends LitElement {
     const currentPage = window.currentPageId;
     return html`
       <div class="flex items-center gap-1">
-        <div class="relative">
+        <!-- no-self-host: the news is upstream's changelog, which a
+             self-hosted server must not present as its own (see
+             SelfHostApiStub). -->
+        <div class="relative no-self-host">
           <button
             class="${this.buttonClass()} ${currentPage === "page-news"
               ? "active"

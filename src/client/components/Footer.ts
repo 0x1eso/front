@@ -35,28 +35,55 @@ export class Footer extends LitElement {
     const sourceUrl = runningSourceUrl();
     return html`
       <footer
-        class="[.in-game_&]:hidden bg-zinc-900/90 backdrop-blur-md flex flex-col items-center justify-center gap-1 pt-1 pb-3 text-white/50 w-full border-t border-white/10 shrink-0 relative z-50 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-0"
+        class="atlas-footer [.in-game_&]:hidden relative z-50 w-full shrink-0 bg-zinc-900/90 border-t border-white/10 text-white/60"
       >
-        <!-- Icons and notices stay centred on the bar; on desktop they share
-             it with the Steam promo, which gets its own grid column so the
-             two can never overlap however wide a translation runs. -->
+        <!-- One slim row on tablets and up, so the pages opened from the
+             menu keep the height; stacked on phones. -->
         <div
-          class="flex w-full flex-col items-center gap-1 lg:col-start-2 lg:w-auto"
+          class="mx-auto w-full max-w-[20cm] 2xl:max-w-[24cm] desktop:max-w-[min(100%,clamp(80rem,50%,90rem))] flex flex-col lg:flex-row items-center justify-between gap-x-6 gap-y-1 px-4 lg:px-0 py-2 lg:py-1.5"
         >
+          <!-- LICENSE, AGPL v3 section 7: upstream's copyright notice stays
+               visible (7(b)) and the game says what it is based on (7(c)).
+               The source link is section 13. -->
           <div
-            class="flex items-center justify-center gap-4 lg:gap-6 pt-2 w-full relative"
+            class="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 text-xs"
           >
+            <span data-i18n="main.copyright"></span>
+            <a
+              href=${UPSTREAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="branding.based_on"
+              class="atlas-footer-link hover:text-white transition-colors"
+            ></a>
+            <a
+              href=${sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="branding.source_code"
+              class="atlas-footer-link hover:text-white transition-colors"
+            ></a>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <!-- The nav bar shows no version, so it reads the same across
+                 web and Steam; the full string, shell version included,
+                 lives down here where a player can quote it in a bug
+                 report. -->
+            <div class="footer-version text-xs tabular-nums px-2">
+              ${this.versionLabel}
+            </div>
             <!-- This fork's source code (AGPL v3 section 13). -->
             <a
               href=${sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              class="opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+              class="atlas-footer-icon opacity-60 hover:opacity-100 transition-opacity"
             >
               <img
                 src=${assetUrl("icons/github-mark-white.svg")}
                 data-i18n-alt="main.github"
-                class="h-6 w-6 lg:h-7 lg:w-7 object-contain pointer-events-none"
+                class="h-6 w-6 object-contain pointer-events-none"
                 draggable="false"
               />
             </a>
@@ -65,62 +92,26 @@ export class Footer extends LitElement {
               href="https://openfront.wiki/Main_Page"
               target="_blank"
               rel="noopener noreferrer"
-              class="opacity-60 hover:opacity-100 hover:scale-110 transition-all"
+              class="atlas-footer-icon opacity-60 hover:opacity-100 transition-opacity"
             >
               <img
                 src=${assetUrl("icons/wiki-logo.svg")}
                 data-i18n-alt="main.wiki"
-                class="h-6 w-6 lg:h-7 lg:w-7 object-contain pointer-events-none"
+                class="h-6 w-6 object-contain pointer-events-none"
                 draggable="false"
               />
             </a>
-          </div>
-          <!-- The nav bar shows the game version alone so it reads the same
-               across web and Steam; the full string, shell version included,
-               lives down here where a player can quote it in a bug report. -->
-          <div class="footer-version text-xs mt-1 lg:mt-2 text-center px-4">
-            ${this.versionLabel}
-          </div>
-          <!-- LICENSE, AGPL v3 section 7: upstream's copyright notice stays
-               visible (7(b)) and the game says what it is based on (7(c)). -->
-          <div
-            class="text-xs mt-1 lg:mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4"
-          >
-            <span data-i18n="main.copyright"></span>
-            <a
-              href=${UPSTREAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-i18n="branding.based_on"
-              class="hover:text-white transition-colors"
-            ></a>
-            <a
-              href=${sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-i18n="branding.source_code"
-              class="hover:text-white transition-colors"
-            ></a>
+            <!-- Single instance: translateText() resolves the active
+                 language via document.querySelector("lang-selector"), so a
+                 second one would shadow it. -->
+            <lang-selector></lang-selector>
+            <!-- Renders nothing on a self-hosted server or on Steam. -->
+            <steam-wishlist-button
+              campaign="home_desktop"
+              class="hidden lg:flex min-w-0 max-w-[544px]"
+            ></steam-wishlist-button>
           </div>
         </div>
-
-        <!-- Phones keep the full store widget on the play page instead; there
-             is no room for it here. -->
-        <div
-          class="hidden lg:flex lg:col-start-3 lg:items-center lg:justify-end lg:pt-2 lg:pr-20"
-        >
-          <steam-wishlist-button
-            campaign="home_desktop"
-            class="min-w-0 flex-1 max-w-[544px]"
-          ></steam-wishlist-button>
-        </div>
-
-        <!-- Single instance: translateText() resolves the active language via
-             document.querySelector("lang-selector"), so a second one would
-             shadow it. -->
-        <lang-selector
-          class="absolute right-4 top-3 lg:top-1/2 lg:-translate-y-1/2"
-        ></lang-selector>
       </footer>
     `;
   }
