@@ -33,6 +33,10 @@ import {
   isSaveUpWithinReach,
   randTerritoryTileArray,
 } from "./NationUtils";
+import {
+  nationIsSavingForProject,
+  nationProjectKindFor,
+} from "./NationVictoryBehavior";
 
 /**
  * Configuration for how many structures of each type a nation should build
@@ -338,6 +342,17 @@ export class NationStructureBehavior {
       if (this.defensePostNeeded()) {
         return false;
       }
+    }
+
+    // Domestic mode: a Hard+ nation saving up for its victory project builds
+    // nothing else until it can start it (spec §9.3).
+    if (
+      nationIsSavingForProject(
+        this.player,
+        nationProjectKindFor(this.game, this.player),
+      )
+    ) {
+      return false;
     }
 
     if (this.isOnStructureCooldown()) {
