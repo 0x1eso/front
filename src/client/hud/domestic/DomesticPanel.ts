@@ -51,13 +51,23 @@ const DRAWER_GAP = 8;
  * (attack ratio, build bar, the domestic row and its toggle) and left of the
  * map buttons. Not above the whole bottom HUD: its events and chat column
  * grows and shrinks all game, and would make the drawer jump. That column
- * and the attacks above the rows stack over the drawer instead.
+ * and the attacks above the rows stack over the drawer instead (MAY_COVER).
  */
 const KEEP_CLEAR = {
   top: "[data-hud-top-right]",
   bottom: "[data-bottom-hud-rows]",
   right: "map-controls > div",
 } as const;
+
+/**
+ * The HUD drawn over the drawer's lower band: the attacks above the bottom
+ * rows and the events and chat column. The drawer's list gets that much
+ * room at its end, so every card can scroll up clear of it.
+ */
+const MAY_COVER = ["attacks-display", "[data-bottom-hud-side]"] as const;
+
+/** The scroll area's own bottom padding (pb-3), in CSS px. */
+const LIST_PADDING = 12;
 
 export interface DrawerInsets {
   top: number;
@@ -82,6 +92,28 @@ export function drawerInsets(): DrawerInsets {
   };
 }
 
+/**
+ * How far up, in CSS px, the HUD in MAY_COVER reaches into the drawer from
+ * its bottom edge. `drawer` is the drawer's box; before it is laid out
+ * (null) all of that HUD counts.
+ */
+export function drawerCoveredBottom(
+  insets: DrawerInsets,
+  drawer: DOMRect | null,
+): number {
+  const bottom = window.innerHeight - insets.bottom;
+  let covered = 0;
+  for (const selector of MAY_COVER) {
+    const r = shownRect(selector);
+    if (r === null || r.top >= bottom) continue;
+    if (drawer !== null && (r.right <= drawer.left || r.left >= drawer.right)) {
+      continue;
+    }
+    covered = Math.max(covered, bottom - r.top);
+  }
+  return covered;
+}
+
 /** The domestic panel: technology, book of laws, government and victory tabs. */
 @customElement("domestic-panel")
 export class DomesticPanel extends LitElement implements Controller {
@@ -98,9 +130,18 @@ export class DomesticPanel extends LitElement implements Controller {
     right: DRAWER_GAP,
     bottom: DRAWER_GAP,
   };
+  /** How far the HUD over the drawer's lower band reaches into it. */
+  @state() private coveredBottom = 0;
   private resizeObserver: ResizeObserver | null = null;
   private readonly refit = () => {
     this.insets = drawerInsets();
+    const box = this.querySelector(
+      "[data-domestic-drawer]",
+    )?.getBoundingClientRect();
+    this.coveredBottom = drawerCoveredBottom(
+      this.insets,
+      box !== undefined && box.width > 0 ? box : null,
+    );
   };
 
   createRenderRoot() {
@@ -129,10 +170,14 @@ export class DomesticPanel extends LitElement implements Controller {
   private startFitting() {
     this.stopFitting();
     this.refit();
+    // Again once the drawer is laid out, to see what lies over it.
+    void this.updateComplete.then(() => {
+      if (this.open) this.refit();
+    });
     window.addEventListener("resize", this.refit);
     if (typeof ResizeObserver === "undefined") return;
     this.resizeObserver = new ResizeObserver(this.refit);
-    for (const selector of Object.values(KEEP_CLEAR)) {
+    for (const selector of [...Object.values(KEEP_CLEAR), ...MAY_COVER]) {
       const el = document.querySelector(selector);
       if (el) this.resizeObserver.observe(el);
     }
@@ -207,7 +252,11 @@ export class DomesticPanel extends LitElement implements Controller {
               </button>`,
           )}
         </div>
-        <div class="flex-1 overflow-y-auto px-3 pb-3">
+        <div
+          data-domestic-scroll
+          class="flex-1 overflow-y-auto px-3"
+          style="padding-bottom: ${LIST_PADDING + this.coveredBottom}px;"
+        >
           ${this.renderTab(d, view, me)}
         </div>
       </aside>

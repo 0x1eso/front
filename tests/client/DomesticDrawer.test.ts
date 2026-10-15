@@ -270,6 +270,76 @@ describe("domestic drawer", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
+  it("pads its list so the HUD stacked over its lower band scrolls clear (C3)", async () => {
+    const observed: Element[] = [];
+    let onResize: () => void = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: () => void) {
+          onResize = cb;
+        }
+        observe(el: Element) {
+          observed.push(el);
+        }
+        disconnect() {}
+      },
+    );
+    const hud = await mountHud(1024, 768);
+    // A busy game: attack rows above the fixed rows, and the events and chat
+    // column on the right, both drawn over the drawer (z-200 over z-150).
+    const attacks = document.createElement("attacks-display");
+    place(attacks, { left: 212, top: 468, right: 812, bottom: 588 });
+    const side = document.createElement("div");
+    side.setAttribute("data-bottom-hud-side", "");
+    place(side, { left: 820, top: 300, right: 1016, bottom: 768 });
+    hud.bottomHud.append(attacks, side);
+
+    const panel = await openDrawer();
+    expect(observed).toEqual(expect.arrayContaining([attacks, side]));
+    const drawer = panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
+    const { top, right, bottom } = offsets(drawer);
+    const drawerBottom = 768 - bottom;
+    place(drawer, {
+      left: 1024 - right - 420,
+      top,
+      right: 1024 - right,
+      bottom: drawerBottom,
+    });
+    const padding = async () => {
+      onResize();
+      await panel.updateComplete;
+      return parseFloat(
+        panel.querySelector<HTMLElement>("[data-domestic-scroll]")!.style
+          .paddingBottom,
+      );
+    };
+
+    // The events column reaches highest: the last card can scroll above it.
+    expect(await padding()).toBeGreaterThanOrEqual(drawerBottom - 300);
+
+    // The column empties: only the attack rows still reach in.
+    place(side, { left: 820, top: 768, right: 1016, bottom: 768 });
+    const attacksOnly = await padding();
+    expect(attacksOnly).toBeGreaterThanOrEqual(drawerBottom - 468);
+    expect(attacksOnly).toBeLessThan(drawerBottom - 300);
+
+    // HUD beside the drawer rather than over it is no reason to pad.
+    place(attacks, { left: 0, top: 468, right: 500, bottom: 588 });
+    expect(await padding()).toBeLessThanOrEqual(12);
+  });
+
+  it("marks the events and chat column the drawer pads for", () => {
+    const side = INDEX.querySelector("[data-bottom-hud-side]")!;
+    expect(side).not.toBeNull();
+    for (const tag of ["chat-display", "events-display", "actionable-events"]) {
+      expect(side.querySelector(tag)).not.toBeNull();
+    }
+    expect(
+      INDEX.querySelector("[data-bottom-hud] attacks-display"),
+    ).not.toBeNull();
+  });
+
   it("keeps clear of the box with the control panel, build bar and domestic row", () => {
     const rows = INDEX.querySelector("[data-bottom-hud-rows]")!;
     expect(rows).not.toBeNull();
