@@ -6,7 +6,10 @@ import http from "http";
 import type { AddressInfo } from "net";
 import { afterEach, beforeEach, describe, expect, it, test } from "vitest";
 import { WebSocket, WebSocketServer } from "ws";
-import { selfHostApiStub } from "../../src/server/SelfHostApiStub";
+import {
+  notOnSelfHost,
+  selfHostApiStub,
+} from "../../src/server/SelfHostApiStub";
 import {
   connectingIp,
   proxyToWorkers,
@@ -362,6 +365,48 @@ describe("client addresses through the master", () => {
     await connect("127.0.0.1", { "cf-connecting-ip": "203.0.113.7" });
     await connect("127.0.0.1", { "cf-connecting-ip": "203.0.113.8" });
     expect(wsIps).toEqual(["203.0.113.7", "203.0.113.8"]);
+  });
+});
+
+// The desktop (Steam) release descriptor needs a CDN in production, which a
+// self-hosted server has not: it answered 500 and logged an error per poll.
+describe("routes a self-hosted server has no use for", () => {
+  let server: http.Server;
+  let base: string;
+  let enabled: boolean;
+  let reached: number;
+
+  beforeEach(async () => {
+    enabled = true;
+    reached = 0;
+    const app = express();
+    app.use(
+      "/desktop",
+      notOnSelfHost(() => enabled),
+    );
+    app.get("/desktop/version.json", (_req, res) => {
+      reached++;
+      res.status(500).json({ error: "unavailable" });
+    });
+    server = http.createServer(app);
+    base = `http://127.0.0.1:${await listen(server)}`;
+  });
+
+  afterEach(async () => {
+    await close(server);
+  });
+
+  it("answer 404 without reaching their handler", async () => {
+    const res = await fetch(`${base}/desktop/version.json`);
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "self_hosted" });
+    expect(reached).toBe(0);
+  });
+
+  it("reach their handler when the server is not self-hosted", async () => {
+    enabled = false;
+    expect((await fetch(`${base}/desktop/version.json`)).status).toBe(500);
+    expect(reached).toBe(1);
   });
 });
 

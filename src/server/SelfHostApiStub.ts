@@ -35,3 +35,16 @@ export function selfHostApiStub(enabled: () => boolean): RequestHandler {
     res.status(404).json({ error: "self_hosted" });
   };
 }
+
+/**
+ * Mounted on a path a self-hosted server has no use for (the desktop app's
+ * release descriptor, which production builds from a CDN this server lacks):
+ * a quiet 404 there instead of an error per request. Not self-hosted, every
+ * request passes through.
+ */
+export function notOnSelfHost(enabled: () => boolean): RequestHandler {
+  return (_req: Request, res: Response, next: NextFunction) => {
+    if (!enabled()) return next();
+    res.status(404).json({ error: "self_hosted" });
+  };
+}

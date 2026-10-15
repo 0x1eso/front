@@ -27,7 +27,7 @@ import { MasterLobbyService } from "./MasterLobbyService";
 import { setNoStoreHeaders } from "./NoStoreHeaders";
 import { startPolling } from "./PollingLoop";
 import { renderAppShell } from "./RenderHtml";
-import { selfHostApiStub } from "./SelfHostApiStub";
+import { notOnSelfHost, selfHostApiStub } from "./SelfHostApiStub";
 import {
   connectingIp,
   proxyToWorkers,
@@ -94,6 +94,13 @@ const descriptorOpts = () => ({
   // no CDN, and same-origin is what the web client already does there.
   requireCdnBase: ServerEnv.env() === GameEnv.Prod,
 });
+
+// Self-hosted there is no desktop app, nor the CDN production requires for
+// its descriptor: a quiet 404, not a 500 and an error logged per request.
+app.use(
+  "/desktop",
+  notOnSelfHost(() => ServerEnv.selfHosted()),
+);
 
 app.get("/desktop/version.json", async (_req, res) => {
   try {
