@@ -1005,6 +1005,7 @@
     "tab_laws": "Book of Laws",
     "tab_tech": "Technology",
     "tab_victory": "Victory",
+    "tap_again_to_confirm": "Tap again to confirm (permanent)",
     "tech": {
       "academia": {
         "desc": "Research institute output +40%",

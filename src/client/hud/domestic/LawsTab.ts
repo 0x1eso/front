@@ -16,8 +16,15 @@ import { renderNumber } from "@openfront/engine-lib/Format";
 import { html, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { DomesticClientView } from "../../view/DomesticClientView";
+import {
+  ConfirmTap,
+  confirmTapClass,
+  confirmTapHandler,
+  confirmTapLabel,
+} from "./ConfirmTap";
 
-export interface LawsTabContext {
+/** Proclaiming is permanent: each option button confirms with a second tap. */
+export interface LawsTabContext extends ConfirmTap {
   view: DomesticClientView;
   gold: bigint;
   nowTick: number;
@@ -127,13 +134,16 @@ function proclaimButton(
 ): TemplateResult {
   const available = ctx.view.data.political;
   if (available >= cost) {
+    const key = `law:${law}:${option}:political`;
     return html`<button
       type="button"
-      class="${BUTTON} bg-sky-700 hover:bg-sky-600"
+      class="${BUTTON} bg-sky-700 hover:bg-sky-600 ${confirmTapClass(ctx, key)}"
       ?disabled=${block !== null}
-      @click=${() => ctx.proclaim(law, option, false)}
+      @click=${confirmTapHandler(ctx, key, () =>
+        ctx.proclaim(law, option, false),
+      )}
     >
-      ${translateText("domestic.proclaim")}
+      ${confirmTapLabel(ctx, key, translateText("domestic.proclaim"))}
     </button>`;
   }
   const gold = shortfallGold(
@@ -141,15 +151,26 @@ function proclaimButton(
     ctx.view.pct("goldPaymentCost"),
   );
   const affordable = ctx.gold >= gold;
+  // The gold amount is part of the key: a new price needs a new confirm.
+  const key = `law:${law}:${option}:gold:${gold}`;
   return html`<button
       type="button"
-      class="${BUTTON} bg-amber-700 hover:bg-amber-600"
+      class="${BUTTON} bg-amber-700 hover:bg-amber-600 ${confirmTapClass(
+        ctx,
+        key,
+      )}"
       ?disabled=${block !== null || !affordable}
-      @click=${() => ctx.proclaim(law, option, true)}
+      @click=${confirmTapHandler(ctx, key, () =>
+        ctx.proclaim(law, option, true),
+      )}
     >
-      ${translateText("domestic.proclaim_with_gold", {
-        gold: renderNumber(gold),
-      })}
+      ${confirmTapLabel(
+        ctx,
+        key,
+        translateText("domestic.proclaim_with_gold", {
+          gold: renderNumber(gold),
+        }),
+      )}
     </button>
     ${block === null && !affordable
       ? html`<span data-reason class="block mt-1 text-red-300"

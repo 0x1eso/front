@@ -88,6 +88,8 @@ export class DomesticPanel extends LitElement implements Controller {
   @state() private open = false;
   @state() private data: DomesticData | null = null;
   @state() private tab: DomesticTab = "tech";
+  /** The law or government button waiting for its confirming tap. */
+  @state() private armed: string | null = null;
   @state() private insets: DrawerInsets = {
     top: DRAWER_GAP,
     right: DRAWER_GAP,
@@ -105,6 +107,7 @@ export class DomesticPanel extends LitElement implements Controller {
   init() {
     this.eventBus.on(ToggleDomesticPanelEvent, () => {
       this.open = !this.open;
+      this.armed = null;
     });
   }
 
@@ -172,7 +175,10 @@ export class DomesticPanel extends LitElement implements Controller {
             data-domestic-close
             class="size-11 flex items-center justify-center rounded-md text-2xl hover:bg-white/10"
             aria-label=${translateText("common.close")}
-            @click=${() => (this.open = false)}
+            @click=${() => {
+              this.open = false;
+              this.armed = null;
+            }}
           >
             ✕
           </button>
@@ -189,7 +195,10 @@ export class DomesticPanel extends LitElement implements Controller {
                   .tab === tab
                   ? "bg-sky-700"
                   : "bg-slate-700 hover:bg-slate-600"}"
-                @click=${() => (this.tab = tab)}
+                @click=${() => {
+                  this.tab = tab;
+                  this.armed = null;
+                }}
               >
                 ${translateText(`domestic.tab_${tab}`)}
               </button>`,
@@ -215,6 +224,8 @@ export class DomesticPanel extends LitElement implements Controller {
           view,
           gold: me.gold(),
           nowTick: this.game.ticks(),
+          armed: this.armed,
+          arm: (key) => (this.armed = key),
           proclaim: (law, option, payWithGold) =>
             this.eventBus.emit(
               new ProclaimLawIntentEvent(law, option, payWithGold),
@@ -223,6 +234,8 @@ export class DomesticPanel extends LitElement implements Controller {
       case "government":
         return renderGovernmentTab({
           view,
+          armed: this.armed,
+          arm: (key) => (this.armed = key),
           choose: (government) =>
             this.eventBus.emit(new ChooseGovernmentIntentEvent(government)),
         });

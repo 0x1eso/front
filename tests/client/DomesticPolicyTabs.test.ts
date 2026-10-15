@@ -7,6 +7,7 @@ vi.mock("../../src/client/Utils", () => ({
 
 import { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { render } from "lit";
+import type { ConfirmTap } from "../../src/client/hud/domestic/ConfirmTap";
 import { renderGovernmentTab } from "../../src/client/hud/domestic/GovernmentTab";
 import { renderLawsTab } from "../../src/client/hud/domestic/LawsTab";
 import { DomesticClientView } from "../../src/client/view/DomesticClientView";
@@ -46,6 +47,25 @@ function optionButton(root: HTMLElement, law: string, option: string) {
   ) as HTMLButtonElement;
 }
 
+/**
+ * The panel's side of a two-tap confirm: holds the armed button and renders
+ * the tab again whenever that changes, like DomesticPanel's @state.
+ */
+function harness(renderTab: (confirm: ConfirmTap) => unknown): HTMLElement {
+  const root = document.createElement("div");
+  const confirm: ConfirmTap = {
+    armed: null,
+    arm(key) {
+      confirm.armed = key;
+      render(renderTab(confirm), root);
+    },
+  };
+  render(renderTab(confirm), root);
+  return root;
+}
+
+const NO_CONFIRM: ConfirmTap = { armed: null, arm: () => {} };
+
 function govCard(root: HTMLElement, government: string) {
   return root.querySelector(`[data-government="${government}"]`) as HTMLElement;
 }
@@ -58,7 +78,13 @@ describe("laws tab", () => {
       laws: { trade: "A" },
     });
     const root = mount(
-      renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim: vi.fn() }),
+      renderLawsTab({
+        view,
+        gold: 0n,
+        nowTick: 0,
+        proclaim: vi.fn(),
+        ...NO_CONFIRM,
+      }),
     );
     // The second law: round(350 × 1.35) = 473.
     expect(root.textContent).toContain('domestic.law_next_cost:{"cost":473}');
@@ -71,18 +97,48 @@ describe("laws tab", () => {
     expect(optionCard(root, "trade", "A").querySelector("button")).toBeNull();
   });
 
-  test("clicking an open option proclaims it", () => {
+  test("a law is permanent: the first tap arms the option, the second proclaims it (M7)", () => {
     const proclaim = vi.fn();
     const view = new DomesticClientView({ ...BASE, political: 400 });
-    const root = mount(renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim }));
+    const root = harness((confirm) =>
+      renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim, ...confirm }),
+    );
     optionButton(root, "taxation", "B").click();
-    expect(proclaim).toHaveBeenCalledWith("taxation", "B", false);
+    expect(proclaim).not.toHaveBeenCalled();
+    expect(optionButton(root, "taxation", "B").textContent).toContain(
+      "domestic.tap_again_to_confirm",
+    );
+    // Only the armed option says so.
+    expect(optionButton(root, "taxation", "A").textContent).toContain(
+      "domestic.proclaim",
+    );
+    optionButton(root, "taxation", "B").click();
+    expect(proclaim).toHaveBeenCalledExactlyOnceWith("taxation", "B", false);
+  });
+
+  test("tapping another option moves the confirm there", () => {
+    const proclaim = vi.fn();
+    const view = new DomesticClientView({ ...BASE, political: 400 });
+    const root = harness((confirm) =>
+      renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim, ...confirm }),
+    );
+    optionButton(root, "taxation", "B").click();
+    optionButton(root, "taxation", "A").click();
+    expect(proclaim).not.toHaveBeenCalled();
+    optionButton(root, "taxation", "A").click();
+    expect(proclaim).toHaveBeenCalledExactlyOnceWith("taxation", "A", false);
   });
 
   test("without enough political power the button pays the rest in gold", () => {
     const view = new DomesticClientView({ ...BASE, political: 40 });
     const poor = mount(
-      renderLawsTab({ view, gold: 0n, nowTick: 0, proclaim: vi.fn() }),
+      renderLawsTab({
+        view,
+        gold: 0n,
+        nowTick: 0,
+        proclaim: vi.fn(),
+        ...NO_CONFIRM,
+      }),
     );
     expect(optionButton(poor, "trade", "A").textContent).toContain(
       "domestic.proclaim_with_gold",
@@ -91,10 +147,12 @@ describe("laws tab", () => {
 
     const proclaim = vi.fn();
     // The first law costs 350: 310 missing points at 1,000 gold each.
-    const rich = mount(
-      renderLawsTab({ view, gold: 310_000n, nowTick: 0, proclaim }),
+    const rich = harness((confirm) =>
+      renderLawsTab({ view, gold: 310_000n, nowTick: 0, proclaim, ...confirm }),
     );
     expect(optionButton(rich, "trade", "A").disabled).toBe(false);
+    optionButton(rich, "trade", "A").click();
+    expect(proclaim).not.toHaveBeenCalled();
     optionButton(rich, "trade", "A").click();
     expect(proclaim).toHaveBeenCalledWith("trade", "A", true);
   });
@@ -110,6 +168,7 @@ describe("laws tab", () => {
         gold: 0n,
         nowTick: 100,
         proclaim: vi.fn(),
+        ...NO_CONFIRM,
       }),
     );
     expect(cooling.textContent).toContain(
@@ -123,6 +182,7 @@ describe("laws tab", () => {
         gold: 0n,
         nowTick: 0,
         proclaim: vi.fn(),
+        ...NO_CONFIRM,
       }),
     );
     expect(optionButton(ready, "trade", "A").disabled).toBe(false);
@@ -141,13 +201,21 @@ describe("government tab", () => {
       governmentTier: 1,
       cumulativePolitical: 1000,
     });
-    const root = mount(renderGovernmentTab({ view, choose }));
+    const root = harness((confirm) =>
+      renderGovernmentTab({ view, choose, ...confirm }),
+    );
     expect(root.textContent).toContain(
       'domestic.gov_progress:{"value":1000,"next":2800,"tier":2}',
     );
     expect(govCard(root, "monarchy").querySelector("button")).not.toBeNull();
-    (govCard(root, "republic").querySelector("button") as HTMLElement).click();
-    expect(choose).toHaveBeenCalledWith("republic");
+    const adopt = () =>
+      govCard(root, "republic").querySelector("button") as HTMLElement;
+    // Adopting is permanent too: tap, then tap again to confirm (M7).
+    adopt().click();
+    expect(choose).not.toHaveBeenCalled();
+    expect(adopt().textContent).toContain("domestic.tap_again_to_confirm");
+    adopt().click();
+    expect(choose).toHaveBeenCalledExactlyOnceWith("republic");
     expect(govCard(root, "theocracy").querySelector("button")).toBeNull();
     expect(govCard(root, "theocracy").textContent).toContain(
       "domestic.gov_requires_law",
@@ -163,7 +231,9 @@ describe("government tab", () => {
       governmentTier: 2,
       government: "monarchy",
     });
-    const root = mount(renderGovernmentTab({ view, choose: vi.fn() }));
+    const root = mount(
+      renderGovernmentTab({ view, choose: vi.fn(), ...NO_CONFIRM }),
+    );
     expect(govCard(root, "monarchy").textContent).toContain(
       "domestic.gov_active",
     );
@@ -179,7 +249,9 @@ describe("government tab", () => {
       governmentTier: 3,
       government: "democracy",
     });
-    const root = mount(renderGovernmentTab({ view, choose: vi.fn() }));
+    const root = mount(
+      renderGovernmentTab({ view, choose: vi.fn(), ...NO_CONFIRM }),
+    );
     expect(govCard(root, "fascism").textContent).toContain(
       "domestic.gov_locked",
     );

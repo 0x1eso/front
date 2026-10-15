@@ -2752,6 +2752,7 @@
       }
     },
     "tab_victory": "승리",
+    "tap_again_to_confirm": "한 번 더 눌러 확정 (되돌릴 수 없음)",
     "victory": {
       "active": "진행 중인 프로젝트",
       "blocked": {

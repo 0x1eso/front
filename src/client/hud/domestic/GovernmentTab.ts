@@ -13,8 +13,15 @@ import {
 import { html, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { DomesticClientView } from "../../view/DomesticClientView";
+import {
+  ConfirmTap,
+  confirmTapClass,
+  confirmTapHandler,
+  confirmTapLabel,
+} from "./ConfirmTap";
 
-export interface GovernmentTabContext {
+/** Adopting is permanent: each adopt button confirms with a second tap. */
+export interface GovernmentTabContext extends ConfirmTap {
   view: DomesticClientView;
   choose(government: GovernmentId): void;
 }
@@ -86,6 +93,7 @@ function renderGovernment(
     status = translateText("domestic.gov_active");
     border = "border-green-500";
   } else {
+    const key = `gov:${government}`;
     const block = governmentBlock(
       d.governmentTier,
       d.government,
@@ -96,10 +104,13 @@ function renderGovernment(
       block === null
         ? html`<button
             type="button"
-            class="min-h-11 px-4 rounded-md text-sm font-semibold bg-violet-700 hover:bg-violet-600"
-            @click=${() => ctx.choose(government)}
+            class="min-h-11 px-4 rounded-md text-sm font-semibold bg-violet-700 hover:bg-violet-600 ${confirmTapClass(
+              ctx,
+              key,
+            )}"
+            @click=${confirmTapHandler(ctx, key, () => ctx.choose(government))}
           >
-            ${translateText("domestic.gov_adopt")}
+            ${confirmTapLabel(ctx, key, translateText("domestic.gov_adopt"))}
           </button>`
         : blockText(block, def);
   }

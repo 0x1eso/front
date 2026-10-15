@@ -333,6 +333,39 @@ describe("domestic drawer", () => {
     expect(locked.querySelector("[data-reason]")).toBeNull();
   });
 
+  it("a law takes a second tap, and leaving the tab forgets the first (M7)", async () => {
+    (DATA as { political: number }).political = 1000;
+    try {
+      const panel = await openDrawer();
+      const tab = (name: string) =>
+        panel
+          .querySelector<HTMLButtonElement>(`[role="tab"][data-tab="${name}"]`)!
+          .click();
+      const button = () =>
+        panel.querySelector<HTMLButtonElement>(
+          '[data-law="trade"] [data-option="A"] button',
+        )!;
+      tab("laws");
+      await panel.updateComplete;
+      button().click();
+      await panel.updateComplete;
+      expect(button().textContent).toContain("[domestic.tap_again_to_confirm]");
+      expect(panel.eventBus.emit).not.toHaveBeenCalled();
+
+      tab("tech");
+      await panel.updateComplete;
+      tab("laws");
+      await panel.updateComplete;
+      expect(button().textContent).toContain("[domestic.proclaim]");
+      button().click();
+      await panel.updateComplete;
+      button().click();
+      expect(panel.eventBus.emit).toHaveBeenCalledOnce();
+    } finally {
+      (DATA as { political: number }).political = 0;
+    }
+  });
+
   it("the victory tab says on screen why a project cannot start", async () => {
     const panel = await openDrawer();
     panel
