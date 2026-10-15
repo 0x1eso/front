@@ -9,8 +9,10 @@ import {
   WinUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
+import { Executor } from "@openfront/engine/execution/ExecutionManager";
 import { WinCheckExecution } from "@openfront/engine/execution/WinCheckExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
+import { GameRunner } from "@openfront/engine/GameRunner";
 import { setup } from "../util/Setup";
 import { buildLevel, conquerRect, domesticGame } from "./util";
 
@@ -58,6 +60,38 @@ describe("domestic victory", () => {
     expect(wins).toHaveLength(1);
     expect(wins[0].winner).toEqual(["player", "client_alice"]);
     expect(wins[0].reason).toBe("science");
+    expect(game.getWinner()).toBe(alice);
+  });
+
+  test("a project is declared in the second it completes", async () => {
+    const game = await domesticGame({}, [ALICE, BOB]);
+    const [alice, bob] = pair(game);
+    conquerRect(game, alice, 0, 0, 30, 100);
+    conquerRect(game, bob, 30, 0, 60, 100);
+    const host = buildLevel(game, alice, UnitType.ResearchInstitute, 5, 50, 3);
+    alice.domestic()!.beginVictoryProject("science", host.id(), 20);
+    // The executions a real game registers, in GameRunner's order.
+    new GameRunner(
+      game,
+      new Executor(game, "game_id", undefined),
+      () => {},
+    ).init();
+
+    let completedAt: number | null = null;
+    let wonAt: number | null = null;
+    for (let i = 0; i < 50 && wonAt === null; i++) {
+      const wins = game.executeNextTick()[GameUpdateType.Win];
+      if (
+        completedAt === null &&
+        alice.domestic()!.victoryProject()?.ticksLeft === 0
+      ) {
+        completedAt = game.ticks();
+      }
+      if (wins.length > 0) wonAt = game.ticks();
+    }
+
+    expect(completedAt).not.toBeNull();
+    expect(wonAt).toBe(completedAt);
     expect(game.getWinner()).toBe(alice);
   });
 

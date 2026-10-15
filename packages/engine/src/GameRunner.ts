@@ -189,10 +189,12 @@ export class GameRunner {
         ...this.execManager.spawnTribes(this.game.config().bots()),
       );
     }
-    this.game.addExecution(new WinCheckExecution());
+    // Domestic mode only: its second runs before the win check, so a victory
+    // project that completes this second is declared this second.
     if (this.game.config().domesticMode()) {
       this.game.addExecution(new DomesticExecution());
     }
+    this.game.addExecution(new WinCheckExecution());
     if (this.game.config().doomsdayClockConfig().enabled) {
       this.game.addExecution(new DoomsdayClockExecution());
     }
