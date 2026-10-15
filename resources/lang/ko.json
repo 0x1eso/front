@@ -2728,5 +2728,11 @@
     "rejected": "선택 불가",
     "tab_government": "정부",
     "tab_laws": "법률서"
+  },
+  "touch_ui": {
+    "needs_port": "항구를 먼저 지으세요",
+    "needs_silo": "미사일 발사대를 먼저 지으세요",
+    "tap_again_to_build": "한 번 더 누르면 건설합니다",
+    "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다"
   }
 }

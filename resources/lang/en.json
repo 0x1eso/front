@@ -2696,6 +2696,12 @@
     "success": "Successfully logged in as {email}!",
     "title": "Logging in..."
   },
+  "touch_ui": {
+    "needs_port": "Build a port first",
+    "needs_silo": "Build a missile silo first",
+    "tap_again_to_build": "Tap again to build",
+    "warship_long_press": "Long-press the map, then drag to select several warships at once"
+  },
   "troubleshooting": {
     "battery": "Battery",
     "battery_level": "Battery Level",
