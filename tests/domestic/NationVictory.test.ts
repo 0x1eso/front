@@ -95,18 +95,28 @@ describe("nation victory projects", () => {
   test("saves while qualified with a level 3 host, until the project starts", async () => {
     const { game, nation } = await hardNation();
     buildLevel(game, nation, UnitType.ResearchInstitute, 10, 10, 3);
-    expect(nationIsSavingForProject(nation, "science")).toBe(false);
+    // Earned: an income that brings the 5M within a few minutes.
+    nation.addGold(1_000_000n);
+    expect(nationIsSavingForProject(game, nation, "science")).toBe(false);
     grantTechs(nation, "space_program");
-    expect(nationIsSavingForProject(nation, "science")).toBe(true);
-    expect(nationIsSavingForProject(nation, null)).toBe(false);
+    expect(nationIsSavingForProject(game, nation, "science")).toBe(true);
+    expect(nationIsSavingForProject(game, nation, null)).toBe(false);
 
     nationVictoryTick(game, nation, null);
     executeTicks(game, 1);
     expect(nation.domestic()!.victoryProject()).toBeNull();
 
-    nation.addGold(5_000_000n);
+    nation.addGold(4_000_000n);
     nationVictoryTick(game, nation, "science");
     executeTicks(game, 1);
-    expect(nationIsSavingForProject(nation, "science")).toBe(false);
+    expect(nationIsSavingForProject(game, nation, "science")).toBe(false);
+  });
+
+  test("doesn't save while the project's gold is out of reach", async () => {
+    const { game, nation } = await hardNation();
+    buildLevel(game, nation, UnitType.ResearchInstitute, 10, 10, 3);
+    grantTechs(nation, "space_program");
+    // No income at all: 5M is never within a few minutes.
+    expect(nationIsSavingForProject(game, nation, "science")).toBe(false);
   });
 });

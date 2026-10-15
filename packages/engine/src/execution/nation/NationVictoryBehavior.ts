@@ -10,6 +10,7 @@ import { VictoryProjectExecution } from "../../domestic/VictoryProjectExecution"
 import { Game, Player, Unit } from "../../game/Game";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { nationDomesticPlan, Personality } from "./NationPersonality";
+import { isSaveUpWithinReach } from "./NationUtils";
 
 /**
  * The victory project a nation goes for (spec §9.1, §9.3): scholars the
@@ -70,11 +71,14 @@ function qualified(player: Player, kind: VictoryProjectKind): boolean {
 }
 
 /**
- * True while a nation going for `kind` has everything but the cost: it is
- * qualified, runs no project and owns a level 3+ host. NationStructureBehavior
- * builds nothing then, so the gold piles up for the project.
+ * True while a nation going for `kind` has everything but the cost, and the
+ * gold is within reach: it is qualified, runs no project, owns a level 3+
+ * host and earns the missing gold within a few minutes (isSaveUpWithinReach,
+ * as for nukes). A nation that can't get there keeps building instead of
+ * hoarding forever.
  */
 export function nationIsSavingForProject(
+  mg: Game,
   player: Player,
   kind: VictoryProjectKind | null,
 ): boolean {
@@ -84,7 +88,42 @@ export function nationIsSavingForProject(
     return false;
   }
   const host = bestProjectHost(player, kind);
-  return host !== null && host.level() >= PROJECT_HOST_MIN_LEVEL;
+  if (host === null || host.level() < PROJECT_HOST_MIN_LEVEL) return false;
+  return isSaveUpWithinReach(mg, player, VICTORY_PROJECTS[kind].goldCost);
+}
+
+/**
+ * Whether NationStructureBehavior builds nothing for the project: while a
+ * saving nation's gold is short of the cost, and once it has everything,
+ * until nationVictoryTick starts the project (structures run first on the
+ * action tick and would spend the gold). Not while it has the gold and
+ * only waits for political power.
+ */
+export function nationHoldsStructuresForProject(
+  mg: Game,
+  player: Player,
+  kind: VictoryProjectKind | null,
+): boolean {
+  if (kind === null || !nationIsSavingForProject(mg, player, kind)) {
+    return false;
+  }
+  const def = VICTORY_PROJECTS[kind];
+  if (player.gold() < def.goldCost) return true;
+  const d = player.domestic();
+  return d !== null && d.politicalMilliAvailable() >= def.politicalCostMilli;
+}
+
+/**
+ * Political power (milli) a nation saving for `kind` keeps for it: laws
+ * spend only what is beyond it. 0 when it isn't saving.
+ */
+export function nationProjectPoliticalReserveMilli(
+  mg: Game,
+  player: Player,
+  kind: VictoryProjectKind | null,
+): number {
+  if (kind === null || !nationIsSavingForProject(mg, player, kind)) return 0;
+  return VICTORY_PROJECTS[kind].politicalCostMilli;
 }
 
 /**

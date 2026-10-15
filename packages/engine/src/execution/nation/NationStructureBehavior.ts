@@ -34,7 +34,7 @@ import {
   randTerritoryTileArray,
 } from "./NationUtils";
 import {
-  nationIsSavingForProject,
+  nationHoldsStructuresForProject,
   nationProjectKindFor,
 } from "./NationVictoryBehavior";
 
@@ -347,7 +347,8 @@ export class NationStructureBehavior {
     // Domestic mode: a Hard+ nation saving up for its victory project builds
     // nothing else until it can start it (spec §9.3).
     if (
-      nationIsSavingForProject(
+      nationHoldsStructuresForProject(
+        this.game,
         this.player,
         nationProjectKindFor(this.game, this.player),
       )

@@ -19,8 +19,8 @@ import { SetRecruitTargetExecution } from "../../domestic/SetRecruitTargetExecut
 import { Game, Player } from "../../game/Game";
 import { NationDomesticPlan, nationDomesticPlan } from "./NationPersonality";
 import {
-  nationIsSavingForProject,
   nationProjectKind,
+  nationProjectPoliticalReserveMilli,
 } from "./NationVictoryBehavior";
 
 /**
@@ -51,21 +51,12 @@ export function nationDomesticTick(
   // Adopting a government restarts the law cooldown; laws wait a check.
   if (maybeChooseGovernment(mg, player, d, p)) return;
   // Political power saved for world government isn't spent on laws.
-  if (isSavingForWorldGovernment(mg, player, p)) return;
-  maybeProclaimLaw(mg, player, d, p);
-}
-
-/** Saving up for the political victory project (NationVictoryBehavior). */
-function isSavingForWorldGovernment(
-  mg: Game,
-  player: Player,
-  plan: NationDomesticPlan,
-): boolean {
-  const kind = nationProjectKind(
-    mg.config().gameConfig().difficulty,
-    plan.personality,
+  const reserveMilli = nationProjectPoliticalReserveMilli(
+    mg,
+    player,
+    nationProjectKind(mg.config().gameConfig().difficulty, p.personality),
   );
-  return kind === "political" && nationIsSavingForProject(player, kind);
+  maybeProclaimLaw(mg, player, d, p, reserveMilli);
 }
 
 function updateRecruitTarget(
@@ -165,11 +156,13 @@ function maybeChooseGovernment(
   return true;
 }
 
+/** Proclaims the next law of the plan, keeping `reserveMilli` political power. */
 function maybeProclaimLaw(
   mg: Game,
   player: Player,
   d: PlayerDomestic,
   plan: NationDomesticPlan,
+  reserveMilli: number,
 ): void {
   const laws = d.proclaimedLaws();
   for (const { law, option } of plan.lawOrder) {
@@ -185,7 +178,7 @@ function maybeProclaimLaw(
     // Nations never pay a shortfall with gold.
     if (
       d.politicalMilliAvailable() >=
-      lawCost(laws.size, d.pct("lawCost")) * MILLI
+      lawCost(laws.size, d.pct("lawCost")) * MILLI + reserveMilli
     ) {
       mg.addExecution(new ProclaimLawExecution(player, law, option, false));
     }
