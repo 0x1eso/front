@@ -1,5 +1,16 @@
 # Credits
 
+## This fork (Statecraft)
+
+Statecraft is a modified version of OpenFront, © OpenFront and Contributors, https://github.com/openfrontio/OpenFrontIO. Its code is used under the AGPL-3.0 with the additional terms in [LICENSE](LICENSE); its assets in `resources/` under CC BY-SA 4.0 (attribution: "OpenFront"). Source code of this fork: https://github.com/0x1eso/front.
+
+- `resources/images/Emblem.svg`: drawn for this fork, CC BY-SA 4.0.
+- Upstream's all-rights-reserved assets (`proprietary/`: logos, the OpenFront font, music and the matchmaking chime) are not included.
+
+### Music
+
+None is shipped. A track added to `resources/sounds/music/` must be listed here by file name, with its author, source and license (`tests/ForkAssets.test.ts` checks).
+
 ## Code
 
 OpenFront is licensed under AGPL-3.0.  
