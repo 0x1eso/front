@@ -765,7 +765,11 @@ export class UnitImpl implements Unit {
     // unitCount()/unitsOwned() are level-weighted and memoised on these versions
     this.mg.bumpUnitsVersion();
     this._owner._myUnitsVersion++;
-    if ([UnitType.MissileSilo, UnitType.SAMLauncher].includes(this.type())) {
+    if (
+      [UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Airport].includes(
+        this.type(),
+      )
+    ) {
       this._missileTimerQueue.push(this.mg.ticks());
     }
     this.mg.addUpdate(this.toUpdate());
@@ -773,7 +777,11 @@ export class UnitImpl implements Unit {
 
   decreaseLevel(destroyer?: Player): void {
     this._level--;
-    if ([UnitType.MissileSilo, UnitType.SAMLauncher].includes(this.type())) {
+    if (
+      [UnitType.MissileSilo, UnitType.SAMLauncher, UnitType.Airport].includes(
+        this.type(),
+      )
+    ) {
       this._missileTimerQueue.pop();
     }
     if (this._type === UnitType.SAMLauncher) {

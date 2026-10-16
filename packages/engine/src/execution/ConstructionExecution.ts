@@ -15,6 +15,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { AirportExecution } from "../warfare/AirportExecution";
 import { CoastalBarrageExecution } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecution } from "../warfare/CoastalBatteryExecution";
 import { CityExecution } from "./CityExecution";
@@ -184,6 +185,9 @@ export class ConstructionExecution implements Execution {
         break;
       case UnitType.CoastalBattery:
         this.mg.addExecution(new CoastalBatteryExecution(this.structure!));
+        break;
+      case UnitType.Airport:
+        this.mg.addExecution(new AirportExecution(this.structure!));
         break;
       default:
         console.warn(
