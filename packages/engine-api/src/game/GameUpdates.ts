@@ -118,6 +118,7 @@ export enum GameUpdateType {
   GamePaused,
   DonateEvent,
   OrbitalStrike,
+  BombDrop,
 }
 
 export type GameUpdate =
@@ -144,7 +145,8 @@ export type GameUpdate =
   | SpawnPhaseEndUpdate
   | GamePausedUpdate
   | DonateEventUpdate
-  | OrbitalStrikeUpdate;
+  | OrbitalStrikeUpdate
+  | BombDropUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -409,6 +411,19 @@ export interface GamePausedUpdate {
  * centers, then the struck building sites (render beams; the land and
  * buildings already changed through the usual updates).
  */
+/**
+ * Expanded warfare carpet bombing: one bomb of a bomber's line hit `tile`
+ * (the land and buildings already changed through the usual updates).
+ */
+export interface BombDropUpdate {
+  type: GameUpdateType.BombDrop;
+  attackerID: number;
+  tile: TileRef;
+  /** 0-based index of this bomb in the run, and whether it is the last. */
+  index: number;
+  last: boolean;
+}
+
 export interface OrbitalStrikeUpdate {
   type: GameUpdateType.OrbitalStrike;
   attackerID: number;

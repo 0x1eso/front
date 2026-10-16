@@ -78,6 +78,44 @@ export const PARADROP_RADIUS = 2;
 export const BOMB_COST = 750_000;
 export const BOMB_INNER = 8;
 export const BOMB_OUTER = 18;
+/** Carpet bombing (spec §14c): the bomber flies straight from its airport
+ *  through the aimed tile and drops CARPET_BOMBS small blasts evenly along a
+ *  CARPET_LENGTH-tile line centred on the aim. */
+export const CARPET_BOMBS = 8;
+export const CARPET_LENGTH = 48;
+export const CARPET_BOMB_INNER = 4;
+export const CARPET_BOMB_OUTER = 8;
+
+/**
+ * The carpet's drop points, in flight order: CARPET_BOMBS points on the
+ * straight line from the airport (sx, sy) through the aim (tx, ty), centred
+ * on the aim and spaced evenly over CARPET_LENGTH tiles. Points are rounded
+ * to whole tiles and may fall off the map; callers clamp or skip them.
+ * Engine and client preview both use this, so they agree tile for tile.
+ */
+export function carpetBombPoints(
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+): { x: number; y: number }[] {
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  // Aimed at its own airport: drop along the x axis.
+  const ux = len === 0 ? 1 : dx / len;
+  const uy = len === 0 ? 0 : dy / len;
+  const step = CARPET_LENGTH / (CARPET_BOMBS - 1);
+  const points: { x: number; y: number }[] = [];
+  for (let i = 0; i < CARPET_BOMBS; i++) {
+    const along = -CARPET_LENGTH / 2 + i * step;
+    points.push({
+      x: Math.round(tx + ux * along),
+      y: Math.round(ty + uy * along),
+    });
+  }
+  return points;
+}
 /** 1 in N: a bomber evades each SAM interception with 50%. */
 export const BOMBER_EVADE_ODDS = 2;
 
