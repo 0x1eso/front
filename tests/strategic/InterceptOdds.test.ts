@@ -9,7 +9,7 @@ const shot = (type: InterceptorNuke, tick: number) => ({
 });
 
 describe("interceptor odds", () => {
-  test("hydrogen bombs hit 20% and atom bombs 4% of the time, the same on every client", () => {
+  test("hydrogen bombs hit 10% and atom bombs 2% of the time, the same on every client", () => {
     let hydrogen = 0;
     let atom = 0;
     for (let tick = 0; tick < 10_000; tick++) {
@@ -18,10 +18,10 @@ describe("interceptor odds", () => {
       }
       if (interceptorHits(tick, 3, shot(UnitType.AtomBomb, tick), 0)) atom++;
     }
-    expect(hydrogen).toBeGreaterThan(1850);
-    expect(hydrogen).toBeLessThan(2150);
-    expect(atom).toBeGreaterThan(330);
-    expect(atom).toBeLessThan(470);
+    expect(hydrogen).toBeGreaterThan(900);
+    expect(hydrogen).toBeLessThan(1100);
+    expect(atom).toBeGreaterThan(150);
+    expect(atom).toBeLessThan(250);
     const s = shot(UnitType.HydrogenBomb, 1234);
     expect(interceptorHits(1234, 3, s, 1)).toBe(interceptorHits(1234, 3, s, 1));
   });

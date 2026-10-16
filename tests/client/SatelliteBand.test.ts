@@ -174,9 +174,9 @@ describe("satellite band", () => {
       `[data-intercept="${UnitType.AtomBomb}"]`,
     )!;
     expect(hydrogen.textContent).toContain(
-      "[strategic.intercept_with] unit=[unit_type.hydrogen_bomb],count=2,pct=20",
+      "[strategic.intercept_with] unit=[unit_type.hydrogen_bomb],count=2,pct=10",
     );
-    expect(atom.textContent).toContain("count=0,pct=4");
+    expect(atom.textContent).toContain("count=0,pct=2");
     expect(atom.disabled).toBe(true);
     expect(hydrogen.classList.contains("min-h-11")).toBe(true);
 

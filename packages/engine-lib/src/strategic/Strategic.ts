@@ -115,10 +115,10 @@ export const SATELLITE_SILO_PICK_RADIUS = 15;
 export const SATELLITE_STRIKE_DELAY_TICKS = 60 * 10;
 /** An interceptor is judged 3 s after launch; a due strike waits for every interceptor still flying. */
 export const INTERCEPTOR_FLIGHT_TICKS = 3 * 10;
-/** 1 in N per interceptor: hydrogen 20%, atom 4% (spec §6.3). */
+/** 1 in N per interceptor: hydrogen 10%, atom 2% (spec §6.3). */
 export const INTERCEPT_ODDS: Readonly<Record<InterceptorNuke, number>> = {
-  [UnitType.HydrogenBomb]: 5,
-  [UnitType.AtomBomb]: 25,
+  [UnitType.HydrogenBomb]: 10,
+  [UnitType.AtomBomb]: 50,
 };
 
 /** One interceptor's hit chance in percent (the band's buttons). */

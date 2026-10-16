@@ -252,8 +252,8 @@ describe("rules shared with the client", () => {
       ])?.id,
     ).toBe(1);
     expect(pickNearestWithin(0, 0, 5, [{ id: 2, x: 6, y: 0 }])).toBeNull();
-    expect(interceptHitPct(UnitType.HydrogenBomb)).toBe(20);
-    expect(interceptHitPct(UnitType.AtomBomb)).toBe(4);
+    expect(interceptHitPct(UnitType.HydrogenBomb)).toBe(10);
+    expect(interceptHitPct(UnitType.AtomBomb)).toBe(2);
     expect(strikeCraterRadius(100)).toBe(3);
     expect(strikeCraterRadius(1600)).toBe(6);
     expect(strikeCraterRadius(7000)).toBe(10);
