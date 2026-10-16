@@ -70,6 +70,11 @@ export class SatelliteBand extends LitElement implements Controller {
     return rows;
   }
 
+  private hasStock(me: PlayerView): boolean {
+    const stock = me.strategicData()?.stock;
+    return INTERCEPTOR_NUKES.some((t) => (stock?.[t] ?? 0) > 0);
+  }
+
   private hasReadySilo(me: PlayerView): boolean {
     return me
       .units(UnitType.MissileSilo)
@@ -95,12 +100,19 @@ export class SatelliteBand extends LitElement implements Controller {
     if (!this.game?.config().strategicWeapons()) return null;
     const me = this.game.myPlayer();
     const rows = this.countdowns();
+    // A second tap only counts on a row that is still counting down.
+    if (
+      this.armed !== null &&
+      !rows.some((c) => this.armed?.startsWith(`${c.attacker.id()}:`))
+    ) {
+      this.armed = null;
+    }
     const inOrbit = me?.strategicData()?.satellite.phase === "orbit";
     if (rows.length === 0 && !inOrbit) return null;
     return html`
       <div
         data-satellite-band
-        class="fixed top-2 left-1/2 -translate-x-1/2 z-[900] w-[min(30rem,calc(100vw-32px))] flex flex-col gap-1 text-white text-sm"
+        class="fixed top-2 left-1/2 -translate-x-1/2 z-[1002] w-[min(26rem,calc(100vw-32px))] flex flex-col gap-1 text-white text-sm"
       >
         ${inOrbit ? this.renderOrbit() : null}
         ${rows.map((c) => this.renderCountdown(c, me))}
@@ -175,10 +187,15 @@ export class SatelliteBand extends LitElement implements Controller {
           : null}
         ${canShoot
           ? html`<div class="flex gap-2 mt-1">
-              ${INTERCEPTOR_NUKES.map((type) =>
-                this.renderInterceptButton(c.attacker, type, me!),
-              )}
-            </div>`
+                ${INTERCEPTOR_NUKES.map((type) =>
+                  this.renderInterceptButton(c.attacker, type, me!),
+                )}
+              </div>
+              ${this.hasStock(me!) && !this.hasReadySilo(me!)
+                ? html`<div data-no-silo class="mt-1 text-xs text-amber-300">
+                    ${translateText("strategic.no_ready_silo")}
+                  </div>`
+                : null}`
           : null}
       </div>
     `;
@@ -196,7 +213,7 @@ export class SatelliteBand extends LitElement implements Controller {
       <button
         type="button"
         data-intercept=${type}
-        class="flex-1 min-h-11 px-2 flex items-center justify-center gap-1 rounded-md font-semibold bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed ${armed
+        class="flex-1 min-h-11 px-2 flex items-center justify-center gap-1 rounded-md font-semibold leading-tight text-center bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed ${armed
           ? "ring-2 ring-white"
           : ""}"
         ?disabled=${!enabled}

@@ -58,6 +58,7 @@ export class OrbitalBeamPass {
   }
 
   draw(cameraMatrix: Float32Array): void {
+    if (this.beams.length === 0) return;
     const now = this.timeFn();
     this.beams = this.beams.filter((b) => now - b.start < BEAM_MS);
     if (this.beams.length === 0) return;

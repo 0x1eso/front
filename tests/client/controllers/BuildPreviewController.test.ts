@@ -172,7 +172,11 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     type: UnitType,
     strategic: StrategicData | null = null,
   ) {
-    vi.stubGlobal("requestAnimationFrame", () => 0);
+    const frames: (() => void)[] = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: () => void) => {
+      frames.push(cb);
+      return 0;
+    });
     let now = 1000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
     const queries: { tile: number | undefined; resolve: () => void }[] = [];
@@ -225,7 +229,8 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       isImpassable: () => false,
       myPlayer: () => myPlayer,
       players: () => [myPlayer],
-      units: (t: UnitType) => (t === UnitType.SAMLauncher ? [enemySam] : []),
+      units: (...ts: UnitType[]) =>
+        ts.includes(UnitType.SAMLauncher) ? [enemySam] : [],
       unit: (id: number) => (id === 42 ? { tile: () => 11 } : undefined),
       ticks: () => 100,
       config: () => ({
@@ -235,6 +240,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
         samRangeOf: (_owner: unknown, base: number) => base + 21,
         trainStationMaxRange: () => 100,
         defensePostRange: () => 30,
+        strategicWeapons: () => strategic !== null,
       }),
     };
     const transformHandler = {
@@ -286,6 +292,8 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       uiState,
       view,
       queries,
+      /** Run the cursor loop's first queued frame. */
+      frame: () => frames.shift()?.(),
       tap: (x: number, y: number) => eventBus.emit(new BuildTapEvent(x, y)),
       /** The worker answers every open buildables query. */
       reply: async (fn: (tile: number | undefined) => Answer) => {
@@ -558,6 +566,60 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       radiusTileX: 9,
       radiusTileY: 9,
     });
+  });
+
+  it("the missile ring stays on the building while the cursor loop runs, and the arc flies to it", async () => {
+    const t = makeTouchController(UnitType.ConventionalMissile);
+    t.tap(20, 20); // tile (2, 2), 7 tiles from the enemy SAM at (9, 9)
+    await t.reply(() => ({ canBuild: 0, canUpgrade: false }));
+    (t.controller as any).renderGhost();
+    t.frame();
+    const ghostCalls = t.view.updateGhostPreview.mock.calls;
+    expect(ghostCalls[ghostCalls.length - 1][0]).toMatchObject({
+      radiusTileX: 9,
+      radiusTileY: 9,
+      rangeRadius: TARGET_RING_RADIUS,
+    });
+    expect((t.controller as any).nukeTrajectoryStatic.dest).toEqual({
+      x: 9,
+      y: 9,
+    });
+    expect(t.view.updateNukeTrajectory).toHaveBeenCalled();
+  });
+
+  it("a tap on the ringed building is a tap on the aimed ghost: aim, check, wait, tap fires", async () => {
+    const t = makeTouchController(UnitType.ConventionalMissile);
+    t.tap(20, 20);
+    await t.reply(() => ({ canBuild: 0, canUpgrade: false }));
+    (t.controller as any).renderGhost();
+    // The ring is on the building at screen (95, 95), far from the aim.
+    t.wait(350 - 50);
+    t.tap(95, 95); // too early: waits, never re-aims
+    expect(t.queries).toHaveLength(0);
+    expect(t.intents().builds).toHaveLength(0);
+    t.wait(50);
+    t.tap(95, 95);
+    expect(t.intents().builds.map((b) => b.tile)).toEqual([22]);
+  });
+
+  it("the keyboard x5 is ignored for a stocked bomb", async () => {
+    const stock: StrategicData = {
+      stock: {
+        [UnitType.AtomBomb]: 9,
+        [UnitType.HydrogenBomb]: 0,
+        [UnitType.MIRV]: 0,
+      },
+      jobs: [],
+      satellite: { phase: "none" },
+    };
+    const t = makeTouchController(UnitType.AtomBomb, stock);
+    t.uiState.upgradeMultiplier = 5;
+    t.tap(70, 80);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    expect(lastGhost(t, 87)).toMatchObject({ multiplier: 1 });
+    t.wait(350);
+    t.tap(70, 80);
+    expect(t.intents().builds.map((b) => b.amount)).toEqual([1]);
   });
 
   it("the satellite rings the silo it would use", async () => {

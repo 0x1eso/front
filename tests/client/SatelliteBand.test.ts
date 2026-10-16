@@ -42,6 +42,8 @@ interface Stub {
   data?: StrategicData | null;
   tiles?: number;
   silos?: number;
+  /** Silos that are reloading or preparing the satellite. */
+  busySilos?: number;
   type?: PlayerType;
   friends?: string[];
 }
@@ -60,11 +62,18 @@ function view(s: Stub): PlayerView {
     territoryColor: () => ({ toHex: () => "#ffffff" }),
     units: (t: UnitType) =>
       t === UnitType.MissileSilo
-        ? Array.from({ length: s.silos ?? 0 }, () => ({
-            isActive: () => true,
-            isUnderConstruction: () => false,
-            isInCooldown: () => false,
-          }))
+        ? [
+            ...Array.from({ length: s.silos ?? 0 }, () => ({
+              isActive: () => true,
+              isUnderConstruction: () => false,
+              isInCooldown: () => false,
+            })),
+            ...Array.from({ length: s.busySilos ?? 0 }, () => ({
+              isActive: () => true,
+              isUnderConstruction: () => false,
+              isInCooldown: () => true,
+            })),
+          ]
         : [],
   } as unknown as PlayerView;
 }
@@ -207,6 +216,71 @@ describe("satellite band", () => {
     }
   });
 
+  it("sits above the leaderboard (z-900), top-right controls (z-1000) and the player info (z-1001), and fits beside them", async () => {
+    const me = view({ id: "green", smallID: 3, silos: 1 });
+    const { el } = await band(me, [red(), blue(), me]);
+    const cls = el.querySelector("[data-satellite-band]")!.classList;
+    expect(cls.contains("z-[1002]")).toBe(true);
+    expect(cls.contains("top-2")).toBe(true);
+    // 26rem = 416px, centered: 304-720 at 1024px, clear of the right
+    // controls; wider screens only have more room.
+    expect(cls.contains("w-[min(26rem,calc(100vw-32px))]")).toBe(true);
+  });
+
+  it("explains why intercepting is off when bombs are held but no silo is loaded", async () => {
+    const stock = data({
+      stock: {
+        [UnitType.AtomBomb]: 1,
+        [UnitType.HydrogenBomb]: 1,
+        [UnitType.MIRV]: 0,
+      },
+    });
+    const me = view({ id: "green", smallID: 3, busySilos: 1, data: stock });
+    const { el } = await band(me, [red(), blue(), me]);
+    expect(el.querySelector("[data-no-silo]")?.textContent).toContain(
+      "strategic.no_ready_silo",
+    );
+    document.body.innerHTML = "";
+    const ok = view({ id: "green", smallID: 3, silos: 1, data: stock });
+    const second = await band(ok, [red(), blue(), ok]);
+    expect(second.el.querySelector("[data-no-silo]")).toBeNull();
+  });
+
+  it("drops a half-armed intercept when its countdown ends", async () => {
+    const stock = data({
+      stock: {
+        [UnitType.AtomBomb]: 0,
+        [UnitType.HydrogenBomb]: 2,
+        [UnitType.MIRV]: 0,
+      },
+    });
+    const me = view({ id: "green", smallID: 3, silos: 1, data: stock });
+    const players = [red(), blue(), me];
+    const { el, emitted } = await band(me, players);
+    el.querySelector<HTMLButtonElement>(
+      `[data-intercept="${UnitType.HydrogenBomb}"]`,
+    )!.click();
+    await el.updateComplete;
+    // The strike resolves; later the same attacker strikes again.
+    el.game = {
+      ...el.game,
+      playerViews: () => [blue(), me],
+    } as unknown as SatelliteBand["game"];
+    el.tick();
+    await el.updateComplete;
+    expect(el.querySelector("[data-countdown]")).toBeNull();
+    el.game = {
+      ...el.game,
+      playerViews: () => players,
+    } as unknown as SatelliteBand["game"];
+    el.tick();
+    await el.updateComplete;
+    el.querySelector<HTMLButtonElement>(
+      `[data-intercept="${UnitType.HydrogenBomb}"]`,
+    )!.click();
+    expect(emitted).toHaveLength(0);
+  });
+
   it("the satellite's owner opens the target picker while it waits in orbit", async () => {
     const me = view({
       id: "red",
@@ -259,5 +333,36 @@ describe("satellite target picker", () => {
       new SendSatelliteTargetIntentEvent("blue"),
     );
     expect(el.querySelector("[data-target-picker]")).toBeNull();
+  });
+
+  it("refreshes while open: a nation that allied with me is no longer armed or listed", async () => {
+    const friends: string[] = [];
+    const me = view({ id: "red", smallID: 1, friends });
+    const players = [me, view({ id: "blue", smallID: 2, tiles: 300 })];
+    const el = document.createElement(
+      "satellite-target-picker",
+    ) as SatelliteTargetPicker;
+    const b = bus();
+    el.game = {
+      myPlayer: () => me,
+      playerViews: () => players,
+    } as unknown as SatelliteTargetPicker["game"];
+    el.eventBus = b.eventBus as unknown as SatelliteTargetPicker["eventBus"];
+    document.body.appendChild(el);
+    el.init();
+    b.handlers.get(OpenSatelliteTargetPickerEvent)!();
+    await el.updateComplete;
+    el.querySelector<HTMLButtonElement>('[data-target="blue"]')!.click();
+    await el.updateComplete;
+    friends.push("blue");
+    el.tick();
+    await el.updateComplete;
+    expect(el.querySelector('[data-target="blue"]')).toBeNull();
+    friends.length = 0;
+    el.tick();
+    await el.updateComplete;
+    // Listed again, but the earlier first tap is gone: one tap only arms.
+    el.querySelector<HTMLButtonElement>('[data-target="blue"]')!.click();
+    expect(b.emitted).toHaveLength(0);
   });
 });

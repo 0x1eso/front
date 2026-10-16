@@ -185,7 +185,11 @@ export class UnitView implements UnitLike {
     return this.state.underConstruction;
   }
   isInCooldown(): boolean {
-    return this.state.missileTimerQueue.length === this.state.level;
+    // Mirrors UnitImpl: a satellite being prepared holds one of this
+    // silo's slots (strategic weapons, spec 6.1).
+    const sat = this.owner().strategicData()?.satellite;
+    const held = sat?.phase === "preparing" && sat.siloId === this.id() ? 1 : 0;
+    return this.state.missileTimerQueue.length + held >= this.state.level;
   }
   targetUnitId(): number | undefined {
     return this.state.targetUnitId ?? undefined;

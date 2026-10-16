@@ -14,6 +14,7 @@ import {
 import { Emoji, flattenedEmojiTable } from "@openfront/engine-api/Schemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { renderNumber } from "@openfront/engine-lib/Format";
+import { isStockpiledNuke } from "@openfront/engine-lib/strategic/Strategic";
 import { findClosestBy } from "@openfront/engine-lib/Util";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { UIState } from "../../UIState";
@@ -439,6 +440,16 @@ function createMenuElements(
       const locked = params.playerActions.buildableUnits.some(
         (bu) => bu.type === item.unitType && bu.locked === true,
       );
+      // Strategic weapons: a stocked bomb costs no gold, show the stockpile.
+      const stockData = params.game.config().strategicWeapons()
+        ? (params.myPlayer.strategicData() ?? null)
+        : null;
+      const stockText =
+        stockData !== null && isStockpiledNuke(item.unitType)
+          ? translateText("strategic.stock", {
+              count: stockData.stock[item.unitType],
+            })
+          : null;
       return {
         id: `${elementIdPrefix}_${item.unitType}`,
         name: item.key
@@ -464,10 +475,12 @@ function createMenuElements(
           locked
             ? { text: lockedReason(item.unitType), className: "locked" }
             : null,
-          {
-            text: `${renderNumber(params.buildMenu.cost(item))} ${translateText("player_panel.gold")}`,
-            className: "cost",
-          },
+          stockText !== null
+            ? { text: stockText, className: "cost" }
+            : {
+                text: `${renderNumber(params.buildMenu.cost(item))} ${translateText("player_panel.gold")}`,
+                className: "cost",
+              },
           item.countable
             ? { text: `${params.buildMenu.count(item)}x`, className: "count" }
             : null,

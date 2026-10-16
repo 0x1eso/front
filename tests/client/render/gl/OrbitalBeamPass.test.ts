@@ -33,3 +33,25 @@ describe("orbital beams", () => {
     expect(counts.draws).toBe(0);
   });
 });
+
+describe("orbital beam wiring", () => {
+  test("an idle frame filters nothing, and expired beams are pruned", () => {
+    const { gl } = countingGL();
+    const pass = new OrbitalBeamPass(gl);
+    let now = 0;
+    pass.setTimeFn(() => now);
+    pass.spawn([{ x: 1, y: 1 }]);
+    now = 5000;
+    pass.draw(new Float32Array(9));
+    expect((pass as any).beams).toHaveLength(0);
+  });
+
+  test("the renderer draws the pass in its overlay path", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/client/render/gl/Renderer.ts", "utf8");
+    const overlays = src.slice(src.indexOf("private renderOverlays("));
+    expect(overlays.slice(0, overlays.indexOf("\n  }\n"))).toContain(
+      "this.orbitalBeamPass.draw(cam)",
+    );
+  });
+});

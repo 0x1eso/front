@@ -34,7 +34,7 @@ describe("strategic aim previews (the engine's rules)", () => {
     [UnitType.Factory]: [unit(9, at(20, 20), me)],
   } as Record<string, unknown[]>;
   const game = {
-    units: (t: UnitType) => structures[t] ?? [],
+    units: (...ts: UnitType[]) => ts.flatMap((t) => structures[t] ?? []),
     x: (t: number) => t % W,
     y: (t: number) => Math.floor(t / W),
   };

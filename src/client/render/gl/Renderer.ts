@@ -1459,6 +1459,8 @@ export class GPURenderer {
     if (!this.altView) this.spiralRibbonPass.draw(cam);
     if (pe.unit) this.unitPass.drawMissiles(cam);
 
+    // Orbital-strike beams fall under the blast sprites.
+    this.orbitalBeamPass.draw(cam);
     if (pe.fx) {
       this.fxPass.tick();
       this.fxPass.draw(cam, zoom);

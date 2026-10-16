@@ -2750,6 +2750,7 @@
     "interceptors_in_flight": "Interceptors in flight: {count}",
     "needs_factory": "Build a factory first",
     "no_free_line": "Every factory line is busy",
+    "no_ready_silo": "No loaded missile silo: every silo is reloading or preparing the satellite",
     "no_stock": "None in stock: build one at a factory first",
     "no_targets": "No nation can be targeted",
     "produce": "Build ({seconds}s)",
