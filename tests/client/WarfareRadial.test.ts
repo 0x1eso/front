@@ -26,6 +26,7 @@ import { SendParadropIntentEvent } from "../../src/client/Transport";
 function params(
   plane: { canBuild: number | false; locked?: boolean } | null,
   disabled = false,
+  gold = 1_000_000n,
 ): MenuElementParams {
   return {
     game: {
@@ -48,7 +49,7 @@ function params(
               },
             ],
     },
-    myPlayer: { troops: () => 1000 },
+    myPlayer: { troops: () => 1000, gold: () => gold },
     selected: null,
     tile: 77,
     playerActionHandler: { handleParadrop: vi.fn() },
@@ -81,7 +82,32 @@ describe("paradrop in the radial attack menu", () => {
     const p = params({ canBuild: false, locked: true });
     const item = paradrop(p)!;
     expect(item.disabled(p)).toBe(true);
-    expect(item.badge).toContain("domestic.tech.industrialization.name");
+    const badge = item.badge as (p: MenuElementParams) => string;
+    expect(badge(p)).toContain("domestic.tech.industrialization.name");
+  });
+
+  it("re-reads the live params: it lights up and goes out with the menu open", () => {
+    const off = params({ canBuild: false });
+    const item = paradrop(off)!;
+    expect(item.disabled(off)).toBe(true);
+    const color = item.color as (p: MenuElementParams) => string;
+    const greyed = color(off);
+    const on = params({ canBuild: 5 });
+    expect(item.disabled(on)).toBe(false);
+    expect(color(on)).not.toBe(greyed);
+    expect(item.disabled(off)).toBe(true);
+  });
+
+  it("always shows its cost, or why it is off, as a badge", () => {
+    const item = paradrop(params({ canBuild: 5 }))!;
+    const badge = item.badge as (p: MenuElementParams) => string;
+    expect(badge(params({ canBuild: 5 }))).toBe("100K");
+    expect(badge(params({ canBuild: false }))).toBe(
+      "radial_menu.paradrop_no_airport",
+    );
+    expect(badge(params({ canBuild: false }, false, 5n))).toBe(
+      "radial_menu.paradrop_need_gold",
+    );
   });
 
   it("sends the attack ratio of the troops", () => {

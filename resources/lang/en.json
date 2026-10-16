@@ -2447,6 +2447,8 @@
     "delete_unit_description": "Click to delete the nearest unit",
     "delete_unit_title": "Delete Unit",
     "paradrop_description": "Fly troops (attack ratio) from an airport and drop them here",
+    "paradrop_need_gold": "Need gold",
+    "paradrop_no_airport": "No airport in range",
     "paradrop_title": "Paradrop",
     "upgrade_x": "Upgrade x{amount}"
   },

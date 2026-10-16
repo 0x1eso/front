@@ -71,7 +71,7 @@ export interface MenuElement {
   text?: string;
   fontSize?: string;
   /** Short text always shown under the icon (a locked unit's 🔒 + tech). */
-  badge?: string;
+  badge?: string | ((params: MenuElementParams) => string | undefined);
   tooltipItems?: TooltipItem[];
   tooltipKeys?: TooltipKey[];
 
@@ -610,22 +610,40 @@ function createMenuElements(
  * the tile, then this item. Null when the option is off.
  */
 function createParadropElement(params: MenuElementParams): MenuElement | null {
-  const plane = params.playerActions.buildableUnits.find(
-    (u) => u.type === UnitType.TransportPlane,
-  );
+  const planeOf = (p: MenuElementParams) =>
+    p.playerActions.buildableUnits.find(
+      (u) => u.type === UnitType.TransportPlane,
+    );
+  const plane = planeOf(params);
   if (
     plane === undefined ||
     params.game.config().isUnitDisabled(UnitType.TransportPlane)
   ) {
     return null;
   }
+  // Read from the live params every refresh: gold, the sortie cooldown and
+  // the tapped player change while the menu is open.
+  const ready = (p: MenuElementParams) => {
+    const u = planeOf(p);
+    return u !== undefined && u.canBuild !== false;
+  };
   return {
     id: "attack_paradrop",
     name: "paradrop",
-    disabled: () => plane.canBuild === false,
+    disabled: (p: MenuElementParams) => !ready(p),
     icon: paradropIcon,
-    color: plane.canBuild === false ? COLORS.disabled : COLORS.attack,
-    badge: plane.locked ? lockedBadge(UnitType.TransportPlane) : undefined,
+    color: (p: MenuElementParams) =>
+      ready(p) ? COLORS.attack : COLORS.disabled,
+    // Touch has no tooltip: the cost, or why it is off, stays on the icon.
+    badge: (p: MenuElementParams) => {
+      const u = planeOf(p);
+      if (u === undefined) return undefined;
+      if (u.locked) return lockedBadge(UnitType.TransportPlane);
+      if (u.canBuild !== false) return renderNumber(u.cost);
+      return p.myPlayer.gold() < u.cost
+        ? translateText("radial_menu.paradrop_need_gold")
+        : translateText("radial_menu.paradrop_no_airport");
+    },
     tooltipItems: [
       { text: translateText("radial_menu.paradrop_title"), className: "title" },
       {

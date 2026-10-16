@@ -194,7 +194,7 @@
       "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비.",
       "airport": "범위 안 공수 투입·폭격, 무역 상대 공항과 화물 항공로",
       "bomber": "공항에서 출격하는 소형 폭탄, SAM 요격을 절반은 피함",
-      "coastal_barrage": "사일로 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
+      "coastal_barrage": "미사일 발사대에서 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
       "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다"
     },
     "not_enough_money": "돈이 부족합니다",
@@ -1863,6 +1863,8 @@
     "delete_unit_title": "유닛 삭제",
     "upgrade_x": "업그레이드 x{amount}",
     "paradrop_description": "공항에서 병력(공격 비율)을 실어 이곳에 내립니다",
+    "paradrop_need_gold": "골드 부족",
+    "paradrop_no_airport": "범위 내 공항 없음",
     "paradrop_title": "공수 투입"
   },
   "relation": {

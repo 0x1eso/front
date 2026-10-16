@@ -13,6 +13,16 @@ import {
 } from "./RadialMenuElements";
 const backIcon = assetUrl("images/BackIconWhite.svg");
 
+function resolveBadge(
+  item: MenuElement,
+  params: MenuElementParams | null,
+): string | undefined {
+  if (typeof item.badge === "function") {
+    return params ? item.badge(params) : undefined;
+  }
+  return item.badge;
+}
+
 function resolveColor(
   item: MenuElement,
   params: MenuElementParams | null,
@@ -672,7 +682,7 @@ export class RadialMenu implements Controller {
               .attr("y", arc.centroid(d)[1] + this.config.iconSize / 2 + 7);
           }
 
-          if (d.data.badge) {
+          if (d.data.badge !== undefined) {
             content
               .append("text")
               .attr("class", "item-badge")
@@ -687,7 +697,7 @@ export class RadialMenu implements Controller {
               .attr("font-size", "10px")
               .attr("font-weight", "bold")
               .attr("font-family", "Arial, sans-serif")
-              .text(d.data.badge);
+              .text(resolveBadge(d.data, this.params) ?? "");
           }
         }
 
@@ -1163,6 +1173,13 @@ export class RadialMenu implements Controller {
             const textElement = icon.select("text:not(.item-badge)");
             if (!textElement.empty()) {
               textElement.style("opacity", disabled ? 0.5 : 1);
+            }
+
+            // A live badge (cost, or why the item is off)
+            if (typeof item.badge === "function") {
+              icon
+                .select(".item-badge")
+                .text(resolveBadge(item, this.params) ?? "");
             }
 
             // Update image opacity
