@@ -5,6 +5,7 @@ in vec2 vLocal; // [-1, +1]
 
 uniform float uRadius;
 uniform vec3 uColor;
+uniform float uOutlineOnly; // 1.0: no fill (0.0, the default, keeps it)
 
 out vec4 fragColor;
 
@@ -21,7 +22,7 @@ void main() {
   float stroke = smoothstep(strokeInner - 0.5, strokeInner + 0.5, dist)
                * (1.0 - smoothstep(strokeOuter - 0.5, strokeOuter + 0.5, dist));
 
-  float alpha = fill * 0.2 + stroke * 0.5;
+  float alpha = fill * 0.2 * (1.0 - uOutlineOnly) + stroke * 0.5;
   if (alpha < 0.001) discard;
 
   fragColor = vec4(uColor, alpha);

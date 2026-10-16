@@ -26,6 +26,8 @@ export interface Ring {
   y: number;
   radius: number;
   color: readonly [number, number, number];
+  /** Outline only: overlapping reach rings must not stack a tint. */
+  outline: boolean;
 }
 
 const SELF = [0.3, 0.85, 0.45] as const;
@@ -62,6 +64,7 @@ export function structureRings(
           : allies.has(u.ownerID)
             ? ALLY
             : ENEMY,
+      outline: true,
     });
   }
   return rings;
@@ -78,9 +81,17 @@ export function zoneRings(units: Map<number, UnitState>, mapW: number): Ring[] {
       y: (u.pos - x) / mapW,
       radius: BARRAGE_RADIUS,
       color: ZONE,
+      outline: false,
     });
   }
   return rings;
+}
+
+function sameSet(a: ReadonlySet<number>, b: ReadonlySet<number>): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
 }
 
 export class WarfareRingPass {
@@ -93,6 +104,7 @@ export class WarfareRingPass {
   private uCenter: WebGLUniformLocation;
   private uRadius: WebGLUniformLocation;
   private uColor: WebGLUniformLocation;
+  private uOutlineOnly: WebGLUniformLocation;
 
   private visible = false;
   private localPlayerID = 0;
@@ -101,9 +113,14 @@ export class WarfareRingPass {
   private structures: Ring[] = [];
   private zones: Ring[] = [];
 
+  /**
+   * @param enabled the expanded-warfare option: with it off there can never
+   *   be a battery, airport or barrage, so the pass does no work at all.
+   */
   constructor(
     gl: WebGL2RenderingContext,
     private mapW: number,
+    private enabled: boolean,
   ) {
     this.gl = gl;
     this.program = createProgram(gl, vertSrc, fragSrc, "WarfareRingPass");
@@ -111,6 +128,7 @@ export class WarfareRingPass {
     this.uCenter = gl.getUniformLocation(this.program, "uCenter")!;
     this.uRadius = gl.getUniformLocation(this.program, "uRadius")!;
     this.uColor = gl.getUniformLocation(this.program, "uColor")!;
+    this.uOutlineOnly = gl.getUniformLocation(this.program, "uOutlineOnly")!;
 
     // Unit quad [0,1]
     this.vao = gl.createVertexArray()!;
@@ -132,22 +150,30 @@ export class WarfareRingPass {
   }
 
   setLocalPlayer(id: number): void {
+    if (!this.enabled || id === this.localPlayerID) return;
     this.localPlayerID = id;
     this.rebuild();
   }
 
+  /** The renderer hands a fresh Set every tick: rebuild only on a real change. */
   setAllies(allies: ReadonlySet<number>): void {
+    if (!this.enabled) return;
+    if (sameSet(this.allies, allies)) return;
     this.allies = allies;
     this.rebuild();
   }
 
   updateStructures(units: Map<number, UnitState>): void {
+    if (!this.enabled) return;
     this.lastStructures = units;
     this.rebuild();
   }
 
   updateUnits(units: Map<number, UnitState>): void {
-    this.zones = zoneRings(units, this.mapW);
+    if (!this.enabled) return;
+    const zones = zoneRings(units, this.mapW);
+    if (zones.length === 0 && this.zones.length === 0) return;
+    this.zones = zones;
   }
 
   private rebuild(): void {
@@ -163,21 +189,27 @@ export class WarfareRingPass {
   }
 
   draw(cameraMatrix: Float32Array): void {
-    const rings = this.visible
-      ? [...this.structures, ...this.zones]
-      : this.zones;
-    if (rings.length === 0) return;
+    if (!this.enabled) return;
+    const showStructures = this.visible && this.structures.length > 0;
+    if (!showStructures && this.zones.length === 0) return;
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
     gl.bindVertexArray(this.vao);
+    if (showStructures) this.drawRings(this.structures);
+    this.drawRings(this.zones);
+    gl.bindVertexArray(null);
+  }
+
+  private drawRings(rings: readonly Ring[]): void {
+    const gl = this.gl;
     for (const ring of rings) {
       gl.uniform2f(this.uCenter, ring.x, ring.y);
       gl.uniform1f(this.uRadius, ring.radius);
       gl.uniform3f(this.uColor, ring.color[0], ring.color[1], ring.color[2]);
+      gl.uniform1f(this.uOutlineOnly, ring.outline ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
-    gl.bindVertexArray(null);
   }
 
   dispose(): void {

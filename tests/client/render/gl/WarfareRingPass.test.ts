@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   structureRings,
   WarfareRingPass,
@@ -92,17 +92,20 @@ describe("warfare rings", () => {
       [10, 0, 180],
     ]);
     expect(rings[0].color).not.toEqual(rings[1].color);
+    expect(rings.every((r) => r.outline)).toBe(true);
   });
 
   it("rings every barrage zone", () => {
     expect(
       zoneRings(units(unit(9, UT_COASTAL_BARRAGE, 4, 2 * MAP_W + 3)), MAP_W),
-    ).toEqual([expect.objectContaining({ x: 3, y: 2, radius: 12 })]);
+    ).toEqual([
+      expect.objectContaining({ x: 3, y: 2, radius: 12, outline: false }),
+    ]);
   });
 
   it("draws zones always and structure rings only while shown", () => {
     const { gl, counts } = countingGL();
-    const pass = new WarfareRingPass(gl, MAP_W);
+    const pass = new WarfareRingPass(gl, MAP_W, true);
     pass.updateStructures(units(unit(1, UT_COASTAL_BATTERY, 1, 7)));
     pass.updateUnits(units(unit(9, UT_COASTAL_BARRAGE, 4, 3)));
     pass.draw(new Float32Array(9));
@@ -111,5 +114,58 @@ describe("warfare rings", () => {
     pass.draw(new Float32Array(9));
     expect(counts.draws).toBe(3);
     pass.dispose();
+  });
+
+  it("does no work with the option off", () => {
+    const { gl, counts } = countingGL();
+    const pass = new WarfareRingPass(gl, MAP_W, false);
+    const rebuild = vi.spyOn(pass as any, "rebuild");
+    pass.setVisible(true);
+    pass.setLocalPlayer(1);
+    pass.setAllies(new Set([2]));
+    pass.updateStructures(units(unit(1, UT_COASTAL_BATTERY, 1, 7)));
+    pass.updateUnits(units(unit(9, UT_COASTAL_BARRAGE, 4, 3)));
+    pass.draw(new Float32Array(9));
+    expect(rebuild).not.toHaveBeenCalled();
+    expect(counts.draws).toBe(0);
+  });
+
+  it("rebuilds the structure rings only when the allies really change", () => {
+    const { gl } = countingGL();
+    const pass = new WarfareRingPass(gl, MAP_W, true);
+    pass.updateStructures(units(unit(1, UT_COASTAL_BATTERY, 2, 7)));
+    const rebuild = vi.spyOn(pass as any, "rebuild");
+    pass.setAllies(new Set([2]));
+    expect(rebuild).toHaveBeenCalledTimes(1);
+    pass.setAllies(new Set([2])); // a fresh Set, same members, every tick
+    pass.setAllies(new Set([2]));
+    expect(rebuild).toHaveBeenCalledTimes(1);
+    pass.setAllies(new Set([2, 3]));
+    expect(rebuild).toHaveBeenCalledTimes(2);
+  });
+
+  it("draws structure rings as outlines and barrage zones filled", () => {
+    const calls: [string, number][] = [];
+    const gl = new Proxy(
+      {},
+      {
+        get: (_t, prop) => {
+          if (typeof prop === "string" && /^[A-Z0-9_]+$/.test(prop)) return 0;
+          if (prop === "getUniformLocation")
+            return (_p: unknown, n: string) => n;
+          if (prop === "uniform1f")
+            return (loc: string, v: number) => calls.push([loc, v]);
+          return () => ({});
+        },
+      },
+    ) as WebGL2RenderingContext;
+    const pass = new WarfareRingPass(gl, MAP_W, true);
+    pass.updateStructures(units(unit(1, UT_COASTAL_BATTERY, 1, 7)));
+    pass.updateUnits(units(unit(9, UT_COASTAL_BARRAGE, 4, 3)));
+    pass.setVisible(true);
+    pass.draw(new Float32Array(9));
+    expect(
+      calls.filter(([l]) => l === "uOutlineOnly").map(([, v]) => v),
+    ).toEqual([1, 0]);
   });
 });
