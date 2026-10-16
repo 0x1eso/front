@@ -34,6 +34,7 @@ import {
   UT_CARGO_PLANE,
   UT_CITY,
   UT_COASTAL_BATTERY,
+  UT_CONVENTIONAL_MISSILE,
   UT_DEFENSE_POST,
   UT_RESEARCH_INSTITUTE,
   UT_TRANSPORT_PLANE,
@@ -410,6 +411,7 @@ describe("unit-atlas.png", () => {
     expect(UNIT_ORDER.indexOf(UT_TRANSPORT_PLANE)).toBe(12);
     expect(UNIT_ORDER.indexOf(UT_BOMBER)).toBe(13);
     expect(UNIT_ORDER.indexOf(UT_CARGO_PLANE)).toBe(14);
+    expect(UNIT_ORDER.indexOf(UT_CONVENTIONAL_MISSILE)).toBe(15);
   });
 
   it("keeps the twelve original cells byte-identical", () => {

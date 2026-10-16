@@ -47,6 +47,7 @@ import { NamePass } from "./passes/name-pass";
 import { NightCompositePass } from "./passes/NightCompositePass";
 import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
+import { OrbitalBeamPass } from "./passes/OrbitalBeamPass";
 import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
@@ -151,6 +152,7 @@ export class GPURenderer {
   private fxPass: FxPass;
   private rangeCirclePass: RangeCirclePass;
   private victoryProjectPass: VictoryProjectPass;
+  private orbitalBeamPass: OrbitalBeamPass;
   private warfareRingPass: WarfareRingPass;
   private samRadiusPass: SAMRadiusPass;
   private crosshairPass: CrosshairPass;
@@ -574,6 +576,7 @@ export class GPURenderer {
     // --- Range circle (ghost preview radius) ---
     this.rangeCirclePass = new RangeCirclePass(gl);
     this.victoryProjectPass = new VictoryProjectPass(gl);
+    this.orbitalBeamPass = new OrbitalBeamPass(gl);
     this.warfareRingPass = new WarfareRingPass(
       gl,
       mapW,
@@ -1143,6 +1146,18 @@ export class GPURenderer {
     this.smallPlayerGlowPass.update(set);
   }
 
+  /** Strategic weapons: production and preparation bars. */
+  setStrategicProgress(progress: ReadonlyMap<number, number>): void {
+    this.barPass.setStrategicProgress(progress);
+  }
+
+  /** Strategic weapons: beams and blasts at this tick's orbital strike impacts. */
+  applyOrbitalStrikes(points: readonly { x: number; y: number }[]): void {
+    if (points.length === 0) return;
+    this.orbitalBeamPass.spawn(points);
+    this.fxPass.spawnOrbitalImpacts(points);
+  }
+
   /** Domestic mode: progress bars and gold rings on victory-project hosts. */
   setVictoryProjects(progress: ReadonlyMap<number, number>): void {
     this.barPass.setVictoryProjects(progress);
@@ -1565,6 +1580,7 @@ export class GPURenderer {
     this.railroadPass.dispose();
     this.rangeCirclePass.dispose();
     this.victoryProjectPass.dispose();
+    this.orbitalBeamPass.dispose();
     this.warfareRingPass.dispose();
     this.samRadiusPass.dispose();
     this.crosshairPass.dispose();

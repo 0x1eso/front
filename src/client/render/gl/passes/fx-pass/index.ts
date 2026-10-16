@@ -22,7 +22,7 @@ import {
   calculateExplosionDurationMs,
   FxShockwavePass,
 } from "./FxShockwavePass";
-import { FxSpritePass } from "./FxSpritePass";
+import { FX_NUKE, FxSpritePass } from "./FxSpritePass";
 
 export type { AttackRingInput } from "../../../types";
 export { calculateExplosionDurationMs };
@@ -88,6 +88,19 @@ export class FxPass {
 
   applyConquestEvents(events: ConquestFx[]): void {
     this.spritePass.applyConquestEvents(events);
+  }
+
+  /** Strategic weapons: an atom-bomb-like blast at each orbital strike impact (half an atom bomb's ring). */
+  spawnOrbitalImpacts(points: readonly { x: number; y: number }[]): void {
+    const now = this.timeFn();
+    for (const p of points) {
+      this.spritePass.pushFx(p.x, p.y, FX_NUKE, now);
+      this.shockwavePass.pushNukeShockwave(
+        p.x,
+        p.y,
+        this.settings.fx.nukeRadiusAtom / 2,
+      );
+    }
   }
 
   updateAttackRings(rings: AttackRingInput[]): void {

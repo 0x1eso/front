@@ -42,6 +42,9 @@ export const UT_BOMBER = "Bomber" as const;
 export const UT_TRANSPORT_PLANE = "Transport Plane" as const;
 export const UT_CARGO_PLANE = "Cargo Plane" as const;
 
+// Strategic weapons
+export const UT_CONVENTIONAL_MISSILE = "Conventional Missile" as const;
+
 // ---------------------------------------------------------------------------
 // Derived sets
 // ---------------------------------------------------------------------------
@@ -76,6 +79,7 @@ export const SMOOTHED_NUKE_TYPES: ReadonlySet<string> = new Set([
   UT_TRANSPORT_PLANE,
   UT_BOMBER,
   UT_CARGO_PLANE,
+  UT_CONVENTIONAL_MISSILE,
 ]);
 
 /** Units that leave a trail on the map (TrailManager). */
@@ -126,6 +130,7 @@ export const ALL_UNIT_TYPES = [
   UT_BOMBER,
   UT_TRANSPORT_PLANE,
   UT_CARGO_PLANE,
+  UT_CONVENTIONAL_MISSILE,
 ] as const;
 
 /**

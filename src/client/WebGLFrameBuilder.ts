@@ -1,4 +1,5 @@
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
   type EffectAttributesFor,
@@ -10,7 +11,9 @@ import {
 } from "@openfront/shared/CosmeticSchemas";
 import { colord } from "colord";
 import { getCachedCosmetics } from "./Cosmetics";
+import { orbitalImpactPoints } from "./render/frame/derive/OrbitalStrikes";
 import { samRangeResolver } from "./render/frame/derive/SamRanges";
+import { deriveStrategicProgress } from "./render/frame/derive/StrategicProgress";
 import { buildTerrainRowSpans } from "./render/frame/derive/TerrainRowSpans";
 import { deriveVictoryProjects } from "./render/frame/derive/VictoryProjects";
 import { uploadFrameData } from "./render/frame/Upload";
@@ -244,6 +247,7 @@ export class WebGLFrameBuilder {
     this.syncSpawnOverlay(gameView);
     this.syncSmallPlayerGlow(gameView);
     this.syncVictoryProjects(gameView);
+    this.syncStrategic(gameView);
     this.syncSamRanges(gameView);
     this.syncTerrainDeltas(gameView);
     this.syncNukeImpacts(gameView);
@@ -469,6 +473,21 @@ export class WebGLFrameBuilder {
       }
     }
     this.view.updateSmallPlayerGlow(any ? set : null);
+  }
+
+  /** Strategic weapons: production/preparation bars; beams and blasts for orbital strikes. */
+  private syncStrategic(gameView: GameView): void {
+    if (!gameView.config().strategicWeapons()) return;
+    this.view.setStrategicProgress(
+      deriveStrategicProgress(gameView.playerViews(), gameView.ticks()),
+    );
+    const strikes =
+      gameView.updatesSinceLastTick()?.[GameUpdateType.OrbitalStrike] ?? [];
+    if (strikes.length > 0) {
+      this.view.applyOrbitalStrikes(
+        orbitalImpactPoints(strikes, gameView.width()),
+      );
+    }
   }
 
   /** Domestic mode: push victory-project hosts and their progress each tick. */

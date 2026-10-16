@@ -70,6 +70,8 @@ export class BarPass {
   private veterancyHealthBonus: number;
   /** Domestic mode: victory-project host unit id -> progress (0..1). */
   private projectProgress: ReadonlyMap<number, number> = new Map();
+  /** Strategic weapons: factory / silo unit id -> bar fill (0..1). */
+  private strategicProgress: ReadonlyMap<number, number> = new Map();
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -131,6 +133,11 @@ export class BarPass {
     gl.vertexAttribDivisor(1, 1);
 
     gl.bindVertexArray(null);
+  }
+
+  /** Strategic weapons: factories making nukes and silos preparing a satellite. */
+  setStrategicProgress(progress: ReadonlyMap<number, number>): void {
+    this.strategicProgress = progress;
   }
 
   /** Domestic mode: hosts of running victory projects and their progress. */
@@ -318,6 +325,10 @@ export class BarPass {
     // Domestic victory project: the bar fills as the project advances
     const project = this.projectProgress.get(unit.id);
     if (project !== undefined) return project;
+
+    // Strategic weapons: nuke production, satellite preparation
+    const strategic = this.strategicProgress.get(unit.id);
+    if (strategic !== undefined) return strategic;
 
     // Construction progress (domestic mode sends the real build time)
     if (unit.underConstruction && unit.constructionStartTick !== null) {

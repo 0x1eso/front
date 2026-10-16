@@ -310,6 +310,16 @@ export class MapRenderer {
     this.renderer?.updateSmallPlayerGlow(set);
   }
 
+  /** Strategic weapons: factory/silo unit id -> bar fill (0..1). */
+  setStrategicProgress(progress: ReadonlyMap<number, number>): void {
+    this.renderer?.setStrategicProgress(progress);
+  }
+
+  /** Strategic weapons: beams and blasts at orbital strike impacts. */
+  applyOrbitalStrikes(points: readonly { x: number; y: number }[]): void {
+    this.renderer?.applyOrbitalStrikes(points);
+  }
+
   /** Domestic mode: host unit id -> victory-project progress (0..1). */
   setVictoryProjects(progress: ReadonlyMap<number, number>): void {
     this.renderer?.setVictoryProjects(progress);
