@@ -15,6 +15,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { CoastalBarrageExecution } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecution } from "../warfare/CoastalBatteryExecution";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
@@ -148,6 +149,9 @@ export class ConstructionExecution implements Execution {
       }
       case UnitType.MIRV:
         this.mg.addExecution(new MirvExecution(player, this.tile));
+        break;
+      case UnitType.CoastalBarrage:
+        this.mg.addExecution(new CoastalBarrageExecution(player, this.tile));
         break;
       case UnitType.Warship:
         this.mg.addExecution(

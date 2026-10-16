@@ -49,6 +49,7 @@ import { TribeExecutionSnapshot } from "../execution/TribeExecution";
 import { UpgradeStructureExecutionSnapshot } from "../execution/UpgradeStructureExecution";
 import { WarshipExecutionSnapshot } from "../execution/WarshipExecution";
 import { WinCheckExecutionSnapshot } from "../execution/WinCheckExecution";
+import { CoastalBarrageExecutionSnapshot } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecutionSnapshot } from "../warfare/CoastalBatteryExecution";
 import type { ExecutionSnapshotType } from "./ExecutionSnapshot";
 
@@ -68,6 +69,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   BreakAllianceExecutionSnapshot,
   ChooseGovernmentExecutionSnapshot,
   CityExecutionSnapshot,
+  CoastalBarrageExecutionSnapshot,
   CoastalBatteryExecutionSnapshot,
   ConstructionExecutionSnapshot,
   DefensePostExecutionSnapshot,

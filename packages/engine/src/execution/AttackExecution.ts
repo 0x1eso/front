@@ -21,6 +21,7 @@ import {
   zTiles,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { assertNever } from "@openfront/engine-lib/Util";
+import { BARRAGE_ATTACKER_LOSS_FACTOR } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import { AttackLogicInput } from "../configuration/EngineConfig";
 import {
@@ -35,6 +36,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { barrageSuppresses } from "../warfare/BarrageZone";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
@@ -374,7 +376,14 @@ export class AttackExecution implements Execution {
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
     // attack on the map.
+    // Expanded warfare: a finished coastal barrage's zone turns the
+    // defender's posts off and cuts the attacker's losses (spec 14b).
+    const suppressed =
+      defender !== null &&
+      this.mg.config().warfareExpansion() &&
+      barrageSuppresses(this.mg, tile, defender);
     const defenderHasDefensePost =
+      !suppressed &&
       defender !== null &&
       this.mg.hasUnitNearby(
         tile,
@@ -388,7 +397,9 @@ export class AttackExecution implements Execution {
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
-        lossScale: combat.attackerLoss,
+        lossScale: suppressed
+          ? combat.attackerLoss * BARRAGE_ATTACKER_LOSS_FACTOR
+          : combat.attackerLoss,
         speedScale: combat.attackerSpeed,
       },
       defender:
