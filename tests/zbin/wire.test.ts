@@ -67,6 +67,7 @@ const CONFIG: GameConfig = {
   domesticMode: true,
   conquestPercent: 100,
   warfareExpansion: true,
+  strategicWeapons: true,
 };
 
 // A vanilla config: no domestic fields at all.
@@ -74,6 +75,7 @@ const VANILLA_CONFIG: GameConfig = { ...CONFIG };
 delete VANILLA_CONFIG.domesticMode;
 delete VANILLA_CONFIG.conquestPercent;
 delete VANILLA_CONFIG.warfareExpansion;
+delete VANILLA_CONFIG.strategicWeapons;
 
 // One of every intent type, as stamped intents inside a turn.
 const SAMPLE_INTENTS: StampedIntent[] = [
@@ -149,6 +151,14 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "set_recruit_target", clientID: P1, percent: 10 },
   { type: "set_recruit_target", clientID: P2, percent: 100 },
   { type: "paradrop", clientID: P2, troops: 12345.5, dst: 4242 },
+  { type: "produce_nuke", clientID: P1, nukeType: UnitType.MIRV },
+  { type: "satellite_target", clientID: P2, target: P1 },
+  {
+    type: "intercept_satellite",
+    clientID: P1,
+    attacker: P2,
+    nukeType: UnitType.AtomBomb,
+  },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

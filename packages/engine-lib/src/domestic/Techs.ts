@@ -139,5 +139,7 @@ export const TECHS: Readonly<Record<TechId, TechDef>> = {
   space_program: tech("space_program", 4, "learning", {
     prereqs: ["computers"],
     cost: SPACE_PROGRAM_COST,
+    // Strategic weapons only: the orbital satellite.
+    unlocks: [UnitType.Satellite],
   }),
 };

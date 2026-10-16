@@ -51,6 +51,7 @@ describe("tech tree data", () => {
         UnitType.Bomber,
         UnitType.TransportPlane,
         UnitType.CoastalBarrage,
+        UnitType.Satellite,
       ].sort(),
     );
   });

@@ -217,6 +217,11 @@ export enum UnitType {
   Bomber = "Bomber",
   TransportPlane = "Transport Plane",
   CargoPlane = "Cargo Plane",
+  // Strategic weapons (GameConfig.strategicWeapons). Appended like the
+  // warfare units: the wire and snapshots encode UnitType by position.
+  ConventionalMissile = "Conventional Missile",
+  /** No map unit: the build intent at a silo starts the satellite's preparation. */
+  Satellite = "Satellite",
 }
 
 export enum TrainType {
@@ -239,6 +244,8 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.Warship,
   UnitType.CoastalBarrage,
   UnitType.Bomber,
+  UnitType.ConventionalMissile,
+  UnitType.Satellite,
 ] as const);
 
 export const Structures = unitTypeGroup([

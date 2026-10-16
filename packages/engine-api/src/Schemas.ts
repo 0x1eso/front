@@ -30,6 +30,10 @@ import {
   UnitType,
 } from "./game/GameTypes";
 import { PlayerStatsSchema } from "./StatsSchemas";
+import {
+  INTERCEPTOR_NUKES,
+  STOCKPILED_NUKES,
+} from "./strategic/StrategicTypes";
 
 export type GameID = string;
 export type ClientID = string;
@@ -65,7 +69,10 @@ export type Intent =
   | ProclaimLawIntent
   | ChooseGovernmentIntent
   | StartVictoryProjectIntent
-  | ParadropIntent;
+  | ParadropIntent
+  | ProduceNukeIntent
+  | SatelliteTargetIntent
+  | InterceptSatelliteIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -115,6 +122,11 @@ export type StartVictoryProjectIntent = z.infer<
   typeof StartVictoryProjectIntentSchema
 >;
 export type ParadropIntent = z.infer<typeof ParadropIntentSchema>;
+export type ProduceNukeIntent = z.infer<typeof ProduceNukeIntentSchema>;
+export type SatelliteTargetIntent = z.infer<typeof SatelliteTargetIntentSchema>;
+export type InterceptSatelliteIntent = z.infer<
+  typeof InterceptSatelliteIntentSchema
+>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -371,6 +383,11 @@ export const GameConfigSchema = z.object({
   // SAMs that hit planes. Off by default; works with and without domestic
   // mode.
   warfareExpansion: z.boolean().optional(),
+  // Strategic weapons (this fork): nukes made in factories and stockpiled,
+  // the conventional missile and the orbital satellite. Off by default;
+  // independent of warfareExpansion. See
+  // docs/superpowers/specs/2026-10-16-strategic-weapons-design.md.
+  strategicWeapons: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -645,6 +662,27 @@ export const ParadropIntentSchema = z.object({
   dst: zb.uint(),
 });
 
+// Strategic weapons: start one nuke on a free factory line (the engine
+// picks the factory).
+export const ProduceNukeIntentSchema = z.object({
+  type: z.literal("produce_nuke"),
+  nukeType: z.enum(STOCKPILED_NUKES),
+});
+
+// Strategic weapons: aim the sender's satellite in orbit at a nation.
+export const SatelliteTargetIntentSchema = z.object({
+  type: z.literal("satellite_target"),
+  target: MappedID,
+});
+
+// Strategic weapons: fire a stockpiled hydrogen or atom bomb at
+// `attacker`'s satellite while its strike counts down.
+export const InterceptSatelliteIntentSchema = z.object({
+  type: z.literal("intercept_satellite"),
+  attacker: MappedID,
+  nukeType: z.enum(INTERCEPTOR_NUKES),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -677,6 +715,9 @@ export const IntentSchema = z.discriminatedUnion("type", [
   ChooseGovernmentIntentSchema,
   StartVictoryProjectIntentSchema,
   ParadropIntentSchema,
+  ProduceNukeIntentSchema,
+  SatelliteTargetIntentSchema,
+  InterceptSatelliteIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

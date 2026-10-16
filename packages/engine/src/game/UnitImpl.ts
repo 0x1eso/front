@@ -578,6 +578,11 @@ export class UnitImpl implements Unit {
   }
 
   isInCooldown(): boolean {
+    // Strategic weapons: a silo preparing its owner's satellite lends it one
+    // slot (spec §6.1). Null outside the mode, so this is the vanilla check.
+    if (this._owner.strategic()?.holdsSiloSlot(this._id) === true) {
+      return this._missileTimerQueue.length + 1 >= this._level;
+    }
     return this._missileTimerQueue.length === this._level;
   }
 

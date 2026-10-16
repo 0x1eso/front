@@ -1,5 +1,6 @@
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
+import type { StrategicData } from "../strategic/StrategicTypes";
 import { TileRef } from "./GameMap";
 import {
   EmojiMessage,
@@ -116,6 +117,7 @@ export enum GameUpdateType {
   SpawnPhaseEnd,
   GamePaused,
   DonateEvent,
+  OrbitalStrike,
 }
 
 export type GameUpdate =
@@ -141,7 +143,8 @@ export type GameUpdate =
   | EmbargoUpdate
   | SpawnPhaseEndUpdate
   | GamePausedUpdate
-  | DonateEventUpdate;
+  | DonateEventUpdate
+  | OrbitalStrikeUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -236,8 +239,8 @@ export interface AttackUpdate {
  * When adding a field here, also wire it into diffPlayerUpdate() and
  * applyStateUpdate() in PlayerStateUpdate.ts — otherwise it is only ever sent on
  * the first emission and later changes are silently dropped.
- * Exception: `domestic` is not part of the renderer's PlayerState; it is
- * applied in PlayerView.applyUpdate() instead.
+ * Exceptions: `domestic` and `strategic` are not part of the renderer's
+ * PlayerState; they are applied in PlayerView.applyUpdate() instead.
  */
 export interface PlayerUpdate {
   type: GameUpdateType.Player;
@@ -286,6 +289,8 @@ export interface PlayerUpdate {
   isLobbyCreator?: boolean;
   /** Domestic mode only; absent for bots and outside domestic mode. */
   domestic?: DomesticData;
+  /** Strategic weapons only: stockpile, factory lines, satellite. */
+  strategic?: StrategicData;
 }
 
 export interface AllianceView {
@@ -397,4 +402,16 @@ export interface SpawnPhaseEndUpdate {
 export interface GamePausedUpdate {
   type: GameUpdateType.GamePaused;
   paused: boolean;
+}
+
+/**
+ * Strategic weapons: an orbital strike landed. `impacts` are the crater
+ * centers, then the struck building sites (render beams; the land and
+ * buildings already changed through the usual updates).
+ */
+export interface OrbitalStrikeUpdate {
+  type: GameUpdateType.OrbitalStrike;
+  attackerID: number;
+  targetID: number;
+  impacts: TileRef[];
 }

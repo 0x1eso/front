@@ -48,6 +48,7 @@ import type { PlayerDomestic } from "../domestic/PlayerDomestic";
 import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import type { ExecRecord, SnapshotWriter } from "../snapshot/SnapshotContext";
+import type { PlayerStrategic } from "../strategic/PlayerStrategic";
 import { RailNetwork } from "./RailNetwork";
 import { Stats } from "./Stats";
 
@@ -142,6 +143,16 @@ export interface UnitParamsMap {
   [UnitType.CargoPlane]: {
     targetUnit: Unit;
   };
+
+  /** Flies to the structure it was aimed at (ConventionalMissileExecution). */
+  [UnitType.ConventionalMissile]: {
+    targetTile: TileRef;
+    trajectory: TrajectoryTile[];
+    targetUnit: Unit;
+  };
+
+  /** Never built: the build intent at a silo starts the satellite's preparation. */
+  [UnitType.Satellite]: Record<string, never>;
 }
 
 // Type helper to get params type for a specific unit type
@@ -360,6 +371,10 @@ export interface Player extends PlayerLike {
   isUnitLocked(type: UnitType): boolean;
   /** Disabled for the game or locked for this player. */
   isUnitUnavailable(type: UnitType): boolean;
+  /** Strategic weapons state; null with the option off. */
+  strategic(): PlayerStrategic | null;
+  /** Strategic weapons: the enemy structure a conventional missile aimed at `tile` hits, or null. */
+  missileTarget(tile: TileRef): Unit | null;
 
   // State & Properties
   isAlive(): boolean;

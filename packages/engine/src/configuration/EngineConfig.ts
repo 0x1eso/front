@@ -25,6 +25,10 @@ import {
   capCombinedPct,
 } from "@openfront/engine-lib/domestic/Modifiers";
 import {
+  CONVENTIONAL_MISSILE_COST,
+  SATELLITE_COST,
+} from "@openfront/engine-lib/strategic/Strategic";
+import {
   assertNever,
   sigmoid,
   toInt,
@@ -99,6 +103,9 @@ const DOMESTIC_COST_STAT: Partial<Record<UnitType, StatKey>> = {
   // Expanded warfare: strategic strikes are priced like nukes.
   [UnitType.CoastalBarrage]: "nukeCost",
   [UnitType.Bomber]: "nukeCost",
+  // Strategic weapons: priced like nukes (the nuclear deterrence law).
+  [UnitType.ConventionalMissile]: "nukeCost",
+  [UnitType.Satellite]: "nukeCost",
 };
 
 // attackLogic tunables
@@ -435,6 +442,13 @@ export class EngineConfig extends Config {
         return this.costWrapper(() => BOMB_COST, UnitType.Bomber);
       case UnitType.TransportPlane:
         return this.costWrapper(() => PARADROP_GOLD, UnitType.TransportPlane);
+      case UnitType.ConventionalMissile:
+        return this.costWrapper(
+          () => CONVENTIONAL_MISSILE_COST,
+          UnitType.ConventionalMissile,
+        );
+      case UnitType.Satellite:
+        return this.costWrapper(() => SATELLITE_COST, UnitType.Satellite);
       case UnitType.TransportShip:
       case UnitType.Shell:
       case UnitType.SAMMissile:

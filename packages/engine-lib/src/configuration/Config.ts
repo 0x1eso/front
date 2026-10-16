@@ -19,6 +19,7 @@ import {
   effectiveMaxTimerMinutes,
 } from "../domestic/Victory";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
+import { STRATEGIC_ONLY_UNITS } from "../strategic/Strategic";
 import { assertNever } from "../Util";
 import {
   AIRPORT_BUILD_TICKS,
@@ -195,6 +196,11 @@ export class Config {
     return this._gameConfig.domesticMode ?? false;
   }
 
+  /** Strategic weapons: nuke stockpiles, the conventional missile, the satellite. */
+  strategicWeapons(): boolean {
+    return this._gameConfig.strategicWeapons ?? false;
+  }
+
   /** Expanded warfare (spec §14b): coastal battery, barrage, airport. */
   warfareExpansion(): boolean {
     return this._gameConfig.warfareExpansion ?? false;
@@ -222,6 +228,9 @@ export class Config {
       return true;
     }
     if (WARFARE_ONLY_UNITS.has(unitType) && !this.warfareExpansion()) {
+      return true;
+    }
+    if (STRATEGIC_ONLY_UNITS.has(unitType) && !this.strategicWeapons()) {
       return true;
     }
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
@@ -351,6 +360,8 @@ export class Config {
       case UnitType.Bomber:
       case UnitType.TransportPlane:
       case UnitType.CargoPlane:
+      case UnitType.ConventionalMissile:
+      case UnitType.Satellite:
         info = {};
         break;
       default:

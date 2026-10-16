@@ -48,6 +48,12 @@ import {
   zTiles,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import {
+  isStockpiledNuke,
+  MISSILE_TARGET_RADIUS,
+  pickNearestWithin,
+  SATELLITE_SILO_PICK_RADIUS,
+} from "@openfront/engine-lib/strategic/Strategic";
+import {
   assertNever,
   findClosestBy,
   minInt,
@@ -77,6 +83,10 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import {
+  PlayerStrategic,
+  StrategicStateSchema,
+} from "../strategic/PlayerStrategic";
 import { AttackImpl } from "./AttackImpl";
 import {
   Alliance,
@@ -162,6 +172,8 @@ export class PlayerImpl implements Player {
   /** Cumulative gold received from all sources (incremented in addGold). */
   private _goldEarned: bigint = 0n;
   private _domestic: PlayerDomestic | null = null;
+  /** Strategic weapons state; null with the option off. */
+  private _strategic: PlayerStrategic | null = null;
 
   markedTraitorTick = -1;
   markedDoomsdayClockTick = -1;
@@ -234,6 +246,9 @@ export class PlayerImpl implements Player {
       mg.config().domesticMode() && playerInfo.playerType !== PlayerType.Bot
         ? new PlayerDomestic()
         : null;
+    this._strategic = mg.config().strategicWeapons()
+      ? new PlayerStrategic()
+      : null;
   }
 
   largestClusterBoundingBox: { min: Cell; max: Cell } | null;
@@ -434,6 +449,9 @@ export class PlayerImpl implements Player {
       lastDeleteUnitTick: this.lastDeleteUnitTick,
       isLobbyCreator: this.isLobbyCreator(),
       ...(this._domestic === null ? {} : { domestic: this._domestic.toData() }),
+      ...(this._strategic === null
+        ? {}
+        : { strategic: this._strategic.toData() }),
     };
   }
 
@@ -750,6 +768,10 @@ export class PlayerImpl implements Player {
 
   isLobbyCreator(): boolean {
     return this.playerInfo.isLobbyCreator;
+  }
+
+  strategic(): PlayerStrategic | null {
+    return this._strategic;
   }
 
   domestic(): PlayerDomestic | null {
@@ -1444,7 +1466,12 @@ export class PlayerImpl implements Player {
       );
     }
 
-    const cost = this.mg.unitInfo(type).cost(this.mg, this);
+    let cost = this.mg.unitInfo(type).cost(this.mg, this);
+    if (this._strategic !== null && isStockpiledNuke(type)) {
+      // Strategic weapons: a launch takes one from the stockpile, no gold.
+      this._strategic.takeStock(type);
+      cost = 0n;
+    }
     const b = new UnitImpl(
       type,
       this.mg,
@@ -1496,6 +1523,11 @@ export class PlayerImpl implements Player {
   ): boolean {
     if (this.isUnitUnavailable(unitType)) {
       return false;
+    }
+    // Strategic weapons: nukes come out of the stockpile; their gold was
+    // paid at the factory (spec §4).
+    if (this._strategic !== null && isStockpiledNuke(unitType)) {
+      return this._strategic.stock(unitType) > 0 && this.isAlive();
     }
     const cost = knownCost ?? this.mg.unitInfo(unitType).cost(this.mg, this);
     if (this._gold < cost) {
@@ -1675,6 +1707,10 @@ export class PlayerImpl implements Player {
         return this.paradropSpawn(targetTile);
       case UnitType.CargoPlane:
         return targetTile;
+      case UnitType.ConventionalMissile:
+        return this.conventionalMissileSpawn(targetTile);
+      case UnitType.Satellite:
+        return this.satelliteSpawn(targetTile);
       default:
         assertNever(unitType);
     }
@@ -1848,6 +1884,75 @@ export class PlayerImpl implements Player {
     if (owner === this) return false;
     if (owner.isPlayer() && !this.canAttackPlayer(owner)) return false;
     return this.airportSortieSpawn(tile);
+  }
+
+  /** Strategic weapons: the enemy structure a conventional missile aimed at `tile` hits (spec §5), or null. */
+  missileTarget(tile: TileRef): Unit | null {
+    const mg = this.mg;
+    if (mg.isSpawnImmunityActive()) return null;
+    // Disconnected allies and teammates stay protected, as from a nuke.
+    const candidates = mg
+      .nearbyUnits(
+        tile,
+        MISSILE_TARGET_RADIUS,
+        Structures.types,
+        undefined,
+        true,
+      )
+      .filter(
+        ({ unit }) =>
+          unit.owner() !== this && !this.isFriendly(unit.owner(), true),
+      )
+      .map(({ unit }) => ({
+        id: unit.id(),
+        x: mg.x(unit.tile()),
+        y: mg.y(unit.tile()),
+        unit,
+      }));
+    return (
+      pickNearestWithin(
+        mg.x(tile),
+        mg.y(tile),
+        MISSILE_TARGET_RADIUS,
+        candidates,
+      )?.unit ?? null
+    );
+  }
+
+  /** Strategic weapons: a conventional missile flies from the nearest loaded silo, as a nuke does. */
+  conventionalMissileSpawn(tile: TileRef): TileRef | false {
+    if (this.missileTarget(tile) === null) return false;
+    const mg = this.mg;
+    const silo = findClosestBy(
+      this.units(UnitType.MissileSilo),
+      (s) => mg.manhattanDist(s.tile(), tile),
+      (s) => s.isActive() && !s.isInCooldown() && !s.isUnderConstruction(),
+    );
+    return silo?.tile() ?? false;
+  }
+
+  /** Strategic weapons: the satellite is prepared at the ready silo nearest the aim (spec §6.1). */
+  satelliteSpawn(tile: TileRef): TileRef | false {
+    if (this._strategic?.satellite().phase !== "none") return false;
+    const mg = this.mg;
+    const silos = this.units(UnitType.MissileSilo)
+      .filter(
+        (s) => s.isActive() && !s.isUnderConstruction() && !s.isInCooldown(),
+      )
+      .map((s) => ({
+        id: s.id(),
+        x: mg.x(s.tile()),
+        y: mg.y(s.tile()),
+        unit: s,
+      }));
+    return (
+      pickNearestWithin(
+        mg.x(tile),
+        mg.y(tile),
+        SATELLITE_SILO_PICK_RADIUS,
+        silos,
+      )?.unit.tile() ?? false
+    );
   }
 
   landBasedUnitSpawn(tile: TileRef): TileRef | false {
@@ -2168,6 +2273,9 @@ export class PlayerImpl implements Player {
       ...(this._domestic === null
         ? {}
         : { domestic: this._domestic.snapshot() }),
+      ...(this._strategic === null
+        ? {}
+        : { strategic: this._strategic.snapshot() }),
     };
   }
 
@@ -2243,6 +2351,7 @@ export class PlayerImpl implements Player {
     this.numUnitsConstructed = Object.fromEntries(s.numUnitsConstructed);
     this.nearbyMemo = null;
     this._domestic = s.domestic ? PlayerDomestic.restore(s.domestic) : null;
+    this._strategic = s.strategic ? PlayerStrategic.restore(s.strategic) : null;
   }
 }
 
@@ -2313,6 +2422,7 @@ export const PlayerSnapshot = snapshotType({
       .optional(),
     numUnitsConstructed: z.array(z.tuple([UnitTypeSchema, zInt()])),
     domestic: DomesticStateSchema.nullable().optional(),
+    strategic: StrategicStateSchema.nullable().optional(),
   }),
 });
 export type PlayerState = z.infer<typeof PlayerSnapshot.schema>;
