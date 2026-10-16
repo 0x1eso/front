@@ -42,6 +42,7 @@ import {
   nationProjectKindFor,
   nationVictoryTick,
 } from "./nation/NationVictoryBehavior";
+import { NationWarfareBehavior } from "./nation/NationWarfareBehavior";
 import { NationWarshipBehavior } from "./nation/NationWarshipBehavior";
 import { SpawnExecution } from "./SpawnExecution";
 import { AiAttackBehavior } from "./utils/AiAttackBehavior";
@@ -58,6 +59,8 @@ export class NationExecution implements Execution {
   private warshipBehavior!: NationWarshipBehavior;
   private nukeBehavior!: NationNukeBehavior;
   private structureBehavior!: NationStructureBehavior;
+  /** Expanded warfare only (undefined otherwise). */
+  private warfareBehavior: NationWarfareBehavior | undefined;
   private mg: Game;
   private player: Player | null = null;
 
@@ -240,6 +243,7 @@ export class NationExecution implements Execution {
     this.attackBehavior.maybeAttack();
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
+    this.warfareBehavior?.tick(nationProjectKindFor(this.mg, this.player));
   }
 
   private initializeBehaviors(): void {
@@ -291,6 +295,15 @@ export class NationExecution implements Execution {
       this.mg,
       this.player,
     );
+    // Expanded warfare only, on its own PRNG: the shared one must roll
+    // exactly as in a vanilla game.
+    this.warfareBehavior = this.mg.config().warfareExpansion()
+      ? new NationWarfareBehavior(
+          new PseudoRandom(simpleHash(this.player.id()) + 4099),
+          this.mg,
+          this.player,
+        )
+      : undefined;
     this.behaviorsInitialized = true;
   }
 
@@ -432,6 +445,9 @@ export class NationExecution implements Execution {
             attack: this.attackBehavior.snapshot(w),
             nuke: this.nukeBehavior.snapshot(w),
             structure: this.structureBehavior.snapshot(w),
+            ...(this.warfareBehavior !== undefined
+              ? { warfare: this.warfareBehavior.snapshot(w) }
+              : {}),
           }
         : null,
     });
@@ -496,6 +512,13 @@ export class NationExecution implements Execution {
     this.attackBehavior = attack;
     this.nukeBehavior = nuke;
     this.structureBehavior = structure;
+    if (b.warfare !== undefined) {
+      const warfare = shell(NationWarfareBehavior);
+      warfare.restoreSnapshot(b.warfare, r, player);
+      this.warfareBehavior = warfare;
+    } else {
+      this.warfareBehavior = undefined;
+    }
   }
 }
 
@@ -525,6 +548,7 @@ const NationStateSchema = z.object({
       attack: VersionedSchema,
       nuke: VersionedSchema,
       structure: VersionedSchema,
+      warfare: VersionedSchema.optional(),
     })
     .nullable(),
 });
