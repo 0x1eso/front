@@ -5,14 +5,24 @@ import {
   PlayerBuildableUnitType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import {
+  StockpiledNuke,
+  StrategicData,
+} from "@openfront/engine-api/strategic/StrategicTypes";
 import { requiredTech } from "@openfront/engine-lib/domestic/Locks";
 import { renderNumber } from "@openfront/engine-lib/Format";
+import {
+  factoryWithFreeLine,
+  isStockpiledNuke,
+  NUKE_PRODUCTION_TICKS,
+} from "@openfront/engine-lib/strategic/Strategic";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { MouseDownEvent, ToggleStructureEvent } from "../../InputHandler";
 import { Platform } from "../../Platform";
+import { SendProduceNukeIntentEvent } from "../../Transport";
 import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { translateText } from "../../Utils";
@@ -26,6 +36,7 @@ import {
   cityIcon,
   coastalBarrageIcon,
   coastalBatteryIcon,
+  conventionalMissileIcon,
   defensePostIcon,
   factoryIcon,
   goldCoinIcon,
@@ -35,6 +46,7 @@ import {
   portIcon,
   researchInstituteIcon,
   samLauncherIcon,
+  satelliteIcon,
   warshipIcon,
 } from "../HotbarIcons";
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
@@ -151,6 +163,20 @@ export const HOTBAR: readonly HotbarItem[] = [
     countable: false,
   },
   {
+    type: UnitType.ConventionalMissile,
+    icon: conventionalMissileIcon,
+    key: "conventional_missile",
+    keybind: "",
+    countable: false,
+  },
+  {
+    type: UnitType.Satellite,
+    icon: satelliteIcon,
+    key: "satellite",
+    keybind: "",
+    countable: false,
+  },
+  {
     type: UnitType.CoastalBarrage,
     icon: coastalBarrageIcon,
     key: "coastal_barrage",
@@ -199,6 +225,10 @@ function highlightTypes(
       return [UnitType.MissileSilo, UnitType.CoastalBattery];
     case UnitType.Bomber:
       return [UnitType.Airport, UnitType.SAMLauncher];
+    case UnitType.ConventionalMissile:
+      return [UnitType.MissileSilo, UnitType.SAMLauncher];
+    case UnitType.Satellite:
+      return [UnitType.MissileSilo];
     case UnitType.Warship:
       return [UnitType.Port];
     default:
@@ -282,18 +312,70 @@ export class UnitDisplay extends LitElement implements Controller {
     );
   }
 
+  /** Strategic weapons: my stockpile, lines and satellite; null with the option off. */
+  private strategic(): StrategicData | null {
+    return this.game?.myPlayer()?.strategicData() ?? null;
+  }
+
+  /** The stockpile behind a nuke's button, or null (not a nuke, or the option is off). */
+  private stockOf(type: PlayerBuildableUnitType): number | null {
+    const s = this.strategic();
+    return s !== null && isStockpiledNuke(type) ? s.stock[type] : null;
+  }
+
+  /** Why a nuke can't be started at a factory now, or null if it can. */
+  private produceReason(type: StockpiledNuke): string | null {
+    if (this.locked(type)) return lockedReason(type);
+    const player = this.game?.myPlayer();
+    const s = this.strategic();
+    if (!player || s === null) return null;
+    const factories = player
+      .units(UnitType.Factory)
+      .filter((f) => !f.isUnderConstruction())
+      .map((f) => ({ id: f.id(), level: f.level() }));
+    if (factories.length === 0) return translateText("strategic.needs_factory");
+    if (factoryWithFreeLine(factories, s.jobs) === null) {
+      return translateText("strategic.no_free_line");
+    }
+    if (this.cost(type) > player.gold()) {
+      return translateText("build_menu.not_enough_money");
+    }
+    return null;
+  }
+
+  private produce(type: StockpiledNuke): void {
+    if (this.produceReason(type) !== null) return;
+    this.eventBus?.emit(new SendProduceNukeIntentEvent(type));
+  }
+
   /** Why the unit can't be built right now, or null when it can. */
   private cannotBuildReason(type: PlayerBuildableUnitType): string | null {
     if (this.locked(type)) return lockedReason(type);
     const player = this.game?.myPlayer();
-    if (this.cost(type) > (player?.gold() ?? 0n)) {
+    const strategic = this.strategic();
+    if (strategic !== null && isStockpiledNuke(type)) {
+      // Strategic weapons: a nuke is fired from the stockpile, not bought.
+      if (strategic.stock[type] === 0) {
+        return translateText("strategic.no_stock");
+      }
+    } else if (this.cost(type) > (player?.gold() ?? 0n)) {
       return translateText("build_menu.not_enough_money");
     }
     if (
-      (NUKES.has(type) || type === UnitType.CoastalBarrage) &&
+      (NUKES.has(type) ||
+        type === UnitType.CoastalBarrage ||
+        type === UnitType.ConventionalMissile ||
+        type === UnitType.Satellite) &&
       (player?.units(UnitType.MissileSilo).length ?? 0) === 0
     ) {
       return translateText("touch_ui.needs_silo");
+    }
+    if (type === UnitType.Satellite && strategic !== null) {
+      const phase = strategic.satellite.phase;
+      if (phase === "preparing") {
+        return translateText("strategic.satellite_busy");
+      }
+      if (phase !== "none") return translateText("strategic.satellite_used");
     }
     if (
       type === UnitType.Bomber &&
@@ -387,6 +469,7 @@ export class UnitDisplay extends LitElement implements Controller {
     const open = this.infoUnit === item.type;
     const tech = this.locked(item.type) ? requiredTech(item.type) : null;
     const count = this.counts.get(item.type);
+    const stock = this.stockOf(item.type);
     return html`
       <button
         type="button"
@@ -408,6 +491,13 @@ export class UnitDisplay extends LitElement implements Controller {
           alt=${item.key}
           class="size-7 ${this.canBuild(item.type) ? "" : "opacity-40"}"
         />
+        ${stock !== null
+          ? html`<span
+              data-stock
+              class="absolute top-0.5 right-0.5 min-w-4 px-1 rounded-full bg-sky-600 text-[10px] leading-4 text-center tabular-nums"
+              >${stock}</span
+            >`
+          : null}
         ${tech !== null
           ? html`<span
               data-locked-tech
@@ -429,6 +519,7 @@ export class UnitDisplay extends LitElement implements Controller {
     const item = HOTBAR.find((i) => i.type === type);
     if (item === undefined) return null;
     const reason = this.cannotBuildReason(type);
+    const stock = this.stockOf(type);
     const hotkey = this.hotkeyLabel(item);
     return html`
       <div
@@ -456,12 +547,14 @@ export class UnitDisplay extends LitElement implements Controller {
         <div class="text-gray-200">
           ${translateText(`build_menu.desc.${item.key}`)}
         </div>
-        <div class="flex items-center gap-1">
-          <img src=${goldCoinIcon} alt="" width="16" height="16" />
-          <span class="text-yellow-300 font-bold"
-            >${renderNumber(this.cost(type))}</span
-          >
-        </div>
+        ${stock !== null
+          ? this.renderProduction(type as StockpiledNuke, stock)
+          : html`<div class="flex items-center gap-1">
+              <img src=${goldCoinIcon} alt="" width="16" height="16" />
+              <span class="text-yellow-300 font-bold"
+                >${renderNumber(this.cost(type))}</span
+              >
+            </div>`}
         ${type === UnitType.Warship
           ? html`<div class="text-cyan-300">
               ${Platform.isTouch
@@ -476,6 +569,44 @@ export class UnitDisplay extends LitElement implements Controller {
           : html`<div class="text-sky-300 font-semibold">
               ${translateText("touch_ui.tap_again_to_build")}
             </div>`}
+      </div>
+    `;
+  }
+
+  /** Strategic weapons: stock, lines in use, and the one-tap "Build" button (not a map action). */
+  private renderProduction(type: StockpiledNuke, stock: number) {
+    const producing =
+      this.strategic()?.jobs.filter((j) => j.type === type).length ?? 0;
+    const reason = this.produceReason(type);
+    return html`
+      <div data-strategic class="flex flex-col gap-2">
+        <div class="font-semibold">
+          ${translateText("strategic.stock", { count: stock })}${producing > 0
+            ? ` · ${translateText("strategic.producing", { count: producing })}`
+            : ""}
+        </div>
+        <div class="flex items-center gap-2">
+          <img src=${goldCoinIcon} alt="" width="16" height="16" />
+          <span class="text-yellow-300 font-bold"
+            >${renderNumber(this.cost(type))}</span
+          >
+          <button
+            type="button"
+            data-produce
+            class="ml-auto min-h-11 px-4 rounded-md font-semibold bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            ?disabled=${reason !== null}
+            @click=${() => this.produce(type)}
+          >
+            ${translateText("strategic.produce", {
+              seconds: NUKE_PRODUCTION_TICKS[type] / 10,
+            })}
+          </button>
+        </div>
+        ${reason !== null
+          ? html`<div data-produce-reason class="text-amber-300">
+              ${reason}
+            </div>`
+          : null}
       </div>
     `;
   }

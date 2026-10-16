@@ -22,6 +22,11 @@ export const airportIcon = assetUrl("images/AirportIconWhite.svg");
 export const coastalBarrageIcon = assetUrl("images/ExplosionIconWhite.svg");
 export const bomberIcon = assetUrl("images/BomberIconWhite.svg");
 export const paradropIcon = assetUrl("images/ParadropIconWhite.svg");
+export const conventionalMissileIcon = assetUrl(
+  "images/ConventionalMissileIconWhite.svg",
+);
+export const satelliteIcon = assetUrl("images/SatelliteIconWhite.svg");
+export const interceptIcon = assetUrl("images/InterceptIconWhite.svg");
 export const soldierIcon = assetUrl("images/SoldierIcon.svg");
 export const claimIcon = assetUrl("images/ClaimIcon.svg");
 export const profileIcon = assetUrl("images/ProfileIcon.svg");

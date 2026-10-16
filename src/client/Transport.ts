@@ -21,6 +21,10 @@ import {
   Winner,
 } from "@openfront/engine-api/Schemas";
 import {
+  InterceptorNuke,
+  StockpiledNuke,
+} from "@openfront/engine-api/strategic/StrategicTypes";
+import {
   CloseCode,
   CloseReason,
   isCloseReason,
@@ -138,6 +142,24 @@ export class SendParadropIntentEvent implements GameEvent {
   constructor(
     public readonly dst: TileRef,
     public readonly troops: number,
+  ) {}
+}
+
+/** Strategic weapons: start one nuke on a free factory line. */
+export class SendProduceNukeIntentEvent implements GameEvent {
+  constructor(public readonly nukeType: StockpiledNuke) {}
+}
+
+/** Strategic weapons: aim my satellite in orbit at `target`. */
+export class SendSatelliteTargetIntentEvent implements GameEvent {
+  constructor(public readonly target: PlayerID) {}
+}
+
+/** Strategic weapons: fire a stockpiled bomb at `attacker`'s satellite. */
+export class SendInterceptSatelliteIntentEvent implements GameEvent {
+  constructor(
+    public readonly attacker: PlayerID,
+    public readonly nukeType: InterceptorNuke,
   ) {}
 }
 
@@ -374,6 +396,19 @@ export class Transport {
     );
     this.subscribe(SendParadropIntentEvent, (e) =>
       this.onSendParadropIntent(e),
+    );
+    this.subscribe(SendProduceNukeIntentEvent, (e) =>
+      this.sendIntent({ type: "produce_nuke", nukeType: e.nukeType }),
+    );
+    this.subscribe(SendSatelliteTargetIntentEvent, (e) =>
+      this.sendIntent({ type: "satellite_target", target: e.target }),
+    );
+    this.subscribe(SendInterceptSatelliteIntentEvent, (e) =>
+      this.sendIntent({
+        type: "intercept_satellite",
+        attacker: e.attacker,
+        nukeType: e.nukeType,
+      }),
     );
     this.subscribe(SendTargetPlayerIntentEvent, (e) =>
       this.onSendTargetPlayerIntent(e),

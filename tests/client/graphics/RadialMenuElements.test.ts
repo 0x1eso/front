@@ -111,6 +111,7 @@ describe("RadialMenuElements", () => {
           }),
         }),
         isUnitDisabled: vi.fn(() => false),
+        strategicWeapons: vi.fn(() => false),
       })),
     } as unknown as GameView;
 
@@ -675,6 +676,26 @@ describe("RadialMenuElements", () => {
       expect(mockParams.eventBus.emit).toHaveBeenLastCalledWith(
         expect.objectContaining({ amount: 12 }),
       );
+    });
+
+    it("strategic weapons fire bombs one at a time: no bulk submenu", () => {
+      mockParams.selected = {
+        id: () => 2,
+        isPlayer: vi.fn(() => true),
+      } as unknown as PlayerView;
+      const base = (mockGame.config as unknown as () => object)();
+      (mockGame as any).config = vi.fn(() => ({
+        ...base,
+        strategicWeapons: () => true,
+      }));
+      (mockGame as any).myPlayer = vi.fn(() => ({
+        gold: () => 1_000_000n,
+        readyMissileCount: () => 5,
+      }));
+      const atomBombElement = attackMenuElement.subMenu!(mockParams).find(
+        (item) => item.id === "attack_Atom Bomb",
+      );
+      expect(atomBombElement!.subMenu!(mockParams)).toEqual([]);
     });
   });
 

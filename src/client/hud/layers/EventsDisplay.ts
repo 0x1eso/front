@@ -260,11 +260,22 @@ export class EventsDisplay extends LitElement implements Controller {
     let params = event.params ?? {};
     if (
       (event.message === "events_display.missile_intercepted" ||
-        event.message === "events_display.unit_destroyed") &&
+        event.message === "events_display.unit_destroyed" ||
+        event.message === "events_display.nuke_production_done" ||
+        event.message.startsWith("events_display.satellite_intercept_")) &&
       typeof params.unit === "string" &&
       params.unit.startsWith("unit_type.")
     ) {
       params = { ...params, unit: translateText(params.unit) };
+    }
+
+    // Strategic weapons: a second player named by smallID (the satellite's
+    // target), re-resolved like `name` below.
+    if (typeof params.targetID === "number") {
+      const target = this.game.playerBySmallID(params.targetID);
+      if (target.isPlayer()) {
+        params = { ...params, target: target.displayName() };
+      }
     }
 
     if (
