@@ -31,8 +31,24 @@ const WARFARE_TARGETS: readonly UnitType[] = [
   UnitType.Bomber,
 ];
 
+/** Strategic weapons: SAMs also shoot conventional missiles (spec §5). */
+const STRATEGIC_TARGETS: readonly UnitType[] = [
+  ...NUKE_TARGETS,
+  UnitType.ConventionalMissile,
+];
+const WARFARE_STRATEGIC_TARGETS: readonly UnitType[] = [
+  ...WARFARE_TARGETS,
+  UnitType.ConventionalMissile,
+];
+
 function samTargetTypes(mg: Game): readonly UnitType[] {
-  return mg.config().warfareExpansion() ? WARFARE_TARGETS : NUKE_TARGETS;
+  const config = mg.config();
+  if (config.strategicWeapons()) {
+    return config.warfareExpansion()
+      ? WARFARE_STRATEGIC_TARGETS
+      : STRATEGIC_TARGETS;
+  }
+  return config.warfareExpansion() ? WARFARE_TARGETS : NUKE_TARGETS;
 }
 
 type Target = {

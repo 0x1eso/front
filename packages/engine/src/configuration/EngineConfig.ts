@@ -26,6 +26,7 @@ import {
 } from "@openfront/engine-lib/domestic/Modifiers";
 import {
   CONVENTIONAL_MISSILE_COST,
+  CONVENTIONAL_MISSILE_SPEED,
   SATELLITE_COST,
 } from "@openfront/engine-lib/strategic/Strategic";
 import {
@@ -787,6 +788,8 @@ export class EngineConfig extends Config {
         return 15;
       case UnitType.MIRVWarhead:
         return 22;
+      case UnitType.ConventionalMissile:
+        return CONVENTIONAL_MISSILE_SPEED;
     }
     throw new Error(`Unknown nuke type: ${unitType}`);
   }

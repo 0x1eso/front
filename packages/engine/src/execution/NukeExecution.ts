@@ -472,7 +472,9 @@ export class NukeExecution implements Execution {
         type === UnitType.MIRV ||
         type === UnitType.SAMMissile ||
         // Expanded warfare: a barrage zone outlives blasts in it.
-        type === UnitType.CoastalBarrage
+        type === UnitType.CoastalBarrage ||
+        // Strategic weapons: a missile in flight, like a nuke.
+        type === UnitType.ConventionalMissile
       ) {
         continue;
       }

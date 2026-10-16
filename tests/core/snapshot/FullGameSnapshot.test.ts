@@ -86,7 +86,11 @@ const DOMESTIC_UNSCRIPTED_TYPES = [
 
 // Execution types that only a strategic-weapons game creates. The
 // "strategic" variants (Task 7) play them.
-const STRATEGIC_ONLY_TYPES = ["NukeProduction", "Strategic"];
+const STRATEGIC_ONLY_TYPES = [
+  "ConventionalMissile",
+  "NukeProduction",
+  "Strategic",
+];
 
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),

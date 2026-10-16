@@ -30,6 +30,7 @@ const INTERCEPTED_UNIT_TRANSLATION_KEYS: Partial<Record<UnitType, string>> = {
   [UnitType.MIRVWarhead]: "unit_type.mirv",
   [UnitType.TransportPlane]: "unit_type.transport_plane",
   [UnitType.Bomber]: "unit_type.bomber",
+  [UnitType.ConventionalMissile]: "unit_type.conventional_missile",
 };
 
 /** The MIRV carrier itself can't be intercepted, only its warheads. Planes exist only with expanded warfare. */
@@ -39,6 +40,7 @@ const INTERCEPTABLE: readonly UnitType[] = [
   UnitType.MIRVWarhead,
   UnitType.TransportPlane,
   UnitType.Bomber,
+  UnitType.ConventionalMissile,
 ];
 
 export class SAMMissileExecution implements Execution {
@@ -128,7 +130,7 @@ export class SAMMissileExecution implements Execution {
             undefined,
             { unit: INTERCEPTED_UNIT_TRANSLATION_KEYS[type] ?? type },
           );
-        } else {
+        } else if (type !== UnitType.ConventionalMissile) {
           // Record stats
           this.mg.stats().bombIntercept(this._owner, type as NukeType, 1);
         }
