@@ -12,6 +12,7 @@ import { ResearchExecution } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution";
 import { VictoryProjectExecution } from "../domestic/VictoryProjectExecution";
 import { Execution, Game } from "../game/Game";
+import { NukeProductionExecution } from "../strategic/NukeProductionExecution";
 import { ParadropExecution } from "../warfare/ParadropExecution";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
@@ -171,6 +172,8 @@ export class Executor {
         return new VictoryProjectExecution(player, intent.kind, intent.unitId);
       case "paradrop":
         return new ParadropExecution(player, intent.troops, intent.dst);
+      case "produce_nuke":
+        return new NukeProductionExecution(player, intent.nukeType);
       default:
         throw new Error(`intent type ${intent} not found`);
     }

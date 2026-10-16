@@ -41,6 +41,7 @@ import {
   restoreGame,
   snapshotGame,
 } from "./snapshot/GameSnapshot";
+import { StrategicExecution } from "./strategic/StrategicExecution";
 
 export async function createGameRunner(
   gameStart: GameStartInfo,
@@ -193,6 +194,10 @@ export class GameRunner {
     // project that completes this second is declared this second.
     if (this.game.config().domesticMode()) {
       this.game.addExecution(new DomesticExecution());
+    }
+    // Strategic weapons only: factory lines and satellites run on one clock.
+    if (this.game.config().strategicWeapons()) {
+      this.game.addExecution(new StrategicExecution());
     }
     this.game.addExecution(new WinCheckExecution());
     if (this.game.config().doomsdayClockConfig().enabled) {

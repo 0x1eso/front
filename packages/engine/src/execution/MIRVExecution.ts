@@ -101,7 +101,8 @@ export class MirvExecution implements Execution {
         targetTile: this.dst,
         targetPlayer: this.targetPlayer,
       });
-      this.mg.recordMirvLaunch();
+      // Strategic weapons count MIRVs when production starts (spec §4).
+      if (!this.mg.config().strategicWeapons()) this.mg.recordMirvLaunch();
       this.mg.stats().bombLaunch(this.player, this.targetPlayer, UnitType.MIRV);
 
       // Betrayal on launch — only once the missile has actually spawned, so

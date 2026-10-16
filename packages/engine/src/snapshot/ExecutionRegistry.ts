@@ -49,6 +49,8 @@ import { TribeExecutionSnapshot } from "../execution/TribeExecution";
 import { UpgradeStructureExecutionSnapshot } from "../execution/UpgradeStructureExecution";
 import { WarshipExecutionSnapshot } from "../execution/WarshipExecution";
 import { WinCheckExecutionSnapshot } from "../execution/WinCheckExecution";
+import { NukeProductionExecutionSnapshot } from "../strategic/NukeProductionExecution";
+import { StrategicExecutionSnapshot } from "../strategic/StrategicExecution";
 import { AirportExecutionSnapshot } from "../warfare/AirportExecution";
 import { BombingExecutionSnapshot } from "../warfare/BombingExecution";
 import { CargoPlaneExecutionSnapshot } from "../warfare/CargoPlaneExecution";
@@ -96,6 +98,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   NationExecutionSnapshot,
   NoOpExecutionSnapshot,
   NukeExecutionSnapshot,
+  NukeProductionExecutionSnapshot,
   ParadropExecutionSnapshot,
   PauseExecutionSnapshot,
   PlayerExecutionSnapshot,
@@ -111,6 +114,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   ShellExecutionSnapshot,
   SpawnExecutionSnapshot,
   SpawnTimerExecutionSnapshot,
+  StrategicExecutionSnapshot,
   TargetPlayerExecutionSnapshot,
   TradeShipExecutionSnapshot,
   TrainExecutionSnapshot,

@@ -84,6 +84,10 @@ const DOMESTIC_UNSCRIPTED_TYPES = [
   "VictoryProject",
 ];
 
+// Execution types that only a strategic-weapons game creates. The
+// "strategic" variants (Task 7) play them.
+const STRATEGIC_ONLY_TYPES = ["NukeProduction", "Strategic"];
+
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),
 );
@@ -252,7 +256,8 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
           (name) =>
             name !== "Pause" &&
             !DOMESTIC_ONLY_TYPES.includes(name) &&
-            !WARFARE_ONLY_TYPES.includes(name),
+            !WARFARE_ONLY_TYPES.includes(name) &&
+            !STRATEGIC_ONLY_TYPES.includes(name),
         );
       } else if (overrides.domesticMode === true) {
         expected = DOMESTIC_ONLY_TYPES.filter(
