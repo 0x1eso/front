@@ -46,6 +46,11 @@ describe("tech tree data", () => {
         UnitType.MissileSilo,
         UnitType.SAMLauncher,
         UnitType.Warship,
+        UnitType.CoastalBattery,
+        UnitType.Airport,
+        UnitType.Bomber,
+        UnitType.TransportPlane,
+        UnitType.CoastalBarrage,
       ].sort(),
     );
   });

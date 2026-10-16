@@ -55,6 +55,10 @@ import {
   toInt,
   within,
 } from "@openfront/engine-lib/Util";
+import {
+  airportRange,
+  BARRAGE_SILO_RANGE,
+} from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import {
   DomesticStateSchema,
@@ -1656,7 +1660,18 @@ export class PlayerImpl implements Player {
       case UnitType.Factory:
       case UnitType.ResearchInstitute:
       case UnitType.AdminOffice:
+      case UnitType.Airport:
         return this.landBasedStructureSpawn(targetTile, validTiles);
+      case UnitType.CoastalBattery:
+        return this.portSpawn(targetTile, validTiles);
+      case UnitType.CoastalBarrage:
+        return this.barrageSpawn(targetTile);
+      case UnitType.Bomber:
+        return this.bomberSpawn(targetTile);
+      case UnitType.TransportPlane:
+        return this.paradropSpawn(targetTile);
+      case UnitType.CargoPlane:
+        return targetTile;
       default:
         assertNever(unitType);
     }
@@ -1754,6 +1769,65 @@ export class PlayerImpl implements Player {
     );
 
     return bestPort?.tile() ?? false;
+  }
+
+  /** Expanded warfare: a strike may not hit the striker's own or a friendly nation's land. */
+  private isStrikeTarget(tile: TileRef): boolean {
+    const mg = this.mg;
+    if (mg.isSpawnImmunityActive() || mg.isImpassable(tile)) return false;
+    const owner = mg.owner(tile);
+    return !(owner.isPlayer() && (owner === this || this.isFriendly(owner)));
+  }
+
+  /** Coastal barrage: the nearest loaded silo within BARRAGE_SILO_RANGE. */
+  barrageSpawn(tile: TileRef): TileRef | false {
+    if (!this.isStrikeTarget(tile)) return false;
+    const mg = this.mg;
+    const range2 = BARRAGE_SILO_RANGE * BARRAGE_SILO_RANGE;
+    const silo = findClosestBy(
+      this.units(UnitType.MissileSilo),
+      (s) => mg.euclideanDistSquared(s.tile(), tile),
+      (s) =>
+        s.isActive() &&
+        !s.isInCooldown() &&
+        !s.isUnderConstruction() &&
+        mg.euclideanDistSquared(s.tile(), tile) <= range2,
+    );
+    return silo?.tile() ?? false;
+  }
+
+  /** Paradrops and bombing: the nearest airport with a free sortie in range. */
+  airportSortieSpawn(tile: TileRef): TileRef | false {
+    const mg = this.mg;
+    const airport = findClosestBy(
+      this.units(UnitType.Airport),
+      (a) => mg.euclideanDistSquared(a.tile(), tile),
+      (a) => {
+        const range = airportRange(a.level());
+        return (
+          a.isActive() &&
+          !a.isInCooldown() &&
+          !a.isUnderConstruction() &&
+          mg.euclideanDistSquared(a.tile(), tile) <= range * range
+        );
+      },
+    );
+    return airport?.tile() ?? false;
+  }
+
+  bomberSpawn(tile: TileRef): TileRef | false {
+    if (!this.isStrikeTarget(tile)) return false;
+    return this.airportSortieSpawn(tile);
+  }
+
+  /** Paradrop: enemy or unclaimed land the player may attack. */
+  paradropSpawn(tile: TileRef): TileRef | false {
+    const mg = this.mg;
+    if (!mg.isLand(tile) || mg.isImpassable(tile)) return false;
+    const owner = mg.owner(tile);
+    if (owner === this) return false;
+    if (owner.isPlayer() && !this.canAttackPlayer(owner)) return false;
+    return this.airportSortieSpawn(tile);
   }
 
   landBasedUnitSpawn(tile: TileRef): TileRef | false {

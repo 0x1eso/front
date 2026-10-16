@@ -34,4 +34,8 @@ describe("vanilla stays bit-identical", () => {
   test("FFA with finite gold", async () => {
     expect(await digest({ infiniteGold: false })).toBe("cc52cbbfd8b1a3bc");
   }, 60_000);
+
+  test("FFA with the warfare option explicitly off", async () => {
+    expect(await digest({ warfareExpansion: false })).toBe("c330352312204618");
+  }, 60_000);
 });

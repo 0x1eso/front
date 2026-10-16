@@ -39,6 +39,7 @@ const EDITABLE: { [K in keyof GameConfig]?: GameConfig[K] } = {
   nameReveals: ["c1000000"],
   nameRevealPublicIds: ["pub-b"],
   domesticMode: true,
+  warfareExpansion: true,
 };
 
 // `.nullable().optional()` in the schema: null clears, undefined leaves alone.

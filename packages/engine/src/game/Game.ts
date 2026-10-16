@@ -117,6 +117,31 @@ export interface UnitParamsMap {
   [UnitType.ResearchInstitute]: Record<string, never>;
 
   [UnitType.AdminOffice]: Record<string, never>;
+
+  [UnitType.CoastalBattery]: Record<string, never>;
+
+  [UnitType.Airport]: Record<string, never>;
+
+  /** The zone marker at the aimed tile (CoastalBarrageExecution). */
+  [UnitType.CoastalBarrage]: {
+    targetTile: TileRef;
+  };
+
+  [UnitType.Bomber]: {
+    targetTile: TileRef;
+    trajectory: TrajectoryTile[];
+  };
+
+  [UnitType.TransportPlane]: {
+    troops: number;
+    targetTile: TileRef;
+    trajectory: TrajectoryTile[];
+  };
+
+  /** Flies to the destination airport (targetUnit). */
+  [UnitType.CargoPlane]: {
+    targetUnit: Unit;
+  };
 }
 
 // Type helper to get params type for a specific unit type
