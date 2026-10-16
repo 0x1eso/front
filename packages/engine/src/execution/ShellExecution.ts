@@ -111,7 +111,10 @@ export class ShellExecution implements Execution {
       );
     }
 
-    return Math.round((baseDamage / 250) * damageMultiplier);
+    const rolled = Math.round((baseDamage / 250) * damageMultiplier);
+    if (this.ownerUnit.type() !== UnitType.Warship) return rolled;
+    const pct = this.mg.config().warshipShellDamagePct();
+    return pct === 100 ? rolled : Math.floor((rolled * pct) / 100);
   }
 
   public getEffectOnTargetForTesting(): number {

@@ -38,6 +38,8 @@ import {
   COASTAL_BATTERY_COST_MAX,
   COASTAL_BATTERY_COST_STEP,
   PARADROP_GOLD,
+  WARSHIP_SHELL_DAMAGE_PCT,
+  WARSHIP_SHELL_RATE_PCT,
 } from "@openfront/engine-lib/warfare/Warfare";
 import type { EngineUnitInfo, Game, Player, Unit } from "../game/Game";
 
@@ -843,7 +845,13 @@ export class EngineConfig extends Config {
   }
 
   warshipShellAttackRate(): number {
-    return 20;
+    // Expanded warfare: +50% between shots (20 -> 30 ticks).
+    return this.warfareExpansion() ? (20 * WARSHIP_SHELL_RATE_PCT) / 100 : 20;
+  }
+
+  /** Percent of its rolled damage a warship's shell deals (expanded warfare: 60). */
+  warshipShellDamagePct(): number {
+    return this.warfareExpansion() ? WARSHIP_SHELL_DAMAGE_PCT : 100;
   }
 
   warshipDockingRange(): number {
