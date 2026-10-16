@@ -252,6 +252,11 @@ export class MapRenderer {
   applyDeadUnits(deadUnits: DeadUnitFx[]): void {
     this.renderer?.applyDeadUnits(deadUnits);
   }
+  applyBombDrops(
+    drops: readonly { attackerID: number; x: number; y: number }[],
+  ): void {
+    this.renderer?.applyBombDrops(drops);
+  }
   applyConquestEvents(events: ConquestFx[]): void {
     this.renderer?.applyConquestEvents(events);
   }

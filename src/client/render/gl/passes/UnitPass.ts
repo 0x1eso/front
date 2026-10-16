@@ -2,7 +2,7 @@
  * UnitPass — GPU-rendered mobile unit sprites.
  *
  * Renders all mobile (non-structure) units: boats, nukes, shells, SAM
- * missiles, and MIRV warheads. All unit types are rotationally symmetric
+ * missiles, and MIRV warheads (planes are PlanePass's). These are rotationally symmetric
  * — no rotation needed. Sprites are tiny grayscale PNGs colorized on the
  * GPU using the standard 3-band gray replacement (180/130/70). MIRV
  * Warhead uses a programmatic 3×3 white square (colorized to border
@@ -34,6 +34,7 @@
 
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { PLANE_TYPES } from "../../frame/derive/PlaneFx";
 import type { RendererConfig, UnitState } from "../../types";
 import {
   SMOOTHED_NUKE_TYPES,
@@ -472,6 +473,8 @@ export class UnitPass {
 
     for (const unit of units.values()) {
       if (!unit.isActive || unit.waitTicks > 0) continue;
+      // Planes are drawn rotated, with shadow and contrail, by PlanePass.
+      if (PLANE_TYPES.has(unit.unitType)) continue;
 
       let atlasIdx = this.typeToAtlasCol.get(unit.unitType);
 
