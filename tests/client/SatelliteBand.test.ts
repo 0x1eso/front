@@ -98,6 +98,7 @@ async function band(me: PlayerView, players: PlayerView[], now = 400) {
   el.game = {
     config: () => ({ strategicWeapons: () => true }),
     ticks: () => now,
+    updatesSinceLastTick: () => null,
     myPlayer: () => me,
     playerViews: () => players,
     playerBySmallID: (id: number) =>

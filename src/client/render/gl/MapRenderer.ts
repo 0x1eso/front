@@ -31,6 +31,7 @@ import type {
   UnitState,
 } from "../types";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
+import type { CountdownFx, PreparingFx } from "./passes/StrategicFxPass";
 import type { AttackTroopLabel } from "./passes/WorldTextPass";
 import { GPURenderer } from "./Renderer";
 import type { RenderSettings } from "./RenderSettings";
@@ -318,6 +319,23 @@ export class MapRenderer {
   /** Strategic weapons: beams and blasts at orbital strike impacts. */
   applyOrbitalStrikes(points: readonly { x: number; y: number }[]): void {
     this.renderer?.applyOrbitalStrikes(points);
+  }
+
+  /** Strategic weapons: silos preparing a satellite, strikes counting down. */
+  setStrategicFx(
+    preparing: readonly PreparingFx[],
+    countdowns: readonly CountdownFx[],
+    satelliteSilos: ReadonlySet<number>,
+  ): void {
+    this.renderer?.setStrategicFx(preparing, countdowns, satelliteSilos);
+  }
+
+  /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
+  spawnStrategicStreaks(
+    launches: readonly { x: number; y: number }[],
+    intercepts: readonly { x: number; y: number }[],
+  ): void {
+    this.renderer?.spawnStrategicStreaks(launches, intercepts);
   }
 
   /** Domestic mode: host unit id -> victory-project progress (0..1). */

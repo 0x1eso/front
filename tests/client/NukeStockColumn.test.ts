@@ -89,3 +89,51 @@ describe("nukes column", () => {
     }
   });
 });
+
+describe("satellite icon on the leaderboard", () => {
+  const withSatellite = (phase: StrategicData["satellite"]): StrategicData => ({
+    ...STOCK,
+    satellite: phase,
+  });
+
+  it("marks nations with a satellite in orbit or counting down", () => {
+    const stats = new PlayerStats();
+    stats.strategicWeapons = true;
+    const players = [
+      player(1, STOCK),
+      player(2, withSatellite({ phase: "orbit" })),
+      player(
+        3,
+        withSatellite({
+          phase: "targeted",
+          target: 1,
+          strikeTick: 9,
+          interceptors: [],
+        }),
+      ),
+      player(
+        4,
+        withSatellite({
+          phase: "preparing",
+          siloId: 1,
+          startTick: 0,
+          readyTick: 9,
+        }),
+      ),
+    ];
+    const rows = (
+      stats as unknown as {
+        buildRows(
+          g: GameView,
+          c: never[],
+        ): { key: string; satellite: boolean }[];
+      }
+    ).buildRows(game(players), []);
+    expect(rows.map((r) => [r.key, r.satellite])).toEqual([
+      ["p1", false],
+      ["p2", true],
+      ["p3", true],
+      ["p4", false],
+    ]);
+  });
+});

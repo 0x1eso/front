@@ -1,6 +1,7 @@
 import type { EventBus } from "@openfront/shared/EventBus";
 import { customElement } from "lit/decorators.js";
 import { type StatsRow, StatsTable } from "../../components/StatsTable";
+import { hasSatelliteUp } from "../../render/frame/derive/StrategicFx";
 import { GoToPlayerEvent } from "../../TransformHandler";
 import type { GameView } from "../../view";
 import { type ColumnDef, columnValues } from "./lib/StatsColumns";
@@ -25,6 +26,8 @@ export class PlayerStats extends StatsTable {
         name: player.name(),
         clanTag: player.clanTag(),
         values: columnValues(player, game, columns),
+        satellite:
+          this.strategicWeapons && hasSatelliteUp(player.strategicData()),
         emphasized:
           myPlayer !== null &&
           (player === myPlayer || player.isOnSameTeam(myPlayer)),

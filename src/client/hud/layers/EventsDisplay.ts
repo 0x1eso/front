@@ -337,7 +337,13 @@ export class EventsDisplay extends LitElement implements Controller {
       type: event.messageType,
       unsafeDescription: true,
       unitView: unitView,
-      focusID: event.focusPlayerID,
+      // Strategic weapons: the "preparing" alert jumps to the silo (the thing
+      // to destroy), not to the player.
+      focusID:
+        event.message === "events_display.satellite_preparing" &&
+        unitView !== undefined
+          ? undefined
+          : event.focusPlayerID,
     });
   }
 

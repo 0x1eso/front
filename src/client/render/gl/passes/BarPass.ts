@@ -72,6 +72,8 @@ export class BarPass {
   private projectProgress: ReadonlyMap<number, number> = new Map();
   /** Strategic weapons: factory / silo unit id -> bar fill (0..1). */
   private strategicProgress: ReadonlyMap<number, number> = new Map();
+  /** Strategic weapons: silos preparing a satellite (drawn with a cyan bar). */
+  private satelliteSilos: ReadonlySet<number> = new Set();
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -138,6 +140,11 @@ export class BarPass {
   /** Strategic weapons: factories making nukes and silos preparing a satellite. */
   setStrategicProgress(progress: ReadonlyMap<number, number>): void {
     this.strategicProgress = progress;
+  }
+
+  /** Strategic weapons: silos whose bar is a satellite preparation, not a reload. */
+  setSatelliteSilos(ids: ReadonlySet<number>): void {
+    this.satelliteSilos = ids;
   }
 
   /** Domestic mode: hosts of running victory projects and their progress. */
@@ -305,7 +312,10 @@ export class BarPass {
     const x = unit.pos % this.mapW;
     this.progressData[off] = x;
     this.progressData[off + 1] = (unit.pos - x) / this.mapW;
-    this.progressData[off + 2] = progress;
+    // A satellite preparation rides +2 so the shader draws it cyan.
+    this.progressData[off + 2] = this.satelliteSilos.has(unit.id)
+      ? progress + 2
+      : progress;
     this.progressCount++;
   }
 

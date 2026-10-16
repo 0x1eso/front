@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
+import { satelliteIcon } from "../hud/HotbarIcons";
 import "../hud/layers/ColumnPicker";
 import {
   type ColumnAlignment,
@@ -19,6 +20,8 @@ export interface StatsRow {
   values: ReadonlyMap<ColumnId, number>;
   emphasized?: boolean;
   pinned?: boolean;
+  /** Strategic weapons: a satellite is in orbit or counting down (icon by the name). */
+  satellite?: boolean;
   onClick?: () => void;
 }
 
@@ -251,6 +254,7 @@ export abstract class StatsTable extends LitElement {
     index: number,
     text: string,
     borderClass: string,
+    satellite = false,
   ) {
     return html`
       <div
@@ -259,6 +263,15 @@ export abstract class StatsTable extends LitElement {
         ]} tabular-nums ${index > 0 ? DIVIDER_CLASS : ""} ${borderClass}"
         role="cell"
       >
+        ${satellite
+          ? html`<img
+              data-satellite-badge
+              class="size-3 mr-1 shrink-0"
+              src=${satelliteIcon}
+              alt=${translateText("strategic.satellite_up")}
+              title=${translateText("strategic.satellite_up")}
+            />`
+          : nothing}
         <span class="block w-full truncate">${text}</span>
       </div>
     `;
@@ -294,6 +307,7 @@ export abstract class StatsTable extends LitElement {
                 game,
               ),
               borderClass,
+              column.id === "player" && row.satellite === true,
             ),
         )}
         <div

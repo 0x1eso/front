@@ -58,6 +58,11 @@ import { SmallPlayerGlowPass } from "./passes/SmallPlayerGlowPass";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
 import { SpawnOverlayPass } from "./passes/SpawnOverlayPass";
 import { SpiralRibbonPass } from "./passes/SpiralRibbonPass";
+import {
+  StrategicFxPass,
+  type CountdownFx,
+  type PreparingFx,
+} from "./passes/StrategicFxPass";
 import { StructureLevelPass } from "./passes/StructureLevelPass";
 import { StructurePass } from "./passes/StructurePass";
 import { TerrainPass } from "./passes/TerrainPass";
@@ -153,6 +158,7 @@ export class GPURenderer {
   private rangeCirclePass: RangeCirclePass;
   private victoryProjectPass: VictoryProjectPass;
   private orbitalBeamPass: OrbitalBeamPass;
+  private strategicFxPass: StrategicFxPass;
   private warfareRingPass: WarfareRingPass;
   private samRadiusPass: SAMRadiusPass;
   private crosshairPass: CrosshairPass;
@@ -577,6 +583,7 @@ export class GPURenderer {
     this.rangeCirclePass = new RangeCirclePass(gl);
     this.victoryProjectPass = new VictoryProjectPass(gl);
     this.orbitalBeamPass = new OrbitalBeamPass(gl);
+    this.strategicFxPass = new StrategicFxPass(gl);
     this.warfareRingPass = new WarfareRingPass(
       gl,
       mapW,
@@ -618,6 +625,7 @@ export class GPURenderer {
     this.barPass = new BarPass(gl, header, this.settings, config);
     this.worldTextPass = new WorldTextPass(gl, this.settings, config);
     this.worldTextPass.setMapWidth(this.mapW);
+    this.worldTextPass.setStrategicLabels(this.strategicFxPass.labels);
     this.selectionBoxPass = new SelectionBoxPass(gl);
     this.moveIndicatorPass = new MoveIndicatorPass(gl, this.settings);
     this.nukeTrajectoryPass = new NukeTrajectoryPass(gl, this.settings);
@@ -1156,6 +1164,27 @@ export class GPURenderer {
     if (points.length === 0) return;
     this.orbitalBeamPass.spawn(points);
     this.fxPass.spawnOrbitalImpacts(points);
+    this.strategicFxPass.spawnRipples(points);
+  }
+
+  /** Strategic weapons: silos preparing a satellite, strikes counting down. */
+  setStrategicFx(
+    preparing: readonly PreparingFx[],
+    countdowns: readonly CountdownFx[],
+    satelliteSilos: ReadonlySet<number>,
+  ): void {
+    this.strategicFxPass.setPreparing(preparing);
+    this.strategicFxPass.setCountdowns(countdowns);
+    this.barPass.setSatelliteSilos(satelliteSilos);
+  }
+
+  /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
+  spawnStrategicStreaks(
+    launches: readonly { x: number; y: number }[],
+    intercepts: readonly { x: number; y: number }[],
+  ): void {
+    if (launches.length > 0) this.strategicFxPass.spawnLaunch(launches);
+    if (intercepts.length > 0) this.strategicFxPass.spawnIntercept(intercepts);
   }
 
   /** Domestic mode: progress bars and gold rings on victory-project hosts. */
@@ -1433,6 +1462,12 @@ export class GPURenderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+    this.strategicFxPass.updatePulses();
+    this.borderStampPass.setPulses(
+      this.strategicFxPass.pulseOwners,
+      this.strategicFxPass.pulseValues,
+      this.strategicFxPass.pulseCount,
+    );
     this.spawnOverlayPass.draw(cam);
     if (pe.borderStamp) this.borderStampPass.draw(cam);
     if (pe.railroad) this.railroadPass.draw(cam, zoom);
@@ -1465,6 +1500,7 @@ export class GPURenderer {
       this.fxPass.tick();
       this.fxPass.draw(cam, zoom);
     }
+    this.strategicFxPass.draw(cam, zoom);
 
     // Grid shows on either trigger; names hide only under alt-view (space
     // hold), not under the persistent M-key gridView toggle.
@@ -1474,6 +1510,7 @@ export class GPURenderer {
 
     // World text (attack-troop labels, popups, ghost cost) draws on top of
     // player names so attack callouts aren't hidden behind a centered name.
+    this.strategicFxPass.updateLabels(zoom);
     this.worldTextPass.tick(zoom);
     this.worldTextPass.draw(cam, zoom);
 
@@ -1583,6 +1620,7 @@ export class GPURenderer {
     this.rangeCirclePass.dispose();
     this.victoryProjectPass.dispose();
     this.orbitalBeamPass.dispose();
+    this.strategicFxPass.dispose();
     this.warfareRingPass.dispose();
     this.samRadiusPass.dispose();
     this.crosshairPass.dispose();

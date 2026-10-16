@@ -6,6 +6,7 @@ import {
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
+import { StrategicFxTracker } from "../render/frame/derive/StrategicFx";
 import { PlaySoundEffectEvent, SoundEffect } from "../sound/Sounds";
 import { SendSpawnIntentEvent } from "../Transport";
 import { GameView, UnitView } from "../view";
@@ -51,6 +52,8 @@ export class SoundEffectController implements Controller {
   // one when first seen (e.g. joining mid-game) stay silent.
   private hadTrainStation = new Map<number, boolean>();
   private lastTrainStationSweepTick = -Infinity;
+  // Strategic weapons (spec 6.6): launch, last-seconds beeps, interception, strike.
+  private strategicFx: StrategicFxTracker | null = null;
 
   constructor(
     private readonly game: GameView,
@@ -61,6 +64,30 @@ export class SoundEffectController implements Controller {
     // On the intent, not the sim confirmation: the cue answers the player's
     // click, and re-placing the spawn should sound every time.
     this.eventBus.on(SendSpawnIntentEvent, this.onSpawnIntent);
+  }
+
+  private strategicSounds(
+    updates: NonNullable<ReturnType<GameView["updatesSinceLastTick"]>>,
+  ): void {
+    if (!this.game.config().strategicWeapons?.()) return;
+    this.strategicFx ??= new StrategicFxTracker();
+    const strikes = updates[GameUpdateType.OrbitalStrike] ?? [];
+    const ev = this.strategicFx.update(
+      this.game.playerViews(),
+      this.game.ticks(),
+      this.game.myPlayer()?.smallID() ?? 0,
+      (id) => this.game.unit(id)?.tile() ?? null,
+      strikes,
+    );
+    if (ev.launches.length > 0) this.emit("mirv-launch");
+    for (const hit of ev.interceptResults) {
+      if (hit) this.emit("sam-hit");
+    }
+    for (const targetIsMe of ev.beeps) {
+      this.emit(targetIsMe ? "nuke-warning" : "click");
+    }
+    // Only the first wave sounds: the rest would stack into noise.
+    if (ev.strikeStarts.length > 0) this.emit("hydrogen-hit");
   }
 
   private onSpawnIntent = (): void => {
@@ -75,6 +102,7 @@ export class SoundEffectController implements Controller {
     if (!updates) return;
 
     this.pruneTrainStations();
+    this.strategicSounds(updates);
 
     for (const u of updates[GameUpdateType.Unit] ?? []) {
       const unit = this.game.unit(u.id);
