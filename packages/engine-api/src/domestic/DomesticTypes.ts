@@ -154,6 +154,8 @@ export interface DomesticData {
   politicalPerSec: number;
   techs: TechId[];
   research: ResearchProgress | null;
+  /** The reserved next tech (queue_research); absent or null when none. */
+  queuedTech?: TechId | null;
   recruitTargetPct: number;
   /** Proclaimed laws (spec §5): category -> chosen option. */
   laws: Partial<Record<LawId, LawOption>>;

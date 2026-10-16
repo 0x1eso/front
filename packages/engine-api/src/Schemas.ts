@@ -72,7 +72,8 @@ export type Intent =
   | ParadropIntent
   | ProduceNukeIntent
   | SatelliteTargetIntent
-  | InterceptSatelliteIntent;
+  | InterceptSatelliteIntent
+  | QueueResearchIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -127,6 +128,7 @@ export type SatelliteTargetIntent = z.infer<typeof SatelliteTargetIntentSchema>;
 export type InterceptSatelliteIntent = z.infer<
   typeof InterceptSatelliteIntentSchema
 >;
+export type QueueResearchIntent = z.infer<typeof QueueResearchIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -683,6 +685,13 @@ export const InterceptSatelliteIntentSchema = z.object({
   nukeType: z.enum(INTERCEPTOR_NUKES),
 });
 
+// Domestic mode: reserve the next tech (null clears the reservation). It
+// starts by itself once the current research ends and science covers it.
+export const QueueResearchIntentSchema = z.object({
+  type: z.literal("queue_research"),
+  tech: z.enum(TECH_IDS).nullable(),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -718,6 +727,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   ProduceNukeIntentSchema,
   SatelliteTargetIntentSchema,
   InterceptSatelliteIntentSchema,
+  QueueResearchIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)
