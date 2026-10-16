@@ -257,7 +257,13 @@ export class NationMIRVBehavior {
     if (this.player.units(UnitType.MissileSilo).length === 0) {
       return false;
     }
-    if (this.player.gold() < this.cost(UnitType.MIRV)) {
+    // Strategic weapons: a MIRV comes from the stockpile, not from gold.
+    const strategic = this.player.strategic();
+    if (
+      strategic !== null
+        ? strategic.stock(UnitType.MIRV) === 0
+        : this.player.gold() < this.cost(UnitType.MIRV)
+    ) {
       return false;
     }
 

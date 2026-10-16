@@ -37,6 +37,7 @@ import { nationDomesticTick } from "./nation/NationDomesticBehavior";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
 import { NationNukeBehavior } from "./nation/NationNukeBehavior";
+import { NationStrategicBehavior } from "./nation/NationStrategicBehavior";
 import { NationStructureBehavior } from "./nation/NationStructureBehavior";
 import {
   nationProjectKindFor,
@@ -61,6 +62,8 @@ export class NationExecution implements Execution {
   private structureBehavior!: NationStructureBehavior;
   /** Expanded warfare only (undefined otherwise). */
   private warfareBehavior: NationWarfareBehavior | undefined;
+  /** Strategic weapons only (undefined otherwise). */
+  private strategicBehavior: NationStrategicBehavior | undefined;
   private mg: Game;
   private player: Player | null = null;
 
@@ -226,6 +229,12 @@ export class NationExecution implements Execution {
             nationProjectKindFor(this.mg, this.player),
             (other) => this.attackBehavior.shouldAttack(other),
           );
+        } else if (offset === this.strategicOffset()) {
+          // Strategic weapons play on a tick of their own too.
+          this.strategicBehavior?.tick(
+            nationProjectKindFor(this.mg, this.player),
+            (other) => this.attackBehavior.shouldAttack(other),
+          );
         }
       }
       return;
@@ -257,6 +266,12 @@ export class NationExecution implements Execution {
         (other) => this.attackBehavior.shouldAttack(other),
       );
     }
+    if (this.strategicOffset() === this.attackTick) {
+      this.strategicBehavior?.tick(
+        nationProjectKindFor(this.mg, this.player),
+        (other) => this.attackBehavior.shouldAttack(other),
+      );
+    }
   }
 
   /**
@@ -264,11 +279,22 @@ export class NationExecution implements Execution {
    * spends gold, or attackTick when the period is too short to have one.
    */
   private warfareOffset(): number {
+    return this.quietOffset([]);
+  }
+
+  /** Like warfareOffset, and not the warfare tick either (strategic only). */
+  private strategicOffset(): number {
+    if (this.strategicBehavior === undefined) return this.attackTick;
+    return this.quietOffset([this.warfareOffset()]);
+  }
+
+  private quietOffset(taken: number[]): number {
     const rate = this.attackRate;
     const busy = new Set([
       this.attackTick,
       (this.attackTick + Math.floor(rate / 3)) % rate,
       (this.attackTick + Math.floor((rate * 2) / 3)) % rate,
+      ...taken,
     ]);
     for (let k = Math.floor(rate / 2); k < rate + Math.floor(rate / 2); k++) {
       const offset = (this.attackTick + k) % rate;
@@ -334,6 +360,14 @@ export class NationExecution implements Execution {
     this.warfareBehavior = this.mg.config().warfareExpansion()
       ? new NationWarfareBehavior(
           new PseudoRandom(simpleHash(this.player.id()) + 4099),
+          this.mg,
+          this.player,
+        )
+      : undefined;
+    // Strategic weapons only, on its own PRNG like the warfare behavior.
+    this.strategicBehavior = this.mg.config().strategicWeapons()
+      ? new NationStrategicBehavior(
+          new PseudoRandom(simpleHash(this.player.id()) + 8209),
           this.mg,
           this.player,
         )
@@ -482,6 +516,9 @@ export class NationExecution implements Execution {
             ...(this.warfareBehavior !== undefined
               ? { warfare: this.warfareBehavior.snapshot(w) }
               : {}),
+            ...(this.strategicBehavior !== undefined
+              ? { strategic: this.strategicBehavior.snapshot(w) }
+              : {}),
           }
         : null,
     });
@@ -553,6 +590,13 @@ export class NationExecution implements Execution {
     } else {
       this.warfareBehavior = undefined;
     }
+    if (b.strategic !== undefined) {
+      const strategic = shell(NationStrategicBehavior);
+      strategic.restoreSnapshot(b.strategic, r, player);
+      this.strategicBehavior = strategic;
+    } else {
+      this.strategicBehavior = undefined;
+    }
   }
 }
 
@@ -583,6 +627,7 @@ const NationStateSchema = z.object({
       nuke: VersionedSchema,
       structure: VersionedSchema,
       warfare: VersionedSchema.optional(),
+      strategic: VersionedSchema.optional(),
     })
     .nullable(),
 });

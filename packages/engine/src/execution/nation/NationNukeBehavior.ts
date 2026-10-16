@@ -36,6 +36,7 @@ import { closestTwoTiles } from "../Util";
 import { AiAttackBehavior } from "../utils/AiAttackBehavior";
 import { EMOJI_NUKE, NationEmojiBehavior } from "./NationEmojiBehavior";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
+import { stockpiledNukeTypes } from "./NationStrategicBehavior";
 import {
   findRunawayLeader,
   isSaveUpWithinReach,
@@ -280,6 +281,11 @@ export class NationNukeBehavior {
 
   /** Hydrogen bomb first; on Hard & Impossible, an atom bomb if no spot is worth a hydrogen bomb. */
   private nukeTypesToTry(atomOnly: boolean): NukeType[] {
+    // Strategic weapons: fire what is in stock (spec section 8); gold went to the factory.
+    const strategic = this.player.strategic();
+    if (strategic !== null) {
+      return stockpiledNukeTypes(this.player, strategic, atomOnly);
+    }
     const config = this.game.config();
     const difficulty = config.gameConfig().difficulty;
     const types: NukeType[] = [];
@@ -940,6 +946,8 @@ export class NationNukeBehavior {
 
   /** Hard & Impossible in FFA: whether they're holding gold back for a MIRV their income will soon reach. */
   private isSavingForMirv(): boolean {
+    // MIRVs are made at factories, not saved for.
+    if (this.player.strategic() !== null) return false;
     return (
       this.forgetsNukePrices() &&
       !this.paysRealNukePrice() &&
@@ -1306,6 +1314,7 @@ export class NationNukeBehavior {
    * so we need N+1 bombs to destroy it (accounting for all covering SAMs).
    */
   private maybeDestroyEnemySam(nukeTarget: Player): void {
+    if (this.player.strategic() !== null) return; // its salvo buys bombs with gold
     if (this.player.isUnitUnavailable(UnitType.AtomBomb)) {
       return;
     }
