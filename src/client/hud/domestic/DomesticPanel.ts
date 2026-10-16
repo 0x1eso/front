@@ -44,8 +44,8 @@ const DRAWER_GAP = 8;
  * below the top-right sidebar stack, above the bottom HUD's fixed rows
  * (attack ratio, build bar and the domestic dials that open it) and left of
  * the map buttons. Not above the whole bottom HUD: its events and chat column
- * grows and shrinks all game, and would make the drawer jump. That column
- * and the attacks above the rows stack over the drawer instead (MAY_COVER).
+ * grows and shrinks all game, and would make the drawer jump. The drawer is
+ * drawn over that column (z-[1100]), which it may hide while open.
  */
 const KEEP_CLEAR = {
   top: "[data-hud-top-right]",
@@ -53,12 +53,10 @@ const KEEP_CLEAR = {
   right: "map-controls > div",
 } as const;
 
-/**
- * The HUD drawn over the drawer's lower band: the attacks above the bottom
- * rows and the events and chat column. The drawer's list gets that much
- * room at its end, so every card can scroll up clear of it.
- */
-const MAY_COVER = ["attacks-display", "[data-bottom-hud-side]"] as const;
+/** At or below this viewport height (phones in landscape) the drawer is full height. */
+export const COMPACT_MAX_HEIGHT = 500;
+
+/* The drawer is z-[1100]: above the leaderboard (900), PlayerInfoOverlay (1001) and the bottom HUD (200, tutorial banner). */
 
 /** The scroll area's own bottom padding (pb-3), in CSS px. */
 const LIST_PADDING = 12;
@@ -84,28 +82,6 @@ export function drawerInsets(): DrawerInsets {
     bottom: (bottom ? window.innerHeight - bottom.top : 0) + DRAWER_GAP,
     right: (right ? window.innerWidth - right.left : 0) + DRAWER_GAP,
   };
-}
-
-/**
- * How far up, in CSS px, the HUD in MAY_COVER reaches into the drawer from
- * its bottom edge. `drawer` is the drawer's box; before it is laid out
- * (null) all of that HUD counts.
- */
-export function drawerCoveredBottom(
-  insets: DrawerInsets,
-  drawer: DOMRect | null,
-): number {
-  const bottom = window.innerHeight - insets.bottom;
-  let covered = 0;
-  for (const selector of MAY_COVER) {
-    const r = shownRect(selector);
-    if (r === null || r.top >= bottom) continue;
-    if (drawer !== null && (r.right <= drawer.left || r.left >= drawer.right)) {
-      continue;
-    }
-    covered = Math.max(covered, bottom - r.top);
-  }
-  return covered;
 }
 
 /**
@@ -135,20 +111,14 @@ export class DomesticPanel extends LitElement implements Controller {
     right: DRAWER_GAP,
     bottom: DRAWER_GAP,
   };
-  /** How far the HUD over the drawer's lower band reaches into it. */
-  @state() private coveredBottom = 0;
+  /** A short landscape screen: the drawer takes the full height. */
+  @state() private compact = false;
   /** The detail sheet's height: the list scrolls its end clear of it. */
   @state() private sheetHeight = 0;
   private resizeObserver: ResizeObserver | null = null;
   private readonly refit = () => {
     this.insets = drawerInsets();
-    const box = this.querySelector(
-      "[data-domestic-drawer]",
-    )?.getBoundingClientRect();
-    this.coveredBottom = drawerCoveredBottom(
-      this.insets,
-      box !== undefined && box.width > 0 ? box : null,
-    );
+    this.compact = window.innerHeight <= COMPACT_MAX_HEIGHT;
   };
 
   createRenderRoot() {
@@ -211,7 +181,7 @@ export class DomesticPanel extends LitElement implements Controller {
     window.addEventListener("resize", this.refit);
     if (typeof ResizeObserver === "undefined") return;
     this.resizeObserver = new ResizeObserver(this.refit);
-    for (const selector of [...Object.values(KEEP_CLEAR), ...MAY_COVER]) {
+    for (const selector of Object.values(KEEP_CLEAR)) {
       const el = document.querySelector(selector);
       if (el) this.resizeObserver.observe(el);
     }
@@ -238,8 +208,8 @@ export class DomesticPanel extends LitElement implements Controller {
     if (!this.open || this.data === null || !me || view === null) return null;
     // A right-side drawer (spec §14a): the map stays visible and playable on
     // the left, so there is no backdrop, and the HUD around it stays clear
-    // (KEEP_CLEAR). It stacks under that HUD, so a build-bar card can pop up
-    // over it. The dials are its tabs: no tab row here.
+    // (KEEP_CLEAR). It stacks above all HUD (z-[1100]); on short landscape
+    // screens it takes the full height instead. The dials are its tabs: no tab row here.
     const { top, right, bottom } = this.insets;
     const sheet =
       this.screen === "research" && this.selectedTech !== null
@@ -249,8 +219,12 @@ export class DomesticPanel extends LitElement implements Controller {
       <aside
         data-domestic-drawer
         data-screen=${this.screen}
-        class="fixed z-[150] w-[45vw] min-w-[420px] min-h-60 flex flex-col rounded-lg bg-gray-900/95 backdrop-blur-sm text-white text-base shadow-2xl border border-white/10"
-        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px;"
+        class="fixed z-[1100] ${this.compact
+          ? "w-[min(100vw,520px)] top-[env(safe-area-inset-top,0px)] right-[env(safe-area-inset-right,0px)] bottom-[env(safe-area-inset-bottom,0px)]"
+          : "w-[45vw] min-w-[420px] min-h-60"} flex flex-col rounded-lg bg-gray-900/95 backdrop-blur-sm text-white text-base shadow-2xl border border-white/10"
+        style=${this.compact
+          ? nothing
+          : `top: ${top}px; right: ${right}px; bottom: ${bottom}px;`}
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
         <div class="flex items-center gap-2 px-3 pt-3 pb-2">
@@ -274,7 +248,6 @@ export class DomesticPanel extends LitElement implements Controller {
           data-domestic-scroll
           class="flex-1 overflow-y-auto px-3"
           style="padding-bottom: ${LIST_PADDING +
-          this.coveredBottom +
           (sheet === null ? 0 : this.sheetHeight)}px;"
         >
           ${this.renderScreen(this.data, view, me)}
@@ -284,7 +257,7 @@ export class DomesticPanel extends LitElement implements Controller {
           : html`<div
               data-tech-sheet
               class="absolute inset-x-2 max-h-[70%] overflow-y-auto rounded-t-xl bg-gray-800 border border-white/15 shadow-2xl p-3"
-              style="bottom: ${this.coveredBottom}px;"
+              style="bottom: 0px;"
             >
               ${renderTechSheet(sheet)}
             </div>`}
