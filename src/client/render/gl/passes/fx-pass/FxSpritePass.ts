@@ -10,6 +10,7 @@ import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { ConquestFx, DeadUnitFx, RendererConfig } from "../../../types";
 import {
   STRUCTURE_TYPES,
+  UT_CONVENTIONAL_MISSILE,
   UT_SHELL,
   UT_TRAIN,
   UT_WARSHIP,
@@ -365,6 +366,17 @@ export class FxSpritePass {
     if (typeName === UT_WARSHIP) {
       this.pushFx(x, y, FX_UNIT_EXPLOSION, now);
       this.pushFx(x, y, FX_SINKING_SHIP, now);
+      return;
+    }
+
+    // Strategic weapons: a building hit, or a SAM's catch in flight.
+    if (typeName === UT_CONVENTIONAL_MISSILE) {
+      this.pushFx(
+        x,
+        y,
+        unit.reachedTarget ? FX_UNIT_EXPLOSION : FX_SAM_EXPLOSION,
+        now,
+      );
       return;
     }
 

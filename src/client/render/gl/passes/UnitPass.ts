@@ -41,6 +41,7 @@ import {
   UT_ATOM_BOMB,
   UT_BOMBER,
   UT_CARGO_PLANE,
+  UT_CONVENTIONAL_MISSILE,
   UT_HYDROGEN_BOMB,
   UT_MIRV,
   UT_MIRV_WARHEAD,
@@ -92,6 +93,8 @@ export const UNIT_ORDER = [
   UT_TRANSPORT_PLANE,
   UT_BOMBER,
   UT_CARGO_PLANE,
+  // Strategic weapons (unit-atlas.png column 15)
+  UT_CONVENTIONAL_MISSILE,
 ] as const;
 
 const ATLAS_COLS = UNIT_ORDER.length;
@@ -157,6 +160,7 @@ const MISSILE_TYPES: ReadonlySet<string> = new Set([
   UT_TRANSPORT_PLANE,
   UT_BOMBER,
   UT_CARGO_PLANE,
+  UT_CONVENTIONAL_MISSILE,
 ]);
 
 /** Values per smoothing segment in the flat `smoothSegs` array:
