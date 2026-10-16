@@ -151,6 +151,13 @@ export const DERIVED_FIELDS = new Set<string>([
   "domesticDataCache",
   // PlayerStrategic
   "strategicDataCache",
+  // WaterManager: per-query distance scratch, stamped so it is never cleared
+  "_waterDistArr",
+  "_waterStampArr",
+  "_waterStamp",
+  "_miniDistArr",
+  "_miniStampArr",
+  "_miniStamp",
   // SharedWaterCache
   "playerWater",
   // Config / EngineConfig

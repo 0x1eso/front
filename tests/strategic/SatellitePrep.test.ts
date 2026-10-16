@@ -117,14 +117,56 @@ describe("satellite preparation", () => {
     expect(sat(red)).toEqual(before);
   });
 
-  test("one at a time, and never again once in orbit", async () => {
+  test("one at a time, in preparation and in orbit", async () => {
     const { game, red, silo } = await launchpad();
     prepare(game, red, silo.tile());
     executeTicks(game, 2);
     const second = red.buildUnit(UnitType.MissileSilo, game.ref(20, 20), {});
     expect(red.canBuild(UnitType.Satellite, second.tile())).toBe(false);
-    red.strategic()!.setSatellite({ phase: "spent" });
+    executeTicks(game, 910);
+    expect(sat(red).phase).toBe("orbit");
     expect(red.canBuild(UnitType.Satellite, second.tile())).toBe(false);
+  });
+
+  test("a second satellite is allowed once the first is used, and costs double each time", async () => {
+    const { game, red, silo } = await launchpad();
+    red.addGold(400_000_000n);
+    const cost = () => game.unitInfo(UnitType.Satellite).cost(game, red);
+    expect(cost()).toBe(25_000_000n);
+    for (const price of [25_000_000n, 50_000_000n, 100_000_000n]) {
+      expect(cost()).toBe(price);
+      const gold = red.gold();
+      prepare(game, red, silo.tile());
+      executeTicks(game, 3);
+      expect(red.gold()).toBe(gold - price);
+      executeTicks(game, 910);
+      expect(sat(red).phase).toBe("orbit");
+      // Used up (a strike or a shot down): the slot is free again.
+      red.strategic()!.setSatellite({ phase: "none" });
+    }
+    expect(red.strategic()!.satellitesLaunched()).toBe(3);
+    expect(cost()).toBe(200_000_000n);
+  });
+
+  test("a failed preparation does not raise the price", async () => {
+    const { game, red, silo } = await launchpad();
+    prepare(game, red, silo.tile());
+    executeTicks(game, 2);
+    silo.delete();
+    executeTicks(game, 2);
+    expect(sat(red)).toEqual({ phase: "none" });
+    expect(red.strategic()!.satellitesLaunched()).toBe(0);
+    expect(game.unitInfo(UnitType.Satellite).cost(game, red)).toBe(25_000_000n);
+  });
+
+  test("the launch counter survives a snapshot", async () => {
+    const { game, red, silo } = await launchpad();
+    prepare(game, red, silo.tile());
+    executeTicks(game, 910);
+    red.strategic()!.setSatellite({ phase: "none" });
+    expect(red.strategic()!.satellitesLaunched()).toBe(1);
+    expect(red.strategic()!.snapshot().satellitesLaunched).toBe(1);
+    await expectSnapshotRoundTrip(game, "plains", 30);
   });
 
   test("survives a snapshot mid-preparation", async () => {

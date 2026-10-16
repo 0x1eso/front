@@ -90,7 +90,7 @@ describe("intercepting a satellite", () => {
     });
     executeTicks(game, 29);
     const msgs = tickMessages(game);
-    expect(sat(red)).toEqual({ phase: "spent" });
+    expect(sat(red)).toEqual({ phase: "none" });
     const hit = msgs.find(
       (m) => m.message === "events_display.satellite_intercept_hit",
     );
@@ -125,7 +125,7 @@ describe("intercepting a satellite", () => {
     expect(sat(red).phase).toBe("targeted");
     expect(city.isActive()).toBe(true);
     executeTicks(game, 25);
-    expect(sat(red)).toEqual({ phase: "spent" });
+    expect(sat(red)).toEqual({ phase: "none" });
     expect(city.isActive()).toBe(true);
   });
 
@@ -136,9 +136,9 @@ describe("intercepting a satellite", () => {
     intercept(game, blue, red, UnitType.AtomBomb);
     executeTicks(game, 11);
     expect(city.isActive()).toBe(true);
-    executeTicks(game, 25);
+    executeTicks(game, 60);
     expect(city.isActive()).toBe(false);
-    expect(sat(red)).toEqual({ phase: "spent" });
+    expect(sat(red)).toEqual({ phase: "none" });
   });
 
   test("both kinds can go up; each is judged once", async () => {

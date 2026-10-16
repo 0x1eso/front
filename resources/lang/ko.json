@@ -197,7 +197,7 @@
       "coastal_barrage": "미사일 발사대에서 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
       "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다",
       "conventional_missile": "발사대에서 쏴 적 건물의 레벨을 1 낮춥니다. 공장이면 만들던 핵이 사라집니다",
-      "satellite": "한 게임에 한 번: 발사대에서 90초 준비 뒤 한 나라를 포격합니다(건물 전부, 병력 70%, 땅이 바다로)"
+      "satellite": "재사용 가능, 동시에 하나만: 발사대에서 90초 준비 뒤 한 나라를 포격합니다(건물 전부, 병력 70%, 땅이 바다로). 쏘아 올릴 때마다 다음 가격이 2배가 됩니다"
     },
     "not_enough_money": "돈이 부족합니다",
     "upgrade_amount": "x{amount}",
@@ -2842,7 +2842,7 @@
     "producing": "제조 중 {count}발",
     "satellite_busy": "위성을 준비하고 있습니다",
     "satellite_ready": "위성이 궤도에 올랐습니다",
-    "satellite_used": "이미 위성을 쏘아 올렸습니다",
+    "satellite_used": "위성이 아직 궤도에 있습니다: 사용되거나 격추된 뒤에 새로 준비할 수 있습니다",
     "seconds_left": "{seconds}초",
     "stock": "보유 {count}발",
     "tap_again_to_fire": "한 번 더 눌러 발사",

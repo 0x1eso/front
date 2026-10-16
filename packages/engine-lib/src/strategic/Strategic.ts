@@ -107,6 +107,12 @@ export function pickNearestWithin<T extends PickCandidate>(
 
 // --- Orbital satellite (spec §6) ---
 export const SATELLITE_COST = 25_000_000;
+/** The price of a nation's next satellite: doubles with each one it has put into orbit. */
+export function satelliteCost(launched: number): number {
+  let cost = SATELLITE_COST;
+  for (let i = 0; i < launched; i++) cost *= 2;
+  return cost;
+}
 /** 90 s at a silo before the satellite reaches orbit. */
 export const SATELLITE_PREP_TICKS = 90 * 10;
 /** The satellite button picks the player's ready silo nearest the aim within this many tiles. */

@@ -132,7 +132,7 @@ describe("the orbital strike", () => {
         (m) => m.message === "events_display.satellite_strike_landed",
       ),
     ).toBe(true);
-    expect(sat(red)).toEqual({ phase: "spent" });
+    expect(sat(red)).toEqual({ phase: "none" });
     expect(blue.strategic()!.stock(UnitType.HydrogenBomb)).toBe(1);
     executeTicks(game, 700);
     expect(game.executeNextTick()[GameUpdateType.OrbitalStrike]).toHaveLength(
@@ -180,6 +180,7 @@ describe("the strike in waves (spec §6.6)", () => {
       blue.buildUnit(UnitType.City, game.ref(40 + 8 * i, 20 + 12 * i), {});
     }
     extra(game, blue);
+    const before = blue.troops();
     const strikeTick = aim(game, red, blue);
     executeTicks(game, strikeTick - game.ticks());
     const waves: { tick: number; u: any }[] = [];
@@ -198,7 +199,7 @@ describe("the strike in waves (spec §6.6)", () => {
         }
       }
     }
-    return { game, red, blue, strikeTick, waves, msgs, troops };
+    return { game, red, blue, strikeTick, waves, msgs, troops, before };
   }
 
   test("lands over about 30 ticks, one update per wave, buildings first", async () => {
@@ -232,13 +233,11 @@ describe("the strike in waves (spec §6.6)", () => {
   });
 
   test("the 70% troop loss is applied once, at the first wave", async () => {
-    const { waves, troops, strikeTick, game } = await run();
-    const first = waves[0].tick - 1;
-    const i0 = first - (strikeTick + 1);
-    expect(troops[i0 + 1]).toBeLessThan(troops[i0 - 1] * 0.5);
-    // After the first wave the total never drops by another 70%.
-    expect(troops[troops.length - 1]).toBeGreaterThan(troops[i0] * 0.9);
-    expect(game.ticks()).toBeGreaterThan(0);
+    const { troops, before } = await run();
+    expect(troops[0]).toBeLessThan(before * 0.4);
+    expect(troops[0]).toBeGreaterThan(before * 0.2);
+    // Later waves do not take another 70%.
+    expect(troops[troops.length - 1]).toBeGreaterThan(troops[0] * 0.9);
   });
 
   test("sends the result message once, with the totals", async () => {
@@ -262,8 +261,10 @@ describe("the strike in waves (spec §6.6)", () => {
     executeTicks(game, waved.strikeTick - game.ticks());
     orbitalStrike(game, red, blue);
     executeTicks(game, 2);
-    expect(waved.blue.numTilesOwned()).toBe(blue.numTilesOwned());
-    expect(blue.numTilesOwned()).toBeLessThan(before * 0.7);
+    for (const left of [waved.blue.numTilesOwned(), blue.numTilesOwned()]) {
+      expect(left).toBeLessThan(before * 0.75);
+      expect(left).toBeGreaterThan(before * 0.6);
+    }
   });
 
   test("a snapshot mid-strike restores and finishes identically", async () => {

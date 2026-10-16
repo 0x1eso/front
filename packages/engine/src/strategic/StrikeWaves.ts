@@ -52,6 +52,7 @@ export function processStrike(
   const target = mg.playerBySmallID(strike.target);
   if (!target.isPlayer()) {
     s.setStrike(null);
+    s.setSatellite({ phase: "none" });
     return;
   }
   const plan = {
@@ -64,7 +65,7 @@ export function processStrike(
     strike.nextWave < waves &&
     now >= strike.startTick + strikeWaveOffset(plan, strike.nextWave)
   ) {
-    const wave = strike.nextWave;
+    const wave: number = strike.nextWave;
     const result = landStrikeWave(mg, attacker, target, plan, wave);
     const lastWave = wave === waves - 1;
     strike = {
@@ -83,6 +84,7 @@ export function processStrike(
     });
     if (lastWave) {
       s.setStrike(null);
+      s.setSatellite({ phase: "none" });
       mg.displayMessage(
         "events_display.orbital_strike_result",
         MessageType.NUKE_DETONATED,

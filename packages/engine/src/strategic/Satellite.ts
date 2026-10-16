@@ -115,7 +115,7 @@ function resolveCountdown(
     };
     const focus = shooter.isPlayer() ? shooter.id() : undefined;
     if (interceptorHits(now, player.smallID(), shot, index)) {
-      s.setSatellite({ phase: "spent" });
+      s.setSatellite({ phase: "none" });
       mg.displayMessage(
         "events_display.satellite_intercept_hit",
         MessageType.SAM_HIT,
@@ -154,7 +154,6 @@ function resolveCountdown(
     );
     return;
   }
-  s.setSatellite({ phase: "spent" });
   startOrbitalStrike(mg, player, s, target, now);
   announceSatellite(
     mg,
@@ -178,6 +177,7 @@ export function processSatellite(
   now: number,
 ): void {
   processStrike(mg, player, s, now);
+  if (s.strike() !== null) return;
   const sat = s.satellite();
   if (sat.phase === "targeted") {
     resolveCountdown(mg, player, s, sat, now);
@@ -195,6 +195,7 @@ export function processSatellite(
     );
   } else if (now >= sat.readyTick) {
     s.setSatellite({ phase: "orbit" });
+    s.countLaunch();
     announceSatellite(
       mg,
       "events_display.satellite_in_orbit",

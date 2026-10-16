@@ -210,7 +210,7 @@
       "port": "Sends trade ships to generate gold",
       "research_institute": "Produces science. Upkeep 50 gold/s per level.",
       "sam_launcher": "Defends against incoming nukes",
-      "satellite": "Once per game: 90 s at a silo, then strike a nation (all buildings, 70% of troops, land to sea)",
+      "satellite": "Reusable, one at a time: 90 s at a silo, then strike a nation (all buildings, 70% of troops, land to sea). Each launch doubles the next price",
       "warship": "Captures trade ships, destroys ships and boats"
     },
     "not_enough_money": "Not enough money",
@@ -2758,7 +2758,7 @@
     "producing": "In production: {count}",
     "satellite_busy": "Your satellite is being prepared",
     "satellite_ready": "Your satellite is in orbit",
-    "satellite_used": "Your nation has already launched its satellite",
+    "satellite_used": "Your satellite is still in orbit: a new one can be prepared once it is used or shot down",
     "seconds_left": "{seconds}s",
     "stock": "In stock: {count}",
     "tap_again_to_fire": "Tap again to fire",
