@@ -59,6 +59,7 @@ const DOMESTIC_ONLY_TYPES = [
 const WARFARE_ONLY_TYPES = [
   "Airport",
   "Bombing",
+  "CargoPlane",
   "CoastalBarrage",
   "CoastalBattery",
   "Paradrop",

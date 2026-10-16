@@ -35,6 +35,7 @@ import {
   AIRPORT_COST_STEP,
   BARRAGE_COST,
   BOMB_COST,
+  cargoGold,
   COASTAL_BATTERY_COST_MAX,
   COASTAL_BATTERY_COST_STEP,
   PARADROP_GOLD,
@@ -295,6 +296,13 @@ export class EngineConfig extends Config {
     const debuff = this.tradeShipShortRangeDebuff();
     const baseGold = 75_000 / (1 + exp(-0.03 * (dist - debuff))) + 50 * dist;
     return BigInt(Math.floor(baseGold * this.goldMultiplierFor(player)));
+  }
+
+  /** Expanded warfare: gold a cargo flight pays each side before domestic modifiers. */
+  cargoPlaneGold(distance: number, player: PlayerLike): Gold {
+    return BigInt(
+      Math.floor(cargoGold(distance) * this.goldMultiplierFor(player)),
+    );
   }
 
   /**

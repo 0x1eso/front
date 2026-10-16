@@ -288,11 +288,13 @@ export function domesticTradeGold(
   base: Gold,
   recipient: Player,
   partner: Player,
-  kind: "tradeShip" | "train",
+  kind: "tradeShip" | "train" | "cargo",
 ): Gold {
   const d = recipient.domestic();
   if (d === null) return base;
-  let pct = d.pct("trade") + d.pct(kind) + d.pct("allGold");
+  // Cargo flights (expanded warfare) have no stat of their own.
+  let pct =
+    d.pct("trade") + (kind === "cargo" ? 0 : d.pct(kind)) + d.pct("allGold");
   if (partner !== recipient) {
     pct += d.pct("foreignTrade");
     if (recipient.isAlliedWith(partner)) pct += d.pct("alliedTrade");
