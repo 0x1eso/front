@@ -1,9 +1,11 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import type { NukeMagnitude } from "@openfront/engine-lib/configuration/Config";
 import {
   airportRange,
   BARRAGE_RADIUS,
   BARRAGE_SILO_RANGE,
+  BOMB_INNER,
   BOMB_OUTER,
   COASTAL_BATTERY_RANGE,
 } from "@openfront/engine-lib/warfare/Warfare";
@@ -22,6 +24,19 @@ export function warfareGhostRadius(type: UnitType, level: number): number {
     default:
       return 0;
   }
+}
+
+/**
+ * The blast zone a strike breaks alliances over: a bomber's fixed radii, a
+ * nuke's from the config.
+ */
+export function strikeMagnitude(
+  config: { nukeMagnitudes(type: UnitType): NukeMagnitude },
+  type: UnitType,
+): NukeMagnitude {
+  return type === UnitType.Bomber
+    ? { inner: BOMB_INNER, outer: BOMB_OUTER }
+    : config.nukeMagnitudes(type);
 }
 
 export interface FlightSourceUnit {

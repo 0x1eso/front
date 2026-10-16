@@ -559,3 +559,158 @@ describe("structureIconRadiusPx (the ghost icon as StructurePass draws it)", () 
     expect(structureIconRadiusPx(ss, UnitType.AtomBomb, 1.8, 2)).toBe(0);
   });
 });
+
+describe("bomber preview breaks alliances like a nuke (bomb radii 8 / 18)", () => {
+  const WIDTH = 100;
+  const ref = (x: number, y: number) => y * WIDTH + x;
+  /** An ally city 12 tiles from the target (inside outer 18, outside inner 8). */
+  function make(opts: { fresh?: boolean; allyNearTarget?: boolean }) {
+    const near = opts.allyNearTarget ?? true;
+    const ally = { smallID: () => 2, isDisconnected: () => false };
+    const allyCity = { owner: () => ally, tile: () => ref(52, 50) };
+    const allySam = {
+      isActive: () => true,
+      owner: () => ally,
+      level: () => 1,
+      tile: () => ref(53, 50),
+    };
+    const airport = {
+      isActive: () => true,
+      isInCooldown: () => false,
+      isUnderConstruction: () => false,
+      level: () => 1,
+      tile: () => ref(10, 50),
+    };
+    const magnitudes: { inner: number; outer: number }[] = [];
+    const myPlayer = {
+      smallID: () => 1,
+      allies: () => [ally],
+      gold: () => 10_000_000n,
+      alliances: () => [{ id: 7, other: 2, createdAt: opts.fresh ? 95 : 0 }],
+      isOnSameTeam: () => false,
+      isFriendly: (o: unknown) => o === ally,
+      isDisconnected: () => false,
+      units: (t: UnitType) => (t === UnitType.Airport ? [airport] : []),
+      buildables: () =>
+        Promise.resolve([
+          { type: UnitType.Bomber, cost: 1n, canBuild: 1, canUpgrade: false },
+        ]),
+    };
+    const game = {
+      isValidCoord: () => true,
+      ref,
+      x: (t: number) => t % WIDTH,
+      y: (t: number) => Math.floor(t / WIDTH),
+      isImpassable: () => false,
+      myPlayer: () => myPlayer,
+      players: () => [myPlayer],
+      player: () => ally,
+      ticks: () => 100,
+      units: (t: UnitType) => (t === UnitType.SAMLauncher ? [allySam] : []),
+      euclideanDistSquared: (a: number, b: number) => {
+        const dx = (a % WIDTH) - (b % WIDTH);
+        const dy = Math.floor(a / WIDTH) - Math.floor(b / WIDTH);
+        return dx * dx + dy * dy;
+      },
+      ownerID: () => 0,
+      circleSearch: () => {},
+      anyUnitNearby: (_t: number, r: number) => {
+        magnitudes.push({ inner: -1, outer: r });
+        return near;
+      },
+      nearbyUnits: (_t: number, r: number) => {
+        magnitudes.push({ inner: -1, outer: r });
+        return near ? [{ unit: allyCity }] : [];
+      },
+      config: () => ({
+        nukeMagnitudes: () => ({ inner: 12, outer: 30 }),
+        nukeAllianceBreakThreshold: () => 100,
+        samRange: () => 70,
+        samRangeOf: (_o: unknown, b: number) => b,
+        trainStationMaxRange: () => 100,
+        defensePostRange: () => 30,
+      }),
+    };
+    const view = {
+      updateGhostPreview: vi.fn(),
+      updateNukeTrajectory: vi.fn(),
+      triggerBlockedFlash: vi.fn(),
+      getSettings: () => createRenderSettings(),
+    };
+    const controller = new BuildPreviewController(
+      game as any,
+      new EventBus(),
+      { ghostStructure: UnitType.Bomber, rocketDirectionUp: false } as any,
+      {
+        screenToWorldCoordinates: () => ({ x: 40, y: 50 }),
+        screenToWorldCoordinatesFloat: () => ({ x: 40, y: 50 }),
+      } as any,
+      view as any,
+      {
+        nukeAllianceSafetyDuration: () => 50,
+        cursorCostLabel: () => false,
+      } as any,
+    );
+    (controller as any).ghostUnit = {
+      buildableUnit: { type: UnitType.Bomber, canBuild: 1, canUpgrade: false },
+    };
+    return { controller, view, magnitudes };
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  test("the ring turns red when the bombing would betray an ally", async () => {
+    const { controller, magnitudes } = make({});
+    (controller as any).queryGhost();
+    await new Promise((r) => setTimeout(r, 0));
+    expect((controller as any).lastGhostData.rangeWarning).toBe(true);
+    expect(magnitudes.some((m) => m.outer === 18)).toBe(true);
+  });
+
+  test("the ring stays white with no ally in the bomb zone", async () => {
+    const { controller } = make({ allyNearTarget: false });
+    (controller as any).queryGhost();
+    await new Promise((r) => setTimeout(r, 0));
+    expect((controller as any).lastGhostData.rangeWarning).toBe(false);
+  });
+
+  test("a betrayed ally's SAM is on the flight line; a bystander ally's is not", () => {
+    const betrayed = make({});
+    (betrayed.controller as any).updateFlightPreview(
+      UnitType.Bomber,
+      ref(40, 50),
+    );
+    expect((betrayed.controller as any).nukeTrajectoryStatic.sams).toHaveLength(
+      1,
+    );
+    const bystander = make({ allyNearTarget: false });
+    (bystander.controller as any).updateFlightPreview(
+      UnitType.Bomber,
+      ref(40, 50),
+    );
+    expect(
+      (bystander.controller as any).nukeTrajectoryStatic.sams,
+    ).toHaveLength(0);
+  });
+
+  test("a fresh alliance blocks the bombing and flashes the target", () => {
+    const { controller, view } = make({ fresh: true });
+    expect(
+      (controller as any).shouldBlockRecentAllyNuke(
+        ref(40, 50),
+        UnitType.Bomber,
+      ),
+    ).toBe(true);
+    expect(view.triggerBlockedFlash).toHaveBeenCalled();
+  });
+
+  test("an old alliance does not block", () => {
+    const { controller } = make({ fresh: false });
+    expect(
+      (controller as any).shouldBlockRecentAllyNuke(
+        ref(40, 50),
+        UnitType.Bomber,
+      ),
+    ).toBe(false);
+  });
+});

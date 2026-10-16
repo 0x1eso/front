@@ -49,7 +49,11 @@ import {
 import { UIState } from "../UIState";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
-import { flightSource, warfareGhostRadius } from "./WarfarePreview";
+import {
+  flightSource,
+  strikeMagnitude,
+  warfareGhostRadius,
+} from "./WarfarePreview";
 
 /** True for nuke types (AtomBomb, HydrogenBomb): ghost is preserved after placement so user can place multiple or keep selection (Enter/key confirm). */
 export function shouldPreserveGhostAfterBuild(unitType: UnitType): boolean {
@@ -333,7 +337,9 @@ export class BuildPreviewController implements Controller {
     if (
       tileRef &&
       myPlayer &&
-      (nukeType === UnitType.AtomBomb || nukeType === UnitType.HydrogenBomb)
+      (nukeType === UnitType.AtomBomb ||
+        nukeType === UnitType.HydrogenBomb ||
+        nukeType === UnitType.Bomber)
     ) {
       this.connectedAllySmallIds.clear();
       const allies = myPlayer.allies();
@@ -348,7 +354,7 @@ export class BuildPreviewController implements Controller {
         targetingAlly = wouldNukeBreakAlliance({
           game: this.game,
           targetTile: tileRef,
-          magnitude: this.game.config().nukeMagnitudes(nukeType),
+          magnitude: strikeMagnitude(this.game.config(), nukeType),
           allySmallIds: this.connectedAllySmallIds,
           threshold: this.game.config().nukeAllianceBreakThreshold(),
         });
@@ -563,10 +569,37 @@ export class BuildPreviewController implements Controller {
     const sams: SAMInfo[] = [];
     if (type === UnitType.Bomber) {
       const config = this.game.config();
+      // Same threat set as a nuke: a bombing breaks alliances at launch, so
+      // the SAMs of allies it would betray engage; teammates' never do.
+      const teammateIds = new Set<number>();
+      for (const p of this.game.players()) {
+        if (myPlayer.isOnSameTeam(p)) teammateIds.add(p.smallID());
+      }
+      const allyIds = new Set<number>();
+      for (const a of myPlayer.allies()) allyIds.add(a.smallID());
+      const betrayedIds: ReadonlySet<number> =
+        allyIds.size > 0
+          ? listNukeBreakAlliance({
+              game: this.game,
+              targetTile: tileRef,
+              magnitude: strikeMagnitude(config, type),
+              threshold: config.nukeAllianceBreakThreshold(),
+            })
+          : new Set();
       for (const s of this.game.units(UnitType.SAMLauncher)) {
         if (!s.isActive()) continue;
         const owner = s.owner();
-        if (owner === myPlayer || myPlayer.isFriendly(owner)) continue;
+        if (owner === myPlayer) continue;
+        if (
+          !samThreatensNukePreview(
+            owner.smallID(),
+            teammateIds,
+            allyIds,
+            betrayedIds,
+          )
+        ) {
+          continue;
+        }
         sams.push({
           x: this.game.x(s.tile()),
           y: this.game.y(s.tile()),
@@ -908,6 +941,7 @@ export class BuildPreviewController implements Controller {
       duration <= 0 ||
       (unitType !== UnitType.AtomBomb &&
         unitType !== UnitType.HydrogenBomb &&
+        unitType !== UnitType.Bomber &&
         unitType !== UnitType.MIRV)
     ) {
       return false;
@@ -934,7 +968,7 @@ export class BuildPreviewController implements Controller {
         : listNukeBreakAlliance({
             game: this.game,
             targetTile: tile,
-            magnitude: this.game.config().nukeMagnitudes(unitType),
+            magnitude: strikeMagnitude(this.game.config(), unitType),
             threshold: this.game.config().nukeAllianceBreakThreshold(),
           });
 
