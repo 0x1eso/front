@@ -92,6 +92,7 @@ const SAM_RADIUS_GHOST_TYPES = new Set([
   "Missile Silo",
   "SAM Launcher",
   "City",
+  "Bomber",
   "Atom Bomb",
   "Hydrogen Bomb",
 ]);
@@ -99,6 +100,7 @@ const SAM_RADIUS_GHOST_TYPES = new Set([
 /** Subset for build-button hover — excludes City/Silo (SAM radii irrelevant). */
 const SAM_RADIUS_HIGHLIGHT_TYPES = new Set([
   "SAM Launcher",
+  "Bomber",
   "Atom Bomb",
   "Hydrogen Bomb",
 ]);
