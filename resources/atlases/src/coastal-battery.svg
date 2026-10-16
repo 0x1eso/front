@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-4 -4 32 32" fill="#ffffff">
+  <!--
+    Coastal Battery map icon: icon-atlas.png cell 9 (atlas column 8).
+    Drawn for this fork; licensed CC BY-SA 4.0 like the rest of resources/.
+
+    A gun turret on a quay over waves; the same silhouette as
+    resources/images/CoastalBatteryIconWhite.svg (24-unit grid), drawn the
+    way the original atlas cells are: 2x scale with 4 units (8px) of padding
+    in a 64x64 cell, solid white on transparent. See airport.svg for the
+    command that rebuilds icon-atlas.png.
+  -->
+  <path d="M10.6 10.2 18.9 4.6l1.5 2.2-7.7 5.2A4.5 4.5 0 0 1 14.5 15H20v2.4H4V15h1.5a4.5 4.5 0 0 1 5.1-4.8zM2 19.8c2 0 2-1.4 4-1.4s2 1.4 4 1.4 2-1.4 4-1.4 2 1.4 4 1.4 2-1.4 4-1.4v1.6c-2 0-2 1.6-4 1.6s-2-1.6-4-1.6-2 1.6-4 1.6-2-1.6-4-1.6-2 1.6-4 1.6z"/>
+</svg>

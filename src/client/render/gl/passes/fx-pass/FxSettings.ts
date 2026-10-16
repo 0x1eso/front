@@ -5,6 +5,7 @@
 
 import {
   UT_ATOM_BOMB,
+  UT_BOMBER,
   UT_HYDROGEN_BOMB,
   UT_MIRV_WARHEAD,
 } from "../../../types";
@@ -23,6 +24,7 @@ export function nukeExplosionRadius(
       return fx.nukeRadiusAtom;
     case UT_HYDROGEN_BOMB:
       return fx.nukeRadiusHydro;
+    case UT_BOMBER:
     case UT_MIRV_WARHEAD:
       return fx.nukeRadiusMirv;
     default:
