@@ -414,4 +414,8 @@ export interface OrbitalStrikeUpdate {
   attackerID: number;
   targetID: number;
   impacts: TileRef[];
+  /** The strike lands in waves over a few seconds (spec §6.6): 0-based wave
+   *  index, and whether this is the last wave. Absent on a one-shot strike. */
+  wave?: number;
+  lastWave?: boolean;
 }

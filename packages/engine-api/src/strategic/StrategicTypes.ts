@@ -1,3 +1,4 @@
+import { TileRef } from "../game/GameMap";
 import { UnitType } from "../game/GameTypes";
 
 /**
@@ -35,6 +36,8 @@ export interface InterceptorData {
   by: number;
   type: InterceptorNuke;
   resolveTick: number;
+  /** The silo it was fired from (the client draws the climb from there). */
+  from?: TileRef;
 }
 
 /** A nation's one satellite (spec §6). "spent": struck or shot down, never again. */
