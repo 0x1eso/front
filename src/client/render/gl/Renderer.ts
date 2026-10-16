@@ -64,6 +64,7 @@ import { TerritoryPass } from "./passes/TerritoryPass";
 import { TrailPass } from "./passes/TrailPass";
 import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
+import { WarfareRingPass } from "./passes/WarfareRingPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
 import type { RenderSettings } from "./RenderSettings";
 import { AffiliationPalette } from "./utils/Affiliation";
@@ -105,6 +106,17 @@ const SAM_RADIUS_HIGHLIGHT_TYPES = new Set([
   "Hydrogen Bomb",
 ]);
 
+/** Ghost types that show coastal battery and airport rings (expanded warfare). */
+const WARFARE_RING_GHOST_TYPES = new Set([
+  "Coastal Battery",
+  "Airport",
+  "Coastal Barrage",
+  "Bomber",
+]);
+
+/** Open build-bar cards that show them (highlightTypes in UnitDisplay). */
+const WARFARE_RING_HIGHLIGHT_TYPES = new Set(["Coastal Battery", "Airport"]);
+
 const GRID_VIEW_KEY = "renderer:grid_view_enabled";
 
 export class GPURenderer {
@@ -139,6 +151,7 @@ export class GPURenderer {
   private fxPass: FxPass;
   private rangeCirclePass: RangeCirclePass;
   private victoryProjectPass: VictoryProjectPass;
+  private warfareRingPass: WarfareRingPass;
   private samRadiusPass: SAMRadiusPass;
   private crosshairPass: CrosshairPass;
   private railroadPass: RailroadPass;
@@ -208,6 +221,8 @@ export class GPURenderer {
   // SAM radius visibility tracking (show if either source is true)
   private samGhostVisible = false;
   private samHighlightVisible = false;
+  private warfareGhostVisible = false;
+  private warfareHighlightVisible = false;
 
   // Warship selection — supports any number of selections.
   private selectedUnitIds: number[] = [];
@@ -559,6 +574,7 @@ export class GPURenderer {
     // --- Range circle (ghost preview radius) ---
     this.rangeCirclePass = new RangeCirclePass(gl);
     this.victoryProjectPass = new VictoryProjectPass(gl);
+    this.warfareRingPass = new WarfareRingPass(gl, mapW);
 
     // --- SAM radius overlay (dashed green circles during build mode) ---
     this.samRadiusPass = new SAMRadiusPass(gl, mapW, this.settings);
@@ -915,6 +931,7 @@ export class GPURenderer {
     this.unitPass.setFrameTick(this.frameTick);
     this.unitPass.updateUnits(units, gameTick);
     this.samRadiusPass.setTick(gameTick);
+    this.warfareRingPass.updateUnits(units);
     this.barPass.updateBars(units, this.lastStructures, gameTick);
     this.pointLightPass.updateLights(units);
     this.heatManager.decayHeat();
@@ -939,6 +956,7 @@ export class GPURenderer {
         }
       }
       this.samRadiusPass.setAllies(friendly);
+      this.warfareRingPass.setAllies(friendly);
       this.unitPass.setAllies(friendly);
     }
   }
@@ -958,6 +976,7 @@ export class GPURenderer {
     this.structurePass.updateStructures(units);
     this.structureLevelPass.updateStructures(units);
     this.samRadiusPass.updateStructures(units);
+    this.warfareRingPass.updateStructures(units);
     this.unitPass.setStructures(units);
     const posts: { x: number; y: number; ownerID: number }[] = [];
     const w = this.mapW;
@@ -1096,6 +1115,11 @@ export class GPURenderer {
     this.samRadiusPass.setVisible(
       this.samGhostVisible || this.samHighlightVisible,
     );
+    this.warfareGhostVisible =
+      data !== null && WARFARE_RING_GHOST_TYPES.has(data.ghostType);
+    this.warfareRingPass.setVisible(
+      this.warfareGhostVisible || this.warfareHighlightVisible,
+    );
   }
 
   updateNukeTrajectory(data: NukeTrajectoryData | null): void {
@@ -1151,6 +1175,12 @@ export class GPURenderer {
     this.samRadiusPass.setVisible(
       this.samGhostVisible || this.samHighlightVisible,
     );
+    this.warfareHighlightVisible =
+      unitTypes !== null &&
+      unitTypes.some((t) => WARFARE_RING_HIGHLIGHT_TYPES.has(t));
+    this.warfareRingPass.setVisible(
+      this.warfareGhostVisible || this.warfareHighlightVisible,
+    );
   }
 
   /** SAM rings at each owner's modified range (Config.samRangeOf). */
@@ -1162,6 +1192,7 @@ export class GPURenderer {
     if (id === this.localPlayerID) return;
     this.localPlayerID = id;
     this.samRadiusPass.setLocalPlayer(id);
+    this.warfareRingPass.setLocalPlayer(id);
     this.structurePass.setLocalPlayer(id);
     this.affiliationPalette.setLocalPlayer(id);
     this.unitPass.setLocalPlayer(id);
@@ -1391,6 +1422,7 @@ export class GPURenderer {
     this.samRadiusPass.draw(cam);
     this.rangeCirclePass.draw(cam);
     this.victoryProjectPass.draw(cam);
+    this.warfareRingPass.draw(cam);
     this.nukeTrajectoryPass.draw(cam);
     this.crosshairPass.draw(cam);
     if (pe.structure) this.structurePass.draw(cam, zoom);
@@ -1529,6 +1561,7 @@ export class GPURenderer {
     this.railroadPass.dispose();
     this.rangeCirclePass.dispose();
     this.victoryProjectPass.dispose();
+    this.warfareRingPass.dispose();
     this.samRadiusPass.dispose();
     this.crosshairPass.dispose();
     this.structurePass.dispose();
