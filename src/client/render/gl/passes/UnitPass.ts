@@ -146,6 +146,7 @@ const FLICKER_TYPES: ReadonlySet<string> = new Set([
   UT_MIRV_WARHEAD,
   UT_SAM_MISSILE,
   UT_SHELL,
+  UT_CONVENTIONAL_MISSILE,
 ]);
 
 /** Missile/projectile types — rendered on top of structures in the layer order.

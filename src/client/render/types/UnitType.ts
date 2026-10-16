@@ -89,6 +89,7 @@ export const TRAIL_TYPES: ReadonlySet<string> = new Set([
   UT_HYDROGEN_BOMB,
   UT_MIRV,
   UT_MIRV_WARHEAD,
+  UT_CONVENTIONAL_MISSILE,
 ]);
 
 /** Blast radii (in tiles) matching upstream DefaultConfig.nukeMagnitudes(). */

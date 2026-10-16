@@ -68,18 +68,20 @@ CARGO_PLANE = [
 ]
 
 CONVENTIONAL_MISSILE = [
-    "......e......",
-    ".....ded.....",
-    ".....ddd.....",
-    ".....dcd.....",
-    ".....dcd.....",
-    ".....dcd.....",
-    ".....dcd.....",
-    ".....dcd.....",
-    "....ddcdd....",
-    "...dd.c.dd...",
-    "...d..c..d...",
-    "......b......",
+    # A warhead one size down from the atom bomb's 7x7 diamond (column 3),
+    # same outline and core shades, so it reads as a small nuke in flight.
+    ".............",
+    ".............",
+    ".............",
+    ".............",
+    "......c......",
+    ".....cdc.....",
+    "....cdddc....",
+    ".....cdc.....",
+    "......c......",
+    ".............",
+    ".............",
+    ".............",
     ".............",
 ]
 
