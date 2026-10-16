@@ -19,6 +19,22 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { SAMMissileExecution } from "./SAMMissileExecution";
 
+const NUKE_TARGETS: readonly UnitType[] = [
+  UnitType.AtomBomb,
+  UnitType.HydrogenBomb,
+  UnitType.MIRVWarhead,
+];
+/** Expanded warfare: SAMs also shoot transport planes and bombers (spec §14b). */
+const WARFARE_TARGETS: readonly UnitType[] = [
+  ...NUKE_TARGETS,
+  UnitType.TransportPlane,
+  UnitType.Bomber,
+];
+
+function samTargetTypes(mg: Game): readonly UnitType[] {
+  return mg.config().warfareExpansion() ? WARFARE_TARGETS : NUKE_TARGETS;
+}
+
 type Target = {
   unit: Unit;
   tile: TileRef;
@@ -255,7 +271,7 @@ class SAMTargetingSystem {
     const nukes = this.mg.nearbyUnits(
       samTile,
       detectionRange,
-      [UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRVWarhead],
+      samTargetTypes(this.mg),
       this.isTargetableNearbyUnit,
     );
 
@@ -378,11 +394,7 @@ export class SAMLauncherExecution implements Execution {
     // them (unit ids are unique). unitCount(type) is memoised per unit-list version — one shared
     // walk a tick, not one a launcher — and unlike units(type) a hit allocates nothing. A nuke's
     // level is always 1, so a zero count is exactly an empty list.
-    if (
-      this.mg.unitCount(UnitType.AtomBomb) === 0 &&
-      this.mg.unitCount(UnitType.HydrogenBomb) === 0 &&
-      this.mg.unitCount(UnitType.MIRVWarhead) === 0
-    ) {
+    if (samTargetTypes(this.mg).every((t) => this.mg.unitCount(t) === 0)) {
       return;
     }
     // target is already filtered to exclude nukes targeted by other SAMs

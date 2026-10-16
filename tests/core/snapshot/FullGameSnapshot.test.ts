@@ -58,6 +58,7 @@ const DOMESTIC_ONLY_TYPES = [
 // variant (added with its scripted intents) plays them.
 const WARFARE_ONLY_TYPES = [
   "Airport",
+  "Bombing",
   "CoastalBarrage",
   "CoastalBattery",
   "Paradrop",

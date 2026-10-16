@@ -50,6 +50,7 @@ import { UpgradeStructureExecutionSnapshot } from "../execution/UpgradeStructure
 import { WarshipExecutionSnapshot } from "../execution/WarshipExecution";
 import { WinCheckExecutionSnapshot } from "../execution/WinCheckExecution";
 import { AirportExecutionSnapshot } from "../warfare/AirportExecution";
+import { BombingExecutionSnapshot } from "../warfare/BombingExecution";
 import { CoastalBarrageExecutionSnapshot } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecutionSnapshot } from "../warfare/CoastalBatteryExecution";
 import { ParadropExecutionSnapshot } from "../warfare/ParadropExecution";
@@ -69,6 +70,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   AllianceRequestExecutionSnapshot,
   AttackExecutionSnapshot,
   BoatRetreatExecutionSnapshot,
+  BombingExecutionSnapshot,
   BreakAllianceExecutionSnapshot,
   ChooseGovernmentExecutionSnapshot,
   CityExecutionSnapshot,
