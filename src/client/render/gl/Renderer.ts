@@ -29,8 +29,10 @@ import type {
   TerrainRect,
   UnitState,
 } from "../types";
+import { UT_SHELL, UT_TRANSPORT_PLANE } from "../types";
 import { Camera } from "./Camera";
 import { GLUnavailableError, initGL } from "./initGL";
+import { AirFxPass } from "./passes/AirFxPass";
 import { BarPass } from "./passes/BarPass";
 import { BorderComputePass } from "./passes/BorderComputePass";
 import { BorderStampPass } from "./passes/BorderStampPass";
@@ -48,6 +50,7 @@ import { NightCompositePass } from "./passes/NightCompositePass";
 import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
 import { OrbitalBeamPass } from "./passes/OrbitalBeamPass";
+import { PlanePass } from "./passes/PlanePass";
 import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
@@ -153,6 +156,10 @@ export class GPURenderer {
   private structurePass: StructurePass;
   private structureLevelPass: StructureLevelPass;
   private unitPass: UnitPass;
+  private planePass: PlanePass;
+  private airFxPass: AirFxPass;
+  /** Scratch for applyBombDrops (no per-drop allocation). */
+  private readonly bomberFrom = { x: 0, y: 0 };
   private namePass: NamePass;
   private fxPass: FxPass;
   private rangeCirclePass: RangeCirclePass;
@@ -614,6 +621,11 @@ export class GPURenderer {
       this.settings,
       config,
     );
+    this.planePass = new PlanePass(gl, header, this.paletteTex, config);
+    this.airFxPass = new AirFxPass(gl, this.paletteTex);
+    this.airFxPass.setBombLandHandler((x, y) =>
+      this.fxPass.spawnBombBlast(x, y),
+    );
     this.namePass = new NamePass(
       gl,
       header,
@@ -667,6 +679,7 @@ export class GPURenderer {
     this.borderStampPass.setAffiliationTex(affTex);
     this.territoryPass.setAffiliationTex(affTex);
     this.unitPass.setAffiliationTex(affTex);
+    this.planePass.setAffiliationTex(affTex);
     this.structurePass.setAffiliationTex(affTex);
     this.trailPass.setAffiliationTex(affTex);
     this.coordinateGridPass = new CoordinateGridPass(
@@ -945,6 +958,7 @@ export class GPURenderer {
     this.frameTick++;
     this.unitPass.setFrameTick(this.frameTick);
     this.unitPass.updateUnits(units, gameTick);
+    this.planePass.updateUnits(units, gameTick, this.lastStructures);
     this.samRadiusPass.setTick(gameTick);
     this.warfareRingPass.updateUnits(units);
     this.barPass.updateBars(units, this.lastStructures, gameTick);
@@ -1008,7 +1022,35 @@ export class GPURenderer {
   }
 
   applyDeadUnits(deadUnits: DeadUnitFx[]): void {
-    if (deadUnits.length > 0) this.fxPass.applyDeadUnits(deadUnits);
+    if (deadUnits.length === 0) return;
+    this.fxPass.applyDeadUnits(deadUnits);
+    for (const du of deadUnits) {
+      if (!du.reachedTarget) continue;
+      const x = du.pos % this.mapW;
+      const y = (du.pos - x) / this.mapW;
+      // A transport plane that reached its drop point: parachutes.
+      if (du.unitType === UT_TRANSPORT_PLANE) {
+        this.airFxPass.spawnParadrop(x, y, du.ownerSmallID);
+      } else if (du.unitType === UT_SHELL) {
+        // Coastal barrage shell impact flash.
+        this.airFxPass.spawnFlash(x, y);
+      }
+    }
+  }
+
+  /** Expanded warfare: one carpet bomb per update falls from the bomber to its tile. */
+  applyBombDrops(
+    drops: readonly { attackerID: number; x: number; y: number }[],
+  ): void {
+    const from = this.bomberFrom;
+    for (const d of drops) {
+      // No bomber in view (a replay, or it was just shot down): drop from above the tile.
+      if (!this.planePass.bomberPosition(d.attackerID, d.x, d.y, from)) {
+        from.x = d.x;
+        from.y = d.y - 12;
+      }
+      this.airFxPass.spawnBomb(from.x, from.y, d.x, d.y);
+    }
   }
 
   applyRailroadDust(tileRefs: number[]): void {
@@ -1260,6 +1302,7 @@ export class GPURenderer {
     this.territoryPass.setAltView(active);
     this.borderStampPass.setAltView(active);
     this.unitPass.setAltView(active);
+    this.planePass.setAltView(active);
     this.structurePass.setAltView(active);
     this.trailPass.setAltView(active);
   }
@@ -1472,6 +1515,7 @@ export class GPURenderer {
     if (pe.borderStamp) this.borderStampPass.draw(cam);
     if (pe.railroad) this.railroadPass.draw(cam, zoom);
     if (pe.unit) this.unitPass.drawGround(cam);
+    if (pe.unit) this.planePass.drawShadows(cam);
     if (pe.falloutBloom) this.bloomPass.draw(cam, this.frameTick);
     this.samRadiusPass.draw(cam);
     this.rangeCirclePass.draw(cam);
@@ -1493,6 +1537,7 @@ export class GPURenderer {
     // trail them. Skipped in alt view — the strategic overlay stays effects-free.
     if (!this.altView) this.spiralRibbonPass.draw(cam);
     if (pe.unit) this.unitPass.drawMissiles(cam);
+    if (pe.unit) this.planePass.drawAir(cam);
 
     // Orbital-strike beams fall under the blast sprites.
     this.orbitalBeamPass.draw(cam);
@@ -1501,6 +1546,7 @@ export class GPURenderer {
       this.fxPass.draw(cam, zoom);
     }
     this.strategicFxPass.draw(cam, zoom);
+    if (pe.fx) this.airFxPass.draw(cam, zoom);
 
     // Grid shows on either trigger; names hide only under alt-view (space
     // hold), not under the persistent M-key gridView toggle.
@@ -1627,6 +1673,8 @@ export class GPURenderer {
     this.structurePass.dispose();
     this.structureLevelPass.dispose();
     this.unitPass.dispose();
+    this.planePass.dispose();
+    this.airFxPass.dispose();
     this.namePass.dispose();
     this.fxPass.dispose();
     this.worldTextPass.dispose();

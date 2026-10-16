@@ -260,6 +260,7 @@ export class WebGLFrameBuilder {
     this.syncSmallPlayerGlow(gameView);
     this.syncVictoryProjects(gameView);
     this.syncStrategic(gameView);
+    this.syncCarpetBombs(gameView);
     this.syncSamRanges(gameView);
     this.syncTerrainDeltas(gameView);
     this.syncNukeImpacts(gameView);
@@ -564,6 +565,27 @@ export class WebGLFrameBuilder {
     if (strikes.length > 0) {
       this.view.applyOrbitalStrikes(orbitalImpactPoints(strikes, w));
     }
+  }
+
+  private readonly bombDropPts: { attackerID: number; x: number; y: number }[] =
+    [];
+
+  /** Expanded warfare: each carpet bomb of a bomber's run falls to its tile. */
+  private syncCarpetBombs(gameView: GameView): void {
+    if (!gameView.config().warfareExpansion()) return;
+    const drops =
+      gameView.updatesSinceLastTick()?.[GameUpdateType.BombDrop] ?? [];
+    if (drops.length === 0) return;
+    const w = gameView.width();
+    this.bombDropPts.length = 0;
+    for (const d of drops) {
+      this.bombDropPts.push({
+        attackerID: d.attackerID,
+        x: d.tile % w,
+        y: Math.floor(d.tile / w),
+      });
+    }
+    this.view.applyBombDrops(this.bombDropPts);
   }
 
   /** Domestic mode: push victory-project hosts and their progress each tick. */

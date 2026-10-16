@@ -22,7 +22,7 @@ import {
   calculateExplosionDurationMs,
   FxShockwavePass,
 } from "./FxShockwavePass";
-import { FX_NUKE, FxSpritePass } from "./FxSpritePass";
+import { FX_MINI_EXPLOSION, FX_NUKE, FxSpritePass } from "./FxSpritePass";
 
 export type { AttackRingInput } from "../../../types";
 export { calculateExplosionDurationMs };
@@ -101,6 +101,11 @@ export class FxPass {
         this.settings.fx.nukeRadiusAtom / 2,
       );
     }
+  }
+
+  /** Expanded warfare: a compact blast (a mini explosion) where a carpet bomb landed. */
+  spawnBombBlast(x: number, y: number): void {
+    this.spritePass.pushFx(x, y, FX_MINI_EXPLOSION, this.timeFn());
   }
 
   updateAttackRings(rings: AttackRingInput[]): void {
