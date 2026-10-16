@@ -63,6 +63,8 @@ export const TECHS: Readonly<Record<TechId, TechDef>> = {
       { stat: "defensePost", pct: 50 },
       { stat: "defensePostCost", pct: -30 },
     ],
+    // Expanded warfare only (disabled otherwise).
+    unlocks: [UnitType.CoastalBattery],
   }),
   academia: tech("academia", 1, "learning", {
     modifiers: [{ stat: "instituteOutput", pct: 40 }],
@@ -98,6 +100,8 @@ export const TECHS: Readonly<Record<TechId, TechDef>> = {
       { stat: "train", pct: 50 },
       { stat: "buildCost", pct: -15 },
     ],
+    // Expanded warfare only: the airport and what flies from it.
+    unlocks: [UnitType.Airport, UnitType.Bomber, UnitType.TransportPlane],
   }),
   global_trade: tech("global_trade", 3, "economy", {
     modifiers: [
@@ -106,7 +110,8 @@ export const TECHS: Readonly<Record<TechId, TechDef>> = {
     ],
   }),
   rocketry: tech("rocketry", 3, "military", {
-    unlocks: [UnitType.MissileSilo],
+    // The coastal barrage exists only with expanded warfare.
+    unlocks: [UnitType.MissileSilo, UnitType.CoastalBarrage],
   }),
   radar: tech("radar", 3, "military", { unlocks: [UnitType.SAMLauncher] }),
   manhattan_project: tech("manhattan_project", 3, "military", {

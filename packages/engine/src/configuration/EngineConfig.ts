@@ -30,6 +30,15 @@ import {
   toInt,
   within,
 } from "@openfront/engine-lib/Util";
+import {
+  AIRPORT_COST_MAX,
+  AIRPORT_COST_STEP,
+  BARRAGE_COST,
+  BOMB_COST,
+  COASTAL_BATTERY_COST_MAX,
+  COASTAL_BATTERY_COST_STEP,
+  PARADROP_GOLD,
+} from "@openfront/engine-lib/warfare/Warfare";
 import type { EngineUnitInfo, Game, Player, Unit } from "../game/Game";
 
 export interface AttackLogicInput {
@@ -84,6 +93,9 @@ const DOMESTIC_COST_STAT: Partial<Record<UnitType, StatKey>> = {
   [UnitType.HydrogenBomb]: "nukeCost",
   [UnitType.MIRV]: "nukeCost",
   [UnitType.DefensePost]: "defensePostCost",
+  // Expanded warfare: strategic strikes are priced like nukes.
+  [UnitType.CoastalBarrage]: "nukeCost",
+  [UnitType.Bomber]: "nukeCost",
 };
 
 // attackLogic tunables
@@ -392,12 +404,34 @@ export class EngineConfig extends Config {
             Math.min(BUILDING_MAX_COST, pow2(numUnits) * BUILDING_BASE_COST),
           type,
         );
+      case UnitType.CoastalBattery:
+        return this.costWrapper(
+          (numUnits: number) =>
+            Math.min(
+              COASTAL_BATTERY_COST_MAX,
+              (numUnits + 1) * COASTAL_BATTERY_COST_STEP,
+            ),
+          UnitType.CoastalBattery,
+        );
+      case UnitType.Airport:
+        return this.costWrapper(
+          (numUnits: number) =>
+            Math.min(AIRPORT_COST_MAX, (numUnits + 1) * AIRPORT_COST_STEP),
+          UnitType.Airport,
+        );
+      case UnitType.CoastalBarrage:
+        return this.costWrapper(() => BARRAGE_COST, UnitType.CoastalBarrage);
+      case UnitType.Bomber:
+        return this.costWrapper(() => BOMB_COST, UnitType.Bomber);
+      case UnitType.TransportPlane:
+        return this.costWrapper(() => PARADROP_GOLD, UnitType.TransportPlane);
       case UnitType.TransportShip:
       case UnitType.Shell:
       case UnitType.SAMMissile:
       case UnitType.MIRVWarhead:
       case UnitType.TradeShip:
       case UnitType.Train:
+      case UnitType.CargoPlane:
         return () => 0n;
       default:
         assertNever(type);

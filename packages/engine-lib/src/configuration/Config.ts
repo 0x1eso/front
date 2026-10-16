@@ -20,6 +20,11 @@ import {
 } from "../domestic/Victory";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
 import { assertNever } from "../Util";
+import {
+  AIRPORT_BUILD_TICKS,
+  COASTAL_BATTERY_BUILD_TICKS,
+  WARFARE_ONLY_UNITS,
+} from "../warfare/Warfare";
 
 export interface NukeMagnitude {
   inner: number;
@@ -190,6 +195,11 @@ export class Config {
     return this._gameConfig.domesticMode ?? false;
   }
 
+  /** Expanded warfare (spec §14b): coastal battery, barrage, airport. */
+  warfareExpansion(): boolean {
+    return this._gameConfig.warfareExpansion ?? false;
+  }
+
   /** Land share (percent) that wins by conquest, before any overtime drop. */
   conquestPercent(): number {
     return this.domesticMode()
@@ -209,6 +219,9 @@ export class Config {
 
   isUnitDisabled(unitType: UnitType): boolean {
     if (DOMESTIC_ONLY_UNITS.has(unitType) && !this.domesticMode()) {
+      return true;
+    }
+    if (WARFARE_ONLY_UNITS.has(unitType) && !this.warfareExpansion()) {
       return true;
     }
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
@@ -312,6 +325,20 @@ export class Config {
           upgradable: true,
         };
         break;
+      case UnitType.CoastalBattery:
+        info = {
+          constructionDuration: this.instantBuild()
+            ? 0
+            : COASTAL_BATTERY_BUILD_TICKS,
+          upgradable: true,
+        };
+        break;
+      case UnitType.Airport:
+        info = {
+          constructionDuration: this.instantBuild() ? 0 : AIRPORT_BUILD_TICKS,
+          upgradable: true,
+        };
+        break;
       case UnitType.TransportShip:
       case UnitType.SAMMissile:
       case UnitType.AtomBomb:
@@ -320,6 +347,10 @@ export class Config {
       case UnitType.MIRVWarhead:
       case UnitType.TradeShip:
       case UnitType.Train:
+      case UnitType.CoastalBarrage:
+      case UnitType.Bomber:
+      case UnitType.TransportPlane:
+      case UnitType.CargoPlane:
         info = {};
         break;
       default:

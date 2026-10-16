@@ -66,12 +66,14 @@ const CONFIG: GameConfig = {
   randomSpawn: false,
   domesticMode: true,
   conquestPercent: 100,
+  warfareExpansion: true,
 };
 
 // A vanilla config: no domestic fields at all.
 const VANILLA_CONFIG: GameConfig = { ...CONFIG };
 delete VANILLA_CONFIG.domesticMode;
 delete VANILLA_CONFIG.conquestPercent;
+delete VANILLA_CONFIG.warfareExpansion;
 
 // One of every intent type, as stamped intents inside a turn.
 const SAMPLE_INTENTS: StampedIntent[] = [

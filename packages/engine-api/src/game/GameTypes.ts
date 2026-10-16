@@ -209,6 +209,14 @@ export enum UnitType {
   Factory = "Factory",
   ResearchInstitute = "Research Institute",
   AdminOffice = "Admin Office",
+  // Expanded warfare (GameConfig.warfareExpansion, spec §14b). Always
+  // appended: the wire and snapshots encode UnitType by position.
+  CoastalBattery = "Coastal Battery",
+  Airport = "Airport",
+  CoastalBarrage = "Coastal Barrage",
+  Bomber = "Bomber",
+  TransportPlane = "Transport Plane",
+  CargoPlane = "Cargo Plane",
 }
 
 export enum TrainType {
@@ -229,6 +237,8 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.HydrogenBomb,
   UnitType.MIRV,
   UnitType.Warship,
+  UnitType.CoastalBarrage,
+  UnitType.Bomber,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -240,6 +250,8 @@ export const Structures = unitTypeGroup([
   UnitType.Factory,
   UnitType.ResearchInstitute,
   UnitType.AdminOffice,
+  UnitType.CoastalBattery,
+  UnitType.Airport,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -250,6 +262,7 @@ export const BuildMenus = unitTypeGroup([
 export const PlayerBuildable = unitTypeGroup([
   ...BuildMenus.types,
   UnitType.TransportShip,
+  UnitType.TransportPlane,
 ] as const);
 
 export type PlayerBuildableUnitType = (typeof PlayerBuildable.types)[number];

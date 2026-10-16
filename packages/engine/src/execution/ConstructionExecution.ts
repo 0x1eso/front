@@ -195,6 +195,8 @@ export class ConstructionExecution implements Execution {
       case UnitType.Factory:
       case UnitType.ResearchInstitute:
       case UnitType.AdminOffice:
+      case UnitType.CoastalBattery:
+      case UnitType.Airport:
         return true;
       default:
         return false;

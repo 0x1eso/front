@@ -364,6 +364,11 @@ export const GameConfigSchema = z.object({
     .uint({ min: CONQUEST_PERCENT_MIN, max: CONQUEST_PERCENT_MAX })
     .nullable()
     .optional(),
+  // Expanded warfare (this fork, spec §14b): coastal battery, coastal
+  // barrage, airport (paradrop, bombing, cargo routes), warship tuning and
+  // SAMs that hit planes. Off by default; works with and without domestic
+  // mode.
+  warfareExpansion: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
