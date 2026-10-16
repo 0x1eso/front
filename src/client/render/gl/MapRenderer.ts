@@ -32,6 +32,7 @@ import type {
 } from "../types";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
 import type { CountdownFx, PreparingFx } from "./passes/StrategicFxPass";
+import type { Ring } from "./passes/WarfareRingPass";
 import type { AttackTroopLabel } from "./passes/WorldTextPass";
 import { GPURenderer } from "./Renderer";
 import type { RenderSettings } from "./RenderSettings";
@@ -294,6 +295,11 @@ export class MapRenderer {
   /** Update nuke trajectory preview arc. null = hide. */
   updateNukeTrajectory(data: NukeTrajectoryData | null): void {
     this.renderer?.updateNukeTrajectory(data);
+  }
+
+  /** Paradrop / bomber aim preview rings (airport ranges, carpet); [] clears. */
+  updateAimRings(rings: readonly Ring[]): void {
+    this.renderer?.updateAimRings(rings);
   }
 
   /** Update in-flight nuke target telegraph circles. */

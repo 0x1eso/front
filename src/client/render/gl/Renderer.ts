@@ -70,7 +70,7 @@ import { TerritoryPass } from "./passes/TerritoryPass";
 import { TrailPass } from "./passes/TrailPass";
 import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
-import { WarfareRingPass } from "./passes/WarfareRingPass";
+import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
 import type { RenderSettings } from "./RenderSettings";
 import { AffiliationPalette } from "./utils/Affiliation";
@@ -1139,6 +1139,10 @@ export class GPURenderer {
 
   updateNukeTrajectory(data: NukeTrajectoryData | null): void {
     this.nukeTrajectoryPass.update(data);
+  }
+
+  updateAimRings(rings: readonly Ring[]): void {
+    this.warfareRingPass.setAimRings(rings);
   }
 
   updateNukeTelegraphs(data: NukeTelegraphData[]): void {

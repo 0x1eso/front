@@ -21,6 +21,11 @@ import { UT_AIRPORT, UT_MISSILE_SILO, UT_SAM_LAUNCHER } from "../../types";
 import type { RenderSettings } from "../RenderSettings";
 import { constructionProgress } from "../utils/ConstructionProgress";
 import { createProgram } from "../utils/GlUtils";
+import {
+  SORTIE_DOT_SIZE,
+  sortieDotCentersX,
+  sortiesLeft,
+} from "../utils/SortieDots";
 
 import barFragSrc from "../shaders/bar/bar.frag.glsl?raw";
 import barVertSrc from "../shaders/bar/bar.vert.glsl?raw";
@@ -31,6 +36,8 @@ import barVertSrc from "../shaders/bar/bar.vert.glsl?raw";
 
 const FLOATS_PER_INSTANCE = 3; // x, y, progress
 const BYTES_PER_INSTANCE = FLOATS_PER_INSTANCE * 4;
+/** Sortie dots sit this many tiles above an airport's centre. */
+const SORTIE_DOT_OFFSET_Y = -6;
 
 // ---------------------------------------------------------------------------
 // BarPass
@@ -64,6 +71,9 @@ export class BarPass {
   private progressCount = 0;
   private veterancyData: Float32Array;
   private veterancyCount = 0;
+  /** Airport sortie dots, one instance each (x is the dot's centre column). */
+  private sortieData: Float32Array;
+  private sortieCount = 0;
 
   private mapW: number;
   private warshipMaxHealth: number;
@@ -106,6 +116,7 @@ export class BarPass {
     this.healthData = new Float32Array(this.maxBars * FLOATS_PER_INSTANCE);
     this.progressData = new Float32Array(this.maxBars * FLOATS_PER_INSTANCE);
     this.veterancyData = new Float32Array(this.maxBars * FLOATS_PER_INSTANCE);
+    this.sortieData = new Float32Array(this.maxBars * FLOATS_PER_INSTANCE);
 
     // --- VAO: unit quad + instanced data ---
     this.vao = gl.createVertexArray()!;
@@ -161,6 +172,7 @@ export class BarPass {
     this.healthCount = 0;
     this.progressCount = 0;
     this.veterancyCount = 0;
+    this.sortieCount = 0;
 
     // --- Health bars + veterancy pips (warships) ---
     // Only warships carry health among mobile units, so this loop is effectively
@@ -187,6 +199,9 @@ export class BarPass {
       if (!unit.isActive) continue;
       const progress = this.computeStructureProgress(unit, gameTick);
       if (progress !== null) this.pushProgress(unit, progress);
+      if (unit.unitType === UT_AIRPORT && !unit.underConstruction) {
+        this.pushSortieDots(unit);
+      }
     }
   }
 
@@ -195,7 +210,8 @@ export class BarPass {
     if (
       this.healthCount === 0 &&
       this.progressCount === 0 &&
-      this.veterancyCount === 0
+      this.veterancyCount === 0 &&
+      this.sortieCount === 0
     )
       return;
 
@@ -272,6 +288,22 @@ export class BarPass {
       gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.veterancyCount);
     }
 
+    // Airport sortie dots: solid squares over the airport, one per sortie left
+    if (this.sortieCount > 0) {
+      gl.uniform1f(this.uSolid, 1);
+      gl.uniform3f(this.uSolidColor, 0.55, 0.9, 1.0);
+      gl.uniform1f(this.uPipStride, 0);
+      gl.uniform2f(this.uBarSize, SORTIE_DOT_SIZE, SORTIE_DOT_SIZE);
+      gl.uniform2f(this.uBarOffset, -SORTIE_DOT_SIZE / 2, SORTIE_DOT_OFFSET_Y);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuf);
+      gl.bufferSubData(
+        gl.ARRAY_BUFFER,
+        0,
+        this.sortieData.subarray(0, this.sortieCount * FLOATS_PER_INSTANCE),
+      );
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.sortieCount);
+    }
+
     gl.bindVertexArray(null);
   }
 
@@ -290,6 +322,22 @@ export class BarPass {
     this.healthData[off + 1] = (unit.pos - this.healthData[off]) / this.mapW;
     this.healthData[off + 2] = progress;
     this.healthCount++;
+  }
+
+  /** One dot per sortie the airport can still fly, centred above it. */
+  private pushSortieDots(unit: UnitState): void {
+    const left = sortiesLeft(unit.level, unit.missileTimerQueue.length);
+    const x = unit.pos % this.mapW;
+    const y = (unit.pos - x) / this.mapW;
+    for (const cx of sortieDotCentersX(x, left)) {
+      if (this.sortieCount >= this.maxBars) return;
+      const off = this.sortieCount * FLOATS_PER_INSTANCE;
+      // The shader adds +0.5 to the column: hand it the centre less that.
+      this.sortieData[off] = cx - 0.5;
+      this.sortieData[off + 1] = y;
+      this.sortieData[off + 2] = 0;
+      this.sortieCount++;
+    }
   }
 
   /** Emit one gold pip instance per veterancy level, stacked by slot index. */

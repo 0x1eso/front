@@ -112,6 +112,8 @@ export class WarfareRingPass {
   private lastStructures: Map<number, UnitState> | null = null;
   private structures: Ring[] = [];
   private zones: Ring[] = [];
+  /** Aim preview rings (airport ranges, the carpet); drawn whatever `visible`. */
+  private aim: readonly Ring[] = [];
 
   /**
    * @param enabled the expanded-warfare option: with it off there can never
@@ -143,6 +145,12 @@ export class WarfareRingPass {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
+  }
+
+  /** Hud aim preview (paradrop / bomber): rings to draw this frame; [] clears. */
+  setAimRings(rings: readonly Ring[]): void {
+    if (!this.enabled) return;
+    this.aim = rings;
   }
 
   setVisible(visible: boolean): void {
@@ -191,13 +199,16 @@ export class WarfareRingPass {
   draw(cameraMatrix: Float32Array): void {
     if (!this.enabled) return;
     const showStructures = this.visible && this.structures.length > 0;
-    if (!showStructures && this.zones.length === 0) return;
+    if (!showStructures && this.zones.length === 0 && this.aim.length === 0) {
+      return;
+    }
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);
     gl.bindVertexArray(this.vao);
     if (showStructures) this.drawRings(this.structures);
     this.drawRings(this.zones);
+    this.drawRings(this.aim);
     gl.bindVertexArray(null);
   }
 
