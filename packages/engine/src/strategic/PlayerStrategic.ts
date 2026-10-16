@@ -23,11 +23,27 @@ const SatelliteStateSchema = z.object({
         by: zInt(),
         type: z.enum(INTERCEPTOR_NUKES),
         resolveTick: zInt(),
+        from: zInt().optional(),
       }),
     )
     .optional(),
 });
 type SatelliteState = z.infer<typeof SatelliteStateSchema>;
+
+/** An orbital strike still landing (spec §6.6); held by the attacker. */
+const StrikeStateSchema = z.object({
+  target: zInt(),
+  startTick: zInt(),
+  /** Next wave to land. */
+  nextWave: zInt(),
+  craterRadius: zInt(),
+  sites: z.array(zInt()),
+  craters: z.array(zInt()),
+  /** Buildings destroyed and troops killed so far (for the result message). */
+  buildings: zInt(),
+  troops: zInt(),
+});
+export type StrikeState = z.infer<typeof StrikeStateSchema>;
 
 export const StrategicStateSchema = z.object({
   /** In STOCKPILED_NUKES order: atom, hydrogen, MIRV. */
@@ -41,6 +57,8 @@ export const StrategicStateSchema = z.object({
     }),
   ),
   satellite: SatelliteStateSchema,
+  /** Present only while a strike is landing. */
+  strike: StrikeStateSchema.optional(),
 });
 export type StrategicState = z.infer<typeof StrategicStateSchema>;
 
@@ -55,6 +73,7 @@ export class PlayerStrategic {
   private stockCounts: number[] = STOCKPILED_NUKES.map(() => 0);
   private _jobs: NukeJobData[] = [];
   private _satellite: SatelliteData = { phase: "none" };
+  private _strike: StrikeState | null = null;
   /** toData() result until the next change. */
   private strategicDataCache: StrategicData | null = null;
 
@@ -117,6 +136,15 @@ export class PlayerStrategic {
     this.changed();
   }
 
+  /** The strike still landing, if any. Not sent to the client. */
+  strike(): StrikeState | null {
+    return this._strike;
+  }
+
+  setStrike(s: StrikeState | null): void {
+    this._strike = s;
+  }
+
   /** A targeted satellite gains an interceptor in flight; ignored otherwise. */
   addInterceptor(i: InterceptorData): void {
     const s = this._satellite;
@@ -143,6 +171,7 @@ export class PlayerStrategic {
   }
 
   snapshot(): StrategicState {
+    const strike = this._strike;
     return {
       stock: [...this.stockCounts],
       jobs: this._jobs.map((j) => ({
@@ -152,6 +181,20 @@ export class PlayerStrategic {
         endTick: j.endTick,
       })),
       satellite: satelliteState(this._satellite),
+      ...(strike === null
+        ? {}
+        : {
+            strike: {
+              target: strike.target,
+              startTick: strike.startTick,
+              nextWave: strike.nextWave,
+              craterRadius: strike.craterRadius,
+              sites: [...strike.sites],
+              craters: [...strike.craters],
+              buildings: strike.buildings,
+              troops: strike.troops,
+            },
+          }),
     };
   }
 
@@ -160,6 +203,14 @@ export class PlayerStrategic {
     p.stockCounts = [...s.stock];
     p._jobs = s.jobs.map((j) => ({ ...j }));
     p._satellite = satelliteData(s.satellite);
+    p._strike =
+      s.strike === undefined
+        ? null
+        : {
+            ...s.strike,
+            sites: [...s.strike.sites],
+            craters: [...s.strike.craters],
+          };
     return p;
   }
 
@@ -191,6 +242,7 @@ function satelliteState(s: SatelliteData): SatelliteState {
           by: i.by,
           type: i.type,
           resolveTick: i.resolveTick,
+          ...(i.from === undefined ? {} : { from: i.from }),
         })),
       };
   }

@@ -1236,6 +1236,7 @@
     "nuke_production_done": "{unit} ready: added to your stockpile",
     "nuke_production_lost": "{name}'s nuclear program was stopped",
     "nuke_production_started": "{name} is developing a nuclear weapon",
+    "orbital_strike_result": "{target} was hit by an orbital strike: {buildings} buildings destroyed, {troops} troops lost",
     "paradrop_inbound": "Paratroopers incoming from {name} ({troops})",
     "plane_shot_down": "Your {unit} was shot down",
     "received_gold_from_captured_ship": "Received {gold} gold from ship captured from {name}",

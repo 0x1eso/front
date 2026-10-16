@@ -7,6 +7,7 @@ import { Game, Player } from "@openfront/engine/game/Game";
 import { orbitalStrike } from "@openfront/engine/strategic/OrbitalStrike";
 import { SatelliteTargetExecution } from "@openfront/engine/strategic/SatelliteOrders";
 import { buildLevel, grantTechs } from "../domestic/util";
+import { expectSnapshotRoundTrip } from "../util/Snapshot";
 import { executeTicks } from "../util/utils";
 import { BLUE, own, RED, strategicGame } from "./util";
 
@@ -114,14 +115,18 @@ describe("the orbital strike", () => {
     expect(city.isActive()).toBe(true);
 
     const updates = game.executeNextTick();
-    expect(city.isActive()).toBe(false);
-    const strikes = updates[GameUpdateType.OrbitalStrike];
+    const strikes = [...updates[GameUpdateType.OrbitalStrike]];
     expect(strikes).toHaveLength(1);
     expect(strikes[0]).toMatchObject({
       attackerID: red.smallID(),
       targetID: blue.smallID(),
+      wave: 0,
     });
-    expect(strikes[0].impacts).toContain(city.tile());
+    for (let i = 0; i < 40; i++) {
+      strikes.push(...game.executeNextTick()[GameUpdateType.OrbitalStrike]);
+    }
+    expect(city.isActive()).toBe(false);
+    expect(strikes.flatMap((u) => u.impacts)).toContain(city.tile());
     expect(
       updates[GameUpdateType.DisplayEvent].some(
         (m) => m.message === "events_display.satellite_strike_landed",
@@ -164,5 +169,121 @@ describe("the orbital strike", () => {
     expect(host.isActive()).toBe(false);
     processVictoryProjectSecond(game, blue, blue.domestic()!);
     expect(blue.domestic()!.victoryProject()).toBeNull();
+  });
+});
+
+describe("the strike in waves (spec §6.6)", () => {
+  /** Aims, runs to the strike and collects every tick's strike updates and messages. */
+  async function run(extra: (g: Game, b: Player) => void = () => {}) {
+    const { game, red, blue } = await theater();
+    for (let i = 0; i < 6; i++) {
+      blue.buildUnit(UnitType.City, game.ref(40 + 8 * i, 20 + 12 * i), {});
+    }
+    extra(game, blue);
+    const strikeTick = aim(game, red, blue);
+    executeTicks(game, strikeTick - game.ticks());
+    const waves: { tick: number; u: any }[] = [];
+    const msgs: string[] = [];
+    const troops: number[] = [];
+    for (let i = 0; i < 45; i++) {
+      const t = game.ticks();
+      const updates = game.executeNextTick();
+      for (const u of updates[GameUpdateType.OrbitalStrike]) {
+        waves.push({ tick: t + 1, u });
+      }
+      troops.push(blue.troops());
+      for (const m of updates[GameUpdateType.DisplayEvent]) {
+        if (m.message === "events_display.orbital_strike_result") {
+          msgs.push(JSON.stringify(m.params));
+        }
+      }
+    }
+    return { game, red, blue, strikeTick, waves, msgs, troops };
+  }
+
+  test("lands over about 30 ticks, one update per wave, buildings first", async () => {
+    const { game, blue, strikeTick, waves } = await run();
+    expect(waves.length).toBeGreaterThan(5);
+    expect(waves.map((w) => w.u.wave)).toEqual(waves.map((_, i) => i));
+    expect(waves.map((w) => w.u.lastWave === true)).toEqual(
+      waves.map((_, i) => i === waves.length - 1),
+    );
+    const span = waves[waves.length - 1].tick - waves[0].tick;
+    expect(span).toBeGreaterThanOrEqual(25);
+    expect(span).toBeLessThan(31);
+    expect(waves[0].tick).toBe(strikeTick + 1);
+    // Sites come before any crater: the first impacts are the 6 cities.
+    const impacts = waves.flatMap((w) => w.u.impacts as number[]);
+    const city = (t: number) => game.x(t) >= 40 && game.x(t) < 90;
+    expect(impacts.slice(0, 6).every(city)).toBe(true);
+    expect(blue.units(UnitType.City)).toHaveLength(0);
+  });
+
+  test("each impact acts when it lands", async () => {
+    const { game, red, blue } = await theater();
+    for (let i = 0; i < 6; i++) {
+      blue.buildUnit(UnitType.City, game.ref(40 + 8 * i, 20 + 12 * i), {});
+    }
+    const strikeTick = aim(game, red, blue);
+    executeTicks(game, strikeTick - game.ticks() + 1);
+    const left = blue.units(UnitType.City).length;
+    expect(left).toBeLessThan(6);
+    expect(left).toBeGreaterThan(0);
+  });
+
+  test("the 70% troop loss is applied once, at the first wave", async () => {
+    const { waves, troops, strikeTick, game } = await run();
+    const first = waves[0].tick - 1;
+    const i0 = first - (strikeTick + 1);
+    expect(troops[i0 + 1]).toBeLessThan(troops[i0 - 1] * 0.5);
+    // After the first wave the total never drops by another 70%.
+    expect(troops[troops.length - 1]).toBeGreaterThan(troops[i0] * 0.9);
+    expect(game.ticks()).toBeGreaterThan(0);
+  });
+
+  test("sends the result message once, with the totals", async () => {
+    const { msgs } = await run();
+    expect(msgs).toHaveLength(1);
+    const p = JSON.parse(msgs[0]);
+    expect(p.buildings).toBe(6);
+    expect(p.troops).toBeGreaterThan(0);
+    expect(typeof p.target).toBe("string");
+  });
+
+  test("totals match the all-at-once strike", async () => {
+    const waved = await run();
+    const { game, red, blue } = await theater();
+    for (let i = 0; i < 6; i++) {
+      blue.buildUnit(UnitType.City, game.ref(40 + 8 * i, 20 + 12 * i), {});
+    }
+    const before = blue.numTilesOwned();
+    aim(game, red, blue);
+    // same tick as the waved run, so the same seed
+    executeTicks(game, waved.strikeTick - game.ticks());
+    orbitalStrike(game, red, blue);
+    executeTicks(game, 2);
+    expect(waved.blue.numTilesOwned()).toBe(blue.numTilesOwned());
+    expect(blue.numTilesOwned()).toBeLessThan(before * 0.7);
+  });
+
+  test("a snapshot mid-strike restores and finishes identically", async () => {
+    const { game, red, blue } = await theater();
+    for (let i = 0; i < 6; i++) {
+      blue.buildUnit(UnitType.City, game.ref(40 + 8 * i, 20 + 12 * i), {});
+    }
+    const strikeTick = aim(game, red, blue);
+    executeTicks(game, strikeTick - game.ticks() + 10);
+    expect(red.strategic()!.strike()).not.toBeNull();
+    await expectSnapshotRoundTrip(game, "plains", 40);
+  });
+
+  test("a strike in progress is kept when the target is allied meanwhile", async () => {
+    const { game, red, blue } = await theater();
+    blue.buildUnit(UnitType.City, game.ref(70, 50), {});
+    const strikeTick = aim(game, red, blue);
+    executeTicks(game, strikeTick - game.ticks() + 3);
+    red.createAllianceRequest(blue)?.accept();
+    executeTicks(game, 40);
+    expect(red.strategic()!.strike()).toBeNull();
   });
 });

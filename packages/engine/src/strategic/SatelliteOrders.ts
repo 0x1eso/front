@@ -120,6 +120,7 @@ export class SatelliteInterceptExecution implements Execution {
       by: this.player.smallID(),
       type: this.nukeType,
       resolveTick: mg.ticks() + INTERCEPTOR_FLIGHT_TICKS,
+      from: silo.tile(),
     });
   }
 

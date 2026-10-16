@@ -833,6 +833,7 @@
     "nuke_production_done": "{unit} 제조 완료: 보유량에 더해졌습니다",
     "nuke_production_lost": "{name}의 핵 개발이 저지되었습니다",
     "nuke_production_started": "{name} 핵무기 개발 중",
+    "orbital_strike_result": "{target} 궤도 포격 피격: 건물 {buildings}개 파괴, 병력 {troops} 소실",
     "satellite_in_orbit": "{name}의 위성이 궤도에 올랐습니다",
     "satellite_intercept_hit": "{name}의 {unit}이(가) 위성을 격추했습니다!",
     "satellite_intercept_miss": "{name}의 {unit}이(가) 위성을 빗나갔습니다",

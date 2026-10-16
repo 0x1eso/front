@@ -1,6 +1,5 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
-import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   InterceptorNuke,
   SatelliteData,
@@ -8,8 +7,8 @@ import {
 import { SATELLITE_PREP_TICKS } from "@openfront/engine-lib/strategic/Strategic";
 import type { Game, Player, Unit } from "../game/Game";
 import { interceptorHits } from "./Interception";
-import { orbitalStrike } from "./OrbitalStrike";
 import type { PlayerStrategic } from "./PlayerStrategic";
+import { processStrike, startOrbitalStrike } from "./StrikeWaves";
 
 /** A satellite message for every player, naming `player` (re-resolved through focusPlayerID). */
 export function announceSatellite(
@@ -156,13 +155,7 @@ function resolveCountdown(
     return;
   }
   s.setSatellite({ phase: "spent" });
-  const impacts = orbitalStrike(mg, player, target);
-  mg.addUpdate({
-    type: GameUpdateType.OrbitalStrike,
-    attackerID: player.smallID(),
-    targetID: target.smallID(),
-    impacts,
-  });
+  startOrbitalStrike(mg, player, s, target, now);
   announceSatellite(
     mg,
     "events_display.satellite_strike_landed",
@@ -184,6 +177,7 @@ export function processSatellite(
   s: PlayerStrategic,
   now: number,
 ): void {
+  processStrike(mg, player, s, now);
   const sat = s.satellite();
   if (sat.phase === "targeted") {
     resolveCountdown(mg, player, s, sat, now);

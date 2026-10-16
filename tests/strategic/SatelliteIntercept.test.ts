@@ -176,6 +176,18 @@ describe("intercepting a satellite", () => {
     expect(blue.strategic()!.stock(UnitType.HydrogenBomb)).toBe(1);
   });
 
+  test("an interceptor remembers the silo it was fired from", async () => {
+    const { game, red, blue, greenSilo, green } = await countdown();
+    blue.strategic()!.addStock(UnitType.HydrogenBomb);
+    green.strategic()!.addStock(UnitType.HydrogenBomb);
+    intercept(game, green, red, UnitType.HydrogenBomb);
+    executeTicks(game, 1);
+    const s = red.strategic()!.satellite();
+    if (s.phase !== "targeted") throw new Error("not targeted");
+    expect(s.interceptors[0].from).toBe(greenSilo.tile());
+    expect(red.strategic()!.toData().satellite).toEqual(s);
+  });
+
   test("survives a snapshot with an interceptor in flight", async () => {
     const { game, red, blue } = await countdown();
     blue.strategic()!.addStock(UnitType.HydrogenBomb);
