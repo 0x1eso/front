@@ -179,6 +179,11 @@ export class ResearchTechIntentEvent implements GameEvent {
   ) {}
 }
 
+/** Reserve `tech` as the next research, or clear the reservation (null). */
+export class SendQueueResearchIntentEvent implements GameEvent {
+  constructor(public readonly tech: TechId | null) {}
+}
+
 export class SetRecruitTargetIntentEvent implements GameEvent {
   constructor(public readonly percent: number) {}
 }
@@ -380,6 +385,9 @@ export class Transport {
     );
     this.subscribe(ResearchTechIntentEvent, (e) =>
       this.onResearchTechIntent(e),
+    );
+    this.subscribe(SendQueueResearchIntentEvent, (e) =>
+      this.onQueueResearchIntent(e),
     );
     this.subscribe(SetRecruitTargetIntentEvent, (e) =>
       this.onSetRecruitTargetIntent(e),
@@ -938,6 +946,13 @@ export class Transport {
       type: "research_tech",
       tech: event.tech,
       payWithGold: event.payWithGold,
+    });
+  }
+
+  private onQueueResearchIntent(event: SendQueueResearchIntentEvent) {
+    this.sendIntent({
+      type: "queue_research",
+      tech: event.tech,
     });
   }
 

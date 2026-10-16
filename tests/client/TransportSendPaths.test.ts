@@ -56,6 +56,7 @@ import {
   SendBoatAttackIntentEvent,
   SendDonateGoldIntentEvent,
   SendHashEvent,
+  SendQueueResearchIntentEvent,
   SendSpawnIntentEvent,
   SendWinnerEvent,
   Transport,
@@ -219,6 +220,22 @@ describe("Transport send paths", () => {
       expect(decodeFrames(ws)).toContainEqual({
         type: "intent",
         intent: { type: "boat", troops: 0, dst: 7 },
+      });
+    });
+
+    it("turns a research reservation and its cancel into queue_research frames", () => {
+      const { eventBus, ws } = connected();
+      eventBus.emit(new SendQueueResearchIntentEvent("banking"));
+      eventBus.emit(new SendQueueResearchIntentEvent(null));
+
+      const frames = decodeFrames(ws);
+      expect(frames).toContainEqual({
+        type: "intent",
+        intent: { type: "queue_research", tech: "banking" },
+      });
+      expect(frames).toContainEqual({
+        type: "intent",
+        intent: { type: "queue_research", tech: null },
       });
     });
 

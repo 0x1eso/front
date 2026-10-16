@@ -1,5 +1,6 @@
 import { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { GameMode, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
 import path from "path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -10,10 +11,19 @@ vi.mock("../../src/client/Utils", async (importOriginal) => ({
 }));
 
 import {
-  DomesticPanel,
-  TABS,
-} from "../../src/client/hud/domestic/DomesticPanel";
+  DOMESTIC_SCREENS,
+  DomesticScreen,
+  DomesticScreenShownEvent,
+  OpenDomesticScreenEvent,
+} from "../../src/client/hud/domestic/DomesticEvents";
+// Side-effect import: the custom element must register.
+import "../../src/client/hud/domestic/DomesticPanel";
+import type { DomesticPanel } from "../../src/client/hud/domestic/DomesticPanel";
 import { MapControls } from "../../src/client/hud/layers/MapControls";
+import {
+  ProclaimLawIntentEvent,
+  SendQueueResearchIntentEvent,
+} from "../../src/client/Transport";
 import { DomesticClientView } from "../../src/client/view/DomesticClientView";
 
 const INDEX = new DOMParser().parseFromString(
@@ -39,7 +49,11 @@ const DATA = {
   conditions: [],
 } as unknown as DomesticData;
 
-async function openDrawer(): Promise<DomesticPanel> {
+/** A drawer wired to a real bus; nothing open yet. */
+async function mountDrawer(
+  overrides: Partial<DomesticData> = {},
+): Promise<DomesticPanel> {
+  const data = { ...DATA, ...overrides };
   const panel = document.createElement("domestic-panel") as DomesticPanel;
   // A finished level-3 Research Institute / Admin Office: a project host.
   const host = {
@@ -48,8 +62,8 @@ async function openDrawer(): Promise<DomesticPanel> {
     isUnderConstruction: () => false,
   };
   const me = {
-    domesticData: () => DATA,
-    domestic: () => new DomesticClientView(DATA),
+    domesticData: () => data,
+    domestic: () => new DomesticClientView(data),
     gold: () => 0n,
     units: () => [host],
     numTilesOwned: () => 10,
@@ -69,20 +83,31 @@ async function openDrawer(): Promise<DomesticPanel> {
       maxTimerMinutes: () => 30,
       gameConfig: () => ({ gameMode: GameMode.FFA }),
       hasInfiniteGold: () => false,
+      isUnitDisabled: () => false,
     }),
     elapsedGameSeconds: () => 0,
     playerViews: () => [me],
   } as unknown as DomesticPanel["game"];
-  let toggle: () => void = () => {};
-  panel.eventBus = {
-    on: (_: unknown, cb: () => void) => (toggle = cb),
-    emit: vi.fn(),
-  } as unknown as DomesticPanel["eventBus"];
+  panel.eventBus = new EventBus();
   document.body.appendChild(panel);
   panel.init();
-  toggle();
   panel.tick();
   await panel.updateComplete;
+  return panel;
+}
+
+/** Tap a dial: the drawer opens on (or closes) its screen. */
+async function tapDial(panel: DomesticPanel, screen: DomesticScreen) {
+  panel.eventBus.emit(new OpenDomesticScreenEvent(screen));
+  await panel.updateComplete;
+}
+
+async function openDrawer(
+  screen: DomesticScreen = "research",
+  overrides: Partial<DomesticData> = {},
+): Promise<DomesticPanel> {
+  const panel = await mountDrawer(overrides);
+  await tapDial(panel, screen);
   return panel;
 }
 
@@ -183,9 +208,9 @@ describe("domestic drawer", () => {
     expect(drawer.tagName).toBe("ASIDE");
     expect(drawer.classList).toContain("fixed");
     expect(drawer.style.right).not.toBe("");
-    expect(drawer.classList).toContain("w-[40vw]");
+    expect(drawer.classList).toContain("w-[45vw]");
     // No full-screen backdrop: taps on the map still reach the map.
-    expect(panel.querySelector(".inset-0")).toBeNull();
+    expect([...panel.querySelectorAll(".fixed")]).toEqual([drawer]);
   });
 
   it.each([
@@ -202,8 +227,8 @@ describe("domestic drawer", () => {
       )!;
       const { top, right, bottom } = offsets(drawer);
       // Below the sidebar, above the bottom HUD's fixed rows (build bar,
-      // attack ratio, the domestic row and its toggle), left of the map
-      // buttons: whatever its width, the drawer covers none of them.
+      // attack ratio, the domestic dials), left of the map buttons:
+      // whatever its width, the drawer covers none of them.
       expect(top).toBeGreaterThanOrEqual(
         hud.topRight.getBoundingClientRect().bottom,
       );
@@ -213,7 +238,7 @@ describe("domestic drawer", () => {
       expect(width - right).toBeLessThanOrEqual(
         hud.buttons.getBoundingClientRect().left,
       );
-      // ...and still has room for its tabs and cards.
+      // ...and still has room for its cards.
       expect(height - bottom - top).toBeGreaterThan(300);
     },
   );
@@ -252,7 +277,7 @@ describe("domestic drawer", () => {
     await panel.updateComplete;
     expect(offsets(drawer()).bottom).toBe(before);
 
-    // The fixed rows grow (the domestic row appears): the drawer moves up.
+    // The fixed rows grow (the build bar wraps): the drawer moves up.
     place(hud.rows, { left: 212, top: 538, right: 812, bottom: 768 });
     onResize();
     await panel.updateComplete;
@@ -340,7 +365,7 @@ describe("domestic drawer", () => {
     ).not.toBeNull();
   });
 
-  it("keeps clear of the box with the control panel, build bar and domestic row", () => {
+  it("keeps clear of the box with the control panel and build bar", () => {
     const rows = INDEX.querySelector("[data-bottom-hud-rows]")!;
     expect(rows).not.toBeNull();
     for (const tag of ["control-panel", "unit-display", "domestic-dials"]) {
@@ -364,68 +389,152 @@ describe("domestic drawer", () => {
     expect(z).toBeLessThan(zIndex(hud.buttons));
   });
 
-  it("has one tab button per tab, whatever the tab list holds", async () => {
-    const panel = await openDrawer();
-    const tabs = [...panel.querySelectorAll<HTMLElement>('[role="tab"]')];
-    expect(tabs.map((t) => t.dataset.tab)).toEqual([...TABS]);
-    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
-  });
-
-  it("wraps the tab row instead of hiding tabs off to the side", async () => {
-    const panel = await openDrawer();
-    const tablist = panel.querySelector('[role="tablist"]')!;
-    // Long English tab names don't fit one row of a 420px drawer; every tab
-    // must stay on screen rather than behind a sideways scroll.
-    expect(tablist.classList).toContain("flex-wrap");
-    expect(tablist.classList).not.toContain("overflow-x-auto");
-  });
-
-  it("switches tabs and keeps every control 44px with no tooltips", async () => {
-    const panel = await openDrawer();
-    for (const tab of TABS) {
-      panel
-        .querySelector<HTMLButtonElement>(`[role="tab"][data-tab="${tab}"]`)!
-        .click();
-      await panel.updateComplete;
+  it("opens on the tapped dial's screen; a second tap on it closes", async () => {
+    const panel = await mountDrawer();
+    const shown: (DomesticScreen | null)[] = [];
+    panel.eventBus.on(DomesticScreenShownEvent, (e) => shown.push(e.screen));
+    const drawer = () =>
+      panel.querySelector<HTMLElement>("[data-domestic-drawer]");
+    expect(drawer()).toBeNull();
+    // Each screen shows its own content, under its own title.
+    const content: Record<DomesticScreen, string> = {
+      research: "[data-tech-tree]",
+      laws: "[data-law-status]",
+      victory: "[data-victory-block]",
+    };
+    for (const screen of DOMESTIC_SCREENS) {
+      await tapDial(panel, screen);
+      expect(drawer()!.dataset.screen).toBe(screen);
       expect(
-        panel
-          .querySelector(`[role="tab"][data-tab="${tab}"]`)!
-          .getAttribute("aria-selected"),
-      ).toBe("true");
-      for (const b of panel.querySelectorAll("button")) {
-        expect(b.className).toMatch(/\b(size-11|h-11|min-h-11)\b/);
+        panel.querySelector("[data-domestic-title]")!.textContent,
+      ).toContain(`[domestic.screen.${screen}]`);
+      for (const other of DOMESTIC_SCREENS) {
+        expect(panel.querySelector(content[other]) !== null).toBe(
+          other === screen,
+        );
       }
+    }
+    await tapDial(panel, "victory");
+    expect(drawer()).toBeNull();
+    expect(shown).toEqual(["research", "laws", "victory", null]);
+  });
+
+  it("has no tab row: the dials choose the screen", async () => {
+    const panel = await openDrawer();
+    expect(panel.querySelector('[role="tablist"]')).toBeNull();
+    expect(panel.querySelector('[role="tab"]')).toBeNull();
+  });
+
+  it("puts nothing behind a hover on any screen", async () => {
+    const panel = await openDrawer();
+    for (const screen of DOMESTIC_SCREENS) {
+      await tapDial(panel, screen);
       expect(panel.querySelectorAll("[title]")).toHaveLength(0);
     }
   });
 
-  it("lists technologies by era with their branch on the card", async () => {
-    const panel = await openDrawer();
+  it("lays the research tree out by era, one column per branch", async () => {
+    const panel = await openDrawer("research");
     const firstEra = panel.querySelector('[data-era="1"]')!;
-    expect(firstEra.textContent).toContain("[domestic.era]");
-    expect(firstEra.querySelector("[data-tech]")!.textContent).toMatch(
-      /\[domestic\.branch\.(economy|military|learning)\]/,
-    );
+    expect(
+      [...firstEra.querySelectorAll<HTMLElement>("[data-column]")].map(
+        (c) => c.dataset.column,
+      ),
+    ).toEqual(["economy", "military", "learning"]);
+    expect(firstEra.querySelector('[data-tech="currency"]')).not.toBeNull();
   });
 
-  it("says why a gold payment is blocked", async () => {
-    const panel = await openDrawer();
-    const card = panel.querySelector('[data-era="1"] [data-tech]')!;
-    expect(card.querySelector("button")!.disabled).toBe(true);
-    expect(card.querySelector("[data-reason]")!.textContent).toContain(
+  it("the research sheet says why a gold payment is blocked", async () => {
+    const panel = await openDrawer("research");
+    panel.querySelector<HTMLButtonElement>('[data-tech="currency"]')!.click();
+    await panel.updateComplete;
+    const sheet = panel.querySelector("[data-tech-sheet]")!;
+    const gold = sheet.querySelector<HTMLButtonElement>(
+      '[data-sheet-action="gold"]',
+    )!;
+    expect(gold.disabled).toBe(true);
+    expect(sheet.querySelector("[data-reason]")!.textContent).toContain(
       "[build_menu.not_enough_money]",
     );
   });
 
-  it("the laws tab says why a gold proclamation is blocked", async () => {
-    const panel = await openDrawer();
-    panel
-      .querySelector<HTMLButtonElement>('[role="tab"][data-tab="laws"]')!
-      .click();
+  it("reserving from the sheet sends the queue intent; the slot's ✕ clears it", async () => {
+    const panel = await openDrawer("research", {
+      research: { tech: "currency", ticksLeft: 100, totalTicks: 200 },
+      queuedTech: "academia",
+    });
+    const queued: (string | null)[] = [];
+    panel.eventBus.on(SendQueueResearchIntentEvent, (e) => queued.push(e.tech));
+    panel.querySelector<HTMLButtonElement>('[data-tech="navigation"]')!.click();
     await panel.updateComplete;
+    const queue = () =>
+      panel.querySelector<HTMLButtonElement>('[data-sheet-action="queue"]')!;
+    queue().click();
+    await panel.updateComplete;
+    expect(queued).toEqual([]);
+    queue().click();
+    await panel.updateComplete;
+    expect(queued).toEqual(["navigation"]);
+
+    panel.querySelector<HTMLButtonElement>("[data-queue-cancel]")!.click();
+    expect(queued).toEqual(["navigation", null]);
+  });
+
+  it("the detail sheet sits above the HUD over the drawer, and the list scrolls clear of it", async () => {
+    let onResize: () => void = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(cb: () => void) {
+          onResize = cb;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const hud = await mountHud(1024, 768);
+    const side = document.createElement("div");
+    side.setAttribute("data-bottom-hud-side", "");
+    place(side, { left: 820, top: 400, right: 1016, bottom: 768 });
+    hud.bottomHud.append(side);
+    const panel = await openDrawer("research");
+    const drawer = panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
+    const { top, right, bottom } = offsets(drawer);
+    place(drawer, {
+      left: 1024 - right - 460,
+      top,
+      right: 1024 - right,
+      bottom: 768 - bottom,
+    });
+    onResize();
+    await panel.updateComplete;
+    const covered = 768 - bottom - 400;
+    expect(covered).toBeGreaterThan(0);
+
+    panel.querySelector<HTMLButtonElement>('[data-tech="currency"]')!.click();
+    await panel.updateComplete;
+    const sheet = panel.querySelector<HTMLElement>("[data-tech-sheet]")!;
+    expect(parseFloat(sheet.style.bottom)).toBe(covered);
+    place(sheet, { left: 0, top: 0, right: 400, bottom: 220 });
+    panel.requestUpdate();
+    await panel.updateComplete;
+    await panel.updateComplete;
+    const padding = parseFloat(
+      panel.querySelector<HTMLElement>("[data-domestic-scroll]")!.style
+        .paddingBottom,
+    );
+    expect(padding).toBe(12 + covered + 220);
+  });
+
+  it("the laws screen says why a gold proclamation is blocked", async () => {
+    const panel = await openDrawer("laws");
     // No political power and no gold: the open law pays in gold it lacks.
     const option = panel.querySelector('[data-law="trade"] [data-option="A"]')!;
-    expect(option.querySelector("button")!.disabled).toBe(true);
+    option.querySelector<HTMLButtonElement>("[data-law-pick]")!.click();
+    await panel.updateComplete;
+    expect(
+      option.querySelector<HTMLButtonElement>("[data-law-confirm]")!.disabled,
+    ).toBe(true);
     expect(option.querySelector("[data-reason]")!.textContent).toContain(
       "[build_menu.not_enough_money]",
     );
@@ -435,45 +544,32 @@ describe("domestic drawer", () => {
     expect(locked.querySelector("[data-reason]")).toBeNull();
   });
 
-  it("a law takes a second tap, and leaving the tab forgets the first (M7)", async () => {
-    (DATA as { political: number }).political = 1000;
-    try {
-      const panel = await openDrawer();
-      const tab = (name: string) =>
-        panel
-          .querySelector<HTMLButtonElement>(`[role="tab"][data-tab="${name}"]`)!
-          .click();
-      const button = () =>
-        panel.querySelector<HTMLButtonElement>(
-          '[data-law="trade"] [data-option="A"] button',
-        )!;
-      tab("laws");
-      await panel.updateComplete;
-      button().click();
-      await panel.updateComplete;
-      expect(button().textContent).toContain("[domestic.tap_again_to_confirm]");
-      expect(panel.eventBus.emit).not.toHaveBeenCalled();
+  it("a law takes a second tap, and leaving the screen forgets the first (M7)", async () => {
+    const panel = await openDrawer("laws", { political: 1000 });
+    const proclaimed: string[] = [];
+    panel.eventBus.on(ProclaimLawIntentEvent, (e) =>
+      proclaimed.push(`${e.law}:${e.option}:${e.payWithGold}`),
+    );
+    const card = () =>
+      panel.querySelector('[data-law="trade"] [data-option="A"]')!;
+    const confirm = () =>
+      card().querySelector<HTMLButtonElement>("[data-law-confirm]");
+    card().querySelector<HTMLButtonElement>("[data-law-pick]")!.click();
+    await panel.updateComplete;
+    expect(confirm()!.textContent).toContain("[domestic.book.proclaim]");
+    expect(proclaimed).toEqual([]);
 
-      tab("tech");
-      await panel.updateComplete;
-      tab("laws");
-      await panel.updateComplete;
-      expect(button().textContent).toContain("[domestic.proclaim]");
-      button().click();
-      await panel.updateComplete;
-      button().click();
-      expect(panel.eventBus.emit).toHaveBeenCalledOnce();
-    } finally {
-      (DATA as { political: number }).political = 0;
-    }
+    await tapDial(panel, "research");
+    await tapDial(panel, "laws");
+    expect(confirm()).toBeNull();
+    card().querySelector<HTMLButtonElement>("[data-law-pick]")!.click();
+    await panel.updateComplete;
+    confirm()!.click();
+    expect(proclaimed).toEqual(["trade:A:false"]);
   });
 
-  it("the victory tab says on screen why a project cannot start", async () => {
-    const panel = await openDrawer();
-    panel
-      .querySelector<HTMLButtonElement>('[role="tab"][data-tab="victory"]')!
-      .click();
-    await panel.updateComplete;
+  it("the victory screen says on screen why a project cannot start", async () => {
+    const panel = await openDrawer("victory");
     const reason = panel.querySelector<HTMLElement>("[data-victory-block]")!;
     // Neither project is qualified yet (no Space Program, government tier 0).
     expect(reason.textContent).toContain(
@@ -484,10 +580,13 @@ describe("domestic drawer", () => {
     expect(button.type).toBe("button");
   });
 
-  it("closes with the ✕ button", async () => {
+  it("closes with the ✕ button and tells the dials", async () => {
     const panel = await openDrawer();
+    const shown: (DomesticScreen | null)[] = [];
+    panel.eventBus.on(DomesticScreenShownEvent, (e) => shown.push(e.screen));
     panel.querySelector<HTMLButtonElement>("[data-domestic-close]")!.click();
     await panel.updateComplete;
     expect(panel.querySelector("[data-domestic-drawer]")).toBeNull();
+    expect(shown).toEqual([null]);
   });
 });

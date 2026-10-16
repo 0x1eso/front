@@ -806,9 +806,17 @@
   },
   "domestic": {
     "blocked": {
-      "busy": "Another research is in progress",
-      "era": "Needs 2 techs from the previous era",
       "prereq": "Needs {tech}"
+    },
+    "book": {
+      "all_proclaimed": "Every law has been proclaimed",
+      "choose_government": "A new government can be chosen. Pick one below.",
+      "no_income": "Not enough political power",
+      "none_open": "No law can be proclaimed yet",
+      "permanent": "Permanent: the other option closes for good.",
+      "preview": "Tier {tier} governments",
+      "proclaim": "Proclaim ({cost} political power)",
+      "ready": "A law can be proclaimed now"
     },
     "branch": {
       "economy": "Economy",
@@ -816,6 +824,12 @@
       "military": "Military"
     },
     "cost": "{cost} science · {seconds}s",
+    "dial": {
+      "government": "A new government can be chosen",
+      "queued": "Next research: {tech}",
+      "ready": "Ready now",
+      "seconds": "{seconds}s"
+    },
     "era": "Era {era}",
     "gov": {
       "chiefdom": {
@@ -983,12 +997,9 @@
     "law_cooldown": "Next proclamation in {seconds}s",
     "law_next_cost": "Next law: {cost} political power",
     "locked_requires": "Requires {tech}",
-    "open_panel": "Domestic",
-    "panel_title": "Domestic Affairs",
     "pay_with_gold": "Pay {gold} gold",
     "per_sec": "+{value}/s",
     "political": "Political Power",
-    "proclaim": "Proclaim",
     "proclaim_with_gold": "Proclaim for {gold} gold",
     "proclaimed": "Proclaimed",
     "project": {
@@ -1001,17 +1012,20 @@
         "name": "Space Program"
       }
     },
+    "ready_in": "Ready in about {seconds}s",
+    "recruit_chip": "Draft {pct}%",
+    "recruit_help": "Troops stop growing at this share of max troops. Lower it to spend less gold on upkeep.",
     "recruit_target": "Recruit up to {pct}%",
-    "rejected": "Closed",
-    "research": "Research",
+    "rejected": "Discarded",
     "research_progress": "Researching {tech}: {seconds}s left",
     "researched": "Researched",
     "researching": "Researching",
     "science": "Science",
-    "tab_government": "Government",
-    "tab_laws": "Book of Laws",
-    "tab_tech": "Technology",
-    "tab_victory": "Victory",
+    "screen": {
+      "laws": "Book of Laws",
+      "research": "Research",
+      "victory": "Victory"
+    },
     "tap_again_to_confirm": "Tap again to confirm (permanent)",
     "tech": {
       "academia": {
@@ -1098,6 +1112,28 @@
         "desc": "Unlocks hydrogen bombs",
         "name": "Thermonuclear Weapons"
       }
+    },
+    "tree": {
+      "cancel_queue": "Cancel reservation",
+      "done": "Done",
+      "era_gate": "Era {era} opens: {need} techs from era {prev} ({have}/{need})",
+      "idle": "No research running",
+      "idle_hint": "Tap a technology below to start.",
+      "meta": "Era {era} · {branch}",
+      "needs_era": "Needs {need} techs from era {era}",
+      "next": "Next",
+      "next_empty": "Nothing reserved",
+      "next_hint": "A reserved technology starts by itself once the current research ends and enough science is in (no gold is spent).",
+      "no_income": "Not enough science",
+      "queue_auto": "Reserve (starts by itself when ready)",
+      "queue_confirm": "Tap again to reserve",
+      "queue_next": "Research next",
+      "queue_replaces": "The reserved {tech} will be dropped",
+      "queued": "Reserved",
+      "ready": "Ready now",
+      "seconds_left": "{seconds}s left",
+      "start": "Start research ({cost} science)",
+      "unlocks": "Unlocks"
     },
     "victory": {
       "active": "Projects in progress",
