@@ -195,7 +195,9 @@
       "airport": "범위 안 공수 투입·폭격, 무역 상대 공항과 화물 항공로",
       "bomber": "공항에서 출격하는 소형 폭탄, SAM 요격을 절반은 피함",
       "coastal_barrage": "미사일 발사대에서 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
-      "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다"
+      "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다",
+      "conventional_missile": "발사대에서 쏴 적 건물의 레벨을 1 낮춥니다. 공장이면 만들던 핵이 사라집니다",
+      "satellite": "한 게임에 한 번: 발사대에서 90초 준비 뒤 한 나라를 포격합니다(건물 전부, 병력 70%, 땅이 바다로)"
     },
     "not_enough_money": "돈이 부족합니다",
     "upgrade_amount": "x{amount}",
@@ -825,7 +827,20 @@
     "bombing_detonated": "{name} - 폭격을 맞았습니다",
     "no_airport_available": "그곳에 보낼 수 있는 공항이 없습니다",
     "paradrop_inbound": "{name}의 공수부대가 내려옵니다 ({troops})",
-    "plane_shot_down": "{unit}이(가) 격추되었습니다"
+    "plane_shot_down": "{unit}이(가) 격추되었습니다",
+    "conventional_missile_hit": "{name}의 미사일이 건물을 맞혔습니다",
+    "conventional_missile_inbound": "{name} - 미사일이 날아옵니다",
+    "nuke_production_done": "{unit} 제조 완료: 보유량에 더해졌습니다",
+    "nuke_production_lost": "{name}의 핵 개발이 저지되었습니다",
+    "nuke_production_started": "{name} 핵무기 개발 중",
+    "satellite_in_orbit": "{name}의 위성이 궤도에 올랐습니다",
+    "satellite_intercept_hit": "{name}의 {unit}이(가) 위성을 격추했습니다!",
+    "satellite_intercept_miss": "{name}의 {unit}이(가) 위성을 빗나갔습니다",
+    "satellite_prep_failed": "{name}의 위성 준비가 실패했습니다",
+    "satellite_preparing": "{name} 궤도 포격 위성 준비 중",
+    "satellite_strike_aborted": "목표가 사라졌거나 우호국이 되어 위성 포격이 취소되었습니다",
+    "satellite_strike_landed": "{name}의 위성 포격이 {target}에 떨어졌습니다",
+    "satellite_targeted": "{name} → {target} 위성 포격 (60초 뒤)"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -933,7 +948,8 @@
     "water_nukes": "수몰 폭탄",
     "domestic_mode": "내정 모드",
     "conquest_percent": "정복 기준 %",
-    "warfare_expansion": "확장 전쟁"
+    "warfare_expansion": "확장 전쟁",
+    "strategic_weapons": "전략 무기"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -1305,7 +1321,8 @@
     "troops": "병력",
     "type": "유형",
     "warships": "군함",
-    "score": "점수"
+    "score": "점수",
+    "nukes": "핵"
   },
   "leaderboard_modal": {
     "clan": "클랜",
@@ -2232,7 +2249,9 @@
     "cargo_plane": "화물기",
     "coastal_barrage": "해안 포격",
     "coastal_battery": "해안 포대",
-    "transport_plane": "수송기"
+    "transport_plane": "수송기",
+    "conventional_missile": "일반 미사일",
+    "satellite": "궤도 포격 위성"
   },
   "update_available": {
     "desktop": "OpenFront의 새로운 버전을 이용할 수 있습니다. 백그라운드에서 다운로드되며, 준비가 완료되면 업데이트 표시줄에서 새로고침하세요.",
@@ -2574,7 +2593,7 @@
         "name": "과학적 방법"
       },
       "space_program": {
-        "desc": "우주 계획 착수 가능 (과학 승리)",
+        "desc": "우주 계획 착수 가능 (과학 승리), 전략 무기에서는 궤도 포격 위성",
         "name": "우주 개발"
       },
       "steel_ships": {
@@ -2807,5 +2826,25 @@
     "tap_again_to_build": "한 번 더 누르면 건설합니다",
     "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다",
     "needs_airport": "공항을 먼저 지으세요"
+  },
+  "strategic": {
+    "band": "{name} → {target} 위성 포격",
+    "choose_target": "목표 나라 고르기",
+    "intercept_with": "{unit} {count}발 · {pct}%",
+    "interceptors_in_flight": "요격탄 비행 중 {count}",
+    "needs_factory": "공장을 먼저 지으세요",
+    "no_free_line": "공장의 제조 라인이 모두 쓰이고 있습니다",
+    "no_stock": "보유한 핵이 없습니다. 공장에서 먼저 제조하세요",
+    "no_targets": "고를 수 있는 나라가 없습니다",
+    "produce": "제조 ({seconds}초)",
+    "producing": "제조 중 {count}발",
+    "satellite_busy": "위성을 준비하고 있습니다",
+    "satellite_ready": "위성이 궤도에 올랐습니다",
+    "satellite_used": "이미 위성을 쏘아 올렸습니다",
+    "seconds_left": "{seconds}초",
+    "stock": "보유 {count}발",
+    "tap_again_to_fire": "한 번 더 눌러 발사",
+    "tap_again_to_target": "한 번 더 눌러 확정",
+    "target_title": "위성 포격 목표"
   }
 }
