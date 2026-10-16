@@ -126,6 +126,7 @@ const DEFAULT_OPTIONS = {
   customAllianceMinutes: undefined as number | undefined,
   waterNukes: false,
   domesticMode: false,
+  warfareExpansion: false,
   conquestPercent: undefined as number | undefined,
   doomsdayClock: false,
   doomsdayClockSpeed: "normal" as DoomsdayClockSpeed,
@@ -217,6 +218,7 @@ export class SinglePlayerModal extends BaseModal {
     DEFAULT_OPTIONS.customAllianceMinutes;
   @state() private waterNukes: boolean = DEFAULT_OPTIONS.waterNukes;
   @state() private domesticMode: boolean = DEFAULT_OPTIONS.domesticMode;
+  @state() private warfareExpansion: boolean = DEFAULT_OPTIONS.warfareExpansion;
   @state() private conquestPercent: number | undefined =
     DEFAULT_OPTIONS.conquestPercent;
   @state() private doomsdayClock: boolean = DEFAULT_OPTIONS.doomsdayClock;
@@ -591,6 +593,10 @@ export class SinglePlayerModal extends BaseModal {
                     checked: this.domesticMode,
                   },
                   {
+                    labelKey: "game_settings.warfare_expansion",
+                    checked: this.warfareExpansion,
+                  },
+                  {
                     labelKey: "game_settings.doomsday_clock",
                     checked: this.doomsdayClock,
                     doomsdayClockSpeed: this.doomsdayClockSpeed,
@@ -660,6 +666,7 @@ export class SinglePlayerModal extends BaseModal {
       this.customAllianceMinutes !== DEFAULT_OPTIONS.customAllianceMinutes ||
       this.waterNukes !== DEFAULT_OPTIONS.waterNukes ||
       this.domesticMode !== DEFAULT_OPTIONS.domesticMode ||
+      this.warfareExpansion !== DEFAULT_OPTIONS.warfareExpansion ||
       this.conquestPercent !== DEFAULT_OPTIONS.conquestPercent ||
       this.doomsdayClock !== DEFAULT_OPTIONS.doomsdayClock ||
       // Pace only matters when the mode is on (startGame drops it when off).
@@ -738,6 +745,7 @@ export class SinglePlayerModal extends BaseModal {
     this.customAllianceMinutes = DEFAULT_OPTIONS.customAllianceMinutes;
     this.waterNukes = DEFAULT_OPTIONS.waterNukes;
     this.domesticMode = DEFAULT_OPTIONS.domesticMode;
+    this.warfareExpansion = DEFAULT_OPTIONS.warfareExpansion;
     this.conquestPercent = DEFAULT_OPTIONS.conquestPercent;
     this.doomsdayClock = DEFAULT_OPTIONS.doomsdayClock;
     this.doomsdayClockSpeed = DEFAULT_OPTIONS.doomsdayClockSpeed;
@@ -848,6 +856,9 @@ export class SinglePlayerModal extends BaseModal {
           this.maxTimerValue = defaults.maxTimerValue;
           this.overtime = defaults.overtime;
         }
+        break;
+      case "game_settings.warfare_expansion":
+        this.warfareExpansion = checked;
         break;
       case "game_settings.doomsday_clock":
         this.doomsdayClock = checked;
@@ -1253,6 +1264,7 @@ export class SinglePlayerModal extends BaseModal {
                   : {}),
                 ...(this.waterNukes ? { waterNukes: true } : {}),
                 ...(this.domesticMode ? { domesticMode: true } : {}),
+                ...(this.warfareExpansion ? { warfareExpansion: true } : {}),
                 ...(this.domesticMode && this.conquestPercent !== undefined
                   ? { conquestPercent: this.conquestPercent }
                   : {}),
