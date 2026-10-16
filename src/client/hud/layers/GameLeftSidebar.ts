@@ -202,6 +202,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
             .game=${this.game}
             .domesticMode=${this.game?.config().gameConfig().domesticMode ===
             true}
+            .strategicWeapons=${this.game?.config().gameConfig()
+              .strategicWeapons === true}
             .eventBus=${this.eventBus}
             .visible=${this.isPlayerStatsShown}
           ></player-stats>
@@ -212,6 +214,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
             .game=${this.game}
             .domesticMode=${this.game?.config().gameConfig().domesticMode ===
             true}
+            .strategicWeapons=${this.game?.config().gameConfig()
+              .strategicWeapons === true}
             .visible=${this.isTeamStatsShown && this.isTeamGame}
           ></team-stats>
         </div>

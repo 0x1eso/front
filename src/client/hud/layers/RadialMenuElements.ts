@@ -481,9 +481,11 @@ function createMenuElements(
           if (!buildableUnit) {
             return [];
           }
+          // Strategic weapons fire bombs one at a time from the stockpile.
           const isStackableNuke =
             item.unitType === UnitType.AtomBomb &&
-            buildableUnit.canBuild !== false;
+            buildableUnit.canBuild !== false &&
+            !params.game.config().strategicWeapons();
           if (
             (buildableUnit.canUpgrade === false && !isStackableNuke) ||
             !params.buildMenu.canBuildOrUpgrade(item)

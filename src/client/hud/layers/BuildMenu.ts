@@ -7,6 +7,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
+import { isStockpiledNuke } from "@openfront/engine-lib/strategic/Strategic";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { css, html, LitElement } from "lit";
@@ -44,6 +45,9 @@ const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
 const airportIcon = assetUrl("images/AirportIconWhite.svg");
 const coastalBarrageIcon = assetUrl("images/ExplosionIconWhite.svg");
 const bomberIcon = assetUrl("images/BomberIconWhite.svg");
+const conventionalMissileIcon = assetUrl(
+  "images/ConventionalMissileIconWhite.svg",
+);
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -74,6 +78,13 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: hydrogenBombIcon,
       description: "build_menu.desc.hydrogen_bomb",
       key: "unit_type.hydrogen_bomb",
+      countable: false,
+    },
+    {
+      unitType: UnitType.ConventionalMissile,
+      icon: conventionalMissileIcon,
+      description: "build_menu.desc.conventional_missile",
+      key: "unit_type.conventional_missile",
       countable: false,
     },
     {
@@ -360,6 +371,13 @@ export class BuildMenu extends LitElement implements Controller {
     return 0n;
   }
 
+  /** Strategic weapons: the stockpile behind a nuke's button; null otherwise. */
+  private stockOf(type: UnitType): number | null {
+    if (!isStockpiledNuke(type)) return null;
+    const data = this.game?.myPlayer()?.strategicData() ?? null;
+    return data === null ? null : data.stock[type];
+  }
+
   public count(item: BuildItemDisplay): string {
     const player = this.game?.myPlayer();
     if (!player) {
@@ -375,6 +393,12 @@ export class BuildMenu extends LitElement implements Controller {
   ): string {
     if (enabled) return "";
     if (buildableUnit.locked) return lockedReason(buildableUnit.type);
+    const stock = this.stockOf(buildableUnit.type);
+    if (stock !== null) {
+      return stock === 0
+        ? translateText("strategic.no_stock")
+        : translateText("build_menu.cant_build_here");
+    }
     const gold = this.game?.myPlayer()?.gold() ?? 0n;
     return gold < buildableUnit.cost
       ? translateText("build_menu.not_enough_money")
@@ -421,6 +445,7 @@ export class BuildMenu extends LitElement implements Controller {
                 const enabled =
                   buildableUnit.canBuild !== false ||
                   buildableUnit.canUpgrade !== false;
+                const stock = this.stockOf(item.unitType);
                 return html`
                   <button
                     class="build-button"
@@ -444,18 +469,29 @@ export class BuildMenu extends LitElement implements Controller {
                       >${item.description &&
                       translateText(item.description)}</span
                     >
-                    <span class="build-cost" translate="no">
-                      ${renderNumber(
-                        this.game && this.game.myPlayer() ? this.cost(item) : 0,
-                      )}
-                      <img
-                        src=${goldCoinIcon}
-                        alt="gold"
-                        width="12"
-                        height="12"
-                        class="align-middle"
-                      />
-                    </span>
+                    ${stock !== null
+                      ? html`<span
+                          class="build-cost"
+                          data-build-stock
+                          translate="no"
+                          >${translateText("strategic.stock", {
+                            count: stock,
+                          })}</span
+                        >`
+                      : html`<span class="build-cost" translate="no">
+                          ${renderNumber(
+                            this.game && this.game.myPlayer()
+                              ? this.cost(item)
+                              : 0,
+                          )}
+                          <img
+                            src=${goldCoinIcon}
+                            alt="gold"
+                            width="12"
+                            height="12"
+                            class="align-middle"
+                          />
+                        </span>`}
                     ${enabled
                       ? ""
                       : html`<span class="build-reason" data-build-reason

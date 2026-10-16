@@ -55,6 +55,8 @@ export abstract class StatsTable extends LitElement {
 
   /** Domestic mode: show the domestic-only columns (the live score). */
   @property({ type: Boolean }) domesticMode = false;
+  /** Strategic weapons: show the strategic-only columns (the nukes column). */
+  @property({ type: Boolean }) strategicWeapons = false;
 
   protected abstract readonly tableKind: StatsTableKind;
   protected abstract buildRows(
@@ -125,6 +127,7 @@ export abstract class StatsTable extends LitElement {
     return columnsFor(this.tableKind).filter(
       (column) =>
         (column.domesticOnly !== true || this.domesticMode) &&
+        (column.strategicOnly !== true || this.strategicWeapons) &&
         (!column.isHideable || selected.includes(column.id)),
     );
   }

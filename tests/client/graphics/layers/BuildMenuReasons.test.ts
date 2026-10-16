@@ -1,4 +1,5 @@
 import { BuildableUnit, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { StrategicData } from "@openfront/engine-api/strategic/StrategicTypes";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../src/client/Utils", async (importOriginal) => ({
@@ -28,10 +29,15 @@ function unit(
 async function openMenu(
   buildables: BuildableUnit[],
   gold = 0n,
+  strategic: StrategicData | null = null,
 ): Promise<BuildMenu> {
   const menu = document.createElement("build-menu") as BuildMenu;
   menu.game = {
-    myPlayer: () => ({ totalUnitLevels: () => 0, gold: () => gold }),
+    myPlayer: () => ({
+      totalUnitLevels: () => 0,
+      gold: () => gold,
+      strategicData: () => strategic,
+    }),
     config: () => ({ isUnitDisabled: () => false }),
   } as unknown as BuildMenu["game"];
   menu.playerBuildables = buildables;
@@ -78,6 +84,35 @@ describe("build menu on a tablet", () => {
     )!.textContent;
     expect(reason).toContain("[build_menu.cant_build_here]");
     expect(reason).not.toContain("[build_menu.not_enough_money]");
+    menu.remove();
+  });
+
+  it("strategic weapons: nukes show the stockpile, and an empty one is the reason", async () => {
+    const menu = await openMenu(
+      [unit(UnitType.AtomBomb, false), unit(UnitType.HydrogenBomb, 7)],
+      1_000_000n,
+      {
+        stock: {
+          [UnitType.AtomBomb]: 0,
+          [UnitType.HydrogenBomb]: 1,
+          [UnitType.MIRV]: 0,
+        },
+        jobs: [],
+        satellite: { phase: "none" },
+      },
+    );
+    const atom = buttonFor(menu, UnitType.AtomBomb);
+    expect(atom.querySelector("[data-build-stock]")!.textContent).toContain(
+      "[strategic.stock]",
+    );
+    expect(atom.querySelector("[data-build-reason]")!.textContent).toContain(
+      "[strategic.no_stock]",
+    );
+    expect(
+      buttonFor(menu, UnitType.HydrogenBomb).querySelector(
+        "[data-build-reason]",
+      ),
+    ).toBeNull();
     menu.remove();
   });
 });

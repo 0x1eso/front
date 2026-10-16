@@ -1,4 +1,6 @@
 import { BuildableUnit, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { StrategicData } from "@openfront/engine-api/strategic/StrategicTypes";
+import { STRATEGIC_ONLY_UNITS } from "@openfront/engine-lib/strategic/Strategic";
 import { WARFARE_ONLY_UNITS } from "@openfront/engine-lib/warfare/Warfare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +20,7 @@ import {
   MouseDownEvent,
   ToggleStructureEvent,
 } from "../../src/client/InputHandler";
+import { SendProduceNukeIntentEvent } from "../../src/client/Transport";
 import type { UIState } from "../../src/client/UIState";
 
 function buildable(type: UnitType, locked = false): BuildableUnit {
@@ -46,7 +49,14 @@ const DOMESTIC_ONLY = new Set<UnitType>([
 
 async function mount(
   buildables: BuildableUnit[],
-  opts: { domestic?: boolean; warfare?: boolean; ports?: number } = {},
+  opts: {
+    domestic?: boolean;
+    warfare?: boolean;
+    strategic?: StrategicData;
+    ports?: number;
+    silos?: number;
+    factories?: { id: number; level: number }[];
+  } = {},
 ): Promise<Mounted> {
   const el = document.createElement("unit-display") as UnitDisplay;
   // Using the class as a value keeps its import (and @customElement) alive.
@@ -55,17 +65,31 @@ async function mount(
     buildables: vi.fn(() => Promise.resolve(buildables)),
     totalUnitLevels: () => 0,
     gold: () => 1_000_000n,
-    units: (type: UnitType) =>
-      type === UnitType.Port
-        ? Array.from({ length: opts.ports ?? 0 }, () => ({}))
-        : [],
+    strategicData: () => opts.strategic ?? null,
+    units: (type: UnitType) => {
+      switch (type) {
+        case UnitType.Port:
+          return Array.from({ length: opts.ports ?? 0 }, () => ({}));
+        case UnitType.MissileSilo:
+          return Array.from({ length: opts.silos ?? 0 }, () => ({}));
+        case UnitType.Factory:
+          return (opts.factories ?? []).map((f) => ({
+            id: () => f.id,
+            level: () => f.level,
+            isUnderConstruction: () => false,
+          }));
+        default:
+          return [];
+      }
+    },
     isAlive: () => true,
   };
   el.game = {
     config: () => ({
       isUnitDisabled: (t: UnitType) =>
         (!opts.domestic && DOMESTIC_ONLY.has(t)) ||
-        (!opts.warfare && WARFARE_ONLY_UNITS.has(t)),
+        (!opts.warfare && WARFARE_ONLY_UNITS.has(t)) ||
+        (opts.strategic === undefined && STRATEGIC_ONLY_UNITS.has(t)),
     }),
     myPlayer: () => player,
     inSpawnPhase: () => false,
@@ -332,5 +356,84 @@ describe("unit-display build bar", () => {
     expect(
       button(el, "airport").querySelector("[data-locked-tech]")!.textContent,
     ).toContain("[domestic.tech.industrialization.name]");
+  });
+
+  const STRATEGIC = (over: Partial<StrategicData> = {}): StrategicData => ({
+    stock: {
+      [UnitType.AtomBomb]: 2,
+      [UnitType.HydrogenBomb]: 0,
+      [UnitType.MIRV]: 0,
+    },
+    jobs: [],
+    satellite: { phase: "none" },
+    ...over,
+  });
+
+  it("strategic weapons: missile and satellite buttons, stock badges on the nukes", async () => {
+    const plain = await mount([]);
+    expect(plain.el.querySelector('[data-hotbar="satellite"]')).toBeNull();
+    expect(plain.el.querySelector("[data-stock]")).toBeNull();
+    document.body.innerHTML = "";
+
+    const { el } = await mount([], { strategic: STRATEGIC() });
+    expect(
+      el.querySelector('[data-hotbar="conventional_missile"]'),
+    ).not.toBeNull();
+    expect(el.querySelector('[data-hotbar="satellite"]')).not.toBeNull();
+    const badge = (key: string) =>
+      button(el, key).querySelector("[data-stock]")!.textContent!.trim();
+    expect(badge("atom_bomb")).toBe("2");
+    expect(badge("hydrogen_bomb")).toBe("0");
+    expect(badge("mirv")).toBe("0");
+  });
+
+  it("a nuke card fires from the stockpile and builds with one tap", async () => {
+    const { el, emitted } = await mount(
+      [buildable(UnitType.AtomBomb), buildable(UnitType.HydrogenBomb)],
+      { strategic: STRATEGIC(), silos: 1, factories: [{ id: 5, level: 1 }] },
+    );
+    await tap(el, "hydrogen_bomb");
+    expect(card(el)?.textContent).toContain("[strategic.no_stock]");
+    const produce =
+      card(el)!.querySelector<HTMLButtonElement>("[data-produce]")!;
+    expect(produce.disabled).toBe(false);
+    expect(produce.textContent).toContain("[strategic.produce] seconds=40");
+    produce.click();
+    expect(emitted).toContainEqual(
+      new SendProduceNukeIntentEvent(UnitType.HydrogenBomb),
+    );
+
+    await tap(el, "atom_bomb");
+    expect(card(el)?.textContent).toContain("[strategic.stock] count=2");
+    expect(card(el)?.textContent).toContain("[touch_ui.tap_again_to_build]");
+  });
+
+  it("says why it can't build, and when the satellite is spent", async () => {
+    const { el } = await mount(
+      [buildable(UnitType.AtomBomb), buildable(UnitType.Satellite)],
+      {
+        strategic: STRATEGIC({
+          jobs: [
+            {
+              factoryId: 5,
+              type: UnitType.AtomBomb,
+              startTick: 0,
+              endTick: 200,
+            },
+          ],
+          satellite: { phase: "spent" },
+        }),
+        silos: 1,
+        factories: [{ id: 5, level: 1 }],
+      },
+    );
+    await tap(el, "atom_bomb");
+    expect(
+      card(el)!.querySelector("[data-produce]")!.hasAttribute("disabled"),
+    ).toBe(true);
+    expect(card(el)?.textContent).toContain("[strategic.no_free_line]");
+    expect(card(el)?.textContent).toContain("[strategic.producing] count=1");
+    await tap(el, "satellite");
+    expect(card(el)?.textContent).toContain("[strategic.satellite_used]");
   });
 });

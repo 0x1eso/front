@@ -43,6 +43,8 @@ const HUD_TAGS = [
   "alert-frame",
   "spawn-timer",
   "immunity-timer",
+  "satellite-band",
+  "satellite-target-picker",
   "in-game-promo",
   "tutorial-panel",
 ] as const;
