@@ -161,7 +161,12 @@ export abstract class StatsTable extends LitElement {
       orderable.length > 0 &&
       !orderable.some((column) => column.id === this.sortKey)
     ) {
-      this.sortKey = orderable[0].id;
+      // The strategic nukes column sits before tiles but is never the
+      // default order: the leaderboard ranks by land unless a header is tapped.
+      this.sortKey = (
+        orderable.find((column) => column.strategicOnly !== true) ??
+        orderable[0]
+      ).id;
       this.sortOrder = "desc";
     }
 

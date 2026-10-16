@@ -90,6 +90,26 @@ describe("nukes column", () => {
   });
 });
 
+describe("default order with strategic weapons", () => {
+  it("ranks by land, not by the nukes column in front of it", async () => {
+    const big = player(1, null);
+    const armed = player(2, STOCK);
+    (big as unknown as { numTilesOwned: () => number }).numTilesOwned = () =>
+      500;
+    const stats = new PlayerStats();
+    stats.game = game([big, armed]);
+    stats.visible = true;
+    stats.strategicWeapons = true;
+    document.body.append(stats);
+    stats.refresh();
+    await stats.updateComplete;
+    expect((stats as unknown as { sortKey: string | null }).sortKey).toBe(
+      "tiles",
+    );
+    stats.remove();
+  });
+});
+
 describe("satellite icon on the leaderboard", () => {
   const withSatellite = (phase: StrategicData["satellite"]): StrategicData => ({
     ...STOCK,
