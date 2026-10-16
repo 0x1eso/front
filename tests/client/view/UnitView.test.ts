@@ -256,3 +256,36 @@ describe("UnitView accessors", () => {
     });
   });
 });
+
+describe("UnitView.isInCooldown (strategic weapons silo slot)", () => {
+  const silo = (satellite: unknown, queue: number[], level = 1) => {
+    const game = makeGameView();
+    (game as any).playerBySmallID = () => ({
+      strategicData: () => ({ satellite }),
+    });
+    return new UnitView(
+      game,
+      makeUnitUpdate({
+        id: 5,
+        unitType: UnitType.MissileSilo,
+        level,
+        missileTimerQueue: queue,
+      }),
+    );
+  };
+
+  it("a silo preparing the satellite lends it one slot, like the engine", () => {
+    const preparing = { phase: "preparing", siloId: 5 };
+    expect(silo(preparing, [], 1).isInCooldown()).toBe(true);
+    expect(silo(preparing, [1], 2).isInCooldown()).toBe(true);
+    expect(silo(preparing, [], 2).isInCooldown()).toBe(false);
+  });
+
+  it("another silo's preparation, or none, leaves the vanilla rule", () => {
+    expect(silo({ phase: "preparing", siloId: 6 }, [], 1).isInCooldown()).toBe(
+      false,
+    );
+    expect(silo({ phase: "none" }, [], 1).isInCooldown()).toBe(false);
+    expect(silo({ phase: "none" }, [1], 1).isInCooldown()).toBe(true);
+  });
+});

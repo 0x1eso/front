@@ -162,6 +162,8 @@ export class BuildPreviewController implements Controller {
   // continuous instead of stepping tile-to-tile. cursorLoop re-emits each
   // frame with the current cursor world position.
   private lastGhostData: GhostPreviewData | null = null;
+  /** The target ring is drawn on a building: it must not follow the cursor. */
+  private ringAnchored = false;
 
   // Static inputs for the nuke trajectory preview (source silo + threatening
   // SAMs). Recomputed in the throttled renderGhost path; cursorLoop rebuilds
@@ -174,6 +176,8 @@ export class BuildPreviewController implements Controller {
     sams: SAMInfo[];
     /** A bomber or barrage: a straight line instead of the nuke's arc. */
     straight: boolean;
+    /** A missile flies to its target building (tile centre), not the cursor. */
+    dest: { x: number; y: number } | null;
   } | null = null;
 
   constructor(
@@ -218,7 +222,9 @@ export class BuildPreviewController implements Controller {
           // (stationary, correctly snapped) — leave it alone in that case.
           const radiusFollowsCursor =
             !ghost.snapToPlacement &&
-            !(ghost.canUpgrade && ghost.upgradeTargetTile !== null);
+            !(ghost.canUpgrade && ghost.upgradeTargetTile !== null) &&
+            // A target ring sits on its building (missile target, silo).
+            !this.ringAnchored;
           this.view.updateGhostPreview({
             ...ghost,
             tileX: ghost.snapToPlacement ? ghost.tileX : w.x - 0.5,
@@ -231,19 +237,15 @@ export class BuildPreviewController implements Controller {
         if (traj !== null) {
           // Rebuild the arc with the live cursor as the destination (same
           // tile-center convention as the icon: shader adds +0.5).
+          const dx = traj.dest !== null ? traj.dest.x : w.x - 0.5;
+          const dy = traj.dest !== null ? traj.dest.y : w.y - 0.5;
           const data = traj.straight
-            ? buildFlightTrajectory(
-                traj.srcX,
-                traj.srcY,
-                w.x - 0.5,
-                w.y - 0.5,
-                traj.sams,
-              )
+            ? buildFlightTrajectory(traj.srcX, traj.srcY, dx, dy, traj.sams)
             : buildNukeTrajectory(
                 traj.srcX,
                 traj.srcY,
-                w.x - 0.5,
-                w.y - 0.5,
+                dx,
+                dy,
                 this.game.height(),
                 traj.directionUp,
                 traj.sams,
@@ -251,8 +253,8 @@ export class BuildPreviewController implements Controller {
           // Impassable terrain can't be targeted (nukeSpawn rejects it)
           // even though nukes fly over it — mark the destination with the
           // blocked X. Checked per frame so the X tracks the live cursor.
-          const tx = Math.floor(w.x);
-          const ty = Math.floor(w.y);
+          const tx = traj.dest !== null ? Math.round(dx) : Math.floor(w.x);
+          const ty = traj.dest !== null ? Math.round(dy) : Math.floor(w.y);
           if (
             this.game.isValidCoord(tx, ty) &&
             this.game.isImpassable(this.game.ref(tx, ty))
@@ -545,6 +547,15 @@ export class BuildPreviewController implements Controller {
       directionUp,
       sams,
       straight: false,
+      dest:
+        type === UnitType.ConventionalMissile
+          ? (() => {
+              const t = missileTargetPreview(this.game, myPlayer, tileRef);
+              return t === null
+                ? null
+                : { x: this.game.x(t.tile()), y: this.game.y(t.tile()) };
+            })()
+          : null,
     };
   }
 
@@ -626,7 +637,23 @@ export class BuildPreviewController implements Controller {
       directionUp: false,
       sams,
       straight: true,
+      dest: null,
     };
+  }
+
+  /**
+   * The bulk x2/x5 multiplier; strategic weapons fire stockpiled bombs one
+   * at a time (plan decision 13), so the keyboard toggle is ignored there.
+   */
+  private multiplierFor(type: UnitType, upgrading: boolean): number {
+    if (
+      !upgrading &&
+      isStockpiledNuke(type) &&
+      this.game.config().strategicWeapons()
+    ) {
+      return 1;
+    }
+    return this.uiState.upgradeMultiplier || 1;
   }
 
   private buildGhostPreviewData(
@@ -697,6 +724,7 @@ export class BuildPreviewController implements Controller {
         break;
       }
     }
+    this.ringAnchored = ringTile !== null;
     let radiusTileX = this.game.x(placementTile);
     let radiusTileY = this.game.y(placementTile);
     if (
@@ -715,7 +743,7 @@ export class BuildPreviewController implements Controller {
     const isNuke = u.type === UnitType.AtomBomb;
     const multiplier =
       u.canUpgrade !== false || isNuke
-        ? (this.uiState.upgradeMultiplier ?? 1)
+        ? this.multiplierFor(u.type, u.canUpgrade !== false)
         : 1;
     // Strategic weapons: a bomb comes from the stockpile; no gold is spent.
     const stock = isStockpiledNuke(u.type)
@@ -864,7 +892,16 @@ export class BuildPreviewController implements Controller {
         ? new Cell(ghost.tileX + 0.5, ghost.tileY + 0.5)
         : new Cell(aim.worldX, aim.worldY);
     const s = this.transformHandler.worldToScreenCoordinates(drawnAt);
-    return Math.hypot(s.x - x, s.y - y) <= radius;
+    if (Math.hypot(s.x - x, s.y - y) <= radius) return true;
+    // A target ring sits on its building: a tap there is a tap on the
+    // aimed ghost, so firing stays aim, check, tap.
+    if (ghost !== null && this.ringAnchored) {
+      const b = this.transformHandler.worldToScreenCoordinates(
+        new Cell(ghost.radiusTileX + 0.5, ghost.radiusTileY + 0.5),
+      );
+      return Math.hypot(b.x - x, b.y - y) <= GHOST_TAP_MIN_RADIUS_PX;
+    }
+    return false;
   }
 
   /**
@@ -909,7 +946,7 @@ export class BuildPreviewController implements Controller {
         unitType,
         targetTile,
         rocketDirectionUp,
-        isNuke ? this.uiState.upgradeMultiplier || 1 : undefined,
+        isNuke ? this.multiplierFor(unitType, false) : undefined,
       ),
     );
   }

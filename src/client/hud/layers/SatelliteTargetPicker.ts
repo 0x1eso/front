@@ -34,6 +34,18 @@ export class SatelliteTargetPicker extends LitElement implements Controller {
     });
   }
 
+  tick() {
+    if (!this.open) return;
+    // A nation that died or allied since the first tap is no longer armed.
+    if (
+      this.armed !== null &&
+      !this.choices().some((p) => p.id() === this.armed)
+    ) {
+      this.armed = null;
+    }
+    this.requestUpdate();
+  }
+
   /** Alive nations that aren't me, my allies or my team, biggest first. */
   private choices(): PlayerView[] {
     const me = this.game.myPlayer();

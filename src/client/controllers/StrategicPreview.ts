@@ -19,17 +19,15 @@ export function missileTargetPreview(
   tile: TileRef,
 ): UnitView | null {
   const candidates: { id: number; x: number; y: number; unit: UnitView }[] = [];
-  for (const type of Structures.types) {
-    for (const unit of game.units(type)) {
-      const owner = unit.owner();
-      if (owner === me || me.isFriendly(owner)) continue;
-      candidates.push({
-        id: unit.id(),
-        x: game.x(unit.tile()),
-        y: game.y(unit.tile()),
-        unit,
-      });
-    }
+  for (const unit of game.units(...Structures.types)) {
+    const owner = unit.owner();
+    if (owner === me || me.isFriendly(owner)) continue;
+    candidates.push({
+      id: unit.id(),
+      x: game.x(unit.tile()),
+      y: game.y(unit.tile()),
+      unit,
+    });
   }
   return (
     pickNearestWithin(

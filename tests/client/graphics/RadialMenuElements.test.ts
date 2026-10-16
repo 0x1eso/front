@@ -98,6 +98,9 @@ describe("RadialMenuElements", () => {
       isPlayer: vi.fn(() => true),
       isTraitor: vi.fn(() => false),
       isDisconnected: vi.fn(() => false),
+      strategicData: vi.fn(() => ({
+        stock: { [UnitType.AtomBomb]: 3, [UnitType.HydrogenBomb]: 0 },
+      })),
     } as unknown as PlayerView;
 
     mockGame = {
@@ -696,6 +699,11 @@ describe("RadialMenuElements", () => {
         (item) => item.id === "attack_Atom Bomb",
       );
       expect(atomBombElement!.subMenu!(mockParams)).toEqual([]);
+
+      // The tooltip shows the stockpile, not a gold price.
+      const texts = atomBombElement!.tooltipItems!.map((item) => item.text);
+      expect(texts).toContain("strategic.stock");
+      expect(texts.some((t) => t.includes("player_panel.gold"))).toBe(false);
     });
   });
 
