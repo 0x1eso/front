@@ -51,6 +51,7 @@ import { WarshipExecutionSnapshot } from "../execution/WarshipExecution";
 import { WinCheckExecutionSnapshot } from "../execution/WinCheckExecution";
 import { ConventionalMissileExecutionSnapshot } from "../strategic/ConventionalMissileExecution";
 import { NukeProductionExecutionSnapshot } from "../strategic/NukeProductionExecution";
+import { SatelliteTargetExecutionSnapshot } from "../strategic/SatelliteOrders";
 import { StrategicExecutionSnapshot } from "../strategic/StrategicExecution";
 import { AirportExecutionSnapshot } from "../warfare/AirportExecution";
 import { BombingExecutionSnapshot } from "../warfare/BombingExecution";
@@ -112,6 +113,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   RetreatExecutionSnapshot,
   SAMLauncherExecutionSnapshot,
   SAMMissileExecutionSnapshot,
+  SatelliteTargetExecutionSnapshot,
   SetRecruitTargetExecutionSnapshot,
   ShellExecutionSnapshot,
   SpawnExecutionSnapshot,

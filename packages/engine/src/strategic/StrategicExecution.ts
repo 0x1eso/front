@@ -7,6 +7,7 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { processProduction } from "./Production";
+import { processSatellite } from "./Satellite";
 
 /**
  * The strategic weapons clock (spec §4, §6): every tick it finishes nukes
@@ -28,6 +29,7 @@ export class StrategicExecution implements Execution {
       const s = player.strategic();
       if (s === null) continue;
       processProduction(this.mg, player, s, now);
+      processSatellite(this.mg, player, s, now);
     }
   }
 

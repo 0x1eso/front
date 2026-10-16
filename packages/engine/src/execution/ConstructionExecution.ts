@@ -16,6 +16,7 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { ConventionalMissileExecution } from "../strategic/ConventionalMissileExecution";
+import { startSatellitePrep } from "../strategic/Satellite";
 import { AirportExecution } from "../warfare/AirportExecution";
 import { BombingExecution } from "../warfare/BombingExecution";
 import { CoastalBarrageExecution } from "../warfare/CoastalBarrageExecution";
@@ -163,6 +164,10 @@ export class ConstructionExecution implements Execution {
         this.mg.addExecution(
           new ConventionalMissileExecution(player, this.tile),
         );
+        break;
+      case UnitType.Satellite:
+        // No unit: the satellite is prepared at the chosen silo.
+        startSatellitePrep(this.mg, player, this.tile);
         break;
       case UnitType.Warship:
         this.mg.addExecution(
