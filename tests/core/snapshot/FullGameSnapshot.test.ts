@@ -64,6 +64,17 @@ const WARFARE_ONLY_TYPES = [
   "CoastalBattery",
   "Paradrop",
 ];
+// Warfare types the 1500-tick scripted game isn't sure to reach: strikes
+// and paradrops need a target within reach of a silo or airport, cargo two
+// owners' airports within each other's range, batteries a shore border.
+// tests/warfare/*.test.ts cover their snapshots.
+const WARFARE_UNSCRIPTED_TYPES = [
+  "Bombing",
+  "CargoPlane",
+  "CoastalBarrage",
+  "CoastalBattery",
+  "Paradrop",
+];
 // Domestic types the 1500-tick scripted game isn't sure to reach: a nation
 // needs 350 political power for a law and 800 for a government tier.
 // tests/domestic/LawsAndGovernment.test.ts covers their snapshots.
@@ -156,6 +167,11 @@ const VARIANTS: [string, Partial<GameConfig>][] = [
   // The domestic economy and troop recruitment, tech locks, and the nations'
   // research and recruit-target executions.
   ["domestic", { domesticMode: true }],
+  // Expanded warfare: coastal batteries, barrages, airports and their
+  // flights, and the nations' warfare behavior.
+  ["warfare", { warfareExpansion: true }],
+  // Both options together.
+  ["domestic warfare", { domesticMode: true, warfareExpansion: true }],
 ];
 
 describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
@@ -241,6 +257,10 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
       } else if (overrides.domesticMode === true) {
         expected = DOMESTIC_ONLY_TYPES.filter(
           (name) => !DOMESTIC_UNSCRIPTED_TYPES.includes(name),
+        );
+      } else if (overrides.warfareExpansion === true) {
+        expected = WARFARE_ONLY_TYPES.filter(
+          (name) => !WARFARE_UNSCRIPTED_TYPES.includes(name),
         );
       } else {
         return;

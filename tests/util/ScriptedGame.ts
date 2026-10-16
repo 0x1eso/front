@@ -295,6 +295,13 @@ function playIntent(game: Game, p: Player, rand: PseudoRandom): Intent | null {
   const other = pick(rand, others);
   const own = (types: UnitType[]) => p.units(types);
 
+  // Expanded warfare games only: their own share of the intents. A vanilla
+  // game never gets here, so its PRNG stream (and VanillaDigest) is unchanged.
+  if (game.config().warfareExpansion() && rand.chance(4)) {
+    const intent = warfareIntent(game, p, rand, other);
+    if (intent !== null) return intent;
+  }
+
   switch (rand.nextInt(0, 22)) {
     case 0:
     case 1:
@@ -444,6 +451,57 @@ function playIntent(game: Game, p: Player, rand: PseudoRandom): Intent | null {
         type: "mark_disconnected",
         isDisconnected: !p.isDisconnected() && rand.chance(3),
       };
+  }
+  return null;
+}
+
+/** One expanded-warfare intent: a battery, an airport, a strike or a paradrop. */
+function warfareIntent(
+  game: Game,
+  p: Player,
+  rand: PseudoRandom,
+  other: Player | null,
+): Intent | null {
+  switch (rand.nextInt(0, 5)) {
+    case 0: {
+      const tile = pick(
+        rand,
+        [...p.borderTiles()].filter((t) => game.isShore(t)),
+      );
+      if (
+        tile === null ||
+        p.canBuild(UnitType.CoastalBattery, tile) === false
+      ) {
+        return null;
+      }
+      return { type: "build_unit", unit: UnitType.CoastalBattery, tile };
+    }
+    case 1: {
+      const tile = randomOwnedTile(rand, p);
+      if (tile === null || p.canBuild(UnitType.Airport, tile) === false) {
+        return null;
+      }
+      return { type: "build_unit", unit: UnitType.Airport, tile };
+    }
+    case 2:
+    case 3: {
+      if (other === null) return null;
+      const unit = rand.chance(2) ? UnitType.CoastalBarrage : UnitType.Bomber;
+      const tile = randomOwnedTile(rand, other);
+      if (tile === null || p.canBuild(unit, tile) === false) return null;
+      return { type: "build_unit", unit, tile };
+    }
+    case 4: {
+      if (other === null) return null;
+      const tile = randomOwnedTile(rand, other);
+      if (
+        tile === null ||
+        p.canBuild(UnitType.TransportPlane, tile) === false
+      ) {
+        return null;
+      }
+      return { type: "paradrop", troops: p.troops() / 5, dst: tile };
+    }
   }
   return null;
 }
