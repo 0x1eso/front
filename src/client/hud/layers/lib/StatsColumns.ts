@@ -1,11 +1,13 @@
 import { PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
+import { stockTotal } from "@openfront/engine-lib/strategic/Strategic";
 import type { ColumnId, StatsTableKind } from "../../../StatsConstants";
 import { formatPercentage, translateText } from "../../../Utils";
 import type { GameView, PlayerView } from "../../../view";
 import { domesticScoreOf } from "../../../view/DomesticScores";
 import {
   allianceIcon,
+  atomBombIcon,
   cityIcon,
   claimIcon,
   factoryIcon,
@@ -68,6 +70,8 @@ export interface ColumnDef {
   readonly isHideable: boolean;
   /** Only exists in domestic-mode games (StatsTable.domesticMode). */
   readonly domesticOnly?: true;
+  /** Only exists with strategic weapons (StatsTable.strategicWeapons). */
+  readonly strategicOnly?: true;
   /** Header is a sort button. True exactly when `value` is set. */
   readonly isOrderable: boolean;
   /** Number behind the column — sorting and team totals. */
@@ -197,6 +201,19 @@ export const COLUMN_DEFS: readonly ColumnDef[] = [
     domesticOnly: true,
     value: (player, game) => domesticScoreOf(player, game),
     cell: (row) => row.value.toFixed(1),
+  }),
+  // Strategic weapons: every nation's stockpile is public (spec 4). One
+  // total fits the tablet sidebar; the per-type count is on each player's
+  // own nuke buttons.
+  defineColumn({
+    id: "nukes",
+    labelKey: "leaderboard.nukes",
+    headerVisual: { kind: "icon", src: atomBombIcon, white: true },
+    isHideable: false,
+    strategicOnly: true,
+    align: "center",
+    value: (player) => stockTotal(player.strategicData()),
+    cell: (row) => renderNumber(row.value),
   }),
   defineColumn({
     id: "tiles",

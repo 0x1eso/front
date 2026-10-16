@@ -47,6 +47,8 @@ import { PerformanceOverlay } from "./layers/PerformanceOverlay";
 import { PlayerInfoOverlay } from "./layers/PlayerInfoOverlay";
 import { PlayerPanel } from "./layers/PlayerPanel";
 import { ReplayPanel } from "./layers/ReplayPanel";
+import { SatelliteBand } from "./layers/SatelliteBand";
+import { SatelliteTargetPicker } from "./layers/SatelliteTargetPicker";
 import { SettingsModal } from "./layers/SettingsModal";
 import { SpawnTimer } from "./layers/SpawnTimer";
 import { TutorialPanel } from "./layers/TutorialPanel";
@@ -326,6 +328,24 @@ export function createRenderer(
   immunityTimer.game = game;
   immunityTimer.eventBus = eventBus;
 
+  const satelliteBand = document.querySelector(
+    "satellite-band",
+  ) as SatelliteBand;
+  if (!(satelliteBand instanceof SatelliteBand)) {
+    console.error("satellite band not found");
+  }
+  satelliteBand.game = game;
+  satelliteBand.eventBus = eventBus;
+
+  const satelliteTargetPicker = document.querySelector(
+    "satellite-target-picker",
+  ) as SatelliteTargetPicker;
+  if (!(satelliteTargetPicker instanceof SatelliteTargetPicker)) {
+    console.error("satellite target picker not found");
+  }
+  satelliteTargetPicker.game = game;
+  satelliteTargetPicker.eventBus = eventBus;
+
   const inGamePromo = document.querySelector("in-game-promo") as InGamePromo;
   if (!(inGamePromo instanceof InGamePromo)) {
     console.error("in-game promo not found");
@@ -378,6 +398,8 @@ export function createRenderer(
     ),
     spawnTimer,
     immunityTimer,
+    satelliteBand,
+    satelliteTargetPicker,
     gameLeftSidebar,
     unitDisplay,
     gameRightSidebar,

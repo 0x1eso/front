@@ -7,6 +7,8 @@ export const COLUMN_IDS = [
   "team",
   // Domestic mode only: always shown there, never offered in the menu.
   "score",
+  // Strategic weapons only: always shown there, never offered in the menu.
+  "nukes",
   // Territory.
   "tiles",
   // Economy: balance, then its per-source income rates.
