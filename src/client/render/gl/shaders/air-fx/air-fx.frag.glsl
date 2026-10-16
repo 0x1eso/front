@@ -4,7 +4,7 @@ precision highp float;
 in vec2 vLocal;
 
 uniform sampler2D uPalette;
-uniform float uMode;     // 0 = falling bomb, 1 = parachute, 2 = impact flash
+uniform float uMode;     // 0 = falling bomb, 1 = parachute, 2 = impact flash, 3 = smoke puff, 4 = evade flare
 uniform float uOwner;    // parachute canopy colour
 uniform float uProgress; // 0..1 through the effect
 uniform float uAlpha;
@@ -52,6 +52,26 @@ void main() {
     a *= uAlpha;
     if (a < 0.02) discard;
     fragColor = vec4(col, a);
+    return;
+  }
+  if (uMode > 2.5 && uMode < 3.5) {
+    // Smoke puff: a soft grey-brown disc.
+    float d = length(vLocal);
+    float a = (1.0 - smoothstep(0.35, 1.0, d)) * uAlpha;
+    if (a < 0.02) discard;
+    fragColor = vec4(mix(vec3(0.16, 0.15, 0.15), vec3(0.45, 0.43, 0.42), uProgress), a);
+    return;
+  }
+  if (uMode > 3.5) {
+    // Evade flare: a small bright star that pops and fades, with a thin ring.
+    float p = uProgress;
+    float d = length(vLocal);
+    float star = max(0.0, 1.0 - 6.0 * min(abs(vLocal.x), abs(vLocal.y))) * (1.0 - smoothstep(0.0, 0.95, d));
+    float core = (1.0 - smoothstep(0.0, 0.4, d));
+    float ring = 1.0 - smoothstep(0.0, 0.08, abs(d - (0.3 + 0.6 * p)));
+    float a = clamp(star + core * (1.0 - p) + ring * 0.6, 0.0, 1.0) * (1.0 - p) * uAlpha;
+    if (a < 0.02) discard;
+    fragColor = vec4(mix(vec3(0.7, 0.95, 1.0), vec3(1.0), core), a);
     return;
   }
   // Impact flash: a hot core and a thin ring that opens up quickly.

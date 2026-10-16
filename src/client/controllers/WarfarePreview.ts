@@ -15,6 +15,7 @@ import {
   COASTAL_BATTERY_RANGE,
 } from "@openfront/engine-lib/warfare/Warfare";
 import type { Ring } from "../render/gl/passes/WarfareRingPass";
+import type { SAMInfo } from "../render/gl/utils/NukeTrajectory";
 
 /**
  * Expanded warfare ghost rings: battery reach, airport range, barrage radius.
@@ -191,4 +192,36 @@ export function carpetBetrayed(
     }
   }
   return all;
+}
+
+export interface PlaneThreatSam<P> {
+  isActive(): boolean;
+  owner(): P;
+  tile(): TileRef;
+  level(): number;
+}
+
+/**
+ * The SAMs a transport plane of `me` must fear, by the engine's rule
+ * (SAMLauncherExecution.isValidNukeTarget): every active SAM whose owner is
+ * not me and not friendly with me (ally or teammate). A paradrop does not
+ * betray anyone and a transport plane cannot evade, so the whole flight is
+ * covered by whatever range these SAMs have.
+ */
+export function paradropThreatSams<P>(
+  sams: Iterable<PlaneThreatSam<P>>,
+  me: P,
+  isFriendly: (owner: P) => boolean,
+  xy: (tile: TileRef) => { x: number; y: number },
+  rangeOf: (owner: P, level: number) => number,
+): SAMInfo[] {
+  const out: SAMInfo[] = [];
+  for (const s of sams) {
+    if (!s.isActive()) continue;
+    const owner = s.owner();
+    if (owner === me || isFriendly(owner)) continue;
+    const { x, y } = xy(s.tile());
+    out.push({ x, y, r: rangeOf(owner, s.level()) });
+  }
+  return out;
 }

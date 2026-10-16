@@ -222,3 +222,93 @@ export function parachuteAt(
   out.alpha = t < 0.75 ? 1 : (1 - t) / 0.25;
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// Interceptions: a plane shot down, a bomber that dodged
+// ---------------------------------------------------------------------------
+
+export const WRECK_MS = 1000;
+export const SMOKE_MS = 1100;
+export const FLARE_MS = 520;
+/** How far (tiles) from the dead plane's tile a hunted plane may have last been seen. */
+export const SHOOT_DOWN_MATCH_TILES = 16;
+
+/**
+ * Whether a plane's disappearance was an interception: it vanished without
+ * reaching its target (paradrop landing, last carpet bomb, cargo arrival all
+ * set reachedTarget) while a SAM missile was chasing it. Planes lost any
+ * other way (their airport fell...) are not shot down.
+ */
+export function wasShotDown(reachedTarget: boolean, hunted: boolean): boolean {
+  return !reachedTarget && hunted;
+}
+
+/** The types a SAM shoots down visibly (cargo planes are not SAM targets). */
+export function isInterceptablePlane(unitType: string): boolean {
+  return unitType === UT_TRANSPORT_PLANE || unitType === UT_BOMBER;
+}
+
+export interface WreckState {
+  /** Offset (tiles) from where the plane was hit: it keeps drifting and sinks. */
+  dx: number;
+  dy: number;
+  /** Extra rotation (radians): the tumble. */
+  spin: number;
+  /** Size factor, 1 -> 0.35. */
+  scale: number;
+  alpha: number;
+}
+
+/**
+ * The falling wreck `ageMs` after the hit: tumbles, shrinks and fades over
+ * WRECK_MS, drifting along its heading and a little down-screen. False once over.
+ */
+export function wreckAt(
+  heading: number,
+  ageMs: number,
+  out: WreckState,
+): boolean {
+  if (ageMs < 0 || ageMs >= WRECK_MS) return false;
+  const t = ageMs / WRECK_MS;
+  const drift = 5 * t;
+  out.dx = Math.sin(heading) * drift;
+  out.dy = -Math.cos(heading) * drift + 4 * t * t;
+  out.spin = 5.5 * t * t + 2 * t;
+  out.scale = 1 - 0.65 * t;
+  out.alpha = t < 0.6 ? 1 : (1 - t) / 0.4;
+  return true;
+}
+
+export interface SmokeState {
+  x: number;
+  y: number;
+  /** Puff radius factor, grows. */
+  scale: number;
+  alpha: number;
+}
+
+export const SMOKE_PUFFS = 3;
+
+/**
+ * Smoke puff `i` of a hit at (cx, cy): puffs rise and spread apart and
+ * thin out. False once over.
+ */
+export function smokeAt(
+  i: number,
+  cx: number,
+  cy: number,
+  ageMs: number,
+  out: SmokeState,
+): boolean {
+  const delay = i * 140;
+  const a = ageMs - delay;
+  const life = SMOKE_MS - delay;
+  if (a < 0 || a >= life) return false;
+  const t = a / life;
+  const side = (i - 1) * 2.2;
+  out.x = cx + side * t;
+  out.y = cy - 3.5 * t + i * 0.6;
+  out.scale = 0.6 + 1.1 * t;
+  out.alpha = 0.55 * (1 - t);
+  return true;
+}

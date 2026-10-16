@@ -7,6 +7,8 @@
  *  - paradrop: a handful of parachutes drift down around the drop tile for
  *    about 1.5 s
  *  - barrage / bomb impact flash: a brief hot core and ring
+ *  - interception: smoke puffs over a shot-down plane, and a small flare
+ *    beside a bomber that dodged a SAM missile
  *
  * Fixed-size pools, no per-frame allocation, and nothing drawn while idle.
  */
@@ -15,12 +17,17 @@ import {
   BOMB_FALL_MS,
   bombFall,
   bombLanded,
+  FLARE_MS,
   FLASH_MS,
   FxPool,
   PARACHUTE_COUNT,
   PARACHUTE_MS,
   parachuteAt,
   type ParachuteState,
+  SMOKE_MS,
+  SMOKE_PUFFS,
+  smokeAt,
+  type SmokeState,
 } from "../../frame/derive/PlaneFx";
 import fragSrc from "../shaders/air-fx/air-fx.frag.glsl?raw";
 import vertSrc from "../shaders/air-fx/air-fx.vert.glsl?raw";
@@ -30,6 +37,8 @@ import { createProgram, shaderSrc } from "../utils/GlUtils";
 const MODE_BOMB = 0;
 const MODE_PARACHUTE = 1;
 const MODE_FLASH = 2;
+const MODE_SMOKE = 3;
+const MODE_FLARE = 4;
 
 export class AirFxPass {
   private gl: WebGL2RenderingContext;
@@ -49,6 +58,9 @@ export class AirFxPass {
   private bombs = new FxPool(32, BOMB_FALL_MS);
   private drops = new FxPool(12, PARACHUTE_MS);
   private flashes = new FxPool(48, FLASH_MS);
+  private smokes = new FxPool(16, SMOKE_MS);
+  private flares = new FxPool(16, FLARE_MS);
+  private puff: SmokeState = { x: 0, y: 0, scale: 1, alpha: 1 };
   private chute: ParachuteState = { x: 0, y: 0, scale: 1, alpha: 1 };
   private timeFn: () => number = () => performance.now();
   private onBombLand: ((x: number, y: number) => void) | null = null;
@@ -122,11 +134,27 @@ export class AirFxPass {
     s.y = y;
   }
 
+  /** Smoke puffs over a plane shot down at (x, y). */
+  spawnSmoke(x: number, y: number): void {
+    const s = this.smokes.spawn(this.timeFn());
+    s.x = x;
+    s.y = y;
+  }
+
+  /** A small flare beside a bomber that dodged a SAM missile. */
+  spawnFlare(x: number, y: number): void {
+    const s = this.flares.spawn(this.timeFn());
+    s.x = x + 3;
+    s.y = y - 3;
+  }
+
   isIdle(): boolean {
     return (
       !this.bombs.hasActive() &&
       !this.drops.hasActive() &&
-      !this.flashes.hasActive()
+      !this.flashes.hasActive() &&
+      !this.smokes.hasActive() &&
+      !this.flares.hasActive()
     );
   }
 
@@ -145,7 +173,11 @@ export class AirFxPass {
     const now = this.timeFn();
     this.land(now);
     const live =
-      this.bombs.prune(now) + this.drops.prune(now) + this.flashes.prune(now);
+      this.bombs.prune(now) +
+      this.drops.prune(now) +
+      this.flashes.prune(now) +
+      this.smokes.prune(now) +
+      this.flares.prune(now);
     if (live === 0) return;
     const gl = this.gl;
     gl.useProgram(this.program);
@@ -194,6 +226,30 @@ export class AirFxPass {
       const p = (now - f.start) / FLASH_MS;
       this.quad(f.x, f.y, Math.max(5, minTiles), 0, p, 1);
     }
+
+    gl.uniform1f(this.uMode, MODE_SMOKE);
+    for (const sm of this.smokes.slots) {
+      if (!sm.active) continue;
+      const age = now - sm.start;
+      for (let i = 0; i < SMOKE_PUFFS; i++) {
+        if (!smokeAt(i, sm.x, sm.y, age, this.puff)) continue;
+        this.quad(
+          this.puff.x,
+          this.puff.y,
+          Math.max(2.4, minTiles * 0.5) * this.puff.scale,
+          0,
+          Math.min(1, age / SMOKE_MS),
+          this.puff.alpha,
+        );
+      }
+    }
+
+    gl.uniform1f(this.uMode, MODE_FLARE);
+    for (const f of this.flares.slots) {
+      if (!f.active) continue;
+      const p = (now - f.start) / FLARE_MS;
+      this.quad(f.x, f.y, Math.max(3.5, minTiles * 0.7), 0, p, 1);
+    }
     gl.bindVertexArray(null);
   }
 
@@ -218,6 +274,8 @@ export class AirFxPass {
     this.bombs.clear();
     this.drops.clear();
     this.flashes.clear();
+    this.smokes.clear();
+    this.flares.clear();
   }
 
   dispose(): void {

@@ -10,6 +10,7 @@ import type { UnitState } from "../../../../src/client/render/types";
 import {
   UT_BOMBER,
   UT_CARGO_PLANE,
+  UT_SAM_MISSILE,
   UT_TRANSPORT_PLANE,
   UT_WARSHIP,
 } from "../../../../src/client/render/types";
@@ -339,5 +340,151 @@ describe("AirFxPass", () => {
     const { pass, counts } = setup();
     pass.dispose();
     expect(counts.deletedPrograms).toBe(1);
+  });
+});
+
+describe("PlanePass interceptions", () => {
+  const plane = (over: Partial<UnitState> = {}) =>
+    unit({
+      id: 1,
+      pos: tile(50, 100),
+      lastPos: tile(44, 100),
+      targetTile: tile(150, 100),
+      ...over,
+    });
+  const missile = (target: number, id = 9) =>
+    unit({
+      id,
+      unitType: UT_SAM_MISSILE,
+      ownerID: 5,
+      pos: tile(60, 100),
+      lastPos: tile(58, 100),
+      targetUnitId: target,
+    });
+
+  test("a hunted plane that vanishes unfinished is shot down", () => {
+    const { pass } = setupPlanes();
+    pass.updateUnits(
+      new Map([
+        [1, plane()],
+        [9, missile(1)],
+      ]),
+      1,
+      noStructures,
+    );
+    pass.updateUnits(new Map(), 2, noStructures);
+    const hit = pass.takeShotDown(UT_TRANSPORT_PLANE, 3, tile(52, 100), false);
+    expect(hit).not.toBeNull();
+    expect(hit?.x).toBe(52);
+    // consumed
+    expect(
+      pass.takeShotDown(UT_TRANSPORT_PLANE, 3, tile(52, 100), false),
+    ).toBeNull();
+  });
+
+  test("arriving at the target is not a shoot-down, even when hunted", () => {
+    const { pass } = setupPlanes();
+    pass.updateUnits(
+      new Map([
+        [1, plane()],
+        [9, missile(1)],
+      ]),
+      1,
+      noStructures,
+    );
+    pass.updateUnits(new Map(), 2, noStructures);
+    expect(
+      pass.takeShotDown(UT_TRANSPORT_PLANE, 3, tile(52, 100), true),
+    ).toBeNull();
+  });
+
+  test("a plane lost with no missile after it is not a shoot-down", () => {
+    const { pass } = setupPlanes();
+    pass.updateUnits(new Map([[1, plane()]]), 1, noStructures);
+    pass.updateUnits(new Map(), 2, noStructures);
+    expect(
+      pass.takeShotDown(UT_TRANSPORT_PLANE, 3, tile(52, 100), false),
+    ).toBeNull();
+  });
+
+  test("cargo planes are never wrecked", () => {
+    const { pass } = setupPlanes();
+    pass.updateUnits(
+      new Map([
+        [1, plane({ unitType: UT_CARGO_PLANE })],
+        [9, missile(1)],
+      ]),
+      1,
+      noStructures,
+    );
+    pass.updateUnits(new Map(), 2, noStructures);
+    expect(
+      pass.takeShotDown(UT_CARGO_PLANE, 3, tile(52, 100), false),
+    ).toBeNull();
+  });
+
+  test("a wreck is drawn for about a second, then gone", () => {
+    const { pass, counts, setNow } = setupPlanes();
+    pass.spawnWreck(50, 100, 0, 0, 3, UT_TRANSPORT_PLANE);
+    setNow(500);
+    pass.drawShadows(cam);
+    pass.drawAir(cam);
+    expect(counts.instanced).toBe(2); // shadow + plane, no contrail
+    const before = counts.instanced;
+    setNow(1100);
+    pass.drawShadows(cam);
+    pass.drawAir(cam);
+    expect(counts.instanced).toBe(before);
+  });
+
+  test("a bomber whose missile vanished flies on: evade flare", () => {
+    const { pass } = setupPlanes();
+    const flares: number[][] = [];
+    pass.setEvadeHandler((x, y) => flares.push([x, y]));
+    const bomber = plane({ unitType: UT_BOMBER });
+    pass.updateUnits(
+      new Map([
+        [1, bomber],
+        [9, missile(1)],
+      ]),
+      1,
+      noStructures,
+    );
+    expect(flares).toEqual([]);
+    pass.updateUnits(new Map([[1, bomber]]), 2, noStructures);
+    expect(flares).toEqual([[50, 100]]);
+  });
+
+  test("a missile vanishing with its transport plane gone makes no flare", () => {
+    const { pass } = setupPlanes();
+    const flares: number[][] = [];
+    pass.setEvadeHandler((x, y) => flares.push([x, y]));
+    pass.updateUnits(
+      new Map([
+        [1, plane({ unitType: UT_BOMBER })],
+        [9, missile(1)],
+      ]),
+      1,
+      noStructures,
+    );
+    pass.updateUnits(new Map(), 2, noStructures);
+    expect(flares).toEqual([]);
+  });
+
+  test("a transport plane never triggers the evade flare", () => {
+    const { pass } = setupPlanes();
+    const flares: number[][] = [];
+    pass.setEvadeHandler((x, y) => flares.push([x, y]));
+    const p = plane();
+    pass.updateUnits(
+      new Map([
+        [1, p],
+        [9, missile(1)],
+      ]),
+      1,
+      noStructures,
+    );
+    pass.updateUnits(new Map([[1, p]]), 2, noStructures);
+    expect(flares).toEqual([]);
   });
 });

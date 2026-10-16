@@ -65,6 +65,7 @@ import {
   carpetTiles,
   carpetWouldBreakAlliance,
   flightSource,
+  paradropThreatSams,
   warfareGhostRadius,
 } from "./WarfarePreview";
 
@@ -761,6 +762,20 @@ export class BuildPreviewController implements Controller {
           r: config.samRangeOf(owner, config.samRange(s.level())),
         });
       }
+    }
+    if (type === UnitType.TransportPlane) {
+      // Same SAM treatment as a bomber, by the engine's rule: every
+      // non-friendly SAM engages, and a transport plane never evades.
+      const config = this.game.config();
+      sams.push(
+        ...paradropThreatSams(
+          this.game.units(UnitType.SAMLauncher),
+          myPlayer,
+          (owner) => myPlayer.isFriendly(owner),
+          xy,
+          (owner, level) => config.samRangeOf(owner, config.samRange(level)),
+        ),
+      );
     }
     this.nukeTrajectoryStatic = {
       srcX: this.game.x(src),

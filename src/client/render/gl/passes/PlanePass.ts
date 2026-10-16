@@ -20,13 +20,19 @@ import {
   flightProgress,
   flightScale,
   headingOf,
+  isInterceptablePlane,
   PLANE_ATLAS_ORDER,
   PLANE_SIZE,
   PLANE_TYPES,
   planeAlpha,
+  SHOOT_DOWN_MATCH_TILES,
+  wasShotDown,
+  WRECK_MS,
+  wreckAt,
+  type WreckState,
 } from "../../frame/derive/PlaneFx";
 import type { RendererConfig, UnitState } from "../../types";
-import { UT_BOMBER } from "../../types";
+import { UT_BOMBER, UT_SAM_MISSILE } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import contrailFragSrc from "../shaders/plane/contrail.frag.glsl?raw";
 import contrailVertSrc from "../shaders/plane/contrail.vert.glsl?raw";
@@ -54,7 +60,29 @@ interface Flight {
   /** False until the plane has moved or its target is known. */
   hasHeading: boolean;
   seen: number;
+  type: string;
+  col: number;
+  owner: number;
+  /** Where it was last seen (tile coords). */
+  x: number;
+  y: number;
+  /** A SAM missile was chasing it as of the last tick. */
+  hunted: boolean;
 }
+
+/** A plane hit by a SAM: it tumbles, shrinks and fades for WRECK_MS. */
+interface Wreck {
+  active: boolean;
+  start: number;
+  x: number;
+  y: number;
+  heading: number;
+  col: number;
+  owner: number;
+  size: number;
+}
+
+const WRECK_CAPACITY = 16;
 
 /** This tick's plane, ready for per-frame interpolation. */
 interface PlaneRec {
@@ -93,9 +121,26 @@ export class PlanePass {
   private tCam: WebGLUniformLocation;
 
   private flights = new Map<number, Flight>();
+  /** Planes that left the map this update (to match against dead-unit events). */
+  private vanished: Flight[] = [];
+  /** SAM missile id -> the unit it chases, as of the last update. */
+  private missiles = new Map<number, number>();
+  private nextMissiles = new Map<number, number>();
+  private huntedNow = new Set<number>();
+  private wrecks: Wreck[] = [];
+  private wreckState: WreckState = {
+    dx: 0,
+    dy: 0,
+    spin: 0,
+    scale: 1,
+    alpha: 1,
+  };
+  private onEvade: ((x: number, y: number) => void) | null = null;
   private recs: PlaneRec[] = [];
   private count = 0;
   private generation = 0;
+  /** Planes plus live wrecks written by the last fill(). */
+  private drawn = 0;
   private lastTickMs = 0;
   private lastGameTick = -1;
   private tickIntervalMs: number;
@@ -111,6 +156,18 @@ export class PlanePass {
     this.mapW = header.mapWidth;
     this.paletteTex = paletteTex;
     this.tickIntervalMs = config.msPerTick();
+    for (let i = 0; i < WRECK_CAPACITY; i++) {
+      this.wrecks.push({
+        active: false,
+        start: 0,
+        x: 0,
+        y: 0,
+        heading: 0,
+        col: 0,
+        owner: 0,
+        size: 0,
+      });
+    }
 
     this.planeProg = createProgram(
       gl,
@@ -218,6 +275,86 @@ export class PlanePass {
     this.affiliationTex = tex;
   }
 
+  /** Called with the bomber's tile when it dodged a SAM missile. */
+  setEvadeHandler(fn: ((x: number, y: number) => void) | null): void {
+    this.onEvade = fn;
+  }
+
+  /**
+   * A plane of `type`/`owner` that just vanished without reaching its target
+   * (dead tile `pos`): the shot-down plane to wreck, or null when no SAM
+   * was chasing a plane like it (it was lost another way). Consumes the match.
+   */
+  takeShotDown(
+    type: string,
+    owner: number,
+    pos: number,
+    reachedTarget: boolean,
+  ): { x: number; y: number; heading: number; col: number } | null {
+    if (!isInterceptablePlane(type)) return null;
+    const px = pos % this.mapW;
+    const py = (pos - px) / this.mapW;
+    let best = -1;
+    let bestD = SHOOT_DOWN_MATCH_TILES * SHOOT_DOWN_MATCH_TILES;
+    for (let i = 0; i < this.vanished.length; i++) {
+      const f = this.vanished[i];
+      if (f.type !== type || f.owner !== owner) continue;
+      if (!wasShotDown(reachedTarget, f.hunted)) continue;
+      const d = (f.x - px) * (f.x - px) + (f.y - py) * (f.y - py);
+      if (d <= bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    if (best < 0) return null;
+    const f = this.vanished[best];
+    this.vanished.splice(best, 1);
+    return { x: px, y: py, heading: f.heading, col: f.col };
+  }
+
+  /** Start the falling wreck of a shot-down plane at tile (x, y). */
+  spawnWreck(
+    x: number,
+    y: number,
+    heading: number,
+    col: number,
+    owner: number,
+    type: string,
+  ): void {
+    const now = this.timeFn();
+    let pick = this.wrecks[0];
+    for (const w of this.wrecks) {
+      if (!w.active) {
+        pick = w;
+        break;
+      }
+      if (w.start < pick.start) pick = w;
+    }
+    pick.active = true;
+    pick.start = now;
+    pick.x = x;
+    pick.y = y;
+    pick.heading = heading;
+    pick.col = col;
+    pick.owner = owner;
+    pick.size = PLANE_SIZE[type] ?? 22;
+    if (!this.atlasRequested) {
+      this.atlasRequested = true;
+      void this.loadAtlas();
+    }
+  }
+
+  private liveWrecks(): number {
+    const now = this.timeFn();
+    let n = 0;
+    for (const w of this.wrecks) {
+      if (!w.active) continue;
+      if (now - w.start >= WRECK_MS) w.active = false;
+      else n++;
+    }
+    return n;
+  }
+
   /** Number of planes in flight this tick. */
   get planeCount(): number {
     return this.count;
@@ -236,6 +373,15 @@ export class PlanePass {
     this.generation++;
     let n = 0;
     const w = this.mapW;
+    this.vanished.length = 0;
+    this.nextMissiles.clear();
+    this.huntedNow.clear();
+    for (const unit of units.values()) {
+      if (unit.unitType !== UT_SAM_MISSILE || !unit.isActive) continue;
+      if (unit.targetUnitId === null) continue;
+      this.nextMissiles.set(unit.id, unit.targetUnitId);
+      this.huntedNow.add(unit.targetUnitId);
+    }
     for (const unit of units.values()) {
       if (!PLANE_TYPES.has(unit.unitType)) continue;
       if (!unit.isActive || unit.waitTicks > 0) continue;
@@ -257,10 +403,19 @@ export class PlanePass {
           heading: 0,
           hasHeading: false,
           seen: 0,
+          type: unit.unitType,
+          col,
+          owner: unit.ownerID,
+          x,
+          y,
+          hunted: false,
         };
         this.flights.set(unit.id, flight);
       }
       flight.seen = this.generation;
+      flight.x = x;
+      flight.y = y;
+      flight.hunted = this.huntedNow.has(unit.id);
 
       // The straight leg: from where it took off to its target.
       let tile: number | null = unit.targetTile;
@@ -310,9 +465,26 @@ export class PlanePass {
     this.count = n;
     if (this.flights.size > n) {
       for (const [id, f] of this.flights) {
-        if (f.seen !== this.generation) this.flights.delete(id);
+        if (f.seen === this.generation) continue;
+        this.flights.delete(id);
+        this.vanished.push(f);
       }
     }
+    // A missile that vanished while its bomber flies on: the bomber dodged.
+    for (const [missileId, targetId] of this.missiles) {
+      if (this.nextMissiles.has(missileId)) continue;
+      const f = this.flights.get(targetId);
+      if (
+        f !== undefined &&
+        f.seen === this.generation &&
+        f.type === UT_BOMBER
+      ) {
+        this.onEvade?.(f.x, f.y);
+      }
+    }
+    const swap = this.missiles;
+    this.missiles = this.nextMissiles;
+    this.nextMissiles = swap;
     if (n > 0 && !this.atlasRequested) {
       this.atlasRequested = true;
       void this.loadAtlas();
@@ -359,7 +531,7 @@ export class PlanePass {
   /** Write this frame's instances (interpolated positions). Returns count. */
   private fill(): number {
     const n = this.count;
-    this.buf.ensureCapacity(n);
+    this.buf.ensureCapacity(n + WRECK_CAPACITY);
     const f = this.buf.float32;
     const alpha = this.tickAlpha();
     for (let i = 0; i < n; i++) {
@@ -379,10 +551,31 @@ export class PlanePass {
       f[o + 6] = r.alpha;
       f[o + 7] = contrailLength(flown, scale);
     }
+    // Wrecks follow the planes: tumbling, shrinking, fading.
+    let total = n;
+    if (this.liveWrecks() > 0) {
+      const now = this.timeFn();
+      for (const wr of this.wrecks) {
+        if (!wr.active) continue;
+        if (!wreckAt(wr.heading, now - wr.start, this.wreckState)) continue;
+        const ws = this.wreckState;
+        const o = total * FLOATS;
+        f[o] = wr.x + ws.dx + 0.5;
+        f[o + 1] = wr.y + ws.dy + 0.5;
+        f[o + 2] = wr.heading + ws.spin;
+        f[o + 3] = wr.size * ws.scale * 0.8;
+        f[o + 4] = wr.col;
+        f[o + 5] = wr.owner;
+        f[o + 6] = ws.alpha;
+        f[o + 7] = 0;
+        total++;
+      }
+    }
     const gl = this.gl;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.buffer);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, n * FLOATS);
-    return n;
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, total * FLOATS);
+    this.drawn = total;
+    return total;
   }
 
   private bindPlaneState(cam: Float32Array): void {
@@ -402,7 +595,10 @@ export class PlanePass {
 
   /** Ground shadows; draw with the ground units. Fills this frame's data. */
   drawShadows(cam: Float32Array): void {
-    if (this.count === 0) return;
+    if (this.count === 0 && this.liveWrecks() === 0) {
+      this.drawn = 0;
+      return;
+    }
     const n = this.fill();
     const gl = this.gl;
     this.bindPlaneState(cam);
@@ -415,18 +611,20 @@ export class PlanePass {
 
   /** Contrails and planes; draw with the missiles (above structures). */
   drawAir(cam: Float32Array): void {
-    if (this.count === 0) return;
+    if (this.drawn === 0) return;
     const gl = this.gl;
     gl.bindVertexArray(this.vao);
-    gl.useProgram(this.trailProg);
-    gl.uniformMatrix3fv(this.tCam, false, cam);
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.count);
+    if (this.count > 0) {
+      gl.useProgram(this.trailProg);
+      gl.uniformMatrix3fv(this.tCam, false, cam);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.count);
+    }
 
     this.bindPlaneState(cam);
     gl.uniform1f(this.uShadow, 0);
     gl.uniform2f(this.uShadowOffset, 0, 0);
     gl.uniform1f(this.uShadowScale, 1);
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.count);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.drawn);
   }
 
   dispose(): void {

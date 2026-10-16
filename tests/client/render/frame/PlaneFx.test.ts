@@ -181,3 +181,25 @@ describe("parachutes", () => {
     expect(a).toEqual(out);
   });
 });
+
+describe("interception fx", () => {
+  test("shot down only when unfinished and hunted", async () => {
+    const fx =
+      await import("../../../../src/client/render/frame/derive/PlaneFx");
+    expect(fx.wasShotDown(false, true)).toBe(true);
+    expect(fx.wasShotDown(true, true)).toBe(false);
+    expect(fx.wasShotDown(false, false)).toBe(false);
+  });
+
+  test("a wreck shrinks and fades over its second, then ends", async () => {
+    const fx =
+      await import("../../../../src/client/render/frame/derive/PlaneFx");
+    const s = { dx: 0, dy: 0, spin: 0, scale: 1, alpha: 1 };
+    expect(fx.wreckAt(0, 0, s)).toBe(true);
+    expect(s.scale).toBe(1);
+    expect(fx.wreckAt(0, 900, s)).toBe(true);
+    expect(s.scale).toBeLessThan(0.5);
+    expect(s.alpha).toBeLessThan(0.5);
+    expect(fx.wreckAt(0, fx.WRECK_MS, s)).toBe(false);
+  });
+});

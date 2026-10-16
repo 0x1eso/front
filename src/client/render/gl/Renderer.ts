@@ -103,6 +103,7 @@ const SAM_RADIUS_GHOST_TYPES = new Set([
   "SAM Launcher",
   "City",
   "Bomber",
+  "Transport Plane",
   "Atom Bomb",
   "Hydrogen Bomb",
 ]);
@@ -111,6 +112,7 @@ const SAM_RADIUS_GHOST_TYPES = new Set([
 const SAM_RADIUS_HIGHLIGHT_TYPES = new Set([
   "SAM Launcher",
   "Bomber",
+  "Transport Plane",
   "Atom Bomb",
   "Hydrogen Bomb",
 ]);
@@ -626,6 +628,7 @@ export class GPURenderer {
     this.airFxPass.setBombLandHandler((x, y) =>
       this.fxPass.spawnBombBlast(x, y),
     );
+    this.planePass.setEvadeHandler((x, y) => this.airFxPass.spawnFlare(x, y));
     this.namePass = new NamePass(
       gl,
       header,
@@ -1025,7 +1028,10 @@ export class GPURenderer {
     if (deadUnits.length === 0) return;
     this.fxPass.applyDeadUnits(deadUnits);
     for (const du of deadUnits) {
-      if (!du.reachedTarget) continue;
+      if (!du.reachedTarget) {
+        this.applyPlaneShotDown(du);
+        continue;
+      }
       const x = du.pos % this.mapW;
       const y = (du.pos - x) / this.mapW;
       // A transport plane that reached its drop point: parachutes.
@@ -1036,6 +1042,33 @@ export class GPURenderer {
         this.airFxPass.spawnFlash(x, y);
       }
     }
+  }
+
+  /**
+   * A transport plane or bomber that vanished unfinished while a SAM missile
+   * chased it: a mid-air blast, smoke, and its wreck falling away. Planes
+   * that arrive (reachedTarget) or are lost another way never get here.
+   */
+  private applyPlaneShotDown(du: DeadUnitFx): void {
+    if ((du.tickAge ?? 0) > 0) return; // seeked past it
+    const hit = this.planePass.takeShotDown(
+      du.unitType,
+      du.ownerSmallID,
+      du.pos,
+      du.reachedTarget,
+    );
+    if (hit === null) return;
+    this.planePass.spawnWreck(
+      hit.x,
+      hit.y,
+      hit.heading,
+      hit.col,
+      du.ownerSmallID,
+      du.unitType,
+    );
+    this.fxPass.spawnBombBlast(hit.x, hit.y);
+    this.airFxPass.spawnFlash(hit.x, hit.y);
+    this.airFxPass.spawnSmoke(hit.x, hit.y);
   }
 
   /** Expanded warfare: one carpet bomb per update falls from the bomber to its tile. */
