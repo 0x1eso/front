@@ -13,7 +13,10 @@ import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution
 import { VictoryProjectExecution } from "../domestic/VictoryProjectExecution";
 import { Execution, Game } from "../game/Game";
 import { NukeProductionExecution } from "../strategic/NukeProductionExecution";
-import { SatelliteTargetExecution } from "../strategic/SatelliteOrders";
+import {
+  SatelliteInterceptExecution,
+  SatelliteTargetExecution,
+} from "../strategic/SatelliteOrders";
 import { ParadropExecution } from "../warfare/ParadropExecution";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
@@ -177,6 +180,12 @@ export class Executor {
         return new NukeProductionExecution(player, intent.nukeType);
       case "satellite_target":
         return new SatelliteTargetExecution(player, intent.target);
+      case "intercept_satellite":
+        return new SatelliteInterceptExecution(
+          player,
+          intent.attacker,
+          intent.nukeType,
+        );
       default:
         throw new Error(`intent type ${intent} not found`);
     }

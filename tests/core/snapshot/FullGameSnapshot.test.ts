@@ -89,6 +89,7 @@ const DOMESTIC_UNSCRIPTED_TYPES = [
 const STRATEGIC_ONLY_TYPES = [
   "ConventionalMissile",
   "NukeProduction",
+  "SatelliteIntercept",
   "SatelliteTarget",
   "Strategic",
 ];

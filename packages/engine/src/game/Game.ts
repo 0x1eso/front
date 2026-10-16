@@ -723,8 +723,12 @@ export interface Game extends GameLike {
   /** Incremented each time the water navigation graph is rebuilt (e.g. after nuke terrain change). */
   waterGraphVersion(): number;
 
-  /** Queue a land tile for conversion to water (batched every few ticks). Tile must be unowned. */
-  queueWaterConversion(tile: TileRef): void;
+  /**
+   * Queue a land tile for conversion to water (batched every few ticks).
+   * Tile must be unowned. Without `force` it only takes fallout unless
+   * water nukes are on; the orbital strike forces it.
+   */
+  queueWaterConversion(tile: TileRef, force?: boolean): void;
 
   /** Queue a tile that was inside a nuke blast radius (for nukeable layer destruction). */
   queueNukeImpact(tile: TileRef): void;

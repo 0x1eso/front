@@ -307,12 +307,12 @@ export class GameImpl implements Game {
     this.recordTileUpdate(tile);
   }
 
-  queueWaterConversion(tile: TileRef): void {
+  queueWaterConversion(tile: TileRef, force = false): void {
     if (!this.isLand(tile)) return;
     if (this.hasOwner(tile)) {
       throw Error(`cannot queue water conversion, tile ${tile} has owner`);
     }
-    if (!this._config.waterNukes()) {
+    if (!force && !this._config.waterNukes()) {
       this.setFallout(tile, true);
       return;
     }
