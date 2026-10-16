@@ -96,7 +96,8 @@ describe("a bomber's bomb and a conventional missile in flight", () => {
       targetTile: at,
       trajectory: [],
     });
-    exec.detonate();
+    exec.drops = [at];
+    exec.dropBomb(0);
     expect(missile.isActive()).toBe(true);
   });
 });

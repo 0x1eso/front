@@ -4,6 +4,7 @@ import {
   Structures,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { listNukeBreakAlliance } from "@openfront/engine-lib/execution/NukeAlliance";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
@@ -13,8 +14,8 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import {
-  BOMB_INNER,
-  BOMB_OUTER,
+  CARPET_BOMB_INNER,
+  CARPET_BOMB_OUTER,
   PLANE_SPEED,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
@@ -25,6 +26,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { carpetDropTiles } from "./Carpet";
 import { straightFlightPath } from "./FlightPath";
 import { samMissileClosingIn } from "./Interception";
 
@@ -44,11 +46,13 @@ const BLAST_PROOF: ReadonlySet<UnitType> = new Set([
 const SPRITE_RADIUS = 16;
 
 /**
- * Bombing (spec §14b): a bomber flies straight from the nearest airport
- * with a free sortie (SAMs may shoot it; it evades each interception with
- * 50%) and drops a small atom bomb: inner BOMB_INNER, outer BOMB_OUTER,
- * atom-bomb troop deaths and unit destruction, alliances broken like a
- * nuke's, and no fallout or water: the land just becomes unclaimed.
+ * Carpet bombing (spec §14c): a bomber flies straight from the nearest
+ * airport with a free sortie through the aim, on to the last drop point of
+ * `carpetDropTiles`. As it passes each point it drops one small bomb (inner
+ * CARPET_BOMB_INNER, outer CARPET_BOMB_OUTER) with an atom bomb's troop
+ * deaths, unit destruction and fallout (water with waterNukes), and emits a
+ * BombDropUpdate. SAMs may shoot it (it evades each interception with 50%);
+ * a bomber shot down drops no more. Alliances break like a nuke's.
  */
 export class BombingExecution implements Execution {
   private mg: Game;
@@ -56,6 +60,11 @@ export class BombingExecution implements Execution {
   private bomber: Unit | null = null;
   private path: TileRef[] = [];
   private step = 0;
+  private drops: TileRef[] = [];
+  private dropSteps: number[] = [];
+  private dropped = 0;
+  /** smallIDs of players already told about this run. */
+  private notified: number[] = [];
 
   constructor(
     private player: Player,
@@ -80,10 +89,47 @@ export class BombingExecution implements Execution {
       this.step++;
       this.bomber.move(this.path[this.step]);
       this.bomber.setTrajectoryIndex(this.step);
-      if (this.step < last) return;
     }
-    if (samMissileClosingIn(this.mg, this.bomber, this.dst)) return;
-    this.detonate();
+    while (
+      this.dropped < this.drops.length &&
+      this.dropSteps[this.dropped] <= this.step
+    ) {
+      // A SAM missile about to hit holds the plane for a tick.
+      if (samMissileClosingIn(this.mg, this.bomber, this.bomber.tile())) return;
+      if (!this.dropBomb(this.dropped)) {
+        this.bomber.delete(false);
+        this.active = false;
+        return;
+      }
+      this.dropped++;
+    }
+    if (this.dropped >= this.drops.length) {
+      this.bomber.setReachedTarget();
+      this.bomber.delete(false);
+      this.active = false;
+    }
+  }
+
+  /** Plans the drops: each on the first flight step nearest its tile. */
+  private planDrops(airport: TileRef): void {
+    const mg = this.mg;
+    this.drops = carpetDropTiles(mg, airport, this.dst);
+    this.dropSteps = this.drops.map((tile) => {
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < this.path.length; i++) {
+        const d = mg.euclideanDistSquared(this.path[i], tile);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      return best;
+    });
+    // Never earlier than a point before it.
+    for (let i = 1; i < this.dropSteps.length; i++) {
+      this.dropSteps[i] = Math.max(this.dropSteps[i], this.dropSteps[i - 1]);
+    }
   }
 
   private launch(ticks: number): void {
@@ -108,7 +154,19 @@ export class BombingExecution implements Execution {
       .units(UnitType.Airport)
       .find((a) => a.tile() === spawn)
       ?.launch();
-    this.path = straightFlightPath(mg, spawn, this.dst, PLANE_SPEED);
+    const drops = carpetDropTiles(mg, spawn, this.dst);
+    if (drops.length === 0) {
+      this.active = false;
+      return;
+    }
+    // Fly on to the last drop point: the whole carpet lies on that line.
+    this.path = straightFlightPath(
+      mg,
+      spawn,
+      drops[drops.length - 1],
+      PLANE_SPEED,
+    );
+    this.planDrops(spawn);
     this.bomber = this.player.buildUnit(UnitType.Bomber, spawn, {
       targetTile: this.dst,
       trajectory: this.path.map((tile) => ({ tile, targetable: true })),
@@ -133,15 +191,20 @@ export class BombingExecution implements Execution {
     }
   }
 
-  /** As NukeExecution.maybeBreakAlliances, for the bomb's smaller blast. */
+  /** As NukeExecution.maybeBreakAlliances, for every bomb of the carpet. */
   private breakAlliances(): void {
     const mg = this.mg;
-    const hit = listNukeBreakAlliance({
-      game: mg,
-      targetTile: this.dst,
-      magnitude: { inner: BOMB_INNER, outer: BOMB_OUTER },
-      threshold: mg.config().nukeAllianceBreakThreshold(),
-    });
+    const hit = new Set<number>();
+    for (const tile of this.drops) {
+      for (const id of listNukeBreakAlliance({
+        game: mg,
+        targetTile: tile,
+        magnitude: { inner: CARPET_BOMB_INNER, outer: CARPET_BOMB_OUTER },
+        threshold: mg.config().nukeAllianceBreakThreshold(),
+      })) {
+        hit.add(id);
+      }
+    }
     // Reject requests that could be accepted while the bomber is in the air.
     for (const incoming of this.player.incomingAllianceRequests()) {
       if (hit.has(incoming.requestor().smallID())) incoming.reject();
@@ -162,22 +225,21 @@ export class BombingExecution implements Execution {
     }
   }
 
-  private detonate(): void {
+  /** Drops bomb `index`; false when its tile turned friendly (the bomber turns home). */
+  private dropBomb(index: number): boolean {
     const mg = this.mg;
     const config = mg.config();
-    const bomber = this.bomber!;
-    const aimed = mg.owner(this.dst);
+    const at = this.drops[index];
+    const aimed = mg.owner(at);
     if (aimed.isPlayer() && this.player.isFriendly(aimed, true)) {
-      // The target turned friendly in flight: the bomber turns home unused.
-      bomber.delete(false);
-      this.active = false;
-      return;
+      // The land turned friendly in flight: the bomber turns home.
+      return false;
     }
-    const rand = new PseudoRandom(mg.ticks());
-    const inner2 = BOMB_INNER * BOMB_INNER;
-    const outer2 = BOMB_OUTER * BOMB_OUTER;
-    const tiles = mg.bfs(this.dst, (_, n: TileRef) => {
-      const d2 = mg.euclideanDistSquared(this.dst, n);
+    const rand = new PseudoRandom(mg.ticks() * 31 + index);
+    const inner2 = CARPET_BOMB_INNER * CARPET_BOMB_INNER;
+    const outer2 = CARPET_BOMB_OUTER * CARPET_BOMB_OUTER;
+    const tiles = mg.bfs(at, (_, n: TileRef) => {
+      const d2 = mg.euclideanDistSquared(at, n);
       return (
         d2 <= outer2 && (d2 <= inner2 || rand.chance(2)) && !mg.isImpassable(n)
       );
@@ -190,7 +252,8 @@ export class BombingExecution implements Execution {
         owner.relinquish(tile);
         lostTiles.set(owner, (lostTiles.get(owner) ?? 0) + 1);
       }
-      // No fallout and no water: only the crater picture.
+      // Fallout, or water with waterNukes, as a nuke leaves.
+      if (mg.isLand(tile)) mg.queueWaterConversion(tile);
       mg.queueNukeImpact(tile);
     }
 
@@ -215,26 +278,26 @@ export class BombingExecution implements Execution {
 
     for (const unit of mg.units()) {
       if (BLAST_PROOF.has(unit.type()) || !unit.isActive()) continue;
-      if (mg.euclideanDistSquared(this.dst, unit.tile()) < outer2) {
+      if (mg.euclideanDistSquared(at, unit.tile()) < outer2) {
         const friendly = this.player.isFriendly(unit.owner(), true);
         unit.delete(true, friendly ? undefined : this.player);
       }
     }
 
-    const redraw = (BOMB_OUTER + SPRITE_RADIUS) * (BOMB_OUTER + SPRITE_RADIUS);
+    const redraw =
+      (CARPET_BOMB_OUTER + SPRITE_RADIUS) * (CARPET_BOMB_OUTER + SPRITE_RADIUS);
     for (const unit of mg.units()) {
       if (
         Structures.has(unit.type()) &&
-        mg.euclideanDistSquared(this.dst, unit.tile()) < redraw
+        mg.euclideanDistSquared(at, unit.tile()) < redraw
       ) {
         unit.touch();
       }
     }
 
-    bomber.setReachedTarget();
-    bomber.delete(false);
-    this.active = false;
     for (const [victim] of lostTiles) {
+      if (this.notified.includes(victim.smallID())) continue;
+      this.notified.push(victim.smallID());
       mg.displayMessage(
         "events_display.bombing_detonated",
         MessageType.NUKE_DETONATED,
@@ -245,6 +308,14 @@ export class BombingExecution implements Execution {
         this.player.id(),
       );
     }
+    mg.addUpdate({
+      type: GameUpdateType.BombDrop,
+      attackerID: this.player.smallID(),
+      tile: at,
+      index,
+      last: index === this.drops.length - 1,
+    });
+    return true;
   }
 
   isActive(): boolean {
@@ -264,6 +335,8 @@ export class BombingExecution implements Execution {
       bomber: w.unitOrNull(this.bomber),
       path: [...this.path],
       step: this.step,
+      dropped: this.dropped,
+      notified: [...this.notified],
     });
   }
 
@@ -275,6 +348,10 @@ export class BombingExecution implements Execution {
     this.bomber = r.unitOrNull(s.bomber);
     this.path = [...s.path];
     this.step = s.step;
+    this.dropped = s.dropped;
+    this.notified = [...s.notified];
+    // The drop plan follows from the airport (the flight's start) and the aim.
+    if (this.path.length > 0) this.planDrops(this.path[0]);
   }
 }
 
@@ -287,12 +364,16 @@ const BombingStateSchema = z.object({
   bomber: zRef().nullable(),
   path: z.array(zTile()),
   step: zInt(),
+  dropped: zInt(),
+  notified: z.array(zInt()),
 });
 type BombingState = z.infer<typeof BombingStateSchema>;
 
 export const BombingExecutionSnapshot = execSnapshotType({
   name: "Bombing",
-  version: 1,
+  version: 2,
+  // v1 was a single blast; a bomber in flight then drops its carpet from now.
+  migrations: { 1: (d) => ({ ...d, dropped: 0, notified: [] }) },
   schema: BombingStateSchema,
   cls: () => BombingExecution,
 });

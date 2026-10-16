@@ -1,5 +1,14 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import {
+  BombDropUpdate,
+  GameUpdateType,
+} from "@openfront/engine-api/game/GameUpdates";
+import {
+  CARPET_BOMB_OUTER,
+  CARPET_BOMBS,
+  carpetBombPoints,
+} from "@openfront/engine-lib/warfare/Warfare";
 import { activeConditions } from "@openfront/engine/domestic/DomesticEconomy";
 import { VictoryProjectExecution } from "@openfront/engine/domestic/VictoryProjectExecution";
 import { processVictoryProjectSecond } from "@openfront/engine/domestic/VictoryProjects";
@@ -45,6 +54,21 @@ function samAt(game: Game, owner: Player, x: number, y: number): Unit {
   return sam;
 }
 
+/** Runs `n` ticks and returns every BombDrop update, with its tick. */
+function runCollect(
+  game: Game,
+  n: number,
+): (BombDropUpdate & { at: number })[] {
+  const out: (BombDropUpdate & { at: number })[] = [];
+  for (let i = 0; i < n; i++) {
+    const updates = game.executeNextTick();
+    for (const u of updates[GameUpdateType.BombDrop] ?? []) {
+      out.push({ ...(u as BombDropUpdate), at: game.ticks() });
+    }
+  }
+  return out;
+}
+
 const bomber = (p: Player): Unit | undefined => p.units(UnitType.Bomber)[0];
 
 describe("bombing", () => {
@@ -52,7 +76,7 @@ describe("bombing", () => {
     control.evade = false;
   });
 
-  test("costs 750K and a sortie, then leaves an 18-tile crater without fallout", async () => {
+  test("costs 750K and a sortie, then carpets the line with fallout", async () => {
     const { game, red, blue, airport } = await airfield();
     const city = blue.buildUnit(UnitType.City, game.ref(72, 12), {});
     const blueAirport = blue.buildUnit(UnitType.Airport, game.ref(66, 8), {});
@@ -65,27 +89,70 @@ describe("bombing", () => {
     expect(airport.isInCooldown()).toBe(true);
     expect(bomber(red)).toBeDefined();
 
-    executeTicks(game, 22);
+    executeTicks(game, 45);
     expect(bomber(red)).toBeUndefined();
     expect(city.isActive()).toBe(false);
     expect(blueAirport.isActive()).toBe(false);
-    expect(game.hasOwner(game.ref(70, 10))).toBe(false);
-    expect(game.isLand(game.ref(70, 10))).toBe(true);
-    // All of the inner disc (radius 8: about 200 tiles) is lost.
-    expect(blue.numTilesOwned()).toBeLessThan(tiles - 190);
+    expect(blue.numTilesOwned()).toBeLessThan(tiles - 300);
     expect(blue.troops()).toBeLessThan(troops);
-    expect(game.numTilesWithFallout()).toBe(0);
+    // A bombed tile carries fallout, as under an atom bomb.
+    expect(game.numTilesWithFallout()).toBeGreaterThan(0);
+    expect(game.hasFallout(game.ref(73, 10))).toBe(true);
+    expect(game.hasOwner(game.ref(73, 10))).toBe(false);
   });
 
-  test("a SAM shoots down a bomber that doesn't evade: no crater", async () => {
-    const { game, red, blue } = await airfield();
-    samAt(game, blue, 64, 12);
-    const spy = vi.spyOn(game, "displayMessage");
-    const tiles = blue.numTilesOwned();
+  test("drops one bomb per carpet point along the airport-aim line, in order", async () => {
+    const { game, red } = await airfield();
     bomb(game, red, game.ref(70, 10));
-    executeTicks(game, 40);
+    const drops = runCollect(game, 60);
+    const points = carpetBombPoints(10, 10, 70, 10);
+    expect(drops).toHaveLength(CARPET_BOMBS);
+    drops.forEach((d, i) => {
+      expect(d.index).toBe(i);
+      expect(d.last).toBe(i === CARPET_BOMBS - 1);
+      expect(d.attackerID).toBe(red.smallID());
+      expect(game.x(d.tile)).toBe(points[i].x);
+      expect(game.y(d.tile)).toBe(points[i].y);
+      if (i > 0) expect(d.at).toBeGreaterThanOrEqual(drops[i - 1].at);
+    });
+    // The line runs from the airport through the aim, centred on it.
+    expect(game.x(drops[0].tile)).toBeLessThan(70);
+    expect(game.x(drops[CARPET_BOMBS - 1].tile)).toBeGreaterThan(70);
+    expect(drops[0].at).toBeLessThan(drops[CARPET_BOMBS - 1].at);
     expect(bomber(red)).toBeUndefined();
-    expect(blue.numTilesOwned()).toBe(tiles);
+  });
+
+  test("a diagonal aim bombs along the diagonal and skips off-map points", async () => {
+    const game = await warfareGame("plains", { instantBuild: true });
+    const red = own(game, RED.id, 0, 0, 20, 20);
+    own(game, BLUE.id, 40, 40, 60, 60);
+    red.addGold(10_000_000n);
+    red.buildUnit(UnitType.Airport, game.ref(5, 5), {});
+    // The line ends past the map corner: its last points are off the map.
+    bomb(game, red, game.ref(90, 90));
+    const drops = runCollect(game, 80);
+    const points = carpetBombPoints(5, 5, 90, 90).filter(
+      (p) => p.x < 100 && p.y < 100,
+    );
+    expect(points.length).toBeLessThan(CARPET_BOMBS);
+    expect(drops).toHaveLength(points.length);
+    expect(drops[drops.length - 1].last).toBe(true);
+    drops.forEach((d, i) => {
+      expect(game.x(d.tile)).toBe(points[i].x);
+      expect(game.y(d.tile)).toBe(points[i].y);
+    });
+  });
+
+  test("a SAM shoots the bomber down mid-run: the remaining bombs are not dropped", async () => {
+    const { game, red, blue } = await airfield();
+    samAt(game, blue, 99, 12);
+    const spy = vi.spyOn(game, "displayMessage");
+    bomb(game, red, game.ref(70, 10));
+    const drops = runCollect(game, 60);
+    expect(bomber(red)).toBeUndefined();
+    expect(drops.length).toBeGreaterThan(0);
+    expect(drops.length).toBeLessThan(CARPET_BOMBS);
+    expect(drops.some((d) => d.last)).toBe(false);
     expect(spy).toHaveBeenCalledWith(
       "events_display.missile_intercepted",
       MessageType.SAM_HIT,
@@ -109,14 +176,14 @@ describe("bombing", () => {
     const city = blue.buildUnit(UnitType.City, game.ref(72, 12), {});
     const spy = vi.spyOn(game, "displayMessage");
     bomb(game, red, game.ref(70, 10));
-    executeTicks(game, 40);
+    executeTicks(game, 60);
     expect(spy).toHaveBeenCalledWith(
       "events_display.bomber_evaded",
       MessageType.SAM_MISS,
       blue.id(),
     );
     expect(city.isActive()).toBe(false);
-    expect(game.hasOwner(game.ref(70, 10))).toBe(false);
+    expect(bomber(red)).toBeUndefined();
   });
 
   test("SAMs also shoot down transport planes; their troops are lost", async () => {
@@ -128,6 +195,27 @@ describe("bombing", () => {
     expect(red.units(UnitType.TransportPlane)).toHaveLength(0);
     expect(red.troops()).toBe(troops - 30_000);
     expect(game.owner(game.ref(70, 10))).toBe(blue);
+  });
+
+  test("friendly or own land anywhere along the line forbids the run", async () => {
+    const game = await warfareGame("plains", { instantBuild: true });
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 85, 0, 15, 100);
+    red.addGold(10_000_000n);
+    red.buildUnit(UnitType.Airport, game.ref(10, 10), {});
+    // The aim (65,10) is unclaimed, but the carpet's far end reaches x = 89.
+    const aim = game.ref(65, 10);
+    expect(red.canBuild(UnitType.Bomber, aim)).not.toBe(false);
+    red.createAllianceRequest(blue)?.accept();
+    expect(red.canBuild(UnitType.Bomber, aim)).toBe(false);
+    const gold = red.gold();
+    bomb(game, red, aim);
+    executeTicks(game, 5);
+    expect(bomber(red)).toBeUndefined();
+    expect(red.gold()).toBe(gold);
+    // Near the airport the line's first bombs sit on the striker's own land.
+    expect(red.canBuild(UnitType.Bomber, game.ref(35, 10))).toBe(false);
+    expect(CARPET_BOMB_OUTER).toBe(8);
   });
 
   test("can't bomb own or allied land", async () => {
@@ -147,6 +235,15 @@ describe("bombing", () => {
     bomb(game, red, game.ref(70, 10));
     executeTicks(game, 8);
     await expectSnapshotRoundTrip(game, "plains", 30);
+  });
+
+  test("survives a snapshot mid-run, after some bombs have fallen", async () => {
+    const { game, red } = await airfield();
+    bomb(game, red, game.ref(70, 10));
+    const before = runCollect(game, 22);
+    expect(before.length).toBeGreaterThan(0);
+    expect(before.length).toBeLessThan(CARPET_BOMBS);
+    await expectSnapshotRoundTrip(game, "plains", 40);
   });
 });
 

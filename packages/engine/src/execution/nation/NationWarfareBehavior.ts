@@ -18,7 +18,7 @@ import {
 import {
   airportRange,
   BARRAGE_SUPPRESSION_TICKS,
-  BOMB_OUTER,
+  CARPET_BOMB_OUTER,
   COASTAL_BATTERY_RANGE,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
@@ -28,6 +28,7 @@ import type {
   SnapshotWriter,
 } from "../../snapshot/SnapshotContext";
 import { BombingExecution } from "../../warfare/BombingExecution";
+import { carpetDropTiles, discTiles } from "../../warfare/Carpet";
 import { ParadropExecution } from "../../warfare/ParadropExecution";
 import { ConstructionExecution } from "../ConstructionExecution";
 import { nationDomesticPlan } from "./NationPersonality";
@@ -236,10 +237,13 @@ export class NationWarfareBehavior {
     const bombCost = this.game
       .unitInfo(UnitType.Bomber)
       .cost(this.game, this.player);
+    const bombSpawn =
+      this.player.gold() >= bombCost + style.reserve
+        ? this.player.canBuild(UnitType.Bomber, tile)
+        : false;
     const canBomb =
-      this.player.gold() >= bombCost + style.reserve &&
-      this.player.canBuild(UnitType.Bomber, tile) !== false &&
-      this.blastKeepsFriends(tile, target.owner());
+      bombSpawn !== false &&
+      this.carpetKeepsFriends(bombSpawn, tile, target.owner());
     const troops = Math.floor(this.player.troops() / 4);
     const canDrop =
       troops > target.owner().troops() / 10 &&
@@ -256,25 +260,27 @@ export class NationWarfareBehavior {
   }
 
   /**
-   * No friendly player (AFK ones too) has land in the blast, and on Easy and
-   * Medium no third player's land either (as NationNukeBehavior's tiles).
+   * No friendly player (AFK ones too) has land in any bomb of the carpet,
+   * and on Easy and Medium no third player's land either (as
+   * NationNukeBehavior's tiles).
    */
-  private blastKeepsFriends(tile: TileRef, victim: Player): boolean {
+  private carpetKeepsFriends(
+    airport: TileRef,
+    tile: TileRef,
+    victim: Player,
+  ): boolean {
     const game = this.game;
     const hard =
       game.config().gameConfig().difficulty === Difficulty.Hard ||
       game.config().gameConfig().difficulty === Difficulty.Impossible;
-    const outer2 = BOMB_OUTER * BOMB_OUTER;
-    const tiles = game.bfs(
-      tile,
-      (_, n: TileRef) =>
-        game.euclideanDistSquared(tile, n) <= outer2 && !game.isImpassable(n),
-    );
-    for (const t of tiles) {
-      const owner = game.owner(t);
-      if (!owner.isPlayer() || owner === victim) continue;
-      if (owner === this.player) return false;
-      if (!hard || this.player.isFriendly(owner, true)) return false;
+    for (const drop of carpetDropTiles(game, airport, tile)) {
+      for (const t of discTiles(game, drop, CARPET_BOMB_OUTER)) {
+        if (game.isImpassable(t)) continue;
+        const owner = game.owner(t);
+        if (!owner.isPlayer() || owner === victim) continue;
+        if (owner === this.player) return false;
+        if (!hard || this.player.isFriendly(owner, true)) return false;
+      }
     }
     return true;
   }

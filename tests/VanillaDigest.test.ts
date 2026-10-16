@@ -43,6 +43,9 @@ describe("vanilla stays bit-identical", () => {
     expect(await digest({ strategicWeapons: false })).toBe("c330352312204618");
   }, 60_000);
 
+  // The two expanded-warfare pins were re-pinned for the warfare overhaul
+  // (spec §14c: no encirclement capture, carpet bombing, unlimited barrage
+  // range); the option-off pins above are unchanged.
   // Domestic mode and expanded warfare, pinned on 758c9f5ff (before strategic
   // weapons): turning the strategic option off must leave both unchanged.
   test("domestic mode with the strategic option explicitly off", async () => {
@@ -54,7 +57,7 @@ describe("vanilla stays bit-identical", () => {
   test("expanded warfare with the strategic option explicitly off", async () => {
     expect(
       await digest({ warfareExpansion: true, strategicWeapons: false }),
-    ).toBe("312bd4a7c2d2b669");
+    ).toBe("724c23dc8fb1f05b");
   }, 60_000);
 
   test("domestic mode and expanded warfare with the strategic option explicitly off", async () => {
@@ -64,6 +67,6 @@ describe("vanilla stays bit-identical", () => {
         warfareExpansion: true,
         strategicWeapons: false,
       }),
-    ).toBe("795891cc9da8b91f");
+    ).toBe("d47cef1a67272392");
   }, 60_000);
 });

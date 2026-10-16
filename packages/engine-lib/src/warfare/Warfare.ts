@@ -35,8 +35,6 @@ export const WARSHIP_SHELL_RATE_PCT = 150;
 
 // --- Coastal barrage ---
 export const BARRAGE_COST = 300_000;
-/** Most tiles between the firing silo and the aimed tile. */
-export const BARRAGE_SILO_RANGE = 200;
 export const BARRAGE_SHELLS = 8;
 /** 8 shells 5 ticks apart: the salvo lasts 4 seconds. */
 export const BARRAGE_SHELL_SPACING_TICKS = 5;

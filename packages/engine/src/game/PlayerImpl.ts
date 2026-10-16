@@ -65,8 +65,7 @@ import {
   airportRange,
   BARRAGE_BATTERY_KILL_RADIUS,
   BARRAGE_RADIUS,
-  BARRAGE_SILO_RANGE,
-  BOMB_OUTER,
+  CARPET_BOMB_OUTER,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import {
@@ -87,6 +86,7 @@ import {
   PlayerStrategic,
   StrategicStateSchema,
 } from "../strategic/PlayerStrategic";
+import { carpetDropTiles, discTiles } from "../warfare/Carpet";
 import { AttackImpl } from "./AttackImpl";
 import {
   Alliance,
@@ -1831,7 +1831,7 @@ export class PlayerImpl implements Player {
     return true;
   }
 
-  /** Coastal barrage: the nearest loaded silo within BARRAGE_SILO_RANGE. */
+  /** Coastal barrage: the nearest loaded silo, at any distance (as a nuke's). */
   barrageSpawn(tile: TileRef): TileRef | false {
     if (
       !this.isStrikeTarget(tile, BARRAGE_RADIUS + BARRAGE_BATTERY_KILL_RADIUS)
@@ -1839,15 +1839,10 @@ export class PlayerImpl implements Player {
       return false;
     }
     const mg = this.mg;
-    const range2 = BARRAGE_SILO_RANGE * BARRAGE_SILO_RANGE;
     const silo = findClosestBy(
       this.units(UnitType.MissileSilo),
       (s) => mg.euclideanDistSquared(s.tile(), tile),
-      (s) =>
-        s.isActive() &&
-        !s.isInCooldown() &&
-        !s.isUnderConstruction() &&
-        mg.euclideanDistSquared(s.tile(), tile) <= range2,
+      (s) => s.isActive() && !s.isInCooldown() && !s.isUnderConstruction(),
     );
     return silo?.tile() ?? false;
   }
@@ -1871,9 +1866,45 @@ export class PlayerImpl implements Player {
     return airport?.tile() ?? false;
   }
 
+  /**
+   * Carpet bombing: the airport the bomber leaves from, if no bomb of the
+   * line (each with its whole outer radius) would hit the striker's own or
+   * a friendly nation's land, or a teammate's structure in a team game.
+   */
   bomberSpawn(tile: TileRef): TileRef | false {
-    if (!this.isStrikeTarget(tile, BOMB_OUTER)) return false;
-    return this.airportSortieSpawn(tile);
+    const mg = this.mg;
+    if (!this.isStrikeTarget(tile, CARPET_BOMB_OUTER)) return false;
+    const airport = this.airportSortieSpawn(tile);
+    if (airport === false) return false;
+    const drops = carpetDropTiles(mg, airport, tile);
+    if (drops.length === 0) return false;
+    const team = mg.config().gameConfig().gameMode === GameMode.Team;
+    const safe = new Map<number, boolean>();
+    for (const drop of drops) {
+      if (mg.isSpawnImmunityActive()) return false;
+      for (const t of discTiles(mg, drop)) {
+        const owner = mg.owner(t);
+        if (!owner.isPlayer()) continue;
+        let ok = safe.get(owner.smallID());
+        if (ok === undefined) {
+          ok = owner !== this && !this.isFriendly(owner, true);
+          safe.set(owner.smallID(), ok);
+        }
+        if (!ok) return false;
+      }
+      if (
+        team &&
+        mg.anyUnitNearby(
+          drop,
+          CARPET_BOMB_OUTER,
+          Structures.types,
+          (unit) => unit.owner().isPlayer() && this.isOnSameTeam(unit.owner()),
+        )
+      ) {
+        return false;
+      }
+    }
+    return airport;
   }
 
   /** Paradrop: enemy or unclaimed land the player may attack. */

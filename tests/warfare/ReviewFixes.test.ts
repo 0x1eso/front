@@ -91,7 +91,7 @@ describe("strikes in team games", () => {
     const { game, a, b } = await teamGame("plains");
     const enemy = game.addPlayer(NATION);
     conquerRect(game, a, 0, 0, 30, 100);
-    conquerRect(game, b, 30, 0, 20, 100);
+    conquerRect(game, b, 30, 60, 20, 40);
     conquerRect(game, enemy, 50, 0, 50, 100);
     a.buildUnit(UnitType.Airport, game.ref(10, 10), {});
     a.buildUnit(UnitType.MissileSilo, game.ref(12, 12), {});
@@ -103,9 +103,9 @@ describe("strikes in team games", () => {
       false,
     );
     // An enemy tile whose blast would reach the teammate's city.
-    b.buildUnit(UnitType.City, game.ref(48, 50), {});
-    expect(a.canBuild(UnitType.Bomber, game.ref(55, 50))).toBe(false);
-    expect(a.canBuild(UnitType.CoastalBarrage, game.ref(55, 50))).toBe(false);
+    b.buildUnit(UnitType.City, game.ref(48, 62), {});
+    expect(a.canBuild(UnitType.Bomber, game.ref(55, 62))).toBe(false);
+    expect(a.canBuild(UnitType.CoastalBarrage, game.ref(55, 62))).toBe(false);
     // A disconnected teammate's own land.
     b.markDisconnected(true);
     expect(a.canBuild(UnitType.Bomber, game.ref(40, 80))).toBe(false);
@@ -258,8 +258,8 @@ describe("nation warfare AI", () => {
     const { game, nation, red } = await setupAi(Difficulty.Hard);
     const ally = game.addPlayer(BLUE);
     conquerRect(game, ally, 60, 30, 30, 20);
-    // The ally's land lies within 18 tiles of the city (70, 10).
-    conquerRect(game, ally, 60, 25, 30, 5);
+    // The ally's land lies within 8 tiles of the carpet line through (70, 10).
+    conquerRect(game, ally, 60, 15, 30, 5);
     nation.createAllianceRequest(ally)?.accept();
     const ai = new NationWarfareBehavior(new PseudoRandom(1), game, nation);
     ai.maybeSortie({ ...style(), sortieOdds: 1, prefersBombing: true });
