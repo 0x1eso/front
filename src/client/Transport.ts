@@ -134,6 +134,13 @@ export class SendBoatAttackIntentEvent implements GameEvent {
   ) {}
 }
 
+export class SendParadropIntentEvent implements GameEvent {
+  constructor(
+    public readonly dst: TileRef,
+    public readonly troops: number,
+  ) {}
+}
+
 export class BuildUnitIntentEvent implements GameEvent {
   constructor(
     public readonly unit: UnitType,
@@ -364,6 +371,9 @@ export class Transport {
     );
     this.subscribe(SendBoatAttackIntentEvent, (e) =>
       this.onSendBoatAttackIntent(e),
+    );
+    this.subscribe(SendParadropIntentEvent, (e) =>
+      this.onSendParadropIntent(e),
     );
     this.subscribe(SendTargetPlayerIntentEvent, (e) =>
       this.onSendTargetPlayerIntent(e),
@@ -865,6 +875,15 @@ export class Transport {
     if (!this.isSendableTroops("boat", event.troops)) return;
     this.sendIntent({
       type: "boat",
+      troops: event.troops,
+      dst: event.dst,
+    });
+  }
+
+  private onSendParadropIntent(event: SendParadropIntentEvent) {
+    if (!this.isSendableTroops("paradrop", event.troops)) return;
+    this.sendIntent({
+      type: "paradrop",
       troops: event.troops,
       dst: event.dst,
     });

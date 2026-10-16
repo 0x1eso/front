@@ -6,6 +6,7 @@ Statecraft is a modified version of OpenFront, © OpenFront and Contributors, ht
 
 - `resources/images/Emblem.svg`: drawn for this fork, CC BY-SA 4.0.
 - `resources/images/AdminOfficeIconWhite.svg`, `resources/images/ResearchInstituteIconWhite.svg` (build menu icons) and `resources/atlases/src/admin-office.svg`, `resources/atlases/src/research-institute.svg` (map icon sources): drawn for this fork, CC BY-SA 4.0.
+- `resources/images/CoastalBatteryIconWhite.svg`, `resources/images/AirportIconWhite.svg`, `resources/images/BomberIconWhite.svg`, `resources/images/ParadropIconWhite.svg` (expanded warfare build menu icons): drawn for this fork, CC BY-SA 4.0.
 - `resources/atlases/icon-atlas.png`: upstream's structure icon atlas (CC BY-SA 4.0, "OpenFront"), modified by this fork: cells 7 and 8 (domestic structures) and 9 and 10 (coastal battery, airport, from `resources/atlases/src/coastal-battery.svg` and `airport.svg`, drawn for this fork) are appended; the first six cells are unchanged. The modified atlas is CC BY-SA 4.0.
 - `resources/atlases/unit-atlas.png`: upstream's unit sprite atlas (CC BY-SA 4.0, "OpenFront"), modified by this fork: three plane sprites drawn for this fork (`resources/atlases/src/unit-sprites.py`) are appended; the first twelve cells are unchanged. The modified atlas is CC BY-SA 4.0.
 - Upstream's all-rights-reserved assets (`proprietary/`: logos, the OpenFront font, music and the matchmaking chime) are not included.

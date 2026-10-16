@@ -20,8 +20,12 @@ import { GameView } from "../../view";
 import { lockedReason } from "../domestic/LockReason";
 import {
   adminOfficeIcon,
+  airportIcon,
   atomBombIcon,
+  bomberIcon,
   cityIcon,
+  coastalBarrageIcon,
+  coastalBatteryIcon,
   defensePostIcon,
   factoryIcon,
   goldCoinIcon,
@@ -112,6 +116,20 @@ export const HOTBAR: readonly HotbarItem[] = [
     countable: true,
   },
   {
+    type: UnitType.CoastalBattery,
+    icon: coastalBatteryIcon,
+    key: "coastal_battery",
+    keybind: "",
+    countable: true,
+  },
+  {
+    type: UnitType.Airport,
+    icon: airportIcon,
+    key: "airport",
+    keybind: "",
+    countable: true,
+  },
+  {
     type: UnitType.AtomBomb,
     icon: atomBombIcon,
     key: "atom_bomb",
@@ -130,6 +148,20 @@ export const HOTBAR: readonly HotbarItem[] = [
     icon: mirvIcon,
     key: "mirv",
     keybind: "buildMIRV",
+    countable: false,
+  },
+  {
+    type: UnitType.CoastalBarrage,
+    icon: coastalBarrageIcon,
+    key: "coastal_barrage",
+    keybind: "",
+    countable: false,
+  },
+  {
+    type: UnitType.Bomber,
+    icon: bomberIcon,
+    key: "bomber",
+    keybind: "",
     countable: false,
   },
 ];
@@ -163,6 +195,10 @@ function highlightTypes(
     case UnitType.AtomBomb:
     case UnitType.HydrogenBomb:
       return [UnitType.MissileSilo, UnitType.SAMLauncher];
+    case UnitType.CoastalBarrage:
+      return [UnitType.MissileSilo, UnitType.CoastalBattery];
+    case UnitType.Bomber:
+      return [UnitType.Airport, UnitType.SAMLauncher];
     case UnitType.Warship:
       return [UnitType.Port];
     default:
@@ -254,10 +290,16 @@ export class UnitDisplay extends LitElement implements Controller {
       return translateText("build_menu.not_enough_money");
     }
     if (
-      NUKES.has(type) &&
+      (NUKES.has(type) || type === UnitType.CoastalBarrage) &&
       (player?.units(UnitType.MissileSilo).length ?? 0) === 0
     ) {
       return translateText("touch_ui.needs_silo");
+    }
+    if (
+      type === UnitType.Bomber &&
+      (player?.units(UnitType.Airport).length ?? 0) === 0
+    ) {
+      return translateText("touch_ui.needs_airport");
     }
     if (
       type === UnitType.Warship &&
@@ -333,7 +375,7 @@ export class UnitDisplay extends LitElement implements Controller {
     return html`
       <div class="border-t border-white/10 p-1 w-full">
         ${this.renderInfoCard()}
-        <div class="flex justify-center gap-1">
+        <div class="flex flex-wrap justify-center gap-1">
           ${items.map((item) => this.renderItem(item))}
         </div>
       </div>
