@@ -111,6 +111,7 @@ export class HostLobbyModal extends BaseModal {
   @state() private waterNukes: boolean = false;
   @state() private domesticMode: boolean = false;
   @state() private warfareExpansion: boolean = false;
+  @state() private strategicWeapons: boolean = false;
   @state() private conquestPercent: number | undefined = undefined;
   @state() private lobbyId = "";
   @state() private lobbyUrlSuffix = "";
@@ -746,6 +747,10 @@ export class HostLobbyModal extends BaseModal {
                     checked: this.warfareExpansion,
                   },
                   {
+                    labelKey: "game_settings.strategic_weapons",
+                    checked: this.strategicWeapons,
+                  },
+                  {
                     labelKey: "game_settings.doomsday_clock",
                     checked: this.doomsdayClock,
                     doomsdayClockSpeed: this.doomsdayClockSpeed,
@@ -1085,6 +1090,7 @@ export class HostLobbyModal extends BaseModal {
     this.waterNukes = false;
     this.domesticMode = false;
     this.warfareExpansion = false;
+    this.strategicWeapons = false;
     this.conquestPercent = undefined;
     this.hostCheatsEnabled = false;
     this.hostCheatInfiniteGold = false;
@@ -1204,6 +1210,10 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.warfare_expansion":
         this.warfareExpansion = checked;
+        this.putGameConfig();
+        break;
+      case "game_settings.strategic_weapons":
+        this.strategicWeapons = checked;
         this.putGameConfig();
         break;
       case "game_settings.doomsday_clock":
@@ -1776,6 +1786,7 @@ export class HostLobbyModal extends BaseModal {
             waterNukes: this.waterNukes ? true : null,
             domesticMode: this.domesticMode,
             warfareExpansion: this.warfareExpansion,
+            strategicWeapons: this.strategicWeapons,
             conquestPercent: this.domesticMode
               ? (this.conquestPercent ?? null)
               : null,
