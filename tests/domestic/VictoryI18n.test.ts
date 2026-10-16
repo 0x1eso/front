@@ -27,7 +27,7 @@ function get(obj: unknown, dotted: string): unknown {
 }
 
 const KEYS = [
-  "domestic.tab_victory",
+  "domestic.screen.victory",
   "domestic.victory.active",
   "domestic.victory.conquest",
   "domestic.victory.cost_political",
