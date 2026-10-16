@@ -102,6 +102,11 @@ export function notableLobbySettings(
       label: translateText("game_settings.warfare_expansion"),
       value: enabled,
     });
+  if (c.strategicWeapons)
+    items.push({
+      label: translateText("game_settings.strategic_weapons"),
+      value: enabled,
+    });
   if (c.doomsdayClock?.enabled)
     items.push({
       label: translateText("game_settings.doomsday_clock"),
