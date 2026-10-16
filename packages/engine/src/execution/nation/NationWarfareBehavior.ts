@@ -260,7 +260,7 @@ export class NationWarfareBehavior {
   }
 
   /**
-   * No friendly player (AFK ones too) has land in any bomb of the carpet,
+   * No friendly player (AFK ones too) has land in a bomb that will drop,
    * and on Easy and Medium no third player's land either (as
    * NationNukeBehavior's tiles).
    */
@@ -274,11 +274,19 @@ export class NationWarfareBehavior {
       game.config().gameConfig().difficulty === Difficulty.Hard ||
       game.config().gameConfig().difficulty === Difficulty.Impossible;
     for (const drop of carpetDropTiles(game, airport, tile)) {
+      // Bombs over the nation's own or a friend's land are skipped.
+      const centre = game.owner(drop);
+      if (
+        centre.isPlayer() &&
+        (centre === this.player || this.player.isFriendly(centre, true))
+      ) {
+        continue;
+      }
       for (const t of discTiles(game, drop, CARPET_BOMB_OUTER)) {
         if (game.isImpassable(t)) continue;
         const owner = game.owner(t);
         if (!owner.isPlayer() || owner === victim) continue;
-        if (owner === this.player) return false;
+        if (owner === this.player) continue;
         if (!hard || this.player.isFriendly(owner, true)) return false;
       }
     }

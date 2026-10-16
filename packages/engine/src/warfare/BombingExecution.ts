@@ -96,11 +96,7 @@ export class BombingExecution implements Execution {
     ) {
       // A SAM missile about to hit holds the plane for a tick.
       if (samMissileClosingIn(this.mg, this.bomber, this.bomber.tile())) return;
-      if (!this.dropBomb(this.dropped)) {
-        this.bomber.delete(false);
-        this.active = false;
-        return;
-      }
+      this.dropBomb(this.dropped);
       this.dropped++;
     }
     if (this.dropped >= this.drops.length) {
@@ -225,16 +221,20 @@ export class BombingExecution implements Execution {
     }
   }
 
-  /** Drops bomb `index`; false when its tile turned friendly (the bomber turns home). */
-  private dropBomb(index: number): boolean {
+  private overOwnOrFriendly(tile: TileRef): boolean {
+    const owner = this.mg.owner(tile);
+    return (
+      owner.isPlayer() &&
+      (owner === this.player || this.player.isFriendly(owner, true))
+    );
+  }
+
+  /** Drops bomb `index`; skipped (no blast, no update) over own or friendly land. */
+  private dropBomb(index: number): void {
     const mg = this.mg;
     const config = mg.config();
     const at = this.drops[index];
-    const aimed = mg.owner(at);
-    if (aimed.isPlayer() && this.player.isFriendly(aimed, true)) {
-      // The land turned friendly in flight: the bomber turns home.
-      return false;
-    }
+    if (this.overOwnOrFriendly(at)) return;
     const rand = new PseudoRandom(mg.ticks() * 31 + index);
     const inner2 = CARPET_BOMB_INNER * CARPET_BOMB_INNER;
     const outer2 = CARPET_BOMB_OUTER * CARPET_BOMB_OUTER;
@@ -308,14 +308,21 @@ export class BombingExecution implements Execution {
         this.player.id(),
       );
     }
+    // The last bomb actually dropped: no later bomb has a hostile centre.
+    let last = true;
+    for (let i = index + 1; i < this.drops.length; i++) {
+      if (!this.overOwnOrFriendly(this.drops[i])) {
+        last = false;
+        break;
+      }
+    }
     mg.addUpdate({
       type: GameUpdateType.BombDrop,
       attackerID: this.player.smallID(),
       tile: at,
       index,
-      last: index === this.drops.length - 1,
+      last,
     });
-    return true;
   }
 
   isActive(): boolean {

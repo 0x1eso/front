@@ -197,24 +197,35 @@ describe("bombing", () => {
     expect(game.owner(game.ref(70, 10))).toBe(blue);
   });
 
-  test("friendly or own land anywhere along the line forbids the run", async () => {
+  test("a carpet crossing own land is allowed and those bombs are skipped; an own aim is refused", async () => {
     const game = await warfareGame("plains", { instantBuild: true });
     const red = own(game, RED.id, 0, 0, 30, 100);
+    own(game, RED.id, 44, 0, 13, 100);
     const blue = own(game, BLUE.id, 85, 0, 15, 100);
     red.addGold(10_000_000n);
+    red.addTroops(100_000);
     red.buildUnit(UnitType.Airport, game.ref(10, 10), {});
-    // The aim (65,10) is unclaimed, but the carpet's far end reaches x = 89.
     const aim = game.ref(65, 10);
     expect(red.canBuild(UnitType.Bomber, aim)).not.toBe(false);
-    red.createAllianceRequest(blue)?.accept();
-    expect(red.canBuild(UnitType.Bomber, aim)).toBe(false);
-    const gold = red.gold();
+    expect(red.canBuild(UnitType.Bomber, game.ref(50, 10))).toBe(false);
+    expect(red.canBuild(UnitType.Bomber, game.ref(20, 10))).toBe(false);
+    const own0 = red.numTilesOwned();
+    const expected = carpetBombPoints(10, 10, 65, 10).filter(
+      (p) => game.owner(game.ref(p.x, p.y)) !== red,
+    );
+    expect(expected.length).toBeLessThan(CARPET_BOMBS);
     bomb(game, red, aim);
-    executeTicks(game, 5);
+    const drops = runCollect(game, 60);
+    expect(drops).toHaveLength(expected.length);
+    expect(drops.filter((d) => d.last)).toHaveLength(1);
+    expect(drops[drops.length - 1].last).toBe(true);
+    drops.forEach((d, i) => {
+      expect(game.x(d.tile)).toBe(expected[i].x);
+    });
+    // Blasts follow the atom-bomb rules: the striker's border may be scorched.
+    expect(red.numTilesOwned()).toBeLessThan(own0);
+    expect(blue.numTilesOwned()).toBeLessThan(15 * 100);
     expect(bomber(red)).toBeUndefined();
-    expect(red.gold()).toBe(gold);
-    // Near the airport the line's first bombs sit on the striker's own land.
-    expect(red.canBuild(UnitType.Bomber, game.ref(35, 10))).toBe(false);
     expect(CARPET_BOMB_OUTER).toBe(8);
   });
 

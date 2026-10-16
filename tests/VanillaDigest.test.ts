@@ -57,7 +57,7 @@ describe("vanilla stays bit-identical", () => {
   test("expanded warfare with the strategic option explicitly off", async () => {
     expect(
       await digest({ warfareExpansion: true, strategicWeapons: false }),
-    ).toBe("724c23dc8fb1f05b");
+    ).toBe("23b8b627b1d534ee");
   }, 60_000);
 
   test("domestic mode and expanded warfare with the strategic option explicitly off", async () => {

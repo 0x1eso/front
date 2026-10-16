@@ -86,7 +86,7 @@ import {
   PlayerStrategic,
   StrategicStateSchema,
 } from "../strategic/PlayerStrategic";
-import { carpetDropTiles, discTiles } from "../warfare/Carpet";
+import { carpetDropTiles } from "../warfare/Carpet";
 import { AttackImpl } from "./AttackImpl";
 import {
   Alliance,
@@ -1867,9 +1867,10 @@ export class PlayerImpl implements Player {
   }
 
   /**
-   * Carpet bombing: the airport the bomber leaves from, if no bomb of the
-   * line (each with its whole outer radius) would hit the striker's own or
-   * a friendly nation's land, or a teammate's structure in a team game.
+   * Carpet bombing: the airport the bomber leaves from. The aim may not be
+   * the striker's own or a friendly nation's land, and in team games no bomb
+   * of the line may reach a teammate's structure. Bombs that fall over the
+   * striker's own or friendly land are skipped at drop time.
    */
   bomberSpawn(tile: TileRef): TileRef | false {
     const mg = this.mg;
@@ -1878,30 +1879,19 @@ export class PlayerImpl implements Player {
     if (airport === false) return false;
     const drops = carpetDropTiles(mg, airport, tile);
     if (drops.length === 0) return false;
-    const team = mg.config().gameConfig().gameMode === GameMode.Team;
-    const safe = new Map<number, boolean>();
-    for (const drop of drops) {
-      if (mg.isSpawnImmunityActive()) return false;
-      for (const t of discTiles(mg, drop)) {
-        const owner = mg.owner(t);
-        if (!owner.isPlayer()) continue;
-        let ok = safe.get(owner.smallID());
-        if (ok === undefined) {
-          ok = owner !== this && !this.isFriendly(owner, true);
-          safe.set(owner.smallID(), ok);
+    if (mg.config().gameConfig().gameMode === GameMode.Team) {
+      for (const drop of drops) {
+        if (
+          mg.anyUnitNearby(
+            drop,
+            CARPET_BOMB_OUTER,
+            Structures.types,
+            (unit) =>
+              unit.owner().isPlayer() && this.isOnSameTeam(unit.owner()),
+          )
+        ) {
+          return false;
         }
-        if (!ok) return false;
-      }
-      if (
-        team &&
-        mg.anyUnitNearby(
-          drop,
-          CARPET_BOMB_OUTER,
-          Structures.types,
-          (unit) => unit.owner().isPlayer() && this.isOnSameTeam(unit.owner()),
-        )
-      ) {
-        return false;
       }
     }
     return airport;
