@@ -67,6 +67,11 @@ export class AttackExecution implements Execution {
     private _targetID: PlayerID | null,
     private sourceTile: TileRef | null = null,
     private removeTroops: boolean = true,
+    /**
+     * Paradrops: the front starts around every own tile within this radius
+     * of sourceTile (the landing zone), not just sourceTile. 0 = vanilla.
+     */
+    private sourceRadius: number = 0,
   ) {}
 
   public targetID(): PlayerID | null {
@@ -150,7 +155,14 @@ export class AttackExecution implements Execution {
       new Set<TileRef>(),
     );
 
-    if (this.sourceTile !== null) {
+    if (this.sourceTile !== null && this.sourceRadius > 0) {
+      for (const t of this.map.circleSearch(
+        this.sourceTile,
+        this.sourceRadius,
+      )) {
+        if (this.map.ownerID(t) === this.ownerSmallID) this.addNeighbors(t);
+      }
+    } else if (this.sourceTile !== null) {
       this.addNeighbors(this.sourceTile);
     } else {
       this.refreshToConquer();
@@ -539,6 +551,7 @@ export class AttackExecution implements Execution {
       targetID: this._targetID,
       sourceTile: this.sourceTile,
       removeTroops: this.removeTroops,
+      ...(this.sourceRadius > 0 ? { sourceRadius: this.sourceRadius } : {}),
     });
   }
 
@@ -565,6 +578,7 @@ export class AttackExecution implements Execution {
     this._targetID = s.targetID;
     this.sourceTile = s.sourceTile;
     this.removeTroops = s.removeTroops;
+    this.sourceRadius = s.sourceRadius ?? 0;
   }
 }
 
@@ -589,6 +603,7 @@ const AttackExecutionStateSchema = z.object({
   targetID: z.string().nullable(),
   sourceTile: zTile().nullable(),
   removeTroops: z.boolean(),
+  sourceRadius: zInt().optional(),
 });
 type AttackExecutionState = z.infer<typeof AttackExecutionStateSchema>;
 

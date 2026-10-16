@@ -12,6 +12,7 @@ import { ResearchExecution } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution";
 import { VictoryProjectExecution } from "../domestic/VictoryProjectExecution";
 import { Execution, Game } from "../game/Game";
+import { ParadropExecution } from "../warfare/ParadropExecution";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
@@ -168,6 +169,8 @@ export class Executor {
         return new ChooseGovernmentExecution(player, intent.government);
       case "start_victory_project":
         return new VictoryProjectExecution(player, intent.kind, intent.unitId);
+      case "paradrop":
+        return new ParadropExecution(player, intent.troops, intent.dst);
       default:
         throw new Error(`intent type ${intent} not found`);
     }

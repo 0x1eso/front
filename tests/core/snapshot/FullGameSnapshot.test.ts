@@ -56,7 +56,12 @@ const DOMESTIC_ONLY_TYPES = [
 
 // Execution types that only an expanded-warfare game creates. The "warfare"
 // variant (added with its scripted intents) plays them.
-const WARFARE_ONLY_TYPES = ["Airport", "CoastalBarrage", "CoastalBattery"];
+const WARFARE_ONLY_TYPES = [
+  "Airport",
+  "CoastalBarrage",
+  "CoastalBattery",
+  "Paradrop",
+];
 // Domestic types the 1500-tick scripted game isn't sure to reach: a nation
 // needs 350 political power for a law and 800 for a government tier.
 // tests/domestic/LawsAndGovernment.test.ts covers their snapshots.

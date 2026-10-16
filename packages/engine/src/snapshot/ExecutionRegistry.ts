@@ -52,6 +52,7 @@ import { WinCheckExecutionSnapshot } from "../execution/WinCheckExecution";
 import { AirportExecutionSnapshot } from "../warfare/AirportExecution";
 import { CoastalBarrageExecutionSnapshot } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecutionSnapshot } from "../warfare/CoastalBatteryExecution";
+import { ParadropExecutionSnapshot } from "../warfare/ParadropExecution";
 import type { ExecutionSnapshotType } from "./ExecutionSnapshot";
 
 /**
@@ -91,6 +92,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   NationExecutionSnapshot,
   NoOpExecutionSnapshot,
   NukeExecutionSnapshot,
+  ParadropExecutionSnapshot,
   PauseExecutionSnapshot,
   PlayerExecutionSnapshot,
   PortExecutionSnapshot,

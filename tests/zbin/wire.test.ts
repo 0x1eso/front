@@ -148,6 +148,7 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   },
   { type: "set_recruit_target", clientID: P1, percent: 10 },
   { type: "set_recruit_target", clientID: P2, percent: 100 },
+  { type: "paradrop", clientID: P2, troops: 12345.5, dst: 4242 },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [
