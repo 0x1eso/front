@@ -27,7 +27,7 @@ import {
 import {
   CONVENTIONAL_MISSILE_COST,
   CONVENTIONAL_MISSILE_SPEED,
-  SATELLITE_COST,
+  satelliteCost,
 } from "@openfront/engine-lib/strategic/Strategic";
 import {
   assertNever,
@@ -449,7 +449,14 @@ export class EngineConfig extends Config {
           UnitType.ConventionalMissile,
         );
       case UnitType.Satellite:
-        return this.costWrapper(() => SATELLITE_COST, UnitType.Satellite);
+        return (_game: Game, player: Player) => {
+          if (this.hasInfiniteGold(player)) return 0n;
+          return this.withDomesticCost(
+            player,
+            UnitType.Satellite,
+            satelliteCost(player.strategic()?.satellitesLaunched() ?? 0),
+          );
+        };
       case UnitType.TransportShip:
       case UnitType.Shell:
       case UnitType.SAMMissile:

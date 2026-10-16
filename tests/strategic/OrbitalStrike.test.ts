@@ -127,7 +127,7 @@ describe("the orbital strike", () => {
         (m) => m.message === "events_display.satellite_strike_landed",
       ),
     ).toBe(true);
-    expect(sat(red)).toEqual({ phase: "spent" });
+    expect(sat(red)).toEqual({ phase: "none" });
     expect(blue.strategic()!.stock(UnitType.HydrogenBomb)).toBe(1);
     executeTicks(game, 700);
     expect(game.executeNextTick()[GameUpdateType.OrbitalStrike]).toHaveLength(

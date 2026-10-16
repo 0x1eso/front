@@ -41,6 +41,8 @@ export const StrategicStateSchema = z.object({
     }),
   ),
   satellite: SatelliteStateSchema,
+  /** Satellites put into orbit so far; absent (0) until the first. */
+  satellitesLaunched: zInt().optional(),
 });
 export type StrategicState = z.infer<typeof StrategicStateSchema>;
 
@@ -55,6 +57,7 @@ export class PlayerStrategic {
   private stockCounts: number[] = STOCKPILED_NUKES.map(() => 0);
   private _jobs: NukeJobData[] = [];
   private _satellite: SatelliteData = { phase: "none" };
+  private _satellitesLaunched = 0;
   /** toData() result until the next change. */
   private strategicDataCache: StrategicData | null = null;
 
@@ -112,6 +115,16 @@ export class PlayerStrategic {
     return this._satellite;
   }
 
+  /** Satellites this nation has put into orbit (used or shot down); sets the next one's price. */
+  satellitesLaunched(): number {
+    return this._satellitesLaunched;
+  }
+
+  /** A satellite reached orbit: the next one costs double. */
+  countLaunch(): void {
+    this._satellitesLaunched++;
+  }
+
   setSatellite(s: SatelliteData): void {
     this._satellite = s;
     this.changed();
@@ -152,6 +165,9 @@ export class PlayerStrategic {
         endTick: j.endTick,
       })),
       satellite: satelliteState(this._satellite),
+      ...(this._satellitesLaunched > 0
+        ? { satellitesLaunched: this._satellitesLaunched }
+        : {}),
     };
   }
 
@@ -160,6 +176,9 @@ export class PlayerStrategic {
     p.stockCounts = [...s.stock];
     p._jobs = s.jobs.map((j) => ({ ...j }));
     p._satellite = satelliteData(s.satellite);
+    // Older snapshots kept a spent satellite as a phase: it was launched.
+    p._satellitesLaunched =
+      s.satellitesLaunched ?? (s.satellite.phase === "spent" ? 1 : 0);
     return p;
   }
 
@@ -173,7 +192,6 @@ function satelliteState(s: SatelliteData): SatelliteState {
   switch (s.phase) {
     case "none":
     case "orbit":
-    case "spent":
       return { phase: s.phase };
     case "preparing":
       return {
@@ -198,9 +216,10 @@ function satelliteState(s: SatelliteData): SatelliteState {
 
 function satelliteData(s: SatelliteState): SatelliteData {
   switch (s.phase) {
+    case "spent":
+      return { phase: "none" };
     case "none":
     case "orbit":
-    case "spent":
       return { phase: s.phase };
     case "preparing":
       return {

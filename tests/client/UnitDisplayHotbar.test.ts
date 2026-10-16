@@ -408,7 +408,7 @@ describe("unit-display build bar", () => {
     expect(card(el)?.textContent).toContain("[touch_ui.tap_again_to_build]");
   });
 
-  it("says why it can't build, and when the satellite is spent", async () => {
+  it("says why it can't build, and while the satellite is still up", async () => {
     const { el } = await mount(
       [buildable(UnitType.AtomBomb), buildable(UnitType.Satellite)],
       {
@@ -421,7 +421,7 @@ describe("unit-display build bar", () => {
               endTick: 200,
             },
           ],
-          satellite: { phase: "spent" },
+          satellite: { phase: "orbit" },
         }),
         silos: 1,
         factories: [{ id: 5, level: 1 }],

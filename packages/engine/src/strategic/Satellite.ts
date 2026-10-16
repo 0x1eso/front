@@ -116,7 +116,7 @@ function resolveCountdown(
     };
     const focus = shooter.isPlayer() ? shooter.id() : undefined;
     if (interceptorHits(now, player.smallID(), shot, index)) {
-      s.setSatellite({ phase: "spent" });
+      s.setSatellite({ phase: "none" });
       mg.displayMessage(
         "events_display.satellite_intercept_hit",
         MessageType.SAM_HIT,
@@ -155,7 +155,7 @@ function resolveCountdown(
     );
     return;
   }
-  s.setSatellite({ phase: "spent" });
+  s.setSatellite({ phase: "none" });
   const impacts = orbitalStrike(mg, player, target);
   mg.addUpdate({
     type: GameUpdateType.OrbitalStrike,
@@ -201,6 +201,7 @@ export function processSatellite(
     );
   } else if (now >= sat.readyTick) {
     s.setSatellite({ phase: "orbit" });
+    s.countLaunch();
     announceSatellite(
       mg,
       "events_display.satellite_in_orbit",

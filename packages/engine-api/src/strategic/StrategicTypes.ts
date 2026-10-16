@@ -37,7 +37,7 @@ export interface InterceptorData {
   resolveTick: number;
 }
 
-/** A nation's one satellite (spec §6). "spent": struck or shot down, never again. */
+/** A nation's one satellite at a time (spec §6); once struck or shot down it is "none" again. */
 export type SatelliteData =
   | { phase: "none" }
   | { phase: "preparing"; siloId: number; startTick: number; readyTick: number }
@@ -48,8 +48,7 @@ export type SatelliteData =
       target: number;
       strikeTick: number;
       interceptors: InterceptorData[];
-    }
-  | { phase: "spent" };
+    };
 
 /** Strategic state as sent worker -> main thread on PlayerUpdate. Never mutated. */
 export interface StrategicData {
