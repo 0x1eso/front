@@ -219,6 +219,13 @@ export class NationExecution implements Execution {
           this.attackRate;
         if (offset === oneThird || offset === twoThirds) {
           this.structureBehavior.handleStructures();
+        } else if (offset === this.warfareOffset()) {
+          // Expanded warfare plays on a tick of its own, so no other
+          // behaviour spends the gold before its construction runs.
+          this.warfareBehavior?.tick(
+            nationProjectKindFor(this.mg, this.player),
+            (other) => this.attackBehavior.shouldAttack(other),
+          );
         }
       }
       return;
@@ -243,7 +250,34 @@ export class NationExecution implements Execution {
     this.attackBehavior.maybeAttack();
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
-    this.warfareBehavior?.tick(nationProjectKindFor(this.mg, this.player));
+    if (this.warfareOffset() === this.attackTick) {
+      // No quiet tick in a very short period: play after the others.
+      this.warfareBehavior?.tick(
+        nationProjectKindFor(this.mg, this.player),
+        (other) => this.attackBehavior.shouldAttack(other),
+      );
+    }
+  }
+
+  /**
+   * The tick offset (within the attack period) where no other behaviour
+   * spends gold, or attackTick when the period is too short to have one.
+   */
+  private warfareOffset(): number {
+    const rate = this.attackRate;
+    const busy = new Set([
+      this.attackTick,
+      (this.attackTick + Math.floor(rate / 3)) % rate,
+      (this.attackTick + Math.floor((rate * 2) / 3)) % rate,
+    ]);
+    for (let k = Math.floor(rate / 2); k < rate + Math.floor(rate / 2); k++) {
+      const offset = (this.attackTick + k) % rate;
+      // The tick before must be quiet too: what it queued runs now.
+      if (!busy.has(offset) && !busy.has((offset + rate - 1) % rate)) {
+        return offset;
+      }
+    }
+    return this.attackTick;
   }
 
   private initializeBehaviors(): void {

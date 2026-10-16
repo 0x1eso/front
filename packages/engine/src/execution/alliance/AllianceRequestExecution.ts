@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { wouldNukeBreakAlliance } from "@openfront/engine-lib/execution/NukeAlliance";
 import { zPlayerRef, zRef } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { BOMB_INNER, BOMB_OUTER } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import { AllianceRequest, Execution, Game, Player } from "../../game/Game";
 import { execSnapshotType } from "../../snapshot/ExecutionSnapshot";
@@ -105,6 +106,7 @@ export class AllianceRequestExecution implements Execution {
         UnitType.HydrogenBomb,
         UnitType.MIRV,
         UnitType.MIRVWarhead,
+        UnitType.Bomber,
       ])) {
         if (!unit.isActive() || unit.reachedTarget()) continue;
 
@@ -123,7 +125,10 @@ export class AllianceRequestExecution implements Execution {
           if (!targetTile || this.mg.owner(targetTile) !== other) continue;
         } else {
           if (!targetTile) continue;
-          const magnitude = this.mg.config().nukeMagnitudes(unit.type());
+          const magnitude =
+            unit.type() === UnitType.Bomber
+              ? { inner: BOMB_INNER, outer: BOMB_OUTER }
+              : this.mg.config().nukeMagnitudes(unit.type());
           if (
             !wouldNukeBreakAlliance({
               game: this.mg,

@@ -141,9 +141,20 @@ export class BombingExecution implements Execution {
       magnitude: { inner: BOMB_INNER, outer: BOMB_OUTER },
       threshold: mg.config().nukeAllianceBreakThreshold(),
     });
+    // Reject requests that could be accepted while the bomber is in the air.
+    for (const incoming of this.player.incomingAllianceRequests()) {
+      if (hit.has(incoming.requestor().smallID())) incoming.reject();
+    }
     for (const smallID of hit) {
       const other = mg.playerBySmallID(smallID);
       if (!other.isPlayer() || other === this.player) continue;
+      const pending = other
+        .incomingAllianceRequests()
+        .find((ar) => ar.requestor() === this.player);
+      if (pending) {
+        pending.reject();
+        continue;
+      }
       const alliance = this.player.allianceWith(other);
       if (alliance !== null) this.player.breakAlliance(alliance);
       other.updateRelation(this.player, -100);
@@ -154,6 +165,13 @@ export class BombingExecution implements Execution {
     const mg = this.mg;
     const config = mg.config();
     const bomber = this.bomber!;
+    const aimed = mg.owner(this.dst);
+    if (aimed.isPlayer() && this.player.isFriendly(aimed, true)) {
+      // The target turned friendly in flight: the bomber turns home unused.
+      bomber.delete(false);
+      this.active = false;
+      return;
+    }
     const rand = new PseudoRandom(mg.ticks());
     const inner2 = BOMB_INNER * BOMB_INNER;
     const outer2 = BOMB_OUTER * BOMB_OUTER;

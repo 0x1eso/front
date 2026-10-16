@@ -62,7 +62,7 @@ export class CoastalBatteryExecution implements Execution {
       .filter(
         ({ unit }) =>
           unit.owner() !== owner &&
-          !owner.isFriendly(unit.owner()) &&
+          owner.canAttackPlayer(unit.owner(), true) &&
           !this.shotAt.has(unit),
       );
     if (targets.length === 0) return;

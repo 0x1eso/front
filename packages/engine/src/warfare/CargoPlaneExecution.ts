@@ -84,7 +84,7 @@ export class CargoPlaneExecution implements Execution {
   }
 
   private stillTrading(): boolean {
-    const from = this.src.owner();
+    const from = this.owner;
     const to = this.dst.owner();
     return this.dst.isActive() && from !== to && from.canTrade(to);
   }
@@ -119,7 +119,7 @@ export class CargoPlaneExecution implements Execution {
     plane.setReachedTarget();
     plane.delete(false);
     this.active = false;
-    const from = this.src.owner();
+    const from = this.owner;
     const to = this.dst.owner();
     const distance = Math.round(
       Math.sqrt(mg.euclideanDistSquared(this.src.tile(), this.dst.tile())),

@@ -1,3 +1,4 @@
+import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
   zInt,
@@ -56,6 +57,8 @@ export class AirportExecution implements Execution {
 
     if (now < this.nextCargoTick) return;
     this.nextCargoTick = now + CARGO_INTERVAL_TICKS;
+    // A lobby may list the internal plane as disabled: no flights then.
+    if (this.mg.config().isUnitDisabled(UnitType.CargoPlane)) return;
     const partners = cargoPartners(this.mg, this.airport);
     if (partners.length === 0) return;
     for (let i = 0; i < this.airport.level(); i++) {

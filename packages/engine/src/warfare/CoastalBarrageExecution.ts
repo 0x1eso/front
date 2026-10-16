@@ -116,7 +116,10 @@ export class CoastalBarrageExecution implements Execution {
       this.active = false;
       return;
     }
-    const spawn = this.player.canBuild(UnitType.CoastalBarrage, this.dst);
+    // Its shells are an internal unit a lobby may list as disabled.
+    const spawn = mg.config().isUnitDisabled(UnitType.Shell)
+      ? false
+      : this.player.canBuild(UnitType.CoastalBarrage, this.dst);
     if (spawn === false) {
       console.warn(`cannot fire a coastal barrage at ${this.dst}`);
       this.active = false;
@@ -198,7 +201,8 @@ export class CoastalBarrageExecution implements Execution {
     );
     for (const { unit } of hits) {
       const owner = unit.owner();
-      if (owner === this.player || this.player.isFriendly(owner)) continue;
+      if (owner === this.player || this.player.isFriendly(owner, true))
+        continue;
       if (unit.isActive()) unit.delete(true, this.player);
     }
   }

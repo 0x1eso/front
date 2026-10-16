@@ -18,6 +18,7 @@ import {
 import {
   airportRange,
   BARRAGE_SUPPRESSION_TICKS,
+  BOMB_OUTER,
   COASTAL_BATTERY_RANGE,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
@@ -99,6 +100,8 @@ export function warfareStyle(player: Player): WarfareStyle {
 export class NationWarfareBehavior {
   /** When each aimed battery tile was last shelled. */
   private lastBarrage = new Map<TileRef, number>();
+  /** The nation's attack gate (relations, difficulty), set each tick. */
+  private shouldAttack: ((other: Player) => boolean) | null = null;
 
   constructor(
     private random: PseudoRandom,
@@ -106,7 +109,11 @@ export class NationWarfareBehavior {
     private player: Player,
   ) {}
 
-  tick(projectKind: VictoryProjectKind | null): void {
+  tick(
+    projectKind: VictoryProjectKind | null,
+    shouldAttack?: (other: Player) => boolean,
+  ): void {
+    this.shouldAttack = shouldAttack ?? null;
     if (!this.player.isAlive()) return;
     // Saving for a victory project: build and fire nothing (spec §9.3).
     if (nationHoldsStructuresForProject(this.game, this.player, projectKind)) {
@@ -114,15 +121,18 @@ export class NationWarfareBehavior {
     }
     const style = warfareStyle(this.player);
     const difficulty = this.game.config().gameConfig().difficulty;
-    this.maybeBuildCoastalBattery(style);
+    // One gold-spending action a tick: each is checked against the gold the
+    // earlier ones have not yet taken.
+    if (this.maybeBuildCoastalBattery(style)) return;
     if (difficulty === Difficulty.Easy) return;
     if (
-      difficulty === Difficulty.Hard ||
-      difficulty === Difficulty.Impossible
+      (difficulty === Difficulty.Hard ||
+        difficulty === Difficulty.Impossible) &&
+      this.maybeBarrageLandings()
     ) {
-      this.maybeBarrageLandings();
+      return;
     }
-    this.maybeBuildAirport(style);
+    if (this.maybeBuildAirport(style)) return;
     this.maybeSortie(style);
   }
 
@@ -228,7 +238,8 @@ export class NationWarfareBehavior {
       .cost(this.game, this.player);
     const canBomb =
       this.player.gold() >= bombCost + style.reserve &&
-      this.player.canBuild(UnitType.Bomber, tile) !== false;
+      this.player.canBuild(UnitType.Bomber, tile) !== false &&
+      this.blastKeepsFriends(tile, target.owner());
     const troops = Math.floor(this.player.troops() / 4);
     const canDrop =
       troops > target.owner().troops() / 10 &&
@@ -244,6 +255,30 @@ export class NationWarfareBehavior {
     return false;
   }
 
+  /**
+   * No friendly player (AFK ones too) has land in the blast, and on Easy and
+   * Medium no third player's land either (as NationNukeBehavior's tiles).
+   */
+  private blastKeepsFriends(tile: TileRef, victim: Player): boolean {
+    const game = this.game;
+    const hard =
+      game.config().gameConfig().difficulty === Difficulty.Hard ||
+      game.config().gameConfig().difficulty === Difficulty.Impossible;
+    const outer2 = BOMB_OUTER * BOMB_OUTER;
+    const tiles = game.bfs(
+      tile,
+      (_, n: TileRef) =>
+        game.euclideanDistSquared(tile, n) <= outer2 && !game.isImpassable(n),
+    );
+    for (const t of tiles) {
+      const owner = game.owner(t);
+      if (!owner.isPlayer() || owner === victim) continue;
+      if (owner === this.player) return false;
+      if (!hard || this.player.isFriendly(owner, true)) return false;
+    }
+    return true;
+  }
+
   /** The biggest non-friendly structure in range across the water (no shared border). */
   private strikeTarget(airport: Unit): Unit | null {
     const candidates = this.game
@@ -257,7 +292,7 @@ export class NationWarfareBehavior {
         return (
           owner !== this.player &&
           owner.type() !== PlayerType.Bot &&
-          !this.player.isFriendly(owner) &&
+          !this.player.isFriendly(owner, true) &&
           !this.player.sharesBorderWith(owner)
         );
       })
@@ -267,7 +302,18 @@ export class NationWarfareBehavior {
           a.distSquared - b.distSquared ||
           a.unit.id() - b.unit.id(),
       );
-    return candidates[0]?.unit ?? null;
+    // Only players the nation would attack anyway (relations, difficulty).
+    const gate = new Map<Player, boolean>();
+    for (const { unit } of candidates) {
+      const owner = unit.owner();
+      let ok = gate.get(owner);
+      if (ok === undefined) {
+        ok = this.shouldAttack === null || this.shouldAttack(owner);
+        gate.set(owner, ok);
+      }
+      if (ok) return unit;
+    }
+    return null;
   }
 
   /** Where an enemy transport ship is heading on this nation's land. */

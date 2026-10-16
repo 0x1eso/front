@@ -57,7 +57,10 @@ import {
 } from "@openfront/engine-lib/Util";
 import {
   airportRange,
+  BARRAGE_BATTERY_KILL_RADIUS,
+  BARRAGE_RADIUS,
   BARRAGE_SILO_RANGE,
+  BOMB_OUTER,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import {
@@ -1772,16 +1775,33 @@ export class PlayerImpl implements Player {
   }
 
   /** Expanded warfare: a strike may not hit the striker's own or a friendly nation's land. */
-  private isStrikeTarget(tile: TileRef): boolean {
+  private isStrikeTarget(tile: TileRef, radius: number): boolean {
     const mg = this.mg;
     if (mg.isSpawnImmunityActive() || mg.isImpassable(tile)) return false;
     const owner = mg.owner(tile);
-    return !(owner.isPlayer() && (owner === this || this.isFriendly(owner)));
+    // Disconnected allies and teammates stay protected, as from an atom bomb.
+    if (owner.isPlayer() && (owner === this || this.isFriendly(owner, true))) {
+      return false;
+    }
+    // In team games the blast may not reach a teammate's structure either.
+    if (mg.config().gameConfig().gameMode === GameMode.Team) {
+      return !mg.anyUnitNearby(
+        tile,
+        radius,
+        Structures.types,
+        (unit) => unit.owner().isPlayer() && this.isOnSameTeam(unit.owner()),
+      );
+    }
+    return true;
   }
 
   /** Coastal barrage: the nearest loaded silo within BARRAGE_SILO_RANGE. */
   barrageSpawn(tile: TileRef): TileRef | false {
-    if (!this.isStrikeTarget(tile)) return false;
+    if (
+      !this.isStrikeTarget(tile, BARRAGE_RADIUS + BARRAGE_BATTERY_KILL_RADIUS)
+    ) {
+      return false;
+    }
     const mg = this.mg;
     const range2 = BARRAGE_SILO_RANGE * BARRAGE_SILO_RANGE;
     const silo = findClosestBy(
@@ -1816,7 +1836,7 @@ export class PlayerImpl implements Player {
   }
 
   bomberSpawn(tile: TileRef): TileRef | false {
-    if (!this.isStrikeTarget(tile)) return false;
+    if (!this.isStrikeTarget(tile, BOMB_OUTER)) return false;
     return this.airportSortieSpawn(tile);
   }
 

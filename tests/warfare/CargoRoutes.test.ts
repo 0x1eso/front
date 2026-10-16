@@ -67,11 +67,14 @@ describe("cargo air routes", () => {
     expect(planes(game)).toHaveLength(0);
   });
 
-  test("a captured destination airport gets no flight", async () => {
+  test("a captured destination airport gets no flight; a plane already up still pays its owner", async () => {
     const { game, red, blue, blueAirport } = await route();
     executeTicks(game, 305);
     red.captureUnit(blueAirport);
-    expect(earned(game, [red, blue], 30)).toEqual([0n, 0n]);
+    // Red's plane now flies red to red and vanishes; blue's, launched before
+    // the capture, still lands and pays blue and the airport's owner.
+    expect(earned(game, [red, blue], 30)).toEqual([26_000n, 26_000n]);
+    expect(earned(game, [red, blue], 330)).toEqual([0n, 0n]);
   });
 
   test("both airports must reach each other", async () => {
