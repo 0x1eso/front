@@ -179,7 +179,7 @@ describe("satellite band", () => {
     );
     expect(atom.textContent).toContain("count=0,pct=2");
     expect(atom.disabled).toBe(true);
-    expect(hydrogen.classList.contains("min-h-11")).toBe(true);
+    expect(hydrogen.classList.contains("min-h-11")).toBe(false);
 
     hydrogen.click();
     await el.updateComplete;
@@ -324,7 +324,7 @@ describe("satellite target picker", () => {
 
     const rows = [...el.querySelectorAll<HTMLButtonElement>("[data-target]")];
     expect(rows.map((r) => r.dataset.target)).toEqual(["yellow", "blue"]);
-    expect(rows.every((r) => r.classList.contains("min-h-11"))).toBe(true);
+    expect(rows.every((r) => !r.classList.contains("min-h-11"))).toBe(true);
     rows[1].click();
     await el.updateComplete;
     expect(b.emitted).toHaveLength(0);

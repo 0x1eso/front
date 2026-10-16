@@ -246,13 +246,13 @@ export class BuildMenu extends LitElement implements Controller {
       overflow-y: auto;
     }
     .build-description {
-      font-size: 12px;
-      line-height: 1.25;
+      font-size: 0.65rem;
+      line-height: 1.2;
       text-align: center;
     }
     .build-reason {
-      font-size: 12px;
-      line-height: 1.25;
+      font-size: 0.65rem;
+      line-height: 1.2;
       text-align: center;
       color: #fca5a5;
       font-weight: 600;
@@ -265,8 +265,8 @@ export class BuildMenu extends LitElement implements Controller {
     }
     .build-button {
       position: relative;
-      width: 132px;
-      min-height: 160px;
+      width: 120px;
+      min-height: 140px;
       border: 2px solid #444;
       background-color: #2c2c2c;
       color: white;

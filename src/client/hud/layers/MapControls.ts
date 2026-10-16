@@ -85,7 +85,7 @@ export class MapControls extends LitElement implements Controller {
     return html`<button
       type="button"
       data-map-control=${id}
-      class="size-11 flex items-center justify-center rounded-lg shadow-lg backdrop-blur-sm text-white ${pressed
+      class="size-8 flex items-center justify-center rounded-lg shadow-lg backdrop-blur-sm text-white ${pressed
         ? "bg-sky-700"
         : "bg-gray-800/92 hover:bg-gray-700"}"
       aria-label=${label}

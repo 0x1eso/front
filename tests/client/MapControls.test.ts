@@ -29,7 +29,7 @@ describe("map-controls", () => {
     expect(el.querySelector("button")).toBeNull();
   });
 
-  it("has three 44px buttons", async () => {
+  it("has three compact buttons", async () => {
     const el = await mount();
     const buttons = [...el.querySelectorAll("button")];
     expect(buttons.map((b) => b.dataset.mapControl)).toEqual([
@@ -38,7 +38,7 @@ describe("map-controls", () => {
       "grid",
     ]);
     for (const b of buttons) {
-      expect(b.classList.contains("size-11")).toBe(true);
+      expect(b.classList.contains("size-8")).toBe(true);
       expect(b.getAttribute("aria-label")).not.toBe("");
     }
   });

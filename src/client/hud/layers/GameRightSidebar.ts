@@ -29,9 +29,8 @@ const settingsIcon = assetUrl("images/SettingIconWhite.svg");
 const fullscreenIcon = assetUrl("images/FullscreenIconWhite.svg");
 const exitFullscreenIcon = assetUrl("images/ExitFullscreenIconWhite.svg");
 
-/** A finger-sized icon button (spec §14a: 44px touch targets). */
-const ICON_BUTTON =
-  "size-11 flex items-center justify-center rounded-md cursor-pointer hover:bg-white/10 active:bg-white/20";
+/** A plain 20px icon button (original size, spec §14d). */
+const ICON_BUTTON = "flex items-center cursor-pointer";
 
 const LAST_MINUTE_SECONDS = 60;
 const FLASH_TIMER_SECONDS = 30;
@@ -373,7 +372,7 @@ export class GameRightSidebar extends LitElement implements Controller {
         }
       </style>
       <aside
-        class=${`w-fit flex flex-row items-center gap-1 p-1 text-base bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-bl-lg transition-transform duration-300 ease-out transform text-white ${shouldFlashSidebar ? "game-end-timer-sidebar-flash" : ""} ${
+        class=${`w-fit flex flex-row items-center gap-3 py-2 px-3 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-bl-lg transition-transform duration-300 ease-out transform text-white ${shouldFlashSidebar ? "game-end-timer-sidebar-flash" : ""} ${
           this._isVisible ? "translate-x-0" : "translate-x-full"
         }`}
         @contextmenu=${(e: Event) => e.preventDefault()}
@@ -392,7 +391,7 @@ export class GameRightSidebar extends LitElement implements Controller {
           class=${ICON_BUTTON}
           @click=${this.onSettingsButtonClick}
         >
-          <img src=${settingsIcon} alt="settings" width="28" height="28" />
+          <img src=${settingsIcon} alt="settings" width="20" height="20" />
         </button>
 
         ${document.fullscreenEnabled && !this.hideFullscreenButton
@@ -407,8 +406,8 @@ export class GameRightSidebar extends LitElement implements Controller {
                 alt=${this.isFullscreen
                   ? translateText("fullscreen.exit")
                   : translateText("fullscreen.enter")}
-                width="28"
-                height="28"
+                width="20"
+                height="20"
               />
             </button>`
           : ""}
@@ -419,7 +418,7 @@ export class GameRightSidebar extends LitElement implements Controller {
           class=${ICON_BUTTON}
           @click=${this.onExitButtonClick}
         >
-          <img src=${exitIcon} alt="exit" width="28" height="28" />
+          <img src=${exitIcon} alt="exit" width="20" height="20" />
         </button>
       </aside>
       <doomsday-clock-panel
@@ -457,8 +456,8 @@ export class GameRightSidebar extends LitElement implements Controller {
               <img
                 src=${FastForwardIconSolid}
                 alt="replay"
-                width="28"
-                height="28"
+                width="20"
+                height="20"
               />
             </button>
           `
@@ -474,8 +473,8 @@ export class GameRightSidebar extends LitElement implements Controller {
               <img
                 src=${this.isPaused ? playIcon : pauseIcon}
                 alt="play/pause"
-                width="28"
-                height="28"
+                width="20"
+                height="20"
               />
             </button>
           `
@@ -494,8 +493,8 @@ export class GameRightSidebar extends LitElement implements Controller {
               <img
                 src=${newLobbyIcon}
                 alt=${translateText("win_modal.new_lobby")}
-                width="28"
-                height="28"
+                width="20"
+                height="20"
               />
             </button>
           `

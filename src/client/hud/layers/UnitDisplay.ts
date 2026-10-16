@@ -202,6 +202,21 @@ export const HOTBAR: readonly HotbarItem[] = [
   },
 ];
 
+/** Row 2 of the build bar (spec §14d); everything else in HOTBAR is row 1. */
+const ATTACK_TYPES: ReadonlySet<UnitType> = new Set([
+  UnitType.AtomBomb,
+  UnitType.HydrogenBomb,
+  UnitType.MIRV,
+  UnitType.ConventionalMissile,
+  UnitType.Satellite,
+  UnitType.CoastalBarrage,
+  UnitType.Bomber,
+  UnitType.TransportPlane,
+]);
+
+/** Largest a build-bar button grows; rows shrink the buttons, never wrap. */
+const BUTTON_MAX = "2.5rem";
+
 const NUKES: ReadonlySet<UnitType> = new Set([
   UnitType.AtomBomb,
   UnitType.HydrogenBomb,
@@ -495,11 +510,34 @@ export class UnitDisplay extends LitElement implements Controller {
     // The bar is not positioned: the card anchors to the HUD box around it
     // (index.html) and opens above the whole box, clear of the control panel.
     return html`
-      <div class="border-t border-white/10 p-1 w-full">
+      <div class="border-t border-white/10 p-1 w-full flex flex-col gap-1">
         ${this.renderInfoCard()}
-        <div class="flex flex-wrap justify-center gap-1">
-          ${items.map((item) => this.renderItem(item))}
-        </div>
+        ${this.renderRow(
+          "buildings",
+          items.filter((item) => !ATTACK_TYPES.has(item.type)),
+        )}
+        ${this.renderRow(
+          "attacks",
+          items.filter((item) => ATTACK_TYPES.has(item.type)),
+        )}
+      </div>
+    `;
+  }
+
+  /**
+   * One row of the bar: a grid with exactly one column per button, so it
+   * never wraps to another line; at narrow widths the buttons get a little
+   * smaller instead (spec §14d). An empty row is left out.
+   */
+  private renderRow(row: "buildings" | "attacks", items: HotbarItem[]) {
+    if (items.length === 0) return null;
+    return html`
+      <div
+        data-hotbar-row=${row}
+        class="grid justify-center gap-1"
+        style="grid-template-columns: repeat(${items.length}, minmax(0, ${BUTTON_MAX}));"
+      >
+        ${items.map((item) => this.renderItem(item))}
       </div>
     `;
   }
@@ -516,7 +554,7 @@ export class UnitDisplay extends LitElement implements Controller {
         data-hotbar=${item.key}
         aria-label=${translateText(`unit_type.${item.key}`)}
         aria-pressed=${String(selected)}
-        class="relative w-11 h-14 shrink-0 flex flex-col items-center justify-center gap-0.5 rounded-md border text-white ${selected
+        class="relative min-w-0 h-9 flex flex-col items-center justify-center rounded-md border text-white ${selected
           ? "border-sky-400 bg-sky-700/60"
           : open
             ? "border-white bg-white/15"
@@ -529,29 +567,31 @@ export class UnitDisplay extends LitElement implements Controller {
         <img
           src=${item.icon}
           alt=${item.key}
-          class="size-7 ${this.canBuild(item.type) ? "" : "opacity-40"}"
+          class="size-5 max-w-full ${this.canBuild(item.type)
+            ? ""
+            : "opacity-40"}"
         />
         ${stock !== null
           ? html`<span
               data-stock
-              class="absolute top-0.5 right-0.5 min-w-4 px-1 rounded-full bg-sky-600 text-[10px] leading-4 text-center tabular-nums"
+              class="absolute -top-1 -right-1 min-w-3.5 px-0.5 rounded-full bg-sky-600 text-[9px] leading-3.5 text-center tabular-nums"
               >${stock}</span
             >`
           : null}
         ${item.type === UnitType.TransportPlane && !this.canBuild(item.type)
           ? html`<span
               data-paradrop-reason
-              class="w-full px-0.5 text-[9px] leading-tight text-center text-red-300 line-clamp-2"
+              class="w-full px-0.5 text-[8px] leading-none text-center text-red-300 truncate"
               >${this.paradropReason()}</span
             >`
           : tech !== null
             ? html`<span
                 data-locked-tech
-                class="w-full px-0.5 text-[9px] leading-tight text-center text-red-300 line-clamp-2"
+                class="w-full px-0.5 text-[8px] leading-none text-center text-red-300 truncate"
                 >🔒 ${translateText(`domestic.tech.${tech}.name`)}</span
               >`
             : count !== undefined
-              ? html`<span class="text-xs leading-none tabular-nums"
+              ? html`<span class="text-[10px] leading-none tabular-nums"
                   >${renderNumber(count)}</span
                 >`
               : null}
@@ -580,7 +620,7 @@ export class UnitDisplay extends LitElement implements Controller {
           </div>
           <button
             type="button"
-            class="size-11 -m-2 flex items-center justify-center rounded-md text-xl hover:bg-white/10"
+            class="size-6 shrink-0 flex items-center justify-center rounded-md text-sm hover:bg-white/10"
             aria-label=${translateText("common.close")}
             @click=${() => {
               this.closeInfo();
@@ -639,7 +679,7 @@ export class UnitDisplay extends LitElement implements Controller {
           <button
             type="button"
             data-produce
-            class="ml-auto min-h-11 px-4 rounded-md font-semibold bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="ml-auto px-3 py-1 rounded-md text-sm font-semibold bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed"
             ?disabled=${reason !== null}
             @click=${() => this.produce(type)}
           >

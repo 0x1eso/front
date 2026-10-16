@@ -223,7 +223,7 @@ export class SatelliteBand extends LitElement implements Controller {
         <button
           type="button"
           data-choose-target
-          class="min-h-11 px-4 rounded-md font-semibold bg-sky-700 hover:bg-sky-600"
+          class="px-3 py-1 text-sm rounded-md font-semibold bg-sky-700 hover:bg-sky-600"
           @click=${() =>
             this.eventBus.emit(new OpenSatelliteTargetPickerEvent())}
         >
@@ -308,7 +308,7 @@ export class SatelliteBand extends LitElement implements Controller {
       <button
         type="button"
         data-intercept=${type}
-        class="flex-1 min-h-11 px-2 flex items-center justify-center gap-1 rounded-md font-semibold leading-tight text-center bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed ${armed
+        class="flex-1 py-1 px-2 text-sm flex items-center justify-center gap-1 rounded-md font-semibold leading-tight text-center bg-sky-700 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed ${armed
           ? "ring-2 ring-white"
           : ""}"
         ?disabled=${!enabled}

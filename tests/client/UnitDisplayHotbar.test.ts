@@ -152,7 +152,8 @@ describe("unit-display build bar", () => {
     ).not.toBeNull();
     expect(el.querySelector('[data-hotbar="admin_office"]')).not.toBeNull();
     for (const b of el.querySelectorAll("[data-hotbar]")) {
-      expect(b.classList.contains("w-11")).toBe(true);
+      expect(b.classList.contains("w-11")).toBe(false);
+      expect(b.classList.contains("h-9")).toBe(true);
     }
     expect(el.querySelectorAll("[title]")).toHaveLength(0);
   });
@@ -326,7 +327,7 @@ describe("unit-display build bar", () => {
     );
   });
 
-  it("lists the warfare units only with expanded warfare, wrapping a long bar", async () => {
+  it("lists the warfare units only with expanded warfare, in at most two rows", async () => {
     const plain = await mount([]);
     expect(plain.el.querySelector('[data-hotbar="airport"]')).toBeNull();
     document.body.innerHTML = "";
@@ -340,9 +341,98 @@ describe("unit-display build bar", () => {
     ]) {
       expect(el.querySelector(`[data-hotbar="${key}"]`), key).not.toBeNull();
     }
-    // 16 buttons don't fit the 600px column on one row.
+    // Buildings fill row 1; the row is a grid that shrinks, never wraps.
     const row = el.querySelector('[data-hotbar="airport"]')!.parentElement!;
-    expect(row.classList.contains("flex-wrap")).toBe(true);
+    expect(row.classList.contains("flex-wrap")).toBe(false);
+  });
+
+  const BUILDINGS = [
+    "city",
+    "factory",
+    "port",
+    "defense_post",
+    "missile_silo",
+    "sam_launcher",
+    "warship",
+    "research_institute",
+    "admin_office",
+    "coastal_battery",
+    "airport",
+  ];
+  const ATTACKS = [
+    "atom_bomb",
+    "hydrogen_bomb",
+    "mirv",
+    "conventional_missile",
+    "satellite",
+    "coastal_barrage",
+    "bomber",
+    "paradrop",
+  ];
+  const keysOf = (row: Element) =>
+    [...row.querySelectorAll("[data-hotbar]")].map((b) =>
+      b.getAttribute("data-hotbar"),
+    );
+
+  it("with every mode on: buildings in row 1, attacks in row 2, no third row", async () => {
+    const { el } = await mount([], {
+      domestic: true,
+      warfare: true,
+      strategic: {
+        stock: {
+          [UnitType.AtomBomb]: 1,
+          [UnitType.HydrogenBomb]: 0,
+          [UnitType.MIRV]: 0,
+        },
+        jobs: [],
+        satellite: { phase: "none" },
+      },
+    });
+    const rows = [...el.querySelectorAll("[data-hotbar-row]")];
+    expect(rows.map((r) => r.getAttribute("data-hotbar-row"))).toEqual([
+      "buildings",
+      "attacks",
+    ]);
+    expect(keysOf(rows[0])).toEqual(BUILDINGS);
+    expect(keysOf(rows[1])).toEqual(ATTACKS);
+    // Every button belongs to one of the two rows, and each row lays its
+    // buttons out in one grid row (one column per button) so it can't wrap.
+    expect(el.querySelectorAll("[data-hotbar]")).toHaveLength(
+      BUILDINGS.length + ATTACKS.length,
+    );
+    for (const row of rows as HTMLElement[]) {
+      expect(row.classList.contains("grid")).toBe(true);
+      expect(row.style.gridTemplateColumns).toContain(
+        `repeat(${row.querySelectorAll("[data-hotbar]").length},`,
+      );
+      expect(row.style.gridTemplateColumns).toContain("minmax(0,");
+    }
+  });
+
+  it("modes that are off leave their buttons out; an empty row disappears", async () => {
+    const { el } = await mount([]);
+    const rows = [...el.querySelectorAll("[data-hotbar-row]")];
+    expect(keysOf(rows[0])).toEqual([
+      "city",
+      "factory",
+      "port",
+      "defense_post",
+      "missile_silo",
+      "sam_launcher",
+      "warship",
+    ]);
+    expect(keysOf(rows[1])).toEqual(["atom_bomb", "hydrogen_bomb", "mirv"]);
+  });
+
+  it("a locked tech shows as one compact line, lock icon and short name", async () => {
+    const { el } = await mount([buildable(UnitType.Airport, true)], {
+      domestic: true,
+      warfare: true,
+    });
+    const lock = button(el, "airport").querySelector("[data-locked-tech]")!;
+    expect(lock.textContent).toContain("🔒");
+    expect(lock.classList.contains("truncate")).toBe(true);
+    expect(lock.classList.contains("line-clamp-2")).toBe(false);
   });
 
   it("the bomber card asks for an airport, the barrage card for a silo", async () => {
@@ -446,13 +536,13 @@ describe("unit-display build bar", () => {
   });
 
   describe("paradrop button", () => {
-    it("sits right after the bomber, 44px wide", async () => {
+    it("sits right after the bomber, same size as the rest", async () => {
       const { el } = await mount([], { warfare: true });
       const keys = [...el.querySelectorAll("[data-hotbar]")].map((b) =>
         b.getAttribute("data-hotbar"),
       );
       expect(keys[keys.indexOf("bomber") + 1]).toBe("paradrop");
-      expect(button(el, "paradrop").classList.contains("w-11")).toBe(true);
+      expect(button(el, "paradrop").classList.contains("h-9")).toBe(true);
       // Absent without expanded warfare.
       document.body.innerHTML = "";
       const plain = await mount([]);

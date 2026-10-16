@@ -114,9 +114,9 @@ export class GameLeftSidebar extends LitElement implements Controller {
         }`}
         style="margin-top: ${this.barOffset}px;"
       >
-        <div class="flex items-center gap-2 text-white">
+        <div class="flex items-center gap-4 xl:gap-6 text-white">
           <div
-            class="cursor-pointer size-11 flex items-center justify-center bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
+            class="cursor-pointer p-0.5 bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
             @click=${this.togglePlayerStats}
             role="button"
             tabindex="0"
@@ -133,14 +133,14 @@ export class GameLeftSidebar extends LitElement implements Controller {
                 : playerStatsRegularIcon}
               alt=${translateText("help_modal.icon_alt_player_leaderboard") ||
               "Player Leaderboard Icon"}
-              width="28"
-              height="28"
+              width="20"
+              height="20"
             />
           </div>
           ${this.isTeamGame
             ? html`
                 <div
-                  class="cursor-pointer size-11 flex items-center justify-center bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
+                  class="cursor-pointer p-0.5 bg-gray-700/50 hover:bg-gray-600 border rounded-md border-slate-500 transition-colors"
                   @click=${this.toggleTeamStats}
                   role="button"
                   tabindex="0"
@@ -162,8 +162,8 @@ export class GameLeftSidebar extends LitElement implements Controller {
                     alt=${translateText(
                       "help_modal.icon_alt_team_leaderboard",
                     ) || "Team Leaderboard Icon"}
-                    width="28"
-                    height="28"
+                    width="20"
+                    height="20"
                   />
                 </div>
               `
