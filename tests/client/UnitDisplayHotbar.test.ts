@@ -1,4 +1,5 @@
 import { BuildableUnit, UnitType } from "@openfront/engine-api/game/GameTypes";
+import { WARFARE_ONLY_UNITS } from "@openfront/engine-lib/warfare/Warfare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Utils", async (importOriginal) => ({
@@ -45,7 +46,7 @@ const DOMESTIC_ONLY = new Set<UnitType>([
 
 async function mount(
   buildables: BuildableUnit[],
-  opts: { domestic?: boolean; ports?: number } = {},
+  opts: { domestic?: boolean; warfare?: boolean; ports?: number } = {},
 ): Promise<Mounted> {
   const el = document.createElement("unit-display") as UnitDisplay;
   // Using the class as a value keeps its import (and @customElement) alive.
@@ -62,7 +63,9 @@ async function mount(
   };
   el.game = {
     config: () => ({
-      isUnitDisabled: (t: UnitType) => !opts.domestic && DOMESTIC_ONLY.has(t),
+      isUnitDisabled: (t: UnitType) =>
+        (!opts.domestic && DOMESTIC_ONLY.has(t)) ||
+        (!opts.warfare && WARFARE_ONLY_UNITS.has(t)),
     }),
     myPlayer: () => player,
     inSpawnPhase: () => false,
@@ -289,5 +292,45 @@ describe("unit-display build bar", () => {
     expect(button(el, "city").classList.contains("tutorial-highlight")).toBe(
       true,
     );
+  });
+
+  it("lists the warfare units only with expanded warfare, wrapping a long bar", async () => {
+    const plain = await mount([]);
+    expect(plain.el.querySelector('[data-hotbar="airport"]')).toBeNull();
+    document.body.innerHTML = "";
+
+    const { el } = await mount([], { domestic: true, warfare: true });
+    for (const key of [
+      "coastal_battery",
+      "airport",
+      "coastal_barrage",
+      "bomber",
+    ]) {
+      expect(el.querySelector(`[data-hotbar="${key}"]`), key).not.toBeNull();
+    }
+    // 16 buttons don't fit the 600px column on one row.
+    const row = el.querySelector('[data-hotbar="airport"]')!.parentElement!;
+    expect(row.classList.contains("flex-wrap")).toBe(true);
+  });
+
+  it("the bomber card asks for an airport, the barrage card for a silo", async () => {
+    const { el } = await mount(
+      [buildable(UnitType.Bomber), buildable(UnitType.CoastalBarrage)],
+      { warfare: true },
+    );
+    await tap(el, "bomber");
+    expect(card(el)?.textContent).toContain("[touch_ui.needs_airport]");
+    await tap(el, "coastal_barrage");
+    expect(card(el)?.textContent).toContain("[touch_ui.needs_silo]");
+  });
+
+  it("a locked airport names industrialization", async () => {
+    const { el } = await mount([buildable(UnitType.Airport, true)], {
+      domestic: true,
+      warfare: true,
+    });
+    expect(
+      button(el, "airport").querySelector("[data-locked-tech]")!.textContent,
+    ).toContain("[domestic.tech.industrialization.name]");
   });
 });

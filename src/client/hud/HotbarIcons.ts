@@ -15,6 +15,13 @@ export const researchInstituteIcon = assetUrl(
   "images/ResearchInstituteIconWhite.svg",
 );
 export const adminOfficeIcon = assetUrl("images/AdminOfficeIconWhite.svg");
+export const coastalBatteryIcon = assetUrl(
+  "images/CoastalBatteryIconWhite.svg",
+);
+export const airportIcon = assetUrl("images/AirportIconWhite.svg");
+export const coastalBarrageIcon = assetUrl("images/ExplosionIconWhite.svg");
+export const bomberIcon = assetUrl("images/BomberIconWhite.svg");
+export const paradropIcon = assetUrl("images/ParadropIconWhite.svg");
 export const soldierIcon = assetUrl("images/SoldierIcon.svg");
 export const claimIcon = assetUrl("images/ClaimIcon.svg");
 export const profileIcon = assetUrl("images/ProfileIcon.svg");

@@ -34,6 +34,14 @@ export const UT_MISSILE_SILO = "Missile Silo" as const;
 export const UT_RESEARCH_INSTITUTE = "Research Institute" as const;
 export const UT_ADMIN_OFFICE = "Admin Office" as const;
 
+// Expanded warfare
+export const UT_COASTAL_BATTERY = "Coastal Battery" as const;
+export const UT_AIRPORT = "Airport" as const;
+export const UT_COASTAL_BARRAGE = "Coastal Barrage" as const;
+export const UT_BOMBER = "Bomber" as const;
+export const UT_TRANSPORT_PLANE = "Transport Plane" as const;
+export const UT_CARGO_PLANE = "Cargo Plane" as const;
+
 // ---------------------------------------------------------------------------
 // Derived sets
 // ---------------------------------------------------------------------------
@@ -47,6 +55,8 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
   UT_MISSILE_SILO,
   UT_RESEARCH_INSTITUTE,
   UT_ADMIN_OFFICE,
+  UT_COASTAL_BATTERY,
+  UT_AIRPORT,
 ]);
 
 export const NUKE_TYPES: ReadonlySet<string> = new Set([
@@ -55,7 +65,7 @@ export const NUKE_TYPES: ReadonlySet<string> = new Set([
   UT_MIRV,
 ]);
 
-/** Nuke types whose rendered position is interpolated lastPos→pos each render
+/** Nuke types and planes whose rendered position is interpolated lastPos→pos each render
  *  frame (UnitPass). Their trails stamp only up to lastPos so the tail never
  *  leads the smoothly-moving missile. */
 export const SMOOTHED_NUKE_TYPES: ReadonlySet<string> = new Set([
@@ -63,6 +73,9 @@ export const SMOOTHED_NUKE_TYPES: ReadonlySet<string> = new Set([
   UT_HYDROGEN_BOMB,
   UT_MIRV,
   UT_MIRV_WARHEAD,
+  UT_TRANSPORT_PLANE,
+  UT_BOMBER,
+  UT_CARGO_PLANE,
 ]);
 
 /** Units that leave a trail on the map (TrailManager). */
@@ -107,6 +120,12 @@ export const ALL_UNIT_TYPES = [
   UT_TRAIN,
   UT_RESEARCH_INSTITUTE,
   UT_ADMIN_OFFICE,
+  UT_COASTAL_BATTERY,
+  UT_AIRPORT,
+  UT_COASTAL_BARRAGE,
+  UT_BOMBER,
+  UT_TRANSPORT_PLANE,
+  UT_CARGO_PLANE,
 ] as const;
 
 /**
@@ -125,4 +144,6 @@ export const STRUCTURE_ATLAS_ORDER = [
   UT_MISSILE_SILO,
   UT_RESEARCH_INSTITUTE,
   UT_ADMIN_OFFICE,
+  UT_COASTAL_BATTERY,
+  UT_AIRPORT,
 ] as const;

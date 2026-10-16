@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-4 -4 32 32" fill="#ffffff">
+  <!--
+    Airport map icon: icon-atlas.png cell 10 (atlas column 9).
+    Drawn for this fork; licensed CC BY-SA 4.0 like the rest of resources/.
+
+    The airliner silhouette of resources/images/AirportIconWhite.svg
+    (24-unit grid), at 2x with 8px padding in a 64x64 cell, solid white on
+    transparent, like the original cells.
+
+    Rebuild the atlas from the repo root (keeps the first eight cells as-is):
+      rsvg-convert -w 64 -h 64 resources/atlases/src/coastal-battery.svg -o /tmp/cb.png
+      rsvg-convert -w 64 -h 64 resources/atlases/src/airport.svg -o /tmp/ap.png
+      magick resources/atlases/icon-atlas.png -crop 512x64+0+0 +repage /tmp/cb.png /tmp/ap.png \
+        +append +repage -strip PNG32:resources/atlases/icon-atlas.png
+  -->
+  <path d="M11 3.5a1 1 0 0 1 2 0V9l9 5.5V17l-9-3v5l2.5 2V23L12 22l-3.5 1v-2l2.5-2v-5l-9 3v-2.5L11 9z"/>
+</svg>

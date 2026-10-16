@@ -39,6 +39,8 @@ import {
   SMOOTHED_NUKE_TYPES,
   TrainType,
   UT_ATOM_BOMB,
+  UT_BOMBER,
+  UT_CARGO_PLANE,
   UT_HYDROGEN_BOMB,
   UT_MIRV,
   UT_MIRV_WARHEAD,
@@ -47,6 +49,7 @@ import {
   UT_TRADE_SHIP,
   UT_TRAIN,
   UT_TRANSPORT,
+  UT_TRANSPORT_PLANE,
   UT_WARSHIP,
 } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
@@ -72,7 +75,7 @@ const unitAtlasUrl = assetUrl("atlases/unit-atlas.png");
  *  they don't match header.unitTypes directly. Train resolution is
  *  handled specially in updateUnits() via trainType + loaded fields.
  */
-const UNIT_ORDER = [
+export const UNIT_ORDER = [
   UT_TRANSPORT,
   UT_TRADE_SHIP,
   UT_WARSHIP,
@@ -85,6 +88,10 @@ const UNIT_ORDER = [
   "TrainEngine",
   "TrainCarriage",
   "TrainCarriageLoaded",
+  // Expanded warfare (unit-atlas.png columns 12-14)
+  UT_TRANSPORT_PLANE,
+  UT_BOMBER,
+  UT_CARGO_PLANE,
 ] as const;
 
 const ATLAS_COLS = UNIT_ORDER.length;
@@ -106,7 +113,7 @@ const TRAIN_FIRST_COL = UNIT_ORDER.indexOf("TrainEngine");
 /**
  * Per-instance data (16 bytes):
  *   float x, y, ownerID   — 12 bytes (3 floats)
- *   uint8 atlasIdx         —  1 byte  (atlas column 0–11)
+ *   uint8 atlasIdx         —  1 byte  (atlas column 0–14)
  *   uint8 flags            —  1 byte  (0 = normal, 1 = flicker, 2 = angry, 3 = trade-friendly, 4 = retreating, 5 = flicker-untargetable)
  *   uint8 flickerHash      —  1 byte  (per-instance flicker phase offset)
  *   1 byte padding         — aligns to 4-byte boundary
@@ -147,6 +154,9 @@ const MISSILE_TYPES: ReadonlySet<string> = new Set([
   UT_SAM_MISSILE,
   UT_SHELL,
   UT_MIRV_WARHEAD,
+  UT_TRANSPORT_PLANE,
+  UT_BOMBER,
+  UT_CARGO_PLANE,
 ]);
 
 /** Values per smoothing segment in the flat `smoothSegs` array:

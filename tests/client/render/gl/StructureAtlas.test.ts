@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { preloadAtlasData } from "../../../../src/client/render/gl/passes/name-pass/AtlasData";
 import { StructureLevelPass } from "../../../../src/client/render/gl/passes/StructureLevelPass";
 import { StructurePass } from "../../../../src/client/render/gl/passes/StructurePass";
+import { UNIT_ORDER } from "../../../../src/client/render/gl/passes/UnitPass";
 import { createRenderSettings } from "../../../../src/client/render/gl/RenderSettings";
 import type {
   RendererConfig,
@@ -28,9 +29,14 @@ import {
   ALL_UNIT_TYPES,
   STRUCTURE_ATLAS_ORDER,
   UT_ADMIN_OFFICE,
+  UT_AIRPORT,
+  UT_BOMBER,
+  UT_CARGO_PLANE,
   UT_CITY,
+  UT_COASTAL_BATTERY,
   UT_DEFENSE_POST,
   UT_RESEARCH_INSTITUTE,
+  UT_TRANSPORT_PLANE,
   UT_WARSHIP,
 } from "../../../../src/client/render/types";
 
@@ -44,6 +50,15 @@ const ORIGINAL_CELLS = 6;
  */
 const ORIGINAL_CELLS_SHA256 =
   "fba8a4dd261f54b78042add715011bfcb64b6724900663d8e641bc80a51d66b5";
+/** The eight cells before the warfare structures (all of the 512x64 atlas then). */
+const PRE_WARFARE_CELLS = 8;
+const PRE_WARFARE_SHA256 =
+  "621440ab35f073480851808450ed8a09cf38981e4f5ef9cd7f2b8ad54b66dfe6";
+const UNIT_CELL = 13;
+/** sha256 of the original 156x13 unit atlas's RGBA pixels (12 cells). */
+const ORIGINAL_UNIT_CELLS = 12;
+const ORIGINAL_UNIT_SHA256 =
+  "ffd5f3525193fadd27a3511aca9da1577f67c81e95a6d0a252f7c20f947bc9eb";
 
 // ---------------------------------------------------------------------------
 // Minimal PNG decoder (8-bit RGBA, non-interlaced — what the atlas uses)
@@ -109,14 +124,19 @@ function decodePng(buf: Buffer): DecodedPng {
 }
 
 /** RGBA bytes of atlas columns [first, first + count), row-major. */
-function columns(png: DecodedPng, first: number, count: number): Uint8Array {
-  if ((first + count) * CELL > png.width) {
+function columns(
+  png: DecodedPng,
+  first: number,
+  count: number,
+  cell = CELL,
+): Uint8Array {
+  if ((first + count) * cell > png.width) {
     throw new Error(`atlas has no column ${first + count - 1}`);
   }
-  const w = count * CELL * 4;
+  const w = count * cell * 4;
   const out = new Uint8Array(png.height * w);
   for (let y = 0; y < png.height; y++) {
-    const start = (y * png.width + first * CELL) * 4;
+    const start = (y * png.width + first * cell) * 4;
     out.set(png.rgba.subarray(start, start + w), y * w);
   }
   return out;
@@ -255,8 +275,8 @@ afterAll(() => {
 describe("icon-atlas.png", () => {
   const png = decodePng(readFileSync(ATLAS_PATH));
 
-  it("has one 64×64 cell per structure in STRUCTURE_ATLAS_ORDER (512×64)", () => {
-    expect(png.width).toBe(512);
+  it("has one 64×64 cell per structure in STRUCTURE_ATLAS_ORDER (640×64)", () => {
+    expect(png.width).toBe(640);
     expect(png.height).toBe(CELL);
     expect(png.width / CELL).toBe(STRUCTURE_ATLAS_ORDER.length);
   });
@@ -268,9 +288,16 @@ describe("icon-atlas.png", () => {
     expect(hash).toBe(ORIGINAL_CELLS_SHA256);
   });
 
+  it("keeps the eight cells from before the warfare structures", () => {
+    const hash = createHash("sha256")
+      .update(columns(png, 0, PRE_WARFARE_CELLS))
+      .digest("hex");
+    expect(hash).toBe(PRE_WARFARE_SHA256);
+  });
+
   it("draws a white glyph on transparency in each new cell, unlike any other cell", () => {
     const cells = STRUCTURE_ATLAS_ORDER.map((_, i) => columns(png, i, 1));
-    for (const col of [6, 7]) {
+    for (const col of [6, 7, 8, 9]) {
       const cell = cells[col];
       let covered = 0;
       for (let p = 0; p < cell.length; p += 4) {
@@ -301,7 +328,7 @@ describe("icon-atlas.png", () => {
 });
 
 describe("StructurePass atlas columns", () => {
-  it("draws Research Institute and Admin Office from their own columns (6 and 7)", () => {
+  it("draws the fork's structures from their own columns (6 to 9)", () => {
     const { gl, uploads } = fakeGL();
     const pass = new StructurePass(gl, header, {}, {}, createRenderSettings());
     pass.updateStructures(
@@ -310,10 +337,12 @@ describe("StructurePass atlas columns", () => {
         UT_DEFENSE_POST,
         UT_RESEARCH_INSTITUTE,
         UT_ADMIN_OFFICE,
+        UT_COASTAL_BATTERY,
+        UT_AIRPORT,
         UT_WARSHIP, // not a structure: skipped
       ]),
     );
-    expect(uploadedColumns(uploads, 6, 4)).toEqual([0, 3, 6, 7]);
+    expect(uploadedColumns(uploads, 6, 6)).toEqual([0, 3, 6, 7, 8, 9]);
   });
 
   it("highlights Research Institute without highlighting cities", () => {
@@ -369,5 +398,42 @@ describe("StructureLevelPass atlas columns", () => {
     const expected = STRUCTURE_ATLAS_ORDER.map((_, col) => col);
     expect(uploadedColumns(icons.uploads, 6, n)).toEqual(expected);
     expect(uploadedColumns(levels.uploads, 5, n)).toEqual(expected);
+  });
+});
+
+describe("unit-atlas.png", () => {
+  const png = decodePng(readFileSync("resources/atlases/unit-atlas.png"));
+
+  it("has one 13px column per UnitPass atlas column", () => {
+    expect(png.height).toBe(UNIT_CELL);
+    expect(png.width).toBe(UNIT_ORDER.length * UNIT_CELL);
+    expect(UNIT_ORDER.indexOf(UT_TRANSPORT_PLANE)).toBe(12);
+    expect(UNIT_ORDER.indexOf(UT_BOMBER)).toBe(13);
+    expect(UNIT_ORDER.indexOf(UT_CARGO_PLANE)).toBe(14);
+  });
+
+  it("keeps the twelve original cells byte-identical", () => {
+    const hash = createHash("sha256")
+      .update(columns(png, 0, ORIGINAL_UNIT_CELLS, UNIT_CELL))
+      .digest("hex");
+    expect(hash).toBe(ORIGINAL_UNIT_SHA256);
+  });
+
+  it("draws each plane in opaque grayscale, each unlike the others", () => {
+    const cells = [12, 13, 14].map((c) => columns(png, c, 1, UNIT_CELL));
+    for (const cell of cells) {
+      let opaque = 0;
+      for (let p = 0; p < cell.length; p += 4) {
+        const alpha = cell[p + 3];
+        expect([0, 255]).toContain(alpha);
+        if (alpha === 0) continue;
+        opaque++;
+        expect(cell[p]).toBe(cell[p + 1]);
+        expect(cell[p + 1]).toBe(cell[p + 2]);
+      }
+      expect(opaque).toBeGreaterThan(10);
+    }
+    expect(Buffer.from(cells[0]).equals(Buffer.from(cells[1]))).toBe(false);
+    expect(Buffer.from(cells[1]).equals(Buffer.from(cells[2]))).toBe(false);
   });
 });

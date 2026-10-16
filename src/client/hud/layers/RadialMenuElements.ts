@@ -40,6 +40,7 @@ const donateGoldIcon = assetUrl("images/DonateGoldIconWhite.svg");
 const donateTroopIcon = assetUrl("images/DonateTroopIconWhite.svg");
 const emojiIcon = assetUrl("images/EmojiIconWhite.svg");
 const infoIcon = assetUrl("images/InfoIcon.svg");
+const paradropIcon = assetUrl("images/ParadropIconWhite.svg");
 const swordIcon = assetUrl("images/SwordIconWhite.svg");
 const targetIcon = assetUrl("images/TargetIconWhite.svg");
 const traitorIcon = assetUrl("images/TraitorIconWhite.svg");
@@ -603,6 +604,54 @@ function createMenuElements(
     });
 }
 
+/**
+ * Expanded warfare: drop troops (attack ratio) on the tapped tile from an
+ * airport in range (spec 14b). The menu itself is the confirmation: tap
+ * the tile, then this item. Null when the option is off.
+ */
+function createParadropElement(params: MenuElementParams): MenuElement | null {
+  const plane = params.playerActions.buildableUnits.find(
+    (u) => u.type === UnitType.TransportPlane,
+  );
+  if (
+    plane === undefined ||
+    params.game.config().isUnitDisabled(UnitType.TransportPlane)
+  ) {
+    return null;
+  }
+  return {
+    id: "attack_paradrop",
+    name: "paradrop",
+    disabled: () => plane.canBuild === false,
+    icon: paradropIcon,
+    color: plane.canBuild === false ? COLORS.disabled : COLORS.attack,
+    badge: plane.locked ? lockedBadge(UnitType.TransportPlane) : undefined,
+    tooltipItems: [
+      { text: translateText("radial_menu.paradrop_title"), className: "title" },
+      {
+        text: translateText("radial_menu.paradrop_description"),
+        className: "description",
+      },
+      ...(plane.locked
+        ? [
+            {
+              text: lockedReason(UnitType.TransportPlane),
+              className: "locked",
+            },
+          ]
+        : []),
+      {
+        text: `${renderNumber(plane.cost)} ${translateText("player_panel.gold")}`,
+        className: "cost",
+      },
+    ],
+    action: (p: MenuElementParams) => {
+      p.playerActionHandler.handleParadrop(p.myPlayer, p.tile);
+      p.closeMenu();
+    },
+  };
+}
+
 export const attackMenuElement: MenuElement = {
   id: Slot.Attack,
   name: "radial_attack",
@@ -612,7 +661,11 @@ export const attackMenuElement: MenuElement = {
 
   subMenu: (params: MenuElementParams) => {
     if (params === undefined) return [];
-    return createMenuElements(params, "attack", "attack");
+    const paradrop = createParadropElement(params);
+    return [
+      ...createMenuElements(params, "attack", "attack"),
+      ...(paradrop === null ? [] : [paradrop]),
+    ];
   },
 };
 

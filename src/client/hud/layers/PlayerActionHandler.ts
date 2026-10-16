@@ -11,6 +11,7 @@ import {
   SendDonateTroopsIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
+  SendParadropIntentEvent,
   SendSpawnIntentEvent,
   SendTargetPlayerIntentEvent,
 } from "../../Transport";
@@ -35,6 +36,15 @@ export class PlayerActionHandler {
   handleBoatAttack(player: PlayerView, targetTile: TileRef) {
     this.eventBus.emit(
       new SendBoatAttackIntentEvent(
+        targetTile,
+        this.uiState.attackRatio * player.troops(),
+      ),
+    );
+  }
+
+  handleParadrop(player: PlayerView, targetTile: TileRef) {
+    this.eventBus.emit(
+      new SendParadropIntentEvent(
         targetTile,
         this.uiState.attackRatio * player.troops(),
       ),

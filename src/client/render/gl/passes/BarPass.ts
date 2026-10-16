@@ -15,8 +15,9 @@
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { maxHealthWithVeterancy } from "@openfront/engine-lib/game/Veterancy";
+import { AIRPORT_SORTIE_COOLDOWN_TICKS } from "@openfront/engine-lib/warfare/Warfare";
 import type { RendererConfig, UnitState } from "../../types";
-import { UT_MISSILE_SILO, UT_SAM_LAUNCHER } from "../../types";
+import { UT_AIRPORT, UT_MISSILE_SILO, UT_SAM_LAUNCHER } from "../../types";
 import type { RenderSettings } from "../RenderSettings";
 import { constructionProgress } from "../utils/ConstructionProgress";
 import { createProgram } from "../utils/GlUtils";
@@ -328,10 +329,11 @@ export class BarPass {
       );
     }
 
-    // Missile readiness (Silo / SAM)
+    // Missile readiness (Silo / SAM) and airport sorties
     if (
       unit.unitType === UT_MISSILE_SILO ||
-      unit.unitType === UT_SAM_LAUNCHER
+      unit.unitType === UT_SAM_LAUNCHER ||
+      unit.unitType === UT_AIRPORT
     ) {
       const readiness = this.missileReadiness(unit, gameTick);
       if (readiness < 1) return readiness;
@@ -350,7 +352,9 @@ export class BarPass {
     const cooldown =
       unit.unitType === UT_SAM_LAUNCHER
         ? this.config.SAMCooldown()
-        : this.config.SiloCooldown();
+        : unit.unitType === UT_AIRPORT
+          ? AIRPORT_SORTIE_COOLDOWN_TICKS
+          : this.config.SiloCooldown();
 
     let readiness = ready / maxMissiles;
     for (const timer of unit.missileTimerQueue) {

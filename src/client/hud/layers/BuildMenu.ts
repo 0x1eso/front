@@ -40,6 +40,10 @@ const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
 const researchInstituteIcon = assetUrl("images/ResearchInstituteIconWhite.svg");
 const adminOfficeIcon = assetUrl("images/AdminOfficeIconWhite.svg");
+const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
+const airportIcon = assetUrl("images/AirportIconWhite.svg");
+const coastalBarrageIcon = assetUrl("images/ExplosionIconWhite.svg");
+const bomberIcon = assetUrl("images/BomberIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -134,6 +138,34 @@ export const buildTable: BuildItemDisplay[][] = [
       description: "build_menu.desc.admin_office",
       key: "unit_type.admin_office",
       countable: true,
+    },
+    {
+      unitType: UnitType.CoastalBattery,
+      icon: coastalBatteryIcon,
+      description: "build_menu.desc.coastal_battery",
+      key: "unit_type.coastal_battery",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Airport,
+      icon: airportIcon,
+      description: "build_menu.desc.airport",
+      key: "unit_type.airport",
+      countable: true,
+    },
+    {
+      unitType: UnitType.CoastalBarrage,
+      icon: coastalBarrageIcon,
+      description: "build_menu.desc.coastal_barrage",
+      key: "unit_type.coastal_barrage",
+      countable: false,
+    },
+    {
+      unitType: UnitType.Bomber,
+      icon: bomberIcon,
+      description: "build_menu.desc.bomber",
+      key: "unit_type.bomber",
+      countable: false,
     },
   ],
 ];

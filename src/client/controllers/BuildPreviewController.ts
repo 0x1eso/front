@@ -38,6 +38,7 @@ import {
 import { buildNukeTrajectory, MapRenderer } from "../render/gl";
 import type { RenderSettings } from "../render/gl/RenderSettings";
 import { renderDpr } from "../render/gl/utils/Dpr";
+import { buildFlightTrajectory } from "../render/gl/utils/FlightTrajectory";
 import type { SAMInfo } from "../render/gl/utils/NukeTrajectory";
 import type { GhostPreviewData } from "../render/types";
 import { TransformHandler } from "../TransformHandler";
@@ -48,6 +49,7 @@ import {
 import { UIState } from "../UIState";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
+import { flightSource, warfareGhostRadius } from "./WarfarePreview";
 
 /** True for nuke types (AtomBomb, HydrogenBomb): ghost is preserved after placement so user can place multiple or keep selection (Enter/key confirm). */
 export function shouldPreserveGhostAfterBuild(unitType: UnitType): boolean {
@@ -160,6 +162,8 @@ export class BuildPreviewController implements Controller {
     srcY: number;
     directionUp: boolean;
     sams: SAMInfo[];
+    /** A bomber or barrage: a straight line instead of the nuke's arc. */
+    straight: boolean;
   } | null = null;
 
   constructor(
@@ -217,15 +221,23 @@ export class BuildPreviewController implements Controller {
         if (traj !== null) {
           // Rebuild the arc with the live cursor as the destination (same
           // tile-center convention as the icon: shader adds +0.5).
-          const data = buildNukeTrajectory(
-            traj.srcX,
-            traj.srcY,
-            w.x - 0.5,
-            w.y - 0.5,
-            this.game.height(),
-            traj.directionUp,
-            traj.sams,
-          );
+          const data = traj.straight
+            ? buildFlightTrajectory(
+                traj.srcX,
+                traj.srcY,
+                w.x - 0.5,
+                w.y - 0.5,
+                traj.sams,
+              )
+            : buildNukeTrajectory(
+                traj.srcX,
+                traj.srcY,
+                w.x - 0.5,
+                w.y - 0.5,
+                this.game.height(),
+                traj.directionUp,
+                traj.sams,
+              );
           // Impassable terrain can't be targeted (nukeSpawn rejects it)
           // even though nukes fly over it — mark the destination with the
           // blocked X. Checked per frame so the X tracks the live cursor.
@@ -418,6 +430,10 @@ export class BuildPreviewController implements Controller {
       return;
     }
     const type = this.ghostUnit.buildableUnit.type;
+    if (type === UnitType.Bomber || type === UnitType.CoastalBarrage) {
+      this.updateFlightPreview(type, tileRef);
+      return;
+    }
     if (type !== UnitType.AtomBomb && type !== UnitType.HydrogenBomb) {
       this.clearNukeTrajectory();
       return;
@@ -509,12 +525,62 @@ export class BuildPreviewController implements Controller {
       srcY,
       directionUp,
       sams,
+      straight: false,
     };
   }
 
   private clearNukeTrajectory(): void {
     this.nukeTrajectoryStatic = null;
     this.view.updateNukeTrajectory(null);
+  }
+
+  /**
+   * Expanded warfare: a bomber flies straight from the airport the engine
+   * would use, and non-friendly SAMs threaten it; a barrage flies straight
+   * from the silo it would use, and nothing intercepts it.
+   */
+  private updateFlightPreview(
+    type: UnitType.Bomber | UnitType.CoastalBarrage,
+    tileRef: TileRef,
+  ): void {
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer) {
+      this.clearNukeTrajectory();
+      return;
+    }
+    const src = flightSource(
+      myPlayer.units(
+        type === UnitType.Bomber ? UnitType.Airport : UnitType.MissileSilo,
+      ),
+      type,
+      tileRef,
+      (a, b) => this.game.euclideanDistSquared(a, b),
+    );
+    if (src === null) {
+      this.clearNukeTrajectory();
+      return;
+    }
+    const sams: SAMInfo[] = [];
+    if (type === UnitType.Bomber) {
+      const config = this.game.config();
+      for (const s of this.game.units(UnitType.SAMLauncher)) {
+        if (!s.isActive()) continue;
+        const owner = s.owner();
+        if (owner === myPlayer || myPlayer.isFriendly(owner)) continue;
+        sams.push({
+          x: this.game.x(s.tile()),
+          y: this.game.y(s.tile()),
+          r: config.samRangeOf(owner, config.samRange(s.level())),
+        });
+      }
+    }
+    this.nukeTrajectoryStatic = {
+      srcX: this.game.x(src),
+      srcY: this.game.y(src),
+      directionUp: false,
+      sams,
+      straight: true,
+    };
   }
 
   private buildGhostPreviewData(
@@ -557,6 +623,17 @@ export class BuildPreviewController implements Controller {
         break;
       case UnitType.DefensePost:
         rangeRadius = this.game.config().defensePostRange();
+        break;
+      case UnitType.CoastalBattery:
+      case UnitType.Airport:
+      case UnitType.CoastalBarrage:
+      case UnitType.Bomber:
+        rangeRadius = warfareGhostRadius(
+          u.type,
+          u.canUpgrade !== false
+            ? (this.game.unit(u.canUpgrade)?.level() ?? 0) + 1
+            : 1,
+        );
         break;
     }
     let radiusTileX = this.game.x(placementTile);
