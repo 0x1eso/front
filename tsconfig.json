@@ -19,6 +19,8 @@
     "scripts/split-packages",
     "scripts/domestic-sim.ts",
     "scripts/domestic-sim-report.ts",
+    "scripts/warfare-sim.ts",
+    "scripts/warfare-sim-report.ts",
     "vite.config.ts"
   ],
   "exclude": [
