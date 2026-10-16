@@ -55,6 +55,8 @@ async function mount(
     strategic?: StrategicData;
     ports?: number;
     silos?: number;
+    airports?: { busy: boolean }[];
+    gold?: bigint;
     factories?: { id: number; level: number }[];
   } = {},
 ): Promise<Mounted> {
@@ -64,7 +66,7 @@ async function mount(
   const player = {
     buildables: vi.fn(() => Promise.resolve(buildables)),
     totalUnitLevels: () => 0,
-    gold: () => 1_000_000n,
+    gold: () => opts.gold ?? 1_000_000n,
     strategicData: () => opts.strategic ?? null,
     units: (type: UnitType) => {
       switch (type) {
@@ -72,6 +74,12 @@ async function mount(
           return Array.from({ length: opts.ports ?? 0 }, () => ({}));
         case UnitType.MissileSilo:
           return Array.from({ length: opts.silos ?? 0 }, () => ({}));
+        case UnitType.Airport:
+          return (opts.airports ?? []).map((a) => ({
+            isActive: () => true,
+            isUnderConstruction: () => false,
+            isInCooldown: () => a.busy,
+          }));
         case UnitType.Factory:
           return (opts.factories ?? []).map((f) => ({
             id: () => f.id,
@@ -435,5 +443,64 @@ describe("unit-display build bar", () => {
     expect(card(el)?.textContent).toContain("[strategic.producing] count=1");
     await tap(el, "satellite");
     expect(card(el)?.textContent).toContain("[strategic.satellite_used]");
+  });
+
+  describe("paradrop button", () => {
+    it("sits right after the bomber, 44px wide", async () => {
+      const { el } = await mount([], { warfare: true });
+      const keys = [...el.querySelectorAll("[data-hotbar]")].map((b) =>
+        b.getAttribute("data-hotbar"),
+      );
+      expect(keys[keys.indexOf("bomber") + 1]).toBe("paradrop");
+      expect(button(el, "paradrop").classList.contains("w-11")).toBe(true);
+      // Absent without expanded warfare.
+      document.body.innerHTML = "";
+      const plain = await mount([]);
+      expect(plain.el.querySelector('[data-hotbar="paradrop"]')).toBeNull();
+    });
+
+    it("two taps enter aim mode (the map flow sends the intent)", async () => {
+      const { el, uiState } = await mount(
+        [buildable(UnitType.TransportPlane)],
+        { warfare: true, airports: [{ busy: false }] },
+      );
+      await tap(el, "paradrop");
+      expect(uiState.ghostStructure).toBeNull();
+      expect(card(el)!.textContent).toContain("[unit_type.paradrop]");
+      expect(card(el)!.querySelector("[data-hotbar-reason]")).toBeNull();
+      await tap(el, "paradrop");
+      expect(uiState.ghostStructure).toBe(UnitType.TransportPlane);
+    });
+
+    it("says on the button why it cannot start, and never aims", async () => {
+      const cases: [Parameters<typeof mount>[1], string][] = [
+        [{ warfare: true }, "radial_menu.paradrop_no_airport"],
+        [
+          { warfare: true, airports: [{ busy: true }] },
+          "radial_menu.paradrop_no_sortie",
+        ],
+        [
+          { warfare: true, airports: [{ busy: false }], gold: 0n },
+          "radial_menu.paradrop_need_gold",
+        ],
+      ];
+      for (const [opts, reason] of cases) {
+        document.body.innerHTML = "";
+        const { el, uiState } = await mount(
+          [buildable(UnitType.TransportPlane)],
+          opts,
+        );
+        expect(
+          button(el, "paradrop").querySelector("[data-paradrop-reason]")!
+            .textContent,
+        ).toContain(reason);
+        await tap(el, "paradrop");
+        await tap(el, "paradrop");
+        expect(uiState.ghostStructure).toBeNull();
+        expect(
+          card(el)!.querySelector("[data-hotbar-reason]")!.textContent,
+        ).toContain(reason);
+      }
+    });
   });
 });

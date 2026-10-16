@@ -193,7 +193,8 @@
       "admin_office": "정치력을 생산합니다. 레벨당 초당 금 50 유지비.",
       "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비.",
       "airport": "범위 안 공수 투입·폭격, 무역 상대 공항과 화물 항공로",
-      "bomber": "공항에서 출격하는 소형 폭탄, SAM 요격을 절반은 피함",
+      "bomber": "공항에서 조준점을 지나는 48칸 선 위에 소형 폭탄 8발을 융단 폭격, SAM 요격을 절반은 피함",
+      "paradrop": "공항에서 병력(공격 비율)을 실어 조준한 곳에 내립니다",
       "coastal_barrage": "미사일 발사대에서 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
       "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다",
       "conventional_missile": "발사대에서 쏴 적 건물의 레벨을 1 낮춥니다. 공장이면 만들던 핵이 사라집니다",
@@ -1883,6 +1884,7 @@
     "paradrop_description": "공항에서 병력(공격 비율)을 실어 이곳에 내립니다",
     "paradrop_need_gold": "골드 부족",
     "paradrop_no_airport": "범위 내 공항 없음",
+    "paradrop_no_sortie": "출격 횟수 소진",
     "paradrop_title": "공수 투입"
   },
   "relation": {
@@ -2251,6 +2253,7 @@
     "coastal_barrage": "해안 포격",
     "coastal_battery": "해안 포대",
     "transport_plane": "수송기",
+    "paradrop": "공수 투입",
     "conventional_missile": "일반 미사일",
     "satellite": "궤도 포격 위성"
   },

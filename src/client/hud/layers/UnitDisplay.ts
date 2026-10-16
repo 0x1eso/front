@@ -43,6 +43,7 @@ import {
   hydrogenBombIcon,
   mirvIcon,
   missileSiloIcon,
+  paradropIcon,
   portIcon,
   researchInstituteIcon,
   samLauncherIcon,
@@ -190,6 +191,15 @@ export const HOTBAR: readonly HotbarItem[] = [
     keybind: "",
     countable: false,
   },
+  // Paradrop (spec 14c): aimed like a bomb; confirming sends the paradrop
+  // intent, not a build.
+  {
+    type: UnitType.TransportPlane,
+    icon: paradropIcon,
+    key: "paradrop",
+    keybind: "",
+    countable: false,
+  },
 ];
 
 const NUKES: ReadonlySet<UnitType> = new Set([
@@ -225,6 +235,8 @@ function highlightTypes(
       return [UnitType.MissileSilo, UnitType.CoastalBattery];
     case UnitType.Bomber:
       return [UnitType.Airport, UnitType.SAMLauncher];
+    case UnitType.TransportPlane:
+      return [UnitType.Airport];
     case UnitType.ConventionalMissile:
       return [UnitType.MissileSilo, UnitType.SAMLauncher];
     case UnitType.Satellite:
@@ -277,9 +289,11 @@ export class UnitDisplay extends LitElement implements Controller {
   tick() {
     const player = this.game?.myPlayer();
     if (!player) return;
-    player.buildables(undefined, BuildMenus.types).then((buildables) => {
-      this.playerBuildables = buildables;
-    });
+    player
+      .buildables(undefined, [...BuildMenus.types, UnitType.TransportPlane])
+      .then((buildables) => {
+        this.playerBuildables = buildables;
+      });
     for (const item of HOTBAR) {
       if (item.countable) {
         this.counts.set(item.type, player.totalUnitLevels(item.type));
@@ -348,8 +362,34 @@ export class UnitDisplay extends LitElement implements Controller {
     this.eventBus?.emit(new SendProduceNukeIntentEvent(type));
   }
 
+  /**
+   * Why a paradrop can't be started now (short, shown on its button too),
+   * or null when it can: locked, no airport, every airport's sorties in
+   * use, or not enough gold.
+   */
+  private paradropReason(): string | null {
+    if (this.locked(UnitType.TransportPlane)) {
+      return lockedReason(UnitType.TransportPlane);
+    }
+    const player = this.game?.myPlayer();
+    const airports = (player?.units(UnitType.Airport) ?? []).filter(
+      (a) => a.isActive() && !a.isUnderConstruction(),
+    );
+    if (airports.length === 0) {
+      return translateText("radial_menu.paradrop_no_airport");
+    }
+    if (airports.every((a) => a.isInCooldown())) {
+      return translateText("radial_menu.paradrop_no_sortie");
+    }
+    if (this.cost(UnitType.TransportPlane) > (player?.gold() ?? 0n)) {
+      return translateText("radial_menu.paradrop_need_gold");
+    }
+    return null;
+  }
+
   /** Why the unit can't be built right now, or null when it can. */
   private cannotBuildReason(type: PlayerBuildableUnitType): string | null {
+    if (type === UnitType.TransportPlane) return this.paradropReason();
     if (this.locked(type)) return lockedReason(type);
     const player = this.game?.myPlayer();
     const strategic = this.strategic();
@@ -498,17 +538,23 @@ export class UnitDisplay extends LitElement implements Controller {
               >${stock}</span
             >`
           : null}
-        ${tech !== null
+        ${item.type === UnitType.TransportPlane && !this.canBuild(item.type)
           ? html`<span
-              data-locked-tech
+              data-paradrop-reason
               class="w-full px-0.5 text-[9px] leading-tight text-center text-red-300 line-clamp-2"
-              >🔒 ${translateText(`domestic.tech.${tech}.name`)}</span
+              >${this.paradropReason()}</span
             >`
-          : count !== undefined
-            ? html`<span class="text-xs leading-none tabular-nums"
-                >${renderNumber(count)}</span
+          : tech !== null
+            ? html`<span
+                data-locked-tech
+                class="w-full px-0.5 text-[9px] leading-tight text-center text-red-300 line-clamp-2"
+                >🔒 ${translateText(`domestic.tech.${tech}.name`)}</span
               >`
-            : null}
+            : count !== undefined
+              ? html`<span class="text-xs leading-none tabular-nums"
+                  >${renderNumber(count)}</span
+                >`
+              : null}
       </button>
     `;
   }

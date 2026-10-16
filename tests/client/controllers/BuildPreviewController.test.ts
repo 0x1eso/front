@@ -1,5 +1,9 @@
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { StrategicData } from "@openfront/engine-api/strategic/StrategicTypes";
+import {
+  CARPET_BOMB_OUTER,
+  carpetBombPoints,
+} from "@openfront/engine-lib/warfare/Warfare";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
@@ -13,6 +17,7 @@ import { BuildTapEvent, MouseUpEvent } from "../../../src/client/InputHandler";
 import { createRenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import {
   BuildUnitIntentEvent,
+  SendParadropIntentEvent,
   SendUpgradeStructureIntentEvent,
 } from "../../../src/client/Transport";
 
@@ -191,6 +196,20 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       isUnderConstruction: () => false,
       tile: () => 0,
     };
+    const airport = {
+      id: () => 6,
+      isActive: () => true,
+      isInCooldown: () => false,
+      isUnderConstruction: () => false,
+      level: () => 1,
+      tile: () => 9, // (9, 0)
+    };
+    const busyAirport = {
+      ...airport,
+      id: () => 7,
+      isInCooldown: () => true,
+      tile: () => 90,
+    };
     // An enemy SAM; its owner's air-defense law adds 21 tiles (samRangeOf).
     const enemy = { smallID: () => 9 };
     const enemySam = {
@@ -209,7 +228,13 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       alliances: () => [],
       readyMissileCount: () => 5,
       isOnSameTeam: () => false,
-      units: (t: UnitType) => (t === UnitType.MissileSilo ? [silo] : []),
+      troops: () => 2000,
+      units: (t: UnitType) =>
+        t === UnitType.MissileSilo
+          ? [silo]
+          : t === UnitType.Airport
+            ? [airport, busyAirport]
+            : [],
       buildables: (tile: number | undefined, types: UnitType[]) =>
         new Promise((resolve) => {
           queries.push({
@@ -223,6 +248,9 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       isValidCoord: (x: number, y: number) =>
         x >= 0 && y >= 0 && x < WIDTH && y < WIDTH,
       ref: (x: number, y: number) => y * WIDTH + x,
+      euclideanDistSquared: (a: number, b: number) =>
+        ((a % WIDTH) - (b % WIDTH)) ** 2 +
+        (Math.floor(a / WIDTH) - Math.floor(b / WIDTH)) ** 2,
       x: (t: number) => t % WIDTH,
       y: (t: number) => Math.floor(t / WIDTH),
       height: () => WIDTH,
@@ -260,10 +288,12 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     const view = {
       updateGhostPreview: vi.fn(),
       updateNukeTrajectory: vi.fn(),
+      updateAimRings: vi.fn(),
       triggerBlockedFlash: vi.fn(),
       getSettings: () => createRenderSettings(),
     };
     const uiState = {
+      attackRatio: 0.25,
       ghostStructure: type,
       rocketDirectionUp: true,
       upgradeMultiplier: 1,
@@ -308,6 +338,10 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       intents: () => ({
         builds: emitted.filter(
           (e): e is BuildUnitIntentEvent => e instanceof BuildUnitIntentEvent,
+        ),
+        paradrops: emitted.filter(
+          (e): e is SendParadropIntentEvent =>
+            e instanceof SendParadropIntentEvent,
         ),
         upgrades: emitted.filter(
           (e): e is SendUpgradeStructureIntentEvent =>
@@ -652,6 +686,89 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       canAfford: false,
     });
   });
+
+  test("a paradrop aims, checks, waits, then sends the paradrop intent with attack ratio x troops", async () => {
+    const t = makeTouchController(UnitType.TransportPlane);
+    t.tap(30, 40); // tile (3, 4)
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.wait(300);
+    t.tap(30, 40); // too early: waits, never re-aims
+    expect(t.queries).toHaveLength(0);
+    expect(t.intents().paradrops).toHaveLength(0);
+    t.wait(50);
+    t.tap(32, 42);
+    const [drop] = t.intents().paradrops;
+    expect(drop.dst).toBe(43);
+    expect(drop.troops).toBe(500);
+    // No build intent: a paradrop is not a building.
+    expect(t.intents().builds).toHaveLength(0);
+    expect(t.uiState.ghostStructure).toBeNull();
+  });
+
+  test("aiming a paradrop rings the airports with a sortie and marks the one that flies", async () => {
+    const t = makeTouchController(UnitType.TransportPlane);
+    t.tap(30, 40);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.frame();
+    const rings =
+      t.view.updateAimRings.mock.calls[
+        t.view.updateAimRings.mock.calls.length - 1
+      ][0];
+    // The busy airport at (0, 9) has no ring; the free one at (9, 0) has its
+    // range ring and the flyer mark.
+    expect(rings).toHaveLength(2);
+    expect(rings[0]).toMatchObject({ x: 9, y: 0, radius: 150, outline: true });
+    expect(rings[1]).toMatchObject({ x: 9, y: 0, outline: false });
+  });
+
+  test("a bomber's aim draws the 8 carpet circles from carpetBombPoints", async () => {
+    const t = makeTouchController(UnitType.Bomber);
+    t.tap(30, 40);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.frame();
+    const rings =
+      t.view.updateAimRings.mock.calls[
+        t.view.updateAimRings.mock.calls.length - 1
+      ][0];
+    const circles = rings.filter(
+      (r: { radius: number }) => r.radius === CARPET_BOMB_OUTER,
+    );
+    expect(circles.map((c: { x: number; y: number }) => [c.x, c.y])).toEqual(
+      carpetBombPoints(9, 0, 3, 4).map((p) => [p.x, p.y]),
+    );
+    // The line runs on through the aim to the last blast.
+    const st = (t.controller as any).nukeTrajectoryStatic;
+    expect(st).toMatchObject({
+      srcX: 9,
+      srcY: 0,
+      straight: true,
+      carpet: true,
+    });
+  });
+
+  test("a coastal barrage picks the nearest ready silo with no range limit and rings no airport", async () => {
+    const t = makeTouchController(UnitType.CoastalBarrage);
+    t.tap(90, 90);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    expect((t.controller as any).nukeTrajectoryStatic).toMatchObject({
+      srcX: 0,
+      srcY: 0,
+      straight: true,
+      carpet: false,
+    });
+    t.frame();
+    expect(t.view.updateAimRings).not.toHaveBeenCalled();
+  });
+
+  test("leaving build mode clears the aim rings", async () => {
+    const t = makeTouchController(UnitType.TransportPlane);
+    t.tap(30, 40);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    t.frame();
+    (t.uiState as any).ghostStructure = null;
+    (t.controller as any).syncGhostState();
+    expect(t.view.updateAimRings).toHaveBeenLastCalledWith([]);
+  });
 });
 
 describe("structureIconRadiusPx (the ghost icon as StructurePass draws it)", () => {
@@ -677,10 +794,10 @@ describe("structureIconRadiusPx (the ghost icon as StructurePass draws it)", () 
   });
 });
 
-describe("bomber preview breaks alliances like a nuke (bomb radii 8 / 18)", () => {
+describe("bomber preview breaks alliances over the whole carpet (blast radius 8)", () => {
   const WIDTH = 100;
   const ref = (x: number, y: number) => y * WIDTH + x;
-  /** An ally city 12 tiles from the target (inside outer 18, outside inner 8). */
+  /** An ally city 12 tiles from the aim: out of reach of a blast at the aim (outer 8), but a carpet blast lands 2 tiles from it. */
   function make(opts: { fresh?: boolean; allyNearTarget?: boolean }) {
     const near = opts.allyNearTarget ?? true;
     const ally = { smallID: () => 2, isDisconnected: () => false };
@@ -781,7 +898,8 @@ describe("bomber preview breaks alliances like a nuke (bomb radii 8 / 18)", () =
     (controller as any).queryGhost();
     await new Promise((r) => setTimeout(r, 0));
     expect((controller as any).lastGhostData.rangeWarning).toBe(true);
-    expect(magnitudes.some((m) => m.outer === 18)).toBe(true);
+    expect(magnitudes.some((m) => m.outer === 8)).toBe(true);
+    expect(magnitudes.some((m) => m.outer === 18)).toBe(false);
   });
 
   test("the ring stays white with no ally in the bomb zone", async () => {

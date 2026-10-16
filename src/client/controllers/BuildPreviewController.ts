@@ -28,6 +28,7 @@ import {
   wouldNukeBreakAlliance,
 } from "@openfront/engine-lib/execution/NukeAlliance";
 import { isStockpiledNuke } from "@openfront/engine-lib/strategic/Strategic";
+import { carpetBombPoints } from "@openfront/engine-lib/warfare/Warfare";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
 import {
@@ -37,6 +38,7 @@ import {
   MouseUpEvent,
 } from "../InputHandler";
 import { buildNukeTrajectory, MapRenderer } from "../render/gl";
+import type { Ring } from "../render/gl/passes/WarfareRingPass";
 import type { RenderSettings } from "../render/gl/RenderSettings";
 import { renderDpr } from "../render/gl/utils/Dpr";
 import { buildFlightTrajectory } from "../render/gl/utils/FlightTrajectory";
@@ -45,6 +47,7 @@ import type { GhostPreviewData } from "../render/types";
 import { TransformHandler } from "../TransformHandler";
 import {
   BuildUnitIntentEvent,
+  SendParadropIntentEvent,
   SendUpgradeStructureIntentEvent,
 } from "../Transport";
 import { UIState } from "../UIState";
@@ -56,8 +59,12 @@ import {
   TARGET_RING_RADIUS,
 } from "./StrategicPreview";
 import {
+  airportAimRings,
+  carpetAimRings,
+  carpetBetrayed,
+  carpetTiles,
+  carpetWouldBreakAlliance,
   flightSource,
-  strikeMagnitude,
   warfareGhostRadius,
 } from "./WarfarePreview";
 
@@ -178,7 +185,21 @@ export class BuildPreviewController implements Controller {
     straight: boolean;
     /** A missile flies to its target building (tile centre), not the cursor. */
     dest: { x: number; y: number } | null;
+    /** A bomber: the line runs on through the aim to the carpet's last blast. */
+    carpet: boolean;
   } | null = null;
+
+  /**
+   * Paradrop / bomber aim preview: the rings of airports that still have a
+   * sortie plus the one that flies, and (bomber) where the carpet starts.
+   * cursorLoop adds the 8 blast circles for the live aim tile.
+   */
+  private aimStatic: {
+    rings: Ring[];
+    carpetFrom: { x: number; y: number } | null;
+    breaksAlliance: boolean;
+  } | null = null;
+  private aimRingsShown = false;
 
   constructor(
     private game: GameView,
@@ -213,8 +234,24 @@ export class BuildPreviewController implements Controller {
     const cursorLoop = () => {
       const ghost = this.lastGhostData;
       const traj = this.nukeTrajectoryStatic;
-      if (ghost !== null || traj !== null) {
+      const aimStatic = this.aimStatic;
+      if (ghost !== null || traj !== null || aimStatic !== null) {
         const w = this.ghostWorldPos();
+        if (aimStatic !== null) {
+          this.view.updateAimRings(
+            aimStatic.carpetFrom === null
+              ? aimStatic.rings
+              : [
+                  ...aimStatic.rings,
+                  ...carpetAimRings(
+                    aimStatic.carpetFrom,
+                    { x: Math.floor(w.x), y: Math.floor(w.y) },
+                    aimStatic.breaksAlliance,
+                  ),
+                ],
+          );
+          this.aimRingsShown = true;
+        }
         if (ghost !== null) {
           // The range circle (defense post / SAM / nuke radius) normally
           // follows the cursor, so smooth it the same way as the icon. When
@@ -237,8 +274,19 @@ export class BuildPreviewController implements Controller {
         if (traj !== null) {
           // Rebuild the arc with the live cursor as the destination (same
           // tile-center convention as the icon: shader adds +0.5).
-          const dx = traj.dest !== null ? traj.dest.x : w.x - 0.5;
-          const dy = traj.dest !== null ? traj.dest.y : w.y - 0.5;
+          let dx = traj.dest !== null ? traj.dest.x : w.x - 0.5;
+          let dy = traj.dest !== null ? traj.dest.y : w.y - 0.5;
+          if (traj.carpet) {
+            // On through the aim to the last of the 8 blasts.
+            const pts = carpetBombPoints(
+              traj.srcX,
+              traj.srcY,
+              Math.floor(w.x),
+              Math.floor(w.y),
+            );
+            dx = pts[pts.length - 1].x;
+            dy = pts[pts.length - 1].y;
+          }
           const data = traj.straight
             ? buildFlightTrajectory(traj.srcX, traj.srcY, dx, dy, traj.sams)
             : buildNukeTrajectory(
@@ -253,8 +301,14 @@ export class BuildPreviewController implements Controller {
           // Impassable terrain can't be targeted (nukeSpawn rejects it)
           // even though nukes fly over it — mark the destination with the
           // blocked X. Checked per frame so the X tracks the live cursor.
-          const tx = traj.dest !== null ? Math.round(dx) : Math.floor(w.x);
-          const ty = traj.dest !== null ? Math.round(dy) : Math.floor(w.y);
+          const tx =
+            traj.dest !== null && !traj.carpet
+              ? Math.round(dx)
+              : Math.floor(w.x);
+          const ty =
+            traj.dest !== null && !traj.carpet
+              ? Math.round(dy)
+              : Math.floor(w.y);
           if (
             this.game.isValidCoord(tx, ty) &&
             this.game.isImpassable(this.game.ref(tx, ty))
@@ -359,13 +413,16 @@ export class BuildPreviewController implements Controller {
       }
 
       if (this.connectedAllySmallIds.size > 0) {
-        targetingAlly = wouldNukeBreakAlliance({
-          game: this.game,
-          targetTile: tileRef,
-          magnitude: strikeMagnitude(this.game.config(), nukeType),
-          allySmallIds: this.connectedAllySmallIds,
-          threshold: this.game.config().nukeAllianceBreakThreshold(),
-        });
+        targetingAlly =
+          nukeType === UnitType.Bomber
+            ? this.carpetBreaksAlliance(tileRef, this.connectedAllySmallIds)
+            : wouldNukeBreakAlliance({
+                game: this.game,
+                targetTile: tileRef,
+                magnitude: this.game.config().nukeMagnitudes(nukeType),
+                allySmallIds: this.connectedAllySmallIds,
+                threshold: this.game.config().nukeAllianceBreakThreshold(),
+              });
       }
     }
 
@@ -444,7 +501,11 @@ export class BuildPreviewController implements Controller {
       return;
     }
     const type = this.ghostUnit.buildableUnit.type;
-    if (type === UnitType.Bomber || type === UnitType.CoastalBarrage) {
+    if (
+      type === UnitType.Bomber ||
+      type === UnitType.CoastalBarrage ||
+      type === UnitType.TransportPlane
+    ) {
       this.updateFlightPreview(type, tileRef);
       return;
     }
@@ -547,6 +608,7 @@ export class BuildPreviewController implements Controller {
       directionUp,
       sams,
       straight: false,
+      carpet: false,
       dest:
         type === UnitType.ConventionalMissile
           ? (() => {
@@ -562,15 +624,65 @@ export class BuildPreviewController implements Controller {
   private clearNukeTrajectory(): void {
     this.nukeTrajectoryStatic = null;
     this.view.updateNukeTrajectory(null);
+    this.clearAimRings();
+  }
+
+  private clearAimRings(): void {
+    this.aimStatic = null;
+    if (this.aimRingsShown) {
+      this.aimRingsShown = false;
+      this.view.updateAimRings([]);
+    }
+  }
+
+  private distSquared = (a: TileRef, b: TileRef): number =>
+    this.game.euclideanDistSquared(a, b);
+
+  /** The airport a bomber or paradrop aimed at `tile` would fly from. */
+  private airportFor(tile: TileRef): TileRef | null {
+    const me = this.game.myPlayer();
+    if (!me) return null;
+    return flightSource(
+      me.units(UnitType.Airport),
+      UnitType.Bomber,
+      tile,
+      this.distSquared,
+    );
+  }
+
+  /** The tiles of the carpet a bomber aimed at `tile` would lay (none: no airport). */
+  private carpetFor(tile: TileRef): TileRef[] {
+    const from = this.airportFor(tile);
+    if (from === null) return [];
+    return carpetTiles(
+      { x: this.game.x(from), y: this.game.y(from) },
+      { x: this.game.x(tile), y: this.game.y(tile) },
+      this.game,
+    );
+  }
+
+  private carpetBreaksAlliance(
+    tile: TileRef,
+    allySmallIds: Set<number>,
+  ): boolean {
+    return carpetWouldBreakAlliance({
+      game: this.game,
+      tiles: this.carpetFor(tile),
+      config: this.game.config(),
+      allySmallIds,
+    });
   }
 
   /**
    * Expanded warfare: a bomber flies straight from the airport the engine
-   * would use, and non-friendly SAMs threaten it; a barrage flies straight
-   * from the silo it would use, and nothing intercepts it.
+   * would use, on through the aim, and non-friendly SAMs threaten it; a
+   * barrage flies straight from the nearest loaded silo (any distance) and
+   * nothing intercepts it; a paradrop flies from its airport. Plane aims
+   * also ring the airports that still have a sortie and mark the one that
+   * flies.
    */
   private updateFlightPreview(
-    type: UnitType.Bomber | UnitType.CoastalBarrage,
+    type: UnitType.Bomber | UnitType.CoastalBarrage | UnitType.TransportPlane,
     tileRef: TileRef,
   ): void {
     const myPlayer = this.game.myPlayer();
@@ -578,23 +690,47 @@ export class BuildPreviewController implements Controller {
       this.clearNukeTrajectory();
       return;
     }
-    const src = flightSource(
-      myPlayer.units(
-        type === UnitType.Bomber ? UnitType.Airport : UnitType.MissileSilo,
-      ),
-      type,
-      tileRef,
-      (a, b) => this.game.euclideanDistSquared(a, b),
-    );
-    if (src === null) {
-      this.clearNukeTrajectory();
-      return;
+    const plane = type !== UnitType.CoastalBarrage;
+    const src = plane
+      ? this.airportFor(tileRef)
+      : flightSource(
+          myPlayer.units(UnitType.MissileSilo),
+          UnitType.CoastalBarrage,
+          tileRef,
+          this.distSquared,
+        );
+    const xy = (t: TileRef) => ({ x: this.game.x(t), y: this.game.y(t) });
+    const tiles = type === UnitType.Bomber ? this.carpetFor(tileRef) : [];
+    let breaksAlliance = false;
+    if (type === UnitType.Bomber && tiles.length > 0) {
+      const allyIds = new Set<number>();
+      for (const a of myPlayer.allies()) allyIds.add(a.smallID());
+      breaksAlliance =
+        allyIds.size > 0 &&
+        carpetWouldBreakAlliance({
+          game: this.game,
+          tiles,
+          config: this.game.config(),
+          allySmallIds: allyIds,
+        });
     }
+    this.nukeTrajectoryStatic = null;
+    this.view.updateNukeTrajectory(null);
+    this.aimStatic = plane
+      ? {
+          rings: airportAimRings(myPlayer.units(UnitType.Airport), src, xy),
+          carpetFrom: type === UnitType.Bomber && src !== null ? xy(src) : null,
+          breaksAlliance,
+        }
+      : null;
+    if (!plane) this.clearAimRings();
+    if (src === null) return;
     const sams: SAMInfo[] = [];
     if (type === UnitType.Bomber) {
       const config = this.game.config();
       // Same threat set as a nuke: a bombing breaks alliances at launch, so
-      // the SAMs of allies it would betray engage; teammates' never do.
+      // the SAMs of allies it would betray engage; teammates' never do. The
+      // betrayed set covers the whole carpet.
       const teammateIds = new Set<number>();
       for (const p of this.game.players()) {
         if (myPlayer.isOnSameTeam(p)) teammateIds.add(p.smallID());
@@ -603,12 +739,7 @@ export class BuildPreviewController implements Controller {
       for (const a of myPlayer.allies()) allyIds.add(a.smallID());
       const betrayedIds: ReadonlySet<number> =
         allyIds.size > 0
-          ? listNukeBreakAlliance({
-              game: this.game,
-              targetTile: tileRef,
-              magnitude: strikeMagnitude(config, type),
-              threshold: config.nukeAllianceBreakThreshold(),
-            })
+          ? carpetBetrayed({ game: this.game, tiles, config })
           : new Set();
       for (const s of this.game.units(UnitType.SAMLauncher)) {
         if (!s.isActive()) continue;
@@ -637,6 +768,7 @@ export class BuildPreviewController implements Controller {
       directionUp: false,
       sams,
       straight: true,
+      carpet: type === UnitType.Bomber,
       dest: null,
     };
   }
@@ -936,6 +1068,18 @@ export class BuildPreviewController implements Controller {
   }
 
   private emitBuildIntent(unitType: UnitType, targetTile: TileRef): void {
+    if (unitType === UnitType.TransportPlane) {
+      // A paradrop is no build: the radial menu's intent, with the same
+      // attack ratio of my troops.
+      const troops = this.game.myPlayer()?.troops() ?? 0;
+      this.eventBus.emit(
+        new SendParadropIntentEvent(
+          targetTile,
+          this.uiState.attackRatio * troops,
+        ),
+      );
+      return;
+    }
     const isNuke = unitType === UnitType.AtomBomb;
     const rocketDirectionUp =
       unitType === UnitType.AtomBomb || unitType === UnitType.HydrogenBomb
@@ -1039,12 +1183,18 @@ export class BuildPreviewController implements Controller {
     const broken =
       unitType === UnitType.MIRV
         ? [this.game.ownerID(tile)]
-        : listNukeBreakAlliance({
-            game: this.game,
-            targetTile: tile,
-            magnitude: strikeMagnitude(this.game.config(), unitType),
-            threshold: this.game.config().nukeAllianceBreakThreshold(),
-          });
+        : unitType === UnitType.Bomber
+          ? carpetBetrayed({
+              game: this.game,
+              tiles: this.carpetFor(tile),
+              config: this.game.config(),
+            })
+          : listNukeBreakAlliance({
+              game: this.game,
+              targetTile: tile,
+              magnitude: this.game.config().nukeMagnitudes(unitType),
+              threshold: this.game.config().nukeAllianceBreakThreshold(),
+            });
 
     let blocked = false;
     for (const smallId of broken) {
