@@ -8,6 +8,7 @@ import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { ChooseGovernmentExecution } from "../domestic/ChooseGovernmentExecution";
 import { ProclaimLawExecution } from "../domestic/ProclaimLawExecution";
+import { QueueResearchExecution } from "../domestic/QueueResearchExecution";
 import { ResearchExecution } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecution } from "../domestic/SetRecruitTargetExecution";
 import { VictoryProjectExecution } from "../domestic/VictoryProjectExecution";
@@ -161,6 +162,8 @@ export class Executor {
           intent.tech,
           intent.payWithGold ?? false,
         );
+      case "queue_research":
+        return new QueueResearchExecution(player, intent.tech);
       case "set_recruit_target":
         return new SetRecruitTargetExecution(player, intent.percent);
       case "proclaim_law":

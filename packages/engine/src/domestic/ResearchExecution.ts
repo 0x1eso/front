@@ -43,6 +43,7 @@ export class ResearchExecution implements Execution {
       return;
     }
     d.beginResearch(this.tech, researchTicks(this.tech, d.pct("researchTime")));
+    if (d.queuedTech() === this.tech) d.setQueuedTech(null);
   }
 
   tick(_ticks: number): void {}

@@ -49,6 +49,7 @@ const DOMESTIC_ONLY_TYPES = [
   "ChooseGovernment",
   "Domestic",
   "ProclaimLaw",
+  "QueueResearch",
   "Research",
   "SetRecruitTarget",
   "VictoryProject",
@@ -81,6 +82,7 @@ const WARFARE_UNSCRIPTED_TYPES = [
 const DOMESTIC_UNSCRIPTED_TYPES = [
   "ChooseGovernment",
   "ProclaimLaw",
+  "QueueResearch",
   "VictoryProject",
 ];
 

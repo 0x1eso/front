@@ -33,7 +33,11 @@ import {
   applyPct,
   capCombinedPct,
 } from "@openfront/engine-lib/domestic/Modifiers";
-import { shortfallGold } from "@openfront/engine-lib/domestic/Research";
+import {
+  researchBlock,
+  researchTicks,
+  shortfallGold,
+} from "@openfront/engine-lib/domestic/Research";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import type { Game, Player } from "../game/Game";
 import type { PlayerDomestic } from "./PlayerDomestic";
@@ -246,6 +250,32 @@ export function processDomesticSecond(
       { tech: finished },
     );
   }
+  startQueuedResearch(mg, player, d);
+}
+
+/**
+ * Starts the reserved tech once no research runs, its prerequisites are met
+ * and science alone covers the cost (never gold). The slot is cleared when
+ * the tech started or got researched some other way.
+ */
+function startQueuedResearch(
+  mg: Game,
+  player: Player,
+  d: PlayerDomestic,
+): void {
+  const tech = d.queuedTech();
+  if (tech === null) return;
+  const block = researchBlock(d.researchedTechs(), false, tech);
+  if (block === "researched") {
+    d.setQueuedTech(null);
+    return;
+  }
+  if (block !== null || d.currentResearch() !== null) return;
+  if (!payPoints(mg, player, d, "science", TECHS[tech].cost * MILLI, false)) {
+    return;
+  }
+  d.beginResearch(tech, researchTicks(tech, d.pct("researchTime")));
+  d.setQueuedTech(null);
 }
 
 /**

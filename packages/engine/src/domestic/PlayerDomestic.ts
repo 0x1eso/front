@@ -70,6 +70,8 @@ export const DomesticStateSchema = z.object({
     })
     .nullable()
     .optional(),
+  // Absent while no tech is queued.
+  queuedTech: z.enum(TECH_IDS).optional(),
   // Absent in older snapshots and while nothing was donated.
   donationGoldReceived: z.bigint().optional(),
 });
@@ -92,6 +94,8 @@ export class PlayerDomestic implements DomesticView {
   private lastPoliticalMilli = 0;
   private techs = new Set<TechId>();
   private research: ResearchProgress | null = null;
+  /** The reserved next tech (queue_research). */
+  private queued: TechId | null = null;
   private recruitTarget = RECRUIT_TARGET_DEFAULT_PCT;
   /** Proclaimed laws, in proclamation order. */
   private laws = new Map<LawId, LawOption>();
@@ -244,6 +248,16 @@ export class PlayerDomestic implements DomesticView {
     this.changed();
   }
 
+  queuedTech(): TechId | null {
+    return this.queued;
+  }
+
+  setQueuedTech(tech: TechId | null): void {
+    if (tech === this.queued) return;
+    this.queued = tech;
+    this.changed();
+  }
+
   /** Moves research forward by `ticks`; returns the tech it finished, if any. */
   advanceResearch(ticks: number): TechId | null {
     const r = this.research;
@@ -338,6 +352,7 @@ export class PlayerDomestic implements DomesticView {
       government: this.government,
       conditions: [...this.conditions],
       ...(this.project === null ? {} : { project: { ...this.project } }),
+      ...(this.queued === null ? {} : { queuedTech: this.queued }),
       donationGoldReceived: Number(this.donationGold),
     };
     return this.domesticDataCache;
@@ -360,6 +375,7 @@ export class PlayerDomestic implements DomesticView {
       government: this.government,
       conditions: [...this.conditions],
       ...(this.project === null ? {} : { project: { ...this.project } }),
+      ...(this.queued === null ? {} : { queuedTech: this.queued }),
       ...(this.donationGold === 0n
         ? {}
         : { donationGoldReceived: this.donationGold }),
@@ -383,6 +399,7 @@ export class PlayerDomestic implements DomesticView {
     d.government = s.government ?? "chiefdom";
     d.conditions = new Set(s.conditions ?? []);
     d.project = s.project ? { ...s.project } : null;
+    d.queued = s.queuedTech ?? null;
     d.donationGold = s.donationGoldReceived ?? 0n;
     d.rebuild();
     return d;

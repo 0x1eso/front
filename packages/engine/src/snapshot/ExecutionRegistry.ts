@@ -2,6 +2,7 @@
 import { ChooseGovernmentExecutionSnapshot } from "../domestic/ChooseGovernmentExecution";
 import { DomesticExecutionSnapshot } from "../domestic/DomesticExecution";
 import { ProclaimLawExecutionSnapshot } from "../domestic/ProclaimLawExecution";
+import { QueueResearchExecutionSnapshot } from "../domestic/QueueResearchExecution";
 import { ResearchExecutionSnapshot } from "../domestic/ResearchExecution";
 import { SetRecruitTargetExecutionSnapshot } from "../domestic/SetRecruitTargetExecution";
 import { VictoryProjectExecutionSnapshot } from "../domestic/VictoryProjectExecution";
@@ -112,6 +113,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   ProclaimLawExecutionSnapshot,
   QuickChatExecutionSnapshot,
   RecomputeRailClusterExecutionSnapshot,
+  QueueResearchExecutionSnapshot,
   ResearchExecutionSnapshot,
   RetreatExecutionSnapshot,
   SAMLauncherExecutionSnapshot,
