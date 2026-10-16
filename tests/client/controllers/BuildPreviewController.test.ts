@@ -1,4 +1,5 @@
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { StrategicData } from "@openfront/engine-api/strategic/StrategicTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
@@ -7,6 +8,7 @@ import {
   shouldPreserveGhostAfterBuild,
   structureIconRadiusPx,
 } from "../../../src/client/controllers/BuildPreviewController";
+import { TARGET_RING_RADIUS } from "../../../src/client/controllers/StrategicPreview";
 import { BuildTapEvent, MouseUpEvent } from "../../../src/client/InputHandler";
 import { createRenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import {
@@ -166,7 +168,10 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     canUpgrade: number | false;
   };
 
-  function makeTouchController(type: UnitType) {
+  function makeTouchController(
+    type: UnitType,
+    strategic: StrategicData | null = null,
+  ) {
     vi.stubGlobal("requestAnimationFrame", () => 0);
     let now = 1000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
@@ -176,6 +181,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
       canUpgrade: false,
     });
     const silo = {
+      id: () => 5,
       isActive: () => true,
       isInCooldown: () => false,
       isUnderConstruction: () => false,
@@ -184,6 +190,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     // An enemy SAM; its owner's air-defense law adds 21 tiles (samRangeOf).
     const enemy = { smallID: () => 9 };
     const enemySam = {
+      id: () => 77,
       isActive: () => true,
       owner: () => enemy,
       level: () => 1,
@@ -191,6 +198,8 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     };
     const myPlayer = {
       gold: () => 1_000_000n,
+      isFriendly: () => false,
+      strategicData: () => strategic,
       smallID: () => 1,
       allies: () => [],
       alliances: () => [],
@@ -534,6 +543,52 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     (t.controller as any).requestConfirmStructure(new MouseUpEvent(70, 80));
     expect(t.intents().builds.map((b) => b.tile)).toEqual([87]);
     expect(t.uiState.ghostStructure).toBe(UnitType.AtomBomb);
+  });
+
+  // The cursor loop (rAF, stubbed here) pushes this to the renderer.
+  const lastGhost = (t: ReturnType<typeof makeTouchController>, tile: number) =>
+    (t.controller as any).buildGhostPreviewData(tile, false);
+
+  it("a conventional missile rings the enemy building it would hit", async () => {
+    const t = makeTouchController(UnitType.ConventionalMissile);
+    t.tap(80, 80); // tile (8, 8), next to the enemy SAM at (9, 9)
+    await t.reply(() => ({ canBuild: 0, canUpgrade: false }));
+    expect(lastGhost(t, 88)).toMatchObject({
+      rangeRadius: TARGET_RING_RADIUS,
+      radiusTileX: 9,
+      radiusTileY: 9,
+    });
+  });
+
+  it("the satellite rings the silo it would use", async () => {
+    const t = makeTouchController(UnitType.Satellite);
+    t.tap(10, 10); // tile (1, 1), next to my silo at tile 0
+    await t.reply(() => ({ canBuild: 0, canUpgrade: false }));
+    expect(lastGhost(t, 11)).toMatchObject({
+      rangeRadius: TARGET_RING_RADIUS,
+      radiusTileX: 0,
+      radiusTileY: 0,
+    });
+  });
+
+  it("strategic weapons: a bomb costs no gold and needs one in stock", async () => {
+    const empty: StrategicData = {
+      stock: {
+        [UnitType.AtomBomb]: 0,
+        [UnitType.HydrogenBomb]: 0,
+        [UnitType.MIRV]: 0,
+      },
+      jobs: [],
+      satellite: { phase: "none" },
+    };
+    const t = makeTouchController(UnitType.AtomBomb, empty);
+    t.tap(70, 80);
+    await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
+    expect(lastGhost(t, 87)).toMatchObject({
+      cost: 0,
+      showCost: false,
+      canAfford: false,
+    });
   });
 });
 

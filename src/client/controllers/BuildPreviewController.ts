@@ -27,6 +27,7 @@ import {
   listNukeBreakAlliance,
   wouldNukeBreakAlliance,
 } from "@openfront/engine-lib/execution/NukeAlliance";
+import { isStockpiledNuke } from "@openfront/engine-lib/strategic/Strategic";
 import { EventBus } from "@openfront/shared/EventBus";
 import { Controller } from "../Controller";
 import {
@@ -49,6 +50,11 @@ import {
 import { UIState } from "../UIState";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
+import {
+  missileTargetPreview,
+  satelliteSiloPreview,
+  TARGET_RING_RADIUS,
+} from "./StrategicPreview";
 import {
   flightSource,
   strikeMagnitude,
@@ -440,7 +446,11 @@ export class BuildPreviewController implements Controller {
       this.updateFlightPreview(type, tileRef);
       return;
     }
-    if (type !== UnitType.AtomBomb && type !== UnitType.HydrogenBomb) {
+    if (
+      type !== UnitType.AtomBomb &&
+      type !== UnitType.HydrogenBomb &&
+      type !== UnitType.ConventionalMissile
+    ) {
       this.clearNukeTrajectory();
       return;
     }
@@ -476,7 +486,10 @@ export class BuildPreviewController implements Controller {
     );
 
     const bestSilo = silos[0];
-    const directionUp = this.uiState.rocketDirectionUp;
+    const directionUp =
+      type === UnitType.ConventionalMissile
+        ? true
+        : this.uiState.rocketDirectionUp;
     const srcX = this.game.x(bestSilo.tile());
     const srcY = this.game.y(bestSilo.tile());
 
@@ -492,7 +505,7 @@ export class BuildPreviewController implements Controller {
     const allyIds = new Set<number>();
     for (const a of myPlayer.allies()) allyIds.add(a.smallID());
     const betrayedIds: ReadonlySet<number> =
-      allyIds.size > 0
+      allyIds.size > 0 && type !== UnitType.ConventionalMissile
         ? listNukeBreakAlliance({
             game: this.game,
             targetTile: tileRef,
@@ -640,6 +653,7 @@ export class BuildPreviewController implements Controller {
     // Range circle: SAM placement preview shows targetable radius; nuke
     // previews show the outer blast radius at the target tile.
     let rangeRadius = 0;
+    let ringTile: TileRef | null = null;
     switch (u.type) {
       case UnitType.SAMLauncher: {
         const level = this.resolveGhostRangeLevel(u) ?? 1;
@@ -668,6 +682,20 @@ export class BuildPreviewController implements Controller {
             : 1,
         );
         break;
+      case UnitType.ConventionalMissile:
+      case UnitType.Satellite: {
+        // Strategic weapons: ring the building the missile would hit, or
+        // the silo the satellite would use.
+        const ringed =
+          u.type === UnitType.ConventionalMissile
+            ? missileTargetPreview(this.game, myPlayer, tileRef)
+            : satelliteSiloPreview(this.game, myPlayer, tileRef);
+        if (ringed !== null) {
+          rangeRadius = TARGET_RING_RADIUS;
+          ringTile = ringed.tile();
+        }
+        break;
+      }
     }
     let radiusTileX = this.game.x(placementTile);
     let radiusTileY = this.game.y(placementTile);
@@ -679,16 +707,25 @@ export class BuildPreviewController implements Controller {
       radiusTileX = this.game.x(upgradeTargetTile);
       radiusTileY = this.game.y(upgradeTargetTile);
     }
+    if (ringTile !== null) {
+      radiusTileX = this.game.x(ringTile);
+      radiusTileY = this.game.y(ringTile);
+    }
 
     const isNuke = u.type === UnitType.AtomBomb;
     const multiplier =
       u.canUpgrade !== false || isNuke
         ? (this.uiState.upgradeMultiplier ?? 1)
         : 1;
-    const cost = bulkCost(u, multiplier);
+    // Strategic weapons: a bomb comes from the stockpile; no gold is spent.
+    const stock = isStockpiledNuke(u.type)
+      ? (myPlayer.strategicData()?.stock[u.type] ?? null)
+      : null;
+    const cost = stock !== null ? 0n : bulkCost(u, multiplier);
     // Drives the red cost label: gold short of the bulk total, or (for
     // bombs) fewer loaded silo tubes than the selected amount.
-    let canAfford = myPlayer.gold() >= cost;
+    let canAfford =
+      stock !== null ? stock >= multiplier : myPlayer.gold() >= cost;
     if (isNuke) {
       canAfford &&= myPlayer.readyMissileCount() >= multiplier;
     }
@@ -703,7 +740,7 @@ export class BuildPreviewController implements Controller {
       canUpgrade: u.canUpgrade !== false,
       cost: Number(cost),
       multiplier: multiplier,
-      showCost: this.userSettings.cursorCostLabel(),
+      showCost: stock === null && this.userSettings.cursorCostLabel(),
       canAfford,
       ghostRailPaths: u.ghostRailPaths,
       overlappingRailroads: u.overlappingRailroads,
