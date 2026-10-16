@@ -295,65 +295,6 @@ describe("domestic drawer", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
-  it("pads its list so the HUD stacked over its lower band scrolls clear (C3)", async () => {
-    const observed: Element[] = [];
-    let onResize: () => void = () => {};
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        constructor(cb: () => void) {
-          onResize = cb;
-        }
-        observe(el: Element) {
-          observed.push(el);
-        }
-        disconnect() {}
-      },
-    );
-    const hud = await mountHud(1024, 768);
-    // A busy game: attack rows above the fixed rows, and the events and chat
-    // column on the right, both drawn over the drawer (z-200 over z-150).
-    const attacks = document.createElement("attacks-display");
-    place(attacks, { left: 212, top: 468, right: 812, bottom: 588 });
-    const side = document.createElement("div");
-    side.setAttribute("data-bottom-hud-side", "");
-    place(side, { left: 820, top: 300, right: 1016, bottom: 768 });
-    hud.bottomHud.append(attacks, side);
-
-    const panel = await openDrawer();
-    expect(observed).toEqual(expect.arrayContaining([attacks, side]));
-    const drawer = panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
-    const { top, right, bottom } = offsets(drawer);
-    const drawerBottom = 768 - bottom;
-    place(drawer, {
-      left: 1024 - right - 420,
-      top,
-      right: 1024 - right,
-      bottom: drawerBottom,
-    });
-    const padding = async () => {
-      onResize();
-      await panel.updateComplete;
-      return parseFloat(
-        panel.querySelector<HTMLElement>("[data-domestic-scroll]")!.style
-          .paddingBottom,
-      );
-    };
-
-    // The events column reaches highest: the last card can scroll above it.
-    expect(await padding()).toBeGreaterThanOrEqual(drawerBottom - 300);
-
-    // The column empties: only the attack rows still reach in.
-    place(side, { left: 820, top: 768, right: 1016, bottom: 768 });
-    const attacksOnly = await padding();
-    expect(attacksOnly).toBeGreaterThanOrEqual(drawerBottom - 468);
-    expect(attacksOnly).toBeLessThan(drawerBottom - 300);
-
-    // HUD beside the drawer rather than over it is no reason to pad.
-    place(attacks, { left: 0, top: 468, right: 500, bottom: 588 });
-    expect(await padding()).toBeLessThanOrEqual(12);
-  });
-
   it("marks the events and chat column the drawer pads for", () => {
     const side = INDEX.querySelector("[data-bottom-hud-side]")!;
     expect(side).not.toBeNull();
@@ -376,17 +317,61 @@ describe("domestic drawer", () => {
     expect(rows.querySelector("chat-display")).toBeNull();
   });
 
-  it("stacks under the HUD it leaves clear", async () => {
+  it("stacks above the leaderboard, tutorial banner and player info, clear of the map buttons", async () => {
     const hud = await mountHud(1024, 768);
     const panel = await openDrawer();
     const z = zIndex(panel.querySelector("[data-domestic-drawer]")!);
-    // A build-bar card popping up over the drawer stays on top, and the HUD
-    // stays tappable even before the drawer refits to a taller HUD.
-    expect(z).toBeLessThan(zIndex(INDEX.querySelector("[data-bottom-hud]")!));
-    expect(z).toBeLessThan(
+    // Over the bottom HUD (which holds the tutorial banner) and the
+    // top-right stack, and over the 900 leaderboard / map buttons and the
+    // 1001 PlayerInfoOverlay; it stays geometrically clear of the control
+    // rows, top-right bar and map buttons, so they remain tappable.
+    expect(z).toBeGreaterThan(
+      zIndex(INDEX.querySelector("[data-bottom-hud]")!),
+    );
+    expect(z).toBeGreaterThan(
       zIndex(INDEX.querySelector("[data-hud-top-right]")!),
     );
-    expect(z).toBeLessThan(zIndex(hud.buttons));
+    expect(z).toBeGreaterThan(zIndex(hud.buttons));
+    expect(z).toBeGreaterThan(1001);
+  });
+
+  it.each([
+    [844, 390],
+    [740, 360],
+  ])(
+    "at %ix%i it takes the full height and min(100vw, 520px) of width",
+    async (width, height) => {
+      await mountHud(width, height);
+      const panel = await openDrawer();
+      const drawer = panel.querySelector<HTMLElement>(
+        "[data-domestic-drawer]",
+      )!;
+      expect(drawer.classList).toContain("top-[env(safe-area-inset-top,0px)]");
+      expect(drawer.classList).toContain(
+        "bottom-[env(safe-area-inset-bottom,0px)]",
+      );
+      expect(drawer.classList).toContain(
+        "right-[env(safe-area-inset-right,0px)]",
+      );
+      expect(drawer.style.top).toBe("");
+      expect(drawer.classList).toContain("w-[min(100vw,520px)]");
+      expect(drawer.classList).not.toContain("min-w-[420px]");
+      expect(panel.querySelector("[data-domestic-close]")).not.toBeNull();
+      expect(
+        drawer.querySelector("[data-domestic-scroll]")!.className,
+      ).toContain("overflow-y-auto");
+    },
+  );
+
+  it("leaves the compact layout when the screen grows taller", async () => {
+    await mountHud(844, 390);
+    const panel = await openDrawer();
+    vi.stubGlobal("innerHeight", 820);
+    window.dispatchEvent(new Event("resize"));
+    await panel.updateComplete;
+    const drawer = panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
+    expect(drawer.classList).toContain("w-[45vw]");
+    expect(drawer.style.top).toMatch(/^\d+px$/);
   });
 
   it("opens on the tapped dial's screen; a second tap on it closes", async () => {
@@ -480,41 +465,13 @@ describe("domestic drawer", () => {
     expect(queued).toEqual(["navigation", null]);
   });
 
-  it("the detail sheet sits above the HUD over the drawer, and the list scrolls clear of it", async () => {
-    let onResize: () => void = () => {};
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        constructor(cb: () => void) {
-          onResize = cb;
-        }
-        observe() {}
-        disconnect() {}
-      },
-    );
-    const hud = await mountHud(1024, 768);
-    const side = document.createElement("div");
-    side.setAttribute("data-bottom-hud-side", "");
-    place(side, { left: 820, top: 400, right: 1016, bottom: 768 });
-    hud.bottomHud.append(side);
+  it("the detail sheet sits at the drawer's foot, and the list scrolls clear of it", async () => {
+    await mountHud(1024, 768);
     const panel = await openDrawer("research");
-    const drawer = panel.querySelector<HTMLElement>("[data-domestic-drawer]")!;
-    const { top, right, bottom } = offsets(drawer);
-    place(drawer, {
-      left: 1024 - right - 460,
-      top,
-      right: 1024 - right,
-      bottom: 768 - bottom,
-    });
-    onResize();
-    await panel.updateComplete;
-    const covered = 768 - bottom - 400;
-    expect(covered).toBeGreaterThan(0);
-
     panel.querySelector<HTMLButtonElement>('[data-tech="currency"]')!.click();
     await panel.updateComplete;
     const sheet = panel.querySelector<HTMLElement>("[data-tech-sheet]")!;
-    expect(parseFloat(sheet.style.bottom)).toBe(covered);
+    expect(parseFloat(sheet.style.bottom)).toBe(0);
     place(sheet, { left: 0, top: 0, right: 400, bottom: 220 });
     panel.requestUpdate();
     await panel.updateComplete;
@@ -523,7 +480,7 @@ describe("domestic drawer", () => {
       panel.querySelector<HTMLElement>("[data-domestic-scroll]")!.style
         .paddingBottom,
     );
-    expect(padding).toBe(12 + covered + 220);
+    expect(padding).toBe(12 + 220);
   });
 
   it("the laws screen says why a gold proclamation is blocked", async () => {
