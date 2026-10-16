@@ -35,6 +35,7 @@ const BLAST_PROOF: ReadonlySet<UnitType> = new Set([
   UnitType.MIRVWarhead,
   UnitType.MIRV,
   UnitType.SAMMissile,
+  UnitType.ConventionalMissile,
   UnitType.Bomber,
   UnitType.CoastalBarrage,
 ]);

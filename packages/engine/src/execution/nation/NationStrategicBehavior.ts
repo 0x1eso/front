@@ -113,28 +113,52 @@ export class NationStrategicBehavior {
     this.produce(s);
   }
 
-  /** Every free silo slot fires at a satellite aimed at us, hydrogen bombs first. */
+  /**
+   * Free silo slots fire at every satellite aimed at us, the earliest strike
+   * first, hydrogen bombs first. A satellite already holding our
+   * interceptors is skipped (one salvo per strike: its shots are judged on
+   * arrival); the slots left go to the next.
+   */
   private intercept(s: PlayerStrategic): void {
     const now = this.game.ticks();
     const me = this.player.smallID();
-    const attacker = this.game.allPlayers().find((p) => {
+    const attackers: { attacker: Player; strikeTick: number }[] = [];
+    for (const p of this.game.allPlayers()) {
       const sat = p.strategic()?.satellite();
-      return (
-        sat?.phase === "targeted" && sat.target === me && now < sat.strikeTick
-      );
-    });
-    if (attacker === undefined) return;
-    // One salvo per strike: its shots are judged on arrival.
-    const sat = attacker.strategic()!.satellite();
-    if (sat.phase === "targeted" && sat.interceptors.some((i) => i.by === me)) {
-      return;
+      if (
+        sat?.phase === "targeted" &&
+        sat.target === me &&
+        now < sat.strikeTick &&
+        !sat.interceptors.some((i) => i.by === me)
+      ) {
+        attackers.push({ attacker: p, strikeTick: sat.strikeTick });
+      }
     }
+    if (attackers.length === 0) return;
+    // Array.sort is stable, so ties keep player order.
+    attackers.sort((a, b) => a.strikeTick - b.strikeTick);
     let slots = this.freeSiloSlots(s);
-    for (const type of INTERCEPTOR_NUKES) {
-      for (let left = s.stock(type); left > 0 && slots > 0; left--, slots--) {
-        this.game.addExecution(
-          new SatelliteInterceptExecution(this.player, attacker.id(), type),
-        );
+    // Stock is spent when the execution runs, so count what is queued here.
+    const stock = new Map<UnitType, number>(
+      INTERCEPTOR_NUKES.map((t) => [t, s.stock(t)]),
+    );
+    const total = () => [...stock.values()].reduce((a, b) => a + b, 0);
+    for (let i = 0; i < attackers.length && slots > 0 && total() > 0; i++) {
+      // Spread the slots: this attacker gets its share of what is left.
+      let share = Math.ceil(slots / (attackers.length - i));
+      for (const type of INTERCEPTOR_NUKES) {
+        while (share > 0 && slots > 0 && (stock.get(type) ?? 0) > 0) {
+          this.game.addExecution(
+            new SatelliteInterceptExecution(
+              this.player,
+              attackers[i].attacker.id(),
+              type,
+            ),
+          );
+          stock.set(type, stock.get(type)! - 1);
+          share--;
+          slots--;
+        }
       }
     }
   }

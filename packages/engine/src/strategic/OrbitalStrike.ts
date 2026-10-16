@@ -9,8 +9,14 @@ import {
 } from "@openfront/engine-lib/strategic/Strategic";
 import type { Game, Player } from "../game/Game";
 
-/** Enough tries to cover 30% with overlapping craters on any nation. */
-const MAX_CRATER_ATTEMPTS = 400;
+/**
+ * Crater tries allowed: random disks overlap, so covering the goal takes
+ * about 0.36 * land / area tries; this allows several times that (area is
+ * taken as 3 r^2), whatever the nation's size.
+ */
+function maxCraterAttempts(goal: number, radius: number): number {
+  return 64 + 4 * Math.ceil(goal / (3 * radius * radius));
+}
 
 /**
  * The orbital strike on `target` (spec §6.4): every building destroyed by
@@ -44,12 +50,9 @@ export function orbitalStrike(
   const rand = new PseudoRandom(
     mg.ticks() * 7919 + target.smallID() * 104_729 + attacker.smallID(),
   );
+  const maxAttempts = maxCraterAttempts(goal, radius);
   let scattered = 0;
-  for (
-    let attempt = 0;
-    scattered < goal && attempt < MAX_CRATER_ATTEMPTS;
-    attempt++
-  ) {
+  for (let attempt = 0; scattered < goal && attempt < maxAttempts; attempt++) {
     const center = land[rand.nextInt(0, land.length)];
     if (sea.has(center)) continue;
     const before = sea.size;
