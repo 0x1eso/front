@@ -15,6 +15,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { CoastalBatteryExecution } from "../warfare/CoastalBatteryExecution";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { FactoryExecution } from "./FactoryExecution";
@@ -176,6 +177,9 @@ export class ConstructionExecution implements Execution {
       case UnitType.ResearchInstitute:
       case UnitType.AdminOffice:
         // Output comes from owned levels each second (DomesticExecution).
+        break;
+      case UnitType.CoastalBattery:
+        this.mg.addExecution(new CoastalBatteryExecution(this.structure!));
         break;
       default:
         console.warn(
