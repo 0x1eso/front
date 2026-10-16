@@ -9,7 +9,7 @@ import { CancelAttackIntentEvent } from "../../src/client/Transport";
 import type { GameView } from "../../src/client/view";
 
 describe("attacks list on a tablet", () => {
-  it("cancels a wilderness attack with a 44px button", async () => {
+  it("cancels a wilderness attack with a compact button", async () => {
     const el = document.createElement("attacks-display") as AttacksDisplay;
     el.eventBus = new EventBus();
     el.game = { myPlayer: () => ({}) } as unknown as GameView;
@@ -28,8 +28,9 @@ describe("attacks list on a tablet", () => {
     const cancel = [...el.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("❌"),
     )!;
-    expect(cancel.classList.contains("min-w-11")).toBe(true);
-    expect(cancel.classList.contains("min-h-11")).toBe(true);
+    // Original size (spec §14d): no 44px minimum.
+    expect(cancel.classList.contains("min-w-11")).toBe(false);
+    expect(cancel.classList.contains("min-h-11")).toBe(false);
     cancel.click();
 
     expect(cancelled).toEqual(["attack-1"]);
@@ -60,6 +61,6 @@ describe("events on a tablet", () => {
     expect([...wrapper.classList].some((c) => c.includes("w-96"))).toBe(false);
     const row = el.querySelector("button")!;
     expect(row.textContent).toContain("Attack failed");
-    expect(row.classList.contains("min-h-11")).toBe(true);
+    expect(row.classList.contains("min-h-11")).toBe(false);
   });
 });

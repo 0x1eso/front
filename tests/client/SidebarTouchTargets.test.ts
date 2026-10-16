@@ -46,14 +46,15 @@ function setFullscreenEnabled(value: boolean): void {
 describe("top-right sidebar on a tablet", () => {
   beforeEach(() => setFullscreenEnabled(true));
 
-  it("every control is a 44px button", async () => {
+  it("every control is a plain button at the original 20px icon size", async () => {
     const el = await mountRight(GameType.Singleplayer);
     const ids = [...el.querySelectorAll<HTMLElement>("aside button")].map(
       (b) => b.dataset.sidebar,
     );
     expect(ids).toEqual(["replay", "pause", "settings", "fullscreen", "exit"]);
     for (const b of el.querySelectorAll("aside button")) {
-      expect(b.classList.contains("size-11")).toBe(true);
+      expect(b.classList.contains("size-11")).toBe(false);
+      expect(b.querySelector("img")!.getAttribute("width")).toBe("20");
     }
     expect(
       el.querySelectorAll("aside .cursor-pointer:not(button)"),
@@ -117,7 +118,7 @@ describe("top-left sidebar on a tablet", () => {
     ).cache.clear();
   });
 
-  it("its toggles are 44px buttons", async () => {
+  it("its toggles keep the original 20px icons", async () => {
     const el = document.createElement("game-left-sidebar") as GameLeftSidebar;
     el.game = {
       config: () => ({ gameConfig: () => ({ gameMode: GameMode.Team }) }),
@@ -128,7 +129,10 @@ describe("top-left sidebar on a tablet", () => {
 
     const toggles = [...el.querySelectorAll('[role="button"]')];
     expect(toggles).toHaveLength(2);
-    for (const t of toggles) expect(t.classList.contains("size-11")).toBe(true);
+    for (const t of toggles) {
+      expect(t.classList.contains("size-11")).toBe(false);
+      expect(t.querySelector("img")!.getAttribute("width")).toBe("20");
+    }
   });
 
   it("opens the leaderboard after spawn at any width", async () => {

@@ -343,7 +343,7 @@ describe("domestic drawer", () => {
   it("keeps clear of the box with the control panel, build bar and domestic row", () => {
     const rows = INDEX.querySelector("[data-bottom-hud-rows]")!;
     expect(rows).not.toBeNull();
-    for (const tag of ["control-panel", "unit-display", "domestic-hud"]) {
+    for (const tag of ["control-panel", "unit-display", "domestic-dials"]) {
       expect(rows.querySelector(tag)).not.toBeNull();
     }
     // Not the events and chat column, whose height changes all game.

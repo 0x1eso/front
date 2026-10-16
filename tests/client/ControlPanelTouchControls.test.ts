@@ -81,7 +81,7 @@ describe("control-panel attack ratio controls", () => {
     expect(uiState.attackRatio).toBeCloseTo(0.4);
   });
 
-  it("has one thick slider and 44px buttons at every width", async () => {
+  it("has one slider and small step buttons at every width", async () => {
     for (const width of [800, 1366]) {
       Object.defineProperty(window, "innerWidth", {
         value: width,
@@ -91,9 +91,10 @@ describe("control-panel attack ratio controls", () => {
       panel.requestUpdate();
       await panel.updateComplete;
       expect(panel.querySelectorAll('input[type="range"]')).toHaveLength(1);
-      expect(slider().classList.contains("touch-range")).toBe(true);
+      expect(slider().classList.contains("touch-range")).toBe(false);
+      expect(slider().classList.contains("h-1.5")).toBe(true);
       for (const b of panel.querySelectorAll("[data-attack-ratio] button")) {
-        expect(b.className).toMatch(/\b(size-11|h-11)\b/);
+        expect(b.className).not.toMatch(/\b(size-11|h-11)\b/);
       }
     }
     Object.defineProperty(window, "innerWidth", {

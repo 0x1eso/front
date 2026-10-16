@@ -220,7 +220,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.incomingAttacks.map(
       (attack) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg min-h-11 px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`<span class="inline-flex items-center"
@@ -240,7 +240,7 @@ export class AttacksDisplay extends LitElement implements Controller {
                 : ""} `,
             onClick: () => this.attackWarningOnClick(attack),
             className:
-              "text-left text-red-400 inline-flex items-center gap-1 min-w-0 min-h-11",
+              "text-left text-red-400 inline-flex items-center gap-0.5 lg:gap-1 min-w-0",
             translate: false,
           })}
           ${!attack.retreating
@@ -252,7 +252,7 @@ export class AttacksDisplay extends LitElement implements Controller {
                 />`,
                 onClick: () => this.handleRetaliate(attack),
                 className:
-                  "ml-auto inline-flex items-center justify-center cursor-pointer bg-red-900/50 hover:bg-red-800/70 rounded-lg min-w-11 min-h-11 px-1.5 border border-red-700/50",
+                  "ml-auto inline-flex items-center justify-center cursor-pointer bg-red-900/50 hover:bg-red-800/70 rounded-lg px-1.5 py-1 border border-red-700/50",
                 translate: false,
               })
             : ""}
@@ -267,7 +267,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.outgoingAttacks.map(
       (attack) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg min-h-11 px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`<span class="inline-flex items-center"
@@ -284,15 +284,14 @@ export class AttacksDisplay extends LitElement implements Controller {
               > `,
             onClick: async () => this.attackWarningOnClick(attack),
             className:
-              "text-left text-aquarius inline-flex items-center gap-1 min-w-0 min-h-11",
+              "text-left text-aquarius inline-flex items-center gap-0.5 lg:gap-1 min-w-0",
             translate: false,
           })}
           ${!attack.retreating
             ? this.renderButton({
                 content: "❌",
                 onClick: () => this.emitCancelAttackIntent(attack.id),
-                className:
-                  "ml-auto shrink-0 inline-flex items-center justify-center min-w-11 min-h-11",
+                className: "ml-auto text-left shrink-0",
                 disabled: attack.retreating,
               })
             : html`<span class="ml-auto truncate text-aquarius"
@@ -309,7 +308,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.outgoingLandAttacks.map(
       (landAttack) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg min-h-11 px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`<span class="inline-flex items-center"
@@ -321,15 +320,14 @@ export class AttacksDisplay extends LitElement implements Controller {
               ><span class="ml-1">${renderTroops(landAttack.troops)}</span>
               ${translateText("help_modal.ui_wilderness")}`,
             className:
-              "text-left text-aquarius inline-flex items-center gap-1 min-w-0 min-h-11",
+              "text-left text-aquarius inline-flex items-center gap-0.5 lg:gap-1 min-w-0",
             translate: false,
           })}
           ${!landAttack.retreating
             ? this.renderButton({
                 content: "❌",
                 onClick: () => this.emitCancelAttackIntent(landAttack.id),
-                className:
-                  "ml-auto shrink-0 inline-flex items-center justify-center min-w-11 min-h-11",
+                className: "ml-auto text-left shrink-0",
                 disabled: landAttack.retreating,
               })
             : html`<span class="ml-auto truncate text-aquarius"
@@ -384,7 +382,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.outgoingBoats.map(
       (boat) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg min-h-11 px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`${this.renderBoatIcon(boat)}
@@ -399,7 +397,7 @@ export class AttacksDisplay extends LitElement implements Controller {
               >`,
             onClick: () => this.eventBus.emit(new GoToUnitEvent(boat)),
             className:
-              "text-left text-aquarius inline-flex items-center gap-1 min-w-0 min-h-11",
+              "text-left text-aquarius inline-flex items-center gap-0.5 lg:gap-1 min-w-0",
             translate: false,
           })}
           ${boat.transportShipState().isRetreating
@@ -409,8 +407,7 @@ export class AttacksDisplay extends LitElement implements Controller {
             : this.renderButton({
                 content: "\u274C",
                 onClick: () => this.emitBoatCancelIntent(boat.id()),
-                className:
-                  "ml-auto shrink-0 inline-flex items-center justify-center min-w-11 min-h-11",
+                className: "ml-auto text-left shrink-0",
                 disabled: boat.transportShipState().isRetreating,
               })}
         </div>
@@ -424,7 +421,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.incomingBoats.map(
       (boat) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg min-h-11 px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm rounded-lg px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`${this.renderBoatIcon(boat)}
@@ -439,7 +436,7 @@ export class AttacksDisplay extends LitElement implements Controller {
               >`,
             onClick: () => this.eventBus.emit(new GoToUnitEvent(boat)),
             className:
-              "text-left text-red-400 inline-flex items-center gap-1 min-w-0 min-h-11",
+              "text-left text-red-400 inline-flex items-center gap-0.5 lg:gap-1 min-w-0",
             translate: false,
           })}
         </div>
@@ -465,7 +462,7 @@ export class AttacksDisplay extends LitElement implements Controller {
 
     return html`
       <div
-        class="w-full mb-1 pointer-events-auto grid grid-cols-2 gap-1 text-white text-base max-h-[7rem] overflow-y-auto"
+        class="w-full mb-1 pointer-events-auto grid grid-cols-2 gap-1 text-white text-sm lg:text-base max-h-[7rem] overflow-y-auto"
       >
         ${this.renderOutgoingAttacks()} ${this.renderOutgoingLandAttacks()}
         ${this.renderBoats()} ${this.renderIncomingAttacks()}

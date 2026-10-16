@@ -132,7 +132,7 @@ export class ChatDisplay extends LitElement implements Controller {
         <div>
           <div class="w-full bg-black/80 sticky top-0 px-2.5">
             <button
-              class="min-h-11 px-2 text-white cursor-pointer pointer-events-auto ${this
+              class="text-white cursor-pointer pointer-events-auto ${this
                 ._hidden
                 ? "hidden"
                 : ""}"
@@ -143,8 +143,7 @@ export class ChatDisplay extends LitElement implements Controller {
           </div>
 
           <button
-            class="min-h-11 px-2 text-white cursor-pointer pointer-events-auto ${this
-              ._hidden
+            class="text-white cursor-pointer pointer-events-auto ${this._hidden
               ? ""
               : "hidden"}"
             @click=${this.toggleHidden}
@@ -159,7 +158,7 @@ export class ChatDisplay extends LitElement implements Controller {
           </button>
 
           <table
-            class="w-full border-collapse text-white shadow-lg text-sm pointer-events-none ${this
+            class="w-full border-collapse text-white shadow-lg lg:text-xl text-xs pointer-events-none ${this
               ._hidden
               ? "hidden"
               : ""}"
@@ -168,7 +167,7 @@ export class ChatDisplay extends LitElement implements Controller {
               ${this.chatEvents.map(
                 (chat) => html`
                   <tr class="border-b border-gray-200/0">
-                    <td class="px-2 py-1 text-left">
+                    <td class="lg:p-3 p-1 text-left">
                       ${this.getChatContent(chat)}
                     </td>
                   </tr>

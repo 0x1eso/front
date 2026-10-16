@@ -21,9 +21,9 @@ import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
 const swordIcon = assetUrl("images/SwordIcon.svg");
 /** Quick attack-ratio choices (spec §14a), in percent. */
 const RATIO_PRESETS = [25, 50, 75, 100] as const;
-/** A 44px square HUD button. */
+/** A small square stepper button (original HUD scale, spec §14d). */
 const STEP_BUTTON =
-  "size-11 shrink-0 flex items-center justify-center rounded-md bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-2xl font-bold text-white";
+  "size-6 shrink-0 flex items-center justify-center rounded-md bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-sm leading-none font-bold text-white";
 
 @customElement("control-panel")
 export class ControlPanel extends LitElement implements Controller {
@@ -379,7 +379,7 @@ export class ControlPanel extends LitElement implements Controller {
     const { greenPercent, orangePercent } = this.calculateTroopBar();
     return html`
       <div
-        class="w-full h-8 border border-gray-600 rounded-md bg-gray-900/60 overflow-hidden relative"
+        class="w-full h-6 border border-gray-600 rounded-md bg-gray-900/60 overflow-hidden relative"
       >
         <div class="relative h-full">
           <div
@@ -435,7 +435,7 @@ export class ControlPanel extends LitElement implements Controller {
     const isWarning = this._notification.type === "warning";
     return html`
       <div
-        class="flex items-center gap-1.5 px-2 py-1 rounded-md border text-sm font-medium mb-1 ${isWarning
+        class="flex items-center gap-1.5 px-1.5 py-1 rounded-md border text-xs font-medium mb-1 ${isWarning
           ? "border-orange-400/60 bg-orange-400/10 text-orange-300"
           : "border-blue-400/60 bg-blue-400/10 text-blue-300"}"
       >
@@ -450,7 +450,7 @@ export class ControlPanel extends LitElement implements Controller {
     return html`
       <div class="flex gap-1.5 items-center mb-1">
         <div
-          class="flex items-center gap-1 shrink-0 border rounded-md font-bold py-0.5 px-1 w-[6rem] ${this.tutorialHighlightClass(
+          class="flex items-center gap-1 shrink-0 border rounded-md font-bold text-sm py-0.5 px-1 w-[5.5rem] ${this.tutorialHighlightClass(
             "troop_rate",
           )} ${this._troopRateIsIncreasing
             ? "border-green-400"
@@ -461,16 +461,15 @@ export class ControlPanel extends LitElement implements Controller {
             src=${soldierIcon}
             alt=""
             aria-hidden="true"
-            width="16"
-            height="16"
+            width="13"
+            height="13"
             class="shrink-0"
             style="filter: ${this._troopRateIsIncreasing
               ? "brightness(0) saturate(100%) invert(74%) sepia(44%) saturate(500%) hue-rotate(83deg) brightness(103%)"
               : "brightness(0) saturate(100%) invert(65%) sepia(60%) saturate(600%) hue-rotate(330deg) brightness(105%)"}"
           />
           <span
-            class="text-base font-bold tabular-nums ${this
-              ._troopRateIsIncreasing
+            class="text-sm font-bold tabular-nums ${this._troopRateIsIncreasing
               ? "text-green-400"
               : "text-orange-400"}"
             >+${renderTroops(this.troopRate)}/s</span
@@ -480,7 +479,7 @@ export class ControlPanel extends LitElement implements Controller {
           ${this.renderTroopBar()}
         </div>
         <div
-          class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-base py-0.5 px-1 min-w-[5rem] relative ${this.tutorialHighlightClass(
+          class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm py-0.5 px-1 min-w-[4.5rem] relative ${this.tutorialHighlightClass(
             "gold",
           )}"
           translate="no"
@@ -489,12 +488,12 @@ export class ControlPanel extends LitElement implements Controller {
             ? keyed(
                 this._goldGainPulseId,
                 html`<span
-                  class="gold-gain-pop absolute -top-5 right-[9px] text-green-400 text-sm font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
+                  class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-sm font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
                   >+${renderNumber(this._goldGain)}</span
                 >`,
               )
             : ""}
-          <img src=${goldCoinIcon} width="16" height="16" class="shrink-0" />
+          <img src=${goldCoinIcon} width="13" height="13" class="shrink-0" />
           <span class="tabular-nums">${renderNumber(this._gold)}</span>
         </div>
       </div>
@@ -518,14 +517,14 @@ export class ControlPanel extends LitElement implements Controller {
       >
         <div
           data-attack-ratio-label
-          class="flex items-center gap-1 shrink-0 w-[5.5rem] text-sm font-bold text-white"
+          class="flex items-center gap-1 shrink-0 w-[6.5rem] text-xs font-bold text-white"
         >
           <img
             src=${swordIcon}
             alt=""
             aria-hidden="true"
-            width="16"
-            height="16"
+            width="12"
+            height="12"
             style="filter: brightness(0) invert(1);"
           />
           <span class="whitespace-pre-wrap leading-tight tabular-nums"
@@ -554,7 +553,7 @@ export class ControlPanel extends LitElement implements Controller {
           aria-label=${translateText("user_setting.attack_ratio_label")}
           @input=${(e: Event) => this.handleRatioSliderInput(e)}
           @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-          class="touch-range flex-1 min-w-0"
+          class="flex-1 min-w-0 h-1.5 accent-aquarius cursor-pointer"
         />
         <button
           type="button"
@@ -571,7 +570,7 @@ export class ControlPanel extends LitElement implements Controller {
               type="button"
               data-ratio-preset=${preset}
               aria-pressed=${String(pct === preset)}
-              class="h-11 min-w-11 px-1 shrink-0 rounded-md text-sm font-bold ${pct ===
+              class="h-6 min-w-8 px-1 shrink-0 rounded-md text-xs font-bold ${pct ===
               preset
                 ? "bg-sky-700 text-white"
                 : "bg-gray-700 text-gray-200 hover:bg-gray-600"}"
@@ -613,7 +612,7 @@ export class ControlPanel extends LitElement implements Controller {
       </style>
       <div
         class="relative pointer-events-auto ${this._isVisible
-          ? "w-full text-base px-2 py-1"
+          ? "w-full text-sm px-2 py-1"
           : "hidden"}"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >

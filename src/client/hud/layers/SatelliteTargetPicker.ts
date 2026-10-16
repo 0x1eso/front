@@ -12,7 +12,7 @@ export class OpenSatelliteTargetPickerEvent implements GameEvent {}
 
 /**
  * Strategic weapons (spec §6.2, §7): pick the nation the satellite in orbit
- * strikes. One 44px row per nation it may strike, biggest first; the first
+ * strikes. One compact row per nation it may strike, biggest first; the first
  * tap arms a row, the second aims and closes. Tribes are not offered.
  */
 @customElement("satellite-target-picker")
@@ -98,7 +98,7 @@ export class SatelliteTargetPicker extends LitElement implements Controller {
             </div>
             <button
               type="button"
-              class="size-11 flex items-center justify-center rounded-md text-xl hover:bg-white/10"
+              class="size-7 flex items-center justify-center rounded-md text-xl hover:bg-white/10"
               aria-label=${translateText("common.close")}
               @click=${() => this.close()}
             >
@@ -115,7 +115,7 @@ export class SatelliteTargetPicker extends LitElement implements Controller {
                     <button
                       type="button"
                       data-target=${p.id()}
-                      class="min-h-11 px-3 rounded-md text-left border-l-4 bg-white/5 hover:bg-white/15 active:bg-white/25 ${this
+                      class="py-1 px-3 rounded-md text-left border-l-4 bg-white/5 hover:bg-white/15 active:bg-white/25 ${this
                         .armed === p.id()
                         ? "ring-2 ring-white"
                         : ""}"
