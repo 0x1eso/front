@@ -94,6 +94,17 @@ const STRATEGIC_ONLY_TYPES = [
   "Strategic",
 ];
 
+// Strategic types the 1500-tick scripted game isn't sure to reach: the
+// three orders finish inside their init (only a spawn-phase queue could
+// catch them), and a missile needs an enemy structure next to a loaded
+// silo's reach. tests/strategic/*.test.ts cover their snapshots.
+const STRATEGIC_UNSCRIPTED_TYPES = [
+  "ConventionalMissile",
+  "NukeProduction",
+  "SatelliteIntercept",
+  "SatelliteTarget",
+];
+
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),
 );
@@ -182,6 +193,14 @@ const VARIANTS: [string, Partial<GameConfig>][] = [
   ["warfare", { warfareExpansion: true }],
   // Both options together.
   ["domestic warfare", { domesticMode: true, warfareExpansion: true }],
+  // Strategic weapons: production, missiles, the satellite and its
+  // interceptors, and the nations' strategic behavior.
+  ["strategic", { strategicWeapons: true }],
+  // Every fork option together.
+  [
+    "strategic with domestic and warfare",
+    { domesticMode: true, warfareExpansion: true, strategicWeapons: true },
+  ],
 ];
 
 describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
@@ -264,6 +283,13 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
             !DOMESTIC_ONLY_TYPES.includes(name) &&
             !WARFARE_ONLY_TYPES.includes(name) &&
             !STRATEGIC_ONLY_TYPES.includes(name),
+        );
+      } else if (
+        overrides.strategicWeapons === true &&
+        Object.keys(overrides).length === 1
+      ) {
+        expected = STRATEGIC_ONLY_TYPES.filter(
+          (name) => !STRATEGIC_UNSCRIPTED_TYPES.includes(name),
         );
       } else if (overrides.domesticMode === true) {
         expected = DOMESTIC_ONLY_TYPES.filter(

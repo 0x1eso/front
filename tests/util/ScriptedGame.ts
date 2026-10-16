@@ -6,6 +6,7 @@ import {
   GameMapType,
   GameMode,
   GameType,
+  Structures,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import {
@@ -21,6 +22,10 @@ import {
   StampedIntent,
   Turn,
 } from "@openfront/engine-api/Schemas";
+import {
+  INTERCEPTOR_NUKES,
+  STOCKPILED_NUKES,
+} from "@openfront/engine-api/strategic/StrategicTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { Game, Player } from "@openfront/engine/game/Game";
 import {
@@ -302,6 +307,13 @@ function playIntent(game: Game, p: Player, rand: PseudoRandom): Intent | null {
     if (intent !== null) return intent;
   }
 
+  // Strategic weapons games only, on the same terms as the warfare block: a
+  // game without the option never rolls here.
+  if (game.config().strategicWeapons() && rand.chance(4)) {
+    const intent = strategicIntent(game, p, rand, other);
+    if (intent !== null) return intent;
+  }
+
   switch (rand.nextInt(0, 22)) {
     case 0:
     case 1:
@@ -501,6 +513,67 @@ function warfareIntent(
         return null;
       }
       return { type: "paradrop", troops: p.troops() / 5, dst: tile };
+    }
+  }
+  return null;
+}
+
+/** One strategic-weapons intent: production, a missile, the satellite, its target, an interceptor. */
+function strategicIntent(
+  game: Game,
+  p: Player,
+  rand: PseudoRandom,
+  other: Player | null,
+): Intent | null {
+  const s = p.strategic();
+  if (s === null) return null;
+  switch (rand.nextInt(0, 5)) {
+    case 0:
+      return { type: "produce_nuke", nukeType: pick(rand, STOCKPILED_NUKES)! };
+    case 1: {
+      const target =
+        other === null ? null : pick(rand, other.units(Structures.types));
+      if (
+        target === null ||
+        p.canBuild(UnitType.ConventionalMissile, target.tile()) === false
+      ) {
+        return null;
+      }
+      return {
+        type: "build_unit",
+        unit: UnitType.ConventionalMissile,
+        tile: target.tile(),
+      };
+    }
+    case 2: {
+      const silo = pick(rand, p.units(UnitType.MissileSilo));
+      if (
+        silo === null ||
+        p.canBuild(UnitType.Satellite, silo.tile()) === false
+      ) {
+        return null;
+      }
+      return {
+        type: "build_unit",
+        unit: UnitType.Satellite,
+        tile: silo.tile(),
+      };
+    }
+    case 3:
+      if (other === null || s.satellite().phase !== "orbit") return null;
+      return { type: "satellite_target", target: other.id() };
+    case 4: {
+      const attacker = game
+        .allPlayers()
+        .find(
+          (o) => o !== p && o.strategic()?.satellite().phase === "targeted",
+        );
+      if (attacker === undefined) return null;
+      return {
+        type: "intercept_satellite",
+        attacker: attacker.id(),
+        nukeType: pick(rand, INTERCEPTOR_NUKES)!,
+      };
     }
   }
   return null;
