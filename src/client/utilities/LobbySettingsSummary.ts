@@ -97,6 +97,11 @@ export function notableLobbySettings(
       label: translateText("game_settings.water_nukes"),
       value: enabled,
     });
+  if (c.warfareExpansion)
+    items.push({
+      label: translateText("game_settings.warfare_expansion"),
+      value: enabled,
+    });
   if (c.doomsdayClock?.enabled)
     items.push({
       label: translateText("game_settings.doomsday_clock"),

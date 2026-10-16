@@ -195,8 +195,12 @@
     "cant_build_here": "Can't build here",
     "desc": {
       "admin_office": "Produces political power. Upkeep 50 gold/s per level.",
+      "airport": "Paradrops and bombing in range; cargo flights to trading airports",
       "atom_bomb": "Small explosion",
+      "bomber": "Small bomb from an airport, dodges half of SAM hits",
       "city": "Increases max population",
+      "coastal_barrage": "Silo salvo: destroys coastal batteries, weakens defenses for 20s",
+      "coastal_battery": "Shells enemy boats and warships near your coast",
       "defense_post": "Increases defenses of nearby borders",
       "factory": "Creates railroads and spawns trains",
       "hydrogen_bomb": "Large explosion",
@@ -1032,7 +1036,7 @@
         "name": "Currency"
       },
       "fortification": {
-        "desc": "Defense post effect +50%, defense post cost -30%",
+        "desc": "Defense post effect +50%, defense post cost -30%; unlocks the coastal battery (Expanded Warfare)",
         "name": "Fortification"
       },
       "global_trade": {
@@ -1044,7 +1048,7 @@
         "name": "Globalization"
       },
       "industrialization": {
-        "desc": "Train income +50%, structure cost -15%",
+        "desc": "Train income +50%, structure cost -15%; unlocks the airport (Expanded Warfare)",
         "name": "Industrialization"
       },
       "manhattan_project": {
@@ -1072,7 +1076,7 @@
         "name": "Railroad"
       },
       "rocketry": {
-        "desc": "Unlocks missile silos",
+        "desc": "Unlocks missile silos and the coastal barrage (Expanded Warfare)",
         "name": "Rocketry"
       },
       "scientific_method": {
@@ -1205,9 +1209,13 @@
     "atom_bomb_inbound": "{name} - atom bomb inbound",
     "attack_cancelled_retreat": "Attack cancelled, {troops} soldiers killed during retreat",
     "attack_request": "{name} requests you attack {target}",
+    "barrage_inbound": "{name} - coastal barrage inbound",
     "betrayal_debuff_ends": "{time} seconds left until betrayal debuff ends",
     "betrayal_description": "You broke your alliance with {name}, making you a TRAITOR ({malusPercent}% defense debuff for {durationText})",
     "betrayed_you": "{name} broke their alliance with you",
+    "bomber_evaded": "A bomber evaded your SAM",
+    "bomber_inbound": "{name} - bomber inbound",
+    "bombing_detonated": "{name} - bombs hit your land",
     "conquered_no_gold": "Conquered {name} (didn't play, no gold awarded)",
     "duration_second": "1 second",
     "duration_seconds_plural": "{seconds} seconds",
@@ -1219,7 +1227,10 @@
     "mirv_inbound": "⚠️⚠️⚠️ {name} - MIRV INBOUND ⚠️⚠️⚠️",
     "missile_intercepted": "SAM intercepted {unit}",
     "naval_invasion_inbound": "Naval invasion incoming from {name} ({troops})",
+    "no_airport_available": "No airport can reach that target",
     "no_boats_available": "No boats available, max {max}",
+    "paradrop_inbound": "Paratroopers incoming from {name} ({troops})",
+    "plane_shot_down": "Your {unit} was shot down",
     "received_gold_from_captured_ship": "Received {gold} gold from ship captured from {name}",
     "received_gold_from_conquest": "Conquered {name}, received {gold} gold",
     "received_gold_from_player": "Received {gold} gold from {name}",
@@ -1349,6 +1360,7 @@
     "start": "Start Game",
     "starting": "Starting…",
     "starting_gold": "Starting Gold (Millions)",
+    "warfare_expansion": "Expanded Warfare",
     "water_nukes": "Water nukes"
   },
   "game_starting_modal": {
@@ -2434,6 +2446,8 @@
   "radial_menu": {
     "delete_unit_description": "Click to delete the nearest unit",
     "delete_unit_title": "Delete Unit",
+    "paradrop_description": "Fly troops (attack ratio) from an airport and drop them here",
+    "paradrop_title": "Paradrop",
     "upgrade_x": "Upgrade x{amount}"
   },
   "relation": {
@@ -2744,6 +2758,7 @@
     "title": "Logging in..."
   },
   "touch_ui": {
+    "needs_airport": "Build an airport first",
     "needs_port": "Build a port first",
     "needs_silo": "Build a missile silo first",
     "tap_again_to_build": "Tap again to build",
@@ -2834,9 +2849,14 @@
   },
   "unit_type": {
     "admin_office": "Admin Office",
+    "airport": "Airport",
     "atom_bomb": "Atom Bomb",
     "boat": "Boat",
+    "bomber": "Bomber",
+    "cargo_plane": "Cargo Plane",
     "city": "City",
+    "coastal_barrage": "Coastal Barrage",
+    "coastal_battery": "Coastal Battery",
     "defense_post": "Defense Post",
     "factory": "Factory",
     "hydrogen_bomb": "Hydrogen Bomb",
@@ -2845,6 +2865,7 @@
     "port": "Port",
     "research_institute": "Research Institute",
     "sam_launcher": "SAM Launcher",
+    "transport_plane": "Transport Plane",
     "warship": "Warship"
   },
   "update_available": {
