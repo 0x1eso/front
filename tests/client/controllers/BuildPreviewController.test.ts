@@ -710,7 +710,10 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     t.tap(30, 40);
     await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
     t.frame();
-    const rings = t.view.updateAimRings.mock.calls.at(-1)![0];
+    const rings =
+      t.view.updateAimRings.mock.calls[
+        t.view.updateAimRings.mock.calls.length - 1
+      ][0];
     // The busy airport at (0, 9) has no ring; the free one at (9, 0) has its
     // range ring and the flyer mark.
     expect(rings).toHaveLength(2);
@@ -723,7 +726,10 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     t.tap(30, 40);
     await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
     t.frame();
-    const rings = t.view.updateAimRings.mock.calls.at(-1)![0];
+    const rings =
+      t.view.updateAimRings.mock.calls[
+        t.view.updateAimRings.mock.calls.length - 1
+      ][0];
     const circles = rings.filter(
       (r: { radius: number }) => r.radius === CARPET_BOMB_OUTER,
     );
@@ -759,7 +765,7 @@ describe("BuildPreviewController touch build mode (aim, then tap the ghost)", ()
     t.tap(30, 40);
     await t.reply((tile) => ({ canBuild: tile ?? false, canUpgrade: false }));
     t.frame();
-    t.uiState.ghostStructure = null;
+    (t.uiState as any).ghostStructure = null;
     (t.controller as any).syncGhostState();
     expect(t.view.updateAimRings).toHaveBeenLastCalledWith([]);
   });
