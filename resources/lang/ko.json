@@ -191,7 +191,11 @@
       "sam_launcher": "들어오는 핵미사일을 방어합니다",
       "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다",
       "admin_office": "정치력을 생산합니다. 레벨당 초당 금 50 유지비.",
-      "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비."
+      "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비.",
+      "airport": "범위 안 공수 투입·폭격, 무역 상대 공항과 화물 항공로",
+      "bomber": "공항에서 출격하는 소형 폭탄, SAM 요격을 절반은 피함",
+      "coastal_barrage": "사일로 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
+      "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다"
     },
     "not_enough_money": "돈이 부족합니다",
     "upgrade_amount": "x{amount}",
@@ -814,7 +818,14 @@
     "government_tier_reached": "정부 {tier}단계 도달: 국정 패널에서 새 정부를 고를 수 있습니다",
     "victory_project_complete": "{name}이(가) {project}을(를) 완성했습니다!",
     "victory_project_failed": "{name}의 {project}이(가) 실패했습니다",
-    "victory_project_started": "{name}이(가) {project}에 착수했습니다! 건물을 빼앗거나 파괴하면 막을 수 있습니다."
+    "victory_project_started": "{name}이(가) {project}에 착수했습니다! 건물을 빼앗거나 파괴하면 막을 수 있습니다.",
+    "barrage_inbound": "{name} - 해안 포격이 날아옵니다",
+    "bomber_evaded": "폭격기가 SAM을 피했습니다",
+    "bomber_inbound": "{name} - 폭격기가 날아옵니다",
+    "bombing_detonated": "{name} - 폭격을 맞았습니다",
+    "no_airport_available": "그곳에 보낼 수 있는 공항이 없습니다",
+    "paradrop_inbound": "{name}의 공수부대가 내려옵니다 ({troops})",
+    "plane_shot_down": "{unit}이(가) 격추되었습니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -921,7 +932,8 @@
     "starting_gold": "시작 금 (M)",
     "water_nukes": "수몰 폭탄",
     "domestic_mode": "내정 모드",
-    "conquest_percent": "정복 기준 %"
+    "conquest_percent": "정복 기준 %",
+    "warfare_expansion": "확장 전쟁"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -1849,7 +1861,9 @@
   "radial_menu": {
     "delete_unit_description": "클릭하여 가장 가까운 유닛을 삭제합니다",
     "delete_unit_title": "유닛 삭제",
-    "upgrade_x": "업그레이드 x{amount}"
+    "upgrade_x": "업그레이드 x{amount}",
+    "paradrop_description": "공항에서 병력(공격 비율)을 실어 이곳에 내립니다",
+    "paradrop_title": "공수 투입"
   },
   "relation": {
     "default": "기본",
@@ -2210,7 +2224,13 @@
     "sam_launcher": "지대공 미사일 발사대",
     "warship": "군함",
     "admin_office": "행정청",
-    "research_institute": "연구소"
+    "research_institute": "연구소",
+    "airport": "공항",
+    "bomber": "폭격기",
+    "cargo_plane": "화물기",
+    "coastal_barrage": "해안 포격",
+    "coastal_battery": "해안 포대",
+    "transport_plane": "수송기"
   },
   "update_available": {
     "desktop": "OpenFront의 새로운 버전을 이용할 수 있습니다. 백그라운드에서 다운로드되며, 준비가 완료되면 업데이트 표시줄에서 새로고침하세요.",
@@ -2504,7 +2524,7 @@
         "name": "화폐 주조"
       },
       "fortification": {
-        "desc": "방어 기지 효과 +50%, 방어 기지 건설비 -30%",
+        "desc": "방어 기지 효과 +50%, 방어 기지 건설비 -30%, 해안 포대 해금(확장 전쟁)",
         "name": "요새 축성"
       },
       "global_trade": {
@@ -2516,7 +2536,7 @@
         "name": "세계화"
       },
       "industrialization": {
-        "desc": "기차 수익 +50%, 모든 건설비 -15%",
+        "desc": "기차 수익 +50%, 모든 건설비 -15%, 공항 해금(확장 전쟁)",
         "name": "산업화"
       },
       "manhattan_project": {
@@ -2544,7 +2564,7 @@
         "name": "철도"
       },
       "rocketry": {
-        "desc": "미사일 기지 해금",
+        "desc": "미사일 기지 해금, 해안 포격 해금(확장 전쟁)",
         "name": "로켓 공학"
       },
       "scientific_method": {
@@ -2783,6 +2803,7 @@
     "needs_port": "항구를 먼저 지으세요",
     "needs_silo": "미사일 발사대를 먼저 지으세요",
     "tap_again_to_build": "한 번 더 누르면 건설합니다",
-    "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다"
+    "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다",
+    "needs_airport": "공항을 먼저 지으세요"
   }
 }
