@@ -21,6 +21,7 @@ import {
   zTiles,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { assertNever } from "@openfront/engine-lib/Util";
+import { BARRAGE_ATTACKER_LOSS_FACTOR } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import { AttackLogicInput } from "../configuration/EngineConfig";
 import {
@@ -35,6 +36,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { barrageSuppresses } from "../warfare/BarrageZone";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
@@ -65,6 +67,11 @@ export class AttackExecution implements Execution {
     private _targetID: PlayerID | null,
     private sourceTile: TileRef | null = null,
     private removeTroops: boolean = true,
+    /**
+     * Paradrops: the front starts around every own tile within this radius
+     * of sourceTile (the landing zone), not just sourceTile. 0 = vanilla.
+     */
+    private sourceRadius: number = 0,
   ) {}
 
   public targetID(): PlayerID | null {
@@ -148,7 +155,14 @@ export class AttackExecution implements Execution {
       new Set<TileRef>(),
     );
 
-    if (this.sourceTile !== null) {
+    if (this.sourceTile !== null && this.sourceRadius > 0) {
+      for (const t of this.map.circleSearch(
+        this.sourceTile,
+        this.sourceRadius,
+      )) {
+        if (this.map.ownerID(t) === this.ownerSmallID) this.addNeighbors(t);
+      }
+    } else if (this.sourceTile !== null) {
       this.addNeighbors(this.sourceTile);
     } else {
       this.refreshToConquer();
@@ -374,7 +388,14 @@ export class AttackExecution implements Execution {
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
     // attack on the map.
+    // Expanded warfare: a finished coastal barrage's zone turns the
+    // defender's posts off and cuts the attacker's losses (spec 14b).
+    const suppressed =
+      defender !== null &&
+      this.mg.config().warfareExpansion() &&
+      barrageSuppresses(this.mg, tile, defender);
     const defenderHasDefensePost =
+      !suppressed &&
       defender !== null &&
       this.mg.hasUnitNearby(
         tile,
@@ -388,7 +409,9 @@ export class AttackExecution implements Execution {
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
-        lossScale: combat.attackerLoss,
+        lossScale: suppressed
+          ? combat.attackerLoss * BARRAGE_ATTACKER_LOSS_FACTOR
+          : combat.attackerLoss,
         speedScale: combat.attackerSpeed,
       },
       defender:
@@ -528,6 +551,7 @@ export class AttackExecution implements Execution {
       targetID: this._targetID,
       sourceTile: this.sourceTile,
       removeTroops: this.removeTroops,
+      ...(this.sourceRadius > 0 ? { sourceRadius: this.sourceRadius } : {}),
     });
   }
 
@@ -554,6 +578,7 @@ export class AttackExecution implements Execution {
     this._targetID = s.targetID;
     this.sourceTile = s.sourceTile;
     this.removeTroops = s.removeTroops;
+    this.sourceRadius = s.sourceRadius ?? 0;
   }
 }
 
@@ -578,6 +603,7 @@ const AttackExecutionStateSchema = z.object({
   targetID: z.string().nullable(),
   sourceTile: zTile().nullable(),
   removeTroops: z.boolean(),
+  sourceRadius: zInt().optional(),
 });
 type AttackExecutionState = z.infer<typeof AttackExecutionStateSchema>;
 

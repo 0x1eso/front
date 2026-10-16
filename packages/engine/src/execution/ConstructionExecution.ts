@@ -15,6 +15,9 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { AirportExecution } from "../warfare/AirportExecution";
+import { CoastalBarrageExecution } from "../warfare/CoastalBarrageExecution";
+import { CoastalBatteryExecution } from "../warfare/CoastalBatteryExecution";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { FactoryExecution } from "./FactoryExecution";
@@ -148,6 +151,9 @@ export class ConstructionExecution implements Execution {
       case UnitType.MIRV:
         this.mg.addExecution(new MirvExecution(player, this.tile));
         break;
+      case UnitType.CoastalBarrage:
+        this.mg.addExecution(new CoastalBarrageExecution(player, this.tile));
+        break;
       case UnitType.Warship:
         this.mg.addExecution(
           new WarshipExecution({ owner: player, patrolTile: this.tile }),
@@ -176,6 +182,12 @@ export class ConstructionExecution implements Execution {
       case UnitType.ResearchInstitute:
       case UnitType.AdminOffice:
         // Output comes from owned levels each second (DomesticExecution).
+        break;
+      case UnitType.CoastalBattery:
+        this.mg.addExecution(new CoastalBatteryExecution(this.structure!));
+        break;
+      case UnitType.Airport:
+        this.mg.addExecution(new AirportExecution(this.structure!));
         break;
       default:
         console.warn(

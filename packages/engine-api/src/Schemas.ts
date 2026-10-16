@@ -64,7 +64,8 @@ export type Intent =
   | SetRecruitTargetIntent
   | ProclaimLawIntent
   | ChooseGovernmentIntent
-  | StartVictoryProjectIntent;
+  | StartVictoryProjectIntent
+  | ParadropIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -113,6 +114,7 @@ export type ChooseGovernmentIntent = z.infer<
 export type StartVictoryProjectIntent = z.infer<
   typeof StartVictoryProjectIntentSchema
 >;
+export type ParadropIntent = z.infer<typeof ParadropIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -634,6 +636,15 @@ export const StartVictoryProjectIntentSchema = z.object({
   unitId: zb.uint(),
 });
 
+// Expanded warfare: fly `troops` from the nearest airport with a free
+// sortie and drop them on `dst` (spec §14b).
+export const ParadropIntentSchema = z.object({
+  type: z.literal("paradrop"),
+  // Fractional like a boat's troops (attackRatio * troops).
+  troops: zb.float({ min: 0 }),
+  dst: zb.uint(),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -665,6 +676,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   ProclaimLawIntentSchema,
   ChooseGovernmentIntentSchema,
   StartVictoryProjectIntentSchema,
+  ParadropIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)
