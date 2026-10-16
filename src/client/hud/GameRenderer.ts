@@ -22,7 +22,7 @@ import "../UserSettingModal";
 import type { UserSettingModal } from "../UserSettingModal";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
-import { DomesticHud } from "./domestic/DomesticHud";
+import { DomesticDials } from "./domestic/DomesticDials";
 import { DomesticPanel } from "./domestic/DomesticPanel";
 import { FrameProfiler } from "./FrameProfiler";
 import { ActionableEvents } from "./layers/ActionableEvents";
@@ -245,12 +245,14 @@ export function createRenderer(
   unitDisplay.eventBus = eventBus;
   unitDisplay.uiState = uiState;
 
-  const domesticHud = document.querySelector("domestic-hud") as DomesticHud;
-  if (!(domesticHud instanceof DomesticHud)) {
-    console.error("domestic hud not found");
+  // The domestic dials (spec §14d) at the left of the bottom HUD rows.
+  const domesticDials = document.querySelector("domestic-dials");
+  if (domesticDials instanceof DomesticDials) {
+    domesticDials.game = game;
+    domesticDials.eventBus = eventBus;
+  } else {
+    console.error("domestic dials not found");
   }
-  domesticHud.game = game;
-  domesticHud.eventBus = eventBus;
 
   const domesticPanel = document.querySelector(
     "domestic-panel",
@@ -405,7 +407,7 @@ export function createRenderer(
     gameRightSidebar,
     mapControls,
     controlPanel,
-    domesticHud,
+    ...(domesticDials instanceof DomesticDials ? [domesticDials] : []),
     domesticPanel,
     playerInfo,
     winModal,

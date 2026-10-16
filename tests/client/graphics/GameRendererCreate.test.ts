@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // never registers the custom element; register it here.
 import { EventBus } from "@openfront/shared/EventBus";
 import "../../../src/client/GameStartingModal";
+import type { DomesticDials } from "../../../src/client/hud/domestic/DomesticDials";
 import {
   createRenderer,
   GameRenderer,
@@ -33,7 +34,7 @@ const HUD_TAGS = [
   "settings-modal",
   "graphics-settings-modal",
   "unit-display",
-  "domestic-hud",
+  "domestic-dials",
   "domestic-panel",
   "player-panel",
   "chat-modal",
@@ -99,6 +100,11 @@ describe("createRenderer", () => {
     const winModal = elements.get("win-modal") as WinModal;
     expect(winModal.eventBus).toBe(eventBus);
     expect(winModal.game).toBe(game);
+
+    // The domestic dials (spec §14d) share the bus and game view.
+    const dials = elements.get("domestic-dials") as DomesticDials;
+    expect(dials.eventBus).toBe(eventBus);
+    expect(dials.game).toBe(game);
 
     // Emoji table got its own initEventBus: opening the menu reaches it.
     const emojiTable = elements.get("emoji-table") as EmojiTable;

@@ -10,6 +10,8 @@ vi.mock("../../src/client/Utils", () => ({
       : `[${key}]`,
 }));
 
+import { EventBus } from "@openfront/shared/EventBus";
+import { OpenDomesticScreenEvent } from "../../src/client/hud/domestic/DomesticEvents";
 import { DomesticPanel } from "../../src/client/hud/domestic/DomesticPanel";
 import { DomesticClientView } from "../../src/client/view/DomesticClientView";
 
@@ -44,13 +46,16 @@ async function openPanel(d: DomesticData): Promise<DomesticPanel> {
   };
   panel.game = {
     myPlayer: () => me,
-    config: () => ({ hasInfiniteGold: () => false }),
+    ticks: () => 0,
+    config: () => ({
+      hasInfiniteGold: () => false,
+      isUnitDisabled: () => false,
+    }),
   } as any;
-  let toggle: () => void = () => {};
-  panel.eventBus = { on: (_: unknown, cb: () => void) => (toggle = cb) } as any;
+  panel.eventBus = new EventBus();
   document.body.appendChild(panel);
   panel.init();
-  toggle();
+  panel.eventBus.emit(new OpenDomesticScreenEvent("research"));
   panel.tick();
   await panel.updateComplete;
   return panel;

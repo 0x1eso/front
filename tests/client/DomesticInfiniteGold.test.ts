@@ -1,5 +1,6 @@
 import { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { GameMode, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Utils", async (importOriginal) => ({
@@ -8,6 +9,10 @@ vi.mock("../../src/client/Utils", async (importOriginal) => ({
     params === undefined ? `[${key}]` : `[${key}:${JSON.stringify(params)}]`,
 }));
 
+import {
+  DomesticScreen,
+  OpenDomesticScreenEvent,
+} from "../../src/client/hud/domestic/DomesticEvents";
 // Side-effect import: the custom element must register.
 import "../../src/client/hud/domestic/DomesticPanel";
 import type { DomesticPanel } from "../../src/client/hud/domestic/DomesticPanel";
@@ -62,27 +67,26 @@ async function openDrawer(infiniteGold: boolean): Promise<DomesticPanel> {
       maxTimerMinutes: () => 30,
       gameConfig: () => ({ gameMode: GameMode.FFA }),
       hasInfiniteGold: (p: unknown) => infiniteGold && p === me,
+      isUnitDisabled: () => false,
     }),
     elapsedGameSeconds: () => 0,
     playerViews: () => [me],
   } as unknown as DomesticPanel["game"];
-  let toggle: () => void = () => {};
-  panel.eventBus = {
-    on: (_: unknown, cb: () => void) => (toggle = cb),
-    emit: vi.fn(),
-  } as unknown as DomesticPanel["eventBus"];
+  panel.eventBus = new EventBus();
   document.body.appendChild(panel);
   panel.init();
-  toggle();
   panel.tick();
   await panel.updateComplete;
   return panel;
 }
 
-async function showTab(panel: DomesticPanel, tab: string) {
-  panel
-    .querySelector<HTMLButtonElement>(`[role="tab"][data-tab="${tab}"]`)!
-    .click();
+async function show(panel: DomesticPanel, screen: DomesticScreen) {
+  panel.eventBus.emit(new OpenDomesticScreenEvent(screen));
+  await panel.updateComplete;
+}
+
+async function tap(panel: DomesticPanel, selector: string) {
+  panel.querySelector<HTMLButtonElement>(selector)!.click();
   await panel.updateComplete;
 }
 
@@ -98,9 +102,14 @@ describe("domestic panel with infinite gold (the engine charges no gold)", () =>
     "infinite gold %s: a gold research payment blocked = %s",
     async (infinite, blocked) => {
       const panel = await openDrawer(infinite);
-      const card = panel.querySelector('[data-era="1"] [data-tech]')!;
-      expect(card.querySelector("button")!.disabled).toBe(blocked);
-      expect(card.querySelector("[data-reason]") !== null).toBe(blocked);
+      await show(panel, "research");
+      await tap(panel, '[data-tech="currency"]');
+      const sheet = panel.querySelector("[data-tech-sheet]")!;
+      expect(
+        sheet.querySelector<HTMLButtonElement>('[data-sheet-action="gold"]')!
+          .disabled,
+      ).toBe(blocked);
+      expect(sheet.querySelector("[data-reason]") !== null).toBe(blocked);
     },
   );
 
@@ -111,11 +120,14 @@ describe("domestic panel with infinite gold (the engine charges no gold)", () =>
     "infinite gold %s: a gold proclamation blocked = %s",
     async (infinite, blocked) => {
       const panel = await openDrawer(infinite);
-      await showTab(panel, "laws");
+      await show(panel, "laws");
+      await tap(panel, '[data-law="trade"] [data-option="A"] [data-law-pick]');
       const option = panel.querySelector(
         '[data-law="trade"] [data-option="A"]',
       )!;
-      expect(option.querySelector("button")!.disabled).toBe(blocked);
+      expect(
+        option.querySelector<HTMLButtonElement>("[data-law-confirm]")!.disabled,
+      ).toBe(blocked);
       expect(option.querySelector("[data-reason]") !== null).toBe(blocked);
     },
   );
@@ -127,7 +139,7 @@ describe("domestic panel with infinite gold (the engine charges no gold)", () =>
     "infinite gold %s: the science project's block is %s",
     async (infinite, reason) => {
       const panel = await openDrawer(infinite);
-      await showTab(panel, "victory");
+      await show(panel, "victory");
       const science = [...panel.querySelectorAll("button")].find((b) =>
         b.textContent!.includes("[domestic.victory.start]"),
       )!;
@@ -146,7 +158,7 @@ describe("domestic panel with infinite gold (the engine charges no gold)", () =>
     "infinite gold %s: the science project's card says it costs %s gold (C8)",
     async (infinite, gold) => {
       const panel = await openDrawer(infinite);
-      await showTab(panel, "victory");
+      await show(panel, "victory");
       expect(panel.textContent).toContain(
         `[domestic.victory.cost_science:${JSON.stringify({ gold })}]`,
       );
