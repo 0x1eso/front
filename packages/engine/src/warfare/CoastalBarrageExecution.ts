@@ -57,8 +57,8 @@ export function barrageImpacts(
 }
 
 /**
- * A coastal barrage (spec §14b): fired from the nearest loaded silo within
- * BARRAGE_SILO_RANGE (one silo slot). Its 8 shells leave 5 ticks apart and
+ * A coastal barrage (spec §14b): fired from the nearest loaded silo, at
+ * any distance (one silo slot). Its 8 shells leave 5 ticks apart and
  * fly straight to their impacts; each impact destroys non-friendly coastal
  * batteries within BARRAGE_BATTERY_KILL_RADIUS. A marker unit at the aimed
  * tile holds the zone: after the last impact it is `reachedTarget` for

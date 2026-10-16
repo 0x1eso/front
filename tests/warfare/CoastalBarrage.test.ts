@@ -176,6 +176,30 @@ describe("coastal barrage", () => {
     expect(blue.isAlive()).toBe(true);
   });
 
+  test("fires from a silo anywhere; far targets land later (no range limit)", async () => {
+    const game = await warfareGame("big_plains", { instantBuild: true });
+    const red = own(game, RED.id, 0, 0, 30, 30);
+    const blue = own(game, BLUE.id, 150, 150, 50, 50);
+    red.addGold(10_000_000n);
+    const silo = red.buildUnit(UnitType.MissileSilo, game.ref(10, 10), {});
+    const battery = blue.buildUnit(
+      UnitType.CoastalBattery,
+      game.ref(190, 190),
+      {},
+    );
+    // ~254 tiles from the silo, past the old 200-tile limit.
+    fire(game, red, battery.tile());
+    executeTicks(game, 3);
+    expect(silo.isInCooldown()).toBe(true);
+    expect(marker(game)?.tile()).toBe(battery.tile());
+    // Shells still fly 6 tiles a tick: the first can't land within 40 ticks.
+    executeTicks(game, 37);
+    expect(battery.isActive()).toBe(true);
+    executeTicks(game, 120);
+    expect(battery.isActive()).toBe(false);
+    expect(marker(game)?.reachedTarget()).toBe(true);
+  });
+
   test("own land can't be shelled", async () => {
     const { game, red } = await front();
     const gold = red.gold();

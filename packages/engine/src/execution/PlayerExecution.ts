@@ -173,6 +173,8 @@ export class PlayerExecution implements Execution {
     // Perf: We fuse bounds calculations into the initial DFS flood, returning packed Int32Array bounds
     // instead of scanning every TileRef and allocating hundreds of Object {min, max} Cells.
     const { clusters, boxes } = this.calculateClusters();
+    // Expanded warfare (spec §14c): no encirclement capture, no annexation.
+    const noCapture = this.config.warfareExpansion();
 
     if (clusters.length === 0) {
       this.player.largestClusterBoundingBox = null;
@@ -192,10 +194,10 @@ export class PlayerExecution implements Execution {
         boxes[3],
       );
       const severedLand = this.severedLand(clusters[0], boxes, 0, null, null);
-      if (surroundedBy && !surroundedBy.isFriendly(this.player)) {
+      if (!noCapture && surroundedBy && !surroundedBy.isFriendly(this.player)) {
         this.removeCluster(clusters[0]);
       }
-      if (severedLand !== null) {
+      if (!noCapture && severedLand !== null) {
         this.annexSeveredClusters(
           severedLand.candidates,
           severedLand.mainTiles,
@@ -385,13 +387,15 @@ export class PlayerExecution implements Execution {
       open,
     );
 
-    if (surroundedBy && !surroundedBy.isFriendly(this.player)) {
+    if (!noCapture && surroundedBy && !surroundedBy.isFriendly(this.player)) {
       this.removeCluster(largestCluster);
     }
     for (let i = 0; i < clusters.length; i++) {
-      if (classes[i] & CLUSTER_SURROUNDED) this.removeCluster(clusters[i]);
+      if (!noCapture && classes[i] & CLUSTER_SURROUNDED) {
+        this.removeCluster(clusters[i]);
+      }
     }
-    if (severedLand !== null) {
+    if (!noCapture && severedLand !== null) {
       this.annexSeveredClusters(severedLand.candidates, severedLand.mainTiles);
     }
   }

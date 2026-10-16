@@ -87,7 +87,7 @@ describe("where warfare units can go", () => {
     expect(red.canBuild(UnitType.CoastalBattery, game.ref(7, 12))).toBe(false);
   });
 
-  test("a barrage needs a loaded silo within 200 tiles and an enemy target", async () => {
+  test("a barrage needs a loaded silo (at any distance) and an enemy target", async () => {
     const game = await warfareGame("big_plains");
     const red = own(game, RED.id, 0, 0, 30, 30);
     const blue = own(game, BLUE.id, 100, 100, 100, 100);
@@ -97,10 +97,15 @@ describe("where warfare units can go", () => {
     expect(red.canBuild(UnitType.CoastalBarrage, game.ref(150, 150))).toBe(
       silo.tile(),
     );
-    // 254 tiles away
+    // 254 tiles away: no range limit, like a nuke
     expect(red.canBuild(UnitType.CoastalBarrage, game.ref(190, 190))).toBe(
+      silo.tile(),
+    );
+    silo.launch();
+    expect(red.canBuild(UnitType.CoastalBarrage, game.ref(150, 150))).toBe(
       false,
     );
+    silo.reloadMissile();
     // own land
     expect(red.canBuild(UnitType.CoastalBarrage, game.ref(20, 20))).toBe(false);
     red.createAllianceRequest(blue)?.accept();
