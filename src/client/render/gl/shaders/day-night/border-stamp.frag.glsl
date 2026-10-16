@@ -15,6 +15,10 @@ uniform float uEmbargoTintRatio;
 uniform float uFriendlyTintRatio;
 uniform vec3 uEmbargoTint;
 uniform vec3 uFriendlyTint;
+// Strategic weapons: territories under a satellite strike pulse red.
+uniform uint uPulseOwner[4];
+uniform float uPulse[4];
+uniform int uPulseCount;
 
 in vec2 vWorldPos;
 out vec4 fragColor;
@@ -57,6 +61,12 @@ void main() {
       if (defense) {
         bool checker = ((tc.x + tc.y) & 1) == 1;
         if (checker) bc *= uDefenseCheckerDarken;
+      }
+    }
+    for (int i = 0; i < 4; i++) {
+      if (i >= uPulseCount) break;
+      if (owner == uPulseOwner[i]) {
+        bc = mix(bc, vec3(1.0, 0.1, 0.08), 0.15 + 0.75 * uPulse[i]);
       }
     }
     fragColor = vec4(bc, 1.0);

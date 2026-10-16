@@ -46,6 +46,7 @@ describe("SoundEffectController", () => {
       ticks: () => tick,
       unit: (id: number) => units.get(id),
       myPlayer: () => null,
+      config: () => ({ strategicWeapons: () => false }),
       updatesSinceLastTick: () => undefined,
     };
     controller = new SoundEffectController(game, eventBus);

@@ -33,12 +33,16 @@ void main() {
   bool inBorder = x < bw || x > w - bw || y < bw || y > h - bw;
 
   // Colored fill region
-  float fillWidth = vProgress * (w - 2.0 * bw);
+  // progress >= 2: a satellite being prepared (distinct cyan bar, not a reload)
+  bool satellite = vProgress >= 2.0;
+  float progress = satellite ? vProgress - 2.0 : vProgress;
+  float fillWidth = progress * (w - 2.0 * bw);
   bool inFill = !inBorder && (x - bw) < fillWidth;
 
   if (inFill) {
     vec3 color;
-    if (vProgress < uThresholds.x) color = uColorRed;
+    if (satellite) color = vec3(0.15, 0.85, 1.0);
+    else if (vProgress < uThresholds.x) color = uColorRed;
     else if (vProgress < uThresholds.y) color = uColorOrange;
     else if (vProgress < uThresholds.z) color = uColorYellow;
     else color = uColorGreen;

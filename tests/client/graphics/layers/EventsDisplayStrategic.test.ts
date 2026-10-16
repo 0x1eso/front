@@ -94,4 +94,25 @@ describe("EventsDisplay strategic weapons messages", () => {
       "events_display.satellite_targeted|name=Silent Falcon,target=Quiet Owl,targetID=3",
     );
   });
+
+  it("the preparing alert goes to the silo, not the player", () => {
+    const silo = { id: 77 };
+    (ed as unknown as { game: { unit: unknown } }).game.unit = () => silo;
+    ed.onDisplayMessageEvent({
+      type: GameUpdateType.DisplayEvent,
+      message: "events_display.satellite_preparing",
+      messageType: 0,
+      playerID: null,
+      params: { name: "RealName" },
+      unitID: 77,
+      focusPlayerID: 2,
+    } as never);
+    const e = (
+      ed as unknown as {
+        events: { focusID?: number; unitView?: unknown }[];
+      }
+    ).events[0];
+    expect(e.focusID).toBeUndefined();
+    expect(e.unitView).toBe(silo);
+  });
 });

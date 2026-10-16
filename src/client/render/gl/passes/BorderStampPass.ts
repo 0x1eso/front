@@ -30,6 +30,12 @@ export class BorderStampPass {
   private uEmbargoTint: WebGLUniformLocation;
   private uFriendlyTint: WebGLUniformLocation;
   private uAltView: WebGLUniformLocation;
+  private uPulseOwner: WebGLUniformLocation | null;
+  private uPulse: WebGLUniformLocation | null;
+  private uPulseCount: WebGLUniformLocation | null;
+  private pulseOwners: Uint32Array | null = null;
+  private pulseValues: Float32Array | null = null;
+  private pulseCount = 0;
 
   private vao: WebGLVertexArrayObject;
   private tileTex: WebGLTexture;
@@ -86,6 +92,9 @@ export class BorderStampPass {
     this.uEmbargoTint = gl.getUniformLocation(this.program, "uEmbargoTint")!;
     this.uFriendlyTint = gl.getUniformLocation(this.program, "uFriendlyTint")!;
     this.uAltView = gl.getUniformLocation(this.program, "uAltView")!;
+    this.uPulseOwner = gl.getUniformLocation(this.program, "uPulseOwner");
+    this.uPulse = gl.getUniformLocation(this.program, "uPulse");
+    this.uPulseCount = gl.getUniformLocation(this.program, "uPulseCount");
 
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "uTileTex"), 0);
@@ -95,6 +104,13 @@ export class BorderStampPass {
     gl.uniform1i(gl.getUniformLocation(this.program, "uDefenseCoverageTex"), 4);
 
     this.vao = createMapQuad(gl, mapW, mapH);
+  }
+
+  /** Strategic weapons: owners whose border pulses red (arrays are read at draw time; count 0 = none). */
+  setPulses(owners: Uint32Array, values: Float32Array, count: number): void {
+    this.pulseOwners = owners;
+    this.pulseValues = values;
+    this.pulseCount = count;
   }
 
   setAltView(active: boolean): void {
@@ -132,6 +148,12 @@ export class BorderStampPass {
       mo.friendlyTintB,
     );
     gl.uniform1i(this.uAltView, this.altView ? 1 : 0);
+    const pulsing = this.altView ? 0 : this.pulseCount;
+    gl.uniform1i(this.uPulseCount, pulsing);
+    if (pulsing > 0 && this.pulseOwners && this.pulseValues) {
+      gl.uniform1uiv(this.uPulseOwner, this.pulseOwners);
+      gl.uniform1fv(this.uPulse, this.pulseValues);
+    }
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.tileTex);

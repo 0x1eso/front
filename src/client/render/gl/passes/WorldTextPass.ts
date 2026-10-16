@@ -140,6 +140,8 @@ export class WorldTextPass {
   // Persistent attack-troop labels. Controller pushes the full list each frame
   // (already interpolated), so we just iterate and render.
   private attackTroopLabels: AttackTroopLabel[] = [];
+  /** Strategic weapons: time-left labels under preparing silos (same look as attack labels). */
+  private strategicLabels: readonly AttackTroopLabel[] = [];
 
   // Settings reference
   private settings: RenderSettings;
@@ -375,6 +377,11 @@ export class WorldTextPass {
     this.attackTroopLabels = labels;
   }
 
+  /** Strategic weapons: labels owned by StrategicFxPass (the array is mutated in place). */
+  setStrategicLabels(labels: readonly AttackTroopLabel[]): void {
+    this.strategicLabels = labels;
+  }
+
   // -------------------------------------------------------------------------
   // Tick — cull expired, rebuild instance buffer
   // -------------------------------------------------------------------------
@@ -383,7 +390,8 @@ export class WorldTextPass {
     if (
       this.active.length === 0 &&
       this.ghostCostLabel === null &&
-      this.attackTroopLabels.length === 0
+      this.attackTroopLabels.length === 0 &&
+      this.strategicLabels.length === 0
     ) {
       this.instanceCount = 0;
       return;
@@ -453,31 +461,35 @@ export class WorldTextPass {
     // a constant on-screen size regardless of how zoomed-in the camera is.
     const attackScale =
       (ATTACK_LABEL_SCREEN_SCALE * dpr) / Math.max(zoom, 0.0001);
-    for (const label of this.attackTroopLabels) {
-      layoutString(
-        label.text,
-        this.glyph,
-        this.kernTable,
-        this.charCodes,
-        this.cursors,
-      );
-      const len = Math.min(label.text.length, MAX_CHARS);
-      for (let i = 0; i < len; i++) {
-        if (this.charCodes[i] === 0) continue;
-        if (count >= this.maxInstances) this.growBuffer();
+    for (let which = 0; which < 2; which++) {
+      const labels =
+        which === 0 ? this.attackTroopLabels : this.strategicLabels;
+      for (const label of labels) {
+        layoutString(
+          label.text,
+          this.glyph,
+          this.kernTable,
+          this.charCodes,
+          this.cursors,
+        );
+        const len = Math.min(label.text.length, MAX_CHARS);
+        for (let i = 0; i < len; i++) {
+          if (this.charCodes[i] === 0) continue;
+          if (count >= this.maxInstances) this.growBuffer();
 
-        const off = count * FLOATS_PER_INSTANCE;
-        this.instanceData[off + 0] = label.x;
-        this.instanceData[off + 1] = label.y;
-        this.instanceData[off + 2] = this.cursors[i];
-        this.instanceData[off + 3] = this.charCodes[i];
-        this.instanceData[off + 4] = 1;
-        this.instanceData[off + 5] = label.colorR;
-        this.instanceData[off + 6] = label.colorG;
-        this.instanceData[off + 7] = label.colorB;
-        this.instanceData[off + 8] = attackScale;
-        this.instanceData[off + 9] = ATTACK_LABEL_OUTLINE_WIDTH;
-        count++;
+          const off = count * FLOATS_PER_INSTANCE;
+          this.instanceData[off + 0] = label.x;
+          this.instanceData[off + 1] = label.y;
+          this.instanceData[off + 2] = this.cursors[i];
+          this.instanceData[off + 3] = this.charCodes[i];
+          this.instanceData[off + 4] = 1;
+          this.instanceData[off + 5] = label.colorR;
+          this.instanceData[off + 6] = label.colorG;
+          this.instanceData[off + 7] = label.colorB;
+          this.instanceData[off + 8] = attackScale;
+          this.instanceData[off + 9] = ATTACK_LABEL_OUTLINE_WIDTH;
+          count++;
+        }
       }
     }
 
@@ -616,6 +628,7 @@ export class WorldTextPass {
   clear(): void {
     this.active.length = 0;
     this.attackTroopLabels = [];
+    this.strategicLabels = [];
     this.instanceCount = 0;
   }
 

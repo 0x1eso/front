@@ -13,10 +13,22 @@ import { colord } from "colord";
 import { getCachedCosmetics } from "./Cosmetics";
 import { orbitalImpactPoints } from "./render/frame/derive/OrbitalStrikes";
 import { samRangeResolver } from "./render/frame/derive/SamRanges";
+import {
+  activeCountdowns,
+  type FxCountdown,
+  type PreparingSilo,
+  preparingSilos,
+  reticleMaxRadius,
+  StrategicFxTracker,
+} from "./render/frame/derive/StrategicFx";
 import { deriveStrategicProgress } from "./render/frame/derive/StrategicProgress";
 import { buildTerrainRowSpans } from "./render/frame/derive/TerrainRowSpans";
 import { deriveVictoryProjects } from "./render/frame/derive/VictoryProjects";
 import { uploadFrameData } from "./render/frame/Upload";
+import type {
+  CountdownFx,
+  PreparingFx,
+} from "./render/gl/passes/StrategicFxPass";
 // Type-only: a value import would pull GPURenderer and its `.glsl?raw` shader
 // imports into any non-Vite consumer (e.g. the Node perf harness).
 import type { MapRenderer, PlayerStatic, SpawnCenter } from "./render/gl";
@@ -475,18 +487,82 @@ export class WebGLFrameBuilder {
     this.view.updateSmallPlayerGlow(any ? set : null);
   }
 
-  /** Strategic weapons: production/preparation bars; beams and blasts for orbital strikes. */
+  private readonly fxTracker = new StrategicFxTracker();
+  private readonly fxPreparing: PreparingSilo[] = [];
+  private readonly fxPreparingOut: PreparingFx[] = [];
+  private readonly fxCountdowns: FxCountdown[] = [];
+  private readonly fxCountdownOut: CountdownFx[] = [];
+  private readonly fxSilos = new Set<number>();
+  private readonly fxLaunchPts: { x: number; y: number }[] = [];
+  private readonly fxInterceptPts: { x: number; y: number }[] = [];
+
+  /** Strategic weapons: production/preparation bars; the stronger effects (spec 6.6); beams and blasts for orbital strikes. */
   private syncStrategic(gameView: GameView): void {
     if (!gameView.config().strategicWeapons()) return;
+    const now = gameView.ticks();
     this.view.setStrategicProgress(
-      deriveStrategicProgress(gameView.playerViews(), gameView.ticks()),
+      deriveStrategicProgress(gameView.playerViews(), now),
     );
     const strikes =
       gameView.updatesSinceLastTick()?.[GameUpdateType.OrbitalStrike] ?? [];
+    const w = gameView.width();
+    const siloTile = (id: number) => gameView.unit(id)?.tile() ?? null;
+
+    // Preparing silos (badge, ring, cyan bar, clock) and countdowns (reticle, border pulse).
+    preparingSilos(gameView.playerViews(), now, siloTile, this.fxPreparing);
+    this.fxSilos.clear();
+    this.fxPreparingOut.length = 0;
+    for (const p of this.fxPreparing) {
+      this.fxSilos.add(p.siloId);
+      this.fxPreparingOut.push({
+        x: p.tile % w,
+        y: Math.floor(p.tile / w),
+        secondsLeft: p.secondsLeft,
+      });
+    }
+    activeCountdowns(gameView.playerViews(), this.fxCountdowns);
+    this.fxCountdownOut.length = 0;
+    for (const c of this.fxCountdowns) {
+      const target = gameView.playerBySmallID(c.targetID);
+      if (!target.isPlayer()) continue;
+      const at = target.nameLocation();
+      if (at === undefined) continue;
+      this.fxCountdownOut.push({
+        ownerID: c.targetID,
+        x: at.x,
+        y: at.y,
+        maxRadius: reticleMaxRadius(target.numTilesOwned()),
+        leftTicks: Math.max(0, c.strikeTick - now),
+      });
+    }
+    this.view.setStrategicFx(
+      this.fxPreparingOut,
+      this.fxCountdownOut,
+      this.fxSilos,
+    );
+
+    // Streaks: a satellite launch, an interceptor climbing.
+    const ev = this.fxTracker.update(
+      gameView.playerViews(),
+      now,
+      gameView.myPlayer()?.smallID() ?? 0,
+      siloTile,
+      strikes,
+    );
+    if (ev.launches.length > 0 || ev.interceptStreaks.length > 0) {
+      this.fxLaunchPts.length = 0;
+      this.fxInterceptPts.length = 0;
+      for (const t of ev.launches) {
+        this.fxLaunchPts.push({ x: t % w, y: Math.floor(t / w) });
+      }
+      for (const t of ev.interceptStreaks) {
+        this.fxInterceptPts.push({ x: t % w, y: Math.floor(t / w) });
+      }
+      this.view.spawnStrategicStreaks(this.fxLaunchPts, this.fxInterceptPts);
+    }
+
     if (strikes.length > 0) {
-      this.view.applyOrbitalStrikes(
-        orbitalImpactPoints(strikes, gameView.width()),
-      );
+      this.view.applyOrbitalStrikes(orbitalImpactPoints(strikes, w));
     }
   }
 
