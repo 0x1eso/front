@@ -96,6 +96,7 @@ describe("play-page body", () => {
     expect(plate).not.toBeNull();
     expect(plate.querySelector("username-input")).not.toBeNull();
     expect(plate.querySelector("game-mode-selector")).not.toBeNull();
+    expect(plate.querySelector("flag-picker")).not.toBeNull();
     expect(plate.querySelector('[data-i18n="main.name_label"]')).not.toBeNull();
   });
 

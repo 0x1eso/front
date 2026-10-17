@@ -1,5 +1,6 @@
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
+import "./FlagPicker";
 import "./GameWordmark";
 import "./NavAccountMenu";
 import "./NavUtilityIcons";
@@ -87,6 +88,7 @@ export class PlayPage extends LitElement {
             data-i18n="main.name_label"
           ></p>
           <div class="atlas-field relative">
+            <flag-picker></flag-picker>
             <username-input class="block w-full h-14"></username-input>
           </div>
           <div class="atlas-rule" aria-hidden="true"></div>

@@ -261,10 +261,16 @@ export class FailOpenPrivilegeChecker implements PrivilegeChecker {
     // Catalog cosmetics can't be resolved without the cosmetics data, but the
     // verified intent isn't a catalog item — pass it through; the Worker's
     // resolveVerifiedJoin decides it against the account at join.
-    return {
-      type: "allowed",
-      cosmetics: refs.verified === true ? { verified: true } : {},
-    };
+    const cosmetics: PlayerCosmetics =
+      refs.verified === true ? { verified: true } : {};
+    // Country flags are free and need no catalog, so they are kept: a
+    // self-hosted server (no API) would otherwise strip every chosen flag.
+    // `flag:` custom flags still need the catalog and are dropped.
+    if (refs.flag?.startsWith("country:")) {
+      const code = refs.flag.slice("country:".length);
+      if (countryCodes.includes(code)) cosmetics.flag = `/flags/${code}.svg`;
+    }
+    return { type: "allowed", cosmetics };
   }
 
   // No reserved-tag list while cosmetics infra is unavailable (e.g. during

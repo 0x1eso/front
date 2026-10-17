@@ -773,3 +773,25 @@ describe("FailOpenPrivilegeChecker#resolveClanTag", () => {
     expect(result).toEqual({ tag: "ABC", dropped: false });
   });
 });
+
+describe("FailOpenPrivilegeChecker#isAllowed (self-hosted)", () => {
+  const failOpen = new FailOpenPrivilegeChecker();
+
+  it("keeps a country flag", () => {
+    expect(failOpen.isAllowed([], { flag: "country:us" })).toEqual({
+      type: "allowed",
+      cosmetics: { flag: "/flags/us.svg" },
+    });
+  });
+
+  it("drops an unknown country code and catalog flags", () => {
+    expect(failOpen.isAllowed([], { flag: "country:zzzz" })).toEqual({
+      type: "allowed",
+      cosmetics: {},
+    });
+    expect(failOpen.isAllowed([], { flag: "flag:cool_flag" })).toEqual({
+      type: "allowed",
+      cosmetics: {},
+    });
+  });
+});
