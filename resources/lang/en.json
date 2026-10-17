@@ -1658,9 +1658,7 @@
     "ui_playeroverlay_desc": "When you hover over a country, the Player info overlay appears. It shows the player type (Human, Nation, or Tribe), a Nation's attitude toward you (Hostile to Friendly), defending troops, gold, and the number of Warships and buildings they have.",
     "ui_section": "Game UI",
     "ui_wilderness": "Wilderness",
-    "ui_your_team": "Your team:",
-    "video_tutorial": "Video Tutorial",
-    "video_tutorial_title": "Video Tutorial"
+    "ui_your_team": "Your team:"
   },
   "host_modal": {
     "anonymous_players": "Anonymous players",
@@ -2885,8 +2883,6 @@
     "complete": "You're ready! Good luck out there.",
     "go_to": "Go to",
     "got_it": "Got it",
-    "hide_for_game": "Hide for this game",
-    "never_show": "Don't show again",
     "skip": "Skip",
     "step": {
       "alliance_info": "Allies can't attack each other. You can break an alliance at any time — but doing so marks you as a traitor.",

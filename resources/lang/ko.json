@@ -1193,9 +1193,7 @@
     "ui_playeroverlay_desc": "국가 위에 마우스를 올리면 플레이어 정보 오버레이가 나타납니다. 플레이어 유형(인간, 국가, 또는 부족), 해당 국가의 플레이어에 대한 태도(적대적부터 우호적까지), 방어 병력, 금, 그리고 보유한 군함 및 건물 수를 표시합니다.",
     "ui_section": "게임 UI",
     "ui_wilderness": "무주지",
-    "ui_your_team": "나의 팀:",
-    "video_tutorial": "동영상 튜토리얼",
-    "video_tutorial_title": "영상 튜토리얼"
+    "ui_your_team": "나의 팀:"
   },
   "host_modal": {
     "anonymous_players": "익명 플레이어",
@@ -2189,8 +2187,6 @@
     "complete": "준비가 끝났습니다! 건투를 빕니다.",
     "go_to": "이동하기",
     "got_it": "확인",
-    "hide_for_game": "이 게임에서 숨기기",
-    "never_show": "다시 표시하지 않음",
     "skip": "건너뛰기",
     "step": {
       "alliance_info": "동맹끼리는 서로 공격할 수 없습니다. 동맹은 언제든지 파기할 수 있습니다 — 하지만 파기할 시 배신자로 표시됩니다.",
