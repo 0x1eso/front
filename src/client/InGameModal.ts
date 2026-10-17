@@ -13,7 +13,10 @@ import { translateText } from "./Utils";
  * While a pop-up is displayed we report gameplay as stopped to the portal, and
  * resume it once dismissed.
  */
-function showDialog(props: Partial<ConfirmDialog>): Promise<boolean> {
+function showDialog(
+  props: Partial<ConfirmDialog>,
+  signal?: AbortSignal,
+): Promise<boolean> {
   const dialog = document.createElement("confirm-dialog") as ConfirmDialog;
   Object.assign(dialog, props);
 
@@ -28,6 +31,9 @@ function showDialog(props: Partial<ConfirmDialog>): Promise<boolean> {
     };
     dialog.addEventListener("confirm", () => done(true));
     dialog.addEventListener("cancel", () => done(false));
+    // Dismissed from outside (e.g. a second Back press): same as cancelling.
+    if (signal?.aborted) done(false);
+    else signal?.addEventListener("abort", () => done(false), { once: true });
   });
 }
 
@@ -39,13 +45,17 @@ function showDialog(props: Partial<ConfirmDialog>): Promise<boolean> {
 export function showInGameConfirm(
   message: string,
   options?: Partial<ConfirmDialog>,
+  signal?: AbortSignal,
 ): Promise<boolean> {
-  return showDialog({
-    message,
-    variant: "danger",
-    buttons: "confirmCancel",
-    ...options,
-  });
+  return showDialog(
+    {
+      message,
+      variant: "danger",
+      buttons: "confirmCancel",
+      ...options,
+    },
+    signal,
+  );
 }
 
 /** In-game replacement for `alert()`. Resolves once dismissed. */

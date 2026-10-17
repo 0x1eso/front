@@ -5,6 +5,7 @@ import {
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, PropertyValues, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import {
   ChooseGovernmentIntentEvent,
@@ -125,7 +126,16 @@ export class DomesticPanel extends LitElement implements Controller {
     return this;
   }
 
+  private unregisterBack: (() => void) | null = null;
+
   init() {
+    // Back closes the drawer before it asks to leave the game.
+    this.unregisterBack?.();
+    this.unregisterBack = registerBackClosable(() => {
+      if (!this.open) return false;
+      this.close();
+      return true;
+    });
     this.eventBus.on(OpenDomesticScreenEvent, (e) => {
       if (this.open && this.screen === e.screen) this.close();
       else this.show(e.screen);
@@ -167,6 +177,8 @@ export class DomesticPanel extends LitElement implements Controller {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.unregisterBack?.();
+    this.unregisterBack = null;
     this.stopFitting();
   }
 

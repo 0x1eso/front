@@ -58,6 +58,7 @@ import {
 import { ZbContext } from "@openfront/zbin";
 import { ClientEnv, NoServerError } from "src/client/ClientEnv";
 import { getPlayToken } from "./Auth";
+import { leaveGameToHome } from "./BackGuard";
 import { LobbyConfig } from "./ClientGameRunner";
 import { clientPlatform } from "./ClientPlatform";
 import { isDesktopShell } from "./DesktopShell";
@@ -71,7 +72,7 @@ import {
 import { LocalServer } from "./LocalServer";
 import { hideReconnectBanner, showReconnectBanner } from "./ReconnectBanner";
 import { describeSocketClose } from "./SocketClose";
-import { homeHref, translateText } from "./Utils";
+import { translateText } from "./Utils";
 import { PlayerView } from "./view";
 
 export class PauseGameIntentEvent implements GameEvent {
@@ -755,7 +756,7 @@ export class Transport {
       cancelText: translateText("common.close"),
     }).then((goHome) => {
       if (goHome) {
-        window.location.href = homeHref();
+        leaveGameToHome();
       }
     });
   }

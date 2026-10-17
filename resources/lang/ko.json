@@ -151,6 +151,11 @@
   "account_settings_modal": {
     "title": "계정 설정"
   },
+  "back_guard": {
+    "leave": "나가기",
+    "message": "게임에서 나갈까요?",
+    "stay": "계속하기"
+  },
   "ban_notice": {
     "appeal": "잘못된 조치라고 생각되시면 Discord를 통해 문의해 주세요.",
     "category": {

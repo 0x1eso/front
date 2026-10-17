@@ -7,11 +7,11 @@ import { html, LitElement, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import {
   getTranslatedPlayerTeamLabel,
-  homeHref,
   isInIframe,
   translateText,
 } from "../../../client/Utils";
 import { fetchUserMeUncached, getUserMe, invalidateUserMe } from "../../Api";
+import { leaveGameToHome } from "../../BackGuard";
 import "../../components/CosmeticCard";
 import { cosmeticSelectionLabel } from "../../components/CosmeticPresentation";
 import type { GameXpPanelState } from "../../components/GameXpPanel";
@@ -711,7 +711,7 @@ export class WinModal extends LitElement implements Controller {
 
   private _handleExit() {
     this.hide();
-    window.location.href = homeHref();
+    leaveGameToHome();
   }
 
   private _handleRequeue() {

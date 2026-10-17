@@ -20,6 +20,7 @@ import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import Countries from "resources/countries.json" with { type: "json" };
 import { fetchLobbyListed, getUserMe } from "../../Api";
+import { registerBackClosable } from "../../BackGuard";
 import "../../components/EquippedCosmeticsRow";
 import "../../components/LevelBadge";
 import { actionButton } from "../../components/ui/ActionButton";
@@ -123,6 +124,12 @@ export class PlayerPanel extends LitElement implements Controller {
 
   initEventBus(eventBus: EventBus) {
     this.eventBus = eventBus;
+    // Back closes the panel before it asks to leave the game.
+    registerBackClosable(() => {
+      if (!this.isVisible) return false;
+      this.hide();
+      return true;
+    });
     eventBus.on(CloseViewEvent, (e) => {
       if (this.isVisible) {
         this.hide();

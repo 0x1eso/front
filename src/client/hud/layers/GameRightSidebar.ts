@@ -5,6 +5,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { createNextLobby } from "../../Api";
+import { disarmBackGuard, leaveGameToHome } from "../../BackGuard";
 import { ClientEnv } from "../../ClientEnv";
 import "../../components/DoomsdayClockPanel";
 import "../../components/OvertimePanel";
@@ -14,7 +15,7 @@ import { gamePortal } from "../../GamePortal";
 import { showInGameAlert, showInGameConfirm } from "../../InGameModal";
 import { TogglePauseIntentEvent } from "../../InputHandler";
 import { PauseGameIntentEvent, SendWinnerEvent } from "../../Transport";
-import { homeHref, showToast, translateText } from "../../Utils";
+import { showToast, translateText } from "../../Utils";
 import { GameView } from "../../view";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import { ShowReplayPanelEvent } from "./ReplayPanel";
@@ -266,6 +267,7 @@ export class GameRightSidebar extends LitElement implements Controller {
       const lobby = await createNextLobby(this.game.gameID());
       const id = lobby.gameID;
       // ?host routes the creator back into the host view on load.
+      disarmBackGuard();
       window.location.href = `${window.location.origin}${ClientEnv.gamePath(id)}?host`;
     } catch (error) {
       console.error("Failed to create successor lobby", error);
@@ -286,7 +288,7 @@ export class GameRightSidebar extends LitElement implements Controller {
     await gamePortal.requestMidgameAd();
     await gamePortal.gameplayStop();
     // redirect to the home page
-    window.location.href = homeHref();
+    leaveGameToHome();
   }
 
   private onSettingsButtonClick() {
