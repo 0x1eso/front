@@ -16,7 +16,9 @@ import {
   PlayerSkin,
 } from "@openfront/shared/WireSchemas";
 
-const countryCodes = countries.filter((c) => !c.restricted).map((c) => c.code);
+const countryCodes = (countries as { code: string; restricted?: boolean }[])
+  .filter((c) => !c.restricted)
+  .map((c) => c.code);
 
 export type ClanTagResolution = {
   tag: string | null;

@@ -164,6 +164,11 @@
     "name": "American Samoa"
   },
   {
+    "code": "Apartheid South Africa",
+    "continent": "Africa",
+    "name": "Apartheid South Africa"
+  },
+  {
     "code": "es-ar",
     "continent": "Europe",
     "name": "Aragon"
@@ -221,6 +226,110 @@
     "code": "aq",
     "continent": "Antarctica",
     "name": "Antarctica"
+  },
+  {
+    "code": "Black Flag",
+    "name": "Black Flag"
+  },
+  {
+    "code": "bai_bur",
+    "continent": "Asia",
+    "name": "Buryatia"
+  },
+  {
+    "code": "ceres",
+    "name": "Ceres"
+  },
+  {
+    "code": "eris",
+    "name": "Eris"
+  },
+  {
+    "code": "eros",
+    "name": "Eros"
+  },
+  {
+    "code": "haumea",
+    "name": "Haumea"
+  },
+  {
+    "code": "hygiea",
+    "name": "Hygiea"
+  },
+  {
+    "code": "juno",
+    "name": "Juno"
+  },
+  {
+    "code": "jupiter",
+    "name": "Jupiter"
+  },
+  {
+    "code": "luna",
+    "name": "Luna"
+  },
+  {
+    "code": "makemake",
+    "name": "Makemake"
+  },
+  {
+    "code": "mercury",
+    "name": "Mercury"
+  },
+  {
+    "code": "neptune",
+    "name": "Neptune"
+  },
+  {
+    "code": "orcus",
+    "name": "Orcus"
+  },
+  {
+    "code": "pallas",
+    "name": "Pallas"
+  },
+  {
+    "code": "pluto",
+    "name": "Pluto"
+  },
+  {
+    "code": "Poland Lithuania",
+    "continent": "Europe",
+    "name": "Poland-Lithuania"
+  },
+  {
+    "code": "quaoar",
+    "name": "Quaoar"
+  },
+  {
+    "code": "Rhodesia",
+    "continent": "Africa",
+    "name": "Rhodesia"
+  },
+  {
+    "code": "salacia",
+    "name": "Salacia"
+  },
+  {
+    "code": "saturn",
+    "name": "Saturn"
+  },
+  {
+    "code": "sedna",
+    "name": "Sedna"
+  },
+  {
+    "code": "sol",
+    "name": "Sol"
+  },
+  {
+    "code": "South Vietnam",
+    "continent": "Asia",
+    "name": "South Vietnam"
+  },
+  {
+    "code": "terra",
+    "name": "Terra"
   },
   {
     "code": "Antarctica (True South)",
@@ -551,7 +660,6 @@
     "continent": "Africa",
     "name": "Botswana"
   },
-
   {
     "code": "fr-bfc",
     "continent": "Europe",
@@ -925,8 +1033,7 @@
   {
     "code": "Confederate States",
     "continent": "North America",
-    "name": "Confederate States",
-    "restricted": true
+    "name": "Confederate States"
   },
   {
     "code": "1_Connacht",
@@ -1108,6 +1215,23 @@
     "name": "Dire Dawa"
   },
   {
+    "code": "um",
+    "continent": "Oceania",
+    "name": "U.S. Minor Outlying Islands"
+  },
+  {
+    "code": "uranus",
+    "name": "Uranus"
+  },
+  {
+    "code": "venus",
+    "name": "Venus"
+  },
+  {
+    "code": "vesta",
+    "name": "Vesta"
+  },
+  {
     "code": "District_of_Columbia",
     "continent": "North America",
     "name": "Washington D.C."
@@ -1234,8 +1358,7 @@
   {
     "code": "Empire of Japan",
     "continent": "Asia",
-    "name": "Empire of Japan",
-    "restricted": true
+    "name": "Empire of Japan"
   },
   {
     "code": "Empire of Japan1",
@@ -1330,8 +1453,7 @@
   {
     "code": "Fascist Spain",
     "continent": "Europe",
-    "name": "Fascist Spain",
-    "restricted": true
+    "name": "Fascist Spain"
   },
   {
     "code": "Fatimid Caliphate",
@@ -1499,8 +1621,7 @@
   {
     "code": "German Empire",
     "continent": "Europe",
-    "name": "German Empire",
-    "restricted": true
+    "name": "German Empire"
   },
   {
     "code": "de",

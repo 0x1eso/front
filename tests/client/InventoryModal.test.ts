@@ -560,7 +560,7 @@ describe("InventoryModal", () => {
     expect(card(modal, "flag:locked_flag")).toBeUndefined();
     expect(card(modal, "country:xx")).toBeUndefined();
     expect(card(modal, "country:us")).toBeDefined();
-    expect(card(modal, "country:German Empire")).toBeUndefined();
+    expect(card(modal, "country:German Empire")).toBeDefined();
     await activateCard(modal, "flag:owned_flag");
     expect(new UserSettings().getFlag()).toBe("flag:owned_flag");
     await activateCard(modal, "country:us");

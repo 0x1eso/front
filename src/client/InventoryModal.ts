@@ -89,7 +89,9 @@ export class InventoryModal extends BaseModal {
       }
     | undefined;
   private readonly countryFlagTiles = Countries.filter(
-    (country) => country.code !== "xx" && country.restricted !== true,
+    (country) =>
+      country.code !== "xx" &&
+      (country as { restricted?: boolean }).restricted !== true,
   ).map<ResolvedCosmetic>((country) => ({
     type: "flag",
     cosmetic: countryFlag(country.name, country.code),

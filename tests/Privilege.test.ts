@@ -160,6 +160,20 @@ describe("Flag validation in isAllowed", () => {
     expect(result.type).toBe("forbidden");
   });
 
+  test.each([
+    "Confederate States",
+    "Empire of Japan",
+    "Fascist Spain",
+    "German Empire",
+    "Rhodesia",
+  ])("allows formerly hidden or restricted flag %s", (code) => {
+    const result = flagChecker.isAllowed([], { flag: `country:${code}` });
+    expect(result.type).toBe("allowed");
+    if (result.type === "allowed") {
+      expect(result.cosmetics.flag).toBe(`/flags/${code}.svg`);
+    }
+  });
+
   test("rejects flag with no prefix", () => {
     const result = flagChecker.isAllowed([], { flag: "us" });
     expect(result.type).toBe("forbidden");

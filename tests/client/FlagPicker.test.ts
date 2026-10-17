@@ -38,6 +38,18 @@ describe("flag picker", () => {
     if (ko.length > 0) expect(ko.map((e) => e.code)).toContain("jp");
   });
 
+  it("lists the formerly restricted flags", () => {
+    for (const [query, code] of [
+      ["confederate", "Confederate States"],
+      ["empire of japan", "Empire of Japan"],
+      ["fascist", "Fascist Spain"],
+      ["german empire", "German Empire"],
+      ["rhodesia", "Rhodesia"],
+    ]) {
+      expect(filterFlags(query).map((e) => e.code)).toContain(code);
+    }
+  });
+
   it("shows the placeholder, then saves a picked flag and updates the button", async () => {
     await mount();
     const button = el.querySelector("[data-flag-button]")!;
