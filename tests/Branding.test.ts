@@ -122,7 +122,6 @@ const GUEST_VISIBLE_KEYS = [
   "common.backend_unreachable",
   "graphics_setting.preset_default_desc",
   "help_modal.troubleshooting_desc",
-  "help_modal.video_tutorial_title",
   "ios_banner.modal_desc",
   "ios_banner.text",
   "troubleshooting.chromium_tip",

@@ -23,6 +23,9 @@ import {
   TutorialStep,
 } from "../Tutorial";
 
+/** Short landscape screens get the one-line strip instead of the full box. */
+export const COMPACT_QUERY = "(max-height: 500px) and (orientation: landscape)";
+
 /** How often (in ticks) to ask the worker for current build costs. */
 const COST_POLL_TICKS = 10;
 
@@ -97,7 +100,10 @@ export class TutorialPanel extends LitElement implements Controller {
   public uiState: UIState;
 
   @state() private active = false;
-  @state() private confirmingClose = false;
+  /** Short landscape screen (phones on their side): render a one-line strip. */
+  @state() private compact = false;
+  /** Compact strip: the step text is shown in full instead of truncated. */
+  @state() private expanded = false;
   @state() private ctx: TutorialContext | null = null;
 
   private progress = new TutorialProgress();
@@ -127,8 +133,29 @@ export class TutorialPanel extends LitElement implements Controller {
   private completeTicks: number | null = null;
   private highlight: TutorialHighlight | null = null;
 
+  private compactQuery: MediaQueryList | null = null;
+  private onCompactChange = (e: { matches: boolean }) => {
+    this.compact = e.matches;
+    if (!e.matches) this.expanded = false;
+  };
+
   createRenderRoot() {
     return this;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (typeof window.matchMedia === "function") {
+      this.compactQuery = window.matchMedia(COMPACT_QUERY);
+      this.compact = this.compactQuery.matches;
+      this.compactQuery.addEventListener("change", this.onCompactChange);
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.compactQuery?.removeEventListener("change", this.onCompactChange);
+    this.compactQuery = null;
   }
 
   tick() {
@@ -416,6 +443,7 @@ export class TutorialPanel extends LitElement implements Controller {
 
   render() {
     if (!this.active) return nothing;
+    if (this.compact) return this.renderCompact();
     return html`
       <div
         dir=${textDirection()}
@@ -428,23 +456,52 @@ export class TutorialPanel extends LitElement implements Controller {
             >${translateText("tutorial.title")}</span
           >
           <span class="flex items-center gap-2 text-sm text-gray-300">
-            ${this.confirmingClose ? nothing : this.renderHeaderActions()}
+            ${this.renderHeaderActions()}
             ${this.ctx && !this.progress.finished()
               ? translateText("tutorial.step_counter", {
                   current: this.progress.position(this.ctx),
                   total: this.progress.total(this.ctx),
                 })
               : nothing}
-            <button
-              class="text-gray-400 hover:text-white text-base leading-none px-1"
-              aria-label=${translateText("tutorial.close")}
-              @click=${() => (this.confirmingClose = !this.confirmingClose)}
-            >
-              ✕
-            </button>
+            ${this.renderCloseButton()}
           </span>
         </div>
-        ${this.confirmingClose ? this.renderCloseChoice() : this.renderStep()}
+        ${this.renderStep()}
+      </div>
+    `;
+  }
+
+  /** ✕ ends the tutorial for good, same as finishing it. */
+  private renderCloseButton() {
+    return html`<button
+      class="text-gray-400 hover:text-white text-base leading-none px-1"
+      aria-label=${translateText("tutorial.close")}
+      @click=${() => this.dismissForever()}
+    >
+      ✕
+    </button>`;
+  }
+
+  /** One-line strip: tap the text to expand/collapse it. */
+  private renderCompact() {
+    return html`
+      <div
+        dir=${textDirection()}
+        class="tutorial-compact pointer-events-auto w-full flex items-start gap-2 rounded-lg bg-gray-800/92 backdrop-blur-sm shadow-lg text-white text-sm px-2 py-1 mb-1"
+        @contextmenu=${(e: MouseEvent) => e.preventDefault()}
+      >
+        <button
+          class="tutorial-compact-text min-w-0 flex-1 text-start ${this.expanded
+            ? ""
+            : "truncate"}"
+          aria-expanded=${this.expanded ? "true" : "false"}
+          @click=${() => (this.expanded = !this.expanded)}
+        >
+          ${this.renderStep()}
+        </button>
+        <span class="flex shrink-0 items-center gap-2 text-gray-300">
+          ${this.renderHeaderActions()} ${this.renderCloseButton()}
+        </span>
       </div>
     `;
   }
@@ -485,37 +542,33 @@ export class TutorialPanel extends LitElement implements Controller {
     `;
   }
 
-  private renderCloseChoice() {
-    return html`
-      <div class="flex flex-col gap-1.5">
-        <button
-          class="rounded-md border border-gray-500 hover:bg-gray-700 px-2 py-1"
-          @click=${() => this.setActive(false)}
-        >
-          ${translateText("tutorial.hide_for_game")}
-        </button>
-        <button
-          class="rounded-md border border-gray-500 hover:bg-gray-700 px-2 py-1"
-          @click=${() => this.dismissForever()}
-        >
-          ${translateText("tutorial.never_show")}
-        </button>
-      </div>
-    `;
-  }
-
   private renderStep() {
     if (this.completeTicks !== null) {
-      return html`<p>${translateText("tutorial.complete")}</p>`;
+      return this.compact
+        ? html`<span>${translateText("tutorial.complete")}</span>`
+        : html`<p>${translateText("tutorial.complete")}</p>`;
     }
     const step = this.progress.current();
     if (step === null) return nothing;
     const done = this.progress.stepDone();
+    const mark = done ? "✓" : "•";
+    if (this.compact) {
+      // Phrasing content only (it sits in a button): the bullet list is
+      // joined into one line, and the whole thing is clipped by the button.
+      const text = step.bullets
+        ? step.bullets
+            .map((b) => translateText(`tutorial.step.${b}`))
+            .join(" · ")
+        : this.stepText(step, done);
+      return html`<span dir="auto" class=${done ? "text-green-400" : ""}
+        >${mark} ${text}</span
+      >`;
+    }
     return html`
       <p class="flex gap-1.5 ${done ? "text-green-400" : ""}">
         ${step.bullets && !done
           ? nothing
-          : html`<span class="shrink-0">${done ? "✓" : "•"}</span>`}
+          : html`<span class="shrink-0">${mark}</span>`}
         ${step.bullets
           ? html`<ul class="list-disc ms-4 flex flex-col gap-1">
               ${step.bullets.map(
