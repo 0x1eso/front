@@ -5,8 +5,10 @@
  * contrail, and a size that grows after take-off and shrinks before arrival.
  *
  * UnitPass leaves these types out; every other unit still draws there,
- * unrotated. Positions are smoothed between ticks (lastPos -> pos by
- * wall-clock progress through the tick), like the nuke smoothing.
+ * unrotated. A plane is drawn on the straight line of its flight, not on its
+ * tile, with one heading for the whole flight, gliding between ticks
+ * (PlaneTrack): drawn tile to tile, the engine's rounded path is a staircase
+ * that shook the plane and its contrail every tick.
  *
  * Layers: `drawShadows` runs with the ground units (below structures),
  * `drawAir` with the missiles (above them). Nothing is allocated per frame;
@@ -19,7 +21,6 @@ import {
   contrailLength,
   flightProgress,
   flightScale,
-  headingOf,
   isInterceptablePlane,
   PLANE_ATLAS_ORDER,
   PLANE_SIZE,
@@ -31,8 +32,15 @@ import {
   wreckAt,
   type WreckState,
 } from "../../frame/derive/PlaneFx";
+import {
+  bomberFlightEnd,
+  findFlightPath,
+  nextTickSpan,
+  PlaneTrack,
+  type TilePoint,
+} from "../../frame/derive/PlaneTrack";
 import type { RendererConfig, UnitState } from "../../types";
-import { UT_BOMBER, UT_SAM_MISSILE } from "../../types";
+import { UT_AIRPORT, UT_BOMBER, UT_SAM_MISSILE } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import contrailFragSrc from "../shaders/plane/contrail.frag.glsl?raw";
 import contrailVertSrc from "../shaders/plane/contrail.vert.glsl?raw";
@@ -50,15 +58,20 @@ const FLOATS = 8;
 const SHADOW_OFFSET = 1.6;
 const SHADOW_SCALE = 0.9;
 
+/** More game ticks than this between two updates is a seek: planes jump there. */
+const MAX_GLIDE_TICKS = 3;
+
+const NO_AIRPORTS: readonly TilePoint[] = [];
+
 /** Persistent per-plane flight info (kept across ticks). */
 interface Flight {
-  ox: number;
-  oy: number;
+  /** Where it was first seen (its airport, unless it was seen mid-flight). */
+  seenX: number;
+  seenY: number;
+  /** Its line, heading and glide. */
+  track: PlaneTrack;
   /** Straight-leg length, origin to target; 0 when the target is unknown. */
   total: number;
-  heading: number;
-  /** False until the plane has moved or its target is known. */
-  hasHeading: boolean;
   seen: number;
   type: string;
   col: number;
@@ -92,15 +105,12 @@ interface PlaneRec {
   type: string;
   size: number;
   alpha: number;
-  lx: number;
-  ly: number;
-  x: number;
-  y: number;
 }
 
 export class PlanePass {
   private gl: WebGL2RenderingContext;
   private mapW: number;
+  private mapH: number;
   private planeProg: WebGLProgram;
   private trailProg: WebGLProgram;
   private vao: WebGLVertexArrayObject;
@@ -144,6 +154,12 @@ export class PlanePass {
   private lastTickMs = 0;
   private lastGameTick = -1;
   private tickIntervalMs: number;
+  /** How long a tick's glide lasts: the smoothed time between ticks. */
+  private tickSpanMs: number;
+  /** The live airports per owner, collected once per update when needed. */
+  private airports = new Map<number, TilePoint[]>();
+  private airportsGeneration = -1;
+  private point: TilePoint = { x: 0, y: 0 };
   private timeFn: () => number = () => performance.now();
 
   constructor(
@@ -154,8 +170,10 @@ export class PlanePass {
   ) {
     this.gl = gl;
     this.mapW = header.mapWidth;
+    this.mapH = header.mapHeight;
     this.paletteTex = paletteTex;
     this.tickIntervalMs = config.msPerTick();
+    this.tickSpanMs = this.tickIntervalMs;
     for (let i = 0; i < WRECK_CAPACITY; i++) {
       this.wrecks.push({
         active: false,
@@ -309,7 +327,7 @@ export class PlanePass {
     if (best < 0) return null;
     const f = this.vanished[best];
     this.vanished.splice(best, 1);
-    return { x: px, y: py, heading: f.heading, col: f.col };
+    return { x: px, y: py, heading: f.track.heading, col: f.col };
   }
 
   /** Start the falling wreck of a shot-down plane at tile (x, y). */
@@ -366,9 +384,23 @@ export class PlanePass {
     gameTick: number,
     structures: ReadonlyMap<number, UnitState>,
   ): void {
-    if (gameTick !== this.lastGameTick) {
+    const now = this.timeFn();
+    const newTick = gameTick !== this.lastGameTick;
+    // A seek (or the first update): planes are placed, not flown there.
+    const jumped =
+      this.lastGameTick < 0 ||
+      gameTick < this.lastGameTick ||
+      gameTick - this.lastGameTick > MAX_GLIDE_TICKS;
+    if (newTick) {
+      if (!jumped) {
+        this.tickSpanMs = nextTickSpan(
+          this.tickSpanMs,
+          now - this.lastTickMs,
+          this.tickIntervalMs,
+        );
+      }
       this.lastGameTick = gameTick;
-      this.lastTickMs = this.timeFn();
+      this.lastTickMs = now;
     }
     this.generation++;
     let n = 0;
@@ -395,13 +427,13 @@ export class PlanePass {
       const ly = (unit.lastPos - lx) / w;
 
       let flight = this.flights.get(unit.id);
+      const isNew = flight === undefined;
       if (flight === undefined) {
         flight = {
-          ox: lx,
-          oy: ly,
+          seenX: lx,
+          seenY: ly,
+          track: new PlaneTrack(lx, ly),
           total: 0,
-          heading: 0,
-          hasHeading: false,
           seen: 0,
           type: unit.unitType,
           col,
@@ -417,22 +449,16 @@ export class PlanePass {
       flight.y = y;
       flight.hunted = this.huntedNow.has(unit.id);
 
-      // The straight leg: from where it took off to its target.
-      let tile: number | null = unit.targetTile;
-      if (tile === null && unit.targetUnitId !== null) {
-        tile = structures.get(unit.targetUnitId)?.pos ?? null;
-      }
-      if (tile !== null) {
-        const tx = tile % w;
-        const ty = (tile - tx) / w;
-        flight.total = Math.hypot(tx - flight.ox, ty - flight.oy);
-        // Not moved yet: face the target.
-        if (!flight.hasHeading) {
-          flight.heading = headingOf(tx - lx, ty - ly, 0);
-          flight.hasHeading = true;
+      if (isNew || newTick) {
+        this.layLine(flight, unit, x, y, lx, ly, structures, now);
+        const track = flight.track;
+        const along = track.alongOf(x, y);
+        if (isNew || jumped) {
+          const from = track.alongOf(lx, ly);
+          track.jumpTo(Number.isNaN(from) ? along : from, now);
         }
+        track.glideTo(along, now, this.tickSpanMs);
       }
-      flight.heading = headingOf(x - lx, y - ly, flight.heading);
 
       let rec = this.recs[n];
       if (rec === undefined) {
@@ -443,10 +469,6 @@ export class PlanePass {
           type: "",
           size: 0,
           alpha: 1,
-          lx: 0,
-          ly: 0,
-          x: 0,
-          y: 0,
         };
         this.recs[n] = rec;
       }
@@ -456,10 +478,6 @@ export class PlanePass {
       rec.type = unit.unitType;
       rec.size = PLANE_SIZE[unit.unitType];
       rec.alpha = planeAlpha(unit.unitType);
-      rec.lx = lx;
-      rec.ly = ly;
-      rec.x = x;
-      rec.y = y;
       n++;
     }
     this.count = n;
@@ -492,6 +510,95 @@ export class PlanePass {
   }
 
   /**
+   * Keep the plane's straight line: the engine's own path once its tiles are
+   * found on it (from the airport it took off from to its target), else the
+   * line from where it was first seen to its target, its tiles projected
+   * onto it. Without a target it points the way it has flown.
+   */
+  private layLine(
+    f: Flight,
+    unit: UnitState,
+    x: number,
+    y: number,
+    lx: number,
+    ly: number,
+    structures: ReadonlyMap<number, UnitState>,
+    now: number,
+  ): void {
+    const track = f.track;
+    const target = this.targetOf(unit, structures);
+    if (track.exact && !Number.isNaN(track.alongOf(x, y))) {
+      // Still on the engine's path.
+    } else if (target !== null) {
+      const bomber = unit.unitType === UT_BOMBER;
+      const endFor = (ox: number, oy: number): TilePoint | null =>
+        bomber
+          ? bomberFlightEnd(ox, oy, target.x, target.y, this.mapW, this.mapH)
+          : target;
+      const path = findFlightPath(
+        this.originsOf(f, unit.ownerID, structures),
+        endFor,
+        x,
+        y,
+        lx,
+        ly,
+      );
+      if (path !== null) {
+        track.setLine(path.ox, path.oy, path.ex, path.ey, path.steps, now);
+      } else {
+        const end = endFor(f.seenX, f.seenY) ?? target;
+        track.setLine(f.seenX, f.seenY, end.x, end.y, 0, now);
+      }
+    } else if (x !== f.seenX || y !== f.seenY) {
+      track.setLine(f.seenX, f.seenY, x, y, 0, now);
+    }
+    f.total =
+      target === null
+        ? 0
+        : Math.hypot(target.x - track.ox, target.y - track.oy);
+  }
+
+  /** The tile a plane flies to: its target tile, or its target airport's. */
+  private targetOf(
+    unit: UnitState,
+    structures: ReadonlyMap<number, UnitState>,
+  ): TilePoint | null {
+    let tile: number | null = unit.targetTile;
+    if (tile === null && unit.targetUnitId !== null) {
+      tile = structures.get(unit.targetUnitId)?.pos ?? null;
+    }
+    if (tile === null) return null;
+    const x = tile % this.mapW;
+    return { x, y: (tile - x) / this.mapW };
+  }
+
+  /**
+   * Where a plane may have taken off: its owner's airports and where it was
+   * first seen, that one first when it is one of the airports.
+   */
+  private originsOf(
+    f: Flight,
+    owner: number,
+    structures: ReadonlyMap<number, UnitState>,
+  ): TilePoint[] {
+    if (this.airportsGeneration !== this.generation) {
+      this.airportsGeneration = this.generation;
+      this.airports.clear();
+      for (const s of structures.values()) {
+        if (s.unitType !== UT_AIRPORT || !s.isActive) continue;
+        let list = this.airports.get(s.ownerID);
+        if (list === undefined) this.airports.set(s.ownerID, (list = []));
+        const x = s.pos % this.mapW;
+        list.push({ x, y: (s.pos - x) / this.mapW });
+      }
+    }
+    const airports = this.airports.get(owner) ?? NO_AIRPORTS;
+    const seen = { x: f.seenX, y: f.seenY };
+    const atAirport = airports.some((a) => a.x === seen.x && a.y === seen.y);
+    return atAirport ? [seen, ...airports] : [...airports, seen];
+  }
+
+  /**
    * Where the nearest bomber of `owner` is right now (any owner when that
    * owner has none), for bombs to fall from. False if no bomber flies.
    */
@@ -501,7 +608,8 @@ export class PlanePass {
     nearY: number,
     out: { x: number; y: number },
   ): boolean {
-    const alpha = this.tickAlpha();
+    const now = this.timeFn();
+    const p = this.point;
     let best = Infinity;
     let found = false;
     for (let pass = 0; pass < 2 && !found; pass++) {
@@ -509,8 +617,10 @@ export class PlanePass {
         const r = this.recs[i];
         if (r.type !== UT_BOMBER) continue;
         if (pass === 0 && r.owner !== owner) continue;
-        const x = r.lx + (r.x - r.lx) * alpha;
-        const y = r.ly + (r.y - r.ly) * alpha;
+        const track = r.flight.track;
+        track.pointAt(track.shownAt(now), p);
+        const x = p.x;
+        const y = p.y;
         const d = (x - nearX) * (x - nearX) + (y - nearY) * (y - nearY);
         if (d < best) {
           best = d;
@@ -523,28 +633,25 @@ export class PlanePass {
     return found;
   }
 
-  private tickAlpha(): number {
-    const a = (this.timeFn() - this.lastTickMs) / this.tickIntervalMs;
-    return a < 0 ? 0 : a > 1 ? 1 : a;
-  }
-
-  /** Write this frame's instances (interpolated positions). Returns count. */
+  /** Write this frame's instances (positions on each flight's line). Returns count. */
   private fill(): number {
     const n = this.count;
     this.buf.ensureCapacity(n + WRECK_CAPACITY);
     const f = this.buf.float32;
-    const alpha = this.tickAlpha();
+    const now = this.timeFn();
+    const p = this.point;
     for (let i = 0; i < n; i++) {
       const r = this.recs[i];
-      const x = r.lx + (r.x - r.lx) * alpha;
-      const y = r.ly + (r.y - r.ly) * alpha;
       const fl = r.flight;
-      const flown = Math.hypot(x - fl.ox, y - fl.oy);
+      const track = fl.track;
+      // Tiles flown from the line's start (the airport, once it is known).
+      const flown = track.shownAt(now);
+      track.pointAt(flown, p);
       const scale = flightScale(r.type, flightProgress(flown, fl.total));
       const o = i * FLOATS;
-      f[o] = x + 0.5;
-      f[o + 1] = y + 0.5;
-      f[o + 2] = fl.heading;
+      f[o] = p.x + 0.5;
+      f[o + 1] = p.y + 0.5;
+      f[o + 2] = track.heading;
       f[o + 3] = r.size * scale;
       f[o + 4] = r.col;
       f[o + 5] = r.owner;
