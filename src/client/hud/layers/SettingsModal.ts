@@ -4,13 +4,14 @@ import { html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import { gamePortal } from "src/client/GamePortal";
 import { PauseGameIntentEvent } from "src/client/Transport";
+import { leaveGameToHome, registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import {
   AlternateViewEvent,
   ToggleRenderDebugGuiEvent,
 } from "../../InputHandler";
 import type { UserSettingModal } from "../../UserSettingModal";
-import { homeHref, translateText } from "../../Utils";
+import { translateText } from "../../Utils";
 const exitIcon = assetUrl("images/ExitIconWhite.svg");
 const settingsIcon = assetUrl("images/SettingIconWhite.svg");
 const treeIcon = assetUrl("images/TreeIconWhite.svg");
@@ -65,15 +66,25 @@ export class SettingsModal extends LitElement implements Controller {
     return this;
   }
 
+  private unregisterBack: (() => void) | null = null;
+
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener("click", this.handleOutsideClick, true);
     window.addEventListener("keydown", this.handleKeyDown);
+    // Back closes the menu before it asks to leave the game.
+    this.unregisterBack = registerBackClosable(() => {
+      if (!this.isVisible) return false;
+      this.closeModal();
+      return true;
+    });
   }
 
   disconnectedCallback() {
     window.removeEventListener("click", this.handleOutsideClick, true);
     window.removeEventListener("keydown", this.handleKeyDown);
+    this.unregisterBack?.();
+    this.unregisterBack = null;
     super.disconnectedCallback();
   }
 
@@ -162,7 +173,7 @@ export class SettingsModal extends LitElement implements Controller {
 
   private onExitButtonClick() {
     // redirect to the home page
-    window.location.href = homeHref();
+    leaveGameToHome();
   }
 
   render() {

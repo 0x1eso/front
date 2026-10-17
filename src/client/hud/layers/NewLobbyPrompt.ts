@@ -2,6 +2,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { translateText } from "../../../client/Utils";
+import { disarmBackGuard } from "../../BackGuard";
 import { ClientEnv } from "../../ClientEnv";
 import { Controller } from "../../Controller";
 import { gamePortal } from "../../GamePortal";
@@ -36,6 +37,7 @@ export class NewLobbyPrompt extends LitElement implements Controller {
     // The host asked for this lobby, so send them back to the host view. The
     // ?host flag routes them there instead of the join flow on reload.
     if (this.game?.myPlayer()?.isLobbyCreator()) {
+      disarmBackGuard();
       window.location.href = this.lobbyUrl(true);
       return;
     }
@@ -63,6 +65,7 @@ export class NewLobbyPrompt extends LitElement implements Controller {
       const link = await gamePortal.createInviteLink(this.gameID);
       if (link !== null) {
         try {
+          disarmBackGuard();
           window.top!.location.href = link;
           return;
         } catch (error) {
@@ -70,6 +73,7 @@ export class NewLobbyPrompt extends LitElement implements Controller {
         }
       }
     }
+    disarmBackGuard();
     window.location.href = this.lobbyUrl(false);
   }
 

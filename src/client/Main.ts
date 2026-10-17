@@ -26,6 +26,12 @@ import {
   userAuth,
 } from "./Auth";
 import {
+  armBackGuard,
+  disarmBackGuard,
+  handleGamePopState,
+  leaveGameToHome,
+} from "./BackGuard";
+import {
   bootInterruptsAllowed,
   CLAIM_PROMPT_KEY,
   claimPromptDue,
@@ -1098,14 +1104,9 @@ class Client {
       onJoinChanged();
     };
 
-    const leaveGame = () => {
-      gamePortal.gameplayStop().then(() => {
-        // redirect to the home page
-        window.location.href = homeHref();
-      });
-    };
-
     const onPopState = () => {
+      // Before the Steam fix below, which would push a second entry.
+      if (handleGamePopState()) return;
       // Steam hardware back button fix (Issue #5514):
       // If we navigate back to root on Steam, push state forward so the back button doesn't exit the app
       // and show the blank 'Starting' screen.
@@ -1124,31 +1125,7 @@ class Client {
         this.leaveReplayViewer();
         return;
       }
-      if (this.currentUrl !== null && this.lobbyHandle !== null) {
-        console.info("Game is active");
-
-        if (!this.lobbyHandle.stop()) {
-          console.info("Player is active, ask before leaving game");
-
-          // We can't block navigation on an async confirmation, so restore the
-          // history entry immediately and only leave once the player confirms.
-          history.pushState(null, "", this.currentUrl);
-          showInGameConfirm(translateText("help_modal.exit_confirmation")).then(
-            (isConfirmed) => {
-              if (isConfirmed) leaveGame();
-            },
-          );
-          return;
-        }
-
-        console.info("Player is not active, leave the game immediately");
-
-        leaveGame();
-      } else {
-        console.info("Game not active, handle hash update");
-
-        onHashUpdate();
-      }
+      onHashUpdate();
     };
 
     const onJoinChanged = () => {
@@ -1895,27 +1872,32 @@ class Client {
       setInGameSignal(true);
 
       const lobbyIdHidden = !this.userSettings.lobbyIdVisibility();
+      let guardUrl: string;
       if (isReplayShellHost(window.location.hostname)) {
         // Keep the canonical replay URL (replay.<domain>/<gameId>): the
         // /game/<id> shape and the #refresh trampoline only exist on the
         // game-server origin, so rewriting here would leave a URL that 404s
         // when reloaded or shared (see VersionedReplay.ts).
-        history.pushState(null, "", window.location.pathname);
+        guardUrl = window.location.pathname;
       } else {
         // Ensure there's a homepage entry in history before adding the lobby entry
         if (window.location.hash === "" || window.location.hash === "#") {
           history.replaceState(null, "", window.location.origin + "#refresh");
         }
-        history.pushState(
-          null,
-          "",
-          currentPagePath(
-            lobbyIdHidden
-              ? "/streamer-mode"
-              : `${ClientEnv.gamePath(lobby.gameID)}?live`,
-          ),
+        guardUrl = currentPagePath(
+          lobbyIdHidden
+            ? "/streamer-mode"
+            : `${ClientEnv.gamePath(lobby.gameID)}?live`,
         );
       }
+      // The game's history entry doubles as the Back guard. A reload or close
+      // asks the browser's "leave site?" in multiplayer only: a singleplayer
+      // match is the player's own and cheap to restart.
+      armBackGuard({
+        url: guardUrl,
+        leave: () => void gamePortal.gameplayStop().then(leaveGameToHome),
+        confirmUnload: !isSingleplayer,
+      });
 
       // Store current URL for popstate confirmation
       this.currentUrl = window.location.href;
@@ -2068,6 +2050,7 @@ class Client {
     this.lobbyHandle.stop(true);
     this.lobbyHandle = null;
     this.currentUrl = null;
+    disarmBackGuard();
 
     try {
       history.replaceState(null, "", "/");
