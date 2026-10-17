@@ -1208,6 +1208,7 @@
     "host_badge": "방장",
     "host_cheats": "호스트 치트",
     "leave_confirmation": "정말 로비에서 나가겠습니까?",
+    "list_in_open_rooms": "목록에 올리기",
     "list_lobby_body": "로비가 공개 로비 목록에 표시됩니다. 타이머가 만료되거나 로비가 가득 차면 자동으로 시작됩니다. 등록된 후에는 설정을 변경할 수 없습니다.",
     "list_lobby_confirm": "로비 등록",
     "list_lobby_max_players": "최대 플레이어 수",
@@ -1240,6 +1241,7 @@
     "subscription_required_title": "구독 필요",
     "team_count": "팀 수",
     "teams_Duos": "듀오 (2인 1조)",
+    "teams_Humans Vs Nations": "인간 대 국가",
     "teams_Quads": "쿼드 (4인 1조)",
     "teams_Trios": "트리오 (3인 1조)",
     "title": "방 만들기",
@@ -1247,8 +1249,7 @@
     "view_subscriptions": "구독 보기",
     "visibility_private": "비공개",
     "visibility_public": "공개",
-    "waiting": "플레이어들을 기다리고 있습니다...",
-    "teams_Humans Vs Nations": "인간 대 국가"
+    "waiting": "플레이어들을 기다리고 있습니다..."
   },
   "inventory": {
     "equipped": "장착됨",
@@ -2891,5 +2892,13 @@
     "tap_again_to_fire": "한 번 더 눌러 발사",
     "tap_again_to_target": "한 번 더 눌러 확정",
     "target_title": "위성 포격 목표"
+  },
+  "open_rooms": {
+    "domestic": "내정",
+    "empty": "열린 방이 없어요. 방을 만들어 보세요",
+    "join": "참가",
+    "strategic": "전략 무기",
+    "title": "열린 방",
+    "warfare": "확장 전쟁"
   }
 }

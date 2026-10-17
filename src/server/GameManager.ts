@@ -44,7 +44,10 @@ export class GameManager {
   // Leaving the Lobby phase (start/fill/expiry) delists them automatically.
   public listedLobbies(): GameServer[] {
     return Array.from(this.games.values()).filter(
-      (g) => g.phase() === GamePhase.Lobby && !g.isPublic() && g.isListed(),
+      (g) =>
+        g.phase() === GamePhase.Lobby &&
+        !g.isPublic() &&
+        (g.isListed() || g.isAdvertisedOpenRoom()),
     );
   }
 

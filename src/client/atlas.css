@@ -669,3 +669,108 @@ game-starting-modal.atlas a {
   position: absolute;
   inset: -2px;
 }
+
+/* Open rooms: friends' lobbies waiting right now, one tap to join. The list
+   scrolls on its own so a short landscape screen never loses the buttons
+   above it. Nothing here depends on hover. */
+.atlas-rooms {
+  margin-top: 1rem;
+}
+
+.atlas-rooms .atlas-eyebrow {
+  margin-bottom: 0.5rem;
+}
+
+.atlas-rooms-empty {
+  margin: 0;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--atlas-ink-muted);
+}
+
+.atlas-rooms-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(40vh, 16rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.atlas-room {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--atlas-line);
+  border-radius: 0.75rem;
+  background-color: var(--atlas-card);
+}
+
+.atlas-room-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.atlas-room-host {
+  font-weight: 700;
+  color: var(--atlas-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atlas-room-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--atlas-ink-soft);
+}
+
+.atlas-room-players {
+  font-variant-numeric: tabular-nums;
+}
+
+.atlas-room-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.atlas-chip {
+  padding: 0.0625rem 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid var(--atlas-line-strong);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--atlas-ink-soft);
+}
+
+.atlas-room-join {
+  flex-shrink: 0;
+  min-width: 4rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.625rem;
+  background-color: var(--atlas-oxblood);
+  color: var(--atlas-on-fill);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.atlas-room-join:active {
+  background-color: var(--atlas-oxblood-deep);
+}
+
+.atlas-room-join:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

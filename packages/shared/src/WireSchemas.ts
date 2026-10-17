@@ -249,6 +249,9 @@ export const GameInfoSchema = z.object({
   // UI stays in sync when the server delists (whitelist enabled, duplicate
   // creator resolved by the master).
   listed: z.boolean().optional(),
+  // Self-hosted private lobbies only: whether the host advertises the lobby
+  // in the homepage's open-rooms list (POST /api/game/:id/open_room).
+  openRoom: z.boolean().optional(),
   // Listed lobbies only: server timestamp when the lobby starts
   // automatically (hosts can't sit on a public listing indefinitely).
   autoStartAt: zb.uint().optional(),
@@ -284,6 +287,9 @@ export const PublicGameInfoSchema = z.object({
   // than one the server scheduled, so the browser can label it Custom.
   // Featured lobbies are official events and never carry it.
   custom: z.boolean().optional(),
+  // Self-hosted open rooms: the host's display name, shown in the homepage
+  // open-rooms list.
+  hostName: z.string().max(64).optional(),
 });
 
 export const PublicGamesSchema = z.object({
