@@ -200,6 +200,13 @@ describe("GameServer.rejoinClient", () => {
       ]);
     });
 
+    it("refuses a rejoin from a different persistentID (no slot takeover)", () => {
+      const { game } = playedGame(3);
+      const intruder = makeMockWs();
+      expect(game.rejoinClient(intruder as any, "someone-else", 0)).toBe(false);
+      expect(game.getClientIdForPersistentId("p1-pid")).toBe(P1);
+    });
+
     it("keeps the reconnect mapping across a mid-game socket drop", async () => {
       // Only a LOBBY-phase drop clears the mapping (to free the seat); once
       // the game runs, the seat is theirs to come back to.

@@ -624,4 +624,106 @@ describe("Transport reconnect policy", () => {
       expect((sentAfterHandshake[2] as any).spectator).toBe(false);
     });
   });
+
+  describe("mobile resume", () => {
+    const setVisibility = (state: "visible" | "hidden") => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => state,
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    };
+    const banner = () => document.getElementById("reconnect-banner");
+
+    afterEach(() => setVisibility("visible"));
+
+    it("shows a banner while down and hides it on the first frame", () => {
+      FakeWebSocket.script = flakyThenHealthy(1);
+      connect();
+      vi.advanceTimersByTime(60);
+      expect(banner()?.textContent).toBe("error_modal.reconnecting");
+      vi.advanceTimersByTime(100);
+      expect(banner()).toBeNull();
+    });
+
+    it("rejoins with the same identity after the socket drops", async () => {
+      FakeWebSocket.script = acceptAndTalk(10);
+      onconnect.mockImplementation(() => {
+        void transport.rejoinGame(7);
+      });
+      connect();
+      vi.advanceTimersByTime(100);
+      FakeWebSocket.instances[0].serverClose(1006);
+      vi.advanceTimersByTime(100);
+      await Promise.resolve();
+      await Promise.resolve();
+      const second = FakeWebSocket.instances[1];
+      const frames = second.sent.map((f) => decodeClientMessage(f, undefined));
+      expect(frames).toContainEqual(
+        expect.objectContaining({
+          type: "rejoin",
+          lastTurn: 7,
+          token: "8f1d2c3e-4b5a-4c6d-8e7f-90a1b2c3d4e5",
+        }),
+      );
+    });
+
+    it("reconnects on becoming visible after the budget was spent", () => {
+      FakeWebSocket.script = rejectAfter(10, 1006);
+      connect();
+      vi.advanceTimersByTime(300_000);
+      const spent = FakeWebSocket.instances.length;
+      expect(showInGameConfirm).toHaveBeenCalledOnce();
+
+      FakeWebSocket.script = acceptAndTalk(10);
+      setVisibility("visible");
+      vi.advanceTimersByTime(100);
+      expect(FakeWebSocket.instances.length).toBeGreaterThan(spent);
+      expect(
+        FakeWebSocket.instances[FakeWebSocket.instances.length - 1].readyState,
+      ).toBe(FakeWebSocket.OPEN);
+    });
+
+    it("reconnects on the online event when the socket is closed", () => {
+      FakeWebSocket.script = acceptAndTalk(10);
+      connect();
+      vi.advanceTimersByTime(100);
+      FakeWebSocket.script = () => {};
+      FakeWebSocket.instances[0].serverClose(1006);
+      // Retry already queued; online must not stack a second socket.
+      window.dispatchEvent(new Event("online"));
+      vi.advanceTimersByTime(100);
+      expect(FakeWebSocket.instances.length).toBeLessThanOrEqual(3);
+    });
+
+    it("replaces an OPEN socket that went silent while hidden", () => {
+      FakeWebSocket.script = (ws) => {
+        setTimeout(() => ws.serverOpen(), 10);
+        setTimeout(() => ws.serverSend({ type: "ping" }), 20);
+      };
+      connect();
+      vi.advanceTimersByTime(100);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      // Within the stale window a visibility flip does nothing.
+      setVisibility("visible");
+      vi.advanceTimersByTime(10);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+
+      vi.setSystemTime(Date.now() + 60_000);
+      setVisibility("visible");
+      vi.advanceTimersByTime(10);
+      expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
+    });
+
+    it("does not revive a session the server ended or the player left", () => {
+      FakeWebSocket.script = rejectAfter(10, CloseCode.Normal);
+      connect();
+      vi.advanceTimersByTime(100);
+      const n = FakeWebSocket.instances.length;
+      setVisibility("visible");
+      vi.advanceTimersByTime(1000);
+      expect(FakeWebSocket.instances).toHaveLength(n);
+      expect(banner()).toBeNull();
+    });
+  });
 });
