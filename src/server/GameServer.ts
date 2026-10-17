@@ -326,6 +326,14 @@ export class GameServer {
     this.creatorPersistentID = opts.creatorPersistentID;
     this.startsAt = opts.startsAt;
     this.publicGameType = opts.publicGameType;
+    // Self-hosted: a host-created private lobby is an open room by default.
+    if (
+      ServerEnv.selfHosted() &&
+      opts.creatorPersistentID !== undefined &&
+      opts.gameConfig.gameType === GameType.Private
+    ) {
+      this.listing.setOpenRoom(true);
+    }
     this.matchmakingTeams = opts.matchmakingTeams;
     this.matchmakingClanTags = opts.matchmakingClanTags;
     this.deps = { ...defaultGameServerDeps(), ...deps };
@@ -1732,6 +1740,11 @@ export class GameServer {
       serverTime: Date.now(),
       publicGameType: this.publicGameType,
       listed: this.isPublic() ? undefined : this.listing.isListed(),
+      // Present only on self-hosted private lobbies (keeps the wire of every
+      // other server unchanged).
+      ...(this.isPublic() || !ServerEnv.selfHosted()
+        ? {}
+        : { openRoom: this.listing.isOpenRoom() }),
       autoStartAt: this.autoStartAt(),
       label: this.listing.lobbyLabel(),
       accent: this.listing.lobbyAccent(),
@@ -1746,6 +1759,36 @@ export class GameServer {
 
   public isListed(): boolean {
     return this.listing.isListed();
+  }
+
+  // Self-hosted open rooms: the host's "목록에 올리기" switch. Separate from
+  // `listed` (a subscriber listing), which locks the host out of kicks and
+  // config changes; an open room only advertises the lobby.
+  public isOpenRoom(): boolean {
+    return this.listing.isOpenRoom();
+  }
+
+  public setOpenRoom(open: boolean): void {
+    this.listing.setOpenRoom(open);
+  }
+
+  // Whether the lobby browser should show this open room right now: it has
+  // a host, nobody armed the start countdown, it has room, and a join
+  // whitelist is not turning strangers away.
+  public isAdvertisedOpenRoom(): boolean {
+    return (
+      this.listing.isOpenRoom() &&
+      !this.isListed() &&
+      this.startsAt === undefined &&
+      !this.hasJoinWhitelist() &&
+      this.playerCount() < (this.gameConfig.maxPlayers ?? Infinity)
+    );
+  }
+
+  // The host's display name for the lobby browser.
+  public hostName(): string | undefined {
+    if (this.creatorPersistentID === undefined) return undefined;
+    return this.clients.byPersistentId(this.creatorPersistentID)?.username;
   }
 
   /** Who joined, and the account behind each one.

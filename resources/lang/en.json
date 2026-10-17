@@ -1675,6 +1675,7 @@
     "host_badge": "Host",
     "host_cheats": "Host Cheats",
     "leave_confirmation": "Are you sure you want to leave the lobby?",
+    "list_in_open_rooms": "List in open rooms",
     "list_lobby_body": "Your lobby will appear in the public lobby list. It starts automatically when the timer runs out or the lobby fills up. Settings can't be changed once it's listed.",
     "list_lobby_confirm": "List lobby",
     "list_lobby_max_players": "Max players",
@@ -3208,5 +3209,13 @@
     "you_won": "You Won!",
     "your_team": "Your team won!",
     "youtube_tutorial": "Need some help?"
+  },
+  "open_rooms": {
+    "domestic": "Domestic",
+    "empty": "No open rooms. Create one!",
+    "join": "Join",
+    "strategic": "Strategic Weapons",
+    "title": "Open Rooms",
+    "warfare": "Expanded Warfare"
   }
 }

@@ -4,6 +4,8 @@ import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { getDesktopSessionState } from "./Auth";
 import "./components/IOSAddToHomeScreenBanner";
+import "./components/OpenRoomsList";
+import type { OpenRoomJoinDetail } from "./components/OpenRoomsList";
 import {
   getDesktopUpdateState,
   isDesktopShell,
@@ -537,9 +539,28 @@ export class GameModeSelector extends LitElement {
             true,
           )}
         </div>
+        <open-rooms-list
+          .rooms=${this.lobbies?.games?.hosted ?? []}
+          .loaded=${this.lobbies !== null}
+          .disabled=${!this.inputValid}
+          @open-room-join=${this.onOpenRoomJoin}
+        ></open-rooms-list>
       </div>
     `;
   }
+
+  // One tap on a row joins exactly like typing its code: the join modal
+  // opens on the id and runs the same exists/version check and join.
+  private onOpenRoomJoin = (e: CustomEvent<OpenRoomJoinDetail>) => {
+    if (this.blockedFromApiAction()) return;
+    if (!this.validateUsername()) return;
+    const lobbyId = e.detail.gameID;
+    whenModalLoaded("join-lobby-modal", () =>
+      (document.querySelector("join-lobby-modal") as JoinLobbyModal)?.open({
+        lobbyId,
+      }),
+    );
+  };
 
   /**
    * Refuses an API-DEPENDENT action (Create, Join by code) and tells the

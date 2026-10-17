@@ -51,6 +51,8 @@ import { modalHeader } from "./components/ui/ModalHeader";
 import { fetchCosmetics, InsufficientCurrency } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
 import { JoinLobbyEvent } from "./Main";
+import { setOpenRoom } from "./OpenRooms";
+import { isSelfHosted } from "./SelfHosted";
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 import { UserSettings } from "./UserSettings";
 import {
@@ -133,6 +135,10 @@ export class HostLobbyModal extends BaseModal {
   // is always shown.
   @state() private canListPublicly: boolean = false;
   @state() private publiclyListed: boolean = false;
+  // Self-hosted: whether the lobby shows in the homepage's open-rooms list.
+  // On by default (the server makes every host-created lobby an open room).
+  @state() private openRoom: boolean = true;
+  private openRoomRequestInFlight = false;
   @state() private showSubscriptionRequired: boolean = false;
   @state() private showListLobbyDialog: boolean = false;
   // Server timestamp when the listed lobby auto-starts (from lobby info).
@@ -196,6 +202,9 @@ export class HostLobbyModal extends BaseModal {
     // request is mid-flight.
     if (!this.listingRequestInFlight && lobby.listed !== undefined) {
       this.publiclyListed = lobby.listed;
+    }
+    if (!this.openRoomRequestInFlight && lobby.openRoom !== undefined) {
+      this.openRoom = lobby.openRoom;
     }
     this.autoStartAt = lobby.autoStartAt ?? null;
     this.queued = lobby.queued ?? false;
@@ -304,6 +313,7 @@ export class HostLobbyModal extends BaseModal {
   // one-way (the server rejects unlisting), so the Private segment goes away
   // once the lobby is listed.
   private renderVisibilityToggle() {
+    if (isSelfHosted()) return this.renderOpenRoomToggle();
     const segment = (labelKey: string, isPublic: boolean) => html`
       <button
         class="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full transition-all ${this
@@ -408,6 +418,39 @@ export class HostLobbyModal extends BaseModal {
       title=${translateText("host_modal.auto_start_timer")}
       >${renderDuration(seconds)}</span
     >`;
+  }
+
+  // Self-hosted: "목록에 올리기" shows the lobby in the homepage's open-rooms
+  // list. Server-authoritative; a failed request reverts the switch.
+  private renderOpenRoomToggle() {
+    return html`
+      <label
+        class="flex items-center gap-2 shrink-0 cursor-pointer select-none min-h-11"
+      >
+        <input
+          type="checkbox"
+          class="size-5"
+          data-testid="open-room-toggle"
+          .checked=${this.openRoom}
+          @change=${(e: Event) =>
+            void this.handleOpenRoomToggle(
+              (e.target as HTMLInputElement).checked,
+            )}
+        />
+        <span class="text-white text-sm font-bold"
+          >${translateText("host_modal.list_in_open_rooms")}</span
+        >
+      </label>
+    `;
+  }
+
+  private async handleOpenRoomToggle(open: boolean) {
+    if (!this.lobbyId || this.openRoomRequestInFlight) return;
+    this.openRoomRequestInFlight = true;
+    this.openRoom = open;
+    const result = await setOpenRoom(this.lobbyId, open);
+    this.openRoom = result.ok ? result.open : !open;
+    this.openRoomRequestInFlight = false;
   }
 
   private handleVisibilitySelect(isPublic: boolean) {
@@ -1100,6 +1143,7 @@ export class HostLobbyModal extends BaseModal {
     this.hostCheatStartingGold = false;
     this.hostCheatStartingGoldValue = undefined;
     this.publiclyListed = false;
+    this.openRoom = true;
     this.showSubscriptionRequired = false;
     this.showListLobbyDialog = false;
     this.queued = false;

@@ -27,6 +27,19 @@ export class ListingState {
   // then on the queue's countdown starts it, not the listing deadline.
   private queuedAt?: number;
 
+  // Self-hosted "open room": advertised to everyone on the server, but
+  // without the restrictions of a subscriber listing (the host keeps their
+  // powers and starts the game; there is no auto-start deadline).
+  private openRoom = false;
+
+  isOpenRoom(): boolean {
+    return this.openRoom;
+  }
+
+  setOpenRoom(open: boolean): void {
+    this.openRoom = open;
+  }
+
   isListed(): boolean {
     return this.listed;
   }

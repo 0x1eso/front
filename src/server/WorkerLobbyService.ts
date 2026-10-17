@@ -210,7 +210,10 @@ export class WorkerLobbyService {
         gameConfig: gi.gameConfig && publicLobbyGameConfig(gi.gameConfig),
         publicGameType: g.isQueued() ? "special" : "hosted",
         queuedAt: g.queuedAt(),
-        creatorID: g.hashedCreatorID(),
+        // An open room is not a subscriber listing: no creator, so the
+        // one-listing-per-creator rule doesn't hide a host's second room.
+        creatorID: g.isListed() ? g.hashedCreatorID() : undefined,
+        hostName: g.isListed() ? undefined : g.hostName(),
         createdAt: g.createdAt,
         // Already sanitised on the way in (GameServer.setFeatured), so nothing
         // unsanitised can reach a browser even if another producer appears.
@@ -218,7 +221,7 @@ export class WorkerLobbyService {
         accent: g.lobbyAccent(),
         featured: g.isFeatured() ? true : undefined,
         autoStartAt: gi.autoStartAt,
-        custom: g.isFeatured() ? undefined : true,
+        custom: g.isFeatured() || !g.isListed() ? undefined : true,
       } satisfies InternalGameInfo;
     });
     this.sendToMaster({
@@ -260,7 +263,9 @@ export class WorkerLobbyService {
       .listedLobbies()
       .some(
         (g) =>
-          g.id !== excludeGameID && g.hashedCreatorID() === hashedCreatorID,
+          g.isListed() &&
+          g.id !== excludeGameID &&
+          g.hashedCreatorID() === hashedCreatorID,
       );
   }
 

@@ -387,6 +387,46 @@ export async function startWorker() {
     res.json({ listed });
   });
 
+  // Self-hosted open rooms: the creator switches whether their lobby shows in
+  // the homepage's open-rooms list. No subscription involved, and unlike
+  // /listing it is reversible and leaves the host's powers alone.
+  app.post("/api/game/:id/open_room", async (req, res) => {
+    if (!ServerEnv.selfHosted()) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(400).json({ error: "Authorization header required" });
+    }
+    const auth = await verifyClientToken(
+      authHeader.substring("Bearer ".length),
+    );
+    if (auth.type !== "success") {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    const parsed = z.object({ open: z.boolean() }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: z.prettifyError(parsed.error) });
+    }
+    const game = gm.game(req.params.id);
+    if (game === null) {
+      return res.status(404).json({ error: "Game not found" });
+    }
+    if (!game.isCreator(auth.persistentId)) {
+      return res
+        .status(403)
+        .json({ error: "Only the lobby creator can change its listing" });
+    }
+    if (game.isPublic() || game.hasStarted()) {
+      return res.status(409).json({ error: "Game cannot be listed" });
+    }
+    game.setOpenRoom(parsed.data.open);
+    log.info(`open room ${parsed.data.open ? "enabled" : "disabled"}`, {
+      gameID: game.id,
+    });
+    res.json({ open: parsed.data.open });
+  });
+
   // The host of a listed lobby pays (plutonium, charged by the API with the
   // host's token) to put it in the public Special queue, right behind the
   // lobby that's counting down.
