@@ -771,6 +771,7 @@
     "login_token_expired": "만료된 로그인 링크입니다. 새 로그인 링크를 요청해 주세요.",
     "login_token_invalid": "유효하지 않거나 만료된 로그인 링크입니다. 새 로그인 링크를 요청해 주세요.",
     "paste_discord": "디스코드의 버그 보고서에 다음을 붙여넣어 주세요:",
+    "reconnecting": "재접속 중…",
     "spawn_failed": {
       "description": "자동 시작 지점 선택에 실패했습니다. 이 게임을 플레이할 수 없습니다.",
       "title": "시작 지점 생성 실패"

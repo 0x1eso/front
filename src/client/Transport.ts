@@ -69,6 +69,7 @@ import {
   SendUpdateGameConfigIntentEvent,
 } from "./LobbyEvents";
 import { LocalServer } from "./LocalServer";
+import { hideReconnectBanner, showReconnectBanner } from "./ReconnectBanner";
 import { describeSocketClose } from "./SocketClose";
 import { homeHref, translateText } from "./Utils";
 import { PlayerView } from "./view";
@@ -341,6 +342,15 @@ export class Transport {
   // exhausting the reconnect budget, and by leaving the game. Blocks
   // scheduleReconnect and connectRemote so nothing reopens the socket.
   private connectionRefused = false;
+  // Set together with connectionRefused when the retry budget ran out. Unlike
+  // a rejection, that is not a verdict by the server: the network may simply
+  // have been gone (a phone asleep), so resume() may lift it.
+  private budgetSpent = false;
+  // Last time any frame arrived; a socket that claims to be OPEN but has been
+  // silent since before a sleep is dead.
+  private lastFrameAt = Date.now();
+  private bannerShown = false;
+  private resumeListenersOn = false;
 
   // True once the server has responded to join/rejoin (via start or lobby_info),
   // proving the session is admitted and ready to accept gameplay intents.
@@ -549,6 +559,8 @@ export class Transport {
     }
     this.isSessionReady = false;
     this.startPing();
+    this.addResumeListeners();
+    this.lastFrameAt = Date.now();
     this.killExistingSocket();
     // WS origin comes from ClientEnv, resolved per game: the id's letter
     // names the hosting deployment, so a shared lobby link or rejoin works
@@ -593,6 +605,8 @@ export class Transport {
       // socket was silent — left armed, it would tear down the socket that
       // just recovered.
       this.reconnectAttempts = 0;
+      this.lastFrameAt = Date.now();
+      this.hideBanner();
       this.cancelReconnect();
       try {
         const msg = decodeServerMessage(
@@ -666,6 +680,7 @@ export class Transport {
           // a fresh socket 5s later only to be refused with "game not found".
           this.connectionRefused = true;
           this.stopPing();
+          this.hideBanner();
         } else {
           this.handleConnectionRefused(event.reason);
         }
@@ -700,6 +715,7 @@ export class Transport {
     }
     this.connectionRefused = true;
     this.stopPing();
+    this.hideBanner();
     // WrongWorker: the worker says it doesn't own this game, which means
     // this bundle routed with a stale worker count. One full navigation to
     // the game's own host re-fetches shell + cluster map and re-resolves;
@@ -768,10 +784,13 @@ export class Transport {
         `giving up after ${this.reconnectAttempts} reconnect attempts`,
       );
       this.connectionRefused = true;
+      this.budgetSpent = true;
       this.stopPing();
+      this.hideBanner();
       this.showTerminalDialog(translateText("error_modal.connection_lost"));
       return;
     }
+    this.showBanner();
     this.reconnectAttempts++;
     const delay = Transport.reconnectDelay(this.reconnectAttempts);
     console.log(
@@ -781,6 +800,62 @@ export class Transport {
       this.reconnectTimeout = null;
       this.connectRemote(this.onconnect, this.onmessage);
     }, delay);
+  }
+
+  // The page came back (visible again), or the network did. Starts over with
+  // a fresh budget: a sleeping phone burns the whole backoff schedule while
+  // timers are throttled, and must still be able to rejoin on wake. A refusal
+  // by the server, a normal close and a left game stay final.
+  public resume() {
+    if (this.isLocal) return;
+    if (this.connectionRefused) {
+      if (!this.budgetSpent) return;
+      this.connectionRefused = false;
+      this.budgetSpent = false;
+    }
+    const state = this.socket?.readyState;
+    if (state === WebSocket.CONNECTING) return;
+    if (
+      state === WebSocket.OPEN &&
+      Date.now() - this.lastFrameAt < Transport.STALE_SOCKET_MS
+    ) {
+      return;
+    }
+    this.reconnectAttempts = 0;
+    this.cancelReconnect();
+    this.scheduleReconnect();
+  }
+
+  static readonly STALE_SOCKET_MS = 5000;
+
+  private readonly onVisibilityChange = () => {
+    if (document.visibilityState === "visible") this.resume();
+  };
+  private readonly onOnline = () => this.resume();
+
+  private addResumeListeners() {
+    if (this.resumeListenersOn) return;
+    this.resumeListenersOn = true;
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
+    window.addEventListener("online", this.onOnline);
+  }
+
+  private removeResumeListeners() {
+    if (!this.resumeListenersOn) return;
+    this.resumeListenersOn = false;
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
+    window.removeEventListener("online", this.onOnline);
+  }
+
+  private showBanner() {
+    this.bannerShown = true;
+    showReconnectBanner();
+  }
+
+  private hideBanner() {
+    if (!this.bannerShown) return;
+    this.bannerShown = false;
+    hideReconnectBanner();
   }
 
   // Delay before the n-th consecutive attempt (1-based).
@@ -852,8 +927,11 @@ export class Transport {
     // A left game is never rejoined through this transport, whatever still
     // asks (the watchdog, a late send).
     this.connectionRefused = true;
+    this.budgetSpent = false;
     this.stopPing();
     this.cancelReconnect();
+    this.removeResumeListeners();
+    this.hideBanner();
     if (this.socket === null) {
       return;
     }
