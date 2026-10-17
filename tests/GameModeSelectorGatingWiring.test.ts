@@ -276,8 +276,12 @@ describe("the home menu", () => {
     });
 
     expect(labels()).toEqual(["main.solo", "main.create", "main.join"]);
-    expect(selector.querySelector("section, h2")).toBeNull();
+    // The only section is the friends' open-room list (spec: open rooms);
+    // server-made public matchmaking games are never shown.
+    const sections = Array.from(selector.querySelectorAll("section"));
+    expect(sections.map((el) => el.className)).toEqual(["atlas-rooms"]);
     expect(selector.textContent).not.toContain("public_lobby.upcoming");
+    expect(selector.textContent).not.toContain("ffa-1");
   });
 
   it("counts the rooms other players host on the Join button", async () => {
