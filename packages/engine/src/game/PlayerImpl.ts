@@ -153,6 +153,15 @@ Object.freeze(EMPTY_ATTACK_UPDATES);
 Object.freeze(EMPTY_ALLIANCE_VIEWS);
 Object.freeze(EMPTY_EMOJIS);
 
+/** Deterministic 32-bit digest of a plain snapshot object (bigint-safe). */
+function forkDigest(state: unknown): number {
+  return simpleHash(
+    JSON.stringify(state, (_k, v) =>
+      typeof v === "bigint" ? v.toString() : v,
+    ),
+  );
+}
+
 export class PlayerImpl implements Player {
   public _lastTileChange: number = 0;
   // Bumped on every ownership change of one of this player's tiles (several
@@ -2110,10 +2119,30 @@ export class PlayerImpl implements Player {
   }
 
   hash(): number {
-    return (
+    const base =
       simpleHash(this.id()) * (this.troops() + this.numTilesOwned()) +
-      this._units.reduce((acc, unit) => acc + unit.hash(), 0)
-    );
+      this._units.reduce((acc, unit) => acc + unit.hash(), 0);
+    const cfg = this.mg.config();
+    if (
+      !cfg.domesticMode() &&
+      !cfg.strategicWeapons() &&
+      !cfg.warfareExpansion()
+    ) {
+      return base; // vanilla: bit-identical to the upstream hash
+    }
+    // Fork state: gold plus the domestic / strategic snapshots. Warfare state
+    // (airport sorties, plane troops/targets, barrage zones) is folded in per
+    // unit by UnitImpl.hash().
+    let digest = simpleHash(this._gold.toString());
+    if (this._domestic !== null) {
+      digest =
+        (Math.imul(digest, 31) + forkDigest(this._domestic.snapshot())) | 0;
+    }
+    if (this._strategic !== null) {
+      digest =
+        (Math.imul(digest, 31) + forkDigest(this._strategic.snapshot())) | 0;
+    }
+    return base + (digest >>> 0);
   }
   toString(): string {
     return `Player:{name:${this.info().name},clientID:${

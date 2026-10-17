@@ -50,14 +50,14 @@ describe("vanilla stays bit-identical", () => {
   // weapons): turning the strategic option off must leave both unchanged.
   test("domestic mode with the strategic option explicitly off", async () => {
     expect(await digest({ domesticMode: true, strategicWeapons: false })).toBe(
-      "11efe429c80c6e2f",
+      "7d34e4d5cdaa07ab",
     );
   }, 60_000);
 
   test("expanded warfare with the strategic option explicitly off", async () => {
     expect(
       await digest({ warfareExpansion: true, strategicWeapons: false }),
-    ).toBe("23b8b627b1d534ee");
+    ).toBe("7ab01036826a4a06");
   }, 60_000);
 
   test("domestic mode and expanded warfare with the strategic option explicitly off", async () => {
@@ -67,6 +67,11 @@ describe("vanilla stays bit-identical", () => {
         warfareExpansion: true,
         strategicWeapons: false,
       }),
-    ).toBe("d47cef1a67272392");
+    ).toBe("dddf7fe292970133");
+  }, 60_000);
+
+  // Fork options on: the hash also covers gold and the fork state.
+  test("strategic weapons on", async () => {
+    expect(await digest({ strategicWeapons: true })).toBe("fd640debf2600bff");
   }, 60_000);
 });

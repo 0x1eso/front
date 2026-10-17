@@ -561,7 +561,18 @@ export class UnitImpl implements Unit {
   }
 
   hash(): number {
-    return this.tile() + simpleHash(this.type()) * this._id;
+    const base = this.tile() + simpleHash(this.type()) * this._id;
+    if (!this.mg.config().warfareExpansion()) return base;
+    // Warfare state: airport sortie slots in use, plane troops and targets,
+    // barrage zones (reached / aimed).
+    let d = this._troops | 0;
+    d = (Math.imul(d, 31) + (this._targetTile ?? -1)) | 0;
+    d = (Math.imul(d, 31) + (this._reachedTarget ? 1 : 0)) | 0;
+    d = (Math.imul(d, 31) + this._level) | 0;
+    const q = this._missileTimerQueue;
+    d = (Math.imul(d, 31) + q.length) | 0;
+    for (let i = 0; i < q.length; i++) d = (Math.imul(d, 31) + q[i]) | 0;
+    return base + (d >>> 0);
   }
 
   toString(): string {
