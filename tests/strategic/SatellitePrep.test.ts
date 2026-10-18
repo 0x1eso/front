@@ -37,7 +37,7 @@ function tickMessages(game: Game): DisplayMessageUpdate[] {
 const sat = (p: Player) => p.strategic()!.satellite();
 
 describe("satellite preparation", () => {
-  test("90 s at the player's silo for 25M, in front of everyone, then orbit", async () => {
+  test("60 s at the player's silo for 25M, in front of everyone, then orbit", async () => {
     const { game, red, silo } = await launchpad();
     const gold = red.gold();
     prepare(game, red, game.ref(12, 12));
@@ -51,7 +51,7 @@ describe("satellite preparation", () => {
     expect(msg?.playerID).toBeNull();
     expect(msg?.unitID).toBe(silo.id());
 
-    executeTicks(game, 899);
+    executeTicks(game, 599);
     expect(sat(red).phase).toBe("preparing");
     const done = tickMessages(game);
     expect(sat(red)).toEqual({ phase: "orbit" });
@@ -178,7 +178,7 @@ describe("satellite preparation", () => {
 });
 
 describe("aiming the satellite", () => {
-  test("a nation is struck 60 s later, and everyone hears who aims at whom", async () => {
+  test("a nation is struck 15 s later, and everyone hears who aims at whom", async () => {
     const { game, red, blue } = await launchpad();
     red.strategic()!.setSatellite({ phase: "orbit" });
     game.addExecution(new SatelliteTargetExecution(red, blue.id()));
@@ -187,7 +187,7 @@ describe("aiming the satellite", () => {
     expect(sat(red)).toEqual({
       phase: "targeted",
       target: blue.smallID(),
-      strikeTick: now + 600,
+      strikeTick: now + 150,
       interceptors: [],
     });
     const msg = msgs.find(

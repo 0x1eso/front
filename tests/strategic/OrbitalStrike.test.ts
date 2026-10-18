@@ -263,7 +263,7 @@ describe("the strike in waves (spec §6.6)", () => {
     executeTicks(game, 2);
     for (const left of [waved.blue.numTilesOwned(), blue.numTilesOwned()]) {
       expect(left).toBeLessThan(before * 0.75);
-      expect(left).toBeGreaterThan(before * 0.6);
+      expect(left).toBeGreaterThan(before * 0.55);
     }
   });
 

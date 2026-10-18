@@ -72,6 +72,6 @@ describe("vanilla stays bit-identical", () => {
 
   // Fork options on: the hash also covers gold and the fork state.
   test("strategic weapons on", async () => {
-    expect(await digest({ strategicWeapons: true })).toBe("fd640debf2600bff");
+    expect(await digest({ strategicWeapons: true })).toBe("091085284bca29e0");
   }, 60_000);
 });

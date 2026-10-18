@@ -113,12 +113,12 @@ export function satelliteCost(launched: number): number {
   for (let i = 0; i < launched; i++) cost *= 2;
   return cost;
 }
-/** 90 s at a silo before the satellite reaches orbit. */
-export const SATELLITE_PREP_TICKS = 90 * 10;
+/** 60 s at a silo before the satellite reaches orbit. */
+export const SATELLITE_PREP_TICKS = 60 * 10;
 /** The satellite button picks the player's ready silo nearest the aim within this many tiles. */
 export const SATELLITE_SILO_PICK_RADIUS = 15;
-/** The strike lands 60 s after the target is chosen. */
-export const SATELLITE_STRIKE_DELAY_TICKS = 60 * 10;
+/** The strike lands 15 s after the target is chosen. */
+export const SATELLITE_STRIKE_DELAY_TICKS = 15 * 10;
 /** An interceptor is judged 3 s after launch; a due strike waits for every interceptor still flying. */
 export const INTERCEPTOR_FLIGHT_TICKS = 3 * 10;
 /** 1 in N per interceptor: hydrogen 10%, atom 2% (spec §6.3). */

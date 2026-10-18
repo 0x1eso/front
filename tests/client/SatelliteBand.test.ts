@@ -111,7 +111,8 @@ async function band(me: PlayerView, players: PlayerView[], now = 400) {
   return { el, ...b };
 }
 
-// Red's satellite strikes blue at tick 700; it is tick 400: 30 s left, 50%.
+// Red's satellite strikes blue at tick 475; it is tick 400: 7.5 s of the 15 s
+// countdown left, 50%.
 const red = () =>
   view({
     id: "red",
@@ -120,7 +121,7 @@ const red = () =>
       satellite: {
         phase: "targeted",
         target: 2,
-        strikeTick: 700,
+        strikeTick: 475,
         interceptors: [{ by: 3, type: UnitType.AtomBomb, resolveTick: 420 }],
       },
     }),
@@ -144,7 +145,7 @@ describe("satellite band", () => {
     const row = el.querySelector("[data-countdown]")!;
     expect(row.textContent).toContain("[strategic.band] name=red,target=blue");
     expect(row.querySelector("[data-seconds]")!.textContent).toContain(
-      "seconds=30",
+      "seconds=8",
     );
     expect(row.querySelector<HTMLElement>("[data-progress]")!.style.width).toBe(
       "50%",

@@ -5,8 +5,8 @@
  *  - preparing silo: satellite badge above it, slowly pulsing cyan ring, time
  *    left label (all with a minimum on-screen size so they read zoomed out)
  *  - launch / interception: a thin streak rising from the silo and fading
- *  - 60 s countdown: a large thin reticle over the target, shrinking; the
- *    target's border pulses (BorderStampPass reads `pulseOwners`/`pulseValues`)
+ *  - strike countdown: the target's border pulses (BorderStampPass reads
+ *    `pulseOwners`/`pulseValues`)
  *  - strike impacts: an expanding blue ripple ring
  *
  * Nothing is drawn, and nothing allocates, while there is nothing to show.
@@ -15,7 +15,6 @@
 import {
   borderPulse,
   formatClock,
-  reticleRadius,
   STRIKE_TOTAL_TICKS,
 } from "../../frame/derive/StrategicFx";
 import { renderDpr } from "../utils/Dpr";
@@ -35,7 +34,6 @@ const MAX_EFFECTS = 64;
 const CYAN = [0.2, 0.85, 1.0] as const;
 const LAUNCH_COLOR = [0.8, 0.95, 1.0] as const;
 const INTERCEPT_COLOR = [1.0, 0.75, 0.3] as const;
-const RETICLE_COLOR = [1.0, 0.25, 0.2] as const;
 const RIPPLE_COLOR = [0.35, 0.65, 1.0] as const;
 
 export interface PreparingFx {
@@ -269,23 +267,6 @@ export class StrategicFxPass {
 
     gl.useProgram(this.shape);
     gl.uniformMatrix3fv(this.sCamera, false, cameraMatrix);
-
-    for (const c of this.countdowns) {
-      const r = reticleRadius(
-        this.leftNow(c, now),
-        STRIKE_TOTAL_TICKS,
-        c.maxRadius,
-      );
-      this.drawRing(c.x, c.y, r, 2 * pxToTiles, RETICLE_COLOR, 0.85);
-      this.drawRing(
-        c.x,
-        c.y,
-        r * 0.08 + 1,
-        1.5 * pxToTiles,
-        RETICLE_COLOR,
-        0.8,
-      );
-    }
 
     for (const e of this.ripples) {
       const t = (now - e.start) / RIPPLE_MS;

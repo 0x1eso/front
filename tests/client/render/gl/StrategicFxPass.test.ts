@@ -116,13 +116,13 @@ describe("StrategicFxPass", () => {
     expect(counts.draws).toBe(0);
   });
 
-  test("a countdown draws a reticle and pulses the target's border", () => {
+  test("a countdown only pulses the target's border (no reticle)", () => {
     const { pass, counts, advance } = setup();
     pass.setCountdowns([
-      { ownerID: 4, x: 20, y: 20, maxRadius: 50, leftTicks: 600 },
+      { ownerID: 4, x: 20, y: 20, maxRadius: 50, leftTicks: 150 },
     ]);
     pass.draw(cam, 4);
-    expect(counts.draws).toBe(2);
+    expect(counts.draws).toBe(0);
     pass.updatePulses();
     expect(pass.pulseCount).toBe(1);
     expect(pass.pulseOwners[0]).toBe(4);
