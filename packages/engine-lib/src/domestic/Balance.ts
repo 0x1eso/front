@@ -26,6 +26,10 @@ export const BUILDING_CONSTRUCTION_TICKS = 5 * 10;
 /** Extra base gold per tick per city level (150 gold/s). */
 export const CITY_TAX_PER_LEVEL_PER_TICK = 15;
 
+/** Domestic mode: trains (factory income) pay this many times the vanilla
+ *  amount, so unlocking factories with Railways beats more ports (§3.4). */
+export const DOMESTIC_TRAIN_GOLD_MULT = 2.5;
+
 export const RECRUIT_COST_PER_1000_TROOPS = 50;
 /** Troops up to this percent of max troops cost no upkeep. */
 export const UPKEEP_FREE_BAND_PCT = 40;

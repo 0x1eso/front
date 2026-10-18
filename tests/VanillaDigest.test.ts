@@ -50,7 +50,7 @@ describe("vanilla stays bit-identical", () => {
   // weapons): turning the strategic option off must leave both unchanged.
   test("domestic mode with the strategic option explicitly off", async () => {
     expect(await digest({ domesticMode: true, strategicWeapons: false })).toBe(
-      "7d34e4d5cdaa07ab",
+      "a7dac00d9005a3ad",
     );
   }, 60_000);
 

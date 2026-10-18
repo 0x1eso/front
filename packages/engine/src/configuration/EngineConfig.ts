@@ -19,6 +19,7 @@ import {
   BUILDING_BASE_COST,
   BUILDING_MAX_COST,
   CITY_TAX_PER_LEVEL_PER_TICK,
+  DOMESTIC_TRAIN_GOLD_MULT,
 } from "@openfront/engine-lib/domestic/Balance";
 import {
   applyPct,
@@ -288,7 +289,8 @@ export class EngineConfig extends Config {
         break;
     }
     const distPenalty = citiesVisited * 5_000;
-    const gold = Math.max(5000, baseGold - distPenalty);
+    let gold = Math.max(5000, baseGold - distPenalty);
+    if (this.domesticMode()) gold *= DOMESTIC_TRAIN_GOLD_MULT;
     return toInt(gold * this.goldMultiplierFor(player));
   }
 
