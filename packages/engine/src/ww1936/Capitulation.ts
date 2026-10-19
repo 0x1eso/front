@@ -1,6 +1,9 @@
 import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
-import { WW_TRANSFER_TILES_PER_TICK } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  CapitulationData,
+  WW_TRANSFER_TILES_PER_TICK,
+} from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
 import type { WorldWar } from "./WorldWar";
 
@@ -29,13 +32,15 @@ export function heldStartVp(mg: Game, ww: WorldWar, smallID: number): number {
  * Who ends up with what `smallID` holds: itself, or once it has capitulated,
  * its victor (whose own capitulation passes it on again). 0: nobody.
  */
-function heir(ww: WorldWar, smallID: number): number {
+function heir(caps: readonly CapitulationData[], smallID: number): number {
   let id = smallID;
-  for (let i = 0; id !== 0 && ww.isCapitulated(id); i++) {
-    if (i > ww.scenario.countries.length) return 0;
-    id = ww.data().capitulated.find((c) => c.smallID === id)?.victor ?? 0;
+  for (let i = 0; i <= caps.length; i++) {
+    const cap = caps.find((c) => c.smallID === id);
+    if (cap === undefined) return id;
+    id = cap.victor;
+    if (id === 0) return 0;
   }
-  return id;
+  return 0;
 }
 
 /**
@@ -44,10 +49,11 @@ function heir(ww: WorldWar, smallID: number): number {
  */
 function takenFrom(mg: Game, ww: WorldWar, loser: number): Map<number, number> {
   const owners = ww.scenario.ownerByRegion();
+  const caps = ww.data().capitulated;
   const out = new Map<number, number>();
   for (const r of ww.scenario.landRegions) {
     if (owners[r.id] !== loser) continue;
-    const holder = heir(ww, mg.ownerID(ww.scenario.vpTile(r)));
+    const holder = heir(caps, mg.ownerID(ww.scenario.vpTile(r)));
     if (holder === 0 || holder === loser) continue;
     out.set(holder, (out.get(holder) ?? 0) + r.vp);
   }
@@ -88,13 +94,21 @@ export function pickVictor(
 
 /** Once a day (WorldWarExecution): every country past its surrender line capitulates. */
 export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
+  // Of each country's starting regions, the points it still controls. No
+  // tile changes hands inside this loop (capitulate only queues transfers).
+  const owners = ww.scenario.ownerByRegion();
+  const held = new Array<number>(ww.scenario.countries.length + 1).fill(0);
+  for (const r of ww.scenario.landRegions) {
+    const owner = owners[r.id];
+    if (mg.ownerID(ww.scenario.vpTile(r)) === owner) held[owner] += r.vp;
+  }
   for (let id = 1; id <= ww.scenario.countries.length; id++) {
     if (ww.isCapitulated(id)) continue;
     const p = mg.playerBySmallID(id);
     if (!p.isPlayer() || !p.isAlive()) continue;
     const start = ww.startVp(id);
     if (start === 0) continue;
-    const lost = start - heldStartVp(mg, ww, id);
+    const lost = start - held[id];
     if (lost * 100 < start * COUNTRIES[ww.tagOf(id)].surrenderPct) continue;
     capitulate(mg, ww, p, tick);
   }
@@ -124,6 +138,14 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
     a.attacker().addTroops(a.troops());
     a.delete();
   }
+  // The same for boats still sailing to its land: they turn into troops at
+  // home, so no landing takes a tile from it (or from its victor later).
+  for (const u of mg.units(UnitType.TransportShip)) {
+    const dst = u.targetTile();
+    if (dst === undefined || mg.ownerID(dst) !== loserID) continue;
+    u.owner().addTroops(u.troops());
+    u.delete(false);
+  }
   if (victor !== null) {
     // Land still on its way to the loser goes straight on to its victor.
     for (const t of ww.transfers()) {
@@ -151,7 +173,9 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
  * Every tick: moves up to WW_TRANSFER_TILES_PER_TICK tiles of the oldest
  * transfers, skipping tiles the loser no longer owns. The conquest (gold,
  * stats, the conquest event) is settled when the loser's last tile moves,
- * and its transfer ends there.
+ * and its transfer ends there. A loser still holding land when its list is
+ * used up (a dying neighbour's tiles handed to it meanwhile) has that land
+ * listed again, in its own tile order.
  */
 export function stepTransfers(mg: Game, ww: WorldWar): void {
   const list = ww.transfers();
@@ -171,6 +195,16 @@ export function stepTransfers(mg: Game, ww: WorldWar): void {
       }
     }
     if (t.next < t.tiles.length) return;
+    if (
+      from.isPlayer() &&
+      from.isAlive() &&
+      to.isPlayer() &&
+      ww.isCapitulated(t.from)
+    ) {
+      t.tiles = Uint32Array.from(from.tiles());
+      t.next = 0;
+      continue;
+    }
     list.shift();
   }
 }

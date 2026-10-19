@@ -1,3 +1,4 @@
+import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   WW_PREP_TICKS,
@@ -279,6 +280,89 @@ describe("victory points and capitulation (spec §7.5)", () => {
     step(runner, 3);
     expect(pol.isAlive()).toBe(false);
     expect(sun.numTilesOwned()).toBe(sunTiles);
+    const conquests = updates
+      .flatMap((u) => u.updates[GameUpdateType.ConquestEvent])
+      .filter((c) => c.conqueredId === pol.id());
+    expect(conquests).toEqual([
+      expect.objectContaining({ conquerorId: deu.id() }),
+    ]);
+  });
+
+  test("a boat sailing to the loser turns back into troops at home", async () => {
+    const { runner, updates } = await wwRunnerCapture({}, [
+      { clientID: HUMAN, country: "GBR" },
+    ]);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [deu, pol, gbr] = (["DEU", "POL", "GBR"] as const).map((t) =>
+      byTag(g, t),
+    );
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    ww.setWar(gbr.smallID(), pol.smallID(), g.ticks());
+    const sent = Math.floor(gbr.troops() / 2);
+    step(runner, 3, [
+      stamped(HUMAN, { type: "boat", troops: sent, dst: g.ref(105, 99) }),
+    ]);
+    const [boat] = gbr.units(UnitType.TransportShip);
+    expect(boat.troops()).toBe(sent);
+    const landing = boat.targetTile()!;
+    expect(g.owner(landing)).toBe(pol);
+
+    deu.conquer(vpTileOf(g, "Warsaw"));
+    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
+    expect(boat.isActive()).toBe(true);
+    const troops = gbr.troops() + boat.troops();
+    const gbrTiles = gbr.numTilesOwned();
+    step(runner);
+    expect(ww.isCapitulated(pol.smallID())).toBe(true);
+    expect(boat.isActive()).toBe(false);
+    expect(gbr.units(UnitType.TransportShip)).toEqual([]);
+    expect(gbr.troops()).toBeGreaterThanOrEqual(troops);
+
+    step(runner, 150);
+    expect(pol.isAlive()).toBe(false);
+    expect(g.owner(landing)).toBe(deu);
+    expect(gbr.numTilesOwned()).toBe(gbrTiles);
+    const conquests = updates
+      .flatMap((u) => u.updates[GameUpdateType.ConquestEvent])
+      .filter((c) => c.conqueredId === pol.id());
+    expect(conquests).toEqual([
+      expect.objectContaining({ conquerorId: deu.id() }),
+    ]);
+  });
+
+  test("land handed to the loser during its transfer goes along too", async () => {
+    const { runner, updates } = await wwRunnerCapture();
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [deu, pol, sun, ita, gbr] = (
+      ["DEU", "POL", "SUN", "ITA", "GBR"] as const
+    ).map((t) => byTag(g, t));
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    deu.conquer(vpTileOf(g, "Warsaw"));
+    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
+    const left = 50;
+    queueBacklog(
+      g,
+      ita,
+      gbr,
+      WW_TRANSFER_TILES_PER_TICK - pol.numTilesOwned() + left,
+    );
+    step(runner);
+    expect(ww.isCapitulated(pol.smallID())).toBe(true);
+    expect(pol.numTilesOwned()).toBe(left);
+
+    // A dying neighbour's tile lands with Poland mid-transfer (as
+    // AttackExecution.handleDeadDefender hands them out).
+    const handed = g.ref(125, 60);
+    expect(g.owner(handed)).toBe(sun);
+    pol.conquer(handed);
+    step(runner, 3);
+    expect(pol.isAlive()).toBe(false);
+    expect(g.owner(handed)).toBe(deu);
+    expect(ww.transfers()).toEqual([]);
     const conquests = updates
       .flatMap((u) => u.updates[GameUpdateType.ConquestEvent])
       .filter((c) => c.conqueredId === pol.id());
