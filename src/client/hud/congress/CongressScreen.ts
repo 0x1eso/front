@@ -175,18 +175,20 @@ function worldGovernment(
   if (ctx.data.verdicts.length === 0) return nothing;
   return html`<section data-congress-worldgov class=${SECTION}>
     <h3 class=${HEAD}>${ctx.t("congress.screen.world_gov")}</h3>
-    ${ctx.data.verdicts.map(
-      (v) =>
-        html`<span
-          data-verdict=${v.ratified ? "ratified" : "not_ratified"}
-          class=${ROW}
-          >${ctx.t(
-            v.ratified
-              ? "congress.screen.world_gov_ratified"
-              : "congress.screen.not_ratified",
-            { name: ctx.nameOf(v.owner) },
-          )}</span
-        >`,
+    ${ctx.data.verdicts.map((v) =>
+      // "not_ratified" carries no name: the row names the owner itself.
+      v.ratified
+        ? html`<span data-verdict="ratified" class=${ROW}
+            >${ctx.t("congress.screen.world_gov_ratified", {
+              name: ctx.nameOf(v.owner),
+            })}</span
+          >`
+        : html`<span data-verdict="not_ratified" class=${ROW}
+            ><span class="font-semibold">${ctx.nameOf(v.owner)}</span
+            ><span class="text-gray-300"
+              >${ctx.t("congress.screen.not_ratified")}</span
+            ></span
+          >`,
     )}
   </section>`;
 }

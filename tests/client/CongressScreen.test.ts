@@ -133,7 +133,9 @@ describe("the congress screen", () => {
       ],
     });
     const rows = el.querySelector("[data-congress-worldgov]")!.textContent!;
-    expect(rows).toContain('[congress.screen.not_ratified:{"name":"jiho"}]');
+    const rejected = el.querySelector('[data-verdict="not_ratified"]')!;
+    expect(rejected.textContent).toContain("jiho");
+    expect(rejected.textContent).toContain("[congress.screen.not_ratified]");
     expect(rows).toContain(
       '[congress.screen.world_gov_ratified:{"name":"seoyeon"}]',
     );
