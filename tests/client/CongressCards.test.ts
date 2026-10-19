@@ -1,5 +1,7 @@
 import { SessionData } from "@openfront/engine-api/congress/CongressTypes";
 import { EventBus } from "@openfront/shared/EventBus";
+import fs from "fs";
+import path from "path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Utils", async (importOriginal) => ({
@@ -10,6 +12,7 @@ vi.mock("../../src/client/Utils", async (importOriginal) => ({
 
 import "../../src/client/hud/congress/CongressCards";
 import {
+  CARD_LAYER_CLASS,
   COLLAPSE_TICKS,
   CongressCards,
   STAMP_TICKS,
@@ -53,7 +56,12 @@ async function mount(state: FakeCongress) {
   return { el, votes, step };
 }
 
-const q = (el: HTMLElement, sel: string) => el.querySelector<HTMLElement>(sel);
+/**
+ * Anywhere on the page: the open card stack is drawn in its own layer on
+ * <body> (CongressCards.cardLayer), the rest inside the element.
+ */
+const q = (_el: HTMLElement, sel: string) =>
+  document.querySelector<HTMLElement>(sel);
 
 describe("vote cards", () => {
   afterEach(() => {
@@ -69,7 +77,7 @@ describe("vote cards", () => {
     };
     const { el, votes, step } = await mount(state);
     const pressed = () =>
-      [...el.querySelectorAll<HTMLElement>("[data-vote]")].map((b) => [
+      [...document.querySelectorAll<HTMLElement>("[data-vote]")].map((b) => [
         b.dataset.vote,
         b.getAttribute("aria-pressed"),
       ]);
@@ -89,7 +97,9 @@ describe("vote cards", () => {
       ["A", "true"],
       ["B", "false"],
     ]);
-    const chips = [...el.querySelectorAll<HTMLButtonElement>("[data-extra]")];
+    const chips = [
+      ...document.querySelectorAll<HTMLButtonElement>("[data-extra]"),
+    ];
     expect(chips.map((c) => [c.dataset.extra, c.disabled])).toEqual([
       ["1", false],
       ["2", false],
@@ -152,8 +162,9 @@ describe("vote cards", () => {
     expect(b.disabled).toBe(false);
     expect(a.dataset.side).toBe("bad");
     expect(b.dataset.side).toBe("good");
-    expect(el.textContent).toContain("[congress.card.b_only]");
-    expect(el.textContent).toContain("[congress.emergency.nuclear] · me");
+    const stack = q(el, "[data-card-stack]")!;
+    expect(stack.textContent).toContain("[congress.card.b_only]");
+    expect(stack.textContent).toContain("[congress.emergency.nuclear] · me");
   });
 
   it("folds into a pill 5 s after my last vote, and the pill opens it again", async () => {
@@ -260,7 +271,7 @@ describe("vote cards", () => {
       ballots: [],
       influence: 0,
     };
-    const { el, step } = await mount(state);
+    const { step } = await mount(state);
     const result = (sessionId: number) => ({
       sessionId,
       kind: "regular" as const,
@@ -277,7 +288,7 @@ describe("vote cards", () => {
       history: [result(7), result(8), result(9), result(10)],
     };
     await step(2100);
-    expect(el.querySelectorAll("[data-congress-stamp]")).toHaveLength(3);
+    expect(document.querySelectorAll("[data-congress-stamp]")).toHaveLength(3);
   });
 
   it("keeps the raise chips on one line, the turnout on the reason line", async () => {
@@ -291,7 +302,7 @@ describe("vote cards", () => {
     expect(footer.classList).toContain("flex-nowrap");
     expect(footer.classList).toContain("overflow-x-auto");
     expect(footer.querySelectorAll("[data-extra]")).toHaveLength(5);
-    expect(q(footer, "[data-turnout]")).toBeNull();
+    expect(footer.querySelector("[data-turnout]")).toBeNull();
     expect(
       q(el, "[data-card-reason]")!.parentElement!.querySelector(
         "[data-turnout]",
@@ -417,5 +428,102 @@ describe("vote cards", () => {
     expect(redraw).toHaveBeenCalledTimes(2);
     await step(1912);
     expect(redraw).toHaveBeenCalledTimes(2);
+  });
+
+  describe("on a phone the leaderboard covers the HUD's middle column", () => {
+    /** The z-index a Tailwind class list sets (z-900, z-[950]). */
+    const zOf = (classes: string) =>
+      Number(/(?:^|\s)z-\[?(\d+)\]?(?:\s|$)/.exec(classes)![1]);
+    const source = (file: string) =>
+      fs.readFileSync(
+        path.join(__dirname, "..", "..", "src", "client", file),
+        "utf8",
+      );
+
+    async function inHud(state: FakeCongress) {
+      // As index.html: the bottom HUD is a fixed z-[200] stacking context.
+      const hud = document.createElement("div");
+      hud.setAttribute("data-bottom-hud", "");
+      hud.className = "fixed bottom-0 left-0 w-full z-[200]";
+      const column = document.createElement("div");
+      hud.appendChild(column);
+      document.body.appendChild(hud);
+      const el = document.createElement("congress-cards") as CongressCards;
+      el.game = fakeCongressGame(state);
+      el.eventBus = new EventBus();
+      column.appendChild(el);
+      el.init();
+      el.tick();
+      await el.updateComplete;
+      return { el, hud };
+    }
+
+    it("the open stack is drawn in its own layer above the leaderboard, its slot keeping its place", async () => {
+      const { el, hud } = await inHud({
+        now: 1900,
+        data: { ...EMPTY, session: REGULAR },
+        ballots: [],
+        influence: 50,
+      });
+      const layer = el.cardLayer()!;
+      // Out of the HUD's stacking context, above the leaderboard (z-900)
+      // and below PlayerInfoOverlay (1001) and the domestic drawer (1100).
+      expect(layer.parentElement).toBe(document.body);
+      expect(hud.contains(layer)).toBe(false);
+      expect(layer.className).toContain(CARD_LAYER_CLASS);
+      const sidebar = /<aside\s+class=\$\{`([^`$]*)/.exec(
+        source("hud/layers/GameLeftSidebar.ts"),
+      )![1];
+      expect(zOf(CARD_LAYER_CLASS)).toBeGreaterThan(zOf(sidebar));
+      expect(zOf(CARD_LAYER_CLASS)).toBeLessThan(1001);
+      expect(source("hud/domestic/DomesticPanel.ts")).toContain(
+        'class="fixed z-[1100]',
+      );
+      const stack = layer.querySelector<HTMLElement>("[data-card-stack]")!;
+      expect(stack.querySelector("[data-congress-card]")).not.toBeNull();
+      expect(el.querySelector("[data-card-stack]")).toBeNull();
+
+      // The slot in the HUD takes the stack's height; the layer lies on it.
+      const slot = el.querySelector<HTMLElement>("[data-card-slot]")!;
+      stack.getBoundingClientRect = () => ({ height: 200 }) as DOMRect;
+      slot.getBoundingClientRect = () =>
+        ({ left: 142, bottom: window.innerHeight - 100 }) as DOMRect;
+      window.dispatchEvent(new Event("resize"));
+      await el.updateComplete;
+      expect(slot.style.height).toBe("200px");
+      expect(layer.style.left).toBe("142px");
+      expect(layer.style.bottom).toBe("100px");
+    });
+
+    it("once folded, the pill stays in the HUD and the layer is empty", async () => {
+      const state: FakeCongress = {
+        now: 1900,
+        data: { ...EMPTY, session: REGULAR },
+        ballots: [{ sessionId: 7, item: 0, option: "A", extra: 0 }],
+        influence: 50,
+      };
+      const { el } = await inHud(state);
+      const layer = el.cardLayer()!;
+      expect(layer.querySelector("[data-card-stack]")).not.toBeNull();
+      state.now = 1900 + COLLAPSE_TICKS;
+      el.tick();
+      await el.updateComplete;
+      expect(el.querySelector("[data-congress-pill]")).not.toBeNull();
+      expect(el.querySelector("[data-card-slot]")).toBeNull();
+      expect(layer.querySelector("[data-card-stack]")).toBeNull();
+    });
+
+    it("the layer goes with the cards", async () => {
+      const { el } = await inHud({
+        now: 1900,
+        data: { ...EMPTY, session: REGULAR },
+        ballots: [],
+        influence: 50,
+      });
+      const layer = el.cardLayer()!;
+      el.remove();
+      expect(layer.isConnected).toBe(false);
+      expect(el.cardLayer()).toBeNull();
+    });
   });
 });

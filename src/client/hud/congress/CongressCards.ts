@@ -5,7 +5,7 @@ import {
   SessionData,
 } from "@openfront/engine-api/congress/CongressTypes";
 import { EventBus } from "@openfront/shared/EventBus";
-import { html, LitElement, nothing, TemplateResult } from "lit";
+import { html, LitElement, nothing, render, TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { SendCongressVoteIntentEvent } from "../../Transport";
@@ -42,6 +42,14 @@ const CARD_WIDTH = "w-[min(260px,calc(50vw-16px))]";
 const TOP_GAP = 8;
 /** The card stack never shrinks below this (a card's title, reason and buttons), in CSS px. */
 const MIN_STACK_PX = 96;
+
+/**
+ * The open card stack's own layer: above the leaderboard (GameLeftSidebar,
+ * z-900), which covers the bottom HUD's middle column on a phone, and below
+ * PlayerInfoOverlay (1001), the congress band (1002) and the domestic
+ * drawer (1100).
+ */
+export const CARD_LAYER_CLASS = "fixed z-[950] pointer-events-none";
 
 interface Stamp {
   result: ResultData;
@@ -83,13 +91,33 @@ export class CongressCards extends LitElement implements Controller {
   private resizeObserver: ResizeObserver | null = null;
   /** What the last redraw request was made for (sameDrawKey). */
   private drawn: unknown[] | null = null;
+  /**
+   * The open card stack is drawn here, a fixed layer on <body>: the bottom
+   * HUD (z-200) is a stacking context its children can't leave. In the HUD
+   * a slot of the stack's size keeps its place, so the stack sits exactly
+   * where it always did and the attacks stay above it.
+   */
+  private layer: HTMLDivElement | null = null;
+  /** What render() put in the layer (null: nothing). */
+  private stackTemplate: TemplateResult | null = null;
 
   createRenderRoot() {
     return this;
   }
 
+  /** The card stack's layer while connected (tests and layout read it). */
+  cardLayer(): HTMLElement | null {
+    return this.layer;
+  }
+
   connectedCallback() {
     super.connectedCallback();
+    const layer = document.createElement("div");
+    layer.setAttribute("data-congress-card-layer", "");
+    layer.className = `${CARD_LAYER_CLASS} text-white select-none`;
+    layer.addEventListener("contextmenu", (e) => e.preventDefault());
+    document.body.appendChild(layer);
+    this.layer = layer;
     window.addEventListener("resize", this.refit);
     // The column changes size when cards, chips, attacks or the HUD rows do.
     const column = this.parentElement;
@@ -104,6 +132,36 @@ export class CongressCards extends LitElement implements Controller {
     window.removeEventListener("resize", this.refit);
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    if (this.layer !== null) {
+      render(nothing, this.layer);
+      this.layer.remove();
+      this.layer = null;
+    }
+  }
+
+  /** After each render: the stack into its layer, laid over its slot. */
+  protected updated(): void {
+    if (this.layer === null) return;
+    render(this.stackTemplate ?? nothing, this.layer);
+    this.place();
+  }
+
+  /**
+   * Sizes the slot to the stack and lays the layer over the slot (its left
+   * and bottom edges). Runs after each render and when the HUD column or
+   * the window changes size.
+   */
+  private place(): void {
+    const layer = this.layer;
+    if (layer === null) return;
+    const slot = this.querySelector<HTMLElement>("[data-card-slot]");
+    const stack = layer.querySelector<HTMLElement>("[data-card-stack]");
+    if (slot === null || stack === null) return;
+    const height = `${Math.round(stack.getBoundingClientRect().height)}px`;
+    if (slot.style.height !== height) slot.style.height = height;
+    const r = slot.getBoundingClientRect();
+    layer.style.left = `${Math.round(r.left)}px`;
+    layer.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
   }
 
   /**
@@ -112,8 +170,9 @@ export class CongressCards extends LitElement implements Controller {
    * much as the column overflows it. Measured on resize only, never per tick.
    */
   readonly refit = () => {
+    this.place();
     const column = this.parentElement;
-    const stack = this.querySelector("[data-card-stack]");
+    const stack = this.layer?.querySelector("[data-card-stack]") ?? null;
     let next: number | null = null;
     if (column !== null && stack !== null) {
       const room = column.getBoundingClientRect().top - TOP_GAP;
@@ -213,6 +272,7 @@ export class CongressCards extends LitElement implements Controller {
   }
 
   render() {
+    this.stackTemplate = null;
     if (!this.game?.config().congress()) return nothing;
     const data = this.game.congressData();
     if (data === null) return nothing;
@@ -227,8 +287,22 @@ export class CongressCards extends LitElement implements Controller {
     }
     const influence = viewer?.data?.influence ?? 0;
     const eligible = cards.filter((c) => c.eligible).length;
+    const open =
+      s !== null && cards.length > 0 && !this.collapsed(s, cards, now);
     // Three cards fit a tablet; on a short phone screen the stack scrolls
-    // (stackMax, see refit) rather than pushing the HUD off the top.
+    // (stackMax, see refit) rather than pushing the HUD off the top. It is
+    // drawn in its own layer (updated); its slot holds its place here.
+    this.stackTemplate = open
+      ? html`<div
+          data-card-stack
+          class="flex flex-col items-start gap-1 overflow-y-auto"
+          style=${this.stackMax === null
+            ? nothing
+            : `max-height: ${this.stackMax}px`}
+        >
+          ${cards.map((c) => this.renderCard(c, influence, now))}
+        </div>`
+      : null;
     return html`<div
       data-congress-cards
       class="flex flex-col items-start gap-1 pb-1 pointer-events-none text-white select-none"
@@ -237,20 +311,12 @@ export class CongressCards extends LitElement implements Controller {
       ${stamps.map((st) => this.renderStamp(st.result))}
       ${s === null || cards.length === 0
         ? nothing
-        : this.collapsed(s, cards, now)
-          ? // Nothing to vote on (a dead viewer): no pill either.
+        : open
+          ? html`<div data-card-slot class="${CARD_WIDTH} shrink-0"></div>`
+          : // Nothing to vote on (a dead viewer): no pill either.
             eligible === 0
             ? nothing
-            : this.renderPill(s, cards, now)
-          : html`<div
-              data-card-stack
-              class="flex flex-col items-start gap-1 overflow-y-auto"
-              style=${this.stackMax === null
-                ? nothing
-                : `max-height: ${this.stackMax}px`}
-            >
-              ${cards.map((c) => this.renderCard(c, influence, now))}
-            </div>`}
+            : this.renderPill(s, cards, now)}
       ${chips.length === 0
         ? nothing
         : html`<div data-congress-chips class="flex flex-wrap gap-1">
