@@ -381,7 +381,11 @@ export function finishEmergency(mg: Game, c: Congress, success: boolean): void {
       });
     }
   }
+  // Secret ballot (spec §6.5): only members that took part are public
+  // (CongressData lists no one else), so only they get the aftermath truce.
+  // A truce row for a member that only voted yes would show its vote.
   for (const m of members) {
+    if ((e.contributions.get(m) ?? 0) <= 0) continue;
     c.addResolution({
       resolution: "truce",
       option: "A",

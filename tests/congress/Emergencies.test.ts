@@ -335,7 +335,7 @@ describe("the vote and the emergency (spec §9.3-§9.5)", () => {
     expect(c.emergency()!.contributions.size).toBe(0);
   });
 
-  test("success: rewards by contribution, the hero doubled, the target sanctioned, a truce after, cooldowns", async () => {
+  test("success: rewards by contribution, the hero doubled, the target sanctioned, a truce after for those who took part, cooldowns", async () => {
     const { game, red, blue, green, c } = await voted("A");
     for (const p of [blue, green]) p.domestic()!.addYield(2000, 1000);
     for (let y = 0; y < 100; y++) blue.conquer(game.ref(29, y));
@@ -364,6 +364,48 @@ describe("the vote and the emergency (spec §9.3-§9.5)", () => {
     ]);
     expect(c.globalCooldownUntil()).toBe(now + 3000);
     expect(c.targetCooldownUntil(red.smallID())).toBe(now + 6000);
+  });
+
+  test("a yes voter that never took part gets no aftermath truce: nothing shows its vote", async () => {
+    const s = await three();
+    const c = congressOf(s.game);
+    // blue and green voted yes; only blue takes the target's land.
+    startEmergency(
+      s.game,
+      c,
+      "aggression",
+      s.red,
+      [s.blue.smallID(), s.green.smallID()],
+      [],
+    );
+    for (let y = 0; y < 5; y++) s.blue.conquer(s.game.ref(29, y));
+    for (const success of [true, false]) {
+      if (c.emergency() === null) {
+        startEmergency(
+          s.game,
+          c,
+          "aggression",
+          s.red,
+          [s.blue.smallID(), s.green.smallID()],
+          [],
+        );
+        s.blue.conquer(s.game.ref(29, 10));
+      }
+      c.dropTallyResolutions();
+      c.expireResolutions(s.game.ticks() + 1_000_000);
+      finishEmergency(s.game, c, success);
+      const truces = c
+        .active()
+        .filter((r) => r.resolution === "truce")
+        .map((r) => r.targets);
+      expect(truces).toEqual([[s.red.smallID(), s.blue.smallID()]]);
+      const shown = c.toData();
+      expect(
+        shown.active.some((r) => r.targets.includes(s.green.smallID())),
+      ).toBe(false);
+      expect(s.green.isTruceWith(s.red)).toBe(false);
+      expect(s.blue.isTruceWith(s.red)).toBe(true);
+    }
   });
 
   test("failure: the target survives with 60 influence and 60 s of output", async () => {
