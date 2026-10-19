@@ -402,6 +402,10 @@ export function createRenderer(
   tutorialPanel.userSettings = userSettings;
   tutorialPanel.uiState = uiState;
 
+  // World War 1936: the lines between regions and sea zones (spec §8.2).
+  const wwScenario = game.worldWarScenario();
+  if (wwScenario !== null) view.setRegions(wwScenario.regionIds);
+
   const layers: Controller[] = [
     new WarshipSelectionController(game, eventBus, transformHandler, view),
     new BuildPreviewController(

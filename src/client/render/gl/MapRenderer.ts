@@ -43,6 +43,8 @@ export class MapRenderer {
   // Stored layer data for context-restore re-creation.
   private storedLayers: MapLayer[] = [];
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
+  /** World War 1936 region ids, re-applied after a context restore. */
+  private storedRegions: Uint16Array | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -147,6 +149,9 @@ export class MapRenderer {
       for (const [id, mask] of this.layerDestroyedMasks) {
         this.renderer?.setLayerDestroyedMask(id, mask);
       }
+    }
+    if (this.storedRegions !== null) {
+      this.renderer?.setRegions(this.storedRegions);
     }
     this.onContextRestored?.();
   };
@@ -360,6 +365,12 @@ export class MapRenderer {
   }
 
   // ---- Map layers ----
+
+  /** World War 1936 (spec §8.2): the lines between regions and sea zones. */
+  setRegions(regionIds: Uint16Array): void {
+    this.storedRegions = regionIds;
+    this.renderer?.setRegions(regionIds);
+  }
 
   /** Set up map-layer passes from the loaded layer data. */
   setMapLayers(layers: MapLayer[], images: Map<string, ImageBitmap>): void {

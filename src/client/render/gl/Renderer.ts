@@ -54,6 +54,7 @@ import { PlanePass } from "./passes/PlanePass";
 import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
+import { RegionBorderPass } from "./passes/RegionBorderPass";
 import { SAMRadiusPass } from "./passes/SamRadiusPass";
 import { SelectionBoxPass } from "./passes/SelectionBoxPass";
 import { SkinAtlasArray } from "./passes/SkinAtlasArray";
@@ -187,6 +188,8 @@ export class GPURenderer {
 
   // Map-layer passes keyed by layer id, drawn between terrain and territory.
   private mapLayerPasses: Map<string, MapLayerPass> = new Map();
+  /** World War 1936: region and sea-zone lines; null otherwise. */
+  private regionBorderPass: RegionBorderPass | null = null;
   /** R8UI terrain-bytes texture shared by all layer passes. */
   private terrainBytesTex: WebGLTexture | null = null;
   /** Stored layer definitions for context-restore re-creation. */
@@ -1538,6 +1541,9 @@ export class GPURenderer {
       layerPass.draw(cam);
     }
     if (pe.territory) this.territoryPass.draw(cam);
+    // World War 1936: region lines over the fill, under the country borders
+    // (borderStampPass draws in renderOverlays).
+    this.regionBorderPass?.draw(cam, this.camera.zoom);
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1644,6 +1650,17 @@ export class GPURenderer {
     }
   }
 
+  /** World War 1936 (spec §8.2): draw the lines between these region ids. */
+  setRegions(regionIds: Uint16Array): void {
+    this.regionBorderPass?.dispose();
+    this.regionBorderPass = new RegionBorderPass(
+      this.gl,
+      regionIds,
+      this.mapW,
+      this.mapH,
+    );
+  }
+
   /** Toggle visibility of a single layer (driven by graphics settings). */
   setLayerVisible(layerId: string, visible: boolean): void {
     this.mapLayerPasses.get(layerId)?.setVisible(visible);
@@ -1683,6 +1700,8 @@ export class GPURenderer {
     this.stopLoop();
     for (const p of this.mapLayerPasses.values()) p.dispose();
     this.mapLayerPasses.clear();
+    this.regionBorderPass?.dispose();
+    this.regionBorderPass = null;
     if (this.terrainBytesTex) {
       this.gl.deleteTexture(this.terrainBytesTex);
       this.terrainBytesTex = null;

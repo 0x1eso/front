@@ -133,4 +133,35 @@ describe("createRenderer", () => {
     eventBus.emit(new ShowEmojiMenuEvent(1, 1));
     expect(emojiTable.isVisible).toBe(true);
   });
+
+  it("World War 1936: hands the region ids to the map renderer", () => {
+    const regionIds = Uint16Array.from([1, 2, 40001, 40002]);
+    const game = {
+      layers: () => [],
+      width: () => 2,
+      height: () => 2,
+      isValidCoord: () => true,
+      ref: () => 1,
+      hasOwner: () => true,
+      owner: () => ({}),
+      myPlayer: () => ({}),
+      worldWarScenario: () => ({ regionIds }),
+      config: () => ({
+        gameConfig: () => ({}),
+        isReplay: () => false,
+      }),
+    } as unknown as GameView;
+    const setRegions = vi.fn();
+    const view = { setRegions } as unknown as MapRenderer;
+
+    createRenderer(
+      document.createElement("div"),
+      game,
+      new EventBus(),
+      null,
+      view,
+    );
+
+    expect(setRegions).toHaveBeenCalledExactlyOnceWith(regionIds);
+  });
 });
