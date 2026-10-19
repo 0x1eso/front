@@ -406,6 +406,23 @@ export function reasonText(
   return t(`congress.reason.${item.reason}`, params);
 }
 
+export type EmergencyRole = "target" | "member" | "none";
+
+/**
+ * My part in the running emergency. Membership comes from my own data
+ * (PlayerCongressData.emergencyMember), never from votes: the secret ballot
+ * keeps who voted what off every screen.
+ */
+export function emergencyRole(
+  e: EmergencyData,
+  viewer: CongressViewer | null,
+): EmergencyRole {
+  if (viewer === null) return "none";
+  if (viewer.smallID === e.target) return "target";
+  const data = viewer.data as { emergencyMember?: boolean } | null;
+  return data?.emergencyMember === true ? "member" : "none";
+}
+
 export function goalText(e: EmergencyData, t: Translate): string {
   return t(`congress.goal.${e.goalKind}`, {
     progress: e.progress,

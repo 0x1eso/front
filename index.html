@@ -420,6 +420,10 @@
       <div class="col-start-2 flex flex-col min-w-0 pointer-events-none">
         <attacks-display class="w-full pointer-events-auto"></attacks-display>
         <tutorial-panel class="hidden w-full"></tutorial-panel>
+        <!-- World congress: vote cards and resolution chips, right above the dials. -->
+        <congress-cards
+          class="block w-full pointer-events-none"
+        ></congress-cards>
         <!-- relative: the build-bar card opens above this whole box, so it
              never covers the attack-ratio row. data-bottom-hud-rows: the
              open domestic drawer stays above these fixed rows. -->
@@ -477,6 +481,7 @@
     <spawn-timer></spawn-timer>
     <immunity-timer></immunity-timer>
     <satellite-band></satellite-band>
+    <congress-band></congress-band>
     <satellite-target-picker></satellite-target-picker>
     <in-game-promo></in-game-promo>
     <alert-frame></alert-frame>
