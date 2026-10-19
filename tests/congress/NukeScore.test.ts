@@ -74,13 +74,15 @@ describe("the nuke score (spec §4.2, §9.1)", () => {
     runTicks(game, 2);
     expect(red.units(UnitType.MIRV)).toHaveLength(1);
     // The MIRV unit is gone once it separates.
+    let separationTick = game.ticks();
     for (let i = 0; i < 600 && red.units(UnitType.MIRV).length > 0; i++) {
       expect(red.congress()!.nukeScore(game.ticks())).toBe(0);
+      separationTick = game.ticks();
       game.executeNextTick();
     }
     expect(red.units(UnitType.MIRV)).toHaveLength(0);
     expect(red.congress()!.nukeScore(game.ticks())).toBe(3);
-    expect(blue.congress()!.lastHitTick(red.smallID())).not.toBeNull();
+    expect(blue.congress()!.lastHitTick(red.smallID())).toBe(separationTick);
     runTicks(game, 300);
     expect(red.units(UnitType.MIRVWarhead)).toHaveLength(0);
     expect(red.congress()!.nukeScore(game.ticks())).toBe(3);
@@ -105,7 +107,9 @@ describe("the nuke score (spec §4.2, §9.1)", () => {
     const red = own(game, RED.id, 0, 0, 30, 100);
     const blue = own(game, BLUE.id, 30, 0, 30, 100);
     game.executeNextTick();
-    startOrbitalStrike(game, red, red.strategic()!, blue, game.ticks());
+    const strikeTick = game.ticks();
+    startOrbitalStrike(game, red, red.strategic()!, blue, strikeTick);
+    expect(blue.congress()!.lastHitTick(red.smallID())).toBe(strikeTick);
     const afterFirst = blue.congress()!.lostTiles(game.ticks());
     expect(afterFirst).toBe(3000 - blue.numTilesOwned());
     runTicks(game, 40);
@@ -114,6 +118,9 @@ describe("the nuke score (spec §4.2, §9.1)", () => {
     expect(lost).toBe(3000 - blue.numTilesOwned());
     expect(lost).toBeGreaterThan(afterFirst);
     expect(red.congress()!.nukeScore(game.ticks())).toBe(3);
-    expect(blue.congress()!.lastHitTick(red.smallID())).not.toBeNull();
+    // Every wave is a hit: the latest one is after the strike, not before.
+    const lastHit = blue.congress()!.lastHitTick(red.smallID())!;
+    expect(lastHit).toBeGreaterThan(strikeTick);
+    expect(lastHit).toBeLessThanOrEqual(game.ticks());
   });
 });
