@@ -21,10 +21,12 @@ import { diffSnapshots } from "../../util/Snapshot";
 
 const MAP = "world";
 const TICKS = 1500;
-// The congress variant runs past the first regular session and the first
-// resolutions' effects. The clock starts when the 200-tick spawn phase ends
-// (tick 201), so that session opens at 2001 and is tallied at 2301.
-const CONGRESS_TICKS = 2600;
+// The congress variant runs past the first regular session, the first
+// resolutions' effects and the first emergency session. The clock starts when
+// the 200-tick spawn phase ends (tick 201), so the regular session opens at
+// 2001 and is tallied at 2301; the nations convene an aggression emergency
+// that opens at 2718 and is tallied at 2918.
+const CONGRESS_TICKS = 3000;
 const CHECK_EVERY = 100;
 // Restore at every tick of this window, chaining each restore into the next.
 const WINDOW_START = 700;
@@ -47,6 +49,7 @@ interface Reference {
   winnerTick: number | null;
   execTypes: Set<string>;
   congressResults: number;
+  congressEmergencyResults: number;
 }
 
 // Execution types that only a domestic-mode game creates.
@@ -183,6 +186,11 @@ async function playReference(
     winnerTick,
     execTypes,
     congressResults: runner.game.congress()?.history().length ?? 0,
+    congressEmergencyResults:
+      runner.game
+        .congress()
+        ?.history()
+        .filter((r) => r.kind === "emergency").length ?? 0,
   };
 }
 
@@ -318,8 +326,9 @@ describe.each(VARIANTS)(
             (name) => !STRATEGIC_UNSCRIPTED_TYPES.includes(name),
           );
         } else if (overrides.congress === true) {
-          // The first session was tallied.
+          // The first regular session and the first emergency were tallied.
           expect(reference.congressResults).toBeGreaterThan(0);
+          expect(reference.congressEmergencyResults).toBeGreaterThan(0);
           expected = CONGRESS_ONLY_TYPES.filter(
             (name) => !CONGRESS_UNSCRIPTED_TYPES.includes(name),
           );
