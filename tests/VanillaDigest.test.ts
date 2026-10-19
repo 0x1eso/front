@@ -13,6 +13,14 @@ import {
 // for an intended, upstream-compatible change.
 const TICKS = 3000;
 
+// The world congress pin (the last test). It moves with every change to the
+// congress simulation. To re-pin after an intended change, set it to
+// "0000000000000000", run
+//   npx vitest tests/VanillaDigest.test.ts -t "world congress" --run
+// and paste the received value here; then run the whole file twice to
+// confirm it's stable and that no other pin moved.
+const CONGRESS_ON_DIGEST = "a5a151cc602a79ae";
+
 async function digest(overrides: object): Promise<string> {
   const runner = await createScriptedRunner(
     "world",
@@ -100,5 +108,13 @@ describe("vanilla stays bit-identical", () => {
         congress: false,
       }),
     ).toBe("dddf7fe292970133");
+  }, 60_000);
+
+  // World congress on (domestic FFA): pins the congress engine. A change here
+  // means the congress's simulation changed: update only on purpose.
+  test("domestic mode with the world congress", async () => {
+    expect(await digest({ domesticMode: true, congress: true })).toBe(
+      CONGRESS_ON_DIGEST,
+    );
   }, 60_000);
 });
