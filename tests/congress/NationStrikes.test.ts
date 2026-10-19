@@ -9,6 +9,7 @@ import { GameConfig } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { isHeritageProtected } from "@openfront/engine/congress/Conflict";
 import { EmergencyState } from "@openfront/engine/congress/Congress";
+import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import { NationAllianceBehavior } from "@openfront/engine/execution/nation/NationAllianceBehavior";
 import { congressAllowsAttack } from "@openfront/engine/execution/nation/NationCongressBehavior";
 import { NationEmojiBehavior } from "@openfront/engine/execution/nation/NationEmojiBehavior";
@@ -26,6 +27,7 @@ import {
 import { AiAttackBehavior } from "@openfront/engine/execution/utils/AiAttackBehavior";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { StrategicExecution } from "@openfront/engine/strategic/StrategicExecution";
+import { vi } from "vitest";
 import { buildLevel, grantTechs } from "../domestic/util";
 import {
   BLUE,
@@ -316,5 +318,63 @@ describe("nation bombers and missiles under a war tax", () => {
   test("no missile at a human's nuke factory", async () => {
     expect(await missiles(false)).toBe(1);
     expect(await missiles(true)).toBe(0);
+  });
+});
+
+describe("a Hard nation's beachhead follow-up and the congress", () => {
+  // ocean_and_land: land at x <= 7, open water, an island at x >= 14 (as
+  // tests/NationBeachhead.test.ts).
+  async function landing(restrain: boolean) {
+    const info = nationOf("merchant");
+    const game = await congressGame(
+      { difficulty: Difficulty.Hard },
+      [info, RED],
+      "ocean_and_land",
+    );
+    const nation = game.player(info.id);
+    const island = game.player(RED.id);
+    game.map().forEachTile((tile) => {
+      if (!game.map().isLand(tile)) return;
+      (game.x(tile) <= 7 ? nation : island).conquer(tile);
+    });
+    nation.setTroops(100_000);
+    island.setTroops(10_000);
+    const random = new PseudoRandom(42);
+    const emoji = new NationEmojiBehavior(random, game, nation);
+    const behavior = new AiAttackBehavior(
+      random,
+      game,
+      nation,
+      0,
+      0,
+      0,
+      new NationAllianceBehavior(random, game, nation, emoji),
+      emoji,
+    );
+    const spy = vi.spyOn(game, "addExecution");
+    const attacks = (fromBoat: boolean) =>
+      spy.mock.calls
+        .map((c) => c[0])
+        .filter(
+          (e) =>
+            e instanceof AttackExecution &&
+            e.targetID() === island.id() &&
+            (e["sourceTile"] !== null) === fromBoat,
+        );
+    expect(behavior.sendAttack(island)).toBe(true);
+    // The emergency starts while the boat is at sea: red is a member and
+    // the nation the target, so it starts nothing new on red (spec §11.4).
+    if (restrain) emergencyOn(game, nation, [island]);
+    for (let i = 0; i < 60; i++) {
+      game.executeNextTick();
+      behavior.followUpLandings();
+    }
+    expect(attacks(true)).toHaveLength(1);
+    return attacks(false).length;
+  }
+
+  test("follows its landing by land, unless the congress bars attacking that player", async () => {
+    expect(await landing(false)).toBeGreaterThan(0);
+    expect(await landing(true)).toBe(0);
   });
 });
