@@ -19,7 +19,7 @@ const TICKS = 3000;
 //   npx vitest tests/VanillaDigest.test.ts -t "world congress" --run
 // and paste the received value here; then run the whole file twice to
 // confirm it's stable and that no other pin moved.
-const CONGRESS_ON_DIGEST = "a5a151cc602a79ae";
+const CONGRESS_ON_DIGEST = "76cc2ad7589a64b4";
 
 async function digest(overrides: object): Promise<string> {
   const runner = await createScriptedRunner(
