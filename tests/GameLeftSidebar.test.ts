@@ -71,6 +71,7 @@ describe("GameLeftSidebar", () => {
       ticks: () => 600,
       numTilesWithFallout: () => 0,
       playerViews: () => [player],
+      worldWarScenario: () => null,
     } as unknown as GameView;
     const sidebar = new GameLeftSidebar();
     sidebar.game = game;
