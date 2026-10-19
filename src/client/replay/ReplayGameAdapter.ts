@@ -436,6 +436,13 @@ export class ReplayGameView {
   numLandTiles(): number {
     return this.landTiles;
   }
+  /**
+   * World War 1936: replays have no scenario screens (no band, region line
+   * or country names), so the HUD reads every replay as the mode being off.
+   */
+  worldWarScenario(): null {
+    return null;
+  }
   teamClanTag(team: Team): string | null {
     const tags = new Set(
       this.order

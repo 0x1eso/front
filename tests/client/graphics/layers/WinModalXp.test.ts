@@ -161,6 +161,7 @@ function makeGame(opts: {
       clientID: () => "me",
     }),
     inSpawnPhase: () => false,
+    worldWarScenario: () => null,
     updatesSinceLastTick: () => {
       if (!opts.ended || delivered) return {};
       delivered = true;

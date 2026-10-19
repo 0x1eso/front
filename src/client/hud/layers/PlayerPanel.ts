@@ -36,6 +36,7 @@ import {
   PlayerReportedEvent,
   SendAllianceRequestIntentEvent,
   SendBreakAllianceIntentEvent,
+  SendDeclareWarIntentEvent,
   SendEmbargoAllIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
@@ -45,6 +46,7 @@ import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { renderDuration, showToast, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import { callIns, TWO_TAP_MS, TwoTap } from "../ww1936/WorldWarModel";
 import { ChatModal } from "./ChatModal";
 import { EmojiTable } from "./EmojiTable";
 import "./PlayerModerationModal";
@@ -87,6 +89,8 @@ export class PlayerPanel extends LitElement implements Controller {
   private _profileForPlayerId: number | null = null;
   private kickedPlayerIDs = new Set<string>();
   private userSettings = new UserSettings();
+  /** World War 1936: the declaration waiting for its second tap. */
+  private declareTap = new TwoTap();
 
   @state() private sendTarget: PlayerView | null = null;
   @state() private sendMode: "troops" | "gold" | "none" = "none";
@@ -273,6 +277,19 @@ export class PlayerPanel extends LitElement implements Controller {
     e.stopPropagation();
     this.eventBus.emit(new SendBreakAllianceIntentEvent(myPlayer, other));
     this.hide();
+  }
+
+  /** World War 1936 (spec §8.2): the first tap arms, the second within 3 s declares. */
+  private handleDeclareWarClick(e: Event, other: PlayerView) {
+    e.stopPropagation();
+    if (this.declareTap.tap(other.id(), Date.now())) {
+      this.eventBus.emit(new SendDeclareWarIntentEvent(other));
+      this.hide();
+      return;
+    }
+    this.requestUpdate();
+    // Back to "Declare war" once the second tap can no longer confirm.
+    setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
   }
 
   private openSendTroops(target: PlayerView) {
@@ -877,6 +894,21 @@ export class PlayerPanel extends LitElement implements Controller {
     `;
   }
 
+  /** World War 1936 (spec §8.2): red, and a second tap within 3 s sends it. */
+  private renderDeclareWar(other: PlayerView) {
+    const label = this.declareTap.isArmed(other.id(), Date.now())
+      ? translateText("ww1936.declare.confirm", { n: callIns(this.g, other) })
+      : translateText("ww1936.declare.button");
+    return actionButton({
+      onClick: (e: MouseEvent) => this.handleDeclareWarClick(e, other),
+      icon: breakAllianceIcon,
+      iconAlt: "Declare war",
+      title: label,
+      label,
+      type: "red",
+    });
+  }
+
   private renderActions(my: PlayerView, other: PlayerView) {
     const myPlayer = this.g.myPlayer();
     const canDonateGold = this.actions?.interaction?.canDonateGold;
@@ -890,6 +922,7 @@ export class PlayerPanel extends LitElement implements Controller {
     const canBreakAlliance = this.actions?.interaction?.canBreakAlliance;
     const canTarget = this.actions?.interaction?.canTarget;
     const canEmbargo = this.actions?.interaction?.canEmbargo;
+    const canDeclareWar = this.actions?.interaction?.canDeclareWar === true;
 
     return html`
       <div class="flex flex-col gap-2.5">
@@ -968,6 +1001,7 @@ export class PlayerPanel extends LitElement implements Controller {
                       label: translateText("player_panel.start_trade"),
                       type: "green",
                     })}
+                ${canDeclareWar ? this.renderDeclareWar(other) : ""}
                 ${canBreakAlliance
                   ? actionButton({
                       onClick: (e: MouseEvent) =>

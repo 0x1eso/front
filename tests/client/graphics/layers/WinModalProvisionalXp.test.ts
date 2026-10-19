@@ -249,6 +249,7 @@ function makeGame(
       clientID: () => "me",
     }),
     inSpawnPhase: () => false,
+    worldWarScenario: () => null,
     updatesSinceLastTick: () => {
       if (!ended || delivered) return {};
       delivered = true;

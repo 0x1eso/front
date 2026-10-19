@@ -48,6 +48,7 @@ function game(players: PlayerView[]): GameView {
   return {
     myPlayer: () => players[0],
     playerViews: () => players,
+    worldWarScenario: () => null,
     config: () => ({ maxTroops: () => 100 }),
     ticks: () => 600,
     numLandTiles: () => 1000,

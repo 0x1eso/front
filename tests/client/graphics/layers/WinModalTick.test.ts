@@ -64,6 +64,7 @@ function makeGame(opts: {
       clientID: () => opts.myClientID ?? null,
     }),
     inSpawnPhase: () => false,
+    worldWarScenario: () => null,
     updatesSinceLastTick: () => ({ [GameUpdateType.Win]: [winUpdate] }),
     playerByClientID: () => opts.winnerPlayer,
     config: () => ({ gameConfig: () => ({ rankedType: undefined }) }),

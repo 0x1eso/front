@@ -39,6 +39,12 @@ import {
   getPlayerIcons,
   IMAGE_ICON_KIND,
 } from "../PlayerIcons";
+import {
+  countryName,
+  isKoreanUi,
+  regionInfo,
+  WW_BAND_PX,
+} from "../ww1936/WorldWarModel";
 import { ShowPlayerChatEvent } from "./ChatModal";
 import { ShowPlayerEmojiMenuEvent } from "./EmojiTable";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
@@ -138,7 +144,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   }
 
   private get barOffset(): number {
-    return (this.spawnBarVisible ? 7 : 0) + (this.immunityBarVisible ? 7 : 0);
+    return (
+      (this.spawnBarVisible ? 7 : 0) +
+      (this.immunityBarVisible ? 7 : 0) +
+      // World War 1936: below the top band.
+      (this.game?.worldWarScenario() ? WW_BAND_PX : 0)
+    );
   }
 
   private lastMouseUpdate = 0;
@@ -883,6 +894,28 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     `;
   }
 
+  /** World War 1936 (spec §8.2): the region's name, points and 1936 owner. */
+  private renderRegionLine(tile: TileRef) {
+    const info = regionInfo(this.game, tile, isKoreanUi());
+    if (info === null) return "";
+    return html`<div
+      data-ww-region
+      class="flex flex-wrap items-center gap-x-2 border-t border-white/10 px-3 py-1.5 text-sm"
+    >
+      <span class="font-semibold">${info.name}</span>
+      <span class="text-amber-300"
+        >${translateText("ww1936.region.vp", { vp: info.vp })}</span
+      >
+      ${info.originalOwner === null
+        ? ""
+        : html`<span class="text-white/60"
+            >${translateText("ww1936.region.original_owner", {
+              country: countryName(info.originalOwner),
+            })}</span
+          >`}
+    </div>`;
+  }
+
   render() {
     if (!this._isActive) {
       return html``;
@@ -907,6 +940,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
           @mouseleave=${this.onPanelLeave}
         >
           ${this.player ? this.renderPlayerInfo(this.player) : ""}
+          ${this.player && this.tile !== null
+            ? this.renderRegionLine(this.tile)
+            : ""}
           ${this.unit ? this.renderUnitInfo(this.unit) : ""}
         </div>
       </div>

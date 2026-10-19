@@ -48,6 +48,8 @@ const HUD_TAGS = [
   "satellite-target-picker",
   "congress-cards",
   "congress-band",
+  "ww-top-band",
+  "ww-diplomacy-panel",
   "in-game-promo",
   "tutorial-panel",
 ] as const;
@@ -85,6 +87,7 @@ describe("createRenderer", () => {
       hasOwner: () => true,
       owner: () => ({}),
       myPlayer: () => ({}),
+      worldWarScenario: () => null,
       config: () => ({
         gameConfig: () => ({}),
         isReplay: () => false,
@@ -108,8 +111,14 @@ describe("createRenderer", () => {
     expect(dials.eventBus).toBe(eventBus);
     expect(dials.game).toBe(game);
 
-    // World congress (spec §12): the cards and the band share the bus too.
-    for (const tag of ["congress-cards", "congress-band"]) {
+    // World congress (spec §12) and World War 1936 (spec §8.2): the cards
+    // and the bands share the bus too.
+    for (const tag of [
+      "congress-cards",
+      "congress-band",
+      "ww-top-band",
+      "ww-diplomacy-panel",
+    ]) {
       const el = elements.get(tag) as unknown as {
         eventBus: EventBus;
         game: GameView;

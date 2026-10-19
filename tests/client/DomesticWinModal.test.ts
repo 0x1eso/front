@@ -46,6 +46,7 @@ function makeGame(reason: string | undefined): GameView {
       clientID: () => null,
     }),
     inSpawnPhase: () => false,
+    worldWarScenario: () => null,
     updatesSinceLastTick: () => ({ [GameUpdateType.Win]: [winUpdate] }),
     playerByClientID: () => undefined,
     config: () => ({
