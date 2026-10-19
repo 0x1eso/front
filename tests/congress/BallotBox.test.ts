@@ -207,10 +207,17 @@ describe("the ballot box", () => {
 
     runTicks(game, s.closeTick - 1 - game.ticks());
     expect(game.ticks()).toBe(s.closeTick - 1);
+    // Influence accrues every tick: assert the 30 charge on top of at most a
+    // few points of accrual, not an absolute number.
+    const ACCRUAL_SLACK = 5;
+    const aBefore = influence(a);
     game.addExecution(executor.createExec(vote("EARLY001")));
     game.executeNextTick(); // tick closeTick - 1
     expect(c.session()!.items[0].voters).toBe(1);
-    expect(influence(a)).toBe(70);
+    expect(influence(a)).toBeGreaterThanOrEqual(aBefore - 30);
+    expect(influence(a)).toBeLessThanOrEqual(aBefore - 30 + ACCRUAL_SLACK);
+    const aCharged = influence(a);
+    const bBefore = influence(b);
 
     game.addExecution(executor.createExec(vote("LATE0001")));
     game.executeNextTick(); // tick closeTick: tallied, then the ballot comes too late
@@ -222,8 +229,12 @@ describe("the ballot box", () => {
       b: 0,
       adopted: "A",
     });
-    expect(influence(a)).toBe(70); // won: the extra votes are spent
-    expect(influence(b)).toBe(100);
+    // won: the extra votes stay spent (only accrual moved it)
+    expect(influence(a)).toBeGreaterThanOrEqual(aCharged);
+    expect(influence(a)).toBeLessThanOrEqual(aCharged + ACCRUAL_SLACK);
+    // the late ballot charged nothing: b only gained
+    expect(influence(b)).toBeGreaterThanOrEqual(bBefore);
+    expect(influence(b)).toBeLessThanOrEqual(bBefore + ACCRUAL_SLACK);
     expect(b.congress()!.ballotsFor(s.id)).toEqual([]);
   });
 });
