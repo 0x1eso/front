@@ -16,6 +16,7 @@ import {
   resolutionBuildTimePct,
   resolutionModifiers,
   resolutionNukeTimePct,
+  techPactCostMilli,
 } from "@openfront/engine-lib/congress/ResolutionEffects";
 import { MILLI } from "@openfront/engine-lib/domestic/Balance";
 import { capCombinedPct } from "@openfront/engine-lib/domestic/Modifiers";
@@ -109,8 +110,10 @@ export function researchCostMilli(
   tech: TechId,
   baseMilli: number,
 ): number {
-  if (c === null || !c.discountedTechs().includes(tech)) return baseMilli;
-  return Math.round((baseMilli * (100 + TECH_PACT_DISCOUNT_PCT)) / 100);
+  return techPactCostMilli(
+    baseMilli,
+    c !== null && c.discountedTechs().includes(tech),
+  );
 }
 
 /** E4 A: research time percent for `tech` now. */

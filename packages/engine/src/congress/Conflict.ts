@@ -1,4 +1,5 @@
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
+import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import {
   CONDEMN_LOSS_PCT,
   CONDEMN_SPEED_PCT,
@@ -33,6 +34,28 @@ export function isTruce(c: Congress, a: Player, b: Player): boolean {
     }
   }
   return c.isEmergencyMember(x) && c.isEmergencyMember(y);
+}
+
+/**
+ * A human's attack, boat or paradrop that a truce refused (spec §8.1): one
+ * line to the attacker, so the tap doesn't just do nothing. The client
+ * re-resolves the name (focusPlayerID) for anonymous names.
+ */
+export function reportTruceRefusal(
+  mg: Game,
+  attacker: Player,
+  target: Player,
+): void {
+  if (attacker.type() !== PlayerType.Human) return;
+  mg.displayMessage(
+    "events_display.congress_truce_blocked",
+    MessageType.ATTACK_FAILED,
+    attacker.id(),
+    undefined,
+    { name: target.displayName() },
+    undefined,
+    target.id(),
+  );
 }
 
 /**

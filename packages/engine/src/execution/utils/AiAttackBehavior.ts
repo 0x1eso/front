@@ -182,6 +182,14 @@ export class AiAttackBehavior {
       this.followedLandings.push(attack);
       const target = attack.target();
       if (!this.holdsLandNextTo(target, landing)) continue;
+      // World congress (spec §11.4): the follow-up is a new attack, so it
+      // passes the same gate (true without a congress; reads no PRNG).
+      if (
+        target.isPlayer() &&
+        !congressAllowsAttack(this.game, this.player, target)
+      ) {
+        continue;
+      }
       this.sendLandAttack(
         target,
         undefined,

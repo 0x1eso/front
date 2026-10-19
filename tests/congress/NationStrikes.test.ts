@@ -7,7 +7,9 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
+import { isHeritageProtected } from "@openfront/engine/congress/Conflict";
 import { EmergencyState } from "@openfront/engine/congress/Congress";
+import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import { NationAllianceBehavior } from "@openfront/engine/execution/nation/NationAllianceBehavior";
 import { congressAllowsAttack } from "@openfront/engine/execution/nation/NationCongressBehavior";
 import { NationEmojiBehavior } from "@openfront/engine/execution/nation/NationEmojiBehavior";
@@ -25,7 +27,8 @@ import {
 import { AiAttackBehavior } from "@openfront/engine/execution/utils/AiAttackBehavior";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { StrategicExecution } from "@openfront/engine/strategic/StrategicExecution";
-import { grantTechs } from "../domestic/util";
+import { vi } from "vitest";
+import { buildLevel, grantTechs } from "../domestic/util";
 import {
   BLUE,
   congressGame,
@@ -97,7 +100,7 @@ async function duel(p: Personality) {
   return { game, nation, red };
 }
 
-function nukesLaunched(game: Game, nation: Player): number {
+function nukeBehavior(game: Game, nation: Player): NationNukeBehavior {
   const emoji = new NationEmojiBehavior(new PseudoRandom(1), game, nation);
   const attack = new AiAttackBehavior(
     new PseudoRandom(1),
@@ -109,13 +112,17 @@ function nukesLaunched(game: Game, nation: Player): number {
     new NationAllianceBehavior(new PseudoRandom(1), game, nation, emoji),
     emoji,
   );
-  new NationNukeBehavior(
+  return new NationNukeBehavior(
     new PseudoRandom(2),
     game,
     nation,
     attack,
     emoji,
-  ).maybeSendNuke();
+  );
+}
+
+function nukesLaunched(game: Game, nation: Player): number {
+  nukeBehavior(game, nation).maybeSendNuke();
   runTicks(game, 2);
   return nation.units(UnitType.AtomBomb, UnitType.HydrogenBomb).length;
 }
@@ -173,6 +180,36 @@ describe("nation nukes and the congress", () => {
       expires: game.ticks() + 1200,
     });
     expect(nukesLaunched(game, nation)).toBe(0);
+  });
+
+  test("a condemned project's host that world heritage still protects is no nuke target", async () => {
+    const singledOut = async (protect: boolean) => {
+      const { game, nation, red } = await duel("merchant");
+      const host = buildLevel(
+        game,
+        red,
+        UnitType.ResearchInstitute,
+        150,
+        150,
+        3,
+      );
+      red.domestic()!.beginVictoryProject("science", host.id(), 2400);
+      const heritage = (option: "A" | "B") =>
+        enact(game, {
+          resolution: "world_heritage",
+          option,
+          targets: [red.smallID()],
+          param: String(host.id()),
+          expires: "project_end",
+        });
+      // Condemned (spec §10.3); protected by an earlier A (spec §10.2).
+      heritage("B");
+      if (protect) heritage("A");
+      expect(isHeritageProtected(game, host)).toBe(protect);
+      return nukeBehavior(game, nation)["nukeVictoryProjectHost"]();
+    };
+    expect(await singledOut(false)).toBe(true);
+    expect(await singledOut(true)).toBe(false);
   });
 
   test("a MIRV only goes where the nation may strike", async () => {
@@ -281,5 +318,63 @@ describe("nation bombers and missiles under a war tax", () => {
   test("no missile at a human's nuke factory", async () => {
     expect(await missiles(false)).toBe(1);
     expect(await missiles(true)).toBe(0);
+  });
+});
+
+describe("a Hard nation's beachhead follow-up and the congress", () => {
+  // ocean_and_land: land at x <= 7, open water, an island at x >= 14 (as
+  // tests/NationBeachhead.test.ts).
+  async function landing(restrain: boolean) {
+    const info = nationOf("merchant");
+    const game = await congressGame(
+      { difficulty: Difficulty.Hard },
+      [info, RED],
+      "ocean_and_land",
+    );
+    const nation = game.player(info.id);
+    const island = game.player(RED.id);
+    game.map().forEachTile((tile) => {
+      if (!game.map().isLand(tile)) return;
+      (game.x(tile) <= 7 ? nation : island).conquer(tile);
+    });
+    nation.setTroops(100_000);
+    island.setTroops(10_000);
+    const random = new PseudoRandom(42);
+    const emoji = new NationEmojiBehavior(random, game, nation);
+    const behavior = new AiAttackBehavior(
+      random,
+      game,
+      nation,
+      0,
+      0,
+      0,
+      new NationAllianceBehavior(random, game, nation, emoji),
+      emoji,
+    );
+    const spy = vi.spyOn(game, "addExecution");
+    const attacks = (fromBoat: boolean) =>
+      spy.mock.calls
+        .map((c) => c[0])
+        .filter(
+          (e) =>
+            e instanceof AttackExecution &&
+            e.targetID() === island.id() &&
+            (e["sourceTile"] !== null) === fromBoat,
+        );
+    expect(behavior.sendAttack(island)).toBe(true);
+    // The emergency starts while the boat is at sea: red is a member and
+    // the nation the target, so it starts nothing new on red (spec §11.4).
+    if (restrain) emergencyOn(game, nation, [island]);
+    for (let i = 0; i < 60; i++) {
+      game.executeNextTick();
+      behavior.followUpLandings();
+    }
+    expect(attacks(true)).toHaveLength(1);
+    return attacks(false).length;
+  }
+
+  test("follows its landing by land, unless the congress bars attacking that player", async () => {
+    expect(await landing(false)).toBeGreaterThan(0);
+    expect(await landing(true)).toBe(0);
   });
 });

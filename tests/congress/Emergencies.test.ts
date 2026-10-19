@@ -10,6 +10,8 @@ import {
   startEmergency,
 } from "@openfront/engine/congress/Emergencies";
 import { Game, Player } from "@openfront/engine/game/Game";
+import { MockInstance, vi } from "vitest";
+import { roundTrip } from "../util/Snapshot";
 import {
   BLUE,
   congressGame,
@@ -138,6 +140,107 @@ describe("what can be convened (spec §9.1)", () => {
         (m) => m === "events_display.congress_emergency_available",
       ),
     ).toHaveLength(1);
+  });
+
+  describe("an index hovering at its threshold is announced once", () => {
+    const AVAILABLE = "events_display.congress_emergency_available";
+    // green holds 3,000 of 10,000 tiles; x 90-99 takes it to 40%.
+    const grow = (game: Game, green: Player) => {
+      for (let x = 90; x < 100; x++) {
+        for (let y = 0; y < 100; y++) green.conquer(game.ref(x, y));
+      }
+    };
+    const shrink = (game: Game, green: Player) => {
+      for (let y = 0; y < 100; y++) green.relinquish(game.ref(99, y));
+    };
+    // Announcements made since the last call (processEmergencySecond runs
+    // between ticks here, so the tick's updates would miss them).
+    const spies = new WeakMap<Game, MockInstance<Game["displayMessage"]>>();
+    const seen = new WeakMap<Game, number>();
+    const heard = (game: Game) => {
+      let spy = spies.get(game);
+      if (spy === undefined) {
+        spy = vi.spyOn(game, "displayMessage");
+        spies.set(game, spy);
+      }
+      const total = spy.mock.calls.filter(([m]) => m === AVAILABLE).length;
+      const before = seen.get(game) ?? 0;
+      seen.set(game, total);
+      return total - before;
+    };
+    const watch = (game: Game) => expect(heard(game)).toBe(0);
+    const listed = (c: ReturnType<typeof congressOf>) =>
+      c.available().map((a) => `${a.kind}:${a.target}`);
+
+    test("dropping off the list and back says nothing new", async () => {
+      const { game, green } = await three();
+      const c = congressOf(game);
+      watch(game);
+      grow(game, green);
+      processEmergencySecond(game, c);
+      expect(listed(c)).toEqual([`hegemony:${green.smallID()}`]);
+      expect(heard(game)).toBe(1);
+      for (let i = 0; i < 3; i++) {
+        shrink(game, green);
+        processEmergencySecond(game, c);
+        expect(c.available()).toEqual([]);
+        for (let y = 0; y < 100; y++) green.conquer(game.ref(99, y));
+        processEmergencySecond(game, c);
+        expect(listed(c)).toEqual([`hegemony:${green.smallID()}`]);
+        expect(heard(game)).toBe(0);
+      }
+    });
+
+    test("it is news again once the target's cooldown starts, or after an emergency is convened", async () => {
+      const { game, red, blue, green } = await three();
+      const c = congressOf(game);
+      watch(game);
+      grow(game, green);
+      processEmergencySecond(game, c);
+      expect(heard(game)).toBe(1);
+      shrink(game, green);
+      processEmergencySecond(game, c);
+      // A cooldown that has already run out: listed again at once.
+      c.setTargetCooldown(green.smallID(), game.ticks());
+      for (let y = 0; y < 100; y++) green.conquer(game.ref(99, y));
+      processEmergencySecond(game, c);
+      expect(heard(game)).toBe(1);
+
+      // Convening against red closes the list; after the vote fails and the
+      // global cooldown passes, green's entry is news again.
+      red.congress()!.recordTaken(game.ticks(), 600);
+      processEmergencySecond(game, c);
+      expect(heard(game)).toBe(1);
+      giveInfluence(blue, 60);
+      expect(conveneEmergency(game, blue, "aggression", red)).toBeNull();
+      expect(c.available()).toEqual([]);
+      c.closeSession();
+      c.setGlobalCooldown(0);
+      processEmergencySecond(game, c);
+      expect(listed(c)).toContain(`hegemony:${green.smallID()}`);
+      expect(heard(game)).toBe(2);
+    });
+
+    test("what was announced survives a snapshot: the restored game stays quiet", async () => {
+      const { game, green } = await three();
+      const c = congressOf(game);
+      watch(game);
+      grow(game, green);
+      processEmergencySecond(game, c);
+      expect(heard(game)).toBe(1);
+      shrink(game, green);
+      processEmergencySecond(game, c);
+      expect(c.available()).toEqual([]);
+      const { restored } = await roundTrip(game, "plains");
+      expect(congressOf(restored).hash()).toBe(c.hash());
+      const rc = congressOf(restored);
+      const rg = restored.player(GREEN.id);
+      watch(restored);
+      for (let y = 0; y < 100; y++) rg.conquer(restored.ref(99, y));
+      processEmergencySecond(restored, rc);
+      expect(listed(rc)).toEqual([`hegemony:${rg.smallID()}`]);
+      expect(heard(restored)).toBe(0);
+    });
   });
 });
 
@@ -335,7 +438,7 @@ describe("the vote and the emergency (spec §9.3-§9.5)", () => {
     expect(c.emergency()!.contributions.size).toBe(0);
   });
 
-  test("success: rewards by contribution, the hero doubled, the target sanctioned, a truce after, cooldowns", async () => {
+  test("success: rewards by contribution, the hero doubled, the target sanctioned, a truce after for those who took part, cooldowns", async () => {
     const { game, red, blue, green, c } = await voted("A");
     for (const p of [blue, green]) p.domestic()!.addYield(2000, 1000);
     for (let y = 0; y < 100; y++) blue.conquer(game.ref(29, y));
@@ -364,6 +467,48 @@ describe("the vote and the emergency (spec §9.3-§9.5)", () => {
     ]);
     expect(c.globalCooldownUntil()).toBe(now + 3000);
     expect(c.targetCooldownUntil(red.smallID())).toBe(now + 6000);
+  });
+
+  test("a yes voter that never took part gets no aftermath truce: nothing shows its vote", async () => {
+    const s = await three();
+    const c = congressOf(s.game);
+    // blue and green voted yes; only blue takes the target's land.
+    startEmergency(
+      s.game,
+      c,
+      "aggression",
+      s.red,
+      [s.blue.smallID(), s.green.smallID()],
+      [],
+    );
+    for (let y = 0; y < 5; y++) s.blue.conquer(s.game.ref(29, y));
+    for (const success of [true, false]) {
+      if (c.emergency() === null) {
+        startEmergency(
+          s.game,
+          c,
+          "aggression",
+          s.red,
+          [s.blue.smallID(), s.green.smallID()],
+          [],
+        );
+        s.blue.conquer(s.game.ref(29, 10));
+      }
+      c.dropTallyResolutions();
+      c.expireResolutions(s.game.ticks() + 1_000_000);
+      finishEmergency(s.game, c, success);
+      const truces = c
+        .active()
+        .filter((r) => r.resolution === "truce")
+        .map((r) => r.targets);
+      expect(truces).toEqual([[s.red.smallID(), s.blue.smallID()]]);
+      const shown = c.toData();
+      expect(
+        shown.active.some((r) => r.targets.includes(s.green.smallID())),
+      ).toBe(false);
+      expect(s.green.isTruceWith(s.red)).toBe(false);
+      expect(s.blue.isTruceWith(s.red)).toBe(true);
+    }
   });
 
   test("failure: the target survives with 60 influence and 60 s of output", async () => {

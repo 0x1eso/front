@@ -75,9 +75,11 @@ export function emergencyKindFor(
  * Spec §9.1: what can be convened now, one entry per target. Nothing while
  * an emergency runs or is voted on, without seats, in the global cooldown,
  * after EMERGENCY_MAX_PER_GAME, or once there is a winner. Everyone hears
- * when an entry appears. (A regular vote and the guard before the next
- * session only close the convening window, conveneWindowOpen: the entry
- * stays listed.)
+ * when an entry first appears: an index hovering at a threshold (or a kind
+ * flipping and back) doesn't announce the same kind and target again until
+ * that target's cooldown starts or an emergency is convened. (A regular vote
+ * and the guard before the next session only close the convening window,
+ * conveneWindowOpen: the entry stays listed.)
  */
 export function refreshAvailability(mg: Game, c: Congress): void {
   const now = mg.ticks();
@@ -103,9 +105,10 @@ export function refreshAvailability(mg: Game, c: Congress): void {
         target: p.smallID(),
         sinceTick: old?.sinceTick ?? now,
       });
-      if (old === undefined) {
+      if (old === undefined && !c.wasAnnounced(kind, p.smallID())) {
         announce(mg, "events_display.congress_emergency_available", kind, p);
       }
+      c.noteAnnounced(kind, p.smallID());
     }
   }
   c.setAvailable(next);
@@ -145,6 +148,7 @@ export function conveneEmergency(
   });
   if (block !== null || pc === null) return block ?? "influence";
   pc.spend(CONVENE_COST_MILLI);
+  c.forgetAnnounced();
   const session = c.openSession(
     "emergency",
     [
@@ -381,7 +385,11 @@ export function finishEmergency(mg: Game, c: Congress, success: boolean): void {
       });
     }
   }
+  // Secret ballot (spec §6.5): only members that took part are public
+  // (CongressData lists no one else), so only they get the aftermath truce.
+  // A truce row for a member that only voted yes would show its vote.
   for (const m of members) {
+    if ((e.contributions.get(m) ?? 0) <= 0) continue;
     c.addResolution({
       resolution: "truce",
       option: "A",

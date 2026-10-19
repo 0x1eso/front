@@ -4,6 +4,7 @@ import {
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { TECH_PACT_DISCOUNT_PCT } from "@openfront/engine-lib/congress/CongressBalance";
+import { techPactCostMilli } from "@openfront/engine-lib/congress/ResolutionEffects";
 import {
   MILLI,
   TECHS_REQUIRED_FROM_PREVIOUS_ERA,
@@ -138,11 +139,11 @@ function isDiscounted(ctx: ResearchScreenContext, id: TechId): boolean {
   return ctx.discounted?.includes(id) === true;
 }
 
-/** What `id` costs this player now: the tech pact takes 30% off (as Effects.researchCostMilli rounds). */
+/** What `id` costs this player now: the tech pact takes 30% off (the engine's own rounding). */
 function techCost(ctx: ResearchScreenContext, id: TechId): number {
-  const base = TECHS[id].cost;
-  if (!isDiscounted(ctx, id)) return base;
-  return Math.round((base * (100 + TECH_PACT_DISCOUNT_PCT)) / 100);
+  return (
+    techPactCostMilli(TECHS[id].cost * MILLI, isDiscounted(ctx, id)) / MILLI
+  );
 }
 
 /** Research ticks for `id` now: the tech pact also cuts the time, under the combined cap (as ResearchExecution). */

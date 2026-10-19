@@ -367,11 +367,13 @@ export class UnitDisplay extends LitElement implements Controller {
   /** Why a nuke can't be started at a factory now, or null if it can. */
   private produceReason(type: StockpiledNuke): string | null {
     if (this.locked(type)) return lockedReason(type);
-    const me = this.game?.myPlayer();
-    if (me && productionBanned(this.game.congressData(), me.smallID(), type)) {
+    const player = this.game?.myPlayer();
+    if (
+      player &&
+      productionBanned(this.game.congressData(), player.smallID(), type)
+    ) {
       return bannedReason();
     }
-    const player = this.game?.myPlayer();
     const s = this.strategic();
     if (!player || s === null) return null;
     const factories = player

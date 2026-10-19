@@ -12,6 +12,7 @@ import {
   ResultData,
   SessionKind,
 } from "@openfront/engine-api/congress/CongressTypes";
+import type { VictoryProjectProgress } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   CONVENE_COST_MILLI,
   extraVoteCost,
@@ -21,6 +22,7 @@ import {
   VOTING_TICKS,
 } from "@openfront/engine-lib/congress/CongressBalance";
 import {
+  awaitingRatification,
   bOnlyFor,
   ConveneBlock,
   conveneBlock,
@@ -71,6 +73,22 @@ export function viewerOf(game: GameView | undefined): CongressViewer | null {
   };
 }
 
+/**
+ * Spec §10.1: `owner`'s proclamation is complete and waits for the congress's
+ * ratification (as the engine judges it). False without a congress.
+ */
+export function ratificationPending(
+  data: CongressData | null,
+  owner: number,
+  project: VictoryProjectProgress | undefined,
+): boolean {
+  if (data === null || project === undefined) return false;
+  return awaitingRatification(
+    project,
+    data.verdicts.find((v) => v.owner === owner),
+  );
+}
+
 export function nameOf(game: GameView, smallID: number): string {
   const p = game.playerBySmallID(smallID);
   return p.isPlayer() ? (p as PlayerView).displayName() : "";
@@ -78,6 +96,21 @@ export function nameOf(game: GameView, smallID: number): string {
 
 /** Whole influence points convening costs. */
 export const CONVENE_COST = CONVENE_COST_MILLI / MILLI;
+
+/**
+ * What a congress HUD element last drew from, compared value by value
+ * (objects by identity): it redraws only when one of them changed.
+ */
+export function sameDrawKey(
+  prev: readonly unknown[] | null,
+  next: readonly unknown[],
+): boolean {
+  return (
+    prev !== null &&
+    prev.length === next.length &&
+    prev.every((v, i) => Object.is(v, next[i]))
+  );
+}
 
 export function ticksToSeconds(ticks: number): number {
   return Math.max(0, Math.ceil(ticks / 10));

@@ -20,11 +20,12 @@ import {
   victoryProjectBlock,
 } from "@openfront/engine-lib/domestic/Victory";
 import { renderNumber } from "@openfront/engine-lib/Format";
-import { html, TemplateResult } from "lit";
+import { html, nothing, TemplateResult } from "lit";
 import { formatPercentage, renderDuration, translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { domesticScoreMap } from "../../view/DomesticScores";
 import type { PlayerView } from "../../view/PlayerView";
+import { ratificationPending } from "../congress/CongressModel";
 
 export interface HostChoice {
   id: number;
@@ -247,6 +248,7 @@ function renderScore(
 }
 
 function renderActive(game: GameView): TemplateResult {
+  const congress = game.congressData();
   const rows = game.playerViews().flatMap((p) => {
     const project = p.isAlive() ? p.domesticData()?.project : undefined;
     return project === undefined ? [] : [{ p, project }];
@@ -266,6 +268,11 @@ function renderActive(game: GameView): TemplateResult {
                 pct: Math.floor(projectProgress(project) * 100),
               })}
               ${project.paused ? translateText("domestic.victory.paused") : ""}
+              ${ratificationPending(congress, p.smallID(), project)
+                ? html`<div data-awaiting-ratification class="text-amber-300">
+                    ${translateText("domestic.victory.awaiting_ratification")}
+                  </div>`
+                : nothing}
             </div>`,
         )}
   </div>`;

@@ -1,4 +1,4 @@
-import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import type { ItemResult } from "@openfront/engine/congress/Congress";
 import {
@@ -9,6 +9,7 @@ import {
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { checkDomesticWin } from "@openfront/engine/domestic/DomesticWinCheck";
 import { Game, Player, Unit } from "@openfront/engine/game/Game";
+import { vi } from "vitest";
 import { buildLevel, reachGovernmentTier3 } from "../domestic/util";
 import { setup } from "../util/Setup";
 import {
@@ -144,6 +145,62 @@ describe("world government approval (spec §10.1)", () => {
     expect(checkDomesticWin(game)).toEqual({
       winner: red,
       reason: "political",
+    });
+  });
+
+  describe("an approval that completes a running proclamation", () => {
+    const COMPLETE = "events_display.victory_project_complete";
+    const completions = (spy: { mock: { calls: unknown[][] } }) =>
+      spy.mock.calls.filter(([m]) => m === COMPLETE);
+
+    test("announces it complete, once, as its last second would", async () => {
+      const { game, red, d, office, c } = await proclamation();
+      d.shiftVictoryProject(-2000); // 400 ticks left
+      const spy = vi.spyOn(game, "displayMessage");
+      applyAdoption(game, c, verdict(red, office, "A"));
+      expect(d.victoryProject()!.ticksLeft).toBe(0);
+      expect(completions(spy)).toEqual([
+        [
+          COMPLETE,
+          MessageType.VICTORY_PROJECT,
+          null,
+          undefined,
+          { name: red.displayName(), project: "political" },
+          office.id(),
+          red.id(),
+        ],
+      ]);
+      // The next domestic seconds don't announce it again.
+      game.addExecution(new DomesticExecution());
+      runTicks(game, 25);
+      expect(completions(spy)).toHaveLength(1);
+      expect(checkDomesticWin(game)).toEqual({
+        winner: red,
+        reason: "political",
+      });
+    });
+
+    test("not when time is left, nor for one already waiting complete", async () => {
+      const running = await proclamation();
+      running.d.shiftVictoryProject(-1000); // 1,400 ticks left
+      const spy = vi.spyOn(running.game, "displayMessage");
+      applyAdoption(
+        running.game,
+        running.c,
+        verdict(running.red, running.office, "A"),
+      );
+      expect(running.d.victoryProject()!.ticksLeft).toBe(800);
+      expect(completions(spy)).toEqual([]);
+
+      const waiting = await proclamation();
+      waiting.d.shiftVictoryProject(-2400);
+      const waitSpy = vi.spyOn(waiting.game, "displayMessage");
+      applyAdoption(
+        waiting.game,
+        waiting.c,
+        verdict(waiting.red, waiting.office, "A"),
+      );
+      expect(completions(waitSpy)).toEqual([]);
     });
   });
 });

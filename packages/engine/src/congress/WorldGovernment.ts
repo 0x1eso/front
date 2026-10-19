@@ -1,4 +1,6 @@
 import { WORLD_GOV_STEP_TICKS } from "@openfront/engine-lib/congress/CongressBalance";
+import { awaitingRatification } from "@openfront/engine-lib/congress/Voting";
+import { announceVictoryProject } from "../domestic/VictoryProjects";
 import type { Game, Player } from "../game/Game";
 import type { Congress, ItemResult } from "./Congress";
 
@@ -24,21 +26,32 @@ export function applyAdoption(mg: Game, c: Congress, result: ItemResult): void {
     return;
   }
   const ratified = result.adopted === "A";
+  const running = project.ticksLeft > 0;
   d.shiftVictoryProject(
     ratified ? -WORLD_GOV_STEP_TICKS : WORLD_GOV_STEP_TICKS,
   );
   c.setVerdict(owner.smallID(), { host, ratified });
+  // An approval that finishes a running proclamation: everyone hears it
+  // complete, as when its last second runs out (processVictoryProjectSecond).
+  if (running && d.victoryProject()?.ticksLeft === 0) {
+    announceVictoryProject(
+      mg,
+      owner,
+      "events_display.victory_project_complete",
+      project.kind,
+      host,
+    );
+  }
 }
 
 /** A complete proclamation whose latest decision isn't an approval of this host: it waits (spec §10.1 step 6). */
 export function awaitsRatification(mg: Game, player: Player): boolean {
   const c = mg.congress();
   if (c === null) return false;
-  const project = player.domestic()?.victoryProject() ?? null;
-  if (project === null || project.kind !== "political") return false;
-  if (project.ticksLeft > 0) return false;
-  const v = c.verdict(player.smallID());
-  return !(v !== undefined && v.host === project.hostUnitId && v.ratified);
+  return awaitingRatification(
+    player.domestic()?.victoryProject() ?? null,
+    c.verdict(player.smallID()),
+  );
 }
 
 /**

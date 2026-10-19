@@ -19,7 +19,7 @@ import { translateText } from "../../Utils";
 import { GameView } from "../../view";
 import type { DomesticClientView } from "../../view/DomesticClientView";
 import { PlayerView } from "../../view/PlayerView";
-import { nameOf, viewerOf } from "../congress/CongressModel";
+import { conveneState, nameOf, viewerOf } from "../congress/CongressModel";
 import { renderCongressScreen } from "../congress/CongressScreen";
 import {
   DomesticScreen,
@@ -320,6 +320,17 @@ export class DomesticPanel extends LitElement implements Controller {
           nameOf: (id) => nameOf(this.game, id),
           t: translateText,
           convene: (kind, target) => {
+            // Checked again on the tap against the live data, as the band
+            // does: the drawer may show an older render.
+            const live = this.game.congressData();
+            const me = viewerOf(this.game);
+            if (
+              live === null ||
+              me === null ||
+              conveneState(live, me, kind, target, this.game.ticks()) !== null
+            ) {
+              return;
+            }
             const p = this.game.playerBySmallID(target);
             if (p.isPlayer()) {
               this.eventBus.emit(

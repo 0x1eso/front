@@ -6,6 +6,7 @@ import {
   ResultData,
   SessionData,
 } from "@openfront/engine-api/congress/CongressTypes";
+import { conveneWindowOpen } from "@openfront/engine-lib/congress/Voting";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
@@ -24,6 +25,7 @@ import {
   nameOf,
   newResults,
   optionLabel,
+  sameDrawKey,
   ticksToSeconds,
   titleText,
   viewerOf,
@@ -91,6 +93,8 @@ export class CongressBand extends LitElement implements Controller {
   private satellite: Element | null = null;
   private satelliteObserver: ResizeObserver | null = null;
   private bandTop = BAND_TOP;
+  /** What the last redraw request was made for (sameDrawKey). */
+  private drawn: unknown[] | null = null;
 
   createRenderRoot() {
     return this;
@@ -129,7 +133,33 @@ export class CongressBand extends LitElement implements Controller {
       this.eventBus.emit(new PlaySoundEffectEvent("click-3"));
     }
     if (this.toast !== null && this.toast.untilTick <= now) this.toast = null;
-    this.requestUpdate();
+    // Redraw only when what is shown can change: the congress data, my own
+    // data, the banner, a displayed second (the emergency vote's, the
+    // emergency's) or the convening window. Not every tick.
+    const me = this.game.myPlayer();
+    const s = data.session;
+    const key = [
+      data,
+      me?.congressData() ?? null,
+      me?.isAlive() ?? false,
+      this.toast,
+      s === null ? -1 : ticksToSeconds(s.closeTick - now),
+      data.emergency === null
+        ? -1
+        : ticksToSeconds(data.emergency.endTick - now),
+      conveneWindowOpen(
+        now,
+        s !== null,
+        data.emergency !== null,
+        data.nextSessionTick,
+      ),
+    ];
+    const changed = !sameDrawKey(this.drawn, key);
+    this.drawn = key;
+    // The satellite band comes and goes on its own: look for it with each
+    // redraw and once a second, never in render().
+    const moved = (changed || now % 10 === 0) && this.followSatellite();
+    if (changed || moved) this.requestUpdate();
   }
 
   private measureTop(): number {
@@ -139,22 +169,24 @@ export class CongressBand extends LitElement implements Controller {
   }
 
   /**
-   * Under the satellite band when it shows. Measured only when that band
-   * appears, goes or resizes, and on window resize: never per tick.
+   * Follows the satellite band: this band starts under it when it shows.
+   * Measured only when that band appears, goes or resizes (and on window
+   * resize). Returns whether the top moved.
    */
-  private top(): number {
+  private followSatellite(): boolean {
     const sat = document.querySelector("[data-satellite-band]");
-    if (sat !== this.satellite) {
-      this.satelliteObserver?.disconnect();
-      this.satelliteObserver = null;
-      this.satellite = sat;
-      if (sat !== null && typeof ResizeObserver !== "undefined") {
-        this.satelliteObserver = new ResizeObserver(this.remeasure);
-        this.satelliteObserver.observe(sat);
-      }
-      this.bandTop = this.measureTop();
+    if (sat === this.satellite) return false;
+    this.satelliteObserver?.disconnect();
+    this.satelliteObserver = null;
+    this.satellite = sat;
+    if (sat !== null && typeof ResizeObserver !== "undefined") {
+      this.satelliteObserver = new ResizeObserver(this.remeasure);
+      this.satelliteObserver.observe(sat);
     }
-    return this.bandTop;
+    const top = this.measureTop();
+    const moved = top !== this.bandTop;
+    this.bandTop = top;
+    return moved;
   }
 
   render() {
@@ -180,7 +212,7 @@ export class CongressBand extends LitElement implements Controller {
       rows.push(this.renderEmergency(data.emergency, viewer, now));
     }
     if (rows.length === 0) return nothing;
-    const top = this.top();
+    const top = this.bandTop;
     return html`<div
       data-congress-band
       class="fixed left-1/2 -translate-x-1/2 z-[1002] w-[min(26rem,calc(100vw-32px))] flex flex-col gap-1 overflow-hidden text-white text-sm pointer-events-none select-none"

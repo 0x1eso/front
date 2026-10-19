@@ -15,6 +15,7 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { reportTruceRefusal } from "../congress/Conflict";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { targetTransportTile } from "../game/TransportShipUtils";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
@@ -99,6 +100,7 @@ export class TransportShipExecution implements Execution {
     // World congress (spec §8.1 S2): a truce blocks the boat before it can
     // turn down the target's alliance request.
     if (this.target.isPlayer() && this.attacker.isTruceWith(this.target)) {
+      reportTruceRefusal(mg, this.attacker, this.target);
       this.active = false;
       return;
     }

@@ -3,6 +3,7 @@ import {
   MAX_EXTRA_VOTES,
   ResolutionId,
 } from "@openfront/engine-api/congress/CongressTypes";
+import type { VictoryProjectProgress } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   CONVENE_COST_MILLI,
   EMERGENCY_SESSION_GUARD_TICKS,
@@ -166,5 +167,27 @@ export function conveneWindowOpen(
     !emergencyActive &&
     (nextSessionTick === null ||
       now < nextSessionTick - EMERGENCY_SESSION_GUARD_TICKS)
+  );
+}
+
+/**
+ * Spec §10.1 step 6: a complete proclamation whose latest decision isn't an
+ * approval of this host waits for ratification. `verdict` is the latest
+ * decision on its owner's proclamation, if any. The engine
+ * (WorldGovernment.awaitsRatification) and the victory tab both read it.
+ */
+export function awaitingRatification(
+  project: Pick<
+    VictoryProjectProgress,
+    "kind" | "ticksLeft" | "hostUnitId"
+  > | null,
+  verdict: { readonly host: number; readonly ratified: boolean } | undefined,
+): boolean {
+  if (project === null || project.kind !== "political") return false;
+  if (project.ticksLeft > 0) return false;
+  return !(
+    verdict !== undefined &&
+    verdict.host === project.hostUnitId &&
+    verdict.ratified
   );
 }

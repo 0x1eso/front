@@ -387,4 +387,39 @@ describe("the congress band", () => {
     await step(120);
     expect(q(el, "[data-congress-band]")!.style.top).toBe("8px");
   });
+
+  it("asks for a redraw only when something shown changes; looks for the satellite band once a second", async () => {
+    const state: FakeCongress = {
+      now: 101,
+      data: AVAILABLE,
+      ballots: [],
+      influence: 80,
+    };
+    const { el, step } = await mount(state);
+    const me = el.game.myPlayer()!;
+    const mine = me.congressData();
+    (me as unknown as { congressData: () => unknown }).congressData = () =>
+      mine;
+    await step(102);
+    const redraw = vi.spyOn(el, "requestUpdate");
+    const lookups = vi.spyOn(document, "querySelector");
+    for (let t = 103; t <= 115; t++) await step(t);
+    expect(redraw).not.toHaveBeenCalled();
+    // Once, at tick 110.
+    expect(
+      lookups.mock.calls.filter(([sel]) => sel === "[data-satellite-band]"),
+    ).toHaveLength(1);
+    const sat = document.createElement("div");
+    sat.setAttribute("data-satellite-band", "");
+    sat.getBoundingClientRect = () => ({ bottom: 60 }) as DOMRect;
+    document.body.appendChild(sat);
+    await step(116);
+    expect(redraw).not.toHaveBeenCalled();
+    await step(120);
+    expect(redraw).toHaveBeenCalledTimes(1);
+    expect(q(el, "[data-congress-band]")!.style.top).toBe("64px");
+    state.data = { ...AVAILABLE };
+    await step(121);
+    expect(redraw).toHaveBeenCalledTimes(2);
+  });
 });

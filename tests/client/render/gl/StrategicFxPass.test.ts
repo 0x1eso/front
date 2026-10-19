@@ -1,13 +1,23 @@
 import { describe, expect, test } from "vitest";
-import { StrategicFxPass } from "../../../../src/client/render/gl/passes/StrategicFxPass";
+import {
+  CONGRESS_PULSE_PEAK,
+  StrategicFxPass,
+} from "../../../../src/client/render/gl/passes/StrategicFxPass";
 
 function countingGL() {
-  const counts = { draws: 0, programs: 0, deletedPrograms: 0, uploads: 0 };
+  const counts = {
+    draws: 0,
+    programs: 0,
+    deletedPrograms: 0,
+    uploads: 0,
+    calls: 0,
+  };
   const gl = new Proxy(
     {},
     {
       get: (_t, prop) => {
         if (typeof prop === "string" && /^[A-Z0-9_]+$/.test(prop)) return 0;
+        counts.calls++;
         if (prop === "drawArrays") return () => counts.draws++;
         if (prop === "createProgram") {
           return () => {
@@ -166,7 +176,9 @@ describe("StrategicFxPass", () => {
     expect(pass.pulseValues[0]).toBeCloseTo(0);
     advance(1000);
     pass.updatePulses();
-    expect(pass.pulseValues[0]).toBeCloseTo(1);
+    // A modest peak: a strike countdown pulses up to 1.
+    expect(pass.pulseValues[0]).toBeCloseTo(0.5);
+    expect(CONGRESS_PULSE_PEAK).toBe(0.5);
     advance(1000);
     pass.updatePulses();
     expect(pass.pulseValues[0]).toBeCloseTo(0);
@@ -174,6 +186,20 @@ describe("StrategicFxPass", () => {
     pass.updatePulses();
     expect(pass.pulseCount).toBe(0);
     expect(pass.isIdle()).toBe(true);
+  });
+
+  test("a congress pulse alone makes no GL call in draw", () => {
+    const { pass, counts, advance } = setup();
+    pass.setCongressTargets([7]);
+    expect(pass.isIdle()).toBe(false);
+    counts.calls = 0;
+    for (let i = 0; i < 5; i++) {
+      advance(16);
+      pass.updatePulses();
+      pass.draw(cam, 4);
+    }
+    expect(counts.calls).toBe(0);
+    expect(pass.pulseCount).toBe(1);
   });
 
   test("an emergency target already counting down to a strike pulses once, and draws nothing", () => {

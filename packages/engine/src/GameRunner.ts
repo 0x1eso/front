@@ -362,6 +362,9 @@ export class GameRunner {
         canEmbargo: !player.hasEmbargoAgainst(other),
         allianceInfo: player.allianceInfo(other) ?? undefined,
       };
+      // World congress: the client still sends a tap on a truce partner, so
+      // the engine can say why nothing happens (reportTruceRefusal).
+      if (player.isTruceWith(other)) actions.interaction.truce = true;
     }
 
     return actions;

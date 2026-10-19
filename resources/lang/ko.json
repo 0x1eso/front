@@ -863,6 +863,7 @@
     "congress_tied": "🏛 동점 부결: {resolution} ({a} : {b})",
     "congress_tied_pair": "🏛 동점 부결: {name} ↔ {target} {resolution} ({a} : {b})",
     "congress_tied_target": "🏛 동점 부결: {name} {resolution} ({a} : {b})",
+    "congress_truce_blocked": "🕊 {name}와(과) 휴전 중",
     "world_gov_awaiting": "{name}의 세계 정부 선포 완료 — 의회의 비준을 기다립니다"
   },
   "featured_stream": {
@@ -2809,6 +2810,7 @@
     "tap_again_to_confirm": "한 번 더 눌러 확정 (되돌릴 수 없음)",
     "victory": {
       "active": "진행 중인 프로젝트",
+      "awaiting_ratification": "의회 비준 대기",
       "blocked": {
         "busy": "다른 프로젝트가 진행 중입니다",
         "gold": "금이 부족합니다",
