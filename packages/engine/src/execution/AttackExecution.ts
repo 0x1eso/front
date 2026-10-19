@@ -124,6 +124,10 @@ export class AttackExecution implements Execution {
     // World congress (spec §8.1 S2): a truce blocks the attack before it
     // can leave an embargo or a grudge behind.
     if (this.target.isPlayer() && this._owner.isTruceWith(this.target)) {
+      // Troops a boat or paradrop already took go home instead of vanishing.
+      if (!this.removeTroops && this.startTroops !== null) {
+        this._owner.addTroops(this.startTroops);
+      }
       this.active = false;
       return;
     }

@@ -99,6 +99,18 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(Math.abs(red.troops() - (home + inFlight))).toBeLessThan(1);
   });
 
+  test("a blocked attack whose troops were already taken (boat, paradrop) hands them back", async () => {
+    const { game, red, blue } = await three();
+    red.setTroops(10_000);
+    truce(game, red, blue);
+    game.addExecution(
+      new AttackExecution(1000, red, blue.id(), game.ref(30, 5), false),
+    );
+    runTicks(game, 1);
+    expect(red.outgoingAttacks()).toHaveLength(0);
+    expect(red.troops()).toBeGreaterThanOrEqual(11_000);
+  });
+
   test("a blocked attack leaves no embargo or grudge", async () => {
     const { game, red, blue } = await three();
     red.setTroops(10_000);
@@ -131,6 +143,50 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(red.units(UnitType.TransportShip)).toHaveLength(0);
     expect(red.troops()).toBe(10_000);
     expect(blue.numTilesOwned()).toBe(32);
+  });
+
+  describe("a recalled boat's loss is decided by the recall, not by a truce at landing", () => {
+    async function sail() {
+      const game = await congressGame({}, [RED, BLUE], "half_land_half_ocean");
+      const red = own(game, RED.id, 0, 0, 8, 4);
+      const blue = own(game, BLUE.id, 0, 12, 8, 4);
+      game.executeNextTick();
+      red.setTroops(10_000);
+      game.addExecution(new TransportShipExecution(red, game.ref(7, 13), 1000));
+      runTicks(game, 3);
+      expect(red.troops()).toBe(9_000);
+      return { game, red, blue };
+    }
+    const dock = (game: Game, red: Player) => {
+      for (let i = 0; i < 400; i++) {
+        if (red.units(UnitType.TransportShip).length === 0) break;
+        game.executeNextTick();
+      }
+      expect(red.units(UnitType.TransportShip)).toHaveLength(0);
+    };
+
+    test("the truce expires while the recalled boat sails home: still no loss", async () => {
+      const { game, red, blue } = await sail();
+      truce(game, red, blue);
+      runTicks(game, 1); // the boat turns around
+      expect(red.isTruceWith(blue)).toBe(true);
+      congressOf(game).expireResolutions(game.ticks() + 5000);
+      expect(red.isTruceWith(blue)).toBe(false);
+      expect(red.units(UnitType.TransportShip)).toHaveLength(1);
+      dock(game, red);
+      expect(red.troops()).toBe(10_000);
+    });
+
+    test("a player-ordered retreat stays lossy even if a truce starts later", async () => {
+      const { game, red, blue } = await sail();
+      red
+        .units(UnitType.TransportShip)[0]
+        .updateTransportShipState({ isRetreating: true });
+      truce(game, red, blue);
+      dock(game, red);
+      expect(red.troops()).toBeLessThan(10_000);
+      expect(red.troops()).toBeGreaterThan(9_000);
+    });
   });
 
   test("a boat sent at a truce partner never sails and turns down nothing", async () => {
