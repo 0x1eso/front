@@ -7,6 +7,7 @@ import {
   VICTORY_PROJECT_KINDS,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { techPactCostMilli } from "@openfront/engine-lib/congress/ResolutionEffects";
 import {
   LAW_COOLDOWN_TICKS,
   MILLI,
@@ -202,7 +203,11 @@ export interface ResearchDial {
   queued: TechId | null;
 }
 
-export function researchDial(d: DomesticData): ResearchDial {
+/** `discounted`: world congress, the techs the tech pact makes cheaper now. */
+export function researchDial(
+  d: DomesticData,
+  discounted: readonly TechId[] = [],
+): ResearchDial {
   const queued = d.queuedTech ?? null;
   const r = d.research;
   if (r !== null) {
@@ -218,7 +223,10 @@ export function researchDial(d: DomesticData): ResearchDial {
   let cheapest: number | null = null;
   for (const id of TECH_IDS) {
     if (researchBlock(researched, false, id) !== null) continue;
-    cheapest = Math.min(cheapest ?? Infinity, TECHS[id].cost);
+    const cost =
+      techPactCostMilli(TECHS[id].cost * MILLI, discounted.includes(id)) /
+      MILLI;
+    cheapest = Math.min(cheapest ?? Infinity, cost);
   }
   const idle = { tech: null, secondsLeft: null, queued };
   if (cheapest === null) return { ...idle, kind: "none", progress: 0 };

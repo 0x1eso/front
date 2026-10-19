@@ -137,7 +137,12 @@ export class DomesticDials extends LitElement implements Controller {
     if (view === null) return null;
     const d = view.data;
     return {
-      research: researchDial(d),
+      research: researchDial(
+        d,
+        this.game.config().congress()
+          ? (this.game.congressData()?.discountedTechs ?? [])
+          : [],
+      ),
       laws: lawsDial(view, this.game.ticks()),
       victory: victoryDial(
         d,

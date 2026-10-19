@@ -11,7 +11,10 @@ import {
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { LAWS } from "../domestic/Laws";
-import { HEGEMONY_FAIL_GOLD_PCT } from "./CongressBalance";
+import {
+  HEGEMONY_FAIL_GOLD_PCT,
+  TECH_PACT_DISCOUNT_PCT,
+} from "./CongressBalance";
 
 /** What the effect rules read of a resolution in force (ActiveResolution and ActiveResolutionData both fit). */
 export interface ResolutionLike {
@@ -234,4 +237,17 @@ export function resolutionNukeTimePct(
     if (r.resolution === "non_proliferation") pct += NUKE_TIME_PCT;
   }
   return pct;
+}
+
+/**
+ * E4 A (spec §8.2): what a tech of `baseMilli` milli-points costs when the
+ * tech pact discounts it, rounded to a milli-point. The engine charges it
+ * (Effects.researchCostMilli); the research screen and dial show it.
+ */
+export function techPactCostMilli(
+  baseMilli: number,
+  discounted: boolean,
+): number {
+  if (!discounted) return baseMilli;
+  return Math.round((baseMilli * (100 + TECH_PACT_DISCOUNT_PCT)) / 100);
 }

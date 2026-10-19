@@ -8,6 +8,7 @@ import {
   resolutionBuildTimePct,
   resolutionModifiers,
   resolutionNukeTimePct,
+  techPactCostMilli,
 } from "@openfront/engine-lib/congress/ResolutionEffects";
 
 const ME = 1;
@@ -202,5 +203,14 @@ describe("bans, costs and times (spec §8)", () => {
         ME,
       ),
     ).toBe(-100);
+  });
+});
+
+describe("the tech pact's research cost (spec §8.2 E4 A)", () => {
+  test("30% off, rounded to a milli-point; nothing off without the pact", () => {
+    expect(techPactCostMilli(150_000, true)).toBe(105_000);
+    expect(techPactCostMilli(150_000, false)).toBe(150_000);
+    // 0.7 × 1,001 = 700.7 milli-points.
+    expect(techPactCostMilli(1_001, true)).toBe(701);
   });
 });
