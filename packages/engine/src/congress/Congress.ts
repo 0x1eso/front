@@ -240,6 +240,8 @@ export const CongressStateSchema = z.object({
   discountedTechs: z.array(z.enum(TECH_IDS)),
   aggressors: RankSchema,
   victims: RankSchema,
+  /** Written only when not empty (Congress.announced). */
+  announced: z.array(z.tuple([z.enum(EMERGENCY_KINDS), zInt()])).optional(),
 });
 export type CongressState = z.infer<typeof CongressStateSchema>;
 
@@ -325,6 +327,12 @@ export class Congress {
   private _discountedTechs: TechId[] = [];
   private aggressors: RankEntry[] = [];
   private victims: RankEntry[] = [];
+  /**
+   * (kind, target) pairs everyone already heard can be convened: an index
+   * hovering at a threshold doesn't announce the same one again until that
+   * target's cooldown starts or the next emergency is convened.
+   */
+  private announced: [EmergencyKind, number][] = [];
   /** toData() result until the next change. */
   private congressDataCache: CongressData | null = null;
   /** The CongressData last handed to clients (none in a fresh or restored game: its first tick sends one). */
@@ -650,6 +658,21 @@ export class Congress {
 
   setTargetCooldown(smallID: number, tick: number): void {
     this.targetCooldowns.set(smallID, tick);
+    this.announced = this.announced.filter(([, t]) => t !== smallID);
+  }
+
+  /** Whether everyone already heard that `kind` against `target` can be convened. */
+  wasAnnounced(kind: EmergencyKind, target: number): boolean {
+    return this.announced.some(([k, t]) => k === kind && t === target);
+  }
+
+  noteAnnounced(kind: EmergencyKind, target: number): void {
+    if (!this.wasAnnounced(kind, target)) this.announced.push([kind, target]);
+  }
+
+  /** An emergency was convened: whatever is listed after it is news again. */
+  forgetAnnounced(): void {
+    this.announced = [];
   }
 
   emergenciesStarted(): number {
@@ -884,9 +907,13 @@ export class Congress {
 
   hash(): number {
     // toData leaves out the members that haven't contributed (secret
-    // ballot); the desync hash still covers them.
+    // ballot) and the announced pairs; the desync hash still covers them.
     return simpleHash(
-      JSON.stringify([this.toData(), this._emergency?.members ?? null]),
+      JSON.stringify([
+        this.toData(),
+        this._emergency?.members ?? null,
+        this.announced,
+      ]),
     );
   }
 
@@ -944,6 +971,13 @@ export class Congress {
       discountedTechs: [...this._discountedTechs],
       aggressors: this.aggressors.map((r) => ({ ...r })),
       victims: this.victims.map((r) => ({ ...r })),
+      ...(this.announced.length === 0
+        ? {}
+        : {
+            announced: this.announced.map(
+              ([k, t]) => [k, t] as [EmergencyKind, number],
+            ),
+          }),
     };
   }
 
@@ -998,6 +1032,9 @@ export class Congress {
     this._discountedTechs = [...s.discountedTechs];
     this.aggressors = s.aggressors.map((x) => ({ ...x }));
     this.victims = s.victims.map((x) => ({ ...x }));
+    this.announced = (s.announced ?? []).map(
+      ([k, t]) => [k, t] as [EmergencyKind, number],
+    );
     this.congressDataCache = null;
     this.lastSentCongressData = null;
   }
