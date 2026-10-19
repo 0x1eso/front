@@ -31,10 +31,17 @@ export const MAX_PULSES = 4;
 
 /** World congress: an emergency target's border pulses this slowly (spec §12). */
 export const CONGRESS_PULSE_HZ = 0.5;
+/**
+ * ...and only this bright: a modest beat, never mistaken for a satellite
+ * strike's countdown (which pulses up to 1).
+ */
+export const CONGRESS_PULSE_PEAK = 0.5;
 
-/** Border pulse 0..1 at `ms` on the frame clock, starting dark. */
+/** Border pulse 0..CONGRESS_PULSE_PEAK at `ms` on the frame clock, starting dark. */
 export function congressPulse(ms: number): number {
-  return 0.5 - 0.5 * Math.cos((2 * Math.PI * CONGRESS_PULSE_HZ * ms) / 1000);
+  const beat =
+    0.5 - 0.5 * Math.cos((2 * Math.PI * CONGRESS_PULSE_HZ * ms) / 1000);
+  return CONGRESS_PULSE_PEAK * beat;
 }
 const LAUNCH_MS = 1400;
 const INTERCEPT_MS = 1000;
@@ -266,7 +273,16 @@ export class StrategicFxPass {
   }
 
   draw(cameraMatrix: Float32Array, zoom: number): void {
-    if (this.isIdle()) return;
+    // Countdowns and congress targets only pulse borders (updatePulses):
+    // with nothing else to show, no GL call and no allocation per frame.
+    if (
+      this.preparing.length === 0 &&
+      this.launches.length === 0 &&
+      this.intercepts.length === 0 &&
+      this.ripples.length === 0
+    ) {
+      return;
+    }
     const now = this.timeFn();
     this.launches = this.launches.filter((e) => now - e.start < LAUNCH_MS);
     this.intercepts = this.intercepts.filter(
