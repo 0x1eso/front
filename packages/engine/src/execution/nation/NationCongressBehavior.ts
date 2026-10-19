@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/congress/CongressTypes";
 import {
   Difficulty,
+  PlayerType,
   Relation,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
@@ -424,4 +425,97 @@ function maybeConvene(mg: Game, c: Congress, player: Player): void {
     mg.addExecution(new ConveneEmergencyExecution(player, a.kind, target.id()));
     return;
   }
+}
+
+// --- Behaviour after results (spec §11.4), read by AiAttackBehavior and
+// NationDomesticBehavior. All false / null without a congress, so other
+// games play exactly as before.
+
+/** Spec §11.4: not an attack target now — a truce partner, or a protectorate we don't outnumber two to one. */
+export function congressSparesTarget(
+  mg: Game,
+  player: Player,
+  other: Player,
+): boolean {
+  const c = mg.congress();
+  if (c === null) return false;
+  if (player.isTruceWith(other)) return true;
+  const protectorate = c
+    .active()
+    .some(
+      (r) =>
+        r.resolution === "protectorate" &&
+        r.option === "A" &&
+        r.targets[0] === other.smallID(),
+    );
+  return protectorate && player.troops() < other.troops() * 2;
+}
+
+/**
+ * The emergency target `player` (a member) should hit first; null
+ * otherwise, and for a member that has since allied with the target (it
+ * stays a member but can't attack it, spec §9.4).
+ */
+export function emergencyTargetFor(mg: Game, player: Player): Player | null {
+  const e = mg.congress()?.emergency() ?? null;
+  if (e === null || !e.members.includes(player.smallID())) return null;
+  const target = mg.playerBySmallID(e.target);
+  return target.isPlayer() &&
+    target.isAlive() &&
+    !player.isFriendly(target, true)
+    ? target
+    : null;
+}
+
+/**
+ * The running emergency's target, when `player` may take it on: a member,
+ * or a nation that would join by taking its land (spec §9.4: not the
+ * target, not one that voted against, not the target's friend). Null
+ * otherwise. A war tax leaves this target open (spec §11.4).
+ */
+export function joinableEmergencyTarget(
+  mg: Game,
+  player: Player,
+): Player | null {
+  const e = mg.congress()?.emergency() ?? null;
+  if (e === null) return null;
+  const target = mg.playerBySmallID(e.target);
+  if (!target.isPlayer() || !target.isAlive() || target === player) {
+    return null;
+  }
+  if (player.isFriendly(target, true) || player.isTruceWith(target)) {
+    return null;
+  }
+  if (e.members.includes(player.smallID())) return target;
+  return e.opposed.includes(player.smallID()) ? null : target;
+}
+
+/** Why the congress keeps `player` from starting attacks on humans and nations (spec §11.4), or null. */
+export type CongressRestraint = "emergency_target" | "war_tax";
+
+/**
+ * Spec §11.4: the emergency target only answers attacks; under a war tax
+ * (S4 A) merchants, scholars and zealots start nothing against humans or
+ * nations but the emergency target (bots and free land stay open).
+ */
+export function congressRestraint(
+  mg: Game,
+  player: Player,
+): CongressRestraint | null {
+  const c = mg.congress();
+  if (c === null) return null;
+  if (c.isEmergencyTarget(player.smallID())) return "emergency_target";
+  if (
+    player.type() === PlayerType.Nation &&
+    personality(player) !== "conqueror" &&
+    c.active().some((r) => r.resolution === "war_tax" && r.option === "A")
+  ) {
+    return "war_tax";
+  }
+  return null;
+}
+
+/** Spec §11.4: start no attack of our own — as the emergency target, or as a peaceful nation under a war tax. */
+export function congressHoldsFire(mg: Game, player: Player): boolean {
+  return congressRestraint(mg, player) !== null;
 }

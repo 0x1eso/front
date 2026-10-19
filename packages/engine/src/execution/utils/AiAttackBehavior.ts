@@ -29,6 +29,10 @@ import {
 } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { CHEAPEST_TROOP_RATIO } from "../../configuration/EngineConfig";
+import {
+  awaitsRatification,
+  isProjectCondemned,
+} from "../../congress/WorldGovernment";
 import { hasActiveVictoryProject } from "../../domestic/VictoryProjects";
 import { Attack, Game, Player, Unit } from "../../game/Game";
 import {
@@ -44,6 +48,12 @@ import { AttackExecution } from "../AttackExecution";
 import { DonateTroopsExecution } from "../DonateTroopExecution";
 import { planBotAttacks, walledInBots } from "../nation/BotAnnexation";
 import { NationAllianceBehavior } from "../nation/NationAllianceBehavior";
+import {
+  congressRestraint,
+  congressSparesTarget,
+  emergencyTargetFor,
+  joinableEmergencyTarget,
+} from "../nation/NationCongressBehavior";
 import {
   EMOJI_ASSIST_ACCEPT,
   EMOJI_ASSIST_RELATION_TOO_LOW,
@@ -231,8 +241,12 @@ export class AiAttackBehavior {
     const borderingFriends = borderingPlayers.filter(
       (o) => this.player?.isFriendly(o) === true,
     );
+    // World congress (spec §11.4): never a truce partner, and a
+    // protectorate only two to one.
     const borderingEnemies = borderingPlayers.filter(
-      (o) => this.player?.isFriendly(o) === false,
+      (o) =>
+        this.player?.isFriendly(o) === false &&
+        !congressSparesTarget(this.game, this.player, o),
     );
 
     // Attack TerraNullius but not nuked territory (direct border or across a river)
@@ -243,8 +257,11 @@ export class AiAttackBehavior {
       if (this.sendAttack(this.game.terraNullius())) return;
     }
 
-    // Holding fire for a project still allows a boat to unowned land.
-    const holdFire = this.holdsFireForProject();
+    // Holding fire for a project still allows a boat to unowned land. So
+    // does the congress's (the emergency target, a war tax).
+    const holdFire =
+      this.holdsFireForProject() ||
+      congressRestraint(this.game, this.player) !== null;
     const holdBoats = holdFire || this.holdsBoatsUnderAttack();
     if (borderingEnemies.length === 0) {
       if (!holdBoats && this.random.chance(5)) {
@@ -365,6 +382,13 @@ export class AiAttackBehavior {
       if (owner.isPlayer() && borderingEnemies.includes(owner)) {
         continue;
       }
+      // World congress (spec §11.4): nor to one it spares.
+      if (
+        owner.isPlayer() &&
+        congressSparesTarget(this.game, this.player, owner)
+      ) {
+        continue;
+      }
       // Don't spam boats into players which are stronger than us (FFA only)
       if (
         this.isFFA() &&
@@ -409,9 +433,35 @@ export class AiAttackBehavior {
   ) {
     const { difficulty } = this.game.config().gameConfig();
 
-    // Domestic mode: world government pauses while we attack, so only answer attacks
-    if (this.holdsFireForProject()) {
-      this.retaliate();
+    // World congress (spec §11.4): an emergency member hits the target first.
+    const emergencyTarget = emergencyTargetFor(this.game, this.player);
+    if (
+      emergencyTarget !== null &&
+      this.player.sharesBorderWith(emergencyTarget) &&
+      this.sendAttack(emergencyTarget, true)
+    ) {
+      return;
+    }
+
+    // Domestic mode: world government pauses while we attack, so only answer attacks.
+    // World congress: so does the emergency target, and a peaceful nation under a war tax.
+    const projectHold = this.holdsFireForProject();
+    const restraint = projectHold
+      ? null
+      : congressRestraint(this.game, this.player);
+    if (projectHold || restraint !== null) {
+      if (this.retaliate() || restraint !== "war_tax") return;
+      // A war tax only bars humans and nations: the emergency target and
+      // bots stay open (spec §11.4).
+      const target = joinableEmergencyTarget(this.game, this.player);
+      if (
+        target !== null &&
+        this.player.sharesBorderWith(target) &&
+        this.sendAttack(target)
+      ) {
+        return;
+      }
+      this.attackBots();
       return;
     }
 
@@ -625,7 +675,13 @@ export class AiAttackBehavior {
     const project = (): boolean => {
       const owner = pick(
         (enemies) =>
-          enemies.find((enemy) => hasActiveVictoryProject(enemy)) ?? null,
+          enemies.find(
+            (enemy) =>
+              (hasActiveVictoryProject(enemy) ||
+                awaitsRatification(this.game, enemy)) &&
+              // World congress (spec §10.3): only a condemned project.
+              isProjectCondemned(this.game, enemy),
+          ) ?? null,
       );
       return owner !== null ? this.sendAttack(owner) : false;
     };
@@ -691,9 +747,14 @@ export class AiAttackBehavior {
   }
 
   findIncomingAttackPlayer(): Player | null {
+    // A truce partner's attack is on its way home (world congress).
     let incomingAttacks = this.player
       .incomingAttacks()
-      .filter((attack) => !this.player.isFriendly(attack.attacker()));
+      .filter(
+        (attack) =>
+          !this.player.isFriendly(attack.attacker()) &&
+          !this.player.isTruceWith(attack.attacker()),
+      );
     // Ignore bot attacks if we are not a bot.
     if (this.player.type() !== PlayerType.Bot) {
       incomingAttacks = incomingAttacks.filter(
@@ -1213,6 +1274,17 @@ export class AiAttackBehavior {
   }
 
   sendAttack(target: Player | TerraNullius, force = false): boolean {
+    // World congress (spec §11.4): every path a nation attacks by (hated,
+    // island, assist, boats...) leaves a truce partner alone, and a
+    // protectorate we don't outnumber two to one unless answering it.
+    if (
+      target.isPlayer() &&
+      this.player.type() === PlayerType.Nation &&
+      (this.player.isTruceWith(target) ||
+        (!force && congressSparesTarget(this.game, this.player, target)))
+    ) {
+      return false;
+    }
     if (!force && !this.shouldAttack(target)) return false;
 
     if (target.isPlayer()) {
@@ -1829,6 +1901,7 @@ export class AiAttackBehavior {
           p !== this.player &&
           p.type() !== PlayerType.Bot &&
           !this.player.isFriendly(p) &&
+          !congressSparesTarget(this.game, this.player, p) &&
           !borderingEnemies.includes(p) &&
           (!this.isFFA() || p.troops() < this.player.troops()) &&
           boxGap(ours, p.largestClusterBoundingBox) <= range,
