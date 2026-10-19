@@ -7,6 +7,7 @@
  *  - launch / interception: a thin streak rising from the silo and fading
  *  - strike countdown: the target's border pulses (BorderStampPass reads
  *    `pulseOwners`/`pulseValues`)
+ *  - world congress emergency: the target's border pulses slowly (0.5 Hz)
  *  - strike impacts: an expanding blue ripple ring
  *
  * Nothing is drawn, and nothing allocates, while there is nothing to show.
@@ -27,6 +28,14 @@ import streakFrag from "../shaders/strategic-fx/streak.frag.glsl?raw";
 import streakVert from "../shaders/strategic-fx/streak.vert.glsl?raw";
 
 export const MAX_PULSES = 4;
+
+/** World congress: an emergency target's border pulses this slowly (spec §12). */
+export const CONGRESS_PULSE_HZ = 0.5;
+
+/** Border pulse 0..1 at `ms` on the frame clock, starting dark. */
+export function congressPulse(ms: number): number {
+  return 0.5 - 0.5 * Math.cos((2 * Math.PI * CONGRESS_PULSE_HZ * ms) / 1000);
+}
 const LAUNCH_MS = 1400;
 const INTERCEPT_MS = 1000;
 const RIPPLE_MS = 1800;
@@ -82,6 +91,7 @@ export class StrategicFxPass {
   private preparing: readonly PreparingFx[] = [];
   private countdowns: readonly CountdownFx[] = [];
   private countdownStamp = 0;
+  private congressTargets: readonly number[] = [];
   private launches: Timed[] = [];
   private intercepts: Timed[] = [];
   private ripples: Timed[] = [];
@@ -158,6 +168,11 @@ export class StrategicFxPass {
     }
   }
 
+  /** World congress: emergency targets whose borders pulse (set when they change). */
+  setCongressTargets(ownerIDs: readonly number[]): void {
+    this.congressTargets = ownerIDs;
+  }
+
   spawnLaunch(points: readonly { x: number; y: number }[]): void {
     this.push(this.launches, points);
   }
@@ -177,7 +192,8 @@ export class StrategicFxPass {
       this.countdowns.length === 0 &&
       this.launches.length === 0 &&
       this.intercepts.length === 0 &&
-      this.ripples.length === 0
+      this.ripples.length === 0 &&
+      this.congressTargets.length === 0
     );
   }
 
@@ -200,7 +216,25 @@ export class StrategicFxPass {
         n++;
       }
     }
+    if (this.congressTargets.length > 0) {
+      const value = congressPulse(this.timeFn());
+      for (const id of this.congressTargets) {
+        if (n >= MAX_PULSES) break;
+        // A strike countdown on the same nation already pulses its border.
+        if (this.pulsesOwner(id, n)) continue;
+        this.pulseOwners[n] = id;
+        this.pulseValues[n] = value;
+        n++;
+      }
+    }
     this.pulseCount = n;
+  }
+
+  private pulsesOwner(ownerID: number, count: number): boolean {
+    for (let i = 0; i < count; i++) {
+      if (this.pulseOwners[i] === ownerID) return true;
+    }
+    return false;
   }
 
   /** Keep the time-left labels under the silos at a constant on-screen offset (call before WorldTextPass.tick). */

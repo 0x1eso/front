@@ -204,6 +204,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
             true}
             .strategicWeapons=${this.game?.config().gameConfig()
               .strategicWeapons === true}
+            .congress=${this.game?.config().congress() === true}
             .eventBus=${this.eventBus}
             .visible=${this.isPlayerStatsShown}
           ></player-stats>

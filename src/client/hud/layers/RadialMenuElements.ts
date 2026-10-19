@@ -20,6 +20,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { UIState } from "../../UIState";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import { bannedBadge, bannedReason } from "../congress/BanLabels";
 import { lockedBadge, lockedReason } from "../domestic/LockReason";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
@@ -440,6 +441,9 @@ function createMenuElements(
       const locked = params.playerActions.buildableUnits.some(
         (bu) => bu.type === item.unitType && bu.locked === true,
       );
+      const banned = params.playerActions.buildableUnits.some(
+        (bu) => bu.type === item.unitType && bu.banned === true,
+      );
       // Strategic weapons: a stocked bomb costs no gold, show the stockpile.
       const stockData = params.game.config().strategicWeapons()
         ? (params.myPlayer.strategicData() ?? null)
@@ -465,7 +469,11 @@ function createMenuElements(
             : COLORS.building,
         icon: item.icon,
         // Tooltips need hover: a finger sees why on the item itself.
-        badge: locked ? lockedBadge(item.unitType) : undefined,
+        badge: locked
+          ? lockedBadge(item.unitType)
+          : banned
+            ? bannedBadge()
+            : undefined,
         tooltipItems: [
           { text: translateText(item.key ?? ""), className: "title" },
           {
@@ -475,6 +483,7 @@ function createMenuElements(
           locked
             ? { text: lockedReason(item.unitType), className: "locked" }
             : null,
+          banned ? { text: bannedReason(), className: "locked" } : null,
           stockText !== null
             ? { text: stockText, className: "cost" }
             : {

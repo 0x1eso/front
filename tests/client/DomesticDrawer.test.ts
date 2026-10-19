@@ -76,6 +76,7 @@ async function mountDrawer(
   panel.game = {
     myPlayer: () => me,
     ticks: () => 0,
+    congressData: () => null,
     numLandTiles: () => 100,
     numTilesWithFallout: () => 0,
     config: () => ({

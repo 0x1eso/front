@@ -172,6 +172,8 @@ export class WebGLFrameBuilder {
   private readonly lastSpawnTile = new Map<number, number>();
   /** Skin atlas allocated once on first syncPlayers — player set is locked at game start. */
   private skinsInitialized = false;
+  /** World congress: the emergency target whose border pulses (0 = none), as last pushed. */
+  private congressPulseTarget = 0;
   // The renderer needs to know which player is "me" so affiliation tint,
   // unit colors, and SAM-radius perspective work. Push it once the local
   // player's update arrives (may take several ticks during join).
@@ -198,6 +200,7 @@ export class WebGLFrameBuilder {
     this.lastSpawnTile.clear();
     this.localPlayerSmallID = 0;
     this.skinsInitialized = false;
+    this.congressPulseTarget = 0;
   }
 
   /**
@@ -260,6 +263,7 @@ export class WebGLFrameBuilder {
     this.syncSmallPlayerGlow(gameView);
     this.syncVictoryProjects(gameView);
     this.syncStrategic(gameView);
+    this.syncCongress(gameView);
     this.syncCarpetBombs(gameView);
     this.syncSamRanges(gameView);
     this.syncTerrainDeltas(gameView);
@@ -496,6 +500,15 @@ export class WebGLFrameBuilder {
   private readonly fxSilos = new Set<number>();
   private readonly fxLaunchPts: { x: number; y: number }[] = [];
   private readonly fxInterceptPts: { x: number; y: number }[] = [];
+
+  /** World congress (spec §12): the emergency target's border pulses slowly. */
+  private syncCongress(gameView: GameView): void {
+    if (!gameView.config().congress()) return;
+    const target = gameView.congressData()?.emergency?.target ?? 0;
+    if (target === this.congressPulseTarget) return;
+    this.congressPulseTarget = target;
+    this.view.setCongressPulse(target === 0 ? [] : [target]);
+  }
 
   /** Strategic weapons: production/preparation bars; the stronger effects (spec 6.6); beams and blasts for orbital strikes. */
   private syncStrategic(gameView: GameView): void {

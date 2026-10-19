@@ -1257,6 +1257,11 @@ export class GPURenderer {
     this.barPass.setSatelliteSilos(satelliteSilos);
   }
 
+  /** World congress: emergency targets' borders pulse. */
+  setCongressPulse(ownerIDs: readonly number[]): void {
+    this.strategicFxPass.setCongressTargets(ownerIDs);
+  }
+
   /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
   spawnStrategicStreaks(
     launches: readonly { x: number; y: number }[],

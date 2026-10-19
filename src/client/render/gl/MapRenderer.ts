@@ -341,6 +341,11 @@ export class MapRenderer {
     this.renderer?.setStrategicFx(preparing, countdowns, satelliteSilos);
   }
 
+  /** World congress: emergency targets' borders pulse. */
+  setCongressPulse(ownerIDs: readonly number[]): void {
+    this.renderer?.setCongressPulse(ownerIDs);
+  }
+
   /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
   spawnStrategicStreaks(
     launches: readonly { x: number; y: number }[],

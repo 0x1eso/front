@@ -9,6 +9,8 @@ export const COLUMN_IDS = [
   "score",
   // Strategic weapons only: always shown there, never offered in the menu.
   "nukes",
+  // World congress only: always shown there, never offered in the menu.
+  "congress",
   // Territory.
   "tiles",
   // Economy: balance, then its per-source income rates.
