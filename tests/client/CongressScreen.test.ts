@@ -1,3 +1,4 @@
+import { CongressData } from "@openfront/engine-api/congress/CongressTypes";
 import { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { render } from "lit";
@@ -174,6 +175,65 @@ describe("the drawer's congress screen", () => {
     government: "chiefdom",
     conditions: [],
   } as unknown as DomesticData;
+
+  async function openDrawer(data: () => CongressData, influence = 80) {
+    const panel = document.createElement("domestic-panel") as DomesticPanel;
+    const me = {
+      smallID: () => 1,
+      isAlive: () => true,
+      domesticData: () => DOMESTIC,
+      domestic: () => new DomesticClientView(DOMESTIC),
+      congressData: () => ({
+        influence,
+        influencePerSec: 0.4,
+        status: "peaceful",
+        ballots: [],
+      }),
+      isFriendly: () => false,
+    };
+    panel.game = {
+      myPlayer: () => me,
+      ticks: () => 900,
+      congressData: data,
+      playerBySmallID: (id: number) => ({
+        isPlayer: () => true,
+        id: () => `p${id}`,
+        displayName: () => ["", "me", "jiho"][id] ?? "?",
+      }),
+      config: () => ({ congress: () => true }),
+    } as unknown as GameView;
+    panel.eventBus = new EventBus();
+    const convened: SendConveneEmergencyIntentEvent[] = [];
+    panel.eventBus.on(SendConveneEmergencyIntentEvent, (e) => convened.push(e));
+    document.body.appendChild(panel);
+    panel.init();
+    panel.tick();
+    panel.eventBus.emit(new OpenDomesticScreenEvent("congress"));
+    await panel.updateComplete;
+    return { panel, convened };
+  }
+
+  it("a tap on a convene button the live data no longer allows sends nothing", async () => {
+    const listed: CongressData = {
+      ...EMPTY,
+      available: [{ kind: "nuclear", target: 2, sinceTick: 0 }],
+    };
+    let live = listed;
+    const { panel, convened } = await openDrawer(() => live);
+    const button = panel.querySelector<HTMLButtonElement>(
+      '[data-convene="nuclear:2"]',
+    )!;
+    expect(button.disabled).toBe(false);
+    // Someone else convened it since the drawer last drew.
+    live = { ...listed, available: [] };
+    button.click();
+    expect(convened).toEqual([]);
+    live = listed;
+    button.click();
+    expect(convened.map((e) => [e.kind, e.target])).toEqual([
+      ["nuclear", "p2"],
+    ]);
+  });
 
   it("opens from the 🏛 dial, and a convene tap sends the target's player id", async () => {
     const panel = document.createElement("domestic-panel") as DomesticPanel;
