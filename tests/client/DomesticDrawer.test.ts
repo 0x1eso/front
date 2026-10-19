@@ -386,6 +386,7 @@ describe("domestic drawer", () => {
       research: "[data-tech-tree]",
       laws: "[data-law-status]",
       victory: "[data-victory-block]",
+      congress: "[data-congress-screen]",
     };
     for (const screen of DOMESTIC_SCREENS) {
       await tapDial(panel, screen);

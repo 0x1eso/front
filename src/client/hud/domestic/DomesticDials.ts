@@ -10,6 +10,11 @@ import { SetRecruitTargetIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
 import {
+  congressDial,
+  CongressDialModel,
+  viewerOf,
+} from "../congress/CongressModel";
+import {
   clockSvg,
   DIAL_COLORS,
   DIAL_GLOW_CLASS,
@@ -40,6 +45,8 @@ export interface DialsModel {
   research: ResearchDial;
   laws: LawsDial;
   victory: VictoryDial | null;
+  /** The 🏛 dial (world congress); null without the congress. */
+  congress: CongressDialModel | null;
   sciencePerSec: number;
   politicalPerSec: number;
   recruitTargetPct: number;
@@ -63,8 +70,8 @@ interface DialSpec {
 /**
  * The domestic dials at the left of the bottom HUD (spec §14d, after
  * Frostpunk's Book of Laws button): research, laws and, once a victory
- * project opens, a trophy. Each opens its screen in the domestic drawer.
- * Under them, the recruit-target chip with its slider.
+ * project opens, a trophy; in world-congress games, the 🏛 dial last. Each
+ * opens its screen in the domestic drawer. Under them, the recruit-target chip with its slider.
  */
 @customElement("domestic-dials")
 export class DomesticDials extends LitElement implements Controller {
@@ -132,10 +139,20 @@ export class DomesticDials extends LitElement implements Controller {
       research: researchDial(d),
       laws: lawsDial(view, this.game.ticks()),
       victory: victoryDial(d, me, this.game.config().hasInfiniteGold(me)),
+      congress: this.congressModel(),
       sciencePerSec: d.sciencePerSec,
       politicalPerSec: d.politicalPerSec,
       recruitTargetPct: d.recruitTargetPct,
     };
+  }
+
+  /** World congress (spec §12): the 🏛 dial's model; null without the congress. */
+  private congressModel(): CongressDialModel | null {
+    if (!this.game.config().congress()) return null;
+    const data = this.game.congressData();
+    const viewer = viewerOf(this.game);
+    if (data === null || viewer === null) return null;
+    return congressDial(data, viewer, this.game.ticks());
   }
 
   private setRecruitOpen(open: boolean) {
@@ -165,6 +182,7 @@ export class DomesticDials extends LitElement implements Controller {
     if (m === null) return nothing;
     const dials = [this.researchSpec(m), this.lawsSpec(m)];
     if (m.victory !== null) dials.push(this.victorySpec(m.victory));
+    if (m.congress !== null) dials.push(this.congressSpec(m.congress));
     return html`
       ${DIAL_STYLES}
       <div
@@ -355,6 +373,54 @@ export class DomesticDials extends LitElement implements Controller {
           ? this.alertBadge("bg-amber-300 text-gray-900")
           : nothing,
       caption: nothing,
+    };
+  }
+
+  /** The 🏛 dial (spec §12): ring to the next session, gold just before, a clock while voting. */
+  private congressSpec(m: CongressDialModel): DialSpec {
+    const voting = m.state === "voting";
+    const badge = (kind: string, text: string, colors: string, pos: string) =>
+      html`<span
+        data-dial-badge=${kind}
+        class="absolute ${pos} size-4 flex items-center justify-center rounded-full ${colors} ring-1 ring-gray-900 text-[10px] font-black leading-none"
+        >${text}</span
+      >`;
+    return {
+      screen: "congress",
+      state: m.state,
+      svg: voting
+        ? clockSvg(m.progress, "congress")
+        : ringSvg(
+            m.state === "soon" ? 1 : m.progress,
+            m.state === "idle" ? "grey" : "congress",
+          ),
+      face: voting
+        ? html`<span class="text-sm">🏛</span>
+            <span data-dial-seconds class="text-[10px] font-bold tabular-nums"
+              >${translateText("domestic.dial.seconds", {
+                seconds: m.secondsLeft,
+              })}</span
+            >`
+        : html`<span class="text-lg">🏛</span>`,
+      glow: m.state === "soon" || (voting && m.unvoted > 0) ? "congress" : null,
+      dim: m.state === "idle",
+      badges: html`${m.canConvene
+        ? badge("convene", "🚨", "bg-red-600", "-top-1 -left-1")
+        : nothing}
+      ${m.targeted
+        ? badge("target", "!", "bg-red-500 text-white", "-top-1 -right-1")
+        : voting && m.unvoted > 0
+          ? badge("vote", "!", "bg-yellow-300 text-gray-900", "-top-1 -right-1")
+          : nothing}`,
+      caption: html`<span
+        data-congress-influence
+        class="text-[10px] leading-none font-semibold tabular-nums whitespace-nowrap ${m.earning
+          ? "text-amber-300"
+          : "text-gray-400"}"
+        >${translateText("congress.dial.influence", {
+          value: m.influence,
+        })}</span
+      >`,
     };
   }
 

@@ -1,7 +1,8 @@
 import { GameEvent } from "@openfront/shared/EventBus";
 
-/** The drawer's three screens, one per dial (spec §14d). */
-export type DomesticScreen = "research" | "laws" | "victory";
+/** The drawer's screens, one per dial (spec §14d); "congress" only in congress games. */
+export type DomesticScreen = "research" | "laws" | "victory" | "congress";
+/** The three domestic screens every domestic game has. */
 export const DOMESTIC_SCREENS: readonly DomesticScreen[] = [
   "research",
   "laws",

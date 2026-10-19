@@ -9,6 +9,7 @@ export const DIAL_COLORS = {
   science: { stroke: "#38bdf8", glow: "56 189 248" },
   political: { stroke: "#a78bfa", glow: "167 139 250" },
   victory: { stroke: "#fbbf24", glow: "251 191 36" },
+  congress: { stroke: "#eab308", glow: "234 179 8" },
   cooldown: { stroke: "#f59e0b", glow: "245 158 11" },
   grey: { stroke: "#cbd5e1", glow: "203 213 225" },
 } as const;

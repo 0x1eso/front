@@ -22,6 +22,8 @@ import "../UserSettingModal";
 import type { UserSettingModal } from "../UserSettingModal";
 import { UserSettings } from "../UserSettings";
 import { GameView } from "../view";
+import { CongressBand } from "./congress/CongressBand";
+import { CongressCards } from "./congress/CongressCards";
 import { DomesticDials } from "./domestic/DomesticDials";
 import { DomesticPanel } from "./domestic/DomesticPanel";
 import { FrameProfiler } from "./FrameProfiler";
@@ -339,6 +341,22 @@ export function createRenderer(
   satelliteBand.game = game;
   satelliteBand.eventBus = eventBus;
 
+  // World congress (spec §12): vote cards above the dials, the band under the satellite band.
+  const congressCards = document.querySelector("congress-cards");
+  if (congressCards instanceof CongressCards) {
+    congressCards.game = game;
+    congressCards.eventBus = eventBus;
+  } else {
+    console.error("congress cards not found");
+  }
+  const congressBand = document.querySelector("congress-band");
+  if (congressBand instanceof CongressBand) {
+    congressBand.game = game;
+    congressBand.eventBus = eventBus;
+  } else {
+    console.error("congress band not found");
+  }
+
   const satelliteTargetPicker = document.querySelector(
     "satellite-target-picker",
   ) as SatelliteTargetPicker;
@@ -402,6 +420,8 @@ export function createRenderer(
     immunityTimer,
     satelliteBand,
     satelliteTargetPicker,
+    ...(congressCards instanceof CongressCards ? [congressCards] : []),
+    ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,
     unitDisplay,
     gameRightSidebar,
