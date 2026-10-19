@@ -99,6 +99,7 @@ function richLeftGame(): GameView {
     config: () => ({
       gameConfig: () => ({ gameMode: GameMode.FFA }),
       maxTroops: () => 1_000,
+      congress: () => false,
     }),
     gameID: () => "test-game",
     inSpawnPhase: () => false,
@@ -121,7 +122,10 @@ describe("top-left sidebar on a tablet", () => {
   it("its toggles keep the original 20px icons", async () => {
     const el = document.createElement("game-left-sidebar") as GameLeftSidebar;
     el.game = {
-      config: () => ({ gameConfig: () => ({ gameMode: GameMode.Team }) }),
+      config: () => ({
+        gameConfig: () => ({ gameMode: GameMode.Team }),
+        congress: () => false,
+      }),
     } as unknown as GameView;
     el.eventBus = new EventBus();
     document.body.appendChild(el);

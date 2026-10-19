@@ -354,6 +354,7 @@ export class DomesticPanel extends LitElement implements Controller {
         this.armed = null;
         this.eventBus.emit(new SendQueueResearchIntentEvent(tech));
       },
+      discounted: this.game.congressData()?.discountedTechs ?? [],
     };
   }
 }

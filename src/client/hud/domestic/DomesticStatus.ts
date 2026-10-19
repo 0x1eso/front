@@ -148,6 +148,7 @@ export function techNodeState(
   d: DomesticData,
   researched: ReadonlySet<TechId>,
   id: TechId,
+  cost: number = TECHS[id].cost,
 ): TechNodeState {
   const state: TechNodeState = {
     kind: "available",
@@ -168,7 +169,6 @@ export function techNodeState(
       missing: TECHS[id].prereqs.find((p) => !researched.has(p)) ?? null,
     };
   }
-  const cost = TECHS[id].cost;
   if (d.science >= cost) return state;
   return {
     ...state,

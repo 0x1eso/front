@@ -60,6 +60,8 @@ export abstract class StatsTable extends LitElement {
   @property({ type: Boolean }) domesticMode = false;
   /** Strategic weapons: show the strategic-only columns (the nukes column). */
   @property({ type: Boolean }) strategicWeapons = false;
+  /** World congress: show the congress-only columns (the 🏛 flags). */
+  @property({ type: Boolean }) congress = false;
 
   protected abstract readonly tableKind: StatsTableKind;
   protected abstract buildRows(
@@ -131,6 +133,7 @@ export abstract class StatsTable extends LitElement {
       (column) =>
         (column.domesticOnly !== true || this.domesticMode) &&
         (column.strategicOnly !== true || this.strategicWeapons) &&
+        (column.congressOnly !== true || this.congress) &&
         (!column.isHideable || selected.includes(column.id)),
     );
   }
@@ -161,11 +164,14 @@ export abstract class StatsTable extends LitElement {
       orderable.length > 0 &&
       !orderable.some((column) => column.id === this.sortKey)
     ) {
-      // The strategic nukes column sits before tiles but is never the
-      // default order: the leaderboard ranks by land unless a header is tapped.
+      // The strategic nukes and congress 🏛 columns sit before tiles but are
+      // never the default order: the leaderboard ranks by land unless a
+      // header is tapped.
       this.sortKey = (
-        orderable.find((column) => column.strategicOnly !== true) ??
-        orderable[0]
+        orderable.find(
+          (column) =>
+            column.strategicOnly !== true && column.congressOnly !== true,
+        ) ?? orderable[0]
       ).id;
       this.sortOrder = "desc";
     }

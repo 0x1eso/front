@@ -5,6 +5,7 @@ import type { ColumnId, StatsTableKind } from "../../../StatsConstants";
 import { formatPercentage, translateText } from "../../../Utils";
 import type { GameView, PlayerView } from "../../../view";
 import { domesticScoreOf } from "../../../view/DomesticScores";
+import { congressFlags, flagIcons } from "../../congress/CongressModel";
 import {
   allianceIcon,
   atomBombIcon,
@@ -72,6 +73,8 @@ export interface ColumnDef {
   readonly domesticOnly?: true;
   /** Only exists with strategic weapons (StatsTable.strategicWeapons). */
   readonly strategicOnly?: true;
+  /** Only exists in world-congress games (StatsTable.congress). */
+  readonly congressOnly?: true;
   /** Header is a sort button. True exactly when `value` is set. */
   readonly isOrderable: boolean;
   /** Number behind the column — sorting and team totals. */
@@ -214,6 +217,19 @@ export const COLUMN_DEFS: readonly ColumnDef[] = [
     align: "center",
     value: (player) => stockTotal(player.strategicData()),
     cell: (row) => renderNumber(row.value),
+  }),
+  // World congress (spec §12): sanctions, embargoes, protectorates, truces,
+  // emergencies and protected heritage, as icons. Influence stays private.
+  defineColumn({
+    id: "congress",
+    labelKey: "leaderboard.congress",
+    headerVisual: { kind: "text", text: "🏛" },
+    isHideable: false,
+    congressOnly: true,
+    align: "center",
+    value: (player, game) =>
+      congressFlags(game.congressData(), player.smallID()),
+    cell: (row) => flagIcons(row.value),
   }),
   defineColumn({
     id: "tiles",

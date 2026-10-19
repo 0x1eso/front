@@ -27,6 +27,7 @@ import {
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { GameView } from "../../view";
+import { bannedReason } from "../congress/BanLabels";
 import { lockedReason } from "../domestic/LockReason";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
@@ -393,6 +394,7 @@ export class BuildMenu extends LitElement implements Controller {
   ): string {
     if (enabled) return "";
     if (buildableUnit.locked) return lockedReason(buildableUnit.type);
+    if (buildableUnit.banned) return bannedReason();
     const stock = this.stockOf(buildableUnit.type);
     if (stock !== null) {
       return stock === 0
@@ -463,7 +465,9 @@ export class BuildMenu extends LitElement implements Controller {
                       ${item.key &&
                       translateText(item.key)}${buildableUnit.locked
                         ? " 🔒"
-                        : ""}
+                        : buildableUnit.banned
+                          ? " 🏛"
+                          : ""}
                     </span>
                     <span class="build-description"
                       >${item.description &&

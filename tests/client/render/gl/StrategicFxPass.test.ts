@@ -155,6 +155,40 @@ describe("StrategicFxPass", () => {
     pass.dispose();
     expect(counts.deletedPrograms).toBe(2);
   });
+
+  test("an emergency target's border pulses slowly, at 0.5 Hz", () => {
+    const { pass, advance } = setup();
+    pass.setCongressTargets([7]);
+    expect(pass.isIdle()).toBe(false);
+    pass.updatePulses();
+    expect(pass.pulseCount).toBe(1);
+    expect(pass.pulseOwners[0]).toBe(7);
+    expect(pass.pulseValues[0]).toBeCloseTo(0);
+    advance(1000);
+    pass.updatePulses();
+    expect(pass.pulseValues[0]).toBeCloseTo(1);
+    advance(1000);
+    pass.updatePulses();
+    expect(pass.pulseValues[0]).toBeCloseTo(0);
+    pass.setCongressTargets([]);
+    pass.updatePulses();
+    expect(pass.pulseCount).toBe(0);
+    expect(pass.isIdle()).toBe(true);
+  });
+
+  test("an emergency target already counting down to a strike pulses once, and draws nothing", () => {
+    const { pass, counts } = setup();
+    pass.setCountdowns([
+      { ownerID: 7, x: 0, y: 0, maxRadius: 20, leftTicks: 150 },
+    ]);
+    pass.setCongressTargets([7]);
+    pass.updatePulses();
+    expect(pass.pulseCount).toBe(1);
+    expect(pass.pulseOwners[0]).toBe(7);
+    pass.setCountdowns([]);
+    pass.draw(cam, 4);
+    expect(counts.draws).toBe(0);
+  });
 });
 
 describe("strategic fx wiring", () => {
@@ -169,5 +203,38 @@ describe("strategic fx wiring", () => {
       body.indexOf("this.worldTextPass.tick"),
     );
     expect(src).toContain("this.strategicFxPass.dispose()");
+  });
+
+  test("the frame builder hands the renderer the emergency target, only when it changes", async () => {
+    const { WebGLFrameBuilder } =
+      await import("../../../../src/client/WebGLFrameBuilder");
+    const pushed: number[][] = [];
+    const builder = new WebGLFrameBuilder({
+      setCongressPulse: (ids: readonly number[]) => pushed.push([...ids]),
+    } as never) as unknown as {
+      syncCongress(gameView: unknown): void;
+      clearCaches(): void;
+    };
+    let target: number | null = 5;
+    const game = (congress: boolean) => ({
+      config: () => ({ congress: () => congress }),
+      congressData: () => ({
+        emergency: target === null ? null : { target },
+      }),
+    });
+    builder.syncCongress(game(false));
+    expect(pushed).toEqual([]);
+    builder.syncCongress(game(true));
+    builder.syncCongress(game(true));
+    expect(pushed).toEqual([[5]]);
+    target = null;
+    builder.syncCongress(game(true));
+    expect(pushed).toEqual([[5], []]);
+    // A restored context gets the running emergency again.
+    target = 6;
+    builder.syncCongress(game(true));
+    builder.clearCaches();
+    builder.syncCongress(game(true));
+    expect(pushed).toEqual([[5], [], [6], [6]]);
   });
 });
