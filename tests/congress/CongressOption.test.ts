@@ -154,6 +154,53 @@ describe("the congress option", () => {
     await expectSnapshotRoundTrip(game, "plains", 10);
   });
 
+  // The congress hashes JSON of its data, so the key order callers build
+  // objects in must not survive into the state: a restored game reads them
+  // back in schema order and has to hash the same.
+  test("state built in any key order snapshots and hashes like its restored copy", async () => {
+    const game = await congressGame({}, [RED, BLUE]);
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 35, 0, 30, 100);
+    game.executeNextTick();
+    const c = congressOf(game);
+    seatAll(game);
+    const s = c.openSession(
+      "regular",
+      [
+        {
+          reasonValue: 2.5,
+          reason: "aggressor",
+          param: null,
+          targets: [blue.smallID()],
+          resolution: "sanction",
+        },
+      ],
+      game.ticks(),
+    );
+    expect(Object.keys(s.items[0])).toEqual([
+      "resolution",
+      "targets",
+      "param",
+      "reason",
+      "reasonValue",
+      "voters",
+    ]);
+    c.setAvailable([
+      { sinceTick: game.ticks(), target: blue.smallID(), kind: "aggression" },
+    ]);
+    red.congress()!.setBallot({
+      costMilli: 0,
+      extra: 0,
+      option: "A",
+      item: 0,
+      sessionId: s.id,
+    });
+    red
+      .domestic()!
+      .setCongressModifiers([{ when: "attacking", pct: 10, stat: "allGold" }]);
+    await expectSnapshotRoundTrip(game, "plains", 10);
+  });
+
   test("the intents carry only what they may", () => {
     const ok = (i: object) => IntentSchema.safeParse(i).success;
     const vote = {
