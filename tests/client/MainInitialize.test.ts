@@ -204,6 +204,28 @@ describe("Client.initialize() booted from Main.ts module scope", () => {
       })),
     );
 
+    // The lobby socket would otherwise dial the jsdom origin (localhost:3000),
+    // which can be a live server on a dev machine. Inert socket: it never
+    // connects, and nothing in this suite asserts on its traffic.
+    vi.stubGlobal(
+      "WebSocket",
+      class {
+        static CONNECTING = 0;
+        static OPEN = 1;
+        static CLOSING = 2;
+        static CLOSED = 3;
+        readyState = 0;
+        onopen: unknown = null;
+        onmessage: unknown = null;
+        onclose: unknown = null;
+        onerror: unknown = null;
+        addEventListener() {}
+        removeEventListener() {}
+        send() {}
+        close() {}
+      },
+    );
+
     // Real markup, so every unguarded getElementById/querySelector in
     // initialize() (store modal, help modal, turnstile container, ...) finds
     // the element it dereferences. Scripts hold EJS placeholders — drop them.
