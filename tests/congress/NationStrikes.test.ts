@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
+import { isHeritageProtected } from "@openfront/engine/congress/Conflict";
 import { EmergencyState } from "@openfront/engine/congress/Congress";
 import { NationAllianceBehavior } from "@openfront/engine/execution/nation/NationAllianceBehavior";
 import { congressAllowsAttack } from "@openfront/engine/execution/nation/NationCongressBehavior";
@@ -25,7 +26,7 @@ import {
 import { AiAttackBehavior } from "@openfront/engine/execution/utils/AiAttackBehavior";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { StrategicExecution } from "@openfront/engine/strategic/StrategicExecution";
-import { grantTechs } from "../domestic/util";
+import { buildLevel, grantTechs } from "../domestic/util";
 import {
   BLUE,
   congressGame,
@@ -97,7 +98,7 @@ async function duel(p: Personality) {
   return { game, nation, red };
 }
 
-function nukesLaunched(game: Game, nation: Player): number {
+function nukeBehavior(game: Game, nation: Player): NationNukeBehavior {
   const emoji = new NationEmojiBehavior(new PseudoRandom(1), game, nation);
   const attack = new AiAttackBehavior(
     new PseudoRandom(1),
@@ -109,13 +110,17 @@ function nukesLaunched(game: Game, nation: Player): number {
     new NationAllianceBehavior(new PseudoRandom(1), game, nation, emoji),
     emoji,
   );
-  new NationNukeBehavior(
+  return new NationNukeBehavior(
     new PseudoRandom(2),
     game,
     nation,
     attack,
     emoji,
-  ).maybeSendNuke();
+  );
+}
+
+function nukesLaunched(game: Game, nation: Player): number {
+  nukeBehavior(game, nation).maybeSendNuke();
   runTicks(game, 2);
   return nation.units(UnitType.AtomBomb, UnitType.HydrogenBomb).length;
 }
@@ -173,6 +178,36 @@ describe("nation nukes and the congress", () => {
       expires: game.ticks() + 1200,
     });
     expect(nukesLaunched(game, nation)).toBe(0);
+  });
+
+  test("a condemned project's host that world heritage still protects is no nuke target", async () => {
+    const singledOut = async (protect: boolean) => {
+      const { game, nation, red } = await duel("merchant");
+      const host = buildLevel(
+        game,
+        red,
+        UnitType.ResearchInstitute,
+        150,
+        150,
+        3,
+      );
+      red.domestic()!.beginVictoryProject("science", host.id(), 2400);
+      const heritage = (option: "A" | "B") =>
+        enact(game, {
+          resolution: "world_heritage",
+          option,
+          targets: [red.smallID()],
+          param: String(host.id()),
+          expires: "project_end",
+        });
+      // Condemned (spec §10.3); protected by an earlier A (spec §10.2).
+      heritage("B");
+      if (protect) heritage("A");
+      expect(isHeritageProtected(game, host)).toBe(protect);
+      return nukeBehavior(game, nation)["nukeVictoryProjectHost"]();
+    };
+    expect(await singledOut(false)).toBe(true);
+    expect(await singledOut(true)).toBe(false);
   });
 
   test("a MIRV only goes where the nation may strike", async () => {

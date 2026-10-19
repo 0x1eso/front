@@ -23,6 +23,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { assertNever, boundingBoxTiles } from "@openfront/engine-lib/Util";
 import { z } from "zod";
+import { isHeritageProtected } from "../../congress/Conflict";
 import { isProjectCondemned } from "../../congress/WorldGovernment";
 import { victoryProjectHosts } from "../../domestic/VictoryProjects";
 import { Game, Player, Unit } from "../../game/Game";
@@ -269,10 +270,13 @@ export class NationNukeBehavior {
       if (owner === this.player || this.player.isFriendly(owner, true)) {
         continue;
       }
-      // World congress: only a condemned project (spec §10.3), and only
-      // where the nation may strike (spec §11.4). Both true without one.
+      // World congress: only a condemned project (spec §10.3), not a host
+      // world heritage A still protects (a nuke can't destroy it, §10.2),
+      // and only where the nation may strike (spec §11.4). All pass
+      // without a congress.
       if (
         !isProjectCondemned(this.game, owner) ||
+        isHeritageProtected(this.game, host) ||
         !congressAllowsAttack(this.game, this.player, owner)
       ) {
         continue;
