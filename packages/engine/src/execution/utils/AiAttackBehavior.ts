@@ -252,10 +252,13 @@ export class AiAttackBehavior {
     );
     // World congress (spec §11.4): never a truce partner, and a
     // protectorate only two to one.
+    const ww = this.game.worldWar();
     const borderingEnemies = borderingPlayers.filter(
       (o) =>
         this.player?.isFriendly(o) === false &&
-        !congressSparesTarget(this.game, this.player, o),
+        !congressSparesTarget(this.game, this.player, o) &&
+        // World War 1936 (spec 7.7): only countries we are at war with.
+        (ww === null || this.player.canAttackPlayer(o)),
     );
 
     // Attack TerraNullius but not nuked territory (direct border or across a river)
@@ -403,6 +406,15 @@ export class AiAttackBehavior {
       if (
         owner.isPlayer() &&
         congressSparesTarget(this.game, this.player, owner)
+      ) {
+        continue;
+      }
+
+      // World War 1936: nor to a country we are not at war with.
+      if (
+        owner.isPlayer() &&
+        this.game.worldWar() !== null &&
+        !this.player.canAttackPlayer(owner)
       ) {
         continue;
       }
@@ -1162,6 +1174,9 @@ export class AiAttackBehavior {
     const filteredPlayers = this.game.players().filter((p) => {
       if (p === this.player) return false;
       if (this.player.isFriendly(p)) return false;
+      if (this.game.worldWar() !== null && !this.player.canAttackPlayer(p)) {
+        return false;
+      }
       // In FFA, don't spam boats into players with more troops
       return !this.isFFA() || p.troops() < this.player.troops();
     });
@@ -1285,6 +1300,14 @@ export class AiAttackBehavior {
   }
 
   sendAttack(target: Player | TerraNullius, force = false): boolean {
+    // World War 1936: a target we may not attack wastes no turn.
+    if (
+      this.game.worldWar() !== null &&
+      target.isPlayer() &&
+      !this.player.canAttackPlayer(target)
+    ) {
+      return false;
+    }
     if (force) {
       // World congress (spec §8.1 S2): not even an answer goes at a truce
       // partner (the engine would refuse it). shouldAttack gates the rest.
@@ -1923,6 +1946,7 @@ export class AiAttackBehavior {
           p.type() !== PlayerType.Bot &&
           !this.player.isFriendly(p) &&
           !congressSparesTarget(this.game, this.player, p) &&
+          (this.game.worldWar() === null || this.player.canAttackPlayer(p)) &&
           !borderingEnemies.includes(p) &&
           (!this.isFFA() || p.troops() < this.player.troops()) &&
           boxGap(ours, p.largestClusterBoundingBox) <= range,
