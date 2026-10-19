@@ -1,5 +1,6 @@
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
+import { congressNukeHit, congressNukeLosses } from "../congress/Emergencies";
 import type { Game, Player } from "../game/Game";
 import {
   landStrikeWave,
@@ -66,7 +67,20 @@ export function processStrike(
     now >= strike.startTick + strikeWaveOffset(plan, strike.nextWave)
   ) {
     const wave: number = strike.nextWave;
+    const congress = mg.congress();
+    const tilesBefore = congress === null ? 0 : target.numTilesOwned();
     const result = landStrikeWave(mg, attacker, target, plan, wave);
+    if (congress !== null) {
+      // World congress (spec §4.2, §9.1): the land each wave sinks is the
+      // target's loss; the strike scores 3 toward the nuclear emergency
+      // once, with its first wave.
+      const hit = new Map([[target, tilesBefore - target.numTilesOwned()]]);
+      if (wave === 0) {
+        congressNukeHit(mg, congress, attacker, hit, "orbital");
+      } else {
+        congressNukeLosses(mg, attacker, hit);
+      }
+    }
     const lastWave = wave === waves - 1;
     strike = {
       ...strike,

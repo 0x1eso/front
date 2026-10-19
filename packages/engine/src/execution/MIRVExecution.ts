@@ -16,6 +16,7 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { z } from "zod";
+import { congressNukeHit } from "../congress/Emergencies";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
 import {
@@ -248,6 +249,19 @@ export class MirvExecution implements Execution {
   private separate() {
     if (this.nuke === null) {
       throw new Error("uninitialized");
+    }
+
+    // World congress (spec §9.1): a MIRV scores once, at separation,
+    // against its target's owner (its warheads score nothing).
+    const congress = this.mg.congress();
+    if (congress !== null && this.targetPlayer.isPlayer()) {
+      congressNukeHit(
+        this.mg,
+        congress,
+        this.player,
+        new Map([[this.targetPlayer, 0]]),
+        UnitType.MIRV,
+      );
     }
 
     this.nuke.delete(false);
