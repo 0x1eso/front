@@ -33,6 +33,7 @@ import {
   SatelliteTargetExecution,
 } from "../../strategic/SatelliteOrders";
 import { ConstructionExecution } from "../ConstructionExecution";
+import { congressAllowsAttack } from "./NationCongressBehavior";
 import { nationHoldsStructuresForProject } from "./NationVictoryBehavior";
 
 /** Gold kept back beyond an atom bomb's or a missile's price. */
@@ -240,7 +241,8 @@ export class NationStrategicBehavior {
       if (other === this.player || this.player.isFriendly(other, true)) {
         continue;
       }
-      if (this.shouldAttack !== null && !this.shouldAttack(other)) continue;
+      // The congress gate (spec §11.4) holds even without the callback.
+      if (!this.mayStrike(other)) continue;
       for (const job of other.strategic()?.jobs() ?? []) {
         if (this.lastMissileAt.has(job.factoryId)) continue;
         const factory = this.game.unit(job.factoryId);
@@ -304,10 +306,18 @@ export class NationStrategicBehavior {
       if (p === this.player || p.type() === PlayerType.Bot) continue;
       if (this.player.isFriendly(p, true)) continue;
       if (!p.isAlive()) continue;
-      if (this.shouldAttack !== null && !this.shouldAttack(p)) continue;
+      if (!this.mayStrike(p)) continue;
       if (best === null || p.numTilesOwned() > best.numTilesOwned()) best = p;
     }
     return best;
+  }
+
+  /** The world congress's gate (spec §11.4), then the nation's own attack gate when it has one. */
+  private mayStrike(other: Player): boolean {
+    return (
+      congressAllowsAttack(this.game, this.player, other) &&
+      (this.shouldAttack === null || this.shouldAttack(other))
+    );
   }
 
   private cost(type: UnitType): Gold {
