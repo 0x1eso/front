@@ -66,7 +66,9 @@ function updateRecruitTarget(
 ): void {
   const atWar =
     player.incomingAttacks().length > 0 ||
-    player.outgoingAttacks().some((a) => a.target().isPlayer());
+    player.outgoingAttacks().some((a) => a.target().isPlayer()) ||
+    // World congress: the emergency target braces for the coalition.
+    (mg.congress()?.isEmergencyTarget(player.smallID()) ?? false);
   const target = atWar
     ? NATION_WAR_RECRUIT_TARGET_PCT
     : NATION_PEACE_RECRUIT_TARGET_PCT;

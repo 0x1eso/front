@@ -65,6 +65,7 @@ export function diffPlayerUpdate(
     prev.isLobbyCreator === next.isLobbyCreator &&
     prev.domestic === next.domestic &&
     prev.strategic === next.strategic &&
+    prev.congress === next.congress &&
     numberArrayEqual(prev.allies, next.allies) &&
     numberArrayEqual(prev.targets, next.targets) &&
     stringArrayEqual(
@@ -137,6 +138,8 @@ export function diffPlayerUpdate(
   setIfDifferent("domestic", prev.domestic === next.domestic);
   // PlayerStrategic caches its StrategicData the same way.
   setIfDifferent("strategic", prev.strategic === next.strategic);
+  // PlayerCongress caches its data the same way.
+  setIfDifferent("congress", prev.congress === next.congress);
   setIfDifferent("allies", numberArrayEqual(prev.allies, next.allies));
   setIfDifferent("targets", numberArrayEqual(prev.targets, next.targets));
   setIfDifferent(

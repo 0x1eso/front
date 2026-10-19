@@ -76,6 +76,7 @@ async function mountDrawer(
   panel.game = {
     myPlayer: () => me,
     ticks: () => 0,
+    congressData: () => null,
     numLandTiles: () => 100,
     numTilesWithFallout: () => 0,
     config: () => ({
@@ -386,6 +387,7 @@ describe("domestic drawer", () => {
       research: "[data-tech-tree]",
       laws: "[data-law-status]",
       victory: "[data-victory-block]",
+      congress: "[data-congress-screen]",
     };
     for (const screen of DOMESTIC_SCREENS) {
       await tapDial(panel, screen);

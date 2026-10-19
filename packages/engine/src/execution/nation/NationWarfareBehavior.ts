@@ -31,6 +31,7 @@ import { BombingExecution } from "../../warfare/BombingExecution";
 import { carpetDropTiles, discTiles } from "../../warfare/Carpet";
 import { ParadropExecution } from "../../warfare/ParadropExecution";
 import { ConstructionExecution } from "../ConstructionExecution";
+import { congressAllowsAttack } from "./NationCongressBehavior";
 import { nationDomesticPlan } from "./NationPersonality";
 import { randTerritoryTileArray } from "./NationUtils";
 import { nationHoldsStructuresForProject } from "./NationVictoryBehavior";
@@ -196,7 +197,9 @@ export class NationWarfareBehavior {
         .filter(
           ({ unit }) =>
             unit.owner() !== this.player &&
-            !this.player.isFriendly(unit.owner()),
+            !this.player.isFriendly(unit.owner()) &&
+            // World congress (spec §11.4): a barrage is a strike too.
+            congressAllowsAttack(this.game, this.player, unit.owner()),
         )
         .sort(
           (a, b) => a.distSquared - b.distSquared || a.unit.id() - b.unit.id(),
@@ -322,7 +325,10 @@ export class NationWarfareBehavior {
       const owner = unit.owner();
       let ok = gate.get(owner);
       if (ok === undefined) {
-        ok = this.shouldAttack === null || this.shouldAttack(owner);
+        // The congress gate (spec §11.4) holds even without the callback.
+        ok =
+          congressAllowsAttack(this.game, this.player, owner) &&
+          (this.shouldAttack === null || this.shouldAttack(owner));
         gate.set(owner, ok);
       }
       if (ok) return unit;

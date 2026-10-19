@@ -1,3 +1,4 @@
+import type { CongressData } from "@openfront/engine-api/congress/CongressTypes";
 import { GameMap, TileRef } from "@openfront/engine-api/game/GameMap";
 import {
   Cell,
@@ -107,6 +108,7 @@ export class GameView implements GameLike {
   private _firstPopulate = true;
 
   private _myPlayer: PlayerView | null = null;
+  private _congressData: CongressData | null = null;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
   // The derived structures below only depend on rarely-changing player
@@ -217,6 +219,11 @@ export class GameView implements GameLike {
     return this.lastUpdate?.updates ?? null;
   }
 
+  /** World congress: the last congress the worker sent; null with the option off. */
+  public congressData(): CongressData | null {
+    return this._congressData;
+  }
+
   public motionPlans(): ReadonlyMap<number, GridMotionPlan> {
     return this.motion.gridPlans();
   }
@@ -274,6 +281,10 @@ export class GameView implements GameLike {
     }
     if (gu.updates[GameUpdateType.Win].length > 0) {
       this._gameOver = true;
+    }
+    const congress = gu.updates[GameUpdateType.Congress];
+    if (congress.length > 0) {
+      this._congressData = congress[congress.length - 1].data;
     }
 
     const myDisplayName = formatPlayerDisplayName(

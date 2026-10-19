@@ -6,6 +6,8 @@ import {
 } from "@openfront/engine-api/Schemas";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
+import { CongressVoteExecution } from "../congress/CongressVoteExecution";
+import { ConveneEmergencyExecution } from "../congress/ConveneEmergencyExecution";
 import { ChooseGovernmentExecution } from "../domestic/ChooseGovernmentExecution";
 import { ProclaimLawExecution } from "../domestic/ProclaimLawExecution";
 import { QueueResearchExecution } from "../domestic/QueueResearchExecution";
@@ -188,6 +190,20 @@ export class Executor {
           player,
           intent.attacker,
           intent.nukeType,
+        );
+      case "congress_vote":
+        return new CongressVoteExecution(
+          player,
+          intent.session,
+          intent.item,
+          intent.option,
+          intent.extra,
+        );
+      case "convene_emergency":
+        return new ConveneEmergencyExecution(
+          player,
+          intent.kind,
+          intent.target,
         );
       default:
         throw new Error(`intent type ${intent} not found`);

@@ -1,6 +1,7 @@
 import { DomesticView } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
+  GameMode,
   GameType,
   PlayerType,
   Tick,
@@ -204,6 +205,15 @@ export class Config {
   /** Expanded warfare (spec §14b): coastal battery, barrage, airport. */
   warfareExpansion(): boolean {
     return this._gameConfig.warfareExpansion ?? false;
+  }
+
+  /** World congress (spec §3.1): only with domestic mode, in FFA, with the option on. */
+  congress(): boolean {
+    return (
+      this.domesticMode() &&
+      this._gameConfig.congress === true &&
+      this._gameConfig.gameMode === GameMode.FFA
+    );
   }
 
   /** Land share (percent) that wins by conquest, before any overtime drop. */

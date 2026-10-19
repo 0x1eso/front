@@ -24,6 +24,7 @@ import { assertNever } from "@openfront/engine-lib/Util";
 import { BARRAGE_ATTACKER_LOSS_FACTOR } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import { AttackLogicInput } from "../configuration/EngineConfig";
+import { reportTruceRefusal, withCongressCombat } from "../congress/Conflict";
 import {
   DomesticCombat,
   domesticCombat,
@@ -118,6 +119,19 @@ export class AttackExecution implements Execution {
         this.active = false;
         return;
       }
+    }
+
+    // World congress (spec §8.1 S2): a truce blocks the attack before it
+    // can leave an embargo or a grudge behind.
+    if (this.target.isPlayer() && this._owner.isTruceWith(this.target)) {
+      // Troops a boat or paradrop already took go home instead of vanishing.
+      if (!this.removeTroops && this.startTroops !== null) {
+        this._owner.addTroops(this.startTroops);
+      }
+      // A landing's own attack: its boat or plane already answered for it.
+      if (this.removeTroops) reportTruceRefusal(mg, this._owner, this.target);
+      this.active = false;
+      return;
     }
 
     if (this.target && this.target.isPlayer()) {
@@ -315,15 +329,25 @@ export class AttackExecution implements Execution {
       return;
     }
 
-    if (targetPlayer && this._owner.isFriendly(targetPlayer)) {
-      // In this case a new alliance was created AFTER the attack started.
+    if (
+      targetPlayer &&
+      (this._owner.isFriendly(targetPlayer) ||
+        this._owner.isTruceWith(targetPlayer))
+    ) {
+      // In this case a new alliance was created AFTER the attack started,
+      // or a congress truce began: back home, no losses.
       this.retreat();
       return;
     }
 
     const borderSize = this.attack.borderSize() + this.random.nextInt(0, 5);
     // Domestic combat modifiers hold for the whole tick (1 = vanilla).
-    const combat = domesticCombat(this._owner, targetPlayer);
+    const combat = withCongressCombat(
+      domesticCombat(this._owner, targetPlayer),
+      this.mg.congress(),
+      this._owner,
+      targetPlayer,
+    );
     // Each tile consumes a fraction of the tick; conquer until it is spent.
     let tickBudget = 1;
 

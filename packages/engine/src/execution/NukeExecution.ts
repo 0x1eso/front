@@ -7,6 +7,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { NukeType } from "@openfront/engine-api/StatsSchemas";
+import { NukeWeapon } from "@openfront/engine-lib/congress/CongressBalance";
 import { atan2 } from "@openfront/engine-lib/DetMath";
 import { listNukeBreakAlliance } from "@openfront/engine-lib/execution/NukeAlliance";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
@@ -18,6 +19,8 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { heritageHostTiles, isHeritageProtected } from "../congress/Conflict";
+import { congressNukeHit } from "../congress/Emergencies";
 import { Execution, Game, isUnit, Player, Unit } from "../game/Game";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
 import { ParabolaUniversalPathFinder } from "../pathfinding/PathFinder.Parabola";
@@ -394,10 +397,13 @@ export class NukeExecution implements Execution {
 
     const magnitude = config.nukeMagnitudes(this.nuke.type());
     const toDestroy = this.tilesToDestroy();
+    // World heritage A (plan decision 8): a protected host keeps its tile.
+    const spared = heritageHostTiles(mg);
 
     // Retrieve all impacted players and the number of tiles
     const tilesPerPlayers = new Map<Player, number>();
     for (const tile of toDestroy) {
+      if (spared.has(tile)) continue;
       const owner = mg.owner(tile);
       if (owner.isPlayer()) {
         owner.relinquish(tile);
@@ -411,6 +417,19 @@ export class NukeExecution implements Execution {
 
       // Record every tile in the blast radius for nukeable layer destruction.
       mg.queueNukeImpact(tile);
+    }
+
+    // World congress (spec §4.2, §9.1): the shooter's nuke score and the
+    // victims' losses.
+    const congress = mg.congress();
+    if (congress !== null) {
+      congressNukeHit(
+        mg,
+        congress,
+        this.player,
+        tilesPerPlayers,
+        this.nuke.type() as NukeWeapon,
+      );
     }
 
     // Then compute the explosion effect on each player
@@ -479,6 +498,8 @@ export class NukeExecution implements Execution {
         continue;
       }
       if (mg.euclideanDistSquared(dst, unit.tile()) < outer2) {
+        // World heritage A (spec §10.2): the protected host stands.
+        if (isHeritageProtected(mg, unit)) continue;
         // treatAFKFriendly matches warship targeting: a disconnected
         // teammate's or ally's units are still not kills.
         const friendly = this.player.isFriendly(unit.owner(), true);

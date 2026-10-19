@@ -7,6 +7,7 @@ import {
   VICTORY_PROJECT_KINDS,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { techPactCostMilli } from "@openfront/engine-lib/congress/ResolutionEffects";
 import {
   LAW_COOLDOWN_TICKS,
   MILLI,
@@ -148,6 +149,7 @@ export function techNodeState(
   d: DomesticData,
   researched: ReadonlySet<TechId>,
   id: TechId,
+  cost: number = TECHS[id].cost,
 ): TechNodeState {
   const state: TechNodeState = {
     kind: "available",
@@ -168,7 +170,6 @@ export function techNodeState(
       missing: TECHS[id].prereqs.find((p) => !researched.has(p)) ?? null,
     };
   }
-  const cost = TECHS[id].cost;
   if (d.science >= cost) return state;
   return {
     ...state,
@@ -202,7 +203,11 @@ export interface ResearchDial {
   queued: TechId | null;
 }
 
-export function researchDial(d: DomesticData): ResearchDial {
+/** `discounted`: world congress, the techs the tech pact makes cheaper now. */
+export function researchDial(
+  d: DomesticData,
+  discounted: readonly TechId[] = [],
+): ResearchDial {
   const queued = d.queuedTech ?? null;
   const r = d.research;
   if (r !== null) {
@@ -218,7 +223,10 @@ export function researchDial(d: DomesticData): ResearchDial {
   let cheapest: number | null = null;
   for (const id of TECH_IDS) {
     if (researchBlock(researched, false, id) !== null) continue;
-    cheapest = Math.min(cheapest ?? Infinity, TECHS[id].cost);
+    const cost =
+      techPactCostMilli(TECHS[id].cost * MILLI, discounted.includes(id)) /
+      MILLI;
+    cheapest = Math.min(cheapest ?? Infinity, cost);
   }
   const idle = { tech: null, secondsLeft: null, queued };
   if (cheapest === null) return { ...idle, kind: "none", progress: 0 };
@@ -304,19 +312,26 @@ export interface VictoryDial {
   progress: number;
   /** running: held back while attacking (political project). */
   paused: boolean;
+  /** running: complete, waiting for the world congress's ratification. */
+  awaiting?: boolean;
 }
 
-/** The trophy dial, or null while no victory project is open or running. */
+/**
+ * The trophy dial, or null while no victory project is open or running.
+ * `awaiting`: my complete proclamation waits for the congress's ratification.
+ */
 export function victoryDial(
   d: DomesticData,
   me: ProjectHostSource,
   infiniteGold: boolean,
+  awaiting = false,
 ): VictoryDial | null {
   if (d.project !== undefined) {
     return {
       kind: "running",
       progress: projectProgress(d.project),
       paused: d.project.paused,
+      ...(awaiting ? { awaiting: true } : {}),
     };
   }
   let qualified = false;

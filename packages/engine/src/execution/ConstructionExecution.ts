@@ -6,6 +6,7 @@ import {
   zRef,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { buildTimePct } from "../congress/Effects";
 import { domesticConstructionTicks } from "../domestic/DomesticEconomy";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { UnitTypeSchema } from "../snapshot/CommonSchemas";
@@ -88,10 +89,12 @@ export class ConstructionExecution implements Execution {
         spawnTile,
         {},
       );
+      const congress = this.mg.congress();
       const duration = domesticConstructionTicks(
         info.constructionDuration ?? 0,
         this.player,
         this.constructionType,
+        congress === null ? 0 : buildTimePct(congress, this.constructionType),
       );
       if (duration > 0) {
         if (this.player.domestic() !== null) {

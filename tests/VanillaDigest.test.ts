@@ -13,6 +13,14 @@ import {
 // for an intended, upstream-compatible change.
 const TICKS = 3000;
 
+// The world congress pin (the last test). It moves with every change to the
+// congress simulation. To re-pin after an intended change, set it to
+// "0000000000000000", run
+//   npx vitest tests/VanillaDigest.test.ts -t "world congress" --run
+// and paste the received value here; then run the whole file twice to
+// confirm it's stable and that no other pin moved.
+const CONGRESS_ON_DIGEST = "f6772eec62ac81ee";
+
 async function digest(overrides: object): Promise<string> {
   const runner = await createScriptedRunner(
     "world",
@@ -73,5 +81,40 @@ describe("vanilla stays bit-identical", () => {
   // Fork options on: the hash also covers gold and the fork state.
   test("strategic weapons on", async () => {
     expect(await digest({ strategicWeapons: true })).toBe("091085284bca29e0");
+  }, 60_000);
+
+  // World congress (spec §3.2): explicitly off, without domestic mode, or in a
+  // domestic game, the option changes nothing. Pins taken from the tests above.
+  test("domestic mode with the congress option explicitly off", async () => {
+    expect(
+      await digest({
+        domesticMode: true,
+        strategicWeapons: false,
+        congress: false,
+      }),
+    ).toBe("a7dac00d9005a3ad");
+  }, 60_000);
+
+  test("the congress option without domestic mode changes nothing", async () => {
+    expect(await digest({ congress: true })).toBe("c330352312204618");
+  }, 60_000);
+
+  test("domestic mode and expanded warfare with the congress option explicitly off", async () => {
+    expect(
+      await digest({
+        domesticMode: true,
+        warfareExpansion: true,
+        strategicWeapons: false,
+        congress: false,
+      }),
+    ).toBe("dddf7fe292970133");
+  }, 60_000);
+
+  // World congress on (domestic FFA): pins the congress engine. A change here
+  // means the congress's simulation changed: update only on purpose.
+  test("domestic mode with the world congress", async () => {
+    expect(await digest({ domesticMode: true, congress: true })).toBe(
+      CONGRESS_ON_DIGEST,
+    );
   }, 60_000);
 });

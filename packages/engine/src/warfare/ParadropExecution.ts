@@ -12,6 +12,7 @@ import {
   PLANE_SPEED,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
+import { reportTruceRefusal } from "../congress/Conflict";
 import { AttackExecution } from "../execution/AttackExecution";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -28,7 +29,7 @@ import { samMissileClosingIn } from "./Interception";
  * airport with a free sortie and flies straight to `dst` (SAMs can shoot it
  * down; its troops are lost). On landing it takes the target's land within
  * PARADROP_RADIUS and attacks from all of it. If the zone has become the
- * player's own or a friend's, the troops come home instead.
+ * player's own, a friend's or (World Congress) a truce partner's, the troops come home instead.
  */
 export class ParadropExecution implements Execution {
   private mg: Game;
@@ -73,6 +74,13 @@ export class ParadropExecution implements Execution {
       this.active = false;
       return;
     }
+    // World congress (spec §8.1): say it's the truce, not a missing airport.
+    const target = mg.owner(this.dst);
+    if (target.isPlayer() && this.player.isTruceWith(target)) {
+      reportTruceRefusal(mg, this.player, target);
+      this.active = false;
+      return;
+    }
     const spawn = this.player.canBuild(UnitType.TransportPlane, this.dst);
     if (spawn === false) {
       if (!mg.config().isUnitDisabled(UnitType.TransportPlane)) {
@@ -108,7 +116,6 @@ export class ParadropExecution implements Execution {
       ticksPerStep: 1,
       path: this.path,
     });
-    const target = mg.owner(this.dst);
     if (target.isPlayer()) {
       mg.displayIncomingUnit(
         this.plane.id(),
@@ -131,7 +138,9 @@ export class ParadropExecution implements Execution {
     if (
       !mg.isLand(this.dst) ||
       owner === this.player ||
-      (owner.isPlayer() && this.player.isFriendly(owner))
+      (owner.isPlayer() &&
+        // A truce that began mid-flight (spec §8.1): recalled whole.
+        (this.player.isFriendly(owner) || this.player.isTruceWith(owner)))
     ) {
       this.player.addTroops(troops);
       return;

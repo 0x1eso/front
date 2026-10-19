@@ -15,6 +15,7 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { reportTruceRefusal } from "../congress/Conflict";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { targetTransportTile } from "../game/TransportShipUtils";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
@@ -48,6 +49,8 @@ export class TransportShipExecution implements Execution {
   private dst: TileRef | null;
   private src: TileRef | null;
   private retreatDst: TileRef | false | null = null;
+  /** World congress: THIS boat was turned around by a truce, so it lands home whole. */
+  private recalledByTruce = false;
   private boat: Unit;
   private motionPlanId = 1;
   private motionPlanDst: TileRef | null = null;
@@ -90,6 +93,14 @@ export class TransportShipExecution implements Execution {
         undefined,
         { max: mg.config().boatMaxNumber() },
       );
+      this.active = false;
+      return;
+    }
+
+    // World congress (spec §8.1 S2): a truce blocks the boat before it can
+    // turn down the target's alliance request.
+    if (this.target.isPlayer() && this.attacker.isTruceWith(this.target)) {
+      reportTruceRefusal(mg, this.attacker, this.target);
       this.active = false;
       return;
     }
@@ -222,6 +233,17 @@ export class TransportShipExecution implements Execution {
       this.retreatDst = null;
     }
 
+    // World congress (spec §8.1 S2): a truce turns the boat around.
+    if (
+      !this.boat.transportShipState().isRetreating &&
+      this.target.isPlayer() &&
+      this.attacker.isTruceWith(this.target)
+    ) {
+      this.boat.updateTransportShipState({ isRetreating: true });
+      this.retreatDst = null;
+      this.recalledByTruce = true;
+    }
+
     if (this.boat.transportShipState().isRetreating) {
       // Resolve retreat destination once, based on current boat location when retreat begins.
       this.retreatDst ??= this.attacker.bestTransportShipSpawn(
@@ -249,7 +271,9 @@ export class TransportShipExecution implements Execution {
     switch (result.status) {
       case PathStatus.COMPLETE:
         if (this.mg.owner(this.dst) === this.attacker) {
-          const deaths = this.boat.troops() * (malusForRetreat / 100);
+          // A boat a truce called back lands home whole.
+          const malus = this.recalledByTruce ? 0 : malusForRetreat;
+          const deaths = this.boat.troops() * (malus / 100);
           const survivors = this.boat.troops() - deaths;
           this.attacker.addTroops(survivors);
           this.boat.delete(false);
@@ -271,7 +295,11 @@ export class TransportShipExecution implements Execution {
           return;
         }
         this.attacker.conquer(this.dst);
-        if (this.target.isPlayer() && this.attacker.isFriendly(this.target)) {
+        if (
+          this.target.isPlayer() &&
+          (this.attacker.isFriendly(this.target) ||
+            this.attacker.isTruceWith(this.target))
+        ) {
           this.attacker.addTroops(this.boat.troops());
         } else {
           this.mg.addExecution(
@@ -369,6 +397,8 @@ export class TransportShipExecution implements Execution {
       attacker: w.player(this.attacker),
       ref: this.ref,
       troops: this.troops,
+      // Written only when true: pre-congress snapshots stay identical.
+      ...(this.recalledByTruce ? { recalledByTruce: true } : {}),
     });
   }
 
@@ -391,6 +421,7 @@ export class TransportShipExecution implements Execution {
     this.attacker = r.player(s.attacker);
     this.ref = s.ref;
     this.troops = s.troops;
+    this.recalledByTruce = s.recalledByTruce === true;
   }
 }
 
@@ -413,6 +444,7 @@ const TransportShipExecutionStateSchema = z.object({
   // Unvalidated until init() checks it.
   ref: zInt(),
   troops: zNum(),
+  recalledByTruce: z.boolean().optional(),
 });
 type TransportShipExecutionState = z.infer<
   typeof TransportShipExecutionStateSchema

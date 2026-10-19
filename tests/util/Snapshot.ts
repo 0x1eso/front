@@ -151,6 +151,10 @@ export const DERIVED_FIELDS = new Set<string>([
   "domesticDataCache",
   // PlayerStrategic
   "strategicDataCache",
+  // Congress / PlayerCongress
+  "congressDataCache",
+  "lastSentCongressData",
+  "congressPlayerDataCache",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

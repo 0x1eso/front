@@ -7,6 +7,7 @@ import {
   STRIKE_TROOP_LOSS_PCT,
   strikeCraterRadius,
 } from "@openfront/engine-lib/strategic/Strategic";
+import { isHeritageProtected } from "../congress/Conflict";
 import type { Game, Player } from "../game/Game";
 
 /**
@@ -121,13 +122,27 @@ export function landStrikeWave(
   const impacts = all.slice(from, to);
   const last = wave === waves - 1;
 
+  // World heritage A (spec §10.2): the host and its site's crater stay.
+  const spared = new Set<TileRef>();
+  if (mg.congress() !== null) {
+    for (const unit of target.units(Structures.types)) {
+      if (unit.isActive() && isHeritageProtected(mg, unit)) {
+        addOwnedDisk(mg, target, unit.tile(), STRIKE_STRUCTURE_RADIUS, spared);
+      }
+    }
+  }
+
   let buildings = 0;
   const sea = new Set<TileRef>();
   for (const [k, tile] of impacts.entries()) {
     const isSite = from + k < plan.sites.length;
     if (isSite) {
       for (const unit of target.units(Structures.types)) {
-        if (unit.tile() === tile && unit.isActive()) {
+        if (
+          unit.tile() === tile &&
+          unit.isActive() &&
+          !isHeritageProtected(mg, unit)
+        ) {
           unit.delete(true, attacker);
           buildings++;
         }
@@ -144,7 +159,7 @@ export function landStrikeWave(
   if (last) {
     // Anything built or captured since the plan was made goes too.
     for (const unit of target.units(Structures.types)) {
-      if (unit.isActive()) {
+      if (unit.isActive() && !isHeritageProtected(mg, unit)) {
         unit.delete(true, attacker);
         buildings++;
       }
@@ -156,6 +171,7 @@ export function landStrikeWave(
     target.removeTroops(troops);
   }
   for (const tile of sea) {
+    if (spared.has(tile)) continue;
     target.relinquish(tile);
     mg.queueWaterConversion(tile, true);
     mg.queueNukeImpact(tile);

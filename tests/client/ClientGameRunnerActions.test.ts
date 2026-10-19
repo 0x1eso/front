@@ -181,6 +181,25 @@ describe("left click", () => {
     expect(attacks[0].troops).toBe(50); // 100 troops * 0.5 attack ratio
   });
 
+  it("still sends a tap on a truce partner, so the engine can say why it fails", async () => {
+    const { eventBus } = makeRunner({
+      hasOwner: true,
+      actions: {
+        canAttack: false,
+        buildableUnits: [],
+        interaction: { truce: true },
+      },
+    });
+    const attacks: SendAttackIntentEvent[] = [];
+    eventBus.on(SendAttackIntentEvent, (e) => attacks.push(e));
+
+    eventBus.emit(new MouseUpEvent(CLICK.x, CLICK.y));
+    await flushPromises();
+
+    expect(attacks).toHaveLength(1);
+    expect(attacks[0].targetID).toBe("enemy1");
+  });
+
   it("does nothing when the player is not in the view yet", async () => {
     const { eventBus, gameView } = makeRunner({
       hasOwner: true,

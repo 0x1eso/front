@@ -314,6 +314,14 @@ function playIntent(game: Game, p: Player, rand: PseudoRandom): Intent | null {
     if (intent !== null) return intent;
   }
 
+  // World congress games only, on the same terms: ballots (some with extra
+  // votes, some refused for a seat, a side switch or an old session) and
+  // convening whatever is available.
+  if (game.config().congress() && rand.chance(3)) {
+    const intent = congressIntent(game, rand);
+    if (intent !== null) return intent;
+  }
+
   switch (rand.nextInt(0, 22)) {
     case 0:
     case 1:
@@ -577,6 +585,27 @@ function strategicIntent(
     }
   }
   return null;
+}
+
+/** One world-congress intent: a ballot on the open session, or convening an available emergency. */
+function congressIntent(game: Game, rand: PseudoRandom): Intent | null {
+  const c = game.congress();
+  if (c === null) return null;
+  const s = c.session();
+  if (s !== null) {
+    return {
+      type: "congress_vote",
+      session: s.id,
+      item: rand.nextInt(0, s.items.length),
+      option: rand.chance(2) ? "A" : "B",
+      extra: rand.nextInt(0, 3),
+    };
+  }
+  const a = pick(rand, c.available());
+  if (a === null) return null;
+  const target = game.playerBySmallID(a.target);
+  if (!target.isPlayer()) return null;
+  return { type: "convene_emergency", kind: a.kind, target: target.id() };
 }
 
 function nearbyWater(

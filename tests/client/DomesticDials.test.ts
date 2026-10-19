@@ -66,7 +66,7 @@ async function mount(
     myPlayer: () => me,
     inSpawnPhase: () => false,
     ticks: () => setup.ticks ?? 0,
-    config: () => ({ hasInfiniteGold: () => false }),
+    config: () => ({ hasInfiniteGold: () => false, congress: () => false }),
   } as unknown as GameView;
   el.eventBus = new EventBus();
   document.body.appendChild(el);

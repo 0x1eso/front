@@ -33,6 +33,7 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { NationAllianceBehavior } from "./nation/NationAllianceBehavior";
+import { nationCongressTick } from "./nation/NationCongressBehavior";
 import { nationDomesticTick } from "./nation/NationDomesticBehavior";
 import { NationEmojiBehavior } from "./nation/NationEmojiBehavior";
 import { NationMIRVBehavior } from "./nation/NationMIRVBehavior";
@@ -205,6 +206,10 @@ export class NationExecution implements Execution {
       this.attackBehavior.forceSendAttack(this.mg.terraNullius());
       return;
     }
+
+    // World congress (spec §11): ballots and convening on their own exact
+    // ticks; stateless, no PRNG, nothing in a game without the congress.
+    nationCongressTick(this.mg, this.player);
 
     this.attackBehavior.followUpLandings();
     this.nukeBehavior.followUpStrikes();

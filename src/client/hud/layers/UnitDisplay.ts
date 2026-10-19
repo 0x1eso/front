@@ -27,6 +27,11 @@ import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { translateText } from "../../Utils";
 import { GameView } from "../../view";
+import {
+  bannedBadge,
+  bannedReason,
+  productionBanned,
+} from "../congress/BanLabels";
 import { lockedReason } from "../domestic/LockReason";
 import {
   adminOfficeIcon,
@@ -341,6 +346,13 @@ export class UnitDisplay extends LitElement implements Controller {
     );
   }
 
+  /** World congress: a resolution in force forbids building or buying it. */
+  private banned(type: UnitType): boolean {
+    return (
+      this.playerBuildables?.find((bu) => bu.type === type)?.banned === true
+    );
+  }
+
   /** Strategic weapons: my stockpile, lines and satellite; null with the option off. */
   private strategic(): StrategicData | null {
     return this.game?.myPlayer()?.strategicData() ?? null;
@@ -356,6 +368,12 @@ export class UnitDisplay extends LitElement implements Controller {
   private produceReason(type: StockpiledNuke): string | null {
     if (this.locked(type)) return lockedReason(type);
     const player = this.game?.myPlayer();
+    if (
+      player &&
+      productionBanned(this.game.congressData(), player.smallID(), type)
+    ) {
+      return bannedReason();
+    }
     const s = this.strategic();
     if (!player || s === null) return null;
     const factories = player
@@ -406,6 +424,7 @@ export class UnitDisplay extends LitElement implements Controller {
   private cannotBuildReason(type: PlayerBuildableUnitType): string | null {
     if (type === UnitType.TransportPlane) return this.paradropReason();
     if (this.locked(type)) return lockedReason(type);
+    if (this.banned(type)) return bannedReason();
     const player = this.game?.myPlayer();
     const strategic = this.strategic();
     if (strategic !== null && isStockpiledNuke(type)) {
@@ -590,11 +609,17 @@ export class UnitDisplay extends LitElement implements Controller {
                 class="w-full px-0.5 text-[8px] leading-none text-center text-red-300 truncate"
                 >🔒 ${translateText(`domestic.tech.${tech}.name`)}</span
               >`
-            : count !== undefined
-              ? html`<span class="text-[10px] leading-none tabular-nums"
-                  >${renderNumber(count)}</span
+            : this.banned(item.type)
+              ? html`<span
+                  data-banned
+                  class="w-full px-0.5 text-[8px] leading-none text-center text-amber-300 truncate"
+                  >${bannedBadge()}</span
                 >`
-              : null}
+              : count !== undefined
+                ? html`<span class="text-[10px] leading-none tabular-nums"
+                    >${renderNumber(count)}</span
+                  >`
+                : null}
       </button>
     `;
   }

@@ -114,6 +114,7 @@ export class HostLobbyModal extends BaseModal {
   @state() private domesticMode: boolean = false;
   @state() private warfareExpansion: boolean = false;
   @state() private strategicWeapons: boolean = false;
+  @state() private congress: boolean = false;
   @state() private conquestPercent: number | undefined = undefined;
   @state() private lobbyId = "";
   @state() private lobbyUrlSuffix = "";
@@ -785,6 +786,14 @@ export class HostLobbyModal extends BaseModal {
                     labelKey: "game_settings.domestic_mode",
                     checked: this.domesticMode,
                   },
+                  ...(this.domesticMode && this.gameMode === GameMode.FFA
+                    ? [
+                        {
+                          labelKey: "game_settings.congress",
+                          checked: this.congress,
+                        },
+                      ]
+                    : []),
                   {
                     labelKey: "game_settings.warfare_expansion",
                     checked: this.warfareExpansion,
@@ -1134,6 +1143,7 @@ export class HostLobbyModal extends BaseModal {
     this.domesticMode = false;
     this.warfareExpansion = false;
     this.strategicWeapons = false;
+    this.congress = false;
     this.conquestPercent = undefined;
     this.hostCheatsEnabled = false;
     this.hostCheatInfiniteGold = false;
@@ -1241,6 +1251,7 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.domestic_mode":
         this.domesticMode = checked;
+        this.congress = checked;
         if (checked) {
           const defaults = domesticModeDefaults(
             this.maxTimer,
@@ -1258,6 +1269,10 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.strategic_weapons":
         this.strategicWeapons = checked;
+        this.putGameConfig();
+        break;
+      case "game_settings.congress":
+        this.congress = checked;
         this.putGameConfig();
         break;
       case "game_settings.doomsday_clock":
@@ -1831,6 +1846,10 @@ export class HostLobbyModal extends BaseModal {
             domesticMode: this.domesticMode,
             warfareExpansion: this.warfareExpansion,
             strategicWeapons: this.strategicWeapons,
+            congress:
+              this.domesticMode &&
+              this.congress &&
+              this.gameMode === GameMode.FFA,
             conquestPercent: this.domesticMode
               ? (this.conquestPercent ?? null)
               : null,

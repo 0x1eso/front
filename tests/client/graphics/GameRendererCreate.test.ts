@@ -46,6 +46,8 @@ const HUD_TAGS = [
   "immunity-timer",
   "satellite-band",
   "satellite-target-picker",
+  "congress-cards",
+  "congress-band",
   "in-game-promo",
   "tutorial-panel",
 ] as const;
@@ -105,6 +107,16 @@ describe("createRenderer", () => {
     const dials = elements.get("domestic-dials") as DomesticDials;
     expect(dials.eventBus).toBe(eventBus);
     expect(dials.game).toBe(game);
+
+    // World congress (spec §12): the cards and the band share the bus too.
+    for (const tag of ["congress-cards", "congress-band"]) {
+      const el = elements.get(tag) as unknown as {
+        eventBus: EventBus;
+        game: GameView;
+      };
+      expect(el.eventBus).toBe(eventBus);
+      expect(el.game).toBe(game);
+    }
 
     // Emoji table got its own initEventBus: opening the menu reaches it.
     const emojiTable = elements.get("emoji-table") as EmojiTable;

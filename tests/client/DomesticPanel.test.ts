@@ -47,6 +47,7 @@ async function openPanel(d: DomesticData): Promise<DomesticPanel> {
   panel.game = {
     myPlayer: () => me,
     ticks: () => 0,
+    congressData: () => null,
     config: () => ({
       hasInfiniteGold: () => false,
       isUnitDisabled: () => false,

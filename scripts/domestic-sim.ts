@@ -9,9 +9,13 @@
  * "rare", one due after the run's end "short". Not part of the test suite:
  * run it by hand after changing Balance.ts.
  *
+ * With --congress the games also run the World Congress, and each seed
+ * prints its sessions, adoptions, emergencies and sanctions.
+ *
  *   npx tsx scripts/domestic-sim.ts [--map world] [--seeds 3] [--minutes 30]
- *                                   [--difficulty Hard]
+ *                                   [--difficulty Hard] [--congress]
  */
+import { ResultData } from "@openfront/engine-api/congress/CongressTypes";
 import {
   Difficulty,
   GameMapSize,
@@ -51,6 +55,7 @@ interface Options {
   seeds: number;
   minutes: number;
   difficulty: Difficulty;
+  congress: boolean;
 }
 
 function resolveMap(name: string): GameMapType {
@@ -75,6 +80,7 @@ function parseArgs(argv: string[]): Options {
     seeds: 3,
     minutes: 30,
     difficulty: Difficulty.Hard,
+    congress: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -95,6 +101,9 @@ function parseArgs(argv: string[]): Options {
         break;
       case "--difficulty":
         opts.difficulty = resolveDifficulty(next());
+        break;
+      case "--congress":
+        opts.congress = true;
         break;
       default:
         throw new Error(`unknown argument: ${arg}`);
@@ -151,10 +160,43 @@ function sample(game: Game, records: Map<number, NationRecord>): void {
   }
 }
 
+/** Every congress result as it is tallied (the history keeps only the last 8). */
+function sampleCongress(game: Game, seen: Map<string, ResultData>): void {
+  for (const r of game.congress()?.history() ?? []) {
+    const key = `${r.sessionId}:${r.resolution}:${r.targets.join(",")}:${r.param ?? ""}`;
+    if (!seen.has(key)) seen.set(key, r);
+  }
+}
+
+interface CongressSummary {
+  sessions: number;
+  adopted: number;
+  tied: number;
+  emergenciesConvened: number;
+  emergenciesDeclared: number;
+  sanctionsAdopted: number;
+  sanctionsTotal: number;
+}
+
+function summarizeCongress(results: readonly ResultData[]): CongressSummary {
+  const regular = results.filter((r) => r.kind === "regular");
+  const emergency = results.filter((r) => r.kind === "emergency");
+  const sanctions = regular.filter((r) => r.resolution === "sanction");
+  return {
+    sessions: new Set(regular.map((r) => r.sessionId)).size,
+    adopted: regular.filter((r) => r.adopted !== null).length,
+    tied: regular.filter((r) => r.adopted === null).length,
+    emergenciesConvened: emergency.length,
+    emergenciesDeclared: emergency.filter((r) => r.adopted === "A").length,
+    sanctionsAdopted: sanctions.filter((r) => r.adopted === "A").length,
+    sanctionsTotal: sanctions.length,
+  };
+}
+
 async function runSeed(
   opts: Options,
   seed: number,
-): Promise<{ records: NationRecord[]; win: string }> {
+): Promise<{ records: NationRecord[]; win: string; congress: ResultData[] }> {
   const gameConfig: GameConfig = {
     gameMap: opts.map,
     gameMapSize: GameMapSize.Normal,
@@ -170,6 +212,7 @@ async function runSeed(
     instantBuild: false,
     randomSpawn: false,
     domesticMode: true,
+    ...(opts.congress ? { congress: true } : {}),
   };
   const gameStart: GameStartInfo = {
     gameID: `domestic-sim-${seed}`,
@@ -230,16 +273,24 @@ async function runSeed(
   }
 
   const records = new Map<number, NationRecord>();
+  const congress = new Map<string, ResultData>();
   let win = "none";
   for (let i = 0; i < opts.minutes * TICKS_PER_MINUTE; i++) {
     step();
-    if (game.ticks() % 10 === 0) sample(game, records);
+    if (game.ticks() % 10 === 0) {
+      sample(game, records);
+      sampleCongress(game, congress);
+    }
     if (result.win !== null && win === "none") {
       const minute = (game.elapsedGameSeconds() / 60).toFixed(1);
       win = `${result.win.reason ?? "?"} at ${minute} min`;
     }
   }
-  return { records: [...records.values()], win };
+  return {
+    records: [...records.values()],
+    win,
+    congress: [...congress.values()],
+  };
 }
 
 function fmt(v: number | null): string {
@@ -250,11 +301,12 @@ async function main(): Promise<void> {
   const opts = parseArgs(process.argv.slice(2));
   console.debug = () => {}; // silence per-tick debug logging
   const all: NationRecord[] = [];
+  const congressTotal: CongressSummary[] = [];
   for (let seed = 1; seed <= opts.seeds; seed++) {
     console.log(
       `\n=== seed ${seed}/${opts.seeds}: ${opts.map}, ${opts.difficulty}, ${opts.minutes} min ===`,
     );
-    const { records, win } = await runSeed(opts, seed);
+    const { records, win, congress } = await runSeed(opts, seed);
     all.push(...records);
     console.log(`winner: ${win}`);
     console.log(
@@ -283,6 +335,32 @@ async function main(): Promise<void> {
         ]),
       ),
     );
+    if (opts.congress) {
+      const c = summarizeCongress(congress);
+      congressTotal.push(c);
+      console.log(
+        formatTable(
+          [
+            "sessions",
+            "adopted",
+            "tied",
+            "emergencies",
+            "declared",
+            "sanctions A",
+          ],
+          [
+            [
+              String(c.sessions),
+              String(c.adopted),
+              String(c.tied),
+              String(c.emergenciesConvened),
+              String(c.emergenciesDeclared),
+              `${c.sanctionsAdopted}/${c.sanctionsTotal}`,
+            ],
+          ],
+        ),
+      );
+    }
   }
 
   console.log(`\n=== targets (spec §11.2), ${all.length} nations ===`);
@@ -299,6 +377,37 @@ async function main(): Promise<void> {
       ]),
     ),
   );
+
+  if (opts.congress && congressTotal.length > 0) {
+    const sum = (f: (c: CongressSummary) => number) =>
+      congressTotal.reduce((acc, c) => acc + f(c), 0);
+    const perGame = sum((c) => c.emergenciesConvened) / congressTotal.length;
+    const sanctionsTotal = sum((c) => c.sanctionsTotal);
+    const sanctionRate =
+      sanctionsTotal === 0
+        ? null
+        : sum((c) => c.sanctionsAdopted) / sanctionsTotal;
+    console.log(`\n=== congress targets, ${congressTotal.length} games ===`);
+    console.log(
+      formatTable(
+        ["measure", "measured", "target", "verdict"],
+        [
+          [
+            "emergencies per game",
+            perGame.toFixed(1),
+            "0-2",
+            perGame <= 2 ? "ok" : "miss",
+          ],
+          [
+            "sanction adoption",
+            sanctionRate === null ? "-" : `${(sanctionRate * 100).toFixed(0)}%`,
+            ">=50%",
+            sanctionRate !== null && sanctionRate >= 0.5 ? "ok" : "miss",
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 main().catch((err: unknown) => {

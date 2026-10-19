@@ -77,6 +77,18 @@ describe("build menu on a tablet", () => {
     menu.remove();
   });
 
+  it("a banned unit names the congress, not the gold", async () => {
+    const menu = await openMenu(
+      [{ ...unit(UnitType.City, false), banned: true } as BuildableUnit],
+      1_000_000n,
+    );
+    expect(
+      buttonFor(menu, UnitType.City).querySelector("[data-build-reason]")!
+        .textContent,
+    ).toContain("[congress.banned_reason]");
+    menu.remove();
+  });
+
   it("blames the tile, not the gold, when the gold is there (M5)", async () => {
     const menu = await openMenu([unit(UnitType.Port, false)], 500n);
     const reason = buttonFor(menu, UnitType.Port).querySelector(

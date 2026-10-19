@@ -3,10 +3,13 @@ import {
   TechId,
 } from "@openfront/engine-api/domestic/DomesticTypes";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { TECH_PACT_DISCOUNT_PCT } from "@openfront/engine-lib/congress/CongressBalance";
+import { techPactCostMilli } from "@openfront/engine-lib/congress/ResolutionEffects";
 import {
   MILLI,
   TECHS_REQUIRED_FROM_PREVIOUS_ERA,
 } from "@openfront/engine-lib/domestic/Balance";
+import { capCombinedPct } from "@openfront/engine-lib/domestic/Modifiers";
 import {
   researchTicks,
   shortfallGold,
@@ -64,6 +67,8 @@ export interface ResearchScreenContext extends ConfirmTap {
   research(tech: TechId, payWithGold: boolean): void;
   /** Reserve `tech` as the next research; null clears the reservation. */
   queue(tech: TechId | null): void;
+  /** World congress, tech pact A: techs that cost 30% less now. */
+  discounted?: readonly TechId[];
 }
 
 const BRANCH_BG: Readonly<Record<Branch, string>> = {
@@ -130,10 +135,30 @@ function techName(id: TechId): string {
   return translateText(`domestic.tech.${id}.name`);
 }
 
+function isDiscounted(ctx: ResearchScreenContext, id: TechId): boolean {
+  return ctx.discounted?.includes(id) === true;
+}
+
+/** What `id` costs this player now: the tech pact takes 30% off (the engine's own rounding). */
+function techCost(ctx: ResearchScreenContext, id: TechId): number {
+  return (
+    techPactCostMilli(TECHS[id].cost * MILLI, isDiscounted(ctx, id)) / MILLI
+  );
+}
+
+/** Research ticks for `id` now: the tech pact also cuts the time, under the combined cap (as ResearchExecution). */
+function techTicks(ctx: ResearchScreenContext, id: TechId): number {
+  const pct = ctx.view.pct("researchTime");
+  return researchTicks(
+    id,
+    isDiscounted(ctx, id) ? capCombinedPct(pct + TECH_PACT_DISCOUNT_PCT) : pct,
+  );
+}
+
 function costText(ctx: ResearchScreenContext, id: TechId): string {
   return translateText("domestic.cost", {
-    cost: TECHS[id].cost,
-    seconds: researchTicks(id, ctx.view.pct("researchTime")) / 10,
+    cost: techCost(ctx, id),
+    seconds: techTicks(ctx, id) / 10,
   });
 }
 
@@ -373,7 +398,7 @@ function renderNode(
   researched: ReadonlySet<TechId>,
 ): TemplateResult {
   const d = ctx.view.data;
-  const s = techNodeState(d, researched, id);
+  const s = techNodeState(d, researched, id, techCost(ctx, id));
   const def = TECHS[id];
   const selected = ctx.selected === id;
   const r = d.research;
@@ -414,6 +439,13 @@ function renderNode(
             : "text-gray-400"}"
           >${costText(ctx, id)}</span
         >`}
+    ${s.kind !== "done" && isDiscounted(ctx, id)
+      ? html`<span
+          data-node-discount
+          class="text-[10px] font-bold text-amber-300"
+          >${translateText("congress.discounted")}</span
+        >`
+      : nothing}
     ${s.queued
       ? html`<span data-node-queued class="text-[10px] font-bold text-sky-300"
           >⏭ ${translateText("domestic.tree.queued")}</span
@@ -437,7 +469,7 @@ export function renderTechSheet(ctx: ResearchScreenContext): TemplateResult {
   const id = ctx.selected!;
   const d = ctx.view.data;
   const def = TECHS[id];
-  const s = techNodeState(d, ctx.view.researchedTechs(), id);
+  const s = techNodeState(d, ctx.view.researchedTechs(), id, techCost(ctx, id));
   const unlocks = def.unlocks.filter(
     (u) => UNLOCKS[u] !== undefined && !ctx.isUnitDisabled(u),
   );
@@ -524,7 +556,7 @@ function renderSheetActions(
       class="${ACTION} h-12 bg-sky-600 hover:bg-sky-500"
       @click=${() => ctx.research(id, false)}
     >
-      ${translateText("domestic.tree.start", { cost: TECHS[id].cost })}
+      ${translateText("domestic.tree.start", { cost: techCost(ctx, id) })}
     </button>`;
   }
   const gold = !busy && s.kind === "short" ? renderGoldButton(ctx, id) : null;
@@ -581,7 +613,7 @@ function renderGoldButton(
   const gold = ctx.infiniteGold
     ? 0n
     : shortfallGold(
-        (TECHS[id].cost - d.science) * MILLI,
+        (techCost(ctx, id) - d.science) * MILLI,
         ctx.view.pct("goldPaymentCost"),
       );
   const affordable = ctx.gold >= gold;

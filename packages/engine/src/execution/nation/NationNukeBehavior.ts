@@ -23,6 +23,8 @@ import {
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { assertNever, boundingBoxTiles } from "@openfront/engine-lib/Util";
 import { z } from "zod";
+import { isHeritageProtected } from "../../congress/Conflict";
+import { isProjectCondemned } from "../../congress/WorldGovernment";
 import { victoryProjectHosts } from "../../domestic/VictoryProjects";
 import { Game, Player, Unit } from "../../game/Game";
 import { UniversalPathFinding } from "../../pathfinding/PathFinder";
@@ -34,6 +36,7 @@ import { NukeExecution } from "../NukeExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { closestTwoTiles } from "../Util";
 import { AiAttackBehavior } from "../utils/AiAttackBehavior";
+import { congressAllowsAttack } from "./NationCongressBehavior";
 import { EMOJI_NUKE, NationEmojiBehavior } from "./NationEmojiBehavior";
 import { isMirvWorthSavingFor } from "./NationMIRVBehavior";
 import { stockpiledNukeTypes } from "./NationStrategicBehavior";
@@ -265,6 +268,17 @@ export class NationNukeBehavior {
     for (const host of victoryProjectHosts(this.game)) {
       const owner = host.owner();
       if (owner === this.player || this.player.isFriendly(owner, true)) {
+        continue;
+      }
+      // World congress: only a condemned project (spec §10.3), not a host
+      // world heritage A still protects (a nuke can't destroy it, §10.2),
+      // and only where the nation may strike (spec §11.4). All pass
+      // without a congress.
+      if (
+        !isProjectCondemned(this.game, owner) ||
+        isHeritageProtected(this.game, host) ||
+        !congressAllowsAttack(this.game, this.player, owner)
+      ) {
         continue;
       }
       const tile = host.tile();

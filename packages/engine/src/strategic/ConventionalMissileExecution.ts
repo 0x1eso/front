@@ -12,6 +12,7 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { isHeritageProtected } from "../congress/Conflict";
 import { Execution, Game, isUnit, Player, Unit } from "../game/Game";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
 import { ParabolaUniversalPathFinder } from "../pathfinding/PathFinder.Parabola";
@@ -137,6 +138,8 @@ export class ConventionalMissileExecution implements Execution {
     if (!target.isActive()) return;
     const owner = target.owner();
     if (owner === this.player || this.player.isFriendly(owner, true)) return;
+    // World heritage A (spec §10.2): the protected host takes no hit.
+    if (isHeritageProtected(this.mg, target)) return;
     if ((owner.strategic()?.cancelJobsAt(target.id()) ?? 0) > 0) {
       announceProductionLost(this.mg, owner);
     }

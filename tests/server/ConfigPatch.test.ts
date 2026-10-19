@@ -41,6 +41,7 @@ const EDITABLE: { [K in keyof GameConfig]?: GameConfig[K] } = {
   domesticMode: true,
   warfareExpansion: true,
   strategicWeapons: true,
+  congress: true,
 };
 
 // `.nullable().optional()` in the schema: null clears, undefined leaves alone.

@@ -25,6 +25,7 @@ function fakeWorld(side: number) {
     isLand: () => true,
     isImpassable: () => false,
     ticks: () => 5000,
+    congress: () => null,
     queueWaterConversion: () => {
       sea++;
     },

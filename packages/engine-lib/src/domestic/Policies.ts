@@ -37,19 +37,21 @@ export function policyFlags(
 }
 
 /**
- * All of a domestic player's modifiers (researched techs, proclaimed laws
- * and the government), summed per stat and per condition. The engine
- * (PlayerDomestic) and the client (DomesticClientView) both build their
- * totals here so they can't drift apart; each passes the conditions in
- * force to ModifierTotals.pct.
+ * All of a domestic player's modifiers (researched techs, proclaimed laws,
+ * the government and, in congress games, the resolutions in force), summed
+ * per stat and per condition. The engine (PlayerDomestic) and the client
+ * (DomesticClientView) both build their totals here so they can't drift
+ * apart; each passes the conditions in force to ModifierTotals.pct.
  */
 export function domesticModifiers(
   techs: Iterable<TechId>,
   laws: ReadonlyMap<LawId, LawOption>,
   government: GovernmentId,
+  congress: readonly Modifier[] = [],
 ): ModifierTotals {
   return new ModifierTotals([
     ...techModifiers(techs),
     ...policyModifiers(laws, government),
+    ...congress,
   ]);
 }

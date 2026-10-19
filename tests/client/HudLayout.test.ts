@@ -66,4 +66,16 @@ describe("index.html bottom HUD", () => {
     expect(bar).not.toBeNull();
     expect(bar!.classList.contains("hidden")).toBe(false);
   });
+
+  it("puts the congress cards right above the HUD rows and the band among the overlays", () => {
+    const rows = doc.querySelector("[data-bottom-hud-rows]")!;
+    const cards = doc.querySelector("congress-cards")!;
+    expect(cards).not.toBeNull();
+    expect(cards.nextElementSibling).toBe(rows);
+    expect(
+      doc
+        .querySelector("satellite-band")!
+        .nextElementSibling!.tagName.toLowerCase(),
+    ).toBe("congress-band");
+  });
 });

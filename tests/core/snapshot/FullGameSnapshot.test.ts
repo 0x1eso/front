@@ -21,6 +21,12 @@ import { diffSnapshots } from "../../util/Snapshot";
 
 const MAP = "world";
 const TICKS = 1500;
+// The congress variant runs past the first regular session, the first
+// resolutions' effects and the first emergency session. The clock starts when
+// the 200-tick spawn phase ends (tick 201), so the regular session opens at
+// 2001 and is tallied at 2301; the nations convene an aggression emergency
+// that opens at 2718 and is tallied at 2918.
+const CONGRESS_TICKS = 3000;
 const CHECK_EVERY = 100;
 // Restore at every tick of this window, chaining each restore into the next.
 const WINDOW_START = 700;
@@ -42,6 +48,8 @@ interface Reference {
   final: Uint8Array;
   winnerTick: number | null;
   execTypes: Set<string>;
+  congressResults: number;
+  congressEmergencyResults: number;
 }
 
 // Execution types that only a domestic-mode game creates.
@@ -107,6 +115,15 @@ const STRATEGIC_UNSCRIPTED_TYPES = [
   "SatelliteTarget",
 ];
 
+// Execution types that only a world-congress game creates. The "congress"
+// variant (Task 14) plays them.
+const CONGRESS_ONLY_TYPES = ["Congress", "CongressVote", "ConveneEmergency"];
+// Congress types the scripted game isn't sure to keep alive at a tick
+// boundary: a ballot or a convening finishes inside its init. Emergencies
+// also need a threshold crossed. tests/congress/*.test.ts cover their
+// snapshots.
+const CONGRESS_UNSCRIPTED_TYPES = ["CongressVote", "ConveneEmergency"];
+
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),
 );
@@ -130,14 +147,17 @@ function firstUnseenLiveType(
   return null;
 }
 
-async function playReference(start: GameStartInfo): Promise<Reference> {
+async function playReference(
+  start: GameStartInfo,
+  ticks: number,
+): Promise<Reference> {
   const runner = await createScriptedRunner(MAP, start);
   const hashes: number[] = [];
   const checkpoints = new Map<number, Uint8Array>();
   const execTypes = new Set<string>();
   const triedTypes = new Set<string>();
   let winnerTick: number | null = null;
-  while (runner.game.ticks() < TICKS) {
+  while (runner.game.ticks() < ticks) {
     const tick = runner.game.ticks();
     const unseen = firstUnseenLiveType(runner.game, execTypes, triedTypes);
     if (
@@ -165,6 +185,12 @@ async function playReference(start: GameStartInfo): Promise<Reference> {
     final: runner.snapshot(),
     winnerTick,
     execTypes,
+    congressResults: runner.game.congress()?.history().length ?? 0,
+    congressEmergencyResults:
+      runner.game
+        .congress()
+        ?.history()
+        .filter((r) => r.kind === "emergency").length ?? 0,
   };
 }
 
@@ -182,7 +208,7 @@ function expectOnTrack(runner: GameRunner, ref: Reference): void {
   }
 }
 
-const VARIANTS: [string, Partial<GameConfig>][] = [
+const VARIANTS: [string, Partial<GameConfig>, number?][] = [
   ["free for all", {}],
   // Water nukes rewrite terrain and the water graph mid-game.
   ["water nukes", { waterNukes: true }],
@@ -203,110 +229,126 @@ const VARIANTS: [string, Partial<GameConfig>][] = [
     "strategic with domestic and warfare",
     { domesticMode: true, warfareExpansion: true, strategicWeapons: true },
   ],
+  // The world congress: sessions, the AI's and the scripted humans' ballots,
+  // extra votes, resolutions in force and convening.
+  ["congress", { domesticMode: true, congress: true }, CONGRESS_TICKS],
 ];
 
-describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
-  const start = scriptedGameStart(overrides);
-  let reference: Reference;
+describe.each(VARIANTS)(
+  "full game snapshots: %s",
+  (_, overrides, ticks = TICKS) => {
+    const start = scriptedGameStart(overrides);
+    let reference: Reference;
 
-  beforeAll(async () => {
-    reference = await playReference(start);
-  }, TEST_TIMEOUT);
-  test(
-    "snapshot -> restore -> snapshot is byte-identical at every checkpoint",
-    async () => {
-      for (const [tick, bytes] of reference.checkpoints) {
-        const restored = await restoreScriptedRunner(MAP, start, bytes);
-        expect(restored.game.ticks()).toBe(tick);
-        const diffs = diffSnapshots(restored.snapshot(), bytes);
-        expect(diffs, `tick ${tick}`).toEqual([]);
-      }
-    },
-    TEST_TIMEOUT,
-  );
-
-  test(
-    "restoring every 100 ticks continues exactly like the straight run",
-    async () => {
-      let runner = await restoreScriptedRunner(
-        MAP,
-        start,
-        reference.checkpoints.get(0)!,
-      );
-      let winnerTick: number | null = null;
-      while (runner.game.ticks() < TICKS) {
-        stepScripted(runner);
-        expectOnTrack(runner, reference);
-        if (winnerTick === null && runner.game.getWinner() !== null) {
-          winnerTick = runner.game.ticks();
+    beforeAll(async () => {
+      reference = await playReference(start, ticks);
+    }, TEST_TIMEOUT);
+    test(
+      "snapshot -> restore -> snapshot is byte-identical at every checkpoint",
+      async () => {
+        for (const [tick, bytes] of reference.checkpoints) {
+          const restored = await restoreScriptedRunner(MAP, start, bytes);
+          expect(restored.game.ticks()).toBe(tick);
+          const diffs = diffSnapshots(restored.snapshot(), bytes);
+          expect(diffs, `tick ${tick}`).toEqual([]);
         }
-        if (runner.game.ticks() % CHECK_EVERY === 0) {
+      },
+      TEST_TIMEOUT,
+    );
+
+    test(
+      "restoring every 100 ticks continues exactly like the straight run",
+      async () => {
+        let runner = await restoreScriptedRunner(
+          MAP,
+          start,
+          reference.checkpoints.get(0)!,
+        );
+        let winnerTick: number | null = null;
+        while (runner.game.ticks() < ticks) {
+          stepScripted(runner);
+          expectOnTrack(runner, reference);
+          if (winnerTick === null && runner.game.getWinner() !== null) {
+            winnerTick = runner.game.ticks();
+          }
+          if (runner.game.ticks() % CHECK_EVERY === 0) {
+            runner = await restoreScriptedRunner(MAP, start, runner.snapshot());
+          }
+        }
+        expect(diffSnapshots(runner.snapshot(), reference.final)).toEqual([]);
+        expect(winnerTick).toBe(reference.winnerTick);
+      },
+      TEST_TIMEOUT,
+    );
+
+    test(
+      "restoring at every tick of a mid-game window stays on track",
+      async () => {
+        const from = Math.floor(WINDOW_START / CHECK_EVERY) * CHECK_EVERY;
+        let runner = await restoreScriptedRunner(
+          MAP,
+          start,
+          reference.checkpoints.get(from)!,
+        );
+        while (runner.game.ticks() < WINDOW_START) stepScripted(runner);
+        while (runner.game.ticks() < WINDOW_START + WINDOW_TICKS) {
           runner = await restoreScriptedRunner(MAP, start, runner.snapshot());
+          stepScripted(runner);
+          expectOnTrack(runner, reference);
         }
-      }
-      expect(diffSnapshots(runner.snapshot(), reference.final)).toEqual([]);
-      expect(winnerTick).toBe(reference.winnerTick);
-    },
-    TEST_TIMEOUT,
-  );
+      },
+      TEST_TIMEOUT,
+    );
 
-  test(
-    "restoring at every tick of a mid-game window stays on track",
-    async () => {
-      const from = Math.floor(WINDOW_START / CHECK_EVERY) * CHECK_EVERY;
-      let runner = await restoreScriptedRunner(
-        MAP,
-        start,
-        reference.checkpoints.get(from)!,
-      );
-      while (runner.game.ticks() < WINDOW_START) stepScripted(runner);
-      while (runner.game.ticks() < WINDOW_START + WINDOW_TICKS) {
-        runner = await restoreScriptedRunner(MAP, start, runner.snapshot());
-        stepScripted(runner);
-        expectOnTrack(runner, reference);
-      }
-    },
-    TEST_TIMEOUT,
-  );
-
-  test(
-    "the game exercised every execution type",
-    () => {
-      // FFA covers every vanilla type and the domestic game the
-      // domestic-only ones; the other variants aren't checked.
-      let expected: string[];
-      if (Object.keys(overrides).length === 0) {
-        // Pause runs during the spawn phase and finishes inside init, so it
-        // is never alive at a tick boundary. BasicExecutions.test.ts covers
-        // it directly.
-        expected = EXECUTION_SNAPSHOT_TYPES.map((t) => t.name).filter(
-          (name) =>
-            name !== "Pause" &&
-            !DOMESTIC_ONLY_TYPES.includes(name) &&
-            !WARFARE_ONLY_TYPES.includes(name) &&
-            !STRATEGIC_ONLY_TYPES.includes(name),
+    test(
+      "the game exercised every execution type",
+      () => {
+        // FFA covers every vanilla type and the domestic game the
+        // domestic-only ones; the other variants aren't checked.
+        let expected: string[];
+        if (Object.keys(overrides).length === 0) {
+          // Pause runs during the spawn phase and finishes inside init, so it
+          // is never alive at a tick boundary. BasicExecutions.test.ts covers
+          // it directly.
+          expected = EXECUTION_SNAPSHOT_TYPES.map((t) => t.name).filter(
+            (name) =>
+              name !== "Pause" &&
+              !DOMESTIC_ONLY_TYPES.includes(name) &&
+              !WARFARE_ONLY_TYPES.includes(name) &&
+              !STRATEGIC_ONLY_TYPES.includes(name) &&
+              !CONGRESS_ONLY_TYPES.includes(name),
+          );
+        } else if (
+          overrides.strategicWeapons === true &&
+          Object.keys(overrides).length === 1
+        ) {
+          expected = STRATEGIC_ONLY_TYPES.filter(
+            (name) => !STRATEGIC_UNSCRIPTED_TYPES.includes(name),
+          );
+        } else if (overrides.congress === true) {
+          // The first regular session and the first emergency were tallied.
+          expect(reference.congressResults).toBeGreaterThan(0);
+          expect(reference.congressEmergencyResults).toBeGreaterThan(0);
+          expected = CONGRESS_ONLY_TYPES.filter(
+            (name) => !CONGRESS_UNSCRIPTED_TYPES.includes(name),
+          );
+        } else if (overrides.domesticMode === true) {
+          expected = DOMESTIC_ONLY_TYPES.filter(
+            (name) => !DOMESTIC_UNSCRIPTED_TYPES.includes(name),
+          );
+        } else if (overrides.warfareExpansion === true) {
+          expected = WARFARE_ONLY_TYPES.filter(
+            (name) => !WARFARE_UNSCRIPTED_TYPES.includes(name),
+          );
+        } else {
+          return;
+        }
+        const missing = expected.filter(
+          (name) => !reference.execTypes.has(name),
         );
-      } else if (
-        overrides.strategicWeapons === true &&
-        Object.keys(overrides).length === 1
-      ) {
-        expected = STRATEGIC_ONLY_TYPES.filter(
-          (name) => !STRATEGIC_UNSCRIPTED_TYPES.includes(name),
-        );
-      } else if (overrides.domesticMode === true) {
-        expected = DOMESTIC_ONLY_TYPES.filter(
-          (name) => !DOMESTIC_UNSCRIPTED_TYPES.includes(name),
-        );
-      } else if (overrides.warfareExpansion === true) {
-        expected = WARFARE_ONLY_TYPES.filter(
-          (name) => !WARFARE_UNSCRIPTED_TYPES.includes(name),
-        );
-      } else {
-        return;
-      }
-      const missing = expected.filter((name) => !reference.execTypes.has(name));
-      expect(missing).toEqual([]);
-    },
-    TEST_TIMEOUT,
-  );
-});
+        expect(missing).toEqual([]);
+      },
+      TEST_TIMEOUT,
+    );
+  },
+);

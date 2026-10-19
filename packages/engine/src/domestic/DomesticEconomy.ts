@@ -39,6 +39,12 @@ import {
   shortfallGold,
 } from "@openfront/engine-lib/domestic/Research";
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
+import {
+  onResearchComplete,
+  researchCostMilli,
+  researchTimePct,
+} from "../congress/Effects";
+import { isAggressing } from "../congress/Ledger";
 import type { Game, Player } from "../game/Game";
 import type { PlayerDomestic } from "./PlayerDomestic";
 
@@ -87,6 +93,9 @@ function hasInterest(d: PlayerDomestic): boolean {
 export function activeConditions(
   player: Player,
   maxTroops: number,
+  // World congress (plan decision 7): Ledger.isAggressing in congress games;
+  // false everywhere else, so other games' condition sets are unchanged.
+  aggressing: boolean = false,
 ): Set<Condition> {
   const attacking = player
     .outgoingAttacks()
@@ -95,6 +104,7 @@ export function activeConditions(
     attacking,
     notAttacking: !attacking,
     troopsAtMostHalf: player.troops() * 2 <= maxTroops,
+    aggressing,
   };
   // Built in the fixed CONDITIONS order: toData() and snapshots keep it.
   const out = new Set<Condition>();
@@ -147,7 +157,13 @@ export function processDomesticSecond(
   d: PlayerDomestic,
 ): void {
   const maxTroops = mg.config().maxTroops(player);
-  d.setConditions(activeConditions(player, maxTroops));
+  d.setConditions(
+    activeConditions(
+      player,
+      maxTroops,
+      mg.congress() !== null && isAggressing(mg, player),
+    ),
+  );
   const infiniteGold = mg.config().hasInfiniteGold(player);
 
   const instituteLevels = finishedLevels(player, UnitType.ResearchInstitute);
@@ -249,6 +265,7 @@ export function processDomesticSecond(
       undefined,
       { tech: finished },
     );
+    onResearchComplete(mg, player, finished);
   }
   startQueuedResearch(mg, player, d);
 }
@@ -271,10 +288,19 @@ function startQueuedResearch(
     return;
   }
   if (block !== null || d.currentResearch() !== null) return;
-  if (!payPoints(mg, player, d, "science", TECHS[tech].cost * MILLI, false)) {
+  const congress = mg.congress();
+  const costMilli = researchCostMilli(congress, tech, TECHS[tech].cost * MILLI);
+  if (!payPoints(mg, player, d, "science", costMilli, false)) {
     return;
   }
-  d.beginResearch(tech, researchTicks(tech, d.pct("researchTime")));
+  // World congress (spec §8.2 E4 A): the tech pact's cut, under the combined cap.
+  d.beginResearch(
+    tech,
+    researchTicks(
+      tech,
+      capCombinedPct(d.pct("researchTime") + researchTimePct(congress, tech)),
+    ),
+  );
   d.setQueuedTech(null);
 }
 
@@ -444,10 +470,12 @@ export function domesticConstructionTicks(
   base: number,
   player: Player,
   type: UnitType,
+  // extraPct: the congress's building pact (spec §8.2 E2 A).
+  extraPct: number = 0,
 ): number {
   const d = player.domestic();
   if (d === null || base <= 0) return base;
-  let pct = d.pct("buildTime");
+  let pct = d.pct("buildTime") + extraPct;
   if (type === UnitType.City) pct += d.pct("cityBuildTime");
   pct = capCombinedPct(pct);
   return pct === 0 ? base : Math.max(1, Math.round((base * (100 + pct)) / 100));

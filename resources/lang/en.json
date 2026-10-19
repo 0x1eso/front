@@ -634,6 +634,223 @@
     "target_dead": "Target eliminated",
     "target_dead_note": "You can't send resources to an eliminated player."
   },
+  "congress": {
+    "band": {
+      "active": "🚨 {kind} vs {name} — {goal} · {time}",
+      "available": "🚨 {name}: {kind} — an emergency session can be convened",
+      "available_target": "🚨 Others can convene a {kind} against you",
+      "convene": "Convene · 🗳{cost}",
+      "member": "Joined",
+      "target": "You are the target",
+      "voting": "🚨 Emergency vote: {kind} vs {name} · {seconds}s"
+    },
+    "banned": "🏛 Banned",
+    "banned_reason": "A congress resolution forbids this now",
+    "block": {
+      "friendly": "Not against an ally",
+      "influence": "Needs {cost} influence",
+      "sanctioned": "Sanctioned nations can't convene",
+      "seat": "Only seated nations can convene",
+      "target": "You are the target",
+      "unavailable": "Not available now",
+      "window": "Not while a session votes or just before one"
+    },
+    "card": {
+      "adopted": "Adopted {option} · {a} : {b}",
+      "b_only": "You can only oppose",
+      "bad": "Bad for you",
+      "collapsed": "🏛 {seconds}s · {voted}/{total} voted",
+      "extra": "+{votes} · {cost}",
+      "good": "Good for you",
+      "no_seat": "No seat on this item",
+      "tied": "Tied, nothing adopted · {a} : {b}",
+      "turnout": "Voted {voted}/{total}",
+      "your_vote": "Your vote: {option} +{extra}"
+    },
+    "chip": {
+      "until_project": "until done"
+    },
+    "dial": {
+      "influence": "🗳 {value}"
+    },
+    "discounted": "Tech pact −30%",
+    "emergency": {
+      "aggression": "Aggression Emergency",
+      "hegemony": "Hegemony Emergency",
+      "nuclear": "Nuclear Emergency"
+    },
+    "goal": {
+      "land": "Tiles {progress}/{goal}",
+      "silos": "Silos {progress}/{goal}"
+    },
+    "param": {
+      "tradeShip": "Trade ships",
+      "train": "Trains"
+    },
+    "reason": {
+      "aggressor": "Top aggressor, last 3 min: {name} ({pct}% of the world)",
+      "aggressor_government": "The government of the top aggressor {name}",
+      "aggressor_law": "A law of the top aggressor {name}",
+      "common_government": "The most common government",
+      "convened": "Convened by {name}",
+      "global": "A rule for this era",
+      "most_built": "Most started since the last session: {count}",
+      "project": "{name}'s victory project ({pct}%)",
+      "runaway": "{name} holds {ratio}× the runner-up's land",
+      "victim": "Hardest hit, last 3 min: {name} lost {pct}%",
+      "war_pair": "Biggest war, last 2 min: {name} ↔ {target} ({pct}%)"
+    },
+    "resolution": {
+      "arms_embargo": {
+        "a": "Embargo",
+        "a_effect": "No new nukes, missiles, satellite, bombing, barrage or silos (stock still fires)",
+        "b": "Military aid",
+        "b_effect": "Silos and SAMs −30% cost, nukes made 50% faster",
+        "name": "Arms Embargo"
+      },
+      "arms_treaty": {
+        "a": "Disarm",
+        "a_effect": "Everyone: max troops −15%, gold income +15%",
+        "b": "Arms race",
+        "b_effect": "Everyone: max troops +15%, gold income −10%",
+        "name": "Arms Treaty"
+      },
+      "building_pact": {
+        "a": "Promote",
+        "a_effect": "−40% cost, −50% build time",
+        "b": "Ban",
+        "b_effect": "Nobody builds or upgrades it",
+        "name": "Building Pact"
+      },
+      "emergency": {
+        "a": "Yes, join",
+        "a_effect": "Members: +20% speed and −20% losses against it",
+        "b": "No",
+        "b_effect": "No emergency",
+        "name": "Emergency Declaration"
+      },
+      "government_resolution": {
+        "a": "Support",
+        "a_effect": "Its nations: political power +25%, influence ×1.25",
+        "b": "Condemn",
+        "b_effect": "Its nations: political power −25%, no influence",
+        "name": "Government Resolution"
+      },
+      "hegemony_check": {
+        "a": "Check",
+        "a_effect": "Its science and political power −20%; attackers −15% losses",
+        "b": "Recognize the leader",
+        "b_effect": "Its gold income +15%",
+        "name": "Hegemony Check"
+      },
+      "law_review": {
+        "a": "Recommend",
+        "a_effect": "Every holder: that law ×1.5",
+        "b": "Suspend",
+        "b_effect": "Every holder: that law off",
+        "name": "Law Review"
+      },
+      "non_proliferation": {
+        "a": "Non-proliferation",
+        "a_effect": "Nobody makes or buys new nukes (stock stays)",
+        "b": "Development race",
+        "b_effect": "Nukes −25% cost, made 50% faster",
+        "name": "Non-Proliferation Treaty"
+      },
+      "protectorate": {
+        "a": "Protect",
+        "a_effect": "Attackers +40% losses, −20% speed; it defends with −20% losses",
+        "b": "Allow partition",
+        "b_effect": "Attackers −20% losses",
+        "name": "Protectorate"
+      },
+      "research_fund": {
+        "a": "Science first",
+        "a_effect": "Science +20%, political power −10%",
+        "b": "Politics first",
+        "b_effect": "Political power +20%, science −10%",
+        "name": "Research Fund"
+      },
+      "sanction": {
+        "a": "Sanction",
+        "a_effect": "No trade, gold −20%, no donations, no influence",
+        "b": "Look away",
+        "b_effect": "Its trade +30%",
+        "name": "Economic Sanctions"
+      },
+      "tech_pact": {
+        "a": "Spread",
+        "a_effect": "Techs two nations have: −30% cost and time",
+        "b": "Patents",
+        "b_effect": "First to finish a new tech: +60 s of science",
+        "name": "Technology Pact"
+      },
+      "trade_pact": {
+        "a": "Encourage",
+        "a_effect": "That trade +50%",
+        "b": "Regulate",
+        "b_effect": "That trade −50%",
+        "name": "Trade Pact"
+      },
+      "truce": {
+        "a": "Truce",
+        "a_effect": "120 s: no hostility between the two",
+        "b": "Decisive battle",
+        "b_effect": "120 s: attacks on each other +25% speed, −15% losses",
+        "name": "Truce Resolution"
+      },
+      "war_tax": {
+        "a": "War tax",
+        "a_effect": "Aggressors: gold −30%, troop upkeep +50%",
+        "b": "War boom",
+        "b_effect": "Aggressors: gold +20%",
+        "name": "War Tax"
+      },
+      "world_government": {
+        "a": "Approve",
+        "a_effect": "Proclamation 60 s ahead and ratified",
+        "b": "Reject",
+        "b_effect": "Proclamation 60 s back, not ratified",
+        "name": "World Government Approval"
+      },
+      "world_heritage": {
+        "a": "Protect",
+        "a_effect": "Its institute can't be destroyed until done (capture still can)",
+        "b": "Obstruct",
+        "b_effect": "Attacks on it +20% speed, −20% losses, not aggression",
+        "name": "World Heritage"
+      }
+    },
+    "screen": {
+      "active": "Resolutions in force",
+      "aggressors": "Top aggressors (3 min)",
+      "available": "Can be convened",
+      "cooldown": "Next emergency possible in {time}",
+      "emergencies_left": "Emergencies left this game: {count}",
+      "emergency": "Emergency",
+      "history": "Past results",
+      "influence": "Influence {value}",
+      "next_session": "Next session in {time}",
+      "none": "None",
+      "not_ratified": "Not ratified",
+      "rate": "+{rate}/s",
+      "victims": "Hardest hit (3 min)",
+      "voting_now": "Voting now · {seconds}s left",
+      "world_gov": "World government",
+      "world_gov_ratified": "{name}: ratified"
+    },
+    "status": {
+      "aggressing": "At war · 0/s",
+      "capped": "Full (300)",
+      "peaceful": "At peace",
+      "sanctioned": "Sanctioned · 0/s",
+      "target": "Emergency target · 0/s"
+    },
+    "toast": {
+      "adopted": "🏛 Adopted: {title} — {option} ({a} : {b})",
+      "tied": "🏛 Tied, nothing adopted: {title} ({a} : {b})"
+    }
+  },
   "control_panel": {
     "allied_afk_neighbor_info": "You can attack disconnected players even if you are allied with them.",
     "army_limit_warning": "You're near your army limit! Consider sending troops to teammates.",
@@ -1027,6 +1244,7 @@
     "researching": "Researching",
     "science": "Science",
     "screen": {
+      "congress": "World Congress",
       "laws": "Book of Laws",
       "research": "Research",
       "victory": "Victory"
@@ -1142,6 +1360,7 @@
     },
     "victory": {
       "active": "Projects in progress",
+      "awaiting_ratification": "Awaiting ratification",
       "blocked": {
         "busy": "Another project is in progress",
         "gold": "Not enough gold",
@@ -1261,6 +1480,21 @@
     "bomber_evaded": "A bomber evaded your SAM",
     "bomber_inbound": "{name} - bomber inbound",
     "bombing_detonated": "{name} - bombs hit your land",
+    "congress_adopted": "🏛 Adopted: {resolution} — {option} ({a} : {b})",
+    "congress_adopted_pair": "🏛 Adopted: {resolution} for {name} ↔ {target} — {option} ({a} : {b})",
+    "congress_adopted_target": "🏛 Adopted: {resolution} for {name} — {option} ({a} : {b})",
+    "congress_emergency_available": "🚨 {name}: {kind} — an emergency session can be convened",
+    "congress_emergency_convened": "🚨 {target} convened an emergency session on {name} ({kind})",
+    "congress_emergency_failed": "🚨 {name} held out against the {kind}",
+    "congress_emergency_rejected": "🚨 The emergency on {name} was voted down ({a} : {b})",
+    "congress_emergency_started": "🚨 {kind} declared against {name} ({a} : {b})",
+    "congress_emergency_success": "🚨 The {kind} against {name} succeeded. Hero: {target}",
+    "congress_emergency_success_nohero": "🚨 The {kind} against {name} succeeded",
+    "congress_patent": "🏛 Patent: +{points} science for a first discovery",
+    "congress_tied": "🏛 Tied, nothing adopted: {resolution} ({a} : {b})",
+    "congress_tied_pair": "🏛 Tied, nothing adopted: {resolution} for {name} ↔ {target} ({a} : {b})",
+    "congress_tied_target": "🏛 Tied, nothing adopted: {resolution} for {name} ({a} : {b})",
+    "congress_truce_blocked": "🕊 Truce with {name}",
     "conquered_no_gold": "Conquered {name} (didn't play, no gold awarded)",
     "conventional_missile_hit": "{name}'s missile hit one of your buildings",
     "conventional_missile_inbound": "{name} - missile inbound",
@@ -1309,7 +1543,8 @@
     "victory_project_complete": "{name} completed the {project}!",
     "victory_project_failed": "{name}'s {project} failed",
     "victory_project_started": "{name} started the {project}! Capture or destroy its building to stop it.",
-    "wants_to_renew_alliance": "{name} wants to renew your alliance"
+    "wants_to_renew_alliance": "{name} wants to renew your alliance",
+    "world_gov_awaiting": "{name}'s world government is proclaimed and awaits the congress's ratification"
   },
   "featured_stream": {
     "expand": "Expand",
@@ -1401,6 +1636,7 @@
   "game_settings": {
     "bots": "Tribes: ",
     "compact_map": "Compact Map",
+    "congress": "World Congress",
     "conquest_percent": "Conquest %",
     "custom_alliances": "Alliance Duration",
     "disable_units": "Disable Units",
@@ -1782,6 +2018,7 @@
     "cities": "Cities",
     "clan": "Clan",
     "configure_columns": "Configure columns",
+    "congress": "Congress",
     "factories": "Factories",
     "gold": "Gold",
     "goldIncomePerMin": "Gold Income/min",
