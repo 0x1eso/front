@@ -252,4 +252,143 @@ describe("vote cards", () => {
     chip.click();
     expect(opened).toEqual(["congress"]);
   });
+
+  it("keeps at most three stamps when more results land at once", async () => {
+    const state: FakeCongress = {
+      now: 2090,
+      data: { ...EMPTY, session: REGULAR },
+      ballots: [],
+      influence: 0,
+    };
+    const { el, step } = await mount(state);
+    const result = (sessionId: number) => ({
+      sessionId,
+      kind: "regular" as const,
+      tick: 2100,
+      resolution: "war_tax" as const,
+      targets: [],
+      param: null,
+      a: 2,
+      b: 1,
+      adopted: "A" as const,
+    });
+    state.data = {
+      ...EMPTY,
+      history: [result(7), result(8), result(9), result(10)],
+    };
+    await step(2100);
+    expect(el.querySelectorAll("[data-congress-stamp]")).toHaveLength(3);
+  });
+
+  it("keeps the raise chips on one line, the turnout on the reason line", async () => {
+    const { el } = await mount({
+      now: 1900,
+      data: { ...EMPTY, session: REGULAR },
+      ballots: [{ sessionId: 7, item: 0, option: "A", extra: 0 }],
+      influence: 300,
+    });
+    const footer = q(el, "[data-card-footer]")!;
+    expect(footer.classList).toContain("flex-nowrap");
+    expect(footer.classList).toContain("overflow-x-auto");
+    expect(footer.querySelectorAll("[data-extra]")).toHaveLength(5);
+    expect(q(footer, "[data-turnout]")).toBeNull();
+    expect(
+      q(el, "[data-card-reason]")!.parentElement!.querySelector(
+        "[data-turnout]",
+      ),
+    ).not.toBeNull();
+  });
+
+  it("restarts the fold timer when I raise, so the card never folds under my finger", async () => {
+    const state: FakeCongress = {
+      now: 1900,
+      data: { ...EMPTY, session: REGULAR },
+      ballots: [{ sessionId: 7, item: 0, option: "A", extra: 0 }],
+      influence: 300,
+    };
+    const { el, step } = await mount(state);
+    // A raise tap 4.5 s after my vote holds the card open...
+    await step(1945);
+    q(el, '[data-extra="1"]')!.click();
+    await step(1950);
+    expect(q(el, "[data-congress-card]")).not.toBeNull();
+    // ...and the raised ballot coming back restarts the 5 s.
+    state.ballots = [{ sessionId: 7, item: 0, option: "A", extra: 1 }];
+    await step(1948 + 10);
+    await step(1958 + COLLAPSE_TICKS - 1);
+    expect(q(el, "[data-congress-card]")).not.toBeNull();
+    await step(1958 + COLLAPSE_TICKS);
+    expect(q(el, "[data-congress-card]")).toBeNull();
+  });
+
+  it("a dead player gets no cards and no pill", async () => {
+    const { el } = await mount({
+      now: 1900,
+      data: { ...EMPTY, session: REGULAR },
+      ballots: [],
+      influence: 0,
+      alive: false,
+    });
+    expect(q(el, "[data-congress-card]")).toBeNull();
+    expect(q(el, "[data-congress-pill]")).toBeNull();
+  });
+
+  it("bounds the card stack by the room above the bottom HUD column", async () => {
+    const column = document.createElement("div");
+    document.body.appendChild(column);
+    const el = document.createElement("congress-cards") as CongressCards;
+    el.game = fakeCongressGame({
+      now: 1900,
+      data: {
+        ...EMPTY,
+        session: {
+          ...REGULAR,
+          items: [REGULAR.items[0], REGULAR.items[0], REGULAR.items[0]],
+        },
+      },
+      ballots: [],
+      influence: 50,
+    });
+    el.eventBus = new EventBus();
+    column.appendChild(el);
+    el.init();
+    el.tick();
+    await el.updateComplete;
+    const stack = q(el, "[data-card-stack]")!;
+    expect(stack.style.maxHeight).toBe("");
+    // Three cards overflow a phone: the column starts 50 px above the screen.
+    let top = -50;
+    column.getBoundingClientRect = () => ({ top }) as DOMRect;
+    stack.getBoundingClientRect = () => ({ height: 390 }) as DOMRect;
+    window.dispatchEvent(new Event("resize"));
+    await el.updateComplete;
+    expect(stack.style.maxHeight).toBe(`${390 - 50 - 8}px`);
+    // A tall screen leaves room: the cap grows past the stack.
+    top = 300;
+    window.dispatchEvent(new Event("resize"));
+    await el.updateComplete;
+    expect(stack.style.maxHeight).toBe(`${390 + 300 - 8}px`);
+  });
+
+  it("gives resolution chips a full touch height", async () => {
+    const { el } = await mount({
+      now: 100,
+      data: {
+        ...EMPTY,
+        active: [
+          {
+            resolution: "war_tax",
+            option: "A",
+            targets: [],
+            param: null,
+            sinceTick: 0,
+            expires: "next_tally",
+          },
+        ],
+      },
+      ballots: [],
+      influence: 0,
+    });
+    expect(q(el, "[data-congress-chip]")!.classList).toContain("h-8");
+  });
 });

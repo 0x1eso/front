@@ -379,9 +379,16 @@ export class DomesticDials extends LitElement implements Controller {
   /** The 🏛 dial (spec §12): ring to the next session, gold just before, a clock while voting. */
   private congressSpec(m: CongressDialModel): DialSpec {
     const voting = m.state === "voting";
-    const badge = (kind: string, text: string, colors: string, pos: string) =>
+    const badge = (
+      kind: string,
+      text: string,
+      colors: string,
+      pos: string,
+      label?: string,
+    ) =>
       html`<span
         data-dial-badge=${kind}
+        aria-label=${label ?? nothing}
         class="absolute ${pos} size-4 flex items-center justify-center rounded-full ${colors} ring-1 ring-gray-900 text-[10px] font-black leading-none"
         >${text}</span
       >`;
@@ -405,10 +412,22 @@ export class DomesticDials extends LitElement implements Controller {
       glow: m.state === "soon" || (voting && m.unvoted > 0) ? "congress" : null,
       dim: m.state === "idle",
       badges: html`${m.canConvene
-        ? badge("convene", "🚨", "bg-red-600", "-top-1 -left-1")
+        ? badge(
+            "convene",
+            "🚨",
+            "bg-red-600",
+            "-top-1 -left-1",
+            translateText("congress.screen.available"),
+          )
         : nothing}
       ${m.targeted
-        ? badge("target", "!", "bg-red-500 text-white", "-top-1 -right-1")
+        ? badge(
+            "target",
+            "!",
+            "bg-red-500 text-white",
+            "-top-1 -right-1",
+            translateText("congress.band.target"),
+          )
         : voting && m.unvoted > 0
           ? badge("vote", "!", "bg-yellow-300 text-gray-900", "-top-1 -right-1")
           : nothing}`,

@@ -30,6 +30,8 @@ export interface FakeCongress {
   me?: number;
   /** I am a member of the emergency (PlayerCongressData.emergencyMember). */
   emergencyMember?: boolean;
+  /** Whether I am alive (default true). */
+  alive?: boolean;
 }
 
 export const NAMES = ["", "me", "jiho", "seoyeon"];
@@ -38,7 +40,7 @@ export const NAMES = ["", "me", "jiho", "seoyeon"];
 export function fakeCongressGame(state: FakeCongress): GameView {
   const me = {
     smallID: () => state.me ?? 1,
-    isAlive: () => true,
+    isAlive: () => state.alive ?? true,
     congressData: () => ({
       influence: state.influence,
       influencePerSec: 0.4,

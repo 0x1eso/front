@@ -10,6 +10,7 @@ vi.mock("../../src/client/Utils", async (importOriginal) => ({
 import "../../src/client/hud/congress/CongressBand";
 import {
   CongressBand,
+  MAX_AVAILABLE_ROWS,
   TOAST_TICKS,
 } from "../../src/client/hud/congress/CongressBand";
 import { PlaySoundEffectEvent } from "../../src/client/sound/Sounds";
@@ -274,5 +275,116 @@ describe("the congress band", () => {
       influence: 80,
     });
     expect(q(el, "[data-congress-band]")!.style.top).toBe("64px");
+  });
+
+  // One kind per nation (spec §9.1).
+  const FOUR = {
+    ...EMPTY,
+    available: [
+      { kind: "hegemony" as const, target: 4, sinceTick: 0 },
+      { kind: "aggression" as const, target: 5, sinceTick: 0 },
+      { kind: "nuclear" as const, target: 3, sinceTick: 50 },
+      { kind: "nuclear" as const, target: 2, sinceTick: 10 },
+    ],
+  };
+
+  it("shows at most two convene rows, worst first; the drawer has the rest", async () => {
+    const { el } = await mount({
+      now: 100,
+      data: FOUR,
+      ballots: [],
+      influence: 80,
+    });
+    const rows = [...el.querySelectorAll<HTMLElement>("[data-available]")];
+    expect(rows.map((r) => r.dataset.available)).toEqual([
+      "nuclear:2",
+      "nuclear:3",
+    ]);
+    expect(MAX_AVAILABLE_ROWS).toBe(2);
+  });
+
+  it("my own target warning always shows, with the worst other", async () => {
+    const { el } = await mount({
+      now: 100,
+      data: FOUR,
+      ballots: [],
+      influence: 80,
+      me: 2,
+    });
+    expect(el.querySelectorAll("[data-available-target]")).toHaveLength(1);
+    const rows = [...el.querySelectorAll<HTMLElement>("[data-available]")];
+    // I'm the target of nuclear:2; of the rest, the worst is nuclear:3.
+    expect(rows.map((r) => r.dataset.available)).toEqual(["nuclear:3"]);
+  });
+
+  it("ends above 40% of the screen's height and clips what doesn't fit", async () => {
+    const { el } = await mount({
+      now: 100,
+      data: FOUR,
+      ballots: [],
+      influence: 80,
+    });
+    const band = q(el, "[data-congress-band]")!;
+    expect(band.getAttribute("style")).toContain(
+      "max-height: calc(40dvh - 8px)",
+    );
+    expect(band.classList).toContain("overflow-hidden");
+  });
+
+  it("a dead player sees no convene rows, only what is going on", async () => {
+    const dead = await mount({
+      now: 100,
+      data: FOUR,
+      ballots: [],
+      influence: 80,
+      alive: false,
+    });
+    expect(q(dead.el, "[data-congress-band]")).toBeNull();
+    document.body.innerHTML = "";
+    const watching = await mount({
+      now: 600,
+      data: {
+        ...EMPTY,
+        emergency: {
+          kind: "aggression",
+          target: 2,
+          startTick: 0,
+          endTick: 1500,
+          goalKind: "land",
+          goal: 300,
+          progress: 30,
+          members: [3],
+          hero: 3,
+        },
+      },
+      ballots: [],
+      influence: 0,
+      alive: false,
+    });
+    const row = q(watching.el, "[data-emergency]")!;
+    expect(row.dataset.emergencyRole).toBe("none");
+    expect(q(watching.el, "[data-convene]")).toBeNull();
+  });
+
+  it("measures the satellite band only when it appears, resizes or goes", async () => {
+    const sat = document.createElement("div");
+    sat.setAttribute("data-satellite-band", "");
+    let measured = 0;
+    sat.getBoundingClientRect = () => {
+      measured++;
+      return { bottom: 60 } as DOMRect;
+    };
+    document.body.appendChild(sat);
+    const { el, step } = await mount({
+      now: 100,
+      data: AVAILABLE,
+      ballots: [],
+      influence: 80,
+    });
+    for (let t = 101; t < 120; t++) await step(t);
+    expect(measured).toBe(1);
+    sat.remove();
+    await step(120);
+    expect(q(el, "[data-congress-band]")!.style.top).toBe("8px");
   });
 });

@@ -48,7 +48,8 @@ describe("the congress dial", () => {
     expect(congressDial(EMPTY, viewer(), 900)).toMatchObject({
       state: "idle",
       progress: 0.5,
-      secondsLeft: 90,
+      // No countdown while idle: the dials don't redraw every second.
+      secondsLeft: 0,
       influence: 120,
       earning: true,
     });
@@ -56,6 +57,13 @@ describe("the congress dial", () => {
     expect(
       congressDial(EMPTY, viewer({ status: "aggressing" }), 0).earning,
     ).toBe(false);
+  });
+
+  test("idle, the model only changes when the ring moves, not each second", () => {
+    // 91 s and 90 s before the session, the ring reads 0.50 both times.
+    expect(congressDial(EMPTY, viewer(), 891)).toEqual(
+      congressDial(EMPTY, viewer(), 908),
+    );
   });
 
   test("before the clock schedules the first session, it idles empty", () => {

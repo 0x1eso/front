@@ -37,6 +37,11 @@ const MAX_STAMPS = 3;
 /** Same width as a card: about 260 px on tablets, never past the screen's middle. */
 const CARD_WIDTH = "w-[min(260px,calc(50vw-16px))]";
 
+/** Space the bottom HUD column keeps from the screen's top edge, in CSS px. */
+const TOP_GAP = 8;
+/** The card stack never shrinks below this (a card's title, reason and buttons), in CSS px. */
+const MIN_STACK_PX = 96;
+
 interface Stamp {
   result: ResultData;
   untilTick: number;
@@ -59,14 +64,72 @@ export class CongressCards extends LitElement implements Controller {
   /** The history last seen; null until the first congress data. */
   private seen: readonly ResultData[] | null = null;
   private stamps: Stamp[] = [];
-  /** The first tick every card I may vote on had my ballot. */
-  private votedAt: { sessionId: number; tick: number } | null = null;
+  /**
+   * When I last finished or changed my ballots with every card I may vote
+   * on voted (`ballots` is their signature), or last tapped a raise: the fold
+   * timer runs from there.
+   */
+  private votedAt: { sessionId: number; tick: number; ballots: string } | null =
+    null;
   /** A session the pill or the dial unfolded. */
   private expandedSession: number | null = null;
+  /**
+   * The tallest the card stack may be, in CSS px; null: no stack, or not
+   * measured. It is the stack's height plus the room left above the bottom
+   * HUD column, so attacks, stamps and chips all stay on screen.
+   */
+  private stackMax: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
   createRenderRoot() {
     return this;
   }
+
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("resize", this.refit);
+    // The column changes size when cards, chips, attacks or the HUD rows do.
+    const column = this.parentElement;
+    if (column !== null && typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(this.refit);
+      this.resizeObserver.observe(column);
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("resize", this.refit);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+  }
+
+  /**
+   * Bounds the card stack by the room above the bottom HUD column: the stack
+   * may grow by the column's distance from the top edge, and shrinks by as
+   * much as the column overflows it. Measured on resize only, never per tick.
+   */
+  readonly refit = () => {
+    const column = this.parentElement;
+    const stack = this.querySelector("[data-card-stack]");
+    let next: number | null = null;
+    if (column !== null && stack !== null) {
+      const room = column.getBoundingClientRect().top - TOP_GAP;
+      next = Math.max(
+        MIN_STACK_PX,
+        Math.floor(stack.getBoundingClientRect().height + room),
+      );
+    }
+    if (
+      next === this.stackMax ||
+      (next !== null &&
+        this.stackMax !== null &&
+        Math.abs(next - this.stackMax) <= 1)
+    ) {
+      return;
+    }
+    this.stackMax = next;
+    this.requestUpdate();
+  };
 
   init() {
     this.eventBus.on(OpenDomesticScreenEvent, (e) => {
@@ -104,12 +167,19 @@ export class CongressCards extends LitElement implements Controller {
       this.votedAt = null;
       return;
     }
-    if (this.votedAt?.sessionId === s.id) return;
     const mine = cardModels(data, viewer).filter((c) => c.eligible);
-    this.votedAt =
-      mine.length > 0 && mine.every((c) => c.myVote !== null)
-        ? { sessionId: s.id, tick: now }
-        : null;
+    if (mine.length === 0 || mine.some((c) => c.myVote === null)) {
+      this.votedAt = null;
+      return;
+    }
+    // A raise changes the signature and restarts the fold timer.
+    const ballots = mine
+      .map((c) => `${c.index}:${c.myVote!.option}:${c.myVote!.extra}`)
+      .join("|");
+    if (this.votedAt?.sessionId === s.id && this.votedAt.ballots === ballots) {
+      return;
+    }
+    this.votedAt = { sessionId: s.id, tick: now, ballots };
   }
 
   private collapsed(s: SessionData, cards: CardModel[], now: number): boolean {
@@ -135,8 +205,9 @@ export class CongressCards extends LitElement implements Controller {
       return nothing;
     }
     const influence = viewer?.data?.influence ?? 0;
+    const eligible = cards.filter((c) => c.eligible).length;
     // Three cards fit a tablet; on a short phone screen the stack scrolls
-    // (max-h-[60dvh]) rather than climbing over the map.
+    // (stackMax, see refit) rather than pushing the HUD off the top.
     return html`<div
       data-congress-cards
       class="flex flex-col items-start gap-1 pb-1 pointer-events-none text-white select-none"
@@ -146,15 +217,22 @@ export class CongressCards extends LitElement implements Controller {
       ${s === null || cards.length === 0
         ? nothing
         : this.collapsed(s, cards, now)
-          ? this.renderPill(s, cards, now)
+          ? // Nothing to vote on (a dead viewer): no pill either.
+            eligible === 0
+            ? nothing
+            : this.renderPill(s, cards, now)
           : html`<div
-              class="flex flex-col items-start gap-1 max-h-[60dvh] overflow-y-auto"
+              data-card-stack
+              class="flex flex-col items-start gap-1 overflow-y-auto"
+              style=${this.stackMax === null
+                ? nothing
+                : `max-height: ${this.stackMax}px`}
             >
               ${cards.map((c) => this.renderCard(c, influence, now))}
             </div>`}
       ${chips.length === 0
         ? nothing
-        : html`<div class="flex flex-wrap gap-1">
+        : html`<div data-congress-chips class="flex flex-wrap gap-1">
             ${chips.map((c) => this.renderChip(c))}
           </div>`}
     </div>`;
@@ -167,9 +245,12 @@ export class CongressCards extends LitElement implements Controller {
     influence: number,
     now: number,
   ): TemplateResult {
+    const footer = this.renderFooter(c, influence);
+    // About 128 px once voted: title, reason with turnout, the buttons, and
+    // one line of chips that scrolls sideways rather than wrapping.
     return html`<div
       data-congress-card=${c.index}
-      class="${CARD_WIDTH} min-h-20 shrink-0 pointer-events-auto flex flex-col gap-1 rounded-lg border border-yellow-400/80 bg-gray-900/92 px-2 py-1 text-xs shadow-lg"
+      class="${CARD_WIDTH} min-h-20 shrink-0 pointer-events-auto flex flex-col gap-0.5 rounded-lg border border-yellow-400/80 bg-gray-900/92 px-2 py-1 text-xs shadow-lg"
     >
       <div class="flex items-center gap-1">
         <span class="flex-1 min-w-0 font-bold truncate"
@@ -179,22 +260,29 @@ export class CongressCards extends LitElement implements Controller {
           >${formatClock(c.closeTick - now)}</span
         >
       </div>
-      <div data-card-reason class="text-gray-400 truncate">
-        ${reasonText(c.item, this.name, translateText)}
+      <div class="flex items-center gap-1">
+        <span data-card-reason class="flex-1 min-w-0 text-gray-400 truncate"
+          >${reasonText(c.item, this.name, translateText)}</span
+        >
+        ${c.turnout.total === 0
+          ? nothing
+          : html`<span
+              data-turnout
+              class="shrink-0 tabular-nums text-gray-300 whitespace-nowrap"
+              >${translateText("congress.card.turnout", c.turnout)}</span
+            >`}
       </div>
       <div class="flex gap-1">
         ${this.renderVote(c, "A")} ${this.renderVote(c, "B")}
       </div>
-      <div class="flex items-center gap-1">
-        <div class="flex-1 min-w-0 flex flex-wrap gap-0.5">
-          ${this.renderFooter(c, influence)}
-        </div>
-        <span
-          data-turnout
-          class="shrink-0 tabular-nums text-gray-300 whitespace-nowrap"
-          >${translateText("congress.card.turnout", c.turnout)}</span
-        >
-      </div>
+      ${footer === null
+        ? nothing
+        : html`<div
+            data-card-footer
+            class="flex flex-nowrap items-center gap-px overflow-x-auto [scrollbar-width:none]"
+          >
+            ${footer}
+          </div>`}
     </div>`;
   }
 
@@ -226,7 +314,7 @@ export class CongressCards extends LitElement implements Controller {
             extra: c.myVote!.extra,
           })
         : nothing}
-      class="flex-1 min-w-0 flex flex-col items-start gap-0.5 rounded-md border ${border} px-1.5 py-1 text-left leading-tight disabled:opacity-40 ${mine
+      class="flex-1 min-w-0 flex flex-col items-start gap-0.5 rounded-md border ${border} px-1.5 py-0.5 text-left leading-tight disabled:opacity-40 ${mine
         ? "bg-yellow-300 text-gray-900"
         : "bg-gray-800 hover:bg-gray-700"}"
       ?disabled=${disabled}
@@ -238,14 +326,19 @@ export class CongressCards extends LitElement implements Controller {
           ? html` ✓${c.myVote!.extra > 0 ? ` +${c.myVote!.extra}` : ""}`
           : nothing}</span
       >
-      <span class="text-[10px] line-clamp-2 ${mine ? "" : "text-gray-300"}"
+      <span
+        class="text-[10px] ${side === "none"
+          ? "line-clamp-2"
+          : "line-clamp-1"} ${mine ? "" : "text-gray-300"}"
         >${translateText(
           `congress.resolution.${c.item.resolution}.${option.toLowerCase()}_effect`,
         )}</span
       >
       ${side === "none"
         ? nothing
-        : html`<span
+        : // In the effect's second line: a named card is no taller than the others.
+          html`<span
+            data-side-note
             class="text-[10px] font-bold ${side === "good"
               ? mine
                 ? "text-green-800"
@@ -260,28 +353,31 @@ export class CongressCards extends LitElement implements Controller {
     </button>`;
   }
 
+  /** The last line: why I can't vote, the B-only note, or the raise chips; null when empty. */
   private renderFooter(
     c: CardModel,
     influence: number,
-  ): TemplateResult | TemplateResult[] {
+  ): TemplateResult | TemplateResult[] | null {
     if (!c.eligible) {
-      return html`<span class="text-gray-400"
+      return html`<span class="text-gray-400 truncate"
         >${translateText("congress.card.no_seat")}</span
       >`;
     }
     if (c.myVote === null) {
       return c.bOnly
-        ? html`<span class="text-amber-300"
+        ? html`<span class="text-amber-300 truncate"
             >${translateText("congress.card.b_only")}</span
           >`
-        : html``;
+        : null;
     }
-    return extraChips(c.myVote, influence).map(
+    const chips = extraChips(c.myVote, influence);
+    if (chips.length === 0) return null;
+    return chips.map(
       (chip) =>
         html`<button
           type="button"
           data-extra=${chip.extra}
-          class="h-8 px-1 rounded-md text-[11px] font-bold tabular-nums whitespace-nowrap bg-gray-700 border border-white/20 hover:bg-gray-600 disabled:opacity-40"
+          class="h-8 shrink-0 px-1 rounded-md text-[11px] font-bold tabular-nums whitespace-nowrap bg-gray-700 border border-white/20 hover:bg-gray-600 disabled:opacity-40"
           ?disabled=${!chip.affordable}
           @click=${() => this.raise(c, chip.extra)}
         >
@@ -343,7 +439,7 @@ export class CongressCards extends LitElement implements Controller {
     return html`<button
       type="button"
       data-congress-chip
-      class="pointer-events-auto h-6 px-2 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gray-800/90 border ${c.mine
+      class="pointer-events-auto h-8 px-2 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gray-800/90 border ${c.mine
         ? "border-amber-400 text-amber-200"
         : "border-white/15"}"
       @click=${() =>
@@ -372,6 +468,10 @@ export class CongressCards extends LitElement implements Controller {
   /** Raise my ballot to `extra` extra votes on the side I chose. */
   private raise(c: CardModel, extra: number) {
     if (c.myVote === null || extra <= c.myVote.extra) return;
+    // Keep the card open under my finger until the raise comes back.
+    if (this.votedAt?.sessionId === c.sessionId) {
+      this.votedAt = { ...this.votedAt, tick: this.game.ticks() };
+    }
     this.eventBus.emit(
       new SendCongressVoteIntentEvent(
         c.sessionId,
