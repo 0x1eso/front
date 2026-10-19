@@ -2,6 +2,7 @@ import { VictoryProjectKind } from "@openfront/engine-api/domestic/DomesticTypes
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import { DOMESTIC_INTERVAL_TICKS } from "@openfront/engine-lib/domestic/Balance";
 import { VICTORY_PROJECTS } from "@openfront/engine-lib/domestic/Victory";
+import { awaitsRatification } from "../congress/WorldGovernment";
 import type { Game, Player, Unit } from "../game/Game";
 import type { PlayerDomestic } from "./PlayerDomestic";
 
@@ -58,7 +59,11 @@ export function processVictoryProjectSecond(
   d: PlayerDomestic,
 ): void {
   const project = d.victoryProject();
-  if (project === null || project.ticksLeft === 0) return;
+  if (project === null) return;
+  // World congress (spec §10.1): a complete, unratified proclamation waits;
+  // it still fails if its office is lost meanwhile.
+  const waiting = project.ticksLeft === 0 && awaitsRatification(mg, player);
+  if (project.ticksLeft === 0 && !waiting) return;
   const host = mg.unit(project.hostUnitId);
   if (host === undefined || !host.isActive() || host.owner() !== player) {
     d.clearVictoryProject();
@@ -70,6 +75,7 @@ export function processVictoryProjectSecond(
     );
     return;
   }
+  if (waiting) return;
   // The "attacking" condition processDomesticSecond set for this second
   // (spec §7.1): another player is the target and the attack isn't retreating.
   const paused =
@@ -80,7 +86,9 @@ export function processVictoryProjectSecond(
     announceVictoryProject(
       mg,
       player,
-      "events_display.victory_project_complete",
+      awaitsRatification(mg, player)
+        ? "events_display.world_gov_awaiting"
+        : "events_display.victory_project_complete",
       project.kind,
       host.id(),
     );

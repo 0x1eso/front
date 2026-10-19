@@ -71,6 +71,8 @@ export function canTargetWithSatellite(
     target !== player &&
     target.isAlive() &&
     !player.isFriendly(target, true) &&
+    // World congress (spec §8.1 S2): no targeting a truce partner.
+    !player.isTruceWith(target) &&
     !mg.isSpawnImmunityActive()
   );
 }
