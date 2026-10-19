@@ -10,6 +10,7 @@ import {
   isValidGameID,
   TeamCountConfig,
 } from "@openfront/engine-api/Schemas";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   CONQUEST_PERCENT_MAX,
   CONQUEST_PERCENT_MIN,
@@ -48,8 +49,10 @@ import "./components/PlutoniumIcon";
 import "./components/ToggleInputCard";
 import { inviteFriendsButton } from "./components/ui/InviteFriendsButton";
 import { modalHeader } from "./components/ui/ModalHeader";
+import "./components/ww1936/CountryPicker";
 import { fetchCosmetics, InsufficientCurrency } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
+import { SendPickCountryEvent } from "./LobbyEvents";
 import { JoinLobbyEvent } from "./Main";
 import { setOpenRoom } from "./OpenRooms";
 import { isSelfHosted } from "./SelfHosted";
@@ -116,6 +119,9 @@ export class HostLobbyModal extends BaseModal {
   @state() private strategicWeapons: boolean = false;
   @state() private congress: boolean = false;
   @state() private conquestPercent: number | undefined = undefined;
+  @state() private worldWar1936 = false;
+  @state() private historicalAi = true;
+  @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
   @state() private lobbyId = "";
   @state() private lobbyUrlSuffix = "";
   @state() private clients: ClientInfo[] = [];
@@ -198,6 +204,7 @@ export class HostLobbyModal extends BaseModal {
     if (lobby.clients) {
       this.clients = lobby.clients;
     }
+    this.countryPicks = lobby.countryPicks ?? [];
     // The server can delist on its own (duplicate creator / cap overflow
     // resolved by the master); follow its state unless our own toggle
     // request is mid-flight.
@@ -496,6 +503,57 @@ export class HostLobbyModal extends BaseModal {
             { time: renderDuration(secondsRemaining) },
           );
 
+    // The lobby's own controls (who may join, when it starts) stay in World
+    // War 1936; the mode fixes the rest (spec §2.1).
+    const playerLimitCard = html`<toggle-input-card
+      .labelKey=${"host_modal.player_limit"}
+      .checked=${this.playerLimit}
+      .inputId=${"player-limit-value"}
+      .inputMin=${2}
+      .inputMax=${1000}
+      .inputValue=${this.playerLimitValue}
+      .inputAriaLabel=${translateText("host_modal.player_limit")}
+      .inputPlaceholder=${translateText("host_modal.player_limit_placeholder")}
+      .defaultInputValue=${50}
+      .minValidOnEnable=${2}
+      .onToggle=${this.handlePlayerLimitToggle}
+      .onInput=${this.handlePlayerLimitValueChanges}
+      .onKeyDown=${this.handlePlayerLimitValueKeyDown}
+    ></toggle-input-card>`;
+    const startDelayCard = html`<input-card
+      .labelKey=${"host_modal.start_delay"}
+      .inputId=${"start-delay-value"}
+      .inputMin=${0}
+      .inputMax=${600}
+      .inputStep=${"1"}
+      .inputValue=${this.startDelayValue}
+      .inputAriaLabel=${translateText("host_modal.start_delay")}
+      .inputPlaceholder=${"3"}
+      .defaultInputValue=${3}
+      .onChange=${this.handleStartDelayValueChanges}
+      .onKeyDown=${this.handleStartDelayValueKeyDown}
+    ></input-card>`;
+    // A join whitelist and public listing are mutually exclusive (the
+    // server rejects both combinations), so the control disappears while
+    // the lobby is listed.
+    const whitelistCards = this.publiclyListed
+      ? []
+      : [
+          html`<toggle-input-card
+            .labelKey=${"host_modal.player_whitelist"}
+            .checked=${this.whitelistEnabled}
+            .inputType=${"text"}
+            .inputId=${"allowed-public-ids"}
+            .inputValue=${this.allowedPublicIds}
+            .inputAriaLabel=${translateText("host_modal.player_whitelist")}
+            .inputPlaceholder=${translateText(
+              "host_modal.player_whitelist_placeholder",
+            )}
+            .onToggle=${this.handleWhitelistToggle}
+            .onChange=${this.handleAllowedPublicIdsChange}
+          ></toggle-input-card>`,
+        ];
+
     const inputCards = [
       html`<toggle-input-card
         .labelKey=${"game_settings.max_timer"}
@@ -527,36 +585,8 @@ export class HostLobbyModal extends BaseModal {
             ></input-card>`,
           ]
         : []),
-      html`<toggle-input-card
-        .labelKey=${"host_modal.player_limit"}
-        .checked=${this.playerLimit}
-        .inputId=${"player-limit-value"}
-        .inputMin=${2}
-        .inputMax=${1000}
-        .inputValue=${this.playerLimitValue}
-        .inputAriaLabel=${translateText("host_modal.player_limit")}
-        .inputPlaceholder=${translateText(
-          "host_modal.player_limit_placeholder",
-        )}
-        .defaultInputValue=${50}
-        .minValidOnEnable=${2}
-        .onToggle=${this.handlePlayerLimitToggle}
-        .onInput=${this.handlePlayerLimitValueChanges}
-        .onKeyDown=${this.handlePlayerLimitValueKeyDown}
-      ></toggle-input-card>`,
-      html`<input-card
-        .labelKey=${"host_modal.start_delay"}
-        .inputId=${"start-delay-value"}
-        .inputMin=${0}
-        .inputMax=${600}
-        .inputStep=${"1"}
-        .inputValue=${this.startDelayValue}
-        .inputAriaLabel=${translateText("host_modal.start_delay")}
-        .inputPlaceholder=${"3"}
-        .defaultInputValue=${3}
-        .onChange=${this.handleStartDelayValueChanges}
-        .onKeyDown=${this.handleStartDelayValueKeyDown}
-      ></input-card>`,
+      playerLimitCard,
+      startDelayCard,
       html`<toggle-input-card
         .labelKey=${"host_modal.player_immunity_duration"}
         .checked=${this.spawnImmunity}
@@ -641,26 +671,7 @@ export class HostLobbyModal extends BaseModal {
         .onChange=${this.handleStartingGoldValueChanges}
         .onKeyDown=${this.handleStartingGoldValueKeyDown}
       ></toggle-input-card>`,
-      // A join whitelist and public listing are mutually exclusive (the
-      // server rejects both combinations), so the control disappears while
-      // the lobby is listed.
-      ...(this.publiclyListed
-        ? []
-        : [
-            html`<toggle-input-card
-              .labelKey=${"host_modal.player_whitelist"}
-              .checked=${this.whitelistEnabled}
-              .inputType=${"text"}
-              .inputId=${"allowed-public-ids"}
-              .inputValue=${this.allowedPublicIds}
-              .inputAriaLabel=${translateText("host_modal.player_whitelist")}
-              .inputPlaceholder=${translateText(
-                "host_modal.player_whitelist_placeholder",
-              )}
-              .onToggle=${this.handleWhitelistToggle}
-              .onChange=${this.handleAllowedPublicIdsChange}
-            ></toggle-input-card>`,
-          ]),
+      ...whitelistCards,
     ];
 
     const hostCheatInputCards = [
@@ -745,81 +756,116 @@ export class HostLobbyModal extends BaseModal {
                   labelKey: "game_settings.nations",
                   disabledKey: "common.disabled",
                 },
-                toggles: [
-                  {
-                    labelKey: "game_settings.instant_build",
-                    checked: this.instantBuild,
-                  },
-                  {
-                    labelKey: "game_settings.random_spawn",
-                    checked: this.randomSpawn,
-                  },
-                  {
-                    labelKey: "host_modal.donate_gold",
-                    checked: this.donateGold,
-                  },
-                  {
-                    labelKey: "host_modal.donate_troops",
-                    checked: this.donateTroops,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_gold",
-                    checked: this.infiniteGold,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_troops",
-                    checked: this.infiniteTroops,
-                  },
-                  {
-                    labelKey: "game_settings.compact_map",
-                    checked: this.compactMap,
-                  },
-                  {
-                    labelKey: "host_modal.anonymous_players",
-                    checked: this.anonymizeNames,
-                  },
-                  {
-                    labelKey: "game_settings.water_nukes",
-                    checked: this.waterNukes,
-                  },
-                  {
-                    labelKey: "game_settings.domestic_mode",
-                    checked: this.domesticMode,
-                  },
-                  ...(this.domesticMode && this.gameMode === GameMode.FFA
-                    ? [
-                        {
-                          labelKey: "game_settings.congress",
-                          checked: this.congress,
-                        },
-                      ]
-                    : []),
-                  {
-                    labelKey: "game_settings.warfare_expansion",
-                    checked: this.warfareExpansion,
-                  },
-                  {
-                    labelKey: "game_settings.strategic_weapons",
-                    checked: this.strategicWeapons,
-                  },
-                  {
-                    labelKey: "game_settings.doomsday_clock",
-                    checked: this.doomsdayClock,
-                    doomsdayClockSpeed: this.doomsdayClockSpeed,
-                  },
-                  // Host cheats and public listing are mutually exclusive
-                  // (the server rejects both combinations), so the controls
-                  // disappear while the lobby is listed.
-                  ...(this.publiclyListed
-                    ? []
-                    : [
-                        {
-                          labelKey: "host_modal.host_cheats",
-                          checked: this.hostCheatsEnabled,
-                        },
-                      ]),
-                ],
-                inputCards,
+                // With the mode on, only its own toggles, instant build and
+                // the lobby's own switches stay: it fixes the rest (spec §2.1).
+                toggles: this.worldWar1936
+                  ? [
+                      {
+                        labelKey: "game_settings.world_war_1936",
+                        checked: true,
+                      },
+                      {
+                        labelKey: "game_settings.historical_ai",
+                        checked: this.historicalAi,
+                      },
+                      {
+                        labelKey: "game_settings.instant_build",
+                        checked: this.instantBuild,
+                      },
+                      {
+                        labelKey: "host_modal.anonymous_players",
+                        checked: this.anonymizeNames,
+                      },
+                      ...(this.publiclyListed
+                        ? []
+                        : [
+                            {
+                              labelKey: "host_modal.host_cheats",
+                              checked: this.hostCheatsEnabled,
+                            },
+                          ]),
+                    ]
+                  : [
+                      {
+                        labelKey: "game_settings.instant_build",
+                        checked: this.instantBuild,
+                      },
+                      {
+                        labelKey: "game_settings.random_spawn",
+                        checked: this.randomSpawn,
+                      },
+                      {
+                        labelKey: "host_modal.donate_gold",
+                        checked: this.donateGold,
+                      },
+                      {
+                        labelKey: "host_modal.donate_troops",
+                        checked: this.donateTroops,
+                      },
+                      {
+                        labelKey: "game_settings.infinite_gold",
+                        checked: this.infiniteGold,
+                      },
+                      {
+                        labelKey: "game_settings.infinite_troops",
+                        checked: this.infiniteTroops,
+                      },
+                      {
+                        labelKey: "game_settings.compact_map",
+                        checked: this.compactMap,
+                      },
+                      {
+                        labelKey: "host_modal.anonymous_players",
+                        checked: this.anonymizeNames,
+                      },
+                      {
+                        labelKey: "game_settings.water_nukes",
+                        checked: this.waterNukes,
+                      },
+                      {
+                        labelKey: "game_settings.domestic_mode",
+                        checked: this.domesticMode,
+                      },
+                      ...(this.domesticMode && this.gameMode === GameMode.FFA
+                        ? [
+                            {
+                              labelKey: "game_settings.congress",
+                              checked: this.congress,
+                            },
+                          ]
+                        : []),
+                      {
+                        labelKey: "game_settings.warfare_expansion",
+                        checked: this.warfareExpansion,
+                      },
+                      {
+                        labelKey: "game_settings.strategic_weapons",
+                        checked: this.strategicWeapons,
+                      },
+                      {
+                        labelKey: "game_settings.doomsday_clock",
+                        checked: this.doomsdayClock,
+                        doomsdayClockSpeed: this.doomsdayClockSpeed,
+                      },
+                      {
+                        labelKey: "game_settings.world_war_1936",
+                        checked: false,
+                      },
+                      // Host cheats and public listing are mutually exclusive
+                      // (the server rejects both combinations), so the controls
+                      // disappear while the lobby is listed.
+                      ...(this.publiclyListed
+                        ? []
+                        : [
+                            {
+                              labelKey: "host_modal.host_cheats",
+                              checked: this.hostCheatsEnabled,
+                            },
+                          ]),
+                    ],
+                inputCards: this.worldWar1936
+                  ? [playerLimitCard, startDelayCard, ...whitelistCards]
+                  : inputCards,
               },
               hostCheats: {
                 titleKey: "host_modal.host_cheats",
@@ -840,6 +886,28 @@ export class HostLobbyModal extends BaseModal {
                 titleKey: "game_settings.disable_units",
                 disabledUnits: this.disabledUnits,
               },
+              ...(this.worldWar1936
+                ? {
+                    worldWar: {
+                      picker: html`<ww-country-picker
+                        .picks=${this.countryPicks}
+                        .myClientID=${this.lobbyCreatorClientID}
+                        .usernames=${new Map(
+                          this.clients.map((c) => [c.clientID, c.username]),
+                        )}
+                        .selected=${this.countryPicks.find(
+                          (p) => p.clientID === this.lobbyCreatorClientID,
+                        )?.tag ?? null}
+                        @country-picked=${(
+                          e: CustomEvent<{ tag: CountryTag | null }>,
+                        ) =>
+                          this.eventBus?.emit(
+                            new SendPickCountryEvent(e.detail.tag),
+                          )}
+                      ></ww-country-picker>`,
+                    },
+                  }
+                : {}),
             }}
             @map-selected=${this.handleConfigMapSelected}
             @random-map-selected=${this.handleConfigRandomMapSelected}
@@ -858,7 +926,7 @@ export class HostLobbyModal extends BaseModal {
 
           <lobby-player-view
             class="mt-10"
-            .gameMode=${this.gameMode}
+            .gameMode=${this.worldWar1936 ? GameMode.FFA : this.gameMode}
             .clients=${this.clients}
             .lobbyCreatorClientID=${this.lobbyCreatorClientID}
             .currentClientID=${this.lobbyCreatorClientID}
@@ -1145,6 +1213,9 @@ export class HostLobbyModal extends BaseModal {
     this.strategicWeapons = false;
     this.congress = false;
     this.conquestPercent = undefined;
+    this.worldWar1936 = false;
+    this.historicalAi = true;
+    this.countryPicks = [];
     this.hostCheatsEnabled = false;
     this.hostCheatInfiniteGold = false;
     this.hostCheatInfiniteTroops = false;
@@ -1281,6 +1352,21 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "host_modal.host_cheats":
         this.hostCheatsEnabled = checked;
+        this.putGameConfig();
+        break;
+      case "game_settings.world_war_1936":
+        // Exclusive with the other fork modes (spec §2.1).
+        this.worldWar1936 = checked;
+        if (checked) {
+          this.domesticMode = false;
+          this.congress = false;
+          this.warfareExpansion = false;
+          this.strategicWeapons = false;
+        }
+        this.putGameConfig();
+        break;
+      case "game_settings.historical_ai":
+        this.historicalAi = checked;
         this.putGameConfig();
         break;
       default:
@@ -1846,6 +1932,10 @@ export class HostLobbyModal extends BaseModal {
             domesticMode: this.domesticMode,
             warfareExpansion: this.warfareExpansion,
             strategicWeapons: this.strategicWeapons,
+            // The server's applyGameConfigPatch fixes the rest. Off is sent as
+            // false so the server turns the mode off.
+            worldWar1936: this.worldWar1936,
+            historicalAi: this.historicalAi,
             congress:
               this.domesticMode &&
               this.congress &&

@@ -235,6 +235,12 @@ export interface GameConfigSettingsData {
     titleKey: string;
     disabledUnits: UnitType[];
   };
+  /**
+   * World War 1936 (spec §8.1): the country picker takes the map's place,
+   * and the mode, team, bot, nation and unit sections are hidden (the mode
+   * fixes them).
+   */
+  worldWar?: { picker: TemplateResult };
 }
 
 @customElement("game-config-settings")
@@ -434,24 +440,32 @@ export class GameConfigSettings extends LitElement {
 
     return html`
       <div class=${this.sectionGapClass}>
-        ${renderSection(
-          MAP_ICON,
-          "text-aquarius",
-          "bg-malibu-blue/20",
-          "map.map",
-          html`<map-picker
-            .selectedMap=${settings.map.selected}
-            .useRandomMap=${settings.map.useRandom}
-            .randomMapDivider=${settings.map.randomMapDivider ?? false}
-            .showMedals=${settings.map.showMedals ?? false}
-            .mapWins=${settings.map.mapWins ?? new Map()}
-            .onSelectMap=${this.handleSelectMap}
-            .onSelectRandom=${this.handleSelectRandom}
-            .searchQuery=${this.mapSearchQuery}
-          ></map-picker>`,
-          undefined,
-          this.renderMapSearchInput(),
-        )}
+        ${settings.worldWar
+          ? renderSection(
+              MAP_ICON,
+              "text-aquarius",
+              "bg-malibu-blue/20",
+              "ww1936.lobby.pick_country",
+              settings.worldWar.picker,
+            )
+          : renderSection(
+              MAP_ICON,
+              "text-aquarius",
+              "bg-malibu-blue/20",
+              "map.map",
+              html`<map-picker
+                .selectedMap=${settings.map.selected}
+                .useRandomMap=${settings.map.useRandom}
+                .randomMapDivider=${settings.map.randomMapDivider ?? false}
+                .showMedals=${settings.map.showMedals ?? false}
+                .mapWins=${settings.map.mapWins ?? new Map()}
+                .onSelectMap=${this.handleSelectMap}
+                .onSelectRandom=${this.handleSelectRandom}
+                .searchQuery=${this.mapSearchQuery}
+              ></map-picker>`,
+              undefined,
+              this.renderMapSearchInput(),
+            )}
         ${renderSection(
           DIFFICULTY_ICON,
           "text-green-400",
@@ -498,65 +512,71 @@ export class GameConfigSettings extends LitElement {
             </div>
           `,
         )}
-        ${renderSection(
-          MODE_ICON,
-          "text-purple-400",
-          "bg-purple-500/20",
-          "host_modal.mode",
-          html`
-            <div class="grid grid-cols-2 gap-4">
-              ${[GameMode.FFA, GameMode.Team].map((mode) => {
-                const isSelected = settings.gameMode.selected === mode;
-                return html`
-                  <button
-                    class="${cardClass(isSelected, "py-6 text-center")}"
-                    @click=${() => this.handleGameModeSelect(mode)}
-                  >
-                    <span
-                      class="text-sm font-bold text-white uppercase tracking-widest"
-                    >
-                      ${mode === GameMode.FFA
-                        ? translateText("game_mode.ffa")
-                        : translateText("game_mode.teams")}
-                    </span>
-                  </button>
-                `;
-              })}
-            </div>
-          `,
-        )}
-        ${settings.gameMode.selected === GameMode.FFA
+        ${settings.worldWar
           ? nothing
           : html`
-              <section class="space-y-6">
-                <div
-                  class="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 pl-2"
-                >
-                  ${translateText("host_modal.team_count")}
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  ${TEAM_COUNT_OPTIONS.map((o) => {
-                    const isSelected = settings.teamCount.selected === o;
-                    return html`
-                      <button
-                        class="${cardClass(
-                          isSelected,
-                          "px-4 py-3 text-center",
-                        )}"
-                        @click=${() => this.handleTeamCountSelect(o)}
+              ${renderSection(
+                MODE_ICON,
+                "text-purple-400",
+                "bg-purple-500/20",
+                "host_modal.mode",
+                html`
+                  <div class="grid grid-cols-2 gap-4">
+                    ${[GameMode.FFA, GameMode.Team].map((mode) => {
+                      const isSelected = settings.gameMode.selected === mode;
+                      return html`
+                        <button
+                          class="${cardClass(isSelected, "py-6 text-center")}"
+                          @click=${() => this.handleGameModeSelect(mode)}
+                        >
+                          <span
+                            class="text-sm font-bold text-white uppercase tracking-widest"
+                          >
+                            ${mode === GameMode.FFA
+                              ? translateText("game_mode.ffa")
+                              : translateText("game_mode.teams")}
+                          </span>
+                        </button>
+                      `;
+                    })}
+                  </div>
+                `,
+              )}
+              ${settings.gameMode.selected === GameMode.FFA
+                ? nothing
+                : html`
+                    <section class="space-y-6">
+                      <div
+                        class="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 pl-2"
                       >
-                        <span class="${CARD_LABEL_CLASS} text-white">
-                          ${typeof o === "string"
-                            ? o === HumansVsNations
-                              ? translateText("public_lobby.teams_hvn")
-                              : translateText(`host_modal.teams_${o}`)
-                            : translateText("public_lobby.teams", { num: o })}
-                        </span>
-                      </button>
-                    `;
-                  })}
-                </div>
-              </section>
+                        ${translateText("host_modal.team_count")}
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        ${TEAM_COUNT_OPTIONS.map((o) => {
+                          const isSelected = settings.teamCount.selected === o;
+                          return html`
+                            <button
+                              class="${cardClass(
+                                isSelected,
+                                "px-4 py-3 text-center",
+                              )}"
+                              @click=${() => this.handleTeamCountSelect(o)}
+                            >
+                              <span class="${CARD_LABEL_CLASS} text-white">
+                                ${typeof o === "string"
+                                  ? o === HumansVsNations
+                                    ? translateText("public_lobby.teams_hvn")
+                                    : translateText(`host_modal.teams_${o}`)
+                                  : translateText("public_lobby.teams", {
+                                      num: o,
+                                    })}
+                              </span>
+                            </button>
+                          `;
+                        })}
+                      </div>
+                    </section>
+                  `}
             `}
         ${renderSection(
           OPTIONS_ICON,
@@ -565,24 +585,27 @@ export class GameConfigSettings extends LitElement {
           settings.options.titleKey,
           html`
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div
-                class="col-span-2 rounded-xl p-4 flex flex-col justify-center border transition-all duration-200 ${settings
-                  .options.bots.value > 0
-                  ? ACTIVE_CARD
-                  : INACTIVE_CARD}"
-              >
-                <fluent-slider
-                  min="0"
-                  max="400"
-                  step="1"
-                  .value=${settings.options.bots.value}
-                  labelKey=${settings.options.bots.labelKey}
-                  disabledKey=${settings.options.bots.disabledKey}
-                  @value-changed=${this.handleBotsChanged}
-                ></fluent-slider>
-              </div>
-
-              ${settings.options.nations && !settings.options.nations.hidden
+              ${settings.worldWar
+                ? nothing
+                : html`<div
+                    class="col-span-2 rounded-xl p-4 flex flex-col justify-center border transition-all duration-200 ${settings
+                      .options.bots.value > 0
+                      ? ACTIVE_CARD
+                      : INACTIVE_CARD}"
+                  >
+                    <fluent-slider
+                      min="0"
+                      max="400"
+                      step="1"
+                      .value=${settings.options.bots.value}
+                      labelKey=${settings.options.bots.labelKey}
+                      disabledKey=${settings.options.bots.disabledKey}
+                      @value-changed=${this.handleBotsChanged}
+                    ></fluent-slider>
+                  </div>`}
+              ${settings.options.nations &&
+              !settings.options.nations.hidden &&
+              !settings.worldWar
                 ? html`<div
                     class="col-span-2 rounded-xl p-4 flex flex-col justify-center border transition-all duration-200 ${settings
                       .options.nations.value > 0
@@ -630,18 +653,24 @@ export class GameConfigSettings extends LitElement {
               `,
             )
           : nothing}
-        ${renderSection(
-          ENABLES_ICON,
-          "text-teal-400",
-          "bg-teal-500/20",
-          settings.unitTypes.titleKey,
-          html`
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              ${this.renderUnitTypeOptions(settings.unitTypes.disabledUnits)}
-            </div>
-          `,
-          "space-y-6 pb-6",
-        )}
+        ${settings.worldWar
+          ? nothing
+          : renderSection(
+              ENABLES_ICON,
+              "text-teal-400",
+              "bg-teal-500/20",
+              settings.unitTypes.titleKey,
+              html`
+                <div
+                  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+                >
+                  ${this.renderUnitTypeOptions(
+                    settings.unitTypes.disabledUnits,
+                  )}
+                </div>
+              `,
+              "space-y-6 pb-6",
+            )}
       </div>
     `;
   }

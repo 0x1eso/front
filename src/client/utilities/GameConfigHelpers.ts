@@ -143,7 +143,10 @@ export function getNationsForCompactMap(
 }
 
 export function getRandomMapType(): GameMapType {
-  const maps = Object.values(GameMapType);
+  // World 1936 belongs to its mode (spec §2.2) and is never a random pick.
+  const maps = Object.values(GameMapType).filter(
+    (m) => m !== GameMapType.World1936,
+  );
   const randIdx = Math.floor(Math.random() * maps.length);
   return maps[randIdx] as GameMapType;
 }
