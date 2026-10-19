@@ -1,5 +1,6 @@
 import { TECH_IDS, TechId } from "@openfront/engine-api/domestic/DomesticTypes";
 import { MILLI } from "@openfront/engine-lib/domestic/Balance";
+import { capCombinedPct } from "@openfront/engine-lib/domestic/Modifiers";
 import {
   researchBlock,
   researchTicks,
@@ -7,6 +8,7 @@ import {
 import { TECHS } from "@openfront/engine-lib/domestic/Techs";
 import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { researchCostMilli, researchTimePct } from "../congress/Effects";
 import { Execution, Game, Player } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -36,13 +38,27 @@ export class ResearchExecution implements Execution {
     ) {
       return;
     }
-    const costMilli = TECHS[this.tech].cost * MILLI;
+    const congress = mg.congress();
+    const costMilli = researchCostMilli(
+      congress,
+      this.tech,
+      TECHS[this.tech].cost * MILLI,
+    );
     if (
       !payPoints(mg, this.player, d, "science", costMilli, this.payWithGold)
     ) {
       return;
     }
-    d.beginResearch(this.tech, researchTicks(this.tech, d.pct("researchTime")));
+    // World congress (spec §8.2 E4 A): the tech pact's cut, under the combined cap.
+    d.beginResearch(
+      this.tech,
+      researchTicks(
+        this.tech,
+        capCombinedPct(
+          d.pct("researchTime") + researchTimePct(congress, this.tech),
+        ),
+      ),
+    );
     if (d.queuedTech() === this.tech) d.setQueuedTech(null);
   }
 

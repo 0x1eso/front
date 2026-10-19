@@ -1,12 +1,63 @@
 import {
   BallotOption,
   MAX_EXTRA_VOTES,
+  ResolutionId,
 } from "@openfront/engine-api/congress/CongressTypes";
 import {
   CONVENE_COST_MILLI,
   EMERGENCY_SESSION_GUARD_TICKS,
   extraVoteCostMilli,
 } from "./CongressBalance";
+import type { ResolutionLike } from "./ResolutionEffects";
+
+// Rules the engine (Congress) and the client both read, so the screen can't
+// drift from what the engine accepts.
+
+/** What the seat rules read of an agenda item (AgendaItem and AgendaItemData both fit). */
+export interface AgendaItemLike {
+  readonly resolution: ResolutionId;
+  /** smallIDs. */
+  readonly targets: readonly number[];
+}
+
+/** S1 A in force against `smallID`, from a session or an aggression emergency (spec §8.1, §9.5). */
+export function isSanctionedIn(
+  active: readonly ResolutionLike[],
+  smallID: number,
+): boolean {
+  return active.some(
+    (r) =>
+      r.resolution === "sanction" &&
+      r.option === "A" &&
+      r.targets.includes(smallID),
+  );
+}
+
+/** Spec §6.2: a seat, or one of the item's targets, may vote on it. */
+export function mayVote(
+  item: AgendaItemLike,
+  smallID: number,
+  seats: readonly number[],
+): boolean {
+  return seats.includes(smallID) || item.targets.includes(smallID);
+}
+
+/**
+ * Spec §9.3: on an emergency item the target and its friends may only
+ * oppose. `friendlyTo(target)` says whether `smallID` is allied with (or a
+ * teammate of, disconnected ones included) the item's target; it is only
+ * called for an emergency item whose target `smallID` isn't.
+ */
+export function bOnlyFor(
+  item: AgendaItemLike,
+  smallID: number,
+  friendlyTo: (target: number) => boolean,
+): boolean {
+  if (item.resolution !== "emergency") return false;
+  if (item.targets.includes(smallID)) return true;
+  const target = item.targets[0];
+  return target !== undefined && friendlyTo(target);
+}
 
 export type BallotBlock =
   | "closed"

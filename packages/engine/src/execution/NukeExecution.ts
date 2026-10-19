@@ -19,6 +19,7 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { heritageHostTiles, isHeritageProtected } from "../congress/Conflict";
 import { congressNukeHit } from "../congress/Emergencies";
 import { Execution, Game, isUnit, Player, Unit } from "../game/Game";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
@@ -396,10 +397,13 @@ export class NukeExecution implements Execution {
 
     const magnitude = config.nukeMagnitudes(this.nuke.type());
     const toDestroy = this.tilesToDestroy();
+    // World heritage A (plan decision 8): a protected host keeps its tile.
+    const spared = heritageHostTiles(mg);
 
     // Retrieve all impacted players and the number of tiles
     const tilesPerPlayers = new Map<Player, number>();
     for (const tile of toDestroy) {
+      if (spared.has(tile)) continue;
       const owner = mg.owner(tile);
       if (owner.isPlayer()) {
         owner.relinquish(tile);
@@ -494,6 +498,8 @@ export class NukeExecution implements Execution {
         continue;
       }
       if (mg.euclideanDistSquared(dst, unit.tile()) < outer2) {
+        // World heritage A (spec §10.2): the protected host stands.
+        if (isHeritageProtected(mg, unit)) continue;
         // treatAFKFriendly matches warship targeting: a disconnected
         // teammate's or ally's units are still not kills.
         const friendly = this.player.isFriendly(unit.owner(), true);

@@ -1,3 +1,6 @@
+import { PlayerInfo, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { StampedIntent } from "@openfront/engine-api/Schemas";
+import { Executor } from "@openfront/engine/execution/ExecutionManager";
 import { Game, Player } from "@openfront/engine/game/Game";
 import {
   BLUE,
@@ -10,6 +13,7 @@ import {
   own,
   RED,
   runTicks,
+  seatAll,
 } from "./util";
 
 async function three(): Promise<{
@@ -164,5 +168,62 @@ describe("the ballot box", () => {
     expect(c.castBallot(green, s.id, 0, "A", 0)).toBe("b_only");
     expect(c.castBallot(green, s.id, 0, "B", 0)).toBeNull();
     expect(c.castBallot(red, s.id, 0, "A", 0)).toBeNull();
+  });
+
+  // Review focus 1, through the real path: an intent becomes a
+  // CongressVoteExecution before the tick runs (GameRunner), and the clock
+  // ticks before new executions init.
+  test("a congress_vote intent processed at closeTick - 1 counts; one at closeTick is refused and costs nothing", async () => {
+    const early = new PlayerInfo(
+      "early",
+      PlayerType.Human,
+      "EARLY001",
+      "early_id",
+    );
+    const late = new PlayerInfo(
+      "late",
+      PlayerType.Human,
+      "LATE0001",
+      "late_id",
+    );
+    const game = await congressGame({}, [early, late]);
+    const a = own(game, early.id, 0, 0, 30, 100);
+    const b = own(game, late.id, 35, 0, 30, 100);
+    game.executeNextTick();
+    const c = congressOf(game);
+    seatAll(game);
+    giveInfluence(a, 100);
+    giveInfluence(b, 100);
+    const s = c.openSession("regular", [item("war_tax")], game.ticks());
+    const executor = new Executor(game, "game_id", undefined);
+    const vote = (clientID: string): StampedIntent => ({
+      type: "congress_vote",
+      clientID,
+      session: s.id,
+      item: 0,
+      option: "A",
+      extra: 2,
+    });
+
+    runTicks(game, s.closeTick - 1 - game.ticks());
+    expect(game.ticks()).toBe(s.closeTick - 1);
+    game.addExecution(executor.createExec(vote("EARLY001")));
+    game.executeNextTick(); // tick closeTick - 1
+    expect(c.session()!.items[0].voters).toBe(1);
+    expect(influence(a)).toBe(70);
+
+    game.addExecution(executor.createExec(vote("LATE0001")));
+    game.executeNextTick(); // tick closeTick: tallied, then the ballot comes too late
+    expect(c.session()).toBeNull();
+    const history = c.history();
+    expect(history[history.length - 1]).toMatchObject({
+      sessionId: s.id,
+      a: 3,
+      b: 0,
+      adopted: "A",
+    });
+    expect(influence(a)).toBe(70); // won: the extra votes are spent
+    expect(influence(b)).toBe(100);
+    expect(b.congress()!.ballotsFor(s.id)).toEqual([]);
   });
 });

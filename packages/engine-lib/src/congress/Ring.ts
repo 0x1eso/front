@@ -20,6 +20,11 @@ export function newRing(size: number): Ring {
   return { head: -1, slots: new Array<number>(size).fill(0) };
 }
 
+/** A copy that shares no slots (snapshots, restores). */
+export function copyRing(r: Ring): Ring {
+  return { head: r.head, slots: [...r.slots] };
+}
+
 /** Adds `n` to `bucket`. Later buckets clear what they overwrite; a bucket older than the window is ignored. */
 export function ringAdd(r: Ring, bucket: number, n: number): void {
   const size = r.slots.length;

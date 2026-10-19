@@ -848,7 +848,22 @@
     "satellite_preparing": "{name} 궤도 포격 위성 준비 중",
     "satellite_strike_aborted": "목표가 사라졌거나 우호국이 되어 위성 포격이 취소되었습니다",
     "satellite_strike_landed": "{name}의 위성 포격이 {target}에 떨어졌습니다",
-    "satellite_targeted": "{name} → {target} 위성 포격 (60초 뒤)"
+    "satellite_targeted": "{name} → {target} 위성 포격 (60초 뒤)",
+    "congress_adopted": "🏛 채택: {resolution} — {option} ({a} : {b})",
+    "congress_adopted_pair": "🏛 채택: {name} ↔ {target} {resolution} — {option} ({a} : {b})",
+    "congress_adopted_target": "🏛 채택: {name} {resolution} — {option} ({a} : {b})",
+    "congress_emergency_available": "🚨 {name}: {kind} — 긴급 회의를 소집할 수 있습니다",
+    "congress_emergency_convened": "🚨 {target}이(가) {name}에 대한 긴급 회의를 소집했습니다 ({kind})",
+    "congress_emergency_failed": "🚨 {name}이(가) {kind}을(를) 버텨 냈습니다",
+    "congress_emergency_rejected": "🚨 {name}에 대한 비상이 부결되었습니다 ({a} : {b})",
+    "congress_emergency_started": "🚨 {name}에 대한 {kind} 선포 ({a} : {b})",
+    "congress_emergency_success": "🚨 {name}에 대한 {kind} 성공! 영웅: {target}",
+    "congress_emergency_success_nohero": "🚨 {name}에 대한 {kind} 성공",
+    "congress_patent": "🏛 특허: 첫 발견으로 과학력 +{points}",
+    "congress_tied": "🏛 동점 부결: {resolution} ({a} : {b})",
+    "congress_tied_pair": "🏛 동점 부결: {name} ↔ {target} {resolution} ({a} : {b})",
+    "congress_tied_target": "🏛 동점 부결: {name} {resolution} ({a} : {b})",
+    "world_gov_awaiting": "{name}의 세계 정부 선포 완료 — 의회의 비준을 기다립니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -957,7 +972,8 @@
     "domestic_mode": "내정 모드",
     "conquest_percent": "정복 기준 %",
     "warfare_expansion": "확장 전쟁",
-    "strategic_weapons": "전략 무기"
+    "strategic_weapons": "전략 무기",
+    "congress": "세계 의회"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -1329,7 +1345,8 @@
     "type": "유형",
     "warships": "군함",
     "score": "점수",
-    "nukes": "핵"
+    "nukes": "핵",
+    "congress": "의회"
   },
   "leaderboard_modal": {
     "clan": "클랜",
@@ -2824,7 +2841,8 @@
     "screen": {
       "research": "연구",
       "laws": "법률서",
-      "victory": "승리"
+      "victory": "승리",
+      "congress": "세계 의회"
     },
     "dial": {
       "seconds": "{seconds}초",
@@ -2906,5 +2924,223 @@
     "strategic": "전략 무기",
     "title": "열린 방",
     "warfare": "확장 전쟁"
+  },
+  "congress": {
+    "banned": "🏛 금지됨",
+    "banned_reason": "의회 결의로 지금은 금지됩니다",
+    "band": {
+      "active": "🚨 {kind} vs {name} — {goal} · {time}",
+      "available": "🚨 {name}: {kind} — 긴급 회의를 소집할 수 있습니다",
+      "available_target": "🚨 다른 나라가 당신에 대한 {kind}를 소집할 수 있습니다",
+      "convene": "소집 · 🗳{cost}",
+      "member": "참전 중",
+      "target": "당신이 대상입니다",
+      "voting": "🚨 긴급 회의: {kind} vs {name} · {seconds}초"
+    },
+    "block": {
+      "friendly": "동맹에게는 소집할 수 없습니다",
+      "influence": "영향력 {cost}가 필요합니다",
+      "sanctioned": "제재 중에는 소집할 수 없습니다",
+      "seat": "의석이 있는 나라만 소집할 수 있습니다",
+      "target": "당신이 대상입니다",
+      "unavailable": "지금은 소집할 수 없습니다",
+      "window": "회기 중이거나 곧 회기가 열립니다"
+    },
+    "card": {
+      "adopted": "채택 {option} · {a} : {b}",
+      "b_only": "반대만 할 수 있습니다",
+      "bad": "내게 불리",
+      "collapsed": "🏛 {seconds}초 · {voted}/{total} 투표함",
+      "extra": "+{votes} · {cost}",
+      "good": "내게 유리",
+      "no_seat": "이 안건에 의석 없음",
+      "tied": "동점 부결 · {a} : {b}",
+      "turnout": "투표 {voted}/{total}",
+      "your_vote": "내 표: {option} +{extra}"
+    },
+    "chip": {
+      "until_project": "끝날 때까지"
+    },
+    "dial": {
+      "influence": "🗳 {value}"
+    },
+    "discounted": "기술 협정 −30%",
+    "emergency": {
+      "aggression": "침략 비상",
+      "hegemony": "패권 비상",
+      "nuclear": "핵 비상"
+    },
+    "goal": {
+      "land": "땅 {progress}/{goal}",
+      "silos": "사일로 {progress}/{goal}"
+    },
+    "param": {
+      "train": "기차",
+      "tradeShip": "무역선"
+    },
+    "reason": {
+      "aggressor": "최근 3분 침략 1위: {name} (세계 땅 {pct}%)",
+      "aggressor_government": "침략 1위 {name}의 정부",
+      "aggressor_law": "침략 1위 {name}의 법",
+      "common_government": "가장 많은 나라의 정부",
+      "convened": "소집: {name}",
+      "global": "이번 시대의 규칙",
+      "most_built": "지난 회기 이후 최다 착공: {count}",
+      "project": "{name}의 승리 프로젝트 ({pct}%)",
+      "runaway": "땅 1위 {name}: 2위의 {ratio}배",
+      "victim": "최근 3분 피해 1위: {name} {pct}% 잃음",
+      "war_pair": "최근 2분 최대 전쟁: {name} ↔ {target} ({pct}%)"
+    },
+    "resolution": {
+      "arms_embargo": {
+        "a": "금수",
+        "a_effect": "새 핵·미사일·위성·폭격·해안 포격·발사대 금지 (비축은 발사 가능)",
+        "b": "군사 원조",
+        "b_effect": "발사대·SAM 건설비 −30%, 핵 제조 50% 빠름",
+        "name": "무기 금수"
+      },
+      "arms_treaty": {
+        "a": "군축",
+        "a_effect": "모두 최대 병력 −15%, 금 수입 +15%",
+        "b": "군비 경쟁",
+        "b_effect": "모두 최대 병력 +15%, 금 수입 −10%",
+        "name": "군비 조약"
+      },
+      "building_pact": {
+        "a": "진흥",
+        "a_effect": "건설비 −40%, 건설 시간 −50%",
+        "b": "금지",
+        "b_effect": "아무도 짓거나 레벨업할 수 없음",
+        "name": "건설 협정"
+      },
+      "emergency": {
+        "a": "찬성·참전",
+        "a_effect": "회원: 대상 상대로 속도 +20%, 손실 −20%",
+        "b": "반대",
+        "b_effect": "비상 없음",
+        "name": "비상 선포"
+      },
+      "government_resolution": {
+        "a": "지지",
+        "a_effect": "그 정부의 나라: 정치력 +25%, 영향력 ×1.25",
+        "b": "규탄",
+        "b_effect": "그 정부의 나라: 정치력 −25%, 영향력 0",
+        "name": "정부 결의"
+      },
+      "hegemony_check": {
+        "a": "견제",
+        "a_effect": "과학력·정치력 −20%, 공격하는 나라 손실 −15%",
+        "b": "지도국 인정",
+        "b_effect": "금 수입 +15%",
+        "name": "패권 견제"
+      },
+      "law_review": {
+        "a": "권장",
+        "a_effect": "그 법을 가진 나라: 효과 ×1.5",
+        "b": "효력 정지",
+        "b_effect": "그 법을 가진 나라: 효과 꺼짐",
+        "name": "법 심사"
+      },
+      "non_proliferation": {
+        "a": "비확산",
+        "a_effect": "아무도 새 핵을 만들거나 살 수 없음 (비축 유지)",
+        "b": "개발 경쟁",
+        "b_effect": "핵 비용 −25%, 제조 50% 빠름",
+        "name": "핵 비확산 조약"
+      },
+      "protectorate": {
+        "a": "보호국",
+        "a_effect": "공격하는 나라 손실 +40%, 속도 −20%, 방어 손실 −20%",
+        "b": "분할 승인",
+        "b_effect": "공격하는 나라 손실 −20%",
+        "name": "보호국 지정"
+      },
+      "research_fund": {
+        "a": "과학 우선",
+        "a_effect": "과학력 +20%, 정치력 −10%",
+        "b": "정치 우선",
+        "b_effect": "정치력 +20%, 과학력 −10%",
+        "name": "연구 기금"
+      },
+      "sanction": {
+        "a": "제재",
+        "a_effect": "무역 금지, 금 −20%, 기부 못 받음, 영향력 0",
+        "b": "묵인",
+        "b_effect": "무역 수익 +30%",
+        "name": "경제 제재"
+      },
+      "tech_pact": {
+        "a": "기술 확산",
+        "a_effect": "2개국 이상 완료한 기술 비용·시간 −30%",
+        "b": "선도국 특허",
+        "b_effect": "새 기술을 처음 완료하면 과학력 60초분",
+        "name": "기술 협정"
+      },
+      "trade_pact": {
+        "a": "장려",
+        "a_effect": "그 무역 수익 +50%",
+        "b": "규제",
+        "b_effect": "그 무역 수익 −50%",
+        "name": "무역 협정"
+      },
+      "truce": {
+        "a": "휴전",
+        "a_effect": "120초 동안 서로 적대 행위 불가",
+        "b": "결전",
+        "b_effect": "120초 동안 서로 공격 속도 +25%, 손실 −15%",
+        "name": "휴전 결의"
+      },
+      "war_tax": {
+        "a": "전쟁세",
+        "a_effect": "먼저 공격 중이면 금 −30%, 유지비 +50%",
+        "b": "전시 특수",
+        "b_effect": "먼저 공격 중이면 금 +20%",
+        "name": "전쟁세"
+      },
+      "world_government": {
+        "a": "승인",
+        "a_effect": "선포 60초 앞당김, 비준",
+        "b": "거부",
+        "b_effect": "선포 60초 늦춤, 비준 안 됨",
+        "name": "세계 정부 승인"
+      },
+      "world_heritage": {
+        "a": "보호",
+        "a_effect": "끝날 때까지 연구소 파괴 불가 (점령은 가능)",
+        "b": "저지",
+        "b_effect": "그 나라 공격 속도 +20%, 손실 −20%, 침략 아님",
+        "name": "세계 유산"
+      }
+    },
+    "screen": {
+      "active": "현행 결의",
+      "aggressors": "침략 순위 (3분)",
+      "available": "소집 가능",
+      "cooldown": "다음 비상까지 {time}",
+      "emergencies_left": "이번 판 남은 비상: {count}",
+      "emergency": "비상",
+      "history": "지난 결과",
+      "influence": "영향력 {value}",
+      "next_session": "다음 회기까지 {time}",
+      "none": "없음",
+      "rate": "+{rate}/초",
+      "victims": "피해 순위 (3분)",
+      "voting_now": "투표 중 · {seconds}초 남음",
+      "world_gov": "세계 정부",
+      "world_gov_ratified": "{name}: 비준됨",
+      "world_gov_waiting": "{name}: 비준 대기",
+      "not_ratified": "비준 안 됨"
+    },
+    "status": {
+      "aggressing": "전쟁 중 · 0/초",
+      "capped": "상한 (300)",
+      "peaceful": "평화 중",
+      "sanctioned": "제재 중 · 0/초",
+      "target": "비상 대상 · 0/초"
+    },
+    "toast": {
+      "adopted": "🏛 채택: {title} — {option} ({a} : {b})",
+      "tied": "🏛 동점 부결: {title} ({a} : {b})"
+    }
   }
 }

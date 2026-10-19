@@ -19,6 +19,7 @@ import {
   PLANE_SPEED,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
+import { heritageHostTiles, isHeritageProtected } from "../congress/Conflict";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -225,11 +226,14 @@ export class BombingExecution implements Execution {
     const owner = this.mg.owner(tile);
     return (
       owner.isPlayer() &&
-      (owner === this.player || this.player.isFriendly(owner, true))
+      (owner === this.player ||
+        this.player.isFriendly(owner, true) ||
+        // World congress (spec §8.1 S2): a truce partner's land too.
+        this.player.isTruceWith(owner))
     );
   }
 
-  /** Drops bomb `index`; skipped (no blast, no update) over own or friendly land. */
+  /** Drops bomb `index`; skipped (no blast, no update) over own, friendly or truce-partner land. */
   private dropBomb(index: number): void {
     const mg = this.mg;
     const config = mg.config();
@@ -245,8 +249,11 @@ export class BombingExecution implements Execution {
       );
     });
 
+    // World heritage A (plan decision 8): a protected host keeps its tile.
+    const spared = heritageHostTiles(mg);
     const lostTiles = new Map<Player, number>();
     for (const tile of tiles) {
+      if (spared.has(tile)) continue;
       const owner = mg.owner(tile);
       if (owner.isPlayer()) {
         owner.relinquish(tile);
@@ -277,7 +284,13 @@ export class BombingExecution implements Execution {
     }
 
     for (const unit of mg.units()) {
-      if (BLAST_PROOF.has(unit.type()) || !unit.isActive()) continue;
+      if (
+        BLAST_PROOF.has(unit.type()) ||
+        !unit.isActive() ||
+        isHeritageProtected(mg, unit)
+      ) {
+        continue;
+      }
       if (mg.euclideanDistSquared(at, unit.tile()) < outer2) {
         const friendly = this.player.isFriendly(unit.owner(), true);
         unit.delete(true, friendly ? undefined : this.player);

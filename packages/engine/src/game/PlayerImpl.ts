@@ -477,7 +477,13 @@ export class PlayerImpl implements Player {
       ...(this._strategic === null
         ? {}
         : { strategic: this._strategic.toData() }),
-      ...(this._congress === null ? {} : { congress: this._congress.toData() }),
+      ...(this._congress === null
+        ? {}
+        : {
+            congress: this._congress.toData(
+              this.mg.congress()?.isEmergencyMember(this._smallID) ?? false,
+            ),
+          }),
     };
   }
 
@@ -578,7 +584,6 @@ export class PlayerImpl implements Player {
     } else {
       this.numUnitsConstructed[type] = 1;
     }
-    this.mg.congress()?.noteBuilt(type);
   }
 
   // Count of units built by the player, including those still under
@@ -1537,6 +1542,9 @@ export class PlayerImpl implements Player {
     this._units.push(b);
     this._myUnitsVersion++;
     this.recordUnitConstructed(type);
+    // World congress: a construction start counts toward building_pact
+    // (spec §7.2); upgrades don't.
+    this.mg.congress()?.noteBuilt(type);
     this.removeGold(cost);
     this.removeTroops("troops" in params ? (params.troops ?? 0) : 0);
     this.mg.addUpdate(b.toUpdate());

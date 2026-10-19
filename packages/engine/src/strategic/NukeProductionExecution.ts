@@ -9,6 +9,7 @@ import {
   NUKE_PRODUCTION_TICKS,
 } from "@openfront/engine-lib/strategic/Strategic";
 import { z } from "zod";
+import { nukeProductionTimePct, withTimePct } from "../congress/Effects";
 import { Execution, Game, Player } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type {
@@ -32,7 +33,13 @@ export class NukeProductionExecution implements Execution {
   init(mg: Game, _ticks: number): void {
     const s = this.player.strategic();
     if (s === null || !this.player.isAlive()) return;
-    if (this.player.isUnitUnavailable(this.nukeType)) return;
+    // World congress (spec §8.1 S6 A, S7 A): no new production under a ban.
+    if (
+      this.player.isUnitUnavailable(this.nukeType) ||
+      this.player.isCongressBanned(this.nukeType)
+    ) {
+      return;
+    }
     const factoryId = factoryWithFreeLine(
       finishedFactories(this.player),
       s.jobs(),
@@ -43,11 +50,20 @@ export class NukeProductionExecution implements Execution {
     this.player.removeGold(cost);
     if (this.nukeType === UnitType.MIRV) mg.recordMirvLaunch();
     const now = mg.ticks();
+    const congress = mg.congress();
     s.startJob({
       factoryId,
       type: this.nukeType,
       startTick: now,
-      endTick: now + NUKE_PRODUCTION_TICKS[this.nukeType],
+      // World congress (spec §8.1 S6 B, S7 B): faster production.
+      endTick:
+        now +
+        (congress === null
+          ? NUKE_PRODUCTION_TICKS[this.nukeType]
+          : withTimePct(
+              NUKE_PRODUCTION_TICKS[this.nukeType],
+              nukeProductionTimePct(congress, this.player),
+            )),
     });
     mg.displayMessage(
       "events_display.nuke_production_started",

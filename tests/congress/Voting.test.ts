@@ -5,8 +5,11 @@ import {
 import { newRing, ringAdd, ringSum } from "@openfront/engine-lib/congress/Ring";
 import {
   ballotBlock,
+  bOnlyFor,
   conveneBlock,
   conveneWindowOpen,
+  isSanctionedIn,
+  mayVote,
   tallyVotes,
 } from "@openfront/engine-lib/congress/Voting";
 
@@ -117,5 +120,48 @@ describe("voting rules", () => {
     expect(conveneWindowOpen(1000, true, false, 2000)).toBe(false);
     expect(conveneWindowOpen(1000, false, true, 2000)).toBe(false);
     expect(conveneWindowOpen(1000, false, false, null)).toBe(true);
+  });
+});
+
+describe("seat and sanction rules shared with the client", () => {
+  test("a sanction in force is S1 A naming the player", () => {
+    const sanction = {
+      resolution: "sanction" as const,
+      option: "A" as const,
+      targets: [4],
+      param: null,
+    };
+    expect(isSanctionedIn([sanction], 4)).toBe(true);
+    expect(isSanctionedIn([sanction], 5)).toBe(false);
+    expect(isSanctionedIn([{ ...sanction, option: "B" }], 4)).toBe(false);
+    expect(isSanctionedIn([{ ...sanction, resolution: "truce" }], 4)).toBe(
+      false,
+    );
+    expect(isSanctionedIn([], 4)).toBe(false);
+  });
+
+  test("a seat or one of the item's targets may vote", () => {
+    const item = { resolution: "sanction" as const, targets: [7] };
+    expect(mayVote(item, 2, [2, 3])).toBe(true);
+    expect(mayVote(item, 7, [2, 3])).toBe(true);
+    expect(mayVote(item, 5, [2, 3])).toBe(false);
+  });
+
+  test("on an emergency item the target and its friends may only oppose", () => {
+    const emergency = { resolution: "emergency" as const, targets: [7] };
+    const asked: number[] = [];
+    const friendlyTo = (friends: number[]) => (target: number) => {
+      asked.push(target);
+      return friends.includes(target);
+    };
+    expect(bOnlyFor(emergency, 7, friendlyTo([]))).toBe(true);
+    expect(bOnlyFor(emergency, 3, friendlyTo([7]))).toBe(true);
+    expect(bOnlyFor(emergency, 3, friendlyTo([]))).toBe(false);
+    expect(asked).toEqual([7, 7]);
+    // Other items: anyone with a vote may take either side.
+    expect(
+      bOnlyFor({ resolution: "sanction", targets: [7] }, 7, friendlyTo([7])),
+    ).toBe(false);
+    expect(asked).toEqual([7, 7]);
   });
 });

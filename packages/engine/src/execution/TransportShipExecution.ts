@@ -94,6 +94,13 @@ export class TransportShipExecution implements Execution {
       return;
     }
 
+    // World congress (spec §8.1 S2): a truce blocks the boat before it can
+    // turn down the target's alliance request.
+    if (this.target.isPlayer() && this.attacker.isTruceWith(this.target)) {
+      this.active = false;
+      return;
+    }
+
     if (this.target.isPlayer()) {
       const targetPlayer = this.target as Player;
       if (
@@ -222,6 +229,16 @@ export class TransportShipExecution implements Execution {
       this.retreatDst = null;
     }
 
+    // World congress (spec §8.1 S2): a truce turns the boat around.
+    if (
+      !this.boat.transportShipState().isRetreating &&
+      this.target.isPlayer() &&
+      this.attacker.isTruceWith(this.target)
+    ) {
+      this.boat.updateTransportShipState({ isRetreating: true });
+      this.retreatDst = null;
+    }
+
     if (this.boat.transportShipState().isRetreating) {
       // Resolve retreat destination once, based on current boat location when retreat begins.
       this.retreatDst ??= this.attacker.bestTransportShipSpawn(
@@ -249,7 +266,12 @@ export class TransportShipExecution implements Execution {
     switch (result.status) {
       case PathStatus.COMPLETE:
         if (this.mg.owner(this.dst) === this.attacker) {
-          const deaths = this.boat.troops() * (malusForRetreat / 100);
+          // A boat a truce called back lands home whole.
+          const malus =
+            this.target.isPlayer() && this.attacker.isTruceWith(this.target)
+              ? 0
+              : malusForRetreat;
+          const deaths = this.boat.troops() * (malus / 100);
           const survivors = this.boat.troops() - deaths;
           this.attacker.addTroops(survivors);
           this.boat.delete(false);

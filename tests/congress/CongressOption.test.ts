@@ -1,6 +1,7 @@
 import { GameMode, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { IntentSchema } from "@openfront/engine-api/Schemas";
+import { ConveneEmergencyExecution } from "@openfront/engine/congress/ConveneEmergencyExecution";
 import { DomesticClientView } from "../../src/client/view/DomesticClientView";
 import { setup } from "../util/Setup";
 import { expectSnapshotRoundTrip } from "../util/Snapshot";
@@ -199,6 +200,29 @@ describe("the congress option", () => {
       .domestic()!
       .setCongressModifiers([{ when: "attacking", pct: 10, stat: "allGold" }]);
     await expectSnapshotRoundTrip(game, "plains", 10);
+  });
+
+  test("a crafted convene_emergency without a congress, or naming nobody, does nothing", async () => {
+    for (const config of [{}, { domesticMode: true }]) {
+      const game = await setup("plains", config, [RED, BLUE]);
+      const red = own(game, RED.id, 0, 0, 30, 100);
+      own(game, BLUE.id, 35, 0, 30, 100);
+      game.addExecution(new ConveneEmergencyExecution(red, "nuclear", BLUE.id));
+      const updates = game.executeNextTick();
+      expect(game.congress()).toBeNull();
+      expect(updates[GameUpdateType.Congress]).toEqual([]);
+    }
+    const game = await congressGame();
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    game.executeNextTick();
+    giveInfluence(red, 100);
+    const before = congressOf(game).toData();
+    game.addExecution(
+      new ConveneEmergencyExecution(red, "aggression", "nobody_id"),
+    );
+    game.executeNextTick();
+    expect(congressOf(game).toData()).toBe(before);
+    expect(red.congress()!.influenceMilli()).toBe(100_000);
   });
 
   test("the intents carry only what they may", () => {
