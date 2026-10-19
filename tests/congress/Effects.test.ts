@@ -11,6 +11,7 @@ import {
 } from "@openfront/engine/domestic/DomesticEconomy";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { ResearchExecution } from "@openfront/engine/domestic/ResearchExecution";
+import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { NukeProductionExecution } from "@openfront/engine/strategic/NukeProductionExecution";
@@ -26,22 +27,6 @@ import {
   RED,
   runTicks,
 } from "./util";
-
-// The ledger is Task 2's. The aggressing tests force its answer for chosen
-// players (everyone else gets the real one) to check that the domestic second
-// asks it in congress games, and only there.
-const ledger = vi.hoisted(() => ({ forced: new Set<string>() }));
-vi.mock("@openfront/engine/congress/Ledger", async (importOriginal) => {
-  const real =
-    await importOriginal<typeof import("@openfront/engine/congress/Ledger")>();
-  return {
-    ...real,
-    isAggressing: (mg: Game, p: Player) =>
-      ledger.forced.has(p.id()) || real.isAggressing(mg, p),
-  };
-});
-
-afterEach(() => ledger.forced.clear());
 
 async function three(config: Partial<GameConfig> = {}): Promise<{
   game: Game;
@@ -86,35 +71,36 @@ describe("modifiers from the congress", () => {
     expect(d.pct("troopUpkeep")).toBe(50);
   });
 
-  test("the domestic second turns aggressing on from the ledger, so a war tax bites", async () => {
+  test("the domestic second turns aggressing on from a real attack, so a war tax bites", async () => {
     const { game, red, blue } = await three();
+    red.setTroops(50_000);
     enact(game, { resolution: "war_tax" });
     game.addExecution(new DomesticExecution());
     runTicks(game, 10);
     const d = red.domestic()!;
     expect(d.activeConditions().has("aggressing")).toBe(false);
     expect(d.pct("allGold")).toBe(0);
-    ledger.forced.add(red.id());
-    runTicks(game, 10);
+    game.addExecution(new AttackExecution(1000, red, blue.id(), null));
+    runTicks(game, 12);
+    expect(red.outgoingAttacks()).toHaveLength(1);
     expect(d.activeConditions().has("aggressing")).toBe(true);
     expect(d.toData().conditions).toContain("aggressing");
     expect(d.pct("allGold")).toBe(-30);
     expect(d.pct("troopUpkeep")).toBe(50);
     expect(blue.domestic()!.activeConditions().has("aggressing")).toBe(false);
     expect(blue.domestic()!.pct("allGold")).toBe(0);
-    ledger.forced.clear();
-    runTicks(game, 10);
-    expect(d.activeConditions().has("aggressing")).toBe(false);
-    expect(d.pct("allGold")).toBe(0);
   });
 
-  test("a domestic game without a congress never has aggressing", async () => {
+  test("a domestic game without a congress never has aggressing, even in a real attack", async () => {
     const game = await setup("plains", { domesticMode: true }, [RED, BLUE]);
     const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 30, 0, 30, 100);
     game.executeNextTick();
-    ledger.forced.add(red.id());
+    red.setTroops(50_000);
     game.addExecution(new DomesticExecution());
-    runTicks(game, 20);
+    game.addExecution(new AttackExecution(1000, red, blue.id(), null));
+    runTicks(game, 30);
+    expect(red.outgoingAttacks()).toHaveLength(1);
     expect(red.domestic()!.activeConditions().has("aggressing")).toBe(false);
     expect(red.domestic()!.toData().conditions ?? []).not.toContain(
       "aggressing",
