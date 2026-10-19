@@ -3128,7 +3128,6 @@
       "voting_now": "투표 중 · {seconds}초 남음",
       "world_gov": "세계 정부",
       "world_gov_ratified": "{name}: 비준됨",
-      "world_gov_waiting": "{name}: 비준 대기",
       "not_ratified": "비준 안 됨"
     },
     "status": {

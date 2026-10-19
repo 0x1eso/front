@@ -481,15 +481,30 @@ export function onRegularResult(mg: Game, c: Congress, r: ItemResult): void {
   announceResult(mg, r);
 }
 
+// The result's message key by outcome and by how many players it names;
+// literal keys so the unused-key check (TranslationSystem.test.ts) sees them.
+const RESULT_KEYS = {
+  adopted: {
+    none: "events_display.congress_adopted",
+    target: "events_display.congress_adopted_target",
+    pair: "events_display.congress_adopted_pair",
+  },
+  tied: {
+    none: "events_display.congress_tied",
+    target: "events_display.congress_tied_target",
+    pair: "events_display.congress_tied_pair",
+  },
+} as const;
+
 function announceResult(mg: Game, r: ItemResult): void {
   const [firstId, secondId] = r.item.targets;
   const first = firstId === undefined ? null : mg.playerBySmallID(firstId);
   const second = secondId === undefined ? null : mg.playerBySmallID(secondId);
   const shape = second?.isPlayer()
-    ? "_pair"
+    ? "pair"
     : first?.isPlayer()
-      ? "_target"
-      : "";
+      ? "target"
+      : "none";
   const params: Record<string, string | number> = {
     resolution: r.item.resolution,
     a: r.a,
@@ -502,7 +517,7 @@ function announceResult(mg: Game, r: ItemResult): void {
   if (first?.isPlayer()) params.name = first.displayName();
   if (second?.isPlayer()) params.targetID = second.smallID();
   mg.displayMessage(
-    `events_display.congress_${r.adopted === null ? "tied" : "adopted"}${shape}`,
+    RESULT_KEYS[r.adopted === null ? "tied" : "adopted"][shape],
     MessageType.CONGRESS,
     null,
     undefined,
