@@ -147,6 +147,22 @@ describe("convening from the client", () => {
     expect(
       conveneState({ ...data, seats: [2, 3] }, viewer(), "aggression", 2, 0),
     ).toBe("seat");
+    const sanctioned: CongressData = {
+      ...data,
+      active: [
+        {
+          resolution: "sanction",
+          option: "A",
+          targets: [1],
+          param: null,
+          sinceTick: 0,
+          expires: "next_tally",
+        },
+      ],
+    };
+    expect(conveneState(sanctioned, viewer(), "aggression", 2, 0)).toBe(
+      "sanctioned",
+    );
   });
 });
 
@@ -235,6 +251,25 @@ describe("vote cards", () => {
       favorable: "B",
       turnout: { voted: 1, total: 3 },
     });
+  });
+
+  test("an ally of the target may only oppose too; others choose freely", () => {
+    const onTwo: CongressData = {
+      ...data,
+      seats: [1, 2, 3],
+      session: {
+        ...data.session!,
+        items: [{ ...data.session!.items[0], targets: [2] }],
+      },
+    };
+    const [ally] = cardModels(onTwo, viewer({}, [2]));
+    expect(ally).toMatchObject({
+      eligible: true,
+      bOnly: true,
+      favorable: null,
+    });
+    const [other] = cardModels(onTwo, viewer());
+    expect(other).toMatchObject({ eligible: true, bOnly: false });
   });
 
   test("extra-vote chips cost what the raise costs and switch off past my influence", () => {

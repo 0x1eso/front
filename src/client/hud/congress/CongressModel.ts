@@ -21,9 +21,12 @@ import {
   VOTING_TICKS,
 } from "@openfront/engine-lib/congress/CongressBalance";
 import {
+  bOnlyFor,
   ConveneBlock,
   conveneBlock,
   conveneWindowOpen,
+  isSanctionedIn,
+  mayVote,
 } from "@openfront/engine-lib/congress/Voting";
 import { MILLI } from "@openfront/engine-lib/domestic/Balance";
 import type { GameView, PlayerView } from "../../view";
@@ -42,7 +45,10 @@ export interface CongressViewer {
   smallID: number;
   alive: boolean;
   data: PlayerCongressData | null;
-  /** Allied with (or a teammate of) the player with this smallID. */
+  /**
+   * Allied with (or a teammate of) the player with this smallID, disconnected
+   * ones included: the engine's isFriendly(target, true).
+   */
   friendlyTo(smallID: number): boolean;
 }
 
@@ -90,21 +96,9 @@ function myBallot(
   );
 }
 
-function canVote(
-  data: CongressData,
-  item: AgendaItemData,
-  id: number,
-): boolean {
-  return data.seats.includes(id) || item.targets.includes(id);
-}
-
+/** S1 A in force against `smallID` (the engine's rule, engine-lib Voting). */
 export function isSanctioned(data: CongressData, smallID: number): boolean {
-  return data.active.some(
-    (r) =>
-      r.resolution === "sanction" &&
-      r.option === "A" &&
-      r.targets.includes(smallID),
-  );
+  return isSanctionedIn(data.active, smallID);
 }
 
 /** A harmful resolution names me, or I am the emergency's target. */
@@ -192,7 +186,7 @@ export function congressDial(
       : s.items.filter(
           (item, i) =>
             viewer.alive &&
-            canVote(data, item, viewer.smallID) &&
+            mayVote(item, viewer.smallID, data.seats) &&
             myBallot(viewer, s.id, i) === null,
         ).length;
   return {
@@ -288,10 +282,8 @@ export function cardModels(
       kind: s.kind,
       item,
       closeTick: s.closeTick,
-      eligible: viewer.alive && canVote(data, item, viewer.smallID),
-      bOnly:
-        item.resolution === "emergency" &&
-        (named || viewer.friendlyTo(item.targets[0])),
+      eligible: viewer.alive && mayVote(item, viewer.smallID, data.seats),
+      bOnly: bOnlyFor(item, viewer.smallID, (t) => viewer.friendlyTo(t)),
       myVote: myBallot(viewer, s.id, index),
       favorable: named ? RESOLUTION_META[item.resolution].favorable : null,
       turnout: {
@@ -420,8 +412,7 @@ export function emergencyRole(
 ): EmergencyRole {
   if (viewer === null) return "none";
   if (viewer.smallID === e.target) return "target";
-  const data = viewer.data as { emergencyMember?: boolean } | null;
-  return data?.emergencyMember === true ? "member" : "none";
+  return viewer.data?.emergencyMember === true ? "member" : "none";
 }
 
 export function goalText(e: EmergencyData, t: Translate): string {
