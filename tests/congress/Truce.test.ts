@@ -267,6 +267,27 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(red.troops()).toBeGreaterThanOrEqual(troops);
   });
 
+  test("a carpet bomb's splash on a truce partner next to the target leaves no grudge", async () => {
+    const game = await congressGame(
+      { warfareExpansion: true, instantBuild: true },
+      [RED, BLUE, GREEN],
+    );
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 40, 0, 20, 100);
+    own(game, GREEN.id, 60, 0, 40, 100);
+    game.executeNextTick();
+    grantTechs(red, "industrialization");
+    red.addGold(10_000_000n);
+    red.buildUnit(UnitType.Airport, game.ref(10, 10), {});
+    truce(game, red, blue);
+    const relation = blue.relation(red);
+    game.addExecution(
+      new ConstructionExecution(red, UnitType.Bomber, game.ref(70, 10)),
+    );
+    runTicks(game, 80);
+    expect(blue.relation(red)).toBe(relation);
+  });
+
   test("emergency members can't fight each other; the target can be fought", async () => {
     const { game, red, blue, green } = await three();
     congressOf(game).setEmergency({
