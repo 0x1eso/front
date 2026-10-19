@@ -48,6 +48,7 @@ import {
   WARSHIP_SHELL_DAMAGE_PCT,
   WARSHIP_SHELL_RATE_PCT,
 } from "@openfront/engine-lib/warfare/Warfare";
+import { buildCostPct } from "../congress/Effects";
 import type { EngineUnitInfo, Game, Player, Unit } from "../game/Game";
 
 export interface AttackLogicInput {
@@ -389,6 +390,7 @@ export class EngineConfig extends Config {
             return 0n;
           }
           return this.withDomesticCost(
+            game,
             player,
             UnitType.MIRV,
             25_000_000 + game.mirvsLaunched() * 15_000_000,
@@ -451,9 +453,10 @@ export class EngineConfig extends Config {
           UnitType.ConventionalMissile,
         );
       case UnitType.Satellite:
-        return (_game: Game, player: Player) => {
+        return (game: Game, player: Player) => {
           if (this.hasInfiniteGold(player)) return 0n;
           return this.withDomesticCost(
+            game,
             player,
             UnitType.Satellite,
             satelliteCost(player.strategic()?.satellitesLaunched() ?? 0),
@@ -525,6 +528,7 @@ export class EngineConfig extends Config {
         0,
       );
       return this.withDomesticCost(
+        game,
         player,
         types[0],
         costFn(numUnits + extraUnits),
@@ -534,6 +538,7 @@ export class EngineConfig extends Config {
 
   /** Applies domestic build-cost modifiers (spec §7.2) to a base cost. */
   private withDomesticCost(
+    game: Game,
     player: Player,
     type: UnitType,
     base: number,
@@ -543,6 +548,9 @@ export class EngineConfig extends Config {
     let pct = Structures.has(type) ? domestic.pct("buildCost") : 0;
     const stat = DOMESTIC_COST_STAT[type];
     if (stat !== undefined) pct += domestic.pct(stat);
+    // World congress (spec §8.2 E2 A): a building pact's discount.
+    const congress = game.congress();
+    if (congress !== null) pct += buildCostPct(congress, type);
     pct = capCombinedPct(pct);
     return pct === 0 ? BigInt(base) : BigInt(Math.round(applyPct(base, pct)));
   }
