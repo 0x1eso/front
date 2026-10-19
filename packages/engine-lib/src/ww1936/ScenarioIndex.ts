@@ -4,9 +4,9 @@ import {
   CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
-  ScenarioData,
-  ScenarioRegion,
-  ScenarioSeaZone,
+  ReadonlyScenarioData,
+  ReadonlyScenarioRegion,
+  ReadonlyScenarioSeaZone,
 } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { decodeRegions } from "./Regions";
@@ -15,24 +15,34 @@ import { decodeRegions } from "./Regions";
  * The static World War 1936 scenario: a region id per tile and what
  * scenario.json says about regions, sea zones and countries. Built once from
  * the map files, by the engine and by the screens alike.
+ *
+ * Read-only: it is not part of a snapshot (a restore rebuilds it from the
+ * map files), so a write here would be state that neither snapshots nor
+ * hashes see. The types say so everywhere they can.
  */
 export class ScenarioIndex {
   readonly width: number;
   readonly height: number;
+  /** scenario.json, validated. */
+  readonly data: ReadonlyScenarioData;
+  /**
+   * The region id of every tile, in map.bin order. Never write it. It stays
+   * a Uint16Array because the renderer uploads it as a texture.
+   */
+  readonly regionIds: Uint16Array;
   /** Countries in the scenario, in COUNTRY_TAGS order: smallID = index + 1. */
   readonly countries: readonly CountryTag[];
   /** Land regions sorted by id. */
-  readonly landRegions: readonly ScenarioRegion[];
-  private readonly regionById = new Map<number, ScenarioRegion>();
-  private readonly seaById = new Map<number, ScenarioSeaZone>();
+  readonly landRegions: readonly ReadonlyScenarioRegion[];
+  private readonly regionById = new Map<number, ReadonlyScenarioRegion>();
+  private readonly seaById = new Map<number, ReadonlyScenarioSeaZone>();
   private readonly capitals = new Map<CountryTag, readonly [number, number]>();
   private readonly owners: Uint16Array;
   private readonly _totalVp: number;
 
-  constructor(
-    readonly data: ScenarioData,
-    readonly regionIds: Uint16Array,
-  ) {
+  constructor(data: ReadonlyScenarioData, regionIds: Uint16Array) {
+    this.data = data;
+    this.regionIds = regionIds;
     this.width = data.width;
     this.height = data.height;
     if (regionIds.length !== data.width * data.height) {
@@ -65,7 +75,10 @@ export class ScenarioIndex {
     }
   }
 
-  static fromFiles(data: ScenarioData, regionsBin: Uint8Array): ScenarioIndex {
+  static fromFiles(
+    data: ReadonlyScenarioData,
+    regionsBin: Uint8Array,
+  ): ScenarioIndex {
     return new ScenarioIndex(
       data,
       decodeRegions(regionsBin, data.width, data.height),
@@ -86,11 +99,11 @@ export class ScenarioIndex {
   }
 
   /** A land region; undefined for sea zones, 0 and unknown ids. */
-  region(id: number): ScenarioRegion | undefined {
+  region(id: number): ReadonlyScenarioRegion | undefined {
     return id >= 1 && id < SEA_ZONE_BASE ? this.regionById.get(id) : undefined;
   }
 
-  seaZone(id: number): ScenarioSeaZone | undefined {
+  seaZone(id: number): ReadonlyScenarioSeaZone | undefined {
     return this.seaById.get(id);
   }
 
@@ -105,12 +118,12 @@ export class ScenarioIndex {
     return y * this.width + x;
   }
 
-  vpTile(region: ScenarioRegion): TileRef {
+  vpTile(region: ReadonlyScenarioRegion): TileRef {
     return region.vpTile[1] * this.width + region.vpTile[0];
   }
 
-  /** smallID of each land region's 1936 owner, indexed by region id. */
-  ownerByRegion(): Uint16Array {
+  /** smallID of each land region's 1936 owner, indexed by region id (read-only). */
+  ownerByRegion(): ArrayLike<number> {
     return this.owners;
   }
 
@@ -118,7 +131,7 @@ export class ScenarioIndex {
     return this._totalVp;
   }
 
-  /** Victory points each country starts with, indexed by smallID. */
+  /** Victory points each country starts with, indexed by smallID (a fresh array). */
   startVpBySmallId(): number[] {
     const out = new Array<number>(this.countries.length + 1).fill(0);
     for (const r of this.landRegions) out[this.owners[r.id]] += r.vp;

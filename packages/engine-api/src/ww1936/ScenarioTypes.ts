@@ -55,3 +55,15 @@ export type ScenarioData = z.infer<typeof ScenarioDataSchema>;
 export type ScenarioCountry = z.infer<typeof ScenarioCountrySchema>;
 export type ScenarioRegion = z.infer<typeof ScenarioRegionSchema>;
 export type ScenarioSeaZone = z.infer<typeof ScenarioSeaZoneSchema>;
+
+/** Plain data with every property, array and tuple read-only, all the way down. */
+export type DeepReadonly<T> = T extends object
+  ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+  : T;
+
+// The static scenario as ScenarioIndex hands it out. It is not part of a
+// snapshot (a restore rebuilds it from the map files), so nothing may write it.
+export type ReadonlyScenarioData = DeepReadonly<ScenarioData>;
+export type ReadonlyScenarioCountry = DeepReadonly<ScenarioCountry>;
+export type ReadonlyScenarioRegion = DeepReadonly<ScenarioRegion>;
+export type ReadonlyScenarioSeaZone = DeepReadonly<ScenarioSeaZone>;

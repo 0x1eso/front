@@ -7,9 +7,26 @@ import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { fillScenarioOwners } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { EngineConfig } from "@openfront/engine/configuration/EngineConfig";
+import {
+  restoreGame,
+  snapshotGame,
+} from "@openfront/engine/snapshot/GameSnapshot";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
+import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { byTag, HUMAN, MINI, step, wwRunner, wwRunnerCapture } from "./util";
+
+/** The mini map's terrain and scenario, freshly loaded. */
+async function miniTerrain() {
+  return loadTerrainMap(
+    await loadMapFiles(
+      new TestDataMapLoader(MINI),
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    ),
+  );
+}
 
 describe("World War 1936 start", () => {
   test("every scenario country is a player, in COUNTRY_TAGS order", async () => {
@@ -78,15 +95,9 @@ describe("World War 1936 start", () => {
     expect(byTag(g, "GBR").numTilesOwned()).toBe(300);
   });
 
-  test("the view fills the same owners as the engine", async () => {
+  test("fillScenarioOwners on a fresh map gives the engine's owners", async () => {
     const runner = await wwRunner();
-    const view = await loadTerrainMap(
-      await loadMapFiles(
-        new TestDataMapLoader(MINI),
-        GameMapType.World1936,
-        GameMapSize.Normal,
-      ),
-    );
+    const view = await miniTerrain();
     fillScenarioOwners(view.gameMap, view.scenario!);
     runner.game.forEachTile((t) => {
       expect(view.gameMap.ownerID(t)).toBe(runner.game.ownerID(t));
@@ -124,5 +135,66 @@ describe("World War 1936 start", () => {
       wars: [],
       capitulated: [],
     });
+  });
+
+  test("a snapshot restores the same object graph", async () => {
+    const runner = await wwRunner({}, [{ clientID: HUMAN, country: "POL" }]);
+    step(runner, 5);
+    const g = runner.game;
+    g.worldWar()!.setWar(
+      byTag(g, "DEU").smallID(),
+      byTag(g, "POL").smallID(),
+      g.ticks(),
+    );
+    step(runner, 2);
+    const bytes = snapshotGame(g);
+    const terrain = await miniTerrain();
+    const restored = restoreGame(bytes, {
+      config: (gc) => new EngineConfig(gc, false),
+      gameMap: terrain.gameMap,
+      miniGameMap: terrain.miniGameMap,
+      scenario: terrain.scenario,
+    });
+    // Each AI country's PlayerInfo is shared by _humans and its Nation.
+    expect(diffGraphs(g, restored)).toEqual([]);
+    expect(diffSnapshots(bytes, snapshotGame(restored))).toEqual([]);
+  });
+
+  test("a World War 1936 snapshot without its state is refused", async () => {
+    const runner = await wwRunner();
+    step(runner, 2);
+    const terrain = await miniTerrain();
+    // Vanilla-shaped bytes for a World War 1936 config: drop the key.
+    const bytes = snapshotGame(runner.game);
+    const g = runner.game as unknown as { _worldWar: unknown };
+    const ww = g._worldWar;
+    g._worldWar = null;
+    const stripped = snapshotGame(runner.game);
+    g._worldWar = ww;
+    expect(() =>
+      restoreGame(stripped, {
+        config: (gc) => new EngineConfig(gc, false),
+        gameMap: terrain.gameMap,
+        miniGameMap: terrain.miniGameMap,
+        scenario: terrain.scenario,
+      }),
+    ).toThrow(/worldWar/);
+    expect(bytes.length).toBeGreaterThan(stripped.length);
+  });
+
+  test("the static scenario is read-only in its types", async () => {
+    const s = (await wwRunner()).game.worldWar()!.scenario;
+    // Never called: `npm run typecheck` checks these lines.
+    const writes = () => {
+      // @ts-expect-error: owners are static scenario data
+      s.ownerByRegion()[1] = 0;
+      // @ts-expect-error: regions are static scenario data
+      s.landRegions[0].vp = 99;
+      // @ts-expect-error: tuples inside are read-only too
+      s.data.regions[0].vpTile[0] = 1;
+      // @ts-expect-error: the region list itself is read-only
+      s.data.regions.push(s.data.regions[0]);
+    };
+    expect(typeof writes).toBe("function");
   });
 });

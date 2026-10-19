@@ -112,7 +112,11 @@ export class WorldWar {
     return tag;
   }
 
-  /** The living player of a country, or null. */
+  /**
+   * The player of a country, or null when the country is not in this
+   * scenario. Dead and capitulated countries still have their player:
+   * callers that need a living one check isAlive() / isCapitulated().
+   */
   playerOfTag(tag: CountryTag): Player | null {
     const id = this.scenario.smallIdOf(tag);
     if (id === 0) return null;

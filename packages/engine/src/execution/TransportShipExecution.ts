@@ -294,6 +294,22 @@ export class TransportShipExecution implements Execution {
           }
           return;
         }
+        // World War 1936 (spec §7.2): a boat whose war ended at sea, or whose
+        // landing tile now belongs to a country it is not at war with, takes
+        // nothing and gives its troops back whole.
+        if (this.mg.worldWar() !== null) {
+          const holder = this.mg.owner(this.dst);
+          if (holder.isPlayer() && !this.attacker.canAttackPlayer(holder)) {
+            const troops = this.boat.troops();
+            this.attacker.addTroops(troops);
+            this.boat.delete(false);
+            this.active = false;
+            this.mg
+              .stats()
+              .boatArriveTroops(this.attacker, this.target, troops);
+            return;
+          }
+        }
         this.attacker.conquer(this.dst);
         if (
           this.target.isPlayer() &&

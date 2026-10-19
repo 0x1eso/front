@@ -118,11 +118,16 @@ export class PlayerView implements PlayerLike {
    * or the local player's team change; the renderer must be refreshed after.
    */
   refreshCosmetics(): void {
-    this.cosmetics = visibleCosmetics(
-      this.equippedCosmetics,
-      this.game.cosmeticVisibility(),
-      this.cosmeticOwner(),
-    );
+    // World War 1936 (spec §5.4, decision 4): the country's flag and colour
+    // are its identity, the same for everyone, never hidden by a setting.
+    this.cosmetics =
+      this.game.worldWarScenario() !== null
+        ? this.equippedCosmetics
+        : visibleCosmetics(
+            this.equippedCosmetics,
+            this.game.cosmeticVisibility(),
+            this.cosmeticOwner(),
+          );
     this.computeColors();
 
     const pattern = this.cosmetics.pattern;

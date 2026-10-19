@@ -284,11 +284,15 @@ export function restoreGame(bytes: Uint8Array, deps: RestoreDeps): Game {
   );
 
   const humans = state.humans.map(newPlayerInfo);
+  // World War 1936 (plan decision 2): every country's PlayerInfo is in
+  // `humans`, and its nation shares that very object. Vanilla ids never
+  // overlap, so every nation gets its own PlayerInfo there.
+  const infoById = new Map(humans.map((h) => [h.id, h]));
   const nations = state.nations.map(
     (n) =>
       new Nation(
         n.spawnCell ? newCell(n.spawnCell) : undefined,
-        newPlayerInfo(n.playerInfo),
+        infoById.get(n.playerInfo.id) ?? newPlayerInfo(n.playerInfo),
       ),
   );
   const game = new GameImpl(

@@ -5,6 +5,11 @@
  * ISO 3166-1 alpha-3 where one exists and are this fork's own otherwise.
  * Names and leaders on screen come from resources/lang
  * (`ww1936.country.<TAG>`, `ww1936.leader.<TAG>`).
+ *
+ * APPEND ONLY, NEVER REORDER OR REMOVE: this list is a wire enum
+ * (`z.enum(COUNTRY_TAGS)` in PlayerSchema.country, countryPicks,
+ * pick_country and scenario.json; zbin encodes the index), and its order
+ * defines every country's smallID, hence the simulation and its replays.
  */
 export const COUNTRY_TAGS = [
   // Majors

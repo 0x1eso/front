@@ -79,6 +79,23 @@ export class AttackExecution implements Execution {
     return this._targetID;
   }
 
+  /**
+   * Refused at init. In World War 1936 the troops a boat or paradrop
+   * already took (removeTroops false) go home instead of vanishing. Other
+   * games keep upstream's behaviour, where they are lost (a world-congress
+   * truce refunds them on its own path).
+   */
+  private refuse(mg: Game): void {
+    if (
+      !this.removeTroops &&
+      this.startTroops !== null &&
+      mg.worldWar() !== null
+    ) {
+      this._owner.addTroops(this.startTroops);
+    }
+    this.active = false;
+  }
+
   activeDuringSpawnPhase(): boolean {
     return false;
   }
@@ -92,7 +109,7 @@ export class AttackExecution implements Execution {
 
     if (this._targetID !== null && !mg.hasPlayer(this._targetID)) {
       console.warn(`target ${this._targetID} not found`);
-      this.active = false;
+      this.refuse(mg);
       return;
     }
 
@@ -105,7 +122,7 @@ export class AttackExecution implements Execution {
 
     if (this._owner === this.target) {
       console.error(`Player ${this._owner} cannot attack itself`);
-      this.active = false;
+      this.refuse(mg);
       return;
     }
 
@@ -116,7 +133,7 @@ export class AttackExecution implements Execution {
         console.warn(
           `${this._owner.displayName()} cannot attack ${targetPlayer.displayName()} because they are friendly (allied or same team)`,
         );
-        this.active = false;
+        this.refuse(mg);
         return;
       }
     }
@@ -131,6 +148,17 @@ export class AttackExecution implements Execution {
       // A landing's own attack: its boat or plane already answered for it.
       if (this.removeTroops) reportTruceRefusal(mg, this._owner, this.target);
       this.active = false;
+      return;
+    }
+
+    // World War 1936 (spec §7.2): no war, no attack, refused before it can
+    // leave an embargo behind. A boat whose war ended on the way lands here.
+    if (
+      this.target.isPlayer() &&
+      mg.worldWar() !== null &&
+      !this._owner.canAttackPlayer(this.target)
+    ) {
+      this.refuse(mg);
       return;
     }
 

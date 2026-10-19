@@ -286,17 +286,15 @@ export class GameImpl implements Game {
    * 1936 owner at once. No tile updates: the screens fill the same owners.
    */
   private assignScenarioTerritory(index: ScenarioIndex): void {
+    // Every owner is set first: isBorder reads the neighbours' owners.
     fillScenarioOwners(this._map, index);
     const n = this._width * this._height;
     for (let t = 0; t < n; t++) {
       const owner = this._map.ownerID(t);
       if (owner === 0) continue;
-      (this._playersBySmallID[owner - 1] as PlayerImpl)._tiles.add(t);
-    }
-    for (let t = 0; t < n; t++) {
-      const owner = this._map.ownerID(t);
-      if (owner === 0 || !this._map.isBorder(t)) continue;
-      (this._playersBySmallID[owner - 1] as PlayerImpl)._borderTiles.add(t);
+      const p = this._playersBySmallID[owner - 1] as PlayerImpl;
+      p._tiles.add(t);
+      if (this._map.isBorder(t)) p._borderTiles.add(t);
     }
     for (const p of this._players.values()) {
       p._lastTileChange = this._ticks;
@@ -1639,7 +1637,12 @@ export class GameImpl implements Game {
     if (this._congress !== null && s.congress !== undefined) {
       this._congress.restoreState(s.congress, r);
     }
-    if (this._worldWar !== null && s.worldWar !== undefined) {
+    if (this._worldWar !== null) {
+      // A World War 1936 game always writes its state; restoring the
+      // defaults instead would silently reset every war.
+      if (s.worldWar === undefined) {
+        throw new Error("World War 1936 snapshot without its worldWar state");
+      }
       this._worldWar.restoreState(s.worldWar);
     }
   }
