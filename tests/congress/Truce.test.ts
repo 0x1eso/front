@@ -17,6 +17,7 @@ import { ConstructionExecution } from "@openfront/engine/execution/ConstructionE
 import { TransportShipExecution } from "@openfront/engine/execution/TransportShipExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { canTargetWithSatellite } from "@openfront/engine/strategic/Satellite";
+import { ParadropExecution } from "@openfront/engine/warfare/ParadropExecution";
 import { grantTechs } from "../domestic/util";
 import { setup } from "../util/Setup";
 import { TestConfig } from "../util/TestConfig";
@@ -182,6 +183,32 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(drops.map((d) => game.x(d.tile))).toEqual(expected.map((p) => p.x));
     // More than a blast away from green's nearest drop point: untouched.
     expect(game.owner(game.ref(overBlue[0].x, overBlue[0].y))).toBe(blue);
+  });
+
+  test("a paradrop in flight when a truce starts is recalled whole", async () => {
+    const game = await congressGame(
+      { warfareExpansion: true, instantBuild: true },
+      [RED, BLUE],
+    );
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 60, 0, 40, 100);
+    game.executeNextTick();
+    grantTechs(red, "industrialization");
+    red.addGold(10_000_000n);
+    red.addTroops(100_000);
+    red.buildUnit(UnitType.Airport, game.ref(10, 10), {});
+    const troops = red.troops();
+    const dst = game.ref(70, 10);
+    game.addExecution(new ParadropExecution(red, 30_000, dst));
+    runTicks(game, 5);
+    expect(red.units(UnitType.TransportPlane)).toHaveLength(1);
+    expect(red.troops()).toBe(troops - 30_000);
+    truce(game, red, blue);
+    runTicks(game, 30);
+    expect(red.units(UnitType.TransportPlane)).toHaveLength(0);
+    expect(game.owner(dst)).toBe(blue);
+    expect(red.outgoingAttacks()).toHaveLength(0);
+    expect(red.troops()).toBeGreaterThanOrEqual(troops);
   });
 
   test("emergency members can't fight each other; the target can be fought", async () => {
