@@ -123,9 +123,14 @@ export function conveneEmergency(
   const now = mg.ticks();
   const pc = convener.congress();
   const block = conveneBlock({
-    available: c
-      .available()
-      .some((a) => a.kind === kind && a.target === target.smallID()),
+    // The list can be up to 9 ticks old: a target that died or left the
+    // ledger since can't be convened against.
+    available:
+      target.isAlive() &&
+      isLedgerPlayer(target) &&
+      c
+        .available()
+        .some((a) => a.kind === kind && a.target === target.smallID()),
     windowOpen: conveneWindowOpen(
       now,
       c.session() !== null,
@@ -171,6 +176,8 @@ export function onEmergencyVote(mg: Game, c: Congress, r: ItemResult): void {
   if (r.adopted !== "A" || !target.isPlayer() || !target.isAlive()) {
     c.setGlobalCooldown(now + EMERGENCY_GLOBAL_COOLDOWN_TICKS);
     c.setTargetCooldown(targetID, now + EMERGENCY_TARGET_COOLDOWN_TICKS);
+    // A target that died during the vote isn't "rejected 3:1": no message.
+    if (target.isPlayer() && !target.isAlive()) return;
     announce(mg, "events_display.congress_emergency_rejected", kind, target, {
       a: r.a,
       b: r.b,

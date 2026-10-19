@@ -111,6 +111,24 @@ describe("what can be convened (spec §9.1)", () => {
     void blue;
   });
 
+  test("nothing is listed while an emergency is running, nor once a winner exists", async () => {
+    const { game, red, blue } = await three();
+    const c = congressOf(game);
+    red.congress()!.recordTaken(game.ticks(), 600);
+    processEmergencySecond(game, c);
+    expect(c.available()).toHaveLength(1);
+    startEmergency(game, c, "aggression", red, [blue.smallID()], []);
+    expect(c.emergency()).not.toBeNull();
+    processEmergencySecond(game, c);
+    expect(c.available()).toEqual([]);
+    finishEmergency(game, c, true);
+    c.setGlobalCooldown(0);
+    c.setTargetCooldown(red.smallID(), 0);
+    game.setWinner(blue, game.stats().stats());
+    processEmergencySecond(game, c);
+    expect(c.available()).toEqual([]);
+  });
+
   test("everyone hears once when an emergency becomes available", async () => {
     const { game, red } = await three();
     red.congress()!.recordTaken(game.ticks(), 600);
@@ -130,6 +148,17 @@ describe("convening (spec §9.2)", () => {
     processEmergencySecond(s.game, congressOf(s.game));
     return s;
   }
+
+  test("a target that died since the list was made can't be convened against, and nothing is paid", async () => {
+    const { game, red, blue } = await available();
+    giveInfluence(blue, 60);
+    expect(congressOf(game).available()).toHaveLength(1);
+    for (const t of Array.from(red.tiles())) red.relinquish(t);
+    expect(red.isAlive()).toBe(false);
+    expect(conveneEmergency(game, blue, "aggression", red)).toBe("unavailable");
+    expect(influence(blue)).toBe(60);
+    expect(congressOf(game).session()).toBeNull();
+  });
 
   test("a seated non-target with 50 influence opens a 20 s vote with its own yes", async () => {
     const { game, red, blue } = await available();
@@ -212,7 +241,7 @@ describe("convening (spec §9.2)", () => {
 });
 
 describe("the vote and the emergency (spec §9.3-§9.5)", () => {
-  async function voted(adopted: "A" | "B") {
+  async function voted(adopted: "A" | "B", killTarget = false) {
     const s = await three();
     const c = congressOf(s.game);
     const session = c.openSession(
@@ -233,9 +262,18 @@ describe("the vote and the emergency (spec §9.3-§9.5)", () => {
     // Passes 2 : 1, or fails 1 : 2.
     c.castBallot(s.blue, session.id, 0, "A", adopted === "A" ? 1 : 0);
     c.castBallot(s.red, session.id, 0, "B", adopted === "A" ? 0 : 1);
+    // The target dies during the vote (a mid-vote conquest).
+    if (killTarget)
+      for (const t of Array.from(s.red.tiles())) s.red.relinquish(t);
     const [result] = c.closeSession();
+    const messages: string[] = [];
     onEmergencyVote(s.game, c, result);
-    return { ...s, c };
+    if (killTarget) {
+      for (const m of s.game.executeNextTick()[GameUpdateType.DisplayEvent]) {
+        messages.push(m.message);
+      }
+    }
+    return { ...s, c, messages };
   }
 
   test("a passed vote starts the emergency: goal 15% of the target's land, the yes voters as members", async () => {
@@ -252,6 +290,17 @@ describe("the vote and the emergency (spec §9.3-§9.5)", () => {
       opposed: [red.smallID()],
     });
     expect(c.emergenciesStarted()).toBe(1);
+  });
+
+  test("a target that dies during the vote gets no 'rejected 2:1' announcement, but the cooldowns still start", async () => {
+    const { game, red, c, messages } = await voted("A", true);
+    expect(red.isAlive()).toBe(false);
+    expect(c.emergency()).toBeNull();
+    expect(messages).not.toContain(
+      "events_display.congress_emergency_rejected",
+    );
+    expect(c.targetCooldownUntil(red.smallID())).toBeGreaterThan(0);
+    void game;
   });
 
   test("a failed vote starts the cooldowns instead", async () => {
