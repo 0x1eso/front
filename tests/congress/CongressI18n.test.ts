@@ -112,7 +112,6 @@ const KEYS = [
     "voting_now",
     "world_gov",
     "world_gov_ratified",
-    "world_gov_waiting",
   ].map((k) => `congress.screen.${k}`),
   ...RESOLUTION_IDS.flatMap((id) =>
     ["name", "a", "b", "a_effect", "b_effect"].map(

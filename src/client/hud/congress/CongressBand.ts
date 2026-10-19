@@ -36,6 +36,37 @@ export const TOAST_TICKS = 30;
 const BAND_GAP = 4;
 /** Top offset without a satellite band, in CSS px (as the satellite band's top-2). */
 const BAND_TOP = 8;
+/** The band ends above this share of the screen's height (the map's centre is at 50%). */
+const BAND_MAX_DVH = 40;
+
+/** At most this many convene rows (my own target warning included); the drawer lists them all. */
+export const MAX_AVAILABLE_ROWS = 2;
+/** Worst first (spec §9.1: nuclear > aggression > hegemony). */
+const KIND_ORDER: Readonly<Record<EmergencyKind, number>> = {
+  nuclear: 0,
+  aggression: 1,
+  hegemony: 2,
+};
+
+/** The convene rows the band shows: my own target warning, then the worst others. */
+export function bandAvailable(
+  available: readonly AvailableEmergencyData[],
+  smallID: number,
+): AvailableEmergencyData[] {
+  const mine = available.filter((a) => a.target === smallID);
+  const others = available
+    .filter((a) => a.target !== smallID)
+    .sort(
+      (a, b) =>
+        KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+        a.sinceTick - b.sinceTick ||
+        a.target - b.target,
+    );
+  return [
+    ...mine,
+    ...others.slice(0, Math.max(0, MAX_AVAILABLE_ROWS - mine.length)),
+  ];
+}
 
 const ROW =
   "rounded-md border px-3 py-1.5 bg-gray-900/85 border-red-500/60 font-semibold";
@@ -45,7 +76,8 @@ const ROW =
  * satellite band when it shows: the session's result banner (with the gavel,
  * once a session), each emergency that can be convened with its one-tap
  * button (or why not), the emergency vote, and the emergency under way with
- * its goal and my part. Nothing covers the map's centre.
+ * its goal and my part. Nothing covers the map's centre: at most
+ * MAX_AVAILABLE_ROWS convene rows, and the band stops at 40% of the height.
  */
 @customElement("congress-band")
 export class CongressBand extends LitElement implements Controller {
@@ -55,10 +87,34 @@ export class CongressBand extends LitElement implements Controller {
   /** The history last seen; null until the first congress data. */
   private seen: readonly ResultData[] | null = null;
   private toast: { results: ResultData[]; untilTick: number } | null = null;
+  /** The satellite band's element we follow, and where this band starts under it. */
+  private satellite: Element | null = null;
+  private satelliteObserver: ResizeObserver | null = null;
+  private bandTop = BAND_TOP;
 
   createRenderRoot() {
     return this;
   }
+
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("resize", this.remeasure);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("resize", this.remeasure);
+    this.satelliteObserver?.disconnect();
+    this.satelliteObserver = null;
+    this.satellite = null;
+  }
+
+  private readonly remeasure = () => {
+    const next = this.measureTop();
+    if (next === this.bandTop) return;
+    this.bandTop = next;
+    this.requestUpdate();
+  };
 
   tick() {
     if (!this.game?.config().congress()) return;
@@ -76,11 +132,29 @@ export class CongressBand extends LitElement implements Controller {
     this.requestUpdate();
   }
 
+  private measureTop(): number {
+    return this.satellite === null
+      ? BAND_TOP
+      : Math.round(this.satellite.getBoundingClientRect().bottom + BAND_GAP);
+  }
+
+  /**
+   * Under the satellite band when it shows. Measured only when that band
+   * appears, goes or resizes, and on window resize: never per tick.
+   */
   private top(): number {
     const sat = document.querySelector("[data-satellite-band]");
-    return sat === null
-      ? BAND_TOP
-      : Math.round(sat.getBoundingClientRect().bottom + BAND_GAP);
+    if (sat !== this.satellite) {
+      this.satelliteObserver?.disconnect();
+      this.satelliteObserver = null;
+      this.satellite = sat;
+      if (sat !== null && typeof ResizeObserver !== "undefined") {
+        this.satelliteObserver = new ResizeObserver(this.remeasure);
+        this.satelliteObserver.observe(sat);
+      }
+      this.bandTop = this.measureTop();
+    }
+    return this.bandTop;
   }
 
   render() {
@@ -94,7 +168,7 @@ export class CongressBand extends LitElement implements Controller {
       rows.push(this.renderToast(this.toast.results));
     }
     if (viewer?.alive) {
-      for (const a of data.available) {
+      for (const a of bandAvailable(data.available, viewer.smallID)) {
         rows.push(this.renderAvailable(data, viewer, a, now));
       }
     }
@@ -106,10 +180,11 @@ export class CongressBand extends LitElement implements Controller {
       rows.push(this.renderEmergency(data.emergency, viewer, now));
     }
     if (rows.length === 0) return nothing;
+    const top = this.top();
     return html`<div
       data-congress-band
-      class="fixed left-1/2 -translate-x-1/2 z-[1002] w-[min(26rem,calc(100vw-32px))] flex flex-col gap-1 text-white text-sm pointer-events-none select-none"
-      style="top: ${this.top()}px"
+      class="fixed left-1/2 -translate-x-1/2 z-[1002] w-[min(26rem,calc(100vw-32px))] flex flex-col gap-1 overflow-hidden text-white text-sm pointer-events-none select-none"
+      style="top: ${top}px; max-height: calc(${BAND_MAX_DVH}dvh - ${top}px)"
     >
       ${rows}
     </div>`;

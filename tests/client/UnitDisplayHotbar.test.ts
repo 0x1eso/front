@@ -1,3 +1,4 @@
+import { CongressData } from "@openfront/engine-api/congress/CongressTypes";
 import { BuildableUnit, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { StrategicData } from "@openfront/engine-api/strategic/StrategicTypes";
 import { STRATEGIC_ONLY_UNITS } from "@openfront/engine-lib/strategic/Strategic";
@@ -22,6 +23,7 @@ import {
 } from "../../src/client/InputHandler";
 import { SendProduceNukeIntentEvent } from "../../src/client/Transport";
 import type { UIState } from "../../src/client/UIState";
+import { EMPTY } from "./CongressFixture";
 
 function buildable(type: UnitType, locked = false): BuildableUnit {
   return {
@@ -58,12 +60,14 @@ async function mount(
     airports?: { busy: boolean }[];
     gold?: bigint;
     factories?: { id: number; level: number }[];
+    congress?: CongressData;
   } = {},
 ): Promise<Mounted> {
   const el = document.createElement("unit-display") as UnitDisplay;
   // Using the class as a value keeps its import (and @customElement) alive.
   expect(el).toBeInstanceOf(UnitDisplay);
   const player = {
+    smallID: () => 1,
     buildables: vi.fn(() => Promise.resolve(buildables)),
     totalUnitLevels: () => 0,
     gold: () => opts.gold ?? 1_000_000n,
@@ -101,6 +105,7 @@ async function mount(
     }),
     myPlayer: () => player,
     inSpawnPhase: () => false,
+    congressData: () => opts.congress ?? null,
   } as unknown as UnitDisplay["game"];
   const emitted: unknown[] = [];
   const handlers = new Map<unknown, (e: unknown) => void>();
@@ -533,6 +538,50 @@ describe("unit-display build bar", () => {
     expect(card(el)?.textContent).toContain("[strategic.producing] count=1");
     await tap(el, "satellite");
     expect(card(el)?.textContent).toContain("[strategic.satellite_used]");
+  });
+
+  it("a unit a resolution bans says so on the icon and the card, and never builds", async () => {
+    const { el, uiState } = await mount([
+      { ...buildable(UnitType.City), canBuild: false, banned: true },
+    ]);
+    expect(
+      button(el, "city").querySelector("[data-banned]")!.textContent,
+    ).toContain("[congress.banned]");
+    await tap(el, "city");
+    await tap(el, "city");
+    expect(uiState.ghostStructure).toBeNull();
+    expect(
+      card(el)!.querySelector("[data-hotbar-reason]")!.textContent,
+    ).toContain("[congress.banned_reason]");
+  });
+
+  it("an embargo stops new nukes at the factory while the stock still fires", async () => {
+    const { el } = await mount([buildable(UnitType.AtomBomb)], {
+      strategic: STRATEGIC(),
+      silos: 1,
+      factories: [{ id: 5, level: 1 }],
+      congress: {
+        ...EMPTY,
+        active: [
+          {
+            resolution: "arms_embargo",
+            option: "A",
+            targets: [1],
+            param: null,
+            sinceTick: 0,
+            expires: "next_tally",
+          },
+        ],
+      },
+    });
+    await tap(el, "atom_bomb");
+    expect(
+      card(el)!.querySelector("[data-produce]")!.hasAttribute("disabled"),
+    ).toBe(true);
+    expect(
+      card(el)!.querySelector("[data-produce-reason]")!.textContent,
+    ).toContain("[congress.banned_reason]");
+    expect(card(el)?.textContent).toContain("[touch_ui.tap_again_to_build]");
   });
 
   describe("paradrop button", () => {

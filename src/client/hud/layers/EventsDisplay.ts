@@ -1,3 +1,7 @@
+import {
+  RESOLUTION_IDS,
+  ResolutionId,
+} from "@openfront/engine-api/congress/CongressTypes";
 import { AllPlayers, MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
   AllianceExpiredUpdate,
@@ -22,6 +26,7 @@ import { UserSettings } from "../../UserSettings";
 
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
+import { optionLabel, titleText } from "../congress/CongressModel";
 import { onlyImages } from "./OnlyImages";
 
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
@@ -59,6 +64,48 @@ const TIER_1_TYPES: ReadonlySet<MessageType> = new Set([
 ]);
 
 const isTier1 = (type: MessageType): boolean => TIER_1_TYPES.has(type);
+
+/**
+ * World congress (Task 9 keys): the resolution, option and emergency ids in
+ * the params become names. A resolution's raw subject (`param`: building,
+ * trade, government or law) joins its name the way the vote cards title it;
+ * one without a name of its own (a host unit id) leaves the name alone.
+ */
+function congressParams(
+  params: Record<string, string | number>,
+): Record<string, string | number> {
+  const { param, ...rest } = params;
+  let out: Record<string, string | number> = rest;
+  const id = out.resolution;
+  if (
+    typeof id === "string" &&
+    (RESOLUTION_IDS as readonly string[]).includes(id)
+  ) {
+    const resolution = id as ResolutionId;
+    out = {
+      ...out,
+      resolution: titleText(
+        {
+          resolution,
+          targets: [],
+          param: typeof param === "string" ? param : null,
+        },
+        () => "",
+        translateText,
+      ),
+    };
+    if (out.option === "A" || out.option === "B") {
+      out = {
+        ...out,
+        option: optionLabel(resolution, out.option, translateText),
+      };
+    }
+  }
+  if (typeof out.kind === "string") {
+    out = { ...out, kind: translateText(`congress.emergency.${out.kind}`) };
+  }
+  return out;
+}
 
 @customElement("events-display")
 export class EventsDisplay extends LitElement implements Controller {
@@ -296,6 +343,10 @@ export class EventsDisplay extends LitElement implements Controller {
         ...params,
         project: translateText(`domestic.project.${params.project}.name`),
       };
+    }
+
+    if (event.message.startsWith("events_display.congress_")) {
+      params = congressParams(params);
     }
 
     if (params.name === undefined || event.focusPlayerID === undefined) {

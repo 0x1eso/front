@@ -139,7 +139,21 @@ function emergency(ctx: CongressScreenContext): TemplateResult {
                   data-convene=${`${a.kind}:${a.target}`}
                   class="h-11 px-3 rounded-md text-sm font-semibold bg-red-700 hover:bg-red-600 disabled:opacity-40"
                   ?disabled=${block !== null}
-                  @click=${() => ctx.convene(a.kind, a.target)}
+                  @click=${() => {
+                    // Checked again on the tap, as the band does (the engine
+                    // refuses a stale one anyway).
+                    if (
+                      conveneState(
+                        ctx.data,
+                        ctx.viewer,
+                        a.kind,
+                        a.target,
+                        ctx.now,
+                      ) === null
+                    ) {
+                      ctx.convene(a.kind, a.target);
+                    }
+                  }}
                 >
                   ${ctx.t("congress.band.convene", { cost: CONVENE_COST })}
                 </button>

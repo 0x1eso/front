@@ -60,6 +60,7 @@ async function openDrawer(infiniteGold: boolean): Promise<DomesticPanel> {
   panel.game = {
     myPlayer: () => me,
     ticks: () => 0,
+    congressData: () => null,
     numLandTiles: () => 100,
     numTilesWithFallout: () => 0,
     config: () => ({

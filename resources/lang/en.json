@@ -837,8 +837,7 @@
       "victims": "Hardest hit (3 min)",
       "voting_now": "Voting now · {seconds}s left",
       "world_gov": "World government",
-      "world_gov_ratified": "{name}: ratified",
-      "world_gov_waiting": "{name}: awaiting ratification"
+      "world_gov_ratified": "{name}: ratified"
     },
     "status": {
       "aggressing": "At war · 0/s",

@@ -249,6 +249,98 @@ describe("nations follow the congress (spec §11.4)", () => {
     expect(congressSparesTarget(game, attacker, weak)).toBe(false);
   });
 
+  test("a forced answer to a protectorate's attack still goes through", async () => {
+    const { game, attacker, weak, behavior } = await stripes("merchant");
+    enact(game, { resolution: "protectorate", targets: [weak.smallID()] });
+    weak.setTroops(8_000_000);
+    game.addExecution(new AttackExecution(1_000_000, weak, attacker.id()));
+    runTicks(game, 2);
+    expect(congressSparesTarget(game, attacker, weak)).toBe(true);
+    expect(behavior.sendAttack(weak)).toBe(false);
+    expect(behavior.findIncomingAttackPlayer()?.name()).toBe("weak");
+    // Medium retaliates in attackBestTarget, forced.
+    expect(targetsAfterAttack(game, attacker, behavior)).toContain("weak");
+  });
+
+  test("a waiting proclamation is singled out once the congress rejected it", async () => {
+    const { game, attacker, weak, rich, behavior } = await stripes(
+      "merchant",
+      Difficulty.Hard,
+    );
+    for (const tile of Array.from(rich.tiles()).slice(0, 3)) {
+      const city = rich.buildUnit(UnitType.City, tile, {});
+      city.increaseLevel();
+      city.increaseLevel();
+    }
+    rich.setTroops(Math.floor(game.config().maxTroops(rich) * 0.3));
+    // Complete and waiting for ratification (spec §10.1 step 6).
+    const d = weak.domestic()!;
+    d.beginVictoryProject("political", 99, 2400);
+    d.shiftVictoryProject(-2400);
+    expect(d.victoryProject()!.ticksLeft).toBe(0);
+    const first = targetsAfterAttack(game, attacker, behavior);
+    expect(first.length).toBeGreaterThan(0);
+    for (const t of first) expect(t).toBe("rich");
+    // The latest decision on it: a rejection.
+    congressOf(game).setVerdict(weak.smallID(), { host: 99, ratified: false });
+    attacker.setTroops(5_000_000);
+    expect(targetsAfterAttack(game, attacker, behavior)).toContain("weak");
+  });
+
+  test("tribes attack the same under a war tax", async () => {
+    // A tribe whose id would read as a merchant's, were it a nation.
+    const tribeId = idWith("merchant");
+    const choices = async (warTax: boolean) => {
+      const game = await congressGame(
+        { difficulty: Difficulty.Medium },
+        [
+          new PlayerInfo("tribe", PlayerType.Bot, null, tribeId),
+          new PlayerInfo("weak", PlayerType.Human, null, "weak_id"),
+          new PlayerInfo("rich", PlayerType.Human, null, "rich_id"),
+        ],
+        "big_plains",
+      );
+      const tribe = game.player(tribeId);
+      const weak = game.player("weak_id");
+      const rich = game.player("rich_id");
+      for (let x = 0; x < game.map().width(); x++) {
+        for (let y = 0; y < game.map().height(); y++) {
+          const tile = game.ref(x, y);
+          if (x < 40) weak.conquer(tile);
+          else if (x < 60) tribe.conquer(tile);
+          else rich.conquer(tile);
+        }
+      }
+      game.executeNextTick();
+      tribe.setTroops(5_000_000);
+      if (warTax) enact(game, { resolution: "war_tax" });
+      const behavior = new AiAttackBehavior(
+        new PseudoRandom(42),
+        game,
+        tribe,
+        0,
+        0,
+        0.2,
+      );
+      expect(behavior.shouldAttack(weak)).toBe(true);
+      const out: (string | null)[] = [];
+      for (let i = 0; i < 5; i++) {
+        const before = tribe.outgoingAttacks().length;
+        behavior.attackRandomTarget();
+        runTicks(game, 1);
+        for (const a of tribe.outgoingAttacks().slice(before)) {
+          out.push(
+            a.target().isPlayer() ? (a.target() as Player).name() : null,
+          );
+        }
+      }
+      return out;
+    };
+    const plain = await choices(false);
+    expect(plain.length).toBeGreaterThan(0);
+    expect(await choices(true)).toEqual(plain);
+  });
+
   test("Hard nations single out a project only when the congress condemned it", async () => {
     const { game, attacker, weak, rich, behavior } = await stripes(
       "merchant",

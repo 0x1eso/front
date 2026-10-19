@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { aiVoteDelayTicks } from "@openfront/engine-lib/congress/CongressBalance";
 import { MILLI } from "@openfront/engine-lib/domestic/Balance";
+import { conveneEmergency } from "@openfront/engine/congress/Emergencies";
 import { DomesticExecution } from "@openfront/engine/domestic/DomesticExecution";
 import { NationExecution } from "@openfront/engine/execution/NationExecution";
 import {
@@ -344,6 +345,41 @@ describe("nations in the congress", () => {
     expect(nation.congress()!.ballot(c.session()!.id, 0)).toMatchObject({
       option: "A",
     });
+  });
+
+  test("a convener raises its own yes to what its policy wants, within the budget", async () => {
+    for (const [points, extra] of [
+      [200, 2], // a victim's half of Hard's cap
+      [20, 1], // 14 to spend: +1 (10)
+    ] as const) {
+      const { game, red, nation } = await withNation("merchant");
+      const c = congressOf(game);
+      red.congress()!.recordTaken(game.ticks(), 600);
+      nation.congress()!.recordHitBy(red.smallID(), game.ticks());
+      for (let t = 0; t < 20 && c.available().length === 0; t++) {
+        step(game, nation);
+      }
+      setInfluence(nation, 100);
+      // Its yes goes in with the convening, without extra votes.
+      expect(conveneEmergency(game, nation, "aggression", red)).toBeNull();
+      const s = c.session()!;
+      const pc = nation.congress()!;
+      expect(pc.ballot(s.id, 0)).toMatchObject({ option: "A", extra: 0 });
+      while (game.ticks() < s.openTick + aiVoteDelayTicks(nation.smallID())) {
+        step(game, nation);
+        expect(pc.ballot(s.id, 0)!.extra).toBe(0);
+      }
+      setInfluence(nation, points);
+      step(game, nation);
+      expect(pc.ballot(s.id, 0), `${points}`).toMatchObject({
+        option: "A",
+        extra,
+      });
+      expect(c.session()!.items[0].voters).toBe(1);
+      // Raised once: nothing more later.
+      for (let t = 0; t < 20; t++) step(game, nation);
+      expect(pc.ballot(s.id, 0)!.extra).toBe(extra);
+    }
   });
 
   test("a nation that wasn't hit doesn't convene on Medium; Easy never does", async () => {

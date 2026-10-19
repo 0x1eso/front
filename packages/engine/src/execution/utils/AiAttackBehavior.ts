@@ -49,6 +49,7 @@ import { DonateTroopsExecution } from "../DonateTroopExecution";
 import { planBotAttacks, walledInBots } from "../nation/BotAnnexation";
 import { NationAllianceBehavior } from "../nation/NationAllianceBehavior";
 import {
+  congressAllowsAttack,
   congressRestraint,
   congressSparesTarget,
   emergencyTargetFor,
@@ -382,18 +383,18 @@ export class AiAttackBehavior {
       if (owner.isPlayer() && borderingEnemies.includes(owner)) {
         continue;
       }
-      // World congress (spec §11.4): nor to one it spares.
-      if (
-        owner.isPlayer() &&
-        congressSparesTarget(this.game, this.player, owner)
-      ) {
-        continue;
-      }
       // Don't spam boats into players which are stronger than us (FFA only)
       if (
         this.isFFA() &&
         owner.isPlayer() &&
         owner.troops() > this.player.troops()
+      ) {
+        continue;
+      }
+      // World congress (spec §11.4): nor to one it spares.
+      if (
+        owner.isPlayer() &&
+        congressSparesTarget(this.game, this.player, owner)
       ) {
         continue;
       }
@@ -861,7 +862,9 @@ export class AiAttackBehavior {
   strike(target: Player): boolean {
     if (
       this.player.isFriendly(target) ||
-      !this.player.sharesBorderWith(target)
+      !this.player.sharesBorderWith(target) ||
+      // The congress may have stepped in since the nuke left (spec §11.4).
+      !congressAllowsAttack(this.game, this.player, target)
     ) {
       return false;
     }
@@ -1274,18 +1277,19 @@ export class AiAttackBehavior {
   }
 
   sendAttack(target: Player | TerraNullius, force = false): boolean {
-    // World congress (spec §11.4): every path a nation attacks by (hated,
-    // island, assist, boats...) leaves a truce partner alone, and a
-    // protectorate we don't outnumber two to one unless answering it.
-    if (
-      target.isPlayer() &&
-      this.player.type() === PlayerType.Nation &&
-      (this.player.isTruceWith(target) ||
-        (!force && congressSparesTarget(this.game, this.player, target)))
-    ) {
+    if (force) {
+      // World congress (spec §8.1 S2): not even an answer goes at a truce
+      // partner (the engine would refuse it). shouldAttack gates the rest.
+      if (
+        target.isPlayer() &&
+        this.player.type() === PlayerType.Nation &&
+        this.player.isTruceWith(target)
+      ) {
+        return false;
+      }
+    } else if (!this.shouldAttack(target)) {
       return false;
     }
-    if (!force && !this.shouldAttack(target)) return false;
 
     if (target.isPlayer()) {
       if (this.player.sharesBorderWith(target)) {
@@ -1400,6 +1404,15 @@ export class AiAttackBehavior {
   }
 
   shouldAttack(other: Player | TerraNullius): boolean {
+    // World congress (spec §11.4): every attack and strike a nation starts
+    // passes here (sendAttack, and the nuke, warfare and strategic
+    // behaviours). Before any draw: no congress, no change.
+    if (
+      other.isPlayer() &&
+      !congressAllowsAttack(this.game, this.player, other)
+    ) {
+      return false;
+    }
     if (
       // Always attack Terra Nullius, non-humans and traitors
       other.isPlayer() === false ||
