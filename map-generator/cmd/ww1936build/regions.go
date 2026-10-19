@@ -255,8 +255,12 @@ func finishNames(regions []*Region, adm []int32, admin []Feature, t *Tables) err
 	return nil
 }
 
-// splitPixels cuts a connected set of pixels into k parts around k seeds
-// picked farthest-first (ties: the smaller pixel), by multi-source BFS.
+// splitPixels cuts a set of pixels into k parts around k seeds, by
+// multi-source BFS. The set can be several pieces (islands joined across the
+// water): the seeds go to the pieces by the D'Hondt rule on their sizes
+// (ties: the piece with the smaller first pixel), and each piece's seeds are
+// picked farthest-first from its smallest pixel (ties: the smaller pixel).
+// Pieces without a seed join the nearest seed as the crow flies.
 func splitPixels(pixels []int32, k, w, n int, mark []int32, tag int32) [][]int32 {
 	for _, px := range pixels {
 		mark[px] = tag
@@ -282,29 +286,58 @@ func splitPixels(pixels []int32, k, w, n int, mark []int32, tag int32) [][]int32
 		}
 		return dist
 	}
-	first := pixels[0]
-	for _, px := range pixels {
-		if px < first {
-			first = px
+	// The connected pieces, in the order of their smallest pixel; each
+	// piece's first pixel is its smallest.
+	sorted := append([]int32(nil), pixels...)
+	sort.Slice(sorted, func(a, b int) bool { return sorted[a] < sorted[b] })
+	seen := make(map[int32]bool, len(pixels))
+	var pieces [][]int32
+	for _, px := range sorted {
+		if seen[px] {
+			continue
 		}
+		seen[px] = true
+		piece := []int32{px}
+		for head := 0; head < len(piece); head++ {
+			forNeighbours4(int(piece[head]), w, n, func(j int) {
+				if in(j) && !seen[int32(j)] {
+					seen[int32(j)] = true
+					piece = append(piece, int32(j))
+				}
+			})
+		}
+		pieces = append(pieces, piece)
 	}
-	seeds := []int32{first}
-	for len(seeds) < k {
-		dist := bfs(seeds)
-		best, bestD := int32(-1), int32(-1)
-		for _, px := range pixels {
-			d, ok := dist[px]
-			if !ok {
-				continue
-			}
-			if d > bestD || (d == bestD && px < best) {
-				best, bestD = px, d
+	quota := make([]int, len(pieces))
+	for s := 0; s < k; s++ {
+		best := 0
+		for c := 1; c < len(pieces); c++ {
+			if len(pieces[c])*(quota[best]+1) > len(pieces[best])*(quota[c]+1) {
+				best = c
 			}
 		}
-		if bestD <= 0 {
-			break
+		quota[best]++
+	}
+	var seeds []int32
+	for c, piece := range pieces {
+		if quota[c] == 0 {
+			continue
 		}
-		seeds = append(seeds, best)
+		own := []int32{piece[0]}
+		for len(own) < quota[c] {
+			dist := bfs(own)
+			best, bestD := int32(-1), int32(-1)
+			for _, px := range piece {
+				if d := dist[px]; d > bestD || (d == bestD && px < best) {
+					best, bestD = px, d
+				}
+			}
+			if bestD <= 0 {
+				break
+			}
+			own = append(own, best)
+		}
+		seeds = append(seeds, own...)
 	}
 	owner := make(map[int32]int, len(pixels))
 	queue := append([]int32(nil), seeds...)

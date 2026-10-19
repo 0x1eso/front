@@ -75,3 +75,33 @@ func TestSplitPixelsCoversEverything(t *testing.T) {
 		t.Fatalf("parts cover %d of %d pixels", total, n)
 	}
 }
+
+// A region of a mainland and an island joined across the water: the island
+// holds the set's first pixel, but the seeds must still cut the mainland
+// into even parts instead of all landing on the island.
+func TestSplitPixelsSeedsTheLargestPieces(t *testing.T) {
+	w, h := 60, 22
+	n := w * h
+	var pix []int32
+	for x := 0; x < 4; x++ {
+		pix = append(pix, int32(x)) // the island, row 0
+	}
+	for i := 2 * w; i < n; i++ {
+		pix = append(pix, int32(i)) // the mainland, rows 2..21
+	}
+	mark := make([]int32, n)
+	parts := splitPixels(pix, 3, w, n, mark, 1)
+	if len(parts) != 3 {
+		t.Fatalf("%d parts", len(parts))
+	}
+	total := 0
+	for _, part := range parts {
+		if len(part) < len(pix)/6 || len(part) > len(pix)/2 {
+			t.Fatalf("a part of %d of %d pixels", len(part), len(pix))
+		}
+		total += len(part)
+	}
+	if total != len(pix) {
+		t.Fatalf("parts cover %d of %d pixels", total, len(pix))
+	}
+}
