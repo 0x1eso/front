@@ -23,6 +23,7 @@ import {
   optionLabel,
   reasonText,
   resolutionChips,
+  sameDrawKey,
   ticksToSeconds,
   titleText,
   viewerOf,
@@ -80,6 +81,8 @@ export class CongressCards extends LitElement implements Controller {
    */
   private stackMax: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  /** What the last redraw request was made for (sameDrawKey). */
+  private drawn: unknown[] | null = null;
 
   createRenderRoot() {
     return this;
@@ -157,6 +160,24 @@ export class CongressCards extends LitElement implements Controller {
       .filter((s) => s.untilTick > now)
       .slice(-MAX_STAMPS);
     this.trackVotedAt(data, now);
+    // Redraw only when what is shown can change: the congress data, my own
+    // data, a displayed second (the session's clock, the chips'), a stamp
+    // going, or the fold timer running out. Not every tick.
+    const me = this.game.myPlayer();
+    const s = data.session;
+    const key = [
+      data,
+      me?.congressData() ?? null,
+      me?.isAlive() ?? false,
+      this.stamps.length,
+      this.votedAt !== null && now - this.votedAt.tick >= COLLAPSE_TICKS,
+      s === null ? -1 : ticksToSeconds(s.closeTick - now),
+      resolutionChips(data, me?.smallID() ?? -1, now)
+        .map((c) => (c.remaining === null ? -1 : ticksToSeconds(c.remaining)))
+        .join(","),
+    ];
+    if (sameDrawKey(this.drawn, key)) return;
+    this.drawn = key;
     this.requestUpdate();
   }
 

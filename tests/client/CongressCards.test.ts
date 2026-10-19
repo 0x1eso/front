@@ -391,4 +391,31 @@ describe("vote cards", () => {
     });
     expect(q(el, "[data-congress-chip]")!.classList).toContain("h-8");
   });
+
+  it("asks for a redraw only when the data, my data or a shown second changes", async () => {
+    const state: FakeCongress = {
+      now: 1900,
+      data: { ...EMPTY, session: REGULAR },
+      ballots: [],
+      influence: 50,
+    };
+    const { el, step } = await mount(state);
+    // A real PlayerView keeps one congressData object until it changes.
+    const me = el.game.myPlayer()!;
+    const mine = me.congressData();
+    (me as unknown as { congressData: () => unknown }).congressData = () =>
+      mine;
+    await step(1901);
+    const redraw = vi.spyOn(el, "requestUpdate");
+    // The clock reads 0:20 from tick 1900 to 1909 (closes at 2100).
+    for (let t = 1902; t < 1910; t++) await step(t);
+    expect(redraw).not.toHaveBeenCalled();
+    await step(1910);
+    expect(redraw).toHaveBeenCalledTimes(1);
+    state.data = { ...state.data };
+    await step(1911);
+    expect(redraw).toHaveBeenCalledTimes(2);
+    await step(1912);
+    expect(redraw).toHaveBeenCalledTimes(2);
+  });
 });

@@ -97,6 +97,21 @@ export function nameOf(game: GameView, smallID: number): string {
 /** Whole influence points convening costs. */
 export const CONVENE_COST = CONVENE_COST_MILLI / MILLI;
 
+/**
+ * What a congress HUD element last drew from, compared value by value
+ * (objects by identity): it redraws only when one of them changed.
+ */
+export function sameDrawKey(
+  prev: readonly unknown[] | null,
+  next: readonly unknown[],
+): boolean {
+  return (
+    prev !== null &&
+    prev.length === next.length &&
+    prev.every((v, i) => Object.is(v, next[i]))
+  );
+}
+
 export function ticksToSeconds(ticks: number): number {
   return Math.max(0, Math.ceil(ticks / 10));
 }
