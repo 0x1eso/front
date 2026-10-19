@@ -74,4 +74,31 @@ describe("vanilla stays bit-identical", () => {
   test("strategic weapons on", async () => {
     expect(await digest({ strategicWeapons: true })).toBe("091085284bca29e0");
   }, 60_000);
+
+  // World congress (spec §3.2): explicitly off, without domestic mode, or in a
+  // domestic game, the option changes nothing. Pins taken from the tests above.
+  test("domestic mode with the congress option explicitly off", async () => {
+    expect(
+      await digest({
+        domesticMode: true,
+        strategicWeapons: false,
+        congress: false,
+      }),
+    ).toBe("a7dac00d9005a3ad");
+  }, 60_000);
+
+  test("the congress option without domestic mode changes nothing", async () => {
+    expect(await digest({ congress: true })).toBe("c330352312204618");
+  }, 60_000);
+
+  test("domestic mode and expanded warfare with the congress option explicitly off", async () => {
+    expect(
+      await digest({
+        domesticMode: true,
+        warfareExpansion: true,
+        strategicWeapons: false,
+        congress: false,
+      }),
+    ).toBe("dddf7fe292970133");
+  }, 60_000);
 });

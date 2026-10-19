@@ -386,6 +386,8 @@ export interface BuildableUnit {
   ghostRailPaths: TileRef[][];
   /** Domestic mode: the unit needs a tech this player hasn't researched. */
   locked?: boolean;
+  /** World congress: a resolution in force forbids building or buying it now. */
+  banned?: boolean;
 }
 
 // Total price of buying `amount` of a buildable in one intent. Upgrades use
@@ -497,6 +499,7 @@ export enum MessageType {
   RESEARCH_COMPLETE,
   GOVERNMENT_TIER_REACHED,
   VICTORY_PROJECT,
+  CONGRESS,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -535,6 +538,7 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.RESEARCH_COMPLETE]: MessageCategory.TRADE,
   [MessageType.GOVERNMENT_TIER_REACHED]: MessageCategory.TRADE,
   [MessageType.VICTORY_PROJECT]: MessageCategory.ATTACK,
+  [MessageType.CONGRESS]: MessageCategory.ALLIANCE,
 } as const;
 
 /**

@@ -7,6 +7,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { NukeType } from "@openfront/engine-api/StatsSchemas";
+import { NukeWeapon } from "@openfront/engine-lib/congress/CongressBalance";
 import { atan2 } from "@openfront/engine-lib/DetMath";
 import { listNukeBreakAlliance } from "@openfront/engine-lib/execution/NukeAlliance";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
@@ -18,6 +19,7 @@ import {
   zTile,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
+import { congressNukeHit } from "../congress/Emergencies";
 import { Execution, Game, isUnit, Player, Unit } from "../game/Game";
 import { UniversalPathFinding } from "../pathfinding/PathFinder";
 import { ParabolaUniversalPathFinder } from "../pathfinding/PathFinder.Parabola";
@@ -411,6 +413,19 @@ export class NukeExecution implements Execution {
 
       // Record every tile in the blast radius for nukeable layer destruction.
       mg.queueNukeImpact(tile);
+    }
+
+    // World congress (spec §4.2, §9.1): the shooter's nuke score and the
+    // victims' losses.
+    const congress = mg.congress();
+    if (congress !== null) {
+      congressNukeHit(
+        mg,
+        congress,
+        this.player,
+        tilesPerPlayers,
+        this.nuke.type() as NukeWeapon,
+      );
     }
 
     // Then compute the explosion effect on each player

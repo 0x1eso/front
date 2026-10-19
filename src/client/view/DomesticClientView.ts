@@ -22,8 +22,14 @@ export class DomesticClientView implements DomesticView {
     this.techSet = new Set(data.techs);
     this.lawMap = lawMapOf(data.laws);
     this.conditionSet = new Set(data.conditions);
-    // Same totals as the engine's PlayerDomestic (Decision 22).
-    this.totals = domesticModifiers(data.techs, this.lawMap, data.government);
+    // Same totals as the engine's PlayerDomestic (Decision 22), congress
+    // resolutions included.
+    this.totals = domesticModifiers(
+      data.techs,
+      this.lawMap,
+      data.government,
+      data.congressModifiers ?? [],
+    );
   }
 
   pct(stat: StatKey): number {

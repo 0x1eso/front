@@ -2,6 +2,12 @@ import { zb } from "@openfront/zbin";
 import quickChatData from "resources/QuickChat.json";
 import { z } from "zod";
 import {
+  BALLOT_OPTIONS,
+  EMERGENCY_KINDS,
+  MAX_AGENDA_ITEMS,
+  MAX_EXTRA_VOTES,
+} from "./congress/CongressTypes";
+import {
   GOVERNMENT_IDS,
   LAW_IDS,
   LAW_OPTIONS,
@@ -73,7 +79,9 @@ export type Intent =
   | ProduceNukeIntent
   | SatelliteTargetIntent
   | InterceptSatelliteIntent
-  | QueueResearchIntent;
+  | QueueResearchIntent
+  | CongressVoteIntent
+  | ConveneEmergencyIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -129,6 +137,10 @@ export type InterceptSatelliteIntent = z.infer<
   typeof InterceptSatelliteIntentSchema
 >;
 export type QueueResearchIntent = z.infer<typeof QueueResearchIntentSchema>;
+export type CongressVoteIntent = z.infer<typeof CongressVoteIntentSchema>;
+export type ConveneEmergencyIntent = z.infer<
+  typeof ConveneEmergencyIntentSchema
+>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -390,6 +402,11 @@ export const GameConfigSchema = z.object({
   // independent of warfareExpansion. See
   // docs/superpowers/specs/2026-10-16-strategic-weapons-design.md.
   strategicWeapons: z.boolean().optional(),
+  // World congress (this fork): three-minute secret-ballot sessions,
+  // influence, resolutions and emergencies. Only with domestic mode in FFA;
+  // the lobby turns it on with domestic mode. See
+  // docs/superpowers/specs/2026-10-19-world-congress-design.md.
+  congress: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -692,6 +709,23 @@ export const QueueResearchIntentSchema = z.object({
   tech: z.enum(TECH_IDS).nullable(),
 });
 
+// World congress (spec §6.3): a ballot, or a raise of its extra votes, on
+// one agenda item of the open session.
+export const CongressVoteIntentSchema = z.object({
+  type: z.literal("congress_vote"),
+  session: zb.uint(),
+  item: zb.uint({ max: MAX_AGENDA_ITEMS - 1 }),
+  option: z.enum(BALLOT_OPTIONS),
+  extra: zb.uint({ max: MAX_EXTRA_VOTES }),
+});
+
+// World congress (spec §9.2): convene an emergency session against `target`.
+export const ConveneEmergencyIntentSchema = z.object({
+  type: z.literal("convene_emergency"),
+  kind: z.enum(EMERGENCY_KINDS),
+  target: MappedID,
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -728,6 +762,8 @@ export const IntentSchema = z.discriminatedUnion("type", [
   SatelliteTargetIntentSchema,
   InterceptSatelliteIntentSchema,
   QueueResearchIntentSchema,
+  CongressVoteIntentSchema,
+  ConveneEmergencyIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

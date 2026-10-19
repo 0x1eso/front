@@ -1,4 +1,5 @@
 import { ClientID } from "@openfront/engine-api/Schemas";
+import type { PlayerCongressData } from "@openfront/engine-api/congress/CongressTypes";
 import type { DomesticData } from "@openfront/engine-api/domestic/DomesticTypes";
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
@@ -58,6 +59,7 @@ export class PlayerView implements PlayerLike {
   public cosmetics!: PlayerCosmetics;
   private _domestic: DomesticClientView | null = null;
   private _strategic: StrategicData | null = null;
+  private _congress: PlayerCongressData | null = null;
 
   // Assigned via computeColors() in the constructor; re-assignable on theme change.
   private _territoryColor!: Colord;
@@ -87,6 +89,7 @@ export class PlayerView implements PlayerLike {
       ? new DomesticClientView(data.domestic)
       : null;
     this._strategic = data.strategic ?? null;
+    this._congress = data.congress ?? null;
     // Respect the client-side "Disable emojis" setting: when off, never surface
     // emoji data to any renderer/overlay that reads this shared state (#4430).
     if (!userSettings.emojis()) {
@@ -229,6 +232,9 @@ export class PlayerView implements PlayerLike {
     }
     if (pu.strategic !== undefined) {
       this._strategic = pu.strategic;
+    }
+    if (pu.congress !== undefined) {
+      this._congress = pu.congress;
     }
     // applyStateUpdate refreshes outgoingEmojis every tick; re-apply the
     // "Disable emojis" setting so live emojis stay hidden when it's off (#4430).
@@ -500,6 +506,11 @@ export class PlayerView implements PlayerLike {
   /** Strategic weapons: the last state the worker sent; null with the option off. */
   strategicData(): StrategicData | null {
     return this._strategic;
+  }
+
+  /** World congress: this player's last congress state; null with the option off. The UI only shows its own player's. */
+  congressData(): PlayerCongressData | null {
+    return this._congress;
   }
 
   /** The last domestic state the worker sent (same object until it changes). */

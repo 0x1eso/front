@@ -68,6 +68,16 @@ import {
   CARPET_BOMB_OUTER,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
+import { isTruce } from "../congress/Conflict";
+import {
+  congressBans,
+  donationBlocked,
+  tradeBlocked,
+} from "../congress/Effects";
+import {
+  PlayerCongress,
+  PlayerCongressStateSchema,
+} from "../congress/PlayerCongress";
 import {
   DomesticStateSchema,
   PlayerDomestic,
@@ -183,6 +193,8 @@ export class PlayerImpl implements Player {
   private _domestic: PlayerDomestic | null = null;
   /** Strategic weapons state; null with the option off. */
   private _strategic: PlayerStrategic | null = null;
+  /** World congress state; null with the option off and for bots. */
+  private _congress: PlayerCongress | null = null;
 
   markedTraitorTick = -1;
   markedDoomsdayClockTick = -1;
@@ -258,6 +270,10 @@ export class PlayerImpl implements Player {
     this._strategic = mg.config().strategicWeapons()
       ? new PlayerStrategic()
       : null;
+    this._congress =
+      mg.config().congress() && playerInfo.playerType !== PlayerType.Bot
+        ? new PlayerCongress()
+        : null;
   }
 
   largestClusterBoundingBox: { min: Cell; max: Cell } | null;
@@ -461,6 +477,7 @@ export class PlayerImpl implements Player {
       ...(this._strategic === null
         ? {}
         : { strategic: this._strategic.toData() }),
+      ...(this._congress === null ? {} : { congress: this._congress.toData() }),
     };
   }
 
@@ -561,6 +578,7 @@ export class PlayerImpl implements Player {
     } else {
       this.numUnitsConstructed[type] = 1;
     }
+    this.mg.congress()?.noteBuilt(type);
   }
 
   // Count of units built by the player, including those still under
@@ -781,6 +799,20 @@ export class PlayerImpl implements Player {
 
   strategic(): PlayerStrategic | null {
     return this._strategic;
+  }
+
+  congress(): PlayerCongress | null {
+    return this._congress;
+  }
+
+  isTruceWith(other: Player): boolean {
+    const c = this.mg.congress();
+    return c !== null && other !== this && isTruce(c, this, other);
+  }
+
+  isCongressBanned(type: UnitType): boolean {
+    const c = this.mg.congress();
+    return c !== null && congressBans(c, this, type);
   }
 
   domestic(): PlayerDomestic | null {
@@ -1149,6 +1181,11 @@ export class PlayerImpl implements Player {
     if (recipient === this) {
       return false;
     }
+    // World congress: a sanctioned player receives nothing (spec §8.1 S1).
+    const congress = this.mg.congress();
+    if (congress !== null && donationBlocked(congress, recipient)) {
+      return false;
+    }
     if (
       !this.isAlive() ||
       !recipient.isAlive() ||
@@ -1177,6 +1214,11 @@ export class PlayerImpl implements Player {
 
   canDonateTroops(recipient: Player): boolean {
     if (recipient === this) {
+      return false;
+    }
+    // World congress: a sanctioned player receives nothing (spec §8.1 S1).
+    const congress = this.mg.congress();
+    if (congress !== null && donationBlocked(congress, recipient)) {
       return false;
     }
     if (
@@ -1299,6 +1341,9 @@ export class PlayerImpl implements Player {
     const embargo =
       other.hasEmbargoAgainst(this) || this.hasEmbargoAgainst(other);
     if (embargo || other.id() === this.id()) return false;
+    // World congress: sanctions stop all trade of the sanctioned side.
+    const congress = this.mg.congress();
+    if (congress !== null && tradeBlocked(congress, this, other)) return false;
     // Domestic mode: isolationism forbids trade with any other nation.
     return !(
       this._domestic?.hasFlag("noForeignTrade") === true ||
@@ -1538,6 +1583,10 @@ export class PlayerImpl implements Player {
     if (this._strategic !== null && isStockpiledNuke(unitType)) {
       return this._strategic.stock(unitType) > 0 && this.isAlive();
     }
+    // World congress: a resolution forbids it (stock launches above never are).
+    if (this.isCongressBanned(unitType)) {
+      return false;
+    }
     const cost = knownCost ?? this.mg.unitInfo(unitType).cost(this.mg, this);
     if (this._gold < cost) {
       return false;
@@ -1650,6 +1699,13 @@ export class PlayerImpl implements Player {
           ? rail.computeGhostRailPaths(u, canBuild as TileRef)
           : [],
         locked: this.isUnitLocked(u),
+        ...(mg.congress() === null
+          ? {}
+          : {
+              banned:
+                this.isCongressBanned(u) &&
+                !(this._strategic !== null && isStockpiledNuke(u)),
+            }),
       };
     }
 
@@ -1743,6 +1799,7 @@ export class PlayerImpl implements Player {
       if (this.isOnSameTeam(owner) && !gameOver) {
         return false;
       }
+      if (this.isTruceWith(owner)) return false;
     }
     const config = mg.config();
 
@@ -1825,7 +1882,12 @@ export class PlayerImpl implements Player {
     if (mg.isSpawnImmunityActive() || mg.isImpassable(tile)) return false;
     const owner = mg.owner(tile);
     // Disconnected allies and teammates stay protected, as from an atom bomb.
-    if (owner.isPlayer() && (owner === this || this.isFriendly(owner, true))) {
+    if (
+      owner.isPlayer() &&
+      (owner === this ||
+        this.isFriendly(owner, true) ||
+        this.isTruceWith(owner))
+    ) {
       return false;
     }
     // In team games the blast may not reach a teammate's structure either.
@@ -1931,7 +1993,9 @@ export class PlayerImpl implements Player {
       )
       .filter(
         ({ unit }) =>
-          unit.owner() !== this && !this.isFriendly(unit.owner(), true),
+          unit.owner() !== this &&
+          !this.isFriendly(unit.owner(), true) &&
+          !this.isTruceWith(unit.owner()),
       )
       .map(({ unit }) => ({
         id: unit.id(),
@@ -2142,6 +2206,10 @@ export class PlayerImpl implements Player {
       digest =
         (Math.imul(digest, 31) + forkDigest(this._strategic.snapshot())) | 0;
     }
+    if (this._congress !== null) {
+      digest =
+        (Math.imul(digest, 31) + forkDigest(this._congress.snapshot())) | 0;
+    }
     return base + (digest >>> 0);
   }
   toString(): string {
@@ -2207,6 +2275,7 @@ export class PlayerImpl implements Player {
     player: Player,
     treatAFKFriendly: boolean = false,
   ): boolean {
+    if (this.isTruceWith(player)) return false;
     if (this.type() !== PlayerType.Human) {
       // Only human attackers respect PVP immunity
       return !this.isFriendly(player, treatAFKFriendly);
@@ -2326,6 +2395,9 @@ export class PlayerImpl implements Player {
       ...(this._strategic === null
         ? {}
         : { strategic: this._strategic.snapshot() }),
+      ...(this._congress === null
+        ? {}
+        : { congress: this._congress.snapshot() }),
     };
   }
 
@@ -2402,6 +2474,7 @@ export class PlayerImpl implements Player {
     this.nearbyMemo = null;
     this._domestic = s.domestic ? PlayerDomestic.restore(s.domestic) : null;
     this._strategic = s.strategic ? PlayerStrategic.restore(s.strategic) : null;
+    this._congress = s.congress ? PlayerCongress.restore(s.congress) : null;
   }
 }
 
@@ -2473,6 +2546,7 @@ export const PlayerSnapshot = snapshotType({
     numUnitsConstructed: z.array(z.tuple([UnitTypeSchema, zInt()])),
     domestic: DomesticStateSchema.nullable().optional(),
     strategic: StrategicStateSchema.nullable().optional(),
+    congress: PlayerCongressStateSchema.nullable().optional(),
   }),
 });
 export type PlayerState = z.infer<typeof PlayerSnapshot.schema>;

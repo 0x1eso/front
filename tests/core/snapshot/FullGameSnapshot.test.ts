@@ -107,6 +107,10 @@ const STRATEGIC_UNSCRIPTED_TYPES = [
   "SatelliteTarget",
 ];
 
+// Execution types that only a world-congress game creates. The "congress"
+// variant (Task 14) plays them.
+const CONGRESS_ONLY_TYPES = ["Congress", "CongressVote", "ConveneEmergency"];
+
 const EXEC_TYPE_BY_PROTO = new Map<object, string>(
   EXECUTION_SNAPSHOT_TYPES.map((t) => [t.cls().prototype, t.name]),
 );
@@ -284,7 +288,8 @@ describe.each(VARIANTS)("full game snapshots: %s", (_, overrides) => {
             name !== "Pause" &&
             !DOMESTIC_ONLY_TYPES.includes(name) &&
             !WARFARE_ONLY_TYPES.includes(name) &&
-            !STRATEGIC_ONLY_TYPES.includes(name),
+            !STRATEGIC_ONLY_TYPES.includes(name) &&
+            !CONGRESS_ONLY_TYPES.includes(name),
         );
       } else if (
         overrides.strategicWeapons === true &&

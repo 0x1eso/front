@@ -83,6 +83,8 @@ export const UPDATE_TYPE_ROUTING: Record<
   DonateEvent: "misc",
   OrbitalStrike: "misc",
   BombDrop: "misc",
+  // World congress: the whole congress, resent when it changes.
+  Congress: "misc",
 };
 
 /**

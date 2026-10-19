@@ -9,8 +9,10 @@ import {
   LAW_OPTIONS,
   LawId,
   LawOption,
+  Modifier,
   PolicyFlag,
   ResearchProgress,
+  STAT_KEYS,
   StatKey,
   TECH_IDS,
   TechId,
@@ -32,7 +34,7 @@ import {
   domesticModifiers,
   policyFlags,
 } from "@openfront/engine-lib/domestic/Policies";
-import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { zInt, zNum } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 
 export const DomesticStateSchema = z.object({
@@ -74,8 +76,25 @@ export const DomesticStateSchema = z.object({
   queuedTech: z.enum(TECH_IDS).optional(),
   // Absent in older snapshots and while nothing was donated.
   donationGoldReceived: z.bigint().optional(),
+  // World congress: the modifiers resolutions give this player; absent when none.
+  congressModifiers: z
+    .array(
+      z.object({
+        stat: z.enum(STAT_KEYS),
+        pct: zNum(),
+        when: z.enum(CONDITIONS).optional(),
+      }),
+    )
+    .optional(),
 });
 export type DomesticState = z.infer<typeof DomesticStateSchema>;
+
+/** A congress modifier in the schema's key order, so restored state snapshots (and hashes) like the live one. */
+function copyModifier(m: Modifier): Modifier {
+  return m.when === undefined
+    ? { stat: m.stat, pct: m.pct }
+    : { stat: m.stat, pct: m.pct, when: m.when };
+}
 
 /**
  * A player's domestic-mode state: science and political power (integer
@@ -106,6 +125,8 @@ export class PlayerDomestic implements DomesticView {
   private project: VictoryProjectProgress | null = null;
   /** Gold received as donations: part of goldEarned, never of the score. */
   private donationGold: Gold = 0n;
+  /** World congress: modifiers from the resolutions in force. */
+  private congressMods: Modifier[] = [];
   /** Set once per processed second (DomesticEconomy.activeConditions). */
   private conditions: ReadonlySet<Condition> = new Set<Condition>();
   private totals = new ModifierTotals([]);
@@ -197,6 +218,53 @@ export class PlayerDomestic implements DomesticView {
   clearVictoryProject(): void {
     if (this.project === null) return;
     this.project = null;
+    this.changed();
+  }
+
+  /** Last processed second's output (milli-points), for "N seconds of output" rewards. */
+  scienceMilliPerSecond(): number {
+    return this.lastScienceMilli;
+  }
+
+  politicalMilliPerSecond(): number {
+    return this.lastPoliticalMilli;
+  }
+
+  /** Lump sums (congress rewards): stored and cumulative, not this second's rate. */
+  grantPoints(scienceMilli: number, politicalMilli: number): void {
+    if (scienceMilli <= 0 && politicalMilli <= 0) return;
+    const s = Math.max(0, Math.round(scienceMilli));
+    const p = Math.max(0, Math.round(politicalMilli));
+    this.scienceMilli += s;
+    this.politicalMilli += p;
+    this.cumScienceMilli += s;
+    this.cumPoliticalMilli += p;
+    this.changed();
+  }
+
+  /** World government (spec §10.1): moves the running project by `deltaTicks` (negative: closer to done), within 0..total. */
+  shiftVictoryProject(deltaTicks: number): void {
+    const p = this.project;
+    if (p === null) return;
+    const ticksLeft = Math.min(
+      p.totalTicks,
+      Math.max(0, p.ticksLeft + deltaTicks),
+    );
+    if (ticksLeft === p.ticksLeft) return;
+    this.project = { ...p, ticksLeft };
+    this.changed();
+  }
+
+  congressModifiers(): readonly Modifier[] {
+    return this.congressMods;
+  }
+
+  /** The congress's modifiers for this player (plan decision 6); the same list again changes nothing. */
+  setCongressModifiers(mods: readonly Modifier[]): void {
+    const next = mods.map(copyModifier);
+    if (JSON.stringify(next) === JSON.stringify(this.congressMods)) return;
+    this.congressMods = next;
+    this.rebuild();
     this.changed();
   }
 
@@ -354,6 +422,9 @@ export class PlayerDomestic implements DomesticView {
       ...(this.project === null ? {} : { project: { ...this.project } }),
       ...(this.queued === null ? {} : { queuedTech: this.queued }),
       donationGoldReceived: Number(this.donationGold),
+      ...(this.congressMods.length === 0
+        ? {}
+        : { congressModifiers: this.congressMods.map(copyModifier) }),
     };
     return this.domesticDataCache;
   }
@@ -379,6 +450,9 @@ export class PlayerDomestic implements DomesticView {
       ...(this.donationGold === 0n
         ? {}
         : { donationGoldReceived: this.donationGold }),
+      ...(this.congressMods.length === 0
+        ? {}
+        : { congressModifiers: this.congressMods.map(copyModifier) }),
     };
   }
 
@@ -401,13 +475,19 @@ export class PlayerDomestic implements DomesticView {
     d.project = s.project ? { ...s.project } : null;
     d.queued = s.queuedTech ?? null;
     d.donationGold = s.donationGoldReceived ?? 0n;
+    d.congressMods = (s.congressModifiers ?? []).map(copyModifier);
     d.rebuild();
     return d;
   }
 
   /** Recomputes the modifier totals and flags from techs, laws and government. */
   private rebuild(): void {
-    this.totals = domesticModifiers(this.techs, this.laws, this.government);
+    this.totals = domesticModifiers(
+      this.techs,
+      this.laws,
+      this.government,
+      this.congressMods,
+    );
     this.flags = policyFlags(this.laws, this.government);
   }
 

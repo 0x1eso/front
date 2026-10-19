@@ -44,6 +44,8 @@ import {
 import { AllPlayersStats, ClientID } from "@openfront/engine-api/Schemas";
 import { MotionPlanRecord } from "@openfront/engine-lib/game/MotionPlans";
 import type { EngineConfig } from "../configuration/EngineConfig";
+import type { Congress } from "../congress/Congress";
+import type { PlayerCongress } from "../congress/PlayerCongress";
 import type { PlayerDomestic } from "../domestic/PlayerDomestic";
 import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
@@ -375,6 +377,12 @@ export interface Player extends PlayerLike {
   strategic(): PlayerStrategic | null;
   /** Strategic weapons: the enemy structure a conventional missile aimed at `tile` hits, or null. */
   missileTarget(tile: TileRef): Unit | null;
+  /** World congress state; null when the option is off and for bots. */
+  congress(): PlayerCongress | null;
+  /** World congress: a truce (or emergency peace) forbids any hostility with `other` now. */
+  isTruceWith(other: Player): boolean;
+  /** World congress: a resolution forbids buying, building, upgrading or producing `type` now. */
+  isCongressBanned(type: UnitType): boolean;
 
   // State & Properties
   isAlive(): boolean;
@@ -684,6 +692,9 @@ export interface Game extends GameLike {
     isFrom: boolean,
     recipient: string,
   ): void;
+
+  /** World congress; null when the option is off. */
+  congress(): Congress | null;
 
   // Nations
   nations(): Nation[];

@@ -1,4 +1,7 @@
 // Every entry is `<ClassName>Snapshot`, exported next to its class.
+import { CongressExecutionSnapshot } from "../congress/CongressExecution";
+import { CongressVoteExecutionSnapshot } from "../congress/CongressVoteExecution";
+import { ConveneEmergencyExecutionSnapshot } from "../congress/ConveneEmergencyExecution";
 import { ChooseGovernmentExecutionSnapshot } from "../domestic/ChooseGovernmentExecution";
 import { DomesticExecutionSnapshot } from "../domestic/DomesticExecution";
 import { ProclaimLawExecutionSnapshot } from "../domestic/ProclaimLawExecution";
@@ -86,6 +89,9 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   CityExecutionSnapshot,
   CoastalBarrageExecutionSnapshot,
   CoastalBatteryExecutionSnapshot,
+  CongressExecutionSnapshot,
+  CongressVoteExecutionSnapshot,
+  ConveneEmergencyExecutionSnapshot,
   ConventionalMissileExecutionSnapshot,
   ConstructionExecutionSnapshot,
   DefensePostExecutionSnapshot,

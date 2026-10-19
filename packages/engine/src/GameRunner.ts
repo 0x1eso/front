@@ -25,6 +25,7 @@ import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { EngineConfig } from "./configuration/EngineConfig";
+import { CongressExecution } from "./congress/CongressExecution";
 import { DomesticExecution } from "./domestic/DomesticExecution";
 import { DoomsdayClockExecution } from "./execution/DoomsdayClockExecution";
 import { Executor } from "./execution/ExecutionManager";
@@ -198,6 +199,13 @@ export class GameRunner {
     // Strategic weapons only: factory lines and satellites run on one clock.
     if (this.game.config().strategicWeapons()) {
       this.game.addExecution(new StrategicExecution());
+    }
+    // World congress only: after the domestic second, before the win check,
+    // on its own PRNG (plan decision 10).
+    if (this.game.config().congress()) {
+      this.game.addExecution(
+        new CongressExecution(simpleHash(this.execManager.gameID()) + 7919),
+      );
     }
     this.game.addExecution(new WinCheckExecution());
     if (this.game.config().doomsdayClockConfig().enabled) {

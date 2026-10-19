@@ -34,6 +34,7 @@ const COPIED_KEYS = [
   "domesticMode",
   "warfareExpansion",
   "strategicWeapons",
+  "congress",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a

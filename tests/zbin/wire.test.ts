@@ -161,6 +161,15 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     attacker: P2,
     nukeType: UnitType.AtomBomb,
   },
+  {
+    type: "congress_vote",
+    clientID: P1,
+    session: 3,
+    item: 2,
+    option: "B",
+    extra: 5,
+  },
+  { type: "convene_emergency", clientID: P2, kind: "nuclear", target: P1 },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

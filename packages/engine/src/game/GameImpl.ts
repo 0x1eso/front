@@ -56,6 +56,9 @@ import {
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
+import { Congress, CongressStateSchema } from "../congress/Congress";
+import { congressElimination, emergencyConquer } from "../congress/Emergencies";
+import { ledgerConquer } from "../congress/Ledger";
 import {
   SharedWaterCache,
   SharedWaterCacheSnapshot,
@@ -167,6 +170,8 @@ export class GameImpl implements Game {
   private _teamGameSpawnAreas: TeamGameSpawnAreas | undefined;
   /** Tiles from nuke blast radii this tick, drained by the renderer. */
   private _nukeImpactQueue: TileRef[] = [];
+  /** World congress; null when the option is off. */
+  private _congress: Congress | null;
 
   constructor(
     private _humans: PlayerInfo[],
@@ -193,6 +198,7 @@ export class GameImpl implements Game {
       _config.disableNavMesh(),
     );
     this._sharedWaterCache = new SharedWaterCache(this);
+    this._congress = _config.congress() ? new Congress(this) : null;
 
     if (!restoring) {
       if (_config.gameConfig().gameMode === GameMode.Team) {
@@ -679,6 +685,7 @@ export class GameImpl implements Game {
     this._players.forEach((p) => {
       hash += p.hash();
     });
+    if (this._congress !== null) hash += this._congress.hash();
     return hash;
   }
 
@@ -834,6 +841,12 @@ export class GameImpl implements Game {
     this.updateBorders(tile);
     this._map.setFallout(tile, false);
     this.recordTileUpdate(tile);
+    // World congress: emergency members first, then the aggression ledger
+    // (spec §4.1, §9.4).
+    if (this._congress !== null && previousOwner.isPlayer()) {
+      emergencyConquer(this, this._congress, previousOwner, owner);
+      ledgerConquer(this, this._congress, previousOwner, owner);
+    }
   }
 
   relinquish(tile: TileRef) {
@@ -1415,6 +1428,9 @@ export class GameImpl implements Game {
   nationMirvTargets(): Map<PlayerID, Tick> {
     return this._nationMirvTargets;
   }
+  congress(): Congress | null {
+    return this._congress;
+  }
   /** The PlayerInfo object this game holds for a player id, if any. */
   findPlayerInfo(id: PlayerID): PlayerInfo | undefined {
     return (
@@ -1493,6 +1509,9 @@ export class GameImpl implements Game {
         this._sharedWaterCache.snapshot(w),
       ),
       stats: w.versioned(StatsSnapshot, (this._stats as StatsImpl).snapshot()),
+      ...(this._congress === null
+        ? {}
+        : { congress: this._congress.snapshot(w) }),
     };
   }
 
@@ -1553,6 +1572,9 @@ export class GameImpl implements Game {
     (this._stats as StatsImpl).restoreSnapshot(
       readVersioned(StatsSnapshot, s.stats),
     );
+    if (this._congress !== null && s.congress !== undefined) {
+      this._congress.restoreState(s.congress, r);
+    }
   }
 
   conquerPlayer(conqueror: Player, conquered: Player) {
@@ -1636,6 +1658,9 @@ export class GameImpl implements Game {
       conqueredId: conquered.id(),
       gold: goldCaptured,
     });
+    if (this._congress !== null) {
+      congressElimination(this, this._congress, conqueror, conquered);
+    }
   }
 }
 
@@ -1675,6 +1700,7 @@ export const GameSnapshot = snapshotType({
     water: VersionedSchema,
     sharedWaterCache: VersionedSchema,
     stats: VersionedSchema,
+    congress: CongressStateSchema.optional(),
   }),
 });
 export type GameState = z.infer<typeof GameSnapshot.schema>;

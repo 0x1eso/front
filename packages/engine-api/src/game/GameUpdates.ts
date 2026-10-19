@@ -1,3 +1,7 @@
+import type {
+  CongressData,
+  PlayerCongressData,
+} from "../congress/CongressTypes";
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
@@ -119,6 +123,7 @@ export enum GameUpdateType {
   DonateEvent,
   OrbitalStrike,
   BombDrop,
+  Congress,
 }
 
 export type GameUpdate =
@@ -146,7 +151,8 @@ export type GameUpdate =
   | GamePausedUpdate
   | DonateEventUpdate
   | OrbitalStrikeUpdate
-  | BombDropUpdate;
+  | BombDropUpdate
+  | CongressUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -293,6 +299,8 @@ export interface PlayerUpdate {
   domestic?: DomesticData;
   /** Strategic weapons only: stockpile, factory lines, satellite. */
   strategic?: StrategicData;
+  /** World congress only; absent for bots and when the option is off. */
+  congress?: PlayerCongressData;
 }
 
 export interface AllianceView {
@@ -433,4 +441,10 @@ export interface OrbitalStrikeUpdate {
    *  index, and whether this is the last wave. Absent on a one-shot strike. */
   wave?: number;
   lastWave?: boolean;
+}
+
+/** World congress: the whole congress, sent when it changed (and on a game's first tick). */
+export interface CongressUpdate {
+  type: GameUpdateType.Congress;
+  data: CongressData;
 }

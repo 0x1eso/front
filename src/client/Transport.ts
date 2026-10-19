@@ -1,3 +1,7 @@
+import type {
+  BallotOption,
+  EmergencyKind,
+} from "@openfront/engine-api/congress/CongressTypes";
 import {
   GovernmentId,
   LawId,
@@ -162,6 +166,24 @@ export class SendInterceptSatelliteIntentEvent implements GameEvent {
   constructor(
     public readonly attacker: PlayerID,
     public readonly nukeType: InterceptorNuke,
+  ) {}
+}
+
+/** World congress: a ballot or a raise on one agenda item of the open session. */
+export class SendCongressVoteIntentEvent implements GameEvent {
+  constructor(
+    public readonly session: number,
+    public readonly item: number,
+    public readonly option: BallotOption,
+    public readonly extra: number,
+  ) {}
+}
+
+/** World congress: convene an emergency session against `target`. */
+export class SendConveneEmergencyIntentEvent implements GameEvent {
+  constructor(
+    public readonly kind: EmergencyKind,
+    public readonly target: PlayerID,
   ) {}
 }
 
@@ -427,6 +449,22 @@ export class Transport {
         type: "intercept_satellite",
         attacker: e.attacker,
         nukeType: e.nukeType,
+      }),
+    );
+    this.subscribe(SendCongressVoteIntentEvent, (e) =>
+      this.sendIntent({
+        type: "congress_vote",
+        session: e.session,
+        item: e.item,
+        option: e.option,
+        extra: e.extra,
+      }),
+    );
+    this.subscribe(SendConveneEmergencyIntentEvent, (e) =>
+      this.sendIntent({
+        type: "convene_emergency",
+        kind: e.kind,
+        target: e.target,
       }),
     );
     this.subscribe(SendTargetPlayerIntentEvent, (e) =>

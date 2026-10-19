@@ -73,6 +73,9 @@ export const CONDITIONS = [
   "attacking",
   "notAttacking",
   "troopsAtMostHalf",
+  // World congress (spec §4.2): attacking a nation first. Only computed in
+  // congress games, so other games' condition sets are unchanged.
+  "aggressing",
 ] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
@@ -173,6 +176,8 @@ export interface DomesticData {
    * leaves it out (spec §8.2 counts gold earned, not gold passed around).
    */
   donationGoldReceived?: number;
+  /** World congress: the modifiers resolutions give this player; absent when none. */
+  congressModifiers?: Modifier[];
 }
 
 /** Domestic victory projects (spec §8): the science and the political one. */

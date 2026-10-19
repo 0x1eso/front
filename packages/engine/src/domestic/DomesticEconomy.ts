@@ -87,6 +87,9 @@ function hasInterest(d: PlayerDomestic): boolean {
 export function activeConditions(
   player: Player,
   maxTroops: number,
+  // World congress (plan decision 7): Ledger.isAggressing in congress games;
+  // false everywhere else, so other games' condition sets are unchanged.
+  aggressing: boolean = false,
 ): Set<Condition> {
   const attacking = player
     .outgoingAttacks()
@@ -95,6 +98,7 @@ export function activeConditions(
     attacking,
     notAttacking: !attacking,
     troopsAtMostHalf: player.troops() * 2 <= maxTroops,
+    aggressing,
   };
   // Built in the fixed CONDITIONS order: toData() and snapshots keep it.
   const out = new Set<Condition>();
