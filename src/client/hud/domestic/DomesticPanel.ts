@@ -11,6 +11,7 @@ import {
   ChooseGovernmentIntentEvent,
   ProclaimLawIntentEvent,
   ResearchTechIntentEvent,
+  SendConveneEmergencyIntentEvent,
   SendQueueResearchIntentEvent,
   StartVictoryProjectIntentEvent,
 } from "../../Transport";
@@ -18,6 +19,8 @@ import { translateText } from "../../Utils";
 import { GameView } from "../../view";
 import type { DomesticClientView } from "../../view/DomesticClientView";
 import { PlayerView } from "../../view/PlayerView";
+import { nameOf, viewerOf } from "../congress/CongressModel";
+import { renderCongressScreen } from "../congress/CongressScreen";
 import {
   DomesticScreen,
   DomesticScreenShownEvent,
@@ -35,6 +38,7 @@ const SCREEN_ICONS: Readonly<Record<DomesticScreen, string>> = {
   research: "🔬",
   laws: "📜",
   victory: "🏆",
+  congress: "🏛",
 };
 
 /** Space between the drawer and the HUD around it, in CSS px. */
@@ -88,7 +92,8 @@ export function drawerInsets(): DrawerInsets {
 /**
  * The domestic drawer (spec §14d): a right-side drawer that opens on the
  * screen of the dial tapped (research, the Book of Laws with the
- * government, or victory) and closes when that dial is tapped again.
+ * government, victory, or the world congress) and closes when that dial is
+ * tapped again.
  */
 @customElement("domestic-panel")
 export class DomesticPanel extends LitElement implements Controller {
@@ -304,6 +309,26 @@ export class DomesticPanel extends LitElement implements Controller {
         return renderVictoryTab(this.game, me, d, (kind, unitId) =>
           this.eventBus.emit(new StartVictoryProjectIntentEvent(kind, unitId)),
         );
+      case "congress": {
+        const data = this.game.congressData();
+        const viewer = viewerOf(this.game);
+        if (data === null || viewer === null) return html``;
+        return renderCongressScreen({
+          data,
+          viewer,
+          now: this.nowTick,
+          nameOf: (id) => nameOf(this.game, id),
+          t: translateText,
+          convene: (kind, target) => {
+            const p = this.game.playerBySmallID(target);
+            if (p.isPlayer()) {
+              this.eventBus.emit(
+                new SendConveneEmergencyIntentEvent(kind, p.id()),
+              );
+            }
+          },
+        });
+      }
     }
   }
 
