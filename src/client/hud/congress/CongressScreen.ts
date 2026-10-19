@@ -42,6 +42,7 @@ export function renderCongressScreen(
 
 function influence(ctx: CongressScreenContext): TemplateResult {
   const d = ctx.viewer.data;
+  const statusKey = `congress.status.${d?.status ?? "peaceful"}`;
   return html`<section data-congress-influence class=${SECTION}>
     <div class="flex items-baseline gap-2">
       <span class="text-lg font-bold text-amber-300"
@@ -55,9 +56,7 @@ function influence(ctx: CongressScreenContext): TemplateResult {
         })}</span
       >
     </div>
-    <span class="text-sm text-gray-300"
-      >${ctx.t(`congress.status.${d?.status ?? "peaceful"}`)}</span
-    >
+    <span class="text-sm text-gray-300">${ctx.t(statusKey)}</span>
   </section>`;
 }
 

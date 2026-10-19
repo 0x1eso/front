@@ -35,6 +35,11 @@ import type { GameView, PlayerView } from "../../view";
 // viewer's PlayerCongressData. Nothing here knows who voted what: the data
 // only has turnout, totals and the viewer's own ballots (spec §6.5).
 
+/**
+ * translateText, passed in so tests can fake it. A key built from a template
+ * goes through a variable named `...Key`: that, or a translateText call, is
+ * what the unused-key check (tests/TranslationSystem.test.ts) can see.
+ */
 export type Translate = (
   key: string,
   params?: Record<string, string | number>,
@@ -347,8 +352,10 @@ export function subjectText(
   if (item.targets.length > 0) return item.targets.map(name).join(" ↔ ");
   if (item.param === null) return "";
   switch (item.resolution) {
-    case "trade_pact":
-      return t(`congress.param.${item.param}`);
+    case "trade_pact": {
+      const paramKey = `congress.param.${item.param}`;
+      return t(paramKey);
+    }
     case "building_pact":
       return t(`unit_type.${item.param}`);
     case "government_resolution":
@@ -396,7 +403,8 @@ export function reasonText(
     params.name = name(first);
   }
   if (second !== undefined) params.target = name(second);
-  return t(`congress.reason.${item.reason}`, params);
+  const reasonKey = `congress.reason.${item.reason}`;
+  return t(reasonKey, params);
 }
 
 export type EmergencyRole = "target" | "member" | "none";
@@ -416,7 +424,8 @@ export function emergencyRole(
 }
 
 export function goalText(e: EmergencyData, t: Translate): string {
-  return t(`congress.goal.${e.goalKind}`, {
+  const goalKey = `congress.goal.${e.goalKind}`;
+  return t(goalKey, {
     progress: e.progress,
     goal: e.goal,
   });
