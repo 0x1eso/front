@@ -21,10 +21,12 @@ import {
   Turn,
   Winner,
 } from "@openfront/engine-api/Schemas";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
 } from "@openfront/engine-lib/game/TeamAssignment";
+import { applyWorldWar1936Rules } from "@openfront/engine-lib/ww1936/ModeConfig";
 import { isAdminRole } from "@openfront/shared/ApiSchemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { GameEnv } from "@openfront/shared/configuration/Env";
@@ -236,6 +238,8 @@ export class GameServer {
   // archives on that, and the socket close events that follow end() still
   // go through hasStarted() in handleClientDisconnect.
   private stage: "lobby" | "prestart" | "started" = "lobby";
+  /** World War 1936 lobbies (spec §8.1): clientID → the country it picked. */
+  private countryPicks = new Map<ClientID, CountryTag>();
   // Set when the delayed start found an empty roster (see deferStart).
   private startDeferred = false;
   private ended = false;
@@ -323,6 +327,10 @@ export class GameServer {
     this.id = opts.id;
     this.createdAt = opts.createdAt;
     this.gameConfig = opts.gameConfig;
+    // World War 1936 (spec §2.2): a lobby created with the mode on shows the
+    // mode's map and rules from its first lobby info (start() applies them
+    // again, whatever changed the config since).
+    applyWorldWar1936Rules(this.gameConfig);
     this.creatorPersistentID = opts.creatorPersistentID;
     this.startsAt = opts.startsAt;
     this.publicGameType = opts.publicGameType;
@@ -853,6 +861,10 @@ export class GameServer {
         this.setSpectator(client, clientMsg.spectator);
         break;
       }
+      case "pick_country": {
+        this.pickCountry(client, clientMsg.tag);
+        break;
+      }
       case "winner": {
         this.handleWinner(client, clientMsg);
         break;
@@ -1142,6 +1154,11 @@ export class GameServer {
       return;
     }
     this.stage = "started";
+    // World War 1936 (spec §2.2): the clients load the map this start
+    // message names and the engine refuses any other, so whatever reached
+    // the stored config since it was last normalized, the start carries the
+    // mode's map and rules.
+    applyWorldWar1936Rules(this.gameConfig);
     this._startTime = Date.now();
     // Set last ping to start so we don't immediately stop the game
     // if no client connects/pings.
@@ -1172,6 +1189,12 @@ export class GameServer {
         isLobbyCreator: this.lobbyCreatorID === c.clientID,
         friends: friendsFor(c),
         teamIndex: this.matchmakingTeamIndex(c),
+        // World War 1936: the country this player picked (the engine gives
+        // the rest the next free one, spec §7.1).
+        ...(this.gameConfig.worldWar1936 === true &&
+        this.countryPicks.has(c.clientID)
+          ? { country: this.countryPicks.get(c.clientID)! }
+          : {}),
       })),
       tribes: this.tribes,
     });
@@ -1395,6 +1418,43 @@ export class GameServer {
     // The lobby list is derived from this flag, so everyone's view of who is
     // playing has to be refreshed rather than waiting out the next tick.
     this.broadcastLobbyInfo();
+  }
+
+  /**
+   * World War 1936 (spec §8.1): a lobby player picks a country, or gives its
+   * pick up with null. A country another player holds is refused: the
+   * message is dropped, and every lobby list shows who holds what.
+   */
+  private pickCountry(client: Client, tag: CountryTag | null): void {
+    if (this.gameConfig.worldWar1936 !== true) return;
+    if (this.stage !== "lobby" || this.ended || client.spectator === true) {
+      return;
+    }
+    if (tag === null) {
+      if (this.countryPicks.delete(client.clientID)) this.broadcastLobbyInfo();
+      return;
+    }
+    if (
+      this.livePicks().some(
+        (p) => p.tag === tag && p.clientID !== client.clientID,
+      )
+    ) {
+      return;
+    }
+    // A player who left or turned spectator may still be listed for it.
+    for (const [id, held] of this.countryPicks) {
+      if (held === tag && id !== client.clientID) this.countryPicks.delete(id);
+    }
+    this.countryPicks.set(client.clientID, tag);
+    this.broadcastLobbyInfo();
+  }
+
+  /** Picks of the players still in the lobby (not spectators), in pick order. */
+  private livePicks(): { clientID: ClientID; tag: CountryTag }[] {
+    const playing = new Set(this.clients.players().map((c) => c.clientID));
+    return [...this.countryPicks]
+      .filter(([id]) => playing.has(id))
+      .map(([clientID, tag]) => ({ clientID, tag }));
   }
 
   // Pin a publicId to a team slot after the lobby exists, so a lobby that fills
@@ -1750,6 +1810,9 @@ export class GameServer {
       accent: this.listing.lobbyAccent(),
       featured: this.listing.isFeatured() ? true : undefined,
       queued: this.listing.isQueued() ? true : undefined,
+      ...(this.gameConfig.worldWar1936 === true
+        ? { countryPicks: this.livePicks() }
+        : {}),
     };
   }
 

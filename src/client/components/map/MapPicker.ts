@@ -17,8 +17,13 @@ const randomMap = assetUrl("images/RandomMap.webp");
 
 type MapTab = "featured" | "all" | "favorites";
 
+// World 1936 is chosen by its mode toggle, never from the picker (spec §8.1).
+const pickable: MapInfo[] = maps.filter(
+  (m) => m.type !== GameMapType.World1936,
+);
+
 // Featured grid order: ranked maps first (1 = first), unranked alphabetical.
-const featuredMaps: MapInfo[] = maps
+const featuredMaps: MapInfo[] = pickable
   .filter((m) => m.categories.includes("featured"))
   .sort(
     (a, b) =>
@@ -27,7 +32,7 @@ const featuredMaps: MapInfo[] = maps
   );
 
 function mapsInCategory(category: MapCategory): MapInfo[] {
-  return maps.filter((m) => m.categories.includes(category));
+  return pickable.filter((m) => m.categories.includes(category));
 }
 
 @customElement("map-picker")
@@ -89,7 +94,7 @@ export class MapPicker extends LitElement {
   private get filteredMaps(): MapInfo[] {
     if (!this.searchQuery.trim()) return [];
     const query = this.searchQuery.trim().toLowerCase();
-    return maps.filter((m) => {
+    return pickable.filter((m) => {
       const name = translateText(m.translationKey).toLowerCase();
       const id = m.id.toLowerCase();
       return name.includes(query) || id.includes(query);
@@ -178,7 +183,7 @@ export class MapPicker extends LitElement {
 
   private renderFeaturedTab() {
     let featuredMapList = featuredMaps;
-    const selected = maps.find((m) => m.type === this.selectedMap);
+    const selected = pickable.find((m) => m.type === this.selectedMap);
     if (
       !this.useRandomMap &&
       selected !== undefined &&
@@ -245,7 +250,7 @@ export class MapPicker extends LitElement {
       </div>`;
     }
     const favoriteMaps = this.favorites
-      .map((favorite) => maps.find((m) => m.type === favorite))
+      .map((favorite) => pickable.find((m) => m.type === favorite))
       .filter((m) => m !== undefined);
     return html`<div class="w-full">
       ${this.renderSectionHeading(translateText("map_categories.favorites"))}

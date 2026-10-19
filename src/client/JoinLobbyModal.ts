@@ -1,5 +1,6 @@
 import { GAME_ID_REGEX, GameConfig } from "@openfront/engine-api/Schemas";
 import { GameMode, GameType } from "@openfront/engine-api/game/GameTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import {
@@ -23,7 +24,7 @@ import {
 } from "../client/Utils";
 import { getApiBase } from "./Api";
 import { gamePortal } from "./GamePortal";
-import { SendSpectateEvent } from "./LobbyEvents";
+import { SendPickCountryEvent, SendSpectateEvent } from "./LobbyEvents";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
 import { ensureServerList, redirectToGameVersion } from "./ServerList";
@@ -36,6 +37,7 @@ import { GameStartAlertController } from "./components/GameStartAlertController"
 import "./components/LobbyPlayerView";
 import { inviteFriendsButton } from "./components/ui/InviteFriendsButton";
 import { DEFAULT_TITLE_CLASS, modalHeader } from "./components/ui/ModalHeader";
+import "./components/ww1936/CountryPicker";
 import { openReplayViewer } from "./replay/ReplayEntry";
 import { nationsConfigToSlider } from "./utilities/GameConfigHelpers";
 import {
@@ -57,6 +59,8 @@ export class JoinLobbyModal extends BaseModal {
   @state() private players: ClientInfo[] = [];
   @state() private playerCount: number = 0;
   @state() private gameConfig: GameConfig | null = null;
+  // World War 1936 lobbies (spec §8.1): who picked which country.
+  @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
   @state() private currentLobbyId: string = "";
   @state() private currentClientID: string = "";
   @state() private nationCount: number = 0;
@@ -112,6 +116,7 @@ export class JoinLobbyModal extends BaseModal {
     if (this.isConnecting && lobby.clients) {
       this.isConnecting = false;
     }
+    this.countryPicks = lobby.countryPicks ?? [];
     this.updateFromLobby({
       ...lobby,
       startsAt: lobby.startsAt ?? undefined,
@@ -248,6 +253,25 @@ export class JoinLobbyModal extends BaseModal {
               `
             : html`
                 ${this.gameConfig ? this.renderGameConfig() : html``}
+                ${this.gameConfig?.worldWar1936 === true && !this.isSpectating
+                  ? html`<ww-country-picker
+                      class="mt-6 block"
+                      .picks=${this.countryPicks}
+                      .myClientID=${this.currentClientID}
+                      .usernames=${new Map(
+                        this.players.map((c) => [c.clientID, c.username]),
+                      )}
+                      .selected=${this.countryPicks.find(
+                        (p) => p.clientID === this.currentClientID,
+                      )?.tag ?? null}
+                      @country-picked=${(
+                        e: CustomEvent<{ tag: CountryTag | null }>,
+                      ) =>
+                        this.eventBus?.emit(
+                          new SendPickCountryEvent(e.detail.tag),
+                        )}
+                    ></ww-country-picker>`
+                  : ""}
                 ${this.players.length > 0
                   ? html`
                       <lobby-player-view
@@ -587,6 +611,7 @@ export class JoinLobbyModal extends BaseModal {
     // clientID will be assigned by server via lobby_info message
     this.currentClientID = "";
     this.gameConfig = null;
+    this.countryPicks = [];
     this.players = [];
     this.nationCount = 0;
     this.lobbyStartAt = null;
@@ -644,6 +669,7 @@ export class JoinLobbyModal extends BaseModal {
 
     if (this.lobbyIdInput) this.lobbyIdInput.value = "";
     this.gameConfig = null;
+    this.countryPicks = [];
     this.players = [];
     this.currentLobbyId = "";
     this.currentClientID = "";

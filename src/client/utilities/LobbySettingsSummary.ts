@@ -107,6 +107,16 @@ export function notableLobbySettings(
       label: translateText("game_settings.strategic_weapons"),
       value: enabled,
     });
+  if (c.worldWar1936) {
+    items.push({
+      label: translateText("game_settings.world_war_1936"),
+      value: enabled,
+    });
+    items.push({
+      label: translateText("game_settings.historical_ai"),
+      value: c.historicalAi === false ? disabled : enabled,
+    });
+  }
   if (c.domesticMode && c.congress && c.gameMode === GameMode.FFA)
     items.push({
       label: translateText("game_settings.congress"),

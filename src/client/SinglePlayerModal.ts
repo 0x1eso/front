@@ -7,13 +7,15 @@ import {
   maps,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
-import { TeamCountConfig } from "@openfront/engine-api/Schemas";
+import { GameConfig, TeamCountConfig } from "@openfront/engine-api/Schemas";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   CONQUEST_PERCENT_MAX,
   CONQUEST_PERCENT_MIN,
   DOMESTIC_CONQUEST_PERCENT,
 } from "@openfront/engine-lib/domestic/Balance";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
+import { normalizeWorldWar1936Config } from "@openfront/engine-lib/ww1936/ModeConfig";
 import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { generateID } from "@openfront/shared/SharedUtil";
@@ -30,6 +32,7 @@ import "./components/InputCard";
 import { MEDAL_ORDER, medalIcon } from "./components/map/Medals";
 import "./components/ToggleInputCard";
 import { modalHeader } from "./components/ui/ModalHeader";
+import "./components/ww1936/CountryPicker";
 import { getPlayerCosmetics, prewarmCosmetics } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
 import { GameStartingModal } from "./GameStartingModal";
@@ -134,6 +137,9 @@ const DEFAULT_OPTIONS = {
   doomsdayClockSpeed: "normal" as DoomsdayClockSpeed,
   overtime: false,
   overtimeStartMinutes: undefined as number | undefined,
+  worldWar1936: false,
+  historicalAi: true,
+  country: null as CountryTag | null,
 } as const;
 
 // A map earns achievements only if it has nations to conquer — the same rule
@@ -231,6 +237,9 @@ export class SinglePlayerModal extends BaseModal {
   @state() private overtime: boolean = DEFAULT_OPTIONS.overtime;
   @state() private overtimeStartMinutes: number | undefined =
     DEFAULT_OPTIONS.overtimeStartMinutes;
+  @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
+  @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
+  @state() private country: CountryTag | null = DEFAULT_OPTIONS.country;
   // Drives the Start Game button's busy state. Without it the click produces
   // nothing visible until every await in startGame() settles, which reads as
   // a hang rather than as loading whenever the network is slow or absent.
@@ -567,63 +576,96 @@ export class SinglePlayerModal extends BaseModal {
                   labelKey: "game_settings.nations",
                   disabledKey: "common.disabled",
                 },
-                toggles: [
-                  {
-                    labelKey: "game_settings.instant_build",
-                    checked: this.instantBuild,
-                  },
-                  {
-                    labelKey: "game_settings.random_spawn",
-                    checked: this.randomSpawn,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_gold",
-                    checked: this.infiniteGold,
-                  },
-                  {
-                    labelKey: "game_settings.infinite_troops",
-                    checked: this.infiniteTroops,
-                  },
-                  {
-                    labelKey: "game_settings.compact_map",
-                    checked: this.compactMap,
-                  },
-                  {
-                    labelKey: "game_settings.water_nukes",
-                    checked: this.waterNukes,
-                  },
-                  {
-                    labelKey: "game_settings.domestic_mode",
-                    checked: this.domesticMode,
-                  },
-                  ...(this.domesticMode && this.gameMode === GameMode.FFA
-                    ? [
-                        {
-                          labelKey: "game_settings.congress",
-                          checked: this.congress,
-                        },
-                      ]
-                    : []),
-                  {
-                    labelKey: "game_settings.warfare_expansion",
-                    checked: this.warfareExpansion,
-                  },
-                  {
-                    labelKey: "game_settings.strategic_weapons",
-                    checked: this.strategicWeapons,
-                  },
-                  {
-                    labelKey: "game_settings.doomsday_clock",
-                    checked: this.doomsdayClock,
-                    doomsdayClockSpeed: this.doomsdayClockSpeed,
-                  },
-                ],
-                inputCards,
+                // With the mode on, only its own toggles and instant build
+                // stay: it fixes the rest (spec §2.1).
+                toggles: this.worldWar1936
+                  ? [
+                      {
+                        labelKey: "game_settings.world_war_1936",
+                        checked: true,
+                      },
+                      {
+                        labelKey: "game_settings.historical_ai",
+                        checked: this.historicalAi,
+                      },
+                      {
+                        labelKey: "game_settings.instant_build",
+                        checked: this.instantBuild,
+                      },
+                    ]
+                  : [
+                      {
+                        labelKey: "game_settings.instant_build",
+                        checked: this.instantBuild,
+                      },
+                      {
+                        labelKey: "game_settings.random_spawn",
+                        checked: this.randomSpawn,
+                      },
+                      {
+                        labelKey: "game_settings.infinite_gold",
+                        checked: this.infiniteGold,
+                      },
+                      {
+                        labelKey: "game_settings.infinite_troops",
+                        checked: this.infiniteTroops,
+                      },
+                      {
+                        labelKey: "game_settings.compact_map",
+                        checked: this.compactMap,
+                      },
+                      {
+                        labelKey: "game_settings.water_nukes",
+                        checked: this.waterNukes,
+                      },
+                      {
+                        labelKey: "game_settings.domestic_mode",
+                        checked: this.domesticMode,
+                      },
+                      ...(this.domesticMode && this.gameMode === GameMode.FFA
+                        ? [
+                            {
+                              labelKey: "game_settings.congress",
+                              checked: this.congress,
+                            },
+                          ]
+                        : []),
+                      {
+                        labelKey: "game_settings.warfare_expansion",
+                        checked: this.warfareExpansion,
+                      },
+                      {
+                        labelKey: "game_settings.strategic_weapons",
+                        checked: this.strategicWeapons,
+                      },
+                      {
+                        labelKey: "game_settings.doomsday_clock",
+                        checked: this.doomsdayClock,
+                        doomsdayClockSpeed: this.doomsdayClockSpeed,
+                      },
+                      {
+                        labelKey: "game_settings.world_war_1936",
+                        checked: false,
+                      },
+                    ],
+                inputCards: this.worldWar1936 ? [] : inputCards,
               },
               unitTypes: {
                 titleKey: "game_settings.disable_units",
                 disabledUnits: this.disabledUnits,
               },
+              ...(this.worldWar1936
+                ? {
+                    worldWar: {
+                      picker: html`<ww-country-picker
+                        .selected=${this.country}
+                        @country-picked=${(
+                          e: CustomEvent<{ tag: CountryTag | null }>,
+                        ) => (this.country = e.detail.tag)}
+                      ></ww-country-picker>`,
+                    },
+                  }
+                : {}),
             }}
             @map-selected=${this.handleConfigMapSelected}
             @random-map-selected=${this.handleConfigRandomMapSelected}
@@ -684,6 +726,7 @@ export class SinglePlayerModal extends BaseModal {
       this.domesticMode !== DEFAULT_OPTIONS.domesticMode ||
       this.warfareExpansion !== DEFAULT_OPTIONS.warfareExpansion ||
       this.strategicWeapons !== DEFAULT_OPTIONS.strategicWeapons ||
+      this.worldWar1936 !== DEFAULT_OPTIONS.worldWar1936 ||
       this.congress !== DEFAULT_OPTIONS.congress ||
       this.conquestPercent !== DEFAULT_OPTIONS.conquestPercent ||
       this.doomsdayClock !== DEFAULT_OPTIONS.doomsdayClock ||
@@ -765,6 +808,9 @@ export class SinglePlayerModal extends BaseModal {
     this.domesticMode = DEFAULT_OPTIONS.domesticMode;
     this.warfareExpansion = DEFAULT_OPTIONS.warfareExpansion;
     this.strategicWeapons = DEFAULT_OPTIONS.strategicWeapons;
+    this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
+    this.historicalAi = DEFAULT_OPTIONS.historicalAi;
+    this.country = DEFAULT_OPTIONS.country;
     this.congress = DEFAULT_OPTIONS.congress;
     this.conquestPercent = DEFAULT_OPTIONS.conquestPercent;
     this.doomsdayClock = DEFAULT_OPTIONS.doomsdayClock;
@@ -889,6 +935,19 @@ export class SinglePlayerModal extends BaseModal {
         break;
       case "game_settings.doomsday_clock":
         this.doomsdayClock = checked;
+        break;
+      case "game_settings.world_war_1936":
+        // Exclusive with the other fork modes (spec §2.1).
+        this.worldWar1936 = checked;
+        if (checked) {
+          this.domesticMode = false;
+          this.congress = false;
+          this.warfareExpansion = false;
+          this.strategicWeapons = false;
+        }
+        break;
+      case "game_settings.historical_ai":
+        this.historicalAi = checked;
         break;
       default:
         break;
@@ -1162,7 +1221,8 @@ export class SinglePlayerModal extends BaseModal {
     if (this.starting) return;
     // Validate and clamp maxTimer setting before starting
     let finalMaxTimerValue: number | undefined = undefined;
-    if (this.maxTimer) {
+    // World War 1936 fixes the length (and hides the timer card).
+    if (this.maxTimer && !this.worldWar1936) {
       if (!this.maxTimerValue || this.maxTimerValue <= 0) {
         console.error("Max timer is enabled but no valid value is set");
         await showInGameAlert(
@@ -1237,6 +1297,70 @@ export class SinglePlayerModal extends BaseModal {
       // The ad is long enough that the modal can be closed while it runs.
       if (attempt !== this.startAttempt) return;
 
+      const baseConfig: GameConfig = {
+        gameMap: this.selectedMap,
+        gameMapSize: this.compactMap ? GameMapSize.Compact : GameMapSize.Normal,
+        gameType: GameType.Singleplayer,
+        gameMode: this.gameMode,
+        playerTeams: this.teamCount,
+        difficulty: this.selectedDifficulty,
+        maxTimerValue: finalMaxTimerValue,
+        bots: this.bots,
+        infiniteGold: this.infiniteGold,
+        donateGold: this.gameMode === GameMode.Team,
+        donateTroops: this.gameMode === GameMode.Team,
+        infiniteTroops: this.infiniteTroops,
+        instantBuild: this.instantBuild,
+        randomSpawn: this.randomSpawn,
+        disabledUnits: this.disabledUnits.filter((unit): unit is UnitType =>
+          Object.values(UnitType).includes(unit),
+        ),
+        nations: sliderToNationsConfig(this.nations, this.defaultNationCount),
+        ...(this.goldMultiplier && this.goldMultiplierValue
+          ? { goldMultiplier: this.goldMultiplierValue }
+          : {}),
+        ...(this.startingGold && this.startingGoldValue !== undefined
+          ? {
+              startingGold: Math.round(this.startingGoldValue * 1_000_000),
+            }
+          : {}),
+        ...(this.customAlliances
+          ? { customAllianceDuration: this.customAllianceMinutes ?? 0 }
+          : {}),
+        ...(this.waterNukes ? { waterNukes: true } : {}),
+        ...(this.domesticMode ? { domesticMode: true } : {}),
+        ...(this.warfareExpansion ? { warfareExpansion: true } : {}),
+        ...(this.strategicWeapons ? { strategicWeapons: true } : {}),
+        ...(this.domesticMode && this.congress && this.gameMode === GameMode.FFA
+          ? { congress: true }
+          : {}),
+        ...(this.domesticMode && this.conquestPercent !== undefined
+          ? { conquestPercent: this.conquestPercent }
+          : {}),
+        ...(this.doomsdayClock
+          ? {
+              doomsdayClock: {
+                enabled: true,
+                speed: this.doomsdayClockSpeed,
+              },
+            }
+          : {}),
+        ...(this.overtime
+          ? {
+              overtime: {
+                enabled: true,
+                startMinutes: this.overtimeStartMinutes ?? 30,
+              },
+            }
+          : {}),
+        ...(this.worldWar1936
+          ? { worldWar1936: true, historicalAi: this.historicalAi }
+          : {}),
+      };
+      // World War 1936 (spec §2.2): the client loads the map named here, so
+      // the mode's fixed map and rules are applied before the start.
+      const config = normalizeWorldWar1936Config(baseConfig);
+
       this.dispatchEvent(
         new CustomEvent("join-lobby", {
           detail: {
@@ -1249,75 +1373,12 @@ export class SinglePlayerModal extends BaseModal {
                   username: resolvedName.name,
                   clanTag: usernameInput?.getClanTag() ?? null,
                   cosmetics,
+                  ...(this.worldWar1936 && this.country !== null
+                    ? { country: this.country }
+                    : {}),
                 },
               ],
-              config: {
-                gameMap: this.selectedMap,
-                gameMapSize: this.compactMap
-                  ? GameMapSize.Compact
-                  : GameMapSize.Normal,
-                gameType: GameType.Singleplayer,
-                gameMode: this.gameMode,
-                playerTeams: this.teamCount,
-                difficulty: this.selectedDifficulty,
-                maxTimerValue: finalMaxTimerValue,
-                bots: this.bots,
-                infiniteGold: this.infiniteGold,
-                donateGold: this.gameMode === GameMode.Team,
-                donateTroops: this.gameMode === GameMode.Team,
-                infiniteTroops: this.infiniteTroops,
-                instantBuild: this.instantBuild,
-                randomSpawn: this.randomSpawn,
-                disabledUnits: this.disabledUnits.filter(
-                  (unit): unit is UnitType =>
-                    Object.values(UnitType).includes(unit),
-                ),
-                nations: sliderToNationsConfig(
-                  this.nations,
-                  this.defaultNationCount,
-                ),
-                ...(this.goldMultiplier && this.goldMultiplierValue
-                  ? { goldMultiplier: this.goldMultiplierValue }
-                  : {}),
-                ...(this.startingGold && this.startingGoldValue !== undefined
-                  ? {
-                      startingGold: Math.round(
-                        this.startingGoldValue * 1_000_000,
-                      ),
-                    }
-                  : {}),
-                ...(this.customAlliances
-                  ? { customAllianceDuration: this.customAllianceMinutes ?? 0 }
-                  : {}),
-                ...(this.waterNukes ? { waterNukes: true } : {}),
-                ...(this.domesticMode ? { domesticMode: true } : {}),
-                ...(this.warfareExpansion ? { warfareExpansion: true } : {}),
-                ...(this.strategicWeapons ? { strategicWeapons: true } : {}),
-                ...(this.domesticMode &&
-                this.congress &&
-                this.gameMode === GameMode.FFA
-                  ? { congress: true }
-                  : {}),
-                ...(this.domesticMode && this.conquestPercent !== undefined
-                  ? { conquestPercent: this.conquestPercent }
-                  : {}),
-                ...(this.doomsdayClock
-                  ? {
-                      doomsdayClock: {
-                        enabled: true,
-                        speed: this.doomsdayClockSpeed,
-                      },
-                    }
-                  : {}),
-                ...(this.overtime
-                  ? {
-                      overtime: {
-                        enabled: true,
-                        startMinutes: this.overtimeStartMinutes ?? 30,
-                      },
-                    }
-                  : {}),
-              },
+              config,
               lobbyCreatedAt: Date.now(), // ms; server should be authoritative in MP
             },
             source: "singleplayer",
