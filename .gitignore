@@ -27,6 +27,9 @@ tests/perf/output/
 map-generator/map-generator
 map-generator/map-generator.exe
 
+# World War 1936 map sources (map-generator/scenarios/world1936/fetch.sh)
+map-generator/.cache/
+
 # Staging dir tests/RenderDesktopDescriptor.test.ts creates in the repo root
 # (it needs the CLI copy at the same relative depth as the real one). Cleaned
 # up after each case; ignored so a crashed run cannot dirty the tree.

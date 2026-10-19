@@ -1,0 +1,189 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"image"
+	"image/color"
+	"image/png"
+	"os"
+	"sort"
+)
+
+// capitalVP is what a capital adds to its region (WW_CAPITAL_VP).
+const capitalVP = 15
+
+// nearestLand finds a land pixel within r pixels of px (cities on the coast
+// can fall in the sea), scanning rings outwards, row by row.
+func nearestLand(p Projection, land []bool, px, r int) (int, bool) {
+	if land[px] {
+		return px, true
+	}
+	x0, y0 := px%p.Width, px/p.Width
+	for d := 1; d <= r; d++ {
+		for y := y0 - d; y <= y0+d; y++ {
+			for x := x0 - d; x <= x0+d; x++ {
+				if x < 0 || y < 0 || x >= p.Width || y >= p.Height {
+					continue
+				}
+				if max(abs(x-x0), abs(y-y0)) != d {
+					continue
+				}
+				if land[y*p.Width+x] {
+					return y*p.Width + x, true
+				}
+			}
+		}
+	}
+	return 0, false
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+// assignVP gives every region 1 victory point, adds each city's tier to the
+// region it is in and +capitalVP to each capital's (spec §7.5). A region's VP
+// tile is its capital, else its highest-tier city (first listed on ties).
+// Returns each country's capital pixel.
+func assignVP(p Projection, land []bool, ids []uint16, regions []*Region, t *Tables) ([]int, error) {
+	byID := map[int]*Region{}
+	for _, r := range regions {
+		byID[r.ID] = r
+	}
+	for _, c := range t.Cities {
+		px, ok := p.Pixel(c.Lon, c.Lat)
+		if !ok {
+			continue
+		}
+		px, ok = nearestLand(p, land, px, 3)
+		if !ok {
+			continue
+		}
+		r := byID[int(ids[px])]
+		if r == nil {
+			continue
+		}
+		r.VP += c.Tier
+		if c.Tier > r.vpWeight {
+			r.vpWeight = c.Tier
+			r.VPTile = px
+		}
+	}
+	capitals := make([]int, len(t.Countries))
+	var errs []string
+	for i, c := range t.Countries {
+		px, ok := p.Pixel(c.Capital[0], c.Capital[1])
+		if ok {
+			px, ok = nearestLand(p, land, px, 3)
+		}
+		if !ok {
+			errs = append(errs, c.Tag+": capital is not on land")
+			continue
+		}
+		r := byID[int(ids[px])]
+		if r == nil || r.Owner != i+1 {
+			errs = append(errs, fmt.Sprintf("%s: capital (%.2f, %.2f) is not on its own land", c.Tag, c.Capital[0], c.Capital[1]))
+			continue
+		}
+		r.VP += capitalVP
+		r.vpWeight = 1 << 20
+		r.VPTile = px
+		capitals[i] = px
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("capitals:\n  %v", errs)
+	}
+	return capitals, nil
+}
+
+// writeRegionsPNG stores ids as R = id >> 8, G = id & 255.
+func writeRegionsPNG(path string, p Projection, land, sea []uint16) error {
+	img := image.NewNRGBA(image.Rect(0, 0, p.Width, p.Height))
+	for i := 0; i < p.Width*p.Height; i++ {
+		id := land[i]
+		if id == 0 {
+			id = sea[i]
+		}
+		img.SetNRGBA(i%p.Width, i/p.Width, color.NRGBA{uint8(id >> 8), uint8(id), 0, 255})
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return png.Encode(f, img)
+}
+
+type srcCountryOut struct {
+	Tag     string `json:"tag"`
+	Capital [2]int `json:"capital"`
+}
+
+type srcRegionOut struct {
+	ID     int     `json:"id"`
+	Name   string  `json:"name"`
+	NameKo string  `json:"nameKo"`
+	Owner  string  `json:"owner"`
+	VP     int     `json:"vp"`
+	VPTile *[2]int `json:"vpTile,omitempty"`
+}
+
+type srcSeaOut struct {
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	NameKo string `json:"nameKo"`
+}
+
+// writeScenarioSrc writes scenario.src.json (read by the map generator,
+// map-generator/regions.go).
+func writeScenarioSrc(path string, p Projection, t *Tables, capitals []int, regions, seas []*Region) error {
+	out := struct {
+		Version   int             `json:"version"`
+		Countries []srcCountryOut `json:"countries"`
+		Regions   []srcRegionOut  `json:"regions"`
+		SeaZones  []srcSeaOut     `json:"seaZones"`
+	}{Version: 1}
+	for i, c := range t.Countries {
+		out.Countries = append(out.Countries, srcCountryOut{c.Tag, [2]int{capitals[i] % p.Width, capitals[i] / p.Width}})
+	}
+	for _, r := range regions {
+		row := srcRegionOut{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: t.Countries[r.Owner-1].Tag, VP: r.VP}
+		if r.VPTile >= 0 {
+			row.VPTile = &[2]int{r.VPTile % p.Width, r.VPTile / p.Width}
+		}
+		out.Regions = append(out.Regions, row)
+	}
+	for _, z := range seas {
+		out.SeaZones = append(out.SeaZones, srcSeaOut{z.ID, z.Name, z.NameKo})
+	}
+	js, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(js, '\n'), 0644)
+}
+
+// summary prints region counts per country, smallest first.
+func summary(t *Tables, regions []*Region) {
+	per := map[string]int{}
+	for _, r := range regions {
+		per[t.Countries[r.Owner-1].Tag]++
+	}
+	tags := make([]string, 0, len(per))
+	for tag := range per {
+		tags = append(tags, tag)
+	}
+	sort.Slice(tags, func(a, b int) bool {
+		if per[tags[a]] != per[tags[b]] {
+			return per[tags[a]] < per[tags[b]]
+		}
+		return tags[a] < tags[b]
+	})
+	for _, tag := range tags {
+		fmt.Printf("  %s %d\n", tag, per[tag])
+	}
+}
