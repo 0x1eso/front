@@ -1,4 +1,5 @@
 import { GameConfigPatch } from "@openfront/engine-api/Schemas";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { GameEvent } from "@openfront/shared/EventBus";
 
 // Sent from the lobby screens, which load before the game client: here, not
@@ -20,4 +21,9 @@ export class SendToggleGameStartTimer implements GameEvent {
 // Switch between playing and watching from the lobby screen.
 export class SendSpectateEvent implements GameEvent {
   constructor(public readonly spectator: boolean) {}
+}
+
+// World War 1936 (spec §8.1): pick a country in the lobby (null gives it up).
+export class SendPickCountryEvent implements GameEvent {
+  constructor(public readonly tag: CountryTag | null) {}
 }

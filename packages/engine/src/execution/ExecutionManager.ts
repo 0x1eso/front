@@ -21,6 +21,7 @@ import {
   SatelliteTargetExecution,
 } from "../strategic/SatelliteOrders";
 import { ParadropExecution } from "../warfare/ParadropExecution";
+import { DeclareWarExecution } from "../ww1936/DeclareWarExecution";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
@@ -205,6 +206,8 @@ export class Executor {
           intent.kind,
           intent.target,
         );
+      case "declare_war":
+        return new DeclareWarExecution(player, intent.target);
       default:
         throw new Error(`intent type ${intent} not found`);
     }

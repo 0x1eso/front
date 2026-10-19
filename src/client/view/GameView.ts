@@ -20,11 +20,17 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import { GameLike, UnitPredicate } from "@openfront/engine-api/game/ReadViews";
 import { ClientID, GameID } from "@openfront/engine-api/Schemas";
+import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { unpackMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
 import { TerrainMapData } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { TerraNulliusImpl } from "@openfront/engine-lib/game/TerraNulliusImpl";
 import { UnitGrid } from "@openfront/engine-lib/game/UnitGrid";
+import {
+  fillScenarioOwners,
+  ScenarioIndex,
+} from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { PlayerCosmetics, WirePlayer } from "@openfront/shared/WireSchemas";
 import { computeAllianceClusters } from "../render/frame/derive/AllianceClusters";
 import { extractAttackRings } from "../render/frame/derive/AttackRings";
@@ -109,6 +115,11 @@ export class GameView implements GameLike {
 
   private _myPlayer: PlayerView | null = null;
   private _congressData: CongressData | null = null;
+  /** World War 1936: the last WorldWar update's data. */
+  private _worldWarData: WorldWarData | null = null;
+  /** World War 1936: smallID → faction, for the relation matrix (decision 4). */
+  private _worldWarTeams: Map<number, string> | null = null;
+  private readonly _usernames: Map<ClientID, string>;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
   // The derived structures below only depend on rarely-changing player
@@ -155,6 +166,19 @@ export class GameView implements GameLike {
     humans: WirePlayer[],
   ) {
     this._map = this._mapData.gameMap;
+    this._usernames = new Map(humans.map((h) => [h.clientID, h.username]));
+    // World War 1936 (plan decision 5): the engine gave every land tile its
+    // 1936 owner without tile updates; this view fills the same owners.
+    const scenario = this.worldWarScenario();
+    if (scenario !== null) {
+      fillScenarioOwners(this._map, scenario);
+      const teams = new Map<number, string>();
+      scenario.countries.forEach((tag, i) => {
+        const faction = COUNTRIES[tag].faction;
+        if (faction !== null) teams.set(i + 1, faction);
+      });
+      this._worldWarTeams = teams;
+    }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
     this._cosmetics = new Map(
@@ -217,6 +241,41 @@ export class GameView implements GameLike {
 
   public updatesSinceLastTick(): GameUpdates | null {
     return this.lastUpdate?.updates ?? null;
+  }
+
+  /** World War 1936: the static scenario; null when the mode is off. */
+  worldWarScenario(): ScenarioIndex | null {
+    return this._config.worldWar1936()
+      ? (this._mapData.scenario ?? null)
+      : null;
+  }
+
+  /** World War 1936: wars, capitulations, the preparation end. */
+  worldWarData(): WorldWarData | null {
+    return this._worldWarData;
+  }
+
+  /** The lobby username of a human player. */
+  usernameOf(clientID: ClientID): string | null {
+    return this._usernames.get(clientID) ?? null;
+  }
+
+  /** World War 1936 (decision 4): a country's flag and colour for everyone. */
+  private countryCosmetics(
+    smallID: number | undefined,
+  ): PlayerCosmetics | null {
+    const scenario = this.worldWarScenario();
+    if (scenario === null || smallID === undefined) return null;
+    const tag = scenario.tagOfSmallId(smallID);
+    if (tag === undefined) return null;
+    const def = COUNTRIES[tag];
+    const hex = (n: number) => n.toString(16).padStart(2, "0");
+    return {
+      flag: `/flags/${def.flag}.svg`,
+      color: {
+        color: `#${hex(def.color[0])}${hex(def.color[1])}${hex(def.color[2])}`,
+      },
+    };
   }
 
   /** World congress: the last congress the worker sent; null with the option off. */
@@ -286,6 +345,10 @@ export class GameView implements GameLike {
     if (congress.length > 0) {
       this._congressData = congress[congress.length - 1].data;
     }
+    const wwUpdates = gu.updates[GameUpdateType.WorldWar];
+    if (wwUpdates.length > 0) {
+      this._worldWarData = wwUpdates[wwUpdates.length - 1].data;
+    }
 
     const myDisplayName = formatPlayerDisplayName(
       this._myUsername,
@@ -319,7 +382,12 @@ export class GameView implements GameLike {
       // Replace the local player's name/displayName with their own stored values.
       // This way the user does not know they are being censored. clientID is
       // static — present only on first emission — so this branch only runs once.
-      if (pu.clientID !== undefined && pu.clientID === this._myClientID) {
+      // World War 1936 (plan decision 3): the name is the country's.
+      if (
+        pu.clientID !== undefined &&
+        pu.clientID === this._myClientID &&
+        this.worldWarScenario() === null
+      ) {
         pu.name = this._myUsername;
         pu.displayName = myDisplayName;
         pu.clanTag = this._myClanTag;
@@ -354,7 +422,9 @@ export class GameView implements GameLike {
           // directly on the update (see PlayerUpdate.nationFlag) rather than
           // being looked up by name — some maps define multiple nations with
           // the same display name (e.g. India's and Pakistan's "Punjab").
-          this._cosmetics.get(pu.clientID ?? "") ??
+          // World War 1936 (decision 4): every player wears its country.
+          this.countryCosmetics(pu.smallID) ??
+            this._cosmetics.get(pu.clientID ?? "") ??
             (pu.playerType === PlayerType.Nation && pu.nationFlag
               ? ({
                   flag: `/flags/${pu.nationFlag}.svg`,
@@ -546,7 +616,10 @@ export class GameView implements GameLike {
     // triggers) on unchanged ticks.
     if (this._relationsDirty) {
       this._relationsDirty = false;
-      const rel = buildRelationMatrix(this._playerStates, this._teams);
+      const rel = buildRelationMatrix(
+        this._playerStates,
+        this._worldWarTeams ?? this._teams,
+      );
       f.relationMatrix = rel.matrix;
       f.relationSize = rel.size;
       f.relationsDirty = true;

@@ -173,8 +173,10 @@ export class PlayerExecution implements Execution {
     // Perf: We fuse bounds calculations into the initial DFS flood, returning packed Int32Array bounds
     // instead of scanning every TileRef and allocating hundreds of Object {min, max} Cells.
     const { clusters, boxes } = this.calculateClusters();
-    // Expanded warfare (spec §14c): no encirclement capture, no annexation.
-    const noCapture = this.config.warfareExpansion();
+    // Expanded warfare (spec §14c) and World War 1936 (plan decision 9): no
+    // encirclement capture, no annexation.
+    const noCapture =
+      this.config.warfareExpansion() || this.mg.worldWar() !== null;
 
     if (clusters.length === 0) {
       this.player.largestClusterBoundingBox = null;

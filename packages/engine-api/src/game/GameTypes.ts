@@ -463,6 +463,8 @@ export interface PlayerInteraction {
   canDonateGold: boolean;
   canDonateTroops: boolean;
   canEmbargo: boolean;
+  /** World War 1936: this player may declare war on the other now. */
+  canDeclareWar?: boolean;
   allianceInfo?: AllianceInfo;
   /** World congress: a truce bars attacking this player now (set only then). */
   truce?: boolean;
@@ -502,6 +504,7 @@ export enum MessageType {
   GOVERNMENT_TIER_REACHED,
   VICTORY_PROJECT,
   CONGRESS,
+  WORLD_WAR,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -541,6 +544,7 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.GOVERNMENT_TIER_REACHED]: MessageCategory.TRADE,
   [MessageType.VICTORY_PROJECT]: MessageCategory.ATTACK,
   [MessageType.CONGRESS]: MessageCategory.ALLIANCE,
+  [MessageType.WORLD_WAR]: MessageCategory.ATTACK,
 } as const;
 
 /**

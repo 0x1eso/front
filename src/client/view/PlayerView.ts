@@ -25,6 +25,7 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import { PlayerLike } from "@openfront/engine-api/game/ReadViews";
 import type { StrategicData } from "@openfront/engine-api/strategic/StrategicTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { PatternDecoder } from "@openfront/shared/PatternDecoder";
 import { createRandomName } from "@openfront/shared/SharedUtil";
 import { PlayerCosmetics } from "@openfront/shared/WireSchemas";
@@ -98,7 +99,11 @@ export class PlayerView implements PlayerLike {
     this.static = playerStaticFromUpdate(data);
 
     // First emission always carries name + playerType (see playerStaticFromUpdate).
-    if (data.clientID === game.myClientID()) {
+    // World War 1936 (decision 3): a country's name is never anonymized.
+    if (
+      data.clientID === game.myClientID() ||
+      game.worldWarScenario() !== null
+    ) {
       this.anonymousName = data.name!;
     } else {
       this.anonymousName = createRandomName(data.name!, data.playerType!);
@@ -405,6 +410,11 @@ export class PlayerView implements PlayerLike {
 
   smallID(): number {
     return this.state.smallID;
+  }
+
+  /** World War 1936: this player's country; null when the mode is off. */
+  countryTag(): CountryTag | null {
+    return this.game.worldWarScenario()?.tagOfSmallId(this.smallID()) ?? null;
   }
 
   name(): string {

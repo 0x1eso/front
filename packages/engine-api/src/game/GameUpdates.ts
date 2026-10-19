@@ -5,6 +5,7 @@ import type {
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
+import type { WorldWarData } from "../ww1936/WorldWarTypes";
 import { TileRef } from "./GameMap";
 import {
   EmojiMessage,
@@ -124,6 +125,7 @@ export enum GameUpdateType {
   OrbitalStrike,
   BombDrop,
   Congress,
+  WorldWar,
 }
 
 export type GameUpdate =
@@ -152,7 +154,8 @@ export type GameUpdate =
   | DonateEventUpdate
   | OrbitalStrikeUpdate
   | BombDropUpdate
-  | CongressUpdate;
+  | CongressUpdate
+  | WorldWarUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -447,4 +450,10 @@ export interface OrbitalStrikeUpdate {
 export interface CongressUpdate {
   type: GameUpdateType.Congress;
   data: CongressData;
+}
+
+/** World War 1936: wars, capitulations and the preparation end, when they changed. */
+export interface WorldWarUpdate {
+  type: GameUpdateType.WorldWar;
+  data: WorldWarData;
 }

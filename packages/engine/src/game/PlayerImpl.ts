@@ -1425,6 +1425,11 @@ export class PlayerImpl implements Player {
     if (other.isDisconnected() && !treatAFKFriendly) {
       return false;
     }
+    // World War 1936 (plan decision 8): faction members are friends.
+    const ww = this.mg.worldWar();
+    if (ww !== null && ww.sameFaction(this._smallID, other.smallID())) {
+      return true;
+    }
     return this.isOnSameTeam(other) || this.isAlliedWith(other);
   }
 
@@ -2286,6 +2291,15 @@ export class PlayerImpl implements Player {
     treatAFKFriendly: boolean = false,
   ): boolean {
     if (this.isTruceWith(player)) return false;
+    // World War 1936 (spec §7.2): only enemies, and not before the
+    // preparation minute is over.
+    const ww = this.mg.worldWar();
+    if (
+      ww !== null &&
+      !ww.canFight(this._smallID, player.smallID(), this.mg.ticks())
+    ) {
+      return false;
+    }
     if (this.type() !== PlayerType.Human) {
       // Only human attackers respect PVP immunity
       return !this.isFriendly(player, treatAFKFriendly);

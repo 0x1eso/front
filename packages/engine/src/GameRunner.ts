@@ -29,6 +29,7 @@ import { CongressExecution } from "./congress/CongressExecution";
 import { DomesticExecution } from "./domestic/DomesticExecution";
 import { DoomsdayClockExecution } from "./execution/DoomsdayClockExecution";
 import { Executor } from "./execution/ExecutionManager";
+import { PlayerExecution } from "./execution/PlayerExecution";
 import { RecomputeRailClusterExecution } from "./execution/RecomputeRailClusterExecution";
 import { SpawnTimerExecution } from "./execution/SpawnTimerExecution";
 import { WinCheckExecution } from "./execution/WinCheckExecution";
@@ -43,6 +44,10 @@ import {
   snapshotGame,
 } from "./snapshot/GameSnapshot";
 import { StrategicExecution } from "./strategic/StrategicExecution";
+import { declareWarBlock } from "./ww1936/Diplomacy";
+import { scenarioPlayers } from "./ww1936/ScenarioPlayers";
+import { WorldWarExecution } from "./ww1936/WorldWarExecution";
+import { WorldWarStartExecution } from "./ww1936/WorldWarStartExecution";
 
 export async function createGameRunner(
   gameStart: GameStartInfo,
@@ -51,38 +56,63 @@ export async function createGameRunner(
   callBack: (gu: GameUpdateViewData | ErrorUpdate) => void,
 ): Promise<GameRunner> {
   const config = new EngineConfig(gameStart.config, false, gameStart.listed);
-  const gameMap = await loadGameMap(gameStart.config, map);
+  // The normalized config: World War 1936 fixes the map (spec §2.2). It is
+  // the very gameStart.config object when the mode is off.
+  const gameMap = await loadGameMap(config.gameConfig(), map);
   const random = new PseudoRandom(simpleHash(gameStart.gameID));
 
-  const humans = gameStart.players.map((p) => {
-    return new PlayerInfo(
-      p.username,
-      PlayerType.Human,
-      p.clientID,
-      random.nextID(),
-      p.isLobbyCreator ?? false,
-      p.clanTag,
-      p.friends ?? [],
-      p.teamIndex ?? null,
+  let game: Game;
+  if (config.worldWar1936()) {
+    // World War 1936 (spec §7.1): every country of the scenario is a player.
+    const scenario = gameMap.scenario;
+    if (scenario === undefined) {
+      throw new Error(
+        "World War 1936 needs the world1936 regions and scenario files",
+      );
+    }
+    const { players, nations } = scenarioPlayers(
+      gameStart.players,
+      scenario,
+      random,
     );
-  });
-
-  const nations = createNationsForGame(
-    gameStart,
-    gameMap.nations,
-    gameMap.additionalNations,
-    humans.length,
-    random,
-  );
-
-  const game: Game = createGame(
-    humans,
-    nations,
-    gameMap.gameMap,
-    gameMap.miniGameMap,
-    config,
-    gameMap.teamGameSpawnAreas,
-  );
+    game = createGame(
+      players,
+      nations,
+      gameMap.gameMap,
+      gameMap.miniGameMap,
+      config,
+      gameMap.teamGameSpawnAreas,
+      scenario,
+    );
+  } else {
+    const humans = gameStart.players.map((p) => {
+      return new PlayerInfo(
+        p.username,
+        PlayerType.Human,
+        p.clientID,
+        random.nextID(),
+        p.isLobbyCreator ?? false,
+        p.clanTag,
+        p.friends ?? [],
+        p.teamIndex ?? null,
+      );
+    });
+    const nations = createNationsForGame(
+      gameStart,
+      gameMap.nations,
+      gameMap.additionalNations,
+      humans.length,
+      random,
+    );
+    game = createGame(
+      humans,
+      nations,
+      gameMap.gameMap,
+      gameMap.miniGameMap,
+      config,
+      gameMap.teamGameSpawnAreas,
+    );
+  }
 
   const gr = new GameRunner(
     game,
@@ -132,6 +162,7 @@ export async function createGameRunnerFromSnapshot(
     gameMap: gameMap.gameMap,
     miniGameMap: gameMap.miniGameMap,
     teamGameSpawnAreas: gameMap.teamGameSpawnAreas,
+    scenario: gameMap.scenario,
   });
   // No init(): the snapshot already holds every execution init() adds.
   return new GameRunner(
@@ -177,6 +208,27 @@ export class GameRunner {
   }
 
   init() {
+    // World War 1936 (plan decision 6): no spawn phase, no tribes, its own
+    // clock before the win check.
+    if (this.game.worldWar() !== null) {
+      this.game.addExecution(new WorldWarStartExecution());
+      for (const p of this.game.allPlayers()) {
+        this.game.addExecution(new PlayerExecution(p));
+      }
+      if (this.game.config().spawnNations()) {
+        this.game.addExecution(...this.execManager.nationExecutions());
+      }
+      this.game.addExecution(
+        new WorldWarExecution(simpleHash(this.execManager.gameID()) + 1936),
+      );
+      this.game.addExecution(new WinCheckExecution());
+      if (!this.game.config().isUnitDisabled(UnitType.Factory)) {
+        this.game.addExecution(
+          new RecomputeRailClusterExecution(this.game.railNetwork()),
+        );
+      }
+      return;
+    }
     if (this.game.config().gameConfig().gameType !== GameType.Singleplayer) {
       this.game.addExecution(new SpawnTimerExecution());
     }
@@ -351,6 +403,7 @@ export class GameRunner {
 
     if (tile !== null && this.game.hasOwner(tile)) {
       const other = this.game.owner(tile) as Player;
+      const ww = this.game.worldWar();
       actions.interaction = {
         sharedBorder: player.sharesBorderWith(other),
         canSendEmoji: player.canSendEmoji(other),
@@ -361,6 +414,18 @@ export class GameRunner {
         canDonateTroops: player.canDonateTroops(other),
         canEmbargo: !player.hasEmbargoAgainst(other),
         allianceInfo: player.allianceInfo(other) ?? undefined,
+        ...(ww === null
+          ? {}
+          : {
+              canDeclareWar:
+                declareWarBlock(
+                  this.game,
+                  ww,
+                  player,
+                  other,
+                  this.game.ticks(),
+                ) === null,
+            }),
       };
       // World congress: the client still sends a tap on a truce partner, so
       // the engine can say why nothing happens (reportTruceRefusal).

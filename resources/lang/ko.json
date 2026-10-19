@@ -1556,6 +1556,7 @@
     "vietnam": "베트남",
     "warshipwarship": "군함과 군함",
     "world": "세계",
+    "world1936": "1936 세계",
     "worldinverted": "반전된 세계",
     "yangtzeriver": "양쯔강",
     "yellowsea": "서해",
@@ -2838,7 +2839,9 @@
       "conquest": "정복 승리",
       "political": "정치 승리: 세계 정부 선포",
       "science": "과학 승리: 우주 계획",
-      "score": "점수 승리"
+      "score": "점수 승리",
+      "ww_last_camp": "승리: 강대국이 남은 마지막 진영",
+      "ww_score": "전쟁 끝의 승점 판정 승리"
     },
     "screen": {
       "research": "연구",

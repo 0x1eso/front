@@ -44,6 +44,7 @@ import {
   ClientIntentMessage,
   ClientJoinMessage,
   ClientMessage,
+  ClientPickCountryMessage,
   ClientPingMessage,
   ClientRejoinMessage,
   ClientReportMessage,
@@ -69,6 +70,7 @@ import { isDesktopShell } from "./DesktopShell";
 import { showInGameConfirm } from "./InGameModal";
 import {
   SendKickPlayerIntentEvent,
+  SendPickCountryEvent,
   SendSpectateEvent,
   SendToggleGameStartTimer,
   SendUpdateGameConfigIntentEvent,
@@ -185,6 +187,11 @@ export class SendConveneEmergencyIntentEvent implements GameEvent {
     public readonly kind: EmergencyKind,
     public readonly target: PlayerID,
   ) {}
+}
+
+// World War 1936 (spec §7.3).
+export class SendDeclareWarIntentEvent implements GameEvent {
+  constructor(public readonly target: PlayerView) {}
 }
 
 export class BuildUnitIntentEvent implements GameEvent {
@@ -524,6 +531,15 @@ export class Transport {
         spectator: e.spectator,
       } satisfies ClientSpectateMessage);
     });
+    this.subscribe(SendPickCountryEvent, (e) => {
+      this.sendMsg({
+        type: "pick_country",
+        tag: e.tag,
+      } satisfies ClientPickCountryMessage);
+    });
+    this.subscribe(SendDeclareWarIntentEvent, (e) =>
+      this.sendIntent({ type: "declare_war", target: e.target.id() }),
+    );
   }
 
   private subscribe<T extends GameEvent>(

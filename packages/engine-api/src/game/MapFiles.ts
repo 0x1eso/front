@@ -1,3 +1,4 @@
+import type { ScenarioData } from "../ww1936/ScenarioTypes";
 import { GameMapSize, GameMapType, TeamGameSpawnAreas } from "./GameTypes";
 
 /**
@@ -12,6 +13,10 @@ export interface MapFiles {
   mapBin?: Uint8Array;
   map4xBin?: Uint8Array;
   map16xBin?: Uint8Array;
+  /** World War 1936 maps (manifest.ww1936), normal size only: regions.bin. */
+  regionsBin?: Uint8Array;
+  /** World War 1936 maps: scenario.json, parsed and validated. */
+  scenario?: ScenarioData;
 }
 
 export interface MapMetadata {
@@ -33,6 +38,8 @@ export interface MapManifest {
   teamGameSpawnAreas?: TeamGameSpawnAreas;
   /** Optional map layers rendered between terrain and territory. */
   layers?: MapLayer[];
+  /** World War 1936 scenario map: regions.bin and scenario.json sit next to it. */
+  ww1936?: boolean;
 }
 
 export type LayerPlacement = "land" | "water";

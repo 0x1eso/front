@@ -11,6 +11,7 @@ Statecraft is a modified version of OpenFront, © OpenFront and Contributors, ht
 - `resources/atlases/icon-atlas.png`: upstream's structure icon atlas (CC BY-SA 4.0, "OpenFront"), modified by this fork: cells 7 and 8 (domestic structures) and 9 and 10 (coastal battery, airport, from `resources/atlases/src/coastal-battery.svg` and `airport.svg`, drawn for this fork) are appended; the first six cells are unchanged. The modified atlas is CC BY-SA 4.0.
 - `resources/atlases/unit-atlas.png`: upstream's unit sprite atlas (CC BY-SA 4.0, "OpenFront"), modified by this fork: three plane sprites and a conventional missile sprite drawn for this fork (`resources/atlases/src/unit-sprites.py`) are appended; the first twelve cells are unchanged. The modified atlas is CC BY-SA 4.0.
 - Upstream's all-rights-reserved assets (`proprietary/`: logos, the OpenFront font, music and the matchmaking chime) are not included.
+- `resources/flags/ww1936_YUG.svg`, `ww1936_ESN.svg`, `ww1936_RAJ.svg` (World War 1936 flags): drawn for this fork from simple shapes, CC BY-SA 4.0. `resources/flags/ww1936_ZAF.svg` is upstream's 1928 South African flag (CC BY-SA 4.0, "OpenFront") under a new file name.
 
 ### Music
 

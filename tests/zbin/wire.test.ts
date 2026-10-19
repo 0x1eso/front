@@ -170,6 +170,7 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     extra: 5,
   },
   { type: "convene_emergency", clientID: P2, kind: "nuclear", target: P1 },
+  { type: "declare_war", clientID: P1, target: P2 },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [
@@ -205,7 +206,7 @@ const SERVER_MESSAGES: ServerMessage[] = [
           friends: [P1],
           cosmetics: { flag: "flag:mars", verified: true },
         },
-        { clientID: P3, username: "charlie", clanTag: null },
+        { clientID: P3, username: "charlie", clanTag: null, country: "SUN" },
       ],
       tribes: [{ name: "Wolves" }],
     },
@@ -233,6 +234,23 @@ const SERVER_MESSAGES: ServerMessage[] = [
         { clientID: P2, username: "bravo", clanTag: "XY", verified: true },
       ],
       lobbyCreatorClientID: P1,
+    },
+  },
+  {
+    type: "lobby_info",
+    myClientID: P2,
+    lobby: {
+      gameID: "gM3xQ1zR",
+      serverTime: 1_700_000_000_000,
+      gameConfig: { ...CONFIG, worldWar1936: true, historicalAi: true },
+      clients: [
+        { clientID: P1, username: "alpha", clanTag: null },
+        { clientID: P2, username: "bravo", clanTag: null },
+      ],
+      countryPicks: [
+        { clientID: P1, tag: "DEU" },
+        { clientID: P2, tag: "GBR" },
+      ],
     },
   },
   { type: "new_lobby", gameID: "nEwL0bby" },
@@ -312,6 +330,8 @@ const CLIENT_MESSAGES: ClientMessage[] = [
       ],
     },
   },
+  { type: "pick_country", tag: "SUN" },
+  { type: "pick_country", tag: null },
 ];
 
 const LOBBY_MESSAGES: PublicLobbyMessage[] = [

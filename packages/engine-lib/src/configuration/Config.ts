@@ -27,6 +27,7 @@ import {
   COASTAL_BATTERY_BUILD_TICKS,
   WARFARE_ONLY_UNITS,
 } from "../warfare/Warfare";
+import { normalizeWorldWar1936Config } from "../ww1936/ModeConfig";
 
 export interface NukeMagnitude {
   inner: number;
@@ -102,12 +103,17 @@ const OVERTIME_DEFAULTS = {
 
 export class Config {
   private unitInfoCache = new Map<UnitType, UnitInfo>();
+  protected _gameConfig: GameConfig;
   constructor(
-    protected _gameConfig: GameConfig,
+    gameConfig: GameConfig,
     private _isReplay: boolean,
     public readonly listed: boolean = false,
     private _spectator: boolean = false,
-  ) {}
+  ) {
+    // World War 1936 (spec §2.2): one normalization for the engine, the
+    // server and the lobby. The same object comes back when the mode is off.
+    this._gameConfig = normalizeWorldWar1936Config(gameConfig);
+  }
 
   isReplay(): boolean {
     return this._isReplay;
@@ -214,6 +220,16 @@ export class Config {
       this._gameConfig.congress === true &&
       this._gameConfig.gameMode === GameMode.FFA
     );
+  }
+
+  /** World War 1936 (spec §2): exclusive with every other fork mode. */
+  worldWar1936(): boolean {
+    return this._gameConfig.worldWar1936 === true;
+  }
+
+  /** World War 1936: nations follow the historical calendar (spec §7.4). */
+  historicalAi(): boolean {
+    return this.worldWar1936() && this._gameConfig.historicalAi !== false;
   }
 
   /** Land share (percent) that wins by conquest, before any overtime drop. */

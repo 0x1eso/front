@@ -40,6 +40,7 @@ import {
   INTERCEPTOR_NUKES,
   STOCKPILED_NUKES,
 } from "./strategic/StrategicTypes";
+import { COUNTRY_TAGS } from "./ww1936/Countries";
 
 export type GameID = string;
 export type ClientID = string;
@@ -81,7 +82,8 @@ export type Intent =
   | InterceptSatelliteIntent
   | QueueResearchIntent
   | CongressVoteIntent
-  | ConveneEmergencyIntent;
+  | ConveneEmergencyIntent
+  | DeclareWarIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -141,6 +143,7 @@ export type CongressVoteIntent = z.infer<typeof CongressVoteIntentSchema>;
 export type ConveneEmergencyIntent = z.infer<
   typeof ConveneEmergencyIntentSchema
 >;
+export type DeclareWarIntent = z.infer<typeof DeclareWarIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -407,6 +410,13 @@ export const GameConfigSchema = z.object({
   // the lobby turns it on with domestic mode. See
   // docs/superpowers/specs/2026-10-19-world-congress-design.md.
   congress: z.boolean().optional(),
+  // World War 1936 (this fork): the 1936 world, countries picked in the
+  // lobby, declarations of war and the historical calendar. Exclusive with
+  // every other fork mode (engine-lib/ww1936/ModeConfig.ts). See
+  // docs/superpowers/specs/2026-10-19-world-war-1936-design.md.
+  worldWar1936: z.boolean().optional(),
+  // World War 1936: nations follow the historical calendar (spec §7.4).
+  historicalAi: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -726,6 +736,12 @@ export const ConveneEmergencyIntentSchema = z.object({
   target: MappedID,
 });
 
+// World War 1936 (spec §7.3): declare war on `target`.
+export const DeclareWarIntentSchema = z.object({
+  type: z.literal("declare_war"),
+  target: MappedID,
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -764,6 +780,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   QueueResearchIntentSchema,
   CongressVoteIntentSchema,
   ConveneEmergencyIntentSchema,
+  DeclareWarIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)
@@ -799,6 +816,9 @@ export const PlayerSchema = z.object({
   // game's team list). Feeds deterministic team assignment, so it must be
   // identical for every client (like clanTag/friends).
   teamIndex: zb.uint().optional(),
+  // World War 1936: the country this player picked in the lobby, stamped by
+  // the server (spec §7.1). Missing or taken picks get a free country.
+  country: z.enum(COUNTRY_TAGS).optional(),
 });
 
 // A purchased bot tribe name in use this game (active names are globally

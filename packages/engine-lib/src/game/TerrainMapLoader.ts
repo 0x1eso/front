@@ -10,6 +10,7 @@ import {
   MapMetadata,
   Nation,
 } from "@openfront/engine-api/game/MapFiles";
+import { ScenarioIndex } from "../ww1936/ScenarioIndex";
 import { GameMapImpl } from "./GameMapImpl";
 
 export type TerrainMapData = {
@@ -20,6 +21,8 @@ export type TerrainMapData = {
   teamGameSpawnAreas?: TeamGameSpawnAreas;
   /** Map layers from the manifest, if any. */
   layers?: MapLayer[];
+  /** World War 1936 maps at normal size: regions and scenario (spec §4.7). */
+  scenario?: ScenarioIndex;
 };
 
 /**
@@ -108,6 +111,21 @@ export async function loadTerrainMap(files: MapFiles): Promise<TerrainMapData> {
     }
   }
 
+  const scenario =
+    mapSize === GameMapSize.Normal &&
+    files.regionsBin !== undefined &&
+    files.scenario !== undefined
+      ? ScenarioIndex.fromFiles(files.scenario, files.regionsBin)
+      : undefined;
+  if (
+    scenario !== undefined &&
+    (scenario.width !== gameMap.width() || scenario.height !== gameMap.height())
+  ) {
+    throw new Error(
+      `Map ${map}: scenario is ${scenario.width}x${scenario.height}, the map ${gameMap.width()}x${gameMap.height()}`,
+    );
+  }
+
   return {
     nations: manifest.nations,
     additionalNations: manifest.additionalNations ?? [],
@@ -115,6 +133,7 @@ export async function loadTerrainMap(files: MapFiles): Promise<TerrainMapData> {
     miniGameMap: miniMap,
     teamGameSpawnAreas,
     layers,
+    ...(scenario === undefined ? {} : { scenario }),
   };
 }
 

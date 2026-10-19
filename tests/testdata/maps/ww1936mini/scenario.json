@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "width": 200,
+  "height": 120,
+  "countries": [
+    {
+      "tag": "FRA",
+      "capital": [20, 25]
+    },
+    {
+      "tag": "DEU",
+      "capital": [65, 17]
+    },
+    {
+      "tag": "ITA",
+      "capital": [65, 85]
+    },
+    {
+      "tag": "POL",
+      "capital": [105, 25]
+    },
+    {
+      "tag": "SUN",
+      "capital": [160, 25]
+    },
+    {
+      "tag": "GBR",
+      "capital": [35, 110]
+    }
+  ],
+  "regions": [
+    {
+      "id": 1,
+      "name": "Paris",
+      "nameKo": "파리",
+      "owner": "FRA",
+      "vp": 21,
+      "vpTile": [20, 25],
+      "tiles": 2000,
+      "terrain": "plains"
+    },
+    {
+      "id": 2,
+      "name": "Lyon",
+      "nameKo": "리옹",
+      "owner": "FRA",
+      "vp": 3,
+      "vpTile": [20, 75],
+      "tiles": 2000,
+      "terrain": "plains"
+    },
+    {
+      "id": 3,
+      "name": "Berlin",
+      "nameKo": "베를린",
+      "owner": "DEU",
+      "vp": 21,
+      "vpTile": [65, 17],
+      "tiles": 1750,
+      "terrain": "plains"
+    },
+    {
+      "id": 4,
+      "name": "Munich",
+      "nameKo": "뮌헨",
+      "owner": "DEU",
+      "vp": 4,
+      "vpTile": [65, 52],
+      "tiles": 1750,
+      "terrain": "plains"
+    },
+    {
+      "id": 5,
+      "name": "Rome",
+      "nameKo": "로마",
+      "owner": "ITA",
+      "vp": 21,
+      "vpTile": [65, 85],
+      "tiles": 1500,
+      "terrain": "plains"
+    },
+    {
+      "id": 6,
+      "name": "Warsaw",
+      "nameKo": "바르샤바",
+      "owner": "POL",
+      "vp": 21,
+      "vpTile": [105, 25],
+      "tiles": 1500,
+      "terrain": "plains"
+    },
+    {
+      "id": 7,
+      "name": "Krakow",
+      "nameKo": "크라쿠프",
+      "owner": "POL",
+      "vp": 3,
+      "vpTile": [105, 75],
+      "tiles": 1500,
+      "terrain": "plains"
+    },
+    {
+      "id": 8,
+      "name": "Moscow",
+      "nameKo": "모스크바",
+      "owner": "SUN",
+      "vp": 21,
+      "vpTile": [160, 25],
+      "tiles": 4000,
+      "terrain": "plains"
+    },
+    {
+      "id": 9,
+      "name": "Kiev",
+      "nameKo": "키이우",
+      "owner": "SUN",
+      "vp": 6,
+      "vpTile": [160, 75],
+      "tiles": 4000,
+      "terrain": "plains"
+    },
+    {
+      "id": 10,
+      "name": "London",
+      "nameKo": "런던",
+      "owner": "GBR",
+      "vp": 21,
+      "vpTile": [35, 111],
+      "tiles": 300,
+      "terrain": "plains"
+    }
+  ],
+  "seaZones": [
+    {
+      "id": 40001,
+      "name": "North Sea",
+      "nameKo": "북해",
+      "tiles": 1700
+    },
+    {
+      "id": 40002,
+      "name": "Black Sea",
+      "nameKo": "흑해",
+      "tiles": 2000
+    }
+  ]
+}

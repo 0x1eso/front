@@ -21,7 +21,12 @@ const MAP_GEN_MAPS = path.join(ROOT, "map-generator", "assets", "maps");
 const RESOURCES_MAPS = path.join(ROOT, "resources", "maps");
 const EN_JSON = path.join(ROOT, "resources", "lang", "en.json");
 
-const allMapKeys = Object.keys(GameMapType) as GameMapName[];
+// Maps whose generated files land in a later task of a plan (World War 1936
+// P0: Task 4 generates world1936 and empties this set).
+const PENDING_MAPS: Set<GameMapName> = new Set(["World1936"]);
+const allMapKeys = (Object.keys(GameMapType) as GameMapName[]).filter(
+  (k) => !PENDING_MAPS.has(k),
+);
 
 // Maps excluded from the frequency requirement (not part of regular playlists).
 const FREQUENCY_EXEMPTIONS: Set<GameMapName> = new Set([
@@ -36,6 +41,7 @@ const FREQUENCY_EXEMPTIONS: Set<GameMapName> = new Set([
   "BritanniaClassic",
   "ChoppingBlock",
   "Luna",
+  "World1936",
 ]);
 
 // The API (openfrontio/infra `GameMapTypeSchema`, and the `maps.name`
@@ -440,7 +446,9 @@ describe("Map consistency", () => {
   test("en.json map translations match info.json display names", () => {
     const enMapSection = getEnJsonMapSection();
     const errors: string[] = [];
-    for (const key of allMapKeys) {
+    // A pending map already has its info.json and its name.
+    const keys = [...allMapKeys, ...PENDING_MAPS];
+    for (const key of keys) {
       const folder = toFolderName(key);
       const info = readInfoJson(key);
       if (info === null) continue; // Other tests catch missing files.
@@ -455,7 +463,7 @@ describe("Map consistency", () => {
         );
       }
     }
-    const validKeys = new Set(allMapKeys.map((k) => toFolderName(k)));
+    const validKeys = new Set(keys.map((k) => toFolderName(k)));
     for (const enKey of Object.keys(enMapSection)) {
       if (!EN_JSON_META_KEYS.has(enKey) && !validKeys.has(enKey)) {
         errors.push(`en.json map.${enKey} does not match any map`);
@@ -501,7 +509,10 @@ describe("Map consistency", () => {
   });
 
   test("No excess folders in resources/maps/ or map-generator/assets/maps/", () => {
-    const expectedFolders = new Set(allMapKeys.map((k) => toFolderName(k)));
+    // A pending map may already have its info.json folder.
+    const expectedFolders = new Set(
+      [...allMapKeys, ...PENDING_MAPS].map((k) => toFolderName(k)),
+    );
     const errors: string[] = [];
 
     const resourceDirs = fs

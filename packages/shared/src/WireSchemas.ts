@@ -3,6 +3,7 @@ import {
   ArchivedPlayerStatsSchema,
   PlayerStatsSchema,
 } from "@openfront/engine-api/StatsSchemas";
+import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
 import { LOBBY_LABEL_MAX } from "@openfront/engine-lib/Util";
 import { zb } from "@openfront/zbin";
 import { z } from "zod";
@@ -39,7 +40,8 @@ export type ClientMessage =
   | ClientLogMessage
   | ClientHashMessage
   | ClientSpectateMessage
-  | ClientReportMessage;
+  | ClientReportMessage
+  | ClientPickCountryMessage;
 
 export type ServerMessage =
   | ServerTurnMessage
@@ -106,6 +108,10 @@ export type ClientLogMessage = z.infer<typeof ClientLogMessageSchema>;
 export type ClientHashMessage = z.infer<typeof ClientHashSchema>;
 
 export type ClientSpectateMessage = z.infer<typeof ClientSpectateMessageSchema>;
+
+export type ClientPickCountryMessage = z.infer<
+  typeof ClientPickCountryMessageSchema
+>;
 
 export type PlayerCosmeticRefs = z.infer<typeof PlayerCosmeticRefsSchema>;
 
@@ -263,6 +269,10 @@ export const GameInfoSchema = z.object({
   // Listed lobbies only: the host paid to put it in the public Special
   // queue, so the queue's countdown starts it.
   queued: z.boolean().optional(),
+  // World War 1936 lobbies only (spec §8.1): who picked which country.
+  countryPicks: z
+    .array(z.object({ clientID: z.string(), tag: z.enum(COUNTRY_TAGS) }))
+    .optional(),
 });
 
 // Browser-facing lobby info. Master/worker-internal fields (the creator hash
@@ -671,6 +681,13 @@ export const ClientReportMessageSchema = z.object({
   reason: ReportReasonSchema,
 });
 
+// World War 1936 (spec §8.1): pick a country in the lobby; null gives it up.
+// Lobby-phase only; the server refuses a country someone else holds.
+export const ClientPickCountryMessageSchema = z.object({
+  type: z.literal("pick_country"),
+  tag: z.enum(COUNTRY_TAGS).nullable(),
+});
+
 export const ClientHashSchema = z.object({
   type: z.literal("hash"),
   hash: zb.float(),
@@ -761,6 +778,7 @@ export const ClientMessageSchema = zb.discriminatedUnion("type", [
   ClientHashSchema,
   ClientSpectateMessageSchema,
   ClientReportMessageSchema,
+  ClientPickCountryMessageSchema,
 ]);
 
 //

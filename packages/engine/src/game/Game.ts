@@ -51,6 +51,7 @@ import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import type { ExecRecord, SnapshotWriter } from "../snapshot/SnapshotContext";
 import type { PlayerStrategic } from "../strategic/PlayerStrategic";
+import type { WorldWar } from "../ww1936/WorldWar";
 import { RailNetwork } from "./RailNetwork";
 import { Stats } from "./Stats";
 
@@ -695,6 +696,9 @@ export interface Game extends GameLike {
 
   /** World congress; null when the option is off. */
   congress(): Congress | null;
+
+  /** World War 1936; null when the mode is off. */
+  worldWar(): WorldWar | null;
 
   // Nations
   nations(): Nation[];

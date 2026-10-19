@@ -85,6 +85,9 @@ export const UPDATE_TYPE_ROUTING: Record<
   BombDrop: "misc",
   // World congress: the whole congress, resent when it changes.
   Congress: "misc",
+  // World War 1936: wars, capitulations and the preparation end, resent
+  // when they change.
+  WorldWar: "misc",
 };
 
 /**

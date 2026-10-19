@@ -24,6 +24,7 @@ class ServerGameMapLoader implements GameMapLoader {
         JSON.parse(
           (await readMapFile(map, "manifest.json")).toString("utf8"),
         ) as MapManifest,
+      file: (name: string) => bin(name)(),
       webpPath: "",
       layerImage: async () => {
         throw new Error("the server never renders map layers");

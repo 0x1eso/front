@@ -1388,7 +1388,9 @@
       "conquest": "Victory by conquest",
       "political": "Political victory: world government",
       "science": "Science victory: space program",
-      "score": "Victory on score"
+      "score": "Victory on score",
+      "ww_last_camp": "Victory: the last camp with a great power",
+      "ww_score": "Victory on points at the end of the war"
     }
   },
   "doomsday_clock": {
@@ -2253,6 +2255,7 @@
     "vietnam": "Vietnam",
     "warshipwarship": "Warship Warship",
     "world": "World",
+    "world1936": "World 1936",
     "worldinverted": "World Inverted",
     "yangtzeriver": "Yangtze River",
     "yellowsea": "Yellow Sea",

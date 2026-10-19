@@ -42,6 +42,8 @@ const EDITABLE: { [K in keyof GameConfig]?: GameConfig[K] } = {
   warfareExpansion: true,
   strategicWeapons: true,
   congress: true,
+  // worldWar1936 itself rewrites the config: see its own describe below.
+  historicalAi: true,
 };
 
 // `.nullable().optional()` in the schema: null clears, undefined leaves alone.
@@ -155,5 +157,46 @@ describe("hostCheatsEnabled", () => {
     { startingGold: 0 },
   ])("is on when %o grants something", (block) => {
     expect(hostCheatsEnabled(block)).toBe(true);
+  });
+});
+
+describe("World War 1936 in a host's patch", () => {
+  it("turning it on fixes the stored config", () => {
+    const target = testGameConfig({
+      domesticMode: true,
+      gameMap: GameMapType.Europe,
+    });
+    applyGameConfigPatch(target, { worldWar1936: true, historicalAi: false });
+    expect(target.worldWar1936).toBe(true);
+    expect(target.historicalAi).toBe(false);
+    expect(target.domesticMode).toBeUndefined();
+    expect(target.gameMap).toBe(GameMapType.World1936);
+    expect(target.maxTimerValue).toBe(45);
+  });
+
+  it("a later patch cannot turn another mode back on", () => {
+    const target = testGameConfig({ worldWar1936: true });
+    applyGameConfigPatch(target, {
+      strategicWeapons: true,
+      gameMap: GameMapType.Asia,
+    });
+    expect(target.strategicWeapons).toBeUndefined();
+    expect(target.gameMap).toBe(GameMapType.World1936);
+  });
+
+  it("turning it off gives the 1936 map back", () => {
+    const target = testGameConfig({
+      worldWar1936: true,
+      gameMap: GameMapType.World1936,
+    });
+    applyGameConfigPatch(target, { worldWar1936: false });
+    expect(target.worldWar1936).toBe(false);
+    expect(target.gameMap).toBe(GameMapType.World);
+  });
+
+  it("without the mode, its map is not offered", () => {
+    const target = testGameConfig();
+    applyGameConfigPatch(target, { gameMap: GameMapType.World1936 });
+    expect(target.gameMap).toBe(GameMapType.World);
   });
 });

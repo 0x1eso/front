@@ -1,4 +1,6 @@
+import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig, GameConfigPatch } from "@openfront/engine-api/Schemas";
+import { applyWorldWar1936Rules } from "@openfront/engine-lib/ww1936/ModeConfig";
 
 // The host edits its lobby through update_game_config, which carries a
 // partial GameConfig. Only the keys listed here are taken from it. gameType
@@ -35,6 +37,8 @@ const COPIED_KEYS = [
   "warfareExpansion",
   "strategicWeapons",
   "congress",
+  "worldWar1936",
+  "historicalAi",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a
@@ -101,6 +105,14 @@ export function applyGameConfigPatch(
   // (the full config it sends has hostCheats: undefined when the toggle is
   // off), so `undefined` here means "clear", not "leave unchanged".
   target.hostCheats = patch.hostCheats;
+  // World War 1936 (spec §2.2): the mode fixes the map, the rules and the
+  // other modes, whatever else the patch carried. Without the mode its map
+  // is not offered.
+  if (target.worldWar1936 === true) {
+    applyWorldWar1936Rules(target);
+  } else if (target.gameMap === GameMapType.World1936) {
+    target.gameMap = GameMapType.World;
+  }
 }
 
 // Whether the host-only cheat block actually grants anything: mere presence

@@ -66,6 +66,9 @@ import { CargoPlaneExecutionSnapshot } from "../warfare/CargoPlaneExecution";
 import { CoastalBarrageExecutionSnapshot } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecutionSnapshot } from "../warfare/CoastalBatteryExecution";
 import { ParadropExecutionSnapshot } from "../warfare/ParadropExecution";
+import { DeclareWarExecutionSnapshot } from "../ww1936/DeclareWarExecution";
+import { WorldWarExecutionSnapshot } from "../ww1936/WorldWarExecution";
+import { WorldWarStartExecutionSnapshot } from "../ww1936/WorldWarStartExecution";
 import type { ExecutionSnapshotType } from "./ExecutionSnapshot";
 
 /**
@@ -94,6 +97,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   ConveneEmergencyExecutionSnapshot,
   ConventionalMissileExecutionSnapshot,
   ConstructionExecutionSnapshot,
+  DeclareWarExecutionSnapshot,
   DefensePostExecutionSnapshot,
   DeleteUnitExecutionSnapshot,
   DomesticExecutionSnapshot,
@@ -141,4 +145,6 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   VictoryProjectExecutionSnapshot,
   WarshipExecutionSnapshot,
   WinCheckExecutionSnapshot,
+  WorldWarExecutionSnapshot,
+  WorldWarStartExecutionSnapshot,
 ] as unknown as readonly ExecutionSnapshotType<unknown>[];

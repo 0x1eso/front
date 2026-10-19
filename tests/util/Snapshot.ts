@@ -155,6 +155,8 @@ export const DERIVED_FIELDS = new Set<string>([
   "congressDataCache",
   "lastSentCongressData",
   "congressPlayerDataCache",
+  // WorldWar
+  "dataDirty",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

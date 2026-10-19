@@ -29,6 +29,7 @@ export class NodeGameMapLoader implements GameMapLoader {
         JSON.parse(
           fs.readFileSync(path.join(dir, "manifest.json"), "utf8"),
         ) as MapManifest,
+      file: (name: string) => readBin(name)(),
       webpPath: path.join(dir, "thumbnail.webp"),
       layerImage: async () => {
         throw new Error("Layer images are not supported in NodeGameMapLoader");

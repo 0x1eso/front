@@ -34,6 +34,7 @@ import {
   Winner,
 } from "@openfront/engine-api/Schemas";
 import { ATTACK_INDEX_SENT } from "@openfront/engine-api/StatsSchemas";
+import type { FactionId } from "@openfront/engine-api/ww1936/Countries";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import {
   MotionPlanRecord,
@@ -54,6 +55,10 @@ import {
   zRef,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { simpleHash } from "@openfront/engine-lib/Util";
+import {
+  fillScenarioOwners,
+  ScenarioIndex,
+} from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
 import { Congress, CongressStateSchema } from "../congress/Congress";
@@ -77,6 +82,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { WorldWar, WorldWarStateSchema } from "../ww1936/WorldWar";
 import { AllianceImpl } from "./AllianceImpl";
 import { AllianceRequestImpl } from "./AllianceRequestImpl";
 import {
@@ -107,6 +113,7 @@ export function createGame(
   miniGameMap: GameMap,
   config: EngineConfig,
   teamGameSpawnAreas?: TeamGameSpawnAreas,
+  scenario?: ScenarioIndex,
 ): Game {
   const stats = new StatsImpl();
   return new GameImpl(
@@ -117,6 +124,8 @@ export function createGame(
     config,
     stats,
     teamGameSpawnAreas,
+    false,
+    scenario ?? null,
   );
 }
 
@@ -172,6 +181,8 @@ export class GameImpl implements Game {
   private _nukeImpactQueue: TileRef[] = [];
   /** World congress; null when the option is off. */
   private _congress: Congress | null;
+  /** World War 1936; null when the mode is off. */
+  private _worldWar: WorldWar | null;
 
   constructor(
     private _humans: PlayerInfo[],
@@ -184,6 +195,7 @@ export class GameImpl implements Game {
     // Restoring a snapshot: skip team and player setup, the snapshot
     // supplies both (see restoreState).
     restoring: boolean = false,
+    scenario: ScenarioIndex | null = null,
   ) {
     const constructorStart = performance.now();
 
@@ -199,12 +211,19 @@ export class GameImpl implements Game {
     );
     this._sharedWaterCache = new SharedWaterCache(this);
     this._congress = _config.congress() ? new Congress(this) : null;
+    this._worldWar = _config.worldWar1936()
+      ? new WorldWar(this, requireScenario(scenario))
+      : null;
 
     if (!restoring) {
       if (_config.gameConfig().gameMode === GameMode.Team) {
         this.populateTeams();
       }
       this.addPlayers();
+      if (this._worldWar !== null) {
+        this.assignScenarioTerritory(this._worldWar.scenario);
+        this._worldWar.start();
+      }
     }
 
     console.log(
@@ -221,6 +240,12 @@ export class GameImpl implements Game {
   }
 
   private addPlayers() {
+    // World War 1936 (plan decision 2): _humans holds every country's
+    // player, humans and nations, in scenario order.
+    if (this._worldWar !== null) {
+      this._humans.forEach((p) => this.addPlayer(p));
+      return;
+    }
     if (this.config().gameConfig().gameMode === GameMode.FFA) {
       this._humans.forEach((p) => this.addPlayer(p));
       this._nations.forEach((n) => this.addPlayer(n.playerInfo));
@@ -254,6 +279,30 @@ export class GameImpl implements Game {
       }
       this.addPlayer(playerInfo, team);
     }
+  }
+
+  /**
+   * World War 1936 (spec §5.3, plan decision 5): every land tile gets its
+   * 1936 owner at once. No tile updates: the screens fill the same owners.
+   */
+  private assignScenarioTerritory(index: ScenarioIndex): void {
+    fillScenarioOwners(this._map, index);
+    const n = this._width * this._height;
+    for (let t = 0; t < n; t++) {
+      const owner = this._map.ownerID(t);
+      if (owner === 0) continue;
+      (this._playersBySmallID[owner - 1] as PlayerImpl)._tiles.add(t);
+    }
+    for (let t = 0; t < n; t++) {
+      const owner = this._map.ownerID(t);
+      if (owner === 0 || !this._map.isBorder(t)) continue;
+      (this._playersBySmallID[owner - 1] as PlayerImpl)._borderTiles.add(t);
+    }
+    for (const p of this._players.values()) {
+      p._lastTileChange = this._ticks;
+      p._tileChangeVersion++;
+    }
+    this._territoryVersion++;
   }
 
   isOnEdgeOfMap(ref: TileRef): boolean {
@@ -686,6 +735,7 @@ export class GameImpl implements Game {
       hash += p.hash();
     });
     if (this._congress !== null) hash += this._congress.hash();
+    if (this._worldWar !== null) hash += this._worldWar.hash();
     return hash;
   }
 
@@ -1065,6 +1115,14 @@ export class GameImpl implements Game {
 
   makeWinner(winner: string | Player): Winner | undefined {
     if (typeof winner === "string") {
+      // World War 1936 (plan decision 11): a faction won.
+      if (this._worldWar !== null) {
+        return [
+          "team",
+          winner,
+          ...this._worldWar.humanClientIDsOf(winner as FactionId),
+        ];
+      }
       const threshold = this._config.teamLandShareWinThresholdTenths();
       return [
         "team",
@@ -1431,6 +1489,9 @@ export class GameImpl implements Game {
   congress(): Congress | null {
     return this._congress;
   }
+  worldWar(): WorldWar | null {
+    return this._worldWar;
+  }
   /** The PlayerInfo object this game holds for a player id, if any. */
   findPlayerInfo(id: PlayerID): PlayerInfo | undefined {
     return (
@@ -1512,6 +1573,9 @@ export class GameImpl implements Game {
       ...(this._congress === null
         ? {}
         : { congress: this._congress.snapshot(w) }),
+      ...(this._worldWar === null
+        ? {}
+        : { worldWar: this._worldWar.snapshot() }),
     };
   }
 
@@ -1574,6 +1638,9 @@ export class GameImpl implements Game {
     );
     if (this._congress !== null && s.congress !== undefined) {
       this._congress.restoreState(s.congress, r);
+    }
+    if (this._worldWar !== null && s.worldWar !== undefined) {
+      this._worldWar.restoreState(s.worldWar);
     }
   }
 
@@ -1701,6 +1768,7 @@ export const GameSnapshot = snapshotType({
     sharedWaterCache: VersionedSchema,
     stats: VersionedSchema,
     congress: CongressStateSchema.optional(),
+    worldWar: WorldWarStateSchema.optional(),
   }),
 });
 export type GameState = z.infer<typeof GameSnapshot.schema>;
@@ -1715,3 +1783,12 @@ const createGameUpdatesMap = (): GameUpdates => {
     });
   return map;
 };
+
+function requireScenario(scenario: ScenarioIndex | null): ScenarioIndex {
+  if (scenario === null) {
+    throw new Error(
+      "World War 1936 needs the map's regions.bin and scenario.json",
+    );
+  }
+  return scenario;
+}

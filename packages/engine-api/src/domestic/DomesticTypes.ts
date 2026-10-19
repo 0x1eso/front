@@ -196,11 +196,15 @@ export interface VictoryProjectProgress {
   paused: boolean;
 }
 
-/** How a domestic-mode game was won (WinUpdate.reason). */
+/** How a domestic-mode or World War 1936 game was won (WinUpdate.reason). */
 export const WIN_REASONS = [
   "conquest",
   "science",
   "political",
   "score",
+  // World War 1936 (spec §7.6): the 45-minute score verdict, and the only
+  // camp left with a living major.
+  "ww_score",
+  "ww_last_camp",
 ] as const;
 export type WinReason = (typeof WIN_REASONS)[number];

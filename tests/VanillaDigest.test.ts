@@ -117,4 +117,14 @@ describe("vanilla stays bit-identical", () => {
       CONGRESS_ON_DIGEST,
     );
   }, 60_000);
+
+  // World War 1936 (spec §2.3): explicitly off, or historicalAi without the
+  // mode, changes nothing. Pins taken from the first test.
+  test("the World War 1936 option explicitly off changes nothing", async () => {
+    expect(await digest({ worldWar1936: false })).toBe("c330352312204618");
+  }, 60_000);
+
+  test("historicalAi without the mode changes nothing", async () => {
+    expect(await digest({ historicalAi: true })).toBe("c330352312204618");
+  }, 60_000);
 });

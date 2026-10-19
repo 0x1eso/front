@@ -21,6 +21,7 @@
     "scripts/domestic-sim-report.ts",
     "scripts/warfare-sim.ts",
     "scripts/warfare-sim-report.ts",
+    "scripts/ww1936",
     "vite.config.ts"
   ],
   "exclude": [

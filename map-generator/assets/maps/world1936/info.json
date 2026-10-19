@@ -1,0 +1,9 @@
+{
+  "id": "World1936",
+  "name": "World 1936",
+  "translation_key": "map.world1936",
+  "categories": ["world"],
+  "multiplayer_frequency": 0,
+  "ww1936": true,
+  "nations": []
+}

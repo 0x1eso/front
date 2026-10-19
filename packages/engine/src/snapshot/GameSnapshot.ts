@@ -15,6 +15,7 @@ import {
   Versioned,
   VersionedSchema,
 } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
 import { AllianceImpl, AllianceSnapshot } from "../game/AllianceImpl";
@@ -261,6 +262,8 @@ export interface RestoreDeps {
   gameMap: GameMap;
   miniGameMap: GameMap;
   teamGameSpawnAreas?: TeamGameSpawnAreas;
+  /** World War 1936 maps: the static scenario. */
+  scenario?: ScenarioIndex;
 }
 
 /**
@@ -297,6 +300,7 @@ export function restoreGame(bytes: Uint8Array, deps: RestoreDeps): Game {
     new StatsImpl(),
     deps.teamGameSpawnAreas,
     true,
+    deps.scenario ?? null,
   );
 
   // Pass 1: an empty shell for every object, so references resolve.
