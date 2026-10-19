@@ -3,6 +3,7 @@ import {
   EmergencyKind,
   RESOLUTION_META,
 } from "@openfront/engine-api/congress/CongressTypes";
+import { LawId } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   Difficulty,
   PlayerType,
@@ -76,12 +77,24 @@ export function nationCongressTick(mg: Game, player: Player): void {
     // of influence.
     let committedMilli = 0;
     s.items.forEach((item, index) => {
-      if (pc.ballot(s.id, index) !== null || !c.canVote(player, item)) return;
-      const vote = nationBallot(mg, c, player, item, committedMilli);
-      if (vote === null) return;
-      committedMilli += extraVoteCostMilli(0, vote.extra);
+      if (!c.canVote(player, item)) return;
+      const wish = ballotWish(mg, c, player, item);
+      if (wish === null) return;
+      // A ballot already in is the convener's own yes (Emergencies.ts casts
+      // it with no extra votes): raise it on the same side, never switch.
+      const existing = pc.ballot(s.id, index);
+      if (existing !== null && existing.option !== wish.option) return;
+      const from = existing?.extra ?? 0;
+      const extra = affordableRaise(
+        pc.influenceMilli(),
+        from,
+        wish.wanted,
+        committedMilli,
+      );
+      if (existing !== null && extra <= from) return;
+      committedMilli += extraVoteCostMilli(from, extra);
       mg.addExecution(
-        new CongressVoteExecution(player, s.id, index, vote.option, vote.extra),
+        new CongressVoteExecution(player, s.id, index, wish.option, extra),
       );
     });
   }
@@ -98,12 +111,23 @@ export function affordableExtra(
   wanted: number,
   committedMilli = 0,
 ): number {
+  return affordableRaise(influenceMilli, 0, wanted, committedMilli);
+}
+
+/** Like affordableExtra, for a ballot that already holds `from` extra votes (paid for): never below `from`. */
+function affordableRaise(
+  influenceMilli: number,
+  from: number,
+  wanted: number,
+  committedMilli: number,
+): number {
+  if (wanted <= from) return from;
   const budget =
     Math.floor((influenceMilli * (100 - AI_RESERVE_PCT)) / 100) -
     committedMilli;
   let k = Math.min(wanted, MAX_EXTRA_VOTES);
-  while (k > 0 && extraVoteCostMilli(0, k) > budget) k--;
-  return Math.max(0, k);
+  while (k > from && extraVoteCostMilli(from, k) > budget) k--;
+  return k;
 }
 
 function other(o: BallotOption): BallotOption {
@@ -157,18 +181,40 @@ export function nationBallot(
   committedMilli = 0,
 ): NationVote | null {
   const pc = player.congress();
-  if (pc === null) return null;
+  const wish = ballotWish(mg, c, player, item);
+  if (pc === null || wish === null) return null;
+  return {
+    option: wish.option,
+    extra: affordableExtra(pc.influenceMilli(), wish.wanted, committedMilli),
+  };
+}
+
+/** The side a nation takes and the extra votes it would like, before what it can afford. */
+interface BallotWish {
+  option: BallotOption;
+  wanted: number;
+}
+
+/** `option` with `wanted` extra votes; null abstains. */
+function wanting(
+  option: BallotOption | null,
+  wanted: number,
+): BallotWish | null {
+  return option === null ? null : { option, wanted };
+}
+
+/** Spec §11.1 rules 1-5 and §11.2, or null to abstain. */
+function ballotWish(
+  mg: Game,
+  c: Congress,
+  player: Player,
+  item: AgendaItem,
+): BallotWish | null {
+  if (player.congress() === null) return null;
   const cap = AI_EXTRA_CAP[mg.config().gameConfig().difficulty];
   const half = Math.ceil(cap / 2);
-  const vote = (option: BallotOption | null, wanted: number) =>
-    option === null
-      ? null
-      : {
-          option,
-          extra: affordableExtra(pc.influenceMilli(), wanted, committedMilli),
-        };
   if (item.resolution === "emergency") {
-    return emergencyVote(mg, player, item, cap, half, vote);
+    return emergencyWish(mg, player, item, cap, half);
   }
   const me = player.smallID();
   const favorable = RESOLUTION_META[item.resolution].favorable;
@@ -177,17 +223,17 @@ export function nationBallot(
     .filter((p): p is Player => p.isPlayer());
   // 1. My own case: the side that favours me, with every extra vote I can.
   if (item.targets.includes(me)) {
-    return vote(selfOption(mg, c, player, item, favorable), cap);
+    return wanting(selfOption(mg, c, player, item, favorable), cap);
   }
-  if (holdsParam(player, item)) return vote("A", cap);
+  if (holdsParam(player, item)) return wanting("A", cap);
   // 2. An ally's case.
   const ally = targets.find((t) => player.isAlliedWith(t));
   if (ally !== undefined) {
-    return vote(item.resolution === "truce" ? "A" : favorable, half);
+    return wanting(item.resolution === "truce" ? "A" : favorable, half);
   }
   // 3. An enemy's case.
   if (favorable !== null && targets.some((t) => isEnemy(mg, c, player, t))) {
-    return vote(other(favorable), half);
+    return wanting(other(favorable), half);
   }
   // 4. The runaway leader (Hard and up).
   if (
@@ -197,10 +243,10 @@ export function nationBallot(
     findRunawayLeader(mg) === targets[0] &&
     !player.isFriendly(targets[0])
   ) {
-    return vote(other(favorable), 0);
+    return wanting(other(favorable), 0);
   }
   // 5. Personality.
-  return vote(personalityOption(mg, player, item, targets[0] ?? null), 0);
+  return wanting(personalityOption(mg, player, item, targets[0] ?? null), 0);
 }
 
 function selfOption(
@@ -237,7 +283,7 @@ function holdsParam(player: Player, item: AgendaItem): boolean {
   }
   if (item.resolution === "law_review") {
     const [law, option] = (item.param ?? "").split(":");
-    return [...d.proclaimedLaws()].some(([l, o]) => l === law && o === option);
+    return d.proclaimedLaws().get(law as LawId) === option;
   }
   return false;
 }
@@ -336,19 +382,18 @@ function personalityOption(
 }
 
 /** Spec §11.2: an emergency vote. */
-function emergencyVote(
+function emergencyWish(
   mg: Game,
   player: Player,
   item: AgendaItem,
   cap: number,
   half: number,
-  vote: (option: BallotOption | null, wanted: number) => NationVote | null,
-): NationVote | null {
+): BallotWish | null {
   const target = mg.playerBySmallID(item.targets[0]);
   if (!target.isPlayer()) return null;
-  if (target === player) return vote("B", cap);
-  if (player.isFriendly(target, true)) return vote("B", half);
-  if (isVictimOf(mg, player, target)) return vote("A", half);
+  if (target === player) return wanting("B", cap);
+  if (player.isFriendly(target, true)) return wanting("B", half);
+  if (isVictimOf(mg, player, target)) return wanting("A", half);
   if (mg.config().gameConfig().difficulty === Difficulty.Easy) return null;
   const hard = isHard(mg);
   const kind = item.param as EmergencyKind;
@@ -367,7 +412,7 @@ function emergencyVote(
       support = kind !== "hegemony" || hard;
       break;
   }
-  return support ? vote("A", 0) : null;
+  return support ? wanting("A", 0) : null;
 }
 
 /** Spec §11.3: whether `player` wants to convene this emergency against `target`. */
@@ -505,14 +550,52 @@ export function congressRestraint(
   const c = mg.congress();
   if (c === null) return null;
   if (c.isEmergencyTarget(player.smallID())) return "emergency_target";
-  if (
+  return warTaxBinds(c, player) ? "war_tax" : null;
+}
+
+/** A war tax (S4 A) is in force and `player` is a nation that heeds it (not a conqueror). */
+function warTaxBinds(c: Congress, player: Player): boolean {
+  return (
     player.type() === PlayerType.Nation &&
     personality(player) !== "conqueror" &&
     c.active().some((r) => r.resolution === "war_tax" && r.option === "A")
-  ) {
-    return "war_tax";
-  }
-  return null;
+  );
+}
+
+/** `other` attacks `player` by land now, or took land from or nuked it in the last 180 s. */
+function isHittingUs(mg: Game, player: Player, other: Player): boolean {
+  return (
+    isVictimOf(mg, player, other) ||
+    player.incomingAttacks().some((a) => a.attacker() === other)
+  );
+}
+
+/**
+ * Spec §11.4, the gate of every attack or strike a nation starts on
+ * `other`: AiAttackBehavior.shouldAttack (which the nuke, warfare and
+ * strategic behaviours use) and the MIRV choice. Never a spared target
+ * (congressSparesTarget). As the emergency target, nothing on a member;
+ * under a war tax, nothing on a human or nation but the joinable emergency
+ * target (bots stay open). Hitting back at whoever is attacking or hit us
+ * isn't starting anything ("반격"). Always true without a congress and for
+ * anyone but a nation; reads no PRNG.
+ */
+export function congressAllowsAttack(
+  mg: Game,
+  player: Player,
+  other: Player,
+): boolean {
+  const c = mg.congress();
+  if (c === null || player.type() !== PlayerType.Nation) return true;
+  if (congressSparesTarget(mg, player, other)) return false;
+  const asTarget =
+    c.isEmergencyTarget(player.smallID()) &&
+    c.isEmergencyMember(other.smallID());
+  const taxed =
+    warTaxBinds(c, player) &&
+    other.type() !== PlayerType.Bot &&
+    joinableEmergencyTarget(mg, player) !== other;
+  return !(asTarget || taxed) || isHittingUs(mg, player, other);
 }
 
 /** Spec §11.4: start no attack of our own — as the emergency target, or as a peaceful nation under a war tax. */

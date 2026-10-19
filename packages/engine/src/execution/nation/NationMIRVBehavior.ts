@@ -21,6 +21,7 @@ import type {
 } from "../../snapshot/SnapshotContext";
 import { MirvExecution } from "../MIRVExecution";
 import { calculateTerritoryCenter } from "../Util";
+import { congressAllowsAttack } from "./NationCongressBehavior";
 import {
   EMOJI_NUKE,
   NationEmojiBehavior,
@@ -300,6 +301,8 @@ export class NationMIRVBehavior {
 
   private isWorthMirving(target: Player): boolean {
     return (
+      // World congress (spec §11.4): only where the nation may strike.
+      congressAllowsAttack(this.game, this.player, target) &&
       !this.wasRecentlyMirved(target) &&
       mirvGetsThrough(this.game, this.player, target)
     );
