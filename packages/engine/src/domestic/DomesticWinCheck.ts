@@ -9,6 +9,7 @@ import {
   projectProgress,
   ScoreInput,
 } from "@openfront/engine-lib/domestic/Score";
+import { awaitsRatification } from "../congress/WorldGovernment";
 import type { Game, Player } from "../game/Game";
 
 export interface DomesticWin {
@@ -83,6 +84,8 @@ export function checkDomesticWin(mg: Game): DomesticWin | null {
   for (const p of players) {
     const project = p.domestic()?.victoryProject() ?? null;
     if (project === null || project.ticksLeft > 0) continue;
+    // World congress (spec §10.1): an unratified proclamation waits.
+    if (project.kind === "political" && awaitsRatification(mg, p)) continue;
     const team = p.team();
     return {
       winner: teams && team !== null ? team : p,
