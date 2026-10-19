@@ -1261,7 +1261,8 @@ export class ClientGameRunner {
     this.myPlayer
       .actions(tile, [UnitType.TransportShip])
       .then((actions) => {
-        if (actions.canAttack) {
+        // A truce partner: the engine refuses it and says why.
+        if (actions.canAttack || actions.interaction?.truce === true) {
           this.eventBus.emit(
             new SendAttackIntentEvent(
               this.gameView.owner(tile).id(),
@@ -1432,7 +1433,8 @@ export class ClientGameRunner {
     this.myPlayer
       .actions(tile, null)
       .then((actions) => {
-        if (actions.canAttack) {
+        // A truce partner: the engine refuses it and says why.
+        if (actions.canAttack || actions.interaction?.truce === true) {
           this.eventBus.emit(
             new SendAttackIntentEvent(
               this.gameView.owner(tile).id(),

@@ -464,6 +464,8 @@ export interface PlayerInteraction {
   canDonateTroops: boolean;
   canEmbargo: boolean;
   allianceInfo?: AllianceInfo;
+  /** World congress: a truce bars attacking this player now (set only then). */
+  truce?: boolean;
 }
 
 export interface EmojiMessage {

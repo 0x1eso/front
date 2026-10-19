@@ -24,7 +24,7 @@ import { assertNever } from "@openfront/engine-lib/Util";
 import { BARRAGE_ATTACKER_LOSS_FACTOR } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
 import { AttackLogicInput } from "../configuration/EngineConfig";
-import { withCongressCombat } from "../congress/Conflict";
+import { reportTruceRefusal, withCongressCombat } from "../congress/Conflict";
 import {
   DomesticCombat,
   domesticCombat,
@@ -128,6 +128,8 @@ export class AttackExecution implements Execution {
       if (!this.removeTroops && this.startTroops !== null) {
         this._owner.addTroops(this.startTroops);
       }
+      // A landing's own attack: its boat or plane already answered for it.
+      if (this.removeTroops) reportTruceRefusal(mg, this._owner, this.target);
       this.active = false;
       return;
     }

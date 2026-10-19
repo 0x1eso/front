@@ -1494,6 +1494,7 @@
     "congress_tied": "🏛 Tied, nothing adopted: {resolution} ({a} : {b})",
     "congress_tied_pair": "🏛 Tied, nothing adopted: {resolution} for {name} ↔ {target} ({a} : {b})",
     "congress_tied_target": "🏛 Tied, nothing adopted: {resolution} for {name} ({a} : {b})",
+    "congress_truce_blocked": "🕊 Truce with {name}",
     "conquered_no_gold": "Conquered {name} (didn't play, no gold awarded)",
     "conventional_missile_hit": "{name}'s missile hit one of your buildings",
     "conventional_missile_inbound": "{name} - missile inbound",

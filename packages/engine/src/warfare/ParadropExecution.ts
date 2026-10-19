@@ -12,6 +12,7 @@ import {
   PLANE_SPEED,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
+import { reportTruceRefusal } from "../congress/Conflict";
 import { AttackExecution } from "../execution/AttackExecution";
 import { Execution, Game, Player, Unit } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -73,6 +74,13 @@ export class ParadropExecution implements Execution {
       this.active = false;
       return;
     }
+    // World congress (spec §8.1): say it's the truce, not a missing airport.
+    const target = mg.owner(this.dst);
+    if (target.isPlayer() && this.player.isTruceWith(target)) {
+      reportTruceRefusal(mg, this.player, target);
+      this.active = false;
+      return;
+    }
     const spawn = this.player.canBuild(UnitType.TransportPlane, this.dst);
     if (spawn === false) {
       if (!mg.config().isUnitDisabled(UnitType.TransportPlane)) {
@@ -108,7 +116,6 @@ export class ParadropExecution implements Execution {
       ticksPerStep: 1,
       path: this.path,
     });
-    const target = mg.owner(this.dst);
     if (target.isPlayer()) {
       mg.displayIncomingUnit(
         this.plane.id(),
