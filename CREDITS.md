@@ -34,6 +34,8 @@ Licensed under ODbL
 [Natural Earth](https://www.naturalearthdata.com/)  
 Public Domain
 
+The World War 1936 map (`resources/maps/world1936`, `map-generator/assets/maps/world1936`, `map-generator/scenarios/world1936`) is drawn from Natural Earth 10m land, lakes, admin-1 states and provinces, marine areas and populated places (public domain, commit ca96624a), and this fork's 1936 owner tables (`map-generator/scenarios/world1936/src`, historical facts written for this fork, CC BY-SA 4.0). aourednik/historical-basemaps (GPL-3.0) was only compared against; nothing derived from it is included.
+
 ### Bedmap3 Antarctica Dataset
 
 Pritchard, H.D., Fretwell, P.T., Fremand, A.C. et al. Bedmap3 updated ice bed, surface and thickness gridded datasets for Antarctica. _Sci Data_ 12, 109 (2025).  
@@ -65,6 +67,8 @@ Copyright © opentopography.org. All Rights Reserved. [Terms of Use](https://ope
 
 [NASA Earth Observatory](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/topography-bathymetry-maps/)
 [Public Domain](https://www.nasa.gov/nasa-brand-center/images-and-media/)
+
+World War 1936 terrain: NASA Earth Observatory "Topography" (`gebco_08_rev_elev_21600x10800.png`, NASA / GEBCO), public domain.
 
 ### Hawaii Relief Map
 

@@ -1,0 +1,1886 @@
+[
+  {
+    "name": "Berlin",
+    "lon": 13.399603,
+    "lat": 52.523764,
+    "tier": 20
+  },
+  {
+    "name": "London",
+    "lon": -0.118668,
+    "lat": 51.501941,
+    "tier": 20
+  },
+  {
+    "name": "Moscow",
+    "lon": 37.613577,
+    "lat": 55.75411,
+    "tier": 20
+  },
+  {
+    "name": "New York",
+    "lon": -73.995718,
+    "lat": 40.721562,
+    "tier": 20
+  },
+  {
+    "name": "Paris",
+    "lon": 2.352992,
+    "lat": 48.858092,
+    "tier": 20
+  },
+  {
+    "name": "Tokyo",
+    "lon": 139.749462,
+    "lat": 35.686963,
+    "tier": 20
+  },
+  {
+    "name": "Barcelona",
+    "lon": 2.181424,
+    "lat": 41.385245,
+    "tier": 10
+  },
+  {
+    "name": "Beijing",
+    "lon": 116.394201,
+    "lat": 39.90172,
+    "tier": 10
+  },
+  {
+    "name": "Budapest",
+    "lon": 19.081375,
+    "lat": 47.501952,
+    "tier": 10
+  },
+  {
+    "name": "Buenos Aires",
+    "lon": -58.432513,
+    "lat": -34.610715,
+    "tier": 10
+  },
+  {
+    "name": "Cairo",
+    "lon": 31.248022,
+    "lat": 30.051906,
+    "tier": 10
+  },
+  {
+    "name": "Chicago",
+    "lon": -87.635237,
+    "lat": 41.847961,
+    "tier": 10
+  },
+  {
+    "name": "Detroit",
+    "lon": -83.051334,
+    "lat": 42.333558,
+    "tier": 10
+  },
+  {
+    "name": "Hamburg",
+    "lon": 9.998053,
+    "lat": 53.551971,
+    "tier": 10
+  },
+  {
+    "name": "Istanbul",
+    "lon": 28.974277,
+    "lat": 41.017602,
+    "tier": 10
+  },
+  {
+    "name": "Kolkata",
+    "lon": 88.369126,
+    "lat": 22.569579,
+    "tier": 10
+  },
+  {
+    "name": "Los Angeles",
+    "lon": -118.231986,
+    "lat": 34.049219,
+    "tier": 10
+  },
+  {
+    "name": "Madrid",
+    "lon": -3.685297,
+    "lat": 40.401972,
+    "tier": 10
+  },
+  {
+    "name": "Mexico City",
+    "lon": -99.132934,
+    "lat": 19.444388,
+    "tier": 10
+  },
+  {
+    "name": "Mumbai",
+    "lon": 72.875839,
+    "lat": 19.068408,
+    "tier": 10
+  },
+  {
+    "name": "Philadelphia",
+    "lon": -75.179841,
+    "lat": 39.945942,
+    "tier": 10
+  },
+  {
+    "name": "Rio de Janeiro",
+    "lon": -43.212117,
+    "lat": -22.907308,
+    "tier": 10
+  },
+  {
+    "name": "Rome",
+    "lon": 12.481313,
+    "lat": 41.897902,
+    "tier": 10
+  },
+  {
+    "name": "Shanghai",
+    "lon": 121.434559,
+    "lat": 31.218398,
+    "tier": 10
+  },
+  {
+    "name": "St.  Petersburg",
+    "lon": 30.314074,
+    "lat": 59.94096,
+    "tier": 10
+  },
+  {
+    "name": "Sydney",
+    "lon": 151.212548,
+    "lat": -33.871373,
+    "tier": 10
+  },
+  {
+    "name": "São Paulo",
+    "lon": -46.626966,
+    "lat": -23.556734,
+    "tier": 10
+  },
+  {
+    "name": "Tianjin",
+    "lon": 117.196607,
+    "lat": 39.082772,
+    "tier": 10
+  },
+  {
+    "name": "Vienna",
+    "lon": 16.364693,
+    "lat": 48.201961,
+    "tier": 10
+  },
+  {
+    "name": "Warsaw",
+    "lon": 21.005347,
+    "lat": 52.230872,
+    "tier": 10
+  },
+  {
+    "name": "Ōsaka",
+    "lon": 135.503754,
+    "lat": 34.691095,
+    "tier": 10
+  },
+  {
+    "name": "Addis Ababa",
+    "lon": 38.698059,
+    "lat": 9.035256,
+    "tier": 5
+  },
+  {
+    "name": "Alexandria",
+    "lon": 29.94805,
+    "lat": 31.201965,
+    "tier": 5
+  },
+  {
+    "name": "Amsterdam",
+    "lon": 4.914694,
+    "lat": 52.351914,
+    "tier": 5
+  },
+  {
+    "name": "Athens",
+    "lon": 23.731375,
+    "lat": 37.985272,
+    "tier": 5
+  },
+  {
+    "name": "Atlanta",
+    "lon": -84.367642,
+    "lat": 33.739457,
+    "tier": 5
+  },
+  {
+    "name": "Auckland",
+    "lon": 174.763027,
+    "lat": -36.848055,
+    "tier": 5
+  },
+  {
+    "name": "Baghdad",
+    "lon": 44.391923,
+    "lat": 33.340594,
+    "tier": 5
+  },
+  {
+    "name": "Baku",
+    "lon": 49.860271,
+    "lat": 40.397218,
+    "tier": 5
+  },
+  {
+    "name": "Bangkok",
+    "lon": 100.514699,
+    "lat": 13.751945,
+    "tier": 5
+  },
+  {
+    "name": "Belgrade",
+    "lon": 20.466045,
+    "lat": 44.820591,
+    "tier": 5
+  },
+  {
+    "name": "Bengaluru",
+    "lon": 77.558064,
+    "lat": 12.971941,
+    "tier": 5
+  },
+  {
+    "name": "Birmingham",
+    "lon": -1.921943,
+    "lat": 52.47692,
+    "tier": 5
+  },
+  {
+    "name": "Bogota",
+    "lon": -74.08529,
+    "lat": 4.598369,
+    "tier": 5
+  },
+  {
+    "name": "Boston",
+    "lon": -71.07196,
+    "lat": 42.331906,
+    "tier": 5
+  },
+  {
+    "name": "Brussels",
+    "lon": 4.331371,
+    "lat": 50.835263,
+    "tier": 5
+  },
+  {
+    "name": "Bucharest",
+    "lon": 26.098001,
+    "lat": 44.435318,
+    "tier": 5
+  },
+  {
+    "name": "Cape Town",
+    "lon": 18.433042,
+    "lat": -33.918065,
+    "tier": 5
+  },
+  {
+    "name": "Caracas",
+    "lon": -66.918983,
+    "lat": 10.502944,
+    "tier": 5
+  },
+  {
+    "name": "Casablanca",
+    "lon": -7.618313,
+    "lat": 33.601922,
+    "tier": 5
+  },
+  {
+    "name": "Chengdu",
+    "lon": 104.068074,
+    "lat": 30.671946,
+    "tier": 5
+  },
+  {
+    "name": "Chennai",
+    "lon": 80.278053,
+    "lat": 13.091934,
+    "tier": 5
+  },
+  {
+    "name": "Dakar",
+    "lon": -17.475076,
+    "lat": 14.717778,
+    "tier": 5
+  },
+  {
+    "name": "Delhi",
+    "lon": 77.228058,
+    "lat": 28.671939,
+    "tier": 5
+  },
+  {
+    "name": "Denver",
+    "lon": -104.985962,
+    "lat": 39.741134,
+    "tier": 5
+  },
+  {
+    "name": "Geneva",
+    "lon": 6.140028,
+    "lat": 46.210008,
+    "tier": 5
+  },
+  {
+    "name": "Glasgow",
+    "lon": -4.239101,
+    "lat": 55.86227,
+    "tier": 5
+  },
+  {
+    "name": "Guangzhou",
+    "lon": 113.261785,
+    "lat": 23.124723,
+    "tier": 5
+  },
+  {
+    "name": "Havana",
+    "lon": -82.366128,
+    "lat": 23.133905,
+    "tier": 5
+  },
+  {
+    "name": "Hong Kong",
+    "lon": 114.183064,
+    "lat": 22.306927,
+    "tier": 5
+  },
+  {
+    "name": "Houston",
+    "lon": -95.348436,
+    "lat": 29.741273,
+    "tier": 5
+  },
+  {
+    "name": "Jakarta",
+    "lon": 106.827492,
+    "lat": -6.172472,
+    "tier": 5
+  },
+  {
+    "name": "Johannesburg",
+    "lon": 28.028064,
+    "lat": -26.168099,
+    "tier": 5
+  },
+  {
+    "name": "Kabul",
+    "lon": 69.181314,
+    "lat": 34.518636,
+    "tier": 5
+  },
+  {
+    "name": "Kharkiv",
+    "lon": 36.248079,
+    "lat": 50.001929,
+    "tier": 5
+  },
+  {
+    "name": "Kinshasa",
+    "lon": 15.313026,
+    "lat": -4.327778,
+    "tier": 5
+  },
+  {
+    "name": "Kyiv",
+    "lon": 30.514682,
+    "lat": 50.435313,
+    "tier": 5
+  },
+  {
+    "name": "København",
+    "lon": 12.56154,
+    "lat": 55.68051,
+    "tier": 5
+  },
+  {
+    "name": "Lagos",
+    "lon": 3.389585,
+    "lat": 6.445208,
+    "tier": 5
+  },
+  {
+    "name": "Lahore",
+    "lon": 74.348079,
+    "lat": 31.561917,
+    "tier": 5
+  },
+  {
+    "name": "Leipzig",
+    "lon": 12.409981,
+    "lat": 51.335405,
+    "tier": 5
+  },
+  {
+    "name": "Lima",
+    "lon": -77.052008,
+    "lat": -12.046067,
+    "tier": 5
+  },
+  {
+    "name": "Lisbon",
+    "lon": -9.146812,
+    "lat": 38.724669,
+    "tier": 5
+  },
+  {
+    "name": "Lyon",
+    "lon": 4.828085,
+    "lat": 45.771954,
+    "tier": 5
+  },
+  {
+    "name": "Manchester",
+    "lon": -2.248685,
+    "lat": 53.47532,
+    "tier": 5
+  },
+  {
+    "name": "Manila",
+    "lon": 120.980271,
+    "lat": 14.606105,
+    "tier": 5
+  },
+  {
+    "name": "Marseille",
+    "lon": 5.373064,
+    "lat": 43.291925,
+    "tier": 5
+  },
+  {
+    "name": "Melbourne",
+    "lon": 144.97307,
+    "lat": -37.818086,
+    "tier": 5
+  },
+  {
+    "name": "Miami",
+    "lon": -80.226052,
+    "lat": 25.789557,
+    "tier": 5
+  },
+  {
+    "name": "Milan",
+    "lon": 9.203063,
+    "lat": 45.471921,
+    "tier": 5
+  },
+  {
+    "name": "Monterrey",
+    "lon": -100.331931,
+    "lat": 25.671941,
+    "tier": 5
+  },
+  {
+    "name": "Montevideo",
+    "lon": -56.186823,
+    "lat": -34.905376,
+    "tier": 5
+  },
+  {
+    "name": "Montréal",
+    "lon": -73.585243,
+    "lat": 45.501945,
+    "tier": 5
+  },
+  {
+    "name": "Munich",
+    "lon": 11.573048,
+    "lat": 48.131888,
+    "tier": 5
+  },
+  {
+    "name": "Nairobi",
+    "lon": 36.814711,
+    "lat": -1.281401,
+    "tier": 5
+  },
+  {
+    "name": "Nanjing",
+    "lon": 118.778029,
+    "lat": 32.051965,
+    "tier": 5
+  },
+  {
+    "name": "Naples",
+    "lon": 14.243066,
+    "lat": 40.841971,
+    "tier": 5
+  },
+  {
+    "name": "New Delhi",
+    "lon": 77.19998,
+    "lat": 28.600023,
+    "tier": 5
+  },
+  {
+    "name": "Prague",
+    "lon": 14.422939,
+    "lat": 50.086967,
+    "tier": 5
+  },
+  {
+    "name": "Riyadh",
+    "lon": 46.720487,
+    "lat": 24.634497,
+    "tier": 5
+  },
+  {
+    "name": "San Francisco",
+    "lon": -122.3996,
+    "lat": 37.784263,
+    "tier": 5
+  },
+  {
+    "name": "Santiago",
+    "lon": -70.650504,
+    "lat": -33.440205,
+    "tier": 5
+  },
+  {
+    "name": "Seoul",
+    "lon": 126.997785,
+    "lat": 37.568295,
+    "tier": 5
+  },
+  {
+    "name": "Singapore",
+    "lon": 103.853875,
+    "lat": 1.294979,
+    "tier": 5
+  },
+  {
+    "name": "Stockholm",
+    "lon": 18.0663,
+    "lat": 59.324127,
+    "tier": 5
+  },
+  {
+    "name": "Taipei",
+    "lon": 121.568333,
+    "lat": 25.035833,
+    "tier": 5
+  },
+  {
+    "name": "Tashkent",
+    "lon": 69.268823,
+    "lat": 41.303828,
+    "tier": 5
+  },
+  {
+    "name": "Tehran",
+    "lon": 51.422398,
+    "lat": 35.673889,
+    "tier": 5
+  },
+  {
+    "name": "Toronto",
+    "lon": -79.389459,
+    "lat": 43.664645,
+    "tier": 5
+  },
+  {
+    "name": "Turin",
+    "lon": 7.668015,
+    "lat": 45.072333,
+    "tier": 5
+  },
+  {
+    "name": "Vancouver",
+    "lon": -123.12359,
+    "lat": 49.275362,
+    "tier": 5
+  },
+  {
+    "name": "Washington,  D.C.",
+    "lon": -77.011364,
+    "lat": 38.901495,
+    "tier": 5
+  },
+  {
+    "name": "Wuhan",
+    "lon": 114.268071,
+    "lat": 30.581977,
+    "tier": 5
+  },
+  {
+    "name": "Ürümqi",
+    "lon": 87.57306,
+    "lat": 43.806958,
+    "tier": 5
+  },
+  {
+    "name": "Abidjan",
+    "lon": -4.020207,
+    "lat": 5.323126,
+    "tier": 3
+  },
+  {
+    "name": "Accra",
+    "lon": -0.218662,
+    "lat": 5.55198,
+    "tier": 3
+  },
+  {
+    "name": "Ahmedabad",
+    "lon": 72.578058,
+    "lat": 23.031999,
+    "tier": 3
+  },
+  {
+    "name": "Aleppo",
+    "lon": 37.168074,
+    "lat": 36.231917,
+    "tier": 3
+  },
+  {
+    "name": "Algiers",
+    "lon": 3.048607,
+    "lat": 36.765011,
+    "tier": 3
+  },
+  {
+    "name": "Amman",
+    "lon": 35.931354,
+    "lat": 31.951971,
+    "tier": 3
+  },
+  {
+    "name": "Anchorage",
+    "lon": -149.887446,
+    "lat": 61.214004,
+    "tier": 3
+  },
+  {
+    "name": "Andorra",
+    "lon": 1.526594,
+    "lat": 42.510753,
+    "tier": 3
+  },
+  {
+    "name": "Ankara",
+    "lon": 32.862446,
+    "lat": 39.929184,
+    "tier": 3
+  },
+  {
+    "name": "Antananarivo",
+    "lon": 47.514678,
+    "lat": -18.914691,
+    "tier": 3
+  },
+  {
+    "name": "Apia",
+    "lon": -171.768599,
+    "lat": -13.835715,
+    "tier": 3
+  },
+  {
+    "name": "Ashgabat",
+    "lon": 58.383299,
+    "lat": 37.949995,
+    "tier": 3
+  },
+  {
+    "name": "Asmara",
+    "lon": 38.933324,
+    "lat": 15.333339,
+    "tier": 3
+  },
+  {
+    "name": "Asunción",
+    "lon": -57.625834,
+    "lat": -25.290671,
+    "tier": 3
+  },
+  {
+    "name": "Bamako",
+    "lon": -8.001985,
+    "lat": 12.65196,
+    "tier": 3
+  },
+  {
+    "name": "Bandar Seri Begawan",
+    "lon": 114.933284,
+    "lat": 4.883331,
+    "tier": 3
+  },
+  {
+    "name": "Bandung",
+    "lon": 107.568067,
+    "lat": -6.948083,
+    "tier": 3
+  },
+  {
+    "name": "Bangui",
+    "lon": 18.558288,
+    "lat": 4.366644,
+    "tier": 3
+  },
+  {
+    "name": "Banjul",
+    "lon": -16.591701,
+    "lat": 13.453876,
+    "tier": 3
+  },
+  {
+    "name": "Baotou",
+    "lon": 109.820074,
+    "lat": 40.654153,
+    "tier": 3
+  },
+  {
+    "name": "Basseterre",
+    "lon": -62.717009,
+    "lat": 17.302031,
+    "tier": 3
+  },
+  {
+    "name": "Beirut",
+    "lon": 35.507762,
+    "lat": 33.873921,
+    "tier": 3
+  },
+  {
+    "name": "Belém",
+    "lon": -48.481969,
+    "lat": -1.448057,
+    "tier": 3
+  },
+  {
+    "name": "Bern",
+    "lon": 7.466976,
+    "lat": 46.916683,
+    "tier": 3
+  },
+  {
+    "name": "Bishkek",
+    "lon": 74.583258,
+    "lat": 42.875025,
+    "tier": 3
+  },
+  {
+    "name": "Bissau",
+    "lon": -15.598361,
+    "lat": 11.865024,
+    "tier": 3
+  },
+  {
+    "name": "Bloemfontein",
+    "lon": 26.229913,
+    "lat": -29.119994,
+    "tier": 3
+  },
+  {
+    "name": "Bratislava",
+    "lon": 17.116981,
+    "lat": 48.150018,
+    "tier": 3
+  },
+  {
+    "name": "Brazzaville",
+    "lon": 15.282744,
+    "lat": -4.25724,
+    "tier": 3
+  },
+  {
+    "name": "Bridgetown",
+    "lon": -59.616527,
+    "lat": 13.102003,
+    "tier": 3
+  },
+  {
+    "name": "Bujumbura",
+    "lon": 29.360006,
+    "lat": -3.376087,
+    "tier": 3
+  },
+  {
+    "name": "Cali",
+    "lon": -76.501912,
+    "lat": 3.401905,
+    "tier": 3
+  },
+  {
+    "name": "Canberra",
+    "lon": 149.129026,
+    "lat": -35.283029,
+    "tier": 3
+  },
+  {
+    "name": "Castries",
+    "lon": -60.992875,
+    "lat": 14.007875,
+    "tier": 3
+  },
+  {
+    "name": "Changchun",
+    "lon": 125.338042,
+    "lat": 43.866954,
+    "tier": 3
+  },
+  {
+    "name": "Changsha",
+    "lon": 112.968047,
+    "lat": 28.201916,
+    "tier": 3
+  },
+  {
+    "name": "Chattogram",
+    "lon": 91.798022,
+    "lat": 22.331938,
+    "tier": 3
+  },
+  {
+    "name": "Chișinău",
+    "lon": 28.857711,
+    "lat": 47.005024,
+    "tier": 3
+  },
+  {
+    "name": "Chongqing",
+    "lon": 106.593036,
+    "lat": 29.566923,
+    "tier": 3
+  },
+  {
+    "name": "Colombo",
+    "lon": 79.857751,
+    "lat": 6.931966,
+    "tier": 3
+  },
+  {
+    "name": "Conakry",
+    "lon": -13.682181,
+    "lat": 9.533469,
+    "tier": 3
+  },
+  {
+    "name": "Cotonou",
+    "lon": 2.404355,
+    "lat": 6.36298,
+    "tier": 3
+  },
+  {
+    "name": "Curitiba",
+    "lon": -49.321944,
+    "lat": -25.418067,
+    "tier": 3
+  },
+  {
+    "name": "Dallas",
+    "lon": -96.794687,
+    "lat": 32.771958,
+    "tier": 3
+  },
+  {
+    "name": "Damascus",
+    "lon": 36.29805,
+    "lat": 33.50198,
+    "tier": 3
+  },
+  {
+    "name": "Dar es Salaam",
+    "lon": 39.266396,
+    "lat": -6.798067,
+    "tier": 3
+  },
+  {
+    "name": "Dhaka",
+    "lon": 90.406634,
+    "lat": 23.725006,
+    "tier": 3
+  },
+  {
+    "name": "Dili",
+    "lon": 125.579456,
+    "lat": -8.559388,
+    "tier": 3
+  },
+  {
+    "name": "Djibouti",
+    "lon": 43.148002,
+    "lat": 11.595014,
+    "tier": 3
+  },
+  {
+    "name": "Dublin",
+    "lon": -6.25698,
+    "lat": 53.346731,
+    "tier": 3
+  },
+  {
+    "name": "Durban",
+    "lon": 31.010944,
+    "lat": -29.860662,
+    "tier": 3
+  },
+  {
+    "name": "Dushanbe",
+    "lon": 68.773879,
+    "lat": 38.560035,
+    "tier": 3
+  },
+  {
+    "name": "Edmonton",
+    "lon": -113.501928,
+    "lat": 53.551971,
+    "tier": 3
+  },
+  {
+    "name": "Fortaleza",
+    "lon": -38.581927,
+    "lat": -3.748072,
+    "tier": 3
+  },
+  {
+    "name": "Frankfurt",
+    "lon": 8.675015,
+    "lat": 50.099977,
+    "tier": 3
+  },
+  {
+    "name": "Freetown",
+    "lon": -13.236162,
+    "lat": 8.471957,
+    "tier": 3
+  },
+  {
+    "name": "Funafuti",
+    "lon": 179.216647,
+    "lat": -8.516652,
+    "tier": 3
+  },
+  {
+    "name": "Fuzhou",
+    "lon": 119.2981,
+    "lat": 26.081942,
+    "tier": 3
+  },
+  {
+    "name": "Georgetown",
+    "lon": -58.167029,
+    "lat": 6.801974,
+    "tier": 3
+  },
+  {
+    "name": "Goiânia",
+    "lon": -49.301971,
+    "lat": -16.718081,
+    "tier": 3
+  },
+  {
+    "name": "Guadalajara",
+    "lon": -103.33198,
+    "lat": 20.671962,
+    "tier": 3
+  },
+  {
+    "name": "Guatemala City",
+    "lon": -90.528911,
+    "lat": 14.623081,
+    "tier": 3
+  },
+  {
+    "name": "Guayaquil",
+    "lon": -79.921988,
+    "lat": -2.218088,
+    "tier": 3
+  },
+  {
+    "name": "Guiyang",
+    "lon": 106.718093,
+    "lat": 26.581989,
+    "tier": 3
+  },
+  {
+    "name": "Hamilton",
+    "lon": -64.783937,
+    "lat": 32.29419,
+    "tier": 3
+  },
+  {
+    "name": "Hangzhou",
+    "lon": 120.168073,
+    "lat": 30.25192,
+    "tier": 3
+  },
+  {
+    "name": "Hanoi",
+    "lon": 105.848068,
+    "lat": 21.035273,
+    "tier": 3
+  },
+  {
+    "name": "Harare",
+    "lon": 31.042764,
+    "lat": -17.815844,
+    "tier": 3
+  },
+  {
+    "name": "Harbin",
+    "lon": 126.648039,
+    "lat": 45.75193,
+    "tier": 3
+  },
+  {
+    "name": "Hargeisa",
+    "lon": 44.06531,
+    "lat": 9.560022,
+    "tier": 3
+  },
+  {
+    "name": "Helsinki",
+    "lon": 24.932457,
+    "lat": 60.163804,
+    "tier": 3
+  },
+  {
+    "name": "Hiroshima",
+    "lon": 132.440967,
+    "lat": 34.389781,
+    "tier": 3
+  },
+  {
+    "name": "Ho Chi Minh City",
+    "lon": 106.702985,
+    "lat": 10.762125,
+    "tier": 3
+  },
+  {
+    "name": "Honiara",
+    "lon": 159.949766,
+    "lat": -9.437994,
+    "tier": 3
+  },
+  {
+    "name": "Honolulu",
+    "lon": -157.858301,
+    "lat": 21.303429,
+    "tier": 3
+  },
+  {
+    "name": "Hyderabad",
+    "lon": 78.478008,
+    "lat": 17.401929,
+    "tier": 3
+  },
+  {
+    "name": "Jaipur",
+    "lon": 75.808042,
+    "lat": 26.923079,
+    "tier": 3
+  },
+  {
+    "name": "Jeddah",
+    "lon": 39.217252,
+    "lat": 21.518835,
+    "tier": 3
+  },
+  {
+    "name": "Jerusalem",
+    "lon": 35.206626,
+    "lat": 31.778408,
+    "tier": 3
+  },
+  {
+    "name": "Jinan",
+    "lon": 116.993073,
+    "lat": 36.676928,
+    "tier": 3
+  },
+  {
+    "name": "Kampala",
+    "lon": 32.581378,
+    "lat": 0.318605,
+    "tier": 3
+  },
+  {
+    "name": "Kano",
+    "lon": 8.518092,
+    "lat": 12.001923,
+    "tier": 3
+  },
+  {
+    "name": "Kanpur",
+    "lon": 80.31805,
+    "lat": 26.461945,
+    "tier": 3
+  },
+  {
+    "name": "Karachi",
+    "lon": 66.988063,
+    "lat": 24.871938,
+    "tier": 3
+  },
+  {
+    "name": "Kathmandu",
+    "lon": 85.314696,
+    "lat": 27.718638,
+    "tier": 3
+  },
+  {
+    "name": "Khartoum",
+    "lon": 32.532233,
+    "lat": 15.590024,
+    "tier": 3
+  },
+  {
+    "name": "Kigali",
+    "lon": 30.058586,
+    "lat": -1.951644,
+    "tier": 3
+  },
+  {
+    "name": "Kingston",
+    "lon": -76.767434,
+    "lat": 17.977077,
+    "tier": 3
+  },
+  {
+    "name": "Kingstown",
+    "lon": -61.220236,
+    "lat": 13.155756,
+    "tier": 3
+  },
+  {
+    "name": "Kuala Lumpur",
+    "lon": 101.688699,
+    "lat": 3.139797,
+    "tier": 3
+  },
+  {
+    "name": "Kunming",
+    "lon": 102.69744,
+    "lat": 25.042859,
+    "tier": 3
+  },
+  {
+    "name": "Kuwait City",
+    "lon": 47.976355,
+    "lat": 29.371664,
+    "tier": 3
+  },
+  {
+    "name": "La Paz",
+    "lon": -68.151931,
+    "lat": -16.496028,
+    "tier": 3
+  },
+  {
+    "name": "Lanzhou",
+    "lon": 103.790054,
+    "lat": 36.057974,
+    "tier": 3
+  },
+  {
+    "name": "Libreville",
+    "lon": 9.457965,
+    "lat": 0.385389,
+    "tier": 3
+  },
+  {
+    "name": "Ljubljana",
+    "lon": 14.514969,
+    "lat": 46.055288,
+    "tier": 3
+  },
+  {
+    "name": "Lomé",
+    "lon": 1.220811,
+    "lat": 6.133883,
+    "tier": 3
+  },
+  {
+    "name": "Luanda",
+    "lon": 13.232481,
+    "lat": -8.83634,
+    "tier": 3
+  },
+  {
+    "name": "Lusaka",
+    "lon": 28.281382,
+    "lat": -15.414698,
+    "tier": 3
+  },
+  {
+    "name": "Luxembourg",
+    "lon": 6.130003,
+    "lat": 49.61166,
+    "tier": 3
+  },
+  {
+    "name": "Majuro",
+    "lon": 171.38,
+    "lat": 7.103004,
+    "tier": 3
+  },
+  {
+    "name": "Makkah",
+    "lon": 39.818094,
+    "lat": 21.431967,
+    "tier": 3
+  },
+  {
+    "name": "Malabo",
+    "lon": 8.783278,
+    "lat": 3.750015,
+    "tier": 3
+  },
+  {
+    "name": "Malé",
+    "lon": 73.508901,
+    "lat": 4.172037,
+    "tier": 3
+  },
+  {
+    "name": "Managua",
+    "lon": -86.270437,
+    "lat": 12.154962,
+    "tier": 3
+  },
+  {
+    "name": "Manama",
+    "lon": 50.583052,
+    "lat": 26.236136,
+    "tier": 3
+  },
+  {
+    "name": "Maputo",
+    "lon": 32.587217,
+    "lat": -25.953332,
+    "tier": 3
+  },
+  {
+    "name": "Maracaibo",
+    "lon": -71.661924,
+    "lat": 10.731923,
+    "tier": 3
+  },
+  {
+    "name": "Maseru",
+    "lon": 27.483273,
+    "lat": -29.316674,
+    "tier": 3
+  },
+  {
+    "name": "Mashhad",
+    "lon": 59.568051,
+    "lat": 36.271966,
+    "tier": 3
+  },
+  {
+    "name": "Mbabane",
+    "lon": 31.133335,
+    "lat": -26.316651,
+    "tier": 3
+  },
+  {
+    "name": "Medan",
+    "lon": 98.648094,
+    "lat": 3.58192,
+    "tier": 3
+  },
+  {
+    "name": "Medellín",
+    "lon": -75.576956,
+    "lat": 6.276949,
+    "tier": 3
+  },
+  {
+    "name": "Melekeok",
+    "lon": 134.626549,
+    "lat": 7.487396,
+    "tier": 3
+  },
+  {
+    "name": "Minneapolis",
+    "lon": -93.253732,
+    "lat": 44.981925,
+    "tier": 3
+  },
+  {
+    "name": "Minsk",
+    "lon": 27.564681,
+    "lat": 53.901923,
+    "tier": 3
+  },
+  {
+    "name": "Mogadishu",
+    "lon": 45.364732,
+    "lat": 2.068627,
+    "tier": 3
+  },
+  {
+    "name": "Monaco",
+    "lon": 7.406913,
+    "lat": 43.739646,
+    "tier": 3
+  },
+  {
+    "name": "Monrovia",
+    "lon": -10.79966,
+    "lat": 6.314582,
+    "tier": 3
+  },
+  {
+    "name": "Moroni",
+    "lon": 43.240244,
+    "lat": -11.704158,
+    "tier": 3
+  },
+  {
+    "name": "Muscat",
+    "lon": 58.378311,
+    "lat": 23.585179,
+    "tier": 3
+  },
+  {
+    "name": "N'Djamena",
+    "lon": 15.047202,
+    "lat": 12.115042,
+    "tier": 3
+  },
+  {
+    "name": "Nagpur",
+    "lon": 79.088048,
+    "lat": 21.171906,
+    "tier": 3
+  },
+  {
+    "name": "Nanchang",
+    "lon": 115.87805,
+    "lat": 28.681938,
+    "tier": 3
+  },
+  {
+    "name": "Nanning",
+    "lon": 108.318099,
+    "lat": 22.821934,
+    "tier": 3
+  },
+  {
+    "name": "Nassau",
+    "lon": -77.350044,
+    "lat": 25.08339,
+    "tier": 3
+  },
+  {
+    "name": "Naypyidaw",
+    "lon": 96.116673,
+    "lat": 19.768503,
+    "tier": 3
+  },
+  {
+    "name": "New Orleans",
+    "lon": -90.088368,
+    "lat": 29.968908,
+    "tier": 3
+  },
+  {
+    "name": "Niamey",
+    "lon": 2.11471,
+    "lat": 13.518652,
+    "tier": 3
+  },
+  {
+    "name": "Nicosia",
+    "lon": 33.366635,
+    "lat": 35.166677,
+    "tier": 3
+  },
+  {
+    "name": "Nuku'alofa",
+    "lon": -175.220564,
+    "lat": -21.138512,
+    "tier": 3
+  },
+  {
+    "name": "Nur-Sultan",
+    "lon": 71.427774,
+    "lat": 51.181125,
+    "tier": 3
+  },
+  {
+    "name": "Oslo",
+    "lon": 10.748033,
+    "lat": 59.918636,
+    "tier": 3
+  },
+  {
+    "name": "Ottawa",
+    "lon": -75.701961,
+    "lat": 45.418643,
+    "tier": 3
+  },
+  {
+    "name": "Ouagadougou",
+    "lon": -1.52667,
+    "lat": 12.372262,
+    "tier": 3
+  },
+  {
+    "name": "Palikir",
+    "lon": 158.149974,
+    "lat": 6.916644,
+    "tier": 3
+  },
+  {
+    "name": "Panama City",
+    "lon": -79.534983,
+    "lat": 8.969963,
+    "tier": 3
+  },
+  {
+    "name": "Paramaribo",
+    "lon": -55.167031,
+    "lat": 5.83503,
+    "tier": 3
+  },
+  {
+    "name": "Patna",
+    "lon": 85.128093,
+    "lat": 25.626905,
+    "tier": 3
+  },
+  {
+    "name": "Perth",
+    "lon": 115.838053,
+    "lat": -31.953069,
+    "tier": 3
+  },
+  {
+    "name": "Phnom Penh",
+    "lon": 104.914689,
+    "lat": 11.551976,
+    "tier": 3
+  },
+  {
+    "name": "Phoenix",
+    "lon": -112.067365,
+    "lat": 33.448322,
+    "tier": 3
+  },
+  {
+    "name": "Podgorica",
+    "lon": 19.266307,
+    "lat": 42.465972,
+    "tier": 3
+  },
+  {
+    "name": "Port Louis",
+    "lon": 57.499994,
+    "lat": -20.166639,
+    "tier": 3
+  },
+  {
+    "name": "Port Moresby",
+    "lon": 147.192504,
+    "lat": -9.464708,
+    "tier": 3
+  },
+  {
+    "name": "Port Vila",
+    "lon": 168.316641,
+    "lat": -17.73335,
+    "tier": 3
+  },
+  {
+    "name": "Port-au-Prince",
+    "lon": -72.33798,
+    "lat": 18.54297,
+    "tier": 3
+  },
+  {
+    "name": "Port-of-Spain",
+    "lon": -61.517031,
+    "lat": 10.651997,
+    "tier": 3
+  },
+  {
+    "name": "Porto Alegre",
+    "lon": -51.201958,
+    "lat": -30.048069,
+    "tier": 3
+  },
+  {
+    "name": "Praia",
+    "lon": -23.516689,
+    "lat": 14.916698,
+    "tier": 3
+  },
+  {
+    "name": "Pretoria",
+    "lon": 28.227483,
+    "lat": -25.704975,
+    "tier": 3
+  },
+  {
+    "name": "Pristina",
+    "lon": 21.165984,
+    "lat": 42.66671,
+    "tier": 3
+  },
+  {
+    "name": "Puebla",
+    "lon": -98.203737,
+    "lat": 19.032594,
+    "tier": 3
+  },
+  {
+    "name": "Pune",
+    "lon": 73.851892,
+    "lat": 18.516394,
+    "tier": 3
+  },
+  {
+    "name": "Pyongyang",
+    "lon": 125.752745,
+    "lat": 39.021385,
+    "tier": 3
+  },
+  {
+    "name": "Quito",
+    "lon": -78.501997,
+    "lat": -0.213042,
+    "tier": 3
+  },
+  {
+    "name": "Rabat",
+    "lon": -6.836408,
+    "lat": 34.025307,
+    "tier": 3
+  },
+  {
+    "name": "Recife",
+    "lon": -34.908766,
+    "lat": -8.060532,
+    "tier": 3
+  },
+  {
+    "name": "Reykjavík",
+    "lon": -21.936546,
+    "lat": 64.143459,
+    "tier": 3
+  },
+  {
+    "name": "Riga",
+    "lon": 24.099965,
+    "lat": 56.950024,
+    "tier": 3
+  },
+  {
+    "name": "Roseau",
+    "lon": -61.387013,
+    "lat": 15.301016,
+    "tier": 3
+  },
+  {
+    "name": "Saint George's",
+    "lon": -61.741643,
+    "lat": 12.052633,
+    "tier": 3
+  },
+  {
+    "name": "Saint John's",
+    "lon": -61.850034,
+    "lat": 17.118036,
+    "tier": 3
+  },
+  {
+    "name": "Salvador",
+    "lon": -38.481933,
+    "lat": -12.968026,
+    "tier": 3
+  },
+  {
+    "name": "San Diego",
+    "lon": -117.150881,
+    "lat": 32.718914,
+    "tier": 3
+  },
+  {
+    "name": "San José",
+    "lon": -84.078814,
+    "lat": 9.930371,
+    "tier": 3
+  },
+  {
+    "name": "San Marino",
+    "lon": 12.44177,
+    "lat": 43.936096,
+    "tier": 3
+  },
+  {
+    "name": "San Salvador",
+    "lon": -89.215576,
+    "lat": 13.70328,
+    "tier": 3
+  },
+  {
+    "name": "Sanaa",
+    "lon": 44.204648,
+    "lat": 15.356679,
+    "tier": 3
+  },
+  {
+    "name": "Santo Domingo",
+    "lon": -69.929742,
+    "lat": 18.470745,
+    "tier": 3
+  },
+  {
+    "name": "Sapporo",
+    "lon": 141.338099,
+    "lat": 43.076925,
+    "tier": 3
+  },
+  {
+    "name": "Sarajevo",
+    "lon": 18.383002,
+    "lat": 43.850022,
+    "tier": 3
+  },
+  {
+    "name": "Seattle",
+    "lon": -122.315322,
+    "lat": 47.600423,
+    "tier": 3
+  },
+  {
+    "name": "Shenyeng",
+    "lon": 123.448028,
+    "lat": 41.806925,
+    "tier": 3
+  },
+  {
+    "name": "Skopje",
+    "lon": 21.433461,
+    "lat": 42.000006,
+    "tier": 3
+  },
+  {
+    "name": "Sofia",
+    "lon": 23.314708,
+    "lat": 42.685295,
+    "tier": 3
+  },
+  {
+    "name": "St. Louis",
+    "lon": -90.241926,
+    "lat": 38.636964,
+    "tier": 3
+  },
+  {
+    "name": "Sucre",
+    "lon": -65.259516,
+    "lat": -19.040971,
+    "tier": 3
+  },
+  {
+    "name": "Surabaya",
+    "lon": 112.748887,
+    "lat": -7.24729,
+    "tier": 3
+  },
+  {
+    "name": "Surat",
+    "lon": 72.838094,
+    "lat": 21.20193,
+    "tier": 3
+  },
+  {
+    "name": "Suva",
+    "lon": 178.441707,
+    "lat": -18.133016,
+    "tier": 3
+  },
+  {
+    "name": "São Tomé",
+    "lon": 6.72965,
+    "lat": 0.337466,
+    "tier": 3
+  },
+  {
+    "name": "Taiyuan",
+    "lon": 112.543112,
+    "lat": 37.876958,
+    "tier": 3
+  },
+  {
+    "name": "Tallinn",
+    "lon": 24.728041,
+    "lat": 59.433877,
+    "tier": 3
+  },
+  {
+    "name": "Tampa",
+    "lon": -82.460567,
+    "lat": 27.948934,
+    "tier": 3
+  },
+  {
+    "name": "Tarawa",
+    "lon": 173.017571,
+    "lat": 1.338188,
+    "tier": 3
+  },
+  {
+    "name": "Tbilisi",
+    "lon": 44.78885,
+    "lat": 41.726956,
+    "tier": 3
+  },
+  {
+    "name": "Tegucigalpa",
+    "lon": -87.219475,
+    "lat": 14.103991,
+    "tier": 3
+  },
+  {
+    "name": "Tel Aviv",
+    "lon": 34.768066,
+    "lat": 32.081937,
+    "tier": 3
+  },
+  {
+    "name": "Thimphu",
+    "lon": 89.639014,
+    "lat": 27.472986,
+    "tier": 3
+  },
+  {
+    "name": "Tirana",
+    "lon": 19.818883,
+    "lat": 41.327541,
+    "tier": 3
+  },
+  {
+    "name": "Tripoli",
+    "lon": 13.180012,
+    "lat": 32.8925,
+    "tier": 3
+  },
+  {
+    "name": "Tunis",
+    "lon": 10.179678,
+    "lat": 36.802778,
+    "tier": 3
+  },
+  {
+    "name": "Ulaanbaatar",
+    "lon": 106.91467,
+    "lat": 47.918619,
+    "tier": 3
+  },
+  {
+    "name": "Vaduz",
+    "lon": 9.51667,
+    "lat": 47.133724,
+    "tier": 3
+  },
+  {
+    "name": "Valletta",
+    "lon": 14.514711,
+    "lat": 35.899732,
+    "tier": 3
+  },
+  {
+    "name": "Vatican City",
+    "lon": 12.453387,
+    "lat": 41.903282,
+    "tier": 3
+  },
+  {
+    "name": "Victoria",
+    "lon": 55.44999,
+    "lat": -4.616632,
+    "tier": 3
+  },
+  {
+    "name": "Vientiane",
+    "lon": 102.59998,
+    "lat": 17.966693,
+    "tier": 3
+  },
+  {
+    "name": "Vilnius",
+    "lon": 25.316635,
+    "lat": 54.683366,
+    "tier": 3
+  },
+  {
+    "name": "Wellington",
+    "lon": 174.777201,
+    "lat": -41.292068,
+    "tier": 3
+  },
+  {
+    "name": "Windhoek",
+    "lon": 17.083546,
+    "lat": -22.570006,
+    "tier": 3
+  },
+  {
+    "name": "Xian",
+    "lon": 108.89305,
+    "lat": 34.276971,
+    "tier": 3
+  },
+  {
+    "name": "Yangon",
+    "lon": 96.164732,
+    "lat": 16.7853,
+    "tier": 3
+  },
+  {
+    "name": "Yaoundé",
+    "lon": 11.514705,
+    "lat": 3.868647,
+    "tier": 3
+  },
+  {
+    "name": "Yerevan",
+    "lon": 44.511606,
+    "lat": 40.183097,
+    "tier": 3
+  },
+  {
+    "name": "Zagreb",
+    "lon": 15.999995,
+    "lat": 45.800007,
+    "tier": 3
+  },
+  {
+    "name": "Zhengzhou",
+    "lon": 113.663147,
+    "lat": 34.756942,
+    "tier": 3
+  },
+  {
+    "name": "Zibo",
+    "lon": 117.99646,
+    "lat": 36.821365,
+    "tier": 3
+  },
+  {
+    "name": "Zürich",
+    "lon": 8.548064,
+    "lat": 47.381934,
+    "tier": 3
+  }
+]
