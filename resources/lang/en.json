@@ -1360,6 +1360,7 @@
     },
     "victory": {
       "active": "Projects in progress",
+      "awaiting_ratification": "Awaiting ratification",
       "blocked": {
         "busy": "Another project is in progress",
         "gold": "Not enough gold",

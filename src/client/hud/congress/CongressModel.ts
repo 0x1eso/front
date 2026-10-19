@@ -12,6 +12,7 @@ import {
   ResultData,
   SessionKind,
 } from "@openfront/engine-api/congress/CongressTypes";
+import type { VictoryProjectProgress } from "@openfront/engine-api/domestic/DomesticTypes";
 import {
   CONVENE_COST_MILLI,
   extraVoteCost,
@@ -21,6 +22,7 @@ import {
   VOTING_TICKS,
 } from "@openfront/engine-lib/congress/CongressBalance";
 import {
+  awaitingRatification,
   bOnlyFor,
   ConveneBlock,
   conveneBlock,
@@ -69,6 +71,22 @@ export function viewerOf(game: GameView | undefined): CongressViewer | null {
       return p.isPlayer() && me.isFriendly(p as PlayerView);
     },
   };
+}
+
+/**
+ * Spec §10.1: `owner`'s proclamation is complete and waits for the congress's
+ * ratification (as the engine judges it). False without a congress.
+ */
+export function ratificationPending(
+  data: CongressData | null,
+  owner: number,
+  project: VictoryProjectProgress | undefined,
+): boolean {
+  if (data === null || project === undefined) return false;
+  return awaitingRatification(
+    project,
+    data.verdicts.find((v) => v.owner === owner),
+  );
 }
 
 export function nameOf(game: GameView, smallID: number): string {

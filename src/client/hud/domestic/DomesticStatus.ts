@@ -304,19 +304,26 @@ export interface VictoryDial {
   progress: number;
   /** running: held back while attacking (political project). */
   paused: boolean;
+  /** running: complete, waiting for the world congress's ratification. */
+  awaiting?: boolean;
 }
 
-/** The trophy dial, or null while no victory project is open or running. */
+/**
+ * The trophy dial, or null while no victory project is open or running.
+ * `awaiting`: my complete proclamation waits for the congress's ratification.
+ */
 export function victoryDial(
   d: DomesticData,
   me: ProjectHostSource,
   infiniteGold: boolean,
+  awaiting = false,
 ): VictoryDial | null {
   if (d.project !== undefined) {
     return {
       kind: "running",
       progress: projectProgress(d.project),
       paused: d.project.paused,
+      ...(awaiting ? { awaiting: true } : {}),
     };
   }
   let qualified = false;

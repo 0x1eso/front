@@ -1,4 +1,5 @@
 import { WORLD_GOV_STEP_TICKS } from "@openfront/engine-lib/congress/CongressBalance";
+import { awaitingRatification } from "@openfront/engine-lib/congress/Voting";
 import type { Game, Player } from "../game/Game";
 import type { Congress, ItemResult } from "./Congress";
 
@@ -34,11 +35,10 @@ export function applyAdoption(mg: Game, c: Congress, result: ItemResult): void {
 export function awaitsRatification(mg: Game, player: Player): boolean {
   const c = mg.congress();
   if (c === null) return false;
-  const project = player.domestic()?.victoryProject() ?? null;
-  if (project === null || project.kind !== "political") return false;
-  if (project.ticksLeft > 0) return false;
-  const v = c.verdict(player.smallID());
-  return !(v !== undefined && v.host === project.hostUnitId && v.ratified);
+  return awaitingRatification(
+    player.domestic()?.victoryProject() ?? null,
+    c.verdict(player.smallID()),
+  );
 }
 
 /**

@@ -2809,6 +2809,7 @@
     "tap_again_to_confirm": "한 번 더 눌러 확정 (되돌릴 수 없음)",
     "victory": {
       "active": "진행 중인 프로젝트",
+      "awaiting_ratification": "의회 비준 대기",
       "blocked": {
         "busy": "다른 프로젝트가 진행 중입니다",
         "gold": "금이 부족합니다",

@@ -12,6 +12,7 @@ import { GameView } from "../../view";
 import {
   congressDial,
   CongressDialModel,
+  ratificationPending,
   viewerOf,
 } from "../congress/CongressModel";
 import {
@@ -138,7 +139,17 @@ export class DomesticDials extends LitElement implements Controller {
     return {
       research: researchDial(d),
       laws: lawsDial(view, this.game.ticks()),
-      victory: victoryDial(d, me, this.game.config().hasInfiniteGold(me)),
+      victory: victoryDial(
+        d,
+        me,
+        this.game.config().hasInfiniteGold(me),
+        this.game.config().congress() &&
+          ratificationPending(
+            this.game.congressData(),
+            me.smallID(),
+            d.project,
+          ),
+      ),
       congress: this.congressModel(),
       sciencePerSec: d.sciencePerSec,
       politicalPerSec: d.politicalPerSec,
@@ -349,7 +360,7 @@ export class DomesticDials extends LitElement implements Controller {
     if (v.kind === "running") {
       return {
         screen: "victory",
-        state: v.paused ? "paused" : "running",
+        state: v.awaiting ? "awaiting" : v.paused ? "paused" : "running",
         svg: ringSvg(v.progress, v.paused ? "grey" : "victory"),
         face: html`<span class="text-sm">${v.paused ? "⏸️" : "🏆"}</span>
           <span class="text-[10px] font-bold tabular-nums"
@@ -358,7 +369,18 @@ export class DomesticDials extends LitElement implements Controller {
         glow: null,
         dim: false,
         badges: nothing,
-        caption: nothing,
+        // World congress: complete, the win waits for the ratification.
+        caption: v.awaiting
+          ? html`<span
+              data-dial-awaiting
+              role="img"
+              aria-label=${translateText(
+                "domestic.victory.awaiting_ratification",
+              )}
+              class="text-[10px] leading-none"
+              >⏳</span
+            >`
+          : nothing,
       };
     }
     return {

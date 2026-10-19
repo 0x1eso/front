@@ -4,6 +4,7 @@ import {
 } from "@openfront/engine-lib/congress/CongressBalance";
 import { newRing, ringAdd, ringSum } from "@openfront/engine-lib/congress/Ring";
 import {
+  awaitingRatification,
   ballotBlock,
   bOnlyFor,
   conveneBlock,
@@ -163,5 +164,42 @@ describe("seat and sanction rules shared with the client", () => {
       bOnlyFor({ resolution: "sanction", targets: [7] }, 7, friendlyTo([7])),
     ).toBe(false);
     expect(asked).toEqual([7, 7]);
+  });
+});
+
+describe("a world government awaiting ratification (spec §10.1 step 6)", () => {
+  const project = (kind: "political" | "science", ticksLeft: number) => ({
+    kind,
+    ticksLeft,
+    hostUnitId: 7,
+  });
+  test("complete and not approved for this office: it waits", () => {
+    expect(awaitingRatification(project("political", 0), undefined)).toBe(true);
+    expect(
+      awaitingRatification(project("political", 0), {
+        host: 7,
+        ratified: false,
+      }),
+    ).toBe(true);
+    // An approval of another office doesn't count.
+    expect(
+      awaitingRatification(project("political", 0), {
+        host: 8,
+        ratified: true,
+      }),
+    ).toBe(true);
+  });
+  test("running, approved, a science project or none: it doesn't", () => {
+    expect(awaitingRatification(project("political", 10), undefined)).toBe(
+      false,
+    );
+    expect(
+      awaitingRatification(project("political", 0), {
+        host: 7,
+        ratified: true,
+      }),
+    ).toBe(false);
+    expect(awaitingRatification(project("science", 0), undefined)).toBe(false);
+    expect(awaitingRatification(null, undefined)).toBe(false);
   });
 });
