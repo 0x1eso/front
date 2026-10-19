@@ -197,7 +197,8 @@ export function congressDial(
         ).length;
   return {
     state,
-    progress,
+    // Hundredths, as the ring draws it: the dials redraw only when it moves.
+    progress: Math.round(progress * 100) / 100,
     secondsLeft,
     unvoted,
     targeted: isTargeted(data, viewer.smallID),

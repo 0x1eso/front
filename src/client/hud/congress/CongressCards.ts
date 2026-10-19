@@ -135,6 +135,8 @@ export class CongressCards extends LitElement implements Controller {
       return nothing;
     }
     const influence = viewer?.data?.influence ?? 0;
+    // Three cards fit a tablet; on a short phone screen the stack scrolls
+    // (max-h-[60dvh]) rather than climbing over the map.
     return html`<div
       data-congress-cards
       class="flex flex-col items-start gap-1 pb-1 pointer-events-none text-white select-none"
@@ -146,7 +148,7 @@ export class CongressCards extends LitElement implements Controller {
         : this.collapsed(s, cards, now)
           ? this.renderPill(s, cards, now)
           : html`<div
-              class="flex flex-col items-start gap-1 max-h-[45dvh] overflow-y-auto"
+              class="flex flex-col items-start gap-1 max-h-[60dvh] overflow-y-auto"
             >
               ${cards.map((c) => this.renderCard(c, influence, now))}
             </div>`}
