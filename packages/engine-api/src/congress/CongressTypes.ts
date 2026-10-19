@@ -202,6 +202,11 @@ export interface EmergencyData {
   goalKind: "land" | "silos";
   goal: number;
   progress: number;
+  /**
+   * Members that have contributed, in joining order. Secret ballot (spec
+   * §6.5): a member that only voted yes isn't listed; its own
+   * PlayerCongressData.emergencyMember says it is one.
+   */
   members: number[];
   /** The highest contribution so far; null while nobody has one. */
   hero: number | null;
@@ -262,4 +267,6 @@ export interface PlayerCongressData {
   influencePerSec: number;
   status: InfluenceStatus;
   ballots: BallotData[];
+  /** A member of the running emergency (spec §9.4); present only when true. */
+  emergencyMember?: boolean;
 }

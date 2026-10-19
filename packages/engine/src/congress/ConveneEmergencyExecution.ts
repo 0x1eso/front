@@ -23,7 +23,8 @@ export class ConveneEmergencyExecution implements Execution {
   ) {}
 
   init(mg: Game, _ticks: number): void {
-    if (!mg.hasPlayer(this.targetID)) return;
+    // A crafted intent in a game without a congress, or naming nobody, does nothing.
+    if (mg.congress() === null || !mg.hasPlayer(this.targetID)) return;
     conveneEmergency(mg, this.player, this.kind, mg.player(this.targetID));
   }
 

@@ -12,6 +12,7 @@ import {
   ledgerBucket,
 } from "@openfront/engine-lib/congress/CongressBalance";
 import {
+  copyRing,
   newRing,
   Ring,
   ringAdd,
@@ -50,10 +51,6 @@ export const PlayerCongressStateSchema = z.object({
   ballots: z.array(BallotSchema),
 });
 export type PlayerCongressState = z.infer<typeof PlayerCongressStateSchema>;
-
-function copyRing(r: Ring): Ring {
-  return { head: r.head, slots: [...r.slots] };
-}
 
 /** In the schema's key order, so a restored state snapshots like the live one. */
 function copyBallot(b: StoredBallot): StoredBallot {
@@ -166,7 +163,12 @@ export class PlayerCongress {
     return ringSum(this.nukes, ledgerBucket(tick), LEDGER_BUCKETS);
   }
 
-  /** The last tick `smallID` took land from or nuked this player; null if not in the last 180 s of records. */
+  /**
+   * The last tick `smallID` took land from or nuked this player, or null if
+   * none is on record. Old entries are pruned lazily (only when a new hit is
+   * recorded), so an entry can be older than CONFLICT_MEMORY_TICKS: callers
+   * must check its age.
+   */
   lastHitTick(smallID: number): number | null {
     return this.hitBy.get(smallID) ?? null;
   }
@@ -198,8 +200,20 @@ export class PlayerCongress {
     this.changed();
   }
 
-  toData(): PlayerCongressData {
-    this.congressPlayerDataCache ??= {
+  /**
+   * The data for PlayerUpdate.congress. `emergencyMember` (Congress knows it)
+   * is added only when true: CongressData lists a member only once it has
+   * contributed (spec §6.5), so this is how the member's own UI knows.
+   */
+  toData(emergencyMember = false): PlayerCongressData {
+    const cached = this.congressPlayerDataCache;
+    if (
+      cached !== null &&
+      (cached.emergencyMember === true) === emergencyMember
+    ) {
+      return cached;
+    }
+    this.congressPlayerDataCache = {
       influence: Math.floor(this.influence / MILLI),
       influencePerSec: this.lastInfluence / MILLI,
       status: this._status,
@@ -209,6 +223,7 @@ export class PlayerCongress {
         option,
         extra,
       })),
+      ...(emergencyMember ? { emergencyMember: true } : {}),
     };
     return this.congressPlayerDataCache;
   }

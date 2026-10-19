@@ -16,7 +16,11 @@ import {
   SESSION_KINDS,
   SessionKind,
 } from "@openfront/engine-api/congress/CongressTypes";
-import { TECH_IDS, TechId } from "@openfront/engine-api/domestic/DomesticTypes";
+import {
+  TECH_IDS,
+  TechId,
+  VictoryProjectKind,
+} from "@openfront/engine-api/domestic/DomesticTypes";
 import type { UnitType } from "@openfront/engine-api/game/GameTypes";
 import {
   CONFLICT_MEMORY_TICKS,
@@ -33,6 +37,7 @@ import {
   WAR_PAIR_BUCKETS,
 } from "@openfront/engine-lib/congress/CongressBalance";
 import {
+  copyRing,
   newRing,
   Ring,
   ringAdd,
@@ -41,6 +46,9 @@ import {
 import {
   BallotBlock,
   ballotBlock,
+  bOnlyFor,
+  isSanctionedIn,
+  mayVote,
 } from "@openfront/engine-lib/congress/Voting";
 import { zInt, zNum, zRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { simpleHash } from "@openfront/engine-lib/Util";
@@ -235,10 +243,6 @@ export const CongressStateSchema = z.object({
 });
 export type CongressState = z.infer<typeof CongressStateSchema>;
 
-function copyRing(r: Ring): Ring {
-  return { head: r.head, slots: [...r.slots] };
-}
-
 // Copies in the snapshot schema's key order, whatever order the caller built
 // the object in: a restored congress then snapshots and hashes (toData is
 // JSON-hashed) exactly like the live one.
@@ -267,6 +271,24 @@ function copyActive(r: ActiveResolution): ActiveResolution {
 
 function copyAvailable(a: AvailableEmergency): AvailableEmergency {
   return { kind: a.kind, target: a.target, sinceTick: a.sinceTick };
+}
+
+/** Shares no lists or maps with `e`, so a caller's later writes can't reach the state behind the data cache. */
+function copyEmergency(e: EmergencyState): EmergencyState {
+  return {
+    kind: e.kind,
+    target: e.target,
+    startTick: e.startTick,
+    endTick: e.endTick,
+    goalKind: e.goalKind,
+    goal: e.goal,
+    progress: e.progress,
+    members: [...e.members],
+    opposed: [...e.opposed],
+    contributions: new Map(e.contributions),
+    goalSilos: [...e.goalSilos],
+    countedSilos: [...e.countedSilos],
+  };
 }
 
 /**
@@ -349,17 +371,15 @@ export class Congress {
 
   /** A seat, or one of the item's targets (spec §6.2). */
   canVote(player: Player, item: AgendaItem): boolean {
-    return (
-      this.isSeated(player.smallID()) || item.targets.includes(player.smallID())
-    );
+    return mayVote(item, player.smallID(), this._seats);
   }
 
   /** Emergency votes: the target and its friends may only oppose (spec §9.3). */
   bOnly(player: Player, item: AgendaItem): boolean {
-    if (item.resolution !== "emergency") return false;
-    if (item.targets.includes(player.smallID())) return true;
-    const target = this.mg.playerBySmallID(item.targets[0]);
-    return target.isPlayer() && player.isFriendly(target, true);
+    return bOnlyFor(item, player.smallID(), (id) => {
+      const target = this.mg.playerBySmallID(id);
+      return target.isPlayer() && player.isFriendly(target, true);
+    });
   }
 
   /**
@@ -512,34 +532,54 @@ export class Congress {
     this.changed();
   }
 
-  /** Timed resolutions past their tick; project_end ones whose project is over. */
+  /**
+   * Once a second: timed resolutions past their tick, and world heritage
+   * (A until the project ends, B until the next result or the project's end,
+   * spec §10.2) whose project is over. Also forgets world-government
+   * verdicts whose owner no longer runs a political project in that office
+   * (spec §10.1: a ratification belongs to that one project).
+   */
   expireResolutions(now: number): void {
     const keep = this._active.filter((r) => {
       if (typeof r.expires === "number") return r.expires > now;
-      if (r.expires === "project_end") {
+      if (r.expires === "project_end" || r.resolution === "world_heritage") {
         return this.projectRunning(r.targets[0], Number(r.param));
       }
       return true;
     });
-    if (keep.length === this._active.length) return;
-    this._active = keep;
-    this.changed();
+    let changed = false;
+    if (keep.length !== this._active.length) {
+      this._active = keep;
+      changed = true;
+    }
+    for (const [owner, v] of this.verdicts) {
+      if (!this.projectRunning(owner, v.host, "political")) {
+        this.verdicts.delete(owner);
+        changed = true;
+      }
+    }
+    if (changed) this.changed();
   }
 
-  private projectRunning(owner: number, host: number): boolean {
+  /** `owner` is alive and its victory project (of `kind`, if given) runs, or waits complete, in unit `host`. */
+  private projectRunning(
+    owner: number,
+    host: number,
+    kind?: VictoryProjectKind,
+  ): boolean {
     const p = this.mg.playerBySmallID(owner);
     if (!p.isPlayer() || !p.isAlive()) return false;
-    return p.domestic()?.victoryProject()?.hostUnitId === host;
+    const project = p.domestic()?.victoryProject() ?? null;
+    return (
+      project !== null &&
+      project.hostUnitId === host &&
+      (kind === undefined || project.kind === kind)
+    );
   }
 
   /** S1 A, from a session or an aggression emergency. */
   isSanctioned(smallID: number): boolean {
-    return this._active.some(
-      (r) =>
-        r.resolution === "sanction" &&
-        r.option === "A" &&
-        r.targets.includes(smallID),
-    );
+    return isSanctionedIn(this._active, smallID);
   }
 
   // --- the emergency (spec §9; the rules are in Emergencies.ts) ---
@@ -548,8 +588,9 @@ export class Congress {
     return this._emergency;
   }
 
+  /** Stores a copy: later writes go through updateEmergency. */
   setEmergency(e: EmergencyState | null): void {
-    this._emergency = e;
+    this._emergency = e === null ? null : copyEmergency(e);
     this.changed();
   }
 
@@ -701,7 +742,7 @@ export class Congress {
     this.lastBuildingKey = buildingKey;
   }
 
-  /** Called when any player starts building `type` (PlayerImpl.recordUnitConstructed). */
+  /** Called when any player starts building `type` (PlayerImpl.buildUnit; upgrades don't count, spec §7.2). */
   noteBuilt(type: UnitType): void {
     const key = BUILDING_PACT_UNITS.find((u) => u.type === type)?.key;
     if (key === undefined) return;
@@ -809,7 +850,12 @@ export class Congress {
               goalKind: e.goalKind,
               goal: e.goal,
               progress: e.progress,
-              members: [...e.members],
+              // Secret ballot (spec §6.5): a member shows once it has
+              // contributed, so a yes vote alone stays hidden. Its own UI
+              // reads PlayerCongressData.emergencyMember.
+              members: e.members.filter(
+                (id) => (e.contributions.get(id) ?? 0) > 0,
+              ),
               hero: this.emergencyHero(),
             },
       available: this._available.map(copyAvailable),
@@ -837,7 +883,11 @@ export class Congress {
   }
 
   hash(): number {
-    return simpleHash(JSON.stringify(this.toData()));
+    // toData leaves out the members that haven't contributed (secret
+    // ballot); the desync hash still covers them.
+    return simpleHash(
+      JSON.stringify([this.toData(), this._emergency?.members ?? null]),
+    );
   }
 
   snapshot(w: SnapshotWriter): CongressState {
