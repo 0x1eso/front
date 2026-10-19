@@ -128,10 +128,48 @@ describe("the congress dial", () => {
       available: [{ kind: "nuclear", target: 2, sinceTick: 0 }],
     });
     const d = dial(el)!;
-    expect(d.querySelector('[data-dial-badge="convene"]')).not.toBeNull();
+    expect(
+      d
+        .querySelector('[data-dial-badge="convene"]')!
+        .getAttribute("aria-label"),
+    ).toBe("[congress.screen.available]");
     const opened: string[] = [];
     el.eventBus.on(OpenDomesticScreenEvent, (e) => opened.push(e.screen));
     d.click();
     expect(opened).toEqual(["congress"]);
+  });
+
+  it("marks a harmful resolution on me with a red, labelled badge", async () => {
+    const el = await mount({
+      active: [
+        {
+          resolution: "sanction",
+          option: "A",
+          targets: [1],
+          param: null,
+          sinceTick: 0,
+          expires: "next_tally",
+        },
+      ],
+    });
+    const badge = dial(el)!.querySelector<HTMLElement>(
+      '[data-dial-badge="target"]',
+    )!;
+    expect(badge.getAttribute("aria-label")).toBe("[congress.band.target]");
+    expect(badge.classList).toContain("bg-red-500");
+    // A world rule (no one named) is no badge.
+    const world = await mount({
+      active: [
+        {
+          resolution: "war_tax",
+          option: "A",
+          targets: [],
+          param: null,
+          sinceTick: 0,
+          expires: "next_tally",
+        },
+      ],
+    });
+    expect(dial(world)!.querySelector("[data-dial-badge]")).toBeNull();
   });
 });

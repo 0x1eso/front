@@ -147,6 +147,10 @@ export interface CongressDialModel {
   state: CongressDialState;
   /** idle: toward the next session; voting: the time left (0..1). */
   progress: number;
+  /**
+   * Voting: the seconds left. 0 otherwise: the dial shows no countdown then,
+   * and the dials redraw only when their model changes.
+   */
   secondsLeft: number;
   /** Items of the open session I may vote on and haven't. */
   unvoted: number;
@@ -183,7 +187,7 @@ export function congressDial(
       state === "soon"
         ? 1
         : Math.min(1, Math.max(0, 1 - left / SESSION_INTERVAL_TICKS));
-    secondsLeft = ticksToSeconds(left);
+    secondsLeft = 0;
   }
   const unvoted =
     s === null
