@@ -232,7 +232,11 @@ export class CongressCards extends LitElement implements Controller {
             </div>`}
       ${chips.length === 0
         ? nothing
-        : html`<div data-congress-chips class="flex flex-wrap gap-1">
+        : // A card's width: the chips wrap before the map's centre.
+          html`<div
+            data-congress-chips
+            class="${CARD_WIDTH} flex flex-wrap gap-1"
+          >
             ${chips.map((c) => this.renderChip(c))}
           </div>`}
     </div>`;
@@ -439,7 +443,7 @@ export class CongressCards extends LitElement implements Controller {
     return html`<button
       type="button"
       data-congress-chip
-      class="pointer-events-auto h-8 px-2 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gray-800/90 border ${c.mine
+      class="pointer-events-auto h-8 max-w-full truncate px-2 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gray-800/90 border ${c.mine
         ? "border-amber-400 text-amber-200"
         : "border-white/15"}"
       @click=${() =>

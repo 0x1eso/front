@@ -391,4 +391,37 @@ describe("vote cards", () => {
     });
     expect(q(el, "[data-congress-chip]")!.classList).toContain("h-8");
   });
+
+  it("wraps resolution chips within a card's width, so they stay left of the map's centre", async () => {
+    // A phone at 800x360: a full-width chip row above the dials crossed the
+    // screen's middle (the column starts at x 120, the centre is at 400).
+    const { el } = await mount({
+      now: 1900,
+      data: {
+        ...EMPTY,
+        session: REGULAR,
+        active: [
+          {
+            resolution: "war_tax",
+            option: "A",
+            targets: [],
+            param: null,
+            sinceTick: 0,
+            expires: "next_tally",
+          },
+        ],
+      },
+      ballots: [],
+      influence: 0,
+    });
+    const cardWidth = [...q(el, "[data-congress-card]")!.classList].find((c) =>
+      c.startsWith("w-["),
+    );
+    expect(cardWidth).toBeDefined();
+    expect(q(el, "[data-congress-chips]")!.classList).toContain(cardWidth);
+    // A chip longer than the row is cut short rather than spilling past it.
+    const chip = q(el, "[data-congress-chip]")!.classList;
+    expect(chip).toContain("max-w-full");
+    expect(chip).toContain("truncate");
+  });
 });
