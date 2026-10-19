@@ -92,13 +92,17 @@ describe("world heritage A (spec §10.2)", () => {
     expect(game.owner(host.tile())).toBe(red);
   });
 
-  test("a conventional missile can't touch the host", async () => {
+  test("a conventional missile at the host is refused up front: no gold, no silo slot", async () => {
     const { game, blue, host } = await protectedProject({
       instantBuild: true,
     });
     blue.addGold(10_000_000n);
-    blue.buildUnit(UnitType.MissileSilo, game.ref(45, 10), {});
-    expect(blue.missileTarget(host.tile())?.id()).toBe(host.id());
+    const silo = blue.buildUnit(UnitType.MissileSilo, game.ref(45, 10), {});
+    expect(blue.missileTarget(host.tile())).toBeNull();
+    expect(blue.canBuild(UnitType.ConventionalMissile, host.tile())).toBe(
+      false,
+    );
+    const gold = blue.gold();
     game.addExecution(
       new ConstructionExecution(
         blue,
@@ -106,11 +110,10 @@ describe("world heritage A (spec §10.2)", () => {
         host.tile(),
       ),
     );
-    runTicks(game, 3);
-    expect(blue.units(UnitType.ConventionalMissile)).toHaveLength(1);
     runTicks(game, 100);
     expect(blue.units(UnitType.ConventionalMissile)).toHaveLength(0);
-    expect(host.isActive()).toBe(true);
+    expect(blue.gold()).toBeGreaterThanOrEqual(gold);
+    expect(silo.isInCooldown()).toBe(false);
     expect(host.level()).toBe(3);
   });
 

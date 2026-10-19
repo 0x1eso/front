@@ -68,7 +68,7 @@ import {
   CARPET_BOMB_OUTER,
 } from "@openfront/engine-lib/warfare/Warfare";
 import { z } from "zod";
-import { isTruce } from "../congress/Conflict";
+import { isHeritageProtected, isTruce } from "../congress/Conflict";
 import {
   congressBans,
   donationBlocked,
@@ -2003,7 +2003,9 @@ export class PlayerImpl implements Player {
         ({ unit }) =>
           unit.owner() !== this &&
           !this.isFriendly(unit.owner(), true) &&
-          !this.isTruceWith(unit.owner()),
+          !this.isTruceWith(unit.owner()) &&
+          // World heritage A (spec §10.2): refused up front, nothing is bought.
+          !isHeritageProtected(mg, unit),
       )
       .map(({ unit }) => ({
         id: unit.id(),

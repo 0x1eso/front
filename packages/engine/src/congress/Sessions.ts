@@ -220,6 +220,14 @@ export function securityCandidates(mg: Game, c: Congress): SecurityCandidate[] {
   return out;
 }
 
+/** Spec §7.1: S1 (sanction) and S6 (arms_embargo) count as one kind. */
+function sameSecurityKind(a: ResolutionId, b: ResolutionId | null): boolean {
+  if (b === null) return false;
+  const aggressor = (r: ResolutionId) =>
+    r === "sanction" || r === "arms_embargo";
+  return a === b || (aggressor(a) && aggressor(b));
+}
+
 /** Spec §7.1: the first candidate not of the last session's kind (unless repeatable), else a world rule. */
 export function pickSecurity(
   mg: Game,
@@ -228,7 +236,9 @@ export function pickSecurity(
 ): AgendaItemInit {
   const last = c.lastSecurityKind();
   for (const cand of securityCandidates(mg, c)) {
-    if (cand.item.resolution !== last || cand.repeatable) return cand.item;
+    if (!sameSecurityKind(cand.item.resolution, last) || cand.repeatable) {
+      return cand.item;
+    }
   }
   const globals: ResolutionId[] = ["war_tax", "arms_treaty"];
   if (

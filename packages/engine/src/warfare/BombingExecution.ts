@@ -209,6 +209,8 @@ export class BombingExecution implements Execution {
     for (const smallID of hit) {
       const other = mg.playerBySmallID(smallID);
       if (!other.isPlayer() || other === this.player) continue;
+      // A truce partner is spared the drops, so no grudge either.
+      if (this.player.isTruceWith(other)) continue;
       const pending = other
         .incomingAllianceRequests()
         .find((ar) => ar.requestor() === this.player);
@@ -284,14 +286,9 @@ export class BombingExecution implements Execution {
     }
 
     for (const unit of mg.units()) {
-      if (
-        BLAST_PROOF.has(unit.type()) ||
-        !unit.isActive() ||
-        isHeritageProtected(mg, unit)
-      ) {
-        continue;
-      }
+      if (BLAST_PROOF.has(unit.type()) || !unit.isActive()) continue;
       if (mg.euclideanDistSquared(at, unit.tile()) < outer2) {
+        if (isHeritageProtected(mg, unit)) continue;
         const friendly = this.player.isFriendly(unit.owner(), true);
         unit.delete(true, friendly ? undefined : this.player);
       }

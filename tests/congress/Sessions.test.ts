@@ -129,6 +129,28 @@ describe("the security card (spec §7.1)", () => {
     );
   });
 
+  test("sanction and arms embargo count as one kind in both directions; 2% or more still repeats", async () => {
+    const { game, red } = await three();
+    const c = congressOf(game);
+    red.congress()!.recordTaken(game.ticks(), 60);
+    // unarmed aggressor (would be sanction) right after an embargo
+    c.rememberAgenda("arms_embargo", null, null);
+    let next = pickSecurity(game, c, new PseudoRandom(1));
+    expect(next.resolution).not.toBe("sanction");
+    expect(next.reason).toBe("global");
+    // armed aggressor (would be embargo) right after a sanction
+    red.buildUnit(UnitType.MissileSilo, game.ref(10, 10), {});
+    c.rememberAgenda("sanction", null, null);
+    next = pickSecurity(game, c, new PseudoRandom(1));
+    expect(next.resolution).not.toBe("arms_embargo");
+    expect(next.reason).toBe("global");
+    // 2% or more repeats, across the two kinds too
+    red.congress()!.recordTaken(game.ticks(), 200);
+    expect(pickSecurity(game, c, new PseudoRandom(1)).resolution).toBe(
+      "arms_embargo",
+    );
+  });
+
   test("with nothing on the ledger, a rule for the whole world; non-proliferation once someone has the bomb", async () => {
     const { game, red } = await three();
     const c = congressOf(game);

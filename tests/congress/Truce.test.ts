@@ -17,6 +17,7 @@ import { ConstructionExecution } from "@openfront/engine/execution/ConstructionE
 import { TransportShipExecution } from "@openfront/engine/execution/TransportShipExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { canTargetWithSatellite } from "@openfront/engine/strategic/Satellite";
+import { ParadropExecution } from "@openfront/engine/warfare/ParadropExecution";
 import { grantTechs } from "../domestic/util";
 import { setup } from "../util/Setup";
 import { TestConfig } from "../util/TestConfig";
@@ -98,6 +99,18 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(Math.abs(red.troops() - (home + inFlight))).toBeLessThan(1);
   });
 
+  test("a blocked attack whose troops were already taken (boat, paradrop) hands them back", async () => {
+    const { game, red, blue } = await three();
+    red.setTroops(10_000);
+    truce(game, red, blue);
+    game.addExecution(
+      new AttackExecution(1000, red, blue.id(), game.ref(30, 5), false),
+    );
+    runTicks(game, 1);
+    expect(red.outgoingAttacks()).toHaveLength(0);
+    expect(red.troops()).toBeGreaterThanOrEqual(11_000);
+  });
+
   test("a blocked attack leaves no embargo or grudge", async () => {
     const { game, red, blue } = await three();
     red.setTroops(10_000);
@@ -130,6 +143,50 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(red.units(UnitType.TransportShip)).toHaveLength(0);
     expect(red.troops()).toBe(10_000);
     expect(blue.numTilesOwned()).toBe(32);
+  });
+
+  describe("a recalled boat's loss is decided by the recall, not by a truce at landing", () => {
+    async function sail() {
+      const game = await congressGame({}, [RED, BLUE], "half_land_half_ocean");
+      const red = own(game, RED.id, 0, 0, 8, 4);
+      const blue = own(game, BLUE.id, 0, 12, 8, 4);
+      game.executeNextTick();
+      red.setTroops(10_000);
+      game.addExecution(new TransportShipExecution(red, game.ref(7, 13), 1000));
+      runTicks(game, 3);
+      expect(red.troops()).toBe(9_000);
+      return { game, red, blue };
+    }
+    const dock = (game: Game, red: Player) => {
+      for (let i = 0; i < 400; i++) {
+        if (red.units(UnitType.TransportShip).length === 0) break;
+        game.executeNextTick();
+      }
+      expect(red.units(UnitType.TransportShip)).toHaveLength(0);
+    };
+
+    test("the truce expires while the recalled boat sails home: still no loss", async () => {
+      const { game, red, blue } = await sail();
+      truce(game, red, blue);
+      runTicks(game, 1); // the boat turns around
+      expect(red.isTruceWith(blue)).toBe(true);
+      congressOf(game).expireResolutions(game.ticks() + 5000);
+      expect(red.isTruceWith(blue)).toBe(false);
+      expect(red.units(UnitType.TransportShip)).toHaveLength(1);
+      dock(game, red);
+      expect(red.troops()).toBe(10_000);
+    });
+
+    test("a player-ordered retreat stays lossy even if a truce starts later", async () => {
+      const { game, red, blue } = await sail();
+      red
+        .units(UnitType.TransportShip)[0]
+        .updateTransportShipState({ isRetreating: true });
+      truce(game, red, blue);
+      dock(game, red);
+      expect(red.troops()).toBeLessThan(10_000);
+      expect(red.troops()).toBeGreaterThan(9_000);
+    });
   });
 
   test("a boat sent at a truce partner never sails and turns down nothing", async () => {
@@ -182,6 +239,53 @@ describe("the truce (spec §8.1 S2)", () => {
     expect(drops.map((d) => game.x(d.tile))).toEqual(expected.map((p) => p.x));
     // More than a blast away from green's nearest drop point: untouched.
     expect(game.owner(game.ref(overBlue[0].x, overBlue[0].y))).toBe(blue);
+  });
+
+  test("a paradrop in flight when a truce starts is recalled whole", async () => {
+    const game = await congressGame(
+      { warfareExpansion: true, instantBuild: true },
+      [RED, BLUE],
+    );
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 60, 0, 40, 100);
+    game.executeNextTick();
+    grantTechs(red, "industrialization");
+    red.addGold(10_000_000n);
+    red.addTroops(100_000);
+    red.buildUnit(UnitType.Airport, game.ref(10, 10), {});
+    const troops = red.troops();
+    const dst = game.ref(70, 10);
+    game.addExecution(new ParadropExecution(red, 30_000, dst));
+    runTicks(game, 5);
+    expect(red.units(UnitType.TransportPlane)).toHaveLength(1);
+    expect(red.troops()).toBe(troops - 30_000);
+    truce(game, red, blue);
+    runTicks(game, 30);
+    expect(red.units(UnitType.TransportPlane)).toHaveLength(0);
+    expect(game.owner(dst)).toBe(blue);
+    expect(red.outgoingAttacks()).toHaveLength(0);
+    expect(red.troops()).toBeGreaterThanOrEqual(troops);
+  });
+
+  test("a carpet bomb's splash on a truce partner next to the target leaves no grudge", async () => {
+    const game = await congressGame(
+      { warfareExpansion: true, instantBuild: true },
+      [RED, BLUE, GREEN],
+    );
+    const red = own(game, RED.id, 0, 0, 30, 100);
+    const blue = own(game, BLUE.id, 40, 0, 20, 100);
+    own(game, GREEN.id, 60, 0, 40, 100);
+    game.executeNextTick();
+    grantTechs(red, "industrialization");
+    red.addGold(10_000_000n);
+    red.buildUnit(UnitType.Airport, game.ref(10, 10), {});
+    truce(game, red, blue);
+    const relation = blue.relation(red);
+    game.addExecution(
+      new ConstructionExecution(red, UnitType.Bomber, game.ref(70, 10)),
+    );
+    runTicks(game, 80);
+    expect(blue.relation(red)).toBe(relation);
   });
 
   test("emergency members can't fight each other; the target can be fought", async () => {

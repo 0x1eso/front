@@ -28,7 +28,7 @@ import { samMissileClosingIn } from "./Interception";
  * airport with a free sortie and flies straight to `dst` (SAMs can shoot it
  * down; its troops are lost). On landing it takes the target's land within
  * PARADROP_RADIUS and attacks from all of it. If the zone has become the
- * player's own or a friend's, the troops come home instead.
+ * player's own, a friend's or (World Congress) a truce partner's, the troops come home instead.
  */
 export class ParadropExecution implements Execution {
   private mg: Game;
@@ -131,7 +131,9 @@ export class ParadropExecution implements Execution {
     if (
       !mg.isLand(this.dst) ||
       owner === this.player ||
-      (owner.isPlayer() && this.player.isFriendly(owner))
+      (owner.isPlayer() &&
+        // A truce that began mid-flight (spec §8.1): recalled whole.
+        (this.player.isFriendly(owner) || this.player.isTruceWith(owner)))
     ) {
       this.player.addTroops(troops);
       return;

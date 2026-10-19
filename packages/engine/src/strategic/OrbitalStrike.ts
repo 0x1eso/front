@@ -124,9 +124,11 @@ export function landStrikeWave(
 
   // World heritage A (spec §10.2): the host and its site's crater stay.
   const spared = new Set<TileRef>();
-  for (const unit of target.units(Structures.types)) {
-    if (unit.isActive() && isHeritageProtected(mg, unit)) {
-      addOwnedDisk(mg, target, unit.tile(), STRIKE_STRUCTURE_RADIUS, spared);
+  if (mg.congress() !== null) {
+    for (const unit of target.units(Structures.types)) {
+      if (unit.isActive() && isHeritageProtected(mg, unit)) {
+        addOwnedDisk(mg, target, unit.tile(), STRIKE_STRUCTURE_RADIUS, spared);
+      }
     }
   }
 

@@ -48,6 +48,8 @@ export class TransportShipExecution implements Execution {
   private dst: TileRef | null;
   private src: TileRef | null;
   private retreatDst: TileRef | false | null = null;
+  /** World congress: THIS boat was turned around by a truce, so it lands home whole. */
+  private recalledByTruce = false;
   private boat: Unit;
   private motionPlanId = 1;
   private motionPlanDst: TileRef | null = null;
@@ -237,6 +239,7 @@ export class TransportShipExecution implements Execution {
     ) {
       this.boat.updateTransportShipState({ isRetreating: true });
       this.retreatDst = null;
+      this.recalledByTruce = true;
     }
 
     if (this.boat.transportShipState().isRetreating) {
@@ -267,10 +270,7 @@ export class TransportShipExecution implements Execution {
       case PathStatus.COMPLETE:
         if (this.mg.owner(this.dst) === this.attacker) {
           // A boat a truce called back lands home whole.
-          const malus =
-            this.target.isPlayer() && this.attacker.isTruceWith(this.target)
-              ? 0
-              : malusForRetreat;
+          const malus = this.recalledByTruce ? 0 : malusForRetreat;
           const deaths = this.boat.troops() * (malus / 100);
           const survivors = this.boat.troops() - deaths;
           this.attacker.addTroops(survivors);
@@ -293,7 +293,11 @@ export class TransportShipExecution implements Execution {
           return;
         }
         this.attacker.conquer(this.dst);
-        if (this.target.isPlayer() && this.attacker.isFriendly(this.target)) {
+        if (
+          this.target.isPlayer() &&
+          (this.attacker.isFriendly(this.target) ||
+            this.attacker.isTruceWith(this.target))
+        ) {
           this.attacker.addTroops(this.boat.troops());
         } else {
           this.mg.addExecution(
@@ -391,6 +395,8 @@ export class TransportShipExecution implements Execution {
       attacker: w.player(this.attacker),
       ref: this.ref,
       troops: this.troops,
+      // Written only when true: pre-congress snapshots stay identical.
+      ...(this.recalledByTruce ? { recalledByTruce: true } : {}),
     });
   }
 
@@ -413,6 +419,7 @@ export class TransportShipExecution implements Execution {
     this.attacker = r.player(s.attacker);
     this.ref = s.ref;
     this.troops = s.troops;
+    this.recalledByTruce = s.recalledByTruce === true;
   }
 }
 
@@ -435,6 +442,7 @@ const TransportShipExecutionStateSchema = z.object({
   // Unvalidated until init() checks it.
   ref: zInt(),
   troops: zNum(),
+  recalledByTruce: z.boolean().optional(),
 });
 type TransportShipExecutionState = z.infer<
   typeof TransportShipExecutionStateSchema
