@@ -211,6 +211,10 @@ there are no manual steps:
   map's `display_name` (or `name`). Translations to other languages are
   managed via Crowdin.
 
+## World War 1936 scenario maps
+
+A map whose `info.json` has `"ww1936": true` also gets `regions.bin` (a region or sea-zone id per tile, run-length coded) and `scenario.json` (the regions, sea zones and countries). Their sources are `scenarios/<map>/regions.png` and `scenarios/<map>/scenario.src.json`, drawn by `go run ./cmd/ww1936build` (see `scenarios/world1936/README.md`). The generator fixes the ids to the terrain it keeps: land without a region takes its nearest region, pieces under 20 tiles join a neighbour, and regions that lost every tile (removed islets) are dropped and logged.
+
 ## Notes
 
 - Islands smaller than 30 tiles (pixels) are automatically removed by the script.
