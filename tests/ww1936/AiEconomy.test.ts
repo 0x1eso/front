@@ -30,7 +30,7 @@ import {
   isAiTurn,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
-import { byTag, HUMAN, stepTo, wwRunner } from "./util";
+import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
 
 // ---- The pure plan ----
 
@@ -1044,6 +1044,50 @@ describe("the AI economy in a game (spec §12)", () => {
         expect(p.sameFaction).toBe(ww.sameFaction(c.smallID, p.smallID));
       }
     }
+  });
+
+  test("humans pick first: the AIs buy only after the preparation minute", async () => {
+    // France is a human's; Italy's starting artillery wants tungsten, and
+    // London sells one deal of it (as above, Italy takes it on day 0).
+    const runner = await wwRunner({}, [{ clientID: HUMAN, country: "FRA" }]);
+    const g = runner.game;
+    const econ = g.worldWar()!.economy;
+    const [fra, ita, gbr] = (["FRA", "ITA", "GBR"] as const).map((t) =>
+      byTag(g, t),
+    );
+    const TUNGSTEN = RESOURCE_IDS.indexOf("tungsten");
+    const human = () => econ.trades().every((t) => t.buyer === fra.smallID());
+    stepTo(runner, 10);
+    step(runner, 1, [
+      stamped(HUMAN, {
+        type: "ww_order",
+        order: {
+          kind: "open_trade",
+          seller: gbr.id(),
+          resource: "tungsten",
+          civs: 1,
+        },
+      }),
+    ]);
+    // No AI deal through the whole preparation minute.
+    while (g.worldWar()!.inPrep(g.ticks())) {
+      step(runner);
+      expect(human()).toBe(true);
+    }
+    expect(
+      econ.trades().map((t) => [t.buyer, t.seller, t.res, t.civs]),
+    ).toEqual([[fra.smallID(), gbr.smallID(), TUNGSTEN, 1]]);
+    // From day 0 the AIs trade; London's tungsten stays France's.
+    throughDay(runner, 0);
+    expect(human()).toBe(false);
+    expect(
+      econ
+        .trades()
+        .filter((t) => t.seller === gbr.smallID() && t.res === TUNGSTEN)
+        .map((t) => t.buyer),
+    ).toEqual([fra.smallID()]);
+    expect(econ.country(ita.smallID())!.lines.length).toBeGreaterThan(0);
+    expect(exportRoom(econ, gbr.smallID(), TUNGSTEN)).toBeLessThan(8);
   });
 
   test("humans get no AI", async () => {
