@@ -1,6 +1,6 @@
 // World War 1936 P2: the 1936 templates, land techs and order of battle
 // (P2 spec §4.5, §4.6, §6.4). The functions are the foundation's; Task 10
-// fills START_OOB.
+// filled START_OOB.
 import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -198,13 +198,282 @@ export interface OobArmy {
   divisions: readonly (readonly [string, number])[];
   /** An operation already running (Italy in Ethiopia, spec §6.4). */
   planTargets?: readonly number[];
+  /**
+   * Starts under a titled general (spec §6.2) when the roster has no named
+   * one left for it: Japan shows titles only (controller ruling).
+   */
+  titledGeneral?: boolean;
 }
 
 // Spec §6.4 majors; used only when scenario.json says historicalOob (plan
-// decision 14). Task 10 fills it.
+// decision 14). Region ids are world1936's (1..1342, which Task 2 keeps),
+// named in the comments; the first one each country holds at the start is
+// where the army stands (LandStartRun), so every list starts with one of its
+// own regions. Divisions per template are spec §6.4's table; an army holds
+// at most WW_MAX_ARMY_DIVISIONS (24). Generals go by skill to the armies in
+// this order (spec §6.4), so the main army of each country comes first.
 export const START_OOB: Readonly<
   Partial<Record<CountryTag, readonly OobArmy[]>>
-> = {};
+> = {
+  // Germany: infantry 36, armored 3, mountain 3, cavalry 1 (43).
+  DEU: [
+    {
+      // East: Lower Silesia, Upper Silesia, Pomerania.
+      regions: [335, 352, 271],
+      divisions: [
+        ["infantry", 14],
+        ["mountain", 3],
+        ["cavalry", 1],
+      ],
+    },
+    {
+      // West: Rheinland-Pfalz, Nordrhein-Westfalen.
+      regions: [356, 322],
+      divisions: [["infantry", 14]],
+    },
+    {
+      // Reserve: Berlin.
+      regions: [306],
+      divisions: [
+        ["infantry", 8],
+        ["armored", 3],
+      ],
+    },
+  ],
+  // Italy: binary 60, alpini 6, celere 2, colonial 12 (80).
+  ITA: [
+    {
+      // Ethiopian front, north: Eritrea; marching on Addis Ababa.
+      regions: [980],
+      divisions: [
+        ["binary", 12],
+        ["colonial", 6],
+      ],
+      planTargets: [1056],
+    },
+    {
+      // Ethiopian front, south: Italian Somaliland; marching on Addis Ababa.
+      regions: [1039],
+      divisions: [
+        ["binary", 2],
+        ["colonial", 4],
+      ],
+      planTargets: [1056],
+    },
+    {
+      // Libya: Tripolitania, Ajdabiya (Cyrenaica).
+      regions: [809, 812],
+      divisions: [
+        ["binary", 6],
+        ["colonial", 2],
+      ],
+    },
+    {
+      // North: Turin, Milano.
+      regions: [494, 482],
+      divisions: [
+        ["binary", 16],
+        ["alpini", 6],
+        ["celere", 2],
+      ],
+    },
+    {
+      // South: Roma, Napoli.
+      regions: [576, 609],
+      divisions: [["binary", 24]],
+    },
+  ],
+  // Japan: square 17, cavalry brigades 4, garrisons 4 (25). Japan has no
+  // named generals (titles only): the Kwantung and home armies start under
+  // titled generals, the Korea and Taiwan garrisons under none.
+  JPN: [
+    {
+      // Kwantung Army: the Kwantung lease, then Manchukuo's Jilin and
+      // Liaoning (its own camp, spec §7.1).
+      regions: [666, 486, 553],
+      divisions: [
+        ["square", 5],
+        ["cavalry_brigade", 3],
+        ["garrison", 1],
+      ],
+      titledGeneral: true,
+    },
+    {
+      // Home islands: Tokyo, Ōsaka.
+      regions: [758, 766],
+      divisions: [
+        ["square", 10],
+        ["cavalry_brigade", 1],
+        ["garrison", 2],
+      ],
+      titledGeneral: true,
+    },
+    {
+      // Korea garrison: Hamgyŏng-bukto, Keijō.
+      regions: [563, 679],
+      divisions: [["square", 2]],
+    },
+    {
+      // Taiwan garrison: Taiwan.
+      regions: [901],
+      divisions: [["garrison", 1]],
+    },
+  ],
+  // United Kingdom: infantry 12, mobile 1, colonial garrisons 8 (21).
+  GBR: [
+    {
+      // Home: London, Hampshire (Aldershot).
+      regions: [329, 337],
+      divisions: [
+        ["infantry", 10],
+        ["mobile", 1],
+      ],
+    },
+    {
+      // Egypt and Palestine: Cairo.
+      regions: [767],
+      divisions: [
+        ["infantry", 2],
+        ["colonial_garrison", 2],
+      ],
+    },
+    {
+      // Malaya and Hong Kong: Malaya, Hong Kong.
+      regions: [1087, 927],
+      divisions: [["colonial_garrison", 3]],
+    },
+    {
+      // East Africa: Nairobi, Khartoum.
+      regions: [1104, 933],
+      divisions: [["colonial_garrison", 3]],
+    },
+  ],
+  // France: infantry 40, DLM 2, colonial 25, cavalry 4 (71).
+  FRA: [
+    {
+      // North-east 1 (the Maginot Line): Moselle, Meuse.
+      regions: [390, 376],
+      divisions: [
+        ["infantry", 20],
+        ["dlm", 2],
+        ["cavalry", 2],
+      ],
+    },
+    {
+      // North-east 2 (the Belgian border): Pas-de-Calais, Marne.
+      regions: [353, 379],
+      divisions: [
+        ["infantry", 14],
+        ["cavalry", 2],
+      ],
+    },
+    {
+      // Alps: Savoie, Alpes-Maritimes.
+      regions: [497, 531],
+      divisions: [["infantry", 6]],
+    },
+    {
+      // North Africa: Alger, Tunis, Grand Casablanca.
+      regions: [733, 725, 787],
+      divisions: [["colonial", 17]],
+    },
+    {
+      // Levant: Aleppo.
+      regions: [729],
+      divisions: [["colonial", 4]],
+    },
+    {
+      // Indochina: Ha Noi, Saigon.
+      regions: [918, 988],
+      divisions: [["colonial", 4]],
+    },
+  ],
+  // United States: square 9, cavalry 2, garrisons 6 (17).
+  USA: [
+    {
+      // Home: Texas, District of Columbia.
+      regions: [749, 662],
+      divisions: [
+        ["square", 9],
+        ["cavalry", 2],
+      ],
+    },
+    {
+      // Philippines.
+      regions: [945],
+      divisions: [["garrison", 2]],
+    },
+    {
+      // Hawaii (and Panama, which has no US region on the map).
+      regions: [930],
+      divisions: [["garrison", 4]],
+    },
+  ],
+  // Soviet Union: rifle 100, cavalry 20, tank brigades 10, mountain 4 (134).
+  SUN: [
+    {
+      // West 1 (Leningrad): Leningrad, Novgorod.
+      regions: [163, 193],
+      divisions: [
+        ["rifle", 17],
+        ["tank_brigade", 2],
+      ],
+    },
+    {
+      // West 2 (Belorussia): City of Minsk, Vitebsk.
+      regions: [277, 247],
+      divisions: [
+        ["rifle", 18],
+        ["cavalry", 4],
+        ["tank_brigade", 2],
+      ],
+    },
+    {
+      // West 3 (Kiev): Kiev City, Zhytomyr.
+      regions: [344, 341],
+      divisions: [
+        ["rifle", 17],
+        ["cavalry", 5],
+        ["tank_brigade", 2],
+      ],
+    },
+    {
+      // West 4 (the Romanian border): Odessa, Khmel'nyts'kyy.
+      regions: [429, 364],
+      divisions: [
+        ["rifle", 18],
+        ["cavalry", 3],
+        ["tank_brigade", 2],
+      ],
+    },
+    {
+      // Caucasus: Tbilisi, Bakı.
+      regions: [601, 603],
+      divisions: [
+        ["rifle", 6],
+        ["cavalry", 2],
+        ["mountain_rifle", 4],
+      ],
+    },
+    {
+      // Central Asia: Tashkent, Stalinabad.
+      regions: [570, 669],
+      divisions: [
+        ["rifle", 4],
+        ["cavalry", 4],
+      ],
+    },
+    {
+      // Far East: Khabarovsk (S), Primor'ye.
+      regions: [251, 424],
+      divisions: [
+        ["rifle", 20],
+        ["cavalry", 2],
+        ["tank_brigade", 2],
+      ],
+    },
+  ],
+};
 
 /** Spec §6.4 "그 밖": min(50, startArmy × r / men), r by development. */
 export function genericDivisions(
