@@ -34,7 +34,7 @@ Licensed under ODbL
 [Natural Earth](https://www.naturalearthdata.com/)  
 Public Domain
 
-The World War 1936 map (`resources/maps/world1936`, `map-generator/assets/maps/world1936`, `map-generator/scenarios/world1936`) is drawn from Natural Earth 10m land, lakes, admin-1 states and provinces, marine areas and populated places (public domain, commit ca96624a), and this fork's 1936 owner tables (`map-generator/scenarios/world1936/src`, historical facts written for this fork, CC BY-SA 4.0). aourednik/historical-basemaps (GPL-3.0) was only compared against; nothing derived from it is included.
+The World War 1936 map (`resources/maps/world1936`, `map-generator/assets/maps/world1936`, `map-generator/scenarios/world1936`) is drawn from Natural Earth 10m land, lakes, admin-1 states and provinces, marine areas and populated places (public domain, commit ca96624a), and this fork's 1936 owner tables (`map-generator/scenarios/world1936/src`, historical facts written for this fork, CC BY-SA 4.0). aourednik/historical-basemaps (GPL-3.0) was only compared against; nothing derived from it is included. The generated files outside `resources/` (`map-generator/assets/maps/world1936/image.png`, `map-generator/scenarios/world1936/{regions.png, scenario.src.json, src/vp_cities.json}`) are CC BY-SA 4.0, like the other derived map files.
 
 ### Bedmap3 Antarctica Dataset
 
