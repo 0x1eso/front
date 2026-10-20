@@ -1,0 +1,156 @@
+[
+  {
+    "name": "Singapore",
+    "tag": "GBR",
+    "lon": 103.82,
+    "lat": 1.35,
+    "level": 3
+  },
+  {
+    "name": "Gibraltar",
+    "tag": "GBR",
+    "lon": -5.35,
+    "lat": 36.14,
+    "level": 3
+  },
+  {
+    "name": "Kronstadt",
+    "tag": "SUN",
+    "lon": 29.77,
+    "lat": 59.99,
+    "level": 3
+  },
+  {
+    "name": "Manila (Corregidor)",
+    "tag": "USA",
+    "lon": 120.95,
+    "lat": 14.58,
+    "level": 3
+  },
+  {
+    "name": "Malta",
+    "tag": "GBR",
+    "lon": 14.51,
+    "lat": 35.89,
+    "level": 2
+  },
+  {
+    "name": "Oahu",
+    "tag": "USA",
+    "lon": -157.95,
+    "lat": 21.35,
+    "level": 2
+  },
+  {
+    "name": "Sevastopol",
+    "tag": "SUN",
+    "lon": 33.52,
+    "lat": 44.62,
+    "level": 2
+  },
+  {
+    "name": "Oslo (Oscarsborg)",
+    "tag": "NOR",
+    "lon": 10.75,
+    "lat": 59.91,
+    "level": 2
+  },
+  {
+    "name": "Istanbul (Dardanelles)",
+    "tag": "TUR",
+    "lon": 28.98,
+    "lat": 41.01,
+    "level": 2
+  },
+  {
+    "name": "Toulon",
+    "tag": "FRA",
+    "lon": 5.93,
+    "lat": 43.12,
+    "level": 2
+  },
+  {
+    "name": "Yokosuka",
+    "tag": "JPN",
+    "lon": 139.67,
+    "lat": 35.28,
+    "level": 2
+  },
+  {
+    "name": "Scapa Flow",
+    "tag": "GBR",
+    "lon": -3.1,
+    "lat": 58.9,
+    "level": 2
+  },
+  {
+    "name": "Portsmouth",
+    "tag": "GBR",
+    "lon": -1.09,
+    "lat": 50.8,
+    "level": 1
+  },
+  {
+    "name": "Brest",
+    "tag": "FRA",
+    "lon": -4.49,
+    "lat": 48.39,
+    "level": 1
+  },
+  {
+    "name": "Cherbourg",
+    "tag": "FRA",
+    "lon": -1.62,
+    "lat": 49.64,
+    "level": 1
+  },
+  {
+    "name": "Kiel",
+    "tag": "DEU",
+    "lon": 10.14,
+    "lat": 54.32,
+    "level": 1
+  },
+  {
+    "name": "Wilhelmshaven",
+    "tag": "DEU",
+    "lon": 8.12,
+    "lat": 53.52,
+    "level": 1
+  },
+  {
+    "name": "Taranto",
+    "tag": "ITA",
+    "lon": 17.24,
+    "lat": 40.47,
+    "level": 1
+  },
+  {
+    "name": "Kure",
+    "tag": "JPN",
+    "lon": 132.56,
+    "lat": 34.24,
+    "level": 1
+  },
+  {
+    "name": "Halifax",
+    "tag": "CAN",
+    "lon": -63.57,
+    "lat": 44.65,
+    "level": 1
+  },
+  {
+    "name": "Sydney",
+    "tag": "AUS",
+    "lon": 151.21,
+    "lat": -33.86,
+    "level": 1
+  },
+  {
+    "name": "New York",
+    "tag": "USA",
+    "lon": -73.97,
+    "lat": 40.7,
+    "level": 1
+  }
+]

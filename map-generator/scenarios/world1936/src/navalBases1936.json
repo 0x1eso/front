@@ -1,0 +1,667 @@
+[
+  {
+    "name": "Portsmouth",
+    "tag": "GBR",
+    "lon": -1.09,
+    "lat": 50.8,
+    "level": 10
+  },
+  {
+    "name": "Plymouth",
+    "tag": "GBR",
+    "lon": -4.14,
+    "lat": 50.37,
+    "level": 8
+  },
+  {
+    "name": "Scapa Flow",
+    "tag": "GBR",
+    "lon": -3.1,
+    "lat": 58.9,
+    "level": 8
+  },
+  {
+    "name": "Malta",
+    "tag": "GBR",
+    "lon": 14.51,
+    "lat": 35.89,
+    "level": 8
+  },
+  {
+    "name": "Singapore",
+    "tag": "GBR",
+    "lon": 103.82,
+    "lat": 1.35,
+    "level": 8
+  },
+  {
+    "name": "Rosyth",
+    "tag": "GBR",
+    "lon": -3.45,
+    "lat": 56.03,
+    "level": 6
+  },
+  {
+    "name": "Chatham",
+    "tag": "GBR",
+    "lon": 0.53,
+    "lat": 51.38,
+    "level": 6
+  },
+  {
+    "name": "Gibraltar",
+    "tag": "GBR",
+    "lon": -5.35,
+    "lat": 36.14,
+    "level": 6
+  },
+  {
+    "name": "Alexandria",
+    "tag": "GBR",
+    "lon": 29.92,
+    "lat": 31.2,
+    "level": 6
+  },
+  {
+    "name": "Hong Kong",
+    "tag": "GBR",
+    "lon": 114.17,
+    "lat": 22.3,
+    "level": 5
+  },
+  {
+    "name": "Trincomalee",
+    "tag": "GBR",
+    "lon": 81.23,
+    "lat": 8.57,
+    "level": 4
+  },
+  {
+    "name": "Bermuda",
+    "tag": "GBR",
+    "lon": -64.78,
+    "lat": 32.3,
+    "level": 4
+  },
+  {
+    "name": "Aden",
+    "tag": "GBR",
+    "lon": 45.03,
+    "lat": 12.8,
+    "level": 3
+  },
+  {
+    "name": "Haifa",
+    "tag": "GBR",
+    "lon": 34.99,
+    "lat": 32.82,
+    "level": 3
+  },
+  {
+    "name": "Freetown",
+    "tag": "GBR",
+    "lon": -13.23,
+    "lat": 8.48,
+    "level": 3
+  },
+  {
+    "name": "Kiel",
+    "tag": "DEU",
+    "lon": 10.14,
+    "lat": 54.32,
+    "level": 10
+  },
+  {
+    "name": "Wilhelmshaven",
+    "tag": "DEU",
+    "lon": 8.12,
+    "lat": 53.52,
+    "level": 10
+  },
+  {
+    "name": "Hamburg",
+    "tag": "DEU",
+    "lon": 9.99,
+    "lat": 53.55,
+    "level": 4
+  },
+  {
+    "name": "Swinemünde",
+    "tag": "DEU",
+    "lon": 14.25,
+    "lat": 53.91,
+    "level": 4
+  },
+  {
+    "name": "Pillau",
+    "tag": "DEU",
+    "lon": 19.9,
+    "lat": 54.64,
+    "level": 3
+  },
+  {
+    "name": "Heligoland",
+    "tag": "DEU",
+    "lon": 7.88,
+    "lat": 54.18,
+    "level": 1
+  },
+  {
+    "name": "Toulon",
+    "tag": "FRA",
+    "lon": 5.93,
+    "lat": 43.12,
+    "level": 10
+  },
+  {
+    "name": "Brest",
+    "tag": "FRA",
+    "lon": -4.49,
+    "lat": 48.39,
+    "level": 10
+  },
+  {
+    "name": "Cherbourg",
+    "tag": "FRA",
+    "lon": -1.62,
+    "lat": 49.64,
+    "level": 6
+  },
+  {
+    "name": "Bizerte",
+    "tag": "FRA",
+    "lon": 9.87,
+    "lat": 37.27,
+    "level": 6
+  },
+  {
+    "name": "Mers-el-Kébir",
+    "tag": "FRA",
+    "lon": -0.7,
+    "lat": 35.73,
+    "level": 5
+  },
+  {
+    "name": "Dakar",
+    "tag": "FRA",
+    "lon": -17.44,
+    "lat": 14.69,
+    "level": 5
+  },
+  {
+    "name": "Lorient",
+    "tag": "FRA",
+    "lon": -3.37,
+    "lat": 47.75,
+    "level": 4
+  },
+  {
+    "name": "Casablanca",
+    "tag": "FRA",
+    "lon": -7.62,
+    "lat": 33.59,
+    "level": 4
+  },
+  {
+    "name": "Saigon",
+    "tag": "FRA",
+    "lon": 106.7,
+    "lat": 10.78,
+    "level": 4
+  },
+  {
+    "name": "Beirut",
+    "tag": "FRA",
+    "lon": 35.5,
+    "lat": 33.89,
+    "level": 3
+  },
+  {
+    "name": "Taranto",
+    "tag": "ITA",
+    "lon": 17.24,
+    "lat": 40.47,
+    "level": 10
+  },
+  {
+    "name": "La Spezia",
+    "tag": "ITA",
+    "lon": 9.83,
+    "lat": 44.1,
+    "level": 10
+  },
+  {
+    "name": "Naples",
+    "tag": "ITA",
+    "lon": 14.27,
+    "lat": 40.85,
+    "level": 6
+  },
+  {
+    "name": "Pola",
+    "tag": "ITA",
+    "lon": 13.85,
+    "lat": 44.87,
+    "level": 5
+  },
+  {
+    "name": "Messina",
+    "tag": "ITA",
+    "lon": 15.55,
+    "lat": 38.19,
+    "level": 4
+  },
+  {
+    "name": "Brindisi",
+    "tag": "ITA",
+    "lon": 17.94,
+    "lat": 40.64,
+    "level": 4
+  },
+  {
+    "name": "Tripoli",
+    "tag": "ITA",
+    "lon": 13.19,
+    "lat": 32.89,
+    "level": 4
+  },
+  {
+    "name": "Tobruk",
+    "tag": "ITA",
+    "lon": 23.96,
+    "lat": 32.08,
+    "level": 3
+  },
+  {
+    "name": "Massawa",
+    "tag": "ITA",
+    "lon": 39.45,
+    "lat": 15.61,
+    "level": 3
+  },
+  {
+    "name": "Leros",
+    "tag": "ITA",
+    "lon": 26.85,
+    "lat": 37.15,
+    "level": 3
+  },
+  {
+    "name": "Rhodes",
+    "tag": "ITA",
+    "lon": 28.22,
+    "lat": 36.44,
+    "level": 2
+  },
+  {
+    "name": "Yokosuka",
+    "tag": "JPN",
+    "lon": 139.67,
+    "lat": 35.28,
+    "level": 10
+  },
+  {
+    "name": "Kure",
+    "tag": "JPN",
+    "lon": 132.56,
+    "lat": 34.24,
+    "level": 10
+  },
+  {
+    "name": "Sasebo",
+    "tag": "JPN",
+    "lon": 129.72,
+    "lat": 33.16,
+    "level": 8
+  },
+  {
+    "name": "Maizuru",
+    "tag": "JPN",
+    "lon": 135.38,
+    "lat": 35.47,
+    "level": 6
+  },
+  {
+    "name": "Truk",
+    "tag": "JPN",
+    "lon": 151.85,
+    "lat": 7.45,
+    "level": 6
+  },
+  {
+    "name": "Port Arthur",
+    "tag": "JPN",
+    "lon": 121.25,
+    "lat": 38.81,
+    "level": 4
+  },
+  {
+    "name": "Ominato",
+    "tag": "JPN",
+    "lon": 141.15,
+    "lat": 41.25,
+    "level": 3
+  },
+  {
+    "name": "Palau",
+    "tag": "JPN",
+    "lon": 134.58,
+    "lat": 7.5,
+    "level": 3
+  },
+  {
+    "name": "Saipan",
+    "tag": "JPN",
+    "lon": 145.75,
+    "lat": 15.18,
+    "level": 3
+  },
+  {
+    "name": "Kwajalein",
+    "tag": "JPN",
+    "lon": 167.73,
+    "lat": 8.72,
+    "level": 3
+  },
+  {
+    "name": "Norfolk",
+    "tag": "USA",
+    "lon": -76.3,
+    "lat": 36.95,
+    "level": 10
+  },
+  {
+    "name": "San Diego",
+    "tag": "USA",
+    "lon": -117.16,
+    "lat": 32.72,
+    "level": 8
+  },
+  {
+    "name": "Pearl Harbor",
+    "tag": "USA",
+    "lon": -157.95,
+    "lat": 21.35,
+    "level": 8
+  },
+  {
+    "name": "Puget Sound",
+    "tag": "USA",
+    "lon": -122.62,
+    "lat": 47.56,
+    "level": 8
+  },
+  {
+    "name": "New York",
+    "tag": "USA",
+    "lon": -73.97,
+    "lat": 40.7,
+    "level": 6
+  },
+  {
+    "name": "Philadelphia",
+    "tag": "USA",
+    "lon": -75.17,
+    "lat": 39.89,
+    "level": 6
+  },
+  {
+    "name": "Mare Island",
+    "tag": "USA",
+    "lon": -122.27,
+    "lat": 38.09,
+    "level": 6
+  },
+  {
+    "name": "Manila",
+    "tag": "USA",
+    "lon": 120.95,
+    "lat": 14.58,
+    "level": 5
+  },
+  {
+    "name": "Boston",
+    "tag": "USA",
+    "lon": -71.05,
+    "lat": 42.37,
+    "level": 5
+  },
+  {
+    "name": "Charleston",
+    "tag": "USA",
+    "lon": -79.93,
+    "lat": 32.86,
+    "level": 4
+  },
+  {
+    "name": "Guam",
+    "tag": "USA",
+    "lon": 144.79,
+    "lat": 13.45,
+    "level": 2
+  },
+  {
+    "name": "Dutch Harbor",
+    "tag": "USA",
+    "lon": -166.54,
+    "lat": 53.89,
+    "level": 2
+  },
+  {
+    "name": "Midway",
+    "tag": "USA",
+    "lon": -177.37,
+    "lat": 28.21,
+    "level": 1
+  },
+  {
+    "name": "Wake",
+    "tag": "USA",
+    "lon": 166.63,
+    "lat": 19.29,
+    "level": 1
+  },
+  {
+    "name": "Kronstadt",
+    "tag": "SUN",
+    "lon": 29.77,
+    "lat": 59.99,
+    "level": 8
+  },
+  {
+    "name": "Sevastopol",
+    "tag": "SUN",
+    "lon": 33.52,
+    "lat": 44.62,
+    "level": 8
+  },
+  {
+    "name": "Vladivostok",
+    "tag": "SUN",
+    "lon": 131.89,
+    "lat": 43.12,
+    "level": 6
+  },
+  {
+    "name": "Murmansk",
+    "tag": "SUN",
+    "lon": 33.08,
+    "lat": 68.97,
+    "level": 3
+  },
+  {
+    "name": "Odessa",
+    "tag": "SUN",
+    "lon": 30.73,
+    "lat": 46.48,
+    "level": 3
+  },
+  {
+    "name": "Novorossiysk",
+    "tag": "SUN",
+    "lon": 37.77,
+    "lat": 44.72,
+    "level": 3
+  },
+  {
+    "name": "Arkhangelsk",
+    "tag": "SUN",
+    "lon": 40.54,
+    "lat": 64.54,
+    "level": 2
+  },
+  {
+    "name": "Sydney",
+    "tag": "AUS",
+    "lon": 151.21,
+    "lat": -33.86,
+    "level": 6
+  },
+  {
+    "name": "Halifax",
+    "tag": "CAN",
+    "lon": -63.57,
+    "lat": 44.65,
+    "level": 6
+  },
+  {
+    "name": "Cartagena",
+    "tag": "ESR",
+    "lon": -0.98,
+    "lat": 37.6,
+    "level": 6
+  },
+  {
+    "name": "Surabaya",
+    "tag": "NLD",
+    "lon": 112.73,
+    "lat": -7.2,
+    "level": 5
+  },
+  {
+    "name": "Ferrol",
+    "tag": "ESN",
+    "lon": -8.24,
+    "lat": 43.48,
+    "level": 5
+  },
+  {
+    "name": "Bombay",
+    "tag": "RAJ",
+    "lon": 72.83,
+    "lat": 18.95,
+    "level": 5
+  },
+  {
+    "name": "Den Helder",
+    "tag": "NLD",
+    "lon": 4.76,
+    "lat": 52.96,
+    "level": 4
+  },
+  {
+    "name": "Istanbul",
+    "tag": "TUR",
+    "lon": 28.98,
+    "lat": 41.01,
+    "level": 4
+  },
+  {
+    "name": "Salamis",
+    "tag": "GRC",
+    "lon": 23.49,
+    "lat": 37.95,
+    "level": 4
+  },
+  {
+    "name": "Karlskrona",
+    "tag": "SWE",
+    "lon": 15.59,
+    "lat": 56.16,
+    "level": 4
+  },
+  {
+    "name": "Simonstown",
+    "tag": "ZAF",
+    "lon": 18.44,
+    "lat": -34.19,
+    "level": 4
+  },
+  {
+    "name": "Puerto Belgrano",
+    "tag": "ARG",
+    "lon": -62.1,
+    "lat": -38.89,
+    "level": 4
+  },
+  {
+    "name": "Rio de Janeiro",
+    "tag": "BRA",
+    "lon": -43.17,
+    "lat": -22.9,
+    "level": 4
+  },
+  {
+    "name": "Oslo",
+    "tag": "NOR",
+    "lon": 10.75,
+    "lat": 59.91,
+    "level": 3
+  },
+  {
+    "name": "Bergen",
+    "tag": "NOR",
+    "lon": 5.32,
+    "lat": 60.39,
+    "level": 3
+  },
+  {
+    "name": "Copenhagen",
+    "tag": "DNK",
+    "lon": 12.57,
+    "lat": 55.68,
+    "level": 3
+  },
+  {
+    "name": "Gdynia",
+    "tag": "POL",
+    "lon": 18.53,
+    "lat": 54.52,
+    "level": 3
+  },
+  {
+    "name": "Kotor",
+    "tag": "YUG",
+    "lon": 18.77,
+    "lat": 42.42,
+    "level": 3
+  },
+  {
+    "name": "Lisbon",
+    "tag": "PRT",
+    "lon": -9.14,
+    "lat": 38.72,
+    "level": 3
+  },
+  {
+    "name": "Talcahuano",
+    "tag": "CHL",
+    "lon": -73.12,
+    "lat": -36.72,
+    "level": 3
+  },
+  {
+    "name": "Helsinki",
+    "tag": "FIN",
+    "lon": 24.94,
+    "lat": 60.17,
+    "level": 2
+  },
+  {
+    "name": "Constanța",
+    "tag": "ROU",
+    "lon": 28.65,
+    "lat": 44.17,
+    "level": 2
+  }
+]

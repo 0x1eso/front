@@ -342,7 +342,7 @@ func TestScenarioCopiesTheEconomy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.Version != 3 {
+	if out.Version != scenarioVersion {
 		t.Fatalf("version %d", out.Version)
 	}
 	berlin, warsaw := out.Regions[0].Economy, out.Regions[1].Economy
@@ -475,7 +475,7 @@ func TestV3FieldsAreCopied(t *testing.T) {
 	if len(out.Edges) != 1 || out.Edges[0] != (landEdge{1, 2, 3, 520, 2, 0}) || len(out.SeaEdges) != 1 || len(out.Straits) != 1 || !out.HistoricalOob {
 		t.Fatalf("graphs %v %v %v %v", out.Edges, out.SeaEdges, out.Straits, out.HistoricalOob)
 	}
-	if out.Countries[0].Dev != 5 || !out.SeaZones[1].Lake || out.Version != 3 {
+	if out.Countries[0].Dev != 5 || !out.SeaZones[1].Lake || out.Version != scenarioVersion {
 		t.Fatalf("dev %d, lake %v, version %d", out.Countries[0].Dev, out.SeaZones[1].Lake, out.Version)
 	}
 	// A hand harbour makes a port of a coastal region without a dockyard or
@@ -583,5 +583,116 @@ func TestKeptIslandsSurviveTheCleanup(t *testing.T) {
 	ids, _ = finalizeRegions(packed, raw, gw, gh, owner, nil)
 	if ids[23] != 1 {
 		t.Fatal("without the exemption the piece stays")
+	}
+}
+
+// v4Grid is economyGrid with the version 4 source fields (P4 spec §3.6):
+// Berlin (DEU, a major's capital) and Warsaw (POL's capital, dev 2, coastal
+// with a dockyard) in land strategic regions 1 and 2, the Baltic in sea
+// strategic region 1001.
+func v4Grid() ([]byte, []uint16, int, int, scenarioSrc) {
+	packed, ids, w, h, src := economyGrid()
+	src.Majors = []string{"DEU"}
+	src.Countries[1].Dev = 2
+	src.Regions[0].SR = 1
+	src.Regions[1].SR, src.Regions[1].Harbor = 2, 40001
+	src.SeaZones[0].Center, src.SeaZones[0].LatC, src.SeaZones[0].WCell, src.SeaZones[0].SR = &[2]int{8, 1}, 5450, 416, 1001
+	src.Strategic = []strategicRegion{
+		{ID: 1, Kind: "land", Name: "Germany", NameKo: "독일", Center: [2]int{1, 1}, LatC: 5252, Members: []int{1}},
+		{ID: 2, Kind: "land", Name: "Poland", NameKo: "폴란드", Center: [2]int{5, 1}, LatC: 5223, Members: []int{2}},
+		{ID: 1001, Kind: "sea", Name: "Baltic Sea", NameKo: "발트해", Center: [2]int{8, 1}, LatC: 5450, Members: []int{40001}},
+	}
+	src.Rows = &rowTable{LatC: []int{5500, 5450, 5400}, KmxMilli: []int{5748, 5822, 5896}}
+	return packed, ids, w, h, src
+}
+
+// Version 4: the harbour, the formulas where no hand level is given (a
+// major's capital: air base 5, anti-air 3; a minor's capital at dev 2: air
+// base 1; a port on the sea: naval base min(3, 1 + dockyards)), the hand
+// levels where they are, the zones' fields, the strategic regions and the
+// row table go to scenario.json.
+func TestV4FieldsAndFormulas(t *testing.T) {
+	packed, ids, w, h, src := v4Grid()
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	berlin, warsaw := out.Regions[0], out.Regions[1]
+	if *berlin.outV4 != (outV4{SR: 1, AirBase: 5, AA: 3}) {
+		t.Fatalf("Berlin %+v", *berlin.outV4)
+	}
+	if *warsaw.outV4 != (outV4{SR: 2, Harbor: 40001, NavalBase: 2, AirBase: 1}) {
+		t.Fatalf("Warsaw %+v", *warsaw.outV4)
+	}
+	if z := out.SeaZones[0].outSeaV4; *z != (outSeaV4{Center: [2]int{8, 1}, LatC: 5450, WCell: 416, SR: 1001}) {
+		t.Fatalf("zone %+v", *z)
+	}
+	if len(out.Strategic) != 3 || out.Rows == nil || len(out.Rows.LatC) != h {
+		t.Fatalf("strategic %v rows %v", out.Strategic, out.Rows)
+	}
+	eight, two, zero := 8, 2, 0
+	src.Regions[1].NavalBase, src.Regions[1].CoastalFort, src.Regions[0].AirBase = &eight, &two, &zero
+	out, _, err = buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := out.Regions[1].outV4; v.NavalBase != 8 || v.CoastalFort != 2 || out.Regions[0].AirBase != 0 {
+		t.Fatalf("hand levels: %+v, Berlin air base %d", *v, out.Regions[0].AirBase)
+	}
+	// Without strategic regions no version 4 field is written.
+	_, _, _, _, plain := v4Grid()
+	plain.Strategic = nil
+	out, _, err = buildScenario(plain, ids, packed, w, h)
+	if err != nil || out.Regions[0].outV4 != nil || out.SeaZones[0].outSeaV4 != nil || out.Rows != nil {
+		t.Fatalf("plain: %v", err)
+	}
+}
+
+// The tool's version 4 data must fit the final map.
+func TestV4MustMatchTheFinalTiles(t *testing.T) {
+	cases := []struct {
+		want string
+		edit func(src *scenarioSrc)
+	}{
+		{"harbour 0 in scenario.src.json, 40001 on the final map", func(s *scenarioSrc) { s.Regions[1].Harbor = 0 }},
+		{"a naval base or coastal fort but no harbour", func(s *scenarioSrc) { one := 1; s.Regions[0].NavalBase = &one }},
+		{"its center is not one of its tiles", func(s *scenarioSrc) { s.SeaZones[0].Center = &[2]int{7, 1} }},
+		{"has no strategic region", func(s *scenarioSrc) { s.Regions[0].SR = 0 }},
+		{"member 2 is not on the map or is in 1", func(s *scenarioSrc) { s.Strategic[1].ID, s.Regions[1].SR = 3, 1 }},
+		{"is in 0 strategic regions", func(s *scenarioSrc) { s.Strategic = s.Strategic[1:] }},
+		{"its center is not on one of its members", func(s *scenarioSrc) { s.Strategic[0].Center = [2]int{5, 1} }},
+		{"does not have the map's 3 rows", func(s *scenarioSrc) { s.Rows.LatC = s.Rows.LatC[:2] }},
+	}
+	for _, c := range cases {
+		packed, ids, w, h, src := v4Grid()
+		c.edit(&src)
+		if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Fatalf("%s: err = %v", c.want, err)
+		}
+	}
+}
+
+func TestStartAirBaseAndAA(t *testing.T) {
+	cases := []struct {
+		major, capital bool
+		dev, vp        int
+		air, aa        int
+	}{
+		{true, true, 5, 3, 5, 3},
+		{true, false, 5, 10, 3, 1},
+		{true, false, 5, 9, 1, 0},
+		{true, false, 5, 4, 0, 0},
+		{false, true, 3, 0, 3, 1},
+		{false, true, 2, 30, 1, 0},
+		{false, false, 4, 10, 1, 0},
+		{false, false, 4, 9, 0, 0},
+	}
+	for _, c := range cases {
+		if got := startAirBase(c.major, c.capital, c.dev, c.vp); got != c.air {
+			t.Fatalf("%+v: air base %d", c, got)
+		}
+		if got := startAA(c.major, c.capital, c.dev, c.vp); got != c.aa {
+			t.Fatalf("%+v: anti-air %d", c, got)
+		}
 	}
 }

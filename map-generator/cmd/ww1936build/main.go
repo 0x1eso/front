@@ -11,7 +11,9 @@
 // rail1936.json, forts1936.json, terrain1936.json, land.go; the P4 map
 // fixes folded into P2:
 // islands1936.json, seasplit1936.json, straits1936.json, islands.go,
-// seasplit.go, seaedges.go). Region ids are stable: the committed
+// seasplit.go, seaedges.go; the P4 version 4 fields: seaRegions1936.json,
+// landRegions1936.json, navalBases1936.json, coastalForts1936.json,
+// strategic.go, bases.go, rows.go). Region ids are stable: the committed
 // scenario.json numbers the regions it holds (land.go stableIDs). Run from
 // map-generator/:
 //
@@ -35,7 +37,7 @@ import (
 
 func main() {
 	cache := flag.String("cache", ".cache/ww1936", "folder with the fetched Natural Earth and NASA files")
-	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json, industry1936.json, islands1936.json, seasplit1936.json, straits1936.json, rail1936.json, forts1936.json, terrain1936.json")
+	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json, industry1936.json, islands1936.json, seasplit1936.json, straits1936.json, rail1936.json, forts1936.json, terrain1936.json, seaRegions1936.json, landRegions1936.json, navalBases1936.json, coastalForts1936.json")
 	idTable := flag.String("ids", "../resources/maps/world1936/scenario.json", "the committed scenario.json whose region ids stay")
 	outImage := flag.String("out-image", "assets/maps/world1936/image.png", "terrain image")
 	outDir := flag.String("out-dir", "scenarios/world1936", "folder for regions.png and scenario.src.json")
@@ -46,6 +48,8 @@ func main() {
 	minSea := flag.Int("min-sea", 3000, "smallest sea zone, in pixels")
 	maxSea := flag.Int("max-sea", 60000, "largest sea zone, in pixels")
 	islandReach := flag.Int("island-reach", 40, "a small island joins same-owner land this many pixels away")
+	srRegions := flag.Int("sr-regions", srMaxRegions, "most regions in a land strategic region's share while seeds are added")
+	srTiles := flag.Int("sr-tiles", srMaxTiles, "most land tiles in a land strategic region's share while seeds are added")
 	crosscheck := flag.String("crosscheck", "", "a historical-basemaps GeoJSON to compare the owners with (prints a report, writes nothing)")
 	bootstrap := flag.Bool("bootstrap-cities", false, "write src/vp_cities.json from Natural Earth populated places and exit")
 	debugPNG := flag.String("debug-png", "", "also draw owners and region edges to this PNG")
@@ -92,6 +96,12 @@ func main() {
 	terrPath := filepath.Join(*src, "terrain1936.json")
 	var terrTbl TerrainTable
 	must(decodeStrict(terrPath, &terrTbl))
+	seaRegions, err := loadSeaRegions(filepath.Join(*src, "seaRegions1936.json"))
+	must(err)
+	seeds, err := loadLandSeeds(filepath.Join(*src, "landRegions1936.json"))
+	must(err)
+	baseTbl, err := loadBases(filepath.Join(*src, "navalBases1936.json"), filepath.Join(*src, "coastalForts1936.json"))
+	must(err)
 	table, err := loadIDTable(*idTable)
 	must(err)
 	p := NewProjection(*width, -60, 84)
@@ -237,13 +247,28 @@ func main() {
 	sg, err := buildSeaGraph(p, final, lists, seas, straits, byName)
 	must(err)
 	step("graphs")
+	sr, err := buildStrategic(p, final, lists, StrategicInput{
+		Regions: regions, Tags: tags, Seas: seas, Land: lg, Sea: sg, SeaRows: seaRegions, Seeds: seeds,
+		MaxRegions: *srRegions, MaxTiles: *srTiles,
+	})
+	must(err)
+	survivorOwner := map[int]string{}
+	for _, r := range regions {
+		if len(lists.of(r.ID)) > 0 {
+			survivorOwner[r.ID] = tags[r.Owner-1]
+		}
+	}
+	bases, err := resolveBases(p, final, sr.Harbor, baseTbl, islandRows, regions, survivorOwner)
+	must(err)
+	rows := buildRows(p)
+	step("strategic regions")
 
 	sort.Slice(regions, func(a, b int) bool { return regions[a].ID < regions[b].ID })
 	must(os.MkdirAll(*outDir, 0755))
 	must(writeRegionsPNG(filepath.Join(*outDir, "regions.png"), p, landIDs, seaIDs))
 	must(writeScenarioSrc(filepath.Join(*outDir, "scenario.src.json"), ScenarioSrcInput{
 		P: p, T: t, Rows: ecoRows, Capitals: capitals, Regions: regions, Eco: ecoByID, Seas: seas,
-		Land: lg, Sea: sg, Islands: islandRows, Places: places,
+		Land: lg, Sea: sg, Islands: islandRows, Places: places, SR: sr, Bases: bases, RowTable: rows,
 	}))
 	step("written")
 
@@ -272,6 +297,10 @@ func main() {
 	fmt.Printf("sea pieces moved by the split: %d\n", len(moves))
 	for _, m := range moves {
 		fmt.Println("  " + m)
+	}
+	printV4(sr, bases, ecoSum, t, *srRegions, *srTiles)
+	if sr.LandN < srMinCount || sr.LandN > srMaxCount {
+		log.Fatalf("land strategic regions %d are outside %d..%d: change -sr-regions/-sr-tiles (and srMaxRegions/srMaxTiles)", sr.LandN, srMinCount, srMaxCount)
 	}
 	if len(regions) < 1000 || len(regions) > 1800 {
 		log.Fatalf("land regions %d are outside 1000..1800: change -min-core/-min-low/-max-region", len(regions))
@@ -389,4 +418,46 @@ func printGraphs(t *Tables, regions []*Region, eco map[int]*EcoRegion, lists til
 	for _, id := range fresh {
 		fmt.Printf("new region %d %s, %d final tiles\n", id, name[id], len(lists.of(id)))
 	}
+}
+
+// printV4 prints what P4 plan Task 2 asks the tool to report: the land
+// strategic regions and their thresholds, the sea strategic regions, the
+// naval bases by level and the dockyards per country.
+func printV4(sr StrategicResult, hb HandBases, eco EconomySummary, t *Tables, maxRegions, maxTiles int) {
+	sea := 0
+	for _, s := range sr.List {
+		if s.Kind == "sea" {
+			sea++
+		}
+	}
+	fmt.Printf("land strategic regions: %d (shares of at most %d regions or %d tiles, small islands within %d km), sea strategic regions: %d\n", sr.LandN, maxRegions, maxTiles, srIslandKm, sea)
+	for _, line := range sr.Report {
+		fmt.Println("  " + line)
+	}
+	for _, s := range sr.List {
+		if s.Kind == "land" {
+			fmt.Printf("  %d %s / %s: %d regions, centre %v\n", s.ID, s.Name, s.NameKo, len(s.Members), s.Center)
+		}
+	}
+	fmt.Printf("small islands joined: %d\n", len(sr.Merged))
+	for _, m := range sr.Merged {
+		fmt.Println("  " + m)
+	}
+	var levels []string
+	for lv := 10; lv >= 1; lv-- {
+		if n := hb.ByLevel[lv]; n > 0 {
+			levels = append(levels, fmt.Sprintf("%d: %d", lv, n))
+		}
+	}
+	fmt.Println("hand naval bases by level (the generator adds the ports' formula): " + strings.Join(levels, ", "))
+	for _, line := range hb.Report {
+		fmt.Println("  " + line)
+	}
+	var docks []string
+	for c, ct := range t.Countries {
+		if eco.Dock[c] > 0 {
+			docks = append(docks, fmt.Sprintf("%s %d", ct.Tag, eco.Dock[c]))
+		}
+	}
+	fmt.Println("dockyards per country: " + strings.Join(docks, ", "))
 }
