@@ -976,6 +976,15 @@ export class WwIndustryPanel extends WwDrawerBase {
               class="cursor-pointer ${open ? "bg-white/10" : ""}"
               @click=${() => {
                 this.buyResource = open ? null : r.id;
+                // The sellers open below the six rows: on a phone that is
+                // under the fold, so bring them up.
+                if (!open) {
+                  void this.updateComplete.then(() =>
+                    this.querySelector("[data-ww-buy]")?.scrollIntoView?.({
+                      block: "nearest",
+                    }),
+                  );
+                }
               }}
             >
               <td class="py-0.5">

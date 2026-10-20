@@ -305,7 +305,20 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       ],
     });
     await m.open("trade");
+    // jsdom has no scrollIntoView: the sellers' list asks for it once open
+    // (it opens under the six rows, below the fold on a phone).
+    const scrolled: string[] = [];
+    const had = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      "scrollIntoView",
+    );
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.getAttribute("data-ww-buy") ?? "?");
+    };
     await m.click("[data-ww-resource='steel'] button");
+    await m.el.updateComplete;
+    await Promise.resolve();
+    expect(scrolled).toEqual(["steel"]);
     // Italy (faction); not Britain (no route).
     expect(m.q(`[data-ww-offer='${ID("ITA")}']`)).not.toBeNull();
     expect(m.q(`[data-ww-offer='${ID("GBR")}']`)).toBeNull();
@@ -330,6 +343,11 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     // Chromium: nobody.
     await m.click("[data-ww-resource='chromium'] button");
     expect(m.q("[data-ww-no-sellers]")).not.toBeNull();
+    if (had === undefined) {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    } else {
+      Object.defineProperty(Element.prototype, "scrollIntoView", had);
+    }
   });
 
   it("only one World War drawer is open at a time", async () => {
@@ -560,12 +578,13 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       details: [
         detail("DEU", {
           queue: [project, { ...project, region: 4 }],
-          lines: [line(1, 2)],
+          // Five rifle factories need 5 steel; 2 are made, 2 given.
+          lines: [line(1, 5)],
           resources: RESOURCE_IDS.map((r) => ({
             produced: r === "steel" ? 2 : 0,
             exported: 0,
             imported: 0,
-            used: r === "steel" ? 5 : 0,
+            used: r === "steel" ? 2 : 0,
           })),
           buying: [
             {

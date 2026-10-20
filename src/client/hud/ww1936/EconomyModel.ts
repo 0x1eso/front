@@ -771,7 +771,20 @@ export interface ResourceRowView {
   balance: number;
 }
 
+/**
+ * The six resource rows (spec §13.3 tab 3). "Used" is what the working
+ * lines need (their resources × active factories, as HOI4's resource view),
+ * not what the engine could give them: with the given amount the balance
+ * could never fall below zero, so a shortage would never show red.
+ */
 export function resourceRows(detail: WwCountryDetail): ResourceRowView[] {
+  const need = RESOURCE_IDS.map(() => 0);
+  for (const l of detail.lines) {
+    const per = EQUIPMENT[l.equipment].resources;
+    RESOURCE_IDS.forEach((_, r) => {
+      need[r] += per[r] * l.active;
+    });
+  }
   return RESOURCE_IDS.map((id, r) => {
     const row = detail.resources[r] ?? {
       produced: 0,
@@ -781,8 +794,11 @@ export function resourceRows(detail: WwCountryDetail): ResourceRowView[] {
     };
     return {
       id,
-      ...row,
-      balance: row.produced - row.exported + row.imported - row.used,
+      produced: row.produced,
+      exported: row.exported,
+      imported: row.imported,
+      used: need[r],
+      balance: row.produced - row.exported + row.imported - need[r],
     };
   });
 }

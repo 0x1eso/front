@@ -382,9 +382,21 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(lineShortages(d).map((s) => s.length > 0)).toEqual(
       fill.map((f) => f < 1000),
     );
+    // "Used" is what the working lines need, so the shortage is red:
+    // 2 + 2 steel and 1 + 1 tungsten asked for.
     expect(resourceRows(d).find((r) => r.id === "steel")).toMatchObject({
       produced: 3,
-      balance: 3,
+      used: 4,
+      balance: -1,
+    });
+    expect(resourceRows(d).find((r) => r.id === "tungsten")).toMatchObject({
+      produced: 1,
+      used: 2,
+      balance: -1,
+    });
+    expect(resourceRows(d).find((r) => r.id === "oil")).toMatchObject({
+      used: 0,
+      balance: 0,
     });
   });
 
