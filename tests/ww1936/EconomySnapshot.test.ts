@@ -29,6 +29,7 @@ import {
   tradePartners,
 } from "@openfront/engine/ww1936/economy/Trade";
 import type { WwEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
+import { WwOrderExecution } from "@openfront/engine/ww1936/economy/WwOrderExecution";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -187,6 +188,40 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     const b = await restore(a, DEU_HUMAN, files);
     lockstep(a, b, 600);
   }, 180_000);
+
+  test("an order still waiting for its init restores and applies once", async () => {
+    const files = await miniFiles();
+    const a = await wwRunner({}, DEU_HUMAN);
+    const g = a.game;
+    stepTo(a, dayStart(2) + 1);
+    const p = byTag(g, "DEU");
+    const deu = econOf(g).country(p.smallID())!;
+    const [queue, lines] = [deu.queue.length, deu.lines.length];
+    // Added between ticks: in the queue, not yet initialized.
+    const orders: WwOrder[] = [
+      { kind: "build", region: 4, building: "mil", count: 1 },
+      { kind: "add_line", equipment: "artillery", gen: 1, factories: 2 },
+      { kind: "set_law", law: "trade", value: "export_focus" },
+    ];
+    g.addExecution(...orders.map((o) => new WwOrderExecution(p, o)));
+    expect(deu.queue).toHaveLength(queue);
+    expect(deu.laws.trade).toBe("limited_exports");
+    const b = await restore(a, DEU_HUMAN, files);
+    const waiting = (gm: Game) =>
+      gm.executions().filter((e) => e instanceof WwOrderExecution);
+    expect(waiting(b.game)).toHaveLength(orders.length);
+    const deuB = econOf(b.game).country(p.smallID())!;
+    expect(deuB.queue).toHaveLength(queue);
+    lockstep(a, b, 300);
+    expect(waiting(g)).toEqual([]);
+    expect(waiting(b.game)).toEqual([]);
+    // Each took effect once, in both games.
+    for (const ce of [deu, deuB]) {
+      expect(ce.queue).toHaveLength(queue + 1);
+      expect(ce.lines).toHaveLength(lines + 1);
+      expect(ce.laws.trade).toBe("export_focus");
+    }
+  }, 120_000);
 
   test("restoring at the economy's moments: a project half built, a line just retooled, research under way, a deal open, a law cooling down", async () => {
     const files = await miniFiles();
