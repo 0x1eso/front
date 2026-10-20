@@ -11,6 +11,8 @@ import { stepManpower } from "@openfront/engine/ww1936/economy/Manpower";
 import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
 
+const HUMAN_POL = "HUMAN002";
+
 /** Runs until every country has had day `d`'s step. */
 function finishDay(runner: GameRunner, d: number): void {
   stepTo(runner, dayStartTick(d, WW_PREP_TICKS) + 7);
@@ -131,11 +133,13 @@ describe("manpower and the draft (spec §6)", () => {
   });
 
   test("the troop cap is the army plus what can still be drafted", async () => {
-    const { runner, g, deu, ce } = await germany();
+    const { runner, g, econ, deu, ce } = await germany();
     finishDay(runner, 0);
     // A full day's draft took the training cap.
     expect(ce.totals.recruited).toBe(ce.totals.trainCap);
-    const cap = deu.troops() + Math.min(ce.manpower, ce.infStock() * 10);
+    // At peace the whole army is at home.
+    expect(econ.armyMen(deu)).toBe(deu.troops());
+    const cap = econ.armyMen(deu) + Math.min(ce.manpower, ce.infStock() * 10);
     expect(ce.totals.troopCap).toBe(cap);
     expect(deu.wwTroopCap()).toBe(cap);
     expect(g.config().maxTroops(deu)).toBe(cap);
@@ -145,5 +149,56 @@ describe("manpower and the draft (spec §6)", () => {
     expect(ce.totals.recruited).toBe(manpowerRegrowth(ce.totals.recruitable));
     expect(ce.manpower).toBe(0);
     expect(g.config().maxTroops(deu)).toBe(deu.troops());
+  });
+
+  test("men away in an attack stay in the troop cap until they come home", async () => {
+    // Germany against Poland, both human: the attack is Germany's own order.
+    const runner = await wwRunner({}, [
+      { clientID: HUMAN, country: "DEU" },
+      { clientID: HUMAN_POL, country: "POL" },
+    ]);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const econ = ww.economy;
+    const [deu, pol] = (["DEU", "POL"] as const).map((t) => byTag(g, t));
+    const ce = econ.country(deu.smallID())!;
+    ww.setWar(deu.smallID(), pol.smallID(), 0);
+    finishDay(runner, 0);
+    // What an AI compares with its ratios: a nation attacks from its
+    // trigger ratio (50-59%) and never below its reserve ratio (30-39%).
+    const ratio = () => deu.troops() / g.config().maxTroops(deu);
+    expect(ratio()).toBeGreaterThan(0.6);
+    step(runner, 1, [
+      stamped(HUMAN, {
+        type: "attack",
+        targetID: pol.id(),
+        troops: Math.floor(deu.troops() * 0.7),
+      }),
+    ]);
+    expect(deu.outgoingAttacks()).toHaveLength(1);
+    // Germany's next daily steps rebuild the cap with the attack out.
+    for (const d of [1, 2]) {
+      finishDay(runner, d);
+      expect(deu.outgoingAttacks()).toHaveLength(1);
+      const draftable = Math.min(ce.manpower, ce.infStock() * 10);
+      // The attack's men are in it (less what it lost since the step).
+      expect(ce.totals.troopCap).toBeGreaterThanOrEqual(
+        econ.armyMen(deu) + draftable,
+      );
+      // A cap on home troops would make Germany ready to attack again...
+      expect(deu.troops() / (deu.troops() + draftable)).toBeGreaterThan(0.5);
+      // ...the whole army keeps it under every trigger ratio.
+      expect(ratio()).toBeLessThan(0.5);
+    }
+    // Called home, the men fill the ratio again at the next daily step.
+    const [attack] = deu.outgoingAttacks();
+    step(runner, 1, [
+      stamped(HUMAN, { type: "cancel_attack", attackID: attack.id() }),
+    ]);
+    while (deu.outgoingAttacks().length > 0) step(runner);
+    const back = ww.day(g.ticks()) + 1;
+    finishDay(runner, back);
+    expect(econ.armyMen(deu)).toBe(deu.troops());
+    expect(ratio()).toBeGreaterThan(0.6);
   });
 });

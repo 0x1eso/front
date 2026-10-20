@@ -61,5 +61,8 @@ export function stepRecruit(
     p.addTroops(r);
   }
   t.recruited = r;
-  t.troopCap = troopCapOf(Math.floor(p.troops()), ce.manpower, ce.infStock());
+  // The whole army, men away in attacks and on boats too (balance ruling,
+  // spec §6.4): a cap on home troops alone would make an AI that just sent
+  // an attack look full again the next day and send wave after wave.
+  t.troopCap = troopCapOf(econ.armyMen(p), ce.manpower, ce.infStock());
 }

@@ -278,14 +278,16 @@ describe("economy wiring (spec §6, §14)", () => {
       }),
     ]);
     step(runner, 2);
-    // The order reached Germany's economy (its screen hears of it); the
-    // stub law changes nothing yet, and the execution came and went.
+    // The order reached Germany's economy (its screen hears of it): the law
+    // changed during the preparation minute, the hash shows it at once, and
+    // the execution came and went.
     const deu = byTag(g, "DEU").smallID();
     const details = updates
       .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
       .flatMap((u) => u.data.details);
     expect(details.map((d) => d.smallID)).toEqual([deu]);
-    expect(econ.hash()).toBe(before);
+    expect(econ.country(deu)!.laws.economy).toBe("civilian");
+    expect(econ.hash()).not.toBe(before);
     const execs = (g as unknown as { executions(): object[] }).executions();
     expect(execs.some((e) => e.constructor.name === "WwOrderExecution")).toBe(
       false,
