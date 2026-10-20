@@ -1,0 +1,533 @@
+// World War 1936 P6 — the Dominions pack `dom` (spec §11.11): 24 focuses
+// beside the generic tree for Canada, Australia, New Zealand and South
+// Africa. Row 0 holds every root, row 1 what follows from it; country-only
+// focuses carry `countries`. The dominions start as British subjects of the
+// `dominion` level (P5), so autonomy effects stay inside `is_subject`.
+// Data only (ContentPurity): the helpers come from ../helpers.
+import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
+import type {
+  BranchPoint,
+  FocusDef,
+  FocusId,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { T } from "../helpers";
+
+// Autonomy changes only for a subject (P5 `autonomy`).
+const AUTONOMY_10: Effect = {
+  kind: "if",
+  cond: { kind: "is_subject" },
+  then: [{ kind: "autonomy", pct: 10 }],
+};
+const AUTONOMY_15: Effect = {
+  kind: "if",
+  cond: { kind: "is_subject" },
+  then: [{ kind: "autonomy", pct: 15 }],
+};
+
+export const DOM_FOCUSES: FocusDef[] = [
+  // ---- Row 0: the roots ----
+  {
+    // Australia and New Zealand had not yet adopted the Statute: they debate it.
+    id: "dom_westminster",
+    tree: "dom",
+    x: 20,
+    y: 0,
+    days: 70,
+    branch: "politics",
+    icon: "document",
+    effects: [
+      AUTONOMY_10,
+      { kind: "stability", pct: 5 },
+      {
+        kind: "if",
+        cond: {
+          any: [
+            { kind: "tag", tag: "AUS" },
+            { kind: "tag", tag: "NZL" },
+          ],
+        },
+        then: [{ kind: "fire_event", id: "dom_statute_debate" }],
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // The British opinion is half of its lend-lease answer score (P5 llRequestScore).
+    id: "dom_imperial_ties",
+    tree: "dom",
+    x: 21,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    effects: [
+      { kind: "opinion", who: T("GBR"), of: "self", value: 30, days: 365 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "aus_pacific_first",
+    tree: "dom",
+    x: 22,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "compass",
+    countries: ["AUS"],
+    available: { kind: "at_war_with", of: T("JPN") },
+    effects: [
+      { kind: "opinion", who: T("USA"), of: "self", value: 30, days: 365 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "nzl_coastwatchers",
+    tree: "dom",
+    x: 23,
+    y: 0,
+    days: 70,
+    branch: "navy",
+    icon: "radio",
+    countries: ["NZL"],
+    effects: [{ kind: "add_spirit", id: "nzl_coastwatch" }],
+    ai: { base: 15 },
+  },
+  {
+    id: "dom_munitions",
+    tree: "dom",
+    x: 24,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory_mil",
+    effects: [{ kind: "build", where: { best: 2 }, building: "mil", count: 2 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "aus_jungle_training",
+    tree: "dom",
+    x: 26,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "map",
+    countries: ["AUS"],
+    effects: [{ kind: "add_spirit", id: "aus_jungle_warfare" }],
+    ai: { base: 15 },
+  },
+  {
+    // The national mineral table: Canadian aluminium (Saguenay), Australian
+    // tungsten (Tasmania and King Island), South African chromite (Bushveld).
+    // New Zealand mined none of these: the spirit only.
+    id: "dom_minerals",
+    tree: "dom",
+    x: 27,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "mine",
+    effects: [
+      { kind: "add_spirit", id: "dom_mining_drive" },
+      {
+        kind: "if",
+        cond: { kind: "tag", tag: "CAN" },
+        then: [
+          {
+            kind: "resource",
+            where: { best: 1 },
+            res: "aluminium",
+            amount: 2,
+          },
+        ],
+      },
+      {
+        kind: "if",
+        cond: { kind: "tag", tag: "AUS" },
+        then: [
+          { kind: "resource", where: { best: 1 }, res: "tungsten", amount: 2 },
+        ],
+      },
+      {
+        kind: "if",
+        cond: { kind: "tag", tag: "ZAF" },
+        then: [
+          { kind: "resource", where: { best: 1 }, res: "chromium", amount: 2 },
+        ],
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "zaf_gold",
+    tree: "dom",
+    x: 28,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "scales",
+    countries: ["ZAF"],
+    effects: [{ kind: "pp", amount: 100 }],
+    ai: { base: 15 },
+  },
+  {
+    id: "zaf_steel",
+    tree: "dom",
+    x: 29,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "steel",
+    countries: ["ZAF"],
+    effects: [
+      { kind: "resource", where: { best: 1 }, res: "steel", amount: 3 },
+      { kind: "build", where: { best: 1 }, building: "mil", count: 1 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "dom_shipyards",
+    tree: "dom",
+    x: 31,
+    y: 0,
+    days: 70,
+    branch: "navy",
+    icon: "ship",
+    effects: [
+      {
+        kind: "build",
+        where: { coastal: true, n: 2 },
+        building: "dock",
+        count: 2,
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // "Air experience +30": 0.3 a day for 100 days (no one-off air XP effect).
+    id: "dom_air_training",
+    tree: "dom",
+    x: 32,
+    y: 0,
+    days: 70,
+    branch: "air",
+    icon: "plane",
+    effects: [
+      { kind: "add_spirit", id: "dom_air_training_scheme", days: 100 },
+      { kind: "build", where: { best: 2 }, building: "air_base", count: 2 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "dom_volunteer_force",
+    tree: "dom",
+    x: 33,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    effects: [
+      { kind: "unlock_template", template: "dom_infantry_division" },
+      {
+        kind: "divisions",
+        template: "dom_infantry_division",
+        count: 4,
+        where: "capital",
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "dom_home_defense",
+    tree: "dom",
+    x: 34,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    effects: [
+      {
+        kind: "build",
+        where: { coastal: true, n: 3 },
+        building: "coastal_fort",
+        count: 3,
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // "Experience level 2" has no effect kind: national army XP instead (report: approximation).
+    id: "nzl_division",
+    tree: "dom",
+    x: 35,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "medal",
+    countries: ["NZL"],
+    effects: [
+      { kind: "unlock_template", template: "dom_infantry_division" },
+      {
+        kind: "divisions",
+        template: "dom_infantry_division",
+        count: 2,
+        where: "capital",
+      },
+      { kind: "army_xp", amount: 10 },
+    ],
+    ai: { base: 15 },
+  },
+
+  // ---- Row 1 ----
+  {
+    id: "dom_own_voice",
+    tree: "dom",
+    x: 20,
+    y: 1,
+    days: 105,
+    branch: "politics",
+    icon: "flag",
+    prereq: [["dom_westminster"]],
+    effects: [AUTONOMY_15, { kind: "pp", amount: 100 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "dom_war_economy",
+    tree: "dom",
+    x: 23,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "industry",
+    prereq: [["dom_munitions"]],
+    effects: [{ kind: "add_spirit", id: "dom_wartime_output" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "can_arsenal",
+    tree: "dom",
+    x: 24,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "factory_mil",
+    countries: ["CAN"],
+    prereq: [["dom_munitions"]],
+    effects: [{ kind: "build", where: { best: 3 }, building: "mil", count: 3 }],
+    ai: { base: 15 },
+  },
+  {
+    id: "aus_munitions",
+    tree: "dom",
+    x: 25,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "factory_mil",
+    countries: ["AUS"],
+    prereq: [["dom_munitions"]],
+    effects: [{ kind: "build", where: { best: 2 }, building: "mil", count: 2 }],
+    ai: { base: 15 },
+  },
+  {
+    // Port Radium on Great Bear Lake: group port_radium (K5 request). The
+    // "atomic trade weight" with the US and Britain is their opinion
+    // (report: approximation).
+    id: "can_uranium",
+    tree: "dom",
+    x: 27,
+    y: 1,
+    days: 70,
+    branch: "research",
+    icon: "flask",
+    countries: ["CAN"],
+    prereq: [["dom_minerals"]],
+    effects: [
+      {
+        kind: "resource",
+        where: { group: "port_radium" },
+        res: "uranium",
+        amount: 2,
+      },
+      { kind: "opinion", who: T("USA"), of: "self", value: 15, days: 365 },
+      { kind: "opinion", who: T("GBR"), of: "self", value: 15, days: 365 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "can_escort_navy",
+    tree: "dom",
+    x: 30,
+    y: 1,
+    days: 70,
+    branch: "navy",
+    icon: "ship",
+    countries: ["CAN"],
+    prereq: [["dom_shipyards"]],
+    effects: [
+      { kind: "ships", cls: "dd", gen: 2, count: 6 },
+      { kind: "research_bonus", tech: "sonar_1", pct: 100, uses: 1 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "aus_dockyards",
+    tree: "dom",
+    x: 31,
+    y: 1,
+    days: 70,
+    branch: "navy",
+    icon: "ship",
+    countries: ["AUS"],
+    prereq: [["dom_shipyards"]],
+    effects: [
+      { kind: "build", where: { best: 2 }, building: "dock", count: 2 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "dom_overseas_draft",
+    tree: "dom",
+    x: 32,
+    y: 1,
+    days: 70,
+    branch: "politics",
+    icon: "megaphone",
+    prereq: [["dom_volunteer_force"]],
+    effects: [
+      { kind: "law_step", law: "conscription", steps: 1 },
+      { kind: "stability", pct: -5 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "zaf_east_africa",
+    tree: "dom",
+    x: 33,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "map",
+    countries: ["ZAF"],
+    prereq: [["dom_volunteer_force"]],
+    effects: [
+      { kind: "unlock_template", template: "dom_infantry_division" },
+      {
+        kind: "divisions",
+        template: "dom_infantry_division",
+        count: 3,
+        where: "capital",
+      },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    // Darwin (region 1194) and Auckland (region 1306): groups darwin and auckland (K5 request).
+    id: "dom_pacific_defense",
+    tree: "dom",
+    x: 34,
+    y: 1,
+    days: 70,
+    branch: "navy",
+    icon: "shield",
+    countries: ["AUS", "NZL"],
+    prereq: [["dom_home_defense"]],
+    effects: [
+      {
+        kind: "if",
+        cond: { kind: "tag", tag: "AUS" },
+        then: [
+          {
+            kind: "build",
+            where: { group: "darwin" },
+            building: "naval_base",
+            count: 1,
+          },
+          {
+            kind: "build",
+            where: { group: "darwin" },
+            building: "coastal_fort",
+            count: 1,
+          },
+        ],
+        else: [
+          {
+            kind: "build",
+            where: { group: "auckland" },
+            building: "naval_base",
+            count: 1,
+          },
+          {
+            kind: "build",
+            where: { group: "auckland" },
+            building: "coastal_fort",
+            count: 1,
+          },
+        ],
+      },
+    ],
+    ai: { base: 15 },
+  },
+];
+
+/** The pack's history path, generic focuses included (P3 historyPath resolves "@ideo"). */
+export const DOM_PATH: FocusId[] = [
+  "gen_ind_survey",
+  "dom_westminster",
+  "gen_ind_civ_1",
+  "dom_imperial_ties",
+  "dom_munitions",
+  "gen_ind_mil_1",
+  "gen_pol_unity",
+  "@ideo",
+  "dom_minerals",
+  "zaf_gold",
+  "zaf_steel",
+  "gen_ind_infra",
+  "dom_air_training",
+  "dom_shipyards",
+  "dom_volunteer_force",
+  "nzl_division",
+  "gen_rs_1",
+  "gen_army_reform",
+  "dom_war_economy",
+  "can_arsenal",
+  "aus_munitions",
+  "can_escort_navy",
+  "aus_dockyards",
+  "dom_home_defense",
+  "zaf_east_africa",
+  "nzl_coastwatchers",
+  "@ideo_ally",
+  "can_uranium",
+  "dom_overseas_draft",
+  "gen_ind_civ_2",
+  "gen_ind_mil_2",
+  "aus_pacific_first",
+  "aus_jungle_training",
+  "dom_pacific_defense",
+  "dom_own_voice",
+  "gen_army_infantry",
+  "gen_army_artillery",
+  "gen_ind_resources",
+  "gen_pol_admin",
+  "gen_army_doctrine",
+  "gen_army_fort",
+  "gen_rs_2",
+  "gen_pol_defence_spirit",
+  "gen_army_staff",
+  "gen_air_force",
+  "gen_navy_yards",
+  "gen_air_bases",
+  "gen_navy_coast",
+  "gen_pol_claims",
+];
+
+export const DOM_BRANCHES: BranchPoint[] = [
+  // The generic political branch point, kept for the pack tree.
+  {
+    id: "dom_politics",
+    historical: "@ideo",
+    alternatives: ["gen_pol_dem", "gen_pol_com", "gen_pol_fas", "gen_pol_neu"],
+    political: true,
+  },
+];

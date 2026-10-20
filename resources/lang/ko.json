@@ -3169,6 +3169,26 @@
       "prep": "준비 {time}",
       "wars": "{n, plural, =0 {평화} other {전쟁 #개}}"
     },
+    "cf": {
+      "cf_army": "육군 단련",
+      "cf_construction": "건설 박차",
+      "cf_industry": "증산 운동",
+      "cf_navy_air": "해공군 단련",
+      "cf_political": "정치 결집",
+      "cf_research": "연구 독려",
+      "cf_stability": "민심 안정",
+      "cf_war_effort": "전시 여론"
+    },
+    "cf_desc": {
+      "cf_army": "기동 훈련과 참모 연구로 육군과 그 교리를 다듬는다.",
+      "cf_construction": "건설 인력과 자재를 새 공사에 먼저 보낸다.",
+      "cf_industry": "모든 공장이 산출을 늘리는 데 힘을 모은다.",
+      "cf_navy_air": "함대 훈련과 비행 시간으로 수병과 조종사를 기른다.",
+      "cf_political": "정부가 언론과 정당, 인사를 움직여 지지를 모은다.",
+      "cf_research": "연구소와 대학에 예산과 인력을 더 준다.",
+      "cf_stability": "구호와 질서, 화해가 매주 나라를 안정시킨다.",
+      "cf_war_effort": "홍보와 집회, 신문이 국민을 전쟁에 대비시킨다."
+    },
     "country": {
       "AFG": "아프가니스탄",
       "ALB": "알바니아",
@@ -3251,14 +3271,190 @@
       "ZAF": "남아프리카 연방"
     },
     "date": "{year}년 {month} {day}일",
+    "decision": {
+      "lat_join_hemisphere": "반구 동맹 가입",
+      "mex_volunteer_squadron": "제201 전투비행대 파견"
+    },
+    "decision_desc": {
+      "lat_join_hemisphere": "미국이 이끄는 진영에, 그런 진영이 없으면 연합국에 가입을 요청한다.",
+      "mex_volunteer_squadron": "미국 전투기로 훈련받은 비행대가 미군 부대와 함께 태평양 항공전에 나선다."
+    },
     "declare": {
       "button": "선전포고",
       "confirm": "확인: 선전포고{n, plural, =0 {} other { (진영 회원 #개국도 참전)}}"
+    },
+    "event_desc": {
+      "aus_curtin_appeal": "태평양에서 일본과의 전쟁이 벌어지자, 총리는 멜버른의 한 신문에 태평양 전쟁은 유럽 전쟁의 곁가지가 아니라 그 자체로 큰 싸움이라고 썼다. 오스트레일리아는 이제 영국과의 오랜 인연과 상관없이 방위를 미국에 기댄다는 것이다. 런던은 불쾌해하고 워싱턴은 이를 눈여겨본다.",
+      "bra_feb_departure": "미군 수송선이 리우데자네이루 항구에서 기다린다. 브라질 원정군 제1진 약 5천 명이 나폴리와 이탈리아 전선으로 떠날 채비를 마쳤다. 유럽에서 싸우는 첫 남아메리카 군대가 될 것이다.",
+      "can_conscription_crisis": "유럽에서 손실이 커 보병의 훈련된 보충병이 모자라고, 본토 방위 징집병 가운데 해외 복무를 지원하는 이는 너무 적다. 내각은 갈라졌고, 퀘벡 출신 각료들은 징집병을 해외로 보내면 나라가 쪼개진다고 경고한다. 총리가 결정해야 한다.",
+      "dom_statute_debate": "의회가 아직 받아들이지 않은 1931년 웨스트민스터 헌장의 채택을 놓고 토론한다. 찬성하는 쪽은 자치령의 법이 영국 의회가 아니라 자치령 스스로의 권한에 서야 한다고 말한다. 반대하는 쪽은 영국과의 끈이 느슨해질까 걱정한다.",
+      "lat_rio_conference": "미국이 전쟁에 들어가자 아메리카 공화국들의 외무 장관들이 리우데자네이루에 모였다. 미국은 모든 대표단에게 독일·이탈리아·일본과 국교를 끊으라고 요청했다. 최종 결의는 단교를 권고하는 데 그쳤고, 이제 각 정부가 따를지 말지를 스스로 정해야 한다.",
+      "mex_oil_crisis": "외국 석유 회사들이 대법원이 확정한 노동 중재 판정을 따르지 않겠다고 버틴다. 생산이 멈춰 가고 석유 노조는 총파업을 경고한다. 오늘 밤 대통령이 라디오로 국민에게 연설한다. 내각은 그가 무엇을 발표할지 정해야 한다.",
+      "new_state_proclaimed": "새 정부가 이 땅을 맡아 자신의 나라를 선포했다. 부처에 사람을 채우고, 군대를 세우고, 외국 정부와 접촉해야 한다. 어떻게 생겨났든 행정부는 먼저 나라가 돌아가게 만들어야 한다."
+    },
+    "event_opt": {
+      "aus_curtin_appeal": {
+        "a": "미국에 기댄다",
+        "b": "제국 곁에 선다"
+      },
+      "bra_feb_departure": {
+        "a": "이탈리아로 출항한다",
+        "b": "사단을 본토에 둔다"
+      },
+      "can_conscription_crisis": {
+        "a": "징집병 1만 6천 명을 해외로 보낸다",
+        "b": "지원병만 보낸다"
+      },
+      "dom_statute_debate": {
+        "a": "헌장을 채택한다",
+        "b": "지금대로 둔다"
+      },
+      "lat_rio_conference": {
+        "a": "추축국과 국교를 끊는다",
+        "b": "당분간 중립을 지킨다"
+      },
+      "mex_oil_crisis": {
+        "a": "회사들을 몰수한다",
+        "b": "타협을 모색한다"
+      },
+      "new_state_proclaimed": {
+        "a": "행정 부처를 꾸린다",
+        "b": "방위군을 세운다"
+      }
+    },
+    "event_title": {
+      "aus_curtin_appeal": "총리의 신년 호소",
+      "bra_feb_departure": "원정군 출항",
+      "can_conscription_crisis": "징병 위기",
+      "dom_statute_debate": "헌장 채택 논쟁",
+      "lat_rio_conference": "리우 회의",
+      "mex_oil_crisis": "석유 분쟁",
+      "new_state_proclaimed": "새 정부 수립"
     },
     "faction": {
       "allies": "연합국",
       "axis": "추축국",
       "comintern": "코민테른"
+    },
+    "focus": {
+      "arg_grain_exports": "곡물 수출",
+      "arg_military_factories": "군 공장 총국",
+      "arg_neutrality": "아르헨티나 중립",
+      "aus_dockyards": "시드니 조선소",
+      "aus_jungle_training": "정글 훈련",
+      "aus_munitions": "오스트레일리아 군수",
+      "aus_pacific_first": "태평양 우선",
+      "bra_expeditionary": "원정군",
+      "bra_new_state": "신국가 체제",
+      "bra_steel_mill": "볼타 헤동다 제철",
+      "can_arsenal": "북미 병기창",
+      "can_escort_navy": "호송 해군",
+      "can_uranium": "북부 우라늄",
+      "chl_mining": "광업 확대",
+      "dom_air_training": "연방 항공 훈련",
+      "dom_home_defense": "본토 방위",
+      "dom_imperial_ties": "제국과 함께",
+      "dom_minerals": "광물 개발",
+      "dom_munitions": "군수 공장",
+      "dom_overseas_draft": "해외 파병 징병",
+      "dom_own_voice": "독자 외교",
+      "dom_pacific_defense": "태평양 방위",
+      "dom_shipyards": "조선 확충",
+      "dom_volunteer_force": "지원병 원정군",
+      "dom_war_economy": "전시 경제",
+      "dom_westminster": "자치의 확인",
+      "lat_air_routes": "항공로 개척",
+      "lat_army_modernization": "군 현대화",
+      "lat_break_axis": "추축과 단교",
+      "lat_chaco_veterans": "차코 전쟁 경험",
+      "lat_coastal_patrol": "연안 순찰",
+      "lat_export_boom": "수출 호황",
+      "lat_good_neighbor": "선린 관계",
+      "lat_hemisphere_defense": "반구 방위",
+      "lat_import_substitution": "수입 대체 공업",
+      "lat_inland_rail": "내륙 철도",
+      "lat_national_oil": "석유 국유화",
+      "lat_regional_bloc": "남미 연대",
+      "lat_rubber": "고무 생산",
+      "lat_state_steel": "국영 제철",
+      "lat_sugar": "설탕 수출",
+      "lat_third_way": "독자 노선",
+      "mex_oil_expropriation": "석유 몰수",
+      "mex_squadron": "원정 비행대",
+      "new_administration": "행정 정비",
+      "new_alignment": "후원국과 협력",
+      "new_army": "국군 창설",
+      "new_autonomy": "자주 노선",
+      "new_defense": "국토 방위",
+      "new_economy": "경제 자립",
+      "new_industry": "공업 재가동",
+      "new_recognition": "국제 승인",
+      "nzl_coastwatchers": "해안 감시대",
+      "nzl_division": "뉴질랜드 사단",
+      "ven_maracaibo": "마라카이보 석유",
+      "zaf_east_africa": "동아프리카 원정",
+      "zaf_gold": "금광 수입",
+      "zaf_steel": "국영 철강 공사"
+    },
+    "focus_desc": {
+      "arg_grain_exports": "밀과 소고기가 대서양을 건너고, 그 대금이 나라의 계획을 받친다.",
+      "arg_military_factories": "육군 산하 총국이 무기·강철·화학 국영 공장을 세우고 운영한다.",
+      "arg_neutrality": "부에노스아이레스는 양쪽과 계속 교역하며 전쟁에 끼라는 압력을 모두 버틴다.",
+      "aus_dockyards": "시드니항의 조선소가 구축함을 짓고 연합국 군함을 수리한다.",
+      "aus_jungle_training": "정글 훈련소가 사단에게 밀림 속에서 움직이고 보급하고 싸우는 법을 가르친다.",
+      "aus_munitions": "리스고의 소총 공장을 비롯한 정부 공장들이 육군을 무장시키려 늘어난다.",
+      "aus_pacific_first": "일본과 전쟁이 벌어지자 오스트레일리아 사단은 중동보다 본토 가까이에 필요하다.",
+      "bra_expeditionary": "브라질이 보병 사단을 꾸려 미국식으로 훈련시키고 유럽으로 보낼 채비를 한다.",
+      "bra_new_state": "새 헌법이 권력을 대통령과 연방 정부에 모은다. 주의 자치는 줄어든다.",
+      "bra_steel_mill": "미국 차관으로 파라이바 계곡의 볼타 헤동다에 일관 제철소를 짓는다.",
+      "can_arsenal": "캐나다 공장들이 연합국 전선에 보낼 차량과 포, 함선을 만든다.",
+      "can_escort_navy": "캐나다 조선소에서 지은 소형 군함들이 북대서양 호송을 맡는다.",
+      "can_uranium": "그레이트베어호의 라듐 광산을 다시 열어 우라늄 광석을 남쪽으로 보낸다.",
+      "chl_mining": "북부의 구리·철 광산이 새 국가 신용을 받아 넓어진다.",
+      "dom_air_training": "연방 항공 훈련 계획에 따라 비행 학교들이 조종사와 승무원을 수천 명씩 길러 낸다.",
+      "dom_home_defense": "해안 포대가 주요 항구를 습격선으로부터 지킨다.",
+      "dom_imperial_ties": "무역 특혜와 공동 참모 회의, 오랜 혈연이 자치령을 런던 곁에 묶어 둔다.",
+      "dom_minerals": "지질 조사와 정부 계약으로 전쟁에 필요한 금속 광산을 새로 연다.",
+      "dom_munitions": "정부 소유 공장이 포탄과 소총, 트럭을 만든다.",
+      "dom_overseas_draft": "지원병만으로는 병력이 모자란다. 이제 징집병도 해외로 보낼 수 있지만 반대가 거세다.",
+      "dom_own_voice": "자치령이 해외에 자체 공사관을 열고 국제회의에서 스스로 발언한다.",
+      "dom_pacific_defense": "가장 위협받는 항구에 해군 기지와 해안포를 둔다.",
+      "dom_shipyards": "수리 조선소를 넓혀 호위함과 화물선을 짓는다.",
+      "dom_volunteer_force": "모병소가 문을 열고, 해외 복무를 지원한 이들로 첫 사단들이 꾸려진다.",
+      "dom_war_economy": "정부 통제관이 자재와 노동력을 전쟁 생산에 먼저 나눈다.",
+      "dom_westminster": "웨스트민스터 헌장에 따라 자치령 의회가 스스로 법을 만든다. 내각이 이를 분명히 밝힌다.",
+      "lat_air_routes": "항공사와 공군이 새 비행장과 수송기를 함께 써서 산맥과 밀림을 넘는다.",
+      "lat_army_modernization": "외국 군사 고문단과 새 교범이 1920년대식 열병식 군대를 바꿔 놓는다.",
+      "lat_break_axis": "대사관을 닫고 추축국 소유 기업을 국가가 관리하며 미국 편에 선다.",
+      "lat_chaco_veterans": "1932~1935년 차코 전쟁을 치른 장교들이 군의 새 훈련 과정을 만든다.",
+      "lat_coastal_patrol": "작은 조선소와 순찰대가 연안의 뱃길을 지킨다. 해군 연구도 여기서 시작한다.",
+      "lat_export_boom": "커피·고기·구리·고무가 비싼 값에 팔려 나가 국고가 찬다.",
+      "lat_good_neighbor": "미국이 이 반구에서 무력 개입을 그만두었다. 미국과 가까워지면 차관과 무기가 따라온다.",
+      "lat_hemisphere_defense": "미국과 참모 회담을 열어 해안포와 비행장, 공동 전선 참여를 논의한다.",
+      "lat_import_substitution": "관세와 국가 신용으로 수입품을 국산으로 바꾼다. 섬유·시멘트·공구부터 시작한다.",
+      "lat_inland_rail": "새 철도가 항구와 내륙의 농장·광산을 잇는다. 물자가 더 빨리 해안에 닿는다.",
+      "lat_national_oil": "외국 회사가 쥔 채굴권을 국영 회사로 넘겨 석유 수입을 나라 안에 남긴다.",
+      "lat_regional_bloc": "이웃 나라들과 상호 지원 조약을 맺어 열강이 하나씩 따로 상대하지 못하게 한다.",
+      "lat_rubber": "채취꾼이 다시 숲으로 들어간다. 자동차 공장도 군대도 고무가 필요하다.",
+      "lat_state_steel": "국영 제철소가 광석을 수출하는 대신 나라 안에서 녹여 강철로 만든다.",
+      "lat_sugar": "제당 공장이 사탕수수를 빻아 보장된 할당량에 따라 해외 구매자에게 판다.",
+      "lat_third_way": "미국과도 유럽 열강과도 거리를 두고, 모두와 따로 흥정한다.",
+      "mex_oil_expropriation": "외국 회사의 유전과 정유소가 국영 회사로 넘어간다. 미국은 항의하다가 협상에 나선다.",
+      "mex_squadron": "자원한 조종사들이 텍사스에서 미국 전투기로 훈련받고 추축국과 싸우러 나선다.",
+      "new_administration": "부처와 법원, 세무서에 사람을 채우고 일을 시작한다.",
+      "new_alignment": "정부가 자신을 후원하는 나라와 정책을 맞춘다.",
+      "new_army": "지역 부대와 새 징집병으로 첫 사단들을 꾸린다.",
+      "new_autonomy": "정부가 스스로 움직일 폭을 넓히고 후원하는 나라와 거리를 둔다.",
+      "new_defense": "수도 둘레에 참호와 방어 진지를 쌓아 첫 공격에 대비한다.",
+      "new_economy": "새 무역 협정과 현지 광산으로 수입 의존을 줄인다.",
+      "new_industry": "멈춘 공장을 고쳐 다시 돌리고, 그와 함께 일자리도 되살린다.",
+      "new_recognition": "해외에 사절을 보내 승인과 무역 협정을 구한다.",
+      "nzl_coastwatchers": "외딴 섬의 무전 초소가 지나가는 배와 비행기를 모두 보고한다.",
+      "nzl_division": "원정군이 자체 사단을 꾸리고, 모든 단계에 경험 많은 장교를 둔다.",
+      "ven_maracaibo": "마라카이보 호수에 유정이 늘어나고, 새 법이 석유 수입의 나라 몫을 늘린다.",
+      "zaf_east_africa": "남아프리카 사단들이 북쪽으로 올라가 동아프리카의 이탈리아군과 싸운다.",
+      "zaf_gold": "비트바테르스란트의 금이 수입품 대금을 치르고 전쟁 자금을 채운다.",
+      "zaf_steel": "프리토리아의 국영 철강 공사가 전쟁 주문에 맞춰 용광로를 늘린다."
     },
     "group": {
       "africa_oceania": "아프리카·오세아니아",
@@ -3366,6 +3562,11 @@
       "m11": "11월",
       "m12": "12월"
     },
+    "pack": {
+      "dom": "영연방 자치령",
+      "lat": "라틴아메리카",
+      "new": "신생 국가"
+    },
     "panel": {
       "at_peace": "평화",
       "my_wars": "내 전쟁",
@@ -3376,6 +3577,41 @@
     "region": {
       "original_owner": "1936년: {country}",
       "vp": "승점 {vp}"
+    },
+    "spirit": {
+      "arg_neutral_course": "중립 노선",
+      "aus_jungle_warfare": "정글 전술",
+      "bra_feb_veterans": "이탈리아 전선 경험",
+      "dom_air_training_scheme": "항공 훈련 계획",
+      "dom_mining_drive": "광산 개발",
+      "dom_wartime_output": "전시 생산",
+      "lat_export_trade": "수출 소득",
+      "lat_independent_course": "균형 외교",
+      "lat_rubber_trade": "고무 교역",
+      "mex_oil_boycott": "석유 불매",
+      "mex_squadron_201": "제201 전투비행대",
+      "new_trade_terms": "새 무역 조건",
+      "nzl_coastwatch": "해안 감시망"
+    },
+    "spirit_desc": {
+      "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
+      "aus_jungle_warfare": "열대 훈련을 받은 부대가 숲과 정글에서 더 잘 싸운다.",
+      "bra_feb_veterans": "이탈리아 전선에서 돌아온 장교들이 배운 것을 전한다.",
+      "dom_air_training_scheme": "연방 곳곳의 비행 학교가 비행대에 승무원을 보낸다.",
+      "dom_mining_drive": "새 광산과 정부 계약으로 전략 금속 산출이 는다.",
+      "dom_wartime_output": "공장들이 정부 통제관 아래 교대를 늘려 돌아간다.",
+      "lat_export_trade": "수출 소득이 넉넉해 수입이 싸진다.",
+      "lat_independent_course": "정부가 열강을 서로 견주며 저울질한다.",
+      "lat_rubber_trade": "고무 구매자들이 값을 잘 쳐주고 다른 교역도 함께 가져온다.",
+      "mex_oil_boycott": "옛 소유 회사와 그 나라 정부들이 멕시코 석유를 사지 말라고 압박한다.",
+      "mex_squadron_201": "멕시코 조종사들이 미군 부대와 함께 출격한다.",
+      "new_trade_terms": "새 협정으로 해외에서 사들이는 비용이 내려간다.",
+      "nzl_coastwatch": "섬의 무전 초소가 적 함선을 일찍 알린다."
+    },
+    "tpl": {
+      "bra_feb_division": "원정 보병 사단",
+      "dom_infantry_division": "자치령 보병 사단",
+      "new_infantry_division": "국군 보병 사단"
     },
     "win": {
       "country_won": "{country} 승리",
