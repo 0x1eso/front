@@ -1,5 +1,7 @@
-// World War 1936 P3 (spec §20.1: the United Kingdom's flags).
-// The foundation's empty table; lane K3 (Task 12) fills it.
-import type { FlagId } from "@openfront/engine-api/ww1936/PoliticsTypes";
-
-export const FLAGS_GBR: FlagId[] = [];
+// World War 1936 P3 — British country flags (the base list already holds
+// edward_viii, kings_party, abdication_resolved, lend_lease_ready and
+// elections_suspended).
+export const FLAGS_GBR: string[] = [
+  // gbr_appeasement sets it; the Munich conference's AI (K5) reads it.
+  "gbr_appeasing",
+];
