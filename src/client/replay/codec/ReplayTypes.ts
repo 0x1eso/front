@@ -116,6 +116,15 @@ export interface SpawnPhaseEndEvent {
  */
 export type MiscUpdates = Record<string, unknown[]>;
 
+/**
+ * What a replay keeps of a World War 1936 economy update (FrameNormalizer's
+ * MISC_TRIM): the troop cap of each country it carried, as
+ * [smallID, troopCap, smallID, troopCap, ...].
+ */
+export interface WwEconomyMisc {
+  caps: number[];
+}
+
 /** Event lists that go with the frames. */
 export interface ReplayEvents {
   nukeImpacts: NukeImpactEvent[];

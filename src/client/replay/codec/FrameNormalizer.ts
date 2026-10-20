@@ -20,6 +20,7 @@ import {
   type GameUpdateViewData,
   type PlayerUpdate,
   type UnitUpdate,
+  type WwEconomyUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
 import {
   unpackMotionPlans,
@@ -41,13 +42,14 @@ import {
 } from "../../view/EntityState";
 import { MotionPlanResolver } from "../../view/MotionPlanResolver";
 import { applyStateUpdate } from "../../view/PlayerStateUpdate";
-import type { MiscUpdates } from "./ReplayTypes";
+import type { MiscUpdates, WwEconomyMisc } from "./ReplayTypes";
 
 /**
  * How each GameUpdateType gets into the replay:
  *   entity: folded into the per-tick player, unit and tile state
  *   events: collected into an event list (EventCollector)
- *   misc: stored as-is in the frame's misc updates, keyed by name
+ *   misc: stored in the frame's misc updates, keyed by name: as-is, or
+ *     trimmed to what a replay reads (MISC_TRIM)
  *   dropped: not needed in a replay (sync hashes, local-player-only FX)
  *
  * Keyed by enum name, so a new GameUpdateType won't compile until someone
@@ -88,8 +90,8 @@ export const UPDATE_TYPE_ROUTING: Record<
   // World War 1936: wars, capitulations and the preparation end, resent
   // when they change.
   WorldWar: "misc",
-  // World War 1936 P1: the economy's changes of the tick (countries
-  // processed, regions changed), kept as they came.
+  // World War 1936 P1: the economy's changes of the tick, trimmed to the
+  // countries' troop caps (MISC_TRIM).
   WwEconomy: "misc",
 };
 
@@ -324,18 +326,46 @@ function snapshotPlayer(s: PlayerState): PlayerState {
   };
 }
 
+/**
+ * Misc updates a replay reads only part of: what it keeps of each one, or
+ * null to keep nothing of it. World War 1936's economy stream (every
+ * processed country's summary, the human countries' details, the changed
+ * regions) is about 2.6 KB a tick, ~70 MB over a 45-minute game; a replay
+ * reads only each country's troop cap (ReplayGameAdapter.wwTroopCapOf).
+ */
+const MISC_TRIM: Partial<
+  Record<keyof typeof GameUpdateType, (u: unknown) => object | null>
+> = {
+  WwEconomy: (u) => {
+    const countries = (u as WwEconomyUpdate).data.countries;
+    if (countries.length === 0) return null;
+    const caps: number[] = [];
+    for (const c of countries) caps.push(c.smallID, c.troopCap);
+    return { caps } satisfies WwEconomyMisc;
+  },
+};
+
 function miscUpdatesOf(gu: GameUpdateViewData): MiscUpdates | null {
   let out: MiscUpdates | null = null;
   for (const [key, arr] of Object.entries(gu.updates)) {
     const name = GameUpdateType[Number(key)] as keyof typeof GameUpdateType;
     if (UPDATE_TYPE_ROUTING[name] !== "misc") continue;
     if (!Array.isArray(arr) || arr.length === 0) continue;
-    out ??= {};
-    out[name] = arr.map((u) => {
+    const trim = MISC_TRIM[name];
+    const kept: unknown[] = [];
+    for (const u of arr) {
+      if (trim !== undefined) {
+        const payload = trim(u);
+        if (payload !== null) kept.push(payload);
+        continue;
+      }
       const payload: Record<string, unknown> = { ...(u as object) };
       delete payload.type;
-      return payload;
-    });
+      kept.push(payload);
+    }
+    if (kept.length === 0) continue;
+    out ??= {};
+    out[name] = kept;
   }
   return out;
 }
