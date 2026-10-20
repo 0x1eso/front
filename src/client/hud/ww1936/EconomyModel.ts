@@ -6,7 +6,7 @@
 // decision 3, pre-flight U8).
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
-import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   BuildingId,
   DoctrineSchool,
@@ -41,7 +41,6 @@ import {
   addLineBlockOf,
   buildBlockOf,
   BuildCheck,
-  countryGraph,
   equipmentTechBlock,
   lawBlockOf,
   openTradeBlockOf,
@@ -61,8 +60,6 @@ import {
   exportCapacity,
   regionSlots,
   researchProgress,
-  TradeGraph,
-  tradeRouteOk,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -815,51 +812,28 @@ export interface WarPair {
 }
 
 /**
- * The trade graph as the engine builds it (plan decision 14): country
- * neighbours and sea zones from the view's region control
- * (EconomyChecks.countryGraph), wars from the P0 data, factions from the
- * country table. Building it walks the map once the first time (pre-flight
- * D12): the trade tab asks only when it is open.
+ * The countries I may buy from, as the engine judged them on my last
+ * detail (Trade.tradePartners: alive and fighting, no embargo from the
+ * seller, the same faction, a shared sea zone or land through countries at
+ * peace with me). The screens no longer build the trade graph themselves:
+ * that walked the whole map on the main thread.
  */
-export function tradeGraph(
-  view: WwEconomyView,
-  scenario: ScenarioIndex,
-  wars: readonly WarPair[],
-): TradeGraph {
-  const g = countryGraph(
-    scenario,
-    view.controller,
-    scenario.countries.length + 1,
-  );
-  const key = (a: number, b: number) =>
-    Math.min(a, b) * 65_536 + Math.max(a, b);
-  const atWar = new Set(wars.map((w) => key(w.a, w.b)));
-  const faction = (id: number) => {
-    const tag = scenario.tagOfSmallId(id);
-    return tag === undefined ? null : COUNTRIES[tag].faction;
-  };
-  const none = new Set<number>();
-  return {
-    atWar: (a, b) => atWar.has(key(a, b)),
-    sameFaction: (a, b) => {
-      const f = faction(a);
-      return f !== null && f === faction(b);
-    },
-    neighbours: (c) => g.neighbours[c] ?? [],
-    seaZones: (c) => g.seaZones[c] ?? none,
-  };
+export function tradePartnersOf(
+  detail: WwCountryDetail | null,
+): ReadonlySet<number> {
+  // TODO(fixe): the engine lane's field name (WwCountryDetail.tradePartners).
+  const ids = (detail as { tradePartners?: readonly number[] } | null)
+    ?.tradePartners;
+  return new Set(ids ?? []);
 }
 
-/**
- * A fingerprint of who controls which region: the trade graph only changes
- * with it (and the wars), not with every economy update (FNV-1a).
- */
-export function controlFingerprint(controller: ArrayLike<number>): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < controller.length; i++) {
-    h = Math.imul(h ^ controller[i], 0x01000193);
+function atWarFn(wars: readonly WarPair[], me: number) {
+  const enemies = new Set<number>();
+  for (const w of wars) {
+    if (w.a === me) enemies.add(w.b);
+    if (w.b === me) enemies.add(w.a);
   }
-  return h >>> 0;
+  return (id: number) => enemies.has(id);
 }
 
 export interface TradeOffer {
@@ -870,10 +844,10 @@ export interface TradeOffer {
 }
 
 /**
- * Spec §13.3: who can sell me `resource` — a route (EconomyRules.tradeRouteOk)
- * and room for at least one factory's worth (8 a day), most room first.
- * Embargoes are not on the screen (pre-flight R7.14): the engine refuses
- * those deals quietly.
+ * Spec §13.3: who can sell me `resource` — a trade partner (the engine's,
+ * tradePartnersOf) with room for at least one factory's worth (8 a day),
+ * most room first. A war declared since my last detail cuts at once (the
+ * P0 war list is live); `canTrade`: alive and not capitulated.
  */
 export function tradeOffers(
   view: WwEconomyView,
@@ -882,17 +856,66 @@ export function tradeOffers(
   wars: readonly WarPair[],
   resource: ResourceId,
   canTrade: (smallID: number) => boolean = () => true,
-  graph: TradeGraph = tradeGraph(view, scenario, wars),
 ): TradeOffer[] {
   const r = RESOURCE_IDS.indexOf(resource);
+  const partners = tradePartnersOf(view.detail(me));
+  const atWar = atWarFn(wars, me);
   const out: TradeOffer[] = [];
   scenario.countries.forEach((tag, i) => {
     const id = i + 1;
-    if (id === me || !canTrade(id)) return;
+    if (id === me || !canTrade(id) || !partners.has(id) || atWar(id)) return;
     const room = view.summary(id)?.exportRoom[r] ?? 0;
     if (room < WW_TRADE_UNITS_PER_CIV) return;
-    if (!tradeRouteOk(graph, me, id)) return;
     out.push({ smallID: id, tag, room });
+  });
+  return out.sort((a, b) => b.room - a.room || a.smallID - b.smallID);
+}
+
+/** Why a country with room to sell is not my trade partner. */
+export type NotPartnerReason = "war" | "embargo" | "route";
+
+export const NOT_PARTNER_KEYS: Readonly<Record<NotPartnerReason, string>> = {
+  war: "ww1936.econ.not_partner_war",
+  embargo: "ww1936.econ.not_partner_embargo",
+  route: "ww1936.econ.not_partner_route",
+};
+
+export interface BlockedSeller extends TradeOffer {
+  reason: NotPartnerReason;
+}
+
+/**
+ * The countries that have `resource` to sell (8 a day or more) but are not
+ * my partners, and why (pre-flight R7.14: no longer refused quietly): at
+ * war with me, an embargo on me (`embargoed`, the seller's), or no route
+ * (another faction, no shared sea zone and no land through countries at
+ * peace with me). Gone and capitulated countries sell nothing: left out.
+ */
+export function blockedSellers(
+  view: WwEconomyView,
+  scenario: ScenarioIndex,
+  me: number,
+  wars: readonly WarPair[],
+  resource: ResourceId,
+  canTrade: (smallID: number) => boolean = () => true,
+  embargoed: (seller: number) => boolean = () => false,
+): BlockedSeller[] {
+  const r = RESOURCE_IDS.indexOf(resource);
+  const partners = tradePartnersOf(view.detail(me));
+  const atWar = atWarFn(wars, me);
+  const out: BlockedSeller[] = [];
+  scenario.countries.forEach((tag, i) => {
+    const id = i + 1;
+    if (id === me || !canTrade(id)) return;
+    if (partners.has(id) && !atWar(id)) return;
+    const room = view.summary(id)?.exportRoom[r] ?? 0;
+    if (room < WW_TRADE_UNITS_PER_CIV) return;
+    const reason: NotPartnerReason = atWar(id)
+      ? "war"
+      : embargoed(id)
+        ? "embargo"
+        : "route";
+    out.push({ smallID: id, tag, room, reason });
   });
   return out.sort((a, b) => b.room - a.room || a.smallID - b.smallID);
 }
@@ -1282,7 +1305,12 @@ export function regionCard(game: WwEconGame, tile: TileRef): RegionCard | null {
     civ: now.civ,
     mil: now.mil,
     dock: now.dock,
-    slots: regionSlots(r.cat, slotPctOf(view.detail(now.controller))),
+    // The engine's count for whoever holds it (an AI's construction
+    // research too); until it arrives, the controller's research if its
+    // detail is here (a human), else the base.
+    slots:
+      view.slotsOf(id) ??
+      regionSlots(r.cat, slotPctOf(view.detail(now.controller))),
     infra: now.infra,
     pop: r.pop * 1000,
     res: RESOURCE_IDS.flatMap((rid, i) =>

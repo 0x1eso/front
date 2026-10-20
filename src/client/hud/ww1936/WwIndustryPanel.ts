@@ -17,7 +17,6 @@ import {
   WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
-import type { TradeGraph } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
@@ -29,6 +28,7 @@ import type { WwEconomyView } from "../../view/WwEconomyView";
 import {
   addLineBlock,
   armyMenOf,
+  blockedSellers,
   blockText,
   buildBlock,
   buildCandidates,
@@ -37,7 +37,6 @@ import {
   changeLineBlock,
   ConstructionRow,
   constructionRows,
-  controlFingerprint,
   EQUIPMENT_ICONS,
   equipmentName,
   fightingFn,
@@ -57,6 +56,7 @@ import {
   maxTradeCivs,
   menText,
   milliText,
+  NOT_PARTNER_KEYS,
   openTradeBlock,
   paidCivsOf,
   receivedCivsOf,
@@ -69,7 +69,6 @@ import {
   stockOnly,
   stockRows,
   switchPreview,
-  tradeGraph,
   TradeOffer,
   tradeOffers,
 } from "./EconomyModel";
@@ -158,11 +157,6 @@ export class WwIndustryPanel extends WwDrawerBase {
   private holdTimer: ReturnType<typeof setTimeout> | null = null;
   private holdFired = false;
   private redrawKey: readonly unknown[] = [];
-  private graphCache: {
-    control: number;
-    wars: unknown;
-    graph: TradeGraph;
-  } | null = null;
 
   init() {
     super.init();
@@ -463,8 +457,9 @@ export class WwIndustryPanel extends WwDrawerBase {
   /**
    * Another building type. The picked region ("Build here", or a tapped
    * candidate) stays while it can take the new type; otherwise the pick
-   * goes back to the best candidate, so the stepper and Add never stop on
-   * a region the engine would refuse.
+   * goes back to the best candidate, so the stepper and Add don't stop on
+   * a region the engine would refuse. With no region that takes it at
+   * all, the pick stays and its block says why.
    */
   private pickBuilding(c: Ctx, building: BuildingId, slotPct: number) {
     this.building = building;
@@ -481,7 +476,16 @@ export class WwIndustryPanel extends WwDrawerBase {
       slotPct,
       c.fighting,
     );
-    if (block !== null) this.region = null;
+    if (block === null) return;
+    const best = buildCandidates(
+      c.view,
+      c.scenario,
+      c.id,
+      building,
+      slotPct,
+      c.fighting,
+    );
+    if (best.length > 0) this.region = null;
   }
 
   private renderNewBuild(c: Ctx): TemplateResult {
@@ -951,22 +955,6 @@ export class WwIndustryPanel extends WwDrawerBase {
 
   // ---- Resources and trade ----
 
-  /**
-   * The trade graph, rebuilt only when region control or the wars change
-   * (pre-flight D12) — not on every economy update.
-   */
-  private graph(c: Ctx): TradeGraph {
-    const wars = this.game.worldWarData()?.wars ?? [];
-    const control = controlFingerprint(c.view.controller);
-    const g = this.graphCache;
-    if (g !== null && g.control === control && g.wars === wars) {
-      return g.graph;
-    }
-    const graph = tradeGraph(c.view, c.scenario, wars);
-    this.graphCache = { control, wars, graph };
-    return graph;
-  }
-
   private renderTrade(c: Ctx): TemplateResult {
     const rows = resourceRows(c.detail);
     const th =
@@ -1044,6 +1032,8 @@ export class WwIndustryPanel extends WwDrawerBase {
 
   private renderBuy(c: Ctx, resource: ResourceId): TemplateResult {
     const wars = this.game.worldWarData()?.wars ?? [];
+    // My partners come with my detail (the engine's tradePartners): no
+    // trade graph is built here.
     const offers = tradeOffers(
       c.view,
       c.scenario,
@@ -1051,7 +1041,18 @@ export class WwIndustryPanel extends WwDrawerBase {
       wars,
       resource,
       c.fighting,
-      this.graph(c),
+    );
+    const blocked = blockedSellers(
+      c.view,
+      c.scenario,
+      c.id,
+      wars,
+      resource,
+      c.fighting,
+      (seller) => {
+        const p = this.game.playerBySmallID(seller);
+        return p.isPlayer() && p.hasEmbargoAgainst(c.me);
+      },
     );
     return html`<section data-ww-buy=${resource}>
       <div class=${HEADING}>
@@ -1065,6 +1066,35 @@ export class WwIndustryPanel extends WwDrawerBase {
         : html`<ul class="m-0 flex list-none flex-col gap-1 p-0">
             ${offers.map((o) => this.renderOffer(c, resource, o))}
           </ul>`}
+      ${blocked.length === 0
+        ? nothing
+        : html`<div class=${HEADING}>
+              ${translateText("ww1936.econ.not_partners")}
+            </div>
+            <ul
+              data-ww-not-partners
+              class="m-0 flex list-none flex-col gap-0.5 p-0 text-xs text-white/60"
+            >
+              ${blocked.map(
+                (b) =>
+                  html`<li
+                    data-ww-not-partner=${b.smallID}
+                    data-reason=${b.reason}
+                    class="flex min-h-7 items-center gap-1"
+                  >
+                    ${this.flag(b.smallID, c.scenario)}
+                    <span class="min-w-0 truncate">${countryName(b.tag)}</span>
+                    <span class="shrink-0"
+                      >${translateText("ww1936.econ.export_room", {
+                        n: b.room,
+                      })}</span
+                    >
+                    <span class="ml-auto shrink-0 text-amber-300/90"
+                      >${translateText(NOT_PARTNER_KEYS[b.reason])}</span
+                    >
+                  </li>`,
+              )}
+            </ul>`}
     </section>`;
   }
 

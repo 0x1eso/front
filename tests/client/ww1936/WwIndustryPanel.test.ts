@@ -39,6 +39,7 @@ import {
   fakeEconGame,
   FakeOptions,
   ID,
+  partners,
   region,
   summary,
   tileOf,
@@ -299,6 +300,18 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(m.sent).toEqual([
       { kind: "build", region: 6, building: "infra", count: 1 },
     ]);
+    // No region takes infrastructure at all (Berlin and Munich are full):
+    // the pick stays and says why, rather than an empty form.
+    const full = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+    });
+    await full.open(null, 4);
+    await full.click("[data-ww-building='infra']");
+    expect(full.q("[data-ww-picked]")!.getAttribute("data-ww-picked")).toBe(
+      "4",
+    );
+    expect(full.q("[data-ww-block='infra_max']")).not.toBeNull();
   });
 
   it("holding + adds five, a tap one", async () => {
@@ -337,6 +350,9 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       ],
       details: [
         detail("DEU", {
+          // The engine's judgement: Italy (faction) and the Soviet Union;
+          // not Britain (no route).
+          ...partners("ITA", "SUN"),
           buying: [
             {
               id: 7,
@@ -364,9 +380,14 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     await m.el.updateComplete;
     await Promise.resolve();
     expect(scrolled).toEqual(["steel"]);
-    // Italy (faction); not Britain (no route).
+    // Italy (faction); not Britain (no route) — listed with the reason.
     expect(m.q(`[data-ww-offer='${ID("ITA")}']`)).not.toBeNull();
     expect(m.q(`[data-ww-offer='${ID("GBR")}']`)).toBeNull();
+    const gbr = m.q(`[data-ww-not-partner='${ID("GBR")}']`)!;
+    expect(gbr.dataset.reason).toBe("route");
+    expect(gbr.textContent).toContain("[ww1936.econ.not_partner_route]");
+    expect(gbr.textContent).toContain("[ww1936.econ.export_room] n=40");
+    expect(gbr.querySelector("button")).toBeNull();
     await m.click(`[data-ww-step='buy-${ID("ITA")}:up']`);
     // Two factories' worth is all Italy has.
     expect(m.q(`[data-ww-step='buy-${ID("ITA")}:up']`)!.disabled).toBe(true);
@@ -393,6 +414,32 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     } else {
       Object.defineProperty(Element.prototype, "scrollIntoView", had);
     }
+  });
+
+  it("a seller's embargo or a war says why it won't sell", async () => {
+    const m = mount({
+      summaries: [
+        summary("DEU"),
+        summary("FRA", { exportRoom: [0, 0, 0, 0, 24, 0] }),
+        summary("POL", { exportRoom: [0, 0, 0, 0, 16, 0] }),
+      ],
+      // France has an embargo on us (the engine left it out); Poland was a
+      // partner on the last detail, and we are at war with it since.
+      details: [detail("DEU", partners("POL"))],
+      embargoes: [["FRA", "DEU"]],
+      wars: [["DEU", "POL"]],
+    });
+    await m.open("trade");
+    await m.click("[data-ww-resource='steel'] button");
+    expect(m.q("[data-ww-offer]")).toBeNull();
+    expect(m.q("[data-ww-no-sellers]")).not.toBeNull();
+    const reasons = [
+      ...m.el.querySelectorAll<HTMLElement>("[data-ww-not-partner]"),
+    ].map((li) => [Number(li.dataset.wwNotPartner), li.dataset.reason]);
+    expect(reasons).toEqual([
+      [ID("FRA"), "embargo"],
+      [ID("POL"), "war"],
+    ]);
   });
 
   it("only one World War drawer is open at a time", async () => {

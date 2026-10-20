@@ -95,6 +95,14 @@ export function detail(
   };
 }
 
+/**
+ * The engine's trade partners in my detail (Trade.tradePartners), by tag.
+ * TODO(fixe): typed once the engine lane's field lands.
+ */
+export function partners(...tags: CountryTag[]): Partial<WwCountryDetail> {
+  return { tradePartners: tags.map(ID) } as unknown as Partial<WwCountryDetail>;
+}
+
 /** A region as it is now (WwRegionData), starting from the scenario. */
 export function region(
   id: number,
@@ -127,6 +135,8 @@ export interface FakeOptions {
   attacks?: number[];
   /** My troops on transport ships. */
   boats?: number[];
+  /** [seller, buyer]: the seller has an embargo on the buyer. */
+  embargoes?: [CountryTag, CountryTag][];
 }
 
 export function fakeEconGame(o: FakeOptions = {}) {
@@ -150,6 +160,10 @@ export function fakeEconGame(o: FakeOptions = {}) {
     outgoingAttacks: () => (o.attacks ?? []).map((troops) => ({ troops })),
     units: () => (o.boats ?? []).map((n) => ({ troops: () => n })),
     numTilesOwned: () => 1_000,
+    hasEmbargoAgainst: (other: { countryTag(): CountryTag }) =>
+      (o.embargoes ?? []).some(
+        ([seller, buyer]) => seller === tag && buyer === other.countryTag(),
+      ),
   }));
   const data = {
     prepEndTick: 600,
