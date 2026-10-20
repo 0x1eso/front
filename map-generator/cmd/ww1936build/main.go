@@ -8,7 +8,8 @@
 // from Natural Earth and NASA files fetched by scenarios/world1936/fetch.sh
 // and the tables in scenarios/world1936/src (the P1 economy: economy1936.json,
 // resources1936.json, industry1936.json; economy.go; the P2 land graph:
-// rail1936.json, forts1936.json, land.go; the P4 map fixes folded into P2:
+// rail1936.json, forts1936.json, terrain1936.json, land.go; the P4 map
+// fixes folded into P2:
 // islands1936.json, seasplit1936.json, straits1936.json, islands.go,
 // seasplit.go, seaedges.go). Region ids are stable: the committed
 // scenario.json numbers the regions it holds (land.go stableIDs). Run from
@@ -34,7 +35,7 @@ import (
 
 func main() {
 	cache := flag.String("cache", ".cache/ww1936", "folder with the fetched Natural Earth and NASA files")
-	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json, industry1936.json, islands1936.json, seasplit1936.json, straits1936.json, rail1936.json, forts1936.json")
+	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json, industry1936.json, islands1936.json, seasplit1936.json, straits1936.json, rail1936.json, forts1936.json, terrain1936.json")
 	idTable := flag.String("ids", "../resources/maps/world1936/scenario.json", "the committed scenario.json whose region ids stay")
 	outImage := flag.String("out-image", "assets/maps/world1936/image.png", "terrain image")
 	outDir := flag.String("out-dir", "scenarios/world1936", "folder for regions.png and scenario.src.json")
@@ -88,6 +89,9 @@ func main() {
 	var railTbl, fortTbl RegionLevels
 	must(decodeStrict(railPath, &railTbl))
 	must(decodeStrict(fortPath, &fortTbl))
+	terrPath := filepath.Join(*src, "terrain1936.json")
+	var terrTbl TerrainTable
+	must(decodeStrict(terrPath, &terrTbl))
 	table, err := loadIDTable(*idTable)
 	must(err)
 	p := NewProjection(*width, -60, 84)
@@ -226,8 +230,8 @@ func main() {
 	must(err)
 	lg, err := buildLandGraph(p, final, lists, LandInput{
 		Regions: regions, Eco: ecoByID, Tags: tags, Mag: mag, Modis: modis, ModisW: mw, ModisH: mh,
-		Rivers: rivers, Straits: straits.Land, Rail: railTbl, Forts: fortTbl, ByName: byName,
-		RailPath: railPath, FortPath: fortPath,
+		Rivers: rivers, Straits: straits.Land, Rail: railTbl, Forts: fortTbl, Terrain: terrTbl, ByName: byName,
+		RailPath: railPath, FortPath: fortPath, TerrPath: terrPath,
 	})
 	must(err)
 	sg, err := buildSeaGraph(p, final, lists, seas, straits, byName)
@@ -337,6 +341,16 @@ func printGraphs(t *Tables, regions []*Region, eco map[int]*EcoRegion, lists til
 		ter = append(ter, fmt.Sprintf("%s %d", k, lg.Terrain[k]))
 	}
 	fmt.Println("regions by terrain: " + strings.Join(ter, ", "))
+	for _, h := range lg.HandLand {
+		fmt.Println("  hand terrain " + h)
+	}
+	small := 0
+	for _, e := range lg.Edges {
+		if e.River == 1 {
+			small++
+		}
+	}
+	fmt.Printf("river edges: %d big, %d small, %d of %d land edges\n", lg.BigRivers, small, lg.BigRivers+small, len(lg.Edges))
 	fmt.Printf("sea zones: %d, sea edges: %d\n", len(seas), len(sg.Edges))
 	for _, z := range seas {
 		if c, ok := cut[z.ID]; ok {

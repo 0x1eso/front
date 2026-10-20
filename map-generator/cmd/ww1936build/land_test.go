@@ -414,3 +414,34 @@ func TestResolveLevelsFailsOnUnknownNames(t *testing.T) {
 		t.Fatal("no river groups")
 	}
 }
+
+// The hand terrain table sets a region's terrain over the MODIS rule (the
+// drained Pripyat marshes); an unknown terrain or region, or a region named
+// twice, fails.
+func TestHandTerrainTable(t *testing.T) {
+	p, ids, in := landWorld()
+	in.Terrain.Rows = []TerrainRow{{Note: "marsh", Land: terMarsh, Regions: []string{"AAA:East"}}}
+	g, err := buildLandGraph(p, ids, buildTileLists(ids), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g.V3[2].Land != terMarsh || g.V3[1].Land != terForest || g.Terrain[terMarsh] != 1 || g.Terrain[terForest] != 2 {
+		t.Fatalf("terrain %s %s, counts %v", g.V3[2].Land, g.V3[1].Land, g.Terrain)
+	}
+	if len(g.HandLand) != 1 || g.HandLand[0] != "2 AAA:East forest → marsh" {
+		t.Fatalf("hand %v", g.HandLand)
+	}
+	for _, c := range []struct {
+		rows []TerrainRow
+		want string
+	}{
+		{[]TerrainRow{{Note: "x", Land: "swamp", Regions: []string{"AAA:East"}}}, `terrain "swamp"`},
+		{[]TerrainRow{{Note: "x", Land: terMarsh, Regions: []string{"AAA:Nowhere"}}}, `no region "AAA:Nowhere"`},
+		{[]TerrainRow{{Note: "x", Land: terMarsh, Regions: []string{"AAA:East"}}, {Note: "y", Land: terHills, Regions: []string{"AAA:East"}}}, "twice"},
+	} {
+		in.Terrain.Rows = c.rows
+		if _, err := buildLandGraph(p, ids, buildTileLists(ids), in); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Fatalf("%v: err = %v", c.rows, err)
+		}
+	}
+}

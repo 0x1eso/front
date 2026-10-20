@@ -1,0 +1,14 @@
+{
+  "rows": [
+    {
+      "note": "The Pripyat (Polesian) marshes, drained only from the 1960s, so modern MODIS reads them as farmland: the regions with at least two thirds of their tiles in the Polesian lowland (Pinsk and Brest; Mozyr and Gomel; Kovel's Volhynian Polesie)",
+      "land": "marsh",
+      "regions": ["POL:Polesie", "SUN:Gomel", "POL:Volhynia"]
+    },
+    {
+      "note": "The Ob swamps of western Siberia: the western half of Khanty-Mansiy, whose eastern half the MODIS rule already reads as marsh",
+      "land": "marsh",
+      "regions": ["SUN:Khanty-Mansiy (W)"]
+    }
+  ]
+}

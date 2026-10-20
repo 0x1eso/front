@@ -859,6 +859,53 @@ func resolveLevels(path string, tbl RegionLevels, byName map[string]int) (map[in
 	return out, nil
 }
 
+// TerrainTable is src/terrain1936.json: regions ("TAG:name") whose terrain
+// the hand sets, over the MODIS rule (P2 spec §3.2-5). Modern MODIS sees
+// the marshes drained after 1936 (the Pripyat from the 1960s) as farmland.
+type TerrainTable struct {
+	Rows []TerrainRow `json:"rows"`
+}
+
+// TerrainRow is one row of a TerrainTable.
+type TerrainRow struct {
+	Note    string   `json:"note"`
+	Land    string   `json:"land"`
+	Regions []string `json:"regions"`
+}
+
+// landTerrains are LAND_TERRAINS (engine-api LandTypes.ts).
+var landTerrains = map[string]bool{
+	terPlains: true, terForest: true, terHills: true, terMountain: true,
+	terMarsh: true, terJungle: true, terDesert: true, terUrban: true,
+}
+
+// resolveTerrain turns a TerrainTable into region id → terrain. An unknown
+// name or terrain, or a region named twice, fails.
+func resolveTerrain(path string, tbl TerrainTable, byName map[string]int) (map[int]string, error) {
+	out := map[int]string{}
+	var bad []string
+	for _, row := range tbl.Rows {
+		if !landTerrains[row.Land] {
+			bad = append(bad, fmt.Sprintf("%s: terrain %q", row.Note, row.Land))
+		}
+		for _, name := range row.Regions {
+			id, ok := byName[name]
+			switch {
+			case !ok:
+				bad = append(bad, fmt.Sprintf("%s: no region %q", row.Note, name))
+			case out[id] != "":
+				bad = append(bad, fmt.Sprintf("%s: region %q twice", row.Note, name))
+			default:
+				out[id] = row.Land
+			}
+		}
+	}
+	if len(bad) > 0 {
+		return nil, fmt.Errorf("%s:\n  %s", path, strings.Join(bad, "\n  "))
+	}
+	return out, nil
+}
+
 // startRail is P2 spec §3.2-6: a major's core region max(1, infra − 1),
 // another core region max(0, infra − 2), a colony 1 from infrastructure 4.
 func startRail(core, major bool, infra int) int {
@@ -899,9 +946,11 @@ type LandInput struct {
 	Straits  LandStraits
 	Rail     RegionLevels
 	Forts    RegionLevels
+	Terrain  TerrainTable
 	ByName   map[string]int // "TAG:name" → id, surviving regions
 	RailPath string
 	FortPath string
+	TerrPath string
 }
 
 // LandGraph is the result: v3 fields by region id, the sorted edges, and
@@ -911,6 +960,7 @@ type LandGraph struct {
 	Edges     []Edge
 	Straits   []Edge
 	Terrain   map[string]int
+	HandLand  []string // "id TAG:name rule → hand" for each hand terrain
 	BigRivers int
 	Rivers    map[string]int // edges per named river
 	Fragments map[int]int    // surviving region → final tiles
@@ -1004,6 +1054,10 @@ func buildLandGraph(p Projection, ids []uint16, lists tileLists, in LandInput) (
 	if err != nil {
 		return g, err
 	}
+	handLand, err := resolveTerrain(in.TerrPath, in.Terrain, in.ByName)
+	if err != nil {
+		return g, err
+	}
 	for _, id := range regionIDs {
 		tiles := lists.of(id)
 		c := nearestCentroid(tiles, w)
@@ -1024,6 +1078,10 @@ func buildLandGraph(p Projection, ids []uint16, lists tileLists, in LandInput) (
 			WCell:  weatherCell(lonC, latC),
 			Rail:   max(startRail(e.Core, isMajor(tag), e.Infra), rail[id]),
 			Fort:   forts[id],
+		}
+		if hand, ok := handLand[id]; ok {
+			g.HandLand = append(g.HandLand, fmt.Sprintf("%d %s:%s %s → %s", id, tag, r.Name, v.Land, hand))
+			v.Land = hand
 		}
 		g.V3[id] = v
 		g.Terrain[v.Land]++

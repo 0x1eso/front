@@ -681,6 +681,39 @@ describe("the world1936 land graph (P2 spec §3, scenario v3)", () => {
     expect(e?.border).toBe(0);
   });
 
+  // Crossings the 6-water-tile rule finds but HOI4 has none of
+  // (straits1936.json land.remove).
+  test.each([
+    ["ITA:Rhodes", "TUR:Mugla"],
+    ["ITA:Leros", "TUR:Mugla"],
+    ["GBR:Malaya", "NLD:Batavia"],
+    ["NLD:Batavia", "GBR:Singapore"],
+    ["SUN:Kamchatka (SW)", "JPN:Northern Kurils"],
+    ["GBR:Argyll and Bute", "GBR:Fermanagh"],
+    ["AUS:Papua and New Guinea", "GBR:Solomon Islands"],
+    ["DNK:Hovedstaden", "DEU:Hamburg"],
+    ["DNK:Hovedstaden", "DEU:Mecklenburg-Vorpommern"],
+  ] as const)("no crossing from %s to %s", (a, b) => {
+    expect(edgeOf(named(a).id, named(b).id)).toBeUndefined();
+  });
+
+  test("the Pripyat marshes and the Ob swamps are marsh (terrain1936.json)", () => {
+    const s = data.scenario!;
+    for (const [lon, lat] of [
+      [26.1, 52.1], // Pinsk
+      [23.7, 52.1], // Brest
+      [29.25, 52.05], // Mozyr
+      [24.7, 51.2], // Kovel
+      [69.0, 61.0], // Khanty-Mansiysk
+    ] as const) {
+      const r = regionAt(lon, lat)!;
+      expect(s.landOf(r.id), r.name).toBe("marsh");
+    }
+    expect(
+      s.landRegions.filter((r) => r.land === "marsh").map((r) => r.id),
+    ).toEqual([123, 145, 311, 312, 333]);
+  });
+
   test("big rivers: the Vistula between Germany and Poland, the Rhine between Alsace and Baden", () => {
     const s = data.scenario!;
     expect(s.edges().filter((e) => e.river === 2).length).toBeGreaterThan(30);

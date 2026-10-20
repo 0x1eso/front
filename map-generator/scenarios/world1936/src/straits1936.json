@@ -55,6 +55,16 @@
       ["SUN:Crimea", "SUN:Krasnodar"],
       ["GBR:Gibraltar", "ESN:Spanish Morocco"]
     ],
-    "remove": []
+    "remove": [
+      ["ITA:Rhodes", "TUR:Mugla"],
+      ["ITA:Leros", "TUR:Mugla"],
+      ["GBR:Malaya", "NLD:Batavia"],
+      ["NLD:Batavia", "GBR:Singapore"],
+      ["SUN:Kamchatka (SW)", "JPN:Northern Kurils"],
+      ["GBR:Argyll and Bute", "GBR:Fermanagh"],
+      ["AUS:Papua and New Guinea", "GBR:Solomon Islands"],
+      ["DNK:Hovedstaden", "DEU:Hamburg"],
+      ["DNK:Hovedstaden", "DEU:Mecklenburg-Vorpommern"]
+    ]
   }
 }
