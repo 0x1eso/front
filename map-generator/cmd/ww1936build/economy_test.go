@@ -394,7 +394,12 @@ func TestEconomyIsDeterministic(t *testing.T) {
 			t.Fatal(err)
 		}
 		path := filepath.Join(dir, "scenario.src.json")
-		if err := writeScenarioSrc(path, p, tables, capitals, regions, eco, nil); err != nil {
+		byID := map[int]*EcoRegion{}
+		for i, r := range regions {
+			byID[r.ID] = eco[i]
+		}
+		in := ScenarioSrcInput{P: p, T: tables, Rows: testRows(), Capitals: capitals, Regions: regions, Eco: byID}
+		if err := writeScenarioSrc(path, in); err != nil {
 			t.Fatal(err)
 		}
 		b, err := os.ReadFile(path)
@@ -406,8 +411,8 @@ func TestEconomyIsDeterministic(t *testing.T) {
 	if !bytes.Equal(outs[0], outs[1]) {
 		t.Fatal("two runs wrote different files")
 	}
-	if !bytes.Contains(outs[0], []byte(`"version": 2`)) || !bytes.Contains(outs[0], []byte(`"cat": "megalopolis"`)) {
-		t.Fatalf("not a version 2 file:\n%s", outs[0])
+	if !bytes.Contains(outs[0], []byte(`"version": 3`)) || !bytes.Contains(outs[0], []byte(`"cat": "megalopolis"`)) {
+		t.Fatalf("not a version 3 file:\n%s", outs[0])
 	}
 }
 

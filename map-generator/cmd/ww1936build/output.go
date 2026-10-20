@@ -135,10 +135,14 @@ func writeRegionsPNG(path string, p Projection, land, sea []uint16) error {
 type srcCountryOut struct {
 	Tag     string `json:"tag"`
 	Capital [2]int `json:"capital"`
+	Dev     int    `json:"dev"`
 }
 
-// srcRegionOut is a region of scenario.src.json, version 2 (P1 spec §3.1:
-// the economy fields after vpTile).
+// srcRegionOut is a region of scenario.src.json, version 3 (P1 spec §3.1:
+// the economy fields after vpTile; P2 spec §3.1: the land graph fields after
+// those). Port is a hand harbour (an island of islands1936.json), the
+// generator's formula adds the rest. A region the generator drops has no
+// land-graph fields.
 type srcRegionOut struct {
 	ID      int     `json:"id"`
 	Name    string  `json:"name"`
@@ -155,41 +159,81 @@ type srcRegionOut struct {
 	Mil     int     `json:"mil"`
 	Dock    int     `json:"dock"`
 	Res     [6]int  `json:"res"`
+	Land    string  `json:"land,omitempty"`
+	Center  *[2]int `json:"center,omitempty"`
+	LatC    int     `json:"latC"`
+	WCell   int     `json:"wcell"`
+	Rail    int     `json:"rail"`
+	Fort    int     `json:"fort"`
+	Port    bool    `json:"port,omitempty"`
+	Island  string  `json:"island,omitempty"`
 }
 
 type srcSeaOut struct {
 	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	NameKo string `json:"nameKo"`
+	Lake   bool   `json:"lake,omitempty"`
+}
+
+// ScenarioSrcInput is what writeScenarioSrc writes.
+type ScenarioSrcInput struct {
+	P        Projection
+	T        *Tables
+	Rows     []EconomyRow // countries.json order
+	Capitals []int
+	Regions  []*Region // stable ids, ascending
+	Eco      map[int]*EcoRegion
+	Seas     []*Region
+	Land     LandGraph
+	Sea      SeaGraph
+	Islands  []IslandRow
+	Places   []IslandPlace
 }
 
 // writeScenarioSrc writes scenario.src.json (read by the map generator,
-// map-generator/regions.go). eco holds each region's economy, in the order
-// of regions.
-func writeScenarioSrc(path string, p Projection, t *Tables, capitals []int, regions []*Region, eco []*EcoRegion, seas []*Region) error {
+// map-generator/regions.go), version 3.
+func writeScenarioSrc(path string, in ScenarioSrcInput) error {
+	p := in.P
+	xy := func(px int) *[2]int { return &[2]int{px % p.Width, px / p.Width} }
 	out := struct {
-		Version   int             `json:"version"`
-		Countries []srcCountryOut `json:"countries"`
-		Regions   []srcRegionOut  `json:"regions"`
-		SeaZones  []srcSeaOut     `json:"seaZones"`
-	}{Version: 2}
-	for i, c := range t.Countries {
-		out.Countries = append(out.Countries, srcCountryOut{c.Tag, [2]int{capitals[i] % p.Width, capitals[i] / p.Width}})
+		Version       int             `json:"version"`
+		Countries     []srcCountryOut `json:"countries"`
+		Regions       []srcRegionOut  `json:"regions"`
+		SeaZones      []srcSeaOut     `json:"seaZones"`
+		Edges         []Edge          `json:"edges"`
+		SeaEdges      []SeaEdge       `json:"seaEdges"`
+		Straits       []Strait        `json:"straits"`
+		HistoricalOob bool            `json:"historicalOob"`
+		KeepIslands   [][2]int        `json:"keepIslands"`
+	}{Version: 3, Edges: in.Land.Edges, SeaEdges: in.Sea.Edges, Straits: in.Sea.Straits, HistoricalOob: true}
+	for i, c := range in.T.Countries {
+		out.Countries = append(out.Countries, srcCountryOut{c.Tag, *xy(in.Capitals[i]), in.Rows[i].Dev})
 	}
-	for k, r := range regions {
-		e := eco[k]
+	hand := map[string]bool{}
+	for _, r := range in.Islands {
+		hand[r.Key] = r.Port
+	}
+	for _, r := range in.Regions {
+		e := in.Eco[r.ID]
 		row := srcRegionOut{
-			ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: t.Countries[r.Owner-1].Tag, VP: r.VP,
+			ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: in.T.Countries[r.Owner-1].Tag, VP: r.VP,
 			Cat: categories[e.Cat], Pop: e.Pop, Infra: e.Infra, Core: e.Core, Coastal: e.Coastal,
-			Civ: e.Civ, Mil: e.Mil, Dock: e.Dock, Res: e.Res,
+			Civ: e.Civ, Mil: e.Mil, Dock: e.Dock, Res: e.Res, Island: r.Island, Port: hand[r.Island],
 		}
 		if r.VPTile >= 0 {
-			row.VPTile = &[2]int{r.VPTile % p.Width, r.VPTile / p.Width}
+			row.VPTile = xy(r.VPTile)
+		}
+		if v, ok := in.Land.V3[r.ID]; ok {
+			row.Land, row.Center, row.LatC, row.WCell, row.Rail, row.Fort = v.Land, xy(v.Center), v.LatC, v.WCell, v.Rail, v.Fort
 		}
 		out.Regions = append(out.Regions, row)
 	}
-	for _, z := range seas {
-		out.SeaZones = append(out.SeaZones, srcSeaOut{z.ID, z.Name, z.NameKo})
+	for _, z := range in.Seas {
+		out.SeaZones = append(out.SeaZones, srcSeaOut{z.ID, z.Name, z.NameKo, z.Lake})
+	}
+	for _, pl := range in.Places {
+		out.KeepIslands = append(out.KeepIslands, *xy(pl.Point))
 	}
 	js, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {

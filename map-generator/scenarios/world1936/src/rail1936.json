@@ -1,0 +1,64 @@
+{
+  "rows": [
+    {
+      "note": "Trans-Siberian Railway, Moscow to Vladivostok (P2 spec §3.2-6)",
+      "level": 1,
+      "regions": [
+        "SUN:Moskva",
+        "SUN:Moscow Oblast",
+        "SUN:Vladimir",
+        "SUN:Yaroslavl'",
+        "SUN:Kostroma",
+        "SUN:Kirov",
+        "SUN:Udmurt",
+        "SUN:Perm'",
+        "SUN:Sverdlovsk",
+        "SUN:Tyumen'",
+        "SUN:Omsk",
+        "SUN:Novosibirsk",
+        "SUN:Kemerovo",
+        "SUN:Krasnoyarsk (S) 2",
+        "SUN:Krasnoyarsk (S)",
+        "SUN:Irkutsk (W)",
+        "SUN:Buryat",
+        "SUN:Chita",
+        "SUN:Amur",
+        "SUN:Yevrey",
+        "SUN:Khabarovsk (S)",
+        "SUN:Primor'ye"
+      ]
+    },
+    {
+      "note": "South Manchuria Railway and the Chinese Eastern line Manchukuo bought in 1935: Dairen, Mukden, Hsinking, Harbin",
+      "level": 2,
+      "regions": [
+        "JPN:Kwantung",
+        "MCK:Liaoning",
+        "MCK:Jilin",
+        "MCK:Heilongjiang"
+      ]
+    },
+    {
+      "note": "British India's trunk lines: Karachi–Lahore–Delhi–Calcutta, Delhi–Bombay, Bombay–Madras–Calcutta",
+      "level": 1,
+      "regions": [
+        "RAJ:Sind",
+        "RAJ:Punjab",
+        "RAJ:Punjab 2",
+        "RAJ:Delhi",
+        "RAJ:Uttar Pradesh",
+        "RAJ:Bihar",
+        "RAJ:Jharkhand",
+        "RAJ:West Bengal",
+        "RAJ:Rajasthan",
+        "RAJ:Madhya Pradesh",
+        "RAJ:Maharashtra",
+        "RAJ:Karnataka",
+        "RAJ:Telangana",
+        "RAJ:Andhra Pradesh",
+        "RAJ:Tamil Nadu",
+        "RAJ:Odisha"
+      ]
+    }
+  ]
+}

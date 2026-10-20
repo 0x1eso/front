@@ -31,6 +31,9 @@ var cityTiers = map[string]int{
 	"Hong Kong|HKG": 5, "Cape Town|ZAF": 5, "Santiago|CHL": 5, "Bogota|COL": 5,
 	// Dairen, the port of the Kwantung Leased Territory (Japanese since 1905).
 	"Dalian|CHN": 5,
+	// The kept islands' cities (P4 spec §3.2): Malta, Oahu (Pearl Harbor),
+	// Okinawa.
+	"Valletta|MLT": 5, "Honolulu|USA": 5, "Naha|JPN": 5,
 }
 
 // Places that were no city of note in 1936 (later capitals, new cities).
@@ -39,6 +42,10 @@ var cityDrop = map[string]bool{
 	"Nouakchott|MRT": true, "Belmopan|BLZ": true, "Putrajaya|MYS": true, "Yamoussoukro|CIV": true,
 	"Lilongwe|MWI": true, "Dubai|ARE": true, "Abu Dhabi|ARE": true, "Doha|QAT": true, "Shenzhen|CHN": true,
 	"Dongguan|CHN": true, "Chandigarh|IND": true,
+	// P4 spec §3.2: of the kept islands only Malta, Oahu and Okinawa (and
+	// Singapore, a city already) hold points; these modern capitals would
+	// give Palau, Tarawa and Bermuda some.
+	"Melekeok|PLW": true, "Tarawa|KIR": true, "Hamilton|BMU": true,
 }
 
 func cityKey(f Feature) string {

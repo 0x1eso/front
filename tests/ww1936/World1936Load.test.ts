@@ -41,5 +41,8 @@ describe("starting on the world1936 map (spec §5.3)", () => {
       }
     });
     expect(unowned).toBe(0);
+    // The P2 rebuild kept 24 islands (P4 spec §3.2): 209 land tiles more
+    // than version 2's 2,457,383 (cmd/ww1936build prints the count).
+    expect(data.gameMap.numLandTiles()).toBe(2_457_592);
   }, 60_000);
 });

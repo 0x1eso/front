@@ -34,7 +34,7 @@ Licensed under ODbL
 [Natural Earth](https://www.naturalearthdata.com/)  
 Public Domain
 
-The World War 1936 map (`resources/maps/world1936`, `map-generator/assets/maps/world1936`, `map-generator/scenarios/world1936`) is drawn from Natural Earth 10m land, lakes, admin-1 states and provinces, marine areas and populated places (public domain, commit ca96624a), and this fork's 1936 owner tables (`map-generator/scenarios/world1936/src`, historical facts written for this fork, CC BY-SA 4.0). aourednik/historical-basemaps (GPL-3.0) was only compared against; nothing derived from it is included. The generated files outside `resources/` (`map-generator/assets/maps/world1936/image.png`, `map-generator/scenarios/world1936/{regions.png, scenario.src.json, src/vp_cities.json}`) are CC BY-SA 4.0, like the other derived map files.
+The World War 1936 map (`resources/maps/world1936`, `map-generator/assets/maps/world1936`, `map-generator/scenarios/world1936`) is drawn from Natural Earth 10m land, lakes, admin-1 states and provinces, marine areas, populated places and river and lake centerlines (the land graph's rivers) (public domain, commit ca96624a), and this fork's 1936 owner tables (`map-generator/scenarios/world1936/src`, historical facts written for this fork, CC BY-SA 4.0). aourednik/historical-basemaps (GPL-3.0) was only compared against; nothing derived from it is included. The generated files outside `resources/` (`map-generator/assets/maps/world1936/image.png`, `map-generator/scenarios/world1936/{regions.png, scenario.src.json, src/vp_cities.json}`) are CC BY-SA 4.0, like the other derived map files.
 
 ### Bedmap3 Antarctica Dataset
 
@@ -69,6 +69,8 @@ Copyright © opentopography.org. All Rights Reserved. [Terms of Use](https://ope
 [Public Domain](https://www.nasa.gov/nasa-brand-center/images-and-media/)
 
 World War 1936 terrain: NASA Earth Observatory "Topography" (`gebco_08_rev_elev_21600x10800.png`, NASA / GEBCO), public domain.
+
+World War 1936 detailed terrain (forest, jungle, marsh, desert): the MODIS Combined L3 IGBP Land Cover Type, annual 2024, as a 0.1° grid served by [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api) with its colour map (NASA EOSDIS, MODIS land cover by NASA LP DAAC), public domain. NASA Earth Observations (NEO), which carried the same grid, closed in September 2026.
 
 ### Hawaii Relief Map
 

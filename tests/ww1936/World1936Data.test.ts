@@ -305,8 +305,8 @@ describe("the world1936 economy (P1 spec §3)", () => {
     f: (r: ReadonlyScenarioRegion) => number,
   ) => rs.reduce((a, r) => a + f(r), 0);
 
-  test("the scenario is version 2", () => {
-    expect(data.scenario!.data.version).toBe(2);
+  test("the scenario is version 3 (P1's version 2 fields kept)", () => {
+    expect(data.scenario!.data.version).toBe(3);
     expect(economyTable.map((r) => r.tag).sort()).toEqual(
       [...COUNTRY_TAGS].sort(),
     );
@@ -552,5 +552,361 @@ describe("the world1936 economy (P1 spec §3)", () => {
     expect(regionAt(31.24, 30.04)?.core).toBe(false);
     expect(regionAt(-52.7, 47.56)?.core).toBe(false);
     expect(regionAt(13.4, 52.52)?.core).toBe(true);
+  });
+});
+
+// P2 spec §3 (scenario version 3: the land graph) and the P4 map fixes folded
+// into the same rebuild (P4 spec §3.1–3.3; plan decision 23).
+interface IslandRow {
+  key: string;
+  owner: CountryTag;
+}
+const islandTable: IslandRow[] = JSON.parse(
+  fs.readFileSync(path.join(srcDir, "islands1936.json"), "utf8"),
+);
+
+/** The region of a 1936 owner and name ("TAG:name"). */
+function named(tagName: string): ReadonlyScenarioRegion {
+  const [tag, name] = tagName.split(/:(.*)/s);
+  const hits = data.scenario!.landRegions.filter(
+    (r) => r.owner === tag && r.name === name,
+  );
+  expect(hits.length, tagName).toBe(1);
+  return hits[0];
+}
+
+/** The edge between two regions, or undefined. */
+function edgeOf(a: number, b: number) {
+  const s = data.scenario!;
+  const i = s.edgeBetween(a, b);
+  return i < 0 ? undefined : s.edge(i);
+}
+
+// The regions that gave land to a new region (Corsica from Alpes-Maritimes,
+// Hatay from Aleppo, Oahu from Hawaii, Singapore from Malaya) may move their
+// VP tile (pre-flight D1; cmd/ww1936build lists them). Only Malaya's moved.
+const DONORS = new Set([531, 729, 930, 1087]);
+
+/** FNV-1a over "id|owner|name|vpTile" of the regions 1..1342 (VP tile left out for the donors). */
+function v2Fingerprint(regions: readonly ReadonlyScenarioRegion[]): {
+  h: number;
+  n: number;
+} {
+  let h = 0x811c9dc5;
+  const sorted = regions.filter((r) => r.id <= 1342);
+  for (const r of sorted) {
+    const tile = DONORS.has(r.id) ? "" : `${r.vpTile[0]},${r.vpTile[1]}`;
+    const line = `${r.id}|${r.owner}|${r.name}|${tile}\n`;
+    for (let i = 0; i < line.length; i++) {
+      h ^= line.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+  }
+  return { h, n: sorted.length };
+}
+
+describe("the world1936 land graph (P2 spec §3, scenario v3)", () => {
+  test("version 3, the hand order of battle, every country's dev, no kmPerTile", () => {
+    const d = data.scenario!.data;
+    expect(d.version).toBe(3);
+    expect(d.historicalOob).toBe(true);
+    expect(d.countries.filter((c) => c.dev === undefined)).toEqual([]);
+    expect(d.kmPerTile).toBeUndefined();
+    // dev is economy1936.json's.
+    for (const row of economyTable) {
+      expect(d.countries.find((c) => c.tag === row.tag)?.dev, row.tag).toBe(
+        row.dev,
+      );
+    }
+  });
+
+  test("the regions 1..1342 keep their name, owner and VP tile from v2", () => {
+    // Pinned from the committed version 2 scenario.json (1,265 regions).
+    expect(v2Fingerprint(data.scenario!.landRegions)).toEqual({
+      h: 3722970793,
+      n: 1265,
+    });
+  });
+
+  test("2,800 to 3,050 land edges; a region without one is an island of its own", () => {
+    const s = data.scenario!;
+    const map = data.gameMap;
+    expect(s.edges().length).toBeGreaterThanOrEqual(2800);
+    expect(s.edges().length).toBeLessThanOrEqual(3050);
+    s.ensureRegionTiles(map);
+    const lonely = s.landRegions.filter((r) => s.edgesOf(r.id).length === 0);
+    expect(lonely.length).toBeGreaterThan(0);
+    for (const r of lonely) {
+      // Its landmass (4-neighbour land tiles) holds no other region's tile.
+      const seen = new Set<number>(s.regionTiles(r.id));
+      const queue = [...seen];
+      for (let head = 0; head < queue.length; head++) {
+        for (const n of map.neighbors(queue[head])) {
+          if (!map.isLand(n) || seen.has(n)) continue;
+          expect(s.regionAt(n), r.name).toBe(r.id);
+          seen.add(n);
+          queue.push(n);
+        }
+      }
+    }
+  });
+
+  test("the edges join both ways, km from the centres", () => {
+    const s = data.scenario!;
+    for (const [i, e] of s.edges().entries()) {
+      expect(s.edgesOf(e.a).some((x) => x.to === e.b && x.edge === i)).toBe(
+        true,
+      );
+      expect(s.edgesOf(e.b).some((x) => x.to === e.a && x.edge === i)).toBe(
+        true,
+      );
+    }
+    // Great-circle km between the centres: Berlin's neighbours lie 20 to
+    // 800 km from it.
+    const berlin = regionAt(13.4, 52.52)!;
+    const brandenburg = s.edgesOf(berlin.id).map((x) => s.edge(x.edge).km);
+    expect(Math.min(...brandenburg)).toBeGreaterThan(20);
+    expect(Math.max(...brandenburg)).toBeLessThan(800);
+  });
+
+  test.each([
+    ["Messina", "ITA:Palermo", "ITA:Cosenza"],
+    ["Øresund", "DNK:Hovedstaden", "SWE:Skåne"],
+    ["Kerch", "SUN:Crimea", "SUN:Krasnodar"],
+    ["Gibraltar", "GBR:Gibraltar", "ESN:Spanish Morocco"],
+    ["Palk", "RAJ:Tamil Nadu", "GBR:Ceylon"],
+  ] as const)("the %s strait is a land edge", (_strait, a, b) => {
+    const e = edgeOf(named(a).id, named(b).id);
+    expect(e?.strait).toBe(1);
+    expect(e?.border).toBe(0);
+  });
+
+  test("big rivers: the Vistula between Germany and Poland, the Rhine between Alsace and Baden", () => {
+    const s = data.scenario!;
+    expect(s.edges().filter((e) => e.river === 2).length).toBeGreaterThan(30);
+    const ownerOf = (id: number) => s.region(id)!.owner;
+    const deuPol = s
+      .edges()
+      .filter(
+        (e) =>
+          [ownerOf(e.a), ownerOf(e.b)].sort().join() === "DEU,POL" &&
+          e.river === 2,
+      );
+    expect(deuPol.length).toBeGreaterThan(0);
+    const alsace = regionAt(7.75, 48.58)!; // Strasbourg
+    const baden = regionAt(8.4, 49.01)!; // Karlsruhe
+    expect([alsace.owner, baden.owner]).toEqual(["FRA", "DEU"]);
+    expect(edgeOf(alsace.id, baden.id)?.river).toBe(2);
+  });
+
+  test("terrain: every kind there, jungle in the tropics, urban regions small", () => {
+    const s = data.scenario!;
+    const kinds = new Set(s.landRegions.map((r) => s.landOf(r.id)));
+    for (const k of [
+      "plains",
+      "forest",
+      "hills",
+      "mountain",
+      "marsh",
+      "jungle",
+      "desert",
+      "urban",
+    ] as const) {
+      expect(kinds.has(k), k).toBe(true);
+    }
+    for (const r of s.landRegions) {
+      expect(r.land, r.name).toBeDefined();
+      if (r.land === "jungle")
+        expect(Math.abs(s.latC(r.id))).toBeLessThan(2350);
+      if (r.land === "urban") expect(r.tiles, r.name).toBeLessThan(400);
+    }
+    expect(regionAt(2.35, 48.86)!.land).toBe("urban"); // Paris
+  });
+
+  test("rail: majors' capitals at least 2, the Trans-Siberian at least 1", () => {
+    const s = data.scenario!;
+    for (const tag of MAJORS) {
+      const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
+      expect(s.startRail(capital.id), tag).toBeGreaterThanOrEqual(2);
+    }
+    for (const [lon, lat] of [
+      [73.4, 55.0], // Omsk
+      [82.9, 55.0], // Novosibirsk
+      [104.3, 52.3], // Irkutsk
+      [113.5, 52.0], // Chita
+      [135.1, 48.5], // Khabarovsk
+      [131.9, 43.1], // Vladivostok
+    ] as const) {
+      const r = regionAt(lon, lat)!;
+      expect(r.owner).toBe("SUN");
+      expect(s.startRail(r.id), r.name).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  test("forts: the Maginot Line faces Germany, the Mannerheim Line holds the isthmus", () => {
+    const s = data.scenario!;
+    const facingGermany = s.landRegions.filter(
+      (r) =>
+        r.owner === "FRA" &&
+        s.edgesOf(r.id).some((x) => s.region(x.to)!.owner === "DEU"),
+    );
+    expect(facingGermany.length).toBeGreaterThan(0);
+    expect(
+      Math.max(...facingGermany.map((r) => s.startFort(r.id))),
+    ).toBeGreaterThanOrEqual(4);
+    const viipuri = regionAt(28.75, 60.71)!;
+    expect(viipuri.owner).toBe("FIN");
+    expect(s.startFort(viipuri.id)).toBe(3);
+  });
+
+  test.each([
+    ["London", -0.13, 51.51],
+    ["Hamburg", 9.99, 53.55],
+    ["Marseille", 5.37, 43.3],
+    ["Naples", 14.27, 40.85],
+    ["Yokohama", 139.64, 35.44],
+  ] as const)("%s is a port", (_city, lon, lat) => {
+    const r = regionAt(lon, lat)!;
+    expect(data.scenario!.isPort(r.id), r.name).toBe(true);
+  });
+});
+
+describe("the P4 map fixes (P4 spec §3.1–3.3)", () => {
+  test("160 sea zones, the eleven new ones named, three lakes", () => {
+    const s = data.scenario!;
+    const zones = s.data.seaZones;
+    expect(zones.length).toBe(160);
+    const name = (id: number) => s.seaZone(id)?.name;
+    expect(
+      [
+        40150, 40151, 40152, 40153, 40154, 40155, 40156, 40157, 40158, 40159,
+        40160,
+      ].map(name),
+    ).toEqual([
+      "English Channel",
+      "Irish Sea",
+      "Celtic Sea",
+      "Western Mediterranean",
+      "Aegean Sea",
+      "Adriatic Sea",
+      "Skagerrak",
+      "Gulf of Finland",
+      "Persian Gulf",
+      "Gulf of Aden",
+      "Eastern Mediterranean",
+    ]);
+    expect(s.seaZone(40154)?.nameKo).toBe("에게해");
+    expect(s.seaZone(40062)?.name).toBe("Central Mediterranean");
+    expect(s.seaZone(40062)?.nameKo).toBe("중앙 지중해");
+    expect(zones.filter((z) => z.lake).map((z) => z.id)).toEqual([
+      40048, 40051, 40058,
+    ]);
+  });
+
+  test("every sea has a sea edge, lakes none; the straits, canals and date line", () => {
+    const s = data.scenario!;
+    const edges = s.data.seaEdges!;
+    const touched = new Set(edges.flatMap(([a, b]) => [a, b]));
+    for (const z of s.data.seaZones) {
+      expect(touched.has(z.id), `${z.id} ${z.name}`).toBe(!z.lake);
+    }
+    for (const [i, [a, b, km, kind]] of edges.entries()) {
+      expect(a).toBeLessThan(b);
+      expect(km).toBeGreaterThan(0);
+      expect([0, 1, 2, 3]).toContain(kind);
+      if (i > 0) {
+        const [pa, pb] = edges[i - 1];
+        expect(pa < a || (pa === a && pb < b)).toBe(true);
+      }
+    }
+    const kindOf = (a: number, b: number) =>
+      edges.find(([x, y]) => x === Math.min(a, b) && y === Math.max(a, b))?.[3];
+    expect(kindOf(40059, 40154)).toBe(1); // the Bosporus: Black Sea–Aegean
+    expect(kindOf(40160, 40077)).toBe(2); // Suez
+    expect(kindOf(40083, 40092)).toBe(2); // Panama
+    expect(kindOf(40046, 40041)).toBe(2); // Kiel
+    expect(edges.filter((e) => e[3] === 3).length).toBeGreaterThanOrEqual(3);
+    const straits = s.data.straits!;
+    expect(straits.map((x) => x.id)).toEqual([
+      "bosporus",
+      "gibraltar",
+      "oresund",
+      "messina",
+      "suez",
+      "panama",
+      "kiel",
+    ]);
+    for (const st of straits) {
+      expect(kindOf(st.a, st.b), st.id).toBe(st.kind === "canal" ? 2 : 1);
+      for (const id of st.shore) expect(s.region(id), st.id).toBeDefined();
+    }
+  });
+
+  test("the 25 islands are regions from 1343 on, in list order, with their owners", () => {
+    const s = data.scenario!;
+    const islands = s.landRegions.filter((r) => r.island !== undefined);
+    // P4 spec §3.2's 24, and Corsica (controller ruling: P3/P5 content).
+    expect(islandTable.length).toBe(25);
+    expect(islands.map((r) => r.island)).toEqual(islandTable.map((r) => r.key));
+    expect(islands.map((r) => r.id)).toEqual(
+      islandTable.map((_r, k) => 1343 + k),
+    );
+    for (const [k, r] of islands.entries()) {
+      expect(r.owner, r.name).toBe(islandTable[k].owner);
+      expect(r.tiles, r.name).toBeGreaterThan(0);
+      expect(r.coastal, r.name).toBe(true);
+    }
+    const vp = (key: string) => islands.find((r) => r.island === key)!.vp;
+    expect(vp("malta")).toBeGreaterThan(0);
+    expect(vp("oahu")).toBeGreaterThan(0);
+    expect(vp("okinawa")).toBeGreaterThan(0);
+    expect(vp("midway")).toBe(0);
+    // Pearl Harbor and Singapore are ports.
+    expect(s.isPort(islands.find((r) => r.island === "oahu")!.id)).toBe(true);
+  });
+
+  test("Hatay, Singapore, Corsica, Malta, Rhodes, the Mandates, Okinawa, Iwo Jima, Guam and Oahu are regions of their own (P3/P5 content)", () => {
+    const hatay = regionAt(36.16, 36.2)!; // Antakya
+    expect([hatay.id, hatay.name, hatay.owner, hatay.core]).toEqual([
+      1368,
+      "Hatay",
+      "FRA",
+      false,
+    ]);
+    const singapore = regionAt(103.85, 1.29)!;
+    expect([singapore.id, singapore.island, singapore.owner]).toEqual([
+      1366,
+      "singapore",
+      "GBR",
+    ]);
+    expect(singapore.vp).toBeGreaterThan(0);
+    const corsica = regionAt(9.05, 42.15)!;
+    expect([corsica.id, corsica.island, corsica.owner]).toEqual([
+      1367,
+      "corsica",
+      "FRA",
+    ]);
+    const ids = Object.fromEntries(
+      data
+        .scenario!.landRegions.filter((r) => r.island !== undefined)
+        .map((r) => [r.island!, r.id]),
+    );
+    expect(ids).toMatchObject({
+      malta: 1343,
+      oahu: 1344,
+      guam: 1347,
+      saipan: 1350,
+      truk: 1351,
+      palau: 1352,
+      iwo_jima: 1354,
+      okinawa: 1355,
+      rhodes: 1362,
+      leros: 1363,
+    });
+    // The donors keep their ids.
+    expect(regionAt(37.16, 36.2)!.id).toBe(729); // Aleppo
+    expect(regionAt(101.69, 3.14)!.id).toBe(1087); // Malaya
+    expect(regionAt(7.27, 43.7)!.id).toBe(531); // Nice, Alpes-Maritimes
+    expect(regionAt(-155.5, 19.6)!.id).toBe(930); // Hawaii
   });
 });

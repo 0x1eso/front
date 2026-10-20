@@ -1,0 +1,60 @@
+{
+  "sea": [
+    {
+      "id": "bosporus",
+      "kind": "strait",
+      "a": 40059,
+      "b": 40154,
+      "shore": ["TUR:Istanbul", "TUR:Balikesir"]
+    },
+    {
+      "id": "gibraltar",
+      "kind": "strait",
+      "a": 40153,
+      "b": 40063,
+      "shore": ["GBR:Gibraltar", "ESN:Spanish Morocco"]
+    },
+    {
+      "id": "oresund",
+      "kind": "strait",
+      "a": 40156,
+      "b": 40041,
+      "shore": ["DNK:Hovedstaden", "SWE:Skåne"]
+    },
+    {
+      "id": "messina",
+      "kind": "strait",
+      "a": 40066,
+      "b": 40062,
+      "shore": ["ITA:Cosenza", "ITA:Palermo"]
+    },
+    {
+      "id": "suez",
+      "kind": "canal",
+      "a": 40160,
+      "b": 40077,
+      "shore": ["GBR:Cairo"]
+    },
+    {
+      "id": "panama",
+      "kind": "canal",
+      "a": 40083,
+      "b": 40092,
+      "shore": ["PAN:Panama"]
+    },
+    {
+      "id": "kiel",
+      "kind": "canal",
+      "a": 40046,
+      "b": 40041,
+      "shore": ["DEU:Hamburg"]
+    }
+  ],
+  "land": {
+    "add": [
+      ["SUN:Crimea", "SUN:Krasnodar"],
+      ["GBR:Gibraltar", "ESN:Spanish Morocco"]
+    ],
+    "remove": []
+  }
+}

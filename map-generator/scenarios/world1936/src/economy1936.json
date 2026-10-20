@@ -50,7 +50,8 @@
     "civ": 22,
     "mil": 8,
     "dock": 4,
-    "infra": 4
+    "infra": 4,
+    "nonCore": ["TUR"]
   },
   {
     "tag": "USA",

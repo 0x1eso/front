@@ -108,6 +108,7 @@ type EconomyInput struct {
 	Places   []Place
 	Industry Industry
 	Adm      []int32 // admin-1 unit per pixel (feature index + 1), for AdmPop
+	Keep     []int   // the kept islands' points (islands.go keepPoints)
 }
 
 // Site is one line of src/resources1936.json (P1 spec §3.5).
@@ -365,10 +366,15 @@ func regionCore(r *Region, admin []Feature, t *Tables, eco EconomyRow) bool {
 // (map_generator.go removeSmallIslands, then processWater): kept[px] is land
 // that stays land, water[px] water that stays water (4-neighbour bodies; the
 // largest water body, the ocean, always stays). Ponds that become land are
-// neither.
-func generatorLand(land []bool, w, n int) (kept, water []bool) {
+// neither. A land body within keepRadius of a keep point stays whatever its
+// size (P4 spec §3.2, islands.go).
+func generatorLand(land []bool, w, n int, keep ...int) (kept, water []bool) {
 	kept = make([]bool, n)
 	water = make([]bool, n)
+	keepZone := make([]bool, n)
+	for _, px := range keep {
+		inBox(px, w, n/w, func(j int) { keepZone[j] = true })
+	}
 	comp := make([]int32, n)
 	queue := make([]int32, 0, 1<<16)
 	body := func(start int, same func(int) bool, id int32) []int32 {
@@ -389,9 +395,12 @@ func generatorLand(land []bool, w, n int) (kept, water []bool) {
 		if land[i] && comp[i] == 0 {
 			id++
 			pix := body(i, func(j int) bool { return land[j] }, id)
-			keep := len(pix) >= minIsland
+			stay := len(pix) >= minIsland
 			for _, px := range pix {
-				kept[px] = keep
+				stay = stay || keepZone[px]
+			}
+			for _, px := range pix {
+				kept[px] = stay
 			}
 		}
 	}
@@ -909,7 +918,7 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 	w := p.Width
 	n := w * p.Height
 	rows := in.Rows
-	kept, water := generatorLand(land, w, n)
+	kept, water := generatorLand(land, w, n, in.Keep...)
 	hits := placeHits(in.Places, p, kept, ids, in.Adm)
 	people := regionPeople(hits, len(regions))
 	sum := EconomySummary{Civ: make([]int, len(t.Countries)), Mil: make([]int, len(t.Countries)), Dock: make([]int, len(t.Countries))}

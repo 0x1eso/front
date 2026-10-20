@@ -125,11 +125,21 @@ func processMap(ctx context.Context, name string, isTest bool) ([]string, error)
 		return nil, fmt.Errorf("failed to parse info.json for %s: %w", name, err)
 	}
 
+	// A World War 1936 map keeps the islands its scenario lists (regions.go).
+	ww, _ := manifest["ww1936"].(bool)
+	var keep []Coord
+	if ww && !isTest {
+		if keep, err = readKeepIslands(name); err != nil {
+			return nil, fmt.Errorf("map %s: %w", name, err)
+		}
+	}
+
 	// Generate maps
 	result, err := GenerateMap(ctx, GeneratorArgs{
 		ImageBuffer: imageBuffer,
 		RemoveSmall: !isTest, // Don't remove small islands for test maps
 		Name:        name,
+		KeepIslands: keep,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate map for %s: %w", name, err)
@@ -171,7 +181,7 @@ func processMap(ctx context.Context, name string, isTest bool) ([]string, error)
 	// World War 1936 scenario maps (regions.go): regions.bin and scenario.json
 	// from scenarios/<map>/, fixed to the terrain kept above.
 	var written []string
-	if ww, _ := manifest["ww1936"].(bool); ww && !isTest {
+	if ww && !isTest {
 		paths, notes, err := writeScenarioFiles(name, mapDir, result.Map.Data, result.Map.Width, result.Map.Height)
 		if err != nil {
 			return nil, fmt.Errorf("map %s: %w", name, err)

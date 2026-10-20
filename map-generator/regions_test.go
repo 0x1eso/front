@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"strings"
 	"testing"
@@ -66,7 +67,7 @@ func TestFinalizeFillsLandAndWaterFromNeighbours(t *testing.T) {
 	raw[19] = 2     // region 2 seed at x=19
 	raw[23] = 40001 // a sea zone seed
 	raw[20] = 1     // a land id on water: dropped
-	ids, err := finalizeRegions(packed, raw, w, h, nil)
+	ids, err := finalizeRegions(packed, raw, w, h, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +94,7 @@ func TestFinalizeGivesUnseededLakesNewZones(t *testing.T) {
 	raw := make([]uint16, w*h)
 	raw[2] = 3
 	raw[0] = 40005
-	ids, err := finalizeRegions(packed, raw, w, h, nil)
+	ids, err := finalizeRegions(packed, raw, w, h, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +130,7 @@ func TestSmallPiecesJoinTheirLongestNeighbour(t *testing.T) {
 	// stranded inside region 2.
 	raw[1*w+14], raw[1*w+15], raw[2*w+14], raw[2*w+15] = 5, 5, 5, 5
 	raw[0*w+18] = 1
-	ids, err := finalizeRegions(packed, raw, w, h, nil)
+	ids, err := finalizeRegions(packed, raw, w, h, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +144,7 @@ func TestSmallPiecesJoinTheirLongestNeighbour(t *testing.T) {
 func TestLandWithoutAnyRegionIsAnError(t *testing.T) {
 	packed, w, h := grid("LL~~LL")
 	raw := []uint16{1, 1, 0, 0, 0, 0}
-	if _, err := finalizeRegions(packed, raw, w, h, nil); err == nil || !strings.Contains(err.Error(), "no region") {
+	if _, err := finalizeRegions(packed, raw, w, h, nil, nil); err == nil || !strings.Contains(err.Error(), "no region") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -286,7 +287,7 @@ func TestSmallPiecesKeepTheirOwner(t *testing.T) {
 	raw[1*w+15], raw[1*w+16], raw[2*w+15], raw[2*w+16] = 4, 4, 4, 4 // B's other region
 	raw[0*w+18] = 1                                                 // A stranded inside B
 	owner := map[uint16]string{1: "A", 2: "B", 3: "C", 4: "B"}
-	ids, err := finalizeRegions(packed, raw, w, h, owner)
+	ids, err := finalizeRegions(packed, raw, w, h, owner, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,7 +342,7 @@ func TestScenarioCopiesTheEconomy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.Version != 2 {
+	if out.Version != 3 {
 		t.Fatalf("version %d", out.Version)
 	}
 	berlin, warsaw := out.Regions[0].Economy, out.Regions[1].Economy
@@ -381,7 +382,7 @@ func TestCoastIsRecomputedAfterCleanup(t *testing.T) {
 		}
 	}
 	raw[0*w+1] = 40002 // the filled pond: a sea id on land
-	ids, err := finalizeRegions(packed, raw, w, h, map[uint16]string{1: "DEU", 2: "POL"})
+	ids, err := finalizeRegions(packed, raw, w, h, map[uint16]string{1: "DEU", 2: "POL"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,5 +438,150 @@ func TestADroppedRegionWithFactoriesFails(t *testing.T) {
 	src.Regions = append(src.Regions, srcRegion{ID: 3, Name: "Islet", NameKo: "섬", Owner: "DEU", Economy: Economy{Cat: "city", Pop: 300, Infra: 4, Core: true, Civ: 1}})
 	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "lost every tile but has 1 factories") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// v3 fields are copied (P2 spec §3.1): the land graph fields, the edges, sea
+// edges, straits and historicalOob go to scenario.json as scenario.src.json
+// gives them; the port is the formula's on the final tiles (or a hand
+// harbour), dev stays with the country.
+func TestV3FieldsAreCopied(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	src.Countries[0].Dev = 5
+	src.Regions[0].LandGraph = LandGraph{Land: "urban", Center: &[2]int{1, 1}, LatC: 5252, WCell: 415, Rail: 4, Fort: 0}
+	src.Regions[1].LandGraph = LandGraph{Land: "forest", Center: &[2]int{6, 2}, LatC: 5223, WCell: 416, Rail: 1, Fort: 2}
+	src.Regions[1].Island = "rock"
+	src.Edges = []landEdge{{1, 2, 3, 520, 2, 0}}
+	src.SeaZones = append(src.SeaZones, srcSea{ID: 40002, Name: "Lake", NameKo: "호수", Lake: true})
+	src.SeaEdges = []seaEdge{{40001, 40002, 300, 1}}
+	src.Straits = []strait{{ID: "narrows", Kind: "strait", A: 40001, B: 40002, Shore: []int{2}}}
+	src.HistoricalOob = true
+	ids[9] = 40002 // one tile of the second zone
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	berlin, warsaw := out.Regions[0], out.Regions[1]
+	if berlin.outLand != (outLand{Land: "urban", Center: [2]int{1, 1}, LatC: 5252, WCell: 415, Rail: 4}) {
+		t.Fatalf("Berlin %+v", berlin.outLand)
+	}
+	// Warsaw: coastal, a dockyard: a port.
+	if warsaw.outLand != (outLand{Land: "forest", Center: [2]int{6, 2}, LatC: 5223, WCell: 416, Rail: 1, Fort: 2, Port: true, Island: "rock"}) {
+		t.Fatalf("Warsaw %+v", warsaw.outLand)
+	}
+	if berlin.Port {
+		t.Fatal("inland Berlin has a port")
+	}
+	if len(out.Edges) != 1 || out.Edges[0] != (landEdge{1, 2, 3, 520, 2, 0}) || len(out.SeaEdges) != 1 || len(out.Straits) != 1 || !out.HistoricalOob {
+		t.Fatalf("graphs %v %v %v %v", out.Edges, out.SeaEdges, out.Straits, out.HistoricalOob)
+	}
+	if out.Countries[0].Dev != 5 || !out.SeaZones[1].Lake || out.Version != 3 {
+		t.Fatalf("dev %d, lake %v, version %d", out.Countries[0].Dev, out.SeaZones[1].Lake, out.Version)
+	}
+	// A hand harbour makes a port of a coastal region without a dockyard or
+	// points; inland it does not.
+	src.Regions[1].Dock = 0
+	out, _, err = buildScenario(src, ids, packed, w, h)
+	if err != nil || out.Regions[1].Port {
+		t.Fatalf("no dock, no hand port: port %v, %v", out.Regions[1].Port, err)
+	}
+	src.Regions[1].Port = true
+	out, _, _ = buildScenario(src, ids, packed, w, h)
+	if !out.Regions[1].Port {
+		t.Fatal("a hand harbour on the coast is no port")
+	}
+}
+
+// The tool's borders must be the final map's: a wrong count, a touching pair
+// without an edge, a center off the region all fail.
+func TestV3GraphsMustMatchTheFinalTiles(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	src.Edges = []landEdge{{1, 2, 4, 520, 0, 0}}
+	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "border 4 in scenario.src.json, 3 on the final map") {
+		t.Fatalf("err = %v", err)
+	}
+	src.Edges = []landEdge{}
+	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "touch on the final map but have no edge") {
+		t.Fatalf("err = %v", err)
+	}
+	src.Edges = nil
+	src.Regions[0].Center = &[2]int{5, 1} // Warsaw's tile
+	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "is not one of its tiles") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// The cleanup drops a region: its edges and its place on a strait's shore
+// go with it.
+func TestEdgesOfADroppedRegionAreRemoved(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	src.Regions = append(src.Regions, srcRegion{ID: 3, Name: "Islet", NameKo: "섬", Owner: "DEU", Economy: Economy{Cat: "rural", Infra: 4, Core: true}})
+	src.Edges = []landEdge{{1, 2, 3, 520, 0, 0}, {2, 3, 0, 40, 0, 1}}
+	src.Straits = []strait{{ID: "narrows", Kind: "strait", A: 40001, B: 40001, Shore: []int{2, 3}}}
+	out, notes, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Edges) != 1 || out.Edges[0][1] != 2 {
+		t.Fatalf("edges %v", out.Edges)
+	}
+	if len(out.Straits) != 1 || len(out.Straits[0].Shore) != 1 || out.Straits[0].Shore[0] != 2 {
+		t.Fatalf("straits %+v", out.Straits)
+	}
+	joined := strings.Join(notes, "\n")
+	if !strings.Contains(joined, "edge 2-3 dropped") || !strings.Contains(joined, "shore region 3 dropped") {
+		t.Fatalf("notes %v", notes)
+	}
+}
+
+// Kept islands survive the cleanup (P4 spec §3.2): removeSmallIslands keeps a
+// small body within keepIslandRadius of a keep point and drops one farther
+// off; finalizeRegions leaves an island region under minRegionFragment tiles
+// alone, though a same-owner region touches it.
+func TestKeptIslandsSurviveTheCleanup(t *testing.T) {
+	w, h := 20, 10
+	terrain := make([][]Terrain, w)
+	for x := range terrain {
+		terrain[x] = make([]Terrain, h)
+		for y := range terrain[x] {
+			terrain[x][y] = Terrain{Type: Water}
+		}
+	}
+	terrain[2][2] = Terrain{Type: Land}
+	terrain[15][7] = Terrain{Type: Land}
+	ctx := context.Background()
+	removeSmallIslands(ctx, terrain, minIslandSize, true, []Coord{{X: 5, Y: 4}})
+	if terrain[2][2].Type != Land {
+		t.Fatal("the island near the keep point went")
+	}
+	if terrain[15][7].Type != Water {
+		t.Fatal("the far islet stayed")
+	}
+
+	packed, gw, gh := grid(
+		"LLLLLLLLLLLLLLLLLLLLLLLLL~~",
+		"LLLLLLLLLLLLLLLLLLLLLLLLL~~",
+	)
+	raw := make([]uint16, gw*gh)
+	for i := range raw {
+		raw[i] = 1
+		if i%gw >= 22 {
+			raw[i] = 2
+		}
+		if i%gw >= 25 {
+			raw[i] = 40001
+		}
+	}
+	owner := map[uint16]string{1: "GBR", 2: "GBR"}
+	ids, err := finalizeRegions(packed, raw, gw, gh, owner, map[uint16]bool{2: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids[23] != 2 || ids[gw+24] != 2 {
+		t.Fatal("the island region joined its neighbour")
+	}
+	ids, _ = finalizeRegions(packed, raw, gw, gh, owner, nil)
+	if ids[23] != 1 {
+		t.Fatal("without the exemption the piece stays")
 	}
 }
