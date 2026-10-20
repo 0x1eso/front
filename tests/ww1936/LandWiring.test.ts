@@ -16,6 +16,7 @@ import {
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { MAJOR_START } from "@openfront/engine-lib/ww1936/EconomyStart";
+import { GENERALS, rosterOf } from "@openfront/engine-lib/ww1936/Generals";
 import { AllianceRequestExecution } from "@openfront/engine/execution/alliance/AllianceRequestExecution";
 import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import type { Game } from "@openfront/engine/game/Game";
@@ -180,11 +181,12 @@ describe("World War 1936 P2: the land war's wiring", () => {
     expect(l.armiesOf(id("FRA")).map((a) => l.armyRegion(a))).toEqual([
       1, 2, 1,
     ]);
-    // Poland: one army in Warsaw, no general.
+    // Poland: one army in Warsaw under its best general serving in 1936
+    // (Task 10's roster: Sosnkowski).
     const pol = l.armiesOf(id("POL"));
     expect(
       pol.map((a) => [a.divisions.length, l.armyRegion(a), a.general]),
-    ).toEqual([[8, 6, 0]]);
+    ).toEqual([[8, 6, GENERALS.findIndex((x) => x.id === "sosnkowski") + 1]]);
     // Germany's men and rifles came from its pool and stock.
     const ce = l.econ.country(id("DEU"))!;
     expect(ce.manpower).toBe(1_675_000 - 45 * 10_500);
@@ -533,7 +535,22 @@ describe("World War 1936 P2: the land war's state", () => {
       ["mountain", 0],
       ["cavalry", 0],
     ]);
-    expect(detail.generals.map((x) => x.key)).toEqual(["rundstedt", "bock"]);
+    // Germany's whole roster (Task 10), best first; the two seed rows lead
+    // the ones serving in 1936.
+    expect(detail.generals.map((x) => x.key)).toEqual(
+      rosterOf("DEU").map((id) => GENERALS[id - 1].id),
+    );
+    expect(
+      detail.generals.filter((x) => x.from === -1).map((x) => x.key),
+    ).toEqual([
+      "rundstedt",
+      "bock",
+      "kluge",
+      "heinrici",
+      "geyr",
+      "witzleben",
+      "wietersheim",
+    ]);
     expect(detail.divisions).toHaveLength(45);
     // Quiet ticks send nothing.
     const n = updates.length;
