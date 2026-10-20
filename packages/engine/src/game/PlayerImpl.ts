@@ -1191,6 +1191,9 @@ export class PlayerImpl implements Player {
     if (congress !== null && donationBlocked(congress, recipient)) {
       return false;
     }
+    if (this.capitulatedEither(recipient)) {
+      return false;
+    }
     if (
       !this.isAlive() ||
       !recipient.isAlive() ||
@@ -1226,6 +1229,9 @@ export class PlayerImpl implements Player {
     if (congress !== null && donationBlocked(congress, recipient)) {
       return false;
     }
+    if (this.capitulatedEither(recipient)) {
+      return false;
+    }
     if (
       !this.isAlive() ||
       !recipient.isAlive() ||
@@ -1250,6 +1256,18 @@ export class PlayerImpl implements Player {
       }
     }
     return true;
+  }
+
+  /**
+   * World War 1936 (spec §7.5): a capitulated country, its land on its way
+   * to the victor, gives and gets nothing. False without the mode.
+   */
+  private capitulatedEither(other: Player): boolean {
+    const ww = this.mg.worldWar();
+    return (
+      ww !== null &&
+      (ww.isCapitulated(this._smallID) || ww.isCapitulated(other.smallID()))
+    );
   }
 
   donateTroops(recipient: Player, troops: number): boolean {
@@ -1731,6 +1749,12 @@ export class PlayerImpl implements Player {
     validTiles: TileRef[] | null = null,
   ): TileRef | false {
     if (!this.canBuildUnitType(unitType)) {
+      return false;
+    }
+    // World War 1936 (spec §7.5): a capitulated country builds nothing
+    // while its land moves to the victor.
+    const ww = this.mg.worldWar();
+    if (ww !== null && ww.isCapitulated(this._smallID)) {
       return false;
     }
 
