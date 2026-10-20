@@ -1,7 +1,7 @@
 // World War 1936 P2: movement (P2 spec §7.2–§7.7). Task 3 owns this file.
-// The foundation finished the tick loop (stepMovement, its step and its
-// arrival: pre-flight U9) and stopDivision / startHopInto; startNextHop,
-// pathTicks and findPath are Task 3's stubs.
+// The foundation wrote the tick loop (stepMovement, its step and its
+// arrival: pre-flight U9) and stopDivision / startHopInto; Task 3 the
+// hops along a path (startNextHop), the paths and their times.
 import {
   MOVE_ADVANCE,
   MOVE_NONE,
@@ -15,9 +15,12 @@ import {
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
+  edgeTicks,
   moveNeed,
   moveStep,
   railStep,
+  seaTicks,
+  shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { joinBattle, retreatDivision } from "./Battles";
@@ -146,19 +149,183 @@ export function enemyDivisionsIn(
   return n;
 }
 
-/** Starts division `row` on the next edge toward its dest (or stops it). Task 3. */
-export function startNextHop(land: WwLand, row: number, tick: number): void {}
+/**
+ * Starts division `row`, standing in its region (mode none), on the next
+ * edge toward its dest; with no way there it waits where it is (spec §7.3:
+ * dest = its region). The mode is its army's move order's when that order
+ * leads to this dest (walk, rail, sea), else walking (fronts). A move
+ * follows the path stored on the army; off it, or when the next region is
+ * no longer ours, it looks for a new one.
+ */
+export function startNextHop(land: WwLand, row: number, tick: number): void {
+  const t = land.divisions;
+  const here = t.region[row];
+  const dest = t.dest[row];
+  if (dest === here) {
+    if (t.mode[row] !== MOVE_NONE) stopDivision(land, row);
+    return;
+  }
+  const owner = t.owner[row];
+  const sc = land.scenario;
+  const army = land.armies.get(t.army[row]);
+  const moving =
+    army !== undefined && army.order.kind === "move" && army.order.to === dest;
+  const mode = moving ? army.order.mode : MOVE_WALK;
+  const ours = (r: number) => land.sameSide(owner, land.controller[r]);
+  let next = -1;
+  let edge = -1;
+  let need = 0;
+  if (mode === MOVE_SEA) {
+    // Spec §7.5: one hop, from port to port, in milli-ticks.
+    if (ours(dest) && sc.isPort(dest)) {
+      next = dest;
+      need = seaTicks(sc.regionKm(here, dest)) * 1000;
+    }
+  } else {
+    const rail = mode === MOVE_RAIL;
+    const pass = rail ? (r: number) => ours(r) && railed(land, r) : ours;
+    if (moving) {
+      trimPath(land, army);
+      const i = army.path.indexOf(here);
+      const cand = i >= 0 && i + 1 < army.path.length ? army.path[i + 1] : -1;
+      if (cand >= 0 && pass(cand) && sc.edgeBetween(here, cand) >= 0) {
+        next = cand;
+      }
+    }
+    if (next < 0) {
+      const path = rail
+        ? railPath(land, owner, here, dest)
+        : army === undefined
+          ? []
+          : findPath(land, army, here, dest, ours);
+      if (path.length >= 2 && pass(path[1])) next = path[1];
+    }
+    if (next >= 0) {
+      edge = sc.edgeBetween(here, next);
+      const e = sc.edge(edge);
+      need = rail ? e.km * 1000 : moveNeed(e, sc.landOf(next));
+    }
+  }
+  if (next < 0) {
+    stopDivision(land, row);
+    return;
+  }
+  t.next[row] = next;
+  t.edge[row] = edge;
+  t.need[row] = need;
+  t.prog[row] = 0;
+  t.step[row] = 0;
+  t.mode[row] = mode;
+  land.markArmy(t.army[row]);
+}
 
-/** Ticks for an army to walk `path` at its slowest division's pace (UI ETA, AI). Task 3. */
+/** Drops the regions of a move's path every division of the army has left behind. */
+function trimPath(land: WwLand, army: Army): void {
+  const t = land.divisions;
+  let min = Infinity;
+  for (const id of army.divisions) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    const i = army.path.indexOf(t.region[r]);
+    if (i >= 0 && i < min) min = i;
+  }
+  if (min !== Infinity && min > 0) army.path.splice(0, min);
+}
+
+function railed(land: WwLand, region: number): boolean {
+  return land.econ.rail[region] >= 1;
+}
+
+/**
+ * Spec §7.4: the quickest railway from `from` to `to` over our side's
+ * regions with a railway (time = km at the rail speed); [] when none.
+ */
+export function railPath(
+  land: WwLand,
+  owner: number,
+  from: number,
+  to: number,
+): number[] {
+  const ce = land.econ.country(owner);
+  const step = railStep(ce === null ? 0 : ce.tech.railSpeedPct);
+  const ok = (r: number) =>
+    land.sameSide(owner, land.controller[r]) && railed(land, r);
+  if (!ok(from) || !ok(to)) return [];
+  const sc = land.scenario;
+  return shortestPath(sc, from, to, ok, (e) =>
+    edgeTicks(sc.edge(e).km * 1000, step),
+  );
+}
+
+/** Infantry's 4 km/h: an army with no divisions left still finds a way. */
+const DEFAULT_SPEED_CENTI = 400;
+
+/**
+ * Spec §7.3: the army's pace for path costs, the slowest division's step
+ * on clear plains with full supply and no bonus.
+ */
+export function slowestPathStep(land: WwLand, army: Army): number {
+  const t = land.divisions;
+  let speed = Infinity;
+  for (const id of army.divisions) {
+    const r = t.rowOf(id);
+    if (r >= 0) speed = Math.min(speed, land.baseStatsOf(r).speedCenti);
+  }
+  if (speed === Infinity) speed = DEFAULT_SPEED_CENTI;
+  return moveStep(speed, 1, "clear", 1000, 0);
+}
+
+/**
+ * Ticks for an army to walk `path` at its slowest division's pace (UI ETA,
+ * AI): each edge at the speed the division would have walking into its far
+ * end today (infrastructure, weather, supply, tech and the general).
+ */
 export function pathTicks(
   land: WwLand,
   army: Army,
   path: readonly number[],
 ): number {
-  return 0;
+  const t = land.divisions;
+  const sc = land.scenario;
+  const rows: number[] = [];
+  for (const id of army.divisions) {
+    const r = t.rowOf(id);
+    if (r >= 0) rows.push(r);
+  }
+  const fallback = slowestPathStep(land, army);
+  let total = 0;
+  for (let i = 0; i + 1 < path.length; i++) {
+    const to = path[i + 1];
+    const e = sc.edgeBetween(path[i], to);
+    if (e < 0) continue;
+    let step = rows.length === 0 ? fallback : Infinity;
+    for (const r of rows) step = Math.min(step, walkStepInto(land, r, to));
+    total += edgeTicks(moveNeed(sc.edge(e), sc.landOf(to)), step);
+  }
+  return total;
 }
 
-/** Shortest region path (Dijkstra, spec §7.3) for `owner`'s army over regions `pass` accepts; [] when none. Task 3. */
+/** What division `r` would walk in a tick into region `to` today (stepOf for a walk there). */
+function walkStepInto(land: WwLand, r: number, to: number): number {
+  const t = land.divisions;
+  const ce = land.econ.country(t.owner[r]);
+  const sc = land.scenario;
+  const w = weatherAt(land.day(), sc.latC(to), sc.landOf(to), sc.wcell(to));
+  const s = land.baseStatsOf(r);
+  return moveStep(
+    s.speedCenti,
+    land.econ.infra[to],
+    w,
+    t.supply[r],
+    (ce === null ? 0 : ce.tech.speedPct * 100) + traitSpeedBp(land, r, s.flags),
+  );
+}
+
+/**
+ * Shortest region path (Dijkstra, spec §7.3) for `army` over regions
+ * `pass` accepts, an edge costing whole ticks at its slowest division's
+ * pace; [] when none, [from] when from = to.
+ */
 export function findPath(
   land: WwLand,
   army: Army,
@@ -166,7 +333,11 @@ export function findPath(
   to: number,
   pass: (region: number) => boolean,
 ): number[] {
-  return [];
+  const sc = land.scenario;
+  const step = slowestPathStep(land, army);
+  return shortestPath(sc, from, to, pass, (e, next) =>
+    edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
+  );
 }
 
 /** Stops a division where it stands (finished here by the foundation; C and A call it). */
