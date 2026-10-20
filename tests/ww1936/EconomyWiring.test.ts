@@ -106,8 +106,12 @@ describe("economy wiring (spec §6, §14)", () => {
       stamped(HUMAN, { type: "declare_war", target: ita.id() }),
     ]);
     step(runner, 2);
+    // The 1936 army and Britain's day-0 draft (tick 603), all at home.
     const before = econ.armyMen(gbr);
-    expect(before).toBe(250_000);
+    expect(before).toBe(gbr.troops());
+    expect(before).toBe(
+      250_000 + econ.country(gbr.smallID())!.totals.recruited,
+    );
     // A boat for Rome's coast: its men leave the troops, not the army.
     step(runner, 1, [
       stamped(HUMAN, { type: "boat", troops: 50_000, dst: g.ref(65, 99) }),
@@ -115,7 +119,7 @@ describe("economy wiring (spec §6, §14)", () => {
     step(runner, 2);
     const [boat] = gbr.units(UnitType.TransportShip);
     expect(boat.troops()).toBe(50_000);
-    expect(gbr.troops()).toBe(200_000);
+    expect(gbr.troops()).toBe(before - 50_000);
     expect(econ.armyMen(gbr)).toBe(before);
   });
 
@@ -274,14 +278,16 @@ describe("economy wiring (spec §6, §14)", () => {
       }),
     ]);
     step(runner, 2);
-    // The order reached Germany's economy (its screen hears of it); the
-    // stub law changes nothing yet, and the execution came and went.
+    // The order reached Germany's economy (its screen hears of it): the law
+    // changed during the preparation minute, the hash shows it at once, and
+    // the execution came and went.
     const deu = byTag(g, "DEU").smallID();
     const details = updates
       .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
       .flatMap((u) => u.data.details);
     expect(details.map((d) => d.smallID)).toEqual([deu]);
-    expect(econ.hash()).toBe(before);
+    expect(econ.country(deu)!.laws.economy).toBe("civilian");
+    expect(econ.hash()).not.toBe(before);
     const execs = (g as unknown as { executions(): object[] }).executions();
     expect(execs.some((e) => e.constructor.name === "WwOrderExecution")).toBe(
       false,

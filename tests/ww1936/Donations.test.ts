@@ -69,10 +69,12 @@ describe("World War 1936 donations (spec §7.2)", () => {
     // Germany keeps what it would have given (it only grew since).
     expect(deu.gold()).toBeGreaterThanOrEqual(deuGold);
     expect(deu.troops()).toBeGreaterThanOrEqual(deuTroops);
-    // France got no more than its own income.
+    // France got no more than its own income and its own daily draft.
     const income = fra.gold() - beforeGold;
     expect(income).toBeLessThan(1_000n);
-    expect(fra.troops() - beforeTroops).toBeLessThan(5_000);
+    const drafted = g.worldWar()!.economy.country(fra.smallID())!.totals
+      .recruited;
+    expect(fra.troops() - beforeTroops - drafted).toBeLessThan(5_000);
   });
 
   test("a capitulated country neither donates nor builds", async () => {

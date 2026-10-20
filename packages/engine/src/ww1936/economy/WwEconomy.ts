@@ -388,7 +388,11 @@ export class WwEconomy {
       this.refreshTotals(ce, 0, 0);
       // Every slot exists from the start, so day 0 brings no "new slot".
       ce.slots = new Array<null>(ce.totals.slotCount).fill(null);
-      ce.totals.troopCap = troopCapOf(army, ce.manpower, ce.infStock());
+      ce.totals.troopCap = troopCapOf(
+        this.armyMen(p),
+        ce.manpower,
+        ce.infStock(),
+      );
       updateCombatStats(this, ce, p);
       this.dirtyCountries.add(ce.smallID);
     }
@@ -807,6 +811,13 @@ export class WwEconomy {
       h = (Math.imul(h, 31) + ce.totals.troopCap) | 0;
       h = (Math.imul(h, 31) + stock) | 0;
       h = (Math.imul(h, 31) + ce.researched.size * 7 + ce.queue.length) | 0;
+      // Laws, so a law desync shows the same tick (not a day later).
+      h =
+        (Math.imul(h, 31) +
+          ECONOMY_LAWS.indexOf(ce.laws.economy) * 64 +
+          TRADE_LAWS.indexOf(ce.laws.trade) * 8 +
+          CONSCRIPTION_LAWS.indexOf(ce.laws.conscription)) |
+        0;
       for (const l of ce.lines) {
         h = (Math.imul(h, 31) + l.effBp + l.factories) | 0;
       }
