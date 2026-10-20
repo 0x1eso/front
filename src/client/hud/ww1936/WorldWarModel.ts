@@ -27,14 +27,14 @@ import type { GameView, PlayerView } from "../../view";
 export const WW_BAND_PX = 32;
 /** A second tap within this many ms confirms an irreversible action (§14d). */
 export const TWO_TAP_MS = 3000;
+/**
+ * A confirming tap sooner than this after arming is ignored and the action
+ * stays armed: a double-click or double-tap must not confirm before the
+ * confirmation label can be read.
+ */
+export const TWO_TAP_MIN_MS = 350;
 /** How many MVPs the win screen lists. */
 export const WW_MVP_COUNT = 3;
-
-export const FACTION_DOT_CLASS: Readonly<Record<FactionId, string>> = {
-  axis: "bg-zinc-400",
-  allies: "bg-sky-400",
-  comintern: "bg-red-500",
-};
 
 /** What the World War 1936 screens read from the game (a fake in tests). */
 export type WwGame = Pick<
@@ -71,6 +71,18 @@ export function countryLabel(game: WwGame, p: PlayerView): string {
   const clientID = p.clientID();
   const user = clientID === null ? null : game.usernameOf(clientID);
   return user === null ? name : `${name} · ${user}`;
+}
+
+/**
+ * The name the hover card and the player panel show a player by: in this
+ * mode its translated country (with the username for a human), as on the
+ * leaderboard; otherwise its display name. PlayerInfo.name stays the
+ * English country name for the map labels (plan decision 3).
+ */
+export function shownName(game: WwGame, p: PlayerView): string {
+  return game.worldWarScenario() === null
+    ? p.displayName()
+    : countryLabel(game, p);
 }
 
 /**
@@ -264,17 +276,21 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
 }
 
 /**
- * Countries a declaration on `target` brings in besides the target (spec
- * §7.3): its living, uncapitulated faction members.
+ * Countries my declaration on `target` newly brings in besides the target
+ * (spec §7.3): its living, uncapitulated faction members I am not at war
+ * with yet. Matches Diplomacy.declareWar, which skips those.
  */
 export function callIns(game: WwGame, target: PlayerView): number {
   const s = game.worldWarScenario();
   const faction = factionOfPlayer(target);
   if (s === null || faction === null) return 0;
+  const myID = game.myPlayer()?.smallID() ?? 0;
+  const atWar = new Set(enemiesOf(game, myID));
   let n = 0;
   s.countries.forEach((tag, i) => {
     const id = i + 1;
-    if (id === target.smallID() || COUNTRIES[tag].faction !== faction) return;
+    if (id === target.smallID() || id === myID) return;
+    if (COUNTRIES[tag].faction !== faction || atWar.has(id)) return;
     if (isCapitulated(game, id) || !(asPlayer(game, id)?.isAlive() ?? false))
       return;
     n++;
@@ -326,7 +342,10 @@ export function translateCountryParams(
   return out;
 }
 
-/** Spec §8.2: an irreversible action needs a second tap within TWO_TAP_MS. */
+/**
+ * Spec §8.2: an irreversible action needs a second tap within TWO_TAP_MS,
+ * but not sooner than TWO_TAP_MIN_MS.
+ */
 export class TwoTap {
   private key: string | null = null;
   private at = 0;
@@ -334,6 +353,8 @@ export class TwoTap {
   /** True when this tap confirms. */
   tap(key: string, nowMs: number): boolean {
     if (this.isArmed(key, nowMs)) {
+      // Too soon: still armed, from the first tap.
+      if (nowMs - this.at < TWO_TAP_MIN_MS) return false;
       this.key = null;
       return true;
     }

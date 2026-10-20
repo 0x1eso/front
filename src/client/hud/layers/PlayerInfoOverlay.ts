@@ -43,6 +43,7 @@ import {
   countryName,
   isKoreanUi,
   regionInfo,
+  shownName,
   WW_BAND_PX,
 } from "../ww1936/WorldWarModel";
 import { ShowPlayerChatEvent } from "./ChatModal";
@@ -539,6 +540,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       .map((a) => a.troops)
       .reduce((a, b) => a + b, 0);
     const totalTroops = player.troops();
+    const name = shownName(this.game, player);
 
     let playerType = "";
     switch (player.type()) {
@@ -564,7 +566,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     const typeAndTeamLen = Math.max(typeLen, teamLen);
 
     const { fontSize, isAllianceWrapped } = this.getNameFontSize({
-      nameLength: player.displayName().length,
+      nameLength: name.length,
       iconCount: playerIcons.length,
       hasFlag: !!player.cosmetics.flag,
       hasBetrayal: traitorTicks > 0,
@@ -698,7 +700,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               <span
                 class="font-mono inline-block leading-[1.2] wrap-anywhere"
                 style="font-size: ${fontSize}"
-                >${player.displayName()}</span
+                >${name}</span
               >
             </div>
             ${this.getRelationSmiley(player, myPlayer)}
@@ -896,6 +898,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
   /** World War 1936 (spec §8.2): the region's name, points and 1936 owner. */
   private renderRegionLine(tile: TileRef) {
+    // The mode first: other games skip the language lookup (a DOM query).
+    if (this.game.worldWarScenario() === null) return "";
     const info = regionInfo(this.game, tile, isKoreanUi());
     if (info === null) return "";
     return html`<div

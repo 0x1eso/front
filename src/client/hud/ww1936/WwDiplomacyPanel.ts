@@ -4,14 +4,18 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { registerBackClosable } from "../../BackGuard";
+import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
-import { DrawerInsets, drawerInsets } from "../domestic/DomesticPanel";
+import {
+  COMPACT_MAX_HEIGHT,
+  DrawerInsets,
+  drawerInsets,
+} from "../domestic/DomesticPanel";
 import {
   countryName,
   diplomacyModel,
-  FACTION_DOT_CLASS,
   factionName,
   WW_BAND_PX,
 } from "./WorldWarModel";
@@ -31,7 +35,11 @@ const GAP = 8;
  * screen's middle (at most 22rem wide), below the band and the top-right
  * sidebar, above the bottom HUD's rows (the attack ratio), left of the map
  * buttons — the domestic drawer's insets. Under the hover card (z-1001), so
- * a tapped country's card stays readable.
+ * a tapped country's card stays readable. On a short landscape screen (at
+ * most COMPACT_MAX_HEIGHT tall, like the domestic drawer) that HUD would
+ * squeeze it to nothing, so it runs from below the band to the bottom edge
+ * over the top-right stack and the bottom rows instead; and it is never
+ * shorter than 15rem (min-h-60).
  */
 @customElement("ww-diplomacy-panel")
 export class WwDiplomacyPanel extends LitElement implements Controller {
@@ -43,10 +51,15 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     right: GAP,
     bottom: GAP,
   };
+  /** A short landscape screen: below the band down to the bottom edge. */
+  @state() private compact = false;
   private unregisterBack: (() => void) | null = null;
   private readonly refit = () => {
     const i = drawerInsets();
-    this.insets = { ...i, top: Math.max(i.top, WW_BAND_PX + GAP) };
+    this.compact = window.innerHeight <= COMPACT_MAX_HEIGHT;
+    this.insets = this.compact
+      ? { top: WW_BAND_PX + GAP, right: i.right, bottom: GAP }
+      : { ...i, top: Math.max(i.top, WW_BAND_PX + GAP) };
   };
 
   createRenderRoot() {
@@ -109,14 +122,17 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     if (!this.open || !this.game?.worldWarScenario()) return null;
     const m = diplomacyModel(this.game);
     const { top, right, bottom } = this.insets;
+    const bottomCss = this.compact
+      ? `calc(env(safe-area-inset-bottom, 0px) + ${bottom}px)`
+      : `${bottom}px`;
     const camps = m.camps.filter((c, i) => i < SHOWN_CAMPS || c.mine);
     const heading =
       "mb-1 text-xs font-bold uppercase tracking-wide text-white/70";
     return html`
       <aside
         data-ww-diplomacy
-        class="fixed z-[1000] flex flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
-        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px; width: min(22rem, calc(50vw - ${right}px));"
+        class="fixed z-[1000] flex min-h-60 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
+        style="top: ${top}px; right: ${right}px; bottom: ${bottomCss}; width: min(22rem, calc(50vw - ${right}px));"
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
         <div class="flex shrink-0 items-center justify-between px-3 pt-2">

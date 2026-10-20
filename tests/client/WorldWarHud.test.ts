@@ -1,3 +1,4 @@
+import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
@@ -34,6 +35,8 @@ vi.mock("../../src/client/GamePortal", () => ({
   gamePortal: { happytime: vi.fn(), gameplayStop: vi.fn() },
 }));
 
+import "../../src/client/components/ww1936/CountryPicker";
+import { FACTION_DOT_CLASS } from "../../src/client/components/ww1936/FactionDot";
 import { gamePortal } from "../../src/client/GamePortal";
 import "../../src/client/hud/layers/PlayerPanel";
 import type { PlayerPanel } from "../../src/client/hud/layers/PlayerPanel";
@@ -239,7 +242,20 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(t.tap("x", 5000)).toBe(false);
     expect(t.tap("x", 8001)).toBe(false);
     expect(t.tap("y", 8002)).toBe(false);
-    expect(t.tap("y", 8003)).toBe(true);
+    expect(t.tap("y", 8352)).toBe(true);
+  });
+
+  it("a confirming tap within 350 ms of arming is ignored; it stays armed", () => {
+    const t = new TwoTap();
+    expect(t.tap("x", 0)).toBe(false);
+    expect(t.tap("x", 349)).toBe(false);
+    expect(t.isArmed("x", 349)).toBe(true);
+    expect(t.tap("x", 350)).toBe(true);
+    // The three seconds still count from the first tap.
+    expect(t.tap("y", 10_000)).toBe(false);
+    expect(t.tap("y", 10_100)).toBe(false);
+    expect(t.isArmed("y", 12_999)).toBe(true);
+    expect(t.isArmed("y", 13_000)).toBe(false);
   });
 
   it("the confirmation counts the target's faction members it brings in", () => {
@@ -247,6 +263,11 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(callIns(fakeGame(), fra(fakeGame()))).toBe(1);
     const g = fakeGame({ capitulated: ["GBR"] });
     expect(callIns(g, fra(g))).toBe(0);
+    // Britain counts only while I am not at war with it yet.
+    const peace = fakeGame({ me: "DEU" });
+    expect(callIns(peace, fra(peace))).toBe(1);
+    const atWar = fakeGame({ me: "DEU", wars: [["GBR", "DEU"]] });
+    expect(callIns(atWar, fra(atWar))).toBe(0);
   });
 
   it("the win names the faction, celebrates on its side and lists its MVPs", () => {
@@ -279,6 +300,42 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     );
     band.querySelector<HTMLButtonElement>("[data-ww-wars]")!.click();
     expect(emitted[0]).toBeInstanceOf(ToggleWwDiplomacyEvent);
+  });
+
+  it("<ww-top-band> never covers the top-right stack on a narrow landscape phone", async () => {
+    vi.stubGlobal("innerWidth", 667);
+    let stackWidth = 160;
+    const stack = document.createElement("div");
+    stack.setAttribute("data-hud-top-right", "");
+    stack.getBoundingClientRect = () =>
+      ({
+        left: 667 - stackWidth,
+        right: 667,
+        top: 0,
+        bottom: 120,
+        width: stackWidth,
+        height: 120,
+      }) as DOMRect;
+    document.body.appendChild(stack);
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = fakeGame({ me: "DEU" }) as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const el = () => band.querySelector<HTMLElement>("[data-ww-band]")!;
+    // Centred, with the stack's width and a gap kept clear on both sides:
+    // 667 − 2 × (160 + 8).
+    expect(el().getAttribute("style")).toContain("max-width: 331px");
+    expect(el().getAttribute("style")).not.toContain("right:");
+    expect(el().className).toContain("left-1/2");
+    // A wider stack leaves too little room for a centred band: it moves
+    // just left of the stack instead.
+    stackWidth = 250;
+    band.tick();
+    await band.updateComplete;
+    expect(el().getAttribute("style")).toContain("right: 258px");
+    expect(el().getAttribute("style")).toContain("max-width: 401px");
+    expect(el().className).not.toContain("left-1/2");
   });
   it("nothing of it shows when the mode is off", async () => {
     const off = { ...fakeGame(), worldWarScenario: () => null } as never;
@@ -349,6 +406,41 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(drawer.isOpen()).toBe(false);
   });
 
+  it("the lobby picker, the band and the drawer draw each faction with the same dot", async () => {
+    const dot = (root: Element, selector: string) =>
+      root.querySelector(`${selector} span.rounded-full`)!.className;
+    const picker = document.createElement("ww-country-picker");
+    document.body.appendChild(picker);
+    await picker.updateComplete;
+    expect(dot(picker, "button[data-tag=DEU]")).toContain(
+      FACTION_DOT_CLASS.axis,
+    );
+    expect(dot(picker, "button[data-tag=GBR]")).toContain(
+      FACTION_DOT_CLASS.allies,
+    );
+    expect(dot(picker, "button[data-tag=SUN]")).toContain(
+      FACTION_DOT_CLASS.comintern,
+    );
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = fakeGame({ me: "SUN" }) as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    expect(dot(band, "[data-ww-band]")).toContain(FACTION_DOT_CLASS.comintern);
+    const drawer = document.createElement(
+      "ww-diplomacy-panel",
+    ) as WwDiplomacyPanel;
+    drawer.game = fakeGame({ me: "SUN" }) as never;
+    drawer.eventBus = new EventBus();
+    document.body.appendChild(drawer);
+    drawer.init();
+    drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
+    await drawer.updateComplete;
+    expect(dot(drawer, "[data-ww-faction=allies]")).toContain(
+      FACTION_DOT_CLASS.allies,
+    );
+  });
+
   it("the drawer leaves out the next date without the historical AI", async () => {
     const drawer = document.createElement(
       "ww-diplomacy-panel",
@@ -361,6 +453,49 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     await drawer.updateComplete;
     expect(drawer.querySelector("[data-ww-diplomacy]")).not.toBeNull();
     expect(drawer.querySelector("[data-ww-next]")).toBeNull();
+  });
+
+  it("the drawer never collapses on a short landscape phone", async () => {
+    const hud = (attr: string, rect: Partial<DOMRect>) => {
+      const el = document.createElement("div");
+      el.setAttribute(attr, "");
+      el.getBoundingClientRect = () =>
+        ({ width: 100, height: 100, left: 0, right: 0, ...rect }) as DOMRect;
+      document.body.appendChild(el);
+    };
+    // The top-right stack ends 200 px down; the bottom rows start 110 px
+    // above the bottom edge.
+    hud("data-hud-top-right", { top: 0, bottom: 200 });
+    const rows = { top: 0, bottom: 0 };
+    hud("data-bottom-hud-rows", rows);
+    const open = async (height: number) => {
+      document.querySelector("ww-diplomacy-panel")?.remove();
+      vi.stubGlobal("innerHeight", height);
+      rows.top = height - 110;
+      const drawer = document.createElement(
+        "ww-diplomacy-panel",
+      ) as WwDiplomacyPanel;
+      drawer.game = fakeGame({ me: "DEU" }) as never;
+      drawer.eventBus = new EventBus();
+      document.body.appendChild(drawer);
+      drawer.init();
+      drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
+      await drawer.updateComplete;
+      return drawer.querySelector<HTMLElement>("[data-ww-diplomacy]")!;
+    };
+    // A tall screen keeps the HUD around it clear.
+    const tall = await open(800);
+    expect(tall.getAttribute("style")).toContain("top: 208px");
+    expect(tall.getAttribute("style")).toContain("bottom: 118px");
+    // 360 px tall: those insets would leave 34 px. It runs from below the
+    // band to the bottom edge instead.
+    const short = await open(360);
+    expect(short.getAttribute("style")).toContain("top: 40px");
+    expect(short.getAttribute("style")).toContain(
+      "bottom: calc(env(safe-area-inset-bottom, 0px) + 8px)",
+    );
+    // And it is never shorter than 15rem.
+    expect(short.className).toContain("min-h-60");
   });
 
   it("the player panel declares war on the second tap within three seconds", () => {
@@ -398,6 +533,35 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(panel.isVisible).toBe(false);
   });
 
+  it("the player panel ignores a double-click on declare war, so the label is read first", () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const g = fakeGame({ me: "DEU" });
+    const fra = g.playerBySmallID(ID("FRA")) as never;
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g as never;
+    panel.eventBus = new EventBus();
+    const sent: SendDeclareWarIntentEvent[] = [];
+    panel.eventBus.on(SendDeclareWarIntentEvent, (e) => sent.push(e));
+    const p = panel as unknown as {
+      renderDeclareWar(other: unknown): unknown;
+      handleDeclareWarClick(e: Event, other: unknown): void;
+    };
+    const label = () => {
+      const div = document.createElement("div");
+      render(p.renderDeclareWar(fra), div);
+      return div.querySelector("button")!.textContent!.trim();
+    };
+    p.handleDeclareWarClick(new Event("click"), fra);
+    vi.setSystemTime(10_120);
+    p.handleDeclareWarClick(new Event("click"), fra);
+    expect(sent).toHaveLength(0);
+    expect(label()).toBe("[ww1936.declare.confirm] n=1");
+    vi.setSystemTime(10_400);
+    p.handleDeclareWarClick(new Event("click"), fra);
+    expect(sent).toHaveLength(1);
+  });
+
   it("the leaderboard names countries and emphasizes my faction", () => {
     const g = fakeGame({ me: "DEU", humans: { DEU: ["C1", "minsu"] } });
     const stats = new PlayerStats();
@@ -419,6 +583,38 @@ describe("the World War 1936 screens (spec §8.2)", () => {
       emphasized: true,
     });
     expect(row("FRA").emphasized).toBe(false);
+  });
+
+  it("the player panel's header names the country in the UI language, as the leaderboard does", () => {
+    const g = {
+      ...fakeGame({ me: "ITA", humans: { DEU: ["C1", "minsu"] } }),
+      gameID: () => "WWTEST01",
+      myClientID: () => "C9",
+    };
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g as never;
+    const header = (tag: CountryTag, type: PlayerType) => {
+      const other = {
+        ...(g.playerBySmallID(ID(tag)) as object),
+        type: () => type,
+        isTraitor: () => false,
+        cosmetics: {},
+      };
+      const div = document.createElement("div");
+      render(
+        (
+          panel as unknown as {
+            renderIdentityRow(other: unknown, my: unknown): unknown;
+          }
+        ).renderIdentityRow(other, g.myPlayer()),
+        div,
+      );
+      return div.querySelector("h2")!.textContent!.trim();
+    };
+    expect(header("DEU", PlayerType.Human)).toBe(
+      "[ww1936.country.DEU] · minsu",
+    );
+    expect(header("FRA", PlayerType.Nation)).toBe("[ww1936.country.FRA]");
   });
 
   it("<win-modal> names the winning faction and lists its MVPs", async () => {

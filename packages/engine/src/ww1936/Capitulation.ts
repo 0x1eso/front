@@ -157,6 +157,18 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
       Uint32Array.from(loser.tiles()),
     );
   }
+  // Without a victor (nobody holds its points: unowned land) the message
+  // names none, rather than "capitulated to" nobody.
+  if (victor === null) {
+    mg.displayMessage(
+      "events_display.ww1936_capitulated_no_victor",
+      MessageType.WORLD_WAR,
+      null,
+      undefined,
+      { loserTag: ww.tagOf(loserID) },
+    );
+    return;
+  }
   mg.displayMessage(
     "events_display.ww1936_capitulated",
     MessageType.WORLD_WAR,
@@ -164,7 +176,7 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
     undefined,
     {
       loserTag: ww.tagOf(loserID),
-      victorTag: victor === null ? "" : ww.tagOf(victor.smallID()),
+      victorTag: ww.tagOf(victor.smallID()),
     },
   );
 }
