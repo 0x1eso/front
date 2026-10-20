@@ -105,6 +105,40 @@ describe("treaties (spec §16)", { timeout: 60_000 }, () => {
     expect(opinionOf(p, id("POL"), fra)).toBe(seen - 20);
   });
 
+  it("an AI guarantor answers the call after the event's two days and joins the war (E + D)", async () => {
+    // K1's gen_guarantee_called (aiDelayDays [2, 2]) delivered by lane E.
+    usePoliticsContent(
+      politicsFixture({
+        events: [...politicsFixture().events, ...GENERIC_EVENTS],
+      }),
+    );
+    const { runner, g, ww, p, id } = await game(["DEU"]);
+    const [deu, gbr, csk] = (["DEU", "GBR", "CSK"] as const).map(id);
+    const day = ww.day(g.ticks());
+    addGuarantee(p, gbr, csk, day);
+    // Britain's 1939-09-03 beat on Germany within 30 days: history keeps
+    // the promise (diploEventChoice "a"); the beat itself fires after the
+    // horizon of this test.
+    const i = p.content.beats.findIndex((b) => b.id === "b1939_09_03_gbr_deu");
+    p.beats[i] = { fireDay: day + 20, skipped: false, done: false };
+    addWarGoal(p, deu, csk, "conquer", "", day);
+    declareWar(g, ww, byTag(g, "DEU"), byTag(g, "CSK"), g.ticks());
+    expect(p.delayed).toContainEqual(
+      expect.objectContaining({
+        day: day + 2,
+        kind: "choose",
+        eventId: "gen_guarantee_called",
+        to: gbr,
+        option: "a",
+      }),
+    );
+    stepTo(runner, dayStart(day + 2));
+    expect(ww.isAtWar(gbr, deu)).toBe(false);
+    step(runner);
+    expect(ww.isAtWar(gbr, deu)).toBe(true);
+    expect(p.beats[i].done).toBe(false);
+  });
+
   it("a guarantor already fighting the guaranteed's enemy, or held by a pact, is not called", async () => {
     const { g, ww, p, id } = await game(["DEU"]);
     const [deu, gbr, sun, pl, ltu] = (

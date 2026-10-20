@@ -5,6 +5,7 @@
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { GENERIC_EVENTS } from "@openfront/engine-lib/ww1936/content/events/generic";
 import { idHash, P_EVT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { aiAcceptScore } from "@openfront/engine/ww1936/politics/AiPolitics";
@@ -283,6 +284,43 @@ describe(
       expect(diploEventChoice(p, "gen_diplo_access", sun, gbr, 0)).toBe(
         aiAcceptScore(p, "access", gbr, sun) >= 50 ? "a" : "b",
       );
+    });
+
+    it("with historical AI, K5's pact beat is offered and the AI receiver signs it (E + D)", async () => {
+      // K1's request events delivered by lane E; K5's 1941-07-12
+      // Anglo-Soviet beat, brought forward (a test game starts in 1936).
+      usePoliticsContent(
+        politicsFixture({
+          events: [...politicsFixture().events, ...GENERIC_EVENTS],
+        }),
+      );
+      const runner = await wwRunner({ historicalAi: true }, [], POL);
+      stepTo(runner, WW_PREP_TICKS + 1);
+      const g = runner.game;
+      const p = pol(g);
+      const [gbr, sun] = (["GBR", "SUN"] as const).map((t) =>
+        byTag(g, t).smallID(),
+      );
+      const day = g.worldWar()!.day(g.ticks());
+      const i = p.content.beats.findIndex(
+        (b) => b.id === "b1941_07_12_gbr_nap_sun",
+      );
+      expect(p.content.beats[i].act).toEqual({
+        kind: "diplo",
+        order: "nap",
+        target: "SUN",
+      });
+      p.beats[i] = { fireDay: day + 1, skipped: false, done: false };
+      const asked = vi.spyOn(p, "queueEvent");
+      expect(p.isAtWarBlockedByNap(gbr, sun)).toBe(false);
+      stepTo(runner, dayStartTick(day + 4, WW_PREP_TICKS));
+      // Britain's AI made the beat's offer (nap_offer), the request event
+      // reached the Soviet AI, and diploEventChoice's history rule signed it.
+      expect(asked.mock.calls.filter((c) => c[0] === "gen_diplo_nap")).toEqual([
+        ["gen_diplo_nap", sun, gbr, 0, 0],
+      ]);
+      expect(p.isAtWarBlockedByNap(gbr, sun)).toBe(true);
+      expect(p.beats[i].done).toBe(true);
     });
   },
 );

@@ -239,8 +239,7 @@ describe("event effects", () => {
     expect(politicsNews(updates)).toHaveLength(1000);
   });
 
-  // Lane D's addTension is a stub: the controller revives this after D merges.
-  it.skip("tension adds world tension and the actor's own share", async () => {
+  it("tension adds world tension and the actor's own share", async () => {
     const { runner, p, est } = await game();
     const wt = p.wtBp;
     const own = p.threatBp[est];
