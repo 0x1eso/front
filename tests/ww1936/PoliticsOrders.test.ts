@@ -77,7 +77,8 @@ describe("politics orders", () => {
       applyWwOrder(g, ww.economy, deu, ORDERS[k], day);
     expect(at("focus_start")).toBe("focus_unavailable");
     expect(at("focus_cancel")).toBe("focus_none");
-    expect(at("advisor_hire")).toBe("advisor_unavailable");
+    // Lane P: 50 PP do not pay a political advisor (150).
+    expect(at("advisor_hire")).toBe("no_pp");
     expect(at("decision_take")).toBe("decision_unavailable");
     expect(at("event_choose")).toBe("no_event");
     expect(at("justify")).toBe("justify_blocked");

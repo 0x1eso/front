@@ -34,8 +34,13 @@ import {
   step,
   stepTo,
   warAfterPrep,
+  withTestPolitics,
   wwRunner,
 } from "./util";
+
+// P2 formulas (recovery, org): the small test content, not 1936 politics
+// (whose war support moves recovery since P3 Task 4's stability lines).
+withTestPolitics();
 
 const HUMAN_POL = "HUMAN002";
 const DEU_POL = [

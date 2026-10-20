@@ -318,6 +318,8 @@ export const WwEconomyStateSchema = z.object({
   ),
   nextTradeId: zInt(),
   lastCommonDay: zInt(),
+  /** P3 resource effect (spec §10.4): written only when not all 0. */
+  resBonus: z.array(zInt()).optional(),
 });
 export type WwEconomyState = z.infer<typeof WwEconomyStateSchema>;
 
@@ -341,6 +343,11 @@ export class WwEconomy {
    * WwLand.controller (P2 plan decision 9; the VP tile's owner by invariant).
    */
   readonly controller: Uint16Array;
+  /**
+   * P3 spec §10.4 `resource`: deposits added to each land region for good,
+   * [region × RESOURCE_COUNT + resource] (state).
+   */
+  readonly resBonus: Int16Array;
   private _trades: Trade[] = [];
   private nextTradeId = 1;
   private lastCommonDay = -1;
@@ -367,6 +374,7 @@ export class WwEconomy {
     this.rail = new Uint8Array(size);
     this.hub = new Uint8Array(size);
     this.controller = new Uint16Array(size);
+    this.resBonus = new Int16Array(size * RESOURCE_COUNT);
     const owners = scenario.ownerByRegion();
     for (const r of regions) {
       this.civ[r.id] = r.civ;
@@ -530,9 +538,10 @@ export class WwEconomy {
         ce.stats.recruitablePct,
       );
       for (let k = 0; k < RESOURCE_COUNT; k++) {
-        if (r.res[k] === 0) continue;
+        const deposit = r.res[k] + this.resBonus[id * RESOURCE_COUNT + k];
+        if (deposit <= 0) continue;
         produced[k] += extraction(
-          r.res[k],
+          deposit,
           this.infra[id],
           cp,
           ce.stats.extractionPct,
@@ -702,6 +711,13 @@ export class WwEconomy {
       case "supply_hub":
         return this.hub;
     }
+  }
+
+  /** A region's deposit of resource `k` (RESOURCE_IDS index) with the P3 bonus. */
+  deposit(region: number, k: number): number {
+    const r = this.scenario.region(region);
+    if (r === undefined) return 0;
+    return r.res[k] + this.resBonus[region * RESOURCE_COUNT + k];
   }
 
   addBuilding(region: number, b: BuildingId, n: number): void {
@@ -920,6 +936,10 @@ export class WwEconomy {
     }
     for (const r of this.scenario.landRegions) {
       const id = r.id;
+      let bonus = 0;
+      for (let k = 0; k < RESOURCE_COUNT; k++) {
+        bonus += this.resBonus[id * RESOURCE_COUNT + k] * (k + 1);
+      }
       h =
         (Math.imul(h, 31) +
           this.civ[id] * 7 +
@@ -929,7 +949,8 @@ export class WwEconomy {
           this.controller[id] * 11 +
           this.fort[id] * 13 +
           this.rail[id] * 17 +
-          this.hub[id] * 19) |
+          this.hub[id] * 19 +
+          bonus * 23) |
         0;
     }
     for (const tr of this._trades) {
@@ -981,6 +1002,9 @@ export class WwEconomy {
       trades: this._trades.map((t) => ({ ...t })),
       nextTradeId: this.nextTradeId,
       lastCommonDay: this.lastCommonDay,
+      ...(this.resBonus.some((v) => v !== 0)
+        ? { resBonus: Array.from(this.resBonus) }
+        : {}),
     };
   }
 
@@ -1015,6 +1039,8 @@ export class WwEconomy {
     this.rail.set(s.rail);
     this.hub.set(s.hub);
     this.controller.set(s.controller);
+    this.resBonus.fill(0);
+    if (s.resBonus !== undefined) this.resBonus.set(s.resBonus);
     this._trades = s.trades.map((t) => ({ ...t }));
     this.nextTradeId = s.nextTradeId;
     this.lastCommonDay = s.lastCommonDay;

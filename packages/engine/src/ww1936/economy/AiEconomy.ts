@@ -54,7 +54,7 @@ import {
   extraction,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
-import type { LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { moveBuild, queueBuild, usedSlots } from "./Construction";
@@ -585,7 +585,9 @@ export function aiPlan(input: AiInput): AiPlan {
 
 // ---- 1. Laws ----
 
-function economyTarget(i: AiInput): LawValue {
+function economyTarget(
+  i: Pick<AiInput, "personality" | "day" | "warDays">,
+): LawValue {
   const war = i.warDays >= 0;
   switch (i.personality) {
     case "aggressor":
@@ -602,10 +604,26 @@ function economyTarget(i: AiInput): LawValue {
   }
 }
 
-function planLaws(i: AiInput, orders: AiOrder[]): void {
+/** What the law step reads of an AI turn's input. */
+type LawInput = Pick<
+  AiInput,
+  | "personality"
+  | "day"
+  | "warDays"
+  | "laws"
+  | "lawCooldownUntil"
+  | "wsBp"
+  | "wtBp"
+  | "ruling"
+  | "ppMilli"
+  | "manpower"
+  | "recruitable"
+>;
+
+function planLaws(i: LawInput, orders: AiOrder[]): void {
   const laws: CountryLaws = { ...i.laws };
-  // The conditions only (costMilli 0): setLaw charges the cost; Task 4
-  // defers a law the PP cannot pay (aiLawTarget).
+  // The conditions only (costMilli 0): setLaw charges the cost;
+  // aiEconomyTick defers a law the PP cannot pay (aiLawTarget).
   const ctx: LawCtx = {
     wsBp: i.wsBp,
     wtBp: i.wtBp,
@@ -1273,6 +1291,12 @@ export function aiEconomyTick(
   let plan: AiPlan;
   if (isAiTurn(ce.smallID, day, ce.major)) {
     plan = aiPlan(aiInput(econ, ce, day, tick));
+    // P3 spec §7.3: the turn's law waits while the PP cannot pay it, and no
+    // other law is looked at that day.
+    const target = lawTargetAt(econ, ce, day, tick);
+    if (target !== null && !canPayLaw(econ, ce, target.value)) {
+      plan = plan.filter((o) => o.kind !== "set_law");
+    }
   } else {
     const react = aiReactions(ce);
     if (!react.research && !react.lines && !react.construction) return;
@@ -1289,6 +1313,54 @@ export function aiEconomyTick(
       if (applyAiOrder(econ, ce, alt, day) === null) break;
     }
   }
+}
+
+/**
+ * P3 spec §7.3 (controller ruling R10): the law an AI turn of `ce` on
+ * `day` would set first — P1's targets under P3's conditions, the PP left
+ * aside — or null. aiEconomyTick defers it while the PP cannot pay it; the
+ * AI politics keeps PP back for it.
+ */
+export function aiLawTarget(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  day: number,
+): { kind: LawKind; value: LawValue } | null {
+  return lawTargetAt(econ, ce, day, econ.mg.ticks());
+}
+
+function lawTargetAt(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  day: number,
+  tick: number,
+): { kind: LawKind; value: LawValue } | null {
+  const orders: AiOrder[] = [];
+  planLaws(
+    {
+      personality: aiPersonality(ce.tag),
+      day,
+      warDays: econ.warDays(ce.smallID, tick),
+      laws: { ...ce.laws },
+      lawCooldownUntil: { ...ce.lawCooldownUntil },
+      ...politicsInput(econ, ce),
+      manpower: ce.manpower,
+      recruitable: ce.totals.recruitable,
+    },
+    orders,
+  );
+  const o = orders[0];
+  return o?.kind === "set_law" ? { kind: o.law, value: o.value } : null;
+}
+
+/** The PP pays the target law's cost now (P3 spec §7.1; never below 0). */
+function canPayLaw(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  value: LawValue,
+): boolean {
+  const pp = econ.ww.politics.country(ce.smallID)?.ppMilli ?? 0;
+  return pp >= 0 && lawCost(value, ce.stats) * 1000 <= pp;
 }
 
 /** R10: the AiInput fields the law conditions read, from politics. */
