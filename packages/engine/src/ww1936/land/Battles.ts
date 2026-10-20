@@ -631,12 +631,14 @@ export function stepRecovery(land: WwLand): void {
   const t = land.divisions;
   const base = Math.floor((300 * WW_ROUND_HOUR_MILLI) / 1000);
   const pctOf = new Map<number, number>();
+  // Nothing below changes a template or a tech: the epochs hold for the pass.
+  const epochs = land.statsEpochs();
   for (let r = 0; r < t.rows; r++) {
     if (t.id[r] === 0 || t.battle[r] !== 0 || t.encircled[r] !== 0) continue;
     const m = t.mode[r];
     if (m !== MOVE_NONE && m !== MOVE_WALK) continue;
     const was = t.org[r];
-    const max = land.orgMaxOf(r);
+    const max = land.orgMaxAt(r, epochs[t.owner[r]]);
     if (was >= max) continue;
     const army = t.army[r];
     // Per army; a division without one by its owner (its tech).
@@ -651,7 +653,8 @@ export function stepRecovery(land: WwLand): void {
         (land.econ.country(t.owner[r])?.tech.recoveryPct ?? 0);
       pctOf.set(key, pct);
     }
-    const signal = (land.flagsOf(r) & TPL_SIGNAL) !== 0 ? 10 : 0;
+    const signal =
+      (land.flagsAt(r, epochs[t.owner[r]]) & TPL_SIGNAL) !== 0 ? 10 : 0;
     let gain = Math.floor(
       (Math.floor((base * (pct + signal)) / 100) * Math.max(0, t.supply[r])) /
         1000,

@@ -1250,6 +1250,27 @@ export class WwLand {
     return this.rowOrgEntry(row) ? this.rowStats.orgMax[row] : 0;
   }
 
+  /**
+   * Every country's stats epoch, read now (index smallID). A pass over
+   * many rows that changes no template or tech (stepRecovery) reads it
+   * once and hands each row its owner's to orgMaxAt / flagsAt.
+   */
+  statsEpochs(): Int32Array {
+    const out = new Int32Array(this.countryList.length);
+    for (let id = 1; id < out.length; id++) out[id] = this.statsEpoch(id);
+    return out;
+  }
+
+  /** orgMaxOf with the owner's stats epoch from statsEpochs (this pass). */
+  orgMaxAt(row: number, epoch: number): number {
+    return this.rowOrgEntry(row, epoch) ? this.rowStats.orgMax[row] : 0;
+  }
+
+  /** flagsOf with the owner's stats epoch from statsEpochs (this pass). */
+  flagsAt(row: number, epoch: number): number {
+    return this.rowOrgEntry(row, epoch) ? this.rowStats.flags[row] : 0;
+  }
+
   /** Spec §10: `region`'s weather on `day` (weatherAt, kept by region for the last day read). */
   weatherOn(region: number, day: number): Weather {
     const sc = this.scenario;
@@ -1302,7 +1323,7 @@ export class WwLand {
   }
 
   /** Fills the row's org max and flags when stale; false for a dead row. */
-  private rowOrgEntry(row: number): boolean {
+  private rowOrgEntry(row: number, knownEpoch = -1): boolean {
     const t = this.divisions;
     const id = t.id[row];
     if (id === 0) {
@@ -1312,7 +1333,7 @@ export class WwLand {
     let c = this.rowStats;
     if (row >= c.id.length) c = this.rowStats = growRowStats(c, t.rows);
     const owner = t.owner[row];
-    const epoch = this.statsEpoch(owner);
+    const epoch = knownEpoch >= 0 ? knownEpoch : this.statsEpoch(owner);
     const tpl = t.template[row];
     if (c.id[row] === id && c.tpl[row] === tpl && c.epoch[row] === epoch) {
       return true;
