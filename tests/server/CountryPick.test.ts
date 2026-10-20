@@ -101,6 +101,53 @@ describe("World War 1936 country picks (spec §8.1)", () => {
     expect(game.gameInfo().countryPicks).toBeUndefined();
   });
 
+  it("a player who disconnects gives its country up", async () => {
+    const { game, a, b } = lobby();
+    await pick(a, "DEU");
+    await mockWsOf(a).trigger("close");
+    expect(game.gameInfo().countryPicks).toEqual([]);
+    await pick(b, "DEU");
+    expect(game.gameInfo().countryPicks).toEqual([
+      { clientID: b.clientID, tag: "DEU" },
+    ]);
+    startGame(game);
+    const players = startMessage(b).gameStartInfo.players;
+    expect(players.map((p) => [p.clientID, p.country])).toEqual([
+      [b.clientID, "DEU"],
+    ]);
+  });
+
+  it("a spectator's pick is ignored", async () => {
+    const { game, a } = lobby();
+    const watcher = makeClient({
+      clientID: cid("s"),
+      persistentID: "s-pid",
+      publicId: "s-pub",
+      spectator: true,
+    });
+    game.joinClient(watcher);
+    await pick(watcher, "DEU");
+    expect(game.gameInfo().countryPicks).toEqual([]);
+    // Nor kept for later: it plays after all, without a country.
+    await mockWsOf(watcher).emit({ type: "spectate", spectator: false });
+    expect(game.gameInfo().countryPicks).toEqual([]);
+    await pick(a, "DEU");
+    expect(game.gameInfo().countryPicks).toEqual([
+      { clientID: a.clientID, tag: "DEU" },
+    ]);
+  });
+
+  it("a pick made before the mode was turned on is not kept", async () => {
+    const { game, a, b } = lobby({});
+    await pick(a, "DEU");
+    game.updateGameConfig({ worldWar1936: true });
+    expect(game.gameInfo().countryPicks).toEqual([]);
+    await pick(b, "DEU");
+    expect(game.gameInfo().countryPicks).toEqual([
+      { clientID: b.clientID, tag: "DEU" },
+    ]);
+  });
+
   it("a pick is told to everyone in the lobby", async () => {
     const { a, b } = lobby();
     mockWsOf(b).send.mockClear();
