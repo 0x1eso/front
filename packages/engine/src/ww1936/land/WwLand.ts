@@ -692,6 +692,34 @@ interface RowStats {
   supply: Int32Array;
 }
 
+/**
+ * Sets `key` in a Map kept in ascending key order (iteration order): in
+ * place when present, appended when above every key, else re-sorted.
+ */
+function setInOrder<V>(m: Map<number, V>, key: number, v: V): void {
+  if (m.has(key)) {
+    m.set(key, v);
+    return;
+  }
+  let max = -Infinity;
+  for (const k of m.keys()) if (k > max) max = k;
+  m.set(key, v);
+  if (key > max) return;
+  const sorted = [...m.entries()].sort((x, y) => x[0] - y[0]);
+  m.clear();
+  for (const [k, x] of sorted) m.set(k, x);
+}
+
+/** A stats entry's numbers at its men and equipment (computed on the first read after they moved). */
+function effOf(e: StatsEntry): DivisionStats {
+  return (e.eff ??= divisionStats(e.base, e.equip, e.men));
+}
+
+function strengthOfEntry(e: StatsEntry): number {
+  if (e.strength < 0) e.strength = strengthPm(e.base, e.equip, e.men);
+  return e.strength;
+}
+
 function newRowStats(cap: number): RowStats {
   return {
     id: new Int32Array(cap),
@@ -1169,8 +1197,7 @@ export class WwLand {
 
   /** Numbers at its men and equipment now (attack, defence, HP). */
   statsOf(row: number): DivisionStats {
-    const e = this.statsEntry(row);
-    return (e.eff ??= divisionStats(e.base, e.equip, e.men));
+    return effOf(this.statsEntry(row));
   }
 
   /**
@@ -1400,9 +1427,7 @@ export class WwLand {
   }
 
   strengthOf(row: number): number {
-    const e = this.statsEntry(row);
-    if (e.strength < 0) e.strength = strengthPm(e.base, e.equip, e.men);
-    return e.strength;
+    return strengthOfEntry(this.statsEntry(row));
   }
 
   // ---- Armies (spec §6.1) ----
@@ -1598,17 +1623,11 @@ export class WwLand {
   }
   /** Adds a battle keeping `battles` in region order (Map order is iteration order). */
   addBattle(b: Battle): void {
-    this.battles.set(b.region, b);
-    const sorted = [...this.battles.entries()].sort((x, y) => x[0] - y[0]);
-    this.battles.clear();
-    for (const [k, v] of sorted) this.battles.set(k, v);
+    setInOrder(this.battles, b.region, b);
   }
   /** Sets a region's spread keeping `spreads` in region order. */
   setSpread(s: Spread): void {
-    this.spreads.set(s.region, s);
-    const sorted = [...this.spreads.entries()].sort((x, y) => x[0] - y[0]);
-    this.spreads.clear();
-    for (const [k, v] of sorted) this.spreads.set(k, v);
+    setInOrder(this.spreads, s.region, s);
   }
   endBattle(region: number): void {
     if (this.battles.delete(region)) this.endedBattleIds.push(region);
@@ -1696,8 +1715,9 @@ export class WwLand {
       const r = t.rowOf(id);
       if (r < 0) continue;
       n++;
-      addToSide(sum, this.statsOf(r), t.org[r]);
-      strength += this.strengthOf(r);
+      const e = this.statsEntry(r);
+      addToSide(sum, effOf(e), t.org[r]);
+      strength += strengthOfEntry(e);
       org += t.org[r];
       orgMax += this.orgMaxOf(r);
       supply += t.supply[r];

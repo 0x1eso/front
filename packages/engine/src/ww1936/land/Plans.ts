@@ -13,12 +13,11 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   addToSide,
-  divisionMods,
   emptySide,
   planMaxBp,
   predictBattle,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import { joinBattle, modInputOf } from "./Battles";
+import { joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { enemyDivisionsIn, startHopInto } from "./Movement";
 import { leaveAttack } from "./Orders";
@@ -256,13 +255,8 @@ export function predictAttack(
   }
   const neutral = { attackBp: 10_000, defenseBp: 10_000 };
   const am =
-    attackers.length === 0
-      ? neutral
-      : divisionMods(modInputOf(land, attackers[0], region, true)).mods;
-  const dm =
-    firstDef < 0
-      ? neutral
-      : divisionMods(modInputOf(land, firstDef, region, false)).mods;
+    attackers.length === 0 ? neutral : modsOf(land, attackers[0], region, true);
+  const dm = firstDef < 0 ? neutral : modsOf(land, firstDef, region, false);
   return predictBattle(att, def, {
     land: land.scenario.landOf(region),
     directions: Math.max(1, Math.min(4, from.size)),

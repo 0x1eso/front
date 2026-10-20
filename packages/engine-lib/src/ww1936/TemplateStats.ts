@@ -250,9 +250,14 @@ export function equipFill(
   equip: ArrayLike<number>,
 ): number[] {
   const have = equipByType(equip);
-  return s.need.map((nd, i) =>
-    nd === 0 ? 1000 : Math.min(1000, Math.floor((have[i] * 1000) / nd)),
-  );
+  const need = s.need;
+  const out = new Array<number>(need.length);
+  for (let i = 0; i < need.length; i++) {
+    const nd = need[i];
+    out[i] =
+      nd === 0 ? 1000 : Math.min(1000, Math.floor((have[i] * 1000) / nd));
+  }
+  return out;
 }
 
 /** Spec §4.3: attack and defence values by their equipment's fill, HP by men. */
@@ -262,21 +267,26 @@ export function divisionStats(
   men: number,
 ): DivisionStats {
   const fill = equipFill(s, equip);
-  const part = (k: number) => {
-    let x = 0;
-    for (let i = 0; i < T; i++) {
-      x += Math.floor((s.parts[i * 4 + k] * fill[i]) / 1000);
-    }
-    return x;
-  };
+  const parts = s.parts;
+  let soft = 0;
+  let hard = 0;
+  let def = 0;
+  let brk = 0;
+  for (let i = 0; i < T; i++) {
+    const f = fill[i];
+    soft += Math.floor((parts[i * 4] * f) / 1000);
+    hard += Math.floor((parts[i * 4 + 1] * f) / 1000);
+    def += Math.floor((parts[i * 4 + 2] * f) / 1000);
+    brk += Math.floor((parts[i * 4 + 3] * f) / 1000);
+  }
   const menPm =
     s.men === 0 ? 1000 : Math.min(1000, Math.floor((men * 1000) / s.men));
   return {
     ...s,
-    soft: part(0),
-    hard: part(1),
-    def: part(2),
-    brk: part(3),
+    soft,
+    hard,
+    def,
+    brk,
     hpMilli: Math.floor((s.hpMilli * menPm) / 1000),
   };
 }
@@ -289,11 +299,11 @@ export function equipFillPm(
   const fill = equipFill(s, equip);
   let w = 0;
   let got = 0;
-  EQUIPMENT_TYPES.forEach((t, i) => {
-    const c = s.need[i] * unitCostMilli(t, 1);
+  for (let i = 0; i < T; i++) {
+    const c = s.need[i] * unitCostMilli(EQUIPMENT_TYPES[i], 1);
     w += c;
     got += Math.floor((c * fill[i]) / 1000);
-  });
+  }
   return w === 0 ? 1000 : Math.floor((got * 1000) / w);
 }
 

@@ -434,11 +434,13 @@ export interface SideStats {
 export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   const w0 = sum.width;
   const w1 = w0 + s.width;
-  const mix = (a: number, b: number) =>
-    w1 === 0 ? 0 : Math.floor((a * w0 + b * s.width) / w1);
-  sum.armor = mix(sum.armor, s.armor);
-  sum.pierce = mix(sum.pierce, s.pierce);
-  sum.hardnessPm = mix(sum.hardnessPm, s.hardnessPm);
+  const sw = s.width;
+  // Width-weighted (no closure: the battles and the screens call it per division).
+  sum.armor = w1 === 0 ? 0 : Math.floor((sum.armor * w0 + s.armor * sw) / w1);
+  sum.pierce =
+    w1 === 0 ? 0 : Math.floor((sum.pierce * w0 + s.pierce * sw) / w1);
+  sum.hardnessPm =
+    w1 === 0 ? 0 : Math.floor((sum.hardnessPm * w0 + s.hardnessPm * sw) / w1);
   sum.divisions++;
   sum.width = w1;
   sum.soft += s.soft;

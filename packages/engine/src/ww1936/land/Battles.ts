@@ -4,6 +4,8 @@
 // arithmetic only, no randomness (plan decision 6).
 import {
   CombatMods,
+  DivisionStats,
+  GROUND_SLOTS,
   MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_RAIL,
@@ -219,6 +221,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // 4. Every hit of the round first, then all of them at once (spec §9.3-6).
   const org = new Map<number, number>();
   const hp = new Map<number, number>();
+  // Every number a hit reads, once per division (nothing changes before
+  // the damage is applied below).
+  const stats = new Map<number, DivisionStats>();
+  for (const r of att.active) stats.set(r, land.statsOf(r));
+  for (const r of def.active) stats.set(r, land.statsOf(r));
   const hit = (
     from: number,
     fromMods: CombatMods,
@@ -227,8 +234,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     toDefends: boolean,
     excess: number,
   ) => {
-    const s = land.statsOf(from);
-    const ts = land.statsOf(to);
+    const s = stats.get(from)!;
+    const ts = stats.get(to)!;
     const a = applyBp(
       applyBp(attackValue(s.soft, s.hard, ts.hardnessPm), fromMods.attackBp),
       10_000 + excess,
@@ -239,9 +246,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
   };
   const mods = new Map<number, CombatMods>();
-  for (const r of [...att.active, ...def.active]) {
-    mods.set(r, battleMods(land, b, r).mods);
-  }
+  for (const r of att.active) mods.set(r, modsOf(land, r, R, true));
+  for (const r of def.active) mods.set(r, modsOf(land, r, R, false));
   if (def.active.length > 0) {
     att.active.forEach((r, i) => {
       const target = def.active[(i + b.round) % def.active.length];
@@ -584,10 +590,11 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     : Math.floor((men * hpMilli * 1000) / hpNow) + t.lossMen[row];
   const lost = Math.min(men, Math.floor(menMilli / 1000));
   t.lossMen[row] = lost === men ? 0 : menMilli - lost * 1000;
-  const eq = t.equipOf(row);
-  const base = row * eq.length;
-  for (let j = 0; j < eq.length; j++) {
-    const have = eq[j];
+  // Written in place, one touchDivision for all of it (P2 Task 11 perf).
+  const eq = t.equip;
+  const base = row * GROUND_SLOTS;
+  for (let j = 0; j < GROUND_SLOTS; j++) {
+    const have = eq[base + j];
     const carry = t.lossEq[base + j];
     if (have <= 0 && carry === 0) continue;
     const m = all
@@ -595,7 +602,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
       : Math.floor((have * hpMilli * 1000) / hpNow) + carry;
     const k = Math.min(have, Math.floor(m / 1000));
     t.lossEq[base + j] = k === have ? 0 : m - k * 1000;
-    if (k > 0) land.addEquip(row, j, -k);
+    if (k > 0) eq[base + j] = have - k;
   }
   if (lost > 0) {
     const pct = (flags & TPL_HOSPITAL) !== 0 ? 50 : 20;
@@ -603,7 +610,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     const ce = land.econ.country(owner);
     if (ce !== null) returnManpower(ce, back);
     land.noteCasualties(owner, lost, lost - back);
-    land.setMen(row, men - lost);
+    t.men[row] = men - lost;
   }
   land.touchDivision(row);
   if (t.men[row] <= 0) {
@@ -699,6 +706,49 @@ export function battleMods(land: WwLand, b: Battle, row: number): ModResult {
   return divisionMods(
     modInputOf(land, row, b.region, land.divisions.role[row] === ROLE_ATTACK),
   );
+}
+
+/**
+ * divisionMods(modInputOf(...)).mods, kept by division (derived): a hit
+ * needs every field of the new input equal to the one the mods were
+ * computed from (divisionMods reads nothing else; the tech totals object
+ * is replaced, never written into), so a kept value is the one a fresh
+ * computation gives. The battles and the plans' predictions call it.
+ */
+export function modsOf(
+  land: WwLand,
+  row: number,
+  region: number,
+  attacking: boolean,
+): CombatMods {
+  const input = modInputOf(land, row, region, attacking);
+  let cache = modsCaches.get(land);
+  if (cache === undefined) {
+    cache = new Map();
+    modsCaches.set(land, cache);
+  }
+  const id = land.divisions.id[row];
+  const hit = cache.get(id);
+  if (hit !== undefined && sameModInput(hit.input, input)) return hit.mods;
+  // Dead divisions' entries: drop them all now and then (a refill is exact).
+  if (cache.size > 2 * land.divisions.count() + 1024) cache.clear();
+  const mods = divisionMods(input).mods;
+  cache.set(id, { input, mods });
+  return mods;
+}
+
+const modsCaches = new WeakMap<
+  WwLand,
+  Map<number, { input: ModInput; mods: CombatMods }>
+>();
+let modInputKeys: readonly (keyof ModInput)[] | null = null;
+
+function sameModInput(a: ModInput, b: ModInput): boolean {
+  const keys = (modInputKeys ??= Object.keys(b) as (keyof ModInput)[]);
+  for (let i = 0; i < keys.length; i++) {
+    if (a[keys[i]] !== b[keys[i]]) return false;
+  }
+  return true;
 }
 
 const NEUTRAL_TECH = techTotals(new Set());
