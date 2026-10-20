@@ -3864,6 +3864,19 @@
       "support_equipment": "Support equipment"
     },
     "event_desc": {
+      "deu_army_command": "War Minister Blomberg has resigned, and the army's commander-in-chief Fritsch has been pushed out as well. Hitler means to abolish the War Ministry and command the armed forces directly through a newly created High Command of the Armed Forces. Among the generals there is talk that the army's independence is over.",
+      "deu_austria_refused": "The Austrian government has rejected the demand for union and vowed to defend its independence by plebiscite. Troops are already massed at the border. Sending them in means war; backing down shakes the regime's prestige.",
+      "deu_july_plot": "A bomb has gone off during a briefing at Hitler's headquarters in East Prussia. In Berlin, officers are using the reserve army's mobilization plan to take over government offices. Within hours it will be decided.",
+      "deu_mr_pact_offer": "Moscow has proposed a non-aggression treaty first. The Soviet foreign commissar also wants to discuss a secret protocol dividing Eastern Europe into spheres of interest. Signing would leave Germany free to face the West without worrying about the East.",
+      "deu_olympics": "The XI Olympic Games open in Berlin. The government has built a new stadium and dressed the streets for foreign visitors. For two weeks the eyes of the world are on Germany, and the regime means to show it a calm and orderly country.",
+      "deu_poland": "German forces crossed the border into Poland at dawn. Panzer divisions and dive bombers lead the way while the Polish army fights back all along the frontier. The question now is whether Poland's allies will keep their word.",
+      "deu_renounce_polish_pact": "Poland has flatly refused the demands over Danzig and the Corridor. Berlin holds that the 1934 German–Polish declaration of non-aggression no longer means anything and prepares to announce in the Reichstag that it is void.",
+      "deu_rhineland_bluff": "France has begun to mobilize in answer to the march into the Rhineland. The generals warn that the few battalions on the border cannot stop the French army. Pulling back costs face; standing firm means risking war.",
+      "deu_september_coup": "Officers around General Ludwig Beck have finally moved. Troops of the Berlin military district are heading for the government quarter, but no one knows how the police and the party will respond. The officers mean to arrest the regime's leaders and form a provisional government.",
+      "deu_sudeten_refused": "Czechoslovakia refuses to give up the Sudetenland. Its border fortifications are strong, and no one knows what the Western powers will do. Choosing war may mean a wider conflict; stepping back costs the regime face.",
+      "deu_tripartite_signing": "Germany has sent the text of a treaty to be signed together in Berlin. The three powers recognize each other's new order in Europe and East Asia and pledge to stand together if any of them is attacked by a power not yet in the war.",
+      "deu_vienna_award_1": "After Munich, Hungary asks for arbitration to recover the Hungarian-populated districts of southern Czechoslovakia. The German and Italian foreign ministers offer to draw a new border in Vienna. If the award goes ahead, southern Slovakia passes to Hungary.",
+      "deu_vienna_award_2": "With Romania having yielded Bessarabia to the Soviets, Hungary demands Transylvania and threatens war. Needing Romania's oil safe, Germany joins Italy in arbitrating once more to draw a line between the two.",
       "gen_call_to_arms": "A member of our faction has gone to war and asks us to fight at its side. Answering the call makes its enemy our enemy. Refusing would keep us out of the war but cost us trust within the alliance.",
       "gen_coup_done": "Overnight, army units and their political allies seized the ministries and the radio station in the capital. The old government has fallen, and the new one has announced its rule on the radio. Rumours in the streets say a foreign power helped.",
       "gen_diplo_access": "A government asks that its troops be allowed to cross our territory. If we agree, its armies may move through and stay on our soil. We may withdraw permission whenever we wish.",
@@ -3881,6 +3894,51 @@
       "gen_war_weariness": "Lost provinces and ever longer casualty lists weigh on the people. More men dodge the draft, and the newspapers have grown gloomy. The government can let morale sag or spend heavily to lift it."
     },
     "event_opt": {
+      "deu_army_command": {
+        "a": "The head of state takes command",
+        "b": "Leave the army its independence"
+      },
+      "deu_austria_refused": {
+        "a": "Send in the troops",
+        "b": "Back down"
+      },
+      "deu_july_plot": {
+        "a": "The plot fails",
+        "b": "The plot succeeds"
+      },
+      "deu_mr_pact_offer": {
+        "a": "Sign the treaty",
+        "b": "Decline"
+      },
+      "deu_olympics": {
+        "a": "Welcome the guests"
+      },
+      "deu_renounce_polish_pact": {
+        "a": "Renounce the treaty"
+      },
+      "deu_rhineland_bluff": {
+        "a": "Pull back",
+        "b": "Stand firm"
+      },
+      "deu_september_coup": {
+        "a": "Await the outcome"
+      },
+      "deu_sudeten_refused": {
+        "a": "Choose war",
+        "b": "Step back"
+      },
+      "deu_tripartite_signing": {
+        "a": "Sign",
+        "b": "Hold back"
+      },
+      "deu_vienna_award_1": {
+        "a": "Arbitrate",
+        "b": "Stay out of it"
+      },
+      "deu_vienna_award_2": {
+        "a": "Arbitrate",
+        "b": "Stay out of it"
+      },
       "gen_call_to_arms": {
         "a": "Join the war",
         "b": "Decline the request"
@@ -3944,6 +4002,19 @@
       }
     },
     "event_title": {
+      "deu_army_command": "A New High Command",
+      "deu_austria_refused": "Vienna Says No",
+      "deu_july_plot": "The 20 July Plot",
+      "deu_mr_pact_offer": "A Soviet Treaty Offer",
+      "deu_olympics": "The Berlin Olympics",
+      "deu_poland": "The Invasion of Poland",
+      "deu_renounce_polish_pact": "Renouncing the Polish Pact",
+      "deu_rhineland_bluff": "France Mobilizes",
+      "deu_september_coup": "The Officers Strike",
+      "deu_sudeten_refused": "The Sudeten Demand Blocked",
+      "deu_tripartite_signing": "The Tripartite Pact",
+      "deu_vienna_award_1": "The First Vienna Award",
+      "deu_vienna_award_2": "The Second Vienna Award",
       "gen_call_to_arms": "A Call to Arms",
       "gen_coup_done": "A Coup d'État",
       "gen_diplo_access": "A Request for Passage",
@@ -3972,6 +4043,56 @@
       "comintern": "Comintern"
     },
     "focus": {
+      "deu_airborne": "Airborne Troops",
+      "deu_anti_comintern": "Anti-Comintern Pact",
+      "deu_army_misgivings": "The Generals' Misgivings",
+      "deu_arsenal": "More Arms Factories",
+      "deu_austria_question": "The Austrian Question",
+      "deu_autobahn": "Motorway Construction",
+      "deu_balkan_partners": "Partners in the Balkans",
+      "deu_battle_fleet": "An Ocean Fleet",
+      "deu_bohemia_question": "Bohemia and Moravia",
+      "deu_buna": "Buna Rubber",
+      "deu_chemicals": "Chemical Industry Expansion",
+      "deu_combined_arms": "Combined Arms",
+      "deu_constitution": "Restoring the Constitution",
+      "deu_danzig_question": "Danzig and the Corridor",
+      "deu_dispersal": "Factory Dispersal",
+      "deu_dive_bombers": "Dive Bombers",
+      "deu_east_war": "Preparing the Eastern War",
+      "deu_eastern_bulwark": "Bulwark in the East",
+      "deu_finnish_transit": "Finnish Transit Agreement",
+      "deu_four_year_plan": "Four Year Plan",
+      "deu_infantry": "More Infantry Divisions",
+      "deu_kwi": "Kaiser Wilhelm Institutes",
+      "deu_luftwaffe": "Expanding the Luftwaffe",
+      "deu_machine_tools": "Machine Tool Standards",
+      "deu_memel_question": "The Memel Question",
+      "deu_moscow_envoy": "An Envoy to Moscow",
+      "deu_motorized": "Motorized Infantry",
+      "deu_mountain": "Mountain Divisions",
+      "deu_pact_of_steel": "Pact of Steel",
+      "deu_panzer_arm": "The Panzer Arm",
+      "deu_plan_z": "Plan Z",
+      "deu_polish_alignment": "A Bargain with Warsaw",
+      "deu_rearm_industry": "Arms Industry Buildup",
+      "deu_rhineland": "Rhineland Remilitarization",
+      "deu_rome_berlin": "An Axis with Rome",
+      "deu_ruhr": "Ruhr Output Drive",
+      "deu_salzgitter": "Salzgitter Steelworks",
+      "deu_september_plan": "The September Plan",
+      "deu_silesia": "Silesian Industry",
+      "deu_staff_college": "Training Staff Officers",
+      "deu_sudeten_question": "The Sudeten Question",
+      "deu_synthetic_fuel": "Synthetic Fuel Plants",
+      "deu_tech_mobilization": "Technical Mobilization",
+      "deu_transition": "Provisional Government",
+      "deu_tripartite": "Tripartite Pact",
+      "deu_uboats": "Submarines First",
+      "deu_war_production": "Wartime Production",
+      "deu_wehrmacht": "Expanding the Wehrmacht",
+      "deu_western_reconciliation": "Reconciliation with the West",
+      "deu_westwall": "The Westwall",
       "gen_air_bases": "More Airfields",
       "gen_air_force": "Found an Air Force",
       "gen_army_artillery": "Strengthen the Artillery",
@@ -4005,6 +4126,56 @@
       "gen_rs_2": "Expand the Laboratories"
     },
     "focus_desc": {
+      "deu_airborne": "Develop the equipment and tactics for troops landing behind enemy lines by parachute and glider.",
+      "deu_anti_comintern": "Sign a pact with Japan against the Communist International. Its secret annex is aimed at the Soviet Union.",
+      "deu_army_misgivings": "The generals fear a hasty war will ruin the country. Doubt about the regime spreads through the officer corps.",
+      "deu_arsenal": "Open more munitions and weapons plants to keep pace with the army's growth.",
+      "deu_austria_question": "Prepare to press Vienna for union with Germany. Austria's own Nazi movement grows stronger.",
+      "deu_autobahn": "Put the unemployed to work on a national motorway network. Wide roads will also speed the army's movements.",
+      "deu_balkan_partners": "Bring Hungary, Romania, Bulgaria and Yugoslavia into the pact to secure the southeastern flank and its oil.",
+      "deu_battle_fleet": "Build a fleet of battleships and cruisers able to face the Royal Navy on the open sea.",
+      "deu_bohemia_question": "Put pressure on what is left of Czechoslovakia, stripped of its border forts at Munich.",
+      "deu_buna": "Set up mass production of Buna synthetic rubber, so the wheels keep turning if imports are cut off.",
+      "deu_chemicals": "Expand the plants that make explosives and synthetic materials, and fund process research.",
+      "deu_combined_arms": "Train tanks, infantry, artillery and aircraft to fight together under one command.",
+      "deu_constitution": "Revive parliament and elections and hand power to a civilian government. There is upheaval, but the rule of law returns.",
+      "deu_danzig_question": "Prepare to demand the Free City of Danzig and a road and railway across the Polish Corridor.",
+      "deu_dispersal": "Move exposed western factories deep into the east and spread them out against bombing.",
+      "deu_dive_bombers": "Give priority to developing and using dive bombers that support the ground forces closely.",
+      "deu_east_war": "With the West settled, draw up the plan to invade the Soviet Union. Army and economy turn east.",
+      "deu_eastern_bulwark": "Guarantee Poland and the Baltic states and fortify the eastern frontier against any Soviet push west.",
+      "deu_finnish_transit": "Seek the right to move troops across Finland to northern Norway. After the Winter War, Helsinki is looking for a patron.",
+      "deu_four_year_plan": "Put raw-material self-sufficiency and arms output first, so the economy is ready for war within four years. Consumer goods come second.",
+      "deu_infantry": "Raise more infantry divisions and set up regional replacement battalions to fill losses quickly.",
+      "deu_kwi": "Raise the budget of the Kaiser Wilhelm Society's institutes, fostering both basic and applied research.",
+      "deu_luftwaffe": "Equip the air force, revealed to the world in 1935, with new fighters and bombers in large numbers.",
+      "deu_machine_tools": "Standardize machine tools and parts so factories can share work and run more efficiently.",
+      "deu_memel_question": "Prepare to demand the return of the Memel Territory, ruled by Lithuania since 1923.",
+      "deu_moscow_envoy": "Open talks with the ideological enemy. Neither side wants its hands tied over Poland.",
+      "deu_motorized": "Form truck-borne infantry divisions that can keep pace with the panzers.",
+      "deu_mountain": "Refine the organization and kit of the mountain divisions trained for alpine warfare.",
+      "deu_pact_of_steel": "Conclude a military alliance with Italy: if one goes to war, the other fights alongside.",
+      "deu_panzer_arm": "Build up an arm that groups tanks into independent panzer divisions instead of spreading them among the infantry.",
+      "deu_plan_z": "Adopt a building programme for a large fleet of battleships and carriers by the mid-1940s.",
+      "deu_polish_alignment": "Draw Poland into an anti-Soviet bloc and settle Danzig at the table. Germany's gaze turns east.",
+      "deu_rearm_industry": "Ignore the Versailles arms limits and add weapons plants. Rearmament, once hidden, is now out in the open.",
+      "deu_rhineland": "Send troops into the demilitarized Rhineland. It breaks the Locarno Treaty, but Berlin wagers the Western powers will not act.",
+      "deu_rome_berlin": "Reach out to Italy, isolated after its invasion of Ethiopia. The two regimes agree to keep their foreign policies in step.",
+      "deu_ruhr": "Raise output in the coalfields and steelworks of the Ruhr, the heart of rearmament in the west.",
+      "deu_salzgitter": "Build a large state steelworks at Salzgitter to smelt low-grade German iron ore.",
+      "deu_september_plan": "A circle of officers plans to remove the regime before it drags the country into war. If it works, the army will form a provisional government.",
+      "deu_silesia": "Expand the mines and works of Silesia to share the load of the western industrial belt.",
+      "deu_staff_college": "Widen the War Academy's courses to produce staff officers able to run divisions and corps.",
+      "deu_sudeten_question": "Turn the grievances of the Sudeten Germans into an international crisis. The government in Prague is shaken.",
+      "deu_synthetic_fuel": "Build hydrogenation plants that turn coal into oil, easing the dependence on imported fuel.",
+      "deu_tech_mobilization": "Tie university and industry engineers to state research programmes to speed up weapons development.",
+      "deu_transition": "The army's provisional government restores order and eases tensions abroad, stepping out of the old regime's alliances.",
+      "deu_tripartite": "Prepare a treaty of mutual aid with Italy and Japan, meant also to keep the United States out of the war.",
+      "deu_uboats": "Put scarce resources into U-boats and concentrate on cutting Britain's sea lanes.",
+      "deu_war_production": "With war under way, switch the factories to war production and cut civilian consumption further.",
+      "deu_wehrmacht": "Use the conscription restored in 1935 to grow the army quickly toward 36 divisions.",
+      "deu_western_reconciliation": "Negotiate non-aggression with Britain and France and lower trade barriers, putting the bitterness of Versailles behind.",
+      "deu_westwall": "Build bunkers and tank obstacles along the western border from the Netherlands to Switzerland.",
       "gen_air_bases": "Paved runways, hangars and repair shops spread across the country, ready for a larger air force.",
       "gen_air_force": "The flying corps becomes a service of its own and buys its first modern fighters.",
       "gen_army_artillery": "New gun designs and modern fire control are ordered for the artillery, and gunners train more often.",
@@ -4419,12 +4590,31 @@
       "m11": "November",
       "m12": "December"
     },
+    "news": {
+      "deu_news_coup": "German army officers have seized power in Berlin.",
+      "deu_news_july_plot": "Officers in Germany have toppled the regime and set up a provisional government.",
+      "deu_news_tripartite": "The Tripartite Pact is signed in Berlin.",
+      "deu_poland": "Germany has invaded Poland."
+    },
     "panel": {
       "at_peace": "At peace",
       "my_wars": "My wars",
       "next_history": "Next in history: {date}",
       "scores": "If the war ended now",
       "title": "Diplomacy"
+    },
+    "person": {
+      "deu_beck": "Ludwig Beck",
+      "deu_blomberg": "Werner von Blomberg",
+      "deu_brauchitsch": "Walther von Brauchitsch",
+      "deu_fritsch": "Werner von Fritsch",
+      "deu_guderian": "Heinz Guderian",
+      "deu_halder": "Franz Halder",
+      "deu_lutz": "Oswald Lutz",
+      "deu_papen": "Franz von Papen",
+      "deu_schacht": "Hjalmar Schacht",
+      "deu_todt": "Fritz Todt",
+      "deu_zeitzler": "Kurt Zeitzler"
     },
     "region": {
       "original_owner": "1936: {country}",
@@ -4456,6 +4646,16 @@
       "mobile": "Mobile warfare"
     },
     "spirit": {
+      "deu_combined_doctrine": "Combined Arms Doctrine",
+      "deu_conscription_back": "Conscription Restored",
+      "deu_fyp_economy": "Four Year Plan Economy",
+      "deu_generals_doubt": "The Generals' Doubts",
+      "deu_highway_works": "Motorway Works",
+      "deu_replacement_system": "Replacement System",
+      "deu_standard_tools": "Standardized Tooling",
+      "deu_tech_drive": "Technical Drive",
+      "deu_war_academy": "War Academy",
+      "deu_wartime_output": "Wartime Output",
       "gen_civil_strife": "Scars of Civil Strife",
       "gen_democratic_movement": "Democratic Movement",
       "gen_efficient_government": "Efficient Government",
@@ -4474,6 +4674,16 @@
       "gen_war_bonds_spirit": "War Bonds"
     },
     "spirit_desc": {
+      "deu_combined_doctrine": "Tanks and infantry, guns and aircraft move as one.",
+      "deu_conscription_back": "The conscription law of 1935 brings a fresh age class into the ranks every year.",
+      "deu_fyp_economy": "Raw-material self-sufficiency and arms output come before consumer goods.",
+      "deu_generals_doubt": "The army leadership does not trust the regime's plans for war.",
+      "deu_highway_works": "Building the motorways has trained construction crews and machinery.",
+      "deu_replacement_system": "Regional replacement battalions quickly make good the losses at the front.",
+      "deu_standard_tools": "Common standards let factories share their work.",
+      "deu_tech_drive": "University and industry engineers work on state research programmes.",
+      "deu_war_academy": "The War Academy, reopened in 1935, turns out trained staff officers.",
+      "deu_wartime_output": "The factories run day and night while civilian life grows leaner.",
       "gen_civil_strife": "The government changed after civil strife, but wrecked factories and a divided people remain.",
       "gen_democratic_movement": "Civic leagues that stand for democracy keep winning new supporters.",
       "gen_efficient_government": "A leaner administration gets more done with the same effort.",
@@ -4574,6 +4784,13 @@
       "plains": "Plains",
       "urban": "Urban"
     },
+    "title": {
+      "deu_armaments_minister": "Armaments Minister",
+      "deu_foreign_minister": "Foreign Minister",
+      "deu_four_year_plenipotentiary": "Four Year Plan Plenipotentiary",
+      "deu_okw_chief": "Chief of the OKW",
+      "deu_propaganda_chief": "Head of Propaganda"
+    },
     "tpl": {
       "alpini": "Alpini Division",
       "armored": "Armoured Division",
@@ -4583,6 +4800,9 @@
       "celere": "Celere Division",
       "colonial": "Colonial Division",
       "colonial_garrison": "Colonial Garrison",
+      "deu_motorized_div": "Motorized Division",
+      "deu_mountain_ii": "Mountain Division II",
+      "deu_panzer_ii": "Panzer Division II",
       "dlm": "Light Mechanized Division",
       "garrison": "Garrison Division",
       "infantry": "Infantry Division",
