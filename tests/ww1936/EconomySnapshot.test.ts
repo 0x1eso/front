@@ -285,7 +285,7 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     }
   }, 60_000);
 
-  test("the economy hash sees docks, line progress and activity, deal sizes and law cooldowns", async () => {
+  test("the economy hash sees docks, line progress and activity, deal sizes, law cooldowns, construction and research progress and the field infantry", async () => {
     const a = await wwRunner({}, DEU_HUMAN);
     const g = a.game;
     stepTo(a, dayStart(2) + 2);
@@ -293,6 +293,9 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     stepTo(a, dayStart(5) + 2);
     const econ = econOf(g);
     const deu = econ.country(byTag(g, "DEU").smallID())!;
+    const slot = () => deu.slots.find((s) => s?.tech === "tools_2")!;
+    expect(deu.queue[0].progress).toBeGreaterThan(0);
+    expect(slot().progress).toBeGreaterThan(0);
     const base = econ.hash();
     const changes: [string, () => void, () => void][] = [
       ["dock", () => (econ.dock[4] += 1), () => (econ.dock[4] -= 1)],
@@ -315,6 +318,21 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         "law cooldown",
         () => (deu.lawCooldownUntil.economy += 1),
         () => (deu.lawCooldownUntil.economy -= 1),
+      ],
+      [
+        "construction progress",
+        () => (deu.queue[0].progress += 1),
+        () => (deu.queue[0].progress -= 1),
+      ],
+      [
+        "research progress",
+        () => (slot().progress += 1),
+        () => (slot().progress -= 1),
+      ],
+      [
+        "field infantry",
+        () => (deu.fieldInfUnits += 1),
+        () => (deu.fieldInfUnits -= 1),
       ],
     ];
     for (const [what, change, undo] of changes) {

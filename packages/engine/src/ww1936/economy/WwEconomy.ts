@@ -848,6 +848,13 @@ export class WwEconomy {
         h = (Math.imul(h, 31) + l.effBp + l.factories) | 0;
         h = (Math.imul(h, 31) + l.progress + l.active * 7) | 0;
       }
+      // Progress, so a desync in construction or research shows the same
+      // day (not when a building or tech completes).
+      for (const q of ce.queue) h = (Math.imul(h, 31) + q.progress) | 0;
+      for (const sl of ce.slots) {
+        h = (Math.imul(h, 31) + (sl === null ? -1 : sl.progress)) | 0;
+      }
+      h = (Math.imul(h, 31) + ce.fieldInfUnits) | 0;
     }
     for (const r of this.scenario.landRegions) {
       const id = r.id;
