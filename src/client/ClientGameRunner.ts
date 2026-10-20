@@ -694,15 +694,15 @@ async function createClientGame(
     lobbyConfig.gameStartInfo.listed,
     lobbyConfig.spectator === true,
   );
+  // The normalized config: World War 1936 fixes its own map and size,
+  // whatever the raw config names (normalizeWorldWar1936Config).
+  const { gameMap: mapType, gameMapSize } = config.gameConfig();
   let gameMap: TerrainMapData;
 
   if (terrainLoad) {
     gameMap = await terrainLoad;
   } else {
-    gameMap = await loadCachedTerrainMap(
-      lobbyConfig.gameStartInfo.config.gameMap,
-      lobbyConfig.gameStartInfo.config.gameMapSize,
-    );
+    gameMap = await loadCachedTerrainMap(mapType, gameMapSize);
   }
   // Kick off the font-atlas fetch so it overlaps with worker init; the
   // render passes need it parsed before createWebGLView runs.
@@ -768,8 +768,8 @@ async function createClientGame(
       view,
       gameMap,
       userSettings,
-      lobbyConfig.gameStartInfo.config.gameMap,
-      lobbyConfig.gameStartInfo.config.gameMapSize,
+      mapType,
+      gameMapSize,
       mapLoader,
       graphicsListenerAbort.signal,
     );
