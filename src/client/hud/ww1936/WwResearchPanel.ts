@@ -148,16 +148,18 @@ export class WwResearchPanel extends WwDrawerBase {
       );
     }
     const day = today(this.game);
+    const slots = this.renderSlots(researchSlots(d, day));
+    const cards = this.renderCards(d, researchCards(d, this.branch, day));
     return this.renderFrame(
       translateText("ww1936.econ.research"),
-      html`<span aria-hidden="true">🔬</span> ${this.renderSlots(
-          researchSlots(d, day),
-        )}`,
+      html`<span aria-hidden="true">🔬</span> ${slots}`,
       this.renderTabs(TECH_BRANCHES, this.branch, branchName, (b) => {
         this.branch = b;
         this.refused = null;
       }),
-      this.renderCards(d, researchCards(d, this.branch, day)),
+      // On a short screen the tabs take the head's row (renderFrame): the
+      // slots open the list instead, which gets that row's room.
+      this.compact ? html`${slots}${cards}` : cards,
     );
   }
 

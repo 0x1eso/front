@@ -27,7 +27,7 @@ import { UserSettings } from "../../UserSettings";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
-import { translateCountryParams } from "../ww1936/WorldWarModel";
+import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
 
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
@@ -374,7 +374,19 @@ export class EventsDisplay extends LitElement implements Controller {
     if (!subject.isPlayer()) {
       return params;
     }
-    return { ...params, name: subject.displayName() };
+    return { ...params, name: this.messageName(subject) };
+  }
+
+  /**
+   * A player named in a message: its display name (which respects
+   * Anonymous Names) — or, in World War 1936, its country in the UI's
+   * language ("폴란드", not the engine's "Poland"), as the band, the cards
+   * and the mode's own notices name it.
+   */
+  private messageName(p: PlayerView): string {
+    // Optional call: test doubles of the game predate the mode.
+    const tag = this.game.worldWarScenario?.() ? p.countryTag() : null;
+    return tag === null ? p.displayName() : countryName(tag);
   }
 
   onDisplayMessageEvent(event: DisplayMessageUpdate) {
@@ -704,7 +716,7 @@ export class EventsDisplay extends LitElement implements Controller {
     let description = event.message;
     if (event.message.startsWith("events_display.") && unitView) {
       const params: Record<string, string | number> = {
-        name: unitView.owner().displayName(),
+        name: this.messageName(unitView.owner()),
       };
       if (event.messageType === MessageType.NAVAL_INVASION_INBOUND) {
         params.troops = renderTroops(unitView.troops());

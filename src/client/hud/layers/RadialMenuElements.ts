@@ -22,6 +22,8 @@ import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
 import { bannedBadge, bannedReason } from "../congress/BanLabels";
 import { lockedBadge, lockedReason } from "../domestic/LockReason";
+import { regionCard } from "../ww1936/EconomyModel";
+import { OpenWwIndustryEvent } from "../ww1936/WwDrawer";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
 import { EmojiTable } from "./EmojiTable";
@@ -114,6 +116,8 @@ export const COLORS = {
   infoEmoji: "#fbbf24",
   trade: "#0891b2",
   embargo: "#7c3aed",
+  /** The region card's "Build here" (bg-amber-700), dark enough for white text. */
+  wwBuildHere: "#b45309",
   tooltip: {
     cost: "#f59e0b",
     count: "#94a3b8",
@@ -881,6 +885,35 @@ export const centerButtonElement: CenterButtonElement = {
   },
 };
 
+/**
+ * World War 1936 P1 (spec §13.5): "Build here" on a region of my own — the
+ * industry drawer's construction tab with that region picked. The region
+ * card has the same button, but on a touch screen the card shows under
+ * this menu's full-screen overlay, which takes the tap: there the card
+ * hides its button and this item carries it. Null outside the mode or off
+ * a region; disabled on a region I don't hold.
+ */
+export function wwBuildHereElement(
+  params: MenuElementParams,
+): MenuElement | null {
+  // Optional call: test doubles of the game predate the mode.
+  if ((params.game.worldWarScenario?.() ?? null) === null) return null;
+  const card = regionCard(params.game, params.tile);
+  if (card === null) return null;
+  return {
+    id: "ww_build_here",
+    name: "ww_build_here",
+    text: translateText("ww1936.econ.build_here"),
+    fontSize: "12px",
+    color: COLORS.wwBuildHere,
+    disabled: () => !card.mine,
+    action: (p: MenuElementParams) => {
+      p.eventBus.emit(new OpenWwIndustryEvent("construction", card.id));
+      p.closeMenu();
+    },
+  };
+}
+
 export const rootMenuElement: MenuElement = {
   id: "root",
   name: "root",
@@ -913,7 +946,13 @@ export const rootMenuElement: MenuElement = {
     const menuItems: (MenuElement | null)[] = [
       infoMenuElement,
       ...(isOwnTerritory
-        ? [deleteUnitElement, allyRequestElement, buildMenuElement]
+        ? [
+            deleteUnitElement,
+            // World War 1936: "Build here" takes the slot of the alliance
+            // request, which can't apply to my own land.
+            wwBuildHereElement(params) ?? allyRequestElement,
+            buildMenuElement,
+          ]
         : [
             isAllied && !isDisconnected ? allyBreakElement : boatMenuElement,
             inExtensionWindow ? allyExtendElement : allyRequestElement,

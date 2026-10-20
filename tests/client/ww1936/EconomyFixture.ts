@@ -26,11 +26,16 @@ export const scenario = ScenarioIndex.fromFiles(
 
 export const ID = (tag: CountryTag) => scenario.smallIdOf(tag);
 
+/**
+ * The summary and detail with the engine fix batch's fields (w1-fixe:
+ * WwCountrySummary.slotPct, WwCountryDetail.tradePartners); the same as
+ * the plain types once it merges.
+ */
+export type Summary = WwCountrySummary & { slotPct: number };
+export type Detail = WwCountryDetail & { tradePartners: number[] };
+
 /** Germany on the test map at the start (task-1 report), or `over`. */
-export function summary(
-  tag: CountryTag,
-  over: Partial<WwCountrySummary> = {},
-): WwCountrySummary {
+export function summary(tag: CountryTag, over: Partial<Summary> = {}): Summary {
   return {
     smallID: ID(tag),
     civ: 9,
@@ -50,10 +55,7 @@ export function summary(
   };
 }
 
-export function detail(
-  tag: CountryTag,
-  over: Partial<WwCountryDetail> = {},
-): WwCountryDetail {
+export function detail(tag: CountryTag, over: Partial<Detail> = {}): Detail {
   return {
     smallID: ID(tag),
     laws: {
@@ -97,6 +99,11 @@ export function detail(
   };
 }
 
+/** The engine's trade partners in my detail (Trade.tradePartners), by tag. */
+export function partners(...tags: CountryTag[]): Partial<Detail> {
+  return { tradePartners: tags.map(ID) };
+}
+
 /** A region as it is now (WwRegionData), starting from the scenario. */
 export function region(
   id: number,
@@ -129,6 +136,8 @@ export interface FakeOptions {
   attacks?: number[];
   /** My troops on transport ships. */
   boats?: number[];
+  /** [seller, buyer]: the seller has an embargo on the buyer. */
+  embargoes?: [CountryTag, CountryTag][];
 }
 
 export function fakeEconGame(o: FakeOptions = {}) {
@@ -152,6 +161,10 @@ export function fakeEconGame(o: FakeOptions = {}) {
     outgoingAttacks: () => (o.attacks ?? []).map((troops) => ({ troops })),
     units: () => (o.boats ?? []).map((n) => ({ troops: () => n })),
     numTilesOwned: () => 1_000,
+    hasEmbargoAgainst: (other: { countryTag(): CountryTag }) =>
+      (o.embargoes ?? []).some(
+        ([seller, buyer]) => seller === tag && buyer === other.countryTag(),
+      ),
   }));
   const data = {
     prepEndTick: 600,

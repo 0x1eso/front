@@ -19,6 +19,7 @@ import {
   constructionDaysLeft,
   constructionProgress,
   effAfterSwitch,
+  regionSlots,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { describe, expect, it, vi } from "vitest";
 
@@ -35,12 +36,12 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 import {
   armyMenOf,
   BLOCK_KEYS,
+  blockedSellers,
   BRANCH_KEYS,
   buildBlock,
   buildCandidates,
   BUILDING_KEYS,
   constructionRows,
-  controlFingerprint,
   EFFECT_KEYS,
   effectLines,
   EQUIPMENT_KEYS,
@@ -56,6 +57,8 @@ import {
   lineRows,
   lineShortages,
   liveWarDays,
+  menText,
+  NOT_PARTNER_KEYS,
   openTradeBlock,
   REGION_CAT_KEYS,
   regionCard,
@@ -78,6 +81,7 @@ import {
   fakeEconGame,
   FakeOptions,
   ID,
+  partners,
   region,
   scenario,
   summary,
@@ -133,9 +137,17 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
   });
 
   it("the top band shows factories, manpower and the shortage dot", () => {
+    // Manpower in real men (spec §13.1, ruling): 1,195,000 is "1.2M", not
+    // the troop bar's tenths ("119K").
     expect(
       topBandEconomy(summary("DEU", { civ: 32, mil: 16, shortage: true })),
-    ).toEqual({ civ: 32, mil: 16, manpowerText: "119K", shortage: true });
+    ).toEqual({ civ: 32, mil: 16, manpowerText: "1.2M", shortage: true });
+    expect(menText(1_195_000)).toBe("1.2M");
+    expect(menText(1_675_000)).toBe("1.7M");
+    expect(menText(480_000)).toBe("480K");
+    expect(menText(18_611)).toBe("18.6K");
+    expect(menText(12_345_678)).toBe("12.3M");
+    expect(menText(0)).toBe("0");
   });
 
   it("construction rows estimate days with the engine formula", () => {
@@ -311,6 +323,37 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(regionCard(game as never, tileOf(1))!.mine).toBe(false);
   });
 
+  it("an AI's region card counts its controller's slot research", () => {
+    // Paris (a metropolis) is French; France is an AI: no detail, so only
+    // its summary's slotPct (the engine's techs' bonus) says what it has.
+    const card = (o: FakeOptions) =>
+      regionCard(fakeEconGame(o).game as never, tileOf(1))!;
+    const base = regionSlots("metropolis", 0);
+    expect(card({ summaries: [summary("FRA")] }).slots).toBe(base);
+    expect(card({ summaries: [summary("FRA", { slotPct: 40 })] }).slots).toBe(
+      regionSlots("metropolis", 40),
+    );
+    expect(regionSlots("metropolis", 40)).toBeGreaterThan(base);
+    // Germany's Munich: my summary's bonus, as the build checks use it.
+    const munich = regionCard(
+      fakeEconGame({
+        summaries: [summary("DEU", { slotPct: 20 })],
+        details: [detail("DEU", { researched: ["construction_1"] })],
+      }).game as never,
+      tileOf(4),
+    )!;
+    expect(munich.slots).toBe(9);
+    // Before the first summary, a human's own detail gives it.
+    expect(
+      regionCard(
+        fakeEconGame({
+          details: [detail("DEU", { researched: ["construction_1"] })],
+        }).game as never,
+        tileOf(4),
+      )!.slots,
+    ).toBe(9);
+  });
+
   it("idle military factories follow the lines asked for, before day 0 too", () => {
     const mk = (factories: number[]): WwLineData[] =>
       factories.map((f, i) => ({
@@ -372,15 +415,19 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     // Lines in order take what they need (EconomyRules.allocateResources):
     // the first gets 2 steel and the tungsten, the second 1 steel.
     expect(rows.map((r) => r.shortage)).toEqual([[], ["tungsten", "steel"]]);
-    const fill = allocateResources(
+    const alloc = allocateResources(
       resources.map((r) => r.produced),
       d.lines.map((l) => ({
         key: equipKey(l.equipment, l.gen),
         factories: l.active,
       })),
-    ).fill;
+    );
     expect(lineShortages(d).map((s) => s.length > 0)).toEqual(
-      fill.map((f) => f < 1000),
+      alloc.fill.map((f) => f < 1000),
+    );
+    // The very resources the engine's allocation found short.
+    expect(lineShortages(d)).toEqual(
+      alloc.short.map((lacks) => lacks.map((r) => RESOURCE_IDS[r])),
     );
     // "Used" is what the working lines need, so the shortage is red:
     // 2 + 2 steel and 1 + 1 tungsten asked for.
@@ -428,45 +475,84 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(switchPreview(line, "infantry_equipment", 1, 0)).toBe(5_000);
   });
 
-  it("trade offers follow the route rule", () => {
+  it("trade offers are the engine's partners with room to sell", () => {
     const me = ID("DEU");
     const room = (tag: string) => (tag === "GBR" ? 30 : tag === "SUN" ? 9 : 16);
-    const offers = (o: FakeOptions, buyer = me) => {
-      const { view } = fakeEconGame({ summaries: sellers(room), ...o });
+    // The engine judged Italy (faction), France and Poland (land), the
+    // Soviet Union (land past Poland) partners; Britain not (no route).
+    const mine = partners("ITA", "FRA", "POL", "SUN");
+    const model = (
+      o: FakeOptions = {},
+      extra: Partial<WwCountryDetail> = {},
+    ) => {
+      const { view } = fakeEconGame({
+        summaries: sellers(room),
+        details: [detail("DEU", { ...mine, ...extra })],
+        ...o,
+      });
       const wars = (o.wars ?? []).map(([a, b]) => ({ a: ID(a), b: ID(b) }));
-      return tradeOffers(view, scenario, buyer, wars, "steel").map(
-        (x) => x.tag,
-      );
+      return {
+        offers: tradeOffers(view, scenario, me, wars, "steel").map(
+          (x) => x.tag,
+        ),
+        blocked: (embargoed: (id: number) => boolean = () => false) =>
+          blockedSellers(
+            view,
+            scenario,
+            me,
+            wars,
+            "steel",
+            () => true,
+            embargoed,
+          ).map((x) => [x.tag, x.reason]),
+      };
     };
-    // 1. Faction (Italy), land neighbours (France, Poland) and land through
-    // a neighbour at peace (the Soviet Union, past Poland). Britain: no
-    // shared sea (Germany has no coast) and no land route. Same room:
-    // by smallID (ITA 2, FRA 4, POL 6); the Soviet Union has less.
-    expect(offers({})).toEqual(["ITA", "FRA", "POL", "SUN"]);
-    // 2. A war cuts the way through Poland too.
-    expect(offers({ wars: [["DEU", "POL"]] })).toEqual(["ITA", "FRA"]);
-    // 3. Sea: Britain shares the North Sea with France, Italy and Poland,
-    // not the Black Sea with the Soviet Union.
-    expect(offers({}, ID("GBR"))).toEqual(["ITA", "FRA", "POL"]);
-    // 4. Too little to sell (under 8 a day), or out of the war.
+    // Same room: by smallID (ITA 2, FRA 4, POL 6); the Soviet Union has less.
+    expect(model().offers).toEqual(["ITA", "FRA", "POL", "SUN"]);
+    // Britain has steel to sell but no route to me: shown, and why.
+    expect(model().blocked()).toEqual([["GBR", "route"]]);
+    // A war declared since my last detail cuts at once (the P0 list is live).
+    const war = model({ wars: [["DEU", "POL"]] });
+    expect(war.offers).toEqual(["ITA", "FRA", "SUN"]);
+    expect(war.blocked()).toEqual([
+      ["GBR", "route"],
+      ["POL", "war"],
+    ]);
+    // A seller's embargo on me (the engine leaves it out of my partners).
+    const embargo = model({}, partners("ITA", "POL", "SUN"));
+    expect(embargo.offers).toEqual(["ITA", "POL", "SUN"]);
+    expect(embargo.blocked((id) => id === ID("FRA"))).toEqual([
+      ["GBR", "route"],
+      ["FRA", "embargo"],
+    ]);
+    // No detail yet: nobody to buy from (the screens build no graph).
+    const { view: bare } = fakeEconGame({ summaries: sellers(room) });
+    expect(tradeOffers(bare, scenario, me, [], "steel")).toEqual([]);
+    // Too little to sell (under 8 a day), or out of the war: left out of both.
     const { view } = fakeEconGame({
       summaries: sellers((t) => (t === "FRA" ? 7 : 8)),
+      details: [detail("DEU", mine)],
     });
+    const fighting = (id: number) => id !== ID("ITA");
     expect(
-      tradeOffers(
-        view,
-        scenario,
-        me,
-        [],
-        "steel",
-        (id) => id !== ID("ITA"),
-      ).map((x) => [x.tag, x.room]),
+      tradeOffers(view, scenario, me, [], "steel", fighting).map((x) => [
+        x.tag,
+        x.room,
+      ]),
     ).toEqual([
       ["SUN", 8],
       ["POL", 8],
     ]);
-    // Most room first.
-    expect(offers({}, ID("FRA"))[0]).toBe("GBR");
+    expect(
+      blockedSellers(view, scenario, me, [], "steel", fighting).map(
+        (x) => x.tag,
+      ),
+    ).toEqual(["GBR"]);
+    expect(NOT_PARTNER_KEYS).toEqual({
+      war: "ww1936.econ.not_partner_war",
+      embargo: "ww1936.econ.not_partner_embargo",
+      route: "ww1936.econ.not_partner_route",
+    });
   });
 
   it("opening a deal blocks as the engine does", () => {
@@ -722,23 +808,6 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(lawClosesDeals(d, s, "economy", "civilian")).toBe(true);
     expect(lawClosesDeals(d, s, "economy", "total_mobilization")).toBe(false);
     expect(lawClosesDeals(d, s, "conscription", "service")).toBe(false);
-  });
-
-  it("the trade graph's fingerprint moves only with region control", () => {
-    const { view } = fakeEconGame();
-    const before = controlFingerprint(view.controller);
-    view.apply({
-      countries: [summary("DEU")],
-      details: [],
-      regions: [region(3, { civ: 9 })],
-    });
-    expect(controlFingerprint(view.controller)).toBe(before);
-    view.apply({
-      countries: [],
-      details: [],
-      regions: [region(6, { controller: ID("DEU") })],
-    });
-    expect(controlFingerprint(view.controller)).not.toBe(before);
   });
 
   it("numbers below zero get a real minus sign", () => {

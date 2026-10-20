@@ -162,6 +162,19 @@ describe("resources (spec §7)", () => {
     ]);
     expect(a.fill).toEqual([500, 500]); // tungsten 5/10, then steel 10/20
     expect(a.used).toEqual([0, 0, 0, 5, 30, 0]);
+    // Which resources each line lacks (RESOURCE_IDS indices): artillery
+    // gets all 20 steel but half its tungsten; the rifles the 10 steel left.
+    expect(a.short).toEqual([[3], [4]]);
+    // Enough of everything: no line lacks anything.
+    expect(
+      allocateResources(
+        [0, 0, 0, 10, 40, 0],
+        [
+          { key: art, factories: 10 },
+          { key: inf, factories: 20 },
+        ],
+      ).short,
+    ).toEqual([[], []]);
     // A line that needs nothing (no factories) is full.
     expect(allocateResources(avail, [{ key: art, factories: 0 }]).fill).toEqual(
       [1000],

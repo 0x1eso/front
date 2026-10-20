@@ -4,6 +4,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { GameLeftSidebar } from "../src/client/hud/layers/GameLeftSidebar";
 import type { PlayerStats } from "../src/client/hud/layers/PlayerStats";
 import type { TeamStats } from "../src/client/hud/layers/TeamStats";
+import { WwDrawerEvent } from "../src/client/hud/ww1936/WwDrawer";
 import { UserSettings } from "../src/client/UserSettings";
 import type { GameView, PlayerView } from "../src/client/view";
 
@@ -116,5 +117,88 @@ describe("GameLeftSidebar", () => {
     );
 
     sidebar.remove();
+  });
+
+  it("folds under an open World War drawer it would reach, and comes back", async () => {
+    // A 667 px phone: the expanded board runs to x 379, the drawer starts
+    // at the middle (334). The drawer is drawn over it; the board yields.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    const game = {
+      config: () => ({
+        gameConfig: () => ({ gameMode: GameMode.FFA }),
+        maxTroops: () => 1_000,
+        congress: () => false,
+      }),
+      gameID: () => "g",
+      inSpawnPhase: () => false,
+      myPlayer: () => null,
+      numLandTiles: () => 100,
+      ticks: () => 600,
+      numTilesWithFallout: () => 0,
+      playerViews: () => [],
+      worldWarScenario: () => null,
+    } as unknown as GameView;
+    const bus = new EventBus();
+    const sidebar = new GameLeftSidebar();
+    sidebar.game = game;
+    sidebar.eventBus = bus;
+    document.body.append(sidebar);
+    sidebar.init();
+    // After spawn the board opens by default (spec §14a).
+    sidebar.tick();
+    await sidebar.updateComplete;
+    const rect = (left: number, right: number) => () =>
+      ({
+        left,
+        right,
+        width: right - left,
+        top: 0,
+        bottom: 200,
+        height: 200,
+      }) as DOMRect;
+    sidebar.querySelector("aside")!.getBoundingClientRect = rect(8, 379);
+    const drawer = document.createElement("aside");
+    drawer.setAttribute("data-ww-drawer", "industry");
+    drawer.getBoundingClientRect = rect(334, 619);
+    document.body.append(drawer);
+    const shown = () =>
+      !sidebar.querySelector("player-stats")!.classList.contains("hidden");
+    expect(shown()).toBe(true);
+
+    bus.emit(new WwDrawerEvent("industry", true));
+    await sidebar.updateComplete;
+    expect(shown()).toBe(false);
+    // Switching drawers keeps it folded (one closes as the other opens).
+    bus.emit(new WwDrawerEvent("industry", false));
+    bus.emit(new WwDrawerEvent("research", true));
+    await sidebar.updateComplete;
+    expect(shown()).toBe(false);
+    // Closed: the board is back, still expanded by default.
+    bus.emit(new WwDrawerEvent("research", false));
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+
+    // Its button brings it back over an open drawer.
+    bus.emit(new WwDrawerEvent("industry", true));
+    await sidebar.updateComplete;
+    expect(shown()).toBe(false);
+    (sidebar.querySelector('[role="button"]') as HTMLElement).click();
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+    bus.emit(new WwDrawerEvent("industry", false));
+    await sidebar.updateComplete;
+
+    // A wide screen: the drawer starts right of the board; nothing folds.
+    drawer.getBoundingClientRect = rect(712, 1132);
+    bus.emit(new WwDrawerEvent("industry", true));
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+
+    drawer.remove();
+    sidebar.remove();
+    vi.unstubAllGlobals();
   });
 });

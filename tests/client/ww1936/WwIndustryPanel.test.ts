@@ -39,6 +39,7 @@ import {
   fakeEconGame,
   FakeOptions,
   ID,
+  partners,
   region,
   summary,
   tileOf,
@@ -202,6 +203,25 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(m.q("[data-ww-combat]")!.textContent).toContain("a=28,d=25,s=15");
   });
 
+  it("the manpower block counts men, and the army as the troop cap does", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { recruited: 4_000 })],
+      // 480K at home, 100K in an attack, 20K at sea: the engine's armyMen.
+      troops: 480_000,
+      attacks: [100_000],
+      boats: [20_000],
+    });
+    await m.open("laws");
+    const values = [
+      ...m.el.querySelectorAll<HTMLElement>("[data-ww-manpower] dd"),
+    ].map((dd) => dd.textContent!.trim());
+    // Recruitable 1,675,000, manpower 1,195,000, army 600,000, cap 630,000
+    // — real men (spec §13.1, ruling), not the troop bar's tenths.
+    expect(values).toEqual(["1.7M", "1.2M", "600K", "630K"]);
+    expect(m.q("[data-ww-draft]")!.textContent).toContain("n=4.0K,cap=18.6K");
+  });
+
   it("build here picks the region; the best one is picked otherwise", async () => {
     const m = mount({
       summaries: [summary("DEU")],
@@ -256,6 +276,44 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(opened.map((e) => [e.tab, e.region])).toEqual([["construction", 6]]);
   });
 
+  it("another building type keeps a picked region that takes it, else the best", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+      regions: [region(6, { controller: ID("DEU") })],
+    });
+    const picked = () =>
+      m.q("[data-ww-picked]")!.getAttribute("data-ww-picked");
+    // "Build here" on Munich: a civilian factory there.
+    await m.open(null, 4);
+    expect(picked()).toBe("4");
+    // Munich has a free slot for a military factory too: it stays.
+    await m.click("[data-ww-building='mil']");
+    expect(picked()).toBe("4");
+    expect(m.q("[data-ww-add-build]")!.disabled).toBe(false);
+    // Its infrastructure is full: back to the best candidate (Warsaw),
+    // not a blocked Add on Munich.
+    await m.click("[data-ww-building='infra']");
+    expect(picked()).toBe("6");
+    expect(m.q("[data-ww-block]")).toBeNull();
+    await m.click("[data-ww-add-build]");
+    expect(m.sent).toEqual([
+      { kind: "build", region: 6, building: "infra", count: 1 },
+    ]);
+    // No region takes infrastructure at all (Berlin and Munich are full):
+    // the pick stays and says why, rather than an empty form.
+    const full = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+    });
+    await full.open(null, 4);
+    await full.click("[data-ww-building='infra']");
+    expect(full.q("[data-ww-picked]")!.getAttribute("data-ww-picked")).toBe(
+      "4",
+    );
+    expect(full.q("[data-ww-block='infra_max']")).not.toBeNull();
+  });
+
   it("holding + adds five, a tap one", async () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const m = mount({
@@ -292,6 +350,9 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       ],
       details: [
         detail("DEU", {
+          // The engine's judgement: Italy (faction) and the Soviet Union;
+          // not Britain (no route).
+          ...partners("ITA", "SUN"),
           buying: [
             {
               id: 7,
@@ -319,9 +380,14 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     await m.el.updateComplete;
     await Promise.resolve();
     expect(scrolled).toEqual(["steel"]);
-    // Italy (faction); not Britain (no route).
+    // Italy (faction); not Britain (no route) — listed with the reason.
     expect(m.q(`[data-ww-offer='${ID("ITA")}']`)).not.toBeNull();
     expect(m.q(`[data-ww-offer='${ID("GBR")}']`)).toBeNull();
+    const gbr = m.q(`[data-ww-not-partner='${ID("GBR")}']`)!;
+    expect(gbr.dataset.reason).toBe("route");
+    expect(gbr.textContent).toContain("[ww1936.econ.not_partner_route]");
+    expect(gbr.textContent).toContain("[ww1936.econ.export_room] n=40");
+    expect(gbr.querySelector("button")).toBeNull();
     await m.click(`[data-ww-step='buy-${ID("ITA")}:up']`);
     // Two factories' worth is all Italy has.
     expect(m.q(`[data-ww-step='buy-${ID("ITA")}:up']`)!.disabled).toBe(true);
@@ -348,6 +414,32 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     } else {
       Object.defineProperty(Element.prototype, "scrollIntoView", had);
     }
+  });
+
+  it("a seller's embargo or a war says why it won't sell", async () => {
+    const m = mount({
+      summaries: [
+        summary("DEU"),
+        summary("FRA", { exportRoom: [0, 0, 0, 0, 24, 0] }),
+        summary("POL", { exportRoom: [0, 0, 0, 0, 16, 0] }),
+      ],
+      // France has an embargo on us (the engine left it out); Poland was a
+      // partner on the last detail, and we are at war with it since.
+      details: [detail("DEU", partners("POL"))],
+      embargoes: [["FRA", "DEU"]],
+      wars: [["DEU", "POL"]],
+    });
+    await m.open("trade");
+    await m.click("[data-ww-resource='steel'] button");
+    expect(m.q("[data-ww-offer]")).toBeNull();
+    expect(m.q("[data-ww-no-sellers]")).not.toBeNull();
+    const reasons = [
+      ...m.el.querySelectorAll<HTMLElement>("[data-ww-not-partner]"),
+    ].map((li) => [Number(li.dataset.wwNotPartner), li.dataset.reason]);
+    expect(reasons).toEqual([
+      [ID("FRA"), "embargo"],
+      [ID("POL"), "war"],
+    ]);
   });
 
   it("only one World War drawer is open at a time", async () => {
@@ -418,6 +510,28 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       expect(tab.className).toMatch(/\bh-9\b/);
       expect(tab.className).toMatch(/\bmin-w-9\b/);
     }
+    // A short screen: the tabs share the close button's row (one fixed row,
+    // not two), so the list gets that room; the name stays for readers.
+    const head = m.q("[data-ww-drawer-head]")!;
+    expect(head.querySelector("[role='tablist']")).not.toBeNull();
+    expect(head.querySelector("[data-ww-drawer-close]")).not.toBeNull();
+    expect(m.q("[data-ww-drawer='industry'] h3")).toBeNull();
+    expect(m.q("[data-ww-drawer='industry']")!.getAttribute("aria-label")).toBe(
+      "[ww1936.econ.industry]",
+    );
+  });
+
+  it("a tall screen keeps the title row above the tabs", async () => {
+    vi.stubGlobal("innerWidth", 1180);
+    vi.stubGlobal("innerHeight", 820);
+    const m = mount({ summaries: [summary("DEU")], details: [detail("DEU")] });
+    await m.open("construction");
+    const head = m.q("[data-ww-drawer-head]")!;
+    expect(head.querySelector("h3")!.textContent).toContain(
+      "[ww1936.econ.industry]",
+    );
+    expect(head.querySelector("[role='tablist']")).toBeNull();
+    expect(m.q("[role='tablist']")!.closest("[data-ww-scroll]")).toBeNull();
   });
 
   it("the hover card ignores the pointer over an open drawer", async () => {
