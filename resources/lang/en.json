@@ -3573,6 +3573,14 @@
       "ZAF": "South Africa"
     },
     "date": "{day} {month} {year}",
+    "decision": {
+      "pol_uprising": "Rising in Warsaw",
+      "spa_eastern_division": "Volunteers for the East"
+    },
+    "decision_desc": {
+      "pol_uprising": "Order the underground army to rise in the capital while the occupier's hold is weak.",
+      "spa_eastern_division": "Send a volunteer division to fight beside Germany against the Soviet Union, without declaring war."
+    },
     "declare": {
       "button": "Declare war",
       "confirm": "Confirm: declare war{n, plural, =0 {} one { (# more country joins)} other { (# more countries join)}}"
@@ -3718,10 +3726,239 @@
       "motorized": "Trucks",
       "support_equipment": "Support equipment"
     },
+    "event_desc": {
+      "pol_beck_speech": "Replying to the German leader's speech of 28 April, the foreign minister tells the Sejm that Poland will give up neither Danzig nor a road across Pomerania. Talks remain possible, he says, but only between equals and by peaceful means. The deputies applaud him at length.",
+      "pol_exile_forces": "France has asked for an armistice. The Polish government, and the soldiers and airmen who reach the ports of western and southern France, are carried to Britain. In London the army is rebuilt once more, this time beside the British.",
+      "pol_pyry_meeting": "In the Kabaty forest near Pyry, south of Warsaw, the Cipher Bureau receives British and French codebreakers. For years Polish mathematicians have been reading messages sent with the German cipher machine. Now they can hand their methods and replica machines to the allies who have promised to defend Poland.",
+      "spa_aid_request": "Envoys from Spain ask us for rifles, aircraft and men for their side in the civil war. Arms can travel through intermediaries; volunteers would make our part plain to everyone. Refusing costs nothing today, but Spain will remember it.",
+      "spa_ebro_battle": "On the night of 24 July boats and pontoon bridges carry the Republican army across the Ebro. The offensive is meant to ease the pressure on Valencia and to join the two halves of the Republic again. It becomes the longest and costliest battle of the war.",
+      "spa_hendaye": "At the railway station of Hendaye, just across the border in France, the Spanish head of state meets the German leader. As the price of entering the war Spain asks for Gibraltar, French Morocco and large deliveries of grain, fuel and arms. After hours of talks only a secret protocol without a date is signed.",
+      "spa_madrid_holds": "After two weeks of fighting in the University City and the Casa de Campo, the attack on the capital has stalled. The Nationalist command calls off the frontal assault and turns to a long siege. The front around Madrid will barely move for more than two years.",
+      "tur_aid_request": "Under the treaty of mutual assistance Ankara asks for aircraft, rifles and credits to modernise its army. Turkey guards the Straits and the road to the Middle East. Yet every aircraft sent to Anatolia is one fewer for our own squadrons.",
+      "tur_hatay_state": "The assembly of the sanjak of Alexandretta has met for the first time and proclaimed the State of Hatay. French and Turkish troops supervise the territory together. In Ankara the question is whether to press for union at once or to let the new state settle first.",
+      "tur_montreux_signed": "At Montreux the powers have agreed on a new regime for the Bosporus and the Dardanelles. Merchant ships keep free passage, but Turkey regains control of the Straits and may fortify them again. Warships of the Black Sea states and of outside navies face new limits.",
+      "tur_neutrality_pressure": "In Cairo the British foreign secretary asks the Turkish foreign minister for air bases in Anatolia and for Turkey's entry into the war. Moscow is pressing London for the same. Ankara answers that its army lacks modern arms and that a German attack would follow at once."
+    },
+    "event_opt": {
+      "pol_beck_speech": {
+        "a": "Stand firm",
+        "b": "Leave room for talks",
+        "c": "The time for words is past"
+      },
+      "pol_exile_forces": {
+        "a": "Fight on from Britain",
+        "b": "Our army stands at home"
+      },
+      "pol_pyry_meeting": {
+        "a": "Share everything",
+        "b": "Keep the secret for now",
+        "c": "Confirm what was shared"
+      },
+      "spa_aid_request": {
+        "a": "Send arms",
+        "b": "Send arms and volunteers",
+        "c": "Decline"
+      },
+      "spa_ebro_battle": {
+        "a": "Cross the river",
+        "b": "Hold the present line",
+        "c": "Contain the crossing",
+        "d": "The fighting is behind us"
+      },
+      "spa_hendaye": {
+        "a": "Name a high price and wait",
+        "b": "Enter the alliance",
+        "c": "Stay out of the war"
+      },
+      "spa_madrid_holds": {
+        "a": "The capital stands",
+        "b": "Settle in for a siege",
+        "c": "The front has moved on"
+      },
+      "tur_aid_request": {
+        "a": "Deliver the arms",
+        "b": "We need them ourselves"
+      },
+      "tur_hatay_state": {
+        "a": "Back the new state",
+        "b": "Work with France",
+        "c": "The matter is settled"
+      },
+      "tur_montreux_signed": {
+        "a": "Ratify and refortify",
+        "b": "Press for more"
+      },
+      "tur_neutrality_pressure": {
+        "a": "We are not ready",
+        "b": "Open the air bases",
+        "c": "Side with the Allies",
+        "d": "We are already at war"
+      }
+    },
+    "event_title": {
+      "pol_beck_speech": "Answer in the Sejm",
+      "pol_exile_forces": "The Army Crosses to Britain",
+      "pol_pyry_meeting": "The Meeting at Pyry",
+      "spa_aid_request": "Spain Asks for Aid",
+      "spa_ebro_battle": "Across the Ebro",
+      "spa_hendaye": "Meeting at Hendaye",
+      "spa_madrid_holds": "Madrid Holds",
+      "tur_aid_request": "Turkey Invokes the Treaty",
+      "tur_hatay_state": "The State of Hatay",
+      "tur_montreux_signed": "The Montreux Convention",
+      "tur_neutrality_pressure": "Pressure in Cairo"
+    },
     "faction": {
       "allies": "Allies",
       "axis": "Axis",
       "comintern": "Comintern"
+    },
+    "faction_name": {
+      "intermarium": "Intermarium"
+    },
+    "focus": {
+      "pol_armored_brigades": "Armoured Brigades",
+      "pol_aviation": "Aircraft Industry",
+      "pol_balance": "A Policy of Balance",
+      "pol_cavalry": "Cavalry Training",
+      "pol_central_district": "Central Industrial District",
+      "pol_cipher_bureau": "The Cipher Bureau",
+      "pol_coal_trunk": "The Coal Trunk Line",
+      "pol_defense_fund": "National Defence Fund",
+      "pol_east_wall": "Eastern Fortifications",
+      "pol_eastern_army": "The Army in the East",
+      "pol_forces_west": "Polish Forces in the West",
+      "pol_gdynia": "Port of Gdynia",
+      "pol_home_army": "The Home Army",
+      "pol_intermarium": "Union Between the Seas",
+      "pol_restoration": "Restoring the State",
+      "pol_seek_guarantees": "Seeking Western Guarantees",
+      "pol_share_enigma": "Sharing the Decryption",
+      "pol_six_year_plan": "Six-Year Army Plan",
+      "pol_steelworks": "Southern Steelworks",
+      "pol_uprising": "Preparing the Rising",
+      "pol_west_wall": "Western Fortifications",
+      "pol_zaolzie": "Zaolzie",
+      "spa_air_war": "Preparing the Air War",
+      "spa_army_of_africa": "The Army of Africa",
+      "spa_axis_aid": "Aid from Rome and Berlin",
+      "spa_catalan_industry": "Catalan Industry",
+      "spa_eastern_division": "A Division for the East",
+      "spa_ebro": "The Ebro Offensive",
+      "spa_foreign_volunteers": "Foreign Volunteers",
+      "spa_gibraltar": "Claim Gibraltar",
+      "spa_gold_reserve": "Moving the Gold Reserve",
+      "spa_iberian_pact": "The Iberian Pact",
+      "spa_international_brigades": "The International Brigades",
+      "spa_join_axis": "Join the Axis",
+      "spa_madrid_defense": "Defence of Madrid",
+      "spa_mobilize": "General Mobilisation",
+      "spa_morocco_claims": "Moroccan Claims",
+      "spa_navarre_volunteers": "Navarrese Volunteers",
+      "spa_navy_rebuild": "Fleet Reconstruction",
+      "spa_non_belligerence": "Declare Non-Belligerence",
+      "spa_northern_campaign": "The Northern Campaign",
+      "spa_popular_army": "The Popular Army",
+      "spa_rebuild_army": "Reorganising the Army",
+      "spa_reconstruction": "Post-War Reconstruction",
+      "spa_republic_exile": "The Republic in Exile",
+      "spa_republic_unity": "Unity of the Republic",
+      "spa_strait_airlift": "Airlift over the Strait",
+      "spa_unified_command": "A Single Command",
+      "spa_war_industry": "War Industry",
+      "spa_wolfram": "Wolfram Exports",
+      "tur_active_neutrality": "Active Neutrality",
+      "tur_air_force": "Expanding the Air Force",
+      "tur_allied_treaty": "Anglo-French Treaty",
+      "tur_army_reform": "Army Reform",
+      "tur_balkan_entente": "The Balkan Entente",
+      "tur_chromium": "Chromium Exports",
+      "tur_eastern_rail": "Eastern Railways",
+      "tur_first_plan": "First Five-Year Plan",
+      "tur_german_treaty": "Friendship with Germany",
+      "tur_hatay": "The Hatay Question",
+      "tur_join_allies": "Joining the Allies",
+      "tur_karabuk": "Karabük Ironworks",
+      "tur_montreux": "The Montreux Convention",
+      "tur_saadabad": "The Saadabad Pact",
+      "tur_second_plan": "Second Five-Year Plan",
+      "tur_straits_fleet": "The Straits Fleet",
+      "tur_straits_guardian": "Guardian of the Straits",
+      "tur_succession": "Succession of the Presidency",
+      "tur_thrace": "Defence of Thrace",
+      "tur_village_institutes": "Village Institutes"
+    },
+    "focus_desc": {
+      "pol_armored_brigades": "Cavalry brigades receive tanks, lorries and guns of their own. Horse and engine move together.",
+      "pol_aviation": "The state aircraft works expand fighter design and production. Fighters of Polish design fill the squadrons.",
+      "pol_balance": "Poland keeps its pacts with both great neighbours and leans towards neither.",
+      "pol_cavalry": "The cavalry learns to fight dismounted with anti-tank rifles and machine guns.",
+      "pol_central_district": "Factories are built in the safe interior between the Vistula and the San. A war would not reach them quickly there.",
+      "pol_cipher_bureau": "Mathematicians of the General Staff work on the German cipher machine. Mathematics is laying bare its inner wiring.",
+      "pol_coal_trunk": "The railway from Silesia to the sea carries coal to Gdynia without crossing foreign land.",
+      "pol_defense_fund": "Citizens give money and gold to arm the country. The money goes on weapons and aircraft.",
+      "pol_east_wall": "Field fortifications are built along the Soviet border. Marshes and forests help the defender.",
+      "pol_eastern_army": "Polish soldiers released in the Soviet Union form a new army. They will travel far before they fight again.",
+      "pol_forces_west": "Soldiers who escaped the defeat form new divisions and squadrons on Allied soil.",
+      "pol_gdynia": "Poland's own seaport grows into a naval base and a trading harbour. Trade no longer has to pass through Danzig.",
+      "pol_home_army": "The underground army at home gathers intelligence and prepares for the day of the rising.",
+      "pol_intermarium": "The states between the Baltic and the Black Sea are drawn into a bloc led from Warsaw.",
+      "pol_restoration": "With the capital free again, the government returns and rebuilds the country. Ruined towns and factories are raised again.",
+      "pol_seek_guarantees": "Warsaw asks London and Paris to pledge themselves to Polish independence.",
+      "pol_share_enigma": "The Cipher Bureau hands its methods and replica machines to its British and French allies.",
+      "pol_six_year_plan": "A six-year plan modernises the army's weapons, training and organisation.",
+      "pol_steelworks": "A new steel mill on the San gives the arms plants steel of their own. Guns and tanks no longer depend on bought steel.",
+      "pol_uprising": "Plans, weapons and links with the Allies are readied for a rising in the capital.",
+      "pol_west_wall": "Bunkers and obstacles are built along the German border. The western plains offer no hills to lean on.",
+      "pol_zaolzie": "Poland presses its claim to the Polish-speaking district across the Olza.",
+      "spa_air_war": "Fighters and trained pilots will decide who holds the sky over the fronts. Airfields and ground crews are expanded with them.",
+      "spa_army_of_africa": "The professional garrison of the Moroccan protectorate becomes the core of the Nationalist army.",
+      "spa_axis_aid": "Envoys ask Italy and Germany for arms, aircraft and volunteers.",
+      "spa_catalan_industry": "The textile and metal works of Catalonia are turned to the needs of the war. Barcelona becomes the Republic's workshop.",
+      "spa_eastern_division": "A volunteer division is raised for the war against the Soviet Union while Spain itself stays out.",
+      "spa_ebro": "A last great offensive across the river is prepared to join the two halves of the Republic again.",
+      "spa_foreign_volunteers": "Volunteers from abroad bring battle experience and draw the eyes of friendly governments to Spain.",
+      "spa_gibraltar": "Spain demands the British fortress at the mouth of the Mediterranean. If talks fail, force is not ruled out.",
+      "spa_gold_reserve": "The gold of the Bank of Spain is shipped abroad to pay for arms; the decision divides the government.",
+      "spa_iberian_pact": "A treaty of friendship and non-aggression with Portugal secures the western border.",
+      "spa_international_brigades": "Volunteers from dozens of countries are formed into brigades and sent to the front. They share trenches even when they share no language.",
+      "spa_join_axis": "Spain asks to enter the alliance of the powers that stood by it in the civil war. What Spain gets in return is the real question.",
+      "spa_madrid_defense": "Trenches ring the capital and every district raises its own defenders; Madrid will not be given up.",
+      "spa_mobilize": "Every age group that can carry a rifle is called up; this war will be decided by numbers.",
+      "spa_morocco_claims": "Spain claims the French zone of Morocco that borders its own protectorate. It is an old ambition to grow in Africa.",
+      "spa_navarre_volunteers": "Volunteer battalions from Navarre are grouped into brigades for the mountain front.",
+      "spa_navy_rebuild": "New slipways and new ship designs make good the losses of the war at sea. The yards of Ferrol and Cartagena are busy again.",
+      "spa_non_belligerence": "Spain takes no part in the war, but no longer calls itself neutral.",
+      "spa_northern_campaign": "The cut-off northern coast, with its mines and factories, becomes the next objective. The mountains of Biscay, Cantabria and Asturias are crossed one by one.",
+      "spa_popular_army": "The militia columns are merged into a regular army of mixed brigades under one chain of command.",
+      "spa_rebuild_army": "The wartime formations become a smaller peacetime army built around its veterans. The men no longer needed go back to the fields and factories.",
+      "spa_reconstruction": "The bridges, railways and workshops destroyed in the war are rebuilt. Work and goods begin to move again in an exhausted country.",
+      "spa_republic_exile": "With the capital lost, the government carries on abroad and asks the world to recognise it.",
+      "spa_republic_unity": "Parties, trade unions and regional governments set their quarrels aside under one government. Political quarrels wait until the war is over.",
+      "spa_strait_airlift": "While the sea route is closed, transport aircraft carry troops from Morocco to the mainland.",
+      "spa_unified_command": "All fronts are placed under one commander and one general staff. Orders now come from one place only.",
+      "spa_war_industry": "Workshops and factories turn to shells, rifles and lorries for the front. Peacetime orders wait.",
+      "spa_wolfram": "The tungsten mines of Galicia sell their ore to every buyer at wartime prices.",
+      "tur_active_neutrality": "Turkey stays out of the war while trading and talking with both sides. Neither side wants Turkey as an enemy.",
+      "tur_air_force": "Modern fighters are bought abroad and new squadrons are formed.",
+      "tur_allied_treaty": "A treaty of mutual assistance with Britain and France brings credits and arms.",
+      "tur_army_reform": "Divisions are reorganised and officers are trained in modern staff work.",
+      "tur_balkan_entente": "The pact with Greece, Yugoslavia and Romania is made the core of a regional bloc.",
+      "tur_chromium": "Chrome ore becomes a bargaining chip that both blocs want to buy.",
+      "tur_eastern_rail": "The line from Sivas is carried on towards Erzurum. Troops and supplies reach the eastern border faster.",
+      "tur_first_plan": "State enterprises build textile, paper and cement works across Anatolia.",
+      "tur_german_treaty": "A treaty of friendship with Germany keeps the war away from the Turkish border.",
+      "tur_hatay": "Ankara takes up the future of the sanjak of Alexandretta with France.",
+      "tur_join_allies": "In the last months of the war Turkey declares war on Germany and joins the Allies.",
+      "tur_karabuk": "The country's first integrated iron and steel works rises near the Zonguldak coalfield.",
+      "tur_montreux": "Under the new convention the Straits zone is garrisoned and fortified again.",
+      "tur_saadabad": "A non-aggression pact with Iran, Iraq and Afghanistan secures the eastern borders.",
+      "tur_second_plan": "Mining, electric power and roads lead the next plan. More coal and power keep the factories running.",
+      "tur_straits_fleet": "Larger shipyards at Istanbul keep a fleet ready to guard the Straits.",
+      "tur_straits_guardian": "Forts, fleet and the army in Thrace hold the passage between two seas together.",
+      "tur_succession": "The assembly elects a new president at once and the state carries on.",
+      "tur_thrace": "Fortified lines cover the approaches to Istanbul and Edirne. The European foothold is narrow and its neighbours are close.",
+      "tur_village_institutes": "Teachers trained in the villages spread reading, farming skills and crafts."
     },
     "gen": {
       "1": "I",
@@ -3863,6 +4100,11 @@
       "m11": "November",
       "m12": "December"
     },
+    "pack": {
+      "pol": "Poland",
+      "spa": "Spain",
+      "tur": "Turkey"
+    },
     "panel": {
       "at_peace": "At peace",
       "my_wars": "My wars",
@@ -3898,6 +4140,40 @@
       "firepower": "Superior firepower",
       "mass": "Mass assault",
       "mobile": "Mobile warfare"
+    },
+    "spirit": {
+      "pol_balanced_course": "Balanced Diplomacy",
+      "pol_cavalry_drill": "Modern Cavalry",
+      "pol_gdynia_trade": "Gdynia Trade",
+      "pol_home_army_support": "The Underground State",
+      "spa_airlift_ready": "Strait Airlift",
+      "spa_army_rebuilt": "Veteran Cadres",
+      "spa_capital_holds": "The Capital Holds",
+      "spa_ebro_offensive": "Offensive on the Ebro",
+      "spa_non_belligerent": "Non-Belligerence",
+      "spa_northern_offensive": "Northern Offensive",
+      "spa_unified_staff": "One General Staff",
+      "spa_wolfram_trade": "The Wolfram Trade",
+      "tur_active_neutrality_spirit": "Active Neutrality",
+      "tur_straits_watch": "Guardian of the Straits",
+      "tur_village_schools": "Village Teachers"
+    },
+    "spirit_desc": {
+      "pol_balanced_course": "Warsaw keeps the same distance from Berlin and from Moscow.",
+      "pol_cavalry_drill": "Mounted units move fast and fight on foot with modern weapons.",
+      "pol_gdynia_trade": "Polish goods reach the world through a Polish port.",
+      "pol_home_army_support": "Secret networks at home keep resistance alive in the occupied regions.",
+      "spa_airlift_ready": "Transport crews have learned to move troops quickly by air.",
+      "spa_army_rebuilt": "Experienced officers and NCOs train the new conscripts.",
+      "spa_capital_holds": "Madrid has become a fortress, and its defenders give no ground.",
+      "spa_ebro_offensive": "Every reserve has been gathered for one great crossing.",
+      "spa_non_belligerent": "Spain leans towards one side but stays out of the fighting.",
+      "spa_northern_offensive": "Troops and guns have been massed for the campaign along the northern coast.",
+      "spa_unified_staff": "Every front plans its operations through a single headquarters.",
+      "spa_wolfram_trade": "Foreign buyers outbid one another for Spanish tungsten.",
+      "tur_active_neutrality_spirit": "Ankara stays out of the war and makes both sides pay for its goodwill.",
+      "tur_straits_watch": "The Straits are held closely by land and by sea.",
+      "tur_village_schools": "Teachers from the village institutes bring schooling to the countryside."
     },
     "tech": {
       "anti_air_1": "Anti-air I",
@@ -3946,6 +4222,13 @@
       "tools_2": "Improved machine tools",
       "tools_3": "Advanced machine tools",
       "tools_4": "Assembly lines"
+    },
+    "tpl": {
+      "pol_armored_cavalry": "Armoured Cavalry Brigade",
+      "pol_exile_infantry": "Infantry Division in Exile",
+      "spa_africa_division": "Army of Africa Division",
+      "spa_mixed_brigades": "Mixed Brigade Division",
+      "spa_navarre_brigades": "Navarrese Brigades"
     },
     "win": {
       "country_won": "{country} won",
