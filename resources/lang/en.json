@@ -1549,6 +1549,7 @@
     "world_gov_awaiting": "{name}'s world government is proclaimed and awaits the congress's ratification",
     "ww1936_capitulated": "{loser} has capitulated to {victor}",
     "ww1936_capitulated_no_victor": "{loser} has capitulated",
+    "ww1936_not_at_war": "Not at war with {name}",
     "ww1936_prep_over": "The preparation is over: wars can now be fought",
     "ww1936_war_declared": "{attacker} declared war on {target}{allies, plural, =0 {} one { and # ally} other { and # allies}}",
     "ww1936_war_joined": "{actor} entered the war against {enemy}"

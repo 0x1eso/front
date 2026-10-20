@@ -1,4 +1,5 @@
 import {
+  Difficulty,
   GameMapSize,
   GameMapType,
   GameMode,
@@ -40,6 +41,19 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
   c.customAllianceDuration = 0;
   c.spawnImmunityDuration = 0;
   c.historicalAi = c.historicalAi ?? true;
+  // The AI plays its wars at one level in this mode (owner decision,
+  // 2026-10-20): the lobby shows no difficulty for it.
+  c.difficulty = Difficulty.Medium;
+  // Faction members help each other; a neutral still gets nothing
+  // (isFriendly is the faction, spec §7.2).
+  c.donateGold = true;
+  c.donateTroops = true;
+  // The lobby hides these controls in this mode, so a value left from
+  // another game must not carry over.
+  c.infiniteGold = false;
+  c.infiniteTroops = false;
+  delete c.goldMultiplier;
+  delete c.startingGold;
   const disabled = [...(c.disabledUnits ?? [])];
   for (const u of WW1936_DISABLED_UNITS) {
     if (!disabled.includes(u)) disabled.push(u);

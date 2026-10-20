@@ -26,7 +26,6 @@ import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
 } from "@openfront/engine-lib/game/TeamAssignment";
-import { applyWorldWar1936Rules } from "@openfront/engine-lib/ww1936/ModeConfig";
 import { isAdminRole } from "@openfront/shared/ApiSchemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { GameEnv } from "@openfront/shared/configuration/Env";
@@ -67,7 +66,11 @@ import WebSocket from "ws";
 import { z } from "zod";
 import { archive, finalizeGameRecord } from "./Archive";
 import { Client } from "./Client";
-import { applyGameConfigPatch, hostCheatsEnabled } from "./ConfigPatch";
+import {
+  applyGameConfigPatch,
+  applyWorldWar1936ServerRules,
+  hostCheatsEnabled,
+} from "./ConfigPatch";
 import { LiveStatsVote, voteKey, WinnerVote } from "./Consensus";
 import { fetchCustomTribes } from "./CustomTribes";
 import { DesyncDetector } from "./DesyncDetector";
@@ -329,8 +332,9 @@ export class GameServer {
     this.gameConfig = opts.gameConfig;
     // World War 1936 (spec §2.2): a lobby created with the mode on shows the
     // mode's map and rules from its first lobby info (start() applies them
-    // again, whatever changed the config since).
-    applyWorldWar1936Rules(this.gameConfig);
+    // again, whatever changed the config since); one created without it
+    // never plays its map.
+    applyWorldWar1936ServerRules(this.gameConfig);
     this.creatorPersistentID = opts.creatorPersistentID;
     this.startsAt = opts.startsAt;
     this.publicGameType = opts.publicGameType;
@@ -1158,7 +1162,7 @@ export class GameServer {
     // message names and the engine refuses any other, so whatever reached
     // the stored config since it was last normalized, the start carries the
     // mode's map and rules.
-    applyWorldWar1936Rules(this.gameConfig);
+    applyWorldWar1936ServerRules(this.gameConfig);
     this._startTime = Date.now();
     // Set last ping to start so we don't immediately stop the game
     // if no client connects/pings.

@@ -65,6 +65,7 @@ const KEYS = [
   "events_display.ww1936_war_joined",
   "events_display.ww1936_capitulated",
   "events_display.ww1936_capitulated_no_victor",
+  "events_display.ww1936_not_at_war",
   "domestic.win_reason.ww_score",
   "domestic.win_reason.ww_last_camp",
   "game_settings.world_war_1936",

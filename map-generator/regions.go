@@ -437,6 +437,7 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 			return out, notes, fmt.Errorf("capital of %s at (%d,%d) is not on its own land", c.Tag, x, y)
 		}
 	}
+	capCapitalVP(out.Regions, src.Countries, ids, w)
 	seaKnown := map[int]bool{}
 	for _, s := range src.SeaZones {
 		seaKnown[s.ID] = true
@@ -453,6 +454,30 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 	sort.Slice(out.Regions, func(a, b int) bool { return out.Regions[a].ID < out.Regions[b].ID })
 	sort.Slice(out.SeaZones, func(a, b int) bool { return out.SeaZones[a].ID < out.SeaZones[b].ID })
 	return out, notes, nil
+}
+
+// capCapitalVP keeps each country's capital region at no more than a third
+// of the country's points (spec §7.5, owner decision 2026-10-20): the capital
+// keeps min(its VP, max(1, floor(rest / 2))), where rest is what the
+// country's other regions hold, so no single thrust to a capital ends a
+// country. A country whose only points are its capital keeps 1. Runs on the
+// regions left after the drop, so the final file holds to it.
+func capCapitalVP(regions []outRegion, countries []srcCountry, ids []uint16, w int) {
+	index := map[int]int{}
+	total := map[string]int{}
+	for i, r := range regions {
+		index[r.ID] = i
+		total[r.Owner] += r.VP
+	}
+	for _, c := range countries {
+		i, ok := index[int(ids[c.Capital[1]*w+c.Capital[0]])]
+		if !ok {
+			continue
+		}
+		r := &regions[i]
+		rest := total[c.Tag] - r.VP
+		r.VP = min(r.VP, max(1, rest/2))
+	}
 }
 
 // writeScenarioFiles reads scenarios/<name>/regions.png and scenario.src.json

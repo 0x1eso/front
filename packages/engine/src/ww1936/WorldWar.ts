@@ -26,6 +26,8 @@ export const WorldWarStateSchema = z.object({
   transfers: z.array(
     z.object({ from: zInt(), to: zInt(), tiles: zTiles(), next: zInt() }),
   ),
+  /** [smallID, days] of every gauge above 0; written only when not empty. */
+  gauges: z.array(z.tuple([zInt(), zInt()])).optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -51,6 +53,8 @@ export class WorldWar {
   private _historyRolled = false;
   private _history: [number, boolean][] = [];
   private _transfers: Transfer[] = [];
+  /** By smallID: the capitulation gauge, 0..WW_CAPITULATION_DAYS - 1. */
+  private _gauge: number[];
   private _prepEndTick = WW_PREP_TICKS;
   private _lastDay = -1;
   /** Not state (DERIVED_FIELDS): whether the screens need an update. */
@@ -62,6 +66,7 @@ export class WorldWar {
   ) {
     this.size = scenario.countries.length + 1;
     this.warMatrix = new Uint8Array(this.size * this.size);
+    this._gauge = new Array<number>(this.size).fill(0);
   }
 
   /**
@@ -154,6 +159,16 @@ export class WorldWar {
     return !this.inPrep(tick) && this.isAtWar(a, b);
   }
 
+  /** Whether the country is at war with anyone. */
+  hasWar(smallID: number): boolean {
+    if (smallID <= 0 || smallID >= this.size) return false;
+    const row = smallID * this.size;
+    for (let b = 1; b < this.size; b++) {
+      if (this.warMatrix[row + b] === 1) return true;
+    }
+    return false;
+  }
+
   enemiesOf(smallID: number): number[] {
     const out: number[] = [];
     for (let b = 1; b < this.size; b++) {
@@ -168,6 +183,11 @@ export class WorldWar {
 
   startVp(smallID: number): number {
     return this._startVp[smallID] ?? 0;
+  }
+
+  /** Spec §7.5: the country's capitulation gauge, 0..WW_CAPITULATION_DAYS - 1. */
+  capitulationGauge(smallID: number): number {
+    return this._gauge[smallID] ?? 0;
   }
 
   /** Human clientIDs of a camp (a faction), for the team winner (decision 11). */
@@ -207,6 +227,14 @@ export class WorldWar {
   addCapitulation(smallID: number, victor: number, tick: number): void {
     if (this.isCapitulated(smallID)) return;
     this._capitulated.push([smallID, victor, tick]);
+    this.dataDirty = true;
+  }
+
+  /** Sets the capitulation gauge (checkCapitulations keeps it in range). */
+  setCapitulationGauge(smallID: number, days: number): void {
+    if (smallID <= 0 || smallID >= this.size) return;
+    if (this._gauge[smallID] === days) return;
+    this._gauge[smallID] = days;
     this.dataDirty = true;
   }
 
@@ -256,7 +284,17 @@ export class WorldWar {
         victor,
         tick,
       })),
+      gauges: this.gauges().map(([smallID, days]) => ({ smallID, days })),
     };
+  }
+
+  /** [smallID, days] of every gauge above 0, by smallID. */
+  private gauges(): [number, number][] {
+    const out: [number, number][] = [];
+    for (let id = 1; id < this.size; id++) {
+      if (this._gauge[id] !== 0) out.push([id, this._gauge[id]]);
+    }
+    return out;
   }
 
   /** The data when it changed since the last call, else null. */
@@ -272,10 +310,15 @@ export class WorldWar {
     for (const [s, v] of this._capitulated) {
       h = (Math.imul(h, 31) + s * 131 + v + 7) | 0;
     }
+    // Nothing while every gauge is empty.
+    for (const [id, days] of this.gauges()) {
+      h = (Math.imul(h, 31) + id * 257 + days + 3) | 0;
+    }
     return h >>> 0;
   }
 
   snapshot(): WorldWarState {
+    const gauges = this.gauges();
     return {
       prepEndTick: this._prepEndTick,
       lastDay: this._lastDay,
@@ -290,6 +333,7 @@ export class WorldWar {
         tiles: t.tiles.slice(),
         next: t.next,
       })),
+      ...(gauges.length === 0 ? {} : { gauges }),
     };
   }
 
@@ -307,6 +351,8 @@ export class WorldWar {
       tiles: t.tiles.slice(),
       next: t.next,
     }));
+    this._gauge = new Array<number>(this.size).fill(0);
+    for (const [id, days] of s.gauges ?? []) this._gauge[id] = days;
     this.rebuildMatrix();
     // A restored game's screens have seen nothing yet.
     this.dataDirty = true;

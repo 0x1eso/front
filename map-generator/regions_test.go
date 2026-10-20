@@ -212,6 +212,60 @@ func TestBuildScenarioCountsTilesAndChecksCapitals(t *testing.T) {
 	}
 }
 
+// A capital region holds at most a third of its country's points: it keeps
+// min(its VP, max(1, floor(rest / 2))). A country with no other points keeps 1.
+func TestCapitalHoldsAtMostAThirdOfItsCountry(t *testing.T) {
+	packed, w, h := grid(
+		"LLLLLLLLLL",
+		"LLLLLLLLLL",
+	)
+	ids := make([]uint16, w*h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			ids[y*w+x] = uint16(1 + x/2)
+		}
+	}
+	src := scenarioSrc{
+		Version: 1,
+		Countries: []srcCountry{
+			{Tag: "DEU", Capital: [2]int{0, 0}},
+			{Tag: "POL", Capital: [2]int{6, 0}},
+			{Tag: "DZG", Capital: [2]int{8, 0}},
+		},
+		Regions: []srcRegion{
+			{ID: 1, Name: "Berlin", Owner: "DEU", VP: 36},
+			{ID: 2, Name: "Hamburg", Owner: "DEU", VP: 11},
+			{ID: 3, Name: "Munich", Owner: "DEU", VP: 16},
+			{ID: 4, Name: "Warsaw", Owner: "POL", VP: 4},
+			{ID: 5, Name: "Danzig", Owner: "DZG", VP: 21},
+		},
+	}
+	// Poland and Danzig have no other points: they keep 1.
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]int{}
+	for _, r := range out.Regions {
+		got[r.Name] = r.VP
+	}
+	want := map[string]int{"Berlin": 13, "Hamburg": 11, "Munich": 16, "Warsaw": 1, "Danzig": 1}
+	for name, vp := range want {
+		if got[name] != vp {
+			t.Fatalf("%s: VP %d, want %d (all %v)", name, got[name], vp, got)
+		}
+	}
+	// A capital already under the cap keeps its points.
+	src.Regions[0].VP = 5
+	out, _, err = buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Regions[0].VP != 5 {
+		t.Fatalf("Berlin under the cap: VP %d, want 5", out.Regions[0].VP)
+	}
+}
+
 // A small piece joins a neighbour of its own owner only. With none (Gibraltar,
 // Hong Kong, a sliver left by a border patch) it stays, keeping its owner.
 func TestSmallPiecesKeepTheirOwner(t *testing.T) {

@@ -125,6 +125,7 @@ function fakeGame(o: Fake = {}): WwGame {
         victor: 0,
         tick: 600,
       })),
+      gauges: [],
     }),
     playerBySmallID: (id: number) => players[id - 1],
     playerByClientID: (cid: string) =>

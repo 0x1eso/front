@@ -2,6 +2,7 @@ import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
   CapitulationData,
+  WW_CAPITULATION_DAYS,
   WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
@@ -92,7 +93,12 @@ export function pickVictor(
   return null;
 }
 
-/** Once a day (WorldWarExecution): every country past its surrender line capitulates. */
+/**
+ * Once a day (WorldWarExecution), spec §7.5: a country at or past its
+ * surrender line fills its capitulation gauge by one, and capitulates when
+ * the gauge is full (WW_CAPITULATION_DAYS checks); below the line the gauge
+ * empties by one. A country at war with nobody has an empty gauge.
+ */
 export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
   // Of each country's starting regions, the points it still controls. No
   // tile changes hands inside this loop (capitulate only queues transfers).
@@ -105,13 +111,24 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
   for (let id = 1; id <= ww.scenario.countries.length; id++) {
     if (ww.isCapitulated(id)) continue;
     const p = mg.playerBySmallID(id);
-    if (!p.isPlayer() || !p.isAlive()) continue;
+    if (!p.isPlayer() || !p.isAlive() || !ww.hasWar(id)) {
+      ww.setCapitulationGauge(id, 0);
+      continue;
+    }
     const start = ww.startVp(id);
     // A country whose regions are all worth 0 has no surrender line: it
     // never capitulates by points (below, 0 lost of 0 counts as past it).
     if (start === 0) continue;
     const lost = start - held[id];
-    if (lost * 100 < start * COUNTRIES[ww.tagOf(id)].surrenderPct) continue;
+    const gauge = ww.capitulationGauge(id);
+    if (lost * 100 < start * COUNTRIES[ww.tagOf(id)].surrenderPct) {
+      if (gauge > 0) ww.setCapitulationGauge(id, gauge - 1);
+      continue;
+    }
+    if (gauge + 1 < WW_CAPITULATION_DAYS) {
+      ww.setCapitulationGauge(id, gauge + 1);
+      continue;
+    }
     capitulate(mg, ww, p, tick);
   }
 }
@@ -124,11 +141,15 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
   const victor = pickVictor(mg, ww, loser);
   const loserID = loser.smallID();
   ww.addCapitulation(loserID, victor?.smallID() ?? 0, tick);
+  ww.setCapitulationGauge(loserID, 0);
   ww.endWarsOf(loserID);
   // Its army is gone: the troops at home, its running attacks and the
-  // troops at sea.
+  // troops at sea. An attack already retreating finishes its retreat as
+  // ordered (deleted, its execution would wait for that retreat forever).
   loser.setTroops(0);
-  for (const a of [...loser.outgoingAttacks()]) a.delete();
+  for (const a of [...loser.outgoingAttacks()]) {
+    if (!a.retreating()) a.delete();
+  }
   for (const u of loser.units(UnitType.TransportShip)) u.delete(false);
   // Nobody is at war with it any more, so the attacks on it end and their
   // troops go home without losses (as when an alliance forms mid-attack).
@@ -138,7 +159,7 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
   for (const a of [...loser.incomingAttacks()]) {
     if (a.retreating()) continue;
     a.attacker().addTroops(a.troops());
-    a.delete();
+    if (!a.retreating()) a.delete();
   }
   // The same for boats still sailing to its land: they turn into troops at
   // home, so no landing takes a tile from it (or from its victor later).

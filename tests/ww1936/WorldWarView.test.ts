@@ -77,6 +77,7 @@ describe("the World War 1936 game view", () => {
       prepEndTick: WW_PREP_TICKS,
       wars: [],
       capitulated: [],
+      gauges: [],
     });
   });
 
