@@ -123,6 +123,10 @@ export interface FakeOptions {
   details?: WwCountryDetail[];
   regions?: WwRegionData[];
   troops?: number;
+  /** My troops away in attacks. */
+  attacks?: number[];
+  /** My troops on transport ships. */
+  boats?: number[];
 }
 
 export function fakeEconGame(o: FakeOptions = {}) {
@@ -143,6 +147,8 @@ export function fakeEconGame(o: FakeOptions = {}) {
     isPlayer: () => true,
     isAlive: () => !(o.dead ?? []).includes(tag),
     troops: () => o.troops ?? 480_000,
+    outgoingAttacks: () => (o.attacks ?? []).map((troops) => ({ troops })),
+    units: () => (o.boats ?? []).map((n) => ({ troops: () => n })),
     numTilesOwned: () => 1_000,
   }));
   const data = {

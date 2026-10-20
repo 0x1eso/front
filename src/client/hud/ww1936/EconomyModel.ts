@@ -5,10 +5,12 @@
 // EconomyRules, WwLaws), fed with the view's copy of the data (plan
 // decision 3, pre-flight U8).
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
+import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   BuildingId,
   DoctrineSchool,
+  EconomyLaw,
   equipKey,
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
@@ -21,6 +23,7 @@ import {
   RESOURCE_IDS,
   ResourceId,
   TechBranch,
+  TradeLaw,
   WW_MAX_PROJECT_COUNT,
   WW_MAX_TRADE_CIVS,
   WW_TECH_IDS,
@@ -30,8 +33,10 @@ import {
   WwLineData,
   WwOrderBlock,
   WwTechId,
+  WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
+import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   addLineBlockOf,
   buildBlockOf,
@@ -49,8 +54,10 @@ import {
   aheadPct,
   constructionDaysLeft,
   constructionProgress,
+  consumerGoodsMilli,
   coveragePermille,
   effAfterSwitch,
+  exportCapacity,
   regionSlots,
   researchProgress,
   TradeGraph,
@@ -71,7 +78,7 @@ import {
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
-import { isCapitulated, type WwGame } from "./WorldWarModel";
+import { isCapitulated, today, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */
 export type WwEconGame = WwGame & Pick<GameView, "wwEconomy">;
@@ -305,7 +312,7 @@ export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
   anti_air: "🔭",
   motorized: "🚚",
   light_tank: "🚙",
-  medium_tank: "🚜",
+  medium_tank: "🛡️",
   fighter: "✈️",
   bomber: "🛩️",
 };
@@ -329,6 +336,12 @@ export const regionCatName = (c: RegionCategory) =>
 /** "●●●○○": infrastructure out of five. */
 export function infraDots(infra: number): string {
   return "●".repeat(infra) + "○".repeat(Math.max(0, MAX_INFRA - infra));
+}
+
+/** A count with a real minus sign ("−3"); `plus` adds "+" to a gain. */
+export function signedText(n: number, plus = false): string {
+  if (n < 0) return `\u2212${-n}`;
+  return plus && n > 0 ? `+${n}` : `${n}`;
 }
 
 /** "1.5": milli-factories with one decimal (pre-flight R7.6). */
@@ -392,6 +405,40 @@ export function fightingFn(game: WwGame): (smallID: number) => boolean {
     }
     return p.isPlayer() && p.isAlive() && !isCapitulated(game, id);
   };
+}
+
+/** What the army is made of on the screen (PlayerView). */
+export interface ArmyLike {
+  troops(): number;
+  outgoingAttacks(): readonly { troops: number }[];
+  units(...types: UnitType[]): readonly { troops(): number }[];
+}
+
+/**
+ * The army the engine counts (WwEconomy.armyMen): troops at home, in
+ * attacks and on transport ships, each floored.
+ */
+export function armyMenOf(p: ArmyLike): number {
+  let n = Math.floor(p.troops());
+  for (const a of p.outgoingAttacks()) n += Math.floor(a.troops);
+  for (const u of p.units(UnitType.TransportShip)) n += Math.floor(u.troops());
+  return n;
+}
+
+/**
+ * Days of my longest running war now, -1 at peace — the engine's
+ * WwEconomy.warDays from the P0 war list, not the last daily detail.
+ */
+export function liveWarDays(game: WwGame, me: number): number {
+  const data = game.worldWarData();
+  if (data === null) return -1;
+  let since: number | null = null;
+  for (const w of data.wars) {
+    if ((w.a === me || w.b === me) && (since === null || w.sinceTick < since)) {
+      since = w.sinceTick;
+    }
+  }
+  return since === null ? -1 : today(game) - dayIndex(since, data.prepEndTick);
 }
 
 // ---- The top band (spec §13.1) ----
@@ -695,7 +742,8 @@ export interface StockRow {
 }
 
 /** Spec §13.3: the stockpile by type and generation, with its coverage. */
-export function stockRows(detail: WwCountryDetail, troops: number): StockRow[] {
+/** `men`: the army as the engine counts it (armyMenOf). */
+export function stockRows(detail: WwCountryDetail, men: number): StockRow[] {
   return EQUIPMENT_TYPES.map((equipment) => {
     const gens: number[] = [];
     for (let gen = 1; gen <= EQUIPMENT_GENS[equipment]; gen++) {
@@ -707,7 +755,7 @@ export function stockRows(detail: WwCountryDetail, troops: number): StockRow[] {
       equipment,
       gens,
       total,
-      coverage: need > 0 ? coveragePermille(total, troops, need) / 1000 : null,
+      coverage: need > 0 ? coveragePermille(total, men, need) / 1000 : null,
     };
   });
 }
@@ -780,6 +828,18 @@ export function tradeGraph(
   };
 }
 
+/**
+ * A fingerprint of who controls which region: the trade graph only changes
+ * with it (and the wars), not with every economy update (FNV-1a).
+ */
+export function controlFingerprint(controller: ArrayLike<number>): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < controller.length; i++) {
+    h = Math.imul(h ^ controller[i], 0x01000193);
+  }
+  return h >>> 0;
+}
+
 export interface TradeOffer {
   smallID: number;
   tag: CountryTag;
@@ -815,6 +875,22 @@ export function tradeOffers(
   return out.sort((a, b) => b.room - a.room || a.smallID - b.smallID);
 }
 
+/** Civilian factories my deals pay now (the engine's openTrade sums the deals). */
+export function paidCivsOf(detail: WwCountryDetail): number {
+  return sumCivs(detail.buying);
+}
+
+/** Civilian factories my sales bring in now. */
+export function receivedCivsOf(detail: WwCountryDetail): number {
+  return sumCivs(detail.selling);
+}
+
+function sumCivs(deals: readonly WwTradeData[]): number {
+  let n = 0;
+  for (const t of deals) n += t.civs;
+  return n;
+}
+
 /** What the engine's openTrade checks, from the view (Trade.openTrade). */
 export function openTradeBlock(
   view: WwEconomyView,
@@ -837,7 +913,7 @@ export function openTradeBlock(
     civs,
     room: view.summary(seller)?.exportRoom[r] ?? 0,
     payable: payableCivs(mine.civ, detail.consumerGoodsMilli),
-    paidCivs: detail.paidCivs,
+    paidCivs: paidCivsOf(detail),
   });
 }
 
@@ -851,7 +927,7 @@ export function maxTradeCivs(
   const mine = view.summary(me);
   if (detail === null || mine === null) return 1;
   const payable =
-    payableCivs(mine.civ, detail.consumerGoodsMilli) - detail.paidCivs;
+    payableCivs(mine.civ, detail.consumerGoodsMilli) - paidCivsOf(detail);
   return Math.max(
     1,
     Math.min(
@@ -1014,12 +1090,14 @@ export interface LawStep {
   block: WwOrderBlock | null;
 }
 
+/** `warDays`: the live one (liveWarDays), as the engine's lawBlock reads it. */
 export function lawLadder(
   detail: WwCountryDetail,
   kind: LawKind,
   day: number,
+  warDays = detail.warDays,
 ): LawStep[] {
-  const ctx = { day, warDays: detail.warDays };
+  const ctx = { day, warDays };
   const cooldownDays = Math.max(0, detail.lawCooldownUntil[kind] - day);
   return LAW_LADDERS[kind].map((value) => ({
     value,
@@ -1028,6 +1106,42 @@ export function lawLadder(
     cooldownDays,
     block: lawBlockOf(detail.laws, detail.lawCooldownUntil, kind, value, ctx),
   }));
+}
+
+/**
+ * Whether setting the law would close deals at the next daily check
+ * (Trade.validateTrades): a trade law whose export share falls below what
+ * I sell, or an economy law whose consumer goods leave fewer civilian
+ * factories than my deals pay. Such a change takes two taps.
+ */
+export function lawClosesDeals(
+  detail: WwCountryDetail,
+  summary: WwCountrySummary,
+  kind: LawKind,
+  value: LawValue,
+): boolean {
+  if (kind === "trade") {
+    const pct = lawEffects({
+      ...detail.laws,
+      trade: value as TradeLaw,
+    }).exportPct;
+    return RESOURCE_IDS.some((id, r) => {
+      let sold = 0;
+      for (const t of detail.selling) {
+        if (t.resource === id) sold += t.civs * WW_TRADE_UNITS_PER_CIV;
+      }
+      return sold > exportCapacity(detail.resources[r]?.produced ?? 0, pct);
+    });
+  }
+  if (kind === "economy") {
+    const pct = lawEffects({
+      ...detail.laws,
+      economy: value as EconomyLaw,
+    }).consumerGoodsPct;
+    const cg = consumerGoodsMilli(summary.civ, summary.mil, pct);
+    return paidCivsOf(detail) > payableCivs(summary.civ, cg);
+  }
+  return false;
 }
 
 /** A locked step's reason: its condition, the wait, or the block. */

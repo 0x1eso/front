@@ -8,7 +8,12 @@ import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { TopBandEconomy, topBandEconomy } from "./EconomyModel";
-import { type BandModel, bandModel, countryName } from "./WorldWarModel";
+import {
+  type BandModel,
+  bandModel,
+  countryName,
+  isCapitulated,
+} from "./WorldWarModel";
 import { OpenWwIndustryEvent } from "./WwDrawer";
 
 export class ToggleWwDiplomacyEvent implements GameEvent {}
@@ -20,12 +25,31 @@ const BAND_GAP = 8;
  * wars button: it moves left of the top-right stack instead (BandPlacement).
  */
 export const BAND_MIN_PX = 240;
+/**
+ * What the economy chip adds to that, with the band's gap: the whole chip
+ * ("🏭 32 / 16 👥 1.10M ●") and the compact one without manpower. Text
+ * runs longer in some games: the band also measures itself (WwTopBand.updated).
+ */
+export const CHIP_FULL_PX = 170;
+export const CHIP_COMPACT_PX = 100;
+
+/** How much of the economy chip shows. */
+export type ChipMode = "full" | "compact" | "none";
+const CHIP_MODES: readonly ChipMode[] = ["full", "compact", "none"];
+
+/** The most of the chip a band `maxWidth` px wide holds beside the P0 content. */
+export function chipMode(maxWidth: number): ChipMode {
+  const room = maxWidth - BAND_MIN_PX;
+  if (room >= CHIP_FULL_PX) return "full";
+  return room >= CHIP_COMPACT_PX ? "compact" : "none";
+}
 
 /**
  * Where the band goes: centred, as wide as the room it leaves the top-right
  * stack (timer and buttons) on both sides; or, when that room is under
- * BAND_MIN_PX (a narrow landscape phone), anchored `right` px from the
- * right edge, just left of the stack.
+ * `minPx` (BAND_MIN_PX, plus the whole economy chip when it shows; a
+ * narrow landscape phone), anchored `right` px from the right edge, just
+ * left of the stack.
  */
 export interface BandPlacement {
   maxWidth: number;
@@ -37,12 +61,13 @@ const TOP_RIGHT_STACK = "[data-hud-top-right]";
 
 export function bandPlacement(
   stack: Element | null = document.querySelector(TOP_RIGHT_STACK),
+  minPx = BAND_MIN_PX,
 ): BandPlacement {
   const r = stack?.getBoundingClientRect();
   const shown = r !== undefined && r.width > 0 && r.height > 0;
   const clear = (shown ? window.innerWidth - r.left : 0) + BAND_GAP;
   const centred = window.innerWidth - 2 * clear;
-  if (centred >= BAND_MIN_PX) return { maxWidth: centred, right: null };
+  if (centred >= minPx) return { maxWidth: centred, right: null };
   return {
     maxWidth: Math.max(0, window.innerWidth - clear - BAND_GAP),
     right: clear,
@@ -52,13 +77,14 @@ export function bandPlacement(
 /**
  * World War 1936 P1 (spec §13.1): the band's economy chip — my civilian /
  * military factories, manpower and a red dot while a line lacks a
- * resource. Null for a spectator or before my country's data arrives
- * (pre-flight R7.4).
+ * resource. Null for a spectator, before my country's data arrives
+ * (pre-flight R7.4), and once my country is gone or has capitulated.
  */
 export function bandEconomy(game: GameView): TopBandEconomy | null {
   const view = game.wwEconomy?.() ?? null;
   const me = game.myPlayer();
   if (view === null || me === null) return null;
+  if (!me.isAlive() || isCapitulated(game, me.smallID())) return null;
   if (view.detail(me.smallID()) === null) return null;
   const s = view.summary(me.smallID());
   return s === null ? null : topBandEconomy(s);
@@ -69,7 +95,8 @@ export function bandEconomy(game: GameView): TopBandEconomy | null {
  * preparation countdown), my country and faction, and my wars, which open
  * the diplomacy drawer; then (P1) the economy chip, which opens the
  * industry drawer. WW_BAND_PX tall. It never covers the top-right stack
- * (the timer): see bandPlacement. The country name shortens first.
+ * (the timer): see bandPlacement. The country name shortens first, then
+ * the chip loses its manpower, then the chip goes (the 🏭 dial stays).
  */
 @customElement("ww-top-band")
 export class WwTopBand extends LitElement implements Controller {
@@ -83,18 +110,49 @@ export class WwTopBand extends LitElement implements Controller {
   /** What the band shows, as of the last tick that changed it. */
   private model: BandModel | null = null;
   private economy: TopBandEconomy | null = null;
+  /**
+   * Steps the chip lost beyond chipMode() because the band measured as
+   * overflowing (updated); reset whenever the room or the chip changes.
+   */
+  @state() private chipShrink = 0;
   /** The top-right stack being watched; null until it is found. */
   private stack: Element | null = null;
   private stackObserver: ResizeObserver | null = null;
   private readonly refit = () => {
     if (!this.game?.worldWarScenario()) return;
-    const next = bandPlacement(this.stack);
+    // Centred only with room for the whole chip; beside the stack it has
+    // more (the chip then shrinks only where even that is short).
+    const next = bandPlacement(
+      this.stack,
+      BAND_MIN_PX + (this.economy === null ? 0 : CHIP_FULL_PX),
+    );
     const prev = this.placement;
     // A new object would re-render the band even when nothing moved.
     if (prev?.maxWidth !== next.maxWidth || prev.right !== next.right) {
       this.placement = next;
+      this.chipShrink = 0;
     }
   };
+
+  /** How much of the chip shows now. */
+  private chip(maxWidth: number): ChipMode {
+    const i = CHIP_MODES.indexOf(chipMode(maxWidth)) + this.chipShrink;
+    return CHIP_MODES[Math.min(i, CHIP_MODES.length - 1)];
+  }
+
+  protected updated() {
+    // Longer text than CHIP_*_PX allow for: shed the chip a step at a time
+    // until the band fits its room.
+    const band = this.querySelector<HTMLElement>("[data-ww-band]");
+    if (band === null || this.economy === null) return;
+    const { maxWidth } = this.placement ?? bandPlacement();
+    if (
+      band.scrollWidth > band.clientWidth + 1 &&
+      this.chip(maxWidth) !== "none"
+    ) {
+      this.chipShrink++;
+    }
+  }
 
   createRenderRoot() {
     return this;
@@ -163,8 +221,12 @@ export class WwTopBand extends LitElement implements Controller {
           econ.manpowerText !== was.manpowerText ||
           econ.shortage !== was.shortage))
     ) {
+      const toggled = (econ === null) !== (was === null);
       this.model = next;
       this.economy = econ;
+      this.chipShrink = 0;
+      // The chip needs room: centred or beside the stack (bandPlacement).
+      if (toggled) this.refit();
       this.requestUpdate();
     }
   }
@@ -178,7 +240,7 @@ export class WwTopBand extends LitElement implements Controller {
         data-ww-band
         class="fixed top-0 ${right === null
           ? "left-1/2 -translate-x-1/2"
-          : ""} z-[1002] h-8 flex items-center gap-3 whitespace-nowrap rounded-b-lg bg-gray-900/85 px-3 text-sm text-white shadow-md"
+          : ""} z-[1002] h-8 flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-b-lg bg-gray-900/85 px-3 text-sm text-white shadow-md"
         style="max-width: ${maxWidth}px;${right === null
           ? ""
           : ` right: ${right}px;`}"
@@ -217,24 +279,32 @@ export class WwTopBand extends LitElement implements Controller {
         >
           ${translateText("ww1936.band.wars", { n: m.wars })}
         </button>
-        ${this.renderEconomy()}
+        ${this.renderEconomy(this.chip(maxWidth))}
       </div>
     `;
   }
 
-  private renderEconomy() {
+  private renderEconomy(mode: ChipMode) {
     const e = this.economy;
-    if (e === null) return nothing;
+    if (e === null || mode === "none") return nothing;
+    const label =
+      translateText("ww1936.econ.band_label", {
+        civ: e.civ,
+        mil: e.mil,
+        manpower: e.manpowerText,
+      }) + (e.shortage ? ` · ${translateText("ww1936.econ.shortage")}` : "");
     return html`<button
       type="button"
-      data-ww-economy
-      aria-label=${translateText("ww1936.econ.industry")}
+      data-ww-economy=${mode}
+      aria-label=${label}
       class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
       @click=${() =>
         this.eventBus.emit(new OpenWwIndustryEvent("construction"))}
     >
       <span data-ww-factories>🏭 ${e.civ} / ${e.mil}</span>
-      <span data-ww-manpower>👥 ${e.manpowerText}</span>
+      ${mode === "full"
+        ? html`<span data-ww-manpower>👥 ${e.manpowerText}</span>`
+        : nothing}
       ${e.shortage
         ? html`<span
             data-ww-shortage

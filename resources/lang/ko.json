@@ -3530,6 +3530,7 @@
       "unlock": "{equipment} {gen} 생산 가능"
     },
     "econ": {
+      "band_label": "공장: 민간 {civ}, 군수 {mil} · 인력 {manpower}",
       "block": {
         "dead": "나라가 없습니다",
         "not_controlled": "내가 통제하는 주가 아닙니다",
@@ -3557,6 +3558,13 @@
         "no_slot": "빈 연구 칸이 없습니다",
         "bad_slot": "빈 칸입니다"
       },
+      "cancel_project": "건설 취소",
+      "cancel_research": "연구 취소",
+      "close_deal": "거래 닫기",
+      "fewer": "줄이기",
+      "free_slots": "빈 연구 칸 {n}개",
+      "idle_factories": "놀고 있는 군수 공장 {n}개",
+      "law_closes_deals": "거래가 닫힙니다 — 다시 누르기",
       "law_need": {
         "partial_mobilization": "1937년부터 또는 전쟁 중",
         "war_economy": "전쟁 중",
@@ -3567,7 +3575,13 @@
         "extensive": "1938년부터 또는 전쟁 중"
       },
       "industry": "산업",
+      "more": "늘리기",
+      "more_regions": "주 {n}개 더 보기",
+      "move_down": "아래로",
+      "move_up": "위로",
+      "remove_line": "라인 지우기",
       "research": "연구",
+      "shortage": "자원 부족",
       "tab_construction": "건설",
       "tab_production": "생산",
       "tab_trade": "자원·무역",

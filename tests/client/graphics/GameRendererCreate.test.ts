@@ -50,6 +50,9 @@ const HUD_TAGS = [
   "congress-band",
   "ww-top-band",
   "ww-diplomacy-panel",
+  "ww-dials",
+  "ww-industry-panel",
+  "ww-research-panel",
   "in-game-promo",
   "tutorial-panel",
 ] as const;
@@ -118,6 +121,9 @@ describe("createRenderer", () => {
       "congress-band",
       "ww-top-band",
       "ww-diplomacy-panel",
+      "ww-dials",
+      "ww-industry-panel",
+      "ww-research-panel",
     ]) {
       const el = elements.get(tag) as unknown as {
         eventBus: EventBus;
