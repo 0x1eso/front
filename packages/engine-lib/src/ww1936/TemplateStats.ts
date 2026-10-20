@@ -62,14 +62,27 @@ export function genArmorPct(g: number): number {
 
 /** A division's generation mix from its 18 slots. */
 export function genMixOf(equip: ArrayLike<number>): number[] {
-  const units = new Array<number>(T).fill(0);
-  const sum = new Array<number>(T).fill(0);
+  return genMixInto(new Array<number>(T), equip);
+}
+
+const MIX_UNITS: number[] = new Array<number>(T).fill(0);
+const MIX_SUM: number[] = new Array<number>(T).fill(0);
+
+/** genMixOf written into `out` (EQUIPMENT_TYPES.length long), without allocating; returns `out`. */
+export function genMixInto(out: number[], equip: ArrayLike<number>): number[] {
+  const units = MIX_UNITS;
+  const sum = MIX_SUM;
+  units.fill(0);
+  sum.fill(0);
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const i = SLOT_TYPE[j];
     units[i] += equip[j];
     sum[i] += equip[j] * SLOT_GEN[j];
   }
-  return units.map((u, i) => (u === 0 ? 100 : Math.floor((sum[i] * 100) / u)));
+  for (let i = 0; i < T; i++) {
+    out[i] = units[i] === 0 ? 100 : Math.floor((sum[i] * 100) / units[i]);
+  }
+  return out;
 }
 
 /**
@@ -237,9 +250,14 @@ export function equipFill(
   equip: ArrayLike<number>,
 ): number[] {
   const have = equipByType(equip);
-  return s.need.map((nd, i) =>
-    nd === 0 ? 1000 : Math.min(1000, Math.floor((have[i] * 1000) / nd)),
-  );
+  const need = s.need;
+  const out = new Array<number>(need.length);
+  for (let i = 0; i < need.length; i++) {
+    const nd = need[i];
+    out[i] =
+      nd === 0 ? 1000 : Math.min(1000, Math.floor((have[i] * 1000) / nd));
+  }
+  return out;
 }
 
 /** Spec §4.3: attack and defence values by their equipment's fill, HP by men. */
@@ -248,22 +266,35 @@ export function divisionStats(
   equip: ArrayLike<number>,
   men: number,
 ): DivisionStats {
-  const fill = equipFill(s, equip);
-  const part = (k: number) => {
-    let x = 0;
-    for (let i = 0; i < T; i++) {
-      x += Math.floor((s.parts[i * 4 + k] * fill[i]) / 1000);
-    }
-    return x;
-  };
+  return divisionStatsAt(s, equipFill(s, equip), men);
+}
+
+/** divisionStats with the fill already computed (`fill` = equipFill(s, equip)). */
+export function divisionStatsAt(
+  s: DivisionStats,
+  fill: readonly number[],
+  men: number,
+): DivisionStats {
+  const parts = s.parts;
+  let soft = 0;
+  let hard = 0;
+  let def = 0;
+  let brk = 0;
+  for (let i = 0; i < T; i++) {
+    const f = fill[i];
+    soft += Math.floor((parts[i * 4] * f) / 1000);
+    hard += Math.floor((parts[i * 4 + 1] * f) / 1000);
+    def += Math.floor((parts[i * 4 + 2] * f) / 1000);
+    brk += Math.floor((parts[i * 4 + 3] * f) / 1000);
+  }
   const menPm =
     s.men === 0 ? 1000 : Math.min(1000, Math.floor((men * 1000) / s.men));
   return {
     ...s,
-    soft: part(0),
-    hard: part(1),
-    def: part(2),
-    brk: part(3),
+    soft,
+    hard,
+    def,
+    brk,
     hpMilli: Math.floor((s.hpMilli * menPm) / 1000),
   };
 }
@@ -273,14 +304,21 @@ export function equipFillPm(
   s: DivisionStats,
   equip: ArrayLike<number>,
 ): number {
-  const fill = equipFill(s, equip);
+  return equipFillPmAt(s, equipFill(s, equip));
+}
+
+/** equipFillPm with the fill already computed (`fill` = equipFill(s, equip)). */
+export function equipFillPmAt(
+  s: DivisionStats,
+  fill: readonly number[],
+): number {
   let w = 0;
   let got = 0;
-  EQUIPMENT_TYPES.forEach((t, i) => {
-    const c = s.need[i] * unitCostMilli(t, 1);
+  for (let i = 0; i < T; i++) {
+    const c = s.need[i] * unitCostMilli(EQUIPMENT_TYPES[i], 1);
     w += c;
     got += Math.floor((c * fill[i]) / 1000);
-  });
+  }
   return w === 0 ? 1000 : Math.floor((got * 1000) / w);
 }
 
@@ -290,7 +328,16 @@ export function strengthPm(
   equip: ArrayLike<number>,
   men: number,
 ): number {
-  const eq = equipFillPm(s, equip);
+  return strengthPmAt(s, equipFill(s, equip), men);
+}
+
+/** strengthPm with the fill already computed (`fill` = equipFill(s, equip)). */
+export function strengthPmAt(
+  s: DivisionStats,
+  fill: readonly number[],
+  men: number,
+): number {
+  const eq = equipFillPmAt(s, fill);
   const mp =
     s.men === 0 ? 1000 : Math.min(1000, Math.floor((men * 1000) / s.men));
   return Math.min(eq, mp);

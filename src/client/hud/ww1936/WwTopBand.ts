@@ -3,7 +3,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
+import { factionDotClass } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -301,9 +301,9 @@ export class WwTopBand extends LitElement implements Controller {
               ${m.myFaction === null
                 ? nothing
                 : html`<span
-                    class="size-2 shrink-0 rounded-full ${FACTION_DOT_CLASS[
-                      m.myFaction
-                    ]}"
+                    class="size-2 shrink-0 rounded-full ${factionDotClass(
+                      m.myFaction,
+                    )}"
                   ></span>`}
             </span>`}
         <button

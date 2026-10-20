@@ -14,6 +14,7 @@ import {
   aheadPct,
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { researchSpeedPct } from "@openfront/engine-lib/ww1936/Stats";
 import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
@@ -48,8 +49,33 @@ export function startResearch(
   if (block !== null) return block;
   const i = freeResearchSlot(slotTechs(ce), ce.totals.slotCount);
   while (ce.slots.length <= i) ce.slots.push(null);
-  ce.slots[i] = { tech, progress: 0 };
+  const bonusPct = takeResearchBonus(econ, ce, tech);
+  ce.slots[i] = { tech, progress: 0, ...(bonusPct === 0 ? {} : { bonusPct }) };
   return null;
+}
+
+/**
+ * P3 spec §10.4 research_bonus: a tech that starts takes the first bonus
+ * for its id or its branch (one use; used up, it goes) and keeps it until
+ * it ends.
+ */
+function takeResearchBonus(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  tech: WwTechId,
+): number {
+  const c = econ.ww.politics.country(ce.smallID);
+  if (c === null) return 0;
+  const branch = WW_TECHS[tech].branch;
+  const i = c.researchBonuses.findIndex(
+    (b) => b.key === tech || b.key === branch,
+  );
+  if (i < 0) return 0;
+  const b = c.researchBonuses[i];
+  b.uses--;
+  if (b.uses <= 0) c.researchBonuses.splice(i, 1);
+  econ.ww.politics.markCountry(ce.smallID);
+  return b.pct;
 }
 
 /** Empties a slot; its progress is lost (spec §9.3). */
@@ -90,11 +116,14 @@ export function stepResearch(
       p.id(),
     );
   }
-  const speed = ce.tech.researchPct + ce.law().researchPct;
+  const lawPct = ce.law().researchPct;
   for (let i = 0; i < ce.slots.length && i < ce.totals.slotCount; i++) {
     const s = ce.slots[i];
     if (s === null) continue;
     const def = WW_TECHS[s.tech];
+    // P3 spec §3.4: the branch's research stat and the slot's bonus.
+    const speed =
+      researchSpeedPct(ce.stats, def.branch) + lawPct + (s.bonusPct ?? 0);
     s.progress += researchProgress(speed, aheadPct(def.year, day));
     if (s.progress < techDays(def.year) * 1000) continue;
     // Done; what runs over is dropped (§9.2).

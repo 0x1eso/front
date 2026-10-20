@@ -186,9 +186,8 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     const partial = m.q("[data-ww-law='partial_mobilization']")!;
     expect(partial.disabled).toBe(true);
     expect(partial.dataset.state).toBe("locked");
-    expect(partial.textContent).toContain(
-      "[ww1936.econ.law_need.partial_mobilization]",
-    );
+    // P3 spec §7.2: 20% war support (the fixture's) is under the 30% step.
+    expect(partial.textContent).toContain("[ww1936.econ.block.law_ws]");
     expect(m.q("[data-ww-law='civilian']")!.dataset.state).toBe("current");
     // The trade law changed lately: the wait shows by the ladder.
     expect(
@@ -678,7 +677,7 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(
       m.q("[data-ww-law='partial_mobilization'] [data-ww-law-reason]")!
         .textContent,
-    ).toContain("[ww1936.econ.law_need.partial_mobilization]");
+    ).toContain("[ww1936.econ.block.law_ws]");
     // Waiting only: the wait shows once, by the ladder's name.
     expect(
       m.q("[data-ww-law='early_mobilization'] [data-ww-law-reason]"),

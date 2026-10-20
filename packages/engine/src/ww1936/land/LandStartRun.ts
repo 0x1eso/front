@@ -105,13 +105,13 @@ export function fieldDivision(
 ): boolean {
   const s = templateStats(
     tpl.def,
-    ce.tech,
+    ce.stats,
     genMixOf(new Array<number>(GROUND_SLOTS).fill(0)),
   );
   if (!drawManpower(ce, s.men)) return false;
   const slots = new Array<number>(GROUND_SLOTS).fill(0);
   drawTemplateEquip(ce, slots, s.need, EQUIPMENT_TYPES);
-  const full = templateStats(tpl.def, ce.tech, genMixOf(slots));
+  const full = templateStats(tpl.def, ce.stats, genMixOf(slots));
   land.spawnDivision(
     cl.smallID,
     tpl.id,

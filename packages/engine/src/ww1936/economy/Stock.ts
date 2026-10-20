@@ -47,22 +47,42 @@ export function drawTemplateEquip(
   types: readonly EquipmentType[],
   cap: (needed: number) => number = (x) => x,
 ): void {
-  types.forEach((type, i) => {
+  for (let i = 0; i < types.length; i++) {
+    const tk = typeSlots(types[i]);
     let have = 0;
-    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      const s = groundSlotOf(equipKey(type, g));
-      if (s >= 0) have += slots[s];
+    for (let k = 0; k < tk.slots.length; k++) have += slots[tk.slots[k]];
+    // Nothing missing: nothing drawn (cap is never negative).
+    if (need[i] - have <= 0) continue;
+    let want = Math.min(need[i] - have, cap(need[i]));
+    for (let k = tk.slots.length - 1; k >= 0 && want > 0; k--) {
+      const got = drawEquip(ce, tk.keys[k], want);
+      slots[tk.slots[k]] += got;
+      want -= got;
     }
-    let want = Math.min(Math.max(0, need[i] - have), cap(need[i]));
-    for (let g = EQUIPMENT_GENS[type]; g >= 1 && want > 0; g--) {
+  }
+}
+
+/** A type's division slots and their stock keys, generation 1 first (only generations a division holds). */
+interface TypeSlots {
+  slots: number[];
+  keys: number[];
+}
+const TYPE_SLOT_CACHE = new Map<EquipmentType, TypeSlots>();
+
+function typeSlots(type: EquipmentType): TypeSlots {
+  let ts = TYPE_SLOT_CACHE.get(type);
+  if (ts === undefined) {
+    ts = { slots: [], keys: [] };
+    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
       const key = equipKey(type, g);
       const s = groundSlotOf(key);
       if (s < 0) continue;
-      const got = drawEquip(ce, key, want);
-      slots[s] += got;
-      want -= got;
+      ts.slots.push(s);
+      ts.keys.push(key);
     }
-  });
+    TYPE_SLOT_CACHE.set(type, ts);
+  }
+  return ts;
 }
 
 /** A division's or trainee's men and every equipment slot back to the pool and stock. */

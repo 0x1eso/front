@@ -19,6 +19,7 @@ import {
   projectSpeedPct,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { Player } from "../../game/Game";
+import { dmzRegions } from "../politics/Spirits";
 import type { CountryEconomy, Project, WwEconomy } from "./WwEconomy";
 
 /** Factories built plus reserved by the controller's queue (spec §4.2). */
@@ -39,6 +40,13 @@ export function buildBlock(
   count: number,
 ): WwOrderBlock | null {
   const exists = econ.scenario.region(region) !== undefined;
+  // P3 spec §9.2 {dmz}: no fort in a demilitarised region of one's own.
+  if (
+    building === "fort" &&
+    dmzRegions(econ.ww.politics, ce.smallID).includes(region)
+  ) {
+    return "not_controlled";
+  }
   return buildBlockOf({
     building,
     count,
@@ -52,8 +60,25 @@ export function buildBlock(
           queuedLevels(queuedInRegion(ce.queue, region), building)
         : 0,
     usedSlots: exists ? usedSlots(econ, region) : 0,
-    slots: econ.regionSlots(region, ce.tech.slotPct),
+    slots: econ.regionSlots(region, ce.stats.slotPct),
   });
+}
+
+/**
+ * P3 spec §3.4: the building's own construction stat (fort and rail are
+ * P2's tech keys, which projectSpeedPct reads already).
+ */
+export function buildingSpeedPct(ce: CountryEconomy, b: BuildingId): number {
+  switch (b) {
+    case "civ":
+      return ce.stats.civConstructionPct;
+    case "mil":
+      return ce.stats.milConstructionPct;
+    case "infra":
+      return ce.stats.infraConstructionPct;
+    default:
+      return 0;
+  }
 }
 
 /** Spec §4.3: a new entry at the back of the queue. */
@@ -117,7 +142,7 @@ function canComplete(econ: WwEconomy, ce: CountryEconomy, q: Project): boolean {
   if (max !== undefined) return econ.buildingArray(q.building)[q.region] < max;
   if (econ.isOccupied(q.region)) return false;
   const built = econ.civ[q.region] + econ.mil[q.region] + econ.dock[q.region];
-  return built + 1 <= econ.regionSlots(q.region, ce.tech.slotPct);
+  return built + 1 <= econ.regionSlots(q.region, ce.stats.slotPct);
 }
 
 /**
@@ -137,8 +162,9 @@ export function stepConstruction(
     const speed = projectSpeedPct({
       building: q.building,
       infra: econ.infra[q.region],
-      tech: ce.tech,
+      tech: ce.stats,
       law,
+      buildingPct: buildingSpeedPct(ce, q.building),
     });
     q.lastAssigned = assigned[i];
     q.lastSpeedPct = speed;

@@ -23,6 +23,11 @@ import { leaveAttack, stopOrFinishEdge } from "./Orders";
 import { armyRows, planDay, readinessDay, targetDistances } from "./Plans";
 import type { Army, WwLand } from "./WwLand";
 
+/** targetDistances as assignFront computed them for its army (null: it did not). */
+export interface TargetDist {
+  value: Int32Array | null;
+}
+
 /** Spec §8.1: base weight of a front region, and the plan's bonus toward its targets. */
 const FRONT_BASE_WEIGHT = 2;
 const FRONT_TARGET_WEIGHT = 2;
@@ -49,9 +54,13 @@ export function dailyFronts(land: WwLand, smallID: number, day: number): void {
       border = new Set(borderRegionsOf(land, smallID, enemy));
       borders.set(enemy, border);
     }
-    if (!assignFront(land, a, tick, border)) continue;
+    // The plan's target distances, once (nothing between moves control).
+    const dist: TargetDist = { value: null };
+    if (!assignFront(land, a, tick, border, dist)) continue;
     readinessDay(land, a);
-    if (a.order.kind === "plan" && a.order.executing) planDay(land, a, day);
+    if (a.order.kind === "plan" && a.order.executing) {
+      planDay(land, a, day, dist.value ?? undefined);
+    }
   }
 }
 
@@ -180,6 +189,7 @@ export function assignFront(
   border: ReadonlySet<number> = new Set(
     borderRegionsOf(land, a.owner, a.order.enemy),
   ),
+  dist: TargetDist = { value: null },
 ): boolean {
   const o = a.order;
   const me = a.owner;
@@ -217,10 +227,10 @@ export function assignFront(
   // Toward the targets: the front regions nearest them.
   const toward = new Set<number>();
   if (o.kind === "plan" && o.targets.length > 0) {
-    const dist = targetDistances(land, a);
+    const d = (dist.value = targetDistances(land, a));
     let min = Infinity;
-    for (const f of regions) min = Math.min(min, dist[f]);
-    for (const f of regions) if (dist[f] === min) toward.add(f);
+    for (const f of regions) min = Math.min(min, d[f]);
+    for (const f of regions) if (d[f] === min) toward.add(f);
   }
   const weights = regions.map((f) => {
     let w = FRONT_BASE_WEIGHT + (toward.has(f) ? FRONT_TARGET_WEIGHT : 0);

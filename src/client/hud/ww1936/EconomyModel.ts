@@ -40,6 +40,10 @@ import {
   BATTALION_IDS,
   SUPPORT_IDS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  WW_STAT_KEYS,
+  WwStatKey,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
@@ -69,11 +73,14 @@ import {
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
-import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import {
-  lawConditionMet,
-  lawEffects,
-} from "@openfront/engine-lib/ww1936/WwLaws";
+  lawBlock,
+  lawCost,
+  LawCtx,
+} from "@openfront/engine-lib/ww1936/PoliticsRules";
+import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
   techDays,
   TechEffects,
@@ -83,6 +90,7 @@ import {
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
+import type { WwPoliticsView } from "../../view/WwPoliticsView";
 import { isCapitulated, today, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */
@@ -167,7 +175,11 @@ export const LAW_KEYS: Readonly<Record<LawValue, string>> = {
   scraping: "ww1936.law.conscription.scraping",
 };
 
-/** Why a law step is locked (WwLaws.lawConditionMet), for the steps with a condition. */
+/**
+ * P1's texts for the steps with a condition. P3 (spec §7.2) gates laws by
+ * war support, tension and government instead: lawStepReason shows the
+ * block's own text (ww1936.econ.block.law_ws …); these wait for Task 8/9.
+ */
 export const LAW_NEED_KEYS: Readonly<Partial<Record<LawValue, string>>> = {
   partial_mobilization: "ww1936.econ.law_need.partial_mobilization",
   war_economy: "ww1936.econ.law_need.war_economy",
@@ -340,6 +352,31 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   too_many_armies: "ww1936.econ.block.too_many_armies",
   general_unavailable: "ww1936.econ.block.general_unavailable",
   bad_region: "ww1936.econ.block.bad_region",
+  // P3 (P3 spec §22.3, plan decision 25).
+  no_pp: "ww1936.econ.block.no_pp",
+  focus_busy: "ww1936.econ.block.focus_busy",
+  focus_done: "ww1936.econ.block.focus_done",
+  focus_prereq: "ww1936.econ.block.focus_prereq",
+  focus_exclusive: "ww1936.econ.block.focus_exclusive",
+  focus_unavailable: "ww1936.econ.block.focus_unavailable",
+  slot_locked: "ww1936.econ.block.slot_locked",
+  advisor_unavailable: "ww1936.econ.block.advisor_unavailable",
+  decision_unavailable: "ww1936.econ.block.decision_unavailable",
+  decision_cooldown: "ww1936.econ.block.decision_cooldown",
+  no_event: "ww1936.econ.block.no_event",
+  bad_option: "ww1936.econ.block.bad_option",
+  justify_busy: "ww1936.econ.block.justify_busy",
+  justify_blocked: "ww1936.econ.block.justify_blocked",
+  law_ws: "ww1936.econ.block.law_ws",
+  law_tension: "ww1936.econ.block.law_tension",
+  law_ideology: "ww1936.econ.block.law_ideology",
+  faction_rule: "ww1936.econ.block.faction_rule",
+  faction_war: "ww1936.econ.block.faction_war",
+  treaty_exists: "ww1936.econ.block.treaty_exists",
+  nap_young: "ww1936.econ.block.nap_young",
+  tension_gate: "ww1936.econ.block.tension_gate",
+  bad_target: "ww1936.econ.block.bad_target",
+  focus_none: "ww1936.econ.block.focus_none",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -1245,12 +1282,59 @@ export function researchSlots(detail: WwCountryDetail, day: number): SlotRow[] {
 export interface LawStep {
   value: LawValue;
   current: boolean;
-  /** Its condition holds today (WwLaws.lawConditionMet). */
+  /** Its P3 conditions hold today (PoliticsRules.lawBlock without the cost). */
   allowed: boolean;
+  /** Which condition fails (law_ws, law_tension, law_ideology, law_condition); null when allowed. */
+  condition: WwOrderBlock | null;
   /** Days until the kind may change again; 0 when it may. */
   cooldownDays: number;
   /** lawBlockOf: null when a tap sets it. */
   block: WwOrderBlock | null;
+  /** P3 spec §7.1: what it costs, PP. */
+  costPp: number;
+}
+
+/**
+ * P3 spec §7.2: what the law conditions read on the screen — my war
+ * support, government, PP and law cost stats, and the world's tension
+ * (WwPoliticsView summary, detail and global).
+ */
+export interface LawPolitics {
+  wsBp: number;
+  wtBp: number;
+  ruling: number;
+  ppMilli: number;
+  lawCostPct: number;
+  conscriptionCostPct: number;
+}
+
+/** Before the first politics update: nothing known, nothing allowed that costs. */
+export const NO_LAW_POLITICS: LawPolitics = {
+  wsBp: 0,
+  wtBp: 0,
+  ruling: 3,
+  ppMilli: 0,
+  lawCostPct: 0,
+  conscriptionCostPct: 0,
+};
+
+/** The politics view's numbers for `smallID` (a human's: its detail carries the stats). */
+export function lawPoliticsOf(
+  view: Pick<WwPoliticsView, "summary" | "detail" | "global"> | null,
+  smallID: number,
+): LawPolitics {
+  const s = view?.summary(smallID) ?? null;
+  if (view === null || s === null) return NO_LAW_POLITICS;
+  const stats = view.detail(smallID)?.stats ?? [];
+  const stat = (k: WwStatKey) => stats[WW_STAT_KEYS.indexOf(k)] ?? 0;
+  return {
+    wsBp: s.wsBp,
+    wtBp: view.global?.wtBp ?? 0,
+    ruling: s.ruling,
+    ppMilli: s.ppMilli,
+    lawCostPct: stat("lawCostPct"),
+    conscriptionCostPct: stat("conscriptionCostPct"),
+  };
 }
 
 /** `warDays`: the live one (liveWarDays), as the engine's lawBlock reads it. */
@@ -1259,16 +1343,40 @@ export function lawLadder(
   kind: LawKind,
   day: number,
   warDays = detail.warDays,
+  pol: LawPolitics = NO_LAW_POLITICS,
 ): LawStep[] {
-  const ctx = { day, warDays };
   const cooldownDays = Math.max(0, detail.lawCooldownUntil[kind] - day);
-  return LAW_LADDERS[kind].map((value) => ({
-    value,
-    current: detail.laws[kind] === value,
-    allowed: lawConditionMet(value, ctx),
-    cooldownDays,
-    block: lawBlockOf(detail.laws, detail.lawCooldownUntil, kind, value, ctx),
-  }));
+  const stats = emptyStats();
+  stats.lawCostPct = pol.lawCostPct;
+  stats.conscriptionCostPct = pol.conscriptionCostPct;
+  return LAW_LADDERS[kind].map((value) => {
+    const costPp = lawCost(value, stats);
+    const ctx: LawCtx = {
+      wsBp: pol.wsBp,
+      wtBp: pol.wtBp,
+      ruling: pol.ruling,
+      atWar: warDays >= 0,
+      ppMilli: pol.ppMilli,
+      costMilli: costPp * 1000,
+    };
+    const condition = lawBlock(value, { ...ctx, ppMilli: 0, costMilli: 0 });
+    return {
+      value,
+      current: detail.laws[kind] === value,
+      allowed: condition === null,
+      condition,
+      cooldownDays,
+      block: lawBlockOf(
+        detail.laws,
+        detail.lawCooldownUntil,
+        kind,
+        value,
+        day,
+        ctx,
+      ),
+      costPp,
+    };
+  });
 }
 
 /**
@@ -1307,13 +1415,13 @@ export function lawClosesDeals(
   return false;
 }
 
-/** A locked step's reason: its condition, the wait, or the block. */
+/**
+ * A locked step's reason: its failing condition (shown during the wait
+ * too), the wait, or the block (P3: each with its own text).
+ */
 export function lawStepReason(step: LawStep): string | null {
   if (step.current || step.block === null) return null;
-  if (!step.allowed) {
-    const need = LAW_NEED_KEYS[step.value];
-    if (need !== undefined) return translateText(need);
-  }
+  if (step.condition !== null) return blockText(step.condition);
   if (step.block === "law_cooldown") {
     return translateText("ww1936.econ.cooldown", { n: step.cooldownDays });
   }

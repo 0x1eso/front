@@ -17,9 +17,9 @@ import {
   GENERALS,
   generalServes,
 } from "@openfront/engine-lib/ww1936/Generals";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { newTitledGeneralState } from "./LandStartRun";
+import { generalAvailable } from "./PoliticsBridge";
 import type { Army, CountryLand, GeneralState, WwLand } from "./WwLand";
 
 /** Skills a general can reach (spec §6.2). */
@@ -47,10 +47,13 @@ export function rosterDefOf(g: GeneralState): GeneralDef | undefined {
   return g.roster >= 0 ? GENERALS[g.roster] : undefined;
 }
 
-/** Spec §6.2: whether the general can command on `day` (a titled one always can). */
-export function canServe(g: GeneralState, day: number): boolean {
+/**
+ * Spec §6.2: whether the general can command on `day` (a titled one always
+ * can); P3 plan decision 19: not purged and not an advisor right now.
+ */
+export function canServe(land: WwLand, g: GeneralState, day: number): boolean {
   const def = rosterDefOf(g);
-  return def === undefined || generalServes(def, day);
+  return def === undefined || generalAvailable(land, def, day);
 }
 
 /**
@@ -70,7 +73,7 @@ export function assignGeneral(
   let g: GeneralState | undefined;
   if (general !== 0) {
     g = cl.generals.find((x) => x.id === general);
-    if (g === undefined || !canServe(g, land.day())) {
+    if (g === undefined || !canServe(land, g, land.day())) {
       return "general_unavailable";
     }
   }
@@ -143,7 +146,9 @@ export function applyGeneralDates(
     const now = generalServes(def, day);
     // Day 0's commands were given by the start (LandStartRun).
     const before = day > 0 ? generalServes(def, day - 1) : now;
-    if (!now && g.army !== 0) {
+    // P3 plan decision 19: purged or an advisor, the general leaves its
+    // army too (the messages stay the roster dates').
+    if (g.army !== 0 && !generalAvailable(land, def, day)) {
       const a = land.armies.get(g.army);
       if (a !== undefined && a.general === g.id) {
         a.general = 0;
@@ -207,7 +212,7 @@ export function dailyGenerals(
       if (role === ROLE_DEFEND) dfn = true;
       const b = t.battle[r];
       if (b === 0 || sc.region(b) === undefined) continue;
-      const w = weatherAt(day, sc.latC(b), sc.landOf(b), sc.wcell(b));
+      const w = land.weatherOn(b, day);
       if (w === "snow" || w === "frozen") ground[0] = true;
       const terrain = sc.landOf(b);
       if (terrain === "desert") ground[1] = true;
@@ -225,13 +230,13 @@ export function dailyGenerals(
     const preparing =
       (a.order.kind === "front" || a.order.kind === "plan") &&
       !a.order.executing &&
-      a.planBp < planMaxBp(ce.tech);
+      a.planBp < planMaxBp(ce.stats);
     if (att) g.use[0]++;
     if (dfn) g.use[1]++;
     if (preparing) g.use[2]++;
     if (short) g.use[3]++;
     if (fight) {
-      g.xp += Math.max(1, 100 + ce.tech.generalXpPct);
+      g.xp += Math.max(1, 100 + ce.stats.generalXpPct);
       ground.forEach((on, i) => {
         if (on) g.terrainDays[i]++;
       });

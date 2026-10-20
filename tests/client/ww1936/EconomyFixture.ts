@@ -10,12 +10,14 @@ import {
   WwRegionData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { CountryLandSummary } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwPolSummary } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import fs from "fs";
 import path from "path";
 import { WwEconomyView } from "../../../src/client/view/WwEconomyView";
 import { WwLandView } from "../../../src/client/view/WwLandView";
+import { WwPoliticsView } from "../../../src/client/view/WwPoliticsView";
 
 const MINI = path.join(__dirname, "../../testdata/maps/ww1936mini");
 
@@ -136,6 +138,13 @@ export interface FakeOptions {
   embargoes?: [CountryTag, CountryTag][];
   /** P2: the land war's country summaries (WwLandView). */
   land?: CountryLandSummary[];
+  /**
+   * P3: my country's politics as the law ladder reads them (WwPoliticsView);
+   * default: neutral, 20% war support, 500 PP, no tension.
+   */
+  politics?: Partial<
+    Pick<WwPolSummary, "wsBp" | "ppMilli" | "ruling"> & { wtBp: number }
+  >;
 }
 
 export function fakeEconGame(o: FakeOptions = {}) {
@@ -145,6 +154,44 @@ export function fakeEconGame(o: FakeOptions = {}) {
     details: o.details ?? [],
     regions: o.regions ?? [],
   });
+  const pol = new WwPoliticsView(scenario);
+  const me0 = o.me === undefined ? "DEU" : o.me;
+  pol.apply(
+    {
+      countries:
+        me0 === null
+          ? []
+          : [
+              {
+                smallID: ID(me0),
+                ruling: o.politics?.ruling ?? 3,
+                leader: "",
+                pop: [1500, 1000, 2000, 5500],
+                stabBp: 5000,
+                wsBp: o.politics?.wsBp ?? 2000,
+                ppMilli: o.politics?.ppMilli ?? 500_000,
+                faction: -1,
+                surrenderPct: 80,
+                focus: null,
+              },
+            ],
+      details: [],
+      global: {
+        wtBp: o.politics?.wtBp ?? 0,
+        threat: [],
+        factions: [],
+        guarantees: [],
+        naps: [],
+        access: [],
+        justifying: [],
+        nextBeatDay: -1,
+      },
+      regions: [],
+      news: [],
+      cards: [],
+    },
+    o.ticks ?? 600,
+  );
   const land = new WwLandView(scenario);
   land.apply(
     {
@@ -199,6 +246,7 @@ export function fakeEconGame(o: FakeOptions = {}) {
     worldWarData: () => data,
     wwEconomy: () => view,
     wwLand: () => land,
+    wwPolitics: () => pol,
     playerBySmallID: (id: number) => players[id - 1],
     playerByClientID: () => null,
     myPlayer: () => (me === null ? null : players[ID(me) - 1]),
@@ -208,7 +256,7 @@ export function fakeEconGame(o: FakeOptions = {}) {
     inSpawnPhase: () => false,
     config: () => ({ historicalAi: () => true }),
   };
-  return { game, view, players, land };
+  return { game, view, players, land, pol };
 }
 
 /** A tile of the land region `id`. */

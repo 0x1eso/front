@@ -16,7 +16,7 @@ import {
   WW_UPGRADE_PM,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { WEATHER, weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import {
   drawEquip,
   drawManpower,
@@ -86,8 +86,8 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const fought = foughtTest(smallID, day, land.ww.prepEndTick());
   const t = land.divisions;
   let foughtN = 0;
-  for (let r = 0; r < t.rows; r++) {
-    if (t.id[r] === 0 || t.owner[r] !== smallID) continue;
+  // (No division is added or removed below: the country's row list holds.)
+  for (const r of land.rowsOf(smallID)) {
     if (t.encircled[r] === 0) {
       reinforce(land, ce, r);
       upgrade(land, ce, r);
@@ -102,7 +102,7 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const gain =
     (ce.major ? 2 : 1) * ARMY_XP_DAY_MILLI +
     Math.min(ARMY_XP_FIGHT_MAX_MILLI, ARMY_XP_FIGHT_MILLI * foughtN) +
-    ce.tech.armyXpMilli;
+    ce.stats.armyXpMilli;
   cl.armyXpMilli = Math.max(
     0,
     Math.min(WW_ARMY_XP_MAX_MILLI, cl.armyXpMilli + gain),
@@ -120,7 +120,8 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
   const supply = t.supply[r];
   if (supply <= 0) return;
-  const s = land.baseStatsOf(r);
+  // Men, need and flags read only the template def and the stats.
+  const s = land.templateNumbersOf(r);
   const cap = reinforceCap(supply);
   const men = t.men[r];
   const add = Math.min(s.men - men, cap(s.men), ce.manpower);
@@ -131,10 +132,14 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
       exp - ((s.flags & TPL_HOSPITAL) !== 0 ? Math.floor(cut / 2) : cut);
     land.setMen(r, men + add);
   }
-  const slots = Array.from(t.equipOf(r));
+  const slots = REINFORCE_SLOTS;
+  slots.set(t.equipOf(r));
   drawTemplateEquip(ce, slots, s.need, EQUIPMENT_TYPES, cap);
   applySlots(land, r, slots);
 }
+
+/** reinforce's copy of a division's slots (filled before each use). */
+const REINFORCE_SLOTS = new Int32Array(GROUND_SLOTS);
 
 /**
  * Spec §5.3 upgrade: per type, up to 5% of the need a day of a newer
@@ -143,7 +148,8 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
  */
 export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
-  const s = land.baseStatsOf(r);
+  // The need reads only the template def and the stats.
+  const s = land.templateNumbersOf(r);
   const base = r * GROUND_SLOTS;
   TYPE_SLOTS.forEach((list, i) => {
     if (s.need[i] <= 0 || list.length < 2) return;
@@ -176,7 +182,6 @@ export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
  */
 export function attritionPpm(land: WwLand, r: number, day: number): number {
   const t = land.divisions;
-  const sc = land.scenario;
   let ppm = 0;
   if (t.encircled[r] !== 0) ppm = ATTRITION_CUT_PPM;
   else if (t.supply[r] < ATTRITION_SUPPLY_PM) {
@@ -186,7 +191,7 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
     );
   }
   const reg = t.region[r];
-  const w = weatherAt(day, sc.latC(reg), sc.landOf(reg), sc.wcell(reg));
+  const w = land.weatherOn(reg, day);
   let wpm = WEATHER[w].attritionPm * 1000;
   if (wpm > 0) {
     const army = land.armies.get(t.army[r]);

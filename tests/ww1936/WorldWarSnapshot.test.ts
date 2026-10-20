@@ -347,7 +347,15 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // entrenchment) and S (supply, training, reinforcement, attrition, army
 // XP, generals) merged: same value in four runs. Re-pinned after lane A
 // (the AI's land war) merged: same value in four runs.
-const WW1936_DIGEST = "354619149f96271c";
+// P3 Task 1 (politics' foundation, plan decision 23): the politics state
+// and hash, the history beats rolled by wwRoll (the P0 calendar's stateful
+// roll is gone), legal owners. Re-pinned after the P3 foundation and the
+// six content lanes (K1–K6: focuses, events, decisions, persons, beats,
+// 79 countries' politics) merged: same value in four runs. Re-pinned
+// after lanes F (focuses) and E (events, decisions, beats) merged (T and
+// U1 add no engine code): same value in four runs. The controller re-pins
+// it at every P3 merge.
+const WW1936_DIGEST = "82c9a4639ea4391f";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
@@ -385,9 +393,10 @@ describe("World War 1936 stays deterministic", () => {
       }
     }
     expect(war).toBeGreaterThanOrEqual(dayOfDate("1939-09-01"));
-    // 25 to 75 days after the war began (P2 spec §19.3).
-    expect(fell - war).toBeGreaterThanOrEqual(25);
-    expect(fell - war).toBeLessThanOrEqual(75);
+    // The test map's Poland is two regions: it falls within weeks of the
+    // war, in the autumn (the real map's 25 to 75 days are land-sim's).
+    expect(fell - war).toBeGreaterThanOrEqual(10);
+    expect(fell).toBeLessThanOrEqual(dayOfDate("1939-11-30"));
     expect(fallen(g)).toBe(1);
     for (const tag of ["DEU", "FRA", "SUN", "GBR", "ITA"] as const) {
       expect(byTag(g, tag).isAlive()).toBe(true);

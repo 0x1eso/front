@@ -1,4 +1,5 @@
-import { COUNTRIES, FactionId } from "@openfront/engine-api/ww1936/Countries";
+import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import type { FactionKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_GAME_MINUTES } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   CampScore,
@@ -11,7 +12,7 @@ import { controlledVp } from "./Capitulation";
 import type { WorldWar } from "./WorldWar";
 
 export interface WorldWarWin {
-  winner: Player | FactionId;
+  winner: Player | FactionKey;
   reason: "ww_score" | "ww_last_camp";
   camp: CampScore;
 }
@@ -25,7 +26,8 @@ export function scoreInputs(mg: Game, ww: WorldWar): CountryScoreInput[] {
     const alive = p.isPlayer() && p.isAlive() && !ww.isCapitulated(id);
     return {
       smallID: id,
-      faction: COUNTRIES[tag].faction,
+      // P3 plan decision 8: the faction now (politics' state).
+      faction: ww.factionOf(id),
       major: COUNTRIES[tag].major,
       alive,
       vp: vp[id],
@@ -67,7 +69,7 @@ export function checkWorldWarWin(mg: Game, ww: WorldWar): WorldWarWin | null {
   return worldWarVerdict(mg, ww, mg.elapsedGameSeconds());
 }
 
-function campWinner(mg: Game, camp: CampScore): Player | FactionId {
+function campWinner(mg: Game, camp: CampScore): Player | FactionKey {
   if (typeof camp.camp !== "number") return camp.camp;
   const p = mg.playerBySmallID(camp.camp);
   if (!p.isPlayer()) throw new Error(`camp ${camp.camp} has no player`);

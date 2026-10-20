@@ -37,7 +37,7 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
-import { HISTORY, WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
+import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import {
   GEN1,
@@ -448,17 +448,18 @@ interface SideView {
 }
 
 /**
- * Derived, never state: the side views of one tick. Control does not move
- * during the countries' daily steps (captures land with the movement,
- * after them), and the cache also keys on WwLand.controlChanges and the
- * side list (factions), so every country of a side sees the view a fresh
- * computation would give, live or restored. Kept outside WwLand (not in
- * its snapshot graph), like Supply's run cache.
+ * Derived, never state: the side views. A view reads only the region
+ * controllers and the sides; the cache keys on WwLand.controlChanges
+ * (setController, the only way control changes, counts every change), the
+ * side list (factions) and WwLand.derivedEpoch (a restore), so every
+ * country of a side sees the view a fresh computation would give, live or
+ * restored. Kept outside WwLand (not in its snapshot graph), like
+ * Supply's run cache.
  */
 const sideViews = new WeakMap<
   WwLand,
   {
-    tick: number;
+    epoch: number;
     changes: number;
     sides: readonly unknown[];
     bySide: Map<number, SideView>;
@@ -466,17 +467,17 @@ const sideViews = new WeakMap<
 >();
 
 function sideView(land: WwLand, me: number): SideView {
-  const tick = land.mg.ticks();
   let cache = sideViews.get(land);
   // The side list is rebuilt when the factions change (P3): a new array.
   const sides = land.sideList();
+  const epoch = land.derivedEpoch;
   if (
     cache === undefined ||
-    cache.tick !== tick ||
+    cache.epoch !== epoch ||
     cache.changes !== land.controlChanges ||
     cache.sides !== sides
   ) {
-    cache = { tick, changes: land.controlChanges, sides, bySide: new Map() };
+    cache = { epoch, changes: land.controlChanges, sides, bySide: new Map() };
     sideViews.set(land, cache);
   }
   const key = land.sideOf(me);
@@ -513,19 +514,6 @@ function sideView(land: WwLand, me: number): SideView {
   return view;
 }
 
-/** HISTORY indices by the countries in them (actor or target). */
-const HISTORY_BY_TAG: ReadonlyMap<CountryTag, readonly number[]> = (() => {
-  const m = new Map<CountryTag, number[]>();
-  HISTORY.forEach((e, i) => {
-    for (const t of [e.actor, e.target]) {
-      const l = m.get(t) ?? [];
-      if (!l.includes(i)) l.push(i);
-      m.set(t, l);
-    }
-  });
-  return m;
-})();
-
 class AiDay {
   readonly me: number;
   readonly tag: CountryTag;
@@ -534,15 +522,16 @@ class AiDay {
   /** At war and able to fight, ascending. */
   readonly atWar: number[];
   /**
-   * The calendar's wars within 60 days: their other countries, ascending
-   * (Task 11: all of them, not only the first — Germany's 1939 entries
-   * against Danzig and Poland fall together, and Danzig alone, out of
-   * reach, left the army in the west).
+   * The planned wars within 60 days (P3 politics.plannedWars): their other
+   * countries, ascending, every one, not only the first (Task 11:
+   * Germany's 1939 beats against Danzig and Poland fall together, and
+   * Danzig alone, out of reach, left the army in the west).
    */
   readonly imminent: readonly number[];
   readonly daily: boolean;
   private sideCache: SideView | null = null;
   private standingCache = new Map<number, Map<number, number[]>>();
+  private offensiveCache: Set<number> | null = null;
   private capDistCache: Int32Array | null = null;
   private warsCache: readonly { a: number; b: number; sinceTick: number }[] =
     [];
@@ -562,7 +551,7 @@ class AiDay {
     this.atWar = land.ww
       .enemiesOf(this.me)
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
-    this.imminent = this.calendarWars(WW_AI_PREWAR_DAYS);
+    this.imminent = this.plannedWarsNow();
     this.daily = this.atWar.length > 0 || this.imminent.length > 0;
   }
 
@@ -572,56 +561,56 @@ class AiDay {
   }
 
   /**
-   * Pre-flight ("next historical war"): this country's calendar entries
-   * (actor or target) still to come within `days`; their other countries,
-   * ascending. Each must be in the game, fighting, no camp mate and not at
-   * war with us yet.
+   * Pre-flight ("next historical war"), from P3 politics: the countries
+   * this one plans to fight within WW_AI_PREWAR_DAYS (due history beats, a
+   * justification about to finish, held war goals; plannedWars' window)
+   * that are fighting, no camp mate and not at war with us yet; ascending.
    */
-  private calendarWars(days: number): number[] {
+  private plannedWarsNow(): number[] {
     const ww = this.land.ww;
-    const plan = ww.history();
     const out: number[] = [];
-    for (const i of HISTORY_BY_TAG.get(this.tag) ?? []) {
-      if (i >= plan.length) continue;
-      const [fire, done] = plan[i];
-      if (done || fire < this.day || fire - this.day > days) continue;
-      const e = HISTORY[i];
-      const other = ww.playerOfTag(e.actor === this.tag ? e.target : e.actor);
-      if (other === null) continue;
-      const id = other.smallID();
+    for (const id of ww.politics.plannedWars(this.me, this.day)) {
       if (!this.fights(id) || ww.sameFaction(this.me, id)) continue;
-      if (ww.isAtWar(this.me, id) || out.includes(id)) continue;
+      if (ww.isAtWar(this.me, id)) continue;
       out.push(id);
     }
-    return out.sort((a, b) => a - b);
+    return out;
   }
 
   /**
-   * Task 11: whether `enemy` is our offensive by the calendar: an entry with
-   * us as its actor and `enemy` its target, not skipped, firing by the
-   * pre-war horizon (or fired).
+   * Task 11: whether `enemy` is our offensive: a planned war of ours (a
+   * history beat we are the actor of, due within the pre-war window or
+   * fired; a justification about to finish; a war goal: politics'
+   * plannedWars, its own side only — a beat in which the other country
+   * acts on us, France joining Germany's war, is its offensive, not ours),
+   * or a war running since 1936-01-01 that we began (Italy's in Ethiopia).
    */
   private offensive(enemy: number): boolean {
-    const ww = this.land.ww;
-    const plan = ww.history();
-    const tag = this.land.scenario.tagOfSmallId(enemy);
-    if (tag === undefined) return false;
-    // The wars running on 1936-01-01 are their first country's offensive
-    // (Italy's in Ethiopia), when the calendar is on.
-    if (
-      plan.length > 0 &&
-      WW_INITIAL_WARS.some(([a, b]) => a === this.tag && b === tag)
-    ) {
-      return true;
+    if (this.offensiveCache === null) {
+      const pol = this.land.ww.politics;
+      const set = new Set<number>();
+      pol.content.beats.forEach((b, i) => {
+        const st = pol.beats[i];
+        if (st === undefined || st.skipped || b.actor !== this.tag) return;
+        if (b.act.kind !== "declare" && b.act.kind !== "join") return;
+        if (!st.done && st.fireDay - this.day > WW_AI_PREWAR_DAYS) return;
+        const t = pol.idOfTag(b.act.target);
+        if (t !== 0) set.add(t);
+      });
+      const c = pol.countries[this.me];
+      const j = c?.justification ?? null;
+      if (j !== null && j.totalDays - j.progressDays <= WW_AI_PREWAR_DAYS) {
+        set.add(j.on);
+      }
+      for (const g of c?.warGoals ?? []) set.add(g.on);
+      for (const [a, b] of WW_INITIAL_WARS) {
+        if (a !== this.tag) continue;
+        const t = this.land.scenario.smallIdOf(b);
+        if (t !== 0) set.add(t);
+      }
+      this.offensiveCache = set;
     }
-    for (const i of HISTORY_BY_TAG.get(this.tag) ?? []) {
-      if (i >= plan.length) continue;
-      const e = HISTORY[i];
-      if (e.actor !== this.tag || e.target !== tag) continue;
-      const fire = plan[i][0];
-      if (fire >= 0 && fire - this.day <= WW_AI_PREWAR_DAYS) return true;
-    }
-    return false;
+    return this.offensiveCache.has(enemy);
   }
 
   private issue(order: WwOrder): boolean {
@@ -737,7 +726,8 @@ class AiDay {
     if (touching.length === 0) return [];
     // 0: touching an enemy region (1 edge from it), ... GUARD_EDGES - 1.
     const near = this.bfs(touching, (r) => this.ours(r), GUARD_EDGES - 1);
-    const owners = sc.ownerByRegion();
+    // P3: the legal owner (spec §17), not the 1936 map.
+    const owners = land.ww.politics.legalOwner;
     const cap = capitalRegion(land, this.me);
     const out: number[] = [];
     if (cap !== 0 && near[cap] !== FAR) out.push(cap);
@@ -937,7 +927,7 @@ class AiDay {
     if (armies.length === 0) return;
     const sum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
     const free = cl.generals
-      .filter((g) => g.army === 0 && canServe(g, this.day))
+      .filter((g) => g.army === 0 && canServe(this.land, g, this.day))
       .sort((a, b) => sum(b) - sum(a) || a.id - b.id);
     for (let i = 0; i < armies.length && i < free.length; i++) {
       this.issue({
@@ -1477,7 +1467,7 @@ class AiDay {
       (r) => land.isEnemy(me, land.controller[r]),
       WW_TARGET_REACH_EDGES,
     );
-    const owners = sc.ownerByRegion();
+    const pol = land.ww.politics;
     const enemyTag = sc.tagOfSmallId(enemy);
     const capital =
       enemyTag === undefined ? 0 : sc.regionAt(sc.capitalTile(enemyTag));
@@ -1498,7 +1488,11 @@ class AiDay {
     for (const r of sc.landRegions) {
       const d = dist[r.id];
       if (d === 0 || d === FAR || land.controller[r.id] !== enemy) continue;
-      if (coresOnly && !ours(owners[r.id])) continue;
+      // Liberation only: our own (a democracy: or its camp's) core regions
+      // (P3 legal owner + core).
+      if (coresOnly && !(ours(pol.legalOwner[r.id]) && pol.isCore(r.id))) {
+        continue;
+      }
       regions.push({
         region: r.id,
         vp: r.vp,
@@ -1751,8 +1745,8 @@ class AiDay {
         if (r >= 0 && t.template[r] === id) n++;
       }
     }
-    const before = templateStats(tpl.def, this.ce.tech, GEN1).need;
-    const after = templateStats(def, this.ce.tech, GEN1).need;
+    const before = templateStats(tpl.def, this.ce.stats, GEN1).need;
+    const after = templateStats(def, this.ce.stats, GEN1).need;
     for (let i = 0; i < after.length; i++) {
       const more = after[i] - before[i];
       if (more > 0 && this.stockOf(i) < more * Math.max(1, n)) return;
@@ -1800,8 +1794,11 @@ class AiDay {
       if (q.building === "fort" || q.building === "rail") queued++;
     }
     if (queued >= LAND_BUILDS_QUEUED) return;
-    const owners = sc.ownerByRegion();
-    const core = econ.regionsOf(this.me).filter((r) => owners[r] === this.me);
+    // P3: core regions we legally own (spec §17.6).
+    const pol = land.ww.politics;
+    const core = econ
+      .regionsOf(this.me)
+      .filter((r) => pol.legalOwner[r] === this.me && pol.isCore(r));
     const fortLevel = (r: number) =>
       econ.fort[r] + queuedInRegion(ce.queue, r).fort;
     const tryBuild = (r: number, b: "fort" | "rail") => {

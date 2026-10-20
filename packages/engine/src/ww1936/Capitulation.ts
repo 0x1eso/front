@@ -1,5 +1,4 @@
 import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
   CapitulationData,
   WW_CAPITULATION_DAYS,
@@ -19,9 +18,12 @@ export function controlledVp(mg: Game, ww: WorldWar): number[] {
   return out;
 }
 
-/** Of `smallID`'s starting regions, the victory points it still controls. */
+/**
+ * Of `smallID`'s regions (P3 spec §17.1: its legal ones, the 1936 regions
+ * at the start), the victory points it still controls.
+ */
 export function heldStartVp(mg: Game, ww: WorldWar, smallID: number): number {
-  const owners = ww.scenario.ownerByRegion();
+  const owners = ww.politics.legalOwner;
   let held = 0;
   for (const r of ww.scenario.landRegions) {
     if (owners[r.id] !== smallID) continue;
@@ -46,11 +48,11 @@ function heir(caps: readonly CapitulationData[], smallID: number): number {
 }
 
 /**
- * Points of `loser`'s starting regions each other country controls. What a
+ * Points of `loser`'s legal regions each other country controls. What a
  * capitulated country holds counts for its victor: it is on its way there.
  */
 function takenFrom(mg: Game, ww: WorldWar, loser: number): Map<number, number> {
-  const owners = ww.scenario.ownerByRegion();
+  const owners = ww.politics.legalOwner;
   const caps = ww.data().capitulated;
   const out = new Map<number, number>();
   for (const r of ww.scenario.landRegions) {
@@ -101,13 +103,18 @@ export function pickVictor(
  * empties by one. A country at war with nobody has an empty gauge.
  */
 export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
-  // Of each country's starting regions, the points it still controls, as
-  // the day began: a capitulation inside this loop hands its regions over
-  // (P2), but the other countries are judged on the day's start.
-  const owners = ww.scenario.ownerByRegion();
-  const held = new Array<number>(ww.scenario.countries.length + 1).fill(0);
+  // P3 spec §6.4, §17.1: of each country's legal regions, the points it has
+  // and still controls, as the day began: a capitulation inside this loop
+  // hands its regions over (P2, P3), but the others are judged on the day's
+  // start.
+  const owners = ww.politics.legalOwner;
+  const n = ww.scenario.countries.length + 1;
+  const start = new Array<number>(n).fill(0);
+  const held = new Array<number>(n).fill(0);
   for (const r of ww.scenario.landRegions) {
     const owner = owners[r.id];
+    if (owner <= 0 || owner >= n) continue;
+    start[owner] += r.vp;
     if (mg.ownerID(ww.scenario.vpTile(r)) === owner) held[owner] += r.vp;
   }
   for (let id = 1; id <= ww.scenario.countries.length; id++) {
@@ -117,13 +124,13 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
       ww.setCapitulationGauge(id, 0);
       continue;
     }
-    const start = ww.startVp(id);
     // A country whose regions are all worth 0 has no surrender line: it
     // never capitulates by points (below, 0 lost of 0 counts as past it).
-    if (start === 0) continue;
-    const lost = start - held[id];
+    if (start[id] === 0) continue;
+    const lost = start[id] - held[id];
     const gauge = ww.capitulationGauge(id);
-    if (lost * 100 < start * COUNTRIES[ww.tagOf(id)].surrenderPct) {
+    // P3 spec §6.4: the line moves with stability and war support.
+    if (lost * 100 < start[id] * ww.politics.surrenderPct(id)) {
       if (gauge > 0) ww.setCapitulationGauge(id, gauge - 1);
       continue;
     }
@@ -181,6 +188,8 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
     }
     transferOnCapitulation(ww.land, loserID, victor.smallID());
   }
+  // P3 spec §17.1: its legal regions go to the victor; its politics stop.
+  ww.politics.onCapitulated(loserID, victor?.smallID() ?? 0, tick);
   // Without a victor (nobody holds its points: unowned land) the message
   // names none, rather than "capitulated to" nobody.
   if (victor === null) {

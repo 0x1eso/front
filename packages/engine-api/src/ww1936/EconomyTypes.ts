@@ -284,7 +284,11 @@ export const WW_MAX_LINE_FACTORIES = 500;
 export const WW_MAX_TRADES = 20;
 export const WW_MAX_TRADE_CIVS = 50;
 export const WW_TRADE_UNITS_PER_CIV = 8;
-export const WW_MAX_SLOTS = 5;
+/**
+ * Research slots (P3 spec §1.4, §26.4-9): factories give at most 5
+ * (researchSlotCount); the sixth comes only from the research_slot effect.
+ */
+export const WW_MAX_SLOTS = 6;
 export const WW_LAW_COOLDOWN_DAYS = 30;
 export const WW_AI_PERIOD_DAYS = 10;
 export const WW_MEN_PER_INF_EQUIPMENT = 10;
@@ -335,6 +339,31 @@ export const WW_ORDER_BLOCKS = [
   "too_many_armies",
   "general_unavailable",
   "bad_region",
+  // P3 (P3 spec §22.3, plan decision 3), appended.
+  "no_pp",
+  "focus_busy",
+  "focus_done",
+  "focus_prereq",
+  "focus_exclusive",
+  "focus_unavailable",
+  "slot_locked",
+  "advisor_unavailable",
+  "decision_unavailable",
+  "decision_cooldown",
+  "no_event",
+  "bad_option",
+  "justify_busy",
+  "justify_blocked",
+  "law_ws",
+  "law_tension",
+  "law_ideology",
+  "faction_rule",
+  "faction_war",
+  "treaty_exists",
+  "nap_young",
+  "tension_gate",
+  "bad_target",
+  "focus_none",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

@@ -22,7 +22,6 @@ import {
   seaTicks,
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { joinBattle, retreatDivision } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { capture } from "./Occupation";
@@ -72,17 +71,16 @@ function stepOf(land: WwLand, r: number, mode: number): number {
   const t = land.divisions;
   if (mode === MOVE_SEA) return 1000; // need is in milli-ticks
   const ce = land.econ.country(t.owner[r])!;
-  if (mode === MOVE_RAIL) return railStep(ce.tech.railSpeedPct);
+  if (mode === MOVE_RAIL) return railStep(ce.stats.railSpeedPct);
   const to = t.next[r];
-  const sc = land.scenario;
-  const w = weatherAt(land.day(), sc.latC(to), sc.landOf(to), sc.wcell(to));
+  const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
   return moveStep(
     s.speedCenti,
     land.econ.infra[to],
     w,
     t.supply[r],
-    ce.tech.speedPct * 100 + traitSpeedBp(land, r, s.flags),
+    ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags),
   );
 }
 
@@ -197,7 +195,7 @@ export function startNextHop(land: WwLand, row: number, tick: number): void {
         ? railPath(land, owner, here, dest)
         : army === undefined
           ? []
-          : findPath(land, army, here, dest, ours);
+          : sidePath(land, army, owner, here, dest);
       if (path.length >= 2 && pass(path[1])) next = path[1];
     }
     if (next >= 0) {
@@ -247,7 +245,7 @@ export function railPath(
   to: number,
 ): number[] {
   const ce = land.econ.country(owner);
-  const step = railStep(ce === null ? 0 : ce.tech.railSpeedPct);
+  const step = railStep(ce === null ? 0 : ce.stats.railSpeedPct);
   const ok = (r: number) =>
     land.sameSide(owner, land.controller[r]) && railed(land, r);
   if (!ok(from) || !ok(to)) return [];
@@ -309,15 +307,15 @@ export function pathTicks(
 function walkStepInto(land: WwLand, r: number, to: number): number {
   const t = land.divisions;
   const ce = land.econ.country(t.owner[r]);
-  const sc = land.scenario;
-  const w = weatherAt(land.day(), sc.latC(to), sc.landOf(to), sc.wcell(to));
+  const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
   return moveStep(
     s.speedCenti,
     land.econ.infra[to],
     w,
     t.supply[r],
-    (ce === null ? 0 : ce.tech.speedPct * 100) + traitSpeedBp(land, r, s.flags),
+    (ce === null ? 0 : ce.stats.speedPct * 100) +
+      traitSpeedBp(land, r, s.flags),
   );
 }
 
@@ -339,6 +337,66 @@ export function findPath(
     edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
   );
 }
+
+/**
+ * findPath over the regions of `owner`'s side (startNextHop's walk), kept
+ * by side, pace and both ends while no region changed hands
+ * (controlChanges), the sides are the same and nothing was rebuilt
+ * (derivedEpoch): the search reads nothing else (the graph and the terrain
+ * are static), so a kept path is the one a new search finds. The
+ * divisions of an army walking together share each hop's search. A copy
+ * goes out (callers may keep it).
+ */
+function sidePath(
+  land: WwLand,
+  army: Army,
+  owner: number,
+  from: number,
+  to: number,
+): number[] {
+  const step = slowestPathStep(land, army);
+  let memo = pathMemos.get(land);
+  const sides = land.sideList();
+  if (
+    memo === undefined ||
+    memo.changes !== land.controlChanges ||
+    memo.epoch !== land.derivedEpoch ||
+    memo.sides !== sides
+  ) {
+    memo = {
+      changes: land.controlChanges,
+      epoch: land.derivedEpoch,
+      sides,
+      paths: new Map(),
+    };
+    pathMemos.set(land, memo);
+  }
+  const key = `${land.sideOf(owner)}:${step}:${from}:${to}`;
+  let path = memo.paths.get(key);
+  if (path === undefined) {
+    const sc = land.scenario;
+    path = shortestPath(
+      sc,
+      from,
+      to,
+      (r) => land.sameSide(owner, land.controller[r]),
+      (e, next) => edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
+    );
+    if (memo.paths.size > 4096) memo.paths.clear();
+    memo.paths.set(key, path);
+  }
+  return [...path];
+}
+
+const pathMemos = new WeakMap<
+  WwLand,
+  {
+    changes: number;
+    epoch: number;
+    sides: readonly unknown[];
+    paths: Map<string, number[]>;
+  }
+>();
 
 /** Stops a division where it stands (finished here by the foundation; C and A call it). */
 export function stopDivision(land: WwLand, row: number): void {

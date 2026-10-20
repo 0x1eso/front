@@ -173,6 +173,20 @@ export const DERIVED_FIELDS = new Set<string>([
   "sideListCache",
   "statsCache",
   "tplCache",
+  // P2 Task 11 (perf): the stats inputs each cache entry was checked
+  // against, the org max, flags and width by row, the day's weather by
+  // region.
+  "statsInputs",
+  "rowStats",
+  "weatherCache",
+  // ...the rows by owner and the table version they were built at, the
+  // detail change marks.
+  "ownerRows",
+  "ownerRowsVersion",
+  "rowsVersion",
+  "dirtyLandDetails",
+  // ...and the rebuild count caches outside the land key on.
+  "derivedEpoch",
   "regionRows",
   "regionRowsDirty",
   "spreadOrders",
@@ -184,6 +198,17 @@ export const DERIVED_FIELDS = new Set<string>([
   "removedArmyIds",
   "endedBattleIds",
   "rowIndex",
+  // WwPolitics (P3): the tick's event queue, the screens' news, cards and
+  // change marks, the faction reverse index; CountryEconomy.statsVer (the
+  // land war's cache key). onTechChanged is a function (not compared).
+  "eventQueue",
+  "newsOut",
+  "cardsOut",
+  "dirtyPolCountries",
+  "dirtyPolRegions",
+  "polGlobalDirty",
+  "factionOfIdx",
+  "statsVer",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

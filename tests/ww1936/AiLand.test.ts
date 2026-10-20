@@ -473,6 +473,32 @@ describe("the AI's land war on the test map (spec §14)", () => {
     expect(l.country(deu)!.training).toEqual([]);
   }, 120_000);
 
+  test("a war politics plans (a held war goal) fronts the border before it starts", async () => {
+    // P3: plannedWars (60 days) replaces the P0 calendar. Germany holds a
+    // war goal on Poland, no war yet: its armies front the Polish border.
+    const runner = await wwRunner({ historicalAi: false });
+    const g = runner.game;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    const ww = g.worldWar()!;
+    const l = land(g);
+    const deu = byTag(g, "DEU").smallID();
+    const pol = byTag(g, "POL").smallID();
+    const d0 = today(g);
+    ww.politics.country(deu)!.warGoals.push({
+      on: pol,
+      type: "conquer",
+      group: "",
+      untilDay: d0 + 365,
+    });
+    expect(ww.politics.plannedWars(deu, d0)).toEqual([pol]);
+    finishDay(runner, d0 + 1);
+    const fronts = l.armiesOf(deu).filter((a) => a.order.kind === "front");
+    expect(fronts.length).toBeGreaterThan(0);
+    for (const a of fronts) expect(a.order.enemy).toBe(pol);
+    expect(ww.isAtWar(deu, pol)).toBe(false);
+    expect(l.battles.size).toBe(0);
+  }, 120_000);
+
   test("an AI without land contact sends nobody", async () => {
     // Britain is an island: at war with the Soviet Union it has no front
     // (no region of its side touches a Soviet one), so its army stays in
