@@ -179,7 +179,7 @@ func buildSeas(p Projection, land []bool, marine, lakes []Feature, prm Params) (
 				}
 			}
 			if best == 0 {
-				best = nearestGroup(parts[k].pixels, w, n, w, func(j int) int32 {
+				best = nearestGroup(parts[k].pixels, w, n, w, func(int) bool { return true }, func(j int) int32 {
 					if land[j] || partOf[j] == own || partOf[j] == 0 {
 						return 0
 					}

@@ -29,6 +29,8 @@ var cityTiers = map[string]int{
 	"Boston|USA": 5, "Glasgow|GBR": 5, "Birmingham|GBR": 5, "Manchester|GBR": 5, "Marseille|FRA": 5,
 	"Lyon|FRA": 5, "Naples|ITA": 5, "Turin|ITA": 5, "Manila|PHL": 5, "Singapore|SGP": 5, "Jakarta|IDN": 5,
 	"Hong Kong|HKG": 5, "Cape Town|ZAF": 5, "Santiago|CHL": 5, "Bogota|COL": 5,
+	// Dairen, the port of the Kwantung Leased Territory (Japanese since 1905).
+	"Dalian|CHN": 5,
 }
 
 // Places that were no city of note in 1936 (later capitals, new cities).

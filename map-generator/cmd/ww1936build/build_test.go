@@ -105,3 +105,56 @@ func TestSplitPixelsSeedsTheLargestPieces(t *testing.T) {
 		t.Fatalf("parts cover %d of %d pixels", total, len(pix))
 	}
 }
+
+// Spec §7.5 as amended: a region gets its base victory point only when it
+// holds a city or a capital; empty regions are worth nothing.
+func TestVPBaseOnlyForRegionsWithACity(t *testing.T) {
+	p := NewProjection(360, -60, 84)
+	n := p.Width * p.Height
+	land := make([]bool, n)
+	ids := make([]uint16, n)
+	for i := 0; i < n; i++ {
+		land[i] = true
+		ids[i] = uint16(1 + (i%p.Width)/120) // 1: -180..-60, 2: -60..60, 3: 60..180
+	}
+	regions := []*Region{
+		{ID: 1, Owner: 1, VPTile: -1},
+		{ID: 2, Owner: 1, VPTile: -1},
+		{ID: 3, Owner: 1, VPTile: -1},
+	}
+	tables := &Tables{
+		Countries: []CountryRow{{Tag: "AAA", Capital: [2]float64{-100, 10}}},
+		Cities:    []City{{Name: "Middle", Lon: 0, Lat: 10, Tier: 5}},
+	}
+	if _, err := assignVP(p, land, ids, regions, tables); err != nil {
+		t.Fatal(err)
+	}
+	for k, want := range []int{1 + capitalVP, 1 + 5, 0} {
+		if regions[k].VP != want {
+			t.Fatalf("region %d has %d VP, want %d", k+1, regions[k].VP, want)
+		}
+	}
+}
+
+// A small island joins same-owner land across the water, but not across
+// another owner's land: the search stops at land it may not cross.
+func TestNearestGroupCrossesOnlyWhatItMay(t *testing.T) {
+	w, h := 20, 1
+	n := w * h
+	// x=0 the piece, x=1..2 water, x=3 foreign land, x=4..5 water, x=6 target.
+	land := make([]bool, n)
+	land[0], land[3], land[6] = true, true, true
+	groupOf := func(j int) int32 {
+		if j == 6 {
+			return 7
+		}
+		return 0
+	}
+	water := func(j int) bool { return !land[j] }
+	if g := nearestGroup([]int32{0}, w, n, 40, water, groupOf); g != 0 {
+		t.Fatalf("crossed foreign land to group %d", g)
+	}
+	if g := nearestGroup([]int32{0}, w, n, 40, func(int) bool { return true }, groupOf); g != 7 {
+		t.Fatalf("over land and water found %d, want 7", g)
+	}
+}

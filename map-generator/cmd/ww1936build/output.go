@@ -13,6 +13,11 @@ import (
 // capitalVP is what a capital adds to its region (WW_CAPITAL_VP).
 const capitalVP = 15
 
+// baseVP is what a region holding a city or a capital gets on top of their
+// weights. A region without one is worth nothing (spec §7.5 as amended: the
+// empty land of Siberia must not hold a large share of the Soviet points).
+const baseVP = 1
+
 // nearestLand finds a land pixel within r pixels of px (cities on the coast
 // can fall in the sea), scanning rings outwards, row by row.
 func nearestLand(p Projection, land []bool, px, r int) (int, bool) {
@@ -45,9 +50,10 @@ func abs(v int) int {
 	return v
 }
 
-// assignVP gives every region 1 victory point, adds each city's tier to the
-// region it is in and +capitalVP to each capital's (spec §7.5). A region's VP
-// tile is its capital, else its highest-tier city (first listed on ties).
+// assignVP adds each city's tier to the region it is in and +capitalVP to
+// each capital's, and baseVP to every region holding either (spec §7.5). A
+// region's VP tile is its capital, else its highest-tier city (first listed
+// on ties).
 // Returns each country's capital pixel.
 func assignVP(p Projection, land []bool, ids []uint16, regions []*Region, t *Tables) ([]int, error) {
 	byID := map[int]*Region{}
@@ -66,6 +72,9 @@ func assignVP(p Projection, land []bool, ids []uint16, regions []*Region, t *Tab
 		r := byID[int(ids[px])]
 		if r == nil {
 			continue
+		}
+		if r.vpWeight == 0 {
+			r.VP += baseVP
 		}
 		r.VP += c.Tier
 		if c.Tier > r.vpWeight {
@@ -88,6 +97,9 @@ func assignVP(p Projection, land []bool, ids []uint16, regions []*Region, t *Tab
 		if r == nil || r.Owner != i+1 {
 			errs = append(errs, fmt.Sprintf("%s: capital (%.2f, %.2f) is not on its own land", c.Tag, c.Capital[0], c.Capital[1]))
 			continue
+		}
+		if r.vpWeight == 0 {
+			r.VP += baseVP
 		}
 		r.VP += capitalVP
 		r.vpWeight = 1 << 20

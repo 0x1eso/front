@@ -66,7 +66,7 @@ func TestFinalizeFillsLandAndWaterFromNeighbours(t *testing.T) {
 	raw[19] = 2     // region 2 seed at x=19
 	raw[23] = 40001 // a sea zone seed
 	raw[20] = 1     // a land id on water: dropped
-	ids, err := finalizeRegions(packed, raw, w, h)
+	ids, err := finalizeRegions(packed, raw, w, h, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestFinalizeGivesUnseededLakesNewZones(t *testing.T) {
 	raw := make([]uint16, w*h)
 	raw[2] = 3
 	raw[0] = 40005
-	ids, err := finalizeRegions(packed, raw, w, h)
+	ids, err := finalizeRegions(packed, raw, w, h, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestSmallPiecesJoinTheirLongestNeighbour(t *testing.T) {
 	// stranded inside region 2.
 	raw[1*w+14], raw[1*w+15], raw[2*w+14], raw[2*w+15] = 5, 5, 5, 5
 	raw[0*w+18] = 1
-	ids, err := finalizeRegions(packed, raw, w, h)
+	ids, err := finalizeRegions(packed, raw, w, h, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestSmallPiecesJoinTheirLongestNeighbour(t *testing.T) {
 func TestLandWithoutAnyRegionIsAnError(t *testing.T) {
 	packed, w, h := grid("LL~~LL")
 	raw := []uint16{1, 1, 0, 0, 0, 0}
-	if _, err := finalizeRegions(packed, raw, w, h); err == nil || !strings.Contains(err.Error(), "no region") {
+	if _, err := finalizeRegions(packed, raw, w, h, nil); err == nil || !strings.Contains(err.Error(), "no region") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -209,5 +209,39 @@ func TestBuildScenarioCountsTilesAndChecksCapitals(t *testing.T) {
 	src.Countries[1].Capital = [2]int{1, 2}
 	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "own land") {
 		t.Fatalf("capital check: %v", err)
+	}
+}
+
+// A small piece joins a neighbour of its own owner only. With none (Gibraltar,
+// Hong Kong, a sliver left by a border patch) it stays, keeping its owner.
+func TestSmallPiecesKeepTheirOwner(t *testing.T) {
+	packed, w, h := grid(
+		"LLLLLLLLLLLLLLLLLLLL",
+		"LLLLLLLLLLLLLLLLLLLL",
+		"LLLLLLLLLLLLLLLLLLLL",
+		"LLLLLLLLLLLLLLLLLLLL",
+	)
+	raw := make([]uint16, w*h)
+	for i := range raw {
+		raw[i] = 2
+		if i%w < 10 {
+			raw[i] = 1
+		}
+	}
+	raw[1*w+12] = 3                                                 // one tile of a third owner
+	raw[1*w+15], raw[1*w+16], raw[2*w+15], raw[2*w+16] = 4, 4, 4, 4 // B's other region
+	raw[0*w+18] = 1                                                 // A stranded inside B
+	owner := map[uint16]string{1: "A", 2: "B", 3: "C", 4: "B"}
+	ids, err := finalizeRegions(packed, raw, w, h, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids[1*w+12] != 3 || ids[0*w+18] != 1 {
+		t.Fatalf("foreign pieces: %d, %d", ids[1*w+12], ids[0*w+18])
+	}
+	for _, i := range []int{1*w + 15, 1*w + 16, 2*w + 15, 2*w + 16} {
+		if ids[i] != 2 {
+			t.Fatalf("tile %d is %d, want 2", i, ids[i])
+		}
 	}
 }

@@ -78,8 +78,11 @@ func decodeRegionIDs(path string, width, height int) ([]uint16, error) {
 // tiles without one take their nearest neighbour's (4-neighbour BFS, seeds in
 // tile order), water bodies no zone reaches get new zones in tile order, and
 // pieces under minRegionFragment tiles join the neighbour they share the
-// longest edge with.
-func finalizeRegions(packed []byte, raw []uint16, w, h int) ([]uint16, error) {
+// longest edge with. owner gives each land region's 1936 owner: a land piece
+// joins only a region of its own owner and stays when it has none beside it
+// (Gibraltar, Hong Kong), so merging never moves land between countries. A
+// nil owner treats all land regions as one owner.
+func finalizeRegions(packed []byte, raw []uint16, w, h int, owner map[uint16]string) ([]uint16, error) {
 	n := w * h
 	if len(packed) != n || len(raw) != n {
 		return nil, fmt.Errorf("regions: %d terrain bytes, %d ids, %dx%d map", len(packed), len(raw), w, h)
@@ -125,9 +128,11 @@ func finalizeRegions(packed []byte, raw []uint16, w, h int) ([]uint16, error) {
 			return nil, fmt.Errorf("regions: land tile (%d,%d) has no region and touches none", i%w, i/w)
 		}
 	}
+	sameOwner := func(a, b uint16) bool { return owner[a] == owner[b] }
+	anyZone := func(a, b uint16) bool { return true }
 	for pass := 0; pass < 4; pass++ {
-		changed := mergeFragments(ids, w, n, isLand)
-		changed = mergeFragments(ids, w, n, isWater) || changed
+		changed := mergeFragments(ids, w, n, isLand, sameOwner)
+		changed = mergeFragments(ids, w, n, isWater, anyZone) || changed
 		if !changed {
 			break
 		}
@@ -170,9 +175,10 @@ func fillComponent(ids []uint16, w, n, start int, id uint16, kind func(int) bool
 
 // mergeFragments hands every connected piece of a region smaller than
 // minRegionFragment tiles to the neighbouring region of the same kind it
-// shares the longest edge with (ties: the smaller id). A piece with no such
-// neighbour (a small island) keeps its id. Reports whether anything changed.
-func mergeFragments(ids []uint16, w, n int, kind func(int) bool) bool {
+// shares the longest edge with among those join allows (ties: the smaller
+// id). A piece with no such neighbour (a small island, an exclave) keeps its
+// id. Reports whether anything changed.
+func mergeFragments(ids []uint16, w, n int, kind func(int) bool, join func(own, other uint16) bool) bool {
 	comp := make([]int32, n)
 	var pieces [][]int32
 	for i := 0; i < n; i++ {
@@ -202,7 +208,7 @@ func mergeFragments(ids []uint16, w, n int, kind func(int) bool) bool {
 		edges := map[uint16]int{}
 		for _, t := range tiles {
 			forNeighbours4(int(t), w, n, func(j int) {
-				if ids[j] != own && ids[j] != 0 && kind(j) {
+				if ids[j] != own && ids[j] != 0 && kind(j) && join(own, ids[j]) {
 					edges[ids[j]]++
 				}
 			})
@@ -454,14 +460,6 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 // format with Prettier.
 func writeScenarioFiles(name, mapDir string, packed []byte, w, h int) ([]string, []string, error) {
 	srcDir := filepath.Join("scenarios", name)
-	raw, err := decodeRegionIDs(filepath.Join(srcDir, "regions.png"), w, h)
-	if err != nil {
-		return nil, nil, err
-	}
-	ids, err := finalizeRegions(packed, raw, w, h)
-	if err != nil {
-		return nil, nil, err
-	}
 	srcBytes, err := os.ReadFile(filepath.Join(srcDir, "scenario.src.json"))
 	if err != nil {
 		return nil, nil, err
@@ -471,6 +469,18 @@ func writeScenarioFiles(name, mapDir string, packed []byte, w, h int) ([]string,
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&src); err != nil {
 		return nil, nil, fmt.Errorf("scenario.src.json: %w", err)
+	}
+	owner := make(map[uint16]string, len(src.Regions))
+	for _, r := range src.Regions {
+		owner[uint16(r.ID)] = r.Owner
+	}
+	raw, err := decodeRegionIDs(filepath.Join(srcDir, "regions.png"), w, h)
+	if err != nil {
+		return nil, nil, err
+	}
+	ids, err := finalizeRegions(packed, raw, w, h, owner)
+	if err != nil {
+		return nil, nil, err
 	}
 	out, notes, err := buildScenario(src, ids, packed, w, h)
 	if err != nil {

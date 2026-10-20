@@ -5,6 +5,11 @@ import (
 	"sort"
 )
 
+// minExclave is the smallest piece of a country that touches only other
+// countries' land and stays a region of its own (the map generator's
+// fragment size, map-generator/regions.go minRegionFragment).
+const minExclave = 20
+
 // Params are the region and sea-zone sizes (spec §4.5, §4.6).
 type Params struct {
 	MinCore     int // pieces of home countries smaller than this join a neighbour
@@ -105,13 +110,18 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 				continue
 			}
 			edges := map[int32]int{}
+			island := true
 			for _, px := range g.pixels {
 				forNeighbours4(int(px), w, n, func(j int) {
 					if atom[j] == 0 {
 						return
 					}
 					o := find(atom[j])
-					if o != r && groups[o-1].owner == g.owner {
+					if o == r {
+						return
+					}
+					island = false
+					if groups[o-1].owner == g.owner {
 						edges[o]++
 					}
 				})
@@ -126,9 +136,17 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 					best, bestN, bestLen = o, k, l
 				}
 			}
-			if best == 0 {
-				// An island: the nearest same-owner land within reach.
-				best = nearestGroup(g.pixels, w, n, prm.IslandReach, func(j int) int32 {
+			// A piece with no same-owner neighbour: an island joins the
+			// nearest same-owner land within reach across the water; a
+			// sliver of a border (under minExclave) the nearest within
+			// reach over any ground. An exclave of minExclave or more
+			// (Kwantung) stays a region of its own.
+			pass := func(j int) bool { return !land[j] }
+			if !island {
+				pass = func(int) bool { return true }
+			}
+			if best == 0 && (island || len(g.pixels) < minExclave) {
+				best = nearestGroup(g.pixels, w, n, prm.IslandReach, pass, func(j int) int32 {
 					if atom[j] == 0 {
 						return 0
 					}
@@ -201,7 +219,7 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 				main = a
 			}
 		}
-		r := &Region{ID: id, Owner: pc.owner, Pixels: pc.pixels, VP: 1, VPTile: -1}
+		r := &Region{ID: id, Owner: pc.owner, Pixels: pc.pixels, VPTile: -1}
 		setAdminName(r, admin, main)
 		if pc.split {
 			en, ko := direction(pc.pixels, pc.parent, w)
@@ -438,9 +456,9 @@ func dedupeNames(regions []*Region) {
 	}
 }
 
-// nearestGroup searches outwards from pixels (4-steps over land and water,
-// at most reach steps) for the first pixel whose groupOf is not 0.
-func nearestGroup(pixels []int32, w, n, reach int, groupOf func(j int) int32) int32 {
+// nearestGroup searches outwards from pixels (4-steps over the pixels pass
+// allows, at most reach steps) for the first pixel whose groupOf is not 0.
+func nearestGroup(pixels []int32, w, n, reach int, pass func(j int) bool, groupOf func(j int) int32) int32 {
 	dist := make(map[int32]int, len(pixels)*4)
 	queue := make([]int32, 0, len(pixels))
 	for _, px := range pixels {
@@ -462,6 +480,9 @@ func nearestGroup(pixels []int32, w, n, reach int, groupOf func(j int) int32) in
 			}
 			if g := groupOf(j); g != 0 {
 				found = g
+				return
+			}
+			if !pass(j) {
 				return
 			}
 			dist[int32(j)] = dist[i] + 1
