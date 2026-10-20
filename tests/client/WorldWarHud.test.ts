@@ -280,6 +280,42 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     band.querySelector<HTMLButtonElement>("[data-ww-wars]")!.click();
     expect(emitted[0]).toBeInstanceOf(ToggleWwDiplomacyEvent);
   });
+
+  it("<ww-top-band> never covers the top-right stack on a narrow landscape phone", async () => {
+    vi.stubGlobal("innerWidth", 667);
+    let stackWidth = 160;
+    const stack = document.createElement("div");
+    stack.setAttribute("data-hud-top-right", "");
+    stack.getBoundingClientRect = () =>
+      ({
+        left: 667 - stackWidth,
+        right: 667,
+        top: 0,
+        bottom: 120,
+        width: stackWidth,
+        height: 120,
+      }) as DOMRect;
+    document.body.appendChild(stack);
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = fakeGame({ me: "DEU" }) as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const el = () => band.querySelector<HTMLElement>("[data-ww-band]")!;
+    // Centred, with the stack's width and a gap kept clear on both sides:
+    // 667 − 2 × (160 + 8).
+    expect(el().getAttribute("style")).toContain("max-width: 331px");
+    expect(el().getAttribute("style")).not.toContain("right:");
+    expect(el().className).toContain("left-1/2");
+    // A wider stack leaves too little room for a centred band: it moves
+    // just left of the stack instead.
+    stackWidth = 250;
+    band.tick();
+    await band.updateComplete;
+    expect(el().getAttribute("style")).toContain("right: 258px");
+    expect(el().getAttribute("style")).toContain("max-width: 401px");
+    expect(el().className).not.toContain("left-1/2");
+  });
   it("nothing of it shows when the mode is off", async () => {
     const off = { ...fakeGame(), worldWarScenario: () => null } as never;
     const band = document.createElement("ww-top-band") as WwTopBand;
