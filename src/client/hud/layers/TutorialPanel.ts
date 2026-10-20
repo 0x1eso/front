@@ -163,7 +163,12 @@ export class TutorialPanel extends LitElement implements Controller {
     // subscribed to TutorialStateEvent.
     if (!this.started) {
       this.started = true;
-      this.setActive(!this.userSettings.tutorialDismissed());
+      // World War 1936 has no unowned land, alliances, silos or atom bombs,
+      // which the steps teach: the tutorial stays off there.
+      this.setActive(
+        !this.userSettings.tutorialDismissed() &&
+          this.game.worldWarScenario() === null,
+      );
     }
     if (!this.active) return;
 
