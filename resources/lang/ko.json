@@ -3681,7 +3681,8 @@
       "mechOrg": "기계화 조직력 +{n}",
       "artillerySoftPct": "포병 연성 공격 +{n}%",
       "infTrainCutPct": "보병 훈련 시간 −{n}%",
-      "infOrg": "보병 조직력 +{n}"
+      "infOrg": "보병 조직력 +{n}",
+      "unlock_unit": "{unit} 편성 가능"
     },
     "econ": {
       "band_label": "공장: 민간 {civ}, 군수 {mil} · 인력 {manpower}",
@@ -3901,7 +3902,27 @@
       "region_rivers": "강 도하 {n}곳",
       "region_divisions": "아군 {ours} · 적 {theirs}",
       "region_encircled": "포위됨",
-      "overseas": "해외 (상륙은 다음 단계에서)"
+      "overseas": "해외 (상륙은 다음 단계에서)",
+      "appoint_general": "사령관 임명 (육군 경험치 {cost})",
+      "assign_hint": "장군을 누르면 {army} 지휘를 맡깁니다",
+      "block_split_single": "사단이 하나뿐이라 나눌 수 없습니다",
+      "btn_paradrop": "공수 강하",
+      "card_collapse": "군 카드 접기",
+      "card_expand": "군 카드 펼치기",
+      "hint_enemy": "적 주를 누르세요",
+      "hint_front": "빛나는 국경 주를 누르세요",
+      "hint_plan": "적 주를 누르세요: 목표 {n}/{max}",
+      "hint_region": "지도에서 주를 누르세요",
+      "in_use": "{n}개 사용 중",
+      "new_template": "새 편제",
+      "no_armies": "아직 군이 없습니다: 사단을 훈련하세요",
+      "no_generals": "장군 없음",
+      "no_training": "훈련 중인 사단이 없습니다",
+      "serving": "{army} 지휘",
+      "show_divisions": "사단 보기",
+      "slot_remove": "빼기",
+      "train_into": "새 사단 배치: {army}",
+      "train_new_army": "새 사단은 수도에서 새 군이 됩니다"
     },
     "battalion": {
       "infantry": "보병",
