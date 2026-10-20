@@ -7,7 +7,9 @@ import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { TopBandEconomy, topBandEconomy } from "./EconomyModel";
 import { type BandModel, bandModel, countryName } from "./WorldWarModel";
+import { OpenWwIndustryEvent } from "./WwDrawer";
 
 export class ToggleWwDiplomacyEvent implements GameEvent {}
 
@@ -48,9 +50,25 @@ export function bandPlacement(
 }
 
 /**
+ * World War 1936 P1 (spec §13.1): the band's economy chip — my civilian /
+ * military factories, manpower and a red dot while a line lacks a
+ * resource. Null for a spectator or before my country's data arrives
+ * (pre-flight R7.4).
+ */
+export function bandEconomy(game: GameView): TopBandEconomy | null {
+  const view = game.wwEconomy?.() ?? null;
+  const me = game.myPlayer();
+  if (view === null || me === null) return null;
+  if (view.detail(me.smallID()) === null) return null;
+  const s = view.summary(me.smallID());
+  return s === null ? null : topBandEconomy(s);
+}
+
+/**
  * World War 1936 (spec §8.2): a slim band at the top — the date (or the
  * preparation countdown), my country and faction, and my wars, which open
- * the diplomacy drawer. WW_BAND_PX tall. It never covers the top-right stack
+ * the diplomacy drawer; then (P1) the economy chip, which opens the
+ * industry drawer. WW_BAND_PX tall. It never covers the top-right stack
  * (the timer): see bandPlacement. The country name shortens first.
  */
 @customElement("ww-top-band")
@@ -64,6 +82,7 @@ export class WwTopBand extends LitElement implements Controller {
   @state() private placement: BandPlacement | null = null;
   /** What the band shows, as of the last tick that changed it. */
   private model: BandModel | null = null;
+  private economy: TopBandEconomy | null = null;
   /** The top-right stack being watched; null until it is found. */
   private stack: Element | null = null;
   private stackObserver: ResizeObserver | null = null;
@@ -123,18 +142,29 @@ export class WwTopBand extends LitElement implements Controller {
   tick() {
     if (!this.game?.worldWarScenario()) return;
     this.watchStack();
-    // The date, the countdown and the wars: re-render only when they change.
+    // The date, the countdown, the wars and the economy chip: re-render
+    // only when they change.
     const next = bandModel(this.game);
     const prev = this.model;
+    const econ = bandEconomy(this.game);
+    const was = this.economy;
     if (
       prev === null ||
       prev.label !== next.label ||
       prev.inPrep !== next.inPrep ||
       prev.myTag !== next.myTag ||
       prev.myFaction !== next.myFaction ||
-      prev.wars !== next.wars
+      prev.wars !== next.wars ||
+      (econ === null) !== (was === null) ||
+      (econ !== null &&
+        was !== null &&
+        (econ.civ !== was.civ ||
+          econ.mil !== was.mil ||
+          econ.manpowerText !== was.manpowerText ||
+          econ.shortage !== was.shortage))
     ) {
       this.model = next;
+      this.economy = econ;
       this.requestUpdate();
     }
   }
@@ -187,7 +217,30 @@ export class WwTopBand extends LitElement implements Controller {
         >
           ${translateText("ww1936.band.wars", { n: m.wars })}
         </button>
+        ${this.renderEconomy()}
       </div>
     `;
+  }
+
+  private renderEconomy() {
+    const e = this.economy;
+    if (e === null) return nothing;
+    return html`<button
+      type="button"
+      data-ww-economy
+      aria-label=${translateText("ww1936.econ.industry")}
+      class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+      @click=${() =>
+        this.eventBus.emit(new OpenWwIndustryEvent("construction"))}
+    >
+      <span data-ww-factories>🏭 ${e.civ} / ${e.mil}</span>
+      <span data-ww-manpower>👥 ${e.manpowerText}</span>
+      ${e.shortage
+        ? html`<span
+            data-ww-shortage
+            class="size-2 shrink-0 rounded-full bg-red-500"
+          ></span>`
+        : nothing}
+    </button>`;
   }
 }

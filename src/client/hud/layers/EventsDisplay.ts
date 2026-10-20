@@ -309,6 +309,19 @@ export class EventsDisplay extends LitElement implements Controller {
     // World War 1936 (plan decision 13): "…Tag" params name countries.
     if (event.message.startsWith("events_display.ww1936_")) {
       params = translateCountryParams(params);
+      // P1 (plan decision 5): a tech or a resource comes as its id.
+      if (typeof params.tech === "string") {
+        params = {
+          ...params,
+          tech: translateText("ww1936.tech." + params.tech),
+        };
+      }
+      if (typeof params.resource === "string") {
+        params = {
+          ...params,
+          resource: translateText("ww1936.res." + params.resource),
+        };
+      }
     }
     if (
       (event.message === "events_display.missile_intercepted" ||

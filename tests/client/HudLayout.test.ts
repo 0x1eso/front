@@ -39,9 +39,13 @@ describe("index.html bottom HUD", () => {
   it("puts the domestic dials at the left of the rows, the panel and hotbar to their right", () => {
     const rows = doc.querySelector<HTMLElement>("[data-bottom-hud-rows]")!;
     expect(rows.classList).toContain("flex-row");
-    const [dials, column] = [...rows.children];
+    // World War 1936 P1 (pre-flight R7.1): its dials sit right after the
+    // domestic ones, which that mode does not draw.
+    const [dials, wwDials, column] = [...rows.children];
     expect(dials.tagName.toLowerCase()).toBe("domestic-dials");
     expect(dials.classList).toContain("shrink-0");
+    expect(wwDials.tagName.toLowerCase()).toBe("ww-dials");
+    expect(wwDials.classList).toContain("shrink-0");
     expect(column.querySelector("control-panel")).not.toBeNull();
     expect(column.querySelector("unit-display")).not.toBeNull();
     expect(doc.querySelector("domestic-hud")).toBeNull();

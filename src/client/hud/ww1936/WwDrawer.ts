@@ -1,0 +1,228 @@
+import { EventBus, GameEvent } from "@openfront/shared/EventBus";
+import { html, LitElement, nothing, TemplateResult } from "lit";
+import { state } from "lit/decorators.js";
+import { registerBackClosable } from "../../BackGuard";
+import { Controller } from "../../Controller";
+import { translateText } from "../../Utils";
+import type { GameView } from "../../view";
+import {
+  COMPACT_MAX_HEIGHT,
+  DrawerInsets,
+  drawerInsets,
+} from "../domestic/DomesticPanel";
+import { WW_BAND_PX } from "./WorldWarModel";
+
+// World War 1936 P1 (spec §13): the events of the economy screens and the
+// frame both economy drawers share with the P0 diplomacy drawer's place.
+
+export type WwIndustryTab = "construction" | "production" | "trade" | "laws";
+export const WW_INDUSTRY_TABS: readonly WwIndustryTab[] = [
+  "construction",
+  "production",
+  "trade",
+  "laws",
+];
+
+/**
+ * Open the industry drawer (pre-flight R7.3, I4). With a tab, on that tab;
+ * without one, on the last tab. Either toggles it shut when it already
+ * shows that tab — except with a region ("Build here" on the region card),
+ * which always opens the construction tab with the region picked.
+ */
+export class OpenWwIndustryEvent implements GameEvent {
+  constructor(
+    public readonly tab: WwIndustryTab | null = null,
+    public readonly region: number | null = null,
+  ) {}
+}
+
+/** Open the research drawer, or close it when it is open. */
+export class OpenWwResearchEvent implements GameEvent {}
+
+export type WwDrawerId = "industry" | "research" | "diplomacy";
+
+/**
+ * A World War drawer opened or closed (pre-flight R7.2): one at a time, so
+ * the others close when one opens; the dials outline the open one.
+ */
+export class WwDrawerEvent implements GameEvent {
+  constructor(
+    public readonly drawer: WwDrawerId,
+    public readonly open: boolean,
+  ) {}
+}
+
+/** Space between a drawer and the HUD around it, in CSS px. */
+const GAP = 8;
+
+/**
+ * Where an economy drawer goes: right of the screen's middle (never over
+ * the map's centre), above the bottom HUD's rows (the attack ratio and the
+ * dials that open it) and left of the map buttons, below the band and the
+ * top-right stack. On a short landscape screen (at most COMPACT_MAX_HEIGHT
+ * tall) it runs from just below the band, over the top-right stack, like
+ * the diplomacy drawer — but still stops above the bottom rows.
+ */
+export function wwDrawerInsets(): DrawerInsets {
+  const i = drawerInsets();
+  const top =
+    window.innerHeight <= COMPACT_MAX_HEIGHT
+      ? WW_BAND_PX + GAP
+      : Math.max(i.top, WW_BAND_PX + GAP);
+  return { top, right: i.right, bottom: i.bottom };
+}
+
+/** The drawer's width: at most 420 px, and never left of the screen's middle. */
+export function wwDrawerWidth(right: number): string {
+  return `min(420px, calc(50vw - ${right}px))`;
+}
+
+/**
+ * The industry and research drawers: open and close, one at a time with
+ * the diplomacy drawer, Back closes, the frame (title, close button, fixed
+ * tab row, scrolling list). Above the hover card (z-1001), which would
+ * otherwise sit on their buttons; the card ignores the pointer over them.
+ */
+export abstract class WwDrawerBase extends LitElement implements Controller {
+  public game: GameView;
+  public eventBus: EventBus;
+  @state() protected open = false;
+  @state() protected insets: DrawerInsets = {
+    top: WW_BAND_PX + GAP,
+    right: GAP,
+    bottom: GAP,
+  };
+  protected abstract readonly drawerId: WwDrawerId;
+  private unregisterBack: (() => void) | null = null;
+  private readonly refit = () => {
+    const next = wwDrawerInsets();
+    const prev = this.insets;
+    if (
+      prev.top !== next.top ||
+      prev.right !== next.right ||
+      prev.bottom !== next.bottom
+    ) {
+      this.insets = next;
+    }
+  };
+
+  createRenderRoot() {
+    return this;
+  }
+
+  init() {
+    this.eventBus.on(WwDrawerEvent, (e) => {
+      if (e.open && e.drawer !== this.drawerId) this.setOpen(false);
+    });
+    // Back closes the drawer before it asks to leave the game.
+    this.unregisterBack?.();
+    this.unregisterBack = registerBackClosable(() => {
+      if (!this.open) return false;
+      this.setOpen(false);
+      return true;
+    });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.unregisterBack?.();
+    this.unregisterBack = null;
+    window.removeEventListener("resize", this.refit);
+  }
+
+  isOpen(): boolean {
+    return this.open;
+  }
+
+  protected setOpen(open: boolean) {
+    if (open === this.open) return;
+    this.open = open;
+    if (open) {
+      this.refit();
+      window.addEventListener("resize", this.refit);
+    } else {
+      window.removeEventListener("resize", this.refit);
+    }
+    this.eventBus.emit(new WwDrawerEvent(this.drawerId, open));
+  }
+
+  getTickIntervalMs() {
+    return 250;
+  }
+
+  /** While open, the HUD around the drawer grows and shrinks during the game. */
+  protected refitIfOpen() {
+    if (this.open) this.refit();
+  }
+
+  /**
+   * The drawer: `head` (left of the close button), `tabs` (fixed) and
+   * `body` (the only part that scrolls). `label` names it for screen readers.
+   */
+  protected renderFrame(
+    label: string,
+    head: TemplateResult,
+    tabs: TemplateResult | typeof nothing,
+    body: TemplateResult,
+  ): TemplateResult {
+    const { top, right, bottom } = this.insets;
+    return html`
+      <aside
+        data-ww-drawer=${this.drawerId}
+        aria-label=${label}
+        class="fixed z-[1002] flex min-h-40 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
+        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px; width: ${wwDrawerWidth(
+          right,
+        )};"
+        @contextmenu=${(e: Event) => e.preventDefault()}
+      >
+        <div class="flex shrink-0 items-center gap-2 pl-3 pr-1 pt-1">
+          ${head}
+          <button
+            type="button"
+            data-ww-drawer-close
+            class="size-9 shrink-0 rounded-md hover:bg-white/10"
+            aria-label=${translateText("common.close")}
+            @click=${() => this.setOpen(false)}
+          >
+            ✕
+          </button>
+        </div>
+        ${tabs}
+        <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+          ${body}
+        </div>
+      </aside>
+    `;
+  }
+
+  /** A row of tab buttons that stays put while the list scrolls. */
+  protected renderTabs<T extends string>(
+    tabs: readonly T[],
+    current: T,
+    label: (t: T) => string,
+    pick: (t: T) => void,
+  ): TemplateResult {
+    return html`<div
+      role="tablist"
+      class="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-2 pb-1"
+    >
+      ${tabs.map(
+        (t) =>
+          html`<button
+            type="button"
+            role="tab"
+            data-ww-tab=${t}
+            aria-selected=${String(t === current)}
+            class="h-9 shrink-0 rounded-md px-2 text-xs font-semibold ${t ===
+            current
+              ? "bg-white/15 text-white"
+              : "text-white/70 hover:bg-white/10"}"
+            @click=${() => pick(t)}
+          >
+            ${label(t)}
+          </button>`,
+      )}
+    </div>`;
+  }
+}

@@ -19,6 +19,7 @@ import {
   factionName,
   WW_BAND_PX,
 } from "./WorldWarModel";
+import { WwDrawerEvent } from "./WwDrawer";
 import { ToggleWwDiplomacyEvent } from "./WwTopBand";
 
 /** Camps listed under "if the war ended now" (mine is always added). */
@@ -68,6 +69,10 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
 
   init() {
     this.eventBus.on(ToggleWwDiplomacyEvent, () => this.setOpen(!this.open));
+    // One drawer at a time (P1 pre-flight R7.2): another one opening closes this.
+    this.eventBus.on(WwDrawerEvent, (e) => {
+      if (e.open && e.drawer !== "diplomacy") this.setOpen(false);
+    });
     // Back closes the drawer before it asks to leave the game.
     this.unregisterBack?.();
     this.unregisterBack = registerBackClosable(() => {
@@ -97,6 +102,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     } else {
       window.removeEventListener("resize", this.refit);
     }
+    this.eventBus.emit(new WwDrawerEvent("diplomacy", open));
   }
 
   getTickIntervalMs() {

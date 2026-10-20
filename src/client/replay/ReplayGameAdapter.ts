@@ -25,6 +25,7 @@ import type {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
+import type { WwEconomyData } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { OWNER_MASK } from "../render/gl/utils/TileCodec";
 import type {
@@ -227,6 +228,15 @@ export class ReplayPlayerView {
   troops(): number {
     return this.state?.troops ?? 0;
   }
+  /**
+   * World War 1936 P1 (Config.maxTroops in the mode): the troop cap of the
+   * last economy update seen, or the army itself before one (as
+   * PlayerView); null outside the mode.
+   */
+  wwTroopCap(): number | null {
+    if (!this.game.config().worldWar1936()) return null;
+    return this.game.wwTroopCapOf(this.info.smallID) ?? this.troops();
+  }
   betrayals(): number {
     return this.state?.betrayals ?? 0;
   }
@@ -287,6 +297,8 @@ export class ReplayGameView {
   showEmojis: () => boolean = () => true;
   /** Events since the HUD last asked, by GameUpdateType. */
   private readonly pending = new Map<number, unknown[]>();
+  /** World War 1936 P1: each country's troop cap, from the economy updates seen. */
+  private readonly wwCaps = new Map<number, number>();
 
   constructor(
     players: readonly PlayerStatic[],
@@ -332,7 +344,18 @@ export class ReplayGameView {
     this.landTiles = this.startLandTiles + landChange;
     this.spawnPhase = inSpawnPhase;
     this.stale = true;
-    if (seeked) this.pending.clear();
+    if (seeked) {
+      this.pending.clear();
+      // From another time: the army stands in until the next day's update.
+      this.wwCaps.clear();
+    }
+    for (const u of (frame.miscUpdates?.WwEconomy ?? []) as {
+      data?: WwEconomyData;
+    }[]) {
+      for (const c of u.data?.countries ?? []) {
+        this.wwCaps.set(c.smallID, c.troopCap);
+      }
+    }
     for (const [name, list] of Object.entries(frame.miscUpdates ?? {})) {
       if (list.length === 0) continue;
       const type = GameUpdateType[name as keyof typeof GameUpdateType];
@@ -379,6 +402,10 @@ export class ReplayGameView {
 
   config(): Config {
     return this._config;
+  }
+  /** World War 1936 P1: a country's last troop cap in the replay; null before one. */
+  wwTroopCapOf(smallID: number): number | null {
+    return this.wwCaps.get(smallID) ?? null;
   }
   ticks(): number {
     return this.frame?.tick ?? 0;
