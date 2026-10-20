@@ -7,6 +7,8 @@
 import {
   MOVE_ADVANCE,
   MOVE_RETREAT,
+  MOVE_SEA,
+  MOVE_WALK,
   WW_SPREAD_BATTLE_PM,
   WW_SPREAD_DAY_PM,
   WW_SPREAD_TILES_PER_TICK,
@@ -50,11 +52,12 @@ export function capture(
 }
 
 /**
- * The divisions left in `region` as `by` takes it. Spec §9.6 overrun: an
- * enemy of `by` halfway or less through its retreat, broken (org under a
- * tenth) or with nowhere to go is destroyed, the rest retreat. Spec §9.1:
- * one not at war with `by` is pushed to its side's nearest region (or
- * disbanded when it has none).
+ * The divisions left in `region` as `by` takes it (a division at sea has
+ * left its port already and sails on). Spec §9.6 overrun: an enemy of `by`
+ * halfway or less through its retreat, broken (org under a tenth) and not
+ * leaving R, or with nowhere to go is destroyed; one retreating or walking
+ * out goes on, the rest retreat. Spec §9.1: one not at war with `by` is
+ * pushed to its side's nearest region (or disbanded when it has none).
  */
 function evict(land: WwLand, region: number, by: number): void {
   const t = land.divisions;
@@ -62,14 +65,18 @@ function evict(land: WwLand, region: number, by: number): void {
   for (const r of [...land.rowsIn(region)]) {
     const o = t.owner[r];
     if (t.id[r] === 0 || land.sameSide(o, by)) continue;
+    if (t.mode[r] === MOVE_SEA) continue;
     if (land.isEnemy(o, by)) {
-      const retreating = t.mode[r] === MOVE_RETREAT;
+      const m = t.mode[r];
+      const retreating = m === MOVE_RETREAT;
+      // "R을 떠나는 중": retreating, or walking or advancing out of R.
+      const leaving = retreating || m === MOVE_WALK || m === MOVE_ADVANCE;
       const halfway = retreating && t.prog[r] * 2 < t.need[r];
-      const broken = !retreating && t.org[r] * 10 < land.orgMaxOf(r);
+      const broken = !leaving && t.org[r] * 10 < land.orgMaxOf(r);
       if (halfway || broken || !hasRefuge(land, r)) {
         land.killDivision(r, true);
         destroyed.set(o, (destroyed.get(o) ?? 0) + 1);
-      } else if (!retreating) {
+      } else if (!leaving) {
         retreatDivision(land, r);
       }
     } else {
@@ -384,21 +391,22 @@ function moveTowards(
  * A capitulated country still holding tiles once every capitulation spread
  * is done (tiles in regions it lost without a spread, or handed to it
  * since): they go to their regions' controllers by the spread, as P0's
- * transfer listed such land again.
+ * transfer listed such land again. Runs every tick without allocating
+ * (no WorldWar.data()): a capitulated country that still controls a
+ * region had no victor (nothing was handed over, P0 spec §7.5) and keeps
+ * its land.
  */
 function sweepLosers(land: WwLand): void {
   for (const s of land.spreads.values()) {
     if (s.kind === SPREAD_CAPITULATION) return;
   }
-  const caps = land.ww.data().capitulated;
-  if (caps.length === 0) return;
   const mg = land.mg;
   const sc = land.scenario;
-  for (const c of caps) {
-    // Without a victor nothing was handed over (P0 spec §7.5): it keeps its land.
-    if (c.victor === 0) continue;
-    const p = mg.playerBySmallID(c.smallID);
-    if (!p.isPlayer() || !p.isAlive()) continue;
+  const n = sc.countries.length;
+  for (let id = 1; id <= n; id++) {
+    if (!land.ww.isCapitulated(id)) continue;
+    const p = mg.playerBySmallID(id);
+    if (!p.isPlayer() || !p.isAlive() || controlsAny(land, id)) continue;
     const regions = new Set<number>();
     for (const t of p.tiles()) {
       const r = sc.regionAt(t);
@@ -406,7 +414,7 @@ function sweepLosers(land: WwLand): void {
     }
     for (const r of [...regions].sort((a, b) => a - b)) {
       const by = land.controller[r];
-      if (by === c.smallID || !mg.playerBySmallID(by).isPlayer()) continue;
+      if (by === id || !mg.playerBySmallID(by).isPlayer()) continue;
       land.setSpread({
         region: r,
         by,
@@ -419,6 +427,12 @@ function sweepLosers(land: WwLand): void {
       land.spreadOrders.delete(r);
     }
   }
+}
+
+function controlsAny(land: WwLand, smallID: number): boolean {
+  const c = land.controller;
+  for (let r = 1; r < c.length; r++) if (c[r] === smallID) return true;
+  return false;
 }
 
 /** Spec §12.4: 2,000 tiles a tick: finishing captures, then battles and advances, then reverts, then capitulations. */

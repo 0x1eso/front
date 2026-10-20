@@ -333,10 +333,15 @@ describe("World War 1936 P2: occupation and the spread (spec §12)", () => {
     stockUp(g, "SUN");
     const sun = byTag(g, "SUN").smallID();
     expect(l.isEnemy(deu, sun)).toBe(false);
-    const [broken, fit] = placeArmy(g, "POL", WARSAW, 2).divisions;
+    const [broken, fit, leaving] = placeArmy(g, "POL", WARSAW, 3).divisions;
     const [soviet] = placeArmy(g, "SUN", WARSAW, 1).divisions;
     const t = l.divisions;
     t.org[t.rowOf(broken)] = Math.floor(l.orgMaxOf(t.rowOf(broken)) / 20);
+    // As broken, but walking out to Krakow: leaving R (spec §9.6 b).
+    const w = t.rowOf(leaving);
+    t.org[w] = Math.floor(l.orgMaxOf(w) / 20);
+    startHopInto(l, w, KRAKOW, MOVE_WALK);
+    t.prog[w] = 10_000;
     takeRegion(g, WARSAW, "DEU");
     expect(l.controller[WARSAW]).toBe(deu);
     // Under a tenth of its org: destroyed (spec §9.6 b).
@@ -347,6 +352,13 @@ describe("World War 1936 P2: occupation and the spread (spec §12)", () => {
       MOVE_RETREAT,
       KRAKOW,
       pol,
+    ]);
+    // The walking one goes on its way.
+    const lw = t.rowOf(leaving);
+    expect([t.mode[lw], t.next[lw], t.prog[lw]]).toEqual([
+      MOVE_WALK,
+      KRAKOW,
+      10_000,
     ]);
     // The Soviet division is moved to the nearest Soviet region, Moscow.
     const s = t.rowOf(soviet);

@@ -12,7 +12,9 @@ import {
 import {
   idleOrder,
   MOVE_ADVANCE,
+  MOVE_RAIL,
   MOVE_RETREAT,
+  MOVE_SEA,
   ROLE_ATTACK,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -29,6 +31,7 @@ import {
   battleMods,
   joinBattle,
   modInputOf,
+  refugeOf,
   retreatDivision,
   stepBattles,
 } from "@openfront/engine/ww1936/land/Battles";
@@ -57,7 +60,7 @@ const WARSAW = 6;
 const KRAKOW = 7;
 
 /** Plenty of every first-generation equipment and men, so placed divisions are full. */
-function stockUp(g: Game, tag: "DEU" | "POL"): void {
+function stockUp(g: Game, tag: "DEU" | "POL" | "FRA"): void {
   const ce = land(g).econ.country(byTag(g, tag).smallID())!;
   for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;
   ce.manpower += 1_000_000;
@@ -317,6 +320,79 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
       .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
       .filter((m) => m.message === "events_display.ww1936_divisions_destroyed");
     expect(told.map((m) => m.playerID).sort()).toEqual([deu, pol].sort());
+  }, 60_000);
+
+  test("a retreat picks the neighbour without a battle, then the most supply, then the smaller id", async () => {
+    const { g, l } = await juneWar();
+    // A German division in Warsaw, German Berlin (3) and Munich (4) next door.
+    takeRegion(g, WARSAW, "DEU");
+    const [id] = placeArmy(g, "DEU", WARSAW, 1).divisions;
+    const r = rowOf(l, id);
+    l.supplyMilli[3] = 500;
+    l.supplyMilli[4] = 500;
+    expect(refugeOf(l, r)).toBe(3);
+    l.supplyMilli[4] = 800;
+    expect(refugeOf(l, r)).toBe(4);
+    // A Polish attack on Munich: Berlin, though it has less supply.
+    const [pole] = placeArmy(g, "POL", KRAKOW, 1).divisions;
+    joinBattle(l, pole, 4);
+    expect(l.battles.has(4)).toBe(true);
+    expect(refugeOf(l, r)).toBe(3);
+    // Encircled with Munich in the pocket: only Munich.
+    l.divisions.encircled[r] = 1;
+    l.encircled[3] = 0;
+    l.encircled[4] = 1;
+    expect(refugeOf(l, r)).toBe(4);
+    l.divisions.encircled[r] = 0;
+    retreatDivision(l, r);
+    expect([l.divisions.mode[r], l.divisions.next[r]]).toEqual([
+      MOVE_RETREAT,
+      3,
+    ]);
+  }, 60_000);
+
+  test("a division leaving by sea or rail is not in its port's battle, and sails on when the port falls", async () => {
+    const { g, l, deu } = await juneWar();
+    const ww = g.worldWar()!;
+    const fra = byTag(g, "FRA").smallID();
+    ww.setWar(deu, fra, g.ticks());
+    stockUp(g, "FRA");
+    const LYON = 2;
+    const LONDON = 10;
+    const [sailor, railer, stander] = placeArmy(g, "FRA", LYON, 3).divisions;
+    const t = l.divisions;
+    const s = rowOf(l, sailor);
+    // Under way from Lyon: to London by sea, to Paris by rail.
+    t.mode[s] = MOVE_SEA;
+    t.next[s] = LONDON;
+    t.dest[s] = LONDON;
+    t.edge[s] = ww.scenario.edgeBetween(LYON, LONDON);
+    t.need[s] = 45_000;
+    t.prog[s] = 9_000;
+    const rr = rowOf(l, railer);
+    t.mode[rr] = MOVE_RAIL;
+    t.next[rr] = 1;
+    t.dest[rr] = 1;
+    t.edge[rr] = ww.scenario.edgeBetween(LYON, 1);
+    t.need[rr] = 200_000;
+    const orgs = [s, rr].map((r) => t.org[r]);
+    const a = placeArmy(g, "DEU", 4, 1);
+    attack(l, a, LYON);
+    stepBattles(l, g.ticks());
+    const b = l.battles.get(LYON)!;
+    expect(b.defenders).toEqual([stander]);
+    expect([t.battle[s], t.battle[rr]]).toEqual([0, 0]);
+    expect([s, rr].map((r) => t.org[r])).toEqual(orgs);
+    // Lyon falls: the ship sails on (not overrun), the one standing falls back.
+    takeRegion(g, LYON, "DEU");
+    expect(rowOf(l, sailor)).toBe(s);
+    expect([t.mode[s], t.next[s], t.prog[s]]).toEqual([
+      MOVE_SEA,
+      LONDON,
+      9_000,
+    ]);
+    const st = rowOf(l, stander);
+    expect([t.mode[st], t.next[st]]).toEqual([MOVE_RETREAT, 1]);
   }, 60_000);
 
   test("encircled divisions at zero org are destroyed", async () => {

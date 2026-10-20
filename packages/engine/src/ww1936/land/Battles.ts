@@ -161,14 +161,24 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const attackerOwners = [
     ...new Set(b.attackers.map((id) => t.owner[t.rowOf(id)])),
   ];
-  // 2. Defenders: in R, not retreating, at war with every attacking
+  // 2. Defenders: in R, standing or walking, at war with every attacking
   // country. A division of R attacking a neighbour leaves that attack to
   // defend here (spec §9.1); a paradropped attacker inside R does not defend.
   const before = new Set(b.defenders);
   const defenders: number[] = [];
   if (attackerOwners.length > 0) {
     for (const r of [...land.rowsIn(R)]) {
-      if (t.mode[r] === MOVE_RETREAT) continue;
+      // Moving out (retreat, advance) or away by rail or sea: not in its
+      // departure region's fight (spec §7.4, §9.5, §9.7).
+      const m = t.mode[r];
+      if (
+        m === MOVE_RETREAT ||
+        m === MOVE_ADVANCE ||
+        m === MOVE_RAIL ||
+        m === MOVE_SEA
+      ) {
+        continue;
+      }
       if (t.role[r] === ROLE_ATTACK && t.battle[r] === R) continue;
       if (!attackerOwners.every((o) => land.isEnemy(o, t.owner[r]))) continue;
       if (t.role[r] === ROLE_ATTACK) release(land, r);
@@ -571,8 +581,12 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   const flags = land.baseStatsOf(row).flags;
   const owner = t.owner[row];
   const men = t.men[row];
-  if (hpNow <= 0 || men <= 0) return;
-  const menMilli = Math.floor((men * hpMilli * 1000) / hpNow) + t.lossMen[row];
+  if (men <= 0) return;
+  // A handful of men has no HP left to count in: any hit takes them all.
+  const all = hpNow <= 0;
+  const menMilli = all
+    ? men * 1000
+    : Math.floor((men * hpMilli * 1000) / hpNow) + t.lossMen[row];
   const lost = Math.min(men, Math.floor(menMilli / 1000));
   t.lossMen[row] = lost === men ? 0 : menMilli - lost * 1000;
   const eq = t.equipOf(row);
@@ -581,7 +595,9 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     const have = eq[j];
     const carry = t.lossEq[base + j];
     if (have <= 0 && carry === 0) continue;
-    const m = Math.floor((have * hpMilli * 1000) / hpNow) + carry;
+    const m = all
+      ? have * 1000
+      : Math.floor((have * hpMilli * 1000) / hpNow) + carry;
     const k = Math.min(have, Math.floor(m / 1000));
     t.lossEq[base + j] = k === have ? 0 : m - k * 1000;
     if (k > 0) land.addEquip(row, j, -k);
@@ -621,7 +637,9 @@ export function stepRecovery(land: WwLand): void {
     const max = land.orgMaxOf(r);
     if (was >= max) continue;
     const army = t.army[r];
-    let pct = pctOf.get(army);
+    // Per army; a division without one by its owner (its tech).
+    const key = army > 0 ? army : -t.owner[r];
+    let pct = pctOf.get(key);
     if (pct === undefined) {
       const a = land.armies.get(army);
       const g = a === undefined ? null : generalOf(land, a);
@@ -629,7 +647,7 @@ export function stepRecovery(land: WwLand): void {
         100 +
         (g !== null && (g.traits & traitBit("organizer")) !== 0 ? 20 : 0) +
         (land.econ.country(t.owner[r])?.tech.recoveryPct ?? 0);
-      pctOf.set(army, pct);
+      pctOf.set(key, pct);
     }
     const signal = (land.baseStatsOf(r).flags & TPL_SIGNAL) !== 0 ? 10 : 0;
     let gain = Math.floor(

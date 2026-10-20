@@ -227,6 +227,26 @@ describe("World War 1936 P2: HP losses (spec §5.5)", () => {
     expect(ce.casualties - casualties).toBe(lost / 2);
   }, 60_000);
 
+  test("a handful of men left is wiped out by any hit", async () => {
+    const { g, l, pol } = await board();
+    const a = placeArmy(g, "POL", WARSAW, 1);
+    const [id] = a.divisions;
+    const r = l.divisions.rowOf(id);
+    // 5 of 9,000 men: under a thousandth, no HP to count in.
+    l.setMen(r, 5);
+    expect(l.statsOf(r).hpMilli).toBe(0);
+    const today = l.country(pol)!.casualtiesToday;
+    applyHpLoss(l, r, 1);
+    expect(l.divisions.rowOf(id)).toBe(-1);
+    expect(l.country(pol)!.casualtiesToday - today).toBe(5);
+    // No damage, no loss.
+    const [other] = placeArmy(g, "POL", WARSAW, 1).divisions;
+    const o = l.divisions.rowOf(other);
+    l.setMen(o, 5);
+    applyHpLoss(l, o, 0);
+    expect(l.divisions.men[o]).toBe(5);
+  }, 60_000);
+
   test("a division that loses all its men is destroyed", async () => {
     const { g, l, pol } = await board();
     const a = placeArmy(g, "POL", WARSAW, 1);
