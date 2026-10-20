@@ -1,0 +1,24 @@
+{
+  "categories": ["world"],
+  "id": "World1936",
+  "map": {
+    "height": 2036,
+    "num_land_tiles": 2457383,
+    "width": 4000
+  },
+  "map16x": {
+    "height": 509,
+    "num_land_tiles": 145292,
+    "width": 1000
+  },
+  "map4x": {
+    "height": 1018,
+    "num_land_tiles": 601062,
+    "width": 2000
+  },
+  "multiplayer_frequency": 0,
+  "name": "World 1936",
+  "nations": [],
+  "translation_key": "map.world1936",
+  "ww1936": true
+}

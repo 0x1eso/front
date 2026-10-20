@@ -24,7 +24,8 @@ export const ScenarioRegionSchema = z.object({
   name: z.string().min(1),
   nameKo: z.string().min(1),
   owner: z.enum(COUNTRY_TAGS),
-  vp: z.number().int().min(1),
+  // 0 for a region without a city (spec §7.5).
+  vp: z.number().int().min(0),
   vpTile: XY,
   tiles: z.number().int().min(1),
   terrain: z.enum(REGION_TERRAINS),

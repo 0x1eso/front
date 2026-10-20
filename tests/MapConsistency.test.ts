@@ -23,7 +23,7 @@ const EN_JSON = path.join(ROOT, "resources", "lang", "en.json");
 
 // Maps whose generated files land in a later task of a plan (World War 1936
 // P0: Task 4 generates world1936 and empties this set).
-const PENDING_MAPS: Set<GameMapName> = new Set(["World1936"]);
+const PENDING_MAPS: Set<GameMapName> = new Set([]);
 const allMapKeys = (Object.keys(GameMapType) as GameMapName[]).filter(
   (k) => !PENDING_MAPS.has(k),
 );
