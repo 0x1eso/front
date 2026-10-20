@@ -318,6 +318,48 @@
     "lat": 30.0
   },
   {
+    "name": "West Africa",
+    "nameKo": "서아프리카",
+    "lon": -10.8,
+    "lat": 13.1
+  },
+  {
+    "name": "Sudan",
+    "nameKo": "수단",
+    "lon": 34.0,
+    "lat": 15.4
+  },
+  {
+    "name": "Ethiopia",
+    "nameKo": "에티오피아",
+    "lon": 38.7,
+    "lat": 7.5
+  },
+  {
+    "name": "Congo",
+    "nameKo": "콩고",
+    "lon": 18.9,
+    "lat": -4.8
+  },
+  {
+    "name": "East Africa",
+    "nameKo": "동아프리카",
+    "lon": 37.8,
+    "lat": 1.1
+  },
+  {
+    "name": "South Africa",
+    "nameKo": "남아프리카",
+    "lon": 28.1,
+    "lat": -26.1
+  },
+  {
+    "name": "Madagascar",
+    "nameKo": "마다가스카르",
+    "lon": 46.7,
+    "lat": -19.4
+  },
+  {
     "name": "Levant",
     "nameKo": "레반트",
     "lon": 36.5,
@@ -326,8 +368,8 @@
   {
     "name": "Iraq",
     "nameKo": "이라크",
-    "lon": 44.0,
-    "lat": 33.0
+    "lon": 44.4,
+    "lat": 33.3
   },
   {
     "name": "Anatolia",
@@ -336,10 +378,82 @@
     "lat": 39.0
   },
   {
-    "name": "Manchuria",
-    "nameKo": "만주",
-    "lon": 126.0,
-    "lat": 45.0
+    "name": "Northern Persia",
+    "nameKo": "페르시아 북부",
+    "lon": 51.3,
+    "lat": 35.5
+  },
+  {
+    "name": "Southern Persia",
+    "nameKo": "페르시아 남부",
+    "lon": 53.1,
+    "lat": 29.3
+  },
+  {
+    "name": "Arabia",
+    "nameKo": "아라비아",
+    "lon": 45.6,
+    "lat": 23.5
+  },
+  {
+    "name": "Kazakhstan",
+    "nameKo": "카자흐스탄",
+    "lon": 71.0,
+    "lat": 48.2
+  },
+  {
+    "name": "Turkestan",
+    "nameKo": "투르키스탄",
+    "lon": 70.3,
+    "lat": 41.6
+  },
+  {
+    "name": "Urals",
+    "nameKo": "우랄",
+    "lon": 61.0,
+    "lat": 57.5
+  },
+  {
+    "name": "West Siberia",
+    "nameKo": "서시베리아",
+    "lon": 79.8,
+    "lat": 55.3
+  },
+  {
+    "name": "Central Siberia",
+    "nameKo": "중앙시베리아",
+    "lon": 95.0,
+    "lat": 60.1
+  },
+  {
+    "name": "Yakutia",
+    "nameKo": "야쿠티야",
+    "lon": 120.9,
+    "lat": 65.8
+  },
+  {
+    "name": "Amur",
+    "nameKo": "아무르",
+    "lon": 127.7,
+    "lat": 53.5
+  },
+  {
+    "name": "Soviet Far East",
+    "nameKo": "소련 극동",
+    "lon": 134.7,
+    "lat": 45.2
+  },
+  {
+    "name": "Northern Manchuria",
+    "nameKo": "만주 북부",
+    "lon": 127.7,
+    "lat": 48.0
+  },
+  {
+    "name": "Southern Manchuria",
+    "nameKo": "만주 남부",
+    "lon": 122.6,
+    "lat": 41.4
   },
   {
     "name": "North China",
@@ -354,14 +468,116 @@
     "lat": 30.6
   },
   {
+    "name": "Lower Yangtze",
+    "nameKo": "양쯔강 하류",
+    "lon": 120.0,
+    "lat": 29.5
+  },
+  {
     "name": "South China",
     "nameKo": "화남",
     "lon": 113.0,
     "lat": 23.8
   },
   {
-    "name": "Indochina",
-    "nameKo": "인도차이나",
+    "name": "Sichuan",
+    "nameKo": "쓰촨",
+    "lon": 102.7,
+    "lat": 30.7
+  },
+  {
+    "name": "Yunnan",
+    "nameKo": "윈난",
+    "lon": 101.5,
+    "lat": 25.0
+  },
+  {
+    "name": "Xinjiang",
+    "nameKo": "신장",
+    "lon": 88.7,
+    "lat": 39.7
+  },
+  {
+    "name": "Tibet",
+    "nameKo": "티베트",
+    "lon": 85.7,
+    "lat": 32.3
+  },
+  {
+    "name": "Mongolia",
+    "nameKo": "몽골",
+    "lon": 106.6,
+    "lat": 47.7
+  },
+  {
+    "name": "Afghanistan",
+    "nameKo": "아프가니스탄",
+    "lon": 69.6,
+    "lat": 34.7
+  },
+  {
+    "name": "Punjab",
+    "nameKo": "펀자브",
+    "lon": 72.1,
+    "lat": 30.8
+  },
+  {
+    "name": "United Provinces",
+    "nameKo": "연합주",
+    "lon": 80.5,
+    "lat": 26.9
+  },
+  {
+    "name": "Bengal",
+    "nameKo": "벵골",
+    "lon": 87.8,
+    "lat": 23.3
+  },
+  {
+    "name": "Central India",
+    "nameKo": "중앙인도",
+    "lon": 78.3,
+    "lat": 23.6
+  },
+  {
+    "name": "Bombay and Deccan",
+    "nameKo": "봄베이·데칸",
+    "lon": 76.1,
+    "lat": 19.4
+  },
+  {
+    "name": "Madras",
+    "nameKo": "마드라스",
+    "lon": 78.4,
+    "lat": 11.0
+  },
+  {
+    "name": "Ceylon",
+    "nameKo": "실론",
+    "lon": 80.7,
+    "lat": 7.6
+  },
+  {
+    "name": "Burma",
+    "nameKo": "버마",
+    "lon": 96.0,
+    "lat": 20.5
+  },
+  {
+    "name": "Siam",
+    "nameKo": "시암",
+    "lon": 100.8,
+    "lat": 14.1
+  },
+  {
+    "name": "Tonkin",
+    "nameKo": "통킹",
+    "lon": 104.0,
+    "lat": 20.3
+  },
+  {
+    "name": "Cochinchina",
+    "nameKo": "코친차이나",
     "lon": 105.5,
     "lat": 12.5
   },
@@ -390,6 +606,12 @@
     "lat": 15.6
   },
   {
+    "name": "New Guinea",
+    "nameKo": "뉴기니",
+    "lon": 143.0,
+    "lat": -6.0
+  },
+  {
     "name": "Eastern Honshu",
     "nameKo": "혼슈 동부",
     "lon": 139.6,
@@ -408,16 +630,250 @@
     "lat": 43.5
   },
   {
-    "name": "Burma",
-    "nameKo": "버마",
-    "lon": 96.0,
-    "lat": 20.5
+    "name": "US Northeast",
+    "nameKo": "미국 북동부",
+    "lon": -75.6,
+    "lat": 43.0
   },
   {
-    "name": "New Guinea",
-    "nameKo": "뉴기니",
-    "lon": 143.0,
-    "lat": -6.0
+    "name": "US Southeast",
+    "nameKo": "미국 남동부",
+    "lon": -83.5,
+    "lat": 32.6
+  },
+  {
+    "name": "US Midwest",
+    "nameKo": "미국 중서부",
+    "lon": -89.2,
+    "lat": 40.1
+  },
+  {
+    "name": "Texas and the South",
+    "nameKo": "텍사스·남부",
+    "lon": -99.4,
+    "lat": 31.6
+  },
+  {
+    "name": "Pacific Coast",
+    "nameKo": "태평양 연안",
+    "lon": -119.7,
+    "lat": 37.3
+  },
+  {
+    "name": "Alaska",
+    "nameKo": "알래스카",
+    "lon": -147.2,
+    "lat": 63.4
+  },
+  {
+    "name": "Quebec",
+    "nameKo": "퀘벡",
+    "lon": -73.4,
+    "lat": 48.4
+  },
+  {
+    "name": "Ontario",
+    "nameKo": "온타리오",
+    "lon": -80.5,
+    "lat": 46.7
+  },
+  {
+    "name": "Prairies",
+    "nameKo": "프레리",
+    "lon": -105.3,
+    "lat": 52.0
+  },
+  {
+    "name": "British Columbia",
+    "nameKo": "브리티시컬럼비아",
+    "lon": -122.2,
+    "lat": 52.6
+  },
+  {
+    "name": "Newfoundland",
+    "nameKo": "뉴펀들랜드",
+    "lon": -56.0,
+    "lat": 48.5
+  },
+  {
+    "name": "Northern Mexico",
+    "nameKo": "멕시코 북부",
+    "lon": -106.4,
+    "lat": 28.9
+  },
+  {
+    "name": "Mexico",
+    "nameKo": "멕시코",
+    "lon": -99.5,
+    "lat": 19.3
+  },
+  {
+    "name": "Central America",
+    "nameKo": "중앙아메리카",
+    "lon": -87.4,
+    "lat": 14.1
+  },
+  {
+    "name": "Cuba",
+    "nameKo": "쿠바",
+    "lon": -79.6,
+    "lat": 22.2
+  },
+  {
+    "name": "Hispaniola",
+    "nameKo": "히스파니올라",
+    "lon": -72.7,
+    "lat": 19.0
+  },
+  {
+    "name": "Iceland",
+    "nameKo": "아이슬란드",
+    "lon": -18.5,
+    "lat": 64.9
+  },
+  {
+    "name": "Greenland",
+    "nameKo": "그린란드",
+    "lon": -40.0,
+    "lat": 72.0
+  },
+  {
+    "name": "Northern Brazil",
+    "nameKo": "브라질 북부",
+    "lon": -51.7,
+    "lat": -5.6
+  },
+  {
+    "name": "Southern Brazil",
+    "nameKo": "브라질 남부",
+    "lon": -48.7,
+    "lat": -22.2
+  },
+  {
+    "name": "Argentina",
+    "nameKo": "아르헨티나",
+    "lon": -63.8,
+    "lat": -32.1
+  },
+  {
+    "name": "Gran Colombia",
+    "nameKo": "그란콜롬비아",
+    "lon": -74.1,
+    "lat": 4.7
+  },
+  {
+    "name": "Venezuela",
+    "nameKo": "베네수엘라",
+    "lon": -66.6,
+    "lat": 8.9
+  },
+  {
+    "name": "Andes",
+    "nameKo": "안데스",
+    "lon": -76.6,
+    "lat": -11.8
+  },
+  {
+    "name": "Chile",
+    "nameKo": "칠레",
+    "lon": -70.7,
+    "lat": -33.6
+  },
+  {
+    "name": "Australia",
+    "nameKo": "오스트레일리아",
+    "lon": 134.0,
+    "lat": -25.0
+  },
+  {
+    "name": "North Island",
+    "nameKo": "북섬",
+    "lon": 175.4,
+    "lat": -40.0
+  },
+  {
+    "name": "South Island",
+    "nameKo": "남섬",
+    "lon": 171.6,
+    "lat": -43.6
+  },
+  {
+    "name": "Ellesmere Island",
+    "nameKo": "엘즈미어섬",
+    "lon": -73.57,
+    "lat": 81.36
+  },
+  {
+    "name": "Parry Islands",
+    "nameKo": "패리 제도",
+    "lon": -113.6,
+    "lat": 75.5
+  },
+  {
+    "name": "Victoria Island",
+    "nameKo": "빅토리아섬",
+    "lon": -108.05,
+    "lat": 70.44
+  },
+  {
+    "name": "Baffin Island",
+    "nameKo": "배핀섬",
+    "lon": -74.11,
+    "lat": 69.84
+  },
+  {
+    "name": "Svalbard",
+    "nameKo": "스발바르",
+    "lon": 15.88,
+    "lat": 78.64
+  },
+  {
+    "name": "Franz Josef Land",
+    "nameKo": "프란츠요제프 제도",
+    "lon": 64.1,
+    "lat": 80.9
+  },
+  {
+    "name": "Novaya Zemlya",
+    "nameKo": "노바야제믈랴",
+    "lon": 58.28,
+    "lat": 74.13
+  },
+  {
+    "name": "Severnaya Zemlya",
+    "nameKo": "세베르나야제믈랴",
+    "lon": 97.06,
+    "lat": 79.49
+  },
+  {
+    "name": "New Siberian Islands",
+    "nameKo": "노보시비르스크 제도",
+    "lon": 140.54,
+    "lat": 75.44
+  },
+  {
+    "name": "Aleutian Islands",
+    "nameKo": "알류샨 열도",
+    "lon": -167.09,
+    "lat": 53.55
+  },
+  {
+    "name": "New Caledonia",
+    "nameKo": "뉴칼레도니아",
+    "lon": 165.46,
+    "lat": -21.3
+  },
+  {
+    "name": "Tierra del Fuego",
+    "nameKo": "티에라델푸에고",
+    "lon": -69.44,
+    "lat": -54.18
+  },
+  {
+    "name": "Timor",
+    "nameKo": "티모르",
+    "lon": 125.87,
+    "lat": -8.82
   },
   {
     "name": "Malta",

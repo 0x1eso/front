@@ -196,9 +196,11 @@ describe("strategic regions (P4 spec §3.4, scenario v4)", () => {
     }
   });
 
-  test("110 to 140 land strategic regions; every region in exactly one", () => {
-    expect(land.length).toBeGreaterThanOrEqual(110);
-    expect(land.length).toBeLessThanOrEqual(140);
+  test("150 to 180 land strategic regions; every region in exactly one", () => {
+    // Spec §3.4-7 said 110..140; the controller ruling of 2026-10-21 raised
+    // it for HOI4-like zones outside Europe.
+    expect(land.length).toBeGreaterThanOrEqual(150);
+    expect(land.length).toBeLessThanOrEqual(180);
     const count = new Map<number, number>();
     for (const s of land) {
       for (const r of s.members) {
@@ -263,8 +265,40 @@ describe("strategic regions (P4 spec §3.4, scenario v4)", () => {
       "Normandy and Brittany",
       "Sicily",
       "Crete",
+      // Outside Europe (controller ruling 2026-10-21).
+      "Punjab",
+      "Bengal",
+      "Northern Persia",
+      "Arabia",
+      "Kazakhstan",
+      "West Siberia",
+      "Yakutia",
+      "Northern Manchuria",
+      "Sichuan",
+      "Tibet",
+      "Siam",
+      "Tonkin",
+      "Cochinchina",
+      "Amur",
+      "West Africa",
+      "Congo",
+      "South Africa",
+      "US Midwest",
+      "Pacific Coast",
+      "Quebec",
+      "Mexico",
+      "Southern Brazil",
+      "Andes",
+      "Australia",
     ]) {
       expect(names.has(n), n).toBe(true);
+    }
+    // No hand seed in Korea or Taiwan (they fall to the generic rules).
+    for (const n of ["Korea", "Chosen", "Taiwan", "Formosa"]) {
+      expect(
+        seeds.some((s) => s.name.includes(n)),
+        n,
+      ).toBe(false);
     }
     // Every hand seed keeps its region (none joins another).
     for (const s of seeds) expect(names.has(s.name), s.name).toBe(true);

@@ -23,20 +23,25 @@ const (
 	// srMaxRegions, srMaxTiles: a land strategic region's share grows no
 	// larger than this many regions or land tiles (in more than one region)
 	// while seeds are added (P4 spec §3.4-3). The spec's 12 regions and
-	// 40,000 tiles made 479 land strategic regions: the 73 hand seeds and the
-	// 54 islands no strategic region of their owner lies near leave room for
-	// about a dozen auto seeds in the 110..140 target (spec §3.4-7), and 70 /
-	// 300,000 is the finest split that keeps to it (140).
-	srMaxRegions = 70
-	srMaxTiles   = 300000
+	// 40,000 tiles made 479 land strategic regions with the spec's seeds.
+	// With the hand seeds outside Europe (controller ruling 2026-10-21:
+	// HOI4-like zones for India, Persia, Siberia, China, Africa and the
+	// Americas) the 149 hand-seeded regions and the 31 islands no region of
+	// their owner lies near fill the 150..180 target, and 33 / 200,000 is the
+	// finest split that keeps to it (180, no auto seed; 32 regions makes 192,
+	// 185,000 tiles 181).
+	srMaxRegions = 33
+	srMaxTiles   = 200000
 	// srIslandRegions, srIslandKm: an island strategic region of at most
 	// this many regions joins a strategic region of its owner within this
 	// many km (P4 spec §3.4-5).
 	srIslandRegions = 3
 	srIslandKm      = 600
-	// srMinCount, srMaxCount: the target number of land strategic regions.
-	srMinCount = 110
-	srMaxCount = 140
+	// srMinCount, srMaxCount: the target number of land strategic regions:
+	// spec §3.4-7's 110..140, raised by the controller ruling of 2026-10-21
+	// (HOI4-like granularity outside Europe matters more than the count).
+	srMinCount = 150
+	srMaxCount = 180
 	// seedReach: a seed in the water takes the nearest land tile within
 	// this many tiles.
 	seedReach = 25
