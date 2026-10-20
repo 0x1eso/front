@@ -330,7 +330,7 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     }
   }, 60_000);
 
-  test("the economy hash sees docks, line progress and activity, deal sizes, law cooldowns, construction and research progress and the field infantry", async () => {
+  test("the economy hash sees docks, line progress and activity, deal sizes, law cooldowns, construction and research progress, the field infantry and the casualties", async () => {
     const a = await wwRunner({}, DEU_HUMAN);
     const g = a.game;
     stepTo(a, dayStart(2) + 2);
@@ -379,6 +379,7 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         () => (deu.fieldInfUnits += 1),
         () => (deu.fieldInfUnits -= 1),
       ],
+      ["casualties", () => (deu.casualties += 1), () => (deu.casualties -= 1)],
     ];
     for (const [what, change, undo] of changes) {
       change();

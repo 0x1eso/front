@@ -118,6 +118,31 @@ describe("manpower and the draft (spec §6)", () => {
     expect(ce.manpower).toBe(1_195_000);
   });
 
+  test("the dead do not come back: casualties leave the pool for good", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    // No draft: the army changes only by the dead.
+    setInfantry(ce);
+    finishDay(runner, 0);
+    const pool = ce.totals.recruitable;
+    expect(pool).toBe(1_675_000);
+    // At the ceiling: the army and manpower take the whole pool.
+    ce.manpower = pool - econ.armyMen(deu);
+    const manpower = ce.manpower;
+    // 100,000 men fall (as AttackExecution reports them).
+    const dead = 100_000;
+    econ.noteCombatLoss(deu.smallID(), dead);
+    expect(deu.removeTroops(dead)).toBe(dead);
+    finishDay(runner, 1);
+    expect(ce.casualties).toBe(dead);
+    expect(ce.totals.recruitable).toBe(pool - dead);
+    // No manpower grew into the places of the dead, then or a month on.
+    expect(ce.manpower).toBe(manpower);
+    finishDay(runner, 31);
+    expect(ce.manpower).toBe(manpower);
+    expect(ce.totals.recruitable).toBe(pool - dead);
+    expect(econ.armyMen(deu) + ce.manpower).toBe(pool - dead);
+  });
+
   test("men away at sea count against the ceiling", async () => {
     const runner = await wwRunner({}, [{ clientID: HUMAN, country: "GBR" }]);
     const g = runner.game;
