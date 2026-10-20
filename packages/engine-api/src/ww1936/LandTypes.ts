@@ -299,7 +299,7 @@ export interface ArmySummary {
    * the smaller template id); -1 when it has none.
    */
   symbol: number;
-  /** Only for the owner's own armies (human details); else null. */
+  /** Filled for every human country's armies; the UI shows it only when owner === me. */
   mine: ArmyMineData | null;
 }
 
@@ -340,9 +340,9 @@ export interface BattleSummary {
 export interface RegionLandData {
   id: number;
   controller: number;
-  /** Supply of the controlling side, milli; -1 when not the viewer's side (the screen filters). */
+  /** Real supply of the controlling side, milli (the engine sends it for every region; the screen hides it for the off-side). */
   supplyMilli: number;
-  /** Supply its controlling side's divisions there use, milli (the region card's "use"). */
+  /** Real supply its controlling side's divisions there use, milli (the region card's "use"; the screen hides it for the off-side). */
   useMilli: number;
   encircled: boolean;
   /** [smallID, divisions] of the three countries with most divisions there. */

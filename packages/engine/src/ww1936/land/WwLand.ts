@@ -22,6 +22,7 @@ import {
   ARMY_ENCIRCLED,
   ARMY_EXECUTING,
   ARMY_MOVING,
+  ARMY_ORDER_KINDS,
   ARMY_PARA,
   ARMY_RAIL,
   ARMY_RETREAT,
@@ -465,7 +466,7 @@ const DivisionTableStateSchema = z.object({
 type DivisionTableState = z.infer<typeof DivisionTableStateSchema>;
 
 const OrderSchema = z.object({
-  kind: z.enum(["idle", "move", "front", "plan", "paradrop"]),
+  kind: z.enum(ARMY_ORDER_KINDS),
   to: zInt(),
   mode: zInt(),
   anchor: zInt(),
@@ -653,7 +654,6 @@ export class WwLand {
   spreadScratch: Uint8Array | null = null;
   // Screens.
   private dirtyArmies = new Set<number>();
-  private dirtyBattles = new Set<number>();
   private dirtyLandRegions = new Set<number>();
   private dirtyLandCountries = new Set<number>();
   private removedArmyIds: number[] = [];
@@ -798,6 +798,14 @@ export class WwLand {
         break;
       case "army_general":
         block = assignGeneral(this, cl, order.army, order.general);
+        // Spec §8.5 (U2): a player's general order turns `auto` off.
+        if (block === null && by === "player") {
+          const a = this.armies.get(order.army);
+          if (a !== undefined && a.auto) {
+            a.auto = false;
+            this.dirtyArmies.add(a.id);
+          }
+        }
         break;
       case "appoint_general":
         block = appointGeneral(this, cl);
@@ -964,7 +972,6 @@ export class WwLand {
       b.defenders = b.defenders.filter((d) => d !== id);
       b.attLine = b.attLine.filter((d) => d !== id);
       b.defLine = b.defLine.filter((d) => d !== id);
-      this.dirtyBattles.add(b.region);
     }
     this.rowListRemove(t.region[row], row);
     this.dirtyLandRegions.add(t.region[row]);
@@ -1315,12 +1322,10 @@ export class WwLand {
   }
 
   // ---- Change marks for the screens ----
+  // Battles are not marked: every live battle is sent every tick (takeData).
 
   markArmy(id: number): void {
     this.dirtyArmies.add(id);
-  }
-  markBattle(region: number): void {
-    this.dirtyBattles.add(region);
   }
   /** Adds a battle keeping `battles` in region order (Map order is iteration order). */
   addBattle(b: Battle): void {
@@ -1328,7 +1333,6 @@ export class WwLand {
     const sorted = [...this.battles.entries()].sort((x, y) => x[0] - y[0]);
     this.battles.clear();
     for (const [k, v] of sorted) this.battles.set(k, v);
-    this.dirtyBattles.add(b.region);
   }
   /** Sets a region's spread keeping `spreads` in region order. */
   setSpread(s: Spread): void {
@@ -1393,7 +1397,6 @@ export class WwLand {
       }
     }
     this.dirtyArmies.clear();
-    this.dirtyBattles.clear();
     this.dirtyLandRegions.clear();
     this.dirtyLandCountries.clear();
     this.removedArmyIds = [];

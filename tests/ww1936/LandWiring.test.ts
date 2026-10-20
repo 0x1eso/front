@@ -605,3 +605,26 @@ describe("World War 1936 P2: the land war's state", () => {
     expect(l.controlBox(0)).toBeNull();
   });
 });
+
+describe("World War 1936 P2: a player's general order", () => {
+  test("army_general by the player turns auto off; by the AI it does not", async () => {
+    const runner = await wwRunner({}, DEU_POL);
+    const g = runner.game;
+    const l = land(g);
+    const deu = byTag(g, "DEU");
+    const a = l.armiesOf(deu.smallID())[0];
+    a.auto = true;
+    expect(
+      l.issue(
+        deu.smallID(),
+        { kind: "army_general", army: a.id, general: 0 },
+        "ai",
+      ),
+    ).toBeNull();
+    expect(a.auto).toBe(true);
+    expect(
+      l.issue(deu.smallID(), { kind: "army_general", army: a.id, general: 0 }),
+    ).toBeNull();
+    expect(a.auto).toBe(false);
+  });
+});

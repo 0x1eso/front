@@ -63,7 +63,14 @@ export class WwLandView {
   }
 
   /** Token position in tiles at `tick` (fractional): between the two centers while it moves. */
-  tokenXY(a: ArmySummary, tick: number): [number, number] {
+  /** The token's tile position; null for region 0 (no region). */
+  tokenXY(a: ArmySummary, tick: number): [number, number] | null {
+    if (
+      a.region === 0 ||
+      (a.move !== null && (a.move.from === 0 || a.move.to === 0))
+    ) {
+      return null;
+    }
     const w = this.scenario.width;
     const at = (region: number): [number, number] => {
       const t = this.scenario.centerTile(region);
