@@ -1,8 +1,9 @@
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   FocusCanvas,
+  FocusCanvasModel,
   wrapLines,
 } from "../../../src/client/hud/ww1936/FocusCanvas";
 import {
@@ -220,5 +221,149 @@ describe("focus tree layout (spec §21.3)", () => {
     expect(fc.viewport().scale).toBe(1);
     expect(picked).toEqual([3, 0]);
     fc.destroy();
+  });
+});
+
+describe("the focus canvas's input and redraws (spec §21.3)", () => {
+  // A 400 × 200 canvas over the German tree (2,080 × 544 at 1×), frames run by hand.
+  let frames: FrameRequestCallback[] = [];
+  const flush = () => {
+    const run = frames;
+    frames = [];
+    for (const f of run) f(0);
+  };
+
+  function setup() {
+    frames = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      frames.push(cb);
+      return frames.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    const canvas = document.createElement("canvas");
+    canvas.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 400, height: 200 }) as DOMRect;
+    document.body.appendChild(canvas);
+    const picked: number[] = [];
+    const fc = new FocusCanvas(canvas, (p) => picked.push(p));
+    flush();
+    fc.setModel(model("k1"));
+    flush();
+    const ptr = (type: string, id: number, x: number, y: number) =>
+      canvas.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: id,
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+        }),
+      );
+    return { canvas, fc, picked, ptr };
+  }
+
+  const model = (key: string): FocusCanvasModel => ({
+    key,
+    tree: DEU,
+    states: DEU.map(() => 0),
+    progress: 0,
+    selected: -1,
+    names: DEU.map((f) => f.id),
+    daysChips: DEU.map(() => "70"),
+    bypassed: "skipped",
+  });
+
+  // The Rhineland card: column 3, row 0 (x 316..412, y 4..64 at 1×).
+  const RHINE = DEU.findIndex((f) => f.id === "deu_rhineland");
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = "";
+  });
+
+  it("one finger pans the tree; a drag never taps", () => {
+    const { fc, picked, ptr } = setup();
+    expect(cardRect(DEU[RHINE], 1).x).toBe(316);
+    // A press that hardly moves is a tap on the card under it.
+    ptr("pointerdown", 1, 330, 30);
+    ptr("pointermove", 1, 332, 31);
+    ptr("pointerup", 1, 332, 31);
+    expect(picked).toEqual([RHINE]);
+    expect(fc.viewport()).toEqual({ ox: 0, oy: 0, scale: 1 });
+    // A drag from the same card moves the view with the finger, and picks nothing.
+    ptr("pointerdown", 1, 330, 30);
+    ptr("pointermove", 1, 300, 25);
+    ptr("pointermove", 1, 280, 20);
+    ptr("pointerup", 1, 280, 20);
+    expect(fc.viewport()).toEqual({ ox: -50, oy: -10, scale: 1 });
+    expect(picked).toEqual([RHINE]);
+    // Dragged past the tree's edge, the view stops at it.
+    ptr("pointerdown", 1, 100, 100);
+    ptr("pointermove", 1, 600, 400);
+    ptr("pointerup", 1, 600, 400);
+    expect(fc.viewport()).toEqual({ ox: 0, oy: 0, scale: 1 });
+  });
+
+  it("two fingers zoom; a pinch end never taps", () => {
+    const { fc, picked, ptr } = setup();
+    // Finger 1 rests on the Rhineland card, finger 2 spreads away from it.
+    ptr("pointerdown", 1, 330, 30);
+    ptr("pointerdown", 2, 230, 30);
+    ptr("pointermove", 2, 205, 30);
+    // 100 → 125 px apart: 1.25× about the pinch.
+    expect(fc.viewport().scale).toBeCloseTo(1.25);
+    ptr("pointermove", 2, 30, 30);
+    // Further apart stays at the limit.
+    expect(fc.viewport().scale).toBe(1.25);
+    // Lifting one finger: the other pans from there and never taps.
+    ptr("pointerup", 2, 30, 30);
+    const before = fc.viewport();
+    ptr("pointermove", 1, 300, 30);
+    expect(fc.viewport().ox).toBeCloseTo(before.ox - 30);
+    ptr("pointerup", 1, 300, 30);
+    expect(picked).toEqual([]);
+    // Both fingers still, released together: still no tap.
+    ptr("pointerdown", 1, 330, 30);
+    ptr("pointerdown", 2, 230, 30);
+    ptr("pointerup", 2, 230, 30);
+    ptr("pointerup", 1, 330, 30);
+    expect(picked).toEqual([]);
+    // Pinching in stops at 0.6×.
+    ptr("pointerdown", 1, 300, 100);
+    ptr("pointerdown", 2, 100, 100);
+    ptr("pointermove", 2, 290, 100);
+    expect(fc.viewport().scale).toBe(0.6);
+    ptr("pointerup", 2, 290, 100);
+    ptr("pointerup", 1, 300, 100);
+    expect(picked).toEqual([]);
+  });
+
+  it("it redraws only when the model changes or on input", () => {
+    const draw = vi.spyOn(
+      FocusCanvas.prototype as unknown as { draw: () => void },
+      "draw",
+    );
+    const { fc, ptr } = setup();
+    draw.mockClear();
+    flush();
+    expect(draw).not.toHaveBeenCalled();
+    // The same key again (a new object, e.g. after a politics update that changed nothing shown).
+    fc.setModel(model("k1"));
+    flush();
+    expect(draw).not.toHaveBeenCalled();
+    // Two changes before the next frame: one redraw.
+    fc.setModel(model("k2"));
+    fc.setModel(model("k3"));
+    flush();
+    expect(draw).toHaveBeenCalledTimes(1);
+    // Input redraws, once a frame.
+    ptr("pointerdown", 1, 200, 100);
+    ptr("pointermove", 1, 180, 100);
+    ptr("pointermove", 1, 160, 100);
+    ptr("pointerup", 1, 160, 100);
+    flush();
+    expect(draw).toHaveBeenCalledTimes(2);
+    flush();
+    expect(draw).toHaveBeenCalledTimes(2);
   });
 });

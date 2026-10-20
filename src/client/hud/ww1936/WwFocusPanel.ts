@@ -427,6 +427,8 @@ export class WwFocusPanel extends LitElement implements Controller {
   /** The picked card's tree position; -1: none. */
   @state() private selected = -1;
   @state() private chip: FocusChip | null = null;
+  /** Phone, both slots filled: the chips folded behind a "▾" button, and whether its list is open. */
+  @state() private chipMenu = false;
   private readonly twoTap = new TwoTap();
   private canvas: FocusCanvas | null = null;
   private model: FocusCanvasModel | null = null;
@@ -497,6 +499,7 @@ export class WwFocusPanel extends LitElement implements Controller {
       this.refit();
       window.addEventListener("resize", this.refit);
       this.chip = null;
+      this.chipMenu = false;
       this.selected = -1;
       this.startPending = true;
       this.pickStart();
@@ -588,6 +591,7 @@ export class WwFocusPanel extends LitElement implements Controller {
 
   private pickChip(c: FocusCtx, chip: FocusChip) {
     this.chip = chip;
+    this.chipMenu = false;
     if (chip === "all") {
       this.canvas?.showAll();
       return;
@@ -615,6 +619,7 @@ export class WwFocusPanel extends LitElement implements Controller {
       this.dropCanvas();
       this.canvas = new FocusCanvas(el, (pos) => {
         this.selected = pos;
+        this.chipMenu = false;
       });
     }
     const c = this.ctx();
@@ -674,7 +679,10 @@ export class WwFocusPanel extends LitElement implements Controller {
       ✕
     </button>`;
     const slots = c === null ? nothing : this.renderSlots(c);
-    const chips = c === null ? nothing : this.renderChips(c);
+    const chips = c === null ? nothing : this.renderChips(c, false);
+    // A phone with the running and the queued slot: the chips would get
+    // about 100 px, so they fold behind one "▾" button.
+    const folded = this.compact && c !== null && c.queued >= 0;
     return html`
       <aside
         data-ww-drawer="focus"
@@ -687,12 +695,14 @@ export class WwFocusPanel extends LitElement implements Controller {
         ${this.compact
           ? html`<div
               data-ww-drawer-head
-              class="flex shrink-0 items-center gap-1 border-b border-white/10 p-1"
+              class="relative flex shrink-0 items-center gap-1 border-b border-white/10 p-1"
             >
               ${slots}
-              <div class="flex min-w-0 flex-1 gap-1 overflow-x-auto">
-                ${chips}
-              </div>
+              ${folded && c !== null
+                ? this.renderChipMenu(c)
+                : html`<div class="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+                    ${chips}
+                  </div>`}
               ${close}
             </div>`
           : html`<div
@@ -833,11 +843,38 @@ export class WwFocusPanel extends LitElement implements Controller {
     return html`${running}${queued}`;
   }
 
-  private renderChips(c: FocusCtx): TemplateResult {
+  /** The folded chips: a "▾" button showing the current chip, and its two-column list. */
+  private renderChipMenu(c: FocusCtx): TemplateResult {
+    return html`<button
+        type="button"
+        data-ww-focus-chip-menu
+        aria-haspopup="menu"
+        aria-expanded=${String(this.chipMenu)}
+        class="ml-auto h-9 shrink-0 rounded-full px-2.5 text-xs font-semibold ${this
+          .chipMenu
+          ? "bg-white/20 text-white"
+          : "bg-white/5 text-white/75 hover:bg-white/10"}"
+        @click=${() => (this.chipMenu = !this.chipMenu)}
+      >
+        ${translateText(CHIP_KEYS[this.chip ?? "all"])} ▾
+      </button>
+      ${this.chipMenu
+        ? html`<div
+            role="menu"
+            data-ww-focus-chip-list
+            class="absolute right-1 top-full z-20 mt-1 grid grid-cols-2 gap-1 rounded-md border border-white/15 bg-gray-900 p-1 shadow-xl"
+          >
+            ${this.renderChips(c, true)}
+          </div>`
+        : nothing}`;
+  }
+
+  private renderChips(c: FocusCtx, inMenu: boolean): TemplateResult {
     return html`${FOCUS_CHIPS.map(
       (chip) =>
         html`<button
           type="button"
+          role=${inMenu ? "menuitem" : "button"}
           data-ww-focus-chip=${chip}
           aria-pressed=${String(this.chip === chip)}
           class="h-9 min-w-9 shrink-0 rounded-full px-2.5 text-xs font-semibold ${this

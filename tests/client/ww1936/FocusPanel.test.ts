@@ -119,6 +119,7 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("opens as one World War drawer among the others", async () => {
@@ -306,6 +307,123 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(req).toContain("[ww1936.focusui.requires_any]");
     expect(req).toContain("[ww1936.focus.deu_moscow_envoy]");
     expect(req).toContain("[ww1936.focus.deu_polish_alignment]");
+  });
+
+  // Rome–Berlin runs; the Austrian question is queued, which shuts out its
+  // exclusive partner, the generals' misgivings (pre-flight R21: state 6).
+  const busyQueued = () =>
+    polDetail(
+      {
+        deu_rhineland: 1,
+        deu_rome_berlin: 3,
+        deu_austria_question: 7,
+        deu_army_misgivings: 6,
+      },
+      {
+        focus: {
+          id: "deu_rome_berlin",
+          progressMilli: 10_000,
+          daysMilli: 70_000,
+        },
+        queued: "deu_austria_question",
+      },
+    );
+
+  it("a card shut out by a queued exclusive says so and cannot start", async () => {
+    const m = await mount(busyQueued());
+    await m.pick("deu_army_misgivings");
+    expect(m.q("[data-ww-focus-card]")!.dataset.state).toBe("6");
+    // Neither start nor queue: the engine's reason instead.
+    expect(m.q("[data-ww-focus-action]")).toBeNull();
+    expect(m.q("[data-ww-block='focus_exclusive']")!.textContent).toContain(
+      "[ww1936.econ.block.focus_exclusive]",
+    );
+    expect(m.q("[data-ww-focus-card]")!.textContent).toContain(
+      "[ww1936.focusui.state.exclusive]",
+    );
+    // The choice that shuts it out is marked taken.
+    const ex = m.q("[data-ww-focus-section='excludes'] li")!;
+    expect(ex.textContent).toContain("[ww1936.focus.deu_austria_question]");
+    expect(ex.querySelector("[data-ok]")!.getAttribute("data-ok")).toBe(
+      "false",
+    );
+    expect(m.sent).toEqual([]);
+    document.body.innerHTML = "";
+    // Idle, with the partner done: still no start.
+    const idle = await mount(
+      polDetail({
+        deu_rhineland: 1,
+        deu_rome_berlin: 1,
+        deu_austria_question: 1,
+        deu_army_misgivings: 6,
+      }),
+    );
+    await idle.pick("deu_army_misgivings");
+    expect(idle.q("[data-ww-focus-action='start']")).toBeNull();
+    expect(idle.q("[data-ww-block='focus_exclusive']")).not.toBeNull();
+    expect(idle.sent).toEqual([]);
+  });
+
+  it("a queued card takes two taps to unqueue", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    const m = await mount(busyQueued());
+    await m.pick("deu_austria_question");
+    expect(m.q("[data-ww-focus-card]")!.dataset.state).toBe("7");
+    const sel = "[data-ww-focus-card] [data-ww-focus-action='unqueue']";
+    expect(m.q(sel)!.textContent).toContain("[ww1936.focusui.unqueue]");
+    await m.click(sel);
+    expect(m.sent).toEqual([]);
+    expect(m.q(sel)!.dataset.armed).toBe("true");
+    expect(m.q(sel)!.textContent).toContain("[ww1936.focusui.unqueue_tap]");
+    // A second tap too soon (a double tap) does not confirm.
+    vi.advanceTimersByTime(100);
+    await m.click(sel);
+    expect(m.sent).toEqual([]);
+    vi.advanceTimersByTime(300);
+    await m.click(sel);
+    expect(m.sent).toEqual([{ kind: "focus_unqueue" }]);
+  });
+
+  it("on a phone with both slots the chips fold behind ▾", async () => {
+    // 844 × 390, a landscape phone.
+    vi.stubGlobal("innerWidth", 844);
+    vi.stubGlobal("innerHeight", 390);
+    const m = await mount(busyQueued());
+    expect(m.q("aside")!.dataset.compact).toBe("true");
+    expect(m.q("[data-ww-focus-chip]")).toBeNull();
+    const menu = "[data-ww-focus-chip-menu]";
+    expect(m.q(menu)!.textContent).toContain("[ww1936.focusui.chip.all]");
+    expect(m.q(menu)!.getAttribute("aria-expanded")).toBe("false");
+    await m.click(menu);
+    expect(m.q(menu)!.getAttribute("aria-expanded")).toBe("true");
+    const list = m.q("[data-ww-focus-chip-list]")!;
+    expect(list.querySelectorAll("[data-ww-focus-chip]")).toHaveLength(7);
+    await m.click("[data-ww-focus-chip-list] [data-ww-focus-chip='industry']");
+    expect(m.q("[data-ww-focus-chip-list]")).toBeNull();
+    expect(m.q(menu)!.textContent).toContain("[ww1936.focusui.chip.industry]");
+    document.body.innerHTML = "";
+    // Only the running slot: the chips stay in the row.
+    const one = await mount(
+      polDetail(
+        { deu_rhineland: 1, deu_rome_berlin: 3 },
+        {
+          focus: {
+            id: "deu_rome_berlin",
+            progressMilli: 10_000,
+            daysMilli: 70_000,
+          },
+        },
+      ),
+    );
+    expect(one.q("[data-ww-focus-chip-menu]")).toBeNull();
+    expect(one.el.querySelectorAll("[data-ww-focus-chip]")).toHaveLength(7);
+    // A tablet with both slots: the chips have their own row.
+    document.body.innerHTML = "";
+    vi.stubGlobal("innerWidth", 1180);
+    vi.stubGlobal("innerHeight", 820);
+    const tall = await mount(busyQueued());
+    expect(tall.q("[data-ww-focus-chip-menu]")).toBeNull();
+    expect(tall.el.querySelectorAll("[data-ww-focus-chip]")).toHaveLength(7);
   });
 
   it("explain lines turn codes into names", () => {
