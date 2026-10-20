@@ -13,7 +13,11 @@ import {
   WW_MAX_ARMY_DIVISIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { ScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
-import { GENERALS, rosterOf } from "@openfront/engine-lib/ww1936/Generals";
+import {
+  GENERALS,
+  rosterOf,
+  titledGeneralId,
+} from "@openfront/engine-lib/ww1936/Generals";
 import {
   START_OOB,
   startTemplates,
@@ -63,7 +67,8 @@ const MINOR_ROSTERS: readonly CountryTag[] = [
 /**
  * People this task left out by the roster principle (spec §6.2 and the
  * mode's sensitivity rulings); the Task 10 report gives each reason. Some
- * are in the spec's own table (Manstein, Leeb, Tanaka): the principle wins.
+ * are in the spec's own table (Manstein, Leeb, Badoglio, Graziani and all
+ * five Japanese): the principle wins.
  */
 const EXCLUDED: readonly string[] = [
   // Germany: IMT, the later Nuremberg trials, other war-crimes courts.
@@ -121,6 +126,16 @@ const EXCLUDED: readonly string[] = [
   "Hyakutake Harukichi",
   "Satō Kōtoku",
   "Ushijima Mitsuru",
+  // Japan shows titles only (controller ruling from P5): the five who
+  // passed the Korea/Taiwan/trial test are out as well.
+  "Kuribayashi Tadamichi",
+  "Anami Korechika",
+  "Nishio Toshizō",
+  "Kawabe Masakazu",
+  "Higuchi Kiichirō",
+  // Italy: poison gas and massacres in Ethiopia and Libya, never tried.
+  "Pietro Badoglio",
+  "Rodolfo Graziani",
   // Italy, in doubt (occupation and colonial crimes alleged, never tried).
   "Mario Roatta",
   "Alessandro Pirzio Biroli",
@@ -141,8 +156,10 @@ const EXCLUDED: readonly string[] = [
   "Draža Mihailović",
   "Henri Dentz",
   "Philippe Pétain",
-  // In doubt: the 1936 Badajoz and Seville killings; the Chinese commander
-  // in the Korean War (the friends are Korean, spec mode §1.4).
+  // Spain: the 1936 terror (Mola's orders), the Badajoz and Seville
+  // killings. China: the Chinese commander in the Korean War (the friends
+  // are Korean, spec mode §1.4).
+  "Emilio Mola",
   "Juan Yagüe",
   "Gonzalo Queipo de Llano",
   "Peng Dehuai",
@@ -237,15 +254,16 @@ describe("the generals roster (spec §6.2)", () => {
     });
   });
 
-  test("majors have 12–15 generals (Japan at least 5), the listed minors 2–5, nobody else any", () => {
+  test("Japan has no named general; other majors at most 15, the listed minors 2–5, nobody else any", () => {
     const counts = new Map<CountryTag, number>();
     for (const g of GENERALS) counts.set(g.tag, (counts.get(g.tag) ?? 0) + 1);
+    // Titles only for Japan (controller ruling); titled generals fill any
+    // other major's shortfall, so there is no floor (Italy has 10).
+    expect(counts.get("JPN") ?? 0).toBe(0);
     for (const tag of MAJOR_TAGS) {
+      if (tag === "JPN") continue;
       const n = counts.get(tag) ?? 0;
-      // Pre-flight G-b: the principle leaves Japan short; titled generals
-      // fill the rest.
-      expect(n, tag).toBeGreaterThanOrEqual(tag === "JPN" ? 5 : 12);
-      expect(n, tag).toBeLessThanOrEqual(15);
+      expect(n >= 1 && n <= 15, `${tag}: ${n}`).toBe(true);
     }
     for (const tag of MINOR_ROSTERS) {
       const n = counts.get(tag) ?? 0;
@@ -282,8 +300,20 @@ describe("the generals roster (spec §6.2)", () => {
     for (const name of EXCLUDED) {
       expect(names.has(norm(name)), name).toBe(false);
     }
-    // The spec table's three who fail the principle, by id too.
-    for (const id of ["manstein", "leeb", "tanaka"]) {
+    // The spec table's people who fail the principle, by id too.
+    for (const id of [
+      "manstein",
+      "leeb",
+      "badoglio",
+      "graziani",
+      "kuribayashi",
+      "anami",
+      "tanaka",
+      "nishio",
+      "kawabe",
+      "higuchi",
+      "mola",
+    ]) {
       expect(ids.has(id), id).toBe(false);
     }
   });
@@ -316,7 +346,6 @@ describe("the generals roster (spec §6.2)", () => {
       // The brief's examples.
       ["rundstedt", "Gerd von Rundstedt", "게르트 폰 룬트슈테트"],
       ["zhukov", "Georgy Zhukov", "게오르기 주코프"],
-      ["kuribayashi", "Kuribayashi Tadamichi", "구리바야시 다다미치"],
     ];
     for (const [id, e, k] of names) {
       expect(en.ww1936.general[id], id).toBe(e);
@@ -379,6 +408,23 @@ describe("the 1936 order of battle (spec §6.4)", () => {
         ).toBe(true);
       }
     }
+  });
+
+  test("only Japan's Kwantung and home armies start under titled generals", () => {
+    for (const tag of MAJOR_TAGS) {
+      const marked = START_OOB[tag]!.map((a) => a.titledGeneral === true);
+      expect(marked, tag).toEqual(
+        tag === "JPN"
+          ? [true, true, false, false]
+          : START_OOB[tag]!.map(() => false),
+      );
+    }
+    expect(START_OOB.JPN!.map((a) => index.get(a.regions[0])!.name)).toEqual([
+      "Kwantung",
+      "Tokyo",
+      "Hamgyŏng-bukto",
+      "Taiwan",
+    ]);
   });
 
   test("only Italy starts with an operation: two armies on Addis Ababa", () => {
@@ -462,14 +508,24 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
     generalId("bock"),
     generalId("kluge"),
   ]);
-  // Japan: two named generals serve on day 0 — the Kwantung Army and the
-  // home islands get them, the Korea and Taiwan garrisons do not.
-  expect(of("JPN").armies.map((a) => a.general)).toEqual([
-    generalId("nishio"),
-    generalId("anami"),
+  // Japan (titles only): the Kwantung Army and the home islands start under
+  // titled generals No. 1 and 2, the Korea and Taiwan garrisons under none.
+  const jpn = of("JPN");
+  expect(jpn.armies.map((a) => a.general)).toEqual([
+    titledGeneralId(jpn.id, 1),
+    titledGeneralId(jpn.id, 2),
     0,
     0,
   ]);
+  const jgen = l.country(jpn.id)!.generals;
+  expect(jgen.every((x) => x.roster === -1)).toBe(true);
+  expect(
+    jgen.map((x) => [x.titleNo, x.att, x.dfn, x.plan, x.log, x.traits, x.army]),
+  ).toEqual([
+    [1, 1, 1, 1, 1, 0, jpn.armies[0].id],
+    [2, 1, 1, 1, 1, 0, jpn.armies[1].id],
+  ]);
+  expect(l.country(jpn.id)!.nextTitleNo).toBe(3);
   expect(rosterOf("SUN")[0]).toBe(generalId("zhukov"));
 }
 

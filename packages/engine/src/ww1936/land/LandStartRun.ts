@@ -11,6 +11,7 @@ import {
   GENERALS,
   generalServes,
   rosterOf,
+  titledGeneralId,
   traitMask,
 } from "@openfront/engine-lib/ww1936/Generals";
 import {
@@ -44,6 +45,28 @@ export function newGeneralState(rosterIndex: number): GeneralState {
     plan: g.plan,
     log: g.log,
     traits: traitMask(g.traits),
+    xp: 0,
+    level: 1,
+    army: 0,
+    use: [0, 0, 0, 0],
+    terrainDays: [0, 0, 0, 0],
+  };
+}
+
+/** Spec §6.2: a titled general ("Commander No. n"), every skill 1, no traits. */
+export function newTitledGeneralState(
+  smallID: number,
+  titleNo: number,
+): GeneralState {
+  return {
+    id: titledGeneralId(smallID, titleNo),
+    roster: -1,
+    titleNo,
+    att: 1,
+    dfn: 1,
+    plan: 1,
+    log: 1,
+    traits: 0,
     xp: 0,
     level: 1,
     army: 0,
@@ -142,6 +165,8 @@ export function startLand(land: WwLand): void {
   const day = land.day();
   for (const { cl, ce, oob } of plans) {
     const armies: Army[] = [];
+    // START_OOB armies that start under a titled general (Japan).
+    const titled: Army[] = [];
     if (oob !== null) {
       for (const o of oob) {
         const region =
@@ -150,6 +175,7 @@ export function startLand(land: WwLand): void {
         const a = land.newArmy(cl.smallID);
         if (a === null) break;
         armies.push(a);
+        if (o.titledGeneral === true) titled.push(a);
         for (const [key, n] of o.divisions) {
           const tpl =
             cl.templates.find((t) => t.key === key) ?? cl.templates[0];
@@ -202,6 +228,15 @@ export function startLand(land: WwLand): void {
       a.general = free[gi].id;
       free[gi].army = a.id;
       gi++;
+    }
+    // Titled generals for the marked armies the roster left without one,
+    // numbered in army order (no army experience at the start).
+    for (const a of titled) {
+      if (!land.armies.has(a.id) || a.general !== 0) continue;
+      const g = newTitledGeneralState(cl.smallID, cl.nextTitleNo++);
+      g.army = a.id;
+      cl.generals.push(g);
+      a.general = g.id;
     }
   }
 }

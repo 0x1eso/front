@@ -30,16 +30,18 @@ export interface GeneralDef {
 // Append only: a general's id in a game is its index + 1 (plan decision 17).
 // The first two rows are the foundation's seed and stay first. The rest is
 // the P2 spec §6.2 roster (Task 10): real people, facts only. Left out by
-// the principle (spec §6.2, mode rulings): Japanese officers who governed
-// Korea or Taiwan, led the Korea Army or were convicted at any war-crimes
-// trial; anyone convicted by the IMT, the later Nuremberg trials or another
-// war-crimes court; police and secret-police chiefs; and, when in doubt,
-// anyone the sources leave open (the titled generals fill in).
+// the principle (spec §6.2, mode rulings): every Japanese officer (Japan
+// shows titles only, controller ruling from P5 — its armies get titled
+// generals, LandStart START_OOB); anyone convicted by the IMT, the later
+// Nuremberg trials or another war-crimes court; police and secret-police
+// chiefs; commanders behind massacres or gas attacks never tried (the
+// Ethiopian and Libyan campaigns, the 1936 terror in Spain); and, when in
+// doubt, anyone the sources leave open. Titled generals fill any shortfall.
 // tests/ww1936/LandData.test.ts lists the excluded names.
 //
 // Dates (all checked 2026-10-21): `from` is the day of the first
 // general-officer rank (Generalmajor, brigadier general, major-general in
-// Britain, général de brigade, generale di brigata, shōshō, kombrig in the
+// Britain, général de brigade, generale di brigata, kombrig in the
 // Red Army of 1935-40) when it came after 1936-01-01; `until` and `gaps`
 // are arrests (spec §6.2: purges, the 1944 plot). Retirements, recalls,
 // deaths and dismissals that followed a battle are not dates here: the
@@ -567,20 +569,6 @@ export const GENERALS: readonly GeneralDef[] = [
 
   // ---- Italy ----
   row(
-    "badoglio",
-    "ITA",
-    [2, 3, 4, 3],
-    [],
-    "en.wikipedia Pietro Badoglio: Marshal of Italy 1926, commander in Ethiopia 1935-36; never tried",
-  ),
-  row(
-    "graziani",
-    "ITA",
-    [2, 3, 2, 2],
-    [],
-    "en.wikipedia Rodolfo Graziani: southern front in Ethiopia 1935-36; his 1950 sentence was for collaboration, never a war-crimes court (spec §6.2 keeps him)",
-  ),
-  row(
     "messe",
     "ITA",
     [4, 4, 3, 3],
@@ -649,46 +637,6 @@ export const GENERALS: readonly GeneralDef[] = [
     [2, 3, 2, 2],
     ["mountaineer"],
     "en.wikipedia Mario Vercellino + generals.dk: generale di brigata 1930-07-31; it.wikipedia: Superga Division 1934, Turin corps 1935-40",
-  ),
-
-  // ---- Japan (spec §6.2 principle checked for each) ----
-  row(
-    "kuribayashi",
-    "JPN",
-    [2, 5, 3, 3],
-    ["defensive_doctrine"],
-    "en.wikipedia Tadamichi Kuribayashi + ja.wikipedia: shōshō 1940-03-09 (TracesOfWar: March 1940); no Korea/Taiwan post, never tried",
-    { from: "1940-03-09" },
-  ),
-  row(
-    "anami",
-    "JPN",
-    [3, 3, 2, 2],
-    [],
-    "en.wikipedia Korechika Anami (major general March 1935) + ja.wikipedia: shōshō 1935-03-15; no Korea/Taiwan post, never charged",
-  ),
-  row(
-    "nishio",
-    "JPN",
-    [3, 3, 3, 2],
-    [],
-    "en.wikipedia Toshizō Nishio + ja.wikipedia: chūjō 1933-08-01, Kwantung Army chief of staff 1934-36; held as a Class-A suspect, not indicted, released 1948",
-  ),
-  row(
-    "kawabe",
-    "JPN",
-    [3, 2, 2, 2],
-    [],
-    "en.wikipedia Masakazu Kawabe (major general 1936) + ja.wikipedia: shōshō 1936-03-07; held as a suspect 1945-47, never tried",
-    { from: "1936-03-07" },
-  ),
-  row(
-    "higuchi",
-    "JPN",
-    [2, 4, 3, 2],
-    ["winter_specialist"],
-    "en.wikipedia Kiichiro Higuchi (major general by 1937) + ja.wikipedia: shōshō 1937-08-02; a staff officer, not a commander, of the Korea Army in 1923; never tried",
-    { from: "1937-08-02" },
   ),
 
   // ---- Poland ----
@@ -827,13 +775,6 @@ export const GENERALS: readonly GeneralDef[] = [
     [3, 3, 4, 3],
     [],
     "en.wikipedia Francisco Franco + es.wikipedia: general since 1926, chief of the central general staff 1935",
-  ),
-  row(
-    "mola",
-    "ESN",
-    [3, 3, 3, 2],
-    [],
-    "en.wikipedia Emilio Mola + es.wikipedia: general de brigada 1927, commander in Morocco 1935-11-03 to 1936-03-01",
   ),
   row(
     "varela",

@@ -198,6 +198,11 @@ export interface OobArmy {
   divisions: readonly (readonly [string, number])[];
   /** An operation already running (Italy in Ethiopia, spec §6.4). */
   planTargets?: readonly number[];
+  /**
+   * Starts under a titled general (spec §6.2) when the roster has no named
+   * one left for it: Japan shows titles only (controller ruling).
+   */
+  titledGeneral?: boolean;
 }
 
 // Spec §6.4 majors; used only when scenario.json says historicalOob (plan
@@ -278,10 +283,9 @@ export const START_OOB: Readonly<
       divisions: [["binary", 24]],
     },
   ],
-  // Japan: square 17, cavalry brigades 4, garrisons 4 (25). The Korea and
-  // Taiwan garrisons come last: only two named Japanese generals serve on
-  // day 0, so no real person starts at the head of an army in Korea or
-  // Taiwan (spec §6.2's principle).
+  // Japan: square 17, cavalry brigades 4, garrisons 4 (25). Japan has no
+  // named generals (titles only): the Kwantung and home armies start under
+  // titled generals, the Korea and Taiwan garrisons under none.
   JPN: [
     {
       // Kwantung Army: the Kwantung lease, then Manchukuo's Jilin and
@@ -292,6 +296,7 @@ export const START_OOB: Readonly<
         ["cavalry_brigade", 3],
         ["garrison", 1],
       ],
+      titledGeneral: true,
     },
     {
       // Home islands: Tokyo, Ōsaka.
@@ -301,6 +306,7 @@ export const START_OOB: Readonly<
         ["cavalry_brigade", 1],
         ["garrison", 2],
       ],
+      titledGeneral: true,
     },
     {
       // Korea garrison: Hamgyŏng-bukto, Keijō.
