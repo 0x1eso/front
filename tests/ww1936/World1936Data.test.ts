@@ -3,6 +3,7 @@ import {
   COUNTRY_TAGS,
   CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
+import { DAMS, LANDMARKS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   CATEGORY_SLOTS,
   REGION_CATEGORIES,
@@ -305,8 +306,8 @@ describe("the world1936 economy (P1 spec §3)", () => {
     f: (r: ReadonlyScenarioRegion) => number,
   ) => rs.reduce((a, r) => a + f(r), 0);
 
-  test("the scenario is version 4 (P1's version 2 fields kept)", () => {
-    expect(data.scenario!.data.version).toBe(4);
+  test("the scenario is version 5 (P1's version 2 fields kept)", () => {
+    expect(data.scenario!.data.version).toBe(5);
     expect(economyTable.map((r) => r.tag).sort()).toEqual(
       [...COUNTRY_TAGS].sort(),
     );
@@ -613,7 +614,7 @@ function v2Fingerprint(regions: readonly ReadonlyScenarioRegion[]): {
 describe("the world1936 land graph (P2 spec §3, scenario v3)", () => {
   test("version 3 fields: the hand order of battle, every country's dev, no kmPerTile", () => {
     const d = data.scenario!.data;
-    expect(d.version).toBe(4);
+    expect(d.version).toBe(5);
     expect(d.historicalOob).toBe(true);
     expect(d.countries.filter((c) => c.dev === undefined)).toEqual([]);
     expect(d.kmPerTile).toBeUndefined();
@@ -1128,5 +1129,272 @@ describe("the world1936 start bases and harbours (P4 spec §3.5, §6.4, §12.1)"
     for (let y = 1; y < v4.height; y++) {
       expect(v4.rows.latC[y]).toBeLessThan(v4.rows.latC[y - 1]);
     }
+  });
+});
+
+// P6 spec §16.1–§16.4 (scenario version 5; P6 plan Task 15): coal, uranium,
+// hydro, the landmarks and the dams, read from the file itself (the
+// ScenarioIndex readers come with P6 Task 1). energy1936.json and
+// landmarks1936.json are the tool's tables.
+interface V5Region {
+  id: number;
+  owner: CountryTag;
+  sr: number;
+  coal: number;
+  uranium: number;
+  hydro: number;
+  landmarks?: string[];
+  dam?: { id: string; downstream: number[] };
+}
+const v5: { version: number; regions: V5Region[] } = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../resources/maps/world1936/scenario.json",
+    ),
+    "utf8",
+  ),
+);
+const v5ById = new Map(v5.regions.map((r) => [r.id, r]));
+const energyTable: {
+  coal: SiteRow[];
+  uranium: SiteRow[];
+  hydro: SiteRow[];
+} = JSON.parse(fs.readFileSync(path.join(srcDir, "energy1936.json"), "utf8"));
+const v5Sum = (tag: CountryTag, f: (r: V5Region) => number) =>
+  v5.regions.filter((r) => r.owner === tag).reduce((a, r) => a + f(r), 0);
+// The P5 region groups korea_north, korea_south and taiwan (decision 33).
+const KOREA_TAIWAN = [
+  563, 598, 604, 622, 639, 686, 679, 701, 732, 734, 761, 901,
+] as const;
+
+describe("the world1936 coal, uranium, hydro, landmarks and dams (P6 spec §16, scenario v5)", () => {
+  test("every region carries coal, uranium and hydro within their bounds", () => {
+    expect(v5.version).toBe(5);
+    for (const r of v5.regions) {
+      expect(r.coal, `${r.id}`).toBeGreaterThanOrEqual(0);
+      expect(r.coal, `${r.id}`).toBeLessThanOrEqual(8);
+      expect(r.uranium, `${r.id}`).toBeGreaterThanOrEqual(0);
+      expect(r.uranium, `${r.id}`).toBeLessThanOrEqual(6);
+      expect(r.hydro, `${r.id}`).toBeGreaterThanOrEqual(0);
+      expect(r.hydro, `${r.id}`).toBeLessThanOrEqual(6);
+      expect((r.landmarks ?? []).length, `${r.id}`).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("v5 coal totals follow 1936 production", () => {
+    const coal = (tag: CountryTag) => v5Sum(tag, (r) => r.coal);
+    // Spec §16.1: the United States 70, Germany 45, Britain 40, the USSR 25…
+    expect(
+      ["USA", "DEU", "GBR", "SUN"].map((t) => coal(t as CountryTag)),
+    ).toEqual([70, 45, 40, 25]);
+    // …France, Poland, Japan and Czechoslovakia about 8 to 12, the others 1 to 5.
+    for (const tag of ["FRA", "POL", "JPN", "CSK"] as const) {
+      expect(coal(tag), tag).toBeGreaterThanOrEqual(8);
+      expect(coal(tag), tag).toBeLessThanOrEqual(12);
+    }
+    const big = new Set([
+      "USA",
+      "DEU",
+      "GBR",
+      "SUN",
+      "FRA",
+      "POL",
+      "JPN",
+      "CSK",
+    ]);
+    const others = COUNTRY_TAGS.filter((t) => !big.has(t) && coal(t) > 0);
+    expect(others.length).toBeGreaterThanOrEqual(8);
+    for (const tag of others) {
+      expect(coal(tag), tag).toBeLessThanOrEqual(5);
+    }
+    const total = v5.regions.reduce((a, r) => a + r.coal, 0);
+    expect(total).toBeGreaterThanOrEqual(230);
+    expect(total).toBeLessThanOrEqual(270);
+    // About sixty coal regions; each country's sum is its sites' in the table.
+    const regions = v5.regions.filter((r) => r.coal > 0).length;
+    expect(regions).toBeGreaterThanOrEqual(50);
+    expect(regions).toBeLessThanOrEqual(75);
+    for (const tag of COUNTRY_TAGS) {
+      const sites = energyTable.coal
+        .filter((s) => s.tag === tag)
+        .reduce((a, s) => a + s.amount, 0);
+      expect(coal(tag), tag).toBe(sites);
+    }
+    // The coalfields the spec names.
+    for (const [place, lon, lat] of [
+      ["Ruhr", 7.1, 51.5],
+      ["Saar", 7.0, 49.3],
+      ["Upper Silesia", 18.8, 50.3],
+      ["South Wales", -3.4, 51.65],
+      ["Durham", -1.6, 54.8],
+      ["Pennsylvania", -79.0, 40.6],
+      ["Illinois", -89.0, 37.9],
+      ["Donbas", 37.8, 48.0],
+      ["Kuzbass", 86.4, 54.6],
+      ["Nord–Pas-de-Calais", 2.8, 50.45],
+      ["Fushun", 123.95, 41.85],
+      ["Chikuhō", 130.75, 33.65],
+    ] as const) {
+      expect(v5ById.get(regionAt(lon, lat)!.id)!.coal, place).toBeGreaterThan(
+        0,
+      );
+    }
+  });
+
+  test("uranium sits in the eight listed regions", () => {
+    const at = (lon: number, lat: number) => regionAt(lon, lat)!.id;
+    const want = new Map([
+      [at(27.47, -11.05), 6], // Shinkolobwe, Katanga (Belgium)
+      [at(-117.98, 66.09), 3], // Port Radium, Great Bear Lake (Canada)
+      [at(-108.73, 38.36), 3], // the Colorado Plateau (USA)
+      [at(12.93, 50.37), 2], // Jáchymov (Czechoslovakia)
+      [at(69.65, 40.57), 2], // Taboshar and Tyuya-Muyun (USSR)
+      [at(-7.88, 40.5), 1], // Urgeiriça (Portugal)
+      [at(-4.95, 50.3), 1], // Cornwall (Britain)
+      [at(140.45, 37.15), 1], // Ishikawa, Fukushima (Japan)
+    ]);
+    expect(want.size).toBe(8);
+    const got = new Map(
+      v5.regions.filter((r) => r.uranium > 0).map((r) => [r.id, r.uranium]),
+    );
+    expect(got).toEqual(want);
+    expect(
+      ["BEL", "CAN", "USA", "CSK", "SUN", "PRT", "GBR", "JPN"].map((t) =>
+        v5Sum(t as CountryTag, (r) => r.uranium),
+      ),
+    ).toEqual([6, 3, 3, 2, 2, 1, 1, 1]);
+    expect(energyTable.uranium.length).toBe(8);
+  });
+
+  test("hydro power lies in the spec's areas", () => {
+    const hydro = (tag: CountryTag) => v5Sum(tag, (r) => r.hydro);
+    // Spec §16.2: Italy's Alps about 12, Japan about 15; Britain none.
+    expect(hydro("ITA")).toBe(12);
+    expect(hydro("JPN")).toBe(15);
+    expect(hydro("GBR")).toBe(0);
+    const spec = new Set([
+      "CHE",
+      "ITA",
+      "FRA",
+      "AUT",
+      "NOR",
+      "SWE",
+      "FIN",
+      "ESR",
+      "ESN",
+      "CAN",
+      "USA",
+      "JPN",
+      "SUN",
+    ]);
+    for (const tag of COUNTRY_TAGS) {
+      if (!spec.has(tag)) expect(hydro(tag), tag).toBe(0);
+      else expect(hydro(tag), tag).toBeGreaterThan(0);
+    }
+  });
+
+  test("landmarks and dams sit in their named regions", () => {
+    const landmarks: Record<string, string> = {
+      lm_eiffel: "FRA:Paris",
+      lm_westminster: "GBR:London",
+      lm_kremlin: "SUN:Moskva",
+      lm_brandenburg: "DEU:Berlin",
+      lm_colosseum: "ITA:Roma",
+      lm_liberty: "USA:New York",
+      lm_empire_state: "USA:New York",
+      lm_golden_gate: "USA:California",
+      lm_hagia_sophia: "TUR:Istanbul",
+      lm_forbidden_city: "CHN:Beijing",
+      lm_himeji: "JPN:Hyōgo",
+      lm_christ_redeemer: "BRA:Rio de Janeiro",
+      lm_taj_mahal: "RAJ:Uttar Pradesh",
+    };
+    expect(Object.keys(landmarks).sort()).toEqual([...LANDMARKS].sort());
+    const placed = v5.regions.flatMap((r) =>
+      (r.landmarks ?? []).map((l) => [l, r.id] as const),
+    );
+    expect(placed.length).toBe(LANDMARKS.length);
+    for (const [l, id] of placed) {
+      expect(id, l).toBe(named(landmarks[l]).id);
+    }
+    const dams: Record<string, [string, string[]]> = {
+      dam_hoover: ["USA:Nevada", ["USA:Arizona", "USA:California"]],
+      dam_grand_coulee: ["USA:Washington", ["USA:Oregon"]],
+      dam_norris: ["USA:Tennessee", ["USA:Alabama", "USA:Kentucky"]],
+      dam_dnipro: ["SUN:Zaporizhzhya", ["SUN:Kherson"]],
+      dam_mohne: ["DEU:Nordrhein-Westfalen", []],
+      dam_eder: ["DEU:Hessen", ["DEU:Niedersachsen"]],
+      dam_kembs: [
+        "FRA:Doubs",
+        ["DEU:Baden-Württemberg", "DEU:Rheinland-Pfalz"],
+      ],
+      dam_galloway: ["GBR:Glasgow", []],
+      dam_vemork: ["NOR:Telemark", []],
+    };
+    expect(Object.keys(dams).sort()).toEqual([...DAMS].sort());
+    const withDam = v5.regions.filter((r) => r.dam !== undefined);
+    expect(withDam.map((r) => r.dam!.id).sort()).toEqual([...DAMS].sort());
+    for (const r of withDam) {
+      const [region, downstream] = dams[r.dam!.id];
+      expect(r.id, r.dam!.id).toBe(named(region).id);
+      expect(r.dam!.downstream, r.dam!.id).toEqual(
+        downstream.map((d) => named(d).id),
+      );
+    }
+    // Spec §16.4: the Hoover Dam by the Colorado, Vemork at Rjukan.
+    expect(regionAt(-114.83, 35.98)!.id).toBe(named("USA:Nevada").id);
+    expect(regionAt(8.52, 59.87)!.id).toBe(named("NOR:Telemark").id);
+  });
+
+  test("every dam's downstream regions touch it or its river line", () => {
+    for (const r of v5.regions.filter((x) => x.dam !== undefined)) {
+      const chain = [r.id];
+      expect(r.dam!.downstream.length).toBeLessThanOrEqual(3);
+      for (const d of r.dam!.downstream) {
+        expect(chain, r.dam!.id).not.toContain(d);
+        expect(
+          chain.some((c) => edgeOf(c, d) !== undefined),
+          `${r.dam!.id} → ${d}`,
+        ).toBe(true);
+        chain.push(d);
+      }
+    }
+  });
+
+  test("no v5 data in Korea or Taiwan", () => {
+    // Decision 33 (spec §24-3): no coal, uranium, hydro, landmark or dam on
+    // the Korean Peninsula or Taiwan, nor any dam's flood.
+    const downstream = new Set(
+      v5.regions.flatMap((r) => r.dam?.downstream ?? []),
+    );
+    for (const id of KOREA_TAIWAN) {
+      const r = v5ById.get(id)!;
+      expect(r.owner, `${id}`).toBe("JPN");
+      expect([r.coal, r.uranium, r.hydro], `${id}`).toEqual([0, 0, 0]);
+      expect(r.landmarks, `${id}`).toBeUndefined();
+      expect(r.dam, `${id}`).toBeUndefined();
+      expect(downstream.has(id), `${id}`).toBe(false);
+    }
+    // The eleven Korean regions and Taiwan are all the land there.
+    expect(regionAt(126.98, 37.57)!.id).toBe(679); // Seoul
+    expect(regionAt(125.75, 39.02)!.id).toBe(686); // P'yŏngyang
+    expect(regionAt(121.0, 23.7)!.id).toBe(901); // Taiwan
+  });
+
+  test("Nagasaki is a Japanese core region of its own beside Kumamoto", () => {
+    // Controller ruling of 2026-10-21 (the P6 atomic targets name Hiroshima
+    // and Nagasaki): Nagasaki and Saga prefectures, cut out of Kumamoto.
+    const nagasaki = named("JPN:Nagasaki");
+    expect(nagasaki.id).toBe(1369);
+    expect(nagasaki.nameKo).toBe("나가사키현");
+    expect(nagasaki.core).toBe(true);
+    expect(regionAt(129.87, 32.75)!.id).toBe(nagasaki.id); // Nagasaki
+    expect(regionAt(129.72, 33.16)!.id).toBe(nagasaki.id); // Sasebo
+    expect(regionAt(132.46, 34.39)!.id).toBe(757); // Hiroshima
+    expect(edgeOf(800, nagasaki.id)).toBeDefined();
+    expect(v5ById.get(nagasaki.id)!.sr).toBe(v5ById.get(800)!.sr);
+    // No coal on it (decision 33: no Hashima).
+    expect(v5ById.get(nagasaki.id)!.coal).toBe(0);
   });
 });

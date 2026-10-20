@@ -948,5 +948,13 @@
         [35.5, 35.6]
       ]
     }
+  ],
+  "carve": [
+    {
+      "adm1": ["JPN:Nagasaki", "JPN:Saga"],
+      "owner": "JPN",
+      "name": ["Nagasaki", "나가사키현"],
+      "note": "Nagasaki Prefecture, cut out of the Kumamoto region as a region of its own (P6 plan Task 15, controller ruling of 2026-10-21: the atomic targets name Hiroshima and Nagasaki)"
+    }
   ]
 }

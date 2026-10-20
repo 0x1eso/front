@@ -17,7 +17,8 @@ import (
 // and writes regions.bin and scenario.json next to map.bin. See
 // docs/superpowers/specs/2026-10-19-world-war-1936-design.md §4 and, for
 // version 4 (the strategic regions, harbours and start bases), P4 spec
-// §3.4–3.6, §6.4 and §12.1.
+// §3.4–3.6, §6.4 and §12.1; for version 5 (coal, uranium, hydro, landmarks
+// and dams), P6 spec §16.1–§16.4.
 
 const (
 	// Land regions are 1..seaZoneBase-1, sea zones seaZoneBase+1..65535.
@@ -292,6 +293,20 @@ type srcRegion struct {
 	NavalBase   *int `json:"navalBase,omitempty"`
 	AirBase     *int `json:"airBase,omitempty"`
 	CoastalFort *int `json:"coastalFort,omitempty"`
+	// Version 5 (P6 spec §16.1): coal, uranium, hydro, landmarks and the
+	// dam (cmd/ww1936build energy.go), only where there are some.
+	Coal      int      `json:"coal,omitempty"`
+	Uranium   int      `json:"uranium,omitempty"`
+	Hydro     int      `json:"hydro,omitempty"`
+	Landmarks []string `json:"landmarks,omitempty"`
+	Dam       *outDam  `json:"dam,omitempty"`
+}
+
+// outDam is a region's dam (P6 spec §16.4): its id (engine-api DAMS) and the
+// regions downstream of it.
+type outDam struct {
+	ID         string `json:"id"`
+	Downstream []int  `json:"downstream"`
 }
 
 // LandGraph is a region's version 3 data (P2 spec §3.1), copied from
@@ -401,6 +416,18 @@ type outRegion struct {
 	Economy
 	outLand
 	*outV4
+	*outV5
+}
+
+// outV5 is a region's version 5 data in scenario.json (P6 spec §16.1): coal,
+// uranium and hydro on every region, the landmarks and the dam where there
+// are some.
+type outV5 struct {
+	Coal      int      `json:"coal"`
+	Uranium   int      `json:"uranium"`
+	Hydro     int      `json:"hydro"`
+	Landmarks []string `json:"landmarks,omitempty"`
+	Dam       *outDam  `json:"dam,omitempty"`
 }
 
 // outV4 is a region's version 4 data in scenario.json (P4 spec §3.6): its
@@ -430,8 +457,8 @@ type outLand struct {
 // scenarioVersion is the scenario.src.json / scenario.json version this
 // generator reads and writes (2: P1 economy fields; 3: P2 land graph and
 // the P4 map fixes; 4: the P4 strategic regions, harbours, start bases and
-// row table).
-const scenarioVersion = 4
+// row table; 5: the P6 coal, uranium, hydro, landmarks and dams).
+const scenarioVersion = 5
 
 type outSea struct {
 	ID     int    `json:"id"`
@@ -578,6 +605,9 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 			if f := r.Civ + r.Mil + r.Dock; f > 0 {
 				return out, notes, fmt.Errorf("region %d %q (%s) lost every tile but has %d factories: give it none in cmd/ww1936build", r.ID, r.Name, r.Owner, f)
 			}
+			if r.Coal+r.Uranium+r.Hydro > 0 || len(r.Landmarks) > 0 || r.Dam != nil {
+				return out, notes, fmt.Errorf("region %d %q (%s) lost every tile but has version 5 data: give it none in cmd/ww1936build", r.ID, r.Name, r.Owner)
+			}
 			note := fmt.Sprintf("region %d %q (%s) lost every tile", r.ID, r.Name, r.Owner)
 			if r.Pop > 0 || r.Res != [6]int{} {
 				l := left[r.Owner]
@@ -694,8 +724,70 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		if err := buildV4(src, &out, ids, w, h); err != nil {
 			return out, notes, err
 		}
+		if err := buildV5(src, &out); err != nil {
+			return out, notes, err
+		}
 	}
 	return out, notes, nil
+}
+
+// buildV5 writes the version 5 fields (P6 spec §16.1, cmd/ww1936build
+// energy.go): every region's coal, uranium and hydro (0 when none), the
+// landmarks and dams where the tool put them. It checks what the engine
+// reads: the bounds (coal 0..8, uranium and hydro 0..6, two landmarks, three
+// downstream regions), each landmark and dam once, and every downstream
+// region on the map, not the dam's own, and joined by a land edge to the
+// dam's region or an earlier downstream region.
+func buildV5(src scenarioSrc, out *scenarioOut) error {
+	srcRegionOf := map[int]srcRegion{}
+	for _, r := range src.Regions {
+		srcRegionOf[r.ID] = r
+	}
+	onMap := map[int]bool{}
+	for _, r := range out.Regions {
+		onMap[r.ID] = true
+	}
+	touch := map[[2]int]bool{}
+	for _, e := range out.Edges {
+		touch[[2]int{e[0], e[1]}], touch[[2]int{e[1], e[0]}] = true, true
+	}
+	seen := map[string]bool{}
+	for i := range out.Regions {
+		r := &out.Regions[i]
+		s := srcRegionOf[r.ID]
+		if s.Coal < 0 || s.Coal > 8 || s.Uranium < 0 || s.Uranium > 6 || s.Hydro < 0 || s.Hydro > 6 || len(s.Landmarks) > 2 {
+			return fmt.Errorf("region %d %q: coal %d, uranium %d, hydro %d, %d landmarks out of bounds", r.ID, r.Name, s.Coal, s.Uranium, s.Hydro, len(s.Landmarks))
+		}
+		v := &outV5{Coal: s.Coal, Uranium: s.Uranium, Hydro: s.Hydro, Landmarks: s.Landmarks, Dam: s.Dam}
+		for _, l := range s.Landmarks {
+			if seen[l] {
+				return fmt.Errorf("landmark %s twice", l)
+			}
+			seen[l] = true
+		}
+		if d := s.Dam; d != nil {
+			if seen[d.ID] || len(d.Downstream) > 3 {
+				return fmt.Errorf("dam %s twice or with %d downstream regions", d.ID, len(d.Downstream))
+			}
+			seen[d.ID] = true
+			chain := []int{r.ID}
+			for _, down := range d.Downstream {
+				joined := false
+				for _, c := range chain {
+					if c == down {
+						return fmt.Errorf("dam %s: downstream region %d twice or its own", d.ID, down)
+					}
+					joined = joined || touch[[2]int{c, down}]
+				}
+				if !onMap[down] || !joined {
+					return fmt.Errorf("dam %s: downstream region %d is off the map or touches neither the dam's region nor an earlier downstream region", d.ID, down)
+				}
+				chain = append(chain, down)
+			}
+		}
+		r.outV5 = v
+	}
+	return nil
 }
 
 // harborZones gives each land region its harbour zone (P4 spec §3.5): of

@@ -1,0 +1,125 @@
+{
+  "landmarks": [
+    {
+      "id": "lm_eiffel",
+      "region": "FRA:Paris",
+      "note": "Eiffel Tower, Paris"
+    },
+    {
+      "id": "lm_westminster",
+      "region": "GBR:London",
+      "note": "Westminster clock tower, London"
+    },
+    {
+      "id": "lm_kremlin",
+      "region": "SUN:Moskva",
+      "note": "Kremlin, Moscow"
+    },
+    {
+      "id": "lm_brandenburg",
+      "region": "DEU:Berlin",
+      "note": "Brandenburg Gate, Berlin"
+    },
+    {
+      "id": "lm_colosseum",
+      "region": "ITA:Roma",
+      "note": "Colosseum, Rome"
+    },
+    {
+      "id": "lm_liberty",
+      "region": "USA:New York",
+      "note": "Statue of Liberty: the region named New York (spec §16.3); Manhattan's tile and New York City's points lie in the New Jersey region on this map"
+    },
+    {
+      "id": "lm_empire_state",
+      "region": "USA:New York",
+      "note": "Empire State Building: the region named New York, as the Statue of Liberty"
+    },
+    {
+      "id": "lm_golden_gate",
+      "region": "USA:California",
+      "note": "Golden Gate Bridge, San Francisco"
+    },
+    {
+      "id": "lm_hagia_sophia",
+      "region": "TUR:Istanbul",
+      "note": "Hagia Sophia, Istanbul"
+    },
+    {
+      "id": "lm_forbidden_city",
+      "region": "CHN:Beijing",
+      "note": "Forbidden City, Peiping"
+    },
+    {
+      "id": "lm_himeji",
+      "region": "JPN:Hyōgo",
+      "note": "Himeji Castle, Hyōgo"
+    },
+    {
+      "id": "lm_christ_redeemer",
+      "region": "BRA:Rio de Janeiro",
+      "note": "Christ the Redeemer, Rio de Janeiro"
+    },
+    {
+      "id": "lm_taj_mahal",
+      "region": "RAJ:Uttar Pradesh",
+      "note": "Taj Mahal, Agra (United Provinces)"
+    }
+  ],
+  "dams": [
+    {
+      "id": "dam_hoover",
+      "region": "USA:Nevada",
+      "downstream": ["USA:Arizona", "USA:California"],
+      "note": "Hoover Dam (Boulder Dam), Black Canyon on the Nevada–Arizona line; the lower Colorado runs on between Arizona and California"
+    },
+    {
+      "id": "dam_grand_coulee",
+      "region": "USA:Washington",
+      "downstream": ["USA:Oregon"],
+      "note": "Grand Coulee Dam; the lower Columbia forms the Washington–Oregon line"
+    },
+    {
+      "id": "dam_norris",
+      "region": "USA:Tennessee",
+      "downstream": ["USA:Alabama", "USA:Kentucky"],
+      "note": "Norris Dam on the Clinch; the Tennessee runs on through northern Alabama and back north through Kentucky to the Ohio"
+    },
+    {
+      "id": "dam_dnipro",
+      "region": "SUN:Zaporizhzhya",
+      "downstream": ["SUN:Kherson"],
+      "note": "Dneproges, Zaporizhzhia; the lower Dnieper runs to Kherson"
+    },
+    {
+      "id": "dam_mohne",
+      "region": "DEU:Nordrhein-Westfalen",
+      "downstream": [],
+      "note": "Möhne Dam, Sauerland; the Möhne and the Ruhr below it, down to the Rhine at Duisburg, lie in the dam's own region"
+    },
+    {
+      "id": "dam_eder",
+      "region": "DEU:Hessen",
+      "downstream": ["DEU:Niedersachsen"],
+      "note": "Edersee Dam; the Eder and the Fulda (Kassel) lie in the dam's region, the Weser below Hann. Münden in Lower Saxony"
+    },
+    {
+      "id": "dam_kembs",
+      "region": "FRA:Doubs",
+      "downstream": ["DEU:Baden-Württemberg", "DEU:Rheinland-Pfalz"],
+      "note": "Kembs Dam on the Rhine, Haut-Rhin; the Rhine runs on between Alsace and Baden, then past the Palatinate"
+    },
+    {
+      "id": "dam_galloway",
+      "region": "GBR:Glasgow",
+      "downstream": [],
+      "note": "Galloway hydro scheme (Tongland, Glenlee, the Ken); the Dee runs to Kirkcudbright in the dam's own region"
+    },
+    {
+      "id": "dam_vemork",
+      "region": "NOR:Telemark",
+      "downstream": [],
+      "note": "Vemork power station and heavy water plant, Rjukan; no downstream region (spec §16.4)"
+    }
+  ]
+}

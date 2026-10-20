@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -693,6 +694,62 @@ func TestStartAirBaseAndAA(t *testing.T) {
 		}
 		if got := startAA(c.major, c.capital, c.dev, c.vp); got != c.aa {
 			t.Fatalf("%+v: anti-air %d", c, got)
+		}
+	}
+}
+
+// Version 5 (P6 spec §16.1): coal, uranium and hydro go to every region (0
+// when none), the landmarks and the dam where the tool put them.
+func TestV5Fields(t *testing.T) {
+	packed, ids, w, h, src := v4Grid()
+	src.Edges = []landEdge{{1, 2, 3, 100, 0, 0}}
+	src.Regions[0].Coal, src.Regions[0].Hydro, src.Regions[0].Landmarks = 8, 2, []string{"lm_brandenburg"}
+	src.Regions[1].Uranium, src.Regions[1].Dam = 1, &outDam{ID: "dam_mohne", Downstream: []int{1}}
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	berlin, warsaw := out.Regions[0].outV5, out.Regions[1].outV5
+	if berlin.Coal != 8 || berlin.Uranium != 0 || berlin.Hydro != 2 || len(berlin.Landmarks) != 1 || berlin.Dam != nil {
+		t.Fatalf("Berlin %+v", *berlin)
+	}
+	if warsaw.Uranium != 1 || warsaw.Dam == nil || warsaw.Dam.ID != "dam_mohne" || len(warsaw.Dam.Downstream) != 1 {
+		t.Fatalf("Warsaw %+v", *warsaw)
+	}
+	js, err := json.Marshal(out.Regions[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(js); !strings.Contains(s, `"coal":0,"uranium":1,"hydro":0,"dam":{"id":"dam_mohne","downstream":[1]}`) || strings.Contains(s, "landmarks") {
+		t.Fatalf("Warsaw's JSON: %s", s)
+	}
+}
+
+// The version 5 data must fit the bounds and the land graph.
+func TestV5MustFit(t *testing.T) {
+	cases := []struct {
+		want string
+		edit func(src *scenarioSrc)
+	}{
+		{"coal 9, uranium 0, hydro 0, 0 landmarks out of bounds", func(s *scenarioSrc) { s.Regions[0].Coal = 9 }},
+		{"3 landmarks out of bounds", func(s *scenarioSrc) { s.Regions[0].Landmarks = []string{"a", "b", "c"} }},
+		{"landmark lm_eiffel twice", func(s *scenarioSrc) {
+			s.Regions[0].Landmarks, s.Regions[1].Landmarks = []string{"lm_eiffel"}, []string{"lm_eiffel"}
+		}},
+		{"downstream region 2 twice or its own", func(s *scenarioSrc) { s.Regions[1].Dam = &outDam{ID: "dam_eder", Downstream: []int{2}} }},
+		{"touches neither", func(s *scenarioSrc) {
+			s.Edges = nil
+			s.Regions[1].Dam = &outDam{ID: "dam_eder", Downstream: []int{1}}
+		}},
+		{"off the map", func(s *scenarioSrc) { s.Regions[1].Dam = &outDam{ID: "dam_eder", Downstream: []int{1, 7}} }},
+		{"with 4 downstream regions", func(s *scenarioSrc) { s.Regions[1].Dam = &outDam{ID: "dam_eder", Downstream: []int{1, 1, 1, 1}} }},
+	}
+	for _, c := range cases {
+		packed, ids, w, h, src := v4Grid()
+		src.Edges = []landEdge{{1, 2, 3, 100, 0, 0}}
+		c.edit(&src)
+		if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Fatalf("%s: err = %v", c.want, err)
 		}
 	}
 }
