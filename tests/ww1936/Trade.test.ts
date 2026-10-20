@@ -37,6 +37,7 @@ import {
   step,
   stepTo,
   takeRegion,
+  withTestPolitics,
   wwRunnerCapture,
 } from "./util";
 
@@ -107,6 +108,9 @@ const graphOf = (econ: WwEconomy): TradeGraph => ({
 const dealsOf = (econ: WwEconomy) =>
   econ.trades().map((t) => [t.buyer, t.seller, RESOURCE_IDS[t.res], t.civs]);
 
+// P3: the P1/P2 numbers, not the 1936 politics content (plan Task 1).
+withTestPolitics();
+
 describe("trade (spec §7.4–§7.5)", () => {
   test("faction members trade anywhere", async () => {
     const { runner, econ, id, buy, ww } = await game();
@@ -155,7 +159,11 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(shown()[STEEL]).toBe(2);
     expect(shown()).toEqual(live());
     // A closed economy sells nothing: the deal waits for the day's check,
-    // the screens show no room at once.
+    // the screens show no room at once. P3 spec §7.2: Germany needs a
+    // communist or fascist government (or a war) and 100 PP for it.
+    const deuPol = runner.game.worldWar()!.politics.country(deu)!;
+    deuPol.ruling = 2;
+    deuPol.ppMilli = 500_000;
     order(clientOf("DEU"), {
       kind: "set_law",
       law: "trade",

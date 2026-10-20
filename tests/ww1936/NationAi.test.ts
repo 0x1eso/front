@@ -8,7 +8,7 @@ import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { HISTORY } from "@openfront/engine-lib/ww1936/History";
+import { HISTORY_BEATS } from "@openfront/engine-lib/ww1936/content/history";
 import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import { NationAllianceBehavior } from "@openfront/engine/execution/nation/NationAllianceBehavior";
 import { NationEmojiBehavior } from "@openfront/engine/execution/nation/NationEmojiBehavior";
@@ -226,11 +226,18 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
-    // Only "1 September 1939: Germany declares war on Poland", on day 1.
-    const entry = HISTORY.findIndex(
-      (e) => e.actor === "DEU" && e.target === "POL",
+    // Only "1 September 1939: Germany declares war on Poland", on day 1
+    // (P3: the calendar is politics' history beats, rolled on the first tick).
+    step(runner);
+    const entry = HISTORY_BEATS.findIndex(
+      (b) =>
+        b.actor === "DEU" && b.act.kind === "declare" && b.act.target === "POL",
     );
-    ww.setHistory(HISTORY.map((_, i) => [i === entry ? 1 : -1, false]));
+    ww.politics.beats = HISTORY_BEATS.map((_, i) => ({
+      fireDay: 1,
+      skipped: i !== entry,
+      done: false,
+    }));
     const launches = watchLaunches(g);
     stepTo(runner, dayStartTick(1, WW_PREP_TICKS) + 1);
     expect(ww.isAtWar(deu.smallID(), pol.smallID())).toBe(true);

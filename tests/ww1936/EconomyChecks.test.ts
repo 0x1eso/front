@@ -108,32 +108,45 @@ describe("shared judgements (plan decision 3)", () => {
   });
 
   test("laws: ladder, same, cooldown, condition", () => {
-    const ctx = { day: 0, warDays: -1 };
-    expect(lawBlockOf(LAWS, NO_COOLDOWN, "economy", "free_trade", ctx)).toBe(
+    // P3 (plan decision 11): the conditions and the cost are lawBlock's
+    // (PoliticsRules, spec §7.2); a neutral country at peace with 30% war
+    // support and enough PP.
+    const ctx = {
+      wsBp: 3000,
+      wtBp: 400,
+      ruling: 3,
+      atWar: false,
+      ppMilli: 200_000,
+      costMilli: 75_000,
+    };
+    expect(lawBlockOf(LAWS, NO_COOLDOWN, "economy", "free_trade", 0, ctx)).toBe(
       "law_kind",
     );
-    expect(lawBlockOf(LAWS, NO_COOLDOWN, "economy", "civilian", ctx)).toBe(
+    expect(lawBlockOf(LAWS, NO_COOLDOWN, "economy", "civilian", 0, ctx)).toBe(
       "law_same",
     );
     expect(
-      lawBlockOf(LAWS, NO_COOLDOWN, "economy", "early_mobilization", ctx),
+      lawBlockOf(LAWS, NO_COOLDOWN, "economy", "early_mobilization", 0, ctx),
     ).toBeNull();
-    expect(lawBlockOf(LAWS, NO_COOLDOWN, "economy", "war_economy", ctx)).toBe(
-      "law_condition",
-    );
+    expect(
+      lawBlockOf(LAWS, NO_COOLDOWN, "economy", "war_economy", 0, ctx),
+    ).toBe("law_ws");
+    expect(
+      lawBlockOf(LAWS, NO_COOLDOWN, "economy", "total_mobilization", 0, ctx),
+    ).toBe("law_condition");
     const cool = { ...NO_COOLDOWN, economy: 30 };
     expect(
-      lawBlockOf(LAWS, cool, "economy", "early_mobilization", {
-        day: 29,
-        warDays: -1,
-      }),
+      lawBlockOf(LAWS, cool, "economy", "early_mobilization", 29, ctx),
     ).toBe("law_cooldown");
     expect(
-      lawBlockOf(LAWS, cool, "economy", "early_mobilization", {
-        day: 30,
-        warDays: -1,
-      }),
+      lawBlockOf(LAWS, cool, "economy", "early_mobilization", 30, ctx),
     ).toBeNull();
+    expect(
+      lawBlockOf(LAWS, cool, "economy", "early_mobilization", 30, {
+        ...ctx,
+        ppMilli: 74_999,
+      }),
+    ).toBe("no_pp");
   });
 
   test("production: line count and generation techs", () => {
@@ -230,9 +243,16 @@ describe("the engine's judgements use them", () => {
     expect(lawBlock(econ, deu, "economy", "partial_mobilization", 0)).toBe(
       "law_same",
     );
-    expect(lawBlock(econ, deu, "economy", "war_economy", 0)).toBe(
+    // P3: 50% war support (no politics row) passes the gates; 50 PP does
+    // not pay a 150 or 100 PP law; total mobilization needs a war.
+    expect(lawBlock(econ, deu, "economy", "war_economy", 0)).toBe("no_pp");
+    expect(lawBlock(econ, deu, "economy", "total_mobilization", 0)).toBe(
       "law_condition",
     );
+    expect(
+      lawBlock(econ, deu, "conscription", "extensive", dayOfDate("1938-01-01")),
+    ).toBe("no_pp");
+    g.worldWar()!.politics.country(deu.smallID)!.ppMilli = 500_000;
     expect(
       lawBlock(econ, deu, "conscription", "extensive", dayOfDate("1938-01-01")),
     ).toBeNull();

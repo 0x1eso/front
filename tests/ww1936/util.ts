@@ -14,11 +14,17 @@ import {
   GameStartInfo,
   Intent,
   StampedIntent,
+  WwOrder,
 } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game, Player } from "@openfront/engine/game/Game";
-import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
+import {
+  createGameRunner,
+  createGameRunnerFromSnapshot,
+  GameRunner,
+} from "@openfront/engine/GameRunner";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
 import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
 import type {
@@ -28,10 +34,15 @@ import type {
 import { fieldDivision } from "@openfront/engine/ww1936/land/LandStartRun";
 import { capture } from "@openfront/engine/ww1936/land/Occupation";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
+import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import type { WwPolitics } from "@openfront/engine/ww1936/politics/WwPolitics";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
+import { politicsFixture } from "./politicsFixture";
 
 export const MINI = "ww1936mini";
+/** P3 (plan decision 22): ww1936mini plus AUT, CSK, LTU, EST on nine islands. */
+export const POL = "ww1936pol";
 export const HUMAN = "HUMAN001";
 
 export interface WwHuman {
@@ -77,14 +88,18 @@ export function wwGameStart(
 export async function wwRunnerCapture(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
+  map = MINI,
+  gameID?: string,
 ): Promise<{ runner: GameRunner; updates: GameUpdateViewData[] }> {
   const start = wwGameStart(config, humans);
+  // P3: the game id seeds politics' roll (plan decision 2).
+  if (gameID !== undefined) start.gameID = gameID;
   const updates: GameUpdateViewData[] = [];
   const runner = await createGameRunner(
     start,
     undefined,
     await loadMapFiles(
-      new TestDataMapLoader(MINI),
+      new TestDataMapLoader(map),
       GameMapType.World1936,
       GameMapSize.Normal,
     ),
@@ -99,8 +114,9 @@ export async function wwRunnerCapture(
 export async function wwRunner(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
+  map = MINI,
 ): Promise<GameRunner> {
-  return (await wwRunnerCapture(config, humans)).runner;
+  return (await wwRunnerCapture(config, humans, map)).runner;
 }
 
 /** Runs n ticks; the intents go into the first one. */
@@ -209,4 +225,61 @@ export function warAfterPrep(
       target: byTag(runner.game, b).id(),
     }),
   ]);
+}
+
+// ---- P3: politics (plan Task 1 Step 16; every lane uses these) ----
+
+/** The game's politics. */
+export function pol(game: Game): WwPolitics {
+  return game.worldWar()!.politics;
+}
+
+/** Runs until the start of `date` (the day's first tick). */
+export function stepToDate(runner: GameRunner, date: string): void {
+  const ww = runner.game.worldWar()!;
+  stepTo(runner, dayStartTick(dayOfDate(date), ww.prepEndTick()));
+}
+
+/** A human order for `clientID`. */
+export function order(clientID: string, o: WwOrder): StampedIntent {
+  return stamped(clientID, { type: "ww_order", order: o });
+}
+
+/**
+ * A new runner from `runner`'s snapshot (the snapshot holds the config and
+ * the players; the game start gives the game id). P3: politics' content is
+ * the content source's, the same for both while a test runs.
+ */
+export async function wwRestore(
+  runner: GameRunner,
+  humans: WwHuman[] = [],
+  map = MINI,
+): Promise<GameRunner> {
+  return createGameRunnerFromSnapshot(
+    wwGameStart({}, humans),
+    runner.snapshot(),
+    undefined,
+    await loadMapFiles(
+      new TestDataMapLoader(map),
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    ),
+    () => {},
+  );
+}
+
+/** The game hash (GameImpl.hash). */
+export function gameHash(runner: GameRunner): number {
+  return (runner.game as unknown as { hash(): number }).hash();
+}
+
+/**
+ * P3: a P1/P2 formula test file runs its games on the small test content
+ * (no politics rows: neutral, 50% stability and war support, no spirits,
+ * events or decisions), so the content lanes' 1936 politics does not move
+ * its numbers. Call once at the top of the file.
+ */
+export function withTestPolitics(): void {
+  beforeEach(() => usePoliticsContent(politicsFixture()));
+  afterEach(() => usePoliticsContent(null));
 }

@@ -314,6 +314,127 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     clientID: P3,
     order: { kind: "appoint_general" },
   },
+  // P3: politics' 24 kinds (plan Task 1 Step 3).
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "focus_start", focus: "gen_ind_survey" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "focus_queue", focus: "deu_rhineland" },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "focus_cancel" },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "focus_unqueue" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "advisor_hire", slot: 7, advisor: "title:rs_aircraft" },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "advisor_fire", slot: 0 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "decision_take", decision: "gen_coup_fas", target: 1000 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "decision_cancel", decision: "gen_coup_fas", target: 0 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "event_choose", uid: 10_000_000, option: "d" },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "justify", target: 1, goal: "claim", group: "sudetenland" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "justify_cancel" },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "guarantee", target: 8 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "guarantee_end", target: 8 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "nap_offer", target: 7 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "nap_break", target: 7 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "access_ask", target: 79 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "access_revoke", target: 79 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "faction_create" },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "faction_invite", target: 2 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "faction_request", target: 4 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "faction_kick", target: 2 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "faction_leave" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "faction_dissolve" },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "improve_relations", target: 5 },
+  },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

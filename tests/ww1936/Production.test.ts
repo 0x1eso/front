@@ -38,6 +38,7 @@ import {
   stamped,
   step,
   stepTo,
+  withTestPolitics,
   wwRunner,
 } from "./util";
 
@@ -86,6 +87,9 @@ const throughDay = (runner: GameRunner, d: number) =>
 const outputPct = (ce: CountryEconomy) =>
   ce.law().outputPct + ce.tech.outputPct;
 const STEEL = RESOURCE_IDS.indexOf("steel");
+
+// P3: the P1/P2 numbers, not the 1936 politics content (plan Task 1).
+withTestPolitics();
 
 describe("production lines (spec §8)", () => {
   test("a new line starts at 10% and grows by the HOI4 rule", async () => {

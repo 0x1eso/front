@@ -53,6 +53,7 @@ import {
   LAW_NEED_KEYS,
   lawClosesDeals,
   lawLadder,
+  type LawPolitics,
   lawStepReason,
   lineRows,
   lineShortages,
@@ -701,21 +702,34 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
         conscription: "limited",
       },
     });
-    const economy = lawLadder(d, "economy", 0);
+    // P3 spec §7.2: neutral, 20% war support, 500 PP, at peace.
+    const pol: LawPolitics = {
+      wsBp: 2000,
+      wtBp: 0,
+      ruling: 3,
+      ppMilli: 500_000,
+      lawCostPct: 0,
+      conscriptionCostPct: 0,
+    };
+    const economy = lawLadder(d, "economy", 0, -1, pol);
     expect(
-      economy.map((s) => [s.value, s.current, s.allowed, s.block]),
+      economy.map((s) => [s.value, s.current, s.allowed, s.block, s.costPp]),
     ).toEqual([
-      ["civilian", true, true, "law_same"],
-      ["early_mobilization", false, true, null],
-      ["partial_mobilization", false, false, "law_condition"],
-      ["war_economy", false, false, "law_condition"],
-      ["total_mobilization", false, false, "law_condition"],
+      ["civilian", true, true, "law_same", 50],
+      ["early_mobilization", false, true, null, 75],
+      ["partial_mobilization", false, false, "law_ws", 100],
+      ["war_economy", false, false, "law_ws", 150],
+      ["total_mobilization", false, false, "law_condition", 150],
     ]);
     expect(lawStepReason(economy[0])).toBeNull();
     expect(lawStepReason(economy[1])).toBeNull();
-    expect(lawStepReason(economy[2])).toBe(
-      "[ww1936.econ.law_need.partial_mobilization]",
-    );
+    expect(lawStepReason(economy[2])).toBe("[ww1936.econ.block.law_ws]");
+    // Too little PP for the step.
+    expect(
+      lawLadder(d, "economy", 0, -1, { ...pol, ppMilli: 74_999 })[1].block,
+    ).toBe("no_pp");
+    // Without politics yet: nothing known, nothing that costs is open.
+    expect(lawLadder(d, "economy", 0)[1].block).toBe("no_pp");
     // Changed ten days ago: twenty days to wait, whatever the step.
     const waiting = detail("DEU", {
       lawCooldownUntil: { economy: 30, trade: 0, conscription: 0 },
@@ -725,17 +739,20 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
         conscription: "limited",
       },
     });
-    const early = lawLadder(waiting, "economy", 10)[1];
+    const early = lawLadder(waiting, "economy", 10, -1, pol)[1];
     expect(early).toMatchObject({ cooldownDays: 20, block: "law_cooldown" });
     expect(lawStepReason(early)).toBe("[ww1936.econ.cooldown] n=20");
-    // A year of war: all adults serve, not yet the last call-up.
+    // At war with 70% war support: all adults serve, not yet the last call-up.
     const war = detail("DEU", { warDays: 400 });
-    const conscription = lawLadder(war, "conscription", 400);
+    const conscription = lawLadder(war, "conscription", 400, 400, {
+      ...pol,
+      wsBp: 7000,
+    });
     expect(
       conscription.find((s) => s.value === "all_adults")!.block,
     ).toBeNull();
     expect(conscription.find((s) => s.value === "scraping")!.block).toBe(
-      "law_condition",
+      "law_ws",
     );
   });
   it("the army counts attacks and boats, as the engine's armyMen", () => {
@@ -765,13 +782,24 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
         conscription: "limited",
       },
     });
-    const war = lawLadder(d, "economy", 40, 40).find(
+    // P3 spec §7.2: war economy is open at war whatever the war support.
+    const pol: LawPolitics = {
+      wsBp: 2000,
+      wtBp: 0,
+      ruling: 3,
+      ppMilli: 500_000,
+      lawCostPct: 0,
+      conscriptionCostPct: 0,
+    };
+    const war = lawLadder(d, "economy", 40, 40, pol).find(
       (s) => s.value === "war_economy",
     )!;
     expect(war.block).toBeNull();
     expect(
-      lawLadder(d, "economy", 40).find((s) => s.value === "war_economy")!.block,
-    ).toBe("law_condition");
+      lawLadder(d, "economy", 40, -1, pol).find(
+        (s) => s.value === "war_economy",
+      )!.block,
+    ).toBe("law_ws");
   });
 
   it("knows which law changes close deals", () => {

@@ -23,7 +23,15 @@ import {
 } from "@openfront/engine/ww1936/land/Battles";
 import { startHopInto } from "@openfront/engine/ww1936/land/Movement";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
-import { byTag, clearLand, HUMAN, land, placeArmy, wwRunner } from "./util";
+import {
+  byTag,
+  clearLand,
+  HUMAN,
+  land,
+  placeArmy,
+  withTestPolitics,
+  wwRunner,
+} from "./util";
 
 const BERLIN = 3;
 const WARSAW = 6;
@@ -76,6 +84,9 @@ function ticksToFull(l: WwLand, r: number): number {
 
 /** Recovery a tick at full supply: 0.3 an hour of 1.829 hours (spec §9.8), milli. */
 const BASE = Math.floor((300 * WW_ROUND_HOUR_MILLI) / 1000);
+
+// P3: the P1/P2 numbers, not the 1936 politics content (plan Task 1).
+withTestPolitics();
 
 describe("World War 1936 P2: org recovery and entrenchment (spec §9.8)", () => {
   test("org recovers 0 → 60 in about 15 days", async () => {
