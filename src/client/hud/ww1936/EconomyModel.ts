@@ -1177,9 +1177,26 @@ export function industryDial(
       first === undefined || first.costMilli <= 0
         ? 0
         : first.progressMilli / first.costMilli,
-    idle: summary?.idleMil ?? 0,
+    idle: summary === null ? 0 : idleMilOf(summary, detail),
     queued: detail.queue.length,
   };
+}
+
+/**
+ * Military factories without a line. The engine's daily trim
+ * (Production.stepProduction: the lines, top first, take what is left)
+ * leaves exactly `mil − the factories the lines ask for`. Counted from the
+ * lines it is right at once — in the preparation minute, before the
+ * engine's first day, and right after a line order — while the summary's
+ * `idleMil` only moves on the country's next day (it is 0 until day 0).
+ */
+export function idleMilOf(
+  summary: WwCountrySummary,
+  detail: WwCountryDetail,
+): number {
+  let asked = 0;
+  for (const l of detail.lines) asked += l.factories;
+  return Math.max(0, summary.mil - asked);
 }
 
 export interface ResearchDialModel {

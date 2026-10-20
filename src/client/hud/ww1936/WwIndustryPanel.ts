@@ -42,6 +42,7 @@ import {
   equipmentName,
   fightingFn,
   genName,
+  idleMilOf,
   infraDots,
   lawClosesDeals,
   lawKindName,
@@ -640,7 +641,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       <p data-ww-mil class="m-0 mt-2 text-xs text-white/80">
         ${translateText("ww1936.econ.mil_factories", {
           n: c.summary.mil,
-          idle: c.summary.idleMil,
+          idle: idleMilOf(c.summary, d),
         })}
       </p>
       <ul data-ww-lines class="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
@@ -857,7 +858,7 @@ export class WwIndustryPanel extends WwDrawerBase {
     const d = c.detail;
     // The line limit blocks every equipment alike.
     const linesFull = addLineBlock(d, "infantry_equipment", 1) === "lines_full";
-    const factories = Math.min(WW_MAX_LINE_FACTORIES, c.summary.idleMil);
+    const factories = Math.min(WW_MAX_LINE_FACTORIES, idleMilOf(c.summary, d));
     return html`<section data-ww-new-line-section>
       <button
         type="button"

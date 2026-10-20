@@ -45,6 +45,7 @@ import {
   effectLines,
   EQUIPMENT_KEYS,
   GEN_KEYS,
+  idleMilOf,
   industryDial,
   LAW_KEYS,
   LAW_KIND_KEYS,
@@ -176,7 +177,7 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     // No factories yet: no estimate.
     expect(b.daysLeft).toBe(-1);
     expect(constructionRows(d, scenario, true)[0].regionName).toBe("베를린");
-    expect(industryDial(d, summary("DEU", { idleMil: 2 }))).toEqual({
+    expect(industryDial(d, summary("DEU", { mil: 2, idleMil: 0 }))).toEqual({
       progress: a.progress,
       idle: 2,
       queued: 2,
@@ -308,6 +309,34 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       { id: "steel", amount: 40 },
     ]);
     expect(regionCard(game as never, tileOf(1))!.mine).toBe(false);
+  });
+
+  it("idle military factories follow the lines asked for, before day 0 too", () => {
+    const mk = (factories: number[]): WwLineData[] =>
+      factories.map((f, i) => ({
+        id: i + 1,
+        equipment: "infantry_equipment",
+        gen: 1,
+        factories: f,
+        active: 0,
+        effBp: 1_000,
+        progressMilli: 0,
+        costMilli: 500,
+        fill: 1000,
+        outputMilli: 0,
+      }));
+    // The preparation minute: the engine's idleMil is still 0.
+    const prep = summary("DEU", { mil: 16, idleMil: 0 });
+    expect(idleMilOf(prep, detail("DEU"))).toBe(16);
+    expect(idleMilOf(prep, detail("DEU", { lines: mk([10, 4]) }))).toBe(2);
+    // More asked for than there are: none idle (the bottom line waits).
+    expect(idleMilOf(prep, detail("DEU", { lines: mk([10, 9]) }))).toBe(0);
+    // The engine's trim (Production.stepProduction) gives the same count.
+    for (const asked of [[], [3], [10, 4], [10, 9], [0, 0, 20]]) {
+      let avail = 16;
+      for (const f of asked) avail -= Math.min(f, avail);
+      expect(idleMilOf(prep, detail("DEU", { lines: mk(asked) }))).toBe(avail);
+    }
   });
 
   it("the efficiency bar shows the cap", () => {

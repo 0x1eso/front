@@ -107,7 +107,9 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
 
   it("the add-line button sends add_line", async () => {
     const m = mount({
-      summaries: [summary("DEU", { idleMil: 4 })],
+      // Four military factories, no line yet: all four are idle, before
+      // the engine's first day too (its idleMil is still 0 then).
+      summaries: [summary("DEU", { mil: 4, idleMil: 0 })],
       details: [detail("DEU")],
     });
     await m.open("production");
