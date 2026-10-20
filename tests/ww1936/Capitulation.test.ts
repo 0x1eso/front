@@ -5,11 +5,13 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
+  WW_CAPITULATION_DAYS,
   WW_PREP_TICKS,
   WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import type { Game, Player } from "@openfront/engine/game/Game";
+import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
+import type { Execution, Game, Player } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   checkCapitulations,
@@ -58,6 +60,14 @@ function queueBacklog(g: Game, a: Player, b: Player, tiles: number): void {
   }
 }
 
+/**
+ * Fills `p`'s capitulation gauge to one short of full, so the next daily
+ * check that finds it past its surrender line makes it capitulate.
+ */
+function nearlyFull(g: Game, p: Player): void {
+  g.worldWar()!.setCapitulationGauge(p.smallID(), WW_CAPITULATION_DAYS - 1);
+}
+
 /** Runs to the start of the next day after now (the daily check runs then). */
 function nextDay(runner: Awaited<ReturnType<typeof wwRunner>>): void {
   const ww = runner.game.worldWar()!;
@@ -66,6 +76,12 @@ function nextDay(runner: Awaited<ReturnType<typeof wwRunner>>): void {
     dayStartTick(ww.day(runner.game.ticks()) + 1, WW_PREP_TICKS) + 1,
   );
 }
+
+/** Germany and Poland played by humans who do nothing. */
+const HUMAN_DEU_POL = [
+  { clientID: HUMAN, country: "DEU" as const },
+  { clientID: "HUMAN002", country: "POL" as const },
+];
 
 describe("victory points and capitulation (spec §7.5)", () => {
   test("at the start everyone controls exactly its own points", async () => {
@@ -79,8 +95,9 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(ww.startVp(byTag(g, "POL").smallID())).toBe(24);
   });
 
-  test("losing 80% of its starting points makes a country capitulate", async () => {
-    const { runner, updates } = await wwRunnerCapture();
+  test("a country 80% of whose points are held for 30 days capitulates", async () => {
+    // Both humans: no AI takes a point back meanwhile.
+    const { runner, updates } = await wwRunnerCapture({}, HUMAN_DEU_POL);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
@@ -88,10 +105,23 @@ describe("victory points and capitulation (spec §7.5)", () => {
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     deu.conquer(vpTileOf(g, "Krakow"));
     nextDay(runner);
-    expect(ww.isCapitulated(pol.smallID())).toBe(false); // 3 of 24 lost
+    // 3 of 24 lost: below the line.
+    expect(ww.capitulationGauge(pol.smallID())).toBe(0);
     deu.conquer(vpTileOf(g, "Warsaw"));
+    // Held briefly, then for 29 days: the gauge fills, no capitulation yet.
+    for (let day = 1; day < WW_CAPITULATION_DAYS; day++) {
+      nextDay(runner);
+      expect(ww.capitulationGauge(pol.smallID())).toBe(day);
+      expect(ww.isCapitulated(pol.smallID())).toBe(false);
+    }
+    expect(ww.data().gauges).toEqual([
+      { smallID: pol.smallID(), days: WW_CAPITULATION_DAYS - 1 },
+    ]);
+    // The 30th day in a row past the line.
     nextDay(runner);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(0);
+    expect(ww.data().gauges).toEqual([]);
     expect(ww.isAtWar(deu.smallID(), pol.smallID())).toBe(false);
     expect(pol.outgoingAttacks()).toEqual([]);
     expect(ww.data().capitulated).toEqual([
@@ -144,15 +174,88 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(pol.isAlive()).toBe(true);
   });
 
+  test("a recovery empties the gauge a day at a time, and the end of its wars empties it", async () => {
+    const runner = await wwRunner({}, HUMAN_DEU_POL);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    const warsaw = vpTileOf(g, "Warsaw");
+    deu.conquer(warsaw);
+    for (let day = 0; day < 5; day++) nextDay(runner);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(5);
+    // Poland takes Warsaw back: one day off per day.
+    pol.conquer(warsaw);
+    nextDay(runner);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(4);
+    nextDay(runner);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(3);
+    // Lost again: it fills from there.
+    deu.conquer(warsaw);
+    nextDay(runner);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(4);
+    expect(ww.data().gauges).toEqual([{ smallID: pol.smallID(), days: 4 }]);
+    // Its only war ends (as Germany's capitulation would end it).
+    ww.endWarsOf(deu.smallID());
+    nextDay(runner);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(0);
+    expect(ww.data().gauges).toEqual([]);
+    for (let day = 0; day < WW_CAPITULATION_DAYS; day++) nextDay(runner);
+    expect(ww.isCapitulated(pol.smallID())).toBe(false);
+  });
+
+  test("an attack of the loser that is already retreating finishes its retreat", async () => {
+    const runner = await wwRunner({}, HUMAN_DEU_POL);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    step(runner, 1, [
+      stamped("HUMAN002", {
+        type: "attack",
+        targetID: deu.id(),
+        troops: Math.floor(pol.troops() / 4),
+      }),
+    ]);
+    step(runner, 2);
+    const [attack] = pol.outgoingAttacks();
+    step(runner, 1, [
+      stamped("HUMAN002", { type: "cancel_attack", attackID: attack.id() }),
+    ]);
+    step(runner);
+    expect(attack.retreating()).toBe(true);
+    deu.conquer(vpTileOf(g, "Warsaw"));
+    nearlyFull(g, pol);
+    nextDay(runner);
+    expect(ww.isCapitulated(pol.smallID())).toBe(true);
+    expect(attack.isActive()).toBe(true);
+    // The retreat completes (20 ticks after the order) and its execution ends.
+    step(runner, 25);
+    expect(attack.isActive()).toBe(false);
+    const running = (g as unknown as { executions(): Execution[] })
+      .executions()
+      .filter(
+        (e) =>
+          e instanceof AttackExecution &&
+          e.isActive() &&
+          (e as unknown as { _owner: Player })._owner === pol,
+      );
+    expect(running).toEqual([]);
+  });
+
   test("a capitulation with no victor names none", async () => {
     const { runner, updates } = await wwRunnerCapture();
     const g = runner.game;
     const ww = g.worldWar()!;
-    const pol = byTag(g, "POL");
+    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
     stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     // Its points are lost to nobody: the land goes unowned.
     pol.relinquish(vpTileOf(g, "Warsaw"));
     pol.relinquish(vpTileOf(g, "Krakow"));
+    nearlyFull(g, pol);
     nextDay(runner);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
     expect(ww.data().capitulated).toEqual([
@@ -176,6 +279,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     deu.conquer(vpTileOf(g, "Warsaw"));
     const warsaw = vpTileOf(g, "Warsaw");
     const krakow = vpTileOf(g, "Krakow");
+    nearlyFull(g, pol);
     nextDay(runner);
     step(runner, 3);
     expect(pol.isAlive()).toBe(false);
@@ -199,6 +303,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     const krakow = vpTileOf(g, "Krakow");
     sun.conquer(krakow);
     deu.conquer(vpTileOf(g, "Warsaw"));
+    nearlyFull(g, pol);
     nextDay(runner);
     step(runner, 3);
     expect(g.owner(krakow)).toBe(sun);
@@ -249,6 +354,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     ww.setWar(fra.smallID(), deu.smallID(), g.ticks());
     deu.conquer(vpTileOf(g, "Warsaw"));
+    nearlyFull(g, pol);
     stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
     const left = 50;
     queueBacklog(
@@ -262,6 +368,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
 
     // Germany falls while Poland's last land is still on its way to it.
     fra.conquer(vpTileOf(g, "Berlin"));
+    nearlyFull(g, deu);
     checkCapitulations(g, ww, g.ticks());
     step(runner, 3);
     expect(ww.data().capitulated).toEqual([
@@ -295,6 +402,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     deu.conquer(vpTileOf(g, "Warsaw"));
+    nearlyFull(g, pol);
     nextDay(runner);
     step(runner, 3);
     expect(g.playerByClientID(HUMAN)!.isAlive()).toBe(false);
@@ -323,6 +431,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
         troops: sun.troops(),
       }),
     ]);
+    nearlyFull(g, pol);
     stepTo(runner, dayStartTick(day, WW_PREP_TICKS));
     const attack = sun.outgoingAttacks().find((a) => a.target() === pol)!;
     expect(attack.troops()).toBeGreaterThan(0);
@@ -379,6 +488,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(g.owner(landing)).toBe(pol);
 
     deu.conquer(vpTileOf(g, "Warsaw"));
+    nearlyFull(g, pol);
     stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
     expect(boat.isActive()).toBe(true);
     const troops = gbr.troops() + boat.troops();
@@ -411,6 +521,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     deu.conquer(vpTileOf(g, "Warsaw"));
+    nearlyFull(g, pol);
     stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
     const left = 50;
     queueBacklog(

@@ -134,6 +134,7 @@ describe("World War 1936 start", () => {
       prepEndTick: WW_PREP_TICKS,
       wars: [],
       capitulated: [],
+      gauges: [],
     });
   });
 
