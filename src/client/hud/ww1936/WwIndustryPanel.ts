@@ -16,7 +16,7 @@ import {
   WwOrderBlock,
   WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
+import { renderNumber } from "@openfront/engine-lib/Format";
 import type { TradeGraph } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -55,6 +55,7 @@ import {
   liveWarDays,
   maxBuildCount,
   maxTradeCivs,
+  menText,
   milliText,
   openTradeBlock,
   paidCivsOf,
@@ -459,6 +460,30 @@ export class WwIndustryPanel extends WwDrawerBase {
     </li>`;
   }
 
+  /**
+   * Another building type. The picked region ("Build here", or a tapped
+   * candidate) stays while it can take the new type; otherwise the pick
+   * goes back to the best candidate, so the stepper and Add never stop on
+   * a region the engine would refuse.
+   */
+  private pickBuilding(c: Ctx, building: BuildingId, slotPct: number) {
+    this.building = building;
+    this.count = 1;
+    this.allCandidates = false;
+    if (this.region === null) return;
+    const block = buildBlock(
+      c.view,
+      c.scenario,
+      c.id,
+      this.region,
+      building,
+      1,
+      slotPct,
+      c.fighting,
+    );
+    if (block !== null) this.region = null;
+  }
+
   private renderNewBuild(c: Ctx): TemplateResult {
     const slotPct = slotPctOf(c.detail);
     const candidates = buildCandidates(
@@ -511,11 +536,7 @@ export class WwIndustryPanel extends WwDrawerBase {
               class="${BUTTON} ${b === this.building
                 ? "border-amber-300 bg-amber-900/50"
                 : ""}"
-              @click=${() => {
-                this.building = b;
-                this.count = 1;
-                this.allCandidates = false;
-              }}
+              @click=${() => this.pickBuilding(c, b, slotPct)}
             >
               ${BUILDING_ICONS[b]} ${buildingName(b)}
             </button>`,
@@ -1255,15 +1276,15 @@ export class WwIndustryPanel extends WwDrawerBase {
     return html`<section data-ww-manpower>
       <div class=${HEADING}>${translateText("ww1936.econ.manpower")}</div>
       <dl class="m-0 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-        ${row("ww1936.econ.recruitable", renderTroops(s.recruitable))}
-        ${row("ww1936.econ.manpower", renderTroops(s.manpower))}
-        ${row("ww1936.econ.troops", renderTroops(c.me.troops()))}
-        ${row("ww1936.econ.troop_cap", renderTroops(s.troopCap))}
+        ${row("ww1936.econ.recruitable", menText(s.recruitable))}
+        ${row("ww1936.econ.manpower", menText(s.manpower))}
+        ${row("ww1936.econ.troops", menText(armyMenOf(c.me)))}
+        ${row("ww1936.econ.troop_cap", menText(s.troopCap))}
       </dl>
       <p data-ww-draft class="m-0 mt-1 text-xs">
         ${translateText("ww1936.econ.draft_today", {
-          n: renderTroops(d.recruited),
-          cap: renderTroops(d.trainCap),
+          n: menText(d.recruited),
+          cap: menText(d.trainCap),
         })}
       </p>
       <p data-ww-combat class="m-0 mt-1 text-xs text-white/80">

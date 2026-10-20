@@ -56,6 +56,7 @@ import {
   lineRows,
   lineShortages,
   liveWarDays,
+  menText,
   openTradeBlock,
   REGION_CAT_KEYS,
   regionCard,
@@ -133,9 +134,17 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
   });
 
   it("the top band shows factories, manpower and the shortage dot", () => {
+    // Manpower in real men (spec §13.1, ruling): 1,195,000 is "1.2M", not
+    // the troop bar's tenths ("119K").
     expect(
       topBandEconomy(summary("DEU", { civ: 32, mil: 16, shortage: true })),
-    ).toEqual({ civ: 32, mil: 16, manpowerText: "119K", shortage: true });
+    ).toEqual({ civ: 32, mil: 16, manpowerText: "1.2M", shortage: true });
+    expect(menText(1_195_000)).toBe("1.2M");
+    expect(menText(1_675_000)).toBe("1.7M");
+    expect(menText(480_000)).toBe("480K");
+    expect(menText(18_611)).toBe("18.6K");
+    expect(menText(12_345_678)).toBe("12.3M");
+    expect(menText(0)).toBe("0");
   });
 
   it("construction rows estimate days with the engine formula", () => {
@@ -372,15 +381,19 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     // Lines in order take what they need (EconomyRules.allocateResources):
     // the first gets 2 steel and the tungsten, the second 1 steel.
     expect(rows.map((r) => r.shortage)).toEqual([[], ["tungsten", "steel"]]);
-    const fill = allocateResources(
+    const alloc = allocateResources(
       resources.map((r) => r.produced),
       d.lines.map((l) => ({
         key: equipKey(l.equipment, l.gen),
         factories: l.active,
       })),
-    ).fill;
+    );
     expect(lineShortages(d).map((s) => s.length > 0)).toEqual(
-      fill.map((f) => f < 1000),
+      alloc.fill.map((f) => f < 1000),
+    );
+    // The very resources the engine's allocation found short.
+    expect(lineShortages(d)).toEqual(
+      alloc.short.map((lacks) => lacks.map((r) => RESOURCE_IDS[r])),
     );
     // "Used" is what the working lines need, so the shortage is red:
     // 2 + 2 steel and 1 + 1 tungsten asked for.

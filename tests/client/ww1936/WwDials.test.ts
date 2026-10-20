@@ -191,11 +191,11 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
       "🏭 9 / 6",
     );
     expect(chip.querySelector("[data-ww-manpower]")!.textContent).toBe(
-      "👥 119K",
+      "👥 1.2M",
     );
     expect(chip.querySelector("[data-ww-shortage]")).not.toBeNull();
     expect(chip.getAttribute("aria-label")).toBe(
-      "[ww1936.econ.band_label] civ=9,mil=6,manpower=119K · [ww1936.econ.shortage]",
+      "[ww1936.econ.band_label] civ=9,mil=6,manpower=1.2M · [ww1936.econ.shortage]",
     );
     chip.click();
     expect(emitted[0]).toBeInstanceOf(OpenWwIndustryEvent);

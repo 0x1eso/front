@@ -92,6 +92,11 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     right: GAP,
     bottom: GAP,
   };
+  /**
+   * A short landscape screen (at most COMPACT_MAX_HEIGHT tall, a phone):
+   * the tabs share the close button's row, so the list gets more room.
+   */
+  @state() protected compact = false;
   protected abstract readonly drawerId: WwDrawerId;
   private unregisterBack: (() => void) | null = null;
   private readonly refit = () => {
@@ -104,6 +109,8 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     ) {
       this.insets = next;
     }
+    const compact = window.innerHeight <= COMPACT_MAX_HEIGHT;
+    if (compact !== this.compact) this.compact = compact;
   };
 
   createRenderRoot() {
@@ -158,6 +165,9 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
   /**
    * The drawer: `head` (left of the close button), `tabs` (fixed) and
    * `body` (the only part that scrolls). `label` names it for screen readers.
+   * On a short screen (`compact`) the tabs take the head's place beside
+   * the close button — one fixed row instead of two; the name stays in
+   * `label`, and the open drawer's dial is outlined.
    */
   protected renderFrame(
     label: string,
@@ -166,9 +176,20 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     body: TemplateResult,
   ): TemplateResult {
     const { top, right, bottom } = this.insets;
+    const merged = this.compact && tabs !== nothing;
+    const close = html`<button
+      type="button"
+      data-ww-drawer-close
+      class="size-9 shrink-0 rounded-md hover:bg-white/10"
+      aria-label=${translateText("common.close")}
+      @click=${() => this.setOpen(false)}
+    >
+      ✕
+    </button>`;
     return html`
       <aside
         data-ww-drawer=${this.drawerId}
+        data-compact=${String(merged)}
         aria-label=${label}
         class="fixed z-[1002] flex min-h-40 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
         style="top: ${top}px; right: ${right}px; bottom: ${bottom}px; width: ${wwDrawerWidth(
@@ -176,19 +197,20 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
         )};"
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
-        <div class="flex shrink-0 items-center gap-2 pl-3 pr-1 pt-1">
-          ${head}
-          <button
-            type="button"
-            data-ww-drawer-close
-            class="size-9 shrink-0 rounded-md hover:bg-white/10"
-            aria-label=${translateText("common.close")}
-            @click=${() => this.setOpen(false)}
-          >
-            ✕
-          </button>
-        </div>
-        ${tabs}
+        ${merged
+          ? html`<div
+              data-ww-drawer-head
+              class="flex shrink-0 items-center gap-1 border-b border-white/10 py-0.5 pl-1 pr-1"
+            >
+              ${tabs} ${close}
+            </div>`
+          : html`<div
+                data-ww-drawer-head
+                class="flex shrink-0 items-center gap-2 pl-3 pr-1 pt-1"
+              >
+                ${head} ${close}
+              </div>
+              ${tabs}`}
         <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           ${body}
         </div>
@@ -196,7 +218,10 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     `;
   }
 
-  /** A row of tab buttons that stays put while the list scrolls. */
+  /**
+   * A row of tab buttons that stays put while the list scrolls (beside the
+   * close button on a short screen, renderFrame).
+   */
   protected renderTabs<T extends string>(
     tabs: readonly T[],
     current: T,
@@ -205,7 +230,9 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
   ): TemplateResult {
     return html`<div
       role="tablist"
-      class="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-2 pb-1"
+      class="flex gap-1 overflow-x-auto ${this.compact
+        ? "min-w-0 flex-1"
+        : "shrink-0 border-b border-white/10 px-2 pb-1"}"
     >
       ${tabs.map(
         (t) =>

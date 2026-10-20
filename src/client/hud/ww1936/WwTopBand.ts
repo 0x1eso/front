@@ -27,7 +27,7 @@ const BAND_GAP = 8;
 export const BAND_MIN_PX = 240;
 /**
  * What the economy chip adds to that, with the band's gap: the whole chip
- * ("🏭 32 / 16 👥 1.10M ●") and the compact one without manpower. Text
+ * ("🏭 32 / 16 👥 1.2M ●") and the compact one without manpower. Text
  * runs longer in some games: the band also measures itself (WwTopBand.updated).
  */
 export const CHIP_FULL_PX = 170;

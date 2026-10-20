@@ -35,7 +35,7 @@ import {
   WwTechId,
   WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
+import { renderNumber } from "@openfront/engine-lib/Format";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   addLineBlockOf,
@@ -52,6 +52,7 @@ import {
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   aheadPct,
+  allocateResources,
   constructionDaysLeft,
   constructionProgress,
   consumerGoodsMilli,
@@ -454,9 +455,18 @@ export function topBandEconomy(s: WwCountrySummary): TopBandEconomy {
   return {
     civ: s.civ,
     mil: s.mil,
-    manpowerText: renderTroops(s.manpower),
+    manpowerText: menText(s.manpower),
     shortage: s.shortage,
   };
+}
+
+/**
+ * "1.2M" for 1,195,000: people as they are (spec §13.1's "1.1M", controller
+ * ruling) — not the troop bar's tenths (renderTroops). Manpower, the army,
+ * the caps and the daily draft all count men.
+ */
+export function menText(men: number): string {
+  return renderNumber(men, 1);
 }
 
 // ---- Construction (spec §4, §13.3 tab 1) ----
@@ -651,26 +661,22 @@ export interface LineRow {
 
 /**
  * Per line, the resources it is short of (pre-flight R7.9): the engine's
- * allocation (EconomyRules.allocateResources) run again on the detail —
- * lines in order take what they need from produced − exported + imported.
+ * own allocation (EconomyRules.allocateResources, as Production.stepProduction
+ * calls it) on the detail — lines in order take what they need from
+ * produced − exported + imported.
  */
 export function lineShortages(detail: WwCountryDetail): ResourceId[][] {
-  const left = RESOURCE_IDS.map((_, r) => {
+  const available = RESOURCE_IDS.map((_, r) => {
     const row = detail.resources[r];
     return row === undefined ? 0 : row.produced - row.exported + row.imported;
   });
-  return detail.lines.map((l) => {
-    const per = EQUIPMENT[l.equipment].resources;
-    const short: ResourceId[] = [];
-    RESOURCE_IDS.forEach((id, r) => {
-      const need = per[r] * l.active;
-      if (need === 0) return;
-      const give = Math.min(need, Math.max(0, left[r]));
-      left[r] -= give;
-      if (give < need) short.push(id);
-    });
-    return short;
-  });
+  return allocateResources(
+    available,
+    detail.lines.map((l) => ({
+      key: equipKey(l.equipment, l.gen),
+      factories: l.active,
+    })),
+  ).short.map((lacks) => lacks.map((r) => RESOURCE_IDS[r]));
 }
 
 export function lineRows(detail: WwCountryDetail): LineRow[] {

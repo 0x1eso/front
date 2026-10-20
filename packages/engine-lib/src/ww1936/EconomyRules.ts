@@ -180,6 +180,11 @@ export interface Allocation {
   fill: number[];
   /** Per resource. */
   used: number[];
+  /**
+   * Per line, the resources (RESOURCE_IDS indices, in that order) it got
+   * less of than it needs — what the screens mark short on the line.
+   */
+  short: number[][];
 }
 
 /** HOI4 allocation: lines in order take what they need (spec §7.3). */
@@ -190,9 +195,11 @@ export function allocateResources(
   const left = available.slice(0, RESOURCE_COUNT);
   const used = new Array<number>(RESOURCE_COUNT).fill(0);
   const fill: number[] = [];
+  const short: number[][] = [];
   for (const line of lines) {
     const per = EQUIPMENT[EQUIP_KEYS[line.key][0]].resources;
     let f = 1000;
+    const lacks: number[] = [];
     for (let r = 0; r < RESOURCE_COUNT; r++) {
       const need = per[r] * line.factories;
       if (need === 0) continue;
@@ -200,10 +207,12 @@ export function allocateResources(
       left[r] -= give;
       used[r] += give;
       f = Math.min(f, Math.floor((give * 1000) / need));
+      if (give < need) lacks.push(r);
     }
     fill.push(f);
+    short.push(lacks);
   }
-  return { fill, used };
+  return { fill, used, short };
 }
 
 // ---- Resources (spec §7.1) ----
