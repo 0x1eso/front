@@ -153,7 +153,20 @@ export class PlayerExecution implements Execution {
       }
     }
 
-    if (
+    const ww = this.mg.worldWar();
+    if (ww !== null) {
+      // World War 1936 P2 (spec §13.1): no cluster pass in this mode; the
+      // box of the regions it controls.
+      if (
+        ticks - this.lastCalc > this.ticksPerClusterCalc &&
+        this.player.lastTileChange() >= this.lastCalc
+      ) {
+        this.lastCalc = ticks;
+        this.player.largestClusterBoundingBox = ww.land.controlBox(
+          this.player.smallID(),
+        );
+      }
+    } else if (
       ticks - this.lastCalc > this.ticksPerClusterCalc ||
       this.player.numTilesOwned() < 100
     ) {

@@ -1,8 +1,4 @@
-import {
-  GameMapSize,
-  GameMapType,
-  UnitType,
-} from "@openfront/engine-api/game/GameTypes";
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { StampedIntent } from "@openfront/engine-api/Schemas";
 import {
   WW_CAPITULATION_DAYS,
@@ -27,6 +23,7 @@ import {
   stamped,
   step,
   stepTo,
+  takeRegion,
   wwGameStart,
   WwHuman,
   wwRunner,
@@ -91,18 +88,12 @@ function declareOnPoland(g: Game): (tick: number) => StampedIntent[] {
 }
 
 /**
- * P1: a 1936 army wipes Poland out within a hundred ticks, before its gauge
- * can fill. So idle Germany takes the Warsaw region by hand right after its
- * declaration: Poland's AI attacks it, and Poland's gauge fills meanwhile.
+ * Idle Germany takes the Warsaw region (6) right after its declaration, the
+ * way a won battle does (P2: Occupation.capture), and Poland's gauge fills.
  */
 function takeWarsaw(g: Game): void {
   if (g.ticks() !== WW_PREP_TICKS + 2) return;
-  const ww = g.worldWar()!;
-  const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
-  const warsaw = ww.scenario.landRegions.find((r) => r.name === "Warsaw")!;
-  for (const t of [...pol.tiles()]) {
-    if (ww.scenario.regionAt(t) === warsaw.id) deu.conquer(t);
-  }
+  takeRegion(g, 6, "DEU");
 }
 
 /** Steps to `tick` with the turns of `intents`, then `hand` after each tick. */
@@ -118,10 +109,6 @@ function playTo(
   }
 }
 
-function attacksRunning(g: Game): number {
-  return g.allPlayers().reduce((n, p) => n + p.outgoingAttacks().length, 0);
-}
-
 /** Countries out of the game: capitulated, or conquered to the last tile. */
 function fallen(g: Game): number {
   const ww = g.worldWar()!;
@@ -132,9 +119,9 @@ function fallen(g: Game): number {
 
 /**
  * Plays a game to `until` and returns when things first happened: the first
- * war, the first running attack, every capitulation and every fall (a
- * capitulation, or a country conquered before its gauge filled). Each is the
- * tick a restore must happen at (game.ticks()) for the next tick to bring it.
+ * war, every capitulation and every fall (a capitulation, or a country
+ * conquered before its gauge filled). Each is the tick a restore must happen
+ * at (game.ticks()) for the next tick to bring it.
  */
 async function probe(
   humans: WwHuman[],
@@ -142,7 +129,6 @@ async function probe(
   hand: (g: Game) => void = () => {},
 ): Promise<{
   war: number;
-  attack: number;
   capitulations: number[];
   falls: number[];
 }> {
@@ -151,7 +137,6 @@ async function probe(
   const intents = humans.length > 0 ? declareOnPoland(r.game) : () => [];
   const out = {
     war: -1,
-    attack: -1,
     capitulations: [] as number[],
     falls: [] as number[],
   };
@@ -160,7 +145,6 @@ async function probe(
     step(r, 1, intents(before));
     hand(r.game);
     if (out.war < 0 && ww.data().wars.length > 0) out.war = before;
-    if (out.attack < 0 && attacksRunning(r.game) > 0) out.attack = before;
     if (ww.data().capitulated.length > out.capitulations.length) {
       out.capitulations.push(before);
     }
@@ -206,20 +190,22 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
   );
 
   describe("restored at the moments of the war Germany declares", () => {
-    // Germany takes Warsaw by hand (takeWarsaw); Poland's AI attacks it and
-    // capitulates when its gauge is full.
+    // Germany takes Warsaw by hand (takeWarsaw); Poland capitulates when its
+    // gauge is full. (P2: no tile attacks; the AI's land war is Task 6's.)
     let moments: Awaited<ReturnType<typeof probe>>;
     beforeAll(async () => {
       moments = await probe(HUMANS, 4000, takeWarsaw);
-      expect(moments.attack).toBeGreaterThan(0);
+      expect(moments.war).toBeGreaterThan(0);
       expect(moments.capitulations.length).toBeGreaterThan(0);
     }, 120_000);
 
-    test("while the AI's first attack runs", async () => {
+    test("ten days into the war, Warsaw held", async () => {
       const a = await wwRunner({}, HUMANS);
       const intents = declareOnPoland(a.game);
-      playTo(a, moments.attack + 10, intents, takeWarsaw);
-      expect(attacksRunning(a.game)).toBeGreaterThan(0);
+      playTo(a, moments.war + 75, intents, takeWarsaw);
+      expect(a.game.worldWar()!.land.controller[6]).toBe(
+        byTag(a.game, "DEU").smallID(),
+      );
       const b = await restore(a);
       lockstep(a, b, 200, intents);
     }, 120_000);
@@ -235,20 +221,18 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
   });
 
   describe("restored at the moments of the calendar's first war (no humans)", () => {
-    // Germany declares on Poland in September 1939 (about tick 10,700),
-    // France joins, and Germany and then Poland fall. On this small map
-    // they are conquered to the last tile before their 30-day gauges fill.
+    // Germany declares on Poland in September 1939 (about tick 10,700) and
+    // France joins. (P2: the countries fall once the AI's land war, Task 6,
+    // takes regions; the falls' moments come back with it.)
     let moments: Awaited<ReturnType<typeof probe>>;
     beforeAll(async () => {
-      moments = await probe([], 13_000);
+      moments = await probe([], 11_500);
       expect(moments.war).toBeGreaterThan(WW_PREP_TICKS);
-      expect(moments.falls.length).toBeGreaterThanOrEqual(2);
     }, 120_000);
 
     const at: [string, () => number][] = [
       ["the calendar's declaration", () => moments.war],
-      ["the first fall", () => moments.falls[0]],
-      ["the second fall", () => moments.falls[1]],
+      ["ten days into that war", () => moments.war + 75],
     ];
     test.each(at)(
       "the tick before %s",
@@ -271,11 +255,10 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     const a = await wwRunner({}, humans);
     const g = a.game;
     const ww = g.worldWar()!;
-    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+    const pol = byTag(g, "POL");
     stepTo(a, WW_PREP_TICKS + 1);
     step(a, 1, [stamped(HUMAN, { type: "declare_war", target: pol.id() })]);
-    const warsaw = ww.scenario.landRegions.find((r) => r.name === "Warsaw")!;
-    deu.conquer(ww.scenario.vpTile(warsaw));
+    takeRegion(g, 6, "DEU");
     stepTo(a, dayStartTick(ww.day(g.ticks()) + 12, WW_PREP_TICKS) + 1);
     const days = ww.capitulationGauge(pol.smallID());
     expect(days).toBeGreaterThan(5);
@@ -315,12 +298,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     expect(ww.transfers()).toEqual([]);
   }, 120_000);
 
-  test("restoring around a capitulation that ends an attack and a boat, and mid-transfer after the list restarts", async () => {
-    // Germany and Britain (humans) fight Poland: Germany attacks over
-    // land, a British boat sails to Poland's coast. Warsaw falls by hand,
-    // so Poland capitulates at the next day; transfers queued ahead leave
-    // 50 of its tiles for the following tick, and a neighbour's tile lands
-    // with Poland meanwhile, so its list restarts.
+  test("restoring around a capitulation, and mid-transfer after the list restarts", async () => {
+    // Germany and Britain (humans) fight Poland. Warsaw falls (takeRegion),
+    // so Poland capitulates at the next day: its divisions go, its regions
+    // change control at once (P2), and transfers queued ahead leave 50 of
+    // its other tiles for the following tick; a neighbour's tile lands with
+    // Poland meanwhile, so its list restarts.
     const humans: WwHuman[] = [
       { clientID: HUMAN, country: "DEU" },
       { clientID: "HUMAN002", country: "GBR" },
@@ -328,50 +311,36 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     const a = await wwRunner({}, humans);
     const g = a.game;
     const ww = g.worldWar()!;
-    const [deu, pol, gbr, ita, fra] = (
-      ["DEU", "POL", "GBR", "ITA", "FRA"] as const
-    ).map((tag) => byTag(g, tag));
+    const [deu, pol, ita, fra] = (["DEU", "POL", "ITA", "FRA"] as const).map(
+      (tag) => byTag(g, tag),
+    );
     stepTo(a, WW_PREP_TICKS + 1);
     step(a, 1, [
       stamped(HUMAN, { type: "declare_war", target: pol.id() }),
       stamped("HUMAN002", { type: "declare_war", target: pol.id() }),
     ]);
-    step(a, 1);
-    step(a, 1, [
-      stamped(HUMAN, {
-        type: "attack",
-        targetID: pol.id(),
-        troops: Math.floor(deu.troops() / 2),
-      }),
-      stamped("HUMAN002", {
-        type: "boat",
-        troops: Math.floor(gbr.troops() / 2),
-        dst: g.ref(105, 99),
-      }),
-    ]);
-    step(a, 2);
-    const warsaw = ww.scenario.landRegions.find((r) => r.name === "Warsaw")!;
-    deu.conquer(ww.scenario.vpTile(warsaw));
+    step(a, 3);
+    takeRegion(g, 6, "DEU");
     // Its gauge one day short of full, so the next check capitulates it.
     ww.setCapitulationGauge(pol.smallID(), WW_CAPITULATION_DAYS - 1);
     stepTo(a, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
-    const [boat] = gbr.units(UnitType.TransportShip);
-    expect(boat.isActive()).toBe(true);
-    expect(deu.outgoingAttacks()).toHaveLength(1);
+    expect(ww.land.fieldMen(pol.smallID())).toBeGreaterThan(0);
     const left = 50;
+    // Krakow's victory-point tile goes with its control (setController),
+    // outside the transfer's budget.
     queueBacklog(
       g,
       ita,
       fra,
-      WW_TRANSFER_TILES_PER_TICK - pol.numTilesOwned() + left,
+      WW_TRANSFER_TILES_PER_TICK - (pol.numTilesOwned() - 1) + left,
     );
 
     // The capitulation tick runs in both.
     const b = await restore(a, humans);
     lockstep(a, b, 1);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
-    expect(deu.outgoingAttacks()).toEqual([]);
-    expect(boat.isActive()).toBe(false);
+    expect(ww.land.controller[7]).toBe(deu.smallID());
+    expect(ww.land.fieldMen(pol.smallID())).toBe(0);
     expect(pol.numTilesOwned()).toBe(left);
 
     // A dying neighbour's tile lands with Poland, in both games.
@@ -395,28 +364,37 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
  * pinned` three times, check the received value is the same each time,
  * put it here, and say so in the commit. A refactor that moves it is a bug.
  */
-// P1 fix batch (engine): every country starts with its lines and research,
-// casualties leave the recruitable pool, the economy hash adds construction
-// and research progress, the field infantry and the casualties.
-const WW1936_DIGEST = "a75ef095e838e87c";
+// P2 Task 1 (the land war's foundation, plan decision 22): divisions in
+// the start, the land hash, no tile attacks; the lanes' stubs do nothing,
+// so the AI's war takes no land yet. The controller re-pins it at every
+// lane merge.
+const WW1936_DIGEST = "f5c62fe320cbea13";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
-  // war (September 1939, about tick 10,700): a declaration, a join, attacks,
-  // capitulation gauges filling, Germany and Poland conquered before theirs
-  // are full, then Italy's war. (A capitulation and its transfer are pinned
-  // by the restores above, which run tick by tick against a restored copy.)
+  // war (September 1939, about tick 10,700): a declaration and a join.
+  // (A capitulation and its transfer are pinned by the restores above,
+  // which run tick by tick against a restored copy.)
   test("a test-map game is pinned", async () => {
     const runner = await wwRunner();
     const h = createHash("sha256");
-    let gauged = false;
     while (runner.game.ticks() < 13_000) {
       step(runner);
       h.update(`${hash(runner)},`);
+    }
+    expect(h.digest("hex").slice(0, 16)).toBe(WW1936_DIGEST);
+  }, 120_000);
+
+  // Plan decision 22, pre-flight U7: the AI's land war (Task 6) takes the
+  // land that fills the gauges and makes countries fall.
+  it.skip("an all-AI test-map war ends in capitulations (restored after Task 6 merges)", async () => {
+    const runner = await wwRunner();
+    let gauged = false;
+    while (runner.game.ticks() < 13_000) {
+      step(runner);
       gauged ||= runner.game.worldWar()!.data().gauges.length > 0;
     }
     expect(gauged).toBe(true);
     expect(fallen(runner.game)).toBeGreaterThanOrEqual(2);
-    expect(h.digest("hex").slice(0, 16)).toBe(WW1936_DIGEST);
   }, 120_000);
 });

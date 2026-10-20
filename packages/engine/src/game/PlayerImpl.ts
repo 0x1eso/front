@@ -824,9 +824,14 @@ export class PlayerImpl implements Player {
     return this._domestic;
   }
 
+  /**
+   * World War 1936 (P2 spec §13.2): the troops themselves, the daily mirror
+   * of the field divisions' men (WwLand.dailyCountry), so maxTroops = troops
+   * and vanilla troop growth is 0. Cheap: Config reads it every tick
+   * (pre-flight U14).
+   */
   wwTroopCap(): number | null {
-    const ww = this.mg.worldWar();
-    return ww === null ? null : ww.economy.troopCap(this.smallID());
+    return this.mg.worldWar() === null ? null : Math.floor(this.troops());
   }
 
   isUnitLocked(type: UnitType): boolean {
@@ -1226,6 +1231,10 @@ export class PlayerImpl implements Player {
   }
 
   canDonateTroops(recipient: Player): boolean {
+    // World War 1936 P2 (spec §13.1): men are divisions here; gold still flows.
+    if (this.mg.worldWar() !== null) {
+      return false;
+    }
     if (recipient === this) {
       return false;
     }

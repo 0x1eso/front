@@ -31,7 +31,14 @@ import type {
   WwEconomy,
 } from "@openfront/engine/ww1936/economy/WwEconomy";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
-import { byTag, stamped, step, stepTo, wwRunnerCapture } from "./util";
+import {
+  byTag,
+  stamped,
+  step,
+  stepTo,
+  takeRegion,
+  wwRunnerCapture,
+} from "./util";
 
 // Every country is human: no AI economy (Task 6) opens deals that would
 // share these sellers' room or these buyers' factories (pre-flight S3).
@@ -288,7 +295,7 @@ describe("trade (spec §7.4–§7.5)", () => {
   });
 
   test("the seller's room shrinks: newest deals close first", async () => {
-    const { runner, econ, ww, id, ce, p, buy, notices } = await game();
+    const { runner, econ, ww, id, ce, buy, notices } = await game();
     const sun = ce("SUN");
     const STEEL = RESOURCE_IDS.indexOf("steel");
     // Moscow 10 and Kiev 30 steel at infrastructure 3 give 36; free trade
@@ -305,7 +312,7 @@ describe("trade (spec §7.4–§7.5)", () => {
     // finds only Kiev's 27 (21 for sale), and the day after the newest
     // deal closes.
     const moscow = ww.scenario.landRegions.find((r) => r.name === "Moscow")!;
-    p("DEU").conquer(ww.scenario.vpTile(moscow));
+    takeRegion(runner.game, moscow.id, "DEU");
     throughDay(runner, 1);
     expect(econ.controllerOf(moscow.id)).toBe(id("DEU"));
     expect(sun.totals.produced[STEEL]).toBe(27);

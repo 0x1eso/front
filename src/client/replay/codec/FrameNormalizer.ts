@@ -93,6 +93,11 @@ export const UPDATE_TYPE_ROUTING: Record<
   // World War 1936 P1: the economy's changes of the tick, trimmed to the
   // countries' troop caps (MISC_TRIM).
   WwEconomy: "misc",
+  // World War 1936 P2: the land war's armies, battles and regions (a few KB
+  // a tick while battles run). A replay shows no World War HUD (its
+  // worldWarScenario() is null) and the troop mirror reaches it through the
+  // players' troops, so it keeps none of it.
+  WwLand: "dropped",
 };
 
 /**

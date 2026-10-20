@@ -39,7 +39,7 @@ export class OpenWwIndustryEvent implements GameEvent {
 /** Open the research drawer, or close it when it is open. */
 export class OpenWwResearchEvent implements GameEvent {}
 
-export type WwDrawerId = "industry" | "research" | "diplomacy";
+export type WwDrawerId = "industry" | "research" | "diplomacy" | "army";
 
 /**
  * A World War drawer opened or closed (pre-flight R7.2): one at a time, so

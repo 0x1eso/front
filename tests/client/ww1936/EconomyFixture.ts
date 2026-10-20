@@ -9,11 +9,13 @@ import {
   WwCountrySummary,
   WwRegionData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { CountryLandSummary } from "@openfront/engine-api/ww1936/LandTypes";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import fs from "fs";
 import path from "path";
 import { WwEconomyView } from "../../../src/client/view/WwEconomyView";
+import { WwLandView } from "../../../src/client/view/WwLandView";
 
 const MINI = path.join(__dirname, "../../testdata/maps/ww1936mini");
 
@@ -26,13 +28,8 @@ export const scenario = ScenarioIndex.fromFiles(
 
 export const ID = (tag: CountryTag) => scenario.smallIdOf(tag);
 
-/**
- * The summary and detail with the engine fix batch's fields (w1-fixe:
- * WwCountrySummary.slotPct, WwCountryDetail.tradePartners); the same as
- * the plain types once it merges.
- */
-export type Summary = WwCountrySummary & { slotPct: number };
-export type Detail = WwCountryDetail & { tradePartners: number[] };
+export type Summary = WwCountrySummary;
+export type Detail = WwCountryDetail;
 
 /** Germany on the test map at the start (task-1 report), or `over`. */
 export function summary(tag: CountryTag, over: Partial<Summary> = {}): Summary {
@@ -48,7 +45,6 @@ export function summary(tag: CountryTag, over: Partial<Summary> = {}): Summary {
     troopCap: 630_000,
     researchedCount: 7,
     shortage: false,
-    combat: { attackPct: 28, defensePct: 25, speedPct: 15 },
     exportRoom: [0, 0, 0, 0, 0, 0],
     slotPct: 0,
     ...over,
@@ -89,9 +85,6 @@ export function detail(tag: CountryTag, over: Partial<Detail> = {}): Detail {
     consumerGoodsMilli: 3_750,
     paidCivs: 0,
     receivedCivs: 0,
-    fieldInfUnits: 48_000,
-    trainCap: 18_611,
-    recruited: 0,
     effCapBp: 6_000,
     warDays: -1,
     tradePartners: [],
@@ -117,6 +110,9 @@ export function region(
     mil: r.mil,
     dock: r.dock,
     infra: r.infra,
+    fort: scenario.startFort(id),
+    rail: scenario.startRail(id),
+    hub: 0,
     ...over,
   };
 }
@@ -138,6 +134,8 @@ export interface FakeOptions {
   boats?: number[];
   /** [seller, buyer]: the seller has an embargo on the buyer. */
   embargoes?: [CountryTag, CountryTag][];
+  /** P2: the land war's country summaries (WwLandView). */
+  land?: CountryLandSummary[];
 }
 
 export function fakeEconGame(o: FakeOptions = {}) {
@@ -147,6 +145,19 @@ export function fakeEconGame(o: FakeOptions = {}) {
     details: o.details ?? [],
     regions: o.regions ?? [],
   });
+  const land = new WwLandView(scenario);
+  land.apply(
+    {
+      armies: [],
+      removedArmies: [],
+      battles: [],
+      endedBattles: [],
+      regions: [],
+      countries: o.land ?? [],
+      details: [],
+    },
+    o.ticks ?? 600,
+  );
   const players = scenario.countries.map((tag, i) => ({
     id: () => `P${i + 1}`,
     smallID: () => i + 1,
@@ -187,6 +198,7 @@ export function fakeEconGame(o: FakeOptions = {}) {
     worldWarScenario: () => scenario,
     worldWarData: () => data,
     wwEconomy: () => view,
+    wwLand: () => land,
     playerBySmallID: (id: number) => players[id - 1],
     playerByClientID: () => null,
     myPlayer: () => (me === null ? null : players[ID(me) - 1]),
@@ -196,7 +208,7 @@ export function fakeEconGame(o: FakeOptions = {}) {
     inSpawnPhase: () => false,
     config: () => ({ historicalAi: () => true }),
   };
-  return { game, view, players };
+  return { game, view, players, land };
 }
 
 /** A tile of the land region `id`. */

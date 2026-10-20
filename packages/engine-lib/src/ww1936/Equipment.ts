@@ -12,10 +12,8 @@ export interface EquipmentDef {
   costMilli: number;
   /** Resources per factory on a line, RESOURCE_IDS order. */
   resources: readonly number[];
-  /** Units per 100,000 men for full coverage; 0: no P1 combat role. */
+  /** Units per 100,000 men for full coverage (the stockpile bars); 0: none. */
   needPer100k: number;
-  /** Attack, defense, speed percent at full coverage, generation 1. */
-  bonus: readonly [number, number, number];
   /** The tech that opens each generation. */
   techs: readonly WwTechId[];
 }
@@ -31,7 +29,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 500,
     resources: res({ steel: 1 }),
     needPer100k: 0,
-    bonus: [0, 0, 0],
     techs: ["inf_eq_1", "inf_eq_2", "inf_eq_3"],
   },
   support_equipment: {
@@ -39,7 +36,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 4_000,
     resources: res({ steel: 1, aluminium: 1 }),
     needPer100k: 300,
-    bonus: [5, 5, 0],
     techs: ["support_eq_1", "support_eq_2"],
   },
   artillery: {
@@ -47,7 +43,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 3_500,
     resources: res({ steel: 2, tungsten: 1 }),
     needPer100k: 400,
-    bonus: [15, 10, 0],
     techs: ["artillery_1", "artillery_2", "artillery_3"],
   },
   anti_tank: {
@@ -55,7 +50,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 4_000,
     resources: res({ steel: 2, tungsten: 1 }),
     needPer100k: 200,
-    bonus: [0, 10, 0],
     techs: ["anti_tank_1", "anti_tank_2"],
   },
   anti_air: {
@@ -63,7 +57,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 4_000,
     resources: res({ steel: 1, aluminium: 1 }),
     needPer100k: 150,
-    bonus: [0, 5, 0],
     techs: ["anti_air_1", "anti_air_2"],
   },
   motorized: {
@@ -71,7 +64,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 2_500,
     resources: res({ oil: 1, rubber: 1 }),
     needPer100k: 1_500,
-    bonus: [0, 0, 10],
     techs: ["motorized_1"],
   },
   light_tank: {
@@ -79,7 +71,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 8_000,
     resources: res({ steel: 1, oil: 1 }),
     needPer100k: 300,
-    bonus: [10, 0, 10],
     techs: ["light_tank_1", "light_tank_2"],
   },
   medium_tank: {
@@ -87,7 +78,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 12_000,
     resources: res({ steel: 2, chromium: 1, oil: 1 }),
     needPer100k: 300,
-    bonus: [20, 5, 10],
     techs: ["medium_tank_1", "medium_tank_2", "medium_tank_3"],
   },
   fighter: {
@@ -95,7 +85,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 22_000,
     resources: res({ aluminium: 2, rubber: 1 }),
     needPer100k: 0,
-    bonus: [0, 0, 0],
     techs: ["fighter_1", "fighter_2", "fighter_3"],
   },
   bomber: {
@@ -103,7 +92,6 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     costMilli: 30_000,
     resources: res({ aluminium: 3, rubber: 1 }),
     needPer100k: 0,
-    bonus: [0, 0, 0],
     techs: ["bomber_1", "bomber_2"],
   },
 };

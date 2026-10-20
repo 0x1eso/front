@@ -1,7 +1,7 @@
 // World War 1936 P1: the pure integer rules the engine and the screens share
 // (spec §4–§10). Products are floored step by step so every intermediate
-// stays far below 2^53; only the combat scales are floats, like the vanilla
-// attack they multiply.
+// stays far below 2^53. P1's combat bridge is gone (P2 plan decision 12):
+// the land war's rules live in CombatRules, MoveRules and SupplyRules.
 import {
   BuildingId,
   CATEGORY_SLOTS,
@@ -10,12 +10,9 @@ import {
   RESOURCE_COUNT,
   RegionCategory,
   WW_CIV_OUTPUT,
-  WW_LOSS_SCALE_PCT,
   WW_MAX_CIVS_PER_PROJECT,
   WW_MAX_SLOTS,
-  WW_MEN_PER_INF_EQUIPMENT,
   WW_MIL_OUTPUT_MILLI,
-  WwCombatStats,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { daysFromCivil } from "./Calendar";
 import { EQUIPMENT } from "./Equipment";
@@ -73,7 +70,10 @@ export function projectSpeedPct(i: SpeedInput): number {
     10 * (i.infra - 1) +
     i.tech.constructionPct +
     i.law.constructionPct +
-    (i.building === "mil" ? i.law.milConstructionPct : 0)
+    (i.building === "mil" ? i.law.milConstructionPct : 0) +
+    // P2 plan decision 10: the techs' "−25% cost" as speed.
+    (i.building === "fort" ? i.tech.fortConstructionPct : 0) +
+    (i.building === "rail" ? i.tech.railConstructionPct : 0)
   );
 }
 
@@ -232,7 +232,7 @@ export function exportCapacity(produced: number, exportPct: number): number {
   return Math.floor((produced * exportPct) / 100);
 }
 
-// ---- Manpower and the troop bridge (spec §6) ----
+// ---- Manpower (spec §6) ----
 
 /** Men a region can give: pop (thousands) × ratio% × law‰, then the bonus%. */
 export function recruitableMen(
@@ -248,36 +248,6 @@ export function recruitableMen(
 /** Ten percent of the recruitable pool a year. */
 export function manpowerRegrowth(recruitable: number): number {
   return Math.floor(recruitable / 3650);
-}
-
-export function trainCap(recruitable: number, trainPct: number): number {
-  return Math.max(
-    500,
-    Math.floor((Math.floor(recruitable / 90) * (100 + trainPct)) / 100),
-  );
-}
-
-export function recruitToday(
-  manpower: number,
-  infStock: number,
-  cap: number,
-): number {
-  return Math.max(
-    0,
-    Math.min(manpower, infStock * WW_MEN_PER_INF_EQUIPMENT, cap),
-  );
-}
-
-export function infEquipmentFor(men: number): number {
-  return Math.ceil(men / WW_MEN_PER_INF_EQUIPMENT);
-}
-
-export function troopCapOf(
-  troops: number,
-  manpower: number,
-  infStock: number,
-): number {
-  return troops + Math.min(manpower, infStock * WW_MEN_PER_INF_EQUIPMENT);
 }
 
 // ---- Research (spec §9) ----
@@ -307,7 +277,7 @@ export function researchSlotCount(major: boolean, factories: number): number {
   );
 }
 
-// ---- Combat bridge (spec §10) ----
+// ---- Stock coverage (spec §10; the screens' stockpile bars) ----
 
 /** Per mille of full coverage (stock against men × need per 100,000). */
 export function coveragePermille(
@@ -320,30 +290,6 @@ export function coveragePermille(
     1000,
     Math.floor((stock * 100_000_000) / (troops * needPer100k)),
   );
-}
-
-/** 100 at an average generation 1 (×100), 130 at 2, 160 at 3. */
-export function genBonusPct(avgGenX100: number): number {
-  const g = Math.max(100, Math.min(300, avgGenX100));
-  return 100 + Math.floor(((g - 100) * 30) / 100);
-}
-
-export interface CombatScales {
-  attackerLoss: number;
-  defenderLoss: number;
-  attackerSpeed: number;
-}
-
-export function wwCombatScales(
-  att: WwCombatStats,
-  def: WwCombatStats,
-): CombatScales {
-  const scale = WW_LOSS_SCALE_PCT / 100;
-  return {
-    attackerLoss: ((100 + def.defensePct) / (100 + att.attackPct)) * scale,
-    defenderLoss: ((100 + att.attackPct) / (100 + def.defensePct)) * scale,
-    attackerSpeed: (100 + att.speedPct) / 100,
-  };
 }
 
 // ---- Trade routes (spec §7.4); the engine and the screens share it ----

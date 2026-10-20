@@ -58,6 +58,12 @@ export class PortExecution implements Execution {
       return;
     }
 
+    // World War 1936 P2 (spec §13.1): no trade ships (P4's convoys), and
+    // no PRNG drawn for them.
+    if (this.mg.worldWar() !== null) {
+      return;
+    }
+
     if (!this.shouldSpawnTradeShip()) {
       return;
     }

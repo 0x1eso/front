@@ -77,6 +77,15 @@ export class TransportShipExecution implements Execution {
       return;
     }
 
+    // World War 1936 P2 (spec §13.1): no boat attacks (landings are P4's).
+    // Refused before any troops move; a human hears why once a game.
+    const wwLand = mg.worldWar()?.land ?? null;
+    if (wwLand !== null) {
+      wwLand.noteVanillaAttack(this.attacker);
+      this.active = false;
+      return;
+    }
+
     this.lastMove = ticks;
     this.mg = mg;
     this.target = mg.owner(this.ref);

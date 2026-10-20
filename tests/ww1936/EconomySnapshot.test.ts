@@ -44,6 +44,7 @@ import {
   stamped,
   step,
   stepTo,
+  takeRegion,
   wwGameStart,
   WwHuman,
   wwRunner,
@@ -283,9 +284,7 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     // Germany takes Warsaw: the graph is no longer the starting one.
     const warsaw = ww.scenario.landRegions.find((r) => r.name === "Warsaw")!;
-    for (const t of [...pol.tiles()]) {
-      if (ww.scenario.regionAt(t) === warsaw.id) deu.conquer(t);
-    }
+    takeRegion(g, warsaw.id, "DEU");
     stepTo(a, dayStart(3) + 2);
     const ea = econOf(g);
     expect(ea.controllerOf(warsaw.id)).toBe(deu.smallID());
@@ -328,11 +327,14 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         mil: ww.economy.mil[r.id],
         dock: ww.economy.dock[r.id],
         infra: ww.economy.infra[r.id],
+        fort: ww.economy.fort[r.id],
+        rail: ww.economy.rail[r.id],
+        hub: ww.economy.hub[r.id],
       });
     }
   }, 60_000);
 
-  test("the economy hash sees docks, line progress and activity, deal sizes, law cooldowns, construction and research progress, the field infantry and the casualties", async () => {
+  test("the economy hash sees docks, forts, railways, hubs, line progress and activity, deal sizes, law cooldowns, construction and research progress and the casualties", async () => {
     const a = await wwRunner({}, DEU_HUMAN);
     const g = a.game;
     stepTo(a, dayStart(2) + 2);
@@ -346,6 +348,9 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     const base = econ.hash();
     const changes: [string, () => void, () => void][] = [
       ["dock", () => (econ.dock[4] += 1), () => (econ.dock[4] -= 1)],
+      ["fort", () => (econ.fort[4] += 1), () => (econ.fort[4] -= 1)],
+      ["rail", () => (econ.rail[4] += 1), () => (econ.rail[4] -= 1)],
+      ["hub", () => (econ.hub[4] += 1), () => (econ.hub[4] -= 1)],
       [
         "line progress",
         () => (deu.lines[0].progress += 1),
@@ -375,11 +380,6 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         "research progress",
         () => (slot().progress += 1),
         () => (slot().progress -= 1),
-      ],
-      [
-        "field infantry",
-        () => (deu.fieldInfUnits += 1),
-        () => (deu.fieldInfUnits -= 1),
       ],
       ["casualties", () => (deu.casualties += 1), () => (deu.casualties -= 1)],
     ];

@@ -203,7 +203,10 @@ export class NationExecution implements Execution {
 
     if (!this.behaviorsInitialized) {
       this.initializeBehaviors();
-      this.attackBehavior.forceSendAttack(this.mg.terraNullius());
+      // World War 1936 P2 (spec §13.1): armies fight there, not attacks.
+      if (this.mg.worldWar() === null) {
+        this.attackBehavior.forceSendAttack(this.mg.terraNullius());
+      }
       return;
     }
 
@@ -211,7 +214,7 @@ export class NationExecution implements Execution {
     // ticks; stateless, no PRNG, nothing in a game without the congress.
     nationCongressTick(this.mg, this.player);
 
-    this.attackBehavior.followUpLandings();
+    if (this.mg.worldWar() === null) this.attackBehavior.followUpLandings();
     this.nukeBehavior.followUpStrikes();
 
     if (ticks % this.attackRate !== this.attackTick) {
@@ -261,7 +264,8 @@ export class NationExecution implements Execution {
     nationDomesticTick(this.mg, this.player);
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();
-    this.attackBehavior.maybeAttack();
+    // World War 1936 P2 (spec §13.1, §14): the land war's AI attacks there.
+    if (this.mg.worldWar() === null) this.attackBehavior.maybeAttack();
     this.warshipBehavior.counterWarshipInfestation();
     this.nukeBehavior.maybeSendNuke();
     if (this.warfareOffset() === this.attackTick) {

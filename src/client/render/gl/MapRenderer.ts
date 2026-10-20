@@ -13,6 +13,8 @@
 
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
+import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
+import type { WwLandView } from "../../view/WwLandView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
 import type {
   AttackRingInput,
@@ -371,6 +373,13 @@ export class MapRenderer {
     this.storedRegions = regionIds;
     this.renderer?.setRegions(regionIds);
   }
+
+  /** World War 1936 P2 (spec §15.2): the land war's tokens, battles and plans. Task 7. */
+  setWwLand(
+    view: WwLandView,
+    selection: WwLandSelection,
+    me: () => number,
+  ): void {}
 
   /** Set up map-layer passes from the loaded layer data. */
   setMapLayers(layers: MapLayer[], images: Map<string, ImageBitmap>): void {

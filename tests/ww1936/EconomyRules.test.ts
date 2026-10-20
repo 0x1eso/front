@@ -23,18 +23,13 @@ import {
   efficiencyGrowth,
   extraction,
   freeCivMilli,
-  genBonusPct,
   lineOutputMilli,
   projectSpeedPct,
   recruitableMen,
-  recruitToday,
   regionSlots,
   researchProgress,
   researchSlotCount,
   tradeRouteOk,
-  trainCap,
-  troopCapOf,
-  wwCombatScales,
   yearStartDay,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
@@ -141,6 +136,17 @@ describe("construction (spec §4.3)", () => {
     expect(projectSpeedPct({ building: "civ", infra: 5, tech, law })).toBe(55);
     expect(projectSpeedPct({ building: "mil", infra: 5, tech, law })).toBe(25);
     expect(constructionProgress(1000, -200)).toBe(0);
+    // P2 plan decision 10: fortification_1 and rail_1 as speed (+33%).
+    const p2 = techTotals(new Set(["fortification_1", "rail_1"]));
+    expect(projectSpeedPct({ building: "fort", infra: 1, tech: p2, law })).toBe(
+      33 + 5,
+    );
+    expect(projectSpeedPct({ building: "rail", infra: 1, tech: p2, law })).toBe(
+      33 + 5,
+    );
+    expect(
+      projectSpeedPct({ building: "infra", infra: 1, tech: p2, law }),
+    ).toBe(5);
   });
 
   test("slots grow 20% per construction tech", () => {
@@ -193,15 +199,6 @@ describe("manpower and the troop bridge (spec §6)", () => {
     expect(recruitableMen(67_000, 100, 25, 0)).toBe(1_675_000);
     expect(recruitableMen(10_000, 10, 15, 0)).toBe(15_000);
     expect(recruitableMen(10_000, 100, 25, 10)).toBe(275_000);
-  });
-
-  test("a draft needs manpower, equipment and training room", () => {
-    expect(recruitToday(100_000, 500, 20_000)).toBe(5_000);
-    expect(recruitToday(3_000, 500, 20_000)).toBe(3_000);
-    expect(recruitToday(100_000, 9_000, 20_000)).toBe(20_000);
-    expect(troopCapOf(480_000, 1_195_000, 15_000)).toBe(630_000);
-    expect(trainCap(1_675_000, 0)).toBe(18_611);
-    expect(trainCap(10_000, 0)).toBe(500);
   });
 });
 
@@ -266,8 +263,9 @@ describe("research (spec §9)", () => {
     expect(researchSlotCount(true, 300)).toBe(5);
   });
 
-  test("46 techs; prerequisites exist and come no later", () => {
-    expect(WW_TECH_IDS.length).toBe(46);
+  test("56 techs; prerequisites exist and come no later", () => {
+    // P1's 46 and P2's 10 (P2 spec §4.6).
+    expect(WW_TECH_IDS.length).toBe(56);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {
@@ -306,28 +304,20 @@ describe("research (spec §9)", () => {
     expect(t.constructionPct).toBe(20);
     expect(t.slotPct).toBe(40);
     expect(t.recruitablePct).toBe(10);
-    expect(t.trainPct).toBe(50);
+    // P2 plan decision 11: mass_1 cuts infantry training a third.
+    expect(t.infTrainCutPct).toBe(33);
+    expect(t.trainPct).toBe(0);
     expect(openSchool(["tools_1", "mobile_1"])).toBe("mobile");
     expect(openSchool(["tools_1"])).toBeNull();
   });
 });
 
-describe("combat bridge (spec §10)", () => {
-  test("coverage, generations and loss scales", () => {
+describe("stock coverage (spec §10; the stockpile bars)", () => {
+  test("coverage of the army", () => {
     expect(coveragePermille(400, 100_000, 400)).toBe(1000);
     expect(coveragePermille(200, 100_000, 400)).toBe(500);
     expect(coveragePermille(5, 0, 400)).toBe(0);
     expect(coveragePermille(5, 100, 0)).toBe(0);
-    expect(genBonusPct(100)).toBe(100);
-    expect(genBonusPct(250)).toBe(145);
-    expect(genBonusPct(300)).toBe(160);
-    const s = wwCombatScales(
-      { attackPct: 50, defensePct: 25, speedPct: 20 },
-      { attackPct: 5, defensePct: 4, speedPct: 0 },
-    );
-    expect(s.attackerLoss).toBeCloseTo(0.416, 3);
-    expect(s.defenderLoss).toBeCloseTo(0.865, 3);
-    expect(s.attackerSpeed).toBeCloseTo(1.2, 6);
   });
 });
 

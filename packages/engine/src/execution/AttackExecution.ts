@@ -39,7 +39,6 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { barrageSuppresses } from "../warfare/BarrageZone";
 import { reportNotAtWar } from "../ww1936/Diplomacy";
-import { withWwCombat } from "../ww1936/economy/Combat";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
@@ -108,6 +107,15 @@ export class AttackExecution implements Execution {
     }
     this.mg = mg;
     this.map = mg.map();
+
+    // World War 1936 P2 (spec §13.1): armies fight here, not tile attacks.
+    // Refused before any troops move; a human hears why once a game.
+    const wwLand = mg.worldWar()?.land ?? null;
+    if (wwLand !== null) {
+      wwLand.noteVanillaAttack(this._owner);
+      this.refuse(mg);
+      return;
+    }
 
     if (this._targetID !== null && !mg.hasPlayer(this._targetID)) {
       console.warn(`target ${this._targetID} not found`);
@@ -220,13 +228,6 @@ export class AttackExecution implements Execution {
 
     for (const incoming of this._owner.incomingAttacks()) {
       if (incoming.attacker() === this.target) {
-        // World War 1936 P1 (spec §6.5): the men the two attacks cost each
-        // other are combat losses too, and take their equipment along.
-        if (ww !== null) {
-          const lost = Math.min(incoming.troops(), this.attack.troops());
-          ww.economy.noteCombatLoss(this._owner.smallID(), lost);
-          ww.economy.noteCombatLoss(incoming.attacker().smallID(), lost);
-        }
         // Target has opposing attack, cancel them out
         if (incoming.troops() > this.attack.troops()) {
           incoming.setTroops(incoming.troops() - this.attack.troops());
@@ -388,16 +389,9 @@ export class AttackExecution implements Execution {
 
     const borderSize = this.attack.borderSize() + this.random.nextInt(0, 5);
     // Domestic combat modifiers hold for the whole tick (1 = vanilla).
-    // World War 1936 P1 (plan decision 12): the economy's scales on top.
-    const ww = this.mg.worldWar();
-    const combat = withWwCombat(
-      withCongressCombat(
-        domesticCombat(this._owner, targetPlayer),
-        this.mg.congress(),
-        this._owner,
-        targetPlayer,
-      ),
-      ww,
+    const combat = withCongressCombat(
+      domesticCombat(this._owner, targetPlayer),
+      this.mg.congress(),
       this._owner,
       targetPlayer,
     );
@@ -447,14 +441,7 @@ export class AttackExecution implements Execution {
       troopCount -= attackerTroopLoss;
       this.attack.setTroops(troopCount);
       if (targetPlayer) {
-        const removed = targetPlayer.removeTroops(defenderTroopLoss);
-        // World War 1936 P1 (plan decision 12): the men really lost.
-        if (ww !== null) {
-          ww.economy.noteCombatLoss(targetPlayer.smallID(), removed);
-        }
-      }
-      if (ww !== null) {
-        ww.economy.noteCombatLoss(this._owner.smallID(), attackerTroopLoss);
+        targetPlayer.removeTroops(defenderTroopLoss);
       }
       this._owner.conquer(tileToConquer);
       this.handleDeadDefender();

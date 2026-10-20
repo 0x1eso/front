@@ -18,6 +18,10 @@ export class WwEconomyView {
   readonly mil: Uint8Array;
   readonly dock: Uint8Array;
   readonly infra: Uint8Array;
+  /** P2 level buildings (plan decision 10). */
+  readonly fort: Uint8Array;
+  readonly rail: Uint8Array;
+  readonly hub: Uint8Array;
   readonly controller: Uint16Array;
   /** Bumped on every merge; screens redraw when it moves. */
   version = 0;
@@ -30,6 +34,9 @@ export class WwEconomyView {
     this.mil = new Uint8Array(size);
     this.dock = new Uint8Array(size);
     this.infra = new Uint8Array(size);
+    this.fort = new Uint8Array(size);
+    this.rail = new Uint8Array(size);
+    this.hub = new Uint8Array(size);
     this.controller = new Uint16Array(size);
     const owners = scenario.ownerByRegion();
     for (const r of regions) {
@@ -37,6 +44,8 @@ export class WwEconomyView {
       this.mil[r.id] = r.mil;
       this.dock[r.id] = r.dock;
       this.infra[r.id] = r.infra;
+      this.fort[r.id] = scenario.startFort(r.id);
+      this.rail[r.id] = scenario.startRail(r.id);
       this.controller[r.id] = owners[r.id];
     }
   }
@@ -49,6 +58,9 @@ export class WwEconomyView {
       this.mil[r.id] = r.mil;
       this.dock[r.id] = r.dock;
       this.infra[r.id] = r.infra;
+      this.fort[r.id] = r.fort;
+      this.rail[r.id] = r.rail;
+      this.hub[r.id] = r.hub;
       this.controller[r.id] = r.controller;
     }
     this.version++;
@@ -74,6 +86,9 @@ export class WwEconomyView {
       mil: this.mil[id],
       dock: this.dock[id],
       infra: this.infra[id],
+      fort: this.fort[id],
+      rail: this.rail[id],
+      hub: this.hub[id],
     };
   }
 }

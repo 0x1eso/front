@@ -91,6 +91,29 @@ export function applyWwOrder(
     case "cancel_research":
       block = cancelResearch(econ, ce, order.slot);
       break;
+    // P2 (plan decision 2): the land war's orders, a player's.
+    case "template_save":
+    case "template_delete":
+    case "train":
+    case "cancel_train":
+    case "deploy_now":
+    case "army_move":
+    case "army_rail":
+    case "army_sea":
+    case "army_attack":
+    case "army_front":
+    case "army_plan":
+    case "army_execute":
+    case "army_halt":
+    case "army_split":
+    case "army_merge":
+    case "army_disband":
+    case "army_general":
+    case "army_auto":
+    case "paradrop":
+    case "appoint_general":
+      block = econ.ww.land.issue(p.smallID(), order, "player");
+      break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);
   return block;

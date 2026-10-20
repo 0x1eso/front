@@ -113,9 +113,6 @@ function watchLaunches(g: Game): Launch[] {
   return out;
 }
 
-const atPeace = (launches: Launch[]) =>
-  launches.filter((l) => !l.atWar).map((l) => l.what);
-
 /** A nation's attack logic of its own, outside its NationExecution's turns. */
 function aiOf(g: Game, p: Player): AiAttackBehavior {
   const random = new PseudoRandom(7);
@@ -158,27 +155,22 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
     }
   }, 60_000);
 
-  test("a nation at war attacks its enemy and only its enemy", async () => {
+  // P2 (plan decision 7, spec §13.1, §14): a nation launches no tile attack
+  // or boat in this mode; the land AI (Task 6) fights with armies.
+  test("a nation at war launches no tile attack or boat", async () => {
     const runner = await wwRunner({ historicalAi: false });
     const g = runner.game;
     stepTo(runner, WW_PREP_TICKS);
     const deu = byTag(g, "DEU");
     const pol = byTag(g, "POL");
     g.worldWar()!.setWar(deu.smallID(), pol.smallID(), g.ticks());
-    const seen = new Set<string>();
-    for (
-      let t = 0;
-      t < 3000 && !seen.has("DEU>POL") && !seen.has("POL>DEU");
-      t += 20
-    ) {
-      step(runner, 20);
-      for (const a of attacks(g)) seen.add(a);
-    }
-    expect(seen.has("DEU>POL") || seen.has("POL>DEU")).toBe(true);
-    for (const a of seen) expect(["DEU>POL", "POL>DEU"]).toContain(a);
+    const launches = watchLaunches(g);
+    step(runner, 3000);
+    expect(launches).toEqual([]);
+    expect(attacks(g)).toEqual([]);
   }, 60_000);
 
-  test("it skips a neutral neighbour and launches no boat at a neutral country", async () => {
+  test("its attack logic skips a neutral neighbour and launches no boat at a neutral country", async () => {
     const runner = await wwRunner({ historicalAi: false });
     const g = runner.game;
     const ww = g.worldWar()!;
@@ -197,61 +189,11 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
     expect(aiOf(g, deu).sendAttack(fra)).toBe(false);
     expect(aiOf(g, gbr).sendAttack(ita)).toBe(false);
     expect(launches).toEqual([]);
-    // At war, the same calls launch: an attack by land, a boat by sea.
+    // At war, the same call launches an attack by land (refused at its init
+    // in this mode, P2); boats are off in this mode since P2.
     ww.setWar(deu.smallID(), fra.smallID(), g.ticks());
-    ww.setWar(gbr.smallID(), ita.smallID(), g.ticks());
     expect(aiOf(g, deu).sendAttack(fra)).toBe(true);
-    expect(aiOf(g, gbr).sendAttack(ita)).toBe(true);
-    expect(launches.map((l) => l.what)).toEqual([
-      "attack DEU>FRA",
-      "boat GBR>ITA",
-    ]);
-  });
-
-  test("a war over many minutes launches nothing at a country at peace", async () => {
-    const runner = await wwRunner({ historicalAi: false });
-    const g = runner.game;
-    stepTo(runner, WW_PREP_TICKS);
-    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
-    g.worldWar()!.setWar(deu.smallID(), pol.smallID(), g.ticks());
-    const launches = watchLaunches(g);
-    step(runner, 3000);
-    expect(launches.some((l) => l.what === "attack DEU>POL")).toBe(true);
-    expect(atPeace(launches)).toEqual([]);
-  }, 60_000);
-
-  test("a war that ended stops the direct attacks: retaliation, follow-up landing, strike", async () => {
-    const runner = await wwRunner({ historicalAi: false });
-    const g = runner.game;
-    const ww = g.worldWar()!;
-    stepTo(runner, WW_PREP_TICKS + 1);
-    const [deu, pol, fra] = [byTag(g, "DEU"), byTag(g, "POL"), byTag(g, "FRA")];
-    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
-    ww.setWar(deu.smallID(), fra.smallID(), g.ticks());
-    // Poland attacks Germany, and a German boat has landed in France.
-    const landing = [...fra.tiles()].find((t) =>
-      g.neighbors(t).every((n) => g.owner(n) === fra),
-    )!;
-    g.addExecution(
-      new AttackExecution(pol.troops() / 2, pol, deu.id()),
-      new AttackExecution(1_000, deu, fra.id(), landing, false),
-    );
-    step(runner);
-    expect(pol.outgoingAttacks().some((a) => a.target() === deu)).toBe(true);
-    expect(deu.outgoingAttacks().some((a) => a.sourceTile() === landing)).toBe(
-      true,
-    );
-    // Both wars end while the attacks run (as a capitulation ends them).
-    ww.endWarsOf(pol.smallID());
-    ww.endWarsOf(fra.smallID());
-    deu.addTroops(1_000_000);
-    const ai = aiOf(g, deu);
-    const launches = watchLaunches(g);
-    ai.followUpLandings();
-    expect((ai as unknown as { retaliate(): boolean }).retaliate()).toBe(false);
-    expect(ai.strike(pol)).toBe(false);
-    expect(ai.strike(fra)).toBe(false);
-    expect(launches).toEqual([]);
+    expect(launches.map((l) => l.what)).toEqual(["attack DEU>FRA"]);
   });
 
   test("the mode plays Medium whatever the lobby asked", async () => {
@@ -260,34 +202,25 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
   });
 
   test.each(["WWTEST01", "WWSEED03", "WWSEED05"])(
-    "a nation declared on attacks the stronger declarer soon, even one that does nothing (%s)",
+    "a nation declared on launches no tile attack (%s)",
     async (gameID) => {
       const runner = await runnerWithId(gameID, { historicalAi: false }, [
         { clientID: HUMAN, country: "DEU" },
       ]);
       const g = runner.game;
-      const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+      const pol = byTag(g, "POL");
       stepTo(runner, WW_PREP_TICKS + 1);
       const launches = watchLaunches(g);
       step(runner, 1, [
         stamped(HUMAN, { type: "declare_war", target: pol.id() }),
       ]);
-      const declared = g.ticks();
-      // Germany has the bigger army: no vanilla motive would attack it.
-      expect(deu.troops()).toBeGreaterThan(pol.troops());
-      while (
-        g.ticks() < declared + WAR_ATTACK_TICKS &&
-        !launches.some((l) => l.what === "attack POL>DEU")
-      ) {
-        step(runner);
-      }
-      expect(launches.some((l) => l.what === "attack POL>DEU")).toBe(true);
-      expect(atPeace(launches)).toEqual([]);
+      step(runner, WAR_ATTACK_TICKS);
+      expect(launches).toEqual([]);
     },
     60_000,
   );
 
-  test("a nation the calendar sends to war attacks its target", async () => {
+  test("the calendar's war starts; no tile attack follows it", async () => {
     // Poland is a human who does nothing: only Germany's own move counts.
     const runner = await wwRunner({}, [{ clientID: HUMAN, country: "POL" }]);
     const g = runner.game;
@@ -301,17 +234,12 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
     const launches = watchLaunches(g);
     stepTo(runner, dayStartTick(1, WW_PREP_TICKS) + 1);
     expect(ww.isAtWar(deu.smallID(), pol.smallID())).toBe(true);
-    const declared = g.ticks() - 1;
-    while (
-      g.ticks() < declared + WAR_ATTACK_TICKS &&
-      !launches.some((l) => l.what === "attack DEU>POL")
-    ) {
-      step(runner);
-    }
-    expect(launches.some((l) => l.what === "attack DEU>POL")).toBe(true);
-    expect(atPeace(launches)).toEqual([]);
+    step(runner, WAR_ATTACK_TICKS);
+    expect(launches).toEqual([]);
   }, 60_000);
 
+  // The vanilla attack logic below is no longer called in this mode (plan
+  // decision 26 leaves its war branches in place): its sizing still holds.
   test("against a stronger enemy a nation sends its share of the two armies", async () => {
     const runner = await wwRunner({ historicalAi: false });
     const g = runner.game;

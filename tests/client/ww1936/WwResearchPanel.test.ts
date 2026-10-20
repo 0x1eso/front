@@ -156,9 +156,10 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     );
     expect(m.q("[data-ww-tech='firepower_1']")!.dataset.state).toBe("doctrine");
     expect(m.q("[data-ww-tech='mobile_2']")!.dataset.state).toBe("available");
-    // The effect lines: mass_1 raises the recruitable pool and the draft.
+    // The effect lines: mass_1 raises the recruitable pool and cuts the
+    // infantry's training (P2 plan decision 11).
     expect(m.q("[data-ww-tech='mass_1'] [data-ww-effects]")!.textContent).toBe(
-      "[ww1936.effect.recruitablePct] n=10 · [ww1936.effect.trainPct] n=50",
+      "[ww1936.effect.recruitablePct] n=10 · [ww1936.effect.infTrainCutPct] n=33",
     );
   });
 

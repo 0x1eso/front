@@ -166,6 +166,24 @@ export const DERIVED_FIELDS = new Set<string>([
   "seaZoneSets",
   "dirtyCountries",
   "dirtyRegions",
+  // WwLand (P2): sides, the stats caches, the region row lists, the spread
+  // orders and their scratch, the screens' change marks; DivisionTable's
+  // id → row index (pre-flight U16: the real field names).
+  "sideOfId",
+  "sideListCache",
+  "statsCache",
+  "tplCache",
+  "regionRows",
+  "regionRowsDirty",
+  "spreadOrders",
+  "spreadScratch",
+  "dirtyArmies",
+  "dirtyBattles",
+  "dirtyLandRegions",
+  "dirtyLandCountries",
+  "removedArmyIds",
+  "endedBattleIds",
+  "rowIndex",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

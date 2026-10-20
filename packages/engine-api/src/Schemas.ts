@@ -53,6 +53,18 @@ import {
   WW_MAX_TRADE_CIVS,
   WW_TECH_IDS,
 } from "./ww1936/EconomyTypes";
+import {
+  BATTALION_IDS,
+  LandOrderKind,
+  STANCES,
+  SUPPORT_IDS,
+  WW_MAX_ARMY_DIVISIONS,
+  WW_MAX_BATTALIONS,
+  WW_MAX_SUPPORT,
+  WW_MAX_TARGETS,
+  WW_MAX_TRAIN_COUNT,
+  WW_TEMPLATE_NAME_MAX,
+} from "./ww1936/LandTypes";
 import { SEA_ZONE_BASE } from "./ww1936/WorldWarTypes";
 
 export type GameID = string;
@@ -763,6 +775,16 @@ const WwIndex = zb.uint({ max: 255 });
 const WwId = zb.uint({ min: 1, max: 10_000_000 });
 const WwGen = zb.uint({ min: 1, max: 3 });
 const WwFactories = zb.uint({ max: WW_MAX_LINE_FACTORIES });
+// P2 (P2 spec §16.3).
+const WwArmy = zb.uint({ min: 1, max: 10_000_000 });
+const WwRegionId = zb.uint({ min: 1, max: SEA_ZONE_BASE - 1 });
+const WwTemplateId = zb.uint({ max: 65_535 });
+const WwTemplateName = zb.string({
+  min: 1,
+  max: WW_TEMPLATE_NAME_MAX,
+  // No control characters, no space at either end (P2 spec §4.4).
+  regex: /^[^\s\p{Cc}](?:[^\p{Cc}]*[^\s\p{Cc}])?$/u,
+});
 
 export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -809,8 +831,74 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("cancel_research"),
     slot: zb.uint({ max: WW_MAX_SLOTS - 1 }),
   }),
+  // ---- P2 land war (P2 spec §16.3, plan decision 2), appended ----
+  z.object({
+    kind: z.literal("template_save"),
+    /** 0: a new template. */
+    template: WwTemplateId,
+    /** For a new one: the template it copies (0: from nothing). */
+    base: WwTemplateId,
+    name: WwTemplateName,
+    battalions: z.array(z.enum(BATTALION_IDS)).min(1).max(WW_MAX_BATTALIONS),
+    support: z.array(z.enum(SUPPORT_IDS)).max(WW_MAX_SUPPORT),
+  }),
+  z.object({ kind: z.literal("template_delete"), template: WwTemplateId }),
+  z.object({
+    kind: z.literal("train"),
+    template: WwTemplateId,
+    count: zb.uint({ min: 1, max: WW_MAX_TRAIN_COUNT }),
+    /** 0: a new army. */
+    army: zb.uint({ max: 10_000_000 }),
+    /** 0: the capital region. */
+    region: zb.uint({ max: SEA_ZONE_BASE - 1 }),
+  }),
+  z.object({ kind: z.literal("cancel_train"), entry: WwId }),
+  z.object({ kind: z.literal("deploy_now"), entry: WwId }),
+  z.object({ kind: z.literal("army_move"), army: WwArmy, region: WwRegionId }),
+  z.object({ kind: z.literal("army_rail"), army: WwArmy, region: WwRegionId }),
+  z.object({ kind: z.literal("army_sea"), army: WwArmy, region: WwRegionId }),
+  z.object({
+    kind: z.literal("army_attack"),
+    army: WwArmy,
+    region: WwRegionId,
+  }),
+  z.object({
+    kind: z.literal("army_front"),
+    army: WwArmy,
+    anchor: WwRegionId,
+    /** smallID; 0: every country at war with us. */
+    enemy: zb.uint({ max: 1000 }),
+  }),
+  z.object({
+    kind: z.literal("army_plan"),
+    army: WwArmy,
+    targets: z.array(WwRegionId).max(WW_MAX_TARGETS),
+    stance: z.enum(STANCES),
+  }),
+  z.object({ kind: z.literal("army_execute"), army: WwArmy, on: z.boolean() }),
+  z.object({ kind: z.literal("army_halt"), army: WwArmy }),
+  z.object({
+    kind: z.literal("army_split"),
+    army: WwArmy,
+    count: zb.uint({ min: 1, max: WW_MAX_ARMY_DIVISIONS - 1 }),
+    /** 0: any template. */
+    template: WwTemplateId,
+  }),
+  z.object({ kind: z.literal("army_merge"), army: WwArmy, into: WwArmy }),
+  z.object({ kind: z.literal("army_disband"), army: WwArmy }),
+  z.object({
+    kind: z.literal("army_general"),
+    army: WwArmy,
+    /** 0: take the general away. */
+    general: zb.uint({ max: 10_000_000 }),
+  }),
+  z.object({ kind: z.literal("army_auto"), army: WwArmy, on: z.boolean() }),
+  z.object({ kind: z.literal("paradrop"), army: WwArmy, region: WwRegionId }),
+  z.object({ kind: z.literal("appoint_general") }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
+/** The land war's orders (P2): what WwLand.issue takes. */
+export type LandOrder = Extract<WwOrder, { kind: LandOrderKind }>;
 
 export const WwOrderIntentSchema = z.object({
   type: z.literal("ww_order"),

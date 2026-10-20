@@ -200,26 +200,38 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(m.sent).toEqual([
       { kind: "set_law", law: "economy", value: "early_mobilization" },
     ]);
-    expect(m.q("[data-ww-combat]")!.textContent).toContain("a=28,d=25,s=15");
+    // P2 (spec §13.2): the P1 combat line is gone.
+    expect(m.q("[data-ww-combat]")).toBeNull();
   });
 
-  it("the manpower block counts men, and the army as the troop cap does", async () => {
+  it("the manpower block counts men: in the field, in training, lost today", async () => {
     const m = mount({
       summaries: [summary("DEU")],
-      details: [detail("DEU", { recruited: 4_000 })],
-      // 480K at home, 100K in an attack, 20K at sea: the engine's armyMen.
-      troops: 480_000,
-      attacks: [100_000],
-      boats: [20_000],
+      details: [detail("DEU")],
+      troops: 472_500,
+      // P2 spec §13.2: the land war's country summary.
+      land: [
+        {
+          smallID: ID("DEU"),
+          divisions: 45,
+          fieldMen: 472_500,
+          trainingMen: 21_000,
+          casualtiesToday: 3_200,
+          battles: 0,
+          encircledArmies: 0,
+        },
+      ],
     });
     await m.open("laws");
     const values = [
       ...m.el.querySelectorAll<HTMLElement>("[data-ww-manpower] dd"),
     ].map((dd) => dd.textContent!.trim());
-    // Recruitable 1,675,000, manpower 1,195,000, army 600,000, cap 630,000
-    // — real men (spec §13.1, ruling), not the troop bar's tenths.
-    expect(values).toEqual(["1.7M", "1.2M", "600K", "630K"]);
-    expect(m.q("[data-ww-draft]")!.textContent).toContain("n=4.0K,cap=18.6K");
+    // Recruitable 1,675,000, manpower 1,195,000, army 472,500, then the
+    // field, training and today's casualties — real men (spec §13.1).
+    expect(values).toEqual(["1.7M", "1.2M", "472K", "472K", "21.0K", "3.2K"]);
+    // P1's draft and troop cap lines are gone (P2 plan decision 12).
+    expect(m.q("[data-ww-draft]")).toBeNull();
+    expect(m.el.textContent).not.toContain("troop_cap");
   });
 
   it("build here picks the region; the best one is picked otherwise", async () => {

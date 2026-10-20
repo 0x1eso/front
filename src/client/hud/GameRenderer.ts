@@ -57,6 +57,7 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { landSelectionOf } from "./ww1936/LandSelection";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
@@ -431,7 +432,18 @@ export function createRenderer(
 
   // World War 1936: the lines between regions and sea zones (spec §8.2).
   const wwScenario = game.worldWarScenario();
-  if (wwScenario !== null) view.setRegions(wwScenario.regionIds);
+  if (wwScenario !== null) {
+    view.setRegions(wwScenario.regionIds);
+    // P2: the land war's tokens, battle markers and plan arrows (Task 7).
+    const wwLand = game.wwLand();
+    if (wwLand !== null) {
+      view.setWwLand(
+        wwLand,
+        landSelectionOf(game),
+        () => game.myPlayer()?.smallID() ?? 0,
+      );
+    }
+  }
 
   const layers: Controller[] = [
     new WarshipSelectionController(game, eventBus, transformHandler, view),

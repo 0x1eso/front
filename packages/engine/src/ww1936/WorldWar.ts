@@ -14,6 +14,7 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
+import { WwLand, WwLandStateSchema } from "./land/WwLand";
 
 export const WorldWarStateSchema = z.object({
   prepEndTick: zInt(),
@@ -30,6 +31,8 @@ export const WorldWarStateSchema = z.object({
   gauges: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** P1 (spec §14.3): always written; a snapshot without it is refused. */
   economy: WwEconomyStateSchema.optional(),
+  /** P2 (P2 spec §16.5): always written; a snapshot without it is refused. */
+  land: WwLandStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -63,6 +66,8 @@ export class WorldWar {
   private dataDirty = true;
   /** P1 industry and research (P1 spec §14.1, plan decision 1). */
   readonly economy: WwEconomy;
+  /** P2 land war (P2 spec §16.1, plan decision 1). */
+  readonly land: WwLand;
 
   constructor(
     private readonly mg: Game,
@@ -72,12 +77,14 @@ export class WorldWar {
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
     this.economy = new WwEconomy(mg, this, scenario);
+    this.land = new WwLand(mg, this, this.economy);
   }
 
   /**
    * Spec §5.3, §7.1: capitals, starting victory points, the wars of
-   * 1 January 1936, then the economy's start (P1 spec §6.6, §11: the 1936
-   * armies). GameImpl calls it once, after the territory.
+   * 1 January 1936, then the economy's start (P1 spec §6.6, §11) and the
+   * land war's (P2 spec §6.4: the 1936 armies). GameImpl calls it once,
+   * after the territory.
    */
   start(): void {
     for (const p of this.mg.allPlayers()) {
@@ -98,6 +105,7 @@ export class WorldWar {
       if (a !== 0 && b !== 0) this.setWar(a, b, 0);
     }
     this.economy.start();
+    this.land.start();
   }
 
   // ---- Queries ----
@@ -329,7 +337,8 @@ export class WorldWar {
     for (const [id, days] of this.gauges()) {
       h = (Math.imul(h, 31) + id * 257 + days + 3) | 0;
     }
-    return (Math.imul(h, 31) + this.economy.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.economy.hash()) | 0;
+    return (Math.imul(h, 31) + this.land.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -350,6 +359,7 @@ export class WorldWar {
       })),
       ...(gauges.length === 0 ? {} : { gauges }),
       economy: this.economy.snapshot(),
+      land: this.land.snapshot(),
     };
   }
 
@@ -379,6 +389,13 @@ export class WorldWar {
       );
     }
     this.economy.restoreState(s.economy);
+    // No P1 game continues with P2 code (P2 spec §16.5).
+    if (s.land === undefined) {
+      throw new Error(
+        "World War 1936 snapshot without its land war (made before P2)",
+      );
+    }
+    this.land.restoreState(s.land);
   }
 
   private rebuildMatrix(): void {

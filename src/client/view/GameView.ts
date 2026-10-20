@@ -61,6 +61,7 @@ import {
 import { PlayerView } from "./PlayerView";
 import { UnitView } from "./UnitView";
 import { WwEconomyView } from "./WwEconomyView";
+import { WwLandView } from "./WwLandView";
 
 function readCosmeticVisibility(): CosmeticVisibility {
   return new UserSettings().graphicsOverrides().cosmetics ?? {};
@@ -122,6 +123,8 @@ export class GameView implements GameLike {
   private _worldWarTeams: Map<number, string> | null = null;
   /** World War 1936 P1: the merged economy updates; null when the mode is off. */
   private _wwEconomy: WwEconomyView | null = null;
+  /** World War 1936 P2: the merged land war updates; null when the mode is off. */
+  private _wwLand: WwLandView | null = null;
   private readonly _usernames: Map<ClientID, string>;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
@@ -182,6 +185,7 @@ export class GameView implements GameLike {
       });
       this._worldWarTeams = teams;
       this._wwEconomy = new WwEconomyView(scenario);
+      this._wwLand = new WwLandView(scenario);
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
@@ -262,6 +266,11 @@ export class GameView implements GameLike {
   /** World War 1936 P1: industry, research, manpower; null when the mode is off. */
   wwEconomy(): WwEconomyView | null {
     return this._wwEconomy;
+  }
+
+  /** World War 1936 P2: divisions, armies, battles; null when the mode is off. */
+  wwLand(): WwLandView | null {
+    return this._wwLand;
   }
 
   /** The lobby username of a human player. */
@@ -360,6 +369,9 @@ export class GameView implements GameLike {
     }
     for (const u of gu.updates[GameUpdateType.WwEconomy] ?? []) {
       this._wwEconomy?.apply(u.data);
+    }
+    for (const u of gu.updates[GameUpdateType.WwLand] ?? []) {
+      this._wwLand?.apply(u.data, gu.tick);
     }
 
     const myDisplayName = formatPlayerDisplayName(

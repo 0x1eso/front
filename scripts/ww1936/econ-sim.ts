@@ -149,13 +149,13 @@ interface Row {
   freeCiv: number;
   troops: number;
   army: number;
-  troopCap: number;
+  /** P2: the men in the field divisions and in training, the divisions. */
+  fieldMen: number;
+  trainingMen: number;
+  divisions: number;
   manpower: number;
   recruitable: number;
   stock: Record<EquipmentType, number>;
-  attackPct: number;
-  defensePct: number;
-  speedPct: number;
   techs: number;
   slotsBusy: number;
   slotCount: number;
@@ -214,13 +214,12 @@ function rowOf(ww: WorldWar, econ: WwEconomy, ce: CountryEconomy): Row {
     freeCiv: Math.floor(t.freeCivMilli / 1000),
     troops: Math.floor(p.troops()),
     army: p.isAlive() ? econ.armyMen(p) : 0,
-    troopCap: t.troopCap,
+    fieldMen: ww.land.fieldMen(ce.smallID),
+    trainingMen: ww.land.trainingMen(ce.smallID),
+    divisions: ww.land.countrySummary(ww.land.country(ce.smallID)!).divisions,
     manpower: ce.manpower,
     recruitable: t.recruitable,
     stock,
-    attackPct: t.attackPct,
-    defensePct: t.defensePct,
-    speedPct: t.speedPct,
     techs: ce.researched.size,
     slotsBusy: ce.slots.filter((s, i) => s !== null && i < t.slotCount).length,
     slotCount: t.slotCount,
@@ -247,13 +246,12 @@ const CSV_HEAD = [
   "freeCiv",
   "troops",
   "army",
-  "troopCap",
+  "fieldMen",
+  "trainingMen",
+  "divisions",
   "manpower",
   "recruitable",
   ...EQUIPMENT_TYPES,
-  "attackPct",
-  "defensePct",
-  "speedPct",
   "techs",
   "slotsBusy",
   "slotCount",
@@ -280,13 +278,12 @@ function csvLine(day: number, r: Row): string {
     r.freeCiv,
     r.troops,
     r.army,
-    r.troopCap,
+    r.fieldMen,
+    r.trainingMen,
+    r.divisions,
     r.manpower,
     r.recruitable,
     ...EQUIPMENT_TYPES.map((e) => r.stock[e]),
-    r.attackPct,
-    r.defensePct,
-    r.speedPct,
     r.techs,
     r.slotsBusy,
     r.slotCount,
@@ -316,7 +313,7 @@ function majorsTable(rows: readonly Row[]): string {
       "dock",
       "idle",
       "army",
-      "cap",
+      "field",
       "manpower",
       "inf",
       "sup",
@@ -328,7 +325,7 @@ function majorsTable(rows: readonly Row[]): string {
       "MT",
       "ftr",
       "bmb",
-      "atk/def/spd",
+      "divs",
       "techs",
       "slots",
       "fill min/avg",
@@ -343,7 +340,7 @@ function majorsTable(rows: readonly Row[]): string {
       `${r.dock}`,
       `${r.idleMil}`,
       k(r.army),
-      k(r.troopCap),
+      k(r.fieldMen),
       k(r.manpower),
       k(r.stock.infantry_equipment),
       k(r.stock.support_equipment),
@@ -355,7 +352,7 @@ function majorsTable(rows: readonly Row[]): string {
       k(r.stock.medium_tank),
       k(r.stock.fighter),
       k(r.stock.bomber),
-      `${r.attackPct}/${r.defensePct}/${r.speedPct}`,
+      `${r.divisions}`,
       `${r.techs}`,
       `${r.slotsBusy}/${r.slotCount}`,
       `${r.minFill}/${r.avgFill}`,

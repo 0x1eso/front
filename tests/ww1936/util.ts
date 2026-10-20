@@ -16,6 +16,7 @@ import {
   StampedIntent,
 } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "@openfront/engine/game/Game";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
@@ -24,6 +25,9 @@ import type {
   CountryEconomy,
   WwEconomy,
 } from "@openfront/engine/ww1936/economy/WwEconomy";
+import { fieldDivision } from "@openfront/engine/ww1936/land/LandStartRun";
+import { capture } from "@openfront/engine/ww1936/land/Occupation";
+import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 
@@ -141,4 +145,68 @@ export function clearStartSetup(econ: WwEconomy, ce: CountryEconomy): void {
   ce.slots.forEach((s, i) => {
     if (s !== null) cancelResearch(econ, ce, i);
   });
+}
+
+// ---- P2: the land war (plan Task 1 Step 20; every lane uses these) ----
+
+/** The land war of a World War game. */
+export function land(game: Game): WwLand {
+  return game.worldWar()!.land;
+}
+
+/** Hands a region to `tag` now, the way a won battle does (Occupation.capture). */
+export function takeRegion(game: Game, region: number, tag: CountryTag): void {
+  capture(land(game), region, byTag(game, tag).smallID(), game.ticks());
+}
+
+/** Removes every division and army (a blank board for a numeric test). Men and equipment do not come back. */
+export function clearLand(game: Game): void {
+  const l = land(game);
+  for (let r = 0; r < l.divisions.rows; r++) {
+    if (l.divisions.alive(r)) l.killDivision(r, false);
+  }
+}
+
+/**
+ * `n` full-strength divisions of `tag`'s template number `template` (1:
+ * its first 1936 template) in `region`, as one new army; returns the army.
+ * Draws men and equipment like training; the test country needs both.
+ */
+export function placeArmy(
+  game: Game,
+  tag: CountryTag,
+  region: number,
+  n: number,
+  template = 1,
+): Army {
+  const l = land(game);
+  const id = byTag(game, tag).smallID();
+  const cl = l.country(id)!;
+  const ce = l.econ.country(id)!;
+  const a = l.newArmy(id)!;
+  const tpl = cl.template(template)!;
+  for (let i = 0; i < n; i++) {
+    if (!fieldDivision(l, cl, ce, tpl, region, a)) {
+      throw new Error(`${tag} ran out of men`);
+    }
+  }
+  return a;
+}
+
+/**
+ * Steps past the preparation minute and declares `a` → `b` (a human `a`);
+ * the war is on when it returns (the declaration runs a tick after its turn).
+ */
+export function warAfterPrep(
+  runner: GameRunner,
+  clientID: string,
+  b: CountryTag,
+): void {
+  stepTo(runner, WW_PREP_TICKS + 1);
+  step(runner, 2, [
+    stamped(clientID, {
+      type: "declare_war",
+      target: byTag(runner.game, b).id(),
+    }),
+  ]);
 }

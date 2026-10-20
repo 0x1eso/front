@@ -201,6 +201,119 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     clientID: P3,
     order: { kind: "cancel_research", slot: 4 },
   },
+  // P2: the land war's 20 kinds (plan Task 1 Step 4).
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: {
+      kind: "template_save",
+      template: 0,
+      base: 1,
+      name: "보병 사단 7·2",
+      battalions: ["infantry", "infantry", "artillery"],
+      support: ["engineer", "recon"],
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "template_delete", template: 3 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "train", template: 2, count: 10, army: 0, region: 0 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "cancel_train", entry: 7 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "deploy_now", entry: 7 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_move", army: 12, region: 1342 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_rail", army: 12, region: 4 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_sea", army: 12, region: 10 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_attack", army: 9_999_999, region: 6 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_front", army: 1, anchor: 3, enemy: 0 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: {
+      kind: "army_plan",
+      army: 1,
+      targets: [6, 7, 8],
+      stance: "aggressive",
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_execute", army: 1, on: false },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_halt", army: 1 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_split", army: 2, count: 23, template: 0 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_merge", army: 2, into: 3 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_disband", army: 2 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_general", army: 2, general: 100_000 + 7 * 1000 + 1 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_auto", army: 2, on: true },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "paradrop", army: 4, region: 6 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "appoint_general" },
+  },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

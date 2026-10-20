@@ -142,6 +142,7 @@ describe("createRenderer", () => {
 
   it("World War 1936: hands the region ids to the map renderer", () => {
     const regionIds = Uint16Array.from([1, 2, 40001, 40002]);
+    const wwLand = { version: 0 };
     const game = {
       layers: () => [],
       width: () => 2,
@@ -152,13 +153,15 @@ describe("createRenderer", () => {
       owner: () => ({}),
       myPlayer: () => ({}),
       worldWarScenario: () => ({ regionIds }),
+      wwLand: () => wwLand,
       config: () => ({
         gameConfig: () => ({}),
         isReplay: () => false,
       }),
     } as unknown as GameView;
     const setRegions = vi.fn();
-    const view = { setRegions } as unknown as MapRenderer;
+    const setWwLand = vi.fn();
+    const view = { setRegions, setWwLand } as unknown as MapRenderer;
 
     createRenderer(
       document.createElement("div"),
@@ -169,5 +172,9 @@ describe("createRenderer", () => {
     );
 
     expect(setRegions).toHaveBeenCalledExactlyOnceWith(regionIds);
+    // P2: the land war's view goes to the map renderer too (Task 7 draws it).
+    expect(setWwLand).toHaveBeenCalledTimes(1);
+    expect(setWwLand.mock.calls[0][0]).toBe(wwLand);
+    expect(setWwLand.mock.calls[0][1]).toBeDefined();
   });
 });

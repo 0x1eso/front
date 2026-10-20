@@ -169,9 +169,11 @@ describe("a World War 1936 replay keeps only the economy's troop caps", () => {
         for (const [id, cap] of want) expect(v.wwTroopCapOf(id)).toBe(cap);
       }
     }
-    // Every country's cap, and today's, as the engine has it.
+    // Every country's cap, and today's, as the engine has it (P2: the men
+    // in its field divisions, the troop mirror).
+    const land = runner.game.worldWar()!.land;
     for (const ce of econ.countries()) {
-      expect(v.wwTroopCapOf(ce.smallID)).toBe(econ.troopCap(ce.smallID));
+      expect(v.wwTroopCapOf(ce.smallID)).toBe(land.fieldMen(ce.smallID));
     }
     expect(entries).toBeGreaterThan(12 * econ.countries().length);
     console.log(

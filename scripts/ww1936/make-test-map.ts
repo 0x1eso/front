@@ -2,11 +2,16 @@
 // War 1936 test map. Land rows 0..99, an island at x 20..49, y 106..115,
 // sea elsewhere. Run: npx tsx scripts/ww1936/make-test-map.ts
 // Version 2 (P1 plan Task 1): every region has its economy; `coastal` comes
-// from the tiles.
+// from the tiles. Version 3 (P2 plan Task 1, the "test map v3" table): the
+// land graph (edges with border, km, rivers and the Lyon–London strait),
+// each region's terrain, rail, fort, port, latitude and weather cell, the
+// countries' development, the sea-zone edge and kmPerTile 4. map.bin,
+// regions.bin, the minimaps and manifest.json stay byte for byte the same.
 import {
   CATEGORY_SLOTS,
   RegionCategory,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { LandTerrain } from "@openfront/engine-api/ww1936/LandTypes";
 import type { ScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { encodeRegions } from "@openfront/engine-lib/ww1936/Regions";
@@ -230,6 +235,68 @@ const REGIONS: {
     box: [20, 50, 106, 116],
   },
 ];
+// P2 (the plan's test-map v3 table): terrain, start rail and fort, port,
+// latitude of the real city (hundredths of a degree) and its weather cell.
+interface Land {
+  land: LandTerrain;
+  rail: number;
+  fort: number;
+  port: boolean;
+  latC: number;
+  wcell: number;
+}
+const LAND: Record<number, Land> = {
+  1: { land: "plains", rail: 2, fort: 2, port: false, latC: 4880, wcell: 378 },
+  2: { land: "hills", rail: 1, fort: 0, port: true, latC: 4480, wcell: 378 },
+  3: { land: "plains", rail: 3, fort: 0, port: false, latC: 5250, wcell: 415 },
+  4: { land: "forest", rail: 2, fort: 0, port: false, latC: 4810, wcell: 379 },
+  5: {
+    land: "mountain",
+    rail: 1,
+    fort: 0,
+    port: false,
+    latC: 4190,
+    wcell: 379,
+  },
+  6: { land: "plains", rail: 1, fort: 0, port: false, latC: 5220, wcell: 416 },
+  7: { land: "hills", rail: 0, fort: 0, port: false, latC: 5000, wcell: 416 },
+  8: { land: "plains", rail: 2, fort: 0, port: false, latC: 5570, wcell: 417 },
+  9: { land: "plains", rail: 1, fort: 0, port: false, latC: 5040, wcell: 417 },
+  10: { land: "plains", rail: 2, fort: 0, port: true, latC: 5150, wcell: 414 },
+};
+/** Industrialisation (P2 plan decision 14): Poland 1, so it starts small. */
+const DEV: Record<string, number> = {
+  DEU: 5,
+  ITA: 3,
+  GBR: 5,
+  FRA: 4,
+  SUN: 3,
+  POL: 1,
+};
+/** Hand-drawn rivers on edges ("a-b": 1 small, 2 big) and the straits. */
+const RIVERS: Record<string, 1 | 2> = { "6-8": 1, "7-9": 2 };
+const STRAITS = ["2-10"];
+const KM_PER_TILE = 4;
+/** The plan's 16 edges [a, b, border, km, river, strait]: the script checks its own. */
+const EXPECTED_EDGES: [number, number, number, number, number, number][] = [
+  [1, 2, 40, 200, 0, 0],
+  [1, 3, 35, 183, 0, 0],
+  [1, 4, 15, 210, 0, 0],
+  [2, 4, 20, 202, 0, 0],
+  [2, 5, 30, 184, 0, 0],
+  [2, 10, 0, 156, 0, 1],
+  [3, 4, 50, 140, 0, 0],
+  [3, 6, 35, 163, 0, 0],
+  [4, 5, 50, 132, 0, 0],
+  [4, 6, 15, 193, 0, 0],
+  [4, 7, 20, 185, 0, 0],
+  [5, 7, 30, 165, 0, 0],
+  [6, 7, 30, 200, 0, 0],
+  [6, 8, 50, 220, 1, 0],
+  [7, 9, 50, 220, 2, 0],
+  [8, 9, 80, 200, 0, 0],
+];
+
 const SEAS = [
   { id: 40001, name: "North Sea", nameKo: "북해", x0: 0, x1: 100 },
   { id: 40002, name: "Black Sea", nameKo: "흑해", x0: 100, x1: 200 },
@@ -366,13 +433,54 @@ for (const r of REGIONS) {
   }
 }
 
+const vpTileOf = (r: (typeof REGIONS)[number]): [number, number] => [
+  (r.box[0] + r.box[1]) >> 1,
+  (r.box[2] + r.box[3]) >> 1,
+];
+
+// The land edges (P2 spec §3.2): one right/down pass counts the 4-neighbour
+// tile pairs of two different land regions; km from the centers.
+const borders = new Map<string, number>();
+for (let y = 0; y < H; y++) {
+  for (let x = 0; x < W; x++) {
+    const a = ids[y * W + x];
+    const pairs: number[] = [];
+    if (x + 1 < W) pairs.push(ids[y * W + x + 1]);
+    if (y + 1 < H) pairs.push(ids[(y + 1) * W + x]);
+    for (const b of pairs) {
+      if (a === b || a >= SEA_ZONE_BASE || b >= SEA_ZONE_BASE) continue;
+      const k = `${Math.min(a, b)}-${Math.max(a, b)}`;
+      borders.set(k, (borders.get(k) ?? 0) + 1);
+    }
+  }
+}
+for (const k of STRAITS) borders.set(k, borders.get(k) ?? 0);
+const center = new Map(REGIONS.map((r) => [r.id, vpTileOf(r)]));
+const edges: [number, number, number, number, number, number][] = [...borders]
+  .map(([k, border]): [number, number, number, number, number, number] => {
+    const [a, b] = k.split("-").map(Number);
+    const [ax, ay] = center.get(a)!;
+    const [bx, by] = center.get(b)!;
+    const km = Math.round(
+      KM_PER_TILE * Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2),
+    );
+    return [a, b, border, km, RIVERS[k] ?? 0, STRAITS.includes(k) ? 1 : 0];
+  })
+  .sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+if (JSON.stringify(edges) !== JSON.stringify(EXPECTED_EDGES)) {
+  throw new Error(
+    `test map edges differ from the plan's table:\n${JSON.stringify(edges)}`,
+  );
+}
+
 const scenario: ScenarioData = {
-  version: 2,
+  version: 3,
   width: W,
   height: H,
   countries: Object.entries(CAPITALS).map(([tag, capital]) => ({
     tag: tag as ScenarioData["countries"][number]["tag"],
     capital,
+    dev: DEV[tag],
   })),
   regions: REGIONS.map((r) => ({
     id: r.id,
@@ -380,14 +488,18 @@ const scenario: ScenarioData = {
     nameKo: r.nameKo,
     owner: r.owner,
     vp: r.vp,
-    vpTile: [(r.box[0] + r.box[1]) >> 1, (r.box[2] + r.box[3]) >> 1] as [
-      number,
-      number,
-    ],
+    vpTile: vpTileOf(r),
     tiles: tiles.get(r.id)!,
     terrain: "plains" as const,
     ...ECONOMY[r.id],
     coastal: coastal.has(r.id),
+    land: LAND[r.id].land,
+    center: vpTileOf(r),
+    latC: LAND[r.id].latC,
+    wcell: LAND[r.id].wcell,
+    rail: LAND[r.id].rail,
+    fort: LAND[r.id].fort,
+    port: LAND[r.id].port,
   })),
   seaZones: SEAS.map((s) => ({
     id: s.id,
@@ -395,6 +507,10 @@ const scenario: ScenarioData = {
     nameKo: s.nameKo,
     tiles: tiles.get(s.id)!,
   })),
+  edges,
+  seaEdges: [[40001, 40002, 400, 0]],
+  straits: [],
+  kmPerTile: KM_PER_TILE,
 };
 
 const manifest = {

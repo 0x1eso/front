@@ -319,6 +319,15 @@ const COUNTRY_ORDER: Readonly<
 /** Every list ends so that no slot idles while anything is left (R6.8). */
 const TAIL: readonly TechGroup[] = ["industry", "electronics", "air"];
 
+/**
+ * P2's land techs (appended to WW_TECH_IDS) wait for the land AI (Task 6,
+ * pre-flight A1) to place them in the groups above; until then no AI
+ * researches them, so P1's research plans stay as they were.
+ */
+const UNPLACED_LAND_TECHS: ReadonlySet<WwTechId> = new Set(
+  WW_TECH_IDS.slice(WW_TECH_IDS.indexOf("engineer_company")),
+);
+
 const TECH_INDEX: ReadonlyMap<WwTechId, number> = new Map(
   WW_TECH_IDS.map((t, i) => [t, i]),
 );
@@ -353,6 +362,7 @@ export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
   for (const g of groups) add(g === "school" ? schoolTechs : GROUP_TECHS[g]);
   add(
     WW_TECH_IDS.filter((t) => {
+      if (UNPLACED_LAND_TECHS.has(t)) return false;
       const s = WW_TECHS[t].school;
       return s === undefined || s === school;
     }),

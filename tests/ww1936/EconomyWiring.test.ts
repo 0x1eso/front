@@ -34,6 +34,7 @@ import {
   stamped,
   step,
   stepTo,
+  takeRegion,
   wwGameStart,
   WwHuman,
   wwRunner,
@@ -65,20 +66,19 @@ describe("economy wiring (spec §6, §14)", () => {
     const deu = byTag(g, "DEU");
     const econ = g.worldWar()!.economy;
     const ce = econ.country(deu.smallID())!;
-    expect(deu.troops()).toBe(480_000);
+    // P2 spec §6.4: the 480,000-man army fields 45 divisions of 10,500
+    // men; the troops mirror them (P2 spec §13.2).
+    expect(deu.troops()).toBe(472_500);
     // Berlin and Munich: 67 million people, 2.5% under limited conscription.
     expect(ce.totals.recruitable).toBe(1_675_000);
-    expect(ce.manpower).toBe(ce.totals.recruitable - 480_000);
-    expect(ce.manpower).toBe(1_195_000);
-    expect(g.config().maxTroops(deu)).toBe(
-      480_000 + Math.min(ce.manpower, ce.infStock() * 10),
-    );
-    expect(g.config().maxTroops(deu)).toBe(630_000);
+    expect(ce.manpower).toBe(ce.totals.recruitable - 472_500);
+    expect(ce.manpower).toBe(1_202_500);
+    expect(g.config().maxTroops(deu)).toBe(472_500);
     expect(g.config().troopIncreaseRate(deu)).toBe(0);
-    expect(ce.fieldInfUnits).toBe(48_000);
-    expect(ce.infStock()).toBe(15_000);
+    // The reserve and the army's 48,000 rifles, less 45 × 900 in the field.
+    expect(ce.infStock()).toBe(15_000 + 48_000 - 40_500);
     expect(ce.researched.has("tools_1")).toBe(true);
-    expect(deu.wwTroopCap()).toBe(ce.totals.troopCap);
+    expect(deu.wwTroopCap()).toBe(deu.troops());
     // A major has three research slots (none new on day 0), all at work
     // (HOI4's 1936 start, aiStartSetup).
     expect(ce.totals.slotCount).toBe(3);
@@ -182,13 +182,15 @@ describe("economy wiring (spec §6, §14)", () => {
     const g = runner.game;
     const pol = byTag(g, "POL");
     const ce = g.worldWar()!.economy.country(pol.smallID())!;
-    // Warsaw and Krakow: 34 million, 2.5%; the army is 30% of that.
+    // Warsaw and Krakow: 34 million, 2.5%; the army is 30% of that,
+    // 255,000 men, and Poland (dev 1) fields 30% of it in 9,000-man
+    // divisions: 8 (P2 spec §6.4).
     expect(ce.totals.recruitable).toBe(850_000);
-    expect(pol.troops()).toBe(255_000);
-    expect(ce.manpower).toBe(595_000);
-    // 2,550 infantry equipment in reserve arm 25,500 more men.
-    expect(ce.infStock()).toBe(2_550);
-    expect(g.config().maxTroops(pol)).toBe(280_500);
+    expect(pol.troops()).toBe(72_000);
+    expect(ce.manpower).toBe(850_000 - 72_000);
+    // 2,550 in reserve and the army's 25,500 rifles, less 8 × 900.
+    expect(ce.infStock()).toBe(2_550 + 25_500 - 7_200);
+    expect(g.config().maxTroops(pol)).toBe(72_000);
     // Two slots, both at work from the start.
     expect(ce.slots.map((x) => x?.tech)).toEqual([
       "construction_1",
@@ -196,32 +198,25 @@ describe("economy wiring (spec §6, §14)", () => {
     ]);
   });
 
-  test("the army counts its attacks and its boats", async () => {
-    const humans: WwHuman[] = [{ clientID: HUMAN, country: "GBR" }];
-    const runner = await wwRunner({}, humans);
+  test("the army counts its divisions and its men in training", async () => {
+    const runner = await wwRunner();
     const g = runner.game;
-    const econ = g.worldWar()!.economy;
-    const [gbr, ita] = (["GBR", "ITA"] as const).map((t) => byTag(g, t));
-    stepTo(runner, WW_PREP_TICKS + 1);
-    step(runner, 1, [
-      stamped(HUMAN, { type: "declare_war", target: ita.id() }),
-    ]);
-    step(runner, 2);
-    // The 1936 army and Britain's day-0 draft (tick 603), all at home.
+    const ww = g.worldWar()!;
+    const econ = ww.economy;
+    const gbr = byTag(g, "GBR");
+    // P2 spec §13.2: the field divisions' men, the troops' mirror.
     const before = econ.armyMen(gbr);
+    expect(before).toBe(ww.land.fieldMen(gbr.smallID()));
     expect(before).toBe(gbr.troops());
-    expect(before).toBe(
-      250_000 + econ.country(gbr.smallID())!.totals.recruited,
-    );
-    // A boat for Rome's coast: its men leave the troops, not the army.
-    step(runner, 1, [
-      stamped(HUMAN, { type: "boat", troops: 50_000, dst: g.ref(65, 99) }),
-    ]);
-    step(runner, 2);
-    const [boat] = gbr.units(UnitType.TransportShip);
-    expect(boat.troops()).toBe(50_000);
-    expect(gbr.troops()).toBe(before - 50_000);
-    expect(econ.armyMen(gbr)).toBe(before);
+    // Men in training count against the manpower ceiling too.
+    ww.land.country(gbr.smallID())!.trainees.push({
+      entry: 1,
+      template: 1,
+      men: 9_000,
+      equip: [],
+      days: 0,
+    });
+    expect(econ.armyMen(gbr)).toBe(before + 9_000);
   });
 
   test("the test map's regions (plan Task 1 Step 13)", async () => {
@@ -268,11 +263,12 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(econ.countryNeighbours(gbr)).toEqual([]);
     expect([...econ.countrySeaZones(pol)]).toEqual([40001, 40002]);
     expect(econ.countrySeaZones(deu).size).toBe(0);
-    // Germany takes Krakow's VP tile: at the next day's common step it
-    // controls Krakow (occupied: Poland still fights) and borders Russia.
+    // Germany takes Krakow (P2: the land war's control): at the next day's
+    // common step the economy follows (occupied: Poland still fights) and
+    // Germany borders Russia.
     const krakow = ww.scenario.landRegions.find((r) => r.name === "Krakow")!;
     stepTo(runner, WW_PREP_TICKS + 1);
-    byTag(g, "DEU").conquer(ww.scenario.vpTile(krakow));
+    takeRegion(g, krakow.id, "DEU");
     stepTo(runner, dayStartTick(2, WW_PREP_TICKS) + 1);
     expect(econ.controllerOf(krakow.id)).toBe(deu);
     expect(econ.isOccupied(krakow.id)).toBe(true);
@@ -291,7 +287,7 @@ describe("economy wiring (spec §6, §14)", () => {
     const view = new WwEconomyView(scenario);
     const krakow = scenario.landRegions.find((r) => r.name === "Krakow")!;
     stepTo(runner, WW_PREP_TICKS + 1);
-    byTag(g, "DEU").conquer(scenario.vpTile(krakow));
+    takeRegion(g, krakow.id, "DEU");
     stepTo(runner, dayStartTick(2, WW_PREP_TICKS));
     for (const u of updates) {
       for (const e of u.updates[GameUpdateType.WwEconomy]) view.apply(e.data);
@@ -303,9 +299,12 @@ describe("economy wiring (spec §6, §14)", () => {
       mil: 1,
       dock: 0,
       infra: 3,
+      fort: 0,
+      rail: 0,
+      hub: 0,
     });
     expect(view.troopCap(byTag(g, "DEU").smallID())).toBe(
-      ww.economy.troopCap(byTag(g, "DEU").smallID()),
+      ww.land.fieldMen(byTag(g, "DEU").smallID()),
     );
     expect(view.version).toBeGreaterThan(1);
   });

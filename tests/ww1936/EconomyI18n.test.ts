@@ -81,9 +81,6 @@ const ECON = [
   "recruitable",
   "manpower",
   "troops",
-  "draft_today",
-  "troop_cap",
-  "combat",
   "slot_empty",
   "ahead",
   "cancel_tap",
@@ -115,6 +112,27 @@ const EFFECTS = [
   "gunBonusPct",
   "recruitablePct",
   "trainPct",
+  // P2 (plan decision 11).
+  "fortConstructionPct",
+  "railConstructionPct",
+  "railSpeedPct",
+  "breakthroughPct",
+  "orgPct",
+  "recoveryPct",
+  "planSpeedPct",
+  "planMaxBp",
+  "entrenchMax",
+  "supplyUsePct",
+  "armyXpMilli",
+  "generalXpPct",
+  "winterPenaltyPct",
+  "desertAttackPct",
+  "forestDefensePct",
+  "mechBreakPct",
+  "mechOrg",
+  "artillerySoftPct",
+  "infTrainCutPct",
+  "infOrg",
   "unlock",
 ];
 const LAW_NEED = [
@@ -144,6 +162,10 @@ const KEYS = [
   ...WW_ORDER_BLOCKS.map((b) => `ww1936.econ.block.${b}`),
   ...LAW_NEED.map((v) => `ww1936.econ.law_need.${v}`),
   ...ECON.map((e) => `ww1936.econ.${e}`),
+  // P2 (plan Task 1 Step 22): the manpower tab's land rows.
+  ...["field_men", "training_men", "casualties_today"].map(
+    (e) => `ww1936.land.${e}`,
+  ),
   ...[
     "ww1936_research_done",
     "ww1936_built",
@@ -167,7 +189,8 @@ describe("World War 1936 P1 economy strings", () => {
   });
 
   it("has the expected number of block reasons", () => {
-    expect(WW_ORDER_BLOCKS.length).toBe(25);
+    // P1's 25 and P2's 18 (plan decision 24).
+    expect(WW_ORDER_BLOCKS.length).toBe(43);
   });
 
   it.each(KEYS)("%s exists in en and ko with matching placeholders", (key) => {

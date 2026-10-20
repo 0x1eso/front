@@ -65,7 +65,7 @@ describe("shared judgements (plan decision 3)", () => {
       controlled: true,
       occupied: false,
       queueLength: 0,
-      infraWithQueue: 3,
+      levelWithQueue: 0,
       usedSlots: 5,
       slots: 6,
     };
@@ -76,19 +76,35 @@ describe("shared judgements (plan decision 3)", () => {
     expect(buildBlockOf({ ...ok, occupied: true })).toBe("occupied");
     expect(buildBlockOf({ ...ok, count: 2 })).toBe("no_slots");
     // Infrastructure: no slots, occupied or not, up to five with the queue.
-    const infra = { ...ok, building: "infra" as const, occupied: true };
+    const infra = {
+      ...ok,
+      building: "infra" as const,
+      occupied: true,
+      levelWithQueue: 3,
+    };
     expect(buildBlockOf({ ...infra, count: 2 })).toBeNull();
     expect(buildBlockOf({ ...infra, count: 3 })).toBe("infra_max");
+    // P2 plan decision 10: forts and railways to five, a supply hub to one,
+    // all level buildings, in occupied regions too.
+    expect(buildBlockOf({ ...infra, building: "fort", count: 2 })).toBeNull();
+    expect(buildBlockOf({ ...infra, building: "rail", count: 3 })).toBe(
+      "infra_max",
+    );
+    const hub = { ...infra, building: "supply_hub" as const };
+    expect(buildBlockOf({ ...hub, levelWithQueue: 0 })).toBeNull();
+    expect(buildBlockOf({ ...hub, levelWithQueue: 1 })).toBe("infra_max");
     expect(
       queuedInRegion(
         [
           { region: 4, building: "civ", count: 2 },
           { region: 4, building: "infra", count: 1 },
+          { region: 4, building: "fort", count: 2 },
+          { region: 4, building: "supply_hub", count: 1 },
           { region: 3, building: "mil", count: 5 },
         ],
         4,
       ),
-    ).toEqual({ factories: 2, infra: 1 });
+    ).toEqual({ factories: 2, infra: 1, fort: 2, rail: 0, supply_hub: 1 });
   });
 
   test("laws: ladder, same, cooldown, condition", () => {

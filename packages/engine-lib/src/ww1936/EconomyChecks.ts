@@ -11,7 +11,7 @@ import {
   LAW_LADDERS,
   LawKind,
   LawValue,
-  MAX_INFRA,
+  LEVEL_MAX,
   WW_MAX_LINES,
   WW_MAX_QUEUE,
   WW_MAX_TRADES,
@@ -103,19 +103,54 @@ export interface QueuedBuild {
   count: number;
 }
 
-/** Factories and infrastructure levels a queue still adds to `region`. */
+/** What a queue still adds to `region`: factories, and each level building (P2 plan decision 10). */
+export interface QueuedInRegion {
+  factories: number;
+  infra: number;
+  fort: number;
+  rail: number;
+  supply_hub: number;
+}
+
+/** Factories and the levels of each level building a queue still adds to `region`. */
 export function queuedInRegion(
   queue: readonly QueuedBuild[],
   region: number,
-): { factories: number; infra: number } {
-  let factories = 0;
-  let infra = 0;
+): QueuedInRegion {
+  const out: QueuedInRegion = {
+    factories: 0,
+    infra: 0,
+    fort: 0,
+    rail: 0,
+    supply_hub: 0,
+  };
   for (const q of queue) {
     if (q.region !== region) continue;
-    if (q.building === "infra") infra += q.count;
-    else factories += q.count;
+    switch (q.building) {
+      case "infra":
+      case "fort":
+      case "rail":
+      case "supply_hub":
+        out[q.building] += q.count;
+        break;
+      default:
+        out.factories += q.count;
+    }
   }
-  return { factories, infra };
+  return out;
+}
+
+/** The queued levels of a level building (0 for a factory). */
+export function queuedLevels(q: QueuedInRegion, building: BuildingId): number {
+  switch (building) {
+    case "infra":
+    case "fort":
+    case "rail":
+    case "supply_hub":
+      return q[building];
+    default:
+      return 0;
+  }
 }
 
 export interface BuildCheck {
@@ -125,8 +160,11 @@ export interface BuildCheck {
   controlled: boolean;
   occupied: boolean;
   queueLength: number;
-  /** Infrastructure now plus the levels the controller's queue adds. */
-  infraWithQueue: number;
+  /**
+   * For a level building (infrastructure, fort, railway, supply hub): its
+   * level now plus the levels the controller's queue adds; 0 otherwise.
+   */
+  levelWithQueue: number;
   /** Factories built plus the ones the controller's queue reserves. */
   usedSlots: number;
   /** The region's slots with the country's slot bonus (regionSlots). */
@@ -138,8 +176,10 @@ export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
   if (!BUILDABLE.includes(c.building)) return "not_buildable";
   if (!c.controlled) return "not_controlled";
   if (c.queueLength >= WW_MAX_QUEUE) return "queue_full";
-  if (c.building === "infra") {
-    return c.infraWithQueue + c.count > MAX_INFRA ? "infra_max" : null;
+  const max = LEVEL_MAX[c.building];
+  // Level buildings use no slot and go up in occupied regions too (P2 §11.7).
+  if (max !== undefined) {
+    return c.levelWithQueue + c.count > max ? "infra_max" : null;
   }
   if (c.occupied) return "occupied";
   return c.usedSlots + c.count > c.slots ? "no_slots" : null;

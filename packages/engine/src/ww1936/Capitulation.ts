@@ -6,6 +6,7 @@ import {
   WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
+import { transferOnCapitulation } from "./land/Occupation";
 import type { WorldWar } from "./WorldWar";
 
 /** Spec §7.5: a region's points go to the owner of its VP tile. Indexed by smallID. */
@@ -100,8 +101,9 @@ export function pickVictor(
  * empties by one. A country at war with nobody has an empty gauge.
  */
 export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
-  // Of each country's starting regions, the points it still controls. No
-  // tile changes hands inside this loop (capitulate only queues transfers).
+  // Of each country's starting regions, the points it still controls, as
+  // the day began: a capitulation inside this loop hands its regions over
+  // (P2), but the other countries are judged on the day's start.
   const owners = ww.scenario.ownerByRegion();
   const held = new Array<number>(ww.scenario.countries.length + 1).fill(0);
   for (const r of ww.scenario.landRegions) {
@@ -169,16 +171,15 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
     u.owner().addTroops(u.troops());
     u.delete(false);
   }
+  // P2 spec §5.5, §12.5: its divisions and armies are gone; control moves
+  // this tick, the tiles follow by the spread budget (plan decision 8).
+  ww.land.removeCountryForces(loserID);
   if (victor !== null) {
     // Land still on its way to the loser goes straight on to its victor.
     for (const t of ww.transfers()) {
       if (t.to === loserID) t.to = victor.smallID();
     }
-    ww.queueTransfer(
-      loserID,
-      victor.smallID(),
-      Uint32Array.from(loser.tiles()),
-    );
+    transferOnCapitulation(ww.land, loserID, victor.smallID());
   }
   // Without a victor (nobody holds its points: unowned land) the message
   // names none, rather than "capitulated to" nobody.

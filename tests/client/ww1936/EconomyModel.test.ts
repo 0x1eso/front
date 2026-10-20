@@ -131,7 +131,8 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     for (const t of WW_TECH_IDS) expect(TECH_KEYS[t]).toBe(`ww1936.tech.${t}`);
     for (const [k, key] of Object.entries(EFFECT_KEYS))
       expect(key).toBe(`ww1936.effect.${k}`);
-    expect(Object.keys(EFFECT_KEYS)).toHaveLength(15);
+    // P1's 14 keys, P2's 20 (plan decision 11) and the unlock line.
+    expect(Object.keys(EFFECT_KEYS)).toHaveLength(35);
     for (const b of WW_ORDER_BLOCKS)
       expect(BLOCK_KEYS[b]).toBe(`ww1936.econ.block.${b}`);
   });
@@ -610,6 +611,14 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       support_eq_1: "available",
       support_eq_2: "prereq",
       motorized_1: "available",
+      // P2 (P2 spec §4.6): companies and special forces.
+      engineer_company: "prereq",
+      recon_company: "prereq",
+      mountaineers: "available",
+      marines: "available",
+      field_hospital: "prereq",
+      logistics_company: "prereq",
+      paratroopers: "prereq",
     });
     expect(states("doctrine")).toMatchObject({
       mobile_1: "done",

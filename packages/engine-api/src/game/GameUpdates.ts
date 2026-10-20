@@ -6,6 +6,7 @@ import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
 import type { WwEconomyData } from "../ww1936/EconomyTypes";
+import type { WwLandData } from "../ww1936/LandTypes";
 import type { WorldWarData } from "../ww1936/WorldWarTypes";
 import { TileRef } from "./GameMap";
 import {
@@ -128,6 +129,7 @@ export enum GameUpdateType {
   Congress,
   WorldWar,
   WwEconomy,
+  WwLand,
 }
 
 export type GameUpdate =
@@ -158,7 +160,8 @@ export type GameUpdate =
   | BombDropUpdate
   | CongressUpdate
   | WorldWarUpdate
-  | WwEconomyUpdate;
+  | WwEconomyUpdate
+  | WwLandUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -468,4 +471,10 @@ export interface WorldWarUpdate {
 export interface WwEconomyUpdate {
   type: GameUpdateType.WwEconomy;
   data: WwEconomyData;
+}
+
+/** World War 1936 P2: the land war's changes of the tick (P2 spec §16.4). */
+export interface WwLandUpdate {
+  type: GameUpdateType.WwLand;
+  data: WwLandData;
 }

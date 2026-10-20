@@ -90,6 +90,11 @@ describe("World War 1936 settings", () => {
       // P1 spec §4.6: the economy's factories replace them.
       UnitType.City,
       UnitType.Factory,
+      // P2 plan decision 7: armies replace boats, forts the defence posts,
+      // P4's convoys the trade ships.
+      UnitType.TransportShip,
+      UnitType.DefensePost,
+      UnitType.TradeShip,
     ]);
     expect(normalizeWorldWar1936Config(n)).toEqual(n); // idempotent
   });
@@ -125,6 +130,9 @@ describe("World War 1936 settings", () => {
     expect(cfg.isUnitDisabled(UnitType.AtomBomb)).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.City)).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.Factory)).toBe(true);
+    expect(cfg.isUnitDisabled(UnitType.TransportShip)).toBe(true);
+    expect(cfg.isUnitDisabled(UnitType.DefensePost)).toBe(true);
+    expect(cfg.isUnitDisabled(UnitType.TradeShip)).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.Port)).toBe(false);
     expect(cfg.maxTimerMinutes()).toBe(45);
     const off = new Config(testGameConfig({ historicalAi: true }), false);

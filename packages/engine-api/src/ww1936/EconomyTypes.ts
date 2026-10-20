@@ -39,18 +39,50 @@ export const CATEGORY_SLOTS: Readonly<Record<RegionCategory, number>> = {
   megalopolis: 12,
 };
 
-export const BUILDING_IDS = ["civ", "mil", "dock", "infra"] as const;
+export const BUILDING_IDS = [
+  "civ",
+  "mil",
+  "dock",
+  "infra",
+  "fort",
+  "rail",
+  "supply_hub",
+] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
-/** Construction points per building (spec §4.1). */
+/** Construction points per building (spec §4.1; P2 spec §11.7). */
 export const BUILDING_COST: Readonly<Record<BuildingId, number>> = {
   civ: 10_800,
   mil: 7_200,
   dock: 6_400,
   infra: 4_500,
+  fort: 4_000,
+  rail: 3_000,
+  supply_hub: 6_000,
 };
-/** What P1 builds; dockyards wait for P4 (spec §4.1). */
-export const BUILDABLE: readonly BuildingId[] = ["civ", "mil", "infra"];
+/** What can be built; dockyards wait for P4 (spec §4.1). */
+export const BUILDABLE: readonly BuildingId[] = [
+  "civ",
+  "mil",
+  "infra",
+  "fort",
+  "rail",
+  "supply_hub",
+];
 export const MAX_INFRA = 5;
+/** Buildings that are a level of the region, not a slot (P2 plan decision 10). */
+export const LEVEL_BUILDINGS: readonly BuildingId[] = [
+  "infra",
+  "fort",
+  "rail",
+  "supply_hub",
+];
+/** Highest level of each level building. */
+export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
+  infra: 5,
+  fort: 5,
+  rail: 5,
+  supply_hub: 1,
+};
 
 export const EQUIPMENT_TYPES = [
   "infantry_equipment",
@@ -224,6 +256,17 @@ export const WW_TECH_IDS = [
   "battleplan_2",
   "mass_1",
   "mass_2",
+  // P2 (P2 spec §4.6), appended.
+  "engineer_company",
+  "recon_company",
+  "mountaineers",
+  "marines",
+  "field_hospital",
+  "logistics_company",
+  "signal_company",
+  "paratroopers",
+  "fortification_1",
+  "rail_1",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -245,8 +288,6 @@ export const WW_MAX_SLOTS = 5;
 export const WW_LAW_COOLDOWN_DAYS = 30;
 export const WW_AI_PERIOD_DAYS = 10;
 export const WW_MEN_PER_INF_EQUIPMENT = 10;
-export const WW_LOSS_SCALE_PCT = 60;
-export const WW_EQUIPMENT_LOSS_SHARE_PCT = 50;
 
 /** Why an order is refused (UI text ww1936.econ.block.<id>). */
 export const WW_ORDER_BLOCKS = [
@@ -275,16 +316,29 @@ export const WW_ORDER_BLOCKS = [
   "doctrine",
   "no_slot",
   "bad_slot",
+  // P2 (P2 spec §16.3), appended; bad_region: not a land region.
+  "no_army",
+  "army_busy",
+  "no_path",
+  "not_adjacent",
+  "not_at_war",
+  "army_full",
+  "no_xp",
+  "bad_template",
+  "special_cap",
+  "no_rail",
+  "no_port",
+  "para_range",
+  "para_cooldown",
+  "template_in_use",
+  "too_many_templates",
+  "too_many_armies",
+  "general_unavailable",
+  "bad_region",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
 // ---- What the screens read (GameUpdateType.WwEconomy) ----
-
-export interface WwCombatStats {
-  attackPct: number;
-  defensePct: number;
-  speedPct: number;
-}
 
 /** Every processed country, every day. */
 export interface WwCountrySummary {
@@ -296,11 +350,11 @@ export interface WwCountrySummary {
   freeCivMilli: number;
   manpower: number;
   recruitable: number;
+  /** The men in the field divisions (the P2 troop mirror; replays read it). */
   troopCap: number;
   researchedCount: number;
   /** A working line lacks a resource. */
   shortage: boolean;
-  combat: WwCombatStats;
   /** Units a day still for sale, RESOURCE_IDS order (spec §7.4). */
   exportRoom: number[];
   /**
@@ -373,9 +427,6 @@ export interface WwCountryDetail {
   consumerGoodsMilli: number;
   paidCivs: number;
   receivedCivs: number;
-  fieldInfUnits: number;
-  trainCap: number;
-  recruited: number;
   effCapBp: number;
   /** Days of the longest running war; -1 at peace. */
   warDays: number;
@@ -393,6 +444,10 @@ export interface WwRegionData {
   mil: number;
   dock: number;
   infra: number;
+  /** P2 level buildings (plan decision 10). */
+  fort: number;
+  rail: number;
+  hub: number;
 }
 
 export interface WwEconomyData {

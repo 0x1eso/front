@@ -1,31 +1,37 @@
 {
-  "version": 2,
+  "version": 3,
   "width": 200,
   "height": 120,
   "countries": [
     {
       "tag": "FRA",
-      "capital": [20, 25]
+      "capital": [20, 25],
+      "dev": 4
     },
     {
       "tag": "DEU",
-      "capital": [65, 17]
+      "capital": [65, 17],
+      "dev": 5
     },
     {
       "tag": "ITA",
-      "capital": [65, 85]
+      "capital": [65, 85],
+      "dev": 3
     },
     {
       "tag": "POL",
-      "capital": [105, 25]
+      "capital": [105, 25],
+      "dev": 1
     },
     {
       "tag": "SUN",
-      "capital": [160, 25]
+      "capital": [160, 25],
+      "dev": 3
     },
     {
       "tag": "GBR",
-      "capital": [35, 110]
+      "capital": [35, 110],
+      "dev": 5
     }
   ],
   "regions": [
@@ -46,7 +52,14 @@
       "mil": 3,
       "dock": 0,
       "res": [0, 4, 0, 0, 0, 0],
-      "coastal": false
+      "coastal": false,
+      "land": "plains",
+      "center": [20, 25],
+      "latC": 4880,
+      "wcell": 378,
+      "rail": 2,
+      "fort": 2,
+      "port": false
     },
     {
       "id": 2,
@@ -65,7 +78,14 @@
       "mil": 2,
       "dock": 1,
       "res": [0, 0, 0, 0, 20, 0],
-      "coastal": true
+      "coastal": true,
+      "land": "hills",
+      "center": [20, 75],
+      "latC": 4480,
+      "wcell": 378,
+      "rail": 1,
+      "fort": 0,
+      "port": true
     },
     {
       "id": 3,
@@ -84,7 +104,14 @@
       "mil": 3,
       "dock": 0,
       "res": [0, 6, 0, 0, 0, 0],
-      "coastal": false
+      "coastal": false,
+      "land": "plains",
+      "center": [65, 17],
+      "latC": 5250,
+      "wcell": 415,
+      "rail": 3,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 4,
@@ -103,7 +130,14 @@
       "mil": 3,
       "dock": 0,
       "res": [1, 0, 0, 0, 40, 0],
-      "coastal": false
+      "coastal": false,
+      "land": "forest",
+      "center": [65, 52],
+      "latC": 4810,
+      "wcell": 379,
+      "rail": 2,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 5,
@@ -122,7 +156,14 @@
       "mil": 3,
       "dock": 1,
       "res": [0, 2, 0, 0, 4, 0],
-      "coastal": true
+      "coastal": true,
+      "land": "mountain",
+      "center": [65, 85],
+      "latC": 4190,
+      "wcell": 379,
+      "rail": 1,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 6,
@@ -141,7 +182,14 @@
       "mil": 1,
       "dock": 0,
       "res": [0, 0, 0, 0, 0, 0],
-      "coastal": false
+      "coastal": false,
+      "land": "plains",
+      "center": [105, 25],
+      "latC": 5220,
+      "wcell": 416,
+      "rail": 1,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 7,
@@ -160,7 +208,14 @@
       "mil": 1,
       "dock": 0,
       "res": [1, 0, 0, 0, 8, 0],
-      "coastal": true
+      "coastal": true,
+      "land": "hills",
+      "center": [105, 75],
+      "latC": 5000,
+      "wcell": 416,
+      "rail": 0,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 8,
@@ -179,7 +234,14 @@
       "mil": 4,
       "dock": 0,
       "res": [0, 4, 0, 0, 10, 0],
-      "coastal": false
+      "coastal": false,
+      "land": "plains",
+      "center": [160, 25],
+      "latC": 5570,
+      "wcell": 417,
+      "rail": 2,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 9,
@@ -198,7 +260,14 @@
       "mil": 3,
       "dock": 0,
       "res": [8, 0, 0, 1, 30, 4],
-      "coastal": true
+      "coastal": true,
+      "land": "plains",
+      "center": [160, 75],
+      "latC": 5040,
+      "wcell": 417,
+      "rail": 1,
+      "fort": 0,
+      "port": false
     },
     {
       "id": 10,
@@ -217,7 +286,14 @@
       "mil": 2,
       "dock": 3,
       "res": [2, 4, 20, 20, 20, 6],
-      "coastal": true
+      "coastal": true,
+      "land": "plains",
+      "center": [35, 111],
+      "latC": 5150,
+      "wcell": 414,
+      "rail": 2,
+      "fort": 0,
+      "port": true
     }
   ],
   "seaZones": [
@@ -233,5 +309,26 @@
       "nameKo": "흑해",
       "tiles": 2000
     }
-  ]
+  ],
+  "edges": [
+    [1, 2, 40, 200, 0, 0],
+    [1, 3, 35, 183, 0, 0],
+    [1, 4, 15, 210, 0, 0],
+    [2, 4, 20, 202, 0, 0],
+    [2, 5, 30, 184, 0, 0],
+    [2, 10, 0, 156, 0, 1],
+    [3, 4, 50, 140, 0, 0],
+    [3, 6, 35, 163, 0, 0],
+    [4, 5, 50, 132, 0, 0],
+    [4, 6, 15, 193, 0, 0],
+    [4, 7, 20, 185, 0, 0],
+    [5, 7, 30, 165, 0, 0],
+    [6, 7, 30, 200, 0, 0],
+    [6, 8, 50, 220, 1, 0],
+    [7, 9, 50, 220, 2, 0],
+    [8, 9, 80, 200, 0, 0]
+  ],
+  "seaEdges": [[40001, 40002, 400, 0]],
+  "straits": [],
+  "kmPerTile": 4
 }

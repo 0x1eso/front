@@ -112,6 +112,7 @@ function makeRunner(overrides: {
     owner: () => ({ id: () => "enemy1" }),
     playerByClientID: vi.fn(overrides.playerByClientID ?? (() => myPlayer)),
     euclideanDistSquared: () => overrides.boatDistSquared ?? 0,
+    worldWarScenario: () => null,
   };
   const input = { initialize: vi.fn(), destroy: vi.fn() };
   const runner = new ClientGameRunner(

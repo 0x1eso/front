@@ -18,6 +18,7 @@ import {
   LAW_LADDERS,
   LawKind,
   LawValue,
+  LEVEL_MAX,
   MAX_INFRA,
   RegionCategory,
   RESOURCE_IDS,
@@ -46,6 +47,7 @@ import {
   openTradeBlockOf,
   payableCivs,
   queuedInRegion,
+  queuedLevels,
   regionShares,
   researchBlockOf,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
@@ -89,6 +91,9 @@ export const BUILDING_KEYS: Readonly<Record<BuildingId, string>> = {
   mil: "ww1936.building.mil",
   dock: "ww1936.building.dock",
   infra: "ww1936.building.infra",
+  fort: "ww1936.building.fort",
+  rail: "ww1936.building.rail",
+  supply_hub: "ww1936.building.supply_hub",
 };
 
 export const RESOURCE_KEYS: Readonly<Record<ResourceId, string>> = {
@@ -232,6 +237,16 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   battleplan_2: "ww1936.tech.battleplan_2",
   mass_1: "ww1936.tech.mass_1",
   mass_2: "ww1936.tech.mass_2",
+  engineer_company: "ww1936.tech.engineer_company",
+  recon_company: "ww1936.tech.recon_company",
+  mountaineers: "ww1936.tech.mountaineers",
+  marines: "ww1936.tech.marines",
+  field_hospital: "ww1936.tech.field_hospital",
+  logistics_company: "ww1936.tech.logistics_company",
+  signal_company: "ww1936.tech.signal_company",
+  paratroopers: "ww1936.tech.paratroopers",
+  fortification_1: "ww1936.tech.fortification_1",
+  rail_1: "ww1936.tech.rail_1",
 };
 
 export type EffectKey = keyof TechEffects | "unlock";
@@ -252,6 +267,26 @@ export const EFFECT_KEYS: Readonly<Record<EffectKey, string>> = {
   gunBonusPct: "ww1936.effect.gunBonusPct",
   recruitablePct: "ww1936.effect.recruitablePct",
   trainPct: "ww1936.effect.trainPct",
+  fortConstructionPct: "ww1936.effect.fortConstructionPct",
+  railConstructionPct: "ww1936.effect.railConstructionPct",
+  railSpeedPct: "ww1936.effect.railSpeedPct",
+  breakthroughPct: "ww1936.effect.breakthroughPct",
+  orgPct: "ww1936.effect.orgPct",
+  recoveryPct: "ww1936.effect.recoveryPct",
+  planSpeedPct: "ww1936.effect.planSpeedPct",
+  planMaxBp: "ww1936.effect.planMaxBp",
+  entrenchMax: "ww1936.effect.entrenchMax",
+  supplyUsePct: "ww1936.effect.supplyUsePct",
+  armyXpMilli: "ww1936.effect.armyXpMilli",
+  generalXpPct: "ww1936.effect.generalXpPct",
+  winterPenaltyPct: "ww1936.effect.winterPenaltyPct",
+  desertAttackPct: "ww1936.effect.desertAttackPct",
+  forestDefensePct: "ww1936.effect.forestDefensePct",
+  mechBreakPct: "ww1936.effect.mechBreakPct",
+  mechOrg: "ww1936.effect.mechOrg",
+  artillerySoftPct: "ww1936.effect.artillerySoftPct",
+  infTrainCutPct: "ww1936.effect.infTrainCutPct",
+  infOrg: "ww1936.effect.infOrg",
   unlock: "ww1936.effect.unlock",
 };
 
@@ -282,6 +317,24 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   doctrine: "ww1936.econ.block.doctrine",
   no_slot: "ww1936.econ.block.no_slot",
   bad_slot: "ww1936.econ.block.bad_slot",
+  no_army: "ww1936.econ.block.no_army",
+  army_busy: "ww1936.econ.block.army_busy",
+  no_path: "ww1936.econ.block.no_path",
+  not_adjacent: "ww1936.econ.block.not_adjacent",
+  not_at_war: "ww1936.econ.block.not_at_war",
+  army_full: "ww1936.econ.block.army_full",
+  no_xp: "ww1936.econ.block.no_xp",
+  bad_template: "ww1936.econ.block.bad_template",
+  special_cap: "ww1936.econ.block.special_cap",
+  no_rail: "ww1936.econ.block.no_rail",
+  no_port: "ww1936.econ.block.no_port",
+  para_range: "ww1936.econ.block.para_range",
+  para_cooldown: "ww1936.econ.block.para_cooldown",
+  template_in_use: "ww1936.econ.block.template_in_use",
+  too_many_templates: "ww1936.econ.block.too_many_templates",
+  too_many_armies: "ww1936.econ.block.too_many_armies",
+  general_unavailable: "ww1936.econ.block.general_unavailable",
+  bad_region: "ww1936.econ.block.bad_region",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -300,6 +353,9 @@ export const BUILDING_ICONS: Readonly<Record<BuildingId, string>> = {
   mil: "🛠️",
   dock: "⚓",
   infra: "🛤️",
+  fort: "🏰",
+  rail: "🚂",
+  supply_hub: "📦",
 };
 
 export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
@@ -374,8 +430,13 @@ export function effectLines(tech: WwTechId): string[] {
   const effects = WW_TECHS[tech].effects;
   for (const k of Object.keys(effects) as (keyof TechEffects)[]) {
     const v = effects[k] ?? 0;
-    // Basis points show as percent.
-    const n = k === "effCapBp" || k === "retentionBp" ? v / 100 : v;
+    // Basis points show as percent, milli as units.
+    const n =
+      k === "effCapBp" || k === "retentionBp" || k === "planMaxBp"
+        ? v / 100
+        : k === "armyXpMilli"
+          ? v / 1000
+          : v;
     out.push(translateText(EFFECT_KEYS[k], { n }));
   }
   return out;
@@ -525,24 +586,13 @@ export function slotPctOf(detail: WwCountryDetail | null): number {
 }
 
 /**
- * The fields the engine fix batch (w1-fixe) adds to the economy update,
- * read here until both branches merge: WwCountrySummary.slotPct and
- * WwCountryDetail.tradePartners.
- */
-interface EngineFixFields {
-  slotPct?: number;
-  tradePartners?: readonly number[];
-}
-
-/**
  * Any country's building-slot bonus (spec §4.2): the engine sends it in
  * every country's summary (WwCountrySummary.slotPct), so a region an AI
  * holds counts that AI's construction research too. A human's own detail
  * gives it before the first summary.
  */
 export function slotPctOfCountry(view: WwEconomyView, smallID: number): number {
-  const pct = (view.summary(smallID) as EngineFixFields | null)?.slotPct;
-  return pct ?? slotPctOf(view.detail(smallID));
+  return view.summary(smallID)?.slotPct ?? slotPctOf(view.detail(smallID));
 }
 
 /** What the engine's buildBlock checks, from the view (Construction.buildBlock). */
@@ -569,7 +619,10 @@ export function buildCheck(
       r !== undefined &&
       regionShares(controller, owner, r.core, fighting(owner)).occupied,
     queueLength: queue.length,
-    infraWithQueue: (r === undefined ? 0 : view.infra[region]) + queued.infra,
+    levelWithQueue:
+      r === undefined || LEVEL_MAX[building] === undefined
+        ? 0
+        : levelOf(view, building, region) + queuedLevels(queued, building),
     usedSlots:
       r === undefined
         ? 0
@@ -607,9 +660,28 @@ export interface BuildCandidate {
 
 /** How many of `building` the region still takes, reservations counted. */
 function freeRoom(c: BuildCheck): number {
-  return c.building === "infra"
-    ? MAX_INFRA - c.infraWithQueue
-    : c.slots - c.usedSlots;
+  const max = LEVEL_MAX[c.building];
+  return max !== undefined ? max - c.levelWithQueue : c.slots - c.usedSlots;
+}
+
+/** A level building's level in a region, from the view (P2 plan decision 10). */
+function levelOf(
+  view: WwEconomyView,
+  building: BuildingId,
+  region: number,
+): number {
+  switch (building) {
+    case "infra":
+      return view.infra[region];
+    case "fort":
+      return view.fort[region];
+    case "rail":
+      return view.rail[region];
+    case "supply_hub":
+      return view.hub[region];
+    default:
+      return 0;
+  }
 }
 
 /**
@@ -644,7 +716,7 @@ export function buildCandidates(
       id: r.id,
       name: korean ? r.nameKo : r.name,
       free: freeRoom(c),
-      slots: building === "infra" ? MAX_INFRA : c.slots,
+      slots: LEVEL_MAX[building] ?? c.slots,
       infra: view.infra[r.id],
     });
   }
@@ -842,8 +914,7 @@ export interface WarPair {
 export function tradePartnersOf(
   detail: WwCountryDetail | null,
 ): ReadonlySet<number> {
-  const ids = (detail as EngineFixFields | null)?.tradePartners;
-  return new Set(ids ?? []);
+  return new Set(detail?.tradePartners ?? []);
 }
 
 function atWarFn(wars: readonly WarPair[], me: number) {

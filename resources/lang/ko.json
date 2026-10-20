@@ -879,7 +879,15 @@
     "ww1936_research_done": "연구 완료: {tech}",
     "ww1936_built": "건물 {count}개 완성",
     "ww1936_trade_closed": "{seller} — {resource} 거래가 끝났습니다",
-    "ww1936_slot_free": "연구 칸이 비었습니다"
+    "ww1936_slot_free": "연구 칸이 비었습니다",
+    "ww1936_division_ready": "사단 {count}개 배치",
+    "ww1936_region_taken": "{region} 점령",
+    "ww1936_region_lost": "{region} 상실",
+    "ww1936_encircled": "{army} 포위됨",
+    "ww1936_divisions_destroyed": "{region}에서 사단 {count}개 섬멸",
+    "ww1936_general_available": "{general} 지휘 가능",
+    "ww1936_general_lost": "{general} 군을 떠남",
+    "ww1936_no_tile_attacks": "이 모드는 군으로 싸웁니다: ⚔ 군을 여세요"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -3387,7 +3395,10 @@
       "civ": "민간 공장",
       "mil": "군수 공장",
       "dock": "조선소",
-      "infra": "인프라"
+      "infra": "인프라",
+      "fort": "육상 요새",
+      "rail": "철도",
+      "supply_hub": "보급 허브"
     },
     "res": {
       "oil": "석유",
@@ -3515,7 +3526,17 @@
       "battleplan_1": "전투 계획",
       "battleplan_2": "종심 방어",
       "mass_1": "인해 전술",
-      "mass_2": "인민의 군대"
+      "mass_2": "인민의 군대",
+      "engineer_company": "공병 중대",
+      "recon_company": "정찰 중대",
+      "mountaineers": "산악병",
+      "marines": "해병대",
+      "field_hospital": "야전 병원",
+      "logistics_company": "병참 중대",
+      "signal_company": "통신 중대",
+      "paratroopers": "공수부대",
+      "fortification_1": "요새화",
+      "rail_1": "철도 공학"
     },
     "effect": {
       "constructionPct": "건설 속도 +{n}%",
@@ -3532,7 +3553,27 @@
       "gunBonusPct": "포·지원 보너스 +{n}%",
       "recruitablePct": "모집 가능 인구 +{n}%",
       "trainPct": "하루 모집 +{n}%",
-      "unlock": "{equipment} {gen} 생산 가능"
+      "unlock": "{equipment} {gen} 생산 가능",
+      "fortConstructionPct": "요새 건설 +{n}%",
+      "railConstructionPct": "철도 건설 +{n}%",
+      "railSpeedPct": "철도 이동 +{n}%",
+      "breakthroughPct": "돌파 +{n}%",
+      "orgPct": "조직력 +{n}%",
+      "recoveryPct": "조직력 회복 +{n}%",
+      "planSpeedPct": "준비도 속도 +{n}%",
+      "planMaxBp": "최대 준비도 +{n}%",
+      "entrenchMax": "최대 참호 +{n}",
+      "supplyUsePct": "보급 사용 +{n}%",
+      "armyXpMilli": "육군 경험치 하루 +{n}",
+      "generalXpPct": "장군 경험 +{n}%",
+      "winterPenaltyPct": "겨울 벌칙 −{n}%",
+      "desertAttackPct": "사막 공격 +{n}%",
+      "forestDefensePct": "숲 방어 +{n}%",
+      "mechBreakPct": "기계화 돌파 +{n}%",
+      "mechOrg": "기계화 조직력 +{n}",
+      "artillerySoftPct": "포병 연성 공격 +{n}%",
+      "infTrainCutPct": "보병 훈련 시간 −{n}%",
+      "infOrg": "보병 조직력 +{n}"
     },
     "econ": {
       "band_label": "공장: 민간 {civ}, 군수 {mil} · 인력 {manpower}",
@@ -3561,7 +3602,25 @@
         "prereq": "선행 기술이 필요합니다",
         "doctrine": "다른 교리를 골랐습니다",
         "no_slot": "빈 연구 칸이 없습니다",
-        "bad_slot": "빈 칸입니다"
+        "bad_slot": "빈 칸입니다",
+        "no_army": "그런 군이 없습니다",
+        "army_busy": "군이 다른 일을 하는 중입니다",
+        "no_path": "갈 수 있는 길이 없습니다",
+        "not_adjacent": "우리 전선과 맞닿아 있지 않습니다",
+        "not_at_war": "그 나라와 전쟁 중이 아닙니다",
+        "army_full": "군이 가득 찼습니다",
+        "no_xp": "육군 경험치가 모자랍니다",
+        "bad_template": "편제가 올바르지 않습니다",
+        "special_cap": "특수부대가 너무 많습니다",
+        "no_rail": "가는 길에 철도가 없습니다",
+        "no_port": "양쪽에 우리 항구가 있어야 합니다",
+        "para_range": "공수 강하 거리를 벗어났습니다",
+        "para_cooldown": "공수부대가 아직 다시 준비되지 않았습니다",
+        "template_in_use": "이 편제를 쓰는 사단이 있습니다",
+        "too_many_templates": "편제가 너무 많습니다",
+        "too_many_armies": "군이 너무 많습니다",
+        "general_unavailable": "이 장군은 지금 지휘할 수 없습니다",
+        "bad_region": "땅 주가 아닙니다"
       },
       "cancel_project": "건설 취소",
       "cancel_research": "연구 취소",
@@ -3627,9 +3686,6 @@
       "recruitable": "모집 가능",
       "manpower": "인력",
       "troops": "병력",
-      "draft_today": "오늘 모집 {n} / {cap}",
-      "troop_cap": "최대 병력",
-      "combat": "공격 {a}% · 방어 {d}% · 속도 {s}%",
       "slot_empty": "비어 있음",
       "ahead": "+{n}% (시대 앞섬)",
       "cancel_tap": "다시 누르면 취소",
@@ -3645,6 +3701,11 @@
       "export_room": "하루 {n} 판매 가능",
       "region_buildings": "민간 {civ} · 군수 {mil} · 조선 {dock} / 칸 {slots}",
       "stock_only": "비축만 됩니다(항공전은 뒤 단계)"
+    },
+    "land": {
+      "field_men": "전선 인원",
+      "training_men": "훈련 중",
+      "casualties_today": "오늘 사상자"
     }
   }
 }

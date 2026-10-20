@@ -1231,6 +1231,9 @@ export class ClientGameRunner {
     if (!this.isActive || this.renderer.uiState.ghostStructure !== null) {
       return;
     }
+    // World War 1936 P2 (plan decision 25): armies fight, not tile attacks;
+    // the land controller takes the map taps.
+    if (this.gameView.worldWarScenario() !== null) return;
     const cell = this.renderer.transformHandler.screenToWorldCoordinates(
       event.x,
       event.y,
@@ -1389,6 +1392,8 @@ export class ClientGameRunner {
   }
 
   private doBoatAttackUnderCursor(e: DoBoatAttackEvent): void {
+    // World War 1936 P2 (spec §13.1): no boat attacks in the mode.
+    if (this.gameView.worldWarScenario() !== null) return;
     const tile = this.actionTile(e.tile);
     if (tile === null) {
       return;
@@ -1418,6 +1423,8 @@ export class ClientGameRunner {
   }
 
   private doGroundAttackUnderCursor(): void {
+    // World War 1936 P2 (spec §13.1): no tile attacks in the mode.
+    if (this.gameView.worldWarScenario() !== null) return;
     const tile = this.getTileUnderCursor();
     if (tile === null) {
       return;

@@ -5,12 +5,13 @@ import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import {
   BUILDING_COST,
   BuildingId,
-  MAX_INFRA,
+  LEVEL_MAX,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   buildBlockOf,
   queuedInRegion,
+  queuedLevels,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   assignCivs,
@@ -44,9 +45,12 @@ export function buildBlock(
     controlled: exists && econ.controllerOf(region) === ce.smallID,
     occupied: exists && econ.isOccupied(region),
     queueLength: ce.queue.length,
-    infraWithQueue: exists
-      ? econ.infra[region] + queuedInRegion(ce.queue, region).infra
-      : 0,
+    // Level buildings: the level now and what the queue adds (P2 decision 10).
+    levelWithQueue:
+      exists && LEVEL_MAX[building] !== undefined
+        ? econ.buildingArray(building)[region] +
+          queuedLevels(queuedInRegion(ce.queue, region), building)
+        : 0,
     usedSlots: exists ? usedSlots(econ, region) : 0,
     slots: econ.regionSlots(region, ce.tech.slotPct),
   });
@@ -108,7 +112,9 @@ export function moveBuild(
  */
 function canComplete(econ: WwEconomy, ce: CountryEconomy, q: Project): boolean {
   if (econ.controllerOf(q.region) !== ce.smallID) return false;
-  if (q.building === "infra") return econ.infra[q.region] < MAX_INFRA;
+  // Level buildings go up in occupied regions too (P2 spec §11.7).
+  const max = LEVEL_MAX[q.building];
+  if (max !== undefined) return econ.buildingArray(q.building)[q.region] < max;
   if (econ.isOccupied(q.region)) return false;
   const built = econ.civ[q.region] + econ.mil[q.region] + econ.dock[q.region];
   return built + 1 <= econ.regionSlots(q.region, ce.tech.slotPct);

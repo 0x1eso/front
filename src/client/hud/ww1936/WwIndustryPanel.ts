@@ -222,6 +222,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       this.game?.worldWarScenario() ? today(this.game) : 0,
       this.game?.worldWarData() ?? null,
       this.tab === "trade" ? (view?.version ?? 0) : 0,
+      // P2: the manpower rows read the land war's country summary.
+      this.game?.wwLand?.()?.countries.get(id) ?? null,
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -1299,7 +1301,8 @@ export class WwIndustryPanel extends WwDrawerBase {
 
   private renderManpower(c: Ctx): TemplateResult {
     const s = c.summary;
-    const d = c.detail;
+    // P2 spec §13.2: the men in the field, in training and lost today.
+    const land = this.game?.wwLand?.()?.countries.get(c.id) ?? null;
     const row = (key: string, value: string) =>
       html`<dt class="text-white/60">${translateText(key)}</dt>
         <dd class="m-0 text-right tabular-nums">${value}</dd>`;
@@ -1309,21 +1312,13 @@ export class WwIndustryPanel extends WwDrawerBase {
         ${row("ww1936.econ.recruitable", menText(s.recruitable))}
         ${row("ww1936.econ.manpower", menText(s.manpower))}
         ${row("ww1936.econ.troops", menText(armyMenOf(c.me)))}
-        ${row("ww1936.econ.troop_cap", menText(s.troopCap))}
+        ${row("ww1936.land.field_men", menText(land?.fieldMen ?? 0))}
+        ${row("ww1936.land.training_men", menText(land?.trainingMen ?? 0))}
+        ${row(
+          "ww1936.land.casualties_today",
+          menText(land?.casualtiesToday ?? 0),
+        )}
       </dl>
-      <p data-ww-draft class="m-0 mt-1 text-xs">
-        ${translateText("ww1936.econ.draft_today", {
-          n: menText(d.recruited),
-          cap: menText(d.trainCap),
-        })}
-      </p>
-      <p data-ww-combat class="m-0 mt-1 text-xs text-white/80">
-        ${translateText("ww1936.econ.combat", {
-          a: s.combat.attackPct,
-          d: s.combat.defensePct,
-          s: s.combat.speedPct,
-        })}
-      </p>
     </section>`;
   }
 }

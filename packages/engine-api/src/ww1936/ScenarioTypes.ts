@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { COUNTRY_TAGS } from "./Countries";
 import { REGION_CATEGORIES } from "./EconomyTypes";
+import { LAND_TERRAINS } from "./LandTypes";
 import { SEA_ZONE_BASE } from "./WorldWarTypes";
 
 /** A tile as map coordinates [x, y]. */
@@ -14,10 +15,24 @@ export const REGION_TERRAINS = ["plains", "highland", "mountain"] as const;
 /** A building count a region starts with (spec §3.1). */
 const Count = z.number().int().min(0).max(12);
 const Amount = z.number().int().min(0);
+/** A level building's start level (P2 spec §3.1). */
+const Level = z.number().int().min(0).max(5);
+const RegionId = z
+  .number()
+  .int()
+  .min(1)
+  .max(SEA_ZONE_BASE - 1);
+const ZoneId = z
+  .number()
+  .int()
+  .min(SEA_ZONE_BASE + 1)
+  .max(65535);
 
 export const ScenarioCountrySchema = z.object({
   tag: z.enum(COUNTRY_TAGS),
   capital: XY,
+  /** P2 (v3): industrialisation 1..5 from economy1936.json (P2 spec §6.4). */
+  dev: z.number().int().min(1).max(5).optional(),
 });
 
 export const ScenarioRegionSchema = z.object({
@@ -50,6 +65,19 @@ export const ScenarioRegionSchema = z.object({
   res: z
     .tuple([Amount, Amount, Amount, Amount, Amount, Amount])
     .default([0, 0, 0, 0, 0, 0]),
+  // P2 (P2 spec §3.1, version 3). Optional: the ScenarioIndex readers fill
+  // a missing one from the other fields (plan decision 5).
+  land: z.enum(LAND_TERRAINS).optional(),
+  center: XY.optional(),
+  /** Latitude of the center, hundredths of a degree. */
+  latC: z.number().int().min(-9000).max(9000).optional(),
+  /** 10°×10° weather cell (Weather.weatherCell). */
+  wcell: z.number().int().min(0).max(647).optional(),
+  rail: Level.optional(),
+  fort: Level.optional(),
+  port: z.boolean().optional(),
+  /** P4 spec §3.2: key of a preserved or stamped island (islands1936.json). */
+  island: z.string().min(1).optional(),
 });
 
 export const ScenarioSeaZoneSchema = z.object({
@@ -61,16 +89,52 @@ export const ScenarioSeaZoneSchema = z.object({
   name: z.string().min(1),
   nameKo: z.string().min(1),
   tiles: z.number().int().min(1),
+  /** P4 spec §3.1 (folded into P2's rebuild): a lake, not a sea. */
+  lake: z.boolean().optional(),
 });
 
-/** scenario.json next to regions.bin (spec §4.7; version 2: P1 spec §3.1). */
+/** [a, b, border, km, river 0..2, strait 0..1], a < b, sorted (P2 spec §3.1). */
+const EdgeSchema = z.tuple([
+  RegionId,
+  RegionId,
+  z.number().int().min(0),
+  z.number().int().min(1),
+  z.number().int().min(0).max(2),
+  z.number().int().min(0).max(1),
+]);
+/** [a, b, km, kind 0 water / 1 strait / 2 canal / 3 date line] (P4 spec §3.3). */
+const SeaEdgeSchema = z.tuple([
+  ZoneId,
+  ZoneId,
+  z.number().int().min(1),
+  z.number().int().min(0).max(3),
+]);
+const StraitSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["strait", "canal"]),
+  a: ZoneId,
+  b: ZoneId,
+  shore: z.array(RegionId).min(1),
+});
+
+/**
+ * scenario.json next to regions.bin (spec §4.7; version 2: P1 spec §3.1;
+ * version 3: P2 spec §3.1, the land graph).
+ */
 export const ScenarioDataSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   countries: z.array(ScenarioCountrySchema).min(2),
   regions: z.array(ScenarioRegionSchema).min(1),
   seaZones: z.array(ScenarioSeaZoneSchema),
+  edges: z.array(EdgeSchema).optional(),
+  seaEdges: z.array(SeaEdgeSchema).optional(),
+  straits: z.array(StraitSchema).optional(),
+  /** World 1936 only: the hand order of battle applies (plan decision 14). */
+  historicalOob: z.boolean().optional(),
+  /** Map km per tile for straight-line distances (regionKm); default 40075 / width. The test map says 4. */
+  kmPerTile: z.number().positive().optional(),
 });
 
 export type ScenarioData = z.infer<typeof ScenarioDataSchema>;

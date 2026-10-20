@@ -22,6 +22,47 @@ export interface TechEffects {
   gunBonusPct: number;
   recruitablePct: number;
   trainPct: number;
+  // P2 (plan decision 11): land war keys, appended (P3's WwStats reads all).
+  /** Fort construction speed, percent (fortification_1). */
+  fortConstructionPct: number;
+  /** Railway construction speed, percent (rail_1). */
+  railConstructionPct: number;
+  /** Rail movement speed, percent (rail_1). */
+  railSpeedPct: number;
+  /** Breakthrough, percent. */
+  breakthroughPct: number;
+  /** Maximum organization, percent. */
+  orgPct: number;
+  /** Organization recovery, percent. */
+  recoveryPct: number;
+  /** Planning speed, percent (battleplan_2). */
+  planSpeedPct: number;
+  /** Maximum planning bonus, bp (battleplan_1). */
+  planMaxBp: number;
+  /** Maximum entrenchment, levels (battleplan_2). */
+  entrenchMax: number;
+  /** Supply use, percent (positive: more). */
+  supplyUsePct: number;
+  /** Daily army experience, milli. */
+  armyXpMilli: number;
+  /** General experience gain, percent. */
+  generalXpPct: number;
+  /** Cut of the snow and frost attack penalty, percent. */
+  winterPenaltyPct: number;
+  /** Attack in the desert, percent. */
+  desertAttackPct: number;
+  /** Defence in forests, percent. */
+  forestDefensePct: number;
+  /** Breakthrough of armoured and motorized divisions, percent (mobile_2). */
+  mechBreakPct: number;
+  /** Organization of armoured and motorized divisions, points (mobile_2). */
+  mechOrg: number;
+  /** Soft attack of artillery, percent (firepower_1). */
+  artillerySoftPct: number;
+  /** Cut of infantry training time, percent (mass_1). */
+  infTrainCutPct: number;
+  /** Organization of infantry battalions, points (mass_2). */
+  infOrg: number;
 }
 export type TechTotals = TechEffects;
 
@@ -105,12 +146,13 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     researchPct: 5,
   }),
   mobile_1: t("mobile_1", "doctrine", 1936, [], { speedPct: 10 }, "mobile"),
+  // P2 plan decision 11: the doctrines read on the land war's keys.
   mobile_2: t(
     "mobile_2",
     "doctrine",
     1939,
     ["mobile_1"],
-    { vehicleBonusPct: 25 },
+    { mechBreakPct: 20, mechOrg: 5 },
     "mobile",
   ),
   firepower_1: t(
@@ -118,7 +160,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "doctrine",
     1936,
     [],
-    { gunBonusPct: 25 },
+    { artillerySoftPct: 20 },
     "firepower",
   ),
   firepower_2: t(
@@ -134,7 +176,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "doctrine",
     1936,
     [],
-    { defensePct: 10 },
+    { defensePct: 10, planMaxBp: 1000 },
     "battleplan",
   ),
   battleplan_2: t(
@@ -142,7 +184,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "doctrine",
     1939,
     ["battleplan_1"],
-    { defensePct: 10 },
+    { defensePct: 10, planSpeedPct: 50, entrenchMax: 2 },
     "battleplan",
   ),
   mass_1: t(
@@ -150,7 +192,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "doctrine",
     1936,
     [],
-    { recruitablePct: 10, trainPct: 50 },
+    { recruitablePct: 10, infTrainCutPct: 33 },
     "mass",
   ),
   mass_2: t(
@@ -158,9 +200,26 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "doctrine",
     1939,
     ["mass_1"],
-    { attackPct: 5, defensePct: 5 },
+    { attackPct: 5, defensePct: 5, infOrg: 10 },
     "mass",
   ),
+  // P2 (P2 spec §4.6): companies, special forces, forts and railways.
+  engineer_company: t("engineer_company", "infantry", 1936, ["support_eq_1"]),
+  recon_company: t("recon_company", "infantry", 1936, ["support_eq_1"]),
+  mountaineers: t("mountaineers", "infantry", 1936, ["inf_eq_1"]),
+  marines: t("marines", "infantry", 1936, ["inf_eq_1"]),
+  field_hospital: t("field_hospital", "infantry", 1938, ["support_eq_1"]),
+  logistics_company: t("logistics_company", "infantry", 1938, ["support_eq_1"]),
+  signal_company: t("signal_company", "electronics", 1938, ["electronics_1"]),
+  paratroopers: t("paratroopers", "infantry", 1938, ["mountaineers"]),
+  // "−25% cost" as +33% construction speed (plan decision 10).
+  fortification_1: t("fortification_1", "industry", 1936, [], {
+    fortConstructionPct: 33,
+  }),
+  rail_1: t("rail_1", "industry", 1937, ["construction_1"], {
+    railConstructionPct: 33,
+    railSpeedPct: 20,
+  }),
 };
 
 const ZERO: TechEffects = {
@@ -178,6 +237,26 @@ const ZERO: TechEffects = {
   gunBonusPct: 0,
   recruitablePct: 0,
   trainPct: 0,
+  fortConstructionPct: 0,
+  railConstructionPct: 0,
+  railSpeedPct: 0,
+  breakthroughPct: 0,
+  orgPct: 0,
+  recoveryPct: 0,
+  planSpeedPct: 0,
+  planMaxBp: 0,
+  entrenchMax: 0,
+  supplyUsePct: 0,
+  armyXpMilli: 0,
+  generalXpPct: 0,
+  winterPenaltyPct: 0,
+  desertAttackPct: 0,
+  forestDefensePct: 0,
+  mechBreakPct: 0,
+  mechOrg: 0,
+  artillerySoftPct: 0,
+  infTrainCutPct: 0,
+  infOrg: 0,
 };
 
 /** Summed effects of researched techs (fixed WW_TECH_IDS order). */
