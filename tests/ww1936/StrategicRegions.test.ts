@@ -196,11 +196,11 @@ describe("strategic regions (P4 spec §3.4, scenario v4)", () => {
     }
   });
 
-  test("150 to 180 land strategic regions; every region in exactly one", () => {
-    // Spec §3.4-7 said 110..140; the controller ruling of 2026-10-21 raised
+  test("150 to 185 land strategic regions; every region in exactly one", () => {
+    // Spec §3.4-7 said 110..140; the controller rulings of 2026-10-21 raised
     // it for HOI4-like zones outside Europe.
     expect(land.length).toBeGreaterThanOrEqual(150);
-    expect(land.length).toBeLessThanOrEqual(180);
+    expect(land.length).toBeLessThanOrEqual(185);
     const count = new Map<number, number>();
     for (const s of land) {
       for (const r of s.members) {
@@ -293,15 +293,36 @@ describe("strategic regions (P4 spec §3.4, scenario v4)", () => {
     ]) {
       expect(names.has(n), n).toBe(true);
     }
-    // No hand seed in Korea or Taiwan (they fall to the generic rules).
-    for (const n of ["Korea", "Chosen", "Taiwan", "Formosa"]) {
-      expect(
-        seeds.some((s) => s.name.includes(n)),
-        n,
-      ).toBe(false);
-    }
     // Every hand seed keeps its region (none joins another).
     for (const s of seeds) expect(names.has(s.name), s.name).toBe(true);
+  });
+
+  test("the Korean Peninsula and Taiwan are neutral geographic zones of their own", () => {
+    // Controller ruling 2026-10-21. The Korean regions: the land the 1936
+    // owner holds around Keijō (Seoul), joined by land edges that are not
+    // straits (Kwantung lies beyond Manchukuo).
+    const seoul = scenario.regions.find((r) => r.name === "Keijō (Seoul)")!;
+    const korea = new Set([seoul.id]);
+    const queue = [seoul.id];
+    for (let k = 0; k < queue.length; k++) {
+      for (const n of landAdj.get(queue[k]) ?? []) {
+        if (!korea.has(n) && regionById.get(n)!.owner === seoul.owner) {
+          korea.add(n);
+          queue.push(n);
+        }
+      }
+    }
+    expect(korea.size).toBe(11);
+    const peninsula = land.find((s) => s.name === "Korean Peninsula")!;
+    expect(peninsula.nameKo).toBe("한반도");
+    expect(peninsula.members).toEqual([...korea].sort((a, b) => a - b));
+    const taiwan = scenario.regions.find((r) => r.name === "Taiwan")!;
+    const zone = land.find((s) => s.members.includes(taiwan.id))!;
+    expect([zone.name, zone.nameKo, zone.members]).toEqual([
+      "Taiwan",
+      "대만",
+      [taiwan.id],
+    ]);
   });
 
   test("a strategic region's centre is one of its members' centres", () => {

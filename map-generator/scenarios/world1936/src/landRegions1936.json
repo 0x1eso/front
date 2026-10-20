@@ -456,6 +456,12 @@
     "lat": 41.4
   },
   {
+    "name": "Korean Peninsula",
+    "nameKo": "한반도",
+    "lon": 127.8,
+    "lat": 40.3
+  },
+  {
     "name": "North China",
     "nameKo": "화북",
     "lon": 115.0,
@@ -478,6 +484,12 @@
     "nameKo": "화남",
     "lon": 113.0,
     "lat": 23.8
+  },
+  {
+    "name": "Taiwan",
+    "nameKo": "대만",
+    "lon": 121.0,
+    "lat": 23.7
   },
   {
     "name": "Sichuan",
