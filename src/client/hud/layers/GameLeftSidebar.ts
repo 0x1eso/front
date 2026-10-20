@@ -8,6 +8,7 @@ import type { Controller } from "../../Controller";
 import { themeProvider } from "../../theme/ThemeProvider";
 import { getTranslatedPlayerTeamLabel, translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { WwDrawerEvent, type WwDrawerId } from "../ww1936/WwDrawer";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import "./PlayerStats";
 import type { PlayerStats } from "./PlayerStats";
@@ -20,6 +21,9 @@ const playerStatsRegularIcon = assetUrl(
 const playerStatsSolidIcon = assetUrl("images/LeaderboardIconSolidWhite.svg");
 const teamStatsRegularIcon = assetUrl("images/TeamIconRegularWhite.svg");
 const teamStatsSolidIcon = assetUrl("images/TeamIconSolidWhite.svg");
+
+/** Space kept between the leaderboard and an open World War drawer, in CSS px. */
+const WW_DRAWER_GAP = 8;
 
 @customElement("game-left-sidebar")
 export class GameLeftSidebar extends LitElement implements Controller {
@@ -37,6 +41,15 @@ export class GameLeftSidebar extends LitElement implements Controller {
   private spawnBarVisible = false;
   @state()
   private immunityBarVisible = false;
+  /**
+   * World War 1936: the expanded leaderboard folds while a drawer that it
+   * would reach under is open (a narrow phone: at 667 px it runs to x 379,
+   * the drawer starts at the screen's middle). Its button brings it back.
+   */
+  @state()
+  private yieldToWwDrawer = false;
+  /** The World War drawers open now. */
+  private readonly wwDrawers = new Set<WwDrawerId>();
 
   private playerColor: Colord = new Colord("#FFFFFF");
   @property({ attribute: false }) public game: GameView | null = null;
@@ -56,6 +69,13 @@ export class GameLeftSidebar extends LitElement implements Controller {
     });
     this.eventBus?.on(ImmunityBarVisibleEvent, (e) => {
       this.immunityBarVisible = e.visible;
+    });
+    this.eventBus?.on(WwDrawerEvent, (e) => {
+      if (e.open) this.wwDrawers.add(e.drawer);
+      else this.wwDrawers.delete(e.drawer);
+      // Once the drawer has drawn (and after a switch between drawers, which
+      // closes one as the other opens, so the board doesn't flicker).
+      requestAnimationFrame(() => this.fitWwDrawer());
     });
     if (this.isTeamGame) {
       this.isPlayerTeamLabelVisible = true;
@@ -94,8 +114,34 @@ export class GameLeftSidebar extends LitElement implements Controller {
     return (this.spawnBarVisible ? 7 : 0) + (this.immunityBarVisible ? 7 : 0);
   }
 
+  /** Fold the leaderboard while it would reach under an open World War drawer. */
+  private fitWwDrawer(): void {
+    if (this.wwDrawers.size === 0) {
+      this.yieldToWwDrawer = false;
+      return;
+    }
+    if (this.yieldToWwDrawer || !this.isPlayerStatsShown) return;
+    const board = this.querySelector("aside")?.getBoundingClientRect();
+    const drawer = document
+      .querySelector("[data-ww-drawer], [data-ww-diplomacy]")
+      ?.getBoundingClientRect();
+    if (!board || !drawer || board.width === 0 || drawer.width === 0) return;
+    if (board.right + WW_DRAWER_GAP > drawer.left) this.yieldToWwDrawer = true;
+  }
+
   private togglePlayerStats(): void {
+    // Folded for a World War drawer: the button brings it back over it.
+    if (this.yieldToWwDrawer) {
+      this.yieldToWwDrawer = false;
+      this.isPlayerStatsShown = true;
+      return;
+    }
     this.isPlayerStatsShown = !this.isPlayerStatsShown;
+  }
+
+  /** The player leaderboard shows (not folded for a World War drawer). */
+  private get playerStatsVisible(): boolean {
+    return this.isPlayerStatsShown && !this.yieldToWwDrawer;
   }
 
   private toggleTeamStats(): void {
@@ -128,7 +174,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
             }}
           >
             <img
-              src=${this.isPlayerStatsShown
+              src=${this.playerStatsVisible
                 ? playerStatsSolidIcon
                 : playerStatsRegularIcon}
               alt=${translateText("help_modal.icon_alt_player_leaderboard") ||
@@ -168,7 +214,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
                 </div>
               `
             : null}
-          ${this.isPlayerStatsShown || this.isTeamStatsShown
+          ${this.playerStatsVisible || this.isTeamStatsShown
             ? html`<span
                 class="ml-auto text-[10px] text-slate-500 select-all leading-none self-start"
                 title=${translateText("help_modal.game_id_tooltip")}
@@ -198,7 +244,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
           : null}
         <div class="flex flex-col gap-2 min-w-0 w-full">
           <player-stats
-            class=${this.isPlayerStatsShown ? "block min-w-0" : "hidden"}
+            class=${this.playerStatsVisible ? "block min-w-0" : "hidden"}
             .game=${this.game}
             .domesticMode=${this.game?.config().gameConfig().domesticMode ===
             true}
@@ -206,7 +252,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
               .strategicWeapons === true}
             .congress=${this.game?.config().congress() === true}
             .eventBus=${this.eventBus}
-            .visible=${this.isPlayerStatsShown}
+            .visible=${this.playerStatsVisible}
           ></player-stats>
           <team-stats
             class=${this.isTeamStatsShown && this.isTeamGame
