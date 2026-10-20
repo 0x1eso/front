@@ -1,15 +1,23 @@
-// World War 1936 P1: resource trade (spec §7.4, §7.5). The partner and room
-// judgements are final (the pure parts in engine-lib EconomyChecks and
-// EconomyRules.tradeRouteOk, shared with the screens); openTrade,
-// closeTrade and validateTrades are STUBS that Task 4 fills, with final
-// signatures.
+// World War 1936 P1: resource trade (spec §7.4, §7.5). The pure parts of
+// the partner and room judgements live in engine-lib (EconomyChecks,
+// EconomyRules.tradeRouteOk) and are shared with the screens.
+import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import {
+  RESOURCE_COUNT,
+  RESOURCE_IDS,
   WW_TRADE_UNITS_PER_CIV,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { exportRoomOf } from "@openfront/engine-lib/ww1936/EconomyChecks";
-import { tradeRouteOk } from "@openfront/engine-lib/ww1936/EconomyRules";
-import type { CountryEconomy, WwEconomy } from "./WwEconomy";
+import {
+  exportRoomOf,
+  openTradeBlockOf,
+  payableCivs,
+} from "@openfront/engine-lib/ww1936/EconomyChecks";
+import {
+  exportCapacity,
+  tradeRouteOk,
+} from "@openfront/engine-lib/ww1936/EconomyRules";
+import type { CountryEconomy, Trade, WwEconomy } from "./WwEconomy";
 
 /**
  * Why `buyer` may not buy from `seller` now; null if it may (spec §7.4):
@@ -46,12 +54,68 @@ export function tradePartnerBlock(
   return ok ? null : "no_partner";
 }
 
+/**
+ * Countries found by tradeRouteOk's land search from `buyer`: the
+ * neighbours of the buyer and of every country reached through a country
+ * at peace with the buyer.
+ */
+function landReach(econ: WwEconomy, buyer: number): Set<number> {
+  const seen = new Set<number>([buyer]);
+  const queue = [buyer];
+  for (let i = 0; i < queue.length; i++) {
+    for (const n of econ.countryNeighbours(queue[i])) {
+      if (seen.has(n)) continue;
+      seen.add(n);
+      if (!econ.ww.isAtWar(buyer, n)) queue.push(n);
+    }
+  }
+  seen.delete(buyer);
+  return seen;
+}
+
+/**
+ * tradePartnerBlock for one buyer and many sellers: the buyer's land reach
+ * is searched once, on the first seller that needs it (pre-flight D13).
+ * Gives tradePartnerBlock's answer for every seller.
+ */
+export function partnerJudge(
+  econ: WwEconomy,
+  buyer: number,
+): (seller: number) => WwOrderBlock | null {
+  const ww = econ.ww;
+  const b = econ.mg.playerBySmallID(buyer);
+  if (!b.isPlayer() || !b.isAlive() || ww.isCapitulated(buyer)) {
+    return () => "no_partner";
+  }
+  const buyerPlayer = b;
+  const buyerZones = econ.countrySeaZones(buyer);
+  let reach: Set<number> | null = null;
+  return (seller) => {
+    if (seller === buyer) return "no_partner";
+    const s = econ.mg.playerBySmallID(seller);
+    if (!s.isPlayer() || !s.isAlive() || ww.isCapitulated(seller)) {
+      return "no_partner";
+    }
+    if (econ.country(seller) === null || s.hasEmbargoAgainst(buyerPlayer)) {
+      return "no_partner";
+    }
+    if (ww.isAtWar(buyer, seller)) return "no_partner";
+    if (ww.sameFaction(buyer, seller)) return null;
+    for (const z of econ.countrySeaZones(seller)) {
+      if (buyerZones.has(z)) return null;
+    }
+    reach ??= landReach(econ, buyer);
+    return reach.has(seller) ? null : "no_partner";
+  };
+}
+
 /** The countries `buyer` may buy from now, by smallID. */
 export function tradePartners(econ: WwEconomy, buyer: number): number[] {
+  const judge = partnerJudge(econ, buyer);
   return econ
     .countries()
     .map((ce) => ce.smallID)
-    .filter((id) => tradePartnerBlock(econ, buyer, id) === null);
+    .filter((id) => judge(id) === null);
 }
 
 /**
@@ -75,6 +139,11 @@ export function exportRoom(
   return exportRoomOf(ce.totals.produced[res], ce.law().exportPct, sold);
 }
 
+/**
+ * Spec §7.4: `ce` buys `civs × 8` units a day of `res` from `seller` and
+ * pays `civs` civilian factories. A deal with the same seller and resource
+ * grows instead of opening a second one (the same checks apply).
+ */
 export function openTrade(
   econ: WwEconomy,
   ce: CountryEconomy,
@@ -82,16 +151,126 @@ export function openTrade(
   res: number,
   civs: number,
 ): WwOrderBlock | null {
-  return "no_partner";
+  if (!(res >= 0 && res < RESOURCE_COUNT)) return "bad_index";
+  if (!Number.isInteger(civs) || civs < 1) return "no_civs";
+  const buyer = ce.smallID;
+  let buyerTrades = 0;
+  let paidCivs = 0;
+  let same: Trade | null = null;
+  for (const tr of econ.trades()) {
+    if (tr.buyer !== buyer) continue;
+    buyerTrades++;
+    paidCivs += tr.civs;
+    if (tr.seller === seller && tr.res === res) same = tr;
+  }
+  const block = openTradeBlockOf({
+    partnerOk: tradePartnerBlock(econ, buyer, seller) === null,
+    buyerTrades,
+    grows: same !== null,
+    civs,
+    room: exportRoom(econ, seller, res),
+    payable: payableCivs(ce.totals.civ, ce.totals.cgMilli),
+    paidCivs,
+  });
+  if (block !== null) return block;
+  if (same === null) {
+    econ.addTrade(buyer, seller, res, civs);
+  } else {
+    same.civs += civs;
+    econ.markCountryDirty(buyer);
+    econ.markCountryDirty(seller);
+  }
+  return null;
 }
 
+/** The buyer ends one of its deals. */
 export function closeTrade(
   econ: WwEconomy,
   ce: CountryEconomy,
   tradeId: number,
 ): WwOrderBlock | null {
-  return "bad_index";
+  const tr = econ.trades().find((t) => t.id === tradeId);
+  if (tr === undefined || tr.buyer !== ce.smallID) return "bad_index";
+  econ.removeTrade(tradeId);
+  return null;
 }
 
-/** The day's common check (spec §7.5): closes the trades that broke. */
-export function validateTrades(econ: WwEconomy, tick: number): void {}
+/** Closes a deal the day's check broke; a human buyer is told. */
+function closeBroken(econ: WwEconomy, tr: Trade): void {
+  econ.removeTrade(tr.id);
+  const b = econ.mg.playerBySmallID(tr.buyer);
+  if (!b.isPlayer() || b.type() !== PlayerType.Human) return;
+  econ.mg.displayMessage(
+    "events_display.ww1936_trade_closed",
+    MessageType.WORLD_WAR,
+    b.id(),
+    undefined,
+    { sellerTag: econ.ww.tagOf(tr.seller), resource: RESOURCE_IDS[tr.res] },
+  );
+}
+
+/** Groups trades in id order by `key`, each group in id order. */
+function groupBy(
+  trades: readonly Trade[],
+  key: (t: Trade) => number,
+): Trade[][] {
+  const groups = new Map<number, Trade[]>();
+  for (const tr of trades) {
+    const k = key(tr);
+    const g = groups.get(k);
+    if (g === undefined) groups.set(k, [tr]);
+    else g.push(tr);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * The day's common check (spec §7.5), in deal-number order: deals whose
+ * partners broke (war, embargo, a cut route, capitulation, death) close;
+ * then, newest first, deals past the seller's export room for that
+ * resource, and deals past the civilian factories the buyer can pay.
+ * The trade list is kept in id order (addTrade appends rising ids).
+ */
+export function validateTrades(econ: WwEconomy, tick: number): void {
+  const judges = new Map<number, (seller: number) => WwOrderBlock | null>();
+  for (const tr of [...econ.trades()]) {
+    let judge = judges.get(tr.buyer);
+    if (judge === undefined) {
+      judge = partnerJudge(econ, tr.buyer);
+      judges.set(tr.buyer, judge);
+    }
+    if (judge(tr.seller) !== null) closeBroken(econ, tr);
+  }
+
+  const bySeller = groupBy(
+    econ.trades(),
+    (t) => t.seller * RESOURCE_COUNT + t.res,
+  );
+  for (const deals of bySeller) {
+    const { seller, res } = deals[0];
+    const s = econ.country(seller);
+    const cap =
+      s === null
+        ? 0
+        : exportCapacity(s.totals.produced[res], s.law().exportPct);
+    let sold = 0;
+    for (const tr of deals) sold += tr.civs * WW_TRADE_UNITS_PER_CIV;
+    for (let i = deals.length - 1; i >= 0 && sold > cap; i--) {
+      sold -= deals[i].civs * WW_TRADE_UNITS_PER_CIV;
+      closeBroken(econ, deals[i]);
+    }
+  }
+
+  const byBuyer = groupBy(econ.trades(), (t) => t.buyer);
+  for (const deals of byBuyer) {
+    const b = econ.country(deals[0].buyer);
+    const payable =
+      b === null ? 0 : payableCivs(b.totals.civ, b.totals.cgMilli);
+    let paid = 0;
+    for (const tr of deals) paid += tr.civs;
+    for (let i = deals.length - 1; i >= 0 && paid > payable; i--) {
+      paid -= deals[i].civs;
+      closeBroken(econ, deals[i]);
+    }
+  }
+}
