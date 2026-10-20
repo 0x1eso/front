@@ -72,8 +72,8 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const fought = foughtTest(smallID, day);
   const t = land.divisions;
   let foughtN = 0;
-  for (let r = 0; r < t.rows; r++) {
-    if (t.id[r] === 0 || t.owner[r] !== smallID) continue;
+  // (No division is added or removed below: the country's row list holds.)
+  for (const r of land.rowsOf(smallID)) {
     if (t.encircled[r] === 0) {
       reinforce(land, ce, r);
       upgrade(land, ce, r);

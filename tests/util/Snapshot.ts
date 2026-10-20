@@ -179,6 +179,12 @@ export const DERIVED_FIELDS = new Set<string>([
   "statsInputs",
   "rowStats",
   "weatherCache",
+  // ...the rows by owner and the table version they were built at, the
+  // detail change marks.
+  "ownerRows",
+  "ownerRowsVersion",
+  "rowsVersion",
+  "dirtyLandDetails",
   "regionRows",
   "regionRowsDirty",
   "spreadOrders",

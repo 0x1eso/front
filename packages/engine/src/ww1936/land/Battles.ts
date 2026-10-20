@@ -669,8 +669,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
   const ce = land.econ.country(smallID);
   if (ce === null) return;
   const stepOf = new Map<number, number>();
-  for (let r = 0; r < t.rows; r++) {
-    if (t.id[r] === 0 || t.owner[r] !== smallID) continue;
+  for (const r of land.rowsOf(smallID)) {
     if (t.mode[r] !== MOVE_NONE) {
       t.stillDays[r] = 0;
       t.entrench[r] = 0;

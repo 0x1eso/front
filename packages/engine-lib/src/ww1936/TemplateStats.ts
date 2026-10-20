@@ -62,14 +62,27 @@ export function genArmorPct(g: number): number {
 
 /** A division's generation mix from its 18 slots. */
 export function genMixOf(equip: ArrayLike<number>): number[] {
-  const units = new Array<number>(T).fill(0);
-  const sum = new Array<number>(T).fill(0);
+  return genMixInto(new Array<number>(T), equip);
+}
+
+const MIX_UNITS: number[] = new Array<number>(T).fill(0);
+const MIX_SUM: number[] = new Array<number>(T).fill(0);
+
+/** genMixOf written into `out` (EQUIPMENT_TYPES.length long), without allocating; returns `out`. */
+export function genMixInto(out: number[], equip: ArrayLike<number>): number[] {
+  const units = MIX_UNITS;
+  const sum = MIX_SUM;
+  units.fill(0);
+  sum.fill(0);
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const i = SLOT_TYPE[j];
     units[i] += equip[j];
     sum[i] += equip[j] * SLOT_GEN[j];
   }
-  return units.map((u, i) => (u === 0 ? 100 : Math.floor((sum[i] * 100) / u)));
+  for (let i = 0; i < T; i++) {
+    out[i] = units[i] === 0 ? 100 : Math.floor((sum[i] * 100) / units[i]);
+  }
+  return out;
 }
 
 /**
