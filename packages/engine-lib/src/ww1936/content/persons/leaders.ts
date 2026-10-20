@@ -1,8 +1,9 @@
 // World War 1936 P3 (spec §5.7, §19.9, §19.10; plan decision 27): every
-// leader person (lane K6). The 79 starting leaders keep the P0 name keys
-// ww1936.leader.<TAG>; the replacement and alternative leaders use
-// ww1936.person.<id>. Titled leaders are not persons: they are "title:<id>"
-// strings in COUNTRY_POLITICS (countries.ts).
+// leader person (lane K6). The starting leaders keep the P0 name keys
+// ww1936.leader.<TAG> (78 of them: Danzig starts with a title card, see
+// below); the replacement and alternative leaders use ww1936.person.<id>.
+// Titled leaders are not persons: they are "title:<id>" strings in
+// COUNTRY_POLITICS (countries.ts).
 //
 // Offices on 1936-01-01 for the starting leaders were checked against
 // en.wikipedia "List of state leaders in 1936" and worldstatesmen.org.
@@ -14,7 +15,7 @@
 import type { PersonDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const PERSONS_LEADERS: readonly PersonDef[] = [
-  // ---- the 79 starting leaders, COUNTRY_TAGS order ----
+  // ---- the starting leaders, COUNTRY_TAGS order ----
   // source: Fuehrer und Reichskanzler from 1934-08-02; en.wikipedia, worldstatesmen.org
   {
     id: "leader_deu",
@@ -359,17 +360,10 @@ export const PERSONS_LEADERS: readonly PersonDef[] = [
     source:
       "P0 starting leader (spec §5.7), office on 1936-01-01: President (en.wikipedia List of state leaders in 1936; worldstatesmen.org)",
   },
-  // source: President of the Senate 1934-11-28 to 1939 (archontology.org Danzig; en.wikipedia Arthur Greiser).
-  // Note for the controller: sentenced to death by the Polish Supreme National Tribunal on 1946-07-09; kept only because spec §5.7 keeps P0 leaders.
-  {
-    id: "leader_dzg",
-    nameKey: "ww1936.leader.DZG",
-    country: "DZG",
-    roles: ["leader"],
-    ideology: "fascist",
-    source:
-      "P0 starting leader (spec §5.7), office on 1936-01-01: President of the Senate (en.wikipedia List of state leaders in 1936; worldstatesmen.org)",
-  },
+  // Danzig has no person: its 1936 Senate President was sentenced to death for war crimes by the
+  // Polish Supreme National Tribunal on 1946-07-09 (spec §8.4), so the controller ruled a title
+  // card, title:dzg_senate_president (countries.ts), and the P0 key ww1936.leader.DZG carries
+  // the same title text.
   // source: King 1933-1939
   {
     id: "leader_irq",

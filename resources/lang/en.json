@@ -3851,7 +3851,7 @@
       "DEU": "Adolf Hitler",
       "DNK": "Thorvald Stauning",
       "DOM": "Rafael Trujillo",
-      "DZG": "Arthur Greiser",
+      "DZG": "President of the Senate",
       "ECU": "Federico Páez",
       "ESN": "Francisco Franco",
       "ESR": "Manuel Azaña",
@@ -4078,6 +4078,7 @@
       "tools_4": "Assembly lines"
     },
     "title": {
+      "dzg_senate_president": "President of the Senate",
       "fra_chief_of_state": "Chief of State",
       "jpn_prime_minister": "Prime Minister",
       "rou_conducator": "Conducător",

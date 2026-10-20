@@ -3283,7 +3283,7 @@
       "DEU": "아돌프 히틀러",
       "DNK": "토르발 스타우닝",
       "DOM": "라파엘 트루히요",
-      "DZG": "아르투어 그라이저",
+      "DZG": "상원 의장",
       "ECU": "페데리코 파에스",
       "ESN": "프란시스코 프랑코",
       "ESR": "마누엘 아사냐",
@@ -3688,6 +3688,7 @@
       "zaf_smuts": "얀 스뮈츠"
     },
     "title": {
+      "dzg_senate_president": "상원 의장",
       "fra_chief_of_state": "국가 원수",
       "jpn_prime_minister": "내각 총리대신",
       "rou_conducator": "국가 지도자",

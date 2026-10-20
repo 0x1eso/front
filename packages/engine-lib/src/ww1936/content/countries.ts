@@ -558,7 +558,8 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
   },
   // Danzig: DEVIATION from the spec §19.10 list (non-aligned). The NSDAP has held the Senate since
   // 1933-06-20 and won 59.3% in the Volkstag election of 1935-04-07 (en.wikipedia 1935 Free City
-  // of Danzig parliamentary election; archontology.org Danzig senate presidents).
+  // of Danzig parliamentary election; archontology.org Danzig senate presidents). The leader is a
+  // title card by controller ruling: the 1936 Senate President was convicted of war crimes (spec §8.4).
   {
     tag: "DZG",
     ruling: "fascist",
@@ -569,7 +570,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
-      fascist: "leader_dzg",
+      fascist: "title:dzg_senate_president",
       neutral: "title:leader_neutral",
     },
   },
