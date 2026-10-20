@@ -543,28 +543,12 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
 }
 
 describe("the order of battle on the real map", () => {
-  // Pre-flight G-a: the shipped scenario gets `historicalOob` from Task 2
-  // (lane D's v3). Until then this game clones it in memory with the flag.
-  test("a world1936 game with historicalOob fields Germany's 43 divisions in 3 armies and Italy's 80", async () => {
-    const files = await worldFiles();
-    const runner = await worldRunner({
-      ...files,
-      scenario: { ...files.scenario!, historicalOob: true },
-    });
+  test("the shipped world1936 scenario fields Germany's 43 divisions in 3 armies and Italy's 80", async () => {
+    // Task 2's v3 map ships the flag (pre-flight G-a).
+    expect(scenario.historicalOob).toBe(true);
+    const runner = await worldRunner(await worldFiles());
     expectHistoricalOob(runner);
   }, 120_000);
-
-  // AFTER TASK 2 (lane D) MERGES: the shipped scenario.json carries
-  // `historicalOob: true` and this runs on it as is. Skipped while the
-  // shipped file has no flag.
-  test.skipIf(scenario.historicalOob !== true)(
-    "after Task 2: the shipped world1936 scenario fields the same order of battle",
-    async () => {
-      const runner = await worldRunner(await worldFiles());
-      expectHistoricalOob(runner);
-    },
-    120_000,
-  );
 
   test("the shipped ids still name the regions the table means", () => {
     // Fails if a map rebuild renumbers a region START_OOB uses.
