@@ -3906,6 +3906,26 @@
       "gen_strike": "Workers angered by low wages and rising prices have laid down their tools. Factories stand idle, and the strike is spreading to the docks and railways. The government can bear the lost output or end the strike with concessions.",
       "gen_unrest": "Distrust of the government has grown, and protests and clashes break out in several cities. Reports say the police alone can no longer keep order. We must wait for calm or declare martial law.",
       "gen_war_weariness": "Lost provinces and ever longer casualty lists weigh on the people. More men dodge the draft, and the newspapers have grown gloomy. The government can let morale sag or spend heavily to lift it.",
+      "sun_barbarossa": "At dawn, German armies cross the border along its whole length, from the Baltic to the Black Sea. Airfields are bombed before the planes can take off, and whole armies are cut off within days. Molotov speaks to the country by radio: \"Our cause is just.\"",
+      "sun_blyukher_arrest": "Marshal Vasily Blyukher, a hero of the Civil War who had led the army in the Far East since 1929, is relieved after the fighting at Lake Khasan and arrested on 22 October. He dies in custody the following month.",
+      "sun_bukharin_arrest": "At the February–March plenum of the Central Committee, Nikolai Bukharin and Alexei Rykov are expelled from the party and arrested on 27 February. Bukharin edited Izvestia from 1934; Rykov had headed the government until 1930.",
+      "sun_first_moscow_trial": "In Moscow, Grigory Zinoviev, Lev Kamenev and fourteen other defendants stand trial for an alleged plot against the party leadership. The case rests on their own confessions, printed in full in every newspaper. The court convicts all sixteen, and a wave of arrests follows.",
+      "sun_japan_pact_lapses": "Months after the notice, Moscow no longer treats the neutrality pact with Japan as binding. Since the spring, troops and equipment have rolled east along the Trans-Siberian without pause. The armies gathered in the Far East wait for their orders.",
+      "sun_khalkhin_gol": "Mongolian and Japanese-Manchukuo forces clash over the border along the Khalkhin Gol river. Under the 1936 protocol, Soviet troops move in to support Mongolia, and by late summer the skirmishes have grown into a full-scale battle.",
+      "sun_lake_khasan": "Japanese troops seize the hills west of Lake Khasan, on the border between the Soviet Union and Manchukuo. The Red Army retakes them after two weeks of hard fighting, and the ceasefire of 11 August leaves the border where Moscow drew it.",
+      "sun_litvinov_dismissed": "Maxim Litvinov, the face of collective security for nearly nine years, is removed as People's Commissar for Foreign Affairs. Premier Vyacheslav Molotov takes the post himself. In Berlin the change is read as a signal.",
+      "sun_military_trial": "A special session of the Supreme Court tries Marshal Mikhail Tukhachevsky, army commanders Iona Yakir and Ieronim Uborevich and five other senior officers for treason behind closed doors. The hearing lasts a single day, and all eight are convicted. Arrests spread through the officer corps.",
+      "sun_mr_pact_offer": "The German Foreign Minister has arrived in Moscow with an offer: a ten-year non-aggression pact and a secret protocol dividing Eastern Europe into spheres of interest. Britain and France have offered nothing comparable. Signing would keep the Soviet Union out of the coming war, at least for now.",
+      "sun_poland": "Soviet troops cross the Polish border from the east, declaring that the Polish state has ceased to exist. Moscow presents the move as protecting the Ukrainians and Belarusians who live beyond the border. The two invading armies meet along the line drawn in the secret protocol.",
+      "sun_renounce_japan_pact": "Foreign Commissar Molotov receives the Japanese ambassador and reads a statement: Japan, Germany's ally, is helping Germany in its war against the USSR, so the neutrality pact cannot be extended. Tokyo is left to guess at Moscow's intentions.",
+      "sun_rokossovsky_arrest": "Konstantin Rokossovsky, a cavalry commander with a distinguished record since the Civil War, is arrested on charges of spying for Poland and Japan. He will spend the next two and a half years in prison under investigation.",
+      "sun_rokossovsky_release": "After two and a half years under investigation, Konstantin Rokossovsky is released on 22 March 1940 and restored to his rank. He returns to command.",
+      "sun_shaposhnikov_returns": "With the front giving way, Marshal Boris Shaposhnikov is recalled to head the General Staff in place of Georgy Zhukov. He had held the same post from 1937 to 1940. His calm and methodical staff work is needed more than ever.",
+      "sun_shaposhnikov_steps_down": "In failing health, Marshal Shaposhnikov leaves the post of Chief of the General Staff. His deputy, Aleksandr Vasilevsky, head of operations since August 1941, carries on the work and is confirmed in the post in June.",
+      "sun_third_moscow_trial": "Nikolai Bukharin, Alexei Rykov and nineteen other former leaders stand trial in Moscow for treason and sabotage. Foreign diplomats and journalists watch from the gallery as the defendants confess. On 13 March the court convicts all twenty-one.",
+      "sun_tupolev_arrest": "Aircraft designer Andrei Tupolev is arrested along with several of his engineers, among them Vladimir Petlyakov. From 1939 they design aircraft in a design bureau set up inside a prison.",
+      "sun_tupolev_released": "Andrei Tupolev and many of his engineers are released early to build aircraft for the war. The Tu-2 bomber they designed in prison is readied for production. Tupolev will not be fully rehabilitated until 1955.",
+      "sun_yegorov_replaced": "Marshal Alexander Yegorov hands the General Staff over to Boris Shaposhnikov and becomes First Deputy People's Commissar of Defense. It is one move in a sweeping reshuffle of the high command that spring.",
       "zaf_parliament_vote": "Britain's declaration of war on Germany splits the South African parliament. The Prime Minister wants to stay neutral; his deputy, Jan Smuts, wants to fight beside Britain. The vote will decide the country's course."
     },
     "event_opt": {
@@ -4061,6 +4081,64 @@
         "a": "Let it pass",
         "b": "Lift the nation's spirits"
       },
+      "sun_barbarossa": {
+        "a": "Defend the country"
+      },
+      "sun_blyukher_arrest": {
+        "a": "The Far East loses its commander"
+      },
+      "sun_bukharin_arrest": {
+        "a": "Bukharin loses his posts"
+      },
+      "sun_first_moscow_trial": {
+        "a": "The trial goes ahead"
+      },
+      "sun_japan_pact_lapses": {
+        "a": "The pact no longer binds us"
+      },
+      "sun_khalkhin_gol": {
+        "a": "Stand by Mongolia"
+      },
+      "sun_lake_khasan": {
+        "a": "Hold the border"
+      },
+      "sun_litvinov_dismissed": {
+        "a": "Molotov takes over foreign affairs"
+      },
+      "sun_military_trial": {
+        "a": "The verdict is announced"
+      },
+      "sun_mr_pact_offer": {
+        "a": "Sign the pact",
+        "b": "Turn Berlin down"
+      },
+      "sun_renounce_japan_pact": {
+        "a": "Give notice"
+      },
+      "sun_rokossovsky_arrest": {
+        "a": "He leaves the army"
+      },
+      "sun_rokossovsky_release": {
+        "a": "He returns to the army"
+      },
+      "sun_shaposhnikov_returns": {
+        "a": "Shaposhnikov takes up the post"
+      },
+      "sun_shaposhnikov_steps_down": {
+        "a": "Vasilevsky carries on"
+      },
+      "sun_third_moscow_trial": {
+        "a": "The verdict is announced"
+      },
+      "sun_tupolev_arrest": {
+        "a": "Tupolev is removed from his post"
+      },
+      "sun_tupolev_released": {
+        "a": "Tupolev returns to work"
+      },
+      "sun_yegorov_replaced": {
+        "a": "Shaposhnikov takes over"
+      },
       "zaf_parliament_vote": {
         "a": "Go to war",
         "b": "Stay neutral"
@@ -4109,6 +4187,26 @@
       "gen_strike": "A General Strike",
       "gen_unrest": "Unrest in the Streets",
       "gen_war_weariness": "War Weariness",
+      "sun_barbarossa": "Germany Attacks",
+      "sun_blyukher_arrest": "Marshal Blyukher Arrested",
+      "sun_bukharin_arrest": "Bukharin and Rykov Arrested",
+      "sun_first_moscow_trial": "The First Moscow Trial",
+      "sun_japan_pact_lapses": "The Pact Lapses",
+      "sun_khalkhin_gol": "Clashes at Khalkhin Gol",
+      "sun_lake_khasan": "Fighting at Lake Khasan",
+      "sun_litvinov_dismissed": "Litvinov Dismissed",
+      "sun_military_trial": "The Trial of the Commanders",
+      "sun_mr_pact_offer": "A German Proposal",
+      "sun_poland": "The Red Army Enters Poland",
+      "sun_renounce_japan_pact": "Notice to Tokyo",
+      "sun_rokossovsky_arrest": "Rokossovsky Arrested",
+      "sun_rokossovsky_release": "Rokossovsky Released",
+      "sun_shaposhnikov_returns": "Shaposhnikov Returns",
+      "sun_shaposhnikov_steps_down": "Shaposhnikov Steps Down",
+      "sun_third_moscow_trial": "The Third Moscow Trial",
+      "sun_tupolev_arrest": "Tupolev Arrested",
+      "sun_tupolev_released": "Tupolev Released",
+      "sun_yegorov_replaced": "A New Chief of Staff",
       "zaf_parliament_vote": "Parliament Decides"
     },
     "exp": {
@@ -4251,7 +4349,54 @@
       "gen_pol_neu_league": "A Regional Entente",
       "gen_pol_unity": "Unite the Nation",
       "gen_rs_1": "Promote Science",
-      "gen_rs_2": "Expand the Laboratories"
+      "gen_rs_2": "Expand the Laboratories",
+      "sun_academy": "Academy of Sciences",
+      "sun_allied_cooperation": "Working with the Allies",
+      "sun_antifascist_front": "Anti-Fascist Solidarity",
+      "sun_army_reformers": "The Army Reformers",
+      "sun_baku": "More Oil from Baku",
+      "sun_china_treaty": "A Treaty with China",
+      "sun_collective_leadership": "Collective Leadership",
+      "sun_collective_security": "Collective Security",
+      "sun_comintern_aid": "Aid to Fellow Parties",
+      "sun_commander_rebuild": "Rebuilding the Command",
+      "sun_deep_battle": "Deep Battle Theory",
+      "sun_design_bureaus": "The Design Bureau System",
+      "sun_dnieper_power": "Dnieper Power",
+      "sun_donbas": "Donbas Coal and Steel",
+      "sun_evacuation": "Evacuating the Factories",
+      "sun_far_east_army": "The Far Eastern Army",
+      "sun_finland_demands": "Demands on Karelia",
+      "sun_german_treaty": "A Treaty with Germany",
+      "sun_great_purge": "The Great Purge",
+      "sun_ground_attack": "Ground-Attack Aircraft",
+      "sun_guards": "Guards Units",
+      "sun_japan_neutrality": "Neutrality with Japan",
+      "sun_magnitogorsk": "Expanding Magnitogorsk",
+      "sun_manchurian_plan": "Plan for Manchuria",
+      "sun_mass_mobilisation": "General Mobilization",
+      "sun_mech_corps": "Mechanized Corps",
+      "sun_moderate_economy": "A Moderate Economic Line",
+      "sun_mongolia_defence": "Defending Mongolia",
+      "sun_new_border_forts": "Forts on the New Border",
+      "sun_new_constitution": "A New Constitution",
+      "sun_new_course": "A Change of Course",
+      "sun_ocean_fleet": "An Ocean-Going Fleet",
+      "sun_patriotic_war": "The Great Patriotic War",
+      "sun_purge_ends": "Winding Down the Purge",
+      "sun_railways": "Extending the Railways",
+      "sun_red_air_force": "The Red Air Force",
+      "sun_rkka_expansion": "Enlarging the Red Army",
+      "sun_second_fyp": "Completing the Second Five-Year Plan",
+      "sun_spheres": "Reclaiming the Borderlands",
+      "sun_stakhanov": "The Stakhanovite Movement",
+      "sun_stalin_line": "Strengthening the Stalin Line",
+      "sun_submarines": "The Submarine Arm",
+      "sun_tank_works": "Tank Works",
+      "sun_third_fyp": "The Third Five-Year Plan",
+      "sun_ural_base": "Ural Industrial Base",
+      "sun_western_alliance": "Alliance with the West",
+      "sun_winter_war_lessons": "Lessons of the Winter War"
     },
     "focus_desc": {
       "deu_airborne": "Develop the equipment and tactics for troops landing behind enemy lines by parachute and glider.",
@@ -4382,7 +4527,54 @@
       "gen_pol_neu_league": "Neighbours who fear the great powers are invited into a defensive entente of our own.",
       "gen_pol_unity": "In a hard decade, rival parties and regions are asked to set their quarrels aside and pull together.",
       "gen_rs_1": "University grants and a national research council let the country pursue one more line of research.",
-      "gen_rs_2": "Company laboratories work alongside the universities, and the state pays for both."
+      "gen_rs_2": "Company laboratories work alongside the universities, and the state pays for both.",
+      "sun_academy": "Give the Academy, recently moved to Moscow, the institutes and funds to serve industry.",
+      "sun_allied_cooperation": "Sign aid agreements with Britain and the United States and open a supply route through Iran.",
+      "sun_antifascist_front": "Openly back threatened neighbors and seek treaties with every government willing to resist Germany.",
+      "sun_army_reformers": "Leave the officer corps intact and let the commanders who developed deep operations reshape the Red Army.",
+      "sun_baku": "Drill new wells around Baku and across the Caspian to fuel tractors, tanks and aircraft.",
+      "sun_china_treaty": "Offer the Nationalist government a non-aggression pact, with Soviet arms to follow.",
+      "sun_collective_leadership": "Decisions return to the Politburo as a body, and no single man stands above the party.",
+      "sun_collective_security": "Honor the 1935 mutual assistance pacts with France and Czechoslovakia and stand against aggressors in the League.",
+      "sun_comintern_aid": "Ship rifles and ammunition to the Spanish Republic and the Chinese communists while courting the government in Nanjing.",
+      "sun_commander_rebuild": "Release and reinstate surviving officers arrested in the purge, and promote proven younger commanders.",
+      "sun_deep_battle": "Write the theory of striking the enemy's entire depth at once into the 1936 field regulations.",
+      "sun_design_bureaus": "Organize engineers into design bureaus, each taking a weapon from the drawing board to the factory.",
+      "sun_dnieper_power": "Connect the Dnieper hydroelectric station to a grid that feeds the factories of the south.",
+      "sun_donbas": "Modernize the mines and mills of the Donets Basin, the oldest industrial region of the Union.",
+      "sun_evacuation": "Load whole plants onto trains and rebuild them in the Urals before the front reaches them.",
+      "sun_far_east_army": "Reinforce the Special Red Banner Far Eastern Army and fortify the long border with Manchukuo.",
+      "sun_finland_demands": "Leningrad lies within artillery range of the Finnish border. Ask Helsinki to move the border back in exchange for land further north.",
+      "sun_german_treaty": "Talks with Berlin, on trade first and then on politics, could keep the Soviet Union out of a European war for now.",
+      "sun_great_purge": "Party, state and army are searched for \"enemies of the people\". Power gathers at the top while fear spreads below.",
+      "sun_ground_attack": "Develop an armored aircraft that flies low over the battlefield and supports the infantry directly.",
+      "sun_guards": "Divisions that distinguish themselves in battle earn the Guards title, higher pay and better equipment.",
+      "sun_japan_neutrality": "Offer Tokyo a neutrality pact so that the army can face west without worrying about the Far East.",
+      "sun_magnitogorsk": "Add blast furnaces to the steel city built on the iron ore of Magnitnaya Mountain.",
+      "sun_manchurian_plan": "With the war in Europe decided, the General Staff plans an offensive against the Kwantung Army in Manchuria.",
+      "sun_mass_mobilisation": "Call up every age class the law allows and form new divisions as fast as they can be armed.",
+      "sun_mech_corps": "Combine tank brigades into mechanized corps that can break through and drive deep.",
+      "sun_moderate_economy": "Slow the pace of heavy industry, ease the burden on the countryside and put more goods in the shops.",
+      "sun_mongolia_defence": "Under the 1936 mutual assistance protocol, Soviet troops and engineers move into Mongolia.",
+      "sun_new_border_forts": "Begin fortified districts along the border that moved west in 1939 and 1940.",
+      "sun_new_constitution": "The Congress of Soviets adopts the 1936 Constitution, promising universal suffrage and a long list of civil rights.",
+      "sun_new_course": "After Munich, faith in London and Paris has worn thin. The foreign commissariat gets new leadership and a freer hand.",
+      "sun_ocean_fleet": "Lay down battleships and cruisers in the Leningrad and Black Sea yards for a fleet worthy of a great power.",
+      "sun_patriotic_war": "The country fights for its survival. Every factory, farm and family is called to the defense of the homeland.",
+      "sun_purge_ends": "Mass arrests are halted and some cases reopened, but the posts the purge emptied will take years to fill.",
+      "sun_railways": "Add a second track to the Trans-Siberian and finish the lines the five-year plans left incomplete.",
+      "sun_red_air_force": "Order fighters by the hundred and set the design bureaus to work on faster aircraft.",
+      "sun_rkka_expansion": "Convert territorial militia divisions into a standing cadre army and train more rifle divisions.",
+      "sun_second_fyp": "Finish the last construction projects of the plan begun in 1933 on schedule and bring the new plants into production.",
+      "sun_spheres": "The secret protocol places Finland, the Baltic states and Bessarabia in the Soviet sphere. Moscow prepares its demands.",
+      "sun_stakhanov": "Since Alexei Stakhanov's record shift in 1935, record-breaking workers are held up as examples to all.",
+      "sun_stalin_line": "Add bunkers and garrisons to the fortified districts along the old western border.",
+      "sun_submarines": "Build the largest submarine force in the world to guard the approaches to Soviet ports.",
+      "sun_tank_works": "Turn the locomotive and tractor plants of Kharkiv, Leningrad and Chelyabinsk over to tank production.",
+      "sun_third_fyp": "The new plan puts the defense industry first and builds up production east of the Volga.",
+      "sun_ural_base": "Build a second industrial heartland in the Urals, far from every border.",
+      "sun_western_alliance": "Press London and Paris for a binding military pact and pledge to defend Poland and Romania.",
+      "sun_winter_war_lessons": "The costly war in Finland is studied without illusions, and training, ranks and command are overhauled."
     },
     "gen": {
       "1": "I",
@@ -4774,7 +4966,8 @@
       "news_gbr_abdication": "King Edward VIII of Britain abdicates; his brother becomes King George VI.",
       "news_gbr_anglo_soviet": "Britain and the Soviet Union sign an agreement to fight Germany together.",
       "news_gbr_churchill": "Winston Churchill becomes Prime Minister of Britain.",
-      "news_gbr_election_1945": "Labour wins Britain's general election by a landslide; Clement Attlee becomes Prime Minister."
+      "news_gbr_election_1945": "Labour wins Britain's general election by a landslide; Clement Attlee becomes Prime Minister.",
+      "sun_poland": "The Soviet Union invades Poland from the east"
     },
     "panel": {
       "at_peace": "At peace",
@@ -4812,7 +5005,28 @@
       "gbr_ironside": "Edmund Ironside",
       "gbr_liddell_hart": "Basil Liddell Hart",
       "gbr_tizard": "Henry Tizard",
-      "gbr_watson_watt": "Robert Watson-Watt"
+      "gbr_watson_watt": "Robert Watson-Watt",
+      "sun_antonov": "Aleksei Antonov",
+      "sun_bukharin": "Nikolai Bukharin",
+      "sun_isserson": "Georgii Isserson",
+      "sun_kalinin": "Mikhail Kalinin",
+      "sun_koshkin": "Mikhail Koshkin",
+      "sun_litvinov": "Maxim Litvinov",
+      "sun_malyshev": "Vyacheslav Malyshev",
+      "sun_meretskov": "Kirill Meretskov",
+      "sun_mikoyan": "Anastas Mikoyan",
+      "sun_molotov": "Vyacheslav Molotov",
+      "sun_ordzhonikidze": "Sergo Ordzhonikidze",
+      "sun_shaposhnikov": "Boris Shaposhnikov",
+      "sun_timoshenko": "Semyon Timoshenko",
+      "sun_tukhachevsky": "Mikhail Tukhachevsky",
+      "sun_tupolev": "Andrei Tupolev",
+      "sun_ustinov": "Dmitriy Ustinov",
+      "sun_vasilevsky": "Aleksandr Vasilevsky",
+      "sun_voroshilov": "Kliment Voroshilov",
+      "sun_voznesensky": "Nikolai Voznesensky",
+      "sun_yegorov": "Alexander Yegorov",
+      "sun_zhdanov": "Andrei Zhdanov"
     },
     "region": {
       "original_owner": "1936: {country}",
@@ -4885,7 +5099,25 @@
       "gen_skilled_workforce": "Trained Workforce",
       "gen_staff_training": "Staff Training",
       "gen_strike_losses": "Strike Losses",
-      "gen_war_bonds_spirit": "War Bonds"
+      "gen_war_bonds_spirit": "War Bonds",
+      "sun_collective_rule": "Collective Rule",
+      "sun_commander_corps": "Rebuilt Command",
+      "sun_consumer_line": "Goods for the People",
+      "sun_deep_operations": "Deep Operations",
+      "sun_defend_motherland": "Defend the Motherland",
+      "sun_design_bureau_system": "Design Bureaus",
+      "sun_factory_relocation": "Factories on the Move",
+      "sun_labour_heroes": "Heroes of Labor",
+      "sun_power_grid": "Power Grid",
+      "sun_purge_1": "Purge: First Stage",
+      "sun_purge_2": "Purge: Second Stage",
+      "sun_purge_3": "Purge: Third Stage",
+      "sun_purge_aftermath": "Aftermath of the Purge",
+      "sun_rkka_reserves": "Cadre Army",
+      "sun_surprise_shock": "Shock of the Surprise Attack",
+      "sun_third_plan": "The Third Plan",
+      "sun_total_mobilisation": "Every Class Called Up",
+      "sun_war_lessons": "Lessons Learned"
     },
     "spirit_desc": {
       "deu_combined_doctrine": "Tanks and infantry, guns and aircraft move as one.",
@@ -4929,7 +5161,25 @@
       "gen_skilled_workforce": "Graduates of the trade schools push the production lines closer to their best.",
       "gen_staff_training": "Staff college graduates prepare operations sooner and pass their experience to the army.",
       "gen_strike_losses": "Factories that stood idle have not yet returned to full speed.",
-      "gen_war_bonds_spirit": "Citizens who bought bonds see the war as their own, though they also want more consumer goods."
+      "gen_war_bonds_spirit": "Citizens who bought bonds see the war as their own, though they also want more consumer goods.",
+      "sun_collective_rule": "Posts are shared out by agreement, which makes it easier to bring in capable people.",
+      "sun_commander_corps": "Returning and recently promoted commanders are gaining experience fast.",
+      "sun_consumer_line": "More of the plan goes to shoes, cloth and food than to blast furnaces.",
+      "sun_deep_operations": "The army trains to break the front and strike the enemy's rear in one continuous operation.",
+      "sun_defend_motherland": "The whole nation has risen against the invader, and surrender is unthinkable.",
+      "sun_design_bureau_system": "Competing design bureaus turn out new weapons and machines one after another.",
+      "sun_factory_relocation": "Construction crews rebuild evacuated plants on open ground in the east.",
+      "sun_labour_heroes": "Shock workers and record-breakers set the pace in every factory.",
+      "sun_power_grid": "Hydroelectric power from the Dnieper keeps the southern factories running.",
+      "sun_purge_1": "Arrests tighten the center's grip on the party, and the officer corps begins to feel the strain.",
+      "sun_purge_2": "With the high command arrested, armies and corps pass to inexperienced men.",
+      "sun_purge_3": "Arrests reach down to regiments and battalions, and officers avoid taking any initiative.",
+      "sun_purge_aftermath": "Thousands of posts are held by officers promoted far beyond their experience.",
+      "sun_rkka_reserves": "A standing army with trained reserves can call up more men.",
+      "sun_surprise_shock": "The invasion caught the army unprepared: units are cut off and command is in disarray.",
+      "sun_third_plan": "Defense plants come first in every allocation of steel, labor and money.",
+      "sun_total_mobilisation": "Every age class able to bear arms has been called to the colors.",
+      "sun_war_lessons": "Training now follows what the fighting in Finland revealed."
     },
     "stance": {
       "aggressive": "Aggressive",
@@ -5044,6 +5294,9 @@
       "mountain_rifle": "Mountain Rifle Division",
       "rifle": "Rifle Division",
       "square": "Square Division",
+      "sun_guards_rifle": "Guards Rifle Division",
+      "sun_rifle_ii": "Rifle Division II",
+      "sun_tank_division": "Tank Division",
       "tank_brigade": "Tank Brigade"
     },
     "trait": {

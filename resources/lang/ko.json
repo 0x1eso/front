@@ -3599,6 +3599,26 @@
       "gen_strike": "임금과 치솟는 물가에 불만을 품은 노동자들이 일손을 놓았다. 공장이 멈추고 파업은 항구와 철도로까지 번지고 있다. 정부는 생산 손실을 견디거나, 양보를 해서라도 파업을 끝내야 한다.",
       "gen_unrest": "정부에 대한 불신이 커지며 여러 도시에서 시위와 충돌이 잇따른다. 경찰만으로는 더는 질서를 지키기 어렵다는 보고가 올라온다. 사태가 가라앉기를 기다릴지, 계엄을 선포할지 정해야 한다.",
       "gen_war_weariness": "잃어버린 땅과 날로 길어지는 전사자 명단이 국민의 마음을 무겁게 한다. 징집을 피하는 사람이 늘고 신문의 논조도 어두워졌다. 정부는 사기 저하를 견디거나 큰 비용을 들여 막아야 한다.",
+      "sun_barbarossa": "새벽, 독일군이 발트해에서 흑해까지 국경 전체를 넘어온다. 비행기가 뜨기도 전에 비행장이 폭격당하고, 며칠 만에 여러 군이 포위된다. 몰로토프가 라디오로 온 나라에 말한다. \"우리의 대의는 정의롭다.\"",
+      "sun_blyukher_arrest": "내전의 영웅으로 1929년부터 극동의 군을 이끌어 온 바실리 블류헤르 원수가 하산호 전투 뒤 지휘권을 잃고 10월 22일 체포된다. 그는 이듬달 구금 중에 숨진다.",
+      "sun_bukharin_arrest": "중앙위원회 2~3월 전원회의에서 니콜라이 부하린과 알렉세이 리코프가 당에서 제명되고 2월 27일 체포된다. 부하린은 1934년부터 『이즈베스티야』를 이끌었고, 리코프는 1930년까지 정부 수반이었다.",
+      "sun_first_moscow_trial": "모스크바에서 그리고리 지노비예프와 레프 카메네프 등 16명이 당 지도부를 노린 음모 혐의로 재판을 받는다. 증거는 신문마다 그대로 실린 피고들의 자백뿐이다. 법정은 16명 모두에게 유죄를 선고하고, 체포의 물결이 뒤따른다.",
+      "sun_japan_pact_lapses": "통고한 지 몇 달이 지나, 소련은 더 이상 일본과의 중립 조약에 얽매이지 않는다. 봄부터 병력과 장비가 시베리아 횡단 철도를 따라 쉼 없이 동쪽으로 옮겨졌다. 극동에 모인 군대가 명령을 기다린다.",
+      "sun_khalkhin_gol": "할힌골강을 따라 몽골군과 일본·만주국군이 국경을 두고 충돌한다. 1936년 의정서에 따라 소련군이 몽골을 도우러 들어가고, 늦여름에 이르러 충돌은 대규모 전투로 커진다.",
+      "sun_lake_khasan": "일본군이 소련과 만주국 국경에 있는 하산호 서쪽 고지를 차지한다. 붉은 군대는 두 주에 걸친 격전 끝에 고지를 되찾고, 8월 11일 휴전으로 국경은 소련이 그은 대로 남는다.",
+      "sun_litvinov_dismissed": "9년 가까이 집단 안보를 대표해 온 막심 리트비노프가 외무 인민위원에서 해임된다. 인민위원회의 의장 뱌체슬라프 몰로토프가 직접 그 자리를 맡는다. 베를린은 이 교체를 하나의 신호로 읽는다.",
+      "sun_military_trial": "최고 재판소 특별 법정이 미하일 투하쳅스키 원수와 군사령관 이오나 야키르, 이에로님 우보레비치 등 고위 장교 8명을 반역 혐의로 비공개 재판에 부친다. 심리는 하루 만에 끝나고 8명 모두 유죄 판결을 받는다. 체포가 장교단 전체로 번진다.",
+      "sun_mr_pact_offer": "독일 외무장관이 제안을 들고 모스크바에 도착했다. 10년 기한의 불가침 조약과, 동유럽을 세력권으로 나누는 비밀 의정서다. 영국과 프랑스는 이만한 것을 내놓지 않았다. 서명하면 다가오는 전쟁에서 적어도 당분간은 비켜 설 수 있다.",
+      "sun_poland": "소련군이 동쪽에서 폴란드 국경을 넘으며 폴란드 국가가 이미 사라졌다고 선언한다. 소련은 국경 너머에 사는 우크라이나인과 벨라루스인을 보호한다는 명분을 내세운다. 두 침공군은 비밀 의정서가 그은 선에서 만난다.",
+      "sun_renounce_japan_pact": "몰로토프 외무 인민위원이 일본 대사를 불러 성명을 읽는다. 독일의 동맹국인 일본이 소련과 싸우는 독일을 돕고 있으니 중립 조약을 연장할 수 없다는 내용이다. 일본은 소련의 속뜻을 헤아리지 못해 애를 태운다.",
+      "sun_rokossovsky_arrest": "내전 때부터 공을 쌓아 온 기병 지휘관 콘스탄틴 로코솝스키가 폴란드와 일본의 간첩이라는 혐의로 체포된다. 그는 그 뒤 2년 반을 감옥에서 조사받으며 보낸다.",
+      "sun_rokossovsky_release": "2년 반 동안 조사를 받던 콘스탄틴 로코솝스키가 1940년 3월 22일 풀려나 계급을 되찾는다. 그는 다시 지휘를 맡는다.",
+      "sun_shaposhnikov_returns": "전선이 밀리는 가운데 보리스 샤포시니코프 원수가 게오르기 주코프의 뒤를 이어 다시 총참모장이 된다. 그는 1937년부터 1940년까지 같은 자리에 있었다. 차분하고 꼼꼼한 그의 참모 업무가 어느 때보다 필요하다.",
+      "sun_shaposhnikov_steps_down": "건강이 나빠진 샤포시니코프 원수가 총참모장 자리에서 물러난다. 1941년 8월부터 차장 겸 작전국장으로 그를 보좌해 온 알렉산드르 바실렙스키가 일을 이어받아 6월에 정식으로 임명된다.",
+      "sun_third_moscow_trial": "니콜라이 부하린과 알렉세이 리코프 등 옛 지도자 21명이 반역과 파괴 공작 혐의로 모스크바에서 재판을 받는다. 외국 외교관과 기자들이 방청석에서 피고들의 자백을 지켜본다. 3월 13일 법정은 21명 모두에게 유죄를 선고한다.",
+      "sun_tupolev_arrest": "항공기 설계자 안드레이 투폴레프가 블라디미르 페틀랴코프를 비롯한 동료 기술자 여러 명과 함께 체포된다. 그들은 1939년부터 감옥 안에 차린 설계국에서 항공기를 설계한다.",
+      "sun_tupolev_released": "안드레이 투폴레프와 그의 기술자 상당수가 전쟁에 쓸 항공기를 만들도록 앞당겨 풀려난다. 그들이 감옥에서 설계한 Tu-2 폭격기가 생산 준비에 들어간다. 투폴레프가 완전히 복권되는 것은 1955년의 일이다.",
+      "sun_yegorov_replaced": "알렉산드르 예고로프 원수가 총참모부를 보리스 샤포시니코프에게 넘기고 국방 제1부인민위원이 된다. 그해 봄 최고 지휘부를 뒤흔든 대대적인 인사 개편의 하나다.",
       "zaf_parliament_vote": "영국이 독일에 선전포고하자 남아프리카 의회가 둘로 갈렸다. 총리는 중립을 지키자고 하고, 부총리 얀 스뮈츠는 영국과 함께 싸우자고 한다. 이제 의회의 표결이 나라가 갈 길을 정한다."
     },
     "event_opt": {
@@ -3754,6 +3774,64 @@
         "a": "사기 저하를 견딘다",
         "b": "사기 진작에 나선다"
       },
+      "sun_barbarossa": {
+        "a": "나라를 지킨다"
+      },
+      "sun_blyukher_arrest": {
+        "a": "극동군이 사령관을 잃는다"
+      },
+      "sun_bukharin_arrest": {
+        "a": "부하린이 모든 직책을 잃는다"
+      },
+      "sun_first_moscow_trial": {
+        "a": "재판이 진행된다"
+      },
+      "sun_japan_pact_lapses": {
+        "a": "조약은 더 이상 우리를 묶지 않는다"
+      },
+      "sun_khalkhin_gol": {
+        "a": "몽골을 지킨다"
+      },
+      "sun_lake_khasan": {
+        "a": "국경을 지킨다"
+      },
+      "sun_litvinov_dismissed": {
+        "a": "몰로토프가 외무를 맡는다"
+      },
+      "sun_military_trial": {
+        "a": "판결이 발표된다"
+      },
+      "sun_mr_pact_offer": {
+        "a": "조약에 서명한다",
+        "b": "독일의 제안을 거절한다"
+      },
+      "sun_renounce_japan_pact": {
+        "a": "통고한다"
+      },
+      "sun_rokossovsky_arrest": {
+        "a": "그가 군을 떠난다"
+      },
+      "sun_rokossovsky_release": {
+        "a": "그가 군으로 돌아온다"
+      },
+      "sun_shaposhnikov_returns": {
+        "a": "샤포시니코프가 자리에 오른다"
+      },
+      "sun_shaposhnikov_steps_down": {
+        "a": "바실렙스키가 이어받는다"
+      },
+      "sun_third_moscow_trial": {
+        "a": "판결이 발표된다"
+      },
+      "sun_tupolev_arrest": {
+        "a": "투폴레프가 직위에서 물러난다"
+      },
+      "sun_tupolev_released": {
+        "a": "투폴레프가 일터로 돌아온다"
+      },
+      "sun_yegorov_replaced": {
+        "a": "샤포시니코프가 맡는다"
+      },
       "zaf_parliament_vote": {
         "a": "참전한다",
         "b": "중립을 지킨다"
@@ -3802,6 +3880,26 @@
       "gen_strike": "노동자 총파업",
       "gen_unrest": "거리의 소요",
       "gen_war_weariness": "전쟁 피로",
+      "sun_barbarossa": "독일의 침공",
+      "sun_blyukher_arrest": "블류헤르 원수 체포",
+      "sun_bukharin_arrest": "부하린과 리코프 체포",
+      "sun_first_moscow_trial": "제1차 모스크바 재판",
+      "sun_japan_pact_lapses": "중립 조약의 효력 상실",
+      "sun_khalkhin_gol": "할힌골 전투",
+      "sun_lake_khasan": "하산호 전투",
+      "sun_litvinov_dismissed": "리트비노프 해임",
+      "sun_military_trial": "붉은 군대 지휘관 재판",
+      "sun_mr_pact_offer": "독일의 제안",
+      "sun_poland": "붉은 군대의 폴란드 진입",
+      "sun_renounce_japan_pact": "일본에 대한 통고",
+      "sun_rokossovsky_arrest": "로코솝스키 체포",
+      "sun_rokossovsky_release": "로코솝스키 석방",
+      "sun_shaposhnikov_returns": "샤포시니코프의 복귀",
+      "sun_shaposhnikov_steps_down": "샤포시니코프의 사임",
+      "sun_third_moscow_trial": "제3차 모스크바 재판",
+      "sun_tupolev_arrest": "투폴레프 체포",
+      "sun_tupolev_released": "투폴레프 석방",
+      "sun_yegorov_replaced": "총참모장 교체",
       "zaf_parliament_vote": "의회의 표결"
     },
     "exp": {
@@ -3944,7 +4042,54 @@
       "gen_pol_neu_league": "지역 협상",
       "gen_pol_unity": "국민 통합",
       "gen_rs_1": "과학 진흥",
-      "gen_rs_2": "연구소 확충"
+      "gen_rs_2": "연구소 확충",
+      "sun_academy": "과학 아카데미",
+      "sun_allied_cooperation": "연합국과의 협력",
+      "sun_antifascist_front": "반파시즘 연대",
+      "sun_army_reformers": "군 개혁파",
+      "sun_baku": "바쿠 증산",
+      "sun_china_treaty": "중국과의 조약",
+      "sun_collective_leadership": "집단 지도",
+      "sun_collective_security": "집단 안보",
+      "sun_comintern_aid": "국제 연대 지원",
+      "sun_commander_rebuild": "지휘관 재건",
+      "sun_deep_battle": "종심 전투 이론",
+      "sun_design_bureaus": "설계국 체계",
+      "sun_dnieper_power": "드네프르 전력",
+      "sun_donbas": "돈바스 석탄과 강철",
+      "sun_evacuation": "공장 소개",
+      "sun_far_east_army": "극동군",
+      "sun_finland_demands": "카렐리야 요구",
+      "sun_german_treaty": "독일과의 조약",
+      "sun_great_purge": "대숙청",
+      "sun_ground_attack": "지상 공격기",
+      "sun_guards": "근위 부대",
+      "sun_japan_neutrality": "일본과의 중립",
+      "sun_magnitogorsk": "마그니토고르스크 확장",
+      "sun_manchurian_plan": "만주 작전 계획",
+      "sun_mass_mobilisation": "총동원",
+      "sun_mech_corps": "기계화 군단",
+      "sun_moderate_economy": "온건 경제 노선",
+      "sun_mongolia_defence": "몽골 방위",
+      "sun_new_border_forts": "새 국경 요새",
+      "sun_new_constitution": "새 헌법",
+      "sun_new_course": "외교 노선 전환",
+      "sun_ocean_fleet": "대양 함대",
+      "sun_patriotic_war": "대조국 전쟁",
+      "sun_purge_ends": "숙청의 정리",
+      "sun_railways": "철도 확충",
+      "sun_red_air_force": "붉은 공군",
+      "sun_rkka_expansion": "붉은 군대 확대",
+      "sun_second_fyp": "제2차 5개년 계획 완수",
+      "sun_spheres": "세력권 회복",
+      "sun_stakhanov": "스타하노프 운동",
+      "sun_stalin_line": "스탈린 선 보강",
+      "sun_submarines": "잠수함대",
+      "sun_tank_works": "전차 공장",
+      "sun_third_fyp": "제3차 5개년 계획",
+      "sun_ural_base": "우랄 공업 기지",
+      "sun_western_alliance": "서방과의 동맹",
+      "sun_winter_war_lessons": "겨울 전쟁의 교훈"
     },
     "focus_desc": {
       "deu_airborne": "낙하산과 글라이더로 적의 후방에 내려앉는 부대의 장비와 전술을 연구한다.",
@@ -4075,7 +4220,54 @@
       "gen_pol_neu_league": "열강 사이에서 불안해하는 이웃 나라들을 우리가 이끄는 방위 협상에 초청한다.",
       "gen_pol_unity": "어려운 시대를 맞아 서로 다투던 정당과 지역에 다툼을 접고 힘을 모으자고 호소한다.",
       "gen_rs_1": "대학 연구비를 늘리고 국가 연구 위원회를 세워 한 갈래의 연구를 더 맡을 수 있게 한다.",
-      "gen_rs_2": "기업 연구소가 대학과 나란히 일하도록 하고, 나라가 두 곳의 연구비를 모두 대 준다."
+      "gen_rs_2": "기업 연구소가 대학과 나란히 일하도록 하고, 나라가 두 곳의 연구비를 모두 대 준다.",
+      "sun_academy": "모스크바로 옮겨 온 과학 아카데미에 연구소와 예산을 주어 산업을 돕게 한다.",
+      "sun_allied_cooperation": "영국·미국과 원조 협정을 맺고, 이란을 거쳐 들어오는 보급로를 연다.",
+      "sun_antifascist_front": "위협받는 이웃을 드러내 놓고 지지하고, 독일에 맞설 뜻이 있는 모든 정부와 조약을 맺으려 한다.",
+      "sun_army_reformers": "장교단을 건드리지 않고, 종심 작전을 다듬은 지휘관들에게 붉은 군대의 개혁을 맡긴다.",
+      "sun_baku": "바쿠와 카스피해 건너편에 새 유정을 뚫어 트랙터와 전차, 비행기에 연료를 댄다.",
+      "sun_china_treaty": "중국 국민 정부에 불가침 조약을 제안하고, 그 뒤에 무기 지원을 잇는다.",
+      "sun_collective_leadership": "결정을 정치국 전체에 돌려, 어느 한 사람도 당 위에 서지 않게 한다.",
+      "sun_collective_security": "1935년 프랑스·체코슬로바키아와 맺은 상호 원조 조약을 지키고, 국제 연맹에서 침략국에 맞선다.",
+      "sun_comintern_aid": "스페인 공화국과 중국 공산당에 소총과 탄약을 보내고, 난징의 국민 정부와도 가까워진다.",
+      "sun_commander_rebuild": "숙청 때 체포되었다가 살아남은 장교들을 풀어 복귀시키고, 실력이 검증된 젊은 지휘관을 진급시킨다.",
+      "sun_deep_battle": "적의 종심 전체를 한꺼번에 타격하는 이론을 1936년 야전 교범에 담는다.",
+      "sun_design_bureaus": "기술자들을 설계국으로 묶어, 무기 하나를 설계부터 생산까지 맡게 한다.",
+      "sun_dnieper_power": "드네프르 수력 발전소를 남부 공장에 전기를 대는 전력망으로 잇는다.",
+      "sun_donbas": "연방에서 가장 오래된 공업 지대인 도네츠 분지의 탄광과 제철소를 현대화한다.",
+      "sun_evacuation": "전선이 닿기 전에 공장을 통째로 열차에 실어 우랄에서 다시 세운다.",
+      "sun_far_east_army": "특별 적기 극동군을 늘리고, 만주국과 맞닿은 긴 국경에 요새를 쌓는다.",
+      "sun_finland_demands": "레닌그라드가 핀란드 국경에서 포격 거리 안에 있다. 북쪽 땅을 내주는 대신 국경을 뒤로 물려 달라고 요구한다.",
+      "sun_german_treaty": "독일과 무역부터 정치까지 협상하면, 유럽의 전쟁에서 당분간 비켜 서 있을 수 있다.",
+      "sun_great_purge": "당과 국가, 군대에서 '인민의 적'을 찾아내는 숙청이 시작된다. 권력은 위로 모이고 두려움은 아래로 퍼진다.",
+      "sun_ground_attack": "전장 위를 낮게 날며 보병을 직접 돕는 장갑 비행기를 개발한다.",
+      "sun_guards": "전투에서 공을 세운 사단에 근위 칭호와 더 나은 봉급, 장비를 준다.",
+      "sun_japan_neutrality": "일본에 중립 조약을 제안해, 극동을 걱정하지 않고 서쪽에 군을 돌린다.",
+      "sun_magnitogorsk": "마그니트나야산의 철광석 위에 세운 강철 도시에 용광로를 더 짓는다.",
+      "sun_manchurian_plan": "유럽의 전쟁이 판가름 나자, 총참모부가 만주의 관동군을 칠 공세를 계획한다.",
+      "sun_mass_mobilisation": "법이 허락하는 모든 연령을 소집하고, 무장할 수 있는 만큼 빨리 새 사단을 만든다.",
+      "sun_mech_corps": "전차 여단들을 묶어 돌파와 깊은 진격을 맡을 기계화 군단을 만든다.",
+      "sun_moderate_economy": "중공업의 속도를 늦추고 농촌의 부담을 덜어, 상점에 물건을 더 채운다.",
+      "sun_mongolia_defence": "1936년 상호 원조 의정서에 따라 소련군과 공병이 몽골에 들어간다.",
+      "sun_new_border_forts": "1939~1940년에 서쪽으로 옮겨 간 국경을 따라 요새 지구를 짓기 시작한다.",
+      "sun_new_constitution": "소비에트 대회가 보통선거와 여러 시민권을 약속하는 1936년 헌법을 채택한다.",
+      "sun_new_course": "뮌헨 협정 뒤로 영국과 프랑스에 대한 믿음이 엷어졌다. 외무 인민위원부에 새 지도부를 앉히고 운신의 폭을 넓힌다.",
+      "sun_ocean_fleet": "레닌그라드와 흑해의 조선소에서 전함과 순양함을 기공해, 강대국다운 함대를 만든다.",
+      "sun_patriotic_war": "나라가 존망을 걸고 싸운다. 모든 공장과 농장, 모든 가정이 조국 방위에 나선다.",
+      "sun_purge_ends": "대규모 체포를 멈추고 일부 사건을 다시 살핀다. 그러나 숙청으로 빈 자리는 몇 해가 지나도 다 채워지지 않는다.",
+      "sun_railways": "시베리아 횡단 철도를 복선으로 늘리고, 5개년 계획이 마치지 못한 노선을 잇는다.",
+      "sun_red_air_force": "전투기를 수백 대씩 주문하고, 설계국에 더 빠른 비행기를 맡긴다.",
+      "sun_rkka_expansion": "지역 민병 사단을 상비 간부 사단으로 바꾸고, 소총 사단을 더 많이 훈련한다.",
+      "sun_second_fyp": "1933년에 시작한 계획의 마지막 공사를 기한 안에 끝내고 새 공장들을 가동한다.",
+      "sun_spheres": "비밀 의정서가 핀란드와 발트 국가들, 베사라비아를 소련의 세력권으로 정했다. 모스크바가 요구를 준비한다.",
+      "sun_stakhanov": "1935년 알렉세이 스타하노프의 기록 이후, 기록을 깬 노동자들을 모두의 본보기로 내세운다.",
+      "sun_stalin_line": "옛 서부 국경을 따라 늘어선 요새 지구에 토치카와 수비대를 더한다.",
+      "sun_submarines": "소련 항구로 들어오는 길목을 지키려 세계에서 가장 큰 잠수함 전력을 키운다.",
+      "sun_tank_works": "하르키우·레닌그라드·첼랴빈스크의 기관차 공장과 트랙터 공장을 전차 생산으로 돌린다.",
+      "sun_third_fyp": "새 계획은 국방 공업을 앞세우고, 볼가강 동쪽에 생산 기반을 키운다.",
+      "sun_ural_base": "어느 국경에서도 멀리 떨어진 우랄에 두 번째 공업 중심지를 세운다.",
+      "sun_western_alliance": "영국과 프랑스에 구속력 있는 군사 협정을 요구하고, 폴란드와 루마니아를 지키겠다고 약속한다.",
+      "sun_winter_war_lessons": "핀란드에서 치른 값비싼 전쟁을 냉정하게 돌아보고, 훈련과 계급, 지휘 체계를 고친다."
     },
     "gen": {
       "1": "I",
@@ -4467,7 +4659,8 @@
       "news_gbr_abdication": "영국 국왕 에드워드 8세가 퇴위하고 동생이 조지 6세로 즉위했다.",
       "news_gbr_anglo_soviet": "영국과 소련이 독일에 함께 맞서기로 하는 협정을 맺었다.",
       "news_gbr_churchill": "윈스턴 처칠이 영국 총리가 되었다.",
-      "news_gbr_election_1945": "영국 총선에서 노동당이 크게 이겨 클레멘트 애틀리가 총리가 되었다."
+      "news_gbr_election_1945": "영국 총선에서 노동당이 크게 이겨 클레멘트 애틀리가 총리가 되었다.",
+      "sun_poland": "소련이 동쪽에서 폴란드를 침공했다"
     },
     "panel": {
       "at_peace": "평화",
@@ -4505,7 +4698,28 @@
       "gbr_ironside": "에드먼드 아이언사이드",
       "gbr_liddell_hart": "바실 리델 하트",
       "gbr_tizard": "헨리 티저드",
-      "gbr_watson_watt": "로버트 왓슨와트"
+      "gbr_watson_watt": "로버트 왓슨와트",
+      "sun_antonov": "알렉세이 안토노프",
+      "sun_bukharin": "니콜라이 부하린",
+      "sun_isserson": "게오르기 이세르손",
+      "sun_kalinin": "미하일 칼리닌",
+      "sun_koshkin": "미하일 코시킨",
+      "sun_litvinov": "막심 리트비노프",
+      "sun_malyshev": "뱌체슬라프 말리셰프",
+      "sun_meretskov": "키릴 메레츠코프",
+      "sun_mikoyan": "아나스타스 미코얀",
+      "sun_molotov": "뱌체슬라프 몰로토프",
+      "sun_ordzhonikidze": "세르고 오르조니키제",
+      "sun_shaposhnikov": "보리스 샤포시니코프",
+      "sun_timoshenko": "세묜 티모셴코",
+      "sun_tukhachevsky": "미하일 투하쳅스키",
+      "sun_tupolev": "안드레이 투폴레프",
+      "sun_ustinov": "드미트리 우스티노프",
+      "sun_vasilevsky": "알렉산드르 바실렙스키",
+      "sun_voroshilov": "클리멘트 보로실로프",
+      "sun_voznesensky": "니콜라이 보즈네센스키",
+      "sun_yegorov": "알렉산드르 예고로프",
+      "sun_zhdanov": "안드레이 즈다노프"
     },
     "region": {
       "original_owner": "1936년: {country}",
@@ -4578,7 +4792,25 @@
       "gen_skilled_workforce": "숙련공 양성",
       "gen_staff_training": "참모 교육",
       "gen_strike_losses": "파업의 여파",
-      "gen_war_bonds_spirit": "전쟁 공채"
+      "gen_war_bonds_spirit": "전쟁 공채",
+      "sun_collective_rule": "집단 지도 체제",
+      "sun_commander_corps": "다시 선 지휘부",
+      "sun_consumer_line": "인민을 위한 물자",
+      "sun_deep_operations": "종심 작전",
+      "sun_defend_motherland": "조국을 지켜라",
+      "sun_design_bureau_system": "설계국",
+      "sun_factory_relocation": "옮겨 가는 공장",
+      "sun_labour_heroes": "노동 영웅",
+      "sun_power_grid": "전력망",
+      "sun_purge_1": "숙청 1단계",
+      "sun_purge_2": "숙청 2단계",
+      "sun_purge_3": "숙청 3단계",
+      "sun_purge_aftermath": "숙청의 후유증",
+      "sun_rkka_reserves": "간부 군대",
+      "sun_surprise_shock": "기습의 충격",
+      "sun_third_plan": "제3차 계획",
+      "sun_total_mobilisation": "전 연령 소집",
+      "sun_war_lessons": "전훈 반영"
     },
     "spirit_desc": {
       "deu_combined_doctrine": "전차와 보병, 포병과 항공기가 한 몸처럼 움직인다.",
@@ -4622,7 +4854,25 @@
       "gen_skilled_workforce": "기술 학교를 나온 숙련공들이 생산 라인의 효율을 한층 끌어올린다.",
       "gen_staff_training": "참모 대학 출신 장교들이 작전 준비를 앞당기고 군에 경험을 쌓아 준다.",
       "gen_strike_losses": "멈췄던 공장들이 아직 제 속도를 되찾지 못했다.",
-      "gen_war_bonds_spirit": "공채를 산 국민은 전쟁을 자기 일로 여기지만, 그만큼 생필품 수요도 늘었다."
+      "gen_war_bonds_spirit": "공채를 산 국민은 전쟁을 자기 일로 여기지만, 그만큼 생필품 수요도 늘었다.",
+      "sun_collective_rule": "자리를 합의로 나누므로 유능한 인물을 들이기가 쉽다.",
+      "sun_commander_corps": "복귀한 지휘관과 새로 진급한 지휘관들이 빠르게 경험을 쌓는다.",
+      "sun_consumer_line": "계획의 더 많은 몫이 용광로보다 신발과 옷감, 식량에 간다.",
+      "sun_deep_operations": "전선을 뚫고 적의 후방까지 한 번에 치는 작전을 훈련한다.",
+      "sun_defend_motherland": "온 국민이 침략자에 맞서 일어섰고, 항복은 생각할 수도 없다.",
+      "sun_design_bureau_system": "서로 경쟁하는 설계국들이 새 무기와 기계를 잇달아 내놓는다.",
+      "sun_factory_relocation": "건설단이 소개된 공장들을 동쪽의 빈 땅에 다시 세운다.",
+      "sun_labour_heroes": "돌격 노동자와 기록을 깬 노동자들이 공장마다 속도를 이끈다.",
+      "sun_power_grid": "드네프르의 수력 전기가 남부 공장들을 돌린다.",
+      "sun_purge_1": "체포가 이어지며 당에 대한 중앙의 장악력이 커지고, 장교단도 흔들리기 시작한다.",
+      "sun_purge_2": "최고 지휘부가 체포되어, 군과 군단을 경험이 부족한 사람들이 맡는다.",
+      "sun_purge_3": "체포가 연대와 대대까지 내려가, 장교들이 스스로 판단하기를 피한다.",
+      "sun_purge_aftermath": "수많은 자리를 경험보다 훨씬 높이 진급한 장교들이 맡고 있다.",
+      "sun_rkka_reserves": "훈련된 예비군을 갖춘 상비군이 더 많은 병력을 부를 수 있다.",
+      "sun_surprise_shock": "침공이 준비되지 않은 군을 덮쳐, 부대가 끊기고 지휘가 흐트러졌다.",
+      "sun_third_plan": "강철과 노동력, 자금을 나눌 때 언제나 국방 공장이 먼저다.",
+      "sun_total_mobilisation": "무기를 들 수 있는 모든 연령이 소집되었다.",
+      "sun_war_lessons": "훈련이 핀란드 전투에서 드러난 교훈을 따른다."
     },
     "stance": {
       "aggressive": "과감",
@@ -4737,6 +4987,9 @@
       "mountain_rifle": "산악 소총 사단",
       "rifle": "소총 사단",
       "square": "보병 사단(4단위)",
+      "sun_guards_rifle": "근위 소총 사단",
+      "sun_rifle_ii": "소총 사단 II",
+      "sun_tank_division": "전차 사단",
       "tank_brigade": "전차 여단"
     },
     "trait": {
