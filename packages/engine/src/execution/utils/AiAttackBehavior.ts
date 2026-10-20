@@ -190,6 +190,8 @@ export class AiAttackBehavior {
       ) {
         continue;
       }
+      // World War 1936: nor once the war is over (reads no PRNG either).
+      if (this.atPeaceWith(target)) continue;
       this.sendLandAttack(
         target,
         undefined,
@@ -846,6 +848,8 @@ export class AiAttackBehavior {
   // its army is busy with us). Otherwise only cancels, as far as the reserve allows.
   // Never dips below the expand ratio: troop growth nearly stops near zero.
   private sendRetaliation(attacker: Player): boolean {
+    // World War 1936: an attack still running after its war ended.
+    if (this.atPeaceWith(attacker)) return false;
     let incoming = 0;
     for (const attack of this.player.incomingAttacks()) {
       if (attack.attacker() === attacker) incoming += attack.troops();
@@ -884,7 +888,8 @@ export class AiAttackBehavior {
       this.player.isFriendly(target) ||
       !this.player.sharesBorderWith(target) ||
       // The congress may have stepped in since the nuke left (spec §11.4).
-      !congressAllowsAttack(this.game, this.player, target)
+      !congressAllowsAttack(this.game, this.player, target) ||
+      this.atPeaceWith(target)
     ) {
       return false;
     }
@@ -1299,15 +1304,22 @@ export class AiAttackBehavior {
     );
   }
 
-  sendAttack(target: Player | TerraNullius, force = false): boolean {
-    // World War 1936: a target we may not attack wastes no turn.
-    if (
+  /**
+   * World War 1936 (spec 7.7): a country we are not at war with (or not yet,
+   * in the preparation minute) is off limits. Always false without the
+   * mode; reads no PRNG.
+   */
+  private atPeaceWith(target: Player | TerraNullius): boolean {
+    return (
       this.game.worldWar() !== null &&
       target.isPlayer() &&
       !this.player.canAttackPlayer(target)
-    ) {
-      return false;
-    }
+    );
+  }
+
+  sendAttack(target: Player | TerraNullius, force = false): boolean {
+    // World War 1936: a target we may not attack wastes no turn.
+    if (this.atPeaceWith(target)) return false;
     if (force) {
       // World congress (spec §8.1 S2): not even an answer goes at a truce
       // partner (the engine would refuse it). shouldAttack gates the rest.
