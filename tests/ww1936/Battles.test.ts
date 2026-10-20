@@ -396,6 +396,10 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     expect([t.battle[s], t.battle[rr]]).toEqual([0, 0]);
     expect([s, rr].map((r) => t.org[r])).toEqual(orgs);
     // Lyon falls: the ship sails on (not overrun), the one standing falls back.
+    // The standing one's refuge: Paris or London over the strait, whichever
+    // has more supply (spec §9.5; the daily supply sets it).
+    const refuge = refugeOf(l, rowOf(l, stander));
+    expect([1, LONDON]).toContain(refuge);
     takeRegion(g, LYON, "DEU");
     expect(rowOf(l, sailor)).toBe(s);
     expect([t.mode[s], t.next[s], t.prog[s]]).toEqual([
@@ -404,7 +408,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
       9_000,
     ]);
     const st = rowOf(l, stander);
-    expect([t.mode[st], t.next[st]]).toEqual([MOVE_RETREAT, 1]);
+    expect([t.mode[st], t.next[st]]).toEqual([MOVE_RETREAT, refuge]);
   }, 60_000);
 
   test("encircled divisions at zero org are destroyed", async () => {

@@ -11,6 +11,7 @@ import {
 import {
   GENERAL_TRAITS,
   WW_MAX_ARMY_DIVISIONS,
+  WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { ScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import {
@@ -23,6 +24,7 @@ import {
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import { appointGeneral } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
 import path from "path";
@@ -526,6 +528,17 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
     [2, 1, 1, 1, 1, 0, jpn.armies[1].id],
   ]);
   expect(l.country(jpn.id)!.nextTitleNo).toBe(3);
+  // A titled general appointed later (spec §6.2) takes the next number
+  // from the same counter: no id collides with the two from the start.
+  const jcl = l.country(jpn.id)!;
+  jcl.armyXpMilli = WW_TITLED_GENERAL_XP_MILLI;
+  expect(appointGeneral(l, jcl)).toBeNull();
+  expect(jgen.map((x) => [x.id, x.titleNo])).toEqual([
+    [titledGeneralId(jpn.id, 1), 1],
+    [titledGeneralId(jpn.id, 2), 2],
+    [titledGeneralId(jpn.id, 3), 3],
+  ]);
+  expect(jgen[2]).toMatchObject({ roster: -1, att: 1, traits: 0, army: 0 });
   expect(rosterOf("SUN")[0]).toBe(generalId("zhukov"));
 }
 

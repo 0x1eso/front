@@ -13,6 +13,7 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   GeneralDef,
+  GENERALS,
   generalServes,
   isTitledGeneral,
   titledGeneralId,
@@ -66,7 +67,11 @@ const testGeneral = (dates: Partial<GeneralDef>): GeneralDef => ({
 describe("generals (P2 spec §6.2)", () => {
   test("assign and swap generals", async () => {
     const { g, l, id, cl, first, second } = await germany();
-    const [rundstedt, bock] = cl.generals;
+    // The whole roster is Germany's (Task 10): look the two up by name.
+    const named = (key: string) =>
+      cl.generals.find((x) => x.roster >= 0 && GENERALS[x.roster].id === key)!;
+    const rundstedt = named("rundstedt");
+    const bock = named("bock");
     expect(first.general).toBe(rundstedt.id);
     expect(second.general).toBe(bock.id);
     // Bock to the first army: Rundstedt is free, the second has none.

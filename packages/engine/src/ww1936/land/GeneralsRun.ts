@@ -15,10 +15,10 @@ import {
   GeneralDef,
   GENERALS,
   generalServes,
-  titledGeneralId,
 } from "@openfront/engine-lib/ww1936/Generals";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { newTitledGeneralState } from "./LandStartRun";
 import type { Army, CountryLand, GeneralState, WwLand } from "./WwLand";
 
 /** Skills a general can reach (spec §6.2). */
@@ -92,29 +92,19 @@ function freeGeneral(land: WwLand, cl: CountryLand, a: Army): void {
   land.markArmy(a.id);
 }
 
-/** Spec §6.2: a titled general ("Commander No. n", every skill 1) for 10 army experience. */
+/**
+ * Spec §6.2: a titled general ("Commander No. n", every skill 1) for 10
+ * army experience. Numbered from the country's `nextTitleNo`, the counter
+ * LandStartRun's 1936 titled generals (Japan's) take theirs from, so ids
+ * never collide.
+ */
 export function appointGeneral(
   land: WwLand,
   cl: CountryLand,
 ): WwOrderBlock | null {
   if (cl.armyXpMilli < WW_TITLED_GENERAL_XP_MILLI) return "no_xp";
   cl.armyXpMilli -= WW_TITLED_GENERAL_XP_MILLI;
-  const titleNo = cl.nextTitleNo++;
-  cl.generals.push({
-    id: titledGeneralId(cl.smallID, titleNo),
-    roster: -1,
-    titleNo,
-    att: 1,
-    dfn: 1,
-    plan: 1,
-    log: 1,
-    traits: 0,
-    xp: 0,
-    level: 1,
-    army: 0,
-    use: [0, 0, 0, 0],
-    terrainDays: [0, 0, 0, 0],
-  });
+  cl.generals.push(newTitledGeneralState(cl.smallID, cl.nextTitleNo++));
   land.markCountry(cl.smallID);
   return null;
 }

@@ -89,6 +89,7 @@ import {
   cancelTraining,
   deleteTemplate,
   deployNow,
+  lowestFillPm,
   queueTraining,
   saveTemplate,
 } from "./Training";
@@ -1653,9 +1654,17 @@ export class WwLand {
       if (e.remaining > 0 && s !== null && (ce?.manpower ?? 0) < s.men) {
         waiting = "manpower";
       } else if (
-        trainees.some(
-          (x) => x.days >= x.need && x.fillPm < WW_DEPLOY_MIN_FILL_PM,
-        )
+        // The engine deploys on the lowest fill of the needed types
+        // (Training.dailyTraining), not the cost-weighted bar above.
+        cl.trainees.some((x) => {
+          if (x.entry !== e.id) return false;
+          const ts = this.templateStatsOf(id, x.template);
+          return (
+            ts !== null &&
+            x.days >= ts.trainDays &&
+            lowestFillPm(ts, x.equip) < WW_DEPLOY_MIN_FILL_PM
+          );
+        })
       ) {
         waiting = "equipment";
       }

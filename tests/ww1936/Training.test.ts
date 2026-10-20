@@ -173,6 +173,11 @@ describe("training (P2 spec §5.1)", () => {
       days: 90,
       need: 90,
     });
+    // The screen says why: the guns, the lowest fill the engine deploys on,
+    // though the cost-weighted bar is above half.
+    const shown = l.countryDetail(cl).training[0];
+    expect(shown.trainees[0].fillPm).toBeGreaterThanOrEqual(500);
+    expect(shown.waiting).toBe("equipment");
     // The guns arrive: deployed the next day, at full org, experience 0.
     setStock(ce, "artillery", 24);
     nextDay();
