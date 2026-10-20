@@ -247,6 +247,11 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(callIns(fakeGame(), fra(fakeGame()))).toBe(1);
     const g = fakeGame({ capitulated: ["GBR"] });
     expect(callIns(g, fra(g))).toBe(0);
+    // Britain counts only while I am not at war with it yet.
+    const peace = fakeGame({ me: "DEU" });
+    expect(callIns(peace, fra(peace))).toBe(1);
+    const atWar = fakeGame({ me: "DEU", wars: [["GBR", "DEU"]] });
+    expect(callIns(atWar, fra(atWar))).toBe(0);
   });
 
   it("the win names the faction, celebrates on its side and lists its MVPs", () => {

@@ -264,17 +264,21 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
 }
 
 /**
- * Countries a declaration on `target` brings in besides the target (spec
- * §7.3): its living, uncapitulated faction members.
+ * Countries my declaration on `target` newly brings in besides the target
+ * (spec §7.3): its living, uncapitulated faction members I am not at war
+ * with yet. Matches Diplomacy.declareWar, which skips those.
  */
 export function callIns(game: WwGame, target: PlayerView): number {
   const s = game.worldWarScenario();
   const faction = factionOfPlayer(target);
   if (s === null || faction === null) return 0;
+  const myID = game.myPlayer()?.smallID() ?? 0;
+  const atWar = new Set(enemiesOf(game, myID));
   let n = 0;
   s.countries.forEach((tag, i) => {
     const id = i + 1;
-    if (id === target.smallID() || COUNTRIES[tag].faction !== faction) return;
+    if (id === target.smallID() || id === myID) return;
+    if (COUNTRIES[tag].faction !== faction || atWar.has(id)) return;
     if (isCapitulated(game, id) || !(asPlayer(game, id)?.isAlive() ?? false))
       return;
     n++;
