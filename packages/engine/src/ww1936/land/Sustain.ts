@@ -106,7 +106,8 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
   const supply = t.supply[r];
   if (supply <= 0) return;
-  const s = land.baseStatsOf(r);
+  // Men, need and flags read only the template def and the tech.
+  const s = land.templateNumbersOf(r);
   const cap = reinforceCap(supply);
   const men = t.men[r];
   const add = Math.min(s.men - men, cap(s.men), ce.manpower);
@@ -133,7 +134,8 @@ const REINFORCE_SLOTS = new Int32Array(GROUND_SLOTS);
  */
 export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
-  const s = land.baseStatsOf(r);
+  // The need reads only the template def and the tech.
+  const s = land.templateNumbersOf(r);
   const base = r * GROUND_SLOTS;
   TYPE_SLOTS.forEach((list, i) => {
     if (s.need[i] <= 0 || list.length < 2) return;

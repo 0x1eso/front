@@ -65,17 +65,20 @@ import {
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import {
-  divisionStats,
+  divisionStatsAt,
   equipFill,
   equipFillPm,
   genMixInto,
   genMixOf,
-  strengthPm,
+  strengthPmAt,
   templateCounts,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
-import type { TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import {
+  techTotals,
+  type TechTotals,
+} from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WwEconomy } from "../economy/WwEconomy";
@@ -642,6 +645,8 @@ interface StatsEntry {
   eff: DivisionStats | null;
   /** -1: not computed since men or equipment moved. */
   strength: number;
+  /** equipFill(base, equip); null: not computed since they moved. */
+  fill: number[] | null;
 }
 
 /**
@@ -676,6 +681,12 @@ const MIX_SCRATCH: number[] = [];
 const GEN1_MIX: readonly number[] = genMixOf(
   new Array<number>(GROUND_SLOTS).fill(0),
 );
+/** A dead row's numbers (templateNumbersOf). */
+const EMPTY_STATS: DivisionStats = templateStats(
+  EMPTY_DEF,
+  techTotals(new Set()),
+  GEN1_MIX,
+);
 
 /**
  * Org max, template flags, width and supply use by row (WwLand.rowStats, derived): valid
@@ -690,6 +701,8 @@ interface RowStats {
   flags: Int32Array;
   width: Int32Array;
   supply: Int32Array;
+  /** The template's numbers at generation 1 (templateNumbersOf). */
+  gen1: DivisionStats[];
 }
 
 /**
@@ -712,12 +725,16 @@ function setInOrder<V>(m: Map<number, V>, key: number, v: V): void {
 
 /** A stats entry's numbers at its men and equipment (computed on the first read after they moved). */
 function effOf(e: StatsEntry): DivisionStats {
-  return (e.eff ??= divisionStats(e.base, e.equip, e.men));
+  return (e.eff ??= divisionStatsAt(e.base, fillOf(e), e.men));
 }
 
 function strengthOfEntry(e: StatsEntry): number {
-  if (e.strength < 0) e.strength = strengthPm(e.base, e.equip, e.men);
+  if (e.strength < 0) e.strength = strengthPmAt(e.base, fillOf(e), e.men);
   return e.strength;
+}
+
+function fillOf(e: StatsEntry): number[] {
+  return (e.fill ??= equipFill(e.base, e.equip));
 }
 
 function newRowStats(cap: number): RowStats {
@@ -729,6 +746,7 @@ function newRowStats(cap: number): RowStats {
     flags: new Int32Array(cap),
     width: new Int32Array(cap),
     supply: new Int32Array(cap),
+    gen1: new Array<DivisionStats>(cap),
   };
 }
 
@@ -741,6 +759,7 @@ function growRowStats(c: RowStats, rows: number): RowStats {
   n.flags.set(c.flags);
   n.width.set(c.width);
   n.supply.set(c.supply);
+  for (let i = 0; i < c.gen1.length; i++) n.gen1[i] = c.gen1[i];
   return n;
 }
 
@@ -1266,6 +1285,17 @@ export class WwLand {
     return this.rowOrgEntry(row) ? this.rowStats.width[row] : 0;
   }
 
+  /**
+   * The division's template at generation 1, from the row cache. Only the
+   * numbers that read just the def and the tech are the division's own:
+   * width, men, orgMilli (before orgPct), supplyMilli, trainDays, need,
+   * flags, special, battalions. Attack, defence, HP, armour, pierce,
+   * hardness and speed follow the generations: baseStatsOf / statsOf.
+   */
+  templateNumbersOf(row: number): DivisionStats {
+    return this.rowOrgEntry(row) ? this.rowStats.gen1[row] : EMPTY_STATS;
+  }
+
   /** A division's full-strength supply use, milli a day (spec §11.3): it reads only its template def. */
   supplyBaseOf(row: number): number {
     return this.rowOrgEntry(row) ? this.rowStats.supply[row] : 0;
@@ -1298,6 +1328,7 @@ export class WwLand {
     c.flags[row] = base.flags;
     c.width[row] = base.width;
     c.supply[row] = base.supplyMilli;
+    c.gen1[row] = base;
     return true;
   }
 
@@ -1396,6 +1427,7 @@ export class WwLand {
       }
       hit.eff = null;
       hit.strength = -1;
+      hit.fill = null;
       return hit;
     }
     const equip = eq.slice(base0, base0 + GROUND_SLOTS);
@@ -1409,6 +1441,7 @@ export class WwLand {
       base: this.templateStatsAt(owner, tpl, mix, epoch),
       eff: null,
       strength: -1,
+      fill: null,
     };
     this.statsCache.set(id, entry);
     return entry;

@@ -72,6 +72,12 @@ interface SideCache {
   reached: Uint8Array;
   /** The best hub share of each side region, milli. */
   best: Int32Array;
+  /** memberMask of `members`. */
+  member: Uint8Array;
+  /** sideRegions at WwLand.controlChanges / derivedEpoch `changes` / `epoch` (-1: none yet). */
+  changes: number;
+  epoch: number;
+  regionsView: { ours: Uint8Array; regions: number[] } | null;
 }
 
 /** Scratch arrays (stamped, never cleared) and the side caches of one land. */
@@ -260,12 +266,22 @@ export function dailySupply(land: WwLand, side: number): void {
   const sc = land.scenario;
   const st = stateOf(land);
   const members = land.sideMembers(side);
-  const member = memberMask(land, members);
-  const { ours, regions } = sideRegions(land, member);
+  const cache = sideCache(land, st, side, members, land.controller.length);
+  // The side's regions read only the controllers (setController counts
+  // every change in controlChanges).
+  if (
+    cache.regionsView === null ||
+    cache.changes !== land.controlChanges ||
+    cache.epoch !== land.derivedEpoch
+  ) {
+    cache.regionsView = sideRegions(land, cache.member);
+    cache.changes = land.controlChanges;
+    cache.epoch = land.derivedEpoch;
+  }
+  const { ours, regions } = cache.regionsView;
   const day = land.day();
   // What the hubs, the reach and the runs read: the side's regions, their
   // rail, infrastructure and built hubs, the members' capitals.
-  const cache = sideCache(st, side, members, ours.length);
   const rail = land.econ.rail;
   const infra = land.econ.infra;
   const hub = land.econ.hub;
@@ -396,6 +412,7 @@ function warmSide(
 }
 
 function sideCache(
+  land: WwLand,
   st: SupplyState,
   side: number,
   members: readonly number[],
@@ -421,6 +438,10 @@ function sideCache(
     warm: false,
     reached: new Uint8Array(size),
     best: new Int32Array(size),
+    member: memberMask(land, members),
+    changes: -1,
+    epoch: -1,
+    regionsView: null,
   };
   st.sides.set(side, fresh);
   return fresh;

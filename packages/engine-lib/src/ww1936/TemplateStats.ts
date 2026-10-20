@@ -266,7 +266,15 @@ export function divisionStats(
   equip: ArrayLike<number>,
   men: number,
 ): DivisionStats {
-  const fill = equipFill(s, equip);
+  return divisionStatsAt(s, equipFill(s, equip), men);
+}
+
+/** divisionStats with the fill already computed (`fill` = equipFill(s, equip)). */
+export function divisionStatsAt(
+  s: DivisionStats,
+  fill: readonly number[],
+  men: number,
+): DivisionStats {
   const parts = s.parts;
   let soft = 0;
   let hard = 0;
@@ -296,7 +304,14 @@ export function equipFillPm(
   s: DivisionStats,
   equip: ArrayLike<number>,
 ): number {
-  const fill = equipFill(s, equip);
+  return equipFillPmAt(s, equipFill(s, equip));
+}
+
+/** equipFillPm with the fill already computed (`fill` = equipFill(s, equip)). */
+export function equipFillPmAt(
+  s: DivisionStats,
+  fill: readonly number[],
+): number {
   let w = 0;
   let got = 0;
   for (let i = 0; i < T; i++) {
@@ -313,7 +328,16 @@ export function strengthPm(
   equip: ArrayLike<number>,
   men: number,
 ): number {
-  const eq = equipFillPm(s, equip);
+  return strengthPmAt(s, equipFill(s, equip), men);
+}
+
+/** strengthPm with the fill already computed (`fill` = equipFill(s, equip)). */
+export function strengthPmAt(
+  s: DivisionStats,
+  fill: readonly number[],
+  men: number,
+): number {
+  const eq = equipFillPmAt(s, fill);
   const mp =
     s.men === 0 ? 1000 : Math.min(1000, Math.floor((men * 1000) / s.men));
   return Math.min(eq, mp);

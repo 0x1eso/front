@@ -201,9 +201,7 @@ export function readinessDay(land: WwLand, army: Army): void {
   const rows = armyRows(land, army);
   let bp = army.planBp;
   if (!(o.kind === "plan" && o.executing)) {
-    const signal = rows.some(
-      (r) => (land.baseStatsOf(r).flags & TPL_SIGNAL) !== 0,
-    );
+    const signal = rows.some((r) => (land.flagsOf(r) & TPL_SIGNAL) !== 0);
     const doctrine =
       g !== null && (g.traits & traitBit("offensive_doctrine")) !== 0;
     const pct =
