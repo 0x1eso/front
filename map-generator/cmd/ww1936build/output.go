@@ -77,6 +77,8 @@ func assignVP(p Projection, land []bool, ids []uint16, regions []*Region, t *Tab
 			r.VP += baseVP
 		}
 		r.VP += c.Tier
+		r.Tiers += c.Tier
+		r.MaxTier = max(r.MaxTier, c.Tier)
 		if c.Tier > r.vpWeight {
 			r.vpWeight = c.Tier
 			r.VPTile = px
@@ -135,13 +137,24 @@ type srcCountryOut struct {
 	Capital [2]int `json:"capital"`
 }
 
+// srcRegionOut is a region of scenario.src.json, version 2 (P1 spec §3.1:
+// the economy fields after vpTile).
 type srcRegionOut struct {
-	ID     int     `json:"id"`
-	Name   string  `json:"name"`
-	NameKo string  `json:"nameKo"`
-	Owner  string  `json:"owner"`
-	VP     int     `json:"vp"`
-	VPTile *[2]int `json:"vpTile,omitempty"`
+	ID      int     `json:"id"`
+	Name    string  `json:"name"`
+	NameKo  string  `json:"nameKo"`
+	Owner   string  `json:"owner"`
+	VP      int     `json:"vp"`
+	VPTile  *[2]int `json:"vpTile,omitempty"`
+	Cat     string  `json:"cat"`
+	Pop     int     `json:"pop"`
+	Infra   int     `json:"infra"`
+	Core    bool    `json:"core"`
+	Coastal bool    `json:"coastal"`
+	Civ     int     `json:"civ"`
+	Mil     int     `json:"mil"`
+	Dock    int     `json:"dock"`
+	Res     [6]int  `json:"res"`
 }
 
 type srcSeaOut struct {
@@ -151,19 +164,25 @@ type srcSeaOut struct {
 }
 
 // writeScenarioSrc writes scenario.src.json (read by the map generator,
-// map-generator/regions.go).
-func writeScenarioSrc(path string, p Projection, t *Tables, capitals []int, regions, seas []*Region) error {
+// map-generator/regions.go). eco holds each region's economy, in the order
+// of regions.
+func writeScenarioSrc(path string, p Projection, t *Tables, capitals []int, regions []*Region, eco []*EcoRegion, seas []*Region) error {
 	out := struct {
 		Version   int             `json:"version"`
 		Countries []srcCountryOut `json:"countries"`
 		Regions   []srcRegionOut  `json:"regions"`
 		SeaZones  []srcSeaOut     `json:"seaZones"`
-	}{Version: 1}
+	}{Version: 2}
 	for i, c := range t.Countries {
 		out.Countries = append(out.Countries, srcCountryOut{c.Tag, [2]int{capitals[i] % p.Width, capitals[i] / p.Width}})
 	}
-	for _, r := range regions {
-		row := srcRegionOut{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: t.Countries[r.Owner-1].Tag, VP: r.VP}
+	for k, r := range regions {
+		e := eco[k]
+		row := srcRegionOut{
+			ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: t.Countries[r.Owner-1].Tag, VP: r.VP,
+			Cat: categories[e.Cat], Pop: e.Pop, Infra: e.Infra, Core: e.Core, Coastal: e.Coastal,
+			Civ: e.Civ, Mil: e.Mil, Dock: e.Dock, Res: e.Res,
+		}
 		if r.VPTile >= 0 {
 			row.VPTile = &[2]int{r.VPTile % p.Width, r.VPTile / p.Width}
 		}

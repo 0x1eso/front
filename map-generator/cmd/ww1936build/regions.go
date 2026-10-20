@@ -32,6 +32,14 @@ type Region struct {
 	vpWeight int
 	suffixEn string // " (N)" … for a part of a split group
 	suffixKo string
+	// MainAdm is the admin-1 unit (feature index + 1, 0 = none) holding
+	// most of the region's pixels: its adm0_a3 decides whether the region is
+	// part of its owner's homeland (P1 spec §3.3).
+	MainAdm int32
+	// Tiers is the sum of the tiers of the victory-point cities in the
+	// region, MaxTier the highest of them (0 without a city; assignVP).
+	Tiers   int
+	MaxTier int
 }
 
 type group struct {
@@ -244,7 +252,7 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, patch [
 				main = a
 			}
 		}
-		r := &Region{ID: id, Owner: pc.owner, Pixels: pc.pixels, VPTile: -1}
+		r := &Region{ID: id, Owner: pc.owner, Pixels: pc.pixels, VPTile: -1, MainAdm: main}
 		setAdminName(r, admin, main)
 		if pc.split {
 			en, ko := direction(pc.pixels, pc.parent, w)

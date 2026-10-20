@@ -266,6 +266,22 @@ type srcRegion struct {
 	Owner  string  `json:"owner"`
 	VP     int     `json:"vp"`
 	VPTile *[2]int `json:"vpTile,omitempty"`
+	Economy
+}
+
+// Economy is a region's P1 economy (version 2; P1 spec §3.1), copied from
+// scenario.src.json to scenario.json as it is, but coastal, which
+// buildScenario recomputes on the final tiles.
+type Economy struct {
+	Cat     string `json:"cat"`
+	Pop     int    `json:"pop"`
+	Infra   int    `json:"infra"`
+	Core    bool   `json:"core"`
+	Coastal bool   `json:"coastal"`
+	Civ     int    `json:"civ"`
+	Mil     int    `json:"mil"`
+	Dock    int    `json:"dock"`
+	Res     [6]int `json:"res"`
 }
 
 type srcSea struct {
@@ -291,7 +307,12 @@ type outRegion struct {
 	VPTile  [2]int `json:"vpTile"`
 	Tiles   int    `json:"tiles"`
 	Terrain string `json:"terrain"`
+	Economy
 }
+
+// scenarioVersion is the scenario.src.json / scenario.json version this
+// generator reads and writes (2: P1 economy fields).
+const scenarioVersion = 2
 
 type outSea struct {
 	ID     int    `json:"id"`
@@ -361,13 +382,17 @@ func regionCenters(ids []uint16, w, h int) map[int]int {
 	return best
 }
 
-// buildScenario fills in tile counts, terrain classes and victory-point
-// tiles, drops regions that lost every tile, and checks that every country
-// keeps a region and that its capital is on its own land.
+// buildScenario fills in tile counts, terrain classes, victory-point tiles
+// and coasts (a land tile touching a sea-zone tile, on the final tiles), drops
+// regions that lost every tile, and checks that every country keeps a region
+// and that its capital is on its own land. A dropped region's population and
+// resources go to its country's capital region (so the country totals stay
+// exact); one with factories, or a dockyard off the coast, is an error.
 func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scenarioOut, []string, error) {
 	n := w * h
 	tiles := map[int]int{}
 	terrain := map[int]*[3]int{}
+	coastal := map[int]bool{}
 	for i := 0; i < n; i++ {
 		id := int(ids[i])
 		if id == 0 {
@@ -375,6 +400,13 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		}
 		tiles[id]++
 		if id < seaZoneBase {
+			if !coastal[id] {
+				forNeighbours4(i, w, n, func(j int) {
+					if ids[j] > seaZoneBase {
+						coastal[id] = true
+					}
+				})
+			}
 			mag := int(packed[i] & 0x1f)
 			class := 0
 			if mag >= 20 {
@@ -389,15 +421,39 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		}
 	}
 	centers := regionCenters(ids, w, h)
-	out := scenarioOut{Version: 1, Width: w, Height: h, Countries: src.Countries}
+	out := scenarioOut{Version: scenarioVersion, Width: w, Height: h, Countries: src.Countries}
 	var notes []string
 	known := map[int]bool{}
 	regionCount := map[string]int{}
 	byID := map[int]outRegion{}
+	// What dropped regions leave to their country's capital region.
+	type leftover struct {
+		pop int
+		res [6]int
+	}
+	left := map[string]*leftover{}
+	var lefts []string // owners in the order they first left something
 	for _, r := range src.Regions {
 		known[r.ID] = true
 		if tiles[r.ID] == 0 {
-			notes = append(notes, fmt.Sprintf("region %d %q (%s) lost every tile", r.ID, r.Name, r.Owner))
+			if f := r.Civ + r.Mil + r.Dock; f > 0 {
+				return out, notes, fmt.Errorf("region %d %q (%s) lost every tile but has %d factories: give it none in cmd/ww1936build", r.ID, r.Name, r.Owner, f)
+			}
+			note := fmt.Sprintf("region %d %q (%s) lost every tile", r.ID, r.Name, r.Owner)
+			if r.Pop > 0 || r.Res != [6]int{} {
+				l := left[r.Owner]
+				if l == nil {
+					l = &leftover{}
+					left[r.Owner] = l
+					lefts = append(lefts, r.Owner)
+				}
+				l.pop += r.Pop
+				for k, v := range r.Res {
+					l.res[k] += v
+				}
+				note += fmt.Sprintf("; its population %d and resources %v go to the capital region", r.Pop, r.Res)
+			}
+			notes = append(notes, note)
 			continue
 		}
 		var vpTile [2]int
@@ -414,7 +470,11 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 				class = k
 			}
 		}
-		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class]}
+		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class], Economy: r.Economy}
+		o.Coastal = coastal[r.ID]
+		if o.Dock > 0 && !o.Coastal {
+			return out, notes, fmt.Errorf("region %d %q (%s) has %d dockyards but no coast on the final map", r.ID, r.Name, r.Owner, o.Dock)
+		}
 		out.Regions = append(out.Regions, o)
 		byID[r.ID] = o
 		regionCount[r.Owner]++
@@ -435,6 +495,21 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		r, ok := byID[int(ids[y*w+x])]
 		if !ok || r.Owner != c.Tag {
 			return out, notes, fmt.Errorf("capital of %s at (%d,%d) is not on its own land", c.Tag, x, y)
+		}
+	}
+	capitalOf := map[string]int{}
+	for _, c := range src.Countries {
+		capitalOf[c.Tag] = int(ids[c.Capital[1]*w+c.Capital[0]])
+	}
+	for _, tag := range lefts {
+		l := left[tag]
+		for i := range out.Regions {
+			if r := &out.Regions[i]; r.ID == capitalOf[tag] {
+				r.Pop += l.pop
+				for k, v := range l.res {
+					r.Res[k] += v
+				}
+			}
 		}
 	}
 	capCapitalVP(out.Regions, src.Countries, ids, w)
@@ -494,6 +569,9 @@ func writeScenarioFiles(name, mapDir string, packed []byte, w, h int) ([]string,
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&src); err != nil {
 		return nil, nil, fmt.Errorf("scenario.src.json: %w", err)
+	}
+	if src.Version != scenarioVersion {
+		return nil, nil, fmt.Errorf("scenario.src.json is version %d, not %d: run cmd/ww1936build", src.Version, scenarioVersion)
 	}
 	owner := make(map[uint16]string, len(src.Regions))
 	for _, r := range src.Regions {
