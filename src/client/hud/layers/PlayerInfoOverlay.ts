@@ -896,6 +896,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
   /** World War 1936 (spec §8.2): the region's name, points and 1936 owner. */
   private renderRegionLine(tile: TileRef) {
+    // The mode first: other games skip the language lookup (a DOM query).
+    if (this.game.worldWarScenario() === null) return "";
     const info = regionInfo(this.game, tile, isKoreanUi());
     if (info === null) return "";
     return html`<div

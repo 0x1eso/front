@@ -140,6 +140,20 @@ describe("PlayerInfoOverlay", () => {
     expect(out).not.toContain("text-green-500");
   });
 
+  it("outside World War 1936 the card never looks up the UI language", () => {
+    overlay.game = makeGame(null) as never;
+    const query = vi.spyOn(document, "querySelector");
+    try {
+      overlay.maybeShow(10, 10);
+      flatten(overlay.render());
+      expect(query.mock.calls.map(([selector]) => selector)).not.toContain(
+        "lang-selector",
+      );
+    } finally {
+      query.mockRestore();
+    }
+  });
+
   it("keeps its target while the pointer is on the panel", () => {
     const game = makeGame({
       isFriendly: () => false,
