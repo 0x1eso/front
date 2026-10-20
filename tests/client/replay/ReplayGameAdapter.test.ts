@@ -233,10 +233,17 @@ describe("ReplayGameAdapter", () => {
       overlay.tick();
       await overlay.updateComplete;
       expect(overlay.textContent ?? "").toContain(owner.displayName());
+      // World War 1936: a replay has no scenario, so no region line.
+      expect(overlay.querySelector("[data-ww-region]")).toBeNull();
     } finally {
       overlay.remove();
     }
   }, 30_000);
+
+  test("reads as a game without the World War 1936 screens", () => {
+    // The leaderboard, hover card and event feed ask for the scenario.
+    expect(adapter.asGameView().worldWarScenario()).toBeNull();
+  });
 
   test("targets, embargoes and units read like PlayerView's", () => {
     const frame = reader.seek(119);

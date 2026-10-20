@@ -97,6 +97,7 @@ describe("PlayerInfoOverlay", () => {
     owner: () => hovered,
     myPlayer: () => myPlayer,
     inSpawnPhase: () => false,
+    worldWarScenario: () => null,
     config: () => ({
       isUnitDisabled: () => true,
       maxTroops: () => 1000,

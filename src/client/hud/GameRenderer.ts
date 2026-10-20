@@ -57,6 +57,8 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
+import { WwTopBand } from "./ww1936/WwTopBand";
 
 export function createRenderer(
   inputEl: HTMLElement,
@@ -341,6 +343,23 @@ export function createRenderer(
   satelliteBand.game = game;
   satelliteBand.eventBus = eventBus;
 
+  // World War 1936 (spec §8.2): the date band and the diplomacy drawer.
+  const wwTopBand = document.querySelector("ww-top-band") as WwTopBand;
+  if (!(wwTopBand instanceof WwTopBand)) {
+    console.error("ww top band not found");
+  }
+  wwTopBand.game = game;
+  wwTopBand.eventBus = eventBus;
+
+  const wwDiplomacyPanel = document.querySelector(
+    "ww-diplomacy-panel",
+  ) as WwDiplomacyPanel;
+  if (!(wwDiplomacyPanel instanceof WwDiplomacyPanel)) {
+    console.error("ww diplomacy panel not found");
+  }
+  wwDiplomacyPanel.game = game;
+  wwDiplomacyPanel.eventBus = eventBus;
+
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
   const congressCards = document.querySelector("congress-cards");
   if (congressCards instanceof CongressCards) {
@@ -383,6 +402,10 @@ export function createRenderer(
   tutorialPanel.userSettings = userSettings;
   tutorialPanel.uiState = uiState;
 
+  // World War 1936: the lines between regions and sea zones (spec §8.2).
+  const wwScenario = game.worldWarScenario();
+  if (wwScenario !== null) view.setRegions(wwScenario.regionIds);
+
   const layers: Controller[] = [
     new WarshipSelectionController(game, eventBus, transformHandler, view),
     new BuildPreviewController(
@@ -420,6 +443,8 @@ export function createRenderer(
     immunityTimer,
     satelliteBand,
     satelliteTargetPicker,
+    wwTopBand,
+    wwDiplomacyPanel,
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,

@@ -108,6 +108,7 @@ function richLeftGame(): GameView {
     ticks: () => 600,
     numTilesWithFallout: () => 0,
     playerViews: () => [player],
+    worldWarScenario: () => null,
   } as unknown as GameView;
 }
 

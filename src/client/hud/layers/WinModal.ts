@@ -47,6 +47,7 @@ import { PlaySoundEffectEvent } from "../../sound/Sounds";
 import { steamSDK } from "../../SteamSDK";
 import { SendWinnerEvent } from "../../Transport";
 import { GameView } from "../../view";
+import { wwWinView } from "../ww1936/WorldWarModel";
 
 type LegendCeremonyModule = typeof import("../../components/LegendCeremony");
 
@@ -119,6 +120,9 @@ export class WinModal extends LitElement implements Controller {
   /** Domestic mode: why the game was won; empty otherwise. */
   private _reason = "";
 
+  /** World War 1936: the winning camp's MVPs. */
+  private _wwMvp: string[] = [];
+
   private rand = Math.random();
 
   // Override to prevent shadow DOM creation
@@ -147,6 +151,19 @@ export class WinModal extends LitElement implements Controller {
             >
               ${this._reason}
             </p>`
+          : ""}
+        ${this._wwMvp.length > 0
+          ? html`<div
+              data-ww-mvp
+              class="m-0 mb-3 self-center shrink-0 text-sm text-white/90"
+            >
+              <p class="m-0 mb-1 text-xs uppercase tracking-wide text-white/60">
+                ${translateText("ww1936.win.mvp")}
+              </p>
+              <ol class="m-0 list-decimal pl-6">
+                ${this._wwMvp.map((m) => html`<li>${m}</li>`)}
+              </ol>
+            </div>`
           : ""}
         <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
           <game-xp-panel
@@ -763,6 +780,19 @@ export class WinModal extends LitElement implements Controller {
         wu.reason === undefined
           ? ""
           : translateText(`domestic.win_reason.${wu.reason}`);
+      // World War 1936 (spec §8.2): a camp's win, celebrated on its side, with MVPs.
+      if (wu.winner !== undefined && this.game.worldWarScenario() !== null) {
+        this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
+        const v = wwWinView(this.game, wu.winner);
+        this._title = v.title;
+        this.isWin = v.isWin;
+        this._wwMvp = v.mvp;
+        if (v.isWin) gamePortal.happytime();
+        this.playEndOfGameSound();
+        history.replaceState(null, "", `${window.location.pathname}?replay`);
+        this.show();
+        return;
+      }
       if (wu.winner === undefined) {
         // Match cancelled (e.g. a ranked 2v2 that didn't fill or fully
         // spawn): the game ends with no winner. Still vote the result to the

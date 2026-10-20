@@ -27,6 +27,7 @@ import { UserSettings } from "../../UserSettings";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
+import { translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
 
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
@@ -305,6 +306,10 @@ export class EventsDisplay extends LitElement implements Controller {
     event: DisplayMessageUpdate,
   ): Record<string, string | number> {
     let params = event.params ?? {};
+    // World War 1936 (plan decision 13): "…Tag" params name countries.
+    if (event.message.startsWith("events_display.ww1936_")) {
+      params = translateCountryParams(params);
+    }
     if (
       (event.message === "events_display.missile_intercepted" ||
         event.message === "events_display.unit_destroyed" ||

@@ -48,6 +48,7 @@ describe("PlayerStats", () => {
     const game = {
       myPlayer: () => me,
       playerViews: () => [me],
+      worldWarScenario: () => null,
       config: () => ({ maxTroops: () => 100 }),
       ticks: () => 600,
       numLandTiles: () => 100,
@@ -85,6 +86,7 @@ describe("PlayerStats", () => {
     const game = {
       myPlayer: () => players[6],
       playerViews: () => players,
+      worldWarScenario: () => null,
       config: () => ({ maxTroops: () => 100 }),
       ticks: () => 600,
       numLandTiles: () => 100,
@@ -142,6 +144,7 @@ describe("PlayerStats", () => {
     const game = {
       myPlayer: () => me,
       playerViews: () => [me],
+      worldWarScenario: () => null,
       config: () => ({ maxTroops: () => 100 }),
       ticks: () => 600,
       numLandTiles: () => 100,
@@ -201,6 +204,7 @@ describe("PlayerStats clan column", () => {
     const game = {
       myPlayer: () => players[0],
       playerViews: () => players,
+      worldWarScenario: () => null,
       config: () => ({ maxTroops: () => 100 }),
       ticks: () => 600,
       numLandTiles: () => 100,

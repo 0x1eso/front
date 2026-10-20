@@ -27,6 +27,7 @@ function gameWith(players: PlayerView[], me: PlayerView | null): GameView {
   return {
     myPlayer: () => me,
     playerViews: () => players,
+    worldWarScenario: () => null,
     config: () => ({ maxTroops: () => 100 }),
     ticks: () => 600,
     numLandTiles: () => 100,
