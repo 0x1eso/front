@@ -1,8 +1,17 @@
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { AttackExecution } from "@openfront/engine/execution/AttackExecution";
 import { TransportShipExecution } from "@openfront/engine/execution/TransportShipExecution";
-import { byTag, step, stepTo, wwRunner } from "./util";
+import {
+  byTag,
+  HUMAN,
+  stamped,
+  step,
+  stepTo,
+  wwRunner,
+  wwRunnerCapture,
+} from "./util";
 
 describe("only enemies fight (spec §7.2)", () => {
   test("faction members are friends, neutrals are not", async () => {
@@ -114,5 +123,45 @@ describe("only enemies fight (spec §7.2)", () => {
       gbr.outgoingAttacks().filter((a) => a.target() === ita),
     ).toHaveLength(0);
     expect(g.ownerID(g.ref(65, 99))).toBe(ita.smallID());
+  });
+
+  test("a human's refused attack or boat tells them they are not at war", async () => {
+    const { runner, updates } = await wwRunnerCapture({}, [
+      { clientID: HUMAN, country: "GBR" },
+    ]);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [gbr, pol, fra, deu] = (["GBR", "POL", "FRA", "DEU"] as const).map(
+      (t) => byTag(g, t),
+    );
+    const refusals = () =>
+      updates
+        .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+        .filter((m) => m.message === "events_display.ww1936_not_at_war")
+        .map((m) => [m.playerID, m.params]);
+    // A war waiting for the preparation minute is no refusal of this kind.
+    ww.setWar(gbr.smallID(), deu.smallID(), 0);
+    step(runner, 1, [
+      stamped(HUMAN, { type: "attack", targetID: deu.id(), troops: 1000 }),
+    ]);
+    step(runner, 2);
+    expect(refusals()).toEqual([]);
+    stepTo(runner, WW_PREP_TICKS + 1);
+    step(runner, 1, [
+      stamped(HUMAN, { type: "attack", targetID: pol.id(), troops: 1000 }),
+      stamped(HUMAN, { type: "boat", troops: 1000, dst: g.ref(105, 99) }),
+      // A faction friend: refused as an ally is, without this line.
+      stamped(HUMAN, { type: "attack", targetID: fra.id(), troops: 1000 }),
+    ]);
+    step(runner, 2);
+    expect(g.owner(g.ref(105, 99))).toBe(pol);
+    expect(refusals()).toEqual([
+      [gbr.smallID(), { nameTag: "POL" }],
+      [gbr.smallID(), { nameTag: "POL" }],
+    ]);
+    // A nation hears nothing.
+    g.addExecution(new AttackExecution(1000, deu, pol.id(), null));
+    step(runner, 2);
+    expect(refusals()).toHaveLength(2);
   });
 });

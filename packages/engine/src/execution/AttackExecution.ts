@@ -38,6 +38,7 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { barrageSuppresses } from "../warfare/BarrageZone";
+import { reportNotAtWar } from "../ww1936/Diplomacy";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
@@ -153,11 +154,14 @@ export class AttackExecution implements Execution {
 
     // World War 1936 (spec §7.2): no war, no attack, refused before it can
     // leave an embargo behind. A boat whose war ended on the way lands here.
+    const ww = mg.worldWar();
     if (
       this.target.isPlayer() &&
-      mg.worldWar() !== null &&
+      ww !== null &&
       !this._owner.canAttackPlayer(this.target)
     ) {
+      // A landing's own attack: its boat already answered for it.
+      if (this.removeTroops) reportNotAtWar(mg, ww, this._owner, this.target);
       this.refuse(mg);
       return;
     }

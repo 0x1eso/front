@@ -31,6 +31,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { reportNotAtWar } from "../ww1936/Diplomacy";
 import { AttackExecution } from "./AttackExecution";
 
 const malusForRetreat = 25;
@@ -121,6 +122,9 @@ export class TransportShipExecution implements Execution {
     }
 
     if (this.target.isPlayer() && !this.attacker.canAttackPlayer(this.target)) {
+      // World War 1936 (spec §7.2): tell a human why.
+      const ww = mg.worldWar();
+      if (ww !== null) reportNotAtWar(mg, ww, this.attacker, this.target);
       this.active = false;
       return;
     }

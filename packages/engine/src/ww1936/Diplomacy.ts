@@ -1,4 +1,4 @@
-import { MessageType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
 import type { WorldWar } from "./WorldWar";
@@ -83,4 +83,29 @@ export function joinWar(
     },
   );
   return true;
+}
+
+/**
+ * Spec §7.2: a human's attack or boat on a country it is not at war with is
+ * refused, and one line tells them why (as a congress truce does). Nothing
+ * for a faction friend (refused as an ally is) or for a war still waiting
+ * for the preparation minute to end.
+ */
+export function reportNotAtWar(
+  mg: Game,
+  ww: WorldWar,
+  attacker: Player,
+  target: Player,
+): void {
+  if (attacker.type() !== PlayerType.Human || attacker.isFriendly(target)) {
+    return;
+  }
+  if (ww.isAtWar(attacker.smallID(), target.smallID())) return;
+  mg.displayMessage(
+    "events_display.ww1936_not_at_war",
+    MessageType.ATTACK_FAILED,
+    attacker.id(),
+    undefined,
+    { nameTag: ww.tagOf(target.smallID()) },
+  );
 }

@@ -867,6 +867,7 @@
     "world_gov_awaiting": "{name}의 세계 정부 선포 완료 — 의회의 비준을 기다립니다",
     "ww1936_capitulated": "{loser}이(가) {victor}에 항복했습니다",
     "ww1936_capitulated_no_victor": "{loser}이(가) 항복했습니다",
+    "ww1936_not_at_war": "{name}와(과) 전쟁 중이 아님",
     "ww1936_prep_over": "준비가 끝났습니다. 이제 전쟁을 할 수 있습니다",
     "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
     "ww1936_war_joined": "{actor}이(가) {enemy}와의 전쟁에 참전했습니다"
