@@ -4585,6 +4585,13 @@
       "axis": "Axis",
       "comintern": "Comintern"
     },
+    "faction_name": {
+      "balkan_entente": "Balkan Entente",
+      "baltic_entente": "Baltic Entente",
+      "little_entente": "Little Entente",
+      "nordic_defence": "Nordic Defence Union",
+      "pan_american": "Pan-American Defence"
+    },
     "focus": {
       "deu_airborne": "Airborne Troops",
       "deu_anti_comintern": "Anti-Comintern Pact",
@@ -5054,6 +5061,83 @@
       "zhu_de": "Zhu De",
       "zhukov": "Georgy Zhukov"
     },
+    "gov": {
+      "CHN": {
+        "neutral": "Nationalist Government"
+      },
+      "DEU": {
+        "communist": "KPD Government",
+        "democratic": "Weimar Coalition",
+        "fascist": "National Socialist Government",
+        "neutral": "Military Government"
+      },
+      "ESN": {
+        "fascist": "Spanish State",
+        "neutral": "Restored Monarchy"
+      },
+      "ESR": {
+        "communist": "PCE Government",
+        "democratic": "Government of the Republic"
+      },
+      "FIN": {
+        "democratic": "Parliamentary Government"
+      },
+      "FRA": {
+        "communist": "PCF Government",
+        "democratic": "Third Republic Government",
+        "fascist": "Government of the Leagues",
+        "neutral": "French State"
+      },
+      "GBR": {
+        "communist": "CPGB Government",
+        "democratic": "National Government",
+        "fascist": "British Union Government",
+        "neutral": "King's Party Government"
+      },
+      "HUN": {
+        "democratic": "Republican Government",
+        "neutral": "National Unity Government"
+      },
+      "ITA": {
+        "communist": "PCI Government",
+        "democratic": "Liberal Government",
+        "fascist": "Fascist Government",
+        "neutral": "Royal Government"
+      },
+      "JPN": {
+        "communist": "JCP Government",
+        "democratic": "Party Cabinet",
+        "fascist": "Imperial Rule Assistance Association",
+        "neutral": "Cabinet Government"
+      },
+      "POL": {
+        "democratic": "People's Party Government",
+        "neutral": "Sanation Government"
+      },
+      "ROU": {
+        "democratic": "National Peasants' Government",
+        "neutral": "National Liberal Government"
+      },
+      "SUN": {
+        "communist": "Council of People's Commissars",
+        "democratic": "Provisional Government",
+        "fascist": "Russian National Government",
+        "neutral": "Russian State"
+      },
+      "TUR": {
+        "neutral": "Republican People's Party Government"
+      },
+      "USA": {
+        "communist": "CPUSA Government",
+        "democratic": "Federal Administration",
+        "fascist": "Silver Legion Government",
+        "neutral": "Emergency Government"
+      },
+      "YUG": {
+        "democratic": "Peasant-Democratic Coalition",
+        "neutral": "Yugoslav Radical Union Government"
+      }
+    },
     "group": {
       "africa_oceania": "Africa and Oceania",
       "americas": "Americas",
@@ -5224,7 +5308,7 @@
       "DEU": "Adolf Hitler",
       "DNK": "Thorvald Stauning",
       "DOM": "Rafael Trujillo",
-      "DZG": "Arthur Greiser",
+      "DZG": "President of the Senate",
       "ECU": "Federico Páez",
       "ESN": "Francisco Franco",
       "ESR": "Manuel Azaña",
@@ -5363,10 +5447,15 @@
       "title": "Diplomacy"
     },
     "person": {
+      "arg_alvear": "Marcelo T. de Alvear",
+      "aut_renner": "Karl Renner",
+      "bra_prestes": "Luís Carlos Prestes",
+      "bra_salgado": "Plínio Salgado",
       "deu_beck": "Ludwig Beck",
       "deu_blomberg": "Werner von Blomberg",
       "deu_brauchitsch": "Walther von Brauchitsch",
       "deu_fritsch": "Werner von Fritsch",
+      "deu_goerdeler": "Carl Goerdeler",
       "deu_guderian": "Heinz Guderian",
       "deu_halder": "Franz Halder",
       "deu_lutz": "Oswald Lutz",
@@ -5374,6 +5463,10 @@
       "deu_schacht": "Hjalmar Schacht",
       "deu_todt": "Fritz Todt",
       "deu_zeitzler": "Kurt Zeitzler",
+      "esn_juan_de_borbon": "Juan de Borbón",
+      "esr_diaz": "José Díaz",
+      "fra_blum": "Léon Blum",
+      "fra_daladier": "Édouard Daladier",
       "gbr_attlee": "Clement Attlee",
       "gbr_beaverbrook": "Lord Beaverbrook",
       "gbr_bevin": "Ernest Bevin",
@@ -5384,14 +5477,23 @@
       "gbr_dill": "John Dill",
       "gbr_duncan": "Andrew Duncan",
       "gbr_eden": "Anthony Eden",
+      "gbr_edward_viii": "Edward VIII",
       "gbr_gort": "Lord Gort",
       "gbr_halifax": "Lord Halifax",
       "gbr_hobart": "Percy Hobart",
       "gbr_inskip": "Thomas Inskip",
       "gbr_ironside": "Edmund Ironside",
       "gbr_liddell_hart": "Basil Liddell Hart",
+      "gbr_mosley": "Oswald Mosley",
+      "gbr_pollitt": "Harry Pollitt",
       "gbr_tizard": "Henry Tizard",
       "gbr_watson_watt": "Robert Watson-Watt",
+      "grc_sofoulis": "Themistoklis Sofoulis",
+      "hun_karolyi": "Mihály Károlyi",
+      "irl_oduffy": "Eoin O'Duffy",
+      "pol_witos": "Wincenty Witos",
+      "prt_rolao_preto": "Francisco Rolão Preto",
+      "rou_maniu": "Iuliu Maniu",
       "sun_antonov": "Aleksei Antonov",
       "sun_bukharin": "Nikolai Bukharin",
       "sun_isserson": "Georgii Isserson",
@@ -5412,7 +5514,13 @@
       "sun_voroshilov": "Kliment Voroshilov",
       "sun_voznesensky": "Nikolai Voznesensky",
       "sun_yegorov": "Alexander Yegorov",
-      "sun_zhdanov": "Andrei Zhdanov"
+      "sun_zhdanov": "Andrei Zhdanov",
+      "tha_pridi": "Pridi Banomyong",
+      "tur_inonu": "İsmet İnönü",
+      "usa_truman": "Harry S. Truman",
+      "yug_macek": "Vladko Maček",
+      "yug_peter_ii": "Peter II",
+      "zaf_smuts": "Jan Smuts"
     },
     "region": {
       "original_owner": "1936: {country}",
@@ -5444,24 +5552,33 @@
       "mobile": "Mobile warfare"
     },
     "spirit": {
+      "chn_warlords": "Warlord Rivalries",
       "deu_combined_doctrine": "Combined Arms Doctrine",
       "deu_conscription_back": "Conscription Restored",
       "deu_fyp_economy": "Four Year Plan Economy",
       "deu_generals_doubt": "The Generals' Doubts",
       "deu_highway_works": "Motorway Works",
+      "deu_rearmament": "Rearmament Declared",
       "deu_replacement_system": "Replacement System",
+      "deu_rhineland_dmz": "Demilitarised Rhineland",
       "deu_standard_tools": "Standardized Tooling",
       "deu_tech_drive": "Technical Drive",
       "deu_war_academy": "War Academy",
       "deu_wartime_output": "Wartime Output",
+      "esp_civil_war_nation": "A Nation Torn by War",
+      "fra_defensive_mind": "Defence First",
+      "fra_divided": "Divided Politics",
       "fra_divided_half": "Politics Still Divided",
       "fra_forty_hours": "The Forty-Hour Week",
+      "fra_hollow_years": "Thin Year Groups",
       "gbr_desert_warfare": "Desert Warfare",
+      "gbr_empire": "The Sun Never Sets",
       "gbr_empire_mines": "Mines of the Empire",
       "gbr_empire_trade": "Imperial Trade",
       "gbr_guarantee_pledge": "The Guarantee Pledge",
       "gbr_kings_party": "The King's Party",
       "gbr_no_more_concessions": "No More Concessions",
+      "gbr_peace_mood": "Longing for Peace",
       "gbr_peace_policy": "Policy of Appeasement",
       "gbr_planned_economy": "Planned Economy",
       "gbr_rearm_programme": "Rearmament Programme",
@@ -5472,6 +5589,7 @@
       "gbr_united_empire": "A United Empire",
       "gbr_university_drive": "Universities at War",
       "gbr_war_coalition": "Wartime Coalition",
+      "gen_armed_neutrality": "Armed Neutrality",
       "gen_civil_strife": "Scars of Civil Strife",
       "gen_democratic_movement": "Democratic Movement",
       "gen_efficient_government": "Efficient Government",
@@ -5488,7 +5606,11 @@
       "gen_staff_training": "Staff Training",
       "gen_strike_losses": "Strike Losses",
       "gen_war_bonds_spirit": "War Bonds",
+      "ita_abyssinia": "Abyssinian Campaign",
       "ita_axis_bond": "Rome-Berlin Axis",
+      "ita_sanctions": "League Sanctions",
+      "jpn_service_rivalry": "Army–Navy Feud",
+      "pol_between": "Between Two Neighbours",
       "sun_collective_rule": "Collective Rule",
       "sun_commander_corps": "Rebuilt Command",
       "sun_consumer_line": "Goods for the People",
@@ -5496,6 +5618,7 @@
       "sun_defend_motherland": "Defend the Motherland",
       "sun_design_bureau_system": "Design Bureaus",
       "sun_factory_relocation": "Factories on the Move",
+      "sun_five_year_plans": "Five-Year Plans",
       "sun_labour_heroes": "Heroes of Labor",
       "sun_power_grid": "Power Grid",
       "sun_purge_1": "Purge: First Stage",
@@ -5507,28 +5630,39 @@
       "sun_third_plan": "The Third Plan",
       "sun_total_mobilisation": "Every Class Called Up",
       "sun_war_lessons": "Lessons Learned",
+      "usa_depression": "Shadow of the Depression",
       "usa_depression_eased": "Depression Easing",
+      "usa_isolation": "Isolationism",
       "usa_isolation_cracked": "Cracks in Isolation"
     },
     "spirit_desc": {
+      "chn_warlords": "Provincial generals obey Nanjing only when it suits them.",
       "deu_combined_doctrine": "Tanks and infantry, guns and aircraft move as one.",
       "deu_conscription_back": "The conscription law of 1935 brings a fresh age class into the ranks every year.",
       "deu_fyp_economy": "Raw-material self-sufficiency and arms output come before consumer goods.",
       "deu_generals_doubt": "The army leadership does not trust the regime's plans for war.",
       "deu_highway_works": "Building the motorways has trained construction crews and machinery.",
+      "deu_rearmament": "Since conscription returned in March 1935, arms plants come before consumer goods.",
       "deu_replacement_system": "Regional replacement battalions quickly make good the losses at the front.",
+      "deu_rhineland_dmz": "The Versailles and Locarno treaties bar German troops and fortifications from the Rhineland.",
       "deu_standard_tools": "Common standards let factories share their work.",
       "deu_tech_drive": "University and industry engineers work on state research programmes.",
       "deu_war_academy": "The War Academy, reopened in 1935, turns out trained staff officers.",
       "deu_wartime_output": "The factories run day and night while civilian life grows leaner.",
+      "esp_civil_war_nation": "Spain has split in two, and every factory and village has had to choose a side.",
+      "fra_defensive_mind": "The general staff trusts the Maginot Line and plans for a long defensive war.",
+      "fra_divided": "Short-lived cabinets and street clashes between left and right shake every government.",
       "fra_divided_half": "Daladier's centrist cabinet has eased, but not ended, the quarrels of left and right.",
       "fra_forty_hours": "Shorter hours and paid holidays have calmed the strikes but slowed the factories.",
+      "fra_hollow_years": "The thin age groups born during the Great War are now reaching call-up age.",
       "gbr_desert_warfare": "Desert-trained units move and fight through heat and sand.",
+      "gbr_empire": "Dominions and colonies around the globe add manpower and political weight.",
       "gbr_empire_mines": "Mines across the Empire feed raw materials to British factories.",
       "gbr_empire_trade": "Low tariffs within the Empire bring in more goods for every trade deal.",
       "gbr_guarantee_pledge": "Britain has publicly promised to defend small nations against aggression.",
       "gbr_kings_party": "The King's supporters lead the government, but the constitutional crisis has divided the country.",
       "gbr_no_more_concessions": "Since Prague the public agrees that Germany must be stood up to.",
+      "gbr_peace_mood": "Memories of the last war leave voters wary of rearmament and conscription.",
       "gbr_peace_policy": "Careful diplomacy to avoid war reassures the public but also dulls its vigilance.",
       "gbr_planned_economy": "The state plans investment and output, driving factory building while protecting living standards.",
       "gbr_rearm_programme": "A rearmament budget spread over several years speeds up the building of military factories.",
@@ -5539,6 +5673,7 @@
       "gbr_united_empire": "Men from across the Empire join the forces under the same flag as Britain.",
       "gbr_university_drive": "University laboratories work for the armed services, speeding up research.",
       "gbr_war_coalition": "All parties sit in one cabinet and share the responsibility for the war.",
+      "gen_armed_neutrality": "Neutrality backed by a ready army makes any would-be attacker hesitate.",
       "gen_civil_strife": "The government changed after civil strife, but wrecked factories and a divided people remain.",
       "gen_democratic_movement": "Civic leagues that stand for democracy keep winning new supporters.",
       "gen_efficient_government": "A leaner administration gets more done with the same effort.",
@@ -5555,7 +5690,11 @@
       "gen_staff_training": "Staff college graduates prepare operations sooner and pass their experience to the army.",
       "gen_strike_losses": "Factories that stood idle have not yet returned to full speed.",
       "gen_war_bonds_spirit": "Citizens who bought bonds see the war as their own, though they also want more consumer goods.",
+      "ita_abyssinia": "The war in East Africa, begun in October 1935, rallies the nation but swallows its goods.",
       "ita_axis_bond": "Rome and Berlin share plans, scientists and an open hostility to the League.",
+      "ita_sanctions": "Since November 1935 the League of Nations has restricted trade with Italy.",
+      "jpn_service_rivalry": "The army and the navy fight over budgets and over the course of national policy.",
+      "pol_between": "Wedged between Germany and the Soviet Union, Poland keeps its army ready on both borders.",
       "sun_collective_rule": "Posts are shared out by agreement, which makes it easier to bring in capable people.",
       "sun_commander_corps": "Returning and recently promoted commanders are gaining experience fast.",
       "sun_consumer_line": "More of the plan goes to shoes, cloth and food than to blast furnaces.",
@@ -5563,6 +5702,7 @@
       "sun_defend_motherland": "The whole nation has risen against the invader, and surrender is unthinkable.",
       "sun_design_bureau_system": "Competing design bureaus turn out new weapons and machines one after another.",
       "sun_factory_relocation": "Construction crews rebuild evacuated plants on open ground in the east.",
+      "sun_five_year_plans": "The second plan pours resources into heavy industry and freshly built plants.",
       "sun_labour_heroes": "Shock workers and record-breakers set the pace in every factory.",
       "sun_power_grid": "Hydroelectric power from the Dnieper keeps the southern factories running.",
       "sun_purge_1": "Arrests tighten the center's grip on the party, and the officer corps begins to feel the strain.",
@@ -5574,7 +5714,9 @@
       "sun_third_plan": "Defense plants come first in every allocation of steel, labor and money.",
       "sun_total_mobilisation": "Every age class able to bear arms has been called to the colors.",
       "sun_war_lessons": "Training now follows what the fighting in Finland revealed.",
+      "usa_depression": "Unemployment stays high, and recovery leans on federal spending.",
       "usa_depression_eased": "Renewed federal spending has softened the downturn, though millions are still out of work.",
+      "usa_isolation": "The 1935 Neutrality Act and public opinion keep the country out of foreign quarrels.",
       "usa_isolation_cracked": "Most Americans still want no part in the war, but fewer believe the oceans will keep it away."
     },
     "stance": {
@@ -5666,7 +5808,13 @@
       "deu_four_year_plenipotentiary": "Four Year Plan Plenipotentiary",
       "deu_okw_chief": "Chief of the OKW",
       "deu_propaganda_chief": "Head of Propaganda",
-      "jpn_prime_minister": "Prime Minister of Japan"
+      "dzg_senate_president": "President of the Senate",
+      "fra_chief_of_state": "Chief of State",
+      "jpn_prime_minister": "Prime Minister",
+      "rou_conducator": "Conducător",
+      "sun_national_head": "Head of the National Government",
+      "sun_provisional_head": "Head of the Provisional Government",
+      "sun_supreme_ruler": "Supreme Ruler"
     },
     "tpl": {
       "alpini": "Alpini Division",

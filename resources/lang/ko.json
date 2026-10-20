@@ -4278,6 +4278,13 @@
       "axis": "추축국",
       "comintern": "코민테른"
     },
+    "faction_name": {
+      "balkan_entente": "발칸 협상",
+      "baltic_entente": "발트 협상",
+      "little_entente": "소협상",
+      "nordic_defence": "북유럽 방위 동맹",
+      "pan_american": "범아메리카 방위"
+    },
     "focus": {
       "deu_airborne": "공수 부대",
       "deu_anti_comintern": "반코민테른 협정",
@@ -4747,6 +4754,83 @@
       "zhu_de": "주더",
       "zhukov": "게오르기 주코프"
     },
+    "gov": {
+      "CHN": {
+        "neutral": "국민정부"
+      },
+      "DEU": {
+        "communist": "독일 공산당 정부",
+        "democratic": "바이마르 연정",
+        "fascist": "나치 정권",
+        "neutral": "군부 정부"
+      },
+      "ESN": {
+        "fascist": "스페인국",
+        "neutral": "왕정복고 정부"
+      },
+      "ESR": {
+        "communist": "스페인 공산당 정부",
+        "democratic": "공화국 정부"
+      },
+      "FIN": {
+        "democratic": "의회 정부"
+      },
+      "FRA": {
+        "communist": "프랑스 공산당 정부",
+        "democratic": "제3공화국 정부",
+        "fascist": "우익 연맹 정부",
+        "neutral": "프랑스국"
+      },
+      "GBR": {
+        "communist": "영국 공산당 정부",
+        "democratic": "거국 내각",
+        "fascist": "영국 파시스트 연합 정부",
+        "neutral": "국왕파 정부"
+      },
+      "HUN": {
+        "democratic": "공화국 정부",
+        "neutral": "국민통일당 정부"
+      },
+      "ITA": {
+        "communist": "이탈리아 공산당 정부",
+        "democratic": "자유주의 정부",
+        "fascist": "파시스트 정권",
+        "neutral": "국왕 정부"
+      },
+      "JPN": {
+        "communist": "일본 공산당 정부",
+        "democratic": "정당 내각",
+        "fascist": "대정익찬회",
+        "neutral": "내각 정부"
+      },
+      "POL": {
+        "democratic": "인민당 정부",
+        "neutral": "사나치아 정권"
+      },
+      "ROU": {
+        "democratic": "국민농민당 정부",
+        "neutral": "국민자유당 정부"
+      },
+      "SUN": {
+        "communist": "인민위원회의",
+        "democratic": "임시 정부",
+        "fascist": "러시아 민족 정부",
+        "neutral": "러시아국"
+      },
+      "TUR": {
+        "neutral": "공화인민당 정부"
+      },
+      "USA": {
+        "communist": "미국 공산당 정부",
+        "democratic": "연방 행정부",
+        "fascist": "은셔츠단 정부",
+        "neutral": "비상 정부"
+      },
+      "YUG": {
+        "democratic": "농민민주연합",
+        "neutral": "유고슬라비아 급진 연합 정부"
+      }
+    },
     "group": {
       "africa_oceania": "아프리카·오세아니아",
       "americas": "아메리카",
@@ -4917,7 +5001,7 @@
       "DEU": "아돌프 히틀러",
       "DNK": "토르발 스타우닝",
       "DOM": "라파엘 트루히요",
-      "DZG": "아르투어 그라이저",
+      "DZG": "상원 의장",
       "ECU": "페데리코 파에스",
       "ESN": "프란시스코 프랑코",
       "ESR": "마누엘 아사냐",
@@ -5056,10 +5140,15 @@
       "title": "외교"
     },
     "person": {
+      "arg_alvear": "마르셀로 T. 데 알베아르",
+      "aut_renner": "카를 레너",
+      "bra_prestes": "루이스 카를루스 프레스치스",
+      "bra_salgado": "플리니우 사우가두",
       "deu_beck": "루트비히 베크",
       "deu_blomberg": "베르너 폰 블롬베르크",
       "deu_brauchitsch": "발터 폰 브라우히치",
       "deu_fritsch": "베르너 폰 프리치",
+      "deu_goerdeler": "카를 괴르델러",
       "deu_guderian": "하인츠 구데리안",
       "deu_halder": "프란츠 할더",
       "deu_lutz": "오스발트 루츠",
@@ -5067,6 +5156,10 @@
       "deu_schacht": "얄마르 샤흐트",
       "deu_todt": "프리츠 토트",
       "deu_zeitzler": "쿠르트 차이츨러",
+      "esn_juan_de_borbon": "후안 데 보르본",
+      "esr_diaz": "호세 디아스",
+      "fra_blum": "레옹 블룸",
+      "fra_daladier": "에두아르 달라디에",
       "gbr_attlee": "클레멘트 애틀리",
       "gbr_beaverbrook": "비버브룩 경",
       "gbr_bevin": "어니스트 베빈",
@@ -5077,14 +5170,23 @@
       "gbr_dill": "존 딜",
       "gbr_duncan": "앤드루 덩컨",
       "gbr_eden": "앤서니 이든",
+      "gbr_edward_viii": "에드워드 8세",
       "gbr_gort": "고트 경",
       "gbr_halifax": "핼리팩스 경",
       "gbr_hobart": "퍼시 호바트",
       "gbr_inskip": "토머스 인스킵",
       "gbr_ironside": "에드먼드 아이언사이드",
       "gbr_liddell_hart": "바실 리델 하트",
+      "gbr_mosley": "오즈월드 모즐리",
+      "gbr_pollitt": "해리 폴릿",
       "gbr_tizard": "헨리 티저드",
       "gbr_watson_watt": "로버트 왓슨와트",
+      "grc_sofoulis": "테미스토클리스 소풀리스",
+      "hun_karolyi": "카로이 미하이",
+      "irl_oduffy": "오언 오더피",
+      "pol_witos": "빈첸티 비토스",
+      "prt_rolao_preto": "프란시스쿠 롤랑 프레투",
+      "rou_maniu": "율리우 마니우",
       "sun_antonov": "알렉세이 안토노프",
       "sun_bukharin": "니콜라이 부하린",
       "sun_isserson": "게오르기 이세르손",
@@ -5105,7 +5207,13 @@
       "sun_voroshilov": "클리멘트 보로실로프",
       "sun_voznesensky": "니콜라이 보즈네센스키",
       "sun_yegorov": "알렉산드르 예고로프",
-      "sun_zhdanov": "안드레이 즈다노프"
+      "sun_zhdanov": "안드레이 즈다노프",
+      "tha_pridi": "쁘리디 파놈용",
+      "tur_inonu": "이스메트 이뇌뉘",
+      "usa_truman": "해리 S. 트루먼",
+      "yug_macek": "블라드코 마체크",
+      "yug_peter_ii": "페타르 2세",
+      "zaf_smuts": "얀 스뮈츠"
     },
     "region": {
       "original_owner": "1936년: {country}",
@@ -5137,24 +5245,33 @@
       "mobile": "기동전"
     },
     "spirit": {
+      "chn_warlords": "군벌 분열",
       "deu_combined_doctrine": "제병 협동 교리",
       "deu_conscription_back": "징병제 부활",
       "deu_fyp_economy": "4개년 계획 경제",
       "deu_generals_doubt": "장군들의 의심",
       "deu_highway_works": "고속도로 공사",
+      "deu_rearmament": "재무장 선언",
       "deu_replacement_system": "보충 체계",
+      "deu_rhineland_dmz": "비무장 라인란트",
       "deu_standard_tools": "표준 공작 기계",
       "deu_tech_drive": "기술 동원 체제",
       "deu_war_academy": "전쟁 대학",
       "deu_wartime_output": "전시 생산",
+      "esp_civil_war_nation": "내전의 나라",
+      "fra_defensive_mind": "방어 우선 사고",
+      "fra_divided": "갈라진 정치",
       "fra_divided_half": "가시지 않은 분열",
       "fra_forty_hours": "주 40시간 노동",
+      "fra_hollow_years": "인구 공백",
       "gbr_desert_warfare": "사막전 숙련",
+      "gbr_empire": "해가 지지 않는 제국",
       "gbr_empire_mines": "제국 광산",
       "gbr_empire_trade": "제국 특혜 무역",
       "gbr_guarantee_pledge": "보장의 약속",
       "gbr_kings_party": "왕의 편",
       "gbr_no_more_concessions": "더 이상 양보는 없다",
+      "gbr_peace_mood": "평화를 바라는 여론",
       "gbr_peace_policy": "유화 정책",
       "gbr_planned_economy": "계획 경제",
       "gbr_rearm_programme": "재무장 계획",
@@ -5165,6 +5282,7 @@
       "gbr_united_empire": "하나 된 제국",
       "gbr_university_drive": "대학 동원",
       "gbr_war_coalition": "전시 연립",
+      "gen_armed_neutrality": "무장 중립",
       "gen_civil_strife": "내란의 상처",
       "gen_democratic_movement": "민주 운동",
       "gen_efficient_government": "효율적 정부",
@@ -5181,7 +5299,11 @@
       "gen_staff_training": "참모 교육",
       "gen_strike_losses": "파업의 여파",
       "gen_war_bonds_spirit": "전쟁 공채",
+      "ita_abyssinia": "에티오피아 원정",
       "ita_axis_bond": "로마-베를린 추축",
+      "ita_sanctions": "국제연맹 제재",
+      "jpn_service_rivalry": "육해군의 반목",
+      "pol_between": "두 이웃 사이",
       "sun_collective_rule": "집단 지도 체제",
       "sun_commander_corps": "다시 선 지휘부",
       "sun_consumer_line": "인민을 위한 물자",
@@ -5189,6 +5311,7 @@
       "sun_defend_motherland": "조국을 지켜라",
       "sun_design_bureau_system": "설계국",
       "sun_factory_relocation": "옮겨 가는 공장",
+      "sun_five_year_plans": "5개년 계획",
       "sun_labour_heroes": "노동 영웅",
       "sun_power_grid": "전력망",
       "sun_purge_1": "숙청 1단계",
@@ -5200,28 +5323,39 @@
       "sun_third_plan": "제3차 계획",
       "sun_total_mobilisation": "전 연령 소집",
       "sun_war_lessons": "전훈 반영",
+      "usa_depression": "대공황의 그늘",
       "usa_depression_eased": "누그러진 불황",
+      "usa_isolation": "고립주의",
       "usa_isolation_cracked": "고립주의의 균열"
     },
     "spirit_desc": {
+      "chn_warlords": "지방의 장군들은 자기에게 이로울 때만 난징 정부를 따른다.",
       "deu_combined_doctrine": "전차와 보병, 포병과 항공기가 한 몸처럼 움직인다.",
       "deu_conscription_back": "1935년 되살린 징병제로 해마다 새 연령대가 입대한다.",
       "deu_fyp_economy": "원료 자급과 군수 생산이 소비재보다 앞선다.",
       "deu_generals_doubt": "군 지휘부가 정권의 전쟁 계획을 믿지 않는다.",
       "deu_highway_works": "고속도로 공사가 건설 인력과 장비를 길러 냈다.",
+      "deu_rearmament": "1935년 3월 징병제를 되살린 뒤로 군수 공장이 생활 물자보다 앞선다.",
       "deu_replacement_system": "지역 보충 대대가 전선의 손실을 빠르게 메운다.",
+      "deu_rhineland_dmz": "베르사유 조약과 로카르노 조약에 따라 라인란트에는 독일군도 요새도 둘 수 없다.",
       "deu_standard_tools": "통일된 규격 덕분에 공장끼리 일감을 나눠 맡는다.",
       "deu_tech_drive": "대학과 기업의 기술자가 국가 연구 과제에 매달린다.",
       "deu_war_academy": "1935년 다시 문을 연 전쟁 대학이 참모 장교를 길러 낸다.",
       "deu_wartime_output": "공장은 밤낮없이 돌아가지만 민간의 살림은 더 쪼들린다.",
+      "esp_civil_war_nation": "스페인은 둘로 갈라졌고 공장과 마을마다 편을 골라야 했다.",
+      "fra_defensive_mind": "참모본부는 마지노선을 믿고 긴 방어전을 준비한다.",
+      "fra_divided": "단명하는 내각과 좌우의 거리 충돌이 어느 정부든 흔든다.",
       "fra_divided_half": "달라디에의 중도 내각이 좌우의 다툼을 누그러뜨렸지만 끝내지는 못했다.",
       "fra_forty_hours": "짧아진 노동 시간과 유급 휴가가 파업을 가라앉혔지만 공장은 더뎌졌다.",
+      "fra_hollow_years": "대전 중에 태어난 적은 세대가 이제 징집 나이에 이른다.",
       "gbr_desert_warfare": "사막에서 훈련한 부대가 열기와 모래 속에서도 움직이고 싸운다.",
+      "gbr_empire": "세계 곳곳의 자치령과 식민지가 인력과 정치적 무게를 더한다.",
       "gbr_empire_mines": "제국 곳곳의 광산이 본국 공장에 원료를 보낸다.",
       "gbr_empire_trade": "제국 안의 낮은 관세 덕분에 거래마다 더 많은 물자가 들어온다.",
       "gbr_guarantee_pledge": "영국은 침략받는 작은 나라를 지키겠다고 세상에 약속했다.",
       "gbr_kings_party": "국왕을 지지하는 사람들이 정부를 이끌지만, 헌정 위기로 나라가 둘로 갈라졌다.",
       "gbr_no_more_concessions": "프라하 이후 국민은 독일에 맞서야 한다는 데 뜻을 모았다.",
+      "gbr_peace_mood": "지난 대전의 기억 때문에 유권자들은 재무장과 징병을 꺼린다.",
       "gbr_peace_policy": "전쟁을 피하려는 신중한 외교가 국민을 안심시키지만 경계심도 무디게 한다.",
       "gbr_planned_economy": "국가가 투자와 생산을 계획해 공장을 늘리면서 생활 수준도 지킨다.",
       "gbr_rearm_programme": "여러 해에 걸친 재무장 예산이 군수 공장 건설을 앞당긴다.",
@@ -5232,6 +5366,7 @@
       "gbr_united_empire": "제국 곳곳의 사람들이 본국과 같은 깃발 아래 군에 들어온다.",
       "gbr_university_drive": "대학 연구실이 군의 과제를 맡으면서 연구가 빨라진다.",
       "gbr_war_coalition": "모든 정당이 한 내각에 앉아 전쟁의 책임을 함께 진다.",
+      "gen_armed_neutrality": "준비된 군대가 받치는 중립 앞에서 침략자는 머뭇거린다.",
       "gen_civil_strife": "내란 끝에 정권은 바뀌었지만, 부서진 공장과 갈라진 민심이 남았다.",
       "gen_democratic_movement": "민주주의를 지지하는 시민 단체들이 꾸준히 지지자를 늘린다.",
       "gen_efficient_government": "간소해진 행정 덕분에 정부가 같은 힘으로 더 많은 일을 해낸다.",
@@ -5248,7 +5383,11 @@
       "gen_staff_training": "참모 대학 출신 장교들이 작전 준비를 앞당기고 군에 경험을 쌓아 준다.",
       "gen_strike_losses": "멈췄던 공장들이 아직 제 속도를 되찾지 못했다.",
       "gen_war_bonds_spirit": "공채를 산 국민은 전쟁을 자기 일로 여기지만, 그만큼 생필품 수요도 늘었다.",
+      "ita_abyssinia": "1935년 10월에 시작한 동아프리카 전쟁이 여론을 모으지만 물자를 삼킨다.",
       "ita_axis_bond": "로마와 베를린이 계획과 과학자를 나누고, 국제연맹에 대한 적대도 함께한다.",
+      "ita_sanctions": "1935년 11월부터 국제연맹이 이탈리아와의 교역을 제한하고 있다.",
+      "jpn_service_rivalry": "육군과 해군이 예산과 국책의 방향을 두고 다툰다.",
+      "pol_between": "독일과 소련 사이에 낀 폴란드는 두 국경 모두에 군을 대기시킨다.",
       "sun_collective_rule": "자리를 합의로 나누므로 유능한 인물을 들이기가 쉽다.",
       "sun_commander_corps": "복귀한 지휘관과 새로 진급한 지휘관들이 빠르게 경험을 쌓는다.",
       "sun_consumer_line": "계획의 더 많은 몫이 용광로보다 신발과 옷감, 식량에 간다.",
@@ -5256,6 +5395,7 @@
       "sun_defend_motherland": "온 국민이 침략자에 맞서 일어섰고, 항복은 생각할 수도 없다.",
       "sun_design_bureau_system": "서로 경쟁하는 설계국들이 새 무기와 기계를 잇달아 내놓는다.",
       "sun_factory_relocation": "건설단이 소개된 공장들을 동쪽의 빈 땅에 다시 세운다.",
+      "sun_five_year_plans": "제2차 계획이 중공업과 새 공장에 자원을 쏟아붓는다.",
       "sun_labour_heroes": "돌격 노동자와 기록을 깬 노동자들이 공장마다 속도를 이끈다.",
       "sun_power_grid": "드네프르의 수력 전기가 남부 공장들을 돌린다.",
       "sun_purge_1": "체포가 이어지며 당에 대한 중앙의 장악력이 커지고, 장교단도 흔들리기 시작한다.",
@@ -5267,7 +5407,9 @@
       "sun_third_plan": "강철과 노동력, 자금을 나눌 때 언제나 국방 공장이 먼저다.",
       "sun_total_mobilisation": "무기를 들 수 있는 모든 연령이 소집되었다.",
       "sun_war_lessons": "훈련이 핀란드 전투에서 드러난 교훈을 따른다.",
+      "usa_depression": "실업률은 여전히 높고 회복은 연방 지출에 기대고 있다.",
       "usa_depression_eased": "연방 지출이 다시 늘어 불황이 누그러졌지만, 수백만 명이 아직 일자리를 찾지 못했다.",
+      "usa_isolation": "1935년 중립법과 여론이 나라를 바깥의 분쟁에서 떼어 놓는다.",
       "usa_isolation_cracked": "미국인 대부분은 여전히 전쟁에 끼고 싶지 않지만, 바다가 전쟁을 막아 주리라 믿는 사람은 줄었다."
     },
     "stance": {
@@ -5359,7 +5501,13 @@
       "deu_four_year_plenipotentiary": "4개년 계획 전권위원",
       "deu_okw_chief": "국방군 최고사령부 총장",
       "deu_propaganda_chief": "선전 책임자",
-      "jpn_prime_minister": "내각 총리대신"
+      "dzg_senate_president": "상원 의장",
+      "fra_chief_of_state": "국가 원수",
+      "jpn_prime_minister": "내각 총리대신",
+      "rou_conducator": "국가 지도자",
+      "sun_national_head": "민족 정부 수반",
+      "sun_provisional_head": "임시 정부 수반",
+      "sun_supreme_ruler": "최고 통치자"
     },
     "tpl": {
       "alpini": "알피니 사단",
