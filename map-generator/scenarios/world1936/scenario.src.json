@@ -12546,8 +12546,7 @@
       "sr": 76,
       "harbor": 40050,
       "navalBase": 6,
-      "coastalFort": 1,
-      "landmarks": ["lm_liberty", "lm_empire_state"]
+      "coastalFort": 1
     },
     {
       "id": 521,
@@ -14857,7 +14856,8 @@
       "fort": 0,
       "sr": 76,
       "harbor": 40069,
-      "navalBase": 6
+      "navalBase": 6,
+      "landmarks": ["lm_liberty", "lm_empire_state"]
     },
     {
       "id": 617,

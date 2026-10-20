@@ -18210,8 +18210,7 @@
       "coastalFort": 1,
       "coal": 0,
       "uranium": 0,
-      "hydro": 0,
-      "landmarks": ["lm_liberty", "lm_empire_state"]
+      "hydro": 0
     },
     {
       "id": 521,
@@ -21578,7 +21577,8 @@
       "coastalFort": 0,
       "coal": 0,
       "uranium": 0,
-      "hydro": 0
+      "hydro": 0,
+      "landmarks": ["lm_liberty", "lm_empire_state"]
     },
     {
       "id": 617,

@@ -1301,8 +1301,10 @@ describe("the world1936 coal, uranium, hydro, landmarks and dams (P6 spec §16, 
       lm_kremlin: "SUN:Moskva",
       lm_brandenburg: "DEU:Berlin",
       lm_colosseum: "ITA:Roma",
-      lm_liberty: "USA:New York",
-      lm_empire_state: "USA:New York",
+      // New York City's region: Manhattan's tiles and the city's points
+      // lie in the region the generator named New Jersey.
+      lm_liberty: "USA:New Jersey",
+      lm_empire_state: "USA:New Jersey",
       lm_golden_gate: "USA:California",
       lm_hagia_sophia: "TUR:Istanbul",
       lm_forbidden_city: "CHN:Beijing",
@@ -1342,6 +1344,10 @@ describe("the world1936 coal, uranium, hydro, landmarks and dams (P6 spec §16, 
         downstream.map((d) => named(d).id),
       );
     }
+    // Manhattan's tile is in that region, which holds New York City's points.
+    const nyc = named("USA:New Jersey");
+    expect(regionAt(-73.99, 40.75)!.id).toBe(nyc.id);
+    expect(nyc.vp).toBeGreaterThan(named("USA:New York").vp);
     // Spec §16.4: the Hoover Dam by the Colorado, Vemork at Rjukan.
     expect(regionAt(-114.83, 35.98)!.id).toBe(named("USA:Nevada").id);
     expect(regionAt(8.52, 59.87)!.id).toBe(named("NOR:Telemark").id);

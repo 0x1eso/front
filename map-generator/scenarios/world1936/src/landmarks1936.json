@@ -27,13 +27,13 @@
     },
     {
       "id": "lm_liberty",
-      "region": "USA:New York",
-      "note": "Statue of Liberty: the region named New York (spec §16.3); Manhattan's tile and New York City's points lie in the New Jersey region on this map"
+      "region": "USA:New Jersey",
+      "note": "Statue of Liberty, New York (spec §16.3): the region that holds Manhattan's tiles and New York City's points, named New Jersey on this map (its name is for the P6 Phase B name review)"
     },
     {
       "id": "lm_empire_state",
-      "region": "USA:New York",
-      "note": "Empire State Building: the region named New York, as the Statue of Liberty"
+      "region": "USA:New Jersey",
+      "note": "Empire State Building, Manhattan: the region of New York City, as the Statue of Liberty"
     },
     {
       "id": "lm_golden_gate",
