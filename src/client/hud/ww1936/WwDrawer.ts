@@ -214,7 +214,7 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
             role="tab"
             data-ww-tab=${t}
             aria-selected=${String(t === current)}
-            class="h-9 shrink-0 rounded-md px-2 text-xs font-semibold ${t ===
+            class="h-9 min-w-9 shrink-0 rounded-md px-2 text-xs font-semibold ${t ===
             current
               ? "bg-white/15 text-white"
               : "text-white/70 hover:bg-white/10"}"

@@ -413,6 +413,11 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(m.q("[data-ww-scroll]")!.className).toContain("overflow-y-auto");
     expect(m.q("[role='tablist']")!.closest("[data-ww-scroll]")).toBeNull();
     expect(m.el.querySelector("[title]")).toBeNull();
+    // Every tab is at least 36 px both ways, even a short name ("Air").
+    for (const tab of m.el.querySelectorAll("[role='tab']")) {
+      expect(tab.className).toMatch(/\bh-9\b/);
+      expect(tab.className).toMatch(/\bmin-w-9\b/);
+    }
   });
 
   it("the hover card ignores the pointer over an open drawer", async () => {
