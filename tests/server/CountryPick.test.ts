@@ -247,4 +247,18 @@ describe("World War 1936 start config", () => {
     expect(config.worldWar1936).toBeUndefined();
     expect(config.historicalAi).toBeUndefined();
   });
+
+  it("a lobby created on the 1936 map without the mode plays the World map", () => {
+    // The map only exists for the mode (as applyGameConfigPatch rules).
+    const game = makeGame({
+      config: { gameType: GameType.Private, gameMap: GameMapType.World1936 },
+    });
+    expect(game.gameConfig.gameMap).toBe(GameMapType.World);
+    const a = player("a");
+    game.joinClient(a);
+    startGame(game);
+    expect(startMessage(a).gameStartInfo.config.gameMap).toBe(
+      GameMapType.World,
+    );
+  });
 });

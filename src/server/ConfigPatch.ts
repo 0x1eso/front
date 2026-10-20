@@ -105,9 +105,15 @@ export function applyGameConfigPatch(
   // (the full config it sends has hostCheats: undefined when the toggle is
   // off), so `undefined` here means "clear", not "leave unchanged".
   target.hostCheats = patch.hostCheats;
-  // World War 1936 (spec §2.2): the mode fixes the map, the rules and the
-  // other modes, whatever else the patch carried. Without the mode its map
-  // is not offered.
+  // World War 1936: whatever else the patch carried.
+  applyWorldWar1936ServerRules(target);
+}
+
+/**
+ * World War 1936 (spec §2.2), on a stored config: the mode fixes the map,
+ * the rules and the other modes. Without the mode its map is not offered.
+ */
+export function applyWorldWar1936ServerRules(target: GameConfig): void {
   if (target.worldWar1936 === true) {
     applyWorldWar1936Rules(target);
   } else if (target.gameMap === GameMapType.World1936) {
