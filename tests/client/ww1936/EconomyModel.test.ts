@@ -13,6 +13,7 @@ import {
   WwCountryDetail,
   WwLineData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   allocateResources,
   constructionDaysLeft,
@@ -32,12 +33,14 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 }));
 
 import {
+  armyMenOf,
   BLOCK_KEYS,
   BRANCH_KEYS,
   buildBlock,
   buildCandidates,
   BUILDING_KEYS,
   constructionRows,
+  controlFingerprint,
   EFFECT_KEYS,
   effectLines,
   EQUIPMENT_KEYS,
@@ -46,10 +49,12 @@ import {
   LAW_KEYS,
   LAW_KIND_KEYS,
   LAW_NEED_KEYS,
+  lawClosesDeals,
   lawLadder,
   lawStepReason,
   lineRows,
   lineShortages,
+  liveWarDays,
   openTradeBlock,
   REGION_CAT_KEYS,
   regionCard,
@@ -59,6 +64,7 @@ import {
   RESOURCE_KEYS,
   resourceRows,
   SCHOOL_KEYS,
+  signedText,
   slotPctOf,
   stockRows,
   switchPreview,
@@ -443,7 +449,16 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
         summary("DEU", { civ: 9 }),
         summary("ITA", { exportRoom: [0, 0, 0, 0, 80, 0] }),
       ],
-      details: [detail("DEU", { consumerGoodsMilli: 3_750, paidCivs: 4 })],
+      // The live deals count (Trade.openTrade sums them), not the day's total.
+      details: [
+        detail("DEU", {
+          consumerGoodsMilli: 3_750,
+          paidCivs: 0,
+          buying: [
+            { id: 1, buyer: me, seller: ID("FRA"), resource: "oil", civs: 4 },
+          ],
+        }),
+      ],
     }).view;
     expect(openTradeBlock(poor, me, seller, "steel", 2, true)).toBe("no_civs");
   });
@@ -586,5 +601,109 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(conscription.find((s) => s.value === "scraping")!.block).toBe(
       "law_condition",
     );
+  });
+  it("the army counts attacks and boats, as the engine's armyMen", () => {
+    expect(
+      armyMenOf({
+        troops: () => 1_000.7,
+        outgoingAttacks: () => [{ troops: 200.5 }, { troops: 99.9 }],
+        units: () => [{ troops: () => 50.9 }],
+      }),
+    ).toBe(1_000 + 200 + 99 + 50);
+  });
+
+  it("war days are counted live from the war list", () => {
+    const at = (day: number, wars: FakeOptions["wars"]) =>
+      liveWarDays(
+        fakeEconGame({ ticks: dayStartTick(day, 600), wars }).game as never,
+        ID("DEU"),
+      );
+    expect(at(40, [])).toBe(-1);
+    expect(at(40, [["DEU", "POL"]])).toBe(40);
+    // The detail still says peace (yesterday's): the live count opens the step.
+    const d = detail("DEU", {
+      warDays: -1,
+      laws: {
+        economy: "partial_mobilization",
+        trade: "export_focus",
+        conscription: "limited",
+      },
+    });
+    const war = lawLadder(d, "economy", 40, 40).find(
+      (s) => s.value === "war_economy",
+    )!;
+    expect(war.block).toBeNull();
+    expect(
+      lawLadder(d, "economy", 40).find((s) => s.value === "war_economy")!.block,
+    ).toBe("law_condition");
+  });
+
+  it("knows which law changes close deals", () => {
+    const steel = RESOURCE_IDS.map((r) => ({
+      produced: r === "steel" ? 40 : 0,
+      exported: 0,
+      imported: 0,
+      used: 0,
+    }));
+    const d = detail("DEU", {
+      laws: {
+        economy: "war_economy",
+        trade: "export_focus",
+        conscription: "limited",
+      },
+      resources: steel,
+      // Selling 16 steel a day (cap 50% of 40 = 20); paying 5 factories.
+      selling: [
+        {
+          id: 1,
+          buyer: ID("ITA"),
+          seller: ID("DEU"),
+          resource: "steel",
+          civs: 2,
+        },
+      ],
+      buying: [
+        {
+          id: 2,
+          buyer: ID("DEU"),
+          seller: ID("ITA"),
+          resource: "oil",
+          civs: 5,
+        },
+      ],
+    });
+    const s = summary("DEU", { civ: 9, mil: 6 });
+    // Limited exports: 25% of 40 = 10 < 16. Closed economy: 0.
+    expect(lawClosesDeals(d, s, "trade", "limited_exports")).toBe(true);
+    expect(lawClosesDeals(d, s, "trade", "closed_economy")).toBe(true);
+    expect(lawClosesDeals(d, s, "trade", "free_trade")).toBe(false);
+    // Civilian economy: 35% of 15 factories → 3 left to pay with, under 5.
+    expect(lawClosesDeals(d, s, "economy", "civilian")).toBe(true);
+    expect(lawClosesDeals(d, s, "economy", "total_mobilization")).toBe(false);
+    expect(lawClosesDeals(d, s, "conscription", "service")).toBe(false);
+  });
+
+  it("the trade graph's fingerprint moves only with region control", () => {
+    const { view } = fakeEconGame();
+    const before = controlFingerprint(view.controller);
+    view.apply({
+      countries: [summary("DEU")],
+      details: [],
+      regions: [region(3, { civ: 9 })],
+    });
+    expect(controlFingerprint(view.controller)).toBe(before);
+    view.apply({
+      countries: [],
+      details: [],
+      regions: [region(6, { controller: ID("DEU") })],
+    });
+    expect(controlFingerprint(view.controller)).not.toBe(before);
+  });
+
+  it("numbers below zero get a real minus sign", () => {
+    expect(signedText(-3)).toBe("\u22123");
+    expect(signedText(2, true)).toBe("+2");
+    expect(signedText(0, true)).toBe("0");
+    expect(signedText(5)).toBe("5");
   });
 });

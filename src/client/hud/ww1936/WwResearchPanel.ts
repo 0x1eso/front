@@ -26,7 +26,7 @@ import {
   techName,
   techUnlock,
 } from "./EconomyModel";
-import { today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import { isCapitulated, today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
 
 const STATE_KEYS: Readonly<Record<ResearchCardState, string>> = {
@@ -132,6 +132,21 @@ export class WwResearchPanel extends WwDrawerBase {
     if (!this.open) return null;
     const d = this.detail();
     if (d === null) return null;
+    const me = this.game.myPlayer()!;
+    if (!me.isAlive() || isCapitulated(this.game, me.smallID())) {
+      // Gone or capitulated: the engine refuses every order.
+      return this.renderFrame(
+        translateText("ww1936.econ.research"),
+        html`<span aria-hidden="true">🔬</span>
+          <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
+            ${translateText("ww1936.econ.research")}
+          </h3>`,
+        nothing,
+        html`<p data-ww-block="dead" class="m-0 mt-2 text-xs text-red-300">
+          🔒 ${blockText("dead")}
+        </p>`,
+      );
+    }
     const day = today(this.game);
     return this.renderFrame(
       translateText("ww1936.econ.research"),
@@ -169,6 +184,9 @@ export class WwResearchPanel extends WwDrawerBase {
           type="button"
           data-ww-slot=${s.index}
           data-armed=${String(armed)}
+          aria-label=${`${techName(s.tech)} · ${translateText(
+            armed ? "ww1936.econ.cancel_tap" : "ww1936.econ.cancel_research",
+          )}`}
           class="flex h-10 w-36 shrink-0 items-center gap-1 rounded-md border px-1 text-left ${armed
             ? "border-red-400 bg-red-900/60"
             : "border-sky-400/40 bg-sky-950/40"} ${s.paused

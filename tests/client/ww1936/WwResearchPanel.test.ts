@@ -136,4 +136,15 @@ describe("<ww-research-panel> (spec §13.4)", () => {
       "[ww1936.econ.stock_only]",
     );
   });
+  it("a capitulated country's drawer says the orders can't go", async () => {
+    const m = await mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+      capitulated: ["DEU"],
+    });
+    expect(m.q("[data-ww-block='dead']")!.textContent).toContain(
+      "[ww1936.econ.block.dead]",
+    );
+    expect(m.q("[data-ww-tech]")).toBeNull();
+  });
 });

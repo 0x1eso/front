@@ -17,6 +17,7 @@ import {
   researchDial,
   ResearchDialModel,
 } from "./EconomyModel";
+import { isCapitulated } from "./WorldWarModel";
 import {
   OpenWwIndustryEvent,
   OpenWwResearchEvent,
@@ -71,8 +72,10 @@ export class WwDials extends LitElement implements Controller {
     if (!this.game?.worldWarScenario()) return null;
     const view = this.game.wwEconomy?.() ?? null;
     const me = this.game.myPlayer();
-    // Spectators and the dead have nothing to run (pre-flight R7.4).
+    // Spectators, the dead and the capitulated have nothing to run
+    // (pre-flight R7.4; the engine refuses their orders).
     if (view === null || me === null || !me.isAlive()) return null;
+    if (isCapitulated(this.game, me.smallID())) return null;
     const detail = view.detail(me.smallID());
     if (detail === null) return null;
     return {
@@ -105,10 +108,7 @@ export class WwDials extends LitElement implements Controller {
                 "idle",
                 i.idle,
                 "bg-amber-400 text-gray-900",
-                translateText("ww1936.econ.mil_factories", {
-                  n: i.idle,
-                  idle: i.idle,
-                }),
+                translateText("ww1936.econ.idle_factories", { n: i.idle }),
               )
             : nothing,
           () => this.eventBus.emit(new OpenWwIndustryEvent()),
@@ -125,7 +125,7 @@ export class WwDials extends LitElement implements Controller {
                 "free",
                 r.free,
                 "bg-yellow-300 text-gray-900",
-                translateText("ww1936.econ.slot_empty"),
+                translateText("ww1936.econ.free_slots", { n: r.free }),
               )
             : nothing,
           () => this.eventBus.emit(new OpenWwResearchEvent()),

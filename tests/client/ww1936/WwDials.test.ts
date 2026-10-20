@@ -48,6 +48,7 @@ const slot = {
 describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
   afterEach(() => {
     document.body.innerHTML = "";
+    vi.unstubAllGlobals();
   });
 
   it("the research dial glows with a free slot", async () => {
@@ -58,6 +59,9 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
     const r = free.dial("research")!;
     expect(r.className).toContain(DIAL_GLOW_CLASS);
     expect(r.querySelector("[data-dial-badge='free']")!.textContent).toBe("2");
+    expect(
+      r.querySelector("[data-dial-badge='free']")!.getAttribute("aria-label"),
+    ).toBe("[ww1936.econ.free_slots] n=2");
     expect(r.querySelector("[data-ring]")!.getAttribute("data-progress")).toBe(
       "0.50",
     );
@@ -93,6 +97,9 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
     });
     const i = m.dial("industry")!;
     expect(i.querySelector("[data-dial-badge='idle']")!.textContent).toBe("3");
+    expect(
+      i.querySelector("[data-dial-badge='idle']")!.getAttribute("aria-label"),
+    ).toBe("[ww1936.econ.idle_factories] n=3");
     expect(i.querySelector("[data-ring]")!.getAttribute("data-progress")).toBe(
       "0.25",
     );
@@ -167,6 +174,9 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
       "👥 119K",
     );
     expect(chip.querySelector("[data-ww-shortage]")).not.toBeNull();
+    expect(chip.getAttribute("aria-label")).toBe(
+      "[ww1936.econ.band_label] civ=9,mil=6,manpower=119K · [ww1936.econ.shortage]",
+    );
     chip.click();
     expect(emitted[0]).toBeInstanceOf(OpenWwIndustryEvent);
     expect((emitted[0] as OpenWwIndustryEvent).tab).toBe("construction");
@@ -212,5 +222,80 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
         params: { tech: "tools_1" },
       }).tech,
     ).toBe("[ww1936.tech.tools_1]");
+  });
+  /** The band on a phone `width` px wide, the top-right stack `stack` px wide. */
+  async function bandAt(width: number, stack: number, o: FakeOptions = {}) {
+    vi.stubGlobal("innerWidth", width);
+    const el = document.createElement("div");
+    el.setAttribute("data-hud-top-right", "");
+    el.getBoundingClientRect = () =>
+      ({
+        left: width - stack,
+        right: width,
+        top: 0,
+        bottom: 48,
+        width: stack,
+        height: 48,
+      }) as DOMRect;
+    document.body.appendChild(el);
+    const { game, view } = fakeEconGame({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+      ...o,
+    });
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = game as never;
+    band.eventBus = new EventBus();
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const box = () => band.querySelector<HTMLElement>("[data-ww-band]")!;
+    const chip = () => band.querySelector<HTMLElement>("[data-ww-economy]");
+    return { band, view, box, chip };
+  }
+
+  it("the band never spills onto the timer: it moves, then the chip shrinks", async () => {
+    // 740 px, a 225 px stack: centred there'd be 274 px, too little for the
+    // chip — so the band sits left of the stack, with the whole chip.
+    const wide = await bandAt(740, 225);
+    expect(wide.box().getAttribute("style")).toContain("right: 233px");
+    expect(wide.box().className).toContain("overflow-hidden");
+    expect(wide.chip()!.dataset.wwEconomy).toBe("full");
+    expect(wide.chip()!.querySelector("[data-ww-manpower]")).not.toBeNull();
+    document.body.innerHTML = "";
+    // 600 px: room for the compact chip only (no manpower).
+    const narrow = await bandAt(600, 225);
+    expect(narrow.chip()!.dataset.wwEconomy).toBe("compact");
+    expect(narrow.chip()!.querySelector("[data-ww-manpower]")).toBeNull();
+    expect(narrow.chip()!.textContent).toContain("🏭 9 / 6");
+    document.body.innerHTML = "";
+    // 540 px: no chip (the 🏭 dial still opens the drawer).
+    const tiny = await bandAt(540, 225);
+    expect(tiny.chip()).toBeNull();
+  });
+
+  it("the band measures itself and sheds the chip when its text runs long", async () => {
+    const m = await bandAt(740, 225);
+    expect(m.chip()!.dataset.wwEconomy).toBe("full");
+    // Longer text than the estimate: the band overflows its room.
+    Object.defineProperty(m.box(), "scrollWidth", { value: 600 });
+    Object.defineProperty(m.box(), "clientWidth", { value: 499 });
+    m.band.requestUpdate();
+    await m.band.updateComplete;
+    await m.band.updateComplete;
+    await m.band.updateComplete;
+    expect(m.chip()).toBeNull();
+  });
+
+  it("the chip and the dials go once my country capitulates", async () => {
+    const m = await bandAt(1180, 225, { capitulated: ["DEU"] });
+    expect(m.box()).not.toBeNull();
+    expect(m.chip()).toBeNull();
+    const dials = await mountDials({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+      capitulated: ["DEU"],
+    });
+    expect(dials.el.querySelector("[data-ww-dials]")).toBeNull();
   });
 });

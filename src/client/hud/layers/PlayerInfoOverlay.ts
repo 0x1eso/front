@@ -55,7 +55,11 @@ import {
   shownName,
   WW_BAND_PX,
 } from "../ww1936/WorldWarModel";
-import { OpenWwIndustryEvent } from "../ww1936/WwDrawer";
+import {
+  OpenWwIndustryEvent,
+  WwDrawerEvent,
+  WwDrawerId,
+} from "../ww1936/WwDrawer";
 import { ShowPlayerChatEvent } from "./ChatModal";
 import { ShowPlayerEmojiMenuEvent } from "./EmojiTable";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
@@ -139,6 +143,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
   @state()
   private spawnBarVisible = false;
+  /** World War 1936: the drawers open on the right. */
+  @state() private wwDrawers: ReadonlySet<WwDrawerId> = new Set();
   @state()
   private immunityBarVisible = false;
 
@@ -189,6 +195,14 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     this.eventBus.on(DoTargetPlayerEvent, (e) =>
       this.markActionTaken(e.tile, "target"),
     );
+    // World War 1936: with a drawer open on the right, the card keeps to
+    // the left half so none of it (nor "Build here") hides under it.
+    this.eventBus.on(WwDrawerEvent, (e) => {
+      const next = new Set(this.wwDrawers);
+      if (e.open) next.add(e.drawer);
+      else next.delete(e.drawer);
+      this.wwDrawers = next;
+    });
     this._isActive = true;
   }
 
@@ -1013,17 +1027,25 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       ? "opacity-100 visible"
       : "opacity-0 invisible pointer-events-none";
 
+    const leftHalf = this.wwDrawers.size > 0;
     return html`
       <div
-        class="fixed top-0 left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1001]"
-        style="margin-top: ${this.barOffset}px;"
+        data-info-card-left=${String(leftHalf)}
+        class="fixed top-0 left-0 ${leftHalf
+          ? "right-auto"
+          : "right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2"} z-[1001]"
+        style="margin-top: ${this.barOffset}px;${leftHalf
+          ? ` width: min(${this.showShortcutButtons() ? 598 : 500}px, calc(50vw - 8px));`
+          : ""}"
         @click=${() => this.hide()}
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
         <div
-          class="bg-gray-800/92 backdrop-blur-sm shadow-xs min-[1200px]:rounded-lg sm:rounded-b-lg shadow-lg text-white text-lg lg:text-base w-full ${this.showShortcutButtons()
-            ? "sm:w-[598px]"
-            : "sm:w-[500px]"} overflow-hidden ${containerClasses}"
+          class="bg-gray-800/92 backdrop-blur-sm shadow-xs min-[1200px]:rounded-lg sm:rounded-b-lg shadow-lg text-white text-lg lg:text-base w-full ${leftHalf
+            ? ""
+            : this.showShortcutButtons()
+              ? "sm:w-[598px]"
+              : "sm:w-[500px]"} overflow-hidden ${containerClasses}"
           @mouseenter=${this.onPanelEnter}
           @mouseleave=${this.onPanelLeave}
         >

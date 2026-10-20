@@ -1,5 +1,8 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import type { WwLineData } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  RESOURCE_IDS,
+  type WwLineData,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { render } from "lit";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -21,6 +24,7 @@ import type { WwDiplomacyPanel } from "../../../src/client/hud/ww1936/WwDiplomac
 import {
   OpenWwIndustryEvent,
   OpenWwResearchEvent,
+  WwDrawerEvent,
 } from "../../../src/client/hud/ww1936/WwDrawer";
 import {
   HOLD_MS,
@@ -421,6 +425,207 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     } finally {
       doc.elementFromPoint = original;
     }
+  });
+
+  it("construction: pick and Add first, then the regions, then the queue", async () => {
+    // Germany holds every region (the others have capitulated): many
+    // candidates.
+    const all = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((id) =>
+      region(id, { controller: ID("DEU") }),
+    );
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { queue: [project] })],
+      regions: all,
+      capitulated: ["FRA", "ITA", "POL", "SUN", "GBR"],
+    });
+    await m.open("construction");
+    const picked = m.q("[data-ww-picked]")!;
+    const list = m.q("[data-ww-candidates]")!;
+    const queue = m.q("[data-ww-queue]")!;
+    const follows = (a: Element, b: Element) =>
+      (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    expect(follows(picked, list)).toBe(true);
+    expect(follows(list, queue)).toBe(true);
+    expect(picked.querySelector("[data-ww-add-build]")).not.toBeNull();
+    // Only the drawer's list scrolls.
+    expect(list.className).not.toContain("overflow");
+    // The best four, then the rest on request.
+    expect(m.el.querySelectorAll("[data-ww-candidate]")).toHaveLength(4);
+    const more = m.q("[data-ww-more-regions]")!;
+    expect(more.textContent).toContain("[ww1936.econ.more_regions] n=");
+    await m.click("[data-ww-more-regions]");
+    expect(m.el.querySelectorAll("[data-ww-candidate]").length).toBeGreaterThan(
+      4,
+    );
+    expect(m.q("[data-ww-more-regions]")).toBeNull();
+  });
+
+  it("a law change that would close deals takes two taps; others one", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          laws: {
+            economy: "partial_mobilization",
+            trade: "export_focus",
+            conscription: "limited",
+          },
+          resources: RESOURCE_IDS.map((r) => ({
+            produced: r === "steel" ? 40 : 0,
+            exported: 0,
+            imported: 0,
+            used: 0,
+          })),
+          selling: [
+            {
+              id: 3,
+              buyer: ID("ITA"),
+              seller: ID("DEU"),
+              resource: "steel",
+              civs: 2,
+            },
+          ],
+        }),
+      ],
+    });
+    await m.open("laws");
+    await m.click("[data-ww-law='limited_exports']");
+    expect(m.sent).toEqual([]);
+    expect(
+      m.q("[data-ww-law='limited_exports'] [data-ww-law-closes]")!.textContent,
+    ).toContain("[ww1936.econ.law_closes_deals]");
+    vi.advanceTimersByTime(400);
+    await m.click("[data-ww-law='limited_exports']");
+    expect(m.sent).toEqual([
+      { kind: "set_law", law: "trade", value: "limited_exports" },
+    ]);
+    await m.click("[data-ww-law='free_trade']");
+    expect(m.sent[1]).toEqual({
+      kind: "set_law",
+      law: "trade",
+      value: "free_trade",
+    });
+  });
+
+  it("condition reasons stay visible during the wait", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          laws: {
+            economy: "civilian",
+            trade: "export_focus",
+            conscription: "limited",
+          },
+          lawCooldownUntil: { economy: 20, trade: 0, conscription: 0 },
+        }),
+      ],
+    });
+    await m.open("laws");
+    expect(
+      m.q("[data-ww-law='partial_mobilization'] [data-ww-law-reason]")!
+        .textContent,
+    ).toContain("[ww1936.econ.law_need.partial_mobilization]");
+    // Waiting only: the wait shows once, by the ladder's name.
+    expect(
+      m.q("[data-ww-law='early_mobilization'] [data-ww-law-reason]"),
+    ).toBeNull();
+    expect(
+      m.q("[data-ww-law-kind='economy'] [data-ww-law-wait]")!.textContent,
+    ).toContain("n=20");
+  });
+
+  it("a capitulated country's drawer says the orders can't go", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+      capitulated: ["DEU"],
+    });
+    await m.open("construction");
+    expect(m.q("[data-ww-drawer='industry']")).not.toBeNull();
+    expect(m.q("[data-ww-block='dead']")!.textContent).toContain(
+      "[ww1936.econ.block.dead]",
+    );
+    expect(m.q("[role='tablist']")).toBeNull();
+    expect(m.q("[data-ww-add-build]")).toBeNull();
+  });
+
+  it("icon-only buttons have names; a deficit has a real minus", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          queue: [project, { ...project, region: 4 }],
+          lines: [line(1, 2)],
+          resources: RESOURCE_IDS.map((r) => ({
+            produced: r === "steel" ? 2 : 0,
+            exported: 0,
+            imported: 0,
+            used: r === "steel" ? 5 : 0,
+          })),
+          buying: [
+            {
+              id: 9,
+              buyer: ID("DEU"),
+              seller: ID("ITA"),
+              resource: "oil",
+              civs: 1,
+            },
+          ],
+        }),
+      ],
+    });
+    const label = (sel: string) => m.q(sel)!.getAttribute("aria-label");
+    await m.open("construction");
+    expect(label("[data-ww-project='0'] [data-ww-move-build='down']")).toBe(
+      "[ww1936.econ.move_down]",
+    );
+    expect(label("[data-ww-project='1'] [data-ww-move-build='up']")).toBe(
+      "[ww1936.econ.move_up]",
+    );
+    expect(label("[data-ww-cancel-build='0']")).toBe(
+      "[ww1936.econ.cancel_project]",
+    );
+    expect(label("[data-ww-step='build:up']")).toBe("[ww1936.econ.more]");
+    expect(label("[data-ww-step='build:down']")).toBe("[ww1936.econ.fewer]");
+    // Paying one factory, receiving none: "−1".
+    expect(m.q("[data-ww-free-civs]")!.textContent).toContain(
+      "[ww1936.econ.trade_civs] n=\u22121",
+    );
+    await m.open("production");
+    expect(label("[data-ww-remove-line='1']")).toBe(
+      "[ww1936.econ.remove_line]",
+    );
+    await m.open("trade");
+    expect(label("[data-ww-close-trade='9']")).toBe("[ww1936.econ.close_deal]");
+    expect(
+      m.q("[data-ww-resource='steel'] [data-ww-balance]")!.textContent!.trim(),
+    ).toBe("\u22123");
+  });
+
+  it("the hover card keeps to the left half while a drawer is open", async () => {
+    const m = mount({ summaries: [summary("DEU")], details: [detail("DEU")] });
+    const overlay = document.createElement(
+      "player-info-overlay",
+    ) as PlayerInfoOverlay;
+    overlay.game = m.game as never;
+    overlay.eventBus = m.bus;
+    document.body.appendChild(overlay);
+    overlay.init();
+    await overlay.updateComplete;
+    const box = () =>
+      overlay.querySelector<HTMLElement>("[data-info-card-left]")!;
+    expect(box().dataset.infoCardLeft).toBe("false");
+    await m.open("construction");
+    await overlay.updateComplete;
+    expect(box().dataset.infoCardLeft).toBe("true");
+    expect(box().getAttribute("style")).toContain("calc(50vw - 8px)");
+    expect(box().className).not.toContain("left-1/2");
+    m.bus.emit(new WwDrawerEvent("industry", false));
+    await overlay.updateComplete;
+    expect(box().dataset.infoCardLeft).toBe("false");
   });
 
   it("a spectator gets no drawer", async () => {

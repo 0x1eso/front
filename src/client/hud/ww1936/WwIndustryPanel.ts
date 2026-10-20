@@ -28,6 +28,7 @@ import type { PlayerView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import {
   addLineBlock,
+  armyMenOf,
   blockText,
   buildBlock,
   buildCandidates,
@@ -36,11 +37,13 @@ import {
   changeLineBlock,
   ConstructionRow,
   constructionRows,
+  controlFingerprint,
   EQUIPMENT_ICONS,
   equipmentName,
   fightingFn,
   genName,
   infraDots,
+  lawClosesDeals,
   lawKindName,
   lawLadder,
   lawName,
@@ -48,14 +51,18 @@ import {
   lawStepReason,
   LineRow,
   lineRows,
+  liveWarDays,
   maxBuildCount,
   maxTradeCivs,
   milliText,
   openTradeBlock,
+  paidCivsOf,
+  receivedCivsOf,
   RESOURCE_ICONS,
   resourceName,
   resourceRows,
   retentionBpOf,
+  signedText,
   slotPctOf,
   stockOnly,
   stockRows,
@@ -66,6 +73,7 @@ import {
 } from "./EconomyModel";
 import {
   countryName,
+  isCapitulated,
   isKoreanUi,
   today,
   TWO_TAP_MS,
@@ -85,6 +93,8 @@ const TAB_KEYS: Readonly<Record<WwIndustryTab, string>> = {
   laws: "ww1936.econ.tab_laws",
 };
 
+/** Candidate regions listed before "N more regions". */
+const CANDIDATES_SHOWN = 4;
 /** Holding a −/+ this long changes the count by five (pre-flight R7.12). */
 export const HOLD_MS = 500;
 /** A tapped −/+ shows its new count until the engine's answer arrives, at most this long. */
@@ -108,6 +118,10 @@ interface Ctx {
   day: number;
   korean: boolean;
   fighting: (smallID: number) => boolean;
+  /** Gone or capitulated: the engine refuses every order ("dead"). */
+  dead: boolean;
+  /** The live war length the engine's law check reads (liveWarDays). */
+  warDays: number;
 }
 
 /**
@@ -124,6 +138,8 @@ export class WwIndustryPanel extends WwDrawerBase {
   /** The region picked for "new construction"; null: the best candidate. */
   @state() private region: number | null = null;
   @state() private count = 1;
+  /** Every candidate region listed, not just the best few. */
+  @state() private allCandidates = false;
   /** The resource row whose sellers are listed. */
   @state() private buyResource: ResourceId | null = null;
   /** Factories to pay per seller, by smallID. */
@@ -141,7 +157,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   private holdFired = false;
   private redrawKey: readonly unknown[] = [];
   private graphCache: {
-    version: number;
+    control: number;
     wars: unknown;
     graph: TradeGraph;
   } | null = null;
@@ -192,6 +208,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       day: today(game),
       korean: isKoreanUi(),
       fighting: fightingFn(game),
+      dead: !me.isAlive() || isCapitulated(game, id),
+      warDays: liveWarDays(game, id),
     };
   }
 
@@ -270,6 +288,9 @@ export class WwIndustryPanel extends WwDrawerBase {
       html`<button
         type="button"
         data-ww-step=${`${dataKey}:${sign < 0 ? "down" : "up"}`}
+        aria-label=${translateText(
+          sign < 0 ? "ww1936.econ.fewer" : "ww1936.econ.more",
+        )}
         class=${ICON_BUTTON}
         ?disabled=${!can}
         @pointerdown=${() => this.holdStart(() => change(5 * sign))}
@@ -309,16 +330,18 @@ export class WwIndustryPanel extends WwDrawerBase {
         <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
           ${translateText("ww1936.econ.industry")}
         </h3>`,
-      this.renderTabs(
-        WW_INDUSTRY_TABS,
-        this.tab,
-        (t) => translateText(TAB_KEYS[t]),
-        (t) => {
-          this.tab = t;
-          this.tick();
-        },
-      ),
-      this.renderTab(c),
+      c.dead
+        ? nothing
+        : this.renderTabs(
+            WW_INDUSTRY_TABS,
+            this.tab,
+            (t) => translateText(TAB_KEYS[t]),
+            (t) => {
+              this.tab = t;
+              this.tick();
+            },
+          ),
+      c.dead ? html`${this.blockLine("dead")}` : this.renderTab(c),
     );
   }
 
@@ -340,7 +363,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   private renderConstruction(c: Ctx): TemplateResult {
     const d = c.detail;
     const rows = constructionRows(d, c.scenario, c.korean);
-    const trade = d.receivedCivs - d.paidCivs;
+    const trade = receivedCivsOf(d) - paidCivsOf(d);
     return html`
       <p data-ww-free-civs class="m-0 mt-2 text-xs text-white/80">
         <b class="text-white"
@@ -354,13 +377,13 @@ export class WwIndustryPanel extends WwDrawerBase {
         })}
         ·
         ${translateText("ww1936.econ.trade_civs", {
-          n: trade > 0 ? `+${trade}` : `${trade}`,
+          n: signedText(trade, true),
         })}
       </p>
-      <ul data-ww-queue class="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
+      ${this.renderNewBuild(c)}
+      <ul data-ww-queue class="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">
         ${rows.map((r) => this.renderProject(r, rows.length))}
       </ul>
-      ${this.renderNewBuild(c)}
     `;
   }
 
@@ -379,6 +402,7 @@ export class WwIndustryPanel extends WwDrawerBase {
         <button
           type="button"
           data-ww-move-build="up"
+          aria-label=${translateText("ww1936.econ.move_up")}
           class=${ICON_BUTTON}
           ?disabled=${r.index === 0}
           @click=${() =>
@@ -389,6 +413,7 @@ export class WwIndustryPanel extends WwDrawerBase {
         <button
           type="button"
           data-ww-move-build="down"
+          aria-label=${translateText("ww1936.econ.move_down")}
           class=${ICON_BUTTON}
           ?disabled=${r.index === n - 1}
           @click=${() =>
@@ -400,6 +425,7 @@ export class WwIndustryPanel extends WwDrawerBase {
           type="button"
           data-ww-cancel-build=${r.index}
           data-armed=${String(armed)}
+          aria-label=${translateText("ww1936.econ.cancel_project")}
           class="${armed
             ? "h-9 rounded-md bg-red-700 px-2 text-xs font-semibold"
             : ICON_BUTTON}"
@@ -461,9 +487,20 @@ export class WwIndustryPanel extends WwDrawerBase {
             c.fighting,
           );
     const r = region === null ? undefined : c.scenario.region(region);
-    return html`<section data-ww-new-build>
-      <div class=${HEADING}>${translateText("ww1936.econ.new_build")}</div>
-      <div class="flex flex-wrap gap-1">
+    // On a phone the list area is short: the picked region and "Add" come
+    // first, so queuing the best region is one tap, and the candidates
+    // follow in the drawer's own scroll (no inner one, spec §13.7).
+    const shown =
+      this.allCandidates || candidates.length <= CANDIDATES_SHOWN + 1
+        ? candidates
+        : candidates.slice(0, CANDIDATES_SHOWN);
+    const hidden = candidates.length - shown.length;
+    return html`<section data-ww-new-build class="mt-2">
+      <div
+        role="group"
+        aria-label=${translateText("ww1936.econ.new_build")}
+        class="flex flex-wrap gap-1"
+      >
         ${BUILDABLE.map(
           (b) =>
             html`<button
@@ -476,17 +513,60 @@ export class WwIndustryPanel extends WwDrawerBase {
               @click=${() => {
                 this.building = b;
                 this.count = 1;
+                this.allCandidates = false;
               }}
             >
               ${BUILDING_ICONS[b]} ${buildingName(b)}
             </button>`,
         )}
       </div>
+      ${region === null
+        ? nothing
+        : html`<div
+              data-ww-picked=${region}
+              class="mt-1.5 flex items-center gap-2"
+            >
+              ${this.stepper(
+                `×${count}`,
+                "build",
+                count > 1,
+                count < max,
+                (delta) => {
+                  this.count = Math.max(1, Math.min(max, count + delta));
+                },
+              )}
+              <button
+                type="button"
+                data-ww-add-build
+                class="flex min-h-9 min-w-0 flex-1 flex-col items-center justify-center rounded-md border border-amber-300/40 bg-amber-700/80 px-2 py-0.5 leading-tight hover:bg-amber-600 disabled:opacity-40"
+                ?disabled=${block !== null}
+                @click=${() => {
+                  this.send({
+                    kind: "build",
+                    region,
+                    building: this.building,
+                    count,
+                  });
+                  this.count = 1;
+                }}
+              >
+                <span class="text-xs font-semibold"
+                  >${translateText("ww1936.econ.add_to_queue")}</span
+                >
+                <span
+                  data-ww-picked-name
+                  class="max-w-full truncate text-[10px] text-white/80"
+                  >${BUILDING_ICONS[this.building]}
+                  ${r === undefined ? "" : c.korean ? r.nameKo : r.name}</span
+                >
+              </button>
+            </div>
+            ${this.blockLine(block)}`}
       <ul
         data-ww-candidates
-        class="m-0 mt-1 flex max-h-48 list-none flex-col gap-0.5 overflow-y-auto p-0"
+        class="m-0 mt-1 flex list-none flex-col gap-0.5 p-0"
       >
-        ${candidates.map(
+        ${shown.map(
           (x) =>
             html`<li>
               <button
@@ -517,40 +597,18 @@ export class WwIndustryPanel extends WwDrawerBase {
             </li>`,
         )}
       </ul>
-      ${region === null
-        ? nothing
-        : html`<div class="mt-2 flex flex-wrap items-center gap-2">
-              <span class="min-w-0 flex-1 truncate font-semibold"
-                >${r === undefined ? "" : c.korean ? r.nameKo : r.name}</span
-              >
-              ${this.stepper(
-                `×${count}`,
-                "build",
-                count > 1,
-                count < max,
-                (delta) => {
-                  this.count = Math.max(1, Math.min(max, count + delta));
-                },
-              )}
-              <button
-                type="button"
-                data-ww-add-build
-                class="${BUTTON} bg-amber-700/80"
-                ?disabled=${block !== null}
-                @click=${() => {
-                  this.send({
-                    kind: "build",
-                    region,
-                    building: this.building,
-                    count,
-                  });
-                  this.count = 1;
-                }}
-              >
-                ${translateText("ww1936.econ.add_to_queue")}
-              </button>
-            </div>
-            ${this.blockLine(block)}`}
+      ${hidden > 0
+        ? html`<button
+            type="button"
+            data-ww-more-regions
+            class="${BUTTON} mt-1 w-full"
+            @click=${() => {
+              this.allCandidates = true;
+            }}
+          >
+            ${translateText("ww1936.econ.more_regions", { n: hidden })}
+          </button>`
+        : nothing}
     </section>`;
   }
 
@@ -618,6 +676,7 @@ export class WwIndustryPanel extends WwDrawerBase {
         <button
           type="button"
           data-ww-move-line="up"
+          aria-label=${translateText("ww1936.econ.move_up")}
           class=${ICON_BUTTON}
           ?disabled=${r.index === 0}
           @click=${() =>
@@ -628,6 +687,7 @@ export class WwIndustryPanel extends WwDrawerBase {
         <button
           type="button"
           data-ww-move-line="down"
+          aria-label=${translateText("ww1936.econ.move_down")}
           class=${ICON_BUTTON}
           ?disabled=${r.index === n - 1}
           @click=${() =>
@@ -639,6 +699,7 @@ export class WwIndustryPanel extends WwDrawerBase {
           type="button"
           data-ww-remove-line=${r.id}
           data-armed=${String(armed)}
+          aria-label=${translateText("ww1936.econ.remove_line")}
           class="${armed
             ? "h-9 rounded-md bg-red-700 px-2 text-xs font-semibold"
             : ICON_BUTTON}"
@@ -827,7 +888,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   }
 
   private renderStock(c: Ctx): TemplateResult {
-    const rows = stockRows(c.detail, c.me.troops());
+    const rows = stockRows(c.detail, armyMenOf(c.me));
     return html`<section data-ww-stock>
       <div class=${HEADING}>${translateText("ww1936.econ.stockpile")}</div>
       <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
@@ -868,15 +929,19 @@ export class WwIndustryPanel extends WwDrawerBase {
 
   // ---- Resources and trade ----
 
-  /** The trade graph, rebuilt only when the regions or the wars change (pre-flight D12). */
+  /**
+   * The trade graph, rebuilt only when region control or the wars change
+   * (pre-flight D12) — not on every economy update.
+   */
   private graph(c: Ctx): TradeGraph {
     const wars = this.game.worldWarData()?.wars ?? [];
+    const control = controlFingerprint(c.view.controller);
     const g = this.graphCache;
-    if (g !== null && g.version === c.view.version && g.wars === wars) {
+    if (g !== null && g.control === control && g.wars === wars) {
       return g.graph;
     }
     const graph = tradeGraph(c.view, c.scenario, wars);
-    this.graphCache = { version: c.view.version, wars, graph };
+    this.graphCache = { control, wars, graph };
     return graph;
   }
 
@@ -932,7 +997,7 @@ export class WwIndustryPanel extends WwDrawerBase {
                   ? "text-red-400"
                   : "text-emerald-300"}"
               >
-                ${r.balance}
+                ${signedText(r.balance)}
               </td>
             </tr>`;
           })}
@@ -1075,6 +1140,7 @@ export class WwIndustryPanel extends WwDrawerBase {
                   type="button"
                   data-ww-close-trade=${t.id}
                   data-armed=${String(armed)}
+                  aria-label=${translateText("ww1936.econ.close_deal")}
                   class="${armed
                     ? "h-9 rounded-md bg-red-700 px-2 text-xs font-semibold"
                     : ICON_BUTTON}"
@@ -1099,7 +1165,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   }
 
   private renderLadder(c: Ctx, kind: LawKind): TemplateResult {
-    const steps = lawLadder(c.detail, kind, c.day);
+    const steps = lawLadder(c.detail, kind, c.day, c.warDays);
     const wait = steps[0]?.cooldownDays ?? 0;
     return html`<section data-ww-law-kind=${kind}>
       <div class="${HEADING} flex items-center justify-between gap-2">
@@ -1113,29 +1179,40 @@ export class WwIndustryPanel extends WwDrawerBase {
           : nothing}
       </div>
       <ol class="m-0 flex list-none flex-col gap-1 p-0">
-        ${steps.map((s) => this.renderStep(kind, s))}
+        ${steps.map((s) => this.renderStep(c, kind, s))}
       </ol>
     </section>`;
   }
 
-  private renderStep(kind: LawKind, s: LawStep): TemplateResult {
+  private renderStep(c: Ctx, kind: LawKind, s: LawStep): TemplateResult {
     const state = s.current ? "current" : s.block === null ? "open" : "locked";
-    // The wait shows once, by the ladder's name.
-    const reason = s.block === "law_cooldown" ? null : lawStepReason(s);
+    // The wait shows once, by the ladder's name; a step whose condition
+    // fails still says so meanwhile.
+    const reason =
+      s.allowed && s.block === "law_cooldown" ? null : lawStepReason(s);
+    // A change that would close deals at the next daily check takes a
+    // second tap; any other is one tap.
+    const closes =
+      s.block === null && lawClosesDeals(c.detail, c.summary, kind, s.value);
+    const key = `law:${kind}:${s.value}`;
+    const armed = closes && this.armed(key);
+    const set = () => this.send({ kind: "set_law", law: kind, value: s.value });
     return html`<li>
       <button
         type="button"
         data-ww-law=${s.value}
         data-state=${state}
+        data-armed=${String(armed)}
         ?disabled=${s.block !== null}
         class="w-full min-h-9 rounded-md border px-2 py-1 text-left ${state ===
         "current"
           ? "border-emerald-400 bg-emerald-950/60"
           : state === "open"
             ? "border-white/20 bg-white/5 hover:border-amber-300"
-            : "border-white/5 bg-gray-900/60 text-white/50"}"
-        @click=${() =>
-          this.send({ kind: "set_law", law: kind, value: s.value })}
+            : "border-white/5 bg-gray-900/60 text-white/50"} ${armed
+          ? "ring-2 ring-red-400"
+          : ""}"
+        @click=${() => (closes ? this.confirmTap(key, set) : set())}
       >
         <span class="flex items-center gap-1">
           <span class="min-w-0 flex-1 truncate font-semibold"
@@ -1150,6 +1227,11 @@ export class WwIndustryPanel extends WwDrawerBase {
           : html`<span data-ww-law-reason class="block text-xs text-red-300"
               >${reason}</span
             >`}
+        ${armed
+          ? html`<span data-ww-law-closes class="block text-xs text-red-300"
+              >${translateText("ww1936.econ.law_closes_deals")}</span
+            >`
+          : nothing}
       </button>
     </li>`;
   }
