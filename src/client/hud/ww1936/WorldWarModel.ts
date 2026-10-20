@@ -8,7 +8,15 @@ import {
   FactionId,
   isCountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
-import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  factionIdxOfKey,
+  FactionKey,
+  factionKeyOf,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  DeclareWarBlock,
+  WW_PREP_TICKS,
+} from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   dateOfDay,
   dayIndex,
@@ -37,7 +45,11 @@ export const TWO_TAP_MIN_MS = 350;
 /** How many MVPs the win screen lists. */
 export const WW_MVP_COUNT = 3;
 
-/** What the World War 1936 screens read from the game (a fake in tests). */
+/**
+ * What the World War 1936 screens read from the game (a fake in tests).
+ * P3's politics view is optional: without it (or before its first update)
+ * the factions are P0's starting ones.
+ */
 export type WwGame = Pick<
   GameView,
   | "ticks"
@@ -49,7 +61,8 @@ export type WwGame = Pick<
   | "ownerID"
   | "usernameOf"
   | "numLandTiles"
->;
+> &
+  Partial<Pick<GameView, "wwPolitics">>;
 
 export function countryName(tag: CountryTag): string {
   return translateText(`ww1936.country.${tag}`);
@@ -61,8 +74,37 @@ const FACTION_KEYS: Readonly<Record<FactionId, string>> = {
   comintern: "ww1936.faction.comintern",
 };
 
-export function factionName(id: FactionId): string {
-  return translateText(FACTION_KEYS[id]);
+/**
+ * A faction's name: P0's key for the starting three; a faction made in the
+ * game (P3 f3, f4…) by its name id (ww1936.faction_name.<name>, "auto":
+ * named after its creator).
+ */
+/**
+ * Why a declaration is refused (engine Diplomacy.declareWarBlock; P3 spec
+ * §14.5 added nap … isolation). Task 8 shows it under the declare button.
+ */
+export const DECLARE_BLOCK_KEYS: Readonly<Record<DeclareWarBlock, string>> = {
+  prep: "ww1936.declare.block.prep",
+  self: "ww1936.declare.block.self",
+  dead: "ww1936.declare.block.dead",
+  capitulated: "ww1936.declare.block.capitulated",
+  faction: "ww1936.declare.block.faction",
+  at_war: "ww1936.declare.block.at_war",
+  nap: "ww1936.declare.block.nap",
+  guarantor: "ww1936.declare.block.guarantor",
+  democracy_no_goal: "ww1936.declare.block.democracy_no_goal",
+  isolation: "ww1936.declare.block.isolation",
+};
+
+export function factionName(id: FactionKey, game?: WwGame): string {
+  if (id in FACTION_KEYS) return translateText(FACTION_KEYS[id as FactionId]);
+  const idx = factionIdxOfKey(id);
+  const f = game?.wwPolitics?.()?.global?.factions.find((x) => x.idx === idx);
+  if (f === undefined) return "";
+  // "auto" (ww1936.faction_name.auto) names it after its creator.
+  return translateText(`ww1936.faction_name.${f.name}`, {
+    country: isCountryTag(f.nameTag) ? countryName(f.nameTag) : "",
+  });
 }
 
 /** "Germany · minsu" for a human's country; the country alone for a nation. */
@@ -152,25 +194,48 @@ function asPlayer(game: WwGame, smallID: number): PlayerView | null {
   return p.isPlayer() ? (p as PlayerView) : null;
 }
 
-function factionOfPlayer(p: PlayerView | null): FactionId | null {
-  const tag = p?.countryTag() ?? null;
-  return tag === null ? null : COUNTRIES[tag].faction;
+/**
+ * A country's faction now (P3 plan decision 8: politics' state); before the
+ * first politics update, its starting faction.
+ */
+export function factionOfId(game: WwGame, smallID: number): FactionKey | null {
+  const s = game.wwPolitics?.()?.summary(smallID) ?? null;
+  if (s !== null) return s.faction < 0 ? null : factionKeyOf(s.faction);
+  const tag = game.worldWarScenario()?.tagOfSmallId(smallID);
+  return tag === undefined ? null : COUNTRIES[tag].faction;
 }
 
-/** Same starting faction (decision 8: faction members are friends). */
+function factionOfPlayer(
+  game: WwGame,
+  p: PlayerView | null,
+): FactionKey | null {
+  return p === null ? null : factionOfId(game, p.smallID());
+}
+
+/**
+ * Same faction (decision 8: faction members are friends). Without a game:
+ * the starting factions.
+ */
 export function sameFaction(
   a: PlayerView | null,
   b: PlayerView | null,
+  game?: WwGame,
 ): boolean {
-  const f = factionOfPlayer(a);
-  return f !== null && a !== b && f === factionOfPlayer(b);
+  if (a === null || b === null || a === b) return false;
+  const of = (p: PlayerView): FactionKey | null => {
+    if (game !== undefined) return factionOfPlayer(game, p);
+    const tag = p.countryTag();
+    return tag === null ? null : COUNTRIES[tag].faction;
+  };
+  const f = of(a);
+  return f !== null && f === of(b);
 }
 
 export interface BandModel {
   label: string;
   inPrep: boolean;
   myTag: CountryTag | null;
-  myFaction: FactionId | null;
+  myFaction: FactionKey | null;
   wars: number;
 }
 
@@ -188,7 +253,7 @@ export function bandModel(game: WwGame): BandModel {
         : dateLabel(today(game)),
     inPrep: left > 0,
     myTag,
-    myFaction: myTag === null ? null : COUNTRIES[myTag].faction,
+    myFaction: me === null ? null : factionOfPlayer(game, me),
     wars: me === null ? 0 : enemiesOf(game, me.smallID()).length,
   };
 }
@@ -207,7 +272,7 @@ export function viewScoreInputs(game: WwGame): CountryScoreInput[] {
     const p = asPlayer(game, id);
     return {
       smallID: id,
-      faction: COUNTRIES[tag].faction,
+      faction: factionOfId(game, id),
       major: COUNTRIES[tag].major,
       alive: p !== null && p.isAlive() && !isCapitulated(game, id),
       vp: vp[id],
@@ -222,8 +287,8 @@ export function viewCamps(game: WwGame): CampScore[] {
   return campScores(viewScoreInputs(game), s.totalVp(), game.numLandTiles());
 }
 
-export function campName(game: WwGame, camp: FactionId | number): string {
-  if (typeof camp !== "number") return factionName(camp);
+export function campName(game: WwGame, camp: FactionKey | number): string {
+  if (typeof camp !== "number") return factionName(camp, game);
   const tag = game.worldWarScenario()?.tagOfSmallId(camp);
   return tag === undefined ? "" : countryName(tag);
 }
@@ -248,7 +313,7 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
     return { factions: [], myWars: [], camps: [], nextHistory: null };
   const me = game.myPlayer();
   const myID = me?.smallID() ?? 0;
-  const myFaction = factionOfPlayer(me);
+  const myFaction = factionOfPlayer(game, me);
   const factions = FACTION_IDS.map((id) => ({
     id,
     members: s.countries
@@ -294,7 +359,7 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
  */
 export function callIns(game: WwGame, target: PlayerView): number {
   const s = game.worldWarScenario();
-  const faction = factionOfPlayer(target);
+  const faction = factionOfPlayer(game, target);
   if (s === null || faction === null) return 0;
   const myID = game.myPlayer()?.smallID() ?? 0;
   const atWar = new Set(enemiesOf(game, myID));
@@ -302,7 +367,7 @@ export function callIns(game: WwGame, target: PlayerView): number {
   s.countries.forEach((tag, i) => {
     const id = i + 1;
     if (id === target.smallID() || id === myID) return;
-    if (COUNTRIES[tag].faction !== faction || atWar.has(id)) return;
+    if (factionOfId(game, id) !== faction || atWar.has(id)) return;
     if (isCapitulated(game, id) || !(asPlayer(game, id)?.isAlive() ?? false))
       return;
     n++;
@@ -403,11 +468,11 @@ export function wwWinView(
       .filter((p): p is PlayerView => p !== null)
       .map((p) => countryLabel(game, p));
   if (winner[0] === "team") {
-    const faction = winner[1] as FactionId;
-    const name = factionName(faction);
-    const isWin = factionOfPlayer(me) === faction;
+    const faction = winner[1] as FactionKey;
+    const name = factionName(faction, game);
+    const isWin = factionOfPlayer(game, me) === faction;
     const members = s.countries
-      .map((tag, i) => (COUNTRIES[tag].faction === faction ? i + 1 : 0))
+      .map((_, i) => (factionOfId(game, i + 1) === faction ? i + 1 : 0))
       .filter((id) => id !== 0);
     return {
       title: translateText(

@@ -54,10 +54,11 @@ import {
   extraction,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import type { LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { moveBuild, queueBuild, usedSlots } from "./Construction";
-import { setLaw } from "./LawsRun";
+import { lawCtxOf, setLaw } from "./LawsRun";
 import { addLine, changeLine, setLineFactories } from "./Production";
 import { startResearch } from "./ResearchRun";
 import { closeTrade, openTrade, tradePartners } from "./Trade";
@@ -466,6 +467,14 @@ export interface AiInput {
   warDays: number;
   laws: CountryLaws;
   lawCooldownUntil: Readonly<Record<LawKind, number>>;
+  /**
+   * P3 spec §7.2 (controller ruling R10): what the law conditions read —
+   * war support, world tension, the government (IDEOLOGIES index), PP.
+   */
+  wsBp: number;
+  wtBp: number;
+  ruling: number;
+  ppMilli: number;
   manpower: number;
   recruitable: number;
   /** Infantry equipment in stock, every generation. */
@@ -595,9 +604,18 @@ function economyTarget(i: AiInput): LawValue {
 
 function planLaws(i: AiInput, orders: AiOrder[]): void {
   const laws: CountryLaws = { ...i.laws };
-  const ctx = { day: i.day, warDays: i.warDays };
+  // The conditions only (costMilli 0): setLaw charges the cost; Task 4
+  // defers a law the PP cannot pay (aiLawTarget).
+  const ctx: LawCtx = {
+    wsBp: i.wsBp,
+    wtBp: i.wtBp,
+    ruling: i.ruling,
+    atWar: i.warDays >= 0,
+    ppMilli: i.ppMilli,
+    costMilli: 0,
+  };
   const allowed = (kind: LawKind, v: LawValue) =>
-    lawBlockOf(laws, i.lawCooldownUntil, kind, v, ctx) === null;
+    lawBlockOf(laws, i.lawCooldownUntil, kind, v, i.day, ctx) === null;
   const set = (kind: LawKind, v: LawValue) => {
     orders.push({ kind: "set_law", law: kind, value: v });
     (laws as unknown as Record<LawKind, LawValue>)[kind] = v;
@@ -1079,7 +1097,7 @@ export function aiInput(
   let regions: AiRegion[] | null = null;
   const findRegions = (): AiRegion[] =>
     econ.regionsOf(me).map((id) => {
-      const slots = econ.regionSlots(id, ce.tech.slotPct);
+      const slots = econ.regionSlots(id, ce.stats.slotPct);
       const queuedInfra = queuedInRegion(ce.queue, id).infra;
       return {
         region: id,
@@ -1098,13 +1116,14 @@ export function aiInput(
     warDays: econ.warDays(me, tick),
     laws: { ...ce.laws },
     lawCooldownUntil: { ...ce.lawCooldownUntil },
+    ...politicsInput(econ, ce),
     manpower: ce.manpower,
     recruitable: t.recruitable,
     infStock: ce.infStock(),
     freeCivMilli: t.freeCivMilli,
     mil: t.mil,
     idleMil: t.idleMil,
-    effCapBp: effCapBp(ce.tech),
+    effCapBp: effCapBp(ce.stats),
     lines: ce.lines.map((l) => ({
       id: l.id,
       key: l.key,
@@ -1265,9 +1284,18 @@ export function aiEconomyTick(
     }
     // R6.7: the retooling was refused; the next line nearly at its cap.
     const lines = ce.lines.map((l) => ({ ...l }));
-    for (const alt of aiRetools(lines, ce.researched, effCapBp(ce.tech))) {
+    for (const alt of aiRetools(lines, ce.researched, effCapBp(ce.stats))) {
       if (alt.line === o.line) continue;
       if (applyAiOrder(econ, ce, alt, day) === null) break;
     }
   }
+}
+
+/** R10: the AiInput fields the law conditions read, from politics. */
+function politicsInput(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+): Pick<AiInput, "wsBp" | "wtBp" | "ruling" | "ppMilli"> {
+  const c = lawCtxOf(econ, ce, "civilian");
+  return { wsBp: c.wsBp, wtBp: c.wtBp, ruling: c.ruling, ppMilli: c.ppMilli };
 }

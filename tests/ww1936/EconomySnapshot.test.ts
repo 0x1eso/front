@@ -140,6 +140,8 @@ const DEU_HUMAN: WwHuman[] = [{ clientID: HUMAN, country: "DEU" }];
 function germanOrders(g: Game): StampedIntent[] {
   const econ = econOf(g);
   const deu = byTag(g, "DEU").smallID();
+  // P3 spec §7.1: the law costs political power (plan Task 1 Step 20).
+  g.worldWar()!.politics.country(deu)!.ppMilli = 500_000;
   let deal: WwOrder | null = null;
   for (const s of tradePartners(econ, deu)) {
     const r = RESOURCE_IDS.findIndex(
@@ -207,6 +209,8 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     const p = byTag(g, "DEU");
     const deu = econOf(g).country(p.smallID())!;
     const [queue, lines] = [deu.queue.length, deu.lines.length];
+    // P3 spec §7.1: the law costs political power (plan Task 1 Step 20).
+    g.worldWar()!.politics.country(p.smallID())!.ppMilli = 500_000;
     // Added between ticks: in the queue, not yet initialized.
     const orders: WwOrder[] = [
       { kind: "build", region: 4, building: "mil", count: 1 },
@@ -426,10 +430,12 @@ describe("the economy restores exactly on the world1936 map", () => {
       .regionsOf(deu.smallID)
       .find(
         (id) =>
-          econ.regionSlots(id, deu.tech.slotPct) >
+          econ.regionSlots(id, deu.stats.slotPct) >
           econ.civ[id] + econ.mil[id] + econ.dock[id],
       )!;
     const line = deu.nextLineId;
+    // P3 spec §7.1: the law costs political power (plan Task 1 Step 20).
+    g.worldWar()!.politics.country(deu.smallID)!.ppMilli = 500_000;
     const orders: WwOrder[] = [
       { kind: "build", region, building: "mil", count: 1 },
       {

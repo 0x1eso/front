@@ -72,7 +72,7 @@ function stepOf(land: WwLand, r: number, mode: number): number {
   const t = land.divisions;
   if (mode === MOVE_SEA) return 1000; // need is in milli-ticks
   const ce = land.econ.country(t.owner[r])!;
-  if (mode === MOVE_RAIL) return railStep(ce.tech.railSpeedPct);
+  if (mode === MOVE_RAIL) return railStep(ce.stats.railSpeedPct);
   const to = t.next[r];
   const sc = land.scenario;
   const w = weatherAt(land.day(), sc.latC(to), sc.landOf(to), sc.wcell(to));
@@ -82,7 +82,7 @@ function stepOf(land: WwLand, r: number, mode: number): number {
     land.econ.infra[to],
     w,
     t.supply[r],
-    ce.tech.speedPct * 100 + traitSpeedBp(land, r, s.flags),
+    ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags),
   );
 }
 
@@ -247,7 +247,7 @@ export function railPath(
   to: number,
 ): number[] {
   const ce = land.econ.country(owner);
-  const step = railStep(ce === null ? 0 : ce.tech.railSpeedPct);
+  const step = railStep(ce === null ? 0 : ce.stats.railSpeedPct);
   const ok = (r: number) =>
     land.sameSide(owner, land.controller[r]) && railed(land, r);
   if (!ok(from) || !ok(to)) return [];
@@ -317,7 +317,8 @@ function walkStepInto(land: WwLand, r: number, to: number): number {
     land.econ.infra[to],
     w,
     t.supply[r],
-    (ce === null ? 0 : ce.tech.speedPct * 100) + traitSpeedBp(land, r, s.flags),
+    (ce === null ? 0 : ce.stats.speedPct * 100) +
+      traitSpeedBp(land, r, s.flags),
   );
 }
 

@@ -190,7 +190,7 @@ describe("World War 1936 P1 economy strings", () => {
 
   it("has the expected number of block reasons", () => {
     // P1's 25 and P2's 18 (plan decision 24).
-    expect(WW_ORDER_BLOCKS.length).toBe(43);
+    expect(WW_ORDER_BLOCKS.length).toBe(43 + 24); // P2, then P3's 24 (plan decision 3)
   });
 
   it.each(KEYS)("%s exists in en and ko with matching placeholders", (key) => {

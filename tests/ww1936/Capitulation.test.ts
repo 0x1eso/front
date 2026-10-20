@@ -336,7 +336,10 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(pol.numTilesOwned()).toBe(1499);
 
     // Germany falls while Poland's last land is still on its way to it.
+    // P3 spec §17.1: Poland's regions are Germany's legal ones now (49
+    // points), so France takes Warsaw's point tile too to pass 80%.
     control(g, "Berlin", fra);
+    control(g, "Warsaw", fra);
     nearlyFull(g, deu);
     checkCapitulations(g, ww, g.ticks());
     step(runner, 6);
@@ -357,10 +360,20 @@ describe("victory points and capitulation (spec §7.5)", () => {
     const conquests = updates
       .flatMap((u) => u.updates[GameUpdateType.ConquestEvent])
       .filter((c) => c.conqueredId === pol.id() || c.conqueredId === deu.id());
-    expect(conquests).toEqual([
-      expect.objectContaining({ conqueredId: pol.id(), conquerorId: fra.id() }),
-      expect.objectContaining({ conqueredId: deu.id(), conquerorId: fra.id() }),
-    ]);
+    // Both settled by France (France's Warsaw tiles above end Germany first).
+    expect(conquests).toHaveLength(2);
+    expect(conquests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          conqueredId: pol.id(),
+          conquerorId: fra.id(),
+        }),
+        expect.objectContaining({
+          conqueredId: deu.id(),
+          conquerorId: fra.id(),
+        }),
+      ]),
+    );
   });
 
   test("a human whose country capitulates is left watching", async () => {

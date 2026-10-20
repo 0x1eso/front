@@ -184,6 +184,17 @@ export const DERIVED_FIELDS = new Set<string>([
   "removedArmyIds",
   "endedBattleIds",
   "rowIndex",
+  // WwPolitics (P3): the tick's event queue, the screens' news, cards and
+  // change marks, the faction reverse index; CountryEconomy.statsVer (the
+  // land war's cache key). onTechChanged is a function (not compared).
+  "eventQueue",
+  "newsOut",
+  "cardsOut",
+  "dirtyPolCountries",
+  "dirtyPolRegions",
+  "polGlobalDirty",
+  "factionOfIdx",
+  "statsVer",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

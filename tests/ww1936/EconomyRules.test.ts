@@ -7,7 +7,6 @@ import {
   EQUIPMENT_TYPES,
   WW_TECH_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   aheadPct,
   allocateResources,
@@ -44,10 +43,8 @@ import {
   genTech,
   unitCostMilli,
 } from "@openfront/engine-lib/ww1936/Equipment";
-import {
-  lawConditionMet,
-  lawEffects,
-} from "@openfront/engine-lib/ww1936/WwLaws";
+import { lawBlock } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
   openSchool,
   techDays,
@@ -221,28 +218,27 @@ describe("laws (spec §5)", () => {
     });
   });
 
-  test("conditions: dates, war and its length", () => {
-    const peace36 = { day: 0, warDays: -1 };
-    expect(lawConditionMet("early_mobilization", peace36)).toBe(true);
-    expect(lawConditionMet("partial_mobilization", peace36)).toBe(false);
-    expect(
-      lawConditionMet("partial_mobilization", {
-        day: dayOfDate("1937-01-01"),
-        warDays: -1,
-      }),
-    ).toBe(true);
-    expect(lawConditionMet("war_economy", { day: 0, warDays: 0 })).toBe(true);
-    expect(
-      lawConditionMet("total_mobilization", { day: 0, warDays: 364 }),
-    ).toBe(false);
-    expect(lawConditionMet("all_adults", { day: 0, warDays: 365 })).toBe(true);
-    expect(lawConditionMet("scraping", { day: 0, warDays: 729 })).toBe(false);
-    expect(
-      lawConditionMet("extensive", {
-        day: dayOfDate("1938-01-01"),
-        warDays: -1,
-      }),
-    ).toBe(true);
+  // P3 (plan decision 11): P1's date and war-length conditions are gone;
+  // PoliticsRules.lawBlock gates by war support, war and government
+  // (PoliticsRules.test.ts holds the whole spec §7.2 table).
+  test("conditions: war support or war, and at war", () => {
+    const ctx = {
+      wsBp: 3000,
+      wtBp: 0,
+      ruling: 3,
+      atWar: false,
+      ppMilli: 1_000_000,
+      costMilli: 0,
+    };
+    expect(lawBlock("early_mobilization", ctx)).toBeNull();
+    expect(lawBlock("partial_mobilization", ctx)).toBeNull();
+    expect(lawBlock("partial_mobilization", { ...ctx, wsBp: 2999 })).toBe(
+      "law_ws",
+    );
+    expect(lawBlock("war_economy", { ...ctx, atWar: true })).toBeNull();
+    expect(lawBlock("total_mobilization", { ...ctx, wsBp: 9000 })).toBe(
+      "law_condition",
+    );
   });
 });
 

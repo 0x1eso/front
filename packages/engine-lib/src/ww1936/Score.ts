@@ -1,9 +1,12 @@
-import { FACTION_IDS, FactionId } from "@openfront/engine-api/ww1936/Countries";
+import {
+  FactionKey,
+  factionIdxOfKey,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 /** One country's numbers for the verdict (spec §7.6). */
 export interface CountryScoreInput {
   smallID: number;
-  faction: FactionId | null;
+  faction: FactionKey | null;
   major: boolean;
   /** Alive and not capitulated. */
   alive: boolean;
@@ -14,7 +17,7 @@ export interface CountryScoreInput {
 
 /** A faction, or one unaligned country (camp = its smallID). */
 export interface CampScore {
-  camp: FactionId | number;
+  camp: FactionKey | number;
   members: number[];
   vp: number;
   tiles: number;
@@ -35,10 +38,13 @@ export function scoreBp(
   return v + t;
 }
 
+/** Factions by index (P3: f3, f4… after the starting three), then countries. */
+const COUNTRY_CAMP_RANK = 1_000_000;
+
 function campRank(c: CampScore): number {
   return typeof c.camp === "number"
-    ? FACTION_IDS.length + c.camp
-    : FACTION_IDS.indexOf(c.camp);
+    ? COUNTRY_CAMP_RANK + c.camp
+    : factionIdxOfKey(c.camp);
 }
 
 /**
@@ -50,7 +56,7 @@ export function campScores(
   totalVp: number,
   totalTiles: number,
 ): CampScore[] {
-  const camps = new Map<FactionId | number, CampScore & { alive: boolean }>();
+  const camps = new Map<FactionKey | number, CampScore & { alive: boolean }>();
   const sorted = [...inputs].sort((a, b) => a.smallID - b.smallID);
   for (const c of sorted) {
     const key = c.faction ?? c.smallID;

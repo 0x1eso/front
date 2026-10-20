@@ -22,6 +22,7 @@ import {
   step,
   stepTo,
   takeRegion,
+  withTestPolitics,
   WwHuman,
   wwRunnerCapture,
 } from "./util";
@@ -64,6 +65,9 @@ async function germany(withFrance = false) {
     paris: region("Paris"),
   };
 }
+
+// P3: the P1/P2 numbers, not the 1936 politics content (plan Task 1).
+withTestPolitics();
 
 describe("construction (spec §4)", () => {
   test("a project gains what the formula says", async () => {

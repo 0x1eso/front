@@ -34,7 +34,7 @@ import {
   Winner,
 } from "@openfront/engine-api/Schemas";
 import { ATTACK_INDEX_SENT } from "@openfront/engine-api/StatsSchemas";
-import type { FactionId } from "@openfront/engine-api/ww1936/Countries";
+import type { FactionKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import {
   MotionPlanRecord,
@@ -1118,7 +1118,7 @@ export class GameImpl implements Game {
         return [
           "team",
           winner,
-          ...this._worldWar.humanClientIDsOf(winner as FactionId),
+          ...this._worldWar.humanClientIDsOf(winner as FactionKey),
         ];
       }
       const threshold = this._config.teamLandShareWinThresholdTenths();

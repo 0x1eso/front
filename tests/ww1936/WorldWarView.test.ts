@@ -7,6 +7,11 @@ import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import type { WirePlayer } from "@openfront/shared/WireSchemas";
 import { afterEach, describe, expect, test } from "vitest";
+import {
+  bandModel,
+  factionOfId,
+  sameFaction,
+} from "../../src/client/hud/ww1936/WorldWarModel";
 import { UserSettings } from "../../src/client/UserSettings";
 import { GameView } from "../../src/client/view/GameView";
 import type { PlayerView } from "../../src/client/view/PlayerView";
@@ -39,7 +44,7 @@ async function viewAndEngine() {
     start.players as WirePlayer[],
   );
   for (const gu of updates) view.update(gu);
-  return { game: runner.game, view };
+  return { game: runner.game, view, runner, updates };
 }
 
 function hex([r, g, b]: readonly [number, number, number]): string {
@@ -79,6 +84,41 @@ describe("the World War 1936 game view", () => {
       capitulated: [],
       gauges: [],
     });
+  });
+
+  test("P3: the view holds politics, and the screens' factions read it", async () => {
+    const { game, view, runner, updates } = await viewAndEngine();
+    const pv = view.wwPolitics()!;
+    const ww = game.worldWar()!;
+    for (const c of ww.politics.list()) {
+      expect(pv.summary(c.smallID)?.faction).toBe(
+        ww.politics.factionIdx(c.smallID),
+      );
+    }
+    expect(pv.global?.factions.map((f) => f.key)).toEqual([
+      "axis",
+      "allies",
+      "comintern",
+    ]);
+    const [deu, ita, pol] = (["DEU", "ITA", "POL"] as const).map((t) =>
+      ww.scenario.smallIdOf(t),
+    );
+    expect(factionOfId(view, deu)).toBe("axis");
+    // Poland (mine) is in no faction.
+    expect(bandModel(view).myFaction).toBeNull();
+    const asView = (id: number) => view.playerBySmallID(id) as PlayerView;
+    expect(sameFaction(asView(pol), asView(deu), view)).toBe(false);
+    // A faction change the engine makes reaches the screens.
+    ww.politics.factions[0].members.push(pol);
+    ww.politics.factionsChanged();
+    const seen = updates.length;
+    step(runner);
+    for (const gu of updates.slice(seen)) view.update(gu);
+    expect(factionOfId(view, pol)).toBe("axis");
+    expect(bandModel(view).myFaction).toBe("axis");
+    expect(sameFaction(asView(pol), asView(ita), view)).toBe(true);
+    // Without the game, sameFaction keeps P0's starting factions.
+    expect(sameFaction(asView(pol), asView(ita))).toBe(false);
   });
 
   test("country flag and colour show for everyone, whatever the cosmetics settings", async () => {

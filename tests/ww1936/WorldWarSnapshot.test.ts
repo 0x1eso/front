@@ -347,6 +347,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // entrenchment) and S (supply, training, reinforcement, attrition, army
 // XP, generals) merged: same value in four runs. Re-pinned after lane A
 // (the AI's land war) merged: same value in four runs.
+// P3 Task 1 (politics' foundation, plan decision 23): the politics state
+// and hash, the history beats rolled by wwRoll (the P0 calendar's stateful
+// roll is gone), legal owners; empty content, the lanes' stubs. The
+// controller re-pins it at every P3 merge (pending: re-pinned at the end
+// of the P3 integration batch).
 const WW1936_DIGEST = "354619149f96271c";
 
 describe("World War 1936 stays deterministic", () => {

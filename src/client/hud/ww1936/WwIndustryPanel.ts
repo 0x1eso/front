@@ -47,6 +47,8 @@ import {
   lawKindName,
   lawLadder,
   lawName,
+  type LawPolitics,
+  lawPoliticsOf,
   LawStep,
   lawStepReason,
   LineRow,
@@ -123,6 +125,8 @@ interface Ctx {
   dead: boolean;
   /** The live war length the engine's law check reads (liveWarDays). */
   warDays: number;
+  /** P3 spec §7.2: what the law conditions read (the politics view). */
+  lawPol: LawPolitics;
 }
 
 /**
@@ -206,6 +210,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       fighting: fightingFn(game),
       dead: !me.isAlive() || isCapitulated(game, id),
       warDays: liveWarDays(game, id),
+      lawPol: lawPoliticsOf(game.wwPolitics?.() ?? null, id),
     };
   }
 
@@ -1234,7 +1239,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   }
 
   private renderLadder(c: Ctx, kind: LawKind): TemplateResult {
-    const steps = lawLadder(c.detail, kind, c.day, c.warDays);
+    const steps = lawLadder(c.detail, kind, c.day, c.warDays, c.lawPol);
     const wait = steps[0]?.cooldownDays ?? 0;
     return html`<section data-ww-law-kind=${kind}>
       <div class="${HEADING} flex items-center justify-between gap-2">
