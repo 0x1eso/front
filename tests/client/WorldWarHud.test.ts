@@ -94,6 +94,7 @@ function fakeGame(o: Fake = {}): WwGame {
     id: () => `P${i + 1}`,
     smallID: () => i + 1,
     countryTag: () => tag,
+    type: () => (o.humans?.[tag] ? PlayerType.Human : PlayerType.Nation),
     clientID: () => o.humans?.[tag]?.[0] ?? null,
     name: () => COUNTRIES[tag].name,
     displayName: () => COUNTRIES[tag].name,
@@ -194,6 +195,43 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(m.nextHistory).toBe(
       "[ww1936.date] year=1939,month=[ww1936.month.m09],day=1",
     );
+  });
+
+  it("the next date skips entries that never fire: a human's, or a capitulated country's", () => {
+    const next = (o: Fake) => diplomacyModel(fakeGame({ ticks: 600, ...o }));
+    const date = (y: number, m: string, d: number) =>
+      `[ww1936.date] year=${y},month=[ww1936.month.m${m}],day=${d}`;
+    // Germany is a human's: Britain joining against it comes next.
+    expect(next({ humans: { DEU: ["C1", "minsu"] } }).nextHistory).toBe(
+      date(1939, "09", 3),
+    );
+    expect(
+      next({
+        humans: {
+          DEU: ["C1", "minsu"],
+          GBR: ["C2", "jiwoo"],
+          FRA: ["C3", "seoyeon"],
+        },
+      }).nextHistory,
+    ).toBe(date(1939, "09", 17));
+    // Poland has capitulated: the Soviet entry goes too, and Germany's on
+    // France (a human's), leaving Italy's.
+    expect(
+      next({
+        humans: {
+          DEU: ["C1", "minsu"],
+          GBR: ["C2", "jiwoo"],
+          FRA: ["C3", "seoyeon"],
+        },
+        capitulated: ["POL"],
+      }).nextHistory,
+    ).toBe(date(1940, "06", 10));
+    // Nothing left: no date.
+    expect(
+      next({
+        ticks: dayStartTick(3000, 600),
+      }).nextHistory,
+    ).toBeNull();
   });
 
   it("the region line shows the name, the points and the 1936 owner when it changed", () => {

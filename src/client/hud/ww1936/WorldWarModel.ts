@@ -1,4 +1,5 @@
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
+import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { Winner } from "@openfront/engine-api/Schemas";
 import {
   COUNTRIES,
@@ -234,7 +235,10 @@ export interface DiplomacyModel {
   }[];
   myWars: CountryTag[];
   camps: { name: string; scoreBp: number; mine: boolean }[];
-  /** The next date of the historical calendar (as written, not as rolled). */
+  /**
+   * The next date of the historical calendar (as written, not as rolled)
+   * among the entries that can still fire.
+   */
   nextHistory: string | null;
 }
 
@@ -257,11 +261,19 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
       })),
   })).filter((f) => f.members.length > 0);
   const day = today(game);
+  // Entries that can still fire: only a nation (AI) acts on the calendar
+  // (HistoryRun.processHistory), and nobody declares on or as a
+  // capitulated country.
+  const canFire = (actor: number, target: number) =>
+    actor !== 0 &&
+    target !== 0 &&
+    asPlayer(game, actor)?.type() !== PlayerType.Human &&
+    !isCapitulated(game, actor) &&
+    !isCapitulated(game, target);
   const next = HISTORY.find(
     (e) =>
       dayOfDate(e.date) >= day &&
-      s.smallIdOf(e.actor) !== 0 &&
-      s.smallIdOf(e.target) !== 0,
+      canFire(s.smallIdOf(e.actor), s.smallIdOf(e.target)),
   );
   return {
     factions,
