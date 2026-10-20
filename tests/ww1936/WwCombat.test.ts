@@ -204,4 +204,29 @@ describe("the combat bridge (spec §6.5, §10)", () => {
       expect(ce.fieldInfUnits).toBeLessThan(field[k]);
     });
   });
+
+  test("two attacks that meet head-on cost both sides men and equipment", async () => {
+    const runner = await wwRunner({}, HUMANS);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const deu = byTag(g, "DEU");
+    const pol = byTag(g, "POL");
+    const [cd, cp] = [deu, pol].map((p) => ww.economy.country(p.smallID())!);
+    throughDay(runner, pol, 0);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    g.addExecution(new AttackExecution(60_000, pol, deu.id(), null));
+    step(runner);
+    const [polAttack] = pol.outgoingAttacks();
+    expect(polAttack.troops()).toBe(60_000);
+    cd.lossMilli = 0;
+    cp.lossMilli = 0;
+    // Germany's answer meets Poland's attack (a few hundred of its men fall
+    // conquering tiles first): about 60,000 men gone on each side, far more
+    // than a tick's fighting over tiles.
+    g.addExecution(new AttackExecution(100_000, deu, pol.id(), null));
+    step(runner);
+    expect(polAttack.isActive()).toBe(false);
+    expect(cd.lossMilli).toBeGreaterThan(55_000_000);
+    expect(cp.lossMilli).toBeGreaterThan(55_000_000);
+  });
 });

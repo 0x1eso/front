@@ -4,6 +4,7 @@ import {
   equipKey,
   RESOURCE_COUNT,
   RESOURCE_IDS,
+  WW_MAX_LINE_FACTORIES,
   WW_MAX_LINES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -19,6 +20,7 @@ import { GameRunner } from "@openfront/engine/GameRunner";
 import {
   addLine,
   changeLine,
+  factoryCount,
   moveLine,
   removeLine,
   setLineFactories,
@@ -37,6 +39,9 @@ const CLIENT: Record<string, string> = {
   DEU: "HUMAN001",
   ITA: "HUMAN002",
   GBR: "HUMAN003",
+  FRA: "HUMAN004",
+  SUN: "HUMAN005",
+  POL: "HUMAN006",
 };
 
 interface Game1936 {
@@ -182,7 +187,16 @@ describe("production lines (spec §8)", () => {
   });
 
   test("a missing resource cuts output to its share", async () => {
-    const { runner, econ, ce, order } = await game(["ITA", "GBR"]);
+    // Every country human: an AI buying London's tungsten first (they plan
+    // on day 0 since Task 9) would leave Italy no room.
+    const { runner, econ, ce, order } = await game([
+      "ITA",
+      "GBR",
+      "DEU",
+      "FRA",
+      "SUN",
+      "POL",
+    ]);
     const ita = ce("ITA");
     const gbr = ce("GBR");
     const TUNGSTEN = RESOURCE_IDS.indexOf("tungsten");
@@ -340,5 +354,24 @@ describe("production lines (spec §8)", () => {
     // A removed line's id is never reused.
     expect(addLine(econ, deu, "artillery", 1, 2)).toBeNull();
     expect(deu.lines[WW_MAX_LINES - 1].id).toBe(WW_MAX_LINES + 1);
+  });
+
+  test("a factory count that is no number gives none", async () => {
+    // Direct callers (the AI) are not checked by the wire schema.
+    expect(factoryCount(Number.NaN)).toBe(0);
+    expect(factoryCount(-3)).toBe(0);
+    expect(factoryCount(2.7)).toBe(2);
+    expect(factoryCount(Number.POSITIVE_INFINITY)).toBe(WW_MAX_LINE_FACTORIES);
+    const { econ, ce } = await game(["DEU"]);
+    const deu = ce("DEU");
+    expect(addLine(econ, deu, "infantry_equipment", 1, Number.NaN)).toBeNull();
+    expect(deu.lines[0].factories).toBe(0);
+    expect(setLineFactories(econ, deu, deu.lines[0].id, 4)).toBeNull();
+    expect(setLineFactories(econ, deu, deu.lines[0].id, Number.NaN)).toBeNull();
+    expect(deu.lines[0].factories).toBe(0);
+    // And the day's production stays whole.
+    stepProduction(econ, deu);
+    expect(Number.isInteger(deu.totals.idleMil)).toBe(true);
+    expect(deu.lines[0].active).toBe(0);
   });
 });

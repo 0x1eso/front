@@ -514,7 +514,7 @@
   {
     "tag": "CHN",
     "res": "tungsten",
-    "amount": 24,
+    "amount": 48,
     "lon": 114.4,
     "lat": 25.4,
     "note": "Dayu, Jiangxi"
@@ -522,7 +522,7 @@
   {
     "tag": "CHN",
     "res": "tungsten",
-    "amount": 6,
+    "amount": 12,
     "lon": 113,
     "lat": 27,
     "note": "Hunan"
@@ -530,7 +530,7 @@
   {
     "tag": "RAJ",
     "res": "tungsten",
-    "amount": 8,
+    "amount": 16,
     "lon": 97.2,
     "lat": 18.8,
     "note": "Mawchi"
@@ -538,7 +538,7 @@
   {
     "tag": "USA",
     "res": "tungsten",
-    "amount": 4,
+    "amount": 8,
     "lon": -118.4,
     "lat": 37.4,
     "note": "Bishop"
@@ -546,7 +546,7 @@
   {
     "tag": "USA",
     "res": "tungsten",
-    "amount": 2,
+    "amount": 4,
     "lon": -105.3,
     "lat": 40,
     "note": "Boulder"
@@ -554,7 +554,7 @@
   {
     "tag": "PRT",
     "res": "tungsten",
-    "amount": 4,
+    "amount": 8,
     "lon": -7.75,
     "lat": 40.15,
     "note": "Panasqueira"
@@ -562,7 +562,7 @@
   {
     "tag": "ESN",
     "res": "tungsten",
-    "amount": 2,
+    "amount": 4,
     "lon": -8,
     "lat": 42.5,
     "note": "Galicia"
@@ -570,7 +570,7 @@
   {
     "tag": "BOL",
     "res": "tungsten",
-    "amount": 3,
+    "amount": 6,
     "lon": -67.3,
     "lat": -16.4,
     "note": "Chojlla"
@@ -578,7 +578,7 @@
   {
     "tag": "JPN",
     "res": "tungsten",
-    "amount": 3,
+    "amount": 6,
     "lon": 128.8,
     "lat": 37.15,
     "note": "Sangdong"
@@ -586,7 +586,7 @@
   {
     "tag": "GBR",
     "res": "tungsten",
-    "amount": 2,
+    "amount": 4,
     "lon": 101,
     "lat": 4.6,
     "note": "Perak"
@@ -594,7 +594,7 @@
   {
     "tag": "ARG",
     "res": "tungsten",
-    "amount": 2,
+    "amount": 4,
     "lon": -65.4,
     "lat": -32.5,
     "note": "San Luis"
@@ -602,7 +602,7 @@
   {
     "tag": "AUS",
     "res": "tungsten",
-    "amount": 1,
+    "amount": 2,
     "lon": 146,
     "lat": -41.8,
     "note": "Tasmania"
@@ -610,7 +610,7 @@
   {
     "tag": "SWE",
     "res": "tungsten",
-    "amount": 1,
+    "amount": 2,
     "lon": 14.75,
     "lat": 60.1,
     "note": "Yxsjoberg"
@@ -1034,7 +1034,7 @@
   {
     "tag": "GBR",
     "res": "chromium",
-    "amount": 12,
+    "amount": 24,
     "lon": 29.8,
     "lat": -19.65,
     "note": "Selukwe"
@@ -1042,7 +1042,7 @@
   {
     "tag": "GBR",
     "res": "chromium",
-    "amount": 2,
+    "amount": 4,
     "lon": -11.1,
     "lat": 7.9,
     "note": "Sierra Leone"
@@ -1050,7 +1050,7 @@
   {
     "tag": "TUR",
     "res": "chromium",
-    "amount": 10,
+    "amount": 20,
     "lon": 39.4,
     "lat": 38.5,
     "note": "Guleman"
@@ -1058,7 +1058,7 @@
   {
     "tag": "SUN",
     "res": "chromium",
-    "amount": 6,
+    "amount": 12,
     "lon": 58.9,
     "lat": 58.5,
     "note": "Saranovsky"
@@ -1066,7 +1066,7 @@
   {
     "tag": "SUN",
     "res": "chromium",
-    "amount": 3,
+    "amount": 6,
     "lon": 58.4,
     "lat": 50.3,
     "note": "Khromtau"
@@ -1074,7 +1074,7 @@
   {
     "tag": "ZAF",
     "res": "chromium",
-    "amount": 8,
+    "amount": 16,
     "lon": 27.25,
     "lat": -25.67,
     "note": "Rustenburg"
@@ -1082,7 +1082,7 @@
   {
     "tag": "FRA",
     "res": "chromium",
-    "amount": 4,
+    "amount": 8,
     "lon": 165,
     "lat": -21.5,
     "note": "New Caledonia"
@@ -1090,7 +1090,7 @@
   {
     "tag": "USA",
     "res": "chromium",
-    "amount": 3,
+    "amount": 6,
     "lon": 120,
     "lat": 15.5,
     "note": "Masinloc"
@@ -1098,7 +1098,7 @@
   {
     "tag": "YUG",
     "res": "chromium",
-    "amount": 3,
+    "amount": 6,
     "lon": 21,
     "lat": 42.3,
     "note": "Kosovo"
@@ -1106,7 +1106,7 @@
   {
     "tag": "GRC",
     "res": "chromium",
-    "amount": 2,
+    "amount": 4,
     "lon": 22,
     "lat": 40.3,
     "note": "Kozani"
@@ -1114,7 +1114,7 @@
   {
     "tag": "CUB",
     "res": "chromium",
-    "amount": 2,
+    "amount": 4,
     "lon": -77.9,
     "lat": 21.4,
     "note": "Camaguey"
@@ -1122,7 +1122,7 @@
   {
     "tag": "RAJ",
     "res": "chromium",
-    "amount": 2,
+    "amount": 4,
     "lon": 69.4,
     "lat": 31.3,
     "note": "Zhob"
@@ -1130,7 +1130,7 @@
   {
     "tag": "ALB",
     "res": "chromium",
-    "amount": 1,
+    "amount": 2,
     "lon": 20.25,
     "lat": 41.5,
     "note": "Bulqize"

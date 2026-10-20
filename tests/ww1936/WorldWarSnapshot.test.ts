@@ -395,8 +395,10 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
  * pinned` three times, check the received value is the same each time,
  * put it here, and say so in the commit. A refactor that moves it is a bug.
  */
-// P1 Task 1: the 1936 armies and no vanilla troop regrowth.
-const WW1936_DIGEST = "3b048ca4fa15d784";
+// P1 Task 9: all of P1 merged (economy lanes, AI economy, scenario v2 data),
+// the Task 9 fix batch and balance pass (AI reactions, tungsten and chromium
+// at twice the scale, the economy hash's new fields).
+const WW1936_DIGEST = "538d761f5594ed56";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

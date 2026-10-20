@@ -14,6 +14,7 @@ import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
+  AI_FALLBACK_AHEAD_PCT,
   AI_SWITCH_DAY,
   aiInput,
   AiInput,
@@ -21,8 +22,12 @@ import {
   AiOrder,
   aiPersonality,
   aiPlan,
+  aiReactions,
+  aiReactPlan,
   aiResearchOrder,
+  aiRetools,
   aiSchool,
+  isAiTurn,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import { byTag, HUMAN, stepTo, wwRunner } from "./util";
@@ -118,8 +123,9 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect(aiPersonality("RAJ")).toBe("democracy");
     expect(aiPersonality("IRL")).toBe("minor");
     expect(aiPersonality("POL")).toBe("minor");
+    // Task 9: the aggressors rearm from mid-1936 (spec §16 balance record).
     expect(AI_SWITCH_DAY).toEqual({
-      aggressor: dayOfDate("1937-07-01"),
+      aggressor: dayOfDate("1936-07-01"),
       democracy: dayOfDate("1939-01-01"),
       minor: dayOfDate("1938-01-01"),
     });
@@ -369,9 +375,10 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
   test("majors' lines lean to their doctrine; tanks are medium once researched", () => {
     const light = new Set<WwTechId>(["light_tank_1"]);
     const medium = new Set<WwTechId>(["light_tank_1", "medium_tank_1"]);
-    // Spec §12.2 for a major, plus Germany's mobile-warfare lean.
+    // Spec §12.2 for a major, plus Germany's mobile-warfare lean (its
+    // vehicles come out of guns and bombers, not rifles: Task 9).
     expect(aiLineShares("DEU", true, light, false)).toEqual({
-      infantry_equipment: 35,
+      infantry_equipment: 40,
       support_equipment: 5,
       artillery: 10,
       anti_tank: 5,
@@ -380,7 +387,7 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       light_tank: 20,
       medium_tank: 0,
       fighter: 5,
-      bomber: 5,
+      bomber: 0,
     });
     expect(aiLineShares("SUN", true, medium, false)).toMatchObject({
       infantry_equipment: 50,
@@ -448,10 +455,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect(aiResearchOrder("SUN")[0]).toBe("inf_eq_1");
   });
 
-  test("research stays within half a year of a tech's year, then a year", () => {
+  test("research stays within half a year of a tech's year, then nine months", () => {
     // Germany on day 0 (techs of spec §11.1): mobile_1 and electronics_1
-    // are 1936 techs; nothing else is within 50%, so the third slot takes a
-    // 1937 tech (100% ahead) rather than idle. Nothing from 1938.
+    // are 1936 techs; nothing else is within 50%, and a 1937 tech is a full
+    // year (100%) ahead, past the 75% fallback: the third slot waits. From
+    // April 1936 a 1937 tech is within the fallback. Nothing from 1938.
     const researched: WwTechId[] = [
       "inf_eq_1",
       "support_eq_1",
@@ -479,8 +487,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         ),
         "research",
       ).map((o) => o.tech);
-    expect(deu(0, 3)).toEqual(["mobile_1", "electronics_1", "output_1"]);
-    expect(deu(0, 5)).toEqual([
+    expect(AI_FALLBACK_AHEAD_PCT).toBe(75);
+    expect(deu(0, 3)).toEqual(["mobile_1", "electronics_1"]);
+    expect(deu(0, 5)).toEqual(["mobile_1", "electronics_1"]);
+    // 1936-04-02: 1937 techs are 74% ahead.
+    expect(deu(dayOfDate("1936-04-02"), 4)).toEqual([
       "mobile_1",
       "electronics_1",
       "output_1",
@@ -626,9 +637,14 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       { kind: "open_trade", seller: 5, resource: "tungsten", civs: 1 },
       { kind: "open_trade", seller: 2, resource: "tungsten", civs: 1 },
     ]);
-    // Never past the factories it can pay with, or below 30% of nothing.
+    // Never past the factories it can pay with. Where 30% rounds to
+    // nothing, a line that lacks something still gets one factory's worth
+    // (Task 9: small economies traded never); not without a free factory.
     expect(buy({ freeCivMilli: 20_000, paidCivs: 9 })).toHaveLength(1);
-    expect(buy({ freeCivMilli: 3_000 })).toEqual([]);
+    expect(buy({ freeCivMilli: 3_000 })).toEqual([
+      { kind: "open_trade", seller: 5, resource: "tungsten", civs: 1 },
+    ]);
+    expect(buy({ freeCivMilli: 999 })).toEqual([]);
     // Nothing lacking, nothing bought.
     expect(
       buy({ freeCivMilli: 20_000, produced: res({ steel: 20, tungsten: 10 }) }),
@@ -651,6 +667,152 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "close_trade",
     );
     expect(close).toEqual([{ kind: "close_trade", trade: 7 }]);
+  });
+});
+
+describe("between its turns an AI takes up what fell free (Task 9)", () => {
+  test("day 0 is every major's turn, then every ten days", () => {
+    for (const id of [1, 2, 7]) expect(isAiTurn(id, 0, true)).toBe(true);
+    expect(isAiTurn(41, 0, false)).toBe(false);
+    expect(isAiTurn(41, 0, true)).toBe(true);
+    expect(isAiTurn(10, 0, false)).toBe(true);
+    expect(isAiTurn(1, 9, true)).toBe(true);
+    expect(isAiTurn(1, 10, true)).toBe(false);
+    expect(isAiTurn(4, 6, true)).toBe(true);
+    expect(isAiTurn(4, 7, true)).toBe(false);
+  });
+
+  test("a reaction writes only the steps that fell free, as the turn would", () => {
+    const researched: WwTechId[] = ["inf_eq_1", "support_eq_1", "artillery_1"];
+    const busy = input({
+      tag: "POL",
+      day: 100,
+      // A law it would raise, a deal it would make: not between turns.
+      warDays: 0,
+      researched,
+      slots: [null, "construction_1"],
+      slotCount: 2,
+      mil: 4,
+      idleMil: 2,
+      lines: [line(1, "infantry_equipment", 1, 2, { effBp: 4900 })],
+      freeCivMilli: 20_000,
+      payableCivs: 10,
+      partners: [
+        { smallID: 3, sameFaction: false, room: res({ tungsten: 40 }) },
+      ],
+      regions: TWO_REGIONS,
+    });
+    const all = { research: true, lines: true, construction: true };
+    const full = aiPlan(busy);
+    const react = aiReactPlan(busy, all);
+    expect(only(react, "set_law")).toEqual([]);
+    expect(only(react, "open_trade")).toEqual([]);
+    expect(only(react, "change_line")).toEqual([]);
+    expect(only(full, "set_law").length).toBeGreaterThan(0);
+    expect(only(full, "open_trade").length).toBeGreaterThan(0);
+    // The rest as the turn writes it.
+    for (const kind of [
+      "research",
+      "build",
+      "set_line_factories",
+      "add_line",
+    ] as const) {
+      expect(only(react, kind)).toEqual(only(full, kind));
+    }
+    // Only what is asked.
+    expect(
+      aiReactPlan(busy, { research: true, lines: false, construction: false }),
+    ).toEqual(only(full, "research"));
+    expect(
+      aiReactPlan(busy, { research: false, lines: false, construction: true })
+        .map((o) => o.kind)
+        .every((k) => k === "build"),
+    ).toBe(true);
+  });
+
+  test("every line near its cap may retool, in line order", () => {
+    const researched = new Set<WwTechId>([
+      "inf_eq_1",
+      "inf_eq_2",
+      "artillery_1",
+      "artillery_2",
+    ]);
+    expect(
+      aiRetools(
+        [
+          line(1, "infantry_equipment", 1, 4, { effBp: 4400 }),
+          line(2, "artillery", 1, 2, { effBp: 4600 }),
+          line(3, "infantry_equipment", 2, 2, { effBp: 5000 }),
+          line(4, "infantry_equipment", 1, 2, { effBp: 4500 }),
+        ],
+        researched,
+        5000,
+      ),
+    ).toEqual([
+      { kind: "change_line", line: 2, equipment: "artillery", gen: 2 },
+      { kind: "change_line", line: 4, equipment: "infantry_equipment", gen: 2 },
+    ]);
+  });
+
+  test("light tank lines count against the tank share once mediums are researched", () => {
+    const researched: WwTechId[] = [
+      "inf_eq_1",
+      "support_eq_1",
+      "artillery_1",
+      "motorized_1",
+      "light_tank_1",
+      "light_tank_2",
+      "medium_tank_1",
+      "fighter_1",
+      "bomber_1",
+      "anti_tank_1",
+      "anti_air_1",
+    ];
+    // Germany, 20 factories, 4 of them on light tanks: the 20% tank share
+    // is met, so the 4 idle ones go elsewhere and no medium line opens.
+    const plan = aiPlan(
+      input({
+        tag: "DEU",
+        personality: "aggressor",
+        major: true,
+        researched,
+        mil: 20,
+        idleMil: 4,
+        lines: [
+          line(1, "infantry_equipment", 1, 8),
+          line(2, "light_tank", 2, 4),
+          line(3, "motorized", 1, 2),
+          line(4, "artillery", 1, 2),
+        ],
+      }),
+    );
+    expect(
+      only(plan, "add_line").filter((o) => o.equipment === "medium_tank"),
+    ).toEqual([]);
+  });
+
+  test("after the switch the queue puts military factories first", () => {
+    const deu = (day: number) =>
+      aiPlan(
+        input({
+          tag: "DEU",
+          personality: "aggressor",
+          major: true,
+          day,
+          freeCivMilli: 20_000,
+          queue: [
+            { region: 1, building: "civ", count: 3 },
+            { region: 3, building: "infra", count: 1 },
+          ],
+          regions: TWO_REGIONS,
+        }),
+      );
+    expect(only(deu(AI_SWITCH_DAY.aggressor - 1), "military_first")).toEqual(
+      [],
+    );
+    expect(only(deu(AI_SWITCH_DAY.aggressor), "military_first")).toEqual([
+      { kind: "military_first" },
+    ]);
   });
 });
 
@@ -680,18 +842,17 @@ describe("the AI economy in a game (spec §12)", () => {
   test("an AI fills its queue with civilian factories before its switch", async () => {
     const { runner, ce } = await allAi();
     const deu = ce("DEU");
-    const day = aiDay(deu.smallID);
-    expect(day).toBe(9);
-    // Its own day and tick: nothing before, the queue after.
-    stepTo(runner, dayStart(day) + (deu.smallID % WW_DAY_SPLIT));
+    // Day 0 is every country's first turn (Task 9), on its own tick.
+    stepTo(runner, dayStart(0) + (deu.smallID % WW_DAY_SPLIT));
     expect(deu.queue).toEqual([]);
-    stepTo(runner, dayStart(day) + (deu.smallID % WW_DAY_SPLIT) + 1);
+    stepTo(runner, dayStart(0) + (deu.smallID % WW_DAY_SPLIT) + 1);
     // 5.25 free factories: two entries. Berlin (4 free slots) before
     // Munich (2), both infra 5.
     expect(
       deu.queue.map((q) => `${q.region}:${q.building}x${q.count}`),
     ).toEqual(["3:civx3", "4:civx2"]);
     // Rome has no free slot: Italy builds infrastructure there instead.
+    throughDay(runner, 0);
     const ita = ce("ITA");
     expect(ita.queue.length).toBeGreaterThan(0);
     expect(
@@ -699,12 +860,12 @@ describe("the AI economy in a game (spec §12)", () => {
     ).toBe(true);
   });
 
-  test("after the switch it builds military factories", async () => {
+  test("after the switch it builds military factories, ahead of the civilian ones", async () => {
     const { runner, ce } = await allAi();
     const deu = ce("DEU");
     const gbr = ce("GBR");
     const day = aiDay(deu.smallID, AI_SWITCH_DAY.aggressor);
-    expect(day).toBe(549);
+    expect(day).toBe(189);
     stepTo(runner, dayStart(day));
     deu.queue = [];
     throughDay(runner, day);
@@ -717,15 +878,36 @@ describe("the AI economy in a game (spec §12)", () => {
     throughDay(runner, gday);
     expect(gbr.queue.some((q) => q.building === "civ")).toBe(true);
     expect(gbr.queue.some((q) => q.building === "mil")).toBe(false);
+    // Civilian entries left from before the switch wait behind the
+    // military ones (Task 9), their progress kept.
+    const next = aiDay(deu.smallID, day + 1);
+    stepTo(runner, dayStart(next));
+    const civ = {
+      region: 3,
+      building: "civ" as const,
+      count: 1,
+      progress: 1234,
+      lastAssigned: 0,
+      lastSpeedPct: 0,
+    };
+    deu.queue = [civ, ...deu.queue.slice(0, 1)];
+    throughDay(runner, next);
+    const kinds = deu.queue.map((q) => q.building);
+    expect(kinds[0]).toBe("mil");
+    expect(kinds.indexOf("civ")).toBe(kinds.lastIndexOf("civ"));
+    expect(kinds.slice(kinds.indexOf("civ") + 1)).toEqual([]);
+    // (It was still in front for that day's building.)
+    expect(
+      deu.queue.find((q) => q.building === "civ")!.progress,
+    ).toBeGreaterThan(1234);
   });
 
-  test("idle factories get a line", async () => {
-    const { runner, ce } = await allAi();
+  test("idle factories get a line, and new ones the day they appear", async () => {
+    const { runner, econ, ce } = await allAi();
     const deu = ce("DEU");
-    throughDay(runner, 8);
+    stepTo(runner, dayStart(0) + (deu.smallID % WW_DAY_SPLIT));
     expect(deu.lines).toEqual([]);
-    expect(deu.totals.idleMil).toBe(6);
-    throughDay(runner, 9);
+    throughDay(runner, 0);
     const factories = deu.lines.reduce((s, l) => s + l.factories, 0);
     expect(factories).toBe(6);
     // Infantry equipment heads the list and has the most.
@@ -733,31 +915,58 @@ describe("the AI economy in a game (spec §12)", () => {
     expect(Math.max(...deu.lines.map((l) => l.factories))).toBe(
       deu.lines[0].factories,
     );
-    throughDay(runner, 10);
+    throughDay(runner, 1);
     expect(deu.totals.idleMil).toBe(0);
     expect(deu.lines.every((l) => l.active === l.factories)).toBe(true);
+    // Two military factories finish on day 4 (not a turn of Germany's):
+    // on day 5 they work on a line already, not on day 9.
+    expect(isAiTurn(deu.smallID, 5, true)).toBe(false);
+    stepTo(runner, dayStart(5));
+    econ.addBuilding(4, "mil", 2);
+    throughDay(runner, 5);
+    expect(deu.lines.reduce((s, l) => s + l.factories, 0)).toBe(8);
+    throughDay(runner, 6);
+    expect(deu.totals.idleMil).toBe(0);
   });
 
-  test("empty research slots get filled", async () => {
-    const { runner, ce } = await allAi();
+  test("empty research slots get filled, and again the day a tech is done", async () => {
+    const { runner, econ, ce } = await allAi();
     for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
       expect(ce(tag).slots.every((s) => s === null)).toBe(true);
     }
-    throughDay(runner, 9);
-    for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
-      const c = ce(tag);
-      expect(c.slots).toHaveLength(c.totals.slotCount);
-      expect(c.slots.every((s) => s !== null)).toBe(true);
-    }
-    expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
+    throughDay(runner, 0);
+    // A 1937 tech is a year ahead on day 0, past the fallback: Germany's
+    // third slot waits for April.
+    expect(ce("DEU").slots.map((s) => s?.tech ?? null)).toEqual([
       "mobile_1",
       "electronics_1",
-      "output_1",
+      null,
     ]);
     expect(ce("POL").slots.map((s) => s!.tech)).toEqual([
       "construction_1",
       "anti_tank_1",
     ]);
+    throughDay(runner, dayOfDate("1936-04-02"));
+    for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
+      const c = ce(tag);
+      expect(c.slots).toHaveLength(c.totals.slotCount);
+      expect(c.slots.every((s) => s !== null)).toBe(true);
+    }
+    // mobile_1 is done after 120 days, not on a turn of Germany's: a new
+    // tech starts that same day (not up to ten days later), and any slot
+    // still empty has nothing within reach.
+    const deu = ce("DEU");
+    let day = dayOfDate("1936-04-02");
+    while (!deu.researched.has("mobile_1")) throughDay(runner, ++day);
+    expect(isAiTurn(deu.smallID, day, true)).toBe(false);
+    expect(deu.slots.some((s) => s !== null && s.progress === 0)).toBe(true);
+    const react = aiReactions(deu);
+    expect(
+      only(
+        aiReactPlan(aiInput(econ, deu, day, runner.game.ticks()), react),
+        "research",
+      ),
+    ).toEqual([]);
   });
 
   test("an AI at war moves to war economy", async () => {
@@ -783,18 +992,31 @@ describe("the AI economy in a game (spec §12)", () => {
 
   test("an AI buys a resource its lines lack", async () => {
     const { runner, ww, econ, ce } = await allAi();
+    const ita = ce("ITA");
     const fra = ce("FRA");
     const gbr = ce("GBR");
-    throughDay(runner, aiDay(fra.smallID));
-    // France's artillery and anti-tank lines want tungsten; Britain sells it.
-    const deals = econ.trades().filter((t) => t.buyer === fra.smallID);
-    expect(deals).toEqual([
+    // Their first turns: day 0, each on its own tick (Italy's 2, France's 4).
+    throughDay(runner, 0);
+    // Italy's artillery line wants tungsten; Britain sells it across the
+    // sea. France, later on the day, finds London's room taken: its guns
+    // wait (first come, first served, as in a market).
+    const deals = (buyer: number) =>
+      econ.trades().filter((t) => t.buyer === buyer);
+    expect(deals(ita.smallID)).toContainEqual(
       expect.objectContaining({
         seller: gbr.smallID,
         res: RESOURCE_IDS.indexOf("tungsten"),
         civs: 1,
       }),
-    ]);
+    );
+    expect(
+      deals(fra.smallID).filter(
+        (t) => t.res === RESOURCE_IDS.indexOf("tungsten"),
+      ),
+    ).toEqual([]);
+    expect(
+      exportRoom(econ, gbr.smallID, RESOURCE_IDS.indexOf("tungsten")),
+    ).toBeLessThan(8);
     // The plan's export room is Trade.exportRoom, partner by partner.
     for (const c of econ.countries()) {
       const i = aiInput(econ, c, econ.day(), runner.game.ticks());

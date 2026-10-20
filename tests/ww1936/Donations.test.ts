@@ -102,4 +102,31 @@ describe("World War 1936 donations (spec §7.2)", () => {
     expect(fra.canDonateGold(gbr)).toBe(false);
     expect(fra.canDonateTroops(gbr)).toBe(false);
   });
+
+  test("a capitulated country upgrades nothing", async () => {
+    const runner = await wwRunner({}, HUMANS);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [gbr, deu] = (["GBR", "DEU"] as const).map((t) => byTag(g, t));
+    stepTo(runner, WW_PREP_TICKS + 1);
+    gbr.addGold(100_000_000n);
+    // A port (ports level up; cities and factories are off in this mode).
+    const coast = [...gbr.tiles()].find(
+      (t) => gbr.canBuild(UnitType.Port, t) !== false,
+    )!;
+    const spawn = gbr.canBuild(UnitType.Port, coast);
+    expect(spawn).not.toBe(false);
+    const port = gbr.buildUnit(UnitType.Port, spawn as number, {});
+    // (Finished at once: the test needs a port, not its construction.)
+    port.setUnderConstruction(false);
+    expect(gbr.canUpgradeUnit(port)).toBe(true);
+    const offer = () =>
+      gbr.buildableUnits(port.tile(), [UnitType.Port])[0].canUpgrade;
+    expect(offer()).toBe(port.id());
+    ww.setWar(deu.smallID(), gbr.smallID(), g.ticks());
+    ww.addCapitulation(gbr.smallID(), deu.smallID(), g.ticks());
+    expect(gbr.canUpgradeUnit(port)).toBe(false);
+    expect(gbr.findUnitToUpgrade(UnitType.Port, port.tile())).toBe(false);
+    expect(offer()).toBe(false);
+  });
 });

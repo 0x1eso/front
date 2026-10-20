@@ -1,10 +1,13 @@
 // World War 1936 P1: the AI economy (spec §12, pre-flight §8.1). An AI
 // country decides every WW_AI_PERIOD_DAYS days, inside its own daily step
 // (WwEconomy.stepCountry, so on its smallID % 7 tick): laws, construction,
-// lines, research, trade, always in that order. aiPlan is a pure function of
-// plain data; aiEconomyTick gathers that data and runs the orders through
-// the functions a human's orders use (a refused order is skipped). No
-// randomness: every tie goes to the lower id or the earlier list entry.
+// lines, research, trade, always in that order. Between those turns it
+// reacts on the day something falls free (Task 9 balance ruling): an empty
+// research slot, idle military factories, civilian factories the queue
+// cannot take. aiPlan and aiReactPlan are pure functions of plain data;
+// aiEconomyTick gathers that data and runs the orders through the functions
+// a human's orders use (a refused order is skipped). No randomness: every
+// tie goes to the lower id or the earlier list entry.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -23,6 +26,7 @@ import {
   RESOURCE_COUNT,
   RESOURCE_IDS,
   ResourceId,
+  WW_AI_PERIOD_DAYS,
   WW_MAX_CIVS_PER_PROJECT,
   WW_MAX_LINE_FACTORIES,
   WW_MAX_LINES,
@@ -52,7 +56,7 @@ import {
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
-import { queueBuild, usedSlots } from "./Construction";
+import { moveBuild, queueBuild, usedSlots } from "./Construction";
 import { setLaw } from "./LawsRun";
 import { addLine, changeLine, setLineFactories } from "./Production";
 import { startResearch } from "./ResearchRun";
@@ -81,11 +85,23 @@ export function aiPersonality(tag: CountryTag): AiPersonality {
   return "minor";
 }
 
-/** Spec §12.1: from this day an AI builds military factories. */
+/**
+ * Spec §12.1: from this day an AI builds military factories. The
+ * aggressors' moved from 1937-07 to 1936-07 (Task 9 balance: Germany's
+ * Four Year Plan and the Soviet five-year plans rearmed from 1936; the
+ * later date left Germany at 28 military factories in 1939-09, §16 wants 35).
+ */
 export const AI_SWITCH_DAY: Readonly<Record<AiPersonality, number>> = {
-  aggressor: dayOfDate("1937-07-01"),
+  aggressor: dayOfDate("1936-07-01"),
   democracy: dayOfDate("1939-01-01"),
   minor: dayOfDate("1938-01-01"),
+};
+
+/** After its switch and at peace, an AI queues this many military factories to one civilian (R6.2). */
+export const AI_MIL_PER_CIV: Readonly<Record<AiPersonality, number>> = {
+  aggressor: 3,
+  democracy: 3,
+  minor: 3,
 };
 
 const DAY_1938 = dayOfDate("1938-01-01");
@@ -121,12 +137,14 @@ export const AI_LINE_SHARES: Readonly<
  * A major's lines lean towards its doctrine (percentage points on top of
  * AI_LINE_SHARES.major; each row sums to 0): mobile warfare builds tanks
  * and trucks, mass assault rifles and guns, superior firepower guns and
- * support, the grand battleplan anti-tank guns and artillery.
+ * support, the grand battleplan anti-tank guns and artillery. Mobile
+ * warfare's vehicles come out of guns and bombers, not rifles (Task 9: the
+ * 1939 Wehrmacht was an infantry army; §16 wants 1.2M men).
  */
 export const AI_SCHOOL_TILT: Readonly<
   Record<DoctrineSchool, Readonly<Partial<Record<AiLineSlot, number>>>>
 > = {
-  mobile: { tank: 5, motorized: 5, infantry_equipment: -5, artillery: -5 },
+  mobile: { tank: 5, motorized: 5, artillery: -5, bomber: -5 },
   mass: {
     infantry_equipment: 10,
     artillery: 5,
@@ -345,8 +363,11 @@ export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
 
 /** Spec §12.2: an AI starts a tech at most this far ahead of its year. */
 export const AI_MAX_AHEAD_PCT = 50;
-/** When nothing is that close, a slot takes a tech up to a year early rather than idle. */
-export const AI_FALLBACK_AHEAD_PCT = 100;
+/**
+ * When nothing is that close, a slot takes a tech up to nine months early
+ * rather than idle (Task 9; a full year early nearly doubles its time).
+ */
+export const AI_FALLBACK_AHEAD_PCT = 75;
 
 // ---- The plan (pure) ----
 
@@ -446,13 +467,38 @@ type AiPlainOrder = Extract<
   }
 >;
 
-/** An AI order: a WwOrder, but a deal names its seller by smallID. */
+/**
+ * An AI order: a WwOrder, but a deal names its seller by smallID; and
+ * `military_first`, which moves the queue's military factories ahead of
+ * the rest (move_build orders on the queue as it is then).
+ */
 export type AiOrder =
   | AiPlainOrder
-  | { kind: "open_trade"; seller: number; resource: ResourceId; civs: number };
+  | { kind: "open_trade"; seller: number; resource: ResourceId; civs: number }
+  | { kind: "military_first" };
 
 /** One AI turn: its orders, in the order they run. */
 export type AiPlan = AiOrder[];
+
+/** What an AI country reacts to between its turns (aiReactions). */
+export interface AiReact {
+  research: boolean;
+  lines: boolean;
+  construction: boolean;
+}
+
+/**
+ * The orders of a reaction between turns: only the steps `react` names, as
+ * the full turn would write them; no laws, no trade, no retooling.
+ */
+export function aiReactPlan(input: AiInput, react: AiReact): AiPlan {
+  const orders: AiOrder[] = [];
+  const lines = planLines(input, false);
+  if (react.construction) planConstruction(input, needs(lines.working), orders);
+  if (react.lines) orders.push(...lines.orders);
+  if (react.research) planResearch(input, orders);
+  return orders;
+}
 
 /** The orders of one AI turn, in the order they run (spec §12.2). */
 export function aiPlan(input: AiInput): AiPlan {
@@ -548,7 +594,7 @@ function typeOf(key: number): EquipmentType {
   return EQUIP_KEYS[key][0];
 }
 
-function planLines(i: AiInput): PlannedLines {
+function planLines(i: AiInput, retool = true): PlannedLines {
   const researched = new Set(i.researched);
   const shares = aiLineShares(
     i.tag,
@@ -556,11 +602,18 @@ function planLines(i: AiInput): PlannedLines {
     researched,
     i.infStock * 10 > i.manpower,
   );
+  // Once medium tanks are researched the tank share is theirs, and the light
+  // tank lines (which keep their factories, R6.5) count against it: else a
+  // country would build a second tank park beside the first.
+  const mediums = researched.has("medium_tank_1");
+  const shareOf = (t: EquipmentType): EquipmentType =>
+    mediums && t === "light_tank" ? "medium_tank" : t;
   const assigned = new Map<EquipmentType, number>();
   const hasLine = new Set<EquipmentType>();
   for (const l of i.lines) {
     const t = typeOf(l.key);
-    assigned.set(t, (assigned.get(t) ?? 0) + l.factories);
+    const s = shareOf(t);
+    assigned.set(s, (assigned.get(s) ?? 0) + l.factories);
     hasLine.add(t);
   }
   // A type whose working lines all got no resources at all yesterday
@@ -622,21 +675,32 @@ function planLines(i: AiInput): PlannedLines {
     }
   }
   // R6.7: one line a turn moves to a newer generation once it is nearly
-  // at its efficiency cap.
-  for (const l of i.lines) {
-    const [t, gen] = EQUIP_KEYS[l.key];
-    const newest = newestGen(t, researched);
-    if (newest > gen && l.effBp >= i.effCapBp - 500) {
-      orders.push({
-        kind: "change_line",
-        line: l.id,
-        equipment: t,
-        gen: newest,
-      });
-      break;
-    }
+  // at its efficiency cap (aiEconomyTick tries the next one if refused).
+  if (retool) {
+    const [first] = aiRetools(i.lines, researched, i.effCapBp);
+    if (first !== undefined) orders.push(first);
   }
   return { orders, working };
+}
+
+/**
+ * Every line that may move to a newer generation of its equipment, in line
+ * order: one within 5 points of the efficiency cap (R6.7).
+ */
+export function aiRetools(
+  lines: readonly AiLine[],
+  researched: ReadonlySet<WwTechId>,
+  effCapBp: number,
+): Extract<AiOrder, { kind: "change_line" }>[] {
+  const out: Extract<AiOrder, { kind: "change_line" }>[] = [];
+  for (const l of lines) {
+    const [t, gen] = EQUIP_KEYS[l.key];
+    const newest = newestGen(t, researched);
+    if (newest > gen && l.effBp >= effCapBp - 500) {
+      out.push({ kind: "change_line", line: l.id, equipment: t, gen: newest });
+    }
+  }
+  return out;
 }
 
 /** Resources a day the lines need, RESOURCE_IDS order. */
@@ -739,10 +803,11 @@ function planConstruction(
   }
 
   while (length < target) {
-    // R6.2: before the switch civilian, after it 3 military to 1 civilian
-    // (military only at war).
+    // R6.2: before the switch civilian, after it AI_MIL_PER_CIV military
+    // to 1 civilian (military only at war).
+    const ratio = AI_MIL_PER_CIV[i.personality];
     const building =
-      !switched || (!atWar && milEntries >= 3 * (civEntries + 1))
+      !switched || (!atWar && milEntries >= ratio * (civEntries + 1))
         ? "civ"
         : "mil";
     const r = bestRegion(regions, (x) => !x.occupied && x.free > 0);
@@ -757,6 +822,20 @@ function planConstruction(
     );
     if (inf === null) break;
     build(inf, "infra", 1);
+  }
+  // Task 9: from the switch the military factories go first, ahead of the
+  // civilian ones still queued from before it (else those took a year or
+  // more to finish first); HOI4's AI reorders its queue the same way.
+  if (switched || atWar) {
+    const rank = (b: string) => (b === "mil" ? 0 : b === "infra" ? 1 : 2);
+    let sorted = true;
+    let worst = 0;
+    for (const q of [...i.queue, ...orders.filter((o) => o.kind === "build")]) {
+      const r = rank(q.building);
+      if (r < worst) sorted = false;
+      worst = Math.max(worst, r);
+    }
+    if (!sorted) orders.push({ kind: "military_first" });
   }
 }
 
@@ -801,8 +880,17 @@ function planTrade(
   need: readonly number[],
   orders: AiOrder[],
 ): void {
-  // Spec §12.2: at most 30% of the free civilian factories a turn.
+  // Spec §12.2: at most 30% of the free civilian factories a turn; and at
+  // least one, when its lines lack something and one is free (Task 9: a
+  // small economy's 30% rounds to nothing, and its lines starve for good).
   let budget = Math.floor((i.freeCivMilli * 30) / 100_000);
+  if (
+    budget === 0 &&
+    i.freeCivMilli >= 1000 &&
+    need.some((n, k) => n > available(i, k))
+  ) {
+    budget = 1;
+  }
   let payable = i.payableCivs - i.paidCivs;
   let deals = i.buying.length;
   const open = new Set(i.buying.map((d) => d.seller * RESOURCE_COUNT + d.res));
@@ -906,18 +994,21 @@ export function aiInput(
         ),
       };
     });
-  const regions: AiRegion[] = econ.regionsOf(me).map((id) => {
-    const slots = econ.regionSlots(id, ce.tech.slotPct);
-    const queuedInfra = queuedInRegion(ce.queue, id).infra;
-    return {
-      region: id,
-      infra: econ.infra[id],
-      free: Math.max(0, slots - usedSlots(econ, id)),
-      infraRoom: Math.max(0, MAX_INFRA - econ.infra[id] - queuedInfra),
-      occupied: econ.isOccupied(id),
-      res: econ.scenario.region(id)!.res,
-    };
-  });
+  // Built only when the plan builds something.
+  let regions: AiRegion[] | null = null;
+  const findRegions = (): AiRegion[] =>
+    econ.regionsOf(me).map((id) => {
+      const slots = econ.regionSlots(id, ce.tech.slotPct);
+      const queuedInfra = queuedInRegion(ce.queue, id).infra;
+      return {
+        region: id,
+        infra: econ.infra[id],
+        free: Math.max(0, slots - usedSlots(econ, id)),
+        infraRoom: Math.max(0, MAX_INFRA - econ.infra[id] - queuedInfra),
+        occupied: econ.isOccupied(id),
+        res: econ.scenario.region(id)!.res,
+      };
+    });
   return {
     tag: ce.tag,
     personality: aiPersonality(ce.tag),
@@ -958,7 +1049,9 @@ export function aiInput(
     get partners() {
       return (partners ??= findPartners());
     },
-    regions,
+    get regions() {
+      return (regions ??= findRegions());
+    },
   };
 }
 
@@ -992,13 +1085,69 @@ function applyAiOrder(
       );
     case "close_trade":
       return closeTrade(econ, ce, o.trade);
+    case "military_first":
+      militaryFirst(econ, ce);
+      return null;
   }
 }
 
 /**
- * An AI country's economy decisions, every WW_AI_PERIOD_DAYS days (spec
- * §12), after the rest of its daily step. A refused order changes nothing
- * and the others still run.
+ * Moves the queue's military factories to the front, then infrastructure,
+ * then civilian factories, each group in its order (move_build, so the
+ * progress stays with each entry).
+ */
+function militaryFirst(econ: WwEconomy, ce: CountryEconomy): void {
+  const rank = (b: string) => (b === "mil" ? 0 : b === "infra" ? 1 : 2);
+  for (let j = 0; j < ce.queue.length; j++) {
+    let best = j;
+    for (let k = j + 1; k < ce.queue.length; k++) {
+      if (rank(ce.queue[k].building) < rank(ce.queue[best].building)) best = k;
+    }
+    if (best !== j) moveBuild(econ, ce, best, j);
+  }
+}
+
+/**
+ * Whether a country's turn falls on `day` (spec §12: every 10 days). Day 0
+ * is also every major's first turn (Task 9): the great powers open their
+ * deals before the minors' turns come round, as they led the 1936 markets.
+ * A minor's lines, research and building start on day 0 too, by reacting
+ * (aiReactions); its laws and deals wait for its turn.
+ */
+export function isAiTurn(
+  smallID: number,
+  day: number,
+  major: boolean,
+): boolean {
+  return (day === 0 && major) || (day + smallID) % WW_AI_PERIOD_DAYS === 0;
+}
+
+/**
+ * What fell free since the country's last decision: an empty research
+ * slot, military factories no line uses, civilian factories the queue
+ * cannot take (at most 15 an entry).
+ */
+export function aiReactions(ce: CountryEconomy): AiReact {
+  const t = ce.totals;
+  let emptySlot = ce.slots.length < t.slotCount;
+  for (let s = 0; s < t.slotCount && !emptySlot; s++) {
+    emptySlot = ce.slots[s] === null;
+  }
+  return {
+    research: emptySlot,
+    lines: t.idleMil > 0,
+    construction:
+      ce.queue.length < WW_MAX_QUEUE &&
+      t.freeCivMilli > ce.queue.length * WW_MAX_CIVS_PER_PROJECT * 1000,
+  };
+}
+
+/**
+ * An AI country's economy decisions, after the rest of its daily step: its
+ * whole turn every WW_AI_PERIOD_DAYS days (spec §12), and between turns
+ * only what fell free (aiReactions; Task 9 balance ruling: a finished tech
+ * or factory waited up to ten days). A refused order changes nothing and
+ * the others still run; a refused retooling tries the next line.
  */
 export function aiEconomyTick(
   econ: WwEconomy,
@@ -1007,7 +1156,23 @@ export function aiEconomyTick(
   day: number,
   tick: number,
 ): void {
-  for (const o of aiPlan(aiInput(econ, ce, day, tick))) {
-    applyAiOrder(econ, ce, o, day);
+  let plan: AiPlan;
+  if (isAiTurn(ce.smallID, day, ce.major)) {
+    plan = aiPlan(aiInput(econ, ce, day, tick));
+  } else {
+    const react = aiReactions(ce);
+    if (!react.research && !react.lines && !react.construction) return;
+    plan = aiReactPlan(aiInput(econ, ce, day, tick), react);
+  }
+  for (const o of plan) {
+    if (applyAiOrder(econ, ce, o, day) === null || o.kind !== "change_line") {
+      continue;
+    }
+    // R6.7: the retooling was refused; the next line nearly at its cap.
+    const lines = ce.lines.map((l) => ({ ...l }));
+    for (const alt of aiRetools(lines, ce.researched, effCapBp(ce.tech))) {
+      if (alt.line === o.line) continue;
+      if (applyAiOrder(econ, ce, alt, day) === null) break;
+    }
   }
 }
