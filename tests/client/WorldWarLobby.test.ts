@@ -32,6 +32,7 @@ vi.mock("../../src/client/DesktopPresence", () => ({
 }));
 
 import {
+  Difficulty,
   GameMapType,
   GameMode,
   maps,
@@ -213,8 +214,9 @@ describe("the settings layout with the mode on", () => {
     expect(el.textContent).not.toContain("host_modal.team_count");
     expect(el.textContent).not.toContain("game_settings.disable_units");
     expect(el.querySelectorAll("fluent-slider")).toHaveLength(0);
-    // The difficulty of the AI countries still applies.
-    expect(el.textContent).toContain("difficulty.difficulty");
+    // The mode plays its AI countries on Medium.
+    expect(el.textContent).not.toContain("difficulty.difficulty");
+    expect(el.querySelector("difficulty-display")).toBeNull();
   });
 
   it("is unchanged without the mode", async () => {
@@ -223,6 +225,8 @@ describe("the settings layout with the mode on", () => {
     expect(el.textContent).toContain("host_modal.mode");
     expect(el.textContent).toContain("host_modal.team_count");
     expect(el.textContent).toContain("game_settings.disable_units");
+    expect(el.textContent).toContain("difficulty.difficulty");
+    expect(el.querySelectorAll("difficulty-display")).toHaveLength(4);
     expect(el.querySelectorAll("fluent-slider")).toHaveLength(2);
   });
 });
@@ -260,6 +264,7 @@ describe("solo World War 1936", () => {
     expect(text).not.toContain("game_settings.domestic_mode");
     expect(text).not.toContain("game_settings.random_spawn");
     expect(text).not.toContain("game_settings.max_timer");
+    expect(text).not.toContain("difficulty.difficulty");
     expect(root.querySelector("ww-country-picker")).not.toBeNull();
     expect(root.querySelector("map-picker")).toBeNull();
   });
@@ -393,6 +398,7 @@ describe("hosting World War 1936", () => {
       "host_modal.player_immunity_duration",
       "game_settings.custom_alliances",
       "map.map",
+      "difficulty.difficulty",
     ]) {
       expect(text).not.toContain(fixed);
     }
@@ -507,5 +513,19 @@ describe("the lobby summary", () => {
     expect(items(testGameConfig()).map((i) => i.label)).not.toContain(
       "game_settings.world_war_1936",
     );
+  });
+
+  it("shows no difficulty: the mode fixes it", () => {
+    const labels = (c: ReturnType<typeof testGameConfig>) =>
+      notableLobbySettings(c, null).map((i) => i.label);
+    // A private lobby above Easy names its difficulty, but not in the mode.
+    expect(labels(testGameConfig({ difficulty: Difficulty.Hard }))).toContain(
+      "difficulty.difficulty",
+    );
+    expect(
+      labels(
+        testGameConfig({ worldWar1936: true, difficulty: Difficulty.Hard }),
+      ),
+    ).not.toContain("difficulty.difficulty");
   });
 });

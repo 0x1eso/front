@@ -237,8 +237,8 @@ export interface GameConfigSettingsData {
   };
   /**
    * World War 1936 (spec §8.1): the country picker takes the map's place,
-   * and the mode, team, bot, nation and unit sections are hidden (the mode
-   * fixes them).
+   * and the difficulty, mode, team, bot, nation and unit sections are hidden
+   * (the mode fixes them; the AI plays on Medium).
    */
   worldWar?: { picker: TemplateResult };
 }
@@ -434,6 +434,53 @@ export class GameConfigSettings extends LitElement {
     </div>`;
   }
 
+  private renderDifficulty(settings: GameConfigSettingsData): TemplateResult {
+    return renderSection(
+      DIFFICULTY_ICON,
+      "text-green-400",
+      "bg-green-500/20",
+      "difficulty.difficulty",
+      html`
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          ${DIFFICULTY_OPTIONS.map(([key, value]) => {
+            const isSelected = settings.difficulty.selected === value;
+            const isDisabled = settings.difficulty.disabled;
+            return html`
+              <div class="group/difficulty-card relative">
+                <button
+                  ?disabled=${isDisabled}
+                  @click=${() =>
+                    !isDisabled &&
+                    this.handleDifficultySelect(value as Difficulty)}
+                  class="${isDisabled
+                    ? `${DISABLED_CARD} flex flex-col items-center p-4 gap-3 h-full`
+                    : cardClass(
+                        isSelected,
+                        "flex flex-col items-center p-4 gap-3 h-full",
+                      )}"
+                >
+                  <difficulty-display
+                    .difficultyKey=${key}
+                    class="transform scale-125 origin-center ${isDisabled
+                      ? "pointer-events-none"
+                      : ""}"
+                  ></difficulty-display>
+                  <span class="${CARD_LABEL_CLASS} text-center mt-1 text-white">
+                    ${translateText(`difficulty.${key.toLowerCase()}`)}
+                  </span>
+                </button>
+                <difficulty-info
+                  .difficultyKey=${key}
+                  .disabled=${isDisabled}
+                ></difficulty-info>
+              </div>
+            `;
+          })}
+        </div>
+      `,
+    );
+  }
+
   render() {
     if (!this.settings) return nothing;
     const settings = this.settings;
@@ -466,52 +513,7 @@ export class GameConfigSettings extends LitElement {
               undefined,
               this.renderMapSearchInput(),
             )}
-        ${renderSection(
-          DIFFICULTY_ICON,
-          "text-green-400",
-          "bg-green-500/20",
-          "difficulty.difficulty",
-          html`
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              ${DIFFICULTY_OPTIONS.map(([key, value]) => {
-                const isSelected = settings.difficulty.selected === value;
-                const isDisabled = settings.difficulty.disabled;
-                return html`
-                  <div class="group/difficulty-card relative">
-                    <button
-                      ?disabled=${isDisabled}
-                      @click=${() =>
-                        !isDisabled &&
-                        this.handleDifficultySelect(value as Difficulty)}
-                      class="${isDisabled
-                        ? `${DISABLED_CARD} flex flex-col items-center p-4 gap-3 h-full`
-                        : cardClass(
-                            isSelected,
-                            "flex flex-col items-center p-4 gap-3 h-full",
-                          )}"
-                    >
-                      <difficulty-display
-                        .difficultyKey=${key}
-                        class="transform scale-125 origin-center ${isDisabled
-                          ? "pointer-events-none"
-                          : ""}"
-                      ></difficulty-display>
-                      <span
-                        class="${CARD_LABEL_CLASS} text-center mt-1 text-white"
-                      >
-                        ${translateText(`difficulty.${key.toLowerCase()}`)}
-                      </span>
-                    </button>
-                    <difficulty-info
-                      .difficultyKey=${key}
-                      .disabled=${isDisabled}
-                    ></difficulty-info>
-                  </div>
-                `;
-              })}
-            </div>
-          `,
-        )}
+        ${settings.worldWar ? nothing : this.renderDifficulty(settings)}
         ${settings.worldWar
           ? nothing
           : html`
