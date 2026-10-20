@@ -3,6 +3,7 @@ import {
   COUNTRY_TAGS,
   CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
+import { CATEGORY_SLOTS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   ReadonlyScenarioData,
   ReadonlyScenarioRegion,
@@ -39,6 +40,8 @@ export class ScenarioIndex {
   private readonly capitals = new Map<CountryTag, readonly [number, number]>();
   private readonly owners: Uint16Array;
   private readonly _totalVp: number;
+  /** Region neighbours, built on first use (static, never in a snapshot). */
+  private adjacency: Adjacency | null = null;
 
   constructor(data: ReadonlyScenarioData, regionIds: Uint16Array) {
     this.data = data;
@@ -137,6 +140,79 @@ export class ScenarioIndex {
     for (const r of this.landRegions) out[this.owners[r.id]] += r.vp;
     return out;
   }
+
+  /** Land regions sharing a 4-neighbour edge with `id`, ascending (P1 spec §3.4). */
+  regionNeighbours(id: number): readonly number[] {
+    return this.adj().land.get(id) ?? [];
+  }
+
+  /** Sea zones a land region touches, ascending. */
+  regionSeaZones(id: number): readonly number[] {
+    return this.adj().sea.get(id) ?? [];
+  }
+
+  /** Base shared building slots of a land region (P1 spec §4.2). */
+  baseSlots(id: number): number {
+    const r = this.region(id);
+    return r === undefined ? 0 : CATEGORY_SLOTS[r.cat];
+  }
+
+  /** Every land-land pair once (a < b), ascending, for the country graph. */
+  regionPairs(): readonly (readonly [number, number])[] {
+    return this.adj().pairs;
+  }
+
+  // One pass over the tiles (right and down neighbours), the first time an
+  // economy asks. Static like regionIds, so never part of a snapshot.
+  private adj(): Adjacency {
+    if (this.adjacency !== null) return this.adjacency;
+    const landSets = new Map<number, Set<number>>();
+    const seaSets = new Map<number, Set<number>>();
+    const add = (m: Map<number, Set<number>>, a: number, b: number) => {
+      let s = m.get(a);
+      if (s === undefined) m.set(a, (s = new Set()));
+      s.add(b);
+    };
+    const link = (a: number, b: number) => {
+      if (a === b || a === 0 || b === 0) return;
+      const aLand = a < SEA_ZONE_BASE;
+      const bLand = b < SEA_ZONE_BASE;
+      if (aLand && bLand) {
+        add(landSets, a, b);
+        add(landSets, b, a);
+      } else if (aLand && b > SEA_ZONE_BASE) add(seaSets, a, b);
+      else if (bLand && a > SEA_ZONE_BASE) add(seaSets, b, a);
+    };
+    const ids = this.regionIds;
+    const w = this.width;
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < w; x++) {
+        const t = y * w + x;
+        if (x + 1 < w) link(ids[t], ids[t + 1]);
+        if (y + 1 < this.height) link(ids[t], ids[t + w]);
+      }
+    }
+    const sorted = (m: Map<number, Set<number>>) =>
+      new Map(
+        [...m]
+          .sort((x, y) => x[0] - y[0])
+          .map(([k, s]) => [k, [...s].sort((a, b) => a - b)] as const),
+      );
+    const land = sorted(landSets);
+    const pairs: [number, number][] = [];
+    for (const [a, list] of land) {
+      for (const b of list) if (a < b) pairs.push([a, b]);
+    }
+    pairs.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+    this.adjacency = { land, sea: sorted(seaSets), pairs };
+    return this.adjacency;
+  }
+}
+
+interface Adjacency {
+  land: ReadonlyMap<number, readonly number[]>;
+  sea: ReadonlyMap<number, readonly number[]>;
+  pairs: readonly (readonly [number, number])[];
 }
 
 /**

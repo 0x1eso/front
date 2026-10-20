@@ -6,6 +6,10 @@ import {
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
+import {
+  MAJOR_START,
+  startArmy,
+} from "@openfront/engine-lib/ww1936/EconomyStart";
 import { fillScenarioOwners } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { EngineConfig } from "@openfront/engine/configuration/EngineConfig";
 import {
@@ -110,16 +114,22 @@ describe("World War 1936 start", () => {
     expect(updates.map((u) => u.packedTileUpdates.length)).toEqual([0, 0, 0]);
   });
 
-  test("the spawn phase ends on tick 0; capitals and half troops", async () => {
+  test("the spawn phase ends on tick 0; capitals and the 1936 armies", async () => {
     const runner = await wwRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
     for (const p of g.allPlayers()) {
-      expect(p.spawnTile()).toBe(
-        ww.scenario.capitalTile(ww.tagOf(p.smallID())),
+      const tag = ww.tagOf(p.smallID());
+      expect(p.spawnTile()).toBe(ww.scenario.capitalTile(tag));
+      // P1 spec §6.6, §11: majors bring their army, the others a formula.
+      const recruitable = ww.economy.country(p.smallID())!.totals.recruitable;
+      expect(p.troops()).toBe(
+        MAJOR_START[tag]?.army ?? startArmy(tag, recruitable),
       );
-      expect(p.troops()).toBe(Math.floor((g.config().maxTroops(p) * 50) / 100));
     }
+    expect(byTag(g, "DEU").troops()).toBe(480_000);
+    // Poland: 30% of Warsaw's and Krakow's 850,000 recruitable men.
+    expect(byTag(g, "POL").troops()).toBe(255_000);
     step(runner);
     expect(g.inSpawnPhase()).toBe(false);
     expect(ww.prepEndTick()).toBe(WW_PREP_TICKS);

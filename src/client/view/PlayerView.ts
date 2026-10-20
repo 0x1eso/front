@@ -518,6 +518,14 @@ export class PlayerView implements PlayerLike {
     return this._domestic;
   }
 
+  /** World War 1936 P1 (spec §6.4): the economy's troop cap; null outside the mode. */
+  wwTroopCap(): number | null {
+    const v = this.game.wwEconomy();
+    if (v === null) return null;
+    // Before the first economy update (plan decision 4): the army itself.
+    return v.troopCap(this.smallID()) ?? this.troops();
+  }
+
   /** Strategic weapons: the last state the worker sent; null with the option off. */
   strategicData(): StrategicData | null {
     return this._strategic;

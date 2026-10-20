@@ -16,7 +16,8 @@ import { processHistory, rollHistory } from "./HistoryRun";
 /**
  * World War 1936 clock (spec §7): the preparation end, once a day the
  * historical calendar and the capitulation check, every tick the land
- * transfers, and the WorldWar update when the data changed.
+ * transfers and the economy (P1 spec §2), and the WorldWar and WwEconomy
+ * updates when their data changed.
  */
 export class WorldWarExecution implements Execution {
   private active = true;
@@ -60,8 +61,14 @@ export class WorldWarExecution implements Execution {
       }
     }
     stepTransfers(mg, ww);
+    // P1 (spec §2): the day's common step, then this tick's share of countries.
+    ww.economy.tick(ticks);
     const data = ww.takeData();
     if (data !== null) mg.addUpdate({ type: GameUpdateType.WorldWar, data });
+    const econ = ww.economy.takeData();
+    if (econ !== null) {
+      mg.addUpdate({ type: GameUpdateType.WwEconomy, data: econ });
+    }
   }
 
   isActive(): boolean {

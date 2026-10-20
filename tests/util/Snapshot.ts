@@ -157,6 +157,15 @@ export const DERIVED_FIELDS = new Set<string>([
   "congressPlayerDataCache",
   // WorldWar
   "dataDirty",
+  // WwEconomy (P1): rebuilt from the controllers on restore; the screens'
+  // change marks. CountryEconomy.tech is derived too but compared: it is
+  // equal after a restore, and the name would hide the domestic research
+  // executions' tech.
+  "regionsByCountry",
+  "neighbourLists",
+  "seaZoneSets",
+  "dirtyCountries",
+  "dirtyRegions",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

@@ -84,15 +84,16 @@ describe("World War 1936 donations (spec §7.2)", () => {
     );
     stepTo(runner, WW_PREP_TICKS + 1);
     gbr.addGold(10_000_000n);
-    const city = [...gbr.tiles()].find(
-      (t) => gbr.canBuild(UnitType.City, t) !== false,
+    // A defense post: cities are off in this mode since P1 (spec §4.6).
+    const post = [...gbr.tiles()].find(
+      (t) => gbr.canBuild(UnitType.DefensePost, t) !== false,
     )!;
-    expect(city).toBeDefined();
+    expect(post).toBeDefined();
     expect(gbr.canDonateGold(fra)).toBe(true);
     // Britain capitulates (its land still on its way to Germany).
     ww.setWar(deu.smallID(), gbr.smallID(), g.ticks());
     ww.addCapitulation(gbr.smallID(), deu.smallID(), g.ticks());
-    expect(gbr.canBuild(UnitType.City, city)).toBe(false);
+    expect(gbr.canBuild(UnitType.DefensePost, post)).toBe(false);
     expect(gbr.canDonateGold(fra)).toBe(false);
     expect(gbr.canDonateTroops(fra)).toBe(false);
     // Nor does a faction friend give to it.

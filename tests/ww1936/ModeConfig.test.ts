@@ -84,6 +84,9 @@ describe("World War 1936 settings", () => {
       UnitType.MIRV,
       UnitType.MissileSilo,
       UnitType.SAMLauncher,
+      // P1 spec §4.6: the economy's factories replace them.
+      UnitType.City,
+      UnitType.Factory,
     ]);
     expect(normalizeWorldWar1936Config(n)).toEqual(n); // idempotent
   });
@@ -117,7 +120,9 @@ describe("World War 1936 settings", () => {
     expect(cfg.strategicWeapons()).toBe(false);
     expect(cfg.disableAlliances()).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.AtomBomb)).toBe(true);
-    expect(cfg.isUnitDisabled(UnitType.City)).toBe(false);
+    expect(cfg.isUnitDisabled(UnitType.City)).toBe(true);
+    expect(cfg.isUnitDisabled(UnitType.Factory)).toBe(true);
+    expect(cfg.isUnitDisabled(UnitType.Port)).toBe(false);
     expect(cfg.maxTimerMinutes()).toBe(45);
     const off = new Config(testGameConfig({ historicalAi: true }), false);
     expect(off.worldWar1936()).toBe(false);

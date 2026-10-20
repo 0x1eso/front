@@ -171,6 +171,36 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   },
   { type: "convene_emergency", clientID: P2, kind: "nuclear", target: P1 },
   { type: "declare_war", clientID: P1, target: P2 },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "build", region: 39_999, building: "infra", count: 10 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "set_law", law: "conscription", value: "all_adults" },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "add_line", equipment: "medium_tank", gen: 3, factories: 0 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "open_trade", seller: P3, resource: "chromium", civs: 50 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "move_line", line: 10_000_000, to: 255 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "cancel_research", slot: 4 },
+  },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

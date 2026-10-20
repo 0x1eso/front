@@ -120,7 +120,12 @@ const STRATEGIC_UNSCRIPTED_TYPES = [
 const CONGRESS_ONLY_TYPES = ["Congress", "CongressVote", "ConveneEmergency"];
 // Execution types only a World War 1936 game creates (its own map; see
 // tests/ww1936/WorldWarSnapshot.test.ts).
-const WW1936_ONLY_TYPES = ["DeclareWar", "WorldWar", "WorldWarStart"];
+const WW1936_ONLY_TYPES = [
+  "DeclareWar",
+  "WorldWar",
+  "WorldWarStart",
+  "WwOrder",
+];
 // Congress types the scripted game isn't sure to keep alive at a tick
 // boundary: a ballot or a convening finishes inside its init. Emergencies
 // also need a threshold crossed. tests/congress/*.test.ts cover their

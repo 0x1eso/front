@@ -41,6 +41,19 @@ import {
   STOCKPILED_NUKES,
 } from "./strategic/StrategicTypes";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
+import {
+  BUILDING_IDS,
+  EQUIPMENT_TYPES,
+  LAW_KINDS,
+  LAW_VALUES,
+  RESOURCE_IDS,
+  WW_MAX_LINE_FACTORIES,
+  WW_MAX_PROJECT_COUNT,
+  WW_MAX_SLOTS,
+  WW_MAX_TRADE_CIVS,
+  WW_TECH_IDS,
+} from "./ww1936/EconomyTypes";
+import { SEA_ZONE_BASE } from "./ww1936/WorldWarTypes";
 
 export type GameID = string;
 export type ClientID = string;
@@ -83,7 +96,8 @@ export type Intent =
   | QueueResearchIntent
   | CongressVoteIntent
   | ConveneEmergencyIntent
-  | DeclareWarIntent;
+  | DeclareWarIntent
+  | WwOrderIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -144,6 +158,7 @@ export type ConveneEmergencyIntent = z.infer<
   typeof ConveneEmergencyIntentSchema
 >;
 export type DeclareWarIntent = z.infer<typeof DeclareWarIntentSchema>;
+export type WwOrderIntent = z.infer<typeof WwOrderIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -742,6 +757,66 @@ export const DeclareWarIntentSchema = z.object({
   target: MappedID,
 });
 
+// World War 1936 P1 (spec §4.3, §5.4, §7.4, §8.4, §9.3): one economy order
+// for the sender's own country. The kinds are stored by position: append only.
+const WwIndex = zb.uint({ max: 255 });
+const WwId = zb.uint({ min: 1, max: 10_000_000 });
+const WwGen = zb.uint({ min: 1, max: 3 });
+const WwFactories = zb.uint({ max: WW_MAX_LINE_FACTORIES });
+
+export const WwOrderSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("build"),
+    region: zb.uint({ min: 1, max: SEA_ZONE_BASE - 1 }),
+    building: z.enum(BUILDING_IDS),
+    count: zb.uint({ min: 1, max: WW_MAX_PROJECT_COUNT }),
+  }),
+  z.object({ kind: z.literal("cancel_build"), index: WwIndex }),
+  z.object({ kind: z.literal("move_build"), index: WwIndex, to: WwIndex }),
+  z.object({
+    kind: z.literal("set_law"),
+    law: z.enum(LAW_KINDS),
+    value: z.enum(LAW_VALUES),
+  }),
+  z.object({
+    kind: z.literal("add_line"),
+    equipment: z.enum(EQUIPMENT_TYPES),
+    gen: WwGen,
+    factories: WwFactories,
+  }),
+  z.object({
+    kind: z.literal("change_line"),
+    line: WwId,
+    equipment: z.enum(EQUIPMENT_TYPES),
+    gen: WwGen,
+  }),
+  z.object({
+    kind: z.literal("set_line_factories"),
+    line: WwId,
+    factories: WwFactories,
+  }),
+  z.object({ kind: z.literal("remove_line"), line: WwId }),
+  z.object({ kind: z.literal("move_line"), line: WwId, to: WwIndex }),
+  z.object({
+    kind: z.literal("open_trade"),
+    seller: MappedID,
+    resource: z.enum(RESOURCE_IDS),
+    civs: zb.uint({ min: 1, max: WW_MAX_TRADE_CIVS }),
+  }),
+  z.object({ kind: z.literal("close_trade"), trade: WwId }),
+  z.object({ kind: z.literal("research"), tech: z.enum(WW_TECH_IDS) }),
+  z.object({
+    kind: z.literal("cancel_research"),
+    slot: zb.uint({ max: WW_MAX_SLOTS - 1 }),
+  }),
+]);
+export type WwOrder = z.infer<typeof WwOrderSchema>;
+
+export const WwOrderIntentSchema = z.object({
+  type: z.literal("ww_order"),
+  order: WwOrderSchema,
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -781,6 +856,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   CongressVoteIntentSchema,
   ConveneEmergencyIntentSchema,
   DeclareWarIntentSchema,
+  WwOrderIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

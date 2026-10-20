@@ -6,7 +6,6 @@ import {
 import {
   WorldWarData,
   WW_PREP_TICKS,
-  WW_START_TROOPS_PCT,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { zInt, zTiles } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
@@ -14,6 +13,7 @@ import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
+import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
 
 export const WorldWarStateSchema = z.object({
   prepEndTick: zInt(),
@@ -28,6 +28,8 @@ export const WorldWarStateSchema = z.object({
   ),
   /** [smallID, days] of every gauge above 0; written only when not empty. */
   gauges: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** P1 (spec §14.3): always written; a snapshot without it is refused. */
+  economy: WwEconomyStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -59,6 +61,8 @@ export class WorldWar {
   private _lastDay = -1;
   /** Not state (DERIVED_FIELDS): whether the screens need an update. */
   private dataDirty = true;
+  /** P1 industry and research (P1 spec §14.1, plan decision 1). */
+  readonly economy: WwEconomy;
 
   constructor(
     private readonly mg: Game,
@@ -67,11 +71,13 @@ export class WorldWar {
     this.size = scenario.countries.length + 1;
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
+    this.economy = new WwEconomy(mg, this, scenario);
   }
 
   /**
-   * Spec §5.3, §7.1: capitals, starting troops, starting victory points and
-   * the wars of 1 January 1936. GameImpl calls it once, after the territory.
+   * Spec §5.3, §7.1: capitals, starting victory points, the wars of
+   * 1 January 1936, then the economy's start (P1 spec §6.6, §11: the 1936
+   * armies). GameImpl calls it once, after the territory.
    */
   start(): void {
     for (const p of this.mg.allPlayers()) {
@@ -84,9 +90,6 @@ export class WorldWar {
       const capital = this.scenario.capitalTile(tag);
       p.setSpawnTile(capital);
       this.mg.stats().recordSpawnTile(p, capital);
-      p.setTroops(
-        Math.floor((this.mg.config().maxTroops(p) * WW_START_TROOPS_PCT) / 100),
-      );
     }
     this._startVp = this.scenario.startVpBySmallId();
     for (const [x, y] of WW_INITIAL_WARS) {
@@ -94,6 +97,7 @@ export class WorldWar {
       const b = this.scenario.smallIdOf(y);
       if (a !== 0 && b !== 0) this.setWar(a, b, 0);
     }
+    this.economy.start();
   }
 
   // ---- Queries ----
@@ -167,6 +171,17 @@ export class WorldWar {
       if (this.warMatrix[row + b] === 1) return true;
     }
     return false;
+  }
+
+  /** The start tick of the oldest war `smallID` is in now, or null at peace. */
+  earliestWarTick(smallID: number): number | null {
+    let best: number | null = null;
+    for (const [a, b, since] of this._wars) {
+      if ((a === smallID || b === smallID) && (best === null || since < best)) {
+        best = since;
+      }
+    }
+    return best;
   }
 
   enemiesOf(smallID: number): number[] {
@@ -314,7 +329,7 @@ export class WorldWar {
     for (const [id, days] of this.gauges()) {
       h = (Math.imul(h, 31) + id * 257 + days + 3) | 0;
     }
-    return h >>> 0;
+    return (Math.imul(h, 31) + this.economy.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -334,6 +349,7 @@ export class WorldWar {
         next: t.next,
       })),
       ...(gauges.length === 0 ? {} : { gauges }),
+      economy: this.economy.snapshot(),
     };
   }
 
@@ -356,6 +372,13 @@ export class WorldWar {
     this.rebuildMatrix();
     // A restored game's screens have seen nothing yet.
     this.dataDirty = true;
+    // No P0 game continues with P1 code (P1 spec §14.3).
+    if (s.economy === undefined) {
+      throw new Error(
+        "World War 1936 snapshot without its economy (made before P1)",
+      );
+    }
+    this.economy.restoreState(s.economy);
   }
 
   private rebuildMatrix(): void {

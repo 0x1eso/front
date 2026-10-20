@@ -39,6 +39,7 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { barrageSuppresses } from "../warfare/BarrageZone";
 import { reportNotAtWar } from "../ww1936/Diplomacy";
+import { withWwCombat } from "../ww1936/economy/Combat";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
@@ -374,9 +375,16 @@ export class AttackExecution implements Execution {
 
     const borderSize = this.attack.borderSize() + this.random.nextInt(0, 5);
     // Domestic combat modifiers hold for the whole tick (1 = vanilla).
-    const combat = withCongressCombat(
-      domesticCombat(this._owner, targetPlayer),
-      this.mg.congress(),
+    // World War 1936 P1 (plan decision 12): the economy's scales on top.
+    const ww = this.mg.worldWar();
+    const combat = withWwCombat(
+      withCongressCombat(
+        domesticCombat(this._owner, targetPlayer),
+        this.mg.congress(),
+        this._owner,
+        targetPlayer,
+      ),
+      ww,
       this._owner,
       targetPlayer,
     );
@@ -426,7 +434,14 @@ export class AttackExecution implements Execution {
       troopCount -= attackerTroopLoss;
       this.attack.setTroops(troopCount);
       if (targetPlayer) {
-        targetPlayer.removeTroops(defenderTroopLoss);
+        const removed = targetPlayer.removeTroops(defenderTroopLoss);
+        // World War 1936 P1 (plan decision 12): the men really lost.
+        if (ww !== null) {
+          ww.economy.noteCombatLoss(targetPlayer.smallID(), removed);
+        }
+      }
+      if (ww !== null) {
+        ww.economy.noteCombatLoss(this._owner.smallID(), attackerTroopLoss);
       }
       this._owner.conquer(tileToConquer);
       this.handleDeadDefender();

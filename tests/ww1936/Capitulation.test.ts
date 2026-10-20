@@ -452,7 +452,9 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(pol.numTilesOwned()).toBe(left);
     expect(pol.incomingAttacks()).toEqual([]);
     expect(sun.outgoingAttacks()).toEqual([]);
-    expect(sun.troops()).toBeGreaterThanOrEqual(sunTroops);
+    // The attack's troops come home whole (troops are integers; P1: no
+    // vanilla regrowth tops them up on the tick).
+    expect(sun.troops()).toBeGreaterThanOrEqual(Math.floor(sunTroops));
     const sunTiles = sun.numTilesOwned();
 
     step(runner, 3);

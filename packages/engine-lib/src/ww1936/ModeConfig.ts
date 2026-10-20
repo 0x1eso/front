@@ -8,13 +8,18 @@ import {
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_GAME_MINUTES } from "@openfront/engine-api/ww1936/WorldWarTypes";
 
-/** Units the mode turns off (spec §2.2): the atom bomb returns in P6. */
+/**
+ * Units the mode turns off (spec §2.2): the atom bomb returns in P6. Cities
+ * and vanilla factories go with P1's economy (P1 spec §4.6).
+ */
 export const WW1936_DISABLED_UNITS: readonly UnitType[] = [
   UnitType.AtomBomb,
   UnitType.HydrogenBomb,
   UnitType.MIRV,
   UnitType.MissileSilo,
   UnitType.SAMLauncher,
+  UnitType.City,
+  UnitType.Factory,
 ];
 
 /**

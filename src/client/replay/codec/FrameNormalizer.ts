@@ -88,6 +88,9 @@ export const UPDATE_TYPE_ROUTING: Record<
   // World War 1936: wars, capitulations and the preparation end, resent
   // when they change.
   WorldWar: "misc",
+  // World War 1936 P1: the economy's changes of the tick (countries
+  // processed, regions changed), kept as they came.
+  WwEconomy: "misc",
 };
 
 /**

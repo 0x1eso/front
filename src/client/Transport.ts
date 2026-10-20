@@ -23,6 +23,7 @@ import {
   ClientID,
   Intent,
   Winner,
+  WwOrder,
 } from "@openfront/engine-api/Schemas";
 import {
   InterceptorNuke,
@@ -192,6 +193,11 @@ export class SendConveneEmergencyIntentEvent implements GameEvent {
 // World War 1936 (spec §7.3).
 export class SendDeclareWarIntentEvent implements GameEvent {
   constructor(public readonly target: PlayerView) {}
+}
+
+// World War 1936 P1: one economy order of my country (plan decision 2).
+export class SendWwOrderIntentEvent implements GameEvent {
+  constructor(public readonly order: WwOrder) {}
 }
 
 export class BuildUnitIntentEvent implements GameEvent {
@@ -539,6 +545,9 @@ export class Transport {
     });
     this.subscribe(SendDeclareWarIntentEvent, (e) =>
       this.sendIntent({ type: "declare_war", target: e.target.id() }),
+    );
+    this.subscribe(SendWwOrderIntentEvent, (e) =>
+      this.sendIntent({ type: "ww_order", order: e.order }),
     );
   }
 

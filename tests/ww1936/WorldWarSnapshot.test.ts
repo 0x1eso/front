@@ -90,6 +90,34 @@ function declareOnPoland(g: Game): (tick: number) => StampedIntent[] {
       : [];
 }
 
+/**
+ * P1: a 1936 army wipes Poland out within a hundred ticks, before its gauge
+ * can fill. So idle Germany takes the Warsaw region by hand right after its
+ * declaration: Poland's AI attacks it, and Poland's gauge fills meanwhile.
+ */
+function takeWarsaw(g: Game): void {
+  if (g.ticks() !== WW_PREP_TICKS + 2) return;
+  const ww = g.worldWar()!;
+  const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+  const warsaw = ww.scenario.landRegions.find((r) => r.name === "Warsaw")!;
+  for (const t of [...pol.tiles()]) {
+    if (ww.scenario.regionAt(t) === warsaw.id) deu.conquer(t);
+  }
+}
+
+/** Steps to `tick` with the turns of `intents`, then `hand` after each tick. */
+function playTo(
+  r: GameRunner,
+  tick: number,
+  intents: (tick: number) => StampedIntent[],
+  hand: (g: Game) => void = () => {},
+): void {
+  while (r.game.ticks() < tick) {
+    step(r, 1, intents(r.game.ticks()));
+    hand(r.game);
+  }
+}
+
 function attacksRunning(g: Game): number {
   return g.allPlayers().reduce((n, p) => n + p.outgoingAttacks().length, 0);
 }
@@ -111,6 +139,7 @@ function fallen(g: Game): number {
 async function probe(
   humans: WwHuman[],
   until: number,
+  hand: (g: Game) => void = () => {},
 ): Promise<{
   war: number;
   attack: number;
@@ -129,6 +158,7 @@ async function probe(
   while (r.game.ticks() < until) {
     const before = r.game.ticks();
     step(r, 1, intents(before));
+    hand(r.game);
     if (out.war < 0 && ww.data().wars.length > 0) out.war = before;
     if (out.attack < 0 && attacksRunning(r.game) > 0) out.attack = before;
     if (ww.data().capitulated.length > out.capitulations.length) {
@@ -176,9 +206,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
   );
 
   describe("restored at the moments of the war Germany declares", () => {
+    // Germany takes Warsaw by hand (takeWarsaw); Poland's AI attacks it and
+    // capitulates when its gauge is full.
     let moments: Awaited<ReturnType<typeof probe>>;
     beforeAll(async () => {
-      moments = await probe(HUMANS, 4000);
+      moments = await probe(HUMANS, 4000, takeWarsaw);
       expect(moments.attack).toBeGreaterThan(0);
       expect(moments.capitulations.length).toBeGreaterThan(0);
     }, 120_000);
@@ -186,9 +218,7 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     test("while the AI's first attack runs", async () => {
       const a = await wwRunner({}, HUMANS);
       const intents = declareOnPoland(a.game);
-      while (a.game.ticks() < moments.attack + 10) {
-        step(a, 1, intents(a.game.ticks()));
-      }
+      playTo(a, moments.attack + 10, intents, takeWarsaw);
       expect(attacksRunning(a.game)).toBeGreaterThan(0);
       const b = await restore(a);
       lockstep(a, b, 200, intents);
@@ -197,9 +227,7 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     test("the tick before a capitulation", async () => {
       const a = await wwRunner({}, HUMANS);
       const intents = declareOnPoland(a.game);
-      while (a.game.ticks() < moments.capitulations[0]) {
-        step(a, 1, intents(a.game.ticks()));
-      }
+      playTo(a, moments.capitulations[0], intents, takeWarsaw);
       const b = await restore(a);
       lockstep(a, b, 200, intents);
       expect(a.game.worldWar()!.data().capitulated).toHaveLength(1);
@@ -367,7 +395,8 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
  * pinned` three times, check the received value is the same each time,
  * put it here, and say so in the commit. A refactor that moves it is a bug.
  */
-const WW1936_DIGEST = "ec056681433d1bb6";
+// P1 Task 1: the 1936 armies and no vanilla troop regrowth.
+const WW1936_DIGEST = "3b048ca4fa15d784";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

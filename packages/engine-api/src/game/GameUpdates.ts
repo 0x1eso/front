@@ -5,6 +5,7 @@ import type {
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
+import type { WwEconomyData } from "../ww1936/EconomyTypes";
 import type { WorldWarData } from "../ww1936/WorldWarTypes";
 import { TileRef } from "./GameMap";
 import {
@@ -126,6 +127,7 @@ export enum GameUpdateType {
   BombDrop,
   Congress,
   WorldWar,
+  WwEconomy,
 }
 
 export type GameUpdate =
@@ -155,7 +157,8 @@ export type GameUpdate =
   | OrbitalStrikeUpdate
   | BombDropUpdate
   | CongressUpdate
-  | WorldWarUpdate;
+  | WorldWarUpdate
+  | WwEconomyUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -456,4 +459,13 @@ export interface CongressUpdate {
 export interface WorldWarUpdate {
   type: GameUpdateType.WorldWar;
   data: WorldWarData;
+}
+
+/**
+ * World War 1936 P1 (spec §14.4): the countries processed on this tick (and
+ * any an order touched), the details of the human ones, the changed regions.
+ */
+export interface WwEconomyUpdate {
+  type: GameUpdateType.WwEconomy;
+  data: WwEconomyData;
 }

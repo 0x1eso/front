@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "width": 200,
   "height": 120,
   "countries": [
@@ -37,7 +37,16 @@
       "vp": 21,
       "vpTile": [20, 25],
       "tiles": 2000,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "metropolis",
+      "pop": 25000,
+      "infra": 4,
+      "core": true,
+      "civ": 5,
+      "mil": 3,
+      "dock": 0,
+      "res": [0, 4, 0, 0, 0, 0],
+      "coastal": false
     },
     {
       "id": 2,
@@ -47,7 +56,16 @@
       "vp": 3,
       "vpTile": [20, 75],
       "tiles": 2000,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "city",
+      "pop": 17000,
+      "infra": 4,
+      "core": true,
+      "civ": 3,
+      "mil": 2,
+      "dock": 1,
+      "res": [0, 0, 0, 0, 20, 0],
+      "coastal": true
     },
     {
       "id": 3,
@@ -57,7 +75,16 @@
       "vp": 21,
       "vpTile": [65, 17],
       "tiles": 1750,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "metropolis",
+      "pop": 40000,
+      "infra": 5,
+      "core": true,
+      "civ": 5,
+      "mil": 3,
+      "dock": 0,
+      "res": [0, 6, 0, 0, 0, 0],
+      "coastal": false
     },
     {
       "id": 4,
@@ -67,7 +94,16 @@
       "vp": 4,
       "vpTile": [65, 52],
       "tiles": 1750,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "large_city",
+      "pop": 27000,
+      "infra": 5,
+      "core": true,
+      "civ": 4,
+      "mil": 3,
+      "dock": 0,
+      "res": [1, 0, 0, 0, 40, 0],
+      "coastal": false
     },
     {
       "id": 5,
@@ -77,7 +113,16 @@
       "vp": 21,
       "vpTile": [65, 85],
       "tiles": 1500,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "large_city",
+      "pop": 43000,
+      "infra": 3,
+      "core": true,
+      "civ": 4,
+      "mil": 3,
+      "dock": 1,
+      "res": [0, 2, 0, 0, 4, 0],
+      "coastal": true
     },
     {
       "id": 6,
@@ -87,7 +132,16 @@
       "vp": 21,
       "vpTile": [105, 25],
       "tiles": 1500,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "city",
+      "pop": 20000,
+      "infra": 3,
+      "core": true,
+      "civ": 3,
+      "mil": 1,
+      "dock": 0,
+      "res": [0, 0, 0, 0, 0, 0],
+      "coastal": false
     },
     {
       "id": 7,
@@ -97,7 +151,16 @@
       "vp": 3,
       "vpTile": [105, 75],
       "tiles": 1500,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "town",
+      "pop": 14000,
+      "infra": 3,
+      "core": true,
+      "civ": 1,
+      "mil": 1,
+      "dock": 0,
+      "res": [1, 0, 0, 0, 8, 0],
+      "coastal": true
     },
     {
       "id": 8,
@@ -107,7 +170,16 @@
       "vp": 21,
       "vpTile": [160, 25],
       "tiles": 4000,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "metropolis",
+      "pop": 90000,
+      "infra": 3,
+      "core": true,
+      "civ": 5,
+      "mil": 4,
+      "dock": 0,
+      "res": [0, 4, 0, 0, 10, 0],
+      "coastal": false
     },
     {
       "id": 9,
@@ -117,7 +189,16 @@
       "vp": 6,
       "vpTile": [160, 75],
       "tiles": 4000,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "large_city",
+      "pop": 75000,
+      "infra": 3,
+      "core": true,
+      "civ": 4,
+      "mil": 3,
+      "dock": 0,
+      "res": [8, 0, 0, 1, 30, 4],
+      "coastal": true
     },
     {
       "id": 10,
@@ -127,7 +208,16 @@
       "vp": 21,
       "vpTile": [35, 111],
       "tiles": 300,
-      "terrain": "plains"
+      "terrain": "plains",
+      "cat": "metropolis",
+      "pop": 47000,
+      "infra": 4,
+      "core": true,
+      "civ": 5,
+      "mil": 2,
+      "dock": 3,
+      "res": [2, 4, 20, 20, 20, 6],
+      "coastal": true
     }
   ],
   "seaZones": [

@@ -249,6 +249,11 @@ export class Config {
     return this.domesticMode() ? player.domestic() : null;
   }
 
+  /** World War 1936 P1 (spec §6.4): the economy's troop cap; null outside the mode. */
+  protected wwTroopCapOf(player: PlayerLike): number | null {
+    return this.worldWar1936() ? player.wwTroopCap() : null;
+  }
+
   isUnitDisabled(unitType: UnitType): boolean {
     if (DOMESTIC_ONLY_UNITS.has(unitType) && !this.domesticMode()) {
       return true;
@@ -457,11 +462,16 @@ export class Config {
   }
 
   maxTroops(player: PlayerLike): number {
+    // World War 1936 P1 (spec §6.4): the economy's cap, never below the army.
+    const ww = this.wwTroopCapOf(player);
+    if (ww !== null) return Math.max(player.troops(), ww);
     return this.withDomesticMaxTroops(player, this.troopCap(player, true));
   }
 
   /** maxTroops without what cities add */
   maxTroopsWithoutCities(player: PlayerLike): number {
+    const ww = this.wwTroopCapOf(player);
+    if (ww !== null) return Math.max(player.troops(), ww);
     return this.withDomesticMaxTroops(player, this.troopCap(player, false));
   }
 
@@ -506,6 +516,8 @@ export class Config {
   }
 
   troopIncreaseRate(player: PlayerLike): number {
+    // World War 1936 P1 (spec §6.3): troops only come from the daily draft.
+    if (this.wwTroopCapOf(player) !== null) return 0;
     const max = this.maxTroops(player);
 
     let toAdd = 10 + pow(player.troops(), 0.73) / 4;

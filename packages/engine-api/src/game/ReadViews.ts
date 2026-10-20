@@ -30,6 +30,11 @@ export interface PlayerLike {
   units(type: UnitType): readonly UnitLike[];
   /** Domestic-mode state; null outside domestic mode and for bots. */
   domestic(): DomesticView | null;
+  /**
+   * World War 1936 (P1 spec §6.4): the troop cap the economy allows, or
+   * null outside the mode. Config.maxTroops uses it instead of the vanilla cap.
+   */
+  wwTroopCap(): number | null;
 }
 
 export interface UnitLike {

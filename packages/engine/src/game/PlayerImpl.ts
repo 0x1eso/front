@@ -824,6 +824,11 @@ export class PlayerImpl implements Player {
     return this._domestic;
   }
 
+  wwTroopCap(): number | null {
+    const ww = this.mg.worldWar();
+    return ww === null ? null : ww.economy.troopCap(this.smallID());
+  }
+
   isUnitLocked(type: UnitType): boolean {
     return isLockedByTech(this._domestic, type);
   }

@@ -60,6 +60,7 @@ import {
 } from "./MotionPlanResolver";
 import { PlayerView } from "./PlayerView";
 import { UnitView } from "./UnitView";
+import { WwEconomyView } from "./WwEconomyView";
 
 function readCosmeticVisibility(): CosmeticVisibility {
   return new UserSettings().graphicsOverrides().cosmetics ?? {};
@@ -119,6 +120,8 @@ export class GameView implements GameLike {
   private _worldWarData: WorldWarData | null = null;
   /** World War 1936: smallID → faction, for the relation matrix (decision 4). */
   private _worldWarTeams: Map<number, string> | null = null;
+  /** World War 1936 P1: the merged economy updates; null when the mode is off. */
+  private _wwEconomy: WwEconomyView | null = null;
   private readonly _usernames: Map<ClientID, string>;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
@@ -178,6 +181,7 @@ export class GameView implements GameLike {
         if (faction !== null) teams.set(i + 1, faction);
       });
       this._worldWarTeams = teams;
+      this._wwEconomy = new WwEconomyView(scenario);
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
@@ -253,6 +257,11 @@ export class GameView implements GameLike {
   /** World War 1936: wars, capitulations, the preparation end. */
   worldWarData(): WorldWarData | null {
     return this._worldWarData;
+  }
+
+  /** World War 1936 P1: industry, research, manpower; null when the mode is off. */
+  wwEconomy(): WwEconomyView | null {
+    return this._wwEconomy;
   }
 
   /** The lobby username of a human player. */
@@ -348,6 +357,9 @@ export class GameView implements GameLike {
     const wwUpdates = gu.updates[GameUpdateType.WorldWar];
     if (wwUpdates.length > 0) {
       this._worldWarData = wwUpdates[wwUpdates.length - 1].data;
+    }
+    for (const u of gu.updates[GameUpdateType.WwEconomy] ?? []) {
+      this._wwEconomy?.apply(u.data);
     }
 
     const myDisplayName = formatPlayerDisplayName(
