@@ -798,6 +798,15 @@ export class PlayerPanel extends LitElement implements Controller {
     `;
   }
 
+  /** The alliances list and the time left; World War 1936 has no alliances. */
+  private renderAllianceSection(other: PlayerView) {
+    if (this.g.worldWarScenario() !== null) return "";
+    return html`
+      <ui-divider></ui-divider>
+      ${this.renderAlliances(other)} ${this.renderAllianceExpiry()}
+    `;
+  }
+
   private renderAlliances(other: PlayerView) {
     const allies = other.allies();
 
@@ -917,15 +926,19 @@ export class PlayerPanel extends LitElement implements Controller {
 
   private renderActions(my: PlayerView, other: PlayerView) {
     const myPlayer = this.g.myPlayer();
+    // World War 1936 has no alliances; the alliance and embargo actions are
+    // hidden with them (declaring war is the mode's diplomacy).
+    const worldWar = this.g.worldWarScenario() !== null;
     const canDonateGold = this.actions?.interaction?.canDonateGold;
     const canDonateTroops = this.actions?.interaction?.canDonateTroops;
     const canSendAllianceRequest =
-      this.actions?.interaction?.canSendAllianceRequest;
+      !worldWar && this.actions?.interaction?.canSendAllianceRequest;
     const canSendEmoji =
       other === myPlayer
         ? this.actions?.canSendEmojiAllPlayers
         : this.actions?.interaction?.canSendEmoji;
-    const canBreakAlliance = this.actions?.interaction?.canBreakAlliance;
+    const canBreakAlliance =
+      !worldWar && this.actions?.interaction?.canBreakAlliance;
     const canTarget = this.actions?.interaction?.canTarget;
     const canEmbargo = this.actions?.interaction?.canEmbargo;
     const canDeclareWar = this.actions?.interaction?.canDeclareWar === true;
@@ -988,25 +1001,27 @@ export class PlayerPanel extends LitElement implements Controller {
           ? html``
           : html`
               <div class="grid auto-cols-fr grid-flow-col gap-1">
-                ${canEmbargo
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleEmbargoClick(e, my, other),
-                      icon: stopTradingIcon,
-                      iconAlt: "Stop Trading",
-                      title: translateText("player_panel.stop_trade"),
-                      label: translateText("player_panel.stop_trade"),
-                      type: "yellow",
-                    })
-                  : actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleStopEmbargoClick(e, my, other),
-                      icon: startTradingIcon,
-                      iconAlt: "Start Trading",
-                      title: translateText("player_panel.start_trade"),
-                      label: translateText("player_panel.start_trade"),
-                      type: "green",
-                    })}
+                ${worldWar
+                  ? ""
+                  : canEmbargo
+                    ? actionButton({
+                        onClick: (e: MouseEvent) =>
+                          this.handleEmbargoClick(e, my, other),
+                        icon: stopTradingIcon,
+                        iconAlt: "Stop Trading",
+                        title: translateText("player_panel.stop_trade"),
+                        label: translateText("player_panel.stop_trade"),
+                        type: "yellow",
+                      })
+                    : actionButton({
+                        onClick: (e: MouseEvent) =>
+                          this.handleStopEmbargoClick(e, my, other),
+                        icon: startTradingIcon,
+                        iconAlt: "Start Trading",
+                        title: translateText("player_panel.start_trade"),
+                        label: translateText("player_panel.start_trade"),
+                        type: "green",
+                      })}
                 ${canDeclareWar ? this.renderDeclareWar(other) : ""}
                 ${canBreakAlliance
                   ? actionButton({
@@ -1032,7 +1047,7 @@ export class PlayerPanel extends LitElement implements Controller {
                   : ""}
               </div>
             `}
-        ${other === my
+        ${other === my && !worldWar
           ? html`<div class="grid auto-cols-fr grid-flow-col gap-1">
               ${actionButton({
                 onClick: (e: MouseEvent) => this.onStopTradingAllClick(e),
@@ -1225,13 +1240,8 @@ export class PlayerPanel extends LitElement implements Controller {
                     <!-- Stats: betrayals / trading -->
                     ${this.renderStats(other, viewer)}
 
-                    <ui-divider></ui-divider>
-
-                    <!-- Alliances list -->
-                    ${this.renderAlliances(other)}
-
-                    <!-- Alliance time remaining -->
-                    ${this.renderAllianceExpiry()}
+                    <!-- Alliances list and time remaining -->
+                    ${this.renderAllianceSection(other)}
                     ${!isSpectator
                       ? html`
                           <ui-divider></ui-divider>
