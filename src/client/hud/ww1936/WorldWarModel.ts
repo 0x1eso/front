@@ -1,5 +1,4 @@
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { Winner } from "@openfront/engine-api/Schemas";
 import {
   COUNTRIES,
@@ -17,12 +16,7 @@ import {
   DeclareWarBlock,
   WW_PREP_TICKS,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import {
-  dateOfDay,
-  dayIndex,
-  dayOfDate,
-} from "@openfront/engine-lib/ww1936/Calendar";
-import { HISTORY } from "@openfront/engine-lib/ww1936/History";
+import { dateOfDay, dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   CampScore,
   campScores,
@@ -295,16 +289,47 @@ export function campName(game: WwGame, camp: FactionKey | number): string {
 
 export interface DiplomacyModel {
   factions: {
-    id: FactionId;
-    members: { tag: CountryTag; capitulated: boolean; alive: boolean }[];
+    id: FactionKey;
+    /** The faction leader's smallID; 0 when unknown (before politics' first update). */
+    leader: number;
+    members: {
+      tag: CountryTag;
+      smallID: number;
+      capitulated: boolean;
+      alive: boolean;
+    }[];
   }[];
   myWars: CountryTag[];
   camps: { name: string; scoreBp: number; mine: boolean }[];
   /**
-   * The next date of the historical calendar (as written, not as rolled)
-   * among the entries that can still fire.
+   * The next day a history beat fires (P3 spec §18.2: politics' rolled
+   * day, WwPolGlobal.nextBeatDay); null with none left or no data yet.
    */
   nextHistory: string | null;
+}
+
+/**
+ * The factions as they are now (P3 plan decision 8: politics' state, in
+ * faction order); before politics' first update, the starting three.
+ */
+export function liveFactions(
+  game: WwGame,
+): { id: FactionKey; leader: number; members: number[] }[] {
+  const s = game.worldWarScenario();
+  if (s === null) return [];
+  const global = game.wwPolitics?.()?.global ?? null;
+  if (global !== null) {
+    return [...global.factions]
+      .sort((a, b) => a.idx - b.idx)
+      .map((f) => ({ id: f.key, leader: f.leader, members: [...f.members] }));
+  }
+  return FACTION_IDS.map((id) => ({
+    id,
+    leader: 0,
+    members: s.countries
+      .map((tag, i) => (COUNTRIES[tag].faction === id ? i + 1 : 0))
+      .filter((x) => x !== 0),
+  }));
 }
 
 export function diplomacyModel(game: WwGame): DiplomacyModel {
@@ -314,32 +339,21 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
   const me = game.myPlayer();
   const myID = me?.smallID() ?? 0;
   const myFaction = factionOfPlayer(game, me);
-  const factions = FACTION_IDS.map((id) => ({
-    id,
-    members: s.countries
-      .map((tag, i) => ({ tag, smallID: i + 1 }))
-      .filter((m) => COUNTRIES[m.tag].faction === id)
-      .map((m) => ({
-        tag: m.tag,
-        capitulated: isCapitulated(game, m.smallID),
-        alive: asPlayer(game, m.smallID)?.isAlive() ?? false,
-      })),
-  })).filter((f) => f.members.length > 0);
-  const day = today(game);
-  // Entries that can still fire: only a nation (AI) acts on the calendar
-  // (HistoryRun.processHistory), and nobody declares on or as a
-  // capitulated country.
-  const canFire = (actor: number, target: number) =>
-    actor !== 0 &&
-    target !== 0 &&
-    asPlayer(game, actor)?.type() !== PlayerType.Human &&
-    !isCapitulated(game, actor) &&
-    !isCapitulated(game, target);
-  const next = HISTORY.find(
-    (e) =>
-      dayOfDate(e.date) >= day &&
-      canFire(s.smallIdOf(e.actor), s.smallIdOf(e.target)),
-  );
+  const factions = liveFactions(game)
+    .map((f) => ({
+      id: f.id,
+      leader: f.leader,
+      members: f.members
+        .filter((id) => s.tagOfSmallId(id) !== undefined)
+        .map((id) => ({
+          tag: s.tagOfSmallId(id)!,
+          smallID: id,
+          capitulated: isCapitulated(game, id),
+          alive: asPlayer(game, id)?.isAlive() ?? false,
+        })),
+    }))
+    .filter((f) => f.members.length > 0);
+  const next = game.wwPolitics?.()?.global?.nextBeatDay ?? -1;
   return {
     factions,
     myWars: enemiesOf(game, myID).map((id) => s.tagOfSmallId(id)!),
@@ -348,7 +362,7 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
       scoreBp: c.scoreBp,
       mine: c.camp === myFaction || c.camp === myID,
     })),
-    nextHistory: next === undefined ? null : dateLabel(dayOfDate(next.date)),
+    nextHistory: next < 0 ? null : dateLabel(next),
   };
 }
 
@@ -378,8 +392,12 @@ export function callIns(game: WwGame, target: PlayerView): number {
 export interface RegionInfo {
   name: string;
   vp: number;
-  /** The 1936 owner when someone else holds the tile now. */
-  originalOwner: CountryTag | null;
+  /**
+   * The legal owner (P3 spec §17.1: politics' legalOwner, the 1936 owner
+   * until a peaceful transfer or a capitulation) when someone else holds
+   * the tile now.
+   */
+  legalOwner: CountryTag | null;
 }
 
 export function regionInfo(
@@ -391,10 +409,12 @@ export function regionInfo(
   if (s === null) return null;
   const r = s.region(s.regionAt(tile));
   if (r === undefined) return null;
+  const legal = game.wwPolitics?.()?.legalOwner[r.id] ?? s.smallIdOf(r.owner);
+  const legalTag = s.tagOfSmallId(legal) ?? null;
   return {
     name: korean ? r.nameKo : r.name,
     vp: r.vp,
-    originalOwner: s.smallIdOf(r.owner) === game.ownerID(tile) ? null : r.owner,
+    legalOwner: legal === game.ownerID(tile) ? null : legalTag,
   };
 }
 

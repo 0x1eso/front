@@ -58,11 +58,9 @@ import "../../../src/client/hud/ww1936/WwDials";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import "../../../src/client/hud/ww1936/WwDiplomacyPanel";
 import type { WwDiplomacyPanel } from "../../../src/client/hud/ww1936/WwDiplomacyPanel";
+import { OpenWwDiplomacyEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwTopBand";
-import {
-  ToggleWwDiplomacyEvent,
-  type WwTopBand,
-} from "../../../src/client/hud/ww1936/WwTopBand";
+import type { WwTopBand } from "../../../src/client/hud/ww1936/WwTopBand";
 import { detail, region, summary, tileOf } from "./EconomyFixture";
 import {
   army,
@@ -183,7 +181,13 @@ describe("World War 1936 P2 in the HUD", () => {
     expect(
       war.band.querySelector("[data-ww-economy] [data-ww-divisions]"),
     ).not.toBeNull();
-    expect(war.band.querySelectorAll("button")).toHaveLength(2);
+    // The wars button and the economy chip (P3's politics and tension
+    // chips sit beside them).
+    expect(
+      war.band.querySelectorAll(
+        "button:not([data-ww-politics]):not([data-ww-tension])",
+      ),
+    ).toHaveLength(2);
   });
 
   it("the region card's land lines", () => {
@@ -279,7 +283,8 @@ describe("World War 1936 P2 in the HUD", () => {
     el.eventBus = bus;
     document.body.appendChild(el);
     el.init();
-    bus.emit(new ToggleWwDiplomacyEvent());
+    // P3 (spec §21.5): my wars are on the "wars and goals" tab.
+    bus.emit(new OpenWwDiplomacyEvent("wars"));
     await el.updateComplete;
     const wars = [...el.querySelectorAll("[data-ww-my-wars] li")].map((li) => [
       li.textContent!.includes("[ww1936.country.POL]"),

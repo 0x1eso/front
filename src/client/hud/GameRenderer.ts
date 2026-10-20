@@ -64,8 +64,11 @@ import { WwArmyPanel } from "./ww1936/WwArmyPanel";
 import { WwBattleCard } from "./ww1936/WwBattleCard";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
+import { WwEventCards } from "./ww1936/WwEventCards";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
+import { WwNewsTicker } from "./ww1936/WwNewsTicker";
+import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import { WwTopBand } from "./ww1936/WwTopBand";
 
@@ -415,6 +418,45 @@ export function createRenderer(
     console.error("ww battle card not found");
   }
 
+  // P3 (spec §21): the politics drawer, the event cards above the dials,
+  // the world news under the band.
+  const wwPoliticsPanel = document.querySelector("ww-politics-panel");
+  if (wwPoliticsPanel instanceof WwPoliticsPanel) {
+    wwPoliticsPanel.game = game;
+    wwPoliticsPanel.eventBus = eventBus;
+  } else {
+    console.error("ww politics panel not found");
+  }
+  const wwEventCards = document.querySelector("ww-event-cards");
+  if (wwEventCards instanceof WwEventCards) {
+    wwEventCards.game = game;
+    wwEventCards.eventBus = eventBus;
+  } else {
+    console.error("ww event cards not found");
+  }
+  const wwNewsTicker = document.querySelector("ww-news-ticker");
+  if (wwNewsTicker instanceof WwNewsTicker) {
+    wwNewsTicker.game = game;
+    wwNewsTicker.eventBus = eventBus;
+  } else {
+    console.error("ww news ticker not found");
+  }
+  // P3 Task 7's focus drawer (lane U1, controller ruling R15): wired by its
+  // tag; the element is defined once its module (./ww1936/WwFocusPanel) is
+  // imported here, at the merge of the two lanes.
+  const wwFocusEl = document.querySelector("ww-focus-panel");
+  const wwFocusPanel =
+    wwFocusEl !== null && customElements.get("ww-focus-panel") !== undefined
+      ? (wwFocusEl as unknown as Controller & {
+          game: GameView;
+          eventBus: EventBus;
+        })
+      : null;
+  if (wwFocusPanel !== null) {
+    wwFocusPanel.game = game;
+    wwFocusPanel.eventBus = eventBus;
+  }
+
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
   const congressCards = document.querySelector("congress-cards");
   if (congressCards instanceof CongressCards) {
@@ -533,6 +575,10 @@ export function createRenderer(
     ...(wwArmyPanel instanceof WwArmyPanel ? [wwArmyPanel] : []),
     ...(wwArmyCard instanceof WwArmyCard ? [wwArmyCard] : []),
     ...(wwBattleCard instanceof WwBattleCard ? [wwBattleCard] : []),
+    ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
+    ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
+    ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),
+    ...(wwFocusPanel === null ? [] : [wwFocusPanel]),
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,

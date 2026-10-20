@@ -23,6 +23,7 @@ import "../../../src/client/hud/ww1936/WwDiplomacyPanel";
 import type { WwDiplomacyPanel } from "../../../src/client/hud/ww1936/WwDiplomacyPanel";
 import {
   OpenWwIndustryEvent,
+  OpenWwPoliticsEvent,
   OpenWwResearchEvent,
   WwDrawerEvent,
 } from "../../../src/client/hud/ww1936/WwDrawer";
@@ -168,42 +169,7 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     );
   });
 
-  it("a blocked law shows its reason", async () => {
-    const m = mount({
-      summaries: [summary("DEU")],
-      details: [
-        detail("DEU", {
-          laws: {
-            economy: "civilian",
-            trade: "export_focus",
-            conscription: "limited",
-          },
-          lawCooldownUntil: { economy: 0, trade: 20, conscription: 0 },
-        }),
-      ],
-    });
-    await m.open("laws");
-    const partial = m.q("[data-ww-law='partial_mobilization']")!;
-    expect(partial.disabled).toBe(true);
-    expect(partial.dataset.state).toBe("locked");
-    // P3 spec §7.2: 20% war support (the fixture's) is under the 30% step.
-    expect(partial.textContent).toContain("[ww1936.econ.block.law_ws]");
-    expect(m.q("[data-ww-law='civilian']")!.dataset.state).toBe("current");
-    // The trade law changed lately: the wait shows by the ladder.
-    expect(
-      m.q("[data-ww-law-kind='trade'] [data-ww-law-wait]")!.textContent,
-    ).toContain("[ww1936.econ.cooldown] n=20");
-    expect(m.q("[data-ww-law='free_trade']")!.disabled).toBe(true);
-    // One tap sets an open step.
-    await m.click("[data-ww-law='early_mobilization']");
-    expect(m.sent).toEqual([
-      { kind: "set_law", law: "economy", value: "early_mobilization" },
-    ]);
-    // P2 (spec §13.2): the P1 combat line is gone.
-    expect(m.q("[data-ww-combat]")).toBeNull();
-  });
-
-  it("the manpower block counts men: in the field, in training, lost today", async () => {
+  it("the manpower tab counts men: in the field, in training, lost today", async () => {
     const m = mount({
       summaries: [summary("DEU")],
       details: [detail("DEU")],
@@ -221,13 +187,27 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
         },
       ],
     });
-    await m.open("laws");
+    await m.open("manpower");
     const values = [
       ...m.el.querySelectorAll<HTMLElement>("[data-ww-manpower] dd"),
     ].map((dd) => dd.textContent!.trim());
     // Recruitable 1,675,000, manpower 1,195,000, army 472,500, then the
-    // field, training and today's casualties — real men (spec §13.1).
-    expect(values).toEqual(["1.7M", "1.2M", "472K", "472K", "21.0K", "3.2K"]);
+    // field and training — real men (spec §13.1) — and today's casualties.
+    expect(values).toEqual(["1.7M", "1.2M", "472K", "472K", "21.0K"]);
+    expect(m.q("[data-ww-casualties]")!.textContent!.trim()).toBe(
+      "[ww1936.pol.manpower.casualties] n=3.2K",
+    );
+    // P3 (controller ruling R16): the conscription law, read-only; a tap
+    // opens the politics drawer's law tab.
+    const law = m.q("[data-ww-conscription]")!;
+    expect(law.textContent).toContain(
+      "[ww1936.pol.manpower.law] law=[ww1936.law.conscription.limited]",
+    );
+    const opened: OpenWwPoliticsEvent[] = [];
+    m.bus.on(OpenWwPoliticsEvent, (e) => opened.push(e));
+    law.click();
+    expect(opened.map((e) => e.tab)).toEqual(["laws"]);
+    expect(m.q("[data-ww-law]")).toBeNull();
     // P1's draft and troop cap lines are gone (P2 plan decision 12).
     expect(m.q("[data-ww-draft]")).toBeNull();
     expect(m.el.textContent).not.toContain("troop_cap");
@@ -609,82 +589,6 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       4,
     );
     expect(m.q("[data-ww-more-regions]")).toBeNull();
-  });
-
-  it("a law change that would close deals takes two taps; others one", async () => {
-    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
-    const m = mount({
-      summaries: [summary("DEU")],
-      details: [
-        detail("DEU", {
-          laws: {
-            economy: "partial_mobilization",
-            trade: "export_focus",
-            conscription: "limited",
-          },
-          resources: RESOURCE_IDS.map((r) => ({
-            produced: r === "steel" ? 40 : 0,
-            exported: 0,
-            imported: 0,
-            used: 0,
-          })),
-          selling: [
-            {
-              id: 3,
-              buyer: ID("ITA"),
-              seller: ID("DEU"),
-              resource: "steel",
-              civs: 2,
-            },
-          ],
-        }),
-      ],
-    });
-    await m.open("laws");
-    await m.click("[data-ww-law='limited_exports']");
-    expect(m.sent).toEqual([]);
-    expect(
-      m.q("[data-ww-law='limited_exports'] [data-ww-law-closes]")!.textContent,
-    ).toContain("[ww1936.econ.law_closes_deals]");
-    vi.advanceTimersByTime(400);
-    await m.click("[data-ww-law='limited_exports']");
-    expect(m.sent).toEqual([
-      { kind: "set_law", law: "trade", value: "limited_exports" },
-    ]);
-    await m.click("[data-ww-law='free_trade']");
-    expect(m.sent[1]).toEqual({
-      kind: "set_law",
-      law: "trade",
-      value: "free_trade",
-    });
-  });
-
-  it("condition reasons stay visible during the wait", async () => {
-    const m = mount({
-      summaries: [summary("DEU")],
-      details: [
-        detail("DEU", {
-          laws: {
-            economy: "civilian",
-            trade: "export_focus",
-            conscription: "limited",
-          },
-          lawCooldownUntil: { economy: 20, trade: 0, conscription: 0 },
-        }),
-      ],
-    });
-    await m.open("laws");
-    expect(
-      m.q("[data-ww-law='partial_mobilization'] [data-ww-law-reason]")!
-        .textContent,
-    ).toContain("[ww1936.econ.block.law_ws]");
-    // Waiting only: the wait shows once, by the ladder's name.
-    expect(
-      m.q("[data-ww-law='early_mobilization'] [data-ww-law-reason]"),
-    ).toBeNull();
-    expect(
-      m.q("[data-ww-law-kind='economy'] [data-ww-law-wait]")!.textContent,
-    ).toContain("n=20");
   });
 
   it("a capitulated country's drawer says the orders can't go", async () => {

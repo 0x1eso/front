@@ -11,6 +11,7 @@ import {
   DialColor,
   ringSvg,
 } from "../domestic/Dial";
+import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import {
   IndustryDial,
   industryDial,
@@ -19,9 +20,19 @@ import {
 } from "./EconomyModel";
 import { armyDial, ArmyDialModel } from "./LandModel";
 import { OpenWwArmyEvent } from "./LandSelection";
+import {
+  diplomacyDial,
+  focusDial,
+  PolDial,
+  politicsDial,
+  politicsInput,
+} from "./PoliticsModel";
 import { isCapitulated } from "./WorldWarModel";
 import {
+  OpenWwDiplomacyEvent,
+  OpenWwFocusEvent,
   OpenWwIndustryEvent,
+  OpenWwPoliticsEvent,
   OpenWwResearchEvent,
   WwDrawerEvent,
   WwDrawerId,
@@ -32,6 +43,12 @@ export interface WwDialsModel {
   research: ResearchDialModel;
   /** P2 (spec §15.1); null before the land war's first update. */
   army: ArmyDialModel | null;
+  /** P3 (spec §21.2); null before my country's first politics detail. */
+  focus: PolDial | null;
+  politics: PolDial | null;
+  diplomacy: PolDial | null;
+  /** A short landscape screen: three columns of two rows. */
+  compact: boolean;
 }
 
 /**
@@ -40,7 +57,11 @@ export interface WwDialsModel {
  * their size and ring. 🏭: the first construction's progress, badge = idle
  * military factories. 🔬: the furthest slot, badge = empty slots, and it
  * glows while one is empty. P2's ⚔: the first division in training, badge
- * = my armies in battle (red; blinking while one is encircled). Each opens
+ * = my armies in battle (red; blinking while one is encircled). P3 (spec
+ * §21.2): 🎯 the running focus (glows with none), 🏛 political power
+ * towards the next advisor (badge = decisions I can take), 🌐 the running
+ * justification (badge = requests and events waiting). Two columns of
+ * three rows; three columns of two on a short landscape screen. Each opens
  * its drawer; the open one is outlined.
  */
 @customElement("ww-dials")
@@ -85,10 +106,15 @@ export class WwDials extends LitElement implements Controller {
     const detail = view.detail(me.smallID());
     if (detail === null) return null;
     const land = this.game.wwLand?.() ?? null;
+    const pol = politicsInput(this.game);
     return {
       industry: industryDial(detail, view.summary(me.smallID())),
       research: researchDial(detail),
       army: land === null ? null : armyDial(land, me.smallID()),
+      focus: pol === null ? null : focusDial(pol),
+      politics: pol === null ? null : politicsDial(pol),
+      diplomacy: pol === null ? null : diplomacyDial(pol),
+      compact: window.innerHeight <= COMPACT_MAX_HEIGHT,
     };
   }
 
@@ -101,7 +127,10 @@ export class WwDials extends LitElement implements Controller {
       ${DIAL_STYLES}
       <div
         data-ww-dials
-        class="flex items-start gap-1.5 px-1.5 py-1 text-white select-none"
+        data-cols=${m.compact ? 3 : 2}
+        class="grid ${m.compact
+          ? "grid-cols-3"
+          : "grid-cols-2"} items-start gap-1.5 px-1.5 py-1 text-white select-none"
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
         ${this.renderDial(
@@ -139,8 +168,68 @@ export class WwDials extends LitElement implements Controller {
           () => this.eventBus.emit(new OpenWwResearchEvent()),
         )}
         ${m.army === null ? nothing : this.renderArmy(m.army)}
+        ${this.renderPolitics(m)}
       </div>
     `;
+  }
+
+  /** P3 (spec §21.2): 🎯 focus, 🏛 politics, 🌐 diplomacy. */
+  private renderPolitics(m: WwDialsModel): TemplateResult {
+    const f = m.focus;
+    const p = m.politics;
+    const d = m.diplomacy;
+    return html`${f === null
+      ? nothing
+      : this.renderDial(
+          "focus",
+          f.glow ? "idle" : "running",
+          `${translateText("ww1936.pol.dial.focus")}: ${f.label}`,
+          ringSvg(f.progress, "victory"),
+          "🎯",
+          f.glow ? "victory" : null,
+          nothing,
+          () => this.eventBus.emit(new OpenWwFocusEvent()),
+        )}
+    ${p === null
+      ? nothing
+      : this.renderDial(
+          "politics",
+          p.badge > 0 ? "decisions" : "idle",
+          `${translateText("ww1936.pol.dial.politics")}: ${p.label}`,
+          ringSvg(p.progress, "political"),
+          "🏛",
+          null,
+          p.badge > 0
+            ? this.badge(
+                "decisions",
+                p.badge,
+                "bg-violet-400 text-gray-900",
+                p.badgeLabel,
+              )
+            : nothing,
+          () => this.eventBus.emit(new OpenWwPoliticsEvent()),
+        )}
+    ${d === null
+      ? nothing
+      : this.renderDial(
+          "diplomacy",
+          d.badge > 0 ? "waiting" : "idle",
+          d.label === ""
+            ? translateText("ww1936.pol.dial.diplomacy")
+            : `${translateText("ww1936.pol.dial.diplomacy")}: ${d.label}`,
+          ringSvg(d.progress, "cooldown"),
+          "🌐",
+          null,
+          d.badge > 0
+            ? this.badge(
+                "waiting",
+                d.badge,
+                "bg-red-600 text-white",
+                d.badgeLabel,
+              )
+            : nothing,
+          () => this.eventBus.emit(new OpenWwDiplomacyEvent()),
+        )}`;
   }
 
   private renderArmy(a: ArmyDialModel): TemplateResult {
@@ -171,7 +260,7 @@ export class WwDials extends LitElement implements Controller {
   }
 
   private renderDial(
-    id: "industry" | "research" | "army",
+    id: WwDrawerId,
     state: string,
     label: string,
     svg: TemplateResult,

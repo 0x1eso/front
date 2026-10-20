@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 64" fill="none" stroke="#e5e7eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<!-- World War 1936 event picture, drawn for this fork (Statecraft), CC BY-SA 4.0. -->
+<path d="M34 8h84v48H40a6 6 0 0 1-6-6z"/><path d="M118 16h8v34a6 6 0 0 1-6 6h-2"/>
+<path d="M42 16h68" stroke-width="4"/>
+<path d="M42 26h30M42 32h30M42 38h30M42 44h30M42 50h22" stroke-width="1.5"/>
+<rect x="80" y="24" width="30" height="20" rx="1" stroke-width="1.5"/>
+<path d="M84 40l7-8 5 5 4-3 6 6" stroke-width="1.5"/>
+<path d="M80 50h30" stroke-width="1.5"/>
+</svg>

@@ -2,7 +2,7 @@ import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
-import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
@@ -56,11 +56,13 @@ import {
 } from "../../src/client/hud/ww1936/WorldWarModel";
 import "../../src/client/hud/ww1936/WwDiplomacyPanel";
 import type { WwDiplomacyPanel } from "../../src/client/hud/ww1936/WwDiplomacyPanel";
+import { OpenWwDiplomacyEvent } from "../../src/client/hud/ww1936/WwDrawer";
 import {
   ToggleWwDiplomacyEvent,
   WwTopBand,
 } from "../../src/client/hud/ww1936/WwTopBand";
 import { SendDeclareWarIntentEvent } from "../../src/client/Transport";
+import { WwPoliticsView } from "../../src/client/view/WwPoliticsView";
 
 const MINI = path.join(__dirname, "../testdata/maps/ww1936mini");
 const scenario = ScenarioIndex.fromFiles(
@@ -82,6 +84,49 @@ interface Fake {
   historicalAi?: boolean;
   /** What updatesSinceLastTick() returns (the win screen reads it). */
   updates?: Record<number, unknown[]>;
+  /** P3: the day politics' next history beat fires (WwPolGlobal.nextBeatDay). */
+  nextBeatDay?: number;
+}
+
+/** P3: a politics view with the 1936 factions and the next beat's day. */
+function politicsWith(nextBeatDay: number): WwPoliticsView {
+  const view = new WwPoliticsView(scenario);
+  const factions = (["axis", "allies", "comintern"] as const).map(
+    (key, idx) => {
+      const members = scenario.countries
+        .filter((t) => COUNTRIES[t].faction === key)
+        .map(ID);
+      return {
+        idx,
+        key,
+        name: "",
+        nameTag: "" as const,
+        leader: members[0],
+        members,
+      };
+    },
+  );
+  view.apply(
+    {
+      countries: [],
+      details: [],
+      global: {
+        wtBp: 0,
+        threat: [],
+        factions,
+        guarantees: [],
+        naps: [],
+        access: [],
+        justifying: [],
+        nextBeatDay,
+      },
+      regions: [],
+      news: [],
+      cards: [],
+    },
+    600,
+  );
+  return view;
 }
 
 function fakeGame(o: Fake = {}): WwGame {
@@ -138,6 +183,8 @@ function fakeGame(o: Fake = {}): WwGame {
     playerViews: () => players,
     inSpawnPhase: () => false,
     updatesSinceLastTick: () => o.updates ?? {},
+    wwPolitics: () =>
+      o.nextBeatDay === undefined ? null : politicsWith(o.nextBeatDay),
     config: () => ({
       historicalAi: () => o.historicalAi ?? true,
       gameConfig: () => ({ rankedType: undefined }),
@@ -182,6 +229,8 @@ describe("the World War 1936 screens (spec §8.2)", () => {
         wars: [["DEU", "POL"]],
         capitulated: ["FRA"],
         ticks: 600,
+        // P3: politics' rolled day of the next beat (Germany → Poland).
+        nextBeatDay: dayOfDate("1939-09-01"),
       }),
     );
     expect(m.factions.map((f) => [f.id, f.members.map((x) => x.tag)])).toEqual([
@@ -192,62 +241,38 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(m.factions[1].members[1].capitulated).toBe(true);
     expect(m.myWars).toEqual(["POL"]);
     expect(m.camps[0]).toMatchObject({ mine: true, scoreBp: 3005 });
-    // The first entry whose two countries are on this map: Germany → Poland.
     expect(m.nextHistory).toBe(
       "[ww1936.date] year=1939,month=[ww1936.month.m09],day=1",
     );
   });
 
-  it("the next date skips entries that never fire: a human's, or a capitulated country's", () => {
-    const next = (o: Fake) => diplomacyModel(fakeGame({ ticks: 600, ...o }));
-    const date = (y: number, m: string, d: number) =>
-      `[ww1936.date] year=${y},month=[ww1936.month.m${m}],day=${d}`;
-    // Germany is a human's: Britain joining against it comes next.
-    expect(next({ humans: { DEU: ["C1", "minsu"] } }).nextHistory).toBe(
-      date(1939, "09", 3),
+  it("the next date is politics' next history beat; none without one", () => {
+    // P3 (spec §18.2): the engine rolls the beats and skips those that never
+    // fire (a human's, a capitulated country's); the screen shows its day.
+    const next = (o: Fake) =>
+      diplomacyModel(fakeGame({ ticks: 600, ...o })).nextHistory;
+    expect(next({ nextBeatDay: dayOfDate("1940-06-10") })).toBe(
+      "[ww1936.date] year=1940,month=[ww1936.month.m06],day=10",
     );
-    expect(
-      next({
-        humans: {
-          DEU: ["C1", "minsu"],
-          GBR: ["C2", "jiwoo"],
-          FRA: ["C3", "seoyeon"],
-        },
-      }).nextHistory,
-    ).toBe(date(1939, "09", 17));
-    // Poland has capitulated: the Soviet entry goes too, and Germany's on
-    // France (a human's), leaving Italy's.
-    expect(
-      next({
-        humans: {
-          DEU: ["C1", "minsu"],
-          GBR: ["C2", "jiwoo"],
-          FRA: ["C3", "seoyeon"],
-        },
-        capitulated: ["POL"],
-      }).nextHistory,
-    ).toBe(date(1940, "06", 10));
-    // Nothing left: no date.
-    expect(
-      next({
-        ticks: dayStartTick(3000, 600),
-      }).nextHistory,
-    ).toBeNull();
+    expect(next({ nextBeatDay: -1 })).toBeNull();
+    // Before politics' first update.
+    expect(next({})).toBeNull();
   });
 
-  it("the region line shows the name, the points and the 1936 owner when it changed", () => {
+  it("the region line shows the name, the points and the legal owner when someone else holds it", () => {
     const krakow = scenario.landRegions.find((r) => r.name === "Krakow")!;
     const tile = scenario.vpTile(krakow);
     expect(regionInfo(fakeGame(), tile, true)).toEqual({
       name: "크라쿠프",
       vp: 3,
-      originalOwner: null,
+      legalOwner: null,
     });
+    // Without a transfer the legal owner is the 1936 one (P3 spec §17.1).
     const taken = new Map([[tile, "DEU" as CountryTag]]);
     expect(regionInfo(fakeGame({ taken }), tile, false)).toEqual({
       name: "Krakow",
       vp: 3,
-      originalOwner: "POL",
+      legalOwner: "POL",
     });
   });
 
@@ -505,6 +530,7 @@ describe("the World War 1936 screens (spec §8.2)", () => {
       wars: [["DEU", "POL"]],
       capitulated: ["FRA"],
       ticks: 600,
+      nextBeatDay: dayOfDate("1939-09-01"),
     }) as never;
     drawer.eventBus = new EventBus();
     document.body.appendChild(drawer);
@@ -513,8 +539,10 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     await drawer.updateComplete;
     const aside = drawer.querySelector<HTMLElement>("[data-ww-diplomacy]")!;
     expect(aside).not.toBeNull();
-    // Never wider than the space right of the screen's middle.
-    expect(aside.getAttribute("style")).toContain("calc(50vw - 8px)");
+    // Never wider than the space right of the screen's middle (P3: 420 px).
+    expect(aside.getAttribute("style")).toContain(
+      "min(420px, calc(50vw - 8px))",
+    );
     expect(aside.getAttribute("style")).toContain("top: 40px");
     expect(
       [...drawer.querySelectorAll("[data-ww-faction]")].map((e) =>
@@ -527,11 +555,18 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(
       drawer.querySelector("[data-ww-member=GBR]")!.className,
     ).not.toContain("line-through");
+    // P3 (spec §21.5): four tabs; my wars on the second, the next date on the world's.
+    const tab = async (t: string) => {
+      drawer.querySelector<HTMLButtonElement>(`[data-ww-tab='${t}']`)!.click();
+      await drawer.updateComplete;
+    };
+    await tab("wars");
     expect(drawer.querySelector("[data-ww-my-wars]")!.textContent).toContain(
       "ww1936.country.POL",
     );
+    await tab("world");
     expect(drawer.querySelector("[data-ww-next]")!.textContent).toContain(
-      "ww1936.panel.next_history",
+      "ww1936.diplo.world.next_beat",
     );
     drawer
       .querySelector<HTMLButtonElement>("[data-ww-diplomacy-close]")!
@@ -584,13 +619,18 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     const drawer = document.createElement(
       "ww-diplomacy-panel",
     ) as WwDiplomacyPanel;
-    drawer.game = fakeGame({ me: "DEU", historicalAi: false }) as never;
+    drawer.game = fakeGame({
+      me: "DEU",
+      historicalAi: false,
+      nextBeatDay: dayOfDate("1939-09-01"),
+    }) as never;
     drawer.eventBus = new EventBus();
     document.body.appendChild(drawer);
     drawer.init();
-    drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
+    drawer.eventBus.emit(new OpenWwDiplomacyEvent("world"));
     await drawer.updateComplete;
     expect(drawer.querySelector("[data-ww-diplomacy]")).not.toBeNull();
+    expect(drawer.querySelector("[data-ww-camp]")).not.toBeNull();
     expect(drawer.querySelector("[data-ww-next]")).toBeNull();
   });
 

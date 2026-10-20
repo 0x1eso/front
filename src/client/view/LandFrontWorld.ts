@@ -4,11 +4,12 @@
 // enemies: WwLand.sameSide (sideOfId: a faction, or the country alone,
 // spec §7.1) and WwLand.isEnemy (P0 canFight: at war and past the
 // preparation minute).
+import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
-  COUNTRIES,
-  FACTION_IDS,
-  type FactionId,
-} from "@openfront/engine-api/ww1936/Countries";
+  factionIdxOfKey,
+  type FactionKey,
+  type WwFactionData,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   facesFront,
@@ -21,6 +22,11 @@ import type { WwLandView } from "./WwLandView";
 export interface LandWarInputs {
   war: () => WorldWarData | null;
   ticks: () => number;
+  /**
+   * P3 (plan decision 8): the live factions (the politics view's global);
+   * null or absent: the starting factions. A new list rebuilds the sides.
+   */
+  factions?: () => readonly WwFactionData[] | null;
 }
 
 export class LandFrontWorld implements FrontWorld {
@@ -33,6 +39,8 @@ export class LandFrontWorld implements FrontWorld {
   /** At war, by smallID pair (WorldWar's war matrix, from its wars list). */
   private readonly atWar: Uint8Array;
   private warSeen: WorldWarData | null | undefined = undefined;
+  /** The faction list the sides were last built from (null: the 1936 ones). */
+  private factionsSeen: readonly WwFactionData[] | null = null;
   private prepEnd = 0;
 
   /**
@@ -52,25 +60,37 @@ export class LandFrontWorld implements FrontWorld {
   }
 
   /**
-   * Sides as WwLand.rebuildDerived builds them. `factionOf` is the engine's
-   * WorldWar.factionOf (the starting factions in P2); P3 passes the live one
-   * when factions change.
+   * Sides as WwLand.rebuildDerived builds them (100_000 + the faction's
+   * index). `factionOf` is the engine's WorldWar.factionOf: by default the
+   * starting factions; P3's live ones come from `inputs.factions`
+   * (syncSides) whenever politics sends a new list.
    */
   refreshSides(
-    factionOf: (smallID: number) => FactionId | null = (id) => {
+    factionOf: (smallID: number) => FactionKey | null = (id) => {
       const tag = this.scenario.tagOfSmallId(id);
       return tag === undefined ? null : COUNTRIES[tag].faction;
     },
   ): void {
     for (let id = 1; id < this.size; id++) {
       const f = factionOf(id);
-      this.sideKey[id] = f === null ? id : 100_000 + FACTION_IDS.indexOf(f);
+      this.sideKey[id] = f === null ? id : 100_000 + factionIdxOfKey(f);
     }
+  }
+
+  /** Rebuilds the sides when politics sent a new faction list. */
+  private syncSides(): void {
+    const list = this.inputs?.factions?.() ?? null;
+    if (list === null || list === this.factionsSeen) return;
+    this.factionsSeen = list;
+    const of = new Map<number, FactionKey>();
+    for (const f of list) for (const m of f.members) of.set(m, f.key);
+    this.refreshSides((id) => of.get(id) ?? null);
   }
 
   sameSide(a: number, b: number): boolean {
     if (a <= 0 || b <= 0) return false;
     if (a === b) return true;
+    this.syncSides();
     return (
       a < this.size && b < this.size && this.sideKey[a] === this.sideKey[b]
     );
@@ -79,6 +99,7 @@ export class LandFrontWorld implements FrontWorld {
   isEnemy(a: number, b: number): boolean {
     if (a <= 0 || b <= 0 || a >= this.size || b >= this.size) return false;
     if (this.inputs === null) return !this.sameSide(a, b);
+    this.syncSides();
     this.syncWars();
     if (this.inputs.ticks() < this.prepEnd) return false;
     return this.atWar[a * this.size + b] === 1;

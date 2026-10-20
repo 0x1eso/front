@@ -7,7 +7,14 @@ import { factionDotClass } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { menText, TopBandEconomy, topBandEconomy } from "./EconomyModel";
+import {
+  BandPolitics,
+  bandStats,
+  politicsInput,
+  TONE_CLASS,
+} from "./PoliticsModel";
 import {
   type BandModel,
   bandModel,
@@ -15,7 +22,11 @@ import {
   enemiesOf,
   isCapitulated,
 } from "./WorldWarModel";
-import { OpenWwIndustryEvent } from "./WwDrawer";
+import {
+  OpenWwDiplomacyEvent,
+  OpenWwIndustryEvent,
+  OpenWwPoliticsEvent,
+} from "./WwDrawer";
 
 export class ToggleWwDiplomacyEvent implements GameEvent {}
 
@@ -38,6 +49,29 @@ export const CHIP_COMPACT_PX = 100;
 /** How much of the economy chip shows. */
 export type ChipMode = "full" | "compact" | "none";
 const CHIP_MODES: readonly ChipMode[] = ["full", "compact", "none"];
+
+/**
+ * P3 (spec §21.1): how much of the politics chips shows — all (political
+ * power with its daily gain under it, stability, war support, tension),
+ * without the gain (also on a short landscape screen), political power and
+ * tension only, or none (the 🏛 and 🌐 dials open the same drawers).
+ */
+export type PolMode = "full" | "compact" | "minimal" | "none";
+
+/**
+ * The band sheds a step at a time when it runs out of room: the economy
+ * chip's manpower, the economy chip, the political power gain, stability
+ * and war support, then the politics chips. Step 0..MAX_SHED_STEP.
+ */
+export const MAX_SHED_STEP = 5;
+/** A shortened country name narrower than this sheds a step too, in CSS px. */
+const NAME_MIN_PX = 56;
+const POL_MODES: readonly PolMode[] = ["full", "compact", "minimal", "none"];
+
+export function polMode(step: number, short: boolean): PolMode {
+  const i = Math.max(0, step - 2);
+  return POL_MODES[Math.min(POL_MODES.length - 1, Math.max(short ? 1 : 0, i))];
+}
 
 /** The most of the chip a band `maxWidth` px wide holds beside the P0 content. */
 export function chipMode(maxWidth: number): ChipMode {
@@ -135,6 +169,8 @@ export class WwTopBand extends LitElement implements Controller {
   private model: BandModel | null = null;
   private economy: TopBandEconomy | null = null;
   private land: BandLand | null = null;
+  /** P3: my political power, stability, war support and the world's tension. */
+  private politics: BandPolitics | null = null;
   /**
    * Steps the chip lost beyond chipMode() because the band measured as
    * overflowing (updated); reset whenever the room or the chip changes.
@@ -159,21 +195,36 @@ export class WwTopBand extends LitElement implements Controller {
     }
   };
 
+  /** The shed step now: the room's economy chip mode, then what the band measured. */
+  private step(maxWidth: number): number {
+    return Math.min(
+      MAX_SHED_STEP,
+      CHIP_MODES.indexOf(chipMode(maxWidth)) + this.chipShrink,
+    );
+  }
+
   /** How much of the chip shows now. */
   private chip(maxWidth: number): ChipMode {
-    const i = CHIP_MODES.indexOf(chipMode(maxWidth)) + this.chipShrink;
-    return CHIP_MODES[Math.min(i, CHIP_MODES.length - 1)];
+    return CHIP_MODES[Math.min(this.step(maxWidth), CHIP_MODES.length - 1)];
   }
 
   protected updated() {
-    // Longer text than CHIP_*_PX allow for: shed the chip a step at a time
-    // until the band fits its room.
+    // Longer text than CHIP_*_PX allow for: shed a step at a time until
+    // the band fits its room.
     const band = this.querySelector<HTMLElement>("[data-ww-band]");
-    if (band === null || this.economy === null) return;
+    if (band === null || (this.economy === null && this.politics === null)) {
+      return;
+    }
     const { maxWidth } = this.placement ?? bandPlacement();
+    // The country name shortens first, but never to nothing.
+    const name = band.querySelector<HTMLElement>("[data-ww-name]");
+    const squeezed =
+      name !== null &&
+      name.scrollWidth > name.clientWidth + 1 &&
+      name.clientWidth < NAME_MIN_PX;
     if (
-      band.scrollWidth > band.clientWidth + 1 &&
-      this.chip(maxWidth) !== "none"
+      (band.scrollWidth > band.clientWidth + 1 || squeezed) &&
+      this.step(maxWidth) < MAX_SHED_STEP
     ) {
       this.chipShrink++;
     }
@@ -233,6 +284,13 @@ export class WwTopBand extends LitElement implements Controller {
     const was = this.economy;
     const land = econ === null ? null : bandLand(this.game);
     const wasLand = this.land;
+    const pi = politicsInput(this.game);
+    const pol = pi === null ? null : bandStats(pi);
+    if (JSON.stringify(pol) !== JSON.stringify(this.politics)) {
+      this.politics = pol;
+      this.chipShrink = 0;
+      this.requestUpdate();
+    }
     if (
       land?.divisions !== wasLand?.divisions ||
       land?.casualtiesText !== wasLand?.casualtiesText
@@ -297,7 +355,9 @@ export class WwTopBand extends LitElement implements Controller {
                 alt=""
                 class="h-3.5 w-5 shrink-0 rounded-sm object-cover"
               />
-              <span class="min-w-0 truncate">${countryName(m.myTag)}</span>
+              <span data-ww-name class="min-w-0 truncate"
+                >${countryName(m.myTag)}</span
+              >
               ${m.myFaction === null
                 ? nothing
                 : html`<span
@@ -315,8 +375,61 @@ export class WwTopBand extends LitElement implements Controller {
           ${translateText("ww1936.band.wars", { n: m.wars })}
         </button>
         ${this.renderEconomy(this.chip(maxWidth))}
+        ${this.renderPolitics(
+          polMode(
+            this.step(maxWidth),
+            window.innerHeight <= COMPACT_MAX_HEIGHT,
+          ),
+        )}
       </div>
     `;
+  }
+
+  /**
+   * P3 (spec §21.1): "🏛 132" with "+2.3" under it, "⚖ 62%", "⚔ 45%"
+   * (orange under 50%, red under 30%) open the politics drawer's
+   * government tab; "🌍 34%" at the right end opens the diplomacy drawer's
+   * world tab.
+   */
+  private renderPolitics(mode: PolMode) {
+    const p = this.politics;
+    if (p === null || mode === "none") return nothing;
+    return html`<button
+        type="button"
+        data-ww-politics=${mode}
+        aria-label=${mode === "minimal"
+          ? p.ppLabel
+          : `${p.ppLabel}, ${p.stabLabel}, ${p.wsLabel}`}
+        class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+        @click=${() =>
+          this.eventBus.emit(new OpenWwPoliticsEvent("government"))}
+      >
+        <span data-ww-pp class="flex flex-col items-center leading-none">
+          <span>🏛 ${p.pp}</span>
+          ${mode === "full"
+            ? html`<span data-ww-pp-gain class="text-[9px] text-emerald-300"
+                >${p.gain}</span
+              >`
+            : nothing}
+        </span>
+        ${mode === "minimal"
+          ? nothing
+          : html`<span data-ww-stability class=${TONE_CLASS[p.stabTone]}
+                >⚖ ${p.stabPct}%</span
+              >
+              <span data-ww-war-support class=${TONE_CLASS[p.wsTone]}
+                >⚔ ${p.wsPct}%</span
+              >`}
+      </button>
+      <button
+        type="button"
+        data-ww-tension
+        aria-label=${p.wtLabel}
+        class="h-6 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+        @click=${() => this.eventBus.emit(new OpenWwDiplomacyEvent("world"))}
+      >
+        🌍 ${p.wtPct}%
+      </button>`;
   }
 
   private renderEconomy(mode: ChipMode) {

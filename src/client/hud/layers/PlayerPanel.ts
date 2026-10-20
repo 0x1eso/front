@@ -7,7 +7,11 @@ import {
   PlayerType,
   Relation,
 } from "@openfront/engine-api/game/GameTypes";
-import { Emoji, flattenedEmojiTable } from "@openfront/engine-api/Schemas";
+import {
+  Emoji,
+  flattenedEmojiTable,
+  type WwOrder,
+} from "@openfront/engine-api/Schemas";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import type { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -41,11 +45,19 @@ import {
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
   SendTargetPlayerIntentEvent,
+  SendWwOrderIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { renderDuration, showToast, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import {
+  declareButton,
+  justifyOptions,
+  PlayerAction,
+  playerActions,
+  politicsInput,
+} from "../ww1936/PoliticsModel";
 import {
   callIns,
   shownName,
@@ -96,6 +108,12 @@ export class PlayerPanel extends LitElement implements Controller {
   private userSettings = new UserSettings();
   /** World War 1936: the declaration waiting for its second tap. */
   private declareTap = new TwoTap();
+  /** P3: an irreversible diplomacy action waiting for its second tap. */
+  private wwTap = new TwoTap();
+  /** P3: the country whose war-goal picker is open; null: none. */
+  @state() private wwJustifyFor: number | null = null;
+  /** P3: the request just sent ("Request sent" under it for 3 s). */
+  @state() private wwSent: string | null = null;
 
   @state() private sendTarget: PlayerView | null = null;
   @state() private sendMode: "troops" | "gold" | "none" = "none";
@@ -923,19 +941,186 @@ export class PlayerPanel extends LitElement implements Controller {
     `;
   }
 
-  /** World War 1936 (spec §8.2): red, and a second tap within 3 s sends it. */
+  /**
+   * World War 1936 (spec §8.2): red, and a second tap within 3 s sends it.
+   * P3 (spec §14.5): the label follows my war goal and government ("Declare
+   * war (war goal: conquest)", or without a reason and its penalty); a
+   * blocked declaration is grey with its reason.
+   */
   private renderDeclareWar(other: PlayerView) {
-    const label = this.declareTap.isArmed(other.id(), Date.now())
+    const i = politicsInput(this.g);
+    const b =
+      i === null || i.view.summary(i.me) === null
+        ? null
+        : declareButton(
+            i,
+            other.smallID(),
+            this.actions?.interaction?.canDeclareWar,
+          );
+    const armed = this.declareTap.isArmed(other.id(), Date.now());
+    const label = armed
       ? translateText("ww1936.declare.confirm", { n: callIns(this.g, other) })
-      : translateText("ww1936.declare.button");
-    return actionButton({
-      onClick: (e: MouseEvent) => this.handleDeclareWarClick(e, other),
-      icon: breakAllianceIcon,
-      iconAlt: "Declare war",
-      title: label,
+      : (b?.label ?? translateText("ww1936.declare.button"));
+    return this.wwButton(
+      "declare",
       label,
-      type: "red",
-    });
+      null,
+      b?.block ?? null,
+      armed,
+      true,
+      (e: MouseEvent) => this.handleDeclareWarClick(e, other),
+    );
+  }
+
+  /** P3: one line of the World War action list (no title: spec §21). */
+  private wwButton(
+    id: string,
+    label: string,
+    cost: string | null,
+    block: string | null,
+    armed: boolean,
+    red: boolean,
+    onClick: (e: MouseEvent) => void,
+  ) {
+    return html`<div class="flex flex-col">
+      <button
+        type="button"
+        data-ww-act=${id}
+        data-armed=${String(armed)}
+        class="min-h-9 w-full rounded-lg border px-2 py-1 text-left text-sm font-semibold disabled:opacity-40 ${red
+          ? "border-red-400/40 text-red-300 hover:bg-red-500/10"
+          : "border-white/10 bg-white/4 text-white/90 hover:bg-white/10"} ${armed
+          ? "ring-2 ring-red-400"
+          : ""}"
+        ?disabled=${block !== null}
+        @click=${onClick}
+      >
+        ${label}${cost === null
+          ? ""
+          : html`<span class="text-xs font-normal text-white/60">
+              · ${cost}</span
+            >`}
+      </button>
+      ${block === null
+        ? ""
+        : html`<span data-ww-act-block class="text-xs text-red-300"
+            >${block}</span
+          >`}
+      ${this.wwSent === id
+        ? html`<span data-ww-sent class="text-xs text-emerald-300"
+            >${translateText("ww1936.diplo.act.sent")}</span
+          >`
+        : ""}
+    </div>`;
+  }
+
+  private sendWw(order: WwOrder) {
+    this.eventBus.emit(new SendWwOrderIntentEvent(order));
+  }
+
+  /** P3 (spec §21.5): a tap on one action of the list. */
+  private handleWwAction(e: MouseEvent, a: PlayerAction, other: PlayerView) {
+    e.stopPropagation();
+    if (a.order === "declare") return;
+    if (a.order === "justify") {
+      this.wwJustifyFor =
+        this.wwJustifyFor === other.smallID() ? null : other.smallID();
+      return;
+    }
+    const order = a.order;
+    if (a.twoTap) {
+      if (!this.wwTap.tap(`${a.id}:${other.id()}`, Date.now())) {
+        this.requestUpdate();
+        setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
+        return;
+      }
+    }
+    this.sendWw(order);
+    this.wwSent = a.id;
+    setTimeout(() => {
+      if (this.wwSent === a.id) this.wwSent = null;
+    }, TWO_TAP_MS);
+  }
+
+  /**
+   * World War 1936 P3 (spec §21.5 last paragraph): where P0's declare
+   * button was, the diplomacy actions — justify a war goal (pick the goal:
+   * cost and days), declare war, guarantee, pacts, access, factions,
+   * relations, party support, coups — each grey with one reason when
+   * blocked; above them the country's government, leader, stability, war
+   * support and relations.
+   */
+  private renderWwActions(other: PlayerView) {
+    const i = politicsInput(this.g);
+    if (i === null) {
+      return this.actions?.interaction?.canDeclareWar === true
+        ? this.renderDeclareWar(other)
+        : html``;
+    }
+    const m = playerActions(
+      i,
+      other.smallID(),
+      this.actions?.interaction?.canDeclareWar,
+    );
+    return html`<div data-ww-actions class="flex flex-col gap-1.5">
+      ${m.info === null
+        ? ""
+        : html`<p data-ww-info class="m-0 text-xs text-white/70">${m.info}</p>`}
+      ${m.relations === null
+        ? ""
+        : html`<p data-ww-relations class="m-0 text-xs text-white/70">
+            ${m.relations}
+          </p>`}
+      ${m.actions.map((a) =>
+        a.id === "declare"
+          ? this.renderDeclareWar(other)
+          : this.wwButton(
+              a.id,
+              a.twoTap &&
+                this.wwTap.isArmed(`${a.id}:${other.id()}`, Date.now())
+                ? translateText("ww1936.pol.tap_again")
+                : a.label,
+              a.cost,
+              a.block,
+              a.twoTap &&
+                this.wwTap.isArmed(`${a.id}:${other.id()}`, Date.now()),
+              a.twoTap,
+              (e: MouseEvent) => this.handleWwAction(e, a, other),
+            ),
+      )}
+      ${this.wwJustifyFor === other.smallID()
+        ? html`<div data-ww-justify-pick class="flex flex-col gap-1 pl-2">
+            <span class="text-xs text-white/60"
+              >${translateText("ww1936.diplo.act.justify_pick")}</span
+            >
+            ${justifyOptions(i, other.smallID()).map(
+              (o) =>
+                html`<div class="flex flex-col">
+                  <button
+                    type="button"
+                    data-ww-justify=${o.group === ""
+                      ? o.type
+                      : `${o.type}:${o.group}`}
+                    class="min-h-9 w-full rounded-lg border border-white/10 bg-white/4 px-2 py-1 text-left text-xs font-semibold hover:bg-white/10 disabled:opacity-40"
+                    ?disabled=${o.block !== null}
+                    @click=${(e: MouseEvent) => {
+                      e.stopPropagation();
+                      this.sendWw(o.order);
+                      this.wwJustifyFor = null;
+                    }}
+                  >
+                    ${o.label}
+                  </button>
+                  ${o.block === null
+                    ? ""
+                    : html`<span class="text-xs text-red-300"
+                        >${o.block}</span
+                      >`}
+                </div>`,
+            )}
+          </div>`
+        : ""}
+    </div>`;
   }
 
   private renderActions(my: PlayerView, other: PlayerView) {
@@ -955,7 +1140,6 @@ export class PlayerPanel extends LitElement implements Controller {
       !worldWar && this.actions?.interaction?.canBreakAlliance;
     const canTarget = this.actions?.interaction?.canTarget;
     const canEmbargo = this.actions?.interaction?.canEmbargo;
-    const canDeclareWar = this.actions?.interaction?.canDeclareWar === true;
 
     return html`
       <div class="flex flex-col gap-2.5">
@@ -1013,54 +1197,55 @@ export class PlayerPanel extends LitElement implements Controller {
         <ui-divider></ui-divider>
         ${other === my
           ? html``
-          : html`
-              <div class="grid auto-cols-fr grid-flow-col gap-1">
-                ${worldWar
-                  ? ""
-                  : canEmbargo
+          : worldWar
+            ? this.renderWwActions(other)
+            : html`
+                <div class="grid auto-cols-fr grid-flow-col gap-1">
+                  ${worldWar
+                    ? ""
+                    : canEmbargo
+                      ? actionButton({
+                          onClick: (e: MouseEvent) =>
+                            this.handleEmbargoClick(e, my, other),
+                          icon: stopTradingIcon,
+                          iconAlt: "Stop Trading",
+                          title: translateText("player_panel.stop_trade"),
+                          label: translateText("player_panel.stop_trade"),
+                          type: "yellow",
+                        })
+                      : actionButton({
+                          onClick: (e: MouseEvent) =>
+                            this.handleStopEmbargoClick(e, my, other),
+                          icon: startTradingIcon,
+                          iconAlt: "Start Trading",
+                          title: translateText("player_panel.start_trade"),
+                          label: translateText("player_panel.start_trade"),
+                          type: "green",
+                        })}
+                  ${canBreakAlliance
                     ? actionButton({
                         onClick: (e: MouseEvent) =>
-                          this.handleEmbargoClick(e, my, other),
-                        icon: stopTradingIcon,
-                        iconAlt: "Stop Trading",
-                        title: translateText("player_panel.stop_trade"),
-                        label: translateText("player_panel.stop_trade"),
-                        type: "yellow",
+                          this.handleBreakAllianceClick(e, my, other),
+                        icon: breakAllianceIcon,
+                        iconAlt: "Break Alliance",
+                        title: translateText("player_panel.break_alliance"),
+                        label: translateText("player_panel.break_alliance"),
+                        type: "red",
                       })
-                    : actionButton({
+                    : ""}
+                  ${canSendAllianceRequest
+                    ? actionButton({
                         onClick: (e: MouseEvent) =>
-                          this.handleStopEmbargoClick(e, my, other),
-                        icon: startTradingIcon,
-                        iconAlt: "Start Trading",
-                        title: translateText("player_panel.start_trade"),
-                        label: translateText("player_panel.start_trade"),
-                        type: "green",
-                      })}
-                ${canDeclareWar ? this.renderDeclareWar(other) : ""}
-                ${canBreakAlliance
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleBreakAllianceClick(e, my, other),
-                      icon: breakAllianceIcon,
-                      iconAlt: "Break Alliance",
-                      title: translateText("player_panel.break_alliance"),
-                      label: translateText("player_panel.break_alliance"),
-                      type: "red",
-                    })
-                  : ""}
-                ${canSendAllianceRequest
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleAllianceClick(e, my, other),
-                      icon: allianceIcon,
-                      iconAlt: "Alliance",
-                      title: translateText("player_panel.send_alliance"),
-                      label: translateText("player_panel.send_alliance"),
-                      type: "indigo",
-                    })
-                  : ""}
-              </div>
-            `}
+                          this.handleAllianceClick(e, my, other),
+                        icon: allianceIcon,
+                        iconAlt: "Alliance",
+                        title: translateText("player_panel.send_alliance"),
+                        label: translateText("player_panel.send_alliance"),
+                        type: "indigo",
+                      })
+                    : ""}
+                </div>
+              `}
         ${other === my && !worldWar
           ? html`<div class="grid auto-cols-fr grid-flow-col gap-1">
               ${actionButton({
