@@ -69,6 +69,45 @@ type EconomyRow struct {
 	Dock        *int     `json:"dock,omitempty"`
 	Infra       *int     `json:"infra,omitempty"`
 	NonCore     []string `json:"nonCore,omitempty"` // adm0_a3 codes that are not homeland
+	// AdmPop spreads popCore by these admin-1 populations (Natural Earth
+	// unit name → thousands, the USA's 1930 census) instead of by the
+	// populated places; every homeland unit must be listed.
+	AdmPop map[string]int `json:"admPop,omitempty"`
+}
+
+// IndustryPoint (src/industry1936.json "industry") multiplies the factory
+// weight of the region at its point: the 1936 industrial regions.
+type IndustryPoint struct {
+	Tag  string  `json:"tag"`
+	Mult int     `json:"mult"`
+	Lon  float64 `json:"lon"`
+	Lat  float64 `json:"lat"`
+	Note string  `json:"note"`
+}
+
+// Yard (src/industry1936.json "yards") is a 1936 naval yard: a country's
+// dockyards go to its yards' regions first, D'Hondt by weight.
+type Yard struct {
+	Tag    string  `json:"tag"`
+	Weight int     `json:"weight"`
+	Lon    float64 `json:"lon"`
+	Lat    float64 `json:"lat"`
+	Note   string  `json:"note"`
+}
+
+// Industry is src/industry1936.json.
+type Industry struct {
+	Industry []IndustryPoint `json:"industry"`
+	Yards    []Yard          `json:"yards"`
+}
+
+// EconomyInput is what buildEconomy works from besides the map.
+type EconomyInput struct {
+	Rows     []EconomyRow // countries.json order
+	Sites    []Site
+	Places   []Place
+	Industry Industry
+	Adm      []int32 // admin-1 unit per pixel (feature index + 1), for AdmPop
 }
 
 // Site is one line of src/resources1936.json (P1 spec §3.5).
@@ -102,21 +141,51 @@ func placesOf(features []Feature) []Place {
 	return out
 }
 
-// regionPeople sums the pop_max of the places in each region, by region id:
-// a place counts for the region of the nearest staying land pixel within
-// placeReach; places in the sea or off the map count for none.
-func regionPeople(places []Place, p Projection, kept []bool, ids []uint16, regions int) []int64 {
-	out := make([]int64, regions+1)
+// placeHit is a place on the map: its region and admin-1 unit.
+type placeHit struct {
+	region int
+	unit   int32
+	pop    int64
+}
+
+// pointRegion is the region of the nearest staying land pixel within reach
+// of a point, and that pixel; ok is false off the land.
+func pointRegion(p Projection, kept []bool, ids []uint16, lon, lat float64, reach int) (int, int, bool) {
+	px, ok := p.Pixel(lon, lat)
+	if ok {
+		px, ok = nearestLand(p, kept, px, reach)
+	}
+	if !ok || ids[px] == 0 {
+		return 0, 0, false
+	}
+	return int(ids[px]), px, true
+}
+
+// placeHits puts each place in the region (and admin-1 unit) of the nearest
+// staying land pixel within placeReach; places in the sea or off the map
+// count for none. adm may be nil (no units).
+func placeHits(places []Place, p Projection, kept []bool, ids []uint16, adm []int32) []placeHit {
+	var out []placeHit
 	for _, pl := range places {
-		px, ok := p.Pixel(pl.Lon, pl.Lat)
-		if ok {
-			px, ok = nearestLand(p, kept, px, placeReach)
-		}
+		id, px, ok := pointRegion(p, kept, ids, pl.Lon, pl.Lat, placeReach)
 		if !ok {
 			continue
 		}
-		if id := int(ids[px]); id > 0 && id <= regions {
-			out[id] += pl.Pop
+		var u int32
+		if adm != nil {
+			u = adm[px]
+		}
+		out = append(out, placeHit{id, u, pl.Pop})
+	}
+	return out
+}
+
+// regionPeople sums the pop_max of the places in each region, by region id.
+func regionPeople(hits []placeHit, regions int) []int64 {
+	out := make([]int64, regions+1)
+	for _, h := range hits {
+		if h.region <= regions {
+			out[h.region] += h.pop
 		}
 	}
 	return out
@@ -138,6 +207,8 @@ type EcoRegion struct {
 	// or sites (the generator moves anything it still has to the capital).
 	Dropped bool
 	Pop     int
+	Mult    int // industry multiplier of the factory weight (1 when none)
+	Yard    int // naval yard weight (0 when none)
 	Cat     int // index into categories
 	Infra   int
 	Civ     int
@@ -153,6 +224,7 @@ type EconomySummary struct {
 	Sites          int
 	Dropped        int
 	ForeignCore    []string // core regions on another modern country's land
+	Points         []string // where each industry point and yard landed
 }
 
 func decodeStrict(path string, v any) error {
@@ -504,11 +576,11 @@ func factoryCounts(eco EconomyRow, hasCoast bool) (civ, mil, dock int) {
 	return civ, mil, dock
 }
 
-// factoryWeight is w2 (spec §3.3-7 as amended): the region's population, so
-// the factories follow the people (the Ruhr, the Midlands, the Donbas…),
-// halved in a colony.
+// factoryWeight is w2 (spec §3.3-7 as amended): the region's population
+// times its industry multiplier, so the factories follow the people and the
+// 1936 industry (the Ruhr, the Midlands, the Donbas…), halved in a colony.
 func factoryWeight(e *EcoRegion) int64 {
-	w := int64(e.Pop)
+	w := int64(e.Pop) * int64(max(e.Mult, 1))
 	if !e.Core {
 		w /= 2
 	}
@@ -516,7 +588,9 @@ func factoryWeight(e *EcoRegion) int64 {
 }
 
 // placeFactories (spec §3.3-7) places one country's dockyards, then civ,
-// then mil, one at a time, D'Hondt: each goes to the region with free slots
+// then mil, one at a time, D'Hondt. A dockyard goes first to a region with a
+// naval yard (Yard weight × 1000 / (its dockyards + 1), ties to the earlier
+// region) while one has room. Otherwise each goes to the region with free slots
 // (dock: a coastal one) with the largest w2 × 1000 / (factories already there
 // + 1), ties to the earlier region, a homeland (core) region first: a colony
 // takes one only when no core region has room for it. When no region has
@@ -553,6 +627,22 @@ func placeFactories(regions []*EcoRegion, civ, mil, dock int) (int, error) {
 		}
 		return best
 	}
+	// pickYard is the naval-yard region for the next dockyard, -1 when none
+	// has room.
+	pickYard := func() int {
+		best := -1
+		var bestScore int64
+		for i, e := range regions {
+			if e.Yard == 0 || !e.Coastal || e.Civ+e.Mil+e.Dock >= categorySlots[e.Cat] {
+				continue
+			}
+			score := int64(e.Yard) * 1000 / int64(e.Dock+1)
+			if best < 0 || score > bestScore {
+				best, bestScore = i, score
+			}
+		}
+		return best
+	}
 	bumps := 0
 	for {
 		for _, e := range regions {
@@ -562,7 +652,13 @@ func placeFactories(regions []*EcoRegion, civ, mil, dock int) (int, error) {
 	place:
 		for kind, count := range []int{dock, civ, mil} {
 			for k := 0; k < count; k++ {
-				best := pick(kind, true)
+				best := -1
+				if kind == 0 {
+					best = pickYard()
+				}
+				if best < 0 {
+					best = pick(kind, true)
+				}
 				if best < 0 {
 					best = pick(kind, false)
 				}
@@ -606,15 +702,12 @@ func placeFactories(regions []*EcoRegion, civ, mil, dock int) (int, error) {
 func placeSites(sites []Site, p Projection, kept []bool, ids []uint16, eco map[int]*EcoRegion, t *Tables) error {
 	var bad []string
 	for _, s := range sites {
-		px, ok := p.Pixel(s.Lon, s.Lat)
-		if ok {
-			px, ok = nearestLand(p, kept, px, siteReach)
-		}
+		id, px, ok := pointRegion(p, kept, ids, s.Lon, s.Lat, siteReach)
 		if !ok {
 			bad = append(bad, fmt.Sprintf("%s (%s %s at %.2f, %.2f): no land within %d pixels", s.Note, s.Tag, s.Res, s.Lon, s.Lat, siteReach))
 			continue
 		}
-		e := eco[int(ids[px])]
+		e := eco[id]
 		if e == nil {
 			bad = append(bad, fmt.Sprintf("%s (%s %s): pixel %d has no region", s.Note, s.Tag, s.Res, px))
 			continue
@@ -631,21 +724,200 @@ func placeSites(sites []Site, p Projection, kept []bool, ids []uint16, eco map[i
 	return nil
 }
 
+// industryReach is how far (pixels) an industry point or yard may lie off
+// the land.
+const industryReach = 8
+
+// placeIndustry sets each region's industry multiplier (the largest of the
+// points in it) and naval yard weight (the sum of its yards). A point that
+// finds no land or lands in another country's region, and a yard whose
+// region has no coast or the generator drops, is an error.
+func placeIndustry(ind Industry, p Projection, kept []bool, ids []uint16, eco map[int]*EcoRegion, t *Tables, sum *EconomySummary) error {
+	var bad []string
+	find := func(tag, note string, lon, lat float64) *EcoRegion {
+		id, _, ok := pointRegion(p, kept, ids, lon, lat, industryReach)
+		e := eco[id]
+		if !ok || e == nil {
+			bad = append(bad, fmt.Sprintf("%s (%s at %.2f, %.2f): no land within %d pixels", note, tag, lon, lat, industryReach))
+			return nil
+		}
+		if owner := t.Countries[e.R.Owner-1].Tag; owner != tag {
+			bad = append(bad, fmt.Sprintf("%s (%s at %.2f, %.2f): falls in %s's region %d %q", note, tag, lon, lat, owner, e.R.ID, e.R.Name))
+			return nil
+		}
+		return e
+	}
+	for _, pt := range ind.Industry {
+		if e := find(pt.Tag, pt.Note, pt.Lon, pt.Lat); e != nil {
+			e.Mult = max(e.Mult, pt.Mult)
+			sum.Points = append(sum.Points, fmt.Sprintf("%s ×%d %s → %d %q", pt.Tag, pt.Mult, pt.Note, e.R.ID, e.R.Name))
+		}
+	}
+	for _, y := range ind.Yards {
+		e := find(y.Tag, y.Note, y.Lon, y.Lat)
+		if e == nil {
+			continue
+		}
+		if !e.Coastal {
+			bad = append(bad, fmt.Sprintf("yard %s (%s): region %d %q has no coast", y.Note, y.Tag, e.R.ID, e.R.Name))
+			continue
+		}
+		e.Yard += y.Weight
+		sum.Points = append(sum.Points, fmt.Sprintf("%s yard %d %s → %d %q", y.Tag, y.Weight, y.Note, e.R.ID, e.R.Name))
+	}
+	if len(bad) > 0 {
+		return fmt.Errorf("industry1936.json:\n  %s", strings.Join(bad, "\n  "))
+	}
+	return nil
+}
+
+// loadIndustry reads industry1936.json: known tags, multipliers and yard
+// weights of at least 1.
+func loadIndustry(path string, t *Tables) (Industry, error) {
+	var ind Industry
+	if err := decodeStrict(path, &ind); err != nil {
+		return ind, err
+	}
+	var bad []string
+	for _, pt := range ind.Industry {
+		if _, ok := t.tagIndex[pt.Tag]; !ok || pt.Mult < 1 {
+			bad = append(bad, fmt.Sprintf("industry %s: tag %s, mult %d", pt.Note, pt.Tag, pt.Mult))
+		}
+	}
+	for _, y := range ind.Yards {
+		if _, ok := t.tagIndex[y.Tag]; !ok || y.Weight < 1 {
+			bad = append(bad, fmt.Sprintf("yard %s: tag %s, weight %d", y.Note, y.Tag, y.Weight))
+		}
+	}
+	if len(bad) > 0 {
+		return ind, fmt.Errorf("%s:\n  %s", path, strings.Join(bad, "\n  "))
+	}
+	return ind, nil
+}
+
+// featureOwner is the 1936 owner of an admin-1 unit by the owner tables
+// (the adm1 override, else its modern country's), "" when none.
+func featureOwner(f Feature, t *Tables) string {
+	if tag, ok := t.Owners.Adm1[adm1Key(f)]; ok {
+		return tag
+	}
+	if o := t.Owners.Adm0[f.Str("adm0_a3")]; o != nil {
+		return *o
+	}
+	return ""
+}
+
+// admUnits resolves a row's AdmPop names to admin-1 units (feature index +
+// 1) the row's country owns; each name must match exactly one.
+func admUnits(row EconomyRow, admin []Feature, t *Tables) (map[int32]int64, []string) {
+	byName := map[string][]int32{}
+	for i, f := range admin {
+		if featureOwner(f, t) == row.Tag {
+			byName[f.Str("name")] = append(byName[f.Str("name")], int32(i+1))
+		}
+	}
+	names := make([]string, 0, len(row.AdmPop))
+	for name := range row.AdmPop {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	units := map[int32]int64{}
+	var bad []string
+	for _, name := range names {
+		switch u := byName[name]; len(u) {
+		case 1:
+			if row.AdmPop[name] < 0 {
+				bad = append(bad, fmt.Sprintf("%s admPop %q: negative", row.Tag, name))
+			}
+			units[u[0]] = int64(row.AdmPop[name])
+		case 0:
+			bad = append(bad, fmt.Sprintf("%s admPop %q: no such admin-1 unit of %s", row.Tag, name, row.Tag))
+		default:
+			bad = append(bad, fmt.Sprintf("%s admPop %q: %d units of that name", row.Tag, name, len(u)))
+		}
+	}
+	return units, bad
+}
+
+// censusWeights are the homeland population weights of a country with
+// AdmPop: each unit's population spreads over the regions holding its land
+// by the places and area there (the usual weights, inside the unit), so a
+// region's weight is Σ unit pop × 10^6 × its share of the unit.
+func censusWeights(core []*EcoRegion, units map[int32]int64, adm []int32, kept []bool, hits []placeHit, admin []Feature) ([]int64, []string) {
+	type ru struct {
+		region int
+		unit   int32
+	}
+	index := map[int]int{}
+	for i, e := range core {
+		index[e.R.ID] = i
+	}
+	count := map[ru]int{}
+	for i, e := range core {
+		for _, px := range e.R.Pixels {
+			if kept[px] {
+				count[ru{i, adm[px]}]++
+			}
+		}
+	}
+	people := map[ru]int64{}
+	for _, h := range hits {
+		if i, ok := index[h.region]; ok {
+			people[ru{i, h.unit}] += h.pop
+		}
+	}
+	keys := make([]ru, 0, len(count))
+	for k := range count {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(a, b int) bool {
+		if keys[a].unit != keys[b].unit {
+			return keys[a].unit < keys[b].unit
+		}
+		return keys[a].region < keys[b].region
+	})
+	local := map[ru]int64{}
+	unitTotal := map[int32]int64{}
+	var bad []string
+	for _, k := range keys {
+		if _, ok := units[k.unit]; !ok {
+			name := "no unit"
+			if k.unit > 0 {
+				name = admin[k.unit-1].Str("name")
+			}
+			bad = append(bad, fmt.Sprintf("region %d %q: admin-1 unit %q has no admPop", core[k.region].R.ID, core[k.region].R.Name, name))
+			continue
+		}
+		l := popWeight(people[k], count[k])
+		local[k] = l
+		unitTotal[k.unit] += l
+	}
+	weights := make([]int64, len(core))
+	for _, k := range keys {
+		if l, ok := local[k]; ok && unitTotal[k.unit] > 0 {
+			weights[k.region] += units[k.unit] * 1_000_000 * l / unitTotal[k.unit]
+		}
+	}
+	return weights, bad
+}
+
 // buildEconomy runs spec §3.3 for every region. regions are in id order
 // (region k has id k + 1), capitals the capital pixel per country
 // (assignVP), ids the land region per pixel, places the populated places
 // that spread each country's people.
-func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, capitals []int, admin []Feature, t *Tables, rows []EconomyRow, sites []Site, places []Place) ([]*EcoRegion, EconomySummary, error) {
+func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, capitals []int, admin []Feature, t *Tables, in EconomyInput) ([]*EcoRegion, EconomySummary, error) {
 	w := p.Width
 	n := w * p.Height
+	rows := in.Rows
 	kept, water := generatorLand(land, w, n)
-	people := regionPeople(places, p, kept, ids, len(regions))
+	hits := placeHits(in.Places, p, kept, ids, in.Adm)
+	people := regionPeople(hits, len(regions))
 	sum := EconomySummary{Civ: make([]int, len(t.Countries)), Mil: make([]int, len(t.Countries)), Dock: make([]int, len(t.Countries))}
 	eco := make([]*EcoRegion, len(regions))
 	byID := make(map[int]*EcoRegion, len(regions))
 	perCountry := make([][]*EcoRegion, len(t.Countries))
 	for k, r := range regions {
-		e := &EcoRegion{R: r}
+		e := &EcoRegion{R: r, Mult: 1}
 		e.Dropped = regionDropped(r, kept)
 		e.Core = regionCore(r, admin, t, rows[r.Owner-1])
 		e.Coastal = !e.Dropped && regionCoastal(r, kept, water, w)
@@ -666,6 +938,9 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 		}
 	}
 	var errs []string
+	if err := placeIndustry(in.Industry, p, kept, ids, byID, t, &sum); err != nil {
+		errs = append(errs, err.Error())
+	}
 	for c, list := range perCountry {
 		row := rows[c]
 		tag := t.Countries[c].Tag
@@ -688,13 +963,27 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 		if len(core) == 0 {
 			popColonial, popCore = popCore+popColonial, 0
 		}
-		for _, part := range []struct {
+		for k, part := range []struct {
 			list []*EcoRegion
 			pop  int
 		}{{core, popCore}, {colonial, popColonial}} {
 			weights := make([]int64, len(part.list))
 			for i, e := range part.list {
 				weights[i] = popWeight(people[e.R.ID], len(e.R.Pixels))
+			}
+			if k == 0 && len(row.AdmPop) > 0 {
+				if in.Adm == nil {
+					errs = append(errs, tag+": admPop needs the admin-1 raster")
+					continue
+				}
+				units, bad := admUnits(row, admin, t)
+				if len(bad) == 0 {
+					weights, bad = censusWeights(part.list, units, in.Adm, kept, hits, admin)
+				}
+				if len(bad) > 0 {
+					errs = append(errs, bad...)
+					continue
+				}
 			}
 			for i, v := range apportion(part.pop, weights) {
 				part.list[i].Pop = v
@@ -706,7 +995,9 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 		}
 		hasCoast := false
 		for _, e := range list {
-			e.Cat = categoryIndex(e.Pop, e.R.MaxTier, e.Capital)
+			// An industrial region has the slots its industry needs: its
+			// category reads its population times its multiplier.
+			e.Cat = categoryIndex(e.Pop*e.Mult, e.R.MaxTier, e.Capital)
 			e.Infra = infraOf(base, e.R.Tiers, len(e.R.Pixels), e.Core, e.Cat == catWasteland)
 			hasCoast = hasCoast || e.Coastal
 		}
@@ -726,10 +1017,10 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 	if len(errs) > 0 {
 		return nil, sum, fmt.Errorf("economy:\n  %s", strings.Join(errs, "\n  "))
 	}
-	if err := placeSites(sites, p, kept, ids, byID, t); err != nil {
+	if err := placeSites(in.Sites, p, kept, ids, byID, t); err != nil {
 		return nil, sum, err
 	}
-	sum.Sites = len(sites)
+	sum.Sites = len(in.Sites)
 	for _, e := range eco {
 		if e.Dropped {
 			e.Infra = 1
@@ -754,6 +1045,10 @@ func printEconomy(t *Tables, sum EconomySummary) {
 	}
 	if len(line) > 0 {
 		fmt.Println("  " + strings.Join(line, "  "))
+	}
+	fmt.Printf("industry points and naval yards: %d\n", len(sum.Points))
+	for _, s := range sum.Points {
+		fmt.Println("  " + s)
 	}
 	fmt.Printf("core regions on another modern country's land: %d\n", len(sum.ForeignCore))
 	for _, s := range sum.ForeignCore {

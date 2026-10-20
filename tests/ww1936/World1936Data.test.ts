@@ -43,16 +43,17 @@ beforeAll(async () => {
 
 const xOf = (lon: number) => Math.floor(((lon + 180) / 360) * W);
 
-/** The region at a lon/lat (the nearest land within 3 tiles). */
+/** The region at a lon/lat (the nearest land within reach tiles, 3 by default). */
 function regionAt(
   lon: number,
   lat: number,
+  reach = 3,
 ): ReadonlyScenarioRegion | undefined {
   const s = data.scenario!;
   const map = data.gameMap;
   const x0 = xOf(lon);
   const y0 = Math.floor((TOP - millerY(lat)) * SCALE);
-  for (let d = 0; d <= 3; d++) {
+  for (let d = 0; d <= reach; d++) {
     for (let y = y0 - d; y <= y0 + d; y++) {
       for (let x = x0 - d; x <= x0 + d; x++) {
         if (Math.max(Math.abs(x - x0), Math.abs(y - y0)) !== d) continue;
@@ -272,6 +273,10 @@ interface EconomyRow {
   mil?: number;
   dock?: number;
 }
+interface IndustryTable {
+  industry: { tag: CountryTag; mult: number; lon: number; lat: number }[];
+  yards: { tag: CountryTag; weight: number; lon: number; lat: number }[];
+}
 interface SiteRow {
   tag: CountryTag;
   res: (typeof RESOURCE_IDS)[number];
@@ -286,6 +291,9 @@ const economyTable: EconomyRow[] = JSON.parse(
 );
 const siteTable: SiteRow[] = JSON.parse(
   fs.readFileSync(path.join(srcDir, "resources1936.json"), "utf8"),
+);
+const industryTable: IndustryTable = JSON.parse(
+  fs.readFileSync(path.join(srcDir, "industry1936.json"), "utf8"),
 );
 const MAJORS = ["DEU", "ITA", "JPN", "GBR", "FRA", "USA", "SUN"] as const;
 
@@ -452,6 +460,78 @@ describe("the world1936 economy (P1 spec §3)", () => {
     const ruhr = regionAt(7.0, 51.5)!;
     const berlin = regionAt(13.4, 52.52)!;
     expect(ruhr.civ + ruhr.mil).toBeGreaterThan(berlin.civ + berlin.mil);
+  });
+
+  // Ruling 2026-10-20 (fix round 2): 1936 industrial geography.
+  const regionsAt = (points: readonly (readonly [number, number])[]) => [
+    ...new Map(
+      points.map(([lon, lat]) => {
+        const r = regionAt(lon, lat)!;
+        return [r.id, r] as const;
+      }),
+    ).values(),
+  ];
+  const industry = (rs: readonly ReadonlyScenarioRegion[]) =>
+    total(rs, (r) => r.civ + r.mil);
+
+  test("US states hold their 1930 census people", () => {
+    const pennsylvania = regionAt(-79.99, 40.44)!;
+    const florida = regionAt(-80.19, 25.77)!;
+    expect(pennsylvania.pop).toBeGreaterThan(florida.pop * 5);
+    // New York State (Syracuse; New York City lies in the New Jersey region).
+    expect(regionAt(-76.15, 43.05)!.pop).toBeGreaterThan(pennsylvania.pop);
+  });
+
+  test("factories follow the 1936 industry", () => {
+    // The Rust Belt out-builds the Sun Belt.
+    const rustBelt = regionsAt([
+      [-79.99, 40.44], // Pittsburgh
+      [-81.69, 41.5], // Cleveland
+      [-83.05, 42.33], // Detroit
+    ]);
+    const sunBelt = regionsAt([
+      [-95.37, 29.76], // Houston
+      [-96.8, 32.78], // Dallas
+      [-80.19, 25.77], // Miami
+      [-81.66, 30.33], // Jacksonville
+    ]);
+    expect(industry(rustBelt)).toBeGreaterThan(industry(sunBelt));
+    // The Donbas and the Urals out-build any other two Soviet regions.
+    const donbasUrals = regionsAt([
+      [37.8, 48.0], // Stalino
+      [39.3, 48.57], // Voroshilovgrad
+      [60.6, 56.84], // Sverdlovsk
+      [61.4, 55.16], // Chelyabinsk
+      [59.0, 53.4], // Magnitogorsk
+    ]);
+    const ids = new Set(donbasUrals.map((r) => r.id));
+    const others = regionsOf("SUN")
+      .filter((r) => !ids.has(r.id))
+      .map((r) => r.civ + r.mil)
+      .sort((a, b) => b - a);
+    expect(industry(donbasUrals)).toBeGreaterThan(others[0] + others[1]);
+    // Italy's northern triangle out-builds Lazio.
+    const north = regionsAt([
+      [9.19, 45.46], // Milan
+      [7.68, 45.07], // Turin
+    ]);
+    expect(industry(north)).toBeGreaterThan(industry([regionAt(12.5, 41.9)!]));
+  });
+
+  test("dockyards are in the 1936 naval yards", () => {
+    const yardRegions = new Set<number>();
+    for (const y of industryTable.yards) {
+      const r = regionAt(y.lon, y.lat, 8)!;
+      expect(r.owner, `${y.tag} ${y.lon} ${y.lat}`).toBe(y.tag);
+      expect(r.dock, `${y.tag} ${r.name}`).toBeGreaterThan(0);
+      yardRegions.add(r.id);
+    }
+    for (const tag of MAJORS) {
+      const elsewhere = regionsOf(tag).filter(
+        (r) => r.dock > 0 && !yardRegions.has(r.id),
+      );
+      expect(elsewhere, tag).toEqual([]);
+    }
   });
 
   test("no major lacks a core region", () => {

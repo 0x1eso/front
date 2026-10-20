@@ -1,0 +1,545 @@
+{
+  "industry": [
+    {
+      "tag": "USA",
+      "mult": 4,
+      "lon": -79.99,
+      "lat": 40.44,
+      "note": "Pittsburgh steel (Pennsylvania)"
+    },
+    {
+      "tag": "USA",
+      "mult": 3,
+      "lon": -75.16,
+      "lat": 39.95,
+      "note": "Philadelphia (Pennsylvania)"
+    },
+    {
+      "tag": "USA",
+      "mult": 4,
+      "lon": -81.69,
+      "lat": 41.5,
+      "note": "Cleveland (Ohio)"
+    },
+    {
+      "tag": "USA",
+      "mult": 4,
+      "lon": -81.52,
+      "lat": 41.08,
+      "note": "Akron rubber, Youngstown steel (Ohio)"
+    },
+    {
+      "tag": "USA",
+      "mult": 5,
+      "lon": -83.05,
+      "lat": 42.33,
+      "note": "Detroit motor industry (Michigan)"
+    },
+    {
+      "tag": "USA",
+      "mult": 3,
+      "lon": -87.63,
+      "lat": 41.88,
+      "note": "Chicago (Illinois)"
+    },
+    {
+      "tag": "USA",
+      "mult": 4,
+      "lon": -87.35,
+      "lat": 41.6,
+      "note": "Gary steel (Indiana)"
+    },
+    {
+      "tag": "USA",
+      "mult": 3,
+      "lon": -86.16,
+      "lat": 39.77,
+      "note": "Indianapolis (Indiana)"
+    },
+    {
+      "tag": "USA",
+      "mult": 2,
+      "lon": -74.0,
+      "lat": 40.71,
+      "note": "New York City"
+    },
+    {
+      "tag": "USA",
+      "mult": 3,
+      "lon": -78.7,
+      "lat": 42.85,
+      "note": "Buffalo (New York)"
+    },
+    {
+      "tag": "USA",
+      "mult": 2,
+      "lon": -74.17,
+      "lat": 40.74,
+      "note": "Newark (New Jersey)"
+    },
+    {
+      "tag": "USA",
+      "mult": 2,
+      "lon": -71.06,
+      "lat": 42.36,
+      "note": "Boston (Massachusetts)"
+    },
+
+    {
+      "tag": "SUN",
+      "mult": 8,
+      "lon": 37.8,
+      "lat": 48.0,
+      "note": "Stalino, Donbas"
+    },
+    {
+      "tag": "SUN",
+      "mult": 8,
+      "lon": 39.3,
+      "lat": 48.57,
+      "note": "Voroshilovgrad, Donbas"
+    },
+    { "tag": "SUN", "mult": 5, "lon": 36.23, "lat": 49.99, "note": "Kharkov" },
+    {
+      "tag": "SUN",
+      "mult": 5,
+      "lon": 35.04,
+      "lat": 48.46,
+      "note": "Dnepropetrovsk"
+    },
+    {
+      "tag": "SUN",
+      "mult": 3,
+      "lon": 30.32,
+      "lat": 59.94,
+      "note": "Leningrad"
+    },
+    { "tag": "SUN", "mult": 3, "lon": 37.62, "lat": 55.75, "note": "Moscow" },
+    { "tag": "SUN", "mult": 3, "lon": 44.0, "lat": 56.33, "note": "Gorky" },
+    {
+      "tag": "SUN",
+      "mult": 7,
+      "lon": 60.6,
+      "lat": 56.84,
+      "note": "Sverdlovsk, Urals"
+    },
+    {
+      "tag": "SUN",
+      "mult": 7,
+      "lon": 61.4,
+      "lat": 55.16,
+      "note": "Chelyabinsk, Urals"
+    },
+    {
+      "tag": "SUN",
+      "mult": 7,
+      "lon": 59.0,
+      "lat": 53.4,
+      "note": "Magnitogorsk, Urals"
+    },
+
+    {
+      "tag": "DEU",
+      "mult": 4,
+      "lon": 7.01,
+      "lat": 51.46,
+      "note": "Essen, Ruhr"
+    },
+    {
+      "tag": "DEU",
+      "mult": 4,
+      "lon": 7.47,
+      "lat": 51.51,
+      "note": "Dortmund, Ruhr"
+    },
+    {
+      "tag": "DEU",
+      "mult": 3,
+      "lon": 6.96,
+      "lat": 50.94,
+      "note": "Cologne, Rhineland"
+    },
+    {
+      "tag": "DEU",
+      "mult": 2,
+      "lon": 8.44,
+      "lat": 49.48,
+      "note": "Ludwigshafen, Rhineland"
+    },
+    {
+      "tag": "DEU",
+      "mult": 3,
+      "lon": 12.92,
+      "lat": 50.83,
+      "note": "Chemnitz, Saxony"
+    },
+    {
+      "tag": "DEU",
+      "mult": 3,
+      "lon": 12.37,
+      "lat": 51.34,
+      "note": "Leipzig, Saxony"
+    },
+    {
+      "tag": "DEU",
+      "mult": 4,
+      "lon": 18.67,
+      "lat": 50.29,
+      "note": "Gleiwitz, Upper Silesia"
+    },
+    {
+      "tag": "DEU",
+      "mult": 2,
+      "lon": 11.58,
+      "lat": 48.14,
+      "note": "Munich, Bavaria"
+    },
+    {
+      "tag": "DEU",
+      "mult": 2,
+      "lon": 11.08,
+      "lat": 49.45,
+      "note": "Nuremberg, Bavaria"
+    },
+    { "tag": "DEU", "mult": 3, "lon": 13.4, "lat": 52.52, "note": "Berlin" },
+
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -1.9,
+      "lat": 52.48,
+      "note": "Birmingham, West Midlands"
+    },
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -1.51,
+      "lat": 52.41,
+      "note": "Coventry, West Midlands"
+    },
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -2.24,
+      "lat": 53.48,
+      "note": "Manchester, Lancashire"
+    },
+    {
+      "tag": "GBR",
+      "mult": 2,
+      "lon": -2.98,
+      "lat": 53.41,
+      "note": "Liverpool, Lancashire"
+    },
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -1.47,
+      "lat": 53.38,
+      "note": "Sheffield, Yorkshire"
+    },
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -1.55,
+      "lat": 53.8,
+      "note": "Leeds, Yorkshire"
+    },
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -4.25,
+      "lat": 55.86,
+      "note": "Glasgow, Clydeside"
+    },
+    {
+      "tag": "GBR",
+      "mult": 3,
+      "lon": -1.61,
+      "lat": 54.97,
+      "note": "Newcastle, Tyneside"
+    },
+    { "tag": "GBR", "mult": 2, "lon": -0.13, "lat": 51.51, "note": "London" },
+
+    {
+      "tag": "FRA",
+      "mult": 4,
+      "lon": 3.06,
+      "lat": 50.63,
+      "note": "Lille, Nord"
+    },
+    {
+      "tag": "FRA",
+      "mult": 4,
+      "lon": 2.83,
+      "lat": 50.43,
+      "note": "Lens coalfield, Pas-de-Calais"
+    },
+    {
+      "tag": "FRA",
+      "mult": 4,
+      "lon": 6.18,
+      "lat": 49.12,
+      "note": "Metz, Lorraine"
+    },
+    {
+      "tag": "FRA",
+      "mult": 4,
+      "lon": 6.18,
+      "lat": 48.69,
+      "note": "Nancy, Lorraine"
+    },
+    { "tag": "FRA", "mult": 2, "lon": 2.35, "lat": 48.86, "note": "Paris" },
+    {
+      "tag": "FRA",
+      "mult": 3,
+      "lon": 4.84,
+      "lat": 45.76,
+      "note": "Lyon, Rhône"
+    },
+    {
+      "tag": "FRA",
+      "mult": 3,
+      "lon": 4.39,
+      "lat": 45.43,
+      "note": "Saint-Étienne"
+    },
+
+    {
+      "tag": "ITA",
+      "mult": 4,
+      "lon": 9.19,
+      "lat": 45.46,
+      "note": "Milan, Lombardy"
+    },
+    {
+      "tag": "ITA",
+      "mult": 4,
+      "lon": 7.68,
+      "lat": 45.07,
+      "note": "Turin, Piedmont"
+    },
+    {
+      "tag": "ITA",
+      "mult": 3,
+      "lon": 8.93,
+      "lat": 44.41,
+      "note": "Genoa, Liguria"
+    },
+
+    { "tag": "JPN", "mult": 3, "lon": 139.69, "lat": 35.69, "note": "Tokyo" },
+    {
+      "tag": "JPN",
+      "mult": 3,
+      "lon": 139.64,
+      "lat": 35.44,
+      "note": "Yokohama and Kawasaki, Kanagawa"
+    },
+    { "tag": "JPN", "mult": 3, "lon": 135.5, "lat": 34.69, "note": "Osaka" },
+    {
+      "tag": "JPN",
+      "mult": 3,
+      "lon": 135.19,
+      "lat": 34.69,
+      "note": "Kobe, Hyōgo"
+    },
+    {
+      "tag": "JPN",
+      "mult": 3,
+      "lon": 136.91,
+      "lat": 35.18,
+      "note": "Nagoya, Aichi"
+    },
+    {
+      "tag": "JPN",
+      "mult": 3,
+      "lon": 130.8,
+      "lat": 33.87,
+      "note": "Yawata steel, Kitakyūshū"
+    },
+    { "tag": "JPN", "mult": 3, "lon": 130.4, "lat": 33.59, "note": "Fukuoka" }
+  ],
+  "yards": [
+    {
+      "tag": "USA",
+      "weight": 2,
+      "lon": -76.3,
+      "lat": 36.82,
+      "note": "Norfolk Navy Yard"
+    },
+    {
+      "tag": "USA",
+      "weight": 2,
+      "lon": -75.17,
+      "lat": 39.89,
+      "note": "Philadelphia Navy Yard"
+    },
+    {
+      "tag": "USA",
+      "weight": 2,
+      "lon": -73.97,
+      "lat": 40.7,
+      "note": "New York (Brooklyn) Navy Yard"
+    },
+    {
+      "tag": "USA",
+      "weight": 2,
+      "lon": -122.63,
+      "lat": 47.56,
+      "note": "Puget Sound Navy Yard, Bremerton"
+    },
+    {
+      "tag": "USA",
+      "weight": 2,
+      "lon": -122.27,
+      "lat": 38.09,
+      "note": "Mare Island Navy Yard"
+    },
+
+    {
+      "tag": "GBR",
+      "weight": 3,
+      "lon": -4.4,
+      "lat": 55.9,
+      "note": "Clyde (John Brown, Clydebank)"
+    },
+    {
+      "tag": "GBR",
+      "weight": 3,
+      "lon": -1.53,
+      "lat": 54.99,
+      "note": "Tyne (Swan Hunter, Wallsend)"
+    },
+    {
+      "tag": "GBR",
+      "weight": 2,
+      "lon": -5.9,
+      "lat": 54.61,
+      "note": "Belfast (Harland and Wolff)"
+    },
+    {
+      "tag": "GBR",
+      "weight": 2,
+      "lon": -1.1,
+      "lat": 50.8,
+      "note": "Portsmouth Dockyard"
+    },
+    {
+      "tag": "GBR",
+      "weight": 2,
+      "lon": -4.18,
+      "lat": 50.38,
+      "note": "Devonport Dockyard"
+    },
+
+    {
+      "tag": "DEU",
+      "weight": 1,
+      "lon": 10.13,
+      "lat": 54.32,
+      "note": "Kiel (Deutsche Werke, Germaniawerft)"
+    },
+    {
+      "tag": "DEU",
+      "weight": 1,
+      "lon": 8.13,
+      "lat": 53.52,
+      "note": "Wilhelmshaven (Kriegsmarinewerft)"
+    },
+    {
+      "tag": "DEU",
+      "weight": 1,
+      "lon": 9.97,
+      "lat": 53.54,
+      "note": "Hamburg (Blohm und Voss)"
+    },
+
+    {
+      "tag": "JPN",
+      "weight": 2,
+      "lon": 139.67,
+      "lat": 35.28,
+      "note": "Yokosuka Naval Arsenal"
+    },
+    {
+      "tag": "JPN",
+      "weight": 2,
+      "lon": 132.56,
+      "lat": 34.24,
+      "note": "Kure Naval Arsenal"
+    },
+    {
+      "tag": "JPN",
+      "weight": 2,
+      "lon": 129.72,
+      "lat": 33.16,
+      "note": "Sasebo Naval Arsenal"
+    },
+    {
+      "tag": "JPN",
+      "weight": 2,
+      "lon": 135.38,
+      "lat": 35.47,
+      "note": "Maizuru Naval Arsenal"
+    },
+
+    {
+      "tag": "FRA",
+      "weight": 2,
+      "lon": 5.93,
+      "lat": 43.12,
+      "note": "Toulon arsenal"
+    },
+    {
+      "tag": "FRA",
+      "weight": 1,
+      "lon": -4.49,
+      "lat": 48.39,
+      "note": "Brest arsenal"
+    },
+    {
+      "tag": "FRA",
+      "weight": 1,
+      "lon": -2.2,
+      "lat": 47.27,
+      "note": "Saint-Nazaire (Penhoët)"
+    },
+
+    {
+      "tag": "ITA",
+      "weight": 2,
+      "lon": 9.82,
+      "lat": 44.1,
+      "note": "La Spezia arsenal"
+    },
+    {
+      "tag": "ITA",
+      "weight": 1,
+      "lon": 17.24,
+      "lat": 40.47,
+      "note": "Taranto arsenal"
+    },
+    {
+      "tag": "ITA",
+      "weight": 1,
+      "lon": 8.93,
+      "lat": 44.41,
+      "note": "Genoa (Ansaldo)"
+    },
+
+    {
+      "tag": "SUN",
+      "weight": 2,
+      "lon": 30.25,
+      "lat": 59.9,
+      "note": "Leningrad (Baltic, Marti yards)"
+    },
+    {
+      "tag": "SUN",
+      "weight": 2,
+      "lon": 31.99,
+      "lat": 46.97,
+      "note": "Nikolaev (Marti South)"
+    }
+  ]
+}

@@ -238,9 +238,10 @@ func testWorld() (Projection, []bool, []uint16, []*Region, []int, []Feature, *Ta
 	}
 	regions[0].Tiers, regions[0].MaxTier = 20, 20
 	admin := []Feature{
-		{Props: map[string]any{"adm0_a3": "AAA"}},
-		{Props: map[string]any{"adm0_a3": "CCC"}},
-		{Props: map[string]any{"adm0_a3": "BBB"}},
+		{Props: map[string]any{"adm0_a3": "AAA", "name": "Westland"}},
+		{Props: map[string]any{"adm0_a3": "CCC", "name": "Colony"}},
+		{Props: map[string]any{"adm0_a3": "BBB", "name": "Island"}},
+		{Props: map[string]any{"adm0_a3": "AAA", "name": "Eastland"}},
 	}
 	aaa, bbb := "AAA", "BBB"
 	tables := &Tables{
@@ -285,7 +286,7 @@ func TestBuildEconomyOnATestWorld(t *testing.T) {
 		// Off BBB's coast, within reach of its island.
 		siteAt(p, "BBB", "oil", 2, 284, 110),
 	}
-	eco, sum, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), sites, testPlaces(p))
+	eco, sum, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: testRows(), Sites: sites, Places: testPlaces(p)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +340,7 @@ func TestNonCoreListMakesAColony(t *testing.T) {
 	p, land, ids, regions, capitals, admin, tables := testWorld()
 	rows := testRows()
 	rows[1].NonCore = []string{"BBB"}
-	eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, rows, nil, testPlaces(p))
+	eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: rows, Places: testPlaces(p)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +357,7 @@ func TestSitesThatMissTheirCountryFail(t *testing.T) {
 		"in another country":   siteAt(p, "AAA", "oil", 1, 260, 120),
 		"on the dropped islet": siteAt(p, "AAA", "oil", 1, 300, 50),
 	} {
-		_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), []Site{s}, nil)
+		_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: testRows(), Sites: []Site{s}})
 		if err == nil || !strings.Contains(err.Error(), "resource sites") {
 			t.Fatalf("a site %s: err = %v", name, err)
 		}
@@ -375,7 +376,7 @@ func TestADockyardWithoutACoastFails(t *testing.T) {
 			regions[4].Pixels = append(regions[4].Pixels, int32(y*w+x))
 		}
 	}
-	_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), nil, nil)
+	_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: testRows()})
 	if err == nil || !strings.Contains(err.Error(), "AAA: 1 dockyards but no coastal region") {
 		t.Fatalf("err = %v", err)
 	}
@@ -388,7 +389,7 @@ func TestEconomyIsDeterministic(t *testing.T) {
 	for k := 0; k < 2; k++ {
 		p, land, ids, regions, capitals, admin, tables := testWorld()
 		sites := []Site{siteAt(p, "AAA", "steel", 5, 30, 40), siteAt(p, "BBB", "oil", 2, 260, 110)}
-		eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), sites, testPlaces(p))
+		eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: testRows(), Sites: sites, Places: testPlaces(p)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -495,11 +496,168 @@ func TestPlacesWeighTheirRegions(t *testing.T) {
 	}
 	p, land, ids, regions, _, _, _ := testWorld()
 	kept, _ := generatorLand(land, p.Width, p.Width*p.Height)
-	people := regionPeople(testPlaces(p), p, kept, ids, len(regions))
+	people := regionPeople(placeHits(testPlaces(p), p, kept, ids, nil), len(regions))
 	if !reflect.DeepEqual(people, []int64{0, 1_000_000, 0, 0, 0, 0}) {
 		t.Fatalf("people per region %v", people)
 	}
 	if popWeight(0, 100) != 20_000 || popWeight(7, 0) != 7 {
 		t.Fatal("popWeight")
+	}
+}
+
+// testAdm gives every pixel of a region its region's main admin-1 unit.
+func testAdm(p Projection, regions []*Region) []int32 {
+	adm := make([]int32, p.Width*p.Height)
+	for _, r := range regions {
+		for _, px := range r.Pixels {
+			adm[px] = r.MainAdm
+		}
+	}
+	return adm
+}
+
+// admPop spreads the homeland by the census of its admin-1 units: Eastland's
+// 9,000 against Westland's 1,000 outweigh the town in Westland.
+func TestCensusSpreadsTheHomeland(t *testing.T) {
+	p, land, ids, regions, capitals, admin, tables := testWorld()
+	regions[1].MainAdm = 4 // Middle is Eastland
+	rows := testRows()
+	rows[0].AdmPop = map[string]int{"Westland": 1000, "Eastland": 9000}
+	eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: rows, Places: testPlaces(p), Adm: testAdm(p, regions)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if eco[0].Pop != 1000 || eco[1].Pop != 9000 || eco[2].Pop != 2000 {
+		t.Fatalf("West %d, Middle %d, colony %d", eco[0].Pop, eco[1].Pop, eco[2].Pop)
+	}
+}
+
+// A unit across two regions spreads over them by the places and area in it,
+// as without a census.
+func TestCensusSpreadsAUnitByItsTowns(t *testing.T) {
+	p, land, ids, regions, capitals, admin, tables := testWorld()
+	rows := testRows()
+	rows[0].AdmPop = map[string]int{"Westland": 5}
+	eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: rows, Places: testPlaces(p), Adm: testAdm(p, regions)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if eco[0].Pop != 8453 || eco[1].Pop != 1547 {
+		t.Fatalf("West %d, Middle %d, want 8453 and 1547", eco[0].Pop, eco[1].Pop)
+	}
+}
+
+func TestCensusChecksItsUnits(t *testing.T) {
+	p, land, ids, regions, capitals, admin, tables := testWorld()
+	regions[1].MainAdm = 4
+	cases := []struct {
+		tag  int // row
+		pop  map[string]int
+		want string
+	}{
+		{0, map[string]int{"Westland": 1000}, `"Eastland" has no admPop`},
+		{0, map[string]int{"Westland": 1, "Eastland": 1, "Nowhere": 3}, `"Nowhere": no such admin-1 unit of AAA`},
+		// Colony's modern country (CCC) is AAA's, not BBB's.
+		{1, map[string]int{"Island": 1, "Colony": 3}, `"Colony": no such admin-1 unit of BBB`},
+	}
+	for _, c := range cases {
+		rows := testRows()
+		rows[c.tag].AdmPop = c.pop
+		_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: rows, Adm: testAdm(p, regions)})
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Fatalf("want %s, err = %v", c.want, err)
+		}
+	}
+	rows := testRows()
+	rows[0].AdmPop = map[string]int{"Westland": 1, "Eastland": 1}
+	if _, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: rows}); err == nil || !strings.Contains(err.Error(), "admin-1 raster") {
+		t.Fatalf("no raster: err = %v", err)
+	}
+}
+
+// An industry point multiplies its region's factory weight, and its
+// category reads the multiplied population.
+func TestIndustryDrawsTheFactories(t *testing.T) {
+	p, land, ids, regions, capitals, admin, tables := testWorld()
+	lon, lat := p.LonLat(100, 50)
+	ind := Industry{Industry: []IndustryPoint{{Tag: "AAA", Mult: 10, Lon: lon, Lat: lat, Note: "works"}}}
+	eco, sum, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: testRows(), Places: testPlaces(p), Industry: ind})
+	if err != nil {
+		t.Fatal(err)
+	}
+	west, middle := eco[0], eco[1]
+	// Middle 1,547 × 10 = 15,470 against West's 8,453: civ m, w, m, m;
+	// mil w (8,453/2 > 15,470/4), m.
+	if middle.Mult != 10 || middle.Civ != 3 || middle.Mil != 1 || west.Civ != 1 || west.Mil != 1 {
+		t.Fatalf("west %+v, middle %+v", west, middle)
+	}
+	if categories[middle.Cat] != "metropolis" || len(sum.Points) != 1 {
+		t.Fatalf("middle %s, points %v", categories[middle.Cat], sum.Points)
+	}
+}
+
+// A naval yard takes the dockyards first, by its weight, even from a
+// region with more people.
+func TestYardsTakeTheDockyards(t *testing.T) {
+	big := ecoRegion(1, catCity, 5000, true, true)
+	small := ecoRegion(2, catCity, 100, true, true)
+	other := ecoRegion(3, catCity, 100, true, true)
+	small.Yard, other.Yard = 2, 1
+	if _, err := placeFactories([]*EcoRegion{big, small, other}, 0, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+	if big.Dock != 0 || small.Dock != 2 || other.Dock != 1 {
+		t.Fatalf("docks %d %d %d, want 0 2 1", big.Dock, small.Dock, other.Dock)
+	}
+	// A full yard region passes the rest to the usual rule.
+	small = ecoRegion(2, 1, 100, true, true) // pastoral: 1 slot
+	small.Yard = 5
+	big = ecoRegion(1, catCity, 5000, true, true)
+	if _, err := placeFactories([]*EcoRegion{big, small}, 0, 0, 3); err != nil {
+		t.Fatal(err)
+	}
+	if small.Dock != 1 || big.Dock != 2 {
+		t.Fatalf("docks %d %d, want 1 2", small.Dock, big.Dock)
+	}
+}
+
+func TestIndustryPointsMustLandOnTheirCountry(t *testing.T) {
+	p, land, ids, regions, capitals, admin, tables := testWorld()
+	at := func(x, y int) (float64, float64) { return p.LonLat(x, y) }
+	for want, ind := range map[string]Industry{
+		"has no coast": {Yards: []Yard{{Tag: "AAA", Weight: 1, Note: "inland"}}},
+		"falls in BBB": {Industry: []IndustryPoint{{Tag: "AAA", Mult: 2, Note: "abroad"}}},
+		"no land":      {Industry: []IndustryPoint{{Tag: "AAA", Mult: 2, Note: "at sea"}}},
+	} {
+		switch want {
+		case "has no coast":
+			ind.Yards[0].Lon, ind.Yards[0].Lat = at(30, 40)
+		case "falls in BBB":
+			ind.Industry[0].Lon, ind.Industry[0].Lat = at(260, 120)
+		default:
+			ind.Industry[0].Lon, ind.Industry[0].Lat = at(340, 20)
+		}
+		_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, EconomyInput{Rows: testRows(), Industry: ind})
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("want %q, err = %v", want, err)
+		}
+	}
+}
+
+func TestLoadIndustryChecksTheTable(t *testing.T) {
+	_, _, _, _, _, _, tables := testWorld()
+	path := filepath.Join(t.TempDir(), "industry1936.json")
+	for body, ok := range map[string]bool{
+		`{"industry":[{"tag":"AAA","mult":3,"lon":1,"lat":2,"note":"x"}],"yards":[{"tag":"BBB","weight":2,"lon":1,"lat":2,"note":"y"}]}`: true,
+		`{"industry":[{"tag":"AAA","mult":0,"lon":1,"lat":2,"note":"x"}],"yards":[]}`:                                                    false,
+		`{"industry":[],"yards":[{"tag":"ZZZ","weight":1,"lon":1,"lat":2,"note":"y"}]}`:                                                  false,
+		`{"industry":[],"yards":[],"extra":1}`:                                                                                           false,
+	} {
+		if err := os.WriteFile(path, []byte(body), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := loadIndustry(path, tables); (err == nil) != ok {
+			t.Fatalf("%s: err = %v", body, err)
+		}
 	}
 }

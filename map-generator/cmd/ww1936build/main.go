@@ -6,7 +6,7 @@
 //
 // from Natural Earth and NASA files fetched by scenarios/world1936/fetch.sh
 // and the tables in scenarios/world1936/src (the P1 economy: economy1936.json,
-// resources1936.json; economy.go). Run from map-generator/:
+// resources1936.json, industry1936.json; economy.go). Run from map-generator/:
 //
 //	go run ./cmd/ww1936build
 //
@@ -24,7 +24,7 @@ import (
 
 func main() {
 	cache := flag.String("cache", ".cache/ww1936", "folder with the fetched Natural Earth and NASA files")
-	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json")
+	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json, industry1936.json")
 	outImage := flag.String("out-image", "assets/maps/world1936/image.png", "terrain image")
 	outDir := flag.String("out-dir", "scenarios/world1936", "folder for regions.png and scenario.src.json")
 	width := flag.Int("width", 4000, "map width in pixels")
@@ -65,6 +65,10 @@ func main() {
 		log.Fatal(err)
 	}
 	sites, err := loadSites(filepath.Join(*src, "resources1936.json"), t)
+	if err != nil {
+		log.Fatal(err)
+	}
+	industry, err := loadIndustry(filepath.Join(*src, "industry1936.json"), t)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,7 +121,9 @@ func main() {
 	if err := finishNames(regions, adm, patch, admin, t); err != nil {
 		log.Fatal(err)
 	}
-	eco, ecoSum, err := buildEconomy(p, land, landIDs, regions, capitals, admin, t, ecoRows, sites, placesOf(ne("ne_10m_populated_places_simple")))
+	eco, ecoSum, err := buildEconomy(p, land, landIDs, regions, capitals, admin, t, EconomyInput{
+		Rows: ecoRows, Sites: sites, Places: placesOf(ne("ne_10m_populated_places_simple")), Industry: industry, Adm: adm,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
