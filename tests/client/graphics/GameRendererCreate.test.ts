@@ -10,10 +10,17 @@ import {
 } from "../../../src/client/hud/GameRenderer";
 import type { EmojiTable } from "../../../src/client/hud/layers/EmojiTable";
 import type { WinModal } from "../../../src/client/hud/layers/WinModal";
+import { landSidesOf, sidesOf } from "../../../src/client/hud/ww1936/LandModel";
 import { WwLandController } from "../../../src/client/hud/ww1936/WwLandController";
 import { ShowEmojiMenuEvent } from "../../../src/client/InputHandler";
 import type { MapRenderer } from "../../../src/client/render/gl";
 import type { GameView } from "../../../src/client/view";
+import {
+  LandFrontWorld,
+  type LandWarInputs,
+} from "../../../src/client/view/LandFrontWorld";
+import type { WwLandView } from "../../../src/client/view/WwLandView";
+import { fakeEconGame, ID } from "../ww1936/EconomyFixture";
 
 // Every custom element createRenderer looks up with document.querySelector.
 const HUD_TAGS = [
@@ -187,5 +194,65 @@ describe("createRenderer", () => {
     expect(setWwLand).toHaveBeenCalledTimes(1);
     expect(setWwLand.mock.calls[0][0]).toBe(wwLand);
     expect(setWwLand.mock.calls[0][1]).toBeDefined();
+  });
+
+  it("World War 1936: the map and the cards read the game's wars through one adapter", () => {
+    // Germany and Poland at war, the preparation minute over (tick 700).
+    const ww = fakeEconGame({ ticks: 700, wars: [["DEU", "POL"]] });
+    const game = {
+      ...ww.game,
+      layers: () => [],
+      width: () => 2,
+      height: () => 2,
+      isValidCoord: () => true,
+      ref: () => 1,
+      hasOwner: () => true,
+      owner: () => ({}),
+      config: () => ({
+        gameConfig: () => ({}),
+        isReplay: () => false,
+        historicalAi: () => true,
+      }),
+    } as unknown as GameView;
+    const setWwLand = vi.fn();
+    const view = { setRegions: vi.fn(), setWwLand } as unknown as MapRenderer;
+
+    createRenderer(
+      document.createElement("div"),
+      game,
+      new EventBus(),
+      null,
+      view,
+    );
+
+    // The map renderer gets the war inputs (4th argument): the game's data
+    // and tick, read live.
+    const [land, , me, war] = setWwLand.mock.calls[0] as [
+      WwLandView,
+      unknown,
+      () => number,
+      LandWarInputs | null,
+    ];
+    expect(land).toBe(ww.land);
+    expect(me()).toBe(ID("DEU"));
+    expect(war).toMatchObject({
+      war: expect.any(Function),
+      ticks: expect.any(Function),
+    });
+    expect(war!.war()).toBe(game.worldWarData());
+    expect(war!.ticks()).toBe(700);
+    // The cards' sides are the game's, over the same adapter: Poland is an
+    // enemy, France (no war) is not, and both agree with the map's world.
+    const sides = sidesOf(ww.land);
+    expect(sides).toBe(landSidesOf(game));
+    const world = new LandFrontWorld(land, war);
+    for (const tag of ["POL", "FRA"] as const) {
+      expect(sides.isEnemy(ID("DEU"), ID(tag))).toBe(
+        world.isEnemy(ID("DEU"), ID(tag)),
+      );
+    }
+    expect(sides.isEnemy(ID("DEU"), ID("POL"))).toBe(true);
+    expect(sides.isEnemy(ID("DEU"), ID("FRA"))).toBe(false);
+    expect(sides.stamp?.()).toBe("true:1:0");
   });
 });

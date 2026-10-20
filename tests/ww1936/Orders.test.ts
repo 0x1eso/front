@@ -310,6 +310,32 @@ describe("World War 1936 P2: army orders (P2 spec §16.3)", () => {
     expect(l.divisions.role[rowOf(g, a)]).toBe(0);
   });
 
+  test("[leave this battle] (army_execute off) takes an army_attack army out of its battle", async () => {
+    // The battle card's button sends army_execute off to every army of
+    // mine attacking there; army_attack is a one-region executing plan.
+    const { runner, g, l, deu } = await atWar();
+    const a = placeArmy(g, "DEU", 3, 3);
+    placeArmy(g, "POL", 6, 1);
+    expect(l.issue(deu, { kind: "army_attack", army: a.id, region: 6 })).toBe(
+      null,
+    );
+    step(runner);
+    expect(l.battles.get(6)?.attackers).toEqual(a.divisions);
+    expect(l.issue(deu, { kind: "army_execute", army: a.id, on: false })).toBe(
+      null,
+    );
+    step(runner);
+    expect(a.order).toMatchObject({ kind: "plan", executing: false });
+    for (let i = 0; i < a.divisions.length; i++) {
+      const r = rowOf(g, a, i);
+      expect([l.divisions.role[r], l.divisions.battle[r]]).toEqual([0, 0]);
+    }
+    expect(l.battles.has(6)).toBe(false);
+    // And it stays out: a stopped plan does not attack again.
+    step(runner, 30);
+    expect(l.battles.has(6)).toBe(false);
+  });
+
   test("paradrop lands after ten days", async () => {
     const { runner, g, l, deu } = await atWar();
     const cl = l.country(deu)!;

@@ -10,8 +10,10 @@ import {
   type FactionId,
 } from "@openfront/engine-api/ww1936/Countries";
 import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import type { FrontWorld } from "@openfront/engine-lib/ww1936/FrontRules";
-import * as FrontRules from "@openfront/engine-lib/ww1936/FrontRules";
+import {
+  facesFront,
+  type FrontWorld,
+} from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwLandView } from "./WwLandView";
 
@@ -20,27 +22,6 @@ export interface LandWarInputs {
   war: () => WorldWarData | null;
   ticks: () => number;
 }
-
-type FacesFront = (
-  w: FrontWorld,
-  me: number,
-  enemy: number,
-  c: number,
-) => boolean;
-
-/**
- * FrontRules.facesFront (lane M) where this build has it; until that lane is
- * merged, the same rule: `enemy`'s own regions (before the war too, spec
- * §14.1), or with `enemy` 0 any country `me` may fight now; never our side.
- */
-const sharedFacesFront = (FrontRules as unknown as { facesFront?: FacesFront })
-  .facesFront;
-export const facesFront: FacesFront =
-  sharedFacesFront ??
-  ((w, me, enemy, c) => {
-    if (c === 0 || w.sameSide(me, c)) return false;
-    return enemy !== 0 ? c === enemy : w.isEnemy(me, c);
-  });
 
 export class LandFrontWorld implements FrontWorld {
   readonly scenario: ScenarioIndex;

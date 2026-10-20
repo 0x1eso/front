@@ -57,7 +57,7 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
-import { landSidesOf, setLandSides } from "./ww1936/LandModel";
+import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
 import { WwArmyPanel } from "./ww1936/WwArmyPanel";
@@ -466,10 +466,14 @@ export function createRenderer(
     // P2: the land war's tokens, battle markers and plan arrows (Task 7).
     const wwLand = game.wwLand();
     if (wwLand !== null) {
+      // The engine's enemies (P0 wars past the preparation minute) for the
+      // map's flags and previews; the cards read the same rule through
+      // LandSides over the same LandFrontWorld adapter.
       view.setWwLand(
         wwLand,
         landSelectionOf(game),
         () => game.myPlayer()?.smallID() ?? 0,
+        landWarInputsOf(game),
       );
       setLandSides(wwLand, landSidesOf(game));
       landController = new WwLandController(game, eventBus, transformHandler);

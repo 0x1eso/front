@@ -84,6 +84,7 @@ import {
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals, TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
+import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { blockText } from "./EconomyModel";
@@ -124,12 +125,63 @@ export function peaceSides(scenario: ScenarioIndex): LandSides {
   };
 }
 
+/** A game the land screens read: WwGame plus its land view. */
+export type LandGame = WwGame & { wwLand(): WwLandView | null };
+
+/**
+ * The World War data and tick the land screens and the renderer read
+ * (GameView.worldWarData, GameView.ticks): GameRenderer hands the same to
+ * setWwLand, so the map's flags and the cards see the same wars.
+ */
+export function landWarInputsOf(game: WwGame): LandWarInputs {
+  return { war: () => game.worldWarData(), ticks: () => game.ticks() };
+}
+
+/** Changes whenever isEnemy may answer differently: the fight starting, a war, a capitulation. */
+function warStamp(game: WwGame): string {
+  const data = game.worldWarData();
+  if (data === null) return "";
+  const fight = game.ticks() >= data.prepEndTick;
+  return `${fight}:${data.wars.length}:${data.capitulated.length}`;
+}
+
+/**
+ * LandSides over the renderer's adapter (engine-lib FrontRules' world),
+ * made on first use.
+ */
+function landSidesFromWorld(
+  world: () => LandFrontWorld,
+  game: WwGame,
+): LandSides {
+  return {
+    sameSide: (a, b) => world().sameSide(a, b),
+    isEnemy: (a, b) => world().isEnemy(a, b),
+    stamp: () => warStamp(game),
+  };
+}
+
+const sidesByGame = new WeakMap<object, LandSides>();
+
 /**
  * The live sides of a game: the faction, and P0's war list once the
- * preparation minute is over (the engine's WorldWar.canFight). Read on
- * every call.
+ * preparation minute is over (the engine's WorldWar.canFight). With a land
+ * view, one per game over a LandFrontWorld (the renderer's adapter: the
+ * cards, the map flags and the engine share the rule); without one, read
+ * on every call.
  */
-export function landSidesOf(game: WwGame): LandSides {
+export function landSidesOf(game: LandGame): LandSides {
+  const cached = sidesByGame.get(game);
+  if (cached !== undefined) return cached;
+  const view = game.wwLand();
+  if (view !== null) {
+    let world: LandFrontWorld | null = null;
+    const sides = landSidesFromWorld(
+      () => (world ??= new LandFrontWorld(view, landWarInputsOf(game))),
+      game,
+    );
+    sidesByGame.set(game, sides);
+    return sides;
+  }
   return {
     sameSide: (a, b) => {
       const scenario = game.worldWarScenario();
@@ -144,12 +196,7 @@ export function landSidesOf(game: WwGame): LandSides {
         (w) => (w.a === a && w.b === b) || (w.a === b && w.b === a),
       );
     },
-    stamp: () => {
-      const data = game.worldWarData();
-      if (data === null) return "";
-      const fight = game.ticks() >= data.prepEndTick;
-      return `${fight}:${data.wars.length}:${data.capitulated.length}`;
-    },
+    stamp: () => warStamp(game),
   };
 }
 

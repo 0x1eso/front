@@ -62,7 +62,6 @@ import {
   levelBoxes,
   levelDots,
   movePreview,
-  orderCheckWorld,
   regionLandLines,
   rowGeneralName,
   shortTypes,
@@ -105,18 +104,6 @@ function game(o: LandOptions = {}) {
     ...o,
   });
 }
-
-/** Task 3's checks are in (the stub answers null to everything). */
-const T3 = (() => {
-  const { land, view } = game();
-  return (
-    real(orderCheckWorld(land, view, DEU, DAY), {
-      kind: "army_move",
-      army: 999_999,
-      region: 3,
-    }) !== null
-  );
-})();
 
 describe("LandModel (spec §15)", () => {
   beforeEach(() => {
@@ -309,7 +296,7 @@ describe("LandModel (spec §15)", () => {
     ).toBe("split_single");
   });
 
-  it.runIf(T3)("Task 3's checks: no railway, no port", () => {
+  it("Task 3's checks: no railway, no port", () => {
     const { land, view } = game({
       ...AT_WAR,
       regions: [region(4, { rail: 0 })],
@@ -538,7 +525,7 @@ describe("LandModel (spec §15)", () => {
     expect(toggleTarget([6, 7, 8], 7)).toEqual([6, 8]);
   });
 
-  it.runIf(T3)("Task 3's front: from the anchor along the border", () => {
+  it("Task 3's front: from the anchor along the border", () => {
     const { land } = game({
       ...AT_WAR,
       armies: [army(1, "DEU", 3, { divisions: 6 })],
