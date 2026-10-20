@@ -3700,10 +3700,196 @@
       "motorized": "Trucks",
       "support_equipment": "Support equipment"
     },
+    "event_desc": {
+      "can_parliament_decides": "Prime Minister Mackenzie King promised that Parliament would decide whether Canada goes to war. In a special session the members vote to stand with Britain, and Canada declares war on Germany in its own name, a week after Britain.",
+      "gbr_abdication": "Edward VIII insists on marrying Wallis Simpson, who has been divorced twice. The Prime Minister and the Dominion governments refuse to accept her as Queen. Either the King goes or the government does.",
+      "gbr_abdication_settled": "The Duke of York has become King George VI. Shy and troubled by a stammer, he reassures the country with his steady manner. The crisis has passed, and Parliament and Palace return to their normal business.",
+      "gbr_anglo_soviet_agreement": "Three weeks after Germany invaded the Soviet Union, Britain and the USSR sign an agreement in Moscow. Each promises to help the other in the war against Germany and never to make a separate peace.",
+      "gbr_attlee_government": "Labour leader Clement Attlee is now at the head of the government. Trade union leaders take ministerial posts, and the government promises to tackle unemployment and rearmament together through planning.",
+      "gbr_chamberlain": "Stanley Baldwin retires after the coronation. The Chancellor of the Exchequer, Neville Chamberlain, becomes Conservative leader and Prime Minister, convinced that patient negotiation can keep the peace in Europe.",
+      "gbr_churchill": "Disappointed with the conduct of the war, the House of Commons turns on the government. Labour refuses to serve under Chamberlain, so he resigns, and Winston Churchill forms a government of all parties.",
+      "gbr_eden_resigns": "Foreign Secretary Anthony Eden resigns after clashing with the Prime Minister over talks with Italy. Chamberlain wants to deal with Mussolini now; Eden wants concessions from Rome first. Lord Halifax takes over the Foreign Office.",
+      "gbr_eden_returns": "Lord Halifax leaves for Washington as ambassador. Anthony Eden returns to the Foreign Office, where wartime diplomacy now means keeping the Americans and the Soviets close.",
+      "gbr_election_1945": "With the war in Europe over, the coalition breaks up and the first general election in ten years is held. The count waited three weeks for the servicemen's votes. The country has chosen between the leader who won the war and a promise to rebuild.",
+      "gbr_new_king": "On 20 January 1936 King George V dies at Sandringham, and the Prince of Wales succeeds him as Edward VIII. The new King is popular, but his attachment to an American divorcée already worries the Cabinet.",
+      "gbr_prague_shock": "German troops have entered Prague, less than six months after the promises made at Munich. In a speech in Birmingham the Prime Minister asks whether this is the last attack on a small state, and public opinion decides that the time for concessions is over.",
+      "gbr_soviet_alliance_offer": "Having turned Germany away, the Soviet government offers Britain and France a treaty of mutual assistance. With it Germany would face enemies in both east and west, but many in London still distrust the Bolsheviks.",
+      "gbr_soviet_overture": "The British ambassador brings the Kremlin a draft pact: neither country will attack the other, and both will stand against aggression. If they are at war, a clause also lets each side's forces cross the other's territory.",
+      "zaf_parliament_vote": "Britain's declaration of war on Germany splits the South African parliament. The Prime Minister wants to stay neutral; his deputy, Jan Smuts, wants to fight beside Britain. The vote will decide the country's course."
+    },
+    "event_opt": {
+      "can_parliament_decides": {
+        "a": "Declare war on Germany"
+      },
+      "gbr_abdication": {
+        "a": "The King abdicates",
+        "b": "Stand by the King"
+      },
+      "gbr_abdication_settled": {
+        "a": "God save the King"
+      },
+      "gbr_anglo_soviet_agreement": {
+        "a": "Sign the agreement"
+      },
+      "gbr_attlee_government": {
+        "a": "Attlee forms a government"
+      },
+      "gbr_chamberlain": {
+        "a": "Chamberlain takes office"
+      },
+      "gbr_churchill": {
+        "a": "Churchill becomes Prime Minister"
+      },
+      "gbr_eden_resigns": {
+        "a": "Accept his resignation"
+      },
+      "gbr_eden_returns": {
+        "a": "Welcome him back"
+      },
+      "gbr_election_1945": {
+        "a": "Labour wins",
+        "b": "The Conservatives hold on"
+      },
+      "gbr_new_king": {
+        "a": "Long live the King"
+      },
+      "gbr_prague_shock": {
+        "a": "No more concessions"
+      },
+      "gbr_soviet_alliance_offer": {
+        "a": "Accept the alliance",
+        "b": "Decline the offer"
+      },
+      "gbr_soviet_overture": {
+        "a": "Sign the pact",
+        "b": "Turn it down"
+      },
+      "zaf_parliament_vote": {
+        "a": "Go to war",
+        "b": "Stay neutral"
+      }
+    },
+    "event_title": {
+      "can_parliament_decides": "Canada's Parliament Decides",
+      "gbr_abdication": "The Abdication",
+      "gbr_abdication_settled": "Under the New King",
+      "gbr_anglo_soviet_agreement": "The Anglo-Soviet Agreement",
+      "gbr_attlee_government": "The Attlee Government",
+      "gbr_chamberlain": "The Chamberlain Ministry",
+      "gbr_churchill": "Churchill Takes Office",
+      "gbr_eden_resigns": "Eden Resigns",
+      "gbr_eden_returns": "Eden Returns",
+      "gbr_election_1945": "The 1945 General Election",
+      "gbr_new_king": "A New King",
+      "gbr_prague_shock": "The Shock of Prague",
+      "gbr_soviet_alliance_offer": "A Soviet Offer of Alliance",
+      "gbr_soviet_overture": "A British Proposal",
+      "zaf_parliament_vote": "Parliament Decides"
+    },
     "faction": {
       "allies": "Allies",
       "axis": "Axis",
       "comintern": "Comintern"
+    },
+    "focus": {
+      "gbr_air_training_plan": "Commonwealth Air Training Plan",
+      "gbr_aircraft_production": "More Aircraft",
+      "gbr_appeasement": "Concessions for Peace",
+      "gbr_armoured_division": "The Armoured Division",
+      "gbr_atlantic_bridge": "Bridge across the Atlantic",
+      "gbr_bef": "Expeditionary Force Reform",
+      "gbr_bomber_command": "Bomber Command",
+      "gbr_carriers": "Aircraft Carriers",
+      "gbr_clyde": "Clyde Shipbuilding",
+      "gbr_collective_security": "Collective Security",
+      "gbr_commandos": "Commando Units",
+      "gbr_convoy_system": "Convoy System",
+      "gbr_crown_and_cabinet": "Crown and Cabinet",
+      "gbr_defence_white_paper": "Defence White Paper",
+      "gbr_desert_training": "Desert Warfare Training",
+      "gbr_dominion_call": "The Dominions Answer",
+      "gbr_empire_resources": "Resources of the Empire",
+      "gbr_fighter_command": "Fighter Command",
+      "gbr_fleet_air_arm": "Fleet Air Arm",
+      "gbr_guarantees": "Guarantees in the East",
+      "gbr_home_fleet": "The Home Fleet",
+      "gbr_imperial_conference": "Imperial Conference",
+      "gbr_imperial_defence_council": "Imperial Defence Council",
+      "gbr_imperial_preference": "Imperial Preference",
+      "gbr_india_defence": "Defence of India",
+      "gbr_industrial_reorganisation": "Industrial Reorganisation",
+      "gbr_labour_partnership": "Partnership with Labour",
+      "gbr_mechanisation": "Army Mechanisation",
+      "gbr_mediterranean": "Mediterranean Defence",
+      "gbr_midlands": "Midlands Industry",
+      "gbr_ministry_of_supply": "A Ministry of Supply",
+      "gbr_nationalisation": "Nationalising Key Industries",
+      "gbr_one_empire": "One Empire",
+      "gbr_peacetime_conscription": "Peacetime Conscription",
+      "gbr_peoples_rearmament": "The People's Rearmament",
+      "gbr_radar_chain": "Coastal Radar Chain",
+      "gbr_raf_expansion": "RAF Expansion Schemes",
+      "gbr_rearm_now": "Faster Rearmament",
+      "gbr_scientific_committee": "Scientific Survey Committee",
+      "gbr_shadow_factories": "Shadow Factory Plan",
+      "gbr_singapore": "Singapore Fortifications",
+      "gbr_south_wales": "South Wales Coal and Steel",
+      "gbr_soviet_agreement": "Agreement with Moscow",
+      "gbr_tank_programme": "Tank Programme",
+      "gbr_territorial_army": "Doubling the Territorial Army",
+      "gbr_total_production": "All-Out Production",
+      "gbr_university_research": "Mobilising the Universities",
+      "gbr_war_cabinet": "National War Cabinet"
+    },
+    "focus_desc": {
+      "gbr_air_training_plan": "Tens of thousands of pilots and aircrew from across the Commonwealth learn to fly under Canada's wide skies.",
+      "gbr_aircraft_production": "New plants roll out Hurricane and Spitfire fighters in growing numbers.",
+      "gbr_appeasement": "To spare Europe another great war, London meets some German and Italian demands at the conference table and buys time to rearm.",
+      "gbr_armoured_division": "Tank brigades and motorised infantry are combined into armoured divisions able to fight on their own.",
+      "gbr_atlantic_bridge": "Closer ties with the United States open the way to borrowing American weapons and ships.",
+      "gbr_bef": "The force meant for the Continent is reorganised on new lines and its officer training overhauled.",
+      "gbr_bomber_command": "Long-range bomber squadrons come under one command, ready to strike the enemy's industrial districts.",
+      "gbr_carriers": "New carriers with armoured flight decks are designed and laid down.",
+      "gbr_clyde": "The yards on Glasgow's River Clyde fill up with warship orders again.",
+      "gbr_collective_security": "In the spirit of the League, Britain will stand with any victim of aggression and is willing to work even with Moscow.",
+      "gbr_commandos": "Small raiding forces for enemy coasts and the first parachute troops are trained.",
+      "gbr_convoy_system": "Merchant ships will sail in escorted groups, and the system is prepared before the first shot.",
+      "gbr_crown_and_cabinet": "Under the new King, Palace and government speak with one voice again and win back the confidence the abdication shook.",
+      "gbr_defence_white_paper": "The 1936 Defence White Paper admits how far the three services have fallen behind and lays out a rearmament budget for the years ahead.",
+      "gbr_desert_training": "Units in Egypt's Western Desert practise movement, supply and navigation on open sand.",
+      "gbr_dominion_call": "Canada, Australia, New Zealand, South Africa and India send men and open their factories to the Empire's war.",
+      "gbr_empire_resources": "Malayan rubber and mines across the Empire are tied into the home war economy.",
+      "gbr_fighter_command": "Fighter Command takes charge of home air defence and directs its squadrons from the ground.",
+      "gbr_fleet_air_arm": "The Navy takes its shipborne aircraft back from the RAF and runs them itself.",
+      "gbr_guarantees": "Britain pledges to defend the countries Germany is likely to threaten next. An aggressor must now reckon with war against Britain.",
+      "gbr_home_fleet": "New ships join the Home Fleet, which guards the North Sea from Scapa Flow.",
+      "gbr_imperial_conference": "The Dominion prime ministers meet in London to settle the Empire's trade and defence together.",
+      "gbr_imperial_defence_council": "The Dominions sign a joint defence plan to make arms together and enlarge their own forces.",
+      "gbr_imperial_preference": "Low tariffs on trade inside the Empire bind the industries of Britain and the Dominions together.",
+      "gbr_india_defence": "The Indian Army is modernised, and Indian factories begin making its weapons.",
+      "gbr_industrial_reorganisation": "Depression-worn industrial districts are rationalised and investment is steered into modern plants.",
+      "gbr_labour_partnership": "Bringing Labour into government wins over the trade unions and sets the state on the road to a planned economy.",
+      "gbr_mechanisation": "Horses give way to lorries and carriers until the whole Army moves on wheels and tracks.",
+      "gbr_mediterranean": "Stronger defences at Gibraltar, Malta and in Egypt guard the sea road to the Suez Canal.",
+      "gbr_midlands": "The engineering works of Birmingham and Coventry take on arms contracts.",
+      "gbr_ministry_of_supply": "A single ministry takes over buying the Army's weapons and equipment, so contracts and production are handled in one place.",
+      "gbr_nationalisation": "The state takes over coal, steel and the railways and directs their output to rearmament, to the fury of the owners.",
+      "gbr_one_empire": "Britain and the Dominions resolve to fight as one nation, and men from every corner of the Empire join the forces.",
+      "gbr_peacetime_conscription": "The Military Training Act calls up twenty-year-old men in time of peace, something Britain has never done before.",
+      "gbr_peoples_rearmament": "Working people throw their weight behind rearmament, and the factories and recruiting offices fill up together.",
+      "gbr_radar_chain": "Tall masts along the east coast pick up approaching aircraft long before they arrive.",
+      "gbr_raf_expansion": "The Royal Air Force issues one expansion scheme after another, adding squadron after squadron.",
+      "gbr_rearm_now": "The rule that rearmament must not disturb normal trade is dropped, and industry puts war orders first.",
+      "gbr_scientific_committee": "A committee of scientists under Henry Tizard looks for new ways to defend Britain from the air.",
+      "gbr_shadow_factories": "Motor manufacturers run state-funded twin plants in the Midlands, ready to turn out aero engines and airframes the moment war comes.",
+      "gbr_singapore": "More batteries and forts go up around the Singapore naval base, the key to the Empire's defence in the Far East.",
+      "gbr_south_wales": "Investment in the pits and steelworks of South Wales raises steel output.",
+      "gbr_soviet_agreement": "Facing Germany as a common enemy, London sets ideology aside and agrees with Moscow that each will help the other.",
+      "gbr_tank_programme": "Design and production of infantry tanks and cruiser tanks are pushed forward.",
+      "gbr_territorial_army": "In spring 1939 the government decides to double the Territorial Army and calls for volunteers.",
+      "gbr_total_production": "Every factory switches to war work, running shifts around the clock.",
+      "gbr_university_research": "Laboratories at Cambridge, Oxford and Birmingham take on work for the armed services.",
+      "gbr_war_cabinet": "Every party joins a wartime coalition, and the general election is put off until the war is won."
     },
     "gen": {
       "1": "I",
@@ -3845,12 +4031,38 @@
       "m11": "November",
       "m12": "December"
     },
+    "news": {
+      "news_gbr_abdication": "King Edward VIII of Britain abdicates; his brother becomes King George VI.",
+      "news_gbr_anglo_soviet": "Britain and the Soviet Union sign an agreement to fight Germany together.",
+      "news_gbr_churchill": "Winston Churchill becomes Prime Minister of Britain.",
+      "news_gbr_election_1945": "Labour wins Britain's general election by a landslide; Clement Attlee becomes Prime Minister."
+    },
     "panel": {
       "at_peace": "At peace",
       "my_wars": "My wars",
       "next_history": "Next in history: {date}",
       "scores": "If the war ended now",
       "title": "Diplomacy"
+    },
+    "person": {
+      "gbr_attlee": "Clement Attlee",
+      "gbr_beaverbrook": "Lord Beaverbrook",
+      "gbr_bevin": "Ernest Bevin",
+      "gbr_brooke": "Alan Brooke",
+      "gbr_chamberlain": "Neville Chamberlain",
+      "gbr_churchill": "Winston Churchill",
+      "gbr_deverell": "Cyril Deverell",
+      "gbr_dill": "John Dill",
+      "gbr_duncan": "Andrew Duncan",
+      "gbr_eden": "Anthony Eden",
+      "gbr_gort": "Lord Gort",
+      "gbr_halifax": "Lord Halifax",
+      "gbr_hobart": "Percy Hobart",
+      "gbr_inskip": "Thomas Inskip",
+      "gbr_ironside": "Edmund Ironside",
+      "gbr_liddell_hart": "Basil Liddell Hart",
+      "gbr_tizard": "Henry Tizard",
+      "gbr_watson_watt": "Robert Watson-Watt"
     },
     "region": {
       "original_owner": "1936: {country}",
@@ -3880,6 +4092,42 @@
       "firepower": "Superior firepower",
       "mass": "Mass assault",
       "mobile": "Mobile warfare"
+    },
+    "spirit": {
+      "gbr_desert_warfare": "Desert Warfare",
+      "gbr_empire_mines": "Mines of the Empire",
+      "gbr_empire_trade": "Imperial Trade",
+      "gbr_guarantee_pledge": "The Guarantee Pledge",
+      "gbr_kings_party": "The King's Party",
+      "gbr_no_more_concessions": "No More Concessions",
+      "gbr_peace_policy": "Policy of Appeasement",
+      "gbr_planned_economy": "Planned Economy",
+      "gbr_rearm_programme": "Rearmament Programme",
+      "gbr_security_pact": "Collective Security Pledge",
+      "gbr_supply_ministry": "Ministry of Supply",
+      "gbr_territorial_reserve": "The Enlarged Territorial Army",
+      "gbr_total_output": "All-Out Production Drive",
+      "gbr_united_empire": "A United Empire",
+      "gbr_university_drive": "Universities at War",
+      "gbr_war_coalition": "Wartime Coalition"
+    },
+    "spirit_desc": {
+      "gbr_desert_warfare": "Desert-trained units move and fight through heat and sand.",
+      "gbr_empire_mines": "Mines across the Empire feed raw materials to British factories.",
+      "gbr_empire_trade": "Low tariffs within the Empire bring in more goods for every trade deal.",
+      "gbr_guarantee_pledge": "Britain has publicly promised to defend small nations against aggression.",
+      "gbr_kings_party": "The King's supporters lead the government, but the constitutional crisis has divided the country.",
+      "gbr_no_more_concessions": "Since Prague the public agrees that Germany must be stood up to.",
+      "gbr_peace_policy": "Careful diplomacy to avoid war reassures the public but also dulls its vigilance.",
+      "gbr_planned_economy": "The state plans investment and output, driving factory building while protecting living standards.",
+      "gbr_rearm_programme": "A rearmament budget spread over several years speeds up the building of military factories.",
+      "gbr_security_pact": "Britain is ready to guarantee threatened nations even before aggression begins.",
+      "gbr_supply_ministry": "One ministry now buys the Army's weapons, and production runs more smoothly.",
+      "gbr_territorial_reserve": "The doubled Territorial Army offers a deeper pool of recruits.",
+      "gbr_total_output": "Every factory keeps war production going day and night.",
+      "gbr_united_empire": "Men from across the Empire join the forces under the same flag as Britain.",
+      "gbr_university_drive": "University laboratories work for the armed services, speeding up research.",
+      "gbr_war_coalition": "All parties sit in one cabinet and share the responsibility for the war."
     },
     "tech": {
       "anti_air_1": "Anti-air I",
@@ -3928,6 +4176,11 @@
       "tools_2": "Improved machine tools",
       "tools_3": "Advanced machine tools",
       "tools_4": "Assembly lines"
+    },
+    "tpl": {
+      "gbr_armoured_div": "Armoured Division",
+      "gbr_infantry_div_ii": "Infantry Division II",
+      "gbr_motor_div": "Motorised Division"
     },
     "win": {
       "country_won": "{country} won",
