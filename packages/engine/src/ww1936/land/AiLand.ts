@@ -22,6 +22,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
+  MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_WALK,
   Stance,
@@ -36,7 +37,7 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
-import { HISTORY } from "@openfront/engine-lib/ww1936/History";
+import { HISTORY, WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import {
   GEN1,
@@ -67,6 +68,21 @@ const DEMAND_MIN = 10;
 const DEMAND_PER_DIVISION = 12;
 /** An assigned army covers its divisions × 10 of the demand. */
 const DEMAND_PER_ARMY_DIVISION = 10;
+/**
+ * Task 11 balance (내 판단, HOI4's AI weighs its fronts by its war
+ * plans): a front against an enemy this country attacks by the calendar
+ * (it is the entry's actor, firing within the pre-war 60 days or fired)
+ * asks this share of its demand, %. Every other front is held: a border
+ * region there asks no more than fills its combat width (for the enemy
+ * regions next to it) AI_HOLD_WIDTHS times with AI_HOLD_DIV_WIDTH-wide
+ * divisions, a tenth less per level of its fort. Germany in 1939 puts
+ * most of its army on Poland and holds the Saar with the rest (Fall
+ * Weiss), and in 1940 goes through the Low Countries, not the Maginot.
+ */
+export const AI_OFFENSE_DEMAND_PCT = 200;
+export const AI_HOLD_WIDTHS = 2;
+const AI_HOLD_DIV_WIDTH = 20;
+const AI_HOLD_FORT_PCT = 10;
 /** Spec §14.3-4: the capital guard, when the capital is this close to an enemy. */
 export const AI_GUARD_DIVISIONS = 2;
 const GUARD_EDGES = 4;
@@ -89,6 +105,15 @@ const WAR_READY_DAYS = 60;
  */
 export const AI_REGROUP_ORG_PM = 400;
 export const AI_ATTACK_ORG_PM = 850;
+/**
+ * Task 11 (controller ruling 6, 내 판단): an executing army none of whose
+ * divisions is in a battle any more (the attack is over, won or lost)
+ * regroups once its org is under AI_ATTACK_ORG_PM, so it does not throw
+ * whatever recovered overnight at the same region again; and no attack
+ * on defenders starts under this readiness, even after the war's 60th
+ * day (a regrouping army builds it while its org recovers).
+ */
+export const AI_REATTACK_READY_BP = 500;
 /**
  * (내 판단, deviation from spec §14.4's "balanced") The stance of the AI's
  * offensives. The plan step (lane M) checks a balanced plan's odds per
@@ -117,8 +142,12 @@ const APPOINT_XP_MILLI = 30_000;
 /** Spec §14.2: armies of 1–3 divisions join a bigger one in their region; armies under 4 on one front merge. */
 const SMALL_ARMY = 3;
 const FRONT_MERGE_UNDER = 4;
-/** (내 판단) Armies cross the sea (spec §7.5) to a front at most this far. */
-const SEA_MAX_KM = 3000;
+/**
+ * (내 판단) Armies cross the sea (spec §7.5) to a front at most this far.
+ * Task 11: 6,000 km (was 3,000): Britain to Egypt (spec §7.5's example)
+ * and Italy to Eritrea are 3,500–4,000 km on the map.
+ */
+const SEA_MAX_KM = 6000;
 /** (내 판단) At most this many forts and railways wait in the queue. */
 const LAND_BUILDS_QUEUED = 2;
 /** Spec §14.5: Germany's West Wall. */
@@ -504,10 +533,16 @@ class AiDay {
   readonly major: boolean;
   /** At war and able to fight, ascending. */
   readonly atWar: number[];
-  /** The calendar's next war within 60 days: its other country; 0: none. */
-  readonly imminent: number;
+  /**
+   * The calendar's wars within 60 days: their other countries, ascending
+   * (Task 11: all of them, not only the first — Germany's 1939 entries
+   * against Danzig and Poland fall together, and Danzig alone, out of
+   * reach, left the army in the west).
+   */
+  readonly imminent: readonly number[];
   readonly daily: boolean;
   private sideCache: SideView | null = null;
+  private standingCache = new Map<number, Map<number, number[]>>();
   private capDistCache: Int32Array | null = null;
   private warsCache: readonly { a: number; b: number; sinceTick: number }[] =
     [];
@@ -527,10 +562,8 @@ class AiDay {
     this.atWar = land.ww
       .enemiesOf(this.me)
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
-    const next = this.nextCalendarWar();
-    this.imminent =
-      next !== null && next.fire - day <= WW_AI_PREWAR_DAYS ? next.enemy : 0;
-    this.daily = this.atWar.length > 0 || this.imminent !== 0;
+    this.imminent = this.calendarWars(WW_AI_PREWAR_DAYS);
+    this.daily = this.atWar.length > 0 || this.imminent.length > 0;
   }
 
   private fights(id: number): boolean {
@@ -539,28 +572,56 @@ class AiDay {
   }
 
   /**
-   * Pre-flight ("next historical war"): of this country's calendar entries
-   * (actor or target) still to come, the one firing first (ties: table
-   * order). Its other country must be in the game, fighting, no camp mate
-   * and not at war with us yet.
+   * Pre-flight ("next historical war"): this country's calendar entries
+   * (actor or target) still to come within `days`; their other countries,
+   * ascending. Each must be in the game, fighting, no camp mate and not at
+   * war with us yet.
    */
-  private nextCalendarWar(): { enemy: number; fire: number } | null {
+  private calendarWars(days: number): number[] {
     const ww = this.land.ww;
     const plan = ww.history();
-    let best: { enemy: number; fire: number } | null = null;
+    const out: number[] = [];
     for (const i of HISTORY_BY_TAG.get(this.tag) ?? []) {
       if (i >= plan.length) continue;
       const [fire, done] = plan[i];
-      if (done || fire < this.day) continue;
+      if (done || fire < this.day || fire - this.day > days) continue;
       const e = HISTORY[i];
       const other = ww.playerOfTag(e.actor === this.tag ? e.target : e.actor);
       if (other === null) continue;
       const id = other.smallID();
       if (!this.fights(id) || ww.sameFaction(this.me, id)) continue;
-      if (ww.isAtWar(this.me, id)) continue;
-      if (best === null || fire < best.fire) best = { enemy: id, fire };
+      if (ww.isAtWar(this.me, id) || out.includes(id)) continue;
+      out.push(id);
     }
-    return best;
+    return out.sort((a, b) => a - b);
+  }
+
+  /**
+   * Task 11: whether `enemy` is our offensive by the calendar: an entry with
+   * us as its actor and `enemy` its target, not skipped, firing by the
+   * pre-war horizon (or fired).
+   */
+  private offensive(enemy: number): boolean {
+    const ww = this.land.ww;
+    const plan = ww.history();
+    const tag = this.land.scenario.tagOfSmallId(enemy);
+    if (tag === undefined) return false;
+    // The wars running on 1936-01-01 are their first country's offensive
+    // (Italy's in Ethiopia), when the calendar is on.
+    if (
+      plan.length > 0 &&
+      WW_INITIAL_WARS.some(([a, b]) => a === this.tag && b === tag)
+    ) {
+      return true;
+    }
+    for (const i of HISTORY_BY_TAG.get(this.tag) ?? []) {
+      if (i >= plan.length) continue;
+      const e = HISTORY[i];
+      if (e.actor !== this.tag || e.target !== tag) continue;
+      const fire = plan[i][0];
+      if (fire >= 0 && fire - this.day <= WW_AI_PREWAR_DAYS) return true;
+    }
+    return false;
   }
 
   private issue(order: WwOrder): boolean {
@@ -641,10 +702,8 @@ class AiDay {
 
   run(): void {
     const enemies = [...this.atWar];
-    if (this.imminent !== 0 && !enemies.includes(this.imminent)) {
-      enemies.push(this.imminent);
-      enemies.sort((a, b) => a - b);
-    }
+    for (const e of this.imminent) if (!enemies.includes(e)) enemies.push(e);
+    enemies.sort((a, b) => a - b);
     const garrisons = this.human ? new Set<number>() : this.garrisons(enemies);
     if (!this.human) {
       this.group(garrisons);
@@ -962,20 +1021,35 @@ class AiDay {
             touching.set(e.to, (touching.get(e.to) ?? 0) + 1);
           }
         }
+        const offensive = this.offensive(enemy);
         let demand = 0;
         for (const b of order) {
           let milli = 0;
+          let dirs = 0;
           for (const e of sc.edgesOf(b)) {
             const x = e.to;
             if (land.controller[x] !== enemy) continue;
+            dirs++;
             let k = facing.get(x);
             if (k === undefined) facing.set(x, (k = this.enemyCount(x, enemy)));
             milli += Math.floor((k * 1000) / touching.get(x)!);
           }
-          demand += Math.max(
+          const d = Math.max(
             DEMAND_MIN,
             Math.floor((DEMAND_PER_DIVISION * milli) / 1000),
           );
+          if (offensive) {
+            demand += Math.floor((d * AI_OFFENSE_DEMAND_PCT) / 100);
+            continue;
+          }
+          // Held: the region's combat width filled AI_HOLD_WIDTHS times.
+          const width = combatWidth(sc.landOf(b), dirs);
+          const fort = Math.min(5, land.econ.fort[b] ?? 0);
+          const cap = Math.floor(
+            (AI_HOLD_WIDTHS * width * 10 * (100 - AI_HOLD_FORT_PCT * fort)) /
+              (AI_HOLD_DIV_WIDTH * 100),
+          );
+          demand += Math.max(DEMAND_MIN, Math.min(d, cap));
         }
         fronts.push({ enemy, comp: c, border: order, demand });
       }
@@ -1239,13 +1313,20 @@ class AiDay {
       if (!this.atWar.includes(o.enemy)) continue;
       const org = this.orgPm(rows);
       if (o.kind === "plan" && o.executing) {
-        // Ruling 5: under 40% org it regroups; spec §14.4: under 0.7 it holds.
-        if (
-          org < AI_REGROUP_ORG_PM ||
-          this.ratioOf(a, o.enemy) < STOP_RATIO_PM
-        ) {
-          this.issue({ kind: "army_execute", army: a.id, on: false });
-        }
+        // Ruling 5: under 40% org it regroups; spec §14.4: under 0.7 it
+        // holds; Task 11 (ruling 6): the attack over, a worn army regroups.
+        const stop = () => {
+          if (org < AI_REGROUP_ORG_PM) return true;
+          const ratio = this.ratioOf(a, o.enemy);
+          if (ratio < STOP_RATIO_PM) return true;
+          const fighting = rows.some(
+            (r) =>
+              land.divisions.battle[r] !== 0 ||
+              land.divisions.mode[r] === MOVE_ADVANCE,
+          );
+          return !fighting && org < AI_ATTACK_ORG_PM && ratio < RATIO_FREE_PM;
+        };
+        if (stop()) this.issue({ kind: "army_execute", army: a.id, on: false });
         continue;
       }
       if (org < AI_ATTACK_ORG_PM || this.formedPm(a, rows) < FORMED_PM) {
@@ -1254,11 +1335,12 @@ class AiDay {
       const ratio = this.ratioOf(a, o.enemy);
       if (ratio < threshold) continue;
       // (내 판단) Empty enemy land across the front is walked into at once
-      // (spec §7.7); a fight waits for the readiness or the war's 60th day.
+      // (spec §7.7); a fight waits for the readiness or the war's 60th day,
+      // and never starts under AI_REATTACK_READY_BP (Task 11).
       if (
         ratio < RATIO_FREE_PM &&
-        a.planBp < READY_BP &&
-        this.warDays(o.enemy) < WAR_READY_DAYS
+        (a.planBp < AI_REATTACK_READY_BP ||
+          (a.planBp < READY_BP && this.warDays(o.enemy) < WAR_READY_DAYS))
       ) {
         continue;
       }
@@ -1317,14 +1399,11 @@ class AiDay {
     const sc = land.scenario;
     const t = land.divisions;
     const me = this.me;
-    const standing = new Map<number, number[]>();
-    for (const r of armyRows(land, a)) {
-      const f = t.region[r];
-      if (t.mode[r] !== MOVE_NONE || !a.front.includes(f)) continue;
-      const l = standing.get(f) ?? [];
-      l.push(r);
-      standing.set(f, l);
-    }
+    // Task 11 (내 판단): the battle as it would be fought: every division
+    // of ours standing on a front against the same enemy next to the
+    // enemy region joins it, not only this army's (two armies on one
+    // sector attack together; an army fronting another enemy does not).
+    const standing = this.frontStanding(a.order.enemy);
     const across = new Map<number, number[]>();
     for (const f of a.front) {
       for (const e of sc.edgesOf(f)) {
@@ -1342,8 +1421,8 @@ class AiDay {
       if (enemyDivisionsIn(land, me, x) === 0) continue;
       const att: number[] = [];
       let dirs = 0;
-      for (const f of across.get(x)!) {
-        const here = (standing.get(f) ?? []).filter(
+      for (const e of sc.edgesOf(x)) {
+        const here = (standing.get(e.to) ?? []).filter(
           (r) => t.battle[r] === 0 || t.battle[r] === x,
         );
         if (here.length > 0) dirs++;
@@ -1355,6 +1434,32 @@ class AiDay {
       den += w;
     }
     return den === 0 ? RATIO_FREE_PM : Math.floor(num / den);
+  }
+
+  /**
+   * Our divisions standing (not moving) in the front regions of our front
+   * and plan armies against `enemy`, by region (once a day per enemy).
+   */
+  private frontStanding(enemy: number): ReadonlyMap<number, readonly number[]> {
+    const cached = this.standingCache.get(enemy);
+    if (cached !== undefined) return cached;
+    const land = this.land;
+    const t = land.divisions;
+    const out = new Map<number, number[]>();
+    for (const b of land.armiesOf(this.me)) {
+      if (b.order.kind !== "front" && b.order.kind !== "plan") continue;
+      if (b.order.enemy !== enemy) continue;
+      for (const r of armyRows(land, b)) {
+        const f = t.region[r];
+        if (t.mode[r] !== MOVE_NONE || !b.front.includes(f)) continue;
+        const l = out.get(f) ?? [];
+        l.push(r);
+        out.set(f, l);
+      }
+    }
+    for (const l of out.values()) l.sort((x, y) => x - y);
+    this.standingCache.set(enemy, out);
+    return out;
   }
 
   /**
@@ -1376,15 +1481,24 @@ class AiDay {
     const enemyTag = sc.tagOfSmallId(enemy);
     const capital =
       enemyTag === undefined ? 0 : sc.regionAt(sc.capitalTile(enemyTag));
+    // Ruling 3: a minor fighting a major only takes back its own 1936
+    // regions. Task 11 (내 판단, the Phoney War: HOI4's Allies hold in
+    // 1939-40): a democracy fighting an aggressor only takes back its
+    // own and its camp's.
+    const enemyMajor = enemyTag !== undefined && COUNTRIES[enemyTag].major;
     const coresOnly =
-      this.personality === "minor" &&
-      enemyTag !== undefined &&
-      COUNTRIES[enemyTag].major;
+      (this.personality === "minor" && enemyMajor) ||
+      (this.personality === "democracy" &&
+        enemyTag !== undefined &&
+        aiPersonality(enemyTag) === "aggressor");
+    const ours = (owner: number) =>
+      owner === me ||
+      (this.personality === "democracy" && land.ww.sameFaction(me, owner));
     const regions: AiTargetRegion[] = [];
     for (const r of sc.landRegions) {
       const d = dist[r.id];
       if (d === 0 || d === FAR || land.controller[r.id] !== enemy) continue;
-      if (coresOnly && owners[r.id] !== me) continue;
+      if (coresOnly && !ours(owners[r.id])) continue;
       regions.push({
         region: r.id,
         vp: r.vp,

@@ -68,8 +68,10 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
       const w = weatherAt(ww.day(arrival), sc.latC(4), "forest", sc.wcell(4));
       sum += moveStep(speed, 5, w, 1000, bonus);
     }
-    // January in Berlin is continental winter: far slower than 24 ticks.
-    expect(arrival - t0).toBeGreaterThan(24);
+    // January in Berlin (temperate since Task 11): never faster than on
+    // clear days.
+    const clear = moveStep(speed, 5, "clear", 1000, bonus);
+    expect(arrival - t0 + 1).toBeGreaterThanOrEqual(Math.ceil(need / clear));
     while (g.ticks() <= arrival - 1) {
       step(runner);
       expect(l.divisions.region[rowOf(g, a)]).toBe(3);

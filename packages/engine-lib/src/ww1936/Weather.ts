@@ -48,6 +48,16 @@ export function weatherCell(lonC: number, latC: number): number {
   return Math.floor(lon / 10) + 36 * Math.floor(lat / 10);
 }
 
+/**
+ * Task 11 balance (controller ruling 1): Atlantic and western-central
+ * Europe, the weather cells from 30°W to 20°E, stay temperate up to this
+ * latitude (Paris, London, Berlin: a mild winter); east of 20°E the
+ * continental band starts at 40°N, elsewhere at 45°N (spec §10).
+ */
+export const TEMPERATE_WEST_LAT_C = 5500;
+export const TEMPERATE_WEST_LON_MIN = -30;
+export const TEMPERATE_WEST_LON_MAX = 20;
+
 /** P2 spec §10: the climate band from latitude, terrain and the cell's longitude. */
 export function climateOf(
   latC: number,
@@ -59,6 +69,9 @@ export function climateOf(
   if (land === "desert") return "desert";
   if (lat < 2350) return "tropical";
   const lon = (wcell % 36) * 10 - 180;
+  const west =
+    latC > 0 && lon >= TEMPERATE_WEST_LON_MIN && lon < TEMPERATE_WEST_LON_MAX;
+  if (west) return lat >= TEMPERATE_WEST_LAT_C ? "continental" : "temperate";
   if (lat >= 4500 || (lat >= 4000 && lon >= 20)) return "continental";
   return "temperate";
 }

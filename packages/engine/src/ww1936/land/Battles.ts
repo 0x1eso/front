@@ -202,7 +202,6 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   if (b.attackers.length === 0) return endDefended(land, b);
   if (b.defenders.length === 0) return won(land, b, tick);
   b.round++;
-  const day = land.day();
   // 3. Width and the lines (spec §9.2).
   const dirs = new Set(b.attackers.map((id) => t.region[t.rowOf(id)])).size;
   const width = combatWidth(
@@ -266,7 +265,9 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       applyHpLoss(land, r, hp.get(r) ?? 0);
     }
     for (const r of [...att.active, ...def.active]) {
-      if (t.id[r] !== 0) t.lastFight[r] = day;
+      // The tick of the round (Task 11): each country's day counts the
+      // rounds since its previous day (Sustain.foughtTest).
+      if (t.id[r] !== 0) t.lastFight[r] = tick;
     }
     // 5. Zero org: defenders retreat (or die), attackers drop out (spec §9.3-7).
     for (const id of [...b.defenders]) {
@@ -532,30 +533,43 @@ export function retreatDivision(land: WwLand, row: number): void {
 }
 
 /**
- * Where a retreat from the division's region goes (spec §9.5, §9.6): a
- * neighbour its side controls (encircled: one inside the pocket), no
- * battle there first, then the most supply, then the smaller id; 0: none.
+ * Where a retreat from the division's region goes (spec §9.5, §9.6;
+ * Task 11, controller ruling 5 — HOI4 retreats into an adjacent friendly
+ * province): a neighbour its side controls (encircled: one inside the
+ * pocket), over land before a strait, no battle there first, then the
+ * nearest (edge km), then the most supply, then the smaller id; 0: none.
  */
 export function refugeOf(land: WwLand, row: number): number {
   const t = land.divisions;
   const owner = t.owner[row];
   const enc = t.encircled[row] !== 0;
+  const sc = land.scenario;
   let best = 0;
+  let bestStrait = 0;
   let bestBattle = 0;
+  let bestKm = 0;
   let bestSupply = 0;
-  for (const e of land.scenario.edgesOf(t.region[row])) {
+  for (const e of sc.edgesOf(t.region[row])) {
     const n = e.to;
     if (!land.sameSide(owner, land.controller[n])) continue;
     if (enc && land.encircled[n] === 0) continue;
+    const edge = sc.edge(e.edge);
+    const strait = edge.strait;
     const battle = land.battles.has(n) ? 1 : 0;
+    const km = edge.km;
     const supply = land.supplyMilli[n];
-    if (
+    const better =
       best === 0 ||
-      battle < bestBattle ||
-      (battle === bestBattle && supply > bestSupply)
-    ) {
+      strait < bestStrait ||
+      (strait === bestStrait &&
+        (battle < bestBattle ||
+          (battle === bestBattle &&
+            (km < bestKm || (km === bestKm && supply > bestSupply)))));
+    if (better) {
       best = n;
+      bestStrait = strait;
       bestBattle = battle;
+      bestKm = km;
       bestSupply = supply;
     }
   }

@@ -16,6 +16,7 @@ import {
   hubCapacityMilli,
   localSupplyMilli,
   regionSupplyMilli,
+  SEA_HUB_MILLI,
   supplyEdgeCost,
   supplyFrom,
   supplyRatePm,
@@ -156,7 +157,8 @@ describe("supply (P2 spec §11)", () => {
       regionSupply(l, WARSAW, supplyFrom(65_000, toWarsaw), false),
     );
     // Krakow (rail 0, hills): no railway in, so every way is slow; its best
-    // hub is Rome's (165 km, the Axis shares hubs).
+    // hub is Berlin's over Munich's railway (Task 11's doubled road reach;
+    // before it, Rome's 165 km: the Axis shares hubs).
     const viaMunich = supplyFrom(
       65_000,
       cost(l, BERLIN, MUNICH) + cost(l, MUNICH, KRAKOW),
@@ -171,7 +173,7 @@ describe("supply (P2 spec §11)", () => {
       cost(l, WARSAW, KRAKOW),
     );
     const best = Math.max(viaMunich, fromRome, viaWarsaw, warsawHub);
-    expect(best).toBe(fromRome);
+    expect(best).toBe(viaMunich);
     expect(l.supplyMilli[KRAKOW]).toBe(regionSupply(l, KRAKOW, best, false));
     expect(l.supplyMilli[KRAKOW]).toBeLessThan(l.supplyMilli[WARSAW]);
   });
@@ -248,7 +250,7 @@ describe("supply (P2 spec §11)", () => {
     expect(liveHubs(l, side)).toContainEqual({
       region: 2,
       kind: HUB_SEA,
-      cap: 12_000,
+      cap: SEA_HUB_MILLI,
     });
   });
 
@@ -257,17 +259,20 @@ describe("supply (P2 spec §11)", () => {
     takeRegion(g, WARSAW, "DEU");
     takeRegion(g, KRAKOW, "DEU");
     clearLand(g);
-    // Thirty divisions in Krakow use more than it gets.
+    // Forty divisions in Krakow use more than it gets.
     const a = placeArmy(g, "DEU", KRAKOW, 30);
-    const rows = a.divisions.map((d) => l.divisions.rowOf(d));
+    const a2 = placeArmy(g, "DEU", KRAKOW, 10);
+    const rows = [...a.divisions, ...a2.divisions].map((d) =>
+      l.divisions.rowOf(d),
+    );
     // One of them on a train: it eats there but adds no use (pre-flight S2).
-    l.divisions.mode[rows[29]] = MOVE_RAIL;
+    l.divisions.mode[rows[39]] = MOVE_RAIL;
     // One in Soviet Kiev, a region the side does not hold: nothing.
     const b = placeArmy(g, "DEU", BERLIN, 1);
     const lost = l.divisions.rowOf(b.divisions[0]);
     l.setDivisionRegion(lost, KIEV);
     dailySupply(l, l.sideOf(id(g, "DEU")));
-    const use = rows.slice(0, 29).reduce((n, r) => n + useOf(l, r), 0);
+    const use = rows.slice(0, 39).reduce((n, r) => n + useOf(l, r), 0);
     expect(l.useMilli[KRAKOW]).toBe(use);
     expect(use).toBeGreaterThan(l.supplyMilli[KRAKOW]);
     const rate = Math.floor((l.supplyMilli[KRAKOW] * 1000) / use);

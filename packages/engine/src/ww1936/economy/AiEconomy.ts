@@ -110,13 +110,19 @@ const DAY_1939 = dayOfDate("1939-01-01");
 /** A line target: an equipment, or `tank` (medium once researched, else light). */
 export type AiLineSlot = EquipmentType | "tank";
 
-/** Spec §12.2: line targets, percent of the working military factories. */
+/**
+ * Spec §12.2: line targets, percent of the working military factories.
+ * P2 Task 11 (controller ruling 3): a major's support share is 10 (from
+ * 5, out of the rifles): every 1936 major template has engineers or
+ * recon, 35 support equipment a German division against 900 rifles, so
+ * 5% left the support stock at 0 and the 50% fill gate shut training.
+ */
 export const AI_LINE_SHARES: Readonly<
   Record<"major" | "minor", Readonly<Partial<Record<AiLineSlot, number>>>>
 > = {
   major: {
-    infantry_equipment: 40,
-    support_equipment: 5,
+    infantry_equipment: 35,
+    support_equipment: 10,
     artillery: 15,
     anti_tank: 5,
     anti_air: 5,
@@ -132,6 +138,16 @@ export const AI_LINE_SHARES: Readonly<
     anti_tank: 10,
   },
 };
+
+/**
+ * P2 Task 11 (controller ruling 3): a major whose support equipment stock
+ * is under this many (about ten divisions' engineers and recon) moves this
+ * many points from rifles to support until it recovers: the war's
+ * reinforcement eats the support line, and a template whose lowest fill
+ * is under 50% stops all training.
+ */
+export const AI_SUPPORT_RESERVE = 400;
+export const AI_SUPPORT_SHORT_PTS = 5;
 
 /**
  * A major's lines lean towards its doctrine (percentage points on top of
@@ -185,6 +201,7 @@ export function aiLineShares(
   major: boolean,
   researched: ReadonlySet<WwTechId>,
   infSurplus: boolean,
+  supportShort = false,
 ): Record<EquipmentType, number> {
   const out = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t, 0])) as Record<
     EquipmentType,
@@ -205,6 +222,12 @@ export function aiLineShares(
   if (infSurplus) {
     out.infantry_equipment -= 5;
     out.artillery += 5;
+  }
+  // P2 Task 11: support runs short (a major's templates all need it).
+  if (major && supportShort) {
+    const pts = Math.min(AI_SUPPORT_SHORT_PTS, out.infantry_equipment);
+    out.infantry_equipment -= pts;
+    out.support_equipment += pts;
   }
   for (const t of EQUIPMENT_TYPES) out[t] = Math.max(0, out[t]);
   return out;
@@ -470,6 +493,8 @@ export interface AiInput {
   recruitable: number;
   /** Infantry equipment in stock, every generation. */
   infStock: number;
+  /** Support equipment in stock, every generation (P2 Task 11; none: plenty). */
+  supStock?: number;
   freeCivMilli: number;
   /** Working military factories. */
   mil: number;
@@ -660,6 +685,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
     i.major,
     researched,
     i.infStock * 10 > i.manpower,
+    (i.supStock ?? AI_SUPPORT_RESERVE) < AI_SUPPORT_RESERVE,
   );
   // Once medium tanks are researched the tank share is theirs, and the light
   // tank lines (which keep their factories, R6.5) count against it: else a
@@ -1101,6 +1127,10 @@ export function aiInput(
     manpower: ce.manpower,
     recruitable: t.recruitable,
     infStock: ce.infStock(),
+    supStock: EQUIP_KEYS.reduce(
+      (n, [t], k) => (t === "support_equipment" ? n + ce.stock[k] : n),
+      0,
+    ),
     freeCivMilli: t.freeCivMilli,
     mil: t.mil,
     idleMil: t.idleMil,

@@ -11,10 +11,19 @@ import { RegionHeap } from "./RegionHeap";
 import type { Edge, ScenarioIndex } from "./ScenarioIndex";
 import { WEATHER } from "./Weather";
 
-/** Spec §7.2: +25% small river, +50% big river, +100% strait. */
+/**
+ * Spec §7.2 extra distance over an edge's river, % (0 none, 1 small, 2
+ * big). Task 11 (controller ruling 7): a small river +15% (was +25%; HOI4
+ * −25% speed per province crossed, here a part of a region's border), a
+ * big one +50%.
+ */
+export const RIVER_MOVE_PCT: readonly [number, number, number] = [0, 15, 50];
+
+/** Spec §7.2: the river's extra distance, +100% over a strait. */
 export function riverPct(e: Edge): number {
   return (
-    (e.river === 1 ? 25 : e.river === 2 ? 50 : 0) + (e.strait === 1 ? 100 : 0)
+    RIVER_MOVE_PCT[e.river === 1 || e.river === 2 ? e.river : 0] +
+    (e.strait === 1 ? 100 : 0)
   );
 }
 

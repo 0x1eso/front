@@ -97,6 +97,27 @@ export const TERRAIN: Readonly<Record<LandTerrain, TerrainDef>> = {
   },
 };
 
+/**
+ * Spec §9.4 river penalties on the attack, bp, by edge river (0 none, 1
+ * small, 2 big). Task 11 (controller ruling 7): a third of the land edges
+ * carry a small river (23%, any Natural Earth river within 2 tiles of 40%
+ * of the border) and only a part of an attack crosses it, so a small
+ * river costs −10% (was −20%, HOI4 −30% per province crossed); a big
+ * river (Rhine, Vistula, Danube, Volga…: 12% of the edges) keeps −40%.
+ */
+export const RIVER_ATTACK_BP: readonly [number, number, number] = [
+  0, -1000, -4000,
+];
+
+/**
+ * Spec §9.4 fort penalty on the attack, bp per fort level of the defended
+ * region (engineers take a quarter off). Task 11 (내 판단): −15% a level
+ * (was −12%): with −12% ten 1940 German divisions broke three entrenched
+ * French divisions behind a level-5 fort in two days (spec §19.3 wants
+ * the Maginot to hold); −75% at level 5, −56% with engineers.
+ */
+export const FORT_ATTACK_BP = -1500;
+
 /** Spec §9.2: base width plus one step for every direction after the first (1..4). */
 export function combatWidth(land: LandTerrain, directions: number): number {
   const t = TERRAIN[land];
@@ -279,7 +300,7 @@ export function divisionMods(i: ModInput): ModResult {
         (has(i.flags, TPL_ENGINEER) ? 1 : 0) +
         (has(i.flags, TPL_MARINE_ANY) ? 1 : 0) +
         (has(i.traits, TB("river_crosser")) ? 1 : 0);
-      push(aCut, "river", halve(i.river === 2 ? -4000 : -2000, n));
+      push(aCut, "river", halve(RIVER_ATTACK_BP[i.river], n));
     }
     if (i.strait) {
       push(aCut, "strait", has(i.flags, TPL_MARINE_ANY) ? -2500 : -5000);
@@ -289,7 +310,8 @@ export function divisionMods(i: ModInput): ModResult {
         aCut,
         "fort",
         -Math.floor(
-          (1200 * i.fort * (has(i.flags, TPL_ENGINEER) ? 75 : 100)) / 100,
+          (-FORT_ATTACK_BP * i.fort * (has(i.flags, TPL_ENGINEER) ? 75 : 100)) /
+            100,
         ),
       );
     }

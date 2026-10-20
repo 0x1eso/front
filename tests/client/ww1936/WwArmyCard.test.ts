@@ -292,8 +292,9 @@ describe("<ww-army-card> (spec §15.4)", () => {
     await m.el.updateComplete;
     const p = m.q("[data-ww-preview='move']")!;
     expect(p.textContent).toContain("→ Munich");
-    // Berlin → Munich in January's snow (70% speed): 29 ticks, 3.9 days.
-    expect(p.textContent).toContain("[ww1936.land.move_days] days=3.9");
+    // Berlin → Munich: Munich's January is temperate (Task 11) and clear
+    // that week: 20 ticks, 2.7 days.
+    expect(p.textContent).toContain("[ww1936.land.move_days] days=2.7");
     expect(m.q("[data-ww-tap-again]")).not.toBeNull();
     // An attack preview: the strength ratio and its bar.
     m.sel.pending = 6;

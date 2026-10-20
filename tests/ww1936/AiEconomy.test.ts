@@ -377,9 +377,10 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     const medium = new Set<WwTechId>(["light_tank_1", "medium_tank_1"]);
     // Spec §12.2 for a major, plus Germany's mobile-warfare lean (its
     // vehicles come out of guns and bombers, not rifles: Task 9).
+    // (P2 Task 11: a major's support share is 10, out of the rifles.)
     expect(aiLineShares("DEU", true, light, false)).toEqual({
-      infantry_equipment: 40,
-      support_equipment: 5,
+      infantry_equipment: 35,
+      support_equipment: 10,
       artillery: 10,
       anti_tank: 5,
       anti_air: 5,
@@ -390,7 +391,7 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       bomber: 0,
     });
     expect(aiLineShares("SUN", true, medium, false)).toMatchObject({
-      infantry_equipment: 50,
+      infantry_equipment: 45,
       artillery: 20,
       light_tank: 0,
       medium_tank: 10,

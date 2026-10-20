@@ -4,7 +4,7 @@ import {
   WW_CAPITULATION_DAYS,
   WW_PREP_TICKS,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game } from "@openfront/engine/game/Game";
 import {
   createGameRunnerFromSnapshot,
@@ -364,16 +364,34 @@ describe("World War 1936 stays deterministic", () => {
     expect(h.digest("hex").slice(0, 16)).toBe(WW1936_DIGEST);
   }, 120_000);
 
-  // Plan decision 22, pre-flight U7: the AI's land war (Task 6) takes the
-  // land that fills the gauges and makes countries fall.
-  it.skip("an all-AI test-map war ends in capitulations (restored after Task 6 merges)", async () => {
+  // Plan decision 22, pre-flight U7, restored in Task 11 with the
+  // expectation the balanced land war gives: on the test map the calendar
+  // war takes Poland (both its regions, so it dies whole before its gauge
+  // fills) in the autumn of 1939, and the majors stand into 1940 (France's
+  // two regions behind Paris's fort and fifty divisions, the Phoney War of
+  // the democracies' liberation-only offensives).
+  test("an all-AI test-map war: Poland falls in the autumn of 1939, the majors stand", async () => {
     const runner = await wwRunner();
-    let gauged = false;
-    while (runner.game.ticks() < 13_000) {
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const pol = byTag(g, "POL");
+    let war = -1;
+    let fell = -1;
+    while (g.ticks() < 13_000) {
       step(runner);
-      gauged ||= runner.game.worldWar()!.data().gauges.length > 0;
+      if (war < 0 && ww.hasWar(pol.smallID())) war = ww.day(g.ticks());
+      if (fell < 0 && (!pol.isAlive() || ww.isCapitulated(pol.smallID()))) {
+        fell = ww.day(g.ticks());
+      }
     }
-    expect(gauged).toBe(true);
-    expect(fallen(runner.game)).toBeGreaterThanOrEqual(2);
+    expect(war).toBeGreaterThanOrEqual(dayOfDate("1939-09-01"));
+    // 25 to 75 days after the war began (P2 spec §19.3).
+    expect(fell - war).toBeGreaterThanOrEqual(25);
+    expect(fell - war).toBeLessThanOrEqual(75);
+    expect(fallen(g)).toBe(1);
+    for (const tag of ["DEU", "FRA", "SUN", "GBR", "ITA"] as const) {
+      expect(byTag(g, tag).isAlive()).toBe(true);
+      expect(ww.isCapitulated(byTag(g, tag).smallID())).toBe(false);
+    }
   }, 120_000);
 });

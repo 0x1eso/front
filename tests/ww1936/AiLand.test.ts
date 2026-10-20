@@ -15,6 +15,7 @@ import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import {
   AI_ATTACK_ORG_PM,
+  AI_REATTACK_READY_BP,
   aiFrontPlan,
   AiRole,
   aiTargets,
@@ -28,8 +29,10 @@ import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import {
   byTag,
+  clearLand,
   HUMAN,
   land,
+  placeArmy,
   step,
   stepTo,
   warAfterPrep,
@@ -68,11 +71,14 @@ function spyIssue(g: Game) {
     order: WwOrder;
     by: string;
     orgPm: number;
+    planBp: number;
   }[] = [];
   const issue = l.issue.bind(l);
   l.issue = (smallID, order, by = "player") => {
     const org = "army" in order ? orgPm(g, order.army) : -1;
-    calls.push({ smallID, order, by, orgPm: org });
+    const planBp =
+      "army" in order ? (l.armies.get(order.army)?.planBp ?? -1) : -1;
+    calls.push({ smallID, order, by, orgPm: org, planBp });
     return issue(smallID, order, by);
   };
   return calls;
@@ -332,6 +338,71 @@ describe("the AI's land war on the test map (spec §14)", () => {
       expect(c.orgPm).toBeGreaterThanOrEqual(AI_ATTACK_ORG_PM);
   }, 120_000);
 
+  test("an auto army waits for readiness before it attacks, even late in a war (Task 11, ruling 6)", async () => {
+    // A human's auto army runs on the AI's gates. Sixty days into the war
+    // the spec's readiness gate is open, but no attack on defenders starts
+    // under AI_REATTACK_READY_BP: the army fronts Warsaw from 0 readiness
+    // and attacks on the day it reaches 500 (100 a day), at full org.
+    // (Poland is human too, so its division stays in Warsaw.)
+    const runner = await wwRunner({ historicalAi: false }, [
+      { clientID: HUMAN, country: "DEU" },
+      { clientID: "HUMAN002", country: "POL" },
+    ]);
+    const g = runner.game;
+    const l = land(g);
+    warAfterPrep(runner, HUMAN, "POL");
+    const d0 = today(g);
+    finishDay(runner, d0 + 61);
+    clearLand(g);
+    const deu = byTag(g, "DEU").smallID();
+    const pol = byTag(g, "POL").smallID();
+    for (const id of [deu, pol]) {
+      const ce = l.econ.country(id)!;
+      ce.manpower += 1_000_000;
+      for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 10_000;
+    }
+    const a = placeArmy(g, "DEU", 3, 3);
+    placeArmy(g, "POL", 6, 1);
+    expect(
+      l.issue(deu, { kind: "army_front", army: a.id, anchor: 3, enemy: pol }),
+    ).toBe(null);
+    expect(l.issue(deu, { kind: "army_auto", army: a.id, on: true })).toBe(
+      null,
+    );
+    const calls = spyIssue(g);
+    const from = today(g);
+    for (let d = from; d < from + 12; d++) finishDay(runner, d);
+    const on = calls.filter(
+      (c) => c.smallID === deu && c.order.kind === "army_execute" && c.order.on,
+    );
+    expect(on.length).toBeGreaterThan(0);
+    expect(AI_REATTACK_READY_BP).toBe(500);
+    expect(on[0].planBp).toBeGreaterThanOrEqual(500);
+    expect(on[0].orgPm).toBeGreaterThanOrEqual(AI_ATTACK_ORG_PM);
+  }, 120_000);
+
+  test("a democracy at war with an aggressor only plans to take back its camp's land (Task 11)", async () => {
+    // The all-AI test map's calendar: France joins Germany's war in 1939.
+    // Its offensives aim only at French and British 1936 regions (the
+    // Phoney War); Germany's take Polish land.
+    const runner = await wwRunner();
+    const g = runner.game;
+    const l = land(g);
+    const calls = spyIssue(g);
+    stepTo(runner, 12_000);
+    const owners = l.scenario.ownerByRegion();
+    const fra = byTag(g, "FRA").smallID();
+    const gbr = byTag(g, "GBR").smallID();
+    const deu = byTag(g, "DEU").smallID();
+    const plans = (id: number) =>
+      calls.flatMap((c) =>
+        c.smallID === id && c.order.kind === "army_plan" ? c.order.targets : [],
+      );
+    expect(g.worldWar()!.isAtWar(fra, deu)).toBe(true);
+    for (const r of plans(fra)) expect([fra, gbr]).toContain(owners[r]);
+    expect(plans(deu).length).toBeGreaterThan(0);
+  }, 120_000);
+
   test("guards hold the capital and the victory points near the enemy, measured on the high-water mark", async () => {
     // Germany (45 divisions) at war with Poland: a guard of 2 in Berlin
     // (the capital, on the border) and, with 10% of 45 = 4 divisions of
@@ -465,6 +536,45 @@ async function worldFiles(): Promise<MapFiles> {
 }
 
 describe("the AI's land war on world1936 (controller ruling 3)", () => {
+  test("Italy's 1936 plans on Addis Ababa stand on their own fronts from the start (Task 11, ruling 4)", async () => {
+    const runner = await createGameRunner(
+      wwGameStart(),
+      undefined,
+      await worldFiles(),
+      (gu) => {
+        if ("errMsg" in gu) throw new Error(gu.errMsg);
+      },
+    );
+    const g = runner.game;
+    const l = g.worldWar()!.land;
+    const sc = l.scenario;
+    const ita = sc.smallIdOf("ITA");
+    const eth = sc.smallIdOf("ETH");
+    const addis = sc.landRegions.find((r) => r.name === "Addis Ababa")!.id;
+    const plans = () =>
+      l.armiesOf(ita).filter((a) => a.order.targets.includes(addis));
+    // Anchored on a border region with Ethiopia of each army's own coast
+    // (Eritrea's, Somaliland's), never 0.
+    const start = plans();
+    expect(start.length).toBe(2);
+    for (const a of start) {
+      expect(a.order).toMatchObject({ kind: "plan", enemy: eth });
+      expect(a.order.executing).toBe(true);
+      expect(a.order.anchor).not.toBe(0);
+      expect(
+        sc.edgesOf(a.order.anchor).some((e) => l.controller[e.to] === eth),
+      ).toBe(true);
+    }
+    expect(new Set(start.map((a) => a.order.anchor)).size).toBe(2);
+    // Day 0's front step (and the AI's day) keeps them.
+    stepTo(runner, dayStartTick(1, WW_PREP_TICKS) + WW_DAY_SPLIT);
+    for (const a of start) {
+      expect(a.order.kind).toBe("plan");
+      expect(a.order.executing).toBe(true);
+      expect(a.front.length).toBeGreaterThan(0);
+    }
+  }, 120_000);
+
   test("Japan holds on in China until 1939 (historical AI, fixed seed)", async () => {
     const runner = await createGameRunner(
       wwGameStart(),

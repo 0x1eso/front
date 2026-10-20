@@ -26,6 +26,7 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { drawManpower, drawTemplateEquip } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { borderRegions, nearestBorder } from "./Fronts";
 import type {
   Army,
   CountryLand,
@@ -187,17 +188,49 @@ export function startLand(land: WwLand): void {
             if (!fieldDivision(land, cl, ce, tpl, region, a)) break;
           }
         }
-        if (o.planTargets !== undefined && o.planTargets.length > 0) {
-          a.order = {
-            ...idleOrder(),
-            kind: "plan",
-            targets: [...o.planTargets],
-            stance: "balanced",
-            executing: true,
-          };
-          a.pending = true;
+        if (a.divisions.length === 0) {
+          land.removeArmy(a.id);
+          continue;
         }
-        if (a.divisions.length === 0) land.removeArmy(a.id);
+        if (o.planTargets !== undefined && o.planTargets.length > 0) {
+          // Task 11 (controller ruling 4): the plan stands on the engine's
+          // own front, anchored on our border region nearest the targets
+          // against their country (Orders.setPlan's anchor; the orders
+          // themselves are refused in the preparation minute), so the
+          // day's front step keeps it instead of sending it idle.
+          const targets = [...o.planTargets];
+          const owners = new Set(targets.map((r) => land.controller[r]));
+          const enemy = owners.size === 1 ? [...owners][0] : 0;
+          // Its own stretch's border (Eritrea's army and Somaliland's
+          // stand on two coasts): the border regions our land joins to it.
+          const ours = (r: number) =>
+            land.sameSide(cl.smallID, land.controller[r]);
+          const all = borderRegions(land, cl.smallID, enemy);
+          const reach = new Set<number>([region]);
+          const queue = [region];
+          for (let i = 0; i < queue.length; i++) {
+            for (const e of land.scenario.edgesOf(queue[i])) {
+              if (reach.has(e.to) || !ours(e.to)) continue;
+              reach.add(e.to);
+              queue.push(e.to);
+            }
+          }
+          const near = all.filter((r) => reach.has(r));
+          const border = new Set(near.length > 0 ? near : all);
+          const anchor = nearestBorder(land, border, targets, () => true);
+          if (anchor !== 0) {
+            a.order = {
+              ...idleOrder(),
+              kind: "plan",
+              anchor,
+              enemy,
+              targets,
+              stance: "balanced",
+              executing: true,
+            };
+            a.pending = true;
+          }
+        }
       }
     } else {
       const regions = startRegions(land, cl.smallID, counts);
