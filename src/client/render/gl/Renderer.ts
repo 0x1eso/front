@@ -7,11 +7,18 @@
  *   NIGHT COMPOSITE (optional): lightmap → scene × (ambient + lightmap)
  *   FULL BRIGHTNESS (always): borders → railroads → ground units → structures →
  *     structure levels → bars → bloom → trails → missiles → fx → conquest → names
+ *   WORLD WAR 1936 P2 (spec §15.2): region flags with the region lines in the
+ *     base layer; battle markers → plan arrows → army tokens over the names
  */
 
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
+import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
+import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import { translateText } from "../../Utils";
+import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
+import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
+import type { WwLandView } from "../../view/WwLandView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
 import type {
   AttackRingInput,
@@ -32,8 +39,12 @@ import type {
 import { UT_SHELL, UT_TRANSPORT_PLANE } from "../types";
 import { Camera } from "./Camera";
 import { GLUnavailableError, initGL } from "./initGL";
+import { LandAtlas } from "./LandAtlas";
+import { LandTickClock, ParadropFlights } from "./LandFrame";
 import { AirFxPass } from "./passes/AirFxPass";
+import { ArmyTokenPass } from "./passes/ArmyTokenPass";
 import { BarPass } from "./passes/BarPass";
+import { BattleMarkerPass } from "./passes/BattleMarkerPass";
 import { BorderComputePass } from "./passes/BorderComputePass";
 import { BorderStampPass } from "./passes/BorderStampPass";
 import { CoordinateGridPass } from "./passes/CoordinateGridPass";
@@ -50,11 +61,16 @@ import { NightCompositePass } from "./passes/NightCompositePass";
 import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
 import { OrbitalBeamPass } from "./passes/OrbitalBeamPass";
+import { PlanArrowPass } from "./passes/PlanArrowPass";
 import { PlanePass } from "./passes/PlanePass";
 import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
-import { RegionBorderPass } from "./passes/RegionBorderPass";
+import {
+  FLAG_TEX_SIZE,
+  RegionBorderPass,
+  regionFlagBytes,
+} from "./passes/RegionBorderPass";
 import { SAMRadiusPass } from "./passes/SamRadiusPass";
 import { SelectionBoxPass } from "./passes/SelectionBoxPass";
 import { SkinAtlasArray } from "./passes/SkinAtlasArray";
@@ -131,6 +147,23 @@ const WARFARE_RING_HIGHLIGHT_TYPES = new Set(["Coastal Battery", "Airport"]);
 
 const GRID_VIEW_KEY = "renderer:grid_view_enabled";
 
+/** World War 1936 P2: what setWwLand hands the renderer. */
+interface WwLandInput {
+  view: WwLandView;
+  selection: WwLandSelection;
+  me: () => number;
+  /** The engine's sides and enemies over the view (FrontRules' world). */
+  world: LandFrontWorld;
+}
+
+/** World War 1936 P2: the land war's passes, made by setWwLand. */
+interface WwLandPasses {
+  atlas: LandAtlas;
+  tokens: ArmyTokenPass;
+  battles: BattleMarkerPass;
+  arrows: PlanArrowPass;
+}
+
 export class GPURenderer {
   private gl: WebGL2RenderingContext;
   private camera: Camera;
@@ -190,6 +223,25 @@ export class GPURenderer {
   private mapLayerPasses: Map<string, MapLayerPass> = new Map();
   /** World War 1936: region and sea-zone lines; null otherwise. */
   private regionBorderPass: RegionBorderPass | null = null;
+  /** World War 1936 P2: the land war; null without it. */
+  private wwLand: WwLandInput | null = null;
+  private wwPasses: WwLandPasses | null = null;
+  private readonly tokenLayout = new TokenLayoutCache();
+  /** Region flags this frame's inputs give, and those the pass last got. */
+  private readonly landFlags = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE);
+  private readonly landFlagsSent = new Uint8Array(
+    FLAG_TEX_SIZE * FLAG_TEX_SIZE,
+  );
+  private landFlagsStale = true;
+  private landFlagsVersion = -1;
+  private landFlagsSelection = -1;
+  private landFlagsMe = -1;
+  /** The game tick tokens glide from (spec §15.2). */
+  private landClock: LandTickClock = new LandTickClock(100);
+  /** Paradrop planes flown through PlanePass (spec §7.6). */
+  private readonly paradrops = new ParadropFlights();
+  private readonly openParachutes = (x: number, y: number, owner: number) =>
+    this.airFxPass.spawnParadrop(x, y, owner);
   /** R8UI terrain-bytes texture shared by all layer passes. */
   private terrainBytesTex: WebGLTexture | null = null;
   /** Stored layer definitions for context-restore re-creation. */
@@ -267,6 +319,7 @@ export class GPURenderer {
     this.settings = settings;
     this.raf = raf;
     this.caf = caf;
+    this.landClock = new LandTickClock(config.msPerTick());
 
     // Demand a GPU-accelerated context. A software (SwiftShader) or missing
     // WebGL2 context throws GLUnavailableError, which the game-start path
@@ -964,7 +1017,17 @@ export class GPURenderer {
     this.frameTick++;
     this.unitPass.setFrameTick(this.frameTick);
     this.unitPass.updateUnits(units, gameTick);
-    this.planePass.updateUnits(units, gameTick, this.lastStructures);
+    let planeUnits: ReadonlyMap<number, UnitState> = units;
+    if (this.wwLand !== null) {
+      this.landClock.note(gameTick, performance.now());
+      planeUnits = this.paradrops.withFlights(
+        this.wwLand.view,
+        units,
+        gameTick,
+        this.openParachutes,
+      );
+    }
+    this.planePass.updateUnits(planeUnits, gameTick, this.lastStructures);
     this.samRadiusPass.setTick(gameTick);
     this.warfareRingPass.updateUnits(units);
     this.barPass.updateBars(units, this.lastStructures, gameTick);
@@ -1544,6 +1607,17 @@ export class GPURenderer {
     // World War 1936: region lines over the fill, under the country borders
     // (borderStampPass draws in renderOverlays).
     this.regionBorderPass?.draw(cam, this.camera.zoom);
+    // P2: the chosen army's front, encircled and pickable regions.
+    if (this.wwLand !== null && this.regionBorderPass !== null) {
+      this.syncLandFlags();
+      this.regionBorderPass.drawFlags(
+        cam,
+        renderDpr() / Math.max(this.camera.zoom, 1e-6),
+        performance.now() / 1000,
+        this.paletteTex,
+        this.wwLand.me(),
+      );
+    }
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1602,6 +1676,9 @@ export class GPURenderer {
     if (pe.name && !this.altView)
       this.namePass.draw(cam, this.nightCompositePass.getAmbient());
 
+    // World War 1936 P2: battles, plan arrows and army tokens over the names.
+    if (this.wwLand !== null) this.drawWwLand(cam, performance.now());
+
     // World text (attack-troop labels, popups, ghost cost) draws on top of
     // player names so attack callouts aren't hidden behind a centered name.
     this.strategicFxPass.updateLabels(zoom);
@@ -1659,6 +1736,144 @@ export class GPURenderer {
       this.mapW,
       this.mapH,
     );
+    this.landFlagsStale = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // World War 1936 P2: the land war (spec §15.2)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Draw the land war from `view`: army tokens, battle markers, the chosen
+   * army's plan arrows and the region flags. `me` is the viewer's smallID;
+   * `war` gives the World War data and the game tick (GameView.worldWarData
+   * and GameView.ticks): the engine's enemies for the front rules and the
+   * tick tokens start from. Without it every country outside the viewer's
+   * side counts as an enemy and the glide starts at tick 0.
+   */
+  setWwLand(
+    view: WwLandView,
+    selection: WwLandSelection,
+    me: () => number,
+    war: LandWarInputs | null = null,
+  ): void {
+    this.disposeWwLand();
+    this.wwLand = {
+      view,
+      selection,
+      me,
+      world: new LandFrontWorld(view, war),
+    };
+    this.landClock.reset(war?.ticks() ?? 0, performance.now());
+    const atlas = new LandAtlas(this.gl);
+    this.wwPasses = {
+      atlas,
+      tokens: new ArmyTokenPass(this.gl, this.paletteTex, atlas.texture),
+      battles: new BattleMarkerPass(this.gl, this.paletteTex, atlas.texture),
+      arrows: new PlanArrowPass(this.gl),
+    };
+    this.landFlagsStale = true;
+  }
+
+  private disposeWwLand(): void {
+    if (this.wwPasses !== null) {
+      this.wwPasses.tokens.dispose();
+      this.wwPasses.battles.dispose();
+      this.wwPasses.arrows.dispose();
+      this.wwPasses.atlas.dispose();
+    }
+    this.wwPasses = null;
+    this.wwLand = null;
+    this.paradrops.reset();
+  }
+
+  /**
+   * Region flags (spec §15.2): worked out again when the view, the choice
+   * or the viewer changed, sent to the pass only when a byte differs.
+   */
+  private syncLandFlags(): void {
+    const land = this.wwLand;
+    const pass = this.regionBorderPass;
+    if (land === null || pass === null) return;
+    const me = land.me();
+    const sel = land.selection;
+    if (
+      !this.landFlagsStale &&
+      land.view.version === this.landFlagsVersion &&
+      sel.version === this.landFlagsSelection &&
+      me === this.landFlagsMe
+    ) {
+      return;
+    }
+    this.landFlagsVersion = land.view.version;
+    this.landFlagsSelection = sel.version;
+    this.landFlagsMe = me;
+    regionFlagBytes(
+      land.view,
+      sel,
+      me,
+      this.frontPreview(me),
+      land.world,
+      this.landFlags,
+    );
+    const limit = land.view.controller.length;
+    let same = !this.landFlagsStale;
+    for (let i = 0; same && i < limit && i < this.landFlags.length; i++) {
+      if (this.landFlags[i] !== this.landFlagsSent[i]) same = false;
+    }
+    this.landFlagsStale = false;
+    if (same) return;
+    this.landFlagsSent.set(this.landFlags);
+    pass.setRegionFlags(this.landFlags);
+  }
+
+  /** Front mode's first tap (spec §15.3-4): the front it would give (FrontRules.frontOf). */
+  private frontPreview(me: number): readonly number[] {
+    const land = this.wwLand!;
+    const sel = land.selection;
+    if (sel.mode !== "front" || sel.pending === null || sel.army === null) {
+      return [];
+    }
+    const army = land.view.armies.get(sel.army);
+    if (army === undefined || army.owner !== me) return [];
+    return frontOf(land.world, me, 0, sel.pending, frontSize(army.divisions));
+  }
+
+  /** Battle markers, then plan arrows, then the tokens on top (spec §15.2). */
+  private drawWwLand(cam: Float32Array, now: number): void {
+    const land = this.wwLand;
+    const passes = this.wwPasses;
+    if (land === null || passes === null) return;
+    const zoom = this.camera.zoom / renderDpr();
+    const tilesPerPx = 1 / Math.max(zoom, 1e-6);
+    const timeSec = now / 1000;
+    const me = land.me();
+    const view = land.view;
+    const changed = this.tokenLayout.update(view, this.landClock.at(now), zoom);
+    passes.battles.update(view, tokenLod(zoom));
+    passes.arrows.update(view, land.selection, me, tilesPerPx, land.world);
+    passes.tokens.update(view, this.tokenLayout, changed, land.selection, me);
+
+    passes.battles.draw(cam, tilesPerPx);
+    if (passes.arrows.instanceCount > 0) {
+      let sx: number;
+      let sy: number;
+      const i =
+        land.selection.army === null
+          ? -1
+          : this.tokenLayout.indexOf(land.selection.army);
+      if (i >= 0) {
+        sx = this.tokenLayout.placements[i].x;
+        sy = this.tokenLayout.placements[i].y;
+      } else {
+        const a = view.armies.get(land.selection.army ?? 0);
+        const t = a === undefined ? 0 : view.scenario.centerTile(a.region);
+        sx = t % view.scenario.width;
+        sy = Math.floor(t / view.scenario.width);
+      }
+      passes.arrows.draw(cam, tilesPerPx, timeSec, sx, sy);
+    }
+    passes.tokens.draw(cam, tilesPerPx, timeSec);
   }
 
   /** Toggle visibility of a single layer (driven by graphics settings). */
@@ -1702,6 +1917,7 @@ export class GPURenderer {
     this.mapLayerPasses.clear();
     this.regionBorderPass?.dispose();
     this.regionBorderPass = null;
+    this.disposeWwLand();
     if (this.terrainBytesTex) {
       this.gl.deleteTexture(this.terrainBytesTex);
       this.terrainBytesTex = null;

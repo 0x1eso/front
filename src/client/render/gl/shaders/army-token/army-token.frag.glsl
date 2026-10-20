@@ -1,0 +1,163 @@
+#version 300 es
+precision highp float;
+
+// World War 1936 P2 army tokens (spec §15.2): the country's colour, a
+// branch symbol, the division count, strength and organisation bars and a
+// state icon; a number chip or a dot when zoomed out. Modest: the chosen
+// army's outline breathes, nothing else moves.
+
+uniform sampler2D uPalette; // RGBA32F, PALETTE_SIZE x 2: territory, border
+uniform sampler2D uAtlas;   // LandAtlas
+uniform float uTime;        // seconds
+
+in vec2 vLocal;
+flat in vec4 vA;
+flat in vec4 vB;
+flat in vec4 vC;
+
+out vec4 fragColor;
+
+// ARMY_* state bits (engine-api LandTypes).
+const int MOVING = 1;
+const int BATTLE = 2;
+const int ENCIRCLED = 4;
+const int RAIL = 8;
+const int SEA = 16;
+const int RETREAT = 32;
+const int PARA = 256;
+
+const vec3 FRAME = vec3(0.94, 0.93, 0.88);
+const vec3 STRENGTH = vec3(0.90, 0.86, 0.66);
+const vec3 ORG = vec3(0.36, 0.78, 0.36);
+const vec3 GLOW = vec3(1.0, 0.9, 0.5);
+const vec3 RING = vec3(0.86, 0.1, 0.08);
+
+float sdBox(vec2 p, vec2 b, float r) {
+  vec2 q = abs(p) - b + r;
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
+// Coverage of the inside (d < 0) of a distance field in screen px.
+float cover(float d) {
+  float w = max(fwidth(d), 1e-3);
+  return clamp(0.5 - d / w, 0.0, 1.0);
+}
+
+vec4 over(vec4 dst, vec3 c, float a) {
+  float oa = a + dst.a * (1.0 - a);
+  if (oa <= 1e-4) return vec4(0.0);
+  return vec4((c * a + dst.rgb * dst.a * (1.0 - a)) / oa, oa);
+}
+
+vec4 atlas(float cell, vec2 uv) {
+  float col = mod(cell, float(ATLAS_COLS));
+  float row = floor(cell / float(ATLAS_COLS));
+  vec2 t = (vec2(col, row) + clamp(uv, 0.02, 0.98)) /
+    vec2(float(ATLAS_COLS), float(ATLAS_ROWS));
+  return texture(uAtlas, t);
+}
+
+vec4 overTexel(vec4 dst, vec4 t, float inside) {
+  return over(dst, t.rgb, t.a * inside);
+}
+
+float stateIcon(int s) {
+  if ((s & BATTLE) != 0) return float(ICON_BATTLE);
+  if ((s & PARA) != 0) return float(ICON_PARA);
+  if ((s & SEA) != 0) return float(ICON_SEA);
+  if ((s & RAIL) != 0) return float(ICON_RAIL);
+  if ((s & (MOVING | RETREAT)) != 0) return float(ICON_MOVE);
+  return -1.0;
+}
+
+// The chosen army's breathing outline and the encircled army's red ring
+// around a shape whose distance is d.
+vec4 rings(vec4 col, float d, bool chosen, bool encircled) {
+  if (chosen) {
+    float g = (1.0 - smoothstep(0.0, 5.0, d)) * step(-0.5, d);
+    col = over(col, GLOW, g * (0.55 + 0.2 * sin(uTime * 3.5)));
+  }
+  if (encircled) {
+    col = over(col, RING, cover(abs(d - 2.5) - 1.1));
+  }
+  return col;
+}
+
+void main() {
+  vec2 p = vLocal;
+  float kind = vA.z;
+  int owner = int(vA.w + 0.5);
+  vec3 terr = texelFetch(uPalette, ivec2(owner, 0), 0).rgb;
+  vec3 edge = mix(terr, vec3(0.0), 0.62);
+  int state = int(vC.x + 0.5);
+  bool chosen = mod(vC.y, 2.0) > 0.5;
+  bool encircled = (state & ENCIRCLED) != 0;
+  vec4 col = vec4(0.0);
+
+  if (kind < 0.5) {
+    // Full token: box 36x22, symbol frame, count, bars, state badge.
+    vec2 symUV = (p - vec2(-15.0, -7.0)) / 14.0;
+    vec2 numUV = (p - vec2(-1.0, -10.0)) / 20.0;
+    vec2 iconC = vec2(17.0, -11.0);
+    vec2 iconUV = (p - iconC + 7.5) / 15.0;
+    float count = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
+    vec4 tSym = atlas(vB.x, symUV);
+    vec4 tNum = atlas(float(NUMBER_CELL0) + count, numUV);
+    float icon = stateIcon(state);
+    vec4 tIcon = atlas(max(icon, 0.0), iconUV);
+
+    float dAll = sdBox(p - vec2(0.0, 4.5), vec2(18.0, 15.5), 4.0);
+    col = rings(col, dAll, chosen, encircled);
+
+    float dBox = sdBox(p, vec2(18.0, 11.0), 3.0);
+    col = over(col, edge, cover(dBox));
+    col = over(col, terr, cover(dBox + 1.5));
+    float dFrame = sdBox(p - vec2(-8.0, 0.0), vec2(7.0, 7.0), 1.0);
+    col = over(col, FRAME, cover(dFrame));
+    if (vB.x >= 0.0) col = overTexel(col, tSym, cover(dFrame));
+    col = overTexel(col, tNum, cover(sdBox(p - vec2(9.0, 0.0), vec2(9.0, 10.0), 0.0)));
+
+    // Strength and organisation bars under the box.
+    float dBars = sdBox(p - vec2(0.0, 16.5), vec2(18.0, 4.0), 1.0);
+    col = over(col, vec3(0.0), 0.7 * cover(dBars));
+    float x01 = (p.x + 17.0) / 34.0;
+    float str = clamp(vB.z / 1000.0, 0.0, 1.0);
+    float org = clamp(vB.w / 1000.0, 0.0, 1.0);
+    float inStr = cover(sdBox(p - vec2(0.0, 14.75), vec2(17.0, 1.25), 0.0));
+    float inOrg = cover(sdBox(p - vec2(0.0, 18.25), vec2(17.0, 1.25), 0.0));
+    col = over(col, STRENGTH, inStr * step(x01, str));
+    col = over(col, ORG, inOrg * step(x01, org));
+
+    if (icon >= 0.0) {
+      float dIcon = length(p - iconC) - 7.5;
+      col = over(col, vec3(0.1), 0.9 * cover(dIcon));
+      col = overTexel(col, tIcon, cover(dIcon));
+    }
+  } else if (kind < 1.5) {
+    // Number chip.
+    float count = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
+    vec4 tNum = atlas(float(NUMBER_CELL0) + count, (p + 9.0) / 18.0);
+    float dBox = sdBox(p, vec2(12.0, 7.5), 3.0);
+    col = rings(col, dBox, chosen, encircled);
+    col = over(col, edge, cover(dBox));
+    col = over(col, terr, cover(dBox + 1.25));
+    col = overTexel(col, tNum, cover(dBox));
+  } else if (kind < 2.5) {
+    // Dot.
+    float d = length(p) - 3.5;
+    if (chosen) col = over(col, vec3(1.0), cover(abs(d - 2.0) - 0.9));
+    if (encircled) col = over(col, RING, cover(abs(d - 2.0) - 0.9));
+    col = over(col, edge, cover(d));
+    col = over(col, terr, cover(d + 1.0));
+  } else {
+    // Front dots: up to five, one per division of the army in that region.
+    float n = clamp(vC.z, 1.0, 5.0);
+    float i = clamp(floor(p.x / 7.0 + (n - 1.0) * 0.5 + 0.5), 0.0, n - 1.0);
+    float cx = (i - (n - 1.0) * 0.5) * 7.0;
+    float d = length(p - vec2(cx, 0.0)) - 2.6;
+    col = over(col, edge, cover(d));
+    col = over(col, terr, cover(d + 0.9));
+  }
+  if (col.a <= 0.003) discard;
+  fragColor = col;
+}

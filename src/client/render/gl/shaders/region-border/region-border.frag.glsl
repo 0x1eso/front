@@ -2,8 +2,9 @@
 precision highp float;
 precision highp usampler2D;
 
-// Per-tile edge mask (R8UI): 0 none, 1 land region edge. Sea zones are not
-// drawn in P0 (spec §4.6).
+// Per-tile code (R16UI): bit 15 = land region edge, low 15 bits = the land
+// region id (RegionBorderPass.regionTileCodes). Sea zones are not drawn in
+// P0 (spec §4.6).
 uniform usampler2D uEdges;
 // 0..1 with the zoom.
 uniform float uAlpha;
@@ -17,7 +18,7 @@ void main() {
     ivec2(0),
     ivec2(MAP_W - 1, MAP_H - 1)
   );
-  uint e = texelFetch(uEdges, tc, 0).r;
+  uint e = texelFetch(uEdges, tc, 0).r & 0x8000u;
   if (e == 0u) discard;
   fragColor = vec4(0.0, 0.0, 0.0, 0.35 * uAlpha);
 }
