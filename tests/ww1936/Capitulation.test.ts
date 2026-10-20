@@ -1,4 +1,8 @@
-import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameMapSize,
+  GameMapType,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   WW_PREP_TICKS,
@@ -6,18 +10,23 @@ import {
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game, Player } from "@openfront/engine/game/Game";
+import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   checkCapitulations,
   controlledVp,
   heldStartVp,
   pickVictor,
 } from "@openfront/engine/ww1936/Capitulation";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import { TestDataMapLoader } from "../util/ScriptedGame";
 import {
   byTag,
   HUMAN,
+  MINI,
   stamped,
   step,
   stepTo,
+  wwGameStart,
   wwRunner,
   wwRunnerCapture,
 } from "./util";
@@ -95,6 +104,44 @@ describe("victory points and capitulation (spec §7.5)", () => {
       .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
       .find((m) => m.message === "events_display.ww1936_capitulated");
     expect(capitulated?.params).toEqual({ loserTag: "POL", victorTag: "DEU" });
+  });
+
+  test("a country that starts with no points never capitulates", async () => {
+    // The scenario allows regions worth 0 (spec §7.5): a country whose
+    // regions are all worth 0 has no surrender line to cross.
+    const files = await loadMapFiles(
+      new TestDataMapLoader(MINI),
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    );
+    const scenario = structuredClone(files.scenario!);
+    for (const r of scenario.regions) if (r.owner === "POL") r.vp = 0;
+    const runner = await createGameRunner(
+      wwGameStart(),
+      undefined,
+      { ...files, scenario },
+      (gu) => {
+        if ("errMsg" in gu) throw new Error(gu.errMsg);
+      },
+    );
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+    expect(ww.startVp(pol.smallID())).toBe(0);
+    expect(ww.startVp(deu.smallID())).toBe(25);
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    // Every region's point tile is lost, which makes any other country
+    // capitulate.
+    deu.conquer(vpTileOf(g, "Warsaw"));
+    deu.conquer(vpTileOf(g, "Krakow"));
+    nextDay(runner);
+    nextDay(runner);
+    checkCapitulations(g, ww, g.ticks());
+    expect(ww.isCapitulated(pol.smallID())).toBe(false);
+    expect(ww.data().capitulated).toEqual([]);
+    expect(ww.isAtWar(deu.smallID(), pol.smallID())).toBe(true);
+    expect(pol.isAlive()).toBe(true);
   });
 
   test("a capitulation with no victor names none", async () => {

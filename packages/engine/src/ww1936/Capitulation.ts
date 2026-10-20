@@ -107,6 +107,8 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
     const p = mg.playerBySmallID(id);
     if (!p.isPlayer() || !p.isAlive()) continue;
     const start = ww.startVp(id);
+    // A country whose regions are all worth 0 has no surrender line: it
+    // never capitulates by points (below, 0 lost of 0 counts as past it).
     if (start === 0) continue;
     const lost = start - held[id];
     if (lost * 100 < start * COUNTRIES[ww.tagOf(id)].surrenderPct) continue;
