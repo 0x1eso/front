@@ -39,6 +39,21 @@ const (
 // siteReach is how far (pixels) a resource site may lie off the coast.
 const siteReach = 8
 
+// Population weights (spec §3.3-4, controller ruling 2026-10-20): a region's
+// share of its country's people is the Natural Earth pop_max of the
+// populated places in it (today's numbers, a proxy for where people lived in
+// 1936) plus popAreaFloor per isqrt(tiles), so a region without a town still
+// gets a few. A place counts at most placePopCap: pop_max is today's whole
+// conurbation (Tokyo 35.7M, also listing Yokohama and Kawasaki apart), far
+// beyond any 1936 city, and uncapped it gave Tokyo's region 47% of Japan,
+// Paris's 36% of France. placeReach is how far a coastal place may lie off
+// the land, as for the VP cities.
+const (
+	popAreaFloor = 2000
+	placePopCap  = 3_000_000
+	placeReach   = 3
+)
+
 // devCiv is DEV_CIV (P1 spec §11.3) in millionths per thousand people:
 // civ = round(popCore / 1000 × DEV_CIV[dev]) = (popCore × devCiv + 500,000) / 1,000,000.
 var devCiv = [5]int64{20, 100, 220, 400, 700}
@@ -64,6 +79,52 @@ type Site struct {
 	Lon    float64 `json:"lon"`
 	Lat    float64 `json:"lat"`
 	Note   string  `json:"note"`
+}
+
+// Place is a Natural Earth populated place: where it is and its pop_max.
+type Place struct {
+	Name     string
+	Lon, Lat float64
+	Pop      int64
+}
+
+// placesOf reads the populated places (ne_10m_populated_places_simple),
+// each capped at placePopCap.
+func placesOf(features []Feature) []Place {
+	var out []Place
+	for _, f := range features {
+		if f.Point == nil || f.Num("pop_max") <= 0 {
+			continue
+		}
+		pop := min(int64(f.Num("pop_max")), placePopCap)
+		out = append(out, Place{Name: f.Str("name"), Lon: f.Point[0], Lat: f.Point[1], Pop: pop})
+	}
+	return out
+}
+
+// regionPeople sums the pop_max of the places in each region, by region id:
+// a place counts for the region of the nearest staying land pixel within
+// placeReach; places in the sea or off the map count for none.
+func regionPeople(places []Place, p Projection, kept []bool, ids []uint16, regions int) []int64 {
+	out := make([]int64, regions+1)
+	for _, pl := range places {
+		px, ok := p.Pixel(pl.Lon, pl.Lat)
+		if ok {
+			px, ok = nearestLand(p, kept, px, placeReach)
+		}
+		if !ok {
+			continue
+		}
+		if id := int(ids[px]); id > 0 && id <= regions {
+			out[id] += pl.Pop
+		}
+	}
+	return out
+}
+
+// popWeight is a region's population weight (spec §3.3-4 as amended).
+func popWeight(people int64, tiles int) int64 {
+	return people + int64(isqrt(tiles))*popAreaFloor
 }
 
 // EcoRegion is a region's economy as the tool computes it.
@@ -443,12 +504,11 @@ func factoryCounts(eco EconomyRow, hasCoast bool) (civ, mil, dock int) {
 	return civ, mil, dock
 }
 
-// factoryWeight is w2 (spec §3.3-7).
+// factoryWeight is w2 (spec §3.3-7 as amended): the region's population, so
+// the factories follow the people (the Ruhr, the Midlands, the Donbas…),
+// halved in a colony.
 func factoryWeight(e *EcoRegion) int64 {
-	w := int64(40*e.R.Tiers + isqrt(e.Pop))
-	if e.Capital {
-		w += 200
-	}
+	w := int64(e.Pop)
 	if !e.Core {
 		w /= 2
 	}
@@ -468,9 +528,9 @@ func factoryWeight(e *EcoRegion) int64 {
 // 1936 industry was (§11.1): dockyards go first, not last (last, they only
 // got the slots the civ and mil left, in empty regions: all twelve British
 // yards in Kuwait, the Bahamas…, the Soviet ones in Yakutia); and colonies
-// come after the homeland (with only w2 halved, a colonial town with a city
-// outweighed a rural English county, and 31 of Britain's 52 factories went
-// to the colonies).
+// come after the homeland (with w2 only halved, Egypt and Nigeria outweigh
+// most of England, and under the spec's first w2 31 of Britain's 52
+// factories went to the colonies).
 func placeFactories(regions []*EcoRegion, civ, mil, dock int) (int, error) {
 	w2 := make([]int64, len(regions))
 	for i, e := range regions {
@@ -571,13 +631,15 @@ func placeSites(sites []Site, p Projection, kept []bool, ids []uint16, eco map[i
 	return nil
 }
 
-// buildEconomy runs spec §3.3 for every region. regions are in id order,
-// capitals the capital pixel per country (assignVP), ids the land region per
-// pixel.
-func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, capitals []int, admin []Feature, t *Tables, rows []EconomyRow, sites []Site) ([]*EcoRegion, EconomySummary, error) {
+// buildEconomy runs spec §3.3 for every region. regions are in id order
+// (region k has id k + 1), capitals the capital pixel per country
+// (assignVP), ids the land region per pixel, places the populated places
+// that spread each country's people.
+func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, capitals []int, admin []Feature, t *Tables, rows []EconomyRow, sites []Site, places []Place) ([]*EcoRegion, EconomySummary, error) {
 	w := p.Width
 	n := w * p.Height
 	kept, water := generatorLand(land, w, n)
+	people := regionPeople(places, p, kept, ids, len(regions))
 	sum := EconomySummary{Civ: make([]int, len(t.Countries)), Mil: make([]int, len(t.Countries)), Dock: make([]int, len(t.Countries))}
 	eco := make([]*EcoRegion, len(regions))
 	byID := make(map[int]*EcoRegion, len(regions))
@@ -632,10 +694,7 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 		}{{core, popCore}, {colonial, popColonial}} {
 			weights := make([]int64, len(part.list))
 			for i, e := range part.list {
-				weights[i] = int64(isqrt(len(e.R.Pixels)) + 40*e.R.Tiers)
-				if e.Capital {
-					weights[i] += 400
-				}
+				weights[i] = popWeight(people[e.R.ID], len(e.R.Pixels))
 			}
 			for i, v := range apportion(part.pop, weights) {
 				part.list[i].Pop = v

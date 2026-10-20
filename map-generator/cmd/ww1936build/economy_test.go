@@ -107,13 +107,15 @@ func TestFactoryCountsFormula(t *testing.T) {
 	}
 }
 
-func ecoRegion(id, cat, tiers, pop int, core, coastal, capital bool) *EcoRegion {
-	return &EcoRegion{R: &Region{ID: id, Tiers: tiers}, Cat: cat, Pop: pop, Core: core, Coastal: coastal, Capital: capital}
+// ecoRegion is a region for placeFactories: its w2 is pop (halved off the
+// homeland).
+func ecoRegion(id, cat, pop int, core, coastal bool) *EcoRegion {
+	return &EcoRegion{R: &Region{ID: id}, Cat: cat, Pop: pop, Core: core, Coastal: coastal}
 }
 
 // Two regions of 6 slots and 13 factories: one category step is added.
 func TestPlaceFactoriesBumpsWhenSlotsRunOut(t *testing.T) {
-	regions := []*EcoRegion{ecoRegion(1, catCity, 5, 900, true, false, false), ecoRegion(2, catCity, 5, 900, true, false, false)}
+	regions := []*EcoRegion{ecoRegion(1, catCity, 900, true, false), ecoRegion(2, catCity, 900, true, false)}
 	bumps, err := placeFactories(regions, 10, 3, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -133,15 +135,16 @@ func TestPlaceFactoriesBumpsWhenSlotsRunOut(t *testing.T) {
 	}
 }
 
-// D'Hondt: the heavier region takes more, ties go to the earlier region.
+// D'Hondt on the population: the region with more people takes more, ties
+// go to the earlier region.
 func TestPlaceFactoriesDHondt(t *testing.T) {
-	// w2: 40×20 + 200 + isqrt(10000) = 1100 against 40×5 + isqrt(400) = 220.
-	a := ecoRegion(1, catTop, 20, 10000, true, false, true)
-	b := ecoRegion(2, catTop, 5, 400, true, false, false)
+	a := ecoRegion(1, catTop, 3000, true, false)
+	b := ecoRegion(2, catTop, 1000, true, false)
 	if _, err := placeFactories([]*EcoRegion{a, b}, 6, 0, 0); err != nil {
 		t.Fatal(err)
 	}
-	// 1100, 550, 366, 275, 220 (tie with b's 220: a is earlier), 183 < 220.
+	// a 3000, a 1500, a 1000 (tie with b's 1000: a is earlier), b 1000,
+	// a 750, a 600.
 	if a.Civ != 5 || b.Civ != 1 {
 		t.Fatalf("a %d, b %d, want 5 and 1", a.Civ, b.Civ)
 	}
@@ -149,8 +152,8 @@ func TestPlaceFactoriesDHondt(t *testing.T) {
 
 // Dockyards go first, to the coast; the civ fill in around them.
 func TestDockyardsTakeThePortsFirst(t *testing.T) {
-	port := ecoRegion(1, catCity, 10, 4000, true, true, false)
-	inland := ecoRegion(2, catCity, 3, 900, true, false, true)
+	port := ecoRegion(1, catCity, 4000, true, true)
+	inland := ecoRegion(2, catCity, 900, true, false)
 	bumps, err := placeFactories([]*EcoRegion{port, inland}, 9, 0, 3)
 	if err != nil {
 		t.Fatal(err)
@@ -162,8 +165,8 @@ func TestDockyardsTakeThePortsFirst(t *testing.T) {
 
 // A colony takes a factory only when the homeland has no room.
 func TestHomelandBeforeColonies(t *testing.T) {
-	home := ecoRegion(1, catRural, 0, 300, true, false, false) // w2 17, 2 slots
-	colony := ecoRegion(2, catCity, 10, 4000, false, false, false)
+	home := ecoRegion(1, catRural, 300, true, false)    // w2 300, 2 slots
+	colony := ecoRegion(2, catCity, 4000, false, false) // w2 2000
 	if _, err := placeFactories([]*EcoRegion{home, colony}, 3, 0, 0); err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +178,7 @@ func TestHomelandBeforeColonies(t *testing.T) {
 const catRural = 2
 
 func TestPlaceFactoriesFailsWithoutACoast(t *testing.T) {
-	if _, err := placeFactories([]*EcoRegion{ecoRegion(1, catCity, 0, 100, true, false, true)}, 0, 0, 1); err == nil {
+	if _, err := placeFactories([]*EcoRegion{ecoRegion(1, catCity, 100, true, false)}, 0, 0, 1); err == nil {
 		t.Fatal("a dockyard found an inland region")
 	}
 }
@@ -250,6 +253,16 @@ func testWorld() (Projection, []bool, []uint16, []*Region, []int, []Feature, *Ta
 	return p, land, ids, regions, capitals, admin, tables
 }
 
+// testPlaces: a town of a million in West; a place in the sea and one on
+// the dropped islet, which count for no region.
+func testPlaces(p Projection) []Place {
+	place := func(x, y int, pop int64) Place {
+		lon, lat := p.LonLat(x, y)
+		return Place{Lon: lon, Lat: lat, Pop: pop}
+	}
+	return []Place{place(10, 10, 1_000_000), place(340, 20, 5_000_000), place(300, 50, 5_000_000)}
+}
+
 func testRows() []EconomyRow {
 	return []EconomyRow{
 		{Tag: "AAA", PopCore: 10000, PopColonial: 2000, Dev: 3, Civ: intp(4), Mil: intp(2), Dock: intp(1)},
@@ -272,7 +285,7 @@ func TestBuildEconomyOnATestWorld(t *testing.T) {
 		// Off BBB's coast, within reach of its island.
 		siteAt(p, "BBB", "oil", 2, 284, 110),
 	}
-	eco, sum, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), sites)
+	eco, sum, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), sites, testPlaces(p))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,12 +305,18 @@ func TestBuildEconomyOnATestWorld(t *testing.T) {
 	if got := west.Pop + middle.Pop; got != 10000 || colony.Pop != 2000 || island.Pop != 2000 {
 		t.Fatalf("population: home %d, colony %d, island %d", got, colony.Pop, island.Pop)
 	}
-	// The capital with a tier-20 city holds most of the homeland.
-	if west.Pop <= middle.Pop || categories[west.Cat] != "megalopolis" {
+	// The homeland's people go by the places in each region plus 2,000 per
+	// isqrt(tiles): West (12,600 tiles, a town of 1,000,000) 1,224,000
+	// against Middle's 224,000: 8,453.04 and 1,546.96, the rest to Middle.
+	if len(regions[0].Pixels) != 12600 || len(regions[1].Pixels) != 12600 {
+		t.Fatalf("tiles %d %d", len(regions[0].Pixels), len(regions[1].Pixels))
+	}
+	if west.Pop != 8453 || middle.Pop != 1547 || categories[west.Cat] != "megalopolis" {
 		t.Fatalf("west %d (%s), middle %d", west.Pop, categories[west.Cat], middle.Pop)
 	}
-	// AAA's homeland is inland: its dockyard goes to the colony.
-	if colony.Dock != 1 || west.Civ+middle.Civ != 4 || west.Mil+middle.Mil != 2 {
+	// The factories follow the people; AAA's homeland is inland, so its
+	// dockyard goes to the colony.
+	if west.Civ != 4 || west.Mil != 1 || middle.Mil != 1 || colony.Dock != 1 {
 		t.Fatalf("factories: west %+v middle %+v colony %+v", west, middle, colony)
 	}
 	// BBB: 2,000 × 0.7 = 1.4 → 1 civ, no mil, (1+5)/10 = 0 docks.
@@ -307,7 +326,7 @@ func TestBuildEconomyOnATestWorld(t *testing.T) {
 	if west.Res[4] != 8 || colony.Res[2] != 4 || island.Res[0] != 2 || sum.Sites != 4 {
 		t.Fatalf("resources: %v %v %v", west.Res, colony.Res, island.Res)
 	}
-	// West: dev 3, +1 for its tier-20 city, −1 for its 12,810 pixels.
+	// West: dev 3, +1 for its tier-20 city, −1 for its 12,600 pixels.
 	if west.Infra != 3 || colony.Infra != 1 || island.Infra != 5 {
 		t.Fatalf("infra %d %d %d", west.Infra, colony.Infra, island.Infra)
 	}
@@ -320,7 +339,7 @@ func TestNonCoreListMakesAColony(t *testing.T) {
 	p, land, ids, regions, capitals, admin, tables := testWorld()
 	rows := testRows()
 	rows[1].NonCore = []string{"BBB"}
-	eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, rows, nil)
+	eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, rows, nil, testPlaces(p))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +356,7 @@ func TestSitesThatMissTheirCountryFail(t *testing.T) {
 		"in another country":   siteAt(p, "AAA", "oil", 1, 260, 120),
 		"on the dropped islet": siteAt(p, "AAA", "oil", 1, 300, 50),
 	} {
-		_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), []Site{s})
+		_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), []Site{s}, nil)
 		if err == nil || !strings.Contains(err.Error(), "resource sites") {
 			t.Fatalf("a site %s: err = %v", name, err)
 		}
@@ -356,7 +375,7 @@ func TestADockyardWithoutACoastFails(t *testing.T) {
 			regions[4].Pixels = append(regions[4].Pixels, int32(y*w+x))
 		}
 	}
-	_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), nil)
+	_, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "AAA: 1 dockyards but no coastal region") {
 		t.Fatalf("err = %v", err)
 	}
@@ -369,7 +388,7 @@ func TestEconomyIsDeterministic(t *testing.T) {
 	for k := 0; k < 2; k++ {
 		p, land, ids, regions, capitals, admin, tables := testWorld()
 		sites := []Site{siteAt(p, "AAA", "steel", 5, 30, 40), siteAt(p, "BBB", "oil", 2, 260, 110)}
-		eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), sites)
+		eco, _, err := buildEconomy(p, land, ids, regions, capitals, admin, tables, testRows(), sites, testPlaces(p))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -459,5 +478,28 @@ func TestGeneratorLand(t *testing.T) {
 	}
 	if !kept[0] || !water[5*w+35] || !water[5*w+30] {
 		t.Fatal("the land or the ocean went")
+	}
+}
+
+// A place counts for the region it lies in, at most placePopCap; places in
+// the sea or on a dropped islet count for none.
+func TestPlacesWeighTheirRegions(t *testing.T) {
+	places := placesOf([]Feature{
+		{Props: map[string]any{"name": "Megacity", "pop_max": 35_676_000.0}, Point: &[2]float64{0, 0}},
+		{Props: map[string]any{"name": "Town", "pop_max": 50_000.0}, Point: &[2]float64{1, 1}},
+		{Props: map[string]any{"name": "Nowhere", "pop_max": 0.0}, Point: &[2]float64{2, 2}},
+		{Props: map[string]any{"name": "No point", "pop_max": 9.0}},
+	})
+	if len(places) != 2 || places[0].Pop != placePopCap || places[1].Pop != 50_000 {
+		t.Fatalf("%+v", places)
+	}
+	p, land, ids, regions, _, _, _ := testWorld()
+	kept, _ := generatorLand(land, p.Width, p.Width*p.Height)
+	people := regionPeople(testPlaces(p), p, kept, ids, len(regions))
+	if !reflect.DeepEqual(people, []int64{0, 1_000_000, 0, 0, 0, 0}) {
+		t.Fatalf("people per region %v", people)
+	}
+	if popWeight(0, 100) != 20_000 || popWeight(7, 0) != 7 {
+		t.Fatal("popWeight")
 	}
 }

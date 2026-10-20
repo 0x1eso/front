@@ -428,6 +428,32 @@ describe("the world1936 economy (P1 spec §3)", () => {
     }
   });
 
+  test("people live where the towns are (ruling 2026-10-20)", () => {
+    // Population follows the Natural Earth populated places: a capital holds
+    // 5–20% of its homeland, empty land almost no one.
+    const s = data.scenario!;
+    const homeland = (tag: CountryTag) =>
+      total(
+        regionsOf(tag).filter((r) => r.core),
+        (r) => r.pop,
+      );
+    for (const tag of ["DEU", "GBR", "JPN", "FRA", "ITA", "POL"] as const) {
+      const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
+      const share = capital.pop / homeland(tag);
+      expect(share, `${tag} ${capital.name}`).toBeGreaterThanOrEqual(0.05);
+      expect(share, `${tag} ${capital.name}`).toBeLessThanOrEqual(0.2);
+    }
+    const alaska = total(
+      regionsOf("USA").filter((r) => r.name.startsWith("Alaska")),
+      (r) => r.pop,
+    );
+    expect(alaska / homeland("USA")).toBeLessThan(0.01);
+    // The factories follow the people: the Ruhr out-builds Berlin.
+    const ruhr = regionAt(7.0, 51.5)!;
+    const berlin = regionAt(13.4, 52.52)!;
+    expect(ruhr.civ + ruhr.mil).toBeGreaterThan(berlin.civ + berlin.mil);
+  });
+
   test("no major lacks a core region", () => {
     for (const tag of MAJORS) {
       expect(

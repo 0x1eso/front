@@ -117,7 +117,7 @@ func main() {
 	if err := finishNames(regions, adm, patch, admin, t); err != nil {
 		log.Fatal(err)
 	}
-	eco, ecoSum, err := buildEconomy(p, land, landIDs, regions, capitals, admin, t, ecoRows, sites)
+	eco, ecoSum, err := buildEconomy(p, land, landIDs, regions, capitals, admin, t, ecoRows, sites, placesOf(ne("ne_10m_populated_places_simple")))
 	if err != nil {
 		log.Fatal(err)
 	}
