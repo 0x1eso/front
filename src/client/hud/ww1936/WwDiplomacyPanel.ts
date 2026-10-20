@@ -4,6 +4,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { registerBackClosable } from "../../BackGuard";
+import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -15,7 +16,6 @@ import {
 import {
   countryName,
   diplomacyModel,
-  FACTION_DOT_CLASS,
   factionName,
   WW_BAND_PX,
 } from "./WorldWarModel";

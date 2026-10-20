@@ -9,12 +9,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { translateText } from "../../Utils";
-
-const FACTION_DOT: Record<string, string> = {
-  axis: "bg-zinc-400",
-  allies: "bg-sky-400",
-  comintern: "bg-red-500",
-};
+import { FACTION_DOT_CLASS } from "./FactionDot";
 
 /**
  * World War 1936 lobby (spec §8.1): the seven majors as cards, then every
@@ -88,7 +83,9 @@ export class CountryPicker extends LitElement {
       ${faction === null
         ? nothing
         : html`<span class="flex items-center gap-1 text-xs text-white/70">
-            <span class="size-2 rounded-full ${FACTION_DOT[faction]}"></span>
+            <span
+              class="size-2 rounded-full ${FACTION_DOT_CLASS[faction]}"
+            ></span>
             ${translateText(`ww1936.faction.${faction}`)}
           </span>`}
       ${holder === null

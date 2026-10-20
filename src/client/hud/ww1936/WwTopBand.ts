@@ -3,10 +3,11 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
-import { bandModel, countryName, FACTION_DOT_CLASS } from "./WorldWarModel";
+import { bandModel, countryName } from "./WorldWarModel";
 
 export class ToggleWwDiplomacyEvent implements GameEvent {}
 

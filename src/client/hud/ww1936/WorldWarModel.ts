@@ -36,12 +36,6 @@ export const TWO_TAP_MIN_MS = 350;
 /** How many MVPs the win screen lists. */
 export const WW_MVP_COUNT = 3;
 
-export const FACTION_DOT_CLASS: Readonly<Record<FactionId, string>> = {
-  axis: "bg-zinc-400",
-  allies: "bg-sky-400",
-  comintern: "bg-red-500",
-};
-
 /** What the World War 1936 screens read from the game (a fake in tests). */
 export type WwGame = Pick<
   GameView,

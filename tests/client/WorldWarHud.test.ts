@@ -35,6 +35,8 @@ vi.mock("../../src/client/GamePortal", () => ({
   gamePortal: { happytime: vi.fn(), gameplayStop: vi.fn() },
 }));
 
+import "../../src/client/components/ww1936/CountryPicker";
+import { FACTION_DOT_CLASS } from "../../src/client/components/ww1936/FactionDot";
 import { gamePortal } from "../../src/client/GamePortal";
 import "../../src/client/hud/layers/PlayerPanel";
 import type { PlayerPanel } from "../../src/client/hud/layers/PlayerPanel";
@@ -402,6 +404,41 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
     await drawer.updateComplete;
     expect(drawer.isOpen()).toBe(false);
+  });
+
+  it("the lobby picker, the band and the drawer draw each faction with the same dot", async () => {
+    const dot = (root: Element, selector: string) =>
+      root.querySelector(`${selector} span.rounded-full`)!.className;
+    const picker = document.createElement("ww-country-picker");
+    document.body.appendChild(picker);
+    await picker.updateComplete;
+    expect(dot(picker, "button[data-tag=DEU]")).toContain(
+      FACTION_DOT_CLASS.axis,
+    );
+    expect(dot(picker, "button[data-tag=GBR]")).toContain(
+      FACTION_DOT_CLASS.allies,
+    );
+    expect(dot(picker, "button[data-tag=SUN]")).toContain(
+      FACTION_DOT_CLASS.comintern,
+    );
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = fakeGame({ me: "SUN" }) as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    expect(dot(band, "[data-ww-band]")).toContain(FACTION_DOT_CLASS.comintern);
+    const drawer = document.createElement(
+      "ww-diplomacy-panel",
+    ) as WwDiplomacyPanel;
+    drawer.game = fakeGame({ me: "SUN" }) as never;
+    drawer.eventBus = new EventBus();
+    document.body.appendChild(drawer);
+    drawer.init();
+    drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
+    await drawer.updateComplete;
+    expect(dot(drawer, "[data-ww-faction=allies]")).toContain(
+      FACTION_DOT_CLASS.allies,
+    );
   });
 
   it("the drawer leaves out the next date without the historical AI", async () => {
