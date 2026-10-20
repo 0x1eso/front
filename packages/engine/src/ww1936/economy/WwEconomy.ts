@@ -66,7 +66,7 @@ import { stepConstruction } from "./Construction";
 import { stepManpower, stepRecruit } from "./Manpower";
 import { stepProduction } from "./Production";
 import { stepResearch } from "./ResearchRun";
-import { validateTrades } from "./Trade";
+import { tradePartners, validateTrades } from "./Trade";
 
 export interface Line {
   id: number;
@@ -776,6 +776,7 @@ export class WwEconomy {
       exportRoom: RESOURCE_IDS.map((_, k) =>
         Math.max(0, exportRoomOf(t.produced[k], exportPct, sold[k])),
       ),
+      slotPct: ce.tech.slotPct,
     };
   }
 
@@ -848,6 +849,7 @@ export class WwEconomy {
       recruited: t.recruited,
       effCapBp: effCapBp(ce.tech),
       warDays: t.warDays,
+      tradePartners: tradePartners(this, ce.smallID),
     };
   }
 

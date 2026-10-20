@@ -303,6 +303,11 @@ export interface WwCountrySummary {
   combat: WwCombatStats;
   /** Units a day still for sale, RESOURCE_IDS order (spec §7.4). */
   exportRoom: number[];
+  /**
+   * Its techs' bonus to building slots, percent: a region it controls has
+   * regionSlots(category, slotPct) slots (spec §4.2), whoever plays it.
+   */
+  slotPct: number;
 }
 
 export interface WwProjectData {
@@ -374,6 +379,11 @@ export interface WwCountryDetail {
   effCapBp: number;
   /** Days of the longest running war; -1 at peace. */
   warDays: number;
+  /**
+   * The countries it may buy from now (the engine's partnerJudge: alive,
+   * no war, no embargo from the seller, a route), smallIDs ascending.
+   */
+  tradePartners: number[];
 }
 
 export interface WwRegionData {

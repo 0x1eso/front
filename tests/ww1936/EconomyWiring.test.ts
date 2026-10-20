@@ -14,6 +14,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { regionSlots } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -141,6 +142,39 @@ describe("economy wiring (spec §6, §14)", () => {
     ]);
     expect(ce.lines.reduce((n, l) => n + l.factories, 0)).toBeLessThan(lined);
     expect(ce.slots[0]).toBeNull();
+  });
+
+  test("every country's summary carries its slot bonus, for its regions' slots", async () => {
+    const { runner, updates } = await wwRunnerCapture();
+    const g = runner.game;
+    const econ = g.worldWar()!.economy;
+    const summaries = () =>
+      updates
+        .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
+        .flatMap((u) => u.data.countries);
+    step(runner, 2);
+    for (const ce of econ.countries()) {
+      const [s] = summaries().filter((x) => x.smallID === ce.smallID);
+      expect(s.slotPct).toBe(ce.tech.slotPct);
+      // A region's slots, as the engine counts them for its controller.
+      for (const r of econ.regionsOf(ce.smallID)) {
+        const cat = econ.scenario.region(r)!.cat;
+        expect(regionSlots(cat, s.slotPct)).toBe(
+          econ.regionSlots(r, ce.tech.slotPct),
+        );
+      }
+    }
+    // Germany (an AI here) starts with construction_1: +20%.
+    const deu = econ.country(byTag(g, "DEU").smallID())!;
+    expect(deu.tech.slotPct).toBe(20);
+    // A new construction tech shows on its next day.
+    deu.addTech("construction_2");
+    stepTo(runner, dayStartTick(1, WW_PREP_TICKS));
+    const last = summaries()
+      .filter((x) => x.smallID === deu.smallID)
+
+      .slice(-1)[0];
+    expect(last.slotPct).toBe(40);
   });
 
   test("Poland's army and cap follow the formula (spec §11.3)", async () => {

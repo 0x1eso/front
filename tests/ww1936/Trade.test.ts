@@ -122,7 +122,8 @@ describe("trade (spec §7.4–§7.5)", () => {
         .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
         .flatMap((u) => u.data.countries)
         .filter((c) => c.smallID === deu)
-        .at(-1)!.exportRoom;
+
+        .slice(-1)[0].exportRoom;
     const live = () =>
       RESOURCE_IDS.map((_, k) => Math.max(0, exportRoom(econ, deu, k)));
     // The start's summaries go out with the clock's first tick.
@@ -156,6 +157,39 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(exportRoom(econ, deu, STEEL)).toBeLessThan(0);
     expect(shown()[STEEL]).toBe(0);
     expect(shown()).toEqual(live());
+  });
+
+  test("a human's details list the partners the engine takes", async () => {
+    const { runner, updates, econ, ww, id } = await game();
+    const deu = id("DEU");
+    const lastDetail = (smallID: number) =>
+      updates
+        .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
+        .flatMap((u) => u.data.details)
+        .filter((d) => d.smallID === smallID)
+
+        .slice(-1)[0];
+    step(runner, 2);
+    for (const tag of TAGS) {
+      const d = lastDetail(id(tag));
+      expect(d.tradePartners).toEqual(tradePartners(econ, id(tag)));
+      const judge = partnerJudge(econ, id(tag));
+      for (const c of econ.countries()) {
+        expect(d.tradePartners.includes(c.smallID)).toBe(
+          judge(c.smallID) === null,
+        );
+      }
+    }
+    expect(lastDetail(deu).tradePartners).toContain(id("POL"));
+    // A war with Poland cuts it, and the Soviet Union behind it, from the
+    // next day's details.
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu, id("POL"), runner.game.ticks());
+    throughDay(runner, 1);
+    const now = lastDetail(deu).tradePartners;
+    expect(now).toEqual(tradePartners(econ, deu));
+    expect(now).not.toContain(id("POL"));
+    expect(now).not.toContain(id("SUN"));
   });
 
   test("a land route runs through countries at peace", async () => {

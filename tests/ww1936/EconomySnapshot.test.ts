@@ -217,7 +217,9 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     expect(deu.laws.trade).toBe("limited_exports");
     const b = await restore(a, DEU_HUMAN, files);
     const waiting = (gm: Game) =>
-      gm.executions().filter((e) => e instanceof WwOrderExecution);
+      (gm as unknown as { executions(): unknown[] })
+        .executions()
+        .filter((e) => e instanceof WwOrderExecution);
     expect(waiting(b.game)).toHaveLength(orders.length);
     const deuB = econOf(b.game).country(p.smallID())!;
     expect(deuB.queue).toHaveLength(queue);

@@ -45,6 +45,7 @@ export function summary(
     shortage: false,
     combat: { attackPct: 28, defensePct: 25, speedPct: 15 },
     exportRoom: [0, 0, 0, 0, 0, 0],
+    slotPct: 0,
     ...over,
   };
 }
@@ -91,6 +92,7 @@ export function detail(
     recruited: 0,
     effCapBp: 6_000,
     warDays: -1,
+    tradePartners: [],
     ...over,
   };
 }
