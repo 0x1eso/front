@@ -217,6 +217,28 @@ describe("the world1936 map", () => {
     expect(counts.size - (counts.has(0) ? 1 : 0)).toBe(listed);
   });
 
+  test("no capital region holds more than a third of its country's points (spec §7.5)", () => {
+    // Owner decision 2026-10-20: one thrust to a capital must not end a
+    // country. The generator keeps min(capital, max(1, floor(rest / 2))).
+    const s = data.scenario!;
+    const over: string[] = [];
+    for (const tag of s.countries) {
+      const own = s.landRegions.filter((r) => r.owner === tag);
+      const total = own.reduce((a, r) => a + r.vp, 0);
+      const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
+      expect(capital.vp, tag).toBeGreaterThanOrEqual(1);
+      expect(capital.vp, tag).toBeLessThanOrEqual(
+        Math.max(1, Math.floor((total - capital.vp) / 2)),
+      );
+      // A country whose only points are its capital keeps that 1 point.
+      const withPoints = own.filter((r) => r.vp > 0).length;
+      if (withPoints > 1 && capital.vp * 3 > total) {
+        over.push(`${tag}: ${capital.vp} of ${total}`);
+      }
+    }
+    expect(over).toEqual([]);
+  });
+
   test("only regions with a city hold victory points (spec §7.5)", () => {
     const s = data.scenario!;
     // Most regions are empty land worth nothing, and the USSR's points lie

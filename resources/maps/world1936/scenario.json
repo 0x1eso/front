@@ -1516,7 +1516,7 @@
       "name": "Reykjavík",
       "nameKo": "레이캬비크",
       "owner": "ISL",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1756, 441],
       "tiles": 432,
       "terrain": "plains"
@@ -1876,7 +1876,7 @@
       "name": "Uusimaa",
       "nameKo": "우시마 지역",
       "owner": "FIN",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2276, 508],
       "tiles": 474,
       "terrain": "plains"
@@ -1996,7 +1996,7 @@
       "name": "Oslo",
       "nameKo": "오슬로",
       "owner": "NOR",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2119, 513],
       "tiles": 287,
       "terrain": "plains"
@@ -2026,7 +2026,7 @@
       "name": "Stockholm",
       "nameKo": "스톡홀름",
       "owner": "SWE",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2200, 523],
       "tiles": 366,
       "terrain": "plains"
@@ -2136,7 +2136,7 @@
       "name": "Harju",
       "nameKo": "하리우",
       "owner": "EST",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2275, 521],
       "tiles": 385,
       "terrain": "plains"
@@ -2426,7 +2426,7 @@
       "name": "Riga",
       "nameKo": "리가",
       "owner": "LVA",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2267, 561],
       "tiles": 250,
       "terrain": "plains"
@@ -2726,7 +2726,7 @@
       "name": "Hovedstaden",
       "nameKo": "덴마크 수도 지역",
       "owner": "DNK",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2139, 581],
       "tiles": 223,
       "terrain": "plains"
@@ -2766,7 +2766,7 @@
       "name": "Moskva",
       "nameKo": "모스크바",
       "owner": "SUN",
-      "vp": 36,
+      "vp": 31,
       "vpTile": [2418, 580],
       "tiles": 757,
       "terrain": "plains"
@@ -2796,7 +2796,7 @@
       "name": "Kaunas",
       "nameKo": "카우나스",
       "owner": "LTU",
-      "vp": 16,
+      "vp": 1,
       "vpTile": [2265, 593],
       "tiles": 330,
       "terrain": "plains"
@@ -3006,7 +3006,7 @@
       "name": "Danzig",
       "nameKo": "단치히",
       "owner": "DZG",
-      "vp": 16,
+      "vp": 1,
       "vpTile": [2207, 602],
       "tiles": 35,
       "terrain": "plains"
@@ -3106,7 +3106,7 @@
       "name": "Dublin",
       "nameKo": "더블린",
       "owner": "IRL",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1930, 617],
       "tiles": 296,
       "terrain": "plains"
@@ -3126,7 +3126,7 @@
       "name": "Québec (S)",
       "nameKo": "퀘벡 남부",
       "owner": "CAN",
-      "vp": 24,
+      "vp": 8,
       "vpTile": [1158, 731],
       "tiles": 9510,
       "terrain": "plains"
@@ -3216,7 +3216,7 @@
       "name": "Tuva",
       "nameKo": "투바 공화국",
       "owner": "TTU",
-      "vp": 16,
+      "vp": 1,
       "vpTile": [3049, 641],
       "tiles": 3617,
       "terrain": "highland"
@@ -3276,7 +3276,7 @@
       "name": "Noord-Holland",
       "nameKo": "노르트홀란트",
       "owner": "NLD",
-      "vp": 21,
+      "vp": 9,
       "vpTile": [2054, 632],
       "tiles": 449,
       "terrain": "plains"
@@ -3286,7 +3286,7 @@
       "name": "Berlin",
       "nameKo": "베를린",
       "owner": "DEU",
-      "vp": 36,
+      "vp": 13,
       "vpTile": [2148, 630],
       "tiles": 678,
       "terrain": "plains"
@@ -3316,7 +3316,7 @@
       "name": "Masovian",
       "nameKo": "마조프셰",
       "owner": "POL",
-      "vp": 26,
+      "vp": 2,
       "vpTile": [2233, 634],
       "tiles": 799,
       "terrain": "plains"
@@ -3646,7 +3646,7 @@
       "name": "Brussels",
       "nameKo": "브뤼셀",
       "owner": "BEL",
-      "vp": 21,
+      "vp": 6,
       "vpTile": [2048, 654],
       "tiles": 392,
       "terrain": "plains"
@@ -3826,7 +3826,7 @@
       "name": "Prague",
       "nameKo": "프라하",
       "owner": "CSK",
-      "vp": 21,
+      "vp": 2,
       "vpTile": [2160, 666],
       "tiles": 389,
       "terrain": "plains"
@@ -3986,7 +3986,7 @@
       "name": "Luxembourg",
       "nameKo": "룩셈부르크",
       "owner": "LUX",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2068, 672],
       "tiles": 50,
       "terrain": "plains"
@@ -4206,7 +4206,7 @@
       "name": "Xinjiang (N)",
       "nameKo": "신장 위구르 자치구 북부",
       "owner": "SIK",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2973, 753],
       "tiles": 9216,
       "terrain": "highland"
@@ -4236,7 +4236,7 @@
       "name": "Ulaanbaatar",
       "nameKo": "울란바토르",
       "owner": "MNG",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [3188, 696],
       "tiles": 1471,
       "terrain": "highland"
@@ -4256,7 +4256,7 @@
       "name": "Wien",
       "nameKo": "빈",
       "owner": "AUT",
-      "vp": 26,
+      "vp": 1,
       "vpTile": [2181, 692],
       "tiles": 408,
       "terrain": "plains"
@@ -4566,7 +4566,7 @@
       "name": "Budapest",
       "nameKo": "부다페스트",
       "owner": "HUN",
-      "vp": 26,
+      "vp": 1,
       "vpTile": [2211, 702],
       "tiles": 369,
       "terrain": "plains"
@@ -4606,7 +4606,7 @@
       "name": "Bern",
       "nameKo": "베른",
       "owner": "CHE",
-      "vp": 22,
+      "vp": 2,
       "vpTile": [2082, 710],
       "tiles": 228,
       "terrain": "highland"
@@ -5056,7 +5056,7 @@
       "name": "Jilin",
       "nameKo": "지린성",
       "owner": "MCK",
-      "vp": 19,
+      "vp": 4,
       "vpTile": [3392, 752],
       "tiles": 3212,
       "terrain": "plains"
@@ -5076,7 +5076,7 @@
       "name": "Grad Beograd",
       "nameKo": "베오그라드",
       "owner": "YUG",
-      "vp": 21,
+      "vp": 12,
       "vpTile": [2227, 740],
       "tiles": 225,
       "terrain": "plains"
@@ -5226,7 +5226,7 @@
       "name": "Bucharest",
       "nameKo": "부쿠레슈티",
       "owner": "ROU",
-      "vp": 21,
+      "vp": 2,
       "vpTile": [2290, 745],
       "tiles": 326,
       "terrain": "plains"
@@ -5746,7 +5746,7 @@
       "name": "Burgos",
       "nameKo": "부르고스",
       "owner": "ESN",
-      "vp": 16,
+      "vp": 2,
       "vpTile": [1958, 773],
       "tiles": 235,
       "terrain": "highland"
@@ -5836,7 +5836,7 @@
       "name": "Grad Sofiya",
       "nameKo": "소피아시",
       "owner": "BGR",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2259, 768],
       "tiles": 220,
       "terrain": "highland"
@@ -5956,7 +5956,7 @@
       "name": "Roma",
       "nameKo": "로마도",
       "owner": "ITA",
-      "vp": 29,
+      "vp": 17,
       "vpTile": [2138, 779],
       "tiles": 323,
       "terrain": "plains"
@@ -5966,7 +5966,7 @@
       "name": "Tiranë",
       "nameKo": "티라나",
       "owner": "ALB",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2220, 787],
       "tiles": 446,
       "terrain": "highland"
@@ -6366,7 +6366,7 @@
       "name": "Madrid",
       "nameKo": "마드리드 지방",
       "owner": "ESR",
-      "vp": 26,
+      "vp": 5,
       "vpTile": [1958, 799],
       "tiles": 319,
       "terrain": "highland"
@@ -6536,7 +6536,7 @@
       "name": "Ankara",
       "nameKo": "앙카라",
       "owner": "TUR",
-      "vp": 19,
+      "vp": 5,
       "vpTile": [2365, 805],
       "tiles": 394,
       "terrain": "highland"
@@ -6576,7 +6576,7 @@
       "name": "Shanxi",
       "nameKo": "산시성(山西)",
       "owner": "SXI",
-      "vp": 19,
+      "vp": 2,
       "vpTile": [3250, 832],
       "tiles": 2278,
       "terrain": "highland"
@@ -6656,7 +6656,7 @@
       "name": "Lisboa",
       "nameKo": "리스보아현",
       "owner": "PRT",
-      "vp": 21,
+      "vp": 8,
       "vpTile": [1898, 821],
       "tiles": 280,
       "terrain": "plains"
@@ -7036,7 +7036,7 @@
       "name": "Qinghai",
       "nameKo": "칭하이성",
       "owner": "XBM",
-      "vp": 16,
+      "vp": 1,
       "vpTile": [3130, 848],
       "tiles": 10022,
       "terrain": "mountain"
@@ -7256,7 +7256,7 @@
       "name": "Attiki",
       "nameKo": "아티키",
       "owner": "GRC",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2263, 830],
       "tiles": 366,
       "terrain": "plains"
@@ -7376,7 +7376,7 @@
       "name": "Yan'an",
       "nameKo": "옌안",
       "owner": "CCP",
-      "vp": 16,
+      "vp": 1,
       "vpTile": [3216, 848],
       "tiles": 672,
       "terrain": "highland"
@@ -7726,7 +7726,7 @@
       "name": "Tehran",
       "nameKo": "테헤란",
       "owner": "IRN",
-      "vp": 21,
+      "vp": 2,
       "vpTile": [2570, 860],
       "tiles": 433,
       "terrain": "highland"
@@ -7756,7 +7756,7 @@
       "name": "Tokyo",
       "nameKo": "도쿄도",
       "owner": "JPN",
-      "vp": 36,
+      "vp": 20,
       "vpTile": [3552, 860],
       "tiles": 247,
       "terrain": "plains"
@@ -7816,7 +7816,7 @@
       "name": "Kabul",
       "nameKo": "카불",
       "owner": "AFG",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2768, 874],
       "tiles": 250,
       "terrain": "mountain"
@@ -8206,7 +8206,7 @@
       "name": "Baghdad",
       "nameKo": "바그다드",
       "owner": "IRQ",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2493, 890],
       "tiles": 272,
       "terrain": "plains"
@@ -8326,7 +8326,7 @@
       "name": "Xizang (SE)",
       "nameKo": "티베트 자치구 남동부",
       "owner": "TIB",
-      "vp": 16,
+      "vp": 1,
       "vpTile": [3012, 934],
       "tiles": 3884,
       "terrain": "mountain"
@@ -8696,7 +8696,7 @@
       "name": "Yunnan",
       "nameKo": "윈난성",
       "owner": "YUN",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [3142, 992],
       "tiles": 4535,
       "terrain": "mountain"
@@ -8806,7 +8806,7 @@
       "name": "Bagmati",
       "nameKo": "바그마티 구",
       "owner": "NPL",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2948, 958],
       "tiles": 221,
       "terrain": "plains"
@@ -8906,7 +8906,7 @@
       "name": "Ar Riyad",
       "nameKo": "리야드",
       "owner": "SAU",
-      "vp": 21,
+      "vp": 3,
       "vpTile": [2519, 994],
       "tiles": 4340,
       "terrain": "highland"
@@ -9066,7 +9066,7 @@
       "name": "Guangxi",
       "nameKo": "광시 좡족 자치구",
       "owner": "GXC",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [3225, 987],
       "tiles": 2735,
       "terrain": "plains"
@@ -9316,7 +9316,7 @@
       "name": "Ciudad de la Habana",
       "nameKo": "아바나",
       "owner": "CUB",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [1084, 1012],
       "tiles": 336,
       "terrain": "plains"
@@ -9606,7 +9606,7 @@
       "name": "Distrito Federal",
       "nameKo": "멕시코시티",
       "owner": "MEX",
-      "vp": 26,
+      "vp": 7,
       "vpTile": [898, 1055],
       "tiles": 312,
       "terrain": "mountain"
@@ -9626,7 +9626,7 @@
       "name": "Ouest",
       "nameKo": "서부",
       "owner": "HTI",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1196, 1065],
       "tiles": 288,
       "terrain": "plains"
@@ -9676,7 +9676,7 @@
       "name": "Distrito Nacional",
       "nameKo": "국가 지구",
       "owner": "DOM",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1222, 1066],
       "tiles": 320,
       "terrain": "plains"
@@ -10036,7 +10036,7 @@
       "name": "Guatemala",
       "nameKo": "과테말라",
       "owner": "GTM",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [994, 1110],
       "tiles": 262,
       "terrain": "mountain"
@@ -10046,7 +10046,7 @@
       "name": "Amanat Al Asimah",
       "nameKo": "사나",
       "owner": "YEM",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [2491, 1102],
       "tiles": 374,
       "terrain": "mountain"
@@ -10186,7 +10186,7 @@
       "name": "Francisco Morazán",
       "nameKo": "프란시스코모라산",
       "owner": "HND",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1031, 1116],
       "tiles": 396,
       "terrain": "highland"
@@ -10216,7 +10216,7 @@
       "name": "Bangkok Metropolis",
       "nameKo": "방콕",
       "owner": "THA",
-      "vp": 21,
+      "vp": 2,
       "vpTile": [3116, 1120],
       "tiles": 209,
       "terrain": "plains"
@@ -10246,7 +10246,7 @@
       "name": "San Salvador",
       "nameKo": "산살바도르",
       "owner": "SLV",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1009, 1121],
       "tiles": 210,
       "terrain": "plains"
@@ -10336,7 +10336,7 @@
       "name": "Managua",
       "nameKo": "마나과",
       "owner": "NIC",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1041, 1138],
       "tiles": 421,
       "terrain": "plains"
@@ -10456,7 +10456,7 @@
       "name": "Distrito Capital",
       "nameKo": "수도 지구",
       "owner": "VEN",
-      "vp": 21,
+      "vp": 2,
       "vpTile": [1256, 1157],
       "tiles": 485,
       "terrain": "highland"
@@ -10546,7 +10546,7 @@
       "name": "San José",
       "nameKo": "산호세",
       "owner": "CRI",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1065, 1163],
       "tiles": 293,
       "terrain": "plains"
@@ -10596,7 +10596,7 @@
       "name": "Addis Ababa",
       "nameKo": "아디스아바바",
       "owner": "ETH",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [2430, 1173],
       "tiles": 3315,
       "terrain": "mountain"
@@ -10696,7 +10696,7 @@
       "name": "Panama",
       "nameKo": "파나마",
       "owner": "PAN",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1115, 1173],
       "tiles": 295,
       "terrain": "plains"
@@ -10756,7 +10756,7 @@
       "name": "Montserrado",
       "nameKo": "몽세라도",
       "owner": "LBR",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1880, 1203],
       "tiles": 399,
       "terrain": "plains"
@@ -10956,7 +10956,7 @@
       "name": "Bogota",
       "nameKo": "보고타",
       "owner": "COL",
-      "vp": 21,
+      "vp": 4,
       "vpTile": [1177, 1221],
       "tiles": 247,
       "terrain": "mountain"
@@ -11186,7 +11186,7 @@
       "name": "Pichincha",
       "nameKo": "피친차",
       "owner": "ECU",
-      "vp": 19,
+      "vp": 2,
       "vpTile": [1128, 1276],
       "tiles": 333,
       "terrain": "plains"
@@ -11706,7 +11706,7 @@
       "name": "Lima Province",
       "nameKo": "리마 군",
       "owner": "PER",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [1144, 1408],
       "tiles": 364,
       "terrain": "mountain"
@@ -11796,7 +11796,7 @@
       "name": "La Paz",
       "nameKo": "라파스",
       "owner": "BOL",
-      "vp": 19,
+      "vp": 2,
       "vpTile": [1242, 1459],
       "tiles": 1414,
       "terrain": "mountain"
@@ -12106,7 +12106,7 @@
       "name": "Rio de Janeiro",
       "nameKo": "리우데자네이루",
       "owner": "BRA",
-      "vp": 26,
+      "vp": 19,
       "vpTile": [1519, 1532],
       "tiles": 485,
       "terrain": "plains"
@@ -12306,7 +12306,7 @@
       "name": "Central",
       "nameKo": "센트랄",
       "owner": "PRY",
-      "vp": 19,
+      "vp": 1,
       "vpTile": [1360, 1560],
       "tiles": 230,
       "terrain": "plains"
@@ -12316,7 +12316,7 @@
       "name": "Gauteng",
       "nameKo": "하우텡",
       "owner": "ZAF",
-      "vp": 24,
+      "vp": 9,
       "vpTile": [2313, 1566],
       "tiles": 230,
       "terrain": "highland"
@@ -12486,7 +12486,7 @@
       "name": "New South Wales",
       "nameKo": "뉴사우스웨일스",
       "owner": "AUS",
-      "vp": 29,
+      "vp": 7,
       "vpTile": [3657, 1683],
       "tiles": 10501,
       "terrain": "plains"
@@ -12636,7 +12636,7 @@
       "name": "Región Metropolitana de Santiago",
       "nameKo": "산티아고 수도",
       "owner": "CHL",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [1214, 1660],
       "tiles": 213,
       "terrain": "mountain"
@@ -12656,7 +12656,7 @@
       "name": "Montevideo",
       "nameKo": "몬테비데오",
       "owner": "URY",
-      "vp": 21,
+      "vp": 1,
       "vpTile": [1375, 1677],
       "tiles": 343,
       "terrain": "plains"
@@ -12666,7 +12666,7 @@
       "name": "Ciudad de Buenos Aires",
       "nameKo": "부에노스아이레스",
       "owner": "ARG",
-      "vp": 26,
+      "vp": 1,
       "vpTile": [1351, 1674],
       "tiles": 4334,
       "terrain": "plains"
@@ -12786,7 +12786,7 @@
       "name": "Wellington",
       "nameKo": "웰링턴 지방",
       "owner": "NZL",
-      "vp": 19,
+      "vp": 3,
       "vpTile": [3941, 1760],
       "tiles": 580,
       "terrain": "plains"
