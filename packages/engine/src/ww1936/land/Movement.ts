@@ -195,7 +195,7 @@ export function startNextHop(land: WwLand, row: number, tick: number): void {
         ? railPath(land, owner, here, dest)
         : army === undefined
           ? []
-          : findPath(land, army, here, dest, ours);
+          : sidePath(land, army, owner, here, dest);
       if (path.length >= 2 && pass(path[1])) next = path[1];
     }
     if (next >= 0) {
@@ -336,6 +336,66 @@ export function findPath(
     edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
   );
 }
+
+/**
+ * findPath over the regions of `owner`'s side (startNextHop's walk), kept
+ * by side, pace and both ends while no region changed hands
+ * (controlChanges), the sides are the same and nothing was rebuilt
+ * (derivedEpoch): the search reads nothing else (the graph and the terrain
+ * are static), so a kept path is the one a new search finds. The
+ * divisions of an army walking together share each hop's search. A copy
+ * goes out (callers may keep it).
+ */
+function sidePath(
+  land: WwLand,
+  army: Army,
+  owner: number,
+  from: number,
+  to: number,
+): number[] {
+  const step = slowestPathStep(land, army);
+  let memo = pathMemos.get(land);
+  const sides = land.sideList();
+  if (
+    memo === undefined ||
+    memo.changes !== land.controlChanges ||
+    memo.epoch !== land.derivedEpoch ||
+    memo.sides !== sides
+  ) {
+    memo = {
+      changes: land.controlChanges,
+      epoch: land.derivedEpoch,
+      sides,
+      paths: new Map(),
+    };
+    pathMemos.set(land, memo);
+  }
+  const key = `${land.sideOf(owner)}:${step}:${from}:${to}`;
+  let path = memo.paths.get(key);
+  if (path === undefined) {
+    const sc = land.scenario;
+    path = shortestPath(
+      sc,
+      from,
+      to,
+      (r) => land.sameSide(owner, land.controller[r]),
+      (e, next) => edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
+    );
+    if (memo.paths.size > 4096) memo.paths.clear();
+    memo.paths.set(key, path);
+  }
+  return [...path];
+}
+
+const pathMemos = new WeakMap<
+  WwLand,
+  {
+    changes: number;
+    epoch: number;
+    sides: readonly unknown[];
+    paths: Map<string, number[]>;
+  }
+>();
 
 /** Stops a division where it stands (finished here by the foundation; C and A call it). */
 export function stopDivision(land: WwLand, row: number): void {

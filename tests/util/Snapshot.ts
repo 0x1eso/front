@@ -185,6 +185,8 @@ export const DERIVED_FIELDS = new Set<string>([
   "ownerRowsVersion",
   "rowsVersion",
   "dirtyLandDetails",
+  // ...and the rebuild count caches outside the land key on.
+  "derivedEpoch",
   "regionRows",
   "regionRowsDirty",
   "spreadOrders",

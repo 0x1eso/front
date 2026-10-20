@@ -2226,8 +2226,15 @@ export class WwLand {
     for (const cl of this.countries()) this.markDetail(cl.smallID);
   }
 
+  /**
+   * Derived (DERIVED_FIELDS): moves at every rebuildDerived (construction,
+   * restore, factions), so caches kept outside the land know to start over.
+   */
+  derivedEpoch = 0;
+
   /** Sides, caches, the spread orders. The constructor and restoreState call it. */
   rebuildDerived(): void {
+    this.derivedEpoch++;
     const n = this.countryList.length;
     this.sideOfId = new Array<number>(n).fill(0);
     const byKey = new Map<number, Side>();

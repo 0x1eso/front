@@ -96,7 +96,13 @@ function enemyStrength(land: WwLand, me: number, region: number): number {
  * into when empty, or attacked when the preview clears the stance's ratio.
  * The plan ends when our side holds every target.
  */
-export function planDay(land: WwLand, army: Army, day: number): void {
+export function planDay(
+  land: WwLand,
+  army: Army,
+  day: number,
+  /** targetDistances(land, army) when the caller has it (this tick, nothing moved since). */
+  targetDist?: Int32Array,
+): void {
   const o = army.order;
   if (o.kind !== "plan" || !o.executing) return;
   const me = army.owner;
@@ -112,7 +118,7 @@ export function planDay(land: WwLand, army: Army, day: number): void {
   }
   const sc = land.scenario;
   const t = land.divisions;
-  const dist = targetDistances(land, army);
+  const dist = targetDist ?? targetDistances(land, army);
   const rows = armyRows(land, army);
   for (const f of army.front) {
     const here = rows.filter(
