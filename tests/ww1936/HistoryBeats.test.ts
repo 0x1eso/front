@@ -240,17 +240,26 @@ describe("history beats in the game", () => {
       const { runner, p } = await game([], gameID);
       const { deu, gbr, pl } = ids(runner);
       onlyBeats(p, [deuPol, gbrDeu], 2, true);
+      const declared = vi.spyOn(p, "onWarDeclared");
       stepTo(runner, dayStart(3));
       const ww = runner.game.worldWar()!;
       expect(ww.isAtWar(deu, pl)).toBe(true);
       expect(ww.isAtWar(gbr, deu)).toBe(true);
       expect(p.isAtWarBlockedByNap(deu, pl)).toBe(false);
-      expect(p.hasWarGoal(deu, pl)).toBe(true);
+      // Germany's declaration came with the beat's goal (no no-goal
+      // penalty) and used it up (spec §14.5, lane D); Britain joined, and a
+      // join keeps its goal.
+      const deuPolCall = declared.mock.calls.find(
+        (c) => c[0] === deu && c[1] === pl,
+      );
+      expect(deuPolCall?.[3]).toBe(false);
+      expect(p.hasWarGoal(deu, pl)).toBe(false);
       expect(p.hasWarGoal(gbr, deu)).toBe(true);
       expect(p.beats[deuPol].done && p.beats[gbrDeu].done).toBe(true);
     }
     // A guarantee (or a call to arms, an event) made both wars first: the
-    // beats change nothing — the pact stays, no goal is made.
+    // beats change nothing — no war is declared again, no goal is made. (The
+    // pact still ends: at war, lane D's daily treaty step voids it.)
     {
       const { runner, p } = await game([], gameID);
       const { deu, gbr, pl } = ids(runner);
@@ -262,7 +271,7 @@ describe("history beats in the game", () => {
       const wars = ww.data().wars;
       stepTo(runner, dayStart(3));
       expect(ww.data().wars).toEqual(wars);
-      expect(p.isAtWarBlockedByNap(deu, pl)).toBe(true);
+      expect(p.isAtWarBlockedByNap(deu, pl)).toBe(false);
       expect(p.hasWarGoal(deu, pl)).toBe(false);
       expect(p.hasWarGoal(gbr, deu)).toBe(false);
       expect(p.beats[deuPol].done && p.beats[gbrDeu].done).toBe(true);
