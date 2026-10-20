@@ -13,7 +13,6 @@ import {
   RESOURCE_COUNT,
   RESOURCE_IDS,
   TRADE_LAWS,
-  WW_AI_PERIOD_DAYS,
   WW_DAY_SPLIT,
   WW_TECH_IDS,
   WW_TRADE_UNITS_PER_CIV,
@@ -428,12 +427,9 @@ export class WwEconomy {
     applyCombatLosses(this, ce, p);
     stepRecruit(this, ce, p);
     updateCombatStats(this, ce, p);
-    if (
-      p.type() === PlayerType.Nation &&
-      (day + id) % WW_AI_PERIOD_DAYS === 0
-    ) {
-      aiEconomyTick(this, ce, p, day, tick);
-    }
+    // Its turn every WW_AI_PERIOD_DAYS days, and between turns what fell
+    // free (aiEconomyTick decides which).
+    if (p.type() === PlayerType.Nation) aiEconomyTick(this, ce, p, day, tick);
     this.dirtyCountries.add(id);
   }
 
@@ -468,9 +464,22 @@ export class WwEconomy {
     let dock = 0;
     let recruitable = 0;
     const produced = zeros();
+    // Most regions belong to one owner: ask whether it still fights once.
+    let lastOwner = -1;
+    let lastFights = false;
     for (const id of this.regionsOf(ce.smallID)) {
       const r = this.scenario.region(id)!;
-      const sh = this.shares(id);
+      const owner = this.scenario.ownerByRegion()[id] ?? 0;
+      if (owner !== lastOwner) {
+        lastOwner = owner;
+        lastFights = this.ownerFights(owner);
+      }
+      const sh = regionShares(
+        this.controller[id] ?? 0,
+        owner,
+        r.core,
+        lastFights,
+      );
       const cp = sh.controlPct;
       civ += Math.floor((this.civ[id] * cp) / 100);
       mil += Math.floor((this.mil[id] * cp) / 100);
@@ -482,6 +491,7 @@ export class WwEconomy {
         ce.tech.recruitablePct,
       );
       for (let k = 0; k < RESOURCE_COUNT; k++) {
+        if (r.res[k] === 0) continue;
         produced[k] += extraction(
           r.res[k],
           this.infra[id],
@@ -582,14 +592,18 @@ export class WwEconomy {
   /** Spec §4.4: what a land region gives its controller now (regionShares). */
   shares(region: number): RegionShares {
     const owner = this.scenario.ownerByRegion()[region] ?? 0;
-    const o = this.mg.playerBySmallID(owner);
-    const fights = o.isPlayer() && o.isAlive() && !this.ww.isCapitulated(owner);
     return regionShares(
       this.controller[region] ?? 0,
       owner,
       this.scenario.region(region)?.core ?? true,
-      fights,
+      this.ownerFights(owner),
     );
+  }
+
+  /** The 1936 owner of a region is alive and has not capitulated. */
+  private ownerFights(owner: number): boolean {
+    const o = this.mg.playerBySmallID(owner);
+    return o.isPlayer() && o.isAlive() && !this.ww.isCapitulated(owner);
   }
 
   /** Spec §4.4: someone else holds it and its 1936 owner still fights. */
@@ -818,8 +832,13 @@ export class WwEconomy {
           TRADE_LAWS.indexOf(ce.laws.trade) * 8 +
           CONSCRIPTION_LAWS.indexOf(ce.laws.conscription)) |
         0;
+      const cd = ce.lawCooldownUntil;
+      h =
+        (Math.imul(h, 31) + cd.economy * 5 + cd.trade * 3 + cd.conscription) |
+        0;
       for (const l of ce.lines) {
         h = (Math.imul(h, 31) + l.effBp + l.factories) | 0;
+        h = (Math.imul(h, 31) + l.progress + l.active * 7) | 0;
       }
     }
     for (const r of this.scenario.landRegions) {
@@ -828,9 +847,13 @@ export class WwEconomy {
         (Math.imul(h, 31) +
           this.civ[id] * 7 +
           this.mil[id] * 3 +
+          this.dock[id] * 5 +
           this.infra[id] +
           this.controller[id] * 11) |
         0;
+    }
+    for (const tr of this._trades) {
+      h = (Math.imul(h, 31) + tr.id + tr.civs * 13) | 0;
     }
     return (Math.imul(h, 31) + this._trades.length) | 0;
   }
@@ -902,8 +925,10 @@ export class WwEconomy {
     this.nextTradeId = s.nextTradeId;
     this.lastCommonDay = s.lastCommonDay;
     this.rebuildDerived();
-    // A restored game's screens have seen nothing yet.
+    // A restored game's screens have seen nothing yet: every country and
+    // every region (control and buildings) goes out on the next tick.
     for (const ce of this.countries()) this.dirtyCountries.add(ce.smallID);
+    for (const r of this.scenario.landRegions) this.dirtyRegions.add(r.id);
   }
 
   /**

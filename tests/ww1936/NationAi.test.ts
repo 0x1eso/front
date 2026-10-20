@@ -342,4 +342,35 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
       0,
     );
   });
+
+  test("the hated-target strategy sizes a war enemy by the odds too", async () => {
+    const runner = await wwRunner({ historicalAi: false });
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
+    ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
+    const ours = Math.floor(g.config().maxTroops(pol) * 0.9);
+    pol.setTroops(ours);
+    deu.setTroops(ours * 2);
+    // A relation on record (any; the war is what makes Germany hated).
+    pol.updateRelation(deu, -1);
+    const launches = watchLaunches(g);
+    const ai = aiOf(g, pol) as unknown as {
+      getAttackStrategies(
+        friends: unknown[],
+        enemies: unknown[],
+      ): (() => boolean)[];
+    };
+    const hated = ai
+      .getAttackStrategies([], [])
+      .find((f) => f.name === "hated");
+    expect(hated).toBeDefined();
+    expect(hated!()).toBe(true);
+    const attack = launches.find((l) => l.what === "attack POL>DEU");
+    expect(attack).toBeDefined();
+    // As the war motive sends it: a third against twice our troops, not
+    // everything above the reserve.
+    expect(attack!.troops).toBeCloseTo(ours / 3, 0);
+  });
 });

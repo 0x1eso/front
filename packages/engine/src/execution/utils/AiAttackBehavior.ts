@@ -662,7 +662,11 @@ export class AiAttackBehavior {
         if (this.player.isFriendly(other)) continue;
         if (this.isFFA() && other.troops() > this.player.troops() * 3) continue;
         if (difficulty !== Difficulty.Easy && !this.canReach(other)) continue;
-        return this.sendAttack(other);
+        // A war enemy gets an attack sized by the odds, as the war motive
+        // sends (P0 follow-up); without the mode atWarWith is always false.
+        return this.atWarWith(other)
+          ? this.sendWarAttack(other)
+          : this.sendAttack(other);
       }
       return false;
     };

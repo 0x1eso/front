@@ -24,7 +24,9 @@ import {
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import type { CountryEconomy, Line, WwEconomy } from "./WwEconomy";
 
-function factoryCount(n: number): number {
+/** 0..WW_MAX_LINE_FACTORIES; a value that is no number at all (NaN) is 0. */
+export function factoryCount(n: number): number {
+  if (Number.isNaN(n)) return 0;
   return Math.max(0, Math.min(WW_MAX_LINE_FACTORIES, Math.floor(n)));
 }
 

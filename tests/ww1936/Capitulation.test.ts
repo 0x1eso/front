@@ -232,8 +232,11 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
     expect(attack.isActive()).toBe(true);
     // The retreat completes (20 ticks after the order) and its execution ends.
+    // Its men do not come home: a capitulated country has no army.
+    expect(pol.troops()).toBe(0);
     step(runner, 25);
     expect(attack.isActive()).toBe(false);
+    expect(pol.troops()).toBe(0);
     const running = (g as unknown as { executions(): Execution[] })
       .executions()
       .filter(

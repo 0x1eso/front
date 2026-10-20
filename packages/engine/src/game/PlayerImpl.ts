@@ -1654,6 +1654,9 @@ export class PlayerImpl implements Player {
     if (!this.canUpgradeUnitType(unit.type())) {
       return false;
     }
+    if (this.wwCapitulated()) {
+      return false;
+    }
     if (!this.canBuildUnitType(unit.type())) {
       return false;
     }
@@ -1686,6 +1689,9 @@ export class PlayerImpl implements Player {
 
     const len = units.length;
     const result = new Array<BuildableUnit>(len);
+    // World War 1936 (spec §7.5): a capitulated country builds and upgrades
+    // nothing while its land moves to the victor.
+    const capitulated = this.wwCapitulated();
 
     for (let i = 0; i < len; i++) {
       const u = units[i];
@@ -1694,7 +1700,12 @@ export class PlayerImpl implements Player {
       let canUpgrade: number | false = false;
       let canBuild: TileRef | false = false;
 
-      if (tile !== null && this.canBuildUnitType(u, cost) && !inSpawnPhase) {
+      if (
+        tile !== null &&
+        this.canBuildUnitType(u, cost) &&
+        !inSpawnPhase &&
+        !capitulated
+      ) {
         if (this.canUpgradeUnitType(u)) {
           const existingUnit = this.findExistingUnitToUpgrade(u, tile);
           if (
@@ -1758,12 +1769,17 @@ export class PlayerImpl implements Player {
     }
     // World War 1936 (spec §7.5): a capitulated country builds nothing
     // while its land moves to the victor.
-    const ww = this.mg.worldWar();
-    if (ww !== null && ww.isCapitulated(this._smallID)) {
+    if (this.wwCapitulated()) {
       return false;
     }
 
     return this.canSpawnUnitType(unitType, targetTile, validTiles);
+  }
+
+  /** World War 1936: this country has capitulated. False without the mode. */
+  private wwCapitulated(): boolean {
+    const ww = this.mg.worldWar();
+    return ww !== null && ww.isCapitulated(this._smallID);
   }
 
   private canSpawnUnitType(

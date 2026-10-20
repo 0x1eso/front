@@ -672,6 +672,24 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(panel.isVisible).toBe(false);
   });
 
+  it("the player panel shows no rocket-direction toggle in World War 1936", () => {
+    const g = fakeGame({ me: "DEU" });
+    const me = g.myPlayer();
+    const shows = (game: unknown) => {
+      const panel = document.createElement("player-panel") as PlayerPanel;
+      panel.g = game as never;
+      return (
+        panel as unknown as {
+          showsRocketToggle(o: unknown, v: unknown, s: boolean): boolean;
+        }
+      ).showsRocketToggle(me, me, false);
+    };
+    // Nukes and silos are off in the mode (spec §2.2).
+    expect(shows(g)).toBe(false);
+    // Elsewhere it is the viewer's own setting, as before.
+    expect(shows({ ...g, worldWarScenario: () => null })).toBe(true);
+  });
+
   it("the player panel ignores a double-click on declare war, so the label is read first", () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
     vi.setSystemTime(10_000);

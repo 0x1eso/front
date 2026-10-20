@@ -59,6 +59,8 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
   c.infiniteTroops = false;
   delete c.goldMultiplier;
   delete c.startingGold;
+  // Nukes are off in this mode (spec §2.2): their water switch goes too.
+  delete c.waterNukes;
   const disabled = [...(c.disabledUnits ?? [])];
   for (const u of WW1936_DISABLED_UNITS) {
     if (!disabled.includes(u)) disabled.push(u);

@@ -48,6 +48,8 @@ describe("World War 1936 settings", () => {
       infiniteTroops: true,
       goldMultiplier: 5,
       startingGold: 1_000_000,
+      // Nukes are off: their water switch must not carry over either.
+      waterNukes: true,
     });
     const n = normalizeWorldWar1936Config(c);
     expect(n).not.toBe(c);
@@ -60,6 +62,7 @@ describe("World War 1936 settings", () => {
     expect(n.playerTeams).toBeUndefined();
     expect(n.goldMultiplier).toBeUndefined();
     expect(n.startingGold).toBeUndefined();
+    expect(n.waterNukes).toBeUndefined();
     expect(n).toMatchObject({
       gameMap: GameMapType.World1936,
       gameMapSize: GameMapSize.Normal,

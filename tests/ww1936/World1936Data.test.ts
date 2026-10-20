@@ -390,7 +390,12 @@ describe("the world1936 economy (P1 spec §3)", () => {
     const tungsten = RESOURCE_IDS.indexOf("tungsten");
     const rubber = RESOURCE_IDS.indexOf("rubber");
     expect(total(regionsOf("USA"), (r) => r.res[oil])).toBe(153);
-    expect(total(regionsOf("CHN"), (r) => r.res[tungsten])).toBe(30);
+    // Task 9: tungsten and chromium sites at twice their first scale, so
+    // the world's supply covers the lines that need them (spec §16 record).
+    expect(total(regionsOf("CHN"), (r) => r.res[tungsten])).toBe(60);
+    expect(
+      total(regionsOf("TUR"), (r) => r.res[RESOURCE_IDS.indexOf("chromium")]),
+    ).toBe(20);
     expect(total(regionsOf("GBR"), (r) => r.res[rubber])).toBe(54);
     // Germany has steel and little else (spec §3.5).
     expect(regionsOf("DEU").filter((r) => r.res[rubber] > 0)).toEqual([]);

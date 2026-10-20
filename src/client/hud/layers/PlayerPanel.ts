@@ -738,6 +738,20 @@ export class PlayerPanel extends LitElement implements Controller {
     `;
   }
 
+  /**
+   * The rocket direction is the viewer's own setting; World War 1936 has no
+   * rockets (nukes and silos are off, spec §2.2), so it is never shown there.
+   */
+  private showsRocketToggle(
+    other: PlayerView,
+    viewer: PlayerView,
+    isSpectator: boolean,
+  ): boolean {
+    return (
+      other === viewer && !isSpectator && this.g.worldWarScenario() === null
+    );
+  }
+
   private renderRocketDirectionToggle() {
     return html`
       <ui-divider></ui-divider>
@@ -1231,7 +1245,7 @@ export class PlayerPanel extends LitElement implements Controller {
                     ${this.renderResources(other)}
 
                     <!-- Rocket direction toggle -->
-                    ${other === viewer && !isSpectator
+                    ${this.showsRocketToggle(other, viewer, isSpectator)
                       ? this.renderRocketDirectionToggle()
                       : ""}
 

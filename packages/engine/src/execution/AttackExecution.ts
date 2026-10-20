@@ -220,6 +220,13 @@ export class AttackExecution implements Execution {
 
     for (const incoming of this._owner.incomingAttacks()) {
       if (incoming.attacker() === this.target) {
+        // World War 1936 P1 (spec §6.5): the men the two attacks cost each
+        // other are combat losses too, and take their equipment along.
+        if (ww !== null) {
+          const lost = Math.min(incoming.troops(), this.attack.troops());
+          ww.economy.noteCombatLoss(this._owner.smallID(), lost);
+          ww.economy.noteCombatLoss(incoming.attacker().smallID(), lost);
+        }
         // Target has opposing attack, cancel them out
         if (incoming.troops() > this.attack.troops()) {
           incoming.setTroops(incoming.troops() - this.attack.troops());
@@ -323,7 +330,13 @@ export class AttackExecution implements Execution {
       this.attack.setTroops(this.attack.troops() - (this.startTroops ?? 0));
     }
 
-    const survivors = this.attack.troops() - deaths;
+    // World War 1936 (spec §7.5): a capitulated country's army is gone; an
+    // attack that was already retreating brings nobody home.
+    const ww = this.mg.worldWar();
+    const survivors =
+      ww !== null && ww.isCapitulated(this._owner.smallID())
+        ? 0
+        : this.attack.troops() - deaths;
     this._owner.addTroops(survivors);
     this.attack.delete();
     this.active = false;

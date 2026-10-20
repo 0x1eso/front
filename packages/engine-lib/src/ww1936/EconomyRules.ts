@@ -17,7 +17,7 @@ import {
   WW_MIL_OUTPUT_MILLI,
   WwCombatStats,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { dayOfDate } from "./Calendar";
+import { daysFromCivil } from "./Calendar";
 import { EQUIPMENT } from "./Equipment";
 import type { LawEffects } from "./WwLaws";
 import type { TechTotals } from "./WwTechs";
@@ -273,8 +273,11 @@ export function troopCapOf(
 
 // ---- Research (spec §9) ----
 
+const DAY_1936 = daysFromCivil(1936, 1, 1);
+
+/** Days since 1936-01-01 of 1 January of `year` (no date parsing: hot path). */
 export function yearStartDay(year: number): number {
-  return dayOfDate(`${year}-01-01`);
+  return daysFromCivil(year, 1, 1) - DAY_1936;
 }
 
 /** +100% a year ahead of the tech's year, prorated by day. */
