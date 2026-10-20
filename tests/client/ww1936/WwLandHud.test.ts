@@ -178,10 +178,12 @@ describe("World War 1936 P2 in the HUD", () => {
     expect(war.band.querySelector("[data-ww-casualties]")!.textContent).toBe(
       "[ww1936.land.band_casualties] n=3.2K",
     );
-    const opened: unknown[] = [];
-    war.bus.on(OpenWwArmyEvent, (e) => opened.push(e));
-    war.band.querySelector<HTMLButtonElement>("[data-ww-divisions]")!.click();
-    expect(opened).toHaveLength(1);
+    // A count in the chip, not a button under 36 px: the ⚔ dial opens
+    // the army drawer.
+    expect(
+      war.band.querySelector("[data-ww-economy] [data-ww-divisions]"),
+    ).not.toBeNull();
+    expect(war.band.querySelectorAll("button")).toHaveLength(2);
   });
 
   it("the region card's land lines", () => {

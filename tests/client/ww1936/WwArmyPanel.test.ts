@@ -19,6 +19,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 import {
   landSelectionOf,
   OpenWwArmyEvent,
+  WwLandModeEvent,
   WwSelectArmyEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
 import "../../../src/client/hud/ww1936/WwArmyPanel";
@@ -86,6 +87,7 @@ describe("<ww-army-panel> (spec §15.5)", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("four tabs; one drawer at a time; no title, finger-sized buttons", async () => {
@@ -119,6 +121,23 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     m.bus.emit(new OpenWwArmyEvent("training"));
     await m.el.updateComplete;
     expect(drawers[drawers.length - 1]).toEqual(["army", false]);
+  });
+
+  it("on a short screen it steps aside when an order mode begins", async () => {
+    vi.stubGlobal("innerHeight", 360);
+    const m = await mount();
+    await m.click("[data-ww-army-row='1']");
+    m.bus.emit(new WwLandModeEvent("move"));
+    await m.el.updateComplete;
+    expect(m.q("[data-ww-drawer]")).toBeNull();
+    // On a tall screen it stays.
+    document.body.innerHTML = "";
+    vi.stubGlobal("innerHeight", 820);
+    const tall = await mount();
+    await tall.click("[data-ww-army-row='1']");
+    tall.bus.emit(new WwLandModeEvent("move"));
+    await tall.el.updateComplete;
+    expect(tall.q("[data-ww-drawer]")).not.toBeNull();
   });
 
   it("a row chooses its army and moves the camera; the divisions below", async () => {

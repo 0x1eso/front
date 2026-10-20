@@ -8,7 +8,6 @@ import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { menText, TopBandEconomy, topBandEconomy } from "./EconomyModel";
-import { OpenWwArmyEvent } from "./LandSelection";
 import {
   type BandModel,
   bandModel,
@@ -330,43 +329,41 @@ export class WwTopBand extends LitElement implements Controller {
         manpower: e.manpowerText,
       }) + (e.shortage ? ` · ${translateText("ww1936.econ.shortage")}` : "");
     return html`<button
-        type="button"
-        data-ww-economy=${mode}
-        aria-label=${label}
-        class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
-        @click=${() =>
-          this.eventBus.emit(new OpenWwIndustryEvent("construction"))}
-      >
-        <span data-ww-factories>🏭 ${e.civ} / ${e.mil}</span>
-        ${mode === "full"
-          ? html`<span data-ww-manpower>👥 ${e.manpowerText}</span>`
-          : nothing}
-        ${mode === "full" && this.land?.casualtiesText
-          ? html`<span data-ww-casualties class="text-red-300"
-              >${translateText("ww1936.land.band_casualties", {
-                n: this.land.casualtiesText,
-              })}</span
-            >`
-          : nothing}
-        ${e.shortage
-          ? html`<span
-              data-ww-shortage
-              class="size-2 shrink-0 rounded-full bg-red-500"
-            ></span>`
-          : nothing}
-      </button>
+      type="button"
+      data-ww-economy=${mode}
+      aria-label=${label}
+      class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+      @click=${() =>
+        this.eventBus.emit(new OpenWwIndustryEvent("construction"))}
+    >
+      <span data-ww-factories>🏭 ${e.civ} / ${e.mil}</span>
+      ${mode === "full"
+        ? html`<span data-ww-manpower>👥 ${e.manpowerText}</span>`
+        : nothing}
+      ${mode === "full" && this.land?.casualtiesText
+        ? html`<span data-ww-casualties class="text-red-300"
+            >${translateText("ww1936.land.band_casualties", {
+              n: this.land.casualtiesText,
+            })}</span
+          >`
+        : nothing}
       ${mode === "full" && this.land !== null
-        ? html`<button
-            type="button"
+        ? // P2 (spec §15.1): my divisions. A count only: the ⚔ dial opens
+          // the army drawer (a separate button here would be under 36 px).
+          html`<span
             data-ww-divisions
             aria-label=${translateText("ww1936.land.band_divisions", {
               n: this.land.divisions,
             })}
-            class="flex h-6 shrink-0 items-center rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
-            @click=${() => this.eventBus.emit(new OpenWwArmyEvent())}
-          >
-            🪖 ${this.land.divisions}
-          </button>`
-        : nothing}`;
+            >🪖 ${this.land.divisions}</span
+          >`
+        : nothing}
+      ${e.shortage
+        ? html`<span
+            data-ww-shortage
+            class="size-2 shrink-0 rounded-full bg-red-500"
+          ></span>`
+        : nothing}
+    </button>`;
   }
 }

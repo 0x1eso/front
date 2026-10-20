@@ -289,10 +289,40 @@ describe("WwLandController (spec §15.3)", () => {
     expect(m.sel.targets).toEqual([6, 8]);
     // Targets only: the card's execute button sends the plan.
     expect(m.sent).toEqual([]);
-    // My own region in plan mode: elsewhere; the draft stays.
+    // Stray taps (my own region, the sea) keep the mode and the draft.
     m.tapRegion(4);
-    expect(m.sel.mode).toBe("none");
+    m.tap(150, 110);
+    expect(m.sel.mode).toBe("plan");
     expect(m.sel.targets).toEqual([6, 8]);
+    // Leaving plan mode (the card's back or cancel) drops the draft.
+    m.bus.emit(new WwLandModeEvent("none"));
+    expect(m.sel.targets).toEqual([]);
+  });
+
+  it("in an order mode another army's token stands for its region", () => {
+    const m = setup({
+      armies: [army(1, "DEU", 3), army(2, "DEU", 4)],
+      landDetails: [
+        landDetail("DEU", {
+          divisions: [division(1, 1, 3), division(2, 2, 4)],
+        }),
+      ],
+    });
+    m.tap(...center(3));
+    m.bus.emit(new WwLandModeEvent("move"));
+    // The 2nd Army's token in Munich: a move there (to stack with it).
+    m.tap(...center(4));
+    expect(m.sel).toMatchObject({ army: 1, mode: "move", pending: 4 });
+    m.tap(...center(4));
+    expect(m.sent).toEqual([{ kind: "army_move", army: 1, region: 4 }]);
+    // With no mode, a token still chooses its army.
+    m.tap(...center(4));
+    expect(m.sel.army).toBe(2);
+    // The chosen army's own token in an order mode chooses again (and so
+    // leaves the mode).
+    m.bus.emit(new WwLandModeEvent("move"));
+    m.tap(...center(4));
+    expect(m.sel).toMatchObject({ army: 2, mode: "none" });
   });
 
   it("drag is not a tap", () => {

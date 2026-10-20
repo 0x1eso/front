@@ -29,6 +29,7 @@ vi.mock("@openfront/engine-lib/ww1936/LandOrderChecks", async (orig) => {
 import {
   landSelectionOf,
   OpenWwArmyEvent,
+  WwLandModeEvent,
   WwSelectArmyEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
 import "../../../src/client/hud/ww1936/WwArmyCard";
@@ -120,10 +121,13 @@ describe("<ww-army-card> (spec §15.4)", () => {
     // Tablet rules: no hover-only titles; every button at least 36 px.
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
     const buttons = [...m.el.querySelectorAll("button")];
-    expect(buttons).toHaveLength(11);
+    // Ten orders, the fold toggle and ✕.
+    expect(buttons).toHaveLength(12);
     for (const b of buttons) {
       expect(b.className).toMatch(/\b(h-9|size-9)\b/);
     }
+    // No text smaller than text-xs on the card.
+    expect(m.el.innerHTML).not.toMatch(/text-\[1[01]px\]/);
     // ✕ lets the army go: the card is gone.
     await m.click("[data-ww-card-close]");
     expect(m.sel.army).toBeNull();
@@ -144,12 +148,64 @@ describe("<ww-army-card> (spec §15.4)", () => {
       "[ww1936.econ.block.no_rail]",
     );
     expect(m.sel.mode).toBe("none");
-    // An open one sets the map's mode (and a second press clears it).
+    // An open one sets the map's mode: the card folds to its strip, with
+    // the hint and [cancel].
     await m.click(m.btn("move"));
     expect(m.sel.mode).toBe("move");
+    expect(m.q("[data-ww-army-card]")!.dataset.collapsed).toBe("true");
     expect(m.q("[data-ww-hint='move']")).not.toBeNull();
-    await m.click(m.btn("move"));
+    await m.click(m.btn("cancel"));
     expect(m.sel.mode).toBe("none");
+    expect(m.q("[data-ww-army-card]")!.dataset.collapsed).toBe("false");
+  });
+
+  it("a one-division army's split says so in its own words", async () => {
+    const m = await mount({
+      armies: [army(1, "DEU", 3, { divisions: 1 })],
+      landDetails: [landDetail("DEU", { divisions: [division(1, 1, 3)] })],
+    });
+    await m.click(m.btn("split"));
+    expect(m.q("[data-ww-block='split_single']")!.textContent).toContain(
+      "[ww1936.land.block_split_single]",
+    );
+    expect(m.sent).toEqual([]);
+  });
+
+  it("folds to a 40 px strip: by default on a short screen, while ordering, by the toggle", async () => {
+    vi.stubGlobal("innerHeight", 360);
+    const m = await mount();
+    const card = () => m.q("[data-ww-army-card]")!;
+    expect(card().dataset.collapsed).toBe("true");
+    expect(card().className).toContain("bg-gray-900/70");
+    expect(m.q("[data-ww-bar='combined']")).not.toBeNull();
+    expect(m.q("[data-ww-strip-line]")!.textContent).toContain(
+      "[ww1936.land.state_idle]",
+    );
+    // Its buttons: the toggle and ✕ (no order buttons, no cancel).
+    expect(m.q(m.btn("move"))).toBeNull();
+    expect(m.q(m.btn("cancel"))).toBeNull();
+    await m.click("[data-ww-card-fold='open']");
+    expect(card().dataset.collapsed).toBe("false");
+    expect(card().className).toContain("bg-gray-900/92");
+    // An order mode folds it again; the toggle opens it meanwhile; the
+    // end of the order brings back the player's choice (open).
+    await m.click(m.btn("front"));
+    expect(card().dataset.collapsed).toBe("true");
+    await m.click("[data-ww-card-fold='open']");
+    expect(card().dataset.collapsed).toBe("false");
+    m.bus.emit(new WwLandModeEvent("none"));
+    await m.el.updateComplete;
+    expect(card().dataset.collapsed).toBe("false");
+    // A pending tap's refusal shows on the strip.
+    checks.mockImplementation(() => "no_path");
+    m.sel.pending = 4;
+    m.sel.version++;
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(card().dataset.collapsed).toBe("true");
+    expect(
+      m.q("[data-ww-strip-line] [data-ww-block='no_path']"),
+    ).not.toBeNull();
   });
 
   it("splits in half, toggles auto, disbands only on a second tap", async () => {
@@ -186,6 +242,9 @@ describe("<ww-army-card> (spec §15.4)", () => {
     const m = await mount();
     await m.click(m.btn("plan"));
     m.sel.targets = [6];
+    // The strip carries [execute]; the stance needs the whole card.
+    expect(m.q(m.btn("execute"))).not.toBeNull();
+    await m.click("[data-ww-card-fold='open']");
     await m.click(m.btn("stance_aggressive"));
     await m.click(m.btn("execute"));
     expect(m.sent).toEqual([
@@ -194,6 +253,10 @@ describe("<ww-army-card> (spec §15.4)", () => {
     vi.setSystemTime(101_000);
     await m.click(m.btn("execute"));
     expect(m.sent[1]).toEqual({ kind: "army_execute", army: 1, on: true });
+    // Sent: plan mode ends and its draft with it.
+    expect(m.sel.mode).toBe("none");
+    expect(m.sel.targets).toEqual([]);
+    await m.click(m.btn("plan"));
     // Running: one press stops it.
     m.land.apply(
       {
@@ -263,6 +326,39 @@ describe("<ww-army-card> (spec §15.4)", () => {
     expect(card().getAttribute("style")).toContain("max-width: 560px");
     // Never into the map's middle half: 820 × ¾ = 615 above the rows' 712.
     expect(card().getAttribute("style")).toContain("max-height: 97px");
+  });
+
+  it("merges only where the order checks let it", async () => {
+    // Merging into the 2nd Army is refused; into the 3rd it is fine.
+    checks.mockImplementation((_w, o: LandOrder) =>
+      o.kind === "army_merge" && o.into === 2 ? "army_full" : null,
+    );
+    const m = await mount({
+      armies: [army(1, "DEU", 3), army(2, "DEU", 3), army(3, "DEU", 3)],
+      landDetails: [
+        landDetail("DEU", {
+          divisions: [division(1, 1, 3), division(2, 2, 3), division(3, 3, 3)],
+        }),
+      ],
+    });
+    expect(m.q(m.btn("merge"))!.getAttribute("aria-disabled")).toBe("false");
+    await m.click(m.btn("merge"));
+    expect(m.sent).toEqual([{ kind: "army_merge", army: 1, into: 3 }]);
+    // All refused: greyed, with the first refusal.
+    checks.mockImplementation((_w, o: LandOrder) =>
+      o.kind === "army_merge" ? "army_full" : null,
+    );
+    const all = await mount({
+      armies: [army(1, "DEU", 3), army(2, "DEU", 3)],
+      landDetails: [
+        landDetail("DEU", {
+          divisions: [division(1, 1, 3), division(2, 2, 3)],
+        }),
+      ],
+    });
+    await all.click(all.btn("merge"));
+    expect(all.q("[data-ww-block='army_full']")).not.toBeNull();
+    expect(all.sent).toEqual([]);
   });
 
   it("merges with the army sharing its region and follows it", async () => {

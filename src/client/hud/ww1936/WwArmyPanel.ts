@@ -17,6 +17,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
+import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { blockText, equipmentName, menText } from "./EconomyModel";
 import {
   armyName,
@@ -38,6 +39,7 @@ import {
   landSelectionOf,
   OpenWwArmyEvent,
   WwArmyTab,
+  WwLandModeEvent,
   WwSelectArmyEvent,
 } from "./LandSelection";
 import {
@@ -123,6 +125,17 @@ export class WwArmyPanel extends WwDrawerBase {
     });
     this.eventBus.on(WwLandChangedEvent, () => {
       if (this.open) this.requestUpdate();
+    });
+    // On a short screen the drawer would leave the map too little room to
+    // tap the order's region: it steps aside when an order mode begins.
+    this.eventBus.on(WwLandModeEvent, (e) => {
+      if (
+        e.mode !== "none" &&
+        this.open &&
+        window.innerHeight <= COMPACT_MAX_HEIGHT
+      ) {
+        this.setOpen(false);
+      }
     });
   }
 

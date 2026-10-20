@@ -67,6 +67,25 @@ describe("control-panel attack ratio", () => {
     expect(label?.textContent).toContain("control_panel.attack_ratio");
   });
 
+  it("hides the attack ratio in World War 1936 (armies fight there)", async () => {
+    panel.game = {
+      inSpawnPhase: () => false,
+      myPlayer: () => ({ isAlive: () => true, troops: () => 100_000 }),
+      worldWarScenario: () => ({}),
+    } as unknown as GameView;
+    panel.setVisibile(true);
+    await (panel as any).updateComplete;
+    expect(panel.querySelector("[data-attack-ratio]")).toBeNull();
+    panel.game = {
+      inSpawnPhase: () => false,
+      myPlayer: () => ({ isAlive: () => true, troops: () => 100_000 }),
+      worldWarScenario: () => null,
+    } as unknown as GameView;
+    panel.requestUpdate();
+    await (panel as any).updateComplete;
+    expect(panel.querySelector("[data-attack-ratio]")).not.toBeNull();
+  });
+
   // <control-panel> sits in index.html, so its (hidden) slider exists on the
   // lobby page before any game has handed it a uiState.
   it("ignores ratio changes before init() has run", () => {

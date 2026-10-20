@@ -269,6 +269,46 @@ describe("LandModel (spec §15)", () => {
     ).toBe("not_at_war");
   });
 
+  it("the card's searches are reused until the views or the wars move on", () => {
+    const g = game({
+      ...AT_WAR,
+      armies: [army(1, "DEU", 3), army(2, "DEU", 3)],
+      landDetails: [
+        landDetail("DEU", {
+          divisions: [division(1, 1, 3), division(2, 2, 3)],
+        }),
+      ],
+    });
+    const merges = () =>
+      checks.mock.calls.filter(([, o]) => o.kind === "army_merge").length;
+    armyCard(g.land, g.view, DEU, 1, DAY);
+    expect(merges()).toBe(1);
+    armyCard(g.land, g.view, DEU, 1, DAY);
+    expect(merges()).toBe(1);
+    // A land update: asked again.
+    g.land.apply(
+      {
+        armies: [],
+        removedArmies: [],
+        battles: [],
+        endedBattles: [],
+        regions: [],
+        countries: [],
+        details: [],
+      },
+      701,
+    );
+    armyCard(g.land, g.view, DEU, 1, DAY);
+    expect(merges()).toBe(2);
+    // One division: its split greyed in its own words.
+    const one = game({ armies: [army(3, "DEU", 3, { divisions: 1 })] });
+    expect(
+      armyCard(one.land, one.view, DEU, 3, DAY)!.buttons.find(
+        (b) => b.id === "split",
+      )!.block,
+    ).toBe("split_single");
+  });
+
   it.runIf(T3)("Task 3's checks: no railway, no port", () => {
     const { land, view } = game({
       ...AT_WAR,

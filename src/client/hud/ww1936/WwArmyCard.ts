@@ -25,6 +25,8 @@ import {
   ArmyCardData,
   armyName,
   attackPreview,
+  CardBlock,
+  cardBlockText,
   daysOf,
   frontPreview,
   landSidesOf,
@@ -191,19 +193,28 @@ interface Ctx {
   card: ArmyCardData;
 }
 
+/** At or below this viewport height the card starts folded to its strip. */
+export const CARD_FOLD_MAX_HEIGHT = 420;
+
 /**
  * World War 1936 P2 (spec §15.4): the chosen army's card, bottom centre,
  * at most a quarter of the screen tall — its name, general, divisions,
  * bars, state, readiness and supply; the order buttons (a greyed one says
  * why when tapped); the preview of a pending map tap; the plan's stance
  * and its execute button. Left of an open drawer, never over it.
+ *
+ * It folds to a ~40 px strip (name, divisions, one bar, the state line):
+ * on a short screen by default, and on its own while an order is being
+ * given (a mode, or a tap waiting for its second), when the strip shows the
+ * hint or the preview, the refusal, [cancel] (and the plan's [execute]).
+ * The toggle opens it again; it opens by itself when the order is done.
  */
 @customElement("ww-army-card")
 export class WwArmyCard extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   /** The button tapped while it was greyed, and why. */
-  @state() private refused: { id: string; block: WwOrderBlock } | null = null;
+  @state() private refused: { id: string; block: CardBlock } | null = null;
   /** The buttons shown: the orders, the "⋯" ones, or the armies to merge with. */
   @state() private panel: "main" | "more" | "merge" = "main";
   @state() private place: CardPlace = {
@@ -212,6 +223,11 @@ export class WwArmyCard extends LitElement implements Controller {
     maxWidth: 560,
     maxHeight: CARD_MIN_PX,
   };
+  /** Folded to the strip by the player (or by default, on a short screen). */
+  @state() private collapsed = false;
+  /** Opened by the toggle while an order is being given. */
+  @state() private openWhileOrdering = false;
+  private wasOrdering = false;
   private readonly twoTap = new TwoTap();
   private shownArmy: number | null = null;
   private redrawKey: readonly unknown[] = [];
@@ -234,30 +250,51 @@ export class WwArmyCard extends LitElement implements Controller {
     return 250;
   }
 
+  /**
+   * Cheap: the version keys first; the card's data is built only in
+   * render(), and the place measured once a tick while it shows.
+   */
   tick() {
-    const ctx = this.ctx();
-    if (ctx !== null) this.refit();
+    if ((this.game?.worldWarScenario() ?? null) === null) return;
+    const sel = landSelectionOf(this.game);
+    if (sel.army === null) {
+      if (this.shownArmy !== null) this.redraw();
+      return;
+    }
+    this.refit();
     const key = [
-      ctx?.sel.version,
-      ctx?.sel.army,
-      ctx?.view.version,
-      ctx?.economy.version,
-      ctx?.day,
+      sel.version,
+      sel.army,
+      this.game.wwLand?.()?.version,
+      this.game.wwEconomy?.()?.version,
+      today(this.game),
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
-      this.redraw();
+      this.sync();
+      this.requestUpdate();
+    }
+  }
+
+  /** A new army: the main buttons, folded on a short screen; an order's start or end: the strip's default. */
+  private sync() {
+    const sel = landSelectionOf(this.game);
+    if (sel.army !== this.shownArmy) {
+      this.shownArmy = sel.army;
+      this.panel = "main";
+      this.refused = null;
+      this.collapsed = window.innerHeight <= CARD_FOLD_MAX_HEIGHT;
+    }
+    const ordering = sel.mode !== "none" || sel.pending !== null;
+    if (ordering !== this.wasOrdering) {
+      this.wasOrdering = ordering;
+      this.openWhileOrdering = false;
     }
   }
 
   private redraw() {
-    const army = landSelectionOf(this.game).army;
-    if (army !== this.shownArmy) {
-      this.shownArmy = army;
-      this.panel = "main";
-      this.refused = null;
-    }
-    this.refit();
+    this.sync();
+    if (landSelectionOf(this.game).army !== null) this.refit();
     this.requestUpdate();
   }
 
@@ -308,7 +345,7 @@ export class WwArmyCard extends LitElement implements Controller {
     this.eventBus.emit(new WwLandModeEvent(mode));
   }
 
-  private tapButton(c: Ctx, id: ArmyButton, block: WwOrderBlock | null) {
+  private tapButton(c: Ctx, id: ArmyButton, block: CardBlock | null) {
     if (block !== null) {
       this.refused = { id, block };
       return;
@@ -362,10 +399,94 @@ export class WwArmyCard extends LitElement implements Controller {
   render() {
     const c = this.ctx();
     if (c === null) return nothing;
+    const ordering = c.sel.mode !== "none" || c.sel.pending !== null;
+    const strip = ordering ? !this.openWhileOrdering : this.collapsed;
+    return strip ? this.renderStrip(c, ordering) : this.renderFull(c);
+  }
+
+  /** The folded card: one row, about 40 px, the map behind shows through. */
+  private renderStrip(c: Ctx, ordering: boolean): TemplateResult {
+    const r = c.card.row;
+    const worst = Math.min(r.strengthPm, r.orgPm);
+    return html`<section
+      data-ww-army-card=${r.id}
+      data-collapsed="true"
+      aria-label=${armyName(r.nameNo)}
+      class="fixed z-[1001] flex items-center gap-1.5 rounded-lg border border-white/15 bg-gray-900/70 p-0.5 pl-2 text-xs text-white shadow-xl"
+      style=${placeStyle(this.place)}
+      @contextmenu=${(e: Event) => e.preventDefault()}
+    >
+      <span class="shrink-0 font-bold">${armyName(r.nameNo)}</span>
+      <span data-ww-army-divisions class="shrink-0 tabular-nums text-white/70"
+        >${translateText("ww1936.land.divisions_of", {
+          n: r.divisions,
+          max: WW_MAX_ARMY_DIVISIONS,
+        })}</span
+      >
+      <span
+        data-ww-bar="combined"
+        class="h-1.5 w-12 shrink-0 rounded bg-white/10"
+        ><span
+          class="block h-1.5 rounded ${worst >= 600
+            ? "bg-emerald-400"
+            : worst >= 300
+              ? "bg-amber-400"
+              : "bg-red-500"}"
+          style="width: ${Math.max(0, Math.min(1000, worst)) / 10}%"
+        ></span
+      ></span>
+      <span data-ww-strip-line class="min-w-0 flex-1 truncate">
+        ${ordering || this.refused !== null
+          ? this.renderLine(c, true)
+          : translateText(c.card.status.key, c.card.status.params)}
+      </span>
+      ${c.sel.mode === "plan" ? this.executeButton(c, false) : nothing}
+      ${ordering
+        ? this.button("cancel", translateText("common.cancel"), "✕", () =>
+            this.setMode("none"),
+          )
+        : nothing}
+      ${this.foldButton(c, true)} ${this.closeButton()}
+    </section>`;
+  }
+
+  /** Fold to the strip, or open the whole card (36 px). */
+  private foldButton(c: Ctx, folded: boolean): TemplateResult {
+    const ordering = c.sel.mode !== "none" || c.sel.pending !== null;
+    return html`<button
+      type="button"
+      data-ww-card-fold=${folded ? "open" : "fold"}
+      class="size-9 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
+      aria-label=${translateText(
+        folded ? "ww1936.land.card_expand" : "ww1936.land.card_collapse",
+      )}
+      @click=${() => {
+        if (ordering) this.openWhileOrdering = folded;
+        else this.collapsed = !folded;
+      }}
+    >
+      ${folded ? "▴" : "▾"}
+    </button>`;
+  }
+
+  private closeButton(): TemplateResult {
+    return html`<button
+      type="button"
+      data-ww-card-close
+      class="size-9 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
+      aria-label=${translateText("common.close")}
+      @click=${() => this.eventBus.emit(new WwSelectArmyEvent(null))}
+    >
+      ✕
+    </button>`;
+  }
+
+  private renderFull(c: Ctx): TemplateResult {
     const r = c.card.row;
     const line = this.renderLine(c);
     return html`<section
       data-ww-army-card=${r.id}
+      data-collapsed="false"
       aria-label=${armyName(r.nameNo)}
       class="fixed z-[1001] flex max-h-[25vh] gap-2 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
       style=${placeStyle(this.place)}
@@ -424,15 +545,9 @@ export class WwArmyCard extends LitElement implements Controller {
               ? this.renderMerge(c)
               : this.renderButtons(c)}
       </div>
-      <button
-        type="button"
-        data-ww-card-close
-        class="min-h-9 w-9 shrink-0 self-stretch rounded-md border border-white/10 hover:bg-white/10"
-        aria-label=${translateText("common.close")}
-        @click=${() => this.eventBus.emit(new WwSelectArmyEvent(null))}
-      >
-        ✕
-      </button>
+      <div class="flex shrink-0 flex-col gap-1">
+        ${this.foldButton(c, false)} ${this.closeButton()}
+      </div>
     </section>`;
   }
 
@@ -459,7 +574,7 @@ export class WwArmyCard extends LitElement implements Controller {
             >${TRAIT_ICONS[t]}</span
           >`,
       )}
-      <span class="min-w-0 truncate text-[11px] tabular-nums text-white/60"
+      <span class="min-w-0 truncate text-xs tabular-nums text-white/60"
         >${translateText("ww1936.land.general_skills", {
           a: g.att,
           d: g.def,
@@ -485,14 +600,19 @@ export class WwArmyCard extends LitElement implements Controller {
   }
 
   /** The line under the state: a refusal, a pending tap's preview, or the mode's hint. */
-  private renderLine(c: Ctx): TemplateResult | typeof nothing {
+  private renderLine(c: Ctx, compact = false): TemplateResult | typeof nothing {
     if (this.refused !== null) {
-      return html`<div data-ww-block=${this.refused.block} class="text-red-300">
-        🔒 ${blockText(this.refused.block)}
-      </div>`;
+      return html`<span
+        data-ww-block=${this.refused.block}
+        class="${compact ? "" : "block "}text-red-300"
+      >
+        🔒 ${cardBlockText(this.refused.block)}
+      </span>`;
     }
     const sel = c.sel;
-    if (sel.pending !== null) return this.renderPreview(c, sel.pending);
+    if (sel.pending !== null) {
+      return this.renderPreview(c, sel.pending, compact);
+    }
     if (sel.mode === "none") return nothing;
     const hint =
       sel.mode === "plan"
@@ -506,7 +626,10 @@ export class WwArmyCard extends LitElement implements Controller {
             ? translateText("ww1936.land.hint_enemy")
             : translateText("ww1936.land.hint_region");
     const targets = sel.mode === "plan" ? sel.targets : [];
-    return html`<div data-ww-hint=${sel.mode} class="text-amber-200">
+    return html`<span
+      data-ww-hint=${sel.mode}
+      class="${compact ? "" : "block "}text-amber-200"
+    >
       ${hint}${targets.length > 0
         ? html` ·
             <span data-ww-targets
@@ -515,10 +638,14 @@ export class WwArmyCard extends LitElement implements Controller {
                 .join(", ")}</span
             >`
         : nothing}
-    </div>`;
+    </span>`;
   }
 
-  private renderPreview(c: Ctx, region: number): TemplateResult {
+  private renderPreview(
+    c: Ctx,
+    region: number,
+    compact: boolean,
+  ): TemplateResult {
     const sides = landSidesOf(this.game);
     const army = c.card.row.id;
     const kind = tapKind(c.view, c.me, c.sel.mode, region, sides);
@@ -557,7 +684,7 @@ export class WwArmyCard extends LitElement implements Controller {
         c.day,
         sides,
       );
-      if (p !== null) body = this.renderAttack(name, p);
+      if (p !== null) body = this.renderAttack(name, p, compact);
     } else if (kind === "front") {
       const front = frontPreview(c.view, c.me, army, region, sides);
       body = html`<span data-ww-front
@@ -567,9 +694,11 @@ export class WwArmyCard extends LitElement implements Controller {
           .join(", ")}</span
       >`;
     }
-    return html`<div
+    return html`<span
       data-ww-preview=${kind ?? ""}
-      class="flex flex-wrap items-baseline gap-x-2"
+      class="${compact
+        ? "inline-flex max-w-full gap-x-2 whitespace-nowrap"
+        : "flex flex-wrap items-baseline gap-x-2"}"
     >
       ${body}
       ${block === null
@@ -577,7 +706,7 @@ export class WwArmyCard extends LitElement implements Controller {
             >${translateText("ww1936.land.tap_again")}</span
           >`
         : this.blockLine(block)}
-    </div>`;
+    </span>`;
   }
 
   private blockLine(block: WwOrderBlock): TemplateResult {
@@ -589,11 +718,16 @@ export class WwArmyCard extends LitElement implements Controller {
   private renderAttack(
     name: string,
     p: NonNullable<ReturnType<typeof attackPreview>>,
+    compact: boolean,
   ): TemplateResult {
     // The bar: 1.0 in the middle, 2.0 or more full.
     const fill = Math.max(0, Math.min(1, p.ratioPm / 2000));
     const good = p.ratioPm >= 1000;
-    return html`<span class="flex min-w-0 flex-wrap items-center gap-x-1.5">
+    return html`<span
+      class="${compact
+        ? "inline-flex gap-x-1.5"
+        : "flex min-w-0 flex-wrap items-center gap-x-1.5"}"
+    >
       <span>⚔ ${name}</span>
       <span
         data-ww-ratio=${p.ratioPm}
@@ -612,12 +746,16 @@ export class WwArmyCard extends LitElement implements Controller {
           ? ` · 🏰${p.fort}`
           : ""}</span
       >
-      <span class="block h-1.5 w-full rounded bg-red-900/70">
-        <span
-          class="block h-1.5 rounded ${good ? "bg-emerald-400" : "bg-red-400"}"
-          style="width: ${fill * 100}%"
-        ></span>
-      </span>
+      ${compact
+        ? nothing
+        : html`<span class="block h-1.5 w-full rounded bg-red-900/70">
+            <span
+              class="block h-1.5 rounded ${good
+                ? "bg-emerald-400"
+                : "bg-red-400"}"
+              style="width: ${fill * 100}%"
+            ></span>
+          </span>`}
     </span>`;
   }
 
@@ -652,7 +790,7 @@ export class WwArmyCard extends LitElement implements Controller {
       @click=${act}
     >
       <span aria-hidden="true" class="text-sm">${icon}</span>
-      <span class="max-w-14 truncate text-[10px]">${label}</span>
+      <span class="max-w-14 truncate text-xs">${label}</span>
     </button>`;
   }
 
@@ -676,9 +814,25 @@ export class WwArmyCard extends LitElement implements Controller {
     });
   }
 
-  /** Plan mode (spec §15.3-5): the stance, and the big execute button. */
-  private renderPlan(c: Ctx): TemplateResult[] {
+  /**
+   * The plan's big button (spec §15.3-5): the first press sends the drawn
+   * plan, the second within 3 s runs it (and leaves plan mode); while it
+   * runs, one press stops it.
+   */
+  private executeButton(c: Ctx, wide: boolean): TemplateResult {
     const army = c.card.row.id;
+    if (c.card.executing) {
+      return this.button(
+        "execute",
+        translateText("ww1936.land.btn_stop"),
+        "■",
+        () => {
+          this.send({ kind: "army_execute", army, on: false });
+          this.setMode("none");
+        },
+        { danger: true, wide },
+      );
+    }
     const plan: LandOrder = {
       kind: "army_plan",
       army,
@@ -695,6 +849,31 @@ export class WwArmyCard extends LitElement implements Controller {
     );
     const key = `execute:${army}`;
     const armed = this.armed(key);
+    return this.button(
+      "execute",
+      translateText(
+        armed ? "ww1936.land.tap_again" : "ww1936.land.btn_execute",
+      ),
+      "▶",
+      () => {
+        if (block !== null) {
+          this.refused = { id: "execute", block };
+          return;
+        }
+        this.refused = null;
+        this.confirmTap(key, () => {
+          this.send({ kind: "army_execute", army, on: true });
+          // The plan is the army's now: the draft goes with the mode.
+          this.setMode("none");
+        });
+        if (this.armed(key)) this.send(plan);
+      },
+      { grey: block !== null, pressed: armed, wide },
+    );
+  }
+
+  /** Plan mode (spec §15.3-5): the stance, and the big execute button. */
+  private renderPlan(c: Ctx): TemplateResult[] {
     const stances = STANCES.map((s) =>
       this.button(
         `stance_${s}`,
@@ -708,37 +887,9 @@ export class WwArmyCard extends LitElement implements Controller {
         { pressed: c.sel.stance === s },
       ),
     );
-    const execute = c.card.executing
-      ? this.button(
-          "execute",
-          translateText("ww1936.land.btn_stop"),
-          "■",
-          () => this.send({ kind: "army_execute", army, on: false }),
-          { danger: true, wide: true },
-        )
-      : this.button(
-          "execute",
-          translateText(
-            armed ? "ww1936.land.tap_again" : "ww1936.land.btn_execute",
-          ),
-          "▶",
-          () => {
-            if (block !== null) {
-              this.refused = { id: "execute", block };
-              return;
-            }
-            this.refused = null;
-            // The first press draws the plan; the second, within 3 s, runs it.
-            this.confirmTap(key, () =>
-              this.send({ kind: "army_execute", army, on: true }),
-            );
-            if (this.armed(key)) this.send(plan);
-          },
-          { grey: block !== null, pressed: armed, wide: true },
-        );
     return [
       ...stances,
-      execute,
+      this.executeButton(c, true),
       this.button("back", translateText("common.back"), "←", () =>
         this.setMode("none"),
       ),

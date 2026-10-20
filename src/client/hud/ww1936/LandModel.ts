@@ -86,6 +86,7 @@ import { techTotals, TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
+import { blockText } from "./EconomyModel";
 import type { LandMode } from "./LandSelection";
 import { isKoreanUi, type WwGame } from "./WorldWarModel";
 
@@ -95,6 +96,11 @@ import { isKoreanUi, type WwGame } from "./WorldWarModel";
 export interface LandSides {
   sameSide(a: number, b: number): boolean;
   isEnemy(a: number, b: number): boolean;
+  /**
+   * Changes whenever isEnemy may answer differently (a war, the end of the
+   * preparation minute): the model's caches key on it. Absent: never.
+   */
+  stamp?(): string;
 }
 
 function factionOf(scenario: ScenarioIndex, smallID: number) {
@@ -137,6 +143,12 @@ export function landSidesOf(game: WwGame): LandSides {
       return data.wars.some(
         (w) => (w.a === a && w.b === b) || (w.a === b && w.b === a),
       );
+    },
+    stamp: () => {
+      const data = game.worldWarData();
+      if (data === null) return "";
+      const fight = game.ticks() >= data.prepEndTick;
+      return `${fight}:${data.wars.length}:${data.capitulated.length}`;
     },
   };
 }
@@ -512,21 +524,69 @@ export const ARMY_BUTTONS = [
 ] as const;
 export type ArmyButton = (typeof ARMY_BUTTONS)[number];
 
+/**
+ * Why a card button is greyed: an order check's refusal, or "split_single"
+ * (an army of one division has nothing to split off; its own text).
+ */
+export type CardBlock = WwOrderBlock | "split_single";
+
+/** A card button's refusal, in words. */
+export function cardBlockText(b: CardBlock): string {
+  return b === "split_single"
+    ? translateText("ww1936.land.block_split_single")
+    : blockText(b);
+}
+
 export interface ArmyCardData {
   row: ArmyRowData;
   status: StatusLine;
   planBp: number;
   supplyPm: number;
-  buttons: { id: string; block: WwOrderBlock | null }[];
+  buttons: { id: string; block: CardBlock | null }[];
   /** The general's numbers and traits; null without one. */
   general: GeneralData | null;
   auto: boolean;
   /** The plan runs (army_execute on). */
   executing: boolean;
-  /** My other armies with a division in one of its regions (army_merge). */
+  /** My armies this one can merge into now (army_merge passes the checks). */
   mergeWith: number[];
   /** The "⋯" panel's paradrop button (to the nearest enemy region). */
   paradropBlock: WwOrderBlock | null;
+}
+
+/**
+ * Per-view memo of the card's searches (the nearest enemy region, the
+ * armies to merge with), dropped whenever the view, the economy, the day,
+ * the viewer or the wars move on: the card redraws every few ticks.
+ */
+const memos = new WeakMap<
+  object,
+  { key: string; values: Map<string, unknown> }
+>();
+
+function memo<T>(
+  view: WwLandView,
+  key: string,
+  name: string,
+  make: () => T,
+): T {
+  let m = memos.get(view);
+  if (m === undefined || m.key !== key) {
+    m = { key, values: new Map() };
+    memos.set(view, m);
+  }
+  if (!m.values.has(name)) m.values.set(name, make());
+  return m.values.get(name) as T;
+}
+
+function memoKey(
+  view: WwLandView,
+  economy: WwEconomyView,
+  me: number,
+  day: number,
+  sides: LandSides,
+): string {
+  return `${view.version}|${economy.version}|${me}|${day}|${sides.stamp?.() ?? ""}`;
 }
 
 /** The nearest enemy region from `from` over the land graph (BFS, ids ascending). */
@@ -554,11 +614,7 @@ function nearestEnemy(
 }
 
 /** My armies other than `a` with a division in one of its regions, by id. */
-function mergeCandidates(
-  view: WwLandView,
-  me: number,
-  a: ArmySummary,
-): number[] {
+function sharingArmies(view: WwLandView, me: number, a: ArmySummary): number[] {
   const mine = new Set(orderCheckArmy(view, me, a).regions);
   return view
     .armiesOf(me)
@@ -571,6 +627,27 @@ function mergeCandidates(
 }
 
 /**
+ * The armies `a` can merge into now: those sharing a region whose merge
+ * the order checks accept; else, with none, the first one's refusal.
+ */
+function mergeTargets(
+  w: OrderCheckWorld,
+  view: WwLandView,
+  me: number,
+  a: ArmySummary,
+): { into: number[]; block: WwOrderBlock | null } {
+  const sharing = sharingArmies(view, me, a);
+  const into: number[] = [];
+  let block: WwOrderBlock | null = null;
+  for (const id of sharing) {
+    const b = landOrderBlockOf(w, { kind: "army_merge", army: a.id, into: id });
+    if (b === null) into.push(id);
+    else block ??= b;
+  }
+  return { into, block: into.length > 0 ? null : (block ?? "no_army") };
+}
+
+/**
  * Each button's block (spec §15.4: a greyed button says why), asked of
  * LandOrderChecks with the order the button leads to: the army's own
  * region where it needs one (a region without a railway or a port says
@@ -579,21 +656,19 @@ function mergeCandidates(
  * checked again then (tapBlock).
  */
 function buttonBlocks(
+  w: OrderCheckWorld,
   view: WwLandView,
-  economy: WwEconomyView,
   me: number,
   a: ArmySummary,
-  day: number,
   sides: LandSides,
-): { id: ArmyButton; block: WwOrderBlock | null }[] {
-  const w = orderCheckWorld(view, economy, me, day, sides);
+  enemy: number | null,
+  merge: WwOrderBlock | null,
+): { id: ArmyButton; block: CardBlock | null }[] {
   const army = a.id;
   const at = a.region;
   const check = (o: LandOrder | null, none: WwOrderBlock) =>
     o === null ? none : landOrderBlockOf(w, o);
-  const enemy = nearestEnemy(view, me, at, sides);
   const border = borderRegionsOf(frontWorld(view, sides), me, 0)[0] ?? at;
-  const merge = mergeCandidates(view, me, a)[0];
   // A sea move needs another port of my side to sail to.
   const port = view.scenario.landRegions.find(
     (r) =>
@@ -601,7 +676,7 @@ function buttonBlocks(
       view.scenario.isPort(r.id) &&
       sides.sameSide(me, view.controller[r.id]),
   )?.id;
-  const blocks: Record<ArmyButton, WwOrderBlock | null> = {
+  const blocks: Record<ArmyButton, CardBlock | null> = {
     move: check({ kind: "army_move", army, region: at }, "no_army"),
     attack: check(
       enemy === null ? null : { kind: "army_attack", army, region: enemy },
@@ -620,14 +695,11 @@ function buttonBlocks(
       port === undefined ? null : { kind: "army_sea", army, region: port },
       "no_port",
     ),
-    split: check(
-      { kind: "army_split", army, count: 1, template: 0 },
-      "no_army",
-    ),
-    merge: check(
-      merge === undefined ? null : { kind: "army_merge", army, into: merge },
-      "no_army",
-    ),
+    split:
+      a.divisions < 2
+        ? "split_single"
+        : check({ kind: "army_split", army, count: 1, template: 0 }, "no_army"),
+    merge,
     auto: check(
       { kind: "army_auto", army, on: !(a.mine?.auto ?? false) },
       "no_army",
@@ -647,35 +719,29 @@ export function armyCard(
 ): ArmyCardData | null {
   const a = myArmy(view, me, army);
   if (a === null) return null;
+  const w = orderCheckWorld(view, economy, me, day, sides);
+  const key = memoKey(view, economy, me, day, sides);
+  const enemy = memo(view, key, `enemy:${a.region}`, () =>
+    nearestEnemy(view, me, a.region, sides),
+  );
+  const merge = memo(view, key, `merge:${a.id}`, () =>
+    mergeTargets(w, view, me, a),
+  );
   return {
     row: rowOf(a),
     status: armyStatus(view, me, a, day),
     planBp: a.mine?.planBp ?? 0,
     supplyPm: a.mine?.supplyPm ?? 1000,
-    buttons: buttonBlocks(view, economy, me, a, day, sides),
+    buttons: buttonBlocks(w, view, me, a, sides, enemy, merge.block),
     general: generalData(view, me, a.general),
     auto: a.mine?.auto ?? false,
     executing: a.mine?.order.executing ?? false,
-    mergeWith: mergeCandidates(view, me, a),
-    paradropBlock: paradropBlock(view, economy, me, a, day, sides),
+    mergeWith: merge.into,
+    paradropBlock:
+      enemy === null
+        ? "not_at_war"
+        : landOrderBlockOf(w, { kind: "paradrop", army: a.id, region: enemy }),
   };
-}
-
-function paradropBlock(
-  view: WwLandView,
-  economy: WwEconomyView,
-  me: number,
-  a: ArmySummary,
-  day: number,
-  sides: LandSides,
-): WwOrderBlock | null {
-  const enemy = nearestEnemy(view, me, a.region, sides);
-  if (enemy === null) return "not_at_war";
-  return landOrderBlockOf(orderCheckWorld(view, economy, me, day, sides), {
-    kind: "paradrop",
-    army: a.id,
-    region: enemy,
-  });
 }
 
 // ---- Taps on the map (spec §15.3) ----

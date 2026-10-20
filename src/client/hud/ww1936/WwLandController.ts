@@ -200,7 +200,21 @@ export class WwLandController implements Controller {
       .filter((p) => view.armies.get(p.army)?.owner === me);
     const hit = this.deps.hit(mine, w.x, w.y, radius, sel.army);
     if (hit !== null) {
-      this.select(hit);
+      // In an order mode another army's token stands for its region (move
+      // or rail onto a friendly stack); the chosen army's own token in
+      // reach still chooses (or cycles) as usual.
+      const own = mine.some(
+        (p) =>
+          p.army === sel.army &&
+          (p.x - w.x) * (p.x - w.x) + (p.y - w.y) * (p.y - w.y) <=
+            radius * radius,
+      );
+      const at = view.armies.get(hit)?.region ?? 0;
+      if (sel.army !== null && sel.mode !== "none" && !own && at !== 0) {
+        this.regionTap(view, me, sel.army, at);
+      } else {
+        this.select(hit);
+      }
       return true;
     }
     // 2. No army chosen: a battle marker opens its card; the rest is the
@@ -252,7 +266,8 @@ export class WwLandController implements Controller {
     const sides = this.sides();
     const kind = tapKind(view, me, sel.mode, region, sides);
     if (kind === null) {
-      this.cancel();
+      // A plan's draft survives stray taps: the card's back or cancel ends it.
+      if (sel.mode !== "plan") this.cancel();
       return;
     }
     if (kind === "plan") {
@@ -281,8 +296,15 @@ export class WwLandController implements Controller {
       return;
     }
     this.eventBus.emit(new SendWwOrderIntentEvent(order));
-    sel.setMode("none");
+    this.modeTo("none");
     this.changed();
+  }
+
+  /** The selection's mode; leaving plan mode drops the plan's draft. */
+  private modeTo(mode: LandMode): void {
+    const sel = this.selection;
+    if (sel.mode === "plan" && mode !== "plan") sel.targets = [];
+    sel.setMode(mode);
   }
 
   /** "Elsewhere": the preview, else the mode, else the chosen army goes. */
@@ -292,7 +314,7 @@ export class WwLandController implements Controller {
       sel.pending = null;
       sel.version++;
     } else if (sel.mode !== "none") {
-      sel.setMode("none");
+      this.modeTo("none");
     } else {
       this.select(null);
       return;
@@ -319,7 +341,7 @@ export class WwLandController implements Controller {
   private setMode(mode: LandMode): void {
     const sel = this.selection;
     if (sel.army === null) return;
-    sel.setMode(mode);
+    this.modeTo(mode);
     // A plan's draft starts from the plan the army runs.
     if (mode === "plan" && sel.targets.length === 0) {
       const order = this.game.wwLand?.()?.armies.get(sel.army)?.mine?.order;
