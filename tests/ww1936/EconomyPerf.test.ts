@@ -75,15 +75,25 @@ function cpuStepMs(threadCpu: ThreadCpu): number {
 describe("the economy's cost on world1936 (spec §14.6)", () => {
   test("the region neighbours are built quickly the first time", async () => {
     const files = await worldFiles();
-    // Best of three first builds, each on a new index.
+    // Best of three first builds, each on a new index, by the thread's CPU
+    // clock when Node has one (the other workers do not stretch it).
+    const threadCpu = (
+      process as { threadCpuUsage?: ThreadCpu }
+    ).threadCpuUsage?.bind(process);
     let ms = Infinity;
     let index = ScenarioIndex.fromFiles(files.scenario!, files.regionsBin!);
     let pairs = index.regionPairs();
     for (let i = 0; i < BATCHES_FIRST_BUILD; i++) {
       index = ScenarioIndex.fromFiles(files.scenario!, files.regionsBin!);
       const t0 = performance.now();
+      const c0 = threadCpu?.();
       pairs = index.regionPairs();
-      ms = Math.min(ms, performance.now() - t0);
+      const used = threadCpu?.(c0);
+      const wall = performance.now() - t0;
+      ms = Math.min(
+        ms,
+        used === undefined ? wall : (used.user + used.system) / 1000,
+      );
     }
     console.log(
       `world1936: ${pairs.length} region pairs in ${ms.toFixed(1)} ms (best of ${BATCHES_FIRST_BUILD})`,

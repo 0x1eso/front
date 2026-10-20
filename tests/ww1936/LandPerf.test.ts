@@ -7,8 +7,8 @@
 // not plan) and every country's detail goes to the screens. A tick's land war
 // (WwLand.tick and the screens' update) must average within three times
 // the desktop budget (1.5 ms), on the best of five timed batches after a
-// warm-up (load-robust: a neighbour's burst slows one batch, not the
-// verdict). The caches are derived: each is checked against a fresh
+// warm-up, by this thread's CPU clock (load-robust: other workers neither
+// stretch the clock nor, through one burst, the verdict). The caches are derived: each is checked against a fresh
 // computation, supply against an independent reference under random
 // changes, and a restored game must continue tick for tick.
 import {
@@ -137,24 +137,44 @@ async function warGame(humans: WwHuman[] = ALL_HUMAN): Promise<GameRunner> {
   return runner;
 }
 
-/** Times WwLand.tick plus its update (takeData) of every tick `runner` steps. */
-function timeLand(runner: GameRunner): { last: () => number } {
+type ThreadCpu = (prev?: NodeJS.CpuUsage) => NodeJS.CpuUsage;
+/** This thread's CPU clock (Node 23.9+): a full suite's other workers do not stretch it. */
+const threadCpu = (
+  process as { threadCpuUsage?: ThreadCpu }
+).threadCpuUsage?.bind(process);
+
+/**
+ * Times WwLand.tick plus its update (takeData) of every tick `runner`
+ * steps: wall ms, and the thread's CPU ms (wall when Node has no thread
+ * clock). The CPU clock moves in scheduler steps; summed over a batch its
+ * reading is the batch's CPU time.
+ */
+function timeLand(runner: GameRunner): {
+  wall: () => number;
+  cpu: () => number;
+} {
   const l = land(runner.game);
   const tick = l.tick.bind(l);
   const take = l.takeData.bind(l);
-  let ms = 0;
+  let wall = 0;
+  let cpu = 0;
+  const time = <T>(f: () => T): T => {
+    const a = performance.now();
+    const c = threadCpu?.();
+    const out = f();
+    const w = performance.now() - a;
+    const used = threadCpu?.(c);
+    wall += w;
+    cpu += used === undefined ? w : (used.user + used.system) / 1000;
+    return out;
+  };
   l.tick = (t: number) => {
-    const a = performance.now();
-    tick(t);
-    ms = performance.now() - a;
+    wall = 0;
+    cpu = 0;
+    time(() => tick(t));
   };
-  l.takeData = () => {
-    const a = performance.now();
-    const d = take();
-    ms += performance.now() - a;
-    return d;
-  };
-  return { last: () => ms };
+  l.takeData = () => time(() => take());
+  return { wall: () => wall, cpu: () => cpu };
 }
 
 describe("the land war's cost (spec §17.3, §19.4)", () => {
@@ -166,27 +186,33 @@ describe("the land war's cost (spec §17.3, §19.4)", () => {
     expect(l.battles.size).toBe(BATTLES.length);
     const timer = timeLand(runner);
     step(runner, WARMUP_TICKS);
-    const batches: number[][] = [];
+    const wall: number[][] = [];
+    const cpu: number[][] = [];
     let battles = 0;
     for (let b = 0; b < BATCHES; b++) {
-      const ms: number[] = [];
+      const w: number[] = [];
+      const c: number[] = [];
       for (let i = 0; i < TICKS_PER_BATCH; i++) {
         step(runner);
-        ms.push(timer.last());
+        w.push(timer.wall());
+        c.push(timer.cpu());
         battles += l.battles.size;
       }
-      batches.push(ms);
+      wall.push(w);
+      cpu.push(c);
     }
     const mean = (xs: readonly number[]) =>
       xs.reduce((a, b) => a + b, 0) / xs.length;
-    const means = batches.map(mean);
-    const best = Math.min(...means);
-    const all = batches.flat().sort((a, b) => a - b);
+    const cpuMeans = cpu.map(mean);
+    const wallMeans = wall.map(mean);
+    const best = Math.min(...cpuMeans);
+    const all = wall.flat().sort((a, b) => a - b);
     console.log(
       `land war, test map, ${l.divisions.count()} divisions, ` +
         `${(battles / (BATCHES * TICKS_PER_BATCH)).toFixed(1)} battles a tick: ` +
-        `best batch ${best.toFixed(3)} ms/tick (batches ${means.map((m) => m.toFixed(3)).join(" / ")}); ` +
-        `p50 ${all[all.length >> 1].toFixed(3)} p99 ${all[Math.floor(all.length * 0.99)].toFixed(3)} ` +
+        `best batch ${best.toFixed(3)} ms/tick cpu, ${Math.min(...wallMeans).toFixed(3)} wall ` +
+        `(batches cpu ${cpuMeans.map((m) => m.toFixed(3)).join(" / ")}); wall p50 ` +
+        `${all[all.length >> 1].toFixed(3)} p99 ${all[Math.floor(all.length * 0.99)].toFixed(3)} ` +
         `max ${all[all.length - 1].toFixed(2)} ms over ${all.length} ticks`,
     );
     // Still a war at the end: the timed ticks fought.
