@@ -3622,7 +3622,7 @@
       "troop_cap": "최대 병력",
       "combat": "공격 {a}% · 방어 {d}% · 속도 {s}%",
       "slot_empty": "비어 있음",
-      "ahead": "+{n}% (연도보다 이름)",
+      "ahead": "+{n}% (시대 앞섬)",
       "cancel_tap": "다시 누르면 취소",
       "remove_tap": "다시 누르면 지우기",
       "occupied_note": "점령지: 공장 50%",
