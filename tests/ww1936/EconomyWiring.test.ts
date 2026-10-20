@@ -106,8 +106,12 @@ describe("economy wiring (spec §6, §14)", () => {
       stamped(HUMAN, { type: "declare_war", target: ita.id() }),
     ]);
     step(runner, 2);
+    // The 1936 army and Britain's day-0 draft (tick 603), all at home.
     const before = econ.armyMen(gbr);
-    expect(before).toBe(250_000);
+    expect(before).toBe(gbr.troops());
+    expect(before).toBe(
+      250_000 + econ.country(gbr.smallID())!.totals.recruited,
+    );
     // A boat for Rome's coast: its men leave the troops, not the army.
     step(runner, 1, [
       stamped(HUMAN, { type: "boat", troops: 50_000, dst: g.ref(65, 99) }),
@@ -115,7 +119,7 @@ describe("economy wiring (spec §6, §14)", () => {
     step(runner, 2);
     const [boat] = gbr.units(UnitType.TransportShip);
     expect(boat.troops()).toBe(50_000);
-    expect(gbr.troops()).toBe(200_000);
+    expect(gbr.troops()).toBe(before - 50_000);
     expect(econ.armyMen(gbr)).toBe(before);
   });
 
