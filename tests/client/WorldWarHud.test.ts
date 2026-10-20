@@ -1,3 +1,4 @@
+import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
@@ -545,6 +546,38 @@ describe("the World War 1936 screens (spec §8.2)", () => {
       emphasized: true,
     });
     expect(row("FRA").emphasized).toBe(false);
+  });
+
+  it("the player panel's header names the country in the UI language, as the leaderboard does", () => {
+    const g = {
+      ...fakeGame({ me: "ITA", humans: { DEU: ["C1", "minsu"] } }),
+      gameID: () => "WWTEST01",
+      myClientID: () => "C9",
+    };
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g as never;
+    const header = (tag: CountryTag, type: PlayerType) => {
+      const other = {
+        ...(g.playerBySmallID(ID(tag)) as object),
+        type: () => type,
+        isTraitor: () => false,
+        cosmetics: {},
+      };
+      const div = document.createElement("div");
+      render(
+        (
+          panel as unknown as {
+            renderIdentityRow(other: unknown, my: unknown): unknown;
+          }
+        ).renderIdentityRow(other, g.myPlayer()),
+        div,
+      );
+      return div.querySelector("h2")!.textContent!.trim();
+    };
+    expect(header("DEU", PlayerType.Human)).toBe(
+      "[ww1936.country.DEU] · minsu",
+    );
+    expect(header("FRA", PlayerType.Nation)).toBe("[ww1936.country.FRA]");
   });
 
   it("<win-modal> names the winning faction and lists its MVPs", async () => {

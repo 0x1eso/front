@@ -46,7 +46,12 @@ import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { renderDuration, showToast, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
-import { callIns, TWO_TAP_MS, TwoTap } from "../ww1936/WorldWarModel";
+import {
+  callIns,
+  shownName,
+  TWO_TAP_MS,
+  TwoTap,
+} from "../ww1936/WorldWarModel";
 import { ChatModal } from "./ChatModal";
 import { EmojiTable } from "./EmojiTable";
 import "./PlayerModerationModal";
@@ -649,6 +654,7 @@ export class PlayerPanel extends LitElement implements Controller {
         ? null
         : this.identityChipProps(other.type());
     const levelBadge = this.levelBadgeFor(other);
+    const name = shownName(this.g, other);
 
     return html`
       <div class="flex items-center gap-2.5 flex-wrap">
@@ -676,9 +682,9 @@ export class PlayerPanel extends LitElement implements Controller {
             : ""}
           <h2
             class="min-w-0 text-xl font-bold tracking-[-0.01em] text-zinc-50 truncate"
-            title=${other.displayName()}
+            title=${name}
           >
-            ${other.displayName()}
+            ${name}
           </h2>
         </div>
         ${chip

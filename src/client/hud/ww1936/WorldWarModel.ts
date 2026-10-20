@@ -80,6 +80,18 @@ export function countryLabel(game: WwGame, p: PlayerView): string {
 }
 
 /**
+ * The name the hover card and the player panel show a player by: in this
+ * mode its translated country (with the username for a human), as on the
+ * leaderboard; otherwise its display name. PlayerInfo.name stays the
+ * English country name for the map labels (plan decision 3).
+ */
+export function shownName(game: WwGame, p: PlayerView): string {
+  return game.worldWarScenario() === null
+    ? p.displayName()
+    : countryLabel(game, p);
+}
+
+/**
  * Month names by month - 1. "m01".."m12": integer-like keys would be ordered
  * as numbers, not as the sorted strings tests/EnJsonSorted.test.ts expects.
  * Written out so tests/TranslationSystem.test.ts sees every key.

@@ -140,6 +140,27 @@ describe("PlayerInfoOverlay", () => {
     expect(out).not.toContain("text-green-500");
   });
 
+  it("in World War 1936 the card names the country in the UI language, with the username", () => {
+    overlay.game = {
+      ...makeGame(null),
+      owner: () => ({
+        ...hovered,
+        countryTag: () => "DEU",
+        clientID: () => "C1",
+      }),
+      // A tile outside every region: no region line.
+      worldWarScenario: () => ({ regionAt: () => 0, region: () => undefined }),
+      usernameOf: (clientID: string) => (clientID === "C1" ? "minsu" : null),
+    } as never;
+
+    overlay.maybeShow(10, 10);
+    const out = flatten(overlay.render());
+
+    expect(out).toContain("ww1936.country.DEU · minsu");
+    // Not the English name the map labels use.
+    expect(out).not.toContain("Bob");
+  });
+
   it("outside World War 1936 the card never looks up the UI language", () => {
     overlay.game = makeGame(null) as never;
     const query = vi.spyOn(document, "querySelector");
