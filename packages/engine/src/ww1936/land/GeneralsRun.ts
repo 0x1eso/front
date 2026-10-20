@@ -49,8 +49,8 @@ export function canServe(g: GeneralState, day: number): boolean {
 /**
  * Spec §6.2: puts `general` at the head of `army` (0: takes it away). A
  * general leading another army leaves it; the army's old general is free.
- * A player's order of any army kind turns the army's auto off (pre-flight
- * U2); the AI gives this order only to its own armies, never auto ones.
+ * It leaves the army's `auto` alone: WwLand.issue turns it off for a
+ * player's orders only (pre-flight U2), never for the AI's.
  */
 export function assignGeneral(
   land: WwLand,
@@ -67,7 +67,6 @@ export function assignGeneral(
       return "general_unavailable";
     }
   }
-  a.auto = false;
   if (a.general === general) return null;
   freeGeneral(land, cl, a);
   if (g !== undefined) {

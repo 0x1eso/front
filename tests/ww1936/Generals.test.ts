@@ -19,7 +19,10 @@ import {
   titleNoOfGeneral,
 } from "@openfront/engine-lib/ww1936/Generals";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
-import { applyGeneralDates } from "@openfront/engine/ww1936/land/GeneralsRun";
+import {
+  applyGeneralDates,
+  assignGeneral,
+} from "@openfront/engine/ww1936/land/GeneralsRun";
 import { dailySustain } from "@openfront/engine/ww1936/land/Sustain";
 import { byTag, HUMAN, land, step, stepTo, wwRunnerCapture } from "./util";
 
@@ -67,16 +70,16 @@ describe("generals (P2 spec §6.2)", () => {
     expect(first.general).toBe(rundstedt.id);
     expect(second.general).toBe(bock.id);
     // Bock to the first army: Rundstedt is free, the second has none.
+    // assignGeneral leaves auto alone (WwLand.issue turns it off for a
+    // player's order only, so the AI's assignments keep its armies auto).
     first.auto = true;
-    expect(
-      l.issue(id, { kind: "army_general", army: first.id, general: bock.id }),
-    ).toBeNull();
+    expect(assignGeneral(l, cl, first.id, bock.id)).toBeNull();
     expect(first.general).toBe(bock.id);
     expect(bock.army).toBe(first.id);
     expect(rundstedt.army).toBe(0);
     expect(second.general).toBe(0);
-    // A player's order turns the army's auto off (pre-flight U2).
-    expect(first.auto).toBe(false);
+    expect(first.auto).toBe(true);
+    first.auto = false;
     // Rundstedt to the second.
     expect(
       l.issue(id, {
