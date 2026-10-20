@@ -155,8 +155,34 @@ describe("the world1936 map", () => {
     ["Macau", 113.54, 22.19, "PRT"],
     ["Gibraltar", -5.35, 36.14, "GBR"],
     ["Zara", 15.23, 44.12, "ITA"],
+    // Spanish Sahara west of today's berm, Cape Juby and Ifni (Natural Earth
+    // files them under Moroccan units).
+    ["Laayoune", -13.2, 27.15, "ESN"],
+    ["Dakhla", -15.93, 23.71, "ESN"],
+    ["Tarfaya", -12.92, 27.94, "ESN"],
+    ["Sidi Ifni", -10.17, 29.38, "ESN"],
+    ["Guelmim", -10.06, 28.99, "FRA"],
   ] as const)("%s is %s's", (_name, lon, lat, tag) => {
     expect(ownerAt(lon, lat)).toBe(tag);
+  });
+
+  // Exclaves and small pieces that stand as regions of their own carry the
+  // names players know them by, not the Natural Earth unit under them.
+  test.each([
+    [114.17, 22.32, "Hong Kong", "홍콩"],
+    [113.54, 22.19, "Macau", "마카오"],
+    [-5.35, 36.14, "Gibraltar", "지브롤터"],
+    [15.23, 44.12, "Zara", "자라"],
+    [121.6, 38.92, "Kwantung", "관동주"],
+    [142.7, 46.95, "Karafuto", "가라후토"],
+    [-5.37, 35.57, "Spanish Morocco", "스페인령 모로코"],
+    [45.03, 12.8, "Aden", "아덴"],
+    [-0.2, 5.56, "Gold Coast", "골드코스트"],
+    [123.6, -10.17, "Dutch Timor", "네덜란드령 티모르"],
+    [-13.2, 27.15, "Spanish Sahara", "스페인령 사하라"],
+  ] as const)("the region at %s, %s is %s", (lon, lat, name, nameKo) => {
+    const r = regionAt(lon, lat);
+    expect([r?.name, r?.nameKo]).toEqual([name, nameKo]);
   });
 
   test("Kwantung is a Japanese region of its own, with Dairen's points", () => {

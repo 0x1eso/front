@@ -16,11 +16,16 @@ type CountryRow struct {
 
 // Patch gives the land inside a polygon to a 1936 owner (spec §4.4), only on
 // the listed modern countries / admin-1 units when those lists are set.
+// Name ([name, nameKo]) names a region that lies mostly on the patch's land
+// (Kwantung, Karafuto) instead of the admin-1 unit under it; Own keeps the
+// patch's land a region of its own whatever its size (Zara).
 type Patch struct {
 	Owner   string       `json:"owner"`
 	Note    string       `json:"note"`
 	Adm0    []string     `json:"adm0,omitempty"`
 	Adm1    []string     `json:"adm1,omitempty"`
+	Name    *[2]string   `json:"name,omitempty"`
+	Own     bool         `json:"own,omitempty"`
 	Polygon [][2]float64 `json:"polygon"`
 }
 
@@ -109,6 +114,12 @@ func loadTables(dir string) (*Tables, error) {
 		if len(p.Polygon) < 3 {
 			bad = append(bad, "patch "+p.Note+" has fewer than 3 points")
 		}
+		if p.Name != nil && (p.Name[0] == "" || p.Name[1] == "") {
+			bad = append(bad, "patch "+p.Note+" has an empty name")
+		}
+		if p.Own && p.Name == nil {
+			bad = append(bad, "patch "+p.Note+" is its own region but has no name")
+		}
 	}
 	for _, a := range t.Owners.LowDetail {
 		t.lowDetail[a] = true
@@ -124,8 +135,9 @@ func adm1Key(f Feature) string { return f.Str("adm0_a3") + ":" + f.Str("name") }
 
 // assignOwners rasterizes the admin-1 units and gives every land pixel its
 // 1936 owner (1-based index into countries.json). adm holds the admin-1
-// feature index + 1 per pixel (0 = none).
-func assignOwners(p Projection, land []bool, admin []Feature, t *Tables) ([]uint8, []int32, error) {
+// feature index + 1 per pixel (0 = none), patch the index + 1 of the last
+// patch that set the pixel's owner (0 = none).
+func assignOwners(p Projection, land []bool, admin []Feature, t *Tables) ([]uint8, []int32, []uint16, error) {
 	n := p.Width * p.Height
 	adm := make([]int32, n)
 	for i, f := range admin {
@@ -165,7 +177,7 @@ func assignOwners(p Projection, land []bool, admin []Feature, t *Tables) ([]uint
 	}
 	if len(errs) > 0 {
 		sort.Strings(errs)
-		return nil, nil, fmt.Errorf("owner tables:\n  %v", errs)
+		return nil, nil, nil, fmt.Errorf("owner tables:\n  %v", errs)
 	}
 	owner := make([]uint8, n)
 	for i := 0; i < n; i++ {
@@ -173,7 +185,8 @@ func assignOwners(p Projection, land []bool, admin []Feature, t *Tables) ([]uint
 			owner[i] = featOwner[adm[i]]
 		}
 	}
-	for _, pt := range t.Owners.Patches {
+	patch := make([]uint16, n)
+	for k, pt := range t.Owners.Patches {
 		allow0 := map[string]bool{}
 		for _, a := range pt.Adm0 {
 			allow0[a] = true
@@ -197,6 +210,7 @@ func assignOwners(p Projection, land []bool, admin []Feature, t *Tables) ([]uint
 				return
 			}
 			owner[px] = tag
+			patch[px] = uint16(k + 1)
 		})
 	}
 	// Land Natural Earth's admin-1 layer misses (coast mismatches) or that
@@ -244,5 +258,5 @@ func assignOwners(p Projection, land []bool, admin []Feature, t *Tables) ([]uint
 			queue = append(queue, int32(j))
 		})
 	}
-	return owner, adm, nil
+	return owner, adm, patch, nil
 }

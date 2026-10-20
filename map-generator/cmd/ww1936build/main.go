@@ -75,7 +75,7 @@ func main() {
 	}
 	step("terrain")
 	admin := ne("ne_10m_admin_1_states_provinces")
-	owner, adm, err := assignOwners(p, land, admin, t)
+	owner, adm, patch, err := assignOwners(p, land, admin, t)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func main() {
 		}
 		return
 	}
-	landIDs, regions, err := buildRegions(p, land, owner, adm, admin, t, prm)
+	landIDs, regions, err := buildRegions(p, land, owner, adm, patch, admin, t, prm)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := finishNames(regions, adm, admin, t); err != nil {
+	if err := finishNames(regions, adm, patch, admin, t); err != nil {
 		log.Fatal(err)
 	}
 	if err := os.MkdirAll(*outDir, 0755); err != nil {

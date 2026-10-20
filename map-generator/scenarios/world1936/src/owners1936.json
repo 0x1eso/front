@@ -450,6 +450,8 @@
     "HRV:Istarska": "ITA",
     "IND:Goa": "PRT",
     "LTU:Vilniaus": "POL",
+    "MAR:Laâyoune - Boujdour - Sakia El Hamra": "ESN",
+    "MAR:Oued el Dahab": "ESN",
     "MAR:Tanger - Tétouan": "ESN",
     "MDA:Camenca": "SUN",
     "MDA:Grigoriopol": "SUN",
@@ -717,6 +719,7 @@
       "owner": "JPN",
       "note": "Karafuto, Sakhalin south of the 50th parallel",
       "adm0": ["RUS"],
+      "name": ["Karafuto", "가라후토"],
       "polygon": [
         [141.5, 45.8],
         [144.9, 45.8],
@@ -727,22 +730,37 @@
     },
     {
       "owner": "JPN",
-      "note": "Kuril Islands",
+      "note": "Kuril Islands south of 150°E (Kunashir, Iturup, Urup)",
       "adm0": ["RUS"],
+      "name": ["Southern Kurils", "남쿠릴 열도"],
       "polygon": [
         [145.2, 43.5],
         [146.2, 43.4],
-        [157.0, 50.6],
-        [156.6, 50.95],
-        [155.2, 50.8],
+        [150.0, 45.93],
+        [150.0, 47.58],
         [145.2, 44.6],
         [145.2, 43.5]
       ]
     },
     {
       "owner": "JPN",
+      "note": "Kuril Islands east of 150°E (Simushir to Shumshu)",
+      "adm0": ["RUS"],
+      "name": ["Northern Kurils", "북쿠릴 열도"],
+      "polygon": [
+        [150.0, 45.93],
+        [157.0, 50.6],
+        [156.6, 50.95],
+        [155.2, 50.8],
+        [150.0, 47.58],
+        [150.0, 45.93]
+      ]
+    },
+    {
+      "owner": "JPN",
       "note": "Kwantung Leased Territory (Dairen, Port Arthur)",
       "adm0": ["CHN"],
+      "name": ["Kwantung", "관동주"],
       "polygon": [
         [120.9, 38.6],
         [122.4, 38.6],
@@ -839,6 +857,8 @@
       "owner": "ITA",
       "note": "Zara (Zadar)",
       "adm0": ["HRV"],
+      "name": ["Zara", "자라"],
+      "own": true,
       "polygon": [
         [15.15, 44.05],
         [15.3, 44.05],
@@ -875,6 +895,31 @@
         [-4.6, 34.95],
         [-5.6, 34.95],
         [-6.3, 35.0]
+      ]
+    },
+    {
+      "owner": "ESN",
+      "note": "Cape Juby (Tarfaya) south of the Draa, and Smara: the Spanish zone and Spanish Sahara inside Natural Earth's Guelmim - Es-Semara",
+      "adm1": ["MAR:Guelmim - Es-Semara"],
+      "polygon": [
+        [-14.0, 25.5],
+        [-8.6, 25.5],
+        [-8.6, 28.75],
+        [-14.0, 28.75],
+        [-14.0, 25.5]
+      ]
+    },
+    {
+      "owner": "ESN",
+      "note": "Ifni (Sidi Ifni), Spanish since 1934",
+      "adm0": ["MAR"],
+      "polygon": [
+        [-10.6, 29.15],
+        [-10.2, 29.06],
+        [-9.85, 29.42],
+        [-9.85, 29.65],
+        [-10.05, 29.7],
+        [-10.6, 29.15]
       ]
     },
     {

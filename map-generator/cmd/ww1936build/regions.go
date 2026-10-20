@@ -39,15 +39,23 @@ type group struct {
 	pixels  []int32
 	mainAdm int32 // admin-1 feature of the largest atom, + 1
 	mainLen int
+	own     int // the Own patch (index + 1) the group is, or 0
 }
 
 // buildRegions cuts the land into regions: pieces of one admin-1 unit with
 // one 1936 owner, small pieces joined to their same-owner neighbour, large
 // ones split. Returns a region id per pixel (0 on water) and the regions,
 // numbered from 1 in the order of their first pixel.
-func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin []Feature, t *Tables, prm Params) ([]uint16, []*Region, error) {
+func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, patch []uint16, admin []Feature, t *Tables, prm Params) ([]uint16, []*Region, error) {
 	w := p.Width
 	n := w * p.Height
+	// ownOf is the Own patch a pixel lies on (index + 1), or 0.
+	ownOf := func(i int) int {
+		if k := int(patch[i]); k > 0 && t.Owners.Patches[k-1].Own {
+			return k
+		}
+		return 0
+	}
 	atom := make([]int32, n)
 	var groups []*group
 	for i := 0; i < n; i++ {
@@ -60,13 +68,13 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 		for head := 0; head < len(pix); head++ {
 			k := int(pix[head])
 			forNeighbours4(k, w, n, func(j int) {
-				if atom[j] == 0 && land[j] && owner[j] == owner[k] && adm[j] == adm[k] {
+				if atom[j] == 0 && land[j] && owner[j] == owner[k] && adm[j] == adm[k] && ownOf(j) == ownOf(k) {
 					atom[j] = id
 					pix = append(pix, int32(j))
 				}
 			})
 		}
-		groups = append(groups, &group{owner: int(owner[i]), pixels: pix, mainAdm: adm[i], mainLen: len(pix)})
+		groups = append(groups, &group{owner: int(owner[i]), pixels: pix, mainAdm: adm[i], mainLen: len(pix), own: ownOf(i)})
 	}
 	parent := make([]int32, len(groups)+1)
 	for i := range parent {
@@ -79,6 +87,23 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 			a = parent[a]
 		}
 		return a
+	}
+	// The pieces of an Own patch make one region, whatever their size, and
+	// take no other land: they stay out of the merging below.
+	firstOwn := map[int]int32{}
+	for i, g := range groups {
+		if g.own == 0 {
+			continue
+		}
+		r, ok := firstOwn[g.own]
+		if !ok {
+			firstOwn[g.own] = int32(i + 1)
+			continue
+		}
+		tg := groups[r-1]
+		tg.pixels = append(tg.pixels, g.pixels...)
+		g.pixels = nil
+		parent[i+1] = r
 	}
 	threshold := func(g *group) int {
 		if g.mainAdm > 0 && t.lowDetail[admin[g.mainAdm-1].Str("adm0_a3")] {
@@ -106,7 +131,7 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 				continue
 			}
 			g := groups[r-1]
-			if len(g.pixels) >= threshold(g) {
+			if g.own > 0 || len(g.pixels) >= threshold(g) {
 				continue
 			}
 			edges := map[int32]int{}
@@ -121,7 +146,7 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 						return
 					}
 					island = false
-					if groups[o-1].owner == g.owner {
+					if groups[o-1].owner == g.owner && groups[o-1].own == 0 {
 						edges[o]++
 					}
 				})
@@ -151,7 +176,7 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, admin [
 						return 0
 					}
 					o := find(atom[j])
-					if o == r || groups[o-1].owner != g.owner {
+					if o == r || groups[o-1].owner != g.owner || groups[o-1].own > 0 {
 						return 0
 					}
 					return o
@@ -247,14 +272,19 @@ func setAdminName(r *Region, admin []Feature, unit int32) {
 }
 
 // finishNames names each region after the admin-1 unit of its victory-point
-// tile (its capital or biggest city) when it has one, applies the hand
-// renames (keyed "TAG:name"), adds the split suffixes and numbers repeats.
-// Fails on a rename that matches no region.
-func finishNames(regions []*Region, adm []int32, admin []Feature, t *Tables) error {
+// tile (its capital or biggest city) when it has one, or after a named patch
+// that holds most of its land, applies the hand renames (keyed "TAG:name"),
+// adds the split suffixes and numbers repeats. Fails on a rename that matches
+// no region.
+func finishNames(regions []*Region, adm []int32, patch []uint16, admin []Feature, t *Tables) error {
 	used := map[string]bool{}
 	for _, r := range regions {
 		if r.VPTile >= 0 && adm[r.VPTile] > 0 {
 			setAdminName(r, admin, adm[r.VPTile])
+		}
+		if k := namedPatch(r.Pixels, patch, t); k > 0 {
+			name := t.Owners.Patches[k-1].Name
+			r.Name, r.NameKo = name[0], name[1]
 		}
 		key := t.Countries[r.Owner-1].Tag + ":" + r.Name
 		if names, ok := t.RegionNames[key]; ok {
@@ -271,6 +301,27 @@ func finishNames(regions []*Region, adm []int32, admin []Feature, t *Tables) err
 	}
 	dedupeNames(regions)
 	return nil
+}
+
+// namedPatch is the named patch (index + 1) that holds more than half of
+// pixels (the most pixels; ties: the first patch), or 0.
+func namedPatch(pixels []int32, patch []uint16, t *Tables) int {
+	counts := map[int]int{}
+	for _, px := range pixels {
+		if k := int(patch[px]); k > 0 && t.Owners.Patches[k-1].Name != nil {
+			counts[k]++
+		}
+	}
+	best, bestN := 0, 0
+	for k, c := range counts {
+		if c > bestN || (c == bestN && k < best) {
+			best, bestN = k, c
+		}
+	}
+	if 2*bestN <= len(pixels) {
+		return 0
+	}
+	return best
 }
 
 // splitPixels cuts a set of pixels into k parts around k seeds, by

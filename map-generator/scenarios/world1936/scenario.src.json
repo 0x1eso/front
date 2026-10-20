@@ -2847,8 +2847,8 @@
     },
     {
       "id": 357,
-      "name": "Sakhalin",
-      "nameKo": "사할린",
+      "name": "Northern Kurils",
+      "nameKo": "북쿠릴 열도",
       "owner": "JPN",
       "vp": 0
     },
@@ -3033,8 +3033,8 @@
     },
     {
       "id": 383,
-      "name": "Sakhalin 2",
-      "nameKo": "사할린 2",
+      "name": "Karafuto",
+      "nameKo": "가라후토",
       "owner": "JPN",
       "vp": 0
     },
@@ -3814,8 +3814,8 @@
     },
     {
       "id": 492,
-      "name": "Sakhalin 3",
-      "nameKo": "사할린 3",
+      "name": "Southern Kurils",
+      "nameKo": "남쿠릴 열도",
       "owner": "JPN",
       "vp": 0
     },
@@ -4117,71 +4117,71 @@
     },
     {
       "id": 534,
+      "name": "Zara",
+      "nameKo": "자라",
+      "owner": "ITA",
+      "vp": 0
+    },
+    {
+      "id": 535,
       "name": "Zajecarski",
       "nameKo": "자예차르구",
       "owner": "YUG",
       "vp": 0
     },
     {
-      "id": 535,
+      "id": 536,
       "name": "Gers",
       "nameKo": "제르",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 536,
+      "id": 537,
       "name": "Shumen",
       "nameKo": "슈멘",
       "owner": "BGR",
       "vp": 0
     },
     {
-      "id": 537,
+      "id": 538,
       "name": "Chechnya",
       "nameKo": "체첸 공화국",
       "owner": "SUN",
       "vp": 0
     },
     {
-      "id": 538,
+      "id": 539,
       "name": "Perugia",
       "nameKo": "페루자도",
       "owner": "ITA",
       "vp": 0
     },
     {
-      "id": 539,
+      "id": 540,
       "name": "Kabardin-Balkar",
       "nameKo": "카바르디노발카르 공화국",
       "owner": "SUN",
       "vp": 0
     },
     {
-      "id": 540,
+      "id": 541,
       "name": "León",
       "nameKo": "레온도",
       "owner": "ESN",
       "vp": 0
     },
     {
-      "id": 541,
+      "id": 542,
       "name": "Veliko Tarnovo",
       "nameKo": "벨리코터르노보",
       "owner": "BGR",
       "vp": 0
     },
     {
-      "id": 542,
+      "id": 543,
       "name": "North Ossetia",
       "nameKo": "세베로오세티야 공화국",
-      "owner": "SUN",
-      "vp": 0
-    },
-    {
-      "id": 543,
-      "name": "Sakhalin 3",
-      "nameKo": "사할린 3",
       "owner": "SUN",
       "vp": 0
     },
@@ -5653,8 +5653,8 @@
     },
     {
       "id": 747,
-      "name": "Béchar",
-      "nameKo": "베샤르",
+      "name": "El Bayadh",
+      "nameKo": "엘바야드",
       "owner": "FRA",
       "vp": 0
     },
@@ -5778,8 +5778,8 @@
     },
     {
       "id": 764,
-      "name": "Tanger - Tétouan",
-      "nameKo": "탕헤르테투안 지방",
+      "name": "Spanish Morocco",
+      "nameKo": "스페인령 모로코",
       "owner": "ESN",
       "vp": 0
     },
@@ -6198,20 +6198,27 @@
     },
     {
       "id": 822,
+      "name": "Béchar",
+      "nameKo": "베샤르",
+      "owner": "FRA",
+      "vp": 0
+    },
+    {
+      "id": 823,
       "name": "An-Najaf",
       "nameKo": "나자프",
       "owner": "IRQ",
       "vp": 0
     },
     {
-      "id": 823,
+      "id": 824,
       "name": "Nimroz",
       "nameKo": "님루즈",
       "owner": "AFG",
       "vp": 0
     },
     {
-      "id": 824,
+      "id": 825,
       "name": "Chongqing",
       "nameKo": "충칭시",
       "owner": "CHN",
@@ -6219,84 +6226,84 @@
       "vpTile": [3184, 935]
     },
     {
-      "id": 825,
+      "id": 826,
       "name": "Al Hudud ash Shamaliyah",
       "nameKo": "북부 변경",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 826,
+      "id": 827,
       "name": "Al-Basrah",
       "nameKo": "바스라",
       "owner": "IRQ",
       "vp": 0
     },
     {
-      "id": 827,
+      "id": 828,
       "name": "Kerman",
       "nameKo": "케르만",
       "owner": "IRN",
       "vp": 0
     },
     {
-      "id": 828,
+      "id": 829,
       "name": "Baluchistan",
       "nameKo": "발루치스탄",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 829,
+      "id": 830,
       "name": "Chihuahua",
       "nameKo": "치와와",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 830,
+      "id": 831,
       "name": "Al Jawf",
       "nameKo": "자우프",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 831,
+      "id": 832,
       "name": "Al-Muthannia",
       "nameKo": "무탄나",
       "owner": "IRQ",
       "vp": 0
     },
     {
-      "id": 832,
+      "id": 833,
       "name": "Fars",
       "nameKo": "파르스",
       "owner": "IRN",
       "vp": 0
     },
     {
-      "id": 833,
+      "id": 834,
       "name": "Adrar",
       "nameKo": "아드라르",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 834,
+      "id": 835,
       "name": "Sistan and Baluchestan",
       "nameKo": "시스탄오발루체스탄",
       "owner": "IRN",
       "vp": 0
     },
     {
-      "id": 835,
+      "id": 836,
       "name": "Uttarakhand",
       "nameKo": "우타라칸드",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 836,
+      "id": 837,
       "name": "Shanghai",
       "nameKo": "상하이시",
       "owner": "CHN",
@@ -6304,7 +6311,7 @@
       "vpTile": [3349, 915]
     },
     {
-      "id": 837,
+      "id": 838,
       "name": "Florida",
       "nameKo": "플로리다",
       "owner": "USA",
@@ -6312,19 +6319,12 @@
       "vpTile": [1108, 981]
     },
     {
-      "id": 838,
+      "id": 839,
       "name": "Delhi",
       "nameKo": "델리",
       "owner": "RAJ",
       "vp": 26,
       "vpTile": [2857, 947]
-    },
-    {
-      "id": 839,
-      "name": "Tindouf",
-      "nameKo": "틴두프",
-      "owner": "FRA",
-      "vp": 0
     },
     {
       "id": 840,
@@ -6403,34 +6403,41 @@
     },
     {
       "id": 850,
+      "name": "Ifni",
+      "nameKo": "이프니",
+      "owner": "ESN",
+      "vp": 0
+    },
+    {
+      "id": 851,
       "name": "Arunachal Pradesh",
       "nameKo": "아루나찰프라데시",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 851,
+      "id": 852,
       "name": "Gandaki",
       "nameKo": "간다키 구",
       "owner": "NPL",
       "vp": 0
     },
     {
-      "id": 852,
-      "name": "Las Palmas",
-      "nameKo": "라스팔마스",
+      "id": 853,
+      "name": "Spanish Sahara",
+      "nameKo": "스페인령 사하라",
       "owner": "ESN",
       "vp": 0
     },
     {
-      "id": 853,
+      "id": 854,
       "name": "Al Bahr al Ahmar",
       "nameKo": "홍해",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 854,
+      "id": 855,
       "name": "Yunnan",
       "nameKo": "윈난성",
       "owner": "YUN",
@@ -6438,7 +6445,7 @@
       "vpTile": [3142, 992]
     },
     {
-      "id": 855,
+      "id": 856,
       "name": "Guizhou",
       "nameKo": "구이저우성",
       "owner": "CHN",
@@ -6446,49 +6453,49 @@
       "vpTile": [3185, 971]
     },
     {
-      "id": 856,
+      "id": 857,
       "name": "Tamanghasset",
       "nameKo": "타만라세트",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 857,
+      "id": 858,
       "name": "Ash Sharqiyah",
       "nameKo": "동부",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 858,
+      "id": 859,
       "name": "Rapti",
       "nameKo": "랍티 구",
       "owner": "NPL",
       "vp": 0
     },
     {
-      "id": 859,
+      "id": 860,
       "name": "Tabuk",
       "nameKo": "타부크",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 860,
+      "id": 861,
       "name": "Ha'il",
       "nameKo": "하일",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 861,
+      "id": 862,
       "name": "Hormozgan",
       "nameKo": "호르모즈간",
       "owner": "IRN",
       "vp": 0
     },
     {
-      "id": 862,
+      "id": 863,
       "name": "Sind",
       "nameKo": "신드",
       "owner": "RAJ",
@@ -6496,21 +6503,21 @@
       "vpTile": [2744, 992]
     },
     {
-      "id": 863,
+      "id": 864,
       "name": "Kachin",
       "nameKo": "카친",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 864,
+      "id": 865,
       "name": "Baja California Sur",
       "nameKo": "바하칼리포르니아수르",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 865,
+      "id": 866,
       "name": "Bagmati",
       "nameKo": "바그마티 구",
       "owner": "NPL",
@@ -6518,14 +6525,14 @@
       "vpTile": [2948, 958]
     },
     {
-      "id": 866,
+      "id": 867,
       "name": "Gasa",
       "nameKo": "가사 현",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 867,
+      "id": 868,
       "name": "Fujian",
       "nameKo": "푸젠성",
       "owner": "CHN",
@@ -6533,14 +6540,14 @@
       "vpTile": [3325, 977]
     },
     {
-      "id": 868,
+      "id": 869,
       "name": "Sagarmatha",
       "nameKo": "사가르마타 구",
       "owner": "NPL",
       "vp": 0
     },
     {
-      "id": 869,
+      "id": 870,
       "name": "Thimphu",
       "nameKo": "팀부 현",
       "owner": "RAJ",
@@ -6548,21 +6555,21 @@
       "vpTile": [2995, 961]
     },
     {
-      "id": 870,
+      "id": 871,
       "name": "Bhojpur",
       "nameKo": "보지푸르 지구",
       "owner": "NPL",
       "vp": 0
     },
     {
-      "id": 871,
+      "id": 872,
       "name": "Assam",
       "nameKo": "아삼",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 872,
+      "id": 873,
       "name": "Nuevo León",
       "nameKo": "누에보레온",
       "owner": "MEX",
@@ -6570,17 +6577,10 @@
       "vpTile": [885, 982]
     },
     {
-      "id": 873,
+      "id": 874,
       "name": "Tamaulipas",
       "nameKo": "타마울리파스",
       "owner": "MEX",
-      "vp": 0
-    },
-    {
-      "id": 874,
-      "name": "Spanish Sahara",
-      "nameKo": "스페인령 사하라",
-      "owner": "ESN",
       "vp": 0
     },
     {
@@ -6700,16 +6700,16 @@
     },
     {
       "id": 891,
-      "name": "Muscat and Oman",
-      "nameKo": "무스카트 오만",
+      "name": "Qatar",
+      "nameKo": "카타르",
       "owner": "GBR",
       "vp": 4,
       "vpTile": [2562, 975]
     },
     {
       "id": 892,
-      "name": "Muscat",
-      "nameKo": "무스카트",
+      "name": "Muscat and Oman",
+      "nameKo": "무스카트 오만",
       "owner": "GBR",
       "vp": 4,
       "vpTile": [2648, 1007]
@@ -6746,13 +6746,6 @@
     },
     {
       "id": 897,
-      "name": "Spanish Sahara 2",
-      "nameKo": "스페인령 사하라 2",
-      "owner": "ESN",
-      "vp": 0
-    },
-    {
-      "id": 898,
       "name": "Guangdong",
       "nameKo": "광둥성",
       "owner": "CHN",
@@ -6760,7 +6753,7 @@
       "vpTile": [3258, 1012]
     },
     {
-      "id": 899,
+      "id": 898,
       "name": "Dhaka",
       "nameKo": "다카",
       "owner": "RAJ",
@@ -6768,21 +6761,21 @@
       "vpTile": [3004, 1005]
     },
     {
-      "id": 900,
+      "id": 899,
       "name": "Jharkhand",
       "nameKo": "자르칸드",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 901,
+      "id": 900,
       "name": "Rajshahi",
       "nameKo": "라지샤히구",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 902,
+      "id": 901,
       "name": "Taiwan",
       "nameKo": "대만",
       "owner": "JPN",
@@ -6790,28 +6783,28 @@
       "vpTile": [3350, 990]
     },
     {
-      "id": 903,
+      "id": 902,
       "name": "Sylhet",
       "nameKo": "실렛",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 904,
+      "id": 903,
       "name": "Zacatecas",
       "nameKo": "사카테카스",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 905,
+      "id": 904,
       "name": "Timbuktu",
       "nameKo": "통북투",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 906,
+      "id": 905,
       "name": "Gujarat",
       "nameKo": "구자라트",
       "owner": "RAJ",
@@ -6819,21 +6812,21 @@
       "vpTile": [2806, 1013]
     },
     {
-      "id": 907,
+      "id": 906,
       "name": "San Luis Potosí",
       "nameKo": "산루이스포토시",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 908,
+      "id": 907,
       "name": "Mizoram",
       "nameKo": "미조람",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 909,
+      "id": 908,
       "name": "Dakar",
       "nameKo": "다카르",
       "owner": "FRA",
@@ -6841,14 +6834,14 @@
       "vpTile": [1807, 1108]
     },
     {
-      "id": 910,
+      "id": 909,
       "name": "Khulna",
       "nameKo": "쿨나구",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 911,
+      "id": 910,
       "name": "Chittagong",
       "nameKo": "치타공",
       "owner": "RAJ",
@@ -6856,28 +6849,28 @@
       "vpTile": [3019, 1021]
     },
     {
-      "id": 912,
+      "id": 911,
       "name": "Chhattisgarh",
       "nameKo": "차티스가르",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 913,
+      "id": 912,
       "name": "Shan",
       "nameKo": "샨",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 914,
+      "id": 913,
       "name": "Chin",
       "nameKo": "친",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 915,
+      "id": 914,
       "name": "Makkah",
       "nameKo": "메카",
       "owner": "SAU",
@@ -6885,7 +6878,7 @@
       "vpTile": [2435, 1031]
     },
     {
-      "id": 916,
+      "id": 915,
       "name": "Mandalay",
       "nameKo": "만달레이 구",
       "owner": "RAJ",
@@ -6893,21 +6886,21 @@
       "vpTile": [3067, 1051]
     },
     {
-      "id": 917,
+      "id": 916,
       "name": "Agadez",
       "nameKo": "아가데즈",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 918,
+      "id": 917,
       "name": "Borkou",
       "nameKo": "보르쿠",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 919,
+      "id": 918,
       "name": "Ha Noi",
       "nameKo": "하노이",
       "owner": "FRA",
@@ -6915,7 +6908,7 @@
       "vpTile": [3176, 1037]
     },
     {
-      "id": 920,
+      "id": 919,
       "name": "Ciudad de la Habana",
       "nameKo": "아바나",
       "owner": "CUB",
@@ -6923,28 +6916,28 @@
       "vpTile": [1084, 1012]
     },
     {
-      "id": 921,
+      "id": 920,
       "name": "Villa Clara",
       "nameKo": "비야클라라",
       "owner": "CUB",
       "vp": 0
     },
     {
-      "id": 922,
+      "id": 921,
       "name": "Nayarit",
       "nameKo": "나야리트",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 923,
+      "id": 922,
       "name": "Hodh ech Chargui",
       "nameKo": "호드에슈샤르기",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 924,
+      "id": 923,
       "name": "Jalisco",
       "nameKo": "할리스코",
       "owner": "MEX",
@@ -6952,50 +6945,50 @@
       "vpTile": [851, 1041]
     },
     {
-      "id": 925,
+      "id": 924,
       "name": "Magway",
       "nameKo": "마궤 구",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 926,
+      "id": 925,
       "name": "Yucatán",
       "nameKo": "유카탄",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 927,
+      "id": 926,
       "name": "Camagüey",
       "nameKo": "카마궤이",
       "owner": "CUB",
       "vp": 0
     },
     {
-      "id": 928,
-      "name": "Tsuen Wan",
-      "nameKo": "취엔 완",
+      "id": 927,
+      "name": "Hong Kong",
+      "nameKo": "홍콩",
       "owner": "GBR",
       "vp": 6,
       "vpTile": [3267, 1021]
     },
     {
-      "id": 929,
+      "id": 928,
       "name": "Veracruz",
       "nameKo": "베라크루스",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 930,
+      "id": 929,
       "name": "Odisha",
       "nameKo": "오디샤",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 931,
+      "id": 930,
       "name": "Hawaii",
       "nameKo": "하와이",
       "owner": "USA",
@@ -7003,21 +6996,21 @@
       "vpTile": [246, 1033]
     },
     {
-      "id": 932,
+      "id": 931,
       "name": "Macau",
       "nameKo": "마카오",
       "owner": "PRT",
       "vp": 0
     },
     {
-      "id": 933,
+      "id": 932,
       "name": "Northern",
       "nameKo": "북부",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 934,
+      "id": 933,
       "name": "Khartoum",
       "nameKo": "하르툼",
       "owner": "GBR",
@@ -7025,7 +7018,7 @@
       "vpTile": [2361, 1099]
     },
     {
-      "id": 935,
+      "id": 934,
       "name": "Maharashtra",
       "nameKo": "마하라슈트라",
       "owner": "RAJ",
@@ -7033,56 +7026,56 @@
       "vpTile": [2809, 1059]
     },
     {
-      "id": 936,
+      "id": 935,
       "name": "Guanajuato",
       "nameKo": "과나후아토",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 937,
+      "id": 936,
       "name": "Gao",
       "nameKo": "가오",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 938,
+      "id": 937,
       "name": "Quintana Roo",
       "nameKo": "킨타나로오",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 939,
+      "id": 938,
       "name": "Hidalgo",
       "nameKo": "이달고",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 940,
+      "id": 939,
       "name": "Rakhine",
       "nameKo": "라카인",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 941,
+      "id": 940,
       "name": "Ennedi",
       "nameKo": "엔네디",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 942,
+      "id": 941,
       "name": "`Asir",
       "nameKo": "아시르",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 943,
+      "id": 942,
       "name": "Puebla",
       "nameKo": "푸에블라",
       "owner": "MEX",
@@ -7090,21 +7083,21 @@
       "vpTile": [908, 1060]
     },
     {
-      "id": 944,
+      "id": 943,
       "name": "Campeche",
       "nameKo": "캄페체",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 945,
+      "id": 944,
       "name": "Granma",
       "nameKo": "그란마",
       "owner": "CUB",
       "vp": 0
     },
     {
-      "id": 946,
+      "id": 945,
       "name": "Philippines",
       "nameKo": "필리핀",
       "owner": "USA",
@@ -7112,21 +7105,21 @@
       "vpTile": [3344, 1110]
     },
     {
-      "id": 947,
+      "id": 946,
       "name": "Michoacán",
       "nameKo": "미초아칸",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 948,
+      "id": 947,
       "name": "Lampang",
       "nameKo": "람빵",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 949,
+      "id": 948,
       "name": "Distrito Federal",
       "nameKo": "멕시코시티",
       "owner": "MEX",
@@ -7134,14 +7127,14 @@
       "vpTile": [898, 1055]
     },
     {
-      "id": 950,
+      "id": 949,
       "name": "Chiang Mai",
       "nameKo": "치앙마이",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 951,
+      "id": 950,
       "name": "Ouest",
       "nameKo": "서부",
       "owner": "HTI",
@@ -7149,35 +7142,35 @@
       "vpTile": [1196, 1065]
     },
     {
-      "id": 952,
+      "id": 951,
       "name": "Hainan",
       "nameKo": "하이난성",
       "owner": "CHN",
       "vp": 0
     },
     {
-      "id": 953,
+      "id": 952,
       "name": "Guantanamo Bay USNB",
       "nameKo": "관타나모 베이 USNB",
       "owner": "USA",
       "vp": 0
     },
     {
-      "id": 954,
+      "id": 953,
       "name": "North Darfur",
       "nameKo": "북다르푸르",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 955,
+      "id": 954,
       "name": "San Juan",
       "nameKo": "산후안",
       "owner": "DOM",
       "vp": 0
     },
     {
-      "id": 956,
+      "id": 955,
       "name": "Distrito Nacional",
       "nameKo": "국가 지구",
       "owner": "DOM",
@@ -7185,14 +7178,14 @@
       "vpTile": [1222, 1066]
     },
     {
-      "id": 957,
+      "id": 956,
       "name": "Kayin",
       "nameKo": "카인",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 958,
+      "id": 957,
       "name": "Telangana",
       "nameKo": "텔랑가나",
       "owner": "RAJ",
@@ -7200,84 +7193,84 @@
       "vpTile": [2871, 1078]
     },
     {
-      "id": 959,
+      "id": 958,
       "name": "Nan",
       "nameKo": "난",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 960,
+      "id": 959,
       "name": "Najran",
       "nameKo": "나즈란",
       "owner": "SAU",
       "vp": 0
     },
     {
-      "id": 961,
+      "id": 960,
       "name": "Bago",
       "nameKo": "바고 구",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 962,
+      "id": 961,
       "name": "Cayman Islands",
       "nameKo": "케이맨 아일랜즈",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 963,
+      "id": 962,
       "name": "Andhra Pradesh",
       "nameKo": "안드라프라데시",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 964,
+      "id": 963,
       "name": "Hadramawt",
       "nameKo": "하드라마우트",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 965,
-      "name": "Al Mahrah",
-      "nameKo": "마라",
+      "id": 964,
+      "name": "Mahra",
+      "nameKo": "마흐라",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 966,
+      "id": 965,
       "name": "Colima",
       "nameKo": "콜리마",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 967,
+      "id": 966,
       "name": "Guerrero",
       "nameKo": "게레로",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 968,
+      "id": 967,
       "name": "Northern Islands",
       "nameKo": "북마리아나 제도",
       "owner": "JPN",
       "vp": 0
     },
     {
-      "id": 969,
+      "id": 968,
       "name": "Oaxaca",
       "nameKo": "오아하카",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 970,
+      "id": 969,
       "name": "Niamey",
       "nameKo": "니아메",
       "owner": "FRA",
@@ -7285,7 +7278,7 @@
       "vpTile": [2023, 1123]
     },
     {
-      "id": 971,
+      "id": 970,
       "name": "Jamaica",
       "nameKo": "자메이카",
       "owner": "GBR",
@@ -7293,14 +7286,14 @@
       "vpTile": [1147, 1072]
     },
     {
-      "id": 972,
+      "id": 971,
       "name": "Puerto Rico",
       "nameKo": "푸에르토리코",
       "owner": "USA",
       "vp": 0
     },
     {
-      "id": 973,
+      "id": 972,
       "name": "British Guiana",
       "nameKo": "영국령 기아나",
       "owner": "GBR",
@@ -7308,14 +7301,14 @@
       "vpTile": [1302, 1079]
     },
     {
-      "id": 974,
+      "id": 973,
       "name": "British Honduras",
       "nameKo": "영국령 온두라스",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 975,
+      "id": 974,
       "name": "Karnataka",
       "nameKo": "카르나타카",
       "owner": "RAJ",
@@ -7323,7 +7316,7 @@
       "vpTile": [2861, 1129]
     },
     {
-      "id": 976,
+      "id": 975,
       "name": "Yangon",
       "nameKo": "양곤 구",
       "owner": "RAJ",
@@ -7331,7 +7324,7 @@
       "vpTile": [3068, 1086]
     },
     {
-      "id": 977,
+      "id": 976,
       "name": "Nong Khai",
       "nameKo": "농카이",
       "owner": "THA",
@@ -7339,28 +7332,28 @@
       "vpTile": [3139, 1072]
     },
     {
-      "id": 978,
+      "id": 977,
       "name": "Phetchabun",
       "nameKo": "펫차분",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 979,
+      "id": 978,
       "name": "Guadeloupe",
       "nameKo": "과들루프",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 980,
+      "id": 979,
       "name": "Chiapas",
       "nameKo": "치아파스",
       "owner": "MEX",
       "vp": 0
     },
     {
-      "id": 981,
+      "id": 980,
       "name": "Eritrea",
       "nameKo": "에리트레아",
       "owner": "ITA",
@@ -7368,49 +7361,49 @@
       "vpTile": [2432, 1102]
     },
     {
-      "id": 982,
+      "id": 981,
       "name": "Kalasin",
       "nameKo": "깔라신",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 983,
+      "id": 982,
       "name": "Petén",
       "nameKo": "페텐",
       "owner": "GTM",
       "vp": 0
     },
     {
-      "id": 984,
+      "id": 983,
       "name": "Tak",
       "nameKo": "딱",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 985,
+      "id": 984,
       "name": "Khon Kaen",
       "nameKo": "콘깬",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 986,
+      "id": 985,
       "name": "Sa`dah",
       "nameKo": "사다",
       "owner": "YEM",
       "vp": 0
     },
     {
-      "id": 987,
+      "id": 986,
       "name": "Al Jawf",
       "nameKo": "자우프",
       "owner": "YEM",
       "vp": 0
     },
     {
-      "id": 988,
+      "id": 987,
       "name": "Ribeira Grande de Santiago",
       "nameKo": "히베이라그란드드산티아구시",
       "owner": "PRT",
@@ -7418,7 +7411,7 @@
       "vpTile": [1737, 1106]
     },
     {
-      "id": 989,
+      "id": 988,
       "name": "Saigon",
       "nameKo": "사이공",
       "owner": "FRA",
@@ -7426,7 +7419,7 @@
       "vpTile": [3185, 1154]
     },
     {
-      "id": 990,
+      "id": 989,
       "name": "Fort-Lamy",
       "nameKo": "포르라미",
       "owner": "FRA",
@@ -7434,49 +7427,49 @@
       "vpTile": [2167, 1139]
     },
     {
-      "id": 991,
+      "id": 990,
       "name": "Nakhon Sawan",
       "nameKo": "나콘사완",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 992,
+      "id": 991,
       "name": "North Kordufan",
       "nameKo": "북쿠르두판",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 993,
+      "id": 992,
       "name": "Nakhon Ratchasima",
       "nameKo": "나콘랏차시마",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 994,
+      "id": 993,
       "name": "Yoro",
       "nameKo": "요로",
       "owner": "HND",
       "vp": 0
     },
     {
-      "id": 995,
+      "id": 994,
       "name": "Surin",
       "nameKo": "수린",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 996,
+      "id": 995,
       "name": "Huehuetenango",
       "nameKo": "우에우에테낭고",
       "owner": "GTM",
       "vp": 0
     },
     {
-      "id": 997,
+      "id": 996,
       "name": "Guatemala",
       "nameKo": "과테말라",
       "owner": "GTM",
@@ -7484,7 +7477,7 @@
       "vpTile": [994, 1110]
     },
     {
-      "id": 998,
+      "id": 997,
       "name": "Amanat Al Asimah",
       "nameKo": "사나",
       "owner": "YEM",
@@ -7492,35 +7485,35 @@
       "vpTile": [2491, 1102]
     },
     {
-      "id": 999,
+      "id": 998,
       "name": "Ma'rib",
       "nameKo": "마리브",
       "owner": "YEM",
       "vp": 0
     },
     {
-      "id": 1000,
+      "id": 999,
       "name": "Ubon Ratchathani",
       "nameKo": "우본랏차타니",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1001,
+      "id": 1000,
       "name": "Izabal",
       "nameKo": "이사발",
       "owner": "GTM",
       "vp": 0
     },
     {
-      "id": 1002,
+      "id": 1001,
       "name": "Gracias a Dios",
       "nameKo": "그라시아스아디오스",
       "owner": "HND",
       "vp": 0
     },
     {
-      "id": 1003,
+      "id": 1002,
       "name": "Littoral",
       "nameKo": "리토랄",
       "owner": "FRA",
@@ -7528,28 +7521,28 @@
       "vpTile": [2026, 1203]
     },
     {
-      "id": 1004,
+      "id": 1003,
       "name": "Paracel Islands",
       "nameKo": "파라셀 아일랜즈",
       "owner": "CHN",
       "vp": 0
     },
     {
-      "id": 1005,
+      "id": 1004,
       "name": "Goa",
       "nameKo": "고아",
       "owner": "PRT",
       "vp": 0
     },
     {
-      "id": 1006,
+      "id": 1005,
       "name": "Uthai Thani",
       "nameKo": "우타이타니",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1007,
+      "id": 1006,
       "name": "Koulikoro",
       "nameKo": "쿨리코로",
       "owner": "FRA",
@@ -7557,28 +7550,28 @@
       "vpTile": [1911, 1132]
     },
     {
-      "id": 1008,
+      "id": 1007,
       "name": "Shabwah",
       "nameKo": "샤브와",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1009,
+      "id": 1008,
       "name": "Kanchanaburi",
       "nameKo": "깐짜나부리",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1010,
+      "id": 1009,
       "name": "Olancho",
       "nameKo": "올란초",
       "owner": "HND",
       "vp": 0
     },
     {
-      "id": 1011,
+      "id": 1010,
       "name": "Lagunes",
       "nameKo": "라귄",
       "owner": "FRA",
@@ -7586,14 +7579,14 @@
       "vpTile": [1955, 1215]
     },
     {
-      "id": 1012,
+      "id": 1011,
       "name": "Tanintharyi",
       "nameKo": "타닌타리 구",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 1013,
+      "id": 1012,
       "name": "Francisco Morazán",
       "nameKo": "프란시스코모라산",
       "owner": "HND",
@@ -7601,21 +7594,21 @@
       "vpTile": [1031, 1116]
     },
     {
-      "id": 1014,
+      "id": 1013,
       "name": "Atlántico Norte",
       "nameKo": "북아틀란티코 자치구",
       "owner": "NIC",
       "vp": 0
     },
     {
-      "id": 1015,
+      "id": 1014,
       "name": "Tigray",
       "nameKo": "티그레",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1016,
+      "id": 1015,
       "name": "Bangkok Metropolis",
       "nameKo": "방콕",
       "owner": "THA",
@@ -7623,21 +7616,21 @@
       "vpTile": [3116, 1120]
     },
     {
-      "id": 1017,
+      "id": 1016,
       "name": "Jinotega",
       "nameKo": "히노테가",
       "owner": "NIC",
       "vp": 0
     },
     {
-      "id": 1018,
+      "id": 1017,
       "name": "Afar",
       "nameKo": "아파르",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1019,
+      "id": 1018,
       "name": "San Salvador",
       "nameKo": "산살바도르",
       "owner": "SLV",
@@ -7645,21 +7638,21 @@
       "vpTile": [1009, 1121]
     },
     {
-      "id": 1020,
-      "name": "Abyan",
-      "nameKo": "아브얀",
+      "id": 1019,
+      "name": "Aden",
+      "nameKo": "아덴",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1021,
+      "id": 1020,
       "name": "Sa Kaeo",
       "nameKo": "사깨오",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1022,
+      "id": 1021,
       "name": "Kano",
       "nameKo": "카노",
       "owner": "GBR",
@@ -7667,7 +7660,7 @@
       "vpTile": [2094, 1140]
     },
     {
-      "id": 1023,
+      "id": 1022,
       "name": "Gambia",
       "nameKo": "감비아",
       "owner": "GBR",
@@ -7675,28 +7668,28 @@
       "vpTile": [1816, 1122]
     },
     {
-      "id": 1024,
+      "id": 1023,
       "name": "Amhara",
       "nameKo": "암하라",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1025,
+      "id": 1024,
       "name": "Andaman and Nicobar",
       "nameKo": "안다만 니코바르 제도",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 1026,
+      "id": 1025,
       "name": "Guam",
       "nameKo": "괌",
       "owner": "USA",
       "vp": 0
     },
     {
-      "id": 1027,
+      "id": 1026,
       "name": "Tamil Nadu",
       "nameKo": "타밀나두",
       "owner": "RAJ",
@@ -7704,14 +7697,14 @@
       "vpTile": [2891, 1127]
     },
     {
-      "id": 1028,
+      "id": 1027,
       "name": "Atlántico Sur",
       "nameKo": "남아틀란티코 자치구",
       "owner": "NIC",
       "vp": 0
     },
     {
-      "id": 1029,
+      "id": 1028,
       "name": "Managua",
       "nameKo": "마나과",
       "owner": "NIC",
@@ -7719,14 +7712,14 @@
       "vpTile": [1041, 1138]
     },
     {
-      "id": 1030,
+      "id": 1029,
       "name": "Western Bahr el Ghazal",
       "nameKo": "서바르알가잘",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1031,
+      "id": 1030,
       "name": "Dubréka",
       "nameKo": "두브레카 지방 행정 구역",
       "owner": "FRA",
@@ -7734,7 +7727,7 @@
       "vpTile": [1848, 1167]
     },
     {
-      "id": 1032,
+      "id": 1031,
       "name": "Portuguese Guinea",
       "nameKo": "포르투갈령 기니",
       "owner": "PRT",
@@ -7742,7 +7735,7 @@
       "vpTile": [1826, 1141]
     },
     {
-      "id": 1033,
+      "id": 1032,
       "name": "Djibouti",
       "nameKo": "지부티",
       "owner": "FRA",
@@ -7750,49 +7743,49 @@
       "vpTile": [2478, 1145]
     },
     {
-      "id": 1034,
+      "id": 1033,
       "name": "Kerala",
       "nameKo": "케랄라",
       "owner": "RAJ",
       "vp": 0
     },
     {
-      "id": 1035,
+      "id": 1034,
       "name": "Prachuap Khiri Khan",
       "nameKo": "쁘라쭈압키리칸",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1036,
+      "id": 1035,
       "name": "Curaçao",
       "nameKo": "퀴라소",
       "owner": "NLD",
       "vp": 0
     },
     {
-      "id": 1037,
+      "id": 1036,
       "name": "La Guajira",
       "nameKo": "라과히라",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1038,
+      "id": 1037,
       "name": "Falcón",
       "nameKo": "팔콘",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1039,
+      "id": 1038,
       "name": "Benshangul-Gumaz",
       "nameKo": "베니샹굴구무즈",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1040,
+      "id": 1039,
       "name": "Italian Somaliland",
       "nameKo": "이탈리아령 소말릴란드",
       "owner": "ITA",
@@ -7800,7 +7793,7 @@
       "vpTile": [2503, 1250]
     },
     {
-      "id": 1041,
+      "id": 1040,
       "name": "Zulia",
       "nameKo": "술리아",
       "owner": "VEN",
@@ -7808,7 +7801,7 @@
       "vpTile": [1203, 1154]
     },
     {
-      "id": 1042,
+      "id": 1041,
       "name": "Distrito Capital",
       "nameKo": "수도 지구",
       "owner": "VEN",
@@ -7816,7 +7809,7 @@
       "vpTile": [1256, 1157]
     },
     {
-      "id": 1043,
+      "id": 1042,
       "name": "Lagos",
       "nameKo": "라고스",
       "owner": "GBR",
@@ -7824,7 +7817,7 @@
       "vpTile": [2036, 1201]
     },
     {
-      "id": 1044,
+      "id": 1043,
       "name": "Somaliland",
       "nameKo": "소말릴란드",
       "owner": "GBR",
@@ -7832,50 +7825,50 @@
       "vpTile": [2489, 1167]
     },
     {
-      "id": 1045,
+      "id": 1044,
       "name": "Monagas",
       "nameKo": "모나가스",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1046,
+      "id": 1045,
       "name": "Magdalena",
       "nameKo": "마그달레나",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1047,
+      "id": 1046,
       "name": "Guanacaste",
       "nameKo": "과나카스테",
       "owner": "CRI",
       "vp": 0
     },
     {
-      "id": 1048,
+      "id": 1047,
       "name": "Haute-Kotto",
       "nameKo": "오트코토",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1049,
-      "name": "Greater Accra",
-      "nameKo": "그레이터아크라",
+      "id": 1048,
+      "name": "Gold Coast",
+      "nameKo": "골드코스트",
       "owner": "GBR",
       "vp": 4,
       "vpTile": [1997, 1212]
     },
     {
-      "id": 1050,
+      "id": 1049,
       "name": "Somali",
       "nameKo": "소말리",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1051,
+      "id": 1050,
       "name": "San José",
       "nameKo": "산호세",
       "owner": "CRI",
@@ -7883,42 +7876,42 @@
       "vpTile": [1065, 1163]
     },
     {
-      "id": 1052,
+      "id": 1051,
       "name": "Mérida",
       "nameKo": "메리다",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1053,
+      "id": 1052,
       "name": "Anzoátegui",
       "nameKo": "안소아테기",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1054,
+      "id": 1053,
       "name": "Cesar",
       "nameKo": "세사르",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1055,
+      "id": 1054,
       "name": "Bolívar",
       "nameKo": "볼리바르",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1056,
+      "id": 1055,
       "name": "Clipperton Island",
       "nameKo": "클리퍼턴섬",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1057,
+      "id": 1056,
       "name": "Addis Ababa",
       "nameKo": "아디스아바바",
       "owner": "ETH",
@@ -7926,35 +7919,35 @@
       "vpTile": [2430, 1173]
     },
     {
-      "id": 1058,
+      "id": 1057,
       "name": "Córdoba",
       "nameKo": "코르도바",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1059,
+      "id": 1058,
       "name": "Portuguesa",
       "nameKo": "포르투게사",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1060,
+      "id": 1059,
       "name": "Delta Amacuro",
       "nameKo": "델타아마쿠로",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1061,
+      "id": 1060,
       "name": "Guárico",
       "nameKo": "과리코",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1062,
+      "id": 1061,
       "name": "Northern 2",
       "nameKo": "북부 2",
       "owner": "GBR",
@@ -7962,7 +7955,7 @@
       "vpTile": [1853, 1178]
     },
     {
-      "id": 1063,
+      "id": 1062,
       "name": "Ceylon",
       "nameKo": "실론",
       "owner": "GBR",
@@ -7970,35 +7963,35 @@
       "vpTile": [2887, 1197]
     },
     {
-      "id": 1064,
+      "id": 1063,
       "name": "Surat Thani",
       "nameKo": "수랏타니",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1065,
+      "id": 1064,
       "name": "Veraguas",
       "nameKo": "베라과스",
       "owner": "PAN",
       "vp": 0
     },
     {
-      "id": 1066,
+      "id": 1065,
       "name": "Jonglei",
       "nameKo": "종글레이",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1067,
+      "id": 1066,
       "name": "Yap",
       "nameKo": "야프",
       "owner": "JPN",
       "vp": 0
     },
     {
-      "id": 1068,
+      "id": 1067,
       "name": "Panama",
       "nameKo": "파나마",
       "owner": "PAN",
@@ -8006,21 +7999,21 @@
       "vpTile": [1115, 1173]
     },
     {
-      "id": 1069,
+      "id": 1068,
       "name": "Norte de Santander",
       "nameKo": "노르테데산탄데르",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1070,
+      "id": 1069,
       "name": "Barinas",
       "nameKo": "바리나스",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1071,
+      "id": 1070,
       "name": "Antioquia",
       "nameKo": "안티오키아",
       "owner": "COL",
@@ -8028,21 +8021,21 @@
       "vpTile": [1160, 1204]
     },
     {
-      "id": 1072,
+      "id": 1071,
       "name": "Chocó",
       "nameKo": "초코",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1073,
+      "id": 1072,
       "name": "Gambela Peoples",
       "nameKo": "감벨라",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1074,
+      "id": 1073,
       "name": "Montserrado",
       "nameKo": "몽세라도",
       "owner": "LBR",
@@ -8050,7 +8043,7 @@
       "vpTile": [1880, 1203]
     },
     {
-      "id": 1075,
+      "id": 1074,
       "name": "Bangui",
       "nameKo": "방기",
       "owner": "FRA",
@@ -8058,56 +8051,56 @@
       "vpTile": [2206, 1225]
     },
     {
-      "id": 1076,
+      "id": 1075,
       "name": "Bolívar",
       "nameKo": "볼리바르",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1077,
+      "id": 1076,
       "name": "Southern Nations, Nationalities and Peoples",
       "nameKo": "남부 국가 민족",
       "owner": "ETH",
       "vp": 0
     },
     {
-      "id": 1078,
+      "id": 1077,
       "name": "Chuuk",
       "nameKo": "추크",
       "owner": "JPN",
       "vp": 0
     },
     {
-      "id": 1079,
+      "id": 1078,
       "name": "Santander",
       "nameKo": "산탄데르",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1080,
+      "id": 1079,
       "name": "Apure",
       "nameKo": "아푸레",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1081,
+      "id": 1080,
       "name": "Songkhla",
       "nameKo": "송클라",
       "owner": "THA",
       "vp": 0
     },
     {
-      "id": 1082,
+      "id": 1081,
       "name": "Nimba",
       "nameKo": "님바",
       "owner": "LBR",
       "vp": 0
     },
     {
-      "id": 1083,
+      "id": 1082,
       "name": "Ngeremlengui",
       "nameKo": "가렘렝구이",
       "owner": "JPN",
@@ -8115,7 +8108,7 @@
       "vpTile": [3495, 1190]
     },
     {
-      "id": 1084,
+      "id": 1083,
       "name": "British Borneo",
       "nameKo": "영국령 보르네오",
       "owner": "GBR",
@@ -8123,21 +8116,21 @@
       "vpTile": [3277, 1219]
     },
     {
-      "id": 1085,
+      "id": 1084,
       "name": "Arauca",
       "nameKo": "아라우카",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1086,
+      "id": 1085,
       "name": "Boyacá",
       "nameKo": "보야카",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1087,
+      "id": 1086,
       "name": "Pohnpei",
       "nameKo": "폰페이",
       "owner": "JPN",
@@ -8145,7 +8138,7 @@
       "vpTile": [3757, 1197]
     },
     {
-      "id": 1088,
+      "id": 1087,
       "name": "Malaya",
       "nameKo": "말라야",
       "owner": "GBR",
@@ -8153,28 +8146,28 @@
       "vpTile": [3153, 1259]
     },
     {
-      "id": 1089,
+      "id": 1088,
       "name": "Grand Gedeh",
       "nameKo": "그랜드게데",
       "owner": "LBR",
       "vp": 0
     },
     {
-      "id": 1090,
+      "id": 1089,
       "name": "Casanare",
       "nameKo": "카사나레",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1091,
+      "id": 1090,
       "name": "Vichada",
       "nameKo": "비차다",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1092,
+      "id": 1091,
       "name": "Estuaire",
       "nameKo": "에스튀에르",
       "owner": "FRA",
@@ -8182,14 +8175,14 @@
       "vpTile": [2105, 1269]
     },
     {
-      "id": 1093,
+      "id": 1092,
       "name": "Amazonas",
       "nameKo": "아마소나스",
       "owner": "VEN",
       "vp": 0
     },
     {
-      "id": 1094,
+      "id": 1093,
       "name": "Suriname",
       "nameKo": "수리남",
       "owner": "NLD",
@@ -8197,7 +8190,7 @@
       "vpTile": [1388, 1208]
     },
     {
-      "id": 1095,
+      "id": 1094,
       "name": "Batavia",
       "nameKo": "바타비아",
       "owner": "NLD",
@@ -8205,7 +8198,7 @@
       "vpTile": [3186, 1342]
     },
     {
-      "id": 1096,
+      "id": 1095,
       "name": "Valle del Cauca",
       "nameKo": "바예델카우카",
       "owner": "COL",
@@ -8213,7 +8206,7 @@
       "vpTile": [1149, 1236]
     },
     {
-      "id": 1097,
+      "id": 1096,
       "name": "Bogota",
       "nameKo": "보고타",
       "owner": "COL",
@@ -8221,56 +8214,56 @@
       "vpTile": [1177, 1221]
     },
     {
-      "id": 1098,
+      "id": 1097,
       "name": "Guyane française",
       "nameKo": "프랑스령 기아나",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1099,
+      "id": 1098,
       "name": "Puntarenas",
       "nameKo": "푼타레나스",
       "owner": "CRI",
       "vp": 0
     },
     {
-      "id": 1100,
+      "id": 1099,
       "name": "Tolima",
       "nameKo": "톨리마",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1101,
+      "id": 1100,
       "name": "Orientale",
       "nameKo": "동부",
       "owner": "BEL",
       "vp": 0
     },
     {
-      "id": 1102,
+      "id": 1101,
       "name": "Kosrae",
       "nameKo": "코스라에",
       "owner": "JPN",
       "vp": 0
     },
     {
-      "id": 1103,
+      "id": 1102,
       "name": "Roraima",
       "nameKo": "호라이마",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1104,
+      "id": 1103,
       "name": "Équateur",
       "nameKo": "에카퇴르",
       "owner": "BEL",
       "vp": 0
     },
     {
-      "id": 1105,
+      "id": 1104,
       "name": "Nairobi",
       "nameKo": "나이로비",
       "owner": "GBR",
@@ -8278,42 +8271,42 @@
       "vpTile": [2409, 1288]
     },
     {
-      "id": 1106,
+      "id": 1105,
       "name": "Meta",
       "nameKo": "메타",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1107,
+      "id": 1106,
       "name": "Papua Barat",
       "nameKo": "서파푸아",
       "owner": "NLD",
       "vp": 0
     },
     {
-      "id": 1108,
+      "id": 1107,
       "name": "Amapá",
       "nameKo": "아마파",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1109,
+      "id": 1108,
       "name": "Kalimantan Timur",
       "nameKo": "동칼리만탄",
       "owner": "NLD",
       "vp": 0
     },
     {
-      "id": 1110,
+      "id": 1109,
       "name": "Guainía",
       "nameKo": "과이니아",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1111,
+      "id": 1110,
       "name": "Spanish Guinea",
       "nameKo": "스페인령 기니",
       "owner": "ESN",
@@ -8321,7 +8314,7 @@
       "vpTile": [2096, 1233]
     },
     {
-      "id": 1112,
+      "id": 1111,
       "name": "Brazzaville",
       "nameKo": "브라자빌",
       "owner": "FRA",
@@ -8329,35 +8322,35 @@
       "vpTile": [2169, 1321]
     },
     {
-      "id": 1113,
+      "id": 1112,
       "name": "Cauca",
       "nameKo": "카우카",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1114,
+      "id": 1113,
       "name": "Hatobohei",
       "nameKo": "하토호베이",
       "owner": "JPN",
       "vp": 0
     },
     {
-      "id": 1115,
+      "id": 1114,
       "name": "Caquetá",
       "nameKo": "카케타",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1116,
+      "id": 1115,
       "name": "Guaviare",
       "nameKo": "과비아레",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1117,
+      "id": 1116,
       "name": "Kampala",
       "nameKo": "캄팔라 구",
       "owner": "GBR",
@@ -8365,42 +8358,42 @@
       "vpTile": [2362, 1270]
     },
     {
-      "id": 1118,
+      "id": 1117,
       "name": "Nariño",
       "nameKo": "나리뇨",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1119,
+      "id": 1118,
       "name": "Pará (NW)",
       "nameKo": "파라 북서부",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1120,
+      "id": 1119,
       "name": "Amazonas (C)",
       "nameKo": "아마조나스 중부",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1121,
+      "id": 1120,
       "name": "Vaupés",
       "nameKo": "바우페스",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1122,
+      "id": 1121,
       "name": "Kiribati",
       "nameKo": "키리바시",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1123,
+      "id": 1122,
       "name": "São Tomé",
       "nameKo": "상 투메",
       "owner": "PRT",
@@ -8408,14 +8401,14 @@
       "vpTile": [2074, 1270]
     },
     {
-      "id": 1124,
+      "id": 1123,
       "name": "Putumayo",
       "nameKo": "푸투마요",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1125,
+      "id": 1124,
       "name": "Pichincha",
       "nameKo": "피친차",
       "owner": "ECU",
@@ -8423,21 +8416,21 @@
       "vpTile": [1128, 1276]
     },
     {
-      "id": 1126,
+      "id": 1125,
       "name": "Muchinga",
       "nameKo": "무칭가",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1127,
+      "id": 1126,
       "name": "Rio Grande do Norte",
       "nameKo": "히우그란지두노르치",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1128,
+      "id": 1127,
       "name": "Usumbura",
       "nameKo": "우숨부라",
       "owner": "BEL",
@@ -8445,56 +8438,56 @@
       "vpTile": [2326, 1311]
     },
     {
-      "id": 1129,
+      "id": 1128,
       "name": "Kiribati 2",
       "nameKo": "키리바시 2",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1130,
+      "id": 1129,
       "name": "Galápagos",
       "nameKo": "갈라파고스",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1131,
+      "id": 1130,
       "name": "Orellana",
       "nameKo": "오레야나",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1132,
+      "id": 1131,
       "name": "Manabi",
       "nameKo": "마나비",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1133,
+      "id": 1132,
       "name": "Amazonas",
       "nameKo": "아마소나스",
       "owner": "COL",
       "vp": 0
     },
     {
-      "id": 1134,
+      "id": 1133,
       "name": "Tungurahua",
       "nameKo": "퉁구라우아",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1135,
+      "id": 1134,
       "name": "Loreto",
       "nameKo": "로레토",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1136,
+      "id": 1135,
       "name": "Pará (C)",
       "nameKo": "파라 중부",
       "owner": "BRA",
@@ -8502,7 +8495,7 @@
       "vpTile": [1461, 1290]
     },
     {
-      "id": 1137,
+      "id": 1136,
       "name": "Dar-Es-Salaam",
       "nameKo": "다르에스살람",
       "owner": "GBR",
@@ -8510,14 +8503,14 @@
       "vpTile": [2435, 1348]
     },
     {
-      "id": 1138,
+      "id": 1137,
       "name": "Papua",
       "nameKo": "파푸아",
       "owner": "NLD",
       "vp": 0
     },
     {
-      "id": 1139,
+      "id": 1138,
       "name": "Léopoldville",
       "nameKo": "레오폴드빌",
       "owner": "BEL",
@@ -8525,7 +8518,7 @@
       "vpTile": [2170, 1322]
     },
     {
-      "id": 1140,
+      "id": 1139,
       "name": "Guayas",
       "nameKo": "과야스",
       "owner": "ECU",
@@ -8533,21 +8526,21 @@
       "vpTile": [1111, 1298]
     },
     {
-      "id": 1141,
+      "id": 1140,
       "name": "Pastaza",
       "nameKo": "파스타사",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1142,
+      "id": 1141,
       "name": "Maranhão",
       "nameKo": "마라냥",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1143,
+      "id": 1142,
       "name": "Papua and New Guinea",
       "nameKo": "파푸아 뉴기니",
       "owner": "AUS",
@@ -8555,49 +8548,49 @@
       "vpTile": [3635, 1379]
     },
     {
-      "id": 1144,
+      "id": 1143,
       "name": "Kiribati 3",
       "nameKo": "키리바시 3",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1145,
+      "id": 1144,
       "name": "Morona Santiago",
       "nameKo": "모로나산티아고",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1146,
+      "id": 1145,
       "name": "Annobón",
       "nameKo": "안노본",
       "owner": "ESN",
       "vp": 0
     },
     {
-      "id": 1147,
+      "id": 1146,
       "name": "Amazonas (SW)",
       "nameKo": "아마조나스 남서부",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1148,
+      "id": 1147,
       "name": "Zamora Chinchipe",
       "nameKo": "사모라친치페",
       "owner": "ECU",
       "vp": 0
     },
     {
-      "id": 1149,
+      "id": 1148,
       "name": "Piauí",
       "nameKo": "피아우이",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1150,
+      "id": 1149,
       "name": "Ceará",
       "nameKo": "세아라",
       "owner": "BRA",
@@ -8605,21 +8598,21 @@
       "vpTile": [1571, 1315]
     },
     {
-      "id": 1151,
+      "id": 1150,
       "name": "Amazonas",
       "nameKo": "아마소나스",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1152,
+      "id": 1151,
       "name": "Piura",
       "nameKo": "피우라",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1153,
+      "id": 1152,
       "name": "Lusaka",
       "nameKo": "루사카",
       "owner": "GBR",
@@ -8627,7 +8620,7 @@
       "vpTile": [2314, 1446]
     },
     {
-      "id": 1154,
+      "id": 1153,
       "name": "Anse Boileau",
       "nameKo": "앙스부알로 구",
       "owner": "GBR",
@@ -8635,70 +8628,70 @@
       "vpTile": [2616, 1326]
     },
     {
-      "id": 1155,
+      "id": 1154,
       "name": "Cabinda",
       "nameKo": "카빈다",
       "owner": "PRT",
       "vp": 0
     },
     {
-      "id": 1156,
+      "id": 1155,
       "name": "Kiribati 4",
       "nameKo": "키리바시 4",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1157,
+      "id": 1156,
       "name": "Cajamarca",
       "nameKo": "카하마르카",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1158,
+      "id": 1157,
       "name": "Rio Grande do Norte 2",
       "nameKo": "히우그란지두노르치 2",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1159,
+      "id": 1158,
       "name": "Katanga",
       "nameKo": "카탕가",
       "owner": "BEL",
       "vp": 0
     },
     {
-      "id": 1160,
+      "id": 1159,
       "name": "Tocantins",
       "nameKo": "토칸칭스",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1161,
+      "id": 1160,
       "name": "British Indian Ocean Territory",
       "nameKo": "브리티시 인디안 오션 테리토리",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1162,
+      "id": 1161,
       "name": "San Martín",
       "nameKo": "산마르틴",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1163,
+      "id": 1162,
       "name": "La Libertad",
       "nameKo": "라리베르타드",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1164,
+      "id": 1163,
       "name": "Luanda",
       "nameKo": "루안다",
       "owner": "PRT",
@@ -8706,14 +8699,14 @@
       "vpTile": [2147, 1372]
     },
     {
-      "id": 1165,
+      "id": 1164,
       "name": "Paraíba",
       "nameKo": "파라이바",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1166,
+      "id": 1165,
       "name": "Solomon Islands",
       "nameKo": "솔로몬 제도",
       "owner": "GBR",
@@ -8721,14 +8714,14 @@
       "vpTile": [3777, 1379]
     },
     {
-      "id": 1167,
+      "id": 1166,
       "name": "Acre",
       "nameKo": "아크리",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1168,
+      "id": 1167,
       "name": "Pernambuco",
       "nameKo": "페르남부쿠",
       "owner": "BRA",
@@ -8736,49 +8729,49 @@
       "vpTile": [1611, 1363]
     },
     {
-      "id": 1169,
+      "id": 1168,
       "name": "Ucayali",
       "nameKo": "우카얄리",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1170,
+      "id": 1169,
       "name": "Mato Grosso",
       "nameKo": "마투그로수",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1171,
+      "id": 1170,
       "name": "Ascension",
       "nameKo": "어센션섬",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1172,
+      "id": 1171,
       "name": "Marquesas Islands",
       "nameKo": "마르키즈 아일랜즈",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1173,
+      "id": 1172,
       "name": "Rondônia",
       "nameKo": "혼도니아",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1174,
+      "id": 1173,
       "name": "Áncash",
       "nameKo": "앙카시",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1175,
+      "id": 1174,
       "name": "Portuguese Timor",
       "nameKo": "포르투갈령 티모르",
       "owner": "PRT",
@@ -8786,21 +8779,21 @@
       "vpTile": [3395, 1369]
     },
     {
-      "id": 1176,
+      "id": 1175,
       "name": "Cunene",
       "nameKo": "쿠네느",
       "owner": "PRT",
       "vp": 0
     },
     {
-      "id": 1177,
+      "id": 1176,
       "name": "Huánuco",
       "nameKo": "우아누코",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1178,
+      "id": 1177,
       "name": "Bahia",
       "nameKo": "바이아",
       "owner": "BRA",
@@ -8808,70 +8801,70 @@
       "vpTile": [1572, 1419]
     },
     {
-      "id": 1179,
+      "id": 1178,
       "name": "Alagoas",
       "nameKo": "알라고아스",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1180,
-      "name": "Nusa Tenggara Timur",
-      "nameKo": "동누사틍가라",
+      "id": 1179,
+      "name": "Dutch Timor",
+      "nameKo": "네덜란드령 티모르",
       "owner": "NLD",
       "vp": 0
     },
     {
-      "id": 1181,
+      "id": 1180,
       "name": "Mitiaro",
       "nameKo": "미티아로",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1182,
+      "id": 1181,
       "name": "Outer Islands",
       "nameKo": "아우터 아일랜즈",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1183,
+      "id": 1182,
       "name": "Sergipe",
       "nameKo": "세르지피",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1184,
+      "id": 1183,
       "name": "Pasco",
       "nameKo": "파스코",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1185,
+      "id": 1184,
       "name": "Pando",
       "nameKo": "판도",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1186,
+      "id": 1185,
       "name": "Madre de Dios",
       "nameKo": "마드레데디오스",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1187,
+      "id": 1186,
       "name": "Queensland (C)",
       "nameKo": "퀸즐랜드 중부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1188,
+      "id": 1187,
       "name": "Lima Province",
       "nameKo": "리마 군",
       "owner": "PER",
@@ -8879,63 +8872,63 @@
       "vpTile": [1144, 1408]
     },
     {
-      "id": 1189,
+      "id": 1188,
       "name": "El Beni",
       "nameKo": "베니",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1190,
+      "id": 1189,
       "name": "Niassa",
       "nameKo": "니아사",
       "owner": "PRT",
       "vp": 0
     },
     {
-      "id": 1191,
+      "id": 1190,
       "name": "Christmas Island",
       "nameKo": "크리스마스섬",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1192,
+      "id": 1191,
       "name": "Cuando Cubango",
       "nameKo": "쿠안두쿠방구",
       "owner": "PRT",
       "vp": 0
     },
     {
-      "id": 1193,
+      "id": 1192,
       "name": "Junín",
       "nameKo": "후닌",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1194,
+      "id": 1193,
       "name": "Western",
       "nameKo": "서부",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1195,
+      "id": 1194,
       "name": "Northern Territory (N)",
       "nameKo": "노던 준 북부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1196,
+      "id": 1195,
       "name": "Cusco",
       "nameKo": "쿠스코",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1197,
+      "id": 1196,
       "name": "Analamanga",
       "nameKo": "안타나나리보",
       "owner": "FRA",
@@ -8943,7 +8936,7 @@
       "vpTile": [2527, 1486]
     },
     {
-      "id": 1198,
+      "id": 1197,
       "name": "La Paz",
       "nameKo": "라파스",
       "owner": "BOL",
@@ -8951,21 +8944,21 @@
       "vpTile": [1242, 1459]
     },
     {
-      "id": 1199,
+      "id": 1198,
       "name": "Huancavelica",
       "nameKo": "우앙카벨리카",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1200,
+      "id": 1199,
       "name": "Ayacucho",
       "nameKo": "아야쿠초",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1201,
+      "id": 1200,
       "name": "Goiás",
       "nameKo": "고이아스",
       "owner": "BRA",
@@ -8973,35 +8966,35 @@
       "vpTile": [1452, 1461]
     },
     {
-      "id": 1202,
+      "id": 1201,
       "name": "Ica",
       "nameKo": "이카",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1203,
+      "id": 1202,
       "name": "Puno",
       "nameKo": "푸노",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1204,
+      "id": 1203,
       "name": "`Uvea",
       "nameKo": "우베아",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1205,
+      "id": 1204,
       "name": "Apurímac",
       "nameKo": "아푸리막",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1206,
+      "id": 1205,
       "name": "A'ana",
       "nameKo": "아아나 구",
       "owner": "NZL",
@@ -9009,21 +9002,21 @@
       "vpTile": [90, 1429]
     },
     {
-      "id": 1207,
+      "id": 1206,
       "name": "Santa Cruz",
       "nameKo": "산타크루스",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1208,
+      "id": 1207,
       "name": "Western Australia (N)",
       "nameKo": "웨스턴오스트레일리아 북부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1209,
+      "id": 1208,
       "name": "Lourenço Marques",
       "nameKo": "로렌수마르케스",
       "owner": "PRT",
@@ -9031,35 +9024,35 @@
       "vpTile": [2361, 1568]
     },
     {
-      "id": 1210,
+      "id": 1209,
       "name": "Western",
       "nameKo": "웨스턴",
       "owner": "USA",
       "vp": 0
     },
     {
-      "id": 1211,
+      "id": 1210,
       "name": "Minas Gerais",
       "nameKo": "미나스제라이스",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1212,
+      "id": 1211,
       "name": "Windward Islands",
       "nameKo": "윈드워드 아일랜즈",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1213,
+      "id": 1212,
       "name": "Arequipa",
       "nameKo": "아레키파",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1214,
+      "id": 1213,
       "name": "Southern Rhodesia",
       "nameKo": "남로디지아",
       "owner": "GBR",
@@ -9067,28 +9060,28 @@
       "vpTile": [2344, 1474]
     },
     {
-      "id": 1215,
+      "id": 1214,
       "name": "Cochabamba",
       "nameKo": "코차밤바",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1216,
+      "id": 1215,
       "name": "Saint Helena",
       "nameKo": "세인트헬레나",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1217,
+      "id": 1216,
       "name": "Tacna",
       "nameKo": "타크나",
       "owner": "PER",
       "vp": 0
     },
     {
-      "id": 1218,
+      "id": 1217,
       "name": "Fiji",
       "nameKo": "피지",
       "owner": "GBR",
@@ -9096,21 +9089,21 @@
       "vpTile": [3982, 1477]
     },
     {
-      "id": 1219,
+      "id": 1218,
       "name": "Northern Territory (S)",
       "nameKo": "노던 준 남부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1220,
+      "id": 1219,
       "name": "Northern 3",
       "nameKo": "북부구 3",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1221,
+      "id": 1220,
       "name": "Khomas",
       "nameKo": "호마스",
       "owner": "ZAF",
@@ -9118,56 +9111,56 @@
       "vpTile": [2189, 1529]
     },
     {
-      "id": 1222,
+      "id": 1221,
       "name": "Mato Grosso do Sul",
       "nameKo": "마투그로수두술",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1223,
+      "id": 1222,
       "name": "Oruro",
       "nameKo": "오루로",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1224,
+      "id": 1223,
       "name": "Tarapacá",
       "nameKo": "타라파카",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1225,
+      "id": 1224,
       "name": "Tuamotu-Gambier",
       "nameKo": "투아모투-갬비어",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1226,
+      "id": 1225,
       "name": "Bechuanaland",
       "nameKo": "베추아날란드",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1227,
+      "id": 1226,
       "name": "Potosí",
       "nameKo": "포토시",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1228,
+      "id": 1227,
       "name": "Espírito Santo",
       "nameKo": "이스피리투산투",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1229,
+      "id": 1228,
       "name": "Chuquisaca",
       "nameKo": "추키사카",
       "owner": "BOL",
@@ -9175,7 +9168,7 @@
       "vpTile": [1274, 1488]
     },
     {
-      "id": 1230,
+      "id": 1229,
       "name": "Tongatapu",
       "nameKo": "통가타푸섬",
       "owner": "GBR",
@@ -9183,42 +9176,42 @@
       "vpTile": [52, 1512]
     },
     {
-      "id": 1231,
+      "id": 1230,
       "name": "Mangaia",
       "nameKo": "망가이아",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1232,
+      "id": 1231,
       "name": "Niue",
       "nameKo": "니우에",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1233,
+      "id": 1232,
       "name": "Alto Paraguay",
       "nameKo": "알토파라과이",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1234,
+      "id": 1233,
       "name": "Queensland (C) 2",
       "nameKo": "퀸즐랜드 중부 2",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1235,
+      "id": 1234,
       "name": "Nord",
       "nameKo": "북쪽",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1236,
+      "id": 1235,
       "name": "São Paulo",
       "nameKo": "상파울루",
       "owner": "BRA",
@@ -9226,7 +9219,7 @@
       "vpTile": [1481, 1540]
     },
     {
-      "id": 1237,
+      "id": 1236,
       "name": "Rivière Noire",
       "nameKo": "블랙리버 구",
       "owner": "GBR",
@@ -9234,14 +9227,14 @@
       "vpTile": [2638, 1501]
     },
     {
-      "id": 1238,
+      "id": 1237,
       "name": "Boquerón",
       "nameKo": "보케론",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1239,
+      "id": 1238,
       "name": "Western Australia (W)",
       "nameKo": "웨스턴오스트레일리아 서부",
       "owner": "AUS",
@@ -9249,14 +9242,14 @@
       "vpTile": [3287, 1641]
     },
     {
-      "id": 1240,
+      "id": 1239,
       "name": "Tuamotu-Gambier 2",
       "nameKo": "투아모투-갬비어 2",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1241,
+      "id": 1240,
       "name": "Rio de Janeiro",
       "nameKo": "리우데자네이루",
       "owner": "BRA",
@@ -9264,84 +9257,84 @@
       "vpTile": [1519, 1532]
     },
     {
-      "id": 1242,
+      "id": 1241,
       "name": "La Réunion",
       "nameKo": "레위니옹",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1243,
+      "id": 1242,
       "name": "Antofagasta",
       "nameKo": "안토파가스타",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1244,
+      "id": 1243,
       "name": "Tarija",
       "nameKo": "타리하",
       "owner": "BOL",
       "vp": 0
     },
     {
-      "id": 1245,
+      "id": 1244,
       "name": "Western Australia (C)",
       "nameKo": "웨스턴오스트레일리아 중부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1246,
+      "id": 1245,
       "name": "Jujuy",
       "nameKo": "후후이",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1247,
+      "id": 1246,
       "name": "Salta",
       "nameKo": "살타",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1248,
+      "id": 1247,
       "name": "Presidente Hayes",
       "nameKo": "프레시덴테아예스",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1249,
+      "id": 1248,
       "name": "Concepción",
       "nameKo": "콘셉시온",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1250,
+      "id": 1249,
       "name": "Canindeyú",
       "nameKo": "카닌데유",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1251,
+      "id": 1250,
       "name": "Limpopo",
       "nameKo": "림포포",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1252,
+      "id": 1251,
       "name": "Formosa",
       "nameKo": "포르모사",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1253,
+      "id": 1252,
       "name": "Paraná",
       "nameKo": "파라나",
       "owner": "BRA",
@@ -9349,77 +9342,77 @@
       "vpTile": [1451, 1562]
     },
     {
-      "id": 1254,
+      "id": 1253,
       "name": "Tuamotu-Gambier 3",
       "nameKo": "투아모투-갬비어 3",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1255,
+      "id": 1254,
       "name": "Karas",
       "nameKo": "카라스",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1256,
+      "id": 1255,
       "name": "San Pedro",
       "nameKo": "산페드로",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1257,
+      "id": 1256,
       "name": "Mpumalanga",
       "nameKo": "음푸말랑가",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1258,
+      "id": 1257,
       "name": "Chaco",
       "nameKo": "차코",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1259,
+      "id": 1258,
       "name": "Pitcairn Islands",
       "nameKo": "핏케언 아일랜즈",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1260,
+      "id": 1259,
       "name": "Caaguazú",
       "nameKo": "카과수",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1261,
+      "id": 1260,
       "name": "Itapúa",
       "nameKo": "이타푸아",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1262,
+      "id": 1261,
       "name": "North West",
       "nameKo": "노스웨스트",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1263,
+      "id": 1262,
       "name": "Northern Cape",
       "nameKo": "노던케이프",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1264,
+      "id": 1263,
       "name": "Central",
       "nameKo": "센트랄",
       "owner": "PRY",
@@ -9427,7 +9420,7 @@
       "vpTile": [1360, 1560]
     },
     {
-      "id": 1265,
+      "id": 1264,
       "name": "Gauteng",
       "nameKo": "하우텡",
       "owner": "ZAF",
@@ -9435,42 +9428,42 @@
       "vpTile": [2313, 1566]
     },
     {
-      "id": 1266,
+      "id": 1265,
       "name": "Catamarca",
       "nameKo": "카타마르카",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1267,
+      "id": 1266,
       "name": "Atacama",
       "nameKo": "아타카마",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1268,
+      "id": 1267,
       "name": "Caazapá",
       "nameKo": "카사파",
       "owner": "PRY",
       "vp": 0
     },
     {
-      "id": 1269,
+      "id": 1268,
       "name": "Misiones",
       "nameKo": "미시오네스",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1270,
+      "id": 1269,
       "name": "Santiago del Estero",
       "nameKo": "산티아고델에스테로",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1271,
+      "id": 1270,
       "name": "Swaziland",
       "nameKo": "스와질란드",
       "owner": "GBR",
@@ -9478,28 +9471,28 @@
       "vpTile": [2345, 1573]
     },
     {
-      "id": 1272,
+      "id": 1271,
       "name": "Santa Catarina",
       "nameKo": "산타카타리나",
       "owner": "BRA",
       "vp": 0
     },
     {
-      "id": 1273,
+      "id": 1272,
       "name": "South Australia (C)",
       "nameKo": "사우스오스트레일리아 중부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1274,
+      "id": 1273,
       "name": "Tucumán",
       "nameKo": "투쿠만",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1275,
+      "id": 1274,
       "name": "Free State",
       "nameKo": "프리스테이트",
       "owner": "ZAF",
@@ -9507,7 +9500,7 @@
       "vpTile": [2291, 1607]
     },
     {
-      "id": 1276,
+      "id": 1275,
       "name": "KwaZulu-Natal",
       "nameKo": "콰줄루나탈",
       "owner": "ZAF",
@@ -9515,21 +9508,21 @@
       "vpTile": [2343, 1615]
     },
     {
-      "id": 1277,
+      "id": 1276,
       "name": "South Australia (SE)",
       "nameKo": "사우스오스트레일리아 남동부",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1278,
+      "id": 1277,
       "name": "Valparaíso",
       "nameKo": "발파라이소",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1279,
+      "id": 1278,
       "name": "Rio Grande do Sul",
       "nameKo": "히우그란지두술",
       "owner": "BRA",
@@ -9537,35 +9530,35 @@
       "vpTile": [1431, 1618]
     },
     {
-      "id": 1280,
+      "id": 1279,
       "name": "Corrientes",
       "nameKo": "코리엔테스",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1281,
+      "id": 1280,
       "name": "Austral Islands",
       "nameKo": "오스트랄 아일랜즈",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1282,
+      "id": 1281,
       "name": "La Rioja",
       "nameKo": "라리오하",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1283,
+      "id": 1282,
       "name": "Santa Fe",
       "nameKo": "산타페",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1284,
+      "id": 1283,
       "name": "New South Wales",
       "nameKo": "뉴사우스웨일스",
       "owner": "AUS",
@@ -9573,14 +9566,14 @@
       "vpTile": [3657, 1683]
     },
     {
-      "id": 1285,
+      "id": 1284,
       "name": "San Juan",
       "nameKo": "산후안",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1286,
+      "id": 1285,
       "name": "Basutoland",
       "nameKo": "바수톨란드",
       "owner": "GBR",
@@ -9588,42 +9581,42 @@
       "vpTile": [2305, 1609]
     },
     {
-      "id": 1287,
+      "id": 1286,
       "name": "Coquimbo",
       "nameKo": "코킴보",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1288,
+      "id": 1287,
       "name": "Córdoba",
       "nameKo": "코르도바",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1289,
+      "id": 1288,
       "name": "Eastern Cape",
       "nameKo": "이스턴케이프",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1290,
+      "id": 1289,
       "name": "Salto",
       "nameKo": "살토",
       "owner": "URY",
       "vp": 0
     },
     {
-      "id": 1291,
+      "id": 1290,
       "name": "Entre Ríos",
       "nameKo": "엔트레리오스",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1292,
+      "id": 1291,
       "name": "Western Cape",
       "nameKo": "웨스턴케이프",
       "owner": "ZAF",
@@ -9631,56 +9624,56 @@
       "vpTile": [2204, 1666]
     },
     {
-      "id": 1293,
+      "id": 1292,
       "name": "Tacuarembó",
       "nameKo": "타쿠아렘보",
       "owner": "URY",
       "vp": 0
     },
     {
-      "id": 1294,
+      "id": 1293,
       "name": "Lord Howe Island",
       "nameKo": "로드 하우 아일랜드",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1295,
+      "id": 1294,
       "name": "Cerro Largo",
       "nameKo": "세로라르고",
       "owner": "URY",
       "vp": 0
     },
     {
-      "id": 1296,
+      "id": 1295,
       "name": "San Luis",
       "nameKo": "산루이스",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1297,
+      "id": 1296,
       "name": "Valparaíso 2",
       "nameKo": "발파라이소 2",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1298,
+      "id": 1297,
       "name": "Mendoza",
       "nameKo": "멘도사",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1299,
+      "id": 1298,
       "name": "Rocha",
       "nameKo": "로차",
       "owner": "URY",
       "vp": 0
     },
     {
-      "id": 1300,
+      "id": 1299,
       "name": "Región Metropolitana de Santiago",
       "nameKo": "산티아고 수도",
       "owner": "CHL",
@@ -9688,14 +9681,14 @@
       "vpTile": [1214, 1660]
     },
     {
-      "id": 1301,
+      "id": 1300,
       "name": "Soriano",
       "nameKo": "소리아노",
       "owner": "URY",
       "vp": 0
     },
     {
-      "id": 1302,
+      "id": 1301,
       "name": "Montevideo",
       "nameKo": "몬테비데오",
       "owner": "URY",
@@ -9703,7 +9696,7 @@
       "vpTile": [1375, 1677]
     },
     {
-      "id": 1303,
+      "id": 1302,
       "name": "Ciudad de Buenos Aires",
       "nameKo": "부에노스아이레스",
       "owner": "ARG",
@@ -9711,21 +9704,21 @@
       "vpTile": [1351, 1674]
     },
     {
-      "id": 1304,
+      "id": 1303,
       "name": "Valparaíso 3",
       "nameKo": "발파라이소 3",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1305,
+      "id": 1304,
       "name": "Libertador General Bernardo O'Higgins",
       "nameKo": "리베르타도르헤네랄베르나르도오이긴스",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1306,
+      "id": 1305,
       "name": "Victoria",
       "nameKo": "빅토리아",
       "owner": "AUS",
@@ -9733,7 +9726,7 @@
       "vpTile": [3610, 1715]
     },
     {
-      "id": 1307,
+      "id": 1306,
       "name": "Auckland",
       "nameKo": "오클랜드 지방",
       "owner": "NZL",
@@ -9741,77 +9734,77 @@
       "vpTile": [3941, 1703]
     },
     {
-      "id": 1308,
+      "id": 1307,
       "name": "Maule",
       "nameKo": "마울레",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1309,
+      "id": 1308,
       "name": "La Pampa",
       "nameKo": "라팜파",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1310,
+      "id": 1309,
       "name": "Bío-Bío",
       "nameKo": "비오비오",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1311,
+      "id": 1310,
       "name": "Neuquén",
       "nameKo": "네우켄",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1312,
+      "id": 1311,
       "name": "Waikato",
       "nameKo": "와이카토 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1313,
+      "id": 1312,
       "name": "Tristan da Cunha",
       "nameKo": "트리스탄다쿠냐 제도",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1314,
+      "id": 1313,
       "name": "Bay of Plenty",
       "nameKo": "베이오브플렌티 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1315,
+      "id": 1314,
       "name": "Río Negro",
       "nameKo": "리오네그로",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1316,
+      "id": 1315,
       "name": "La Araucanía",
       "nameKo": "아라우카니아",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1317,
+      "id": 1316,
       "name": "Iles Saint-Paul et Nouvelle-Amsterdam",
       "nameKo": "일스 세인트-폴 에 누벨-암스테르담",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1318,
+      "id": 1317,
       "name": "Wellington",
       "nameKo": "웰링턴 지방",
       "owner": "NZL",
@@ -9819,196 +9812,196 @@
       "vpTile": [3941, 1760]
     },
     {
-      "id": 1319,
+      "id": 1318,
       "name": "Hawke's Bay",
       "nameKo": "호크스베이 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1320,
+      "id": 1319,
       "name": "Los Ríos",
       "nameKo": "로스리오스",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1321,
+      "id": 1320,
       "name": "Tasmania",
       "nameKo": "태즈메이니아",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1322,
+      "id": 1321,
       "name": "Los Lagos",
       "nameKo": "로스라고스",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1323,
+      "id": 1322,
       "name": "Tristan da Cunha 2",
       "nameKo": "트리스탄다쿠냐 제도 2",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1324,
+      "id": 1323,
       "name": "Marlborough District",
       "nameKo": "말버러 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1325,
+      "id": 1324,
       "name": "West Coast",
       "nameKo": "웨스트코스트 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1326,
+      "id": 1325,
       "name": "Canterbury",
       "nameKo": "캔터베리 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1327,
+      "id": 1326,
       "name": "Chubut",
       "nameKo": "추부트",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1328,
+      "id": 1327,
       "name": "Chatham Islands Territory",
       "nameKo": "채텀 제도",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1329,
+      "id": 1328,
       "name": "Aisén del General Carlos Ibáñez del Campo",
       "nameKo": "아이센델헤네랄카를로스이바녜스델캄포",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1330,
+      "id": 1329,
       "name": "Otago",
       "nameKo": "오타고 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1331,
+      "id": 1330,
       "name": "Southland",
       "nameKo": "사우스랜드 지방",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1332,
+      "id": 1331,
       "name": "Santa Cruz",
       "nameKo": "산타크루스",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1333,
+      "id": 1332,
       "name": "Archipel des Crozet",
       "nameKo": "아치펠 데 크로제",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1334,
+      "id": 1333,
       "name": "Western Cape 2",
       "nameKo": "웨스턴케이프 2",
       "owner": "ZAF",
       "vp": 0
     },
     {
-      "id": 1335,
+      "id": 1334,
       "name": "Magallanes y Antártica Chilena",
       "nameKo": "마가야네스 이 안타르티카칠레나",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1336,
+      "id": 1335,
       "name": "Archipel des Kerguelen",
       "nameKo": "아치펠 데 케르겔렌",
       "owner": "FRA",
       "vp": 0
     },
     {
-      "id": 1337,
+      "id": 1336,
       "name": "Antipodes Islands",
       "nameKo": "안티포데스 아일랜즈",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1338,
+      "id": 1337,
       "name": "Falkland Islands",
       "nameKo": "포클랜드 제도",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1339,
+      "id": 1338,
       "name": "Magallanes y Antártica Chilena 2",
       "nameKo": "마가야네스 이 안타르티카칠레나 2",
       "owner": "CHL",
       "vp": 0
     },
     {
-      "id": 1340,
+      "id": 1339,
       "name": "Campbell Islands",
       "nameKo": "캠벨 아일랜즈",
       "owner": "NZL",
       "vp": 0
     },
     {
-      "id": 1341,
+      "id": 1340,
       "name": "Tierra del Fuego",
       "nameKo": "티에라델푸에고",
       "owner": "ARG",
       "vp": 0
     },
     {
-      "id": 1342,
+      "id": 1341,
       "name": "Heard Island and McDonald Islands",
       "nameKo": "허드 아일랜드 앤 맥도날드 아일랜즈",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1343,
+      "id": 1342,
       "name": "South Georgia",
       "nameKo": "사우스조지아",
       "owner": "GBR",
       "vp": 0
     },
     {
-      "id": 1344,
+      "id": 1343,
       "name": "Bouvet Island",
       "nameKo": "부베 아일랜드",
       "owner": "NOR",
       "vp": 0
     },
     {
-      "id": 1345,
+      "id": 1344,
       "name": "Macquarie Island",
       "nameKo": "맥쿼리 섬",
       "owner": "AUS",
       "vp": 0
     },
     {
-      "id": 1346,
+      "id": 1345,
       "name": "South Georgia 2",
       "nameKo": "사우스조지아 2",
       "owner": "GBR",

@@ -158,3 +158,56 @@ func TestNearestGroupCrossesOnlyWhatItMay(t *testing.T) {
 		t.Fatalf("over land and water found %d, want 7", g)
 	}
 }
+
+// The pieces of an Own patch (Zara) make one region of their own, named after
+// the patch, instead of joining the owner's land elsewhere.
+func TestOwnPatchIsOneNamedRegion(t *testing.T) {
+	p := NewProjection(360, -60, 84)
+	w := p.Width
+	n := w * p.Height
+	land := make([]bool, n)
+	owner := make([]uint8, n)
+	adm := make([]int32, n)
+	patch := make([]uint16, n)
+	for i := 0; i < n; i++ {
+		land[i], owner[i], adm[i] = true, 1, 1
+		if i%w >= 180 {
+			owner[i] = 2 // BBB's main land, the right half
+		}
+	}
+	// Two pixels of BBB on the left, on the patch: a within reach of BBB's
+	// main land, b out of reach of both.
+	a, b := 10*w+150, 10*w+90
+	for _, px := range []int{a, b} {
+		owner[px], patch[px] = 2, 1
+	}
+	tables := &Tables{
+		Countries: []CountryRow{{Tag: "AAA"}, {Tag: "BBB"}},
+		Owners:    OwnerTables{Patches: []Patch{{Owner: "BBB", Name: &[2]string{"Zara", "자라"}, Own: true}}},
+		lowDetail: map[string]bool{},
+	}
+	admin := []Feature{{Props: map[string]any{"adm0_a3": "AAA", "name": "Unit"}}}
+	prm := Params{MinCore: 200, MinLow: 3000, MaxRegion: 1 << 30, IslandReach: 40}
+	ids, regions, err := buildRegions(p, land, owner, adm, patch, admin, tables, prm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids[a] != ids[b] {
+		t.Fatalf("the patch's pixels are in regions %d and %d", ids[a], ids[b])
+	}
+	count := 0
+	for i := 0; i < n; i++ {
+		if ids[i] == ids[a] {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Fatalf("the patch's region has %d pixels, want 2", count)
+	}
+	if err := finishNames(regions, adm, patch, admin, tables); err != nil {
+		t.Fatal(err)
+	}
+	if r := regions[ids[a]-1]; r.Name != "Zara" || r.NameKo != "자라" {
+		t.Fatalf("named %q / %q", r.Name, r.NameKo)
+	}
+}
