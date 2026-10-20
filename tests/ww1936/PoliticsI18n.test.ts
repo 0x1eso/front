@@ -363,6 +363,39 @@ describe("politics strings", () => {
     }
   });
 
+  it("en and ko use the same ICU argument names in every ww1936 text", () => {
+    const argNames = (text: string, lang: string): string[] => {
+      const out = new Set<string>();
+      const walk = (nodes: any[]): void => {
+        for (const n of nodes) {
+          if (n.type !== 0 && typeof n.value === "string") out.add(n.value);
+          if (n.options) {
+            for (const o of Object.values<any>(n.options)) walk(o.value);
+          }
+        }
+      };
+      walk(new IntlMessageFormat(text, lang).getAst() as any[]);
+      return [...out].sort();
+    };
+    const texts = (o: unknown, at: string, out: Map<string, string>) => {
+      if (typeof o === "string") out.set(at, o);
+      else if (typeof o === "object" && o !== null) {
+        for (const [k, v] of Object.entries(o)) texts(v, `${at}.${k}`, out);
+      }
+    };
+    const enT = new Map<string, string>();
+    const root = (j: unknown) => j as Record<string, Record<string, unknown>>;
+    texts(root(en).ww1936, "ww1936", enT);
+    for (const [k, v] of Object.entries(root(en).events_display)) {
+      if (k.startsWith("ww1936_")) enT.set(`events_display.${k}`, v as string);
+    }
+    for (const [k, text] of enT) {
+      const koText = keyIn(ko, k);
+      if (koText === undefined) continue;
+      expect(argNames(koText, "ko"), k).toEqual(argNames(text, "en"));
+    }
+  });
+
   it("the foundation's block reasons are there (plan decision 25)", () => {
     expect(
       missing([
