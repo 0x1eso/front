@@ -62,7 +62,10 @@ describe("only enemies fight (spec §7.2)", () => {
     g.addExecution(new AttackExecution(1000, deu, pol.id(), null));
     step(runner, 2);
     expect(deu.outgoingAttacks()).toHaveLength(0);
-    expect(deu.troops()).toBe(troops);
+    // No troops left for an attack: they mirror the divisions (whose
+    // winter attrition, P2 Task 5, is the only change).
+    expect(deu.troops()).toBe(g.worldWar()!.land.fieldMen(deu.smallID()));
+    expect(deu.troops()).toBeLessThanOrEqual(troops);
   });
 
   test("no boat sails, to a neutral or to an enemy", async () => {

@@ -33,6 +33,7 @@ import type {
 } from "@openfront/engine/ww1936/economy/WwEconomy";
 import {
   byTag,
+  clearLand,
   clearStartSetup,
   stamped,
   step,
@@ -116,7 +117,9 @@ describe("production lines (spec §8)", () => {
     const { runner, ce, order } = await game(["DEU"]);
     const deu = ce("DEU");
     // Support equipment: no one draws it from the stock the same day (the
-    // draft takes infantry equipment, pre-flight S5).
+    // draft takes infantry equipment, pre-flight S5). P2 Task 5: the
+    // divisions' reinforcement would, so the board is cleared.
+    clearLand(runner.game);
     order("DEU", {
       kind: "add_line",
       equipment: "support_equipment",

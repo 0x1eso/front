@@ -124,7 +124,10 @@ describe("World War 1936 P2: the land war's wiring", () => {
     const deu = byTag(g, "DEU");
     finishDay(runner, 0);
     expect(deu.troops()).toBe(land(g).fieldMen(deu.smallID()));
-    expect(deu.troops()).toBe(472_500);
+    // The start's men less the day's winter attrition (P2 Task 5).
+    expect(deu.troops()).toBe(
+      472_500 - land(g).country(deu.smallID())!.casualtiesToday,
+    );
     expect(g.config().maxTroops(deu)).toBe(deu.troops());
     expect(deu.wwTroopCap()).toBe(deu.troops());
     expect(g.config().troopIncreaseRate(deu)).toBe(0);
