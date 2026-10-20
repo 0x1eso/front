@@ -3,7 +3,6 @@ import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   WW_CAPITULATION_DAYS,
   WW_PREP_TICKS,
-  WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game, Player } from "@openfront/engine/game/Game";
@@ -43,26 +42,6 @@ function control(g: Game, name: string, p: Player): void {
   const ww = g.worldWar()!;
   const r = ww.scenario.landRegions.find((x) => x.name === name)!;
   ww.land.setController(r.id, p.smallID(), g.ticks());
-}
-
-/**
- * Earlier transfers that use up `tiles` of the next tick's transfer budget:
- * some of a's land goes to b and back. a keeps its VP tiles (so nobody's
- * points change) and enough land to stay alive.
- */
-function queueBacklog(g: Game, a: Player, b: Player, tiles: number): void {
-  const ww = g.worldWar()!;
-  const vpTiles = new Set(
-    ww.scenario.landRegions.map((r) => ww.scenario.vpTile(r)),
-  );
-  const own = Uint32Array.from([...a.tiles()].filter((t) => !vpTiles.has(t)));
-  const moving = own.subarray(0, own.length - 10);
-  for (let toB = true; tiles > 0; toB = !toB) {
-    const leg = moving.subarray(0, Math.min(tiles, moving.length));
-    if (toB) ww.queueTransfer(a.smallID(), b.smallID(), leg);
-    else ww.queueTransfer(b.smallID(), a.smallID(), leg);
-    tiles -= leg.length;
-  }
 }
 
 /**
@@ -281,7 +260,9 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(conquests).toHaveLength(1);
   });
 
-  test("tiles someone else took are skipped", async () => {
+  test("a tile someone else holds in a handed-over region goes with it", async () => {
+    // P2 (spec §12.1, §12.5): a region's tiles follow its control, so the
+    // capitulation's spread takes every tile of the loser's regions.
     const runner = await wwRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
@@ -290,7 +271,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     ww.setWar(sun.smallID(), pol.smallID(), g.ticks());
     // A Krakow tile another enemy took by hand (not its point, which goes
-    // with the region's control): the transfer skips it.
+    // with the region's control).
     const taken = g.ref(110, 60);
     expect(g.owner(taken)).toBe(pol);
     sun.conquer(taken);
@@ -298,7 +279,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     nearlyFull(g, pol);
     nextDay(runner);
     step(runner, 3);
-    expect(g.owner(taken)).toBe(sun);
+    expect(g.owner(taken)).toBe(deu);
     expect(g.owner(vpTileOf(g, "Krakow"))).toBe(deu);
     expect(pol.isAlive()).toBe(false);
   });
@@ -340,31 +321,25 @@ describe("victory points and capitulation (spec §7.5)", () => {
     const { runner, updates } = await wwRunnerCapture();
     const g = runner.game;
     const ww = g.worldWar()!;
-    const [deu, pol, fra, ita, gbr] = (
-      ["DEU", "POL", "FRA", "ITA", "GBR"] as const
-    ).map((t) => byTag(g, t));
+    const [deu, pol, fra] = (["DEU", "POL", "FRA"] as const).map((t) =>
+      byTag(g, t),
+    );
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     ww.setWar(fra.smallID(), deu.smallID(), g.ticks());
     control(g, "Warsaw", deu);
     nearlyFull(g, pol);
-    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
-    const left = 50;
-    // Krakow's point goes with its control (P2), outside the budget.
-    queueBacklog(
-      g,
-      ita,
-      gbr,
-      WW_TRANSFER_TILES_PER_TICK - (pol.numTilesOwned() - 1) + left,
-    );
-    step(runner);
-    expect(pol.numTilesOwned()).toBe(left);
+    // Poland capitulates at the next day's first tick: Krakow moves by the
+    // spread that tick; its tiles left in Warsaw follow once that is done.
+    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS) + 1);
+    expect(ww.isCapitulated(pol.smallID())).toBe(true);
+    expect(pol.numTilesOwned()).toBe(1499);
 
     // Germany falls while Poland's last land is still on its way to it.
     control(g, "Berlin", fra);
     nearlyFull(g, deu);
     checkCapitulations(g, ww, g.ticks());
-    step(runner, 3);
+    step(runner, 6);
     expect(ww.data().capitulated).toEqual([
       expect.objectContaining({
         smallID: pol.smallID(),
@@ -409,31 +384,21 @@ describe("victory points and capitulation (spec §7.5)", () => {
     ]);
     const g = runner.game;
     const ww = g.worldWar()!;
-    const [deu, pol, sun, fra, gbr] = (
-      ["DEU", "POL", "SUN", "FRA", "GBR"] as const
-    ).map((t) => byTag(g, t));
+    const [deu, pol, sun] = (["DEU", "POL", "SUN"] as const).map((t) =>
+      byTag(g, t),
+    );
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     ww.setWar(sun.smallID(), pol.smallID(), g.ticks());
     control(g, "Warsaw", deu);
     nearlyFull(g, pol);
-    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
-    expect(ww.isCapitulated(pol.smallID())).toBe(false);
-
-    // Poland's land moves over two ticks, Poland nearly gone after the
-    // first (Krakow's point goes with its control, outside the budget).
-    const left = 50;
-    queueBacklog(
-      g,
-      fra,
-      gbr,
-      WW_TRANSFER_TILES_PER_TICK - (pol.numTilesOwned() - 1) + left,
-    );
     const sunTiles = sun.numTilesOwned();
 
-    step(runner);
+    // Poland's land moves over two ticks: Krakow by its spread, then its
+    // tiles left in Warsaw.
+    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS) + 1);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
-    expect(pol.numTilesOwned()).toBe(left);
+    expect(pol.numTilesOwned()).toBeGreaterThan(0);
 
     step(runner, 3);
     expect(pol.isAlive()).toBe(false);
@@ -450,34 +415,26 @@ describe("victory points and capitulation (spec §7.5)", () => {
     const { runner, updates } = await wwRunnerCapture();
     const g = runner.game;
     const ww = g.worldWar()!;
-    const [deu, pol, sun, ita, gbr] = (
-      ["DEU", "POL", "SUN", "ITA", "GBR"] as const
-    ).map((t) => byTag(g, t));
+    const [deu, pol, sun] = (["DEU", "POL", "SUN"] as const).map((t) =>
+      byTag(g, t),
+    );
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     control(g, "Warsaw", deu);
     nearlyFull(g, pol);
-    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
-    const left = 50;
-    // Krakow's point goes with its control (P2), outside the budget.
-    queueBacklog(
-      g,
-      ita,
-      gbr,
-      WW_TRANSFER_TILES_PER_TICK - (pol.numTilesOwned() - 1) + left,
-    );
-    step(runner);
+    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS) + 1);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
-    expect(pol.numTilesOwned()).toBe(left);
+    expect(pol.numTilesOwned()).toBe(1499);
 
-    // A dying neighbour's tile lands with Poland mid-transfer (as
-    // AttackExecution.handleDeadDefender hands them out).
+    // A tile lands with Poland mid-transfer (as P0's AttackExecution
+    // handleDeadDefender handed them out). P2: it goes with its region,
+    // the Soviet Union's Kiev; the conquest is still the victor's.
     const handed = g.ref(125, 60);
     expect(g.owner(handed)).toBe(sun);
     pol.conquer(handed);
     step(runner, 3);
     expect(pol.isAlive()).toBe(false);
-    expect(g.owner(handed)).toBe(deu);
+    expect(g.owner(handed)).toBe(sun);
     expect(ww.transfers()).toEqual([]);
     const conquests = updates
       .flatMap((u) => u.updates[GameUpdateType.ConquestEvent])

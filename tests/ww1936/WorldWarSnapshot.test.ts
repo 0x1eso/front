@@ -3,10 +3,9 @@ import type { StampedIntent } from "@openfront/engine-api/Schemas";
 import {
   WW_CAPITULATION_DAYS,
   WW_PREP_TICKS,
-  WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import type { Game, Player } from "@openfront/engine/game/Game";
+import type { Game } from "@openfront/engine/game/Game";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -153,26 +152,6 @@ async function probe(
   return out;
 }
 
-/**
- * Transfers queued ahead of the next one that use up `tiles` of its tick's
- * budget: land of a's going to b and back. a keeps its VP tiles (nobody's
- * points change) and enough land to stay alive.
- */
-function queueBacklog(g: Game, a: Player, b: Player, tiles: number): void {
-  const ww = g.worldWar()!;
-  const vpTiles = new Set(
-    ww.scenario.landRegions.map((r) => ww.scenario.vpTile(r)),
-  );
-  const own = Uint32Array.from([...a.tiles()].filter((t) => !vpTiles.has(t)));
-  const moving = own.subarray(0, own.length - 10);
-  for (let toB = true; tiles > 0; toB = !toB) {
-    const leg = moving.slice(0, Math.min(tiles, moving.length));
-    if (toB) ww.queueTransfer(a.smallID(), b.smallID(), leg);
-    else ww.queueTransfer(b.smallID(), a.smallID(), leg);
-    tiles -= leg.length;
-  }
-}
-
 describe("World War 1936 snapshots (spec §7.8)", () => {
   // 1: the opening; 300: the preparation minute; 602: a declare_war
   // execution waiting for its first tick; 700: at war, Poland's first
@@ -298,12 +277,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     expect(ww.transfers()).toEqual([]);
   }, 120_000);
 
-  test("restoring around a capitulation, and mid-transfer after the list restarts", async () => {
-    // Germany and Britain (humans) fight Poland. Warsaw falls (takeRegion),
-    // so Poland capitulates at the next day: its divisions go, its regions
-    // change control at once (P2), and transfers queued ahead leave 50 of
-    // its other tiles for the following tick; a neighbour's tile lands with
-    // Poland meanwhile, so its list restarts.
+  test("restoring around a capitulation, and mid-spread after the loser is swept", async () => {
+    // Germany and Britain (humans) fight Poland. Warsaw falls (takeRegion)
+    // the evening before Poland's gauge fills, so Poland capitulates the
+    // next tick: its divisions go, its regions change control at once (P2
+    // spec §12.5), and Warsaw's capture spread goes ahead of Krakow's,
+    // leaving Krakow part-way for the next tick. A neighbour's tile lands
+    // with Poland meanwhile, so the sweep after the transfer takes it too.
     const humans: WwHuman[] = [
       { clientID: HUMAN, country: "DEU" },
       { clientID: "HUMAN002", country: "GBR" },
@@ -311,8 +291,8 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     const a = await wwRunner({}, humans);
     const g = a.game;
     const ww = g.worldWar()!;
-    const [deu, pol, ita, fra] = (["DEU", "POL", "ITA", "FRA"] as const).map(
-      (tag) => byTag(g, tag),
+    const [deu, pol, sun] = (["DEU", "POL", "SUN"] as const).map((tag) =>
+      byTag(g, tag),
     );
     stepTo(a, WW_PREP_TICKS + 1);
     step(a, 1, [
@@ -320,20 +300,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
       stamped("HUMAN002", { type: "declare_war", target: pol.id() }),
     ]);
     step(a, 3);
+    stepTo(a, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
     takeRegion(g, 6, "DEU");
     // Its gauge one day short of full, so the next check capitulates it.
     ww.setCapitulationGauge(pol.smallID(), WW_CAPITULATION_DAYS - 1);
-    stepTo(a, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS));
     expect(ww.land.fieldMen(pol.smallID())).toBeGreaterThan(0);
-    const left = 50;
-    // Krakow's victory-point tile goes with its control (setController),
-    // outside the transfer's budget.
-    queueBacklog(
-      g,
-      ita,
-      fra,
-      WW_TRANSFER_TILES_PER_TICK - (pol.numTilesOwned() - 1) + left,
-    );
 
     // The capitulation tick runs in both.
     const b = await restore(a, humans);
@@ -341,18 +312,23 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
     expect(ww.land.controller[7]).toBe(deu.smallID());
     expect(ww.land.fieldMen(pol.smallID())).toBe(0);
-    expect(pol.numTilesOwned()).toBe(left);
+    // Warsaw's 1,499 tiles went first; 501 of Krakow's 1,499 followed.
+    expect(pol.numTilesOwned()).toBe(998);
+    expect(ww.land.spreads.get(7)!.done).toBe(501);
 
     // A dying neighbour's tile lands with Poland, in both games.
     const handed = g.ref(125, 60);
-    expect(g.owner(handed)).toBe(byTag(g, "SUN"));
+    expect(g.owner(handed)).toBe(sun);
     for (const r of [a, b]) byTag(r.game, "POL").conquer(handed);
 
-    // Restored again, from the restored game, mid-transfer.
+    // Restored again, from the restored game, mid-spread (the tile orders
+    // are rebuilt from the spreads' sources: plan decision 21).
     const c = await restore(b, humans);
     lockstep(a, c, 50);
     expect(pol.isAlive()).toBe(false);
-    expect(g.owner(handed)).toBe(deu);
+    // P2: the tile goes with its region (Kiev, the Soviet Union's).
+    expect(g.owner(handed)).toBe(sun);
+    expect(ww.land.spreads.size).toBe(0);
     expect(ww.transfers()).toEqual([]);
   }, 120_000);
 });
