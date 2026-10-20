@@ -524,6 +524,27 @@ export function slotPctOf(detail: WwCountryDetail | null): number {
   return detail === null ? 0 : techTotals(new Set(detail.researched)).slotPct;
 }
 
+/**
+ * The fields the engine fix batch (w1-fixe) adds to the economy update,
+ * read here until both branches merge: WwCountrySummary.slotPct and
+ * WwCountryDetail.tradePartners.
+ */
+interface EngineFixFields {
+  slotPct?: number;
+  tradePartners?: readonly number[];
+}
+
+/**
+ * Any country's building-slot bonus (spec §4.2): the engine sends it in
+ * every country's summary (WwCountrySummary.slotPct), so a region an AI
+ * holds counts that AI's construction research too. A human's own detail
+ * gives it before the first summary.
+ */
+export function slotPctOfCountry(view: WwEconomyView, smallID: number): number {
+  const pct = (view.summary(smallID) as EngineFixFields | null)?.slotPct;
+  return pct ?? slotPctOf(view.detail(smallID));
+}
+
 /** What the engine's buildBlock checks, from the view (Construction.buildBlock). */
 export function buildCheck(
   view: WwEconomyView,
@@ -821,9 +842,7 @@ export interface WarPair {
 export function tradePartnersOf(
   detail: WwCountryDetail | null,
 ): ReadonlySet<number> {
-  // TODO(fixe): the engine lane's field name (WwCountryDetail.tradePartners).
-  const ids = (detail as { tradePartners?: readonly number[] } | null)
-    ?.tradePartners;
+  const ids = (detail as EngineFixFields | null)?.tradePartners;
   return new Set(ids ?? []);
 }
 
@@ -1305,12 +1324,9 @@ export function regionCard(game: WwEconGame, tile: TileRef): RegionCard | null {
     civ: now.civ,
     mil: now.mil,
     dock: now.dock,
-    // The engine's count for whoever holds it (an AI's construction
-    // research too); until it arrives, the controller's research if its
-    // detail is here (a human), else the base.
-    slots:
-      view.slotsOf(id) ??
-      regionSlots(r.cat, slotPctOf(view.detail(now.controller))),
+    // The engine's slot bonus of whoever holds it (an AI's construction
+    // research too, from its summary).
+    slots: regionSlots(r.cat, slotPctOfCountry(view, now.controller)),
     infra: now.infra,
     pop: r.pop * 1000,
     res: RESOURCE_IDS.flatMap((rid, i) =>

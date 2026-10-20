@@ -12,7 +12,6 @@ import {
   WW_TECH_IDS,
   WwCountryDetail,
   WwLineData,
-  WwRegionData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
@@ -20,6 +19,7 @@ import {
   constructionDaysLeft,
   constructionProgress,
   effAfterSwitch,
+  regionSlots,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { describe, expect, it, vi } from "vitest";
 
@@ -323,24 +323,35 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(regionCard(game as never, tileOf(1))!.mine).toBe(false);
   });
 
-  it("an AI's region card shows the engine's slots for its controller", () => {
-    // Paris is French; France is an AI: no detail, so the screens can't
-    // see its construction research.
-    const { view, game } = fakeEconGame({ details: [detail("DEU")] });
-    const paris = scenario.regionAt(tileOf(1));
-    expect(view.slotsOf(paris)).toBeNull();
-    const base = regionCard(game as never, tileOf(1))!.slots;
-    // The engine counts France's construction research: more than the base.
-    view.apply({
-      countries: [],
-      details: [],
-      regions: [{ ...region(paris), slots: base + 2 } as WwRegionData],
-    });
-    expect(view.slotsOf(paris)).toBe(base + 2);
-    expect(regionCard(game as never, tileOf(1))!.slots).toBe(base + 2);
-    // A later update without the field keeps the last count.
-    view.apply({ countries: [], details: [], regions: [region(paris)] });
-    expect(regionCard(game as never, tileOf(1))!.slots).toBe(base + 2);
+  it("an AI's region card counts its controller's slot research", () => {
+    // Paris (a metropolis) is French; France is an AI: no detail, so only
+    // its summary's slotPct (the engine's techs' bonus) says what it has.
+    const card = (o: FakeOptions) =>
+      regionCard(fakeEconGame(o).game as never, tileOf(1))!;
+    const base = regionSlots("metropolis", 0);
+    expect(card({ summaries: [summary("FRA")] }).slots).toBe(base);
+    expect(card({ summaries: [summary("FRA", { slotPct: 40 })] }).slots).toBe(
+      regionSlots("metropolis", 40),
+    );
+    expect(regionSlots("metropolis", 40)).toBeGreaterThan(base);
+    // Germany's Munich: my summary's bonus, as the build checks use it.
+    const munich = regionCard(
+      fakeEconGame({
+        summaries: [summary("DEU", { slotPct: 20 })],
+        details: [detail("DEU", { researched: ["construction_1"] })],
+      }).game as never,
+      tileOf(4),
+    )!;
+    expect(munich.slots).toBe(9);
+    // Before the first summary, a human's own detail gives it.
+    expect(
+      regionCard(
+        fakeEconGame({
+          details: [detail("DEU", { researched: ["construction_1"] })],
+        }).game as never,
+        tileOf(4),
+      )!.slots,
+    ).toBe(9);
   });
 
   it("idle military factories follow the lines asked for, before day 0 too", () => {

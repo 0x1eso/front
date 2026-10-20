@@ -26,11 +26,16 @@ export const scenario = ScenarioIndex.fromFiles(
 
 export const ID = (tag: CountryTag) => scenario.smallIdOf(tag);
 
+/**
+ * The summary and detail with the engine fix batch's fields (w1-fixe:
+ * WwCountrySummary.slotPct, WwCountryDetail.tradePartners); the same as
+ * the plain types once it merges.
+ */
+export type Summary = WwCountrySummary & { slotPct: number };
+export type Detail = WwCountryDetail & { tradePartners: number[] };
+
 /** Germany on the test map at the start (task-1 report), or `over`. */
-export function summary(
-  tag: CountryTag,
-  over: Partial<WwCountrySummary> = {},
-): WwCountrySummary {
+export function summary(tag: CountryTag, over: Partial<Summary> = {}): Summary {
   return {
     smallID: ID(tag),
     civ: 9,
@@ -45,14 +50,12 @@ export function summary(
     shortage: false,
     combat: { attackPct: 28, defensePct: 25, speedPct: 15 },
     exportRoom: [0, 0, 0, 0, 0, 0],
+    slotPct: 0,
     ...over,
   };
 }
 
-export function detail(
-  tag: CountryTag,
-  over: Partial<WwCountryDetail> = {},
-): WwCountryDetail {
+export function detail(tag: CountryTag, over: Partial<Detail> = {}): Detail {
   return {
     smallID: ID(tag),
     laws: {
@@ -91,16 +94,14 @@ export function detail(
     recruited: 0,
     effCapBp: 6_000,
     warDays: -1,
+    tradePartners: [],
     ...over,
   };
 }
 
-/**
- * The engine's trade partners in my detail (Trade.tradePartners), by tag.
- * TODO(fixe): typed once the engine lane's field lands.
- */
-export function partners(...tags: CountryTag[]): Partial<WwCountryDetail> {
-  return { tradePartners: tags.map(ID) } as unknown as Partial<WwCountryDetail>;
+/** The engine's trade partners in my detail (Trade.tradePartners), by tag. */
+export function partners(...tags: CountryTag[]): Partial<Detail> {
+  return { tradePartners: tags.map(ID) };
 }
 
 /** A region as it is now (WwRegionData), starting from the scenario. */
