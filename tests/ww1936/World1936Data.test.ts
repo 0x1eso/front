@@ -3,7 +3,7 @@ import {
   COUNTRY_TAGS,
   CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
-import { ScenarioRegion } from "@openfront/engine-api/ww1936/ScenarioTypes";
+import { ReadonlyScenarioRegion } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   loadTerrainMap,
@@ -38,7 +38,10 @@ beforeAll(async () => {
 const xOf = (lon: number) => Math.floor(((lon + 180) / 360) * W);
 
 /** The region at a lon/lat (the nearest land within 3 tiles). */
-function regionAt(lon: number, lat: number): ScenarioRegion | undefined {
+function regionAt(
+  lon: number,
+  lat: number,
+): ReadonlyScenarioRegion | undefined {
   const s = data.scenario!;
   const map = data.gameMap;
   const x0 = xOf(lon);
