@@ -193,8 +193,8 @@ export const PERSONS_P4: PersonDef[] = [
   },
 
   // ---- Soviet Union ----
-  // source: head of the Naval Forces 1931 to his arrest 1937-07-10 (Galler
-  // acting from that day); shot 1938, rehabilitated (en.wikipedia Vladimir
+  // source: head of the Naval Forces 1931 to his arrest 1937-07-10 (Mikhail
+  // Viktorov from August 1937); shot 1938, rehabilitated (en.wikipedia Vladimir
   // Mitrofanovich Orlov; Military Wiki Commander-in-Chief of the Russian Navy
   // list). Light-forces and submarine school. Also an admiral (Admirals.ts).
   {

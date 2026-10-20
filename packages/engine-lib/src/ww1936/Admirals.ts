@@ -386,7 +386,7 @@ export const ADMIRALS: readonly AdmiralDef[] = [
     "SUN",
     [2, 2, 2, 2],
     [],
-    "en.wikipedia Vladimir Mitrofanovich Orlov + Military Wiki list of Soviet naval commanders: head of the Naval Forces 1931 to his arrest 1937-07-10 (Galler acting from that day); executed 1938",
+    "en.wikipedia Vladimir Mitrofanovich Orlov + Military Wiki list of Soviet naval commanders: head of the Naval Forces 1931 to his arrest 1937-07-10 (Viktorov from August 1937); executed 1938",
     { until: "1937-07-10", alsoPerson: "sun_orlov" },
   ),
 ];

@@ -63,16 +63,11 @@ export const SHIP_NAMES: Readonly<
     // Surrey, Northumberland (ordered 1929, cancelled 1930; no later British
     // heavy cruiser): en.wikipedia Surrey-class cruiser; Conway's 1922-46
     ca: ["gbr_surrey", "gbr_northumberland"],
-    // Amphion class (Apollo 1936-01-13, Amphion 1936-07-06), Arethusa class
-    // (Penelope, Aurora), Town class, Dido class: en.wikipedia Leander-class
-    // cruiser (1931) / Arethusa-class (1934) / Town-class (1936) / Dido-class
-    // cruiser; Conway's 1922-46
+    // Town class after the 1936 line (Manchester, Liverpool laid down 1936),
+    // Dido class, Fiji class (Apollo, Amphion, Penelope, Aurora and
+    // Birmingham were on the slips in 1936: StartNavy lines): en.wikipedia
+    // Town-class (1936) / Dido-class / Fiji-class cruiser; Conway's 1922-46
     cl: [
-      "gbr_apollo",
-      "gbr_amphion",
-      "gbr_penelope",
-      "gbr_aurora",
-      "gbr_birmingham",
       "gbr_manchester",
       "gbr_liverpool",
       "gbr_gloucester",
@@ -88,6 +83,11 @@ export const SHIP_NAMES: Readonly<
       "gbr_charybdis",
       "gbr_cleopatra",
       "gbr_scylla",
+      "gbr_fiji",
+      "gbr_kenya",
+      "gbr_mauritius",
+      "gbr_nigeria",
+      "gbr_trinidad",
     ],
   },
   USA: {
@@ -148,10 +148,10 @@ export const SHIP_NAMES: Readonly<
       "usa_monterey",
       "usa_cabot",
     ],
-    // Wichita, Baltimore class, Oregon City class: en.wikipedia USS Wichita
-    // (CA-45) / Baltimore-class / Oregon City-class cruiser; Conway's 1922-46
+    // Baltimore class, Oregon City class (Wichita was on the slips in 1936:
+    // StartNavy line): en.wikipedia Baltimore-class / Oregon City-class
+    // cruiser; Conway's 1922-46
     ca: [
-      "usa_wichita",
       "usa_baltimore",
       "usa_boston",
       "usa_canberra",
@@ -167,13 +167,10 @@ export const SHIP_NAMES: Readonly<
       "usa_albany",
       "usa_rochester",
     ],
-    // Brooklyn class (the three after the 1936 line), St. Louis class,
-    // Atlanta class, Cleveland class: en.wikipedia Brooklyn- / St. Louis- /
-    // Atlanta- / Cleveland-class cruiser; Conway's 1922-46
+    // St. Louis class (laid down 1936-12), Atlanta class, Cleveland class
+    // (the seven Brooklyns laid down by 1935 are a StartNavy line):
+    // en.wikipedia Brooklyn- / Atlanta- / Cleveland-class cruiser; Conway's 1922-46
     cl: [
-      "usa_phoenix",
-      "usa_boise",
-      "usa_honolulu",
       "usa_st_louis",
       "usa_helena",
       "usa_atlanta",
@@ -197,11 +194,12 @@ export const SHIP_NAMES: Readonly<
     // Yamato class (Shinano completed as a carrier, so it is in the carrier
     // list): en.wikipedia Yamato-class battleship; Conway's 1922-46
     bb: ["jpn_yamato", "jpn_musashi"],
-    // Shokaku class, Taiho, Junyo class, Zuiho class, Ryuho, Chitose class,
+    // Hiryu (laid down 1936-07-08), Shokaku class, Taiho, Junyo class, Zuiho class, Ryuho, Chitose class,
     // Unryu class, Shinano, Taiyo class: en.wikipedia Shōkaku- / Hiyō- /
     // Zuihō- / Chitose- / Unryū- / Taiyō-class aircraft carrier, Japanese
     // aircraft carrier Taihō / Ryūhō / Shinano; Conway's 1922-46
     cv: [
+      "jpn_hiryu",
       "jpn_shokaku",
       "jpn_zuikaku",
       "jpn_zuiho",
@@ -223,20 +221,19 @@ export const SHIP_NAMES: Readonly<
       "jpn_taiyo",
       "jpn_unyo",
     ],
-    // Tone class, Ibuki: en.wikipedia Tone-class / Ibuki-class cruiser (1942);
-    // Conway's 1922-46
-    ca: ["jpn_tone", "jpn_chikuma", "jpn_ibuki"],
-    // Suzuya and Kumano (Mogami class, commissioned 1937), Agano class,
-    // Oyodo class, Katori class (Yahagi is already the 1912 cruiser at sea):
-    // en.wikipedia Mogami- / Agano- / Ōyodo- / Katori-class cruiser; Conway's 1922-46
+    // Ibuki (the Tone class was on the slips in 1936: StartNavy line):
+    // en.wikipedia Ibuki-class cruiser (1942); Conway's 1922-46
+    ca: ["jpn_ibuki"],
+    // Katori class, Agano class, Oyodo class (Suzuya and Kumano were on the
+    // slips in 1936: StartNavy line): en.wikipedia Katori- / Agano- /
+    // Ōyodo-class cruiser; Conway's 1922-46
     cl: [
-      "jpn_suzuya",
-      "jpn_kumano",
       "jpn_katori",
       "jpn_kashima",
       "jpn_kashii",
       "jpn_agano",
       "jpn_noshiro",
+      "jpn_yahagi",
       "jpn_sakawa",
       "jpn_oyodo",
       "jpn_niyodo",
@@ -258,12 +255,10 @@ export const SHIP_NAMES: Readonly<
     // Aquila, Sparviero (liner conversions): en.wikipedia Italian aircraft
     // carrier Aquila / Sparviero; Conway's 1922-46
     cv: ["ita_aquila", "ita_sparviero"],
-    // Eugenio di Savoia (commissioned 1936-01-16), Giuseppe Garibaldi,
-    // Capitani Romani class, Etna class: en.wikipedia Duca d'Aosta- / Duca
-    // degli Abruzzi- / Capitani Romani- / Etna-class cruiser; Conway's 1922-46
+    // Capitani Romani class, Etna class (Eugenio di Savoia and Giuseppe
+    // Garibaldi were on the slips in 1936: StartNavy lines): en.wikipedia
+    // Capitani Romani- / Etna-class cruiser; Conway's 1922-46
     cl: [
-      "ita_eugenio_di_savoia",
-      "ita_giuseppe_garibaldi",
       "ita_attilio_regolo",
       "ita_scipione_africano",
       "ita_pompeo_magno",
@@ -294,15 +289,10 @@ export const SHIP_NAMES: Readonly<
     ],
     // Joffre class: en.wikipedia Joffre-class aircraft carrier; Conway's 1922-46
     cv: ["fra_joffre", "fra_painleve"],
-    // La Galissonnière class after the 1936 line, De Grasse class:
-    // en.wikipedia La Galissonnière-class / De Grasse-class cruiser; Conway's 1922-46
-    cl: [
-      "fra_montcalm",
-      "fra_georges_leygues",
-      "fra_de_grasse",
-      "fra_chateaurenault",
-      "fra_guichen",
-    ],
+    // De Grasse class (planned 1937-38; the whole La Galissonnière class was
+    // on the slips or in service in 1936): en.wikipedia De Grasse-class
+    // cruiser; Conway's 1922-46
+    cl: ["fra_de_grasse", "fra_chateaurenault", "fra_guichen"],
   },
   SUN: {
     // Sovetsky Soyuz class: en.wikipedia Sovetsky Soyuz-class battleship;
@@ -315,16 +305,11 @@ export const SHIP_NAMES: Readonly<
     ],
     // Kronshtadt class: en.wikipedia Kronshtadt-class battlecruiser; Conway's 1922-46
     bc: ["sun_kronshtadt", "sun_sevastopol"],
-    // Kirov class after Kirov and Project 26-bis; Petropavlovsk (ex-Lützow):
+    // Project 26-bis (Kirov and Voroshilov were on the slips in 1936:
+    // StartNavy lines); Petropavlovsk (ex-Lützow):
     // en.wikipedia Kirov-class cruiser / German cruiser Lützow (1939);
     // Conway's 1922-46. Lazar Kaganovich left out (sensitivity).
-    ca: [
-      "sun_voroshilov",
-      "sun_maxim_gorky",
-      "sun_molotov",
-      "sun_kalinin",
-      "sun_petropavlovsk",
-    ],
+    ca: ["sun_maxim_gorky", "sun_molotov", "sun_kalinin", "sun_petropavlovsk"],
     // Chapayev class: en.wikipedia Chapayev-class cruiser; Conway's 1922-46
     cl: [
       "sun_chapayev",
@@ -348,10 +333,10 @@ export const FLEET_NAMES: readonly string[] = [
   "gbr_africa_station",
   "gbr_reserve_fleet",
   "usa_battle_force",
+  "usa_scouting_force",
   "usa_atlantic_squadron",
   "usa_submarine_force",
   "usa_asiatic_fleet",
-  "usa_reserve_force",
   "jpn_first_fleet",
   "jpn_second_fleet",
   "jpn_submarine_squadron",

@@ -14,6 +14,10 @@
 //   ships and armoured cruisers are generation-1 heavy cruisers (spec §4.1).
 // - Region names are the world1936 scenario's (map v3 of lane P2-D); every
 //   base, fleet base and line port is a coastal region.
+// - Lines hold every ship on the slips on 1936-01-01 (spec §6.2 plus the
+//   ones the fact-check found). `progressPct` is the first ship's; the
+//   others start at 0 and wait their turn (HOI4 queue), so a line may hold
+//   more ships than it has docks. Docks per country stay within spec §6.5.
 //
 // Sources: every named ship's line gives two references, en.wikipedia (the
 // class article) and Conway's All the World's Fighting Ships 1922-1946 or
@@ -75,7 +79,8 @@ export const START_NAVY: readonly StartNavyDef[] = [
   // ======== United Kingdom (spec §6.1: 12/3/6/16/33/110/45, convoys 900) ========
   // CL 30, not 33: the Royal Navy had 30 light cruisers in commission or
   // reserve on 1936-01-01 (13 C, 8 D, 2 E, 5 Leander, 2 Arethusa; Apollo
-  // commissioned 1936-01-13, Amphion 1936-07-06). The reserve fleet keeps 1.
+  // commissioned 1936-01-13 and Amphion 1936-07-06 are a naval line). The
+  // reserve fleet keeps 1.
   {
     tag: "GBR",
     convoys: 900,
@@ -147,8 +152,8 @@ export const START_NAVY: readonly StartNavyDef[] = [
       // Hood (Home Fleet until 9.36), Repulse (refit Portsmouth to 4.36):
       // en.wikipedia HMS Hood / HMS Repulse (1916); naval-history.net
       ...named("bc", 1, ["gbr_hood", "gbr_repulse"]),
-      // Courageous (Home Fleet carrier, lent to the Mediterranean 9.35-6.36),
-      // Furious: en.wikipedia Courageous-class battlecruiser / HMS Furious;
+      // Courageous (Home Fleet carrier, refitting at Devonport 10.35-6.36),
+      // Furious: en.wikipedia HMS Courageous (50) / HMS Furious;
       // naval-history.net
       ...named("cv", 1, ["gbr_courageous", "gbr_furious"]),
       // Cumberland (refit in Britain 2.35-7.36), Suffolk; Hawkins and
@@ -270,42 +275,71 @@ export const START_NAVY: readonly StartNavyDef[] = [
       ...numbered("dd", 1, 29),
       ...numbered("ss", 1, 8),
     ],
+    // Lines: the spec §6.2 four plus the cruisers on the slips on 1936-01-01
+    // (fact-check round 1); the 20 docks are re-split (spec 5/5/5/5).
     lines: [
-      // Ark Royal: laid down 1935-09-16 at Cammell Laird, Birkenhead (Mersey).
-      // en.wikipedia HMS Ark Royal (91); Conway's 1922-46
+      // Ark Royal: laid down 1935-09-16 at Cammell Laird, Birkenhead (Mersey),
+      // launched 1937-04-13 — about 12% done. en.wikipedia HMS Ark Royal (91)
       {
         cls: "cv",
         gen: 2,
         count: 1,
-        progressPct: 35,
-        docks: 5,
+        progressPct: 12,
+        docks: 4,
         names: ["gbr_ark_royal"],
         port: "Manchester",
       },
-      // Southampton class (Southampton, Newcastle laid down 1934-11; Sheffield,
-      // Glasgow 1934-12): en.wikipedia Town-class cruiser (1936); Conway's 1922-46
+      // Amphion class: Apollo (Devonport, commissioned 1936-01-13), Amphion
+      // (Portsmouth, commissioned 1936-07-06; waits behind Apollo).
+      // en.wikipedia Leander-class cruiser (1931)
       {
         cls: "cl",
         gen: 2,
-        count: 4,
+        count: 2,
+        progressPct: 97,
+        docks: 1,
+        names: ["gbr_apollo", "gbr_amphion"],
+        port: "Devon",
+      },
+      // Arethusa class: Penelope (laid down 1934-05-30 at Harland and Wolff,
+      // Belfast, launched 1935-10-15), Aurora (laid down 1935-07-23; waits).
+      // en.wikipedia Arethusa-class cruiser (1934)
+      {
+        cls: "cl",
+        gen: 2,
+        count: 2,
+        progressPct: 80,
+        docks: 2,
+        names: ["gbr_penelope", "gbr_aurora"],
+        port: "Fermanagh",
+      },
+      // Southampton class: Newcastle (laid down 1934-10-04, Vickers Tyne),
+      // Southampton (1934-11-21, John Brown), Sheffield (1935-01-31), Glasgow
+      // (1935-04-16, Scotts), Birmingham (1935-07-18, Devonport); the later
+      // ones wait. en.wikipedia Town-class cruiser (1936)
+      {
+        cls: "cl",
+        gen: 2,
+        count: 5,
         progressPct: 40,
-        docks: 5,
+        docks: 4,
         names: [
-          "gbr_southampton",
           "gbr_newcastle",
+          "gbr_southampton",
           "gbr_sheffield",
           "gbr_glasgow",
+          "gbr_birmingham",
         ],
         port: "Glasgow",
       },
-      // Tribal-class destroyers (ordered 1936; numbered names): en.wikipedia
+      // Tribal-class destroyers (spec §6.2 line; numbered names): en.wikipedia
       // Tribal-class destroyer (1936)
       {
         cls: "dd",
         gen: 2,
         count: 8,
         progressPct: 20,
-        docks: 5,
+        docks: 4,
         names: [],
         port: "North Yorkshire",
       },
@@ -324,6 +358,10 @@ export const START_NAVY: readonly StartNavyDef[] = [
   // ======== United States (spec §6.1: 15/0/3/15/10/100/55, convoys 650) ========
   // Ranger served with the Pacific fleet from 1935, so the Battle Force has
   // the three carriers and the Atlantic force none (spec §6.4 had 2 + 1).
+  // The heavy cruisers were all in the Pacific Scouting Force (Augusta in
+  // Asia): the spec's Philadelphia reserve becomes the Scouting Force, and
+  // the Atlantic keeps the training battleships, one cruiser, destroyers
+  // and submarines (fact-check round 1).
   {
     tag: "USA",
     convoys: 650,
@@ -346,12 +384,17 @@ export const START_NAVY: readonly StartNavyDef[] = [
       {
         key: "usa_battle_force",
         base: "California",
-        counts: [12, 0, 3, 6, 4, 40, 0],
+        counts: [12, 0, 3, 0, 4, 40, 0],
+      },
+      {
+        key: "usa_scouting_force",
+        base: "California",
+        counts: [0, 0, 0, 14, 4, 30, 0],
       },
       {
         key: "usa_atlantic_squadron",
         base: "Virginia",
-        counts: [3, 0, 0, 4, 4, 30, 10],
+        counts: [3, 0, 0, 0, 1, 17, 20],
       },
       {
         key: "usa_submarine_force",
@@ -362,11 +405,6 @@ export const START_NAVY: readonly StartNavyDef[] = [
         key: "usa_asiatic_fleet",
         base: "Philippines",
         counts: [0, 0, 0, 1, 1, 13, 10],
-      },
-      {
-        key: "usa_reserve_force",
-        base: "Pennsylvania",
-        counts: [0, 0, 0, 4, 1, 17, 10],
       },
     ],
     ships: [
@@ -390,20 +428,9 @@ export const START_NAVY: readonly StartNavyDef[] = [
       // Lexington, Saratoga: en.wikipedia Lexington-class aircraft carrier;
       // Conway's 1922-46
       ...named("cv", 1, ["usa_lexington", "usa_saratoga"]),
-      // Ranger (commissioned 1934-06-04, Pacific from 1935; generation 2):
+      // Ranger (commissioned 1934-06-04, Pacific from 1935-04-01; generation 2):
       // en.wikipedia USS Ranger (CV-4); Conway's 1922-46
       ...named("cv", 2, ["usa_ranger"]),
-      // New Orleans class (generation 2): en.wikipedia New Orleans-class
-      // cruiser; Conway's 1922-46
-      ...named("ca", 2, [
-        "usa_new_orleans",
-        "usa_astoria",
-        "usa_minneapolis",
-        "usa_tuscaloosa",
-        "usa_san_francisco",
-      ]),
-      // Portland: en.wikipedia Portland-class cruiser; Conway's 1922-46
-      ...named("ca", 1, ["usa_portland"]),
       // Omaha class (destroyer flotilla leaders): en.wikipedia Omaha-class
       // cruiser; Conway's 1922-46
       ...named("cl", 1, [
@@ -414,17 +441,29 @@ export const START_NAVY: readonly StartNavyDef[] = [
       ]),
       ...numbered("dd", 1, 40),
 
-      // -- Atlantic squadron (Norfolk) --
-      // Arkansas, New York, Texas: en.wikipedia Wyoming-class / New York-class
-      // battleship; Conway's 1906-21
-      ...named("bb", 1, ["usa_arkansas", "usa_new_york", "usa_texas"]),
-      // Indianapolis; Northampton class: en.wikipedia Portland-class /
-      // Northampton-class cruiser; Conway's 1922-46
+      // -- Scouting Force (Pacific since 1932; heavy cruiser divisions) --
+      // Pensacola class (Pensacola to the Pacific 1935-01-30): en.wikipedia
+      // Pensacola-class cruiser / USS Pensacola (CA-24); Conway's 1922-46
+      ...named("ca", 1, ["usa_pensacola", "usa_salt_lake_city"]),
+      // Northampton class (Houston in the Scouting Force): en.wikipedia
+      // Northampton-class cruiser / USS Houston (CA-30); Conway's 1922-46
       ...named("ca", 1, [
-        "usa_indianapolis",
-        "usa_houston",
         "usa_northampton",
         "usa_chester",
+        "usa_louisville",
+        "usa_chicago",
+        "usa_houston",
+      ]),
+      // Portland class: en.wikipedia Portland-class cruiser; Conway's 1922-46
+      ...named("ca", 1, ["usa_portland", "usa_indianapolis"]),
+      // New Orleans class (generation 2): en.wikipedia New Orleans-class
+      // cruiser; Conway's 1922-46
+      ...named("ca", 2, [
+        "usa_new_orleans",
+        "usa_astoria",
+        "usa_minneapolis",
+        "usa_tuscaloosa",
+        "usa_san_francisco",
       ]),
       // Omaha class: en.wikipedia Omaha-class cruiser; Conway's 1922-46
       ...named("cl", 1, [
@@ -434,7 +473,16 @@ export const START_NAVY: readonly StartNavyDef[] = [
         "usa_detroit",
       ]),
       ...numbered("dd", 1, 30),
-      ...numbered("ss", 1, 10),
+
+      // -- Atlantic (Training Squadron, Norfolk; submarines at New London and
+      // Coco Solo) --
+      // Arkansas, New York, Texas: en.wikipedia Wyoming-class / New York-class
+      // battleship; Conway's 1906-21
+      ...named("bb", 1, ["usa_arkansas", "usa_new_york", "usa_texas"]),
+      // Memphis: en.wikipedia Omaha-class cruiser; Conway's 1922-46
+      ...named("cl", 1, ["usa_memphis"]),
+      ...numbered("dd", 1, 17),
+      ...numbered("ss", 1, 20),
 
       // -- Submarine Force (Pearl Harbor) --
       ...numbered("ss", 1, 25),
@@ -446,21 +494,10 @@ export const START_NAVY: readonly StartNavyDef[] = [
       ...named("cl", 1, ["usa_marblehead"]),
       ...numbered("dd", 1, 13),
       ...numbered("ss", 1, 10),
-
-      // -- Reserve (Philadelphia) --
-      // Pensacola class, Louisville, Chicago: en.wikipedia Pensacola-class /
-      // Northampton-class cruiser; Conway's 1922-46
-      ...named("ca", 1, [
-        "usa_pensacola",
-        "usa_salt_lake_city",
-        "usa_louisville",
-        "usa_chicago",
-      ]),
-      // Memphis: en.wikipedia Omaha-class cruiser; Conway's 1922-46
-      ...named("cl", 1, ["usa_memphis"]),
-      ...numbered("dd", 1, 17),
-      ...numbered("ss", 1, 10),
     ],
+    // Lines: the spec §6.2 four (the Brooklyn line also holds the three
+    // more laid down in 1935) plus Wichita; the 16 docks are re-split
+    // (spec 5/5/3/3).
     lines: [
       // Yorktown (laid down 1934-05-21), Enterprise (1934-07-16), Newport News:
       // en.wikipedia Yorktown-class aircraft carrier; Conway's 1922-46
@@ -469,7 +506,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         gen: 2,
         count: 1,
         progressPct: 55,
-        docks: 5,
+        docks: 4,
         names: ["usa_yorktown"],
         port: "Virginia",
       },
@@ -478,25 +515,31 @@ export const START_NAVY: readonly StartNavyDef[] = [
         gen: 2,
         count: 1,
         progressPct: 45,
-        docks: 5,
+        docks: 4,
         names: ["usa_enterprise"],
         port: "Virginia",
       },
-      // Brooklyn class (all four laid down 1935): en.wikipedia Brooklyn-class
-      // cruiser; Conway's 1922-46
+      // Brooklyn class: Savannah (laid down 1934-05-31, Camden), Nashville
+      // (1935-01-24), Brooklyn (1935-03-12, Brooklyn Navy Yard), Boise
+      // (1935-04-01, Newport News), Phoenix (1935-04-25), Philadelphia
+      // (1935-05-28, Philadelphia), Honolulu (1935-12-09); the later ones
+      // wait. en.wikipedia Brooklyn-class cruiser; Conway's 1922-46
       {
         cls: "cl",
         gen: 2,
-        count: 4,
+        count: 7,
         progressPct: 35,
         docks: 3,
         names: [
-          "usa_brooklyn",
-          "usa_philadelphia",
           "usa_savannah",
           "usa_nashville",
+          "usa_brooklyn",
+          "usa_boise",
+          "usa_phoenix",
+          "usa_philadelphia",
+          "usa_honolulu",
         ],
-        port: "New York",
+        port: "New Jersey", // Savannah's yard, Camden
       },
       // Quincy (laid down 1933-11-15), Vincennes (1934-01-02), Fore River:
       // en.wikipedia New Orleans-class cruiser; Conway's 1922-46
@@ -509,14 +552,26 @@ export const START_NAVY: readonly StartNavyDef[] = [
         names: ["usa_quincy", "usa_vincennes"],
         port: "Massachusetts",
       },
+      // Wichita (laid down 1935-10-28, Philadelphia Navy Yard): en.wikipedia
+      // USS Wichita (CA-45)
+      {
+        cls: "ca",
+        gen: 2,
+        count: 1,
+        progressPct: 10,
+        docks: 2,
+        names: ["usa_wichita"],
+        port: "Pennsylvania",
+      },
     ],
   },
 
   // ======== Japan (spec §6.1: 6/4/4/12/21/95/55, convoys 450) ========
   // Of the Mogami class only Mogami (1935-07-28) and Mikuma (1935-08-29)
-  // were in commission; Suzuya and Kumano (1937-10-31) head the cruiser
-  // name list instead. The two other light cruisers are Hirado and Yahagi
-  // (1912, stricken 1940-04-01, China service): the class count stays 21.
+  // were in commission; Suzuya and Kumano are a naval line. CL 19, not 21:
+  // the 1912 cruisers Hirado and Yahagi were reserve and training ships
+  // (spec §6.1 leaves reserve out), so the Third Fleet keeps 2 (fact-check
+  // round 1).
   // Destroyers: the special type III (Akatsuki class, 4) and the Hatsuharu
   // class (6) are generation 2.
   {
@@ -555,7 +610,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
       {
         key: "jpn_third_fleet",
         base: "Kwantung",
-        counts: [0, 0, 0, 0, 4, 15, 0],
+        counts: [0, 0, 0, 0, 2, 15, 0],
       },
       {
         key: "jpn_guard_force",
@@ -629,14 +684,8 @@ export const START_NAVY: readonly StartNavyDef[] = [
       ...numbered("ss", 1, 40),
 
       // -- Third Fleet (China waters) --
-      // Tenryu class; Hirado and Yahagi (Chikuma class, China service to
-      // 1940): en.wikipedia Tenryū-class / Chikuma-class cruiser; Conway's 1906-21
-      ...named("cl", 1, [
-        "jpn_tenryu",
-        "jpn_tatsuta",
-        "jpn_hirado",
-        "jpn_yahagi",
-      ]),
+      // Tenryu class: en.wikipedia Tenryū-class cruiser; Conway's 1906-21
+      ...named("cl", 1, ["jpn_tenryu", "jpn_tatsuta"]),
       ...numbered("dd", 1, 15),
 
       // -- Guard force --
@@ -646,26 +695,43 @@ export const START_NAVY: readonly StartNavyDef[] = [
       ...numbered("ss", 1, 15),
     ],
     lines: [
-      // Soryu (laid down 1934-11-20, Kure), Hiryu (1936-07-08, Yokosuka; the
-      // spec starts it at 25%): en.wikipedia Japanese aircraft carrier Sōryū /
-      // Hiryū; Conway's 1922-46
+      // Soryu (laid down 1934-11-20, Kure, launched 1935-12-23, commissioned
+      // 1937-12): about 65%. Hiryu (laid down 1936-07-08) was not yet on the
+      // slips and comes from the name list. en.wikipedia Japanese aircraft
+      // carrier Sōryū / Hiryū
       {
         cls: "cv",
         gen: 2,
         count: 1,
-        progressPct: 80,
+        progressPct: 65,
         docks: 4,
         names: ["jpn_soryu"],
         port: "Hiroshima",
       },
+      // Mogami class: Suzuya (laid down 1933-12-11, Yokosuka, launched
+      // 1934-11-20, rebuilt after 1935; commissioned 1937-10-31), Kumano
+      // (1934-04-05, Kawasaki Kobe, launched 1936-10-15; waits).
+      // en.wikipedia Mogami-class cruiser
       {
-        cls: "cv",
+        cls: "cl",
         gen: 2,
-        count: 1,
-        progressPct: 25,
-        docks: 4,
-        names: ["jpn_hiryu"],
+        count: 2,
+        progressPct: 75,
+        docks: 2,
+        names: ["jpn_suzuya", "jpn_kumano"],
         port: "Tokyo",
+      },
+      // Tone class: Tone (laid down 1934-12-01), Chikuma (1935-10-01; waits),
+      // Mitsubishi Nagasaki; commissioned 1938-11 and 1939-05. en.wikipedia
+      // Tone-class cruiser
+      {
+        cls: "ca",
+        gen: 2,
+        count: 2,
+        progressPct: 25,
+        docks: 2,
+        names: ["jpn_tone", "jpn_chikuma"],
+        port: "Kumamoto",
       },
       // Shiratsuyu-class destroyers (laid down 1933-35): en.wikipedia
       // Shiratsuyu-class destroyer
@@ -779,13 +845,14 @@ export const START_NAVY: readonly StartNavyDef[] = [
     ],
     lines: [
       // Dunkerque (laid down 1932-12-24, Brest), Strasbourg (1934-11-25,
-      // Saint-Nazaire): en.wikipedia Dunkerque-class battleship; Conway's 1922-46
+      // Penhoët, Saint-Nazaire — the map's Côtes-d'Armor region holds the
+      // Loire estuary): en.wikipedia Dunkerque-class battleship; Conway's 1922-46
       {
         cls: "bc",
         gen: 2,
         count: 1,
         progressPct: 85,
-        docks: 3,
+        docks: 2,
         names: ["fra_dunkerque"],
         port: "Finistère",
       },
@@ -794,7 +861,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         gen: 2,
         count: 1,
         progressPct: 40,
-        docks: 3,
+        docks: 2,
         names: ["fra_strasbourg"],
         port: "Côtes-d'Armor",
       },
@@ -809,16 +876,49 @@ export const START_NAVY: readonly StartNavyDef[] = [
         names: ["fra_richelieu"],
         port: "Finistère",
       },
-      // La Galissonnière class (Jean de Vienne at Lorient; Gloire, Marseillaise
-      // laid down 1933): en.wikipedia La Galissonnière-class cruiser; Conway's 1922-46
+      // La Galissonnière class, one line per yard (all launched 1935-36,
+      // commissioned 1937): Jean de Vienne (Arsenal de Lorient, laid down
+      // 1931-12-20, launched 1935-07-31); Marseillaise (Chantiers de la Loire,
+      // Nantes, 1933-10-23) and Georges Leygues (Penhoët, Saint-Nazaire,
+      // 1933-09-21; waits); Gloire (Forges et Chantiers de la Gironde,
+      // Lormont, 1933-11-13); Montcalm (Forges et Chantiers de la
+      // Méditerranée, La Seyne, 1933-11-15). en.wikipedia La
+      // Galissonnière-class cruiser
       {
         cls: "cl",
         gen: 2,
-        count: 3,
-        progressPct: 50,
-        docks: 2,
-        names: ["fra_jean_de_vienne", "fra_gloire", "fra_marseillaise"],
+        count: 1,
+        progressPct: 70,
+        docks: 1,
+        names: ["fra_jean_de_vienne"],
         port: "Finistère",
+      },
+      {
+        cls: "cl",
+        gen: 2,
+        count: 2,
+        progressPct: 65,
+        docks: 1,
+        names: ["fra_marseillaise", "fra_georges_leygues"],
+        port: "Côtes-d'Armor",
+      },
+      {
+        cls: "cl",
+        gen: 2,
+        count: 1,
+        progressPct: 65,
+        docks: 1,
+        names: ["fra_gloire"],
+        port: "Gironde",
+      },
+      {
+        cls: "cl",
+        gen: 2,
+        count: 1,
+        progressPct: 65,
+        docks: 1,
+        names: ["fra_montcalm"],
+        port: "Alpes-Maritimes",
       },
     ],
   },
@@ -921,13 +1021,14 @@ export const START_NAVY: readonly StartNavyDef[] = [
     ],
     lines: [
       // Littorio (laid down 1934-10-28, Genoa), Vittorio Veneto (1934-10-28,
-      // Trieste): en.wikipedia Littorio-class battleship; Conway's 1922-46
+      // Trieste): en.wikipedia Littorio-class battleship; Conway's 1922-46.
+      // The 9 docks are re-split for the two cruisers added below (spec 4/4/1).
       {
         cls: "bb",
         gen: 2,
         count: 1,
         progressPct: 30,
-        docks: 4,
+        docks: 3,
         names: ["ita_littorio"],
         port: "Modena",
       },
@@ -936,12 +1037,13 @@ export const START_NAVY: readonly StartNavyDef[] = [
         gen: 2,
         count: 1,
         progressPct: 30,
-        docks: 4,
+        docks: 3,
         names: ["ita_vittorio_veneto"],
         port: "Udine",
       },
-      // Luigi di Savoia Duca degli Abruzzi (laid down 1933-12-28, La Spezia):
-      // en.wikipedia Duca degli Abruzzi-class cruiser; Conway's 1922-46
+      // Luigi di Savoia Duca degli Abruzzi (laid down 1933-12-28, OTO
+      // Muggiano, La Spezia) and her sister Giuseppe Garibaldi (same day,
+      // CRDA Trieste): en.wikipedia Duca degli Abruzzi-class cruiser
       {
         cls: "cl",
         gen: 2,
@@ -951,12 +1053,33 @@ export const START_NAVY: readonly StartNavyDef[] = [
         names: ["ita_duca_degli_abruzzi"],
         port: "Modena",
       },
+      {
+        cls: "cl",
+        gen: 2,
+        count: 1,
+        progressPct: 60,
+        docks: 1,
+        names: ["ita_giuseppe_garibaldi"],
+        port: "Udine",
+      },
+      // Eugenio di Savoia (Ansaldo, Genoa; laid down 1933-07-06, launched
+      // 1935-03-16, commissioned 1936-01-16): en.wikipedia Italian cruiser
+      // Eugenio di Savoia
+      {
+        cls: "cl",
+        gen: 2,
+        count: 1,
+        progressPct: 97,
+        docks: 1,
+        names: ["ita_eugenio_di_savoia"],
+        port: "Modena",
+      },
     ],
   },
 
   // ======== Germany (spec §6.1: 2/0/0/3/6/12/18, convoys 120) ========
   // Generation 2: the three Deutschland-class ships (Admiral Graf Spee
-  // commissioned 1936-01-06) and every U-boat.
+  // commissioned 1936-01-06) and every U-boat. SS 17, not 18 (uboat.net).
   {
     tag: "DEU",
     convoys: 120,
@@ -972,7 +1095,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
       {
         key: "deu_uboat_flotilla",
         base: "Niedersachsen",
-        counts: [0, 0, 0, 0, 2, 0, 18],
+        counts: [0, 0, 0, 0, 2, 0, 17],
       },
     ],
     ships: [
@@ -1003,17 +1126,20 @@ export const START_NAVY: readonly StartNavyDef[] = [
       // Emden, Karlsruhe (training cruisers): en.wikipedia German cruiser
       // Emden / Königsberg-class cruiser; Conway's 1922-46
       ...named("cl", 1, ["deu_emden", "deu_karlsruhe"]),
-      // Type IIA and IIB U-boats (generation 2): en.wikipedia Type II submarine
-      ...numbered("ss", 2, 18),
+      // Type IIA and IIB U-boats in commission on 1936-01-01: U-1..U-14 and
+      // U-17..U-19 = 17 (generation 2): en.wikipedia Type II submarine;
+      // uboat.net U-13, U-15, U-17, U-20
+      ...numbered("ss", 2, 17),
     ],
     lines: [
-      // Scharnhorst (laid down 1935-06-15, Wilhelmshaven), Gneisenau
-      // (1935-05-06, Kiel): en.wikipedia Scharnhorst-class battleship; Conway's 1922-46
+      // Scharnhorst (laid down 1935-06-15, Wilhelmshaven, launched 1936-10-03),
+      // Gneisenau (1935-05-06, Kiel, launched 1936-12-08): about a quarter
+      // done. en.wikipedia Scharnhorst-class battleship; Conway's 1922-46
       {
         cls: "bc",
         gen: 2,
         count: 1,
-        progressPct: 45,
+        progressPct: 25,
         docks: 3,
         names: ["deu_scharnhorst"],
         port: "Niedersachsen",
@@ -1022,7 +1148,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         cls: "bc",
         gen: 2,
         count: 1,
-        progressPct: 40,
+        progressPct: 30,
         docks: 3,
         names: ["deu_gneisenau"],
         port: "Hamburg",
@@ -1113,16 +1239,27 @@ export const START_NAVY: readonly StartNavyDef[] = [
       ...numbered("ss", 1, 3),
     ],
     lines: [
-      // Kirov (laid down 1935-10-22, Leningrad): en.wikipedia Kirov-class
-      // cruiser; Conway's 1922-46
+      // Kirov (laid down 1935-10-22, Ordzhonikidze Yard, Leningrad; launched
+      // 1936-11-30, commissioned 1938-09-26) and Voroshilov (1935-10-15, Marti
+      // South, Nikolayev; commissioned 1940-06-20): about 12% and 10%. The 8
+      // docks are re-split (spec 3/2/3). en.wikipedia Kirov-class cruiser
       {
         cls: "ca",
         gen: 2,
         count: 1,
-        progressPct: 30,
-        docks: 3,
+        progressPct: 12,
+        docks: 2,
         names: ["sun_kirov"],
         port: "Leningrad",
+      },
+      {
+        cls: "ca",
+        gen: 2,
+        count: 1,
+        progressPct: 10,
+        docks: 2,
+        names: ["sun_voroshilov"],
+        port: "Mykolayiv",
       },
       // Gnevny-class destroyers (Project 7, first laid down 1935): en.wikipedia
       // Gnevny-class destroyer
@@ -1140,7 +1277,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         gen: 2,
         count: 6,
         progressPct: 40,
-        docks: 3,
+        docks: 2,
         names: [],
         port: "Mykolayiv",
       },
@@ -1219,20 +1356,21 @@ export const START_NAVY: readonly StartNavyDef[] = [
     ships: [
       // España (ex-Alfonso XIII): en.wikipedia España-class battleship; Conway's 1922-46
       ...named("bb", 1, ["esn_espana"]),
-      // Almirante Cervera; República (ex-Reina Victoria Eugenia): en.wikipedia
+      // Almirante Cervera; República (ex-Reina Victoria Eugenia; refitting at
+      // Cádiz in 1936, kept for the spec §6.3 count): en.wikipedia
       // Almirante Cervera-class cruiser / Spanish cruiser Reina Victoria Eugenia;
       // Conway's 1922-46
       ...named("cl", 1, ["esn_almirante_cervera", "esn_republica"]),
       ...numbered("dd", 1, 1),
     ],
     lines: [
-      // Canarias, Baleares (laid down 1928, Ferrol): en.wikipedia
-      // Canarias-class cruiser; Conway's 1922-46
+      // Canarias, Baleares (laid down 1928, Ferrol; launched 1931 and 1932,
+      // commissioned 1936): en.wikipedia Canarias-class cruiser; Conway's 1922-46
       {
         cls: "ca",
         gen: 2,
         count: 1,
-        progressPct: 70,
+        progressPct: 80,
         docks: 1,
         names: ["esn_canarias"],
         port: "La Coruña",
@@ -1241,7 +1379,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         cls: "ca",
         gen: 2,
         count: 1,
-        progressPct: 50,
+        progressPct: 75,
         docks: 1,
         names: ["esn_baleares"],
         port: "La Coruña",
@@ -1262,9 +1400,11 @@ export const START_NAVY: readonly StartNavyDef[] = [
     ships: [
       // Australia, Canberra (County class): en.wikipedia County-class cruiser; Conway's 1922-46
       ...named("ca", 1, ["aus_australia", "aus_canberra"]),
-      // Sydney (ex-Phaeton, 1935), Adelaide: en.wikipedia HMAS Sydney (D48) /
+      // Sydney (ex-Phaeton, 1935; modified Leander, generation 2 like the
+      // British Leanders), Adelaide: en.wikipedia HMAS Sydney (D48) /
       // HMAS Adelaide (1918); Conway's 1922-46
-      ...named("cl", 1, ["aus_sydney", "aus_adelaide"]),
+      ...named("cl", 2, ["aus_sydney"]),
+      ...named("cl", 1, ["aus_adelaide"]),
       ...numbered("dd", 1, 5),
     ],
     lines: [],
@@ -1416,10 +1556,12 @@ export const START_NAVY: readonly StartNavyDef[] = [
       {
         key: "pol_polish_navy",
         base: "Pomeranian",
-        counts: [0, 0, 0, 0, 0, 4, 3],
+        counts: [0, 0, 0, 0, 0, 2, 3],
       },
     ],
-    ships: [...numbered("dd", 1, 4), ...numbered("ss", 1, 3)],
+    // Wicher and Burza only: Grom and Błyskawica entered service in 1937
+    // (en.wikipedia Grom-class destroyer).
+    ships: [...numbered("dd", 1, 2), ...numbered("ss", 1, 3)],
     lines: [],
   },
   {
@@ -1520,16 +1662,15 @@ export const START_NAVY: readonly StartNavyDef[] = [
       {
         key: "chl_chilean_squadron",
         base: "Bío-Bío",
-        counts: [1, 0, 0, 1, 0, 6, 9],
+        counts: [1, 0, 0, 0, 0, 6, 9],
       },
     ],
     ships: [
       // Almirante Latorre: en.wikipedia Chilean battleship Almirante Latorre;
       // Conway's 1922-46
       ...named("bb", 1, ["chl_almirante_latorre"]),
-      // O'Higgins (armoured cruiser = heavy cruiser 1): en.wikipedia Chilean
-      // cruiser O'Higgins (1897); Conway's 1922-46
-      ...named("ca", 1, ["chl_o_higgins"]),
+      // The armoured cruiser O'Higgins (spec §6.3 CA 1) was decommissioned in
+      // 1933 (en.wikipedia Chilean cruiser O'Higgins (1897)), so Chile has none.
       ...numbered("dd", 1, 6),
       ...numbered("ss", 1, 9),
     ],
