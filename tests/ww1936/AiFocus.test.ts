@@ -74,16 +74,20 @@ describe("the AI's focus", { timeout: 60_000 }, () => {
     expect(historyPath(p, c)).toEqual(["gen_t_a", "gen_t_b"]);
     const after = (d: number) =>
       stepTo(runner, dayStart(d) + (fra % WW_DAY_SPLIT) + 1);
-    // Day 0's step: the first focus of the path, with that day's progress.
+    // Day 0's step: the first focus of the path. Like a focus started by
+    // an order, it earns its first day at the next step.
     after(0);
-    expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 1000 });
+    expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 0 });
     after(69);
-    expect(c.focusState[pos(p, "gen_t_a")]).toBe(1);
-    expect(c.focus).toBeNull();
-    // The next day: the path's second, not its exclusive partner.
+    expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 69_000 });
+    // Day 70: done, and at the same step the path's second, not its
+    // exclusive partner (no idle day between two focuses).
     after(70);
-    expect(c.focus).toEqual({ id: "gen_t_b", progressMilli: 1000 });
+    expect(c.focusState[pos(p, "gen_t_a")]).toBe(1);
+    expect(c.focus).toEqual({ id: "gen_t_b", progressMilli: 0 });
     after(104);
+    expect(c.focus?.progressMilli).toBe(34_000);
+    after(105);
     expect(c.focusState[pos(p, "gen_t_b")]).toBe(1);
     // Path done, gen_t_c closed: nothing left to pick.
     after(110);

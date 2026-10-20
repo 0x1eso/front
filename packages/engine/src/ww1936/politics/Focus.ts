@@ -53,8 +53,9 @@ export function focusCompleted(
 /**
  * Why `focus` cannot start now for `id` (shared by orders, the AI and the
  * cards); null if it can. Spec §11.2 start rules. asQueued: the running
- * focus counts as finished for prerequisites and `available` waits for the
- * start (the queue is tried again the day the running one ends).
+ * focus counts as finished for prerequisites, `available` waits for the
+ * start (the queue is tried again the day the running one ends), and the
+ * focus queued now does not block it: a new queue replaces the old one.
  */
 export function focusBlock(
   pol: WwPolitics,
@@ -77,7 +78,11 @@ export function focusBlock(
     }
   }
   for (const x of f.exclusive ?? []) {
-    if (focusCompleted(pol, c, x) || c.focus?.id === x || c.queued === x) {
+    if (
+      focusCompleted(pol, c, x) ||
+      c.focus?.id === x ||
+      (!asQueued && c.queued === x)
+    ) {
       return "focus_exclusive";
     }
   }
@@ -102,10 +107,16 @@ function markFinished(
   pol.markCountry(c.smallID);
 }
 
+/** One day of focus progress, milli (at least 1: a low focusSpeedPct never stalls or reverses it). */
+function perDayMilli(c: CountryPol): number {
+  return Math.max(1, Math.floor((1000 * (100 + c.stats.focusSpeedPct)) / 100));
+}
+
 /**
  * Spec §11.2 `focus_start`: nothing running, not done, prerequisites,
  * no exclusive partner, `available`. A true `bypass` finishes it at once
- * without effects; otherwise it goes on from its saved progress.
+ * without effects; otherwise it goes on from its saved progress. Its
+ * first day of progress is the country's next daily step (stepFocus).
  */
 export function startFocus(
   pol: WwPolitics,
@@ -117,6 +128,8 @@ export function startFocus(
   if (block !== null) return block;
   const c = pol.country(id)!;
   const f = focusDef(pol, focus)!;
+  // Started, it is no longer waiting in the queue (no failed-queue notice later).
+  if (c.queued === focus) c.queued = null;
   if (holds(makeCtx(pol, id, id, 0, tick), f.bypass)) {
     markFinished(pol, c, f, 2);
     return null;
@@ -166,7 +179,14 @@ function startQueued(pol: WwPolitics, c: CountryPol, tick: number): void {
   }
 }
 
-/** Spec §11.2: the day's progress, bypass, cancelIf, completion, the queued one. */
+/**
+ * Spec §11.2, the country's daily step: the running focus's bypass,
+ * cancelIf, one day of progress and completion; then, with nothing
+ * running, the queued focus or the AI's pick starts. One schedule for
+ * everyone: a step credits only a focus that was running when it began, so
+ * every focus — started by an order between two steps, or at a step by the
+ * queue or the AI — earns its first day at the next step after its start.
+ */
 export function stepFocus(
   pol: WwPolitics,
   id: number,
@@ -174,33 +194,35 @@ export function stepFocus(
   tick: number,
 ): void {
   const c = pol.country(id)!;
+  if (c.focus !== null) runningDay(pol, c, tick);
   if (c.focus === null) startQueued(pol, c, tick);
   if (c.focus === null && !pol.isHuman(id)) {
     const pick = aiPickFocus(pol, id, day);
     if (pick !== null) startFocus(pol, id, pick, tick);
   }
-  if (c.focus === null) return; // an empty day earns nothing (spec §11.2)
-  const f = focusDef(pol, c.focus.id)!;
+}
+
+/** The running focus's day: bypass, cancelIf, progress, completion. */
+function runningDay(pol: WwPolitics, c: CountryPol, tick: number): void {
+  const id = c.smallID;
+  const run = c.focus!;
+  const f = focusDef(pol, run.id)!;
   const ctx = makeCtx(pol, id, id, 0, tick);
   if (holds(ctx, f.bypass)) {
     c.focus = null;
     markFinished(pol, c, f, 2);
-    startQueued(pol, c, tick);
     return;
   }
   if (holds(ctx, f.cancelIf)) {
     cancelFocus(pol, id);
     return;
   }
-  c.focus.progressMilli += Math.floor(
-    (1000 * (100 + c.stats.focusSpeedPct)) / 100,
-  );
-  if (c.focus.progressMilli < f.days * 1000) return;
+  run.progressMilli += perDayMilli(c);
+  if (run.progressMilli < f.days * 1000) return;
   c.focus = null;
   markFinished(pol, c, f, 1);
   applyEffects(ctx, f.effects);
   pol.message(id, "ww1936_focus_done", { focus: f.id });
-  startQueued(pol, c, tick);
 }
 
 /** Days a focus takes with the country's focusSpeedPct, milli. */
@@ -212,18 +234,15 @@ export function focusDaysMilli(
   const f = focusDef(pol, focus);
   const c = pol.country(id);
   if (f === undefined || c === null) return 0;
-  const perDay = Math.max(
-    1,
-    Math.floor((1000 * (100 + c.stats.focusSpeedPct)) / 100),
-  );
-  return Math.ceil((f.days * 1000) / perDay) * 1000;
+  return Math.ceil((f.days * 1000) / perDayMilli(c)) * 1000;
 }
 
 /**
  * Spec §21.3 card states, tree order (WwFocusCard.state numbers): 1 done,
  * 2 bypassed, 3 running, 7 queued, 4 needs a prerequisite, 6 an exclusive
- * partner done, running or queued (controller ruling R21), 5 `available`
- * false (with its failing leaves), 0 open.
+ * partner done or running, or queued while nothing runs (controller ruling
+ * R21: then a start is refused; with a focus running, queueing replaces
+ * the queue), 5 `available` false (with its failing leaves), 0 open.
  */
 export function focusCards(pol: WwPolitics, id: number): WwFocusCard[] {
   const c = pol.country(id)!;
@@ -241,7 +260,10 @@ export function focusCards(pol: WwPolitics, id: number): WwFocusCard[] {
     }
     if (
       (f.exclusive ?? []).some(
-        (x) => focusCompleted(pol, c, x) || c.focus?.id === x || c.queued === x,
+        (x) =>
+          focusCompleted(pol, c, x) ||
+          c.focus?.id === x ||
+          (c.focus === null && c.queued === x),
       )
     ) {
       return { idx, state: 6, failing: [] };

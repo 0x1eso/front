@@ -18,6 +18,7 @@ import {
   focusDaysMilli,
   queueFocus,
   startFocus,
+  stepFocus,
 } from "@openfront/engine/ww1936/politics/Focus";
 import type { CountryPol } from "@openfront/engine/ww1936/politics/WwPolitics";
 import { politicsFixture } from "./politicsFixture";
@@ -222,7 +223,12 @@ describe("national focus", { timeout: 60_000 }, () => {
     expect(startFocus(p, g.id, "gen_t_any", t())).toBeNull();
     expect(queueFocus(p, g.id, "gen_t_b")).toBeNull();
     expect(g.c.queued).toBe("gen_t_b");
-    expect(queueFocus(p, g.id, "gen_t_c")).toBe("focus_exclusive");
+    // Spec §11.2: a new queue replaces the old one, its exclusive partner too.
+    expect(queueFocus(p, g.id, "gen_t_c")).toBeNull();
+    expect(g.c.queued).toBe("gen_t_c");
+    // With nothing running, a start is refused by the queued partner.
+    g.c.focus = null;
+    expect(startFocus(p, g.id, "gen_t_b", t())).toBe("focus_exclusive");
     // Completed: gen_t_c is closed for good, and the other way round.
     g.c.focus = null;
     g.c.queued = null;
@@ -300,6 +306,36 @@ describe("national focus", { timeout: 60_000 }, () => {
     expect(g.c.queued).toBeNull();
     afterSlot(g, 4 + 71);
     expect(g.c.focus).toEqual({ id: "gen_t_b", progressMilli: 1000 });
+  });
+
+  it("starting the queued focus takes it out of the queue", async () => {
+    const g = (current = await game());
+    afterSlot(g, 4);
+    send(g, { kind: "focus_start", focus: "gen_t_a" });
+    send(g, { kind: "focus_queue", focus: "gen_t_any" });
+    send(g, { kind: "focus_cancel" });
+    // The queue waits for the next step; started by hand, it leaves it.
+    expect(g.c.queued).toBe("gen_t_any");
+    send(g, { kind: "focus_start", focus: "gen_t_any" });
+    expect(g.c.queued).toBeNull();
+    afterSlot(g, 4 + 71);
+    expect(g.c.focusState[pos("gen_t_any")]).toBe(1);
+    const failed = g.updates
+      .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+      .filter((m) => m.message === "events_display.ww1936_focus_queue_failed");
+    expect(failed).toEqual([]);
+  });
+
+  it("progress never stalls or reverses", async () => {
+    const g = (current = await game());
+    afterSlot(g, 2);
+    send(g, { kind: "focus_start", focus: "gen_t_a" });
+    // Below -100%: still one milli a day (recomputeStats clamps to -90%).
+    g.c.stats.focusSpeedPct = -150;
+    const day = g.runner.game.worldWar()!.day(g.runner.game.ticks());
+    stepFocus(pol0(), g.id, day, g.runner.game.ticks());
+    expect(g.c.focus).toEqual({ id: "gen_t_a", progressMilli: 1 });
+    expect(focusDaysMilli(pol0(), g.id, "gen_t_a")).toBe(70_000 * 1000);
   });
 
   it("a failed queue tells the owner", async () => {
