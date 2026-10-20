@@ -57,7 +57,10 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
+import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
+import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import { WwTopBand } from "./ww1936/WwTopBand";
 
 export function createRenderer(
@@ -360,6 +363,30 @@ export function createRenderer(
   wwDiplomacyPanel.game = game;
   wwDiplomacyPanel.eventBus = eventBus;
 
+  // World War 1936 P1 (spec §13): the dials beside the domestic ones, and
+  // the industry and research drawers.
+  const wwDials = document.querySelector("ww-dials");
+  if (wwDials instanceof WwDials) {
+    wwDials.game = game;
+    wwDials.eventBus = eventBus;
+  } else {
+    console.error("ww dials not found");
+  }
+  const wwIndustryPanel = document.querySelector("ww-industry-panel");
+  if (wwIndustryPanel instanceof WwIndustryPanel) {
+    wwIndustryPanel.game = game;
+    wwIndustryPanel.eventBus = eventBus;
+  } else {
+    console.error("ww industry panel not found");
+  }
+  const wwResearchPanel = document.querySelector("ww-research-panel");
+  if (wwResearchPanel instanceof WwResearchPanel) {
+    wwResearchPanel.game = game;
+    wwResearchPanel.eventBus = eventBus;
+  } else {
+    console.error("ww research panel not found");
+  }
+
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
   const congressCards = document.querySelector("congress-cards");
   if (congressCards instanceof CongressCards) {
@@ -445,6 +472,9 @@ export function createRenderer(
     satelliteTargetPicker,
     wwTopBand,
     wwDiplomacyPanel,
+    ...(wwDials instanceof WwDials ? [wwDials] : []),
+    ...(wwIndustryPanel instanceof WwIndustryPanel ? [wwIndustryPanel] : []),
+    ...(wwResearchPanel instanceof WwResearchPanel ? [wwResearchPanel] : []),
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,

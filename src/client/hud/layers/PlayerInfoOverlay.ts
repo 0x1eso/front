@@ -40,12 +40,22 @@ import {
   IMAGE_ICON_KIND,
 } from "../PlayerIcons";
 import {
+  buildingName,
+  infraDots,
+  populationText,
+  regionCard,
+  regionCatName,
+  RESOURCE_ICONS,
+  resourceName,
+} from "../ww1936/EconomyModel";
+import {
   countryName,
   isKoreanUi,
   regionInfo,
   shownName,
   WW_BAND_PX,
 } from "../ww1936/WorldWarModel";
+import { OpenWwIndustryEvent } from "../ww1936/WwDrawer";
 import { ShowPlayerChatEvent } from "./ChatModal";
 import { ShowPlayerEmojiMenuEvent } from "./EmojiTable";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
@@ -219,7 +229,21 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       return;
     }
     this.lastMouseUpdate = now;
+    // World War 1936: the pointer on an open drawer reads the drawer, not
+    // the map under it (mouse moves come from the whole window).
+    if (this.overWorldWarDrawer(event.x, event.y)) {
+      if (this._isInfoVisible) this.hide();
+      return;
+    }
     this.maybeShow(event.x, event.y);
+  }
+
+  private overWorldWarDrawer(x: number, y: number): boolean {
+    if (this.game.worldWarScenario() === null) return false;
+    const el = document.elementFromPoint?.(x, y) ?? null;
+    return (
+      (el?.closest("[data-ww-drawer], [data-ww-diplomacy]") ?? null) !== null
+    );
   }
 
   public hide() {
@@ -903,20 +927,80 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     const info = regionInfo(this.game, tile, isKoreanUi());
     if (info === null) return "";
     return html`<div
-      data-ww-region
-      class="flex flex-wrap items-center gap-x-2 border-t border-white/10 px-3 py-1.5 text-sm"
-    >
-      <span class="font-semibold">${info.name}</span>
-      <span class="text-amber-300"
-        >${translateText("ww1936.region.vp", { vp: info.vp })}</span
+        data-ww-region
+        class="flex flex-wrap items-center gap-x-2 border-t border-white/10 px-3 py-1.5 text-sm"
       >
-      ${info.originalOwner === null
-        ? ""
-        : html`<span class="text-white/60"
-            >${translateText("ww1936.region.original_owner", {
-              country: countryName(info.originalOwner),
-            })}</span
-          >`}
+        <span class="font-semibold">${info.name}</span>
+        <span class="text-amber-300"
+          >${translateText("ww1936.region.vp", { vp: info.vp })}</span
+        >
+        ${info.originalOwner === null
+          ? ""
+          : html`<span class="text-white/60"
+              >${translateText("ww1936.region.original_owner", {
+                country: countryName(info.originalOwner),
+              })}</span
+            >`}
+      </div>
+      ${this.renderRegionEconomy(tile)}`;
+  }
+
+  /**
+   * World War 1936 P1 (spec §13.5): the region's category, buildings and
+   * slots, infrastructure, population, deposits, whether it is occupied,
+   * and in my own region "Build here" (the industry drawer, this region).
+   */
+  private renderRegionEconomy(tile: TileRef) {
+    const card = regionCard(this.game, tile);
+    if (card === null) return "";
+    return html`<div
+      data-ww-region-economy
+      class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-white/80"
+    >
+      <span>${regionCatName(card.cat)}</span>
+      <span class="tabular-nums"
+        >${translateText("ww1936.econ.region_buildings", {
+          civ: card.civ,
+          mil: card.mil,
+          dock: card.dock,
+          slots: card.slots,
+        })}</span
+      >
+      <span
+        >${buildingName("infra")}
+        <span class="tracking-tighter text-amber-300"
+          >${infraDots(card.infra)}</span
+        ></span
+      >
+      <span
+        >${translateText("ww1936.econ.population", {
+          n: populationText(card.pop),
+        })}</span
+      >
+      ${card.res.map(
+        (r) =>
+          html`<span data-ww-region-res=${r.id}
+            >${RESOURCE_ICONS[r.id]} ${resourceName(r.id)} ${r.amount}</span
+          >`,
+      )}
+      ${card.occupied
+        ? html`<span class="text-red-300"
+            >${translateText("ww1936.econ.occupied_note")}</span
+          >`
+        : ""}
+      ${card.mine
+        ? html`<button
+            type="button"
+            data-ww-build-here
+            class="h-9 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
+            @click=${() =>
+              this.eventBus.emit(
+                new OpenWwIndustryEvent("construction", card.id),
+              )}
+          >
+            ${translateText("ww1936.econ.build_here")}
+          </button>`
+        : ""}
     </div>`;
   }
 
