@@ -21,7 +21,7 @@ import { idHash, P_EVT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { payPp } from "./Power";
 import { hasRule, ruleValue } from "./Spirits";
 import { declareWarRules } from "./WarGoals";
-import type { WwPolitics } from "./WwPolitics";
+import type { FactionState, WwPolitics } from "./WwPolitics";
 
 export function isMajor(pol: WwPolitics, id: number): boolean {
   if (id <= 0 || id >= pol.countries.length) return false;
@@ -189,8 +189,11 @@ export function factionOrder(
 }
 
 /**
- * The day's common step: members that died or capitulated leave (a leader
- * is succeeded, spec §15.3); an empty faction goes.
+ * The day's common step: members that are gone (dead without having
+ * capitulated: annexed, eliminated) leave; a capitulated member stays
+ * (controller ruling, lane D fix 1: HOI4's exiles, P0 decision 11's team
+ * win) but a leader that is no longer living is succeeded (spec §15.3); an
+ * empty faction goes.
  */
 export function dailyFactions(
   pol: WwPolitics,
@@ -199,10 +202,53 @@ export function dailyFactions(
 ): void {
   for (const f of [...pol.factions]) {
     for (const m of [...f.members]) {
-      if (!pol.living(m)) leaveFaction(pol, m, tick);
+      const p = pol.player(m);
+      const gone = (p === null || !p.isAlive()) && !pol.ww.isCapitulated(m);
+      if (gone) leaveFaction(pol, m, tick);
     }
+    if (pol.faction(f.idx) !== null) passLeadership(pol, f.leader, tick);
   }
   void day;
+}
+
+/**
+ * Spec §15.3: when `id` leads its faction and is no longer living
+ * (capitulated, gone), the living member with the most factories leads;
+ * nothing while no member lives.
+ */
+export function passLeadership(
+  pol: WwPolitics,
+  id: number,
+  tick: number,
+): void {
+  const idx = pol.factionIdx(id);
+  const f = idx < 0 ? null : pol.faction(idx);
+  if (f === null || f.leader !== id || pol.living(id)) return;
+  const next = successor(
+    pol,
+    f.members.filter((m) => m !== id),
+  );
+  if (next === 0) return;
+  f.leader = next;
+  pol.factionsChanged();
+  newLeader(pol, f, tick);
+}
+
+/** The new leader is announced; members at peace that no longer fit leave (R8). */
+function newLeader(pol: WwPolitics, f: FactionState, tick: number): void {
+  const key = factionKeyOf(f.idx);
+  pol.messageAll("ww1936_faction_leader", {
+    countryTag: pol.tagOf(f.leader),
+    faction: key,
+  });
+  // Controller ruling R8: with a new leader the faction's ideology may
+  // change; living members at peace that no longer fit leave (no penalty).
+  const ideo = pol.factionIdeology(f.idx);
+  for (const m of [...f.members]) {
+    if (m === f.leader || !pol.living(m) || pol.ww.hasWar(m)) continue;
+    const r = pol.country(m)?.ruling ?? IDEO_NEU;
+    if (!fitsFactionIdeology(r, ideo)) leaveFaction(pol, m, tick);
+  }
 }
 
 /**
@@ -257,24 +303,15 @@ export function leaveFaction(pol: WwPolitics, id: number, tick: number): void {
     return;
   }
   const succeeded = f.leader === id;
-  if (succeeded) f.leader = successor(pol, f.members);
-  pol.factionsChanged();
-  if (!succeeded) return;
-  pol.messageAll("ww1936_faction_leader", {
-    countryTag: pol.tagOf(f.leader),
-    faction: key,
-  });
-  // Controller ruling R8: with a new leader the faction's ideology may
-  // change; members at peace that no longer fit leave (no penalty).
-  const ideo = pol.factionIdeology(idx);
-  for (const m of [...f.members]) {
-    if (m === f.leader || pol.ww.hasWar(m)) continue;
-    const r = pol.country(m)?.ruling ?? IDEO_NEU;
-    if (!fitsFactionIdeology(r, ideo)) leaveFaction(pol, m, tick);
+  if (succeeded) {
+    f.leader = successor(pol, f.members);
+    if (f.leader === 0) f.leader = f.members[0];
   }
+  pol.factionsChanged();
+  if (succeeded) newLeader(pol, f, tick);
 }
 
-/** Spec §15.3: the most civilian + military factories, then the smaller smallID. */
+/** Spec §15.3: the living member with the most civilian + military factories (ties: the smaller smallID); 0 when none lives. */
 function successor(pol: WwPolitics, members: readonly number[]): number {
   let best = 0;
   let bestN = -1;
@@ -287,7 +324,7 @@ function successor(pol: WwPolitics, members: readonly number[]): number {
       bestN = n;
     }
   }
-  return best === 0 ? Math.min(...members) : best;
+  return best;
 }
 
 /** Every member out; the faction is gone. */
@@ -358,19 +395,46 @@ export function callToArms(
   const f = idx < 0 ? null : pol.faction(idx);
   if (f === null) return;
   const to = f.leader === a ? f.members.filter((m) => m !== a) : [f.leader];
+  const historical = pol.mg.config().historicalAi();
+  const day = pol.day();
   for (const m of to) {
     if (m === b || !pol.living(m) || pol.ww.isAtWar(m, b)) continue;
     if (pol.sameFaction(m, b)) continue;
     if (declareWarRules(pol, m, b, true).block !== null) continue;
+    // Controller ruling (lane D fix 1): with historical AI an AI member is
+    // called only when history has it join (no event, no refusal penalty).
+    if (historical && !pol.isHuman(m) && !warBeatDue(pol, m, b, day)) continue;
     pol.queueEvent("gen_call_to_arms", m, a, b, 0);
   }
   void tick;
 }
 
 /**
+ * A declare / join history beat of `actor` on `target` still to come
+ * (not skipped, not done) and due within 30 days (controller ruling R1,
+ * final: lane E marks a beat done after it acts).
+ */
+export function warBeatDue(
+  pol: WwPolitics,
+  actor: number,
+  target: number,
+  day: number,
+): boolean {
+  if (actor <= 0 || target <= 0) return false;
+  const a = pol.tagOf(actor);
+  const t = pol.tagOf(target);
+  return pol.content.beats.some((b, i) => {
+    const s = pol.beats[i];
+    if (s === undefined || s.skipped || s.done || b.actor !== a) return false;
+    if (b.act.kind !== "declare" && b.act.kind !== "join") return false;
+    return b.act.target === t && s.fireDay <= day + WW_BEAT_WINDOW_DEFAULT_DAYS;
+  });
+}
+
+/**
  * Spec §15.5: the AI's answer to a call to arms (option a joins, b
- * refuses). Historical AI: a not-skipped declare/join beat of `to` on
- * `target` within a month of today joins, else it refuses. Otherwise by
+ * refuses). Historical AI: a declare/join beat of `to` on `target` still
+ * to come within 30 days (warBeatDue) joins, else it refuses. Otherwise by
  * weight: a leader's call 80 / 20, a member calling its leader 40 / 60
  * (20 / 80 against a major).
  */
@@ -382,18 +446,7 @@ export function callToArmsChoice(
 ): string {
   const day = pol.day();
   if (pol.mg.config().historicalAi()) {
-    const a = pol.tagOf(to);
-    const t = target > 0 ? pol.tagOf(target) : null;
-    const hit = pol.content.beats.some((b, i) => {
-      const s = pol.beats[i];
-      if (s === undefined || s.skipped || b.actor !== a) return false;
-      if (b.act.kind !== "declare" && b.act.kind !== "join") return false;
-      return (
-        b.act.target === t &&
-        Math.abs(s.fireDay - day) <= WW_BEAT_WINDOW_DEFAULT_DAYS
-      );
-    });
-    return hit ? "a" : "b";
+    return warBeatDue(pol, to, target, day) ? "a" : "b";
   }
   const leader = pol.faction(pol.factionIdx(to))?.leader ?? 0;
   // A leader's call (from = leader) or anyone else's: 80; to the leader: 40 / 20.

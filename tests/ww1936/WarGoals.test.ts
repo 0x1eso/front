@@ -83,14 +83,14 @@ describe(
       // One at a time; the target hears of it at the start.
       expect(p.issue(deu, justify(id("LTU")), g.ticks())).toBe("justify_busy");
       endOfDay(runner, d0);
-      expect(messages("ww1936_justified_against", csk)).toHaveLength(1);
-      expect(messages("ww1936_justified_against", csk)[0].params).toEqual({
-        countryTag: "DEU",
-      });
-      expect(messages("ww1936_justify_started", deu)[0].params).toEqual({
-        countryTag: "DEU",
-        targetTag: "CSK",
-      });
+      const started = { countryTag: "DEU", targetTag: "CSK" };
+      expect(messages("ww1936_justify_started", csk)[0].params).toEqual(
+        started,
+      );
+      expect(messages("ww1936_justify_started", deu)[0].params).toEqual(
+        started,
+      );
+      expect(messages("ww1936_justified_against", csk)).toHaveLength(0);
       endOfDay(runner, d0 + 99);
       expect(c.justification!.progressDays).toBe(99);
       expect(p.hasWarGoal(deu, csk)).toBe(false);
@@ -102,7 +102,10 @@ describe(
       // +2% (a minor) to the world and to Germany's share; ten decays since.
       expect(p.threatBp[deu]).toBe(200);
       expect(p.wtBp).toBe(3000 - 10 + 200);
-      expect(messages("ww1936_justified_against", csk)).toHaveLength(2);
+      expect(messages("ww1936_justified_against", csk)).toHaveLength(1);
+      expect(messages("ww1936_justified_against", csk)[0].params).toEqual({
+        countryTag: "DEU",
+      });
       // A goal held: no second justification on the same target.
       expect(p.issue(deu, justify(csk), g.ticks())).toBe("treaty_exists");
     });

@@ -14,7 +14,7 @@ import {
   JustifyGateCtx,
   tensionFor,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
-import { callToArms, isMajor, leaveFaction } from "./Factions";
+import { callToArms, isMajor, passLeadership } from "./Factions";
 import { payPp } from "./Power";
 import { hasRule } from "./Spirits";
 import { addTension } from "./Tension";
@@ -96,12 +96,11 @@ export function startJustification(
     progressDays: 0,
     totalDays: days,
   };
-  // Spec §14.3: the target hears of it at the start too (lockstep: no secrets).
-  pol.message(target, "ww1936_justified_against", { countryTag: c.tag });
-  pol.message(id, "ww1936_justify_started", {
-    countryTag: c.tag,
-    targetTag: pol.tagOf(target),
-  });
+  // Spec §14.3: the target hears of it at the start too (lockstep: no
+  // secrets); "justified against" is for the goal itself.
+  const started = { countryTag: c.tag, targetTag: pol.tagOf(target) };
+  pol.message(target, "ww1936_justify_started", started);
+  pol.message(id, "ww1936_justify_started", started);
   pol.queueEvent("gen_justified_against", target, id, target, 0);
   pol.markCountry(id);
   pol.markCountry(target);
@@ -278,9 +277,10 @@ export function afterWarJoined(
 }
 
 /**
- * Spec §14.1 (+2% to the victor), §15.3 (the loser leaves its faction; a
- * leader is succeeded), §16 (its treaties end), §14.2 (goals and
- * justifications on it go), controller ruling R12 (out of declaredOn).
+ * Spec §14.1 (+2% to the victor), §15.3 (a capitulated leader is succeeded;
+ * the country stays a member — HOI4's exiles, P0 decision 11's team win),
+ * §16 (its treaties end), §14.2 (goals and justifications on it go),
+ * controller ruling R12 (out of declaredOn).
  */
 export function afterCapitulation(
   pol: WwPolitics,
@@ -298,7 +298,7 @@ export function afterCapitulation(
       );
     }
   }
-  if (pol.factionIdx(loser) >= 0) leaveFaction(pol, loser, tick);
+  passLeadership(pol, loser, tick);
   endTreatiesOf(pol, loser);
   forgetCountry(pol, loser);
 }

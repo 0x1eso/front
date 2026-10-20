@@ -50,10 +50,11 @@ export function applyDiploEffect(
       const ap = pol.player(actor);
       const tp = pol.player(on);
       if (on === 0 || ap === null || tp === null) return;
-      if (!pol.hasWarGoal(actor, on)) {
-        addWarGoal(pol, actor, on, e.goal ?? "conquer", "", ctx.day);
-      }
-      declareWar(pol.mg, pol.ww, ap, tp, ctx.tick);
+      const made = !pol.hasWarGoal(actor, on);
+      if (made) addWarGoal(pol, actor, on, e.goal ?? "conquer", "", ctx.day);
+      const joined = declareWar(pol.mg, pol.ww, ap, tp, ctx.tick);
+      // Refused (a pact, a guarantee…): the goal made for it goes again.
+      if (joined.length === 0 && made) removeWarGoal(pol, actor, on);
       return;
     }
     case "join_war": {

@@ -6,7 +6,6 @@ import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   DiploAsk,
   EventId,
-  WW_BEAT_WINDOW_DEFAULT_DAYS,
   WW_COST,
   WW_IMPROVE_RELATIONS_DAYS,
   WW_MAX_OPINIONS,
@@ -18,7 +17,7 @@ import {
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { sweepRefused } from "../land/PoliticsBridge";
 import { aiAcceptScore } from "./AiPolitics";
-import { callToArmsChoice } from "./Factions";
+import { callToArmsChoice, warBeatDue } from "./Factions";
 import { payPp } from "./Power";
 import { hasRule, ruleValue } from "./Spirits";
 import { addTension, scaledTension } from "./Tension";
@@ -267,12 +266,16 @@ export function guaranteeCalled(
   target: number,
   tick: number,
 ): void {
+  const enemies = pol.ww.enemiesOf(target);
   for (const g of pol.guarantees) {
     if (g.to !== target) continue;
     const by = g.by;
-    if (by === attacker || !pol.living(by) || pol.ww.isAtWar(by, attacker)) {
-      continue;
-    }
+    if (by === attacker || !pol.living(by)) continue;
+    // Controller ruling (lane D fix 1): not one already at war with an
+    // enemy of the guaranteed (it fights for it), nor one a pact with the
+    // attacker holds back (its "keep the promise" would fail).
+    if (enemies.some((e) => pol.ww.isAtWar(by, e))) continue;
+    if (pol.isAtWarBlockedByNap(by, attacker)) continue;
     pol.queueEvent("gen_guarantee_called", by, target, attacker, 0);
   }
   void tick;
@@ -387,10 +390,10 @@ const ASK_OF: Readonly<Record<string, DiploAsk>> = {
 /**
  * Controller ruling R1: the engine's answer to a diplomatic request event,
  * which E's aiChooseOption asks first and a human card shows as its
- * default. 1. A call to arms (spec §15.5, callToArmsChoice). 2. With
- * historical AI, a request a not-skipped history beat makes (within a
- * month of its day) is accepted. 3. The acceptance score (spec §18.6-4):
- * ≥ 50 accepts ("a"), else "b". null: the event's own weights decide.
+ * default. 1. A call to arms (spec §15.5, callToArmsChoice); a guarantee's
+ * call that history keeps. 2. With historical AI, a request a due history
+ * beat makes is accepted. 3. The acceptance score (spec §18.6-4): ≥ 50
+ * accepts ("a"), else "b". null: the event's own weights decide.
  */
 export function diploEventChoice(
   pol: WwPolitics,
@@ -402,6 +405,13 @@ export function diploEventChoice(
   if (eventId === "gen_call_to_arms") {
     return callToArmsChoice(pol, to, from, target);
   }
+  // A guarantee history keeps (1939-09-03): certain; else the event's weights.
+  if (eventId === "gen_guarantee_called") {
+    return pol.mg.config().historicalAi() &&
+      warBeatDue(pol, to, target, pol.day())
+      ? "a"
+      : null;
+  }
   const kind = ASK_OF[eventId];
   if (kind === undefined) return null;
   if (pol.mg.config().historicalAi() && historyAsks(pol, kind, from, to)) {
@@ -410,7 +420,11 @@ export function diploEventChoice(
   return aiAcceptScore(pol, kind, from, to) >= 50 ? "a" : "b";
 }
 
-/** A not-skipped diplo beat making this request, within its window of today. */
+/**
+ * A diplo beat making this request that is due and not yet done or
+ * skipped (controller ruling R1, final: lane E marks a beat done after it
+ * acts, so the beat's own request still matches).
+ */
 function historyAsks(
   pol: WwPolitics,
   kind: DiploAsk,
@@ -423,12 +437,8 @@ function historyAsks(
   const factionOfTag = (tag: CountryTag) => pol.factionIdx(pol.idOfTag(tag));
   return pol.content.beats.some((b, i) => {
     const s = pol.beats[i];
-    if (s === undefined || s.skipped || b.act.kind !== "diplo") return false;
-    const window = Math.max(
-      b.windowDays ?? WW_BEAT_WINDOW_DEFAULT_DAYS,
-      WW_BEAT_WINDOW_DEFAULT_DAYS,
-    );
-    if (Math.abs(s.fireDay - day) > window) return false;
+    if (s === undefined || s.skipped || s.done || s.fireDay > day) return false;
+    if (b.act.kind !== "diplo") return false;
     const { order, target } = b.act;
     switch (kind) {
       case "nap":

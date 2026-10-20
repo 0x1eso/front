@@ -156,15 +156,16 @@ function mergeEconomy(pol: WwPolitics, gone: number, by: number): void {
   for (const tr of [...econ.trades()]) {
     if (tr.buyer !== gone && tr.seller !== gone) continue;
     econ.removeTrade(tr.id);
-    const partner = tr.buyer === gone ? tr.seller : tr.buyer;
-    const p = pol.mg.playerBySmallID(partner);
+    // P1's rule (Trade.closeBroken): the buyer is told, naming the seller.
+    if (tr.buyer === gone) continue;
+    const p = pol.mg.playerBySmallID(tr.buyer);
     if (!p.isPlayer() || p.type() !== PlayerType.Human) continue;
     pol.mg.displayMessage(
       "events_display.ww1936_trade_closed",
       MessageType.WORLD_WAR,
       p.id(),
       undefined,
-      { sellerTag: pol.tagOf(gone), resource: RESOURCE_IDS[tr.res] },
+      { sellerTag: pol.tagOf(tr.seller), resource: RESOURCE_IDS[tr.res] },
     );
   }
   econ.markCountryDirty(gone);

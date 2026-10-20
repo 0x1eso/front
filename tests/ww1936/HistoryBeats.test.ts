@@ -15,7 +15,10 @@ describe("history beats", () => {
       expect(b, `P0 entry ${i}`).toBeDefined();
       expect(b.date).toBe(e.date);
       expect(b.actor).toBe(e.actor);
-      expect(b.act).toEqual({ kind: e.kind, target: e.target });
+      // The Soviet invasion of Poland was undeclared: a join (no
+      // guarantees called; controller ruling, lane D fix round 1).
+      const kind = b.id === "b1939_09_17_sun_pol" ? "join" : e.kind;
+      expect(b.act).toEqual({ kind, target: e.target });
       expect(b.safety).toBe(true);
       expect(b.id).toBe(
         `b${e.date.split("-").join("_")}_${e.actor.toLowerCase()}_${e.target.toLowerCase()}`,

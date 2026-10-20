@@ -60,7 +60,7 @@ async function game(human: CountryTag = "DEU") {
     updates
       .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
       .filter((m) => m.message === `events_display.${key}`);
-  return { runner, g, ww, p: pol(g), id, declare, said };
+  return { runner, updates, g, ww, p: pol(g), id, declare, said };
 }
 
 const last = <T>(xs: readonly T[]): T | undefined => xs[xs.length - 1];
@@ -172,6 +172,33 @@ describe("factions (spec §15)", { timeout: 60_000 }, () => {
     expect(
       p.issue(id("ITA"), { kind: "faction_invite", target: aut }, g.ticks()),
     ).toBe("faction_rule");
+  });
+
+  it("a capitulated member stays in its faction and shares its team win", async () => {
+    const { runner, updates, g, ww, p, id, said } = await game("GBR");
+    const [gbr, fra] = [id("GBR"), id("FRA")];
+    // Britain, the Allies' leader, capitulates (the P0 path's politics hook).
+    ww.addCapitulation(gbr, id("DEU"), g.ticks());
+    ww.endWarsOf(gbr);
+    p.onCapitulated(gbr, id("DEU"), g.ticks());
+    expect(ww.factionOf(gbr)).toBe("allies");
+    expect(p.faction(ALLIES)!.leader).toBe(fra);
+    expect(last(said("ww1936_faction_leader"))?.params).toEqual({
+      countryTag: "FRA",
+      faction: "allies",
+    });
+    // The days' common steps keep it (HOI4's exiles, P0 decision 11).
+    step(runner, 30);
+    expect(ww.factionMembers("allies")).toContain(gbr);
+    expect(said("ww1936_faction_left")).toEqual([]);
+    // The last camp with a living major wins, its capitulated human with it.
+    for (const t of ["DEU", "ITA", "SUN"] as const) {
+      ww.addCapitulation(id(t), 0, g.ticks());
+    }
+    step(runner, 10);
+    expect(g.getWinner()).toBe("allies");
+    const win = updates.flatMap((u) => u.updates[GameUpdateType.Win])[0];
+    expect(win.winner).toEqual(["team", "allies", HUMAN]);
   });
 
   it("new factions get the next key f3", async () => {

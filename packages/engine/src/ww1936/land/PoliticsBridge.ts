@@ -99,6 +99,35 @@ function nearest(
   return 0;
 }
 
+/**
+ * Where a division of `owner` that has no reachable region of its own (or
+ * its side's) goes (HOI4: home to the capital; controller ruling, lane D
+ * fix 1): the capital's region when `owner` controls it, else its
+ * lowest-numbered region; 0 (disband) when it controls none.
+ */
+function capitalOf(land: WwLand, owner: number): number {
+  const sc = land.scenario;
+  const cap = sc.regionAt(sc.capitalTile(land.ww.tagOf(owner)));
+  if (sc.region(cap) !== undefined && land.controller[cap] === owner) {
+    return cap;
+  }
+  for (const r of sc.landRegions) {
+    if (land.controller[r.id] === owner) return r.id;
+  }
+  return 0;
+}
+
+/** The nearest region passing `ok` from `from`, else the owner's capital (0: none). */
+function homeOf(
+  land: WwLand,
+  owner: number,
+  from: number,
+  ok: (controller: number) => boolean,
+): number {
+  const n = nearest(land, from, ok);
+  return n !== 0 ? n : capitalOf(land, owner);
+}
+
 /** Puts a division down in `to` at once (no path, no battle); to 0: disbanded. */
 function teleport(land: WwLand, row: number, to: number): void {
   if (to === 0) {
@@ -114,7 +143,8 @@ function teleport(land: WwLand, row: number, to: number): void {
 
 /**
  * Spec §17.3: `owner`'s divisions in `region` go to its nearest region of
- * its own (disbanded — men and equipment back — when it has none).
+ * its own, else its capital (disbanded — men and equipment back — when it
+ * controls nothing).
  */
 export function evictDivisions(
   land: WwLand,
@@ -129,7 +159,7 @@ export function evictDivisions(
     teleport(
       land,
       r,
-      nearest(land, region, (c) => c === owner),
+      homeOf(land, owner, region, (c) => c === owner),
     );
   }
 }
@@ -149,7 +179,7 @@ export function evictArmies(land: WwLand, owner: number, from: number): void {
     teleport(
       land,
       r,
-      nearest(land, at, (c) => land.sameSide(owner, c)),
+      homeOf(land, owner, at, (c) => land.sameSide(owner, c)),
     );
   }
 }
@@ -170,7 +200,7 @@ export function sweepRefused(land: WwLand): void {
     teleport(
       land,
       r,
-      nearest(land, at, (x) => land.sameSide(owner, x)),
+      homeOf(land, owner, at, (x) => land.sameSide(owner, x)),
     );
   }
 }

@@ -26,6 +26,7 @@ import { addWarGoal } from "@openfront/engine/ww1936/politics/WarGoals";
 import { politicsFixture } from "./politicsFixture";
 import {
   byTag,
+  dropPact,
   HUMAN,
   land,
   order,
@@ -73,14 +74,17 @@ describe("treaties (spec §16)", { timeout: 60_000 }, () => {
     addWarGoal(p, deu, csk, "conquer", "", day);
     declareWar(g, ww, byTag(g, "DEU"), byTag(g, "CSK"), g.ticks());
     // Spec §16.1: the guarantor is asked (from = the guaranteed, target =
-    // the attacker); spec §15.5: the Axis leader calls its member.
+    // the attacker). Italy (AI, historical AI, no beat against CSK) is not
+    // called to arms (controller ruling, lane D fix 1).
     expect(asked.mock.calls).toEqual([
       ["gen_guarantee_called", gbr, csk, deu, 0],
-      ["gen_call_to_arms", id("ITA"), deu, csk, 0],
     ]);
     // Its "keep the promise" option (K1's data, AI 85, two days' delay)
-    // joins the war; Britain's faction is then called to arms.
+    // joins the war; France (AI) has the 1939-09-03 beat, so Britain's
+    // call to arms reaches it once that beat is near.
     asked.mockClear();
+    const i = p.content.beats.findIndex((b) => b.id === "b1939_09_03_fra_deu");
+    p.beats[i] = { fireDay: day + 2, skipped: false, done: false };
     applyEffects(
       makeCtx(p, gbr, csk, deu, g.ticks()),
       option("gen_guarantee_called", "a").effects,
@@ -99,6 +103,36 @@ describe("treaties (spec §16)", { timeout: 60_000 }, () => {
     expect(p.guarantorsOf(aut)).toEqual([]);
     // Everyone thinks 20 less of it (its stability is lane P's effect).
     expect(opinionOf(p, id("POL"), fra)).toBe(seen - 20);
+  });
+
+  it("a guarantor already fighting the guaranteed's enemy, or held by a pact, is not called", async () => {
+    const { g, ww, p, id } = await game(["DEU"]);
+    const [deu, gbr, sun, pl, ltu] = (
+      ["DEU", "GBR", "SUN", "POL", "LTU"] as const
+    ).map(id);
+    const day = ww.day(g.ticks());
+    const declare = (a: "DEU" | "SUN", b: "POL" | "LTU") => {
+      dropPact(g, a, b);
+      addWarGoal(p, id(a), id(b), "conquer", "", day);
+      declareWar(g, ww, byTag(g, a), byTag(g, b), g.ticks());
+    };
+    const called = (spy: { mock: { calls: unknown[][] } }) =>
+      spy.mock.calls.filter((c) => c[0] === "gen_guarantee_called");
+    // Britain guarantees Poland and already fights Germany, Poland's enemy:
+    // the Soviet attack on Poland does not ask it again.
+    addGuarantee(p, gbr, pl, day);
+    declare("DEU", "POL");
+    ww.setWar(gbr, deu, g.ticks());
+    const asked = vi.spyOn(p, "queueEvent");
+    declare("SUN", "POL");
+    expect(ww.isAtWar(sun, pl)).toBe(true);
+    expect(called(asked)).toEqual([]);
+    // Germany guarantees Lithuania but has a pact with the Soviet Union.
+    addGuarantee(p, deu, ltu, day);
+    addNap(p, deu, sun, day);
+    declare("SUN", "LTU");
+    expect(ww.isAtWar(sun, ltu)).toBe(true);
+    expect(called(asked)).toEqual([]);
   });
 
   it("a pact can be broken only after 180 days (start pacts at once)", async () => {
@@ -162,6 +196,18 @@ describe("treaties (spec §16)", { timeout: 60_000 }, () => {
     expect(p.issue(pl, { kind: "access_revoke", target: deu }, g.ticks())).toBe(
       "bad_target",
     );
+    // On an island with no German region to reach: home to the capital
+    // (Berlin, region 3; HOI4), not disbanded.
+    const csk = id("CSK");
+    addAccess(p, deu, csk);
+    const far = placeArmy(g, "DEU", 15, 1);
+    const row = l.divisions.rowOf(far.divisions[0]);
+    expect(
+      p.issue(csk, { kind: "access_revoke", target: deu }, g.ticks()),
+    ).toBe(null);
+    stepTo(runner, dayStart(ww.day(g.ticks()) + 1) + 1);
+    expect(l.divisions.id[row]).not.toBe(0);
+    expect(l.divisions.region[row]).toBe(3);
   });
 
   it("opinion sums its parts and decays", async () => {

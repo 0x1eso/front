@@ -70,6 +70,11 @@ describe(
       ]);
       run(deu, [{ kind: "remove_war_goal", on: { tag: "CSK" } }]);
       expect(p.hasWarGoal(deu, csk)).toBe(false);
+      // A refused declaration (the 1934 pact) leaves no goal behind.
+      const pl = id("POL");
+      run(deu, [{ kind: "declare_war", on: { tag: "POL" } }]);
+      expect(ww.isAtWar(deu, pl)).toBe(false);
+      expect(p.hasWarGoal(deu, pl)).toBe(false);
       // declare_war without a goal makes one on the spot: no penalty.
       const c = p.country(deu)!;
       run(deu, [{ kind: "declare_war", on: { tag: "LTU" } }]);
@@ -208,6 +213,21 @@ describe(
       expect(diploEventChoice(p, "gen_call_to_arms", fra, gbr, deu)).toBe("b");
       p.beats[i] = { fireDay: day + 400, skipped: false, done: false };
       expect(diploEventChoice(p, "gen_call_to_arms", fra, gbr, deu)).toBe("b");
+      // A done beat (it acted already) no longer answers.
+      p.beats[i] = { fireDay: day, skipped: false, done: true };
+      expect(diploEventChoice(p, "gen_call_to_arms", fra, gbr, deu)).toBe("b");
+      // A guarantee's call history keeps is certain; otherwise the event decides.
+      const g3 = p.content.beats.findIndex(
+        (b) => b.id === "b1939_09_03_gbr_deu",
+      );
+      p.beats[g3] = { fireDay: day + 2, skipped: false, done: false };
+      expect(
+        diploEventChoice(p, "gen_guarantee_called", gbr, id("POL"), deu),
+      ).toBe("a");
+      p.beats[g3] = { fireDay: day + 2, skipped: true, done: false };
+      expect(
+        diploEventChoice(p, "gen_guarantee_called", gbr, id("POL"), deu),
+      ).toBeNull();
       // Not a request event: the event's own weights decide.
       expect(diploEventChoice(p, "gen_t_choice", fra, gbr, deu)).toBeNull();
     });
@@ -243,14 +263,23 @@ describe(
       );
       const byScore = (from: number, to: number) =>
         aiAcceptScore(p, "nap", from, to) >= 50 ? "a" : "b";
-      p.beats[i] = { fireDay: day, skipped: false, done: true };
+      // R1 (final): a due beat, neither skipped nor done (lane E marks it
+      // done after it acts, so the beat's own request matches).
+      p.beats[i] = { fireDay: day, skipped: false, done: false };
       expect(diploEventChoice(p, "gen_diplo_nap", sun, gbr, 0)).toBe("a");
       // A pact is mutual: the other way round matches too.
       expect(diploEventChoice(p, "gen_diplo_nap", gbr, sun, 0)).toBe("a");
-      p.beats[i] = { fireDay: day, skipped: true, done: false };
-      expect(diploEventChoice(p, "gen_diplo_nap", sun, gbr, 0)).toBe(
-        byScore(gbr, sun),
-      );
+      // Skipped, done, or not due yet: the acceptance score.
+      for (const s of [
+        { fireDay: day, skipped: true, done: false },
+        { fireDay: day, skipped: false, done: true },
+        { fireDay: day + 5, skipped: false, done: false },
+      ]) {
+        p.beats[i] = s;
+        expect(diploEventChoice(p, "gen_diplo_nap", sun, gbr, 0)).toBe(
+          byScore(gbr, sun),
+        );
+      }
       expect(diploEventChoice(p, "gen_diplo_access", sun, gbr, 0)).toBe(
         aiAcceptScore(p, "access", gbr, sun) >= 50 ? "a" : "b",
       );

@@ -679,6 +679,9 @@ export class WwPolitics {
       if (c.pending.length > 0) c.pending = []; // spec §12.5
       return;
     }
+    // Lane D fix 1 (controller ruling): a country that controls no region
+    // (annexed, its tiles still on their way) has no political day.
+    if (!this.controlsAnyRegion(id)) return;
     dailyPower(this, id, day, tick);
     stepFocus(this, id, day, tick);
     stepDecisions(this, id, day, tick);
@@ -988,6 +991,15 @@ export class WwPolitics {
   living(smallID: number): boolean {
     const p = this.player(smallID);
     return p !== null && p.isAlive() && !this.ww.isCapitulated(smallID);
+  }
+
+  /** The land war's control of at least one region. */
+  controlsAnyRegion(smallID: number): boolean {
+    const c = this.land.controller;
+    for (const r of this.ww.scenario.landRegions) {
+      if (c[r.id] === smallID) return true;
+    }
+    return false;
   }
 
   isHuman(smallID: number): boolean {
