@@ -349,10 +349,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // (the AI's land war) merged: same value in four runs.
 // P3 Task 1 (politics' foundation, plan decision 23): the politics state
 // and hash, the history beats rolled by wwRoll (the P0 calendar's stateful
-// roll is gone), legal owners; empty content, the lanes' stubs. The
-// controller re-pins it at every P3 merge (pending: re-pinned at the end
-// of the P3 integration batch).
-const WW1936_DIGEST = "354619149f96271c";
+// roll is gone), legal owners. Re-pinned after the P3 foundation and the
+// six content lanes (K1–K6: focuses, events, decisions, persons, beats,
+// 79 countries' politics) merged: same value in four runs. The controller
+// re-pins it at every P3 merge.
+const WW1936_DIGEST = "ca7c1693f5383d92";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
