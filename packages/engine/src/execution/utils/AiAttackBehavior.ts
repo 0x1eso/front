@@ -83,6 +83,9 @@ interface BoatRoute {
 
 type Box = { min: Cell; max: Cell } | null | undefined;
 
+// World War 1936: the longest crossing a nation makes for a war (tiles).
+const WAR_BOAT_RANGE = 400;
+
 // Fewest tiles between two boxes (unknown boxes count as touching)
 function boxGap(a: Box, b: Box): number {
   if (!a || !b) return 0;
@@ -285,8 +288,14 @@ export class AiAttackBehavior {
       }
     } else {
       if (!holdBoats && this.random.chance(10)) {
-        this.attackWithRandomBoat(borderingEnemies);
-        return;
+        // World War 1936: a turn the boat found nothing to do goes on to
+        // the land war.
+        if (
+          this.attackWithRandomBoat(borderingEnemies) ||
+          this.game.worldWar() === null
+        ) {
+          return;
+        }
       }
       if (holdFire && this.random.chance(10)) {
         this.attackWithRandomBoat(borderingEnemies, true);
@@ -299,14 +308,15 @@ export class AiAttackBehavior {
     this.attackBestTarget(borderingFriends, borderingEnemies);
   }
 
+  /** Whether a boat left. */
   private attackWithRandomBoat(
     borderingEnemies: Player[] = [],
     unownedOnly: boolean = false,
-  ) {
+  ): boolean {
     if (this.player === null) throw new Error("not initialized");
 
     if (this.player.isUnitUnavailable(UnitType.TransportShip)) {
-      return;
+      return false;
     }
 
     // Check if we've already sent out the maximum number of transport ships
@@ -314,13 +324,13 @@ export class AiAttackBehavior {
       this.player.unitCount(UnitType.TransportShip) >=
       this.game.config().boatMaxNumber()
     ) {
-      return;
+      return false;
     }
 
     // Check if we have any shore tiles to launch from
     const shore = this.shoreTiles(this.player);
     if (shore.length === 0) {
-      return;
+      return false;
     }
 
     const src = this.random.randElement(shore);
@@ -336,29 +346,29 @@ export class AiAttackBehavior {
       // None found? Then look for players
       found = this.findRandomBoatTarget(src, borderingEnemies, false);
     }
-    if (found === null) return;
+    if (found === null) return false;
     const { tile: dst, launch } = found;
-    if (this.sail(launch, dst).blocker !== null) return;
+    if (this.sail(launch, dst).blocker !== null) return false;
 
     const owner = this.game.owner(dst);
     if (this.landsBeachheads()) {
-      this.sendBeachhead(owner, dst);
-      return;
+      return this.sendBeachhead(owner, dst);
     }
     const cap = owner.isPlayer()
       ? this.troopSendCap()
       : this.troopSendCapForExpansion();
     const troops = Math.min(this.player.troops() / 5, cap);
-    if (troops < 1) return;
+    if (troops < 1) return false;
 
     // Hard & Impossible: don't attack if we'd send less than 20% of target's troops
     if (owner.isPlayer() && this.isAttackTooWeak(troops, owner)) {
-      return;
+      return false;
     }
 
     this.game.addExecution(
       new TransportShipExecution(this.player, dst, troops),
     );
+    return true;
   }
 
   private findRandomBoatTarget(
@@ -641,7 +651,13 @@ export class AiAttackBehavior {
 
     const hated = (): boolean => {
       for (const relation of this.player.allRelationsSorted()) {
-        if (relation.relation !== Relation.Hostile) continue;
+        // World War 1936: a war counts as a hostile relation.
+        if (
+          relation.relation !== Relation.Hostile &&
+          !this.atWarWith(relation.player)
+        ) {
+          continue;
+        }
         const other = relation.player;
         if (this.player.isFriendly(other)) continue;
         if (this.isFFA() && other.troops() > this.player.troops() * 3) continue;
@@ -710,6 +726,17 @@ export class AiAttackBehavior {
     };
     const projectFirst = this.game.config().domesticMode() ? [project] : [];
 
+    // World War 1936 (spec §7.7): a war is the strongest motive. The weakest
+    // enemy we reach by land, else across the water, even one stronger than
+    // us. Off without the mode, where the lists below stay as they were.
+    const war = (): boolean => {
+      const enemy =
+        pick((enemies) => enemies[0] ?? null) ??
+        this.overseasWarEnemy(borderingEnemies);
+      return enemy !== null && this.sendWarAttack(enemy);
+    };
+    const warFirst = this.game.worldWar() !== null ? [war] : [];
+
     // Return strategies in order based on difficulty
     // Easy nations get the dumbest order, impossible nations get the smartest order
     // Medium and up retaliate in attackBestTarget, ahead of the ratio checks
@@ -717,17 +744,17 @@ export class AiAttackBehavior {
       case Difficulty.Easy:
         // So dumb, they cant even find islanders
         // prettier-ignore
-        return [nuked, bots, retaliate, assist, betray, hated, weakest];
+        return [...warFirst, nuked, bots, retaliate, assist, betray, hated, weakest];
       case Difficulty.Medium:
         // prettier-ignore
-        return [bots, nuked, assist, betray, hated, afk, traitor, crown, weakest, island, donate];
+        return [...warFirst, bots, nuked, assist, betray, hated, afk, traitor, crown, weakest, island, donate];
       case Difficulty.Hard:
         // Strong veryWeak and juicy strats after the distracting hated strat, to make the nations weaker than impossible
         // prettier-ignore
-        return [...projectFirst, bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
+        return [...warFirst, ...projectFirst, bots, assist, betray, nuked, traitor, afk, hated, veryWeak, juicy, victim, crown, weakest, island, donate];
       case Difficulty.Impossible:
         // prettier-ignore
-        return [...projectFirst, bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
+        return [...warFirst, ...projectFirst, bots, veryWeak, betray, assist, victim, crown, traitor, juicy, afk, nuked, hated, weakest, island, donate];
       default:
         assertNever(difficulty);
     }
@@ -1301,6 +1328,55 @@ export class AiAttackBehavior {
         this.player,
         target.isPlayer() ? target.id() : this.game.terraNullius().id(),
       ),
+    );
+  }
+
+  /**
+   * World War 1936 (spec 7.7): whether we are at war with `other` and may
+   * fight it now. Always false without the mode; reads no PRNG.
+   */
+  private atWarWith(other: Player): boolean {
+    return (
+      this.game.worldWar() !== null &&
+      other !== this.player &&
+      this.player.canAttackPlayer(other)
+    );
+  }
+
+  /** World War 1936: the weakest enemy we do not border that a boat reaches, or null. */
+  private overseasWarEnemy(borderingEnemies: Player[]): Player | null {
+    const ours = this.player.largestClusterBoundingBox;
+    const range = this.maxBoatRoute();
+    const enemies = this.game
+      .players()
+      .filter(
+        (p) =>
+          this.atWarWith(p) &&
+          !borderingEnemies.includes(p) &&
+          boxGap(ours, p.largestClusterBoundingBox) <= range,
+      )
+      .sort((a, b) => a.troops() - b.troops());
+    return enemies.find((p) => this.canReach(p)) ?? null;
+  }
+
+  /**
+   * World War 1936: an attack on a war enemy, sized by the odds. A weaker
+   * enemy gets what a vanilla attack sends (all above the reserve); a
+   * stronger one our share of the two armies (half at even strength, a
+   * third against twice ours), so a long war doesn't bleed us white.
+   */
+  private sendWarAttack(enemy: Player): boolean {
+    if (!this.shouldAttack(enemy)) return false;
+    if (!this.player.sharesBorderWith(enemy)) {
+      return this.sendBoatAttack(enemy);
+    }
+    const ours = this.player.troops();
+    const theirs = enemy.troops();
+    const cap = theirs < ours ? ours : (ours * ours) / (ours + theirs);
+    return this.sendLandAttack(
+      enemy,
+      (reserve) => Math.min(ours - reserve, cap),
+      enemy,
     );
   }
 
@@ -1923,8 +1999,17 @@ export class AiAttackBehavior {
     return { length, blocker: null };
   }
 
-  // Hard & Impossible don't sail further than this to attack someone
+  // Hard & Impossible don't sail further than this to attack someone. Nor
+  // does anyone in World War 1936: a boat to the far side of the world would
+  // take a fifth of the army away from every front.
   private maxBoatRoute(): number {
+    const range = this.difficultyBoatRoute();
+    return this.game.worldWar() === null
+      ? range
+      : Math.min(range, WAR_BOAT_RANGE);
+  }
+
+  private difficultyBoatRoute(): number {
     const { difficulty } = this.game.config().gameConfig();
     switch (difficulty) {
       case Difficulty.Easy:
