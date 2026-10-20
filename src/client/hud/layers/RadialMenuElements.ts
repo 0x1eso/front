@@ -854,6 +854,10 @@ export const centerButtonElement: CenterButtonElement = {
       return false;
     }
 
+    // World War 1936 P2 (spec §13.2): armies fight, not tile attacks, and
+    // troops are never donated.
+    if (isWorldWar(params)) return true;
+
     if (isFriendlyTarget(params) && !isDisconnectedTarget(params)) {
       return !params.playerActions.interaction?.canDonateTroops;
     }
@@ -884,6 +888,11 @@ export const centerButtonElement: CenterButtonElement = {
     params.closeMenu();
   },
 };
+
+/** World War 1936 (optional call: test doubles of the game predate the mode). */
+function isWorldWar(params: MenuElementParams): boolean {
+  return (params.game.worldWarScenario?.() ?? null) !== null;
+}
 
 /**
  * World War 1936 P1 (spec §13.5): "Build here" on a region of my own — the
@@ -942,6 +951,7 @@ export const rootMenuElement: MenuElement = {
 
     const showDonateInsteadOfAttack =
       isFriendlyTarget(params) && !isDisconnected && !hasBuildableAttacks;
+    const ww = isWorldWar(params);
 
     const menuItems: (MenuElement | null)[] = [
       infoMenuElement,
@@ -954,11 +964,19 @@ export const rootMenuElement: MenuElement = {
             buildMenuElement,
           ]
         : [
-            isAllied && !isDisconnected ? allyBreakElement : boatMenuElement,
+            // World War 1936 P2 (spec §13.2): no boats and no tile attacks
+            // (armies fight, from the army card).
+            isAllied && !isDisconnected
+              ? allyBreakElement
+              : ww
+                ? null
+                : boatMenuElement,
             inExtensionWindow ? allyExtendElement : allyRequestElement,
             showDonateInsteadOfAttack
               ? donateGoldRadialElement
-              : attackMenuElement,
+              : ww
+                ? null
+                : attackMenuElement,
           ]),
     ];
 

@@ -71,6 +71,16 @@ describe("index.html bottom HUD", () => {
     expect(bar!.classList.contains("hidden")).toBe(false);
   });
 
+  it("mounts the World War 1936 land screens among the overlays", () => {
+    // P2 (spec §15): the army drawer, the chosen army's card, a battle's card.
+    for (const tag of ["ww-army-panel", "ww-army-card", "ww-battle-card"]) {
+      const el = doc.querySelector(tag);
+      expect(el).not.toBeNull();
+      // Outside the bottom HUD: the cards place themselves above its rows.
+      expect(doc.querySelector("[data-bottom-hud]")!.contains(el)).toBe(false);
+    }
+  });
+
   it("puts the congress cards right above the HUD rows and the band among the overlays", () => {
     const rows = doc.querySelector("[data-bottom-hud-rows]")!;
     const cards = doc.querySelector("congress-cards")!;

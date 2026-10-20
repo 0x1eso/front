@@ -617,7 +617,13 @@ export class ControlPanel extends LitElement implements Controller {
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
         ${this.renderNotification()} ${this.renderTroopsRow()}
-        ${this.renderAttackRatio()}
+        ${
+          // World War 1936 P2 (spec §13.2): armies fight there, not tile
+          // attacks, so the attack ratio has nothing to set.
+          (this.game?.worldWarScenario?.() ?? null) === null
+            ? this.renderAttackRatio()
+            : ""
+        }
       </div>
     `;
   }

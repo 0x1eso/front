@@ -916,7 +916,13 @@ export class WwIndustryPanel extends WwDrawerBase {
   }
 
   private renderStock(c: Ctx): TemplateResult {
-    const rows = stockRows(c.detail, armyMenOf(c.me));
+    // P2 (pre-flight N1): the army the stock must cover is the men in the
+    // field and in training, once the land war reports them.
+    const land = this.game?.wwLand?.()?.countries.get(c.id) ?? null;
+    const rows = stockRows(
+      c.detail,
+      land === null ? armyMenOf(c.me) : land.fieldMen + land.trainingMen,
+    );
     return html`<section data-ww-stock>
       <div class=${HEADING}>${translateText("ww1936.econ.stockpile")}</div>
       <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">

@@ -10,6 +10,7 @@ import {
 } from "../../../src/client/hud/GameRenderer";
 import type { EmojiTable } from "../../../src/client/hud/layers/EmojiTable";
 import type { WinModal } from "../../../src/client/hud/layers/WinModal";
+import { WwLandController } from "../../../src/client/hud/ww1936/WwLandController";
 import { ShowEmojiMenuEvent } from "../../../src/client/InputHandler";
 import type { MapRenderer } from "../../../src/client/render/gl";
 import type { GameView } from "../../../src/client/view";
@@ -53,6 +54,9 @@ const HUD_TAGS = [
   "ww-dials",
   "ww-industry-panel",
   "ww-research-panel",
+  "ww-army-panel",
+  "ww-army-card",
+  "ww-battle-card",
   "in-game-promo",
   "tutorial-panel",
 ] as const;
@@ -124,6 +128,9 @@ describe("createRenderer", () => {
       "ww-dials",
       "ww-industry-panel",
       "ww-research-panel",
+      "ww-army-panel",
+      "ww-army-card",
+      "ww-battle-card",
     ]) {
       const el = elements.get(tag) as unknown as {
         eventBus: EventBus;
@@ -163,7 +170,7 @@ describe("createRenderer", () => {
     const setWwLand = vi.fn();
     const view = { setRegions, setWwLand } as unknown as MapRenderer;
 
-    createRenderer(
+    const renderer = createRenderer(
       document.createElement("div"),
       game,
       new EventBus(),
@@ -172,6 +179,10 @@ describe("createRenderer", () => {
     );
 
     expect(setRegions).toHaveBeenCalledExactlyOnceWith(regionIds);
+    // P2 (plan decision 25): the land war's tap flow comes first, so it
+    // hears a map tap before the warship controller's radial fallback.
+    const layers = (renderer as unknown as { layers: unknown[] }).layers;
+    expect(layers[0]).toBeInstanceOf(WwLandController);
     // P2: the land war's view goes to the map renderer too (Task 7 draws it).
     expect(setWwLand).toHaveBeenCalledTimes(1);
     expect(setWwLand.mock.calls[0][0]).toBe(wwLand);

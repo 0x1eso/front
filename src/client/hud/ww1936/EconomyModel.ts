@@ -36,7 +36,12 @@ import {
   WwTechId,
   WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  BATTALION_IDS,
+  SUPPORT_IDS,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
+import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   addLineBlockOf,
@@ -415,7 +420,27 @@ export function techUnlock(
   return null;
 }
 
-/** A research card's effect lines: each bonus, or the generation it opens. */
+/** P2 (pre-flight T-b): the line of a land tech that opens a battalion or a company. */
+export const UNLOCK_UNIT_KEY = "ww1936.effect.unlock_unit";
+
+/**
+ * The battalions and support companies a tech that opens no equipment
+ * generation lets templates use (P2's land techs: mountaineers, marines,
+ * paratroopers and the companies), as their names.
+ */
+export function techUnits(tech: WwTechId): string[] {
+  if (techUnlock(tech) !== null) return [];
+  return [
+    ...BATTALION_IDS.filter((id) => BATTALIONS[id].techs.includes(tech)).map(
+      (id) => translateText(`ww1936.battalion.${id}`),
+    ),
+    ...SUPPORT_IDS.filter((id) => SUPPORTS[id].techs.includes(tech)).map((id) =>
+      translateText(`ww1936.support.${id}`),
+    ),
+  ];
+}
+
+/** A research card's effect lines: each bonus, or the generation or unit it opens. */
 export function effectLines(tech: WwTechId): string[] {
   const out: string[] = [];
   const unlock = techUnlock(tech);
@@ -426,6 +451,9 @@ export function effectLines(tech: WwTechId): string[] {
         gen: genName(unlock.gen),
       }),
     );
+  }
+  for (const unit of techUnits(tech)) {
+    out.push(translateText(UNLOCK_UNIT_KEY, { unit }));
   }
   const effects = WW_TECHS[tech].effects;
   for (const k of Object.keys(effects) as (keyof TechEffects)[]) {
