@@ -124,7 +124,6 @@ export function joinBattle(land: WwLand, div: number, region: number): void {
     b.attackers.push(div);
     b.attackers.sort((x, y) => x - y);
   }
-  land.markBattle(region);
 }
 
 /** Every running battle, one round, by region (spec §9.3). */
@@ -282,7 +281,6 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const r = t.rowOf(id);
     if (r >= 0 && t.org[r] === 0) release(land, r);
   }
-  land.markBattle(R);
   if (
     b.defenders.every((id) => {
       const r = t.rowOf(id);
@@ -433,7 +431,6 @@ function release(land: WwLand, row: number): void {
     b.defenders = b.defenders.filter((d) => d !== id);
     b.attLine = b.attLine.filter((d) => d !== id);
     b.defLine = b.defLine.filter((d) => d !== id);
-    land.markBattle(R);
   }
   clearRole(land, row);
 }
@@ -460,7 +457,6 @@ export function closeBattle(land: WwLand, region: number): void {
     const r = t.rowOf(id);
     if (r >= 0 && t.battle[r] === region) clearRole(land, r);
   }
-  land.markBattle(region);
   land.endBattle(region);
 }
 

@@ -131,9 +131,12 @@ describe("World War 1936 P2: occupation and the spread (spec §12)", () => {
     const ww = g.worldWar()!;
     const sc = ww.scenario;
     for (const a of l.armiesOf(deu)) {
+      // Anchored on the army's region: an anchor (0) that reaches no border
+      // sends the army idle (Fronts.assignFront).
       a.order = {
         ...idleOrder(),
         kind: "plan",
+        anchor: l.armyRegion(a),
         targets: [WARSAW],
         stance: "aggressive",
         executing: true,

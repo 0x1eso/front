@@ -125,11 +125,16 @@ function attack(l: WwLand, a: Army, region: number): void {
   for (const id of a.divisions) joinBattle(l, id, region);
 }
 
-/** The army runs an attack plan on `region` (what army_attack orders): it advances when it wins. */
-function attackPlan(a: Army, region: number): void {
+/**
+ * The army runs an attack plan on `region` (what army_attack orders): it
+ * advances when it wins. The front is anchored on the army's own region:
+ * Fronts.assignFront sends an army whose anchor (0) reaches no border to idle.
+ */
+function attackPlan(l: WwLand, a: Army, region: number): void {
   a.order = {
     ...idleOrder(),
     kind: "plan",
+    anchor: l.armyRegion(a),
     targets: [region],
     stance: "aggressive",
     executing: true,
@@ -190,8 +195,8 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     const north = placeArmy(g, "DEU", 3, 4, inf72);
     const south = placeArmy(g, "DEU", 4, 3, inf72);
     const d = placeArmy(g, "POL", WARSAW, 5);
-    attackPlan(north, WARSAW);
-    attackPlan(south, WARSAW);
+    attackPlan(l, north, WARSAW);
+    attackPlan(l, south, WARSAW);
     attack(l, north, WARSAW);
     attack(l, south, WARSAW);
     const b = l.battles.get(WARSAW)!;
@@ -221,11 +226,11 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
   }, 60_000);
 
   test("hills and one direction hold", async () => {
-    const { runner, g, l, pol, inf72 } = await juneWar();
+    const { runner, g, l, deu, pol, inf72 } = await juneWar();
     expect(g.worldWar()!.scenario.landOf(KRAKOW)).toBe("hills");
     const a = placeArmy(g, "DEU", 4, 7, inf72);
     placeArmy(g, "POL", KRAKOW, 5);
-    attackPlan(a, KRAKOW);
+    attackPlan(l, a, KRAKOW);
     attack(l, a, KRAKOW);
     expect(l.battleSummary(l.battles.get(KRAKOW)!).directions).toBe(1);
     let ended = -1;
@@ -237,8 +242,15 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     // The attack broke well within the month.
     expect(ended).toBeGreaterThan(0);
     expect(ended).toBeLessThan(60);
+    // Nobody advanced into Krakow: every attacker stands on our side's
+    // ground. The plan army's front (Fronts.assignFront) spreads them along
+    // the border once they are out of the battle, and the plan walks into
+    // empty Warsaw (spec §7.7), so not all of them stay in Munich.
     for (const id of a.divisions) {
-      expect(l.divisions.region[rowOf(l, id)]).toBe(4);
+      const r = rowOf(l, id);
+      expect(l.divisions.mode[r]).not.toBe(MOVE_ADVANCE);
+      expect(l.divisions.region[r]).not.toBe(KRAKOW);
+      expect(l.sameSide(deu, l.controller[l.divisions.region[r]])).toBe(true);
     }
   }, 60_000);
 

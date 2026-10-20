@@ -341,11 +341,16 @@ describe("World War 1936 P2: army orders (P2 spec §16.3)", () => {
     expect(l.divisions.region[rowOf(g, a)]).toBe(3);
     expect(l.controller[6]).toBe(byTag(g, "POL").smallID());
     step(runner);
-    // Empty Warsaw: taken, the paratroopers on 40% org.
+    // Empty Warsaw: taken, the paratroopers on 40% org — plus one tick of
+    // recovery: the drop happens in applyArmyOrders and stepRecovery runs
+    // later in the same tick (spec §9.8: floor(300 × 1.829 h) = 548 at full
+    // supply, no organizer, signal company or recovery tech).
     for (let i = 0; i < a.divisions.length; i++) {
       const r = rowOf(g, a, i);
       expect(l.divisions.region[r]).toBe(6);
-      expect(l.divisions.org[r]).toBe(Math.floor((l.orgMaxOf(r) * 40) / 100));
+      expect(l.divisions.org[r]).toBe(
+        Math.floor((l.orgMaxOf(r) * 40) / 100) + 548,
+      );
     }
     expect(l.controller[6]).toBe(deu);
     expect(a.paraLastDay).toBe(day + 10);
