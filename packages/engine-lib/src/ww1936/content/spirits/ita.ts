@@ -30,13 +30,13 @@ export const SPIRITS_ITA: SpiritDef[] = [
   },
   // ita_armed_neutrality: defence +10%, others justify 50% slower.
   {
-    id: "ita_armed_neutrality",
+    id: "ita_armed_neutrality_spirit",
     icon: "shield",
     stats: { defensePct: 10, enemyJustifyTimePct: 50 },
   },
   // ita_autarky: extraction +10%, trade −10%, military construction +5%.
   {
-    id: "ita_autarky",
+    id: "ita_autarky_spirit",
     icon: "mine",
     stats: { extractionPct: 10, tradeCostPct: -10, milConstructionPct: 5 },
   },
@@ -49,7 +49,7 @@ export const SPIRITS_ITA: SpiritDef[] = [
     stats: { desertAttackPct: 10, supplyUsePct: -5 },
   },
   // ita_war_booty: captured equipment +5%p (P5 spec §14).
-  { id: "ita_war_booty", icon: "medal", stats: { capturePct: 5 } },
+  { id: "ita_war_booty_spirit", icon: "medal", stats: { capturePct: 5 } },
   // ita_battleship_programme (365 days): dockyard output +10%.
   { id: "ita_capital_ships", icon: "ship", stats: { dockOutputPct: 10 } },
   // ita_submarine_arm: submarine attack +5%.

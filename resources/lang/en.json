@@ -4057,8 +4057,8 @@
       "mobile": "Mobile warfare"
     },
     "spirit": {
-      "ita_armed_neutrality": "Armed Neutrality",
-      "ita_autarky": "Autarky",
+      "ita_armed_neutrality_spirit": "Armed Neutrality",
+      "ita_autarky_spirit": "Autarky",
       "ita_capital_ships": "Capital Ships First",
       "ita_cobelligerent_prep": "Changing Sides",
       "ita_crown_shadow": "The Crown's Shadow",
@@ -4068,12 +4068,12 @@
       "ita_pact": "Bound by Treaty",
       "ita_submarine_priority": "Submarines First",
       "ita_torpedo_tactics": "Aerial Torpedo Tactics",
-      "ita_war_booty": "Captured Equipment Units",
+      "ita_war_booty_spirit": "Captured Equipment Units",
       "ita_war_mobilisation": "War Mobilisation"
     },
     "spirit_desc": {
-      "ita_armed_neutrality": "Italy stays out of the war but keeps its army on the frontiers.",
-      "ita_autarky": "Home mines and substitutes are preferred to imports, whatever they cost.",
+      "ita_armed_neutrality_spirit": "Italy stays out of the war but keeps its army on the frontiers.",
+      "ita_autarky_spirit": "Home mines and substitutes are preferred to imports, whatever they cost.",
       "ita_capital_ships": "The shipyards build the new battleships ahead of every other order.",
       "ita_cobelligerent_prep": "While the government changes sides, the army is scattered and confused.",
       "ita_crown_shadow": "The King's circle watches the government closely: decisions are slower, but a coup is harder.",
@@ -4083,7 +4083,7 @@
       "ita_pact": "The alliance with Germany ties Italy to its partner's wars.",
       "ita_submarine_priority": "The best crews and torpedoes go to the submarine flotillas.",
       "ita_torpedo_tactics": "Bomber crews practise low-level torpedo runs against ships at sea.",
-      "ita_war_booty": "Repair teams put captured enemy equipment back into service.",
+      "ita_war_booty_spirit": "Repair teams put captured enemy equipment back into service.",
       "ita_war_mobilisation": "Factories run extra shifts for the war, and the shops have less to sell."
     },
     "tech": {

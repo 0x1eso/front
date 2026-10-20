@@ -3743,8 +3743,8 @@
       "ita_western_reconciliation": "무솔리니 없는 정부는 베를린에서 물러나 런던과 파리에 불가침 조약을 제안할 수 있다."
     },
     "spirit": {
-      "ita_armed_neutrality": "무장 중립",
-      "ita_autarky": "자급자족",
+      "ita_armed_neutrality_spirit": "무장 중립",
+      "ita_autarky_spirit": "자급자족",
       "ita_capital_ships": "주력함 우선",
       "ita_cobelligerent_prep": "공동 교전국 준비",
       "ita_crown_shadow": "왕실의 그늘",
@@ -3754,12 +3754,12 @@
       "ita_pact": "맹약",
       "ita_submarine_priority": "잠수함 우선",
       "ita_torpedo_tactics": "뇌격 전술",
-      "ita_war_booty": "전리품 부대",
+      "ita_war_booty_spirit": "전리품 부대",
       "ita_war_mobilisation": "전시 동원"
     },
     "spirit_desc": {
-      "ita_armed_neutrality": "이탈리아는 전쟁에서 빠져 있되 군을 국경에 세워 둔다.",
-      "ita_autarky": "값이 더 들더라도 수입보다 국내 광산과 대용품을 앞세운다.",
+      "ita_armed_neutrality_spirit": "이탈리아는 전쟁에서 빠져 있되 군을 국경에 세워 둔다.",
+      "ita_autarky_spirit": "값이 더 들더라도 수입보다 국내 광산과 대용품을 앞세운다.",
       "ita_capital_ships": "조선소가 다른 주문보다 새 전함을 먼저 짓는다.",
       "ita_cobelligerent_prep": "정부가 편을 바꾸는 동안 군은 흩어지고 혼란에 빠져 있다.",
       "ita_crown_shadow": "국왕 측근이 정부를 지켜보니 결정은 느려져도 정변은 어려워진다.",
@@ -3769,7 +3769,7 @@
       "ita_pact": "독일과의 동맹이 이탈리아를 동맹국의 전쟁에 묶어 둔다.",
       "ita_submarine_priority": "가장 뛰어난 승조원과 어뢰가 잠수함 전대로 간다.",
       "ita_torpedo_tactics": "폭격기 승무원들이 바다의 함선을 노린 저공 뇌격을 연습한다.",
-      "ita_war_booty": "정비반이 노획한 적 장비를 다시 쓸 수 있게 고친다.",
+      "ita_war_booty_spirit": "정비반이 노획한 적 장비를 다시 쓸 수 있게 고친다.",
       "ita_war_mobilisation": "공장은 전쟁을 위해 교대를 늘리고 가게에 팔 물건은 줄어든다."
     },
     "event_title": {

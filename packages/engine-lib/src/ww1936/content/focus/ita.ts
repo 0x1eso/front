@@ -312,7 +312,7 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_crown_council"]],
     exclusive: ["ita_grand_council_check"],
     effects: [
-      { kind: "add_spirit", id: "ita_armed_neutrality" },
+      { kind: "add_spirit", id: "ita_armed_neutrality_spirit" },
       {
         kind: "fort",
         where: { best: 4, of: "italy_alpine_border" },
@@ -473,7 +473,7 @@ export const ITA_FOCUSES: FocusDef[] = [
     days: 70,
     branch: "industry",
     icon: "mine",
-    effects: [{ kind: "add_spirit", id: "ita_autarky" }],
+    effects: [{ kind: "add_spirit", id: "ita_autarky_spirit" }],
     ai: { base: 10 },
   },
   {
@@ -690,7 +690,7 @@ export const ITA_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "medal",
     prereq: [["ita_army_reform"]],
-    effects: [{ kind: "add_spirit", id: "ita_war_booty" }],
+    effects: [{ kind: "add_spirit", id: "ita_war_booty_spirit" }],
     ai: { base: 10 },
   },
 
