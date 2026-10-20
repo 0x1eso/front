@@ -11,8 +11,8 @@
  * - The screen's plan draft (`selection.targets`): the same arrows, faint.
  * - A first tap waiting for its confirm (`selection.pending`, spec §15.3):
  *   on one of the viewer's side's regions the walking path there (dotted,
- *   shortest by MoveRules.moveNeed over the side's regions); on another
- *   region a faint arrow to it.
+ *   shortest by MoveRules.moveNeed over the side's regions, sides from
+ *   LandFrontWorld); on another region a faint arrow to it.
  *
  * Widths are screen pixels (the vertex shader scales them); an arrow's head
  * stops a little short of its target's center, where that region's tokens
@@ -23,12 +23,12 @@
 
 import { moveNeed, shortestPath } from "@openfront/engine-lib/ww1936/MoveRules";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
+import type { LandFrontWorld } from "../../../view/LandFrontWorld";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/plan-arrow/plan-arrow.frag.glsl?raw";
 import vertSrc from "../shaders/plan-arrow/plan-arrow.vert.glsl?raw";
 import { createProgram } from "../utils/GlUtils";
-import { sameLandSide } from "./RegionBorderPass";
 
 const FLOATS = 12;
 export const STYLE_BAND = 0;
@@ -122,6 +122,7 @@ export class PlanArrowPass {
     selection: WwLandSelection,
     me: number,
     tilesPerPx: number,
+    world: LandFrontWorld,
   ): void {
     if (
       view === this.seenView &&
@@ -139,7 +140,7 @@ export class PlanArrowPass {
     this.seenTilesPerPx = tilesPerPx;
     this.tilesPerPx = tilesPerPx;
     this.data.length = 0;
-    this.build(view, selection, me);
+    this.build(view, selection, me, world);
     const n = this.data.length / FLOATS;
     this.count = n;
     if (n === 0) return;
@@ -151,7 +152,12 @@ export class PlanArrowPass {
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, this.data.length);
   }
 
-  private build(view: WwLandView, sel: WwLandSelection, me: number): void {
+  private build(
+    view: WwLandView,
+    sel: WwLandSelection,
+    me: number,
+    world: LandFrontWorld,
+  ): void {
     const army = sel.army === null ? undefined : view.armies.get(sel.army);
     if (army === undefined || army.owner !== me || army.mine === null) return;
     const mine = army.mine;
@@ -193,7 +199,7 @@ export class PlanArrowPass {
     const tapFlow =
       sel.mode === "none" || sel.mode === "move" || sel.mode === "attack";
     if (p === null || !tapFlow || p === army.region) return;
-    const ours = sameLandSide(sc, view.controller[p], me);
+    const ours = world.sameSide(me, view.controller[p]);
     if (ours && sel.mode !== "attack") {
       if (this.previewFrom !== army.region || this.previewTo !== p) {
         this.previewFrom = army.region;
@@ -202,7 +208,7 @@ export class PlanArrowPass {
           sc,
           army.region,
           p,
-          (r) => sameLandSide(sc, view.controller[r], me),
+          (r) => world.sameSide(me, view.controller[r]),
           (e, to) => moveNeed(sc.edge(e), sc.landOf(to)),
         );
       }

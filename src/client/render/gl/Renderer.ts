@@ -12,15 +12,13 @@
  */
 
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
-import { ARMY_PARA } from "@openfront/engine-api/ww1936/LandTypes";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
-import { PLANE_SPEED } from "@openfront/engine-lib/warfare/Warfare";
 import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import { translateText } from "../../Utils";
+import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
 import type { WwLandView } from "../../view/WwLandView";
-import { nextTickSpan } from "../frame/derive/PlaneTrack";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
 import type {
   AttackRingInput,
@@ -42,6 +40,7 @@ import { UT_SHELL, UT_TRANSPORT_PLANE } from "../types";
 import { Camera } from "./Camera";
 import { GLUnavailableError, initGL } from "./initGL";
 import { LandAtlas } from "./LandAtlas";
+import { LandTickClock, ParadropFlights } from "./LandFrame";
 import { AirFxPass } from "./passes/AirFxPass";
 import { ArmyTokenPass } from "./passes/ArmyTokenPass";
 import { BarPass } from "./passes/BarPass";
@@ -71,7 +70,6 @@ import {
   FLAG_TEX_SIZE,
   RegionBorderPass,
   regionFlagBytes,
-  sameLandSide,
 } from "./passes/RegionBorderPass";
 import { SAMRadiusPass } from "./passes/SamRadiusPass";
 import { SelectionBoxPass } from "./passes/SelectionBoxPass";
@@ -154,7 +152,8 @@ interface WwLandInput {
   view: WwLandView;
   selection: WwLandSelection;
   me: () => number;
-  isEnemy: ((smallID: number) => boolean) | null;
+  /** The engine's sides and enemies over the view (FrontRules' world). */
+  world: LandFrontWorld;
 }
 
 /** World War 1936 P2: the land war's passes, made by setWwLand. */
@@ -164,24 +163,6 @@ interface WwLandPasses {
   battles: BattleMarkerPass;
   arrows: PlanArrowPass;
 }
-
-/**
- * A paradrop's plane (spec §7.6: the expanded-warfare plane reused): a
- * transport plane PlanePass flies from the jump-off region's center to the
- * target's; parachutes open when it gets there.
- */
-interface ParaFlight {
-  unit: UnitState;
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
-  startTick: number;
-  ticks: number;
-}
-
-/** Ids of the paradrop planes handed to PlanePass (no real unit has them). */
-const PARA_FLIGHT_ID0 = -1_000_000;
 
 export class GPURenderer {
   private gl: WebGL2RenderingContext;
@@ -255,18 +236,12 @@ export class GPURenderer {
   private landFlagsVersion = -1;
   private landFlagsSelection = -1;
   private landFlagsMe = -1;
-  /** The last game tick, when it came and the smoothed time between ticks. */
-  private landTick = 0;
-  private landTickMs = 0;
-  private landTickSpanMs = 100;
-  private msPerTick = 100;
-  /** Paradrops: each army's last region × 2 + its ARMY_PARA bit. */
-  private readonly paraSeen = new Map<number, number>();
-  private paraVersion = -1;
-  private paraFlights: ParaFlight[] = [];
-  private nextParaId = PARA_FLIGHT_ID0;
-  /** The units PlanePass gets while a paradrop plane flies (reused). */
-  private readonly unitsWithPara = new Map<number, UnitState>();
+  /** The game tick tokens glide from (spec §15.2). */
+  private landClock: LandTickClock = new LandTickClock(100);
+  /** Paradrop planes flown through PlanePass (spec §7.6). */
+  private readonly paradrops = new ParadropFlights();
+  private readonly openParachutes = (x: number, y: number, owner: number) =>
+    this.airFxPass.spawnParadrop(x, y, owner);
   /** R8UI terrain-bytes texture shared by all layer passes. */
   private terrainBytesTex: WebGLTexture | null = null;
   /** Stored layer definitions for context-restore re-creation. */
@@ -344,8 +319,7 @@ export class GPURenderer {
     this.settings = settings;
     this.raf = raf;
     this.caf = caf;
-    this.msPerTick = config.msPerTick();
-    this.landTickSpanMs = this.msPerTick;
+    this.landClock = new LandTickClock(config.msPerTick());
 
     // Demand a GPU-accelerated context. A software (SwiftShader) or missing
     // WebGL2 context throws GLUnavailableError, which the game-start path
@@ -1043,12 +1017,17 @@ export class GPURenderer {
     this.frameTick++;
     this.unitPass.setFrameTick(this.frameTick);
     this.unitPass.updateUnits(units, gameTick);
-    this.noteLandTick(gameTick);
-    this.planePass.updateUnits(
-      this.withParaFlights(units, gameTick),
-      gameTick,
-      this.lastStructures,
-    );
+    let planeUnits: ReadonlyMap<number, UnitState> = units;
+    if (this.wwLand !== null) {
+      this.landClock.note(gameTick, performance.now());
+      planeUnits = this.paradrops.withFlights(
+        this.wwLand.view,
+        units,
+        gameTick,
+        this.openParachutes,
+      );
+    }
+    this.planePass.updateUnits(planeUnits, gameTick, this.lastStructures);
     this.samRadiusPass.setTick(gameTick);
     this.warfareRingPass.updateUnits(units);
     this.barPass.updateBars(units, this.lastStructures, gameTick);
@@ -1767,17 +1746,25 @@ export class GPURenderer {
   /**
    * Draw the land war from `view`: army tokens, battle markers, the chosen
    * army's plan arrows and the region flags. `me` is the viewer's smallID;
-   * `isEnemy(smallID)` says who the viewer is at war with (without it every
-   * country outside the viewer's side counts).
+   * `war` gives the World War data and the game tick (GameView.worldWarData
+   * and GameView.ticks): the engine's enemies for the front rules and the
+   * tick tokens start from. Without it every country outside the viewer's
+   * side counts as an enemy and the glide starts at tick 0.
    */
   setWwLand(
     view: WwLandView,
     selection: WwLandSelection,
     me: () => number,
-    isEnemy: ((smallID: number) => boolean) | null = null,
+    war: LandWarInputs | null = null,
   ): void {
     this.disposeWwLand();
-    this.wwLand = { view, selection, me, isEnemy };
+    this.wwLand = {
+      view,
+      selection,
+      me,
+      world: new LandFrontWorld(view, war),
+    };
+    this.landClock.reset(war?.ticks() ?? 0, performance.now());
     const atlas = new LandAtlas(this.gl);
     this.wwPasses = {
       atlas,
@@ -1797,38 +1784,7 @@ export class GPURenderer {
     }
     this.wwPasses = null;
     this.wwLand = null;
-    this.paraSeen.clear();
-    this.paraVersion = -1;
-    this.paraFlights = [];
-  }
-
-  /** A game tick arrived: tokens glide from it over the smoothed tick span. */
-  private noteLandTick(gameTick: number): void {
-    if (this.wwLand === null || gameTick === this.landTick) return;
-    const now = performance.now();
-    const step = gameTick - this.landTick;
-    if (step === 1 && this.landTickMs > 0) {
-      this.landTickSpanMs = nextTickSpan(
-        this.landTickSpanMs,
-        now - this.landTickMs,
-        this.msPerTick,
-      );
-    }
-    this.landTick = gameTick;
-    this.landTickMs = now;
-  }
-
-  /** The game tick this frame shows, with the share of the next one gone by. */
-  private landTickNow(now: number): number {
-    const frac = (now - this.landTickMs) / Math.max(1, this.landTickSpanMs);
-    return this.landTick + Math.min(1, Math.max(0, frac));
-  }
-
-  private enemyTest(me: number): (smallID: number) => boolean {
-    const land = this.wwLand!;
-    if (land.isEnemy !== null) return land.isEnemy;
-    const sc = land.view.scenario;
-    return (id) => id !== 0 && !sameLandSide(sc, id, me);
+    this.paradrops.reset();
   }
 
   /**
@@ -1852,13 +1808,12 @@ export class GPURenderer {
     this.landFlagsVersion = land.view.version;
     this.landFlagsSelection = sel.version;
     this.landFlagsMe = me;
-    const isEnemy = this.enemyTest(me);
     regionFlagBytes(
       land.view,
       sel,
       me,
-      this.frontPreview(me, isEnemy),
-      isEnemy,
+      this.frontPreview(me),
+      land.world,
       this.landFlags,
     );
     const limit = land.view.controller.length;
@@ -1872,11 +1827,8 @@ export class GPURenderer {
     pass.setRegionFlags(this.landFlags);
   }
 
-  /** Front mode's first tap (spec §15.3-4): the front it would give. */
-  private frontPreview(
-    me: number,
-    isEnemy: (smallID: number) => boolean,
-  ): readonly number[] {
+  /** Front mode's first tap (spec §15.3-4): the front it would give (FrontRules.frontOf). */
+  private frontPreview(me: number): readonly number[] {
     const land = this.wwLand!;
     const sel = land.selection;
     if (sel.mode !== "front" || sel.pending === null || sel.army === null) {
@@ -1884,20 +1836,7 @@ export class GPURenderer {
     }
     const army = land.view.armies.get(sel.army);
     if (army === undefined || army.owner !== me) return [];
-    const sc = land.view.scenario;
-    const mine = (id: number) => sameLandSide(sc, id, me);
-    return frontOf(
-      {
-        scenario: sc,
-        controller: land.view.controller,
-        sameSide: (a, b) => sameLandSide(sc, a, b),
-        isEnemy: (a, b) => (mine(a) && isEnemy(b)) || (mine(b) && isEnemy(a)),
-      },
-      me,
-      0,
-      sel.pending,
-      frontSize(army.divisions),
-    );
+    return frontOf(land.world, me, 0, sel.pending, frontSize(army.divisions));
   }
 
   /** Battle markers, then plan arrows, then the tokens on top (spec §15.2). */
@@ -1910,9 +1849,9 @@ export class GPURenderer {
     const timeSec = now / 1000;
     const me = land.me();
     const view = land.view;
-    const changed = this.tokenLayout.update(view, this.landTickNow(now), zoom);
+    const changed = this.tokenLayout.update(view, this.landClock.at(now), zoom);
     passes.battles.update(view, tokenLod(zoom));
-    passes.arrows.update(view, land.selection, me, tilesPerPx);
+    passes.arrows.update(view, land.selection, me, tilesPerPx, land.world);
     passes.tokens.update(view, this.tokenLayout, changed, land.selection, me);
 
     passes.battles.draw(cam, tilesPerPx);
@@ -1935,83 +1874,6 @@ export class GPURenderer {
       passes.arrows.draw(cam, tilesPerPx, timeSec, sx, sy);
     }
     passes.tokens.draw(cam, tilesPerPx, timeSec);
-  }
-
-  /**
-   * Paradrops (spec §7.6, pre-flight R2): an army whose ARMY_PARA bit
-   * cleared as its token jumped regions dropped this tick. A transport
-   * plane is flown from the old region to the new one by adding it to the
-   * units PlanePass gets; its parachutes open on arrival. Returns `units`
-   * itself while no such plane flies.
-   */
-  private withParaFlights(
-    units: Map<number, UnitState>,
-    gameTick: number,
-  ): ReadonlyMap<number, UnitState> {
-    const land = this.wwLand;
-    if (land === null) return units;
-    if (land.view.version !== this.paraVersion) {
-      this.paraVersion = land.view.version;
-      this.findParadrops(land.view, gameTick);
-    }
-    if (this.paraFlights.length === 0) return units;
-    const out = this.unitsWithPara;
-    out.clear();
-    for (const [id, u] of units) out.set(id, u);
-    const w = this.mapW;
-    const tile = (x: number, y: number) => Math.round(y) * w + Math.round(x);
-    let kept = 0;
-    for (const f of this.paraFlights) {
-      const k = gameTick - f.startTick;
-      if (k > f.ticks || k < 0) {
-        this.airFxPass.spawnParadrop(f.x1, f.y1, f.unit.ownerID);
-        continue;
-      }
-      const at = (j: number) => {
-        const t = Math.max(0, j) / f.ticks;
-        return tile(f.x0 + (f.x1 - f.x0) * t, f.y0 + (f.y1 - f.y0) * t);
-      };
-      f.unit.pos = at(k);
-      f.unit.lastPos = at(k - 1);
-      out.set(f.unit.id, f.unit);
-      this.paraFlights[kept++] = f;
-    }
-    this.paraFlights.length = kept;
-    return out;
-  }
-
-  private findParadrops(view: WwLandView, gameTick: number): void {
-    const sc = view.scenario;
-    const w = sc.width;
-    for (const a of view.armies.values()) {
-      const now = a.region * 2 + ((a.state & ARMY_PARA) !== 0 ? 1 : 0);
-      const before = this.paraSeen.get(a.id);
-      this.paraSeen.set(a.id, now);
-      if (before === undefined || before % 2 === 0 || now % 2 === 1) continue;
-      const from = Math.floor(before / 2);
-      if (from === a.region || from === 0 || a.region === 0) continue;
-      const t0 = sc.centerTile(from);
-      const t1 = sc.centerTile(a.region);
-      const x0 = t0 % w;
-      const y0 = Math.floor(t0 / w);
-      const x1 = t1 % w;
-      const y1 = Math.floor(t1 / w);
-      const dist = Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
-      this.paraFlights.push({
-        unit: paraPlane(this.nextParaId--, a.owner, t0, t1),
-        x0,
-        y0,
-        x1,
-        y1,
-        startTick: gameTick,
-        ticks: Math.min(40, Math.max(6, Math.ceil(dist / PLANE_SPEED))),
-      });
-    }
-    if (this.paraSeen.size > view.armies.size) {
-      for (const id of [...this.paraSeen.keys()]) {
-        if (!view.armies.has(id)) this.paraSeen.delete(id);
-      }
-    }
   }
 
   /** Toggle visibility of a single layer (driven by graphics settings). */
@@ -2117,43 +1979,4 @@ export class GPURenderer {
       this.gl.getExtension("WEBGL_lose_context")?.loseContext();
     }
   }
-}
-
-/** The paradrop plane PlanePass draws (a transport plane flying to `target`). */
-function paraPlane(
-  id: number,
-  owner: number,
-  from: number,
-  target: number,
-): UnitState {
-  return {
-    id,
-    unitType: UT_TRANSPORT_PLANE,
-    ownerID: owner,
-    lastOwnerID: null,
-    pos: from,
-    lastPos: from,
-    isActive: true,
-    reachedTarget: false,
-    retreating: false,
-    targetable: false,
-    waitTicks: 0,
-    markedForDeletion: false,
-    health: null,
-    underConstruction: false,
-    targetUnitId: null,
-    targetTile: target,
-    troops: 0,
-    missileTimerQueue: [],
-    level: 1,
-    veterancy: 0,
-    hasTrainStation: false,
-    trainType: null,
-    loaded: null,
-    constructionStartTick: null,
-    samUpgradeStartTick: null,
-    samUpgradeStartRange: null,
-    samUpgradeTargetLevel: null,
-    samUpgradeDuration: null,
-  };
 }

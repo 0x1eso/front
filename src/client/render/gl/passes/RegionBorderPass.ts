@@ -13,10 +13,10 @@
  * without the land war never makes the texture or the program.
  */
 
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
+import type { LandFrontWorld } from "../../../view/LandFrontWorld";
 import type { WwLandView } from "../../../view/WwLandView";
 import fragSrc from "../shaders/region-border/region-border.frag.glsl?raw";
 import vertSrc from "../shaders/region-border/region-border.vert.glsl?raw";
@@ -95,24 +95,6 @@ export function regionTileCodes(
   return out;
 }
 
-/**
- * Same side (spec §7.1): the same country, or both in one faction. Sides
- * follow the starting factions, as the engine's WwLand.sideOf does in P2.
- */
-export function sameLandSide(
-  scenario: ScenarioIndex,
-  a: number,
-  b: number,
-): boolean {
-  if (a <= 0 || b <= 0) return false;
-  if (a === b) return true;
-  const ta = scenario.tagOfSmallId(a);
-  const tb = scenario.tagOfSmallId(b);
-  if (ta === undefined || tb === undefined) return false;
-  const f = COUNTRIES[ta].faction;
-  return f !== null && f === COUNTRIES[tb].faction;
-}
-
 /** Byte of region `id` in the flag texture: (id % 200, floor(id / 200)). */
 export function flagIndex(region: number): number {
   return (
@@ -121,44 +103,38 @@ export function flagIndex(region: number): number {
   );
 }
 
+function setFlag(out: Uint8Array, region: number, bit: number): void {
+  if (region > 0 && region < FLAG_TEX_SIZE * FLAG_TEX_SIZE) {
+    out[flagIndex(region)] |= bit;
+  }
+}
+
 /**
- * The flag byte of every region id (spec §15.2), as the pass uploads it:
- * bit 0 the chosen army's front regions (`frontPreview` instead while the
- * front mode previews one), bit 1 the enemy regions touching them (only the
- * army's front enemy when its order names one), bit 2 the encircled
- * regions of the viewer's side, bit 3 in front mode the viewer's side's
- * regions touching an enemy region (spec §8.1's border regions). Only the
- * viewer's own chosen army counts. `isEnemy(smallID)`: at war with the
- * viewer. `out` is reused when given.
+ * The flag byte of every region id (spec §15.2), as the pass uploads it,
+ * with the engine's front rules over `world` (LandFrontWorld: WwLand's
+ * sides and enemies): bit 0 the chosen army's front regions
+ * (`frontPreview` instead while the front mode previews one), bit 1 the
+ * regions facing them (FrontRules.facesFront against the army's front
+ * enemy — a named enemy counts before the war, spec §14.1), bit 2 the
+ * encircled regions of the viewer's side, bit 3 in front mode the border
+ * regions a front can be given to (FrontRules.borderRegionsOf, any enemy).
+ * Only the viewer's own chosen army counts. `out` is reused when given.
  */
 export function regionFlagBytes(
   view: WwLandView,
   selection: WwLandSelection,
   me: number,
   frontPreview: readonly number[],
-  isEnemy: (smallID: number) => boolean,
+  world: LandFrontWorld,
   out: Uint8Array = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE),
 ): Uint8Array {
   out.fill(0);
   const sc = view.scenario;
   const ctl = view.controller;
-  const limit = FLAG_TEX_SIZE * FLAG_TEX_SIZE;
-  const set = (region: number, bit: number) => {
-    if (region > 0 && region < limit) out[flagIndex(region)] |= bit;
-  };
-  // Each country once: on the viewer's side, at war with the viewer.
-  const n = sc.countries.length + 1;
-  const ours = new Uint8Array(n);
-  const foe = new Uint8Array(n);
-  for (let id = 1; id < n; id++) {
-    ours[id] = sameLandSide(sc, id, me) ? 1 : 0;
-    foe[id] = isEnemy(id) ? 1 : 0;
-  }
-  const isOurs = (c: number) => c > 0 && c < n && ours[c] === 1;
-  const isFoe = (c: number) => c > 0 && c < n && foe[c] === 1;
-
   for (const r of view.regions.values()) {
-    if (r.encircled && isOurs(ctl[r.id])) set(r.id, FLAG_ENCIRCLED);
+    if (r.encircled && world.sameSide(me, ctl[r.id])) {
+      setFlag(out, r.id, FLAG_ENCIRCLED);
+    }
   }
 
   const army =
@@ -170,23 +146,19 @@ export function regionFlagBytes(
   const front = preview ? frontPreview : mine.front;
   const ordered = mine.order.kind === "front" || mine.order.kind === "plan";
   const enemy = !preview && ordered ? mine.order.enemy : 0;
-  for (const f of front) {
-    set(f, FLAG_FRONT);
-    for (const e of sc.edgesOf(f)) {
-      const c = ctl[e.to];
-      if (isFoe(c) && (enemy === 0 || c === enemy)) set(e.to, FLAG_ENEMY);
+  for (let i = 0; i < front.length; i++) {
+    const f = front[i];
+    setFlag(out, f, FLAG_FRONT);
+    const edges = sc.edgesOf(f);
+    for (let j = 0; j < edges.length; j++) {
+      const to = edges[j].to;
+      if (world.facesFront(me, enemy, ctl[to])) setFlag(out, to, FLAG_ENEMY);
     }
   }
 
   if (selection.mode === "front") {
-    for (const r of sc.landRegions) {
-      if (!isOurs(ctl[r.id])) continue;
-      for (const e of sc.edgesOf(r.id)) {
-        if (isFoe(ctl[e.to])) {
-          set(r.id, FLAG_PICKABLE);
-          break;
-        }
-      }
+    for (const r of borderRegionsOf(world, me, 0)) {
+      setFlag(out, r, FLAG_PICKABLE);
     }
   }
   return out;

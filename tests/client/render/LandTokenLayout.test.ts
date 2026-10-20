@@ -2,6 +2,7 @@
 // a tap hits (spec §15.2, §15.3, §15.9), and the passes that draw them, on
 // the test map ww1936mini with fake land updates.
 import {
+  ARMY_PARA,
   ArmySummary,
   BattleSummary,
   idleOrder,
@@ -13,6 +14,10 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "vitest";
 import { WwLandSelection } from "../../../src/client/hud/ww1936/LandSelection";
+import {
+  LandTickClock,
+  ParadropFlights,
+} from "../../../src/client/render/gl/LandFrame";
 import { ArmyTokenPass } from "../../../src/client/render/gl/passes/ArmyTokenPass";
 import { BattleMarkerPass } from "../../../src/client/render/gl/passes/BattleMarkerPass";
 import {
@@ -22,6 +27,11 @@ import {
   STYLE_FLOW,
   STYLE_HEAD,
 } from "../../../src/client/render/gl/passes/PlanArrowPass";
+import {
+  UT_TRANSPORT_PLANE,
+  type UnitState,
+} from "../../../src/client/render/types";
+import { LandFrontWorld } from "../../../src/client/view/LandFrontWorld";
 import {
   battleMarkers,
   fanSlot,
@@ -451,20 +461,20 @@ describe("PlanArrowPass", () => {
       ],
     });
     const sel = new WwLandSelection();
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     expect(pass.instanceCount).toBe(0);
     sel.select(2); // not the viewer's
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     expect(pass.instanceCount).toBe(0);
     sel.select(1);
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     const f = written[written.length - 1];
     expect(ofStyle(f, STYLE_HEAD)).toHaveLength(2);
     expect(ofStyle(f, STYLE_FLOW).length).toBeGreaterThan(20);
     expect(ofStyle(f, STYLE_BAND)).toHaveLength(0);
     // The band starts in the middle of the front: Berlin (65, 17), Munich (65, 52).
     expect(rowsOf(f)[0].slice(0, 2)).toEqual([65, 34.5]);
-    pass.update(v, sel, DEU, TPP); // nothing changed: no upload
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v)); // nothing changed: no upload
     pass.draw(cam, TPP, 0, 65, 17);
     expect(counts.instanced).toBe(1);
     expect(written).toHaveLength(1);
@@ -478,7 +488,7 @@ describe("PlanArrowPass", () => {
     const sel = new WwLandSelection();
     sel.select(1);
     const tipGap = (tpp: number) => {
-      pass.update(v, sel, DEU, tpp);
+      pass.update(v, sel, DEU, tpp, new LandFrontWorld(v));
       const f = written[written.length - 1];
       const [head] = ofStyle(f, STYLE_HEAD);
       const bands = ofStyle(f, STYLE_BAND);
@@ -504,7 +514,7 @@ describe("PlanArrowPass", () => {
     sel.select(1);
     sel.targets = [WARSAW];
     sel.version++;
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     const rows = rowsOf(written[written.length - 1]);
     // Berlin is where the army stands: dots to Munich (from the token), then Krakow.
     expect(rows[0][6]).toBe(STYLE_DOTS);
@@ -526,7 +536,7 @@ describe("PlanArrowPass", () => {
     sel.select(1);
     sel.pending = 5; // Rome: Italy, our side — Berlin, Munich, Rome
     sel.version++;
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     const dots = ofStyle(written[written.length - 1], STYLE_DOTS);
     expect(dots.map((r) => r.slice(2, 4))).toEqual([
       [65, 52],
@@ -534,7 +544,7 @@ describe("PlanArrowPass", () => {
     ]);
     sel.pending = WARSAW;
     sel.version++;
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     const f = written[written.length - 1];
     expect(ofStyle(f, STYLE_DOTS)).toHaveLength(0);
     expect(ofStyle(f, STYLE_HEAD)).toHaveLength(1);
@@ -547,7 +557,7 @@ describe("PlanArrowPass", () => {
     const v = viewWith({ armies: [army({ id: 1, mine: mine({ order }) })] });
     const sel = new WwLandSelection();
     sel.select(1);
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     expect(written[written.length - 1][6]).toBe(STYLE_BAND);
     v.apply(
       data({
@@ -557,7 +567,129 @@ describe("PlanArrowPass", () => {
       }),
       1,
     );
-    pass.update(v, sel, DEU, TPP);
+    pass.update(v, sel, DEU, TPP, new LandFrontWorld(v));
     expect(written[written.length - 1][6]).toBe(STYLE_FLOW);
+  });
+});
+
+describe("TokenLayoutCache bounds", () => {
+  test("placements never hold an army that left; hitToken counts only `count`", () => {
+    const v = viewWith({
+      armies: [
+        army({ id: 1 }),
+        army({ id: 2, region: WARSAW }),
+        army({ id: 3, region: MUNICH }),
+      ],
+    });
+    const cache = new TokenLayoutCache();
+    cache.update(v, 0, 4);
+    expect(cache.placements).toHaveLength(3);
+    const kept = cache.placements[0];
+    v.apply(data({ removedArmies: [3] }), 1);
+    cache.update(v, 1, 4);
+    expect(cache.count).toBe(2);
+    expect(cache.placements).toHaveLength(2);
+    expect(cache.placements[0]).toBe(kept); // the pool is reused
+    // Munich's army is gone: nothing to tap there.
+    expect(hitToken(cache.placements, 65, 52, 3, null)).toBeNull();
+    // A pooled array with a stale entry past `count`.
+    const p = (a: number, x: number, y: number): TokenPlacement => ({
+      army: a,
+      x,
+      y,
+      lod: 0,
+    });
+    const pooled = [p(1, 10, 10), p(9, 50, 50)];
+    expect(hitToken(pooled, 50, 50, 2, null, 1)).toBeNull();
+    expect(hitToken(pooled, 50, 50, 2, null)).toBe(9);
+  });
+});
+
+describe("ParadropFlights (spec §7.6, pre-flight R2)", () => {
+  const units = new Map<number, UnitState>();
+
+  test("ARMY_PARA cleared with a region jump flies a transport plane, then opens the parachutes", () => {
+    const flights = new ParadropFlights();
+    const landed: number[][] = [];
+    const land = (x: number, y: number, owner: number) =>
+      landed.push([x, y, owner]);
+    const v = viewWith({ armies: [army({ state: ARMY_PARA })] }, 10);
+    expect(flights.withFlights(v, units, 10, land)).toBe(units);
+    v.apply(data({ armies: [army({ state: 0, region: WARSAW })] }), 11);
+    const m = flights.withFlights(v, units, 11, land);
+    expect(m).not.toBe(units);
+    expect(flights.count).toBe(1);
+    const plane = [...m.values()][0];
+    expect(plane).toMatchObject({
+      unitType: UT_TRANSPORT_PLANE,
+      ownerID: DEU,
+      pos: scenario.centerTile(BERLIN),
+      targetTile: scenario.centerTile(WARSAW),
+    });
+    expect(plane.id).toBeLessThan(0);
+    // Berlin (65, 17) to Warsaw (105, 25): 40.8 tiles at 3 a tick = 14 ticks.
+    const w = scenario.width;
+    flights.withFlights(v, units, 18, land);
+    expect(plane.pos).toBe(21 * w + 85); // half way
+    for (let t = 19; t <= 25; t++) {
+      expect(flights.withFlights(v, units, t, land).size).toBe(1);
+    }
+    expect(landed).toEqual([]);
+    expect(flights.withFlights(v, units, 26, land)).toBe(units);
+    expect(landed).toEqual([[105, 25, DEU]]);
+    expect(flights.count).toBe(0);
+  });
+
+  test("a paradrop called off (the bit clears, the token stays) flies nothing", () => {
+    const flights = new ParadropFlights();
+    const land = () => {
+      throw new Error("no drop");
+    };
+    const v = viewWith({ armies: [army({ state: ARMY_PARA })] }, 10);
+    flights.withFlights(v, units, 10, land);
+    v.apply(data({ armies: [army({ state: 0 })] }), 11);
+    expect(flights.withFlights(v, units, 11, land)).toBe(units);
+    // A walk without a paradrop order flies nothing either.
+    v.apply(data({ armies: [army({ state: 0, region: MUNICH })] }), 12);
+    expect(flights.withFlights(v, units, 12, land)).toBe(units);
+    expect(flights.count).toBe(0);
+  });
+});
+
+describe("LandTickClock and the renderer's land war start", () => {
+  test("the clock starts at the tick it is given and glides at most one tick ahead", () => {
+    const clock = new LandTickClock(100);
+    clock.reset(5000, 1000);
+    expect(clock.at(1000)).toBe(5000);
+    expect(clock.at(1050)).toBe(5000.5);
+    expect(clock.at(5000)).toBe(5001);
+    clock.note(5001, 1100);
+    expect(clock.at(1100)).toBe(5001);
+  });
+
+  test("setWwLand starts the glide at the game's tick, not 0", async () => {
+    const { GPURenderer } =
+      await import("../../../src/client/render/gl/Renderer");
+    const { gl } = countingGL();
+    const r = Object.create(GPURenderer.prototype) as Record<string, unknown>;
+    Object.assign(r, {
+      gl,
+      paletteTex: tex,
+      wwPasses: null,
+      wwLand: null,
+      landClock: new LandTickClock(100),
+      paradrops: new ParadropFlights(),
+      landFlagsStale: false,
+    });
+    const v = viewWith({}, 4990);
+    (r as unknown as InstanceType<typeof GPURenderer>).setWwLand(
+      v,
+      new WwLandSelection(),
+      () => DEU,
+      { war: () => null, ticks: () => 5000 },
+    );
+    const clock = r.landClock as LandTickClock;
+    expect(Math.floor(clock.at(performance.now()))).toBe(5000);
+    expect(r.landFlagsStale).toBe(true);
   });
 });

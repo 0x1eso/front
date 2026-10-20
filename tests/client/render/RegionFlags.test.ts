@@ -10,7 +10,9 @@ import {
   WwLandData,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
+import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
+import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import fs from "fs";
 import path from "path";
@@ -29,11 +31,11 @@ import {
   regionEdgeMask,
   regionFlagBytes,
   regionTileCodes,
-  sameLandSide,
   TILE_EDGE_BIT,
 } from "../../../src/client/render/gl/passes/RegionBorderPass";
 import type { RenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import type { RendererConfig } from "../../../src/client/render/types";
+import { LandFrontWorld } from "../../../src/client/view/LandFrontWorld";
 import { WwLandView } from "../../../src/client/view/WwLandView";
 
 // MapRenderer's GPU renderer, recording what the land war hands it.
@@ -68,8 +70,6 @@ const FRA = scenario.smallIdOf("FRA");
 const POL = scenario.smallIdOf("POL");
 // Regions (plan table): 1 Paris, 2 Lyon (FRA), 3 Berlin, 4 Munich (DEU),
 // 5 Rome (ITA), 6 Warsaw, 7 Krakow (POL), 8 Moscow, 9 Kiev (SUN), 10 London.
-// Germany is at war with Poland only.
-const atWarWithPoland = (id: number) => id === POL;
 
 function army(over: Partial<ArmySummary> = {}): ArmySummary {
   return {
@@ -161,10 +161,32 @@ function withBit(flags: Uint8Array, bit: number): number[] {
   return out;
 }
 
+/** The land war's world with these wars, at `tick` (preparation until 600). */
+function worldOf(
+  v: WwLandView,
+  wars: [number, number][],
+  tick = 700,
+): LandFrontWorld {
+  const data: WorldWarData = {
+    prepEndTick: 600,
+    wars: wars.map(([a, b]) => ({ a, b, sinceTick: 0 })),
+    capitulated: [],
+    gauges: [],
+  };
+  return new LandFrontWorld(v, { war: () => data, ticks: () => tick });
+}
+
+const FRONT_RULES_IN = borderRegionsOf(
+  worldOf(viewWith({}), [[DEU, POL]]),
+  DEU,
+  0,
+).includes(3);
+
 describe("regionFlagBytes (spec §15.2)", () => {
   test("the chosen army's front regions, and the enemy regions across them", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([3, 4]) })] });
-    const flags = regionFlagBytes(v, chosen(1), DEU, [], atWarWithPoland);
+    const w = worldOf(v, [[DEU, POL]]);
+    const flags = regionFlagBytes(v, chosen(1), DEU, [], w);
     expect(flags.length).toBe(FLAG_TEX_SIZE * FLAG_TEX_SIZE);
     expect(withBit(flags, FLAG_FRONT)).toEqual([3, 4]);
     // Berlin–Warsaw, Munich–Warsaw, Munich–Krakow; not Paris (France is
@@ -176,24 +198,38 @@ describe("regionFlagBytes (spec §15.2)", () => {
   test("a front against one enemy marks only that enemy's regions", () => {
     const front = mineWith([4]);
     front.order.enemy = POL;
-    const atWarWithBoth = (id: number) => id === POL || id === FRA;
     const v = viewWith({ armies: [army({ mine: front })] });
-    const flags = regionFlagBytes(v, chosen(1), DEU, [], atWarWithBoth);
-    expect(withBit(flags, FLAG_ENEMY)).toEqual([6, 7]);
+    const w = worldOf(v, [
+      [DEU, POL],
+      [FRA, DEU],
+    ]);
+    expect(
+      withBit(regionFlagBytes(v, chosen(1), DEU, [], w), FLAG_ENEMY),
+    ).toEqual([6, 7]);
     front.order.enemy = 0;
-    const all = regionFlagBytes(v, chosen(1), DEU, [], atWarWithBoth);
+    const all = regionFlagBytes(v, chosen(1), DEU, [], w);
     expect(withBit(all, FLAG_ENEMY)).toEqual([1, 2, 6, 7]);
+  });
+
+  test("a named enemy's regions face the front before the war (spec §14.1); no one during the preparation minute", () => {
+    const front = mineWith([4]);
+    front.order.enemy = FRA;
+    const v = viewWith({ armies: [army({ mine: front })] });
+    const peace = worldOf(v, [[DEU, POL]]);
+    expect(
+      withBit(regionFlagBytes(v, chosen(1), DEU, [], peace), FLAG_ENEMY),
+    ).toEqual([1, 2]);
+    front.order.enemy = 0;
+    const prep = worldOf(v, [[DEU, POL]], 100);
+    expect(
+      withBit(regionFlagBytes(v, chosen(1), DEU, [], prep), FLAG_ENEMY),
+    ).toEqual([]);
   });
 
   test("the front preview replaces the army's front while front mode previews one", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([3, 4]) })] });
-    const flags = regionFlagBytes(
-      v,
-      chosen(1, "front"),
-      DEU,
-      [3],
-      atWarWithPoland,
-    );
+    const w = worldOf(v, [[DEU, POL]]);
+    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [3], w);
     expect(withBit(flags, FLAG_FRONT)).toEqual([3]);
     expect(withBit(flags, FLAG_ENEMY)).toEqual([6]);
   });
@@ -206,46 +242,39 @@ describe("regionFlagBytes (spec §15.2)", () => {
         region(6, { encircled: true }), // Poland's: not ours
       ],
     });
-    const flags = regionFlagBytes(v, chosen(null), DEU, [], atWarWithPoland);
+    const w = worldOf(v, [[DEU, POL]]);
+    const flags = regionFlagBytes(v, chosen(null), DEU, [], w);
     expect(withBit(flags, FLAG_ENCIRCLED)).toEqual([4, 5]);
-    expect(sameLandSide(scenario, DEU, ITA)).toBe(true);
-    expect(sameLandSide(scenario, DEU, POL)).toBe(false);
   });
 
-  test("front mode lights the border regions a front can be given to", () => {
+  test("front mode lights FrontRules' border regions, nothing else", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([]) })] });
-    const flags = regionFlagBytes(
-      v,
-      chosen(1, "front"),
-      DEU,
-      [],
-      atWarWithPoland,
-    );
-    // Our side's regions touching Poland: Berlin, Munich, and Italy's Rome
-    // (Rome–Krakow).
-    expect(withBit(flags, FLAG_PICKABLE)).toEqual([3, 4, 5]);
-    const none = regionFlagBytes(
-      v,
-      chosen(1, "plan"),
-      DEU,
-      [],
-      atWarWithPoland,
-    );
+    const w = worldOf(v, [[DEU, POL]]);
+    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [], w);
+    expect(withBit(flags, FLAG_PICKABLE)).toEqual(borderRegionsOf(w, DEU, 0));
+    const none = regionFlagBytes(v, chosen(1, "plan"), DEU, [], w);
     expect(withBit(none, FLAG_PICKABLE)).toEqual([]);
   });
+
+  // Needs lane M's FrontRules (this lane's base has its stub).
+  test.runIf(FRONT_RULES_IN)(
+    "the side's borders: an ally's region counts (Rome–Krakow), a region at peace does not",
+    () => {
+      const v = viewWith({ armies: [army({ mine: mineWith([]) })] });
+      const w = worldOf(v, [[DEU, POL]]);
+      const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [], w);
+      // Berlin and Munich touch Warsaw/Krakow; Italy's Rome touches Krakow.
+      expect(withBit(flags, FLAG_PICKABLE)).toEqual([3, 4, 5]);
+    },
+  );
 
   test("another country's chosen army flags nothing but the encirclements", () => {
     const v = viewWith({
       armies: [army({ owner: POL, region: 6, mine: mineWith([6]) })],
       regions: [region(3, { encircled: true })],
     });
-    const flags = regionFlagBytes(
-      v,
-      chosen(1, "front"),
-      DEU,
-      [],
-      atWarWithPoland,
-    );
+    const w = worldOf(v, [[DEU, POL]]);
+    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [], w);
     expect(withBit(flags, FLAG_FRONT | FLAG_ENEMY | FLAG_PICKABLE)).toEqual([]);
     expect(withBit(flags, FLAG_ENCIRCLED)).toEqual([3]);
   });
@@ -254,11 +283,53 @@ describe("regionFlagBytes (spec §15.2)", () => {
     expect(flagIndex(1087)).toBe(5 * FLAG_TEX_SIZE + 87);
     const v = viewWith({ armies: [army({ mine: mineWith([3]) })] });
     const out = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE).fill(255);
-    expect(regionFlagBytes(v, chosen(1), DEU, [], atWarWithPoland, out)).toBe(
-      out,
-    );
+    const w = worldOf(v, [[DEU, POL]]);
+    expect(regionFlagBytes(v, chosen(1), DEU, [], w, out)).toBe(out);
     expect(withBit(out, FLAG_FRONT)).toEqual([3]);
     expect(out[flagIndex(9)]).toBe(0);
+  });
+});
+
+describe("LandFrontWorld (the engine's sides and enemies over the view)", () => {
+  test("sides as WwLand.sideOf: the faction, or the country alone", () => {
+    const w = worldOf(viewWith({}), []);
+    expect(w.sameSide(DEU, ITA)).toBe(true);
+    expect(w.sameSide(DEU, POL)).toBe(false);
+    expect(w.sameSide(POL, POL)).toBe(true);
+    expect(w.sameSide(0, 0)).toBe(false);
+    w.refreshSides((id) => (id === POL ? "axis" : null));
+    expect(w.sameSide(DEU, ITA)).toBe(false);
+  });
+
+  test("enemies as P0 canFight: at war and past the preparation minute, wars followed live", () => {
+    let data: WorldWarData = {
+      prepEndTick: 600,
+      wars: [{ a: DEU, b: POL, sinceTick: 0 }],
+      capitulated: [],
+      gauges: [],
+    };
+    let tick = 100;
+    const w = new LandFrontWorld(viewWith({}), {
+      war: () => data,
+      ticks: () => tick,
+    });
+    expect(w.isEnemy(DEU, POL)).toBe(false); // preparation
+    tick = 600;
+    expect(w.isEnemy(POL, DEU)).toBe(true);
+    expect(w.isEnemy(DEU, FRA)).toBe(false);
+    data = {
+      ...data,
+      wars: [...data.wars, { a: DEU, b: FRA, sinceTick: 700 }],
+    };
+    expect(w.isEnemy(FRA, DEU)).toBe(true);
+    expect(w.facesFront(DEU, 0, FRA)).toBe(true);
+    expect(w.facesFront(DEU, 0, ITA)).toBe(false);
+  });
+
+  test("without war data every other side is an enemy", () => {
+    const w = new LandFrontWorld(viewWith({}));
+    expect(w.isEnemy(DEU, POL)).toBe(true);
+    expect(w.isEnemy(DEU, ITA)).toBe(false);
   });
 });
 
@@ -351,12 +422,13 @@ describe("RegionBorderPass flags", () => {
     const land = viewWith({});
     const sel = new WwLandSelection();
     const me = () => DEU;
-    view.setWwLand(land, sel, me, atWarWithPoland);
+    const war = { war: () => null, ticks: () => 1234 };
+    view.setWwLand(land, sel, me, war);
     canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
     canvas.dispatchEvent(new Event("webglcontextrestored"));
     expect(stub.land).toEqual([
-      [land, sel, me, atWarWithPoland],
-      [land, sel, me, atWarWithPoland],
+      [land, sel, me, war],
+      [land, sel, me, war],
     ]);
     view.dispose();
   });

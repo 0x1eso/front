@@ -124,6 +124,7 @@ export function layoutTokens(
 /**
  * The army under a tap at world (wx, wy) within `radiusTiles` (24 screen px,
  * spec §15.9); with several there, the one after `current` (spec §15.3-1).
+ * Only the first `count` placements count (all by default).
  */
 export function hitToken(
   placements: readonly TokenPlacement[],
@@ -131,6 +132,7 @@ export function hitToken(
   wy: number,
   radiusTiles: number,
   current: number | null,
+  count: number = placements.length,
 ): number | null {
   const r2 = radiusTiles * radiusTiles;
   let best: number | null = null;
@@ -138,7 +140,9 @@ export function hitToken(
   let currentHit = false;
   let first: number | null = null;
   let after: number | null = null;
-  for (const p of placements) {
+  const n = Math.min(count, placements.length);
+  for (let i = 0; i < n; i++) {
+    const p = placements[i];
     const dx = p.x - wx;
     const dy = p.y - wy;
     const d = dx * dx + dy * dy;
@@ -184,6 +188,7 @@ export function battleMarkers(
  * whole tick it equals layoutTokens.
  */
 export class TokenLayoutCache {
+  /** Exactly `count` long: never an army that left the view. */
   readonly placements: TokenPlacement[] = [];
   /** Armies by id, matching placements[0..count). */
   readonly armies: ArmySummary[] = [];
@@ -255,6 +260,9 @@ export class TokenLayoutCache {
       this.dx = new Float64Array(cap);
       this.dy = new Float64Array(cap);
     }
+    // Truncate when armies left (the pool shrinks with them), grow when
+    // they came; an unchanged count keeps every object.
+    if (this.placements.length > n) this.placements.length = n;
     while (this.placements.length < n) {
       this.placements.push({ army: 0, x: 0, y: 0, lod: 0 });
     }

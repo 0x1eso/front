@@ -14,6 +14,7 @@
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
+import type { LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwLandView } from "../../view/WwLandView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
 import type {
@@ -382,18 +383,20 @@ export class MapRenderer {
   /**
    * World War 1936 P2 (spec §15.2): draw the land war from `view` — army
    * tokens, battle markers, the chosen army's plan arrows and front, the
-   * encircled regions. `me` gives the viewer's smallID. `isEnemy(smallID)`
-   * (optional) says who the viewer is at war with, from the WorldWarView's
-   * wars; without it every country outside the viewer's faction counts.
+   * encircled regions. `me` gives the viewer's smallID. `war` (optional)
+   * gives the World War data and the game tick — GameRenderer passes
+   * `{ war: () => game.worldWarData(), ticks: () => game.ticks() }` — for
+   * the engine's enemies (FrontRules) and the tick tokens glide from;
+   * without it every country outside the viewer's side counts as an enemy.
    */
   setWwLand(
     view: WwLandView,
     selection: WwLandSelection,
     me: () => number,
-    isEnemy: ((smallID: number) => boolean) | null = null,
+    war: LandWarInputs | null = null,
   ): void {
-    this.storedWwLand = [view, selection, me, isEnemy];
-    this.renderer?.setWwLand(view, selection, me, isEnemy);
+    this.storedWwLand = [view, selection, me, war];
+    this.renderer?.setWwLand(view, selection, me, war);
   }
 
   /** Set up map-layer passes from the loaded layer data. */
