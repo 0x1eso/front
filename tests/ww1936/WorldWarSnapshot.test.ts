@@ -345,8 +345,9 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // so the AI's war takes no land yet. The controller re-pins it at every
 // lane merge. Re-pinned after lanes C (battles, org recovery,
 // entrenchment) and S (supply, training, reinforcement, attrition, army
-// XP, generals) merged: same value in four runs.
-const WW1936_DIGEST = "54286f18fb67b816";
+// XP, generals) merged: same value in four runs. Re-pinned after lane A
+// (the AI's land war) merged: same value in four runs.
+const WW1936_DIGEST = "354619149f96271c";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
