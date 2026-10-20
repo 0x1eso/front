@@ -80,12 +80,13 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(ce.researched.has("tools_1")).toBe(true);
     expect(deu.wwTroopCap()).toBe(deu.troops());
     // A major has three research slots (none new on day 0), all at work
-    // (HOI4's 1936 start, aiStartSetup).
+    // (HOI4's 1936 start, aiStartSetup); fortification_1 (P2 Task 6: the
+    // construction group) is a 1936 tech ahead of electronics_1.
     expect(ce.totals.slotCount).toBe(3);
     expect(ce.slots.map((x) => x?.tech)).toEqual([
       "mobile_1",
+      "fortification_1",
       "electronics_1",
-      "output_1",
     ]);
   });
 
@@ -191,10 +192,11 @@ describe("economy wiring (spec §6, §14)", () => {
     // 2,550 in reserve and the army's 25,500 rifles, less 8 × 900.
     expect(ce.infStock()).toBe(2_550 + 25_500 - 7_200);
     expect(g.config().maxTroops(pol)).toBe(72_000);
-    // Two slots, both at work from the start.
+    // Two slots, both at work from the start (P2 Task 6: the fort tech in
+    // a minor's construction group).
     expect(ce.slots.map((x) => x?.tech)).toEqual([
       "construction_1",
-      "anti_tank_1",
+      "fortification_1",
     ]);
   });
 

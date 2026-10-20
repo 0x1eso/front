@@ -441,6 +441,12 @@ export class CountryLand {
   casualtiesToday = 0;
   readyToday = 0;
   warnedTileAttack = false;
+  /**
+   * The most divisions the country has had (its day counts them): the AI
+   * measures its reserve against it, so losses do not shrink the reserve
+   * (P2 Task 6, controller ruling 2).
+   */
+  peakDivisions = 0;
 
   constructor(
     readonly smallID: number,
@@ -585,6 +591,7 @@ export const WwLandStateSchema = z.object({
       casualtiesToday: zInt(),
       readyToday: zInt(),
       warnedTileAttack: z.boolean(),
+      peakDivisions: zInt(),
     }),
   ),
 });
@@ -744,6 +751,9 @@ export class WwLand {
     ) {
       return;
     }
+    let divisions = 0;
+    for (const a of this.armiesOf(id)) divisions += a.divisions.length;
+    if (divisions > cl.peakDivisions) cl.peakDivisions = divisions;
     dailyFronts(this, id, day);
     dailySustain(this, id, day);
     dailyEntrench(this, id);
@@ -1829,6 +1839,7 @@ export class WwLand {
         casualtiesToday: cl.casualtiesToday,
         readyToday: cl.readyToday,
         warnedTileAttack: cl.warnedTileAttack,
+        peakDivisions: cl.peakDivisions,
       })),
     };
   }
@@ -1923,6 +1934,7 @@ export class WwLand {
       cl.casualtiesToday = c.casualtiesToday;
       cl.readyToday = c.readyToday;
       cl.warnedTileAttack = c.warnedTileAttack;
+      cl.peakDivisions = c.peakDivisions;
     }
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
