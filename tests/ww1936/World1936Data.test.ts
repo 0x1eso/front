@@ -3,6 +3,11 @@ import {
   COUNTRY_TAGS,
   CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CATEGORY_SLOTS,
+  REGION_CATEGORIES,
+  RESOURCE_IDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { ReadonlyScenarioRegion } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
@@ -10,6 +15,7 @@ import {
   TerrainMapData,
 } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
@@ -37,16 +43,17 @@ beforeAll(async () => {
 
 const xOf = (lon: number) => Math.floor(((lon + 180) / 360) * W);
 
-/** The region at a lon/lat (the nearest land within 3 tiles). */
+/** The region at a lon/lat (the nearest land within reach tiles, 3 by default). */
 function regionAt(
   lon: number,
   lat: number,
+  reach = 3,
 ): ReadonlyScenarioRegion | undefined {
   const s = data.scenario!;
   const map = data.gameMap;
   const x0 = xOf(lon);
   const y0 = Math.floor((TOP - millerY(lat)) * SCALE);
-  for (let d = 0; d <= 3; d++) {
+  for (let d = 0; d <= reach; d++) {
     for (let y = y0 - d; y <= y0 + d; y++) {
       for (let x = x0 - d; x <= x0 + d; x++) {
         if (Math.max(Math.abs(x - x0), Math.abs(y - y0)) !== d) continue;
@@ -252,5 +259,293 @@ describe("the world1936 map", () => {
       .filter((r) => r.vpTile[0] >= xOf(60))
       .reduce((a, r) => a + r.vp, 0);
     expect(east / all).toBeLessThan(0.25);
+  });
+});
+
+// P1 spec §3: scenario.json version 2, from the tool's two tables
+// (map-generator/scenarios/world1936/src).
+interface EconomyRow {
+  tag: CountryTag;
+  popCore: number;
+  popColonial: number;
+  dev: number;
+  civ?: number;
+  mil?: number;
+  dock?: number;
+}
+interface IndustryTable {
+  industry: { tag: CountryTag; mult: number; lon: number; lat: number }[];
+  yards: { tag: CountryTag; weight: number; lon: number; lat: number }[];
+}
+interface SiteRow {
+  tag: CountryTag;
+  res: (typeof RESOURCE_IDS)[number];
+  amount: number;
+}
+const srcDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../map-generator/scenarios/world1936/src",
+);
+const economyTable: EconomyRow[] = JSON.parse(
+  fs.readFileSync(path.join(srcDir, "economy1936.json"), "utf8"),
+);
+const siteTable: SiteRow[] = JSON.parse(
+  fs.readFileSync(path.join(srcDir, "resources1936.json"), "utf8"),
+);
+const industryTable: IndustryTable = JSON.parse(
+  fs.readFileSync(path.join(srcDir, "industry1936.json"), "utf8"),
+);
+const MAJORS = ["DEU", "ITA", "JPN", "GBR", "FRA", "USA", "SUN"] as const;
+
+describe("the world1936 economy (P1 spec §3)", () => {
+  const regionsOf = (tag: CountryTag) =>
+    data.scenario!.landRegions.filter((r) => r.owner === tag);
+  const total = (
+    rs: readonly ReadonlyScenarioRegion[],
+    f: (r: ReadonlyScenarioRegion) => number,
+  ) => rs.reduce((a, r) => a + f(r), 0);
+
+  test("the scenario is version 2", () => {
+    expect(data.scenario!.data.version).toBe(2);
+    expect(economyTable.map((r) => r.tag).sort()).toEqual(
+      [...COUNTRY_TAGS].sort(),
+    );
+  });
+
+  test("factories add up to the table", () => {
+    // The majors' factories are the table's (spec §11.1)…
+    const majors = Object.fromEntries(
+      MAJORS.map((tag) => {
+        const rs = regionsOf(tag);
+        return [
+          tag,
+          [
+            total(rs, (r) => r.civ),
+            total(rs, (r) => r.mil),
+            total(rs, (r) => r.dock),
+          ],
+        ];
+      }),
+    );
+    expect(majors).toEqual({
+      DEU: [32, 16, 3],
+      ITA: [14, 7, 4],
+      JPN: [16, 8, 8],
+      GBR: [32, 8, 12],
+      FRA: [22, 8, 4],
+      USA: [80, 5, 10],
+      SUN: [40, 22, 4],
+    });
+    // …and everyone else's the formula of spec §11.3, unless the table
+    // gives a value (Czechoslovakia's mil 6, Sweden's mil 2).
+    const DEV_CIV = [20, 100, 220, 400, 700];
+    for (const row of economyTable) {
+      const rs = regionsOf(row.tag);
+      let civ = Math.floor(
+        (row.popCore * DEV_CIV[row.dev - 1] + 500_000) / 1_000_000,
+      );
+      if (row.popCore >= 1000) civ = Math.max(civ, 1);
+      civ = row.civ ?? civ;
+      const mil = row.mil ?? Math.floor((civ + 2) / 4);
+      const coast = rs.some((r) => r.coastal);
+      const dock = row.dock ?? (coast ? Math.floor((civ + 5) / 10) : 0);
+      expect(
+        [
+          total(rs, (r) => r.civ),
+          total(rs, (r) => r.mil),
+          total(rs, (r) => r.dock),
+        ],
+        row.tag,
+      ).toEqual([civ, mil, dock]);
+    }
+    expect(total(regionsOf("POL"), (r) => r.civ)).toBe(7);
+    expect(total(regionsOf("CSK"), (r) => r.mil)).toBe(6);
+  });
+
+  test("population adds up", () => {
+    for (const row of economyTable) {
+      expect(
+        total(regionsOf(row.tag), (r) => r.pop),
+        row.tag,
+      ).toBe(row.popCore + row.popColonial);
+    }
+  });
+
+  test("resources add up to the sites", () => {
+    const want = new Map<string, number>();
+    for (const s of siteTable) {
+      const key = `${s.tag} ${s.res}`;
+      want.set(key, (want.get(key) ?? 0) + s.amount);
+    }
+    for (const tag of COUNTRY_TAGS) {
+      const rs = regionsOf(tag);
+      RESOURCE_IDS.forEach((res, k) => {
+        expect(
+          total(rs, (r) => r.res[k]),
+          `${tag} ${res}`,
+        ).toBe(want.get(`${tag} ${res}`) ?? 0);
+      });
+    }
+    const oil = RESOURCE_IDS.indexOf("oil");
+    const tungsten = RESOURCE_IDS.indexOf("tungsten");
+    const rubber = RESOURCE_IDS.indexOf("rubber");
+    expect(total(regionsOf("USA"), (r) => r.res[oil])).toBe(153);
+    expect(total(regionsOf("CHN"), (r) => r.res[tungsten])).toBe(30);
+    expect(total(regionsOf("GBR"), (r) => r.res[rubber])).toBe(54);
+    // Germany has steel and little else (spec §3.5).
+    expect(regionsOf("DEU").filter((r) => r.res[rubber] > 0)).toEqual([]);
+  });
+
+  test("buildings fit their slots", () => {
+    const over = data
+      .scenario!.landRegions.filter(
+        (r) => r.civ + r.mil + r.dock > CATEGORY_SLOTS[r.cat],
+      )
+      .map((r) => `${r.id} ${r.name} ${r.cat}`);
+    expect(over).toEqual([]);
+  });
+
+  test("dockyards are on the coast", () => {
+    // coastal is what the tiles say: a land tile touching a sea-zone tile.
+    const s = data.scenario!;
+    const map = data.gameMap;
+    const coast = new Set<number>();
+    map.forEachTile((t) => {
+      if (!map.isLand(t)) return;
+      const id = s.regionAt(t);
+      if (coast.has(id)) return;
+      for (const n of map.neighbors(t)) {
+        if (!map.isLand(n) && s.regionAt(n) > SEA_ZONE_BASE) coast.add(id);
+      }
+    });
+    const wrong = s.landRegions
+      .filter((r) => r.coastal !== coast.has(r.id))
+      .map((r) => `${r.id} ${r.name}`);
+    expect(wrong).toEqual([]);
+    expect(s.landRegions.filter((r) => r.dock > 0 && !r.coastal)).toEqual([]);
+  });
+
+  test("capitals are at least cities", () => {
+    const s = data.scenario!;
+    for (const tag of s.countries) {
+      const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
+      expect(
+        REGION_CATEGORIES.indexOf(capital.cat),
+        `${tag} ${capital.name} ${capital.cat}`,
+      ).toBeGreaterThanOrEqual(REGION_CATEGORIES.indexOf("city"));
+    }
+  });
+
+  test("people live where the towns are (ruling 2026-10-20)", () => {
+    // Population follows the Natural Earth populated places: a capital holds
+    // 5–20% of its homeland, empty land almost no one.
+    const s = data.scenario!;
+    const homeland = (tag: CountryTag) =>
+      total(
+        regionsOf(tag).filter((r) => r.core),
+        (r) => r.pop,
+      );
+    for (const tag of ["DEU", "GBR", "JPN", "FRA", "ITA", "POL"] as const) {
+      const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
+      const share = capital.pop / homeland(tag);
+      expect(share, `${tag} ${capital.name}`).toBeGreaterThanOrEqual(0.05);
+      expect(share, `${tag} ${capital.name}`).toBeLessThanOrEqual(0.2);
+    }
+    const alaska = total(
+      regionsOf("USA").filter((r) => r.name.startsWith("Alaska")),
+      (r) => r.pop,
+    );
+    expect(alaska / homeland("USA")).toBeLessThan(0.01);
+    // The factories follow the people: the Ruhr out-builds Berlin.
+    const ruhr = regionAt(7.0, 51.5)!;
+    const berlin = regionAt(13.4, 52.52)!;
+    expect(ruhr.civ + ruhr.mil).toBeGreaterThan(berlin.civ + berlin.mil);
+  });
+
+  // Ruling 2026-10-20 (fix round 2): 1936 industrial geography.
+  const regionsAt = (points: readonly (readonly [number, number])[]) => [
+    ...new Map(
+      points.map(([lon, lat]) => {
+        const r = regionAt(lon, lat)!;
+        return [r.id, r] as const;
+      }),
+    ).values(),
+  ];
+  const industry = (rs: readonly ReadonlyScenarioRegion[]) =>
+    total(rs, (r) => r.civ + r.mil);
+
+  test("US states hold their 1930 census people", () => {
+    const pennsylvania = regionAt(-79.99, 40.44)!;
+    const florida = regionAt(-80.19, 25.77)!;
+    expect(pennsylvania.pop).toBeGreaterThan(florida.pop * 5);
+    // New York State (Syracuse; New York City lies in the New Jersey region).
+    expect(regionAt(-76.15, 43.05)!.pop).toBeGreaterThan(pennsylvania.pop);
+  });
+
+  test("factories follow the 1936 industry", () => {
+    // The Rust Belt out-builds the Sun Belt.
+    const rustBelt = regionsAt([
+      [-79.99, 40.44], // Pittsburgh
+      [-81.69, 41.5], // Cleveland
+      [-83.05, 42.33], // Detroit
+    ]);
+    const sunBelt = regionsAt([
+      [-95.37, 29.76], // Houston
+      [-96.8, 32.78], // Dallas
+      [-80.19, 25.77], // Miami
+      [-81.66, 30.33], // Jacksonville
+    ]);
+    expect(industry(rustBelt)).toBeGreaterThan(industry(sunBelt));
+    // The Donbas and the Urals out-build any other two Soviet regions.
+    const donbasUrals = regionsAt([
+      [37.8, 48.0], // Stalino
+      [39.3, 48.57], // Voroshilovgrad
+      [60.6, 56.84], // Sverdlovsk
+      [61.4, 55.16], // Chelyabinsk
+      [59.0, 53.4], // Magnitogorsk
+    ]);
+    const ids = new Set(donbasUrals.map((r) => r.id));
+    const others = regionsOf("SUN")
+      .filter((r) => !ids.has(r.id))
+      .map((r) => r.civ + r.mil)
+      .sort((a, b) => b - a);
+    expect(industry(donbasUrals)).toBeGreaterThan(others[0] + others[1]);
+    // Italy's northern triangle out-builds Lazio.
+    const north = regionsAt([
+      [9.19, 45.46], // Milan
+      [7.68, 45.07], // Turin
+    ]);
+    expect(industry(north)).toBeGreaterThan(industry([regionAt(12.5, 41.9)!]));
+  });
+
+  test("dockyards are in the 1936 naval yards", () => {
+    const yardRegions = new Set<number>();
+    for (const y of industryTable.yards) {
+      const r = regionAt(y.lon, y.lat, 8)!;
+      expect(r.owner, `${y.tag} ${y.lon} ${y.lat}`).toBe(y.tag);
+      expect(r.dock, `${y.tag} ${r.name}`).toBeGreaterThan(0);
+      yardRegions.add(r.id);
+    }
+    for (const tag of MAJORS) {
+      const elsewhere = regionsOf(tag).filter(
+        (r) => r.dock > 0 && !yardRegions.has(r.id),
+      );
+      expect(elsewhere, tag).toEqual([]);
+    }
+  });
+
+  test("no major lacks a core region", () => {
+    for (const tag of MAJORS) {
+      expect(
+        regionsOf(tag).some((r) => r.core),
+        tag,
+      ).toBe(true);
+    }
+    // Colonies are not homeland (spec §3.3-1): Korea, Kwantung, Egypt…
+    expect(regionAt(126.98, 37.57)?.core).toBe(false);
+    expect(regionAt(121.6, 38.92)?.core).toBe(false);
+    expect(regionAt(31.24, 30.04)?.core).toBe(false);
+    expect(regionAt(-52.7, 47.56)?.core).toBe(false);
+    expect(regionAt(13.4, 52.52)?.core).toBe(true);
   });
 });

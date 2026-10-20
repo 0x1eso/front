@@ -179,7 +179,7 @@ func TestBuildScenarioCountsTilesAndChecksCapitals(t *testing.T) {
 		}
 	}
 	src := scenarioSrc{
-		Version:   1,
+		Version:   scenarioVersion,
 		Countries: []srcCountry{{Tag: "DEU", Capital: [2]int{1, 1}}, {Tag: "POL", Capital: [2]int{5, 1}}},
 		Regions: []srcRegion{
 			{ID: 1, Name: "Berlin", NameKo: "베를린", Owner: "DEU", VP: 21, VPTile: &[2]int{1, 1}},
@@ -226,7 +226,7 @@ func TestCapitalHoldsAtMostAThirdOfItsCountry(t *testing.T) {
 		}
 	}
 	src := scenarioSrc{
-		Version: 1,
+		Version: scenarioVersion,
 		Countries: []srcCountry{
 			{Tag: "DEU", Capital: [2]int{0, 0}},
 			{Tag: "POL", Capital: [2]int{6, 0}},
@@ -297,5 +297,145 @@ func TestSmallPiecesKeepTheirOwner(t *testing.T) {
 		if ids[i] != 2 {
 			t.Fatalf("tile %d is %d, want 2", i, ids[i])
 		}
+	}
+}
+
+// economyGrid is a 10×3 map: region 1 (DEU, x 0..3, its capital at (1,1)),
+// region 2 (POL, x 4..7, its capital at (5,1)), sea at x 8..9.
+func economyGrid() ([]byte, []uint16, int, int, scenarioSrc) {
+	packed, w, h := grid(
+		"LLLLLLLL~~",
+		"LLLLLLLL~~",
+		"LLLLLLLL~~",
+	)
+	ids := make([]uint16, w*h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			switch {
+			case x < 4:
+				ids[y*w+x] = 1
+			case x < 8:
+				ids[y*w+x] = 2
+			default:
+				ids[y*w+x] = 40001
+			}
+		}
+	}
+	src := scenarioSrc{
+		Version:   scenarioVersion,
+		Countries: []srcCountry{{Tag: "DEU", Capital: [2]int{1, 1}}, {Tag: "POL", Capital: [2]int{5, 1}}},
+		Regions: []srcRegion{
+			{ID: 1, Name: "Berlin", NameKo: "베를린", Owner: "DEU", VP: 21, Economy: Economy{Cat: "metropolis", Pop: 4000, Infra: 5, Core: true, Coastal: true, Civ: 5, Mil: 3, Res: [6]int{0, 6, 0, 0, 0, 0}}},
+			{ID: 2, Name: "Warsaw", NameKo: "바르샤바", Owner: "POL", VP: 3, Economy: Economy{Cat: "city", Pop: 1200, Infra: 3, Core: false, Coastal: false, Civ: 2, Dock: 1, Res: [6]int{1, 0, 0, 0, 8, 0}}},
+		},
+		SeaZones: []srcSea{{ID: 40001, Name: "Baltic Sea", NameKo: "발트해"}},
+	}
+	return packed, ids, w, h, src
+}
+
+// v2 fields are copied: everything of the economy goes to scenario.json as
+// scenario.src.json gives it, but the coast.
+func TestScenarioCopiesTheEconomy(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Version != 2 {
+		t.Fatalf("version %d", out.Version)
+	}
+	berlin, warsaw := out.Regions[0].Economy, out.Regions[1].Economy
+	want := src.Regions[0].Economy
+	want.Coastal = false // Berlin does not touch the sea
+	if berlin != want {
+		t.Fatalf("Berlin %+v, want %+v", berlin, want)
+	}
+	want = src.Regions[1].Economy
+	want.Coastal = true
+	if warsaw != want {
+		t.Fatalf("Warsaw %+v, want %+v", warsaw, want)
+	}
+}
+
+// coastal is recomputed after cleanup: a region whose only water was a pond
+// the generator filled is inland, and one the cleanup gave a shore is coastal.
+func TestCoastIsRecomputedAfterCleanup(t *testing.T) {
+	// The pond at (1,0) the tool drew Berlin's coast on is land now (its raw
+	// id is a sea zone's); Warsaw, drawn inland, touches the sea at x 8.
+	packed, w, h := grid(
+		"LLLLLLLL~~",
+		"LLLLLLLL~~",
+		"LLLLLLLL~~",
+	)
+	raw := make([]uint16, w*h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			switch {
+			case x < 4:
+				raw[y*w+x] = 1
+			case x < 8:
+				raw[y*w+x] = 2
+			default:
+				raw[y*w+x] = 40001
+			}
+		}
+	}
+	raw[0*w+1] = 40002 // the filled pond: a sea id on land
+	ids, err := finalizeRegions(packed, raw, w, h, map[uint16]string{1: "DEU", 2: "POL"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, _, src := economyGrid()
+	src.Regions[0].Coastal = true // drawn next to the pond
+	src.Regions[1].Coastal = false
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Regions[0].Coastal || !out.Regions[1].Coastal {
+		t.Fatalf("coastal: %v, %v", out.Regions[0].Coastal, out.Regions[1].Coastal)
+	}
+}
+
+// a dockyard inland fails: the region lost its coast in the cleanup.
+func TestADockyardInlandFails(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	src.Regions[0].Dock = 1
+	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "dockyards but no coast") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// A region that lost every tile leaves its people and resources to its
+// country's capital region, so the country totals stay exact.
+func TestADroppedRegionLeavesItsPeopleToTheCapital(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	src.Regions = append(src.Regions,
+		srcRegion{ID: 3, Name: "Islet", NameKo: "섬", Owner: "DEU", VP: 4, Economy: Economy{Cat: "rural", Pop: 300, Infra: 4, Core: true, Res: [6]int{2, 0, 0, 0, 1, 0}}},
+		srcRegion{ID: 4, Name: "Rock", NameKo: "바위", Owner: "DEU", Economy: Economy{Cat: "rural", Pop: 50, Infra: 4, Core: false, Res: [6]int{0, 0, 3, 0, 0, 0}}},
+	)
+	out, notes, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Regions) != 2 || len(notes) != 2 || !strings.Contains(notes[0], "go to the capital region") {
+		t.Fatalf("regions %d, notes %v", len(out.Regions), notes)
+	}
+	berlin := out.Regions[0]
+	if berlin.Pop != 4350 || berlin.Res != [6]int{2, 6, 3, 0, 1, 0} {
+		t.Fatalf("Berlin pop %d res %v", berlin.Pop, berlin.Res)
+	}
+	if out.Regions[1].Pop != 1200 {
+		t.Fatalf("Warsaw pop %d", out.Regions[1].Pop)
+	}
+}
+
+// A region with factories that loses every tile fails the build: the tool
+// must not put factories there.
+func TestADroppedRegionWithFactoriesFails(t *testing.T) {
+	packed, ids, w, h, src := economyGrid()
+	src.Regions = append(src.Regions, srcRegion{ID: 3, Name: "Islet", NameKo: "섬", Owner: "DEU", Economy: Economy{Cat: "city", Pop: 300, Infra: 4, Core: true, Civ: 1}})
+	if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "lost every tile but has 1 factories") {
+		t.Fatalf("err = %v", err)
 	}
 }

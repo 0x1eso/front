@@ -1,0 +1,1138 @@
+[
+  {
+    "tag": "USA",
+    "res": "oil",
+    "amount": 70,
+    "lon": -94.9,
+    "lat": 32.4,
+    "note": "East Texas"
+  },
+  {
+    "tag": "USA",
+    "res": "oil",
+    "amount": 30,
+    "lon": -97.5,
+    "lat": 35.5,
+    "note": "Oklahoma"
+  },
+  {
+    "tag": "USA",
+    "res": "oil",
+    "amount": 35,
+    "lon": -118.2,
+    "lat": 34,
+    "note": "Los Angeles basin"
+  },
+  {
+    "tag": "USA",
+    "res": "oil",
+    "amount": 10,
+    "lon": -93,
+    "lat": 30.5,
+    "note": "Louisiana"
+  },
+  {
+    "tag": "USA",
+    "res": "oil",
+    "amount": 8,
+    "lon": -98,
+    "lat": 38,
+    "note": "Kansas"
+  },
+  {
+    "tag": "SUN",
+    "res": "oil",
+    "amount": 22,
+    "lon": 49.9,
+    "lat": 40.4,
+    "note": "Baku"
+  },
+  {
+    "tag": "SUN",
+    "res": "oil",
+    "amount": 5,
+    "lon": 45.7,
+    "lat": 43.3,
+    "note": "Grozny"
+  },
+  {
+    "tag": "SUN",
+    "res": "oil",
+    "amount": 2,
+    "lon": 40.1,
+    "lat": 44.6,
+    "note": "Maykop"
+  },
+  {
+    "tag": "SUN",
+    "res": "oil",
+    "amount": 1,
+    "lon": 53,
+    "lat": 47,
+    "note": "Emba"
+  },
+  {
+    "tag": "VEN",
+    "res": "oil",
+    "amount": 28,
+    "lon": -71.6,
+    "lat": 10.6,
+    "note": "Maracaibo"
+  },
+  {
+    "tag": "IRN",
+    "res": "oil",
+    "amount": 10,
+    "lon": 49.3,
+    "lat": 31.9,
+    "note": "Masjed Soleyman"
+  },
+  {
+    "tag": "NLD",
+    "res": "oil",
+    "amount": 4,
+    "lon": 104.7,
+    "lat": -3,
+    "note": "Palembang"
+  },
+  {
+    "tag": "NLD",
+    "res": "oil",
+    "amount": 3,
+    "lon": 116.8,
+    "lat": -1.2,
+    "note": "Balikpapan"
+  },
+  {
+    "tag": "ROU",
+    "res": "oil",
+    "amount": 7,
+    "lon": 26,
+    "lat": 44.9,
+    "note": "Ploiesti"
+  },
+  {
+    "tag": "MEX",
+    "res": "oil",
+    "amount": 5,
+    "lon": -97.9,
+    "lat": 22.2,
+    "note": "Tampico"
+  },
+  {
+    "tag": "IRQ",
+    "res": "oil",
+    "amount": 4,
+    "lon": 44.4,
+    "lat": 35.5,
+    "note": "Kirkuk"
+  },
+  {
+    "tag": "COL",
+    "res": "oil",
+    "amount": 3,
+    "lon": -73.9,
+    "lat": 7.1,
+    "note": "Barrancabermeja"
+  },
+  {
+    "tag": "GBR",
+    "res": "oil",
+    "amount": 3,
+    "lon": -61.4,
+    "lat": 10.4,
+    "note": "Trinidad"
+  },
+  {
+    "tag": "GBR",
+    "res": "oil",
+    "amount": 2,
+    "lon": 33.6,
+    "lat": 28.2,
+    "note": "Gulf of Suez"
+  },
+  {
+    "tag": "ARG",
+    "res": "oil",
+    "amount": 2,
+    "lon": -67.5,
+    "lat": -45.9,
+    "note": "Comodoro Rivadavia"
+  },
+  {
+    "tag": "PER",
+    "res": "oil",
+    "amount": 2,
+    "lon": -81.3,
+    "lat": -4.6,
+    "note": "Talara"
+  },
+  {
+    "tag": "RAJ",
+    "res": "oil",
+    "amount": 1,
+    "lon": 94.9,
+    "lat": 20.5,
+    "note": "Yenangyaung"
+  },
+  {
+    "tag": "RAJ",
+    "res": "oil",
+    "amount": 1,
+    "lon": 95.6,
+    "lat": 27.4,
+    "note": "Digboi"
+  },
+  {
+    "tag": "CAN",
+    "res": "oil",
+    "amount": 1,
+    "lon": -114.3,
+    "lat": 50.7,
+    "note": "Turner Valley"
+  },
+  {
+    "tag": "DEU",
+    "res": "oil",
+    "amount": 1,
+    "lon": 10.1,
+    "lat": 52.6,
+    "note": "Nienhagen"
+  },
+  {
+    "tag": "POL",
+    "res": "oil",
+    "amount": 1,
+    "lon": 23.4,
+    "lat": 49.3,
+    "note": "Boryslaw"
+  },
+  {
+    "tag": "JPN",
+    "res": "oil",
+    "amount": 1,
+    "lon": 140.1,
+    "lat": 39.7,
+    "note": "Akita"
+  },
+  {
+    "tag": "ECU",
+    "res": "oil",
+    "amount": 1,
+    "lon": -80.9,
+    "lat": -2.2,
+    "note": "Santa Elena"
+  },
+  {
+    "tag": "ALB",
+    "res": "oil",
+    "amount": 1,
+    "lon": 19.9,
+    "lat": 40.8,
+    "note": "Kucova"
+  },
+  {
+    "tag": "SAU",
+    "res": "oil",
+    "amount": 1,
+    "lon": 50.1,
+    "lat": 26.4,
+    "note": "Dammam"
+  },
+  {
+    "tag": "DEU",
+    "res": "aluminium",
+    "amount": 6,
+    "lon": 12.3,
+    "lat": 51.6,
+    "note": "Bitterfeld"
+  },
+  {
+    "tag": "DEU",
+    "res": "aluminium",
+    "amount": 6,
+    "lon": 14.1,
+    "lat": 51.45,
+    "note": "Lauta"
+  },
+  {
+    "tag": "USA",
+    "res": "aluminium",
+    "amount": 8,
+    "lon": -83.97,
+    "lat": 35.8,
+    "note": "Alcoa, Tennessee"
+  },
+  {
+    "tag": "USA",
+    "res": "aluminium",
+    "amount": 4,
+    "lon": -74.9,
+    "lat": 44.9,
+    "note": "Massena"
+  },
+  {
+    "tag": "USA",
+    "res": "aluminium",
+    "amount": 6,
+    "lon": -92.6,
+    "lat": 34.6,
+    "note": "Arkansas bauxite"
+  },
+  {
+    "tag": "SUN",
+    "res": "aluminium",
+    "amount": 3,
+    "lon": 32.3,
+    "lat": 59.9,
+    "note": "Volkhov"
+  },
+  {
+    "tag": "SUN",
+    "res": "aluminium",
+    "amount": 4,
+    "lon": 35.1,
+    "lat": 47.8,
+    "note": "Zaporizhzhia"
+  },
+  {
+    "tag": "SUN",
+    "res": "aluminium",
+    "amount": 2,
+    "lon": 33.5,
+    "lat": 59.6,
+    "note": "Tikhvin bauxite"
+  },
+  {
+    "tag": "FRA",
+    "res": "aluminium",
+    "amount": 8,
+    "lon": 4.8,
+    "lat": 43.7,
+    "note": "Les Baux bauxite"
+  },
+  {
+    "tag": "FRA",
+    "res": "aluminium",
+    "amount": 4,
+    "lon": 6.35,
+    "lat": 45.27,
+    "note": "Maurienne smelters"
+  },
+  {
+    "tag": "CAN",
+    "res": "aluminium",
+    "amount": 10,
+    "lon": -71.2,
+    "lat": 48.4,
+    "note": "Arvida"
+  },
+  {
+    "tag": "NOR",
+    "res": "aluminium",
+    "amount": 5,
+    "lon": 6.1,
+    "lat": 61.2,
+    "note": "Hoyanger"
+  },
+  {
+    "tag": "ITA",
+    "res": "aluminium",
+    "amount": 3,
+    "lon": 13.9,
+    "lat": 45.2,
+    "note": "Istrian bauxite"
+  },
+  {
+    "tag": "ITA",
+    "res": "aluminium",
+    "amount": 2,
+    "lon": 12.2,
+    "lat": 45.45,
+    "note": "Porto Marghera"
+  },
+  {
+    "tag": "GBR",
+    "res": "aluminium",
+    "amount": 8,
+    "lon": -58.3,
+    "lat": 6,
+    "note": "British Guiana bauxite"
+  },
+  {
+    "tag": "GBR",
+    "res": "aluminium",
+    "amount": 2,
+    "lon": -4.96,
+    "lat": 56.7,
+    "note": "Kinlochleven"
+  },
+  {
+    "tag": "NLD",
+    "res": "aluminium",
+    "amount": 8,
+    "lon": -54.4,
+    "lat": 5.6,
+    "note": "Moengo, Surinam"
+  },
+  {
+    "tag": "HUN",
+    "res": "aluminium",
+    "amount": 6,
+    "lon": 18.4,
+    "lat": 47.4,
+    "note": "Gant bauxite"
+  },
+  {
+    "tag": "YUG",
+    "res": "aluminium",
+    "amount": 4,
+    "lon": 17.8,
+    "lat": 43.3,
+    "note": "Mostar bauxite"
+  },
+  {
+    "tag": "CHE",
+    "res": "aluminium",
+    "amount": 3,
+    "lon": 7.55,
+    "lat": 46.3,
+    "note": "Chippis"
+  },
+  {
+    "tag": "JPN",
+    "res": "aluminium",
+    "amount": 3,
+    "lon": 133.3,
+    "lat": 33.95,
+    "note": "Niihama"
+  },
+  {
+    "tag": "GRC",
+    "res": "aluminium",
+    "amount": 2,
+    "lon": 22.5,
+    "lat": 38.5,
+    "note": "Parnassus bauxite"
+  },
+  {
+    "tag": "GBR",
+    "res": "rubber",
+    "amount": 30,
+    "lon": 101.7,
+    "lat": 3.1,
+    "note": "Selangor"
+  },
+  {
+    "tag": "GBR",
+    "res": "rubber",
+    "amount": 12,
+    "lon": 100.5,
+    "lat": 5.6,
+    "note": "Kedah"
+  },
+  {
+    "tag": "GBR",
+    "res": "rubber",
+    "amount": 8,
+    "lon": 80.6,
+    "lat": 7.3,
+    "note": "Ceylon"
+  },
+  {
+    "tag": "GBR",
+    "res": "rubber",
+    "amount": 4,
+    "lon": 110.3,
+    "lat": 1.5,
+    "note": "Sarawak"
+  },
+  {
+    "tag": "NLD",
+    "res": "rubber",
+    "amount": 20,
+    "lon": 98.7,
+    "lat": 3.6,
+    "note": "East Sumatra"
+  },
+  {
+    "tag": "NLD",
+    "res": "rubber",
+    "amount": 12,
+    "lon": 107.6,
+    "lat": -6.9,
+    "note": "West Java"
+  },
+  {
+    "tag": "NLD",
+    "res": "rubber",
+    "amount": 8,
+    "lon": 114.6,
+    "lat": -3.3,
+    "note": "South Borneo"
+  },
+  {
+    "tag": "FRA",
+    "res": "rubber",
+    "amount": 6,
+    "lon": 106.7,
+    "lat": 10.8,
+    "note": "Cochinchina"
+  },
+  {
+    "tag": "THA",
+    "res": "rubber",
+    "amount": 4,
+    "lon": 100.6,
+    "lat": 7.2,
+    "note": "Songkhla"
+  },
+  {
+    "tag": "BRA",
+    "res": "rubber",
+    "amount": 2,
+    "lon": -60,
+    "lat": -3.1,
+    "note": "Manaus"
+  },
+  {
+    "tag": "LBR",
+    "res": "rubber",
+    "amount": 2,
+    "lon": -10.35,
+    "lat": 6.3,
+    "note": "Harbel"
+  },
+  {
+    "tag": "RAJ",
+    "res": "rubber",
+    "amount": 2,
+    "lon": 98.6,
+    "lat": 12.4,
+    "note": "Tenasserim"
+  },
+  {
+    "tag": "CHN",
+    "res": "tungsten",
+    "amount": 24,
+    "lon": 114.4,
+    "lat": 25.4,
+    "note": "Dayu, Jiangxi"
+  },
+  {
+    "tag": "CHN",
+    "res": "tungsten",
+    "amount": 6,
+    "lon": 113,
+    "lat": 27,
+    "note": "Hunan"
+  },
+  {
+    "tag": "RAJ",
+    "res": "tungsten",
+    "amount": 8,
+    "lon": 97.2,
+    "lat": 18.8,
+    "note": "Mawchi"
+  },
+  {
+    "tag": "USA",
+    "res": "tungsten",
+    "amount": 4,
+    "lon": -118.4,
+    "lat": 37.4,
+    "note": "Bishop"
+  },
+  {
+    "tag": "USA",
+    "res": "tungsten",
+    "amount": 2,
+    "lon": -105.3,
+    "lat": 40,
+    "note": "Boulder"
+  },
+  {
+    "tag": "PRT",
+    "res": "tungsten",
+    "amount": 4,
+    "lon": -7.75,
+    "lat": 40.15,
+    "note": "Panasqueira"
+  },
+  {
+    "tag": "ESN",
+    "res": "tungsten",
+    "amount": 2,
+    "lon": -8,
+    "lat": 42.5,
+    "note": "Galicia"
+  },
+  {
+    "tag": "BOL",
+    "res": "tungsten",
+    "amount": 3,
+    "lon": -67.3,
+    "lat": -16.4,
+    "note": "Chojlla"
+  },
+  {
+    "tag": "JPN",
+    "res": "tungsten",
+    "amount": 3,
+    "lon": 128.8,
+    "lat": 37.15,
+    "note": "Sangdong"
+  },
+  {
+    "tag": "GBR",
+    "res": "tungsten",
+    "amount": 2,
+    "lon": 101,
+    "lat": 4.6,
+    "note": "Perak"
+  },
+  {
+    "tag": "ARG",
+    "res": "tungsten",
+    "amount": 2,
+    "lon": -65.4,
+    "lat": -32.5,
+    "note": "San Luis"
+  },
+  {
+    "tag": "AUS",
+    "res": "tungsten",
+    "amount": 1,
+    "lon": 146,
+    "lat": -41.8,
+    "note": "Tasmania"
+  },
+  {
+    "tag": "SWE",
+    "res": "tungsten",
+    "amount": 1,
+    "lon": 14.75,
+    "lat": 60.1,
+    "note": "Yxsjoberg"
+  },
+  {
+    "tag": "USA",
+    "res": "steel",
+    "amount": 60,
+    "lon": -80,
+    "lat": 40.4,
+    "note": "Pittsburgh"
+  },
+  {
+    "tag": "USA",
+    "res": "steel",
+    "amount": 40,
+    "lon": -87.3,
+    "lat": 41.6,
+    "note": "Gary-Chicago"
+  },
+  {
+    "tag": "USA",
+    "res": "steel",
+    "amount": 40,
+    "lon": -92.5,
+    "lat": 47.5,
+    "note": "Mesabi Range"
+  },
+  {
+    "tag": "USA",
+    "res": "steel",
+    "amount": 15,
+    "lon": -86.8,
+    "lat": 33.5,
+    "note": "Birmingham"
+  },
+  {
+    "tag": "DEU",
+    "res": "steel",
+    "amount": 40,
+    "lon": 7,
+    "lat": 51.5,
+    "note": "Ruhr"
+  },
+  {
+    "tag": "DEU",
+    "res": "steel",
+    "amount": 8,
+    "lon": 7,
+    "lat": 49.3,
+    "note": "Saar"
+  },
+  {
+    "tag": "DEU",
+    "res": "steel",
+    "amount": 6,
+    "lon": 18.67,
+    "lat": 50.29,
+    "note": "Gleiwitz"
+  },
+  {
+    "tag": "DEU",
+    "res": "steel",
+    "amount": 4,
+    "lon": 10.4,
+    "lat": 52.1,
+    "note": "Salzgitter"
+  },
+  {
+    "tag": "SUN",
+    "res": "steel",
+    "amount": 30,
+    "lon": 37.8,
+    "lat": 48,
+    "note": "Donbas"
+  },
+  {
+    "tag": "SUN",
+    "res": "steel",
+    "amount": 20,
+    "lon": 33.4,
+    "lat": 47.9,
+    "note": "Krivoy Rog"
+  },
+  {
+    "tag": "SUN",
+    "res": "steel",
+    "amount": 15,
+    "lon": 59,
+    "lat": 53.4,
+    "note": "Magnitogorsk"
+  },
+  {
+    "tag": "SUN",
+    "res": "steel",
+    "amount": 8,
+    "lon": 87.1,
+    "lat": 53.8,
+    "note": "Kuzbass"
+  },
+  {
+    "tag": "GBR",
+    "res": "steel",
+    "amount": 20,
+    "lon": -1.5,
+    "lat": 53.4,
+    "note": "Sheffield"
+  },
+  {
+    "tag": "GBR",
+    "res": "steel",
+    "amount": 10,
+    "lon": -3.5,
+    "lat": 51.6,
+    "note": "South Wales"
+  },
+  {
+    "tag": "GBR",
+    "res": "steel",
+    "amount": 8,
+    "lon": -4.1,
+    "lat": 55.8,
+    "note": "Clyde"
+  },
+  {
+    "tag": "GBR",
+    "res": "steel",
+    "amount": 8,
+    "lon": -1.2,
+    "lat": 54.6,
+    "note": "Teesside"
+  },
+  {
+    "tag": "GBR",
+    "res": "steel",
+    "amount": 4,
+    "lon": -53.3,
+    "lat": 47.5,
+    "note": "Newfoundland ore"
+  },
+  {
+    "tag": "FRA",
+    "res": "steel",
+    "amount": 40,
+    "lon": 6.1,
+    "lat": 49.2,
+    "note": "Lorraine"
+  },
+  {
+    "tag": "FRA",
+    "res": "steel",
+    "amount": 8,
+    "lon": 3.1,
+    "lat": 50.6,
+    "note": "Nord"
+  },
+  {
+    "tag": "FRA",
+    "res": "steel",
+    "amount": 4,
+    "lon": 8.1,
+    "lat": 35.95,
+    "note": "Ouenza"
+  },
+  {
+    "tag": "JPN",
+    "res": "steel",
+    "amount": 10,
+    "lon": 130.8,
+    "lat": 33.9,
+    "note": "Yawata"
+  },
+  {
+    "tag": "JPN",
+    "res": "steel",
+    "amount": 4,
+    "lon": 141.9,
+    "lat": 39.3,
+    "note": "Kamaishi"
+  },
+  {
+    "tag": "JPN",
+    "res": "steel",
+    "amount": 4,
+    "lon": 129.78,
+    "lat": 41.8,
+    "note": "Chongjin (Musan ore)"
+  },
+  {
+    "tag": "SWE",
+    "res": "steel",
+    "amount": 30,
+    "lon": 20.2,
+    "lat": 67.85,
+    "note": "Kiruna"
+  },
+  {
+    "tag": "SWE",
+    "res": "steel",
+    "amount": 6,
+    "lon": 15,
+    "lat": 60,
+    "note": "Bergslagen"
+  },
+  {
+    "tag": "BEL",
+    "res": "steel",
+    "amount": 8,
+    "lon": 5.5,
+    "lat": 50.6,
+    "note": "Liege"
+  },
+  {
+    "tag": "BEL",
+    "res": "steel",
+    "amount": 6,
+    "lon": 4.4,
+    "lat": 50.4,
+    "note": "Charleroi"
+  },
+  {
+    "tag": "LUX",
+    "res": "steel",
+    "amount": 10,
+    "lon": 5.98,
+    "lat": 49.5,
+    "note": "Esch-sur-Alzette"
+  },
+  {
+    "tag": "CSK",
+    "res": "steel",
+    "amount": 8,
+    "lon": 18.3,
+    "lat": 49.8,
+    "note": "Ostrava"
+  },
+  {
+    "tag": "CSK",
+    "res": "steel",
+    "amount": 3,
+    "lon": 14.1,
+    "lat": 50.15,
+    "note": "Kladno"
+  },
+  {
+    "tag": "POL",
+    "res": "steel",
+    "amount": 8,
+    "lon": 19,
+    "lat": 50.26,
+    "note": "Katowice"
+  },
+  {
+    "tag": "ITA",
+    "res": "steel",
+    "amount": 4,
+    "lon": 10.5,
+    "lat": 42.9,
+    "note": "Piombino and Elba"
+  },
+  {
+    "tag": "ITA",
+    "res": "steel",
+    "amount": 2,
+    "lon": 12.65,
+    "lat": 42.56,
+    "note": "Terni"
+  },
+  {
+    "tag": "ESR",
+    "res": "steel",
+    "amount": 6,
+    "lon": -2.9,
+    "lat": 43.3,
+    "note": "Bilbao"
+  },
+  {
+    "tag": "ESR",
+    "res": "steel",
+    "amount": 2,
+    "lon": -5.85,
+    "lat": 43.36,
+    "note": "Asturias"
+  },
+  {
+    "tag": "CAN",
+    "res": "steel",
+    "amount": 4,
+    "lon": -84.3,
+    "lat": 46.5,
+    "note": "Sault Ste. Marie"
+  },
+  {
+    "tag": "CAN",
+    "res": "steel",
+    "amount": 3,
+    "lon": -60.2,
+    "lat": 46.1,
+    "note": "Sydney, Nova Scotia"
+  },
+  {
+    "tag": "AUS",
+    "res": "steel",
+    "amount": 4,
+    "lon": 151.8,
+    "lat": -32.9,
+    "note": "Newcastle"
+  },
+  {
+    "tag": "AUS",
+    "res": "steel",
+    "amount": 4,
+    "lon": 137.15,
+    "lat": -32.7,
+    "note": "Iron Knob"
+  },
+  {
+    "tag": "RAJ",
+    "res": "steel",
+    "amount": 6,
+    "lon": 86.2,
+    "lat": 22.8,
+    "note": "Jamshedpur"
+  },
+  {
+    "tag": "MCK",
+    "res": "steel",
+    "amount": 8,
+    "lon": 122.99,
+    "lat": 41.1,
+    "note": "Anshan"
+  },
+  {
+    "tag": "CHN",
+    "res": "steel",
+    "amount": 4,
+    "lon": 114.9,
+    "lat": 30.1,
+    "note": "Daye"
+  },
+  {
+    "tag": "AUT",
+    "res": "steel",
+    "amount": 4,
+    "lon": 14.9,
+    "lat": 47.5,
+    "note": "Erzberg"
+  },
+  {
+    "tag": "HUN",
+    "res": "steel",
+    "amount": 2,
+    "lon": 20.7,
+    "lat": 48.1,
+    "note": "Diosgyor"
+  },
+  {
+    "tag": "ZAF",
+    "res": "steel",
+    "amount": 3,
+    "lon": 28.2,
+    "lat": -25.7,
+    "note": "Pretoria"
+  },
+  {
+    "tag": "BRA",
+    "res": "steel",
+    "amount": 4,
+    "lon": -43.2,
+    "lat": -19.6,
+    "note": "Itabira ore"
+  },
+  {
+    "tag": "NOR",
+    "res": "steel",
+    "amount": 3,
+    "lon": 30,
+    "lat": 69.7,
+    "note": "Kirkenes ore"
+  },
+  {
+    "tag": "CHL",
+    "res": "steel",
+    "amount": 3,
+    "lon": -71.3,
+    "lat": -29.4,
+    "note": "El Tofo ore"
+  },
+  {
+    "tag": "ROU",
+    "res": "steel",
+    "amount": 2,
+    "lon": 21.9,
+    "lat": 45.3,
+    "note": "Resita"
+  },
+  {
+    "tag": "YUG",
+    "res": "steel",
+    "amount": 2,
+    "lon": 18.3,
+    "lat": 44.2,
+    "note": "Vares"
+  },
+  {
+    "tag": "TUR",
+    "res": "steel",
+    "amount": 2,
+    "lon": 32.6,
+    "lat": 41.2,
+    "note": "Karabuk"
+  },
+  {
+    "tag": "MEX",
+    "res": "steel",
+    "amount": 2,
+    "lon": -100.3,
+    "lat": 25.7,
+    "note": "Monterrey"
+  },
+  {
+    "tag": "GBR",
+    "res": "chromium",
+    "amount": 12,
+    "lon": 29.8,
+    "lat": -19.65,
+    "note": "Selukwe"
+  },
+  {
+    "tag": "GBR",
+    "res": "chromium",
+    "amount": 2,
+    "lon": -11.1,
+    "lat": 7.9,
+    "note": "Sierra Leone"
+  },
+  {
+    "tag": "TUR",
+    "res": "chromium",
+    "amount": 10,
+    "lon": 39.4,
+    "lat": 38.5,
+    "note": "Guleman"
+  },
+  {
+    "tag": "SUN",
+    "res": "chromium",
+    "amount": 6,
+    "lon": 58.9,
+    "lat": 58.5,
+    "note": "Saranovsky"
+  },
+  {
+    "tag": "SUN",
+    "res": "chromium",
+    "amount": 3,
+    "lon": 58.4,
+    "lat": 50.3,
+    "note": "Khromtau"
+  },
+  {
+    "tag": "ZAF",
+    "res": "chromium",
+    "amount": 8,
+    "lon": 27.25,
+    "lat": -25.67,
+    "note": "Rustenburg"
+  },
+  {
+    "tag": "FRA",
+    "res": "chromium",
+    "amount": 4,
+    "lon": 165,
+    "lat": -21.5,
+    "note": "New Caledonia"
+  },
+  {
+    "tag": "USA",
+    "res": "chromium",
+    "amount": 3,
+    "lon": 120,
+    "lat": 15.5,
+    "note": "Masinloc"
+  },
+  {
+    "tag": "YUG",
+    "res": "chromium",
+    "amount": 3,
+    "lon": 21,
+    "lat": 42.3,
+    "note": "Kosovo"
+  },
+  {
+    "tag": "GRC",
+    "res": "chromium",
+    "amount": 2,
+    "lon": 22,
+    "lat": 40.3,
+    "note": "Kozani"
+  },
+  {
+    "tag": "CUB",
+    "res": "chromium",
+    "amount": 2,
+    "lon": -77.9,
+    "lat": 21.4,
+    "note": "Camaguey"
+  },
+  {
+    "tag": "RAJ",
+    "res": "chromium",
+    "amount": 2,
+    "lon": 69.4,
+    "lat": 31.3,
+    "note": "Zhob"
+  },
+  {
+    "tag": "ALB",
+    "res": "chromium",
+    "amount": 1,
+    "lon": 20.25,
+    "lat": 41.5,
+    "note": "Bulqize"
+  }
+]

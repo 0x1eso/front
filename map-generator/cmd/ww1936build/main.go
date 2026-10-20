@@ -5,7 +5,8 @@
 //	scenarios/world1936/scenario.src.json  regions, sea zones, countries
 //
 // from Natural Earth and NASA files fetched by scenarios/world1936/fetch.sh
-// and the tables in scenarios/world1936/src. Run from map-generator/:
+// and the tables in scenarios/world1936/src (the P1 economy: economy1936.json,
+// resources1936.json, industry1936.json; economy.go). Run from map-generator/:
 //
 //	go run ./cmd/ww1936build
 //
@@ -23,7 +24,7 @@ import (
 
 func main() {
 	cache := flag.String("cache", ".cache/ww1936", "folder with the fetched Natural Earth and NASA files")
-	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json")
+	src := flag.String("src", "scenarios/world1936/src", "folder with countries.json, owners1936.json, vp_cities.json, economy1936.json, resources1936.json, industry1936.json")
 	outImage := flag.String("out-image", "assets/maps/world1936/image.png", "terrain image")
 	outDir := flag.String("out-dir", "scenarios/world1936", "folder for regions.png and scenario.src.json")
 	width := flag.Int("width", 4000, "map width in pixels")
@@ -56,6 +57,18 @@ func main() {
 	}
 
 	t, err := loadTables(*src)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ecoRows, err := loadEconomy(filepath.Join(*src, "economy1936.json"), t)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sites, err := loadSites(filepath.Join(*src, "resources1936.json"), t)
+	if err != nil {
+		log.Fatal(err)
+	}
+	industry, err := loadIndustry(filepath.Join(*src, "industry1936.json"), t)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,18 +121,26 @@ func main() {
 	if err := finishNames(regions, adm, patch, admin, t); err != nil {
 		log.Fatal(err)
 	}
+	eco, ecoSum, err := buildEconomy(p, land, landIDs, regions, capitals, admin, t, EconomyInput{
+		Rows: ecoRows, Sites: sites, Places: placesOf(ne("ne_10m_populated_places_simple")), Industry: industry, Adm: adm,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	step("economy")
 	if err := os.MkdirAll(*outDir, 0755); err != nil {
 		log.Fatal(err)
 	}
 	if err := writeRegionsPNG(filepath.Join(*outDir, "regions.png"), p, landIDs, seaIDs); err != nil {
 		log.Fatal(err)
 	}
-	if err := writeScenarioSrc(filepath.Join(*outDir, "scenario.src.json"), p, t, capitals, regions, seas); err != nil {
+	if err := writeScenarioSrc(filepath.Join(*outDir, "scenario.src.json"), p, t, capitals, regions, eco, seas); err != nil {
 		log.Fatal(err)
 	}
 	step("written")
 	fmt.Printf("%d land regions, %d sea zones; regions per country:\n", len(regions), len(seas))
 	summary(t, regions)
+	printEconomy(t, ecoSum)
 	if len(regions) < 1000 || len(regions) > 1800 {
 		log.Fatalf("land regions %d are outside 1000..1800: change -min-core/-min-low/-max-region", len(regions))
 	}
