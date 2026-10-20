@@ -11,6 +11,7 @@ import {
   byTag,
   gameHash,
   HUMAN,
+  order,
   pol,
   POL,
   step,
@@ -70,9 +71,11 @@ describe("politics on the clock", () => {
   it("nothing political happens during the preparation minute", async () => {
     const runner = await wwRunner({}, DEU_HUMAN, POL);
     const g = runner.game;
-    step(runner);
+    // Spec §11.2: a focus can be chosen in the minute; it progresses from tick 600.
+    step(runner, 1, [order(HUMAN, { kind: "focus_start", focus: "gen_t_a" })]);
     const p = pol(g);
     const c = p.country(byTag(g, "DEU").smallID())!;
+    expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 0 });
     const pp = c.ppMilli;
     // No daily step: a changed base does not reach the stats.
     c.stabBp = 10_000;
@@ -82,9 +85,12 @@ describe("politics on the clock", () => {
     expect(p.beats.every((b) => !b.done)).toBe(true);
     expect(p.delayed).toEqual([]);
     expect(p.wtBp).toBe(400);
+    expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 0 });
+    expect(p.list().every((x) => x === c || x.focus === null)).toBe(true);
     // The first day runs at the minute's end.
     stepTo(runner, WW_PREP_TICKS + WW_DAY_SPLIT);
     expect(c.stats.ppGainPct).toBe(15);
+    expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 1000 });
   });
 
   it("the event queue is empty at the end of every tick", async () => {

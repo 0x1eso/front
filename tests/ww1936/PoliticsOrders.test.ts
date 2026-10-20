@@ -75,8 +75,8 @@ describe("politics orders", () => {
     const day = ww.day(g.ticks());
     const at = (k: PolOrder["kind"]) =>
       applyWwOrder(g, ww.economy, deu, ORDERS[k], day);
-    expect(at("focus_start")).toBe("focus_unavailable");
-    expect(at("focus_cancel")).toBe("focus_none");
+    expect(at("focus_start")).toBeNull();
+    expect(at("focus_start")).toBe("focus_busy");
     expect(at("advisor_hire")).toBe("advisor_unavailable");
     expect(at("decision_take")).toBe("decision_unavailable");
     expect(at("event_choose")).toBe("no_event");
