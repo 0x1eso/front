@@ -239,7 +239,20 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(t.tap("x", 5000)).toBe(false);
     expect(t.tap("x", 8001)).toBe(false);
     expect(t.tap("y", 8002)).toBe(false);
-    expect(t.tap("y", 8003)).toBe(true);
+    expect(t.tap("y", 8352)).toBe(true);
+  });
+
+  it("a confirming tap within 350 ms of arming is ignored; it stays armed", () => {
+    const t = new TwoTap();
+    expect(t.tap("x", 0)).toBe(false);
+    expect(t.tap("x", 349)).toBe(false);
+    expect(t.isArmed("x", 349)).toBe(true);
+    expect(t.tap("x", 350)).toBe(true);
+    // The three seconds still count from the first tap.
+    expect(t.tap("y", 10_000)).toBe(false);
+    expect(t.tap("y", 10_100)).toBe(false);
+    expect(t.isArmed("y", 12_999)).toBe(true);
+    expect(t.isArmed("y", 13_000)).toBe(false);
   });
 
   it("the confirmation counts the target's faction members it brings in", () => {
@@ -480,6 +493,35 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].target).toBe(fra);
     expect(panel.isVisible).toBe(false);
+  });
+
+  it("the player panel ignores a double-click on declare war, so the label is read first", () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const g = fakeGame({ me: "DEU" });
+    const fra = g.playerBySmallID(ID("FRA")) as never;
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g as never;
+    panel.eventBus = new EventBus();
+    const sent: SendDeclareWarIntentEvent[] = [];
+    panel.eventBus.on(SendDeclareWarIntentEvent, (e) => sent.push(e));
+    const p = panel as unknown as {
+      renderDeclareWar(other: unknown): unknown;
+      handleDeclareWarClick(e: Event, other: unknown): void;
+    };
+    const label = () => {
+      const div = document.createElement("div");
+      render(p.renderDeclareWar(fra), div);
+      return div.querySelector("button")!.textContent!.trim();
+    };
+    p.handleDeclareWarClick(new Event("click"), fra);
+    vi.setSystemTime(10_120);
+    p.handleDeclareWarClick(new Event("click"), fra);
+    expect(sent).toHaveLength(0);
+    expect(label()).toBe("[ww1936.declare.confirm] n=1");
+    vi.setSystemTime(10_400);
+    p.handleDeclareWarClick(new Event("click"), fra);
+    expect(sent).toHaveLength(1);
   });
 
   it("the leaderboard names countries and emphasizes my faction", () => {

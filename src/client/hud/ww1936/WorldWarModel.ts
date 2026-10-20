@@ -27,6 +27,12 @@ import type { GameView, PlayerView } from "../../view";
 export const WW_BAND_PX = 32;
 /** A second tap within this many ms confirms an irreversible action (§14d). */
 export const TWO_TAP_MS = 3000;
+/**
+ * A confirming tap sooner than this after arming is ignored and the action
+ * stays armed: a double-click or double-tap must not confirm before the
+ * confirmation label can be read.
+ */
+export const TWO_TAP_MIN_MS = 350;
 /** How many MVPs the win screen lists. */
 export const WW_MVP_COUNT = 3;
 
@@ -330,7 +336,10 @@ export function translateCountryParams(
   return out;
 }
 
-/** Spec §8.2: an irreversible action needs a second tap within TWO_TAP_MS. */
+/**
+ * Spec §8.2: an irreversible action needs a second tap within TWO_TAP_MS,
+ * but not sooner than TWO_TAP_MIN_MS.
+ */
 export class TwoTap {
   private key: string | null = null;
   private at = 0;
@@ -338,6 +347,8 @@ export class TwoTap {
   /** True when this tap confirms. */
   tap(key: string, nowMs: number): boolean {
     if (this.isArmed(key, nowMs)) {
+      // Too soon: still armed, from the first tap.
+      if (nowMs - this.at < TWO_TAP_MIN_MS) return false;
       this.key = null;
       return true;
     }
