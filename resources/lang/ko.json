@@ -3264,7 +3264,87 @@
       "africa_oceania": "아프리카·오세아니아",
       "americas": "아메리카",
       "asia": "아시아·중동",
-      "europe": "유럽"
+      "europe": "유럽",
+      "alsace_lorraine": "알자스로렌",
+      "backa_baranja": "바치카와 바라냐",
+      "belgian_border_fr": "프랑스·벨기에 국경 지대",
+      "brenner": "남티롤과 트렌티노",
+      "burma": "버마",
+      "caribbean_bases": "카리브해 기지",
+      "central_slovakia": "슬로바키아 중부",
+      "corsica": "코르시카",
+      "croatia": "크로아티아",
+      "dalmatia": "달마티아",
+      "de_fr_zone": "독일 프랑스 점령 지구",
+      "de_soviet_zone": "독일 소련 점령 지구",
+      "de_uk_zone": "독일 영국 점령 지구",
+      "de_us_zone": "독일 미국 점령 지구",
+      "denmark": "덴마크",
+      "dodecanese": "도데카니사 제도",
+      "dutch_east_indies": "네덜란드령 동인도",
+      "east_china_occupied": "점령된 중국 동부",
+      "east_prussia_north": "동프로이센 북부",
+      "east_prussia_south": "동프로이센 남부",
+      "egypt": "이집트",
+      "france_free_zone": "프랑스 비점령 지역",
+      "france_italian_zone": "니스와 망통",
+      "france_occupied_zone": "프랑스 점령 지역",
+      "french_equatorial_africa": "프랑스령 적도 아프리카",
+      "french_north_africa": "프랑스령 북아프리카",
+      "french_west_africa": "프랑스령 서아프리카",
+      "german_east_of_oder": "오데르강 동쪽 독일 땅",
+      "great_lakes": "오대호 공업 지대",
+      "greece_german": "독일 점령 그리스",
+      "greece_italian": "이탈리아 점령 그리스",
+      "greek_thrace": "동마케도니아와 트라키아",
+      "iceland": "아이슬란드",
+      "indochina": "프랑스령 인도차이나",
+      "inner_mongolia": "내몽골",
+      "iran_north": "이란 북부",
+      "iran_south": "이란 남부",
+      "istria": "이스트라와 트리에스테",
+      "italy_alpine_border": "이탈리아 알프스",
+      "italy_alpine_border_fr": "프랑스 알프스",
+      "italy_north": "이탈리아 북부",
+      "japan_home": "일본 본토",
+      "korea_north": "한반도 북위 38도선 이북",
+      "korea_south": "한반도 북위 38도선 이남",
+      "kurils": "쿠릴 열도",
+      "kwantung": "관동주",
+      "laos_cambodia_west": "라오스·캄보디아 서부",
+      "levant": "시리아와 레바논",
+      "libya": "리비아",
+      "libya_tripoli": "트리폴리타니아",
+      "ljubljana": "류블랴나",
+      "madagascar": "마다가스카르",
+      "malaya": "말라야",
+      "manchukuo_soviet_border": "만주의 소련 접경 지대",
+      "manchuria": "만주",
+      "montenegro": "몬테네그로",
+      "nord_lorraine": "노르와 로렌",
+      "oahu": "오아후섬",
+      "oran": "오랑",
+      "pacific_mandates": "태평양 위임 통치령",
+      "panama_canal": "파나마 운하",
+      "paris": "파리",
+      "petsamo": "페차모",
+      "philippines": "필리핀",
+      "po_valley": "포강 유역",
+      "poland_general_government": "폴란드 총독부",
+      "poland_german_annexed": "폴란드 서부(1939년 편입 지역)",
+      "poland_german_zone": "독일 점령 폴란드",
+      "poland_soviet_zone": "폴란드 동부",
+      "porkkala": "포르칼라",
+      "sicily": "시칠리아",
+      "slovenia_north": "슬로베니아 북부",
+      "south_sakhalin": "남사할린",
+      "southwest_france": "프랑스 남서부",
+      "taiwan": "대만",
+      "tennessee": "테네시강 유역",
+      "us_east_coast": "미국 동부 해안",
+      "us_west_coast": "미국 서부 해안",
+      "vardar_macedonia": "바르다르 마케도니아",
+      "warsaw": "바르샤바"
     },
     "leader": {
       "AFG": "무함마드 자히르 샤",
@@ -3645,6 +3725,375 @@
       "export_room": "하루 {n} 판매 가능",
       "region_buildings": "민간 {civ} · 군수 {mil} · 조선 {dock} / 칸 {slots}",
       "stock_only": "비축만 됩니다(항공전은 뒤 단계)"
+    },
+    "decision": {
+      "gbr_free_french_recognition": "자유 프랑스 승인",
+      "gbr_levant_intervention": "레반트 개입",
+      "gbr_occupy_iceland": "아이슬란드 확보",
+      "gen_annex_subject": "속국 합병",
+      "gen_demand_autonomy": "자치권 요구",
+      "gen_downgrade_subject": "속국 지위 낮추기",
+      "gen_exile_recruit": "국외 모병",
+      "gen_exile_resistance": "저항 운동 지원",
+      "gen_partisan_support": "파르티잔 무장 지원",
+      "gen_release_subject": "속국 풀어 주기",
+      "gen_request_autonomy": "자치 확대 요구",
+      "gen_restore_country": "사라진 나라 복원",
+      "gen_tighten_control": "통제 강화"
+    },
+    "decision_desc": {
+      "gbr_free_french_recognition": "런던에서 싸움을 이어 가는 프랑스 지도자들을 싸우는 프랑스의 대표로 인정한다.",
+      "gbr_levant_intervention": "팔레스타인에서 비시 정부가 쥔 시리아와 레바논으로 진군할 준비를 한다.",
+      "gbr_occupy_iceland": "덴마크가 독일 손에 들어갔으니, 독일이 대서양 항로를 위협하는 데 쓰기 전에 아이슬란드에 병력을 상륙시킨다.",
+      "gen_annex_subject": "180일에 걸쳐 완전히 통합된 괴뢰국을 군대와 함께 우리 나라에 합친다.",
+      "gen_demand_autonomy": "종주국에 우리 일을 더 많이 스스로 정하게 해 달라고 압박한다. 자치도 +10%.",
+      "gen_downgrade_subject": "자치도가 바닥난 속국을 한 단계 더 우리 통치 아래로 끌어들인다.",
+      "gen_exile_recruit": "국외로 빠져나온 국민과 동맹국 땅에 있는 국민을 모병한다. 우리 편이 쥔 본토 인구의 1%를 인력으로 얻는다.",
+      "gen_exile_resistance": "점령당한 본토에 자금과 무전기, 조직책을 보낸다. 90일 동안 그곳의 저항이 더 빨리 커진다.",
+      "gen_partisan_support": "적이 점령한 우리 땅의 파르티잔에게 보급한다. 90일 동안 그곳의 저항이 커진다.",
+      "gen_release_subject": "속국에 대한 보호 관계를 끝낸다. 그 나라는 우리 진영에 남는다.",
+      "gen_request_autonomy": "자치도가 한계에 이르렀다. 종주국에 지위를 높여 달라고, 이미 자치령이라면 독립시켜 달라고 요구한다.",
+      "gen_restore_country": "더 이상 존재하지 않는 나라의 본토를 우리가 되찾았다면, 그 나라를 다시 세우고 우리 진영에 초청한다.",
+      "gen_tighten_control": "90일 동안 속국에 관리와 고문을 보내 자치도가 오르지 못하게 누른다."
+    },
+    "event_desc": {
+      "bgr_fatherland_front": "소련이 우리에게 선전포고했고 소련군이 도나우강을 건너고 있다. 소피아에서는 조국 전선 연합이 하룻밤 사이 관청을 장악하고 독일과의 전쟁에 나서겠다고 밝혔다.",
+      "bgr_greek_thrace": "우리 군은 독일군의 진격을 따라 동마케도니아와 서트라키아로 들어갔고, 그리스 정부는 망명했다. 소피아는 에게해로 나가는 길목인 이 지역을 1919년에 잃은 땅으로 여기며 왕국에 편입하려 한다.",
+      "casablanca_conference": "대통령과 총리가 카사블랑카에서 만나 다음 한 해의 전쟁 계획을 세웠다. 헤어지기 전 두 사람은 독일, 이탈리아, 일본의 무조건 항복 말고는 어떤 것도 받아들이지 않기로 합의했다.",
+      "deu_annex_west_poland": "폴란드 정부는 국외로 피신해 망명지에서 전쟁을 이어 가고 있다. 행정관들은 강화 조약을 기다리지 말고 회랑 지대와 포즈난, 동부 상부 슐레지엔을 법령으로 제국에 편입하자고 건의한다.",
+      "deu_croatian_state": "유고슬라비아가 무너지고 국왕과 정부는 국외로 피신했다. 자그레브에서는 민족주의 운동이 크로아티아 독립국을 선포하고 우리의 승인을 바란다. 이 나라는 보스니아·헤르체고비나까지 아우르며, 이탈리아는 해안의 제 몫을 기대한다.",
+      "deu_denmark_takeover": "덴마크 도시들에 파업과 사보타주가 번지고, 코펜하겐 정부는 비상조치를 요구한 우리 뜻을 거부했다. 전권 대표는 협력 정책을 끝내고 덴마크군을 무장 해제하여 나라를 직접 다스리자고 건의한다.",
+      "deu_hungary_coup": "헝가리 섭정이 휴전을 방송했다. 부다페스트의 우리 군과 휴전에 반대하는 헝가리 장교들은 왕궁 언덕을 장악하고 섭정을 물러나게 한 뒤 헝가리를 전쟁에 붙잡아 둘 정부에 권력을 넘길 수 있다.",
+      "deu_italy_betrayal": "로마가 우리 몰래 연합국과의 휴전을 발표했다. 이탈리아 주둔 사단들은 이탈리아군을 무장 해제하고 알프스 고갯길과 북부 도시들을 장악한 뒤, 반도를 될 수 있는 한 남쪽까지 지키라는 명령을 받았다.",
+      "deu_occupy_hungary": "붉은 군대가 카르파티아산맥에 다가오는 동안 부다페스트가 단독 강화를 모색하고 있다는 보고가 들어왔다. 섭정은 오스트리아에서 열리는 회담에 불려 왔다. 그가 자리를 비운 사이 우리 사단들이 헝가리를 장악하고 믿을 만한 정부를 세울 수 있다.",
+      "deu_social_republic": "독일 공수부대가 산속에 갇혀 있던 무솔리니를 구출했다. 그는 가르다 호숫가의 살로에 자리 잡고 이탈리아 북부에서 파시스트 정부를 이끌며 점령 지역을 우리 편에 묶어 두려 한다.",
+      "esp_civil_war_ends": "상대편의 마지막 저항이 무너지고 스페인 전역에서 포성이 멎었다. 이긴 쪽이 이제 나라 전체를 다스리며, 전쟁으로 무너진 마을과 철도, 농토를 다시 일으켜야 한다.",
+      "esr_international_brigades": "수십 개 나라에서 온 지원병들이 공화국을 위해 싸우려고 알바세테에 도착하고 있다. 총을 처음 잡아 보는 이도 많지만 신념만은 굳건하다. 정부는 이들을 따로 여단으로 편성하기로 했다.",
+      "eth_restoration": "영국과 영연방군이 에티오피아 애국 부대와 함께 아디스아바바에서 이탈리아군을 몰아냈다. 1936년부터 망명 중이던 하일레 셀라시에 황제가 이탈리아군이 수도를 점령한 지 꼭 5년 만에 수도로 돌아가려 한다.",
+      "fin_moscow_armistice": "소련의 여름 공세가 카렐리야 지협의 우리 방어선을 무너뜨렸다. 모스크바의 조건은 1940년 국경, 페차모 할양, 포르칼라반도 조차, 배상금, 그리고 필요하면 무력으로 핀란드 땅의 독일군을 몰아내는 것이다.",
+      "gbr_habbaniya": "이라크군이 하바니야 공군 기지를 내려다보는 고지를 차지하고 페르시아만 유전으로 가는 길을 위협하고 있다. 바그다드 정부는 병력을 물리지 않는다. 1930년 조약에 따라 우리에게는 이라크를 지나 군대를 움직일 권리가 있다.",
+      "gbr_levant_campaign": "이라크로 가던 독일 항공기들이 시리아의 비시 비행장에서 급유했다. 레반트가 수에즈 옆의 추축국 거점이 될 수도 있다. 팔레스타인의 우리 군은 자유 프랑스군과 함께 다마스쿠스와 베이루트로 진군할 준비를 마쳤다.",
+      "gbr_non_intervention_committee": "스물일곱 나라의 대표가 런던에 모여 스페인의 어느 편에도 무기를 보내지 않기로 합의했다. 독일과 이탈리아, 소련도 서명했지만 약속을 지키리라 믿는 이는 드물다. 손을 떼면 유럽 전체로 번지는 전쟁은 막을지 모르나, 공화국은 홀로 남는다.",
+      "gen_diplo_lend_lease": "한 나라가 우리 비축에서 장비를 다달이 보내 달라고 요청했다. 운송은 우리가 맡는다. 쓸모 있는 우방을 키워 주지만 우리 사단에 돌아갈 몫은 줄어든다.",
+      "gen_exile_formed": "나라의 군대는 패하고 땅은 점령되었지만 정부는 국외로 빠져나갔다. 망명 정부는 동맹국의 수도에서 남은 군대를 이끌고 전쟁을 이어 가며 점령지 사람들을 대변한다.",
+      "gen_peace_conference": "포성이 멎고 승전국들이 패전국의 운명을 정하려고 모였다. 각국은 차례대로 요구를 내놓으며, 승리에 크게 기여한 나라일수록 더 많은 것을 요구할 수 있다.",
+      "gen_subject_upgrade": "우리 보호 아래 있는 정부가 자기 일을 더 많이 스스로 맡게 해 달라고 요청했다. 들어주면 장악력은 느슨해지지만 호의를 얻는다. 거절하면 손에 쥐고 있을 수 있으나 결별로 이어질지도 모른다.",
+      "gen_uprising": "무장한 사람들이 한 지역에서 점령군 수비대를 몰아내고 관공서에 자기네 깃발을 올렸다. 그 땅을 지켜 낼 수 있을지는 도움이 얼마나 빨리 오느냐에 달렸다.",
+      "gen_volunteers_arrive": "우방 정부가 우리 곁에서 싸울 의용군을 보냈다. 이들은 자기 장교와 장비를 갖추고 자기 지휘 아래 있지만 우리의 적과 싸울 것이다.",
+      "hun_horthy_armistice": "붉은 군대가 헝가리 대평원에 들어섰다. 모스크바에 간 섭정의 사절은 예비 휴전 조건에 합의했고, 섭정은 헝가리가 전쟁에서 빠진다고 라디오로 발표하려 한다. 베를린은 가만있지 않을 것이다.",
+      "irn_armistice": "영국군은 이라크와 페르시아만에서, 소련군은 캅카스에서 밀려오고 있으며 우리 군은 어느 전선도 지켜 내지 못한다. 두 나라는 소련으로 가는 보급로를 열고 독일인을 추방하라고 요구한다. 국왕의 정부는 오늘 싸움을 멈출 수 있다.",
+      "irn_new_shah": "소련군이 테헤란으로 다가오자 레자 샤가 퇴위하고 나라를 떠나기로 했다. 그의 아들 모하마드 레자가 의회에서 즉위 선서를 하고 입헌 군주로 다스리겠다고 약속한다.",
+      "irq_armistice": "영국군 부대가 바그다드로 다가오고 독일의 공중 지원은 너무 늦었다. 쿠데타 지도자들은 이란으로 달아나고 있다. 섭정에 충성하는 장교들이 휴전에 서명하고 옛 정부를 되돌리려 한다.",
+      "irq_golden_square": "'황금 사각형'이라 불리는 네 명의 육군 대령이 바그다드의 왕궁을 에워쌌다. 섭정은 달아났고, 장교들은 영국의 영향력을 끝내고 추축국의 도움을 바라는 국방 정부를 세우려 한다.",
+      "isl_british_occupation": "영국 군함이 허락도 구하지 않고 레이캬비크에 병력을 상륙시켰다. 런던은 덴마크가 점령된 지금 아이슬란드가 독일 손에 넘어가지 않게 해야 한다며, 전쟁이 끝나면 떠나겠다고 약속한다. 우리에게는 맞설 군대가 없다.",
+      "isl_us_garrison": "워싱턴이 영국 대신 아이슬란드 방위를 맡겠다고 제안했고, 우리 정부가 이를 요청했다. 영국군이 다른 전선으로 떠나는 동안 미 해병대가 섬에 주둔한다.",
+      "phl_osmena_succeeds": "케손 대통령이 오랜 병 끝에 뉴욕주 새러낵레이크에서 숨을 거두었다. 세르히오 오스메냐 부통령이 워싱턴에서 취임 선서를 하고 필리핀 연방 정부를 마닐라로 돌아가게 하겠다고 다짐한다.",
+      "pol_warsaw_uprising": "소련 전차가 바르샤바 동쪽 길목에 나타났다는 보고가 들어왔다. 시내의 국내군 사령관은 붉은 군대가 들어오기 전에 독일 수비대에 맞서 봉기해 수도를 해방하게 해 달라고 승인을 구한다.",
+      "potsdam_conference": "폐허가 된 베를린 근교의 체칠리엔호프 궁전에서 승전국들이 독일의 동쪽 국경을 오데르강과 나이세강으로 정하고 동프로이센을 나누었다. 회담을 마치기 전 이들은 일본에 항복을 요구할 것이다.",
+      "rou_august_coup": "소련군이 몰다비아에서 전선을 돌파했다. 젊은 국왕과 야당들은 왕궁에서 정부 수반을 체포하고, 라디오로 연합국과의 휴전을 발표한 뒤 군대를 독일에 맞서게 하려 한다.",
+      "sun_annex_east_poland": "점령한 폴란드 동부에서 소집된 의회가 우크라이나와 벨라루스 소비에트 공화국에 합류하겠다고 요청했다. 최고 소비에트가 요청을 받아들이면 국경이 확정된다.",
+      "sun_vilnius_to_lithuania": "우리 군이 빌뉴스를 장악했다. 리투아니아는 1920년부터 이 도시를 자기 수도라고 주장해 왔다. 상호 원조 조약을 맺으면 도시를 카우나스 정부에 넘기는 대신 리투아니아 땅에 소련군 수비대를 둘 수 있다.",
+      "svk_independence": "보헤미아와 모라바를 손에 넣자, 브라티슬라바의 슬로바키아 정치인들이 우리의 보호 아래 독립국을 선포하겠다고 나섰다. 따로 세운 슬로바키아는 큰 비용 없이 우리 옆구리를 지켜 줄 것이다. 직접 다스리면 그 땅을 우리 손에 둘 수 있다.",
+      "svk_national_uprising": "슬로바키아 중부 산악 지대의 군부대와 파르티잔이 반스카비스트리차를 중심으로 정부와 그 뒤의 독일에 맞서 봉기했다. 독일 사단들이 봉기를 진압하고 그 지역을 점령하려고 들어오고 있다.",
+      "tehran_conference": "소련, 미국, 영국의 지도자가 처음으로 테헤란의 소련 대사관에서 한자리에 앉았다. 세 사람은 1944년 봄 프랑스에 제2전선을 열기로 합의했다.",
+      "tha_border_war": "프랑스가 패하자 방콕의 군중은 1904년과 1907년에 프랑스령 인도차이나에 넘겨준 메콩강 서쪽 땅을 되찾자고 외친다. 국경에서는 이미 충돌이 시작되었다. 정부는 전쟁과 인내 가운데 하나를 골라야 한다.",
+      "tha_tokyo_peace": "일본이 시암과의 국경 전쟁을 중재하겠다며 답을 기다린다. 조건은 메콩강 서쪽과 바탐방 일대의 땅을 시암에 넘기는 것이다. 거절하면 홀로 싸움을 이어 가야 한다.",
+      "yalta_conference": "연합국의 세 지도자가 크림반도의 리바디아 궁전에서 만났다. 이들은 독일의 점령 지구를 정하고, 소련은 독일이 패한 뒤 석 달 안에 일본과의 전쟁에 나서겠다고 약속했다.",
+      "yug_occupation_partition": "유고슬라비아 정부가 망명하자 점령국들이 경계를 긋는다. 우리는 슬로베니아 북부를, 이탈리아는 류블랴나와 달마티아 해안을, 헝가리는 바치카와 바라냐를, 불가리아는 바르다르 마케도니아를 차지한다. 남은 세르비아는 우리 군정 아래 둔다.",
+      "yug_rump_serbia": "강화는 우리에게 독일에 매인 세르비아 본토만을 남겼다. 남슬라브인의 왕국이라는 이름은 베오그라드만 다스리는 나라에 더는 맞지 않는다며, 내각은 나라 이름을 세르비아로 하자고 제안한다."
+    },
+    "event_opt": {
+      "bgr_fatherland_front": {
+        "a": "조국 전선이 집권한다",
+        "b": "내각이 남는다"
+      },
+      "bgr_greek_thrace": {
+        "a": "이 지역을 편입한다"
+      },
+      "casablanca_conference": {
+        "a": "무조건 항복을 요구한다"
+      },
+      "deu_annex_west_poland": {
+        "a": "법령으로 편입한다",
+        "b": "점령지로 둔다"
+      },
+      "deu_croatian_state": {
+        "a": "크로아티아를 승인한다",
+        "b": "점령을 그대로 둔다"
+      },
+      "deu_denmark_takeover": {
+        "a": "직접 통치로 바꾼다",
+        "b": "협력 정책을 유지한다"
+      },
+      "deu_hungary_coup": {
+        "a": "섭정을 몰아낸다",
+        "b": "헝가리를 놓아준다"
+      },
+      "deu_italy_betrayal": {
+        "a": "이탈리아를 점령한다",
+        "b": "이탈리아를 놓아준다"
+      },
+      "deu_occupy_hungary": {
+        "a": "헝가리를 점령한다",
+        "b": "섭정을 믿는다"
+      },
+      "deu_social_republic": {
+        "a": "사회 공화국을 세운다",
+        "b": "북부를 직접 다스린다"
+      },
+      "esp_civil_war_ends": {
+        "a": "새 국가를 선포한다"
+      },
+      "esr_international_brigades": {
+        "a": "여단을 받아들인다"
+      },
+      "eth_restoration": {
+        "a": "에티오피아를 복원한다",
+        "b": "군정을 유지한다"
+      },
+      "fin_moscow_armistice": {
+        "a": "휴전을 받아들인다",
+        "b": "끝까지 싸운다"
+      },
+      "gbr_habbaniya": {
+        "a": "먼저 공격한다",
+        "b": "이라크에서 전쟁을 피한다"
+      },
+      "gbr_levant_campaign": {
+        "a": "레반트로 진군한다",
+        "b": "움직이지 않는다"
+      },
+      "gbr_non_intervention_committee": {
+        "a": "위원회에 참여한다",
+        "b": "공화국을 무장시킨다"
+      },
+      "gen_diplo_lend_lease": {
+        "a": "보내기로 한다",
+        "b": "요청을 거절한다"
+      },
+      "gen_subject_upgrade": {
+        "a": "자치를 넓혀 준다",
+        "b": "요청을 거절한다"
+      },
+      "hun_horthy_armistice": {
+        "a": "휴전을 발표한다",
+        "b": "계속 싸운다"
+      },
+      "irn_armistice": {
+        "a": "정전을 명령한다",
+        "b": "저항을 이어 간다"
+      },
+      "irn_new_shah": {
+        "a": "새 국왕이 즉위한다"
+      },
+      "irq_armistice": {
+        "a": "휴전에 서명한다",
+        "b": "계속 싸운다"
+      },
+      "irq_golden_square": {
+        "a": "쿠데타가 성공한다",
+        "b": "섭정이 버틴다"
+      },
+      "isl_british_occupation": {
+        "a": "항의하되 받아들인다",
+        "b": "점령을 거부한다"
+      },
+      "isl_us_garrison": {
+        "a": "미군 주둔을 받아들인다"
+      },
+      "phl_osmena_succeeds": {
+        "a": "오스메냐 대통령이 취임한다"
+      },
+      "pol_warsaw_uprising": {
+        "a": "봉기를 명령한다",
+        "b": "전선을 기다린다"
+      },
+      "potsdam_conference": {
+        "a": "유럽의 강화를 매듭짓는다"
+      },
+      "rou_august_coup": {
+        "a": "국왕이 노선을 바꾼다",
+        "b": "정권이 남는다"
+      },
+      "sun_annex_east_poland": {
+        "a": "편입을 받아들인다",
+        "b": "일을 미룬다"
+      },
+      "sun_vilnius_to_lithuania": {
+        "a": "빌뉴스를 리투아니아에 넘긴다",
+        "b": "도시를 그대로 둔다"
+      },
+      "svk_independence": {
+        "a": "슬로바키아국을 승인한다",
+        "b": "직접 다스린다"
+      },
+      "svk_national_uprising": {
+        "a": "봉기가 일어난다",
+        "b": "군대가 정부에 남는다"
+      },
+      "tehran_conference": {
+        "a": "제2전선에 합의한다"
+      },
+      "tha_border_war": {
+        "a": "영토를 되찾는다",
+        "b": "자제한다"
+      },
+      "tha_tokyo_peace": {
+        "a": "일본의 중재를 받아들인다",
+        "b": "중재를 거부한다"
+      },
+      "yalta_conference": {
+        "a": "전후 질서에 합의한다"
+      },
+      "yug_occupation_partition": {
+        "a": "국경을 긋는다"
+      },
+      "yug_rump_serbia": {
+        "a": "세르비아라는 이름을 쓴다"
+      }
+    },
+    "event_title": {
+      "bgr_fatherland_front": "조국 전선",
+      "bgr_greek_thrace": "서트라키아",
+      "casablanca_conference": "카사블랑카 회담",
+      "deu_annex_west_poland": "폴란드 서부 지역",
+      "deu_croatian_state": "크로아티아 국가",
+      "deu_denmark_takeover": "덴마크 협력 정책의 끝",
+      "deu_hungary_coup": "부다페스트의 쿠데타",
+      "deu_italy_betrayal": "이탈리아의 이탈",
+      "deu_occupy_hungary": "헝가리 점령",
+      "deu_social_republic": "이탈리아 사회 공화국",
+      "esp_civil_war_ends": "내전의 끝",
+      "esr_international_brigades": "국제 여단",
+      "eth_restoration": "황제의 귀환",
+      "fin_moscow_armistice": "모스크바 휴전",
+      "gbr_habbaniya": "하바니야 포위",
+      "gbr_levant_campaign": "시리아와 레바논으로",
+      "gbr_non_intervention_committee": "불간섭 위원회",
+      "gen_diplo_lend_lease": "랜드리스 요청",
+      "gen_exile_formed": "망명 정부",
+      "gen_peace_conference": "평화 회의",
+      "gen_subject_upgrade": "자치 확대 요청",
+      "gen_uprising": "봉기",
+      "gen_volunteers_arrive": "외국 의용군 도착",
+      "hun_horthy_armistice": "호르티의 휴전",
+      "irn_armistice": "이란 정전",
+      "irn_new_shah": "새 국왕",
+      "irq_armistice": "이라크 휴전",
+      "irq_golden_square": "황금 사각형",
+      "isl_british_occupation": "레이캬비크의 영국군",
+      "isl_us_garrison": "아이슬란드의 미군",
+      "phl_osmena_succeeds": "오스메냐의 취임",
+      "pol_warsaw_uprising": "바르샤바 봉기",
+      "potsdam_conference": "포츠담 회담",
+      "rou_august_coup": "미하이 국왕의 쿠데타",
+      "sun_annex_east_poland": "서우크라이나와 서벨라루스",
+      "sun_vilnius_to_lithuania": "빌뉴스와 리투아니아",
+      "svk_independence": "슬로바키아 문제",
+      "svk_national_uprising": "슬로바키아 국민 봉기",
+      "tehran_conference": "테헤란 회담",
+      "tha_border_war": "잃어버린 영토",
+      "tha_tokyo_peace": "도쿄 강화",
+      "yalta_conference": "얄타 회담",
+      "yug_occupation_partition": "유고슬라비아 분할",
+      "yug_rump_serbia": "세르비아"
+    },
+    "gov": {
+      "BRM": {
+        "neutral": "버마국"
+      },
+      "HRV": {
+        "fascist": "크로아티아 독립국"
+      },
+      "MEN": {
+        "neutral": "몽강 연합자치정부"
+      },
+      "PHL": {
+        "democratic": "필리핀 연방",
+        "neutral": "필리핀 공화국"
+      },
+      "RNG": {
+        "neutral": "난징 국민정부"
+      },
+      "RSI": {
+        "fascist": "이탈리아 사회 공화국"
+      },
+      "SVK": {
+        "neutral": "슬로바키아국"
+      }
+    },
+    "news": {
+      "gen_exile_formed": "패전한 정부가 국외로 피신해 망명지에서 전쟁을 이어 간다.",
+      "gen_peace_conference": "전쟁의 끝을 정할 평화 회의가 열렸다.",
+      "gen_uprising": "점령지에서 봉기가 일어났다.",
+      "gen_volunteers_arrive": "외국 의용군이 전투에 합류하러 도착했다.",
+      "news_casablanca": "카사블랑카에서 연합국이 무조건 항복만을 받아들이겠다고 선언했다.",
+      "news_croatian_state": "추축국의 보호 아래 자그레브에서 크로아티아 독립국이 선포되었다.",
+      "news_denmark_takeover": "독일이 덴마크 정부와의 협력을 끝내고 직접 통치에 나섰다.",
+      "news_esp_civil_war_ends": "스페인 내전이 끝나고 한 정부가 스페인 전체를 다스리게 되었다.",
+      "news_ethiopia_restored": "하일레 셀라시에 황제가 아디스아바바로 돌아오고 에티오피아가 복원되었다.",
+      "news_fatherland_front": "조국 전선이 소피아에서 집권하고 불가리아가 독일에 맞섰다.",
+      "news_golden_square": "바그다드의 군사 쿠데타로 이라크에 추축국 쪽 정부가 들어섰다.",
+      "news_greek_thrace": "불가리아가 동마케도니아와 서트라키아를 편입했다.",
+      "news_horthy_armistice": "호르티 섭정이 헝가리가 휴전을 구한다고 라디오로 발표했다.",
+      "news_hungary_coup": "독일이 뒤에 선 쿠데타로 부다페스트의 섭정이 물러나고 헝가리는 전쟁에 남았다.",
+      "news_hungary_occupied": "독일군이 헝가리를 점령했다. 섭정은 자리를 지키지만 친독 내각이 들어섰다.",
+      "news_iceland_occupied": "영국군이 아이슬란드를 독일 손에서 지키려고 섬에 상륙했다.",
+      "news_iceland_us_garrison": "미 해병대가 아이슬란드에 주둔하러 도착했다.",
+      "news_international_brigades": "스페인 공화국을 위해 싸울 첫 국제 여단이 알바세테에서 편성되었다.",
+      "news_iran_armistice": "이란이 정전을 명령하고 영국군과 소련군이 남부와 북부를 점령했다.",
+      "news_italy_occupied": "독일군이 이탈리아군을 무장 해제하고 이탈리아 북부와 중부를 점령했다.",
+      "news_moscow_armistice": "핀란드가 소련과 휴전하고 라플란드의 독일군에 맞섰다.",
+      "news_new_shah": "레자 샤가 퇴위하고 아들 모하마드 레자 팔라비가 이란 국왕이 되었다.",
+      "news_potsdam": "포츠담에서 연합국이 독일의 동쪽 국경을 오데르-나이세선으로 정했다.",
+      "news_romania_switches": "부쿠레슈티에서 국왕이 쿠데타를 일으켜 루마니아가 추축국을 떠나 독일에 맞섰다.",
+      "news_slovak_state": "독일의 보호 아래 브라티슬라바에서 슬로바키아국이 선포되었다.",
+      "news_slovak_uprising": "슬로바키아 국민 봉기가 일어나고 독일군이 슬로바키아로 들어왔다.",
+      "news_social_republic": "무솔리니가 독일이 장악한 이탈리아 북부에서 이탈리아 사회 공화국을 이끌게 되었다.",
+      "news_tehran": "테헤란에서 연합국 지도자들이 1944년 프랑스 상륙에 합의했다.",
+      "news_tokyo_peace": "도쿄 조약으로 프랑스와 시암의 전쟁이 끝나고 시암이 국경 지방을 되찾았다.",
+      "news_vilnius_to_lithuania": "소련이 빌뉴스를 리투아니아에 넘기고 그 나라에 군대를 주둔시켰다.",
+      "news_warsaw_uprising": "폴란드 국내군이 바르샤바에서 독일 수비대에 맞서 봉기했다.",
+      "news_yalta": "얄타에서 연합국이 독일 점령 방안을 정하고 소련은 일본과의 전쟁을 약속했다.",
+      "news_yugoslavia_partition": "독일, 이탈리아, 헝가리, 불가리아가 점령한 유고슬라비아를 나누어 가졌다."
+    },
+    "person": {
+      "irn_mohammad_reza": "모하마드 레자 팔라비",
+      "phl_osmena": "세르히오 오스메냐",
+      "phl_quezon": "마누엘 L. 케손",
+      "rou_michael": "미하이 1세"
+    },
+    "rename": {
+      "serbia": "세르비아",
+      "spain": "스페인",
+      "spanish_republic": "스페인 공화국"
+    },
+    "spirit": {
+      "gen_arms_limit": "군비 제한",
+      "gen_exile_no_elections": "망명 중 선거 없음",
+      "gen_non_intervention": "불간섭",
+      "gen_partisan_support_spirit": "파르티잔 보급",
+      "gen_resistance_support": "저항 지원"
+    },
+    "spirit_desc": {
+      "gen_arms_limit": "강화 조약으로 육군은 12개 사단으로 묶이고, 함정 건조는 금지되며, 군수 공장 산출은 절반으로 줄었다.",
+      "gen_exile_no_elections": "국외에 있는 정부는 돌아갈 때까지 선거를 치를 수 없다.",
+      "gen_non_intervention": "스페인의 어느 편에도 의용군이나 랜드리스를 보내지 않기로 약속했다.",
+      "gen_partisan_support_spirit": "공중 투하와 연락원이 적에게 점령된 우리 땅의 파르티잔을 계속 싸우게 한다.",
+      "gen_resistance_support": "우리 요원과 무전기가 점령당한 본토의 저항 운동을 키우고 있다."
+    },
+    "title": {
+      "brm_head": "국가 대표",
+      "cw_provisional_leader": "임시 지도자",
+      "hrv_head": "국가 지도자",
+      "hun_nation_leader": "국민 지도자",
+      "irq_national_defence_head": "국방 정부 수반",
+      "irq_regent": "이라크 섭정",
+      "men_head": "자치 정부 주석",
+      "phl_head": "공화국 대통령",
+      "rng_head": "국민정부 주석",
+      "svk_head": "대통령",
+      "vic_head": "국가 주석"
     }
   }
 }
