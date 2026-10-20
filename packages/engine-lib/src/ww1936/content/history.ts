@@ -93,7 +93,8 @@ export const HISTORY_BEATS: HistoryBeat[] = [
     id: "b1939_09_17_sun_pol",
     date: "1939-09-17",
     actor: "SUN",
-    act: { kind: "declare", target: "POL" },
+    // Undeclared (controller ruling, lane D fix 1): a join calls no guarantees.
+    act: { kind: "join", target: "POL" },
     safety: true,
   },
   {

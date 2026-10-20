@@ -22,14 +22,17 @@ import {
   AiTrainInput,
   aiTrainPlan,
 } from "@openfront/engine/ww1936/land/AiLand";
+import { addWarGoal } from "@openfront/engine/ww1936/politics/WarGoals";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import {
   byTag,
+  dropPact,
   HUMAN,
   land,
+  pol,
   step,
   stepTo,
   warAfterPrep,
@@ -83,6 +86,10 @@ async function aiWar(a: "DEU" | "GBR", b: "POL" | "SUN") {
   const runner = await wwRunner({ historicalAi: false });
   const g = runner.game;
   const calls = spyIssue(g);
+  dropPact(g, a, b);
+  // P3 spec §14.5: a democracy (Britain) declares only with a war goal.
+  const [ai, bi] = [byTag(g, a).smallID(), byTag(g, b).smallID()];
+  addWarGoal(pol(g), ai, bi, "conquer", "", 0);
   stepTo(runner, WW_PREP_TICKS + 1);
   const ww = g.worldWar()!;
   expect(declareWar(g, ww, byTag(g, a), byTag(g, b), g.ticks())).not.toEqual(

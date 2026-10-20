@@ -40,6 +40,7 @@ import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import {
   byTag,
   clearLand,
+  dropPact,
   HUMAN,
   land,
   placeArmy,
@@ -95,6 +96,7 @@ function specInfantry(l: WwLand, deu: number): number {
 async function juneWar() {
   const { runner, updates } = await wwRunnerCapture({}, DEU_POL);
   const g = runner.game;
+  dropPact(g, "DEU", "POL");
   stepTo(runner, dayStartTick(JUNE_1, WW_PREP_TICKS));
   step(runner, 2, [
     stamped(HUMAN, { type: "declare_war", target: byTag(g, "POL").id() }),
