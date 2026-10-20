@@ -97,6 +97,28 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(capitulated?.params).toEqual({ loserTag: "POL", victorTag: "DEU" });
   });
 
+  test("a capitulation with no victor names none", async () => {
+    const { runner, updates } = await wwRunnerCapture();
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const pol = byTag(g, "POL");
+    stepTo(runner, WW_PREP_TICKS + 1);
+    // Its points are lost to nobody: the land goes unowned.
+    pol.relinquish(vpTileOf(g, "Warsaw"));
+    pol.relinquish(vpTileOf(g, "Krakow"));
+    nextDay(runner);
+    expect(ww.isCapitulated(pol.smallID())).toBe(true);
+    expect(ww.data().capitulated).toEqual([
+      expect.objectContaining({ smallID: pol.smallID(), victor: 0 }),
+    ]);
+    const messages = updates
+      .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+      .filter((m) => m.message.startsWith("events_display.ww1936_capitulated"));
+    expect(messages.map((m) => [m.message, m.params])).toEqual([
+      ["events_display.ww1936_capitulated_no_victor", { loserTag: "POL" }],
+    ]);
+  });
+
   test("the land moves to the victor; the conquest is settled once, when the last tile moves", async () => {
     const { runner, updates } = await wwRunnerCapture();
     const g = runner.game;
