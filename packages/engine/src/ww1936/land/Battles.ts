@@ -650,7 +650,7 @@ export function stepRecovery(land: WwLand): void {
       pct =
         100 +
         (g !== null && (g.traits & traitBit("organizer")) !== 0 ? 20 : 0) +
-        (land.econ.country(t.owner[r])?.tech.recoveryPct ?? 0);
+        (land.econ.country(t.owner[r])?.stats.recoveryPct ?? 0);
       pctOf.set(key, pct);
     }
     const signal =
@@ -696,7 +696,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
         g !== null && (g.traits & traitBit("defensive_doctrine")) !== 0 ? 2 : 1;
       stepOf.set(army, step);
     }
-    const max = entrenchMax(land.flagsOf(r), ce.tech);
+    const max = entrenchMax(land.flagsOf(r), ce.stats);
     t.entrench[r] = Math.min(max, t.entrench[r] + step);
   }
 }
@@ -714,9 +714,10 @@ export function battleMods(land: WwLand, b: Battle, row: number): ModResult {
 /**
  * divisionMods(modInputOf(...)).mods, kept by division (derived): a hit
  * needs every field of the new input equal to the one the mods were
- * computed from (divisionMods reads nothing else; the tech totals object
- * is replaced, never written into), so a kept value is the one a fresh
- * computation gives. The battles and the plans' predictions call it.
+ * computed from (divisionMods reads nothing else) and the same
+ * CountryEconomy.statsVer (P3 writes the stats object, the input's `tech`,
+ * in place and bumps it), so a kept value is the one a fresh computation
+ * gives. The battles and the plans' predictions call it.
  */
 export function modsOf(
   land: WwLand,
@@ -725,24 +726,36 @@ export function modsOf(
   attacking: boolean,
 ): CombatMods {
   const input = modInputOf(land, row, region, attacking);
-  let cache = modsCaches.get(land);
-  if (cache === undefined) {
-    cache = new Map();
-    modsCaches.set(land, cache);
+  let kept = modsCaches.get(land);
+  // A rebuild (restore, factions) starts the cache over.
+  if (kept === undefined || kept.epoch !== land.derivedEpoch) {
+    kept = { epoch: land.derivedEpoch, byId: new Map() };
+    modsCaches.set(land, kept);
   }
+  const cache = kept.byId;
   const id = land.divisions.id[row];
+  const statsVer = land.econ.country(land.divisions.owner[row])?.statsVer ?? -1;
   const hit = cache.get(id);
-  if (hit !== undefined && sameModInput(hit.input, input)) return hit.mods;
+  if (
+    hit !== undefined &&
+    hit.statsVer === statsVer &&
+    sameModInput(hit.input, input)
+  ) {
+    return hit.mods;
+  }
   // Dead divisions' entries: drop them all now and then (a refill is exact).
   if (cache.size > 2 * land.divisions.count() + 1024) cache.clear();
   const mods = divisionMods(input).mods;
-  cache.set(id, { input, mods });
+  cache.set(id, { input, statsVer, mods });
   return mods;
 }
 
 const modsCaches = new WeakMap<
   WwLand,
-  Map<number, { input: ModInput; mods: CombatMods }>
+  {
+    epoch: number;
+    byId: Map<number, { input: ModInput; statsVer: number; mods: CombatMods }>;
+  }
 >();
 let modInputKeys: readonly (keyof ModInput)[] | null = null;
 
@@ -804,7 +817,7 @@ export function modInputOf(
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
     flags: land.flagsOf(row),
-    tech: land.econ.country(t.owner[row])?.tech ?? NEUTRAL_TECH,
+    tech: land.econ.country(t.owner[row])?.stats ?? NEUTRAL_TECH,
     exp: t.exp[row],
     planBp,
     land: landOf,

@@ -24,6 +24,11 @@ export const DECLARE_WAR_BLOCKS = [
   "capitulated",
   "faction",
   "at_war",
+  // P3 (P3 spec §14.5), appended.
+  "nap",
+  "guarantor",
+  "democracy_no_goal",
+  "isolation",
 ] as const;
 export type DeclareWarBlock = (typeof DECLARE_WAR_BLOCKS)[number];
 

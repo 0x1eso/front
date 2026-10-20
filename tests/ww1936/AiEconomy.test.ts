@@ -52,6 +52,11 @@ function input(over: Partial<AiInput> = {}): AiInput {
       conscription: "limited",
     },
     lawCooldownUntil: { economy: -1, trade: -1, conscription: -1 },
+    // P3 (controller ruling R10): neutral, 50% war support, no tension.
+    wsBp: 5000,
+    wtBp: 0,
+    ruling: 3,
+    ppMilli: 1_000_000,
     manpower: 500_000,
     recruitable: 850_000,
     infStock: 0,
@@ -522,7 +527,7 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     ).toEqual(["fortification_1"]);
   });
 
-  test("laws follow the personality", () => {
+  test("laws follow the personality, as far as P3's conditions allow", () => {
     const laws = (over: Partial<AiInput>) =>
       only(aiPlan(input(over)), "set_law").map((o) => `${o.law}:${o.value}`);
     const day1938 = dayOfDate("1938-01-01");
@@ -536,17 +541,20 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         conscription: "limited" as const,
       },
     };
-    // Partial mobilisation waits for 1937 at peace; then war economy at
-    // war; total mobilisation after a year of war, in one step.
-    expect(laws(aggressor)).toEqual([]);
-    expect(laws({ ...aggressor, day: dayOfDate("1937-01-01") })).toEqual([
-      "economy:partial_mobilization",
-    ]);
+    // P3 spec §7.2: partial mobilisation needs 30% war support (or a war),
+    // no longer 1937; war economy at war; total mobilisation after a year
+    // of war only with 70% war support, else as high as allowed.
+    expect(laws({ ...aggressor, wsBp: 2999 })).toEqual([]);
+    expect(laws(aggressor)).toEqual(["economy:partial_mobilization"]);
     expect(laws({ ...aggressor, warDays: 0 })).toEqual([
       "economy:war_economy",
       "conscription:extensive",
     ]);
     expect(laws({ ...aggressor, warDays: 365 })).toEqual([
+      "economy:war_economy",
+      "conscription:extensive",
+    ]);
+    expect(laws({ ...aggressor, warDays: 365, wsBp: 7000 })).toEqual([
       "economy:total_mobilization",
       "conscription:extensive",
     ]);
@@ -556,17 +564,21 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "conscription:extensive",
     ]);
     expect(laws({ day: day1938 })).toEqual(["economy:early_mobilization"]);
-    // Democracies: early in 1938, partial in 1939 or at war, war economy
-    // after 180 days of war.
+    // Democracies: early in 1938, partial in 1939 (with 25% tension) or at
+    // war, war economy after 180 days of war.
     const democracy = {
       tag: "GBR" as const,
       personality: "democracy" as const,
+      ruling: 0,
     };
     expect(laws({ ...democracy, day: day1938 - 1 })).toEqual([]);
     expect(laws({ ...democracy, day: day1938 })).toEqual([
       "economy:early_mobilization",
     ]);
     expect(laws({ ...democracy, day: day1939 })).toEqual([
+      "economy:early_mobilization",
+    ]);
+    expect(laws({ ...democracy, day: day1939, wtBp: 2500 })).toEqual([
       "economy:partial_mobilization",
     ]);
     expect(laws({ ...democracy, warDays: 179 })).toEqual([
@@ -586,9 +598,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "economy:war_economy",
       "conscription:extensive",
     ]);
-    // Manpower under a fifth of the pool at war: one step up, if allowed.
+    // Manpower under a fifth of the pool at war: one step up, if allowed
+    // (all adults: at war and 70% war support).
     const dry = {
       warDays: 400,
+      wsBp: 7000,
       laws: {
         economy: "war_economy" as const,
         trade: "export_focus" as const,
@@ -598,8 +612,8 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       recruitable: 1_000,
     };
     expect(laws(dry)).toEqual(["conscription:all_adults"]);
+    expect(laws({ ...dry, wsBp: 6999 })).toEqual([]);
     expect(laws({ ...dry, manpower: 200 })).toEqual([]);
-    expect(laws({ ...dry, warDays: 364 })).toEqual([]);
     // A law changed in the last 30 days stays.
     expect(
       laws({
@@ -1001,6 +1015,10 @@ describe("the AI economy in a game (spec §12)", () => {
     const fra = ce("FRA");
     stepTo(runner, dayStart(1));
     expect(ww.setWar(ita.smallID, fra.smallID, g.ticks())).toBe(true);
+    // P3 spec §7.1: laws cost political power (the foundation's stub day
+    // gives none; plan Task 1 Step 20).
+    for (const c of [ita, fra])
+      ww.politics.country(c.smallID)!.ppMilli = 500_000;
     // France's turn (day 6): a democracy at war mobilises partially (and
     // already has extensive conscription); Italy's (day 8): war economy.
     throughDay(runner, aiDay(fra.smallID));

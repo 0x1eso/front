@@ -21,6 +21,7 @@ import {
 import { GameLike, UnitPredicate } from "@openfront/engine-api/game/ReadViews";
 import { ClientID, GameID } from "@openfront/engine-api/Schemas";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import type { WwPolGlobal } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { unpackMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
@@ -62,6 +63,7 @@ import { PlayerView } from "./PlayerView";
 import { UnitView } from "./UnitView";
 import { WwEconomyView } from "./WwEconomyView";
 import { WwLandView } from "./WwLandView";
+import { WwPoliticsView } from "./WwPoliticsView";
 
 function readCosmeticVisibility(): CosmeticVisibility {
   return new UserSettings().graphicsOverrides().cosmetics ?? {};
@@ -125,6 +127,7 @@ export class GameView implements GameLike {
   private _wwEconomy: WwEconomyView | null = null;
   /** World War 1936 P2: the merged land war updates; null when the mode is off. */
   private _wwLand: WwLandView | null = null;
+  private _wwPolitics: WwPoliticsView | null = null;
   private readonly _usernames: Map<ClientID, string>;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
@@ -186,6 +189,7 @@ export class GameView implements GameLike {
       this._worldWarTeams = teams;
       this._wwEconomy = new WwEconomyView(scenario);
       this._wwLand = new WwLandView(scenario);
+      this._wwPolitics = new WwPoliticsView(scenario);
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
@@ -271,6 +275,36 @@ export class GameView implements GameLike {
   /** World War 1936 P2: divisions, armies, battles; null when the mode is off. */
   wwLand(): WwLandView | null {
     return this._wwLand;
+  }
+
+  /** World War 1936 P3: politics, factions, treaties, events; null when the mode is off. */
+  wwPolitics(): WwPoliticsView | null {
+    return this._wwPolitics;
+  }
+
+  /**
+   * P3 (plan decision 8): the faction teams the relation matrix colours by,
+   * from politics' factions; relations are rebuilt when they changed.
+   */
+  private syncWorldWarTeams(global: WwPolGlobal): void {
+    if (this._worldWarTeams === null) return;
+    const teams = new Map<number, string>();
+    for (const f of global.factions) {
+      for (const m of f.members) teams.set(m, f.key);
+    }
+    const old = this._worldWarTeams;
+    let same = old.size === teams.size;
+    if (same) {
+      for (const [id, key] of teams) {
+        if (old.get(id) !== key) {
+          same = false;
+          break;
+        }
+      }
+    }
+    if (same) return;
+    this._worldWarTeams = teams;
+    this._relationsDirty = true;
   }
 
   /** The lobby username of a human player. */
@@ -372,6 +406,11 @@ export class GameView implements GameLike {
     }
     for (const u of gu.updates[GameUpdateType.WwLand] ?? []) {
       this._wwLand?.apply(u.data, gu.tick);
+    }
+    for (const u of gu.updates[GameUpdateType.WwPolitics] ?? []) {
+      this._wwPolitics?.apply(u.data, gu.tick);
+      // P3: factions are state; the map's relations follow them.
+      if (u.data.global !== null) this.syncWorldWarTeams(u.data.global);
     }
 
     const myDisplayName = formatPlayerDisplayName(

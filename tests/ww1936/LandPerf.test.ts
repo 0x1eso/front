@@ -38,6 +38,7 @@ import {
   GameRunner,
 } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
+import { applyLawChange } from "@openfront/engine/ww1936/economy/LawsRun";
 import {
   joinBattle,
   modInputOf,
@@ -48,6 +49,7 @@ import {
   fieldDivision,
 } from "@openfront/engine/ww1936/land/LandStartRun";
 import { dailySupply } from "@openfront/engine/ww1936/land/Supply";
+import { deleteTemplate } from "@openfront/engine/ww1936/land/Training";
 import type { WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
@@ -246,13 +248,13 @@ function checkCaches(l: WwLand): void {
     const ce = l.econ.country(owner)!;
     const def = l.templateOf(owner, t.template[r])!.def;
     const equip = Array.from(t.equipOf(r));
-    const base = templateStats(def, ce.tech, genMixOf(equip));
+    const base = templateStats(def, ce.stats, genMixOf(equip));
     const what = `division ${t.id[r]}`;
     expect(l.baseStatsOf(r), what).toEqual(base);
     expect(l.statsOf(r), what).toEqual(divisionStats(base, equip, t.men[r]));
     expect(l.strengthOf(r), what).toBe(strengthPm(base, equip, t.men[r]));
     expect(l.orgMaxOf(r), what).toBe(
-      Math.floor((base.orgMilli * (100 + ce.tech.orgPct)) / 100),
+      Math.floor((base.orgMilli * (100 + ce.stats.orgPct)) / 100),
     );
     expect(l.flagsOf(r), what).toBe(base.flags);
     expect(l.widthOf(r), what).toBe(base.width);
@@ -378,6 +380,190 @@ describe("the land caches are derived (P2 Task 11)", () => {
       [],
     );
     checkCaches(land(b.game));
+  }, 120_000);
+});
+
+describe("the land caches follow every input (P2 Task 11, at the P3 merge)", () => {
+  /** A spirit (P3) on `tag`, and its stats again: P3 writes ce.stats in place. */
+  function giveSpirit(g: GameRunner["game"], tag: "SUN" | "DEU", id: string) {
+    const pol = g.worldWar()!.politics;
+    const me = byTag(g, tag).smallID();
+    pol.country(me)!.spirits.push({ id, untilDay: -1, addedDay: 0 });
+    pol.recomputeStats(me);
+  }
+
+  test("a spirit or a law mid-war (stats written in place): the caches follow and the game plays as one without caches", async () => {
+    const a = await warGame();
+    const b = await warGame();
+    step(a, 60);
+    step(b, 60);
+    const la = land(a.game);
+    const sun = byTag(a.game, "SUN").smallID();
+    const before = la.econ.country(sun)!.stats.orgPct;
+    const verBefore = la.econ.country(sun)!.statsVer;
+    for (let i = 0; i < 260; i++) {
+      if (i === 20) {
+        for (const r of [a, b]) {
+          giveSpirit(r.game, "SUN", "sun_purge_2");
+          giveSpirit(r.game, "DEU", "deu_combined_doctrine");
+          const l = land(r.game);
+          const pol = byTag(r.game, "POL").smallID();
+          applyLawChange(
+            l.econ,
+            l.econ.country(pol)!,
+            "economy",
+            "war_economy",
+          );
+        }
+        // The same stats object, changed in place, a new version.
+        expect(la.econ.country(sun)!.stats.orgPct).toBeLessThan(before);
+        expect(la.econ.country(sun)!.statsVer).toBeGreaterThan(verBefore);
+        checkCaches(la);
+      }
+      step(a);
+      // b: every land cache from nothing each tick.
+      land(b.game).rebuildDerived();
+      step(b);
+      if (hash(a) !== hash(b)) {
+        throw new Error(`cached and cache-free games diverged at tick ${i}`);
+      }
+      if (i % 60 === 59) checkCaches(la);
+    }
+    expect(diffSnapshots(snapshotGame(a.game), snapshotGame(b.game))).toEqual(
+      [],
+    );
+    // P3's bridge resets every stats cache: still the same numbers.
+    la.clearStatsCache();
+    checkCaches(la);
+  }, 180_000);
+
+  test("templates: a new one, a division moved to it, an unused one deleted, ids swapped", async () => {
+    const runner = await warGame();
+    const g = runner.game;
+    const l = land(g);
+    step(runner, 30);
+    checkCaches(l);
+    const pol = byTag(g, "POL").smallID();
+    const cl = l.country(pol)!;
+    cl.armyXpMilli = 1_000_000;
+    expect(
+      l.issue(pol, {
+        kind: "template_save",
+        template: 0,
+        base: cl.templates[0].id,
+        name: "x",
+        battalions: ["infantry", "infantry", "infantry", "artillery"],
+        support: [],
+      }),
+    ).toBeNull();
+    const added = cl.templates[cl.templates.length - 1].id;
+    const rows = l.rowsOf(pol).slice(0, 5);
+    for (const r of rows) l.statsOf(r);
+    for (const r of rows) l.setTemplate(r, added);
+    checkCaches(l);
+    // An unused template goes (its id is never given again).
+    expect(
+      l.issue(pol, {
+        kind: "template_save",
+        template: 0,
+        base: cl.templates[0].id,
+        name: "y",
+        battalions: ["infantry", "infantry"],
+        support: [],
+      }),
+    ).toBeNull();
+    const unused = cl.templates[cl.templates.length - 1].id;
+    expect(deleteTemplate(l, cl, unused)).toBeNull();
+    checkCaches(l);
+    // Two templates trade ids (no game does; the epoch must see ids too).
+    const [t0, t1] = [cl.templates[0], cl.templates[1]];
+    [t0.id, t1.id] = [t1.id, t0.id];
+    checkCaches(l);
+    step(runner, 30);
+    checkCaches(l);
+  }, 120_000);
+
+  test("battle modifiers: a new general, readiness and experience are seen at once", async () => {
+    const runner = await warGame();
+    const g = runner.game;
+    const l = land(g);
+    step(runner, 5);
+    const t = l.divisions;
+    let r = -1;
+    for (let i = 0; i < t.rows && r < 0; i++) {
+      if (t.id[i] !== 0 && t.battle[i] !== 0 && t.role[i] === ROLE_ATTACK)
+        r = i;
+    }
+    expect(r).toBeGreaterThanOrEqual(0);
+    const region = t.battle[r];
+    const fresh = () =>
+      expect(modsOf(l, r, region, true)).toEqual(
+        divisionMods(modInputOf(l, r, region, true)).mods,
+      );
+    const warm = modsOf(l, r, region, true);
+    fresh();
+    // Experience: veteran.
+    t.exp[r] = 600;
+    fresh();
+    expect(modsOf(l, r, region, true)).not.toEqual(warm);
+    // Readiness of a front army fighting from its front.
+    const a = l.armies.get(t.army[r])!;
+    a.order = { ...a.order, kind: "front" };
+    a.front = [t.region[r]];
+    a.planBp = 2_000;
+    fresh();
+    a.planBp = 500;
+    fresh();
+    // A general at its head (set directly: the roster dates and P3's
+    // purges decide who may serve; the cache only sees the input).
+    const cl = l.country(t.owner[r])!;
+    const gen = cl.generals.find((x) => x.att > 0 || x.traits !== 0);
+    expect(gen).toBeDefined();
+    const old = a.general;
+    a.general = gen!.id;
+    fresh();
+    expect(modsOf(l, r, region, true)).not.toEqual(
+      divisionMods({ ...modInputOf(l, r, region, true), genAtt: 0, traits: 0 })
+        .mods,
+    );
+    a.general = old;
+    fresh();
+    // In place: the country's stats (P3).
+    const ce = l.econ.country(t.owner[r])!;
+    ce.stats.attackPct += 25;
+    ce.statsVer++;
+    fresh();
+  }, 60_000);
+
+  test("winter weather and day rollovers with warm caches", async () => {
+    const runner = await warGame();
+    const g = runner.game;
+    const l = land(g);
+    const sc = l.scenario;
+    let winter = 0;
+    for (let d = 0; d < 6; d++) {
+      // Warm the caches, then cross into the next day.
+      checkCaches(l);
+      const day = l.day();
+      for (const reg of sc.landRegions) {
+        const w = l.weatherOn(reg.id, day);
+        if (w !== "clear") winter++;
+        // An old day read again (a screen, a test) does not poison today.
+        expect(l.weatherOn(reg.id, day - 1)).toBe(
+          weatherAt(
+            day - 1,
+            sc.latC(reg.id),
+            sc.landOf(reg.id),
+            sc.wcell(reg.id),
+          ),
+        );
+        expect(l.weatherOn(reg.id, day)).toBe(w);
+      }
+      step(runner, 8);
+    }
+    // January 1936: Moscow and Kiev are continental (snow, frost).
+    expect(winter).toBeGreaterThan(0);
+    checkCaches(l);
   }, 120_000);
 });
 
@@ -542,5 +728,60 @@ describe("supply's warm caches (P2 Task 11)", () => {
       }
     }
     expect(checks).toBeGreaterThan(1000);
+  }, 120_000);
+
+  test("a faction change (P3, at runtime): the new side's supply equals the reference, and again after it leaves", async () => {
+    const runner = await wwRunner({}, [{ clientID: HUMAN, country: "DEU" }]);
+    stepTo(runner, WW_PREP_TICKS + 8);
+    const g = runner.game;
+    const l = land(g);
+    const pol = g.worldWar()!.politics;
+    const check = () => {
+      for (const s of l.sideList()) {
+        dailySupply(l, s.key);
+        for (const [r, [supply, enc]] of referenceSupply(l, s.key)) {
+          expect(
+            [l.supplyMilli[r], l.encircled[r]],
+            `side ${s.key} region ${r}`,
+          ).toEqual([supply, enc]);
+        }
+      }
+    };
+    // Warm every side.
+    check();
+    check();
+    const fra = byTag(g, "FRA").smallID();
+    const pl = byTag(g, "POL").smallID();
+    const sideBefore = l.sideOf(pl);
+    let f = pol.factions.find((x) => x.members.includes(fra));
+    let made = false;
+    if (f === undefined) {
+      const idx = 1 + Math.max(-1, ...pol.factions.map((x) => x.idx));
+      f = {
+        idx,
+        name: "test",
+        nameTag: "",
+        leader: fra,
+        members: [fra],
+        createdDay: 0,
+      };
+      pol.factions.push(f);
+      made = true;
+    }
+    f.members.push(pl);
+    pol.factionsChanged();
+    expect(l.sideOf(pl)).toBe(l.sideOf(fra));
+    expect(l.sideOf(pl)).not.toBe(sideBefore);
+    check();
+    step(runner, 8);
+    check();
+    // Poland leaves: its own side again, its old warm cache reused.
+    f.members = f.members.filter((m) => m !== pl);
+    if (made) pol.factions = pol.factions.filter((x) => x !== f);
+    pol.factionsChanged();
+    expect(l.sideOf(pl)).toBe(sideBefore);
+    check();
+    step(runner, 8);
+    check();
   }, 120_000);
 });

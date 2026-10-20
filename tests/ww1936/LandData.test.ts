@@ -280,11 +280,18 @@ describe("the generals roster (spec §6.2)", () => {
 
   test("the spec's dated people keep their dates, checked against the sources", () => {
     const def = (id: string) => GENERALS.find((g) => g.id === id)!;
-    expect(def("tukhachevsky").until).toBe("1937-05-22");
-    expect(def("yakir").until).toBe("1937-05-28");
-    expect(def("uborevich").until).toBe("1937-05-29");
-    expect(def("blyukher").until).toBe("1938-10-22");
-    expect(def("rokossovsky").gaps).toEqual([["1937-08-17", "1940-03-22"]]);
+    // The purged generals carry no dates (P3 decision 19, pre-flight R20):
+    // the Soviet purge events remove them, and give Rokossovsky back on
+    // 1940-03-22.
+    for (const id of [
+      "tukhachevsky",
+      "yakir",
+      "uborevich",
+      "blyukher",
+      "rokossovsky",
+    ]) {
+      expect([def(id).until, def(id).gaps], id).toEqual([undefined, undefined]);
+    }
     // Spec "1939-"/"1940-"/"1941-", as the sources date them.
     expect(def("rommel").from).toBe("1939-08-01");
     expect(def("model").from).toBe("1938-03-01");

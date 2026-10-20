@@ -88,7 +88,7 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const gain =
     (ce.major ? 2 : 1) * ARMY_XP_DAY_MILLI +
     Math.min(ARMY_XP_FIGHT_MAX_MILLI, ARMY_XP_FIGHT_MILLI * foughtN) +
-    ce.tech.armyXpMilli;
+    ce.stats.armyXpMilli;
   cl.armyXpMilli = Math.max(
     0,
     Math.min(WW_ARMY_XP_MAX_MILLI, cl.armyXpMilli + gain),
@@ -106,7 +106,7 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
   const supply = t.supply[r];
   if (supply <= 0) return;
-  // Men, need and flags read only the template def and the tech.
+  // Men, need and flags read only the template def and the stats.
   const s = land.templateNumbersOf(r);
   const cap = reinforceCap(supply);
   const men = t.men[r];
@@ -134,7 +134,7 @@ const REINFORCE_SLOTS = new Int32Array(GROUND_SLOTS);
  */
 export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
-  // The need reads only the template def and the tech.
+  // The need reads only the template def and the stats.
   const s = land.templateNumbersOf(r);
   const base = r * GROUND_SLOTS;
   TYPE_SLOTS.forEach((list, i) => {

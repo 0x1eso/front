@@ -2,10 +2,8 @@ import {
   ConscriptionLaw,
   CountryLaws,
   EconomyLaw,
-  LawValue,
   TradeLaw,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { dayOfDate } from "./Calendar";
 
 // Spec §5.
 const ECONOMY: Readonly<
@@ -67,34 +65,4 @@ export function lawEffects(l: CountryLaws): LawEffects {
 
 export function conscriptionPermille(l: ConscriptionLaw): number {
   return CONSCRIPTION[l].permille;
-}
-
-export interface LawContext {
-  day: number;
-  /** Days of the longest running war; -1 at peace. */
-  warDays: number;
-}
-
-const DAY_1937 = dayOfDate("1937-01-01");
-const DAY_1938 = dayOfDate("1938-01-01");
-
-/** Spec §5.1–§5.3 conditions. */
-export function lawConditionMet(value: LawValue, ctx: LawContext): boolean {
-  const atWar = ctx.warDays >= 0;
-  switch (value) {
-    case "partial_mobilization":
-      return atWar || ctx.day >= DAY_1937;
-    case "war_economy":
-    case "service":
-      return atWar;
-    case "total_mobilization":
-    case "all_adults":
-      return ctx.warDays >= 365;
-    case "scraping":
-      return ctx.warDays >= 730;
-    case "extensive":
-      return atWar || ctx.day >= DAY_1938;
-    default:
-      return true;
-  }
 }

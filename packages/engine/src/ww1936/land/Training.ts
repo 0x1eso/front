@@ -304,6 +304,18 @@ export function cancelTraining(
   return null;
 }
 
+/**
+ * P3 (Task 1 Step 7): the training days with the country's trainPct
+ * (staff_training −10%), at least 1.
+ */
+export function trainDaysOf(
+  ce: CountryEconomy | null,
+  s: { trainDays: number },
+): number {
+  const pct = ce === null ? 0 : ce.stats.trainPct;
+  return Math.max(1, Math.floor((s.trainDays * (100 + pct)) / 100));
+}
+
 export function deployNow(
   land: WwLand,
   cl: CountryLand,
@@ -320,9 +332,10 @@ export function deployNow(
   const army = deployArmy(land, cl, e, region);
   if (army === null) return "too_many_armies";
   // Spec §5.1 (내 판단): org = maximum × progress.
-  const days = Math.min(x.days, s.trainDays);
+  const total = trainDaysOf(land.econ.country(cl.smallID), s);
+  const days = Math.min(x.days, total);
   spawnTrainee(land, cl, x, region, army, (max) =>
-    Math.floor((max * days) / Math.max(1, s.trainDays)),
+    Math.floor((max * days) / total),
   );
   cl.trainees.splice(i, 1);
   dropFinished(cl);
@@ -354,7 +367,7 @@ export function dailyTraining(
     x.days++;
     // In training the missing equipment comes at the reinforcement rate;
     // trained and only waiting for it, all there is (as at the start).
-    const trained = x.days >= s.trainDays;
+    const trained = x.days >= trainDaysOf(ce, s);
     drawTemplateEquip(
       ce,
       x.equip,

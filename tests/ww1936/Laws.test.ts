@@ -1,9 +1,17 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { lawBlock, setLaw } from "@openfront/engine/ww1936/economy/LawsRun";
-import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
+import {
+  byTag,
+  HUMAN,
+  stamped,
+  step,
+  stepTo,
+  withTestPolitics,
+  wwRunner,
+} from "./util";
 
 const HUMAN_POL = "HUMAN002";
 
@@ -14,7 +22,9 @@ function finishDay(runner: GameRunner, d: number): void {
 
 /**
  * Germany and Poland played by humans: no AI economy changes their laws,
- * and a war between them stays quiet.
+ * and a war between them stays quiet. P3 (plan Task 1 Step 20): Germany
+ * gets 500 PP, as laws cost political power now (spec §7.1); with no
+ * politics row it is neutral at 50% war support.
  */
 async function germany() {
   const runner = await wwRunner({}, [
@@ -26,15 +36,29 @@ async function germany() {
   const econ = ww.economy;
   const deu = byTag(g, "DEU");
   const pol = byTag(g, "POL");
-  return { runner, g, ww, econ, deu, pol, ce: econ.country(deu.smallID())! };
+  const c = ww.politics.country(deu.smallID())!;
+  c.ppMilli = 500_000;
+  return {
+    runner,
+    g,
+    ww,
+    econ,
+    deu,
+    pol,
+    c,
+    ce: econ.country(deu.smallID())!,
+  };
 }
 
 const lawOrder = (order: WwOrder) =>
   stamped(HUMAN, { type: "ww_order", order });
 
+// P3: the P1/P2 numbers, not the 1936 politics content (plan Task 1).
+withTestPolitics();
+
 describe("laws (spec §5)", () => {
-  test("conditions", async () => {
-    const { runner, g, ww, econ, deu, pol, ce } = await germany();
+  test("conditions (P3 spec §7.2: war support, war, government, PP)", async () => {
+    const { runner, g, ww, econ, deu, pol, c, ce } = await germany();
     expect(ce.laws).toEqual({
       economy: "partial_mobilization",
       trade: "limited_exports",
@@ -44,47 +68,53 @@ describe("laws (spec §5)", () => {
     expect(lawBlock(econ, ce, "economy", "partial_mobilization", 0)).toBe(
       "law_same",
     );
-    // 1936, at peace.
-    expect(setLaw(econ, ce, "economy", "war_economy", 0)).toBe("law_condition");
+    // At peace, 20% war support: the war-support steps are shut.
+    c.wsBp = 2000;
+    expect(setLaw(econ, ce, "economy", "war_economy", 0)).toBe("law_ws");
     expect(ce.laws.economy).toBe("partial_mobilization");
-    expect(lawBlock(econ, ce, "conscription", "service", 0)).toBe(
-      "law_condition",
-    );
-    const day1938 = dayOfDate("1938-01-01");
-    expect(lawBlock(econ, ce, "conscription", "extensive", day1938 - 1)).toBe(
-      "law_condition",
-    );
-    expect(lawBlock(econ, ce, "conscription", "extensive", day1938)).toBeNull();
-    // At war from the first tick.
-    expect(ww.setWar(deu.smallID(), pol.smallID(), 0)).toBe(true);
-    expect(lawBlock(econ, ce, "economy", "war_economy", 0)).toBeNull();
+    expect(lawBlock(econ, ce, "conscription", "extensive", 0)).toBe("law_ws");
+    c.wsBp = 3000;
     expect(lawBlock(econ, ce, "conscription", "extensive", 0)).toBeNull();
+    expect(lawBlock(econ, ce, "conscription", "service", 0)).toBe("law_ws");
+    // "At war and": total mobilization waits for a war (P1's law_condition).
+    c.wsBp = 9000;
     expect(lawBlock(econ, ce, "economy", "total_mobilization", 0)).toBe(
       "law_condition",
     );
-    // A year of war: 364 days are not enough, 365 are.
-    stepTo(runner, dayStartTick(364, WW_PREP_TICKS));
-    expect(econ.warDays(deu.smallID(), g.ticks())).toBe(364);
-    expect(lawBlock(econ, ce, "economy", "total_mobilization", 364)).toBe(
-      "law_condition",
+    // A democracy needs tension too, at peace only.
+    c.ruling = 0;
+    ww.politics.wtBp = 4999;
+    expect(lawBlock(econ, ce, "economy", "war_economy", 0)).toBe("law_tension");
+    expect(lawBlock(econ, ce, "trade", "closed_economy", 0)).toBe(
+      "law_ideology",
     );
-    expect(lawBlock(econ, ce, "conscription", "all_adults", 364)).toBe(
-      "law_condition",
+    // At war from the first tick: tension and the "or at war" steps open.
+    expect(ww.setWar(deu.smallID(), pol.smallID(), 0)).toBe(true);
+    expect(lawBlock(econ, ce, "economy", "war_economy", 0)).toBeNull();
+    expect(lawBlock(econ, ce, "trade", "closed_economy", 0)).toBeNull();
+    c.wsBp = 6999;
+    expect(lawBlock(econ, ce, "economy", "total_mobilization", 0)).toBe(
+      "law_ws",
     );
-    stepTo(runner, dayStartTick(365, WW_PREP_TICKS));
-    expect(econ.warDays(deu.smallID(), g.ticks())).toBe(365);
-    expect(setLaw(econ, ce, "economy", "total_mobilization", 365)).toBeNull();
+    c.wsBp = 7000;
+    const pp = c.ppMilli;
+    expect(setLaw(econ, ce, "economy", "total_mobilization", 0)).toBeNull();
     expect(ce.laws.economy).toBe("total_mobilization");
-    expect(lawBlock(econ, ce, "conscription", "scraping", 365)).toBe(
-      "law_condition",
-    );
+    // The target law's cost, once (spec §7.1).
+    expect(c.ppMilli).toBe(pp - 150_000);
+    expect(lawBlock(econ, ce, "conscription", "scraping", 0)).toBe("law_ws");
+    // Fascists keep no free trade.
+    c.ruling = 2;
+    expect(lawBlock(econ, ce, "trade", "free_trade", 0)).toBe("law_ideology");
+    // Too little PP.
+    c.ruling = 3;
+    c.ppMilli = 99_999;
+    expect(lawBlock(econ, ce, "trade", "free_trade", 0)).toBe("no_pp");
     // Peace does not undo a law (spec §5.4).
     ww.endWarsOf(deu.smallID());
-    finishDay(runner, 366);
+    finishDay(runner, 1);
+    expect(econ.warDays(deu.smallID(), g.ticks())).toBe(-1);
     expect(ce.laws.economy).toBe("total_mobilization");
-    expect(lawBlock(econ, ce, "economy", "war_economy", 400)).toBe(
-      "law_condition",
-    );
   });
 
   test("thirty days between changes of one kind", async () => {

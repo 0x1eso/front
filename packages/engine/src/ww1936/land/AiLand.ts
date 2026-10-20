@@ -27,7 +27,6 @@ import {
   Stance,
   SupportId,
   TPL_ARMOR_ANY,
-  WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_SUPPORT,
   WW_MAX_TARGETS,
@@ -36,7 +35,6 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
-import { HISTORY } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import {
   GEN1,
@@ -485,19 +483,6 @@ function sideView(land: WwLand, me: number): SideView {
   return view;
 }
 
-/** HISTORY indices by the countries in them (actor or target). */
-const HISTORY_BY_TAG: ReadonlyMap<CountryTag, readonly number[]> = (() => {
-  const m = new Map<CountryTag, number[]>();
-  HISTORY.forEach((e, i) => {
-    for (const t of [e.actor, e.target]) {
-      const l = m.get(t) ?? [];
-      if (!l.includes(i)) l.push(i);
-      m.set(t, l);
-    }
-  });
-  return m;
-})();
-
 class AiDay {
   readonly me: number;
   readonly tag: CountryTag;
@@ -505,7 +490,7 @@ class AiDay {
   readonly major: boolean;
   /** At war and able to fight, ascending. */
   readonly atWar: number[];
-  /** The calendar's next war within 60 days: its other country; 0: none. */
+  /** The next planned war within 60 days (politics.plannedWars): its other country; 0: none. */
   readonly imminent: number;
   readonly daily: boolean;
   private sideCache: SideView | null = null;
@@ -528,9 +513,7 @@ class AiDay {
     this.atWar = land.ww
       .enemiesOf(this.me)
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
-    const next = this.nextCalendarWar();
-    this.imminent =
-      next !== null && next.fire - day <= WW_AI_PREWAR_DAYS ? next.enemy : 0;
+    this.imminent = this.nextPlannedWar();
     this.daily = this.atWar.length > 0 || this.imminent !== 0;
   }
 
@@ -540,28 +523,20 @@ class AiDay {
   }
 
   /**
-   * Pre-flight ("next historical war"): of this country's calendar entries
-   * (actor or target) still to come, the one firing first (ties: table
-   * order). Its other country must be in the game, fighting, no camp mate
-   * and not at war with us yet.
+   * Pre-flight ("next historical war"), from P3 politics: the countries
+   * this one plans to fight within WW_AI_PREWAR_DAYS (due history beats, a
+   * justification about to finish, held war goals; plannedWars' window).
+   * The first (smallest id) that is fighting, no camp mate and not at war
+   * with us yet; 0: none.
    */
-  private nextCalendarWar(): { enemy: number; fire: number } | null {
+  private nextPlannedWar(): number {
     const ww = this.land.ww;
-    const plan = ww.history();
-    let best: { enemy: number; fire: number } | null = null;
-    for (const i of HISTORY_BY_TAG.get(this.tag) ?? []) {
-      if (i >= plan.length) continue;
-      const [fire, done] = plan[i];
-      if (done || fire < this.day) continue;
-      const e = HISTORY[i];
-      const other = ww.playerOfTag(e.actor === this.tag ? e.target : e.actor);
-      if (other === null) continue;
-      const id = other.smallID();
+    for (const id of ww.politics.plannedWars(this.me, this.day)) {
       if (!this.fights(id) || ww.sameFaction(this.me, id)) continue;
       if (ww.isAtWar(this.me, id)) continue;
-      if (best === null || fire < best.fire) best = { enemy: id, fire };
+      return id;
     }
-    return best;
+    return 0;
   }
 
   private issue(order: WwOrder): boolean {
@@ -679,7 +654,8 @@ class AiDay {
     if (touching.length === 0) return [];
     // 0: touching an enemy region (1 edge from it), ... GUARD_EDGES - 1.
     const near = this.bfs(touching, (r) => this.ours(r), GUARD_EDGES - 1);
-    const owners = sc.ownerByRegion();
+    // P3: the legal owner (spec §17), not the 1936 map.
+    const owners = land.ww.politics.legalOwner;
     const cap = capitalRegion(land, this.me);
     const out: number[] = [];
     if (cap !== 0 && near[cap] !== FAR) out.push(cap);
@@ -879,7 +855,7 @@ class AiDay {
     if (armies.length === 0) return;
     const sum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
     const free = cl.generals
-      .filter((g) => g.army === 0 && canServe(g, this.day))
+      .filter((g) => g.army === 0 && canServe(this.land, g, this.day))
       .sort((a, b) => sum(b) - sum(a) || a.id - b.id);
     for (let i = 0; i < armies.length && i < free.length; i++) {
       this.issue({
@@ -1373,7 +1349,7 @@ class AiDay {
       (r) => land.isEnemy(me, land.controller[r]),
       WW_TARGET_REACH_EDGES,
     );
-    const owners = sc.ownerByRegion();
+    const pol = land.ww.politics;
     const enemyTag = sc.tagOfSmallId(enemy);
     const capital =
       enemyTag === undefined ? 0 : sc.regionAt(sc.capitalTile(enemyTag));
@@ -1385,7 +1361,10 @@ class AiDay {
     for (const r of sc.landRegions) {
       const d = dist[r.id];
       if (d === 0 || d === FAR || land.controller[r.id] !== enemy) continue;
-      if (coresOnly && owners[r.id] !== me) continue;
+      // Liberation only: our own core regions (P3 legal owner + core).
+      if (coresOnly && !(pol.legalOwner[r.id] === me && pol.isCore(r.id))) {
+        continue;
+      }
       regions.push({
         region: r.id,
         vp: r.vp,
@@ -1638,8 +1617,8 @@ class AiDay {
         if (r >= 0 && t.template[r] === id) n++;
       }
     }
-    const before = templateStats(tpl.def, this.ce.tech, GEN1).need;
-    const after = templateStats(def, this.ce.tech, GEN1).need;
+    const before = templateStats(tpl.def, this.ce.stats, GEN1).need;
+    const after = templateStats(def, this.ce.stats, GEN1).need;
     for (let i = 0; i < after.length; i++) {
       const more = after[i] - before[i];
       if (more > 0 && this.stockOf(i) < more * Math.max(1, n)) return;
@@ -1687,8 +1666,11 @@ class AiDay {
       if (q.building === "fort" || q.building === "rail") queued++;
     }
     if (queued >= LAND_BUILDS_QUEUED) return;
-    const owners = sc.ownerByRegion();
-    const core = econ.regionsOf(this.me).filter((r) => owners[r] === this.me);
+    // P3: core regions we legally own (spec §17.6).
+    const pol = land.ww.politics;
+    const core = econ
+      .regionsOf(this.me)
+      .filter((r) => pol.legalOwner[r] === this.me && pol.isCore(r));
     const fortLevel = (r: number) =>
       econ.fort[r] + queuedInRegion(ce.queue, r).fort;
     const tryBuild = (r: number, b: "fort" | "rail") => {

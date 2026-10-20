@@ -7,6 +7,11 @@
 // each region's terrain, rail, fort, port, latitude and weather cell, the
 // countries' development, the sea-zone edge and kmPerTile 4. map.bin,
 // regions.bin, the minimaps and manifest.json stay byte for byte the same.
+// P3 (plan decision 22): `--variant pol` writes tests/testdata/maps/ww1936pol
+// instead — the same map plus nine island regions in the southern sea band
+// (y 102..117: Austria 11–12, Czechoslovakia 13–15, Lithuania 16–17,
+// Estonia 18–19), the plan's "test map ww1936pol" table. The default output
+// does not change.
 import {
   CATEGORY_SLOTS,
   RegionCategory,
@@ -15,15 +20,36 @@ import type { LandTerrain } from "@openfront/engine-api/ww1936/LandTypes";
 import type { ScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { encodeRegions } from "@openfront/engine-lib/ww1936/Regions";
+import { weatherCell } from "@openfront/engine-lib/ww1936/Weather";
 import fs from "fs";
 import path from "path";
 
 const W = 200;
 const H = 120;
-const OUT = path.join(process.cwd(), "tests/testdata/maps/ww1936mini");
+const variantAt = process.argv.indexOf("--variant");
+const POL = variantAt >= 0 && process.argv[variantAt + 1] === "pol";
+const NAME = POL ? "ww1936pol" : "ww1936mini";
+const OUT = path.join(process.cwd(), `tests/testdata/maps/${NAME}`);
+
+/** P3 islands (pol variant): [x0, x1) × [y0, y1), the plan's table. */
+const POL_BOXES: Box[] = [
+  [55, 70, 102, 118],
+  [70, 80, 102, 118],
+  [80, 90, 102, 118],
+  [90, 105, 102, 118],
+  [105, 115, 102, 118],
+  [125, 132, 102, 118],
+  [132, 145, 102, 118],
+  [155, 170, 102, 118],
+  [170, 180, 102, 118],
+];
+const inBox = ([x0, x1, y0, y1]: Box, x: number, y: number) =>
+  x >= x0 && x < x1 && y >= y0 && y < y1;
 
 const isLand = (x: number, y: number) =>
-  y < 100 || (x >= 20 && x < 50 && y >= 106 && y < 116);
+  y < 100 ||
+  (x >= 20 && x < 50 && y >= 106 && y < 116) ||
+  (POL && POL_BOXES.some((b) => inBox(b, x, y)));
 
 type Box = [number, number, number, number]; // x0, x1, y0, y1 (end exclusive)
 /** [oil, aluminium, rubber, tungsten, steel, chromium] (RESOURCE_IDS order). */
@@ -150,7 +176,7 @@ const REGIONS: {
   id: number;
   name: string;
   nameKo: string;
-  owner: "FRA" | "DEU" | "ITA" | "POL" | "SUN" | "GBR";
+  owner: "FRA" | "DEU" | "ITA" | "POL" | "SUN" | "GBR" | PolTag;
   vp: number;
   box: Box;
 }[] = [
@@ -235,6 +261,106 @@ const REGIONS: {
     box: [20, 50, 106, 116],
   },
 ];
+type PolTag = "AUT" | "CSK" | "LTU" | "EST";
+/** P3's nine islands (pol variant): the plan's "test map ww1936pol" table. */
+const POL_REGIONS: (typeof REGIONS)[number][] = [
+  {
+    id: 11,
+    name: "Vienna",
+    nameKo: "빈",
+    owner: "AUT",
+    vp: 15,
+    box: POL_BOXES[0],
+  },
+  {
+    id: 12,
+    name: "Tyrol",
+    nameKo: "티롤",
+    owner: "AUT",
+    vp: 2,
+    box: POL_BOXES[1],
+  },
+  {
+    id: 13,
+    name: "Sudetenland",
+    nameKo: "주데텐란트",
+    owner: "CSK",
+    vp: 3,
+    box: POL_BOXES[2],
+  },
+  {
+    id: 14,
+    name: "Prague",
+    nameKo: "프라하",
+    owner: "CSK",
+    vp: 15,
+    box: POL_BOXES[3],
+  },
+  {
+    id: 15,
+    name: "Slovakia",
+    nameKo: "슬로바키아",
+    owner: "CSK",
+    vp: 2,
+    box: POL_BOXES[4],
+  },
+  {
+    id: 16,
+    name: "Memel",
+    nameKo: "메멜",
+    owner: "LTU",
+    vp: 2,
+    box: POL_BOXES[5],
+  },
+  {
+    id: 17,
+    name: "Kaunas",
+    nameKo: "카우나스",
+    owner: "LTU",
+    vp: 15,
+    box: POL_BOXES[6],
+  },
+  {
+    id: 18,
+    name: "Tallinn",
+    nameKo: "탈린",
+    owner: "EST",
+    vp: 15,
+    box: POL_BOXES[7],
+  },
+  {
+    id: 19,
+    name: "Tartu",
+    nameKo: "타르투",
+    owner: "EST",
+    vp: 2,
+    box: POL_BOXES[8],
+  },
+];
+const NO_RES: Res = [0, 0, 0, 0, 0, 0];
+const polEconomy = (
+  cat: RegionCategory,
+  pop: number,
+  infra: number,
+  civ: number,
+  mil: number,
+): Economy => ({ cat, pop, infra, core: true, civ, mil, dock: 0, res: NO_RES });
+const POL_ECONOMY: Record<number, Economy> = {
+  11: polEconomy("city", 7000, 4, 2, 1),
+  12: polEconomy("rural", 1500, 2, 0, 0),
+  13: polEconomy("town", 3000, 3, 1, 1),
+  14: polEconomy("city", 7000, 4, 2, 2),
+  15: polEconomy("rural", 3000, 2, 1, 0),
+  16: polEconomy("town", 600, 2, 0, 0),
+  17: polEconomy("town", 2400, 2, 1, 0),
+  18: polEconomy("town", 1100, 2, 1, 0),
+  19: polEconomy("rural", 500, 1, 0, 0),
+};
+if (POL) {
+  REGIONS.push(...POL_REGIONS);
+  Object.assign(ECONOMY, POL_ECONOMY);
+}
+
 // P2 (the plan's test-map v3 table): terrain, start rail and fort, port,
 // latitude of the real city (hundredths of a degree) and its weather cell.
 interface Land {
@@ -264,6 +390,38 @@ const LAND: Record<number, Land> = {
   9: { land: "plains", rail: 1, fort: 0, port: false, latC: 5040, wcell: 417 },
   10: { land: "plains", rail: 2, fort: 0, port: true, latC: 5150, wcell: 414 },
 };
+// P3 islands: the real cities' latitude and longitude (hundredths of a
+// degree); a region without its own city takes its capital's.
+const VIENNA = [4820, 1640] as const;
+const PRAGUE = [5010, 1440] as const;
+const KAUNAS = [5490, 2390] as const;
+const TALLINN = [5940, 2480] as const;
+const polLand = (
+  land: LandTerrain,
+  rail: number,
+  fort: number,
+  [latC, lonC]: readonly [number, number],
+): Land => ({
+  land,
+  rail,
+  fort,
+  port: false,
+  latC,
+  wcell: weatherCell(lonC, latC),
+});
+if (POL) {
+  Object.assign(LAND, {
+    11: polLand("hills", 2, 0, VIENNA),
+    12: polLand("mountain", 1, 0, VIENNA),
+    13: polLand("hills", 1, 2, PRAGUE),
+    14: polLand("plains", 2, 0, PRAGUE),
+    15: polLand("mountain", 1, 0, PRAGUE),
+    16: polLand("plains", 1, 0, KAUNAS),
+    17: polLand("plains", 1, 0, KAUNAS),
+    18: polLand("plains", 1, 0, TALLINN),
+    19: polLand("forest", 0, 0, TALLINN),
+  });
+}
 /** Industrialisation (P2 plan decision 14): Poland 1, so it starts small. */
 const DEV: Record<string, number> = {
   DEU: 5,
@@ -272,6 +430,8 @@ const DEV: Record<string, number> = {
   FRA: 4,
   SUN: 3,
   POL: 1,
+  // P3 islands (pol variant).
+  ...(POL ? { AUT: 2, CSK: 3, LTU: 1, EST: 1 } : {}),
 };
 /** Hand-drawn rivers on edges ("a-b": 1 small, 2 big) and the straits. */
 const RIVERS: Record<string, 1 | 2> = { "6-8": 1, "7-9": 2 };
@@ -296,6 +456,15 @@ const EXPECTED_EDGES: [number, number, number, number, number, number][] = [
   [7, 9, 50, 220, 2, 0],
   [8, 9, 80, 200, 0, 0],
 ];
+/** The pol variant's 6 island edges [a, b, border]; km is computed. */
+const POL_EDGES: [number, number, number][] = [
+  [11, 12, 16],
+  [12, 13, 16],
+  [13, 14, 16],
+  [14, 15, 16],
+  [16, 17, 16],
+  [18, 19, 16],
+];
 
 const SEAS = [
   { id: 40001, name: "North Sea", nameKo: "북해", x0: 0, x1: 100 },
@@ -308,6 +477,15 @@ const CAPITALS: Record<string, [number, number]> = {
   POL: [105, 25],
   SUN: [160, 25],
   GBR: [35, 110],
+  // P3 islands (pol variant): each capital is its VP tile.
+  ...(POL
+    ? {
+        AUT: [62, 110] as [number, number],
+        CSK: [97, 110] as [number, number],
+        LTU: [138, 110] as [number, number],
+        EST: [162, 110] as [number, number],
+      }
+    : {}),
 };
 
 function grid(w: number, h: number, land: (x: number, y: number) => boolean) {
@@ -393,6 +571,10 @@ for (let y = 0; y < H; y++) {
       );
       if (r === undefined) throw new Error(`land (${x},${y}) has no region`);
       id = r.id;
+    } else if (POL && y > 100) {
+      // The pol variant's islands touch the North Sea only (the rows the
+      // mainland touches keep their zones).
+      id = SEAS[0].id;
     } else {
       id = SEAS.find((s) => x >= s.x0 && x < s.x1)!.id;
     }
@@ -467,9 +649,30 @@ const edges: [number, number, number, number, number, number][] = [...borders]
     return [a, b, border, km, RIVERS[k] ?? 0, STRAITS.includes(k) ? 1 : 0];
   })
   .sort((x, y) => x[0] - y[0] || x[1] - y[1]);
-if (JSON.stringify(edges) !== JSON.stringify(EXPECTED_EDGES)) {
+const mainland = edges.filter(([a, b]) => a <= 10 && b <= 10);
+const islands = edges.filter(([a, b]) => a > 10 || b > 10);
+if (JSON.stringify(mainland) !== JSON.stringify(EXPECTED_EDGES)) {
   throw new Error(
     `test map edges differ from the plan's table:\n${JSON.stringify(edges)}`,
+  );
+}
+const islandPairs = islands.map(([a, b, border, , river, strait]) => [
+  a,
+  b,
+  border,
+  river,
+  strait,
+]);
+const expectedIslands = (POL ? POL_EDGES : []).map(([a, b, border]) => [
+  a,
+  b,
+  border,
+  0,
+  0,
+]);
+if (JSON.stringify(islandPairs) !== JSON.stringify(expectedIslands)) {
+  throw new Error(
+    `island edges differ from the plan's table:\n${JSON.stringify(islands)}`,
   );
 }
 
@@ -514,7 +717,7 @@ const scenario: ScenarioData = {
 };
 
 const manifest = {
-  name: "ww1936mini",
+  name: NAME,
   map: { width: W, height: H, num_land_tiles: m1.land },
   map4x: { width: W / 2, height: H / 2, num_land_tiles: m4.land },
   map16x: { width: W / 4, height: H / 4, num_land_tiles: m16.land },
@@ -535,4 +738,4 @@ fs.writeFileSync(
   path.join(OUT, "manifest.json"),
   JSON.stringify(manifest, null, 2) + "\n",
 );
-console.log(`ww1936mini: ${m1.land} land tiles, ${REGIONS.length} regions`);
+console.log(`${NAME}: ${m1.land} land tiles, ${REGIONS.length} regions`);

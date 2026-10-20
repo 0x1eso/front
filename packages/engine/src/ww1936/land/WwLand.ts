@@ -8,10 +8,7 @@ import {
   PlayerType,
 } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import {
-  CountryTag,
-  FACTION_IDS,
-} from "@openfront/engine-api/ww1936/Countries";
+import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   WW_DAY_SPLIT,
   WwOrderBlock,
@@ -56,6 +53,7 @@ import {
   WW_MAX_ARMIES,
   WwLandData,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
@@ -75,10 +73,7 @@ import {
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
-import {
-  techTotals,
-  type TechTotals,
-} from "@openfront/engine-lib/ww1936/WwTechs";
+import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WwEconomy } from "../economy/WwEconomy";
@@ -91,6 +86,7 @@ import { startLand } from "./LandStartRun";
 import { stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
 import { applyArmyOrders, issueArmyOrder } from "./Orders";
+import { dmzBlocks } from "./PoliticsBridge";
 import { dailySupply } from "./Supply";
 import { dailySustain } from "./Sustain";
 import {
@@ -456,6 +452,8 @@ export class CountryLand {
   nextArmyNo = 1;
   nextTitleNo = 1;
   casualtiesToday = 0;
+  /** P3 spec §6.1 weariness: men lost since 1936 (every casualtiesToday added). */
+  casualtiesTotal = 0;
   readyToday = 0;
   warnedTileAttack = false;
   /**
@@ -606,6 +604,7 @@ export const WwLandStateSchema = z.object({
       nextArmyNo: zInt(),
       nextTitleNo: zInt(),
       casualtiesToday: zInt(),
+      casualtiesTotal: zInt(),
       readyToday: zInt(),
       warnedTileAttack: z.boolean(),
       peakDivisions: zInt(),
@@ -650,14 +649,17 @@ interface StatsEntry {
 }
 
 /**
- * A country's stats inputs as last read (derived): its tech totals object
- * (WwEconomy replaces it whenever a tech lands, never writes into it) and
- * its templates' ids and defs (a def is replaced, never written into).
- * `epoch` moves when any of them changed, so a cached number with this
- * epoch was computed from the very inputs a fresh computation reads.
+ * A country's stats inputs as last read (derived): its stats object
+ * (CountryEconomy.stats: P3's WwPolitics writes it in place and bumps
+ * CountryEconomy.statsVer on every change; P1 alone replaces it when a
+ * tech lands), that version, and its templates' ids and defs (a def is
+ * replaced, never written into). `epoch` moves when any of them changed,
+ * so a cached number with this epoch was computed from the very inputs a
+ * fresh computation reads.
  */
 interface StatsInputs {
-  tech: TechTotals | null;
+  stats: WwStats | null;
+  statsVer: number;
   ids: number[];
   defs: TemplateDef[];
   epoch: number;
@@ -1026,10 +1028,20 @@ export class WwLand {
     return a > 0 && b > 0 && this.ww.canFight(a, b, this.mg.ticks());
   }
 
-  /** Spec §7.1: own, same side, or an enemy's region (to attack or take). */
+  /**
+   * Spec §7.1: own, same side, or an enemy's region (to attack or take);
+   * P3 spec §16.3: a country that gave military access; P3 spec §9.2: never
+   * one's own demilitarised region.
+   */
   canEnter(smallID: number, region: number): boolean {
+    if (dmzBlocks(this, smallID, region)) return false;
     const c = this.controller[region] ?? 0;
-    return c !== 0 && (this.sameSide(c, smallID) || this.isEnemy(smallID, c));
+    return (
+      c !== 0 &&
+      (this.sameSide(c, smallID) ||
+        this.isEnemy(smallID, c) ||
+        this.ww.politics.hasAccess(smallID, c))
+    );
   }
 
   // ---- Control (decision 9: the only way it changes) ----
@@ -1160,7 +1172,10 @@ export class WwLand {
    */
   noteCasualties(smallID: number, lost: number, dead: number): void {
     const cl = this.country(smallID);
-    if (cl !== null && lost > 0) cl.casualtiesToday += lost;
+    if (cl !== null && lost > 0) {
+      cl.casualtiesToday += lost;
+      cl.casualtiesTotal += lost;
+    }
     const ce = this.econ.country(smallID);
     if (ce !== null && dead > 0) ce.casualties += dead;
     // Today's casualties are in the summary only (P2 Task 11, I2).
@@ -1345,7 +1360,7 @@ export class WwLand {
     // Org and flags do not depend on the generation mix: any mix gives them.
     const base = this.templateStatsAt(owner, tpl, GEN1_MIX, epoch);
     const ce = this.econ.country(owner);
-    const pct = ce === null ? 0 : ce.tech.orgPct;
+    const pct = ce === null ? 0 : ce.stats.orgPct;
     c.id[row] = id;
     c.tpl[row] = tpl;
     c.epoch[row] = epoch;
@@ -1364,17 +1379,23 @@ export class WwLand {
   private statsEpoch(owner: number): number {
     let s = this.statsInputs[owner];
     if (s === undefined) {
-      s = { tech: null, ids: [], defs: [], epoch: 0 };
+      s = { stats: null, statsVer: -1, ids: [], defs: [], epoch: 0 };
       this.statsInputs[owner] = s;
     }
-    const tech = this.econ.country(owner)?.tech ?? null;
+    const ce = this.econ.country(owner);
+    const stats = ce?.stats ?? null;
+    const statsVer = ce?.statsVer ?? -1;
     const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
-    let same = s.tech === tech && s.defs.length === tpls.length;
+    let same =
+      s.stats === stats &&
+      s.statsVer === statsVer &&
+      s.defs.length === tpls.length;
     for (let i = 0; same && i < tpls.length; i++) {
       same = tpls[i].def === s.defs[i] && tpls[i].id === s.ids[i];
     }
     if (!same) {
-      s.tech = tech;
+      s.stats = stats;
+      s.statsVer = statsVer;
       s.ids = tpls.map((x) => x.id);
       s.defs = tpls.map((x) => x.def);
       s.epoch++;
@@ -1413,7 +1434,7 @@ export class WwLand {
     }
     const stats = templateStats(
       this.defOf(owner, template) ?? EMPTY_DEF,
-      this.econ.country(owner)!.tech,
+      this.econ.country(owner)!.stats,
       mix,
     );
     if (gen1) e.gen1 = stats;
@@ -1482,6 +1503,16 @@ export class WwLand {
       GEN1_MIX,
       this.statsEpoch(owner),
     );
+  }
+
+  /** The stats caches (derived) again from nothing; P3's bridge calls it. */
+  clearStatsCache(): void {
+    this.statsCache.clear();
+    this.tplCache.clear();
+    this.statsInputs = [];
+    this.rowStats = newRowStats(0);
+    // The caches kept outside the land (Battles.modsOf, …) start over too.
+    this.derivedEpoch++;
   }
 
   strengthOf(row: number): number {
@@ -2178,6 +2209,7 @@ export class WwLand {
         nextArmyNo: cl.nextArmyNo,
         nextTitleNo: cl.nextTitleNo,
         casualtiesToday: cl.casualtiesToday,
+        casualtiesTotal: cl.casualtiesTotal,
         readyToday: cl.readyToday,
         warnedTileAttack: cl.warnedTileAttack,
         peakDivisions: cl.peakDivisions,
@@ -2273,6 +2305,7 @@ export class WwLand {
       cl.nextArmyNo = c.nextArmyNo;
       cl.nextTitleNo = c.nextTitleNo;
       cl.casualtiesToday = c.casualtiesToday;
+      cl.casualtiesTotal = c.casualtiesTotal;
       cl.readyToday = c.readyToday;
       cl.warnedTileAttack = c.warnedTileAttack;
       cl.peakDivisions = c.peakDivisions;
@@ -2297,8 +2330,9 @@ export class WwLand {
     this.sideOfId = new Array<number>(n).fill(0);
     const byKey = new Map<number, Side>();
     for (let id = 1; id < n; id++) {
-      const f = this.ww.factionOf(id);
-      const key = f === null ? id : 100_000 + FACTION_IDS.indexOf(f);
+      // P3 plan decision 8: the side of politics' faction (index), or alone.
+      const f = this.ww.politics.factionIdx(id);
+      const key = f < 0 ? id : 100_000 + f;
       this.sideOfId[id] = key;
       let s = byKey.get(key);
       if (s === undefined) byKey.set(key, (s = { key, rep: id, members: [] }));

@@ -20,8 +20,11 @@ export function stepManpower(
   p: Player,
 ): void {
   const ceiling = Math.max(0, ce.totals.recruitable - econ.armyMen(p));
-  ce.manpower = Math.min(
-    ce.manpower + manpowerRegrowth(ce.totals.recruitable),
-    ceiling,
+  // P3 spec §3.4: × (100 + manpowerGrowthPct) / 100.
+  const growth = Math.floor(
+    (manpowerRegrowth(ce.totals.recruitable) *
+      Math.max(0, 100 + ce.stats.manpowerGrowthPct)) /
+      100,
   );
+  ce.manpower = Math.min(ce.manpower + growth, ceiling);
 }

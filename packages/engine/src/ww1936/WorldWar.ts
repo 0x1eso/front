@@ -1,8 +1,8 @@
+import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
-  COUNTRIES,
-  CountryTag,
-  FactionId,
-} from "@openfront/engine-api/ww1936/Countries";
+  factionIdxOfKey,
+  FactionKey,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   WorldWarData,
   WW_PREP_TICKS,
@@ -15,6 +15,8 @@ import { z } from "zod";
 import type { Game, Player } from "../game/Game";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
 import { WwLand, WwLandStateSchema } from "./land/WwLand";
+import { politicsContent } from "./politics/ContentSource";
+import { WwPolitics, WwPoliticsStateSchema } from "./politics/WwPolitics";
 
 export const WorldWarStateSchema = z.object({
   prepEndTick: zInt(),
@@ -33,6 +35,8 @@ export const WorldWarStateSchema = z.object({
   economy: WwEconomyStateSchema.optional(),
   /** P2 (P2 spec §16.5): always written; a snapshot without it is refused. */
   land: WwLandStateSchema.optional(),
+  /** P3 (P3 spec §22.5): always written; a snapshot without it is refused. */
+  politics: WwPoliticsStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -46,8 +50,9 @@ export interface Transfer {
 
 /**
  * World War 1936 game state (spec §7): who is at war with whom, who has
- * capitulated, the rolled historical calendar and pending land transfers.
- * Factions are fixed in P0 (COUNTRIES[tag].faction).
+ * capitulated and pending land transfers. The factions are P3 politics'
+ * state (P3 plan decision 8); the history calendar moved to politics' beats
+ * (P3 plan decision 15: `history` stays in the snapshot schema, empty).
  */
 export class WorldWar {
   private readonly size: number;
@@ -55,7 +60,11 @@ export class WorldWar {
   private _wars: [number, number, number][] = [];
   private _capitulated: [number, number, number][] = [];
   private _startVp: number[] = [];
-  private _historyRolled = false;
+  /**
+   * P0's rolled calendar, kept for the snapshot schema only (P3 plan
+   * decision 15: politics' history beats replace it): always rolled, empty.
+   */
+  private _historyRolled = true;
   private _history: [number, boolean][] = [];
   private _transfers: Transfer[] = [];
   /** By smallID: the capitulation gauge, 0..WW_CAPITULATION_DAYS - 1. */
@@ -66,6 +75,8 @@ export class WorldWar {
   private dataDirty = true;
   /** P1 industry and research (P1 spec §14.1, plan decision 1). */
   readonly economy: WwEconomy;
+  /** P3 politics (P3 spec §22.1, plan decision 1): before the land war, which reads factions. */
+  readonly politics: WwPolitics;
   /** P2 land war (P2 spec §16.1, plan decision 1). */
   readonly land: WwLand;
 
@@ -77,14 +88,15 @@ export class WorldWar {
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
     this.economy = new WwEconomy(mg, this, scenario);
+    this.politics = new WwPolitics(mg, this, politicsContent());
     this.land = new WwLand(mg, this, this.economy);
   }
 
   /**
    * Spec §5.3, §7.1: capitals, starting victory points, the wars of
    * 1 January 1936, then the economy's start (P1 spec §6.6, §11) and the
-   * land war's (P2 spec §6.4: the 1936 armies). GameImpl calls it once,
-   * after the territory.
+   * land war's (P2 spec §6.4: the 1936 armies), after politics' (P3 spec
+   * §6.5). GameImpl calls it once, after the territory.
    */
   start(): void {
     for (const p of this.mg.allPlayers()) {
@@ -104,6 +116,10 @@ export class WorldWar {
       const b = this.scenario.smallIdOf(y);
       if (a !== 0 && b !== 0) this.setWar(a, b, 0);
     }
+    // Controller ruling I3: politics first (HOI4: laws, spirits and the
+    // government apply from day 0), so the economy's start (manpower) and
+    // the land war's (the 1936 divisions) read the country's stats.
+    this.politics.start();
     this.economy.start();
     this.land.start();
   }
@@ -141,24 +157,18 @@ export class WorldWar {
     return p.isPlayer() ? p : null;
   }
 
-  factionOf(smallID: number): FactionId | null {
-    const tag = this.scenario.tagOfSmallId(smallID);
-    return tag === undefined ? null : COUNTRIES[tag].faction;
+  /** P3 plan decision 8: the faction is politics' state. */
+  factionOf(smallID: number): FactionKey | null {
+    return this.politics.factionOf(smallID);
   }
 
-  /** Members of a faction present in this scenario, by smallID. */
-  factionMembers(faction: FactionId): number[] {
-    const out: number[] = [];
-    this.scenario.countries.forEach((tag, i) => {
-      if (COUNTRIES[tag].faction === faction) out.push(i + 1);
-    });
-    return out;
+  /** Members of a faction by key, ascending smallID. */
+  factionMembers(faction: FactionKey): number[] {
+    return this.politics.factionMembers(factionIdxOfKey(faction));
   }
 
   sameFaction(a: number, b: number): boolean {
-    if (a === b) return false;
-    const f = this.factionOf(a);
-    return f !== null && f === this.factionOf(b);
+    return this.politics.sameFaction(a, b);
   }
 
   isAtWar(a: number, b: number): boolean {
@@ -214,7 +224,7 @@ export class WorldWar {
   }
 
   /** Human clientIDs of a camp (a faction), for the team winner (decision 11). */
-  humanClientIDsOf(faction: FactionId): string[] {
+  humanClientIDsOf(faction: FactionKey): string[] {
     const out: string[] = [];
     for (const id of this.factionMembers(faction)) {
       const p = this.mg.playerBySmallID(id);
@@ -234,6 +244,17 @@ export class WorldWar {
     this._wars.push([lo, hi, tick]);
     this.warMatrix[lo * this.size + hi] = 1;
     this.warMatrix[hi * this.size + lo] = 1;
+    this.dataDirty = true;
+    return true;
+  }
+
+  /** Ends one war (P3 end_war, controller ruling R13); false when there was none. */
+  endWar(a: number, b: number): boolean {
+    if (!this.isAtWar(a, b)) return false;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    this._wars = this._wars.filter(([x, y]) => !(x === lo && y === hi));
+    this.rebuildMatrix();
     this.dataDirty = true;
     return true;
   }
@@ -338,7 +359,8 @@ export class WorldWar {
       h = (Math.imul(h, 31) + id * 257 + days + 3) | 0;
     }
     h = (Math.imul(h, 31) + this.economy.hash()) | 0;
-    return (Math.imul(h, 31) + this.land.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.land.hash()) | 0;
+    return (Math.imul(h, 31) + this.politics.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -360,6 +382,7 @@ export class WorldWar {
       ...(gauges.length === 0 ? {} : { gauges }),
       economy: this.economy.snapshot(),
       land: this.land.snapshot(),
+      politics: this.politics.snapshot(),
     };
   }
 
@@ -396,6 +419,13 @@ export class WorldWar {
       );
     }
     this.land.restoreState(s.land);
+    // No P2 game continues with P3 code (P3 spec §22.5, plan decision 30).
+    if (s.politics === undefined) {
+      throw new Error(
+        "World War 1936 snapshot without its politics (made before P3)",
+      );
+    }
+    this.politics.restoreState(s.politics);
   }
 
   private rebuildMatrix(): void {

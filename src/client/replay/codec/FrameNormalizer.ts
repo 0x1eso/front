@@ -98,6 +98,8 @@ export const UPDATE_TYPE_ROUTING: Record<
   // worldWarScenario() is null) and the troop mirror reaches it through the
   // players' troops, so it keeps none of it.
   WwLand: "dropped",
+  // World War 1936 P3: politics' changes of the tick (plan decision 4).
+  WwPolitics: "misc",
 };
 
 /**

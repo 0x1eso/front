@@ -35,6 +35,7 @@ import {
   step,
   stepTo,
   takeRegion,
+  withTestPolitics,
   wwGameStart,
   WwHuman,
   wwRunner,
@@ -58,6 +59,9 @@ async function restoreRunner(
     () => {},
   );
 }
+
+// P3: the P1 formulas, not the 1936 politics content (plan Task 1).
+withTestPolitics();
 
 describe("economy wiring (spec §6, §14)", () => {
   test("Germany starts with its 1936 army, its manpower and a matching cap", async () => {

@@ -470,7 +470,7 @@ function divisionRates(
   // The side's divisions, member by member (sums and sets: the order is free).
   const rows: number[] = [];
   for (const m of members) {
-    const usePct = land.econ.country(m)?.tech.supplyUsePct ?? 0;
+    const usePct = land.econ.country(m)?.stats.supplyUsePct ?? 0;
     for (const row of land.rowsOf(m)) {
       rows.push(row);
       const r = t.region[row];
