@@ -2,6 +2,7 @@ import {
   GameUpdateType,
   GameUpdateViewData,
 } from "@openfront/engine-api/game/GameUpdates";
+import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   RESOURCE_IDS,
@@ -109,6 +110,52 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(buy("ITA", "DEU", "steel")).toBeNull();
     throughDay(runner, 3);
     expect(dealsOf(econ)).toEqual([[id("ITA"), id("DEU"), "steel", 1]]);
+  });
+
+  test("the screens' export room is live, in the preparation minute too", async () => {
+    const { runner, updates, econ, id, p } = await game();
+    const STEEL = RESOURCE_IDS.indexOf("steel");
+    const deu = id("DEU");
+    /** Germany's export room in the last update that carried its summary. */
+    const shown = () =>
+      updates
+        .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
+        .flatMap((u) => u.data.countries)
+        .filter((c) => c.smallID === deu)
+        .at(-1)!.exportRoom;
+    const live = () =>
+      RESOURCE_IDS.map((_, k) => Math.max(0, exportRoom(econ, deu, k)));
+    // The start's summaries go out with the clock's first tick.
+    step(runner, 2);
+    expect(shown()[STEEL]).toBe(10);
+    expect(shown()).toEqual(live());
+    // Italy buys in the preparation minute: no day has run since. An
+    // order runs after the tick's clock, so its summaries go out with the
+    // next tick's.
+    const order = (client: string, order: WwOrder) => {
+      step(runner, 1, [stamped(client, { type: "ww_order", order })]);
+      step(runner);
+    };
+    order(clientOf("ITA"), {
+      kind: "open_trade",
+      seller: p("DEU").id(),
+      resource: "steel",
+      civs: 1,
+    });
+    expect(runner.game.ticks()).toBeLessThan(WW_PREP_TICKS);
+    expect(econ.trades()).toHaveLength(1);
+    expect(shown()[STEEL]).toBe(2);
+    expect(shown()).toEqual(live());
+    // A closed economy sells nothing: the deal waits for the day's check,
+    // the screens show no room at once.
+    order(clientOf("DEU"), {
+      kind: "set_law",
+      law: "trade",
+      value: "closed_economy",
+    });
+    expect(exportRoom(econ, deu, STEEL)).toBeLessThan(0);
+    expect(shown()[STEEL]).toBe(0);
+    expect(shown()).toEqual(live());
   });
 
   test("a land route runs through countries at peace", async () => {

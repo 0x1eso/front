@@ -26,13 +26,13 @@ import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayIndex, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   countryGraph,
+  exportRoomOf,
   RegionShares,
   regionShares,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   consumerGoodsMilli,
   effCapBp,
-  exportCapacity,
   extraction,
   freeCivMilli,
   infEquipmentFor,
@@ -723,6 +723,14 @@ export class WwEconomy {
   private summary(ce: CountryEconomy): WwCountrySummary {
     const t = ce.totals;
     const exportPct = ce.law().exportPct;
+    // Live (exportRoom: the open deals and the law now, not the last day's
+    // totals), so a screen never offers a deal openTrade refuses, the
+    // preparation minute's included.
+    const sold = zeros();
+    for (const tr of this._trades) {
+      if (tr.seller === ce.smallID)
+        sold[tr.res] += tr.civs * WW_TRADE_UNITS_PER_CIV;
+    }
     return {
       smallID: ce.smallID,
       civ: t.civ,
@@ -737,7 +745,7 @@ export class WwEconomy {
       shortage: ce.lines.some((l) => l.active > 0 && l.fill < 1000),
       combat: this.combatStats(ce.smallID),
       exportRoom: RESOURCE_IDS.map((_, k) =>
-        Math.max(0, exportCapacity(t.produced[k], exportPct) - t.exported[k]),
+        Math.max(0, exportRoomOf(t.produced[k], exportPct, sold[k])),
       ),
     };
   }
