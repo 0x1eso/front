@@ -30,7 +30,6 @@ import {
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { returnManpower } from "../economy/Stock";
 import { generalOf } from "./GeneralsRun";
@@ -336,12 +335,12 @@ function lineUp(
   const active: number[] = [];
   let used = 0;
   for (const r of cands) {
-    const s = land.baseStatsOf(r);
-    const over = used + s.width > width;
-    if (!over || (width - used) * 3 >= s.width) {
+    const w = land.widthOf(r);
+    const over = used + w > width;
+    if (!over || (width - used) * 3 >= w) {
       line.push(t.id[r]);
-      used += s.width;
-      if (first || prev.has(t.id[r]) || (s.flags & TPL_SIGNAL) !== 0) {
+      used += w;
+      if (first || prev.has(t.id[r]) || (land.flagsOf(r) & TPL_SIGNAL) !== 0) {
         active.push(r);
       }
     }
@@ -361,7 +360,7 @@ function widestOwner(
   for (const id of line) {
     const r = t.rowOf(id);
     if (r < 0) continue;
-    w.set(t.owner[r], (w.get(t.owner[r]) ?? 0) + land.baseStatsOf(r).width);
+    w.set(t.owner[r], (w.get(t.owner[r]) ?? 0) + land.widthOf(r));
   }
   let best = keep;
   let bestW = -1;
@@ -574,7 +573,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   const t = land.divisions;
   if (hpMilli <= 0 || t.id[row] === 0) return;
   const hpNow = land.statsOf(row).hpMilli;
-  const flags = land.baseStatsOf(row).flags;
+  const flags = land.flagsOf(row);
   const owner = t.owner[row];
   const men = t.men[row];
   if (men <= 0) return;
@@ -645,7 +644,7 @@ export function stepRecovery(land: WwLand): void {
         (land.econ.country(t.owner[r])?.tech.recoveryPct ?? 0);
       pctOf.set(key, pct);
     }
-    const signal = (land.baseStatsOf(r).flags & TPL_SIGNAL) !== 0 ? 10 : 0;
+    const signal = (land.flagsOf(r) & TPL_SIGNAL) !== 0 ? 10 : 0;
     let gain = Math.floor(
       (Math.floor((base * (pct + signal)) / 100) * Math.max(0, t.supply[r])) /
         1000,
@@ -688,7 +687,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
         g !== null && (g.traits & traitBit("defensive_doctrine")) !== 0 ? 2 : 1;
       stepOf.set(army, step);
     }
-    const max = entrenchMax(land.baseStatsOf(r).flags, ce.tech);
+    const max = entrenchMax(land.flagsOf(r), ce.tech);
     t.entrench[r] = Math.min(max, t.entrench[r] + step);
   }
 }
@@ -752,12 +751,12 @@ export function modInputOf(
     genAtt: g?.att ?? 0,
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
-    flags: land.baseStatsOf(row).flags,
+    flags: land.flagsOf(row),
     tech: land.econ.country(t.owner[row])?.tech ?? NEUTRAL_TECH,
     exp: t.exp[row],
     planBp,
     land: landOf,
-    weather: weatherAt(land.day(), sc.latC(region), landOf, sc.wcell(region)),
+    weather: land.weatherOn(region, land.day()),
     river,
     strait,
     fort: attacking ? land.econ.fort[region] : 0,

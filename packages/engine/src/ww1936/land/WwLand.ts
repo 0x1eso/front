@@ -50,6 +50,8 @@ import {
   SupportId,
   TemplateDef,
   TrainingData,
+  Weather,
+  WEATHERS,
   WW_DEPLOY_MIN_FILL_PM,
   WW_MAX_ARMIES,
   WwLandData,
@@ -71,6 +73,7 @@ import {
   templateCounts,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
@@ -660,7 +663,7 @@ const GEN1_MIX: readonly number[] = genMixOf(
 );
 
 /**
- * Org max and template flags by row (WwLand.rowStats, derived): valid
+ * Org max, template flags and width by row (WwLand.rowStats, derived): valid
  * while the row holds the same division id and template and its country's
  * stats epoch is the same.
  */
@@ -670,6 +673,7 @@ interface RowStats {
   epoch: Int32Array;
   orgMax: Int32Array;
   flags: Int32Array;
+  width: Int32Array;
 }
 
 function newRowStats(cap: number): RowStats {
@@ -679,6 +683,7 @@ function newRowStats(cap: number): RowStats {
     epoch: new Int32Array(cap),
     orgMax: new Int32Array(cap),
     flags: new Int32Array(cap),
+    width: new Int32Array(cap),
   };
 }
 
@@ -689,6 +694,7 @@ function growRowStats(c: RowStats, rows: number): RowStats {
   n.epoch.set(c.epoch);
   n.orgMax.set(c.orgMax);
   n.flags.set(c.flags);
+  n.width.set(c.width);
   return n;
 }
 
@@ -720,12 +726,19 @@ export class WwLand {
   private tplCache = new Map<string, TemplateStatsEntry>();
   private statsInputs: (StatsInputs | undefined)[] = [];
   /**
-   * Org max and template flags by row (stepRecovery reads every row every
-   * tick): valid while the row holds the same division id and template
-   * and its country's stats epoch is the same. Both read only the template
-   * def and the tech (templateStats: no generation, men or equipment).
+   * Org max, template flags and width by row (stepRecovery reads every
+   * row every tick): valid while the row holds the same division id and
+   * template and its country's stats epoch is the same. They read only the
+   * template def and the tech (templateStats: no generation, men or
+   * equipment).
    */
   private rowStats = newRowStats(0);
+  /**
+   * weatherAt by region for the last day read (weatherOn): the weather is
+   * a function of the day and the region's static place, so a kept value
+   * is the one a fresh call returns.
+   */
+  private weatherCache: { day: Int32Array; w: Uint8Array } | null = null;
   private regionRows: number[][] = [];
   private regionRowsDirty = true;
   /** Spread tile orders (rebuilt from Spread.sources), Task 4. */
@@ -1166,9 +1179,39 @@ export class WwLand {
     return this.rowOrgEntry(row) ? this.rowStats.orgMax[row] : 0;
   }
 
+  /** Spec §10: `region`'s weather on `day` (weatherAt, kept by region for the last day read). */
+  weatherOn(region: number, day: number): Weather {
+    const sc = this.scenario;
+    let c = this.weatherCache;
+    if (c === null) {
+      const n = sc.maxRegionId() + 1;
+      c = { day: new Int32Array(n).fill(-0x80000000), w: new Uint8Array(n) };
+      this.weatherCache = c;
+    }
+    if (region >= 0 && region < c.day.length && c.day[region] === day) {
+      return WEATHERS[c.w[region]];
+    }
+    const w = weatherAt(
+      day,
+      sc.latC(region),
+      sc.landOf(region),
+      sc.wcell(region),
+    );
+    if (region >= 0 && region < c.day.length) {
+      c.day[region] = day;
+      c.w[region] = WEATHERS.indexOf(w);
+    }
+    return w;
+  }
+
   /** The template's flags (TPL_*) of a division: they read only its template def. */
   flagsOf(row: number): number {
     return this.rowOrgEntry(row) ? this.rowStats.flags[row] : 0;
+  }
+
+  /** A division's combat width: it reads only its template def. */
+  widthOf(row: number): number {
+    return this.rowOrgEntry(row) ? this.rowStats.width[row] : 0;
   }
 
   /** Fills the row's org max and flags when stale; false for a dead row. */
@@ -1196,6 +1239,7 @@ export class WwLand {
     c.epoch[row] = epoch;
     c.orgMax[row] = Math.floor((base.orgMilli * (100 + pct)) / 100);
     c.flags[row] = base.flags;
+    c.width[row] = base.width;
     return true;
   }
 
@@ -2119,6 +2163,7 @@ export class WwLand {
     this.tplCache.clear();
     this.statsInputs = [];
     this.rowStats = newRowStats(0);
+    this.weatherCache = null;
     this.regionRowsDirty = true;
     this.divisions.rebuildIndex();
     this.spreadOrders.clear(); // Task 4 rebuilds an order on its first use

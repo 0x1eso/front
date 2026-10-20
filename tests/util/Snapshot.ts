@@ -174,9 +174,11 @@ export const DERIVED_FIELDS = new Set<string>([
   "statsCache",
   "tplCache",
   // P2 Task 11 (perf): the stats inputs each cache entry was checked
-  // against, the org max and flags by row.
+  // against, the org max, flags and width by row, the day's weather by
+  // region.
   "statsInputs",
   "rowStats",
+  "weatherCache",
   "regionRows",
   "regionRowsDirty",
   "spreadOrders",

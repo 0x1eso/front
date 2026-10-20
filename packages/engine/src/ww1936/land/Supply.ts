@@ -29,7 +29,6 @@ import {
   supplyRatePm,
   supplyUseMilli,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { generalOf } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import type { WwLand } from "./WwLand";
@@ -323,7 +322,7 @@ export function dailySupply(land: WwLand, side: number): void {
     if (!cut) {
       const core =
         sc.region(r)!.core && land.sameSide(owners[r], land.controller[r]);
-      const w = weatherAt(day, sc.latC(r), sc.landOf(r), sc.wcell(r));
+      const w = land.weatherOn(r, day);
       s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
     }
     if (land.supplyMilli[r] !== s || land.encircled[r] !== (cut ? 1 : 0)) {

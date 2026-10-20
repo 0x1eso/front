@@ -14,7 +14,7 @@ import {
   WW_EXP_PER_DAY,
   WW_UPGRADE_PM,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { WEATHER, weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import {
   drawEquip,
   drawManpower,
@@ -117,10 +117,14 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
       exp - ((s.flags & TPL_HOSPITAL) !== 0 ? Math.floor(cut / 2) : cut);
     land.setMen(r, men + add);
   }
-  const slots = Array.from(t.equipOf(r));
+  const slots = REINFORCE_SLOTS;
+  slots.set(t.equipOf(r));
   drawTemplateEquip(ce, slots, s.need, EQUIPMENT_TYPES, cap);
   applySlots(land, r, slots);
 }
+
+/** reinforce's copy of a division's slots (filled before each use). */
+const REINFORCE_SLOTS = new Int32Array(GROUND_SLOTS);
 
 /**
  * Spec §5.3 upgrade: per type, up to 5% of the need a day of a newer
@@ -161,7 +165,6 @@ export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
  */
 export function attritionPpm(land: WwLand, r: number, day: number): number {
   const t = land.divisions;
-  const sc = land.scenario;
   let ppm = 0;
   if (t.encircled[r] !== 0) ppm = ATTRITION_CUT_PPM;
   else if (t.supply[r] < ATTRITION_SUPPLY_PM) {
@@ -171,7 +174,7 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
     );
   }
   const reg = t.region[r];
-  const w = weatherAt(day, sc.latC(reg), sc.landOf(reg), sc.wcell(reg));
+  const w = land.weatherOn(reg, day);
   let wpm = WEATHER[w].attritionPm * 1000;
   if (wpm > 0) {
     const army = land.armies.get(t.army[r]);

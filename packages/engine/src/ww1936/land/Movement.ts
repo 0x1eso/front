@@ -22,7 +22,6 @@ import {
   seaTicks,
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { joinBattle, retreatDivision } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { capture } from "./Occupation";
@@ -74,8 +73,7 @@ function stepOf(land: WwLand, r: number, mode: number): number {
   const ce = land.econ.country(t.owner[r])!;
   if (mode === MOVE_RAIL) return railStep(ce.tech.railSpeedPct);
   const to = t.next[r];
-  const sc = land.scenario;
-  const w = weatherAt(land.day(), sc.latC(to), sc.landOf(to), sc.wcell(to));
+  const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
   return moveStep(
     s.speedCenti,
@@ -309,8 +307,7 @@ export function pathTicks(
 function walkStepInto(land: WwLand, r: number, to: number): number {
   const t = land.divisions;
   const ce = land.econ.country(t.owner[r]);
-  const sc = land.scenario;
-  const w = weatherAt(land.day(), sc.latC(to), sc.landOf(to), sc.wcell(to));
+  const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
   return moveStep(
     s.speedCenti,

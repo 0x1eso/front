@@ -16,7 +16,6 @@ import {
   GENERALS,
   generalServes,
 } from "@openfront/engine-lib/ww1936/Generals";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { newTitledGeneralState } from "./LandStartRun";
 import type { Army, CountryLand, GeneralState, WwLand } from "./WwLand";
@@ -197,7 +196,7 @@ export function dailyGenerals(
       if (role === ROLE_DEFEND) dfn = true;
       const b = t.battle[r];
       if (b === 0 || sc.region(b) === undefined) continue;
-      const w = weatherAt(day, sc.latC(b), sc.landOf(b), sc.wcell(b));
+      const w = land.weatherOn(b, day);
       if (w === "snow" || w === "frozen") ground[0] = true;
       const terrain = sc.landOf(b);
       if (terrain === "desert") ground[1] = true;
