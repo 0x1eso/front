@@ -18,6 +18,7 @@ import {
   GENERALS,
   titledGeneralId,
 } from "@openfront/engine-lib/ww1936/Generals";
+import { aiInput } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
   applyEffects,
@@ -27,6 +28,7 @@ import {
   pickRegions,
   WW_RELOCATION_DAYS,
 } from "@openfront/engine/ww1936/politics/EffectsEcon";
+import { WwEconomyView } from "../../src/client/view/WwEconomyView";
 import { politicsFixture } from "./politicsFixture";
 import { byTag, HUMAN, pol, POL, step, takeRegion, wwRunner } from "./util";
 
@@ -215,6 +217,18 @@ describe("economy and military effects", () => {
     econ.resBonus.fill(0);
     econ.restoreState(s);
     expect(econ.deposit(4, STEEL)).toBe(45);
+    // The AI's building plan reads the deposits with the bonus.
+    const ai = aiInput(econ, ce, p.day(), g.ticks());
+    expect(ai.regions.find((r) => r.region === 4)!.res[STEEL]).toBe(45);
+    // The screens get the bonus with the region; none: no field.
+    const view = new WwEconomyView(econ.scenario);
+    const data = econ.takeData()!;
+    view.apply(data);
+    expect(data.regions.find((r) => r.id === 4)!.res).toEqual(
+      RESOURCE_IDS.map((_, k) => (k === STEEL ? 5 : 0)),
+    );
+    expect(view.region(4).res![STEEL]).toBe(5);
+    expect(view.region(3).res).toBeUndefined();
   });
 
   it("move_buildings: what fits moves, and the factories relocate for 60 days", async () => {

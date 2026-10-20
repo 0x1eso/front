@@ -1,6 +1,7 @@
 // World War 1936 P3 (spec §5.2–§5.8; controller rulings R6, R7, R8):
 // drift, elections, regime crises and changes of government, on the test
 // map ww1936pol with the test content.
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -15,6 +16,7 @@ import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { GENERIC_EVENTS } from "@openfront/engine-lib/ww1936/content/events/generic";
 import type { ContentParts } from "@openfront/engine-lib/ww1936/content/registry";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { createGameRunner } from "@openfront/engine/GameRunner";
 import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
@@ -26,12 +28,26 @@ import {
   civilWar,
   dailyIdeology,
   fitsFaction,
+  governmentLeader,
   resolveIdeology,
   setGovernment,
   setLeader,
 } from "@openfront/engine/ww1936/politics/Ideology";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import path from "path";
+import { fileURLToPath } from "url";
+import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { politicsFixture } from "./politicsFixture";
-import { byTag, HUMAN, pol, POL, step, stepTo, wwRunner } from "./util";
+import {
+  byTag,
+  HUMAN,
+  pol,
+  POL,
+  step,
+  stepTo,
+  wwGameStart,
+  wwRunner,
+} from "./util";
 
 // Lane D writes leaveFaction; here it is watched (and still runs).
 vi.mock(
@@ -52,6 +68,13 @@ const EXTRA: Partial<ContentParts> = {
     {
       id: "gbr_election_1937",
       kind: "country",
+      options: [{ id: "a", ai: { base: 1 }, effects: [] }],
+    },
+    {
+      // A dated own election (like Britain's 1945 one).
+      id: "fra_election_1936",
+      kind: "country",
+      date: { on: "1936-01-10", to: ["FRA"] },
       options: [{ id: "a", ai: { base: 1 }, effects: [] }],
     },
   ],
@@ -213,6 +236,36 @@ describe("ideology", () => {
     );
   }, 60_000);
 
+  it("a dated own election event is that year's election (spec §5.4)", async () => {
+    const { runner, g, p, id } = await game("FRA");
+    const ww = g.worldWar()!;
+    const [fra, pl] = [id("FRA"), id("POL")];
+    const c = p.country(fra)!;
+    const queued = vi.spyOn(p, "queueEvent");
+    const msg = vi.spyOn(g, "displayMessage");
+    const elections = () =>
+      msg.mock.calls.filter((x) => x[0] === "events_display.ww1936_election")
+        .length;
+    // France suspended its elections during a war; the next one is overdue.
+    c.ruling = IDEO_DEM;
+    c.nextElectionDay = 2;
+    c.electionsSuspended = true;
+    ww.setWar(fra, pl, g.ticks());
+    afterDay(runner, fra, 8);
+    expect(elections()).toBe(0);
+    // 1936-01-10 (day 9): the dated event fires and counts as the election.
+    afterDay(runner, fra, 9);
+    expect(queued).toHaveBeenCalledWith("fra_election_1936", fra, fra, 0, 0);
+    expect(c.nextElectionDay).toBe(9 + WW_ELECTION_DAYS);
+    expect(elections()).toBe(1);
+    // Peace the next day: the suspension lifts, and no second election.
+    ww.endWar(fra, pl);
+    afterDay(runner, fra, 11);
+    expect(c.electionsSuspended).toBe(false);
+    expect(queued.mock.calls.map((x) => x[0])).not.toContain("gen_election");
+    expect(elections()).toBe(1);
+  });
+
   it("suspended elections never fire", async () => {
     const { runner, g, p, id } = await game("GBR");
     const ww = g.worldWar()!;
@@ -359,6 +412,82 @@ describe("ideology", () => {
     expect(c.leader).toBe("t_pol_gone");
     expect(c.advisors[2]).toBeNull();
   });
+
+  it("Japan's leader is a title from 1936-02-26 (spec §5.7, R7)", async () => {
+    usePoliticsContent(
+      politicsFixture({
+        ...EXTRA,
+        persons: [
+          ...(EXTRA.persons ?? []),
+          {
+            id: "t_jpn_named",
+            nameKey: "ww1936.person.t_jpn_named",
+            country: "JPN",
+            roles: ["leader"],
+            ideology: "neutral",
+            source: "test",
+          },
+        ],
+        countries: [
+          {
+            tag: "JPN",
+            ruling: "neutral",
+            popularity: [15, 2, 33, 50],
+            stability: 50,
+            warSupport: 55,
+            tree: "generic",
+            startLeader: "t_jpn_named",
+            leaders: { neutral: "t_jpn_named", fascist: "t_jpn_named" },
+          },
+        ],
+      }),
+    );
+    const files = await loadMapFiles(
+      new NodeGameMapLoader(
+        path.resolve(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../resources/maps",
+        ),
+      ),
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    );
+    const runner = await createGameRunner(
+      wwGameStart(),
+      undefined,
+      files,
+      () => {},
+    );
+    const g = runner.game;
+    const p = pol(g);
+    const jpn = byTag(g, "JPN").smallID();
+    const c = p.country(jpn)!;
+    // 1936-01-01: the named starting leader; a change of government before
+    // the incident seats the table's person.
+    expect(c.leader).toBe("t_jpn_named");
+    setGovernment(p, jpn, IDEO_FAS, g.ticks());
+    expect(c.leader).toBe("t_jpn_named");
+    expect(governmentLeader(p, jpn, IDEO_NEU, dayOfDate("1936-02-25"))).toBe(
+      "t_jpn_named",
+    );
+    // From the 26 February incident on: the prime minister's title in place
+    // of any named leader; a title in the table stays as it is.
+    for (const ideo of [IDEO_FAS, IDEO_NEU]) {
+      expect(governmentLeader(p, jpn, ideo, dayOfDate("1936-02-26"))).toBe(
+        "title:jpn_prime_minister",
+      );
+    }
+    expect(governmentLeader(p, jpn, IDEO_DEM, dayOfDate("1936-03-01"))).toBe(
+      "title:leader_democratic",
+    );
+    // Another country is not touched; an explicit set_leader is not gated.
+    const pl = byTag(g, "POL").smallID();
+    expect(governmentLeader(p, pl, IDEO_FAS, dayOfDate("1937-01-01"))).toBe(
+      "title:leader_fascist",
+    );
+    setLeader(p, jpn, "t_jpn_named", g.ticks());
+    expect(c.leader).toBe("t_jpn_named");
+  }, 120_000);
 
   it("civil war sets the government and the strife spirit", async () => {
     const { g, p, id } = await game("DEU");

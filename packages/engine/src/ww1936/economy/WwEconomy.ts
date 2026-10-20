@@ -720,6 +720,25 @@ export class WwEconomy {
     return r.res[k] + this.resBonus[region * RESOURCE_COUNT + k];
   }
 
+  /** A region's P3 deposit bonus, RESOURCE_IDS order; null when it has none. */
+  resBonusOf(region: number): number[] | null {
+    const at = region * RESOURCE_COUNT;
+    let any = false;
+    for (let k = 0; k < RESOURCE_COUNT; k++) {
+      if (this.resBonus[at + k] !== 0) any = true;
+    }
+    return any
+      ? Array.from(this.resBonus.subarray(at, at + RESOURCE_COUNT))
+      : null;
+  }
+
+  /** A region's deposits with the P3 bonus, RESOURCE_IDS order. */
+  deposits(region: number): readonly number[] {
+    const res = this.scenario.region(region)?.res ?? [];
+    const bonus = this.resBonusOf(region);
+    return bonus === null ? res : res.map((v, k) => v + bonus[k]);
+  }
+
   addBuilding(region: number, b: BuildingId, n: number): void {
     const arr = this.buildingArray(b);
     arr[region] = Math.max(0, arr[region] + n);
@@ -783,6 +802,8 @@ export class WwEconomy {
       if (p.type() === PlayerType.Human) data.details.push(this.detail(ce));
     }
     for (const id of [...this.dirtyRegions].sort((a, b) => a - b)) {
+      // P3's resource effect: the deposit bonus, only when there is one.
+      const res = this.resBonusOf(id);
       data.regions.push({
         id,
         controller: this.controller[id],
@@ -793,6 +814,7 @@ export class WwEconomy {
         fort: this.fort[id],
         rail: this.rail[id],
         hub: this.hub[id],
+        ...(res === null ? {} : { res }),
       });
     }
     this.dirtyCountries.clear();

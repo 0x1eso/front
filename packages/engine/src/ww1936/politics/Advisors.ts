@@ -39,6 +39,27 @@ function leadsArmy(pol: WwPolitics, id: number, p: PersonDef): boolean {
 }
 
 /**
+ * Spec §5.6-5, §8.3: the advisor fits a government of `ideology` (an
+ * IDEOLOGIES index) — a person's own ideology and every trait's (e.g. the
+ * communist `planner`, a titled card too) are none or that one.
+ */
+export function advisorFitsIdeology(
+  pol: WwPolitics,
+  c: CountryPol,
+  a: string,
+  ideology: number,
+): boolean {
+  const name = IDEOLOGIES[ideology];
+  if (!a.startsWith("title:")) {
+    const p = pol.content.personIdx.get(a);
+    if (p?.ideology !== undefined && p.ideology !== name) return false;
+  }
+  return pol
+    .traitsOf(c, a)
+    .every((t) => t.ideology === undefined || t.ideology === name);
+}
+
+/**
  * Spec §8.1 (controller ruling R9): a person may be hired by `id` today —
  * an advisor of that country, within their dates (or opened by
  * add_advisor_candidate, which overrides both dates; a `locked` person
@@ -53,9 +74,7 @@ function personOpen(
 ): boolean {
   if (!p.roles.includes("advisor") || p.advisor === undefined) return false;
   if (c.dismissed.includes(p.id) || c.leader === p.id) return false;
-  if (p.ideology !== undefined && p.ideology !== IDEOLOGIES[c.ruling]) {
-    return false;
-  }
+  if (!advisorFitsIdeology(pol, c, p.id, c.ruling)) return false;
   if (!c.candidates.includes(p.id)) {
     if (p.locked === true) return false;
     if (p.from !== undefined && day < dayOf(p.from)) return false;
@@ -84,7 +103,10 @@ export function candidatesFor(
   }
   for (const t of pol.content.traits) {
     const a = `title:${t.id}`;
-    if (t.generic && !c.advisors.includes(a)) out.push(a);
+    if (!t.generic || c.advisors.includes(a)) continue;
+    if (t.ideology === undefined || t.ideology === IDEOLOGIES[c.ruling]) {
+      out.push(a);
+    }
   }
   return out;
 }
@@ -110,7 +132,10 @@ function hireable(
   day: number,
 ): boolean {
   if (a.startsWith("title:")) {
-    return pol.content.traitIdx.get(a.slice(6) as TraitId)?.generic === true;
+    return (
+      pol.content.traitIdx.get(a.slice(6) as TraitId)?.generic === true &&
+      advisorFitsIdeology(pol, c, a, c.ruling)
+    );
   }
   const p = pol.content.personIdx.get(a);
   return p !== undefined && p.country === c.tag && personOpen(pol, c, p, day);

@@ -2,7 +2,11 @@
 // R9): advisors, on the test map ww1936pol with the test content and a
 // few test persons for Britain.
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { IDEO_DEM, IDEO_FAS } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  IDEO_COM,
+  IDEO_DEM,
+  IDEO_FAS,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { TRAITS } from "@openfront/engine-lib/ww1936/content/advisors";
@@ -59,6 +63,7 @@ beforeEach(() =>
           alsoGeneral: "gort",
         }),
         person("t_dem", "political", "orator", { ideology: "democratic" }),
+        person("t_planner", "political", "planner"),
       ],
       spirits: [
         { id: "t_cheap", stats: { advisorCostPct: -50 }, icon: "flag" },
@@ -79,7 +84,10 @@ async function game() {
   return { runner, g, p, gbr, c };
 }
 
-const TITLES = TRAITS.filter((t) => t.generic).map((t) => `title:${t.id}`);
+/** The titled cards a neutral government is offered (no communist planner). */
+const TITLES = TRAITS.filter((t) => t.generic && t.ideology === undefined).map(
+  (t) => `title:${t.id}`,
+);
 
 describe("advisors", () => {
   it("advisors cost PP and cannot be rehired for free", async () => {
@@ -192,6 +200,26 @@ describe("advisors", () => {
     );
     expect(fireAdvisor(p, gbr, 3, 30)).toBeNull();
     expect(assignGeneral(land, cl, army.id, gort.id)).toBeNull();
+  });
+
+  it("an advisor whose trait is bound to an ideology serves that government only (spec §5.6-5)", async () => {
+    const { g, p, gbr, c } = await game();
+    // Neutral Britain: neither the communist planner card nor a planner.
+    expect(candidatesFor(p, gbr, 0)).not.toContain("title:planner");
+    expect(candidatesFor(p, gbr, 0)).not.toContain("t_planner");
+    expect(hireAdvisor(p, gbr, 0, "title:planner", 0)).toBe(
+      "advisor_unavailable",
+    );
+    c.ruling = IDEO_COM;
+    expect(candidatesFor(p, gbr, 0)).toContain("title:planner");
+    expect(candidatesFor(p, gbr, 0)).toContain("t_planner");
+    expect(hireAdvisor(p, gbr, 0, "title:planner", 0)).toBeNull();
+    expect(hireAdvisor(p, gbr, 1, "t_planner", 0)).toBeNull();
+    expect(hireAdvisor(p, gbr, 2, "title:orator", 0)).toBeNull();
+    expect(c.stats.milConstructionPct).toBe(20);
+    setGovernment(p, gbr, IDEO_FAS, g.ticks());
+    expect(c.advisors.slice(0, 3)).toEqual([null, null, "title:orator"]);
+    expect(c.stats.milConstructionPct).toBe(0);
   });
 
   it("a government change dismisses advisors of another ideology", async () => {

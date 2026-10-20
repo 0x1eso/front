@@ -477,6 +477,11 @@ export interface WwRegionData {
   fort: number;
   rail: number;
   hub: number;
+  /**
+   * P3 (spec §10.4 `resource`): the deposit bonus, RESOURCE_IDS order;
+   * absent when the region has none.
+   */
+  res?: number[];
 }
 
 export interface WwEconomyData {

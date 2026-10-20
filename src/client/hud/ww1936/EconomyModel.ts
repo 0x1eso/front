@@ -1536,9 +1536,11 @@ export function regionCard(game: WwEconGame, tile: TileRef): RegionCard | null {
     slots: regionSlots(r.cat, slotPctOfCountry(view, now.controller)),
     infra: now.infra,
     pop: r.pop * 1000,
-    res: RESOURCE_IDS.flatMap((rid, i) =>
-      r.res[i] > 0 ? [{ id: rid, amount: r.res[i] }] : [],
-    ),
+    // P3's resource effect adds to the scenario's deposits.
+    res: RESOURCE_IDS.flatMap((rid, i) => {
+      const amount = r.res[i] + (now.res?.[i] ?? 0);
+      return amount > 0 ? [{ id: rid, amount }] : [];
+    }),
     occupied: regionShares(
       now.controller,
       owner,

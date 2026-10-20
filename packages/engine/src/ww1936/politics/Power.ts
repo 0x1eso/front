@@ -21,13 +21,16 @@ export function dailyPower(
   tick: number,
 ): void {
   const c = pol.country(id)!;
-  const gain = dailyPpMilli(c.stats);
-  c.ppMilli = addPpCapped(c.ppMilli, gain);
-  c.ppCumMilli += Math.max(0, gain);
+  const before = c.ppMilli;
+  c.ppMilli = addPpCapped(c.ppMilli, dailyPpMilli(c.stats));
+  // The running total counts what was added (not what the cap took).
+  c.ppCumMilli += Math.max(0, c.ppMilli - before);
   expireSpirits(pol, c, day);
   dismissExpired(pol, c, day);
-  for (const [f, [, until]] of [...c.flags]) {
-    if (until >= 0 && until <= day) c.flags.delete(f);
+  if (c.flags.size > 0) {
+    for (const [f, [, until]] of [...c.flags]) {
+      if (until >= 0 && until <= day) c.flags.delete(f);
+    }
   }
   if ((day + id) % 7 === 0) {
     c.stabBaseBp = Math.max(

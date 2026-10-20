@@ -1123,7 +1123,8 @@ export function aiInput(
         free: Math.max(0, slots - usedSlots(econ, id)),
         infraRoom: Math.max(0, MAX_INFRA - econ.infra[id] - queuedInfra),
         occupied: econ.isOccupied(id),
-        res: econ.scenario.region(id)!.res,
+        // P3's resource effect counts (WwEconomy.resBonus).
+        res: econ.deposits(id),
       };
     });
   return {

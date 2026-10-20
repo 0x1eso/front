@@ -57,15 +57,16 @@ describe("political power", () => {
     let before = c.ppMilli;
     afterDay(runner, id, 3);
     expect(c.ppMilli - before).toBe(2200);
-    // The cap: what goes over 1,500 is lost.
+    // The cap: what goes over 1,500 is lost — and not counted.
     c.ppMilli = 1_499_000;
+    before = c.ppCumMilli;
     afterDay(runner, id, 4);
     expect(c.ppMilli).toBe(1_500_000);
+    expect(c.ppCumMilli - before).toBe(1000);
     before = c.ppCumMilli;
     afterDay(runner, id, 5);
     expect(c.ppMilli).toBe(1_500_000);
-    // The running total counts every day's gain.
-    expect(c.ppCumMilli - before).toBe(2200);
+    expect(c.ppCumMilli - before).toBe(0);
   });
 
   it("a negative PP blocks spending and costs 10% stability", async () => {

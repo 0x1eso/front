@@ -10,6 +10,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import {
   addSpirit,
   dmzRegions,
+  expireSpirits,
   hasRule,
   removeSpirit,
   ruleValue,
@@ -129,6 +130,14 @@ describe("national spirits", () => {
     // Onto a spirit already on: `from` just goes.
     swapSpirit(p, deu, "t_a", "t_c", 6);
     expect(c.spirits.map((s) => s.id)).toEqual(["t_x", "t_c", "t_b"]);
+    // Without `from`, onto a timed spirit already on: its term stays.
+    addSpirit(p, deu, "t_a", 20, 7);
+    swapSpirit(p, deu, "t_missing", "t_a", 8);
+    expect(c.spirits.find((s) => s.id === "t_a")).toEqual({
+      id: "t_a",
+      untilDay: 27,
+      addedDay: 7,
+    });
   });
 
   it("rules: no_faction, dmz and the gates", async () => {
@@ -152,8 +161,16 @@ describe("national spirits", () => {
     expect(buildBlock(ww.economy, ce, 4, "infra", 0)).not.toBe(
       "not_controlled",
     );
+    // Cached until the spirits change.
+    expect(dmzRegions(p, deu)).toBe(dmzRegions(p, deu));
     removeSpirit(p, deu, "t_dmz2");
     expect(dmzRegions(p, deu)).toEqual([4]);
+    swapSpirit(p, deu, "t_dmz", "t_no_faction", 0);
+    expect(dmzRegions(p, deu)).toEqual([]);
+    addSpirit(p, deu, "t_dmz", 3, 0);
+    expect(dmzRegions(p, deu)).toEqual([4]);
+    expireSpirits(p, p.country(deu)!, 3);
+    expect(dmzRegions(p, deu)).toEqual([]);
     // The smallest guarantee gate, the largest faction cut.
     addSpirit(p, deu, "t_gate1", undefined, 0);
     expect(ruleValue(p, deu, "guaranteeGatePct")).toBe(20);

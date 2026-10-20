@@ -1,5 +1,6 @@
 // World War 1936 P3: drift, elections, regime crises, governments, leaders,
 // civil war (spec §5.2–§5.8).
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   DRIFT_KEYS,
   IDEO_COM,
@@ -17,6 +18,7 @@ import {
   addPopularity,
   largestOther,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { advisorFitsIdeology } from "./Advisors";
 import { leaveFaction } from "./Factions";
 import { setLawFree } from "./Laws";
 import { addSpirit, hasRule } from "./Spirits";
@@ -24,6 +26,31 @@ import type { WwPolitics } from "./WwPolitics";
 
 /** Spec §5.7: after the 26 February incident Japan's leader is a title. */
 const JPN_TITLES_FROM = dayOfDate("1936-02-26");
+const JPN_TITLE = "title:jpn_prime_minister";
+
+/**
+ * Spec §5.4: a dated `<tag>_election_<year>` event for this country fired
+ * today (the day's common step runs before every country's step): it is
+ * that year's election (e.g. Britain's of 1945).
+ */
+function datedElectionToday(
+  pol: WwPolitics,
+  tag: CountryTag,
+  day: number,
+): boolean {
+  const prefix = `${tag.toLowerCase()}_election_`;
+  for (const i of pol.content.dateEvents.get(day) ?? []) {
+    const e = pol.content.events[i];
+    if (
+      e.id.startsWith(prefix) &&
+      /^\d{4}$/.test(e.id.slice(prefix.length)) &&
+      e.date?.to.includes(tag) === true
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Spec §15.3 (controller ruling R8): a government fits a faction of the
@@ -59,6 +86,12 @@ export function dailyIdeology(
     if (c.electionsSuspended && !pol.ww.hasWar(id)) {
       c.electionsSuspended = false;
       c.flags.delete("elections_suspended");
+    }
+    if (datedElectionToday(pol, c.tag, day)) {
+      // The dated event is the election: the next one in four years.
+      c.nextElectionDay = day + WW_ELECTION_DAYS;
+      pol.messageAll("ww1936_election", { countryTag: c.tag });
+      return;
     }
     if (
       c.electionsSuspended ||
@@ -98,10 +131,10 @@ export function dailyIdeology(
 /**
  * Spec §5.6-1, §5.7 (controller ruling R7): the country table's leader for
  * the ideology, or its title when none; a leader-only person past their
- * `until` is not seated again, nor a named Japanese leader after
- * 1936-02-26.
+ * `until` is not seated again, nor a named Japanese leader on or after
+ * 1936-02-26 (the prime minister's title instead).
  */
-function leaderFor(
+export function governmentLeader(
   pol: WwPolitics,
   id: number,
   ideology: number,
@@ -112,7 +145,7 @@ function leaderFor(
   const title = `title:leader_${name}`;
   const leader = pol.content.countryIdx.get(c.tag)?.leaders[name] ?? title;
   if (leader.startsWith("title:")) return leader;
-  if (c.tag === "JPN" && day >= JPN_TITLES_FROM) return title;
+  if (c.tag === "JPN" && day >= JPN_TITLES_FROM) return JPN_TITLE;
   const p = pol.content.personIdx.get(leader);
   if (
     p?.until !== undefined &&
@@ -139,7 +172,7 @@ export function setGovernment(
   const name = IDEOLOGIES[ideology];
   // 1. the government and its leader (who leaves an advisor seat, §5.7).
   c.ruling = ideology;
-  c.leader = leaderFor(pol, id, ideology, day);
+  c.leader = governmentLeader(pol, id, ideology, day);
   c.advisors = c.advisors.map((a) => (a === c.leader ? null : a));
   // 2. at least half the vote for the new government.
   if (c.pop[ideology] < 5000) {
@@ -183,12 +216,11 @@ export function setGovernment(
       setLawFree(pol, id, "trade", "limited_exports");
     }
   }
-  // 5. advisors bound to another ideology go, unpaid.
-  c.advisors = c.advisors.map((a) => {
-    if (a === null || a.startsWith("title:")) return a;
-    const p = pol.content.personIdx.get(a);
-    return p?.ideology !== undefined && p.ideology !== name ? null : a;
-  });
+  // 5. advisors bound to another ideology (their own or a trait's, titled
+  // cards too) go, unpaid.
+  c.advisors = c.advisors.map((a) =>
+    a === null || advisorFitsIdeology(pol, c, a, ideology) ? a : null,
+  );
   // 7. everyone hears of it.
   pol.recomputeStats(id);
   pol.markCountry(id);
