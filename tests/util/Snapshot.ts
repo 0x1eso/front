@@ -173,6 +173,20 @@ export const DERIVED_FIELDS = new Set<string>([
   "sideListCache",
   "statsCache",
   "tplCache",
+  // P2 Task 11 (perf): the stats inputs each cache entry was checked
+  // against, the org max, flags and width by row, the day's weather by
+  // region.
+  "statsInputs",
+  "rowStats",
+  "weatherCache",
+  // ...the rows by owner and the table version they were built at, the
+  // detail change marks.
+  "ownerRows",
+  "ownerRowsVersion",
+  "rowsVersion",
+  "dirtyLandDetails",
+  // ...and the rebuild count caches outside the land key on.
+  "derivedEpoch",
   "regionRows",
   "regionRowsDirty",
   "spreadOrders",

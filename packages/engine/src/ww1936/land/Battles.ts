@@ -4,6 +4,8 @@
 // arithmetic only, no randomness (plan decision 6).
 import {
   CombatMods,
+  DivisionStats,
+  GROUND_SLOTS,
   MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_RAIL,
@@ -30,7 +32,6 @@ import {
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { returnManpower } from "../economy/Stock";
 import { generalOf } from "./GeneralsRun";
@@ -220,6 +221,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // 4. Every hit of the round first, then all of them at once (spec §9.3-6).
   const org = new Map<number, number>();
   const hp = new Map<number, number>();
+  // Every number a hit reads, once per division (nothing changes before
+  // the damage is applied below).
+  const stats = new Map<number, DivisionStats>();
+  for (const r of att.active) stats.set(r, land.statsOf(r));
+  for (const r of def.active) stats.set(r, land.statsOf(r));
   const hit = (
     from: number,
     fromMods: CombatMods,
@@ -228,8 +234,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     toDefends: boolean,
     excess: number,
   ) => {
-    const s = land.statsOf(from);
-    const ts = land.statsOf(to);
+    const s = stats.get(from)!;
+    const ts = stats.get(to)!;
     const a = applyBp(
       applyBp(attackValue(s.soft, s.hard, ts.hardnessPm), fromMods.attackBp),
       10_000 + excess,
@@ -240,9 +246,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
   };
   const mods = new Map<number, CombatMods>();
-  for (const r of [...att.active, ...def.active]) {
-    mods.set(r, battleMods(land, b, r).mods);
-  }
+  for (const r of att.active) mods.set(r, modsOf(land, r, R, true));
+  for (const r of def.active) mods.set(r, modsOf(land, r, R, false));
   if (def.active.length > 0) {
     att.active.forEach((r, i) => {
       const target = def.active[(i + b.round) % def.active.length];
@@ -336,12 +341,12 @@ function lineUp(
   const active: number[] = [];
   let used = 0;
   for (const r of cands) {
-    const s = land.baseStatsOf(r);
-    const over = used + s.width > width;
-    if (!over || (width - used) * 3 >= s.width) {
+    const w = land.widthOf(r);
+    const over = used + w > width;
+    if (!over || (width - used) * 3 >= w) {
       line.push(t.id[r]);
-      used += s.width;
-      if (first || prev.has(t.id[r]) || (s.flags & TPL_SIGNAL) !== 0) {
+      used += w;
+      if (first || prev.has(t.id[r]) || (land.flagsOf(r) & TPL_SIGNAL) !== 0) {
         active.push(r);
       }
     }
@@ -361,7 +366,7 @@ function widestOwner(
   for (const id of line) {
     const r = t.rowOf(id);
     if (r < 0) continue;
-    w.set(t.owner[r], (w.get(t.owner[r]) ?? 0) + land.baseStatsOf(r).width);
+    w.set(t.owner[r], (w.get(t.owner[r]) ?? 0) + land.widthOf(r));
   }
   let best = keep;
   let bestW = -1;
@@ -574,7 +579,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   const t = land.divisions;
   if (hpMilli <= 0 || t.id[row] === 0) return;
   const hpNow = land.statsOf(row).hpMilli;
-  const flags = land.baseStatsOf(row).flags;
+  const flags = land.flagsOf(row);
   const owner = t.owner[row];
   const men = t.men[row];
   if (men <= 0) return;
@@ -585,10 +590,11 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     : Math.floor((men * hpMilli * 1000) / hpNow) + t.lossMen[row];
   const lost = Math.min(men, Math.floor(menMilli / 1000));
   t.lossMen[row] = lost === men ? 0 : menMilli - lost * 1000;
-  const eq = t.equipOf(row);
-  const base = row * eq.length;
-  for (let j = 0; j < eq.length; j++) {
-    const have = eq[j];
+  // Written in place, one touchDivision for all of it (P2 Task 11 perf).
+  const eq = t.equip;
+  const base = row * GROUND_SLOTS;
+  for (let j = 0; j < GROUND_SLOTS; j++) {
+    const have = eq[base + j];
     const carry = t.lossEq[base + j];
     if (have <= 0 && carry === 0) continue;
     const m = all
@@ -596,7 +602,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
       : Math.floor((have * hpMilli * 1000) / hpNow) + carry;
     const k = Math.min(have, Math.floor(m / 1000));
     t.lossEq[base + j] = k === have ? 0 : m - k * 1000;
-    if (k > 0) land.addEquip(row, j, -k);
+    if (k > 0) eq[base + j] = have - k;
   }
   if (lost > 0) {
     const pct = (flags & TPL_HOSPITAL) !== 0 ? 50 : 20;
@@ -604,7 +610,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     const ce = land.econ.country(owner);
     if (ce !== null) returnManpower(ce, back);
     land.noteCasualties(owner, lost, lost - back);
-    land.setMen(row, men - lost);
+    t.men[row] = men - lost;
   }
   land.touchDivision(row);
   if (t.men[row] <= 0) {
@@ -625,12 +631,14 @@ export function stepRecovery(land: WwLand): void {
   const t = land.divisions;
   const base = Math.floor((300 * WW_ROUND_HOUR_MILLI) / 1000);
   const pctOf = new Map<number, number>();
+  // Nothing below changes a template or a tech: the epochs hold for the pass.
+  const epochs = land.statsEpochs();
   for (let r = 0; r < t.rows; r++) {
     if (t.id[r] === 0 || t.battle[r] !== 0 || t.encircled[r] !== 0) continue;
     const m = t.mode[r];
     if (m !== MOVE_NONE && m !== MOVE_WALK) continue;
     const was = t.org[r];
-    const max = land.orgMaxOf(r);
+    const max = land.orgMaxAt(r, epochs[t.owner[r]]);
     if (was >= max) continue;
     const army = t.army[r];
     // Per army; a division without one by its owner (its tech).
@@ -645,7 +653,8 @@ export function stepRecovery(land: WwLand): void {
         (land.econ.country(t.owner[r])?.stats.recoveryPct ?? 0);
       pctOf.set(key, pct);
     }
-    const signal = (land.baseStatsOf(r).flags & TPL_SIGNAL) !== 0 ? 10 : 0;
+    const signal =
+      (land.flagsAt(r, epochs[t.owner[r]]) & TPL_SIGNAL) !== 0 ? 10 : 0;
     let gain = Math.floor(
       (Math.floor((base * (pct + signal)) / 100) * Math.max(0, t.supply[r])) /
         1000,
@@ -670,8 +679,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
   const ce = land.econ.country(smallID);
   if (ce === null) return;
   const stepOf = new Map<number, number>();
-  for (let r = 0; r < t.rows; r++) {
-    if (t.id[r] === 0 || t.owner[r] !== smallID) continue;
+  for (const r of land.rowsOf(smallID)) {
     if (t.mode[r] !== MOVE_NONE) {
       t.stillDays[r] = 0;
       t.entrench[r] = 0;
@@ -688,7 +696,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
         g !== null && (g.traits & traitBit("defensive_doctrine")) !== 0 ? 2 : 1;
       stepOf.set(army, step);
     }
-    const max = entrenchMax(land.baseStatsOf(r).flags, ce.stats);
+    const max = entrenchMax(land.flagsOf(r), ce.stats);
     t.entrench[r] = Math.min(max, t.entrench[r] + step);
   }
 }
@@ -701,6 +709,62 @@ export function battleMods(land: WwLand, b: Battle, row: number): ModResult {
   return divisionMods(
     modInputOf(land, row, b.region, land.divisions.role[row] === ROLE_ATTACK),
   );
+}
+
+/**
+ * divisionMods(modInputOf(...)).mods, kept by division (derived): a hit
+ * needs every field of the new input equal to the one the mods were
+ * computed from (divisionMods reads nothing else) and the same
+ * CountryEconomy.statsVer (P3 writes the stats object, the input's `tech`,
+ * in place and bumps it), so a kept value is the one a fresh computation
+ * gives. The battles and the plans' predictions call it.
+ */
+export function modsOf(
+  land: WwLand,
+  row: number,
+  region: number,
+  attacking: boolean,
+): CombatMods {
+  const input = modInputOf(land, row, region, attacking);
+  let kept = modsCaches.get(land);
+  // A rebuild (restore, factions) starts the cache over.
+  if (kept === undefined || kept.epoch !== land.derivedEpoch) {
+    kept = { epoch: land.derivedEpoch, byId: new Map() };
+    modsCaches.set(land, kept);
+  }
+  const cache = kept.byId;
+  const id = land.divisions.id[row];
+  const statsVer = land.econ.country(land.divisions.owner[row])?.statsVer ?? -1;
+  const hit = cache.get(id);
+  if (
+    hit !== undefined &&
+    hit.statsVer === statsVer &&
+    sameModInput(hit.input, input)
+  ) {
+    return hit.mods;
+  }
+  // Dead divisions' entries: drop them all now and then (a refill is exact).
+  if (cache.size > 2 * land.divisions.count() + 1024) cache.clear();
+  const mods = divisionMods(input).mods;
+  cache.set(id, { input, statsVer, mods });
+  return mods;
+}
+
+const modsCaches = new WeakMap<
+  WwLand,
+  {
+    epoch: number;
+    byId: Map<number, { input: ModInput; statsVer: number; mods: CombatMods }>;
+  }
+>();
+let modInputKeys: readonly (keyof ModInput)[] | null = null;
+
+function sameModInput(a: ModInput, b: ModInput): boolean {
+  const keys = (modInputKeys ??= Object.keys(b) as (keyof ModInput)[]);
+  for (let i = 0; i < keys.length; i++) {
+    if (a[keys[i]] !== b[keys[i]]) return false;
+  }
+  return true;
 }
 
 const NEUTRAL_TECH = techTotals(new Set());
@@ -752,12 +816,12 @@ export function modInputOf(
     genAtt: g?.att ?? 0,
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
-    flags: land.baseStatsOf(row).flags,
+    flags: land.flagsOf(row),
     tech: land.econ.country(t.owner[row])?.stats ?? NEUTRAL_TECH,
     exp: t.exp[row],
     planBp,
     land: landOf,
-    weather: weatherAt(land.day(), sc.latC(region), landOf, sc.wcell(region)),
+    weather: land.weatherOn(region, land.day()),
     river,
     strait,
     fort: attacking ? land.econ.fort[region] : 0,

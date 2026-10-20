@@ -11,6 +11,9 @@
 // (cpuStepMs measures the step). A tick's wall time is only logged (2 ms
 // was measured under the full suite's load, 0.7-0.9 ms alone). A tick's
 // maximum is not bounded: any tick's window can hold a garbage collection.
+// Load-robust (P2 Task 11, controller ruling): every bound is checked on
+// the best of several timed batches after the warm-up, so a neighbour's
+// burst slows one batch, not the verdict; the budgets are unchanged.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -29,6 +32,10 @@ const TICK_SLACK = 3;
 const DAY_MS = 2;
 const TICK_MS = 1;
 const NEIGHBOURS_MS = 100;
+/** Timed batches: the bounds hold for the best one. */
+const BATCHES = 5;
+const DAYS_PER_BATCH = 20;
+const BATCHES_FIRST_BUILD = 3;
 
 async function worldFiles(): Promise<MapFiles> {
   return loadMapFiles(
@@ -68,12 +75,28 @@ function cpuStepMs(threadCpu: ThreadCpu): number {
 describe("the economy's cost on world1936 (spec §14.6)", () => {
   test("the region neighbours are built quickly the first time", async () => {
     const files = await worldFiles();
-    const index = ScenarioIndex.fromFiles(files.scenario!, files.regionsBin!);
-    const t0 = performance.now();
-    const pairs = index.regionPairs();
-    const ms = performance.now() - t0;
+    // Best of three first builds, each on a new index, by the thread's CPU
+    // clock when Node has one (the other workers do not stretch it).
+    const threadCpu = (
+      process as { threadCpuUsage?: ThreadCpu }
+    ).threadCpuUsage?.bind(process);
+    let ms = Infinity;
+    let index = ScenarioIndex.fromFiles(files.scenario!, files.regionsBin!);
+    let pairs = index.regionPairs();
+    for (let i = 0; i < BATCHES_FIRST_BUILD; i++) {
+      index = ScenarioIndex.fromFiles(files.scenario!, files.regionsBin!);
+      const t0 = performance.now();
+      const c0 = threadCpu?.();
+      pairs = index.regionPairs();
+      const used = threadCpu?.(c0);
+      const wall = performance.now() - t0;
+      ms = Math.min(
+        ms,
+        used === undefined ? wall : (used.user + used.system) / 1000,
+      );
+    }
     console.log(
-      `world1936: ${pairs.length} region pairs in ${ms.toFixed(1)} ms`,
+      `world1936: ${pairs.length} region pairs in ${ms.toFixed(1)} ms (best of ${BATCHES_FIRST_BUILD})`,
     );
     expect(pairs.length).toBeGreaterThan(2000);
     expect(ms).toBeLessThan(NEIGHBOURS_MS * SLACK);
@@ -111,55 +134,75 @@ describe("the economy's cost on world1936 (spec §14.6)", () => {
       const used = threadCpu?.(c);
       cpu = used === undefined ? wall : (used.user + used.system) / 1000;
     };
-    const cpuTicks: number[] = [];
-    const wallTicks: number[] = [];
-    const cpuDays: number[] = [];
-    const wallDays: number[] = [];
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sorted = (xs: number[]) => [...xs].sort((a, b) => a - b);
+    interface Batch {
+      cpuTicks: number[];
+      wallTicks: number[];
+      cpuDays: number[];
+      wallDays: number[];
+    }
+    const batches: Batch[] = [];
     let day0 = 0;
-    for (let d = 0; d < 101; d++) {
+    // Day 0 (the JIT's first pass and the majors' first turns) is the
+    // warm-up: told, not bounded. Then BATCHES batches of DAYS_PER_BATCH.
+    for (let d = 0; d < 1 + BATCHES * DAYS_PER_BATCH; d++) {
+      const bi = Math.floor((d - 1) / DAYS_PER_BATCH);
+      if (d > 0 && batches.length === bi) {
+        batches.push({
+          cpuTicks: [],
+          wallTicks: [],
+          cpuDays: [],
+          wallDays: [],
+        });
+      }
       let cpuSum = 0;
       let wallSum = 0;
       while (g.ticks() < dayStartTick(d + 1, WW_PREP_TICKS)) {
         step(runner);
         cpuSum += cpu;
         wallSum += wall;
-        // Day 0 (the JIT's first pass and the majors' first turns) is
-        // told, not bounded.
         if (d > 0) {
-          cpuTicks.push(cpu);
-          wallTicks.push(wall);
+          batches[bi].cpuTicks.push(cpu);
+          batches[bi].wallTicks.push(wall);
         }
       }
       if (d === 0) day0 = wallSum;
       else {
-        cpuDays.push(cpuSum);
-        wallDays.push(wallSum);
+        batches[bi].cpuDays.push(cpuSum);
+        batches[bi].wallDays.push(wallSum);
       }
     }
-    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
-    const sorted = (xs: number[]) => [...xs].sort((a, b) => a - b);
-    const [ct, wt] = [sorted(cpuTicks), sorted(wallTicks)];
     const cpuStep = threadCpu === undefined ? 0 : cpuStepMs(threadCpu);
+    const best = (f: (b: Batch) => number) => Math.min(...batches.map(f));
+    const cpuDay = best((b) => mean(b.cpuDays));
+    const wallDay = best((b) => mean(b.wallDays));
+    const cpuP99 = best((b) => pct(sorted(b.cpuTicks), 0.99));
+    const wallP99 = best((b) => pct(sorted(b.wallTicks), 0.99));
+    const wallP50 = best((b) => pct(sorted(b.wallTicks), 0.5));
+    const cpuP50 = best((b) => pct(sorted(b.cpuTicks), 0.5));
+    const all = sorted(batches.flatMap((b) => b.wallTicks));
     console.log(
-      `world1936 economy (wall | cpu): day 0 ${day0.toFixed(2)} ms; days 1-100 mean ` +
-        `${mean(wallDays).toFixed(3)} | ${mean(cpuDays).toFixed(3)} ms/day; tick p50 ` +
-        `${pct(wt, 0.5).toFixed(3)} | ${pct(ct, 0.5).toFixed(3)} ms, p99 ${pct(wt, 0.99).toFixed(3)} | ` +
-        `${pct(ct, 0.99).toFixed(3)} ms, max ${wt[wt.length - 1].toFixed(3)} | ` +
-        `${ct[ct.length - 1].toFixed(3)} ms over ${ct.length} ticks; cpu clock step ` +
+      `world1936 economy (wall | cpu), best of ${BATCHES} batches of ${DAYS_PER_BATCH} days: ` +
+        `day 0 ${day0.toFixed(2)} ms; mean ${wallDay.toFixed(3)} | ${cpuDay.toFixed(3)} ms/day; ` +
+        `tick p50 ${wallP50.toFixed(3)} | ${cpuP50.toFixed(3)} ms, p99 ${wallP99.toFixed(3)} | ` +
+        `${cpuP99.toFixed(3)} ms; days by batch ` +
+        `${batches.map((b) => mean(b.cpuDays).toFixed(2)).join(" / ")} ms cpu; max wall ` +
+        `${all[all.length - 1].toFixed(3)} ms over ${all.length} ticks; cpu clock step ` +
         `${cpuStep.toFixed(3)} ms`,
     );
-    expect(mean(cpuDays)).toBeLessThan(DAY_MS * SLACK);
+    expect(cpuDay).toBeLessThan(DAY_MS * SLACK);
     if (threadCpu === undefined) {
-      expect(pct(wt, 0.99)).toBeLessThan(TICK_MS * TICK_SLACK);
+      expect(wallP99).toBeLessThan(TICK_MS * TICK_SLACK);
       return;
     }
-    expect(pct(ct, 0.99)).toBeLessThan(TICK_MS * SLACK + cpuStep);
+    expect(cpuP99).toBeLessThan(TICK_MS * SLACK + cpuStep);
     // Advisory: the wall time also measures the other workers' load.
-    if (pct(wt, 0.99) >= TICK_MS * TICK_SLACK) {
+    if (wallP99 >= TICK_MS * TICK_SLACK) {
       console.warn(
-        `world1936 economy: tick p99 wall ${pct(wt, 0.99).toFixed(3)} ms ` +
+        `world1936 economy: tick p99 wall ${wallP99.toFixed(3)} ms ` +
           `(advisory bound ${TICK_MS * TICK_SLACK} ms)`,
       );
     }
-  }, 120_000);
+  }, 180_000);
 });

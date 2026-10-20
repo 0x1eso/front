@@ -26,7 +26,7 @@ import {
   type OrderCheckWorld,
 } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { joinBattle } from "./Battles";
-import { assignFront, nearestBorder } from "./Fronts";
+import { assignFront, nearestBorder, type TargetDist } from "./Fronts";
 import {
   enemyDivisionsIn,
   findPath,
@@ -338,7 +338,12 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
           }
         }
       }
-      if (assignFront(land, a, tick) && day >= 0) planDay(land, a, day);
+      {
+        const dist: TargetDist = { value: null };
+        if (assignFront(land, a, tick, undefined, dist) && day >= 0) {
+          planDay(land, a, day, dist.value ?? undefined);
+        }
+      }
       break;
     case "paradrop":
       // Spec §7.6: ten days of preparation where they stand.

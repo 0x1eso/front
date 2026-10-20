@@ -47,10 +47,13 @@ import {
   SupportId,
   TemplateDef,
   TrainingData,
+  Weather,
+  WEATHERS,
   WW_DEPLOY_MIN_FILL_PM,
   WW_MAX_ARMIES,
   WwLandData,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
@@ -60,14 +63,17 @@ import {
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import {
-  divisionStats,
+  divisionStatsAt,
   equipFill,
   equipFillPm,
+  genMixInto,
   genMixOf,
-  strengthPm,
+  strengthPmAt,
   templateCounts,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WwEconomy } from "../economy/WwEconomy";
@@ -168,6 +174,11 @@ export class DivisionTable {
   lossEq = new Int32Array(0);
   /** Derived (DERIVED_FIELDS): division id → row. */
   rowIndex = new Map<number, number>();
+  /**
+   * Derived (DERIVED_FIELDS): moves on every add, kill, compaction and
+   * restore, so lists of rows built from the table know when to rebuild.
+   */
+  rowsVersion = 0;
   private cap = 0;
 
   constructor() {
@@ -217,6 +228,7 @@ export class DivisionTable {
     this.supply[r] = 1000;
     this.lastFight[r] = -1;
     this.rowIndex.set(id, r);
+    this.rowsVersion++;
     return r;
   }
 
@@ -234,6 +246,7 @@ export class DivisionTable {
 
   /** A tombstone (an all-zero row) until compact(). */
   kill(r: number): void {
+    this.rowsVersion++;
     this.rowIndex.delete(this.id[r]);
     for (const name of DIVISION_COLUMNS) this.col(name)[r] = 0;
     this.equip.fill(0, r * GROUND_SLOTS, (r + 1) * GROUND_SLOTS);
@@ -273,6 +286,7 @@ export class DivisionTable {
     this.equip.fill(0, w * GROUND_SLOTS, this.rows * GROUND_SLOTS);
     this.lossEq.fill(0, w * GROUND_SLOTS, this.rows * GROUND_SLOTS);
     this.rows = w;
+    this.rowsVersion++;
     this.rebuildIndex();
     return moved;
   }
@@ -312,6 +326,7 @@ export class DivisionTable {
     this.equip.set(s.equip);
     this.lossEq.set(s.lossEq);
     this.rows = n;
+    this.rowsVersion++;
     this.rebuildIndex();
   }
 }
@@ -608,30 +623,148 @@ export interface Side {
 
 /**
  * A division's numbers and what they were computed from (pre-flight U8):
- * a hit must match the template def, the tech count, the men and every
- * equipment slot, so a write that forgot touchDivision can never leave a
- * live game on numbers a restored one would not have.
+ * a hit must match its country's stats inputs (the tech totals object and
+ * every template def: StatsInputs.epoch), the template number, the men
+ * and every equipment slot, so a write that forgot touchDivision can never
+ * leave a live game on numbers a restored one would not have. New men or
+ * equipment keep `base` while the generation mix holds (templateStats
+ * reads the equipment only through it); `eff` and `strength` follow on
+ * their next read (P2 Task 11 perf).
  */
 interface StatsEntry {
-  base: DivisionStats;
-  eff: DivisionStats;
-  def: TemplateDef;
-  techVer: number;
-  /** P3: CountryEconomy.statsVer when made (spirits, advisors… change stats too). */
-  statsVer: number;
+  epoch: number;
+  template: number;
   men: number;
-  equip: number[];
+  /** GROUND_SLOTS, the equipment `base` / `eff` were computed from. */
+  equip: Int32Array;
+  /** genMixOf(equip). */
+  mix: number[];
+  base: DivisionStats;
+  /** null: not computed since men or equipment moved. */
+  eff: DivisionStats | null;
+  /** -1: not computed since men or equipment moved. */
+  strength: number;
+  /** equipFill(base, equip); null: not computed since they moved. */
+  fill: number[] | null;
 }
 
-interface TemplateStatsEntry {
-  def: TemplateDef;
-  techVer: number;
+/**
+ * A country's stats inputs as last read (derived): its stats object
+ * (CountryEconomy.stats: P3's WwPolitics writes it in place and bumps
+ * CountryEconomy.statsVer on every change; P1 alone replaces it when a
+ * tech lands), that version, and its templates' ids and defs (a def is
+ * replaced, never written into). `epoch` moves when any of them changed,
+ * so a cached number with this epoch was computed from the very inputs a
+ * fresh computation reads.
+ */
+interface StatsInputs {
+  stats: WwStats | null;
   statsVer: number;
-  stats: DivisionStats;
+  ids: number[];
+  defs: TemplateDef[];
+  epoch: number;
+}
+
+/** A template's numbers at one generation mix (the screens, the AI, divisions sharing it). */
+interface TemplateStatsEntry {
+  epoch: number;
+  /** At generation 1 everywhere (GEN1_MIX); null: not computed yet. */
+  gen1: DivisionStats | null;
+  /** By the mix's numbers joined with commas. */
+  byMix: Map<string, DivisionStats>;
 }
 
 const EMPTY_DEF: TemplateDef = { name: "", battalions: [], support: [] };
 const NO_ROWS: readonly number[] = Object.freeze([]);
+const NO_TEMPLATES: readonly LandTemplate[] = Object.freeze([]);
+/** statsEntry's generation mix scratch. */
+const MIX_SCRATCH: number[] = [];
+/** genMixOf of an empty division: generation 1 everywhere (templateStatsOf). */
+const GEN1_MIX: readonly number[] = genMixOf(
+  new Array<number>(GROUND_SLOTS).fill(0),
+);
+/** A dead row's numbers (templateNumbersOf). */
+const EMPTY_STATS: DivisionStats = templateStats(
+  EMPTY_DEF,
+  techTotals(new Set()),
+  GEN1_MIX,
+);
+
+/**
+ * Org max, template flags, width, supply use and the generation-1
+ * template numbers by row (WwLand.rowStats, derived): valid while the row
+ * holds the same division id and template and its country's stats epoch
+ * is the same.
+ */
+interface RowStats {
+  id: Int32Array;
+  tpl: Uint16Array;
+  epoch: Int32Array;
+  orgMax: Int32Array;
+  flags: Int32Array;
+  width: Int32Array;
+  supply: Int32Array;
+  /** The template's numbers at generation 1 (templateNumbersOf). */
+  gen1: DivisionStats[];
+}
+
+/**
+ * Sets `key` in a Map kept in ascending key order (iteration order): in
+ * place when present, appended when above every key, else re-sorted.
+ */
+function setInOrder<V>(m: Map<number, V>, key: number, v: V): void {
+  if (m.has(key)) {
+    m.set(key, v);
+    return;
+  }
+  let max = -Infinity;
+  for (const k of m.keys()) if (k > max) max = k;
+  m.set(key, v);
+  if (key > max) return;
+  const sorted = [...m.entries()].sort((x, y) => x[0] - y[0]);
+  m.clear();
+  for (const [k, x] of sorted) m.set(k, x);
+}
+
+/** A stats entry's numbers at its men and equipment (computed on the first read after they moved). */
+function effOf(e: StatsEntry): DivisionStats {
+  return (e.eff ??= divisionStatsAt(e.base, fillOf(e), e.men));
+}
+
+function strengthOfEntry(e: StatsEntry): number {
+  if (e.strength < 0) e.strength = strengthPmAt(e.base, fillOf(e), e.men);
+  return e.strength;
+}
+
+function fillOf(e: StatsEntry): number[] {
+  return (e.fill ??= equipFill(e.base, e.equip));
+}
+
+function newRowStats(cap: number): RowStats {
+  return {
+    id: new Int32Array(cap),
+    tpl: new Uint16Array(cap),
+    epoch: new Int32Array(cap),
+    orgMax: new Int32Array(cap),
+    flags: new Int32Array(cap),
+    width: new Int32Array(cap),
+    supply: new Int32Array(cap),
+    gen1: new Array<DivisionStats>(cap),
+  };
+}
+
+function growRowStats(c: RowStats, rows: number): RowStats {
+  const n = newRowStats(Math.max(64, rows, c.id.length * 2));
+  n.id.set(c.id);
+  n.tpl.set(c.tpl);
+  n.epoch.set(c.epoch);
+  n.orgMax.set(c.orgMax);
+  n.flags.set(c.flags);
+  n.width.set(c.width);
+  n.supply.set(c.supply);
+  for (let i = 0; i < c.gen1.length; i++) n.gen1[i] = c.gen1[i];
+  return n;
+}
 
 export class WwLand {
   readonly controller: Uint16Array;
@@ -657,9 +790,28 @@ export class WwLand {
   private sideOfId: number[] = [];
   private sideListCache: Side[] = [];
   private statsCache = new Map<number, StatsEntry>();
-  private tplCache = new Map<string, TemplateStatsEntry>();
+  /** owner × 65536 + template → the template's numbers by generation mix. */
+  private tplCache = new Map<number, TemplateStatsEntry>();
+  private statsInputs: (StatsInputs | undefined)[] = [];
+  /**
+   * Org max, flags, width, supply use and template numbers by row
+   * (stepRecovery reads every row every tick): valid while the row holds
+   * the same division id and template and its country's stats epoch is the
+   * same. They read only the template def and the tech (templateStats: no
+   * generation, men or equipment).
+   */
+  private rowStats = newRowStats(0);
+  /**
+   * weatherAt by region for the last day read (weatherOn): the weather is
+   * a function of the day and the region's static place, so a kept value
+   * is the one a fresh call returns.
+   */
+  private weatherCache: { day: Int32Array; w: Uint8Array } | null = null;
   private regionRows: number[][] = [];
   private regionRowsDirty = true;
+  /** Live rows by owner, in row order, as of divisions.rowsVersion `ownerRowsVersion`. */
+  private ownerRows: number[][] = [];
+  private ownerRowsVersion = -1;
   /** Spread tile orders (rebuilt from Spread.sources), Task 4. */
   readonly spreadOrders = new Map<number, Uint32Array>();
   /** A map-sized scratch for building spread orders (Task 4); derived. */
@@ -667,7 +819,13 @@ export class WwLand {
   // Screens.
   private dirtyArmies = new Set<number>();
   private dirtyLandRegions = new Set<number>();
+  /** Countries whose summary goes out (casualties, divisions, men, battles). */
   private dirtyLandCountries = new Set<number>();
+  /**
+   * Countries whose detail goes out (a human's templates, training,
+   * generals, divisions); each is also in dirtyLandCountries.
+   */
+  private dirtyLandDetails = new Set<number>();
   private removedArmyIds: number[] = [];
   private endedBattleIds: number[] = [];
 
@@ -705,7 +863,7 @@ export class WwLand {
     for (const cl of this.countries()) {
       const p = this.mg.playerBySmallID(cl.smallID);
       if (p.isPlayer()) p.setTroops(this.fieldMen(cl.smallID));
-      this.dirtyLandCountries.add(cl.smallID);
+      this.markDetail(cl.smallID);
     }
     for (const id of this.armies.keys()) this.dirtyArmies.add(id);
     for (const r of this.scenario.landRegions) this.dirtyLandRegions.add(r.id);
@@ -769,7 +927,7 @@ export class WwLand {
     }
     // Spec §13.2: the troop number mirrors the men in the field.
     p.setTroops(this.fieldMen(id));
-    this.dirtyLandCountries.add(id);
+    this.markDetail(id);
   }
 
   // ---- Orders (spec §16.3; the same for humans and the AI) ----
@@ -843,7 +1001,7 @@ export class WwLand {
       default:
         return "bad_index";
     }
-    if (block === null) this.dirtyLandCountries.add(smallID);
+    if (block === null) this.markDetail(smallID);
     return block;
   }
 
@@ -970,7 +1128,7 @@ export class WwLand {
     this.rowListAdd(region, r);
     this.dirtyArmies.add(army.id);
     this.dirtyLandRegions.add(region);
-    this.dirtyLandCountries.add(owner);
+    this.markDetail(owner);
     return id;
   }
 
@@ -1000,7 +1158,7 @@ export class WwLand {
     }
     this.rowListRemove(t.region[row], row);
     this.dirtyLandRegions.add(t.region[row]);
-    this.dirtyLandCountries.add(owner);
+    this.markDetail(owner);
     t.kill(row);
     this.statsCache.delete(id);
   }
@@ -1020,6 +1178,7 @@ export class WwLand {
     }
     const ce = this.econ.country(smallID);
     if (ce !== null && dead > 0) ce.casualties += dead;
+    // Today's casualties are in the summary only (P2 Task 11, I2).
     this.dirtyLandCountries.add(smallID);
   }
 
@@ -1076,12 +1235,14 @@ export class WwLand {
 
   /** Numbers at its men and equipment now (attack, defence, HP). */
   statsOf(row: number): DivisionStats {
-    return this.statsEntry(row).eff;
+    return effOf(this.statsEntry(row));
   }
 
-  /** Call after changing a division's men, equipment or template: its army goes out again. */
+  /**
+   * Call after changing a division's men, equipment or template: its army
+   * goes out again. (The stats caches check their inputs on every read.)
+   */
   touchDivision(row: number): void {
-    this.statsCache.delete(this.divisions.id[row]);
     this.dirtyArmies.add(this.divisions.army[row]);
   }
 
@@ -1105,91 +1266,257 @@ export class WwLand {
 
   /** Maximum org with P3's orgPct (spec §9.8). */
   orgMaxOf(row: number): number {
-    const ce = this.econ.country(this.divisions.owner[row]);
+    return this.rowOrgEntry(row) ? this.rowStats.orgMax[row] : 0;
+  }
+
+  /**
+   * Every country's stats epoch, read now (index smallID). A pass over
+   * many rows that changes no template or tech (stepRecovery) reads it
+   * once and hands each row its owner's to orgMaxAt / flagsAt.
+   */
+  statsEpochs(): Int32Array {
+    const out = new Int32Array(this.countryList.length);
+    for (let id = 1; id < out.length; id++) out[id] = this.statsEpoch(id);
+    return out;
+  }
+
+  /** orgMaxOf with the owner's stats epoch from statsEpochs (this pass). */
+  orgMaxAt(row: number, epoch: number): number {
+    return this.rowOrgEntry(row, epoch) ? this.rowStats.orgMax[row] : 0;
+  }
+
+  /** flagsOf with the owner's stats epoch from statsEpochs (this pass). */
+  flagsAt(row: number, epoch: number): number {
+    return this.rowOrgEntry(row, epoch) ? this.rowStats.flags[row] : 0;
+  }
+
+  /** Spec §10: `region`'s weather on `day` (weatherAt, kept by region for the last day read). */
+  weatherOn(region: number, day: number): Weather {
+    const sc = this.scenario;
+    let c = this.weatherCache;
+    if (c === null) {
+      const n = sc.maxRegionId() + 1;
+      c = { day: new Int32Array(n).fill(-0x80000000), w: new Uint8Array(n) };
+      this.weatherCache = c;
+    }
+    if (region >= 0 && region < c.day.length && c.day[region] === day) {
+      return WEATHERS[c.w[region]];
+    }
+    const w = weatherAt(
+      day,
+      sc.latC(region),
+      sc.landOf(region),
+      sc.wcell(region),
+    );
+    if (region >= 0 && region < c.day.length) {
+      c.day[region] = day;
+      c.w[region] = WEATHERS.indexOf(w);
+    }
+    return w;
+  }
+
+  /** The template's flags (TPL_*) of a division: they read only its template def. */
+  flagsOf(row: number): number {
+    return this.rowOrgEntry(row) ? this.rowStats.flags[row] : 0;
+  }
+
+  /** A division's combat width: it reads only its template def. */
+  widthOf(row: number): number {
+    return this.rowOrgEntry(row) ? this.rowStats.width[row] : 0;
+  }
+
+  /**
+   * The division's template at generation 1, from the row cache. Only the
+   * numbers that read just the def and the tech are the division's own:
+   * width, men, orgMilli (before orgPct), supplyMilli, trainDays, need,
+   * flags, special, battalions. Attack, defence, HP, armour, pierce,
+   * hardness and speed follow the generations: baseStatsOf / statsOf.
+   */
+  templateNumbersOf(row: number): DivisionStats {
+    return this.rowOrgEntry(row) ? this.rowStats.gen1[row] : EMPTY_STATS;
+  }
+
+  /** A division's full-strength supply use, milli a day (spec §11.3): it reads only its template def. */
+  supplyBaseOf(row: number): number {
+    return this.rowOrgEntry(row) ? this.rowStats.supply[row] : 0;
+  }
+
+  /** Fills the row's org max and flags when stale; false for a dead row. */
+  private rowOrgEntry(row: number, knownEpoch = -1): boolean {
+    const t = this.divisions;
+    const id = t.id[row];
+    if (id === 0) {
+      // A tombstone: the old reads gave a template-less division's numbers.
+      return false;
+    }
+    let c = this.rowStats;
+    if (row >= c.id.length) c = this.rowStats = growRowStats(c, t.rows);
+    const owner = t.owner[row];
+    const epoch = knownEpoch >= 0 ? knownEpoch : this.statsEpoch(owner);
+    const tpl = t.template[row];
+    if (c.id[row] === id && c.tpl[row] === tpl && c.epoch[row] === epoch) {
+      return true;
+    }
+    // Org and flags do not depend on the generation mix: any mix gives them.
+    const base = this.templateStatsAt(owner, tpl, GEN1_MIX, epoch);
+    const ce = this.econ.country(owner);
     const pct = ce === null ? 0 : ce.stats.orgPct;
-    return Math.floor((this.baseStatsOf(row).orgMilli * (100 + pct)) / 100);
+    c.id[row] = id;
+    c.tpl[row] = tpl;
+    c.epoch[row] = epoch;
+    c.orgMax[row] = Math.floor((base.orgMilli * (100 + pct)) / 100);
+    c.flags[row] = base.flags;
+    c.width[row] = base.width;
+    c.supply[row] = base.supplyMilli;
+    c.gen1[row] = base;
+    return true;
+  }
+
+  /**
+   * The country's stats epoch (see StatsInputs): moves when its tech
+   * totals object or any template's id or def is not the one last seen.
+   */
+  private statsEpoch(owner: number): number {
+    let s = this.statsInputs[owner];
+    if (s === undefined) {
+      s = { stats: null, statsVer: -1, ids: [], defs: [], epoch: 0 };
+      this.statsInputs[owner] = s;
+    }
+    const ce = this.econ.country(owner);
+    const stats = ce?.stats ?? null;
+    const statsVer = ce?.statsVer ?? -1;
+    const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
+    let same =
+      s.stats === stats &&
+      s.statsVer === statsVer &&
+      s.defs.length === tpls.length;
+    for (let i = 0; same && i < tpls.length; i++) {
+      same = tpls[i].def === s.defs[i] && tpls[i].id === s.ids[i];
+    }
+    if (!same) {
+      s.stats = stats;
+      s.statsVer = statsVer;
+      s.ids = tpls.map((x) => x.id);
+      s.defs = tpls.map((x) => x.def);
+      s.epoch++;
+    }
+    return s.epoch;
+  }
+
+  private defOf(owner: number, template: number): TemplateDef | null {
+    const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
+    for (let i = 0; i < tpls.length; i++) {
+      if (tpls[i].id === template) return tpls[i].def;
+    }
+    return null;
+  }
+
+  /** templateStats of the country's template at generation mix `mix` (EMPTY_DEF when it has none). */
+  private templateStatsAt(
+    owner: number,
+    template: number,
+    mix: readonly number[],
+    epoch: number,
+  ): DivisionStats {
+    const key = owner * 65_536 + template;
+    let e = this.tplCache.get(key);
+    if (e === undefined || e.epoch !== epoch) {
+      e = { epoch, gen1: null, byMix: new Map() };
+      this.tplCache.set(key, e);
+    }
+    let gen1 = true;
+    for (let i = 0; gen1 && i < mix.length; i++) gen1 = mix[i] === 100;
+    if (gen1 && e.gen1 !== null) return e.gen1;
+    const mixKey = gen1 ? "" : mix.join(",");
+    if (!gen1) {
+      const hit = e.byMix.get(mixKey);
+      if (hit !== undefined) return hit;
+    }
+    const stats = templateStats(
+      this.defOf(owner, template) ?? EMPTY_DEF,
+      this.econ.country(owner)!.stats,
+      mix,
+    );
+    if (gen1) e.gen1 = stats;
+    else e.byMix.set(mixKey, stats);
+    return stats;
   }
 
   private statsEntry(row: number): StatsEntry {
     const t = this.divisions;
     const id = t.id[row];
     const owner = t.owner[row];
-    const def = this.templateOf(owner, t.template[row])?.def ?? EMPTY_DEF;
-    const ce = this.econ.country(owner)!;
-    const techVer = ce.researched.size;
-    const statsVer = ce.statsVer;
+    const epoch = this.statsEpoch(owner);
+    const tpl = t.template[row];
     const men = t.men[row];
     const base0 = row * GROUND_SLOTS;
+    const eq = t.equip;
     const hit = this.statsCache.get(id);
-    if (
-      hit !== undefined &&
-      hit.def === def &&
-      hit.techVer === techVer &&
-      hit.statsVer === statsVer &&
-      hit.men === men
-    ) {
-      let same = true;
-      for (let j = 0; j < GROUND_SLOTS; j++) {
-        if (hit.equip[j] !== t.equip[base0 + j]) {
-          same = false;
-          break;
-        }
+    if (hit !== undefined && hit.epoch === epoch && hit.template === tpl) {
+      const he = hit.equip;
+      let same = hit.men === men;
+      for (let j = 0; same && j < GROUND_SLOTS; j++) {
+        same = he[j] === eq[base0 + j];
       }
       if (same) return hit;
+      // Men or equipment moved: the base holds while the generation mix does.
+      hit.men = men;
+      for (let j = 0; j < GROUND_SLOTS; j++) he[j] = eq[base0 + j];
+      const mix = genMixInto(MIX_SCRATCH, he);
+      let sameMix = true;
+      for (let i = 0; sameMix && i < mix.length; i++) {
+        sameMix = mix[i] === hit.mix[i];
+      }
+      if (!sameMix) {
+        hit.mix = [...mix];
+        hit.base = this.templateStatsAt(owner, tpl, hit.mix, epoch);
+      }
+      hit.eff = null;
+      hit.strength = -1;
+      hit.fill = null;
+      return hit;
     }
-    const equip = Array.from(t.equipOf(row));
-    const base = templateStats(def, ce.stats, genMixOf(equip));
+    const equip = eq.slice(base0, base0 + GROUND_SLOTS);
+    const mix = genMixOf(equip);
     const entry: StatsEntry = {
-      base,
-      eff: divisionStats(base, equip, men),
-      def,
-      techVer,
-      statsVer,
+      epoch,
+      template: tpl,
       men,
       equip,
+      mix,
+      base: this.templateStatsAt(owner, tpl, mix, epoch),
+      eff: null,
+      strength: -1,
+      fill: null,
     };
     this.statsCache.set(id, entry);
     return entry;
   }
 
-  /** Template numbers at generation 1 (screens, AI), cached per country, template and tech count. */
+  /** Template numbers at generation 1 (screens, AI), cached per country, template and stats epoch. */
   templateStatsOf(owner: number, template: number): DivisionStats | null {
-    const tpl = this.templateOf(owner, template);
-    const ce = this.econ.country(owner);
-    if (tpl === null || ce === null) return null;
-    const key = `${owner}:${template}`;
-    const techVer = ce.researched.size;
-    const statsVer = ce.statsVer;
-    const hit = this.tplCache.get(key);
-    if (
-      hit !== undefined &&
-      hit.def === tpl.def &&
-      hit.techVer === techVer &&
-      hit.statsVer === statsVer
-    ) {
-      return hit.stats;
-    }
-    const stats = templateStats(
-      tpl.def,
-      ce.stats,
-      genMixOf(new Array<number>(GROUND_SLOTS).fill(0)),
+    if (this.defOf(owner, template) === null) return null;
+    if (this.econ.country(owner) === null) return null;
+    return this.templateStatsAt(
+      owner,
+      template,
+      GEN1_MIX,
+      this.statsEpoch(owner),
     );
-    this.tplCache.set(key, { def: tpl.def, techVer, statsVer, stats });
-    return stats;
   }
 
   /** The stats caches (derived) again from nothing; P3's bridge calls it. */
   clearStatsCache(): void {
     this.statsCache.clear();
     this.tplCache.clear();
+    this.statsInputs = [];
+    this.rowStats = newRowStats(0);
+    // The caches kept outside the land (Battles.modsOf, …) start over too.
+    this.derivedEpoch++;
   }
 
   strengthOf(row: number): number {
-    return strengthPm(
-      this.baseStatsOf(row),
-      this.divisions.equipOf(row),
-      this.divisions.men[row],
-    );
+    return strengthOfEntry(this.statsEntry(row));
   }
 
   // ---- Armies (spec §6.1) ----
@@ -1227,7 +1554,7 @@ export class WwLand {
     this.armies.delete(id);
     this.dirtyArmies.delete(id);
     this.removedArmyIds.push(id);
-    this.dirtyLandCountries.add(a.owner);
+    this.markDetail(a.owner);
   }
 
   /** Moves a division to another army (split, merge, AI grouping). */
@@ -1287,10 +1614,26 @@ export class WwLand {
   fieldMen(smallID: number): number {
     const t = this.divisions;
     let n = 0;
-    for (let r = 0; r < t.rows; r++) {
-      if (t.id[r] !== 0 && t.owner[r] === smallID) n += t.men[r];
-    }
+    for (const r of this.rowsOf(smallID)) n += t.men[r];
     return n;
+  }
+
+  /**
+   * The country's live rows in row (= id) order (derived: rebuilt when the
+   * table added, killed, compacted or restored rows). A view: copy it
+   * before adding or removing divisions while walking it.
+   */
+  rowsOf(smallID: number): readonly number[] {
+    const t = this.divisions;
+    if (this.ownerRowsVersion !== t.rowsVersion) {
+      const out: number[][] = [];
+      for (let r = 0; r < t.rows; r++) {
+        if (t.id[r] !== 0) (out[t.owner[r]] ??= []).push(r);
+      }
+      this.ownerRows = out;
+      this.ownerRowsVersion = t.rowsVersion;
+    }
+    return this.ownerRows[smallID] ?? NO_ROWS;
   }
 
   /** fieldMen of every country in one pass, indexed by smallID. */
@@ -1350,10 +1693,7 @@ export class WwLand {
 
   /** Spec §5.5, §12.5: a capitulated country's divisions, armies and training are gone. */
   removeCountryForces(smallID: number): void {
-    const t = this.divisions;
-    for (let r = 0; r < t.rows; r++) {
-      if (t.id[r] !== 0 && t.owner[r] === smallID) this.killDivision(r, false);
-    }
+    for (const r of [...this.rowsOf(smallID)]) this.killDivision(r, false);
     for (const a of this.armiesOf(smallID)) this.removeArmy(a.id);
     const cl = this.country(smallID);
     if (cl !== null) {
@@ -1361,7 +1701,7 @@ export class WwLand {
       cl.trainees = [];
       for (const g of cl.generals) g.army = 0;
     }
-    this.dirtyLandCountries.add(smallID);
+    this.markDetail(smallID);
   }
 
   // ---- Change marks for the screens ----
@@ -1372,17 +1712,11 @@ export class WwLand {
   }
   /** Adds a battle keeping `battles` in region order (Map order is iteration order). */
   addBattle(b: Battle): void {
-    this.battles.set(b.region, b);
-    const sorted = [...this.battles.entries()].sort((x, y) => x[0] - y[0]);
-    this.battles.clear();
-    for (const [k, v] of sorted) this.battles.set(k, v);
+    setInOrder(this.battles, b.region, b);
   }
   /** Sets a region's spread keeping `spreads` in region order. */
   setSpread(s: Spread): void {
-    this.spreads.set(s.region, s);
-    const sorted = [...this.spreads.entries()].sort((x, y) => x[0] - y[0]);
-    this.spreads.clear();
-    for (const [k, v] of sorted) this.spreads.set(k, v);
+    setInOrder(this.spreads, s.region, s);
   }
   endBattle(region: number): void {
     if (this.battles.delete(region)) this.endedBattleIds.push(region);
@@ -1390,8 +1724,13 @@ export class WwLand {
   markRegion(region: number): void {
     this.dirtyLandRegions.add(region);
   }
+  /** The country's summary and (a human's) detail go out. */
   markCountry(smallID: number): void {
+    this.markDetail(smallID);
+  }
+  private markDetail(smallID: number): void {
     this.dirtyLandCountries.add(smallID);
+    this.dirtyLandDetails.add(smallID);
   }
 
   // ---- Screens (spec §16.4) ----
@@ -1434,6 +1773,7 @@ export class WwLand {
       const cl = this.country(id);
       if (cl === null) continue;
       d.countries.push(this.countrySummary(cl));
+      if (!this.dirtyLandDetails.has(id)) continue;
       const p = this.mg.playerBySmallID(id);
       if (p.isPlayer() && p.type() === PlayerType.Human) {
         d.details.push(this.countryDetail(cl));
@@ -1442,6 +1782,7 @@ export class WwLand {
     this.dirtyArmies.clear();
     this.dirtyLandRegions.clear();
     this.dirtyLandCountries.clear();
+    this.dirtyLandDetails.clear();
     this.removedArmyIds = [];
     this.endedBattleIds = [];
     return d;
@@ -1463,8 +1804,9 @@ export class WwLand {
       const r = t.rowOf(id);
       if (r < 0) continue;
       n++;
-      addToSide(sum, this.statsOf(r), t.org[r]);
-      strength += this.strengthOf(r);
+      const e = this.statsEntry(r);
+      addToSide(sum, effOf(e), t.org[r]);
+      strength += strengthOfEntry(e);
       org += t.org[r];
       orgMax += this.orgMaxOf(r);
       supply += t.supply[r];
@@ -1632,8 +1974,7 @@ export class WwLand {
     let men = 0;
     const battles = new Set<number>();
     const encircledArmies = new Set<number>();
-    for (let r = 0; r < t.rows; r++) {
-      if (t.id[r] === 0 || t.owner[r] !== id) continue;
+    for (const r of this.rowsOf(id)) {
       divisions++;
       men += t.men[r];
       if (t.battle[r] !== 0) battles.add(t.battle[r]);
@@ -1656,8 +1997,7 @@ export class WwLand {
     const ce = this.econ.country(id);
     const inUse = new Map<number, number>();
     const divisions: DivisionData[] = [];
-    for (let r = 0; r < t.rows; r++) {
-      if (t.id[r] === 0 || t.owner[r] !== id) continue;
+    for (const r of this.rowsOf(id)) {
       inUse.set(t.template[r], (inUse.get(t.template[r]) ?? 0) + 1);
       const orgMax = this.orgMaxOf(r);
       const fill = equipFill(this.baseStatsOf(r), t.equipOf(r));
@@ -1974,11 +2314,18 @@ export class WwLand {
     // A restored game's screens have seen nothing yet.
     for (const id of this.armies.keys()) this.dirtyArmies.add(id);
     for (const r of this.scenario.landRegions) this.dirtyLandRegions.add(r.id);
-    for (const cl of this.countries()) this.dirtyLandCountries.add(cl.smallID);
+    for (const cl of this.countries()) this.markDetail(cl.smallID);
   }
+
+  /**
+   * Derived (DERIVED_FIELDS): moves at every rebuildDerived (construction,
+   * restore, factions), so caches kept outside the land know to start over.
+   */
+  derivedEpoch = 0;
 
   /** Sides, caches, the spread orders. The constructor and restoreState call it. */
   rebuildDerived(): void {
+    this.derivedEpoch++;
     const n = this.countryList.length;
     this.sideOfId = new Array<number>(n).fill(0);
     const byKey = new Map<number, Side>();
@@ -1994,7 +2341,11 @@ export class WwLand {
     this.sideListCache = [...byKey.values()].sort((a, b) => a.rep - b.rep);
     this.statsCache.clear();
     this.tplCache.clear();
+    this.statsInputs = [];
+    this.rowStats = newRowStats(0);
+    this.weatherCache = null;
     this.regionRowsDirty = true;
+    this.ownerRowsVersion = -1;
     this.divisions.rebuildIndex();
     this.spreadOrders.clear(); // Task 4 rebuilds an order on its first use
   }

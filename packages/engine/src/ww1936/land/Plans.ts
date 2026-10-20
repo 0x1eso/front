@@ -13,12 +13,11 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   addToSide,
-  divisionMods,
   emptySide,
   planMaxBp,
   predictBattle,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import { joinBattle, modInputOf } from "./Battles";
+import { joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { enemyDivisionsIn, startHopInto } from "./Movement";
 import { leaveAttack } from "./Orders";
@@ -97,7 +96,13 @@ function enemyStrength(land: WwLand, me: number, region: number): number {
  * into when empty, or attacked when the preview clears the stance's ratio.
  * The plan ends when our side holds every target.
  */
-export function planDay(land: WwLand, army: Army, day: number): void {
+export function planDay(
+  land: WwLand,
+  army: Army,
+  day: number,
+  /** targetDistances(land, army) when the caller has it (this tick, nothing moved since). */
+  targetDist?: Int32Array,
+): void {
   const o = army.order;
   if (o.kind !== "plan" || !o.executing) return;
   const me = army.owner;
@@ -113,7 +118,7 @@ export function planDay(land: WwLand, army: Army, day: number): void {
   }
   const sc = land.scenario;
   const t = land.divisions;
-  const dist = targetDistances(land, army);
+  const dist = targetDist ?? targetDistances(land, army);
   const rows = armyRows(land, army);
   for (const f of army.front) {
     const here = rows.filter(
@@ -196,9 +201,7 @@ export function readinessDay(land: WwLand, army: Army): void {
   const rows = armyRows(land, army);
   let bp = army.planBp;
   if (!(o.kind === "plan" && o.executing)) {
-    const signal = rows.some(
-      (r) => (land.baseStatsOf(r).flags & TPL_SIGNAL) !== 0,
-    );
+    const signal = rows.some((r) => (land.flagsOf(r) & TPL_SIGNAL) !== 0);
     const doctrine =
       g !== null && (g.traits & traitBit("offensive_doctrine")) !== 0;
     const pct =
@@ -256,13 +259,8 @@ export function predictAttack(
   }
   const neutral = { attackBp: 10_000, defenseBp: 10_000 };
   const am =
-    attackers.length === 0
-      ? neutral
-      : divisionMods(modInputOf(land, attackers[0], region, true)).mods;
-  const dm =
-    firstDef < 0
-      ? neutral
-      : divisionMods(modInputOf(land, firstDef, region, false)).mods;
+    attackers.length === 0 ? neutral : modsOf(land, attackers[0], region, true);
+  const dm = firstDef < 0 ? neutral : modsOf(land, firstDef, region, false);
   return predictBattle(att, def, {
     land: land.scenario.landOf(region),
     directions: Math.max(1, Math.min(4, from.size)),

@@ -417,17 +417,18 @@ interface SideView {
 }
 
 /**
- * Derived, never state: the side views of one tick. Control does not move
- * during the countries' daily steps (captures land with the movement,
- * after them), and the cache also keys on WwLand.controlChanges and the
- * side list (factions), so every country of a side sees the view a fresh
- * computation would give, live or restored. Kept outside WwLand (not in
- * its snapshot graph), like Supply's run cache.
+ * Derived, never state: the side views. A view reads only the region
+ * controllers and the sides; the cache keys on WwLand.controlChanges
+ * (setController, the only way control changes, counts every change), the
+ * side list (factions) and WwLand.derivedEpoch (a restore), so every
+ * country of a side sees the view a fresh computation would give, live or
+ * restored. Kept outside WwLand (not in its snapshot graph), like
+ * Supply's run cache.
  */
 const sideViews = new WeakMap<
   WwLand,
   {
-    tick: number;
+    epoch: number;
     changes: number;
     sides: readonly unknown[];
     bySide: Map<number, SideView>;
@@ -435,17 +436,17 @@ const sideViews = new WeakMap<
 >();
 
 function sideView(land: WwLand, me: number): SideView {
-  const tick = land.mg.ticks();
   let cache = sideViews.get(land);
   // The side list is rebuilt when the factions change (P3): a new array.
   const sides = land.sideList();
+  const epoch = land.derivedEpoch;
   if (
     cache === undefined ||
-    cache.tick !== tick ||
+    cache.epoch !== epoch ||
     cache.changes !== land.controlChanges ||
     cache.sides !== sides
   ) {
-    cache = { tick, changes: land.controlChanges, sides, bySide: new Map() };
+    cache = { epoch, changes: land.controlChanges, sides, bySide: new Map() };
     sideViews.set(land, cache);
   }
   const key = land.sideOf(me);

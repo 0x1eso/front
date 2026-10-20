@@ -6,8 +6,12 @@
 // only when its capacity changed or a region it read changed hands, rail
 // or infrastructure. A run reads nothing else (the graph and the terrain
 // are static), so a kept run equals a new one: the cache never changes a
-// number. It lives beside the land (a WeakMap, not a field): a restored
-// game builds its own on its first day and gets the same values.
+// number. A side none of whose regions changed hands, rail,
+// infrastructure or built hub, and whose members' capitals are the same,
+// keeps its hubs, its reach and every region's best hub share too (P2
+// Task 11): they read nothing else. It lives beside the land (a WeakMap,
+// not a field): a restored game builds its own on its first day and gets
+// the same values.
 import {
   MOVE_NONE,
   TPL_LOGISTICS,
@@ -29,7 +33,6 @@ import {
   supplyRatePm,
   supplyUseMilli,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { generalOf } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import type { WwLand } from "./WwLand";
@@ -53,13 +56,28 @@ interface HubRun {
   touched: number[];
 }
 
-/** A side's inputs at its last day, and its hubs' runs by region. */
+/** A side's inputs at its last day, its hubs' runs by region, and what they gave. */
 interface SideCache {
   members: number[];
   ours: Uint8Array;
   rail: Uint8Array;
   infra: Uint8Array;
+  hub: Uint8Array;
+  /** capitalRegion of each member. */
+  capitals: number[];
   runs: Map<number, HubRun>;
+  /** False until the first day filled `reached` and `best`. */
+  warm: boolean;
+  /** 1: some hub of the side reaches the region over the side's regions. */
+  reached: Uint8Array;
+  /** The best hub share of each side region, milli. */
+  best: Int32Array;
+  /** memberMask of `members`. */
+  member: Uint8Array;
+  /** sideRegions at WwLand.controlChanges / derivedEpoch `changes` / `epoch` (-1: none yet). */
+  changes: number;
+  epoch: number;
+  regionsView: { ours: Uint8Array; regions: number[] } | null;
 }
 
 /** Scratch arrays (stamped, never cleared) and the side caches of one land. */
@@ -70,7 +88,6 @@ interface SupplyState {
   seen: Int32Array;
   done: Int32Array;
   changed: Int32Array;
-  best: Int32Array;
   use: Int32Array;
   stamp: number;
 }
@@ -88,7 +105,6 @@ function stateOf(land: WwLand): SupplyState {
       seen: new Int32Array(n),
       done: new Int32Array(n),
       changed: new Int32Array(n),
-      best: new Int32Array(n),
       use: new Int32Array(n),
       stamp: 0,
     };
@@ -135,6 +151,7 @@ function hubsOf(
   members: readonly number[],
   ours: Uint8Array,
   regions: readonly number[],
+  capitals: readonly number[] = members.map((m) => capitalRegion(land, m)),
 ): SupplyHub[] {
   const sc = land.scenario;
   const rail = land.econ.rail;
@@ -142,8 +159,7 @@ function hubsOf(
   const isCapital = new Uint8Array(ours.length);
   const railNet = new Uint8Array(ours.length);
   const q: number[] = [];
-  for (const m of members) {
-    const c = capitalRegion(land, m);
+  for (const c of capitals) {
     if (c === 0 || isCapital[c] === 1) continue;
     isCapital[c] = 1;
     railNet[c] = 1;
@@ -250,17 +266,112 @@ export function dailySupply(land: WwLand, side: number): void {
   const sc = land.scenario;
   const st = stateOf(land);
   const members = land.sideMembers(side);
-  const member = memberMask(land, members);
-  const { ours, regions } = sideRegions(land, member);
+  const cache = sideCache(land, st, side, members, land.controller.length);
+  // The side's regions read only the controllers (setController counts
+  // every change in controlChanges).
+  if (
+    cache.regionsView === null ||
+    cache.changes !== land.controlChanges ||
+    cache.epoch !== land.derivedEpoch
+  ) {
+    cache.regionsView = sideRegions(land, cache.member);
+    cache.changes = land.controlChanges;
+    cache.epoch = land.derivedEpoch;
+  }
+  const { ours, regions } = cache.regionsView;
   const day = land.day();
-  // 1–2. The live hubs; one run per region at its largest capacity (a
-  // larger capacity gives more at every distance).
+  // What the hubs, the reach and the runs read: the side's regions, their
+  // rail, infrastructure and built hubs, the members' capitals.
+  const rail = land.econ.rail;
+  const infra = land.econ.infra;
+  const hub = land.econ.hub;
+  const mark = ++st.stamp;
+  let anyChange = false;
+  let hubChange = false;
+  for (let r = 1; r < ours.length; r++) {
+    if (
+      cache.ours[r] !== ours[r] ||
+      cache.rail[r] !== rail[r] ||
+      cache.infra[r] !== infra[r]
+    ) {
+      st.changed[r] = mark;
+      cache.ours[r] = ours[r];
+      cache.rail[r] = rail[r];
+      cache.infra[r] = infra[r];
+      anyChange = true;
+    }
+    if (cache.hub[r] !== hub[r]) {
+      cache.hub[r] = hub[r];
+      hubChange = true;
+    }
+  }
+  const capitals = members.map((m) => capitalRegion(land, m));
+  if (
+    capitals.length !== cache.capitals.length ||
+    capitals.some((c, i) => c !== cache.capitals[i])
+  ) {
+    cache.capitals = capitals;
+    hubChange = true;
+  }
+  if (anyChange || hubChange || !cache.warm) {
+    warmSide(
+      land,
+      st,
+      cache,
+      members,
+      ours,
+      regions,
+      capitals,
+      anyChange,
+      mark,
+    );
+  }
+  const reached = cache.reached;
+  const best = cache.best;
+  // 5. Region supply and encirclement.
+  const owners = sc.ownerByRegion();
+  for (const r of regions) {
+    const cut = reached[r] === 0;
+    let s = 0;
+    if (!cut) {
+      const core =
+        sc.region(r)!.core && land.sameSide(owners[r], land.controller[r]);
+      const w = land.weatherOn(r, day);
+      s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
+    }
+    if (land.supplyMilli[r] !== s || land.encircled[r] !== (cut ? 1 : 0)) {
+      land.supplyMilli[r] = s;
+      land.encircled[r] = cut ? 1 : 0;
+      land.markRegion(r);
+    }
+  }
+  divisionRates(land, st, members, ours, reached, regions);
+}
+
+/**
+ * Spec §11.1–§11.5 steps 1–4 for a side whose inputs changed (or its first
+ * day): the live hubs, one run per region at its largest capacity (a
+ * larger capacity gives more at every distance), the reach (encirclement:
+ * side regions no hub reaches at all) and each region's best hub share.
+ */
+function warmSide(
+  land: WwLand,
+  st: SupplyState,
+  cache: SideCache,
+  members: readonly number[],
+  ours: Uint8Array,
+  regions: readonly number[],
+  capitals: readonly number[],
+  anyChange: boolean,
+  mark: number,
+): void {
+  const sc = land.scenario;
   const capAt = new Map<number, number>();
-  for (const h of hubsOf(land, members, ours, regions)) {
+  for (const h of hubsOf(land, members, ours, regions, capitals)) {
     capAt.set(h.region, Math.max(capAt.get(h.region) ?? 0, h.cap));
   }
-  // 3. Encirclement (spec §11.5): side regions no hub reaches at all.
-  const reached = new Uint8Array(ours.length);
+  const reached = cache.reached;
+  reached.fill(0);
   const bq: number[] = [];
   for (const r of capAt.keys()) {
     reached[r] = 1;
@@ -274,25 +385,7 @@ export function dailySupply(land: WwLand, side: number): void {
       }
     }
   }
-  // 4. The hubs' runs: kept unless a region one read changed (see the top).
-  const cache = sideCache(st, side, members, ours.length);
-  const rail = land.econ.rail;
-  const infra = land.econ.infra;
-  const mark = ++st.stamp;
-  let anyChange = false;
-  for (let r = 1; r < ours.length; r++) {
-    if (
-      cache.ours[r] !== ours[r] ||
-      cache.rail[r] !== rail[r] ||
-      cache.infra[r] !== infra[r]
-    ) {
-      st.changed[r] = mark;
-      cache.ours[r] = ours[r];
-      cache.rail[r] = rail[r];
-      cache.infra[r] = infra[r];
-      anyChange = true;
-    }
-  }
+  // The hubs' runs: kept unless a region one read changed (see the top).
   const runs = new Map<number, HubRun>();
   for (const [hub, cap] of capAt) {
     let run = cache.runs.get(hub);
@@ -307,35 +400,19 @@ export function dailySupply(land: WwLand, side: number): void {
   }
   cache.runs = runs;
   // The best hub share of each region (a maximum: the run order is free).
-  const best = st.best;
-  for (const r of regions) best[r] = 0;
+  const best = cache.best;
+  best.fill(0);
   for (const run of runs.values()) {
     for (let i = 0; i < run.regions.length; i++) {
       const r = run.regions[i];
       if (run.values[i] > best[r]) best[r] = run.values[i];
     }
   }
-  // 5. Region supply and encirclement.
-  const owners = sc.ownerByRegion();
-  for (const r of regions) {
-    const cut = reached[r] === 0;
-    let s = 0;
-    if (!cut) {
-      const core =
-        sc.region(r)!.core && land.sameSide(owners[r], land.controller[r]);
-      const w = weatherAt(day, sc.latC(r), sc.landOf(r), sc.wcell(r));
-      s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
-    }
-    if (land.supplyMilli[r] !== s || land.encircled[r] !== (cut ? 1 : 0)) {
-      land.supplyMilli[r] = s;
-      land.encircled[r] = cut ? 1 : 0;
-      land.markRegion(r);
-    }
-  }
-  divisionRates(land, st, member, ours, reached, regions);
+  cache.warm = true;
 }
 
 function sideCache(
+  land: WwLand,
   st: SupplyState,
   side: number,
   members: readonly number[],
@@ -355,7 +432,16 @@ function sideCache(
     ours: new Uint8Array(size),
     rail: new Uint8Array(size),
     infra: new Uint8Array(size),
+    hub: new Uint8Array(size),
+    capitals: [],
     runs: new Map(),
+    warm: false,
+    reached: new Uint8Array(size),
+    best: new Int32Array(size),
+    member: memberMask(land, members),
+    changes: -1,
+    epoch: -1,
+    regionsView: null,
   };
   st.sides.set(side, fresh);
   return fresh;
@@ -371,7 +457,7 @@ function sideCache(
 function divisionRates(
   land: WwLand,
   st: SupplyState,
-  member: Uint8Array,
+  members: readonly number[],
   ours: Uint8Array,
   reached: Uint8Array,
   regions: readonly number[],
@@ -381,31 +467,32 @@ function divisionRates(
   for (const r of regions) use[r] = 0;
   const logOf = new Map<number, { log: number; wizard: boolean }>();
   const wizard = traitBit("logistics_wizard");
+  // The side's divisions, member by member (sums and sets: the order is free).
   const rows: number[] = [];
-  for (let row = 0; row < t.rows; row++) {
-    if (t.id[row] === 0 || member[t.owner[row]] !== 1) continue;
-    rows.push(row);
-    const r = t.region[row];
-    if (ours[r] === 0 || t.mode[row] !== MOVE_NONE) continue;
-    const owner = t.owner[row];
-    let g = logOf.get(t.army[row]);
-    if (g === undefined) {
-      const army = land.armies.get(t.army[row]);
-      const gen = army === undefined ? null : generalOf(land, army);
-      g = {
-        log: gen?.log ?? 0,
-        wizard: gen !== null && (gen.traits & wizard) !== 0,
-      };
-      logOf.set(t.army[row], g);
+  for (const m of members) {
+    const usePct = land.econ.country(m)?.stats.supplyUsePct ?? 0;
+    for (const row of land.rowsOf(m)) {
+      rows.push(row);
+      const r = t.region[row];
+      if (ours[r] === 0 || t.mode[row] !== MOVE_NONE) continue;
+      let g = logOf.get(t.army[row]);
+      if (g === undefined) {
+        const army = land.armies.get(t.army[row]);
+        const gen = army === undefined ? null : generalOf(land, army);
+        g = {
+          log: gen?.log ?? 0,
+          wizard: gen !== null && (gen.traits & wizard) !== 0,
+        };
+        logOf.set(t.army[row], g);
+      }
+      use[r] += supplyUseMilli(
+        land.supplyBaseOf(row),
+        g.log,
+        (land.flagsOf(row) & TPL_LOGISTICS) !== 0,
+        g.wizard,
+        usePct,
+      );
     }
-    const s = land.baseStatsOf(row);
-    use[r] += supplyUseMilli(
-      s.supplyMilli,
-      g.log,
-      (s.flags & TPL_LOGISTICS) !== 0,
-      g.wizard,
-      land.econ.country(owner)?.stats.supplyUsePct ?? 0,
-    );
   }
   for (const r of regions) {
     if (land.useMilli[r] !== use[r]) {
