@@ -1,4 +1,5 @@
 import {
+  Difficulty,
   GameMapSize,
   GameMapType,
   GameMode,
@@ -39,6 +40,14 @@ describe("World War 1936 settings", () => {
       maxTimerValue: 10,
       disabledUnits: [UnitType.Warship],
       doomsdayClock: { enabled: true, speed: "fast" },
+      // Settings the mode's lobby hides.
+      difficulty: Difficulty.Easy,
+      donateGold: false,
+      donateTroops: false,
+      infiniteGold: true,
+      infiniteTroops: true,
+      goldMultiplier: 5,
+      startingGold: 1_000_000,
     });
     const n = normalizeWorldWar1936Config(c);
     expect(n).not.toBe(c);
@@ -49,6 +58,8 @@ describe("World War 1936 settings", () => {
     expect(n.congress).toBeUndefined();
     expect(n.doomsdayClock).toBeUndefined();
     expect(n.playerTeams).toBeUndefined();
+    expect(n.goldMultiplier).toBeUndefined();
+    expect(n.startingGold).toBeUndefined();
     expect(n).toMatchObject({
       gameMap: GameMapType.World1936,
       gameMapSize: GameMapSize.Normal,
@@ -60,6 +71,11 @@ describe("World War 1936 settings", () => {
       customAllianceDuration: 0,
       spawnImmunityDuration: 0,
       historicalAi: true,
+      difficulty: Difficulty.Medium,
+      donateGold: true,
+      donateTroops: true,
+      infiniteGold: false,
+      infiniteTroops: false,
     });
     expect(n.disabledUnits).toEqual([
       UnitType.Warship,
