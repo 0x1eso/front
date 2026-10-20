@@ -80,9 +80,12 @@ describe("politics orders", () => {
     expect(at("advisor_hire")).toBe("advisor_unavailable");
     expect(at("decision_take")).toBe("decision_unavailable");
     expect(at("event_choose")).toBe("no_event");
+    // Lane D: the 1934 pact refuses the justification; the loop above spent
+    // the PP (guarantee, access, relations) and left the Axis (faction_leave),
+    // so a neutral government now meets the 40% tension gate.
     expect(at("justify")).toBe("justify_blocked");
-    expect(at("guarantee")).toBe("bad_target");
-    expect(at("faction_create")).toBe("faction_rule");
+    expect(at("guarantee")).toBe("no_pp");
+    expect(at("faction_create")).toBe("tension_gate");
     // The same through the intent, in the preparation minute too.
     const pp = pol(g).country(deu.smallID())!.ppMilli;
     step(runner, 1, [order(HUMAN, ORDERS.focus_start)]);

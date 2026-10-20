@@ -266,20 +266,14 @@ describe("politics wiring", () => {
         ww.isAtWar(byTag(g, "DEU").smallID(), byTag(g, "POL").smallID()),
         gameID,
       ).toBe(war);
-      // On the history path the 1934 pact goes first and a goal is made.
+      // On the history path the 1934 pact goes first and a goal is made
+      // on the spot, which the declaration uses up (spec §14.2): no
+      // penalty for a goal-less war.
       if (war) {
-        expect(
-          pol(g).isAtWarBlockedByNap(
-            byTag(g, "DEU").smallID(),
-            byTag(g, "POL").smallID(),
-          ),
-        ).toBe(false);
-        expect(
-          pol(g).hasWarGoal(
-            byTag(g, "DEU").smallID(),
-            byTag(g, "POL").smallID(),
-          ),
-        ).toBe(true);
+        const [d, p] = [byTag(g, "DEU").smallID(), byTag(g, "POL").smallID()];
+        expect(pol(g).isAtWarBlockedByNap(d, p)).toBe(false);
+        expect(pol(g).hasWarGoal(d, p)).toBe(false);
+        expect(pol(g).country(d)!.declaredOn).toContain(p);
       }
     }
   });

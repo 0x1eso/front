@@ -28,6 +28,7 @@ import { playerInfo, setup } from "../util/Setup";
 import {
   byTag,
   clearLand,
+  dropPact,
   HUMAN,
   land,
   placeArmy,
@@ -562,6 +563,7 @@ describe("World War 1936 P2: the land war's state", () => {
       updates.slice(n).flatMap((u) => u.updates[GameUpdateType.WwLand]),
     ).toEqual([]);
     // A capture reaches the screens.
+    dropPact(g, "DEU", "POL");
     stepTo(runner, WW_PREP_TICKS + 1);
     step(runner, 1, [
       stamped(HUMAN, {

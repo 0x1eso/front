@@ -20,6 +20,7 @@ import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 import {
   byTag,
+  dropPact,
   HUMAN,
   MINI,
   stamped,
@@ -209,6 +210,7 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
       ]);
       const g = runner.game;
       const pol = byTag(g, "POL");
+      dropPact(g, "DEU", "POL");
       stepTo(runner, WW_PREP_TICKS + 1);
       const launches = watchLaunches(g);
       step(runner, 1, [

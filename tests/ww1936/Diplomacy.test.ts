@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine/ww1936/Diplomacy";
 import {
   byTag,
+  dropPact,
   HUMAN,
   stamped,
   step,
@@ -25,8 +26,12 @@ describe("declarations of war (spec §7.3)", () => {
       declareWarBlock(g, ww, byTag(g, "DEU"), byTag(g, "POL"), g.ticks()),
     ).toBe("prep");
     stepTo(runner, WW_PREP_TICKS);
+    // P3 spec §16.2: the 1934 German–Polish pact holds until broken.
     expect(
       declareWarBlock(g, ww, byTag(g, "DEU"), byTag(g, "POL"), g.ticks()),
+    ).toBe("nap");
+    expect(
+      declareWarBlock(g, ww, byTag(g, "DEU"), byTag(g, "FRA"), g.ticks()),
     ).toBeNull();
   });
 
@@ -41,6 +46,7 @@ describe("declarations of war (spec §7.3)", () => {
     const now = g.ticks();
     expect(declareWarBlock(g, ww, deu, deu, now)).toBe("self");
     expect(declareWarBlock(g, ww, deu, ita, now)).toBe("faction");
+    dropPact(g, "DEU", "POL");
     declareWar(g, ww, deu, pol, now);
     expect(declareWarBlock(g, ww, deu, pol, now)).toBe("at_war");
     ww.addCapitulation(sun.smallID(), 0, now);
@@ -116,6 +122,9 @@ describe("declarations of war (spec §7.3)", () => {
     step(runner);
     expect(at("POL")).toBe(false);
     stepTo(runner, WW_PREP_TICKS);
+    // P3 spec §16.2: the 1934 pact first, then free once it is gone.
+    expect(at("POL")).toBe(false);
+    dropPact(g, "DEU", "POL");
     expect(at("POL")).toBe(true);
     expect(at("ITA")).toBe(false);
   });

@@ -17,6 +17,7 @@ import { TestDataMapLoader } from "../util/ScriptedGame";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import {
   byTag,
+  dropPact,
   HUMAN,
   MINI,
   stamped,
@@ -79,6 +80,8 @@ function lockstep(
 
 /** Germany (a human) declares war on Poland right after the preparation minute. */
 function declareOnPoland(g: Game): (tick: number) => StampedIntent[] {
+  // P3 spec §16.2: the 1934 pact would refuse the declaration.
+  dropPact(g, "DEU", "POL");
   const pol = byTag(g, "POL").id();
   return (t) =>
     t === WW_PREP_TICKS + 1
@@ -235,6 +238,7 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     const g = a.game;
     const ww = g.worldWar()!;
     const pol = byTag(g, "POL");
+    dropPact(g, "DEU", "POL");
     stepTo(a, WW_PREP_TICKS + 1);
     step(a, 1, [stamped(HUMAN, { type: "declare_war", target: pol.id() })]);
     takeRegion(g, 6, "DEU");
@@ -294,6 +298,7 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
     const [deu, pol, sun] = (["DEU", "POL", "SUN"] as const).map((tag) =>
       byTag(g, tag),
     );
+    dropPact(g, "DEU", "POL");
     stepTo(a, WW_PREP_TICKS + 1);
     step(a, 1, [
       stamped(HUMAN, { type: "declare_war", target: pol.id() }),

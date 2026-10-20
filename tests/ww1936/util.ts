@@ -218,6 +218,10 @@ export function warAfterPrep(
   clientID: string,
   b: CountryTag,
 ): void {
+  // P3 (spec §16.2): a 1936 pact (Germany–Poland) would refuse it.
+  const me = runner.game.playerByClientID(clientID);
+  if (me !== null)
+    dropPactOf(runner.game, me.smallID(), byTag(runner.game, b).smallID());
   stepTo(runner, WW_PREP_TICKS + 1);
   step(runner, 2, [
     stamped(clientID, {
@@ -228,6 +232,22 @@ export function warAfterPrep(
 }
 
 // ---- P3: politics (plan Task 1 Step 16; every lane uses these) ----
+
+/**
+ * P3 spec §16.2: the 1936 non-aggression pacts (Germany–Poland, the Soviet
+ * Union's) refuse a declaration until broken. A P0–P2 test that only needs
+ * the war drops the pact first, as the history path does (plan decision 15).
+ */
+export function dropPact(game: Game, a: CountryTag, b: CountryTag): void {
+  dropPactOf(game, byTag(game, a).smallID(), byTag(game, b).smallID());
+}
+
+function dropPactOf(game: Game, x: number, y: number): void {
+  const p = pol(game);
+  const lo = Math.min(x, y);
+  const hi = Math.max(x, y);
+  p.naps = p.naps.filter((n) => !(n.a === lo && n.b === hi));
+}
 
 /** The game's politics. */
 export function pol(game: Game): WwPolitics {
