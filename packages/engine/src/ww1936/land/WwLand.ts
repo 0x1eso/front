@@ -71,6 +71,7 @@ import {
   templateCounts,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import type { TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WwEconomy } from "../economy/WwEconomy";
@@ -607,27 +608,89 @@ export interface Side {
 
 /**
  * A division's numbers and what they were computed from (pre-flight U8):
- * a hit must match the template def, the tech count, the men and every
- * equipment slot, so a write that forgot touchDivision can never leave a
- * live game on numbers a restored one would not have.
+ * a hit must match its country's stats inputs (the tech totals object and
+ * every template def: StatsInputs.epoch), the template number, the men
+ * and every equipment slot, so a write that forgot touchDivision can never
+ * leave a live game on numbers a restored one would not have. New men or
+ * equipment keep `base` while the generation mix holds (templateStats
+ * reads the equipment only through it); `eff` and `strength` follow on
+ * their next read (P2 Task 11 perf).
  */
 interface StatsEntry {
-  base: DivisionStats;
-  eff: DivisionStats;
-  def: TemplateDef;
-  techVer: number;
+  epoch: number;
+  template: number;
   men: number;
-  equip: number[];
+  /** GROUND_SLOTS, the equipment `base` / `eff` were computed from. */
+  equip: Int32Array;
+  /** genMixOf(equip). */
+  mix: number[];
+  base: DivisionStats;
+  /** null: not computed since men or equipment moved. */
+  eff: DivisionStats | null;
+  /** -1: not computed since men or equipment moved. */
+  strength: number;
 }
 
+/**
+ * A country's stats inputs as last read (derived): its tech totals object
+ * (WwEconomy replaces it whenever a tech lands, never writes into it) and
+ * its templates' ids and defs (a def is replaced, never written into).
+ * `epoch` moves when any of them changed, so a cached number with this
+ * epoch was computed from the very inputs a fresh computation reads.
+ */
+interface StatsInputs {
+  tech: TechTotals | null;
+  ids: number[];
+  defs: TemplateDef[];
+  epoch: number;
+}
+
+/** A template's numbers at one generation mix (the screens, the AI, divisions sharing it). */
 interface TemplateStatsEntry {
-  def: TemplateDef;
-  techVer: number;
+  epoch: number;
   stats: DivisionStats;
 }
 
 const EMPTY_DEF: TemplateDef = { name: "", battalions: [], support: [] };
 const NO_ROWS: readonly number[] = Object.freeze([]);
+const NO_TEMPLATES: readonly LandTemplate[] = Object.freeze([]);
+/** genMixOf of an empty division: generation 1 everywhere (templateStatsOf). */
+const GEN1_MIX: readonly number[] = genMixOf(
+  new Array<number>(GROUND_SLOTS).fill(0),
+);
+
+/**
+ * Org max and template flags by row (WwLand.rowStats, derived): valid
+ * while the row holds the same division id and template and its country's
+ * stats epoch is the same.
+ */
+interface RowStats {
+  id: Int32Array;
+  tpl: Uint16Array;
+  epoch: Int32Array;
+  orgMax: Int32Array;
+  flags: Int32Array;
+}
+
+function newRowStats(cap: number): RowStats {
+  return {
+    id: new Int32Array(cap),
+    tpl: new Uint16Array(cap),
+    epoch: new Int32Array(cap),
+    orgMax: new Int32Array(cap),
+    flags: new Int32Array(cap),
+  };
+}
+
+function growRowStats(c: RowStats, rows: number): RowStats {
+  const n = newRowStats(Math.max(64, rows, c.id.length * 2));
+  n.id.set(c.id);
+  n.tpl.set(c.tpl);
+  n.epoch.set(c.epoch);
+  n.orgMax.set(c.orgMax);
+  n.flags.set(c.flags);
+  return n;
+}
 
 export class WwLand {
   readonly controller: Uint16Array;
@@ -653,7 +716,16 @@ export class WwLand {
   private sideOfId: number[] = [];
   private sideListCache: Side[] = [];
   private statsCache = new Map<number, StatsEntry>();
+  /** `${owner}:${template}:${mix}` → the template's numbers at that generation mix. */
   private tplCache = new Map<string, TemplateStatsEntry>();
+  private statsInputs: (StatsInputs | undefined)[] = [];
+  /**
+   * Org max and template flags by row (stepRecovery reads every row every
+   * tick): valid while the row holds the same division id and template
+   * and its country's stats epoch is the same. Both read only the template
+   * def and the tech (templateStats: no generation, men or equipment).
+   */
+  private rowStats = newRowStats(0);
   private regionRows: number[][] = [];
   private regionRowsDirty = true;
   /** Spread tile orders (rebuilt from Spread.sources), Task 4. */
@@ -1059,12 +1131,15 @@ export class WwLand {
 
   /** Numbers at its men and equipment now (attack, defence, HP). */
   statsOf(row: number): DivisionStats {
-    return this.statsEntry(row).eff;
+    const e = this.statsEntry(row);
+    return (e.eff ??= divisionStats(e.base, e.equip, e.men));
   }
 
-  /** Call after changing a division's men, equipment or template: its army goes out again. */
+  /**
+   * Call after changing a division's men, equipment or template: its army
+   * goes out again. (The stats caches check their inputs on every read.)
+   */
   touchDivision(row: number): void {
-    this.statsCache.delete(this.divisions.id[row]);
     this.dirtyArmies.add(this.divisions.army[row]);
   }
 
@@ -1088,76 +1163,159 @@ export class WwLand {
 
   /** Maximum org with P3's orgPct (spec §9.8). */
   orgMaxOf(row: number): number {
-    const ce = this.econ.country(this.divisions.owner[row]);
+    return this.rowOrgEntry(row) ? this.rowStats.orgMax[row] : 0;
+  }
+
+  /** The template's flags (TPL_*) of a division: they read only its template def. */
+  flagsOf(row: number): number {
+    return this.rowOrgEntry(row) ? this.rowStats.flags[row] : 0;
+  }
+
+  /** Fills the row's org max and flags when stale; false for a dead row. */
+  private rowOrgEntry(row: number): boolean {
+    const t = this.divisions;
+    const id = t.id[row];
+    if (id === 0) {
+      // A tombstone: the old reads gave a template-less division's numbers.
+      return false;
+    }
+    let c = this.rowStats;
+    if (row >= c.id.length) c = this.rowStats = growRowStats(c, t.rows);
+    const owner = t.owner[row];
+    const epoch = this.statsEpoch(owner);
+    const tpl = t.template[row];
+    if (c.id[row] === id && c.tpl[row] === tpl && c.epoch[row] === epoch) {
+      return true;
+    }
+    // Org and flags do not depend on the generation mix: any mix gives them.
+    const base = this.templateStatsAt(owner, tpl, GEN1_MIX, epoch);
+    const ce = this.econ.country(owner);
     const pct = ce === null ? 0 : ce.tech.orgPct;
-    return Math.floor((this.baseStatsOf(row).orgMilli * (100 + pct)) / 100);
+    c.id[row] = id;
+    c.tpl[row] = tpl;
+    c.epoch[row] = epoch;
+    c.orgMax[row] = Math.floor((base.orgMilli * (100 + pct)) / 100);
+    c.flags[row] = base.flags;
+    return true;
+  }
+
+  /**
+   * The country's stats epoch (see StatsInputs): moves when its tech
+   * totals object or any template's id or def is not the one last seen.
+   */
+  private statsEpoch(owner: number): number {
+    let s = this.statsInputs[owner];
+    if (s === undefined) {
+      s = { tech: null, ids: [], defs: [], epoch: 0 };
+      this.statsInputs[owner] = s;
+    }
+    const tech = this.econ.country(owner)?.tech ?? null;
+    const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
+    let same = s.tech === tech && s.defs.length === tpls.length;
+    for (let i = 0; same && i < tpls.length; i++) {
+      same = tpls[i].def === s.defs[i] && tpls[i].id === s.ids[i];
+    }
+    if (!same) {
+      s.tech = tech;
+      s.ids = tpls.map((x) => x.id);
+      s.defs = tpls.map((x) => x.def);
+      s.epoch++;
+    }
+    return s.epoch;
+  }
+
+  private defOf(owner: number, template: number): TemplateDef | null {
+    const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
+    for (let i = 0; i < tpls.length; i++) {
+      if (tpls[i].id === template) return tpls[i].def;
+    }
+    return null;
+  }
+
+  /** templateStats of the country's template at generation mix `mix` (EMPTY_DEF when it has none). */
+  private templateStatsAt(
+    owner: number,
+    template: number,
+    mix: readonly number[],
+    epoch: number,
+  ): DivisionStats {
+    const key = `${owner}:${template}:${mix.join(",")}`;
+    const hit = this.tplCache.get(key);
+    if (hit !== undefined && hit.epoch === epoch) return hit.stats;
+    const stats = templateStats(
+      this.defOf(owner, template) ?? EMPTY_DEF,
+      this.econ.country(owner)!.tech,
+      mix,
+    );
+    this.tplCache.set(key, { epoch, stats });
+    return stats;
   }
 
   private statsEntry(row: number): StatsEntry {
     const t = this.divisions;
     const id = t.id[row];
     const owner = t.owner[row];
-    const def = this.templateOf(owner, t.template[row])?.def ?? EMPTY_DEF;
-    const ce = this.econ.country(owner)!;
-    const techVer = ce.researched.size;
+    const epoch = this.statsEpoch(owner);
+    const tpl = t.template[row];
     const men = t.men[row];
     const base0 = row * GROUND_SLOTS;
+    const eq = t.equip;
     const hit = this.statsCache.get(id);
-    if (
-      hit !== undefined &&
-      hit.def === def &&
-      hit.techVer === techVer &&
-      hit.men === men
-    ) {
-      let same = true;
-      for (let j = 0; j < GROUND_SLOTS; j++) {
-        if (hit.equip[j] !== t.equip[base0 + j]) {
-          same = false;
-          break;
-        }
+    if (hit !== undefined && hit.epoch === epoch && hit.template === tpl) {
+      const he = hit.equip;
+      let same = hit.men === men;
+      for (let j = 0; same && j < GROUND_SLOTS; j++) {
+        same = he[j] === eq[base0 + j];
       }
       if (same) return hit;
+      // Men or equipment moved: the base holds while the generation mix does.
+      hit.men = men;
+      for (let j = 0; j < GROUND_SLOTS; j++) he[j] = eq[base0 + j];
+      const mix = genMixOf(he);
+      let sameMix = true;
+      for (let i = 0; sameMix && i < mix.length; i++) {
+        sameMix = mix[i] === hit.mix[i];
+      }
+      if (!sameMix) {
+        hit.mix = mix;
+        hit.base = this.templateStatsAt(owner, tpl, mix, epoch);
+      }
+      hit.eff = null;
+      hit.strength = -1;
+      return hit;
     }
-    const equip = Array.from(t.equipOf(row));
-    const base = templateStats(def, ce.tech, genMixOf(equip));
+    const equip = eq.slice(base0, base0 + GROUND_SLOTS);
+    const mix = genMixOf(equip);
     const entry: StatsEntry = {
-      base,
-      eff: divisionStats(base, equip, men),
-      def,
-      techVer,
+      epoch,
+      template: tpl,
       men,
       equip,
+      mix,
+      base: this.templateStatsAt(owner, tpl, mix, epoch),
+      eff: null,
+      strength: -1,
     };
     this.statsCache.set(id, entry);
     return entry;
   }
 
-  /** Template numbers at generation 1 (screens, AI), cached per country, template and tech count. */
+  /** Template numbers at generation 1 (screens, AI), cached per country, template and stats epoch. */
   templateStatsOf(owner: number, template: number): DivisionStats | null {
-    const tpl = this.templateOf(owner, template);
-    const ce = this.econ.country(owner);
-    if (tpl === null || ce === null) return null;
-    const key = `${owner}:${template}`;
-    const techVer = ce.researched.size;
-    const hit = this.tplCache.get(key);
-    if (hit !== undefined && hit.def === tpl.def && hit.techVer === techVer) {
-      return hit.stats;
-    }
-    const stats = templateStats(
-      tpl.def,
-      ce.tech,
-      genMixOf(new Array<number>(GROUND_SLOTS).fill(0)),
+    if (this.defOf(owner, template) === null) return null;
+    if (this.econ.country(owner) === null) return null;
+    return this.templateStatsAt(
+      owner,
+      template,
+      GEN1_MIX,
+      this.statsEpoch(owner),
     );
-    this.tplCache.set(key, { def: tpl.def, techVer, stats });
-    return stats;
   }
 
   strengthOf(row: number): number {
-    return strengthPm(
-      this.baseStatsOf(row),
-      this.divisions.equipOf(row),
-      this.divisions.men[row],
-    );
+    const e = this.statsEntry(row);
+    if (e.strength < 0) e.strength = strengthPm(e.base, e.equip, e.men);
+    return e.strength;
   }
 
   // ---- Armies (spec §6.1) ----
@@ -1959,6 +2117,8 @@ export class WwLand {
     this.sideListCache = [...byKey.values()].sort((a, b) => a.rep - b.rep);
     this.statsCache.clear();
     this.tplCache.clear();
+    this.statsInputs = [];
+    this.rowStats = newRowStats(0);
     this.regionRowsDirty = true;
     this.divisions.rebuildIndex();
     this.spreadOrders.clear(); // Task 4 rebuilds an order on its first use
