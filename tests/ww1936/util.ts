@@ -18,6 +18,12 @@ import {
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { Game, Player } from "@openfront/engine/game/Game";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
+import { removeLine } from "@openfront/engine/ww1936/economy/Production";
+import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
+import type {
+  CountryEconomy,
+  WwEconomy,
+} from "@openfront/engine/ww1936/economy/WwEconomy";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 
@@ -123,4 +129,16 @@ export function byTag(game: Game, tag: CountryTag): Player {
   const p = game.worldWar()?.playerOfTag(tag) ?? null;
   if (p === null) throw new Error(`no ${tag} in this game`);
   return p;
+}
+
+/**
+ * Takes back a country's starting lines and research (WwEconomy.start
+ * gives every country the AI's day-0 lines and slots) with the orders a
+ * player would give, for a test that measures lines or slots from none.
+ */
+export function clearStartSetup(econ: WwEconomy, ce: CountryEconomy): void {
+  for (const l of [...ce.lines]) removeLine(econ, ce, l.id);
+  ce.slots.forEach((s, i) => {
+    if (s !== null) cancelResearch(econ, ce, i);
+  });
 }

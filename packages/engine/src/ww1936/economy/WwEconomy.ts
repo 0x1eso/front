@@ -60,7 +60,7 @@ import {
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WorldWar } from "../WorldWar";
-import { aiEconomyTick } from "./AiEconomy";
+import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { applyCombatLosses, updateCombatStats } from "./Combat";
 import { stepConstruction } from "./Construction";
 import { stepManpower, stepRecruit } from "./Manpower";
@@ -385,6 +385,8 @@ export class WwEconomy {
       ce.manpower = Math.max(0, recruitable - army);
       p.setTroops(army);
       this.refreshTotals(ce, 0, 0);
+      // No line yet: every military factory idles (stepProduction's count).
+      ce.totals.idleMil = ce.totals.mil;
       // Every slot exists from the start, so day 0 brings no "new slot".
       ce.slots = new Array<null>(ce.totals.slotCount).fill(null);
       ce.totals.troopCap = troopCapOf(
@@ -394,6 +396,16 @@ export class WwEconomy {
       );
       updateCombatStats(this, ce, p);
       this.dirtyCountries.add(ce.smallID);
+    }
+    // HOI4's 1936 start: every country, a human one too, opens with its
+    // production lines and its research slots filled (the AI's day-0 plan
+    // for both); a human changes any of it in the preparation minute.
+    for (const ce of this.countries()) {
+      if (!this.mg.playerBySmallID(ce.smallID).isPlayer()) continue;
+      aiStartSetup(this, ce);
+      let lined = 0;
+      for (const l of ce.lines) lined += l.factories;
+      ce.totals.idleMil = Math.max(0, ce.totals.mil - lined);
     }
   }
 

@@ -12,6 +12,7 @@ import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { StampedIntent, WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  equipKey,
   RESOURCE_IDS,
   WW_TRADE_UNITS_PER_CIV,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -131,8 +132,9 @@ function lockstep(
 const DEU_HUMAN: WwHuman[] = [{ clientID: HUMAN, country: "DEU" }];
 
 /**
- * Five kinds of order from human Germany (test map: Munich is region 4); the
- * deal is with the first partner that has a deal's worth of anything left.
+ * Seven kinds of order from human Germany (test map: Munich is region 4);
+ * the deal is with the first partner that has a deal's worth of anything
+ * left. The two new lines go above the starting ones.
  */
 function germanOrders(g: Game): StampedIntent[] {
   const econ = econOf(g);
@@ -148,10 +150,16 @@ function germanOrders(g: Game): StampedIntent[] {
     break;
   }
   if (deal === null) throw new Error("nobody sells Germany anything");
+  const next = econ.country(deu)!.nextLineId;
   const orders: WwOrder[] = [
     { kind: "build", region: 4, building: "civ", count: 2 },
     { kind: "add_line", equipment: "infantry_equipment", gen: 1, factories: 4 },
     { kind: "add_line", equipment: "support_equipment", gen: 1, factories: 2 },
+    // On top of the starting lines, so they get the factories first.
+    { kind: "move_line", line: next, to: 0 },
+    { kind: "move_line", line: next + 1, to: 1 },
+    // Every slot is at work from the start: the last one changes tech.
+    { kind: "cancel_research", slot: 2 },
     { kind: "research", tech: "tools_2" },
     { kind: "set_law", law: "trade", value: "export_focus" },
     deal,
@@ -173,11 +181,12 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     const files = await miniFiles();
     const a = await wwRunner({}, DEU_HUMAN);
     stepTo(a, dayStart(3) + 1);
-    step(a, 1, germanOrders(a.game));
     const deu = econOf(a.game).country(byTag(a.game, "DEU").smallID())!;
+    const lines = deu.lines.length;
+    step(a, 1, germanOrders(a.game));
     // Every order took effect.
     expect(deu.queue).toHaveLength(1);
-    expect(deu.lines).toHaveLength(2);
+    expect(deu.lines).toHaveLength(lines + 2);
     expect(deu.slots.some((s) => s?.tech === "tools_2")).toBe(true);
     expect(deu.laws.trade).toBe("export_focus");
     expect(
@@ -232,7 +241,8 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     const deu = econOf(g).country(byTag(g, "DEU").smallID())!;
     // Day 6: the support line retools to anti-tank guns.
     stepTo(a, dayStart(6) + 2);
-    const support = deu.lines[1];
+    const [rifles, support] = deu.lines.slice(0, 2);
+    expect(support.key).toBe(equipKey("support_equipment", 1));
     step(a, 1, [
       stamped(HUMAN, {
         type: "ww_order",
@@ -248,8 +258,8 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     const day = econOf(g).day();
     expect(deu.queue[0].progress).toBeGreaterThan(0);
     expect(deu.queue[0].progress).toBeLessThan(10_800_000);
-    expect(deu.lines[1].progress).toBeGreaterThan(0);
-    expect(deu.lines[1].effBp).toBeLessThan(deu.lines[0].effBp);
+    expect(support.progress).toBeGreaterThan(0);
+    expect(support.effBp).toBeLessThan(rifles.effBp);
     expect(
       deu.slots.find((s) => s?.tech === "tools_2")!.progress,
     ).toBeGreaterThan(0);
@@ -416,6 +426,7 @@ describe("the economy restores exactly on the world1936 map", () => {
           econ.regionSlots(id, deu.tech.slotPct) >
           econ.civ[id] + econ.mil[id] + econ.dock[id],
       )!;
+    const line = deu.nextLineId;
     const orders: WwOrder[] = [
       { kind: "build", region, building: "mil", count: 1 },
       {
@@ -424,6 +435,9 @@ describe("the economy restores exactly on the world1936 map", () => {
         gen: 1,
         factories: 10,
       },
+      // Above the starting lines; and a slot the starting research had.
+      { kind: "move_line", line, to: 0 },
+      { kind: "cancel_research", slot: 2 },
       { kind: "research", tech: "tools_2" },
       { kind: "set_law", law: "trade", value: "export_focus" },
       {
@@ -442,8 +456,10 @@ describe("the economy restores exactly on the world1936 map", () => {
     // The moments this restore lands in.
     const day = econ.day();
     expect(deu.queue[0].progress).toBeGreaterThan(0);
+    expect(deu.lines[0].id).toBe(line);
     expect(deu.lines[0].progress).toBeGreaterThan(0);
-    expect(deu.slots.some((s) => s !== null && s.progress > 0)).toBe(true);
+    expect(deu.slots[2]!.tech).toBe("tools_2");
+    expect(deu.slots[2]!.progress).toBeGreaterThan(0);
     expect(deu.lawCooldownUntil.trade).toBeGreaterThan(day);
     expect(econ.trades().length).toBeGreaterThan(5);
     const tags = new Set<CountryTag>(

@@ -65,7 +65,7 @@ describe("the economy's day (spec §2)", () => {
     step(runner, 1, [
       stamped(HUMAN, {
         type: "ww_order",
-        order: { kind: "research", tech: "tools_2" },
+        order: { kind: "build", region: 4, building: "civ", count: 1 },
       }),
     ]);
     stepTo(runner, 13);

@@ -11,7 +11,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
+import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_FALLBACK_AHEAD_PCT,
@@ -905,11 +905,16 @@ describe("the AI economy in a game (spec §12)", () => {
   test("idle factories get a line, and new ones the day they appear", async () => {
     const { runner, econ, ce } = await allAi();
     const deu = ce("DEU");
-    stepTo(runner, dayStart(0) + (deu.smallID % WW_DAY_SPLIT));
-    expect(deu.lines).toEqual([]);
-    throughDay(runner, 0);
+    // Every country starts with its military factories on lines (HOI4's
+    // 1936 start, aiStartSetup): nothing idles on day 0.
     const factories = deu.lines.reduce((s, l) => s + l.factories, 0);
     expect(factories).toBe(6);
+    expect(deu.totals.idleMil).toBe(0);
+    const start = deu.lines.map((l) => ({ ...l }));
+    throughDay(runner, 0);
+    expect(deu.lines.map((l) => [l.id, l.key, l.factories])).toEqual(
+      start.map((l) => [l.id, l.key, l.factories]),
+    );
     // Infantry equipment heads the list and has the most.
     expect(deu.lines[0].key).toBe(equipKey("infantry_equipment", 1));
     expect(Math.max(...deu.lines.map((l) => l.factories))).toBe(
@@ -929,22 +934,30 @@ describe("the AI economy in a game (spec §12)", () => {
     expect(deu.totals.idleMil).toBe(0);
   });
 
-  test("empty research slots get filled, and again the day a tech is done", async () => {
+  test("research slots start filled, and get filled again the day a tech is done", async () => {
     const { runner, econ, ce } = await allAi();
+    // Every slot at work from the start (aiStartSetup). A 1937 tech is a
+    // year ahead on day 0, past the fallback: Germany's third slot takes
+    // the least early one (a HOI4 player fills every slot).
     for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
-      expect(ce(tag).slots.every((s) => s === null)).toBe(true);
+      const c = ce(tag);
+      expect(c.slots).toHaveLength(c.totals.slotCount);
+      expect(c.slots.every((s) => s !== null)).toBe(true);
     }
-    throughDay(runner, 0);
-    // A 1937 tech is a year ahead on day 0, past the fallback: Germany's
-    // third slot waits for April.
-    expect(ce("DEU").slots.map((s) => s?.tech ?? null)).toEqual([
+    expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
       "mobile_1",
       "electronics_1",
-      null,
+      "output_1",
     ]);
     expect(ce("POL").slots.map((s) => s!.tech)).toEqual([
       "construction_1",
       "anti_tank_1",
+    ]);
+    throughDay(runner, 0);
+    expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
+      "mobile_1",
+      "electronics_1",
+      "output_1",
     ]);
     throughDay(runner, dayOfDate("1936-04-02"));
     for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
@@ -952,13 +965,17 @@ describe("the AI economy in a game (spec §12)", () => {
       expect(c.slots).toHaveLength(c.totals.slotCount);
       expect(c.slots.every((s) => s !== null)).toBe(true);
     }
-    // mobile_1 is done after 120 days, not on a turn of Germany's: a new
-    // tech starts that same day (not up to ten days later), and any slot
-    // still empty has nothing within reach.
+    // mobile_1 is done on a day that is not a turn of Germany's (its last
+    // day's worth left before it): a new tech starts that same day (not up
+    // to ten days later), and any slot still empty has nothing within reach.
     const deu = ce("DEU");
-    let day = dayOfDate("1936-04-02");
-    while (!deu.researched.has("mobile_1")) throughDay(runner, ++day);
-    expect(isAiTurn(deu.smallID, day, true)).toBe(false);
+    let day = dayOfDate("1936-04-02") + 1;
+    while (isAiTurn(deu.smallID, day, true)) day++;
+    stepTo(runner, dayStart(day));
+    const mobile = deu.slots.find((s) => s?.tech === "mobile_1")!;
+    mobile.progress = techDays(WW_TECHS.mobile_1.year) * 1000 - 1000;
+    throughDay(runner, day);
+    expect(deu.researched.has("mobile_1")).toBe(true);
     expect(deu.slots.some((s) => s !== null && s.progress === 0)).toBe(true);
     const react = aiReactions(deu);
     expect(
@@ -1036,10 +1053,15 @@ describe("the AI economy in a game (spec §12)", () => {
     const deu = econ.country(byTag(g, "DEU").smallID())!;
     const ita = econ.country(byTag(g, "ITA").smallID())!;
     const laws = { ...deu.laws };
+    // The starting lines and research are the player's from then on.
+    const lines = () => deu.lines.map((l) => [l.id, l.key, l.factories]);
+    const slots = () => deu.slots.map((s) => s?.tech ?? null);
+    const [startLines, startSlots] = [lines(), slots()];
+    expect(startLines.length).toBeGreaterThan(0);
     throughDay(runner, 29);
     expect(deu.queue).toEqual([]);
-    expect(deu.lines).toEqual([]);
-    expect(deu.slots.every((s) => s === null)).toBe(true);
+    expect(lines()).toEqual(startLines);
+    expect(slots()).toEqual(startSlots);
     expect(deu.laws).toEqual(laws);
     expect(econ.trades().some((t) => t.buyer === deu.smallID)).toBe(false);
     // The AI next door did act.

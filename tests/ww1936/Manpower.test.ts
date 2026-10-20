@@ -9,7 +9,15 @@ import { manpowerRegrowth } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { stepManpower } from "@openfront/engine/ww1936/economy/Manpower";
 import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
-import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
+import {
+  byTag,
+  clearStartSetup,
+  HUMAN,
+  stamped,
+  step,
+  stepTo,
+  wwRunner,
+} from "./util";
 
 const HUMAN_POL = "HUMAN002";
 
@@ -27,13 +35,18 @@ function setInfantry(ce: CountryEconomy, ...byGen: number[]): void {
   }
 }
 
-/** Germany played by a human: no AI economy touches the numbers. */
+/**
+ * Germany played by a human: no AI economy touches the numbers, and no
+ * starting line makes rifles.
+ */
 async function germany() {
   const runner = await wwRunner({}, [{ clientID: HUMAN, country: "DEU" }]);
   const g = runner.game;
   const econ = g.worldWar()!.economy;
   const deu = byTag(g, "DEU");
-  return { runner, g, econ, deu, ce: econ.country(deu.smallID())! };
+  const ce = econ.country(deu.smallID())!;
+  clearStartSetup(econ, ce);
+  return { runner, g, econ, deu, ce };
 }
 
 describe("manpower and the draft (spec §6)", () => {

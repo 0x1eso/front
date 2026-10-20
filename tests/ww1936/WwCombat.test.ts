@@ -19,7 +19,7 @@ import type { GameRunner } from "@openfront/engine/GameRunner";
 import { withWwCombat } from "@openfront/engine/ww1936/economy/Combat";
 import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
 import { playerInfo, setup } from "../util/Setup";
-import { byTag, HUMAN, step, stepTo, wwRunner } from "./util";
+import { byTag, clearStartSetup, HUMAN, step, stepTo, wwRunner } from "./util";
 
 /** Runs through `p`'s processing on `day` (tick dayStart + smallID % 7). */
 function throughDay(runner: GameRunner, p: Player, day: number): void {
@@ -50,9 +50,20 @@ const HUMANS = [
   { clientID: "HUMAN002", country: "POL" as const },
 ];
 
+/** Germany and Poland played by humans, without their starting lines. */
+async function humansRunner(): Promise<GameRunner> {
+  const runner = await wwRunner({}, HUMANS);
+  const econ = runner.game.worldWar()!.economy;
+  for (const h of HUMANS) {
+    const p = byTag(runner.game, h.country);
+    clearStartSetup(econ, econ.country(p.smallID())!);
+  }
+  return runner;
+}
+
 describe("the combat bridge (spec §6.5, §10)", () => {
   test("equipment coverage raises attack", async () => {
-    const runner = await wwRunner({}, HUMANS);
+    const runner = await humansRunner();
     const g = runner.game;
     const econ = g.worldWar()!.economy;
     const deu = byTag(g, "DEU");
@@ -92,7 +103,7 @@ describe("the combat bridge (spec §6.5, §10)", () => {
   });
 
   test("combat losses take equipment with them", async () => {
-    const runner = await wwRunner({}, HUMANS);
+    const runner = await humansRunner();
     const g = runner.game;
     const econ = g.worldWar()!.economy;
     const deu = byTag(g, "DEU");
@@ -134,7 +145,7 @@ describe("the combat bridge (spec §6.5, §10)", () => {
   });
 
   test("an attack's loss scales follow both sides", async () => {
-    const runner = await wwRunner({}, HUMANS);
+    const runner = await humansRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
     const deu = byTag(g, "DEU");
@@ -175,7 +186,7 @@ describe("the combat bridge (spec §6.5, §10)", () => {
   });
 
   test("attacks report their losses", async () => {
-    const runner = await wwRunner({}, HUMANS);
+    const runner = await humansRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
     const deu = byTag(g, "DEU");
@@ -206,7 +217,7 @@ describe("the combat bridge (spec §6.5, §10)", () => {
   });
 
   test("two attacks that meet head-on cost both sides men and equipment", async () => {
-    const runner = await wwRunner({}, HUMANS);
+    const runner = await humansRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
     const deu = byTag(g, "DEU");
