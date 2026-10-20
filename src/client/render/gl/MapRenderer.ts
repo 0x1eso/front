@@ -47,6 +47,8 @@ export class MapRenderer {
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
   /** World War 1936 region ids, re-applied after a context restore. */
   private storedRegions: Uint16Array | null = null;
+  /** World War 1936 P2 land war inputs, re-applied after a context restore. */
+  private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -154,6 +156,9 @@ export class MapRenderer {
     }
     if (this.storedRegions !== null) {
       this.renderer?.setRegions(this.storedRegions);
+    }
+    if (this.storedWwLand !== null) {
+      this.renderer?.setWwLand(...this.storedWwLand);
     }
     this.onContextRestored?.();
   };
@@ -374,12 +379,22 @@ export class MapRenderer {
     this.renderer?.setRegions(regionIds);
   }
 
-  /** World War 1936 P2 (spec §15.2): the land war's tokens, battles and plans. Task 7. */
+  /**
+   * World War 1936 P2 (spec §15.2): draw the land war from `view` — army
+   * tokens, battle markers, the chosen army's plan arrows and front, the
+   * encircled regions. `me` gives the viewer's smallID. `isEnemy(smallID)`
+   * (optional) says who the viewer is at war with, from the WorldWarView's
+   * wars; without it every country outside the viewer's faction counts.
+   */
   setWwLand(
     view: WwLandView,
     selection: WwLandSelection,
     me: () => number,
-  ): void {}
+    isEnemy: ((smallID: number) => boolean) | null = null,
+  ): void {
+    this.storedWwLand = [view, selection, me, isEnemy];
+    this.renderer?.setWwLand(view, selection, me, isEnemy);
+  }
 
   /** Set up map-layer passes from the loaded layer data. */
   setMapLayers(layers: MapLayer[], images: Map<string, ImageBitmap>): void {
