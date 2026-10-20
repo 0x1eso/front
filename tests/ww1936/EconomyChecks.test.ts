@@ -20,7 +20,10 @@ import {
   usedSlots,
 } from "@openfront/engine/ww1936/economy/Construction";
 import { lawBlock } from "@openfront/engine/ww1936/economy/LawsRun";
-import { researchBlock } from "@openfront/engine/ww1936/economy/ResearchRun";
+import {
+  cancelResearch,
+  researchBlock,
+} from "@openfront/engine/ww1936/economy/ResearchRun";
 import {
   exportRoom,
   tradePartnerBlock,
@@ -218,6 +221,9 @@ describe("the engine's judgements use them", () => {
       lawBlock(econ, deu, "conscription", "extensive", dayOfDate("1938-01-01")),
     ).toBeNull();
     expect(researchBlock(econ, deu, "tools_1")).toBe("researched");
+    // Every slot is at work from the start; a cancelled one takes it.
+    expect(researchBlock(econ, deu, "tools_2")).toBe("no_slot");
+    expect(cancelResearch(econ, deu, 2)).toBeNull();
     expect(researchBlock(econ, deu, "tools_2")).toBeNull();
     expect(researchBlock(econ, deu, "medium_tank_1")).toBe("prereq");
   });

@@ -17,7 +17,9 @@ import type { CountryEconomy, WwEconomy } from "./WwEconomy";
  * year, never past what the regions could still give. The whole army counts
  * against that, men away in attacks and on boats too (WwEconomy.armyMen), so
  * troops and manpower together never exceed the recruitable pool. Losing
- * regions shrinks manpower only through this ceiling.
+ * regions shrinks manpower only through this ceiling. The pool is less the
+ * casualties (spec §6.5), so a man who dies leaves the army and the pool
+ * alike: the ceiling does not refill.
  */
 export function stepManpower(
   econ: WwEconomy,

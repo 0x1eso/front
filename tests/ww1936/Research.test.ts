@@ -19,7 +19,15 @@ import {
   researchBlock,
   startResearch,
 } from "@openfront/engine/ww1936/economy/ResearchRun";
-import { byTag, HUMAN, stamped, step, stepTo, wwRunnerCapture } from "./util";
+import {
+  byTag,
+  clearStartSetup,
+  HUMAN,
+  stamped,
+  step,
+  stepTo,
+  wwRunnerCapture,
+} from "./util";
 
 /** Runs through `p`'s processing on `day` (tick dayStart + smallID % 7). */
 function throughDay(runner: GameRunner, p: Player, day: number): void {
@@ -35,6 +43,8 @@ async function germany() {
   const econ = g.worldWar()!.economy;
   const deu = byTag(g, "DEU");
   const ce = econ.country(deu.smallID())!;
+  // Slots measured from empty: the starting research goes.
+  clearStartSetup(econ, ce);
   return { runner, updates, g, econ, deu, ce };
 }
 
@@ -164,6 +174,7 @@ describe("research (spec §9)", () => {
     const { runner, updates, g, econ, deu, ce } = await germany();
     const ita = byTag(g, "ITA");
     const ceIta = econ.country(ita.smallID())!;
+    clearStartSetup(econ, ceIta);
     for (const c of [ce, ceIta]) {
       expect(startResearch(econ, c, "electronics_1")).toBeNull();
       c.slots[0]!.progress = techDays(1936) * 1000 - 1000;

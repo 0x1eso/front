@@ -36,7 +36,7 @@ import type {
 } from "../render/types";
 import type { GameView } from "../view";
 import { playerTypeFromEnum } from "../view/EntityState";
-import type { ReplayFrame } from "./codec/ReplayTypes";
+import type { ReplayFrame, WwEconomyMisc } from "./codec/ReplayTypes";
 
 /** A unit as the HUD reads it (maxTroops, ship counts, hover cards). */
 export class ReplayUnitView {
@@ -349,14 +349,22 @@ export class ReplayGameView {
       // From another time: the army stands in until the next day's update.
       this.wwCaps.clear();
     }
-    for (const u of (frame.miscUpdates?.WwEconomy ?? []) as {
-      data?: WwEconomyData;
-    }[]) {
+    for (const u of (frame.miscUpdates?.WwEconomy ?? []) as Partial<
+      WwEconomyMisc & { data: WwEconomyData }
+    >[]) {
+      // [smallID, troopCap, ...] (FrameNormalizer's MISC_TRIM); a replay
+      // recorded before the trim keeps the whole update.
+      const caps = u.caps ?? [];
+      for (let i = 0; i + 1 < caps.length; i += 2) {
+        this.wwCaps.set(caps[i], caps[i + 1]);
+      }
       for (const c of u.data?.countries ?? []) {
         this.wwCaps.set(c.smallID, c.troopCap);
       }
     }
     for (const [name, list] of Object.entries(frame.miscUpdates ?? {})) {
+      // Only the troop caps above are kept of it; no HUD reads it.
+      if (name === "WwEconomy") continue;
       if (list.length === 0) continue;
       const type = GameUpdateType[name as keyof typeof GameUpdateType];
       if (typeof type !== "number") continue;

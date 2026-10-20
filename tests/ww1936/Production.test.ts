@@ -31,10 +31,17 @@ import type {
   CountryEconomy,
   WwEconomy,
 } from "@openfront/engine/ww1936/economy/WwEconomy";
-import { byTag, stamped, step, stepTo, wwRunner } from "./util";
+import {
+  byTag,
+  clearStartSetup,
+  stamped,
+  step,
+  stepTo,
+  wwRunner,
+} from "./util";
 
 // The measured countries are human, so no AI economy (Task 6) touches
-// their lines (pre-flight S3).
+// their lines (pre-flight S3); their starting lines are taken back.
 const CLIENT: Record<string, string> = {
   DEU: "HUMAN001",
   ITA: "HUMAN002",
@@ -58,6 +65,10 @@ async function game(tags: CountryTag[]): Promise<Game1936> {
   );
   const g = runner.game;
   const econ = g.worldWar()!.economy;
+  // Lines measured from none: the starting ones go.
+  for (const tag of tags) {
+    clearStartSetup(econ, econ.country(byTag(g, tag).smallID())!);
+  }
   return {
     runner,
     econ,
@@ -335,25 +346,29 @@ describe("production lines (spec §8)", () => {
   test("line orders check their line and their limits", async () => {
     const { econ, ce } = await game(["DEU"]);
     const deu = ce("DEU");
+    // Ids go on from the starting lines' (taken back by game()).
+    const first = deu.nextLineId;
     for (let i = 0; i < WW_MAX_LINES; i++) {
       expect(addLine(econ, deu, "infantry_equipment", 1, i)).toBeNull();
     }
     expect(addLine(econ, deu, "infantry_equipment", 1, 1)).toBe("lines_full");
     const ids = deu.lines.map((l) => l.id);
-    expect(ids).toEqual(Array.from({ length: WW_MAX_LINES }, (_, i) => i + 1));
+    expect(ids).toEqual(
+      Array.from({ length: WW_MAX_LINES }, (_, i) => first + i),
+    );
     const missing = 999;
     expect(changeLine(econ, deu, missing, "artillery", 1)).toBe("bad_line");
     expect(setLineFactories(econ, deu, missing, 3)).toBe("bad_line");
     expect(removeLine(econ, deu, missing)).toBe("bad_line");
     expect(moveLine(econ, deu, missing, 0)).toBe("bad_line");
-    expect(moveLine(econ, deu, 1, WW_MAX_LINES)).toBe("bad_index");
-    expect(moveLine(econ, deu, 1, WW_MAX_LINES - 1)).toBeNull();
-    expect(deu.lines.map((l) => l.id)).toEqual([...ids.slice(1), 1]);
-    expect(removeLine(econ, deu, 3)).toBeNull();
-    expect(deu.lines.map((l) => l.id)).not.toContain(3);
+    expect(moveLine(econ, deu, first, WW_MAX_LINES)).toBe("bad_index");
+    expect(moveLine(econ, deu, first, WW_MAX_LINES - 1)).toBeNull();
+    expect(deu.lines.map((l) => l.id)).toEqual([...ids.slice(1), first]);
+    expect(removeLine(econ, deu, first + 2)).toBeNull();
+    expect(deu.lines.map((l) => l.id)).not.toContain(first + 2);
     // A removed line's id is never reused.
     expect(addLine(econ, deu, "artillery", 1, 2)).toBeNull();
-    expect(deu.lines[WW_MAX_LINES - 1].id).toBe(WW_MAX_LINES + 1);
+    expect(deu.lines[WW_MAX_LINES - 1].id).toBe(first + WW_MAX_LINES);
   });
 
   test("a factory count that is no number gives none", async () => {

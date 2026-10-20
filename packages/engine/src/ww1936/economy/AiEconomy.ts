@@ -500,6 +500,18 @@ export function aiReactPlan(input: AiInput, react: AiReact): AiPlan {
   return orders;
 }
 
+/**
+ * Every country's starting lines and research (aiStartSetup): the lines
+ * and research of the day-0 plan, and a slot that plan leaves empty (no
+ * tech close enough to its year) takes the least early tech of the
+ * priority list, as a HOI4 player fills every slot at the start.
+ */
+export function aiStartPlan(input: AiInput): AiPlan {
+  const orders: AiOrder[] = [...planLines(input, false).orders];
+  planResearch(input, orders, true);
+  return orders;
+}
+
 /** The orders of one AI turn, in the order they run (spec §12.2). */
 export function aiPlan(input: AiInput): AiPlan {
   const orders: AiOrder[] = [];
@@ -841,7 +853,7 @@ function planConstruction(
 
 // ---- 4. Research ----
 
-function planResearch(i: AiInput, orders: AiOrder[]): void {
+function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
@@ -863,10 +875,32 @@ function planResearch(i: AiInput, orders: AiOrder[]): void {
         researchBlockOf({ researched, slots, slotCount: i.slotCount }, t) ===
           null,
     );
+  /** The least early one, ties by the list (aiStartPlan's last resort). */
+  const leastAhead = () => {
+    let best: WwTechId | undefined;
+    for (const t of list) {
+      if (researched.has(t)) continue;
+      if (
+        best !== undefined &&
+        aheadOf(WW_TECHS[t].year) >= aheadOf(WW_TECHS[best].year)
+      ) {
+        continue;
+      }
+      const block = researchBlockOf(
+        { researched, slots, slotCount: i.slotCount },
+        t,
+      );
+      if (block === null) best = t;
+    }
+    return best;
+  };
   for (;;) {
     const slot = freeResearchSlot(slots, i.slotCount);
     if (slot < 0) return;
-    const tech = pick(AI_MAX_AHEAD_PCT) ?? pick(AI_FALLBACK_AHEAD_PCT);
+    const tech =
+      pick(AI_MAX_AHEAD_PCT) ??
+      pick(AI_FALLBACK_AHEAD_PCT) ??
+      (fill ? leastAhead() : undefined);
     if (tech === undefined) return;
     slots[slot] = tech;
     orders.push({ kind: "research", tech });
@@ -1104,6 +1138,20 @@ function militaryFirst(econ: WwEconomy, ce: CountryEconomy): void {
       if (rank(ce.queue[k].building) < rank(ce.queue[best].building)) best = k;
     }
     if (best !== j) moveBuild(econ, ce, best, j);
+  }
+}
+
+/**
+ * A country's starting lines and research (HOI4's 1936 start, a human
+ * country's too): aiStartPlan, run once by WwEconomy.start before the
+ * preparation minute, where a human may change any of it. No laws (the
+ * 1936 ones stand) and no building: the queue is the player's first
+ * choice. No deals: an AI buys only from day 0, after the humans had the
+ * preparation minute to pick first.
+ */
+export function aiStartSetup(econ: WwEconomy, ce: CountryEconomy): void {
+  for (const o of aiStartPlan(aiInput(econ, ce, 0, 0))) {
+    applyAiOrder(econ, ce, o, 0);
   }
 }
 

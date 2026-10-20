@@ -26,13 +26,13 @@ import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayIndex, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   countryGraph,
+  exportRoomOf,
   RegionShares,
   regionShares,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   consumerGoodsMilli,
   effCapBp,
-  exportCapacity,
   extraction,
   freeCivMilli,
   infEquipmentFor,
@@ -60,13 +60,13 @@ import {
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WorldWar } from "../WorldWar";
-import { aiEconomyTick } from "./AiEconomy";
+import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { applyCombatLosses, updateCombatStats } from "./Combat";
 import { stepConstruction } from "./Construction";
 import { stepManpower, stepRecruit } from "./Manpower";
 import { stepProduction } from "./Production";
 import { stepResearch } from "./ResearchRun";
-import { validateTrades } from "./Trade";
+import { tradePartners, validateTrades } from "./Trade";
 
 export interface Line {
   id: number;
@@ -171,6 +171,11 @@ export class CountryEconomy {
   fieldInfGenSum = 0;
   /** Combat losses since the last daily step, milli-men (noteCombatLoss). */
   lossMilli = 0;
+  /**
+   * Men lost in combat since 1936 (spec §6.5): gone from the recruitable
+   * pool for good, so the manpower ceiling does not refill as they die.
+   */
+  casualties = 0;
   stock: number[] = new Array<number>(EQUIP_KEY_COUNT).fill(0);
   lines: Line[] = [];
   nextLineId = 1;
@@ -278,6 +283,7 @@ const CountrySchema = z.object({
   fieldInfUnits: zInt(),
   fieldInfGenSum: zInt(),
   lossMilli: zInt(),
+  casualties: zInt(),
   stock: z.array(zInt()),
   lines: z.array(LineSchema),
   nextLineId: zInt(),
@@ -385,6 +391,8 @@ export class WwEconomy {
       ce.manpower = Math.max(0, recruitable - army);
       p.setTroops(army);
       this.refreshTotals(ce, 0, 0);
+      // No line yet: every military factory idles (stepProduction's count).
+      ce.totals.idleMil = ce.totals.mil;
       // Every slot exists from the start, so day 0 brings no "new slot".
       ce.slots = new Array<null>(ce.totals.slotCount).fill(null);
       ce.totals.troopCap = troopCapOf(
@@ -394,6 +402,16 @@ export class WwEconomy {
       );
       updateCombatStats(this, ce, p);
       this.dirtyCountries.add(ce.smallID);
+    }
+    // HOI4's 1936 start: every country, a human one too, opens with its
+    // production lines and its research slots filled (the AI's day-0 plan
+    // for both); a human changes any of it in the preparation minute.
+    for (const ce of this.countries()) {
+      if (!this.mg.playerBySmallID(ce.smallID).isPlayer()) continue;
+      aiStartSetup(this, ce);
+      let lined = 0;
+      for (const l of ce.lines) lined += l.factories;
+      ce.totals.idleMil = Math.max(0, ce.totals.mil - lined);
     }
   }
 
@@ -517,7 +535,14 @@ export class WwEconomy {
     t.civ = civ;
     t.mil = mil;
     t.dock = dock;
-    t.recruitable = recruitable;
+    // The dead are gone from the pool for good (spec §6.5): those of past
+    // days and those not yet counted (applyCombatLosses runs after the
+    // manpower step), so the ceiling recruitable − army never refills as
+    // men die.
+    t.recruitable = Math.max(
+      0,
+      recruitable - ce.casualties - Math.floor(ce.lossMilli / 1000),
+    );
     t.produced = produced;
     t.exported = exported;
     t.imported = imported;
@@ -525,13 +550,17 @@ export class WwEconomy {
     t.paidCivs = paid;
     t.receivedCivs = received;
     t.freeCivMilli = freeCivMilli(civ, t.cgMilli, paid, received);
-    t.trainCap = trainCap(recruitable, ce.tech.trainPct);
+    t.trainCap = trainCap(t.recruitable, ce.tech.trainPct);
     t.slotCount = researchSlotCount(ce.major, civ + mil);
     t.warDays = this.warDays(ce.smallID, tick);
     void day;
   }
 
-  /** Men the controlled regions give under a conscription law (‰). */
+  /**
+   * Men the controlled regions give under a conscription law (‰), before
+   * the casualties (refreshTotals takes those off; a law change moves
+   * manpower by the difference, which they do not change).
+   */
   recruitableWith(smallID: number, permille: number): number {
     const ce = this.country(smallID);
     const bonus = ce === null ? 0 : ce.tech.recruitablePct;
@@ -723,6 +752,14 @@ export class WwEconomy {
   private summary(ce: CountryEconomy): WwCountrySummary {
     const t = ce.totals;
     const exportPct = ce.law().exportPct;
+    // Live (exportRoom: the open deals and the law now, not the last day's
+    // totals), so a screen never offers a deal openTrade refuses, the
+    // preparation minute's included.
+    const sold = zeros();
+    for (const tr of this._trades) {
+      if (tr.seller === ce.smallID)
+        sold[tr.res] += tr.civs * WW_TRADE_UNITS_PER_CIV;
+    }
     return {
       smallID: ce.smallID,
       civ: t.civ,
@@ -737,8 +774,9 @@ export class WwEconomy {
       shortage: ce.lines.some((l) => l.active > 0 && l.fill < 1000),
       combat: this.combatStats(ce.smallID),
       exportRoom: RESOURCE_IDS.map((_, k) =>
-        Math.max(0, exportCapacity(t.produced[k], exportPct) - t.exported[k]),
+        Math.max(0, exportRoomOf(t.produced[k], exportPct, sold[k])),
       ),
+      slotPct: ce.tech.slotPct,
     };
   }
 
@@ -811,6 +849,7 @@ export class WwEconomy {
       recruited: t.recruited,
       effCapBp: effCapBp(ce.tech),
       warDays: t.warDays,
+      tradePartners: tradePartners(this, ce.smallID),
     };
   }
 
@@ -840,6 +879,14 @@ export class WwEconomy {
         h = (Math.imul(h, 31) + l.effBp + l.factories) | 0;
         h = (Math.imul(h, 31) + l.progress + l.active * 7) | 0;
       }
+      // Progress, so a desync in construction or research shows the same
+      // day (not when a building or tech completes).
+      for (const q of ce.queue) h = (Math.imul(h, 31) + q.progress) | 0;
+      for (const sl of ce.slots) {
+        h = (Math.imul(h, 31) + (sl === null ? -1 : sl.progress)) | 0;
+      }
+      h = (Math.imul(h, 31) + ce.fieldInfUnits) | 0;
+      h = (Math.imul(h, 31) + ce.casualties) | 0;
     }
     for (const r of this.scenario.landRegions) {
       const id = r.id;
@@ -876,6 +923,7 @@ export class WwEconomy {
         fieldInfUnits: ce.fieldInfUnits,
         fieldInfGenSum: ce.fieldInfGenSum,
         lossMilli: ce.lossMilli,
+        casualties: ce.casualties,
         stock: [...ce.stock],
         lines: ce.lines.map((l) => ({ ...l })),
         nextLineId: ce.nextLineId,
@@ -906,6 +954,7 @@ export class WwEconomy {
       ce.fieldInfUnits = c.fieldInfUnits;
       ce.fieldInfGenSum = c.fieldInfGenSum;
       ce.lossMilli = c.lossMilli;
+      ce.casualties = c.casualties;
       ce.stock = [...c.stock];
       ce.lines = c.lines.map((l) => ({ ...l }));
       ce.nextLineId = c.nextLineId;

@@ -9,9 +9,12 @@ import {
   BUILDING_COST,
   BUILDING_IDS,
   CATEGORY_SLOTS,
+  EQUIP_KEYS,
+  equipKey,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { regionSlots } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -25,6 +28,7 @@ import { setup } from "../util/Setup";
 import { diffSnapshots } from "../util/Snapshot";
 import {
   byTag,
+  clearStartSetup,
   HUMAN,
   MINI,
   stamped,
@@ -75,9 +79,102 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(ce.infStock()).toBe(15_000);
     expect(ce.researched.has("tools_1")).toBe(true);
     expect(deu.wwTroopCap()).toBe(ce.totals.troopCap);
-    // A major has three research slots, all empty (none new on day 0).
-    expect(ce.slots).toEqual([null, null, null]);
+    // A major has three research slots (none new on day 0), all at work
+    // (HOI4's 1936 start, aiStartSetup).
     expect(ce.totals.slotCount).toBe(3);
+    expect(ce.slots.map((x) => x?.tech)).toEqual([
+      "mobile_1",
+      "electronics_1",
+      "output_1",
+    ]);
+  });
+
+  test("a human Germany starts with its lines and research (HOI4's 1936 start)", async () => {
+    const { runner, updates } = await wwRunnerCapture({}, [
+      { clientID: HUMAN, country: "DEU" },
+    ]);
+    const g = runner.game;
+    const deu = byTag(g, "DEU");
+    const ce = g.worldWar()!.economy.country(deu.smallID())!;
+    step(runner, 2);
+    expect(g.worldWar()!.inPrep(g.ticks())).toBe(true);
+    // Every military factory on a line, every slot at work: the AI's day-0
+    // plan (mobile warfare: rifles first, tanks and trucks before guns).
+    const lined = ce.lines.reduce((n, l) => n + l.factories, 0);
+    expect(lined).toBe(ce.totals.mil);
+    expect(ce.totals.idleMil).toBe(0);
+    expect(ce.lines[0]).toMatchObject({
+      key: equipKey("infantry_equipment", 1),
+      effBp: 1000,
+      active: 0,
+    });
+    expect(ce.slots.every((x) => x !== null && x.progress === 0)).toBe(true);
+    // Nothing built and no deal: the queue and the trade are the player's
+    // first choices; the laws are 1936's.
+    expect(ce.queue).toEqual([]);
+    expect(g.worldWar()!.economy.trades()).toEqual([]);
+    expect(ce.laws).toEqual({
+      economy: "partial_mobilization",
+      trade: "limited_exports",
+      conscription: "limited",
+    });
+    // The screens have them from the first update.
+    const [detail] = updates
+      .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
+      .flatMap((u) => u.data.details)
+      .filter((d) => d.smallID === deu.smallID());
+    expect(detail.lines.map((l) => [l.equipment, l.factories])).toEqual(
+      ce.lines.map((l) => [EQUIP_KEYS[l.key][0], l.factories]),
+    );
+    expect(detail.slots.map((x) => x?.tech)).toEqual(
+      ce.slots.map((x) => x?.tech),
+    );
+    // The player's to change in the preparation minute.
+    step(runner, 1, [
+      stamped(HUMAN, {
+        type: "ww_order",
+        order: { kind: "remove_line", line: ce.lines[0].id },
+      }),
+      stamped(HUMAN, {
+        type: "ww_order",
+        order: { kind: "cancel_research", slot: 0 },
+      }),
+    ]);
+    expect(ce.lines.reduce((n, l) => n + l.factories, 0)).toBeLessThan(lined);
+    expect(ce.slots[0]).toBeNull();
+  });
+
+  test("every country's summary carries its slot bonus, for its regions' slots", async () => {
+    const { runner, updates } = await wwRunnerCapture();
+    const g = runner.game;
+    const econ = g.worldWar()!.economy;
+    const summaries = () =>
+      updates
+        .flatMap((u) => u.updates[GameUpdateType.WwEconomy])
+        .flatMap((u) => u.data.countries);
+    step(runner, 2);
+    for (const ce of econ.countries()) {
+      const [s] = summaries().filter((x) => x.smallID === ce.smallID);
+      expect(s.slotPct).toBe(ce.tech.slotPct);
+      // A region's slots, as the engine counts them for its controller.
+      for (const r of econ.regionsOf(ce.smallID)) {
+        const cat = econ.scenario.region(r)!.cat;
+        expect(regionSlots(cat, s.slotPct)).toBe(
+          econ.regionSlots(r, ce.tech.slotPct),
+        );
+      }
+    }
+    // Germany (an AI here) starts with construction_1: +20%.
+    const deu = econ.country(byTag(g, "DEU").smallID())!;
+    expect(deu.tech.slotPct).toBe(20);
+    // A new construction tech shows on its next day.
+    deu.addTech("construction_2");
+    stepTo(runner, dayStartTick(1, WW_PREP_TICKS));
+    const last = summaries()
+      .filter((x) => x.smallID === deu.smallID)
+
+      .slice(-1)[0];
+    expect(last.slotPct).toBe(40);
   });
 
   test("Poland's army and cap follow the formula (spec §11.3)", async () => {
@@ -92,7 +189,11 @@ describe("economy wiring (spec §6, §14)", () => {
     // 2,550 infantry equipment in reserve arm 25,500 more men.
     expect(ce.infStock()).toBe(2_550);
     expect(g.config().maxTroops(pol)).toBe(280_500);
-    expect(ce.slots).toEqual([null, null]);
+    // Two slots, both at work from the start.
+    expect(ce.slots.map((x) => x?.tech)).toEqual([
+      "construction_1",
+      "anti_tank_1",
+    ]);
   });
 
   test("the army counts its attacks and its boats", async () => {
@@ -248,6 +349,8 @@ describe("economy wiring (spec §6, §14)", () => {
     const ww = g.worldWar()!;
     const pol = byTag(g, "POL");
     const order = { kind: "research", tech: "tools_1" } as const;
+    // A slot free of the starting research.
+    clearStartSetup(ww.economy, ww.economy.country(pol.smallID())!);
     expect(applyWwOrder(g, ww.economy, pol, order, 0)).toBeNull();
     ww.addCapitulation(pol.smallID(), byTag(g, "DEU").smallID(), 0);
     expect(applyWwOrder(g, ww.economy, pol, order, 0)).toBe("dead");

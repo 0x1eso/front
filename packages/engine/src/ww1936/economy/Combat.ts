@@ -25,7 +25,8 @@ const MAX_COMBAT_PCT = 200;
  * Equipment lost with the men noted since the last day (spec §6.5): the
  * field infantry equipment by the share of the army lost (its generation
  * sum alike), the other ground equipment by half that share. The men do
- * not come back.
+ * not come back: they count in the casualties, which the recruitable pool
+ * loses for good (WwEconomy.refreshTotals).
  */
 export function applyCombatLosses(
   econ: WwEconomy,
@@ -35,6 +36,7 @@ export function applyCombatLosses(
   const lost = Math.floor(ce.lossMilli / 1000);
   ce.lossMilli = 0;
   if (lost <= 0) return;
+  ce.casualties += lost;
   // The losses already left the army: before them it had `lost` more.
   const before = econ.armyMen(p) + lost;
   const fLost = Math.floor((ce.fieldInfUnits * lost) / before);

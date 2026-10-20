@@ -9,7 +9,15 @@ import { manpowerRegrowth } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { stepManpower } from "@openfront/engine/ww1936/economy/Manpower";
 import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
-import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
+import {
+  byTag,
+  clearStartSetup,
+  HUMAN,
+  stamped,
+  step,
+  stepTo,
+  wwRunner,
+} from "./util";
 
 const HUMAN_POL = "HUMAN002";
 
@@ -27,13 +35,18 @@ function setInfantry(ce: CountryEconomy, ...byGen: number[]): void {
   }
 }
 
-/** Germany played by a human: no AI economy touches the numbers. */
+/**
+ * Germany played by a human: no AI economy touches the numbers, and no
+ * starting line makes rifles.
+ */
 async function germany() {
   const runner = await wwRunner({}, [{ clientID: HUMAN, country: "DEU" }]);
   const g = runner.game;
   const econ = g.worldWar()!.economy;
   const deu = byTag(g, "DEU");
-  return { runner, g, econ, deu, ce: econ.country(deu.smallID())! };
+  const ce = econ.country(deu.smallID())!;
+  clearStartSetup(econ, ce);
+  return { runner, g, econ, deu, ce };
 }
 
 describe("manpower and the draft (spec §6)", () => {
@@ -103,6 +116,31 @@ describe("manpower and the draft (spec §6)", () => {
     finishDay(runner, 1);
     expect(ce.manpower).toBe(ce.totals.recruitable - deu.troops());
     expect(ce.manpower).toBe(1_195_000);
+  });
+
+  test("the dead do not come back: casualties leave the pool for good", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    // No draft: the army changes only by the dead.
+    setInfantry(ce);
+    finishDay(runner, 0);
+    const pool = ce.totals.recruitable;
+    expect(pool).toBe(1_675_000);
+    // At the ceiling: the army and manpower take the whole pool.
+    ce.manpower = pool - econ.armyMen(deu);
+    const manpower = ce.manpower;
+    // 100,000 men fall (as AttackExecution reports them).
+    const dead = 100_000;
+    econ.noteCombatLoss(deu.smallID(), dead);
+    expect(deu.removeTroops(dead)).toBe(dead);
+    finishDay(runner, 1);
+    expect(ce.casualties).toBe(dead);
+    expect(ce.totals.recruitable).toBe(pool - dead);
+    // No manpower grew into the places of the dead, then or a month on.
+    expect(ce.manpower).toBe(manpower);
+    finishDay(runner, 31);
+    expect(ce.manpower).toBe(manpower);
+    expect(ce.totals.recruitable).toBe(pool - dead);
+    expect(econ.armyMen(deu) + ce.manpower).toBe(pool - dead);
   });
 
   test("men away at sea count against the ceiling", async () => {
