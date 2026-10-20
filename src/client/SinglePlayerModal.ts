@@ -20,7 +20,7 @@ import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { generateID } from "@openfront/shared/SharedUtil";
 import { PlayerCosmetics } from "@openfront/shared/WireSchemas";
-import { html, TemplateResult } from "lit";
+import { html, type LitElement, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { translateText } from "../client/Utils";
 import { responseHasLinkedIdentity } from "./AccountIdentity";
@@ -99,6 +99,14 @@ function withDeadline<T>(
   });
   return Promise.race([work, deadline]).finally(() => clearTimeout(timer));
 }
+
+/**
+ * A phone on its side. With World War 1936 on, the country list scrolls in
+ * the little height the header, the start footer and the page footer leave
+ * there, so the start footer is slimmer (spec §8.1).
+ */
+export const SHORT_LANDSCAPE_QUERY =
+  "(max-height: 500px) and (orientation: landscape)";
 
 /** What a start has to wait for before it can dispatch join-lobby. */
 type StartPreparation = {
@@ -240,6 +248,12 @@ export class SinglePlayerModal extends BaseModal {
   @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
   @state() private country: CountryTag | null = DEFAULT_OPTIONS.country;
+  /** SHORT_LANDSCAPE_QUERY matches. */
+  @state() private shortLandscape = false;
+  private shortLandscapeQuery: MediaQueryList | null = null;
+  private readonly onShortLandscapeChange = (e: { matches: boolean }) => {
+    this.shortLandscape = e.matches;
+  };
   // Drives the Start Game button's busy state. Without it the click produces
   // nothing visible until every await in startGame() settles, which reads as
   // a hang rather than as loading whenever the network is slow or absent.
@@ -267,6 +281,14 @@ export class SinglePlayerModal extends BaseModal {
       this.applyAchievements(last.response);
     }
     void this.loadNationCount();
+    if (typeof window.matchMedia === "function") {
+      this.shortLandscapeQuery = window.matchMedia(SHORT_LANDSCAPE_QUERY);
+      this.shortLandscape = this.shortLandscapeQuery.matches;
+      this.shortLandscapeQuery.addEventListener(
+        "change",
+        this.onShortLandscapeChange,
+      );
+    }
   }
 
   disconnectedCallback() {
@@ -274,6 +296,11 @@ export class SinglePlayerModal extends BaseModal {
       "userMeResponse",
       this.handleUserMeResponse as EventListener,
     );
+    this.shortLandscapeQuery?.removeEventListener(
+      "change",
+      this.onShortLandscapeChange,
+    );
+    this.shortLandscapeQuery = null;
     super.disconnectedCallback();
   }
 
@@ -538,9 +565,13 @@ export class SinglePlayerModal extends BaseModal {
           ]),
     ];
 
+    // World War 1936 on a phone on its side: a slim start footer leaves the
+    // country list more of the screen.
+    const slimFooter = this.worldWar1936 && this.shortLandscape;
     return html`
       <div class="flex flex-col h-full">
         <div
+          data-solo-scroll
           class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
         >
           <game-config-settings
@@ -682,7 +713,12 @@ export class SinglePlayerModal extends BaseModal {
         </div>
 
         <!-- Footer Action -->
-        <div class="p-6 border-t border-white/10 bg-black/20 shrink-0">
+        <div
+          data-solo-footer
+          class="${slimFooter
+            ? "px-6 py-2"
+            : "p-6"} border-t border-white/10 bg-black/20 shrink-0"
+        >
           ${responseHasLinkedIdentity(this.userMeResponse) &&
           this.hasOptionsChanged()
             ? html`<div
@@ -694,7 +730,7 @@ export class SinglePlayerModal extends BaseModal {
           <o-button
             variant="primary"
             width="block"
-            size="lg"
+            size=${slimFooter ? "md" : "lg"}
             translationKey=${this.starting
               ? "game_settings.starting"
               : "game_settings.start"}
@@ -704,6 +740,19 @@ export class SinglePlayerModal extends BaseModal {
         </div>
       </div>
     `;
+  }
+
+  /** Scrolls the settings so the country picker starts at the top. */
+  private async scrollToCountryPicker() {
+    // The picker is drawn by the settings element, after this one.
+    await this.updateComplete;
+    await this.querySelector<LitElement>("game-config-settings")
+      ?.updateComplete;
+    const scroll = this.querySelector<HTMLElement>("[data-solo-scroll]");
+    const picker = this.querySelector("ww-country-picker");
+    if (scroll === null || picker === null) return;
+    scroll.scrollTop +=
+      picker.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
   }
 
   // Check if any options other than map and difficulty have been changed from defaults
@@ -944,6 +993,9 @@ export class SinglePlayerModal extends BaseModal {
           this.congress = false;
           this.warfareExpansion = false;
           this.strategicWeapons = false;
+          // The toggle sits at the bottom; on a phone on its side the
+          // country list it brings up, at the top, is a long scroll away.
+          if (this.shortLandscape) void this.scrollToCountryPicker();
         }
         break;
       case "game_settings.historical_ai":
