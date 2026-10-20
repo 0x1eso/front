@@ -40,6 +40,11 @@ type Region struct {
 	// region, MaxTier the highest of them (0 without a city; assignVP).
 	Tiers   int
 	MaxTier int
+	// Island is the key of a kept or stamped island (islands1936.json) the
+	// region is, "" for every other region.
+	Island string
+	// Lake marks a sea zone that is a lake (seasplit1936.json).
+	Lake bool
 }
 
 type group struct {
@@ -282,11 +287,14 @@ func setAdminName(r *Region, admin []Feature, unit int32) {
 // finishNames names each region after the admin-1 unit of its victory-point
 // tile (its capital or biggest city) when it has one, or after a named patch
 // that holds most of its land, applies the hand renames (keyed "TAG:name"),
-// adds the split suffixes and numbers repeats. Fails on a rename that matches
-// no region.
+// adds the split suffixes and numbers repeats. An island keeps its name.
+// Fails on a rename that matches no region.
 func finishNames(regions []*Region, adm []int32, patch []uint16, admin []Feature, t *Tables) error {
 	used := map[string]bool{}
 	for _, r := range regions {
+		if r.Island != "" {
+			continue // named after the island (islands1936.json)
+		}
 		if r.VPTile >= 0 && adm[r.VPTile] > 0 {
 			setAdminName(r, admin, adm[r.VPTile])
 		}
@@ -502,10 +510,20 @@ func bbox(pix []int32, w int) (int, int, int, int) {
 	return minX, minY, maxX, maxY
 }
 
-// dedupeNames numbers repeated names of one owner ("X", "X 2", …) in id order.
+// dedupeNames numbers repeated names of one owner ("X", "X 2", …) in id
+// order. An island keeps its name: another region of its owner with the
+// same name is numbered after it.
 func dedupeNames(regions []*Region) {
 	seen := map[string]int{}
 	for _, r := range regions {
+		if r.Island != "" {
+			seen[fmt.Sprintf("%d|%s", r.Owner, r.Name)]++
+		}
+	}
+	for _, r := range regions {
+		if r.Island != "" {
+			continue
+		}
 		key := fmt.Sprintf("%d|%s", r.Owner, r.Name)
 		seen[key]++
 		if c := seen[key]; c > 1 {

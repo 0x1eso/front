@@ -81,8 +81,11 @@ func decodeRegionIDs(path string, width, height int) ([]uint16, error) {
 // longest edge with. owner gives each land region's 1936 owner: a land piece
 // joins only a region of its own owner and stays when it has none beside it
 // (Gibraltar, Hong Kong), so merging never moves land between countries. A
-// nil owner treats all land regions as one owner.
-func finalizeRegions(packed []byte, raw []uint16, w, h int, owner map[uint16]string) ([]uint16, error) {
+// nil owner treats all land regions as one owner. The regions in island (the
+// kept and stamped islands, P4 spec §3.2) neither join a neighbour nor take
+// a piece, whatever their size. cmd/ww1936build/land.go finalMap repeats
+// this on the tool's raster: keep the two in step.
+func finalizeRegions(packed []byte, raw []uint16, w, h int, owner map[uint16]string, island map[uint16]bool) ([]uint16, error) {
 	n := w * h
 	if len(packed) != n || len(raw) != n {
 		return nil, fmt.Errorf("regions: %d terrain bytes, %d ids, %dx%d map", len(packed), len(raw), w, h)
@@ -131,8 +134,8 @@ func finalizeRegions(packed []byte, raw []uint16, w, h int, owner map[uint16]str
 	sameOwner := func(a, b uint16) bool { return owner[a] == owner[b] }
 	anyZone := func(a, b uint16) bool { return true }
 	for pass := 0; pass < 4; pass++ {
-		changed := mergeFragments(ids, w, n, isLand, sameOwner)
-		changed = mergeFragments(ids, w, n, isWater, anyZone) || changed
+		changed := mergeFragments(ids, w, n, isLand, sameOwner, island)
+		changed = mergeFragments(ids, w, n, isWater, anyZone, island) || changed
 		if !changed {
 			break
 		}
@@ -177,8 +180,9 @@ func fillComponent(ids []uint16, w, n, start int, id uint16, kind func(int) bool
 // minRegionFragment tiles to the neighbouring region of the same kind it
 // shares the longest edge with among those join allows (ties: the smaller
 // id). A piece with no such neighbour (a small island, an exclave) keeps its
-// id. Reports whether anything changed.
-func mergeFragments(ids []uint16, w, n int, kind func(int) bool, join func(own, other uint16) bool) bool {
+// id, and so does a piece of an island region, which takes none either.
+// Reports whether anything changed.
+func mergeFragments(ids []uint16, w, n int, kind func(int) bool, join func(own, other uint16) bool, island map[uint16]bool) bool {
 	comp := make([]int32, n)
 	var pieces [][]int32
 	for i := 0; i < n; i++ {
@@ -205,10 +209,13 @@ func mergeFragments(ids []uint16, w, n int, kind func(int) bool, join func(own, 
 			continue
 		}
 		own := ids[tiles[0]]
+		if island[own] {
+			continue
+		}
 		edges := map[uint16]int{}
 		for _, t := range tiles {
 			forNeighbours4(int(t), w, n, func(j int) {
-				if ids[j] != own && ids[j] != 0 && kind(j) && join(own, ids[j]) {
+				if ids[j] != own && ids[j] != 0 && kind(j) && !island[ids[j]] && join(own, ids[j]) {
 					edges[ids[j]]++
 				}
 			})
@@ -253,10 +260,12 @@ func encodeRegionsRLE(ids []uint16, w, h int) []byte {
 	return append(out, body...)
 }
 
-// scenario.src.json as cmd/ww1936build writes it.
+// scenario.src.json as cmd/ww1936build writes it. Dev (version 3) is the
+// country's industrialisation from economy1936.json (P2 spec §6.4).
 type srcCountry struct {
 	Tag     string `json:"tag"`
 	Capital [2]int `json:"capital"`
+	Dev     int    `json:"dev,omitempty"`
 }
 
 type srcRegion struct {
@@ -267,6 +276,38 @@ type srcRegion struct {
 	VP     int     `json:"vp"`
 	VPTile *[2]int `json:"vpTile,omitempty"`
 	Economy
+	LandGraph
+	// Port is a hand harbour (a kept island's, islands1936.json); the
+	// formula of buildScenario adds the rest.
+	Port   bool   `json:"port,omitempty"`
+	Island string `json:"island,omitempty"`
+}
+
+// LandGraph is a region's version 3 data (P2 spec §3.1), copied from
+// scenario.src.json to scenario.json as it is. A region the tool knows the
+// generator drops has none (Center nil).
+type LandGraph struct {
+	Land   string  `json:"land,omitempty"`
+	Center *[2]int `json:"center,omitempty"`
+	LatC   int     `json:"latC"`
+	WCell  int     `json:"wcell"`
+	Rail   int     `json:"rail"`
+	Fort   int     `json:"fort"`
+}
+
+// landEdge is [a, b, border, km, river, strait] (P2 spec §3.1), seaEdge
+// [a, b, km, kind] (P4 spec §3.3).
+type landEdge [6]int
+type seaEdge [4]int
+
+// strait is a hand strait or canal between two sea zones and its shore
+// regions (P4 spec §3.3).
+type strait struct {
+	ID    string `json:"id"`
+	Kind  string `json:"kind"`
+	A     int    `json:"a"`
+	B     int    `json:"b"`
+	Shore []int  `json:"shore"`
 }
 
 // Economy is a region's P1 economy (version 2; P1 spec §3.1), copied from
@@ -288,13 +329,21 @@ type srcSea struct {
 	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	NameKo string `json:"nameKo"`
+	Lake   bool   `json:"lake,omitempty"`
 }
 
+// scenarioSrc: KeepIslands are the kept islands' points, the land bodies
+// near which removeSmallIslands keeps (map_generator.go).
 type scenarioSrc struct {
-	Version   int          `json:"version"`
-	Countries []srcCountry `json:"countries"`
-	Regions   []srcRegion  `json:"regions"`
-	SeaZones  []srcSea     `json:"seaZones"`
+	Version       int          `json:"version"`
+	Countries     []srcCountry `json:"countries"`
+	Regions       []srcRegion  `json:"regions"`
+	SeaZones      []srcSea     `json:"seaZones"`
+	Edges         []landEdge   `json:"edges,omitempty"`
+	SeaEdges      []seaEdge    `json:"seaEdges,omitempty"`
+	Straits       []strait     `json:"straits,omitempty"`
+	HistoricalOob bool         `json:"historicalOob,omitempty"`
+	KeepIslands   [][2]int     `json:"keepIslands,omitempty"`
 }
 
 // scenario.json (engine-api ScenarioDataSchema).
@@ -308,27 +357,51 @@ type outRegion struct {
 	Tiles   int    `json:"tiles"`
 	Terrain string `json:"terrain"`
 	Economy
+	outLand
+}
+
+// outLand is a region's version 3 data in scenario.json: the tool's land
+// graph fields, and the port on the final tiles.
+type outLand struct {
+	Land   string `json:"land"`
+	Center [2]int `json:"center"`
+	LatC   int    `json:"latC"`
+	WCell  int    `json:"wcell"`
+	Rail   int    `json:"rail"`
+	Fort   int    `json:"fort"`
+	Port   bool   `json:"port"`
+	Island string `json:"island,omitempty"`
 }
 
 // scenarioVersion is the scenario.src.json / scenario.json version this
-// generator reads and writes (2: P1 economy fields).
-const scenarioVersion = 2
+// generator reads and writes (2: P1 economy fields; 3: P2 land graph and
+// the P4 map fixes).
+const scenarioVersion = 3
 
 type outSea struct {
 	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	NameKo string `json:"nameKo"`
 	Tiles  int    `json:"tiles"`
+	Lake   bool   `json:"lake,omitempty"`
 }
 
 type scenarioOut struct {
-	Version   int          `json:"version"`
-	Width     int          `json:"width"`
-	Height    int          `json:"height"`
-	Countries []srcCountry `json:"countries"`
-	Regions   []outRegion  `json:"regions"`
-	SeaZones  []outSea     `json:"seaZones"`
+	Version       int          `json:"version"`
+	Width         int          `json:"width"`
+	Height        int          `json:"height"`
+	Countries     []srcCountry `json:"countries"`
+	Regions       []outRegion  `json:"regions"`
+	SeaZones      []outSea     `json:"seaZones"`
+	Edges         []landEdge   `json:"edges,omitempty"`
+	SeaEdges      []seaEdge    `json:"seaEdges,omitempty"`
+	Straits       []strait     `json:"straits,omitempty"`
+	HistoricalOob bool         `json:"historicalOob,omitempty"`
 }
+
+// portMinVP: a coastal region with this many points or more has a port
+// (P2 spec §3.1, as engine-lib ScenarioIndex.isPort reads a v2 file).
+const portMinVP = 5
 
 var terrainClasses = [3]string{"plains", "highland", "mountain"}
 
@@ -472,6 +545,16 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		}
 		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class], Economy: r.Economy}
 		o.Coastal = coastal[r.ID]
+		o.outLand = outLand{Land: r.Land, Center: vpTile, LatC: r.LatC, WCell: r.WCell, Rail: r.Rail, Fort: r.Fort, Island: r.Island}
+		if o.Land == "" {
+			o.Land = landOfClass[class]
+		}
+		if c := r.Center; c != nil {
+			if c[0] < 0 || c[0] >= w || c[1] < 0 || c[1] >= h || int(ids[c[1]*w+c[0]]) != r.ID {
+				return out, notes, fmt.Errorf("region %d %q (%s): its center %v is not one of its tiles on the final map", r.ID, r.Name, r.Owner, *c)
+			}
+			o.Center = *c
+		}
 		if o.Dock > 0 && !o.Coastal {
 			return out, notes, fmt.Errorf("region %d %q (%s) has %d dockyards but no coast on the final map", r.ID, r.Name, r.Owner, o.Dock)
 		}
@@ -513,13 +596,21 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		}
 	}
 	capCapitalVP(out.Regions, src.Countries, ids, w)
+	handPort := map[int]bool{}
+	for _, r := range src.Regions {
+		handPort[r.ID] = r.Port
+	}
+	for i := range out.Regions {
+		r := &out.Regions[i]
+		r.Port = r.Coastal && (r.Dock >= 1 || r.VP >= portMinVP || handPort[r.ID])
+	}
 	seaKnown := map[int]bool{}
 	for _, s := range src.SeaZones {
 		seaKnown[s.ID] = true
 		if tiles[s.ID] == 0 {
 			continue
 		}
-		out.SeaZones = append(out.SeaZones, outSea{ID: s.ID, Name: s.Name, NameKo: s.NameKo, Tiles: tiles[s.ID]})
+		out.SeaZones = append(out.SeaZones, outSea{ID: s.ID, Name: s.Name, NameKo: s.NameKo, Tiles: tiles[s.ID], Lake: s.Lake})
 	}
 	for id, k := range tiles {
 		if id > seaZoneBase && !seaKnown[id] {
@@ -528,7 +619,123 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 	}
 	sort.Slice(out.Regions, func(a, b int) bool { return out.Regions[a].ID < out.Regions[b].ID })
 	sort.Slice(out.SeaZones, func(a, b int) bool { return out.SeaZones[a].ID < out.SeaZones[b].ID })
+	graphNotes, err := copyGraphs(src, &out, ids, w, h, byID, tiles)
+	notes = append(notes, graphNotes...)
+	if err != nil {
+		return out, notes, err
+	}
 	return out, notes, nil
+}
+
+var landOfClass = [3]string{"plains", "hills", "mountain"}
+
+// copyGraphs copies the land and sea graphs of scenario.src.json (version
+// 3) to scenario.json. An edge or a strait shore of a region the cleanup
+// dropped goes (with a note), and so does a sea edge of a zone without
+// tiles. The tool computed the land borders on its copy of the cleanup
+// (cmd/ww1936build land.go finalMap): every border must match the final
+// tiles, every pair of touching regions must have its edge, and no strait
+// may join two regions that touch, or the build fails.
+func copyGraphs(src scenarioSrc, out *scenarioOut, ids []uint16, w, h int, regions map[int]outRegion, tiles map[int]int) ([]string, error) {
+	out.HistoricalOob = src.HistoricalOob
+	var notes []string
+	if src.Edges != nil {
+		count := map[[2]int]int{}
+		isLand := func(id uint16) bool { return id != 0 && id < seaZoneBase }
+		pair := func(a, b uint16) {
+			if isLand(a) && isLand(b) && a != b {
+				count[[2]int{int(min(a, b)), int(max(a, b))}]++
+			}
+		}
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				i := y*w + x
+				if x+1 < w {
+					pair(ids[i], ids[i+1])
+				}
+				if y+1 < h {
+					pair(ids[i], ids[i+w])
+				}
+			}
+		}
+		seen := map[[2]int]bool{}
+		out.Edges = []landEdge{}
+		for _, e := range src.Edges {
+			key := [2]int{e[0], e[1]}
+			_, okA := regions[e[0]]
+			_, okB := regions[e[1]]
+			if !okA || !okB {
+				notes = append(notes, fmt.Sprintf("edge %d-%d dropped: a region lost every tile", e[0], e[1]))
+				continue
+			}
+			if e[0] >= e[1] || seen[key] {
+				return notes, fmt.Errorf("edge %d-%d out of order or twice", e[0], e[1])
+			}
+			seen[key] = true
+			if count[key] != e[2] {
+				return notes, fmt.Errorf("edge %d-%d: border %d in scenario.src.json, %d on the final map", e[0], e[1], e[2], count[key])
+			}
+			out.Edges = append(out.Edges, e)
+		}
+		missing := 0
+		for key := range count {
+			if !seen[key] {
+				missing++
+			}
+		}
+		if missing > 0 {
+			return notes, fmt.Errorf("%d pairs of regions touch on the final map but have no edge in scenario.src.json", missing)
+		}
+	}
+	if src.SeaEdges != nil {
+		out.SeaEdges = []seaEdge{}
+		for _, e := range src.SeaEdges {
+			if tiles[e[0]] == 0 || tiles[e[1]] == 0 {
+				notes = append(notes, fmt.Sprintf("sea edge %d-%d dropped: a zone has no tiles", e[0], e[1]))
+				continue
+			}
+			out.SeaEdges = append(out.SeaEdges, e)
+		}
+	}
+	for _, st := range src.Straits {
+		if tiles[st.A] == 0 || tiles[st.B] == 0 {
+			return notes, fmt.Errorf("strait %s: a zone has no tiles", st.ID)
+		}
+		kept := st
+		kept.Shore = nil
+		for _, id := range st.Shore {
+			if _, ok := regions[id]; ok {
+				kept.Shore = append(kept.Shore, id)
+			} else {
+				notes = append(notes, fmt.Sprintf("strait %s: shore region %d dropped", st.ID, id))
+			}
+		}
+		if len(kept.Shore) == 0 {
+			return notes, fmt.Errorf("strait %s has no shore region left", st.ID)
+		}
+		out.Straits = append(out.Straits, kept)
+	}
+	return notes, nil
+}
+
+// readKeepIslands reads the kept islands' points from a World War 1936
+// map's scenario.src.json (scenarios/<name>/), for removeSmallIslands.
+func readKeepIslands(name string) ([]Coord, error) {
+	data, err := os.ReadFile(filepath.Join("scenarios", name, "scenario.src.json"))
+	if err != nil {
+		return nil, err
+	}
+	var src struct {
+		KeepIslands [][2]int `json:"keepIslands"`
+	}
+	if err := json.Unmarshal(data, &src); err != nil {
+		return nil, fmt.Errorf("scenario.src.json: %w", err)
+	}
+	out := make([]Coord, len(src.KeepIslands))
+	for k, p := range src.KeepIslands {
+		out[k] = Coord{X: p[0], Y: p[1]}
+	}
+	return out, nil
 }
 
 // capCapitalVP keeps each country's capital region at no more than a third
@@ -574,14 +781,18 @@ func writeScenarioFiles(name, mapDir string, packed []byte, w, h int) ([]string,
 		return nil, nil, fmt.Errorf("scenario.src.json is version %d, not %d: run cmd/ww1936build", src.Version, scenarioVersion)
 	}
 	owner := make(map[uint16]string, len(src.Regions))
+	island := map[uint16]bool{}
 	for _, r := range src.Regions {
 		owner[uint16(r.ID)] = r.Owner
+		if r.Island != "" {
+			island[uint16(r.ID)] = true
+		}
 	}
 	raw, err := decodeRegionIDs(filepath.Join(srcDir, "regions.png"), w, h)
 	if err != nil {
 		return nil, nil, err
 	}
-	ids, err := finalizeRegions(packed, raw, w, h, owner)
+	ids, err := finalizeRegions(packed, raw, w, h, owner, island)
 	if err != nil {
 		return nil, nil, err
 	}

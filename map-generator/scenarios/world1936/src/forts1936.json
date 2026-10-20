@@ -1,0 +1,59 @@
+{
+  "rows": [
+    {
+      "note": "Maginot Line, Alsace–Lorraine (P2 spec §3.2-7)",
+      "level": 5,
+      "regions": ["FRA:Moselle", "FRA:Doubs"]
+    },
+    {
+      "note": "Maginot Line, the Ardennes side (Montmédy)",
+      "level": 2,
+      "regions": ["FRA:Meuse"]
+    },
+    {
+      "note": "Czechoslovak border fortifications facing Germany and Austria",
+      "level": 3,
+      "regions": [
+        "CSK:Ústecký",
+        "CSK:Prague",
+        "CSK:Jihomoravský",
+        "CSK:Moravskoslezský",
+        "CSK:Jihočeský",
+        "CSK:Bratislavský"
+      ]
+    },
+    {
+      "note": "Belgium's eastern forts (Liège)",
+      "level": 2,
+      "regions": ["BEL:Luxembourg"]
+    },
+    {
+      "note": "Mannerheim Line, Karelian Isthmus",
+      "level": 3,
+      "regions": ["FIN:Viipuri"]
+    },
+    {
+      "note": "Metaxas Line, Eastern Macedonia and Thrace",
+      "level": 2,
+      "regions": ["GRC:Anatoliki Makedonia kai Thraki"]
+    },
+    {
+      "note": "Alpine Wall facing France and Yugoslavia",
+      "level": 2,
+      "regions": ["ITA:Turin", "ITA:Cuneo", "ITA:Udine"]
+    },
+    {
+      "note": "Stalin Line facing Poland and Romania",
+      "level": 2,
+      "regions": [
+        "SUN:Vitebsk",
+        "SUN:City of Minsk",
+        "SUN:Gomel",
+        "SUN:Zhytomyr",
+        "SUN:Khmel'nyts'kyy",
+        "SUN:Vinnytsya",
+        "SUN:Odessa"
+      ]
+    }
+  ]
+}

@@ -933,6 +933,20 @@
         [3.75, 40.15],
         [3.75, 39.75]
       ]
+    },
+    {
+      "owner": "FRA",
+      "note": "Sanjak of Alexandretta (Hatay) under the French mandate until 1939: a region of its own, apart from Aleppo",
+      "adm1": ["TUR:Hatay"],
+      "name": ["Hatay", "하타이"],
+      "own": true,
+      "polygon": [
+        [35.5, 35.6],
+        [37.0, 35.6],
+        [37.0, 37.3],
+        [35.5, 37.3],
+        [35.5, 35.6]
+      ]
     }
   ]
 }

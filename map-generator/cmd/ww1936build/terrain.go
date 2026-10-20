@@ -79,24 +79,32 @@ func terrainBlue(e int) uint8 {
 }
 
 // writeTerrain writes the generator's image.png: water (0, 0, 106), land a
-// grey whose blue channel is its terrain.
-func writeTerrain(path string, p Projection, land []bool, elev *image.Gray) error {
+// grey whose blue channel is its terrain; a stamped island pixel (islands.go)
+// is plains at the lowest elevation. Returns each land pixel's magnitude
+// (the generator's (blue − 140) / 2, 0..30).
+func writeTerrain(path string, p Projection, land []bool, elev *image.Gray, stamped []bool) ([]uint8, error) {
 	img := image.NewNRGBA(image.Rect(0, 0, p.Width, p.Height))
+	mag := make([]uint8, p.Width*p.Height)
 	for y := 0; y < p.Height; y++ {
 		for x := 0; x < p.Width; x++ {
-			if !land[y*p.Width+x] {
+			i := y*p.Width + x
+			if !land[i] {
 				img.SetNRGBA(x, y, color.NRGBA{0, 0, 106, 255})
 				continue
 			}
-			lon, lat := p.LonLat(x, y)
-			b := terrainBlue(elevationAt(elev, lon, lat))
+			b := uint8(140)
+			if stamped == nil || !stamped[i] {
+				lon, lat := p.LonLat(x, y)
+				b = terrainBlue(elevationAt(elev, lon, lat))
+			}
+			mag[i] = (b - 140) / 2
 			img.SetNRGBA(x, y, color.NRGBA{b, b, b, 255})
 		}
 	}
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer f.Close()
-	return png.Encode(f, img)
+	return mag, png.Encode(f, img)
 }

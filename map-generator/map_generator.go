@@ -74,11 +74,21 @@ type MapInfo struct {
 }
 
 // GeneratorArgs defines the input parameters for the map generation process.
+// KeepIslands are points (full-size tiles) whose nearby land bodies, within
+// keepIslandRadius, removeSmallIslands keeps whatever their size: only the
+// World War 1936 map passes any (its kept islands, P4 spec §3.2), so every
+// other map comes out as before.
 type GeneratorArgs struct {
 	Name        string
 	ImageBuffer []byte
 	RemoveSmall bool
+	KeepIslands []Coord
 }
+
+// keepIslandRadius is how far (Chebyshev, in tiles) from a KeepIslands
+// point a land body may lie and stay (cmd/ww1936build islands.go
+// keepRadius).
+const keepIslandRadius = 3
 
 // GenerateMap is the main map-generator workflow.
 //   - Maps each pixel to a Terrain type based on its blue value
@@ -165,7 +175,7 @@ func GenerateMap(ctx context.Context, args GeneratorArgs) (MapResult, error) {
 	img = nil
 	args.ImageBuffer = nil
 
-	removeSmallIslands(ctx, terrain, minIslandSize, args.RemoveSmall)
+	removeSmallIslands(ctx, terrain, minIslandSize, args.RemoveSmall, args.KeepIslands)
 	processWater(ctx, terrain, args.RemoveSmall)
 	// Water adjacent to impassable terrain should be deep (no depth gradient),
 	// just like water at the map edge.  Override the BFS-calculated magnitude
@@ -173,7 +183,11 @@ func GenerateMap(ctx context.Context, args GeneratorArgs) (MapResult, error) {
 	setImpassableNeighborWaterDepth(ctx, terrain)
 
 	terrain4x := createMiniMap(terrain)
-	removeSmallIslands(ctx, terrain4x, minIslandSize/2, args.RemoveSmall)
+	keep4x := make([]Coord, len(args.KeepIslands))
+	for k, c := range args.KeepIslands {
+		keep4x[k] = Coord{X: c.X / 2, Y: c.Y / 2}
+	}
+	removeSmallIslands(ctx, terrain4x, minIslandSize/2, args.RemoveSmall, keep4x)
 	processWater(ctx, terrain4x, false)
 	setImpassableNeighborWaterDepth(ctx, terrain4x)
 
@@ -576,8 +590,9 @@ func getArea(x, y int, terrain [][]Terrain, visited []bool) []Coord {
 
 // removeSmallIslands identifies and removes small land masses from the terrain.
 // If removeSmall is true, any removed bodies are converted to Water.
-// Land bodies smaller than minSize are removed.
-func removeSmallIslands(ctx context.Context, terrain [][]Terrain, minSize int, removeSmall bool) {
+// Land bodies smaller than minSize are removed, but those with a tile within
+// keepIslandRadius (Chebyshev) of a keep point.
+func removeSmallIslands(ctx context.Context, terrain [][]Terrain, minSize int, removeSmall bool, keep []Coord) {
 	logger := LoggerFromContext(ctx)
 	if !removeSmall {
 		return
@@ -612,8 +627,18 @@ func removeSmallIslands(ctx context.Context, terrain [][]Terrain, minSize int, r
 
 	smallIslands := 0
 
+	nearKeep := func(coords []Coord) bool {
+		for _, c := range coords {
+			for _, k := range keep {
+				if max(abs(c.X-k.X), abs(c.Y-k.Y)) <= keepIslandRadius {
+					return true
+				}
+			}
+		}
+		return false
+	}
 	for _, body := range landBodies {
-		if body.size < minSize {
+		if body.size < minSize && !nearKeep(body.coords) {
 			replacement := majorityNeighborType(body.coords, terrain, Land)
 			logger.Debug(fmt.Sprintf("Removing small island at %d,%d (size %d) -> %v", body.coords[0].X, body.coords[0].Y, body.size, replacement), RemovalLogTag)
 			smallIslands++
@@ -966,4 +991,11 @@ func majorityNeighborType(coords []Coord, terrain [][]Terrain, selfType TerrainT
 		best = Land
 	}
 	return best
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }

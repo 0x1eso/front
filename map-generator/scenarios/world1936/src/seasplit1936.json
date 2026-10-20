@@ -1,0 +1,138 @@
+{
+  "expect": {
+    "40040": "North Atlantic Ocean 2",
+    "40041": "Baltic Sea",
+    "40043": "North Atlantic Ocean 3",
+    "40046": "North Sea",
+    "40048": "Caspian Sea",
+    "40051": "Lake Superior",
+    "40058": "Lake Michigan",
+    "40059": "Black Sea",
+    "40062": "Mediterranean Sea",
+    "40063": "North Atlantic Ocean 5",
+    "40064": "Ionian Sea",
+    "40066": "Tyrrhenian Sea",
+    "40076": "Arabian Sea",
+    "40077": "Red Sea",
+    "40083": "Caribbean Sea",
+    "40092": "North Pacific Ocean 14"
+  },
+  "split": [
+    {
+      "id": 40150,
+      "name": "English Channel",
+      "nameKo": "영국 해협",
+      "from": [40043],
+      "lon": [-5.7, 2.0],
+      "lat": [48.4, 51.3]
+    },
+    {
+      "id": 40151,
+      "name": "Irish Sea",
+      "nameKo": "아일랜드해",
+      "from": [40043, 40040],
+      "lon": [-6.6, -2.8],
+      "lat": [51.6, 55.5]
+    },
+    {
+      "id": 40152,
+      "name": "Celtic Sea",
+      "nameKo": "켈트해",
+      "from": [40043],
+      "lon": [-12.0, -5.7],
+      "lat": [47.5, 51.6]
+    },
+    {
+      "id": 40153,
+      "name": "Western Mediterranean",
+      "nameKo": "서지중해",
+      "from": [40062],
+      "lon": [-5.7, 9.6],
+      "lat": [35.0, 44.5]
+    },
+    {
+      "id": 40154,
+      "name": "Aegean Sea",
+      "nameKo": "에게해",
+      "from": [40062],
+      "lon": [22.5, 28.5],
+      "lat": [35.2, 41.0]
+    },
+    {
+      "id": 40155,
+      "name": "Adriatic Sea",
+      "nameKo": "아드리아해",
+      "from": [40064],
+      "lon": [12.0, 20.0],
+      "lat": [40.4, 46.0]
+    },
+    {
+      "id": 40156,
+      "name": "Skagerrak",
+      "nameKo": "스카게라크",
+      "from": [40046],
+      "lon": [7.5, 13.0],
+      "lat": [55.3, 59.5]
+    },
+    {
+      "id": 40157,
+      "name": "Gulf of Finland",
+      "nameKo": "핀란드만",
+      "from": [40041],
+      "lon": [22.8, 30.5],
+      "lat": [59.0, 61.0]
+    },
+    {
+      "id": 40158,
+      "name": "Persian Gulf",
+      "nameKo": "페르시아만",
+      "from": [40076],
+      "lon": [47.0, 56.6],
+      "lat": [23.5, 31.0]
+    },
+    {
+      "id": 40159,
+      "name": "Gulf of Aden",
+      "nameKo": "아덴만",
+      "from": [40076],
+      "lon": [42.5, 51.5],
+      "lat": [10.5, 15.5]
+    },
+    {
+      "id": 40160,
+      "name": "Eastern Mediterranean",
+      "nameKo": "동지중해",
+      "from": [40062],
+      "lon": [22.5, 36.5],
+      "lat": [30.0, 35.2]
+    }
+  ],
+  "rename": [
+    {
+      "id": 40062,
+      "was": "Mediterranean Sea",
+      "name": "Central Mediterranean",
+      "nameKo": "중앙 지중해"
+    }
+  ],
+  "lakes": [
+    {
+      "id": 40048,
+      "was": "Caspian Sea",
+      "name": "Caspian Sea",
+      "nameKo": "카스피해"
+    },
+    {
+      "id": 40051,
+      "was": "Lake Superior",
+      "name": "Lake Superior",
+      "nameKo": "슈피리어호"
+    },
+    {
+      "id": 40058,
+      "was": "Lake Michigan",
+      "name": "Lake Michigan",
+      "nameKo": "미시간호"
+    }
+  ]
+}
