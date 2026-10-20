@@ -50,18 +50,20 @@ describe("politics on the clock", () => {
       const c = pol(g).country(id)!;
       const days = [first, first + 1];
       first += 2;
-      for (const d of days) {
+      for (const [i, d] of days.entries()) {
         stepTo(runner, dayStart(d));
-        const parts = c.statParts;
+        // Full stability: +15% PP gain once the stats are summed again
+        // (spec §6.2), then back to 50% the next day.
+        const want = i === 0 ? 15 : 0;
+        c.stabBp = i === 0 ? 10_000 : 5000;
         // Day d's ticks before the country's own: not yet.
         stepTo(runner, dayStart(d) + (id % WW_DAY_SPLIT));
-        expect(c.statParts, `${tag} day ${d}`).toBe(parts);
+        expect(c.stats.ppGainPct, `${tag} day ${d}`).toBe(15 - want);
         step(runner);
-        expect(c.statParts, `${tag} day ${d}`).not.toBe(parts);
-        const after = c.statParts;
-        stepTo(runner, dayStart(d + 1));
-        expect(c.statParts, `${tag} day ${d}`).toBe(after);
+        expect(c.stats.ppGainPct, `${tag} day ${d}`).toBe(want);
       }
+      stepTo(runner, dayStart(first));
+      expect(c.stats.ppGainPct).toBe(0);
     }
   });
 
@@ -71,17 +73,18 @@ describe("politics on the clock", () => {
     step(runner);
     const p = pol(g);
     const c = p.country(byTag(g, "DEU").smallID())!;
-    const parts = c.statParts;
     const pp = c.ppMilli;
+    // No daily step: a changed base does not reach the stats.
+    c.stabBp = 10_000;
     stepTo(runner, WW_PREP_TICKS - 1);
-    expect(c.statParts).toBe(parts);
+    expect(c.stats.ppGainPct).toBe(0);
     expect(c.ppMilli).toBe(pp);
     expect(p.beats.every((b) => !b.done)).toBe(true);
     expect(p.delayed).toEqual([]);
     expect(p.wtBp).toBe(400);
     // The first day runs at the minute's end.
     stepTo(runner, WW_PREP_TICKS + WW_DAY_SPLIT);
-    expect(c.statParts).not.toBe(parts);
+    expect(c.stats.ppGainPct).toBe(15);
   });
 
   it("the event queue is empty at the end of every tick", async () => {

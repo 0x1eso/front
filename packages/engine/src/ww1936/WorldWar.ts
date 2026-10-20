@@ -95,7 +95,7 @@ export class WorldWar {
   /**
    * Spec §5.3, §7.1: capitals, starting victory points, the wars of
    * 1 January 1936, then the economy's start (P1 spec §6.6, §11) and the
-   * land war's (P2 spec §6.4: the 1936 armies), then politics' (P3 spec
+   * land war's (P2 spec §6.4: the 1936 armies), after politics' (P3 spec
    * §6.5). GameImpl calls it once, after the territory.
    */
   start(): void {
@@ -116,9 +116,12 @@ export class WorldWar {
       const b = this.scenario.smallIdOf(y);
       if (a !== 0 && b !== 0) this.setWar(a, b, 0);
     }
+    // Controller ruling I3: politics first (HOI4: laws, spirits and the
+    // government apply from day 0), so the economy's start (manpower) and
+    // the land war's (the 1936 divisions) read the country's stats.
+    this.politics.start();
     this.economy.start();
     this.land.start();
-    this.politics.start();
   }
 
   // ---- Queries ----

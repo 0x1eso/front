@@ -62,10 +62,10 @@ import {
 } from "@openfront/engine-lib/ww1936/Roll";
 import {
   addStatsInto,
-  clampStats,
   emptyStats,
+  PCT_STAT_KEYS,
   statsArray,
-  techStats,
+  zeroStats,
 } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
@@ -272,8 +272,6 @@ export class CountryPol {
   declaredOn: number[] = [];
   /** Spec §3.3, state; CountryEconomy.stats is this same object (plan decision 9). */
   readonly stats: WwStats = emptyStats();
-  /** Derived (DERIVED_FIELDS): tech, laws, spirits, advisors, government, leader, dynamic. */
-  statParts: WwStats[] = [];
 
   constructor(
     readonly smallID: number,
@@ -429,11 +427,24 @@ export const WwPoliticsStateSchema = z.object({
 });
 export type WwPoliticsState = z.infer<typeof WwPoliticsStateSchema>;
 
-/** Stats by source (DERIVED_FIELDS statParts order) and their clamped sum. */
-interface StatsSum {
-  parts: WwStats[];
-  total: WwStats;
-}
+/** WwPolDetail.statParts order. */
+const STAT_PARTS = [
+  "tech",
+  "laws",
+  "spirits",
+  "advisors",
+  "government",
+  "leader",
+  "dynamic",
+] as const;
+/** recomputeStats' sum, reused (never state: each call starts from 0). */
+const SUM_SCRATCH: WwStats = emptyStats();
+/** Set while a sum is in SUM_SCRATCH (an exception mid-sum leaves it dirty). */
+let scratchDirty = false;
+/** By WW_STAT_KEYS index: a …Pct key (clamped, spec §3.3). */
+const IS_PCT: readonly boolean[] = WW_STAT_KEYS.map((k) =>
+  PCT_STAT_KEYS.includes(k),
+);
 
 export class WwPolitics {
   countries: (CountryPol | null)[];
@@ -527,7 +538,11 @@ export class WwPolitics {
     return this._rolled;
   }
 
-  /** Spec §6.5, §9.2, §19.10: starting values. WorldWar.start calls it once, after land.start. */
+  /**
+   * Spec §6.5, §9.2, §19.10: starting values. WorldWar.start calls it once,
+   * before economy.start and land.start (controller ruling I3); the techs
+   * the economy's start adds recompute the stats as they come.
+   */
   start(): void {
     for (const c of this.list()) {
       const d = this.content.countryIdx.get(c.tag);
@@ -757,69 +772,97 @@ export class WwPolitics {
     return this.countries[smallID]?.stats ?? emptyStats();
   }
 
-  /** Every source again for one country. Keeps the stats object (the economy holds it). */
+  /**
+   * Every source again for one country. Keeps the stats object (the
+   * economy holds it). Sums into a reused scratch object: it runs for every
+   * country every day (spec §22.7's budget).
+   */
   recomputeStats(smallID: number): void {
     const c = this.countries[smallID];
     const ce = this.econ.country(smallID);
     if (c === null || c === undefined || ce === null) return;
-    const { parts, total } = this.statsSum(c);
+    // The scratch is all 0 between calls: the loop below empties it.
+    const total = scratchDirty ? zeroStats(SUM_SCRATCH) : SUM_SCRATCH;
+    scratchDirty = true;
+    this.sumSources(c, total, null);
+    // One pass: clamp (spec §3.3), copy what changed, empty the scratch.
+    const st = c.stats;
     let changed = false;
-    for (const k of WW_STAT_KEYS) {
-      if (c.stats[k] !== total[k]) {
-        c.stats[k] = total[k];
+    for (let i = 0; i < WW_STAT_KEYS.length; i++) {
+      const k = WW_STAT_KEYS[i];
+      let v = total[k];
+      total[k] = 0;
+      if (IS_PCT[i]) v = Math.max(-90, Math.min(300, v));
+      if (st[k] !== v) {
+        st[k] = v;
         changed = true;
       }
     }
+    scratchDirty = false;
     // The land war's stats caches look at this (derived, never state).
     if (changed) ce.statsVer++;
-    c.statParts = parts;
     this.markCountry(smallID);
   }
 
-  /** Spec §3.3: the sources of `c`'s stats and their clamped sum. */
-  private statsSum(c: CountryPol): StatsSum {
+  /**
+   * The stats by source for the screens' explain lines (spec §21.4):
+   * tech, laws, spirits, advisors, government, leader, dynamic. Built only
+   * for a human country's details.
+   */
+  statParts(c: CountryPol): WwStats[] {
+    const parts = STAT_PARTS.map(() => emptyStats());
+    this.sumSources(c, emptyStats(), parts);
+    return parts;
+  }
+
+  /**
+   * Spec §3.3: adds every source of `c`'s stats into `total` (unclamped),
+   * and into `parts[source]` when given (STAT_PARTS order).
+   */
+  private sumSources(
+    c: CountryPol,
+    total: WwStats,
+    parts: WwStats[] | null,
+  ): void {
     const ce = this.econ.country(c.smallID)!;
-    const tech = techStats(ce.tech);
-    const laws = emptyStats();
-    for (const v of [ce.laws.economy, ce.laws.trade, ce.laws.conscription]) {
-      laws.stabilityBp += LAW_STABILITY_BP[v] ?? 0;
-    }
-    const spirits = emptyStats();
+    const add = (part: number, p: Partial<WwStats>) => {
+      addStatsInto(total, p);
+      if (parts !== null) addStatsInto(parts[part], p);
+    };
+    // The tech totals are the first 34 stats (P1 + P2 TechEffects).
+    add(0, ce.tech as unknown as Partial<WwStats>);
+    const lawBp =
+      (LAW_STABILITY_BP[ce.laws.economy] ?? 0) +
+      (LAW_STABILITY_BP[ce.laws.trade] ?? 0) +
+      (LAW_STABILITY_BP[ce.laws.conscription] ?? 0);
+    if (lawBp !== 0) add(1, { stabilityBp: lawBp });
     for (const s of c.spirits) {
       const d = this.content.spiritIdx.get(s.id);
-      if (d !== undefined) addStatsInto(spirits, d.stats);
+      if (d !== undefined) add(2, d.stats);
     }
     const atWar = this.ww.hasWar(c.smallID);
-    const advisors = emptyStats();
     for (const a of c.advisors) {
       if (a === null) continue;
-      for (const t of this.traitsOf(c, a)) this.addTrait(advisors, t, c, atWar);
+      for (const t of this.traitsOf(c, a)) this.addTrait(3, t, c, atWar, add);
     }
-    const gov = emptyStats();
-    addStatsInto(gov, GOV_STATS[c.ruling]);
-    const leader = emptyStats();
-    for (const t of this.leaderTraits(c)) this.addTrait(leader, t, c, atWar);
-    const dyn = emptyStats();
-    addStatsInto(dyn, stabilityEffects(c.stabBp));
-    addStatsInto(dyn, warSupportEffects(c.wsBp));
-    const parts = [tech, laws, spirits, advisors, gov, leader, dyn];
-    const total = emptyStats();
-    for (const p of parts) addStatsInto(total, p);
-    clampStats(total);
-    return { parts, total };
+    add(4, GOV_STATS[c.ruling]);
+    for (const t of this.leaderTraits(c)) this.addTrait(5, t, c, atWar, add);
+    add(6, stabilityEffects(c.stabBp));
+    add(6, warSupportEffects(c.wsBp));
   }
 
   private addTrait(
-    out: WwStats,
+    part: number,
     t: TraitDef,
     c: CountryPol,
     atWar: boolean,
+    add: (part: number, p: Partial<WwStats>) => void,
   ): void {
     if (t.atWarOnly === true && !atWar) return;
     if (t.ideology !== undefined && IDEOLOGIES[c.ruling] !== t.ideology) return;
-    addStatsInto(out, t.stats);
+    add(part, t.stats);
     if (t.rulingDriftBp !== undefined) {
-      out[DRIFT_KEYS[c.ruling]] += t.rulingDriftBp;
+      add(part, { [DRIFT_KEYS[c.ruling]]: t.rulingDriftBp });
     }
   }
 
@@ -1243,7 +1286,7 @@ export class WwPolitics {
         pct: b.pct,
         uses: b.uses,
       })),
-      statParts: c.statParts.map(statsArray),
+      statParts: this.statParts(c).map(statsArray),
       stats: statsArray(c.stats),
       stabBaseBp: c.stabBaseBp,
       wsBaseBp: c.wsBaseBp,
@@ -1499,13 +1542,11 @@ export class WwPolitics {
     this.branchDeviations = new Map(s.branchDeviations);
     this.nextUid = s.nextUid;
     this.rebuildDerived();
-    // Only the explain parts come back; the stats stay as written.
-    for (const c of this.list()) {
-      if (this.econ.country(c.smallID) !== null) {
-        c.statParts = this.statsSum(c).parts;
-      }
-      this.markCountry(c.smallID);
-    }
+    // The stats stay as written (a recompute could differ: not every
+    // source change recomputes at once). Controller ruling C1: the land
+    // war's sides were rebuilt before politics was restored.
+    this.land.onFactionsChanged();
+    for (const c of this.list()) this.markCountry(c.smallID);
     for (const r of this.ww.scenario.landRegions)
       this.dirtyPolRegions.add(r.id);
     this.polGlobalDirty = true;

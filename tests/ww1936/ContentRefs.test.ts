@@ -11,6 +11,8 @@ import type {
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
+import fs from "fs";
+import path from "path";
 import {
   allConditions,
   allEffectLists,
@@ -213,6 +215,25 @@ describe("content references", () => {
     const out: string[] = [];
     for (const [at, c] of allConditions()) conditionRefs(c, out, at);
     expect(out).toEqual([]);
+  });
+
+  it("the country table holds no row or every country of the world map (controller ruling M4)", () => {
+    // A country without a row falls back to neutral 50% / 50% (test
+    // content); spec §19.10's defaults live in the rows, so none may be
+    // missing once the table is filled.
+    const scenario = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../../resources/maps/world1936/scenario.json"),
+        "utf8",
+      ),
+    ) as { countries: { tag: string }[] };
+    if (CONTENT.countries.length === 0) return;
+    const missing = scenario.countries
+      .map((c) => c.tag)
+      .filter((t) => !CONTENT.countryIdx.has(t as never));
+    expect(missing).toEqual([]);
+    const tags = CONTENT.countries.map((c) => c.tag);
+    expect(tags.filter((t, i) => tags.indexOf(t) !== i)).toEqual([]);
   });
 
   it("the country table, claims, branch points and spirit rules name what exists", () => {

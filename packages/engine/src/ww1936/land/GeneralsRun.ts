@@ -142,7 +142,7 @@ export function applyGeneralDates(
     const before = day > 0 ? generalServes(def, day - 1) : now;
     // P3 plan decision 19: purged or an advisor, the general leaves its
     // army too (the messages stay the roster dates').
-    if (!generalAvailable(land, def, day) && g.army !== 0) {
+    if (g.army !== 0 && !generalAvailable(land, def, day)) {
       const a = land.armies.get(g.army);
       if (a !== undefined && a.general === g.id) {
         a.general = 0;

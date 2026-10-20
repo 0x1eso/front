@@ -208,6 +208,25 @@ describe("politics wiring", () => {
     expect(land(g).sideOf(cz.smallID())).toBe(100_003);
   });
 
+  it("a restored game keeps politics' sides (controller ruling C1)", async () => {
+    const a = await wwRunner({}, DEU_HUMAN, POL);
+    stepTo(a, WW_PREP_TICKS + 10);
+    const [deu, pl] = [byTag(a.game, "DEU"), byTag(a.game, "POL")];
+    // Poland joins the Axis.
+    const p = pol(a.game);
+    p.factions[0].members.push(pl.smallID());
+    p.factionsChanged();
+    expect(land(a.game).sameSide(deu.smallID(), pl.smallID())).toBe(true);
+    const b = await wwRestore(a, DEU_HUMAN, POL);
+    expect(land(b.game).sameSide(deu.smallID(), pl.smallID())).toBe(true);
+    expect(land(b.game).sideOf(pl.smallID())).toBe(
+      land(a.game).sideOf(pl.smallID()),
+    );
+    expect(b.game.worldWar()!.sameFaction(deu.smallID(), pl.smallID())).toBe(
+      true,
+    );
+  });
+
   it("military access lets armies enter", async () => {
     const runner = await wwRunner({}, [], POL);
     const g = runner.game;

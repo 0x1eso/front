@@ -149,7 +149,7 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
   );
   t.used = alloc.used;
   const outputPct = ce.law().outputPct + ce.stats.outputPct;
-  const cap = effCapBp(ce.tech);
+  const cap = effCapBp(ce.stats);
   ce.lines.forEach((line, i) => {
     line.fill = alloc.fill[i];
     if (line.active === 0) {

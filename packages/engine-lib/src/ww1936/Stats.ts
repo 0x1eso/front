@@ -7,21 +7,32 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { TechTotals } from "./WwTechs";
 
+/** Every stat at 0, built once (copies keep one object shape: fast). */
+const ZERO_STATS: Readonly<WwStats> = Object.freeze(
+  Object.fromEntries(WW_STAT_KEYS.map((k) => [k, 0])) as WwStats,
+);
+
 export function emptyStats(): WwStats {
-  const s = {} as WwStats;
-  for (const k of WW_STAT_KEYS) s[k] = 0;
-  return s;
+  return { ...ZERO_STATS };
 }
 
-/** Adds `p` into `out` (WW_STAT_KEYS order; missing keys are 0). */
+/** Sets every stat of `s` back to 0 (a reused sum). */
+export function zeroStats(s: WwStats): WwStats {
+  return Object.assign(s, ZERO_STATS);
+}
+
+/**
+ * Adds `p` into `out`: only `p`'s own keys (a partial holds a few; integer
+ * sums, so the order does not matter).
+ */
 export function addStatsInto(
   out: WwStats,
   p: Partial<WwStats>,
   times = 1,
 ): void {
-  for (const k of WW_STAT_KEYS) {
-    const v = p[k];
-    if (v !== undefined) out[k] += v * times;
+  for (const k in p) {
+    const v = p[k as WwStatKey];
+    if (v !== undefined) out[k as WwStatKey] += v * times;
   }
 }
 
@@ -36,11 +47,14 @@ export function techStats(t: TechTotals): WwStats {
   return sumStats([t as unknown as Partial<WwStats>]);
 }
 
+/** The …Pct keys (spec §3.3's clamp). */
+export const PCT_STAT_KEYS: readonly WwStatKey[] = WW_STAT_KEYS.filter((k) =>
+  k.endsWith("Pct"),
+);
+
 /** Spec §3.3: every …Pct sum is kept in −90..+300. */
 export function clampStats(s: WwStats): WwStats {
-  for (const k of WW_STAT_KEYS) {
-    if (k.endsWith("Pct")) s[k] = Math.max(-90, Math.min(300, s[k]));
-  }
+  for (const k of PCT_STAT_KEYS) s[k] = Math.max(-90, Math.min(300, s[k]));
   return s;
 }
 
