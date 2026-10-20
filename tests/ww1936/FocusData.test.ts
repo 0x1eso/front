@@ -11,7 +11,7 @@ import fs from "fs";
 import { CONTENT_TARGETS, hasKey } from "./contentUtil";
 
 /** Task 7 draws the icons; until it merges a missing file is fine. */
-const ICONS_PENDING = true;
+const ICONS_PENDING = false;
 
 describe("focus data", () => {
   const { focuses, treeFocuses, focusIdx } = CONTENT;
