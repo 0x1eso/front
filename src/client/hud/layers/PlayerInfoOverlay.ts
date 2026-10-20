@@ -1002,8 +1002,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             >${translateText("ww1936.econ.occupied_note")}</span
           >`
         : ""}
-      ${card.mine
-        ? html`<button
+      ${card.mine && !Platform.isTouch
+        ? // On touch the card shows under the radial menu's full-screen
+          // overlay, which takes the tap: the menu carries "Build here"
+          // there (RadialMenuElements.wwBuildHereElement), as vanilla
+          // keeps the card's action buttons off touch screens.
+          html`<button
             type="button"
             data-ww-build-here
             class="h-9 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
