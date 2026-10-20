@@ -2,7 +2,8 @@
 precision highp float;
 precision highp usampler2D;
 
-// Per-tile edge mask (R8UI): 0 none, 1 land region edge, 2 sea zone edge.
+// Per-tile edge mask (R8UI): 0 none, 1 land region edge. Sea zones are not
+// drawn in P0 (spec §4.6).
 uniform usampler2D uEdges;
 // 0..1 with the zoom.
 uniform float uAlpha;
@@ -18,7 +19,5 @@ void main() {
   );
   uint e = texelFetch(uEdges, tc, 0).r;
   if (e == 0u) discard;
-  fragColor = e == 1u
-    ? vec4(0.0, 0.0, 0.0, 0.35 * uAlpha)
-    : vec4(1.0, 1.0, 1.0, 0.12 * uAlpha);
+  fragColor = vec4(0.0, 0.0, 0.0, 0.35 * uAlpha);
 }

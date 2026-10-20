@@ -32,6 +32,7 @@ vi.mock("../../src/client/DesktopPresence", () => ({
 }));
 
 import {
+  Difficulty,
   GameMapType,
   GameMode,
   maps,
@@ -213,8 +214,9 @@ describe("the settings layout with the mode on", () => {
     expect(el.textContent).not.toContain("host_modal.team_count");
     expect(el.textContent).not.toContain("game_settings.disable_units");
     expect(el.querySelectorAll("fluent-slider")).toHaveLength(0);
-    // The difficulty of the AI countries still applies.
-    expect(el.textContent).toContain("difficulty.difficulty");
+    // The mode plays its AI countries on Medium.
+    expect(el.textContent).not.toContain("difficulty.difficulty");
+    expect(el.querySelector("difficulty-display")).toBeNull();
   });
 
   it("is unchanged without the mode", async () => {
@@ -223,6 +225,8 @@ describe("the settings layout with the mode on", () => {
     expect(el.textContent).toContain("host_modal.mode");
     expect(el.textContent).toContain("host_modal.team_count");
     expect(el.textContent).toContain("game_settings.disable_units");
+    expect(el.textContent).toContain("difficulty.difficulty");
+    expect(el.querySelectorAll("difficulty-display")).toHaveLength(4);
     expect(el.querySelectorAll("fluent-slider")).toHaveLength(2);
   });
 });
@@ -260,6 +264,7 @@ describe("solo World War 1936", () => {
     expect(text).not.toContain("game_settings.domestic_mode");
     expect(text).not.toContain("game_settings.random_spawn");
     expect(text).not.toContain("game_settings.max_timer");
+    expect(text).not.toContain("difficulty.difficulty");
     expect(root.querySelector("ww-country-picker")).not.toBeNull();
     expect(root.querySelector("map-picker")).toBeNull();
   });
@@ -330,6 +335,116 @@ describe("solo World War 1936", () => {
   });
 });
 
+describe("solo World War 1936 on a phone on its side", () => {
+  function solo(): any {
+    return document.createElement("single-player-modal");
+  }
+  const footer = (root: ParentNode) =>
+    root.querySelector<HTMLElement>("[data-solo-footer]")!;
+  const startSize = (root: ParentNode) =>
+    (root.querySelector("o-button") as unknown as { size: string }).size;
+
+  // jsdom has no matchMedia; the IntersectionObserver stub above must stay.
+  const originalMatchMedia = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("the start footer is slim with the mode on, and only then", async () => {
+    const modal = solo();
+    modal.shortLandscape = true;
+    modal.handleConfigOptionToggleChanged(
+      toggle("game_settings.world_war_1936", true),
+    );
+    const slim = await body(modal);
+    expect(footer(slim).className).toContain("py-2");
+    expect(footer(slim).className).not.toContain("p-6");
+    expect(startSize(slim)).toBe("md");
+
+    // The mode off, or a taller screen: the footer is as it always was.
+    modal.handleConfigOptionToggleChanged(
+      toggle("game_settings.world_war_1936", false),
+    );
+    const vanilla = await body(modal);
+    expect(footer(vanilla).className).toContain("p-6");
+    expect(startSize(vanilla)).toBe("lg");
+    const tablet = solo();
+    tablet.handleConfigOptionToggleChanged(
+      toggle("game_settings.world_war_1936", true),
+    );
+    const tall = await body(tablet);
+    expect(footer(tall).className).toContain("p-6");
+    expect(startSize(tall)).toBe("lg");
+  });
+
+  it("follows the screen's height and orientation", () => {
+    const listeners: ((e: { matches: boolean }) => void)[] = [];
+    const removed = vi.fn();
+    const queries: string[] = [];
+    window.matchMedia = ((query: string) => {
+      queries.push(query);
+      return {
+        matches: true,
+        addEventListener: (_: string, l: (e: { matches: boolean }) => void) =>
+          listeners.push(l),
+        removeEventListener: removed,
+      };
+    }) as unknown as typeof window.matchMedia;
+    const modal = solo();
+    document.body.appendChild(modal);
+    expect(queries).toContain(
+      "(max-height: 500px) and (orientation: landscape)",
+    );
+    expect(modal.shortLandscape).toBe(true);
+    for (const l of listeners) l({ matches: false });
+    expect(modal.shortLandscape).toBe(false);
+    modal.remove();
+    expect(removed).toHaveBeenCalled();
+  });
+
+  async function toggledScroll(shortLandscape: boolean): Promise<number> {
+    const modal = solo();
+    modal.inline = true;
+    modal.shortLandscape = shortLandscape;
+    document.body.appendChild(modal);
+    await modal.updateComplete;
+    const scroll = modal.querySelector("[data-solo-scroll]") as HTMLElement;
+    let top = 500;
+    Object.defineProperty(scroll, "scrollTop", {
+      configurable: true,
+      get: () => top,
+      set: (v: number) => {
+        top = v;
+      },
+    });
+    // The list starts 223 px below the top of the scroll area.
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: Element) {
+        const y =
+          this.tagName === "WW-COUNTRY-PICKER" ? 300 : this === scroll ? 77 : 0;
+        return { top: y } as DOMRect;
+      },
+    );
+    modal.handleConfigOptionToggleChanged(
+      toggle("game_settings.world_war_1936", true),
+    );
+    await vi.waitFor(async () => {
+      await modal.updateComplete;
+      expect(modal.querySelector("ww-country-picker")).not.toBeNull();
+    });
+    await new Promise((r) => setTimeout(r, 0));
+    return top;
+  }
+
+  it("turning the mode on brings the country list into view", async () => {
+    expect(await toggledScroll(true)).toBe(500 + 223);
+  });
+
+  it("a taller screen keeps its scroll", async () => {
+    expect(await toggledScroll(false)).toBe(500);
+  });
+});
+
 describe("hosting World War 1936", () => {
   function host(): any {
     const modal = new HostLobbyModal() as any;
@@ -393,6 +508,7 @@ describe("hosting World War 1936", () => {
       "host_modal.player_immunity_duration",
       "game_settings.custom_alliances",
       "map.map",
+      "difficulty.difficulty",
     ]) {
       expect(text).not.toContain(fixed);
     }
@@ -507,5 +623,19 @@ describe("the lobby summary", () => {
     expect(items(testGameConfig()).map((i) => i.label)).not.toContain(
       "game_settings.world_war_1936",
     );
+  });
+
+  it("shows no difficulty: the mode fixes it", () => {
+    const labels = (c: ReturnType<typeof testGameConfig>) =>
+      notableLobbySettings(c, null).map((i) => i.label);
+    // A private lobby above Easy names its difficulty, but not in the mode.
+    expect(labels(testGameConfig({ difficulty: Difficulty.Hard }))).toContain(
+      "difficulty.difficulty",
+    );
+    expect(
+      labels(
+        testGameConfig({ worldWar1936: true, difficulty: Difficulty.Hard }),
+      ),
+    ).not.toContain("difficulty.difficulty");
   });
 });

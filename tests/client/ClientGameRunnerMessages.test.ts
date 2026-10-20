@@ -1,3 +1,4 @@
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,7 +85,12 @@ vi.mock("../../src/client/view", () => ({
   PlayerView: class {},
 }));
 vi.mock("../../src/client/WorkerClient", () => ({
-  WorkerClient: class {},
+  // A game start stops here: the worker never reports ready.
+  WorkerClient: class {
+    initialize() {
+      return new Promise(() => {});
+    }
+  },
 }));
 vi.mock("../../src/client/Transport", async (importOriginal) => {
   const actual =
@@ -109,6 +115,7 @@ import {
 import { loadCachedTerrainMap } from "../../src/client/TerrainMapFileLoader";
 import { SendHashEvent } from "../../src/client/Transport";
 import { reloadForUpdate } from "../../src/client/Utils";
+import { testGameConfig } from "../util/Wire";
 
 function makeLobbyConfig(withStartInfo: boolean): LobbyConfig {
   return {
@@ -235,6 +242,55 @@ describe("joinLobby lobby-phase messages", () => {
     expect(errorModalText()).toContain("error_modal.connection_error");
     expect(errorModalText()).toContain("game id: game1234");
     expect(errorModalText()).toContain("Error: missing gameStartInfo");
+  });
+});
+
+describe("the map a started game loads", () => {
+  it("is World War 1936's own, whatever map the raw config names", async () => {
+    const result = joinLobby(new EventBus(), makeLobbyConfig(false));
+    captured.lobbyOnMessage!({
+      type: "start",
+      myClientID: "c0000001",
+      turns: [],
+      gameStartInfo: {
+        gameID: "game1234",
+        players: [],
+        config: testGameConfig({
+          worldWar1936: true,
+          gameMap: GameMapType.Onion,
+          gameMapSize: GameMapSize.Compact,
+        }),
+      },
+    });
+    await expect(result.join).resolves.toBeUndefined();
+    await vi.waitFor(() => expect(loadCachedTerrainMap).toHaveBeenCalled());
+    expect(loadCachedTerrainMap).toHaveBeenCalledWith(
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    );
+  });
+
+  it("is the raw config's outside the mode", async () => {
+    const result = joinLobby(new EventBus(), makeLobbyConfig(false));
+    captured.lobbyOnMessage!({
+      type: "start",
+      myClientID: "c0000001",
+      turns: [],
+      gameStartInfo: {
+        gameID: "game1234",
+        players: [],
+        config: testGameConfig({
+          gameMap: GameMapType.Onion,
+          gameMapSize: GameMapSize.Compact,
+        }),
+      },
+    });
+    await expect(result.join).resolves.toBeUndefined();
+    await vi.waitFor(() => expect(loadCachedTerrainMap).toHaveBeenCalled());
+    expect(loadCachedTerrainMap).toHaveBeenCalledWith(
+      GameMapType.Onion,
+      GameMapSize.Compact,
+    );
   });
 });
 

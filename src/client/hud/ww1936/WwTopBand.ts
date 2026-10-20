@@ -7,7 +7,7 @@ import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
-import { bandModel, countryName } from "./WorldWarModel";
+import { type BandModel, bandModel, countryName } from "./WorldWarModel";
 
 export class ToggleWwDiplomacyEvent implements GameEvent {}
 
@@ -30,10 +30,13 @@ export interface BandPlacement {
   right: number | null;
 }
 
-export function bandPlacement(): BandPlacement {
-  const r = document
-    .querySelector("[data-hud-top-right]")
-    ?.getBoundingClientRect();
+/** The top-right HUD stack (index.html). */
+const TOP_RIGHT_STACK = "[data-hud-top-right]";
+
+export function bandPlacement(
+  stack: Element | null = document.querySelector(TOP_RIGHT_STACK),
+): BandPlacement {
+  const r = stack?.getBoundingClientRect();
   const shown = r !== undefined && r.width > 0 && r.height > 0;
   const clear = (shown ? window.innerWidth - r.left : 0) + BAND_GAP;
   const centred = window.innerWidth - 2 * clear;
@@ -54,10 +57,24 @@ export function bandPlacement(): BandPlacement {
 export class WwTopBand extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
-  /** Measured on every tick and resize; null until the first. */
+  /**
+   * Measured when the top-right stack or the window changes size, not on
+   * every tick; null until the first.
+   */
   @state() private placement: BandPlacement | null = null;
+  /** What the band shows, as of the last tick that changed it. */
+  private model: BandModel | null = null;
+  /** The top-right stack being watched; null until it is found. */
+  private stack: Element | null = null;
+  private stackObserver: ResizeObserver | null = null;
   private readonly refit = () => {
-    if (this.game?.worldWarScenario()) this.placement = bandPlacement();
+    if (!this.game?.worldWarScenario()) return;
+    const next = bandPlacement(this.stack);
+    const prev = this.placement;
+    // A new object would re-render the band even when nothing moved.
+    if (prev?.maxWidth !== next.maxWidth || prev.right !== next.right) {
+      this.placement = next;
+    }
   };
 
   createRenderRoot() {
@@ -72,6 +89,31 @@ export class WwTopBand extends LitElement implements Controller {
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("resize", this.refit);
+    this.stackObserver?.disconnect();
+    this.stackObserver = null;
+    this.stack = null;
+  }
+
+  /**
+   * Watches the top-right stack, which grows and shrinks during the game
+   * (its left edge moves with its width). Retried on each tick until the
+   * stack is in the page, and again if it is ever replaced.
+   */
+  private watchStack() {
+    if (this.stack?.isConnected) return;
+    const stack = document.querySelector(TOP_RIGHT_STACK);
+    if (stack === null) {
+      // Not there yet: measure without it once, then keep looking.
+      if (this.placement === null) this.refit();
+      return;
+    }
+    this.stackObserver?.disconnect();
+    this.stack = stack;
+    if (typeof ResizeObserver !== "undefined") {
+      this.stackObserver = new ResizeObserver(this.refit);
+      this.stackObserver.observe(stack);
+    }
+    this.refit();
   }
 
   getTickIntervalMs() {
@@ -80,14 +122,26 @@ export class WwTopBand extends LitElement implements Controller {
 
   tick() {
     if (!this.game?.worldWarScenario()) return;
-    // The top-right stack grows and shrinks during the game.
-    this.refit();
-    this.requestUpdate();
+    this.watchStack();
+    // The date, the countdown and the wars: re-render only when they change.
+    const next = bandModel(this.game);
+    const prev = this.model;
+    if (
+      prev === null ||
+      prev.label !== next.label ||
+      prev.inPrep !== next.inPrep ||
+      prev.myTag !== next.myTag ||
+      prev.myFaction !== next.myFaction ||
+      prev.wars !== next.wars
+    ) {
+      this.model = next;
+      this.requestUpdate();
+    }
   }
 
   render() {
     if (!this.game?.worldWarScenario()) return null;
-    const m = bandModel(this.game);
+    const m = this.model ?? bandModel(this.game);
     const { maxWidth, right } = this.placement ?? bandPlacement();
     return html`
       <div

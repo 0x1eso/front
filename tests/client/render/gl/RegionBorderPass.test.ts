@@ -46,14 +46,20 @@ function countingGL() {
 }
 
 describe("RegionBorderPass (spec §8.2)", () => {
-  test("marks land-land and sea-sea edges, never the coast", () => {
+  test("marks land-land edges, never the coast or between sea zones (spec §4.6)", () => {
     // 4x3: two land regions over two sea zones.
     const ids = Uint16Array.from([
       1, 1, 2, 2, 1, 1, 2, 2, 40001, 40001, 40002, 40002,
     ]);
     expect([...regionEdgeMask(ids, 4, 3)]).toEqual([
-      0, 1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0,
+      0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
     ]);
+  });
+
+  test("a sea zone next to a land region draws no line either", () => {
+    // 2x2: land region 1 | sea zone 40001, over sea zone 40002 | 40001.
+    const ids = Uint16Array.from([1, 40001, 40002, 40001]);
+    expect([...regionEdgeMask(ids, 2, 2)]).toEqual([0, 0, 0, 0]);
   });
 
   test("tiles outside every region (id 0) draw no line", () => {

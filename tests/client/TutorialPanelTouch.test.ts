@@ -11,6 +11,7 @@ import { TutorialPanel } from "../../src/client/hud/layers/TutorialPanel";
 async function mountTutorial(
   setTutorialDismissed: (v: boolean) => void = () => {},
   dismissed = false,
+  worldWar = false,
 ): Promise<TutorialPanel> {
   const panel = document.createElement("tutorial-panel") as TutorialPanel;
   expect(panel).toBeInstanceOf(TutorialPanel);
@@ -35,6 +36,7 @@ async function mountTutorial(
       disableAlliances: () => false,
     }),
     ticks: () => 1,
+    worldWarScenario: () => (worldWar ? {} : null),
     inSpawnPhase: () => false,
     playerViews: () => [me],
     setOwnSpawnRing: () => {},
@@ -108,6 +110,14 @@ describe("tutorial panel on a tablet", () => {
     } as unknown as TutorialPanel["userSettings"];
     panel.game = {} as TutorialPanel["game"];
     document.body.appendChild(panel);
+    panel.tick();
+    await panel.updateComplete;
+    expect(panel.textContent).toBe("");
+  });
+
+  it("never shows in a World War 1936 game", async () => {
+    const panel = await mountTutorial(() => {}, false, true);
+    expect(panel.textContent).toBe("");
     panel.tick();
     await panel.updateComplete;
     expect(panel.textContent).toBe("");

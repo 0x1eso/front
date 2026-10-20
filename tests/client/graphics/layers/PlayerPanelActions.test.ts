@@ -74,9 +74,10 @@ const other = {
   isLobbyCreator: () => false,
 } as unknown as PlayerView;
 
-function makeGame() {
+function makeGame(worldWar = false) {
   return {
     myPlayer: () => my,
+    worldWarScenario: () => (worldWar ? {} : null),
     config: () => ({
       gameConfig: () => ({ gameType: GameType.Public }),
       isReplay: () => false,
@@ -259,5 +260,78 @@ describe("PlayerPanel - action buttons follow PlayerActions capability flags", (
     (panel as any).renderActions(my, my);
 
     expect(renderedLabels()).not.toContain("player_panel.emotes");
+  });
+});
+
+describe("PlayerPanel - World War 1936 has no alliances or embargoes", () => {
+  let panel: PlayerPanel;
+  const everything = {
+    canSendEmojiAllPlayers: true,
+    canEmbargoAll: true,
+    interaction: {
+      canSendEmoji: true,
+      canTarget: true,
+      canEmbargo: true,
+      canBreakAlliance: true,
+      canSendAllianceRequest: true,
+      canDonateGold: true,
+      canDonateTroops: true,
+      canDeclareWar: true,
+    },
+  };
+  const hidden = [
+    "player_panel.stop_trade",
+    "player_panel.start_trade",
+    "player_panel.break_alliance",
+    "player_panel.send_alliance",
+    "player_panel.stop_trade_all",
+    "player_panel.start_trade_all",
+  ];
+
+  beforeEach(() => {
+    panel = new PlayerPanel();
+    (panel as any).requestUpdate = vi.fn();
+    (panel as any).isVisible = true;
+    (panel as any).renderAlliances = vi.fn(() => "alliances");
+    (panel as any).renderAllianceExpiry = vi.fn(() => "");
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("another country's panel: declare war, no alliance or embargo buttons", () => {
+    (panel as any).g = makeGame(true);
+    (panel as any).actions = everything;
+    (panel as any).renderActions(my, other);
+    const labels = renderedLabels();
+    expect(labels).toContain("ww1936.declare.button");
+    expect(labels).toContain("player_panel.troops");
+    for (const key of hidden) expect(labels).not.toContain(key);
+  });
+
+  test("my own panel: no trade-with-everyone buttons", () => {
+    (panel as any).g = makeGame(true);
+    (panel as any).actions = everything;
+    (panel as any).renderActions(my, my);
+    for (const key of hidden) expect(renderedLabels()).not.toContain(key);
+  });
+
+  test("no alliances list", () => {
+    (panel as any).g = makeGame(true);
+    expect((panel as any).renderAllianceSection(other)).toBe("");
+    expect((panel as any).renderAlliances).not.toHaveBeenCalled();
+  });
+
+  test("outside the mode every one of them is still there", () => {
+    (panel as any).g = makeGame();
+    (panel as any).actions = everything;
+    (panel as any).renderActions(my, other);
+    (panel as any).renderActions(my, my);
+    for (const key of hidden.filter((k) => k !== "player_panel.start_trade")) {
+      expect(renderedLabels()).toContain(key);
+    }
+    (panel as any).renderAllianceSection(other);
+    expect((panel as any).renderAlliances).toHaveBeenCalledWith(other);
   });
 });

@@ -94,6 +94,7 @@ function fakeGame(o: Fake = {}): WwGame {
     id: () => `P${i + 1}`,
     smallID: () => i + 1,
     countryTag: () => tag,
+    type: () => (o.humans?.[tag] ? PlayerType.Human : PlayerType.Nation),
     clientID: () => o.humans?.[tag]?.[0] ?? null,
     name: () => COUNTRIES[tag].name,
     displayName: () => COUNTRIES[tag].name,
@@ -194,6 +195,43 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(m.nextHistory).toBe(
       "[ww1936.date] year=1939,month=[ww1936.month.m09],day=1",
     );
+  });
+
+  it("the next date skips entries that never fire: a human's, or a capitulated country's", () => {
+    const next = (o: Fake) => diplomacyModel(fakeGame({ ticks: 600, ...o }));
+    const date = (y: number, m: string, d: number) =>
+      `[ww1936.date] year=${y},month=[ww1936.month.m${m}],day=${d}`;
+    // Germany is a human's: Britain joining against it comes next.
+    expect(next({ humans: { DEU: ["C1", "minsu"] } }).nextHistory).toBe(
+      date(1939, "09", 3),
+    );
+    expect(
+      next({
+        humans: {
+          DEU: ["C1", "minsu"],
+          GBR: ["C2", "jiwoo"],
+          FRA: ["C3", "seoyeon"],
+        },
+      }).nextHistory,
+    ).toBe(date(1939, "09", 17));
+    // Poland has capitulated: the Soviet entry goes too, and Germany's on
+    // France (a human's), leaving Italy's.
+    expect(
+      next({
+        humans: {
+          DEU: ["C1", "minsu"],
+          GBR: ["C2", "jiwoo"],
+          FRA: ["C3", "seoyeon"],
+        },
+        capitulated: ["POL"],
+      }).nextHistory,
+    ).toBe(date(1940, "06", 10));
+    // Nothing left: no date.
+    expect(
+      next({
+        ticks: dayStartTick(3000, 600),
+      }).nextHistory,
+    ).toBeNull();
   });
 
   it("the region line shows the name, the points and the 1936 owner when it changed", () => {
@@ -302,20 +340,50 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(emitted[0]).toBeInstanceOf(ToggleWwDiplomacyEvent);
   });
 
-  it("<ww-top-band> never covers the top-right stack on a narrow landscape phone", async () => {
-    vi.stubGlobal("innerWidth", 667);
-    let stackWidth = 160;
+  /** A ResizeObserver whose callback a test fires by hand. */
+  class FakeResizeObserver {
+    static all: FakeResizeObserver[] = [];
+    observed: Element[] = [];
+    constructor(private readonly cb: () => void) {
+      FakeResizeObserver.all.push(this);
+    }
+    observe(el: Element) {
+      this.observed.push(el);
+    }
+    unobserve() {}
+    disconnect() {
+      this.observed = [];
+    }
+    fire() {
+      this.cb();
+    }
+  }
+
+  /** The top-right stack at the right edge of a 667 px wide phone. */
+  function topRightStack(width: () => number) {
     const stack = document.createElement("div");
     stack.setAttribute("data-hud-top-right", "");
-    stack.getBoundingClientRect = () =>
-      ({
-        left: 667 - stackWidth,
-        right: 667,
-        top: 0,
-        bottom: 120,
-        width: stackWidth,
-        height: 120,
-      }) as DOMRect;
+    const measure = vi.fn(
+      () =>
+        ({
+          left: 667 - width(),
+          right: 667,
+          top: 0,
+          bottom: 120,
+          width: width(),
+          height: 120,
+        }) as DOMRect,
+    );
+    stack.getBoundingClientRect = measure;
+    return { stack, measure };
+  }
+
+  it("<ww-top-band> never covers the top-right stack on a narrow landscape phone", async () => {
+    vi.stubGlobal("innerWidth", 667);
+    FakeResizeObserver.all = [];
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    let stackWidth = 160;
+    const { stack } = topRightStack(() => stackWidth);
     document.body.appendChild(stack);
     const band = document.createElement("ww-top-band") as WwTopBand;
     band.game = fakeGame({ me: "DEU" }) as never;
@@ -329,14 +397,84 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(el().getAttribute("style")).not.toContain("right:");
     expect(el().className).toContain("left-1/2");
     // A wider stack leaves too little room for a centred band: it moves
-    // just left of the stack instead.
+    // just left of the stack instead, once the stack reports its new size.
     stackWidth = 250;
-    band.tick();
+    expect(FakeResizeObserver.all[0].observed).toEqual([stack]);
+    FakeResizeObserver.all[0].fire();
     await band.updateComplete;
     expect(el().getAttribute("style")).toContain("right: 258px");
     expect(el().getAttribute("style")).toContain("max-width: 401px");
     expect(el().className).not.toContain("left-1/2");
   });
+
+  it("<ww-top-band> measures the stack when it resizes, not on every tick", async () => {
+    vi.stubGlobal("innerWidth", 667);
+    FakeResizeObserver.all = [];
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    let stackWidth = 160;
+    const { stack, measure } = topRightStack(() => stackWidth);
+    document.body.appendChild(stack);
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = fakeGame({ me: "DEU" }) as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const measured = measure.mock.calls.length;
+    const update = vi.spyOn(band, "requestUpdate");
+    for (let i = 0; i < 10; i++) band.tick();
+    expect(measure.mock.calls.length).toBe(measured);
+    // Same game state, same size: nothing to draw again.
+    FakeResizeObserver.all[0].fire();
+    window.dispatchEvent(new Event("resize"));
+    expect(update).not.toHaveBeenCalled();
+    expect(FakeResizeObserver.all).toHaveLength(1);
+    // A real change re-renders.
+    stackWidth = 250;
+    FakeResizeObserver.all[0].fire();
+    expect(update).toHaveBeenCalled();
+    band.remove();
+    expect(FakeResizeObserver.all[0].observed).toEqual([]);
+  });
+
+  it("<ww-top-band> finds the stack on a later tick when it isn't there yet", async () => {
+    vi.stubGlobal("innerWidth", 667);
+    FakeResizeObserver.all = [];
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = fakeGame({ me: "DEU" }) as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const el = () => band.querySelector<HTMLElement>("[data-ww-band]")!;
+    // No stack: only the gap is kept clear. 667 − 2 × 8.
+    expect(el().getAttribute("style")).toContain("max-width: 651px");
+    expect(FakeResizeObserver.all).toHaveLength(0);
+    document.body.appendChild(topRightStack(() => 160).stack);
+    band.tick();
+    await band.updateComplete;
+    expect(FakeResizeObserver.all).toHaveLength(1);
+    expect(el().getAttribute("style")).toContain("max-width: 331px");
+  });
+
+  it("<ww-top-band> re-renders when the date changes", async () => {
+    let ticks = 700;
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = { ...fakeGame({ me: "DEU" }), ticks: () => ticks } as never;
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const date = () => band.querySelector("[data-ww-date]")!.textContent;
+    const before = date();
+    const update = vi.spyOn(band, "requestUpdate");
+    band.tick();
+    expect(update).not.toHaveBeenCalled();
+    ticks = dayStartTick(40, 600);
+    band.tick();
+    await band.updateComplete;
+    expect(update).toHaveBeenCalled();
+    expect(date()).not.toBe(before);
+  });
+
   it("nothing of it shows when the mode is off", async () => {
     const off = { ...fakeGame(), worldWarScenario: () => null } as never;
     const band = document.createElement("ww-top-band") as WwTopBand;

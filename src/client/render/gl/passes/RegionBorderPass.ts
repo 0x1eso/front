@@ -1,7 +1,8 @@
 /**
- * RegionBorderPass — World War 1936 (spec §8.2): thin lines between regions
- * and between sea zones, over the territory fill and under the country
- * borders. Hidden when zoomed out, faint at first, full when zoomed in.
+ * RegionBorderPass — World War 1936 (spec §8.2): thin lines between land
+ * regions, over the territory fill and under the country borders. Hidden
+ * when zoomed out, faint at first, full when zoomed in. Sea zones are not
+ * drawn in P0 (spec §4.6).
  */
 
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -20,10 +21,10 @@ export const REGION_MIN_ZOOM = 1;
 export const REGION_FULL_ZOOM = 3;
 
 /**
- * 1 where a land tile's right or lower neighbour is another land region, 2
- * where a water tile's is another sea zone; 0 elsewhere (coasts and tiles
- * outside every region included). Sea zones are ids from SEA_ZONE_BASE up,
- * as ScenarioIndex reads them.
+ * 1 where a land tile's right or lower neighbour is another land region; 0
+ * elsewhere (coasts, water and tiles outside every region included). Sea
+ * zones are ids from SEA_ZONE_BASE up, as ScenarioIndex reads them; P0
+ * draws none of their lines (spec §4.6).
  */
 export function regionEdgeMask(
   ids: Uint16Array,
@@ -35,15 +36,14 @@ export function regionEdgeMask(
     for (let x = 0; x < w; x++) {
       const t = y * w + x;
       const id = ids[t];
-      if (id === 0) continue;
-      const sea = id >= SEA_ZONE_BASE;
+      if (id === 0 || id >= SEA_ZONE_BASE) continue;
       const right = x + 1 < w ? ids[t + 1] : id;
       const down = y + 1 < h ? ids[t + w] : id;
       if (
-        (right !== id && right !== 0 && right >= SEA_ZONE_BASE === sea) ||
-        (down !== id && down !== 0 && down >= SEA_ZONE_BASE === sea)
+        (right !== id && right !== 0 && right < SEA_ZONE_BASE) ||
+        (down !== id && down !== 0 && down < SEA_ZONE_BASE)
       ) {
-        out[t] = sea ? 2 : 1;
+        out[t] = 1;
       }
     }
   }

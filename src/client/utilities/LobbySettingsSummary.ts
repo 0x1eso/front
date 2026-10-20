@@ -25,9 +25,11 @@ export function notableLobbySettings(
       label: translateText("host_modal.crowded"),
       value: enabled,
     });
+  // World War 1936 fixes the AI at Medium: no choice to show.
   if (
-    pm?.isHardNations ||
-    (c.gameType === GameType.Private && c.difficulty !== Difficulty.Easy)
+    c.worldWar1936 !== true &&
+    (pm?.isHardNations ||
+      (c.gameType === GameType.Private && c.difficulty !== Difficulty.Easy))
   )
     items.push({
       label: translateText("difficulty.difficulty"),
