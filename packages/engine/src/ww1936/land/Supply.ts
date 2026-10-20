@@ -404,7 +404,7 @@ function divisionRates(
       g.log,
       (s.flags & TPL_LOGISTICS) !== 0,
       g.wizard,
-      land.econ.country(owner)?.tech.supplyUsePct ?? 0,
+      land.econ.country(owner)?.stats.supplyUsePct ?? 0,
     );
   }
   for (const r of regions) {

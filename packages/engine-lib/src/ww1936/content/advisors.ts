@@ -1,0 +1,228 @@
+// World War 1936 P3 (spec §8.3, §5.7; plan decision 10 key names): the 36
+// traits of advisors and leaders. Stability and war support are in bp.
+// Titled cards: "title:<trait>" for every generic trait, any country.
+import type { TraitDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
+
+export const TRAITS: readonly TraitDef[] = [
+  {
+    id: "administrator",
+    branch: "political",
+    generic: true,
+    stats: { ppGainPct: 10 },
+  },
+  {
+    id: "orator",
+    branch: "political",
+    generic: true,
+    stats: {},
+    rulingDriftBp: 5,
+  },
+  {
+    id: "security_chief",
+    branch: "political",
+    generic: true,
+    stats: { stabilityBp: 500, coupResistPct: 25 },
+  },
+  {
+    id: "propagandist",
+    branch: "political",
+    generic: true,
+    stats: { warSupportBp: 500, warSupportWeeklyBp: 10 },
+  },
+  {
+    id: "fiscal_hawk",
+    branch: "political",
+    generic: true,
+    stats: { consumerGoodsPp: -2, ppGainPct: -5 },
+  },
+  {
+    id: "diplomat",
+    branch: "political",
+    generic: true,
+    stats: { diploCostPct: -50, tensionPct: -10 },
+  },
+  {
+    id: "hawk",
+    branch: "political",
+    generic: true,
+    stats: { justifyTimePct: -20, warSupportBp: 300 },
+  },
+  {
+    id: "conciliator",
+    branch: "political",
+    generic: true,
+    stats: { stabilityBp: 300, warSupportBp: -300, tensionPct: -20 },
+  },
+  {
+    id: "labour_organizer",
+    branch: "political",
+    generic: true,
+    stats: { outputPct: 3, stabilityBp: 200 },
+  },
+  {
+    id: "planner",
+    branch: "political",
+    generic: true,
+    ideology: "communist",
+    stats: { milConstructionPct: 10, consumerGoodsPp: 1 },
+  },
+  {
+    id: "party_ideologue",
+    branch: "political",
+    generic: true,
+    stats: { stabilityBp: -200 },
+    rulingDriftBp: 8,
+  },
+  {
+    id: "chief_offense",
+    branch: "army_chief",
+    generic: true,
+    stats: { attackPct: 5 },
+  },
+  {
+    id: "chief_defense",
+    branch: "army_chief",
+    generic: true,
+    stats: { defensePct: 5 },
+  },
+  {
+    id: "chief_maneuver",
+    branch: "army_chief",
+    generic: true,
+    stats: { speedPct: 5, breakthroughPct: 5 },
+  },
+  {
+    id: "chief_organizer",
+    branch: "army_chief",
+    generic: true,
+    stats: { orgPct: 5, armyXpMilli: 50 },
+  },
+  {
+    id: "staff_planner",
+    branch: "staff",
+    generic: true,
+    stats: { planSpeedPct: 10, planMaxBp: 500 },
+  },
+  {
+    id: "staff_logistics",
+    branch: "staff",
+    generic: true,
+    stats: { supplyUsePct: -10 },
+  },
+  {
+    id: "staff_training",
+    branch: "staff",
+    generic: true,
+    stats: { trainPct: -10, generalXpPct: 10 },
+  },
+  {
+    id: "theorist_land",
+    branch: "theorist",
+    generic: true,
+    stats: { rsDoctrinePct: 15, armyXpMilli: 50 },
+  },
+  {
+    id: "theorist_armor",
+    branch: "theorist",
+    generic: true,
+    stats: { rsArmorPct: 15 },
+  },
+  {
+    id: "ind_construction",
+    branch: "industry",
+    generic: true,
+    stats: { constructionPct: 10 },
+  },
+  {
+    id: "ind_production",
+    branch: "industry",
+    generic: true,
+    stats: { outputPct: 5 },
+  },
+  {
+    id: "ind_resources",
+    branch: "industry",
+    generic: true,
+    stats: { extractionPct: 10 },
+  },
+  {
+    id: "rs_science",
+    branch: "research",
+    generic: true,
+    stats: { researchPct: 5, rsElectronicsPct: 10 },
+  },
+  {
+    id: "rs_armor",
+    branch: "research",
+    generic: true,
+    stats: { rsArmorPct: 15 },
+  },
+  {
+    id: "rs_aircraft",
+    branch: "research",
+    generic: true,
+    stats: { rsAirPct: 15 },
+  },
+  // Leader traits (spec §5.7; K6 names them).
+  {
+    id: "war_leader",
+    branch: "leader",
+    generic: false,
+    atWarOnly: true,
+    stats: { warSupportBp: 1000, stabilityBp: 500 },
+  },
+  {
+    id: "peace_negotiator",
+    branch: "leader",
+    generic: false,
+    stats: { tensionPct: -10, warSupportBp: -500 },
+  },
+  {
+    id: "new_dealer",
+    branch: "leader",
+    generic: false,
+    stats: { consumerGoodsPp: -3, stabilityBp: 500 },
+  },
+  {
+    id: "popular_front",
+    branch: "leader",
+    generic: false,
+    stats: { stabilityBp: 300, outputPct: -3 },
+  },
+  {
+    id: "party_boss",
+    branch: "leader",
+    generic: false,
+    stats: { ppGainPct: 10, stabilityBp: 300 },
+  },
+  {
+    id: "generalissimo",
+    branch: "leader",
+    generic: false,
+    stats: { warSupportBp: 500, attackPct: 3 },
+  },
+  {
+    id: "reformer",
+    branch: "leader",
+    generic: false,
+    stats: { ppGainPct: 5, outputPct: 2 },
+  },
+  {
+    id: "caretaker",
+    branch: "leader",
+    generic: false,
+    stats: { stabilityBp: 200, ppGainPct: -5 },
+  },
+  {
+    id: "strongman",
+    branch: "leader",
+    generic: false,
+    stats: { stabilityBp: 500, coupResistPct: 25 },
+  },
+  {
+    id: "monarch",
+    branch: "leader",
+    generic: false,
+    stats: { stabilityBp: 500 },
+  },
+];

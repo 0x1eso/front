@@ -1,7 +1,7 @@
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
-import { zRandom } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { zInt, zRandom } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -11,28 +11,31 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { checkCapitulations, stepTransfers } from "./Capitulation";
-import { processHistory, rollHistory } from "./HistoryRun";
 
 /**
- * World War 1936 clock (spec §7): the preparation end, once a day the
- * historical calendar and the capitulation check, every tick the land
- * transfers, the economy (P1 spec §2) and the land war (P2 spec §2.2), and
- * the WorldWar, WwEconomy and WwLand updates when their data changed.
+ * World War 1936 clock (spec §7; P3 spec §2.2): the preparation end, once a
+ * day the capitulation check, every tick the land transfers, politics' day
+ * (P3: the history beats live there), the economy (P1 spec §2), the land war
+ * (P2 spec §2.2), the human event cards' deadlines, and the WorldWar,
+ * WwEconomy, WwLand and WwPolitics updates when their data changed.
  */
 export class WorldWarExecution implements Execution {
   private active = true;
   private mg: Game | null = null;
+  /** Unused since P3 (plan decision 2); kept for the snapshot schema. */
   private random: PseudoRandom;
 
-  constructor(seed: number) {
+  /** `seed`: simpleHash(gameID) + 1936; politics rolls with seed + 1 once. */
+  constructor(private seed: number) {
     this.random = new PseudoRandom(seed);
   }
 
   init(mg: Game, _ticks: number): void {
     this.mg = mg;
     const ww = mg.worldWar();
-    if (ww !== null && !ww.historyRolled()) {
-      rollHistory(ww, this.random, mg.config().historicalAi());
+    // Plan decision 2: P0's stateful roll is gone; politics rolls once from the seed.
+    if (ww !== null && !ww.politics.rolled()) {
+      ww.politics.roll(this.seed + 1, mg.config().historicalAi());
     }
   }
 
@@ -56,15 +59,19 @@ export class WorldWarExecution implements Execution {
       const day = ww.day(ticks);
       if (day !== ww.lastDay()) {
         ww.setLastDay(day);
-        processHistory(mg, ww, day, ticks);
+        // Order 1 (P3 spec §2.2): processHistory is gone, beats are politics'.
         checkCapitulations(mg, ww, ticks);
       }
     }
     stepTransfers(mg, ww);
+    // P3 order 2 and 3: politics' common day, then this tick's countries.
+    ww.politics.tick(ticks);
     // P1 (spec §2): the day's common step, then this tick's share of countries.
     ww.economy.tick(ticks);
     // P2 (spec §2.2): the land war after the economy.
     ww.land.tick(ticks);
+    // P3 order 6: human event cards past their deadline.
+    ww.politics.tickDeadlines(ticks);
     const data = ww.takeData();
     if (data !== null) mg.addUpdate({ type: GameUpdateType.WorldWar, data });
     const econ = ww.economy.takeData();
@@ -74,6 +81,10 @@ export class WorldWarExecution implements Execution {
     const land = ww.land.takeData();
     if (land !== null)
       mg.addUpdate({ type: GameUpdateType.WwLand, data: land });
+    const pol = ww.politics.takeData();
+    if (pol !== null) {
+      mg.addUpdate({ type: GameUpdateType.WwPolitics, data: pol });
+    }
   }
 
   isActive(): boolean {
@@ -89,6 +100,7 @@ export class WorldWarExecution implements Execution {
       active: this.active,
       initialized: this.mg !== null,
       random: w.random(this.random),
+      seed: this.seed,
     });
   }
 
@@ -96,6 +108,8 @@ export class WorldWarExecution implements Execution {
     this.active = s.active;
     this.mg = s.initialized ? r.game : null;
     this.random = r.random(s.random);
+    // A restored game has rolled already; the seed is kept for equality.
+    this.seed = s.seed ?? 0;
   }
 }
 
@@ -103,6 +117,8 @@ const WorldWarExecStateSchema = z.object({
   active: z.boolean(),
   initialized: z.boolean(),
   random: zRandom(),
+  /** P3: the politics seed's base (optional: older records lack it). */
+  seed: zInt().optional(),
 });
 type WorldWarExecState = z.infer<typeof WorldWarExecStateSchema>;
 

@@ -15,6 +15,7 @@ import {
   RESOURCE_IDS,
   TRADE_LAWS,
   WW_DAY_SPLIT,
+  WW_MAX_SLOTS,
   WW_MEN_PER_INF_EQUIPMENT,
   WW_TECH_IDS,
   WW_TRADE_UNITS_PER_CIV,
@@ -23,6 +24,7 @@ import {
   WwEconomyData,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayIndex, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
@@ -39,6 +41,7 @@ import {
   recruitableMen,
   regionSlots,
   researchSlotCount,
+  tradeUnitsPerCiv,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   startArmy,
@@ -49,6 +52,7 @@ import {
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import { landStartTechs } from "@openfront/engine-lib/ww1936/LandStart";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { techStats } from "@openfront/engine-lib/ww1936/Stats";
 import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
   techDays,
@@ -92,6 +96,11 @@ export interface Project {
 export interface Slot {
   tech: WwTechId;
   progress: number;
+  /**
+   * P3 spec §10.4: a research bonus taken when the tech started, until it
+   * ends; absent when none.
+   */
+  bonusPct?: number;
 }
 
 export interface Trade {
@@ -169,6 +178,16 @@ export class CountryEconomy {
   totals: Totals = emptyTotals();
   /** Derived from researched (rebuilt on restore; equal after it). */
   tech: TechTotals = techTotals(new Set());
+  /**
+   * P3 (plan decision 9): every modifier. WwPolitics points this at its
+   * CountryPol.stats (the same object, state there); alone (P1 pure
+   * tests) it is the tech totals. Read it, never ce.tech, for a modifier.
+   */
+  stats: WwStats = techStats(this.tech);
+  /** P3: WwPolitics.recomputeStats; called when a tech is added. */
+  onTechChanged: ((id: number) => void) | null = null;
+  /** Derived (DERIVED_FIELDS): bumped when `stats` change, for the land war's caches. */
+  statsVer = 0;
 
   constructor(
     readonly smallID: number,
@@ -191,6 +210,8 @@ export class CountryEconomy {
       WW_TECH_IDS.filter((t) => this.researched.has(t)),
     );
     this.tech = techTotals(this.researched);
+    if (this.onTechChanged === null) this.stats = techStats(this.tech);
+    else this.onTechChanged(this.smallID);
   }
 
   /** Infantry equipment in stock, every generation. */
@@ -263,7 +284,14 @@ const CountrySchema = z.object({
   nextLineId: zInt(),
   queue: z.array(ProjectSchema),
   slots: z.array(
-    z.object({ tech: z.enum(WW_TECH_IDS), progress: zInt() }).nullable(),
+    z
+      .object({
+        tech: z.enum(WW_TECH_IDS),
+        progress: zInt(),
+        /** P3: written only when the slot has one. */
+        bonusPct: zInt().optional(),
+      })
+      .nullable(),
   ),
   researched: z.array(z.enum(WW_TECH_IDS)),
   totals: TotalsSchema,
@@ -476,9 +504,11 @@ export class WwEconomy {
     // Most regions belong to one owner: ask whether it still fights once.
     let lastOwner = -1;
     let lastFights = false;
+    const pol = this.ww.politics;
     for (const id of this.regionsOf(ce.smallID)) {
       const r = this.scenario.region(id)!;
-      const owner = this.scenario.ownerByRegion()[id] ?? 0;
+      // P3 spec §17.1: the legal owner, not the 1936 one.
+      const owner = pol.legalOwner[id] ?? 0;
       if (owner !== lastOwner) {
         lastOwner = owner;
         lastFights = this.ownerFights(owner);
@@ -486,7 +516,7 @@ export class WwEconomy {
       const sh = regionShares(
         this.controller[id] ?? 0,
         owner,
-        r.core,
+        pol.isCore(id),
         lastFights,
       );
       const cp = sh.controlPct;
@@ -495,9 +525,9 @@ export class WwEconomy {
       dock += Math.floor((this.dock[id] * cp) / 100);
       recruitable += recruitableMen(
         r.pop,
-        sh.manpowerPct,
+        this.withNonCore(sh.manpowerPct, ce),
         law.conscriptionPermille,
-        ce.tech.recruitablePct,
+        ce.stats.recruitablePct,
       );
       for (let k = 0; k < RESOURCE_COUNT; k++) {
         if (r.res[k] === 0) continue;
@@ -505,7 +535,7 @@ export class WwEconomy {
           r.res[k],
           this.infra[id],
           cp,
-          ce.tech.extractionPct,
+          ce.stats.extractionPct,
         );
       }
     }
@@ -516,7 +546,8 @@ export class WwEconomy {
     for (const tr of this._trades) {
       if (tr.buyer === ce.smallID) {
         paid += tr.civs;
-        imported[tr.res] += tr.civs * WW_TRADE_UNITS_PER_CIV;
+        // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
+        imported[tr.res] += tr.civs * tradeUnitsPerCiv(ce.stats);
       }
       if (tr.seller === ce.smallID) {
         received += tr.civs;
@@ -532,11 +563,21 @@ export class WwEconomy {
     t.produced = produced;
     t.exported = exported;
     t.imported = imported;
-    t.cgMilli = consumerGoodsMilli(civ, mil, law.consumerGoodsPct);
+    // P3 spec §3.3: consumer goods with consumerGoodsPp, 0..50%.
+    const cgPct = Math.max(
+      0,
+      Math.min(50, law.consumerGoodsPct + ce.stats.consumerGoodsPp),
+    );
+    t.cgMilli = consumerGoodsMilli(civ, mil, cgPct);
     t.paidCivs = paid;
     t.receivedCivs = received;
     t.freeCivMilli = freeCivMilli(civ, t.cgMilli, paid, received);
-    t.slotCount = researchSlotCount(ce.major, civ + mil);
+    // Factories give at most 5 slots; P3's research_slot effect the sixth.
+    t.slotCount = Math.min(
+      WW_MAX_SLOTS,
+      researchSlotCount(ce.major, civ + mil) +
+        (pol.country(ce.smallID)?.extraResearchSlots ?? 0),
+    );
     t.warDays = this.warDays(ce.smallID, tick);
     void day;
   }
@@ -548,17 +589,25 @@ export class WwEconomy {
    */
   recruitableWith(smallID: number, permille: number): number {
     const ce = this.country(smallID);
-    const bonus = ce === null ? 0 : ce.tech.recruitablePct;
+    const bonus = ce === null ? 0 : ce.stats.recruitablePct;
     let n = 0;
     for (const id of this.regionsOf(smallID)) {
+      const pct = this.manpowerPct(id);
       n += recruitableMen(
         this.scenario.region(id)!.pop,
-        this.manpowerPct(id),
+        ce === null ? pct : this.withNonCore(pct, ce),
         permille,
         bonus,
       );
     }
     return n;
+  }
+
+  /** P3 spec §3.2: nonCoreManpowerPp adds to the 10% share of non-core land only. */
+  private withNonCore(manpowerPct: number, ce: CountryEconomy): number {
+    return manpowerPct === 10
+      ? Math.max(0, 10 + ce.stats.nonCoreManpowerPp)
+      : manpowerPct;
   }
 
   /**
@@ -600,16 +649,18 @@ export class WwEconomy {
 
   /** Spec §4.4: what a land region gives its controller now (regionShares). */
   shares(region: number): RegionShares {
-    const owner = this.scenario.ownerByRegion()[region] ?? 0;
+    // P3 spec §17.1: the legal owner and its core (P1's "1936 owner").
+    const pol = this.ww.politics;
+    const owner = pol.legalOwner[region] ?? 0;
     return regionShares(
       this.controller[region] ?? 0,
       owner,
-      this.scenario.region(region)?.core ?? true,
+      pol.isCore(region),
       this.ownerFights(owner),
     );
   }
 
-  /** The 1936 owner of a region is alive and has not capitulated. */
+  /** The legal owner of a region is alive and has not capitulated. */
   private ownerFights(owner: number): boolean {
     const o = this.mg.playerBySmallID(owner);
     return o.isPlayer() && o.isAlive() && !this.ww.isCapitulated(owner);
@@ -760,7 +811,7 @@ export class WwEconomy {
       exportRoom: RESOURCE_IDS.map((_, k) =>
         Math.max(0, exportRoomOf(t.produced[k], exportPct, sold[k])),
       ),
-      slotPct: ce.tech.slotPct,
+      slotPct: ce.stats.slotPct,
     };
   }
 
@@ -828,7 +879,7 @@ export class WwEconomy {
       consumerGoodsMilli: t.cgMilli,
       paidCivs: t.paidCivs,
       receivedCivs: t.receivedCivs,
-      effCapBp: effCapBp(ce.tech),
+      effCapBp: effCapBp(ce.stats),
       warDays: t.warDays,
       tradePartners: tradePartners(this, ce.smallID),
     };
@@ -908,7 +959,13 @@ export class WwEconomy {
         nextLineId: ce.nextLineId,
         queue: ce.queue.map((q) => ({ ...q })),
         slots: ce.slots.map((s) =>
-          s === null ? null : { tech: s.tech, progress: s.progress },
+          s === null
+            ? null
+            : {
+                tech: s.tech,
+                progress: s.progress,
+                ...(s.bonusPct === undefined ? {} : { bonusPct: s.bonusPct }),
+              },
         ),
         researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
         totals: copyTotals(ce.totals),
@@ -939,7 +996,13 @@ export class WwEconomy {
       ce.nextLineId = c.nextLineId;
       ce.queue = c.queue.map((q) => ({ ...q }));
       ce.slots = c.slots.map((x) =>
-        x === null ? null : { tech: x.tech, progress: x.progress },
+        x === null
+          ? null
+          : {
+              tech: x.tech,
+              progress: x.progress,
+              ...(x.bonusPct === undefined ? {} : { bonusPct: x.bonusPct }),
+            },
       );
       ce.researched = new Set(c.researched);
       ce.totals = copyTotals(c.totals);

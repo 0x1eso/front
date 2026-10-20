@@ -88,7 +88,7 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const gain =
     (ce.major ? 2 : 1) * ARMY_XP_DAY_MILLI +
     Math.min(ARMY_XP_FIGHT_MAX_MILLI, ARMY_XP_FIGHT_MILLI * foughtN) +
-    ce.tech.armyXpMilli;
+    ce.stats.armyXpMilli;
   cl.armyXpMilli = Math.max(
     0,
     Math.min(WW_ARMY_XP_MAX_MILLI, cl.armyXpMilli + gain),

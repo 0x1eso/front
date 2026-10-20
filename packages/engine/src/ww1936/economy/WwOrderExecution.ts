@@ -114,6 +114,33 @@ export function applyWwOrder(
     case "appoint_general":
       block = econ.ww.land.issue(p.smallID(), order, "player");
       break;
+    // P3 (plan decision 3): politics' orders, the same for humans and the AI.
+    case "focus_start":
+    case "focus_queue":
+    case "focus_cancel":
+    case "focus_unqueue":
+    case "advisor_hire":
+    case "advisor_fire":
+    case "decision_take":
+    case "decision_cancel":
+    case "event_choose":
+    case "justify":
+    case "justify_cancel":
+    case "guarantee":
+    case "guarantee_end":
+    case "nap_offer":
+    case "nap_break":
+    case "access_ask":
+    case "access_revoke":
+    case "faction_create":
+    case "faction_invite":
+    case "faction_request":
+    case "faction_kick":
+    case "faction_leave":
+    case "faction_dissolve":
+    case "improve_relations":
+      block = econ.ww.politics.issue(p.smallID(), order, mg.ticks());
+      break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);
   return block;

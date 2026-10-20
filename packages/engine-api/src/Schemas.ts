@@ -65,6 +65,11 @@ import {
   WW_MAX_TRAIN_COUNT,
   WW_TEMPLATE_NAME_MAX,
 } from "./ww1936/LandTypes";
+import {
+  ADVISOR_SLOTS,
+  PolOrderKind,
+  WAR_GOAL_TYPES,
+} from "./ww1936/PoliticsTypes";
 import { SEA_ZONE_BASE } from "./ww1936/WorldWarTypes";
 
 export type GameID = string;
@@ -779,6 +784,13 @@ const WwFactories = zb.uint({ max: WW_MAX_LINE_FACTORIES });
 const WwArmy = zb.uint({ min: 1, max: 10_000_000 });
 const WwRegionId = zb.uint({ min: 1, max: SEA_ZONE_BASE - 1 });
 const WwTemplateId = zb.uint({ max: 65_535 });
+// P3 (P3 spec §22.3, plan decision 3, 6): content ids and target countries.
+const WwContentRef = zb.string({
+  min: 1,
+  max: 48,
+  regex: /^[a-z][a-z0-9_:]*$/,
+});
+const WwCountry = zb.uint({ min: 1, max: 1000 });
 const WwTemplateName = zb.string({
   min: 1,
   max: WW_TEMPLATE_NAME_MAX,
@@ -895,10 +907,65 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("army_auto"), army: WwArmy, on: z.boolean() }),
   z.object({ kind: z.literal("paradrop"), army: WwArmy, region: WwRegionId }),
   z.object({ kind: z.literal("appoint_general") }),
+  // ---- P3 politics (P3 spec §22.3, plan decision 3), appended ----
+  z.object({ kind: z.literal("focus_start"), focus: WwContentRef }),
+  z.object({ kind: z.literal("focus_queue"), focus: WwContentRef }),
+  z.object({ kind: z.literal("focus_cancel") }),
+  z.object({ kind: z.literal("focus_unqueue") }),
+  z.object({
+    kind: z.literal("advisor_hire"),
+    slot: zb.uint({ max: ADVISOR_SLOTS.length - 1 }),
+    /** A person id, or "title:<trait>" for a titled card. */
+    advisor: WwContentRef,
+  }),
+  z.object({
+    kind: z.literal("advisor_fire"),
+    slot: zb.uint({ max: ADVISOR_SLOTS.length - 1 }),
+  }),
+  z.object({
+    kind: z.literal("decision_take"),
+    decision: WwContentRef,
+    /** smallID of the target for a targeted decision; 0: none. */
+    target: zb.uint({ max: 1000 }),
+  }),
+  z.object({
+    kind: z.literal("decision_cancel"),
+    decision: WwContentRef,
+    target: zb.uint({ max: 1000 }),
+  }),
+  z.object({
+    kind: z.literal("event_choose"),
+    uid: WwId,
+    option: zb.string({ min: 1, max: 2, regex: /^[a-z]+$/ }),
+  }),
+  z.object({
+    kind: z.literal("justify"),
+    target: WwCountry,
+    goal: z.enum(WAR_GOAL_TYPES),
+    /** A claim's region group; "" for none. */
+    group: zb.string({ max: 48, regex: /^[a-z0-9_]*$/ }),
+  }),
+  z.object({ kind: z.literal("justify_cancel") }),
+  z.object({ kind: z.literal("guarantee"), target: WwCountry }),
+  z.object({ kind: z.literal("guarantee_end"), target: WwCountry }),
+  z.object({ kind: z.literal("nap_offer"), target: WwCountry }),
+  z.object({ kind: z.literal("nap_break"), target: WwCountry }),
+  z.object({ kind: z.literal("access_ask"), target: WwCountry }),
+  z.object({ kind: z.literal("access_revoke"), target: WwCountry }),
+  z.object({ kind: z.literal("faction_create") }),
+  z.object({ kind: z.literal("faction_invite"), target: WwCountry }),
+  /** Asks to join the faction `target` belongs to. */
+  z.object({ kind: z.literal("faction_request"), target: WwCountry }),
+  z.object({ kind: z.literal("faction_kick"), target: WwCountry }),
+  z.object({ kind: z.literal("faction_leave") }),
+  z.object({ kind: z.literal("faction_dissolve") }),
+  z.object({ kind: z.literal("improve_relations"), target: WwCountry }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */
 export type LandOrder = Extract<WwOrder, { kind: LandOrderKind }>;
+/** The politics orders (P3): what WwPolitics.issue takes. */
+export type PolOrder = Extract<WwOrder, { kind: PolOrderKind }>;
 
 export const WwOrderIntentSchema = z.object({
   type: z.literal("ww_order"),

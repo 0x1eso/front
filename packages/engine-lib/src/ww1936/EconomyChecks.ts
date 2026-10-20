@@ -21,8 +21,8 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { exportCapacity } from "./EconomyRules";
 import { genTech } from "./Equipment";
+import { lawBlock, LawCtx } from "./PoliticsRules";
 import type { ScenarioIndex } from "./ScenarioIndex";
-import { lawConditionMet, LawContext } from "./WwLaws";
 import { openSchool, WW_TECHS } from "./WwTechs";
 
 // ---- Regions and the country graph (spec §4.4, §7.4) ----
@@ -185,20 +185,25 @@ export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
   return c.usedSlots + c.count > c.slots ? "no_slots" : null;
 }
 
-// ---- Laws (spec §5.4) ----
+// ---- Laws (spec §5.4; P3 spec §7, plan decision 11) ----
 
-/** Why the law cannot be set on `ctx.day`; null when it can. */
+/**
+ * Why the law cannot be set on `day`; null when it can. The kind, "same"
+ * and the cooldown are P1's; the conditions and the PP cost are P3's
+ * lawBlock (PoliticsRules).
+ */
 export function lawBlockOf(
   laws: CountryLaws,
   cooldownUntil: Readonly<Record<LawKind, number>>,
   kind: LawKind,
   value: LawValue,
-  ctx: LawContext,
+  day: number,
+  ctx: LawCtx,
 ): WwOrderBlock | null {
   if (!LAW_LADDERS[kind].includes(value)) return "law_kind";
   if (laws[kind] === value) return "law_same";
-  if (ctx.day < cooldownUntil[kind]) return "law_cooldown";
-  return lawConditionMet(value, ctx) ? null : "law_condition";
+  if (day < cooldownUntil[kind]) return "law_cooldown";
+  return lawBlock(value, ctx);
 }
 
 // ---- Production (spec §8.4) ----

@@ -1,15 +1,21 @@
 import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
+import { declareWarRules } from "./politics/WarGoals";
 import type { WorldWar } from "./WorldWar";
 
-/** Why `attacker` may not declare war on `target` now (spec §7.3); null if it may. */
+/**
+ * Why `attacker` may not declare war on `target` now (spec §7.3); null if
+ * it may. `join`: a war between the two only (a call to arms, a guarantee,
+ * a beat's join), which P3's rules judge apart (P3 spec §14.5).
+ */
 export function declareWarBlock(
   _mg: Game,
   ww: WorldWar,
   attacker: Player,
   target: Player,
   tick: number,
+  join = false,
 ): DeclareWarBlock | null {
   if (ww.inPrep(tick)) return "prep";
   if (attacker === target) return "self";
@@ -19,7 +25,8 @@ export function declareWarBlock(
   if (ww.isCapitulated(a) || ww.isCapitulated(b)) return "capitulated";
   if (ww.sameFaction(a, b)) return "faction";
   if (ww.isAtWar(a, b)) return "at_war";
-  return null;
+  // P3 spec §14.5: the appended reasons.
+  return declareWarRules(ww.politics, a, b, join).block;
 }
 
 /**
@@ -36,6 +43,12 @@ export function declareWar(
   tick: number,
 ): number[] {
   if (declareWarBlock(mg, ww, attacker, target, tick) !== null) return [];
+  const { noGoal } = declareWarRules(
+    ww.politics,
+    attacker.smallID(),
+    target.smallID(),
+    false,
+  );
   const a = attacker.smallID();
   const joined: number[] = [];
   if (ww.setWar(a, target.smallID(), tick)) joined.push(target.smallID());
@@ -59,6 +72,7 @@ export function declareWar(
       allies: joined.length - 1,
     },
   );
+  ww.politics.onWarDeclared(a, target.smallID(), joined, noGoal, tick);
   return joined;
 }
 
@@ -70,7 +84,7 @@ export function joinWar(
   enemy: Player,
   tick: number,
 ): boolean {
-  if (declareWarBlock(mg, ww, actor, enemy, tick) !== null) return false;
+  if (declareWarBlock(mg, ww, actor, enemy, tick, true) !== null) return false;
   ww.setWar(actor.smallID(), enemy.smallID(), tick);
   mg.displayMessage(
     "events_display.ww1936_war_joined",
@@ -82,6 +96,7 @@ export function joinWar(
       enemyTag: ww.tagOf(enemy.smallID()),
     },
   );
+  ww.politics.onWarJoined(actor.smallID(), enemy.smallID(), tick);
   return true;
 }
 

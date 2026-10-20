@@ -79,7 +79,7 @@ export function changeLine(
     fromGen,
     type,
     gen,
-    ce.tech.retentionBp,
+    ce.stats.retentionBp,
   );
   line.key = equipKey(type, gen);
   line.progress = 0;
@@ -148,7 +148,7 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
     ce.lines.map((l) => ({ key: l.key, factories: l.active })),
   );
   t.used = alloc.used;
-  const outputPct = ce.law().outputPct + ce.tech.outputPct;
+  const outputPct = ce.law().outputPct + ce.stats.outputPct;
   const cap = effCapBp(ce.tech);
   ce.lines.forEach((line, i) => {
     line.fill = alloc.fill[i];

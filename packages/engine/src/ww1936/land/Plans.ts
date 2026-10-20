@@ -206,12 +206,12 @@ export function readinessDay(land: WwLand, army: Army): void {
       plan * 10 +
       (signal ? 10 : 0) +
       (doctrine ? 10 : 0) +
-      ce.tech.planSpeedPct;
+      ce.stats.planSpeedPct;
     bp += Math.floor((WW_PLAN_DAY_BP * pct) / 100);
   } else if (rows.some((r) => t.battle[r] !== 0)) {
     bp -= Math.floor((WW_PLAN_FIGHT_BP * Math.max(0, 100 - plan * 10)) / 100);
   }
-  bp = Math.max(0, Math.min(planMaxBp(ce.tech), bp));
+  bp = Math.max(0, Math.min(planMaxBp(ce.stats), bp));
   if (bp !== army.planBp) {
     army.planBp = bp;
     land.markArmy(army.id);

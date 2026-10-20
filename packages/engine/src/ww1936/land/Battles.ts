@@ -642,7 +642,7 @@ export function stepRecovery(land: WwLand): void {
       pct =
         100 +
         (g !== null && (g.traits & traitBit("organizer")) !== 0 ? 20 : 0) +
-        (land.econ.country(t.owner[r])?.tech.recoveryPct ?? 0);
+        (land.econ.country(t.owner[r])?.stats.recoveryPct ?? 0);
       pctOf.set(key, pct);
     }
     const signal = (land.baseStatsOf(r).flags & TPL_SIGNAL) !== 0 ? 10 : 0;
@@ -688,7 +688,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
         g !== null && (g.traits & traitBit("defensive_doctrine")) !== 0 ? 2 : 1;
       stepOf.set(army, step);
     }
-    const max = entrenchMax(land.baseStatsOf(r).flags, ce.tech);
+    const max = entrenchMax(land.baseStatsOf(r).flags, ce.stats);
     t.entrench[r] = Math.min(max, t.entrench[r] + step);
   }
 }
@@ -753,7 +753,7 @@ export function modInputOf(
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
     flags: land.baseStatsOf(row).flags,
-    tech: land.econ.country(t.owner[row])?.tech ?? NEUTRAL_TECH,
+    tech: land.econ.country(t.owner[row])?.stats ?? NEUTRAL_TECH,
     exp: t.exp[row],
     planBp,
     land: landOf,

@@ -7,6 +7,7 @@ import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
 import type { WwEconomyData } from "../ww1936/EconomyTypes";
 import type { WwLandData } from "../ww1936/LandTypes";
+import type { WwPoliticsData } from "../ww1936/PoliticsTypes";
 import type { WorldWarData } from "../ww1936/WorldWarTypes";
 import { TileRef } from "./GameMap";
 import {
@@ -130,6 +131,7 @@ export enum GameUpdateType {
   WorldWar,
   WwEconomy,
   WwLand,
+  WwPolitics,
 }
 
 export type GameUpdate =
@@ -161,7 +163,8 @@ export type GameUpdate =
   | CongressUpdate
   | WorldWarUpdate
   | WwEconomyUpdate
-  | WwLandUpdate;
+  | WwLandUpdate
+  | WwPoliticsUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -477,4 +480,10 @@ export interface WwEconomyUpdate {
 export interface WwLandUpdate {
   type: GameUpdateType.WwLand;
   data: WwLandData;
+}
+
+/** World War 1936 P3: politics' changes of the tick (P3 spec §22.4). */
+export interface WwPoliticsUpdate {
+  type: GameUpdateType.WwPolitics;
+  data: WwPoliticsData;
 }

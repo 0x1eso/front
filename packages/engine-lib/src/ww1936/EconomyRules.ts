@@ -13,6 +13,7 @@ import {
   WW_MAX_CIVS_PER_PROJECT,
   WW_MAX_SLOTS,
   WW_MIL_OUTPUT_MILLI,
+  WW_TRADE_UNITS_PER_CIV,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { daysFromCivil } from "./Calendar";
 import { EQUIPMENT } from "./Equipment";
@@ -61,14 +62,21 @@ export function assignCivs(freeMilli: number, entries: number): number[] {
 export interface SpeedInput {
   building: BuildingId;
   infra: number;
+  /** The country's stats (P3 WwStats; its first keys are TechTotals). */
   tech: TechTotals;
   law: LawEffects;
+  /**
+   * P3 spec §3.4: the building's own construction stat
+   * (civConstructionPct, milConstructionPct or infraConstructionPct).
+   */
+  buildingPct?: number;
 }
 
 export function projectSpeedPct(i: SpeedInput): number {
   return (
     10 * (i.infra - 1) +
     i.tech.constructionPct +
+    (i.buildingPct ?? 0) +
     i.law.constructionPct +
     (i.building === "mil" ? i.law.milConstructionPct : 0) +
     // P2 plan decision 10: the techs' "−25% cost" as speed.
@@ -226,6 +234,17 @@ export function extraction(
   const a = Math.floor((deposit * (75 + 5 * infra)) / 100);
   const b = Math.floor((a * controlPct) / 100);
   return Math.floor((b * (100 + extractionPct)) / 100);
+}
+
+/**
+ * P3 spec §3.2 tradeCostPct: resource units a bought civilian factory brings
+ * the buyer (8 at 0%), never below 0.
+ */
+export function tradeUnitsPerCiv(stats: { tradeCostPct: number }): number {
+  return Math.max(
+    0,
+    Math.floor((WW_TRADE_UNITS_PER_CIV * (100 + stats.tradeCostPct)) / 100),
+  );
 }
 
 export function exportCapacity(produced: number, exportPct: number): number {
