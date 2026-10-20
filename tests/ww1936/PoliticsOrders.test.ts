@@ -78,7 +78,8 @@ describe("politics orders", () => {
     expect(at("focus_start")).toBeNull();
     expect(at("focus_start")).toBe("focus_busy");
     expect(at("advisor_hire")).toBe("advisor_unavailable");
-    expect(at("decision_take")).toBe("decision_unavailable");
+    // Lane E: the loop above took gen_t_rally (50 PP); now it cools down.
+    expect(at("decision_take")).toBe("decision_cooldown");
     expect(at("event_choose")).toBe("no_event");
     expect(at("justify")).toBe("justify_blocked");
     expect(at("guarantee")).toBe("bad_target");
