@@ -3705,10 +3705,94 @@
       "axis": "Axis",
       "comintern": "Comintern"
     },
+    "faction_name": {
+      "balkan_entente": "Balkan Entente",
+      "baltic_entente": "Baltic Entente",
+      "little_entente": "Little Entente",
+      "nordic_defence": "Nordic Defence Union",
+      "pan_american": "Pan-American Defence"
+    },
     "gen": {
       "1": "I",
       "2": "II",
       "3": "III"
+    },
+    "gov": {
+      "CHN": {
+        "neutral": "Nationalist Government"
+      },
+      "DEU": {
+        "communist": "KPD Government",
+        "democratic": "Weimar Coalition",
+        "fascist": "National Socialist Government",
+        "neutral": "Military Government"
+      },
+      "ESN": {
+        "fascist": "Spanish State",
+        "neutral": "Restored Monarchy"
+      },
+      "ESR": {
+        "communist": "PCE Government",
+        "democratic": "Government of the Republic"
+      },
+      "FIN": {
+        "democratic": "Parliamentary Government"
+      },
+      "FRA": {
+        "communist": "PCF Government",
+        "democratic": "Third Republic Government",
+        "fascist": "Government of the Leagues",
+        "neutral": "French State"
+      },
+      "GBR": {
+        "communist": "CPGB Government",
+        "democratic": "National Government",
+        "fascist": "British Union Government",
+        "neutral": "King's Party Government"
+      },
+      "HUN": {
+        "democratic": "Republican Government",
+        "neutral": "National Unity Government"
+      },
+      "ITA": {
+        "communist": "PCI Government",
+        "democratic": "Liberal Government",
+        "fascist": "Fascist Government",
+        "neutral": "Royal Government"
+      },
+      "JPN": {
+        "communist": "JCP Government",
+        "democratic": "Party Cabinet",
+        "fascist": "Imperial Rule Assistance Association",
+        "neutral": "Cabinet Government"
+      },
+      "POL": {
+        "democratic": "People's Party Government",
+        "neutral": "Sanation Government"
+      },
+      "ROU": {
+        "democratic": "National Peasants' Government",
+        "neutral": "National Liberal Government"
+      },
+      "SUN": {
+        "communist": "Council of People's Commissars",
+        "democratic": "Provisional Government",
+        "fascist": "Russian National Government",
+        "neutral": "Russian State"
+      },
+      "TUR": {
+        "neutral": "Republican People's Party Government"
+      },
+      "USA": {
+        "communist": "CPUSA Government",
+        "democratic": "Federal Administration",
+        "fascist": "Silver Legion Government",
+        "neutral": "Emergency Government"
+      },
+      "YUG": {
+        "democratic": "Peasant-Democratic Coalition",
+        "neutral": "Yugoslav Radical Union Government"
+      }
     },
     "group": {
       "africa_oceania": "Africa and Oceania",
@@ -3852,6 +3936,32 @@
       "scores": "If the war ended now",
       "title": "Diplomacy"
     },
+    "person": {
+      "arg_alvear": "Marcelo T. de Alvear",
+      "aut_renner": "Karl Renner",
+      "bra_prestes": "Luís Carlos Prestes",
+      "bra_salgado": "Plínio Salgado",
+      "deu_goerdeler": "Carl Goerdeler",
+      "esn_juan_de_borbon": "Juan de Borbón",
+      "esr_diaz": "José Díaz",
+      "fra_blum": "Léon Blum",
+      "fra_daladier": "Édouard Daladier",
+      "gbr_edward_viii": "Edward VIII",
+      "gbr_mosley": "Oswald Mosley",
+      "gbr_pollitt": "Harry Pollitt",
+      "grc_sofoulis": "Themistoklis Sofoulis",
+      "hun_karolyi": "Mihály Károlyi",
+      "irl_oduffy": "Eoin O'Duffy",
+      "pol_witos": "Wincenty Witos",
+      "prt_rolao_preto": "Francisco Rolão Preto",
+      "rou_maniu": "Iuliu Maniu",
+      "tha_pridi": "Pridi Banomyong",
+      "tur_inonu": "İsmet İnönü",
+      "usa_truman": "Harry S. Truman",
+      "yug_macek": "Vladko Maček",
+      "yug_peter_ii": "Peter II",
+      "zaf_smuts": "Jan Smuts"
+    },
     "region": {
       "original_owner": "1936: {country}",
       "vp": "{vp} VP"
@@ -3880,6 +3990,44 @@
       "firepower": "Superior firepower",
       "mass": "Mass assault",
       "mobile": "Mobile warfare"
+    },
+    "spirit": {
+      "chn_warlords": "Warlord Rivalries",
+      "deu_rearmament": "Rearmament Declared",
+      "deu_rhineland_dmz": "Demilitarised Rhineland",
+      "esp_civil_war_nation": "A Nation Torn by War",
+      "fra_defensive_mind": "Defence First",
+      "fra_divided": "Divided Politics",
+      "fra_hollow_years": "Thin Year Groups",
+      "gbr_empire": "The Sun Never Sets",
+      "gbr_peace_mood": "Longing for Peace",
+      "gen_armed_neutrality": "Armed Neutrality",
+      "ita_abyssinia": "Abyssinian Campaign",
+      "ita_sanctions": "League Sanctions",
+      "jpn_service_rivalry": "Army–Navy Feud",
+      "pol_between": "Between Two Neighbours",
+      "sun_five_year_plans": "Five-Year Plans",
+      "usa_depression": "Shadow of the Depression",
+      "usa_isolation": "Isolationism"
+    },
+    "spirit_desc": {
+      "chn_warlords": "Provincial generals obey Nanjing only when it suits them.",
+      "deu_rearmament": "Since conscription returned in March 1935, arms plants come before consumer goods.",
+      "deu_rhineland_dmz": "The Versailles and Locarno treaties bar German troops and fortifications from the Rhineland.",
+      "esp_civil_war_nation": "Spain has split in two, and every factory and village has had to choose a side.",
+      "fra_defensive_mind": "The general staff trusts the Maginot Line and plans for a long defensive war.",
+      "fra_divided": "Short-lived cabinets and street clashes between left and right shake every government.",
+      "fra_hollow_years": "The thin age groups born during the Great War are now reaching call-up age.",
+      "gbr_empire": "Dominions and colonies around the globe add manpower and political weight.",
+      "gbr_peace_mood": "Memories of the last war leave voters wary of rearmament and conscription.",
+      "gen_armed_neutrality": "Neutrality backed by a ready army makes any would-be attacker hesitate.",
+      "ita_abyssinia": "The war in East Africa, begun in October 1935, rallies the nation but swallows its goods.",
+      "ita_sanctions": "Since November 1935 the League of Nations has restricted trade with Italy.",
+      "jpn_service_rivalry": "The army and the navy fight over budgets and over the course of national policy.",
+      "pol_between": "Wedged between Germany and the Soviet Union, Poland keeps its army ready on both borders.",
+      "sun_five_year_plans": "The second plan pours resources into heavy industry and freshly built plants.",
+      "usa_depression": "Unemployment stays high, and recovery leans on federal spending.",
+      "usa_isolation": "The 1935 Neutrality Act and public opinion keep the country out of foreign quarrels."
     },
     "tech": {
       "anti_air_1": "Anti-air I",
@@ -3928,6 +4076,14 @@
       "tools_2": "Improved machine tools",
       "tools_3": "Advanced machine tools",
       "tools_4": "Assembly lines"
+    },
+    "title": {
+      "fra_chief_of_state": "Chief of State",
+      "jpn_prime_minister": "Prime Minister",
+      "rou_conducator": "Conducător",
+      "sun_national_head": "Head of the National Government",
+      "sun_provisional_head": "Head of the Provisional Government",
+      "sun_supreme_ruler": "Supreme Ruler"
     },
     "win": {
       "country_won": "{country} won",

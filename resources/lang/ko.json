@@ -3622,6 +3622,162 @@
       "export_room": "하루 {n} 판매 가능",
       "region_buildings": "민간 {civ} · 군수 {mil} · 조선 {dock} / 칸 {slots}",
       "stock_only": "비축만 됩니다(항공전은 뒤 단계)"
+    },
+    "spirit": {
+      "chn_warlords": "군벌 분열",
+      "deu_rearmament": "재무장 선언",
+      "deu_rhineland_dmz": "비무장 라인란트",
+      "esp_civil_war_nation": "내전의 나라",
+      "fra_defensive_mind": "방어 우선 사고",
+      "fra_divided": "갈라진 정치",
+      "fra_hollow_years": "인구 공백",
+      "gbr_empire": "해가 지지 않는 제국",
+      "gbr_peace_mood": "평화를 바라는 여론",
+      "gen_armed_neutrality": "무장 중립",
+      "ita_abyssinia": "에티오피아 원정",
+      "ita_sanctions": "국제연맹 제재",
+      "jpn_service_rivalry": "육해군의 반목",
+      "pol_between": "두 이웃 사이",
+      "sun_five_year_plans": "5개년 계획",
+      "usa_depression": "대공황의 그늘",
+      "usa_isolation": "고립주의"
+    },
+    "spirit_desc": {
+      "chn_warlords": "지방의 장군들은 자기에게 이로울 때만 난징 정부를 따른다.",
+      "deu_rearmament": "1935년 3월 징병제를 되살린 뒤로 군수 공장이 생활 물자보다 앞선다.",
+      "deu_rhineland_dmz": "베르사유 조약과 로카르노 조약에 따라 라인란트에는 독일군도 요새도 둘 수 없다.",
+      "esp_civil_war_nation": "스페인은 둘로 갈라졌고 공장과 마을마다 편을 골라야 했다.",
+      "fra_defensive_mind": "참모본부는 마지노선을 믿고 긴 방어전을 준비한다.",
+      "fra_divided": "단명하는 내각과 좌우의 거리 충돌이 어느 정부든 흔든다.",
+      "fra_hollow_years": "대전 중에 태어난 적은 세대가 이제 징집 나이에 이른다.",
+      "gbr_empire": "세계 곳곳의 자치령과 식민지가 인력과 정치적 무게를 더한다.",
+      "gbr_peace_mood": "지난 대전의 기억 때문에 유권자들은 재무장과 징병을 꺼린다.",
+      "gen_armed_neutrality": "준비된 군대가 받치는 중립 앞에서 침략자는 머뭇거린다.",
+      "ita_abyssinia": "1935년 10월에 시작한 동아프리카 전쟁이 여론을 모으지만 물자를 삼킨다.",
+      "ita_sanctions": "1935년 11월부터 국제연맹이 이탈리아와의 교역을 제한하고 있다.",
+      "jpn_service_rivalry": "육군과 해군이 예산과 국책의 방향을 두고 다툰다.",
+      "pol_between": "독일과 소련 사이에 낀 폴란드는 두 국경 모두에 군을 대기시킨다.",
+      "sun_five_year_plans": "제2차 계획이 중공업과 새 공장에 자원을 쏟아붓는다.",
+      "usa_depression": "실업률은 여전히 높고 회복은 연방 지출에 기대고 있다.",
+      "usa_isolation": "1935년 중립법과 여론이 나라를 바깥의 분쟁에서 떼어 놓는다."
+    },
+    "person": {
+      "arg_alvear": "마르셀로 T. 데 알베아르",
+      "aut_renner": "카를 레너",
+      "bra_prestes": "루이스 카를루스 프레스치스",
+      "bra_salgado": "플리니우 사우가두",
+      "deu_goerdeler": "카를 괴르델러",
+      "esn_juan_de_borbon": "후안 데 보르본",
+      "esr_diaz": "호세 디아스",
+      "fra_blum": "레옹 블룸",
+      "fra_daladier": "에두아르 달라디에",
+      "gbr_edward_viii": "에드워드 8세",
+      "gbr_mosley": "오즈월드 모즐리",
+      "gbr_pollitt": "해리 폴릿",
+      "grc_sofoulis": "테미스토클리스 소풀리스",
+      "hun_karolyi": "카로이 미하이",
+      "irl_oduffy": "오언 오더피",
+      "pol_witos": "빈첸티 비토스",
+      "prt_rolao_preto": "프란시스쿠 롤랑 프레투",
+      "rou_maniu": "율리우 마니우",
+      "tha_pridi": "쁘리디 파놈용",
+      "tur_inonu": "이스메트 이뇌뉘",
+      "usa_truman": "해리 S. 트루먼",
+      "yug_macek": "블라드코 마체크",
+      "yug_peter_ii": "페타르 2세",
+      "zaf_smuts": "얀 스뮈츠"
+    },
+    "title": {
+      "fra_chief_of_state": "국가 원수",
+      "jpn_prime_minister": "내각 총리대신",
+      "rou_conducator": "국가 지도자",
+      "sun_national_head": "민족 정부 수반",
+      "sun_provisional_head": "임시 정부 수반",
+      "sun_supreme_ruler": "최고 통치자"
+    },
+    "faction_name": {
+      "balkan_entente": "발칸 협상",
+      "baltic_entente": "발트 협상",
+      "little_entente": "소협상",
+      "nordic_defence": "북유럽 방위 동맹",
+      "pan_american": "범아메리카 방위"
+    },
+    "gov": {
+      "CHN": {
+        "neutral": "국민정부"
+      },
+      "DEU": {
+        "communist": "독일 공산당 정부",
+        "democratic": "바이마르 연정",
+        "fascist": "나치 정권",
+        "neutral": "군부 정부"
+      },
+      "ESN": {
+        "fascist": "스페인국",
+        "neutral": "왕정복고 정부"
+      },
+      "ESR": {
+        "communist": "스페인 공산당 정부",
+        "democratic": "공화국 정부"
+      },
+      "FIN": {
+        "democratic": "의회 정부"
+      },
+      "FRA": {
+        "communist": "프랑스 공산당 정부",
+        "democratic": "제3공화국 정부",
+        "fascist": "우익 연맹 정부",
+        "neutral": "프랑스국"
+      },
+      "GBR": {
+        "communist": "영국 공산당 정부",
+        "democratic": "거국 내각",
+        "fascist": "영국 파시스트 연합 정부",
+        "neutral": "국왕파 정부"
+      },
+      "HUN": {
+        "democratic": "공화국 정부",
+        "neutral": "국민통일당 정부"
+      },
+      "ITA": {
+        "communist": "이탈리아 공산당 정부",
+        "democratic": "자유주의 정부",
+        "fascist": "파시스트 정권",
+        "neutral": "국왕 정부"
+      },
+      "JPN": {
+        "communist": "일본 공산당 정부",
+        "democratic": "정당 내각",
+        "fascist": "대정익찬회",
+        "neutral": "내각 정부"
+      },
+      "POL": {
+        "democratic": "인민당 정부",
+        "neutral": "사나치아 정권"
+      },
+      "ROU": {
+        "democratic": "국민농민당 정부",
+        "neutral": "국민자유당 정부"
+      },
+      "SUN": {
+        "communist": "인민위원회의",
+        "democratic": "임시 정부",
+        "fascist": "러시아 민족 정부",
+        "neutral": "러시아국"
+      },
+      "TUR": {
+        "neutral": "공화인민당 정부"
+      },
+      "USA": {
+        "communist": "미국 공산당 정부",
+        "democratic": "연방 행정부",
+        "fascist": "은셔츠단 정부",
+        "neutral": "비상 정부"
+      },
+      "YUG": {
+        "democratic": "농민민주연합",
+        "neutral": "유고슬라비아 급진 연합 정부"
+      }
     }
   }
 }
