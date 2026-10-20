@@ -3573,6 +3573,12 @@
       "ZAF": "South Africa"
     },
     "date": "{day} {month} {year}",
+    "decision": {
+      "fra_dissolve_vichy": "Dissolve the Vichy Regime"
+    },
+    "decision_desc": {
+      "fra_dissolve_vichy": "With Paris in French hands again, the Provisional Government declares the acts of the Vichy regime void and takes over the territories it still holds."
+    },
     "declare": {
       "button": "Declare war",
       "confirm": "Confirm: declare war{n, plural, =0 {} one { (# more country joins)} other { (# more countries join)}}"
@@ -3718,15 +3724,205 @@
       "motorized": "Trucks",
       "support_equipment": "Support equipment"
     },
+    "event_desc": {
+      "deu_case_anton": "With the Allies in North Africa, Berlin no longer trusts the armistice. German columns cross the demarcation line towards the Mediterranean coast and Italian troops land on Corsica. The French State keeps its ministers but loses its last unoccupied territory.",
+      "deu_compiegne_armistice": "In the railway carriage where Germany signed the armistice of 1918, French envoys accept German terms. The north and the Atlantic coast stay occupied, a French government keeps the south and the empire, and the fleet is to be disarmed in its home ports.",
+      "fra_free_french_africa": "Governor Félix Éboué announces that Chad stands with Free France. Within days Cameroon and the French Congo follow, giving General de Gaulle land of his own, a capital at Brazzaville and a road across Africa.",
+      "fra_paris_uprising": "Allied armies are closing on the capital. The police, the railwaymen and the resistance groups of Paris seize public buildings and put up barricades against the German garrison.",
+      "fra_regime_crisis": "The entry of the leagues into government has split the country. Strikes and street demonstrations spread, and both the ministers and the parties of the left claim to be defending France.",
+      "gbr_mers_el_kebir": "A large part of the French battle fleet lies at Mers-el-Kébir near Oran, and Britain cannot risk those ships passing to Germany. A British squadron arrives off the harbour with terms: sail with us, sail to a distant port under guard, or scuttle.",
+      "vic_dakar": "A British and Free French squadron appears off Dakar and calls on the colony to join General de Gaulle. The battleship in the harbour and the coastal batteries stand ready, and the governor-general must choose between the guns and the envoys.",
+      "vic_fleet_ultimatum": "The British admiral gives our squadron a few hours: sail to a British port or to the West Indies under guard, or be sunk where it lies. Yet the armistice forbids us to hand over a single ship.",
+      "vic_full_powers": "Meeting in the casino theatre at Vichy, deputies and senators vote 569 to 80 to grant full powers to write a new constitution. The next day the President of the Council becomes Head of the French State, and the Third Republic is over.",
+      "vic_head_of_government": "Under German pressure, a constitutional act creates the post of head of government. A minister dismissed at the end of 1940 returns to run domestic and foreign policy, while the head of state keeps his title.",
+      "vic_japanese_demand": "Japan demands airfields, garrisons and the right to move troops through northern Indochina, to cut the railway that supplies China. The governor-general has few soldiers and can expect no help from France.",
+      "vic_levant_armistice": "After five weeks of fighting, Damascus has fallen and British, Australian, Indian and Free French columns stand before Beirut. The high commissioner asks for terms: at Acre the Levant is handed over, and its garrison may sail home to France.",
+      "vic_madagascar_armistice": "Six months after British troops landed at Diego-Suarez, the last Vichy garrison in the south of the island has nowhere left to fall back to. The governor-general signs an armistice.",
+      "vic_torch": "American and British troops have landed at Casablanca, Oran and Algiers. After two days of fighting, the senior Vichy commanders in Algiers must decide whether to order a ceasefire or keep fighting the landings.",
+      "vic_toulon": "German troops are racing into the naval base at Toulon to seize the fleet. The admirals have standing orders that no ship may fall into foreign hands, and the scuttling charges are already in place."
+    },
+    "event_opt": {
+      "deu_case_anton": {
+        "a": "Occupy the free zone"
+      },
+      "deu_compiegne_armistice": {
+        "a": "Leave the south to a French government",
+        "b": "Occupy all of France"
+      },
+      "fra_free_french_africa": {
+        "a": "Equatorial Africa rallies"
+      },
+      "fra_paris_uprising": {
+        "a": "To the barricades"
+      },
+      "fra_regime_crisis": {
+        "a": "The crisis breaks"
+      },
+      "gbr_mers_el_kebir": {
+        "a": "Open fire on the fleet",
+        "b": "Demand that the ships be interned"
+      },
+      "vic_dakar": {
+        "a": "Defend Dakar",
+        "b": "Go over to Free France"
+      },
+      "vic_fleet_ultimatum": {
+        "a": "Hand over some ships",
+        "b": "Reject the terms"
+      },
+      "vic_full_powers": {
+        "a": "The French State is proclaimed"
+      },
+      "vic_head_of_government": {
+        "a": "Appoint him",
+        "b": "Keep power at the top"
+      },
+      "vic_japanese_demand": {
+        "a": "Accept the demands",
+        "b": "Refuse"
+      },
+      "vic_levant_armistice": {
+        "a": "Sign at Acre"
+      },
+      "vic_madagascar_armistice": {
+        "a": "Lay down arms"
+      },
+      "vic_torch": {
+        "a": "Agree to a ceasefire",
+        "b": "Fight on"
+      },
+      "vic_toulon": {
+        "a": "Scuttle the fleet",
+        "b": "Break out to sea"
+      }
+    },
+    "event_title": {
+      "deu_case_anton": "Case Anton",
+      "deu_compiegne_armistice": "The Armistice of Compiègne",
+      "fra_free_french_africa": "Free French Africa",
+      "fra_paris_uprising": "Paris Rises",
+      "fra_regime_crisis": "Crisis of the Regime",
+      "gbr_mers_el_kebir": "Mers-el-Kébir",
+      "vic_dakar": "The Dakar Expedition",
+      "vic_fleet_ultimatum": "A British Ultimatum",
+      "vic_full_powers": "Full Powers",
+      "vic_head_of_government": "A Head of Government",
+      "vic_japanese_demand": "Japan's Demands on Indochina",
+      "vic_levant_armistice": "The Armistice of Acre",
+      "vic_madagascar_armistice": "Armistice in Madagascar",
+      "vic_torch": "Landings in North Africa",
+      "vic_toulon": "The Fleet at Toulon"
+    },
     "faction": {
       "allies": "Allies",
       "axis": "Axis",
       "comintern": "Comintern"
     },
+    "focus": {
+      "fra_air_force_plan": "Air Expansion Plan",
+      "fra_alpine_troops": "Chasseurs of the Alps",
+      "fra_armoured_corps": "Armoured Reserve Divisions",
+      "fra_arms_nationalisation": "State Arms Factories",
+      "fra_army_of_africa": "The Army of Africa",
+      "fra_army_reorganisation": "Reshaping the Army",
+      "fra_aviation_reorganisation": "Rebuilding the Aircraft Makers",
+      "fra_bomber_force": "A Bomber Arm",
+      "fra_colonial_divisions": "More Colonial Divisions",
+      "fra_colonial_minerals": "Colonial Ores and Rubber",
+      "fra_early_rearmament": "Rearm Without Delay",
+      "fra_eastern_alliances": "Shoring Up the Eastern Pacts",
+      "fra_economic_recovery": "Recovery Decrees",
+      "fra_empire_defence": "Defending the Overseas Empire",
+      "fra_fast_battleships": "Fast Battleship Programme",
+      "fra_free_french_forces": "Free French Forces",
+      "fra_heavy_water": "Securing the Heavy Water",
+      "fra_indochina_defence": "Guarding Indochina",
+      "fra_industrial_survey": "Survey of French Industry",
+      "fra_june_appeal": "The Appeal of 18 June",
+      "fra_latin_bloc": "Understanding of the Latin Nations",
+      "fra_leagues_in_government": "The Leagues Enter Office",
+      "fra_levant_bases": "Bases in the Levant",
+      "fra_liberation_government": "Provisional Government",
+      "fra_maginot_extension": "Prolonging the Maginot Line",
+      "fra_mers_el_kebir_base": "Mers-el-Kébir Anchorage",
+      "fra_ministry_of_armament": "A Ministry of Armament",
+      "fra_mobile_reserve": "A Mobile Reserve Army",
+      "fra_mobilisation_readiness": "Ready to Mobilise",
+      "fra_modern_fighters": "New Fighter Types",
+      "fra_motorised_divisions": "Lorried Infantry",
+      "fra_national_union": "National Union Ministry",
+      "fra_neutral_france": "France Stands Apart",
+      "fra_no_munich": "Refusing the Sudeten Bargain",
+      "fra_non_intervention": "Staying Out of Spain",
+      "fra_northern_industry": "Coal and Steel of the North",
+      "fra_popular_front": "The Popular Front in Power",
+      "fra_rally_the_empire": "The Empire Rallies",
+      "fra_rearmament_plan": "The Four-Year Arms Plan",
+      "fra_research_centre": "A National Research Centre",
+      "fra_resistance_council": "National Council of the Resistance",
+      "fra_southwest_dispersal": "Moving Plants to the Southwest",
+      "fra_strong_executive": "A Stronger Executive",
+      "fra_submarine_fleet": "Submarine Flotillas",
+      "fra_tank_programme": "Tank Production Schedule",
+      "fra_war_government": "A Cabinet for the War"
+    },
+    "focus_desc": {
+      "fra_air_force_plan": "A new air plan sets a target of thousands of front-line aircraft and adds the factories and airfields to match.",
+      "fra_alpine_troops": "Mountain battalions are trained and equipped to fight on the passes facing Italy.",
+      "fra_armoured_corps": "Heavy tanks are gathered into armoured divisions instead of being spread among the infantry. Colonel Charles de Gaulle, who argued for it, gets a command.",
+      "fra_arms_nationalisation": "The state takes over the main private arms works, so that weapons are made for the nation rather than for profit.",
+      "fra_army_of_africa": "The North African corps gets workshops and depots of its own, so that it can fight without waiting for convoys from France.",
+      "fra_army_reorganisation": "Infantry divisions receive more anti-tank guns and engineers, and new manuals draw on the lessons of recent exercises.",
+      "fra_aviation_reorganisation": "Scattered aircraft firms are merged into large national companies by region, with new plants and modern tooling.",
+      "fra_bomber_force": "Light and medium bomber squadrons are formed to strike enemy columns and supply lines behind the front.",
+      "fra_colonial_divisions": "Recruiting in North and West Africa is widened, and the new regiments are formed into full divisions.",
+      "fra_colonial_minerals": "Rubber plantations in Indochina and mines across the colonies are expanded to keep the factories at home supplied.",
+      "fra_early_rearmament": "Arms orders come before consumer spending, and the factories turn to war work years earlier than planned.",
+      "fra_eastern_alliances": "France confirms its promises to Prague and Warsaw and seeks a real military understanding with Moscow.",
+      "fra_economic_recovery": "Decree laws lengthen the working week and loosen the controls of 1936 to bring capital home and restart production.",
+      "fra_empire_defence": "Garrisons in Africa and Asia receive new forts and fresh recruits raised in the colonies themselves.",
+      "fra_fast_battleships": "Fast battleships with heavy guns are laid down to answer the new German and Italian ships.",
+      "fra_free_french_forces": "Soldiers who reached Britain from Dunkirk and Norway, and volunteers from the colonies, are formed into new divisions.",
+      "fra_heavy_water": "Military intelligence borrows Norway's whole stock of heavy water and brings it to the physicists of the Collège de France.",
+      "fra_indochina_defence": "Coastal batteries, border posts and an airfield strengthen the colony against an attack from the north or the sea.",
+      "fra_industrial_survey": "Engineers list every plant, machine and skilled worker that could be turned to defence work.",
+      "fra_june_appeal": "From a London studio, General Charles de Gaulle tells the French that the war is not lost and calls on them to fight on.",
+      "fra_latin_bloc": "Paris turns to Rome, Burgos and Lisbon for a bloc of Latin states standing between Germany and the Soviet Union.",
+      "fra_leagues_in_government": "Leaders of the right-wing leagues are given ministries, and the left warns that the Republic itself is now at stake.",
+      "fra_levant_bases": "Harbours in Syria and Lebanon are deepened and their airfields enlarged to guard the sea lanes of the eastern Mediterranean.",
+      "fra_liberation_government": "Free France becomes the Provisional Government of the French Republic, ready to take charge of the liberated country.",
+      "fra_maginot_extension": "Concrete casemates and anti-tank obstacles are carried along the Belgian frontier towards the sea.",
+      "fra_mers_el_kebir_base": "A deep-water base is built near Oran to shelter the battle squadron on the African shore.",
+      "fra_ministry_of_armament": "A single ministry takes charge of all arms production, from raw materials to the finished shell.",
+      "fra_mobile_reserve": "Rather than pour more concrete, the army keeps motorised reserves behind the front to strike wherever the enemy breaks through.",
+      "fra_mobilisation_readiness": "Call-up lists, depots and railway timetables are brought up to date so that the reserves can be called at short notice.",
+      "fra_modern_fighters": "Designers are pressed to bring faster monoplane fighters from prototype to squadron service.",
+      "fra_motorised_divisions": "Several infantry divisions trade their horses for lorries so that they can keep pace with the tanks.",
+      "fra_national_union": "Instead of a left-wing coalition, Paul Reynaud gathers the centre and the moderate right around rearmament and a firm foreign policy.",
+      "fra_neutral_france": "France leaves its old alliances and declares that it will defend its own soil and empire and nothing more.",
+      "fra_no_munich": "The cabinet decides that it will not hand Czechoslovak territory to Germany, whatever London chooses.",
+      "fra_non_intervention": "Paris proposes that no power send arms to either side in Spain, keeping London close and France out of the war.",
+      "fra_northern_industry": "The coal and steel of the mines and mills of the Nord and Lorraine go first to military contracts.",
+      "fra_popular_front": "The left-wing alliance that won the election forms a cabinet and ends the wave of strikes through talks between employers and unions.",
+      "fra_rally_the_empire": "Envoys of Free France fly to Africa to win over governors and garrisons.",
+      "fra_rearmament_plan": "A programme of billions of francs spread over four years pays for new tanks, guns and fortifications.",
+      "fra_research_centre": "State laboratories are brought together under one national centre that hands out funds and sets research priorities.",
+      "fra_resistance_council": "The resistance movements, parties and unions of occupied France unite in one council that recognises London.",
+      "fra_southwest_dispersal": "Factories within reach of German bombers move to Toulouse, Bordeaux and the valleys of the southwest.",
+      "fra_strong_executive": "Weary of short-lived cabinets, the government asks for the power to rule by decree and sets a deadlocked parliament aside.",
+      "fra_submarine_fleet": "Large submarines able to cross oceans are ordered to strike enemy sea lanes in the Atlantic and the Mediterranean.",
+      "fra_tank_programme": "Firm orders and a delivery schedule let the makers of heavy and cavalry tanks build in larger batches.",
+      "fra_war_government": "With German troops at the frontier, the parties set their quarrels aside and serve together in one wartime cabinet."
+    },
     "gen": {
       "1": "I",
       "2": "II",
       "3": "III"
+    },
+    "gov": {
+      "VIC": {
+        "neutral": "French State"
+      }
     },
     "group": {
       "africa_oceania": "Africa and Oceania",
@@ -3863,12 +4059,40 @@
       "m11": "November",
       "m12": "December"
     },
+    "news": {
+      "news_fra_free_french_africa": "Chad, Cameroon and the French Congo rally to General de Gaulle.",
+      "news_fra_paris_uprising": "Paris rises against its German garrison.",
+      "news_fra_vichy_dissolved": "The Provisional Government declares the Vichy regime's acts void and takes over its last territories.",
+      "news_vic_case_anton": "German troops occupy southern France; Italian troops land on Corsica.",
+      "news_vic_dakar": "Vichy's guns at Dakar drive off a British and Free French squadron.",
+      "news_vic_full_powers": "The French parliament votes full powers; the Third Republic gives way to the French State.",
+      "news_vic_levant": "Vichy's forces in Syria and Lebanon sign an armistice at Acre.",
+      "news_vic_madagascar": "The last Vichy troops on Madagascar lay down their arms.",
+      "news_vic_mers_el_kebir": "British warships open fire on the French fleet at Mers-el-Kébir.",
+      "news_vic_state": "France signs an armistice; a French government at Vichy keeps the south and the empire.",
+      "news_vic_torch": "French North and West Africa stop fighting the Allies and take up arms against Germany.",
+      "news_vic_toulon": "The French fleet at Toulon scuttles itself before German troops can seize it."
+    },
     "panel": {
       "at_peace": "At peace",
       "my_wars": "My wars",
       "next_history": "Next in history: {date}",
       "scores": "If the war ended now",
       "title": "Diplomacy"
+    },
+    "person": {
+      "fra_bonnet": "Georges Bonnet",
+      "fra_darlan": "François Darlan",
+      "fra_dautry": "Raoul Dautry",
+      "fra_de_gaulle": "Charles de Gaulle",
+      "fra_delbos": "Yvon Delbos",
+      "fra_gamelin": "Maurice Gamelin",
+      "fra_joliot_curie": "Frédéric Joliot-Curie",
+      "fra_mandel": "Georges Mandel",
+      "fra_perrin": "Jean Perrin",
+      "fra_reynaud": "Paul Reynaud",
+      "fra_vuillemin": "Joseph Vuillemin",
+      "fra_weygand": "Maxime Weygand"
     },
     "region": {
       "original_owner": "1936: {country}",
@@ -3898,6 +4122,44 @@
       "firepower": "Superior firepower",
       "mass": "Mass assault",
       "mobile": "Mobile warfare"
+    },
+    "spirit": {
+      "fra_armament_ministry": "Ministry of Armament",
+      "fra_colonial_mines": "Colonial Mines",
+      "fra_colonial_troops": "Colonial Troops",
+      "fra_defensive_mind_plus": "Defence First (Reinforced)",
+      "fra_dispersed_factories": "Dispersed Factories",
+      "fra_divided_eased": "Divided Politics (Easing)",
+      "fra_free_france": "Free France",
+      "fra_hard_line": "Hard Line",
+      "fra_matignon": "Matignon Agreements",
+      "fra_mobile_doctrine": "Mobile Doctrine",
+      "fra_neutrality": "French Neutrality",
+      "fra_nuclear_physics": "Nuclear Physics",
+      "fra_parliament_crisis": "Crisis of Parliament",
+      "fra_rearm_first": "Arms Before Butter",
+      "fra_rearmament_plan": "Rearmament Plan",
+      "fra_sacred_union": "Sacred Union",
+      "vic_state_regime": "Regime of the Head of State"
+    },
+    "spirit_desc": {
+      "fra_armament_ministry": "One ministry plans the production of arms from the mine to the front.",
+      "fra_colonial_mines": "New concessions and roads raise the output of the colonial mines.",
+      "fra_colonial_troops": "Regiments from Africa and Asia add to the reserves of the home army.",
+      "fra_defensive_mind_plus": "The fortified line is longer than ever, and the army trusts it more than ever.",
+      "fra_dispersed_factories": "Plants spread across the south are harder for enemy bombers to find and to hit.",
+      "fra_divided_eased": "The bitterness between left and right has eased a little, but cabinets still fall easily.",
+      "fra_free_france": "Every Frenchman who refuses the armistice has a place in the fight.",
+      "fra_hard_line": "The government will make no more concessions, though not everyone is ready to pay the price.",
+      "fra_matignon": "Wage rises and collective agreements have restored social peace, but labour costs keep climbing.",
+      "fra_mobile_doctrine": "Motorised reserves and counter-attacks replace the long wait behind concrete.",
+      "fra_neutrality": "France threatens no one, and whoever seeks a quarrel will find her well defended.",
+      "fra_nuclear_physics": "French physicists lead the study of chain reactions in uranium.",
+      "fra_parliament_crisis": "Rule by decree gets things done but wears away trust in the regime.",
+      "fra_rearm_first": "Defence orders take precedence over goods for the shops.",
+      "fra_rearmament_plan": "Long-term arms orders let the military factories grow steadily.",
+      "fra_sacred_union": "As in 1914, the nation puts its divisions aside until the enemy is beaten.",
+      "vic_state_regime": "Parliament has been set aside, and all power rests with the head of state and his ministers."
     },
     "tech": {
       "anti_air_1": "Anti-air I",
@@ -3946,6 +4208,12 @@
       "tools_2": "Improved machine tools",
       "tools_3": "Advanced machine tools",
       "tools_4": "Assembly lines"
+    },
+    "title": {
+      "fra_council_president": "President of the Council",
+      "fra_vice_premier": "Vice-President of the Council",
+      "vic_head_of_state": "Head of the French State",
+      "vic_prime_minister": "Head of Government"
     },
     "win": {
       "country_won": "{country} won",
