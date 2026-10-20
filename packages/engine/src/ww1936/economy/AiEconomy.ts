@@ -233,6 +233,11 @@ const GROUP_TECHS: Readonly<
     "inf_eq_3",
     "support_eq_1",
     "support_eq_2",
+    // P2 land techs (Task 6, pre-flight A1): the support companies.
+    "engineer_company",
+    "recon_company",
+    "field_hospital",
+    "logistics_company",
   ],
   guns: [
     "artillery_1",
@@ -251,7 +256,13 @@ const GROUP_TECHS: Readonly<
     "medium_tank_2",
     "medium_tank_3",
   ],
-  construction: ["construction_1", "construction_2", "construction_3"],
+  construction: [
+    "construction_1",
+    "construction_2",
+    "construction_3",
+    "fortification_1",
+    "rail_1",
+  ],
   industry: [
     "output_1",
     "output_2",
@@ -259,7 +270,12 @@ const GROUP_TECHS: Readonly<
     "excavation_2",
     "flexible_line",
   ],
-  electronics: ["electronics_1", "computing_1", "computing_2"],
+  electronics: [
+    "electronics_1",
+    "computing_1",
+    "computing_2",
+    "signal_company",
+  ],
   air: ["fighter_1", "fighter_2", "fighter_3", "bomber_1", "bomber_2"],
 };
 
@@ -319,14 +335,33 @@ const COUNTRY_ORDER: Readonly<
 /** Every list ends so that no slot idles while anything is left (R6.8). */
 const TAIL: readonly TechGroup[] = ["industry", "electronics", "air"];
 
+/** P2 special troops (Task 6 brief): marines for these, paratroopers for the aggressors. */
+const MARINE_COUNTRIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];
+
+/** Whether `tag`'s AI fields this special troop type at all (no marines for Germany). */
+function wantsTech(tag: CountryTag, t: WwTechId): boolean {
+  if (t === "marines") return MARINE_COUNTRIES.includes(tag);
+  if (t === "paratroopers") return aiPersonality(tag) === "aggressor";
+  return true;
+}
+
 /**
- * P2's land techs (appended to WW_TECH_IDS) wait for the land AI (Task 6,
- * pre-flight A1) to place them in the groups above; until then no AI
- * researches them, so P1's research plans stay as they were.
+ * A group's techs for `tag` (P2 Task 6, pre-flight A1): the aggressors'
+ * infantry adds mountain troops and paratroopers, Britain's, the United
+ * States' and Japan's marines.
  */
-const UNPLACED_LAND_TECHS: ReadonlySet<WwTechId> = new Set(
-  WW_TECH_IDS.slice(WW_TECH_IDS.indexOf("engineer_company")),
-);
+function groupTechs(
+  tag: CountryTag,
+  g: Exclude<TechGroup, "school">,
+): readonly WwTechId[] {
+  if (g !== "infantry") return GROUP_TECHS[g];
+  const extra: WwTechId[] = [];
+  if (aiPersonality(tag) === "aggressor") {
+    extra.push("mountaineers", "paratroopers");
+  }
+  if (MARINE_COUNTRIES.includes(tag)) extra.push("marines");
+  return [...GROUP_TECHS[g], ...extra];
+}
 
 const TECH_INDEX: ReadonlyMap<WwTechId, number> = new Map(
   WW_TECH_IDS.map((t, i) => [t, i]),
@@ -336,7 +371,8 @@ const researchOrders = new Map<CountryTag, readonly WwTechId[]>();
 /**
  * The tech priority list of `tag`: its groups, the tail, then everything
  * else; each group in WW_TECH_IDS order. Other schools' doctrines are left
- * out (one school only, spec §9.3).
+ * out (one school only, spec §9.3), and so are the special troops it does
+ * not field (wantsTech).
  */
 export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
   const cached = researchOrders.get(tag);
@@ -359,12 +395,13 @@ export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
     }
   };
   const schoolTechs = WW_TECH_IDS.filter((t) => WW_TECHS[t].school === school);
-  for (const g of groups) add(g === "school" ? schoolTechs : GROUP_TECHS[g]);
+  for (const g of groups) {
+    add(g === "school" ? schoolTechs : groupTechs(tag, g));
+  }
   add(
     WW_TECH_IDS.filter((t) => {
-      if (UNPLACED_LAND_TECHS.has(t)) return false;
       const s = WW_TECHS[t].school;
-      return s === undefined || s === school;
+      return (s === undefined || s === school) && wantsTech(tag, t);
     }),
   );
   researchOrders.set(tag, out);

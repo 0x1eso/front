@@ -456,10 +456,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
   });
 
   test("research stays within half a year of a tech's year, then nine months", () => {
-    // Germany on day 0 (techs of spec §11.1): mobile_1 and electronics_1
-    // are 1936 techs; nothing else is within 50%, and a 1937 tech is a full
-    // year (100%) ahead, past the 75% fallback: the third slot waits. From
-    // April 1936 a 1937 tech is within the fallback. Nothing from 1938.
+    // Germany on day 0 (techs of spec §11.1): mobile_1, fortification_1
+    // (P2 Task 6: the construction group) and electronics_1 are 1936 techs;
+    // nothing else is within 50%, and a 1937 tech is a full year (100%)
+    // ahead, past the 75% fallback: a fourth slot waits. From April 1936 a
+    // 1937 tech is within the fallback. Nothing from 1938.
     const researched: WwTechId[] = [
       "inf_eq_1",
       "support_eq_1",
@@ -472,6 +473,10 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "anti_air_1",
       "construction_1",
       "tools_1",
+      // P2: its land start techs (LandStart.landStartTechs).
+      "engineer_company",
+      "recon_company",
+      "mountaineers",
     ];
     const deu = (day: number, slotCount: number) =>
       only(
@@ -488,14 +493,15 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         "research",
       ).map((o) => o.tech);
     expect(AI_FALLBACK_AHEAD_PCT).toBe(75);
-    expect(deu(0, 3)).toEqual(["mobile_1", "electronics_1"]);
-    expect(deu(0, 5)).toEqual(["mobile_1", "electronics_1"]);
-    // 1936-04-02: 1937 techs are 74% ahead.
+    expect(deu(0, 3)).toEqual(["mobile_1", "fortification_1", "electronics_1"]);
+    expect(deu(0, 5)).toEqual(["mobile_1", "fortification_1", "electronics_1"]);
+    // 1936-04-02: 1937 techs are 74% ahead (rail_1 leads them on
+    // Germany's list, in its construction group).
     expect(deu(dayOfDate("1936-04-02"), 4)).toEqual([
       "mobile_1",
+      "fortification_1",
       "electronics_1",
-      "output_1",
-      "excavation_1",
+      "rail_1",
     ]);
     // Mid-1937: 1938 techs are 50% ahead; tools_2 leads Germany's list.
     expect(deu(dayOfDate("1937-07-04"), 1)).toEqual(["tools_2"]);
@@ -513,7 +519,7 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         ),
         "research",
       ).map((o) => o.tech),
-    ).toEqual(["electronics_1"]);
+    ).toEqual(["fortification_1"]);
   });
 
   test("laws follow the personality", () => {
@@ -938,7 +944,9 @@ describe("the AI economy in a game (spec §12)", () => {
     const { runner, econ, ce } = await allAi();
     // Every slot at work from the start (aiStartSetup). A 1937 tech is a
     // year ahead on day 0, past the fallback: Germany's third slot takes
-    // the least early one (a HOI4 player fills every slot).
+    // the least early one (a HOI4 player fills every slot). P2 Task 6:
+    // fortification_1 (1936, its construction group) comes before
+    // electronics_1 (the tail) and fills the third slot.
     for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
       const c = ce(tag);
       expect(c.slots).toHaveLength(c.totals.slotCount);
@@ -946,18 +954,19 @@ describe("the AI economy in a game (spec §12)", () => {
     }
     expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
       "mobile_1",
+      "fortification_1",
       "electronics_1",
-      "output_1",
     ]);
+    // Poland (a minor: construction first) takes the fort tech next.
     expect(ce("POL").slots.map((s) => s!.tech)).toEqual([
       "construction_1",
-      "anti_tank_1",
+      "fortification_1",
     ]);
     throughDay(runner, 0);
     expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
       "mobile_1",
+      "fortification_1",
       "electronics_1",
-      "output_1",
     ]);
     throughDay(runner, dayOfDate("1936-04-02"));
     for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
