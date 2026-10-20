@@ -771,7 +771,20 @@ export interface ResourceRowView {
   balance: number;
 }
 
+/**
+ * The six resource rows (spec §13.3 tab 3). "Used" is what the working
+ * lines need (their resources × active factories, as HOI4's resource view),
+ * not what the engine could give them: with the given amount the balance
+ * could never fall below zero, so a shortage would never show red.
+ */
 export function resourceRows(detail: WwCountryDetail): ResourceRowView[] {
+  const need = RESOURCE_IDS.map(() => 0);
+  for (const l of detail.lines) {
+    const per = EQUIPMENT[l.equipment].resources;
+    RESOURCE_IDS.forEach((_, r) => {
+      need[r] += per[r] * l.active;
+    });
+  }
   return RESOURCE_IDS.map((id, r) => {
     const row = detail.resources[r] ?? {
       produced: 0,
@@ -781,8 +794,11 @@ export function resourceRows(detail: WwCountryDetail): ResourceRowView[] {
     };
     return {
       id,
-      ...row,
-      balance: row.produced - row.exported + row.imported - row.used,
+      produced: row.produced,
+      exported: row.exported,
+      imported: row.imported,
+      used: need[r],
+      balance: row.produced - row.exported + row.imported - need[r],
     };
   });
 }
@@ -1177,9 +1193,26 @@ export function industryDial(
       first === undefined || first.costMilli <= 0
         ? 0
         : first.progressMilli / first.costMilli,
-    idle: summary?.idleMil ?? 0,
+    idle: summary === null ? 0 : idleMilOf(summary, detail),
     queued: detail.queue.length,
   };
+}
+
+/**
+ * Military factories without a line. The engine's daily trim
+ * (Production.stepProduction: the lines, top first, take what is left)
+ * leaves exactly `mil − the factories the lines ask for`. Counted from the
+ * lines it is right at once — in the preparation minute, before the
+ * engine's first day, and right after a line order — while the summary's
+ * `idleMil` only moves on the country's next day (it is 0 until day 0).
+ */
+export function idleMilOf(
+  summary: WwCountrySummary,
+  detail: WwCountryDetail,
+): number {
+  let asked = 0;
+  for (const l of detail.lines) asked += l.factories;
+  return Math.max(0, summary.mil - asked);
 }
 
 export interface ResearchDialModel {

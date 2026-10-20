@@ -78,7 +78,9 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
 
   it("the industry badge shows idle factories", async () => {
     const m = await mountDials({
-      summaries: [summary("DEU", { idleMil: 3 })],
+      // Three military factories and no line: three idle, whatever the
+      // engine's last daily idleMil (0 before day 0).
+      summaries: [summary("DEU", { mil: 3, idleMil: 0 })],
       details: [
         detail("DEU", {
           queue: [
@@ -103,10 +105,28 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
     expect(i.querySelector("[data-ring]")!.getAttribute("data-progress")).toBe(
       "0.25",
     );
-    // Every factory on a line: no badge, once the next day's data comes.
+    // Every factory on a line: no badge at once, before the engine's next
+    // day recounts its own idleMil (still 3 here).
     m.view.apply({
-      countries: [summary("DEU", { idleMil: 0 })],
-      details: [],
+      countries: [summary("DEU", { mil: 3, idleMil: 3 })],
+      details: [
+        detail("DEU", {
+          lines: [
+            {
+              id: 1,
+              equipment: "infantry_equipment",
+              gen: 1,
+              factories: 3,
+              active: 0,
+              effBp: 1_000,
+              progressMilli: 0,
+              costMilli: 500,
+              fill: 1000,
+              outputMilli: 0,
+            },
+          ],
+        }),
+      ],
       regions: [],
     });
     m.el.tick();

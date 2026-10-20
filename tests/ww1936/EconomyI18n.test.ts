@@ -13,6 +13,7 @@ import {
   WW_TECH_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import fs from "fs";
+import IntlMessageFormat from "intl-messageformat";
 import path from "path";
 
 const lang = (code: string) =>
@@ -154,6 +155,16 @@ const KEYS = [
 describe("World War 1936 P1 economy strings", () => {
   const en = lang("en");
   const ko = lang("ko");
+
+  it("the built notice reads right for one building and for several", () => {
+    const say = (code: string, msg: unknown, count: number) =>
+      new IntlMessageFormat(msg as string, code).format({ count });
+    const e = get(en, "events_display.ww1936_built");
+    const k = get(ko, "events_display.ww1936_built");
+    expect(say("en", e, 1)).toBe("1 building completed");
+    expect(say("en", e, 3)).toBe("3 buildings completed");
+    expect(say("ko", k, 1)).toBe("건물 1개 완성");
+  });
 
   it("has the expected number of block reasons", () => {
     expect(WW_ORDER_BLOCKS.length).toBe(25);

@@ -1547,7 +1547,7 @@
     "victory_project_started": "{name} started the {project}! Capture or destroy its building to stop it.",
     "wants_to_renew_alliance": "{name} wants to renew your alliance",
     "world_gov_awaiting": "{name}'s world government is proclaimed and awaits the congress's ratification",
-    "ww1936_built": "{count} buildings completed",
+    "ww1936_built": "{count, plural, one {# building completed} other {# buildings completed}}",
     "ww1936_capitulated": "{loser} has capitulated to {victor}",
     "ww1936_capitulated_no_victor": "{loser} has capitulated",
     "ww1936_not_at_war": "Not at war with {name}",
