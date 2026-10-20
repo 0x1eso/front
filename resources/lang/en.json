@@ -3598,6 +3598,54 @@
       "ZAF": "South Africa"
     },
     "date": "{day} {month} {year}",
+    "decision": {
+      "gen_coup_com": "Back a Communist Coup",
+      "gen_coup_dem": "Back a Democratic Coup",
+      "gen_coup_fas": "Back a Fascist Coup",
+      "gen_coup_neu": "Back a Non-Aligned Coup",
+      "gen_emergency_draft": "Emergency Call-Up",
+      "gen_fortify_border": "Fortify the Border",
+      "gen_hire_general": "Promote an Officer",
+      "gen_industrial_subsidy": "Industrial Subsidies",
+      "gen_invite_neighbours": "Invite a Neighbour",
+      "gen_join_allies": "Ask to Join the Allies",
+      "gen_join_axis": "Ask to Join the Axis",
+      "gen_join_comintern": "Ask to Join the Comintern",
+      "gen_martial_law": "Martial Law",
+      "gen_party_support_com": "Back the Communists",
+      "gen_party_support_dem": "Back the Democrats",
+      "gen_party_support_fas": "Back the Fascists",
+      "gen_party_support_neu": "Back the Non-Aligned",
+      "gen_rally": "Mass Rallies",
+      "gen_suppress_opposition": "Curb the Opposition",
+      "gen_suspend_elections": "Suspend Elections",
+      "gen_tech_exchange": "Technical Exchange",
+      "gen_war_bonds": "War Bonds"
+    },
+    "decision_desc": {
+      "gen_coup_com": "For 90 days, arms and money go to communists abroad; if they reach half the country's support, its government falls.",
+      "gen_coup_dem": "For 90 days, arms and money go to democrats abroad; if they reach half the country's support, its government falls.",
+      "gen_coup_fas": "For 90 days, arms and money go to fascists abroad; if they reach half the country's support, its government falls.",
+      "gen_coup_neu": "For 90 days, arms and money go to non-aligned factions abroad; if they reach half the country's support, its government falls.",
+      "gen_emergency_draft": "Wider age limits and fewer deferments put more men into uniform at once.",
+      "gen_fortify_border": "Positions and obstacles go up quickly along the border with the most threatening neighbour.",
+      "gen_hire_general": "An able colonel is promoted to general and given an army to lead.",
+      "gen_industrial_subsidy": "Grants to builders and manufacturers speed up work on civilian factories.",
+      "gen_invite_neighbours": "Invite a non-aligned neighbour without a faction into the entente we lead.",
+      "gen_join_allies": "Ask the leader of the Allies to accept us as a member.",
+      "gen_join_axis": "Ask the leader of the Axis to accept us as a member.",
+      "gen_join_comintern": "Ask the leader of the Comintern to accept us as a member.",
+      "gen_martial_law": "The army takes over policing and bans gatherings; order returns, but the factories slow down.",
+      "gen_party_support_com": "Money and leaflets for another country's communists widen their support for 180 days.",
+      "gen_party_support_dem": "Money and newspapers for another country's democratic parties widen their support for 180 days.",
+      "gen_party_support_fas": "Money and leaflets for another country's fascists widen their support for 180 days.",
+      "gen_party_support_neu": "Money and newspapers for another country's non-aligned factions widen their support for 180 days.",
+      "gen_rally": "Rallies across the country win new supporters for the ruling party for 90 days.",
+      "gen_suppress_opposition": "The largest opposition's papers and meetings are restricted; its support falls, but resentment grows.",
+      "gen_suspend_elections": "General elections wait until the war is over, and the sitting parliament carries on.",
+      "gen_tech_exchange": "Engineers sent to our faction's leader bring home a technology we still lack.",
+      "gen_war_bonds": "Selling bonds to the public raises money for the war and ties citizens to its outcome."
+    },
     "declare": {
       "block": {
         "at_war": "Already at war",
@@ -3815,6 +3863,103 @@
       "motorized": "Trucks",
       "support_equipment": "Support equipment"
     },
+    "event_desc": {
+      "gen_call_to_arms": "A member of our faction has gone to war and asks us to fight at its side. Answering the call makes its enemy our enemy. Refusing would keep us out of the war but cost us trust within the alliance.",
+      "gen_coup_done": "Overnight, army units and their political allies seized the ministries and the radio station in the capital. The old government has fallen, and the new one has announced its rule on the radio. Rumours in the streets say a foreign power helped.",
+      "gen_diplo_access": "A government asks that its troops be allowed to cross our territory. If we agree, its armies may move through and stay on our soil. We may withdraw permission whenever we wish.",
+      "gen_diplo_faction_invite": "The leader of a faction has invited us to become a member. Members fight together and defend one another. If the faction is at war, we will be at war with its enemies at once.",
+      "gen_diplo_faction_request": "A government has asked to join our faction. Accepting means its borders become a front we must help to hold. A new member takes part in every war the faction fights.",
+      "gen_diplo_nap": "A government proposes a treaty under which neither side will attack the other. While it lasts, neither may justify a war against the other or declare one. Breaking it later would take time and cost us dearly.",
+      "gen_election": "The polls have closed and every ballot box has been opened. The voters decide who should lead parliament, but how the result is received is for the present government to settle. The whole country is watching.",
+      "gen_government_shift": "A political movement has won over most of the nation and now speaks for the majority. Crowds and newspapers demand that the cabinet step down and hand over power. The government cannot put off its answer for long.",
+      "gen_guarantee_called": "A country whose independence we guaranteed has been attacked. Keeping our word means war with the aggressor. Standing aside would spare us the fighting, but our promises would carry little weight again.",
+      "gen_justified_against": "Reports say a foreign government has begun building a case for war against us. The newspapers write daily of troop movements and hostile speeches beyond the border. Now is the time to strengthen our defences.",
+      "gen_peace_movement": "As the war drags on, rallies and petitions for peace appear across the country. More deputies speak openly of a negotiated end. The government must let the movement be heard or answer it with propaganda.",
+      "gen_regime_crisis": "For more than a month a movement outside the government has held the support of most of the people. Strikes and demonstrations go on, and doubts are spreading among officers and officials. The government must step aside or hold on by force.",
+      "gen_strike": "Workers angered by low wages and rising prices have laid down their tools. Factories stand idle, and the strike is spreading to the docks and railways. The government can bear the lost output or end the strike with concessions.",
+      "gen_unrest": "Distrust of the government has grown, and protests and clashes break out in several cities. Reports say the police alone can no longer keep order. We must wait for calm or declare martial law.",
+      "gen_war_weariness": "Lost provinces and ever longer casualty lists weigh on the people. More men dodge the draft, and the newspapers have grown gloomy. The government can let morale sag or spend heavily to lift it."
+    },
+    "event_opt": {
+      "gen_call_to_arms": {
+        "a": "Join the war",
+        "b": "Decline the request"
+      },
+      "gen_coup_done": {
+        "a": "A new government takes office"
+      },
+      "gen_diplo_access": {
+        "a": "Grant passage",
+        "b": "Refuse"
+      },
+      "gen_diplo_faction_invite": {
+        "a": "Join the faction",
+        "b": "Decline the invitation"
+      },
+      "gen_diplo_faction_request": {
+        "a": "Welcome them",
+        "b": "Turn them down"
+      },
+      "gen_diplo_nap": {
+        "a": "Sign the pact",
+        "b": "Refuse the offer"
+      },
+      "gen_election": {
+        "a": "Announce the result",
+        "b": "Accept the verdict",
+        "c": "Postpone the election",
+        "d": "Form a coalition"
+      },
+      "gen_government_shift": {
+        "a": "Hand over power",
+        "b": "Play for time"
+      },
+      "gen_guarantee_called": {
+        "a": "Honour the guarantee",
+        "b": "Stand aside"
+      },
+      "gen_justified_against": {
+        "a": "Strengthen the border"
+      },
+      "gen_peace_movement": {
+        "a": "Let them be heard",
+        "b": "Answer with propaganda"
+      },
+      "gen_regime_crisis": {
+        "a": "Step aside",
+        "b": "Crack down on the movement",
+        "c": "The country slides into civil war"
+      },
+      "gen_strike": {
+        "a": "Ride it out",
+        "b": "Settle with the unions"
+      },
+      "gen_unrest": {
+        "a": "Wait for calm",
+        "b": "Declare martial law"
+      },
+      "gen_war_weariness": {
+        "a": "Let it pass",
+        "b": "Lift the nation's spirits"
+      }
+    },
+    "event_title": {
+      "gen_call_to_arms": "A Call to Arms",
+      "gen_coup_done": "A Coup d'État",
+      "gen_diplo_access": "A Request for Passage",
+      "gen_diplo_faction_invite": "An Invitation to Join",
+      "gen_diplo_faction_request": "A Request to Join",
+      "gen_diplo_nap": "A Non-Aggression Offer",
+      "gen_election": "General Election",
+      "gen_government_shift": "Calls for a New Government",
+      "gen_guarantee_called": "A Guarantee Is Called",
+      "gen_justified_against": "A Threat on the Border",
+      "gen_peace_movement": "The Peace Movement",
+      "gen_regime_crisis": "Crisis of the Regime",
+      "gen_strike": "A General Strike",
+      "gen_unrest": "Unrest in the Streets",
+      "gen_war_weariness": "War Weariness"
+    },
     "exp": {
       "elite": "Elite",
       "recruit": "Recruit",
@@ -3825,6 +3970,72 @@
       "allies": "Allies",
       "axis": "Axis",
       "comintern": "Comintern"
+    },
+    "focus": {
+      "gen_air_bases": "More Airfields",
+      "gen_air_force": "Found an Air Force",
+      "gen_army_artillery": "Strengthen the Artillery",
+      "gen_army_doctrine": "Study of Doctrine",
+      "gen_army_fort": "Border Fortifications",
+      "gen_army_infantry": "Modern Infantry Kit",
+      "gen_army_reform": "Army Reorganisation",
+      "gen_army_staff": "Staff College",
+      "gen_ind_civ_1": "Civilian Industry Drive",
+      "gen_ind_civ_2": "Industrial Districts",
+      "gen_ind_infra": "Roads and Railways",
+      "gen_ind_mil_1": "Build Arsenals",
+      "gen_ind_mil_2": "Expand the Arsenals",
+      "gen_ind_resources": "Mineral Development",
+      "gen_ind_survey": "Industrial Survey",
+      "gen_navy_coast": "Coastal Defence",
+      "gen_navy_yards": "Expand the Shipyards",
+      "gen_pol_admin": "Administrative Reform",
+      "gen_pol_claims": "Press Old Claims",
+      "gen_pol_com": "A Workers' State",
+      "gen_pol_com_ally": "International Solidarity",
+      "gen_pol_defence_spirit": "Raise Defence Awareness",
+      "gen_pol_dem": "Defend Democracy",
+      "gen_pol_dem_ally": "Join Hands with the Democracies",
+      "gen_pol_fas": "National Renewal Movement",
+      "gen_pol_fas_ally": "Seek Ties with the Axis",
+      "gen_pol_neu": "Strict Neutrality",
+      "gen_pol_neu_league": "A Regional Entente",
+      "gen_pol_unity": "Unite the Nation",
+      "gen_rs_1": "Promote Science",
+      "gen_rs_2": "Expand the Laboratories"
+    },
+    "focus_desc": {
+      "gen_air_bases": "Paved runways, hangars and repair shops spread across the country, ready for a larger air force.",
+      "gen_air_force": "The flying corps becomes a service of its own and buys its first modern fighters.",
+      "gen_army_artillery": "New gun designs and modern fire control are ordered for the artillery, and gunners train more often.",
+      "gen_army_doctrine": "Officers weigh the lessons of the last war against the new weapons and write down how to fight the next one.",
+      "gen_army_fort": "Bunkers, ditches and obstacles rise where the most dangerous neighbour would strike first.",
+      "gen_army_infantry": "Worn-out rifles and field gear give way to designs fit for the next war, and the support units get new equipment too.",
+      "gen_army_reform": "The general staff redraws the army's organisation, retires tired commanders and promotes able officers.",
+      "gen_army_staff": "A staff college teaches officers to plan operations and to move large formations without confusion.",
+      "gen_ind_civ_1": "Cheap credit and tax relief draw new factories to the towns with the most room to grow.",
+      "gen_ind_civ_2": "Planned districts with power, water and workers' housing let builders raise new plants faster.",
+      "gen_ind_infra": "New highways and branch lines bind the provinces to the capital, its markets and its garrisons.",
+      "gen_ind_mil_1": "State arsenals are founded so that rifles, shells and guns no longer have to be bought abroad.",
+      "gen_ind_mil_2": "Larger arsenals and new trade schools train the skilled hands that modern weapons demand.",
+      "gen_ind_resources": "Geologists chart new deposits, and the state lays roads so that mining companies can reach them.",
+      "gen_ind_survey": "Inspectors visit every mill, mine and workshop to learn what the country can truly make and where money would do the most good.",
+      "gen_navy_coast": "Gun batteries and minefields guard the harbours most exposed to an attack from the sea.",
+      "gen_navy_yards": "The best harbour gets a new slipway, and the navy asks its designers for modern ships.",
+      "gen_pol_admin": "Overlapping ministries are merged, procedures shortened and a career civil service is built.",
+      "gen_pol_claims": "Lands lost in past wars return to the speeches, the schoolbooks and the general staff's maps.",
+      "gen_pol_com": "Trade unions and workers' councils gain a voice, and the ideas of the left spread through the factories.",
+      "gen_pol_com_ally": "The party seeks closer ties with Moscow and the international communist movement.",
+      "gen_pol_defence_spirit": "Newsreels, air-raid drills and veterans' leagues remind citizens that peace has to be guarded.",
+      "gen_pol_dem": "Parliament, a free press and fair elections are held up as the source of the nation's strength.",
+      "gen_pol_dem_ally": "Envoys visit the leading democracies to ask how the country might enter their alliance.",
+      "gen_pol_fas": "A mass movement calls for order and national revival under a single disciplined party.",
+      "gen_pol_fas_ally": "The government sends envoys to Berlin to ask whether a smaller state might enter its bloc.",
+      "gen_pol_neu": "The government formally declares that it will take no side in the quarrels of the great powers.",
+      "gen_pol_neu_league": "Neighbours who fear the great powers are invited into a defensive entente of our own.",
+      "gen_pol_unity": "In a hard decade, rival parties and regions are asked to set their quarrels aside and pull together.",
+      "gen_rs_1": "University grants and a national research council let the country pursue one more line of research.",
+      "gen_rs_2": "Company laboratories work alongside the universities, and the state pays for both."
     },
     "gen": {
       "1": "I",
@@ -4243,6 +4454,42 @@
       "firepower": "Superior firepower",
       "mass": "Mass assault",
       "mobile": "Mobile warfare"
+    },
+    "spirit": {
+      "gen_civil_strife": "Scars of Civil Strife",
+      "gen_democratic_movement": "Democratic Movement",
+      "gen_efficient_government": "Efficient Government",
+      "gen_industrial_subsidy_spirit": "Industrial Subsidies",
+      "gen_industrial_zone": "Planned Industrial Zones",
+      "gen_labour_movement": "Labour Movement",
+      "gen_martial_law_spirit": "Under Martial Law",
+      "gen_mining_drive": "Mining Drive",
+      "gen_neutrality_declared": "Declared Neutrality",
+      "gen_rally_spirit": "Mass Rallies",
+      "gen_renewal_movement": "Renewal Movement",
+      "gen_research_institutes": "National Laboratories",
+      "gen_skilled_workforce": "Trained Workforce",
+      "gen_staff_training": "Staff Training",
+      "gen_strike_losses": "Strike Losses",
+      "gen_war_bonds_spirit": "War Bonds"
+    },
+    "spirit_desc": {
+      "gen_civil_strife": "The government changed after civil strife, but wrecked factories and a divided people remain.",
+      "gen_democratic_movement": "Civic leagues that stand for democracy keep winning new supporters.",
+      "gen_efficient_government": "A leaner administration gets more done with the same effort.",
+      "gen_industrial_subsidy_spirit": "Subsidised builders put up civilian factories faster.",
+      "gen_industrial_zone": "Ready-made industrial zones let new buildings go up faster.",
+      "gen_labour_movement": "Unions and left-wing clubs widen support for communism step by step.",
+      "gen_martial_law_spirit": "Soldiers on the streets have restored order, but the factories have lost hands.",
+      "gen_mining_drive": "New mines and machinery bring more ore and oil out of the ground.",
+      "gen_neutrality_declared": "Our formal neutrality makes it slower for others to build a case for war against us.",
+      "gen_rally_spirit": "While the rallies go on, the ruling party gains a little support every day.",
+      "gen_renewal_movement": "A mass movement calling for national renewal keeps widening support for fascism.",
+      "gen_research_institutes": "State-funded laboratories speed up every field of research a little.",
+      "gen_skilled_workforce": "Graduates of the trade schools push the production lines closer to their best.",
+      "gen_staff_training": "Staff college graduates prepare operations sooner and pass their experience to the army.",
+      "gen_strike_losses": "Factories that stood idle have not yet returned to full speed.",
+      "gen_war_bonds_spirit": "Citizens who bought bonds see the war as their own, though they also want more consumer goods."
     },
     "stance": {
       "aggressive": "Aggressive",

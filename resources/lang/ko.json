@@ -1,10 +1,4 @@
 {
-  "lang": {
-    "en": "Korean",
-    "lang_code": "ko",
-    "native": "한국어",
-    "svg": "kr"
-  },
   "account_modal": {
     "cancel_subscription": "취소",
     "cancel_subscription_confirm": "구독을 해지하시겠습니까? 즉시 이용 혜택이 중단될 수 있습니다.",
@@ -185,25 +179,25 @@
   "build_menu": {
     "cant_build_here": "여기에는 건설할 수 없습니다",
     "desc": {
+      "admin_office": "정치력을 생산합니다. 레벨당 초당 금 50 유지비.",
+      "airport": "범위 안 공수 투입·폭격, 무역 상대 공항과 화물 항공로",
       "atom_bomb": "소형 폭발을 일으킵니다",
+      "bomber": "공항에서 조준점을 지나는 48칸 선 위에 소형 폭탄 8발을 융단 폭격, SAM 요격을 절반은 피함",
       "city": "최대 인구 수를 증가시킵니다",
+      "coastal_barrage": "미사일 발사대에서 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
+      "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다",
+      "conventional_missile": "발사대에서 쏴 적 건물의 레벨을 1 낮춥니다. 공장이면 만들던 핵이 사라집니다",
       "defense_post": "주변 국경의 방어력을 강화합니다",
       "factory": "철도를 건설하고 기차를 생성합니다",
       "hydrogen_bomb": "대형 폭발을 일으킵니다",
       "mirv": "선택된 플레이어만을 대상으로 초대형 폭발을 일으킵니다",
       "missile_silo": "핵 미사일 발사를 위해 사용됩니다",
-      "port": "무역선을 보내 금을 생산합니다",
-      "sam_launcher": "들어오는 핵미사일을 방어합니다",
-      "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다",
-      "admin_office": "정치력을 생산합니다. 레벨당 초당 금 50 유지비.",
-      "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비.",
-      "airport": "범위 안 공수 투입·폭격, 무역 상대 공항과 화물 항공로",
-      "bomber": "공항에서 조준점을 지나는 48칸 선 위에 소형 폭탄 8발을 융단 폭격, SAM 요격을 절반은 피함",
       "paradrop": "공항에서 병력(공격 비율)을 실어 조준한 곳에 내립니다",
-      "coastal_barrage": "미사일 발사대에서 일제 포격: 해안 포대 파괴, 20초간 방어 약화",
-      "coastal_battery": "해안 근처의 적 수송선과 군함을 포격합니다",
-      "conventional_missile": "발사대에서 쏴 적 건물의 레벨을 1 낮춥니다. 공장이면 만들던 핵이 사라집니다",
-      "satellite": "재사용 가능, 동시에 하나만: 발사대에서 90초 준비 뒤 한 나라를 포격합니다(건물 전부, 병력 70%, 땅이 바다로). 쏘아 올릴 때마다 다음 가격이 2배가 됩니다"
+      "port": "무역선을 보내 금을 생산합니다",
+      "research_institute": "과학력을 생산합니다. 레벨당 초당 금 50 유지비.",
+      "sam_launcher": "들어오는 핵미사일을 방어합니다",
+      "satellite": "재사용 가능, 동시에 하나만: 발사대에서 90초 준비 뒤 한 나라를 포격합니다(건물 전부, 병력 70%, 땅이 바다로). 쏘아 올릴 때마다 다음 가격이 2배가 됩니다",
+      "warship": "무역선을 나포하고, 수송선과 함선을 파괴합니다"
     },
     "not_enough_money": "돈이 부족합니다",
     "upgrade_amount": "x{amount}",
@@ -221,6 +215,7 @@
       "focus": "[P1]에게 집중 공격하자!",
       "mirv": "[P1]에게 다탄두 미사일을 발사 해야해!"
     },
+    "build": "메시지를 작성하세요...",
     "cat": {
       "attack": "공격",
       "defend": "방어",
@@ -229,6 +224,7 @@
       "misc": "기타",
       "warnings": "경고"
     },
+    "category": "카테고리",
     "defend": {
       "ally": "[P1]은(는) 내 동맹이야!",
       "build_posts": "방어 초소를 건설해!",
@@ -274,7 +270,11 @@
       "strategy": "좋은 전략이야!",
       "team_up": "힘을 합쳐 [P1]을(를) 공격하자!"
     },
+    "phrase": "문장",
+    "player": "플레이어",
     "search": "플레이어 찾기...",
+    "send": "보내기",
+    "sort_by_territory": "영토순 정렬",
     "title": "빠른 채팅",
     "to": "{user}에게: {msg}",
     "warnings": {
@@ -287,21 +287,15 @@
       "mirv_ready": "[P1]은(는) 다탄두 미사일 발사를 위한 금이 충분히 있어!",
       "mirv_soon": "[P1]은(는) 곧 다탄두 미사일을 쏠 수 있어!",
       "no_allies": "[P1]은(는) 동맹이 없어.",
+      "number1_warning": "우리가 힘을 합치지 않으면 1등 플레이어가 곧 이길 거야!",
       "saving_for_mirv": "[P1]이(가) 다탄두 미사일 발사용 금을 모으고 있어.",
       "snowballing": "[P1]이(가) 너무 빨리 커지고 있어!",
       "stalemate": "평화를 맺자. 이건 교착 상태야, 우리 둘 다 질 거야.",
       "stop_trading": "[P1]과 무역을 중단해!",
       "stop_trading_all": "모든 교역을 중단해 줘!",
       "strong": "[P1]은(는) 강해.",
-      "weak": "[P1]은(는) 약해.",
-      "number1_warning": "우리가 힘을 합치지 않으면 1등 플레이어가 곧 이길 거야!"
-    },
-    "build": "메시지를 작성하세요...",
-    "category": "카테고리",
-    "phrase": "문장",
-    "player": "플레이어",
-    "send": "보내기",
-    "sort_by_territory": "영토순 정렬"
+      "weak": "[P1]은(는) 약해."
+    }
   },
   "clan_modal": {
     "applied": "적용됨",
@@ -551,6 +545,223 @@
     "target_dead": "목표 제거 완료",
     "target_dead_note": "제거된 플레이어에게 자원을 보낼수 없습니다."
   },
+  "congress": {
+    "band": {
+      "active": "🚨 {kind} vs {name} — {goal} · {time}",
+      "available": "🚨 {name}: {kind} — 긴급 회의를 소집할 수 있습니다",
+      "available_target": "🚨 다른 나라가 당신에 대한 {kind}를 소집할 수 있습니다",
+      "convene": "소집 · 🗳{cost}",
+      "member": "참전 중",
+      "target": "당신이 대상입니다",
+      "voting": "🚨 긴급 회의: {kind} vs {name} · {seconds}초"
+    },
+    "banned": "🏛 금지됨",
+    "banned_reason": "의회 결의로 지금은 금지됩니다",
+    "block": {
+      "friendly": "동맹에게는 소집할 수 없습니다",
+      "influence": "영향력 {cost}가 필요합니다",
+      "sanctioned": "제재 중에는 소집할 수 없습니다",
+      "seat": "의석이 있는 나라만 소집할 수 있습니다",
+      "target": "당신이 대상입니다",
+      "unavailable": "지금은 소집할 수 없습니다",
+      "window": "회기 중이거나 곧 회기가 열립니다"
+    },
+    "card": {
+      "adopted": "채택 {option} · {a} : {b}",
+      "b_only": "반대만 할 수 있습니다",
+      "bad": "내게 불리",
+      "collapsed": "🏛 {seconds}초 · {voted}/{total} 투표함",
+      "extra": "+{votes} · {cost}",
+      "good": "내게 유리",
+      "no_seat": "이 안건에 의석 없음",
+      "tied": "동점 부결 · {a} : {b}",
+      "turnout": "투표 {voted}/{total}",
+      "your_vote": "내 표: {option} +{extra}"
+    },
+    "chip": {
+      "until_project": "끝날 때까지"
+    },
+    "dial": {
+      "influence": "🗳 {value}"
+    },
+    "discounted": "기술 협정 −30%",
+    "emergency": {
+      "aggression": "침략 비상",
+      "hegemony": "패권 비상",
+      "nuclear": "핵 비상"
+    },
+    "goal": {
+      "land": "땅 {progress}/{goal}",
+      "silos": "사일로 {progress}/{goal}"
+    },
+    "param": {
+      "tradeShip": "무역선",
+      "train": "기차"
+    },
+    "reason": {
+      "aggressor": "최근 3분 침략 1위: {name} (세계 땅 {pct}%)",
+      "aggressor_government": "침략 1위 {name}의 정부",
+      "aggressor_law": "침략 1위 {name}의 법",
+      "common_government": "가장 많은 나라의 정부",
+      "convened": "소집: {name}",
+      "global": "이번 시대의 규칙",
+      "most_built": "지난 회기 이후 최다 착공: {count}",
+      "project": "{name}의 승리 프로젝트 ({pct}%)",
+      "runaway": "땅 1위 {name}: 2위의 {ratio}배",
+      "victim": "최근 3분 피해 1위: {name} {pct}% 잃음",
+      "war_pair": "최근 2분 최대 전쟁: {name} ↔ {target} ({pct}%)"
+    },
+    "resolution": {
+      "arms_embargo": {
+        "a": "금수",
+        "a_effect": "새 핵·미사일·위성·폭격·해안 포격·발사대 금지 (비축은 발사 가능)",
+        "b": "군사 원조",
+        "b_effect": "발사대·SAM 건설비 −30%, 핵 제조 50% 빠름",
+        "name": "무기 금수"
+      },
+      "arms_treaty": {
+        "a": "군축",
+        "a_effect": "모두 최대 병력 −15%, 금 수입 +15%",
+        "b": "군비 경쟁",
+        "b_effect": "모두 최대 병력 +15%, 금 수입 −10%",
+        "name": "군비 조약"
+      },
+      "building_pact": {
+        "a": "진흥",
+        "a_effect": "건설비 −40%, 건설 시간 −50%",
+        "b": "금지",
+        "b_effect": "아무도 짓거나 레벨업할 수 없음",
+        "name": "건설 협정"
+      },
+      "emergency": {
+        "a": "찬성·참전",
+        "a_effect": "회원: 대상 상대로 속도 +20%, 손실 −20%",
+        "b": "반대",
+        "b_effect": "비상 없음",
+        "name": "비상 선포"
+      },
+      "government_resolution": {
+        "a": "지지",
+        "a_effect": "그 정부의 나라: 정치력 +25%, 영향력 ×1.25",
+        "b": "규탄",
+        "b_effect": "그 정부의 나라: 정치력 −25%, 영향력 0",
+        "name": "정부 결의"
+      },
+      "hegemony_check": {
+        "a": "견제",
+        "a_effect": "과학력·정치력 −20%, 공격하는 나라 손실 −15%",
+        "b": "지도국 인정",
+        "b_effect": "금 수입 +15%",
+        "name": "패권 견제"
+      },
+      "law_review": {
+        "a": "권장",
+        "a_effect": "그 법을 가진 나라: 효과 ×1.5",
+        "b": "효력 정지",
+        "b_effect": "그 법을 가진 나라: 효과 꺼짐",
+        "name": "법 심사"
+      },
+      "non_proliferation": {
+        "a": "비확산",
+        "a_effect": "아무도 새 핵을 만들거나 살 수 없음 (비축 유지)",
+        "b": "개발 경쟁",
+        "b_effect": "핵 비용 −25%, 제조 50% 빠름",
+        "name": "핵 비확산 조약"
+      },
+      "protectorate": {
+        "a": "보호국",
+        "a_effect": "공격하는 나라 손실 +40%, 속도 −20%, 방어 손실 −20%",
+        "b": "분할 승인",
+        "b_effect": "공격하는 나라 손실 −20%",
+        "name": "보호국 지정"
+      },
+      "research_fund": {
+        "a": "과학 우선",
+        "a_effect": "과학력 +20%, 정치력 −10%",
+        "b": "정치 우선",
+        "b_effect": "정치력 +20%, 과학력 −10%",
+        "name": "연구 기금"
+      },
+      "sanction": {
+        "a": "제재",
+        "a_effect": "무역 금지, 금 −20%, 기부 못 받음, 영향력 0",
+        "b": "묵인",
+        "b_effect": "무역 수익 +30%",
+        "name": "경제 제재"
+      },
+      "tech_pact": {
+        "a": "기술 확산",
+        "a_effect": "2개국 이상 완료한 기술 비용·시간 −30%",
+        "b": "선도국 특허",
+        "b_effect": "새 기술을 처음 완료하면 과학력 60초분",
+        "name": "기술 협정"
+      },
+      "trade_pact": {
+        "a": "장려",
+        "a_effect": "그 무역 수익 +50%",
+        "b": "규제",
+        "b_effect": "그 무역 수익 −50%",
+        "name": "무역 협정"
+      },
+      "truce": {
+        "a": "휴전",
+        "a_effect": "120초 동안 서로 적대 행위 불가",
+        "b": "결전",
+        "b_effect": "120초 동안 서로 공격 속도 +25%, 손실 −15%",
+        "name": "휴전 결의"
+      },
+      "war_tax": {
+        "a": "전쟁세",
+        "a_effect": "먼저 공격 중이면 금 −30%, 유지비 +50%",
+        "b": "전시 특수",
+        "b_effect": "먼저 공격 중이면 금 +20%",
+        "name": "전쟁세"
+      },
+      "world_government": {
+        "a": "승인",
+        "a_effect": "선포 60초 앞당김, 비준",
+        "b": "거부",
+        "b_effect": "선포 60초 늦춤, 비준 안 됨",
+        "name": "세계 정부 승인"
+      },
+      "world_heritage": {
+        "a": "보호",
+        "a_effect": "끝날 때까지 연구소 파괴 불가 (점령은 가능)",
+        "b": "저지",
+        "b_effect": "그 나라 공격 속도 +20%, 손실 −20%, 침략 아님",
+        "name": "세계 유산"
+      }
+    },
+    "screen": {
+      "active": "현행 결의",
+      "aggressors": "침략 순위 (3분)",
+      "available": "소집 가능",
+      "cooldown": "다음 비상까지 {time}",
+      "emergencies_left": "이번 판 남은 비상: {count}",
+      "emergency": "비상",
+      "history": "지난 결과",
+      "influence": "영향력 {value}",
+      "next_session": "다음 회기까지 {time}",
+      "none": "없음",
+      "not_ratified": "비준 안 됨",
+      "rate": "+{rate}/초",
+      "victims": "피해 순위 (3분)",
+      "voting_now": "투표 중 · {seconds}초 남음",
+      "world_gov": "세계 정부",
+      "world_gov_ratified": "{name}: 비준됨"
+    },
+    "status": {
+      "aggressing": "전쟁 중 · 0/초",
+      "capped": "상한 (300)",
+      "peaceful": "평화 중",
+      "sanctioned": "제재 중 · 0/초",
+      "target": "비상 대상 · 0/초"
+    },
+    "toast": {
+      "adopted": "🏛 채택: {title} — {option} ({a} : {b})",
+      "tied": "🏛 동점 부결: {title} ({a} : {b})"
+    }
+  },
   "control_panel": {
     "allied_afk_neighbor_info": "동맹 상태라도 접속이 끊긴 플레이어는 공격할 수 있습니다.",
     "army_limit_warning": "군대 한도에 거의 도달했습니다! 팀원에게 병력을 지원해 보세요.",
@@ -577,18 +788,18 @@
     "public_lobbies_info": "누구나 참여할 수 있도록 공개 목록에 표시되는 커스텀 로비를 생성합니다.",
     "rare": "레어",
     "search": "검색...",
+    "signup_bonus": "가입 보너스",
     "soft": "캡",
     "type_crown": "왕관",
     "type_effect": "{type} 효과",
     "type_flag": "국기",
     "type_skin": "스킨",
     "uncommon": "희귀",
+    "unlimited_ranked": "무제한 랭크전",
+    "unlimited_ranked_info": "플레이할 수 있는 랭크전 게임 수에 제한이 없습니다.",
     "usd_value": "가치: {usd}",
     "verified_name": "인증된 사용자명",
-    "verified_name_info": "사용자명이 계정에 귀속되며 인게임에서 인증 배지가 표시됩니다.",
-    "signup_bonus": "가입 보너스",
-    "unlimited_ranked": "무제한 랭크전",
-    "unlimited_ranked_info": "플레이할 수 있는 랭크전 게임 수에 제한이 없습니다."
+    "verified_name_info": "사용자명이 계정에 귀속되며 인게임에서 인증 배지가 표시됩니다."
   },
   "creator_code": {
     "change": "변경",
@@ -728,6 +939,373 @@
   "discord_user_header": {
     "avatar_alt": "아바타"
   },
+  "domestic": {
+    "blocked": {
+      "prereq": "{tech} 필요"
+    },
+    "book": {
+      "all_proclaimed": "모든 법을 선포했습니다",
+      "choose_government": "새 정부를 고를 수 있습니다. 아래에서 고르세요.",
+      "no_income": "정치력 부족",
+      "none_open": "지금 선포할 수 있는 법이 없습니다",
+      "permanent": "되돌릴 수 없습니다. 반대쪽 선택지는 영원히 막힙니다.",
+      "preview": "{tier}단계 정부 미리 보기",
+      "proclaim": "선포 (정치력 {cost})",
+      "ready": "지금 법을 선포할 수 있습니다"
+    },
+    "branch": {
+      "economy": "경제",
+      "learning": "학문",
+      "military": "군사"
+    },
+    "cost": "과학력 {cost} · {seconds}초",
+    "dial": {
+      "government": "새 정부를 고를 수 있음",
+      "queued": "다음 연구: {tech}",
+      "ready": "지금 가능",
+      "seconds": "{seconds}초"
+    },
+    "era": "{era}시대",
+    "gov": {
+      "chiefdom": {
+        "desc": "효과 없음",
+        "name": "족장제"
+      },
+      "communism": {
+        "desc": "모든 건설비 -30%, 모든 건설 시간 -50%, 연구소·행정청 운영비 없음. 5개년 계획: 연구소·행정청 생산 +50%. 무역 수익 -30%",
+        "name": "공산주의"
+      },
+      "democracy": {
+        "desc": "금 수입 +30%, 과학력 +30%, 부족분 금 결제 비용 -50%. 평화 배당: 공격하지 않는 동안 정치력 +30%. 전쟁 피로: 공격하는 동안 정치력 -50%",
+        "name": "민주주의"
+      },
+      "fascism": {
+        "desc": "병력 회복 +30%, 공격할 때 병력 손실 -25%, 징병비 -50%. 전시 경제: 공격하는 동안 금 수입 +30%. 과학력 -20%, 공격하지 않는 동안 금 수입 -10%",
+        "name": "파시즘"
+      },
+      "monarchy": {
+        "desc": "최대 병력 +20%, 유지비 무료 구간 40%→60%. 봉건제: 도시 레벨마다 정치력 0.2/초. 과학력 -15%",
+        "name": "군주제"
+      },
+      "republic": {
+        "desc": "금 수입 +20%, 무역 수익 +25%. 공공사업: 도시 건설 시간 -50%. 징병비 +25%",
+        "name": "공화정"
+      },
+      "theocracy": {
+        "desc": "정치력 +30%, 방어할 때 병력 손실 -20%. 십일조: 초당 금 100 × √(땅 비율 %). 과학력 -15%. 국교 지정 필요",
+        "name": "신정"
+      }
+    },
+    "gov_active": "현재 정부",
+    "gov_adopt": "수립",
+    "gov_current": "정부: {name}",
+    "gov_locked": "다음 단계까지 바꿀 수 없음",
+    "gov_max_tier": "모든 정부 단계 도달",
+    "gov_needs_tier": "{tier}단계에 열림",
+    "gov_passed": "지나간 단계",
+    "gov_progress": "누적 정치력 {value} / {next} ({tier}단계)",
+    "gov_requires_law": "{law} 필요",
+    "gov_tier": "{tier}단계",
+    "law": {
+      "construction": {
+        "A": {
+          "desc": "모든 건설비 -25%",
+          "name": "인프라 투자"
+        },
+        "B": {
+          "desc": "모든 건설 시간 -50%",
+          "name": "공기 단축"
+        },
+        "name": "건설"
+      },
+      "diplomacy": {
+        "A": {
+          "desc": "동맹과의 무역·기차 수익 +50%",
+          "name": "동맹 우대"
+        },
+        "B": {
+          "desc": "다른 나라와 무역 불가, 정치력 +40%, 방어할 때 병력 손실 -10%",
+          "name": "고립주의"
+        },
+        "name": "외교"
+      },
+      "doctrine": {
+        "A": {
+          "desc": "방어 기지 효과 +40%, 방어할 때 병력 손실 -15%",
+          "name": "방어 우선"
+        },
+        "B": {
+          "desc": "공격 속도 +30%, 방어할 때 병력 손실 +10%",
+          "name": "전격전"
+        },
+        "name": "교리"
+      },
+      "learning": {
+        "A": {
+          "desc": "매초 금 300을 과학력 0.5로 전환 (금이 있을 때만)",
+          "name": "연구 보조금"
+        },
+        "B": {
+          "desc": "행정청 생산 +40%",
+          "name": "행정 개혁"
+        },
+        "name": "학문"
+      },
+      "mobilization": {
+        "A": {
+          "desc": "병력이 최대치의 절반 이하면 병력 회복 +100%",
+          "name": "총동원령"
+        },
+        "B": {
+          "desc": "유지비 무료 구간 40%→60%",
+          "name": "예비군"
+        },
+        "name": "동원"
+      },
+      "nuclear": {
+        "A": {
+          "desc": "미사일 기지·SAM 건설비 -30%, 핵 비용 -20%",
+          "name": "핵 억지력"
+        },
+        "B": {
+          "desc": "SAM 사거리 +30%",
+          "name": "방공망"
+        },
+        "name": "핵"
+      },
+      "opinion": {
+        "A": {
+          "desc": "정치력 +25%",
+          "name": "선전부"
+        },
+        "B": {
+          "desc": "과학력 +20%",
+          "name": "학문의 자유"
+        },
+        "name": "여론"
+      },
+      "religion": {
+        "A": {
+          "desc": "신정 수립 가능, 정치력 +15%, 병력 회복 +15%, 과학력 -10%",
+          "name": "국교 지정"
+        },
+        "B": {
+          "desc": "과학력 +15%, 다른 나라와의 무역 수익 +20%, 빈 땅 확장 속도 +20%",
+          "name": "종교 관용"
+        },
+        "name": "종교"
+      },
+      "service": {
+        "A": {
+          "desc": "최대 병력 +25%, 금 수입 -10%",
+          "name": "국민개병"
+        },
+        "B": {
+          "desc": "병력 유지비 -50%, 공격할 때 병력 손실 -15%",
+          "name": "직업 군대"
+        },
+        "name": "병역"
+      },
+      "taxation": {
+        "A": {
+          "desc": "금 수입 +30%, 병력 회복 -15%",
+          "name": "중과세"
+        },
+        "B": {
+          "desc": "도시 세수 +40%, 도시 건설 시간 -50%",
+          "name": "도시 계획"
+        },
+        "name": "조세"
+      },
+      "trade": {
+        "A": {
+          "desc": "무역선·기차 수익 +40%",
+          "name": "자유무역"
+        },
+        "B": {
+          "desc": "도시 세수 +60%, 다른 나라와의 무역 수익 -30%",
+          "name": "보호무역"
+        },
+        "name": "무역"
+      }
+    },
+    "law_cooldown": "{seconds}초 후 선포 가능",
+    "law_next_cost": "다음 법: 정치력 {cost}",
+    "locked_requires": "{tech} 연구 필요",
+    "pay_with_gold": "금 {gold}으로 연구",
+    "per_sec": "+{value}/초",
+    "political": "정치력",
+    "proclaim_with_gold": "금 {gold}으로 선포",
+    "proclaimed": "선포됨",
+    "project": {
+      "political": {
+        "desc": "레벨 3 이상 행정청에서 세계 정부를 선포합니다. 다른 나라를 공격하는 동안에는 멈춥니다.",
+        "name": "세계 정부 선포"
+      },
+      "science": {
+        "desc": "레벨 3 이상 연구소에서 우주 계획을 진행합니다.",
+        "name": "우주 계획"
+      }
+    },
+    "ready_in": "약 {seconds}초 후 가능",
+    "recruit_chip": "징병 {pct}%",
+    "recruit_help": "병력이 최대 병력의 이 비율에 닿으면 더 늘지 않습니다. 낮추면 유지비로 나가는 금이 줄어듭니다.",
+    "recruit_target": "징병 상한 {pct}%",
+    "rejected": "폐기",
+    "research_progress": "{tech} 연구 중: {seconds}초 남음",
+    "researched": "연구 완료",
+    "researching": "연구 중",
+    "science": "과학력",
+    "screen": {
+      "congress": "세계 의회",
+      "laws": "법률서",
+      "research": "연구",
+      "victory": "승리"
+    },
+    "tap_again_to_confirm": "한 번 더 눌러 확정 (되돌릴 수 없음)",
+    "tech": {
+      "academia": {
+        "desc": "연구소 생산 +40%",
+        "name": "학술 기관"
+      },
+      "banking": {
+        "desc": "보유 금에 분당 2% 이자 (최대 초당 1,500)",
+        "name": "은행업"
+      },
+      "bureaucracy": {
+        "desc": "행정청 생산 +40%",
+        "name": "관료제"
+      },
+      "computers": {
+        "desc": "과학력 +30%, 정치력 +15%",
+        "name": "컴퓨터"
+      },
+      "conscription": {
+        "desc": "병력 회복 +25%, 징병비 -30%",
+        "name": "징병제"
+      },
+      "currency": {
+        "desc": "도시 세수 +50%",
+        "name": "화폐 주조"
+      },
+      "fortification": {
+        "desc": "방어 기지 효과 +50%, 방어 기지 건설비 -30%, 해안 포대 해금(확장 전쟁)",
+        "name": "요새 축성"
+      },
+      "global_trade": {
+        "desc": "무역선 출현 +50%, 동맹과의 무역 수익 +50%",
+        "name": "국제 무역"
+      },
+      "globalization": {
+        "desc": "모든 금 수입 +30%",
+        "name": "세계화"
+      },
+      "industrialization": {
+        "desc": "기차 수익 +50%, 모든 건설비 -15%, 공항 해금(확장 전쟁)",
+        "name": "산업화"
+      },
+      "manhattan_project": {
+        "desc": "원자폭탄 해금",
+        "name": "맨해튼 프로젝트"
+      },
+      "mirv": {
+        "desc": "MIRV 해금",
+        "name": "다탄두 미사일"
+      },
+      "navigation": {
+        "desc": "무역선 수익 +40%, 항구 건설비 -25%",
+        "name": "항해술"
+      },
+      "printing_press": {
+        "desc": "정치력 +25%, 법 선포 비용 -15%",
+        "name": "인쇄술"
+      },
+      "radar": {
+        "desc": "SAM 해금",
+        "name": "레이더"
+      },
+      "railroad": {
+        "desc": "공장 해금",
+        "name": "철도"
+      },
+      "rocketry": {
+        "desc": "미사일 기지 해금, 해안 포격 해금(확장 전쟁)",
+        "name": "로켓 공학"
+      },
+      "scientific_method": {
+        "desc": "연구 시간 -30%, 과학력 +15%",
+        "name": "과학적 방법"
+      },
+      "space_program": {
+        "desc": "우주 계획 착수 가능 (과학 승리), 전략 무기에서는 궤도 포격 위성",
+        "name": "우주 개발"
+      },
+      "steel_ships": {
+        "desc": "전함 해금",
+        "name": "강철 함선"
+      },
+      "thermonuclear": {
+        "desc": "수소폭탄 해금",
+        "name": "열핵 무기"
+      }
+    },
+    "tree": {
+      "cancel_queue": "예약 취소",
+      "done": "완료",
+      "era_gate": "{era}시대 열림: {prev}시대 기술 {need}개 ({have}/{need})",
+      "idle": "진행 중인 연구 없음",
+      "idle_hint": "아래에서 기술을 눌러 연구를 시작하세요.",
+      "meta": "{era}시대 · {branch}",
+      "needs_era": "{era}시대 기술 {need}개 필요",
+      "next": "다음 연구",
+      "next_empty": "예약 없음",
+      "next_hint": "예약한 기술은 지금 연구가 끝나고 과학력이 모이면 저절로 시작됩니다 (금은 쓰지 않습니다).",
+      "no_income": "과학력 부족",
+      "queue_auto": "예약 (조건이 되면 저절로 시작)",
+      "queue_confirm": "한 번 더 눌러 예약",
+      "queue_next": "다음 연구로 예약",
+      "queue_replaces": "지금 예약된 기술({tech})은 취소됩니다",
+      "queued": "예약됨",
+      "ready": "지금 연구 가능",
+      "seconds_left": "{seconds}초 남음",
+      "start": "연구 시작 (과학력 {cost})",
+      "unlocks": "해금"
+    },
+    "victory": {
+      "active": "진행 중인 프로젝트",
+      "awaiting_ratification": "의회 비준 대기",
+      "blocked": {
+        "busy": "다른 프로젝트가 진행 중입니다",
+        "gold": "금이 부족합니다",
+        "host": "레벨 3 이상 건물이 필요합니다",
+        "political": "정치력이 부족합니다",
+        "requirement": "조건을 채우지 못했습니다"
+      },
+      "conquest": "정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
+      "cost_political": "금 {gold} + 정치력 {political} · 4분",
+      "cost_science": "금 {gold} · 4분",
+      "host_level": "{building} Lv. {level}",
+      "no_hosts": "레벨 3 이상 건물이 아직 없습니다",
+      "none_active": "진행 중인 프로젝트가 없습니다",
+      "paused": "(일시 정지: 공격 중)",
+      "progress": "{name}: {project} {pct}%",
+      "requirement_political": "정부 3단계 필요",
+      "requirement_science": "우주 개발 기술 필요",
+      "score": "점수: {score} ({count}명 중 {rank}위)",
+      "start": "착수",
+      "team_conquest": "팀 정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
+      "team_score": "팀 점수: {score} ({count}팀 중 {rank}위)",
+      "time_left": "남은 시간: {time}"
+    },
+    "win_reason": {
+      "conquest": "정복 승리",
+      "political": "정치 승리: 세계 정부 선포",
+      "science": "과학 승리: 우주 계획",
+      "score": "점수 승리",
+      "ww_last_camp": "승리: 강대국이 남은 마지막 진영",
+      "ww_score": "전쟁 끝의 승점 판정 승리"
+    }
+  },
   "doomsday_clock": {
     "collapsing": "붕괴 중: -{rate}/초",
     "decay_in": "{secs}초 후 붕괴 시작",
@@ -795,65 +1373,16 @@
     "alliance_request_sent": "{name}님에게 동맹 요청을 보냈습니다.",
     "alliance_request_status": "{name}이(가) 당신의 동맹 요청을 {status}했습니다",
     "atom_bomb_detonated": "{name} - 원자폭탄 폭발",
+    "atom_bomb_inbound": "{name} - 원자폭탄이 날아옵니다",
     "attack_cancelled_retreat": "공격 취소됨, 퇴각 중 {troops}명의 병사 사망",
     "attack_request": "{name}이(가) 당신에게 {target}을(를) 공격해 달라고 요청했습니다",
+    "barrage_inbound": "{name} - 해안 포격이 날아옵니다",
     "betrayal_debuff_ends": "배신 디버프가 끝나기까지 {time}초 남았습니다",
     "betrayal_description": "{name}와의 동맹을 파기했습니다. 당신은 이제 배신자입니다. (방어력 {malusPercent}% 감소, 지속 시간: {durationText})",
     "betrayed_you": "{name}이(가) 당신과의 동맹을 파기했습니다",
-    "conquered_no_gold": "{name} 정복 (플레이하지 않음, 금 미지급)",
-    "duration_second": "1초",
-    "duration_seconds_plural": "{seconds}초",
-    "focus": "초점",
-    "hydrogen_bomb_detonated": "{name} - 수소폭탄 폭발",
-    "ignore": "무시하기",
-    "missile_intercepted": "{unit} 요격됨",
-    "no_boats_available": "배를 사용할 수 없습니다. 최대 {max}대",
-    "received_gold_from_captured_ship": "{name}에게서 나포한 함선으로부터 {gold} 금을 받았습니다",
-    "received_gold_from_conquest": "{name}을(를) 정복하여 {gold} 금을 획득했습니다",
-    "received_gold_from_player": "{name}님으로부터 금 {gold}개를 받았습니다",
-    "received_troops_from_player": "{name}님으로부터 {troops}명의 병력을 받았습니다",
-    "reject_alliance": "거절",
-    "renew_alliance": "갱신 요청",
-    "request_alliance": "{name}이(가) 동맹을 요청했습니다!",
-    "retreating": "후퇴 중",
-    "sent_emoji": "{name} 에게: {emoji}",
-    "sent_gold_to_player": "{gold} 금을 {name}님께 보냈습니다",
-    "sent_troops_to_player": "{troops}명의 병력을 {name}에게 보냈습니다",
-    "trade_ship_captured": "{name}님에게 무역선이 나포되었습니다",
-    "unit_destroyed": "당신의 {unit}이(가) 파괴되었습니다",
-    "unit_voluntarily_deleted": "유닛이 해산되었습니다",
-    "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다",
-    "research_complete": "연구 완료: {tech}",
-    "government_tier_reached": "정부 {tier}단계 도달: 국정 패널에서 새 정부를 고를 수 있습니다",
-    "victory_project_complete": "{name}이(가) {project}을(를) 완성했습니다!",
-    "victory_project_failed": "{name}의 {project}이(가) 실패했습니다",
-    "victory_project_started": "{name}이(가) {project}에 착수했습니다! 건물을 빼앗거나 파괴하면 막을 수 있습니다.",
-    "barrage_inbound": "{name} - 해안 포격이 날아옵니다",
     "bomber_evaded": "폭격기가 SAM을 피했습니다",
     "bomber_inbound": "{name} - 폭격기가 날아옵니다",
     "bombing_detonated": "{name} - 폭격을 맞았습니다",
-    "no_airport_available": "그곳에 보낼 수 있는 공항이 없습니다",
-    "paradrop_inbound": "{name}의 공수부대가 내려옵니다 ({troops})",
-    "naval_invasion_inbound": "{name}의 상륙 부대가 다가옵니다 ({troops})",
-    "atom_bomb_inbound": "{name} - 원자폭탄이 날아옵니다",
-    "hydrogen_bomb_inbound": "{name} - 수소폭탄이 날아옵니다",
-    "mirv_inbound": "⚠️⚠️⚠️ {name} - 다탄두 미사일이 날아옵니다 ⚠️⚠️⚠️",
-    "sent_emoji_all": "모두에게 보냄: {emoji}",
-    "plane_shot_down": "{unit}이(가) 격추되었습니다",
-    "conventional_missile_hit": "{name}의 미사일이 건물을 맞혔습니다",
-    "conventional_missile_inbound": "{name} - 미사일이 날아옵니다",
-    "nuke_production_done": "{unit} 제조 완료: 보유량에 더해졌습니다",
-    "nuke_production_lost": "{name}의 핵 개발이 저지되었습니다",
-    "nuke_production_started": "{name} 핵무기 개발 중",
-    "orbital_strike_result": "{target} 궤도 포격 피격: 건물 {buildings}개 파괴, 병력 {troops} 소실",
-    "satellite_in_orbit": "{name}의 위성이 궤도에 올랐습니다",
-    "satellite_intercept_hit": "{name}의 {unit}이(가) 위성을 격추했습니다!",
-    "satellite_intercept_miss": "{name}의 {unit}이(가) 위성을 빗나갔습니다",
-    "satellite_prep_failed": "{name}의 위성 준비가 실패했습니다",
-    "satellite_preparing": "{name} 궤도 포격 위성 준비 중",
-    "satellite_strike_aborted": "목표가 사라졌거나 우호국이 되어 위성 포격이 취소되었습니다",
-    "satellite_strike_landed": "{name}의 위성 포격이 {target}에 떨어졌습니다",
-    "satellite_targeted": "{name} → {target} 위성 포격 (60초 뒤)",
     "congress_adopted": "🏛 채택: {resolution} — {option} ({a} : {b})",
     "congress_adopted_pair": "🏛 채택: {name} ↔ {target} {resolution} — {option} ({a} : {b})",
     "congress_adopted_target": "🏛 채택: {name} {resolution} — {option} ({a} : {b})",
@@ -869,25 +1398,74 @@
     "congress_tied_pair": "🏛 동점 부결: {name} ↔ {target} {resolution} ({a} : {b})",
     "congress_tied_target": "🏛 동점 부결: {name} {resolution} ({a} : {b})",
     "congress_truce_blocked": "🕊 {name}와(과) 휴전 중",
+    "conquered_no_gold": "{name} 정복 (플레이하지 않음, 금 미지급)",
+    "conventional_missile_hit": "{name}의 미사일이 건물을 맞혔습니다",
+    "conventional_missile_inbound": "{name} - 미사일이 날아옵니다",
+    "duration_second": "1초",
+    "duration_seconds_plural": "{seconds}초",
+    "focus": "초점",
+    "government_tier_reached": "정부 {tier}단계 도달: 국정 패널에서 새 정부를 고를 수 있습니다",
+    "hydrogen_bomb_detonated": "{name} - 수소폭탄 폭발",
+    "hydrogen_bomb_inbound": "{name} - 수소폭탄이 날아옵니다",
+    "ignore": "무시하기",
+    "mirv_inbound": "⚠️⚠️⚠️ {name} - 다탄두 미사일이 날아옵니다 ⚠️⚠️⚠️",
+    "missile_intercepted": "{unit} 요격됨",
+    "naval_invasion_inbound": "{name}의 상륙 부대가 다가옵니다 ({troops})",
+    "no_airport_available": "그곳에 보낼 수 있는 공항이 없습니다",
+    "no_boats_available": "배를 사용할 수 없습니다. 최대 {max}대",
+    "nuke_production_done": "{unit} 제조 완료: 보유량에 더해졌습니다",
+    "nuke_production_lost": "{name}의 핵 개발이 저지되었습니다",
+    "nuke_production_started": "{name} 핵무기 개발 중",
+    "orbital_strike_result": "{target} 궤도 포격 피격: 건물 {buildings}개 파괴, 병력 {troops} 소실",
+    "paradrop_inbound": "{name}의 공수부대가 내려옵니다 ({troops})",
+    "plane_shot_down": "{unit}이(가) 격추되었습니다",
+    "received_gold_from_captured_ship": "{name}에게서 나포한 함선으로부터 {gold} 금을 받았습니다",
+    "received_gold_from_conquest": "{name}을(를) 정복하여 {gold} 금을 획득했습니다",
+    "received_gold_from_player": "{name}님으로부터 금 {gold}개를 받았습니다",
+    "received_troops_from_player": "{name}님으로부터 {troops}명의 병력을 받았습니다",
+    "reject_alliance": "거절",
+    "renew_alliance": "갱신 요청",
+    "request_alliance": "{name}이(가) 동맹을 요청했습니다!",
+    "research_complete": "연구 완료: {tech}",
+    "retreating": "후퇴 중",
+    "satellite_in_orbit": "{name}의 위성이 궤도에 올랐습니다",
+    "satellite_intercept_hit": "{name}의 {unit}이(가) 위성을 격추했습니다!",
+    "satellite_intercept_miss": "{name}의 {unit}이(가) 위성을 빗나갔습니다",
+    "satellite_prep_failed": "{name}의 위성 준비가 실패했습니다",
+    "satellite_preparing": "{name} 궤도 포격 위성 준비 중",
+    "satellite_strike_aborted": "목표가 사라졌거나 우호국이 되어 위성 포격이 취소되었습니다",
+    "satellite_strike_landed": "{name}의 위성 포격이 {target}에 떨어졌습니다",
+    "satellite_targeted": "{name} → {target} 위성 포격 (60초 뒤)",
+    "sent_emoji": "{name} 에게: {emoji}",
+    "sent_emoji_all": "모두에게 보냄: {emoji}",
+    "sent_gold_to_player": "{gold} 금을 {name}님께 보냈습니다",
+    "sent_troops_to_player": "{troops}명의 병력을 {name}에게 보냈습니다",
+    "trade_ship_captured": "{name}님에게 무역선이 나포되었습니다",
+    "unit_destroyed": "당신의 {unit}이(가) 파괴되었습니다",
+    "unit_voluntarily_deleted": "유닛이 해산되었습니다",
+    "victory_project_complete": "{name}이(가) {project}을(를) 완성했습니다!",
+    "victory_project_failed": "{name}의 {project}이(가) 실패했습니다",
+    "victory_project_started": "{name}이(가) {project}에 착수했습니다! 건물을 빼앗거나 파괴하면 막을 수 있습니다.",
+    "wants_to_renew_alliance": "{name}님이 동맹 갱신을 원합니다",
     "world_gov_awaiting": "{name}의 세계 정부 선포 완료 — 의회의 비준을 기다립니다",
+    "ww1936_built": "건물 {count}개 완성",
     "ww1936_capitulated": "{loser}이(가) {victor}에 항복했습니다",
     "ww1936_capitulated_no_victor": "{loser}이(가) 항복했습니다",
-    "ww1936_not_at_war": "{name}와(과) 전쟁 중이 아님",
-    "ww1936_prep_over": "준비가 끝났습니다. 이제 전쟁을 할 수 있습니다",
-    "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
-    "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다",
-    "ww1936_research_done": "연구 완료: {tech}",
-    "ww1936_built": "건물 {count}개 완성",
-    "ww1936_trade_closed": "{seller} — {resource} 거래가 끝났습니다",
-    "ww1936_slot_free": "연구 칸이 비었습니다",
     "ww1936_division_ready": "사단 {count}개 배치",
-    "ww1936_region_taken": "{region} 점령",
-    "ww1936_region_lost": "{region} 상실",
-    "ww1936_encircled": "{army} 포위됨",
     "ww1936_divisions_destroyed": "{region}에서 사단 {count}개 섬멸",
+    "ww1936_encircled": "{army} 포위됨",
     "ww1936_general_available": "{general} 지휘 가능",
     "ww1936_general_lost": "{general} 군을 떠남",
-    "ww1936_no_tile_attacks": "이 모드는 군으로 싸웁니다: ⚔ 군을 여세요"
+    "ww1936_no_tile_attacks": "이 모드는 군으로 싸웁니다: ⚔ 군을 여세요",
+    "ww1936_not_at_war": "{name}와(과) 전쟁 중이 아님",
+    "ww1936_prep_over": "준비가 끝났습니다. 이제 전쟁을 할 수 있습니다",
+    "ww1936_region_lost": "{region} 상실",
+    "ww1936_region_taken": "{region} 점령",
+    "ww1936_research_done": "연구 완료: {tech}",
+    "ww1936_slot_free": "연구 칸이 비었습니다",
+    "ww1936_trade_closed": "{seller} — {resource} 거래가 끝났습니다",
+    "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
+    "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -976,10 +1554,14 @@
   "game_settings": {
     "bots": "부족: ",
     "compact_map": "소형 지도",
+    "congress": "세계 의회",
+    "conquest_percent": "정복 기준 %",
     "custom_alliances": "동맹 지속 시간",
     "disable_units": "유닛 비활성화",
+    "domestic_mode": "내정 모드",
     "doomsday_clock": "종말 타이머",
     "gold_multiplier": "금 배율",
+    "historical_ai": "역사대로 진행 (AI)",
     "infinite_gold": "무한 금",
     "infinite_troops": "무한 병력",
     "instant_build": "즉시 건설",
@@ -992,13 +1574,9 @@
     "start": "게임 시작",
     "starting": "시작 중...",
     "starting_gold": "시작 금 (M)",
-    "water_nukes": "수몰 폭탄",
-    "domestic_mode": "내정 모드",
-    "conquest_percent": "정복 기준 %",
-    "warfare_expansion": "확장 전쟁",
     "strategic_weapons": "전략 무기",
-    "congress": "세계 의회",
-    "historical_ai": "역사대로 진행 (AI)",
+    "warfare_expansion": "확장 전쟁",
+    "water_nukes": "수몰 폭탄",
     "world_war_1936": "1936 세계대전"
   },
   "game_starting_modal": {
@@ -1106,6 +1684,8 @@
     "preset_delete_confirm": "\"{name}\" 프리셋을 삭제하시겠습니까?",
     "preset_evans_pick": "Evan의 추천",
     "preset_evans_pick_desc": "개발자 Evan이 실제로 플레이할 때 사용하는 설정입니다",
+    "preset_medium": "중간 (태블릿)",
+    "preset_medium_desc": "낙진 빛, 작은 나라 빛, 배·핵 궤적 같은 무거운 효과를 꺼서 태블릿에서 부드럽게 돌아갑니다",
     "preset_migrated_name": "내 설정",
     "preset_name_placeholder": "프리셋 이름",
     "preset_night": "야간",
@@ -1132,9 +1712,7 @@
     "territory_alpha_desc": "영토 채우기 불투명도입니다 (낮을수록 지형이 더 비쳐 보입니다)",
     "territory_alpha_label": "영토 불투명도",
     "territory_sat_desc": "영토 채우기 채도입니다 (낮을수록 색상이 흐려집니다)",
-    "territory_sat_label": "영토 채도",
-    "preset_medium": "중간 (태블릿)",
-    "preset_medium_desc": "낙진 빛, 작은 나라 빛, 배·핵 궤적 같은 무거운 효과를 꺼서 태블릿에서 부드럽게 돌아갑니다"
+    "territory_sat_label": "영토 채도"
   },
   "heads_up_message": {
     "catching_up": "따라잡는 중...",
@@ -1346,17 +1924,25 @@
     "lobby_creator": "로비 생성자가 추방했습니다",
     "match_cancelled": "경기 취소됨: 한 플레이어의 연결이 실패했습니다. ELO 점수는 차감되지 않았습니다."
   },
+  "lang": {
+    "en": "Korean",
+    "lang_code": "ko",
+    "native": "한국어",
+    "svg": "kr"
+  },
   "leaderboard": {
     "allies": "동맹",
     "betrayals": "배신",
     "cities": "도시",
     "clan": "클랜",
     "configure_columns": "열 구성",
+    "congress": "의회",
     "factories": "공장",
     "gold": "금",
     "goldIncomePerMin": "분당 금 수입",
     "launchers": "발사대",
     "maxtroops": "최대 병력",
+    "nukes": "핵",
     "owned": "소유함",
     "piracyGoldPerMin": "분당 약탈 금",
     "player": "플레이어",
@@ -1364,15 +1950,13 @@
     "ports": "항구",
     "rank": "순위",
     "sams": "지대공 미사일",
+    "score": "점수",
     "shipTradeGoldPerMin": "분당 선박 무역 금",
     "team": "팀",
     "trainTradeGoldPerMin": "분당 철도 무역 금",
     "troops": "병력",
     "type": "유형",
-    "warships": "군함",
-    "score": "점수",
-    "nukes": "핵",
-    "congress": "의회"
+    "warships": "군함"
   },
   "leaderboard_modal": {
     "clan": "클랜",
@@ -1646,14 +2230,14 @@
     "waiting_for_game": "게임 시작 대기 중..."
   },
   "mode_selector": {
+    "coming_soon": "출시 예정",
     "ranked_1v1_title": "1v1",
     "ranked_2v2_title": "2v2",
     "ranked_pairing_note": "팀 모드에서는 가능한 경우 대기열에 있는 클랜원과 친구가 같은 팀에 배치됩니다. 친구가 먼저 매칭된 후 클랜원이 매칭됩니다. 공정한 게임을 유지하기 위해 등급 차이가 너무 큰 경우 따로 매칭됩니다.",
     "ranked_title": "랭크전",
     "teams_count": "{teamCount} 팀",
     "teams_of": "{playersPerTeam}인 {teamCount}개 팀",
-    "teams_title": "팀전",
-    "coming_soon": "출시 예정"
+    "teams_title": "팀전"
   },
   "multi_tab": {
     "detected": "여러 개의 열린 게임 탭이 감지되었습니다.",
@@ -1690,6 +2274,14 @@
     "tournament": "토너먼트",
     "tutorial": "튜토리얼",
     "warning": "경고"
+  },
+  "open_rooms": {
+    "domestic": "내정",
+    "empty": "열린 방이 없어요. 방을 만들어 보세요",
+    "join": "참가",
+    "strategic": "전략 무기",
+    "title": "열린 방",
+    "warfare": "확장 전쟁"
   },
   "overtime": {
     "first_place": "1위: {name} ({pct}%)",
@@ -1759,10 +2351,10 @@
   "player_profile": {
     "loading": "프로필 불러오는 중...",
     "no_clans": "이 플레이어는 소속된 클랜이 없습니다.",
+    "not_found": "플레이어 프로필을 찾을 수 없습니다",
     "share": "프로필 공유",
     "title": "플레이어 프로필",
-    "view": "프로필 보기",
-    "not_found": "플레이어 프로필을 찾을 수 없습니다"
+    "view": "프로필 보기"
   },
   "player_stats_table": {
     "arrived": "도착함",
@@ -1906,6 +2498,7 @@
     "notify_off": "게임이 시작될 때 소리 재생",
     "notify_on": "게임 시작 알림 켜짐",
     "notify_started": "게임이 시작됩니다!",
+    "players_per_team": "{num}인 1조",
     "started": "시작됨",
     "starting_game": "시작 중…",
     "starting_in": "{time}후에 시작",
@@ -1923,8 +2516,7 @@
     "trusted_locked": "신뢰할 수 있는 계정 전용입니다. 아직 신뢰할 수 있는 계정이 아닙니다.",
     "trusted_tooltip_title": "신뢰할 수 있는 로비",
     "trusted_unlocked": "신뢰할 수 있는 계정 전용입니다. 신뢰할 수 있는 계정입니다.",
-    "waiting_for_players": "플레이어를 기다리는 중",
-    "players_per_team": "{num}인 1조"
+    "waiting_for_players": "플레이어를 기다리는 중"
   },
   "purchase_nudge": {
     "body": "OpenFront를 즐겁게 플레이하고 계신 것 같네요! 구매를 통해 개발을 후원해 주세요 — 어떤 상품이든 한 번만 구매하면 평생 광고가 제거됩니다.",
@@ -1935,12 +2527,12 @@
   "radial_menu": {
     "delete_unit_description": "클릭하여 가장 가까운 유닛을 삭제합니다",
     "delete_unit_title": "유닛 삭제",
-    "upgrade_x": "업그레이드 x{amount}",
     "paradrop_description": "공항에서 병력(공격 비율)을 실어 이곳에 내립니다",
     "paradrop_need_gold": "골드 부족",
     "paradrop_no_airport": "범위 내 공항 없음",
     "paradrop_no_sortie": "출격 횟수 소진",
-    "paradrop_title": "공수 투입"
+    "paradrop_title": "공수 투입",
+    "upgrade_x": "업그레이드 x{amount}"
   },
   "relation": {
     "default": "기본",
@@ -2172,6 +2764,30 @@
     "tribes_purchase_heading": "부족 이름 구매",
     "your_tribes_heading": "내 부족 이름"
   },
+  "strategic": {
+    "band": "{name} → {target} 위성 포격",
+    "choose_target": "목표 나라 고르기",
+    "intercept_with": "{unit} {count}발 · {pct}%",
+    "interceptors_in_flight": "요격탄 비행 중 {count}",
+    "missed": "빗나감",
+    "needs_factory": "공장을 먼저 지으세요",
+    "no_free_line": "공장의 제조 라인이 모두 쓰이고 있습니다",
+    "no_ready_silo": "장전된 미사일 기지가 없습니다. 재장전 중이거나 위성을 준비 중입니다",
+    "no_stock": "보유한 핵이 없습니다. 공장에서 먼저 제조하세요",
+    "no_targets": "고를 수 있는 나라가 없습니다",
+    "produce": "제조 ({seconds}초)",
+    "producing": "제조 중 {count}발",
+    "satellite_busy": "위성을 준비하고 있습니다",
+    "satellite_ready": "위성이 궤도에 올랐습니다",
+    "satellite_up": "위성 궤도 진입",
+    "satellite_used": "위성이 아직 궤도에 있습니다: 사용되거나 격추된 뒤에 새로 준비할 수 있습니다",
+    "seconds_left": "{seconds}초",
+    "shot_down": "격추!",
+    "stock": "보유 {count}발",
+    "tap_again_to_fire": "한 번 더 눌러 발사",
+    "tap_again_to_target": "한 번 더 눌러 확정",
+    "target_title": "위성 포격 목표"
+  },
   "streaming_now": {
     "live_count": "{count}개 방송 중",
     "title": "현재 방송 중",
@@ -2204,6 +2820,13 @@
   "token_login_modal": {
     "success": "{email}(으)로 성공적으로 로그인했습니다!",
     "title": "로그인 중..."
+  },
+  "touch_ui": {
+    "needs_airport": "공항을 먼저 지으세요",
+    "needs_port": "항구를 먼저 지으세요",
+    "needs_silo": "미사일 발사대를 먼저 지으세요",
+    "tap_again_to_build": "한 번 더 누르면 건설합니다",
+    "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다"
   },
   "troubleshooting": {
     "battery": "배터리",
@@ -2287,28 +2910,28 @@
     "title": "튜토리얼"
   },
   "unit_type": {
+    "admin_office": "행정청",
+    "airport": "공항",
     "atom_bomb": "원자 폭탄",
     "boat": "배",
+    "bomber": "폭격기",
+    "cargo_plane": "화물기",
     "city": "도시",
+    "coastal_barrage": "해안 포격",
+    "coastal_battery": "해안 포대",
+    "conventional_missile": "일반 미사일",
     "defense_post": "방어 진지",
     "factory": "공장",
     "hydrogen_bomb": "수소 폭탄",
     "mirv": "다탄두 미사일",
     "missile_silo": "미사일 발사대",
-    "port": "항구",
-    "sam_launcher": "지대공 미사일 발사대",
-    "warship": "군함",
-    "admin_office": "행정청",
-    "research_institute": "연구소",
-    "airport": "공항",
-    "bomber": "폭격기",
-    "cargo_plane": "화물기",
-    "coastal_barrage": "해안 포격",
-    "coastal_battery": "해안 포대",
-    "transport_plane": "수송기",
     "paradrop": "공수 투입",
-    "conventional_missile": "일반 미사일",
-    "satellite": "궤도 포격 위성"
+    "port": "항구",
+    "research_institute": "연구소",
+    "sam_launcher": "지대공 미사일 발사대",
+    "satellite": "궤도 포격 위성",
+    "transport_plane": "수송기",
+    "warship": "군함"
   },
   "update_available": {
     "desktop": "OpenFront의 새로운 버전을 이용할 수 있습니다. 백그라운드에서 다운로드되며, 준비가 완료되면 업데이트 표시줄에서 새로고침하세요.",
@@ -2549,633 +3172,42 @@
     "you_won": "나의 승리!",
     "your_team": "우리팀이 승리했습니다!"
   },
-  "domestic": {
-    "blocked": {
-      "prereq": "{tech} 필요"
-    },
-    "branch": {
-      "economy": "경제",
-      "learning": "학문",
-      "military": "군사"
-    },
-    "cost": "과학력 {cost} · {seconds}초",
-    "era": "{era}시대",
-    "locked_requires": "{tech} 연구 필요",
-    "pay_with_gold": "금 {gold}으로 연구",
-    "per_sec": "+{value}/초",
-    "political": "정치력",
-    "recruit_target": "징병 상한 {pct}%",
-    "research_progress": "{tech} 연구 중: {seconds}초 남음",
-    "researched": "연구 완료",
-    "researching": "연구 중",
-    "science": "과학력",
-    "tech": {
-      "academia": {
-        "desc": "연구소 생산 +40%",
-        "name": "학술 기관"
-      },
-      "banking": {
-        "desc": "보유 금에 분당 2% 이자 (최대 초당 1,500)",
-        "name": "은행업"
-      },
-      "bureaucracy": {
-        "desc": "행정청 생산 +40%",
-        "name": "관료제"
-      },
-      "computers": {
-        "desc": "과학력 +30%, 정치력 +15%",
-        "name": "컴퓨터"
-      },
-      "conscription": {
-        "desc": "병력 회복 +25%, 징병비 -30%",
-        "name": "징병제"
-      },
-      "currency": {
-        "desc": "도시 세수 +50%",
-        "name": "화폐 주조"
-      },
-      "fortification": {
-        "desc": "방어 기지 효과 +50%, 방어 기지 건설비 -30%, 해안 포대 해금(확장 전쟁)",
-        "name": "요새 축성"
-      },
-      "global_trade": {
-        "desc": "무역선 출현 +50%, 동맹과의 무역 수익 +50%",
-        "name": "국제 무역"
-      },
-      "globalization": {
-        "desc": "모든 금 수입 +30%",
-        "name": "세계화"
-      },
-      "industrialization": {
-        "desc": "기차 수익 +50%, 모든 건설비 -15%, 공항 해금(확장 전쟁)",
-        "name": "산업화"
-      },
-      "manhattan_project": {
-        "desc": "원자폭탄 해금",
-        "name": "맨해튼 프로젝트"
-      },
-      "mirv": {
-        "desc": "MIRV 해금",
-        "name": "다탄두 미사일"
-      },
-      "navigation": {
-        "desc": "무역선 수익 +40%, 항구 건설비 -25%",
-        "name": "항해술"
-      },
-      "printing_press": {
-        "desc": "정치력 +25%, 법 선포 비용 -15%",
-        "name": "인쇄술"
-      },
-      "radar": {
-        "desc": "SAM 해금",
-        "name": "레이더"
-      },
-      "railroad": {
-        "desc": "공장 해금",
-        "name": "철도"
-      },
-      "rocketry": {
-        "desc": "미사일 기지 해금, 해안 포격 해금(확장 전쟁)",
-        "name": "로켓 공학"
-      },
-      "scientific_method": {
-        "desc": "연구 시간 -30%, 과학력 +15%",
-        "name": "과학적 방법"
-      },
-      "space_program": {
-        "desc": "우주 계획 착수 가능 (과학 승리), 전략 무기에서는 궤도 포격 위성",
-        "name": "우주 개발"
-      },
-      "steel_ships": {
-        "desc": "전함 해금",
-        "name": "강철 함선"
-      },
-      "thermonuclear": {
-        "desc": "수소폭탄 해금",
-        "name": "열핵 무기"
-      }
-    },
-    "gov": {
-      "chiefdom": {
-        "desc": "효과 없음",
-        "name": "족장제"
-      },
-      "communism": {
-        "desc": "모든 건설비 -30%, 모든 건설 시간 -50%, 연구소·행정청 운영비 없음. 5개년 계획: 연구소·행정청 생산 +50%. 무역 수익 -30%",
-        "name": "공산주의"
-      },
-      "democracy": {
-        "desc": "금 수입 +30%, 과학력 +30%, 부족분 금 결제 비용 -50%. 평화 배당: 공격하지 않는 동안 정치력 +30%. 전쟁 피로: 공격하는 동안 정치력 -50%",
-        "name": "민주주의"
-      },
-      "fascism": {
-        "desc": "병력 회복 +30%, 공격할 때 병력 손실 -25%, 징병비 -50%. 전시 경제: 공격하는 동안 금 수입 +30%. 과학력 -20%, 공격하지 않는 동안 금 수입 -10%",
-        "name": "파시즘"
-      },
-      "monarchy": {
-        "desc": "최대 병력 +20%, 유지비 무료 구간 40%→60%. 봉건제: 도시 레벨마다 정치력 0.2/초. 과학력 -15%",
-        "name": "군주제"
-      },
-      "republic": {
-        "desc": "금 수입 +20%, 무역 수익 +25%. 공공사업: 도시 건설 시간 -50%. 징병비 +25%",
-        "name": "공화정"
-      },
-      "theocracy": {
-        "desc": "정치력 +30%, 방어할 때 병력 손실 -20%. 십일조: 초당 금 100 × √(땅 비율 %). 과학력 -15%. 국교 지정 필요",
-        "name": "신정"
-      }
-    },
-    "gov_active": "현재 정부",
-    "gov_adopt": "수립",
-    "gov_current": "정부: {name}",
-    "gov_locked": "다음 단계까지 바꿀 수 없음",
-    "gov_max_tier": "모든 정부 단계 도달",
-    "gov_needs_tier": "{tier}단계에 열림",
-    "gov_passed": "지나간 단계",
-    "gov_progress": "누적 정치력 {value} / {next} ({tier}단계)",
-    "gov_requires_law": "{law} 필요",
-    "gov_tier": "{tier}단계",
-    "law": {
-      "construction": {
-        "A": {
-          "desc": "모든 건설비 -25%",
-          "name": "인프라 투자"
-        },
-        "B": {
-          "desc": "모든 건설 시간 -50%",
-          "name": "공기 단축"
-        },
-        "name": "건설"
-      },
-      "diplomacy": {
-        "A": {
-          "desc": "동맹과의 무역·기차 수익 +50%",
-          "name": "동맹 우대"
-        },
-        "B": {
-          "desc": "다른 나라와 무역 불가, 정치력 +40%, 방어할 때 병력 손실 -10%",
-          "name": "고립주의"
-        },
-        "name": "외교"
-      },
-      "doctrine": {
-        "A": {
-          "desc": "방어 기지 효과 +40%, 방어할 때 병력 손실 -15%",
-          "name": "방어 우선"
-        },
-        "B": {
-          "desc": "공격 속도 +30%, 방어할 때 병력 손실 +10%",
-          "name": "전격전"
-        },
-        "name": "교리"
-      },
-      "learning": {
-        "A": {
-          "desc": "매초 금 300을 과학력 0.5로 전환 (금이 있을 때만)",
-          "name": "연구 보조금"
-        },
-        "B": {
-          "desc": "행정청 생산 +40%",
-          "name": "행정 개혁"
-        },
-        "name": "학문"
-      },
-      "mobilization": {
-        "A": {
-          "desc": "병력이 최대치의 절반 이하면 병력 회복 +100%",
-          "name": "총동원령"
-        },
-        "B": {
-          "desc": "유지비 무료 구간 40%→60%",
-          "name": "예비군"
-        },
-        "name": "동원"
-      },
-      "nuclear": {
-        "A": {
-          "desc": "미사일 기지·SAM 건설비 -30%, 핵 비용 -20%",
-          "name": "핵 억지력"
-        },
-        "B": {
-          "desc": "SAM 사거리 +30%",
-          "name": "방공망"
-        },
-        "name": "핵"
-      },
-      "opinion": {
-        "A": {
-          "desc": "정치력 +25%",
-          "name": "선전부"
-        },
-        "B": {
-          "desc": "과학력 +20%",
-          "name": "학문의 자유"
-        },
-        "name": "여론"
-      },
-      "religion": {
-        "A": {
-          "desc": "신정 수립 가능, 정치력 +15%, 병력 회복 +15%, 과학력 -10%",
-          "name": "국교 지정"
-        },
-        "B": {
-          "desc": "과학력 +15%, 다른 나라와의 무역 수익 +20%, 빈 땅 확장 속도 +20%",
-          "name": "종교 관용"
-        },
-        "name": "종교"
-      },
-      "service": {
-        "A": {
-          "desc": "최대 병력 +25%, 금 수입 -10%",
-          "name": "국민개병"
-        },
-        "B": {
-          "desc": "병력 유지비 -50%, 공격할 때 병력 손실 -15%",
-          "name": "직업 군대"
-        },
-        "name": "병역"
-      },
-      "taxation": {
-        "A": {
-          "desc": "금 수입 +30%, 병력 회복 -15%",
-          "name": "중과세"
-        },
-        "B": {
-          "desc": "도시 세수 +40%, 도시 건설 시간 -50%",
-          "name": "도시 계획"
-        },
-        "name": "조세"
-      },
-      "trade": {
-        "A": {
-          "desc": "무역선·기차 수익 +40%",
-          "name": "자유무역"
-        },
-        "B": {
-          "desc": "도시 세수 +60%, 다른 나라와의 무역 수익 -30%",
-          "name": "보호무역"
-        },
-        "name": "무역"
-      }
-    },
-    "law_cooldown": "{seconds}초 후 선포 가능",
-    "law_next_cost": "다음 법: 정치력 {cost}",
-    "proclaim_with_gold": "금 {gold}으로 선포",
-    "proclaimed": "선포됨",
-    "rejected": "폐기",
-    "project": {
-      "political": {
-        "desc": "레벨 3 이상 행정청에서 세계 정부를 선포합니다. 다른 나라를 공격하는 동안에는 멈춥니다.",
-        "name": "세계 정부 선포"
-      },
-      "science": {
-        "desc": "레벨 3 이상 연구소에서 우주 계획을 진행합니다.",
-        "name": "우주 계획"
-      }
-    },
-    "tap_again_to_confirm": "한 번 더 눌러 확정 (되돌릴 수 없음)",
-    "victory": {
-      "active": "진행 중인 프로젝트",
-      "awaiting_ratification": "의회 비준 대기",
-      "blocked": {
-        "busy": "다른 프로젝트가 진행 중입니다",
-        "gold": "금이 부족합니다",
-        "host": "레벨 3 이상 건물이 필요합니다",
-        "political": "정치력이 부족합니다",
-        "requirement": "조건을 채우지 못했습니다"
-      },
-      "conquest": "정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
-      "cost_political": "금 {gold} + 정치력 {political} · 4분",
-      "cost_science": "금 {gold} · 4분",
-      "host_level": "{building} Lv. {level}",
-      "no_hosts": "레벨 3 이상 건물이 아직 없습니다",
-      "none_active": "진행 중인 프로젝트가 없습니다",
-      "paused": "(일시 정지: 공격 중)",
-      "progress": "{name}: {project} {pct}%",
-      "requirement_political": "정부 3단계 필요",
-      "requirement_science": "우주 개발 기술 필요",
-      "score": "점수: {score} ({count}명 중 {rank}위)",
-      "start": "착수",
-      "team_conquest": "팀 정복: 땅 {pct} 점유 ({target}% 초과 시 승리)",
-      "team_score": "팀 점수: {score} ({count}팀 중 {rank}위)",
-      "time_left": "남은 시간: {time}"
-    },
-    "win_reason": {
-      "conquest": "정복 승리",
-      "political": "정치 승리: 세계 정부 선포",
-      "science": "과학 승리: 우주 계획",
-      "score": "점수 승리",
-      "ww_last_camp": "승리: 강대국이 남은 마지막 진영",
-      "ww_score": "전쟁 끝의 승점 판정 승리"
-    },
-    "screen": {
-      "research": "연구",
-      "laws": "법률서",
-      "victory": "승리",
-      "congress": "세계 의회"
-    },
-    "dial": {
-      "seconds": "{seconds}초",
-      "queued": "다음 연구: {tech}",
-      "government": "새 정부를 고를 수 있음",
-      "ready": "지금 가능"
-    },
-    "recruit_chip": "징병 {pct}%",
-    "recruit_help": "병력이 최대 병력의 이 비율에 닿으면 더 늘지 않습니다. 낮추면 유지비로 나가는 금이 줄어듭니다.",
-    "ready_in": "약 {seconds}초 후 가능",
-    "tree": {
-      "cancel_queue": "예약 취소",
-      "done": "완료",
-      "era_gate": "{era}시대 열림: {prev}시대 기술 {need}개 ({have}/{need})",
-      "idle": "진행 중인 연구 없음",
-      "idle_hint": "아래에서 기술을 눌러 연구를 시작하세요.",
-      "meta": "{era}시대 · {branch}",
-      "needs_era": "{era}시대 기술 {need}개 필요",
-      "next": "다음 연구",
-      "next_empty": "예약 없음",
-      "next_hint": "예약한 기술은 지금 연구가 끝나고 과학력이 모이면 저절로 시작됩니다 (금은 쓰지 않습니다).",
-      "no_income": "과학력 부족",
-      "queue_auto": "예약 (조건이 되면 저절로 시작)",
-      "queue_confirm": "한 번 더 눌러 예약",
-      "queue_next": "다음 연구로 예약",
-      "queue_replaces": "지금 예약된 기술({tech})은 취소됩니다",
-      "queued": "예약됨",
-      "ready": "지금 연구 가능",
-      "seconds_left": "{seconds}초 남음",
-      "start": "연구 시작 (과학력 {cost})",
-      "unlocks": "해금"
-    },
-    "book": {
-      "all_proclaimed": "모든 법을 선포했습니다",
-      "choose_government": "새 정부를 고를 수 있습니다. 아래에서 고르세요.",
-      "no_income": "정치력 부족",
-      "none_open": "지금 선포할 수 있는 법이 없습니다",
-      "permanent": "되돌릴 수 없습니다. 반대쪽 선택지는 영원히 막힙니다.",
-      "preview": "{tier}단계 정부 미리 보기",
-      "proclaim": "선포 (정치력 {cost})",
-      "ready": "지금 법을 선포할 수 있습니다"
-    }
-  },
-  "touch_ui": {
-    "needs_port": "항구를 먼저 지으세요",
-    "needs_silo": "미사일 발사대를 먼저 지으세요",
-    "tap_again_to_build": "한 번 더 누르면 건설합니다",
-    "warship_long_press": "지도를 길게 누른 뒤 끌면 여러 군함을 한 번에 선택할 수 있습니다",
-    "needs_airport": "공항을 먼저 지으세요"
-  },
-  "strategic": {
-    "band": "{name} → {target} 위성 포격",
-    "choose_target": "목표 나라 고르기",
-    "intercept_with": "{unit} {count}발 · {pct}%",
-    "interceptors_in_flight": "요격탄 비행 중 {count}",
-    "missed": "빗나감",
-    "needs_factory": "공장을 먼저 지으세요",
-    "no_free_line": "공장의 제조 라인이 모두 쓰이고 있습니다",
-    "no_ready_silo": "장전된 미사일 기지가 없습니다. 재장전 중이거나 위성을 준비 중입니다",
-    "no_stock": "보유한 핵이 없습니다. 공장에서 먼저 제조하세요",
-    "no_targets": "고를 수 있는 나라가 없습니다",
-    "produce": "제조 ({seconds}초)",
-    "producing": "제조 중 {count}발",
-    "satellite_busy": "위성을 준비하고 있습니다",
-    "satellite_ready": "위성이 궤도에 올랐습니다",
-    "satellite_up": "위성 궤도 진입",
-    "satellite_used": "위성이 아직 궤도에 있습니다: 사용되거나 격추된 뒤에 새로 준비할 수 있습니다",
-    "seconds_left": "{seconds}초",
-    "shot_down": "격추!",
-    "stock": "보유 {count}발",
-    "tap_again_to_fire": "한 번 더 눌러 발사",
-    "tap_again_to_target": "한 번 더 눌러 확정",
-    "target_title": "위성 포격 목표"
-  },
-  "open_rooms": {
-    "domestic": "내정",
-    "empty": "열린 방이 없어요. 방을 만들어 보세요",
-    "join": "참가",
-    "strategic": "전략 무기",
-    "title": "열린 방",
-    "warfare": "확장 전쟁"
-  },
-  "congress": {
-    "banned": "🏛 금지됨",
-    "banned_reason": "의회 결의로 지금은 금지됩니다",
-    "band": {
-      "active": "🚨 {kind} vs {name} — {goal} · {time}",
-      "available": "🚨 {name}: {kind} — 긴급 회의를 소집할 수 있습니다",
-      "available_target": "🚨 다른 나라가 당신에 대한 {kind}를 소집할 수 있습니다",
-      "convene": "소집 · 🗳{cost}",
-      "member": "참전 중",
-      "target": "당신이 대상입니다",
-      "voting": "🚨 긴급 회의: {kind} vs {name} · {seconds}초"
-    },
-    "block": {
-      "friendly": "동맹에게는 소집할 수 없습니다",
-      "influence": "영향력 {cost}가 필요합니다",
-      "sanctioned": "제재 중에는 소집할 수 없습니다",
-      "seat": "의석이 있는 나라만 소집할 수 있습니다",
-      "target": "당신이 대상입니다",
-      "unavailable": "지금은 소집할 수 없습니다",
-      "window": "회기 중이거나 곧 회기가 열립니다"
-    },
-    "card": {
-      "adopted": "채택 {option} · {a} : {b}",
-      "b_only": "반대만 할 수 있습니다",
-      "bad": "내게 불리",
-      "collapsed": "🏛 {seconds}초 · {voted}/{total} 투표함",
-      "extra": "+{votes} · {cost}",
-      "good": "내게 유리",
-      "no_seat": "이 안건에 의석 없음",
-      "tied": "동점 부결 · {a} : {b}",
-      "turnout": "투표 {voted}/{total}",
-      "your_vote": "내 표: {option} +{extra}"
-    },
-    "chip": {
-      "until_project": "끝날 때까지"
-    },
-    "dial": {
-      "influence": "🗳 {value}"
-    },
-    "discounted": "기술 협정 −30%",
-    "emergency": {
-      "aggression": "침략 비상",
-      "hegemony": "패권 비상",
-      "nuclear": "핵 비상"
-    },
-    "goal": {
-      "land": "땅 {progress}/{goal}",
-      "silos": "사일로 {progress}/{goal}"
-    },
-    "param": {
-      "train": "기차",
-      "tradeShip": "무역선"
-    },
-    "reason": {
-      "aggressor": "최근 3분 침략 1위: {name} (세계 땅 {pct}%)",
-      "aggressor_government": "침략 1위 {name}의 정부",
-      "aggressor_law": "침략 1위 {name}의 법",
-      "common_government": "가장 많은 나라의 정부",
-      "convened": "소집: {name}",
-      "global": "이번 시대의 규칙",
-      "most_built": "지난 회기 이후 최다 착공: {count}",
-      "project": "{name}의 승리 프로젝트 ({pct}%)",
-      "runaway": "땅 1위 {name}: 2위의 {ratio}배",
-      "victim": "최근 3분 피해 1위: {name} {pct}% 잃음",
-      "war_pair": "최근 2분 최대 전쟁: {name} ↔ {target} ({pct}%)"
-    },
-    "resolution": {
-      "arms_embargo": {
-        "a": "금수",
-        "a_effect": "새 핵·미사일·위성·폭격·해안 포격·발사대 금지 (비축은 발사 가능)",
-        "b": "군사 원조",
-        "b_effect": "발사대·SAM 건설비 −30%, 핵 제조 50% 빠름",
-        "name": "무기 금수"
-      },
-      "arms_treaty": {
-        "a": "군축",
-        "a_effect": "모두 최대 병력 −15%, 금 수입 +15%",
-        "b": "군비 경쟁",
-        "b_effect": "모두 최대 병력 +15%, 금 수입 −10%",
-        "name": "군비 조약"
-      },
-      "building_pact": {
-        "a": "진흥",
-        "a_effect": "건설비 −40%, 건설 시간 −50%",
-        "b": "금지",
-        "b_effect": "아무도 짓거나 레벨업할 수 없음",
-        "name": "건설 협정"
-      },
-      "emergency": {
-        "a": "찬성·참전",
-        "a_effect": "회원: 대상 상대로 속도 +20%, 손실 −20%",
-        "b": "반대",
-        "b_effect": "비상 없음",
-        "name": "비상 선포"
-      },
-      "government_resolution": {
-        "a": "지지",
-        "a_effect": "그 정부의 나라: 정치력 +25%, 영향력 ×1.25",
-        "b": "규탄",
-        "b_effect": "그 정부의 나라: 정치력 −25%, 영향력 0",
-        "name": "정부 결의"
-      },
-      "hegemony_check": {
-        "a": "견제",
-        "a_effect": "과학력·정치력 −20%, 공격하는 나라 손실 −15%",
-        "b": "지도국 인정",
-        "b_effect": "금 수입 +15%",
-        "name": "패권 견제"
-      },
-      "law_review": {
-        "a": "권장",
-        "a_effect": "그 법을 가진 나라: 효과 ×1.5",
-        "b": "효력 정지",
-        "b_effect": "그 법을 가진 나라: 효과 꺼짐",
-        "name": "법 심사"
-      },
-      "non_proliferation": {
-        "a": "비확산",
-        "a_effect": "아무도 새 핵을 만들거나 살 수 없음 (비축 유지)",
-        "b": "개발 경쟁",
-        "b_effect": "핵 비용 −25%, 제조 50% 빠름",
-        "name": "핵 비확산 조약"
-      },
-      "protectorate": {
-        "a": "보호국",
-        "a_effect": "공격하는 나라 손실 +40%, 속도 −20%, 방어 손실 −20%",
-        "b": "분할 승인",
-        "b_effect": "공격하는 나라 손실 −20%",
-        "name": "보호국 지정"
-      },
-      "research_fund": {
-        "a": "과학 우선",
-        "a_effect": "과학력 +20%, 정치력 −10%",
-        "b": "정치 우선",
-        "b_effect": "정치력 +20%, 과학력 −10%",
-        "name": "연구 기금"
-      },
-      "sanction": {
-        "a": "제재",
-        "a_effect": "무역 금지, 금 −20%, 기부 못 받음, 영향력 0",
-        "b": "묵인",
-        "b_effect": "무역 수익 +30%",
-        "name": "경제 제재"
-      },
-      "tech_pact": {
-        "a": "기술 확산",
-        "a_effect": "2개국 이상 완료한 기술 비용·시간 −30%",
-        "b": "선도국 특허",
-        "b_effect": "새 기술을 처음 완료하면 과학력 60초분",
-        "name": "기술 협정"
-      },
-      "trade_pact": {
-        "a": "장려",
-        "a_effect": "그 무역 수익 +50%",
-        "b": "규제",
-        "b_effect": "그 무역 수익 −50%",
-        "name": "무역 협정"
-      },
-      "truce": {
-        "a": "휴전",
-        "a_effect": "120초 동안 서로 적대 행위 불가",
-        "b": "결전",
-        "b_effect": "120초 동안 서로 공격 속도 +25%, 손실 −15%",
-        "name": "휴전 결의"
-      },
-      "war_tax": {
-        "a": "전쟁세",
-        "a_effect": "먼저 공격 중이면 금 −30%, 유지비 +50%",
-        "b": "전시 특수",
-        "b_effect": "먼저 공격 중이면 금 +20%",
-        "name": "전쟁세"
-      },
-      "world_government": {
-        "a": "승인",
-        "a_effect": "선포 60초 앞당김, 비준",
-        "b": "거부",
-        "b_effect": "선포 60초 늦춤, 비준 안 됨",
-        "name": "세계 정부 승인"
-      },
-      "world_heritage": {
-        "a": "보호",
-        "a_effect": "끝날 때까지 연구소 파괴 불가 (점령은 가능)",
-        "b": "저지",
-        "b_effect": "그 나라 공격 속도 +20%, 손실 −20%, 침략 아님",
-        "name": "세계 유산"
-      }
-    },
-    "screen": {
-      "active": "현행 결의",
-      "aggressors": "침략 순위 (3분)",
-      "available": "소집 가능",
-      "cooldown": "다음 비상까지 {time}",
-      "emergencies_left": "이번 판 남은 비상: {count}",
-      "emergency": "비상",
-      "history": "지난 결과",
-      "influence": "영향력 {value}",
-      "next_session": "다음 회기까지 {time}",
-      "none": "없음",
-      "rate": "+{rate}/초",
-      "victims": "피해 순위 (3분)",
-      "voting_now": "투표 중 · {seconds}초 남음",
-      "world_gov": "세계 정부",
-      "world_gov_ratified": "{name}: 비준됨",
-      "not_ratified": "비준 안 됨"
-    },
-    "status": {
-      "aggressing": "전쟁 중 · 0/초",
-      "capped": "상한 (300)",
-      "peaceful": "평화 중",
-      "sanctioned": "제재 중 · 0/초",
-      "target": "비상 대상 · 0/초"
-    },
-    "toast": {
-      "adopted": "🏛 채택: {title} — {option} ({a} : {b})",
-      "tied": "🏛 동점 부결: {title} ({a} : {b})"
-    }
-  },
   "ww1936": {
     "band": {
       "prep": "준비 {time}",
       "wars": "{n, plural, =0 {평화} other {전쟁 #개}}"
+    },
+    "battalion": {
+      "anti_air": "대공",
+      "anti_tank": "대전차",
+      "artillery": "포병",
+      "cavalry": "기병",
+      "infantry": "보병",
+      "light_armor": "경전차",
+      "marine": "해병",
+      "medium_armor": "중형 전차",
+      "mot_artillery": "기계화 포병",
+      "motorized": "차량화 보병",
+      "mountain": "산악병",
+      "paratrooper": "공수병"
+    },
+    "branch": {
+      "air": "항공",
+      "armour": "기갑",
+      "artillery": "포병",
+      "doctrine": "교리",
+      "electronics": "전자",
+      "industry": "산업",
+      "infantry": "보병"
+    },
+    "building": {
+      "civ": "민간 공장",
+      "dock": "조선소",
+      "fort": "육상 요새",
+      "infra": "인프라",
+      "mil": "군수 공장",
+      "rail": "철도",
+      "supply_hub": "보급 허브"
     },
     "country": {
       "AFG": "아프가니스탄",
@@ -3259,6 +3291,54 @@
       "ZAF": "남아프리카 연방"
     },
     "date": "{year}년 {month} {day}일",
+    "decision": {
+      "gen_coup_com": "공산 쿠데타 지원",
+      "gen_coup_dem": "민주 쿠데타 지원",
+      "gen_coup_fas": "파시스트 쿠데타 지원",
+      "gen_coup_neu": "비동맹 쿠데타 지원",
+      "gen_emergency_draft": "긴급 징집",
+      "gen_fortify_border": "국경 요새화",
+      "gen_hire_general": "장교 발탁",
+      "gen_industrial_subsidy": "공업 보조금",
+      "gen_invite_neighbours": "이웃 나라 초청",
+      "gen_join_allies": "연합국 가입 요청",
+      "gen_join_axis": "추축국 가입 요청",
+      "gen_join_comintern": "코민테른 가입 요청",
+      "gen_martial_law": "계엄령 선포",
+      "gen_party_support_com": "공산당 지원",
+      "gen_party_support_dem": "민주 정당 지원",
+      "gen_party_support_fas": "파시스트 정당 지원",
+      "gen_party_support_neu": "비동맹 세력 지원",
+      "gen_rally": "대중 집회",
+      "gen_suppress_opposition": "반대파 단속",
+      "gen_suspend_elections": "선거 연기",
+      "gen_tech_exchange": "기술 교류",
+      "gen_war_bonds": "전쟁 공채"
+    },
+    "decision_desc": {
+      "gen_coup_com": "90일 동안 다른 나라의 공산 세력에 무기와 자금을 보낸다. 지지가 절반에 이르면 정권이 바뀐다.",
+      "gen_coup_dem": "90일 동안 다른 나라의 민주 세력에 무기와 자금을 보낸다. 지지가 절반에 이르면 정권이 바뀐다.",
+      "gen_coup_fas": "90일 동안 다른 나라의 파시스트 세력에 무기와 자금을 보낸다. 지지가 절반에 이르면 정권이 바뀐다.",
+      "gen_coup_neu": "90일 동안 다른 나라의 비동맹 세력에 무기와 자금을 보낸다. 지지가 절반에 이르면 정권이 바뀐다.",
+      "gen_emergency_draft": "징집 연령을 넓히고 유예를 줄여 당장 쓸 수 있는 병력을 늘린다.",
+      "gen_fortify_border": "위협이 큰 이웃과 맞닿은 국경에 진지와 장애물을 서둘러 세운다.",
+      "gen_hire_general": "능력 있는 대령 한 명을 장군으로 올려 새 군을 맡긴다.",
+      "gen_industrial_subsidy": "건설 회사와 공장에 보조금을 주어 민간 공장 건설을 서두른다.",
+      "gen_invite_neighbours": "진영이 없는 비동맹 이웃 나라를 우리가 이끄는 협상에 초청한다.",
+      "gen_join_allies": "연합국 지도국에 우리를 회원국으로 받아 달라고 요청한다.",
+      "gen_join_axis": "추축국 지도국에 우리를 회원국으로 받아 달라고 요청한다.",
+      "gen_join_comintern": "코민테른 지도국에 우리를 회원국으로 받아 달라고 요청한다.",
+      "gen_martial_law": "군이 치안을 맡고 집회를 금지한다. 질서는 돌아오지만 공장은 느려진다.",
+      "gen_party_support_com": "다른 나라의 공산당에 자금과 선전물을 보내 180일 동안 지지를 넓힌다.",
+      "gen_party_support_dem": "다른 나라의 민주 정당에 자금과 신문을 대 주어 180일 동안 지지를 넓힌다.",
+      "gen_party_support_fas": "다른 나라의 파시스트 정당에 자금과 선전물을 보내 180일 동안 지지를 넓힌다.",
+      "gen_party_support_neu": "다른 나라의 비동맹 세력에 자금과 신문을 대 주어 180일 동안 지지를 넓힌다.",
+      "gen_rally": "전국에서 대규모 집회를 열어 90일 동안 집권당의 지지를 넓힌다.",
+      "gen_suppress_opposition": "가장 큰 반대 세력의 신문과 집회를 제한한다. 지지는 줄지만 불만이 쌓인다.",
+      "gen_suspend_elections": "전쟁이 끝날 때까지 총선거를 미루고 지금의 의회가 계속 일한다.",
+      "gen_tech_exchange": "진영 지도국에 기술자를 보내 우리가 아직 갖지 못한 기술을 배워 온다.",
+      "gen_war_bonds": "국민에게 전쟁 공채를 팔아 전쟁 비용을 모으고 애국심을 북돋운다."
+    },
     "declare": {
       "block": {
         "at_war": "이미 전쟁 중입니다",
@@ -3275,16 +3355,641 @@
       "button": "선전포고",
       "confirm": "확인: 선전포고{n, plural, =0 {} other { (진영 회원 #개국도 참전)}}"
     },
+    "econ": {
+      "add_to_queue": "대기열에 넣기",
+      "after_switch": "바꾸면 {n}%",
+      "ahead": "+{n}% (시대 앞섬)",
+      "balance": "남음",
+      "band_label": "공장: 민간 {civ}, 군수 {mil} · 인력 {manpower}",
+      "block": {
+        "advisor_unavailable": "고용할 수 없습니다",
+        "army_busy": "군이 다른 일을 하는 중입니다",
+        "army_full": "군이 가득 찼습니다",
+        "bad_index": "찾을 수 없습니다",
+        "bad_line": "그런 라인이 없습니다",
+        "bad_option": "고를 수 없는 선택지입니다",
+        "bad_region": "땅 주가 아닙니다",
+        "bad_slot": "빈 칸입니다",
+        "bad_target": "대상으로 고를 수 없는 나라입니다",
+        "bad_template": "편제가 올바르지 않습니다",
+        "dead": "나라가 없습니다",
+        "decision_cooldown": "아직 다시 할 수 없습니다",
+        "decision_unavailable": "조건이 맞지 않습니다",
+        "doctrine": "다른 교리를 골랐습니다",
+        "faction_rule": "진영 규칙이 허락하지 않습니다",
+        "faction_war": "전쟁 중에는 할 수 없습니다",
+        "focus_busy": "이미 진행 중인 중점이 있습니다",
+        "focus_done": "이미 끝낸 중점입니다",
+        "focus_exclusive": "서로 배타적인 중점을 이미 골랐습니다",
+        "focus_none": "바꿀 중점이 없습니다",
+        "focus_prereq": "앞선 중점이 필요합니다",
+        "focus_unavailable": "조건이 맞지 않습니다",
+        "general_unavailable": "이 장군은 지금 지휘할 수 없습니다",
+        "in_progress": "연구 중입니다",
+        "infra_max": "이미 최고 단계입니다",
+        "justify_blocked": "그 나라를 상대로 정당화할 수 없습니다",
+        "justify_busy": "이미 전쟁 목표를 정당화하는 중입니다",
+        "law_condition": "조건이 맞지 않습니다",
+        "law_cooldown": "바꾼 지 얼마 안 되었습니다",
+        "law_ideology": "지금 정부에서는 쓸 수 없습니다",
+        "law_kind": "이 법이 아닙니다",
+        "law_same": "이미 시행 중입니다",
+        "law_tension": "민주 정부에게는 세계 긴장도가 모자랍니다",
+        "law_ws": "전쟁지지도가 모자랍니다",
+        "lines_full": "라인이 너무 많습니다",
+        "nap_young": "조약을 맺은 지 얼마 되지 않았습니다",
+        "no_army": "그런 군이 없습니다",
+        "no_civs": "민간 공장이 모자랍니다",
+        "no_event": "그런 이벤트가 없습니다",
+        "no_partner": "이 나라와는 무역할 수 없습니다",
+        "no_path": "갈 수 있는 길이 없습니다",
+        "no_port": "양쪽에 우리 항구가 있어야 합니다",
+        "no_pp": "정치력이 모자랍니다",
+        "no_rail": "가는 길에 철도가 없습니다",
+        "no_room": "더 팔 것이 없습니다",
+        "no_slot": "빈 연구 칸이 없습니다",
+        "no_slots": "남은 건물 칸이 없습니다",
+        "no_tech": "먼저 연구해야 합니다",
+        "no_xp": "육군 경험치가 모자랍니다",
+        "not_adjacent": "우리 전선과 맞닿아 있지 않습니다",
+        "not_at_war": "그 나라와 전쟁 중이 아닙니다",
+        "not_buildable": "아직 지을 수 없습니다",
+        "not_controlled": "내가 통제하는 주가 아닙니다",
+        "occupied": "점령지입니다",
+        "para_cooldown": "공수부대가 아직 다시 준비되지 않았습니다",
+        "para_range": "공수 강하 거리를 벗어났습니다",
+        "prereq": "선행 기술이 필요합니다",
+        "queue_full": "대기열이 가득 찼습니다",
+        "researched": "이미 연구했습니다",
+        "slot_locked": "이 자리는 아직 바꿀 수 없습니다",
+        "special_cap": "특수부대가 너무 많습니다",
+        "template_in_use": "이 편제를 쓰는 사단이 있습니다",
+        "tension_gate": "세계 긴장도가 모자랍니다",
+        "too_many_armies": "군이 너무 많습니다",
+        "too_many_templates": "편제가 너무 많습니다",
+        "trades_full": "거래가 너무 많습니다",
+        "treaty_exists": "이미 맺은 상태입니다"
+      },
+      "build_here": "여기 짓기",
+      "buy": "사기",
+      "cancel_project": "건설 취소",
+      "cancel_research": "연구 취소",
+      "cancel_tap": "다시 누르면 취소",
+      "change_line": "장비 바꾸기",
+      "close_deal": "거래 닫기",
+      "close_trade": "다시 누르면 닫기",
+      "consumer_goods": "소비재 {n}",
+      "cooldown": "{n}일 기다려야 함",
+      "coverage": "충족 {n}%",
+      "days_left": "{n}일",
+      "efficiency": "효율 {n}% (상한 {cap}%)",
+      "export_room": "하루 {n} 판매 가능",
+      "exported": "수출",
+      "factories": "공장 {n}개",
+      "fewer": "줄이기",
+      "free_civs": "쓸 수 있는 민간 공장 {n}",
+      "free_slots": "빈 연구 칸 {n}개",
+      "idle_factories": "놀고 있는 군수 공장 {n}개",
+      "imported": "수입",
+      "industry": "산업",
+      "law_closes_deals": "거래가 닫힙니다 — 다시 누르기",
+      "law_need": {
+        "all_adults": "전쟁 1년 뒤",
+        "extensive": "1938년부터 또는 전쟁 중",
+        "partial_mobilization": "1937년부터 또는 전쟁 중",
+        "scraping": "전쟁 2년 뒤",
+        "service": "전쟁 중",
+        "total_mobilization": "전쟁 1년 뒤",
+        "war_economy": "전쟁 중"
+      },
+      "manpower": "인력",
+      "mil_factories": "군수 공장 {n} (놀고 있음 {idle})",
+      "more": "늘리기",
+      "more_regions": "주 {n}개 더 보기",
+      "move_down": "아래로",
+      "move_up": "위로",
+      "my_deals": "내 거래",
+      "new_build": "새로 짓기",
+      "new_line": "새 라인",
+      "no_civs_assigned": "공장을 기다리는 중",
+      "not_partner_embargo": "우리에게 금수 조치",
+      "not_partner_route": "무역로 없음",
+      "not_partner_war": "우리와 전쟁 중",
+      "not_partners": "살 수 없는 나라",
+      "occupied_note": "점령지: 공장 50%",
+      "open_trade": "거래 열기",
+      "per_day": "하루 {n}",
+      "population": "인구 {n}",
+      "produced": "산출",
+      "recruitable": "모집 가능",
+      "region_buildings": "민간 {civ} · 군수 {mil} · 조선 {dock} / 칸 {slots}",
+      "remove_line": "라인 지우기",
+      "remove_tap": "다시 누르면 지우기",
+      "research": "연구",
+      "sellers_none": "팔 수 있는 나라가 없습니다",
+      "selling": "파는 거래",
+      "shortage": "자원 부족",
+      "slot_empty": "비어 있음",
+      "slots": "남은 칸 {free}/{total}",
+      "state_available": "가능",
+      "state_doctrine": "다른 교리",
+      "state_done": "완료",
+      "state_prereq": "선행 필요",
+      "state_running": "연구 중",
+      "stock_only": "비축만 됩니다(항공전은 뒤 단계)",
+      "stockpile": "비축",
+      "tab_construction": "건설",
+      "tab_laws": "법·인력",
+      "tab_production": "생산",
+      "tab_trade": "자원·무역",
+      "trade_civs": "무역 {n}",
+      "troops": "병력",
+      "used": "사용"
+    },
+    "effect": {
+      "armyXpMilli": "육군 경험치 하루 +{n}",
+      "artillerySoftPct": "포병 연성 공격 +{n}%",
+      "attackPct": "공격 +{n}%",
+      "breakthroughPct": "돌파 +{n}%",
+      "constructionPct": "건설 속도 +{n}%",
+      "defensePct": "방어 +{n}%",
+      "desertAttackPct": "사막 공격 +{n}%",
+      "effCapBp": "효율 상한 +{n}%",
+      "entrenchMax": "최대 참호 +{n}",
+      "extractionPct": "자원 채굴 +{n}%",
+      "forestDefensePct": "숲 방어 +{n}%",
+      "fortConstructionPct": "요새 건설 +{n}%",
+      "generalXpPct": "장군 경험 +{n}%",
+      "gunBonusPct": "포·지원 보너스 +{n}%",
+      "infOrg": "보병 조직력 +{n}",
+      "infTrainCutPct": "보병 훈련 시간 −{n}%",
+      "mechBreakPct": "기계화 돌파 +{n}%",
+      "mechOrg": "기계화 조직력 +{n}",
+      "orgPct": "조직력 +{n}%",
+      "outputPct": "공장 산출 +{n}%",
+      "planMaxBp": "최대 준비도 +{n}%",
+      "planSpeedPct": "준비도 속도 +{n}%",
+      "railConstructionPct": "철도 건설 +{n}%",
+      "railSpeedPct": "철도 이동 +{n}%",
+      "recoveryPct": "조직력 회복 +{n}%",
+      "recruitablePct": "모집 가능 인구 +{n}%",
+      "researchPct": "연구 속도 +{n}%",
+      "retentionBp": "전환할 때 남는 효율 +{n}%",
+      "slotPct": "건물 칸 +{n}%",
+      "speedPct": "공격 속도 +{n}%",
+      "supplyUsePct": "보급 사용 +{n}%",
+      "trainPct": "하루 모집 +{n}%",
+      "unlock": "{equipment} {gen} 생산 가능",
+      "unlock_unit": "{unit} 편성 가능",
+      "vehicleBonusPct": "트럭·전차 보너스 +{n}%",
+      "winterPenaltyPct": "겨울 벌칙 −{n}%"
+    },
+    "equip": {
+      "anti_air": "대공포",
+      "anti_tank": "대전차포",
+      "artillery": "야포",
+      "bomber": "폭격기",
+      "fighter": "전투기",
+      "infantry_equipment": "보병 장비",
+      "light_tank": "경전차",
+      "medium_tank": "중형 전차",
+      "motorized": "트럭",
+      "support_equipment": "지원 장비"
+    },
+    "event_desc": {
+      "gen_call_to_arms": "같은 진영의 나라가 새 전쟁에 나서며 우리에게 함께 싸워 달라고 요청했다. 요청에 응하면 그 나라의 적이 곧 우리의 적이 된다. 거절하면 전쟁은 피하겠지만 진영 안에서 신뢰를 잃게 된다.",
+      "gen_coup_done": "밤사이 군 일부와 그에 손잡은 정치 세력이 수도의 관청과 방송국을 장악했다. 옛 정부는 무너졌고 새 정부가 라디오 방송으로 집권을 알렸다. 외국의 도움이 있었다는 소문이 거리에 돈다.",
+      "gen_diplo_access": "한 나라가 자국 군대가 우리 영토를 지나갈 수 있게 해 달라고 요청했다. 허락하면 그 나라 군대가 우리 땅을 지나가고 머무를 수 있다. 허락은 우리가 원할 때 언제든 거둘 수 있다.",
+      "gen_diplo_faction_invite": "한 진영의 지도국이 우리를 새 회원국으로 초청했다. 회원국은 전쟁이 나면 함께 싸우고 서로를 지켜야 한다. 그 진영이 지금 전쟁 중이라면 우리도 곧바로 그 적들과 전쟁 상태가 된다.",
+      "gen_diplo_faction_request": "한 나라가 우리 진영에 들어오고 싶다고 정식으로 알려 왔다. 받아들이면 그 나라의 국경도 우리가 함께 지켜야 할 전선이 된다. 새 회원국은 진영이 치르는 모든 전쟁에 처음부터 함께한다.",
+      "gen_diplo_nap": "한 나라가 서로 공격하지 않겠다는 조약을 제안해 왔다. 조약이 이어지는 동안 두 나라는 상대를 겨냥한 명분을 쌓거나 선전포고할 수 없다. 나중에 조약을 깨려면 시간과 큰 대가가 든다.",
+      "gen_election": "선거일이 지나 전국의 투표함이 모두 열렸다. 의회를 누가 이끌지는 유권자의 표가 정하지만, 그 결과를 어떻게 받아들일지는 지금 정부가 정해야 한다. 온 나라가 그 선택을 지켜보고 있다.",
+      "gen_government_shift": "새로운 정치 운동이 국민 다수의 마음을 얻어 이제 과반의 목소리가 되었다. 거리의 군중과 신문은 내각이 물러나 그들에게 권력을 넘기라고 요구한다. 정부는 이 요구에 대한 답을 오래 미룰 수 없다.",
+      "gen_guarantee_called": "우리가 독립을 보장한 나라가 침공을 받았다. 약속을 지키려면 그 침략국과 전쟁을 치러야 한다. 물러서면 싸움은 피하겠지만, 앞으로 우리의 약속은 누구에게도 무게를 갖지 못할 것이다.",
+      "gen_justified_against": "외국의 한 정부가 우리를 겨냥해 전쟁 명분을 쌓기 시작했다는 보고가 들어왔다. 신문은 연일 국경 너머의 군대 움직임과 적대적인 연설을 전한다. 늦기 전에 국경 방비를 굳혀 두어야 한다.",
+      "gen_peace_movement": "전쟁이 길어지자 평화를 요구하는 집회와 청원이 전국에서 이어진다. 의원들 가운데에도 강화를 공공연히 말하는 사람이 늘었다. 정부는 이 목소리를 들을지, 선전으로 맞설지 정해야 한다.",
+      "gen_regime_crisis": "집권 세력이 아닌 운동이 한 달 넘게 국민 대다수의 지지를 얻고 있다. 파업과 시위가 날마다 이어지고 장교와 관료 사이에도 동요가 번진다. 정부는 물러날지, 힘으로 버틸지 정해야 한다.",
+      "gen_strike": "임금과 치솟는 물가에 불만을 품은 노동자들이 일손을 놓았다. 공장이 멈추고 파업은 항구와 철도로까지 번지고 있다. 정부는 생산 손실을 견디거나, 양보를 해서라도 파업을 끝내야 한다.",
+      "gen_unrest": "정부에 대한 불신이 커지며 여러 도시에서 시위와 충돌이 잇따른다. 경찰만으로는 더는 질서를 지키기 어렵다는 보고가 올라온다. 사태가 가라앉기를 기다릴지, 계엄을 선포할지 정해야 한다.",
+      "gen_war_weariness": "잃어버린 땅과 날로 길어지는 전사자 명단이 국민의 마음을 무겁게 한다. 징집을 피하는 사람이 늘고 신문의 논조도 어두워졌다. 정부는 사기 저하를 견디거나 큰 비용을 들여 막아야 한다."
+    },
+    "event_opt": {
+      "gen_call_to_arms": {
+        "a": "함께 싸운다",
+        "b": "요청을 거절한다"
+      },
+      "gen_coup_done": {
+        "a": "새 정부가 들어선다"
+      },
+      "gen_diplo_access": {
+        "a": "통행을 허락한다",
+        "b": "요청을 거절한다"
+      },
+      "gen_diplo_faction_invite": {
+        "a": "진영에 가입한다",
+        "b": "초청을 거절한다"
+      },
+      "gen_diplo_faction_request": {
+        "a": "가입을 받아들인다",
+        "b": "신청을 거절한다"
+      },
+      "gen_diplo_nap": {
+        "a": "조약에 서명한다",
+        "b": "제안을 거절한다"
+      },
+      "gen_election": {
+        "a": "결과를 발표한다",
+        "b": "결과를 받아들인다",
+        "c": "선거를 미룬다",
+        "d": "연립 정부를 꾸린다"
+      },
+      "gen_government_shift": {
+        "a": "권력을 넘긴다",
+        "b": "결정을 미룬다"
+      },
+      "gen_guarantee_called": {
+        "a": "약속을 지킨다",
+        "b": "물러선다"
+      },
+      "gen_justified_against": {
+        "a": "국경을 굳힌다"
+      },
+      "gen_peace_movement": {
+        "a": "목소리를 듣는다",
+        "b": "선전으로 맞선다"
+      },
+      "gen_regime_crisis": {
+        "a": "권력을 넘긴다",
+        "b": "반대 운동을 단속한다",
+        "c": "나라가 내란에 빠진다"
+      },
+      "gen_strike": {
+        "a": "파업을 견딘다",
+        "b": "노조와 타협한다"
+      },
+      "gen_unrest": {
+        "a": "가라앉기를 기다린다",
+        "b": "계엄을 선포한다"
+      },
+      "gen_war_weariness": {
+        "a": "사기 저하를 견딘다",
+        "b": "사기 진작에 나선다"
+      }
+    },
+    "event_title": {
+      "gen_call_to_arms": "참전 요청",
+      "gen_coup_done": "쿠데타 발생",
+      "gen_diplo_access": "군사 통행 요청",
+      "gen_diplo_faction_invite": "진영 가입 초청",
+      "gen_diplo_faction_request": "진영 가입 신청",
+      "gen_diplo_nap": "불가침 조약 제안",
+      "gen_election": "총선거 결과",
+      "gen_government_shift": "정권 교체 요구",
+      "gen_guarantee_called": "보장의 약속",
+      "gen_justified_against": "국경의 위협",
+      "gen_peace_movement": "평화 운동",
+      "gen_regime_crisis": "정권의 위기",
+      "gen_strike": "노동자 총파업",
+      "gen_unrest": "거리의 소요",
+      "gen_war_weariness": "전쟁 피로"
+    },
+    "exp": {
+      "elite": "정예",
+      "recruit": "신병",
+      "regular": "정규",
+      "veteran": "숙련"
+    },
     "faction": {
       "allies": "연합국",
       "axis": "추축국",
       "comintern": "코민테른"
+    },
+    "focus": {
+      "gen_air_bases": "비행장 확충",
+      "gen_air_force": "공군 창설",
+      "gen_army_artillery": "포병 강화",
+      "gen_army_doctrine": "교리 연구",
+      "gen_army_fort": "국경 요새",
+      "gen_army_infantry": "보병 장비 현대화",
+      "gen_army_reform": "육군 개편",
+      "gen_army_staff": "참모 대학",
+      "gen_ind_civ_1": "민간 공업 진흥",
+      "gen_ind_civ_2": "공업 지대 조성",
+      "gen_ind_infra": "도로와 철도",
+      "gen_ind_mil_1": "병기창 건설",
+      "gen_ind_mil_2": "병기창 확대",
+      "gen_ind_resources": "지하자원 개발",
+      "gen_ind_survey": "산업 실태 조사",
+      "gen_navy_coast": "해안 방어",
+      "gen_navy_yards": "조선소 확충",
+      "gen_pol_admin": "행정 개혁",
+      "gen_pol_claims": "잃어버린 땅",
+      "gen_pol_com": "노동자의 나라",
+      "gen_pol_com_ally": "국제 연대",
+      "gen_pol_defence_spirit": "국방 의식 고취",
+      "gen_pol_dem": "민주주의의 수호",
+      "gen_pol_dem_ally": "민주 국가들과 손잡기",
+      "gen_pol_fas": "국가 재건 운동",
+      "gen_pol_fas_ally": "추축국과 손잡기",
+      "gen_pol_neu": "엄정 중립",
+      "gen_pol_neu_league": "지역 협상",
+      "gen_pol_unity": "국민 통합",
+      "gen_rs_1": "과학 진흥",
+      "gen_rs_2": "연구소 확충"
+    },
+    "focus_desc": {
+      "gen_air_bases": "포장 활주로와 격납고, 정비 공장을 전국에 늘려 더 큰 공군을 맞을 준비를 한다.",
+      "gen_air_force": "육군 항공대를 독립된 군으로 만들고, 첫 현대식 전투기를 들여와 비행대를 꾸린다.",
+      "gen_army_artillery": "포병을 위해 새 화포 설계와 현대식 사격 통제 방식을 들여오고, 포수들의 훈련을 늘린다.",
+      "gen_army_doctrine": "장교들이 지난 전쟁의 교훈을 새 무기와 견주어 보고, 다음 전쟁에서 싸울 방법을 교범으로 정리한다.",
+      "gen_army_fort": "가장 위협적인 이웃 나라가 먼저 쳐들어올 만한 곳에 벙커와 참호, 장애물을 세운다.",
+      "gen_army_infantry": "낡은 소총과 야전 장비를 다음 전쟁에 맞는 새 설계로 바꾸고, 지원 부대의 장비도 함께 손본다.",
+      "gen_army_reform": "총참모부가 육군의 편제를 새로 짜고, 지친 지휘관을 물러나게 하며 유능한 장교를 발탁한다.",
+      "gen_army_staff": "참모 대학을 열어 장교들에게 작전을 계획하고 큰 부대를 혼란 없이 움직이는 법을 가르친다.",
+      "gen_ind_civ_1": "값싼 대출과 세금 감면을 내걸어, 성장할 여지가 가장 큰 도시들에 새 공장을 끌어들인다.",
+      "gen_ind_civ_2": "전기와 용수, 노동자 주택을 미리 갖춘 계획 공업 지대를 만들어 새 공장이 더 빨리 들어서게 한다.",
+      "gen_ind_infra": "새 간선 도로와 철도 지선을 놓아 지방을 수도와 시장, 그리고 군의 주둔지에 단단히 잇는다.",
+      "gen_ind_mil_1": "소총과 포탄, 대포를 더는 외국에서 사 오지 않도록 나라 안에 국영 병기창을 세운다.",
+      "gen_ind_mil_2": "병기창을 넓히고 기술 학교를 새로 열어 현대 무기를 만드는 데 필요한 숙련공을 길러 낸다.",
+      "gen_ind_resources": "지질학자들이 새 광맥을 찾아내고, 나라가 광산 회사들이 그곳에 닿을 수 있도록 길을 닦는다.",
+      "gen_ind_survey": "조사관들이 전국의 공장과 광산, 작업장을 돌며 이 나라가 실제로 무엇을 만들 수 있고 어디에 돈을 써야 할지 살핀다.",
+      "gen_navy_coast": "바다에서 오는 공격에 가장 취약한 항구들을 해안포대와 기뢰원으로 지킨다.",
+      "gen_navy_yards": "가장 좋은 항구에 새 선대를 놓고, 해군은 설계자들에게 현대식 함정을 주문한다.",
+      "gen_pol_admin": "겹치는 부처를 합치고 절차를 줄이며, 시험으로 뽑는 직업 공무원 제도를 세운다.",
+      "gen_pol_claims": "지난 전쟁들에서 잃은 땅이 다시 정치인의 연설과 교과서, 총참모부의 작전 지도에 오른다.",
+      "gen_pol_com": "노동조합과 노동자 평의회가 목소리를 얻고, 좌파의 사상이 공장과 거리로 퍼져 나간다.",
+      "gen_pol_com_ally": "당이 모스크바와 국제 공산주의 운동에 더 가까이 다가가며 연대의 손을 내민다.",
+      "gen_pol_defence_spirit": "뉴스 영화와 방공 훈련, 재향 군인회가 평화도 지켜야 지킬 수 있다는 것을 국민에게 일깨운다.",
+      "gen_pol_dem": "의회와 자유 언론, 공정한 선거를 나라의 힘이 나오는 곳으로 내세우며 지지를 넓힌다.",
+      "gen_pol_dem_ally": "사절단이 민주주의 열강을 찾아가 그들의 동맹에 들어갈 길을 묻고 신뢰를 쌓는다.",
+      "gen_pol_fas": "하나의 규율 잡힌 정당 아래 질서와 국가 부흥을 내건 대중 운동이 세를 넓힌다.",
+      "gen_pol_fas_ally": "정부가 베를린에 사절을 보내 작은 나라도 그 진영에 들 수 있는지 묻고 관계를 다진다.",
+      "gen_pol_neu": "정부가 열강의 다툼에서 어느 편에도 서지 않겠다고 공식으로 선언하고 국민의 지지를 얻는다.",
+      "gen_pol_neu_league": "열강 사이에서 불안해하는 이웃 나라들을 우리가 이끄는 방위 협상에 초청한다.",
+      "gen_pol_unity": "어려운 시대를 맞아 서로 다투던 정당과 지역에 다툼을 접고 힘을 모으자고 호소한다.",
+      "gen_rs_1": "대학 연구비를 늘리고 국가 연구 위원회를 세워 한 갈래의 연구를 더 맡을 수 있게 한다.",
+      "gen_rs_2": "기업 연구소가 대학과 나란히 일하도록 하고, 나라가 두 곳의 연구비를 모두 대 준다."
+    },
+    "gen": {
+      "1": "I",
+      "2": "II",
+      "3": "III"
+    },
+    "general": {
+      "alan_cunningham": "앨런 커닝엄",
+      "alexander": "해럴드 알렉산더",
+      "altay": "파흐레틴 알타이",
+      "anders": "브와디스와프 안데르스",
+      "auchinleck": "클로드 오친렉",
+      "avramescu": "게오르게 아브라메스쿠",
+      "bastico": "에토레 바스티코",
+      "bergonzoli": "안니발레 베르곤촐리",
+      "billotte": "가스통 비요트",
+      "blanchard": "조르주 블랑샤르",
+      "blyukher": "바실리 블류헤르",
+      "bock": "페도어 폰 보크",
+      "bradley": "오마 브래들리",
+      "brooke": "앨런 브룩",
+      "budyonny": "세묜 부됸니",
+      "cakmak": "페브지 차크마크",
+      "caracciolo": "마리오 카라촐로 디페롤레토",
+      "catroux": "조르주 카트루",
+      "chen_cheng": "천청",
+      "chuikov": "바실리 추이코프",
+      "clark": "마크 W. 클라크",
+      "de_gaulle": "샤를 드골",
+      "delattre": "장 드라트르 드타시니",
+      "dempsey": "마일스 뎀프시",
+      "devers": "제이컵 디버스",
+      "drum": "휴 A. 드럼",
+      "eichelberger": "로버트 아이컬버거",
+      "eisenhower": "드와이트 D. 아이젠하워",
+      "franco": "프란시스코 프랑코",
+      "gamelin": "모리스 가믈랭",
+      "gariboldi": "이탈로 가리볼디",
+      "georges": "알퐁스 조르주",
+      "geyr": "레오 가이어 폰 슈베펜부르크",
+      "giraud": "앙리 지로",
+      "gort": "고트 경",
+      "guderian": "하인츠 구데리안",
+      "guzzoni": "알프레도 구초니",
+      "he_long": "허룽",
+      "he_yingqin": "허잉친",
+      "heinrichs": "에리크 하인릭스",
+      "heinrici": "고트하르트 하인리치",
+      "hodges": "코트니 호지스",
+      "horrocks": "브라이언 호록스",
+      "hube": "한스발렌틴 후베",
+      "juin": "알퐁스 쥐앵",
+      "kluge": "귄터 폰 클루게",
+      "konev": "이반 코네프",
+      "kosic": "페타르 코시치",
+      "krueger": "월터 크루거",
+      "kutrzeba": "타데우시 쿠트셰바",
+      "leclerc": "필리프 르클레르",
+      "leese": "올리버 리스",
+      "lin_biao": "린뱌오",
+      "liu_bocheng": "류보청",
+      "macarthur": "더글러스 맥아더",
+      "maczek": "스타니스와프 마체크",
+      "maitland_wilson": "헨리 메이틀랜드 윌슨",
+      "malinovsky": "로디온 말리놉스키",
+      "mannerheim": "카를 구스타프 만네르헤임",
+      "meretskov": "키릴 메레츠코프",
+      "messe": "조반니 메세",
+      "miaja": "호세 미아하",
+      "model": "발터 모델",
+      "montgomery": "버나드 몽고메리",
+      "nagy": "너지 빌모시",
+      "oconnor": "리처드 오코너",
+      "orbay": "카즘 오르바이",
+      "osterman": "후고 외스테르만",
+      "papagos": "알렉산드로스 파파고스",
+      "patton": "조지 S. 패튼",
+      "paulus": "프리드리히 파울루스",
+      "pintor": "피에트로 핀토르",
+      "pitsikas": "이오아니스 피치카스",
+      "pozas": "세바스티안 포사스",
+      "pretelat": "앙드레가스통 프레틀라",
+      "prioux": "르네 프리우",
+      "rokossovsky": "콘스탄틴 로코솝스키",
+      "rommel": "에르빈 로멜",
+      "rundstedt": "게르트 폰 룬트슈테트",
+      "rydz_smigly": "에드바르트 리츠시미그위",
+      "sanatescu": "콘스탄틴 서너테스쿠",
+      "siilasvuo": "얄마르 실라스부오",
+      "simovic": "두샨 시모비치",
+      "simpson": "윌리엄 H. 심프슨",
+      "slim": "윌리엄 슬림",
+      "soddu": "우발도 소두",
+      "sonyi": "쇼니 후고",
+      "sosnkowski": "카지미에시 소스놉스키",
+      "stilwell": "조지프 스틸웰",
+      "timoshenko": "세묜 티모셴코",
+      "tukhachevsky": "미하일 투하쳅스키",
+      "uborevich": "이에로님 우보레비치",
+      "varela": "호세 엔리케 바렐라",
+      "vatutin": "니콜라이 바투틴",
+      "vercellino": "마리오 베르첼리노",
+      "visconti_prasca": "세바스티아노 비스콘티 프라스카",
+      "wavell": "아치볼드 웨이벌",
+      "wenck": "발터 벵크",
+      "wietersheim": "구스타프 폰 비터스하임",
+      "witzleben": "에르빈 폰 비츨레벤",
+      "xue_yue": "쉐웨",
+      "yakir": "이오나 야키르",
+      "yeremenko": "안드레이 예료멘코",
+      "zhang_zhizhong": "장즈중",
+      "zhu_de": "주더",
+      "zhukov": "게오르기 주코프"
     },
     "group": {
       "africa_oceania": "아프리카·오세아니아",
       "americas": "아메리카",
       "asia": "아시아·중동",
       "europe": "유럽"
+    },
+    "land": {
+      "appoint_general": "사령관 임명 (육군 경험치 {cost})",
+      "army_name_1": "제{n}군",
+      "army_name_2": "제{n}군",
+      "army_name_3": "제{n}군",
+      "army_name_n": "제{n}군",
+      "assign_hint": "장군을 누르면 {army} 지휘를 맡깁니다",
+      "band_casualties": "오늘 −{n}",
+      "band_divisions": "사단 {n}개",
+      "battle_line": "전열 {n}",
+      "battle_reserve": "예비 {n}",
+      "battle_width": "전투폭 {used}/{width}",
+      "block_split_single": "사단이 하나뿐이라 나눌 수 없습니다",
+      "btn_attack": "공격",
+      "btn_auto": "자동",
+      "btn_disband": "해산",
+      "btn_execute": "실행",
+      "btn_front": "전선",
+      "btn_general": "장군",
+      "btn_leave_battle": "전투 이탈",
+      "btn_merge": "병합",
+      "btn_more": "더 보기",
+      "btn_move": "이동",
+      "btn_paradrop": "공수 강하",
+      "btn_plan": "작전",
+      "btn_rail": "철도",
+      "btn_sea": "해상",
+      "btn_split": "분할",
+      "btn_stop": "중지",
+      "card_collapse": "군 카드 접기",
+      "card_expand": "군 카드 펼치기",
+      "casualties_today": "오늘 사상자",
+      "deploy_now": "즉시 배치",
+      "designer_copy": "복사",
+      "designer_delete": "삭제",
+      "designer_name": "이름",
+      "designer_save": "저장",
+      "designer_xp": "육군 경험치 −{cost} / {have}",
+      "dial": "군",
+      "divisions_of": "{n}/{max}",
+      "equipment_short": "부족: {list}",
+      "factory_days": "공장일 {days}",
+      "field_men": "전선 인원",
+      "general_from": "{year}년부터",
+      "general_level": "{n}단계",
+      "general_skills": "공격 {a} 방어 {d} 계획 {p} 병참 {l}",
+      "general_until": "{date}까지",
+      "hint_enemy": "적 주를 누르세요",
+      "hint_front": "빛나는 국경 주를 누르세요",
+      "hint_plan": "적 주를 누르세요: 목표 {n}/{max}",
+      "hint_region": "지도에서 주를 누르세요",
+      "in_use": "{n}개 사용 중",
+      "locked_by": "{tech} 필요",
+      "manpower_pool": "인력 {n}",
+      "move_days": "{days}일",
+      "new_template": "새 편제",
+      "no_armies": "아직 군이 없습니다: 사단을 훈련하세요",
+      "no_generals": "장군 없음",
+      "no_training": "훈련 중인 사단이 없습니다",
+      "overseas": "해외 (상륙은 다음 단계에서)",
+      "preview_days": "약 {days}일",
+      "preview_ratio": "전력비 {ratio}",
+      "readiness": "준비도 +{pct}%",
+      "region_divisions": "아군 {ours} · 적 {theirs}",
+      "region_encircled": "포위됨",
+      "region_fort": "요새",
+      "region_rail": "철도",
+      "region_rivers": "강 도하 {n}곳",
+      "region_supply": "보급 {have} / 소모 {use}",
+      "region_terrain": "지형",
+      "region_weather": "날씨",
+      "serving": "{army} 지휘",
+      "show_divisions": "사단 보기",
+      "slot_empty": "빈 칸",
+      "slot_remove": "빼기",
+      "stat_armor": "장갑",
+      "stat_breakthrough": "돌파",
+      "stat_defense": "방어",
+      "stat_equipment": "장비",
+      "stat_hard": "경성 공격",
+      "stat_hardness": "경도",
+      "stat_hp": "체력",
+      "stat_men": "병력",
+      "stat_org": "조직력",
+      "stat_pierce": "관통",
+      "stat_soft": "연성 공격",
+      "stat_speed": "속도",
+      "stat_supply": "보급 소모",
+      "stat_train_days": "훈련 기간",
+      "stat_width": "전투폭",
+      "state_battle": "{n}곳에서 교전",
+      "state_encircled": "포위됨",
+      "state_executing": "작전 수행 중",
+      "state_idle": "대기",
+      "state_moving": "{region}(으)로 이동, {days}일",
+      "state_para": "{days}일 후 공수 강하",
+      "state_rail": "철도 이동, {days}일",
+      "state_retreat": "후퇴 중",
+      "state_sea": "해상 이동, {days}일",
+      "supply": "보급 {pct}%",
+      "tab_armies": "군",
+      "tab_generals": "장군",
+      "tab_templates": "편제",
+      "tab_training": "훈련",
+      "tap_again": "확인하려면 한 번 더 누르세요",
+      "titled_general": "{n}호 사령관",
+      "train_into": "새 사단 배치: {army}",
+      "train_new_army": "새 사단은 수도에서 새 군이 됩니다",
+      "train_plus": "+{n}",
+      "training_men": "훈련 중",
+      "waiting_equipment": "장비 대기 중 {pct}%",
+      "waiting_manpower": "인력 대기 중"
+    },
+    "law": {
+      "conscription": {
+        "all_adults": "전 성인 복무",
+        "disarmed": "비무장",
+        "extensive": "확장 징병",
+        "limited": "제한 징병",
+        "scraping": "마지막 동원",
+        "service": "의무 복무",
+        "volunteer": "지원병"
+      },
+      "economy": {
+        "civilian": "민간 경제",
+        "early_mobilization": "초기 동원",
+        "partial_mobilization": "부분 동원",
+        "total_mobilization": "총동원",
+        "war_economy": "전시 경제"
+      },
+      "trade": {
+        "closed_economy": "폐쇄 경제",
+        "export_focus": "수출 중심",
+        "free_trade": "자유무역",
+        "limited_exports": "수출 제한"
+      }
+    },
+    "law_kind": {
+      "conscription": "징병법",
+      "economy": "경제법",
+      "trade": "무역법"
     },
     "leader": {
       "AFG": "무함마드 자히르 샤",
@@ -3372,6 +4077,27 @@
       "pick_hint": "고르지 않은 나라는 모두 AI가 맡습니다. 다른 사람이 고른 나라는 흐리게 보입니다.",
       "taken_by": "{name} 님이 골랐습니다"
     },
+    "mod": {
+      "armor_terrain": "전차와 지형",
+      "doctrine": "교리",
+      "encircled": "포위",
+      "engineer": "공병",
+      "entrench": "참호",
+      "excess": "초과 폭",
+      "exp": "경험",
+      "fort": "요새",
+      "general": "장군",
+      "marine": "해병",
+      "mountain": "산악병",
+      "plan": "준비도",
+      "recon": "정찰",
+      "river": "강",
+      "strait": "해협",
+      "supply": "보급",
+      "terrain": "지형",
+      "trait": "특성",
+      "weather": "날씨"
+    },
     "month": {
       "m01": "1월",
       "m02": "2월",
@@ -3397,687 +4123,208 @@
       "original_owner": "1936년: {country}",
       "vp": "승점 {vp}"
     },
+    "region_cat": {
+      "city": "도시",
+      "large_city": "대도시",
+      "large_town": "큰 소도시",
+      "megalopolis": "초거대 도시",
+      "metropolis": "거대 도시",
+      "pastoral": "목초지",
+      "rural": "농촌",
+      "town": "소도시",
+      "wasteland": "황무지"
+    },
+    "res": {
+      "aluminium": "알루미늄",
+      "chromium": "크롬",
+      "oil": "석유",
+      "rubber": "고무",
+      "steel": "강철",
+      "tungsten": "텅스텐"
+    },
+    "school": {
+      "battleplan": "전투 계획",
+      "firepower": "화력 우세",
+      "mass": "인해 전술",
+      "mobile": "기동전"
+    },
+    "spirit": {
+      "gen_civil_strife": "내란의 상처",
+      "gen_democratic_movement": "민주 운동",
+      "gen_efficient_government": "효율적 정부",
+      "gen_industrial_subsidy_spirit": "공업 보조금",
+      "gen_industrial_zone": "공업 지대",
+      "gen_labour_movement": "노동 운동",
+      "gen_martial_law_spirit": "계엄 통치",
+      "gen_mining_drive": "광산 개발",
+      "gen_neutrality_declared": "중립 선언",
+      "gen_rally_spirit": "대중 집회",
+      "gen_renewal_movement": "재건 운동",
+      "gen_research_institutes": "국립 연구소",
+      "gen_skilled_workforce": "숙련공 양성",
+      "gen_staff_training": "참모 교육",
+      "gen_strike_losses": "파업의 여파",
+      "gen_war_bonds_spirit": "전쟁 공채"
+    },
+    "spirit_desc": {
+      "gen_civil_strife": "내란 끝에 정권은 바뀌었지만, 부서진 공장과 갈라진 민심이 남았다.",
+      "gen_democratic_movement": "민주주의를 지지하는 시민 단체들이 꾸준히 지지자를 늘린다.",
+      "gen_efficient_government": "간소해진 행정 덕분에 정부가 같은 힘으로 더 많은 일을 해낸다.",
+      "gen_industrial_subsidy_spirit": "보조금을 받은 건설 회사들이 민간 공장을 더 빨리 짓는다.",
+      "gen_industrial_zone": "미리 갖춘 공업 지대 덕분에 새 건물이 더 빨리 올라간다.",
+      "gen_labour_movement": "노동조합과 좌파 단체들이 공산주의 지지를 조금씩 넓힌다.",
+      "gen_martial_law_spirit": "군이 거리를 지키며 질서는 돌아왔지만, 공장의 일손은 줄었다.",
+      "gen_mining_drive": "새 광산과 장비로 땅속의 자원을 더 많이 캐낸다.",
+      "gen_neutrality_declared": "공식 중립 선언 때문에 다른 나라가 우리를 겨냥한 전쟁 명분을 쌓는 데 더 오래 걸린다.",
+      "gen_rally_spirit": "집회가 이어지는 동안 집권당의 지지가 날마다 조금씩 오른다.",
+      "gen_renewal_movement": "국가 재건을 외치는 대중 운동이 파시즘 지지를 꾸준히 넓혀 간다.",
+      "gen_research_institutes": "나라가 세운 연구소들이 모든 분야의 연구를 조금씩 앞당긴다.",
+      "gen_skilled_workforce": "기술 학교를 나온 숙련공들이 생산 라인의 효율을 한층 끌어올린다.",
+      "gen_staff_training": "참모 대학 출신 장교들이 작전 준비를 앞당기고 군에 경험을 쌓아 준다.",
+      "gen_strike_losses": "멈췄던 공장들이 아직 제 속도를 되찾지 못했다.",
+      "gen_war_bonds_spirit": "공채를 산 국민은 전쟁을 자기 일로 여기지만, 그만큼 생필품 수요도 늘었다."
+    },
+    "stance": {
+      "aggressive": "과감",
+      "balanced": "보통",
+      "careful": "신중"
+    },
+    "support": {
+      "engineer": "공병 중대",
+      "field_hospital": "야전 병원",
+      "logistics": "병참 중대",
+      "recon": "정찰 중대",
+      "signal": "통신 중대",
+      "support_anti_air": "지원 대공",
+      "support_anti_tank": "지원 대전차",
+      "support_artillery": "지원 포병"
+    },
+    "tech": {
+      "anti_air_1": "대공포 I",
+      "anti_air_2": "대공포 II",
+      "anti_tank_1": "대전차포 I",
+      "anti_tank_2": "대전차포 II",
+      "artillery_1": "야포 I",
+      "artillery_2": "야포 II",
+      "artillery_3": "야포 III",
+      "battleplan_1": "전투 계획",
+      "battleplan_2": "종심 방어",
+      "bomber_1": "폭격기 I",
+      "bomber_2": "폭격기 II",
+      "computing_1": "계산 기계",
+      "computing_2": "전자 계산",
+      "construction_1": "건설 I",
+      "construction_2": "건설 II",
+      "construction_3": "건설 III",
+      "electronics_1": "전기 공학",
+      "engineer_company": "공병 중대",
+      "excavation_1": "채굴 I",
+      "excavation_2": "채굴 II",
+      "field_hospital": "야전 병원",
+      "fighter_1": "전투기 I",
+      "fighter_2": "전투기 II",
+      "fighter_3": "전투기 III",
+      "firepower_1": "화력 우세",
+      "firepower_2": "집중 포격",
+      "flexible_line": "유연 생산 라인",
+      "fortification_1": "요새화",
+      "inf_eq_1": "보병 장비 I",
+      "inf_eq_2": "보병 장비 II",
+      "inf_eq_3": "보병 장비 III",
+      "light_tank_1": "경전차 I",
+      "light_tank_2": "경전차 II",
+      "logistics_company": "병참 중대",
+      "marines": "해병대",
+      "mass_1": "인해 전술",
+      "mass_2": "인민의 군대",
+      "medium_tank_1": "중형 전차 I",
+      "medium_tank_2": "중형 전차 II",
+      "medium_tank_3": "중형 전차 III",
+      "mobile_1": "기동전",
+      "mobile_2": "기갑 선봉",
+      "motorized_1": "차량화 보병",
+      "mountaineers": "산악병",
+      "output_1": "산업 합리화",
+      "output_2": "대량 생산",
+      "paratroopers": "공수부대",
+      "rail_1": "철도 공학",
+      "recon_company": "정찰 중대",
+      "signal_company": "통신 중대",
+      "support_eq_1": "지원 장비 I",
+      "support_eq_2": "지원 장비 II",
+      "tools_1": "기본 공작 기계",
+      "tools_2": "개량 공작 기계",
+      "tools_3": "고급 공작 기계",
+      "tools_4": "조립 라인"
+    },
+    "terrain": {
+      "desert": "사막",
+      "forest": "숲",
+      "hills": "언덕",
+      "jungle": "정글",
+      "marsh": "습지",
+      "mountain": "산악",
+      "plains": "평지",
+      "urban": "도시"
+    },
+    "tpl": {
+      "alpini": "알피니 사단",
+      "armored": "기갑 사단",
+      "binary": "이분 사단",
+      "cavalry": "기병 사단",
+      "cavalry_brigade": "기병 여단",
+      "celere": "쾌속 사단",
+      "colonial": "식민지 사단",
+      "colonial_garrison": "식민지 수비 사단",
+      "dlm": "경기계화 사단",
+      "garrison": "수비 사단",
+      "infantry": "보병 사단",
+      "mobile": "기동 사단",
+      "mountain": "산악 사단",
+      "mountain_rifle": "산악 소총 사단",
+      "rifle": "소총 사단",
+      "square": "보병 사단(4단위)",
+      "tank_brigade": "전차 여단"
+    },
+    "trait": {
+      "cavalry_officer": "기병 장교",
+      "defensive_doctrine": "방어 전문가",
+      "desert_fox": "사막 전문가",
+      "infantry_officer": "보병 지휘관",
+      "logistics_wizard": "병참 달인",
+      "mountaineer": "산악 전문가",
+      "offensive_doctrine": "공세 전문가",
+      "organizer": "조직가",
+      "panzer_leader": "기갑 지휘관",
+      "river_crosser": "도하 전문가",
+      "winter_specialist": "겨울 전문가"
+    },
+    "trait_desc": {
+      "cavalry_officer": "기병 사단 공격 +10%, 속도 +10%",
+      "defensive_doctrine": "방어 +10%, 참호 구축 속도 2배",
+      "desert_fox": "사막 공격 +10%, 폭염 벌칙 없음",
+      "infantry_officer": "보병 사단 공격 +5%, 방어 +5%",
+      "logistics_wizard": "보급 소모 −15%",
+      "mountaineer": "언덕·산악 공격 +10%",
+      "offensive_doctrine": "공격 +5%, 준비도 속도 +10%",
+      "organizer": "조직력 회복 +20%",
+      "panzer_leader": "전차·차량화 사단 공격 +10%, 속도 +10%",
+      "river_crosser": "강 도하 벌칙 절반",
+      "winter_specialist": "눈·혹한 벌칙 절반"
+    },
+    "weather": {
+      "clear": "맑음",
+      "frozen": "혹한",
+      "heat": "폭염",
+      "mud": "진흙",
+      "rain": "비",
+      "snow": "눈"
+    },
     "win": {
       "country_won": "{country} 승리",
       "faction_won": "{faction} 승리",
       "mvp": "최우수",
       "your_faction": "내 진영 승리: {faction}"
-    },
-    "building": {
-      "civ": "민간 공장",
-      "mil": "군수 공장",
-      "dock": "조선소",
-      "infra": "인프라",
-      "fort": "육상 요새",
-      "rail": "철도",
-      "supply_hub": "보급 허브"
-    },
-    "res": {
-      "oil": "석유",
-      "aluminium": "알루미늄",
-      "rubber": "고무",
-      "tungsten": "텅스텐",
-      "steel": "강철",
-      "chromium": "크롬"
-    },
-    "equip": {
-      "infantry_equipment": "보병 장비",
-      "support_equipment": "지원 장비",
-      "artillery": "야포",
-      "anti_tank": "대전차포",
-      "anti_air": "대공포",
-      "motorized": "트럭",
-      "light_tank": "경전차",
-      "medium_tank": "중형 전차",
-      "fighter": "전투기",
-      "bomber": "폭격기"
-    },
-    "gen": {
-      "1": "I",
-      "2": "II",
-      "3": "III"
-    },
-    "general": {
-      "rundstedt": "게르트 폰 룬트슈테트",
-      "bock": "페도어 폰 보크",
-      "guderian": "하인츠 구데리안",
-      "rommel": "에르빈 로멜",
-      "model": "발터 모델",
-      "kluge": "귄터 폰 클루게",
-      "witzleben": "에르빈 폰 비츨레벤",
-      "heinrici": "고트하르트 하인리치",
-      "paulus": "프리드리히 파울루스",
-      "hube": "한스발렌틴 후베",
-      "wenck": "발터 벵크",
-      "geyr": "레오 가이어 폰 슈베펜부르크",
-      "wietersheim": "구스타프 폰 비터스하임",
-      "tukhachevsky": "미하일 투하쳅스키",
-      "zhukov": "게오르기 주코프",
-      "rokossovsky": "콘스탄틴 로코솝스키",
-      "konev": "이반 코네프",
-      "timoshenko": "세묜 티모셴코",
-      "budyonny": "세묜 부됸니",
-      "uborevich": "이에로님 우보레비치",
-      "yakir": "이오나 야키르",
-      "blyukher": "바실리 블류헤르",
-      "meretskov": "키릴 메레츠코프",
-      "vatutin": "니콜라이 바투틴",
-      "malinovsky": "로디온 말리놉스키",
-      "chuikov": "바실리 추이코프",
-      "yeremenko": "안드레이 예료멘코",
-      "gort": "고트 경",
-      "wavell": "아치볼드 웨이벌",
-      "brooke": "앨런 브룩",
-      "montgomery": "버나드 몽고메리",
-      "oconnor": "리처드 오코너",
-      "maitland_wilson": "헨리 메이틀랜드 윌슨",
-      "alexander": "해럴드 알렉산더",
-      "auchinleck": "클로드 오친렉",
-      "slim": "윌리엄 슬림",
-      "alan_cunningham": "앨런 커닝엄",
-      "leese": "올리버 리스",
-      "dempsey": "마일스 뎀프시",
-      "horrocks": "브라이언 호록스",
-      "gamelin": "모리스 가믈랭",
-      "georges": "알퐁스 조르주",
-      "giraud": "앙리 지로",
-      "juin": "알퐁스 쥐앵",
-      "de_gaulle": "샤를 드골",
-      "billotte": "가스통 비요트",
-      "pretelat": "앙드레가스통 프레틀라",
-      "blanchard": "조르주 블랑샤르",
-      "prioux": "르네 프리우",
-      "delattre": "장 드라트르 드타시니",
-      "leclerc": "필리프 르클레르",
-      "catroux": "조르주 카트루",
-      "macarthur": "더글러스 맥아더",
-      "krueger": "월터 크루거",
-      "patton": "조지 S. 패튼",
-      "bradley": "오마 브래들리",
-      "eisenhower": "드와이트 D. 아이젠하워",
-      "drum": "휴 A. 드럼",
-      "stilwell": "조지프 스틸웰",
-      "clark": "마크 W. 클라크",
-      "hodges": "코트니 호지스",
-      "simpson": "윌리엄 H. 심프슨",
-      "devers": "제이컵 디버스",
-      "eichelberger": "로버트 아이컬버거",
-      "messe": "조반니 메세",
-      "bastico": "에토레 바스티코",
-      "guzzoni": "알프레도 구초니",
-      "gariboldi": "이탈로 가리볼디",
-      "bergonzoli": "안니발레 베르곤촐리",
-      "pintor": "피에트로 핀토르",
-      "caracciolo": "마리오 카라촐로 디페롤레토",
-      "visconti_prasca": "세바스티아노 비스콘티 프라스카",
-      "soddu": "우발도 소두",
-      "vercellino": "마리오 베르첼리노",
-      "rydz_smigly": "에드바르트 리츠시미그위",
-      "sosnkowski": "카지미에시 소스놉스키",
-      "kutrzeba": "타데우시 쿠트셰바",
-      "anders": "브와디스와프 안데르스",
-      "maczek": "스타니스와프 마체크",
-      "mannerheim": "카를 구스타프 만네르헤임",
-      "osterman": "후고 외스테르만",
-      "heinrichs": "에리크 하인릭스",
-      "siilasvuo": "얄마르 실라스부오",
-      "chen_cheng": "천청",
-      "xue_yue": "쉐웨",
-      "he_yingqin": "허잉친",
-      "zhang_zhizhong": "장즈중",
-      "zhu_de": "주더",
-      "liu_bocheng": "류보청",
-      "he_long": "허룽",
-      "lin_biao": "린뱌오",
-      "franco": "프란시스코 프랑코",
-      "varela": "호세 엔리케 바렐라",
-      "miaja": "호세 미아하",
-      "pozas": "세바스티안 포사스",
-      "sanatescu": "콘스탄틴 서너테스쿠",
-      "avramescu": "게오르게 아브라메스쿠",
-      "simovic": "두샨 시모비치",
-      "kosic": "페타르 코시치",
-      "papagos": "알렉산드로스 파파고스",
-      "pitsikas": "이오아니스 피치카스",
-      "cakmak": "페브지 차크마크",
-      "orbay": "카즘 오르바이",
-      "altay": "파흐레틴 알타이",
-      "nagy": "너지 빌모시",
-      "sonyi": "쇼니 후고"
-    },
-    "region_cat": {
-      "wasteland": "황무지",
-      "pastoral": "목초지",
-      "rural": "농촌",
-      "town": "소도시",
-      "large_town": "큰 소도시",
-      "city": "도시",
-      "large_city": "대도시",
-      "metropolis": "거대 도시",
-      "megalopolis": "초거대 도시"
-    },
-    "law_kind": {
-      "economy": "경제법",
-      "trade": "무역법",
-      "conscription": "징병법"
-    },
-    "law": {
-      "economy": {
-        "civilian": "민간 경제",
-        "early_mobilization": "초기 동원",
-        "partial_mobilization": "부분 동원",
-        "war_economy": "전시 경제",
-        "total_mobilization": "총동원"
-      },
-      "trade": {
-        "free_trade": "자유무역",
-        "export_focus": "수출 중심",
-        "limited_exports": "수출 제한",
-        "closed_economy": "폐쇄 경제"
-      },
-      "conscription": {
-        "disarmed": "비무장",
-        "volunteer": "지원병",
-        "limited": "제한 징병",
-        "extensive": "확장 징병",
-        "service": "의무 복무",
-        "all_adults": "전 성인 복무",
-        "scraping": "마지막 동원"
-      }
-    },
-    "branch": {
-      "infantry": "보병",
-      "artillery": "포병",
-      "armour": "기갑",
-      "air": "항공",
-      "industry": "산업",
-      "electronics": "전자",
-      "doctrine": "교리"
-    },
-    "school": {
-      "mobile": "기동전",
-      "firepower": "화력 우세",
-      "battleplan": "전투 계획",
-      "mass": "인해 전술"
-    },
-    "tech": {
-      "inf_eq_1": "보병 장비 I",
-      "inf_eq_2": "보병 장비 II",
-      "inf_eq_3": "보병 장비 III",
-      "support_eq_1": "지원 장비 I",
-      "support_eq_2": "지원 장비 II",
-      "motorized_1": "차량화 보병",
-      "artillery_1": "야포 I",
-      "artillery_2": "야포 II",
-      "artillery_3": "야포 III",
-      "anti_tank_1": "대전차포 I",
-      "anti_tank_2": "대전차포 II",
-      "anti_air_1": "대공포 I",
-      "anti_air_2": "대공포 II",
-      "light_tank_1": "경전차 I",
-      "light_tank_2": "경전차 II",
-      "medium_tank_1": "중형 전차 I",
-      "medium_tank_2": "중형 전차 II",
-      "medium_tank_3": "중형 전차 III",
-      "fighter_1": "전투기 I",
-      "fighter_2": "전투기 II",
-      "fighter_3": "전투기 III",
-      "bomber_1": "폭격기 I",
-      "bomber_2": "폭격기 II",
-      "construction_1": "건설 I",
-      "construction_2": "건설 II",
-      "construction_3": "건설 III",
-      "tools_1": "기본 공작 기계",
-      "tools_2": "개량 공작 기계",
-      "tools_3": "고급 공작 기계",
-      "tools_4": "조립 라인",
-      "output_1": "산업 합리화",
-      "output_2": "대량 생산",
-      "excavation_1": "채굴 I",
-      "excavation_2": "채굴 II",
-      "flexible_line": "유연 생산 라인",
-      "electronics_1": "전기 공학",
-      "computing_1": "계산 기계",
-      "computing_2": "전자 계산",
-      "mobile_1": "기동전",
-      "mobile_2": "기갑 선봉",
-      "firepower_1": "화력 우세",
-      "firepower_2": "집중 포격",
-      "battleplan_1": "전투 계획",
-      "battleplan_2": "종심 방어",
-      "mass_1": "인해 전술",
-      "mass_2": "인민의 군대",
-      "engineer_company": "공병 중대",
-      "recon_company": "정찰 중대",
-      "mountaineers": "산악병",
-      "marines": "해병대",
-      "field_hospital": "야전 병원",
-      "logistics_company": "병참 중대",
-      "signal_company": "통신 중대",
-      "paratroopers": "공수부대",
-      "fortification_1": "요새화",
-      "rail_1": "철도 공학"
-    },
-    "effect": {
-      "constructionPct": "건설 속도 +{n}%",
-      "slotPct": "건물 칸 +{n}%",
-      "effCapBp": "효율 상한 +{n}%",
-      "outputPct": "공장 산출 +{n}%",
-      "extractionPct": "자원 채굴 +{n}%",
-      "retentionBp": "전환할 때 남는 효율 +{n}%",
-      "researchPct": "연구 속도 +{n}%",
-      "attackPct": "공격 +{n}%",
-      "defensePct": "방어 +{n}%",
-      "speedPct": "공격 속도 +{n}%",
-      "vehicleBonusPct": "트럭·전차 보너스 +{n}%",
-      "gunBonusPct": "포·지원 보너스 +{n}%",
-      "recruitablePct": "모집 가능 인구 +{n}%",
-      "trainPct": "하루 모집 +{n}%",
-      "unlock": "{equipment} {gen} 생산 가능",
-      "fortConstructionPct": "요새 건설 +{n}%",
-      "railConstructionPct": "철도 건설 +{n}%",
-      "railSpeedPct": "철도 이동 +{n}%",
-      "breakthroughPct": "돌파 +{n}%",
-      "orgPct": "조직력 +{n}%",
-      "recoveryPct": "조직력 회복 +{n}%",
-      "planSpeedPct": "준비도 속도 +{n}%",
-      "planMaxBp": "최대 준비도 +{n}%",
-      "entrenchMax": "최대 참호 +{n}",
-      "supplyUsePct": "보급 사용 +{n}%",
-      "armyXpMilli": "육군 경험치 하루 +{n}",
-      "generalXpPct": "장군 경험 +{n}%",
-      "winterPenaltyPct": "겨울 벌칙 −{n}%",
-      "desertAttackPct": "사막 공격 +{n}%",
-      "forestDefensePct": "숲 방어 +{n}%",
-      "mechBreakPct": "기계화 돌파 +{n}%",
-      "mechOrg": "기계화 조직력 +{n}",
-      "artillerySoftPct": "포병 연성 공격 +{n}%",
-      "infTrainCutPct": "보병 훈련 시간 −{n}%",
-      "infOrg": "보병 조직력 +{n}",
-      "unlock_unit": "{unit} 편성 가능"
-    },
-    "econ": {
-      "band_label": "공장: 민간 {civ}, 군수 {mil} · 인력 {manpower}",
-      "block": {
-        "dead": "나라가 없습니다",
-        "not_controlled": "내가 통제하는 주가 아닙니다",
-        "occupied": "점령지입니다",
-        "not_buildable": "아직 지을 수 없습니다",
-        "no_slots": "남은 건물 칸이 없습니다",
-        "infra_max": "이미 최고 단계입니다",
-        "queue_full": "대기열이 가득 찼습니다",
-        "bad_index": "찾을 수 없습니다",
-        "law_kind": "이 법이 아닙니다",
-        "law_same": "이미 시행 중입니다",
-        "law_condition": "조건이 맞지 않습니다",
-        "law_cooldown": "바꾼 지 얼마 안 되었습니다",
-        "no_tech": "먼저 연구해야 합니다",
-        "lines_full": "라인이 너무 많습니다",
-        "bad_line": "그런 라인이 없습니다",
-        "no_partner": "이 나라와는 무역할 수 없습니다",
-        "no_room": "더 팔 것이 없습니다",
-        "trades_full": "거래가 너무 많습니다",
-        "no_civs": "민간 공장이 모자랍니다",
-        "researched": "이미 연구했습니다",
-        "in_progress": "연구 중입니다",
-        "prereq": "선행 기술이 필요합니다",
-        "doctrine": "다른 교리를 골랐습니다",
-        "no_slot": "빈 연구 칸이 없습니다",
-        "bad_slot": "빈 칸입니다",
-        "no_army": "그런 군이 없습니다",
-        "army_busy": "군이 다른 일을 하는 중입니다",
-        "no_path": "갈 수 있는 길이 없습니다",
-        "not_adjacent": "우리 전선과 맞닿아 있지 않습니다",
-        "not_at_war": "그 나라와 전쟁 중이 아닙니다",
-        "army_full": "군이 가득 찼습니다",
-        "no_xp": "육군 경험치가 모자랍니다",
-        "bad_template": "편제가 올바르지 않습니다",
-        "special_cap": "특수부대가 너무 많습니다",
-        "no_rail": "가는 길에 철도가 없습니다",
-        "no_port": "양쪽에 우리 항구가 있어야 합니다",
-        "para_range": "공수 강하 거리를 벗어났습니다",
-        "para_cooldown": "공수부대가 아직 다시 준비되지 않았습니다",
-        "template_in_use": "이 편제를 쓰는 사단이 있습니다",
-        "too_many_templates": "편제가 너무 많습니다",
-        "too_many_armies": "군이 너무 많습니다",
-        "general_unavailable": "이 장군은 지금 지휘할 수 없습니다",
-        "bad_region": "땅 주가 아닙니다",
-        "no_pp": "정치력이 모자랍니다",
-        "focus_busy": "이미 진행 중인 중점이 있습니다",
-        "focus_done": "이미 끝낸 중점입니다",
-        "focus_prereq": "앞선 중점이 필요합니다",
-        "focus_exclusive": "서로 배타적인 중점을 이미 골랐습니다",
-        "focus_unavailable": "조건이 맞지 않습니다",
-        "slot_locked": "이 자리는 아직 바꿀 수 없습니다",
-        "advisor_unavailable": "고용할 수 없습니다",
-        "decision_unavailable": "조건이 맞지 않습니다",
-        "decision_cooldown": "아직 다시 할 수 없습니다",
-        "no_event": "그런 이벤트가 없습니다",
-        "bad_option": "고를 수 없는 선택지입니다",
-        "justify_busy": "이미 전쟁 목표를 정당화하는 중입니다",
-        "justify_blocked": "그 나라를 상대로 정당화할 수 없습니다",
-        "law_ws": "전쟁지지도가 모자랍니다",
-        "law_tension": "민주 정부에게는 세계 긴장도가 모자랍니다",
-        "law_ideology": "지금 정부에서는 쓸 수 없습니다",
-        "faction_rule": "진영 규칙이 허락하지 않습니다",
-        "faction_war": "전쟁 중에는 할 수 없습니다",
-        "treaty_exists": "이미 맺은 상태입니다",
-        "nap_young": "조약을 맺은 지 얼마 되지 않았습니다",
-        "tension_gate": "세계 긴장도가 모자랍니다",
-        "bad_target": "대상으로 고를 수 없는 나라입니다",
-        "focus_none": "바꿀 중점이 없습니다"
-      },
-      "cancel_project": "건설 취소",
-      "cancel_research": "연구 취소",
-      "close_deal": "거래 닫기",
-      "fewer": "줄이기",
-      "free_slots": "빈 연구 칸 {n}개",
-      "idle_factories": "놀고 있는 군수 공장 {n}개",
-      "law_closes_deals": "거래가 닫힙니다 — 다시 누르기",
-      "law_need": {
-        "partial_mobilization": "1937년부터 또는 전쟁 중",
-        "war_economy": "전쟁 중",
-        "service": "전쟁 중",
-        "total_mobilization": "전쟁 1년 뒤",
-        "all_adults": "전쟁 1년 뒤",
-        "scraping": "전쟁 2년 뒤",
-        "extensive": "1938년부터 또는 전쟁 중"
-      },
-      "industry": "산업",
-      "more": "늘리기",
-      "more_regions": "주 {n}개 더 보기",
-      "move_down": "아래로",
-      "move_up": "위로",
-      "remove_line": "라인 지우기",
-      "research": "연구",
-      "shortage": "자원 부족",
-      "tab_construction": "건설",
-      "tab_production": "생산",
-      "tab_trade": "자원·무역",
-      "tab_laws": "법·인력",
-      "free_civs": "쓸 수 있는 민간 공장 {n}",
-      "consumer_goods": "소비재 {n}",
-      "trade_civs": "무역 {n}",
-      "new_build": "새로 짓기",
-      "add_to_queue": "대기열에 넣기",
-      "days_left": "{n}일",
-      "no_civs_assigned": "공장을 기다리는 중",
-      "not_partner_embargo": "우리에게 금수 조치",
-      "not_partner_route": "무역로 없음",
-      "not_partner_war": "우리와 전쟁 중",
-      "not_partners": "살 수 없는 나라",
-      "build_here": "여기 짓기",
-      "slots": "남은 칸 {free}/{total}",
-      "mil_factories": "군수 공장 {n} (놀고 있음 {idle})",
-      "new_line": "새 라인",
-      "change_line": "장비 바꾸기",
-      "efficiency": "효율 {n}% (상한 {cap}%)",
-      "after_switch": "바꾸면 {n}%",
-      "per_day": "하루 {n}",
-      "stockpile": "비축",
-      "coverage": "충족 {n}%",
-      "produced": "산출",
-      "exported": "수출",
-      "imported": "수입",
-      "used": "사용",
-      "balance": "남음",
-      "buy": "사기",
-      "open_trade": "거래 열기",
-      "close_trade": "다시 누르면 닫기",
-      "my_deals": "내 거래",
-      "selling": "파는 거래",
-      "sellers_none": "팔 수 있는 나라가 없습니다",
-      "cooldown": "{n}일 기다려야 함",
-      "recruitable": "모집 가능",
-      "manpower": "인력",
-      "troops": "병력",
-      "slot_empty": "비어 있음",
-      "ahead": "+{n}% (시대 앞섬)",
-      "cancel_tap": "다시 누르면 취소",
-      "remove_tap": "다시 누르면 지우기",
-      "occupied_note": "점령지: 공장 50%",
-      "population": "인구 {n}",
-      "state_done": "완료",
-      "state_running": "연구 중",
-      "state_available": "가능",
-      "state_prereq": "선행 필요",
-      "state_doctrine": "다른 교리",
-      "factories": "공장 {n}개",
-      "export_room": "하루 {n} 판매 가능",
-      "region_buildings": "민간 {civ} · 군수 {mil} · 조선 {dock} / 칸 {slots}",
-      "stock_only": "비축만 됩니다(항공전은 뒤 단계)"
-    },
-    "land": {
-      "field_men": "전선 인원",
-      "training_men": "훈련 중",
-      "casualties_today": "오늘 사상자",
-      "army_name_1": "제{n}군",
-      "army_name_2": "제{n}군",
-      "army_name_3": "제{n}군",
-      "army_name_n": "제{n}군",
-      "titled_general": "{n}호 사령관",
-      "dial": "군",
-      "band_divisions": "사단 {n}개",
-      "band_casualties": "오늘 −{n}",
-      "tab_armies": "군",
-      "tab_training": "훈련",
-      "tab_templates": "편제",
-      "tab_generals": "장군",
-      "divisions_of": "{n}/{max}",
-      "readiness": "준비도 +{pct}%",
-      "supply": "보급 {pct}%",
-      "state_idle": "대기",
-      "state_moving": "{region}(으)로 이동, {days}일",
-      "state_battle": "{n}곳에서 교전",
-      "state_encircled": "포위됨",
-      "state_rail": "철도 이동, {days}일",
-      "state_sea": "해상 이동, {days}일",
-      "state_retreat": "후퇴 중",
-      "state_executing": "작전 수행 중",
-      "state_para": "{days}일 후 공수 강하",
-      "btn_move": "이동",
-      "btn_attack": "공격",
-      "btn_front": "전선",
-      "btn_plan": "작전",
-      "btn_rail": "철도",
-      "btn_sea": "해상",
-      "btn_split": "분할",
-      "btn_merge": "병합",
-      "btn_auto": "자동",
-      "btn_more": "더 보기",
-      "btn_disband": "해산",
-      "btn_general": "장군",
-      "btn_execute": "실행",
-      "btn_stop": "중지",
-      "btn_leave_battle": "전투 이탈",
-      "tap_again": "확인하려면 한 번 더 누르세요",
-      "preview_ratio": "전력비 {ratio}",
-      "preview_days": "약 {days}일",
-      "move_days": "{days}일",
-      "train_plus": "+{n}",
-      "deploy_now": "즉시 배치",
-      "waiting_manpower": "인력 대기 중",
-      "waiting_equipment": "장비 대기 중 {pct}%",
-      "manpower_pool": "인력 {n}",
-      "equipment_short": "부족: {list}",
-      "designer_xp": "육군 경험치 −{cost} / {have}",
-      "designer_save": "저장",
-      "designer_copy": "복사",
-      "designer_delete": "삭제",
-      "designer_name": "이름",
-      "slot_empty": "빈 칸",
-      "locked_by": "{tech} 필요",
-      "factory_days": "공장일 {days}",
-      "stat_width": "전투폭",
-      "stat_men": "병력",
-      "stat_soft": "연성 공격",
-      "stat_hard": "경성 공격",
-      "stat_defense": "방어",
-      "stat_breakthrough": "돌파",
-      "stat_org": "조직력",
-      "stat_hp": "체력",
-      "stat_armor": "장갑",
-      "stat_pierce": "관통",
-      "stat_hardness": "경도",
-      "stat_speed": "속도",
-      "stat_supply": "보급 소모",
-      "stat_train_days": "훈련 기간",
-      "stat_equipment": "장비",
-      "general_from": "{year}년부터",
-      "general_until": "{date}까지",
-      "general_level": "{n}단계",
-      "general_skills": "공격 {a} 방어 {d} 계획 {p} 병참 {l}",
-      "battle_width": "전투폭 {used}/{width}",
-      "battle_line": "전열 {n}",
-      "battle_reserve": "예비 {n}",
-      "region_terrain": "지형",
-      "region_weather": "날씨",
-      "region_fort": "요새",
-      "region_rail": "철도",
-      "region_supply": "보급 {have} / 소모 {use}",
-      "region_rivers": "강 도하 {n}곳",
-      "region_divisions": "아군 {ours} · 적 {theirs}",
-      "region_encircled": "포위됨",
-      "overseas": "해외 (상륙은 다음 단계에서)",
-      "appoint_general": "사령관 임명 (육군 경험치 {cost})",
-      "assign_hint": "장군을 누르면 {army} 지휘를 맡깁니다",
-      "block_split_single": "사단이 하나뿐이라 나눌 수 없습니다",
-      "btn_paradrop": "공수 강하",
-      "card_collapse": "군 카드 접기",
-      "card_expand": "군 카드 펼치기",
-      "hint_enemy": "적 주를 누르세요",
-      "hint_front": "빛나는 국경 주를 누르세요",
-      "hint_plan": "적 주를 누르세요: 목표 {n}/{max}",
-      "hint_region": "지도에서 주를 누르세요",
-      "in_use": "{n}개 사용 중",
-      "new_template": "새 편제",
-      "no_armies": "아직 군이 없습니다: 사단을 훈련하세요",
-      "no_generals": "장군 없음",
-      "no_training": "훈련 중인 사단이 없습니다",
-      "serving": "{army} 지휘",
-      "show_divisions": "사단 보기",
-      "slot_remove": "빼기",
-      "train_into": "새 사단 배치: {army}",
-      "train_new_army": "새 사단은 수도에서 새 군이 됩니다"
-    },
-    "battalion": {
-      "infantry": "보병",
-      "cavalry": "기병",
-      "mountain": "산악병",
-      "marine": "해병",
-      "paratrooper": "공수병",
-      "motorized": "차량화 보병",
-      "artillery": "포병",
-      "mot_artillery": "기계화 포병",
-      "anti_tank": "대전차",
-      "anti_air": "대공",
-      "light_armor": "경전차",
-      "medium_armor": "중형 전차"
-    },
-    "support": {
-      "engineer": "공병 중대",
-      "recon": "정찰 중대",
-      "support_artillery": "지원 포병",
-      "support_anti_tank": "지원 대전차",
-      "support_anti_air": "지원 대공",
-      "field_hospital": "야전 병원",
-      "logistics": "병참 중대",
-      "signal": "통신 중대"
-    },
-    "tpl": {
-      "infantry": "보병 사단",
-      "armored": "기갑 사단",
-      "mountain": "산악 사단",
-      "cavalry": "기병 사단",
-      "binary": "이분 사단",
-      "alpini": "알피니 사단",
-      "celere": "쾌속 사단",
-      "colonial": "식민지 사단",
-      "square": "보병 사단(4단위)",
-      "cavalry_brigade": "기병 여단",
-      "garrison": "수비 사단",
-      "mobile": "기동 사단",
-      "colonial_garrison": "식민지 수비 사단",
-      "dlm": "경기계화 사단",
-      "rifle": "소총 사단",
-      "tank_brigade": "전차 여단",
-      "mountain_rifle": "산악 소총 사단"
-    },
-    "terrain": {
-      "plains": "평지",
-      "forest": "숲",
-      "hills": "언덕",
-      "mountain": "산악",
-      "marsh": "습지",
-      "jungle": "정글",
-      "desert": "사막",
-      "urban": "도시"
-    },
-    "weather": {
-      "clear": "맑음",
-      "rain": "비",
-      "mud": "진흙",
-      "snow": "눈",
-      "frozen": "혹한",
-      "heat": "폭염"
-    },
-    "trait": {
-      "panzer_leader": "기갑 지휘관",
-      "infantry_officer": "보병 지휘관",
-      "cavalry_officer": "기병 장교",
-      "offensive_doctrine": "공세 전문가",
-      "defensive_doctrine": "방어 전문가",
-      "winter_specialist": "겨울 전문가",
-      "desert_fox": "사막 전문가",
-      "mountaineer": "산악 전문가",
-      "river_crosser": "도하 전문가",
-      "logistics_wizard": "병참 달인",
-      "organizer": "조직가"
-    },
-    "trait_desc": {
-      "panzer_leader": "전차·차량화 사단 공격 +10%, 속도 +10%",
-      "infantry_officer": "보병 사단 공격 +5%, 방어 +5%",
-      "cavalry_officer": "기병 사단 공격 +10%, 속도 +10%",
-      "offensive_doctrine": "공격 +5%, 준비도 속도 +10%",
-      "defensive_doctrine": "방어 +10%, 참호 구축 속도 2배",
-      "winter_specialist": "눈·혹한 벌칙 절반",
-      "desert_fox": "사막 공격 +10%, 폭염 벌칙 없음",
-      "mountaineer": "언덕·산악 공격 +10%",
-      "river_crosser": "강 도하 벌칙 절반",
-      "logistics_wizard": "보급 소모 −15%",
-      "organizer": "조직력 회복 +20%"
-    },
-    "stance": {
-      "careful": "신중",
-      "balanced": "보통",
-      "aggressive": "과감"
-    },
-    "exp": {
-      "recruit": "신병",
-      "regular": "정규",
-      "veteran": "숙련",
-      "elite": "정예"
-    },
-    "mod": {
-      "general": "장군",
-      "trait": "특성",
-      "doctrine": "교리",
-      "exp": "경험",
-      "plan": "준비도",
-      "recon": "정찰",
-      "engineer": "공병",
-      "mountain": "산악병",
-      "marine": "해병",
-      "armor_terrain": "전차와 지형",
-      "terrain": "지형",
-      "river": "강",
-      "strait": "해협",
-      "fort": "요새",
-      "excess": "초과 폭",
-      "supply": "보급",
-      "weather": "날씨",
-      "encircled": "포위",
-      "entrench": "참호"
     }
   }
 }

@@ -1,5 +1,5 @@
-// World War 1936 P3 (spec §10.4 unlock_template: generic templates).
-// The foundation's empty table; lane K1 (Task 10) fills it.
+// World War 1936 P3 — division templates unlocked by generic content
+// (TEMPLATE_UNLOCKS, spec §20.1). The generic tree unlocks none.
 import type { TemplateUnlockDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const TEMPLATES_GEN: TemplateUnlockDef[] = [];
