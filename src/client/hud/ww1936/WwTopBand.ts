@@ -7,11 +7,13 @@ import { FACTION_DOT_CLASS } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
-import { TopBandEconomy, topBandEconomy } from "./EconomyModel";
+import { menText, TopBandEconomy, topBandEconomy } from "./EconomyModel";
+import { OpenWwArmyEvent } from "./LandSelection";
 import {
   type BandModel,
   bandModel,
   countryName,
+  enemiesOf,
   isCapitulated,
 } from "./WorldWarModel";
 import { OpenWwIndustryEvent } from "./WwDrawer";
@@ -27,10 +29,11 @@ const BAND_GAP = 8;
 export const BAND_MIN_PX = 240;
 /**
  * What the economy chip adds to that, with the band's gap: the whole chip
- * ("🏭 32 / 16 👥 1.2M ●") and the compact one without manpower. Text
- * runs longer in some games: the band also measures itself (WwTopBand.updated).
+ * ("🏭 32 / 16 👥 1.2M −3.2K ●" and P2's "🪖 112") and the compact one
+ * without manpower and divisions. Text runs longer in some games: the band
+ * also measures itself (WwTopBand.updated).
  */
-export const CHIP_FULL_PX = 170;
+export const CHIP_FULL_PX = 220;
 export const CHIP_COMPACT_PX = 100;
 
 /** How much of the economy chip shows. */
@@ -91,6 +94,28 @@ export function bandEconomy(game: GameView): TopBandEconomy | null {
 }
 
 /**
+ * P2 (spec §15.1): my divisions, and while I'm at war the men lost today
+ * (shown beside manpower). Null with no land data for my country yet.
+ */
+export interface BandLand {
+  divisions: number;
+  casualtiesText: string | null;
+}
+
+export function bandLand(game: GameView): BandLand | null {
+  const me = game.myPlayer();
+  const s =
+    me === null ? undefined : game.wwLand?.()?.countries.get(me.smallID());
+  if (me === null || s === undefined) return null;
+  const atWar = enemiesOf(game, me.smallID()).length > 0;
+  return {
+    divisions: s.divisions,
+    casualtiesText:
+      atWar && s.casualtiesToday > 0 ? menText(s.casualtiesToday) : null,
+  };
+}
+
+/**
  * World War 1936 (spec §8.2): a slim band at the top — the date (or the
  * preparation countdown), my country and faction, and my wars, which open
  * the diplomacy drawer; then (P1) the economy chip, which opens the
@@ -110,6 +135,7 @@ export class WwTopBand extends LitElement implements Controller {
   /** What the band shows, as of the last tick that changed it. */
   private model: BandModel | null = null;
   private economy: TopBandEconomy | null = null;
+  private land: BandLand | null = null;
   /**
    * Steps the chip lost beyond chipMode() because the band measured as
    * overflowing (updated); reset whenever the room or the chip changes.
@@ -206,6 +232,16 @@ export class WwTopBand extends LitElement implements Controller {
     const prev = this.model;
     const econ = bandEconomy(this.game);
     const was = this.economy;
+    const land = econ === null ? null : bandLand(this.game);
+    const wasLand = this.land;
+    if (
+      land?.divisions !== wasLand?.divisions ||
+      land?.casualtiesText !== wasLand?.casualtiesText
+    ) {
+      this.land = land;
+      this.chipShrink = 0;
+      this.requestUpdate();
+    }
     if (
       prev === null ||
       prev.label !== next.label ||
@@ -294,23 +330,43 @@ export class WwTopBand extends LitElement implements Controller {
         manpower: e.manpowerText,
       }) + (e.shortage ? ` · ${translateText("ww1936.econ.shortage")}` : "");
     return html`<button
-      type="button"
-      data-ww-economy=${mode}
-      aria-label=${label}
-      class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
-      @click=${() =>
-        this.eventBus.emit(new OpenWwIndustryEvent("construction"))}
-    >
-      <span data-ww-factories>🏭 ${e.civ} / ${e.mil}</span>
-      ${mode === "full"
-        ? html`<span data-ww-manpower>👥 ${e.manpowerText}</span>`
-        : nothing}
-      ${e.shortage
-        ? html`<span
-            data-ww-shortage
-            class="size-2 shrink-0 rounded-full bg-red-500"
-          ></span>`
-        : nothing}
-    </button>`;
+        type="button"
+        data-ww-economy=${mode}
+        aria-label=${label}
+        class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+        @click=${() =>
+          this.eventBus.emit(new OpenWwIndustryEvent("construction"))}
+      >
+        <span data-ww-factories>🏭 ${e.civ} / ${e.mil}</span>
+        ${mode === "full"
+          ? html`<span data-ww-manpower>👥 ${e.manpowerText}</span>`
+          : nothing}
+        ${mode === "full" && this.land?.casualtiesText
+          ? html`<span data-ww-casualties class="text-red-300"
+              >${translateText("ww1936.land.band_casualties", {
+                n: this.land.casualtiesText,
+              })}</span
+            >`
+          : nothing}
+        ${e.shortage
+          ? html`<span
+              data-ww-shortage
+              class="size-2 shrink-0 rounded-full bg-red-500"
+            ></span>`
+          : nothing}
+      </button>
+      ${mode === "full" && this.land !== null
+        ? html`<button
+            type="button"
+            data-ww-divisions
+            aria-label=${translateText("ww1936.land.band_divisions", {
+              n: this.land.divisions,
+            })}
+            class="flex h-6 shrink-0 items-center rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+            @click=${() => this.eventBus.emit(new OpenWwArmyEvent())}
+          >
+            🪖 ${this.land.divisions}
+          </button>`
+        : nothing}`;
   }
 }

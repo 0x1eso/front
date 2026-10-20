@@ -27,6 +27,7 @@ import { UserSettings } from "../../UserSettings";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
+import { armyName, generalName, regionName } from "../ww1936/LandModel";
 import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
 
@@ -321,6 +322,18 @@ export class EventsDisplay extends LitElement implements Controller {
           ...params,
           resource: translateText("ww1936.res." + params.resource),
         };
+      }
+      // P2 (pre-flight S3): a region by id (named in the viewer's
+      // language), a general by id, an army by its number.
+      const scenario = this.game?.worldWarScenario?.() ?? null;
+      if (typeof params.region === "number" && scenario !== null) {
+        params = { ...params, region: regionName(scenario, params.region) };
+      }
+      if (typeof params.general === "number") {
+        params = { ...params, general: generalName(params.general) };
+      }
+      if (typeof params.army === "number") {
+        params = { ...params, army: armyName(params.army) };
       }
     }
     if (

@@ -17,6 +17,8 @@ import {
   researchDial,
   ResearchDialModel,
 } from "./EconomyModel";
+import { armyDial, ArmyDialModel } from "./LandModel";
+import { OpenWwArmyEvent } from "./LandSelection";
 import { isCapitulated } from "./WorldWarModel";
 import {
   OpenWwIndustryEvent,
@@ -28,6 +30,8 @@ import {
 export interface WwDialsModel {
   industry: IndustryDial;
   research: ResearchDialModel;
+  /** P2 (spec §15.1); null before the land war's first update. */
+  army: ArmyDialModel | null;
 }
 
 /**
@@ -35,7 +39,9 @@ export interface WwDialsModel {
  * bottom HUD rows, where the domestic dials sit (this mode has none), with
  * their size and ring. 🏭: the first construction's progress, badge = idle
  * military factories. 🔬: the furthest slot, badge = empty slots, and it
- * glows while one is empty. Each opens its drawer; the open one is outlined.
+ * glows while one is empty. P2's ⚔: the first division in training, badge
+ * = my armies in battle (red; blinking while one is encircled). Each opens
+ * its drawer; the open one is outlined.
  */
 @customElement("ww-dials")
 export class WwDials extends LitElement implements Controller {
@@ -78,9 +84,11 @@ export class WwDials extends LitElement implements Controller {
     if (isCapitulated(this.game, me.smallID())) return null;
     const detail = view.detail(me.smallID());
     if (detail === null) return null;
+    const land = this.game.wwLand?.() ?? null;
     return {
       industry: industryDial(detail, view.summary(me.smallID())),
       research: researchDial(detail),
+      army: land === null ? null : armyDial(land, me.smallID()),
     };
   }
 
@@ -130,12 +138,40 @@ export class WwDials extends LitElement implements Controller {
             : nothing,
           () => this.eventBus.emit(new OpenWwResearchEvent()),
         )}
+        ${m.army === null ? nothing : this.renderArmy(m.army)}
       </div>
     `;
   }
 
+  private renderArmy(a: ArmyDialModel): TemplateResult {
+    return this.renderDial(
+      "army",
+      a.encircled > 0 ? "encircled" : a.fighting > 0 ? "fighting" : "idle",
+      translateText("ww1936.land.dial"),
+      ringSvg(a.progress, a.training > 0 ? "victory" : "grey"),
+      "⚔",
+      null,
+      a.encircled > 0
+        ? this.badge(
+            "encircled",
+            a.encircled,
+            "bg-red-600 text-white animate-pulse",
+            translateText("ww1936.land.state_encircled"),
+          )
+        : a.fighting > 0
+          ? this.badge(
+              "fighting",
+              a.fighting,
+              "bg-red-600 text-white",
+              translateText("ww1936.land.state_battle", { n: a.fighting }),
+            )
+          : nothing,
+      () => this.eventBus.emit(new OpenWwArmyEvent()),
+    );
+  }
+
   private renderDial(
-    id: "industry" | "research",
+    id: "industry" | "research" | "army",
     state: string,
     label: string,
     svg: TemplateResult,

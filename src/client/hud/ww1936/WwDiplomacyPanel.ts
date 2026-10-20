@@ -13,6 +13,7 @@ import {
   DrawerInsets,
   drawerInsets,
 } from "../domestic/DomesticPanel";
+import { isOverseas, landSidesOf } from "./LandModel";
 import {
   countryName,
   diplomacyModel,
@@ -116,6 +117,15 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     this.requestUpdate();
   }
 
+  /** P2 (spec §13.3): a war with no land front (landings come with P4). */
+  private overseas(tag: CountryTag): boolean {
+    const view = this.game.wwLand?.() ?? null;
+    const s = this.game.worldWarScenario();
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    if (view === null || s === null || me === 0) return false;
+    return isOverseas(view, me, s.smallIdOf(tag), landSidesOf(this.game));
+  }
+
   private flag(tag: CountryTag) {
     return html`<img
       src=${assetUrl(`flags/${COUNTRIES[tag].flag}.svg`)}
@@ -197,6 +207,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
                     (t) =>
                       html`<li class="flex items-center gap-1">
                         ${this.flag(t)} ${countryName(t)}
+                        ${this.overseas(t)
+                          ? html`<span data-ww-overseas class="text-sky-300"
+                              >· ${translateText("ww1936.land.overseas")}</span
+                            >`
+                          : nothing}
                       </li>`,
                   )}
                 </ul>`}

@@ -49,10 +49,17 @@ import {
   resourceName,
 } from "../ww1936/EconomyModel";
 import {
+  landSidesOf,
+  levelBoxes,
+  levelDots,
+  regionLandLines,
+} from "../ww1936/LandModel";
+import {
   countryName,
   isKoreanUi,
   regionInfo,
   shownName,
+  today,
   WW_BAND_PX,
 } from "../ww1936/WorldWarModel";
 import {
@@ -60,6 +67,7 @@ import {
   WwDrawerEvent,
   WwDrawerId,
 } from "../ww1936/WwDrawer";
+import { landTookTap } from "../ww1936/WwLandController";
 import { ShowPlayerChatEvent } from "./ChatModal";
 import { ShowPlayerEmojiMenuEvent } from "./EmojiTable";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
@@ -178,7 +186,15 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     this.eventBus.on(ContextMenuEvent, (e: ContextMenuEvent) =>
       this.maybeShow(e.x, e.y),
     );
-    this.eventBus.on(TouchEvent, (e: TouchEvent) => this.maybeShow(e.x, e.y));
+    this.eventBus.on(TouchEvent, (e: TouchEvent) => {
+      // World War 1936 P2: a tap the land flow took (an army's order, its
+      // token) is the army card's, not this card's.
+      if (landTookTap(this.game, e.x, e.y)) {
+        this.hide();
+        return;
+      }
+      this.maybeShow(e.x, e.y);
+    });
     this.eventBus.on(CloseRadialMenuEvent, () => this.hide());
     this.eventBus.on(SpawnBarVisibleEvent, (e) => {
       this.spawnBarVisible = e.visible;
@@ -956,7 +972,83 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               })}</span
             >`}
       </div>
-      ${this.renderRegionEconomy(tile)}`;
+      ${this.renderRegionEconomy(tile)} ${this.renderRegionLand(tile)}`;
+  }
+
+  /**
+   * World War 1936 P2 (spec §15.7): the region's terrain and weather, its
+   * fort and railway levels, my side's supply there, its river crossings,
+   * the divisions there (mine and the others'), a red line when encircled.
+   */
+  private renderRegionLand(tile: TileRef) {
+    const s = this.game.worldWarScenario();
+    const view = this.game.wwLand?.() ?? null;
+    const economy = this.game.wwEconomy?.() ?? null;
+    if (s === null || view === null || economy === null) return "";
+    const region = s.regionAt(tile);
+    if (s.region(region) === undefined) return "";
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    const l = regionLandLines(
+      view,
+      economy,
+      me,
+      region,
+      today(this.game),
+      landSidesOf(this.game),
+    );
+    return html`<div
+      data-ww-region-land
+      class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-white/80"
+    >
+      <span
+        >${translateText("ww1936.land.region_terrain")}:
+        ${translateText(`ww1936.terrain.${l.land}`)}</span
+      >
+      <span
+        >${translateText("ww1936.land.region_weather")}:
+        ${translateText(`ww1936.weather.${l.weather}`)}</span
+      >
+      <span data-ww-region-fort=${l.fort}
+        >${translateText("ww1936.land.region_fort")}
+        <span class="tracking-tighter text-amber-300"
+          >${levelBoxes(l.fort)}</span
+        ></span
+      >
+      <span data-ww-region-rail=${l.rail}
+        >${translateText("ww1936.land.region_rail")}
+        <span class="tracking-tighter text-amber-300"
+          >${levelDots(l.rail)}</span
+        ></span
+      >
+      ${l.supplyMilli >= 0
+        ? html`<span data-ww-region-supply
+            >${translateText("ww1936.land.region_supply", {
+              have: Math.round(l.supplyMilli / 1000),
+              use: Math.round(Math.max(0, l.useMilli) / 1000),
+            })}</span
+          >`
+        : ""}
+      ${l.riverEdges > 0
+        ? html`<span
+            >${translateText("ww1936.land.region_rivers", {
+              n: l.riverEdges,
+            })}</span
+          >`
+        : ""}
+      <span data-ww-region-divisions
+        >${translateText("ww1936.land.region_divisions", {
+          ours: l.ours,
+          theirs: l.theirs,
+        })}</span
+      >
+      ${l.encircled
+        ? html`<span
+            data-ww-region-encircled
+            class="w-full rounded bg-red-700/80 px-1 font-semibold text-white"
+            >${translateText("ww1936.land.region_encircled")}</span
+          >`
+        : ""}
+    </div>`;
   }
 
   /**

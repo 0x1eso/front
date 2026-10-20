@@ -57,10 +57,15 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { landSidesOf, setLandSides } from "./ww1936/LandModel";
 import { landSelectionOf } from "./ww1936/LandSelection";
+import { WwArmyCard } from "./ww1936/WwArmyCard";
+import { WwArmyPanel } from "./ww1936/WwArmyPanel";
+import { WwBattleCard } from "./ww1936/WwBattleCard";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
+import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import { WwTopBand } from "./ww1936/WwTopBand";
 
@@ -387,6 +392,28 @@ export function createRenderer(
   } else {
     console.error("ww research panel not found");
   }
+  // P2 (spec §15): the army drawer, the chosen army's card, a battle's card.
+  const wwArmyPanel = document.querySelector("ww-army-panel");
+  if (wwArmyPanel instanceof WwArmyPanel) {
+    wwArmyPanel.game = game;
+    wwArmyPanel.eventBus = eventBus;
+  } else {
+    console.error("ww army panel not found");
+  }
+  const wwArmyCard = document.querySelector("ww-army-card");
+  if (wwArmyCard instanceof WwArmyCard) {
+    wwArmyCard.game = game;
+    wwArmyCard.eventBus = eventBus;
+  } else {
+    console.error("ww army card not found");
+  }
+  const wwBattleCard = document.querySelector("ww-battle-card");
+  if (wwBattleCard instanceof WwBattleCard) {
+    wwBattleCard.game = game;
+    wwBattleCard.eventBus = eventBus;
+  } else {
+    console.error("ww battle card not found");
+  }
 
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
   const congressCards = document.querySelector("congress-cards");
@@ -432,6 +459,8 @@ export function createRenderer(
 
   // World War 1936: the lines between regions and sea zones (spec §8.2).
   const wwScenario = game.worldWarScenario();
+  // P2 (plan decision 25): the land war's map taps.
+  let landController: WwLandController | null = null;
   if (wwScenario !== null) {
     view.setRegions(wwScenario.regionIds);
     // P2: the land war's tokens, battle markers and plan arrows (Task 7).
@@ -442,11 +471,21 @@ export function createRenderer(
         landSelectionOf(game),
         () => game.myPlayer()?.smallID() ?? 0,
       );
+      setLandSides(wwLand, landSidesOf(game));
+      landController = new WwLandController(game, eventBus, transformHandler);
     }
   }
 
   const layers: Controller[] = [
-    new WarshipSelectionController(game, eventBus, transformHandler, view),
+    // First, so it hears a map tap before the warship controller, whose
+    // touch fallback (the radial menu) skips a tap the land flow took.
+    ...(landController === null ? [] : [landController]),
+    new WarshipSelectionController(
+      game,
+      landController === null ? eventBus : new LandTapBus(eventBus, game),
+      transformHandler,
+      view,
+    ),
     new BuildPreviewController(
       game,
       eventBus,
@@ -487,6 +526,9 @@ export function createRenderer(
     ...(wwDials instanceof WwDials ? [wwDials] : []),
     ...(wwIndustryPanel instanceof WwIndustryPanel ? [wwIndustryPanel] : []),
     ...(wwResearchPanel instanceof WwResearchPanel ? [wwResearchPanel] : []),
+    ...(wwArmyPanel instanceof WwArmyPanel ? [wwArmyPanel] : []),
+    ...(wwArmyCard instanceof WwArmyCard ? [wwArmyCard] : []),
+    ...(wwBattleCard instanceof WwBattleCard ? [wwBattleCard] : []),
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,
