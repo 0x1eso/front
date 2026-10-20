@@ -689,9 +689,10 @@ const EMPTY_STATS: DivisionStats = templateStats(
 );
 
 /**
- * Org max, template flags, width and supply use by row (WwLand.rowStats, derived): valid
- * while the row holds the same division id and template and its country's
- * stats epoch is the same.
+ * Org max, template flags, width, supply use and the generation-1
+ * template numbers by row (WwLand.rowStats, derived): valid while the row
+ * holds the same division id and template and its country's stats epoch
+ * is the same.
  */
 interface RowStats {
   id: Int32Array;
@@ -791,11 +792,11 @@ export class WwLand {
   private tplCache = new Map<number, TemplateStatsEntry>();
   private statsInputs: (StatsInputs | undefined)[] = [];
   /**
-   * Org max, template flags, width and supply use by row (stepRecovery reads every
-   * row every tick): valid while the row holds the same division id and
-   * template and its country's stats epoch is the same. They read only the
-   * template def and the tech (templateStats: no generation, men or
-   * equipment).
+   * Org max, flags, width, supply use and template numbers by row
+   * (stepRecovery reads every row every tick): valid while the row holds
+   * the same division id and template and its country's stats epoch is the
+   * same. They read only the template def and the tech (templateStats: no
+   * generation, men or equipment).
    */
   private rowStats = newRowStats(0);
   /**
@@ -806,7 +807,7 @@ export class WwLand {
   private weatherCache: { day: Int32Array; w: Uint8Array } | null = null;
   private regionRows: number[][] = [];
   private regionRowsDirty = true;
-  /** Live rows by owner, in row order, for divisions.rowsVersion `ownerRowsVersion`. */
+  /** Live rows by owner, in row order, as of divisions.rowsVersion `ownerRowsVersion`. */
   private ownerRows: number[][] = [];
   private ownerRowsVersion = -1;
   /** Spread tile orders (rebuilt from Spread.sources), Task 4. */
@@ -818,7 +819,10 @@ export class WwLand {
   private dirtyLandRegions = new Set<number>();
   /** Countries whose summary goes out (casualties, divisions, men, battles). */
   private dirtyLandCountries = new Set<number>();
-  /** Countries whose detail goes out (a human's templates, training, generals, divisions); each also in dirtyLandCountries. */
+  /**
+   * Countries whose detail goes out (a human's templates, training,
+   * generals, divisions); each is also in dirtyLandCountries.
+   */
   private dirtyLandDetails = new Set<number>();
   private removedArmyIds: number[] = [];
   private endedBattleIds: number[] = [];
