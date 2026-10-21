@@ -363,9 +363,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // value in four runs. Re-pinned after lane P (PP, ideology, stability,
 // advisors, spirits, laws, effects) merged: same value in four runs.
 // Re-pinned after the P2 balance round 1 (w2-bal) merged on top of P3 (U2,
-// screens only, changes no engine package): same value in four runs. The
-// controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "1d7d0a84804d523b";
+// screens only, changes no engine package): same value in four runs.
+// Re-pinned for the P4 foundation (navy and air state, start techs, fuel,
+// convoys, the stub clock): same value in three runs. The controller
+// re-pins it at every merge that changes the engine.
+const WW1936_DIGEST = "2e306d512f1d9780";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
