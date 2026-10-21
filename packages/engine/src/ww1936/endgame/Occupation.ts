@@ -106,8 +106,11 @@ function holdersOf(eg: WwEndgame, c: number, region: number): Holders {
     if (eg.isActor(h)) fighting = true;
     const ex = eg.exileIdx.get(h);
     if (ex !== undefined) legitBp = Math.max(legitBp, eg.exiles[ex].legitBp);
-    // "The same stat on both sides" (plan decision): the controller's
-    // (usually negative) and the strongest core holder's (support spirits).
+    // Deviation from the spec's wording (documented): "the same stat on both
+    // sides" — the controller's own resistanceTargetPct plus the strongest
+    // core holder's, so a holder with support spirits adds its stat for
+    // every holder, not only for the one that is fighting. The spec's
+    // "resistance support" spirit itself only widens the daily rise cap.
     holderPct = Math.max(holderPct, pol.stats(h).resistanceTargetPct);
     if (pol.country(h)?.hasSpirit(RESISTANCE_SUPPORT_SPIRIT) === true) {
       upMax = WW_OCC_RES_UP_MAX_BP + RESISTANCE_SUPPORT_UP_BP;
@@ -336,7 +339,9 @@ export function integrateBlockOf(
 ): WwOrderBlock | null {
   const sc = eg.ww.scenario;
   const reg = sc.region(region);
-  if (reg === undefined) return "not_integrable";
+  if (reg === undefined || eg.neverAdministered.has(region)) {
+    return "not_integrable";
+  }
   return integrateBlock({
     legalOwner: eg.ww.politics.legalOwner[region] === smallID,
     controls: eg.ww.land.controller[region] === smallID,
@@ -403,6 +408,7 @@ export function uprisingNow(eg: WwEndgame, region: number, tick: number): void {
   const land = eg.ww.land;
   const c = land.controller[region] ?? 0;
   if (c === 0 || eg.ww.scenario.region(region) === undefined) return;
+  if (!eg.isAdministered(region)) return;
   const holders = eg.coreHolders(region).filter((h) => h !== c);
   const legit = (h: number) => {
     const ex = eg.exileIdx.get(h);
