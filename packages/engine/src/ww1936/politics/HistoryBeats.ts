@@ -3,6 +3,11 @@
 // only, used up once, a pact dropped and a goal made first); lane E (Task 3)
 // adds the other acts, windowDays and the safety-net skip.
 //
+// Owner direction (lane A, Task 6): with historical AI a beat is a
+// suggestion — before a declare or join beat, or a decision beat aimed at a
+// country, the AI judges it (AiPolitics.aiBeatReady); one it does not like
+// yet waits up to AI_BEAT_WAIT_DAYS, then lapses.
+//
 // A due beat acts first and is marked done after, so the receiver of a
 // diplomacy beat's request still sees the beat pending while it answers
 // (the treaty rules accept a request that matches a beat, controller ruling
@@ -21,6 +26,7 @@ import type { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes
 import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
 import { declareWar, declareWarBlock, joinWar } from "../Diplomacy";
 import { forceFocusNext } from "./AiFocus";
+import { AI_BEAT_WAIT_DAYS, aiBeatReady } from "./AiPolitics";
 import { takeDecision } from "./Decisions";
 import type { BeatState, WwPolitics } from "./WwPolitics";
 
@@ -62,12 +68,15 @@ function runAct(
   switch (act.kind) {
     case "declare":
     case "join": {
+      // Owner direction (lane A): the AI judges the suggestion first.
+      if (!aiBeatReady(pol, b, a)) return day < s.fireDay + AI_BEAT_WAIT_DAYS;
       const block = beatWar(pol, a, act.kind, act.target, day, tick);
       return block !== null && block !== "prep" && within(b.windowDays ?? 0);
     }
     case "decision": {
       const t = act.target === undefined ? 0 : pol.idOfTag(act.target);
       if (act.target !== undefined && t === 0) return false;
+      if (!aiBeatReady(pol, b, a)) return day < s.fireDay + AI_BEAT_WAIT_DAYS;
       const block = takeDecision(pol, a, act.id, t, tick, false);
       return (
         block !== null && within(b.windowDays ?? WW_BEAT_WINDOW_DEFAULT_DAYS)

@@ -646,8 +646,11 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
     // P3's planned wars within 60 days (Danzig, Poland, then France's and
     // Britain's joins): all are fronted, and Poland, Germany's own
     // offensive, gets twice its demand while France's front is only held.
+    // P3 lane A (owner direction): history is a guide — in some games a
+    // strong Germany attacks Poland in the spring; this seed's goes in
+    // September, the case this test is about.
     const runner = await createGameRunner(
-      wwGameStart(),
+      { ...wwGameStart(), gameID: "WWSIM006" },
       undefined,
       await worldFiles(),
       (gu) => {

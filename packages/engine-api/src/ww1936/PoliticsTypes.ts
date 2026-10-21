@@ -297,8 +297,9 @@ export const WW_JUSTIFY_DAYS = 100;
 export const WW_NAP_BREAK_DAYS = 180;
 export const WW_MAX_FACTIONS = 15;
 export const WW_HISTORY_EVENT_PCT = 90;
-export const WW_BRANCH_DEVIATE_PCT = 10;
-export const WW_BRANCH_DEVIATE_POLITICAL_PCT = 5;
+/** Owner direction (P3 lane A): history is a loose guide — 25% (political forks 15%), seeded per game. */
+export const WW_BRANCH_DEVIATE_PCT = 25;
+export const WW_BRANCH_DEVIATE_POLITICAL_PCT = 15;
 export const WW_MAX_RESEARCH_SLOTS = 6;
 export const WW_ELECTION_DAYS = 1461;
 export const WW_CRISIS_DAYS = 30;

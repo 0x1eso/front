@@ -25,7 +25,17 @@ import {
 } from "@openfront/engine/ww1936/politics/HistoryBeats";
 import type { WwPolitics } from "@openfront/engine/ww1936/politics/WwPolitics";
 import { politicsFixture } from "./politicsFixture";
-import { byTag, HUMAN, pol, POL, step, stepTo, wwRunnerCapture } from "./util";
+import {
+  byTag,
+  clearLand,
+  HUMAN,
+  placeArmy,
+  pol,
+  POL,
+  step,
+  stepTo,
+  wwRunnerCapture,
+} from "./util";
 
 describe("history beats", () => {
   const beats = CONTENT.beats;
@@ -398,6 +408,10 @@ describe("history beats in the game", () => {
     ];
     onlyBeats(p, [...mine, B.b_t_gbr], 2);
     p.country(deu)!.ppMilli = 1_200_000;
+    // P3 lane A (owner direction): Britain's beat is a suggestion its AI
+    // judges — a Germany with no army is an easy call.
+    clearLand(runner.game);
+    placeArmy(runner.game, "GBR", 10, 1);
     stepTo(runner, dayStart(3));
     const ww = runner.game.worldWar()!;
     const c = p.country(deu)!;
