@@ -950,7 +950,10 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     `;
   }
 
-  /** World War 1936 (spec §8.2): the region's name, points and 1936 owner. */
+  /**
+   * World War 1936 (spec §8.2): the region's name, points and owner — P3
+   * (controller ruling R16): its legal owner when someone else holds it.
+   */
   private renderRegionLine(tile: TileRef) {
     // The mode first: other games skip the language lookup (a DOM query).
     if (this.game.worldWarScenario() === null) return "";
@@ -964,11 +967,11 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         <span class="text-amber-300"
           >${translateText("ww1936.region.vp", { vp: info.vp })}</span
         >
-        ${info.originalOwner === null
+        ${info.legalOwner === null
           ? ""
           : html`<span class="text-white/60"
-              >${translateText("ww1936.region.original_owner", {
-                country: countryName(info.originalOwner),
+              >${translateText("ww1936.region.legal_owner", {
+                country: countryName(info.legalOwner),
               })}</span
             >`}
       </div>

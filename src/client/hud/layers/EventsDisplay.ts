@@ -28,6 +28,7 @@ import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
 import { armyName, generalName, regionName } from "../ww1936/LandModel";
+import { POLITICS_NOTICES, politicsParams } from "../ww1936/PoliticsModel";
 import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
 
@@ -307,9 +308,13 @@ export class EventsDisplay extends LitElement implements Controller {
     event: DisplayMessageUpdate,
   ): Record<string, string | number> {
     let params = event.params ?? {};
-    // World War 1936 (plan decision 13): "…Tag" params name countries.
+    // World War 1936 (plan decision 13): "…Tag" params name countries; P3
+    // (controller ruling R3): content ids name the focus, event, option,
+    // decision, person, faction, ideology or treaty kind.
     if (event.message.startsWith("events_display.ww1936_")) {
-      params = translateCountryParams(params);
+      params = POLITICS_NOTICES.has(event.message)
+        ? politicsParams(params, this.game ?? undefined)
+        : translateCountryParams(params);
       // P1 (plan decision 5): a tech or a resource comes as its id.
       if (typeof params.tech === "string") {
         params = {

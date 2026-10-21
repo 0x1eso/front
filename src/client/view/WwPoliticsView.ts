@@ -20,7 +20,10 @@ export class WwPoliticsView {
     params: Record<string, string | number>;
     tick: number;
   }[] = [];
-  /** News of the last merge (the ticker shows these once). */
+  /**
+   * News not yet shown by the ticker, oldest first: it accumulates over
+   * merges (two updates can arrive in one frame) until takeFreshNews().
+   */
   freshNews: { id: string; params: Record<string, string | number> }[] = [];
   /** Bumped on every merge (screens redraw when it changes). */
   version = 0;
@@ -36,12 +39,23 @@ export class WwPoliticsView {
     for (const x of d.details) this.details.set(x.smallID, x);
     if (d.global !== null) this.global = d.global;
     for (const r of d.regions) this.legalOwner[r.id] = r.legalOwner;
-    this.freshNews = d.news;
+    for (const n of d.news) this.freshNews.push(n);
+    // Nobody drained it (no ticker): keep only what the drawer keeps.
+    if (this.freshNews.length > WW_NEWS_KEEP) {
+      this.freshNews.splice(0, this.freshNews.length - WW_NEWS_KEEP);
+    }
     for (const n of d.news) this.news.push({ ...n, tick });
     if (this.news.length > WW_NEWS_KEEP) {
       this.news.splice(0, this.news.length - WW_NEWS_KEEP);
     }
     this.version++;
+  }
+
+  /** The news the ticker has not shown yet, oldest first; empties the list. */
+  takeFreshNews(): { id: string; params: Record<string, string | number> }[] {
+    const out = this.freshNews;
+    this.freshNews = [];
+    return out;
   }
 
   summary(smallID: number): WwPolSummary | null {

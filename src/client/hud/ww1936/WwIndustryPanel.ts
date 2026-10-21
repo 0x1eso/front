@@ -6,8 +6,6 @@ import {
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
   EquipmentType,
-  LAW_KINDS,
-  LawKind,
   ResourceId,
   WW_MAX_LINE_FACTORIES,
   WwCountryDetail,
@@ -43,17 +41,8 @@ import {
   genName,
   idleMilOf,
   infraDots,
-  lawClosesDeals,
-  lawKindName,
-  lawLadder,
-  lawName,
-  type LawPolitics,
-  lawPoliticsOf,
-  LawStep,
-  lawStepReason,
   LineRow,
   lineRows,
-  liveWarDays,
   maxBuildCount,
   maxTradeCivs,
   menText,
@@ -74,6 +63,7 @@ import {
   TradeOffer,
   tradeOffers,
 } from "./EconomyModel";
+import { conscriptionLaw } from "./PoliticsModel";
 import {
   countryName,
   isCapitulated,
@@ -84,6 +74,7 @@ import {
 } from "./WorldWarModel";
 import {
   OpenWwIndustryEvent,
+  OpenWwPoliticsEvent,
   WW_INDUSTRY_TABS,
   WwDrawerBase,
   WwIndustryTab,
@@ -93,7 +84,7 @@ const TAB_KEYS: Readonly<Record<WwIndustryTab, string>> = {
   construction: "ww1936.econ.tab_construction",
   production: "ww1936.econ.tab_production",
   trade: "ww1936.econ.tab_trade",
-  laws: "ww1936.econ.tab_laws",
+  manpower: "ww1936.pol.tab.manpower",
 };
 
 /** Candidate regions listed before "N more regions". */
@@ -123,10 +114,6 @@ interface Ctx {
   fighting: (smallID: number) => boolean;
   /** Gone or capitulated: the engine refuses every order ("dead"). */
   dead: boolean;
-  /** The live war length the engine's law check reads (liveWarDays). */
-  warDays: number;
-  /** P3 spec §7.2: what the law conditions read (the politics view). */
-  lawPol: LawPolitics;
 }
 
 /**
@@ -209,8 +196,6 @@ export class WwIndustryPanel extends WwDrawerBase {
       korean: isKoreanUi(),
       fighting: fightingFn(game),
       dead: !me.isAlive() || isCapitulated(game, id),
-      warDays: liveWarDays(game, id),
-      lawPol: lawPoliticsOf(game.wwPolitics?.() ?? null, id),
     };
   }
 
@@ -356,8 +341,8 @@ export class WwIndustryPanel extends WwDrawerBase {
         return this.renderProduction(c);
       case "trade":
         return this.renderTrade(c);
-      case "laws":
-        return this.renderLaws(c);
+      case "manpower":
+        return this.renderManpower(c);
     }
   }
 
@@ -1231,84 +1216,7 @@ export class WwIndustryPanel extends WwDrawerBase {
     </section>`;
   }
 
-  // ---- Laws and manpower ----
-
-  private renderLaws(c: Ctx): TemplateResult {
-    return html`${LAW_KINDS.map((kind) => this.renderLadder(c, kind))}
-    ${this.renderManpower(c)}`;
-  }
-
-  private renderLadder(c: Ctx, kind: LawKind): TemplateResult {
-    const steps = lawLadder(c.detail, kind, c.day, c.warDays, c.lawPol);
-    const wait = steps[0]?.cooldownDays ?? 0;
-    return html`<section data-ww-law-kind=${kind}>
-      <div class="${HEADING} flex items-center justify-between gap-2">
-        <span>${lawKindName(kind)}</span>
-        ${wait > 0
-          ? html`<span
-              data-ww-law-wait
-              class="normal-case tracking-normal text-amber-300"
-              >${translateText("ww1936.econ.cooldown", { n: wait })}</span
-            >`
-          : nothing}
-      </div>
-      <ol class="m-0 flex list-none flex-col gap-1 p-0">
-        ${steps.map((s) => this.renderStep(c, kind, s))}
-      </ol>
-    </section>`;
-  }
-
-  private renderStep(c: Ctx, kind: LawKind, s: LawStep): TemplateResult {
-    const state = s.current ? "current" : s.block === null ? "open" : "locked";
-    // The wait shows once, by the ladder's name; a step whose condition
-    // fails still says so meanwhile.
-    const reason =
-      s.allowed && s.block === "law_cooldown" ? null : lawStepReason(s);
-    // A change that would close deals at the next daily check takes a
-    // second tap; any other is one tap.
-    const closes =
-      s.block === null && lawClosesDeals(c.detail, c.summary, kind, s.value);
-    const key = `law:${kind}:${s.value}`;
-    const armed = closes && this.armed(key);
-    const set = () => this.send({ kind: "set_law", law: kind, value: s.value });
-    return html`<li>
-      <button
-        type="button"
-        data-ww-law=${s.value}
-        data-state=${state}
-        data-armed=${String(armed)}
-        ?disabled=${s.block !== null}
-        class="w-full min-h-9 rounded-md border px-2 py-1 text-left ${state ===
-        "current"
-          ? "border-emerald-400 bg-emerald-950/60"
-          : state === "open"
-            ? "border-white/20 bg-white/5 hover:border-amber-300"
-            : "border-white/5 bg-gray-900/60 text-white/50"} ${armed
-          ? "ring-2 ring-red-400"
-          : ""}"
-        @click=${() => (closes ? this.confirmTap(key, set) : set())}
-      >
-        <span class="flex items-center gap-1">
-          <span class="min-w-0 flex-1 truncate font-semibold"
-            >${lawName(s.value)}</span
-          >
-          <span aria-hidden="true"
-            >${s.current ? "✔" : state === "locked" ? "🔒" : ""}</span
-          >
-        </span>
-        ${reason === null
-          ? nothing
-          : html`<span data-ww-law-reason class="block text-xs text-red-300"
-              >${reason}</span
-            >`}
-        ${armed
-          ? html`<span data-ww-law-closes class="block text-xs text-red-300"
-              >${translateText("ww1936.econ.law_closes_deals")}</span
-            >`
-          : nothing}
-      </button>
-    </li>`;
-  }
+  // ---- Manpower (P3 controller ruling R16: the laws moved to politics) ----
 
   private renderManpower(c: Ctx): TemplateResult {
     const s = c.summary;
@@ -1317,6 +1225,8 @@ export class WwIndustryPanel extends WwDrawerBase {
     const row = (key: string, value: string) =>
       html`<dt class="text-white/60">${translateText(key)}</dt>
         <dd class="m-0 text-right tabular-nums">${value}</dd>`;
+    // The conscription law, read-only: a tap opens the politics law tab.
+    const law = conscriptionLaw(this.game, c.id);
     return html`<section data-ww-manpower>
       <div class=${HEADING}>${translateText("ww1936.econ.manpower")}</div>
       <dl class="m-0 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
@@ -1325,11 +1235,25 @@ export class WwIndustryPanel extends WwDrawerBase {
         ${row("ww1936.econ.troops", menText(armyMenOf(c.me)))}
         ${row("ww1936.land.field_men", menText(land?.fieldMen ?? 0))}
         ${row("ww1936.land.training_men", menText(land?.trainingMen ?? 0))}
-        ${row(
-          "ww1936.land.casualties_today",
-          menText(land?.casualtiesToday ?? 0),
-        )}
       </dl>
+      <p data-ww-casualties class="m-0 mt-1 text-xs text-white/80">
+        ${translateText("ww1936.pol.manpower.casualties", {
+          n: menText(land?.casualtiesToday ?? 0),
+        })}
+      </p>
+      ${law === null
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-conscription
+            class="mt-2 flex min-h-9 w-full flex-col items-start rounded-md border border-white/15 bg-white/5 px-2 py-1 text-left text-xs hover:bg-white/10"
+            @click=${() => this.eventBus.emit(new OpenWwPoliticsEvent("laws"))}
+          >
+            <span class="font-semibold">${law}</span>
+            <span class="text-white/60"
+              >${translateText("ww1936.pol.manpower.open_laws")}</span
+            >
+          </button>`}
     </section>`;
   }
 }

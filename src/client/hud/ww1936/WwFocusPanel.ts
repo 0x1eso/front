@@ -1,5 +1,4 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { isCountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   FocusBranch,
@@ -9,7 +8,6 @@ import {
   WwFocusCard,
   WwPolDetail,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   DescLine,
@@ -43,14 +41,8 @@ import {
   FocusChip,
   initialCenter,
 } from "./FocusLayout";
-import {
-  countryName,
-  dateLabel,
-  isCapitulated,
-  TWO_TAP_MS,
-  TwoTap,
-  WW_BAND_PX,
-} from "./WorldWarModel";
+import { lineText } from "./PoliticsModel";
+import { isCapitulated, TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
 import { WwDrawerEvent, wwDrawerInsets } from "./WwDrawer";
 
 // World War 1936 P3 (spec §21.3): the national focus drawer — on top the
@@ -151,19 +143,8 @@ export function focusDays(
   return Math.ceil((def.days * 1000) / focusPerDayMilli(detail));
 }
 
-// ---- Explain lines (t9-keys "Param rendering"): codes → names ----
+// ---- Explain lines: PoliticsModel.lineText (the one renderer, Task 8) ----
 
-const SEL_PARAMS = new Set(["who", "on", "of", "to", "vs", "target"]);
-/** Effects whose where / from / to are region picks. */
-const PICK_FX = new Set([
-  "build",
-  "infra",
-  "rail",
-  "fort",
-  "resource",
-  "divisions",
-  "move_buildings",
-]);
 /** Bookkeeping effects: not shown to the player (t9-keys). */
 const HIDDEN_FX = new Set([
   "set_flag",
@@ -171,210 +152,6 @@ const HIDDEN_FX = new Set([
   "set_gflag",
   "clear_gflag",
 ]);
-const ZERO_PARAMS = [
-  "days",
-  "free",
-  "core",
-  "suspend",
-  "postponeDays",
-  "recruitablePct",
-  "amount",
-];
-const NONE_PARAMS = [
-  "goal",
-  "units",
-  "to",
-  "name",
-  "branch",
-  "tech",
-  "general",
-  "group",
-];
-
-const groupText = (id: string) => translateText(`ww1936.pol.group.${id}`);
-
-/** A selector code (`@self`, `from`, a tag, `@leader:<inner>`, `@owner:<group>`, `all`) as text. */
-export function selectorText(code: string): string {
-  const c = code.startsWith("@") ? code.slice(1) : code;
-  if (c === "self") return translateText("ww1936.pol.sel.self");
-  if (c === "from") return translateText("ww1936.pol.sel.from");
-  if (c === "target") return translateText("ww1936.pol.sel.target");
-  if (c === "all") return translateText("ww1936.pol.sel.all");
-  if (c.startsWith("leader:")) {
-    return translateText("ww1936.pol.sel.leader_of", {
-      who: selectorText(c.slice("leader:".length)),
-    });
-  }
-  if (c.startsWith("owner:")) {
-    return translateText("ww1936.pol.sel.owner_of", {
-      group: groupText(c.slice("owner:".length)),
-    });
-  }
-  return isCountryTag(c) ? countryName(c) : code;
-}
-
-/** A region-pick code (Describe.pickCode) as text. */
-export function pickText(code: string): string {
-  if (code === "capital") return translateText("ww1936.pol.pick.capital");
-  const i = code.indexOf(":");
-  const head = code.slice(0, i);
-  const rest = code.slice(i + 1);
-  switch (head) {
-    case "group":
-      return translateText("ww1936.pol.pick.group", { group: groupText(rest) });
-    case "best": {
-      const j = rest.indexOf(":");
-      if (j < 0) return translateText("ww1936.pol.pick.best", { n: +rest });
-      return translateText("ww1936.pol.pick.best_of", {
-        n: +rest.slice(0, j),
-        group: groupText(rest.slice(j + 1)),
-      });
-    }
-    case "core":
-      return translateText("ww1936.pol.pick.core", { n: +rest });
-    case "border": {
-      const j = rest.lastIndexOf(":");
-      const who = rest.slice(0, j);
-      const n = +rest.slice(j + 1);
-      return who === "threat"
-        ? translateText("ww1936.pol.pick.border_threat", { n })
-        : translateText("ww1936.pol.pick.border", {
-            n,
-            who: selectorText(who),
-          });
-    }
-    case "acquired":
-      return translateText("ww1936.pol.pick.acquired", { n: +rest });
-    case "coastal":
-      return translateText("ww1936.pol.pick.coastal", { n: +rest });
-    case "resources":
-      return translateText("ww1936.pol.pick.resources", { n: +rest });
-    case "regions":
-      return translateText("ww1936.pol.pick.regions", {
-        n: rest.split(",").length,
-      });
-  }
-  return code;
-}
-
-function personText(id: string): string {
-  if (id.startsWith("title:")) {
-    return translateText(`ww1936.title.${id.slice("title:".length)}`);
-  }
-  const p = CONTENT.personIdx.get(id);
-  return p === undefined ? id : translateText(p.nameKey);
-}
-
-function idText(fx: boolean, kind: string, id: string): string {
-  if (fx) {
-    if (kind === "add_spirit" || kind === "remove_spirit") {
-      return translateText(`ww1936.spirit.${id}`);
-    }
-    if (kind === "fire_event") return translateText(`ww1936.event_title.${id}`);
-    if (kind === "news") return translateText(`ww1936.news.${id}`);
-    return translateText(`ww1936.decision.${id}`);
-  }
-  if (kind === "has_spirit") return translateText(`ww1936.spirit.${id}`);
-  if (kind === "focus_done" || kind === "focus_in_progress") {
-    return translateText(`ww1936.focus.${id}`);
-  }
-  return translateText(`ww1936.decision.${id}`);
-}
-
-function paramText(
-  fx: boolean,
-  kind: string,
-  k: string,
-  v: string | number,
-  params: Record<string, string | number>,
-): string | number {
-  if (typeof v === "number") return v;
-  if (kind === "swap_spirit" && (k === "from" || k === "to")) {
-    return translateText(`ww1936.spirit.${v}`);
-  }
-  if (
-    k === "where" ||
-    (kind === "move_buildings" && (k === "from" || k === "to"))
-  ) {
-    return pickText(v);
-  }
-  if (fx && PICK_FX.has(kind) && k === "to") return pickText(v);
-  if (SEL_PARAMS.has(k)) return selectorText(v);
-  switch (k) {
-    case "id":
-      return idText(fx, kind, v);
-    case "tag":
-      return isCountryTag(v) ? countryName(v) : v;
-    case "person":
-      return personText(v);
-    case "trait":
-      return translateText(`ww1936.trait.adv_${v}`);
-    case "ideology":
-      if (v === "ruling") return translateText("ww1936.pol.ideo_ruling");
-      if (v === "largest_other") {
-        return translateText("ww1936.pol.ideo_largest_other");
-      }
-      return translateText(`ww1936.ideology.${v}`);
-    case "law":
-      return translateText(`ww1936.law_kind.${v}`);
-    case "value":
-      return kind === "law" || kind === "law_ge" || kind === "set_law"
-        ? translateText(`ww1936.law.${params.law}.${v}`)
-        : v;
-    case "building":
-      return translateText(`ww1936.building.${v}`);
-    case "res":
-      return translateText(`ww1936.res.${v}`);
-    case "tech":
-      return translateText(`ww1936.tech.${v}`);
-    case "type":
-      return kind === "war_goal"
-        ? translateText(`ww1936.wargoal.${v}`)
-        : translateText(`ww1936.equip.${v}`);
-    case "goal":
-      return translateText(`ww1936.wargoal.${v}`);
-    case "branch":
-      return translateText(`ww1936.branch.${v}`);
-    case "key":
-      return translateText(`ww1936.reserve.${v}`);
-    case "template":
-      return translateText(`ww1936.tpl.${v}`);
-    case "general":
-      return translateText(`ww1936.general.${v}`);
-    case "group":
-      return groupText(v);
-    case "name":
-      return translateText(`ww1936.faction_name.${v}`);
-    case "date":
-      return dateLabel(dayOfDate(v));
-  }
-  return v;
-}
-
-/**
- * An explain line (Describe) as text, its codes turned into names; a line
- * about another country starts with "<who>: ". Task 8's PoliticsModel may
- * take this over (t9-keys: the model renders the params).
- */
-export function lineText(line: DescLine): string {
-  const dot = line.key.lastIndexOf(".");
-  const kind = line.key.slice(dot + 1);
-  const fx = line.key.startsWith("ww1936.fx.");
-  const out: Record<string, string | number> = {};
-  for (const k of ZERO_PARAMS) out[k] = 0;
-  for (const k of NONE_PARAMS) out[k] = "none";
-  for (const [k, v] of Object.entries(line.params)) {
-    if (k === "who") continue;
-    out[k] = paramText(fx, kind, k, v, line.params);
-  }
-  const text = translateText(line.key, out);
-  const who = line.params.who;
-  if (who === undefined || who === "@self" || who === "self") return text;
-  return (
-    translateText("ww1936.pol.who_prefix", { who: selectorText(String(who)) }) +
-    text
-  );
-}
 
 /** Under a line that gives a national spirit: what the spirit does (describeStats). */
 function spiritStatLines(l: DescLine): DescLine[] {

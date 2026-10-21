@@ -14,14 +14,58 @@ import { WW_BAND_PX } from "./WorldWarModel";
 
 // World War 1936 P1 (spec §13): the events of the economy screens and the
 // frame both economy drawers share with the P0 diplomacy drawer's place.
+// P3 (spec §21): the politics drawer joins them; the laws moved there, and
+// the industry drawer's fourth tab is manpower (controller ruling R16).
 
-export type WwIndustryTab = "construction" | "production" | "trade" | "laws";
+export type WwIndustryTab =
+  | "construction"
+  | "production"
+  | "trade"
+  | "manpower";
 export const WW_INDUSTRY_TABS: readonly WwIndustryTab[] = [
   "construction",
   "production",
   "trade",
-  "laws",
+  "manpower",
 ];
+
+/** P3 spec §21.4: the politics drawer's five tabs. */
+export type WwPoliticsTab =
+  | "government"
+  | "advisors"
+  | "laws"
+  | "spirits"
+  | "decisions";
+export const WW_POLITICS_TABS: readonly WwPoliticsTab[] = [
+  "government",
+  "advisors",
+  "laws",
+  "spirits",
+  "decisions",
+];
+
+/** P3 spec §21.5: the diplomacy drawer's four tabs. */
+export type WwDiplomacyTab = "factions" | "wars" | "treaties" | "world";
+export const WW_DIPLOMACY_TABS: readonly WwDiplomacyTab[] = [
+  "factions",
+  "wars",
+  "treaties",
+  "world",
+];
+
+/**
+ * Open the politics drawer (P3 spec §21.1-2): with a tab, on that tab;
+ * without one, on the last. Either toggles it shut when it already shows
+ * that tab.
+ */
+export class OpenWwPoliticsEvent implements GameEvent {
+  constructor(public readonly tab: WwPoliticsTab | null = null) {}
+}
+
+/** Open the diplomacy drawer on a tab (the band's tension, the news ticker). */
+export class OpenWwDiplomacyEvent implements GameEvent {
+  constructor(public readonly tab: WwDiplomacyTab | null = null) {}
+}
 
 /**
  * Open the industry drawer (pre-flight R7.3, I4). With a tab, on that tab;
@@ -45,7 +89,9 @@ export type WwDrawerId =
   | "diplomacy"
   | "army"
   // P3 Task 7 (pre-flight R15): the national focus drawer.
-  | "focus";
+  | "focus"
+  // P3 Task 8: the politics drawer.
+  | "politics";
 
 /**
  * A World War drawer opened or closed (pre-flight R7.2): one at a time, so

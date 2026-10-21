@@ -303,9 +303,13 @@ describe("PlayerPanel - World War 1936 has no alliances or embargoes", () => {
   test("another country's panel: declare war, no alliance or embargo buttons", () => {
     (panel as any).g = makeGame(true);
     (panel as any).actions = everything;
+    // P3 (spec §21.5): the diplomacy list, with declare war, takes the
+    // place of the P0 declare button.
+    const ww = vi.fn(() => "ww-actions");
+    (panel as any).renderWwActions = ww;
     (panel as any).renderActions(my, other);
     const labels = renderedLabels();
-    expect(labels).toContain("ww1936.declare.button");
+    expect(ww).toHaveBeenCalledWith(other);
     expect(labels).toContain("player_panel.troops");
     for (const key of hidden) expect(labels).not.toContain(key);
   });

@@ -89,7 +89,7 @@ import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { blockText } from "./EconomyModel";
 import type { LandMode } from "./LandSelection";
-import { isKoreanUi, type WwGame } from "./WorldWarModel";
+import { factionOfId, isKoreanUi, type WwGame } from "./WorldWarModel";
 
 // ---- Sides (spec §7.1): who is a friend, who may be fought now ----
 
@@ -104,12 +104,13 @@ export interface LandSides {
   stamp?(): string;
 }
 
+/** A country's 1936 faction (no game to read the live one from: tools, tests). */
 function factionOf(scenario: ScenarioIndex, smallID: number) {
   const tag = scenario.tagOfSmallId(smallID);
   return tag === undefined ? null : COUNTRIES[tag].faction;
 }
 
-/** The same country, or the same faction (the engine's sideOf). */
+/** The same country, or the same 1936 faction (the engine's sideOf at the start). */
 function sameSideIn(scenario: ScenarioIndex, a: number, b: number): boolean {
   if (a <= 0 || b <= 0) return false;
   if (a === b) return true;
@@ -134,7 +135,12 @@ export type LandGame = WwGame & { wwLand(): WwLandView | null };
  * setWwLand, so the map's flags and the cards see the same wars.
  */
 export function landWarInputsOf(game: WwGame): LandWarInputs {
-  return { war: () => game.worldWarData(), ticks: () => game.ticks() };
+  return {
+    war: () => game.worldWarData(),
+    ticks: () => game.ticks(),
+    // P3: the live factions (politics' state), not the 1936 ones.
+    factions: () => game.wwPolitics?.()?.global?.factions ?? null,
+  };
 }
 
 /** Changes whenever isEnemy may answer differently: the fight starting, a war, a capitulation. */
@@ -183,9 +189,12 @@ export function landSidesOf(game: LandGame): LandSides {
     return sides;
   }
   return {
+    // P3: the live factions (politics' state, WorldWarModel.factionOfId).
     sameSide: (a, b) => {
-      const scenario = game.worldWarScenario();
-      return scenario !== null && sameSideIn(scenario, a, b);
+      if (a <= 0 || b <= 0) return false;
+      if (a === b) return true;
+      const f = factionOfId(game, a);
+      return f !== null && f === factionOfId(game, b);
     },
     isEnemy: (a, b) => {
       if (a <= 0 || b <= 0 || a === b) return false;

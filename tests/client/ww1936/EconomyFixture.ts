@@ -1,7 +1,11 @@
 // The World War 1936 P1 screens' tests: the test map's scenario, a real
 // WwEconomyView fed fake economy updates, and a fake game around it.
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
-import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  COUNTRIES,
+  CountryTag,
+  FACTION_IDS,
+} from "@openfront/engine-api/ww1936/Countries";
 import {
   EQUIP_KEY_COUNT,
   RESOURCE_IDS,
@@ -156,6 +160,20 @@ export function fakeEconGame(o: FakeOptions = {}) {
   });
   const pol = new WwPoliticsView(scenario);
   const me0 = o.me === undefined ? "DEU" : o.me;
+  // P3: the factions as politics sends them, the 1936 ones (plan decision 8).
+  const factions = FACTION_IDS.map((key, idx) => {
+    const members = scenario.countries
+      .filter((t) => COUNTRIES[t].faction === key)
+      .map((t) => ID(t));
+    return {
+      idx,
+      key,
+      name: "",
+      nameTag: "" as const,
+      leader: members[0] ?? 0,
+      members,
+    };
+  }).filter((f) => f.members.length > 0);
   pol.apply(
     {
       countries:
@@ -170,7 +188,8 @@ export function fakeEconGame(o: FakeOptions = {}) {
                 stabBp: 5000,
                 wsBp: o.politics?.wsBp ?? 2000,
                 ppMilli: o.politics?.ppMilli ?? 500_000,
-                faction: -1,
+                faction:
+                  factions.find((f) => f.members.includes(ID(me0)))?.idx ?? -1,
                 surrenderPct: 80,
                 focus: null,
               },
@@ -179,7 +198,7 @@ export function fakeEconGame(o: FakeOptions = {}) {
       global: {
         wtBp: o.politics?.wtBp ?? 0,
         threat: [],
-        factions: [],
+        factions,
         guarantees: [],
         naps: [],
         access: [],
