@@ -411,7 +411,8 @@ export function ownerRows(game: EndgameGame, me: number): OwnerRow[] {
     .sort(([a], [b]) => a - b)
     .map(([owner, rows]) => {
       const s = summarize(rows);
-      const law = rows[0]?.occ.law ?? lawFor(game, me, owner).law;
+      // The law list is sent whenever a law changes; a row only when its region does.
+      const law = lawFor(game, me, owner).law;
       return {
         owner,
         name: egName(game, owner),
@@ -498,7 +499,7 @@ export function occRegionLine(
     need: deciText(o.needDeci),
     pct: coveragePct(o.supDeci, o.needDeci),
     share: o.factoryPct,
-    law: occLawName(o.law),
+    law: occLawName(lawFor(game, o.controller, legalOwnerOf(game, region)).law),
   });
 }
 
