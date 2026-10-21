@@ -712,11 +712,13 @@ const EMPTY_STATS: DivisionStats = templateStats(
 /**
  * Org max, template flags, width, supply use and the generation-1
  * template numbers by row (WwLand.rowStats, derived): valid while the row
- * holds the same division id and template and its country's stats epoch
- * is the same.
+ * holds the same division id, owner and template and its country's stats
+ * epoch is the same.
  */
 interface RowStats {
   id: Int32Array;
+  /** P5: the owner too (a division changes hands: transferArmyTo, moveDivisions). */
+  owner: Int32Array;
   tpl: Uint16Array;
   epoch: Int32Array;
   orgMax: Int32Array;
@@ -762,6 +764,7 @@ function fillOf(e: StatsEntry): number[] {
 function newRowStats(cap: number): RowStats {
   return {
     id: new Int32Array(cap),
+    owner: new Int32Array(cap),
     tpl: new Uint16Array(cap),
     epoch: new Int32Array(cap),
     orgMax: new Int32Array(cap),
@@ -775,6 +778,7 @@ function newRowStats(cap: number): RowStats {
 function growRowStats(c: RowStats, rows: number): RowStats {
   const n = newRowStats(Math.max(64, rows, c.id.length * 2));
   n.id.set(c.id);
+  n.owner.set(c.owner);
   n.tpl.set(c.tpl);
   n.epoch.set(c.epoch);
   n.orgMax.set(c.orgMax);
@@ -1352,6 +1356,8 @@ export class WwLand {
     if (t.owner[row] === owner) return;
     t.owner[row] = owner;
     t.rowsVersion++;
+    // P5: the numbers were the old owner's (tech, templates).
+    this.statsCache.delete(t.id[row]);
     this.touchDivision(row);
   }
 
@@ -1451,7 +1457,12 @@ export class WwLand {
     const owner = t.owner[row];
     const epoch = knownEpoch >= 0 ? knownEpoch : this.statsEpoch(owner);
     const tpl = t.template[row];
-    if (c.id[row] === id && c.tpl[row] === tpl && c.epoch[row] === epoch) {
+    if (
+      c.id[row] === id &&
+      c.owner[row] === owner &&
+      c.tpl[row] === tpl &&
+      c.epoch[row] === epoch
+    ) {
       return true;
     }
     // Org and flags do not depend on the generation mix: any mix gives them.
@@ -1459,6 +1470,7 @@ export class WwLand {
     const ce = this.econ.country(owner);
     const pct = ce === null ? 0 : ce.stats.orgPct;
     c.id[row] = id;
+    c.owner[row] = owner;
     c.tpl[row] = tpl;
     c.epoch[row] = epoch;
     c.orgMax[row] = Math.floor((base.orgMilli * (100 + pct)) / 100);

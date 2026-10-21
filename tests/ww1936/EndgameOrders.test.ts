@@ -72,10 +72,39 @@ describe("World War 1936 P5: the endgame's orders", () => {
         block,
       );
     }
+    // takeover_pick goes by clientID instead (the next test).
     expect(issue.mock.calls.map((c) => c[1].kind)).toEqual(
-      SAMPLES.map(([o]) => o.kind),
+      SAMPLES.map(([o]) => o.kind).filter((k) => k !== "takeover_pick"),
     );
     issue.mockRestore();
+  });
+
+  it("a gone human's takeover_pick reaches the endgame", async () => {
+    const runner = await wwRunner(
+      {},
+      [{ clientID: HUMAN, country: "POL" }],
+      END_MAP,
+    );
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const pick = vi.spyOn(ww.endgame, "takeoverPickBy");
+    // Capitulated, still its player: past the dead-sender check.
+    ww.addCapitulation(endId("POL"), endId("DEU"), g.ticks());
+    step(runner, 1, [
+      order(HUMAN, { kind: "takeover_pick", smallID: endId("GBR") }),
+    ]);
+    // Spectating: no player at all (playerByClientID is null).
+    ww.endgame.setControl(HUMAN, 0);
+    expect(g.playerByClientID(HUMAN)).toBeNull();
+    step(runner, 1, [
+      order(HUMAN, { kind: "takeover_pick", smallID: endId("FRA") }),
+    ]);
+    expect(pick.mock.calls.map((c) => [c[0], c[1]])).toEqual([
+      [HUMAN, endId("GBR")],
+      [HUMAN, endId("FRA")],
+    ]);
+    pick.mockRestore();
   });
 
   it("an army garrison order takes the army off fronts and plans", async () => {

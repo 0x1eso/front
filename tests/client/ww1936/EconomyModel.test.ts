@@ -48,6 +48,7 @@ import {
   GEN_KEYS,
   idleMilOf,
   industryDial,
+  isCoreNow,
   LAW_KEYS,
   LAW_KIND_KEYS,
   LAW_NEED_KEYS,
@@ -325,6 +326,21 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       { id: "steel", amount: 40 },
     ]);
     expect(regionCard(game as never, tileOf(1))!.mine).toBe(false);
+  });
+
+  it("the core line reads the endgame's core table once it changed", () => {
+    // Warsaw: Poland's core in the scenario.
+    expect(isCoreNow(null, scenario, 6, ID("POL"))).toBe(true);
+    expect(isCoreNow(null, scenario, 6, ID("DEU"))).toBe(false);
+    const endgame = {
+      coreHolders: (r: number) => (r === 6 ? [ID("DEU")] : null),
+    };
+    expect(isCoreNow(endgame as never, scenario, 6, ID("POL"))).toBe(false);
+    expect(isCoreNow(endgame as never, scenario, 6, ID("DEU"))).toBe(true);
+    // Unchanged regions keep the scenario's.
+    expect(isCoreNow(endgame as never, scenario, 3, ID("DEU"))).toBe(
+      isCoreNow(null, scenario, 3, ID("DEU")),
+    );
   });
 
   it("an AI's region card counts its controller's slot research", () => {

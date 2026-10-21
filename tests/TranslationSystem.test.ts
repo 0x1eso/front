@@ -30,6 +30,9 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // Built-in graphics preset names/descriptions are referenced from
   // src/client/render/gl/graphics-presets.json, not translateText literals.
   /^graphics_setting\.preset_(default|night|evans_pick|colorblind|medium)(_desc)?$/,
+  // World War 1936 P5: a civil-war country's name, by ideology
+  // (engine-lib EndgameRules.civilWarNameKey; the engine sends the key).
+  /^ww1936\.cw_name\.[^.]+$/,
 ];
 
 /**

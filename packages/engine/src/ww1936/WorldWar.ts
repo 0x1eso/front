@@ -310,10 +310,12 @@ export class WorldWar {
 
   /** Human clientIDs of a camp (a faction), for the team winner (decision 11). */
   humanClientIDsOf(faction: FactionKey): string[] {
+    // P5 (spec §3.6): by the current controller (a takeover's human wins
+    // with the country it took; a spectator does not).
     const out: string[] = [];
     for (const id of this.factionMembers(faction)) {
-      const p = this.mg.playerBySmallID(id);
-      if (p.isPlayer() && p.clientID() !== null) out.push(p.clientID()!);
+      const c = this.endgame.humanClientOf(id);
+      if (c !== null) out.push(c);
     }
     return out;
   }
@@ -324,7 +326,7 @@ export class WorldWar {
    * Starts a war; false when it already runs or a == b. P5 plan decision 8:
    * `link` says which war record the pair joins (a new war declared by `a`
    * on `b`, or `a` into an existing war against `b`). Every engine caller
-   * passes it; the default (a new war) is for tests and older callers.
+   * passes it (EndgameWiring checks); the default (a new war) is for tests.
    */
   setWar(
     a: number,

@@ -1,4 +1,5 @@
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { WarKind } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
@@ -11,6 +12,21 @@ export interface DeclareOpts {
   war?: WarKind;
   /** P5 lane S: a subject's independence war (no subject refusal). */
   independence?: boolean;
+}
+
+const SPANISH_SIDES: readonly CountryTag[] = ["ESN", "ESR"];
+
+/** The two Spains (their war is keyed "civil"). */
+export function isSpanishPair(ww: WorldWar, a: number, b: number): boolean {
+  const ta = ww.scenario.tagOfSmallId(a);
+  const tb = ww.scenario.tagOfSmallId(b);
+  return (
+    ta !== undefined &&
+    tb !== undefined &&
+    ta !== tb &&
+    SPANISH_SIDES.includes(ta) &&
+    SPANISH_SIDES.includes(tb)
+  );
 }
 
 /**
@@ -97,9 +113,12 @@ export function declareWar(
   // P3's war goal on the target (pre-flight §B).
   const g = ww.politics.country(a)?.warGoals.find((x) => x.on === b);
   const joined: number[] = [];
+  // P5 (spec §4.2): the Spanish war is a civil war whoever declares it
+  // (the beat, a human, the AI).
+  const war: WarKind | undefined = isSpanishPair(ww, a, b) ? "civil" : opts.war;
   const link = {
     kind: "declare" as const,
-    ...(opts.war !== undefined ? { war: opts.war } : {}),
+    ...(war !== undefined ? { war } : {}),
     ...(g !== undefined ? { goal: { type: g.type, group: g.group } } : {}),
   };
   if (ww.setWar(a, b, tick, link)) joined.push(b);

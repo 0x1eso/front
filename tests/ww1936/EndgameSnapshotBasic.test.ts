@@ -3,9 +3,13 @@
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
+import {
+  transferArmyTo,
+  transferDivisionsTo,
+} from "@openfront/engine/ww1936/land/PoliticsBridge";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
-import { endId } from "./endFixture";
+import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
 
@@ -59,6 +63,58 @@ describe("World War 1936 P5: the endgame in a snapshot", () => {
       endId("AUT"),
     );
     lockstep(a, b, 100);
+  }, 60_000);
+
+  it("divisions that change hands go on tick for tick after a restore", async () => {
+    const a = await wwRunner({}, HUMANS, END_MAP);
+    stepTo(a, WW_PREP_TICKS + 2);
+    // The stats caches hold the old owner's numbers first.
+    step(a, 20);
+    const land = a.game.worldWar()!.land;
+    expect(land.rowsOf(endId("POL")).length).toBeGreaterThan(2);
+    const [first] = land.armiesOf(endId("POL")).sort((x, y) => x.id - y.id);
+    const ids = [...first.divisions].sort((x, y) => x - y).slice(0, 2);
+    expect(first.divisions.length).toBeGreaterThan(2);
+    // Two divisions to one country, the rest of the army to another.
+    expect(transferDivisionsTo(land, ids, endId("CSK"))).not.toBeNull();
+    expect(transferArmyTo(land, first, endId("GBR"))).not.toBeNull();
+    const rows = ids.map((id) => land.divisions.rowOf(id));
+    for (const r of rows) expect(land.divisions.owner[r]).toBe(endId("CSK"));
+    // The by-owner row lists (warm before the transfer) moved with them.
+    expect(land.rowsOf(endId("POL"))).toEqual([]);
+    expect(land.rowsOf(endId("CSK"))).toEqual(expect.arrayContaining(rows));
+    step(a, 30);
+    const b = await wwRestore(a, HUMANS, END_MAP);
+    lockstep(a, b, 60);
+  }, 60_000);
+
+  it("the first update after a restore sends the cores, occupation and aid", async () => {
+    const a = await wwRunner({}, HUMANS, END_MAP);
+    stepTo(a, WW_PREP_TICKS + 2);
+    const ww = a.game.worldWar()!;
+    const pl = endId("POL");
+    const warsaw = Number(
+      Object.keys(END.owner).find(
+        (r) => END.owner[Number(r)] === "POL" && END.core[Number(r)],
+      ),
+    );
+    // A core of Germany's and a Polish core region Germany holds.
+    ww.endgame.addCore(endId("DEU"), 13);
+    ww.land.setController(warsaw, endId("DEU"), a.game.ticks());
+    expect(ww.endgame.isAdministered(warsaw)).toBe(true);
+    step(a, 2);
+    const b = await wwRestore(a, HUMANS, END_MAP);
+    const d = b.game.worldWar()!.endgame.takeData()!;
+    expect(d.coreChanges).toEqual(
+      expect.arrayContaining([
+        { region: 13, holders: ww.endgame.coreHolders(13) },
+        { region: warsaw, holders: [pl] },
+      ]),
+    );
+    expect(d.occupation!.map((o) => o.region)).toEqual([warsaw]);
+    expect(d.aid!.map((x) => x.smallID)).toEqual([pl]);
+    // Later updates send only the changes again.
+    expect(b.game.worldWar()!.endgame.takeData()?.coreChanges).toBeUndefined();
   }, 60_000);
 
   it("a snapshot without the endgame state is refused", async () => {

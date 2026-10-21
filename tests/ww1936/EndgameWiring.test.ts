@@ -11,6 +11,10 @@ import { applyWwOrder } from "@openfront/engine/ww1936/economy/WwOrderExecution"
 import { activateCountry } from "@openfront/engine/ww1936/endgame/Activate";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { scoreInputs } from "@openfront/engine/ww1936/Victory";
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
+import { fileURLToPath } from "url";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import {
@@ -193,5 +197,47 @@ describe("World War 1936 P5: the endgame's wiring", () => {
     expect(runner.game.allPlayers().every((p) => p.name() !== "Slovakia")).toBe(
       true,
     );
+  });
+
+  it("every engine setWar names its war record (plan decision 8)", () => {
+    // WorldWar.setWar's link defaults to a new war for tests; the engine
+    // always says which war a pair joins.
+    const root = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../packages/engine/src",
+    );
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const f = path.join(dir, e.name);
+        if (e.isDirectory()) walk(f);
+        else if (f.endsWith(".ts")) files.push(f);
+      }
+    };
+    walk(root);
+    const bad: string[] = [];
+    let calls = 0;
+    for (const f of files) {
+      const text = fs.readFileSync(f, "utf8");
+      if (!text.includes(".setWar(")) continue;
+      const sf = ts.createSourceFile(f, text, ts.ScriptTarget.ES2022, true);
+      const visit = (n: ts.Node) => {
+        if (
+          ts.isCallExpression(n) &&
+          ts.isPropertyAccessExpression(n.expression) &&
+          n.expression.name.text === "setWar"
+        ) {
+          calls++;
+          if (n.arguments.length < 4) {
+            const { line } = sf.getLineAndCharacterOfPosition(n.getStart());
+            bad.push(`${path.relative(root, f)}:${line + 1}`);
+          }
+        }
+        ts.forEachChild(n, visit);
+      };
+      visit(sf);
+    }
+    expect(calls).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
   });
 });

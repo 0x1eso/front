@@ -42,9 +42,10 @@ import {
   setRoutePath,
   USE_VOYAGE,
 } from "./Convoys";
+import { onConvoysLost } from "./EndgameHooks";
 import { cancelInvasion, landInvasion } from "./Invasions";
 import { navalPort } from "./Ports";
-import { enemySupPm } from "./SeaSupply";
+import { enemySupPm, hostileSides } from "./SeaSupply";
 import type { SeaRoute, Voyage, WwNavy } from "./WwNavy";
 
 /** Spec §11.3: a voyage takes a day at least (WW_DAY_SPLIT ticks). */
@@ -412,6 +413,47 @@ function nextEdgeClosed(navy: WwNavy, v: Voyage, r: SeaRoute): boolean {
   return e < 0 || !navy.passable(v.owner, false)(e);
 }
 
+/**
+ * P5 (pre-flight §0-10): who sank an intercepted voyage's convoys — of the
+ * hostile side with the most supremacy here (ties the smaller key), the
+ * member at war with `owner` with the most ships in this sea region (ties
+ * the smaller smallID); 0 when none.
+ */
+function interceptorOf(
+  navy: WwNavy,
+  owner: number,
+  side: number,
+  sr: number,
+): number {
+  const idx = navy.scenario.srIdxOf(sr);
+  let best: number | null = null;
+  let bestPm = 0;
+  for (const [k, pm] of navy.srState[idx].sup) {
+    if (k === side || pm <= bestPm || !hostileSides(navy, side, k)) continue;
+    best = k;
+    bestPm = pm;
+  }
+  if (best === null) return 0;
+  const land = navy.land;
+  const enemies = land
+    .sideMembers(best)
+    .filter((m) => land.isEnemy(m, owner))
+    .sort((a, b) => a - b);
+  let by = enemies[0] ?? 0;
+  let most = 0;
+  for (const m of enemies) {
+    let ships = 0;
+    for (const f of navy.fleetsOf(m)) {
+      if (navy.scenario.zoneSr(f.zone) === sr) ships += f.ships.length;
+    }
+    if (ships > most) {
+      by = m;
+      most = ships;
+    }
+  }
+  return by;
+}
+
 function intercept(navy: WwNavy, v: Voyage, day: number): void {
   const sc = navy.scenario;
   const land = navy.land;
@@ -444,6 +486,9 @@ function intercept(navy: WwNavy, v: Voyage, day: number): void {
   const lost = ce === null || n <= 0 ? 0 : loseConvoys(ce, n);
   v.bound -= lost;
   if (lost > 0) clampToStock(navy, v.owner);
+  if (lost > 0) {
+    onConvoysLost(navy, v.owner, interceptorOf(navy, v.owner, side, sr), lost);
+  }
   const cn = navy.country(v.owner);
   if (cn !== null && milli > 0) cn.convoyLoss[day % 30] += milli;
   navy.convoysSunkTotal += lost;

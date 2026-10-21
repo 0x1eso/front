@@ -90,11 +90,12 @@ import {
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
+import type { WwEndgameView } from "../../view/WwEndgameView";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
 import { today, wwActive, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */
-export type WwEconGame = WwGame & Pick<GameView, "wwEconomy">;
+export type WwEconGame = WwGame & Pick<GameView, "wwEconomy" | "wwEndgame">;
 
 // ---- Translation keys (spelled out: tests/TranslationSystem.test.ts counts
 // each literal, and the Records make the compiler check every id has one) ----
@@ -826,6 +827,25 @@ export function slotPctOfCountry(view: WwEconomyView, smallID: number): number {
   return view.summary(smallID)?.slotPct ?? slotPctOf(view.detail(smallID));
 }
 
+/**
+ * P5 (pre-flight §0-5): whether `region` is a core of `owner` now — the
+ * endgame's core holders once they changed, else the scenario's (a core of
+ * its 1936 owner).
+ */
+export function isCoreNow(
+  endgame: WwEndgameView | null,
+  scenario: ScenarioIndex,
+  region: number,
+  owner: number,
+): boolean {
+  const holders = endgame?.coreHolders(region) ?? null;
+  if (holders !== null) return holders.includes(owner);
+  const r = scenario.region(region);
+  return (
+    r !== undefined && r.core && scenario.ownerByRegion()[region] === owner
+  );
+}
+
 /** What the engine's buildBlock checks, from the view (Construction.buildBlock). */
 export function buildCheck(
   view: WwEconomyView,
@@ -836,6 +856,7 @@ export function buildCheck(
   count: number,
   slotPct: number,
   fighting: (smallID: number) => boolean,
+  endgame: WwEndgameView | null = null,
 ): BuildCheck {
   const r = scenario.region(region);
   const queue = view.detail(me)?.queue ?? [];
@@ -848,7 +869,12 @@ export function buildCheck(
     controlled: r !== undefined && controller === me,
     occupied:
       r !== undefined &&
-      regionShares(controller, owner, r.core, fighting(owner)).occupied,
+      regionShares(
+        controller,
+        owner,
+        isCoreNow(endgame, scenario, region, owner),
+        fighting(owner),
+      ).occupied,
     queueLength: queue.length,
     levelWithQueue:
       r === undefined || LEVEL_MAX[building] === undefined
@@ -880,9 +906,20 @@ export function buildBlock(
   count: number,
   slotPct: number,
   fighting: (smallID: number) => boolean,
+  endgame: WwEndgameView | null = null,
 ): WwOrderBlock | null {
   return buildBlockOf(
-    buildCheck(view, scenario, me, region, building, count, slotPct, fighting),
+    buildCheck(
+      view,
+      scenario,
+      me,
+      region,
+      building,
+      count,
+      slotPct,
+      fighting,
+      endgame,
+    ),
   );
 }
 
@@ -940,6 +977,7 @@ export function buildCandidates(
   slotPct: number,
   fighting: (smallID: number) => boolean,
   korean = false,
+  endgame: WwEndgameView | null = null,
 ): BuildCandidate[] {
   const out: BuildCandidate[] = [];
   for (const r of scenario.landRegions) {
@@ -953,6 +991,7 @@ export function buildCandidates(
       1,
       slotPct,
       fighting,
+      endgame,
     );
     if (buildBlockOf(c) !== null) continue;
     out.push({
@@ -1722,7 +1761,7 @@ export function regionCard(game: WwEconGame, tile: TileRef): RegionCard | null {
     occupied: regionShares(
       now.controller,
       owner,
-      r.core,
+      isCoreNow(game.wwEndgame?.() ?? null, scenario, id, owner),
       fightingFn(game)(owner),
     ).occupied,
     mine: me !== 0 && now.controller === me && view.detail(me) !== null,

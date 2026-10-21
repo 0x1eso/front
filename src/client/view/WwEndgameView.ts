@@ -4,6 +4,7 @@
 // subjects, exiles, aid, takeover cards, news.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type {
+  CountryState,
   OccupationLaw,
   WwAidView,
   WwConferenceView,
@@ -69,10 +70,10 @@ export class WwEndgameView {
     if (d.peaceLog !== undefined) this.peaceLog = d.peaceLog;
     for (const o of d.occupation ?? []) this.occupation.set(o.region, o);
     if (d.occLaws !== undefined) this.occLaws = d.occLaws;
-    for (const c of d.coreChanges ?? []) {
-      if (c.holders.length === 0) this.cores.delete(c.region);
-      else this.cores.set(c.region, [...c.holders]);
-    }
+    // Kept when empty too: a region whose cores all went is nobody's core,
+    // not the scenario's (coreHolders).
+    for (const c of d.coreChanges ?? [])
+      this.cores.set(c.region, [...c.holders]);
     if (d.zones !== undefined) this.zones = d.zones;
     if (d.subjects !== undefined) this.subjects = d.subjects;
     if (d.exiles !== undefined) this.exiles = d.exiles;
@@ -117,6 +118,11 @@ export class WwEndgameView {
 
   isDormant(id: number): boolean {
     return this.countries.get(id)?.state === "dormant";
+  }
+
+  /** The engine's country state; null before its first update. */
+  countryState(id: number): CountryState | null {
+    return this.countries.get(id)?.state ?? null;
   }
 
   /** P5 pre-flight §0-5: the core holders of a region that changed since the start (the scenario's otherwise). */

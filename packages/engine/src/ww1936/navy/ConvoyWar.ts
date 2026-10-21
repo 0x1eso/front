@@ -20,6 +20,7 @@ import {
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { loseConvoys } from "../economy/Buildings";
 import { takeFromRoutes, USE_VOYAGE } from "./Convoys";
+import { onConvoysLost } from "./EndgameHooks";
 import { applyShipDamage } from "./NavalBattles";
 import { setRest } from "./SeaTransfer";
 import type { Fleet, WwNavy } from "./WwNavy";
@@ -180,6 +181,9 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
 
   // The sinking, side by side, victim by victim.
   const sink = new Map<number, number>();
+  // P5 (pre-flight §0-10): by victim, each raider's share of what it sank
+  // (milli × its raid power / the side's), for the war score.
+  const sinkBy = new Map<number, Map<number, number>>();
   const raided = new Set<number>();
   const asw: { f: Fleet; side: number; escort: number }[] = [];
   const aswSeen = new Set<string>();
@@ -195,6 +199,11 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       const milli = convoySinkMilli(traffic.get(b)!, raid, escort, s.area);
       if (milli <= 0) continue;
       add(sink, b, milli);
+      let by = sinkBy.get(b);
+      if (by === undefined) sinkBy.set(b, (by = new Map()));
+      for (const m of at) {
+        add(by, m, Math.floor((milli * raidPow.get(m)!) / raid));
+      }
       for (const m of at) {
         for (const f of raidFleets.get(m) ?? []) {
           raided.add(f.id);
@@ -237,6 +246,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
     const ce = navy.econ.country(b);
     const lost = ce === null || n <= 0 ? 0 : loseConvoys(ce, n);
     if (lost > 0) takeFromRoutes(navy, b, sr, lost);
+    if (lost > 0) creditConvoyKills(navy, b, sinkBy.get(b), lost);
     const cn = navy.country(b);
     if (cn !== null) cn.convoyLoss[day % 30] += milli;
     navy.convoysSunkTotal += lost;
@@ -340,6 +350,33 @@ function airOf(
     if (c > 0) strike.set(m, c);
   }
   return { strike, patrol };
+}
+
+/**
+ * P5 (pre-flight §0-10): `lost` convoys of `owner` shared among the
+ * raiders by what each sank today (floor; the remainder to the biggest,
+ * ties the smaller smallID), into the war score (EndgameHooks.onConvoysLost).
+ */
+function creditConvoyKills(
+  navy: WwNavy,
+  owner: number,
+  by: ReadonlyMap<number, number> | undefined,
+  lost: number,
+): void {
+  if (by === undefined) return;
+  const rows = [...by].filter(([, w]) => w > 0).sort((x, y) => x[0] - y[0]);
+  let total = 0;
+  let top = 0;
+  for (let i = 0; i < rows.length; i++) {
+    total += rows[i][1];
+    if (rows[i][1] > rows[top][1]) top = i;
+  }
+  if (total <= 0) return;
+  const share = rows.map(([, w]) => Math.floor((lost * w) / total));
+  share[top] += lost - share.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < rows.length; i++) {
+    if (share[i] > 0) onConvoysLost(navy, owner, rows[i][0], share[i]);
+  }
 }
 
 /**

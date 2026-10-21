@@ -125,15 +125,18 @@ export function resolveTakeovers(eg: WwEndgame, tick: number): void {
   void tick;
 }
 
-/** takeover_pick. Stub: no card. */
+/**
+ * takeover_pick from `client` (its card, spec §11.3; routed by clientID,
+ * since the sender has no country left). Stub: no card.
+ */
 export function takeoverPick(
   eg: WwEndgame,
-  smallID: number,
+  client: string,
   pick: number,
   tick: number,
 ): WwOrderBlock | null {
   void eg;
-  void smallID;
+  void client;
   void pick;
   void tick;
   return "no_takeover";

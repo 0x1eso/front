@@ -1,5 +1,6 @@
 // World War 1936 P5 (spec §3.6, plan decision 7): who controls a country.
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import type { GameImpl } from "@openfront/engine/game/GameImpl";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
@@ -54,6 +55,23 @@ describe("World War 1936 P5: controllers", () => {
     expect(ww.isHumanControlled(endId("POL"))).toBe(false);
     // Its country plays on as an AI.
     expect(ww.isActor(endId("POL"))).toBe(true);
+  });
+
+  it("the winners are the current controllers (a takeover onto the winning side)", async () => {
+    const runner = await wwRunner(
+      {},
+      [...HUMANS, { clientID: "HUMANGBR", country: "GBR" as const }],
+      END_MAP,
+    );
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    expect(ww.factionMembers("allies")).toContain(endId("FRA"));
+    expect(ww.humanClientIDsOf("allies")).toEqual(["HUMANGBR"]);
+    // POL's human takes France over; Britain's human spectates.
+    ww.endgame.setControl(A, endId("FRA"));
+    ww.endgame.setControl("HUMANGBR", 0);
+    expect(ww.humanClientIDsOf("allies")).toEqual([A]);
+    expect((g as GameImpl).makeWinner("allies")).toEqual(["team", "allies", A]);
   });
 
   it("controllerOf survives a snapshot", async () => {

@@ -22,7 +22,10 @@ import {
 } from "../strategic/SatelliteOrders";
 import { ParadropExecution } from "../warfare/ParadropExecution";
 import { DeclareWarExecution } from "../ww1936/DeclareWarExecution";
-import { WwOrderExecution } from "../ww1936/economy/WwOrderExecution";
+import {
+  WwOrderExecution,
+  WwTakeoverPickExecution,
+} from "../ww1936/economy/WwOrderExecution";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
@@ -74,6 +77,12 @@ export class Executor {
   }
 
   createExec(intent: StampedIntent): Execution {
+    // World War 1936 P5 (spec §11.3): a takeover pick comes from a human
+    // whose country is gone, so it goes by the clientID, before the
+    // player lookup.
+    if (intent.type === "ww_order" && intent.order.kind === "takeover_pick") {
+      return new WwTakeoverPickExecution(intent.clientID, intent.order.smallID);
+    }
     const player = this.mg.playerByClientID(intent.clientID);
     if (!player) {
       console.warn(`player with clientID ${intent.clientID} not found`);

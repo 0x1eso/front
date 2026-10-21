@@ -3456,6 +3456,7 @@
     },
     "convoy_use": {
       "idle": "놀고 있음",
+      "lend_lease": "무기대여",
       "supply": "보급",
       "trade": "무역",
       "voyage": "수송"
@@ -5586,7 +5587,6 @@
       "no_armies": "아직 군이 없습니다: 사단을 훈련하세요",
       "no_generals": "장군 없음",
       "no_training": "훈련 중인 사단이 없습니다",
-      "overseas": "해외 (상륙은 다음 단계에서)",
       "preview_days": "약 {days}일",
       "preview_ratio": "전력비 {ratio}",
       "readiness": "준비도 +{pct}%",

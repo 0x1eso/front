@@ -184,9 +184,13 @@ export function applyWwOrder(
     case "volunteers_recall":
     case "air_volunteers":
     case "ships_transfer":
-    case "takeover_pick":
     case "army_garrison":
       block = econ.ww.endgame.issue(p.smallID(), order, mg.ticks());
+      break;
+    case "takeover_pick":
+      // Routed by the sender's clientID (WwTakeoverPickExecution): the
+      // human it comes from has no country left.
+      block = "no_takeover";
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);
@@ -231,6 +235,57 @@ export class WwOrderExecution implements Execution {
     this.order = WwOrderSchema.parse(JSON.parse(s.order));
   }
 }
+
+/**
+ * ww_order takeover_pick (spec §11.3, plan Task 1 review fix 1): the sender
+ * is a human whose country is gone, so the order goes by the sender's
+ * clientID to its takeover card, never through a player.
+ */
+export class WwTakeoverPickExecution implements Execution {
+  constructor(
+    private client: string,
+    private pick: number,
+  ) {}
+
+  init(mg: Game, ticks: number): void {
+    mg.worldWar()?.endgame.takeoverPickBy(this.client, this.pick, ticks);
+  }
+
+  tick(_ticks: number): void {}
+
+  isActive(): boolean {
+    return false;
+  }
+
+  activeDuringSpawnPhase(): boolean {
+    return false;
+  }
+
+  snapshot(): ExecRecord {
+    return WwTakeoverPickExecutionSnapshot.write({
+      client: this.client,
+      pick: this.pick,
+    });
+  }
+
+  restoreSnapshot(s: WwTakeoverPickState): void {
+    this.client = s.client;
+    this.pick = s.pick;
+  }
+}
+
+const WwTakeoverPickStateSchema = z.object({
+  client: z.string(),
+  pick: z.number().int(),
+});
+type WwTakeoverPickState = z.infer<typeof WwTakeoverPickStateSchema>;
+
+export const WwTakeoverPickExecutionSnapshot = execSnapshotType({
+  name: "WwTakeoverPick",
+  version: 1,
+  schema: WwTakeoverPickStateSchema,
+  cls: () => WwTakeoverPickExecution,
+});
 
 const WwOrderStateSchema = z.object({
   player: zPlayerRef(),

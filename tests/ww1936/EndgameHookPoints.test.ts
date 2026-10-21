@@ -10,7 +10,11 @@ import type { Game, Player } from "@openfront/engine/game/Game";
 import { declareWarBlock } from "@openfront/engine/ww1936/Diplomacy";
 import { activateCountry } from "@openfront/engine/ww1936/endgame/Activate";
 import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
-import { joinBattle, stepBattles } from "@openfront/engine/ww1936/land/Battles";
+import {
+  joinBattle,
+  modInputOf,
+  stepBattles,
+} from "@openfront/engine/ww1936/land/Battles";
 import {
   transferArmyTo,
   transferDivisionsTo,
@@ -22,6 +26,7 @@ import {
   joinBlock,
 } from "@openfront/engine/ww1936/politics/Factions";
 import { annexCountry } from "@openfront/engine/ww1936/politics/Territory";
+import { vi } from "vitest";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import {
@@ -135,6 +140,14 @@ describe("World War 1936 P5: hook points", () => {
     l.setVolunteerFor(a, pl);
     expect(l.fightOwner(row)).toBe(pl);
     expect(l.divisionSide(row)).toBe(l.sideOf(pl));
+    // Its host's air cover and fuel in a battle.
+    const air = vi.spyOn(l.hooks, "airPenaltyBp");
+    const fuel = vi.spyOn(l.hooks, "fuelFactorPm");
+    modInputOf(l, row, l.divisions.region[row], false);
+    expect(air.mock.calls.map((c) => c[1])).toEqual([l.sideOf(pl)]);
+    expect(fuel.mock.calls.every((c) => c[0] === pl)).toBe(true);
+    air.mockRestore();
+    fuel.mockRestore();
     // Lane A's rule (stub: nowhere).
     expect(l.canArmyEnter(a, 5)).toBe(false);
     l.setVolunteerFor(a, 0);

@@ -229,13 +229,14 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // 4. Every hit of the round first, then all of them at once (spec §9.3-6).
   const org = new Map<number, number>();
   const hp = new Map<number, number>();
-  // P5 hook (W, plan decision 21): who dealt each target's HP damage.
-  const dealt = new Map<number, [number, number][]>();
+  // P5 hook (W, plan decision 21): who dealt each target's HP damage,
+  // summed by dealer (one entry per country, not per hit).
+  const dealt = new Map<number, Map<number, number>>();
   const deal = (to: number, by: number, hpMilli: number) => {
     if (hpMilli <= 0) return;
-    const l = dealt.get(to);
-    if (l === undefined) dealt.set(to, [[by, hpMilli]]);
-    else l.push([by, hpMilli]);
+    let l = dealt.get(to);
+    if (l === undefined) dealt.set(to, (l = new Map()));
+    l.set(by, (l.get(by) ?? 0) + hpMilli);
   };
   // Every number a hit reads, once per division (nothing changes before
   // the damage is applied below).
@@ -887,12 +888,14 @@ export function modInputOf(
   const landOf = sc.landOf(region);
   // P4 (pre-flight ruling 3): the navy's, the air war's and fuel's cuts,
   // O(1) reads of what their days stored, so the mods cache sees them.
-  const owner = t.owner[row];
-  const side = land.sideOf(owner);
+  // P5 (plan decision 20): a volunteer fights on its host's side, under
+  // its host's air cover and on its host's fuel.
+  const fighter = land.fightOwner(row);
+  const side = land.sideOf(fighter);
   const base = land.baseStatsOf(row);
   const fuelBp =
     base.fuelWidthPm > 0
-      ? fuelCombatBp(land.hooks.fuelFactorPm(owner), base.fuelWidthPm)
+      ? fuelCombatBp(land.hooks.fuelFactorPm(fighter), base.fuelWidthPm)
       : 0;
   let landingBp = 0;
   let fortBp = 0;
@@ -939,20 +942,16 @@ export function modInputOf(
 function noteBattleDamage(
   land: WwLand,
   b: Battle,
-  dealers: readonly [number, number][] | undefined,
+  dealers: ReadonlyMap<number, number> | undefined,
   against: number,
   lost: number,
 ): void {
-  if (dealers === undefined || dealers.length === 0) return;
-  const by = new Map<number, number>();
+  if (dealers === undefined || dealers.size === 0) return;
   let total = 0;
-  for (const [o, h] of dealers) {
-    by.set(o, (by.get(o) ?? 0) + h);
-    total += h;
-  }
+  for (const h of dealers.values()) total += h;
   if (total <= 0) return;
   const ledger = (b.dmgBy ??= []);
-  for (const [o, h] of [...by].sort((x, y) => x[0] - y[0])) {
+  for (const [o, h] of [...dealers].sort((x, y) => x[0] - y[0])) {
     const men = Math.floor((lost * h) / total);
     if (men <= 0) continue;
     const row = ledger.find((x) => x[0] === o);

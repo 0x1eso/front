@@ -186,7 +186,12 @@ export function isCapitulated(game: WwGame, smallID: number): boolean {
  * "is it out of the game" question; the engine's is WorldWar.isActor.
  */
 export function wwActive(game: WwGame, smallID: number): boolean {
-  if (game.wwEndgame?.()?.isExile(smallID) === true) return true;
+  const eg = game.wwEndgame?.() ?? null;
+  if (eg?.isExile(smallID) === true) return true;
+  // The endgame's state (a dormant slot, a gone country) as the engine's
+  // isActor reads it.
+  const state = eg?.countryState(smallID) ?? null;
+  if (state !== null && state !== "active") return false;
   const p = asPlayer(game, smallID);
   return p !== null && p.isAlive() && !isCapitulated(game, smallID);
 }

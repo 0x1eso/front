@@ -3763,6 +3763,7 @@
     },
     "convoy_use": {
       "idle": "Idle",
+      "lend_lease": "Lend-lease",
       "supply": "Supply",
       "trade": "Trade",
       "voyage": "Transport"

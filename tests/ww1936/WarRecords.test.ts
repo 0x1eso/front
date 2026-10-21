@@ -3,11 +3,12 @@
 import type { WarLink } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game } from "@openfront/engine/game/Game";
-import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
+import { declareWar, isSpanishPair } from "@openfront/engine/ww1936/Diplomacy";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { joinFaction } from "@openfront/engine/ww1936/politics/Factions";
 import { endWarBetween } from "@openfront/engine/ww1936/politics/Territory";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import { vi } from "vitest";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { dropPact, END_MAP, stepTo, wwRunner } from "./util";
@@ -86,6 +87,51 @@ describe("World War 1936 P5: war records", () => {
     expect(eg.warOfPair(deu, gbr)).toBe(eg.warOfPair(deu, fra));
     expect(eg.wars[0].sides[1].members.map((m) => m.id)).toEqual([fra, gbr]);
     checkPairs(ww);
+  });
+
+  it("the two Spains' war is a civil war whoever declares it", async () => {
+    const { g, ww } = await atWarStart();
+    const [pl, csk] = [endId("POL"), endId("CSK")];
+    // The end map has no Spain: Poland and Czechoslovakia stand in for them.
+    const real = ww.scenario.tagOfSmallId.bind(ww.scenario);
+    const tags = vi
+      .spyOn(ww.scenario, "tagOfSmallId")
+      .mockImplementation((id) =>
+        id === pl ? "ESR" : id === csk ? "ESN" : real(id),
+      );
+    expect(isSpanishPair(ww, pl, csk)).toBe(true);
+    expect(isSpanishPair(ww, pl, endId("DEU"))).toBe(false);
+    // An ordinary declaration (no beat, no option).
+    declareWar(g, ww, player(g, csk), player(g, pl), g.ticks());
+    tags.mockRestore();
+    const w = ww.endgame.war(ww.endgame.warOfPair(pl, csk))!;
+    expect(w.kind).toBe("civil");
+    checkPairs(ww);
+  });
+
+  it("an ended war goes 30 days after its conference closed", async () => {
+    const { g, ww } = await atWarStart();
+    const eg = ww.endgame;
+    const [deu, pl, csk] = [endId("DEU"), endId("POL"), endId("CSK")];
+    ww.setWar(deu, pl, g.ticks(), { kind: "declare" });
+    ww.setWar(deu, csk, g.ticks(), { kind: "declare" });
+    const [settled, plain] = eg.wars;
+    settled.ended = { day: 10, winner: 0 };
+    plain.ended = { day: 10, winner: 0 };
+    const conf = { id: 1, warIds: [settled.id], status: 1, doneDay: -1 };
+    eg.conferences.push(conf as unknown as (typeof eg.conferences)[number]);
+    const kept = (day: number) => {
+      eg.dailyCommon(day, g.ticks());
+      return eg.wars.map((w) => w.id);
+    };
+    // Open: kept however long ago the war ended.
+    expect(kept(39)).toEqual([settled.id, plain.id]);
+    expect(kept(41)).toEqual([settled.id]);
+    expect(kept(80)).toEqual([settled.id]);
+    conf.status = 2;
+    conf.doneDay = 70;
+    expect(kept(100)).toEqual([settled.id]);
+    expect(kept(101)).toEqual([]);
   });
 
   it("a join enters the target's oldest war on the other side", async () => {

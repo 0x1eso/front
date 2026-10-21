@@ -127,6 +127,8 @@ const ConferenceSchema = z.object({
   topple: z.array(z.tuple([zInt(), zInt()])),
   /** 0 queued, 1 open, 2 done. */
   status: zInt(),
+  /** The day it closed (status 2; -1 before): its wars go 30 days later (spec §4.2). */
+  doneDay: zInt(),
   round: zInt(),
   roundEndTick: zInt(),
   openTick: zInt(),
@@ -489,7 +491,11 @@ export class WwEndgame {
 
   /** Spec §2.2 order 3: smallID % 7 === k. */
   dailyCountry(id: number, day: number, tick: number): void {
-    if (!this.isActor(id)) return;
+    if (!this.isActor(id)) {
+      // Nobody reads a country's notes once it stopped playing.
+      this.dropDayNotes(id);
+      return;
+    }
     if (this.adminDirty) this.rebuildAdmin();
     stepOccupation(this, id, day); // O
     assignGarrisons(this, id, day); // O
@@ -533,12 +539,25 @@ export class WwEndgame {
       case "ships_transfer":
         return issueAid(this, smallID, order, tick);
       case "takeover_pick":
-        return takeoverPick(this, smallID, order.smallID, tick);
+        // Comes by clientID (takeoverPickBy); never from a country.
+        return "no_takeover";
       case "army_garrison":
         return garrisonOrder(this, smallID, order.army, order.scope);
       default:
         return "bad_index";
     }
+  }
+
+  /**
+   * takeover_pick (spec §11.3): by the sender's clientID, before any
+   * player check (the human's country is gone; ExecutionManager routes it).
+   */
+  takeoverPickBy(
+    client: string,
+    pick: number,
+    tick: number,
+  ): WwOrderBlock | null {
+    return takeoverPick(this, client, pick, tick);
   }
 
   // ---- Capitulation (plan decision 9) ----
@@ -747,13 +766,22 @@ export class WwEndgame {
       }
     }
   }
+  /**
+   * Spec §4.2: an ended war goes 30 days after the conference that settled
+   * it closed (after its end when none did); never while one is queued or
+   * open.
+   */
   private dropOldWars(day: number): void {
-    const kept = this.wars.filter(
-      (w) =>
-        w.ended === null ||
-        day - w.ended.day <= WW_WAR_KEEP_DAYS ||
-        this.conferences.some((c) => c.status !== 2 && c.warIds.includes(w.id)),
-    );
+    const kept = this.wars.filter((w) => {
+      if (w.ended === null) return true;
+      let since = w.ended.day;
+      for (const c of this.conferences) {
+        if (!c.warIds.includes(w.id)) continue;
+        if (c.status !== 2) return true;
+        since = Math.max(since, c.doneDay);
+      }
+      return day - since <= WW_WAR_KEEP_DAYS;
+    });
     if (kept.length !== this.wars.length) {
       this.wars = kept;
       this.rebuildWarIdx();
@@ -1170,6 +1198,11 @@ export class WwEndgame {
     if (e !== undefined) e[4] += n;
     else this.dayNotes.push([to, kind, a, b, n]);
   }
+  private dropDayNotes(id: number): void {
+    if (this.dayNotes.some((x) => x[0] === id)) {
+      this.dayNotes = this.dayNotes.filter((x) => x[0] !== id);
+    }
+  }
   /** One line per (country, kind) a day (spec §20.8). The lanes give the message text through NOTE_KEYS. */
   private flushDayNotes(id: number): void {
     if (this.dayNotes.length === 0) return;
@@ -1218,9 +1251,15 @@ export class WwEndgame {
       ).length;
     }
     if (first || this.dirtyPeaceLog) d.peaceLog = this.peaceLog;
-    if (this.dirtyOcc.size > 0) {
-      d.occupation = [...this.dirtyOcc]
-        .sort((a, b) => a - b)
+    // The first update (a start, or a restored game's new screens) sends
+    // the whole occupation, core and aid picture, not the changes.
+    if (first || this.dirtyOcc.size > 0) {
+      const occIds = first
+        ? [...Array(this.regionCap).keys()].filter((r) =>
+            this.isAdministered(r),
+          )
+        : [...this.dirtyOcc].sort((a, b) => a - b);
+      d.occupation = occIds
         .filter(
           (r) =>
             this.isAdministered(r) &&
@@ -1235,10 +1274,21 @@ export class WwEndgame {
         lockUntilDay: x.lockUntilDay,
       }));
     }
-    if (this.dirtyCores.size > 0) {
-      d.coreChanges = [...this.dirtyCores]
-        .sort((a, b) => a - b)
-        .map((r) => ({ region: r, holders: this.coreHolders(r) }));
+    if (first || this.dirtyCores.size > 0) {
+      // First: every region with a core now or in the scenario (one whose
+      // cores all went must not fall back to the scenario's on the screens).
+      const sc = this.ww.scenario;
+      const coreIds = first
+        ? [...Array(this.regionCap).keys()].filter(
+            (r) =>
+              r > 0 &&
+              (this.coreHolders(r).length > 0 || sc.region(r)?.core === true),
+          )
+        : [...this.dirtyCores].sort((a, b) => a - b);
+      d.coreChanges = coreIds.map((r) => ({
+        region: r,
+        holders: this.coreHolders(r),
+      }));
     }
     if (first || this.dirtyZones) d.zones = this.zones.map((z) => ({ ...z }));
     if (first || this.dirtySubjects) {
@@ -1261,9 +1311,11 @@ export class WwEndgame {
         capital: e.capital,
       }));
     }
-    if (this.dirtyAid.size > 0) {
-      d.aid = [...this.dirtyAid]
-        .sort((a, b) => a - b)
+    if (first || this.dirtyAid.size > 0) {
+      const aidIds = first
+        ? [...Array(this.size).keys()].filter((id) => id > 0)
+        : [...this.dirtyAid].sort((a, b) => a - b);
+      d.aid = aidIds
         .filter((id) => this.isHumanControlled(id))
         .map((id) => aidView(this, id));
     }

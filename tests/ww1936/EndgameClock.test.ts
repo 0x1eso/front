@@ -4,7 +4,7 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { vi } from "vitest";
-import { END } from "./endFixture";
+import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, step, stepTo, wwRunner } from "./util";
 
@@ -46,6 +46,22 @@ describe("World War 1936 P5: the endgame's clock", () => {
     }
     spy.mockRestore();
     common.mockRestore();
+  });
+
+  it("a country that stopped playing drops its day notes; a player's go out", async () => {
+    const runner = await wwRunner({}, [], END_MAP);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const ww = runner.game.worldWar()!;
+    const eg = ww.endgame;
+    const [pl, deu] = [endId("POL"), endId("DEU")];
+    ww.addCapitulation(pl, deu, runner.game.ticks());
+    expect(eg.isActor(pl)).toBe(false);
+    eg.note(pl, 0, 1, 2, 3);
+    eg.note(deu, 0, 1, 2, 3);
+    const day = ww.day(runner.game.ticks());
+    eg.dailyCountry(pl, day, runner.game.ticks());
+    eg.dailyCountry(deu, day, runner.game.ticks());
+    expect(eg.dayNotes).toEqual([]);
   });
 
   it("the conference clock runs in the preparation minute but the day does not", async () => {
