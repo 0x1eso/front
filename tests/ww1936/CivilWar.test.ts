@@ -41,7 +41,7 @@ const CW_EVENT: EventDef = {
   ],
 };
 
-/** K5's Spanish end event, reduced to the spirit's lift (set_name is lane X's). */
+/** K5's Spanish end event, reduced to the spirit's lift and the winner's rename. */
 const ESP_END: EventDef = {
   id: "esp_civil_war_ends",
   kind: "country",
@@ -49,7 +49,10 @@ const ESP_END: EventDef = {
     {
       id: "a",
       ai: { base: 1 },
-      effects: [{ kind: "remove_spirit", id: "gen_civil_strife" }],
+      effects: [
+        { kind: "remove_spirit", id: "gen_civil_strife" },
+        { kind: "set_name", key: "ww1936.rename.spain" },
+      ],
     },
   ],
 };
@@ -408,10 +411,11 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     endCivilWar(eg, warId, 0, g.ticks());
     vi.restoreAllMocks();
     expect(queue).toHaveBeenCalledWith("esp_civil_war_ends", esn, esn, 0, 0);
-    // The flush applied the event: the spirit is lifted.
+    // The flush applied the event: the spirit is lifted, and lane X's
+    // set_name renames the winner (over the slot's own "ww1936.country.SUN").
     expect(pc.hasSpirit("gen_civil_strife")).toBe(false);
-    // TODO(batch20): assert rename — once lane X's set_name is merged, give
-    // ESP_END K5's set_name effect and check the winner's new name here.
+    expect(eg.nameKey[esn]).toBe("ww1936.rename.spain");
+    expect(eg.dirtyCountries.has(esn)).toBe(true);
   }, 60_000);
 
   it("a failed activation puts the held fleets back in their docks", async () => {
