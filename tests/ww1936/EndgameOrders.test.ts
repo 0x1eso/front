@@ -17,8 +17,9 @@ const HUMAN = "HUMANPOL";
 
 /** One sample of each order and the foundation's stub answer. */
 const SAMPLES: [WwOrder, string | null][] = [
-  [{ kind: "peace_submit", conf: 1, demands: [] }, "not_participant"],
-  [{ kind: "peace_pass", conf: 1 }, "not_participant"],
+  // Lane W: no conference 1 is open.
+  [{ kind: "peace_submit", conf: 1, demands: [] }, "conference_closed"],
+  [{ kind: "peace_pass", conf: 1 }, "conference_closed"],
   [{ kind: "occupation_law", of: 0, law: "occ_civil" }, "not_integrable"],
   [{ kind: "integrate_region", region: 15 }, "not_integrable"],
   [
@@ -147,6 +148,6 @@ describe("World War 1936 P5: the endgame's orders", () => {
       capital: 6,
     });
     ww.endgame.rebuildDerived();
-    expect(applyWwOrder(g, ww.economy, pl, o, day)).toBe("not_participant");
+    expect(applyWwOrder(g, ww.economy, pl, o, day)).toBe("conference_closed");
   });
 });
