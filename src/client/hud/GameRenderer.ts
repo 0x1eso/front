@@ -514,6 +514,11 @@ export function createRenderer(
       setLandSides(wwLand, landSidesOf(game));
       landController = new WwLandController(game, eventBus, transformHandler);
     }
+    // P4 (plan Task 1 Step 22): the navy's and the air war's views (lane R draws them).
+    const wwNavy = game.wwNavy();
+    if (wwNavy !== null) view.setWwNavy(wwNavy);
+    const wwAir = game.wwAir();
+    if (wwAir !== null) view.setWwAir(wwAir);
   }
 
   const layers: Controller[] = [

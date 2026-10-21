@@ -127,7 +127,8 @@ describe("<ww-politics-panel> (P3 spec §21.4)", () => {
       }),
     );
     await m.open("advisors");
-    expect(m.el.querySelectorAll("[data-ww-seat]")).toHaveLength(8);
+    // P3's eight seats and P4's navy and air chiefs.
+    expect(m.el.querySelectorAll("[data-ww-seat]")).toHaveLength(10);
     await m.click("[data-ww-seat='1'] [data-ww-seat-pick]");
     const hire = m.q("[data-ww-hire='title:administrator']")!;
     expect(hire.textContent).toContain("[ww1936.pol.adv.cost] pp=150");

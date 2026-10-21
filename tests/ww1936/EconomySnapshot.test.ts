@@ -334,6 +334,15 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         fort: ww.economy.fort[r.id],
         rail: ww.economy.rail[r.id],
         hub: ww.economy.hub[r.id],
+        // P4's buildings and bomb damage.
+        navalBase: ww.economy.buildingArray("naval_base")[r.id],
+        airBase: ww.economy.buildingArray("air_base")[r.id],
+        aa: ww.economy.buildingArray("anti_air")[r.id],
+        radar: ww.economy.buildingArray("radar")[r.id],
+        coastalFort: ww.economy.buildingArray("coastal_fort")[r.id],
+        refinery: ww.economy.buildingArray("synthetic_refinery")[r.id],
+        silo: ww.economy.buildingArray("fuel_silo")[r.id],
+        damage: [],
       });
     }
   }, 60_000);

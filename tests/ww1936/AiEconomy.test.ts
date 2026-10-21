@@ -11,6 +11,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { navalStartTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
@@ -33,6 +34,11 @@ import {
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
+
+/** P4's sea and air techs of 1936 (appended to WW_TECH_IDS after rail_1). */
+const P4_1936 = WW_TECH_IDS.slice(WW_TECH_IDS.indexOf("rail_1") + 1).filter(
+  (id) => WW_TECHS[id].year <= 1936,
+);
 
 // ---- The pure plan ----
 
@@ -396,6 +402,16 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       medium_tank: 0,
       fighter: 5,
       bomber: 0,
+      // P4's planes and convoys: none until lane AI's tilt (plan Task 1).
+      heavy_fighter: 0,
+      cas: 0,
+      naval_bomber: 0,
+      strat_bomber: 0,
+      transport_plane: 0,
+      cv_fighter: 0,
+      cv_cas: 0,
+      cv_naval_bomber: 0,
+      convoy: 0,
     });
     expect(aiLineShares("SUN", true, medium, false)).toMatchObject({
       infantry_equipment: 45,
@@ -503,6 +519,10 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "engineer_company",
       "recon_company",
       "mountaineers",
+      // P4: its naval start techs (EconomyStart.navalStartTechs) and the
+      // other 1936 sea and air techs, so the land picks stay this test's.
+      ...navalStartTechs("DEU", 5, true),
+      ...P4_1936,
     ];
     const deu = (day: number, slotCount: number) =>
       only(

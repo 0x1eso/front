@@ -2,10 +2,14 @@
 // decision 3). The engine's order functions and the screens' buttons call
 // the same ones; whatever needs engine objects (who is alive, embargoes)
 // the caller works out first and hands in as a value.
+import { AIR_TYPES, AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   BUILDABLE,
+  BUILDING_TECH,
   BuildingId,
+  COASTAL_BUILDINGS,
   CountryLaws,
+  DOCTRINE_DOMAIN,
   equipKey,
   EquipmentType,
   LAW_LADDERS,
@@ -20,7 +24,8 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { exportCapacity } from "./EconomyRules";
-import { genTech } from "./Equipment";
+import { equipmentBuildable, genTech } from "./Equipment";
+import { planeGenTechs } from "./PlaneStats";
 import { lawBlock, LawCtx } from "./PoliticsRules";
 import type { ScenarioIndex } from "./ScenarioIndex";
 import { openSchool, WW_TECHS } from "./WwTechs";
@@ -110,6 +115,12 @@ export interface QueuedInRegion {
   fort: number;
   rail: number;
   supply_hub: number;
+  // P4 level buildings (P4 spec §12.1).
+  naval_base: number;
+  air_base: number;
+  anti_air: number;
+  radar: number;
+  coastal_fort: number;
 }
 
 /** Factories and the levels of each level building a queue still adds to `region`. */
@@ -123,6 +134,11 @@ export function queuedInRegion(
     fort: 0,
     rail: 0,
     supply_hub: 0,
+    naval_base: 0,
+    air_base: 0,
+    anti_air: 0,
+    radar: 0,
+    coastal_fort: 0,
   };
   for (const q of queue) {
     if (q.region !== region) continue;
@@ -131,22 +147,33 @@ export function queuedInRegion(
       case "fort":
       case "rail":
       case "supply_hub":
+      case "naval_base":
+      case "air_base":
+      case "anti_air":
+      case "radar":
+      case "coastal_fort":
         out[q.building] += q.count;
         break;
       default:
+        // Slot buildings: factories, dockyards, refineries, fuel silos.
         out.factories += q.count;
     }
   }
   return out;
 }
 
-/** The queued levels of a level building (0 for a factory). */
+/** The queued levels of a level building (0 for a slot building). */
 export function queuedLevels(q: QueuedInRegion, building: BuildingId): number {
   switch (building) {
     case "infra":
     case "fort":
     case "rail":
     case "supply_hub":
+    case "naval_base":
+    case "air_base":
+    case "anti_air":
+    case "radar":
+    case "coastal_fort":
       return q[building];
     default:
       return 0;
@@ -169,13 +196,31 @@ export interface BuildCheck {
   usedSlots: number;
   /** The region's slots with the country's slot bonus (regionSlots). */
   slots: number;
+  /** P4: the region touches the sea (P1 `coastal`: a dockyard). */
+  coastal: boolean;
+  /** P4: the region has a harbor zone (spec §3.5: a naval base, a coastal fort). */
+  harbor: boolean;
+  /** P4: the techs a building needs (BUILDING_TECH, radar_2 for a third radar level). */
+  researched: ReadonlySet<WwTechId>;
 }
 
-/** Spec §4.3: why the project cannot be queued; null when it can. */
+/** Spec §4.3 (P4 spec §5.1, §12.1): why the project cannot be queued; null when it can. */
 export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
   if (!BUILDABLE.includes(c.building)) return "not_buildable";
   if (!c.controlled) return "not_controlled";
   if (c.queueLength >= WW_MAX_QUEUE) return "queue_full";
+  if (COASTAL_BUILDINGS.includes(c.building)) {
+    if (!(c.building === "dock" ? c.coastal : c.harbor)) return "not_coastal";
+  }
+  const tech = BUILDING_TECH[c.building];
+  if (tech !== undefined && !c.researched.has(tech)) return "no_tech";
+  if (
+    c.building === "radar" &&
+    c.levelWithQueue + c.count > 2 &&
+    !c.researched.has("radar_2")
+  ) {
+    return "no_tech";
+  }
   const max = LEVEL_MAX[c.building];
   // Level buildings use no slot and go up in occupied regions too (P2 §11.7).
   if (max !== undefined) {
@@ -208,13 +253,25 @@ export function lawBlockOf(
 
 // ---- Production (spec §8.4) ----
 
-/** A generation needs its tech (and has to exist). */
+const AIR = new Set<EquipmentType>(AIR_TYPES);
+
+/**
+ * A generation needs its tech (and has to exist). P4: an aircraft type
+ * needs planeGenTechs (a carrier type carrier_aviation too); the convoy is
+ * built on naval lines only (equipmentBuildable).
+ */
 export function equipmentTechBlock(
   researched: ReadonlySet<WwTechId>,
   type: EquipmentType,
   gen: number,
 ): WwOrderBlock | null {
   if (equipKey(type, gen) < 0) return "no_tech";
+  if (!equipmentBuildable(type)) return "not_buildable";
+  if (AIR.has(type)) {
+    return planeGenTechs(type as AirType, gen).every((t) => researched.has(t))
+      ? null
+      : "no_tech";
+  }
   return researched.has(genTech(type, gen)) ? null : "no_tech";
 }
 
@@ -259,8 +316,12 @@ export function researchBlockOf(
   const def = WW_TECHS[tech];
   if (def.prereqs.some((p) => !s.researched.has(p))) return "prereq";
   if (def.school !== undefined) {
+    // P4 plan decision 23: one school a domain (land, sea, air).
     const running = s.slots.filter((t): t is WwTechId => t !== null);
-    const open = openSchool([...s.researched, ...running]);
+    const open = openSchool(
+      [...s.researched, ...running],
+      DOCTRINE_DOMAIN[def.school],
+    );
     if (open !== null && open !== def.school) return "doctrine";
   }
   return freeResearchSlot(s.slots, s.slotCount) < 0 ? "no_slot" : null;

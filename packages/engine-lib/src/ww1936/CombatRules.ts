@@ -222,6 +222,17 @@ export interface ModInput {
   excessBp: number;
   supplyPm: number;
   encircled: boolean;
+  // P4 (pre-flight ruling 3): cuts from the navy and air war, bp ≤ 0, read
+  // from the hooks in modInputOf (and from the views on the battle card).
+  /** Spec §14.6: the worst enemy air superiority over the battle (attack and defense). */
+  airBp: number;
+  /** Spec §15.4: yesterday's fuel shortage on the fuel battalions (attack and defense). */
+  fuelBp: number;
+  /** Spec §11.4, a landing division attacking: the landing and the coastal fort. */
+  landingBp: number;
+  coastalFortBp: number;
+  /** Spec §11.4, a defender: the enemy's shore bombardment. */
+  shoreBp: number;
 }
 
 export interface ModResult {
@@ -330,6 +341,13 @@ export function divisionMods(i: ModInput): ModResult {
   const supplyCut = -(1000 - Math.max(0, Math.min(1000, i.supplyPm))) * 5;
   push(aCut, "supply", supplyCut);
   push(aCut, "encircled", i.encircled ? -5000 : 0);
+  // P4 (spec §14.6, §15.4, §11.4).
+  push(aCut, "air", i.airBp);
+  push(aCut, "fuel", i.fuelBp);
+  if (i.attacking) {
+    push(aCut, "landing", i.landingBp);
+    push(aCut, "coastal_fort", i.coastalFortBp);
+  }
   // Defence (the block value)
   push(dAdd, "general", i.genDef * 500);
   let dTrait = 0;
@@ -363,6 +381,9 @@ export function divisionMods(i: ModInput): ModResult {
   );
   push(dCut, "supply", supplyCut);
   push(dCut, "encircled", i.encircled ? -5000 : 0);
+  push(dCut, "air", i.airBp);
+  push(dCut, "fuel", i.fuelBp);
+  if (!i.attacking) push(dCut, "shore_bombard", i.shoreBp);
   const sum = (l: ModLine[]) => l.map((x) => x.bp);
   return {
     mods: {

@@ -13,6 +13,7 @@ import {
 import { applyDiploEffect } from "./EffectsDiplo";
 import { applyEconEffect } from "./EffectsEcon";
 import { applyEventEffect } from "./EffectsEvent";
+import { applyNavyEffect } from "./EffectsNavy";
 import { applyPoliticalEffect } from "./EffectsPol";
 import { applyTerritoryEffect } from "./Territory";
 import type { WwPolitics } from "./WwPolitics";
@@ -84,6 +85,10 @@ export function applyEffect(ctx: EffectCtx, e: Effect): void {
       break;
     case "territory":
       applyTerritoryEffect(ctx, e, actor);
+      break;
+    // P4 plan decision 24.
+    case "navy":
+      applyNavyEffect(ctx, e, actor);
       break;
   }
 }

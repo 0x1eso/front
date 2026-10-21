@@ -15,7 +15,9 @@ import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { LandWarInputs } from "../../view/LandFrontWorld";
+import type { WwAirView } from "../../view/WwAirView";
 import type { WwLandView } from "../../view/WwLandView";
+import type { WwNavyView } from "../../view/WwNavyView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
 import type {
   AttackRingInput,
@@ -50,6 +52,9 @@ export class MapRenderer {
   private storedRegions: Uint16Array | null = null;
   /** World War 1936 P2 land war inputs, re-applied after a context restore. */
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
+  /** P4: kept for lane R's passes (plan Task 11). */
+  private storedWwNavy: WwNavyView | null = null;
+  private storedWwAir: WwAirView | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -397,6 +402,19 @@ export class MapRenderer {
   ): void {
     this.storedWwLand = [view, selection, me, war];
     this.renderer?.setWwLand(view, selection, me, war);
+  }
+
+  /**
+   * World War 1936 P4 (plan Task 1 Step 22): the navy view the fleet
+   * tokens, battle markers and the sea layer read (lane R draws them).
+   */
+  setWwNavy(view: WwNavyView): void {
+    this.storedWwNavy = view;
+  }
+
+  /** World War 1936 P4: the air view the air layer and sorties read (lane R). */
+  setWwAir(view: WwAirView): void {
+    this.storedWwAir = view;
   }
 
   /** Set up map-layer passes from the loaded layer data. */

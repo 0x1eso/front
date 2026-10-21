@@ -259,9 +259,9 @@ describe("research (spec §9)", () => {
     expect(researchSlotCount(true, 300)).toBe(5);
   });
 
-  test("56 techs; prerequisites exist and come no later", () => {
-    // P1's 46 and P2's 10 (P2 spec §4.6).
-    expect(WW_TECH_IDS.length).toBe(56);
+  test("112 techs; prerequisites exist and come no later", () => {
+    // P1's 46, P2's 10 (P2 spec §4.6) and P4's 56 (P4 spec §4.3, §12.3).
+    expect(WW_TECH_IDS.length).toBe(112);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {
@@ -271,13 +271,22 @@ describe("research (spec §9)", () => {
   });
 
   test("every generation has its tech", () => {
-    expect(EQUIP_KEY_COUNT).toBe(23);
+    // P1's 23 and P4's 23 (eight plane types, convoys).
+    expect(EQUIP_KEY_COUNT).toBe(46);
     for (const [type, def] of Object.entries(EQUIPMENT)) {
+      // P4: the convoy's one generation needs no tech.
       expect(def.techs.length).toBe(
-        EQUIPMENT_GENS[type as keyof typeof EQUIPMENT_GENS],
+        type === "convoy"
+          ? 0
+          : EQUIPMENT_GENS[type as keyof typeof EQUIPMENT_GENS],
       );
       for (const t of def.techs) expect(WW_TECHS[t]).toBeDefined();
-      expect(equipKey(type as "artillery", def.techs.length + 1)).toBe(-1);
+      expect(
+        equipKey(
+          type as "artillery",
+          EQUIPMENT_GENS[type as keyof typeof EQUIPMENT_GENS] + 1,
+        ),
+      ).toBe(-1);
     }
     expect(genTech("medium_tank", 2)).toBe("medium_tank_2");
     expect(equipKey("artillery", 0)).toBe(-1);
@@ -285,7 +294,7 @@ describe("research (spec §9)", () => {
 
   test("stock keys follow EQUIPMENT_TYPES, generation by generation", () => {
     expect(EQUIP_KEYS[0]).toEqual(["infantry_equipment", 1]);
-    expect(EQUIP_KEYS[EQUIP_KEY_COUNT - 1]).toEqual(["bomber", 2]);
+    expect(EQUIP_KEYS[EQUIP_KEY_COUNT - 1]).toEqual(["convoy", 1]);
     for (const t of EQUIPMENT_TYPES) {
       for (let g = 1; g <= EQUIPMENT_GENS[t]; g++) {
         expect(EQUIP_KEYS[equipKey(t, g)]).toEqual([t, g]);

@@ -425,7 +425,8 @@ export function orderCheckWorld(
     me,
     day,
     rail: (r) => economy.rail[r] ?? 0,
-    isPort: (r) => view.scenario.isPort(r),
+    // P4 plan decision 11: a working naval base now (the region updates).
+    isPort: (r) => economy.navalPort(r),
     vp: (r) => view.scenario.region(r)?.vp ?? 0,
     army: (id) => {
       const a = view.armies.get(id);
@@ -729,7 +730,7 @@ function buttonBlocks(
   const port = view.scenario.landRegions.find(
     (r) =>
       r.id !== at &&
-      view.scenario.isPort(r.id) &&
+      w.isPort(r.id) &&
       sides.sameSide(me, view.controller[r.id]),
   )?.id;
   const blocks: Record<ArmyButton, CardBlock | null> = {
@@ -1015,6 +1016,12 @@ function plainInput(
     excessBp: 0,
     supplyPm: 1000,
     encircled: false,
+    // P4 (pre-flight ruling 3): lane U fills these from the navy and air views.
+    airBp: 0,
+    fuelBp: 0,
+    landingBp: 0,
+    coastalFortBp: 0,
+    shoreBp: 0,
   };
 }
 

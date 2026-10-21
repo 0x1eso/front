@@ -38,6 +38,14 @@ import {
 } from "./WwDrawer";
 import { OpenWwFocusEvent } from "./WwFocusPanel";
 
+/**
+ * P4 (plan Task 1 Step 22): eight dials, two columns of four rows (four
+ * columns of two on a short landscape screen) once ⚓ and ✈ join.
+ */
+export const WW_DIAL_COLS = 2;
+export const WW_DIAL_ROWS = 4;
+export const WW_DIAL_COMPACT_COLS = 4;
+
 export interface WwDialsModel {
   industry: IndustryDial;
   research: ResearchDialModel;
@@ -127,9 +135,9 @@ export class WwDials extends LitElement implements Controller {
       ${DIAL_STYLES}
       <div
         data-ww-dials
-        data-cols=${m.compact ? 3 : 2}
+        data-cols=${m.compact ? WW_DIAL_COMPACT_COLS : WW_DIAL_COLS}
         class="grid ${m.compact
-          ? "grid-cols-3"
+          ? "grid-cols-4"
           : "grid-cols-2"} items-start gap-1.5 px-1.5 py-1 text-white select-none"
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
@@ -168,9 +176,36 @@ export class WwDials extends LitElement implements Controller {
           () => this.eventBus.emit(new OpenWwResearchEvent()),
         )}
         ${m.army === null ? nothing : this.renderArmy(m.army)}
-        ${this.renderPolitics(m)}
+        ${this.renderPolitics(m)} ${this.renderSeaAir()}
       </div>
     `;
+  }
+
+  /**
+   * P4 (plan Task 1 Step 22): the ⚓ navy and ✈ air dials' places, ring
+   * 0, no drawer yet (lane U gives them their drawers and rings).
+   */
+  private renderSeaAir(): TemplateResult {
+    return html`${this.renderDial(
+      "navy",
+      "idle",
+      translateText("ww1936.branch.naval"),
+      ringSvg(0, "grey"),
+      "⚓",
+      null,
+      nothing,
+      () => {},
+    )}
+    ${this.renderDial(
+      "air",
+      "idle",
+      translateText("ww1936.branch.air"),
+      ringSvg(0, "grey"),
+      "✈",
+      null,
+      nothing,
+      () => {},
+    )}`;
   }
 
   /** P3 (spec §21.2): 🎯 focus, 🏛 politics, 🌐 diplomacy. */
@@ -260,7 +295,7 @@ export class WwDials extends LitElement implements Controller {
   }
 
   private renderDial(
-    id: WwDrawerId,
+    id: WwDrawerId | "navy" | "air",
     state: string,
     label: string,
     svg: TemplateResult,

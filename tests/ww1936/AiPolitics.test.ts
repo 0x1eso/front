@@ -244,6 +244,9 @@ describe("the AI's politics (spec §18.6)", { timeout: 60_000 }, () => {
       null,
       "t_deu_ind",
       null,
+      // P4 appended the navy_chief and air_chief seats: empty.
+      null,
+      null,
     ]);
     // The democracy and the minor.
     expect(run("GBR", 4)).toEqual([
@@ -255,6 +258,9 @@ describe("the AI's politics (spec §18.6)", { timeout: 60_000 }, () => {
       null,
       "title:ind_construction",
       "title:rs_science",
+      // P4 appended the navy_chief and air_chief seats: empty.
+      null,
+      null,
     ]);
     expect(run("POL", 4)).toEqual([
       "title:administrator",
@@ -264,6 +270,9 @@ describe("the AI's politics (spec §18.6)", { timeout: 60_000 }, () => {
       null,
       null,
       "title:ind_construction",
+      null,
+      // P4 appended the navy_chief and air_chief seats: empty.
+      null,
       null,
     ]);
   });

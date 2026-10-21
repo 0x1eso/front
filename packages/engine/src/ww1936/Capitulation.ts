@@ -181,6 +181,10 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
   // P2 spec §5.5, §12.5: its divisions and armies are gone; control moves
   // this tick, the tiles follow by the spread budget (plan decision 8).
   ww.land.removeCountryForces(loserID);
+  // P4 decision 32: its ships, fleets, routes, voyages, invasions and air
+  // deployments are gone this tick too (P5 makes exile fleets of them).
+  ww.navy.onCapitulation(loserID, victor?.smallID() ?? 0);
+  ww.air.onCapitulation(loserID, victor?.smallID() ?? 0);
   if (victor !== null) {
     // Land still on its way to the loser goes straight on to its victor.
     for (const t of ww.transfers()) {

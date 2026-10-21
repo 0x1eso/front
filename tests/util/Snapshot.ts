@@ -209,6 +209,37 @@ export const DERIVED_FIELDS = new Set<string>([
   "polGlobalDirty",
   "factionOfIdx",
   "statsVer",
+  // World War 1936 P4 (plan Task 1 Step 21): the navy's ship index, stats
+  // memo, fleet indexes and screens' marks; the air war's deployment
+  // indexes, plane stats memo and marks; the land war's hooks; the
+  // ScenarioIndex v4 tables; lane C's route cache; WwEconomy's naval-port
+  // version and bits; WorldWar's war version.
+  "shipRowIndex",
+  "shipStatsMemo",
+  "fleetsByOwner",
+  "fleetsByZone",
+  "navyDirtyFleets",
+  "navyDirtyBattles",
+  "navyDirtySrs",
+  "navyDirtyCountries",
+  "removedFleetIds",
+  "endedBattleZones",
+  "deploysBySr",
+  "deploysByBase",
+  "planeStatsMemo",
+  "airDirtyZones",
+  "airDirtyDeployments",
+  "airDirtyCountries",
+  "removedDeploymentIds",
+  "hooks",
+  "seaGraphData",
+  "strategicData",
+  "harborData",
+  "srKmMemo",
+  "routeMemo",
+  "portVer",
+  "portBits",
+  "warVer",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

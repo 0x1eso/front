@@ -13,8 +13,11 @@ import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
+import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
 import { WwLand, WwLandStateSchema } from "./land/WwLand";
+import { NavyAirHooks } from "./navy/NavyAirHooks";
+import { WwNavy, WwNavyStateSchema } from "./navy/WwNavy";
 import { politicsContent } from "./politics/ContentSource";
 import { WwPolitics, WwPoliticsStateSchema } from "./politics/WwPolitics";
 
@@ -37,6 +40,9 @@ export const WorldWarStateSchema = z.object({
   land: WwLandStateSchema.optional(),
   /** P3 (P3 spec §22.5): always written; a snapshot without it is refused. */
   politics: WwPoliticsStateSchema.optional(),
+  /** P4 (P4 spec §19.5): always written; a snapshot without them is refused. */
+  navy: WwNavyStateSchema.optional(),
+  air: WwAirStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -73,12 +79,21 @@ export class WorldWar {
   private _lastDay = -1;
   /** Not state (DERIVED_FIELDS): whether the screens need an update. */
   private dataDirty = true;
+  /**
+   * Derived (DERIVED_FIELDS): bumped on every change of the wars, so
+   * caches of who may pass a strait or canal know to start over (pre-flight T5).
+   */
+  warVer = 0;
   /** P1 industry and research (P1 spec §14.1, plan decision 1). */
   readonly economy: WwEconomy;
   /** P3 politics (P3 spec §22.1, plan decision 1): before the land war, which reads factions. */
   readonly politics: WwPolitics;
   /** P2 land war (P2 spec §16.1, plan decision 1). */
   readonly land: WwLand;
+  /** P4 navy (P4 spec §19.1, plan decision 2): after the land war. */
+  readonly navy: WwNavy;
+  /** P4 air war (P4 spec §19.1, plan decision 2): after the navy. */
+  readonly air: WwAir;
 
   constructor(
     private readonly mg: Game,
@@ -90,6 +105,10 @@ export class WorldWar {
     this.economy = new WwEconomy(mg, this, scenario);
     this.politics = new WwPolitics(mg, this, politicsContent());
     this.land = new WwLand(mg, this, this.economy);
+    this.navy = new WwNavy(mg, this);
+    this.air = new WwAir(mg, this);
+    // Plan decision 36: the land war reads the navy, the air war and fuel.
+    this.land.hooks = new NavyAirHooks(this.navy, this.air);
   }
 
   /**
@@ -122,6 +141,9 @@ export class WorldWar {
     this.politics.start();
     this.economy.start();
     this.land.start();
+    // P4 (plan decision 2): the 1936 navies, then the air war (nothing deployed).
+    this.navy.start();
+    this.air.start();
   }
 
   // ---- Queries ----
@@ -245,6 +267,7 @@ export class WorldWar {
     this.warMatrix[lo * this.size + hi] = 1;
     this.warMatrix[hi * this.size + lo] = 1;
     this.dataDirty = true;
+    this.warVer++;
     return true;
   }
 
@@ -360,7 +383,10 @@ export class WorldWar {
     }
     h = (Math.imul(h, 31) + this.economy.hash()) | 0;
     h = (Math.imul(h, 31) + this.land.hash()) | 0;
-    return (Math.imul(h, 31) + this.politics.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.politics.hash()) | 0;
+    // P4 (spec §19.5): after P3's.
+    h = (Math.imul(h, 31) + this.navy.hash()) | 0;
+    return (Math.imul(h, 31) + this.air.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -383,6 +409,8 @@ export class WorldWar {
       economy: this.economy.snapshot(),
       land: this.land.snapshot(),
       politics: this.politics.snapshot(),
+      navy: this.navy.snapshot(),
+      air: this.air.snapshot(),
     };
   }
 
@@ -405,6 +433,12 @@ export class WorldWar {
     this.rebuildMatrix();
     // A restored game's screens have seen nothing yet.
     this.dataDirty = true;
+    // No P3 game continues with P4 code (P4 spec §19.5; the P3 way).
+    if (s.navy === undefined || s.air === undefined) {
+      throw new Error(
+        "World War 1936 snapshot without its navy and air (made before P4)",
+      );
+    }
     // No P0 game continues with P1 code (P1 spec §14.3).
     if (s.economy === undefined) {
       throw new Error(
@@ -426,9 +460,12 @@ export class WorldWar {
       );
     }
     this.politics.restoreState(s.politics);
+    this.navy.restoreState(s.navy);
+    this.air.restoreState(s.air);
   }
 
   private rebuildMatrix(): void {
+    this.warVer++;
     this.warMatrix.fill(0);
     for (const [a, b] of this._wars) {
       this.warMatrix[a * this.size + b] = 1;

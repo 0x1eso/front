@@ -19,6 +19,7 @@ import {
   WW_TECH_IDS,
   WwTechId,
 } from "./EconomyTypes";
+import { SHIP_CLASSES, ShipClass } from "./NavyTypes";
 import {
   IDEOLOGIES,
   Ideology,
@@ -114,6 +115,9 @@ export const CONDITION_KINDS = [
   "coastal",
   "landlocked",
   "declared_by",
+  // P4 (P4 spec §16.3, plan decision 24), appended.
+  "navy_size",
+  "fuel_ratio_below",
 ] as const;
 export type ConditionKind = (typeof CONDITION_KINDS)[number];
 
@@ -180,6 +184,9 @@ export type LeafCondition = W &
     | { kind: "faction_ideology"; ideology: Ideology }
     | { kind: "threat_ge"; of: Selector; pct: number }
     | { kind: "opinion_ge"; of: Selector; value: number }
+    // P4 (plan decision 24)
+    | { kind: "navy_size"; min: number; cls?: ShipClass }
+    | { kind: "fuel_ratio_below"; pct: number }
   );
 export type Condition =
   | { all: Condition[] }
@@ -261,6 +268,10 @@ export const EFFECT_KINDS = [
   // territory (D)
   "annex",
   "transfer_regions",
+  // navy (P4 spec §16.3, plan decision 24)
+  "ships",
+  "convoys",
+  "fuel",
 ] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 export type EffectGroup =
@@ -268,16 +279,20 @@ export type EffectGroup =
   | "political"
   | "econ"
   | "diplo"
-  | "territory";
+  | "territory"
+  | "navy";
 
 const FIRST_ECON = EFFECT_KINDS.indexOf("build");
 const FIRST_EVENT = EFFECT_KINDS.indexOf("fire_event");
 const FIRST_DIPLO = EFFECT_KINDS.indexOf("war_goal");
 const FIRST_TERRITORY = EFFECT_KINDS.indexOf("annex");
+const FIRST_NAVY = EFFECT_KINDS.indexOf("ships");
 
 /** Plan decision 12: who runs each kind. */
 export function effectGroup(k: EffectKind): EffectGroup {
   const i = EFFECT_KINDS.indexOf(k);
+  // P4 plan decision 24: before the ranges below (the P4 kinds follow annex).
+  if (i >= FIRST_NAVY) return "navy";
   if (i < FIRST_ECON) return "political";
   if (i < FIRST_EVENT) return "econ";
   if (i < FIRST_DIPLO) return "event";
@@ -380,6 +395,16 @@ export type Effect = W &
         core?: boolean;
       }
     | { kind: "transfer_regions"; group: string; to: Selector; core?: boolean }
+    // P4 (plan decision 24)
+    | {
+        kind: "ships";
+        cls: ShipClass;
+        gen: number;
+        count: number;
+        port?: number;
+      }
+    | { kind: "convoys"; amount: number }
+    | { kind: "fuel"; amount: number }
   );
 
 // ---- zod (content checks; the engine trusts checked data) ----
@@ -507,6 +532,12 @@ export const WwConditionSchema: z.ZodType<Condition> = z.lazy(() =>
       of: SelectorSchema,
       value: int.min(-100).max(100),
     }),
+    // P4 (plan decision 24)
+    ...leaf(["navy_size"], {
+      min: int.min(0).max(5000),
+      cls: z.enum(SHIP_CLASSES).optional(),
+    }),
+    ...leaf(["fuel_ratio_below"], { pct: pos.max(100) }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Condition>;
 
@@ -669,5 +700,13 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
       to: SelectorSchema,
       core: z.boolean().optional(),
     }),
+    // P4 (plan decision 24)
+    ...leaf(["ships"], {
+      cls: z.enum(SHIP_CLASSES),
+      gen: pos.max(4),
+      count: pos.max(200),
+      port: pos.max(SEA_ZONE_BASE - 1).optional(),
+    }),
+    ...leaf(["convoys", "fuel"], { amount: int.min(-100_000).max(100_000) }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Effect>;

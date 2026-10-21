@@ -33,6 +33,7 @@ import {
   supplyRatePm,
   supplyUseMilli,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
+import { navalPort } from "../navy/Ports";
 import { generalOf } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import type { WwLand } from "./WwLand";
@@ -72,6 +73,15 @@ interface SideCache {
   reached: Uint8Array;
   /** The best hub share of each side region, milli. */
   best: Int32Array;
+  /** P4: the hub region the best share comes from (ties: the smaller), 0 none. */
+  bestHub: Int32Array;
+  /** P4: 1 where the region's hub capacity is its sea hub's (pre-flight A16). */
+  seaHub: Uint8Array;
+  /**
+   * P4 (pre-flight §0-4): each region's sea-hub capacity at the last day
+   * (lane C's convoys and blockades, a beachhead): a change re-runs that hub.
+   */
+  seaCap: Int32Array;
   /** memberMask of `members`. */
   member: Uint8Array;
   /** sideRegions at WwLand.controlChanges / derivedEpoch `changes` / `epoch` (-1: none yet). */
@@ -143,7 +153,26 @@ function sideRegions(
 export function liveHubs(land: WwLand, side: number): SupplyHub[] {
   const members = land.sideMembers(side);
   const { ours, regions } = sideRegions(land, memberMask(land, members));
-  return hubsOf(land, members, ours, regions);
+  return hubsOf(land, members, ours, regions, seaCapsOf(land, side, ours));
+}
+
+/**
+ * P4: the sea-hub capacity of each side region, milli (pre-flight §0-4): a
+ * working port's from the hooks (lane C: convoys, the route's enemy
+ * supremacy), a beachhead's (lane I); 0 for any other region.
+ */
+function seaCapsOf(land: WwLand, side: number, ours: Uint8Array): Int32Array {
+  const caps = new Int32Array(ours.length);
+  for (let r = 1; r < ours.length; r++) {
+    if (ours[r] === 1) caps[r] = seaCapOf(land, side, r);
+  }
+  return caps;
+}
+
+function seaCapOf(land: WwLand, side: number, r: number): number {
+  return navalPort(land.ww, r)
+    ? land.hooks.seaHubCapacity(r, side)
+    : land.hooks.beachheadCapacity(r, side);
 }
 
 function hubsOf(
@@ -151,6 +180,7 @@ function hubsOf(
   members: readonly number[],
   ours: Uint8Array,
   regions: readonly number[],
+  seaCaps: Int32Array,
   capitals: readonly number[] = members.map((m) => capitalRegion(land, m)),
 ): SupplyHub[] {
   const sc = land.scenario;
@@ -189,12 +219,10 @@ function hubsOf(
     if (kind >= 0) {
       hubs.push({ region: r, kind, cap: hubCapacityMilli(kind, rail[r]) });
     }
-    if (sc.isPort(r)) {
-      hubs.push({
-        region: r,
-        kind: HUB_SEA,
-        cap: hubCapacityMilli(HUB_SEA, rail[r]),
-      });
+    // P4 plan decision 11 and pre-flight §0-4: a working port (or a
+    // beachhead) with its sea-hub capacity now.
+    if (seaCaps[r] > 0) {
+      hubs.push({ region: r, kind: HUB_SEA, cap: seaCaps[r] });
     }
   }
   return hubs;
@@ -210,7 +238,8 @@ function runHub(
 ): HubRun {
   const sc = land.scenario;
   const rail = land.econ.rail;
-  const infra = land.econ.infra;
+  // P4 (pre-flight D): bombed infrastructure counts as the lower level.
+  const infra = land.econ.infraEff;
   const range = WW_SUPPLY_RANGE * 100;
   const stamp = ++st.stamp;
   const { dist, seen, done, heap } = st;
@@ -283,12 +312,19 @@ export function dailySupply(land: WwLand, side: number): void {
   // What the hubs, the reach and the runs read: the side's regions, their
   // rail, infrastructure and built hubs, the members' capitals.
   const rail = land.econ.rail;
-  const infra = land.econ.infra;
+  const infra = land.econ.infraEff;
   const hub = land.econ.hub;
   const mark = ++st.stamp;
   let anyChange = false;
   let hubChange = false;
   for (let r = 1; r < ours.length; r++) {
+    // P4 (pre-flight §0-4): a sea hub's capacity (convoys, blockades,
+    // the naval base working) re-runs that hub.
+    const sea = ours[r] === 1 ? seaCapOf(land, side, r) : 0;
+    if (cache.seaCap[r] !== sea) {
+      cache.seaCap[r] = sea;
+      hubChange = true;
+    }
     if (
       cache.ours[r] !== ours[r] ||
       cache.rail[r] !== rail[r] ||
@@ -339,6 +375,8 @@ export function dailySupply(land: WwLand, side: number): void {
       const w = land.weatherOn(r, day);
       s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
     }
+    // P4 spec §14.10: air supply, encircled regions too.
+    s += land.hooks.airSupply(r, side);
     if (land.supplyMilli[r] !== s || land.encircled[r] !== (cut ? 1 : 0)) {
       land.supplyMilli[r] = s;
       land.encircled[r] = cut ? 1 : 0;
@@ -346,6 +384,14 @@ export function dailySupply(land: WwLand, side: number): void {
     }
   }
   divisionRates(land, st, members, ours, reached, regions);
+  // P4 (pre-flight A16): the use each sea hub feeds (its best share's regions).
+  for (const r of regions) land.seaHubUse[r] = 0;
+  for (const r of regions) {
+    const h = cache.bestHub[r];
+    if (reached[r] === 1 && h > 0 && cache.seaHub[h] === 1) {
+      land.seaHubUse[h] += st.use[r];
+    }
+  }
 }
 
 /**
@@ -367,8 +413,21 @@ function warmSide(
 ): void {
   const sc = land.scenario;
   const capAt = new Map<number, number>();
-  for (const h of hubsOf(land, members, ours, regions, capitals)) {
-    capAt.set(h.region, Math.max(capAt.get(h.region) ?? 0, h.cap));
+  const seaHub = cache.seaHub;
+  seaHub.fill(0);
+  for (const h of hubsOf(
+    land,
+    members,
+    ours,
+    regions,
+    cache.seaCap,
+    capitals,
+  )) {
+    const was = capAt.get(h.region) ?? 0;
+    if (h.cap > was || !capAt.has(h.region)) {
+      capAt.set(h.region, Math.max(was, h.cap));
+      seaHub[h.region] = h.kind === HUB_SEA && h.cap > was ? 1 : 0;
+    }
   }
   const reached = cache.reached;
   reached.fill(0);
@@ -399,13 +458,20 @@ function warmSide(
     runs.set(hub, run);
   }
   cache.runs = runs;
-  // The best hub share of each region (a maximum: the run order is free).
+  // The best hub share of each region (a maximum: the run order is free)
+  // and, P4, its hub (ties: the smaller hub region).
   const best = cache.best;
+  const bestHub = cache.bestHub;
   best.fill(0);
-  for (const run of runs.values()) {
+  bestHub.fill(0);
+  for (const [hub, run] of runs) {
     for (let i = 0; i < run.regions.length; i++) {
       const r = run.regions[i];
-      if (run.values[i] > best[r]) best[r] = run.values[i];
+      const v = run.values[i];
+      if (v > best[r] || (v === best[r] && v > 0 && hub < bestHub[r])) {
+        best[r] = v;
+        bestHub[r] = hub;
+      }
     }
   }
   cache.warm = true;
@@ -438,6 +504,9 @@ function sideCache(
     warm: false,
     reached: new Uint8Array(size),
     best: new Int32Array(size),
+    bestHub: new Int32Array(size),
+    seaHub: new Uint8Array(size),
+    seaCap: new Int32Array(size),
     member: memberMask(land, members),
     changes: -1,
     epoch: -1,

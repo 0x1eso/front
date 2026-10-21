@@ -53,6 +53,7 @@ export function summary(tag: CountryTag, over: Partial<Summary> = {}): Summary {
     shortage: false,
     exportRoom: [0, 0, 0, 0, 0, 0],
     slotPct: 0,
+    fuelRatioPm: 1000,
     ...over,
   };
 }
@@ -94,6 +95,11 @@ export function detail(tag: CountryTag, over: Partial<Detail> = {}): Detail {
     effCapBp: 6_000,
     warDays: -1,
     tradePartners: [],
+    fuelMilli: 0,
+    fuelCapMilli: 0,
+    fuelGainMilli: 0,
+    fuelUseMilli: [0, 0, 0],
+    refineries: 0,
     ...over,
   };
 }
@@ -119,6 +125,14 @@ export function region(
     fort: scenario.startFort(id),
     rail: scenario.startRail(id),
     hub: 0,
+    navalBase: scenario.startNavalBase(id),
+    airBase: scenario.startAirBase(id),
+    aa: scenario.startAa(id),
+    radar: 0,
+    coastalFort: scenario.startCoastalFort(id),
+    refinery: 0,
+    silo: 0,
+    damage: [],
     ...over,
   };
 }

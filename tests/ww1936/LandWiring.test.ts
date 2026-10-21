@@ -318,6 +318,17 @@ describe("World War 1936 P2: the land war's wiring", () => {
         "slots",
         "researched",
         "totals",
+        // P4: naval lines, planes out, fuel.
+        "navalLines",
+        "nextNavalLineId",
+        "docksLent",
+        "planesDeployed",
+        "fuelMilli",
+        "fuelGainMilli",
+        "fuelUseMilli",
+        "fuelLedgerMilli",
+        "fuelRatioPm",
+        "fuelShortDay",
       ].sort(),
     );
     expect(Object.keys(snap.countries[0].totals).sort()).toEqual(

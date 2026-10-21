@@ -711,8 +711,12 @@ describe("supply's warm caches (P2 Task 11)", () => {
             runner.game.ticks(),
           );
         } else if (k === 1) l.econ.rail[r] = rnd(6);
-        else if (k === 2) l.econ.infra[r] = rnd(6);
-        else l.econ.hub[r] = rnd(2);
+        else if (k === 2) {
+          l.econ.infra[r] = rnd(6);
+          // P4: the working level (after bomb damage) follows, as
+          // addBuilding does.
+          l.econ.afterBuildingChange(r, "infra");
+        } else l.econ.hub[r] = rnd(2);
       }
       // A day later now and then (the weather moves).
       if (day % 5 === 4) step(runner, 8);

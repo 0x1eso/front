@@ -107,6 +107,13 @@ export const BUILDING_KEYS: Readonly<Record<BuildingId, string>> = {
   fort: "ww1936.building.fort",
   rail: "ww1936.building.rail",
   supply_hub: "ww1936.building.supply_hub",
+  naval_base: "ww1936.building.naval_base",
+  air_base: "ww1936.building.air_base",
+  anti_air: "ww1936.building.anti_air",
+  radar: "ww1936.building.radar",
+  coastal_fort: "ww1936.building.coastal_fort",
+  synthetic_refinery: "ww1936.building.synthetic_refinery",
+  fuel_silo: "ww1936.building.fuel_silo",
 };
 
 export const RESOURCE_KEYS: Readonly<Record<ResourceId, string>> = {
@@ -129,6 +136,15 @@ export const EQUIPMENT_KEYS: Readonly<Record<EquipmentType, string>> = {
   medium_tank: "ww1936.equip.medium_tank",
   fighter: "ww1936.equip.fighter",
   bomber: "ww1936.equip.bomber",
+  heavy_fighter: "ww1936.equip.heavy_fighter",
+  cas: "ww1936.equip.cas",
+  naval_bomber: "ww1936.equip.naval_bomber",
+  strat_bomber: "ww1936.equip.strat_bomber",
+  transport_plane: "ww1936.equip.transport_plane",
+  cv_fighter: "ww1936.equip.cv_fighter",
+  cv_cas: "ww1936.equip.cv_cas",
+  cv_naval_bomber: "ww1936.equip.cv_naval_bomber",
+  convoy: "ww1936.equip.convoy",
 };
 
 /** By generation − 1. */
@@ -198,6 +214,7 @@ export const BRANCH_KEYS: Readonly<Record<TechBranch, string>> = {
   industry: "ww1936.branch.industry",
   electronics: "ww1936.branch.electronics",
   doctrine: "ww1936.branch.doctrine",
+  naval: "ww1936.branch.naval",
 };
 
 export const SCHOOL_KEYS: Readonly<Record<DoctrineSchool, string>> = {
@@ -205,6 +222,12 @@ export const SCHOOL_KEYS: Readonly<Record<DoctrineSchool, string>> = {
   firepower: "ww1936.school.firepower",
   battleplan: "ww1936.school.battleplan",
   mass: "ww1936.school.mass",
+  fleet_in_being: "ww1936.school.fleet_in_being",
+  trade_interdiction: "ww1936.school.trade_interdiction",
+  base_strike: "ww1936.school.base_strike",
+  strategic_destruction: "ww1936.school.strategic_destruction",
+  battlefield_support: "ww1936.school.battlefield_support",
+  operational_integrity: "ww1936.school.operational_integrity",
 };
 
 export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
@@ -264,6 +287,62 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   paratroopers: "ww1936.tech.paratroopers",
   fortification_1: "ww1936.tech.fortification_1",
   rail_1: "ww1936.tech.rail_1",
+  dd_2: "ww1936.tech.dd_2",
+  dd_3: "ww1936.tech.dd_3",
+  dd_4: "ww1936.tech.dd_4",
+  cl_2: "ww1936.tech.cl_2",
+  cl_3: "ww1936.tech.cl_3",
+  cl_4: "ww1936.tech.cl_4",
+  ca_2: "ww1936.tech.ca_2",
+  ca_3: "ww1936.tech.ca_3",
+  bc_2: "ww1936.tech.bc_2",
+  bc_3: "ww1936.tech.bc_3",
+  bb_2: "ww1936.tech.bb_2",
+  bb_3: "ww1936.tech.bb_3",
+  bb_4: "ww1936.tech.bb_4",
+  cv_2: "ww1936.tech.cv_2",
+  cv_3: "ww1936.tech.cv_3",
+  cv_4: "ww1936.tech.cv_4",
+  ss_2: "ww1936.tech.ss_2",
+  ss_3: "ww1936.tech.ss_3",
+  ss_4: "ww1936.tech.ss_4",
+  sonar_1: "ww1936.tech.sonar_1",
+  sonar_2: "ww1936.tech.sonar_2",
+  fire_control_1: "ww1936.tech.fire_control_1",
+  torpedo_1: "ww1936.tech.torpedo_1",
+  naval_radar_1: "ww1936.tech.naval_radar_1",
+  landing_craft_1: "ww1936.tech.landing_craft_1",
+  landing_craft_2: "ww1936.tech.landing_craft_2",
+  fleet_in_being_1: "ww1936.tech.fleet_in_being_1",
+  fleet_in_being_2: "ww1936.tech.fleet_in_being_2",
+  trade_interdiction_1: "ww1936.tech.trade_interdiction_1",
+  trade_interdiction_2: "ww1936.tech.trade_interdiction_2",
+  base_strike_1: "ww1936.tech.base_strike_1",
+  base_strike_2: "ww1936.tech.base_strike_2",
+  heavy_fighter_1: "ww1936.tech.heavy_fighter_1",
+  heavy_fighter_2: "ww1936.tech.heavy_fighter_2",
+  heavy_fighter_3: "ww1936.tech.heavy_fighter_3",
+  cas_1: "ww1936.tech.cas_1",
+  cas_2: "ww1936.tech.cas_2",
+  cas_3: "ww1936.tech.cas_3",
+  naval_bomber_1: "ww1936.tech.naval_bomber_1",
+  naval_bomber_2: "ww1936.tech.naval_bomber_2",
+  naval_bomber_3: "ww1936.tech.naval_bomber_3",
+  strat_bomber_1: "ww1936.tech.strat_bomber_1",
+  strat_bomber_2: "ww1936.tech.strat_bomber_2",
+  strat_bomber_3: "ww1936.tech.strat_bomber_3",
+  transport_plane_1: "ww1936.tech.transport_plane_1",
+  carrier_aviation: "ww1936.tech.carrier_aviation",
+  strategic_destruction_1: "ww1936.tech.strategic_destruction_1",
+  strategic_destruction_2: "ww1936.tech.strategic_destruction_2",
+  battlefield_support_1: "ww1936.tech.battlefield_support_1",
+  battlefield_support_2: "ww1936.tech.battlefield_support_2",
+  operational_integrity_1: "ww1936.tech.operational_integrity_1",
+  operational_integrity_2: "ww1936.tech.operational_integrity_2",
+  radar_1: "ww1936.tech.radar_1",
+  radar_2: "ww1936.tech.radar_2",
+  synthetic_oil_1: "ww1936.tech.synthetic_oil_1",
+  synthetic_oil_2: "ww1936.tech.synthetic_oil_2",
 };
 
 export type EffectKey = keyof TechEffects | "unlock";
@@ -304,6 +383,30 @@ export const EFFECT_KEYS: Readonly<Record<EffectKey, string>> = {
   artillerySoftPct: "ww1936.effect.artillerySoftPct",
   infTrainCutPct: "ww1936.effect.infTrainCutPct",
   infOrg: "ww1936.effect.infOrg",
+  positioningPct: "ww1936.effect.positioningPct",
+  screeningPct: "ww1936.effect.screeningPct",
+  convoyRaidPct: "ww1936.effect.convoyRaidPct",
+  carrierStrikePct: "ww1936.effect.carrierStrikePct",
+  stratBombPct: "ww1936.effect.stratBombPct",
+  casPct: "ww1936.effect.casPct",
+  paradropPrepPct: "ww1936.effect.paradropPrepPct",
+  airDetectPct: "ww1936.effect.airDetectPct",
+  navalDetectPct: "ww1936.effect.navalDetectPct",
+  capitalAttackPct: "ww1936.effect.capitalAttackPct",
+  capitalHpPct: "ww1936.effect.capitalHpPct",
+  subTorpedoPct: "ww1936.effect.subTorpedoPct",
+  subVisibilityPct: "ww1936.effect.subVisibilityPct",
+  subOrg: "ww1936.effect.subOrg",
+  surfaceRaidPct: "ww1936.effect.surfaceRaidPct",
+  deckPct: "ww1936.effect.deckPct",
+  navalBomberPct: "ww1936.effect.navalBomberPct",
+  carrierRoundsCut: "ww1936.effect.carrierRoundsCut",
+  fighterAttackPct: "ww1936.effect.fighterAttackPct",
+  heavyDefensePct: "ww1936.effect.heavyDefensePct",
+  fighterAgilityPct: "ww1936.effect.fighterAgilityPct",
+  airLossCutPct: "ww1936.effect.airLossCutPct",
+  airNavalPct: "ww1936.effect.airNavalPct",
+  supPenaltyPp: "ww1936.effect.supPenaltyPp",
   unlock: "ww1936.effect.unlock",
 };
 
@@ -377,6 +480,34 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   tension_gate: "ww1936.econ.block.tension_gate",
   bad_target: "ww1936.econ.block.bad_target",
   focus_none: "ww1936.econ.block.focus_none",
+  no_fleet: "ww1936.econ.block.no_fleet",
+  fleet_busy: "ww1936.econ.block.fleet_busy",
+  fleet_full: "ww1936.econ.block.fleet_full",
+  too_many_fleets: "ww1936.econ.block.too_many_fleets",
+  no_sea_path: "ww1936.econ.block.no_sea_path",
+  out_of_range: "ww1936.econ.block.out_of_range",
+  lake: "ww1936.econ.block.lake",
+  canal_closed: "ww1936.econ.block.canal_closed",
+  not_coastal: "ww1936.econ.block.not_coastal",
+  no_naval_base: "ww1936.econ.block.no_naval_base",
+  no_dock: "ww1936.econ.block.no_dock",
+  bad_ship_class: "ww1936.econ.block.bad_ship_class",
+  line_full: "ww1936.econ.block.line_full",
+  admiral_unavailable: "ww1936.econ.block.admiral_unavailable",
+  no_convoys: "ww1936.econ.block.no_convoys",
+  invasion_too_large: "ww1936.econ.block.invasion_too_large",
+  invasion_not_ready: "ww1936.econ.block.invasion_not_ready",
+  naval_supremacy_low: "ww1936.econ.block.naval_supremacy_low",
+  not_in_port: "ww1936.econ.block.not_in_port",
+  no_air_base: "ww1936.econ.block.no_air_base",
+  base_full: "ww1936.econ.block.base_full",
+  no_planes: "ww1936.econ.block.no_planes",
+  bad_air_mission: "ww1936.econ.block.bad_air_mission",
+  no_transport_planes: "ww1936.econ.block.no_transport_planes",
+  air_superiority_low: "ww1936.econ.block.air_superiority_low",
+  too_many_deployments: "ww1936.econ.block.too_many_deployments",
+  no_strike_region: "ww1936.econ.block.no_strike_region",
+  bad_zone: "ww1936.econ.block.bad_zone",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -398,6 +529,13 @@ export const BUILDING_ICONS: Readonly<Record<BuildingId, string>> = {
   fort: "🏰",
   rail: "🚂",
   supply_hub: "📦",
+  naval_base: "⚓",
+  air_base: "🛫",
+  anti_air: "🎯",
+  radar: "📡",
+  coastal_fort: "🏯",
+  synthetic_refinery: "🛢️",
+  fuel_silo: "⛽",
 };
 
 export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
@@ -411,6 +549,15 @@ export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
   medium_tank: "🛡️",
   fighter: "✈️",
   bomber: "🛩️",
+  heavy_fighter: "✈️",
+  cas: "🛩️",
+  naval_bomber: "🛩️",
+  strat_bomber: "🛩️",
+  transport_plane: "🛬",
+  cv_fighter: "✈️",
+  cv_cas: "🛩️",
+  cv_naval_bomber: "🛩️",
+  convoy: "🚢",
 };
 
 // ---- Names ----
@@ -694,8 +841,14 @@ export function buildCheck(
         : view.civ[region] +
           view.mil[region] +
           view.dock[region] +
+          view.refinery[region] +
+          view.silo[region] +
           queued.factories,
     slots: r === undefined ? 0 : regionSlots(r.cat, slotPct),
+    // P4 (P4 spec §5.1, §12.1): the coast, the harbor zone, the techs.
+    coastal: r?.coastal ?? false,
+    harbor: scenario.harborOf(region) !== 0,
+    researched: new Set(view.detail(me)?.researched ?? []),
   };
 }
 
@@ -744,6 +897,12 @@ function levelOf(
       return view.rail[region];
     case "supply_hub":
       return view.hub[region];
+    case "naval_base":
+    case "air_base":
+    case "anti_air":
+    case "radar":
+    case "coastal_fort":
+      return view.buildingCount(building, region);
     default:
       return 0;
   }

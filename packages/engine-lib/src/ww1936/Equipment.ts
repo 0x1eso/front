@@ -94,7 +94,77 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     needPer100k: 0,
     techs: ["bomber_1", "bomber_2"],
   },
+  // P4 (P4 spec §12.2, §5.3). A carrier type also needs carrier_aviation
+  // (PlaneStats.planeGenTechs); the convoy is built on naval lines only.
+  heavy_fighter: {
+    family: "aircraft",
+    costMilli: 30_000,
+    resources: res({ aluminium: 3, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["heavy_fighter_1", "heavy_fighter_2", "heavy_fighter_3"],
+  },
+  cas: {
+    family: "aircraft",
+    costMilli: 23_000,
+    resources: res({ aluminium: 2, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["cas_1", "cas_2", "cas_3"],
+  },
+  naval_bomber: {
+    family: "aircraft",
+    costMilli: 28_000,
+    resources: res({ aluminium: 2, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["naval_bomber_1", "naval_bomber_2", "naval_bomber_3"],
+  },
+  strat_bomber: {
+    family: "aircraft",
+    costMilli: 48_000,
+    resources: res({ aluminium: 4, rubber: 2 }),
+    needPer100k: 0,
+    techs: ["strat_bomber_1", "strat_bomber_2", "strat_bomber_3"],
+  },
+  transport_plane: {
+    family: "aircraft",
+    costMilli: 30_000,
+    resources: res({ aluminium: 3, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["transport_plane_1"],
+  },
+  cv_fighter: {
+    family: "aircraft",
+    costMilli: 25_000,
+    resources: res({ aluminium: 2, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["fighter_1", "fighter_2", "fighter_3"],
+  },
+  cv_cas: {
+    family: "aircraft",
+    costMilli: 26_000,
+    resources: res({ aluminium: 2, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["cas_1", "cas_2", "cas_3"],
+  },
+  cv_naval_bomber: {
+    family: "aircraft",
+    costMilli: 30_000,
+    resources: res({ aluminium: 2, rubber: 1 }),
+    needPer100k: 0,
+    techs: ["naval_bomber_1", "naval_bomber_2", "naval_bomber_3"],
+  },
+  convoy: {
+    family: "naval",
+    costMilli: 60_000,
+    resources: res({ steel: 1 }),
+    needPer100k: 0,
+    techs: [],
+  },
 };
+
+/** P4 plan decision 14: the convoy is no P1 line's (naval lines build it). */
+export function equipmentBuildable(type: EquipmentType): boolean {
+  return type !== "convoy";
+}
 
 /** Cost of a later generation, percent of generation 1. */
 export const GEN_COST_PCT: readonly number[] = [100, 125, 150];

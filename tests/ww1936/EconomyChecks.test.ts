@@ -68,9 +68,14 @@ describe("shared judgements (plan decision 3)", () => {
       levelWithQueue: 0,
       usedSlots: 5,
       slots: 6,
+      coastal: false,
+      harbor: false,
+      researched: new Set(),
     };
     expect(buildBlockOf(ok)).toBeNull();
-    expect(buildBlockOf({ ...ok, building: "dock" })).toBe("not_buildable");
+    // P4 spec §5.1: dockyards are built now, on a coast only.
+    expect(buildBlockOf({ ...ok, building: "dock" })).toBe("not_coastal");
+    expect(buildBlockOf({ ...ok, building: "dock", coastal: true })).toBeNull();
     expect(buildBlockOf({ ...ok, controlled: false })).toBe("not_controlled");
     expect(buildBlockOf({ ...ok, queueLength: 30 })).toBe("queue_full");
     expect(buildBlockOf({ ...ok, occupied: true })).toBe("occupied");
@@ -104,7 +109,19 @@ describe("shared judgements (plan decision 3)", () => {
         ],
         4,
       ),
-    ).toEqual({ factories: 2, infra: 1, fort: 2, rail: 0, supply_hub: 1 });
+    ).toEqual({
+      factories: 2,
+      infra: 1,
+      fort: 2,
+      rail: 0,
+      supply_hub: 1,
+      // P4's level buildings.
+      naval_base: 0,
+      air_base: 0,
+      anti_air: 0,
+      radar: 0,
+      coastal_fort: 0,
+    });
   });
 
   test("laws: ladder, same, cooldown, condition", () => {
@@ -228,9 +245,8 @@ describe("the engine's judgements use them", () => {
     expect(usedSlots(econ, id("Munich"))).toBe(8);
     expect(buildBlock(econ, deu, id("Munich"), "civ", 2)).toBe("no_slots");
     expect(buildBlock(econ, deu, id("Berlin"), "infra", 1)).toBe("infra_max");
-    expect(buildBlock(econ, deu, id("Berlin"), "dock", 1)).toBe(
-      "not_buildable",
-    );
+    // P4: docks are built on a coast (Berlin has none).
+    expect(buildBlock(econ, deu, id("Berlin"), "dock", 1)).toBe("not_coastal");
     expect(buildBlock(econ, deu, id("Paris"), "civ", 1)).toBe("not_controlled");
     expect(buildBlock(econ, deu, 40_001, "infra", 1)).toBe("not_controlled");
   });

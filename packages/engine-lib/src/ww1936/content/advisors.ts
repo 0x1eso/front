@@ -1,5 +1,6 @@
 // World War 1936 P3 (spec §8.3, §5.7; plan decision 10 key names): the 36
-// traits of advisors and leaders. Stability and war support are in bp.
+// traits of advisors and leaders, and P4's 12 of the navy and air chiefs
+// (P4 spec §16.3). Stability and war support are in bp.
 // Titled cards: "title:<trait>" for every generic trait, any country.
 import type { TraitDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
@@ -224,5 +225,77 @@ export const TRAITS: readonly TraitDef[] = [
     branch: "leader",
     generic: false,
     stats: { stabilityBp: 500 },
+  }, // P4 navy and air chiefs (P4 spec §16.3).
+  {
+    id: "nc_fleet_battle",
+    branch: "navy_chief",
+    generic: true,
+    stats: { navyAttackPct: 10 },
+  },
+  {
+    id: "nc_raider",
+    branch: "navy_chief",
+    generic: true,
+    stats: { convoyRaidPct: 15, subAttackPct: 5 },
+  },
+  {
+    id: "nc_escort",
+    branch: "navy_chief",
+    generic: true,
+    stats: { convoyEscortPct: 20 },
+  },
+  {
+    id: "nc_carrier",
+    branch: "navy_chief",
+    generic: true,
+    stats: { carrierStrikePct: 15 },
+  },
+  {
+    id: "nc_amphibious",
+    branch: "navy_chief",
+    generic: true,
+    stats: { invasionPrepPct: -15, shoreBombardPct: 15 },
+  },
+  {
+    id: "nc_dockyard",
+    branch: "navy_chief",
+    generic: true,
+    stats: { dockOutputPct: 10 },
+  },
+  {
+    id: "ac_superiority",
+    branch: "air_chief",
+    generic: true,
+    stats: { airAttackPct: 10 },
+  },
+  {
+    id: "ac_bomber",
+    branch: "air_chief",
+    generic: true,
+    stats: { stratBombPct: 15 },
+  },
+  {
+    id: "ac_ground",
+    branch: "air_chief",
+    generic: true,
+    stats: { casPct: 15 },
+  },
+  {
+    id: "ac_naval",
+    branch: "air_chief",
+    generic: true,
+    stats: { navalStrikePct: 15 },
+  },
+  {
+    id: "ac_air_defense",
+    branch: "air_chief",
+    generic: true,
+    stats: { airDefensePct: 10, airDetectPct: 10 },
+  },
+  {
+    id: "ac_airlift",
+    branch: "air_chief",
+    generic: true,
+    stats: { paradropPrepPct: -30 },
   },
 ];

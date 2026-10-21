@@ -1,7 +1,7 @@
 // World War 1936 P2 — divisions and front lines
 // (docs/superpowers/specs/2026-10-20-ww1936-p2-divisions-design.md).
 // zbin and snapshots store these lists by position: append only.
-import { EQUIP_KEYS } from "./EconomyTypes";
+import { EQUIP_KEYS, EquipmentType } from "./EconomyTypes";
 
 export const BATTALION_IDS = [
   "infantry",
@@ -102,6 +102,9 @@ export const ARMY_ORDER_KINDS = [
   "front",
   "plan",
   "paradrop",
+  // P4 (P4 spec §11.1): preparing or sailing a naval invasion; `to` is the
+  // target region, the preparation state lives in WwNavy.invasions.
+  "invade",
 ] as const;
 export type ArmyOrderKind = (typeof ARMY_ORDER_KINDS)[number];
 
@@ -137,11 +140,27 @@ export function idleOrder(): ArmyOrder {
 }
 
 /**
- * EQUIP_KEYS indices of the ground equipment (all but fighter and bomber),
- * in EQUIP_KEYS order: a division's 18 equipment slots (spec §5.2).
+ * The equipment a division carries (spec §5.2): an allow-list, so P4's
+ * planes and convoy stay out and P6's tank designs (slots 18–29) are
+ * appended on their own.
+ */
+export const GROUND_EQUIPMENT: readonly EquipmentType[] = [
+  "infantry_equipment",
+  "support_equipment",
+  "artillery",
+  "anti_tank",
+  "anti_air",
+  "motorized",
+  "light_tank",
+  "medium_tank",
+];
+const GROUND_SET: ReadonlySet<EquipmentType> = new Set(GROUND_EQUIPMENT);
+/**
+ * EQUIP_KEYS indices of the ground equipment, in EQUIP_KEYS order: a
+ * division's 18 equipment slots (spec §5.2).
  */
 export const GROUND_EQUIP_KEYS: readonly number[] = EQUIP_KEYS.flatMap(
-  ([t], i) => (t === "fighter" || t === "bomber" ? [] : [i]),
+  ([t], i) => (GROUND_SET.has(t) ? [i] : []),
 );
 export const GROUND_SLOTS = GROUND_EQUIP_KEYS.length; // 18
 /** The division slot of an EQUIP_KEYS index; -1 for aircraft. */
@@ -212,6 +231,14 @@ export interface DivisionStats {
   /** Mountain + marine + paratrooper battalions. */
   special: number;
   battalions: number;
+  /** P4 spec §10.5: battalion and company weights, centi (convoys: divisionConvoys). */
+  weightCenti: number;
+  /** P4 spec §14.6: anti-air battalions 20, companies 10, by generation. */
+  airAtk: number;
+  /** P4 spec §15.4: the fuel battalions' share of the width, ‰. */
+  fuelWidthPm: number;
+  /** P4 spec §15.3: Σ LAND_FUEL_PER_HOUR_MILLI of its battalions. */
+  fuelHourMilli: number;
 }
 
 export interface CombatMods {
@@ -269,6 +296,8 @@ export const ARMY_RETREAT = 1 << 5;
 export const ARMY_EXECUTING = 1 << 6;
 export const ARMY_AUTO = 1 << 7;
 export const ARMY_PARA = 1 << 8;
+/** P4: preparing or sailing a naval invasion. */
+export const ARMY_INVADE = 1 << 9;
 
 export interface ArmyMoveData {
   from: number;

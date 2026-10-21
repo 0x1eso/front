@@ -1,4 +1,5 @@
 import {
+  DOCTRINE_DOMAIN,
   DoctrineSchool,
   TechBranch,
   WW_TECH_IDS,
@@ -63,6 +64,49 @@ export interface TechEffects {
   infTrainCutPct: number;
   /** Organization of infantry battalions, points (mass_2). */
   infOrg: number;
+  // P4 (pre-flight ruling 2): the doctrine and tech keys of P4 spec §16.3
+  // (WW_STAT_KEYS names: techStats copies them by key).
+  positioningPct: number;
+  screeningPct: number;
+  convoyRaidPct: number;
+  carrierStrikePct: number;
+  stratBombPct: number;
+  casPct: number;
+  paradropPrepPct: number;
+  airDetectPct: number;
+  navalDetectPct: number;
+  // P4 doctrine keys (P6 pre-flight): the rules read these, never a
+  // doctrine tech id.
+  /** fleet_in_being_1: capital ship attack (N2). */
+  capitalAttackPct: number;
+  /** fleet_in_being_2: BB and BC HP (shipStats). */
+  capitalHpPct: number;
+  /** trade_interdiction_1: submarine torpedo (shipStats). */
+  subTorpedoPct: number;
+  /** trade_interdiction_1: submarine visibility, negative hides (shipStats). */
+  subVisibilityPct: number;
+  /** trade_interdiction_2: submarine organization, points (shipStats). */
+  subOrg: number;
+  /** trade_interdiction_2: surface raiders' raid power (raidPowerCenti). */
+  surfaceRaidPct: number;
+  /** base_strike_1: carrier deck size (shipStats). */
+  deckPct: number;
+  /** base_strike_2: naval and carrier torpedo bombers' naval attack (planeStats). */
+  navalBomberPct: number;
+  /** base_strike_2: carrier strike cycle, rounds fewer (N2). */
+  carrierRoundsCut: number;
+  /** strategic_destruction_1: fighters' air attack (planeStats). */
+  fighterAttackPct: number;
+  /** strategic_destruction_2: heavy fighters' and strategic bombers' air defense (planeStats). */
+  heavyDefensePct: number;
+  /** operational_integrity_1: fighters' agility (planeStats). */
+  fighterAgilityPct: number;
+  /** operational_integrity_2: air combat losses cut (A1). */
+  airLossCutPct: number;
+  /** operational_integrity_2: every plane's naval attack (planeStats). */
+  airNavalPct: number;
+  /** battlefield_support_1: the superiority penalty dealt to the enemy, points (A2). */
+  supPenaltyPp: number;
 }
 export type TechTotals = TechEffects;
 
@@ -84,6 +128,26 @@ function t(
   school?: DoctrineSchool,
 ): WwTechDef {
   return { id, branch, year, prereqs, effects, ...(school ? { school } : {}) };
+}
+
+/**
+ * P4: the generation techs `<prefix>_<n>` of the given years, each after
+ * the previous one; `first` is the first generation with a tech (ships:
+ * 2, the 1922 model is open from the start; planes: 1).
+ */
+function gens(
+  prefix: string,
+  years: readonly number[],
+  branch: TechBranch = "naval",
+  first = 2,
+): Record<string, WwTechDef> {
+  const out: Record<string, WwTechDef> = {};
+  years.forEach((year, i) => {
+    const id = `${prefix}_${first + i}` as WwTechId;
+    const prev = i === 0 ? [] : [`${prefix}_${first + i - 1}` as WwTechId];
+    out[id] = t(id, branch, year, prev);
+  });
+  return out;
 }
 
 // Spec §9.4.
@@ -220,7 +284,140 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     railConstructionPct: 33,
     railSpeedPct: 20,
   }),
-};
+  // P4 (P4 spec §4.3, §12.3; plan Task 1 Step 14). What changes a ship or
+  // a plane is read by tech id in shipStats / planeStats (plan decision 23);
+  // the effects here are WwStats keys only.
+  ...gens("dd", [1936, 1940, 1944]),
+  ...gens("cl", [1936, 1940, 1944]),
+  ...gens("ca", [1936, 1940]),
+  ...gens("bc", [1936, 1940]),
+  ...gens("bb", [1936, 1940, 1944]),
+  ...gens("cv", [1936, 1940, 1944]),
+  ...gens("ss", [1936, 1940, 1944]),
+  sonar_1: t("sonar_1", "naval", 1936),
+  sonar_2: t("sonar_2", "naval", 1940, ["sonar_1"]),
+  // Hit +10% (N2 reads the id).
+  fire_control_1: t("fire_control_1", "naval", 1938),
+  torpedo_1: t("torpedo_1", "naval", 1938),
+  // Surface detection +20% (shipStats), hit +5% (N2).
+  naval_radar_1: t("naval_radar_1", "naval", 1939, ["electronics_1"]),
+  // Capacity and preparation: invasionCapacity / invasionPrepDays read the ids.
+  landing_craft_1: t("landing_craft_1", "naval", 1939, ["marines"]),
+  landing_craft_2: t("landing_craft_2", "naval", 1942, ["landing_craft_1"]),
+  // The sea doctrines (P4 spec §4.3): every bonus is a stat key (P6
+  // pre-flight), read by shipStats, planeStats, raidPowerCenti and N2.
+  fleet_in_being_1: t(
+    "fleet_in_being_1",
+    "naval",
+    1936,
+    [],
+    { positioningPct: 5, capitalAttackPct: 10 },
+    "fleet_in_being",
+  ),
+  fleet_in_being_2: t(
+    "fleet_in_being_2",
+    "naval",
+    1939,
+    ["fleet_in_being_1"],
+    { screeningPct: 15, capitalHpPct: 10 },
+    "fleet_in_being",
+  ),
+  trade_interdiction_1: t(
+    "trade_interdiction_1",
+    "naval",
+    1936,
+    [],
+    {
+      convoyRaidPct: 15,
+      subTorpedoPct: 15,
+      subVisibilityPct: -10,
+    },
+    "trade_interdiction",
+  ),
+  trade_interdiction_2: t(
+    "trade_interdiction_2",
+    "naval",
+    1939,
+    ["trade_interdiction_1"],
+    { convoyRaidPct: 15, surfaceRaidPct: 50, subOrg: 10 },
+    "trade_interdiction",
+  ),
+  base_strike_1: t(
+    "base_strike_1",
+    "naval",
+    1936,
+    [],
+    { carrierStrikePct: 20, deckPct: 10 },
+    "base_strike",
+  ),
+  base_strike_2: t(
+    "base_strike_2",
+    "naval",
+    1939,
+    ["base_strike_1"],
+    { navalBomberPct: 15, carrierRoundsCut: 1 },
+    "base_strike",
+  ),
+  ...gens("heavy_fighter", [1936, 1940, 1944], "air", 1),
+  ...gens("cas", [1936, 1940, 1944], "air", 1),
+  ...gens("naval_bomber", [1936, 1940, 1944], "air", 1),
+  ...gens("strat_bomber", [1936, 1940, 1944], "air", 1),
+  transport_plane_1: t("transport_plane_1", "air", 1937),
+  carrier_aviation: t("carrier_aviation", "air", 1936),
+  strategic_destruction_1: t(
+    "strategic_destruction_1",
+    "air",
+    1936,
+    [],
+    { stratBombPct: 15, fighterAttackPct: 5 },
+    "strategic_destruction",
+  ),
+  strategic_destruction_2: t(
+    "strategic_destruction_2",
+    "air",
+    1939,
+    ["strategic_destruction_1"],
+    { stratBombPct: 15, heavyDefensePct: 15 },
+    "strategic_destruction",
+  ),
+  battlefield_support_1: t(
+    "battlefield_support_1",
+    "air",
+    1936,
+    [],
+    { casPct: 15, supPenaltyPp: 5 },
+    "battlefield_support",
+  ),
+  battlefield_support_2: t(
+    "battlefield_support_2",
+    "air",
+    1939,
+    ["battlefield_support_1"],
+    { casPct: 15, paradropPrepPct: -50 },
+    "battlefield_support",
+  ),
+  operational_integrity_1: t(
+    "operational_integrity_1",
+    "air",
+    1936,
+    [],
+    { airDetectPct: 10, fighterAgilityPct: 10 },
+    "operational_integrity",
+  ),
+  operational_integrity_2: t(
+    "operational_integrity_2",
+    "air",
+    1939,
+    ["operational_integrity_1"],
+    { airLossCutPct: 15, airNavalPct: 10 },
+    "operational_integrity",
+  ),
+  radar_1: t("radar_1", "electronics", 1938, ["electronics_1"]),
+  // Detection +50‰ = 5 × 10 (detectionPm reads airDetectPct × 10).
+  radar_2: t("radar_2", "electronics", 1941, ["radar_1"], { airDetectPct: 5 }),
+  synthetic_oil_1: t("synthetic_oil_1", "industry", 1937),
+  synthetic_oil_2: t("synthetic_oil_2", "industry", 1941, ["synthetic_oil_1"]),
+} as Record<WwTechId, WwTechDef>;
 
 const ZERO: TechEffects = {
   constructionPct: 0,
@@ -257,6 +454,30 @@ const ZERO: TechEffects = {
   artillerySoftPct: 0,
   infTrainCutPct: 0,
   infOrg: 0,
+  positioningPct: 0,
+  screeningPct: 0,
+  convoyRaidPct: 0,
+  carrierStrikePct: 0,
+  stratBombPct: 0,
+  casPct: 0,
+  paradropPrepPct: 0,
+  airDetectPct: 0,
+  navalDetectPct: 0,
+  capitalAttackPct: 0,
+  capitalHpPct: 0,
+  subTorpedoPct: 0,
+  subVisibilityPct: 0,
+  subOrg: 0,
+  surfaceRaidPct: 0,
+  deckPct: 0,
+  navalBomberPct: 0,
+  carrierRoundsCut: 0,
+  fighterAttackPct: 0,
+  heavyDefensePct: 0,
+  fighterAgilityPct: 0,
+  airLossCutPct: 0,
+  airNavalPct: 0,
+  supPenaltyPp: 0,
 };
 
 /** Summed effects of researched techs (fixed WW_TECH_IDS order). */
@@ -276,11 +497,18 @@ export function techDays(year: number): number {
   return 120 + 15 * (year - 1936);
 }
 
-/** The doctrine school a country has opened (researched or researching), or null. */
-export function openSchool(techs: Iterable<WwTechId>): DoctrineSchool | null {
+/**
+ * The doctrine school a country has opened in `domain` (researched or
+ * researching), or null. P4 plan decision 23: one school a domain (land,
+ * sea, air).
+ */
+export function openSchool(
+  techs: Iterable<WwTechId>,
+  domain: "land" | "sea" | "air" = "land",
+): DoctrineSchool | null {
   for (const id of techs) {
     const s = WW_TECHS[id].school;
-    if (s !== undefined) return s;
+    if (s !== undefined && DOCTRINE_DOMAIN[s] === domain) return s;
   }
   return null;
 }

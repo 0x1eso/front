@@ -12,6 +12,13 @@
 // (y 102..117: Austria 11–12, Czechoslovakia 13–15, Lithuania 16–17,
 // Estonia 18–19), the plan's "test map ww1936pol" table. The default output
 // does not change.
+// P4 (plan decision 29): `--variant sea` writes tests/testdata/maps/ww1936sea
+// — the same land and regions 1–10, the southern sea band split into four
+// zones (West 40001, Middle 40002, Narrows 40004, East 40003), the Isthmus
+// (11, Turkey) between the Narrows and the East Sea and Malta (12, Britain),
+// the sea edges with a date line, a strait and a canal, five strategic
+// regions and the v4 bases (scenario version 4): the plan's "test map
+// ww1936sea" table, which the script checks before it writes.
 import {
   CATEGORY_SLOTS,
   RegionCategory,
@@ -28,7 +35,8 @@ const W = 200;
 const H = 120;
 const variantAt = process.argv.indexOf("--variant");
 const POL = variantAt >= 0 && process.argv[variantAt + 1] === "pol";
-const NAME = POL ? "ww1936pol" : "ww1936mini";
+const SEA = variantAt >= 0 && process.argv[variantAt + 1] === "sea";
+const NAME = POL ? "ww1936pol" : SEA ? "ww1936sea" : "ww1936mini";
 const OUT = path.join(process.cwd(), `tests/testdata/maps/${NAME}`);
 
 /** P3 islands (pol variant): [x0, x1) × [y0, y1), the plan's table. */
@@ -46,10 +54,15 @@ const POL_BOXES: Box[] = [
 const inBox = ([x0, x1, y0, y1]: Box, x: number, y: number) =>
   x >= x0 && x < x1 && y >= y0 && y < y1;
 
+/** P4 (sea variant): the Isthmus and Malta, [x0, x1) × [y0, y1). */
+const ISTHMUS_BOX: Box = [140, 144, 100, 120];
+const MALTA_BOX: Box = [100, 102, 110, 112];
+
 const isLand = (x: number, y: number) =>
   y < 100 ||
   (x >= 20 && x < 50 && y >= 106 && y < 116) ||
-  (POL && POL_BOXES.some((b) => inBox(b, x, y)));
+  (POL && POL_BOXES.some((b) => inBox(b, x, y))) ||
+  (SEA && (inBox(ISTHMUS_BOX, x, y) || inBox(MALTA_BOX, x, y)));
 
 type Box = [number, number, number, number]; // x0, x1, y0, y1 (end exclusive)
 /** [oil, aluminium, rubber, tungsten, steel, chromium] (RESOURCE_IDS order). */
@@ -176,9 +189,12 @@ const REGIONS: {
   id: number;
   name: string;
   nameKo: string;
-  owner: "FRA" | "DEU" | "ITA" | "POL" | "SUN" | "GBR" | PolTag;
+  owner: "FRA" | "DEU" | "ITA" | "POL" | "SUN" | "GBR" | "TUR" | PolTag;
   vp: number;
   box: Box;
+  /** The VP tile and center when not the box's middle (sea variant). */
+  at?: [number, number];
+  island?: string;
 }[] = [
   {
     id: 1,
@@ -360,6 +376,52 @@ if (POL) {
   REGIONS.push(...POL_REGIONS);
   Object.assign(ECONOMY, POL_ECONOMY);
 }
+// P4 (sea variant): the plan's "test map ww1936sea" table.
+if (SEA) {
+  REGIONS.push(
+    {
+      id: 11,
+      name: "Isthmus",
+      nameKo: "지협",
+      owner: "TUR",
+      vp: 0,
+      box: ISTHMUS_BOX,
+      at: [141, 109],
+    },
+    {
+      id: 12,
+      name: "Malta",
+      nameKo: "몰타",
+      owner: "GBR",
+      vp: 5,
+      box: MALTA_BOX,
+      at: [100, 110],
+      island: "malta",
+    },
+  );
+  Object.assign(ECONOMY, {
+    11: {
+      cat: "rural",
+      pop: 1000,
+      infra: 2,
+      core: true,
+      civ: 1,
+      mil: 0,
+      dock: 0,
+      res: NO_RES,
+    },
+    12: {
+      cat: "town",
+      pop: 250,
+      infra: 2,
+      core: false,
+      civ: 0,
+      mil: 0,
+      dock: 0,
+      res: NO_RES,
+    },
+  } satisfies Record<number, Economy>);
+}
 
 // P2 (the plan's test-map v3 table): terrain, start rail and fort, port,
 // latitude of the real city (hundredths of a degree) and its weather cell.
@@ -409,6 +471,15 @@ const polLand = (
   latC,
   wcell: weatherCell(lonC, latC),
 });
+if (SEA) {
+  // P2 `port`: Lyon, Rome, Kiev, London and Malta (the plan's table).
+  LAND[5] = { ...LAND[5], port: true };
+  LAND[9] = { ...LAND[9], port: true };
+  Object.assign(LAND, {
+    11: { ...polLand("plains", 0, 0, [4100, 2898]), port: false },
+    12: { ...polLand("plains", 0, 0, [3590, 1450]), port: true },
+  });
+}
 if (POL) {
   Object.assign(LAND, {
     11: polLand("hills", 2, 0, VIENNA),
@@ -432,6 +503,8 @@ const DEV: Record<string, number> = {
   POL: 1,
   // P3 islands (pol variant).
   ...(POL ? { AUT: 2, CSK: 3, LTU: 1, EST: 1 } : {}),
+  // P4 (sea variant).
+  ...(SEA ? { TUR: 2 } : {}),
 };
 /** Hand-drawn rivers on edges ("a-b": 1 small, 2 big) and the straits. */
 const RIVERS: Record<string, 1 | 2> = { "6-8": 1, "7-9": 2 };
@@ -466,10 +539,27 @@ const POL_EDGES: [number, number, number][] = [
   [18, 19, 16],
 ];
 
-const SEAS = [
-  { id: 40001, name: "North Sea", nameKo: "북해", x0: 0, x1: 100 },
-  { id: 40002, name: "Black Sea", nameKo: "흑해", x0: 100, x1: 200 },
-];
+const SEAS = SEA
+  ? [
+      { id: 40001, name: "West Sea", nameKo: "서해", x0: 0, x1: 60 },
+      { id: 40002, name: "Middle Sea", nameKo: "중해", x0: 60, x1: 110 },
+      { id: 40004, name: "Narrows", nameKo: "좁은 바다", x0: 110, x1: 140 },
+      { id: 40003, name: "East Sea", nameKo: "동해", x0: 144, x1: 200 },
+    ]
+  : [
+      { id: 40001, name: "North Sea", nameKo: "북해", x0: 0, x1: 100 },
+      { id: 40002, name: "Black Sea", nameKo: "흑해", x0: 100, x1: 200 },
+    ];
+/** P4 (sea variant): v4 fields of the zones (the plan's table). */
+const SEA_V4: Record<
+  number,
+  { center: [number, number]; latC: number; wcell: number; sr: number }
+> = {
+  40001: { center: [10, 110], latC: 5000, wcell: 414, sr: 1001 },
+  40002: { center: [85, 110], latC: 4200, wcell: 379, sr: 1002 },
+  40004: { center: [125, 110], latC: 4200, wcell: 380, sr: 1002 },
+  40003: { center: [170, 110], latC: 4500, wcell: 381, sr: 1003 },
+};
 const CAPITALS: Record<string, [number, number]> = {
   FRA: [20, 25],
   DEU: [65, 17],
@@ -486,6 +576,8 @@ const CAPITALS: Record<string, [number, number]> = {
         EST: [162, 110] as [number, number],
       }
     : {}),
+  // P4 (sea variant).
+  ...(SEA ? { TUR: [141, 109] as [number, number] } : {}),
 };
 
 function grid(w: number, h: number, land: (x: number, y: number) => boolean) {
@@ -615,10 +707,8 @@ for (const r of REGIONS) {
   }
 }
 
-const vpTileOf = (r: (typeof REGIONS)[number]): [number, number] => [
-  (r.box[0] + r.box[1]) >> 1,
-  (r.box[2] + r.box[3]) >> 1,
-];
+const vpTileOf = (r: (typeof REGIONS)[number]): [number, number] =>
+  r.at ?? [(r.box[0] + r.box[1]) >> 1, (r.box[2] + r.box[3]) >> 1];
 
 // The land edges (P2 spec §3.2): one right/down pass counts the 4-neighbour
 // tile pairs of two different land regions; km from the centers.
@@ -663,21 +753,118 @@ const islandPairs = islands.map(([a, b, border, , river, strait]) => [
   river,
   strait,
 ]);
-const expectedIslands = (POL ? POL_EDGES : []).map(([a, b, border]) => [
-  a,
-  b,
-  border,
-  0,
-  0,
-]);
+const expectedIslands = (
+  POL ? POL_EDGES : SEA ? ([[9, 11, 4]] as [number, number, number][]) : []
+).map(([a, b, border]) => [a, b, border, 0, 0]);
 if (JSON.stringify(islandPairs) !== JSON.stringify(expectedIslands)) {
   throw new Error(
     `island edges differ from the plan's table:\n${JSON.stringify(islands)}`,
   );
 }
 
+// ---- P4 (sea variant): harbors, bases, strategic regions, checks ----
+
+/** Spec §3.5: each region's harbor zone (most 4-neighbour tile pairs, ties smaller id); 0 none. */
+function harborOf(region: number): number {
+  const pairs = new Map<number, number>();
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (ids[y * W + x] !== region) continue;
+      for (const [nx, ny] of [
+        [x - 1, y],
+        [x + 1, y],
+        [x, y - 1],
+        [x, y + 1],
+      ]) {
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        const z = ids[ny * W + nx];
+        if (z >= SEA_ZONE_BASE) pairs.set(z, (pairs.get(z) ?? 0) + 1);
+      }
+    }
+  }
+  let best = 0;
+  let bestN = 0;
+  for (const [z, n] of [...pairs].sort((a, b) => a[0] - b[0])) {
+    if (n > bestN) {
+      best = z;
+      bestN = n;
+    }
+  }
+  return best;
+}
+/** The plan's tables (tests/ww1936/seaFixture.ts exports the same values). */
+const SEA_HARBOR: Record<number, number> = {
+  2: 40001,
+  5: 40002,
+  7: 40002,
+  9: 40003,
+  10: 40001,
+  11: 40003,
+  12: 40002,
+};
+const SEA_NAVAL_BASE: Record<number, number> = {
+  10: 6,
+  5: 3,
+  9: 2,
+  2: 1,
+  12: 1,
+};
+const SEA_AIR_BASE: Record<number, number> = { 3: 2, 10: 2, 5: 1 };
+const SEA_WATER: Record<number, number> = {
+  40001: 900,
+  40002: 996,
+  40004: 600,
+  40003: 1120,
+};
+const SEA_CONVOYS: Record<string, number> = {
+  FRA: 65,
+  ITA: 35,
+  GBR: 35,
+  SUN: 80,
+  POL: 30,
+  TUR: 5,
+  DEU: 0,
+};
+const WEST_LAND = [1, 2, 3, 4, 5, 10];
+if (SEA) {
+  for (const r of REGIONS) {
+    const h = harborOf(r.id);
+    if (h !== (SEA_HARBOR[r.id] ?? 0)) {
+      throw new Error(
+        `${r.name}: harbor ${h}, the table says ${SEA_HARBOR[r.id] ?? 0}`,
+      );
+    }
+  }
+  const e911 = edges.find(([a, b]) => a === 9 && b === 11);
+  if (e911 === undefined || e911[3] !== 156) {
+    throw new Error(
+      `edge 9-11: ${JSON.stringify(e911)}, the table says km 156`,
+    );
+  }
+  for (const [z, n] of Object.entries(SEA_WATER)) {
+    if (tiles.get(Number(z)) !== n) {
+      throw new Error(
+        `zone ${z}: ${tiles.get(Number(z))} water tiles, the table says ${n}`,
+      );
+    }
+  }
+  for (const [tag, n] of Object.entries(SEA_CONVOYS)) {
+    const own = REGIONS.filter((r) => r.owner === tag);
+    const coast = own.some((r) => harborOf(r.id) !== 0);
+    const civMil = own.reduce(
+      (s, r) => s + ECONOMY[r.id].civ + ECONOMY[r.id].mil,
+      0,
+    );
+    if ((coast ? civMil * 5 : 0) !== n) {
+      throw new Error(
+        `${tag}: ${coast ? civMil * 5 : 0} convoys, the table says ${n}`,
+      );
+    }
+  }
+}
+
 const scenario: ScenarioData = {
-  version: 3,
+  version: SEA ? 4 : 3,
   width: W,
   height: H,
   countries: Object.entries(CAPITALS).map(([tag, capital]) => ({
@@ -703,17 +890,93 @@ const scenario: ScenarioData = {
     rail: LAND[r.id].rail,
     fort: LAND[r.id].fort,
     port: LAND[r.id].port,
+    ...(r.island === undefined ? {} : { island: r.island }),
+    ...(SEA
+      ? {
+          sr: WEST_LAND.includes(r.id) ? 1 : 2,
+          harbor: SEA_HARBOR[r.id] ?? 0,
+          navalBase: SEA_NAVAL_BASE[r.id] ?? 0,
+          airBase: SEA_AIR_BASE[r.id] ?? 0,
+          aa: r.id === 10 ? 1 : 0,
+          coastalFort: r.id === 10 ? 1 : 0,
+        }
+      : {}),
   })),
   seaZones: SEAS.map((s) => ({
     id: s.id,
     name: s.name,
     nameKo: s.nameKo,
     tiles: tiles.get(s.id)!,
+    ...(SEA ? SEA_V4[s.id] : {}),
   })),
   edges,
-  seaEdges: [[40001, 40002, 400, 0]],
-  straits: [],
+  seaEdges: SEA
+    ? [
+        [40001, 40002, 300, 0],
+        // The date line: the West Sea meets x = 0, the East Sea x = 199.
+        [40001, 40003, 240, 3],
+        [40002, 40004, 160, 1],
+        [40003, 40004, 60, 2],
+      ]
+    : [[40001, 40002, 400, 0]],
+  straits: SEA
+    ? [
+        { id: "narrows", kind: "strait", a: 40002, b: 40004, shore: [7] },
+        { id: "isthmus_canal", kind: "canal", a: 40003, b: 40004, shore: [11] },
+      ]
+    : [],
   kmPerTile: KM_PER_TILE,
+  ...(SEA
+    ? {
+        strategic: [
+          {
+            id: 1,
+            kind: "land" as const,
+            name: "West",
+            nameKo: "서부",
+            center: [65, 52] as [number, number],
+            latC: 4810,
+            members: WEST_LAND,
+          },
+          {
+            id: 2,
+            kind: "land" as const,
+            name: "East",
+            nameKo: "동부",
+            center: [105, 75] as [number, number],
+            latC: 5000,
+            members: [6, 7, 8, 9, 11, 12],
+          },
+          {
+            id: 1001,
+            kind: "sea" as const,
+            name: "Western Approaches",
+            nameKo: "서부 접근로",
+            center: [10, 110] as [number, number],
+            latC: 5000,
+            members: [40001],
+          },
+          {
+            id: 1002,
+            kind: "sea" as const,
+            name: "Central Waters",
+            nameKo: "중앙 해역",
+            center: [85, 110] as [number, number],
+            latC: 4200,
+            members: [40002, 40004],
+          },
+          {
+            id: 1003,
+            kind: "sea" as const,
+            name: "Eastern Waters",
+            nameKo: "동부 해역",
+            center: [170, 110] as [number, number],
+            latC: 4500,
+            members: [40003],
+          },
+        ],
+      }
+    : {}),
 };
 
 const manifest = {

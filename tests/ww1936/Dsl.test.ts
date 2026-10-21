@@ -86,6 +86,9 @@ const SAMPLE_CONDITIONS: Record<ConditionKind, LeafCondition> = {
   coastal: { kind: "coastal" },
   landlocked: { kind: "landlocked", who: { tag: "CSK" } },
   declared_by: { kind: "declared_by", of: DEU },
+  // P4 (plan decision 24).
+  navy_size: { kind: "navy_size", min: 4, cls: "bb" },
+  fuel_ratio_below: { kind: "fuel_ratio_below", pct: 50 },
 };
 
 const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
@@ -216,6 +219,10 @@ const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
     core: true,
   },
   transfer_regions: { kind: "transfer_regions", group: "sudetenland", to: DEU },
+  // P4 (plan decision 24).
+  ships: { kind: "ships", cls: "dd", gen: 1, count: 50, port: 10 },
+  convoys: { kind: "convoys", amount: 100 },
+  fuel: { kind: "fuel", amount: -500 },
 };
 
 /** The optional fields of each kind (besides `who`, optional everywhere). */
@@ -234,6 +241,8 @@ const OPTIONAL: Partial<Record<string, readonly string[]>> = {
   create_faction: ["name"],
   annex: ["units", "core"],
   transfer_regions: ["core"],
+  navy_size: ["cls"],
+  ships: ["port"],
 };
 /** A copy of `o` without the field `f`. */
 const without = (o: object, f: string) =>
@@ -317,7 +326,8 @@ describe("the condition and effect language", () => {
     let changes = 0;
     for (let i = 1; i < groups.length; i++)
       if (groups[i] !== groups[i - 1]) changes++;
-    expect(changes).toBe(4);
+    // P4's navy block (ships, convoys, fuel) after the territory one.
+    expect(changes).toBe(5);
   });
 
   it("the lists are unique", () => {

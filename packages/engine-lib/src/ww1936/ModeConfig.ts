@@ -12,7 +12,8 @@ import { WW_GAME_MINUTES } from "@openfront/engine-api/ww1936/WorldWarTypes";
  * Units the mode turns off (spec §2.2): the atom bomb returns in P6. Cities
  * and vanilla factories go with P1's economy (P1 spec §4.6); boats, defence
  * posts and trade ships with P2's armies (P2 plan decision 7: landings are
- * P4's, forts replace the posts, convoys replace the trade ships).
+ * P4's, forts replace the posts, convoys replace the trade ships), warships
+ * and ports with P4's navy (P4 plan decision 30).
  */
 export const WW1936_DISABLED_UNITS: readonly UnitType[] = [
   UnitType.AtomBomb,
@@ -25,6 +26,9 @@ export const WW1936_DISABLED_UNITS: readonly UnitType[] = [
   UnitType.TransportShip,
   UnitType.DefensePost,
   UnitType.TradeShip,
+  // P4 plan decision 30: the mode's own fleets and naval bases replace them.
+  UnitType.Warship,
+  UnitType.Port,
 ];
 
 /**

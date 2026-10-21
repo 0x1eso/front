@@ -31,6 +31,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
 import { unitCostMilli } from "./Equipment";
+import { LAND_FUEL_PER_HOUR_MILLI } from "./FuelRules";
 import { TechTotals } from "./WwTechs";
 
 const TYPE_INDEX: ReadonlyMap<EquipmentType, number> = new Map(
@@ -120,6 +121,11 @@ export function templateStats(
   let marineN = 0;
   let cavalryN = 0;
   let paraN = 0;
+  // P4 (spec §10.5, §14.6, §15.3).
+  let weight = 0;
+  let airAtk = 0;
+  let fuelWidth = 0;
+  let fuelHour = 0;
   for (const id of def.battalions) {
     const d = BATTALIONS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
@@ -127,6 +133,13 @@ export function templateStats(
     const gp = genStatPct(g);
     const ga = genArmorPct(g);
     width += d.width;
+    weight += d.weightCenti;
+    airAtk += Math.floor((d.airAtk * gp) / 100);
+    const fuel = LAND_FUEL_PER_HOUR_MILLI[id];
+    if (fuel !== undefined) {
+      fuelWidth += d.width;
+      fuelHour += fuel;
+    }
     men += d.men;
     hp += Math.floor((d.hpMilli * gp) / 100);
     orgSum += d.orgMilli + (d.kind === "infantry" ? tech.infOrg * 1000 : 0);
@@ -172,6 +185,8 @@ export function templateStats(
     const main = TYPE_INDEX.get(d.equip[0][0])!;
     const gp = genStatPct(gens[main]);
     men += d.men;
+    weight += d.weightCenti;
+    airAtk += Math.floor((d.airAtk * gp) / 100);
     hp += Math.floor((d.hpMilli * gp) / 100);
     let soft = Math.floor((d.soft * gp) / 100);
     if (d.artillery) {
@@ -234,6 +249,10 @@ export function templateStats(
     flags,
     special,
     battalions: n,
+    weightCenti: weight,
+    airAtk,
+    fuelWidthPm: width === 0 ? 0 : Math.floor((fuelWidth * 1000) / width),
+    fuelHourMilli: fuelHour,
   };
 }
 

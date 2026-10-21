@@ -15,6 +15,7 @@ import {
   ROLE_ATTACK,
   ROLE_DEFEND,
   ROLE_NONE,
+  TPL_ENGINEER,
   TPL_HOSPITAL,
   TPL_SIGNAL,
   traitBit,
@@ -32,7 +33,10 @@ import {
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { fuelCombatBp } from "@openfront/engine-lib/ww1936/FuelRules";
+import { coastalFortBp } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import { effectiveLevel } from "../economy/Buildings";
 import { returnManpower } from "../economy/Stock";
 import { generalOf } from "./GeneralsRun";
 import { startHopInto, stopDivision } from "./Movement";
@@ -259,6 +263,23 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       hit(r, mods.get(r)!, target, mods.get(target)!, false, def.excessBp);
     });
   }
+  // P4 spec §14.7: each side's close air support, a round's hits on one
+  // enemy division in line (round robin), no block value; the target's
+  // anti-air (1% a point, at most 60%) and the region's AA (5% a level) cut it.
+  const cas = (hits: number, targets: readonly number[]) => {
+    if (hits <= 0 || targets.length === 0) return;
+    const to = targets[b.round % targets.length];
+    const aa = effectiveLevel(land.econ, R, "anti_air");
+    let h = Math.floor(
+      (hits * (100 - Math.min(60, stats.get(to)!.airAtk))) / 100,
+    );
+    h = Math.floor((h * Math.max(0, 100 - 5 * aa)) / 100);
+    const dmg = roundDamage(h, false);
+    org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
+    hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
+  };
+  cas(land.hooks.casHits(R, land.sideOf(b.attLead)), def.active);
+  cas(land.hooks.casHits(R, land.sideOf(ctrl)), att.active);
   const destroyed: DestroyedSink = { battle: b, counts: new Map() };
   sink = destroyed;
   try {
@@ -825,6 +846,24 @@ export function modInputOf(
     }
   }
   const landOf = sc.landOf(region);
+  // P4 (pre-flight ruling 3): the navy's, the air war's and fuel's cuts,
+  // O(1) reads of what their days stored, so the mods cache sees them.
+  const owner = t.owner[row];
+  const side = land.sideOf(owner);
+  const base = land.baseStatsOf(row);
+  const fuelBp =
+    base.fuelWidthPm > 0
+      ? fuelCombatBp(land.hooks.fuelFactorPm(owner), base.fuelWidthPm)
+      : 0;
+  let landingBp = 0;
+  let fortBp = 0;
+  const amph = attacking ? land.hooks.amphibious(region, row) : null;
+  if (amph !== null) {
+    const engineers = (land.flagsOf(row) & TPL_ENGINEER) !== 0;
+    const lv = effectiveLevel(land.econ, region, "coastal_fort");
+    fortBp = lv === 0 ? 0 : -coastalFortBp(lv, engineers);
+    landingBp = amph.attackBp - fortBp;
+  }
   return {
     attacking,
     genAtt: g?.att ?? 0,
@@ -838,10 +877,16 @@ export function modInputOf(
     weather: land.weatherOn(region, land.day()),
     river,
     strait,
-    fort: attacking ? land.econ.fort[region] : 0,
+    // P4 (spec §14.8): a bombed fort holds as the lower level.
+    fort: attacking ? effectiveLevel(land.econ, region, "fort") : 0,
     entrench: attacking ? 0 : t.entrench[row],
     excessBp: 0,
     supplyPm: t.supply[row],
     encircled: t.encircled[row] !== 0,
+    airBp: land.hooks.airPenaltyBp(region, side, base.airAtk),
+    fuelBp,
+    landingBp,
+    coastalFortBp: fortBp,
+    shoreBp: attacking ? 0 : land.hooks.shoreBombardBp(region, side),
   };
 }

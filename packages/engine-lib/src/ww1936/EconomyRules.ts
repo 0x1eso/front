@@ -193,12 +193,18 @@ export interface Allocation {
    * less of than it needs — what the screens mark short on the line.
    */
   short: number[][];
+  /** P4: the fill ‰ of each extra demand (naval lines), in order. */
+  extraFill: number[];
 }
 
-/** HOI4 allocation: lines in order take what they need (spec §7.3). */
+/**
+ * HOI4 allocation: lines in order take what they need (spec §7.3); P4
+ * spec §5.2: then `extra` (naval lines: resources a day each), in order.
+ */
 export function allocateResources(
   available: readonly number[],
   lines: readonly LineNeed[],
+  extra: readonly (readonly number[])[] = [],
 ): Allocation {
   const left = available.slice(0, RESOURCE_COUNT);
   const used = new Array<number>(RESOURCE_COUNT).fill(0);
@@ -220,7 +226,20 @@ export function allocateResources(
     fill.push(f);
     short.push(lacks);
   }
-  return { fill, used, short };
+  const extraFill: number[] = [];
+  for (const need of extra) {
+    let f = 1000;
+    for (let r = 0; r < RESOURCE_COUNT; r++) {
+      const n = need[r] ?? 0;
+      if (n <= 0) continue;
+      const give = Math.min(n, Math.max(0, left[r]));
+      left[r] -= give;
+      used[r] += give;
+      f = Math.min(f, Math.floor((give * 1000) / n));
+    }
+    extraFill.push(f);
+  }
+  return { fill, used, short, extraFill };
 }
 
 // ---- Resources (spec §7.1) ----

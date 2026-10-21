@@ -40,6 +40,11 @@ import {
   INTERCEPTOR_NUKES,
   STOCKPILED_NUKES,
 } from "./strategic/StrategicTypes";
+import {
+  AIR_MISSIONS,
+  AIR_TYPES,
+  WW_MAX_DEPLOY_COUNT,
+} from "./ww1936/AirTypes";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
 import {
   BUILDING_IDS,
@@ -65,6 +70,15 @@ import {
   WW_MAX_TRAIN_COUNT,
   WW_TEMPLATE_NAME_MAX,
 } from "./ww1936/LandTypes";
+import {
+  ENGAGE_RULES,
+  FLEET_MISSIONS,
+  SHIP_CLASSES,
+  WW_MAX_DOCKS_PER_LINE,
+  WW_MAX_FLEET_SHIPS,
+  WW_MAX_LINE_COUNT,
+  WW_MAX_NAVAL_LINES,
+} from "./ww1936/NavyTypes";
 import {
   ADVISOR_SLOTS,
   PolOrderKind,
@@ -791,6 +805,16 @@ const WwContentRef = zb.string({
   regex: /^[a-z][a-z0-9_:]*$/,
 });
 const WwCountry = zb.uint({ min: 1, max: 1000 });
+// P4 (P4 spec §19.3, plan decision 3): fleets, ships, strategic regions, sea zones, naval lines.
+const WwFleet = zb.uint({ min: 1, max: 10_000_000 });
+const WwShipId = zb.uint({ min: 1, max: 100_000_000 });
+const WwSr = zb.uint({ min: 1, max: 1999 });
+const WwZone = zb.uint({ min: SEA_ZONE_BASE + 1, max: 65_535 });
+const WwLineId = zb.uint({ min: 1, max: 10_000_000 });
+const ShipCount = z.tuple([
+  z.enum(SHIP_CLASSES),
+  zb.uint({ max: WW_MAX_FLEET_SHIPS }),
+]);
 const WwTemplateName = zb.string({
   min: 1,
   max: WW_TEMPLATE_NAME_MAX,
@@ -960,6 +984,104 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("faction_leave") }),
   z.object({ kind: z.literal("faction_dissolve") }),
   z.object({ kind: z.literal("improve_relations"), target: WwCountry }),
+  // P4 (P4 spec §19.3): the navy's (NAVY_ORDER_KINDS) and the air force's
+  // (AIR_ORDER_KINDS) orders, in that order.
+  z.object({
+    kind: z.literal("fleet_mission"),
+    fleet: WwFleet,
+    mission: z.enum(FLEET_MISSIONS),
+    sr: WwSr,
+  }),
+  z.object({ kind: z.literal("fleet_move"), fleet: WwFleet, zone: WwZone }),
+  z.object({ kind: z.literal("fleet_return"), fleet: WwFleet }),
+  z.object({ kind: z.literal("fleet_base"), fleet: WwFleet, port: WwRegionId }),
+  z.object({
+    kind: z.literal("fleet_engage"),
+    fleet: WwFleet,
+    rule: z.enum(ENGAGE_RULES),
+  }),
+  z.object({
+    kind: z.literal("fleet_return_at"),
+    fleet: WwFleet,
+    pct: z.union([z.literal(0), z.literal(30), z.literal(50), z.literal(70)]),
+  }),
+  z.object({
+    kind: z.literal("fleet_split"),
+    fleet: WwFleet,
+    /** Either counts per class (the weakest ships of each class leave first) or explicit ship ids. */
+    counts: z.array(ShipCount).max(SHIP_CLASSES.length),
+    ships: z.array(WwShipId).max(WW_MAX_FLEET_SHIPS),
+  }),
+  z.object({ kind: z.literal("fleet_merge"), fleet: WwFleet, into: WwFleet }),
+  /** 0: no admiral. */
+  z.object({
+    kind: z.literal("fleet_admiral"),
+    fleet: WwFleet,
+    admiral: zb.uint({ max: 10_000_000 }),
+  }),
+  z.object({ kind: z.literal("fleet_auto"), fleet: WwFleet, on: z.boolean() }),
+  z.object({
+    kind: z.literal("fleet_port_strike"),
+    fleet: WwFleet,
+    port: WwRegionId,
+  }),
+  /** Deck shares in tenths, fighter / CAS / torpedo bomber, summing to 10 (spec §9.6). */
+  z.object({
+    kind: z.literal("carrier_mix"),
+    fleet: WwFleet,
+    mix: z.tuple([
+      zb.uint({ max: 10 }),
+      zb.uint({ max: 10 }),
+      zb.uint({ max: 10 }),
+    ]),
+  }),
+  z.object({
+    kind: z.literal("naval_line_add"),
+    cls: z.union([z.enum(SHIP_CLASSES), z.literal("convoy")]),
+    gen: zb.uint({ min: 1, max: 4 }),
+    docks: zb.uint({ min: 1, max: WW_MAX_DOCKS_PER_LINE }),
+    /** 0: keep going (convoys only; spec §5.3). */
+    count: zb.uint({ max: WW_MAX_LINE_COUNT }),
+    port: WwRegionId,
+  }),
+  z.object({
+    kind: z.literal("naval_line_docks"),
+    line: WwLineId,
+    docks: zb.uint({ min: 1, max: WW_MAX_DOCKS_PER_LINE }),
+  }),
+  z.object({
+    kind: z.literal("naval_line_count"),
+    line: WwLineId,
+    count: zb.uint({ max: WW_MAX_LINE_COUNT }),
+  }),
+  z.object({ kind: z.literal("naval_line_remove"), line: WwLineId }),
+  z.object({
+    kind: z.literal("naval_line_move"),
+    line: WwLineId,
+    to: zb.uint({ max: WW_MAX_NAVAL_LINES - 1 }),
+  }),
+  z.object({ kind: z.literal("appoint_admiral") }),
+  z.object({
+    kind: z.literal("army_invade"),
+    army: WwArmy,
+    target: WwRegionId,
+  }),
+  z.object({ kind: z.literal("invasion_execute"), army: WwArmy }),
+  z.object({ kind: z.literal("invasion_cancel"), army: WwArmy }),
+  z.object({
+    kind: z.literal("air_deploy"),
+    sr: WwSr,
+    type: z.enum(AIR_TYPES),
+    mission: z.enum(AIR_MISSIONS),
+    count: zb.uint({ max: WW_MAX_DEPLOY_COUNT }),
+  }),
+  /** type omitted: every type in the zone. */
+  z.object({
+    kind: z.literal("air_recall"),
+    sr: WwSr,
+    type: z.enum(AIR_TYPES).optional(),
+  }),
+  z.object({ kind: z.literal("air_auto"), sr: WwSr, on: z.boolean() }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

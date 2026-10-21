@@ -64,6 +64,13 @@ function room(
   const max = LEVEL_MAX[b];
   if (max !== undefined) {
     if (b === "fort" && dmzRegions(pol, actor).includes(region)) return 0;
+    // P4 (spec §12.1): a naval base or a coastal fort needs a harbor zone.
+    if (
+      (b === "naval_base" || b === "coastal_fort") &&
+      econ.scenario.harborOf(region) === 0
+    ) {
+      return 0;
+    }
     return Math.max(0, max - econ.buildingArray(b)[region]);
   }
   if (econ.isOccupied(region)) return 0;

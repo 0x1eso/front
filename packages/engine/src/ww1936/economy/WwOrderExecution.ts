@@ -91,7 +91,8 @@ export function applyWwOrder(
     case "cancel_research":
       block = cancelResearch(econ, ce, order.slot);
       break;
-    // P2 (plan decision 2): the land war's orders, a player's.
+    // P2 (plan decision 2): the land war's orders, a player's (P4 plan
+    // decision 34: WwLand.issue hands army_sea to the navy).
     case "template_save":
     case "template_delete":
     case "train":
@@ -140,6 +141,35 @@ export function applyWwOrder(
     case "faction_dissolve":
     case "improve_relations":
       block = econ.ww.politics.issue(p.smallID(), order, mg.ticks());
+      break;
+    // P4 (plan decision 3): the navy's and the air war's orders.
+    case "fleet_mission":
+    case "fleet_move":
+    case "fleet_return":
+    case "fleet_base":
+    case "fleet_engage":
+    case "fleet_return_at":
+    case "fleet_split":
+    case "fleet_merge":
+    case "fleet_admiral":
+    case "fleet_auto":
+    case "fleet_port_strike":
+    case "carrier_mix":
+    case "naval_line_add":
+    case "naval_line_docks":
+    case "naval_line_count":
+    case "naval_line_remove":
+    case "naval_line_move":
+    case "appoint_admiral":
+    case "army_invade":
+    case "invasion_execute":
+    case "invasion_cancel":
+      block = econ.ww.navy.issue(p.smallID(), order, mg.ticks(), "player");
+      break;
+    case "air_deploy":
+    case "air_recall":
+    case "air_auto":
+      block = econ.ww.air.issue(p.smallID(), order, mg.ticks());
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);

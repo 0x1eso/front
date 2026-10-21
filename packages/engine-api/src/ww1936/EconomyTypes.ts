@@ -47,6 +47,14 @@ export const BUILDING_IDS = [
   "fort",
   "rail",
   "supply_hub",
+  // P4 (P4 spec §12.1)
+  "naval_base",
+  "air_base",
+  "anti_air",
+  "radar",
+  "coastal_fort",
+  "synthetic_refinery",
+  "fuel_silo",
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 /** Construction points per building (spec §4.1; P2 spec §11.7). */
@@ -58,15 +66,30 @@ export const BUILDING_COST: Readonly<Record<BuildingId, number>> = {
   fort: 4_000,
   rail: 3_000,
   supply_hub: 6_000,
+  naval_base: 2_500,
+  air_base: 1_800,
+  anti_air: 1_500,
+  radar: 3_000,
+  coastal_fort: 2_500,
+  synthetic_refinery: 12_000,
+  fuel_silo: 2_500,
 };
-/** What can be built; dockyards wait for P4 (spec §4.1). */
+/** What can be built (P4 spec §5.1: dockyards from now on). */
 export const BUILDABLE: readonly BuildingId[] = [
   "civ",
   "mil",
+  "dock",
   "infra",
   "fort",
   "rail",
   "supply_hub",
+  "naval_base",
+  "air_base",
+  "anti_air",
+  "radar",
+  "coastal_fort",
+  "synthetic_refinery",
+  "fuel_silo",
 ];
 export const MAX_INFRA = 5;
 /** Buildings that are a level of the region, not a slot (P2 plan decision 10). */
@@ -75,6 +98,12 @@ export const LEVEL_BUILDINGS: readonly BuildingId[] = [
   "fort",
   "rail",
   "supply_hub",
+  // P4 (P4 spec §12.1): no slot, built in occupied regions too.
+  "naval_base",
+  "air_base",
+  "anti_air",
+  "radar",
+  "coastal_fort",
 ];
 /** Highest level of each level building. */
 export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
@@ -82,6 +111,26 @@ export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
   fort: 5,
   rail: 5,
   supply_hub: 1,
+  naval_base: 10,
+  air_base: 10,
+  anti_air: 5,
+  radar: 3,
+  coastal_fort: 5,
+};
+/**
+ * Buildings that need a coast (P4 spec §5.1, §12.1): a dockyard a coastal
+ * region, a naval base and a coastal fort a harbor zone (spec §3.5).
+ */
+export const COASTAL_BUILDINGS: readonly BuildingId[] = [
+  "dock",
+  "naval_base",
+  "coastal_fort",
+];
+/** The tech a building needs (P4 spec §12.1); the radar's third level needs radar_2. */
+export const BUILDING_TECH: Readonly<Partial<Record<BuildingId, WwTechId>>> = {
+  anti_air: "anti_air_1",
+  radar: "radar_1",
+  synthetic_refinery: "synthetic_oil_1",
 };
 
 export const EQUIPMENT_TYPES = [
@@ -95,6 +144,16 @@ export const EQUIPMENT_TYPES = [
   "medium_tank",
   "fighter",
   "bomber",
+  // P4 (P4 spec §12.2, §5.3): aircraft and the convoy (plan decision 14).
+  "heavy_fighter",
+  "cas",
+  "naval_bomber",
+  "strat_bomber",
+  "transport_plane",
+  "cv_fighter",
+  "cv_cas",
+  "cv_naval_bomber",
+  "convoy",
 ] as const;
 export type EquipmentType = (typeof EQUIPMENT_TYPES)[number];
 export const EQUIPMENT_FAMILIES = [
@@ -102,6 +161,8 @@ export const EQUIPMENT_FAMILIES = [
   "guns",
   "vehicles",
   "aircraft",
+  // P4: the convoy, built on naval lines only.
+  "naval",
 ] as const;
 export type EquipmentFamily = (typeof EQUIPMENT_FAMILIES)[number];
 
@@ -117,6 +178,15 @@ export const EQUIPMENT_GENS: Readonly<Record<EquipmentType, number>> = {
   medium_tank: 3,
   fighter: 3,
   bomber: 2,
+  heavy_fighter: 3,
+  cas: 3,
+  naval_bomber: 3,
+  strat_bomber: 3,
+  transport_plane: 1,
+  cv_fighter: 3,
+  cv_cas: 3,
+  cv_naval_bomber: 3,
+  convoy: 1,
 };
 
 /** Stockpile slots: one per (type, generation), in EQUIPMENT_TYPES order. */
@@ -127,7 +197,7 @@ export const EQUIP_KEYS: readonly (readonly [EquipmentType, number])[] =
       (_, i) => [type, i + 1] as const,
     ),
   );
-export const EQUIP_KEY_COUNT = EQUIP_KEYS.length; // 23
+export const EQUIP_KEY_COUNT = EQUIP_KEYS.length; // 23 before P4, 46 with it
 
 const KEY_BASE: ReadonlyMap<EquipmentType, number> = (() => {
   const m = new Map<EquipmentType, number>();
@@ -199,6 +269,8 @@ export const TECH_BRANCHES = [
   "industry",
   "electronics",
   "doctrine",
+  // P4 (P4 spec §4.3)
+  "naval",
 ] as const;
 export type TechBranch = (typeof TECH_BRANCHES)[number];
 export const DOCTRINE_SCHOOLS = [
@@ -206,8 +278,30 @@ export const DOCTRINE_SCHOOLS = [
   "firepower",
   "battleplan",
   "mass",
+  // P4 (plan decision 23): three sea and three air schools.
+  "fleet_in_being",
+  "trade_interdiction",
+  "base_strike",
+  "strategic_destruction",
+  "battlefield_support",
+  "operational_integrity",
 ] as const;
 export type DoctrineSchool = (typeof DOCTRINE_SCHOOLS)[number];
+/** Plan decision 23: one school a domain (land, sea, air). */
+export const DOCTRINE_DOMAIN: Readonly<
+  Record<DoctrineSchool, "land" | "sea" | "air">
+> = {
+  mobile: "land",
+  firepower: "land",
+  battleplan: "land",
+  mass: "land",
+  fleet_in_being: "sea",
+  trade_interdiction: "sea",
+  base_strike: "sea",
+  strategic_destruction: "air",
+  battlefield_support: "air",
+  operational_integrity: "air",
+};
 
 export const WW_TECH_IDS = [
   "inf_eq_1",
@@ -267,6 +361,63 @@ export const WW_TECH_IDS = [
   "paratroopers",
   "fortification_1",
   "rail_1",
+  // P4 (P4 spec §4.3, §12.3), appended.
+  "dd_2",
+  "dd_3",
+  "dd_4",
+  "cl_2",
+  "cl_3",
+  "cl_4",
+  "ca_2",
+  "ca_3",
+  "bc_2",
+  "bc_3",
+  "bb_2",
+  "bb_3",
+  "bb_4",
+  "cv_2",
+  "cv_3",
+  "cv_4",
+  "ss_2",
+  "ss_3",
+  "ss_4",
+  "sonar_1",
+  "sonar_2",
+  "fire_control_1",
+  "torpedo_1",
+  "naval_radar_1",
+  "landing_craft_1",
+  "landing_craft_2",
+  "fleet_in_being_1",
+  "fleet_in_being_2",
+  "trade_interdiction_1",
+  "trade_interdiction_2",
+  "base_strike_1",
+  "base_strike_2",
+  "heavy_fighter_1",
+  "heavy_fighter_2",
+  "heavy_fighter_3",
+  "cas_1",
+  "cas_2",
+  "cas_3",
+  "naval_bomber_1",
+  "naval_bomber_2",
+  "naval_bomber_3",
+  "strat_bomber_1",
+  "strat_bomber_2",
+  "strat_bomber_3",
+  "transport_plane_1",
+  "carrier_aviation",
+  "strategic_destruction_1",
+  "strategic_destruction_2",
+  "battlefield_support_1",
+  "battlefield_support_2",
+  "operational_integrity_1",
+  "operational_integrity_2",
+  "radar_1",
+  "radar_2",
+  "synthetic_oil_1",
+  "synthetic_oil_2",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -364,6 +515,36 @@ export const WW_ORDER_BLOCKS = [
   "tension_gate",
   "bad_target",
   "focus_none",
+  // P4 (P4 spec §19.3), appended; bad_zone: not a strategic region or sea zone.
+  "no_fleet",
+  "fleet_busy",
+  "fleet_full",
+  "too_many_fleets",
+  "no_sea_path",
+  "out_of_range",
+  "lake",
+  "canal_closed",
+  "not_coastal",
+  "no_naval_base",
+  "no_dock",
+  "bad_ship_class",
+  "line_full",
+  "admiral_unavailable",
+  "no_convoys",
+  "invasion_too_large",
+  "invasion_not_ready",
+  "naval_supremacy_low",
+  "not_in_port",
+  "no_air_base",
+  "base_full",
+  "no_planes",
+  "bad_air_mission",
+  "no_transport_planes",
+  "air_superiority_low",
+  "too_many_deployments",
+  // P6 pre-flight: engine-lib NoStrike (Korea and Taiwan are never struck).
+  "no_strike_region",
+  "bad_zone",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
@@ -391,6 +572,8 @@ export interface WwCountrySummary {
    * regionSlots(category, slotPct) slots (spec §4.2), whoever plays it.
    */
   slotPct: number;
+  /** P4 spec §15.4: yesterday's fuel ratio ‰ (the fuel band, enemy fleets' fuel dots). */
+  fuelRatioPm: number;
 }
 
 export interface WwProjectData {
@@ -464,6 +647,12 @@ export interface WwCountryDetail {
    * no war, no embargo from the seller, a route), smallIDs ascending.
    */
   tradePartners: number[];
+  /** P4 spec §15: fuel milli, its capacity, yesterday's gain and use (land, navy, air). */
+  fuelMilli: number;
+  fuelCapMilli: number;
+  fuelGainMilli: number;
+  fuelUseMilli: [number, number, number];
+  refineries: number;
 }
 
 export interface WwRegionData {
@@ -482,6 +671,16 @@ export interface WwRegionData {
    * absent when the region has none.
    */
   res?: number[];
+  /** P4 buildings (P4 spec §12.1). */
+  navalBase: number;
+  airBase: number;
+  aa: number;
+  radar: number;
+  coastalFort: number;
+  refinery: number;
+  silo: number;
+  /** Bomb damage milli, BUILDING_IDS order; empty when undamaged (P4 spec §14.8). */
+  damage: number[];
 }
 
 export interface WwEconomyData {

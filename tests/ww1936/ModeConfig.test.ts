@@ -95,6 +95,8 @@ describe("World War 1936 settings", () => {
       UnitType.TransportShip,
       UnitType.DefensePost,
       UnitType.TradeShip,
+      // P4 plan decision 30: Warship came first from the input; the Port.
+      UnitType.Port,
     ]);
     expect(normalizeWorldWar1936Config(n)).toEqual(n); // idempotent
   });
@@ -133,7 +135,9 @@ describe("World War 1936 settings", () => {
     expect(cfg.isUnitDisabled(UnitType.TransportShip)).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.DefensePost)).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.TradeShip)).toBe(true);
-    expect(cfg.isUnitDisabled(UnitType.Port)).toBe(false);
+    // P4 plan decision 30: the navy's fleets and naval bases replace them.
+    expect(cfg.isUnitDisabled(UnitType.Warship)).toBe(true);
+    expect(cfg.isUnitDisabled(UnitType.Port)).toBe(true);
     expect(cfg.maxTimerMinutes()).toBe(45);
     const off = new Config(testGameConfig({ historicalAi: true }), false);
     expect(off.worldWar1936()).toBe(false);
