@@ -144,20 +144,27 @@ describe("the land war under enemy air superiority (spec §14.6)", () => {
     expect(hooks.airMoveFactorPm(REGION.paris, side.pol)).toBe(1000);
   }, 60_000);
 
-  it("battlefield support adds 5 points, up to 40%", () => {
+  it("battlefield support adds 5 points after the anti-air cut, up to 40%", () => {
     expect(airGroundPenaltyBp(1000, 0, 0)).toBe(-3500);
     expect(airGroundPenaltyBp(1000, 5, 0)).toBe(-4000);
     expect(airGroundPenaltyBp(750, 5, 0)).toBe(-2250);
-    expect(airGroundPenaltyBp(1000, 50, 20)).toBe(-2800);
+    // Anti-air 20 cuts the superiority part 30% (−2450); the 5 points come
+    // on top (A1 review ruling: spec §14.6 lists the bonus as its own row).
+    expect(airGroundPenaltyBp(1000, 5, 20)).toBe(-2950);
+    expect(airGroundPenaltyBp(1000, 0, 20)).toBe(-2450);
+    // The cap holds whatever the bonus.
+    expect(airGroundPenaltyBp(1000, 50, 20)).toBe(-4000);
+    // No enemy superiority, no bonus.
     expect(airGroundPenaltyBp(500, 5, 0)).toBe(0);
   });
 
   it("the battle card's cut from the air view is the engine's (battlefield support)", async () => {
     const { updates, ww, side } = await germanSky(true);
     const hooks = ww.land.hooks;
-    // The engine fights at −40% (−35% and the doctrine's 5 points).
+    // The engine fights at −40% (−35% and the doctrine's 5 points); anti-air
+    // 20 cuts the −35% to −24.5%, the 5 points stay (−29.5%).
     expect(hooks.airPenaltyBp(WARSAW, side.pol, 0)).toBe(-4000);
-    expect(hooks.airPenaltyBp(WARSAW, side.pol, 20)).toBe(-2800);
+    expect(hooks.airPenaltyBp(WARSAW, side.pol, 20)).toBe(-2950);
     // The client merges the same updates and runs the engine-lib rule.
     const view = new WwAirView(ww.scenario, () => TAG_ID.POL);
     for (const u of updates) {

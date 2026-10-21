@@ -340,6 +340,22 @@ export class EventsDisplay extends LitElement implements Controller {
       if (typeof params.army === "number") {
         params = { ...params, army: armyName(params.army) };
       }
+      // P4 (lane E): a commissioned ship's class by id, its name by key, or
+      // the n of a numbered name ("No. n").
+      if (event.message === "events_display.ww1936_ship_commissioned") {
+        const { cls, ship } = params;
+        params = {
+          ...params,
+          cls:
+            typeof cls === "string"
+              ? translateText(`ww1936.ship_class.${cls}`)
+              : "",
+          ship:
+            typeof ship === "string"
+              ? translateText(`ww1936.ship.${ship}`)
+              : translateText("ww1936.navy.ship_numbered", { n: ship ?? 0 }),
+        };
+      }
     }
     if (
       (event.message === "events_display.missile_intercepted" ||

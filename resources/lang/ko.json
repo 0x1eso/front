@@ -1485,7 +1485,7 @@
     "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
     "ww1936_war_goal_expired": "전쟁 목표의 유효 기간이 끝났습니다",
     "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다",
-    "ww1936_ship_commissioned": "함선 {n}척 진수 ({name})",
+    "ww1936_ship_commissioned": "함선 {n}척 취역: {cls} {ship}",
     "ww1936_naval_battle": "{sr} 해전 — 아군 {ours}척, 적 {theirs}척 상실",
     "ww1936_ship_sunk_named": "{ship} 격침",
     "ww1936_ship_sunk": "{sr}에서 {cls} 침몰",
@@ -7356,7 +7356,8 @@
       "region_docked": "정박: {fleet} {n}척",
       "region_port_sea": "항만 해역: {sea}",
       "region_sea_zone": "바다 구역: {sr}",
-      "region_air_zone": "공역: {zone}"
+      "region_air_zone": "공역: {zone}",
+      "ship_numbered": "{n}호"
     },
     "air": {
       "dial_air": "공군",

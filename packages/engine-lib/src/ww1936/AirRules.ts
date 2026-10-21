@@ -122,25 +122,21 @@ export function airMoveFactorPm(enemySupPm: number): number {
 
 /**
  * Spec §14.6 with the enemy's battlefield support: the cut, bp ≤ 0, of the
- * worst enemy superiority with that enemy's bonus `bonusPp` (supPenaltyPp:
- * +100 bp a point, up to −40% in all), less the division's anti-air. With
- * no bonus it is airPenaltyBp. The engine's hook and the battle card both
- * call it.
+ * worst enemy superiority less the division's anti-air (airPenaltyBp), then
+ * that enemy's bonus `bonusPp` (supPenaltyPp: +100 bp a point) on top — the
+ * spec lists it as a row of its own, after the anti-air cut (A1 review
+ * ruling) — up to −40% in all. No bonus without enemy superiority. With no
+ * bonus it is airPenaltyBp. The engine's hook and the battle card both call
+ * it.
  */
 export function airGroundPenaltyBp(
   enemySupPm: number,
   bonusPp: number,
   divAirAtk: number,
 ): number {
-  if (bonusPp <= 0) return airPenaltyBp(enemySupPm, divAirAtk);
-  const base = Math.min(
-    WW_AIR_PENALTY_MAX_BP,
-    Math.max(0, enemySupPm - 500) * WW_AIR_PENALTY_BP_PER_PM,
-  );
-  if (base === 0) return 0;
-  const raw = Math.min(WW_AIR_PENALTY_BONUS_MAX_BP, base + bonusPp * 100);
-  const cut = Math.min(WW_AA_CUT_MAX_PCT, Math.floor((divAirAtk * 3) / 2));
-  const v = Math.floor((raw * (100 - cut)) / 100);
+  const afterAa = -airPenaltyBp(enemySupPm, divAirAtk);
+  if (bonusPp <= 0 || enemySupPm <= 500) return afterAa === 0 ? 0 : -afterAa;
+  const v = Math.min(WW_AIR_PENALTY_BONUS_MAX_BP, afterAa + bonusPp * 100);
   return v === 0 ? 0 : -v;
 }
 
