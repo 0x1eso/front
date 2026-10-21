@@ -61,7 +61,9 @@ describe("World War 1936 P5: hook points", () => {
     const [deu, csk, pl, ltu] = ["DEU", "CSK", "POL", "LTU"].map((t) =>
       endId(t as "DEU"),
     );
-    makeSubject(ww.endgame, csk, deu, "puppet", false, g.ticks());
+    // A neutral collaborator (lane S): a puppet's declaration rule, but its
+    // overlord's wars do not draw it in (an ordinary puppet joins at once).
+    makeSubject(ww.endgame, csk, deu, "puppet", true, g.ticks());
     expect(ww.endgame.subjectOf(csk)!.level).toBe("puppet");
     const block = () =>
       declareWarBlock(g, ww, asPlayer(g, csk), asPlayer(g, ltu), g.ticks());
