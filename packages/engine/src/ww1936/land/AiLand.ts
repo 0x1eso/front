@@ -29,17 +29,20 @@ import {
   Stance,
   SupportId,
   TPL_ARMOR_ANY,
+  TPL_PARA_ANY,
   WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_SUPPORT,
   WW_MAX_TARGETS,
   WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
+import { ALL_EDGES } from "@openfront/engine-lib/ww1936/SeaGraph";
 import {
   GEN1,
   specialCap,
@@ -47,9 +50,11 @@ import {
   templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
+import { convoysOf } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { navalPort } from "../navy/Ports";
+import { seaReach } from "../navy/AiNavy";
+import { navalPort, navalPortsOf } from "../navy/Ports";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import { enemyDivisionsIn } from "./Movement";
@@ -88,6 +93,10 @@ export const AI_HOLD_DIV_WIDTH = 20;
 export const AI_HOLD_FORT_PCT = 10;
 /** Spec §14.3-4: the capital guard, when the capital is this close to an enemy. */
 export const AI_GUARD_DIVISIONS = 2;
+/** P4 spec §17.4 (내 판단): the coastal guard's regions have this many points or more (or a port). */
+export const AI_COAST_VP = 5;
+/** P4 spec §17.4: an invasion's reach by sea. */
+export const AI_INVASION_KM = WW_INVASION_MAX_KM;
 const GUARD_EDGES = 4;
 /**
  * Controller ruling 2 (내 판단): this share of the most divisions the
@@ -574,6 +583,35 @@ function sideView(land: WwLand, me: number): SideView {
   return view;
 }
 
+/**
+ * P4 (AiInvasion): `me`'s side split into land-connected stretches —
+ * `comp[region]`, -1 off the side — and each stretch's working ports.
+ */
+export function aiSideStretches(
+  land: WwLand,
+  me: number,
+): { comp: Int32Array; ports: readonly (readonly number[])[] } {
+  const v = sideView(land, me);
+  return { comp: v.comp, ports: v.ports };
+}
+
+/** An army all of paratroopers (the paradrop planner's, AiAir.aiParadrops). */
+function paraArmy(land: WwLand, a: Army): boolean {
+  if (a.divisions.length === 0) return false;
+  const t = land.divisions;
+  return a.divisions.every((id) => {
+    const r = t.rowOf(id);
+    return r >= 0 && (land.baseStatsOf(r).flags & TPL_PARA_ANY) !== 0;
+  });
+}
+
+/** Derived (one tick): the coastal guard's threat zones by the enemies' list. */
+const threatMemo = new WeakMap<
+  WwLand,
+  { tick: number; m: Map<string, ReadonlySet<number>> }
+>();
+const NO_ZONES: ReadonlySet<number> = new Set();
+
 class AiDay {
   readonly me: number;
   readonly tag: CountryTag;
@@ -751,9 +789,16 @@ class AiDay {
     return 0;
   }
 
-  /** The armies the AI commands today: all of an AI country's; a human's auto ones. */
+  /**
+   * The armies the AI commands today: all of an AI country's; a human's
+   * auto ones. P4 (spec §17.4): an army preparing or sailing an invasion
+   * is the invasion planner's (AiInvasion), until it lands; an army all of
+   * paratroopers is the paradrop planner's (AiAir).
+   */
   private armies(): Army[] {
-    const all = this.land.armiesOf(this.me);
+    const all = this.land
+      .armiesOf(this.me)
+      .filter((a) => a.order.kind !== "invade" && !paraArmy(this.land, a));
     return this.human ? all.filter((a) => a.auto) : all;
   }
 
@@ -782,7 +827,10 @@ class AiDay {
    * 4 edges (spec §14.3-4, always), then, within AI_RESERVE_PCT of the
    * high-water mark, our own victory-point regions within 4 edges of an
    * enemy (most points first, then the nearer, then the smaller id), then
-   * our victory-point ports on a sea where an enemy at war holds a coast.
+   * our victory-point ports on a sea where an enemy at war holds a coast,
+   * and (P4 spec §17.4, coastal guard) our coastal regions of 5 points or
+   * more and our ports within an invasion's reach (8,000 km by sea) of an
+   * enemy fleet or of an enemy's ports while it has convoys.
    */
   private garrisonSlots(enemies: readonly number[]): number[] {
     const land = this.land;
@@ -792,7 +840,8 @@ class AiDay {
     const touching = this.side().regions.filter((r) =>
       sc.edgesOf(r).some((e) => hostile(land.controller[e.to])),
     );
-    if (touching.length === 0) return [];
+    const threat = this.seaThreatZones();
+    if (touching.length === 0 && threat.size === 0) return [];
     // 0: touching an enemy region (1 edge from it), ... GUARD_EDGES - 1.
     const near = this.bfs(touching, (r) => this.ours(r), GUARD_EDGES - 1);
     // P3: the legal owner (spec §17), not the 1936 map.
@@ -817,11 +866,16 @@ class AiDay {
     const inland: number[] = [];
     const coast: number[] = [];
     for (const r of land.econ.regionsOf(this.me)) {
-      if (out.includes(r) || owners[r] !== this.me || vp(r) <= 0) continue;
-      if (near[r] !== FAR) inland.push(r);
+      if (out.includes(r) || owners[r] !== this.me) continue;
+      const port = navalPort(land.ww, r);
+      const harbor = sc.harborOf(r);
+      const landing =
+        harbor !== 0 && threat.has(harbor) && (vp(r) >= AI_COAST_VP || port);
+      if (vp(r) <= 0 && !landing) continue;
+      if (near[r] !== FAR && vp(r) > 0) inland.push(r);
       else if (
-        navalPort(land.ww, r) &&
-        sc.regionSeaZones(r).some((z) => zones.has(z))
+        landing ||
+        (port && sc.regionSeaZones(r).some((z) => zones.has(z)))
       ) {
         coast.push(r);
       }
@@ -829,6 +883,53 @@ class AiDay {
     inland.sort((a, b) => vp(b) - vp(a) || near[a] - near[b] || a - b);
     coast.sort((a, b) => vp(b) - vp(a) || a - b);
     out.push(...[...inland, ...coast].slice(0, slots));
+    return out;
+  }
+
+  /**
+   * P4 spec §17.4: the sea zones an invasion could come from — within
+   * AI_INVASION_KM by sea of an enemy-at-war fleet, or of an enemy's
+   * ports while it has convoys. Empty at peace or with no navy about.
+   */
+  private seaThreatZones(): ReadonlySet<number> {
+    if (this.atWar.length === 0) return NO_ZONES;
+    // Shared by the countries with the same enemies on this tick.
+    const tick = this.land.mg.ticks();
+    let memo = threatMemo.get(this.land);
+    if (memo === undefined || memo.tick !== tick) {
+      memo = { tick, m: new Map() };
+      threatMemo.set(this.land, memo);
+    }
+    const key = this.atWar.join(",");
+    const hit = memo.m.get(key);
+    if (hit !== undefined) return hit;
+    const out = this.seaThreatZonesNow();
+    memo.m.set(key, out);
+    return out;
+  }
+
+  private seaThreatZonesNow(): Set<number> {
+    const out = new Set<number>();
+    const ww = this.land.ww;
+    const sc = this.land.scenario;
+    const navy = ww.navy;
+    const from = new Set<number>();
+    for (const e of this.atWar) {
+      for (const f of navy.fleetsOf(e)) from.add(f.zone);
+      const ce = ww.economy.country(e);
+      if (ce === null || convoysOf(ce) <= 0) continue;
+      for (const r of navalPortsOf(ww, e)) {
+        const z = sc.harborOf(r);
+        if (z !== 0) from.add(z);
+      }
+    }
+    if (from.size === 0) return out;
+    const dist = seaReach(
+      sc,
+      [...from].sort((a, b) => a - b),
+      ALL_EDGES,
+    ).dist;
+    for (const [z, km] of dist) if (km <= AI_INVASION_KM) out.add(z);
     return out;
   }
 
@@ -1824,6 +1925,12 @@ class AiDay {
       if (garrisons.has(a.id) || a.divisions.length <= AI_GUARD_DIVISIONS) {
         continue;
       }
+      // P4: an invasion army takes no new divisions (it would outgrow its
+      // landing), and neither does one on its way somewhere (rail, sea, a
+      // port): the new divisions appear at the capital and would be left
+      // behind on another stretch, the army split over the sea.
+      if (a.order.kind === "invade" || a.order.kind === "move") continue;
+      if (paraArmy(land, a)) continue;
       if (comp[land.armyRegion(a)] !== comp[cap]) continue;
       const n = a.divisions.length + (waiting.get(a.id) ?? 0);
       if (n < bestN) {
