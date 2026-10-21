@@ -22,6 +22,7 @@ import {
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { civilWar } from "@openfront/engine/ww1936/politics/Ideology";
 import { setLawFree } from "@openfront/engine/ww1936/politics/Laws";
+import { addSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
@@ -40,9 +41,24 @@ const CW_EVENT: EventDef = {
   ],
 };
 
+/** K5's Spanish end event, reduced to the spirit's lift (set_name is lane X's). */
+const ESP_END: EventDef = {
+  id: "esp_civil_war_ends",
+  kind: "country",
+  options: [
+    {
+      id: "a",
+      ai: { base: 1 },
+      effects: [{ kind: "remove_spirit", id: "gen_civil_strife" }],
+    },
+  ],
+};
+
 beforeEach(() =>
   usePoliticsContent(
-    endgameFixture({ events: [...endgameFixture().events, CW_EVENT] }),
+    endgameFixture({
+      events: [...endgameFixture().events, CW_EVENT, ESP_END],
+    }),
   ),
 );
 afterEach(() => usePoliticsContent(null));
@@ -364,5 +380,68 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const b = await wwRestore(a, HUMANS, END_MAP);
     expect(b.game.worldWar()!.endgame.countryState(cw)).toBe("active");
     lockstep(a, b, 60);
+  }, 60_000);
+
+  it("the Spanish pair's civil war end queues esp_civil_war_ends", async () => {
+    const s = await started();
+    const { g, ww, eg } = s;
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    sovietSplit(s);
+    const warId = eg.warOfPair(cw, sun);
+    // The end map has no Spain: the split pair stands in for it.
+    const [esn, esr] = [cw, sun];
+    const realId = ww.scenario.smallIdOf.bind(ww.scenario);
+    vi.spyOn(ww.scenario, "smallIdOf").mockImplementation((t) =>
+      t === "ESN" ? esn : t === "ESR" ? esr : realId(t),
+    );
+    const spirit = addSpirit(
+      ww.politics,
+      esn,
+      "gen_civil_strife",
+      undefined,
+      0,
+    );
+    void spirit;
+    const pc = ww.politics.country(esn)!;
+    expect(pc.hasSpirit("gen_civil_strife")).toBe(true);
+    const queue = vi.spyOn(ww.politics, "queueEvent");
+    endCivilWar(eg, warId, 0, g.ticks());
+    vi.restoreAllMocks();
+    expect(queue).toHaveBeenCalledWith("esp_civil_war_ends", esn, esn, 0, 0);
+    // The flush applied the event: the spirit is lifted.
+    expect(pc.hasSpirit("gen_civil_strife")).toBe(false);
+  }, 60_000);
+
+  it("a failed activation puts the held fleets back in their docks", async () => {
+    const { g, ww, eg } = await started();
+    const fra = endId("FRA");
+    const navy = ww.navy;
+    const fleet = navy.fleets.get(navy.createFleet(fra, LYON, [["dd", 1, 1]]))!;
+    expect(fleet.docked).toBe(LYON);
+    // The slot is dormant but its player is refused.
+    vi.spyOn(eg.mg, "playerBySmallID").mockImplementation(
+      () => ({ isPlayer: () => false }) as never,
+    );
+    expect(startCivilWar(eg, fra, "communist", g.ticks())).toBe(false);
+    vi.restoreAllMocks();
+    expect(fleet.docked).toBe(LYON);
+    for (const f of navy.fleetsOf(fra)) {
+      expect(f.docked === 0 && f.ships.includes(fleet.ships[0])).toBe(false);
+    }
+    expect(ww.politics.legalOwner[LYON]).toBe(fra);
+  }, 60_000);
+
+  it("regions the loser held for a third country go back to it", async () => {
+    const s = await started();
+    const { g, ww, eg } = s;
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    const pol = endId("POL");
+    sovietSplit(s);
+    // Kiev (the rebels') is legally Poland's, held by the rebels.
+    ww.politics.setLegalOwner(KIEV, pol);
+    expect(ww.land.controller[KIEV]).toBe(cw);
+    endCivilWar(eg, eg.warOfPair(cw, sun), 1, g.ticks());
+    expect(ww.politics.legalOwner[KIEV]).toBe(pol);
+    expect(ww.land.controller[KIEV]).toBe(pol);
   }, 60_000);
 });

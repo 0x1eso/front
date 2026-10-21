@@ -106,7 +106,8 @@ export function startCivilWar(
   // What stands and docks there before the land moves (the woken slot may
   // evict X's divisions; a port changing sides sends X's fleets away).
   const before = divisionsBefore(eg, X);
-  const portShips = holdPortFleets(eg, X, rebelSet);
+  const held = holdPortFleets(eg, X, rebelSet);
+  const portShips = held.ships;
   const slot = activateCountry(
     eg,
     slotTag,
@@ -123,7 +124,16 @@ export function startCivilWar(
     },
     tick,
   );
-  if (slot === 0) return false;
+  if (slot === 0) {
+    // The woken slot failed: the fleets go back into their docks.
+    for (const h of held.docks) {
+      const f = eg.ww.navy.fleetsOf(X).find((x) => x.id === h.id);
+      if (f === undefined) continue;
+      f.docked = h.docked;
+      eg.ww.navy.markFleet(f.id);
+    }
+    return false;
+  }
   splitForces(eg, X, slot, rebelSet, share, before, portShips);
   splitPolitics(eg, X, slot, ideo, tick);
   ww.setWar(slot, X, tick, { kind: "declare", war: "civil" });
@@ -166,11 +176,16 @@ export function endCivilWar(
   const client = eg.humanClientOf(L);
   // Land: the legal owner now, control by P3's peaceful transfer (the
   // victory-point tile this tick); tiles on their way go on to W.
-  const taken: number[] = [];
+  // A region the loser merely held for a third country goes back to that
+  // legal owner, not the winner.
+  const taken: { r: number; to: number }[] = [];
   for (const r of sc.landRegions) {
     if (pol.legalOwner[r.id] === L) pol.setLegalOwner(r.id, W);
     if (eg.hasCore(L, r.id)) eg.addCore(W, r.id);
-    if (land.controller[r.id] === L) taken.push(r.id);
+    if (land.controller[r.id] === L) {
+      const owner = pol.legalOwner[r.id];
+      taken.push({ r: r.id, to: owner > 0 && owner !== L ? owner : W });
+    }
   }
   for (const t of ww.transfers()) {
     if (t.to === L || t.from === L) t.to = W;
@@ -180,7 +195,7 @@ export function endCivilWar(
   land.removeCountryForces(L);
   ww.navy.transferUnits(L, W, "transfer");
   ww.air.transferUnits(L, W, "transfer");
-  for (const r of taken) transferRegionPeaceful(land, r, W, tick);
+  for (const t of taken) transferRegionPeaceful(land, t.r, t.to, tick);
   for (const s of eg.subjectsOf(L)) {
     const sub = eg.subjectOf(s)!;
     makeSubject(eg, s, W, sub.level, sub.neutral, tick);
@@ -329,17 +344,19 @@ function holdPortFleets(
   eg: WwEndgame,
   X: number,
   rebel: ReadonlySet<number>,
-): number[] {
+): { ships: number[]; docks: { id: number; docked: number }[] } {
   const navy = eg.ww.navy;
   const out: number[] = [];
+  const docks: { id: number; docked: number }[] = [];
   for (const f of navy.fleetsOf(X)) {
     if (f.docked === 0 || !rebel.has(f.docked)) continue;
     if (!navy.isPort(f.docked) || navy.harborZone(f.docked) === 0) continue;
+    docks.push({ id: f.id, docked: f.docked });
     f.docked = 0;
     navy.markFleet(f.id);
     out.push(...f.ships);
   }
-  return out.sort((a, b) => a - b);
+  return { ships: out.sort((a, b) => a - b), docks };
 }
 
 /** Spec §15.3: divisions, generals, ships, planes, stock, manpower, fuel. */
