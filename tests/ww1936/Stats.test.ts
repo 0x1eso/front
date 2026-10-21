@@ -20,17 +20,50 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { politicsFixture } from "./politicsFixture";
 import { byTag, HUMAN, pol, step, wwRunner } from "./util";
 
+/** P4 (pre-flight ruling 2): the tech effect keys P4 appends, P3/P4 stat keys by name. */
+const P4_TECH_KEYS = [
+  "positioningPct",
+  "screeningPct",
+  "convoyRaidPct",
+  "carrierStrikePct",
+  "stratBombPct",
+  "casPct",
+  "paradropPrepPct",
+  "airDetectPct",
+  "navalDetectPct",
+  // The doctrine keys (P6 pre-flight).
+  "capitalAttackPct",
+  "capitalHpPct",
+  "subTorpedoPct",
+  "subVisibilityPct",
+  "subOrg",
+  "surfaceRaidPct",
+  "deckPct",
+  "navalBomberPct",
+  "carrierRoundsCut",
+  "fighterAttackPct",
+  "heavyDefensePct",
+  "fighterAgilityPct",
+  "airLossCutPct",
+  "airNavalPct",
+  "supPenaltyPp",
+] as const;
+/** Every tech effect key: the first 34 stats, then P4's 24. */
+const TECH_KEYS: readonly string[] = [
+  ...WW_STAT_KEYS.slice(0, WW_TECH_STAT_COUNT),
+  ...P4_TECH_KEYS,
+];
+
 describe("politics stats", () => {
-  it("the first 34 stat keys are the tech effect keys in order", () => {
-    expect(WW_STAT_KEYS.slice(0, WW_TECH_STAT_COUNT)).toEqual(
-      Object.keys(techTotals(new Set())),
-    );
+  it("the tech effect keys are the first 34 stat keys in order, then P4's 24", () => {
+    expect(Object.keys(techTotals(new Set()))).toEqual(TECH_KEYS);
     expect(WW_TECH_STAT_COUNT).toBe(34);
+    for (const k of P4_TECH_KEYS) expect(WW_STAT_KEYS).toContain(k);
   });
 
-  it("stat keys are unique: 14 + 20 + 42", () => {
+  it("stat keys are unique: 14 + 20 + 42 + P4's 41", () => {
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
-    expect(WW_STAT_KEYS).toHaveLength(76);
+    expect(WW_STAT_KEYS).toHaveLength(76 + 41);
   });
 
   it("sums add by key; a missing key is 0", () => {
@@ -42,17 +75,23 @@ describe("politics stats", () => {
     addStatsInto(t, { orgPct: 2 }, 3);
     expect(t.orgPct).toBe(6);
     expect(statsArray({ constructionPct: 4 })[0]).toBe(4);
-    expect(statsArray({})).toHaveLength(76);
+    expect(statsArray({})).toHaveLength(76 + 41);
   });
 
-  it("the tech totals become the first 34 stats", () => {
-    const tech = techTotals(new Set(["construction_1", "tools_1"] as const));
+  it("the tech totals become the tech stats (the first 34 and P4's 24)", () => {
+    const tech = techTotals(
+      new Set(["construction_1", "tools_1", "fleet_in_being_1"] as const),
+    );
     const s = techStats(tech);
-    for (const k of WW_STAT_KEYS.slice(0, WW_TECH_STAT_COUNT)) {
-      expect(s[k], k).toBe(tech[k as keyof typeof tech]);
+    for (const k of WW_STAT_KEYS) {
+      if (TECH_KEYS.includes(k)) {
+        expect(s[k], k).toBe(tech[k as keyof typeof tech]);
+      } else {
+        expect(s[k], k).toBe(0);
+      }
     }
-    for (const k of WW_STAT_KEYS.slice(WW_TECH_STAT_COUNT))
-      expect(s[k], k).toBe(0);
+    expect(s.positioningPct).toBe(5);
+    expect(s.capitalAttackPct).toBe(10);
   });
 
   it("Pct sums are clamped to −90..300", () => {
@@ -94,11 +133,10 @@ describe("politics stats", () => {
     const id = byTag(g, "DEU").smallID();
     const ce = g.worldWar()!.economy.country(id)!;
     expect(ce.stats).toBe(pol(g).country(id)!.stats);
-    for (const k of WW_STAT_KEYS.slice(0, WW_TECH_STAT_COUNT)) {
-      expect(ce.stats[k], k).toBe(ce.tech[k as keyof typeof ce.tech]);
-    }
-    for (const k of WW_STAT_KEYS.slice(WW_TECH_STAT_COUNT)) {
-      expect(ce.stats[k], k).toBe(0);
+    for (const k of WW_STAT_KEYS) {
+      expect(ce.stats[k], k).toBe(
+        TECH_KEYS.includes(k) ? ce.tech[k as keyof typeof ce.tech] : 0,
+      );
     }
   });
 });

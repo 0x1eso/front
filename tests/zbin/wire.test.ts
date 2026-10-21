@@ -434,6 +434,167 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     type: "ww_order",
     clientID: P3,
     order: { kind: "improve_relations", target: 5 },
+  }, // P4 (P4 spec §19.3): the navy's and the air war's orders.
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "fleet_mission",
+      fleet: 7,
+      mission: "invasion_support",
+      sr: 1027,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "fleet_move", fleet: 7, zone: 40153 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "fleet_return", fleet: 7 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "fleet_base", fleet: 7, port: 1210 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "fleet_engage", fleet: 7, rule: "if_stronger" },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "fleet_return_at", fleet: 7, pct: 30 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "fleet_split",
+      fleet: 7,
+      counts: [
+        ["dd", 4],
+        ["cl", 1],
+      ],
+      ships: [],
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "fleet_split",
+      fleet: 7,
+      counts: [],
+      ships: [12, 13, 99_999],
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "fleet_merge", fleet: 7, into: 3 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "fleet_admiral", fleet: 7, admiral: 200_301 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "fleet_auto", fleet: 7, on: true },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "fleet_port_strike", fleet: 7, port: 44 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "carrier_mix", fleet: 7, mix: [4, 3, 3] },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "naval_line_add",
+      cls: "convoy",
+      gen: 1,
+      docks: 15,
+      count: 0,
+      port: 10,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "naval_line_docks", line: 2, docks: 8 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "naval_line_count", line: 2, count: 99 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "naval_line_remove", line: 2 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "naval_line_move", line: 2, to: 19 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "appoint_admiral" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "army_invade", army: 4, target: 1301 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "invasion_execute", army: 4 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "invasion_cancel", army: 4 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "air_deploy",
+      sr: 15,
+      type: "cv_naval_bomber",
+      mission: "naval_strike",
+      count: 5000,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "air_recall", sr: 15 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "air_recall", sr: 15, type: "fighter" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "air_auto", sr: 1001, on: false },
   },
 ];
 

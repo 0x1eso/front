@@ -132,8 +132,9 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     for (const t of WW_TECH_IDS) expect(TECH_KEYS[t]).toBe(`ww1936.tech.${t}`);
     for (const [k, key] of Object.entries(EFFECT_KEYS))
       expect(key).toBe(`ww1936.effect.${k}`);
-    // P1's 14 keys, P2's 20 (plan decision 11) and the unlock line.
-    expect(Object.keys(EFFECT_KEYS)).toHaveLength(35);
+    // P1's 14 keys, P2's 20 (plan decision 11), the unlock line, P4's 9
+    // and its 15 doctrine keys (P6 pre-flight).
+    expect(Object.keys(EFFECT_KEYS)).toHaveLength(59);
     for (const b of WW_ORDER_BLOCKS)
       expect(BLOCK_KEYS[b]).toBe(`ww1936.econ.block.${b}`);
   });

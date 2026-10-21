@@ -245,9 +245,8 @@ describe("the engine's judgements use them", () => {
     expect(usedSlots(econ, id("Munich"))).toBe(8);
     expect(buildBlock(econ, deu, id("Munich"), "civ", 2)).toBe("no_slots");
     expect(buildBlock(econ, deu, id("Berlin"), "infra", 1)).toBe("infra_max");
-    expect(buildBlock(econ, deu, id("Berlin"), "dock", 1)).toBe(
-      "not_buildable",
-    );
+    // P4: docks are built on a coast (Berlin has none).
+    expect(buildBlock(econ, deu, id("Berlin"), "dock", 1)).toBe("not_coastal");
     expect(buildBlock(econ, deu, id("Paris"), "civ", 1)).toBe("not_controlled");
     expect(buildBlock(econ, deu, 40_001, "infra", 1)).toBe("not_controlled");
   });

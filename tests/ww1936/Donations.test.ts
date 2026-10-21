@@ -1,6 +1,21 @@
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import type { GameRunner } from "@openfront/engine/GameRunner";
+import { vi } from "vitest";
 import { byTag, stamped, step, stepTo, wwRunner } from "./util";
+
+/**
+ * Ports are off in this mode since P4 (naval bases replace them), like
+ * every vanilla building: the capitulation tests turn them back on to
+ * reach P0's guard.
+ */
+function allowPorts(runner: GameRunner): void {
+  const cfg = runner.game.config();
+  const off = cfg.isUnitDisabled.bind(cfg);
+  vi.spyOn(cfg, "isUnitDisabled").mockImplementation(
+    (t) => t !== UnitType.Port && off(t),
+  );
+}
 
 // Britain and France share the Allies; Germany is in neither's faction.
 const HUMANS = [
@@ -66,6 +81,7 @@ describe("World War 1936 donations (spec §7.2)", () => {
 
   test("a capitulated country neither donates nor builds", async () => {
     const runner = await wwRunner({}, HUMANS);
+    allowPorts(runner);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [gbr, fra, deu] = (["GBR", "FRA", "DEU"] as const).map((t) =>
@@ -73,8 +89,8 @@ describe("World War 1936 donations (spec §7.2)", () => {
     );
     stepTo(runner, WW_PREP_TICKS + 1);
     gbr.addGold(10_000_000n);
-    // A port: cities are off in this mode since P1 (spec §4.6), defense
-    // posts since P2 (forts replace them).
+    // A port (turned back on): cities are off in this mode since P1 (spec
+    // §4.6), defense posts since P2 (forts replace them), ports since P4.
     const post = [...gbr.tiles()].find(
       (t) => gbr.canBuild(UnitType.Port, t) !== false,
     )!;
@@ -93,6 +109,7 @@ describe("World War 1936 donations (spec §7.2)", () => {
 
   test("a capitulated country upgrades nothing", async () => {
     const runner = await wwRunner({}, HUMANS);
+    allowPorts(runner);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [gbr, deu] = (["GBR", "DEU"] as const).map((t) => byTag(g, t));

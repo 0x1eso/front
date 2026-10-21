@@ -326,7 +326,8 @@ describe("the condition and effect language", () => {
     let changes = 0;
     for (let i = 1; i < groups.length; i++)
       if (groups[i] !== groups[i - 1]) changes++;
-    expect(changes).toBe(4);
+    // P4's navy block (ships, convoys, fuel) after the territory one.
+    expect(changes).toBe(5);
   });
 
   it("the lists are unique", () => {

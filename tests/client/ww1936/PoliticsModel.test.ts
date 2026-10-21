@@ -332,7 +332,8 @@ describe("PoliticsModel (P3 spec §21)", () => {
       ],
     });
     const seats = advisorTab(i);
-    expect(seats).toHaveLength(8);
+    // P3's eight seats and P4's navy and air chiefs.
+    expect(seats).toHaveLength(10);
     expect(seats[0]).toMatchObject({
       slotName: "[ww1936.advisor_slot.political]",
       holder: { name: "[ww1936.title.fiscal_hawk]" },

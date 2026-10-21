@@ -43,6 +43,8 @@ import { politicsFixture } from "./politicsFixture";
 export const MINI = "ww1936mini";
 /** P3 (plan decision 22): ww1936mini plus AUT, CSK, LTU, EST on nine islands. */
 export const POL = "ww1936pol";
+/** P4 (plan decision 29): ww1936mini with four sea zones, the Isthmus (TUR) and Malta (seaFixture.ts). */
+export const SEA_MAP = "ww1936sea";
 export const HUMAN = "HUMAN001";
 
 export interface WwHuman {
@@ -88,7 +90,7 @@ export function wwGameStart(
 export async function wwRunnerCapture(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
-  map = MINI,
+  map: string = MINI,
   gameID?: string,
 ): Promise<{ runner: GameRunner; updates: GameUpdateViewData[] }> {
   const start = wwGameStart(config, humans);
@@ -114,7 +116,7 @@ export async function wwRunnerCapture(
 export async function wwRunner(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
-  map = MINI,
+  map: "ww1936mini" | "ww1936pol" | "ww1936sea" | string = MINI,
 ): Promise<GameRunner> {
   return (await wwRunnerCapture(config, humans, map)).runner;
 }

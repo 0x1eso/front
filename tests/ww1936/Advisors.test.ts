@@ -103,7 +103,9 @@ describe("advisors", () => {
     expect(hireAdvisor(p, gbr, 4, "title:hawk", 0)).toBe("advisor_unavailable");
     expect(hireAdvisor(p, gbr, 4, "title:theorist_land", 0)).toBeNull();
     expect(c.ppMilli).toBe(750_000);
-    expect(hireAdvisor(p, gbr, 8, "title:hawk", 0)).toBe("bad_index");
+    // P4: seats 8 and 9 are the navy and air chiefs'.
+    expect(hireAdvisor(p, gbr, 8, "title:hawk", 0)).toBe("advisor_unavailable");
+    expect(hireAdvisor(p, gbr, 10, "title:hawk", 0)).toBe("bad_index");
     expect(hireAdvisor(p, gbr, 1, "title:war_leader", 0)).toBe(
       "advisor_unavailable",
     );

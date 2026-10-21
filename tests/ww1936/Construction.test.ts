@@ -155,7 +155,8 @@ describe("construction (spec §4)", () => {
       await germany(true);
     expect(econ.infra[berlin.id]).toBe(5);
     expect(queueBuild(econ, ce, berlin.id, "infra", 1)).toBe("infra_max");
-    expect(queueBuild(econ, ce, munich.id, "dock", 1)).toBe("not_buildable");
+    // P4: docks are built on a coast (Munich has none).
+    expect(queueBuild(econ, ce, munich.id, "dock", 1)).toBe("not_coastal");
     expect(queueBuild(econ, ce, paris.id, "civ", 1)).toBe("not_controlled");
     expect(queueBuild(econ, ce, 999, "infra", 1)).toBe("not_controlled");
     // Lyon (infrastructure 4): one more level, the queued one counts.

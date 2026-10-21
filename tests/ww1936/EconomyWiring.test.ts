@@ -308,6 +308,14 @@ describe("economy wiring (spec §6, §14)", () => {
       fort: 0,
       rail: 0,
       hub: 0,
+      navalBase: 0,
+      airBase: 0,
+      aa: 0,
+      radar: 0,
+      coastalFort: 0,
+      refinery: 0,
+      silo: 0,
+      damage: [],
     });
     expect(view.troopCap(byTag(g, "DEU").smallID())).toBe(
       ww.land.fieldMen(byTag(g, "DEU").smallID()),
@@ -319,7 +327,9 @@ describe("economy wiring (spec §6, §14)", () => {
     const runner = await wwRunner();
     expect(runner.game.config().isUnitDisabled(UnitType.City)).toBe(true);
     expect(runner.game.config().isUnitDisabled(UnitType.Factory)).toBe(true);
-    expect(runner.game.config().isUnitDisabled(UnitType.Port)).toBe(false);
+    // P4: ports and warships too (naval bases and the navy replace them).
+    expect(runner.game.config().isUnitDisabled(UnitType.Port)).toBe(true);
+    expect(runner.game.config().isUnitDisabled(UnitType.Warship)).toBe(true);
   });
 
   test("the vanilla troop rules are untouched when the mode is off", async () => {

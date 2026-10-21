@@ -140,7 +140,7 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.sent).toEqual([{ kind: "cancel_research", slot: 0 }]);
   });
 
-  it("the doctrine tab lists the four schools, one of them open", async () => {
+  it("the doctrine tab lists the schools, one of them open", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { researched: ["mobile_1"] })],
@@ -150,7 +150,19 @@ describe("<ww-research-panel> (spec §13.4)", () => {
       [...m.el.querySelectorAll("[data-ww-school]")].map((s) =>
         s.getAttribute("data-ww-school"),
       ),
-    ).toEqual(["mobile", "firepower", "battleplan", "mass"]);
+    ).toEqual([
+      "mobile",
+      "firepower",
+      "battleplan",
+      "mass",
+      // P4 (plan decision 23): three sea and three air schools.
+      "fleet_in_being",
+      "trade_interdiction",
+      "base_strike",
+      "strategic_destruction",
+      "battlefield_support",
+      "operational_integrity",
+    ]);
     expect(m.q("[data-ww-school='mass']")!.textContent).toContain(
       "[ww1936.school.mass]",
     );
