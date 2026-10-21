@@ -157,7 +157,8 @@ const LAND = [
   "region_rivers",
   "region_divisions",
   "region_encircled",
-  "overseas",
+  // "overseas" ("landings come in a later phase") went with P4's landings
+  // (lane U: a dead key).
 ];
 const NOTICES = [
   "ww1936_division_ready",
