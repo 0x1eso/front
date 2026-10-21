@@ -432,7 +432,13 @@ describe("navy wiring", () => {
     expect(nb.beachhead.get(REGION.lyon)?.until).toBe(60);
     const lines = b.game.worldWar()!.economy.country(TAG_ID.GBR)!.navalLines;
     expect(lines.find((l) => l.id === 77)?.names).toEqual([3, 1]);
-    expect(b.game.worldWar()!.air.deploymentsOf(TAG_ID.DEU)).toHaveLength(1);
+    // Lane AI: Germany's air AI deploys too; the seeded record is there.
+    expect(
+      b.game
+        .worldWar()!
+        .air.deploymentsOf(TAG_ID.DEU)
+        .some((d) => d.sr === 2 && d.lossRest === 250),
+    ).toBe(true);
     expect(b.game.worldWar()!.economy.damage).toEqual(ww.economy.damage);
     for (let i = 0; i < 30; i++) {
       step(a);

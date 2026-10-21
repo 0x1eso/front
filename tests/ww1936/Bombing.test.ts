@@ -169,6 +169,14 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     expect(told.map((m) => [m.playerID, m.params])).toEqual([
       [deu, { region: REGION.berlin, n: 1 }],
     ]);
+    // The victim's screens hatch Berlin: its air detail lists the region
+    // with the damage outstanding.
+    const details = updates
+      .flatMap((u) => u.updates[GameUpdateType.WwAir] ?? [])
+      .flatMap((x) => x.data.details)
+      .filter((d) => d.smallID === deu);
+    const detail = details[details.length - 1];
+    expect(detail.bombedRegions).toEqual([[REGION.berlin, 1000]]);
   }, 60_000);
 
   test("AA cuts at most 40%", async () => {

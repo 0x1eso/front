@@ -393,7 +393,8 @@ export class AirSortiePass {
       for (const [region, points] of detail?.bombedRegions ?? []) {
         const before = this.seenBombed.get(region);
         this.seenBombed.set(region, points);
-        if (!first && points > 0 && points !== before) {
+        // New damage only (repairs lower it day by day: no carpet then).
+        if (!first && points > (before ?? 0)) {
           this.carpetAtRegion(air, region, -1, -1);
         }
       }

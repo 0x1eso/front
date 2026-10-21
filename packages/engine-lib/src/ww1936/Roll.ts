@@ -46,6 +46,8 @@ export const P_ELECTION = idHash("election");
 export const P_DELAY = idHash("delay");
 /** P4 (pre-flight A14): the naval and air history beats' skip and delay. */
 export const P_NAVALBEAT = idHash("navalbeat");
+/** P4 lane AI: the navy and invasion AI's per-game jitter on close calls. */
+export const P_AI_NAVY = idHash("ai_navy");
 /** P5 (pre-flight §0-8): a peace conference participant keeps its history row. */
 export const P_PEACE = idHash("peace");
 /** P5 (pre-flight §0-8): the general peace AI's seeded value jitter. */

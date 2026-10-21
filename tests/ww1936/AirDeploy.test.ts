@@ -248,7 +248,14 @@ describe("air deployments (spec §13)", () => {
       }
     };
     const start = planes();
-    const lost0 = ww.air.planesLostTotal;
+    // Lane AI: the AI's France (Britain's ally) flies too, and its losses
+    // are in planesLostTotal: count Britain's and Italy's own (tally[1]).
+    const lostOf = () =>
+      [gbr, ita].reduce(
+        (n, id) => n + ww.air.country(id)!.tally[1].reduce((a, b) => a + b, 0),
+        0,
+      );
+    const lost0 = lostOf();
     const deploy = (id: number, count: number) =>
       ww.air.issue(
         id,
@@ -269,13 +276,13 @@ describe("air deployments (spec §13)", () => {
     // The carrier's wing flies over its zone, the deck's planes in it.
     const wing = records(ww, SR.central, gbr).find((d) => d.base < 0)!;
     expect(wing.base).toBe(-ship);
-    expect(ww.air.planesLostTotal - lost0).toBeGreaterThan(0);
-    expect(planes()).toBe(start - (ww.air.planesLostTotal - lost0));
+    expect(lostOf() - lost0).toBeGreaterThan(0);
+    expect(planes()).toBe(start - (lostOf() - lost0));
     ledgerMatches();
     expect(deploy(gbr, 100)).toBeNull();
     ledgerMatches();
     runThrough(runner, d0 + 7, 6);
-    expect(planes()).toBe(start - (ww.air.planesLostTotal - lost0));
+    expect(planes()).toBe(start - (lostOf() - lost0));
     ledgerMatches();
     expect(
       ww.air.issue(
@@ -285,7 +292,7 @@ describe("air deployments (spec §13)", () => {
       ),
     ).toBeNull();
     expect(records(ww, SR.central, gbr).filter((d) => d.base >= 0)).toEqual([]);
-    expect(planes()).toBe(start - (ww.air.planesLostTotal - lost0));
+    expect(planes()).toBe(start - (lostOf() - lost0));
     ledgerMatches();
   }, 120_000);
 
