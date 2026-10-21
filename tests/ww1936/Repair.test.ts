@@ -70,16 +70,16 @@ describe("repairs (spec §5.4, §7.1)", () => {
     const f = docked(navy, FRA, REGION.lyon, [["bb", 1, 1]]);
     const r = row(navy, f.ships[0]);
     navy.ships.hp[r] = 75_000;
+    const ce = navy.ww.economy.country(FRA)!;
+    expect(ce.totals.dock).toBe(1);
+    expect(ce.docksLent).toBe(0);
     dailyRepair(navy, FRA, 0);
-    // The ship holds what lane E's lendDocks lent (France has one dockyard:
-    // 1 with E's lending; the foundation's stub lends all it is asked) and
-    // repairs at that share of Lyon's 1.3% a day.
-    const lent = navy.ships.docks[r];
-    expect(lent).toBeGreaterThanOrEqual(1);
-    expect(lent).toBeLessThanOrEqual(2);
-    expect(navy.ships.hp[r] - 75_000).toBe(
-      repairDayMilli(150_000, 1, 0, lent, 2),
-    );
+    // Lane E's lendDocks lends France's one dockyard (docksLent 1, the
+    // lines lose it tomorrow); the battleship holds it and repairs at half
+    // of Lyon's 1.3% a day.
+    expect(ce.docksLent).toBe(1);
+    expect(navy.ships.docks[r]).toBe(1);
+    expect(navy.ships.hp[r] - 75_000).toBe(975);
   });
 
   it("repair places: the lowest HP ratio first, capital ships take two", async () => {
@@ -95,6 +95,10 @@ describe("repairs (spec §5.4, §7.1)", () => {
     navy.ships.hp[d1] = 3_000;
     navy.ships.hp[d2] = 7_500;
     navy.ships.hp[bb] = 45_000;
+    // Places, not dockyards, are under test: with lane E's lendDocks
+    // France's one dockyard would leave the second destroyer a place but
+    // nothing to repair with.
+    navy.ww.economy.country(FRA)!.totals.dock = 3;
     dailyRepair(navy, FRA, 0);
     expect(navy.ships.hp[bb]).toBe(45_000);
     expect(navy.ships.docks[bb]).toBe(0);

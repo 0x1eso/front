@@ -43,7 +43,7 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { deckAttackCenti, deckPlanes, loseStrikePlanes } from "./Carriers";
-import { navalPort } from "./Ports";
+import { sendHome } from "./SeaMove";
 import type { AdmiralState, Fleet, NavalBattle, WwNavy } from "./WwNavy";
 
 /** Target groups (spec §9.4): escorts, capital ships, carriers, revealed submarines. */
@@ -62,14 +62,10 @@ const GROUP: Readonly<Record<ShipClass, number>> = {
 };
 const AVOID = ENGAGE_RULES.indexOf("avoid");
 const STRIKE = FLEET_MISSIONS.indexOf("strike");
-const HOLD = FLEET_MISSIONS.indexOf("hold");
 const ST_MOVING = FLEET_STATES.indexOf("moving");
 const ST_ON_STATION = FLEET_STATES.indexOf("on_station");
 const ST_SORTIE = FLEET_STATES.indexOf("sortie");
 const ST_BATTLE = FLEET_STATES.indexOf("battle");
-const ST_RETURNING = FLEET_STATES.indexOf("returning");
-const ST_DOCKED = FLEET_STATES.indexOf("docked");
-const ST_REPAIRING = FLEET_STATES.indexOf("repairing");
 const TACTICIAN = admiralTraitBit("superior_tactician");
 const AVIATOR = admiralTraitBit("aviation_enthusiast");
 const SEA_WOLF = admiralTraitBit("sea_wolf");
@@ -495,47 +491,6 @@ function afterBattle(
     if (escaped) f.resumeDay = day + WW_RESUME_DAYS;
   }
   navy.markFleet(f.id);
-}
-
-/**
- * Home to repair, exactly as lane N1's SeaMove.sendHome (+ arriveFleet,
- * holdFleet), which this branch does not have yet (the integrator may
- * call it instead): returning on the shortest open sea path; already in
- * the home port's harbor zone it docks at once, repairing when it was on
- * a mission (docked for hold and strike); no way home: it holds where it
- * is.
- */
-function sendHome(navy: WwNavy, f: Fleet, tick: number): void {
-  void tick;
-  const z = navy.harborZone(f.home);
-  f.state = ST_RETURNING;
-  f.sortieTarget = 0;
-  f.edge = -1;
-  f.prog = 0;
-  f.need = 0;
-  const p = z === 0 ? null : navy.pathFor(f, [z]);
-  if (p === null) {
-    f.mission = HOLD;
-    f.missionSr = 0;
-    f.path = [];
-    f.dest = 0;
-    f.state = ST_ON_STATION;
-    return;
-  }
-  f.path = p.zones.slice(1);
-  f.dest = p.zones[p.zones.length - 1];
-  if (f.path.length > 0) return;
-  f.path = [];
-  const usable =
-    navy.land.sameSide(f.owner, navy.land.controller[f.home] ?? 0) &&
-    navalPort(navy.ww, f.home) &&
-    z !== 0;
-  if (f.zone === z && usable) {
-    f.docked = f.home;
-    f.dest = 0;
-    f.state =
-      f.mission === HOLD || f.mission === STRIKE ? ST_DOCKED : ST_REPAIRING;
-  }
 }
 
 // ---- A round ----
@@ -1062,6 +1017,7 @@ function sinkings(
       x.dead = true;
       const ci = t.cls[r];
       b.sunk[s][ci]++;
+      navy.noteSunk(b.zone, ci, s, t.nameIdx[r], t.nameOwner[r]);
       if (isNamedBig(navy, r)) {
         b.sunkNamed.push(x.id);
       } else {

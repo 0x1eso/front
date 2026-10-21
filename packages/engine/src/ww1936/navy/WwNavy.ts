@@ -652,6 +652,8 @@ export class WwNavy {
   private navyDirtyCountries = new Set<number>();
   private removedFleetIds: number[] = [];
   private endedBattleZones: number[] = [];
+  /** Screens only: this tick's sinkings per battle zone, [class, side, nameIdx, nameOwner] (NavalBattleSummary.sunk). */
+  private sunkThisTick = new Map<number, [number, number, number, number][]>();
 
   constructor(
     readonly mg: Game,
@@ -707,6 +709,7 @@ export class WwNavy {
   // ---- Clock (spec §2.2-6) ----
 
   tick(ticks: number): void {
+    this.sunkThisTick.clear();
     const prep = this.ww.inPrep(ticks);
     if (!prep) {
       const day = this.ww.day(ticks);
@@ -1675,8 +1678,26 @@ export class WwNavy {
       hpPm: [a.hpPm, d.hpPm],
       orgPm: [a.orgPm, d.orgPm],
       ships: [a.n, d.n],
-      sunk: [],
+      sunk: (this.sunkThisTick.get(b.zone) ?? []).map(
+        (x): [number, number, number, number] => [x[0], x[1], x[2], x[3]],
+      ),
     };
+  }
+
+  /** N2's sinkings: a ship of `side` sank in the battle in `zone` this tick (screens only). */
+  noteSunk(
+    zone: number,
+    cls: number,
+    side: number,
+    nameIdx: number,
+    nameOwner: number,
+  ): void {
+    let l = this.sunkThisTick.get(zone);
+    if (l === undefined) {
+      l = [];
+      this.sunkThisTick.set(zone, l);
+    }
+    l.push([cls, side, nameIdx, nameOwner]);
   }
 
   private seaRegionData(i: number): SeaRegionData {

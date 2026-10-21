@@ -6214,7 +6214,8 @@
       "news_united_nations": "Twenty-six nations sign the Declaration by United Nations in Washington.",
       "news_vienna_award_1": "First Vienna Award: southern Slovakia passes to Hungary.",
       "news_vienna_award_2": "Second Vienna Award: northern Transylvania passes to Hungary.",
-      "sun_poland": "The Soviet Union invades Poland from the east"
+      "sun_poland": "The Soviet Union invades Poland from the east",
+      "ww1936_ship_sunk_named": "{country}'s {cls} {ship} has been sunk in the {sr}."
     },
     "panel": {
       "my_wars": "My wars",

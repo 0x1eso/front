@@ -5666,7 +5666,8 @@
       "news_united_nations": "26개국이 워싱턴에서 연합국 공동 선언에 서명했다.",
       "news_vienna_award_1": "제1차 빈 중재로 슬로바키아 남부가 헝가리로 넘어갔다.",
       "news_vienna_award_2": "제2차 빈 중재로 북트란실바니아가 헝가리로 넘어갔다.",
-      "sun_poland": "소련이 동쪽에서 폴란드를 침공했다"
+      "sun_poland": "소련이 동쪽에서 폴란드를 침공했다",
+      "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다."
     },
     "panel": {
       "my_wars": "내 전쟁",

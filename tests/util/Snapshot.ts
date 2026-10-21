@@ -227,6 +227,7 @@ export const DERIVED_FIELDS = new Set<string>([
   "navyDirtyCountries",
   "removedFleetIds",
   "endedBattleZones",
+  "sunkThisTick",
   "deploysBySr",
   "deploysByBase",
   "planeStatsMemo",

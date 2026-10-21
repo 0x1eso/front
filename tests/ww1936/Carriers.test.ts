@@ -186,6 +186,33 @@ describe("carriers (spec §9.4, §9.6, §13.4)", () => {
     expect(stock2 + out2).toBe(stock1 + out1);
   });
 
+  it("enemy deck fighters shoot strike planes down (A1's airDuelMilli)", async () => {
+    // As "deck planes are conserved", but the two Italian carriers carry
+    // fighters: the first strike (round 3) loses AA's one plane plus the
+    // air combat's (lane A1's airDuelMilli, live since A1 merged).
+    const strikeLoss = async (fighters: boolean): Promise<number> => {
+      const { navy, tick } = await seaWar();
+      const g = stockedCarrier(navy);
+      const cv = g.ships[0];
+      toSea(navy, g, ZONE.west);
+      if (fighters) {
+        navy.econ.country(ITA)!.stock[equipKey("cv_fighter", 1)] += 100;
+      }
+      const i = fleet(navy, ITA, [["cv", 1, 2]]);
+      if (fighters) {
+        fillDecks(navy, ITA);
+        for (const id of i.ships) expect(deckSum(navy, id)).toBeGreaterThan(0);
+      }
+      toSea(navy, i, ZONE.west);
+      startNavalBattle(navy, ZONE.west, navy.sideOf(GBR), i.id, tick);
+      const deck0 = deckSum(navy, cv);
+      for (let r = 1; r <= 3; r++) stepNavalBattles(navy, tick);
+      return deck0 - deckSum(navy, cv);
+    };
+    expect(await strikeLoss(false)).toBe(1);
+    expect(await strikeLoss(true)).toBeGreaterThan(1);
+  });
+
   it("a carrier sunk with a full deck takes its planes off the ledger", async () => {
     const { navy, tick } = await seaWar();
     const ce = navy.econ.country(GBR)!;

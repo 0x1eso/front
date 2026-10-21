@@ -169,8 +169,11 @@ describe("naval battles (spec §9)", () => {
     const i = atSea(navy, ITA, ZONE.west, [["dd", 1, 2]]);
     void g;
     const [doomed, other] = i.ships;
-    navy.ships.hp[navy.ships.rowOf(doomed)] = 1;
+    const dr = navy.ships.rowOf(doomed);
+    navy.ships.hp[dr] = 1;
+    const name = [navy.ships.nameIdx[dr], navy.ships.nameOwner[dr]];
     startNavalBattle(navy, ZONE.west, navy.sideOf(GBR), i.id, tick);
+    navy.takeData();
     stepNavalBattles(navy, tick);
     const b = navy.battles.get(ZONE.west)!;
     expect(b.round).toBe(1);
@@ -178,6 +181,9 @@ describe("naval battles (spec §9)", () => {
     expect(i.ships).toEqual([other]);
     expect(battleShipsOf(navy, ZONE.west, 1)).toEqual([other]);
     expect(b.sunk[1][SHIP_CLASSES.indexOf("dd")]).toBe(1);
+    // The screens' battle line lists this tick's sinking (Task 1's summary).
+    const summary = navy.takeData()!.battles.find((x) => x.zone === ZONE.west)!;
+    expect(summary.sunk).toEqual([[SHIP_CLASSES.indexOf("dd"), 1, ...name]]);
   });
 
   it("a beaten fleet goes home and borrows docks", async () => {
