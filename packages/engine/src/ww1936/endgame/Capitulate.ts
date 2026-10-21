@@ -3,7 +3,9 @@
 // records' member states, the wars (none end for an exile), the forces
 // (X: what escapes goes to the exile while the ships still live), then
 // control, then politics, a takeover card for a human without a host, and
-// the war-end check that opens conferences.
+// the war-end check that opens conferences. A party of a civil war and a
+// subject in its independence war wait for that war's end (lanes C and
+// S) before their land goes to a foreign victor.
 import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { transferOnCapitulation } from "../land/Occupation";
 import { transferRegionPeaceful } from "../land/PoliticsBridge";
@@ -21,16 +23,9 @@ export function capitulate(
   const ww = eg.ww;
   const pol = ww.politics;
   const day = ww.inPrep(tick) ? 0 : ww.day(tick);
-  // Spec §5.1-3: a civil war's loser and an independence war's subject
+  // Spec §5.1-3: a civil war's party and an independence war's subject
   // look for no host.
-  const civil = eg.warsOf(L).some((id) => {
-    const w = eg.war(id);
-    if (w === null || w.ended !== null) return false;
-    return (
-      w.kind === "civil" ||
-      (w.kind === "independence" && eg.sideIndex(w, L) === 0)
-    );
-  });
+  const own = ownWar(eg, L);
   // Spec §5.1-2 (decided before the wars end): what L occupied goes back to
   // a legal owner still at war with it and playing.
   const back: [number, number][] = [];
@@ -48,7 +43,7 @@ export function capitulate(
   }
   // 3–4. Exile, or P0's way (member states first: onWarPairRemoved leaves a
   // non-active member be).
-  const host = civil ? 0 : formExile(eg, L, R, tick) ? eg.exileHost(L) : 0;
+  const host = own ? 0 : formExile(eg, L, R, tick) ? eg.exileHost(L) : 0;
   for (const id of [...eg.warsOf(L)]) {
     const w = eg.war(id);
     if (w === null || w.ended !== null) continue;
@@ -61,21 +56,19 @@ export function capitulate(
   // 2. Control (the legal owner stays L's, spec §5.1-2).
   for (const [r, legal] of back)
     transferRegionPeaceful(ww.land, r, legal, tick);
-  if (R !== 0) {
-    // Land still on its way to the loser goes straight on to its victor.
-    for (const t of ww.transfers()) {
-      if (t.to === L) t.to = R;
-    }
-    transferOnCapitulation(ww.land, L, R);
-  }
+  if (!own) handOver(eg, L, R);
   // 6. Politics (P3: pending events, faction leader succession).
   pol.onCapitulated(L, R, tick);
-  eg.setCountryState(L, CS_GONE);
-  // 7. A human without a host takes over a faction friend (spec §11).
-  const client = eg.humanClientOf(L);
-  if (client !== null && host === 0) offerTakeover(eg, client, L, tick);
+  // 7. Gone; a human without a host takes over a faction friend (spec §11).
+  if (!own) leave(eg, L, host, tick);
   // 8. Wars that ended (spec §4.4) open their conferences.
   checkWarEnds(eg, day, tick);
+  if (own && ww.isCapitulated(L) && eg.countryState(L) !== "gone") {
+    // Its own war goes on without it (another member still fights): the
+    // capitulation's usual way after all.
+    handOver(eg, L, R);
+    leave(eg, L, 0, tick);
+  }
   // 9. Messages (P0 announces the capitulation itself).
   if (host > 0) {
     const params = countryParams(eg, { tag: L, hostTag: host });
@@ -83,6 +76,42 @@ export function capitulate(
     eg.news("news_exiled", params);
   }
   eg.adminDirty = true;
+}
+
+/**
+ * Spec §5.1-3, §4.4: `L` is a party of an ongoing civil war (a side's first
+ * member: lane C's endCivilWar hands its land to the winner), or a subject
+ * fighting its overlord for independence (lane S takes it back as an
+ * integrated puppet).
+ */
+function ownWar(eg: WwEndgame, L: number): boolean {
+  return eg.warsOf(L).some((id) => {
+    const w = eg.war(id);
+    if (w === null || w.ended !== null) return false;
+    const s = eg.sideIndex(w, L);
+    if (s < 0) return false;
+    if (w.kind === "civil") return w.sides[s as 0 | 1].members[0]?.id === L;
+    if (w.kind !== "independence" || s !== 0) return false;
+    const sub = eg.subjectOf(L);
+    return sub !== null && eg.sideIndex(w, sub.overlord) === 1;
+  });
+}
+
+/** Spec §5.1-2: what L still controls goes to its victor (land on its way to L too). */
+function handOver(eg: WwEndgame, L: number, R: number): void {
+  if (R === 0) return;
+  const ww = eg.ww;
+  for (const t of ww.transfers()) {
+    if (t.to === L) t.to = R;
+  }
+  transferOnCapitulation(ww.land, L, R);
+}
+
+/** Spec §5.1-7: the country is gone; its human (no host) gets a takeover card. */
+function leave(eg: WwEndgame, L: number, host: number, tick: number): void {
+  eg.setCountryState(L, CS_GONE);
+  const client = eg.humanClientOf(L);
+  if (client !== null && host === 0) offerTakeover(eg, client, L, tick);
 }
 
 /**

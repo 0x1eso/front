@@ -9,6 +9,7 @@
 // values). The general AI never takes a Korean region.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  DEMAND_KINDS,
   DemandKind,
   PeaceDefaultDemand,
   WW_PEACE_DEMANDS_PER_ROUND,
@@ -20,10 +21,13 @@ import {
   IDEO_FAS,
   IDEO_NEU,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { turnOrder } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
-  maxReparations,
-  turnOrder,
-} from "@openfront/engine-lib/ww1936/EndgameRules";
+  PeaceFacts,
+  peacePickShips,
+  peaceReparationsRoom,
+  peaceZoneRegions,
+} from "@openfront/engine-lib/ww1936/PeaceRules";
 import {
   idHash,
   P_PEACE,
@@ -40,13 +44,12 @@ import {
   isMajor,
   KIND,
   ledFaction,
-  pickShips,
+  peaceFacts,
   priceOf,
   REGION_KINDS,
   regionCost,
   stored,
   takenMap,
-  zoneRegions,
 } from "./Conference";
 import type { Conference, StoredDemand, WwEndgame } from "./WwEndgame";
 
@@ -84,6 +87,7 @@ export function aiDemands(
   const stake = new Set(c.stake);
   const used = takenMap(c);
   const free = (r: number) => stake.has(r) && !used.has(r);
+  const facts = peaceFacts(eg);
   const out: StoredDemand[] = [];
   let spent = 0;
   const take = (sd: StoredDemand, cost: number): void => {
@@ -94,23 +98,23 @@ export function aiDemands(
     }
   };
   // 1. Korea's zones (always), then the history table.
-  for (const z of koreaPlan(eg, c, used)) {
+  for (const z of koreaPlan(eg, c, used, facts)) {
     if (z.holder !== smallID || out.length >= WW_PEACE_DEMANDS_PER_ROUND) {
       continue;
     }
     const sd = stored("occupation_zone", out.length, z.regions.filter(free));
-    const cost = priceOf(eg, c, smallID, sd, used);
+    const cost = priceOf(eg, c, smallID, sd, used, facts);
     if (cost > 0) take(sd, cost);
   }
   for (const { L, dd } of historyLines(eg, c, smallID)) {
     if (out.length >= WW_PEACE_DEMANDS_PER_ROUND) break;
-    const sd = fromDefault(eg, c, smallID, L, dd, out.length, free);
+    const sd = fromDefault(eg, c, L, dd, out.length, free, facts);
     if (sd === null) continue;
-    const cost = priceOf(eg, c, smallID, sd, used);
+    const cost = priceOf(eg, c, smallID, sd, used, facts);
     if (cost > 0) take(sd, cost);
   }
   // 2. The general AI in the slots left.
-  generalAi(eg, c, part, out, used, spent);
+  generalAi(eg, c, part, out, used, spent, facts);
   return out;
 }
 
@@ -124,6 +128,7 @@ function koreaPlan(
   eg: WwEndgame,
   c: Conference,
   used: ReadonlyMap<number, number>,
+  facts: PeaceFacts,
 ): { group: string; holder: number; regions: number[] }[] {
   const pol = eg.ww.politics;
   const stake = new Set(c.stake);
@@ -152,7 +157,7 @@ function koreaPlan(
           if (regions.length === 0) continue;
           const intended = resolveSelector(ctx, line.by);
           const can = (h: number) =>
-            isPart(h) && zoneRegions(eg, h, regions, free).length > 0;
+            isPart(h) && peaceZoneRegions(facts, h, regions, free).length > 0;
           const holder =
             [intended, ...out.map((o) => o.holder), ...strongest].find(can) ??
             (isPart(intended) ? intended : strongest[0]);
@@ -207,11 +212,11 @@ function groupRegions(eg: WwEndgame, group: string): number[] {
 function fromDefault(
   eg: WwEndgame,
   c: Conference,
-  p: number,
   L: number,
   dd: PeaceDefaultDemand,
   slot: number,
   free: (r: number) => boolean,
+  facts: PeaceFacts,
 ): StoredDemand | null {
   const sc = eg.ww.scenario;
   const loserOf = (t: CountryTag | undefined) => {
@@ -252,7 +257,7 @@ function fromDefault(
         : stored(dd.kind, slot, [], { target: t, beneficiary: t });
     }
     case "reparations": {
-      const k = Math.min(dd.k, reparationsRoom(eg, c, L, free));
+      const k = Math.min(dd.k, peaceReparationsRoom(facts, c, L, free));
       return k < 1 ? null : stored("reparations", slot, [], { target: L, k });
     }
     case "take_navy":
@@ -263,25 +268,13 @@ function fromDefault(
   }
 }
 
-/** Spec §6.4: the factories `L` may still owe (a quarter of what it keeps, less what others claimed). */
-function reparationsRoom(
-  eg: WwEndgame,
-  c: Conference,
-  L: number,
-  free: (r: number) => boolean,
-): number {
-  let civ = 0;
-  for (const r of c.stake) {
-    if (eg.ww.politics.legalOwner[r] === L && free(r)) {
-      civ += effectiveBuildings(eg.ww.economy, r, "civ");
-    }
-  }
-  let owed = 0;
-  for (const s of c.settled) {
-    if (s.kind === KIND.reparations && s.target === L) owed += s.k;
-  }
-  return maxReparations(civ) - owed;
-}
+/** Country-wide demands that need the loser to keep land (spec §6.4). */
+const LIVES: ReadonlySet<DemandKind> = new Set<DemandKind>([
+  "puppet",
+  "change_government",
+  "reparations",
+  "disarm",
+]);
 
 interface Cand {
   kind: DemandKind;
@@ -305,6 +298,7 @@ function generalAi(
   out: StoredDemand[],
   used: Map<number, number>,
   spentBefore: number,
+  facts: PeaceFacts,
 ): void {
   const id = part.id;
   const pol = eg.ww.politics;
@@ -357,8 +351,8 @@ function generalAi(
     if (v <= 0) return;
     const cost =
       sd.regions.length === 1 && (kind === "take" || kind === "take_for")
-        ? regionCost(eg, c, sd.regions[0], id, sd.beneficiary || id)
-        : priceOf(eg, c, id, sd, used);
+        ? regionCost(eg, c, sd.regions[0], id, sd.beneficiary || id, facts)
+        : priceOf(eg, c, id, sd, used, facts);
     if (cost <= 0) return;
     cands.push({ kind, v: jitter(eg, c, id, kind, key, v), cost, key, sd });
   };
@@ -377,7 +371,7 @@ function generalAi(
         stored("take_for", 0, [r], { beneficiary: b.id }),
       );
     }
-    if (zoneRegions(eg, id, [r], free).length > 0) {
+    if (peaceZoneRegions(facts, id, [r], free).length > 0) {
       const pct = dem && isMajor(eg, legal[r]) ? 70 : 20;
       add(
         "occupation_zone",
@@ -432,7 +426,7 @@ function generalAi(
     if (ledFaction(eg, L) >= 0) {
       add("dismantle", 150, L, stored("dismantle", 0, [], { target: L }));
     }
-    const k = reparationsRoom(eg, c, L, free);
+    const k = peaceReparationsRoom(facts, c, L, free);
     if (k >= 1) {
       add(
         "reparations",
@@ -443,7 +437,7 @@ function generalAi(
     }
     if (major) add("disarm", 100, L, stored("disarm", 0, [], { target: L }));
     let w = 0;
-    for (const s of pickShips(eg, c, L, 50)) w += s.w;
+    for (const s of peacePickShips(facts, c, L, 50)) w += s.w;
     if (w > 0) {
       add(
         "take_navy",
@@ -485,9 +479,33 @@ function generalAi(
     (["annex_rest", "puppet", "change_government"] as const).some((k) =>
       country.has(`${KIND[k]}:${L}`),
     );
-  for (const x of cands) {
+  // A demand that needs the loser to live on keeps one of its regions out
+  // of the takes; a demilitarised region waits for the takes (it holds
+  // only on land the loser keeps, spec §6.4).
+  const keep = new Set<number>();
+  for (const s of out) if (LIVES.has(DEMAND_KINDS[s.kind])) keep.add(s.target);
+  const leftOf = (L: number) =>
+    c.stake.filter((r) => legal[r] === L && free(r));
+  const usesOf = (x: Cand): number[] =>
+    x.kind === "release" || x.kind === "liberate"
+      ? c.stake.filter((r) => free(r) && eg.hasCore(x.sd.beneficiary, r))
+      : x.kind === "annex_rest"
+        ? leftOf(x.sd.target)
+        : x.sd.regions;
+  const strands = (regs: readonly number[]) =>
+    [...keep].some((L) => {
+      const left = leftOf(L);
+      return left.length > 0 && left.every((r) => regs.includes(r));
+    });
+  const ordered = [
+    ...cands.filter((x) => x.kind !== "demilitarise"),
+    ...cands.filter((x) => x.kind === "demilitarise"),
+  ];
+  for (const x of ordered) {
     if (spent + x.cost > part.pts) continue;
     const sd = x.sd;
+    if (LIVES.has(x.kind) && leftOf(sd.target).length === 0) continue;
+    if (x.kind !== "demilitarise" && strands(usesOf(x))) continue;
     const regional =
       x.kind === "take" ||
       x.kind === "take_for" ||
@@ -532,6 +550,7 @@ function generalAi(
     }
     spent += x.cost;
     if (!regional) country.add(ck);
+    if (LIVES.has(x.kind)) keep.add(sd.target);
     if (x.kind === "annex_rest") {
       for (const r of c.stake) {
         if (legal[r] === sd.target && free(r)) used.set(r, id);

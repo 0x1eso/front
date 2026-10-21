@@ -27,18 +27,20 @@ import {
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
-  AGG_PCT,
-  aggregateCost,
-  demandCost,
-  dismantleCost,
-  maxReparations,
   participantPoints,
   regionBaseValue,
-  reparationsCost,
   sharePm,
-  takeNavyCost,
   turnOrder,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
+import {
+  expandPeaceDemand,
+  PeaceDemandIn,
+  PeaceFacts,
+  peacePlanCost,
+  peaceRegionCost,
+  planPeaceDemand,
+  REGION_DEMAND_KINDS,
+} from "@openfront/engine-lib/ww1936/PeaceRules";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { effectiveBuildings } from "../economy/Buildings";
 import { transferRegionPeaceful } from "../land/PoliticsBridge";
@@ -46,10 +48,11 @@ import { dissolveFaction, leaveFaction } from "../politics/Factions";
 import { setGovernment } from "../politics/Ideology";
 import { addSpirit } from "../politics/Spirits";
 import { activateCountry, landRegained, releasableTags } from "./Activate";
+import { endCivilWar } from "./CivilWar";
 import { endExile, offerTakeover } from "./Exile";
 import { aiDemands } from "./PeaceAi";
-import { endSubject, makeSubject } from "./Subjects";
-import { loserIds } from "./Wars";
+import { endIndependenceWar, endSubject, makeSubject } from "./Subjects";
+import { loserIds, registerWarEnds } from "./Wars";
 import type { Conference, Settled, StoredDemand, WwEndgame } from "./WwEndgame";
 
 /** DEMAND_KINDS index of each kind (StoredDemand.kind, Settled.kind). */
@@ -58,22 +61,22 @@ export const KIND = Object.fromEntries(
 ) as Record<DemandKind, number>;
 /** Kinds that hand regions out (take, take_group, take_for, annex_rest, occupation_zone, release, liberate). */
 export const REGION_KINDS: ReadonlySet<number> = new Set(
-  (
-    [
-      "take",
-      "take_group",
-      "take_for",
-      "annex_rest",
-      "occupation_zone",
-      "release",
-      "liberate",
-    ] as const
-  ).map((k) => KIND[k]),
+  [...REGION_DEMAND_KINDS].map((k) => KIND[k]),
 );
 /** The arms limitation spirit a disarm treaty puts on (content, spec §6.4). */
 export const ARMS_LIMIT_SPIRIT = "gen_arms_limit";
 
 const asc = (a: number, b: number) => a - b;
+
+// A war's end (Wars.checkWarEnds) opens conferences and hands civil and
+// independence wars to their lanes through these (Wars.ts stays light).
+registerWarEnds({
+  openConference: (eg, warIds, tick) => openConference(eg, warIds, tick),
+  endCivilWar: (eg, warId, winner, tick) =>
+    endCivilWar(eg, warId, winner, tick),
+  endIndependenceWar: (eg, warId, winner, tick) =>
+    endIndependenceWar(eg, warId, winner, tick),
+});
 
 export function conferenceById(eg: WwEndgame, id: number): Conference | null {
   return eg.conferences.find((c) => c.id === id) ?? null;
@@ -139,6 +142,35 @@ export function regionBase(eg: WwEndgame, region: number): number {
   return regionBaseValue(r.vp, f, r.tiles);
 }
 
+/** The engine's facts for the engine-lib demand rules (PeaceRules). */
+export function peaceFacts(eg: WwEndgame): PeaceFacts {
+  const ww = eg.ww;
+  return {
+    controller: (r) => ww.land.controller[r] ?? 0,
+    legalOwner: (r) => ww.politics.legalOwner[r] ?? 0,
+    hasCore: (id, r) => eg.hasCore(id, r),
+    neighbours: (r) => ww.scenario.regionNeighbours(r),
+    regionCivs: (r) => effectiveBuildings(ww.economy, r, "civ"),
+    ledFactionSize: (L) => {
+      const idx = ledFaction(eg, L);
+      return idx < 0 ? 0 : (ww.politics.faction(idx)?.members.length ?? 0);
+    },
+    ships: (L) => shipsOf(eg, L),
+  };
+}
+
+/** A stored demand as the engine-lib rules read it. */
+export function demandIn(d: StoredDemand): PeaceDemandIn {
+  return {
+    kind: DEMAND_KINDS[d.kind],
+    regions: d.regions,
+    target: d.target,
+    beneficiary: d.beneficiary,
+    k: d.k,
+    pct: d.pct,
+  };
+}
+
 /**
  * Plan decision 13: the cost of `region` to `p`, received by `beneficiary`
  * (p itself, or take_for's receiver): control, claim and conquest goal by
@@ -150,19 +182,10 @@ export function regionCost(
   region: number,
   p: number,
   beneficiary: number,
+  facts: PeaceFacts = peaceFacts(eg),
 ): number {
-  const i = c.stake.indexOf(region);
-  const base = i >= 0 ? c.base[i] : regionBase(eg, region);
-  const ctrl = eg.ww.land.controller[region] ?? 0;
-  const legal = eg.ww.politics.legalOwner[region] ?? 0;
-  return demandCost(base, {
-    controls: ctrl === p,
-    core: eg.hasCore(beneficiary, region),
-    claim: c.claims.some(([x, r]) => x === p && r === region),
-    conquerGoal: c.conquer.some(([x, l]) => x === p && l === legal),
-    otherControls:
-      ctrl !== p && ctrl !== beneficiary && c.parts.some((x) => x.id === ctrl),
-  });
+  const base = c.stake.includes(region) ? undefined : regionBase(eg, region);
+  return peaceRegionCost(facts, c, region, p, beneficiary, base);
 }
 
 /**
@@ -192,223 +215,6 @@ export function shipsOf(eg: WwEndgame, L: number): { id: number; w: number }[] {
   return out.sort((a, b) => b.w - a.w || a.id - b.id);
 }
 
-/**
- * Spec §6.4 occupation_zone: of `regions` (those `ok`), the ones `p`
- * controls or that border a region it controls, and — the zone is chosen
- * by group — those joined to them through the demand's own regions.
- */
-export function zoneRegions(
-  eg: WwEndgame,
-  p: number,
-  regions: readonly number[],
-  ok: (r: number) => boolean,
-): number[] {
-  const sc = eg.ww.scenario;
-  const ctrl = eg.ww.land.controller;
-  const cand = new Set(regions.filter(ok));
-  const got = new Set<number>();
-  const q: number[] = [];
-  for (const r of [...cand].sort(asc)) {
-    if (ctrl[r] === p || sc.regionNeighbours(r).some((n) => ctrl[n] === p)) {
-      got.add(r);
-      q.push(r);
-    }
-  }
-  for (let h = 0; h < q.length; h++) {
-    for (const n of sc.regionNeighbours(q[h])) {
-      if (!cand.has(n) || got.has(n)) continue;
-      got.add(n);
-      q.push(n);
-    }
-  }
-  return [...got].sort(asc);
-}
-
-const settledOn = (c: Conference, L: number, ...kinds: DemandKind[]) =>
-  c.settled.some(
-    (s) => s.target === L && kinds.some((k) => s.kind === KIND[k]),
-  );
-
-/** What a demand would settle now: regions one by one, or all at one price; null: invalid. */
-type Plan =
-  | { each: [number, number][] }
-  | { all: number[]; cost: number; receiver: number };
-
-/** Spec §6.4 per kind; `free` = still to hand out to this participant. */
-function planDemand(
-  eg: WwEndgame,
-  c: Conference,
-  p: number,
-  d: StoredDemand,
-  free: (r: number) => boolean,
-): Plan | null {
-  const pol = eg.ww.politics;
-  const legal = pol.legalOwner;
-  const L = d.target;
-  const rest = () => c.stake.filter((r) => legal[r] === L && free(r));
-  const costs = (regs: readonly number[], b = p) =>
-    regs.map((r) => regionCost(eg, c, r, p, b));
-  const isPart = (id: number) => c.parts.some((x) => x.id === id);
-  switch (DEMAND_KINDS[d.kind]) {
-    case "take":
-    case "take_group": {
-      const each = d.regions
-        .filter(free)
-        .map((r): [number, number] => [r, regionCost(eg, c, r, p, p)]);
-      return each.length === 0 ? null : { each };
-    }
-    case "take_for": {
-      const b = d.beneficiary;
-      if (b === p || !isPart(b)) return null;
-      const each = d.regions
-        .filter((r) => free(r) && eg.hasCore(b, r))
-        .map((r): [number, number] => [r, regionCost(eg, c, r, p, b)]);
-      return each.length === 0 ? null : { each };
-    }
-    case "annex_rest": {
-      if (!c.losers.includes(L) || settledOn(c, L, "puppet")) return null;
-      const regs = rest();
-      if (regs.length === 0) return null;
-      const cost = aggregateCost(costs(regs), AGG_PCT.annex_rest);
-      return { all: regs, cost, receiver: p };
-    }
-    case "occupation_zone": {
-      const regs = zoneRegions(eg, p, d.regions, free);
-      if (regs.length === 0) return null;
-      const cost = aggregateCost(costs(regs), AGG_PCT.occupation_zone);
-      return { all: regs, cost, receiver: p };
-    }
-    case "puppet": {
-      if (!c.losers.includes(L) || settledOn(c, L, "annex_rest", "puppet")) {
-        return null;
-      }
-      const regs = rest();
-      if (regs.length === 0) return null;
-      return {
-        all: [],
-        cost: aggregateCost(costs(regs), AGG_PCT.puppet),
-        receiver: p,
-      };
-    }
-    case "release":
-    case "liberate": {
-      const T = d.beneficiary;
-      if (T <= 0) return null;
-      const regs = c.stake.filter((r) => free(r) && eg.hasCore(T, r));
-      if (regs.length === 0) return null;
-      const pct =
-        DEMAND_KINDS[d.kind] === "release" ? AGG_PCT.release : AGG_PCT.liberate;
-      return { all: regs, cost: aggregateCost(costs(regs), pct), receiver: T };
-    }
-    case "change_government": {
-      if (
-        !c.losers.includes(L) ||
-        settledOn(c, L, "annex_rest", "puppet", "change_government")
-      ) {
-        return null;
-      }
-      const regs = rest();
-      if (regs.length === 0) return null;
-      const topple = c.topple.some(([x, l]) => x === p && l === L);
-      const pct = topple
-        ? AGG_PCT.change_government_topple
-        : AGG_PCT.change_government;
-      return { all: [], cost: aggregateCost(costs(regs), pct), receiver: p };
-    }
-    case "dismantle": {
-      if (!c.losers.includes(L) || settledOn(c, L, "dismantle")) return null;
-      const idx = ledFaction(eg, L);
-      if (idx < 0) return null;
-      const n = pol.faction(idx)?.members.length ?? 0;
-      return { all: [], cost: dismantleCost(n), receiver: p };
-    }
-    case "demilitarise": {
-      const each = d.regions
-        .filter(
-          (r) =>
-            c.stake.includes(r) &&
-            free(r) &&
-            !c.settled.some(
-              (s) => s.kind === KIND.demilitarise && s.regions.includes(r),
-            ) &&
-            eg.ww.scenario.regionNeighbours(r).some((n) => legal[n] === p),
-        )
-        .map((r): [number, number] => [
-          r,
-          Math.max(
-            1,
-            Math.floor(
-              (regionCost(eg, c, r, p, p) * AGG_PCT.demilitarise) / 100,
-            ),
-          ),
-        ]);
-      return each.length === 0 ? null : { each };
-    }
-    case "reparations": {
-      if (!c.losers.includes(L) || d.k < 1) return null;
-      const regs = rest();
-      if (regs.length === 0) return null;
-      let civ = 0;
-      for (const r of regs) civ += effectiveBuildings(eg.ww.economy, r, "civ");
-      let owed = 0;
-      for (const s of c.settled) {
-        if (s.kind === KIND.reparations && s.target === L) owed += s.k;
-      }
-      if (owed + d.k > maxReparations(civ)) return null;
-      return { all: [], cost: reparationsCost(d.k), receiver: p };
-    }
-    case "disarm": {
-      if (!c.losers.includes(L) || settledOn(c, L, "disarm")) return null;
-      const regs = rest();
-      if (regs.length === 0) return null;
-      return {
-        all: [],
-        cost: aggregateCost(costs(regs), AGG_PCT.disarm),
-        receiver: p,
-      };
-    }
-    case "take_navy": {
-      if (!c.losers.includes(L)) return null;
-      const ships = pickShips(eg, c, L, d.pct);
-      if (ships.length === 0) return null;
-      let w = 0;
-      for (const s of ships) w += s.w;
-      return {
-        all: ships.map((s) => s.id),
-        cost: takeNavyCost(w),
-        receiver: p,
-      };
-    }
-    default:
-      return null;
-  }
-}
-
-/** Spec §6.4 take_navy: the heaviest of L's ships not yet handed over, up to `pct`% of their weight. */
-export function pickShips(
-  eg: WwEndgame,
-  c: Conference,
-  L: number,
-  pct: number,
-): { id: number; w: number }[] {
-  const gone = new Set<number>();
-  for (const s of c.settled) {
-    if (s.kind === KIND.take_navy) for (const id of s.regions) gone.add(id);
-  }
-  const ships = shipsOf(eg, L).filter((s) => !gone.has(s.id));
-  let total = 0;
-  for (const s of ships) total += s.w;
-  const want = Math.floor((total * pct) / 100);
-  const out: { id: number; w: number }[] = [];
-  let sum = 0;
-  for (const s of ships) {
-    if (sum + s.w > want) continue;
-    out.push(s);
-    sum += s.w;
-  }
-  return out;
-}
-
 /** The regions settled so far (any participant), region → receiver. */
 export function takenMap(c: Conference): Map<number, number> {
   const taken = new Map<number, number>();
@@ -419,23 +225,24 @@ export function takenMap(c: Conference): Map<number, number> {
   return taken;
 }
 
-/** A demand's price now, for the card and the AI (no reservations, no points). */
+/** A demand's price now, for the card and the AI (no reservations, no points; 0: it can't be settled). */
 export function priceOf(
   eg: WwEndgame,
   c: Conference,
   p: number,
   d: StoredDemand,
   taken: ReadonlyMap<number, number> = takenMap(c),
+  facts: PeaceFacts = peaceFacts(eg),
 ): number {
   const stake = new Set(c.stake);
-  const plan = planDemand(eg, c, p, d, (r) => stake.has(r) && !taken.has(r));
-  if (plan === null) return 0;
-  if ("each" in plan) {
-    let s = 0;
-    for (const [, cost] of plan.each) s += cost;
-    return s;
-  }
-  return plan.cost;
+  const plan = planPeaceDemand(
+    facts,
+    c,
+    p,
+    demandIn(d),
+    (r) => stake.has(r) && !taken.has(r),
+  );
+  return typeof plan === "string" ? 0 : peacePlanCost(plan);
 }
 
 // ---- Opening (spec §6.1–§6.2, plan decisions 12, 14, 34) ----
@@ -462,8 +269,9 @@ export function openConference(
   const ws = new Map<number, number>();
   for (const w of wars) {
     for (const m of w.sides[w.ended!.winner as 0 | 1].members) {
+      // Spec §6.1: the winners still playing (an exile plays).
       if (m.state !== "active" && m.state !== "exiled") continue;
-      if (loserSet.has(m.id)) continue;
+      if (loserSet.has(m.id) || !eg.isActor(m.id)) continue;
       ws.set(m.id, (ws.get(m.id) ?? 0) + m.wsMilli);
     }
   }
@@ -627,67 +435,24 @@ export function expandDemand(
   d: PeaceDemand,
   slot: number,
 ): StoredDemand | null {
-  const stake = new Set(c.stake);
-  const group = (g: string) => [
-    ...new Set(
-      (eg.ww.politics.content.groupIdx.get(g)?.regions ?? []).filter((r) =>
-        stake.has(r),
-      ),
-    ),
-  ];
-  const loser = (t: number) => c.losers.includes(t);
-  switch (d.kind) {
-    case "take":
-      return stake.has(d.region) ? stored("take", slot, [d.region]) : null;
-    case "take_group": {
-      const regs = group(d.group);
-      return regs.length > 0 ? stored("take_group", slot, regs) : null;
-    }
-    case "take_for": {
-      const b = d.beneficiary;
-      if (b === p || !c.parts.some((x) => x.id === b)) return null;
-      if (!stake.has(d.region) || !eg.hasCore(b, d.region)) return null;
-      return stored("take_for", slot, [d.region], { beneficiary: b });
-    }
-    case "occupation_zone": {
-      if ((d.group === undefined) === (d.region === undefined)) return null;
-      const regs =
-        d.group !== undefined
-          ? group(d.group)
-          : stake.has(d.region!)
-            ? [d.region!]
-            : [];
-      return regs.length > 0 ? stored("occupation_zone", slot, regs) : null;
-    }
-    case "annex_rest":
-    case "puppet":
-    case "change_government":
-    case "dismantle":
-    case "disarm":
-      return loser(d.target)
-        ? stored(d.kind, slot, [], { target: d.target })
-        : null;
-    case "reparations":
-      return loser(d.target) && d.k >= 1
-        ? stored("reparations", slot, [], { target: d.target, k: d.k })
-        : null;
-    case "take_navy":
-      return loser(d.target) && d.pct >= 10 && d.pct <= 50
-        ? stored("take_navy", slot, [], { target: d.target, pct: d.pct })
-        : null;
-    case "release":
-    case "liberate": {
-      if (!releasableTags(eg, c.stake).includes(d.tag)) return null;
-      const t = eg.ww.scenario.smallIdOf(d.tag);
-      return t === 0
-        ? null
-        : stored(d.kind, slot, [], { target: t, beneficiary: t });
-    }
-    case "demilitarise":
-      return stake.has(d.region)
-        ? stored("demilitarise", slot, [d.region])
-        : null;
-  }
+  const content = eg.ww.politics.content;
+  const x = expandPeaceDemand(c, p, d, {
+    groupRegions: (g) => content.groupIdx.get(g)?.regions ?? [],
+    releasable:
+      d.kind === "release" || d.kind === "liberate"
+        ? releasableTags(eg, c.stake)
+        : [],
+    smallIdOf: (tag) => eg.ww.scenario.smallIdOf(tag),
+    hasCore: (id, r) => eg.hasCore(id, r),
+  });
+  return x === null
+    ? null
+    : stored(x.kind, slot, x.regions, {
+        target: x.target,
+        beneficiary: x.beneficiary,
+        k: x.k,
+        pct: x.pct,
+      });
 }
 
 // ---- Rounds (spec §6.5–§6.6, plan decisions 13, 15, 33, 34) ----
@@ -777,6 +542,7 @@ function resolveRound(eg: WwEndgame, c: Conference): number {
   const taken = takenMap(c);
   const reserved = reservations(eg, c, order, taken);
   const stake = new Set(c.stake);
+  const facts = peaceFacts(eg);
   c.lastRound = [];
   let n = 0;
   for (let slot = 0; slot < WW_PEACE_DEMANDS_PER_ROUND; slot++) {
@@ -786,7 +552,7 @@ function resolveRound(eg: WwEndgame, c: Conference): number {
         if (d.slot !== slot) continue;
         const free = (r: number) =>
           stake.has(r) && !taken.has(r) && (reserved.get(r) ?? id) === id;
-        const res = tryDemand(eg, c, part, d, free, taken);
+        const res = tryDemand(eg, c, part, d, free, taken, facts);
         c.lastRound.push({
           by: id,
           kind: d.kind,
@@ -810,10 +576,11 @@ function tryDemand(
   d: StoredDemand,
   free: (r: number) => boolean,
   taken: Map<number, number>,
+  facts: PeaceFacts,
 ): { ok: boolean; regions: number[] } {
   const p = part.id;
-  const plan = planDemand(eg, c, p, d, free);
-  if (plan === null) return { ok: false, regions: [] };
+  const plan = planPeaceDemand(facts, c, p, demandIn(d), free);
+  if (typeof plan === "string") return { ok: false, regions: [] };
   const legal = eg.ww.politics.legalOwner;
   const kind = DEMAND_KINDS[d.kind];
   const row = (s: Partial<Settled>): Settled => ({
@@ -851,7 +618,8 @@ function tryDemand(
   }
   if (plan.cost > part.pts) return { ok: false, regions: [] };
   part.pts -= plan.cost;
-  const regions = kind === "take_navy" ? plan.all : [...plan.all].sort(asc);
+  const regions =
+    kind === "take_navy" ? [...plan.all] : [...plan.all].sort(asc);
   if (REGION_KINDS.has(d.kind)) {
     for (const r of regions) taken.set(r, plan.receiver);
   }
@@ -1067,9 +835,10 @@ function disarm(eg: WwEndgame, L: number, day: number): void {
 
 /**
  * Spec §6.7-11: one line per participant and kind (and receiver or loser):
- * ww1936.peace.line.<kind> with its countries as tags (…Tag params), the
- * regions as comma-joined ids (`regions`, the screens name them) and
- * their count `n`.
+ * ww1936.peace.line.<kind> with lane T's params — `who`, `loser`, `to`,
+ * `tag` as country tags (each also as `…Tag`), `n`, `pct` — and, for the
+ * key's {what}, `group` (the regions are exactly one content group's stake
+ * part) or `region` (one region), plus `regions` (comma-joined ids).
  */
 function treatyLines(
   eg: WwEndgame,
@@ -1142,9 +911,31 @@ function treatyLines(
       const regs = [...g.regions].sort(asc);
       params.n = regs.length;
       params.regions = regs.join(",");
+      // The key's {what}: the screens name the group or the region.
+      if (regs.length === 1) params.region = regs[0];
+      else {
+        const named = groupNamed(eg, c, regs);
+        if (named !== null) params.group = named;
+      }
     }
     return { key: `ww1936.peace.line.${kind}`, params };
   });
+}
+
+/** The content group whose stake part is exactly `regions` (two or more), or null. */
+function groupNamed(
+  eg: WwEndgame,
+  c: Conference,
+  regions: readonly number[],
+): string | null {
+  const want = new Set(regions);
+  const stake = new Set(c.stake);
+  for (const g of eg.ww.politics.content.groups) {
+    const part = new Set(g.regions.filter((r) => stake.has(r)));
+    if (part.size !== want.size) continue;
+    if ([...part].every((r) => want.has(r))) return g.id;
+  }
+  return null;
 }
 
 // ---- The card (spec §21.4, pre-flight §A W × U1) ----

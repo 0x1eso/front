@@ -8,9 +8,6 @@ import {
   WwWarSummary,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
-import { endCivilWar } from "./CivilWar";
-import { openConference } from "./Conference";
-import { endIndependenceWar } from "./Subjects";
 import type { EconAdjust, WwEndgame } from "./WwEndgame";
 
 /** Spec §4.5: war score milli per kill (a ship per supremacy weight). */
@@ -46,60 +43,65 @@ export function loserIds(w: WwWar): number[] {
 }
 
 /**
+ * What a war's end hands on to: the conference (this lane's Conference.ts),
+ * a civil war's end (lane C), an independence war's end (lane S).
+ * Conference.ts registers them when it loads (WwEndgame imports it), so
+ * this module stays light: P4's kill sites import it for the war score.
+ */
+export interface WarEndHooks {
+  openConference(
+    eg: WwEndgame,
+    warIds: readonly number[],
+    tick: number,
+  ): number;
+  endCivilWar(eg: WwEndgame, warId: number, winner: 0 | 1, tick: number): void;
+  endIndependenceWar(
+    eg: WwEndgame,
+    warId: number,
+    winner: 0 | 1,
+    tick: number,
+  ): void;
+}
+let warEnds: WarEndHooks | null = null;
+export function registerWarEnds(h: WarEndHooks): void {
+  warEnds = h;
+}
+function hooks(): WarEndHooks {
+  if (warEnds === null) throw new Error("ww1936: Conference.ts not loaded");
+  return warEnds;
+}
+
+/**
+ * Spec §4.4: a member still fights for its side — active in the record and
+ * playing (lane C: a country wiped off the map without capitulating, a
+ * dead player, is out).
+ */
+function fights(eg: WwEndgame, m: WwWar["sides"][0]["members"][number]) {
+  return m.state === "active" && eg.isActor(m.id);
+}
+
+/**
  * Spec §4.4 (after the day's common step and after a capitulation): a war
  * ends when a side has no active member. Civil and independence wars end
  * by their own rules, a side that only left ends without a winner, an
  * exile-only losing side passes into its host's war; the rest open
- * conferences — same-tick ends sharing a loser as one.
+ * conferences — same-tick ends sharing a loser as one. A member that
+ * stopped playing without capitulating counts as capitulated (HOI4: a
+ * country without land capitulates). Repeats until nothing more ends (a
+ * civil war's end takes its loser out of its other wars).
  */
 export function checkWarEnds(eg: WwEndgame, day: number, tick: number): void {
   const ended: WwWar[] = [];
   let changed = false;
-  for (const w of eg.wars) {
-    if (w.ended !== null) continue;
-    const dead = ([0, 1] as const).filter(
-      (s) => !w.sides[s].members.some((m) => m.state === "active"),
-    );
-    if (dead.length === 0) continue;
-    changed = true;
-    if (dead.length === 2) {
-      w.ended = { day, winner: -1 };
-      continue;
+  for (let more = true; more; ) {
+    more = false;
+    for (const w of eg.wars) {
+      if (w.ended !== null) continue;
+      if (endOne(eg, w, day, tick, ended)) {
+        changed = true;
+        more = true;
+      }
     }
-    const loser = dead[0];
-    const winner = (1 - loser) as 0 | 1;
-    const lm = w.sides[loser].members;
-    if (w.kind === "civil") {
-      w.ended = { day, winner };
-      endCivilWar(eg, w.id, winner, tick);
-      continue;
-    }
-    if (w.kind === "independence" && loser === 0) {
-      w.ended = { day, winner };
-      endIndependenceWar(eg, w.id, winner, tick);
-      continue;
-    }
-    if (lm.every((m) => m.state === "left")) {
-      w.ended = { day, winner: -1 };
-      continue;
-    }
-    const losers = lm.filter(
-      (m) => m.state === "capitulated" || m.state === "exiled",
-    );
-    const passes =
-      losers.length > 0 &&
-      losers.every(
-        (m) =>
-          m.state === "exiled" &&
-          eg.warsOf(m.id).some((x) => x !== w.id && eg.war(x)?.ended === null),
-      );
-    if (passes) {
-      w.ended = { day, winner: -1 };
-      passIntoExileWar(eg, w, loser, day);
-      continue;
-    }
-    w.ended = { day, winner };
-    ended.push(w);
   }
   // Same-tick ends sharing a loser become one conference (spec §4.4):
   // grouped by loser, in war order; each group's wars ascending.
@@ -122,13 +124,75 @@ export function checkWarEnds(eg: WwEndgame, day: number, tick: number): void {
     (a, b) => Math.min(...a.map((w) => w.id)) - Math.min(...b.map((w) => w.id)),
   );
   for (const g of groups) {
-    openConference(
+    hooks().openConference(
       eg,
       g.map((w) => w.id).sort((a, b) => a - b),
       tick,
     );
   }
   if (changed) eg.dirtyWars = true;
+}
+
+/** Spec §4.4 for one ongoing war: true when it ended (a conference's wars go in `ended`). */
+function endOne(
+  eg: WwEndgame,
+  w: WwWar,
+  day: number,
+  tick: number,
+  ended: WwWar[],
+): boolean {
+  const dead = ([0, 1] as const).filter(
+    (s) => !w.sides[s].members.some((m) => fights(eg, m)),
+  );
+  if (dead.length === 0) return false;
+  if (dead.length === 2) {
+    w.ended = { day, winner: -1 };
+    return true;
+  }
+  const loser = dead[0];
+  const winner = (1 - loser) as 0 | 1;
+  const lm = w.sides[loser].members;
+  if (w.kind === "civil") {
+    w.ended = { day, winner };
+    hooks().endCivilWar(eg, w.id, winner, tick);
+    return true;
+  }
+  if (w.kind === "independence" && loser === 0) {
+    w.ended = { day, winner };
+    hooks().endIndependenceWar(eg, w.id, winner, tick);
+    return true;
+  }
+  if (lm.every((m) => m.state === "left")) {
+    w.ended = { day, winner: -1 };
+    return true;
+  }
+  // A member that dropped out without capitulating (no land left) lost.
+  for (const m of lm) {
+    if (m.state === "active") eg.setMemberState(w.id, m.id, "capitulated");
+  }
+  const losers = lm.filter(
+    (m) => m.state === "capitulated" || m.state === "exiled",
+  );
+  const passes =
+    losers.length > 0 &&
+    losers.every(
+      (m) =>
+        m.state === "exiled" &&
+        eg.warsOf(m.id).some((x) => x !== w.id && eg.war(x)?.ended === null),
+    );
+  if (passes) {
+    w.ended = { day, winner: -1 };
+    passIntoExileWar(eg, w, loser, day);
+    return true;
+  }
+  w.ended = { day, winner };
+  // Spec §4.4: an overlord that lost its subject's independence war goes to
+  // a conference like any loser; lane S hears of the end as well.
+  if (w.kind === "independence") {
+    hooks().endIndependenceWar(eg, w.id, winner, tick);
+  }
+  ended.push(w);
+  return true;
 }
 
 /**
