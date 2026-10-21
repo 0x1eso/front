@@ -652,6 +652,8 @@ export class WwNavy {
   private navyDirtyCountries = new Set<number>();
   private removedFleetIds: number[] = [];
   private endedBattleZones: number[] = [];
+  /** Screens only: this tick's sinkings per battle zone, [class, side, nameIdx, nameOwner] (NavalBattleSummary.sunk). */
+  private sunkThisTick = new Map<number, [number, number, number, number][]>();
 
   constructor(
     readonly mg: Game,
@@ -707,6 +709,7 @@ export class WwNavy {
   // ---- Clock (spec §2.2-6) ----
 
   tick(ticks: number): void {
+    this.sunkThisTick.clear();
     const prep = this.ww.inPrep(ticks);
     if (!prep) {
       const day = this.ww.day(ticks);
@@ -1675,8 +1678,26 @@ export class WwNavy {
       hpPm: [a.hpPm, d.hpPm],
       orgPm: [a.orgPm, d.orgPm],
       ships: [a.n, d.n],
-      sunk: [],
+      sunk: (this.sunkThisTick.get(b.zone) ?? []).map(
+        (x): [number, number, number, number] => [x[0], x[1], x[2], x[3]],
+      ),
     };
+  }
+
+  /** N2's sinkings: a ship of `side` sank in the battle in `zone` this tick (screens only). */
+  noteSunk(
+    zone: number,
+    cls: number,
+    side: number,
+    nameIdx: number,
+    nameOwner: number,
+  ): void {
+    let l = this.sunkThisTick.get(zone);
+    if (l === undefined) {
+      l = [];
+      this.sunkThisTick.set(zone, l);
+    }
+    l.push([cls, side, nameIdx, nameOwner]);
   }
 
   private seaRegionData(i: number): SeaRegionData {
@@ -1991,25 +2012,43 @@ export class WwNavy {
   }
 
   /**
-   * Per country (smallID order) the live ships and their HP; per fleet
-   * (id, zone, docked, state, prog); per battle (zone, round); the convoys
-   * sunk; per invasion (army, state, prepDone); per voyage (id, zoneIdx, prog).
+   * Per country (smallID order) the live ships, their HP, organisation and
+   * battle marks (reveal, escape, docks held, in ship order); per fleet
+   * (id, zone, docked, state, prog); per battle (zone, round, retreating,
+   * start HP and organisation); per admiral (id, experience, skills,
+   * usage); each country's navy experience; the convoys sunk; per
+   * invasion (army, state, prepDone, target, voyage); per beachhead
+   * (region, side, until); per landing mark (division, until); per voyage
+   * (id, zoneIdx, prog).
    */
   hash(): number {
     let h = 41;
     const t = this.ships;
-    const n = new Array<number>(this.countryList.length).fill(0);
-    const hp = new Array<number>(this.countryList.length).fill(0);
+    const len = this.countryList.length;
+    const n = new Array<number>(len).fill(0);
+    const hp = new Array<number>(len).fill(0);
+    const org = new Array<number>(len).fill(0);
+    const marks = new Array<number>(len).fill(0);
     for (let r = 0; r < t.rows; r++) {
       if (t.id[r] === 0) continue;
-      n[t.owner[r]]++;
-      hp[t.owner[r]] = (hp[t.owner[r]] + t.hp[r]) | 0;
+      const o = t.owner[r];
+      n[o]++;
+      hp[o] = (hp[o] + t.hp[r]) | 0;
+      org[o] = (org[o] + t.org[r]) | 0;
+      marks[o] =
+        (Math.imul(marks[o], 31) +
+          t.reveal[r] * 1024 +
+          (t.escape[r] + 1) * 16 +
+          t.docks[r]) |
+        0;
     }
-    for (let id = 1; id < n.length; id++) {
+    for (let id = 1; id < len; id++) {
       if (n[id] === 0) continue;
       h = (Math.imul(h, 31) + id) >>> 0;
       h = (Math.imul(h, 31) + n[id]) >>> 0;
       h = (Math.imul(h, 31) + hp[id]) >>> 0;
+      h = (Math.imul(h, 31) + org[id]) >>> 0;
+      h = (Math.imul(h, 31) + marks[id]) >>> 0;
     }
     for (const f of this.fleets.values()) {
       h = (Math.imul(h, 31) + f.id) >>> 0;
@@ -2021,12 +2060,42 @@ export class WwNavy {
     for (const b of this.battles.values()) {
       h = (Math.imul(h, 31) + b.zone) >>> 0;
       h = (Math.imul(h, 31) + b.round) >>> 0;
+      h =
+        (Math.imul(h, 31) +
+          (b.retreating[0] ? 1 : 0) +
+          (b.retreating[1] ? 2 : 0)) >>>
+        0;
+      h = (Math.imul(h, 31) + b.startHp[0]) >>> 0;
+      h = (Math.imul(h, 31) + b.startHp[1]) >>> 0;
+      h = (Math.imul(h, 31) + b.startOrg[0]) >>> 0;
+      h = (Math.imul(h, 31) + b.startOrg[1]) >>> 0;
+    }
+    for (const a of this.admirals.values()) {
+      h = (Math.imul(h, 31) + a.id) >>> 0;
+      h = (Math.imul(h, 31) + a.xpMilli) >>> 0;
+      for (const v of a.skills) h = (Math.imul(h, 31) + v) >>> 0;
+      for (const v of a.usage) h = (Math.imul(h, 31) + v) >>> 0;
+    }
+    for (const c of this.countries()) {
+      h = (Math.imul(h, 31) + c.navyXpMilli) >>> 0;
     }
     h = (Math.imul(h, 31) + this.convoysSunkTotal) >>> 0;
     for (const x of this.invasions.values()) {
       h = (Math.imul(h, 31) + x.army) >>> 0;
       h = (Math.imul(h, 31) + x.state) >>> 0;
       h = (Math.imul(h, 31) + x.prepDone) >>> 0;
+      h = (Math.imul(h, 31) + x.target) >>> 0;
+      h = (Math.imul(h, 31) + x.voyage) >>> 0;
+    }
+    // Lane I review: beachheads (region, side, until) and landing marks.
+    for (const [r, b] of this.beachhead) {
+      h = (Math.imul(h, 31) + r) >>> 0;
+      h = (Math.imul(h, 31) + b.side) >>> 0;
+      h = (Math.imul(h, 31) + b.until) >>> 0;
+    }
+    for (const [d, until] of this.landing) {
+      h = (Math.imul(h, 31) + d) >>> 0;
+      h = (Math.imul(h, 31) + until) >>> 0;
     }
     for (const v of this.voyages.values()) {
       h = (Math.imul(h, 31) + v.id) >>> 0;

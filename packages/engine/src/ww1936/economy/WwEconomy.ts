@@ -80,13 +80,13 @@ import type { WorldWar } from "../WorldWar";
 import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
 import { stepConstruction } from "./Construction";
-import { fuelCapOf, settleFuel } from "./Fuel";
+import { fuelCapOf, settleFuel, syntheticOilOf } from "./Fuel";
 import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
 import { stepRepairs } from "./Repairs";
 import { stepResearch } from "./ResearchRun";
-import { tradePartners, validateTrades } from "./Trade";
+import { tradeDelivery, tradePartners, validateTrades } from "./Trade";
 
 export interface Line {
   id: number;
@@ -246,6 +246,8 @@ export class CountryEconomy {
   fuelMilli = 0;
   fuelRatioPm = 1000;
   fuelLedgerMilli = 0;
+  /** The ledger by kind (land, navy, air), milli; Σ = fuelLedgerMilli (lane E: settleFuel moves it to fuelUseMilli). */
+  fuelLedgerKinds: [number, number, number] = [0, 0, 0];
   /** Yesterday's gain and use (land, navy, air), milli: the screens. */
   fuelGainMilli = 0;
   fuelUseMilli: [number, number, number] = [0, 0, 0];
@@ -381,6 +383,7 @@ const CountrySchema = z.object({
   fuelMilli: zInt(),
   fuelRatioPm: zInt(),
   fuelLedgerMilli: zInt(),
+  fuelLedgerKinds: z.tuple([zInt(), zInt(), zInt()]),
   fuelGainMilli: zInt(),
   fuelUseMilli: z.tuple([zInt(), zInt(), zInt()]),
   fuelShortDay: zInt(),
@@ -471,7 +474,6 @@ export class WwEconomy {
   // Derived (DERIVED_FIELDS), rebuilt by rebuildDerived().
   private regionsByCountry: number[][] = [];
   private neighbourLists: number[][] = [];
-  private seaZoneSets: Set<number>[] = [];
   private dirtyCountries = new Set<number>();
   private dirtyRegions = new Set<number>();
   /** P4 (derived): 1 where the naval base works now (afterBuildingChange's portVer). */
@@ -732,16 +734,20 @@ export class WwEconomy {
           ce.stats.extractionPct,
         );
       }
+      // P4 spec §15.5: synthetic oil after the infrastructure factor.
+      produced[0] += syntheticOilOf(this, ce, id, cp);
     }
     const exported = zeros();
     const imported = zeros();
     let paid = 0;
     let received = 0;
+    // P4 spec §10.2 (lane C): a sea deal delivers by its convoys.
+    const deliver = tradeDelivery(this, ce.smallID);
     for (const tr of this._trades) {
       if (tr.buyer === ce.smallID) {
         paid += tr.civs;
         // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
-        imported[tr.res] += tr.civs * tradeUnitsPerCiv(ce.stats);
+        imported[tr.res] += deliver(tr, tr.civs * tradeUnitsPerCiv(ce.stats));
       }
       if (tr.seller === ce.smallID) {
         received += tr.civs;
@@ -993,10 +999,6 @@ export class WwEconomy {
   /** Countries sharing a land border now (by region control), ascending. */
   countryNeighbours(smallID: number): readonly number[] {
     return this.neighbourLists[smallID] ?? [];
-  }
-
-  countrySeaZones(smallID: number): ReadonlySet<number> {
-    return this.seaZoneSets[smallID] ?? new Set();
   }
 
   markCountryDirty(smallID: number): void {
@@ -1281,6 +1283,7 @@ export class WwEconomy {
         fuelMilli: ce.fuelMilli,
         fuelRatioPm: ce.fuelRatioPm,
         fuelLedgerMilli: ce.fuelLedgerMilli,
+        fuelLedgerKinds: [...ce.fuelLedgerKinds] as [number, number, number],
         fuelGainMilli: ce.fuelGainMilli,
         fuelUseMilli: [...ce.fuelUseMilli] as [number, number, number],
         fuelShortDay: ce.fuelShortDay,
@@ -1340,6 +1343,7 @@ export class WwEconomy {
       ce.fuelMilli = c.fuelMilli;
       ce.fuelRatioPm = c.fuelRatioPm;
       ce.fuelLedgerMilli = c.fuelLedgerMilli;
+      ce.fuelLedgerKinds = [...c.fuelLedgerKinds] as [number, number, number];
       ce.fuelGainMilli = c.fuelGainMilli;
       ce.fuelUseMilli = [...c.fuelUseMilli] as [number, number, number];
       ce.fuelShortDay = c.fuelShortDay;
@@ -1390,7 +1394,6 @@ export class WwEconomy {
     );
     this.regionsByCountry = g.regionsByCountry;
     this.neighbourLists = g.neighbours;
-    this.seaZoneSets = g.seaZones;
     for (const ce of this.countries()) ce.tech = techTotals(ce.researched);
     // P4: the effective infrastructure and naval-port bits from the levels and the damage.
     for (const r of this.scenario.landRegions) {

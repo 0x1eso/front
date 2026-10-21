@@ -1,6 +1,8 @@
 // World War 1936 P1: resource trade (spec §7.4, §7.5). The pure parts of
-// the partner and room judgements live in engine-lib (EconomyChecks,
-// EconomyRules.tradeRouteOk) and are shared with the screens.
+// the room judgements live in engine-lib (EconomyChecks) and are shared
+// with the screens. P4 (spec §10.2): partner rule 3 is a sea route between
+// working naval bases (navy/SeaTrade), and a deal the land does not carry
+// goes by the buyer's convoys.
 import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import {
   RESOURCE_COUNT,
@@ -13,53 +15,33 @@ import {
   openTradeBlockOf,
   payableCivs,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
+import { exportCapacity } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
-  exportCapacity,
-  tradeRouteOk,
-} from "@openfront/engine-lib/ww1936/EconomyRules";
+  openSeaTrade,
+  seaNeighbourJudge,
+  seaTradeUnits,
+} from "../navy/SeaTrade";
 import type { CountryEconomy, Trade, WwEconomy } from "./WwEconomy";
 
 /**
  * Why `buyer` may not buy from `seller` now; null if it may (spec §7.4):
- * both living and uncapitulated, no embargo from the seller, and a route.
+ * both living and uncapitulated, no embargo from the seller, and a route
+ * (partnerJudge's answer).
  */
 export function tradePartnerBlock(
   econ: WwEconomy,
   buyer: number,
   seller: number,
 ): WwOrderBlock | null {
-  if (buyer === seller) return "no_partner";
-  const b = econ.mg.playerBySmallID(buyer);
-  const s = econ.mg.playerBySmallID(seller);
-  if (!b.isPlayer() || !s.isPlayer() || !b.isAlive() || !s.isAlive()) {
-    return "no_partner";
-  }
-  if (econ.ww.isCapitulated(buyer) || econ.ww.isCapitulated(seller)) {
-    return "no_partner";
-  }
-  if (econ.country(seller) === null || s.hasEmbargoAgainst(b)) {
-    return "no_partner";
-  }
-  const ww = econ.ww;
-  const ok = tradeRouteOk(
-    {
-      atWar: (x, y) => ww.isAtWar(x, y),
-      sameFaction: (x, y) => ww.sameFaction(x, y),
-      neighbours: (c) => econ.countryNeighbours(c),
-      seaZones: (c) => econ.countrySeaZones(c),
-    },
-    buyer,
-    seller,
-  );
-  return ok ? null : "no_partner";
+  return partnerJudge(econ, buyer)(seller);
 }
 
 /**
- * Countries found by tradeRouteOk's land search from `buyer`: the
- * neighbours of the buyer and of every country reached through a country
- * at peace with the buyer.
+ * Partner rule 2's land search from `buyer`: the neighbours of the buyer
+ * and of every country reached through a country at peace with the buyer.
+ * A seller in it trades by land (P4 spec §10.2: no convoys).
  */
-function landReach(econ: WwEconomy, buyer: number): Set<number> {
+export function landReachOf(econ: WwEconomy, buyer: number): Set<number> {
   const seen = new Set<number>([buyer]);
   const queue = [buyer];
   for (let i = 0; i < queue.length; i++) {
@@ -74,9 +56,13 @@ function landReach(econ: WwEconomy, buyer: number): Set<number> {
 }
 
 /**
- * tradePartnerBlock for one buyer and many sellers: the buyer's land reach
- * is searched once, on the first seller that needs it (pre-flight D13).
- * Gives tradePartnerBlock's answer for every seller.
+ * The partner rules for one buyer and many sellers (spec §7.4): a way for
+ * the goods — land through countries at peace (2) or, P4 spec §10.2, a sea
+ * route between working naval bases (3). A faction (1) carries nothing by
+ * itself any more: "같은 진영이라도 육로가 없으면 해로다", and a deal with
+ * neither way closes (P1 §7.5) rather than bill its factories for nothing
+ * (P4 lane C review). The buyer's land reach and its convoys' reach are
+ * each searched once, on the first seller that needs it (pre-flight D13).
  */
 export function partnerJudge(
   econ: WwEconomy,
@@ -88,8 +74,8 @@ export function partnerJudge(
     return () => "no_partner";
   }
   const buyerPlayer = b;
-  const buyerZones = econ.countrySeaZones(buyer);
   let reach: Set<number> | null = null;
+  let sea: ((seller: number) => boolean) | null = null;
   return (seller) => {
     if (seller === buyer) return "no_partner";
     const s = econ.mg.playerBySmallID(seller);
@@ -100,12 +86,27 @@ export function partnerJudge(
       return "no_partner";
     }
     if (ww.isAtWar(buyer, seller)) return "no_partner";
-    if (ww.sameFaction(buyer, seller)) return null;
-    for (const z of econ.countrySeaZones(seller)) {
-      if (buyerZones.has(z)) return null;
-    }
-    reach ??= landReach(econ, buyer);
-    return reach.has(seller) ? null : "no_partner";
+    reach ??= landReachOf(econ, buyer);
+    if (reach.has(seller)) return null;
+    sea ??= seaNeighbourJudge(ww.navy, buyer);
+    return sea(seller) ? null : "no_partner";
+  };
+}
+
+/**
+ * What `buyer`'s deals deliver today (refreshTotals): a deal the land
+ * carries all its units; any other its sea route's share (P4 spec §10.2:
+ * floor(units × got / need); 0 while the sea is cut).
+ */
+export function tradeDelivery(
+  econ: WwEconomy,
+  buyer: number,
+): (tr: Trade, units: number) => number {
+  let reach: Set<number> | null = null;
+  return (tr, units) => {
+    reach ??= landReachOf(econ, buyer);
+    if (reach.has(tr.seller)) return units;
+    return seaTradeUnits(econ.ww.navy, buyer, tr.id, units);
   };
 }
 
@@ -173,13 +174,17 @@ export function openTrade(
     paidCivs,
   });
   if (block !== null) return block;
+  let tr: Trade;
   if (same === null) {
-    econ.addTrade(buyer, seller, res, civs);
+    tr = econ.addTrade(buyer, seller, res, civs);
   } else {
+    tr = same;
     same.civs += civs;
     econ.markCountryDirty(buyer);
     econ.markCountryDirty(seller);
   }
+  // P4 spec §10.2: a sea deal's route and convoys at once.
+  openSeaTrade(econ.ww.navy, tr.id);
   return null;
 }
 

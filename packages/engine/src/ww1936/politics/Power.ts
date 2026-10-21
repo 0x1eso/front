@@ -49,10 +49,5 @@ export function dailyPower(
   dailyIdeology(pol, id, day, tick);
 }
 
-/** Pays a cost in PP; false (nothing paid) when short or negative. */
-export function payPp(pol: WwPolitics, id: number, pp: number): boolean {
-  const c = pol.country(id);
-  if (c === null || c.ppMilli < 0 || c.ppMilli < pp * 1000) return false;
-  c.ppMilli -= pp * 1000;
-  return true;
-}
+/** PayPp.ts (P3 Task 17: out of the import cycle); kept for callers of this name. */
+export { payPp } from "./PayPp";

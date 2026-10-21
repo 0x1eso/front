@@ -333,7 +333,6 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
     expect(c).toMatchObject({
       cls: "[ww1936.ship_class.bb]",
       ship: "[ww1936.ship.gbr_king_george_v]",
-      name: "[ww1936.ship.gbr_king_george_v]",
     });
     const d = navyNoticeParams(
       "events_display.ww1936_ship_commissioned",
@@ -342,9 +341,7 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
       null,
       false,
     );
-    expect(d.ship).toBe(
-      "[ww1936.navy.ship_numbered] cls=[ww1936.ship_class.dd],n=23",
-    );
+    expect(d.ship).toBe("[ww1936.navy.ship_numbered] n=23");
   });
 
   it("ships lost today: my ships sunk in battle since the day began", () => {

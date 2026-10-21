@@ -173,8 +173,14 @@ export interface SeaTransferAsk {
   convoysNeed: number;
 }
 
-/** Spec §10.4: why the army may not sail; null when it may (lane C). */
+/**
+ * Spec §10.4: why the army may not sail; null when it may. P2's conditions
+ * first (both ends ports of our side, no division fighting or moving),
+ * then a convoy route between the harbors, then the idle convoys.
+ */
 export function seaTransferBlock(a: SeaTransferAsk): WwOrderBlock | null {
-  void a;
-  return null;
+  if (!a.fromPort || !a.toPort) return "no_port";
+  if (a.anyInBattle) return "army_busy";
+  if (a.routeKm === null) return "no_sea_path";
+  return a.convoysFree < a.convoysNeed ? "no_convoys" : null;
 }

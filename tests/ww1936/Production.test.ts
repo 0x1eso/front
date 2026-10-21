@@ -234,7 +234,10 @@ describe("production lines (spec §8)", () => {
     expect(line.lastOutput).toBe(
       Math.floor(lineOutputMilli(1, 1000, outputPct(ita), 1000) / 5),
     );
-    // Britain sells London's tungsten across the sea.
+    // Britain sells London's tungsten across the sea. P4 spec §10.2 (lane
+    // C): the sea way is a route between naval bases; Rome gets one.
+    econ.buildingArray("naval_base")[5] = 1;
+    econ.afterBuildingChange(5, "naval_base");
     expect(openTrade(econ, ita, gbr.smallID, TUNGSTEN, 1)).toBeNull();
     const eff = line.effBp;
     throughDay(runner, 1);

@@ -327,6 +327,7 @@ describe("World War 1936 P2: the land war's wiring", () => {
         "fuelGainMilli",
         "fuelUseMilli",
         "fuelLedgerMilli",
+        "fuelLedgerKinds",
         "fuelRatioPm",
         "fuelShortDay",
       ].sort(),

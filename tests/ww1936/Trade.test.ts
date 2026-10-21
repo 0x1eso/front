@@ -11,16 +11,13 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import {
-  freeCivMilli,
-  TradeGraph,
-  tradeRouteOk,
-} from "@openfront/engine-lib/ww1936/EconomyRules";
+import { freeCivMilli } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { Player } from "@openfront/engine/game/Game";
 import { GameRunner } from "@openfront/engine/GameRunner";
 import {
   closeTrade,
   exportRoom,
+  landReachOf,
   openTrade,
   partnerJudge,
   tradePartnerBlock,
@@ -30,6 +27,7 @@ import type {
   CountryEconomy,
   WwEconomy,
 } from "@openfront/engine/ww1936/economy/WwEconomy";
+import { tradeRoute } from "@openfront/engine/ww1936/navy/SeaTrade";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import {
   byTag,
@@ -44,6 +42,8 @@ import {
 // Every country is human: no AI economy (Task 6) opens deals that would
 // share these sellers' room or these buyers' factories (pre-flight S3).
 const TAGS = ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const;
+const ROME = 5;
+const KRAKOW = 7;
 const clientOf = (tag: CountryTag) =>
   `HUMAN00${TAGS.indexOf(tag as (typeof TAGS)[number]) + 1}`;
 
@@ -77,6 +77,13 @@ async function game(): Promise<Game1936> {
   const p = (tag: CountryTag) => byTag(g, tag);
   const id = (tag: CountryTag) => p(tag).smallID();
   const ce = (tag: CountryTag) => econ.country(id(tag))!;
+  // P4 spec §10.2 (lane C): partner rule 3 is a sea route between working
+  // naval bases. Rome and Krakow get one, so Italy and Poland still reach
+  // London by sea as P1's shared sea zone let them.
+  for (const r of [ROME, KRAKOW]) {
+    econ.buildingArray("naval_base")[r] = 1;
+    econ.afterBuildingChange(r, "naval_base");
+  }
   return {
     runner,
     updates,
@@ -99,12 +106,6 @@ const dayStart = (d: number) => dayStartTick(d, WW_PREP_TICKS);
 /** Runs through day `d`: its common check and every country's step. */
 const throughDay = (runner: GameRunner, d: number) =>
   stepTo(runner, dayStart(d + 1));
-const graphOf = (econ: WwEconomy): TradeGraph => ({
-  atWar: (a, b) => econ.ww.isAtWar(a, b),
-  sameFaction: (a, b) => econ.ww.sameFaction(a, b),
-  neighbours: (c) => econ.countryNeighbours(c),
-  seaZones: (c) => econ.countrySeaZones(c),
-});
 const dealsOf = (econ: WwEconomy) =>
   econ.trades().map((t) => [t.buyer, t.seller, RESOURCE_IDS[t.res], t.civs]);
 
@@ -112,7 +113,7 @@ const dealsOf = (econ: WwEconomy) =>
 withTestPolitics();
 
 describe("trade (spec §7.4–§7.5)", () => {
-  test("faction members trade anywhere", async () => {
+  test("faction members trade over their border", async () => {
     const { runner, econ, id, buy, ww } = await game();
     expect(ww.sameFaction(id("DEU"), id("ITA"))).toBe(true);
     expect(tradePartnerBlock(econ, id("ITA"), id("DEU"))).toBeNull();
@@ -210,36 +211,14 @@ describe("trade (spec §7.4–§7.5)", () => {
   test("a land route runs through countries at peace", async () => {
     const { runner, econ, ww, id, ce, buy, notices } = await game();
     const deu = id("DEU");
-    const g = graphOf(econ);
-    // A partner by land only: no border, no faction, no shared sea.
-    const seller = econ
-      .countries()
-      .map((c) => c.smallID)
-      .find(
-        (s) =>
-          s !== deu &&
-          !econ.countryNeighbours(deu).includes(s) &&
-          !ww.sameFaction(deu, s) &&
-          ![...econ.countrySeaZones(s)].some((z) =>
-            econ.countrySeaZones(deu).has(z),
-          ) &&
-          tradeRouteOk(g, deu, s),
-      );
-    expect(seller).toBe(id("SUN"));
-    // The way's only middle country: a war with it cuts the route.
-    const middle = econ.countryNeighbours(deu).filter(
-      (m) =>
-        !tradeRouteOk(
-          {
-            ...g,
-            atWar: (a, b) =>
-              g.atWar(a, b) || (a === deu && b === m) || (a === m && b === deu),
-          },
-          deu,
-          seller!,
-        ),
-    );
-    expect(middle).toEqual([id("POL")]);
+    // A partner by land only: no border, no faction, no sea route (Kiev
+    // is no naval base on this map), through Poland at peace.
+    const sun = id("SUN");
+    expect(econ.countryNeighbours(deu)).not.toContain(sun);
+    expect(ww.sameFaction(deu, sun)).toBe(false);
+    expect(tradeRoute(ww.navy, deu, sun)).toBeNull();
+    expect(landReachOf(econ, deu).has(sun)).toBe(true);
+    expect(tradePartnerBlock(econ, deu, sun)).toBeNull();
     // The Soviet Union opens for export (pre-flight S10).
     ce("SUN").laws.trade = "export_focus";
     expect(buy("DEU", "SUN", "steel")).toBeNull();
@@ -254,24 +233,24 @@ describe("trade (spec §7.4–§7.5)", () => {
     ]);
   });
 
-  test("a shared sea zone is enough", async () => {
+  test("a sea route between naval bases is enough", async () => {
     const { runner, econ, ww, id, buy } = await game();
     const [ita, gbr] = [id("ITA"), id("GBR")];
     expect(ww.sameFaction(ita, gbr)).toBe(false);
     expect(econ.countryNeighbours(gbr)).toEqual([]);
-    const shared = [...econ.countrySeaZones(gbr)].filter((z) =>
-      econ.countrySeaZones(ita).has(z),
-    );
-    expect(shared.length).toBeGreaterThan(0);
-    // Without the sea there is no way at all.
-    const g = graphOf(econ);
-    expect(tradeRouteOk(g, ita, gbr)).toBe(true);
-    expect(tradeRouteOk({ ...g, seaZones: () => new Set() }, ita, gbr)).toBe(
-      false,
-    );
+    // P4 spec §10.2 (partner rule 3): Rome's base and London's.
+    expect(landReachOf(econ, ita).has(gbr)).toBe(false);
+    expect(tradeRoute(ww.navy, ita, gbr)).not.toBeNull();
     expect(buy("ITA", "GBR", "tungsten")).toBeNull();
     throughDay(runner, 2);
     expect(dealsOf(econ)).toEqual([[ita, gbr, "tungsten", 1]]);
+    // P4 spec §10.2: the sea way is a route between working naval bases —
+    // Rome's bombed out, Italy is no partner of Britain's and the deal goes.
+    econ.buildingArray("naval_base")[ROME] = 0;
+    econ.afterBuildingChange(ROME, "naval_base");
+    expect(tradePartnerBlock(econ, ita, gbr)).toBe("no_partner");
+    throughDay(runner, 3);
+    expect(dealsOf(econ)).toEqual([]);
   });
 
   test("war and embargo close a deal", async () => {
@@ -459,61 +438,5 @@ describe("trade (spec §7.4–§7.5)", () => {
     same();
     ww.addCapitulation(id("POL"), id("DEU"), runner.game.ticks());
     same();
-  });
-});
-
-describe("trade routes (tradeRouteOk, spec §7.4)", () => {
-  // Countries 1..5; a line of land borders 1–2–3–4, 5 alone.
-  const graph = (over: Partial<TradeGraph> = {}): TradeGraph => ({
-    atWar: () => false,
-    sameFaction: () => false,
-    neighbours: (c) =>
-      ({ 1: [2], 2: [1, 3], 3: [2, 4], 4: [3] })[c as 1 | 2 | 3 | 4] ?? [],
-    seaZones: () => new Set(),
-    ...over,
-  });
-  const pair = (a: number, b: number) => (x: number, y: number) =>
-    (x === a && y === b) || (x === b && y === a);
-
-  test("faction members need no way", () => {
-    expect(tradeRouteOk(graph(), 1, 5)).toBe(false);
-    expect(tradeRouteOk(graph({ sameFaction: pair(1, 5) }), 1, 5)).toBe(true);
-  });
-
-  test("a shared sea zone", () => {
-    const zones = (z: Record<number, number[]>) => (c: number) =>
-      new Set(z[c] ?? []);
-    expect(
-      tradeRouteOk(
-        graph({ seaZones: zones({ 1: [40001], 5: [40001] }) }),
-        1,
-        5,
-      ),
-    ).toBe(true);
-    expect(
-      tradeRouteOk(
-        graph({ seaZones: zones({ 1: [40001], 5: [40002] }) }),
-        1,
-        5,
-      ),
-    ).toBe(false);
-  });
-
-  test("land through countries at peace", () => {
-    expect(tradeRouteOk(graph(), 1, 4)).toBe(true);
-    // A war between other countries does not cut the buyer's way.
-    expect(tradeRouteOk(graph({ atWar: pair(2, 3) }), 1, 4)).toBe(true);
-    expect(tradeRouteOk(graph(), 1, 1)).toBe(false);
-  });
-
-  test("a middle country at war with the buyer cuts the way", () => {
-    expect(tradeRouteOk(graph({ atWar: pair(1, 3) }), 1, 4)).toBe(false);
-    // Its direct neighbour is still reached.
-    expect(tradeRouteOk(graph({ atWar: pair(1, 2) }), 1, 2)).toBe(false);
-    expect(tradeRouteOk(graph({ atWar: pair(1, 3) }), 1, 2)).toBe(true);
-    // No deal with an enemy, whatever the faction or the sea.
-    expect(
-      tradeRouteOk(graph({ atWar: pair(1, 2), sameFaction: pair(1, 2) }), 1, 2),
-    ).toBe(false);
   });
 });

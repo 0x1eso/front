@@ -17,6 +17,10 @@ import {
   LawValue,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  SHIP_CLASSES,
+  type ShipClass,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import type {
   Effect,
   Selector,
@@ -73,6 +77,7 @@ import {
   tensionFor,
   warSupportEffects,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { shipNameKey } from "@openfront/engine-lib/ww1936/ShipNames";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
@@ -99,6 +104,7 @@ import {
   factionName,
   factionOfId,
   isCapitulated,
+  isKoreanUi,
   liveFactions,
   today,
   translateCountryParams,
@@ -280,7 +286,46 @@ export function newsText(
   id: string,
   params: Record<string, string | number>,
 ): string {
-  return translateText(`ww1936.news.${id}`, politicsParams(params, game));
+  return translateText(`ww1936.news.${id}`, {
+    ...politicsParams(params, game),
+    ...shipNewsParams(game, params),
+  });
+}
+
+/**
+ * P4 (lane N2, ww1936_ship_sunk_named): a ship by class, name list owner
+ * and nameIdx — its class text and its name ("No. n" when numbered) — and
+ * the strategic region by id.
+ */
+function shipNewsParams(
+  game: WwGame,
+  params: Record<string, string | number>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const { cls, nameIdx, nameTag, sr } = params;
+  if (
+    typeof cls === "string" &&
+    (SHIP_CLASSES as readonly string[]).includes(cls)
+  ) {
+    out.cls = translateText(`ww1936.ship_class.${cls}`);
+    if (typeof nameIdx === "number") {
+      const key =
+        typeof nameTag === "string" && isCountryTag(nameTag)
+          ? shipNameKey(nameTag, cls as ShipClass, nameIdx)
+          : null;
+      out.ship =
+        key !== null
+          ? translateText(`ww1936.ship.${key}`)
+          : translateText("ww1936.navy.ship_numbered", {
+              n: Math.max(0, -nameIdx),
+            });
+    }
+  }
+  if (typeof sr === "number") {
+    const r = game.worldWarScenario()?.sr(sr);
+    out.sr = r === undefined ? "" : isKoreanUi() ? r.nameKo : r.name;
+  }
+  return out;
 }
 
 /** The country a news item or a notice is about (its first "…Tag" param). */

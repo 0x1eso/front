@@ -422,9 +422,13 @@ describe("navy wiring", () => {
     const b = await wwRestore(a, GBR_HUMAN, SEA.map);
     expect(diffGraphs(a.game, b.game)).toEqual([]);
     const nb = navyOf(b);
+    // Lane C's own routes (the AI's sea trades) come along with the seeded one.
     expect([nb.battles.size, nb.routes.size, nb.voyages.size]).toEqual([
-      1, 1, 1,
+      1,
+      navy.routes.size,
+      1,
     ]);
+    expect(nb.routes.get(route)?.got).toBe(3);
     expect(nb.beachhead.get(REGION.lyon)?.until).toBe(60);
     const lines = b.game.worldWar()!.economy.country(TAG_ID.GBR)!.navalLines;
     expect(lines.find((l) => l.id === 77)?.names).toEqual([3, 1]);

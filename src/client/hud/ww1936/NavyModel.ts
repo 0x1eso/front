@@ -223,10 +223,9 @@ export function shipName(
   const key = tag === undefined ? null : shipNameKey(tag, s.cls, s.nameIdx);
   return key !== null
     ? translateText(`ww1936.ship.${key}`)
-    : translateText("ww1936.navy.ship_numbered", {
-        cls: shipClassName(s.cls),
+    : `${shipClassName(s.cls)} ${translateText("ww1936.navy.ship_numbered", {
         n: Math.abs(s.nameIdx),
-      });
+      })}`;
 }
 
 /** A real admiral's table row (ADMIRALS index + 1); null for a titled one or none. */
@@ -1274,8 +1273,8 @@ export class NavyModel {
  * The P4 notices' params in the viewer's words: `sr` (and `zone`) → the
  * strategic region's name (scenario name/nameKo), `srs` → a list of them,
  * `port` → the region, `cls` → ww1936.ship_class.<cls> (the convoy: its
- * equipment name), `ship` → ww1936.ship.<key> or "<class> No. n" (lane T's
- * texts read it as `name` too), `fleet` → the fleet's name, `gained` →
+ * equipment name), `ship` → ww1936.ship.<key> or "No. n" (the text names
+ * the class), `fleet` → the fleet's name, `gained` →
  * `dir` up | down (lane A1's air-control notice).
  */
 export function navyNoticeParams(
@@ -1318,15 +1317,12 @@ export function navyNoticeParams(
       .join(", ");
   }
   if (params.ship !== undefined) {
+    // Lane E: a name key, or the n of a numbered name (the text names the class).
     const s = params.ship;
     out.ship =
       typeof s === "string"
         ? translateText(`ww1936.ship.${s}`)
-        : translateText("ww1936.navy.ship_numbered", {
-            cls: clsText,
-            n: Math.abs(s),
-          });
-    if (params.name === undefined) out.name = out.ship;
+        : translateText("ww1936.navy.ship_numbered", { n: Math.abs(s) });
   }
   // Lane N2's named sinking (world news): the name from its list index.
   if (

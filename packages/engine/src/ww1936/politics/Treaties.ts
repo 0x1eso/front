@@ -18,7 +18,7 @@ import {
 import { sweepRefused } from "../land/PoliticsBridge";
 import { aiAcceptScore } from "./AiPolitics";
 import { callToArmsChoice } from "./Factions";
-import { payPp } from "./Power";
+import { payPp } from "./PayPp";
 import { hasRule, ruleValue } from "./Spirits";
 import { addTension, scaledTension } from "./Tension";
 import type { WwPolitics } from "./WwPolitics";
