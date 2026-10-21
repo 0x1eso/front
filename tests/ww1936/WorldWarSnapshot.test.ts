@@ -358,9 +358,10 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // six content lanes (K1–K6: focuses, events, decisions, persons, beats,
 // 79 countries' politics) merged: same value in four runs. Re-pinned
 // after lanes F (focuses) and E (events, decisions, beats) merged (T and
-// U1 add no engine code): same value in four runs. The controller re-pins
-// it at every P3 merge.
-const WW1936_DIGEST = "82c9a4639ea4391f";
+// U1 add no engine code): same value in four runs. Re-pinned after lane
+// D (diplomacy, factions, treaties, war goals, territory) merged: same
+// value in four runs. The controller re-pins it at every P3 merge.
+const WW1936_DIGEST = "05c0b5d818472a0e";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
