@@ -113,7 +113,7 @@ export const FRA_FOCUSES: FocusDef[] = [
     prereq: [["fra_economic_recovery"]],
     effects: [
       { kind: "build", where: { best: 2 }, building: "mil", count: 2 },
-      { kind: "add_spirit", id: "fra_rearmament_plan" },
+      { kind: "add_spirit", id: "fra_rearmament_plan_spirit" },
     ],
     ai: { base: 10 },
   },

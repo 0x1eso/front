@@ -18,9 +18,9 @@ export const SPIRITS_FRA: SpiritDef[] = [
     icon: "chain_broken",
     stats: { stabilityBp: -500, ppGainPct: -8 },
   },
-  // fra_rearmament_plan
+  // fra_rearmament_plan_spirit
   {
-    id: "fra_rearmament_plan",
+    id: "fra_rearmament_plan_spirit",
     icon: "factory_mil",
     stats: { milConstructionPct: 10 },
   },
