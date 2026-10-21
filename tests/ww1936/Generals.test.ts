@@ -241,6 +241,27 @@ describe("generals (P2 spec §6.2)", () => {
     expect(g.level).toBe(5);
   });
 
+  test("generalXpPct under +100% counts: experience is kept in hundredths (Task 11)", async () => {
+    const { l, id, first } = await germany();
+    const t = l.divisions;
+    const cl = l.country(id)!;
+    const ce = l.econ.country(id)!;
+    const g = cl.generals.find((x) => x.id === first.general)!;
+    const r = t.rowOf(first.divisions[0]);
+    g.xp = 0;
+    ce.stats.generalXpPct = 50;
+    t.lastFight[r] = fightOn(SUMMER);
+    dailySustain(l, id, SUMMER);
+    // +1.50 points for the battle day (the old rounding gave 1.00).
+    expect(g.xp).toBe(150);
+    t.lastFight[r] = fightOn(SUMMER + 1);
+    dailySustain(l, id, SUMMER + 1);
+    expect(g.xp).toBe(300);
+    // The screens get whole points.
+    const detail = l.countryDetail(cl);
+    expect(detail.generals.find((x) => x.id === g.id)!.xp).toBe(3);
+  });
+
   test("60 winter battle days give winter_specialist", async () => {
     const { l, id, cl, first, second } = await germany();
     const t = l.divisions;

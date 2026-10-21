@@ -78,6 +78,17 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     expect(ce.manpower).toBe(1_202_500 - winter);
   });
 
+  test("a continental winter takes men even at rest: Poland in January (Task 11)", async () => {
+    // Warsaw and Krakow are continental (snow or frost all January); a
+    // division at rest in full supply takes a quarter of it, never 0.
+    const runner = await wwRunner({}, [{ clientID: HUMAN, country: "POL" }]);
+    const ww = runner.game.worldWar()!;
+    const pol = byTag(runner.game, "POL");
+    finishDay(runner, 0);
+    finishDay(runner, 1);
+    expect(ww.land.country(pol.smallID())!.casualtiesToday).toBeGreaterThan(0);
+  });
+
   test("the dead do not come back: casualties leave the pool for good", async () => {
     const { runner, ww, econ, deu, ce } = await germany();
     finishDay(runner, 0);

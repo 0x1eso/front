@@ -85,6 +85,44 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     expect(a.order.kind).toBe("idle");
   });
 
+  test("a continental January walk is slower than a clear one: Warsaw to Krakow (Task 11)", async () => {
+    const runner = await wwRunner({}, DEU_POL);
+    const g = runner.game;
+    const l = land(g);
+    const ww = g.worldWar()!;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    clearLand(g);
+    const pol = byTag(g, "POL").smallID();
+    const a = placeArmy(g, "POL", 6, 1);
+    const sc = l.scenario;
+    const need = moveNeed(sc.edge(sc.edgeBetween(6, 7)), sc.landOf(7));
+    const r = rowOf(g, a);
+    const speed = l.baseStatsOf(r).speedCenti;
+    const bonus = l.econ.country(pol)!.stats.speedPct * 100;
+    const infra = l.econ.infra[7];
+    const t0 = g.ticks();
+    expect(l.issue(pol, { kind: "army_move", army: a.id, region: 7 })).toBe(
+      null,
+    );
+    let sum = 0;
+    let arrival = t0 - 1;
+    while (sum < need) {
+      arrival++;
+      const w = weatherAt(
+        ww.day(arrival),
+        sc.latC(7),
+        sc.landOf(7),
+        sc.wcell(7),
+      );
+      expect(["snow", "frozen"]).toContain(w);
+      sum += moveStep(speed, infra, w, 1000, bonus);
+    }
+    const clear = moveStep(speed, infra, "clear", 1000, bonus);
+    expect(arrival - t0 + 1).toBeGreaterThan(Math.ceil(need / clear));
+    while (g.ticks() <= arrival) step(runner);
+    expect(l.divisions.region[rowOf(g, a)]).toBe(7);
+  });
+
   test("an empty enemy region is taken on arrival", async () => {
     const runner = await wwRunner({}, DEU_POL);
     const g = runner.game;

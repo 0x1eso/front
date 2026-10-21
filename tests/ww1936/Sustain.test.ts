@@ -10,6 +10,8 @@ import {
 import {
   GROUND_SLOTS,
   groundSlotOf,
+  MOVE_NONE,
+  MOVE_WALK,
   traitBit,
   WW_ARMY_XP_MAX_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -178,6 +180,14 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     dailySustain(l, id, WINTER + 1);
     const w1 = weather(WINTER + 1);
     expect(t.men[r]).toBe(after(WEATHER[w1].attritionPm * 1000));
+    // On the move: all of it (round 2: the mode branch).
+    t.lossMen[r] = 0;
+    t.supply[r] = 1000;
+    t.mode[r] = MOVE_WALK;
+    dailySustain(l, id, WINTER + 3);
+    t.mode[r] = MOVE_NONE;
+    const w3 = weather(WINTER + 3);
+    expect(t.men[r]).toBe(after(WEATHER[w3].attritionPm * 1000));
     // In a battle: all of it, halved by a winter specialist at the head.
     const g = cl.generals[0];
     g.traits |= traitBit("winter_specialist");

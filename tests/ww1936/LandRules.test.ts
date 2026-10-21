@@ -27,6 +27,7 @@ import {
   excessWidthBp,
   ModInput,
   predictBattle,
+  RIVER_ATTACK_BP,
   roundDamage,
   roundHits,
   TERRAIN,
@@ -37,6 +38,7 @@ import {
   moveNeed,
   moveStep,
   railStep,
+  RIVER_MOVE_PCT,
   seaTicks,
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
@@ -346,6 +348,13 @@ describe("combat (P2 spec §9)", () => {
     expect(divisionMods(neutral({})).mods.attackBp).toBe(10_500);
     // A big river, halved by the engineers.
     expect(divisionMods(neutral({ river: 2 })).mods.attackBp).toBe(8400);
+    // Task 11: a small river −10% (halved by the engineers: −5%), a big
+    // one −40%; moving over them +15% and +50%.
+    expect(RIVER_ATTACK_BP).toEqual([0, -1000, -4000]);
+    expect(line(divisionMods(neutral({ river: 1 })).attackLines, "river")).toBe(
+      -500,
+    );
+    expect(RIVER_MOVE_PCT).toEqual([0, 15, 50]);
     // Fort 3, −15% a level (Task 11), engineers take a quarter off.
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
       -3375,

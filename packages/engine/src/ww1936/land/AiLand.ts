@@ -22,6 +22,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
+  type LandTerrain,
   MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_WALK,
@@ -41,6 +42,7 @@ import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import {
   GEN1,
+  specialCap,
   templateStats,
   templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
@@ -81,8 +83,8 @@ const DEMAND_PER_ARMY_DIVISION = 10;
  */
 export const AI_OFFENSE_DEMAND_PCT = 200;
 export const AI_HOLD_WIDTHS = 2;
-const AI_HOLD_DIV_WIDTH = 20;
-const AI_HOLD_FORT_PCT = 10;
+export const AI_HOLD_DIV_WIDTH = 20;
+export const AI_HOLD_FORT_PCT = 10;
 /** Spec §14.3-4: the capital guard, when the capital is this close to an enemy. */
 export const AI_GUARD_DIVISIONS = 2;
 const GUARD_EDGES = 4;
@@ -114,6 +116,23 @@ export const AI_ATTACK_ORG_PM = 850;
  * day (a regrouping army builds it while its org recovers).
  */
 export const AI_REATTACK_READY_BP = 500;
+/**
+ * Task 11 round 2 (내 판단, HOI4's aggressive plans push on against a
+ * broken enemy): at this strength ratio or more, ‰, a worn army does not
+ * stop to regroup between battles, and a new attack needs no readiness
+ * floor (the war's own readiness gate still holds). Poland's 1939
+ * remnant was taken a region and a five-day pause at a time.
+ */
+export const AI_PURSUIT_RATIO_PM = 2000;
+/**
+ * Task 11 round 2 (내 판단): when a democracy's liberation-only rule
+ * against an aggressor ends (AiDay.liberationLifted): from 1942 (the
+ * Allies' offensives of 1942–44), or at this strength ratio, ‰.
+ */
+export const AI_LIBERATION_END_DAY = dayOfDate("1942-01-01");
+export const AI_LIBERATION_LIFT_RATIO_PM = 3000;
+/** The strength ratio lifts it only after this many days of that war (the Phoney War's eight months). */
+export const AI_LIBERATION_LIFT_WAR_DAYS = 240;
 /**
  * (내 판단, deviation from spec §14.4's "balanced") The stance of the AI's
  * offensives. The plan step (lane M) checks a balanced plan's odds per
@@ -147,7 +166,9 @@ const FRONT_MERGE_UNDER = 4;
  * Task 11: 6,000 km (was 3,000): Britain to Egypt (spec §7.5's example)
  * and Italy to Eritrea are 3,500–4,000 km on the map.
  */
-const SEA_MAX_KM = 6000;
+export const AI_SEA_MAX_KM = 6000;
+/** Task 11 round 2 (내 판단): an army goes by rail to a place this far, km. */
+export const AI_RAIL_MIN_KM = 1000;
 /** (내 판단) At most this many forts and railways wait in the queue. */
 const LAND_BUILDS_QUEUED = 2;
 /** Spec §14.5: Germany's West Wall. */
@@ -155,6 +176,35 @@ const WESTWALL_DAY = dayOfDate("1938-01-01");
 const FORT_MAX = 5;
 
 // ---- Pure decisions (plain data in, plain data out) ----
+
+/**
+ * Spec §14.3-2 and Task 11: one border region's demand, tenths of a
+ * division: 1.2 × the enemy divisions facing it (`facingMilli`, ×1000),
+ * at least 1; on an offensive front × AI_OFFENSE_DEMAND_PCT; on a held
+ * front no more than its combat width for `dirs` enemy regions filled
+ * AI_HOLD_WIDTHS times with AI_HOLD_DIV_WIDTH-wide divisions, a tenth
+ * less per fort level (never under the minimum).
+ */
+export function aiBorderDemand(i: {
+  facingMilli: number;
+  offensive: boolean;
+  land: LandTerrain;
+  dirs: number;
+  fort: number;
+}): number {
+  const d = Math.max(
+    DEMAND_MIN,
+    Math.floor((DEMAND_PER_DIVISION * i.facingMilli) / 1000),
+  );
+  if (i.offensive) return Math.floor((d * AI_OFFENSE_DEMAND_PCT) / 100);
+  const width = combatWidth(i.land, i.dirs);
+  const fort = Math.max(0, Math.min(5, i.fort));
+  const cap = Math.floor(
+    (AI_HOLD_WIDTHS * width * 10 * (100 - AI_HOLD_FORT_PCT * fort)) /
+      (AI_HOLD_DIV_WIDTH * 100),
+  );
+  return Math.max(DEMAND_MIN, Math.min(d, cap));
+}
 
 /** Spec §14.4: the attack ratio an AI wants, ‰. */
 export function aiThresholdPm(personality: AiPersonality): number {
@@ -532,6 +582,11 @@ class AiDay {
   private sideCache: SideView | null = null;
   private standingCache = new Map<number, Map<number, number[]>>();
   private offensiveCache: Set<number> | null = null;
+  /** (front enemy × 65,536 + region) → today's preview and its width. */
+  private regionRatioCache = new Map<
+    number,
+    { ratioPm: number; width: number }
+  >();
   private capDistCache: Int32Array | null = null;
   private warsCache: readonly { a: number; b: number; sinceTick: number }[] =
     [];
@@ -719,7 +774,8 @@ class AiDay {
   private garrisonSlots(enemies: readonly number[]): number[] {
     const land = this.land;
     const sc = land.scenario;
-    const hostile = (c: number) => c !== 0 && enemies.includes(c);
+    const enemySet = new Set(enemies);
+    const hostile = (c: number) => c !== 0 && enemySet.has(c);
     const touching = this.side().regions.filter((r) =>
       sc.edgesOf(r).some((e) => hostile(land.controller[e.to])),
     );
@@ -1024,22 +1080,13 @@ class AiDay {
             if (k === undefined) facing.set(x, (k = this.enemyCount(x, enemy)));
             milli += Math.floor((k * 1000) / touching.get(x)!);
           }
-          const d = Math.max(
-            DEMAND_MIN,
-            Math.floor((DEMAND_PER_DIVISION * milli) / 1000),
-          );
-          if (offensive) {
-            demand += Math.floor((d * AI_OFFENSE_DEMAND_PCT) / 100);
-            continue;
-          }
-          // Held: the region's combat width filled AI_HOLD_WIDTHS times.
-          const width = combatWidth(sc.landOf(b), dirs);
-          const fort = Math.min(5, land.econ.fort[b] ?? 0);
-          const cap = Math.floor(
-            (AI_HOLD_WIDTHS * width * 10 * (100 - AI_HOLD_FORT_PCT * fort)) /
-              (AI_HOLD_DIV_WIDTH * 100),
-          );
-          demand += Math.max(DEMAND_MIN, Math.min(d, cap));
+          demand += aiBorderDemand({
+            facingMilli: milli,
+            offensive,
+            land: sc.landOf(b),
+            dirs,
+            fort: land.econ.fort[b] ?? 0,
+          });
         }
         fronts.push({ enemy, comp: c, border: order, demand });
       }
@@ -1147,7 +1194,7 @@ class AiDay {
         fronts.forEach((f, i) => {
           const to = portsIn(f.comp);
           if (
-            to.some((p) => from.some((q) => sc.regionKm(q, p) <= SEA_MAX_KM))
+            to.some((p) => from.some((q) => sc.regionKm(q, p) <= AI_SEA_MAX_KM))
           ) {
             reach.push(i);
           }
@@ -1193,8 +1240,33 @@ class AiDay {
       ) {
         continue; // The same front: no order, its readiness stays (spec §14.3).
       }
+      if (this.railTransit(a, anchor)) continue;
       this.issue({ kind: "army_front", army: a.id, anchor, enemy: f.enemy });
     }
+  }
+
+  /**
+   * Task 11 round 2 (내 판단): an army standing together farther than
+   * AI_RAIL_MIN_KM from where it is sent takes the train there first (spec
+   * §7.4), when a railway of our side leads to it: the Soviet armies in
+   * the Far East walked three months to the Polish border in 1939.
+   * Its front comes the day after it arrives. False when it walks.
+   */
+  private railTransit(a: Army, to: number): boolean {
+    const land = this.land;
+    const sc = land.scenario;
+    const t = land.divisions;
+    const rows = armyRows(land, a);
+    if (rows.length === 0 || (land.econ.rail[to] ?? 0) < 1) return false;
+    const here = t.region[rows[0]];
+    if (here === to || sc.regionKm(here, to) <= AI_RAIL_MIN_KM) return false;
+    const together = rows.every(
+      (r) =>
+        t.region[r] === here && t.mode[r] === MOVE_NONE && t.battle[r] === 0,
+    );
+    if (!together || (land.econ.rail[here] ?? 0) < 1) return false;
+    if (a.order.kind === "move" && a.order.to === to) return true;
+    return this.issue({ kind: "army_rail", army: a.id, region: to });
   }
 
   /**
@@ -1217,7 +1289,7 @@ class AiDay {
       const fromAnchor = this.bfs([anchor], (r) => comp[r] === f.comp);
       let best = 0;
       for (const p of this.portsOf(f.comp)) {
-        if (sc.regionKm(here, p) > SEA_MAX_KM) continue;
+        if (sc.regionKm(here, p) > AI_SEA_MAX_KM) continue;
         if (best === 0 || fromAnchor[p] < fromAnchor[best]) best = p;
       }
       if (best !== 0) {
@@ -1281,6 +1353,7 @@ class AiDay {
       if (comp[here] !== comp[to]) return;
       if (a.order.kind === "move" && a.order.to === to) return;
       if (a.order.kind === "idle" && here === to) return;
+      if (this.railTransit(a, to)) return;
       this.issue({ kind: "army_move", army: a.id, region: to });
     });
   }
@@ -1307,14 +1380,16 @@ class AiDay {
         // holds; Task 11 (ruling 6): the attack over, a worn army regroups.
         const stop = () => {
           if (org < AI_REGROUP_ORG_PM) return true;
-          const ratio = this.ratioOf(a, o.enemy);
-          if (ratio < STOP_RATIO_PM) return true;
           const fighting = rows.some(
             (r) =>
               land.divisions.battle[r] !== 0 ||
               land.divisions.mode[r] === MOVE_ADVANCE,
           );
-          return !fighting && org < AI_ATTACK_ORG_PM && ratio < RATIO_FREE_PM;
+          const ratio = this.ratioOf(a, o.enemy);
+          if (ratio < STOP_RATIO_PM) return true;
+          return (
+            !fighting && org < AI_ATTACK_ORG_PM && ratio < AI_PURSUIT_RATIO_PM
+          );
         };
         if (stop()) this.issue({ kind: "army_execute", army: a.id, on: false });
         continue;
@@ -1329,12 +1404,12 @@ class AiDay {
       // and never starts under AI_REATTACK_READY_BP (Task 11).
       if (
         ratio < RATIO_FREE_PM &&
-        (a.planBp < AI_REATTACK_READY_BP ||
+        ((ratio < AI_PURSUIT_RATIO_PM && a.planBp < AI_REATTACK_READY_BP) ||
           (a.planBp < READY_BP && this.warDays(o.enemy) < WAR_READY_DAYS))
       ) {
         continue;
       }
-      const targets = this.targetsFor(a, o.enemy);
+      const targets = this.targetsFor(a, o.enemy, ratio);
       if (targets.length > 0) this.plan(a, targets, AI_STANCE);
     }
   }
@@ -1408,20 +1483,32 @@ class AiDay {
     let num = 0;
     let den = 0;
     for (const x of [...across.keys()].sort((p, q) => p - q)) {
-      if (enemyDivisionsIn(land, me, x) === 0) continue;
-      const att: number[] = [];
-      let dirs = 0;
-      for (const e of sc.edgesOf(x)) {
-        const here = (standing.get(e.to) ?? []).filter(
-          (r) => t.battle[r] === 0 || t.battle[r] === x,
-        );
-        if (here.length > 0) dirs++;
-        att.push(...here);
+      // Task 11 round 2: one preview per (front enemy, region) a day; every
+      // army facing that enemy there shares it.
+      const key = a.order.enemy * 65_536 + x;
+      let hit = this.regionRatioCache.get(key);
+      if (hit === undefined) {
+        hit = { ratioPm: 0, width: 0 };
+        if (enemyDivisionsIn(land, me, x) > 0) {
+          const att: number[] = [];
+          let dirs = 0;
+          for (const e of sc.edgesOf(x)) {
+            const here = (standing.get(e.to) ?? []).filter(
+              (r) => t.battle[r] === 0 || t.battle[r] === x,
+            );
+            if (here.length > 0) dirs++;
+            att.push(...here);
+          }
+          if (att.length > 0) {
+            hit.width = combatWidth(sc.landOf(x), dirs);
+            hit.ratioPm = predictAttack(land, att, x).ratioPm;
+          }
+        }
+        this.regionRatioCache.set(key, hit);
       }
-      if (att.length === 0) continue;
-      const w = combatWidth(sc.landOf(x), dirs);
-      num += predictAttack(land, att, x).ratioPm * w;
-      den += w;
+      if (hit.width === 0) continue;
+      num += hit.ratioPm * hit.width;
+      den += hit.width;
     }
     return den === 0 ? RATIO_FREE_PM : Math.floor(num / den);
   }
@@ -1458,7 +1545,7 @@ class AiDay {
    * only its own 1936 regions (controller ruling 3: no offensives of its
    * own beyond liberating them).
    */
-  private targetsFor(a: Army, enemy: number): number[] {
+  private targetsFor(a: Army, enemy: number, ratioPm = 0): number[] {
     const land = this.land;
     const sc = land.scenario;
     const me = this.me;
@@ -1480,7 +1567,8 @@ class AiDay {
       (this.personality === "minor" && enemyMajor) ||
       (this.personality === "democracy" &&
         enemyTag !== undefined &&
-        aiPersonality(enemyTag) === "aggressor");
+        aiPersonality(enemyTag) === "aggressor" &&
+        !this.liberationLifted(enemy, ratioPm));
     const ours = (owner: number) =>
       owner === me ||
       (this.personality === "democracy" && land.ww.sameFaction(me, owner));
@@ -1501,6 +1589,34 @@ class AiDay {
       });
     }
     return aiTargets({ regions });
+  }
+
+  /**
+   * Task 11 round 2 (내 판단): a democracy's liberation-only rule against an
+   * aggressor ends once that enemy's side holds the 1936 capital of a
+   * country of our camp (Paris fallen: the Allies go for Germany), from
+   * AI_LIBERATION_END_DAY on, or when our strength ratio there reaches
+   * AI_LIBERATION_LIFT_RATIO_PM after AI_LIBERATION_LIFT_WAR_DAYS of war
+   * (a thin West Wall in 1939 is no reason).
+   */
+  private liberationLifted(enemy: number, ratioPm: number): boolean {
+    if (this.day >= AI_LIBERATION_END_DAY) return true;
+    if (
+      ratioPm >= AI_LIBERATION_LIFT_RATIO_PM &&
+      this.warDays(enemy) >= AI_LIBERATION_LIFT_WAR_DAYS
+    ) {
+      return true;
+    }
+    const land = this.land;
+    const sc = land.scenario;
+    for (const tag of sc.countries) {
+      const id = sc.smallIdOf(tag);
+      if (id !== this.me && !land.ww.sameFaction(this.me, id)) continue;
+      const cap = sc.regionAt(sc.capitalTile(tag));
+      const c = cap === 0 ? 0 : land.controller[cap];
+      if (c !== 0 && (c === enemy || land.sameSide(enemy, c))) return true;
+    }
+    return false;
   }
 
   private encircled(rows: readonly number[]): boolean {
@@ -1596,10 +1712,19 @@ class AiDay {
       mountain: 0,
       cavalry: 0,
     };
+    // Battalions in use and the special ones (spec §4.1's cap, which
+    // queueTraining enforces): Task 11 round 2.
+    let battalions = 0;
+    let special = 0;
     const add = (tpl: number, n: number) => {
       const role =
         tpl === firstId ? "infantry" : roleOfTemplate(keyOf.get(tpl) ?? "");
       counts[role] += n;
+      const ts = land.templateStatsOf(this.me, tpl);
+      if (ts !== null) {
+        battalions += ts.battalions * n;
+        special += ts.special * n;
+      }
     };
     const t = land.divisions;
     for (const a of land.armiesOf(this.me)) {
@@ -1614,6 +1739,16 @@ class AiDay {
     for (const tpl of cl.templates) {
       const s = land.templateStatsOf(this.me, tpl.id);
       if (s === null) continue;
+      // Task 11 round 2: a template over the special-forces cap is not
+      // offered (its order would be refused every day, and the role it
+      // stands for blocked all training: Germany's mountain division held
+      // its army at 102 divisions from 1939).
+      if (
+        s.special > 0 &&
+        special + s.special > specialCap(battalions + s.battalions)
+      ) {
+        continue;
+      }
       templates.push({
         id: tpl.id,
         key: tpl.key,
