@@ -386,9 +386,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // state and hash, the core table, damage by dealer), on top of all of P4:
 // 023fa53f09c1d2b1 in its lane. Re-pinned after the P5 foundation, map v5
 // (Nagasaki, Sasebo's base, line and silo moved there), the P5 content
-// K1-K5 and its Phase B data fixes: same value in three runs.
+// K1-K5 and its Phase B data fixes: same value in three runs
+// (b4a8ff16c263037f). Re-pinned after P5 batch 19 (lanes O occupation, S
+// subjects, C civil wars, E endgame effects and conditions, T keys): same
+// value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "b4a8ff16c263037f";
+const WW1936_DIGEST = "1bc3bc0601b4afa9";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

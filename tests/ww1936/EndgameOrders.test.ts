@@ -20,7 +20,8 @@ const SAMPLES: [WwOrder, string | null][] = [
   // Lane W: no conference 1 is open.
   [{ kind: "peace_submit", conf: 1, demands: [] }, "conference_closed"],
   [{ kind: "peace_pass", conf: 1 }, "conference_closed"],
-  [{ kind: "occupation_law", of: 0, law: "occ_civil" }, "not_integrable"],
+  // Lane O: Poland's 50 political power pays the 25 (no longer the stub's refusal).
+  [{ kind: "occupation_law", of: 0, law: "occ_civil" }, null],
   [{ kind: "integrate_region", region: 15 }, "not_integrable"],
   [
     {

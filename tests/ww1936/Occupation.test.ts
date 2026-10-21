@@ -1,11 +1,17 @@
 // World War 1936 P2 Task 4: occupation and the tile spread (P2 spec §7.7,
 // §9.6, §9.7, §12). Germany and Poland are humans (no AI land war). The
 // attacks are driven by hand (joinBattle, startHopInto: pre-flight U9, C3).
+// P5 lane O (the second block): occupation rule — resistance, compliance,
+// laws, integration, uprisings (P5 spec §7.3, §8) on the end map.
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   equipKey,
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  CS_GONE,
+  OCCUPATION_LAWS,
+} from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   idleOrder,
   MOVE_ADVANCE,
@@ -19,7 +25,17 @@ import {
   WW_PREP_TICKS,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { resistanceTarget } from "@openfront/engine-lib/ww1936/EndgameRules";
 import type { Game } from "@openfront/engine/game/Game";
+import type { GameRunner } from "@openfront/engine/GameRunner";
+import { applyWwOrder } from "@openfront/engine/ww1936/economy/WwOrderExecution";
+import { needOf } from "@openfront/engine/ww1936/endgame/Garrison";
+import {
+  garrisonOrder,
+  integrateRegion,
+  occView,
+  uprisingNow,
+} from "@openfront/engine/ww1936/endgame/Occupation";
 import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
 import {
   enemyDivisionsIn,
@@ -30,10 +46,15 @@ import {
   SPREAD_BATTLE,
   type WwLand,
 } from "@openfront/engine/ww1936/land/WwLand";
+import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import { END, endId } from "./endFixture";
+import { endgameFixture } from "./endgameFixture";
 import {
   byTag,
   clearLand,
   dropPact,
+  END_MAP,
   HUMAN,
   land,
   placeArmy,
@@ -42,6 +63,7 @@ import {
   stepTo,
   takeRegion,
   WwHuman,
+  wwRunner,
   wwRunnerCapture,
 } from "./util";
 
@@ -387,5 +409,296 @@ describe("World War 1936 P2: occupation and the spread (spec §12)", () => {
     expect(l.controller[KRAKOW]).toBe(deu);
     // Pre-flight C5: Krakow's nearest Soviet region is Kiev.
     expect(l.divisions.region[l.divisions.rowOf(soviet)]).toBe(KIEV);
+  }, 60_000);
+});
+
+// ---- P5 lane O: occupation rule (P5 spec §7.3, §8) ----
+
+describe("World War 1936 P5: occupation rule (spec §8)", () => {
+  beforeEach(() => usePoliticsContent(endgameFixture()));
+  afterEach(() => usePoliticsContent(null));
+
+  /** Germany and Czechoslovakia are humans: no AI moves or laws. */
+  const OCC_HUMANS: WwHuman[] = [
+    { clientID: "HUMANDEU", country: "DEU" },
+    { clientID: "HUMANCSK", country: "CSK" },
+  ];
+  const SLOVAKIA = END.region["slovakia"];
+  const PRAGUE = END.region["prague"];
+  const MUNICH = END.region["munich"];
+
+  /** Past the preparation, an empty board. */
+  async function occGame() {
+    const runner = await wwRunner({}, OCC_HUMANS, END_MAP);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    clearLand(g);
+    stockUp(g, "DEU");
+    return {
+      runner,
+      g,
+      ww,
+      eg: ww.endgame,
+      deu: endId("DEU"),
+      csk: endId("CSK"),
+    };
+  }
+
+  /** Czechoslovakia in exile in London (legitimacy 50%): its cores fight on. */
+  function exileCsk(ww: WorldWar, day: number): void {
+    ww.endgame.exiles.push({
+      smallID: endId("CSK"),
+      host: endId("GBR"),
+      legitBp: 5000,
+      sinceDay: day,
+      zeroDays: 0,
+      lastDelta: 0,
+      faction: -1,
+      capital: END.capital.CSK!,
+    });
+    ww.endgame.rebuildDerived();
+  }
+
+  /** Runs to the first tick of the n-th next day: each country's day runs n times. */
+  function days(runner: GameRunner, n: number): void {
+    const ww = runner.game.worldWar()!;
+    stepTo(
+      runner,
+      dayStartTick(ww.day(runner.game.ticks()) + n, ww.prepEndTick()),
+    );
+  }
+
+  it("resistance rises without a garrison and falls with one", async () => {
+    const { runner, g, ww, eg, deu } = await occGame();
+    exileCsk(ww, ww.day(g.ticks()));
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    expect(eg.isAdministered(SLOVAKIA)).toBe(true);
+    days(runner, 1);
+    const r0 = eg.resBp[SLOVAKIA];
+    days(runner, 10);
+    // Base 3,500 (the exile fights on) × 2 (no garrison) + 500 (legitimacy):
+    // far above, so the most a day, 15 bp.
+    expect(eg.resBp[SLOVAKIA] - r0).toBe(150);
+    expect(eg.supDeci[SLOVAKIA]).toBe(0);
+    expect(occView(eg, SLOVAKIA).targetBp).toBe(
+      resistanceTarget({
+        coreHolderFighting: true,
+        law: "occ_military",
+        compBp: eg.compBp[SLOVAKIA],
+        coveragePct: 0,
+        exileLegitBp: 5000,
+        statPct: 0,
+      }),
+    );
+    // A garrison army in the region covers its need: down 30 bp a day.
+    const a = placeArmy(g, "DEU", SLOVAKIA, 1);
+    expect(garrisonOrder(eg, deu, a.id, 0)).toBeNull();
+    eg.resBp[SLOVAKIA] = 6000;
+    days(runner, 1);
+    const r1 = eg.resBp[SLOVAKIA];
+    expect(r1).toBe(6000 - 30);
+    days(runner, 10);
+    expect(eg.supDeci[SLOVAKIA]).toBeGreaterThanOrEqual(
+      needOf(eg, deu, SLOVAKIA),
+    );
+    expect(r1 - eg.resBp[SLOVAKIA]).toBe(300);
+    expect(occView(eg, SLOVAKIA).targetBp).toBeLessThan(5000);
+  }, 60_000);
+
+  it("compliance sets the factory share of an occupied region", async () => {
+    const { g, ww, eg, deu, csk } = await occGame();
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    eg.compBp[SLOVAKIA] = 5000;
+    // Occupied: 20% + compliance × 60% (military government ±0).
+    expect(eg.regionShare(SLOVAKIA)).toEqual({
+      factoryPct: 50,
+      resourcePct: 50,
+      manpowerPct: 2,
+    });
+    // P1 reads it.
+    expect(ww.economy.shares(SLOVAKIA).controlPct).toBe(50);
+    // Martial rule over Czechoslovak land takes 15 points more.
+    eg.occLaw.push({
+      by: deu,
+      of: csk,
+      law: OCCUPATION_LAWS.indexOf("occ_martial"),
+      lockUntilDay: 0,
+    });
+    expect(eg.regionShare(SLOVAKIA)!.factoryPct).toBe(65);
+    eg.occLaw = [];
+    // Taken (Germany its legal owner, someone else's core): 50% + 25%.
+    ww.politics.setLegalOwner(SLOVAKIA, deu);
+    expect(eg.isAdministered(SLOVAKIA)).toBe(true);
+    expect(eg.regionShare(SLOVAKIA)).toEqual({
+      factoryPct: 75,
+      resourcePct: 75,
+      manpowerPct: 5,
+    });
+    expect(eg.supplyFactorPm(SLOVAKIA)).toBe(1000);
+    eg.resBp[SLOVAKIA] = 10000;
+    expect(eg.supplyFactorPm(SLOVAKIA)).toBe(500);
+  }, 60_000);
+
+  it("a colony with no other core holder is never administered", async () => {
+    const { runner, g, ww, eg, deu } = await occGame();
+    // Munich as a colony held since 1936 (decision 32's Korea rule): no
+    // core of its holder, nobody else's either.
+    eg.removeCore(deu, MUNICH);
+    expect(eg.coreHolders(MUNICH)).toEqual([]);
+    expect(eg.isAdministered(MUNICH)).toBe(false);
+    // Taken by another country, legal owner too: still nobody's occupation.
+    const sun = endId("SUN");
+    ww.land.setController(MUNICH, sun, g.ticks());
+    expect(eg.isAdministered(MUNICH)).toBe(false);
+    ww.politics.setLegalOwner(MUNICH, sun);
+    expect(eg.isAdministered(MUNICH)).toBe(false);
+    days(runner, 20);
+    expect(eg.resBp[MUNICH]).toBe(0);
+    expect(eg.compBp[MUNICH]).toBe(0);
+    expect(eg.occSince[MUNICH]).toBe(0);
+    expect(eg.regionShare(MUNICH)).toBeNull();
+    expect(eg.supplyFactorPm(MUNICH)).toBe(1000);
+    expect(eg.administeredOf(sun)).toEqual([]);
+  }, 60_000);
+
+  it("an uprising returns control to a fighting exile", async () => {
+    const { runner, g, ww, eg, deu, csk } = await occGame();
+    exileCsk(ww, ww.day(g.ticks()));
+    ww.setWar(deu, csk, g.ticks(), { kind: "declare" });
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    // A worn German division that is no garrison: half its little
+    // suppression, under 50% of the need.
+    const a = placeArmy(g, "DEU", SLOVAKIA, 1);
+    ww.land.setMen(ww.land.divisions.rowOf(a.divisions[0]), 100);
+    days(runner, 1);
+    eg.resBp[SLOVAKIA] = 9000;
+    eg.uprDays[SLOVAKIA] = 0;
+    days(runner, 1);
+    expect(eg.uprDays[SLOVAKIA]).toBe(1);
+    expect(eg.supDeci[SLOVAKIA] * 100).toBeLessThan(
+      needOf(eg, deu, SLOVAKIA) * 50,
+    );
+    days(runner, 28);
+    expect(eg.uprDays[SLOVAKIA]).toBe(29);
+    expect(ww.land.controller[SLOVAKIA]).toBe(deu);
+    days(runner, 1);
+    expect(ww.land.controller[SLOVAKIA]).toBe(csk);
+    expect(eg.uprDays[SLOVAKIA]).toBe(0);
+    const l = ww.land;
+    const rows = l.rowsIn(SLOVAKIA).filter((r) => l.divisions.owner[r] === csk);
+    expect(rows).toHaveLength(2);
+    expect(l.armies.get(l.divisions.army[rows[0]])!.divisions).toHaveLength(2);
+    // The German division left the region (retreat, or lost on its island).
+    expect(
+      l
+        .rowsIn(SLOVAKIA)
+        .filter(
+          (r) => l.divisions.owner[r] === deu && l.divisions.mode[r] === 0,
+        ),
+    ).toEqual([]);
+    expect(eg.isAdministered(SLOVAKIA)).toBe(false);
+  }, 60_000);
+
+  it("an uprising moves the victory-point tile with control", async () => {
+    const { runner, g, ww, eg, deu, csk } = await occGame();
+    exileCsk(ww, ww.day(g.ticks()));
+    ww.setWar(deu, csk, g.ticks(), { kind: "declare" });
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    step(runner, 1);
+    expectVpFollowsControl(g, ww.land);
+    uprisingNow(eg, SLOVAKIA, g.ticks());
+    expect(ww.land.controller[SLOVAKIA]).toBe(csk);
+    expectVpFollowsControl(g, ww.land);
+  }, 60_000);
+
+  it("an uprising with nobody to rise for damages the region", async () => {
+    const { g, ww, eg, deu, csk } = await occGame();
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    // Czechoslovakia not at war with Germany: nobody takes the region.
+    const econ = ww.economy;
+    const civ = econ.civ[SLOVAKIA];
+    expect(civ).toBeGreaterThan(0);
+    eg.resBp[SLOVAKIA] = 9000;
+    uprisingNow(eg, SLOVAKIA, g.ticks());
+    expect(ww.land.controller[SLOVAKIA]).toBe(deu);
+    expect(eg.resBp[SLOVAKIA]).toBe(5000);
+    expect(econ.damage.some((d) => d > 0)).toBe(true);
+    expect(ww.isAtWar(deu, csk)).toBe(false);
+  }, 60_000);
+
+  it("the occupation law is locked for 30 days", async () => {
+    const { runner, g, ww, eg, deu, csk } = await occGame();
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    const c = ww.politics.country(deu)!;
+    c.ppMilli = 100_000;
+    const p = byTag(g, "DEU");
+    const send = (law: "occ_civil" | "occ_martial") =>
+      applyWwOrder(
+        g,
+        ww.economy,
+        p,
+        { kind: "occupation_law", of: csk, law },
+        ww.day(g.ticks()),
+      );
+    expect(send("occ_civil")).toBeNull();
+    expect(eg.occupationLawOf(deu, csk)).toBe("occ_civil");
+    expect(c.ppMilli).toBe(75_000);
+    // Other legal owners keep the default.
+    expect(eg.occupationLawOf(deu, endId("POL"))).toBe("occ_military");
+    days(runner, 29);
+    expect(send("occ_martial")).toBe("law_locked");
+    expect(eg.occupationLawOf(deu, csk)).toBe("occ_civil");
+    days(runner, 1);
+    c.ppMilli = 30_000;
+    expect(send("occ_martial")).toBeNull();
+    expect(eg.occupationLawOf(deu, csk)).toBe("occ_martial");
+    // Out of political power: refused.
+    days(runner, 31);
+    c.ppMilli = 10_000;
+    expect(send("occ_civil")).toBe("no_pp");
+  }, 60_000);
+
+  it("integration needs 90% compliance for 180 days", async () => {
+    const { runner, g, ww, eg, deu, csk } = await occGame();
+    // Czechoslovakia is gone (no cap on compliance) and Slovakia Germany's.
+    eg.setCountryState(csk, CS_GONE);
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    ww.politics.setLegalOwner(SLOVAKIA, deu);
+    expect(eg.isAdministered(SLOVAKIA)).toBe(true);
+    days(runner, 1);
+    eg.compBp[SLOVAKIA] = 9500;
+    eg.compHigh[SLOVAKIA] = 0;
+    days(runner, 10);
+    expect(eg.compHigh[SLOVAKIA]).toBe(10);
+    const day = ww.day(g.ticks());
+    const c = ww.politics.country(deu)!;
+    c.ppMilli = 100_000;
+    eg.compHigh[SLOVAKIA] = 179;
+    expect(integrateRegion(eg, deu, SLOVAKIA, day)).toBe("not_integrable");
+    expect(integrateRegion(eg, deu, PRAGUE, day)).toBe("not_integrable");
+    eg.compHigh[SLOVAKIA] = 180;
+    expect(integrateRegion(eg, deu, SLOVAKIA, day)).toBeNull();
+    // 25 + the region's victory points.
+    expect(c.ppMilli).toBe(100_000 - (25 + END.vp[SLOVAKIA]) * 1000);
+    expect(eg.hasCore(deu, SLOVAKIA)).toBe(true);
+    expect(eg.isAdministered(SLOVAKIA)).toBe(false);
+    days(runner, 1);
+    expect(eg.resBp[SLOVAKIA]).toBe(0);
+    expect(eg.compBp[SLOVAKIA]).toBe(0);
+  }, 60_000);
+
+  it("integration is refused while an enemy holds a core there", async () => {
+    const { g, ww, eg, deu, csk } = await occGame();
+    ww.setWar(deu, csk, g.ticks(), { kind: "declare" });
+    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    ww.politics.setLegalOwner(SLOVAKIA, deu);
+    ww.politics.country(deu)!.ppMilli = 100_000;
+    eg.compBp[SLOVAKIA] = 9500;
+    eg.compHigh[SLOVAKIA] = 400;
+    const day = ww.day(g.ticks());
+    expect(integrateRegion(eg, deu, SLOVAKIA, day)).toBe("not_integrable");
+    ww.endWar(deu, csk);
+    expect(integrateRegion(eg, deu, SLOVAKIA, day)).toBeNull();
   }, 60_000);
 });

@@ -80,6 +80,7 @@ import {
   subjectBlock,
   subjectEconomy,
   tradeCivFactorPct,
+  upgradeChoice,
 } from "./Subjects";
 import {
   checkWarEnds,
@@ -423,9 +424,28 @@ export class WwEndgame {
     this.adminCtrlOf = new Int32Array(this.regionCap);
   }
 
+  /**
+   * Sensitivity guard: Korea (north, south) and Taiwan are never administered,
+   * never hold a core, never integrate (no resistance, no compliance there).
+   * Derived from the content's groups (fallback: their region ids).
+   */
+  neverAdministered = new Set<number>();
+  private buildNeverAdministered(): void {
+    const content = this.ww.politics.content;
+    const s = new Set<number>();
+    for (const g of ["korea_north", "korea_south", "taiwan"]) {
+      for (const r of content.groupIdx.get(g)?.regions ?? []) s.add(r);
+    }
+    if (s.size === 0) {
+      for (const r of NEVER_ADMINISTERED_FALLBACK) s.add(r);
+    }
+    this.neverAdministered = s;
+  }
+
   /** Spec §3.1, §7.1, §9.4: country states, 1936 cores, starting subjects. */
   start(): void {
     const sc = this.ww.scenario;
+    this.buildNeverAdministered();
     for (let id = 1; id < this.size; id++) {
       this.countryStateArr[id] = isDormantTag(sc.countries[id - 1])
         ? CS_DORMANT
@@ -924,6 +944,7 @@ export class WwEndgame {
   /** Spec §7.2: full slots push out the smallest-smallID gone (dormant first) holder; none gone → no add. */
   addCore(id: number, region: number): void {
     if (id <= 0 || region <= 0 || region >= this.regionCap) return;
+    if (this.neverAdministered.has(region)) return;
     if (this.hasCore(id, region)) return;
     let h = this.coreHolders(region);
     if (h.length >= WW_CORE_SLOTS) {
@@ -950,6 +971,7 @@ export class WwEndgame {
     );
   }
   private writeCores(region: number, h: number[]): void {
+    if (this.neverAdministered.has(region)) return;
     this.writeCoresRaw(region, h);
     this.dirtyCores.add(region);
     this.markControlChanged(region);
@@ -971,6 +993,7 @@ export class WwEndgame {
    */
   computeAdministered(region: number): boolean {
     const c = this.ww.land.controller[region] ?? 0;
+    if (this.neverAdministered.has(region)) return false;
     if (c === 0 || region <= 0 || region >= this.regionCap) return false;
     let other = false;
     for (let k = 0; k < WW_CORE_SLOTS; k++) {
@@ -1003,6 +1026,8 @@ export class WwEndgame {
       ? this.ww.land.controller[region]
       : 0;
     if (was === now) return;
+    // HOI4: a new occupier starts from nothing; leaving administration ends it.
+    if (now === 0 || was !== 0) this.clearOcc(region);
     if (was !== 0) {
       const l = this.adminByController.get(was) ?? [];
       const kept = l.filter((r) => r !== region);
@@ -1158,7 +1183,10 @@ export class WwEndgame {
    * receiver (gen_diplo_lend_lease by llRequestScore), or null for P3's.
    */
   aiEventChoice(eventId: string, self: number, from: number): string | null {
-    return aiAidEventChoice(this, eventId, self, from); // A
+    return (
+      upgradeChoice(this, eventId, self) ?? // S
+      aiAidEventChoice(this, eventId, self, from) // A
+    );
   }
 
   // ---- News, messages, daily notes ----
@@ -1490,6 +1518,7 @@ export class WwEndgame {
     this.exileIdx = new Map(this.exiles.map((e, i) => [e.smallID, i]));
     // Rebuilt on first use (WorldWar restores the endgame before the land war).
     this.adminDirty = true;
+    this.buildNeverAdministered();
   }
 
   /** Spec §21.5: from state only (never the derived administered list). */
@@ -1515,16 +1544,40 @@ export class WwEndgame {
       mix(c.status);
     }
     for (let r = 1; r < this.regionCap; r++) {
-      if (this.resBp[r] === 0 && this.compBp[r] === 0) continue;
+      if (
+        this.resBp[r] === 0 &&
+        this.compBp[r] === 0 &&
+        this.compHigh[r] === 0 &&
+        this.uprDays[r] === 0 &&
+        this.occSince[r] === 0
+      ) {
+        continue;
+      }
       mix(r);
       mix(this.resBp[r]);
       mix(this.compBp[r]);
+      mix(this.compHigh[r]);
+      mix(this.uprDays[r]);
+      mix(this.occSince[r]);
+    }
+    for (const l of this.occLaw) {
+      mix(l.by * 131 + l.of);
+      mix(l.law);
+      mix(l.lockUntilDay);
     }
     for (const s of this.subjects) {
       mix(s.level);
       mix(s.autBp);
     }
-    for (const e of this.exiles) mix(e.legitBp);
+    // Lane X review: the host, zero days, capital and faction move too.
+    for (const e of this.exiles) {
+      mix(e.smallID);
+      mix(e.legitBp);
+      mix(e.host);
+      mix(e.zeroDays);
+      mix(e.capital);
+      mix(e.faction);
+    }
     for (const l of this.lendLease) mix(l.sentMilli % 1_000_003);
     for (const t of this.inTransit) mix(t.countMilli % 1_000_003);
     for (let i = 0; i < this.coreTable.length; i++) {
@@ -1537,6 +1590,11 @@ export class WwEndgame {
     return h;
   }
 }
+
+/** Korea (north, south) and Taiwan, should the content carry no such groups. */
+const NEVER_ADMINISTERED_FALLBACK = [
+  563, 598, 604, 622, 639, 679, 686, 701, 732, 734, 761, 901,
+];
 
 function byClient(a: [string, number], b: [string, number]): number {
   return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;

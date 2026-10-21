@@ -270,15 +270,18 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(econ.countryNeighbours(deu)).toEqual([ita, fra, pol]);
     expect(econ.countryNeighbours(gbr)).toEqual([]);
     // Germany takes Krakow (P2: the land war's control): at the next day's
-    // common step the economy follows (occupied: Poland still fights) and
-    // Germany borders Russia.
+    // common step the economy follows (occupied: Poland still fights — at
+    // peace, P5 spec §5.3 would hand it back) and Germany borders Russia.
     const krakow = ww.scenario.landRegions.find((r) => r.name === "Krakow")!;
     stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(deu, pol, g.ticks());
     takeRegion(g, krakow.id, "DEU");
     stepTo(runner, dayStartTick(2, WW_PREP_TICKS) + 1);
     expect(econ.controllerOf(krakow.id)).toBe(deu);
     expect(econ.isOccupied(krakow.id)).toBe(true);
-    expect(econ.controlPct(krakow.id)).toBe(50);
+    // P5 §8.6 (lane O): an administered occupied region gives 20% plus
+    // compliance (none yet), replacing P1's 50%.
+    expect(econ.controlPct(krakow.id)).toBe(20);
     expect(econ.manpowerPct(krakow.id)).toBe(0);
     expect(econ.regionsOf(deu)).toContain(krakow.id);
     expect(econ.countryNeighbours(deu)).toContain(sun);
@@ -292,6 +295,8 @@ describe("economy wiring (spec §6, §14)", () => {
     const view = new WwEconomyView(scenario);
     const krakow = scenario.landRegions.find((r) => r.name === "Krakow")!;
     stepTo(runner, WW_PREP_TICKS + 1);
+    // At war: at peace, P5 spec §5.3 hands Krakow back to Poland.
+    ww.setWar(byTag(g, "DEU").smallID(), byTag(g, "POL").smallID(), g.ticks());
     takeRegion(g, krakow.id, "DEU");
     stepTo(runner, dayStartTick(2, WW_PREP_TICKS));
     for (const u of updates) {

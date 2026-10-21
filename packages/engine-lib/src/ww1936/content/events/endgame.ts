@@ -18,6 +18,13 @@ const POL_EXILE: Condition = { kind: "is_exile", who: T("POL") };
 const YUG_EXILE: Condition = { kind: "is_exile", who: T("YUG") };
 const GRC_EXILE: Condition = { kind: "is_exile", who: T("GRC") };
 const FRA_EXILE: Condition = { kind: "is_exile", who: T("FRA") };
+/** Spec §17.6: Poland in exile, Warsaw German-held, the Red Army next to it. */
+export const WARSAW_RISING: Condition = all(
+  { kind: "is_exile" },
+  { kind: "at_war_with", who: T("SUN"), of: T("DEU") },
+  { kind: "occupied_by", group: "warsaw", of: T("DEU") },
+  { kind: "borders_group", who: T("SUN"), group: "warsaw" },
+);
 const SVK_DORMANT: Condition = {
   kind: "country_state",
   tag: "SVK",
@@ -68,8 +75,10 @@ export const ENDGAME_EVENTS: EventDef[] = [
     ],
   },
   {
-    // The 1936-10-22 beat (actor ESR). Three brigades' worth of men and rifles:
-    // the DSL has no generic infantry template for the divisions effect.
+    // The 1936-10-22 beat (actor ESR). Spec §19.1: three infantry divisions
+    // (about half equipped) of 30,000 volunteers. Template "infantry" is
+    // every country's basic infantry (lane E); the men and rifles come
+    // first, so the divisions draw them.
     id: "esr_international_brigades",
     kind: "country",
     picture: "column",
@@ -86,6 +95,12 @@ export const ENDGAME_EVENTS: EventDef[] = [
             type: "infantry_equipment",
             gen: 1,
             count: 1350,
+          },
+          {
+            kind: "divisions",
+            template: "infantry",
+            count: 3,
+            where: "capital",
           },
         ],
       },
@@ -783,7 +798,8 @@ export const ENDGAME_EVENTS: EventDef[] = [
     ],
   },
   {
-    // The 1944-08-01 beat (actor Poland in exile).
+    // The 1944-08-01 beat (actor Poland in exile), once the Red Army
+    // reaches German-held Warsaw (spec §17.6).
     id: "pol_warsaw_uprising",
     kind: "country",
     picture: "crowd",
@@ -791,10 +807,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
       {
         id: "a",
         history: true,
-        available: all(
-          { kind: "is_exile" },
-          { kind: "at_war_with", who: T("SUN"), of: T("DEU") },
-        ),
+        available: WARSAW_RISING,
         ai: { base: 80 },
         effects: [
           { kind: "news", id: "news_warsaw_uprising" },

@@ -103,6 +103,8 @@ const SAMPLE_CONDITIONS: Record<ConditionKind, LeafCondition> = {
   war_score_share_ge: { kind: "war_score_share_ge", of: DEU, pct: 30 },
   in_conference: { kind: "in_conference" },
   legitimacy_ge: { kind: "legitimacy_ge", pct: 50 },
+  // P5 lane E (spec §17.6).
+  borders_group: { kind: "borders_group", group: "warsaw" },
 };
 
 const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {

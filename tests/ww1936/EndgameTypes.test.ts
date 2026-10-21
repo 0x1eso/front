@@ -93,9 +93,11 @@ describe("World War 1936 P5 lists", () => {
     expect(fx[22]).toBe("restore_country");
     expect(fx[23]).toBe("navy_xp");
     const cond = after(CONDITION_KINDS, "fuel_ratio_below");
-    expect(cond).toHaveLength(13);
+    // Lane E appended borders_group (the content's "next to a group" gap).
+    expect(cond).toHaveLength(14);
     expect(cond[0]).toBe("is_exile");
     expect(cond[12]).toBe("legitimacy_ge");
+    expect(cond[13]).toBe("borders_group");
     expect(effectGroup("release")).toBe("endgame");
     expect(effectGroup("navy_xp")).toBe("endgame");
     expect(effectGroup("ships")).toBe("navy");

@@ -129,10 +129,12 @@ describe("politics wiring", () => {
         { id: 7, legalOwner: deu.smallID() },
       ]),
     );
-    // The P1 economy's shares read the legal owner: Germany's own now.
+    // The P1 economy's shares read the legal owner: Germany's own now. It
+    // still holds Poland's core, so P5 §8.6 (lane O) gives the annexed
+    // share, 50% plus compliance (none yet), not P1's 100%.
     expect(ww.economy.shares(6)).toMatchObject({
       occupied: false,
-      controlPct: 100,
+      controlPct: 50,
     });
   });
 

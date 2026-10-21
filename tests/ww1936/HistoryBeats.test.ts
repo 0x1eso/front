@@ -10,6 +10,7 @@ import type {
   EventDef,
   HistoryBeat,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { WW_BEAT_WHEN_WINDOW_DAYS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -169,6 +170,12 @@ const TEST_BEATS: HistoryBeat[] = [
     ...beat("b_t_civil", "DEU", { kind: "declare", target: "POL" }),
     civil: true,
   },
+  // P5 controller ruling: an event beat waiting for a situation, with no
+  // window of its own (the long default).
+  {
+    ...beat("b_t_when_late", "DEU", { kind: "event", id: "t_late_event" }),
+    when: { kind: "flag", flag: "t_late" },
+  },
 ];
 const B = Object.fromEntries(TEST_BEATS.map((b, i) => [b.id, i]));
 const dec = (id: string, d: Partial<DecisionDef>): DecisionDef => ({
@@ -203,6 +210,11 @@ const TEST_EVENTS: EventDef[] = [
     options: [
       { id: "a", ai: { base: 1 }, effects: [mark("t_beat_event_got")] },
     ],
+  },
+  {
+    id: "t_late_event",
+    kind: "country",
+    options: [{ id: "a", ai: { base: 1 }, effects: [mark("t_late_got")] }],
   },
 ];
 const testContent = (beats: readonly HistoryBeat[] = TEST_BEATS) =>
@@ -414,6 +426,27 @@ describe("history beats in the game", () => {
       stepTo(runner, dayStart(6));
       expect(p.country(deu)!.unlocked.has("t_when_got")).toBe(set);
       expect(p.beats[B.b_t_when].done).toBe(true);
+    }
+  });
+
+  it("P5: an event beat waiting for its situation fires when it comes late", async () => {
+    // Controller ruling (owner: history as flavor, situational): a `when`
+    // beat without windowDays waits WW_BEAT_WHEN_WINDOW_DAYS, not 30 days.
+    expect(TEST_BEATS[B.b_t_when_late].windowDays).toBeUndefined();
+    for (const set of [false, true]) {
+      const { runner, p } = await game();
+      const { deu } = ids(runner);
+      onlyBeats(p, [B.b_t_when_late], 2);
+      const tick = runner.game.ticks();
+      runBeats(p, 2 + 400, tick);
+      expect(p.beats[B.b_t_when_late].done).toBe(false);
+      if (set) p.country(deu)!.flags.set("t_late", [0, -1]);
+      runBeats(p, 2 + WW_BEAT_WHEN_WINDOW_DAYS - 1, tick);
+      step(runner);
+      expect(p.country(deu)!.unlocked.has("t_late_got")).toBe(set);
+      expect(p.beats[B.b_t_when_late].done).toBe(set);
+      runBeats(p, 2 + WW_BEAT_WHEN_WINDOW_DAYS, tick);
+      expect(p.beats[B.b_t_when_late].done).toBe(true);
     }
   });
 
