@@ -13,9 +13,6 @@ import {
 import { capitalRegion } from "./Conditions";
 import type { WwPolitics } from "./WwPolitics";
 
-/** Translation key of each line: ww1936.pol.line.<name> (lane T's key table). */
-export const POL_LINE_PREFIX = "ww1936.pol.line.";
-
 /**
  * What the lines read of the map for every country — % of its legal
  * victory points someone else controls (Conditions.lostLegalVpPct), the
@@ -109,40 +106,45 @@ function lines(
   const f = landFacts(pol);
   const lostPct = f.lostPct[id] ?? 0;
   let sum = 0;
-  const add = (name: string, bp: number) => {
+  // Each line's translation key, ww1936.pol.line.<name> (lane T's key
+  // table), written in full so the translation check sees it used.
+  const add = (key: string, bp: number) => {
     if (bp === 0) return;
     sum += bp;
-    out?.push({ key: POL_LINE_PREFIX + name, bp });
+    out?.push({ key, bp });
   };
   if (which === "stab") {
     sum = c.stabBaseBp;
-    out?.push({ key: POL_LINE_PREFIX + "stab_base", bp: c.stabBaseBp });
-    add("stab_modifiers", c.stats.stabilityBp);
-    add("stab_party", rulingPartyBp(c.pop[c.ruling]));
+    out?.push({ key: "ww1936.pol.line.stab_base", bp: c.stabBaseBp });
+    add("ww1936.pol.line.stab_modifiers", c.stats.stabilityBp);
+    add("ww1936.pol.line.stab_party", rulingPartyBp(c.pop[c.ruling]));
     if (c.ruling === IDEO_DEM && offensiveWar(pol, id)) {
-      add("stab_offensive", -1000);
+      add("ww1936.pol.line.stab_offensive", -1000);
     }
-    add("stab_occupation", 0 - Math.min(2000, lostPct * 20));
-    if (c.ppMilli < 0) add("stab_no_pp", -1000);
+    add("ww1936.pol.line.stab_occupation", 0 - Math.min(2000, lostPct * 20));
+    if (c.ppMilli < 0) add("ww1936.pol.line.stab_no_pp", -1000);
   } else {
     sum = c.wsBaseBp;
-    out?.push({ key: POL_LINE_PREFIX + "ws_base", bp: c.wsBaseBp });
-    add("ws_modifiers", c.stats.warSupportBp);
+    out?.push({ key: "ww1936.pol.line.ws_base", bp: c.wsBaseBp });
+    add("ww1936.pol.line.ws_modifiers", c.stats.warSupportBp);
     if (c.ruling === IDEO_DEM || c.ruling === IDEO_NEU) {
-      add("ws_tension", Math.floor((pol.wtBp * 3000) / 10_000));
+      add("ww1936.pol.line.ws_tension", Math.floor((pol.wtBp * 3000) / 10_000));
     }
-    if (defensiveWar(pol, id)) add("ws_defense", 1000);
+    if (defensiveWar(pol, id)) add("ww1936.pol.line.ws_defense", 1000);
     if (pol.ww.hasWar(id)) {
       const cap = capitalRegion(pol, id);
       const holder = cap > 0 ? (pol.land.controller[cap] ?? 0) : 0;
       if (holder !== 0 && holder !== id && pol.ww.isAtWar(id, holder)) {
-        add("ws_capital", 1000);
+        add("ww1936.pol.line.ws_capital", 1000);
       }
     }
     const casualties = pol.land.country(id)?.casualtiesTotal ?? 0;
     // The weariness line (PoliticsRules.wearinessBp) in its two parts.
-    add("ws_casualties", wearinessBp(casualties, f.corePop[id] ?? 0, 0));
-    add("ws_lost_vp", 0 - lostPct * 20);
+    add(
+      "ww1936.pol.line.ws_casualties",
+      wearinessBp(casualties, f.corePop[id] ?? 0, 0),
+    );
+    add("ww1936.pol.line.ws_lost_vp", 0 - lostPct * 20);
   }
   return Math.max(0, Math.min(10_000, sum));
 }
