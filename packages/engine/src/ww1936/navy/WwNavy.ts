@@ -4,7 +4,7 @@
 // order dispatch, the screens' data, the snapshot and the hash. The lanes
 // write the step functions (Task 1 Step 18's stubs); this file owns the
 // state and the orchestration.
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -755,12 +755,12 @@ export class WwNavy {
   private dailyCountry(id: number, day: number, tick: number): void {
     const cn = this.countryList[id];
     const p = this.mg.playerBySmallID(id);
+    // P5 plan decision 6: the countries that play (an exile does).
     if (
       cn === null ||
       cn === undefined ||
       !p.isPlayer() ||
-      !p.isAlive() ||
-      this.ww.isCapitulated(id)
+      !this.ww.isActor(id)
     ) {
       return;
     }
@@ -771,8 +771,9 @@ export class WwNavy {
     dailyVoyages(this, id, day); // C (pre-flight §0-8)
     dailyInvasions(this, id, day, tick); // I
     dailyNavyXp(this, id, day); // N2
+    // P5 plan decision 7: the AI runs a country no human controls now.
     if (
-      p.type() !== PlayerType.Human ||
+      !this.ww.isHumanControlled(id) ||
       this.fleetsOf(id).some((f) => f.auto)
     ) {
       aiNavy(this, id, day);
@@ -796,12 +797,8 @@ export class WwNavy {
   ): WwOrderBlock | null {
     const cn = this.country(smallID);
     const p = this.mg.playerBySmallID(smallID);
-    if (
-      cn === null ||
-      !p.isPlayer() ||
-      !p.isAlive() ||
-      this.ww.isCapitulated(smallID)
-    ) {
+    // P5 plan decision 6: the country plays (an exile does).
+    if (cn === null || !p.isPlayer() || !this.ww.isActor(smallID)) {
       return "dead";
     }
     let block: WwOrderBlock | null;
@@ -1346,7 +1343,7 @@ export class WwNavy {
     params: Record<string, string | number> = {},
   ): void {
     const p = this.mg.playerBySmallID(to);
-    if (!p.isPlayer() || p.type() !== PlayerType.Human) return;
+    if (!p.isPlayer() || !this.ww.isHumanControlled(to)) return;
     this.mg.displayMessage(
       key,
       MessageType.WORLD_WAR,
@@ -1538,7 +1535,9 @@ export class WwNavy {
     const humans = new Set<number>();
     for (const cn of this.countries()) {
       const p = this.mg.playerBySmallID(cn.smallID);
-      if (p.isPlayer() && p.type() === PlayerType.Human) humans.add(cn.smallID);
+      if (p.isPlayer() && this.ww.isHumanControlled(cn.smallID)) {
+        humans.add(cn.smallID);
+      }
     }
     const data: WwNavyData = {
       fleets: [],

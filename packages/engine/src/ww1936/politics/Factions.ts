@@ -92,7 +92,11 @@ export function joinBlock(
     return "faction_war";
   }
   const ruling = pol.country(joiner)!.ruling;
+  // P5 pre-flight §A S: a faction named "any ideology" (the Pan-American pact).
+  const anyIdeology =
+    pol.content.factionNames.find((n) => n.id === f.name)?.anyIdeology === true;
   if (
+    !anyIdeology &&
     !fitsFactionIdeology(ruling, pol.factionIdeology(idx)) &&
     !commonEnemy(pol, joiner, idx)
   ) {
@@ -254,7 +258,8 @@ function newLeader(pol: WwPolitics, f: FactionState, tick: number): void {
 /**
  * Spec §15.3: `id` becomes a member of faction `idx` at once; when the
  * faction is at war, the new member is at war with all its enemies (P0
- * setWar, no chain).
+ * setWar, no chain). P5 pre-flight §0-6: the endgame links each new pair
+ * to the war the faction fights it in (onFactionJoined).
  */
 export function joinFaction(
   pol: WwPolitics,
@@ -268,9 +273,8 @@ export function joinFaction(
   const enemies = factionEnemies(pol, idx);
   f.members = [...f.members, id].sort((a, b) => a - b);
   pol.factionsChanged();
-  for (const e of enemies) {
-    if (e !== id && pol.living(e)) pol.ww.setWar(id, e, tick);
-  }
+  // P5 hook (foundation): into the faction's wars, pair by pair.
+  pol.ww.endgame.onFactionJoined(id, tick);
   if (enemies.length > 0) {
     pol.recomputeStats(id);
     for (const e of enemies) pol.recomputeStats(e);

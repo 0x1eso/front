@@ -522,7 +522,8 @@ describe("World War 1936 P2: the land war's state", () => {
     view.apply(first[0].data, 0);
     expect(view.armies.size).toBe(l.armies.size);
     expect(view.regions.size).toBe(g.worldWar()!.scenario.landRegions.length);
-    expect(view.countries.size).toBe(6);
+    // P5 plan decision 3: the 6 countries and the 14 dormant slots.
+    expect(view.countries.size).toBe(20);
     // Human countries get their details.
     expect([...view.details.keys()].sort()).toEqual(
       [byTag(g, "DEU").smallID(), byTag(g, "POL").smallID()].sort(),

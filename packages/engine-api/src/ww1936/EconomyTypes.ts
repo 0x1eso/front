@@ -418,6 +418,8 @@ export const WW_TECH_IDS = [
   "radar_2",
   "synthetic_oil_1",
   "synthetic_oil_2",
+  // P5 (P5 spec §8.5), appended: the military police company.
+  "military_police",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -545,6 +547,22 @@ export const WW_ORDER_BLOCKS = [
   // P6 pre-flight: engine-lib NoStrike (Korea and Taiwan are never struck).
   "no_strike_region",
   "bad_zone",
+  // P5 (P5 spec §21.3, plan decision 36), appended.
+  "not_participant",
+  "conference_closed",
+  "too_many_demands",
+  "bad_demand",
+  "law_locked",
+  "not_integrable",
+  "ll_conditions",
+  "ll_limit",
+  "volunteer_conditions",
+  "volunteer_limit",
+  "not_volunteer",
+  "ships_not_owned",
+  "no_takeover",
+  "disarmed",
+  "subject_restricted",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

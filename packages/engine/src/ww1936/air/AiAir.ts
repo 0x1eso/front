@@ -10,7 +10,6 @@
 // fall fast and the sky is the enemy's (losses > 15% in 5 days, < 200‰)
 // gets no bombers. aiAirPlan is pure; aiAir reads what a player's
 // screens show and orders through air.issue. No randomness.
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   AIR_MISSIONS,
@@ -568,7 +567,8 @@ export function aiAir(air: WwAir, smallID: number, day: number): void {
   if (!p.isPlayer() || ca === null || air.econ.country(smallID) === null) {
     return;
   }
-  const human = p.type() === PlayerType.Human;
+  // P5 plan decision 7: a human controls it now.
+  const human = air.ww.isHumanControlled(smallID);
   if (human && ca.autoZones.length === 0) return;
   const atWar = aiAtWar(air.navy, smallID);
   if (!aiAirDue(smallID, day, atWar)) return;

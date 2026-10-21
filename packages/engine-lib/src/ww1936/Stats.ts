@@ -61,6 +61,8 @@ const P4_CLAMP: readonly (readonly [WwStatKey, number, number])[] = [
   ["subOrg", 0, 50],
   ["carrierRoundsCut", 0, 2],
   ["supPenaltyPp", 0, 50],
+  // P5 (P5 spec §8.6): the occupation output share, percentage points.
+  ["occupationOutputPp", -50, 50],
 ];
 
 /** Spec §3.3: every …Pct sum is kept in −90..+300 (P4: and decision 25's ranges). */

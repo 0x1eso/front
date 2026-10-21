@@ -3,6 +3,7 @@ import {
   COUNTRY_GROUPS,
   COUNTRY_TAGS,
   CountryTag,
+  isDormantTag,
   MAJOR_TAGS,
 } from "@openfront/engine-api/ww1936/Countries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -139,7 +140,11 @@ export class CountryPicker extends LitElement {
               </div>
               <div class="grid grid-cols-2 gap-1.5 md:grid-cols-4">
                 ${COUNTRY_TAGS.filter(
-                  (t) => COUNTRIES[t].group === g && !COUNTRIES[t].major,
+                  // P5 plan decision 3: never a dormant slot.
+                  (t) =>
+                    COUNTRIES[t].group === g &&
+                    !COUNTRIES[t].major &&
+                    !isDormantTag(t),
                 ).map((t) => this.row(t))}
               </div>
             </section>`,

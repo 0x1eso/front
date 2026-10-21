@@ -89,6 +89,20 @@ const SAMPLE_CONDITIONS: Record<ConditionKind, LeafCondition> = {
   // P4 (plan decision 24).
   navy_size: { kind: "navy_size", min: 4, cls: "bb" },
   fuel_ratio_below: { kind: "fuel_ratio_below", pct: 50 },
+  // P5 (plan decision 26).
+  is_exile: { kind: "is_exile" },
+  exile_host: { kind: "exile_host", of: { tag: "GBR" } },
+  is_subject: { kind: "is_subject", who: { tag: "MCK" } },
+  subject_of: { kind: "subject_of", of: { tag: "JPN" } },
+  subject_level_ge: { kind: "subject_level_ge", level: "puppet" },
+  autonomy_ge: { kind: "autonomy_ge", pct: 60 },
+  country_state: { kind: "country_state", tag: "VIC", state: "dormant" },
+  occupied_by: { kind: "occupied_by", group: "paris", of: DEU },
+  resistance_ge: { kind: "resistance_ge", group: "paris", pct: 40 },
+  compliance_ge: { kind: "compliance_ge", group: "paris", pct: 50 },
+  war_score_share_ge: { kind: "war_score_share_ge", of: DEU, pct: 30 },
+  in_conference: { kind: "in_conference" },
+  legitimacy_ge: { kind: "legitimacy_ge", pct: 50 },
 };
 
 const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
@@ -223,6 +237,44 @@ const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
   ships: { kind: "ships", cls: "dd", gen: 1, count: 50, port: 10 },
   convoys: { kind: "convoys", amount: 100 },
   fuel: { kind: "fuel", amount: -500 },
+  // P5 (plan decision 26).
+  release: { kind: "release", tag: "SVK", as: "puppet", regions: "slovakia" },
+  create_state: {
+    kind: "create_state",
+    tag: "SVK",
+    regions: ["slovakia"],
+    from: { tag: "CSK" },
+    overlord: "self",
+    level: "puppet",
+    ideology: "neutral",
+  },
+  make_subject: { kind: "make_subject", target: "target", level: "up" },
+  end_subject: { kind: "end_subject", target: "target" },
+  autonomy: { kind: "autonomy", pct: -10 },
+  occupation_zone: { kind: "occupation_zone", group: "paris", days: 30 },
+  annex_occupied: { kind: "annex_occupied", group: "paris" },
+  separate_peace: { kind: "separate_peace", with: "all" },
+  switch_sides: { kind: "switch_sides", to: { tag: "GBR" } },
+  set_name: { kind: "set_name", key: "ww1936.rename.spain" },
+  transfer_ships: { kind: "transfer_ships", to: { tag: "GBR" }, pct: 50 },
+  scuttle_fleet: { kind: "scuttle_fleet", pct: 75 },
+  lend_lease: {
+    kind: "lend_lease",
+    to: { tag: "GBR" },
+    item: "infantry_equipment",
+    perMonth: 500,
+  },
+  volunteers: { kind: "volunteers", to: { tag: "ESN" }, divisions: 4 },
+  exile_legitimacy: { kind: "exile_legitimacy", pct: 10 },
+  embargo: { kind: "embargo", on: { tag: "JPN" } },
+  end_embargo: { kind: "end_embargo", on: { tag: "JPN" } },
+  reparations: { kind: "reparations", to: { tag: "FRA" }, k: 4, days: 730 },
+  surrender: { kind: "surrender" },
+  uprising: { kind: "uprising", group: "paris" },
+  resistance: { kind: "resistance", group: "paris", pct: 10 },
+  compliance: { kind: "compliance", group: "paris", pct: -10 },
+  restore_country: { kind: "restore_country", tag: "target" },
+  navy_xp: { kind: "navy_xp", amount: 20 },
 };
 
 /** The optional fields of each kind (besides `who`, optional everywhere). */
@@ -243,6 +295,16 @@ const OPTIONAL: Partial<Record<string, readonly string[]>> = {
   transfer_regions: ["core"],
   navy_size: ["cls"],
   ships: ["port"],
+  // P5 (plan decision 26).
+  release: ["regions", "overlord"],
+  create_state: ["neutral", "leader"],
+  make_subject: ["neutral"],
+  occupation_zone: ["holder", "days", "seize"],
+  annex_occupied: ["to"],
+  lend_lease: ["gen"],
+  volunteers: ["divisions", "planes"],
+  exile_legitimacy: ["scope"],
+  surrender: ["to"],
 };
 /** A copy of `o` without the field `f`. */
 const without = (o: object, f: string) =>
@@ -326,8 +388,12 @@ describe("the condition and effect language", () => {
     let changes = 0;
     for (let i = 1; i < groups.length; i++)
       if (groups[i] !== groups[i - 1]) changes++;
-    // P4's navy block (ships, convoys, fuel) after the territory one.
-    expect(changes).toBe(5);
+    // P4's navy block (ships, convoys, fuel) after the territory one, P5's
+    // endgame block (release … navy_xp) after it.
+    expect(changes).toBe(6);
+    expect(effectGroup("release")).toBe("endgame");
+    expect(effectGroup("navy_xp")).toBe("endgame");
+    expect(effectGroup("ships")).toBe("navy");
   });
 
   it("the lists are unique", () => {
@@ -399,6 +465,7 @@ describe("the condition and effect language", () => {
       "@leader:GBR",
     );
     expect(selectorCode({ ownerOf: "danzig" })).toBe("@owner:danzig");
+    expect(selectorCode({ overlordOf: "self" })).toBe("@overlord:@self");
     expect(pickCode("capital")).toBe("capital");
     expect(pickCode({ best: 2, of: "rhineland" })).toBe("best:2:rhineland");
     expect(pickCode({ borderWith: "threat", n: 3 })).toBe("border:threat:3");

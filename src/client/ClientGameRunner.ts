@@ -1038,6 +1038,11 @@ export class ClientGameRunner {
         this.eventBus.emit(new SendHashEvent(hu.tick, hu.hash));
       });
       this.gameView.update(gu);
+      // World War 1936 P5 (spec §3.6): a takeover moved my controller; the
+      // HUD re-reads myPlayer() and open drawers close.
+      for (const e of this.gameView.takeControllerChanges()) {
+        this.eventBus.emit(e);
+      }
       this.webglBuilder?.update(this.gameView);
       this.renderer.tick();
       if (gu.tickExecutionDuration !== undefined) {

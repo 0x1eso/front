@@ -19,6 +19,10 @@
 // the sea edges with a date line, a strait and a canal, five strategic
 // regions and the v4 bases (scenario version 4): the plan's "test map
 // ww1936sea" table, which the script checks before it writes.
+// P5 (plan decision 31): `--variant end` writes tests/testdata/maps/ww1936end
+// — the pol variant (regions 1–19, edges, zones, kmPerTile, dev, version:
+// the same code) plus one island region 20 "Kosice" (Czechoslovakia) east
+// of Slovakia and the edge 15–20, the plan's "test map ww1936end" table.
 import {
   CATEGORY_SLOTS,
   RegionCategory,
@@ -34,9 +38,17 @@ import path from "path";
 const W = 200;
 const H = 120;
 const variantAt = process.argv.indexOf("--variant");
-const POL = variantAt >= 0 && process.argv[variantAt + 1] === "pol";
+/** P5: the end variant is the pol variant plus Kosice. */
+const END = variantAt >= 0 && process.argv[variantAt + 1] === "end";
+const POL = END || (variantAt >= 0 && process.argv[variantAt + 1] === "pol");
 const SEA = variantAt >= 0 && process.argv[variantAt + 1] === "sea";
-const NAME = POL ? "ww1936pol" : SEA ? "ww1936sea" : "ww1936mini";
+const NAME = END
+  ? "ww1936end"
+  : POL
+    ? "ww1936pol"
+    : SEA
+      ? "ww1936sea"
+      : "ww1936mini";
 const OUT = path.join(process.cwd(), `tests/testdata/maps/${NAME}`);
 
 /** P3 islands (pol variant): [x0, x1) × [y0, y1), the plan's table. */
@@ -53,6 +65,8 @@ const POL_BOXES: Box[] = [
 ];
 const inBox = ([x0, x1, y0, y1]: Box, x: number, y: number) =>
   x >= x0 && x < x1 && y >= y0 && y < y1;
+/** P5 (end variant): Kosice, east of Slovakia (the plan's table). */
+const KOSICE_BOX: Box = [115, 122, 102, 118];
 
 /** P4 (sea variant): the Isthmus and Malta, [x0, x1) × [y0, y1). */
 const ISTHMUS_BOX: Box = [140, 144, 100, 120];
@@ -62,6 +76,7 @@ const isLand = (x: number, y: number) =>
   y < 100 ||
   (x >= 20 && x < 50 && y >= 106 && y < 116) ||
   (POL && POL_BOXES.some((b) => inBox(b, x, y))) ||
+  (END && inBox(KOSICE_BOX, x, y)) ||
   (SEA && (inBox(ISTHMUS_BOX, x, y) || inBox(MALTA_BOX, x, y)));
 
 type Box = [number, number, number, number]; // x0, x1, y0, y1 (end exclusive)
@@ -376,6 +391,18 @@ if (POL) {
   REGIONS.push(...POL_REGIONS);
   Object.assign(ECONOMY, POL_ECONOMY);
 }
+// P5 (end variant): the plan's "test map ww1936end" table.
+if (END) {
+  REGIONS.push({
+    id: 20,
+    name: "Kosice",
+    nameKo: "코시체",
+    owner: "CSK",
+    vp: 3,
+    box: KOSICE_BOX,
+  });
+  Object.assign(ECONOMY, { 20: polEconomy("town", 1500, 2, 1, 0) });
+}
 // P4 (sea variant): the plan's "test map ww1936sea" table.
 if (SEA) {
   REGIONS.push(
@@ -493,6 +520,7 @@ if (POL) {
     19: polLand("forest", 0, 0, TALLINN),
   });
 }
+if (END) LAND[20] = polLand("hills", 1, 0, PRAGUE);
 /** Industrialisation (P2 plan decision 14): Poland 1, so it starts small. */
 const DEV: Record<string, number> = {
   DEU: 5,
@@ -535,6 +563,8 @@ const POL_EDGES: [number, number, number][] = [
   [12, 13, 16],
   [13, 14, 16],
   [14, 15, 16],
+  // P5 (end variant): Slovakia–Kosice.
+  ...(END ? ([[15, 20, 16]] as [number, number, number][]) : []),
   [16, 17, 16],
   [18, 19, 16],
 ];

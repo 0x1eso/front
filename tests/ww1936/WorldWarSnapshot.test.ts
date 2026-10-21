@@ -114,8 +114,10 @@ function playTo(
 /** Countries out of the game: capitulated, or conquered to the last tile. */
 function fallen(g: Game): number {
   const ww = g.worldWar()!;
+  // P5 plan decision 4: the dormant slots never lived.
   return g
     .allPlayers()
+    .filter((p) => !ww.scenario.isDormantSlot(p.smallID()))
     .filter((p) => !p.isAlive() || ww.isCapitulated(p.smallID())).length;
 }
 
@@ -379,9 +381,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // runs. Re-pinned after C (convoys) and I (invasions) merged, with no
 // reinforcement at sea: same value in four runs (U left it). Re-pinned
 // after P4 lane AI (the navy, invasion, air and production AI) merged:
-// same value in four runs. The controller re-pins it at every merge that
-// changes the engine.
-const WW1936_DIGEST = "9c4661ff0df3d43e";
+// same value in four runs (9c4661ff0df3d43e). P5 foundation and its review
+// fixes (the 14 dormant slots: more players and nextID draws, the endgame
+// state and hash, the core table, damage by dealer), on top of all of P4:
+// 023fa53f09c1d2b1 in its lane; re-pinned at the end of the P5/P6 batch.
+// The controller re-pins it at every merge that changes the engine.
+const WW1936_DIGEST = "023fa53f09c1d2b1";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

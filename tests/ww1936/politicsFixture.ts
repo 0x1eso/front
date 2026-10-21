@@ -139,6 +139,11 @@ export function politicsFixture(
     templates: [],
     flags: FLAGS_BASE,
     startNaps: START_NAPS,
+    // P5 (plan decision 30): the endgame tables, empty (endgameFixture fills some).
+    peace: [],
+    cores: [],
+    seeds: [],
+    occupationDefaults: [],
   };
   return buildRegistry({ ...base, ...extra });
 }

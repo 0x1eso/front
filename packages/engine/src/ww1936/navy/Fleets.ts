@@ -4,7 +4,6 @@
 // each fleet doing its mission (out to its station, home to wait or be
 // repaired, back after a battle); once a day the country's housekeeping
 // handles a lost home port, the return threshold and finished sorties.
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   ENGAGE_RULES,
@@ -459,7 +458,8 @@ export function dailyFleetHousekeeping(
   if (own.length === 0) return;
   const tick = navy.mg.ticks();
   const p = navy.mg.playerBySmallID(smallID);
-  const ai = !p.isPlayer() || p.type() !== PlayerType.Human;
+  // P5 plan decision 7: a human controls it now.
+  const ai = !p.isPlayer() || !navy.ww.isHumanControlled(smallID);
   const busy = battleFleetIds(navy);
   for (const f of own) {
     if (!navy.fleets.has(f.id) || busy.has(f.id)) continue;

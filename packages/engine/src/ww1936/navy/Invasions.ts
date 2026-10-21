@@ -5,7 +5,6 @@
 // Lane C's voyages carry the divisions (SeaTransfer.startVoyage; its
 // stepSeaVoyages calls landInvasion on arrival). Integer arithmetic, no
 // randomness; invasions, landing marks and beachheads go in id order.
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   type CombatMods,
@@ -387,7 +386,8 @@ export function dailyInvasions(
 ): void {
   const land = navy.land;
   const p = navy.mg.playerBySmallID(smallID);
-  const ai = !p.isPlayer() || p.type() !== PlayerType.Human;
+  // P5 plan decision 7: a human controls it now.
+  const ai = !p.isPlayer() || !navy.ww.isHumanControlled(smallID);
   const mine = [...navy.invasions.values()].filter((x) => x.owner === smallID);
   for (const inv of mine) {
     if (navy.invasions.get(inv.army) !== inv) continue;

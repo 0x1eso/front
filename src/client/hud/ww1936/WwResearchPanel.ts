@@ -26,7 +26,7 @@ import {
   techName,
   techUnlock,
 } from "./EconomyModel";
-import { isCapitulated, today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
 
 const STATE_KEYS: Readonly<Record<ResearchCardState, string>> = {
@@ -133,7 +133,8 @@ export class WwResearchPanel extends WwDrawerBase {
     const d = this.detail();
     if (d === null) return null;
     const me = this.game.myPlayer()!;
-    if (!me.isAlive() || isCapitulated(this.game, me.smallID())) {
+    // P5 pre-flight §0-1: an exile still researches.
+    if (!wwActive(this.game, me.smallID())) {
       // Gone or capitulated: the engine refuses every order.
       return this.renderFrame(
         translateText("ww1936.econ.research"),

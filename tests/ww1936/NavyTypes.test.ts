@@ -67,7 +67,8 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
     expect(AIR_ORDER_KINDS).toHaveLength(3);
     const kinds = orderKinds();
     const at = kinds.indexOf("improve_relations");
-    expect(kinds.slice(at + 1)).toEqual([
+    // P5 (plan decision 10) appends its 13 orders after air_auto.
+    expect(kinds.slice(at + 1, at + 1 + 24)).toEqual([
       ...NAVY_ORDER_KINDS,
       ...AIR_ORDER_KINDS,
     ]);
@@ -97,17 +98,22 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
       "supply_hub",
     ]);
     expect(BUILDING_IDS).toHaveLength(14);
-    expect(WW_TECH_IDS.slice(-56)[0]).toBe("dd_2");
-    expect(WW_TECH_IDS.slice(-56)[55]).toBe("synthetic_oil_2");
-    expect(WW_TECH_IDS[WW_TECH_IDS.length - 57]).toBe("rail_1");
+    // P5 appends military_police after P4's 56.
+    const p4 = WW_TECH_IDS.indexOf("dd_2");
+    expect(WW_TECH_IDS[p4 + 55]).toBe("synthetic_oil_2");
+    expect(WW_TECH_IDS[p4 - 1]).toBe("rail_1");
     const blocks = WW_ORDER_BLOCKS.slice(
       WW_ORDER_BLOCKS.indexOf("focus_none") + 1,
+      WW_ORDER_BLOCKS.indexOf("bad_zone") + 1,
     );
     expect(blocks).toHaveLength(28);
     expect(blocks[0]).toBe("no_fleet");
     expect(blocks[26]).toBe("no_strike_region");
     expect(blocks[27]).toBe("bad_zone");
-    const stats = WW_STAT_KEYS.slice(WW_STAT_KEYS.indexOf("intelPct") + 1);
+    const stats = WW_STAT_KEYS.slice(
+      WW_STAT_KEYS.indexOf("intelPct") + 1,
+      WW_STAT_KEYS.indexOf("paradropPrepPct") + 1,
+    );
     // P4 spec §16.3's 26 and the 15 doctrine keys (P6 pre-flight) before
     // the last one.
     expect(stats).toHaveLength(41);

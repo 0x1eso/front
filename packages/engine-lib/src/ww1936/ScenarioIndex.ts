@@ -3,6 +3,8 @@ import {
   COUNTRIES,
   COUNTRY_TAGS,
   CountryTag,
+  DORMANT_TAGS,
+  isDormantTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import { CATEGORY_SLOTS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { LandTerrain } from "@openfront/engine-api/ww1936/LandTypes";
@@ -132,8 +134,14 @@ export class ScenarioIndex {
    * a Uint16Array because the renderer uploads it as a texture.
    */
   readonly regionIds: Uint16Array;
-  /** Countries in the scenario, in COUNTRY_TAGS order: smallID = index + 1. */
+  /**
+   * Countries in the scenario, in COUNTRY_TAGS order: smallID = index + 1.
+   * P5 plan decision 3: the scenario's own countries, then every dormant
+   * slot (DORMANT_TAGS), on every map.
+   */
   readonly countries: readonly CountryTag[];
+  /** P5: how many of `countries` are the scenario's own (the rest are dormant slots). */
+  readonly scenarioCount: number;
   /** Land regions sorted by id. */
   readonly landRegions: readonly ReadonlyScenarioRegion[];
   private readonly regionById = new Map<number, ReadonlyScenarioRegion>();
@@ -180,7 +188,9 @@ export class ScenarioIndex {
       );
     }
     const present = new Set(data.countries.map((c) => c.tag));
-    this.countries = COUNTRY_TAGS.filter((t) => present.has(t));
+    const own = COUNTRY_TAGS.filter((t) => present.has(t) && !isDormantTag(t));
+    this.scenarioCount = own.length;
+    this.countries = [...own, ...DORMANT_TAGS];
     for (const c of data.countries) this.capitals.set(c.tag, c.capital);
     for (const s of data.seaZones) this.seaById.set(s.id, s);
     let maxId = 0;
@@ -224,6 +234,16 @@ export class ScenarioIndex {
     return smallID >= 1 ? this.countries[smallID - 1] : undefined;
   }
 
+  /** P5 plan decision 3: the scenario's own countries (lobby, assignCountries), no dormant slot. */
+  scenarioTags(): readonly CountryTag[] {
+    return this.countries.slice(0, this.scenarioCount);
+  }
+
+  /** P5: a dormant slot (smallID > scenarioCount). */
+  isDormantSlot(smallID: number): boolean {
+    return smallID > this.scenarioCount && smallID <= this.countries.length;
+  }
+
   regionAt(tile: TileRef): number {
     return this.regionIds[tile];
   }
@@ -237,15 +257,23 @@ export class ScenarioIndex {
     return this.seaById.get(id);
   }
 
+  /** A scenario country's capital (P5: a dormant slot has none — capitalTileOrNull). */
   capitalXY(tag: CountryTag): readonly [number, number] {
     const xy = this.capitals.get(tag);
     if (xy === undefined) throw new Error(`scenario: no capital for ${tag}`);
     return xy;
   }
 
+  /** A scenario country's capital tile; throws for a dormant slot (capitalTileOrNull). */
   capitalTile(tag: CountryTag): TileRef {
     const [x, y] = this.capitalXY(tag);
     return y * this.width + x;
+  }
+
+  /** P5 plan decision 3: the capital tile, or null for a country without one (a dormant slot). */
+  capitalTileOrNull(tag: CountryTag): TileRef | null {
+    const xy = this.capitals.get(tag);
+    return xy === undefined ? null : xy[1] * this.width + xy[0];
   }
 
   vpTile(region: ReadonlyScenarioRegion): TileRef {

@@ -59,6 +59,11 @@ import {
   WW_TECH_IDS,
 } from "./ww1936/EconomyTypes";
 import {
+  OCCUPATION_LAWS,
+  WW_AIR_VOLUNTEER_MAX,
+  WW_PEACE_DEMANDS_PER_ROUND,
+} from "./ww1936/EndgameTypes";
+import {
   BATTALION_IDS,
   LandOrderKind,
   STANCES,
@@ -822,6 +827,45 @@ const WwTemplateName = zb.string({
   regex: /^[^\s\p{Cc}](?:[^\p{Cc}]*[^\s\p{Cc}])?$/u,
 });
 
+// P5 (P5 spec §21.3, plan decision 11): a peace demand on the wire. The
+// "exactly one of group/region" of occupation_zone is the engine's check
+// (bad_demand), not the schema's (no refine on a zbin union).
+const WwGroupId = zb.string({ min: 1, max: 48, regex: /^[a-z][a-z0-9_]*$/ });
+export const PeaceDemandSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("take"), region: WwRegionId }),
+  z.object({ kind: z.literal("take_group"), group: WwGroupId }),
+  z.object({
+    kind: z.literal("take_for"),
+    region: WwRegionId,
+    beneficiary: WwCountry,
+  }),
+  z.object({ kind: z.literal("annex_rest"), target: WwCountry }),
+  z.object({
+    kind: z.literal("occupation_zone"),
+    group: WwGroupId.optional(),
+    region: WwRegionId.optional(),
+  }),
+  z.object({ kind: z.literal("puppet"), target: WwCountry }),
+  z.object({ kind: z.literal("release"), tag: z.enum(COUNTRY_TAGS) }),
+  z.object({ kind: z.literal("liberate"), tag: z.enum(COUNTRY_TAGS) }),
+  z.object({ kind: z.literal("change_government"), target: WwCountry }),
+  z.object({ kind: z.literal("dismantle"), target: WwCountry }),
+  z.object({ kind: z.literal("demilitarise"), region: WwRegionId }),
+  z.object({
+    kind: z.literal("reparations"),
+    target: WwCountry,
+    k: zb.uint({ min: 1, max: 20 }),
+  }),
+  z.object({ kind: z.literal("disarm"), target: WwCountry }),
+  z.object({
+    kind: z.literal("take_navy"),
+    target: WwCountry,
+    pct: zb.uint({ min: 10, max: 50 }),
+  }),
+]);
+export type PeaceDemandWire = z.infer<typeof PeaceDemandSchema>;
+const WwLlItem = z.union([z.enum(EQUIPMENT_TYPES), z.literal("fuel")]);
+
 export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("build"),
@@ -1082,6 +1126,53 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     type: z.enum(AIR_TYPES).optional(),
   }),
   z.object({ kind: z.literal("air_auto"), sr: WwSr, on: z.boolean() }),
+  // P5 (P5 spec §21.3, plan decision 10), appended: all go to WwEndgame.issue.
+  z.object({
+    kind: z.literal("peace_submit"),
+    conf: WwId,
+    demands: z.array(PeaceDemandSchema).max(WW_PEACE_DEMANDS_PER_ROUND),
+  }),
+  z.object({ kind: z.literal("peace_pass"), conf: WwId }),
+  z.object({
+    kind: z.literal("occupation_law"),
+    of: zb.uint({ max: 1000 }),
+    law: z.enum(OCCUPATION_LAWS),
+  }),
+  z.object({ kind: z.literal("integrate_region"), region: WwRegionId }),
+  z.object({
+    kind: z.literal("lend_lease"),
+    to: WwCountry,
+    item: WwLlItem,
+    gen: zb.uint({ max: 4 }),
+    perMonth: zb.uint({ min: 1, max: 100_000 }),
+  }),
+  z.object({ kind: z.literal("lend_lease_cancel"), id: WwId }),
+  z.object({
+    kind: z.literal("lend_lease_request"),
+    from: WwCountry,
+    item: WwLlItem,
+    perMonth: zb.uint({ min: 1, max: 100_000 }),
+  }),
+  z.object({ kind: z.literal("volunteers_send"), army: WwArmy, to: WwCountry }),
+  z.object({ kind: z.literal("volunteers_recall"), army: WwArmy }),
+  z.object({
+    kind: z.literal("air_volunteers"),
+    to: WwCountry,
+    zone: WwSr,
+    plane: z.enum(AIR_TYPES),
+    count: zb.uint({ min: 1, max: WW_AIR_VOLUNTEER_MAX }),
+  }),
+  z.object({
+    kind: z.literal("ships_transfer"),
+    to: WwCountry,
+    ships: z.array(WwShipId).min(1).max(50),
+  }),
+  z.object({ kind: z.literal("takeover_pick"), smallID: WwCountry }),
+  z.object({
+    kind: z.literal("army_garrison"),
+    army: WwArmy,
+    scope: zb.uint({ max: 1000 }),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

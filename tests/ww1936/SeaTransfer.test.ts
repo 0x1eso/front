@@ -6,12 +6,14 @@ import {
   interceptLossPm,
   seaTransferBlock,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
+import { noteKills } from "@openfront/engine/ww1936/endgame/Wars";
 import {
   damageDivisions,
   divisionWeightCenti,
 } from "@openfront/engine/ww1936/land/SeaLift";
 import { freeConvoysOf } from "@openfront/engine/ww1936/navy/Convoys";
 import { convoysForDivisions } from "@openfront/engine/ww1936/navy/SeaTransfer";
+import { vi } from "vitest";
 import {
   clientOf,
   CONVOY,
@@ -24,6 +26,13 @@ import { REGION, SR, TAG_ID, ZONE } from "./seaFixture";
 import { order, placeArmy, step, stepTo, withTestPolitics } from "./util";
 
 withTestPolitics();
+
+// P5 (pre-flight §0-10): the war score hears of every convoy sunk.
+vi.mock("@openfront/engine/ww1936/endgame/Wars", async (original) => {
+  const real =
+    await original<typeof import("@openfront/engine/ww1936/endgame/Wars")>();
+  return { ...real, noteKills: vi.fn(real.noteKills) };
+});
 
 describe("sea moves (spec §10.4)", () => {
   test("a sea move binds convoys and arrives", async () => {
@@ -138,6 +147,7 @@ describe("sea moves (spec §10.4)", () => {
     ).toBeNull();
     const [v] = [...navy.voyages.values()];
     const bound = v.bound;
+    vi.mocked(noteKills).mockClear();
     stepTo(runner, dayTick(day, (TAG_ID.FRA % 7) + 1));
     // Each division lost 10% of its HP in men and equipment.
     rows().forEach((r, i) => {
@@ -150,6 +160,14 @@ describe("sea moves (spec §10.4)", () => {
     const lost = Math.floor(milli / 1000);
     expect(v.bound).toBe(bound - lost);
     expect(g.ce("FRA").stock[CONVOY]).toBe(stock - lost);
+    // The patrol's side sank them (the war score, lane W).
+    expect(lost).toBeGreaterThan(0);
+    expect(
+      vi
+        .mocked(noteKills)
+        .mock.calls.filter((c) => c[3] === "convoy")
+        .map((c) => c.slice(1)),
+    ).toEqual([[TAG_ID.ITA, TAG_ID.FRA, "convoy", lost]]);
     const st = navy.srState[ww.scenario.srIdxOf(SR.approaches)];
     expect(st.raidRest.get(TAG_ID.FRA)).toBe(milli - lost * 1000);
     expect(navy.country(TAG_ID.FRA)!.convoyLoss[day % 30]).toBe(milli);

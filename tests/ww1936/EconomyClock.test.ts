@@ -16,8 +16,13 @@ describe("the economy's day (spec §2)", () => {
     // Only the opening update (every country, start values), on tick 1.
     const econ = econOf(updates);
     expect(econ.length).toBe(1);
+    // P5 plan decision 4: the dormant slots start with no economy.
+    const sc = runner.game.worldWar()!.scenario;
     expect(econ[0].data.countries.map((c) => c.smallID)).toEqual(
-      runner.game.allPlayers().map((p) => p.smallID()),
+      runner.game
+        .allPlayers()
+        .map((p) => p.smallID())
+        .filter((id) => !sc.isDormantSlot(id)),
     );
     expect(econ[0].data.details).toEqual([]);
     expect(econ[0].data.regions).toEqual([]);
@@ -32,7 +37,12 @@ describe("the economy's day (spec §2)", () => {
   test("every country runs exactly once a day", async () => {
     const { runner } = await wwRunnerCapture();
     const econ = runner.game.worldWar()!.economy;
-    const ids = runner.game.allPlayers().map((p) => p.smallID());
+    // P5 plan decision 6: a dormant slot plays no turn (no land, no actor).
+    const sc = runner.game.worldWar()!.scenario;
+    const ids = runner.game
+      .allPlayers()
+      .map((p) => p.smallID())
+      .filter((id) => !sc.isDormantSlot(id));
     let tick = -1;
     const runs = new Map<number, number[]>();
     const original = econ.refreshTotals.bind(econ);

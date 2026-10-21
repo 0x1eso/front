@@ -45,6 +45,8 @@ export const MINI = "ww1936mini";
 export const POL = "ww1936pol";
 /** P4 (plan decision 29): ww1936mini with four sea zones, the Isthmus (TUR) and Malta (seaFixture.ts). */
 export const SEA_MAP = "ww1936sea";
+/** P5 (plan decision 31): ww1936pol plus Kosice (20, Czechoslovakia) east of Slovakia (endFixture.ts). */
+export const END_MAP = "ww1936end";
 export const HUMAN = "HUMAN001";
 
 export interface WwHuman {
@@ -116,7 +118,7 @@ export async function wwRunnerCapture(
 export async function wwRunner(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
-  map: "ww1936mini" | "ww1936pol" | "ww1936sea" | string = MINI,
+  map: "ww1936mini" | "ww1936pol" | "ww1936sea" | "ww1936end" | string = MINI,
 ): Promise<GameRunner> {
   return (await wwRunnerCapture(config, humans, map)).runner;
 }

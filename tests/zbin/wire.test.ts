@@ -596,6 +596,134 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     clientID: P2,
     order: { kind: "air_auto", sr: 1001, on: false },
   },
+  // P5 (plan decision 10, plan Task 1 Step 4): the 13 endgame orders.
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "peace_submit",
+      conf: 3,
+      demands: [
+        { kind: "take", region: 14 },
+        { kind: "take_group", group: "prague" },
+        { kind: "take_for", region: 13, beneficiary: 8 },
+        { kind: "annex_rest", target: 7 },
+        { kind: "occupation_zone", group: "slovakia" },
+      ],
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "peace_submit",
+      conf: 3,
+      demands: [
+        { kind: "occupation_zone", region: 15 },
+        { kind: "puppet", target: 7 },
+        { kind: "release", tag: "SVK" },
+        { kind: "liberate", tag: "POL" },
+        { kind: "change_government", target: 7 },
+      ],
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "peace_submit",
+      conf: 4,
+      demands: [
+        { kind: "dismantle", target: 7 },
+        { kind: "demilitarise", region: 4 },
+        { kind: "reparations", target: 7, k: 4 },
+        { kind: "disarm", target: 7 },
+        { kind: "take_navy", target: 7, pct: 25 },
+      ],
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "peace_pass", conf: 3 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "occupation_law", of: 0, law: "occ_martial" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "integrate_region", region: 15 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "lend_lease",
+      to: 3,
+      item: "infantry_equipment",
+      gen: 1,
+      perMonth: 500,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "lend_lease", to: 3, item: "fuel", gen: 0, perMonth: 2000 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "lend_lease_cancel", id: 7 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "lend_lease_request",
+      from: 6,
+      item: "artillery",
+      perMonth: 40,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "volunteers_send", army: 12, to: 23 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "volunteers_recall", army: 12 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "air_volunteers",
+      to: 23,
+      zone: 1001,
+      plane: "fighter",
+      count: 50,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "ships_transfer", to: 3, ships: [101, 102, 103] },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "takeover_pick", smallID: 9 },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "army_garrison", army: 12, scope: 7 },
+  },
 ];
 
 const SERVER_MESSAGES: ServerMessage[] = [

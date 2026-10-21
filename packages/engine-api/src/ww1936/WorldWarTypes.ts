@@ -29,6 +29,9 @@ export const DECLARE_WAR_BLOCKS = [
   "guarantor",
   "democracy_no_goal",
   "isolation",
+  // P5 (P5 spec §9.1, §10; plan decision 38), appended.
+  "subject_restricted",
+  "exile",
 ] as const;
 export type DeclareWarBlock = (typeof DECLARE_WAR_BLOCKS)[number];
 

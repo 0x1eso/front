@@ -11,7 +11,6 @@
 // moves reach the new stretch through the captured port). The planner
 // keeps no memory: the invasion records (lane I) and the armies' orders
 // are its state, and it never reads another country's orders.
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -289,7 +288,8 @@ export function aiInvasionDue(smallID: number, day: number): boolean {
 /** The country's AI day for invasions (an AI country only). */
 export function aiInvasions(navy: WwNavy, smallID: number, day: number): void {
   const p = navy.mg.playerBySmallID(smallID);
-  if (!p.isPlayer() || p.type() === PlayerType.Human) return;
+  // P5 plan decision 7: a human controls it now.
+  if (!p.isPlayer() || navy.ww.isHumanControlled(smallID)) return;
   const tick = navy.mg.ticks();
   reviewReady(navy, smallID, day, tick);
   if (!aiAtWar(navy, smallID)) return;

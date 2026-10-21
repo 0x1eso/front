@@ -11,6 +11,8 @@ export const HISTORY_BEATS: HistoryBeat[] = [
     actor: "ESN",
     act: { kind: "declare", target: "ESR" },
     safety: true,
+    // P5 (P5 spec §15.6): the Spanish war is a civil war record.
+    civil: true,
   },
   {
     id: "b1937_07_07_jpn_chn",

@@ -11,7 +11,6 @@
 // garrisons, grouping, generals, fronts (or the peacetime line), attacks,
 // training and building. A human's country runs only fronts and attacks,
 // for its auto armies (spec §8.5).
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -478,7 +477,8 @@ export function aiLandTick(land: WwLand, smallID: number, day: number): void {
   const cl = land.country(smallID);
   const ce = land.econ.country(smallID);
   if (!p.isPlayer() || cl === null || ce === null) return;
-  const ai = new AiDay(land, cl, ce, day, p.type() === PlayerType.Human);
+  // P5 plan decision 7: a human controls it now (a takeover moves it).
+  const ai = new AiDay(land, cl, ce, day, land.ww.isHumanControlled(smallID));
   if (!ai.human && day % AI_REFIT_DAYS === smallID % AI_REFIT_DAYS) {
     ai.refitTemplates();
   }
@@ -658,9 +658,9 @@ class AiDay {
     this.daily = this.atWar.length > 0 || this.imminent.length > 0;
   }
 
+  /** P5 plan decision 6: the country plays (an exile does). */
   private fights(id: number): boolean {
-    const p = this.land.mg.playerBySmallID(id);
-    return p.isPlayer() && p.isAlive() && !this.land.ww.isCapitulated(id);
+    return this.land.ww.isActor(id);
   }
 
   /**
@@ -793,12 +793,19 @@ class AiDay {
    * The armies the AI commands today: all of an AI country's; a human's
    * auto ones. P4 (spec §17.4): an army preparing or sailing an invasion
    * is the invasion planner's (AiInvasion), until it lands; an army all of
-   * paratroopers is the paradrop planner's (AiAir).
+   * paratroopers is the paradrop planner's (AiAir). P5 (plan decision 38):
+   * never a garrison (lane O's) or a volunteer army (lane A's).
    */
   private armies(): Army[] {
     const all = this.land
       .armiesOf(this.me)
-      .filter((a) => a.order.kind !== "invade" && !paraArmy(this.land, a));
+      .filter(
+        (a) =>
+          a.order.kind !== "invade" &&
+          !paraArmy(this.land, a) &&
+          a.order.kind !== "garrison" &&
+          a.volunteerFor === 0,
+      );
     return this.human ? all.filter((a) => a.auto) : all;
   }
 
@@ -1674,8 +1681,8 @@ class AiDay {
     );
     const pol = land.ww.politics;
     const enemyTag = sc.tagOfSmallId(enemy);
-    const capital =
-      enemyTag === undefined ? 0 : sc.regionAt(sc.capitalTile(enemyTag));
+    // P5: a woken dormant slot's capital is its best region.
+    const capital = enemyTag === undefined ? 0 : land.ww.capitalRegion(enemy);
     // Ruling 3: a minor fighting a major only takes back its own 1936
     // regions. Task 11 (내 판단, the Phoney War: HOI4's Allies hold in
     // 1939-40): a democracy fighting an aggressor only takes back its
@@ -1730,7 +1737,8 @@ class AiDay {
     for (const tag of sc.countries) {
       const id = sc.smallIdOf(tag);
       if (id !== this.me && !land.ww.sameFaction(this.me, id)) continue;
-      const cap = sc.regionAt(sc.capitalTile(tag));
+      // P5: a woken dormant slot's capital is its best region (0: none).
+      const cap = land.ww.capitalRegion(id);
       const c = cap === 0 ? 0 : land.controller[cap];
       if (c !== 0 && (c === enemy || land.sameSide(enemy, c))) return true;
     }

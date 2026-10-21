@@ -218,4 +218,43 @@ describe("FrameNormalizer", () => {
     expect(f.misc!.GamePaused).toEqual([{ paused: true }]);
     expect(n.push(frame(2)).misc).toBeNull();
   });
+
+  test("endgame frames keep only what the screens redraw", () => {
+    const n = new FrameNormalizer();
+    const war = {
+      id: 1,
+      kind: "normal" as const,
+      startDay: 0,
+      sides: [],
+      ended: false,
+    };
+    const f = n.push(
+      frame(1, {
+        updates: {
+          [GameUpdateType.WwEndgame]: [
+            {
+              type: GameUpdateType.WwEndgame,
+              data: {
+                wars: [war],
+                conference: null,
+                occupation: [],
+                coreChanges: [{ region: 3, holders: [1] }],
+                aid: [],
+                takeover: [],
+                news: [{ id: "n", params: {} }],
+              },
+            },
+            // Only dropped fields: nothing kept.
+            {
+              type: GameUpdateType.WwEndgame,
+              data: { conference: null, news: [] },
+            },
+          ],
+        },
+      }),
+    );
+    expect(f.misc!.WwEndgame).toEqual([
+      { data: { wars: [war], news: [{ id: "n", params: {} }] } },
+    ]);
+  });
 });

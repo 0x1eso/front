@@ -32,7 +32,7 @@ import {
   politicsInput,
 } from "./PoliticsModel";
 import { WwAirLayerEvent } from "./SeaAirSelection";
-import { isCapitulated, today } from "./WorldWarModel";
+import { today, wwActive } from "./WorldWarModel";
 import {
   OpenWwAirEvent,
   OpenWwDiplomacyEvent,
@@ -174,8 +174,9 @@ export class WwDials extends LitElement implements Controller {
     const me = this.game.myPlayer();
     // Spectators, the dead and the capitulated have nothing to run
     // (pre-flight R7.4; the engine refuses their orders).
-    if (view === null || me === null || !me.isAlive()) return null;
-    if (isCapitulated(this.game, me.smallID())) return null;
+    // P5 pre-flight §0-1: an exile still runs its country.
+    if (view === null || me === null) return null;
+    if (!wwActive(this.game, me.smallID())) return null;
     const detail = view.detail(me.smallID());
     if (detail === null) return null;
     const land = this.game.wwLand?.() ?? null;

@@ -23,6 +23,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { PlayerView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
+import type { WwEndgameView } from "../../view/WwEndgameView";
 import {
   addLineBlock,
   armyMenOf,
@@ -66,11 +67,11 @@ import {
 import { conscriptionLaw } from "./PoliticsModel";
 import {
   countryName,
-  isCapitulated,
   isKoreanUi,
   today,
   TWO_TAP_MS,
   TwoTap,
+  wwActive,
 } from "./WorldWarModel";
 import {
   OpenWwIndustryEvent,
@@ -115,6 +116,8 @@ interface Ctx {
   day: number;
   korean: boolean;
   fighting: (smallID: number) => boolean;
+  /** P5: the endgame's core table (isCoreNow). */
+  endgame: WwEndgameView | null;
   /** Gone or capitulated: the engine refuses every order ("dead"). */
   dead: boolean;
 }
@@ -214,7 +217,9 @@ export class WwIndustryPanel extends WwDrawerBase {
       day: today(game),
       korean: isKoreanUi(),
       fighting: fightingFn(game),
-      dead: !me.isAlive() || isCapitulated(game, id),
+      endgame: game.wwEndgame?.() ?? null,
+      // P5 pre-flight §0-1: an exile still builds.
+      dead: !wwActive(game, id),
     };
   }
 
@@ -490,6 +495,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       1,
       slotPct,
       c.fighting,
+      c.endgame,
     );
     if (block === null) return;
     const best = buildCandidates(
@@ -499,6 +505,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       building,
       slotPct,
       c.fighting,
+      false,
+      c.endgame,
     );
     if (best.length > 0) this.region = null;
   }
@@ -513,6 +521,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       slotPct,
       c.fighting,
       c.korean,
+      c.endgame,
     );
     const region = this.region ?? candidates[0]?.id ?? null;
     const picked = candidates.find((x) => x.id === region) ?? null;
@@ -530,6 +539,7 @@ export class WwIndustryPanel extends WwDrawerBase {
             count,
             slotPct,
             c.fighting,
+            c.endgame,
           );
     const r = region === null ? undefined : c.scenario.region(region);
     // On a phone the list area is short: the picked region and "Add" come

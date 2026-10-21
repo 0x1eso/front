@@ -58,9 +58,11 @@ describe("history beats", () => {
   });
 
   it("each block is in date order (P0's 48, then the new beats)", () => {
+    // P5 (plan decision 30): the P5 beats follow P3's, a block of their own.
     const blocks = [
       beats.slice(0, HISTORY.length),
-      beats.slice(HISTORY.length),
+      beats.slice(HISTORY.length, HISTORY_BEATS.length),
+      beats.slice(HISTORY_BEATS.length),
     ];
     for (const block of blocks) {
       for (let i = 1; i < block.length; i++) {
@@ -94,12 +96,24 @@ describe("history beats", () => {
         case "focus":
           expect(CONTENT.focusIdx.has(a.id), b.id).toBe(true);
           break;
+        // P5 (spec §17.6).
+        case "effects":
+          expect(a.effects.length, b.id).toBeGreaterThan(0);
+          break;
       }
       if (b.windowDays !== undefined) {
         expect(b.windowDays, b.id).toBeGreaterThan(0);
       }
       expect(dayOfDate(b.date), b.id).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("P5: the Spanish safety beat starts a civil war record (spec §15.6)", () => {
+    const esp = beats.find((b) => b.id === "b1936_07_17_esn_esr")!;
+    expect(esp.civil).toBe(true);
+    expect(beats.filter((b) => b.civil === true).map((b) => b.id)).toContain(
+      esp.id,
+    );
   });
 
   it("a decision beat names a target exactly when its decision is targeted", () => {
@@ -137,6 +151,24 @@ const TEST_BEATS: HistoryBeat[] = [
   beat("b_t_ita", "DEU", { kind: "declare", target: "ITA" }, 2),
   beat("b_t_pol", "DEU", { kind: "declare", target: "POL" }),
   beat("b_t_gbr", "GBR", { kind: "declare", target: "DEU" }),
+  // P5 (spec §17.6, pre-flight §0-7): effects, a situation, a civil war.
+  beat("b_t_effects", "DEU", {
+    kind: "effects",
+    effects: [mark("t_effects_got")],
+  }),
+  {
+    ...beat(
+      "b_t_when",
+      "DEU",
+      { kind: "effects", effects: [mark("t_when_got")] },
+      3,
+    ),
+    when: { kind: "flag", flag: "t_go" },
+  },
+  {
+    ...beat("b_t_civil", "DEU", { kind: "declare", target: "POL" }),
+    civil: true,
+  },
 ];
 const B = Object.fromEntries(TEST_BEATS.map((b, i) => [b.id, i]));
 const dec = (id: string, d: Partial<DecisionDef>): DecisionDef => ({
@@ -357,6 +389,42 @@ describe("history beats in the game", () => {
     expect(p.country(deu)!.unlocked.has("t_beat_event_got")).toBe(true);
     expect(p.country(deu)!.firedOnce.has("t_beat_event")).toBe(true);
     expect(p.beats[B.b_t_event].done).toBe(true);
+  });
+
+  it("P5: an effects beat applies its effects to the actor", async () => {
+    const { runner, p } = await game();
+    const { deu } = ids(runner);
+    onlyBeats(p, [B.b_t_effects], 2);
+    stepTo(runner, dayStart(2));
+    expect(p.country(deu)!.unlocked.has("t_effects_got")).toBe(false);
+    step(runner);
+    expect(p.country(deu)!.unlocked.has("t_effects_got")).toBe(true);
+    expect(p.beats[B.b_t_effects].done).toBe(true);
+  });
+
+  it("P5: a beat waits for its situation, then lapses after its window", async () => {
+    for (const set of [false, true]) {
+      const { runner, p } = await game();
+      const { deu } = ids(runner);
+      onlyBeats(p, [B.b_t_when], 2);
+      stepTo(runner, dayStart(4));
+      // Not yet: waiting, not done.
+      expect(p.beats[B.b_t_when].done).toBe(false);
+      if (set) p.country(deu)!.flags.set("t_go", [4, -1]);
+      stepTo(runner, dayStart(6));
+      expect(p.country(deu)!.unlocked.has("t_when_got")).toBe(set);
+      expect(p.beats[B.b_t_when].done).toBe(true);
+    }
+  });
+
+  it("P5: a civil declare beat makes a civil war record", async () => {
+    const { runner, p } = await game();
+    const { deu, pl } = ids(runner);
+    onlyBeats(p, [B.b_t_civil], 2);
+    stepTo(runner, dayStart(3));
+    const ww = runner.game.worldWar()!;
+    expect(ww.isAtWar(deu, pl)).toBe(true);
+    expect(ww.endgame.war(ww.endgame.warOfPair(deu, pl))!.kind).toBe("civil");
   });
 
   it("a diplomacy beat sends its order and retries a refusal in its window", async () => {

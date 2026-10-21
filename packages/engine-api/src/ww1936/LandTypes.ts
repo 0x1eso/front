@@ -28,6 +28,8 @@ export const SUPPORT_IDS = [
   "field_hospital",
   "logistics",
   "signal",
+  // P5 (P5 spec §8.5), appended: suppresses resistance (EndgameRules.SUPPORT_SUPPRESS).
+  "military_police",
 ] as const;
 export type SupportId = (typeof SUPPORT_IDS)[number];
 
@@ -105,6 +107,10 @@ export const ARMY_ORDER_KINDS = [
   // P4 (P4 spec §11.1): preparing or sailing a naval invasion; `to` is the
   // target region, the preparation state lives in WwNavy.invasions.
   "invade",
+  // P5 (P5 spec §8.5, plan decision 10): garrisoning occupied land; the
+  // scope is `enemy` (0 = every administered region, else that legal
+  // owner's); P5 lane O picks the regions.
+  "garrison",
 ] as const;
 export type ArmyOrderKind = (typeof ARMY_ORDER_KINDS)[number];
 

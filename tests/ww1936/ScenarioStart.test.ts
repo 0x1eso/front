@@ -4,6 +4,10 @@ import {
   PlayerType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
+import {
+  DORMANT_TAGS,
+  isDormantTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { fillScenarioOwners } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -32,6 +36,7 @@ describe("World War 1936 start", () => {
   test("every scenario country is a player, in COUNTRY_TAGS order", async () => {
     const runner = await wwRunner({}, [{ clientID: HUMAN, country: "POL" }]);
     const g = runner.game;
+    // P5 plan decision 3: the scenario's countries, then the 14 dormant slots.
     expect(g.worldWar()!.scenario.countries).toEqual([
       "DEU",
       "ITA",
@@ -39,8 +44,17 @@ describe("World War 1936 start", () => {
       "FRA",
       "SUN",
       "POL",
+      ...DORMANT_TAGS,
     ]);
-    const players = g.allPlayers();
+    expect(g.worldWar()!.scenario.scenarioTags()).toEqual([
+      "DEU",
+      "ITA",
+      "GBR",
+      "FRA",
+      "SUN",
+      "POL",
+    ]);
+    const players = g.allPlayers().slice(0, 6);
     expect(players.map((p) => p.smallID())).toEqual([1, 2, 3, 4, 5, 6]);
     expect(players.map((p) => p.name())).toEqual([
       "Germany",
@@ -58,6 +72,15 @@ describe("World War 1936 start", () => {
       PlayerType.Nation,
       PlayerType.Human,
     ]);
+    // P5 plan decision 4: dormant nation players, no land.
+    const dormant = g.allPlayers().slice(6);
+    expect(dormant.map((p) => p.smallID())).toEqual(
+      DORMANT_TAGS.map((_, i) => 7 + i),
+    );
+    for (const p of dormant) {
+      expect(p.type()).toBe(PlayerType.Nation);
+      expect(p.numTilesOwned()).toBe(0);
+    }
     expect(g.playerByClientID(HUMAN)!.name()).toBe("Poland");
   });
 
@@ -116,6 +139,12 @@ describe("World War 1936 start", () => {
     const ww = g.worldWar()!;
     for (const p of g.allPlayers()) {
       const tag = ww.tagOf(p.smallID());
+      // P5 plan decision 4: a dormant slot has no capital and no army.
+      if (isDormantTag(tag)) {
+        expect(p.spawnTile()).toBeUndefined();
+        expect(p.troops()).toBe(0);
+        continue;
+      }
       expect(p.spawnTile()).toBe(ww.scenario.capitalTile(tag));
       // P2 spec §6.4, §13.2: the troops are the 1936 divisions' men.
       expect(p.troops()).toBe(ww.land.fieldMen(p.smallID()));

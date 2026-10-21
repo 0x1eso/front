@@ -113,8 +113,9 @@ describe("politics on the clock", () => {
     const first = updates[at].updates[GameUpdateType.WwPolitics];
     expect(first).toHaveLength(1);
     const d = first[0].data;
+    // P5 plan decision 3: the 10 countries and the 14 dormant slots.
     expect(d.countries.map((c) => c.smallID)).toEqual(
-      Array.from({ length: 10 }, (_, i) => i + 1),
+      Array.from({ length: 24 }, (_, i) => i + 1),
     );
     // The human's details only.
     expect(d.details.map((x) => x.smallID)).toEqual([

@@ -65,6 +65,7 @@ import {
   decisionCostPp,
   decisionDef,
   decisionKey,
+  decisionTargetOk,
 } from "./Decisions";
 import { makeCtx } from "./Dispatch";
 import { factionEnemies, isMajor, joinBlock } from "./Factions";
@@ -607,7 +608,7 @@ function aiDecision(
         if ((c.decisionCooldown.get(keys[t]) ?? -1) > day || t === id) {
           continue;
         }
-        if (!pol.living(t)) continue;
+        if (!decisionTargetOk(pol, d, t)) continue;
         const block = decisionBlock(pol, id, d.id, t);
         if (block !== null && block !== "no_pp") continue;
         target = t;

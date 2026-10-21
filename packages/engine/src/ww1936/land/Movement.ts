@@ -38,7 +38,8 @@ export function stepMovement(land: WwLand, tick: number): void {
     // P4 (pre-flight A17): a division on a convoy voyage (SeaLift: sea,
     // need 0) moves with its voyage.
     if (t.mode[r] === MOVE_SEA && t.need[r] === 0) continue;
-    const owner = t.owner[r];
+    // P5 (plan decision 20): a volunteer moves as the country it serves.
+    const owner = land.fightOwner(r);
     const mode = t.mode[r];
     const to = t.next[r];
     const c = land.controller[to];
@@ -100,7 +101,8 @@ function stepOf(land: WwLand, r: number, mode: number): number {
 /** A division arriving at t.next (P2; P4's SeaLift.landDivisions too). */
 export function arrive(land: WwLand, r: number, tick: number): void {
   const t = land.divisions;
-  const owner = t.owner[r];
+  // P5 (plan decision 20): a volunteer takes land for the country it serves.
+  const owner = land.fightOwner(r);
   const to = t.next[r];
   const mode = t.mode[r];
   if (!land.sameSide(owner, land.controller[to])) {
@@ -156,7 +158,7 @@ export function enemyDivisionsIn(
   for (const r of land.rowsIn(region)) {
     const m = t.mode[r];
     if (m === MOVE_ADVANCE || m === MOVE_RETREAT) continue;
-    if (land.isEnemy(owner, t.owner[r])) n++;
+    if (land.isEnemy(owner, land.fightOwner(r))) n++;
   }
   return n;
 }
@@ -177,7 +179,8 @@ export function startNextHop(land: WwLand, row: number, tick: number): void {
     if (t.mode[row] !== MOVE_NONE) stopDivision(land, row);
     return;
   }
-  const owner = t.owner[row];
+  // P5 (plan decision 20): a volunteer's way runs through its host's side.
+  const owner = land.fightOwner(row);
   const sc = land.scenario;
   const army = land.armies.get(t.army[row]);
   const moving =

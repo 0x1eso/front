@@ -1,7 +1,7 @@
 // World War 1936 P1: the construction queue (spec §4). The judgements live
 // in engine-lib EconomyChecks (shared with the screens); this file runs the
 // orders and the daily step.
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
   BUILDING_COST,
   BuildingId,
@@ -58,7 +58,9 @@ export function buildBlock(
   // P3 spec §9.2 {dmz}: no fort in a demilitarised region of one's own.
   if (
     building === "fort" &&
-    dmzRegions(econ.ww.politics, ce.smallID).includes(region)
+    (dmzRegions(econ.ww.politics, ce.smallID).includes(region) ||
+      // P5 (spec §6.4): a peace treaty's demilitarised region.
+      econ.ww.endgame.isDmz(region, ce.smallID))
   ) {
     return "not_controlled";
   }
@@ -209,7 +211,7 @@ export function stepConstruction(
     }
   });
   ce.queue = ce.queue.filter((q) => q.count > 0);
-  if (built > 0 && p.type() === PlayerType.Human) {
+  if (built > 0 && econ.ww.isHumanControlled(p.smallID())) {
     // Spec §13.6: the owner only, one message a day.
     econ.mg.displayMessage(
       "events_display.ww1936_built",

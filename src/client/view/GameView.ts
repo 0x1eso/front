@@ -63,6 +63,7 @@ import { PlayerView } from "./PlayerView";
 import { UnitView } from "./UnitView";
 import { WwAirView } from "./WwAirView";
 import { WwEconomyView } from "./WwEconomyView";
+import { WwControllerChangedEvent, WwEndgameView } from "./WwEndgameView";
 import { WwLandView } from "./WwLandView";
 import { sideKeyOf, WwNavyView } from "./WwNavyView";
 import { WwPoliticsView } from "./WwPoliticsView";
@@ -133,6 +134,10 @@ export class GameView implements GameLike {
   /** P4 (plan Task 1 Step 22): the navy and the air war; null when the mode is off. */
   private _wwNavy: WwNavyView | null = null;
   private _wwAir: WwAirView | null = null;
+  /** P5 (plan Task 1 Step 14): the endgame; null when the mode is off. */
+  private _wwEndgame: WwEndgameView | null = null;
+  /** P5: my controller changed this tick (takeControllerChanges). */
+  private _controllerChanges: WwControllerChangedEvent[] = [];
   private readonly _usernames: Map<ClientID, string>;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
@@ -200,6 +205,7 @@ export class GameView implements GameLike {
         sideKeyOf(me(), this._wwPolitics?.factionIdx(me()) ?? -1);
       this._wwNavy = new WwNavyView(scenario, me, side);
       this._wwAir = new WwAirView(scenario, me, side);
+      this._wwEndgame = new WwEndgameView();
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
@@ -300,6 +306,18 @@ export class GameView implements GameLike {
   /** World War 1936 P4: the air war; null when the mode is off. */
   wwAir(): WwAirView | null {
     return this._wwAir;
+  }
+
+  /** World War 1936 P5: the endgame; null when the mode is off. */
+  wwEndgame(): WwEndgameView | null {
+    return this._wwEndgame;
+  }
+
+  /** P5: the controller changes since the last call (the runner emits them; U3's drawers close). */
+  takeControllerChanges(): WwControllerChangedEvent[] {
+    const out = this._controllerChanges;
+    this._controllerChanges = [];
+    return out;
   }
 
   /**
@@ -439,6 +457,13 @@ export class GameView implements GameLike {
     for (const u of gu.updates[GameUpdateType.WwAir] ?? []) {
       this._wwAir?.apply(u.data);
     }
+    // P5 (plan decision 23): after P4's; a takeover moves "my player"
+    // (below, once this tick's players are in).
+    let controllersArrived = false;
+    for (const u of gu.updates[GameUpdateType.WwEndgame] ?? []) {
+      this._wwEndgame?.apply(u.data);
+      if (u.data.controllers !== undefined) controllersArrived = true;
+    }
 
     const myDisplayName = formatPlayerDisplayName(
       this._myUsername,
@@ -556,9 +581,10 @@ export class GameView implements GameLike {
     applyPackedPlayerStats(gu.packedPlayerUpdates, stateOf);
     applyPackedAttackTroops(gu.packedAttackUpdates, stateOf);
 
-    if (this._myClientID) {
+    if (this._myClientID && !this.controllerMoved()) {
       this._myPlayer ??= this.playerByClientID(this._myClientID);
     }
+    if (controllersArrived) this.syncMyController();
 
     for (const unit of this._units.values()) {
       unit._wasUpdated = false;
@@ -887,6 +913,25 @@ export class GameView implements GameLike {
 
   myPlayer(): PlayerView | null {
     return this._myPlayer;
+  }
+
+  /** P5 plan decision 7: my client took over another country, or spectates. */
+  private controllerMoved(): boolean {
+    if (this._wwEndgame === null || !this._myClientID) return false;
+    return this._wwEndgame.controlledBy(this._myClientID) !== null;
+  }
+
+  /** P5 plan decision 7: "my player" is the country my client controls now (0: none). */
+  private syncMyController(): void {
+    if (this._wwEndgame === null || !this._myClientID) return;
+    const c = this._wwEndgame.controlledBy(this._myClientID);
+    if (c === null) return;
+    const before = this._myPlayer?.smallID() ?? 0;
+    const id = c === 0 ? undefined : this.smallIDToID.get(c);
+    this._myPlayer = id === undefined ? null : (this._players.get(id) ?? null);
+    if ((this._myPlayer?.smallID() ?? 0) !== before) {
+      this._controllerChanges.push(new WwControllerChangedEvent(c));
+    }
   }
 
   player(id: PlayerID): PlayerView {

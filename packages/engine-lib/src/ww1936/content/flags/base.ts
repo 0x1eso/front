@@ -25,3 +25,22 @@ export const FLAGS_BASE: readonly FlagId[] = [
   "bessarabia_lost",
   "elections_suspended",
 ];
+
+/**
+ * P5 (P5 spec §9–§19, plan Task 1 Step 6): the flags the P5 spec names
+ * (lend_lease is P3's, above). Each P5 lane declares its own others.
+ */
+export const FLAGS_P5_BASE: readonly FlagId[] = [
+  "independence_denied",
+  "control_tightened",
+  "autonomy_full",
+  "unconditional_surrender",
+  "second_front_agreed",
+  "yalta_zones",
+  "potsdam_lines",
+  "pledged_vs_japan",
+  "ita_july_25",
+  "talks_continue",
+  "heavy_water",
+  "radar_lab",
+];

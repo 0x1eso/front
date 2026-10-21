@@ -71,12 +71,19 @@ export const EDGE_CANAL = 2;
 export const EDGE_DATELINE = 3;
 
 /** Plan decision 21: the uses convoys are handed to, by priority (smaller first). */
-export const CONVOY_USES = ["voyage", "supply", "trade"] as const;
+export const CONVOY_USES = [
+  "voyage",
+  "supply",
+  "trade",
+  // P5 (P5 plan decision 22), appended: lend-lease by sea.
+  "lend_lease",
+] as const;
 export type ConvoyUse = (typeof CONVOY_USES)[number];
 export const CONVOY_USE_PRIORITY: Readonly<Record<ConvoyUse, number>> = {
   voyage: 10,
   supply: 20,
   trade: 40,
+  lend_lease: 30,
 };
 
 export const INVASION_STATES = [

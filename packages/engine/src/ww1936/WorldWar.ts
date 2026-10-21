@@ -1,4 +1,10 @@
-import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { PlayerType } from "@openfront/engine-api/game/GameTypes";
+import {
+  COUNTRIES,
+  CountryTag,
+  isDormantTag,
+} from "@openfront/engine-api/ww1936/Countries";
+import type { WarLink } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   factionIdxOfKey,
   FactionKey,
@@ -15,6 +21,7 @@ import { z } from "zod";
 import type { Game, Player } from "../game/Game";
 import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
+import { WwEndgame, WwEndgameStateSchema } from "./endgame/WwEndgame";
 import { WwLand, WwLandStateSchema } from "./land/WwLand";
 import { NavyAirHooks } from "./navy/NavyAirHooks";
 import { WwNavy, WwNavyStateSchema } from "./navy/WwNavy";
@@ -43,6 +50,8 @@ export const WorldWarStateSchema = z.object({
   /** P4 (P4 spec §19.5): always written; a snapshot without them is refused. */
   navy: WwNavyStateSchema.optional(),
   air: WwAirStateSchema.optional(),
+  /** P5 (P5 plan decision 25): always written; a snapshot without it is refused. */
+  endgame: WwEndgameStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -94,6 +103,8 @@ export class WorldWar {
   readonly navy: WwNavy;
   /** P4 air war (P4 spec §19.1, plan decision 2): after the navy. */
   readonly air: WwAir;
+  /** P5 endgame (P5 spec §21.1, plan decision 2): after the air war. */
+  readonly endgame: WwEndgame;
 
   constructor(
     private readonly mg: Game,
@@ -109,6 +120,7 @@ export class WorldWar {
     this.air = new WwAir(mg, this);
     // Plan decision 36: the land war reads the navy, the air war and fuel.
     this.land.hooks = new NavyAirHooks(this.navy, this.air);
+    this.endgame = new WwEndgame(mg, this);
   }
 
   /**
@@ -118,6 +130,10 @@ export class WorldWar {
    * §6.5). GameImpl calls it once, after the territory.
    */
   start(): void {
+    // P5 (plan decisions 2, 7, 17): country states, who is human and the
+    // 1936 core table first — every phase's start reads them (P1's
+    // manpower asks isCore). Nothing in it reads the other phases' starts.
+    this.endgame.start();
     for (const p of this.mg.allPlayers()) {
       const tag = this.tagOf(p.smallID());
       if (p.name() !== COUNTRIES[tag].name) {
@@ -125,6 +141,8 @@ export class WorldWar {
           `player ${p.smallID()} is ${p.name()}, expected ${tag}`,
         );
       }
+      // P5 plan decision 4: a dormant slot has no capital and no land.
+      if (isDormantTag(tag)) continue;
       const capital = this.scenario.capitalTile(tag);
       p.setSpawnTile(capital);
       this.mg.stats().recordSpawnTile(p, capital);
@@ -133,7 +151,7 @@ export class WorldWar {
     for (const [x, y] of WW_INITIAL_WARS) {
       const a = this.scenario.smallIdOf(x);
       const b = this.scenario.smallIdOf(y);
-      if (a !== 0 && b !== 0) this.setWar(a, b, 0);
+      if (a !== 0 && b !== 0) this.setWar(a, b, 0, { kind: "declare" });
     }
     // Controller ruling I3: politics first (HOI4: laws, spirits and the
     // government apply from day 0), so the economy's start (manpower) and
@@ -236,6 +254,51 @@ export class WorldWar {
     return this._capitulated.some(([s]) => s === smallID);
   }
 
+  /**
+   * P5 plan decision 6: the country plays its turns — active, alive and not
+   * capitulated, or a government in exile. Every phase's country turn and
+   * order check reads this. (Before the endgame exists — a phase's
+   * constructor — the P0 rule.)
+   */
+  isActor(smallID: number): boolean {
+    const eg = this.endgame as WwEndgame | undefined;
+    if (eg !== undefined) return eg.isActor(smallID);
+    const p = this.mg.playerBySmallID(smallID);
+    return p.isPlayer() && p.isAlive() && !this.isCapitulated(smallID);
+  }
+
+  /** P5 plan decision 7: a human controls the country now (every AI branch of the mode reads this). */
+  isHumanControlled(smallID: number): boolean {
+    const eg = this.endgame as WwEndgame | undefined;
+    if (eg !== undefined) return eg.isHumanControlled(smallID);
+    const p = this.mg.playerBySmallID(smallID);
+    return p.isPlayer() && p.type() === PlayerType.Human;
+  }
+
+  /** P5 plan decision 7: the country `client` controls after a takeover (0: spectating); null: its own. */
+  controlledBy(client: string): number | null {
+    return this.endgame.controlledBy(client);
+  }
+
+  /** P5 plan decision 20: an exile fights as its host (the land war's side). */
+  sideOwner(smallID: number): number {
+    const eg = this.endgame as WwEndgame | undefined;
+    return eg === undefined ? smallID : eg.sideOwner(smallID);
+  }
+
+  /** The capital region (P5: a woken dormant slot's best region; 0: none). */
+  capitalRegion(smallID: number): number {
+    return this.endgame.capitalRegion(smallID);
+  }
+
+  /** P5 plan decision 9: a country back from the dead (its record and gauge go). */
+  clearCapitulation(smallID: number): void {
+    const before = this._capitulated.length;
+    this._capitulated = this._capitulated.filter(([s]) => s !== smallID);
+    if (this._capitulated.length !== before) this.dataDirty = true;
+    this.setCapitulationGauge(smallID, 0);
+  }
+
   startVp(smallID: number): number {
     return this._startVp[smallID] ?? 0;
   }
@@ -247,18 +310,30 @@ export class WorldWar {
 
   /** Human clientIDs of a camp (a faction), for the team winner (decision 11). */
   humanClientIDsOf(faction: FactionKey): string[] {
+    // P5 (spec §3.6): by the current controller (a takeover's human wins
+    // with the country it took; a spectator does not).
     const out: string[] = [];
     for (const id of this.factionMembers(faction)) {
-      const p = this.mg.playerBySmallID(id);
-      if (p.isPlayer() && p.clientID() !== null) out.push(p.clientID()!);
+      const c = this.endgame.humanClientOf(id);
+      if (c !== null) out.push(c);
     }
     return out;
   }
 
   // ---- Changes (the lanes' functions call these) ----
 
-  /** Starts a war; false when it already runs or a == b. */
-  setWar(a: number, b: number, tick: number): boolean {
+  /**
+   * Starts a war; false when it already runs or a == b. P5 plan decision 8:
+   * `link` says which war record the pair joins (a new war declared by `a`
+   * on `b`, or `a` into an existing war against `b`). Every engine caller
+   * passes it (EndgameWiring checks); the default (a new war) is for tests.
+   */
+  setWar(
+    a: number,
+    b: number,
+    tick: number,
+    link: WarLink = { kind: "declare" },
+  ): boolean {
     if (a === b || this.isAtWar(a, b)) return false;
     if (a <= 0 || b <= 0 || a >= this.size || b >= this.size) return false;
     const lo = Math.min(a, b);
@@ -268,6 +343,7 @@ export class WorldWar {
     this.warMatrix[hi * this.size + lo] = 1;
     this.dataDirty = true;
     this.warVer++;
+    this.endgame.onWarPairCreated(a, b, link, tick);
     return true;
   }
 
@@ -279,16 +355,21 @@ export class WorldWar {
     this._wars = this._wars.filter(([x, y]) => !(x === lo && y === hi));
     this.rebuildMatrix();
     this.dataDirty = true;
+    // P5 plan decision 8: the pair leaves its war record.
+    this.endgame.onWarPairRemoved(lo, hi, this.mg.ticks());
     return true;
   }
 
   /** Ends every war of a country (on capitulation). */
   endWarsOf(smallID: number): void {
-    const kept = this._wars.filter(([a, b]) => a !== smallID && b !== smallID);
-    if (kept.length === this._wars.length) return;
-    this._wars = kept;
+    const gone = this._wars.filter(([a, b]) => a === smallID || b === smallID);
+    if (gone.length === 0) return;
+    this._wars = this._wars.filter(([a, b]) => a !== smallID && b !== smallID);
     this.rebuildMatrix();
     this.dataDirty = true;
+    // P5 (pre-flight §A T1 × W): each pair leaves its record after the matrix.
+    const tick = this.mg.ticks();
+    for (const [a, b] of gone) this.endgame.onWarPairRemoved(a, b, tick);
   }
 
   addCapitulation(smallID: number, victor: number, tick: number): void {
@@ -386,7 +467,9 @@ export class WorldWar {
     h = (Math.imul(h, 31) + this.politics.hash()) | 0;
     // P4 (spec §19.5): after P3's.
     h = (Math.imul(h, 31) + this.navy.hash()) | 0;
-    return (Math.imul(h, 31) + this.air.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.air.hash()) | 0;
+    // P5 (spec §21.5): after P4's.
+    return (Math.imul(h, 31) + this.endgame.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -411,6 +494,7 @@ export class WorldWar {
       politics: this.politics.snapshot(),
       navy: this.navy.snapshot(),
       air: this.air.snapshot(),
+      endgame: this.endgame.snapshot(),
     };
   }
 
@@ -433,6 +517,14 @@ export class WorldWar {
     this.rebuildMatrix();
     // A restored game's screens have seen nothing yet.
     this.dataDirty = true;
+    // No P4 game continues with P5 code (P5 plan decision 25).
+    if (s.endgame === undefined) {
+      throw new Error("snapshot without the P5 endgame state");
+    }
+    // P5: first — who plays, who is human, who is an exile (the phases'
+    // restores and their derived sides ask; the administered regions are
+    // rebuilt on first use, after the land war is back).
+    this.endgame.restoreState(s.endgame);
     // No P3 game continues with P4 code (P4 spec §19.5; the P3 way).
     if (s.navy === undefined || s.air === undefined) {
       throw new Error(

@@ -63,9 +63,8 @@ function landFacts(pol: WwPolitics): LandFacts {
     if (o === 0 || o >= n) continue;
     all[o] += r.vp;
     if (ctl[r.id] !== o) lost[o] += r.vp;
-    // WwPolitics.isCore, without its map lookup.
-    const co = pol.coreOverride[r.id];
-    if (co === 0 ? r.core : co === 1) f.corePop[o] += r.pop * 1000;
+    // P5 pre-flight §0-5: WwPolitics.isCore, the core table.
+    if (pol.isCore(r.id)) f.corePop[o] += r.pop * 1000;
   }
   for (let o = 0; o < n; o++) {
     lost[o] = all[o] === 0 ? 0 : Math.floor((lost[o] * 100) / all[o]);

@@ -26,7 +26,7 @@ export interface DescLine {
   leaf: number;
 }
 
-/** "@self", "@from", "@target", a tag, "@leader:<inner>", "@owner:<group>". */
+/** "@self", "@from", "@target", a tag, "@leader:<inner>", "@owner:<group>", "@overlord:<inner>" (P5). */
 export function selectorCode(s: Selector | undefined): string {
   if (s === undefined || s === "self") return "@self";
   if (s === "from" || s === "target") return `@${s}`;
@@ -34,6 +34,7 @@ export function selectorCode(s: Selector | undefined): string {
   if ("factionLeaderOf" in s) {
     return `@leader:${selectorCode(s.factionLeaderOf)}`;
   }
+  if ("overlordOf" in s) return `@overlord:${selectorCode(s.overlordOf)}`;
   return `@owner:${s.ownerOf}`;
 }
 
@@ -62,6 +63,8 @@ function paramsOf(o: Record<string, unknown>): Record<string, string | number> {
     if (k === "options" || k === "cond") continue;
     if (typeof v === "number" || typeof v === "string") out[k] = v;
     else if (typeof v === "boolean") out[k] = v ? 1 : 0;
+    // P5: a list of group ids (create_state.regions), comma-joined.
+    else if (Array.isArray(v)) out[k] = v.join(",");
     else if (picks.includes(k)) out[k] = pickCode(v as RegionPick);
     else if (v !== undefined) out[k] = selectorCode(v as Selector);
   }

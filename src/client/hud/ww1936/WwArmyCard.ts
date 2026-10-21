@@ -55,11 +55,11 @@ import {
   srName,
 } from "./NavyModel";
 import {
-  isCapitulated,
   today,
   TWO_TAP_MS,
   TwoTap,
   WW_BAND_PX,
+  wwActive,
 } from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
@@ -409,11 +409,10 @@ export class WwArmyCard extends LitElement implements Controller {
     const view = this.game.wwLand?.() ?? null;
     const economy = this.game.wwEconomy?.() ?? null;
     const p = this.game.myPlayer();
-    if (view === null || economy === null || p === null || !p.isAlive()) {
-      return null;
-    }
+    if (view === null || economy === null || p === null) return null;
     const me = p.smallID();
-    if (isCapitulated(this.game, me)) return null;
+    // P5 pre-flight §0-1: an exile still commands.
+    if (!wwActive(this.game, me)) return null;
     const sel = landSelectionOf(this.game);
     if (sel.army === null) return null;
     const day = today(this.game);

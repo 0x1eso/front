@@ -67,7 +67,10 @@ import { CoastalBarrageExecutionSnapshot } from "../warfare/CoastalBarrageExecut
 import { CoastalBatteryExecutionSnapshot } from "../warfare/CoastalBatteryExecution";
 import { ParadropExecutionSnapshot } from "../warfare/ParadropExecution";
 import { DeclareWarExecutionSnapshot } from "../ww1936/DeclareWarExecution";
-import { WwOrderExecutionSnapshot } from "../ww1936/economy/WwOrderExecution";
+import {
+  WwOrderExecutionSnapshot,
+  WwTakeoverPickExecutionSnapshot,
+} from "../ww1936/economy/WwOrderExecution";
 import { WorldWarExecutionSnapshot } from "../ww1936/WorldWarExecution";
 import { WorldWarStartExecutionSnapshot } from "../ww1936/WorldWarStartExecution";
 import type { ExecutionSnapshotType } from "./ExecutionSnapshot";
@@ -149,4 +152,5 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   WorldWarExecutionSnapshot,
   WorldWarStartExecutionSnapshot,
   WwOrderExecutionSnapshot,
+  WwTakeoverPickExecutionSnapshot,
 ] as unknown as readonly ExecutionSnapshotType<unknown>[];

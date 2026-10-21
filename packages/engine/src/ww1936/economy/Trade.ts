@@ -3,7 +3,7 @@
 // with the screens. P4 (spec §10.2): partner rule 3 is a sea route between
 // working naval bases (navy/SeaTrade), and a deal the land does not carry
 // goes by the buyer's convoys.
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
   RESOURCE_COUNT,
   RESOURCE_IDS,
@@ -70,7 +70,7 @@ export function partnerJudge(
 ): (seller: number) => WwOrderBlock | null {
   const ww = econ.ww;
   const b = econ.mg.playerBySmallID(buyer);
-  if (!b.isPlayer() || !b.isAlive() || ww.isCapitulated(buyer)) {
+  if (!b.isPlayer() || !ww.isActor(buyer)) {
     return () => "no_partner";
   }
   const buyerPlayer = b;
@@ -79,7 +79,7 @@ export function partnerJudge(
   return (seller) => {
     if (seller === buyer) return "no_partner";
     const s = econ.mg.playerBySmallID(seller);
-    if (!s.isPlayer() || !s.isAlive() || ww.isCapitulated(seller)) {
+    if (!s.isPlayer() || !ww.isActor(seller)) {
       return "no_partner";
     }
     if (econ.country(seller) === null || s.hasEmbargoAgainst(buyerPlayer)) {
@@ -141,6 +141,16 @@ export function exportRoom(
 }
 
 /**
+ * The civilian factories a deal costs its buyer a day: its `civs`, times
+ * P5's percent (spec §9.1: a dominion pays half; rounded up).
+ */
+export function tradePaidCivs(econ: WwEconomy, tr: Trade): number {
+  // P5 hook (S).
+  const pct = econ.ww.endgame.tradeCivFactorPct(tr.buyer, tr.seller);
+  return pct === 100 ? tr.civs : Math.ceil((tr.civs * pct) / 100);
+}
+
+/**
  * Spec §7.4: `ce` buys `civs × 8` units a day of `res` from `seller` and
  * pays `civs` civilian factories. A deal with the same seller and resource
  * grows instead of opening a second one (the same checks apply).
@@ -161,7 +171,7 @@ export function openTrade(
   for (const tr of econ.trades()) {
     if (tr.buyer !== buyer) continue;
     buyerTrades++;
-    paidCivs += tr.civs;
+    paidCivs += tradePaidCivs(econ, tr);
     if (tr.seller === seller && tr.res === res) same = tr;
   }
   const block = openTradeBlockOf({
@@ -204,7 +214,7 @@ export function closeTrade(
 function closeBroken(econ: WwEconomy, tr: Trade): void {
   econ.removeTrade(tr.id);
   const b = econ.mg.playerBySmallID(tr.buyer);
-  if (!b.isPlayer() || b.type() !== PlayerType.Human) return;
+  if (!b.isPlayer() || !econ.ww.isHumanControlled(tr.buyer)) return;
   econ.mg.displayMessage(
     "events_display.ww1936_trade_closed",
     MessageType.WORLD_WAR,
@@ -272,9 +282,9 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
     const payable =
       b === null ? 0 : payableCivs(b.totals.civ, b.totals.cgMilli);
     let paid = 0;
-    for (const tr of deals) paid += tr.civs;
+    for (const tr of deals) paid += tradePaidCivs(econ, tr);
     for (let i = deals.length - 1; i >= 0 && paid > payable; i--) {
-      paid -= deals[i].civs;
+      paid -= tradePaidCivs(econ, deals[i]);
       closeBroken(econ, deals[i]);
     }
   }

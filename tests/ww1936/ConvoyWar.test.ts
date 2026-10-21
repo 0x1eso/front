@@ -10,12 +10,14 @@ import {
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { noteKills } from "@openfront/engine/ww1936/endgame/Wars";
 import { routeFor } from "@openfront/engine/ww1936/navy/Convoys";
 import {
   convoyLossPmOf,
   convoyWar,
 } from "@openfront/engine/ww1936/navy/ConvoyWar";
 import type { SeaRoute, WwNavy } from "@openfront/engine/ww1936/navy/WwNavy";
+import { vi } from "vitest";
 import {
   CONVOY,
   dayTick,
@@ -29,6 +31,13 @@ import { REGION, SR, TAG_ID, ZONE } from "./seaFixture";
 import { placeArmy, step, stepTo, withTestPolitics } from "./util";
 
 withTestPolitics();
+
+// P5 (pre-flight §0-10): the war score hears of every convoy sunk.
+vi.mock("@openfront/engine/ww1936/endgame/Wars", async (original) => {
+  const real =
+    await original<typeof import("@openfront/engine/ww1936/endgame/Wars")>();
+  return { ...real, noteKills: vi.fn(real.noteKills) };
+});
 
 /** A British trade route through the Western Approaches carrying `got` convoys. */
 function britishRoute(navy: WwNavy, got: number, day: number): SeaRoute {
@@ -107,8 +116,13 @@ describe("convoy war (spec §10.6)", () => {
     expect(convoyLossRatePm(raid, 0, 3)).toBe(30);
     expect(convoyLossPmOf(navy, TAG_ID.GBR, SR.approaches)).toBe(30);
     // The next day: 1,800 milli — one convoy goes, 800 stay.
+    vi.mocked(noteKills).mockClear();
     convoyWar(navy, SR.approaches, day + 1);
     expect(g.ce("GBR").stock[CONVOY]).toBe(stock - 1);
+    // Italy sank it (the war score, lane W).
+    expect(vi.mocked(noteKills).mock.calls.map((c) => c.slice(1))).toEqual([
+      [TAG_ID.ITA, TAG_ID.GBR, "convoy", 1],
+    ]);
     expect(st.raidRest.get(TAG_ID.GBR)).toBe(800);
     const [r] = [...navy.routes.values()];
     expect(r.got).toBe(29);

@@ -97,11 +97,56 @@ export const COUNTRY_TAGS = [
   // Oceania
   "AUS",
   "NZL",
+  // P5 (P5 spec §3.2): dormant slots, players from tick 0 with no land.
+  // Never picked in the lobby (scenarioTags / PICK_ORDER leave them out).
+  "SVK",
+  "HRV",
+  "VIC",
+  "RSI",
+  "RNG",
+  "MEN",
+  "BRM",
+  "PHL",
+  "CW1",
+  "CW2",
+  "CW3",
+  "CW4",
+  "CW5",
+  "CW6",
 ] as const;
 export type CountryTag = (typeof COUNTRY_TAGS)[number];
 
 export function isCountryTag(v: string): v is CountryTag {
   return (COUNTRY_TAGS as readonly string[]).includes(v);
+}
+
+/** P5 spec §3.2: the named dormant countries (woken by events or peace treaties). */
+export const NAMED_DORMANT_TAGS = [
+  "SVK",
+  "HRV",
+  "VIC",
+  "RSI",
+  "RNG",
+  "MEN",
+  "BRM",
+  "PHL",
+] as const;
+/** P5 spec §3.5, §15: the civil-war slots (a breakaway side's country). */
+export const CIVIL_WAR_SLOTS = [
+  "CW1",
+  "CW2",
+  "CW3",
+  "CW4",
+  "CW5",
+  "CW6",
+] as const;
+/** P5 spec §3.2: every dormant slot, in COUNTRY_TAGS order (the last 14 tags). */
+export const DORMANT_TAGS = [
+  ...NAMED_DORMANT_TAGS,
+  ...CIVIL_WAR_SLOTS,
+] as const;
+export function isDormantTag(t: string): boolean {
+  return (DORMANT_TAGS as readonly string[]).includes(t);
 }
 
 /** The starting factions (spec §5.2), in camp order (Score.campRank). */
@@ -266,6 +311,21 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
   CHL: def("Chile", "cl", [175, 75, 95], "americas"),
   AUS: def("Australia", "au", [65, 135, 115], "africa_oceania", ALLIES),
   NZL: def("New Zealand", "nz", [75, 95, 155], "africa_oceania", ALLIES),
+  // P5 (spec §3.2; colours (내 판단): distinct from their neighbours on the 1936 map).
+  SVK: def("Slovakia", "ww_svk", [90, 120, 200], "europe"),
+  HRV: def("Croatia", "ww_hrv", [180, 70, 80], "europe"),
+  VIC: def("Vichy France", "fr", [130, 140, 190], "europe"),
+  RSI: def("Italian Social Republic", "ww_rsi", [90, 110, 70], "europe"),
+  RNG: def("Reorganized National Government", "ww_rng", [190, 170, 90], "asia"),
+  MEN: def("Mengjiang", "ww_men", [200, 160, 70], "asia"),
+  BRM: def("Burma", "ww_brm", [200, 180, 60], "asia"),
+  PHL: def("Philippines", "ph", [90, 140, 210], "asia"),
+  CW1: def("Breakaway State 1", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW2: def("Breakaway State 2", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW3: def("Breakaway State 3", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW4: def("Breakaway State 4", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW5: def("Breakaway State 5", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW6: def("Breakaway State 6", "ww_cw_neutral", [128, 128, 128], "europe"),
 };
 
 export const FACTION_LEADER: Readonly<Record<FactionId, CountryTag>> = {
@@ -281,5 +341,9 @@ export const MAJOR_TAGS: readonly CountryTag[] = COUNTRY_TAGS.filter(
 /** Unpicked humans get the first free country in this order (spec §7.1). */
 export const PICK_ORDER: readonly CountryTag[] = (() => {
   const first: CountryTag[] = ["DEU", "GBR", "SUN", "USA", "FRA", "ITA", "JPN"];
-  return [...first, ...COUNTRY_TAGS.filter((t) => !first.includes(t))];
+  // P5 plan decision 3: the dormant slots are never assigned to anyone.
+  return [
+    ...first,
+    ...COUNTRY_TAGS.filter((t) => !isDormantTag(t) && !first.includes(t)),
+  ];
 })();

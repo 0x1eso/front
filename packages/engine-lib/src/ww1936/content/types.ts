@@ -34,6 +34,15 @@ export type {
   TemplateUnlockDef,
   TraitDef,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+// P5 (plan decisions 29, 30): the endgame content shapes.
+export type {
+  CivilWarSeedDef,
+  CoreDef,
+  OccupationDefaultDef,
+  PeaceDefaultDef,
+  PeaceDefaultDemand,
+  PeaceDefaultLine,
+} from "@openfront/engine-api/ww1936/EndgameTypes";
 
 /**
  * The white silhouette icons a focus or a spirit may name

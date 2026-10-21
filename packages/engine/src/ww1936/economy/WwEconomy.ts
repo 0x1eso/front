@@ -1,4 +1,3 @@
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   BUILDING_COST,
@@ -86,7 +85,12 @@ import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
 import { repairCostMilli, stepRepairs } from "./Repairs";
 import { stepResearch } from "./ResearchRun";
-import { tradeDelivery, tradePartners, validateTrades } from "./Trade";
+import {
+  tradeDelivery,
+  tradePaidCivs,
+  tradePartners,
+  validateTrades,
+} from "./Trade";
 
 export interface Line {
   id: number;
@@ -560,6 +564,9 @@ export class WwEconomy {
     for (const ce of this.countries()) {
       const p = this.mg.playerBySmallID(ce.smallID);
       if (!p.isPlayer()) continue;
+      // P5 pre-flight §0-4: a dormant slot starts with nothing (no techs,
+      // stock, army or manpower); P5 lane X starts it when it wakes.
+      if (this.scenario.isDormantSlot(ce.smallID)) continue;
       let civ = 0;
       let mil = 0;
       for (const id of this.regionsOf(ce.smallID)) {
@@ -618,6 +625,7 @@ export class WwEconomy {
     // for both); a human changes any of it in the preparation minute.
     for (const ce of this.countries()) {
       if (!this.mg.playerBySmallID(ce.smallID).isPlayer()) continue;
+      if (this.scenario.isDormantSlot(ce.smallID)) continue;
       aiStartSetup(this, ce);
       let lined = 0;
       for (const l of ce.lines) lined += l.factories;
@@ -646,7 +654,8 @@ export class WwEconomy {
     const ce = this.countryList[id];
     if (ce === null || ce === undefined) return;
     const p = this.mg.playerBySmallID(id);
-    if (!p.isPlayer() || !p.isAlive() || this.ww.isCapitulated(id)) return;
+    // P5 plan decision 6: the countries that play (an exile does).
+    if (!p.isPlayer() || !this.ww.isActor(id)) return;
     this.refreshTotals(ce, day, tick);
     stepManpower(this, ce, p);
     stepProduction(this, ce);
@@ -658,7 +667,10 @@ export class WwEconomy {
     settleFuel(this, ce, day);
     // Its turn every WW_AI_PERIOD_DAYS days, and between turns what fell
     // free (aiEconomyTick decides which).
-    if (p.type() === PlayerType.Nation) aiEconomyTick(this, ce, p, day, tick);
+    // P5 plan decision 7: the AI runs a country no human controls now.
+    if (!this.ww.isHumanControlled(id)) {
+      aiEconomyTick(this, ce, p, day, tick);
+    }
     this.dirtyCountries.add(id);
   }
 
@@ -699,6 +711,7 @@ export class WwEconomy {
     let lastOwner = -1;
     let lastFights = false;
     const pol = this.ww.politics;
+    const eg = this.ww.endgame;
     for (const id of this.regionsOf(ce.smallID)) {
       const r = this.scenario.region(id)!;
       // P3 spec §17.1: the legal owner, not the 1936 one.
@@ -707,13 +720,23 @@ export class WwEconomy {
         lastOwner = owner;
         lastFights = this.ownerFights(owner);
       }
-      const sh = regionShares(
-        this.controller[id] ?? 0,
-        owner,
-        pol.isCore(id),
-        lastFights,
-      );
+      // P5 hook (O, plan decision 19): an administered region's shares.
+      const occ = eg.regionShare(id);
+      const sh =
+        occ === null
+          ? regionShares(
+              this.controller[id] ?? 0,
+              owner,
+              pol.isCore(id),
+              lastFights,
+            )
+          : {
+              occupied: false,
+              controlPct: occ.factoryPct,
+              manpowerPct: occ.manpowerPct,
+            };
       const cp = sh.controlPct;
+      const rp = occ === null ? cp : occ.resourcePct;
       // P4 plan decision 13: bombed-out buildings do not work.
       civ += Math.floor((effectiveBuildings(this, id, "civ") * cp) / 100);
       mil += Math.floor((effectiveBuildings(this, id, "mil") * cp) / 100);
@@ -730,7 +753,7 @@ export class WwEconomy {
         produced[k] += extraction(
           deposit,
           this.infraEff[id],
-          cp,
+          rp,
           ce.stats.extractionPct,
         );
       }
@@ -745,7 +768,7 @@ export class WwEconomy {
     const deliver = tradeDelivery(this, ce.smallID);
     for (const tr of this._trades) {
       if (tr.buyer === ce.smallID) {
-        paid += tr.civs;
+        paid += tradePaidCivs(this, tr);
         // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
         imported[tr.res] += deliver(tr, tr.civs * tradeUnitsPerCiv(ce.stats));
       }
@@ -754,8 +777,17 @@ export class WwEconomy {
         exported[tr.res] += tr.civs * WW_TRADE_UNITS_PER_CIV;
       }
     }
+    // P5 hook (S, W, X; plan decision 19): subjects' flows, reparations, an
+    // exile's virtual factories and manpower (yesterday's values).
+    const adj = eg.econAdjust(ce.smallID);
+    for (let k = 0; k < RESOURCE_COUNT; k++) {
+      if (adj.res[k] !== 0) produced[k] = Math.max(0, produced[k] + adj.res[k]);
+    }
+    received += adj.civIn;
+    paid += adj.civOut;
+    recruitable += adj.manpower;
     t.civ = civ;
-    t.mil = mil;
+    t.mil = mil + adj.virtualMil;
     t.dock = dock;
     // The dead are gone from the pool for good (spec §6.5), so the
     // ceiling recruitable − army never refills as men die.
@@ -852,18 +884,26 @@ export class WwEconomy {
     // P3 spec §17.1: the legal owner and its core (P1's "1936 owner").
     const pol = this.ww.politics;
     const owner = pol.legalOwner[region] ?? 0;
-    return regionShares(
+    const sh = regionShares(
       this.controller[region] ?? 0,
       owner,
       pol.isCore(region),
       this.ownerFights(owner),
     );
+    // P5 hook (O, plan decision 19): an administered region's shares.
+    const occ = this.ww.endgame.regionShare(region);
+    return occ === null
+      ? sh
+      : {
+          occupied: sh.occupied,
+          controlPct: occ.factoryPct,
+          manpowerPct: occ.manpowerPct,
+        };
   }
 
-  /** The legal owner of a region is alive and has not capitulated. */
+  /** The legal owner of a region still plays (P5: an actor — an exile does). */
   private ownerFights(owner: number): boolean {
-    const o = this.mg.playerBySmallID(owner);
-    return o.isPlayer() && o.isAlive() && !this.ww.isCapitulated(owner);
+    return this.ww.isActor(owner);
   }
 
   /** Spec §4.4: someone else holds it and its 1936 owner still fights. */
@@ -1025,7 +1065,8 @@ export class WwEconomy {
       const p = this.mg.playerBySmallID(id);
       if (ce === null || !p.isPlayer()) continue;
       data.countries.push(this.summary(ce, fieldMen[id] ?? 0));
-      if (p.type() === PlayerType.Human) data.details.push(this.detail(ce));
+      // P5 plan decision 7: the details go to the country a human controls now.
+      if (this.ww.isHumanControlled(id)) data.details.push(this.detail(ce));
     }
     for (const id of [...this.dirtyRegions].sort((a, b) => a - b)) {
       // P3's resource effect: the deposit bonus, only when there is one.

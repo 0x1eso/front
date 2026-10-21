@@ -5,7 +5,6 @@ import {
   WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
-import { transferOnCapitulation } from "./land/Occupation";
 import type { WorldWar } from "./WorldWar";
 
 /** Spec §7.5: a region's points go to the owner of its VP tile. Indexed by smallID. */
@@ -34,11 +33,17 @@ export function heldStartVp(mg: Game, ww: WorldWar, smallID: number): number {
 
 /**
  * Who ends up with what `smallID` holds: itself, or once it has capitulated,
- * its victor (whose own capitulation passes it on again). 0: nobody.
+ * its victor (whose own capitulation passes it on again). 0: nobody. P5
+ * (pre-flight §A W × X): an exile is its own heir (it fights on).
  */
-function heir(caps: readonly CapitulationData[], smallID: number): number {
+function heir(
+  caps: readonly CapitulationData[],
+  smallID: number,
+  isExile: (id: number) => boolean,
+): number {
   let id = smallID;
   for (let i = 0; i <= caps.length; i++) {
+    if (isExile(id)) return id;
     const cap = caps.find((c) => c.smallID === id);
     if (cap === undefined) return id;
     id = cap.victor;
@@ -57,7 +62,9 @@ function takenFrom(mg: Game, ww: WorldWar, loser: number): Map<number, number> {
   const out = new Map<number, number>();
   for (const r of ww.scenario.landRegions) {
     if (owners[r.id] !== loser) continue;
-    const holder = heir(caps, mg.ownerID(ww.scenario.vpTile(r)));
+    const holder = heir(caps, mg.ownerID(ww.scenario.vpTile(r)), (id) =>
+      ww.endgame.isExile(id),
+    );
     if (holder === 0 || holder === loser) continue;
     out.set(holder, (out.get(holder) ?? 0) + r.vp);
   }
@@ -118,6 +125,11 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
     if (mg.ownerID(ww.scenario.vpTile(r)) === owner) held[owner] += r.vp;
   }
   for (let id = 1; id <= ww.scenario.countries.length; id++) {
+    // P5 spec §1.4: an exile never capitulates (again).
+    if (ww.endgame.isExile(id)) {
+      ww.setCapitulationGauge(id, 0);
+      continue;
+    }
     if (ww.isCapitulated(id)) continue;
     const p = mg.playerBySmallID(id);
     if (!p.isPlayer() || !p.isAlive() || !ww.hasWar(id)) {
@@ -146,12 +158,16 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
  * Spec §7.5: the country leaves every war, its army is gone, and the rest of
  * its land goes to the victor over the next ticks.
  */
-function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
+export function capitulate(
+  mg: Game,
+  ww: WorldWar,
+  loser: Player,
+  tick: number,
+): void {
   const victor = pickVictor(mg, ww, loser);
   const loserID = loser.smallID();
   ww.addCapitulation(loserID, victor?.smallID() ?? 0, tick);
   ww.setCapitulationGauge(loserID, 0);
-  ww.endWarsOf(loserID);
   // Its army is gone: the troops at home, its running attacks and the
   // troops at sea. An attack already retreating finishes its retreat as
   // ordered (deleted, its execution would wait for that retreat forever).
@@ -178,22 +194,10 @@ function capitulate(mg: Game, ww: WorldWar, loser: Player, tick: number): void {
     u.owner().addTroops(u.troops());
     u.delete(false);
   }
-  // P2 spec §5.5, §12.5: its divisions and armies are gone; control moves
-  // this tick, the tiles follow by the spread budget (plan decision 8).
-  ww.land.removeCountryForces(loserID);
-  // P4 decision 32: its ships, fleets, routes, voyages, invasions and air
-  // deployments are gone this tick too (P5 makes exile fleets of them).
-  ww.navy.onCapitulation(loserID, victor?.smallID() ?? 0);
-  ww.air.onCapitulation(loserID, victor?.smallID() ?? 0);
-  if (victor !== null) {
-    // Land still on its way to the loser goes straight on to its victor.
-    for (const t of ww.transfers()) {
-      if (t.to === loserID) t.to = victor.smallID();
-    }
-    transferOnCapitulation(ww.land, loserID, victor.smallID());
-  }
-  // P3 spec §17.1: its legal regions go to the victor; its politics stop.
-  ww.politics.onCapitulated(loserID, victor?.smallID() ?? 0, tick);
+  // P5 plan decision 9: its wars, forces, land and politics — the endgame's
+  // capitulation (lane W; the foundation's stub is P0–P4's order: wars,
+  // forces, navy and air, control, legal owner, politics).
+  ww.endgame.onCapitulated(loserID, victor?.smallID() ?? 0, tick);
   // Without a victor (nobody holds its points: unowned land) the message
   // names none, rather than "capitulated to" nobody.
   if (victor === null) {

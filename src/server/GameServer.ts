@@ -21,7 +21,10 @@ import {
   Turn,
   Winner,
 } from "@openfront/engine-api/Schemas";
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  isDormantTag,
+  type CountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
@@ -1438,6 +1441,8 @@ export class GameServer {
       if (this.countryPicks.delete(client.clientID)) this.broadcastLobbyInfo();
       return;
     }
+    // P5 plan decision 3: a dormant slot is never picked.
+    if (isDormantTag(tag)) return;
     if (
       this.livePicks().some(
         (p) => p.tag === tag && p.clientID !== client.clientID,

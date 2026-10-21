@@ -159,6 +159,8 @@ describe("economy wiring (spec §6, §14)", () => {
         .flatMap((u) => u.data.countries);
     step(runner, 2);
     for (const ce of econ.countries()) {
+      // P5 plan decision 4: a dormant slot has no summary until it wakes.
+      if (econ.scenario.isDormantSlot(ce.smallID)) continue;
       const [s] = summaries().filter((x) => x.smallID === ce.smallID);
       expect(s.slotPct).toBe(ce.tech.slotPct);
       // A region's slots, as the engine counts them for its controller.

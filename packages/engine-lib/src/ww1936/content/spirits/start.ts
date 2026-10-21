@@ -67,7 +67,8 @@ export const SPIRITS_START: readonly SpiritDef[] = [
     id: "usa_isolation",
     icon: "shield",
     stats: { warSupportBp: -1500 },
-    rules: ["no_faction", "no_justify"],
+    // P5 (P5 spec §13.2): no lend-lease while isolationist.
+    rules: ["no_faction", "no_justify", "no_lend_lease"],
   },
   // Soviet Union. The second five-year plan ran 1933-1937.
   {

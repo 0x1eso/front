@@ -17,6 +17,7 @@ import {
   addPopularity,
   largestOther,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { startCivilWar } from "../endgame/CivilWar";
 import { advisorFitsIdeology } from "./Advisors";
 import { fitsFactionIdeology, leaveFaction } from "./Factions";
 import { setLawFree } from "./Laws";
@@ -240,6 +241,8 @@ export function civilWar(
 ): void {
   const c = pol.country(id);
   if (c === null) return;
+  // P5 hook (C): a real civil war when lane C splits the country (spec §15).
+  if (startCivilWar(pol.ww.endgame, id, IDEOLOGIES[ideology], tick)) return;
   setGovernment(pol, id, ideology, tick);
   c.stabBaseBp = Math.max(0, c.stabBaseBp - 2500);
   c.wsBaseBp = Math.max(0, c.wsBaseBp - 1000);

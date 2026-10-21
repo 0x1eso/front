@@ -94,6 +94,25 @@ function ppShort(pol: WwPolitics, c: CountryPol, d: DecisionDef): boolean {
   return c.ppMilli < 0 || c.ppMilli < decisionCostPp(pol, c.smallID, d) * 1000;
 }
 
+/**
+ * Whether `target` can be a line of targeted decision `d` at all: a living
+ * country, or (P5 pre-flight §0-11, `target.dead`) one out of the game
+ * that is no dormant slot (a restoration).
+ */
+export function decisionTargetOk(
+  pol: WwPolitics,
+  d: DecisionDef,
+  target: number,
+): boolean {
+  if (target <= 0 || target >= pol.countries.length) return false;
+  if (d.target?.dead === true) {
+    return (
+      !pol.living(target) && pol.ww.endgame.countryState(target) !== "dormant"
+    );
+  }
+  return pol.living(target);
+}
+
 /** Whether `target` may be one of the targeted decision's lines for `id`. */
 function amongHolds(
   pol: WwPolitics,
@@ -127,7 +146,7 @@ export function decisionBlock(
     return "decision_cooldown";
   }
   if (d.target !== undefined) {
-    if (target === 0 || target === id || !pol.living(target)) {
+    if (target === 0 || target === id || !decisionTargetOk(pol, d, target)) {
       return "bad_target";
     }
     if (!amongHolds(pol, id, d, target, tick)) return "decision_unavailable";
@@ -323,7 +342,7 @@ export function decisionCards(pol: WwPolitics, id: number): WwDecisionCard[] {
     }
     for (const t of pol.list()) {
       const tid = t.smallID;
-      if (tid === id || !pol.living(tid)) continue;
+      if (tid === id || !decisionTargetOk(pol, d, tid)) continue;
       if (amongHolds(pol, id, d, tid, tick)) card(d, tid);
     }
   }

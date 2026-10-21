@@ -152,6 +152,18 @@ function setOrder(a: Army, order: ArmyOrder): void {
   a.pending = true;
 }
 
+/**
+ * P5 (plan decision 10, spec §8.5): the army garrisons the administered
+ * regions of legal owner `scope` (0: all). Lane O's Garrison picks the
+ * regions each day; fronts, plans and the AI's grouping leave it be.
+ */
+export function setGarrison(land: WwLand, a: Army, scope: number): void {
+  cancelInvasion(land.ww.navy, a.id);
+  setOrder(a, { ...idleOrder(), kind: "garrison", enemy: scope });
+  a.path = [];
+  land.markArmy(a.id);
+}
+
 function setMove(land: WwLand, a: Army, to: number, mode: number): void {
   const from = land.armyRegion(a);
   setOrder(a, { ...idleOrder(), kind: "move", to, mode });

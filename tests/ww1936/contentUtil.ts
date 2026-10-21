@@ -69,6 +69,10 @@ export function allEffectLists(): [string, readonly Effect[]][] {
     out.push([`decision ${d.id} complete`, d.completeEffects ?? []]);
     out.push([`decision ${d.id} fail`, d.failEffects ?? []]);
   }
+  // P5 (P5 spec §17.6): a beat whose act is effects.
+  for (const b of CONTENT.beats) {
+    if (b.act.kind === "effects") out.push([`beat ${b.id}`, b.act.effects]);
+  }
   return out;
 }
 
@@ -103,6 +107,12 @@ export function allConditions(): [string, Condition | undefined][] {
     out.push([`decision ${d.id} failIf`, d.failIf]);
     mods(`decision ${d.id}`, d.ai);
   }
+  // P5 (pre-flight §0-7): the beats' situations; the peace rows' conditions.
+  for (const b of CONTENT.beats) out.push([`beat ${b.id} when`, b.when]);
+  for (const r of CONTENT.peace) {
+    out.push([`peace ${r.loser} when`, r.when]);
+    r.lines.forEach((l, i) => out.push([`peace ${r.loser}.${i} when`, l.when]));
+  }
   for (const [at, list] of allEffectLists()) {
     walkEffects(list, (e) => {
       if (e.kind === "if") out.push([`${at} if`, e.cond]);
@@ -121,10 +131,20 @@ export const CONTENT_TARGETS = {
   DEU: 50,
   GBR: 48,
   SUN: 47,
+  // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
+  ITA: 46,
+  JPN: 46,
+  FRA: 46,
+  USA: 46,
   events: 100,
   decisions: 36,
   spirits: 65,
   persons: 60,
+  // P5 (P5 spec §17, §19.7): minimums of the endgame tables (K5's).
+  peace: 14,
+  p5Groups: 70,
+  p5Beats: 40,
+  dormant: 14,
 } as const;
 
 /** 0 (not filled yet) or at least the target (R19). */
@@ -148,6 +168,13 @@ export const ENGINE_EVENTS = [
   "gen_diplo_access",
   "gen_coup_done",
   "gen_justified_against",
+  // P5 (P5 spec §9–§13, §20.8): the endgame's engine events.
+  "gen_subject_upgrade",
+  "gen_diplo_lend_lease",
+  "gen_exile_formed",
+  "gen_uprising",
+  "gen_peace_conference",
+  "gen_volunteers_arrive",
 ] as const;
 export const ENGINE_EVENT_PATTERN = /^[a-z]{3}_election_\d{4}$/;
 

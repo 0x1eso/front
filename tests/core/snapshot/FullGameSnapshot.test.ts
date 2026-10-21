@@ -125,6 +125,7 @@ const WW1936_ONLY_TYPES = [
   "WorldWar",
   "WorldWarStart",
   "WwOrder",
+  "WwTakeoverPick",
 ];
 // Congress types the scripted game isn't sure to keep alive at a tick
 // boundary: a ballot or a convening finishes inside its init. Emergencies

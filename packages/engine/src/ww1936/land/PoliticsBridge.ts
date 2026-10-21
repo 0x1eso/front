@@ -107,7 +107,8 @@ function nearest(
  */
 function capitalOf(land: WwLand, owner: number): number {
   const sc = land.scenario;
-  const cap = sc.regionAt(sc.capitalTile(land.ww.tagOf(owner)));
+  // P5: a woken dormant slot's capital is its best region.
+  const cap = land.ww.capitalRegion(owner);
   if (sc.region(cap) !== undefined && land.controller[cap] === owner) {
     return cap;
   }
@@ -310,35 +311,7 @@ export function transferCountryUnits(
   } else {
     const tplMap = new Map<number, number>();
     const armies = land.armiesOf(from).sort((a, b) => a.id - b.id);
-    for (const a of armies) {
-      // At the army limit: into its first army.
-      const dest: Army | null =
-        land.newArmy(to) ??
-        land.armiesOf(to).sort((x, y) => x.id - y.id)[0] ??
-        null;
-      for (const id of [...a.divisions].sort((x, y) => x - y)) {
-        const r = t.rowOf(id);
-        if (r < 0) continue;
-        if (dest === null) {
-          returnDivisionEquip(toCe, t.equipOf(r), t.men[r]);
-          land.killDivision(r, false);
-          continue;
-        }
-        let tpl = tplMap.get(t.template[r]);
-        if (tpl === undefined) {
-          const st = src.template(t.template[r]);
-          tpl =
-            st === null ? (dst.templates[0]?.id ?? 0) : templateFor(dst, st);
-          tplMap.set(t.template[r], tpl);
-        }
-        leaveBattle(land, r);
-        stopDivision(land, r);
-        land.moveToArmy(id, dest);
-        land.setOwner(r, to);
-        t.front[r] = 0;
-        land.setTemplate(r, tpl);
-      }
-    }
+    for (const a of armies) transferArmyTo(land, a, to, tplMap);
   }
   for (const x of src.trainees) returnDivisionEquip(toCe, x.equip, x.men);
   src.training = [];
@@ -392,4 +365,87 @@ export function generalAvailable(
     !pol.generalRemoved(def.id) &&
     !pol.advisorHolds(def.id)
   );
+}
+
+/**
+ * P5 (pre-flight §A X × C): army `a` becomes a new army of `to` (its next
+ * army number; at the army limit, `to`'s first army; none: disbanded into
+ * `to`'s pool and stock), its divisions on `to`'s templates of the same
+ * name or a copy. `tplMap` caches the template choice across armies of
+ * one transfer (transferCountryUnits). The emptied army goes.
+ */
+export function transferArmyTo(
+  land: WwLand,
+  a: Army,
+  to: number,
+  tplMap = new Map<number, number>(),
+): Army | null {
+  const dest: Army | null =
+    land.newArmy(to) ??
+    land.armiesOf(to).sort((x, y) => x.id - y.id)[0] ??
+    null;
+  moveDivisions(land, a.owner, [...a.divisions], to, dest, tplMap);
+  return dest;
+}
+
+/**
+ * P5: divisions `ids` (of one owner) go to `to` as one new army (its next
+ * army number, or `armyNameNo` when given and free); the civil war's and
+ * the exile's split. The new army, or null when `to` is at its army limit
+ * (the divisions then join its first army, or are disbanded).
+ */
+export function transferDivisionsTo(
+  land: WwLand,
+  ids: readonly number[],
+  to: number,
+  armyNameNo?: number,
+): Army | null {
+  const t = land.divisions;
+  const rows = ids.map((id) => t.rowOf(id)).filter((r) => r >= 0);
+  if (rows.length === 0) return null;
+  const from = t.owner[rows[0]];
+  const made = land.newArmy(to);
+  if (made !== null && armyNameNo !== undefined) {
+    const taken = land.armiesOf(to).some((x) => x.nameNo === armyNameNo);
+    if (!taken) made.nameNo = armyNameNo;
+  }
+  const dest = made ?? land.armiesOf(to).sort((x, y) => x.id - y.id)[0] ?? null;
+  moveDivisions(land, from, ids, to, dest, new Map());
+  return made;
+}
+
+function moveDivisions(
+  land: WwLand,
+  from: number,
+  ids: readonly number[],
+  to: number,
+  dest: Army | null,
+  tplMap: Map<number, number>,
+): void {
+  const src = land.country(from);
+  const dst = land.country(to);
+  const toCe = land.econ.country(to);
+  if (src === null || dst === null || toCe === null) return;
+  const t = land.divisions;
+  for (const id of [...ids].sort((x, y) => x - y)) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    if (dest === null) {
+      returnDivisionEquip(toCe, t.equipOf(r), t.men[r]);
+      land.killDivision(r, false);
+      continue;
+    }
+    let tpl = tplMap.get(t.template[r]);
+    if (tpl === undefined) {
+      const st = src.template(t.template[r]);
+      tpl = st === null ? (dst.templates[0]?.id ?? 0) : templateFor(dst, st);
+      tplMap.set(t.template[r], tpl);
+    }
+    leaveBattle(land, r);
+    stopDivision(land, r);
+    land.moveToArmy(id, dest);
+    land.setOwner(r, to);
+    t.front[r] = 0;
+    land.setTemplate(r, tpl);
+  }
 }

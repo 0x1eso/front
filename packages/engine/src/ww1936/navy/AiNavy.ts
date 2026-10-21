@@ -9,7 +9,6 @@
 // another country's missions) and gives the orders through navy.issue, a
 // player's path. No randomness: a per-game jitter (the seed's wwRoll, ±5%)
 // only reorders close calls, so two games differ without a scripted date.
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -588,7 +587,8 @@ export function activeBeatTargets(
   const mg = navy.mg;
   if (mg.config().historicalAi() !== true) return out;
   const p = mg.playerBySmallID(smallID);
-  if (!p.isPlayer() || p.type() === PlayerType.Human) return out;
+  // P5 plan decision 7: a human controls it now.
+  if (!p.isPlayer() || navy.ww.isHumanControlled(smallID)) return out;
   const sc = navy.scenario;
   const tag = sc.tagOfSmallId(smallID);
   NAVAL_BEATS.forEach((def, i) => {
@@ -1315,7 +1315,8 @@ export function aiAtWar(navy: WwNavy, smallID: number): boolean {
 export function aiNavy(navy: WwNavy, smallID: number, day: number): void {
   const p = navy.mg.playerBySmallID(smallID);
   if (!p.isPlayer()) return;
-  const human = p.type() === PlayerType.Human;
+  // P5 plan decision 7: a human controls it now.
+  const human = navy.ww.isHumanControlled(smallID);
   // A fleet in battle takes no orders today.
   const fleets = navy
     .fleetsOf(smallID)
