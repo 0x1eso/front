@@ -40,6 +40,13 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
  */
 const IGNORED_UNUSED_KEY_PATTERNS: RegExp[] = [
   /^lang\./, // language metadata, not a UI translation key
+  // TODO(P5 U1-U3 merge): World War 1936 P5 lane T's keys (merged in batch
+  // 19) are read by the P5 screens of lanes U1, U2 and U3, which merge after
+  // lanes W, X and A. Remove these two patterns at that merge: every key must
+  // then be used (events_display.ww1936_subject_restricted is sent by the
+  // engine as "ww1936_subject_restricted", so a screen must name it in full).
+  /^ww1936\.(aid|country_state|demand|exile|member_state|occ|occ_law|occ_law_desc|peace|subject|subject_level|takeover|war)\./,
+  /^events_display\.ww1936_(autonomy_request|captured|conference_(opened|result|round)|country_created|exile_ended|exile_returned|exiled|garrison_short|ll_arrived|ll_blocked|ll_contract_stopped|occ_law|subject_level|subject_restricted|takeover|uprising|volunteers_arrived|volunteers_recalled)$/,
   // Steam rich presence status frames. Never rendered by the client, so there
   // is no translateText() call to find: the Electron shell reads them out of
   // resources/lang/*.json at build time and writes them into the localization

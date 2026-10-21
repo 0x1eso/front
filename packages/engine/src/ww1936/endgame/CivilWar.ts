@@ -56,7 +56,7 @@ const REBEL_WS_BP = 7000;
 const GOV_STAB_LOSS_BP = 1000;
 /** P3 spec §5.8: gen_civil_strife lasts 180 days. */
 const STRIFE_DAYS = 180;
-const COUNTRY_KEY = "ww1936.country.";
+const COUNTRY_NAME_PREFIX = "ww1936.country.";
 
 /**
  * Spec §15.1: `smallID` splits; true when a civil war began (P3 then does
@@ -216,7 +216,7 @@ export function endCivilWar(
   eg.setCountryState(L, CS_GONE);
   // Spec §3.5, §15.5: the winning breakaway state is the country now.
   if (isCivilWarSlot(eg, W)) {
-    eg.nameKey[W] = `${COUNTRY_KEY}${nameTagOf(eg, L)}`;
+    eg.nameKey[W] = `${COUNTRY_NAME_PREFIX}${nameTagOf(eg, L)}`;
     eg.nameArg[W] = null;
     eg.dirtyCountries.add(W);
   }
@@ -263,8 +263,8 @@ function isCivilWarSlot(eg: WwEndgame, id: number): boolean {
  */
 function nameTagOf(eg: WwEndgame, id: number): CountryTag {
   const key = eg.nameKey[id];
-  if (key !== null && key.startsWith(COUNTRY_KEY)) {
-    const t = key.slice(COUNTRY_KEY.length) as CountryTag;
+  if (key !== null && key.startsWith(COUNTRY_NAME_PREFIX)) {
+    const t = key.slice(COUNTRY_NAME_PREFIX.length) as CountryTag;
     if (COUNTRIES[t] !== undefined) return t;
   }
   return eg.ww.tagOf(id);
