@@ -3386,6 +3386,7 @@
       "at_war": "전쟁 중",
       "at_war_with": "전쟁 상대: {of}",
       "autonomy_ge": "자치도 {pct}% 이상",
+      "borders_group": "{group}에 맞닿은 땅 통제",
       "capitulated": "항복한 상태",
       "coastal": "해안선 보유",
       "compliance_ge": "{group} 준수도 {pct}% 이상",

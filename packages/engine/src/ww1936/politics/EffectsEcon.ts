@@ -229,12 +229,38 @@ export function unlockTemplate(
   return tpl;
 }
 
+/** P5 lane E: the template id every country's basic infantry answers to. */
+export const BASIC_INFANTRY = "infantry";
+
+/** The template with the most infantry battalions (ties: the earliest); null when none has any. */
+function basicInfantry(
+  templates: readonly LandTemplate[],
+): LandTemplate | null {
+  let best: LandTemplate | null = null;
+  let most = 0;
+  for (const t of templates) {
+    const n = t.def.battalions.filter((b) => b === "infantry").length;
+    if (n > most) {
+      best = t;
+      most = n;
+    }
+  }
+  return best;
+}
+
 /**
  * Spec §10.4 `divisions`: `count` divisions of the template (the country's
  * own by key, or a content template it unlocks) in a new army at the first
  * picked region, without training. Men and equipment come from the pool
  * and the stock as far as they go (a thin division when short); no men,
  * no more divisions.
+ *
+ * P5 lane E (the content lanes' gaps): template `infantry` is every
+ * country's basic infantry — its own `infantry` (the P2 default's key),
+ * else its template with the most infantry battalions (ties: the
+ * earliest; Italy's binary, Japan's square, the Soviet rifle division).
+ * An exile's `capital` is its host's capital region (spec §10.4: its
+ * divisions stand there).
  */
 function addDivisions(
   ctx: EffectCtx,
@@ -246,11 +272,16 @@ function addDivisions(
   const cl = land.country(actor);
   const ce = pol.econ.country(actor);
   if (cl === null || ce === null) return;
-  const region = pickRegions(pol, actor, e.where, 1, ctx)[0];
-  if (region === undefined) return;
+  const host = pol.ww.endgame.exileHost(actor);
+  const region =
+    e.where === "capital" && host > 0
+      ? capitalRegion(land, host)
+      : (pickRegions(pol, actor, e.where, 1, ctx)[0] ?? 0);
+  if (region === 0) return;
   const tpl =
     cl.templates.find((t) => t.key === e.template) ??
-    unlockTemplate(pol, actor, e.template);
+    unlockTemplate(pol, actor, e.template) ??
+    (e.template === BASIC_INFANTRY ? basicInfantry(cl.templates) : null);
   if (tpl === null) return;
   const army = land.newArmy(actor);
   if (army === null) return;

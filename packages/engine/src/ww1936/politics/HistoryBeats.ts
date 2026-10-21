@@ -19,6 +19,7 @@ import {
   BeatAct,
   DecisionId,
   HistoryBeat,
+  WW_BEAT_WHEN_WINDOW_DAYS,
   WW_BEAT_WINDOW_DEFAULT_DAYS,
   WW_WAR_GOAL_DAYS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -53,12 +54,13 @@ export function runBeats(pol: WwPolitics, day: number, tick: number): void {
       return;
     }
     // P5 pre-flight §0-7 (owner: the AI judges situations): a beat with a
-    // situation waits for it, daily, up to its window, then lapses.
+    // situation waits for it, daily, up to its window, then lapses — by
+    // default a long one (controller ruling: the situation may come late).
     if (
       b.when !== undefined &&
       !evalCondition(makeCtx(pol, a, a, 0, tick), b.when)
     ) {
-      s.done = day >= s.fireDay + (b.windowDays ?? WW_BEAT_WINDOW_DEFAULT_DAYS);
+      s.done = day >= s.fireDay + (b.windowDays ?? WW_BEAT_WHEN_WINDOW_DAYS);
       return;
     }
     s.done = !runAct(pol, b, s, a, day, tick);

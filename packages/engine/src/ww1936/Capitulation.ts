@@ -156,15 +156,18 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
 
 /**
  * Spec §7.5: the country leaves every war, its army is gone, and the rest of
- * its land goes to the victor over the next ticks.
+ * its land goes to the victor over the next ticks. P5 (spec §16.4
+ * `surrender {to}`): `receiver`, when given, is the victor instead of
+ * pickVictor's.
  */
 export function capitulate(
   mg: Game,
   ww: WorldWar,
   loser: Player,
   tick: number,
+  receiver?: Player,
 ): void {
-  const victor = pickVictor(mg, ww, loser);
+  const victor = receiver ?? pickVictor(mg, ww, loser);
   const loserID = loser.smallID();
   ww.addCapitulation(loserID, victor?.smallID() ?? 0, tick);
   ww.setCapitulationGauge(loserID, 0);
