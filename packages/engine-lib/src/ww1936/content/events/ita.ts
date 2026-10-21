@@ -14,7 +14,7 @@ import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { all, any, flag, T } from "../helpers";
 
 /** Spec §19.2 #29: still beside Germany, and the Allies in Sicily or a tenth of the victory points lost. */
-const GRAND_COUNCIL_CRISIS: Condition = all(
+export const GRAND_COUNCIL_CRISIS: Condition = all(
   { kind: "same_faction", of: T("DEU") },
   any(
     {

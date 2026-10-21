@@ -54,11 +54,13 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     // P5 (P5 spec §18.1-5): its own tree.
     tree: "ITA",
     spirits: ["ita_abyssinia", "ita_sanctions"],
+    // P5 (K1): the non-aligned government is the 1943 Marshal-Premier's, the
+    // democratic one the President of the Council (titles, persons/ita.ts).
     leaders: {
-      democratic: "title:leader_democratic",
+      democratic: "title:ita_council_president",
       communist: "title:leader_communist",
       fascist: "leader_ita",
-      neutral: "title:leader_neutral",
+      neutral: "title:ita_military_premier",
     },
     govNames: ["democratic", "communist", "fascist", "neutral"],
   },
@@ -1294,6 +1296,7 @@ export const FACTION_NAMES: readonly FactionNameDef[] = [
   // Treaty of Geneva, 1934-09-12.
   { id: "baltic_entente", creators: ["EST", "LVA", "LTU"] },
   { id: "nordic_defence", creators: ["SWE", "NOR", "DNK", "FIN"] },
-  // Only when the United States founds a faction outside the Allies.
-  { id: "pan_american", creators: ["USA"] },
+  // Only when the United States founds a faction outside the Allies. P5
+  // (K4's hemisphere invites): members of any ideology may join.
+  { id: "pan_american", creators: ["USA"], anyIdeology: true },
 ];

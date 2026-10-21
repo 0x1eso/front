@@ -835,11 +835,6 @@ export const FRA_FOCUSES: FocusDef[] = [
  * the focus AI skips what it cannot take (P3).
  */
 export const FRA_PATH: FocusId[] = [
-  "fra_june_appeal",
-  "fra_rally_the_empire",
-  "fra_free_french_forces",
-  "fra_resistance_council",
-  "fra_liberation_government",
   "fra_industrial_survey",
   "fra_popular_front",
   "fra_non_intervention",
@@ -870,6 +865,14 @@ export const FRA_PATH: FocusId[] = [
   "fra_bomber_force",
   "fra_submarine_fleet",
   "fra_colonial_minerals",
+  // The government in exile's chain (available in exile only) comes last:
+  // at the head of the path its unavailable focuses blocked the 1936 path
+  // (the AI looks at most three places ahead; P5 Phase B).
+  "fra_june_appeal",
+  "fra_rally_the_empire",
+  "fra_free_french_forces",
+  "fra_resistance_council",
+  "fra_liberation_government",
 ];
 
 export const FRA_BRANCHES: BranchPoint[] = [

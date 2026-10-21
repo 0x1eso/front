@@ -216,12 +216,12 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
   },
   // regions: Keijō (Seoul), Gangwon, North Chungcheong, North Gyeongsang, South Jeolla (south of 38 N; the Keijo region's centre is at 38.2 N because it reaches into Hwanghae, but Seoul (37.6 N) lay south of the 1945 line)
   { id: "korea_south", regions: [679, 701, 732, 734, 761], owner1936: "JPN" },
-  // regions: Hokkaidō, Akita, Iwate, Yamagata, Nagano, Fukushima, Fukui, Tochigi, Gifu, Hiroshima, Tokyo, Ōsaka, Hyōgo, Kōchi, Kumamoto, Miyazaki
+  // regions: Hokkaidō, Akita, Iwate, Yamagata, Nagano, Fukushima, Fukui, Tochigi, Gifu, Hiroshima, Tokyo, Ōsaka, Hyōgo, Kōchi, Kumamoto, Miyazaki, Iwo Jima, Okinawa, Nagasaki (map v5)
   {
     id: "japan_home",
     regions: [
       508, 612, 649, 691, 703, 716, 723, 735, 754, 757, 758, 766, 772, 791, 800,
-      801, 1354, 1355,
+      801, 1354, 1355, 1369,
     ],
     owner1936: "JPN",
   },

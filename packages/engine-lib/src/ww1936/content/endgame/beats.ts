@@ -9,7 +9,13 @@
 // the Casablanca, Tehran, Yalta and Potsdam conferences (date events in
 // events/endgame.ts, so they also reach human hosts) and the Anglo-Soviet
 // entry into Iran (already the P0 lines of 1941-08-25).
-import { T } from "../helpers";
+//
+// P5 Phase B (pre-flight §0-7): an event beat whose event depends on a
+// situation carries it as `when` (the event's trigger without its date and
+// its human/historical-AI gate): the beat waits for it up to its window,
+// then lapses. The events keep their option guards.
+import { GRAND_COUNCIL_CRISIS } from "../events/ita";
+import { T, all, any, flag, gflag, not } from "../helpers";
 import type { HistoryBeat } from "../types";
 
 export const BEATS_P5: HistoryBeat[] = [
@@ -95,6 +101,11 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1940-03-30",
     actor: "JPN",
     act: { kind: "event", id: "jpn_nanjing_government" },
+    when: {
+      kind: "occupied_by",
+      group: "east_china_occupied",
+      of: "self",
+    },
   },
   {
     id: "b19400510_gbr_occupy_iceland",
@@ -115,12 +126,20 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1940-07-03",
     actor: "GBR",
     act: { kind: "event", id: "gbr_mers_el_kebir" },
+    when: all(
+      { kind: "country_state", tag: "VIC", state: "active" },
+      { kind: "navy_size", who: T("VIC"), min: 1 },
+    ),
   },
   {
     id: "b19400826_fra_free_french_africa",
     date: "1940-08-26",
     actor: "FRA",
     act: { kind: "event", id: "fra_free_french_africa" },
+    when: all(
+      { kind: "is_exile" },
+      { kind: "country_state", tag: "VIC", state: "active" },
+    ),
   },
   {
     // The decision opens with the focus jpn_indochina_bases, which can finish
@@ -319,12 +338,25 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1942-11-08",
     actor: "VIC",
     act: { kind: "event", id: "vic_torch" },
+    when: any(
+      {
+        kind: "occupied_by",
+        group: "french_north_africa",
+        of: { factionLeaderOf: T("GBR") },
+      },
+      { kind: "occupied_by", group: "french_north_africa", of: T("USA") },
+    ),
   },
   {
     id: "b19421111_deu_case_anton",
     date: "1942-11-11",
     actor: "DEU",
     act: { kind: "event", id: "deu_case_anton" },
+    when: all(gflag("vic_torch_done"), {
+      kind: "country_state",
+      tag: "VIC",
+      state: "active",
+    }),
   },
 
   // ---- 1943 ----
@@ -333,12 +365,17 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1943-07-25",
     actor: "ITA",
     act: { kind: "event", id: "ita_grand_council" },
+    when: GRAND_COUNCIL_CRISIS,
   },
   {
     id: "b19430801_jpn_burma_state",
     date: "1943-08-01",
     actor: "JPN",
     act: { kind: "event", id: "jpn_burma_state" },
+    when: all(
+      { kind: "occupied_by", group: "burma", of: "self" },
+      { kind: "country_state", tag: "BRM", state: "dormant" },
+    ),
   },
   {
     id: "b19430829_deu_denmark_takeover",
@@ -351,6 +388,11 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1943-09-08",
     actor: "ITA",
     act: { kind: "event", id: "ita_armistice" },
+    when: all(
+      flag("ita_july_25"),
+      { kind: "days_since_flag_ge", flag: "ita_july_25", days: 45 },
+      { kind: "same_faction", of: T("DEU") },
+    ),
   },
   {
     id: "b19430923_deu_social_republic",
@@ -363,6 +405,13 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1943-10-14",
     actor: "JPN",
     act: { kind: "event", id: "jpn_philippine_republic" },
+    when: all(
+      { kind: "occupied_by", group: "philippines", of: "self" },
+      any(
+        { kind: "country_state", tag: "PHL", state: "dormant" },
+        { kind: "country_state", tag: "PHL", state: "gone" },
+      ),
+    ),
   },
 
   // ---- 1944 ----
@@ -383,6 +432,10 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1944-08-19",
     actor: "FRA",
     act: { kind: "event", id: "fra_paris_uprising" },
+    when: all(
+      { kind: "is_exile" },
+      not({ kind: "controls_group", group: "paris" }),
+    ),
   },
   {
     id: "b19440823_rou_august_coup",
@@ -428,5 +481,13 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1945-08-10",
     actor: "JPN",
     act: { kind: "event", id: "jpn_surrender_decision" },
+    when: all(
+      { kind: "at_war_with", of: T("SUN") },
+      { kind: "at_war_with", of: T("USA") },
+      any(
+        { kind: "lost_vp_ge", pct: 10 },
+        { kind: "lost_vp_ge", who: T("MCK"), pct: 10 },
+      ),
+    ),
   },
 ];

@@ -209,7 +209,14 @@ export const WORLD_EVENTS: EventDef[] = [
       {
         id: "a",
         history: true,
-        ai: { base: 70 },
+        // P5 (K1's ita_axis_course focus flag): Italy on the Axis course
+        // accepts twice as readily.
+        ai: {
+          base: 70,
+          mods: [
+            { if: { kind: "flag", flag: "ita_axis_course" }, factor: 200 },
+          ],
+        },
         effects: [
           { kind: "add_spirit", id: "ita_axis_bond" },
           { kind: "add_spirit", who: "from", id: "ita_axis_bond" },
