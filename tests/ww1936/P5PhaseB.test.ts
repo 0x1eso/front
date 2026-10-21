@@ -46,7 +46,7 @@ describe("World War 1936 P5 Phase B data", () => {
 
   it("France's AI path starts with a focus open in 1936", () => {
     const first = FRA_FOCUSES.find((f) => f.id === FRA_PATH[0])!;
-    expect(first.available?.kind === "is_exile").toBe(false);
+    expect(first.available).not.toEqual({ kind: "is_exile" });
     // The government in exile's chain stays on the path, at its end.
     const exile = FRA_PATH.indexOf("fra_june_appeal");
     expect(exile).toBe(FRA_PATH.length - 5);
