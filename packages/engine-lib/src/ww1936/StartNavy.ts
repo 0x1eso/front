@@ -584,7 +584,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
     bases: [
       "Tokyo", // Yokosuka
       "Hiroshima", // Kure
-      "Kumamoto", // Sasebo
+      "Nagasaki", // Sasebo (map v5 carves Nagasaki out of Kumamoto)
       "Ōsaka", // Maizuru
       "Truk",
       "Kwantung", // Lüshun
@@ -736,7 +736,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         progressPct: 25,
         docks: 2,
         names: ["jpn_tone", "jpn_chikuma"],
-        port: "Kumamoto",
+        port: "Nagasaki",
       },
       // Shiratsuyu-class destroyers (laid down 1933-35): en.wikipedia
       // Shiratsuyu-class destroyer
@@ -747,7 +747,7 @@ export const START_NAVY: readonly StartNavyDef[] = [
         progressPct: 50,
         docks: 3,
         names: [],
-        port: "Kumamoto",
+        port: "Nagasaki",
       },
       {
         cls: "ss",

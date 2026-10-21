@@ -45,6 +45,9 @@ type Region struct {
 	Island string
 	// Lake marks a sea zone that is a lake (seasplit1936.json).
 	Lake bool
+	// carved: an admin-1 unit cut out of the regions (carveUnits), named
+	// by its row.
+	carved bool
 }
 
 type group struct {
@@ -268,6 +271,99 @@ func buildRegions(p Projection, land []bool, owner []uint8, adm []int32, patch [
 	return ids, regions, nil
 }
 
+// carveUnits cuts each row of owners1936.json "carve" out of the finished
+// regions (after carveIslands; islands keep their land): the pixels of its
+// admin-1 units and owner in the regions of the units' modern country become
+// one region named by the row, its main admin-1 unit the row's first. A
+// region of another modern country keeps them (Tsushima, which joined a
+// Korean region across the strait, stays where it is). The other regions
+// keep the rest of their pixels, so their shapes are what they were without
+// the row and only the donors' VP tiles may move. A region left without
+// pixels goes; all are numbered again from 1 in the order of their first
+// pixel and ids is rewritten. Returns the regions and, per row, the regions
+// that gave it land. A unit Natural Earth lacks, units of two modern
+// countries, or a row with no pixel, fails.
+func carveUnits(regions []*Region, ids []uint16, adm []int32, owner []uint8, admin []Feature, t *Tables) ([]*Region, [][]*Region, error) {
+	rows := t.Owners.Carve
+	if len(rows) == 0 {
+		return regions, nil, nil
+	}
+	unitOf := map[string]int32{}
+	for i, f := range admin {
+		unitOf[adm1Key(f)] = int32(i + 1)
+	}
+	row := map[int32]int{} // unit → row
+	country := make([]string, len(rows))
+	for k, c := range rows {
+		for _, key := range c.Adm1 {
+			u, ok := unitOf[key]
+			if !ok {
+				return nil, nil, fmt.Errorf("carve %s: no Natural Earth unit %q", c.Note, key)
+			}
+			if _, dup := row[u]; dup {
+				return nil, nil, fmt.Errorf("carve %s: unit %q twice", c.Note, key)
+			}
+			a0 := admin[u-1].Str("adm0_a3")
+			if country[k] != "" && country[k] != a0 {
+				return nil, nil, fmt.Errorf("carve %s: units of %s and %s", c.Note, country[k], a0)
+			}
+			country[k] = a0
+			row[u] = k
+		}
+	}
+	cut := make([][]int32, len(rows))
+	donors := make([][]*Region, len(rows))
+	var out []*Region
+	for _, r := range regions {
+		if r.Island != "" {
+			out = append(out, r)
+			continue
+		}
+		a0 := regionAdm0(r, admin)
+		kept := r.Pixels[:0:0]
+		gave := make([]bool, len(rows))
+		for _, px := range r.Pixels {
+			if k, ok := row[adm[px]]; ok && a0 == country[k] && int(owner[px]) == t.tagIndex[rows[k].Owner] {
+				cut[k] = append(cut[k], px)
+				gave[k] = true
+				continue
+			}
+			kept = append(kept, px)
+		}
+		for k := range rows {
+			if gave[k] {
+				donors[k] = append(donors[k], r)
+			}
+		}
+		r.Pixels = kept
+		if len(kept) > 0 {
+			out = append(out, r)
+		}
+	}
+	for k, c := range rows {
+		if len(cut[k]) == 0 {
+			return nil, nil, fmt.Errorf("carve %s: no pixel of %s", c.Note, c.Owner)
+		}
+		pix := cut[k]
+		sort.Slice(pix, func(a, b int) bool { return pix[a] < pix[b] })
+		out = append(out, &Region{
+			Owner: t.tagIndex[c.Owner], Pixels: pix, Name: c.Name[0], NameKo: c.Name[1],
+			VPTile: -1, MainAdm: unitOf[c.Adm1[0]], carved: true,
+		})
+	}
+	sort.Slice(out, func(a, b int) bool { return out[a].Pixels[0] < out[b].Pixels[0] })
+	for i := range ids {
+		ids[i] = 0
+	}
+	for k, r := range out {
+		r.ID = k + 1
+		for _, px := range r.Pixels {
+			ids[px] = uint16(r.ID)
+		}
+	}
+	return out, donors, nil
+}
+
 // setAdminName names a region after an admin-1 unit (feature index + 1).
 func setAdminName(r *Region, admin []Feature, unit int32) {
 	r.Name, r.NameKo = "", ""
@@ -292,8 +388,8 @@ func setAdminName(r *Region, admin []Feature, unit int32) {
 func finishNames(regions []*Region, adm []int32, patch []uint16, admin []Feature, t *Tables) error {
 	used := map[string]bool{}
 	for _, r := range regions {
-		if r.Island != "" {
-			continue // named after the island (islands1936.json)
+		if r.Island != "" || r.carved {
+			continue // named after the island (islands1936.json) or the carve row
 		}
 		if r.VPTile >= 0 && adm[r.VPTile] > 0 {
 			setAdminName(r, admin, adm[r.VPTile])

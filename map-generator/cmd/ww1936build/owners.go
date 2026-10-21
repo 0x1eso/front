@@ -39,6 +39,20 @@ type OwnerTables struct {
 	// "ADM0:Natural Earth admin-1 name" → 1936 tag.
 	Adm1    map[string]string `json:"adm1"`
 	Patches []Patch           `json:"patches"`
+	// Admin-1 units cut out of the finished regions (carveUnits).
+	Carve []CarveRow `json:"carve,omitempty"`
+}
+
+// CarveRow is admin-1 units ("ADM0:name", one modern country) of their 1936
+// owner's land that become one region after the regions are built and the
+// islands carved, so every other region keeps the shape it had without them
+// (unlike an Own patch, whose land stays out of the merging). Nagasaki (P6
+// plan Task 15, controller ruling of 2026-10-21) is one.
+type CarveRow struct {
+	Adm1  []string  `json:"adm1"`
+	Owner string    `json:"owner"`
+	Name  [2]string `json:"name"`
+	Note  string    `json:"note"`
 }
 
 // City is one line of src/vp_cities.json.
@@ -119,6 +133,12 @@ func loadTables(dir string) (*Tables, error) {
 		}
 		if p.Own && p.Name == nil {
 			bad = append(bad, "patch "+p.Note+" is its own region but has no name")
+		}
+	}
+	for _, c := range t.Owners.Carve {
+		check("carve "+c.Note, c.Owner)
+		if len(c.Adm1) == 0 || c.Name[0] == "" || c.Name[1] == "" {
+			bad = append(bad, "carve "+c.Note+" has no unit or an empty name")
 		}
 	}
 	for _, a := range t.Owners.LowDetail {

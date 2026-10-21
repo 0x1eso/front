@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "countries": [
     {
       "tag": "DEU",
@@ -2529,7 +2529,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 17,
-      "harbor": 40022
+      "harbor": 40022,
+      "hydro": 1
     },
     {
       "id": 95,
@@ -2599,7 +2600,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 17,
-      "harbor": 40037
+      "harbor": 40037,
+      "hydro": 2
     },
     {
       "id": 98,
@@ -2788,7 +2790,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 12,
-      "harbor": 40027
+      "harbor": 40027,
+      "uranium": 3
     },
     {
       "id": 106,
@@ -3339,7 +3342,8 @@
       "wcell": 451,
       "rail": 3,
       "fort": 0,
-      "sr": 22
+      "sr": 22,
+      "hydro": 1
     },
     {
       "id": 129,
@@ -3598,7 +3602,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 17,
-      "harbor": 40037
+      "harbor": 40037,
+      "hydro": 1
     },
     {
       "id": 140,
@@ -3832,7 +3837,8 @@
       "wcell": 452,
       "rail": 1,
       "fort": 0,
-      "sr": 18
+      "sr": 18,
+      "hydro": 1
     },
     {
       "id": 150,
@@ -3879,7 +3885,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 18,
-      "harbor": 40041
+      "harbor": 40041,
+      "hydro": 2
     },
     {
       "id": 153,
@@ -3973,7 +3980,8 @@
       "wcell": 451,
       "rail": 3,
       "fort": 0,
-      "sr": 22
+      "sr": 22,
+      "hydro": 1
     },
     {
       "id": 157,
@@ -3997,7 +4005,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 22,
-      "harbor": 40029
+      "harbor": 40029,
+      "hydro": 1
     },
     {
       "id": 158,
@@ -4044,7 +4053,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 18,
-      "harbor": 40157
+      "harbor": 40157,
+      "hydro": 1
     },
     {
       "id": 160,
@@ -4067,7 +4077,8 @@
       "wcell": 419,
       "rail": 2,
       "fort": 0,
-      "sr": 14
+      "sr": 14,
+      "coal": 1
     },
     {
       "id": 161,
@@ -4215,7 +4226,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 22,
-      "harbor": 40156
+      "harbor": 40156,
+      "hydro": 1
     },
     {
       "id": 167,
@@ -4240,7 +4252,8 @@
       "fort": 0,
       "sr": 22,
       "harbor": 40046,
-      "navalBase": 3
+      "navalBase": 3,
+      "hydro": 2
     },
     {
       "id": 168,
@@ -4458,7 +4471,12 @@
       "rail": 2,
       "fort": 0,
       "sr": 22,
-      "harbor": 40156
+      "harbor": 40156,
+      "hydro": 2,
+      "dam": {
+        "id": "dam_vemork",
+        "downstream": []
+      }
     },
     {
       "id": 178,
@@ -4697,7 +4715,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 22,
-      "harbor": 40046
+      "harbor": 40046,
+      "hydro": 1
     },
     {
       "id": 188,
@@ -5265,7 +5284,8 @@
       "wcell": 402,
       "rail": 1,
       "fort": 0,
-      "sr": 12
+      "sr": 12,
+      "coal": 1
     },
     {
       "id": 212,
@@ -5669,7 +5689,8 @@
       "fort": 0,
       "sr": 27,
       "harbor": 40046,
-      "navalBase": 6
+      "navalBase": 6,
+      "coal": 5
     },
     {
       "id": 230,
@@ -5856,7 +5877,8 @@
       "wcell": 422,
       "rail": 2,
       "fort": 0,
-      "sr": 23
+      "sr": 23,
+      "coal": 4
     },
     {
       "id": 238,
@@ -5904,7 +5926,11 @@
       "rail": 3,
       "fort": 0,
       "sr": 27,
-      "harbor": 40151
+      "harbor": 40151,
+      "dam": {
+        "id": "dam_galloway",
+        "downstream": []
+      }
     },
     {
       "id": 240,
@@ -6068,7 +6094,8 @@
       "wcell": 420,
       "rail": 2,
       "fort": 0,
-      "sr": 14
+      "sr": 14,
+      "coal": 1
     },
     {
       "id": 247,
@@ -6235,7 +6262,8 @@
       "wcell": 417,
       "rail": 3,
       "fort": 0,
-      "sr": 29
+      "sr": 29,
+      "landmarks": ["lm_kremlin"]
     },
     {
       "id": 254,
@@ -6282,7 +6310,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 35,
-      "harbor": 40046
+      "harbor": 40046,
+      "coal": 8
     },
     {
       "id": 256,
@@ -6688,7 +6717,8 @@
       "wcell": 417,
       "rail": 2,
       "fort": 0,
-      "sr": 29
+      "sr": 29,
+      "coal": 2
     },
     {
       "id": 274,
@@ -7068,7 +7098,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 35,
-      "harbor": 40046
+      "harbor": 40046,
+      "coal": 5
     },
     {
       "id": 290,
@@ -7093,7 +7124,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 24,
-      "harbor": 40054
+      "harbor": 40054,
+      "hydro": 6
     },
     {
       "id": 291,
@@ -7190,7 +7222,8 @@
       "sr": 39,
       "harbor": 40046,
       "navalBase": 10,
-      "coastalFort": 1
+      "coastalFort": 1,
+      "coal": 1
     },
     {
       "id": 295,
@@ -7237,7 +7270,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 35,
-      "harbor": 40046
+      "harbor": 40046,
+      "coal": 8
     },
     {
       "id": 297,
@@ -7355,7 +7389,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 35,
-      "harbor": 40151
+      "harbor": 40151,
+      "coal": 3
     },
     {
       "id": 302,
@@ -7426,7 +7461,8 @@
       "wcell": 413,
       "rail": 3,
       "fort": 0,
-      "sr": 35
+      "sr": 35,
+      "coal": 4
     },
     {
       "id": 305,
@@ -7476,7 +7512,9 @@
       "wcell": 415,
       "rail": 4,
       "fort": 0,
-      "sr": 41
+      "sr": 41,
+      "coal": 6,
+      "landmarks": ["lm_brandenburg"]
     },
     {
       "id": 307,
@@ -7686,7 +7724,8 @@
       "wcell": 415,
       "rail": 4,
       "fort": 0,
-      "sr": 41
+      "sr": 41,
+      "coal": 7
     },
     {
       "id": 317,
@@ -7804,7 +7843,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 47,
-      "harbor": 40046
+      "harbor": 40046,
+      "coal": 2
     },
     {
       "id": 322,
@@ -7827,7 +7867,12 @@
       "wcell": 414,
       "rail": 4,
       "fort": 0,
-      "sr": 45
+      "sr": 45,
+      "coal": 8,
+      "dam": {
+        "id": "dam_mohne",
+        "downstream": []
+      }
     },
     {
       "id": 323,
@@ -7851,7 +7896,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 46,
-      "harbor": 40152
+      "harbor": 40152,
+      "coal": 7
     },
     {
       "id": 324,
@@ -7992,7 +8038,8 @@
       "fort": 0,
       "sr": 46,
       "harbor": 40046,
-      "navalBase": 6
+      "navalBase": 6,
+      "landmarks": ["lm_westminster"]
     },
     {
       "id": 330,
@@ -8131,7 +8178,8 @@
       "wcell": 415,
       "rail": 4,
       "fort": 0,
-      "sr": 40
+      "sr": 40,
+      "coal": 3
     },
     {
       "id": 336,
@@ -8204,7 +8252,11 @@
       "wcell": 414,
       "rail": 4,
       "fort": 0,
-      "sr": 45
+      "sr": 45,
+      "dam": {
+        "id": "dam_eder",
+        "downstream": [294]
+      }
     },
     {
       "id": 339,
@@ -8227,7 +8279,8 @@
       "wcell": 415,
       "rail": 4,
       "fort": 0,
-      "sr": 52
+      "sr": 52,
+      "coal": 4
     },
     {
       "id": 340,
@@ -8251,7 +8304,8 @@
       "wcell": 415,
       "rail": 4,
       "fort": 0,
-      "sr": 52
+      "sr": 52,
+      "coal": 4
     },
     {
       "id": 341,
@@ -8322,7 +8376,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 47,
-      "harbor": 40046
+      "harbor": 40046,
+      "coal": 4
     },
     {
       "id": 344,
@@ -8371,7 +8426,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 33,
-      "harbor": 40035
+      "harbor": 40035,
+      "hydro": 4
     },
     {
       "id": 346,
@@ -8465,7 +8521,8 @@
       "fort": 0,
       "sr": 46,
       "harbor": 40150,
-      "navalBase": 8
+      "navalBase": 8,
+      "uranium": 1
     },
     {
       "id": 350,
@@ -8512,7 +8569,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 36,
-      "harbor": 40028
+      "harbor": 40028,
+      "coal": 1
     },
     {
       "id": 352,
@@ -8535,7 +8593,8 @@
       "wcell": 415,
       "rail": 4,
       "fort": 0,
-      "sr": 40
+      "sr": 40,
+      "coal": 7
     },
     {
       "id": 353,
@@ -8559,7 +8618,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 53,
-      "harbor": 40150
+      "harbor": 40150,
+      "coal": 6
     },
     {
       "id": 354,
@@ -8582,7 +8642,9 @@
       "wcell": 415,
       "rail": 2,
       "fort": 3,
-      "sr": 54
+      "sr": 54,
+      "coal": 3,
+      "uranium": 2
     },
     {
       "id": 355,
@@ -8605,7 +8667,8 @@
       "wcell": 415,
       "rail": 1,
       "fort": 0,
-      "sr": 40
+      "sr": 40,
+      "coal": 8
     },
     {
       "id": 356,
@@ -8628,7 +8691,8 @@
       "wcell": 378,
       "rail": 4,
       "fort": 0,
-      "sr": 55
+      "sr": 55,
+      "coal": 5
     },
     {
       "id": 357,
@@ -8698,7 +8762,8 @@
       "wcell": 414,
       "rail": 3,
       "fort": 2,
-      "sr": 47
+      "sr": 47,
+      "coal": 1
     },
     {
       "id": 360,
@@ -8745,7 +8810,8 @@
       "wcell": 379,
       "rail": 2,
       "fort": 3,
-      "sr": 54
+      "sr": 54,
+      "coal": 1
     },
     {
       "id": 362,
@@ -8977,7 +9043,8 @@
       "wcell": 379,
       "rail": 2,
       "fort": 3,
-      "sr": 58
+      "sr": 58,
+      "coal": 4
     },
     {
       "id": 372,
@@ -9070,7 +9137,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 49,
-      "harbor": 40059
+      "harbor": 40059,
+      "coal": 2
     },
     {
       "id": 376,
@@ -9187,7 +9255,8 @@
       "wcell": 381,
       "rail": 2,
       "fort": 0,
-      "sr": 49
+      "sr": 49,
+      "coal": 6
     },
     {
       "id": 381,
@@ -9422,7 +9491,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 5,
-      "sr": 55
+      "sr": 55,
+      "coal": 2
     },
     {
       "id": 391,
@@ -9539,7 +9609,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 49,
-      "harbor": 40059
+      "harbor": 40059,
+      "coal": 8
     },
     {
       "id": 396,
@@ -9563,7 +9634,8 @@
       "wcell": 378,
       "rail": 4,
       "fort": 0,
-      "sr": 53
+      "sr": 53,
+      "landmarks": ["lm_eiffel"]
     },
     {
       "id": 397,
@@ -9726,7 +9798,11 @@
       "wcell": 378,
       "rail": 3,
       "fort": 5,
-      "sr": 55
+      "sr": 55,
+      "dam": {
+        "id": "dam_kembs",
+        "downstream": [386, 356]
+      }
     },
     {
       "id": 404,
@@ -9799,7 +9875,12 @@
       "fort": 0,
       "sr": 21,
       "harbor": 40052,
-      "navalBase": 8
+      "navalBase": 8,
+      "hydro": 2,
+      "dam": {
+        "id": "dam_grand_coulee",
+        "downstream": [487]
+      }
     },
     {
       "id": 407,
@@ -10385,7 +10466,12 @@
       "rail": 2,
       "fort": 0,
       "sr": 49,
-      "harbor": 40059
+      "harbor": 40059,
+      "hydro": 2,
+      "dam": {
+        "id": "dam_dnipro",
+        "downstream": [451]
+      }
     },
     {
       "id": 433,
@@ -10432,7 +10518,8 @@
       "wcell": 379,
       "rail": 2,
       "fort": 0,
-      "sr": 62
+      "sr": 62,
+      "hydro": 1
     },
     {
       "id": 435,
@@ -10479,7 +10566,8 @@
       "wcell": 379,
       "rail": 2,
       "fort": 0,
-      "sr": 58
+      "sr": 58,
+      "coal": 1
     },
     {
       "id": 437,
@@ -10526,7 +10614,8 @@
       "wcell": 379,
       "rail": 2,
       "fort": 0,
-      "sr": 62
+      "sr": 62,
+      "hydro": 1
     },
     {
       "id": 439,
@@ -10574,7 +10663,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 55
+      "sr": 55,
+      "hydro": 1
     },
     {
       "id": 441,
@@ -10666,7 +10756,8 @@
       "wcell": 379,
       "rail": 2,
       "fort": 0,
-      "sr": 57
+      "sr": 57,
+      "hydro": 1
     },
     {
       "id": 445,
@@ -10712,7 +10803,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 64
+      "sr": 64,
+      "coal": 1
     },
     {
       "id": 447,
@@ -10759,7 +10851,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 69
+      "sr": 69,
+      "hydro": 1
     },
     {
       "id": 449,
@@ -10925,7 +11018,8 @@
       "sr": 24,
       "harbor": 40050,
       "navalBase": 6,
-      "coastalFort": 1
+      "coastalFort": 1,
+      "coal": 2
     },
     {
       "id": 456,
@@ -11041,7 +11135,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 55
+      "sr": 55,
+      "hydro": 2
     },
     {
       "id": 462,
@@ -11065,7 +11160,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 69,
-      "harbor": 40155
+      "harbor": 40155,
+      "hydro": 2
     },
     {
       "id": 463,
@@ -11229,7 +11325,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 64
+      "sr": 64,
+      "coal": 1
     },
     {
       "id": 470,
@@ -11299,7 +11396,8 @@
       "wcell": 378,
       "rail": 2,
       "fort": 0,
-      "sr": 69
+      "sr": 69,
+      "hydro": 3
     },
     {
       "id": 473,
@@ -11324,7 +11422,8 @@
       "fort": 2,
       "sr": 62,
       "harbor": 40155,
-      "navalBase": 5
+      "navalBase": 5,
+      "hydro": 1
     },
     {
       "id": 474,
@@ -11419,7 +11518,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 64
+      "sr": 64,
+      "hydro": 1
     },
     {
       "id": 478,
@@ -11443,7 +11543,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 69,
-      "harbor": 40155
+      "harbor": 40155,
+      "hydro": 2
     },
     {
       "id": 479,
@@ -11584,7 +11685,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 64
+      "sr": 64,
+      "hydro": 1
     },
     {
       "id": 485,
@@ -11655,7 +11757,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 63,
-      "harbor": 40052
+      "harbor": 40052,
+      "hydro": 1
     },
     {
       "id": 488,
@@ -11822,7 +11925,8 @@
       "wcell": 378,
       "rail": 2,
       "fort": 2,
-      "sr": 69
+      "sr": 69,
+      "hydro": 2
     },
     {
       "id": 495,
@@ -11891,7 +11995,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 74
+      "sr": 74,
+      "hydro": 3
     },
     {
       "id": 498,
@@ -12137,7 +12242,7 @@
       "vp": 4,
       "vpTile": [3570, 763],
       "cat": "large_city",
-      "pop": 5992,
+      "pop": 5990,
       "infra": 4,
       "core": true,
       "coastal": true,
@@ -12152,7 +12257,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 72,
-      "harbor": 40065
+      "harbor": 40065,
+      "coal": 3
     },
     {
       "id": 509,
@@ -12223,7 +12329,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 74
+      "sr": 74,
+      "hydro": 1
     },
     {
       "id": 512,
@@ -12317,7 +12424,8 @@
       "rail": 2,
       "fort": 2,
       "sr": 74,
-      "harbor": 40153
+      "harbor": 40153,
+      "hydro": 1
     },
     {
       "id": 516,
@@ -12412,7 +12520,8 @@
       "wcell": 367,
       "rail": 3,
       "fort": 0,
-      "sr": 12
+      "sr": 12,
+      "coal": 2
     },
     {
       "id": 520,
@@ -12822,7 +12931,8 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
-      "sr": 74
+      "sr": 74,
+      "hydro": 1
     },
     {
       "id": 537,
@@ -12892,7 +13002,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 69,
-      "harbor": 40066
+      "harbor": 40066,
+      "hydro": 1
     },
     {
       "id": 540,
@@ -13057,7 +13168,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 77,
-      "harbor": 40061
+      "harbor": 40061,
+      "coal": 2
     },
     {
       "id": 547,
@@ -13129,7 +13241,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 74,
-      "harbor": 40153
+      "harbor": 40153,
+      "hydro": 1
     },
     {
       "id": 550,
@@ -13224,7 +13337,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 71,
-      "harbor": 40060
+      "harbor": 40060,
+      "coal": 3
     },
     {
       "id": 554,
@@ -13247,7 +13361,8 @@
       "wcell": 377,
       "rail": 0,
       "fort": 0,
-      "sr": 77
+      "sr": 77,
+      "hydro": 1
     },
     {
       "id": 555,
@@ -13582,7 +13697,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 77,
-      "harbor": 40153
+      "harbor": 40153,
+      "hydro": 3
     },
     {
       "id": 569,
@@ -13771,7 +13887,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 79,
-      "harbor": 40066
+      "harbor": 40066,
+      "landmarks": ["lm_colosseum"]
     },
     {
       "id": 577,
@@ -13843,7 +13960,8 @@
       "wcell": 369,
       "rail": 4,
       "fort": 0,
-      "sr": 60
+      "sr": 60,
+      "coal": 8
     },
     {
       "id": 580,
@@ -13984,7 +14102,8 @@
       "wcell": 370,
       "rail": 4,
       "fort": 0,
-      "sr": 76
+      "sr": 76,
+      "coal": 8
     },
     {
       "id": 586,
@@ -14031,7 +14150,8 @@
       "rail": 0,
       "fort": 0,
       "sr": 77,
-      "harbor": 40063
+      "harbor": 40063,
+      "uranium": 1
     },
     {
       "id": 588,
@@ -14105,7 +14225,8 @@
       "sr": 78,
       "harbor": 40059,
       "navalBase": 4,
-      "coastalFort": 2
+      "coastalFort": 2,
+      "landmarks": ["lm_hagia_sophia"]
     },
     {
       "id": 591,
@@ -14155,7 +14276,8 @@
       "fort": 0,
       "sr": 63,
       "harbor": 40052,
-      "navalBase": 8
+      "navalBase": 8,
+      "landmarks": ["lm_golden_gate"]
     },
     {
       "id": 593,
@@ -14178,7 +14300,11 @@
       "wcell": 330,
       "rail": 3,
       "fort": 0,
-      "sr": 63
+      "sr": 63,
+      "dam": {
+        "id": "dam_hoover",
+        "downstream": [739, 592]
+      }
     },
     {
       "id": 594,
@@ -14201,7 +14327,8 @@
       "wcell": 330,
       "rail": 3,
       "fort": 0,
-      "sr": 63
+      "sr": 63,
+      "coal": 2
     },
     {
       "id": 595,
@@ -14319,7 +14446,8 @@
       "wcell": 369,
       "rail": 3,
       "fort": 0,
-      "sr": 60
+      "sr": 60,
+      "coal": 8
     },
     {
       "id": 600,
@@ -14343,7 +14471,8 @@
       "rail": 0,
       "fort": 0,
       "sr": 84,
-      "harbor": 40059
+      "harbor": 40059,
+      "coal": 1
     },
     {
       "id": 601,
@@ -14460,7 +14589,8 @@
       "wcell": 333,
       "rail": 3,
       "fort": 0,
-      "sr": 60
+      "sr": 60,
+      "coal": 7
     },
     {
       "id": 606,
@@ -14612,7 +14742,7 @@
       "owner": "JPN",
       "vp": 0,
       "cat": "large_town",
-      "pop": 1512,
+      "pop": 1511,
       "infra": 4,
       "core": true,
       "coastal": true,
@@ -14727,7 +14857,8 @@
       "fort": 0,
       "sr": 76,
       "harbor": 40069,
-      "navalBase": 6
+      "navalBase": 6,
+      "landmarks": ["lm_liberty", "lm_empire_state"]
     },
     {
       "id": 617,
@@ -14798,7 +14929,8 @@
       "rail": 2,
       "fort": 0,
       "sr": 87,
-      "harbor": 40153
+      "harbor": 40153,
+      "coal": 1
     },
     {
       "id": 620,
@@ -15007,7 +15139,8 @@
       "wcell": 348,
       "rail": 2,
       "fort": 0,
-      "sr": 70
+      "sr": 70,
+      "uranium": 2
     },
     {
       "id": 629,
@@ -15031,7 +15164,9 @@
       "wcell": 331,
       "rail": 3,
       "fort": 0,
-      "sr": 88
+      "sr": 88,
+      "coal": 3,
+      "uranium": 3
     },
     {
       "id": 630,
@@ -15056,7 +15191,8 @@
       "rail": 0,
       "fort": 0,
       "sr": 73,
-      "harbor": 40060
+      "harbor": 40060,
+      "landmarks": ["lm_forbidden_city"]
     },
     {
       "id": 631,
@@ -15244,7 +15380,8 @@
       "wcell": 353,
       "rail": 0,
       "fort": 0,
-      "sr": 73
+      "sr": 73,
+      "coal": 1
     },
     {
       "id": 639,
@@ -15315,7 +15452,8 @@
       "wcell": 333,
       "rail": 3,
       "fort": 0,
-      "sr": 76
+      "sr": 76,
+      "coal": 8
     },
     {
       "id": 642,
@@ -15480,7 +15618,8 @@
       "rail": 0,
       "fort": 0,
       "sr": 73,
-      "harbor": 40060
+      "harbor": 40060,
+      "coal": 2
     },
     {
       "id": 649,
@@ -16047,7 +16186,8 @@
       "fort": 0,
       "sr": 93,
       "harbor": 40069,
-      "navalBase": 10
+      "navalBase": 10,
+      "coal": 6
     },
     {
       "id": 674,
@@ -16422,7 +16562,8 @@
       "wcell": 333,
       "rail": 3,
       "fort": 0,
-      "sr": 60
+      "sr": 60,
+      "coal": 8
     },
     {
       "id": 690,
@@ -16454,7 +16595,7 @@
       "owner": "JPN",
       "vp": 0,
       "cat": "city",
-      "pop": 3894,
+      "pop": 3893,
       "infra": 4,
       "core": true,
       "coastal": true,
@@ -16752,7 +16893,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 86,
-      "harbor": 40057
+      "harbor": 40057,
+      "hydro": 6
     },
     {
       "id": 704,
@@ -17061,7 +17203,10 @@
       "rail": 3,
       "fort": 0,
       "sr": 86,
-      "harbor": 40065
+      "harbor": 40065,
+      "coal": 1,
+      "uranium": 1,
+      "hydro": 2
     },
     {
       "id": 717,
@@ -17226,7 +17371,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 86,
-      "harbor": 40057
+      "harbor": 40057,
+      "hydro": 4
     },
     {
       "id": 724,
@@ -17514,7 +17660,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 86,
-      "harbor": 40065
+      "harbor": 40065,
+      "hydro": 1
     },
     {
       "id": 737,
@@ -17722,7 +17869,13 @@
       "wcell": 333,
       "rail": 3,
       "fort": 0,
-      "sr": 93
+      "sr": 93,
+      "coal": 4,
+      "hydro": 2,
+      "dam": {
+        "id": "dam_norris",
+        "downstream": [785, 689]
+      }
     },
     {
       "id": 746,
@@ -17920,11 +18073,11 @@
       "owner": "JPN",
       "vp": 0,
       "cat": "metropolis",
-      "pop": 7253,
+      "pop": 7252,
       "infra": 4,
       "core": true,
       "coastal": true,
-      "civ": 5,
+      "civ": 4,
       "mil": 1,
       "dock": 0,
       "res": [0, 0, 0, 0, 0, 0],
@@ -17935,7 +18088,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 86,
-      "harbor": 40074
+      "harbor": 40074,
+      "hydro": 2
     },
     {
       "id": 755,
@@ -17983,7 +18137,8 @@
       "wcell": 353,
       "rail": 0,
       "fort": 0,
-      "sr": 92
+      "sr": 92,
+      "coal": 1
     },
     {
       "id": 757,
@@ -17993,7 +18148,7 @@
       "vp": 4,
       "vpTile": [3471, 876],
       "cat": "city",
-      "pop": 3789,
+      "pop": 3788,
       "infra": 4,
       "core": true,
       "coastal": true,
@@ -18020,12 +18175,12 @@
       "vp": 36,
       "vpTile": [3552, 860],
       "cat": "megalopolis",
-      "pop": 12141,
+      "pop": 12138,
       "infra": 5,
       "core": true,
       "coastal": true,
-      "civ": 4,
-      "mil": 2,
+      "civ": 3,
+      "mil": 3,
       "dock": 4,
       "res": [0, 0, 0, 0, 0, 0],
       "land": "urban",
@@ -18191,12 +18346,12 @@
       "vp": 11,
       "vpTile": [3505, 872],
       "cat": "metropolis",
-      "pop": 8303,
+      "pop": 8301,
       "infra": 5,
       "core": true,
       "coastal": true,
       "civ": 2,
-      "mil": 2,
+      "mil": 1,
       "dock": 3,
       "res": [0, 0, 0, 0, 0, 0],
       "land": "urban",
@@ -18334,7 +18489,7 @@
       "owner": "JPN",
       "vp": 0,
       "cat": "metropolis",
-      "pop": 3651,
+      "pop": 3650,
       "infra": 4,
       "core": true,
       "coastal": true,
@@ -18349,7 +18504,8 @@
       "rail": 3,
       "fort": 0,
       "sr": 101,
-      "harbor": 40074
+      "harbor": 40074,
+      "landmarks": ["lm_himeji"]
     },
     {
       "id": 773,
@@ -18654,7 +18810,9 @@
       "rail": 3,
       "fort": 0,
       "sr": 93,
-      "harbor": 40072
+      "harbor": 40072,
+      "coal": 6,
+      "hydro": 2
     },
     {
       "id": 786,
@@ -18993,23 +19151,23 @@
       "owner": "JPN",
       "vp": 0,
       "cat": "metropolis",
-      "pop": 7371,
+      "pop": 6409,
       "infra": 4,
       "core": true,
       "coastal": true,
-      "civ": 2,
+      "civ": 4,
       "mil": 1,
-      "dock": 3,
+      "dock": 0,
       "res": [0, 0, 0, 0, 10, 0],
       "land": "forest",
-      "center": [3450, 892],
-      "latC": 3311,
+      "center": [3452, 893],
+      "latC": 3303,
       "wcell": 355,
       "rail": 3,
       "fort": 0,
       "sr": 101,
       "harbor": 40073,
-      "navalBase": 8
+      "coal": 6
     },
     {
       "id": 801,
@@ -19908,7 +20066,8 @@
       "wcell": 314,
       "rail": 1,
       "fort": 0,
-      "sr": 108
+      "sr": 108,
+      "landmarks": ["lm_taj_mahal"]
     },
     {
       "id": 841,
@@ -21064,7 +21223,8 @@
       "wcell": 313,
       "rail": 1,
       "fort": 0,
-      "sr": 116
+      "sr": 116,
+      "coal": 1
     },
     {
       "id": 891,
@@ -21164,7 +21324,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 112,
-      "harbor": 40068
+      "harbor": 40068,
+      "coal": 1
     },
     {
       "id": 895,
@@ -21260,7 +21421,8 @@
       "wcell": 314,
       "rail": 1,
       "fort": 0,
-      "sr": 112
+      "sr": 112,
+      "coal": 2
     },
     {
       "id": 900,
@@ -26895,7 +27057,8 @@
       "rail": 0,
       "fort": 0,
       "sr": 135,
-      "harbor": 40093
+      "harbor": 40093,
+      "uranium": 6
     },
     {
       "id": 1159,
@@ -28417,7 +28580,8 @@
       "fort": 0,
       "sr": 149,
       "harbor": 40118,
-      "navalBase": 4
+      "navalBase": 4,
+      "landmarks": ["lm_christ_redeemer"]
     },
     {
       "id": 1242,
@@ -28744,7 +28908,8 @@
       "wcell": 129,
       "rail": 1,
       "fort": 0,
-      "sr": 146
+      "sr": 146,
+      "coal": 2
     },
     {
       "id": 1257,
@@ -29168,7 +29333,8 @@
       "rail": 1,
       "fort": 0,
       "sr": 146,
-      "harbor": 40128
+      "harbor": 40128,
+      "coal": 1
     },
     {
       "id": 1276,
@@ -29313,7 +29479,8 @@
       "sr": 150,
       "harbor": 40133,
       "navalBase": 6,
-      "coastalFort": 1
+      "coastalFort": 1,
+      "coal": 3
     },
     {
       "id": 1284,
@@ -31176,6 +31343,31 @@
     },
     {
       "id": 1369,
+      "name": "Nagasaki",
+      "nameKo": "나가사키현",
+      "owner": "JPN",
+      "vp": 0,
+      "cat": "town",
+      "pop": 974,
+      "infra": 4,
+      "core": true,
+      "coastal": true,
+      "civ": 0,
+      "mil": 0,
+      "dock": 3,
+      "res": [0, 0, 0, 0, 0, 0],
+      "land": "forest",
+      "center": [3444, 891],
+      "latC": 3319,
+      "wcell": 355,
+      "rail": 3,
+      "fort": 0,
+      "sr": 101,
+      "harbor": 40073,
+      "navalBase": 8
+    },
+    {
+      "id": 1370,
       "name": "Murmansk",
       "nameKo": "무르만스크",
       "owner": "SUN",
@@ -31195,7 +31387,7 @@
       "fort": 0
     },
     {
-      "id": 1370,
+      "id": 1371,
       "name": "Sakha (Yakutia)",
       "nameKo": "사하 공화국",
       "owner": "SUN",
@@ -31215,7 +31407,7 @@
       "fort": 0
     },
     {
-      "id": 1371,
+      "id": 1372,
       "name": "Sakha (Yakutia) 4",
       "nameKo": "사하 공화국 4",
       "owner": "SUN",
@@ -31235,7 +31427,7 @@
       "fort": 0
     },
     {
-      "id": 1372,
+      "id": 1373,
       "name": "Svalbard 5",
       "nameKo": "스발바르 제도 5",
       "owner": "NOR",
@@ -31255,7 +31447,7 @@
       "fort": 0
     },
     {
-      "id": 1373,
+      "id": 1374,
       "name": "Nordland",
       "nameKo": "노를란",
       "owner": "NOR",
@@ -31275,7 +31467,7 @@
       "fort": 0
     },
     {
-      "id": 1374,
+      "id": 1375,
       "name": "Eysturoyar",
       "nameKo": "에스투로이섬",
       "owner": "DNK",
@@ -31295,7 +31487,7 @@
       "fort": 0
     },
     {
-      "id": 1375,
+      "id": 1376,
       "name": "Alaska",
       "nameKo": "알래스카",
       "owner": "USA",
@@ -31315,7 +31507,7 @@
       "fort": 0
     },
     {
-      "id": 1376,
+      "id": 1377,
       "name": "Alaska 3",
       "nameKo": "알래스카 3",
       "owner": "USA",
@@ -31335,7 +31527,7 @@
       "fort": 0
     },
     {
-      "id": 1377,
+      "id": 1378,
       "name": "Kamchatka",
       "nameKo": "캄차카 지방",
       "owner": "SUN",
@@ -31355,7 +31547,7 @@
       "fort": 0
     },
     {
-      "id": 1378,
+      "id": 1379,
       "name": "Alaska 6",
       "nameKo": "알래스카 6",
       "owner": "USA",
@@ -31375,7 +31567,7 @@
       "fort": 0
     },
     {
-      "id": 1379,
+      "id": 1380,
       "name": "Sakhalin 2",
       "nameKo": "사할린 2",
       "owner": "SUN",
@@ -31395,7 +31587,7 @@
       "fort": 0
     },
     {
-      "id": 1380,
+      "id": 1381,
       "name": "Miquelon-Langlade",
       "nameKo": "미클롱-랭글레이드",
       "owner": "FRA",
@@ -31415,7 +31607,7 @@
       "fort": 0
     },
     {
-      "id": 1381,
+      "id": 1382,
       "name": "Azores 2",
       "nameKo": "아소르스 제도 2",
       "owner": "PRT",
@@ -31435,7 +31627,7 @@
       "fort": 0
     },
     {
-      "id": 1382,
+      "id": 1383,
       "name": "Notio Aigaio",
       "nameKo": "남에게",
       "owner": "ITA",
@@ -31455,7 +31647,7 @@
       "fort": 0
     },
     {
-      "id": 1383,
+      "id": 1384,
       "name": "Madeira 2",
       "nameKo": "마데이라 제도 2",
       "owner": "PRT",
@@ -31475,7 +31667,7 @@
       "fort": 0
     },
     {
-      "id": 1384,
+      "id": 1385,
       "name": "Tokyo 2",
       "nameKo": "도쿄도 2",
       "owner": "JPN",
@@ -31495,7 +31687,7 @@
       "fort": 0
     },
     {
-      "id": 1385,
+      "id": 1386,
       "name": "Okinawa 2",
       "nameKo": "오키나와현 2",
       "owner": "JPN",
@@ -31515,7 +31707,7 @@
       "fort": 0
     },
     {
-      "id": 1386,
+      "id": 1387,
       "name": "Cayman Islands",
       "nameKo": "케이맨 아일랜즈",
       "owner": "GBR",
@@ -31535,7 +31727,7 @@
       "fort": 0
     },
     {
-      "id": 1387,
+      "id": 1388,
       "name": "Colima",
       "nameKo": "콜리마",
       "owner": "MEX",
@@ -31555,7 +31747,7 @@
       "fort": 0
     },
     {
-      "id": 1388,
+      "id": 1389,
       "name": "Northern Islands",
       "nameKo": "북마리아나 제도",
       "owner": "JPN",
@@ -31575,7 +31767,7 @@
       "fort": 0
     },
     {
-      "id": 1389,
+      "id": 1390,
       "name": "Guadeloupe",
       "nameKo": "과들루프",
       "owner": "FRA",
@@ -31595,7 +31787,7 @@
       "fort": 0
     },
     {
-      "id": 1390,
+      "id": 1391,
       "name": "Ribeira Grande de Santiago",
       "nameKo": "히베이라그란드드산티아구시",
       "owner": "PRT",
@@ -31616,7 +31808,7 @@
       "fort": 0
     },
     {
-      "id": 1391,
+      "id": 1392,
       "name": "Paracel Islands",
       "nameKo": "파라셀 아일랜즈",
       "owner": "CHN",
@@ -31636,7 +31828,7 @@
       "fort": 0
     },
     {
-      "id": 1392,
+      "id": 1393,
       "name": "Curaçao",
       "nameKo": "퀴라소",
       "owner": "NLD",
@@ -31656,7 +31848,7 @@
       "fort": 0
     },
     {
-      "id": 1393,
+      "id": 1394,
       "name": "Clipperton Island",
       "nameKo": "클리퍼턴섬",
       "owner": "FRA",
@@ -31676,7 +31868,7 @@
       "fort": 0
     },
     {
-      "id": 1394,
+      "id": 1395,
       "name": "Yap",
       "nameKo": "야프",
       "owner": "JPN",
@@ -31696,7 +31888,7 @@
       "fort": 0
     },
     {
-      "id": 1395,
+      "id": 1396,
       "name": "Chuuk",
       "nameKo": "추크",
       "owner": "JPN",
@@ -31716,7 +31908,7 @@
       "fort": 0
     },
     {
-      "id": 1396,
+      "id": 1397,
       "name": "Koror",
       "nameKo": "코로르",
       "owner": "JPN",
@@ -31736,7 +31928,7 @@
       "fort": 0
     },
     {
-      "id": 1397,
+      "id": 1398,
       "name": "Pohnpei",
       "nameKo": "폰페이",
       "owner": "JPN",
@@ -31757,7 +31949,7 @@
       "fort": 0
     },
     {
-      "id": 1398,
+      "id": 1399,
       "name": "Puntarenas",
       "nameKo": "푼타레나스",
       "owner": "CRI",
@@ -31777,7 +31969,7 @@
       "fort": 0
     },
     {
-      "id": 1399,
+      "id": 1400,
       "name": "Kosrae",
       "nameKo": "코스라에",
       "owner": "JPN",
@@ -31797,7 +31989,7 @@
       "fort": 0
     },
     {
-      "id": 1400,
+      "id": 1401,
       "name": "Hatobohei",
       "nameKo": "하토호베이",
       "owner": "JPN",
@@ -31817,7 +32009,7 @@
       "fort": 0
     },
     {
-      "id": 1401,
+      "id": 1402,
       "name": "Kiribati",
       "nameKo": "키리바시",
       "owner": "GBR",
@@ -31837,7 +32029,7 @@
       "fort": 0
     },
     {
-      "id": 1402,
+      "id": 1403,
       "name": "São Tomé",
       "nameKo": "상 투메",
       "owner": "PRT",
@@ -31858,7 +32050,7 @@
       "fort": 0
     },
     {
-      "id": 1403,
+      "id": 1404,
       "name": "Rio Grande do Norte",
       "nameKo": "히우그란지두노르치",
       "owner": "BRA",
@@ -31878,7 +32070,7 @@
       "fort": 0
     },
     {
-      "id": 1404,
+      "id": 1405,
       "name": "Kiribati 2",
       "nameKo": "키리바시 2",
       "owner": "GBR",
@@ -31898,7 +32090,7 @@
       "fort": 0
     },
     {
-      "id": 1405,
+      "id": 1406,
       "name": "Kiribati 3",
       "nameKo": "키리바시 3",
       "owner": "GBR",
@@ -31918,7 +32110,7 @@
       "fort": 0
     },
     {
-      "id": 1406,
+      "id": 1407,
       "name": "Annobón",
       "nameKo": "안노본",
       "owner": "ESN",
@@ -31938,7 +32130,7 @@
       "fort": 0
     },
     {
-      "id": 1407,
+      "id": 1408,
       "name": "Anse Boileau",
       "nameKo": "앙스부알로 구",
       "owner": "GBR",
@@ -31959,7 +32151,7 @@
       "fort": 0
     },
     {
-      "id": 1408,
+      "id": 1409,
       "name": "Kiribati 4",
       "nameKo": "키리바시 4",
       "owner": "GBR",
@@ -31979,7 +32171,7 @@
       "fort": 0
     },
     {
-      "id": 1409,
+      "id": 1410,
       "name": "British Indian Ocean Territory",
       "nameKo": "브리티시 인디안 오션 테리토리",
       "owner": "GBR",
@@ -31999,7 +32191,7 @@
       "fort": 0
     },
     {
-      "id": 1410,
+      "id": 1411,
       "name": "Ascension",
       "nameKo": "어센션섬",
       "owner": "GBR",
@@ -32019,7 +32211,7 @@
       "fort": 0
     },
     {
-      "id": 1411,
+      "id": 1412,
       "name": "Marquesas Islands",
       "nameKo": "마르키즈 아일랜즈",
       "owner": "FRA",
@@ -32039,7 +32231,7 @@
       "fort": 0
     },
     {
-      "id": 1412,
+      "id": 1413,
       "name": "Mitiaro",
       "nameKo": "미티아로",
       "owner": "NZL",
@@ -32059,7 +32251,7 @@
       "fort": 0
     },
     {
-      "id": 1413,
+      "id": 1414,
       "name": "Outer Islands",
       "nameKo": "아우터 아일랜즈",
       "owner": "GBR",
@@ -32079,7 +32271,7 @@
       "fort": 0
     },
     {
-      "id": 1414,
+      "id": 1415,
       "name": "Christmas Island",
       "nameKo": "크리스마스섬",
       "owner": "GBR",
@@ -32099,7 +32291,7 @@
       "fort": 0
     },
     {
-      "id": 1415,
+      "id": 1416,
       "name": "`Uvea",
       "nameKo": "우베아",
       "owner": "FRA",
@@ -32119,7 +32311,7 @@
       "fort": 0
     },
     {
-      "id": 1416,
+      "id": 1417,
       "name": "A'ana",
       "nameKo": "아아나 구",
       "owner": "NZL",
@@ -32140,7 +32332,7 @@
       "fort": 0
     },
     {
-      "id": 1417,
+      "id": 1418,
       "name": "Western",
       "nameKo": "웨스턴",
       "owner": "USA",
@@ -32160,7 +32352,7 @@
       "fort": 0
     },
     {
-      "id": 1418,
+      "id": 1419,
       "name": "Windward Islands",
       "nameKo": "윈드워드 아일랜즈",
       "owner": "FRA",
@@ -32180,7 +32372,7 @@
       "fort": 0
     },
     {
-      "id": 1419,
+      "id": 1420,
       "name": "Saint Helena",
       "nameKo": "세인트헬레나",
       "owner": "GBR",
@@ -32200,7 +32392,7 @@
       "fort": 0
     },
     {
-      "id": 1420,
+      "id": 1421,
       "name": "Northern 3",
       "nameKo": "북부구 3",
       "owner": "GBR",
@@ -32220,7 +32412,7 @@
       "fort": 0
     },
     {
-      "id": 1421,
+      "id": 1422,
       "name": "Tuamotu-Gambier",
       "nameKo": "투아모투-갬비어",
       "owner": "FRA",
@@ -32240,7 +32432,7 @@
       "fort": 0
     },
     {
-      "id": 1422,
+      "id": 1423,
       "name": "Tongatapu",
       "nameKo": "통가타푸섬",
       "owner": "GBR",
@@ -32261,7 +32453,7 @@
       "fort": 0
     },
     {
-      "id": 1423,
+      "id": 1424,
       "name": "Mangaia",
       "nameKo": "망가이아",
       "owner": "NZL",
@@ -32281,7 +32473,7 @@
       "fort": 0
     },
     {
-      "id": 1424,
+      "id": 1425,
       "name": "Niue",
       "nameKo": "니우에",
       "owner": "NZL",
@@ -32301,7 +32493,7 @@
       "fort": 0
     },
     {
-      "id": 1425,
+      "id": 1426,
       "name": "Rivière Noire",
       "nameKo": "블랙리버 구",
       "owner": "GBR",
@@ -32322,7 +32514,7 @@
       "fort": 0
     },
     {
-      "id": 1426,
+      "id": 1427,
       "name": "Tuamotu-Gambier 2",
       "nameKo": "투아모투-갬비어 2",
       "owner": "FRA",
@@ -32342,7 +32534,7 @@
       "fort": 0
     },
     {
-      "id": 1427,
+      "id": 1428,
       "name": "La Réunion",
       "nameKo": "레위니옹",
       "owner": "FRA",
@@ -32362,7 +32554,7 @@
       "fort": 0
     },
     {
-      "id": 1428,
+      "id": 1429,
       "name": "Tuamotu-Gambier 3",
       "nameKo": "투아모투-갬비어 3",
       "owner": "FRA",
@@ -32382,7 +32574,7 @@
       "fort": 0
     },
     {
-      "id": 1429,
+      "id": 1430,
       "name": "Pitcairn Islands",
       "nameKo": "핏케언 아일랜즈",
       "owner": "GBR",
@@ -32402,7 +32594,7 @@
       "fort": 0
     },
     {
-      "id": 1430,
+      "id": 1431,
       "name": "Valparaíso",
       "nameKo": "발파라이소",
       "owner": "CHL",
@@ -32422,7 +32614,7 @@
       "fort": 0
     },
     {
-      "id": 1431,
+      "id": 1432,
       "name": "Austral Islands",
       "nameKo": "오스트랄 아일랜즈",
       "owner": "FRA",
@@ -32442,7 +32634,7 @@
       "fort": 0
     },
     {
-      "id": 1432,
+      "id": 1433,
       "name": "Lord Howe Island",
       "nameKo": "로드 하우 아일랜드",
       "owner": "AUS",
@@ -32462,7 +32654,7 @@
       "fort": 0
     },
     {
-      "id": 1433,
+      "id": 1434,
       "name": "Valparaíso 3",
       "nameKo": "발파라이소 3",
       "owner": "CHL",
@@ -32482,7 +32674,7 @@
       "fort": 0
     },
     {
-      "id": 1434,
+      "id": 1435,
       "name": "Tristan da Cunha",
       "nameKo": "트리스탄다쿠냐 제도",
       "owner": "GBR",
@@ -32502,7 +32694,7 @@
       "fort": 0
     },
     {
-      "id": 1435,
+      "id": 1436,
       "name": "Iles Saint-Paul et Nouvelle-Amsterdam",
       "nameKo": "일스 세인트-폴 에 누벨-암스테르담",
       "owner": "FRA",
@@ -32522,7 +32714,7 @@
       "fort": 0
     },
     {
-      "id": 1436,
+      "id": 1437,
       "name": "Tristan da Cunha 2",
       "nameKo": "트리스탄다쿠냐 제도 2",
       "owner": "GBR",
@@ -32542,7 +32734,7 @@
       "fort": 0
     },
     {
-      "id": 1437,
+      "id": 1438,
       "name": "Chatham Islands Territory",
       "nameKo": "채텀 제도",
       "owner": "NZL",
@@ -32562,7 +32754,7 @@
       "fort": 0
     },
     {
-      "id": 1438,
+      "id": 1439,
       "name": "Archipel des Crozet",
       "nameKo": "아치펠 데 크로제",
       "owner": "FRA",
@@ -32582,7 +32774,7 @@
       "fort": 0
     },
     {
-      "id": 1439,
+      "id": 1440,
       "name": "Western Cape 2",
       "nameKo": "웨스턴케이프 2",
       "owner": "ZAF",
@@ -32602,7 +32794,7 @@
       "fort": 0
     },
     {
-      "id": 1440,
+      "id": 1441,
       "name": "Antipodes Islands",
       "nameKo": "안티포데스 아일랜즈",
       "owner": "NZL",
@@ -32622,7 +32814,7 @@
       "fort": 0
     },
     {
-      "id": 1441,
+      "id": 1442,
       "name": "Campbell Islands",
       "nameKo": "캠벨 아일랜즈",
       "owner": "NZL",
@@ -32642,7 +32834,7 @@
       "fort": 0
     },
     {
-      "id": 1442,
+      "id": 1443,
       "name": "Heard Island and McDonald Islands",
       "nameKo": "허드 아일랜드 앤 맥도날드 아일랜즈",
       "owner": "AUS",
@@ -32662,7 +32854,7 @@
       "fort": 0
     },
     {
-      "id": 1443,
+      "id": 1444,
       "name": "Bouvet Island",
       "nameKo": "부베 아일랜드",
       "owner": "NOR",
@@ -32682,7 +32874,7 @@
       "fort": 0
     },
     {
-      "id": 1444,
+      "id": 1445,
       "name": "Macquarie Island",
       "nameKo": "맥쿼리 섬",
       "owner": "AUS",
@@ -32702,7 +32894,7 @@
       "fort": 0
     },
     {
-      "id": 1445,
+      "id": 1446,
       "name": "South Georgia 2",
       "nameKo": "사우스조지아 2",
       "owner": "GBR",
@@ -35984,7 +36176,7 @@
     [756, 789, 103, 409, 0, 0],
     [756, 808, 84, 348, 0, 0],
     [757, 772, 18, 178, 0, 0],
-    [757, 800, 0, 237, 0, 1],
+    [757, 800, 0, 233, 0, 1],
     [757, 801, 0, 281, 0, 1],
     [759, 764, 0, 124, 0, 1],
     [762, 771, 34, 182, 0, 0],
@@ -36083,7 +36275,8 @@
     [799, 829, 48, 668, 0, 0],
     [799, 844, 75, 498, 0, 0],
     [799, 863, 16, 626, 2, 0],
-    [800, 801, 43, 107, 0, 0],
+    [800, 801, 43, 91, 0, 0],
+    [800, 1369, 10, 69, 0, 0],
     [802, 805, 26, 229, 0, 0],
     [802, 824, 37, 199, 0, 0],
     [802, 835, 7, 552, 0, 0],
@@ -38481,7 +38674,7 @@
       "nameKo": "혼슈 서부·규슈",
       "center": [3483, 885],
       "latC": 3368,
-      "members": [757, 766, 772, 791, 800, 801]
+      "members": [757, 766, 772, 791, 800, 801, 1369]
     },
     {
       "id": 102,

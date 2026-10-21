@@ -142,8 +142,9 @@ for (const [a, b, , , , strait] of scenario.edges) {
 }
 
 describe("strategic regions (P4 spec §3.4, scenario v4)", () => {
-  test("the file is version 4 with land regions first, then the sea", () => {
-    expect(scenario.version).toBe(4);
+  test("the file is version 4 or later with land regions first, then the sea", () => {
+    // Version 5 (P6 spec §16.1) keeps the version 4 fields.
+    expect(scenario.version).toBeGreaterThanOrEqual(4);
     const kinds = scenario.strategic.map((s) => s.kind);
     expect(kinds.indexOf("sea")).toBe(land.length);
     expect(land.map((s) => s.id)).toEqual(land.map((_s, k) => k + 1));

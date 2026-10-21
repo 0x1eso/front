@@ -411,8 +411,8 @@ func TestEconomyIsDeterministic(t *testing.T) {
 	if !bytes.Equal(outs[0], outs[1]) {
 		t.Fatal("two runs wrote different files")
 	}
-	if !bytes.Contains(outs[0], []byte(`"version": 4`)) || !bytes.Contains(outs[0], []byte(`"cat": "megalopolis"`)) {
-		t.Fatalf("not a version 4 file:\n%s", outs[0])
+	if !bytes.Contains(outs[0], []byte(`"version": 5`)) || !bytes.Contains(outs[0], []byte(`"cat": "megalopolis"`)) {
+		t.Fatalf("not a version 5 file:\n%s", outs[0])
 	}
 }
 

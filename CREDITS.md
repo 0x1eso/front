@@ -40,6 +40,8 @@ Public Domain
 
 The World War 1936 map (`resources/maps/world1936`, `map-generator/assets/maps/world1936`, `map-generator/scenarios/world1936`) is drawn from Natural Earth 10m land, lakes, admin-1 states and provinces, marine areas, populated places and river and lake centerlines (the land graph's rivers) (public domain, commit ca96624a), and this fork's 1936 owner tables (`map-generator/scenarios/world1936/src`, historical facts written for this fork, CC BY-SA 4.0). aourednik/historical-basemaps (GPL-3.0) was only compared against; nothing derived from it is included. The generated files outside `resources/` (`map-generator/assets/maps/world1936/image.png`, `map-generator/scenarios/world1936/{regions.png, scenario.src.json, src/vp_cities.json}`) are CC BY-SA 4.0, like the other derived map files.
 
+World War 1936 coal, uranium and hydro power (`map-generator/scenarios/world1936/src/energy1936.json`, scenario version 5): this fork's rounding of the 1936 coal output by country, district and state in the U.S. Bureau of Mines _Minerals Yearbook 1937_ (public domain, a U.S. government work) and the League of Nations _Statistical Year-Book 1937/38_ (Geneva, 1938), facts only, no text or table copied.
+
 ### Bedmap3 Antarctica Dataset
 
 Pritchard, H.D., Fretwell, P.T., Fremand, A.C. et al. Bedmap3 updated ice bed, surface and thickness gridded datasets for Antarctica. _Sci Data_ 12, 109 (2025).  

@@ -370,6 +370,6 @@ export const SILO_START: Readonly<
   JPN: [
     ["Tokyo", 2],
     ["Hiroshima", 2],
-    ["Kumamoto", 2],
+    ["Nagasaki", 2], // Sasebo (map v5: carved out of Kumamoto)
   ],
 };

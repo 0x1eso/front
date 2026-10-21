@@ -13,9 +13,10 @@
 // islands1936.json, seasplit1936.json, straits1936.json, islands.go,
 // seasplit.go, seaedges.go; the P4 version 4 fields: seaRegions1936.json,
 // landRegions1936.json, navalBases1936.json, coastalForts1936.json,
-// strategic.go, bases.go, rows.go). Region ids are stable: the committed
-// scenario.json numbers the regions it holds (land.go stableIDs). Run from
-// map-generator/:
+// strategic.go, bases.go, rows.go; the P6 version 5 fields:
+// energy1936.json, landmarks1936.json, energy.go). Region ids are stable:
+// the committed scenario.json numbers the regions it holds (land.go
+// stableIDs). Run from map-generator/:
 //
 //	go run ./cmd/ww1936build
 //
@@ -102,6 +103,10 @@ func main() {
 	must(err)
 	baseTbl, err := loadBases(filepath.Join(*src, "navalBases1936.json"), filepath.Join(*src, "coastalForts1936.json"))
 	must(err)
+	var energyTbl EnergyTable
+	var landmarkTbl LandmarkTable
+	must(decodeStrict(filepath.Join(*src, "energy1936.json"), &energyTbl))
+	must(decodeStrict(filepath.Join(*src, "landmarks1936.json"), &landmarkTbl))
 	table, err := loadIDTable(*idTable)
 	must(err)
 	p := NewProjection(*width, -60, 84)
@@ -145,6 +150,8 @@ func main() {
 	landIDs, regions, err := buildRegions(p, land0, owner, adm, patch, admin, t, prm)
 	must(err)
 	regions, donors := carveIslands(regions, landIDs, adm, owner, islandRows, places, t)
+	regions, carveDonors, err := carveUnits(regions, landIDs, adm, owner, admin, t)
+	must(err)
 	islandOrder := map[string]int{}
 	for k, r := range islandRows {
 		islandOrder[r.Key] = k
@@ -262,13 +269,17 @@ func main() {
 	must(err)
 	rows := buildRows(p)
 	step("strategic regions")
+	v5, err := buildV5(p, final, V5Input{
+		Energy: energyTbl, Landmarks: landmarkTbl, Regions: regions, Tags: tags, Admin: admin, ByName: byName, Edges: lg.Edges,
+	})
+	must(err)
 
 	sort.Slice(regions, func(a, b int) bool { return regions[a].ID < regions[b].ID })
 	must(os.MkdirAll(*outDir, 0755))
 	must(writeRegionsPNG(filepath.Join(*outDir, "regions.png"), p, landIDs, seaIDs))
 	must(writeScenarioSrc(filepath.Join(*outDir, "scenario.src.json"), ScenarioSrcInput{
 		P: p, T: t, Rows: ecoRows, Capitals: capitals, Regions: regions, Eco: ecoByID, Seas: seas,
-		Land: lg, Sea: sg, Islands: islandRows, Places: places, SR: sr, Bases: bases, RowTable: rows,
+		Land: lg, Sea: sg, Islands: islandRows, Places: places, SR: sr, Bases: bases, RowTable: rows, V5: v5,
 	}))
 	step("written")
 
@@ -294,11 +305,23 @@ func main() {
 			fmt.Printf("  %s: %s\n", r.Key, strings.Join(list, ", "))
 		}
 	}
+	fmt.Println("admin-1 units carved out of the regions (owners1936.json carve; the donors' VP tiles may move):")
+	for k, c := range t.Owners.Carve {
+		var list []string
+		for _, d := range carveDonors[k] {
+			list = append(list, fmt.Sprintf("%d %s:%s", d.ID, t.Countries[d.Owner-1].Tag, d.Name))
+		}
+		fmt.Printf("  %s: from %s\n", c.Adm1, strings.Join(list, ", "))
+	}
 	fmt.Printf("sea pieces moved by the split: %d\n", len(moves))
 	for _, m := range moves {
 		fmt.Println("  " + m)
 	}
 	printV4(sr, bases, ecoSum, t, *srRegions, *srTiles)
+	fmt.Println("version 5: coal, uranium, hydro, landmarks and dams:")
+	for _, line := range v5.Report {
+		fmt.Println("  " + line)
+	}
 	if sr.LandN < srMinCount || sr.LandN > srMaxCount {
 		log.Fatalf("land strategic regions %d are outside %d..%d: change -sr-regions/-sr-tiles (and srMaxRegions/srMaxTiles)", sr.LandN, srMinCount, srMaxCount)
 	}

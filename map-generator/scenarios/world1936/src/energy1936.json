@@ -1,0 +1,1009 @@
+{
+  "sources": [
+    "Coal: 1936 output by country, district and state, from the U.S. Bureau of Mines Minerals Yearbook 1937 (world coal and lignite by countries; U.S. bituminous and anthracite by state) and the League of Nations Statistical Year-Book 1937/38. A point is about 5 million tonnes of hard coal, lignite at about a third; each country's sum follows P6 spec §16.1 (USA 70, Germany 45, the UK 40, the USSR 25, France, Japan, Poland and Czechoslovakia 8 to 12, the others 1 to 5), at most 8 a region.",
+    "Uranium: the eight mines of P6 spec §16.1 (Shinkolobwe counts for Belgium).",
+    "Hydro: the hydro-electric areas of P6 spec §16.1 in service by 1936, sized by their 1936 output; Italy's Alps about 12 and Japan about 15 (spec §16.2). The dams of landmarks1936.json give their own energy.",
+    "noData: the modern countries of the Korean Peninsula and Taiwan hold no version 5 data (P6 spec §24-3, plan decision 33; no Sup'ung, Hŭngnam or Hashima)."
+  ],
+  "noData": ["KOR", "PRK", "TWN"],
+  "coal": [
+    {
+      "tag": "USA",
+      "amount": 5,
+      "lon": -79.0,
+      "lat": 40.6,
+      "note": "Pennsylvania bituminous (Pittsburgh seam: Westmoreland, Indiana, Cambria)"
+    },
+    {
+      "tag": "USA",
+      "amount": 3,
+      "lon": -76.2,
+      "lat": 40.8,
+      "note": "Pennsylvania anthracite (Wyoming, Lackawanna, Schuylkill)"
+    },
+    {
+      "tag": "USA",
+      "amount": 5,
+      "lon": -81.4,
+      "lat": 37.8,
+      "note": "Southern West Virginia (Logan, McDowell, Kanawha, New River)"
+    },
+    {
+      "tag": "USA",
+      "amount": 3,
+      "lon": -80.2,
+      "lat": 39.4,
+      "note": "Northern West Virginia (Fairmont)"
+    },
+    {
+      "tag": "USA",
+      "amount": 6,
+      "lon": -83.2,
+      "lat": 37.2,
+      "note": "Eastern Kentucky (Harlan, Hazard)"
+    },
+    {
+      "tag": "USA",
+      "amount": 2,
+      "lon": -87.5,
+      "lat": 37.4,
+      "note": "Western Kentucky (Madisonville)"
+    },
+    {
+      "tag": "USA",
+      "amount": 5,
+      "lon": -89.0,
+      "lat": 37.9,
+      "note": "Southern Illinois (Franklin, Williamson)"
+    },
+    {
+      "tag": "USA",
+      "amount": 3,
+      "lon": -89.6,
+      "lat": 39.8,
+      "note": "Central Illinois (Sangamon, Fulton)"
+    },
+    {
+      "tag": "USA",
+      "amount": 8,
+      "lon": -81.0,
+      "lat": 40.1,
+      "note": "Eastern Ohio (Belmont, Harrison, Jefferson)"
+    },
+    {
+      "tag": "USA",
+      "amount": 7,
+      "lon": -87.2,
+      "lat": 39.4,
+      "note": "Southwestern Indiana (Clay, Sullivan, Vigo)"
+    },
+    {
+      "tag": "USA",
+      "amount": 6,
+      "lon": -82.3,
+      "lat": 37.0,
+      "note": "Southwest Virginia (Wise, Buchanan, Tazewell)"
+    },
+    {
+      "tag": "USA",
+      "amount": 6,
+      "lon": -87.0,
+      "lat": 33.6,
+      "note": "Alabama's Warrior field (Birmingham, Walker)"
+    },
+    {
+      "tag": "USA",
+      "amount": 4,
+      "lon": -84.2,
+      "lat": 36.2,
+      "note": "Tennessee's Cumberland Plateau (Anderson, Campbell)"
+    },
+    {
+      "tag": "USA",
+      "amount": 3,
+      "lon": -104.9,
+      "lat": 37.2,
+      "note": "Colorado (Trinidad, Walsenburg)"
+    },
+    {
+      "tag": "USA",
+      "amount": 2,
+      "lon": -107.3,
+      "lat": 41.8,
+      "note": "Wyoming (Rock Springs, Hanna)"
+    },
+    {
+      "tag": "USA",
+      "amount": 2,
+      "lon": -110.8,
+      "lat": 39.6,
+      "note": "Utah (Carbon County: Price, Helper)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 7,
+      "lon": 7.1,
+      "lat": 51.5,
+      "note": "Ruhr"
+    },
+    {
+      "tag": "DEU",
+      "amount": 1,
+      "lon": 6.4,
+      "lat": 50.85,
+      "note": "Aachen and the Rhenish lignite (Ville)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 7,
+      "lon": 18.8,
+      "lat": 50.3,
+      "note": "German Upper Silesia (Gleiwitz, Hindenburg, Beuthen)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 7,
+      "lon": 11.9,
+      "lat": 51.3,
+      "note": "Central German lignite (Geiseltal, Bitterfeld, Halle–Merseburg)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 6,
+      "lon": 14.0,
+      "lat": 51.5,
+      "note": "Lower Lusatian lignite (Senftenberg)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 5,
+      "lon": 7.0,
+      "lat": 49.3,
+      "note": "Saar (back in the Reich since March 1935)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 2,
+      "lon": 12.5,
+      "lat": 50.7,
+      "note": "Zwickau–Oelsnitz"
+    },
+    {
+      "tag": "DEU",
+      "amount": 2,
+      "lon": 12.4,
+      "lat": 51.3,
+      "note": "Leipzig lignite"
+    },
+    {
+      "tag": "DEU",
+      "amount": 4,
+      "lon": 12.4,
+      "lat": 51.0,
+      "note": "Borna, Meuselwitz and Altenburg lignite"
+    },
+    {
+      "tag": "DEU",
+      "amount": 3,
+      "lon": 16.3,
+      "lat": 50.8,
+      "note": "Lower Silesia (Waldenburg)"
+    },
+    {
+      "tag": "DEU",
+      "amount": 1,
+      "lon": 11.0,
+      "lat": 52.2,
+      "note": "Helmstedt lignite"
+    },
+    {
+      "tag": "GBR",
+      "amount": 5,
+      "lon": -1.6,
+      "lat": 54.8,
+      "note": "Durham"
+    },
+    {
+      "tag": "GBR",
+      "amount": 3,
+      "lon": -1.55,
+      "lat": 55.1,
+      "note": "Northumberland"
+    },
+    {
+      "tag": "GBR",
+      "amount": 5,
+      "lon": -1.3,
+      "lat": 53.5,
+      "note": "South Yorkshire (Barnsley, Doncaster)"
+    },
+    {
+      "tag": "GBR",
+      "amount": 3,
+      "lon": -1.2,
+      "lat": 53.1,
+      "note": "Nottinghamshire"
+    },
+    {
+      "tag": "GBR",
+      "amount": 7,
+      "lon": -3.4,
+      "lat": 51.65,
+      "note": "South Wales (Rhondda, Aberdare, Monmouthshire)"
+    },
+    {
+      "tag": "GBR",
+      "amount": 3,
+      "lon": -1.5,
+      "lat": 53.7,
+      "note": "West Yorkshire (Wakefield, Leeds)"
+    },
+    {
+      "tag": "GBR",
+      "amount": 1,
+      "lon": -2.18,
+      "lat": 53.0,
+      "note": "North Staffordshire"
+    },
+    {
+      "tag": "GBR",
+      "amount": 1,
+      "lon": -2.0,
+      "lat": 52.7,
+      "note": "Cannock Chase"
+    },
+    {
+      "tag": "GBR",
+      "amount": 3,
+      "lon": -3.9,
+      "lat": 55.8,
+      "note": "Lanarkshire and Ayrshire"
+    },
+    {
+      "tag": "GBR",
+      "amount": 2,
+      "lon": -3.2,
+      "lat": 56.15,
+      "note": "Fife and the Lothians"
+    },
+    {
+      "tag": "GBR",
+      "amount": 2,
+      "lon": -1.4,
+      "lat": 53.25,
+      "note": "Derbyshire"
+    },
+    {
+      "tag": "GBR",
+      "amount": 2,
+      "lon": -1.55,
+      "lat": 52.5,
+      "note": "Leicestershire and Warwickshire"
+    },
+    {
+      "tag": "GBR",
+      "amount": 2,
+      "lon": -2.6,
+      "lat": 53.5,
+      "note": "Lancashire (Wigan)"
+    },
+    {
+      "tag": "GBR",
+      "amount": 1,
+      "lon": -3.0,
+      "lat": 53.05,
+      "note": "North Wales (Wrexham)"
+    },
+    {
+      "tag": "SUN",
+      "amount": 8,
+      "lon": 37.8,
+      "lat": 48.0,
+      "note": "Donbas (Stalino)"
+    },
+    {
+      "tag": "SUN",
+      "amount": 6,
+      "lon": 39.3,
+      "lat": 48.6,
+      "note": "Donbas (Voroshilovgrad)"
+    },
+    {
+      "tag": "SUN",
+      "amount": 2,
+      "lon": 40.2,
+      "lat": 47.7,
+      "note": "Eastern Donbas (Shakhty)"
+    },
+    {
+      "tag": "SUN",
+      "amount": 4,
+      "lon": 86.4,
+      "lat": 54.6,
+      "note": "Kuzbass (Kemerovo, Prokopyevsk)"
+    },
+    {
+      "tag": "SUN",
+      "amount": 2,
+      "lon": 37.6,
+      "lat": 54.0,
+      "note": "Moscow basin (Tula)"
+    },
+    {
+      "tag": "SUN",
+      "amount": 1,
+      "lon": 73.1,
+      "lat": 49.8,
+      "note": "Karaganda"
+    },
+    {
+      "tag": "SUN",
+      "amount": 1,
+      "lon": 61.4,
+      "lat": 55.1,
+      "note": "Chelyabinsk"
+    },
+    {
+      "tag": "SUN",
+      "amount": 1,
+      "lon": 57.6,
+      "lat": 59.0,
+      "note": "Kizel"
+    },
+    {
+      "tag": "FRA",
+      "amount": 6,
+      "lon": 2.8,
+      "lat": 50.45,
+      "note": "Nord–Pas-de-Calais"
+    },
+    {
+      "tag": "FRA",
+      "amount": 2,
+      "lon": 6.7,
+      "lat": 49.15,
+      "note": "Lorraine (Forbach, Merlebach)"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 4.35,
+      "lat": 46.65,
+      "note": "Blanzy–Montceau-les-Mines"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 4.4,
+      "lat": 45.45,
+      "note": "Loire (Saint-Étienne)"
+    },
+    {
+      "tag": "JPN",
+      "amount": 4,
+      "lon": 130.75,
+      "lat": 33.65,
+      "note": "Chikuhō"
+    },
+    {
+      "tag": "JPN",
+      "amount": 2,
+      "lon": 130.45,
+      "lat": 33.03,
+      "note": "Miike (Ōmuta, Arao)"
+    },
+    {
+      "tag": "JPN",
+      "amount": 3,
+      "lon": 141.97,
+      "lat": 43.06,
+      "note": "Ishikari (Yūbari)"
+    },
+    {
+      "tag": "JPN",
+      "amount": 1,
+      "lon": 140.9,
+      "lat": 36.95,
+      "note": "Jōban"
+    },
+    {
+      "tag": "POL",
+      "amount": 6,
+      "lon": 19.0,
+      "lat": 50.25,
+      "note": "East Upper Silesia (Katowice)"
+    },
+    {
+      "tag": "POL",
+      "amount": 2,
+      "lon": 19.15,
+      "lat": 50.3,
+      "note": "Dąbrowa and Kraków basins"
+    },
+    {
+      "tag": "CSK",
+      "amount": 4,
+      "lon": 18.4,
+      "lat": 49.85,
+      "note": "Ostrava–Karviná"
+    },
+    {
+      "tag": "CSK",
+      "amount": 3,
+      "lon": 13.65,
+      "lat": 50.5,
+      "note": "North Bohemian lignite (Most)"
+    },
+    {
+      "tag": "CSK",
+      "amount": 1,
+      "lon": 14.1,
+      "lat": 50.15,
+      "note": "Kladno"
+    },
+    {
+      "tag": "BEL",
+      "amount": 3,
+      "lon": 4.2,
+      "lat": 50.43,
+      "note": "Hainaut (Borinage, Centre, Charleroi)"
+    },
+    {
+      "tag": "BEL",
+      "amount": 1,
+      "lon": 5.5,
+      "lat": 51.0,
+      "note": "Campine (Limburg)"
+    },
+    {
+      "tag": "BEL",
+      "amount": 1,
+      "lon": 5.57,
+      "lat": 50.63,
+      "note": "Liège"
+    },
+    {
+      "tag": "NLD",
+      "amount": 2,
+      "lon": 5.98,
+      "lat": 50.89,
+      "note": "South Limburg (Heerlen)"
+    },
+    {
+      "tag": "RAJ",
+      "amount": 2,
+      "lon": 86.4,
+      "lat": 23.75,
+      "note": "Damodar valley: Jharia"
+    },
+    {
+      "tag": "RAJ",
+      "amount": 1,
+      "lon": 87.1,
+      "lat": 23.65,
+      "note": "Damodar valley: Raniganj"
+    },
+    {
+      "tag": "RAJ",
+      "amount": 1,
+      "lon": 78.9,
+      "lat": 22.15,
+      "note": "Pench valley"
+    },
+    {
+      "tag": "CHN",
+      "amount": 2,
+      "lon": 118.2,
+      "lat": 39.6,
+      "note": "Kailuan (Kaiping)"
+    },
+    {
+      "tag": "CHN",
+      "amount": 1,
+      "lon": 113.2,
+      "lat": 35.25,
+      "note": "Jiaozuo"
+    },
+    {
+      "tag": "SXI",
+      "amount": 1,
+      "lon": 113.3,
+      "lat": 40.1,
+      "note": "Datong"
+    },
+    {
+      "tag": "MCK",
+      "amount": 3,
+      "lon": 123.95,
+      "lat": 41.85,
+      "note": "Fushun"
+    },
+    {
+      "tag": "ZAF",
+      "amount": 2,
+      "lon": 29.2,
+      "lat": -25.87,
+      "note": "Transvaal (Witbank)"
+    },
+    {
+      "tag": "ZAF",
+      "amount": 1,
+      "lon": 30.2,
+      "lat": -28.15,
+      "note": "Northern Natal (Dundee, Vryheid)"
+    },
+    {
+      "tag": "AUS",
+      "amount": 3,
+      "lon": 151.6,
+      "lat": -32.9,
+      "note": "New South Wales (Hunter valley, Illawarra)"
+    },
+    {
+      "tag": "CAN",
+      "amount": 2,
+      "lon": -60.2,
+      "lat": 46.1,
+      "note": "Nova Scotia (Cape Breton)"
+    },
+    {
+      "tag": "CAN",
+      "amount": 1,
+      "lon": -112.7,
+      "lat": 51.45,
+      "note": "Alberta (Drumheller)"
+    },
+    {
+      "tag": "ESR",
+      "amount": 2,
+      "lon": -5.75,
+      "lat": 43.3,
+      "note": "Asturias"
+    },
+    {
+      "tag": "TUR",
+      "amount": 1,
+      "lon": 31.8,
+      "lat": 41.45,
+      "note": "Zonguldak"
+    },
+    {
+      "tag": "HUN",
+      "amount": 1,
+      "lon": 18.4,
+      "lat": 47.58,
+      "note": "Tatabánya and Dorog"
+    },
+    {
+      "tag": "ITA",
+      "amount": 1,
+      "lon": 8.5,
+      "lat": 39.2,
+      "note": "Sulcis (Bacu Abis)"
+    }
+  ],
+  "uranium": [
+    {
+      "tag": "BEL",
+      "amount": 6,
+      "lon": 27.47,
+      "lat": -11.05,
+      "note": "Shinkolobwe, Katanga (Belgian Congo)"
+    },
+    {
+      "tag": "CAN",
+      "amount": 3,
+      "lon": -117.98,
+      "lat": 66.09,
+      "note": "Port Radium, Great Bear Lake"
+    },
+    {
+      "tag": "USA",
+      "amount": 3,
+      "lon": -108.73,
+      "lat": 38.36,
+      "note": "Colorado Plateau carnotite (Uravan)"
+    },
+    {
+      "tag": "CSK",
+      "amount": 2,
+      "lon": 12.93,
+      "lat": 50.37,
+      "note": "Jáchymov"
+    },
+    {
+      "tag": "SUN",
+      "amount": 2,
+      "lon": 69.65,
+      "lat": 40.57,
+      "note": "Taboshar and Tyuya-Muyun (Fergana)"
+    },
+    {
+      "tag": "PRT",
+      "amount": 1,
+      "lon": -7.88,
+      "lat": 40.5,
+      "note": "Urgeiriça"
+    },
+    {
+      "tag": "GBR",
+      "amount": 1,
+      "lon": -4.95,
+      "lat": 50.3,
+      "note": "Cornwall (South Terras)"
+    },
+    {
+      "tag": "JPN",
+      "amount": 1,
+      "lon": 140.45,
+      "lat": 37.15,
+      "note": "Ishikawa, Fukushima"
+    }
+  ],
+  "hydro": [
+    {
+      "tag": "CHE",
+      "amount": 2,
+      "lon": 7.4,
+      "lat": 46.2,
+      "note": "Valais (Dixence, Chandoline)"
+    },
+    {
+      "tag": "CHE",
+      "amount": 1,
+      "lon": 8.3,
+      "lat": 46.6,
+      "note": "Oberhasli (Grimsel)"
+    },
+    {
+      "tag": "CHE",
+      "amount": 1,
+      "lon": 9.6,
+      "lat": 46.7,
+      "note": "Graubünden and Ticino"
+    },
+    {
+      "tag": "ITA",
+      "amount": 2,
+      "lon": 11.35,
+      "lat": 46.5,
+      "note": "Upper Adige (Cardano)"
+    },
+    {
+      "tag": "ITA",
+      "amount": 2,
+      "lon": 11.12,
+      "lat": 46.07,
+      "note": "Trentino"
+    },
+    {
+      "tag": "ITA",
+      "amount": 2,
+      "lon": 10.3,
+      "lat": 45.95,
+      "note": "Val Camonica"
+    },
+    {
+      "tag": "ITA",
+      "amount": 1,
+      "lon": 9.87,
+      "lat": 46.17,
+      "note": "Valtellina"
+    },
+    {
+      "tag": "ITA",
+      "amount": 2,
+      "lon": 7.32,
+      "lat": 45.74,
+      "note": "Aosta valley"
+    },
+    {
+      "tag": "ITA",
+      "amount": 1,
+      "lon": 7.55,
+      "lat": 44.4,
+      "note": "Cuneo Alps"
+    },
+    {
+      "tag": "ITA",
+      "amount": 1,
+      "lon": 13.0,
+      "lat": 46.3,
+      "note": "Friuli"
+    },
+    {
+      "tag": "ITA",
+      "amount": 1,
+      "lon": 12.65,
+      "lat": 42.56,
+      "note": "Terni"
+    },
+    {
+      "tag": "FRA",
+      "amount": 3,
+      "lon": 6.4,
+      "lat": 45.4,
+      "note": "Savoy (Maurienne, Tarentaise)"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 5.72,
+      "lat": 45.19,
+      "note": "Isère (Grenoble)"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 6.2,
+      "lat": 44.1,
+      "note": "Durance"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 1.5,
+      "lat": 42.75,
+      "note": "Ariège Pyrenees"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 0.5,
+      "lat": 42.8,
+      "note": "Central Pyrenees (Lannemezan)"
+    },
+    {
+      "tag": "FRA",
+      "amount": 1,
+      "lon": 2.35,
+      "lat": 45.4,
+      "note": "Massif Central (Dordogne, Truyère)"
+    },
+    {
+      "tag": "AUT",
+      "amount": 1,
+      "lon": 11.6,
+      "lat": 47.45,
+      "note": "Tyrol (Achensee)"
+    },
+    {
+      "tag": "AUT",
+      "amount": 1,
+      "lon": 15.0,
+      "lat": 47.3,
+      "note": "Styria"
+    },
+    {
+      "tag": "AUT",
+      "amount": 1,
+      "lon": 13.8,
+      "lat": 46.7,
+      "note": "Carinthia"
+    },
+    {
+      "tag": "NOR",
+      "amount": 2,
+      "lon": 8.6,
+      "lat": 59.9,
+      "note": "Telemark (Rjukan)"
+    },
+    {
+      "tag": "NOR",
+      "amount": 2,
+      "lon": 6.6,
+      "lat": 60.4,
+      "note": "Hordaland (Tyssedal)"
+    },
+    {
+      "tag": "NOR",
+      "amount": 1,
+      "lon": 9.6,
+      "lat": 60.0,
+      "note": "Buskerud (Nore)"
+    },
+    {
+      "tag": "NOR",
+      "amount": 1,
+      "lon": 6.1,
+      "lat": 61.1,
+      "note": "Sogn (Høyanger)"
+    },
+    {
+      "tag": "NOR",
+      "amount": 1,
+      "lon": 6.4,
+      "lat": 59.0,
+      "note": "Rogaland (Sauda)"
+    },
+    {
+      "tag": "NOR",
+      "amount": 1,
+      "lon": 14.0,
+      "lat": 66.8,
+      "note": "Nordland (Glomfjord)"
+    },
+    {
+      "tag": "SWE",
+      "amount": 2,
+      "lon": 19.8,
+      "lat": 66.95,
+      "note": "Norrbotten (Porjus)"
+    },
+    {
+      "tag": "SWE",
+      "amount": 1,
+      "lon": 14.5,
+      "lat": 63.2,
+      "note": "Jämtland (Indalsälven)"
+    },
+    {
+      "tag": "SWE",
+      "amount": 1,
+      "lon": 17.5,
+      "lat": 62.6,
+      "note": "Västernorrland (Ångermanälven)"
+    },
+    {
+      "tag": "SWE",
+      "amount": 1,
+      "lon": 14.5,
+      "lat": 60.8,
+      "note": "Dalarna (Dalälven)"
+    },
+    {
+      "tag": "FIN",
+      "amount": 2,
+      "lon": 28.78,
+      "lat": 61.19,
+      "note": "Imatra"
+    },
+    {
+      "tag": "FIN",
+      "amount": 1,
+      "lon": 26.7,
+      "lat": 60.7,
+      "note": "Kymi river"
+    },
+    {
+      "tag": "FIN",
+      "amount": 1,
+      "lon": 23.76,
+      "lat": 61.5,
+      "note": "Tampere"
+    },
+    {
+      "tag": "ESR",
+      "amount": 3,
+      "lon": 1.0,
+      "lat": 42.2,
+      "note": "Catalan Pyrenees (Tremp, Camarasa)"
+    },
+    {
+      "tag": "ESN",
+      "amount": 1,
+      "lon": 0.1,
+      "lat": 42.4,
+      "note": "Aragonese Pyrenees"
+    },
+    {
+      "tag": "CAN",
+      "amount": 2,
+      "lon": -72.75,
+      "lat": 46.55,
+      "note": "Saint-Maurice (Shawinigan)"
+    },
+    {
+      "tag": "CAN",
+      "amount": 2,
+      "lon": -73.9,
+      "lat": 45.3,
+      "note": "Saint Lawrence (Beauharnois)"
+    },
+    {
+      "tag": "CAN",
+      "amount": 2,
+      "lon": -71.6,
+      "lat": 48.5,
+      "note": "Saguenay (Isle-Maligne, Chute-à-Caron)"
+    },
+    {
+      "tag": "CAN",
+      "amount": 4,
+      "lon": -79.05,
+      "lat": 43.15,
+      "note": "Niagara (Queenston)"
+    },
+    {
+      "tag": "USA",
+      "amount": 2,
+      "lon": -87.6,
+      "lat": 34.8,
+      "note": "Tennessee Valley: Wilson and Wheeler dams"
+    },
+    {
+      "tag": "USA",
+      "amount": 2,
+      "lon": -88.25,
+      "lat": 35.07,
+      "note": "Tennessee Valley in Tennessee"
+    },
+    {
+      "tag": "USA",
+      "amount": 2,
+      "lon": -120.1,
+      "lat": 47.35,
+      "note": "Columbia River (Rock Island)"
+    },
+    {
+      "tag": "USA",
+      "amount": 1,
+      "lon": -121.94,
+      "lat": 45.64,
+      "note": "Columbia River (Bonneville)"
+    },
+    {
+      "tag": "JPN",
+      "amount": 3,
+      "lon": 137.97,
+      "lat": 36.24,
+      "note": "Nagano: the Azusa and Shinano rivers"
+    },
+    {
+      "tag": "JPN",
+      "amount": 2,
+      "lon": 137.7,
+      "lat": 35.7,
+      "note": "Kiso river"
+    },
+    {
+      "tag": "JPN",
+      "amount": 1,
+      "lon": 138.75,
+      "lat": 37.0,
+      "note": "Shinano river in Niigata"
+    },
+    {
+      "tag": "JPN",
+      "amount": 3,
+      "lon": 137.65,
+      "lat": 36.8,
+      "note": "Toyama: the Kurobe and Jinzū rivers"
+    },
+    {
+      "tag": "JPN",
+      "amount": 1,
+      "lon": 136.2,
+      "lat": 35.9,
+      "note": "Fukui and Ishikawa"
+    },
+    {
+      "tag": "JPN",
+      "amount": 2,
+      "lon": 137.8,
+      "lat": 35.0,
+      "note": "Tenryū and Ōi rivers"
+    },
+    {
+      "tag": "JPN",
+      "amount": 2,
+      "lon": 140.1,
+      "lat": 37.5,
+      "note": "Inawashiro"
+    },
+    {
+      "tag": "JPN",
+      "amount": 1,
+      "lon": 139.7,
+      "lat": 36.9,
+      "note": "Kinugawa"
+    },
+    {
+      "tag": "SUN",
+      "amount": 2,
+      "lon": 35.08,
+      "lat": 47.87,
+      "note": "Dnieper (Zaporizhzhia), as spec §16.1 lists it; the Dneproges dam adds its own energy (landmarks1936.json)"
+    }
+  ]
+}

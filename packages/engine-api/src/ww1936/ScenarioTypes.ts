@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { COUNTRY_TAGS } from "./Countries";
+import { DAMS, LANDMARKS } from "./DepthTypes";
 import { REGION_CATEGORIES } from "./EconomyTypes";
 import { LAND_TERRAINS } from "./LandTypes";
 import { SEA_ZONE_BASE } from "./WorldWarTypes";
@@ -88,6 +89,16 @@ export const ScenarioRegionSchema = z.object({
   airBase: z.number().int().min(0).max(10).optional(),
   aa: z.number().int().min(0).max(5).optional(),
   coastalFort: z.number().int().min(0).max(5).optional(),
+  // P6 (v5, P6 spec §16.1–§16.4). Optional: a v4 file reads none. P6's
+  // foundation adds the readers (ScenarioIndex).
+  coal: z.number().int().min(0).max(8).optional(),
+  uranium: z.number().int().min(0).max(6).optional(),
+  hydro: z.number().int().min(0).max(6).optional(),
+  /** At most two (New York holds two, spec §16.3). */
+  landmarks: z.array(z.enum(LANDMARKS)).max(2).optional(),
+  dam: z
+    .object({ id: z.enum(DAMS), downstream: z.array(RegionId).max(3) })
+    .optional(),
 });
 
 export const ScenarioSeaZoneSchema = z.object({
@@ -154,10 +165,17 @@ const StraitSchema = z.object({
 /**
  * scenario.json next to regions.bin (spec §4.7; version 2: P1 spec §3.1;
  * version 3: P2 spec §3.1, the land graph; version 4: P4 spec §3.6, the
- * strategic regions, harbors, bases and the row table).
+ * strategic regions, harbors, bases and the row table; version 5: P6 spec
+ * §16, coal, uranium, hydro, landmarks and dams).
  */
 export const ScenarioDataSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  version: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+    z.literal(5),
+  ]),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   countries: z.array(ScenarioCountrySchema).min(2),
