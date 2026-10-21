@@ -374,9 +374,10 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // its fixes still gave 9f12594be9b5b5f7 on P3) — with lane G7's navy and
 // air content effects: same value in four runs. Re-pinned after P4 lanes
 // N1 (fleets, missions), A1 (the air war's core) and E (naval lines, fuel,
-// repair) merged: same value in four runs. The controller re-pins it at
-// every merge that changes the engine.
-const WW1936_DIGEST = "507372acc2bdb01b";
+// repair) merged: same value in four runs. Re-pinned after N2 (naval
+// battles), R (rendering) and A2 (air effects) merged: same value in four
+// runs. The controller re-pins it at every merge that changes the engine.
+const WW1936_DIGEST = "e4551214077e1881";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
