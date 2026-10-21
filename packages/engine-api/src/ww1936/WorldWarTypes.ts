@@ -32,6 +32,8 @@ export const DECLARE_WAR_BLOCKS = [
   // P5 (P5 spec §9.1, §10; plan decision 38), appended.
   "subject_restricted",
   "exile",
+  // P6 (P6 spec §13.1): the United States while Congress backs it under 60%.
+  "congress",
 ] as const;
 export type DeclareWarBlock = (typeof DECLARE_WAR_BLOCKS)[number];
 

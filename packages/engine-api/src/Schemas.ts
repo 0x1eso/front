@@ -47,6 +47,35 @@ import {
 } from "./ww1936/AirTypes";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
 import {
+  AGENCY_UPGRADES,
+  ARMY_SPIRIT_CATEGORIES,
+  ARMY_SPIRITS,
+  CONTINUOUS_FOCUSES,
+  DepthOrderKind,
+  DESIGN_KINDS,
+  DesignDefSchema,
+  DesignNameSchema,
+  DOCTRINE_DOMAINS,
+  DOCTRINE_TRACKS,
+  FACTION_GOALS,
+  FACTION_RULES,
+  FM_TRAITS,
+  GRAND_DOCTRINES,
+  INTEL_MISSIONS,
+  INTEL_OPERATIONS,
+  MEDALS,
+  MIO_ARCHETYPES,
+  MIO_FAMILIES,
+  MIO_TRAITS,
+  RAID_KINDS,
+  ROCKET_KINDS,
+  SPECIAL_PROJECTS,
+  SUBDOCTRINES,
+  WW_GROUP_ARMIES,
+  WW_MAX_RAILGUNS,
+  WW_SHIP_DESIGN_SLOTS,
+} from "./ww1936/DepthTypes";
+import {
   BUILDING_IDS,
   EQUIPMENT_TYPES,
   LAW_KINDS,
@@ -65,6 +94,7 @@ import {
 } from "./ww1936/EndgameTypes";
 import {
   BATTALION_IDS,
+  GENERAL_TRAITS,
   LandOrderKind,
   STANCES,
   SUPPORT_IDS,
@@ -76,6 +106,7 @@ import {
   WW_TEMPLATE_NAME_MAX,
 } from "./ww1936/LandTypes";
 import {
+  ADMIRAL_TRAITS,
   ENGAGE_RULES,
   FLEET_MISSIONS,
   SHIP_CLASSES,
@@ -468,6 +499,9 @@ export const GameConfigSchema = z.object({
   worldWar1936: z.boolean().optional(),
   // World War 1936: nations follow the historical calendar (spec §7.4).
   historicalAi: z.boolean().optional(),
+  // World War 1936 P6 (P6 spec §9.8): the atomic bomb. The mode fills it
+  // (on unless the host turned it off); nothing reads it outside the mode.
+  ww1936Nukes: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -797,7 +831,8 @@ export const DeclareWarIntentSchema = z.object({
 // for the sender's own country. The kinds are stored by position: append only.
 const WwIndex = zb.uint({ max: 255 });
 const WwId = zb.uint({ min: 1, max: 10_000_000 });
-const WwGen = zb.uint({ min: 1, max: 3 });
+// P6 plan decision 5: a design type's "generation" is its slot (1..16).
+const WwGen = zb.uint({ min: 1, max: 16 });
 const WwFactories = zb.uint({ max: WW_MAX_LINE_FACTORIES });
 // P2 (P2 spec §16.3).
 const WwArmy = zb.uint({ min: 1, max: 10_000_000 });
@@ -816,6 +851,8 @@ const WwShipId = zb.uint({ min: 1, max: 100_000_000 });
 const WwSr = zb.uint({ min: 1, max: 1999 });
 const WwZone = zb.uint({ min: SEA_ZONE_BASE + 1, max: 65_535 });
 const WwLineId = zb.uint({ min: 1, max: 10_000_000 });
+// P6 (plan Task 1 Step 4): a design slot, 1-based.
+const WwDesignSlot = zb.uint({ min: 1, max: WW_SHIP_DESIGN_SLOTS });
 const ShipCount = z.tuple([
   z.enum(SHIP_CLASSES),
   zb.uint({ max: WW_MAX_FLEET_SHIPS }),
@@ -1081,12 +1118,19 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("naval_line_add"),
-    cls: z.union([z.enum(SHIP_CLASSES), z.literal("convoy")]),
+    // P6 (pre-flight §A7): the floating harbour, after the convoy.
+    cls: z.union([
+      z.enum(SHIP_CLASSES),
+      z.literal("convoy"),
+      z.literal("floating_harbor"),
+    ]),
     gen: zb.uint({ min: 1, max: 4 }),
     docks: zb.uint({ min: 1, max: WW_MAX_DOCKS_PER_LINE }),
     /** 0: keep going (convoys only; spec §5.3). */
     count: zb.uint({ max: WW_MAX_LINE_COUNT }),
     port: WwRegionId,
+    /** P6 (plan decision 8): the ship design slot (absent: the base class). */
+    design: zb.uint({ min: 1, max: WW_SHIP_DESIGN_SLOTS }).optional(),
   }),
   z.object({
     kind: z.literal("naval_line_docks"),
@@ -1173,12 +1217,215 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     army: WwArmy,
     scope: zb.uint({ max: 1000 }),
   }),
+  // P6 (P6 spec §21.4, plan decision 4): DepthTypes.DEPTH_ORDER_KINDS order.
+  z.object({
+    kind: z.literal("doctrine_pick"),
+    domain: z.enum(DOCTRINE_DOMAINS),
+    id: z.enum(GRAND_DOCTRINES),
+  }),
+  z.object({
+    kind: z.literal("subdoctrine_pick"),
+    track: z.enum(DOCTRINE_TRACKS),
+    id: z.enum(SUBDOCTRINES),
+  }),
+  z.object({
+    kind: z.literal("army_spirit_pick"),
+    category: z.enum(ARMY_SPIRIT_CATEGORIES),
+    id: z.enum(ARMY_SPIRITS),
+  }),
+  z.object({
+    kind: z.literal("trait_assign"),
+    general: WwId,
+    trait: z.union([
+      z.enum(GENERAL_TRAITS),
+      z.enum(FM_TRAITS),
+      z.enum(ADMIRAL_TRAITS),
+    ]),
+    admiral: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal("promote_fm"),
+    general: WwId,
+    trait: z.enum(FM_TRAITS),
+  }),
+  z.object({
+    kind: z.literal("ag_create"),
+    fm: WwId,
+    armies: z.array(WwArmy).min(1).max(WW_GROUP_ARMIES),
+  }),
+  z.object({ kind: z.literal("ag_add"), group: WwId, army: WwArmy }),
+  z.object({ kind: z.literal("ag_remove"), group: WwId, army: WwArmy }),
+  z.object({ kind: z.literal("ag_disband"), group: WwId }),
+  z.object({
+    kind: z.literal("ag_front"),
+    group: WwId,
+    frontRegions: z.array(WwRegionId).min(1).max(120),
+    enemy: zb.uint({ max: 255 }),
+  }),
+  z.object({ kind: z.literal("ag_execute"), group: WwId }),
+  z.object({ kind: z.literal("ag_auto"), group: WwId, on: z.boolean() }),
+  z.object({
+    kind: z.literal("medal_award"),
+    army: WwArmy,
+    medal: z.enum(MEDALS),
+  }),
+  z.object({
+    kind: z.literal("army_priority"),
+    army: WwArmy,
+    value: zb.uint({ max: 2 }),
+  }),
+  z.object({
+    kind: z.literal("design_save"),
+    slot: WwDesignSlot.optional(),
+    def: DesignDefSchema,
+  }),
+  z.object({
+    kind: z.literal("design_copy"),
+    from: WwDesignSlot,
+    def: DesignDefSchema,
+  }),
+  z.object({
+    kind: z.literal("design_obsolete"),
+    design: z.enum(DESIGN_KINDS),
+    slot: WwDesignSlot,
+  }),
+  z.object({
+    kind: z.literal("design_rename"),
+    design: z.enum(DESIGN_KINDS),
+    slot: WwDesignSlot,
+    name: DesignNameSchema,
+  }),
+  z.object({ kind: z.literal("ship_refit"), ship: WwId, slot: WwDesignSlot }),
+  z.object({
+    kind: z.literal("line_convert"),
+    line: WwId,
+    // EQUIP_KEYS index; null: stop converting.
+    from: zb.uint({ max: 4095 }).nullable(),
+  }),
+  z.object({
+    kind: z.literal("mio_pick"),
+    family: z.enum(MIO_FAMILIES),
+    archetype: z.enum(MIO_ARCHETYPES),
+  }),
+  z.object({
+    kind: z.literal("mio_trait"),
+    family: z.enum(MIO_FAMILIES),
+    trait: z.enum(MIO_TRAITS),
+  }),
+  z.object({ kind: z.literal("mio_invest"), family: z.enum(MIO_FAMILIES) }),
+  z.object({
+    kind: z.literal("licence_request"),
+    from: WwCountry,
+    key: zb.uint({ max: 4095 }),
+    ship: WwDesignSlot.optional(),
+  }),
+  z.object({
+    kind: z.literal("licence_answer"),
+    request: WwId,
+    accept: z.boolean(),
+  }),
+  z.object({ kind: z.literal("licence_cancel"), licence: WwId }),
+  z.object({
+    kind: z.literal("market_list"),
+    key: zb.uint({ max: 4095 }),
+    count: zb.uint({ min: 1, max: 1_000_000 }),
+  }),
+  z.object({ kind: z.literal("market_unlist"), listing: WwId }),
+  z.object({
+    kind: z.literal("market_buy"),
+    listing: WwId,
+    count: zb.uint({ min: 1, max: 1_000_000 }),
+  }),
+  z.object({ kind: z.literal("embargo"), target: WwCountry }),
+  z.object({ kind: z.literal("embargo_lift"), target: WwCountry }),
+  z.object({ kind: z.literal("intel_found") }),
+  z.object({ kind: z.literal("intel_upgrade"), id: z.enum(AGENCY_UPGRADES) }),
+  z.object({ kind: z.literal("operative_recruit") }),
+  z.object({
+    kind: z.literal("operative_assign"),
+    operative: WwId,
+    target: WwCountry,
+    mission: z.enum(INTEL_MISSIONS),
+  }),
+  z.object({ kind: z.literal("operative_recall"), operative: WwId }),
+  z.object({
+    kind: z.literal("operation_start"),
+    op: z.enum(INTEL_OPERATIONS),
+    target: WwCountry,
+    operatives: z.array(WwId).min(1).max(2),
+  }),
+  z.object({ kind: z.literal("operation_cancel"), operation: WwId }),
+  z.object({ kind: z.literal("crypto_target"), target: WwCountry }),
+  z.object({ kind: z.literal("crypto_activate"), target: WwCountry }),
+  z.object({
+    kind: z.literal("project_start"),
+    project: z.enum(SPECIAL_PROJECTS),
+    facility: WwRegionId,
+  }),
+  z.object({
+    kind: z.literal("project_cancel"),
+    project: z.enum(SPECIAL_PROJECTS),
+  }),
+  z.object({
+    kind: z.literal("project_scientist"),
+    project: z.enum(SPECIAL_PROJECTS),
+    scientist: zb.uint({ max: 15 }).nullable(),
+  }),
+  z.object({
+    kind: z.literal("nuke_drop"),
+    region: WwRegionId,
+    rocket: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal("rocket_strike"),
+    site: WwRegionId,
+    target: WwRegionId,
+    rocket: z.enum(ROCKET_KINDS),
+    count: zb.uint({ min: 1, max: 30 }),
+  }),
+  z.object({
+    kind: z.literal("raid"),
+    raid: z.enum(RAID_KINDS),
+    // A division (paratroopers, commandos) or a deployment (precision bombing).
+    unit: WwId,
+    target: WwRegionId,
+    building: z.enum(BUILDING_IDS),
+  }),
+  z.object({ kind: z.literal("raid_cancel"), raid: WwId }),
+  z.object({ kind: z.literal("cfocus_set"), id: z.enum(CONTINUOUS_FOCUSES) }),
+  z.object({ kind: z.literal("cfocus_clear") }),
+  z.object({
+    kind: z.literal("faction_rule"),
+    rule: z.enum(FACTION_RULES),
+    on: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal("faction_goal"),
+    slot: zb.uint({ max: 2 }),
+    goal: z.enum(FACTION_GOALS),
+  }),
+  z.object({ kind: z.literal("treaty_leave") }),
+  z.object({
+    kind: z.literal("railgun_assign"),
+    army: WwArmy,
+    count: zb.uint({ min: 1, max: WW_MAX_RAILGUNS }),
+  }),
+  z.object({ kind: z.literal("railgun_return"), army: WwArmy }),
+  z.object({ kind: z.literal("harbor_deploy"), region: WwRegionId }),
+  z.object({ kind: z.literal("scorch"), region: WwRegionId }),
+  z.object({
+    kind: z.literal("air_night"),
+    deployment: WwId,
+    on: z.boolean(),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */
 export type LandOrder = Extract<WwOrder, { kind: LandOrderKind }>;
 /** The politics orders (P3): what WwPolitics.issue takes. */
 export type PolOrder = Extract<WwOrder, { kind: PolOrderKind }>;
+/** The depth orders (P6): what WwDepth.issue takes. */
+export type DepthOrder = Extract<WwOrder, { kind: DepthOrderKind }>;
 
 export const WwOrderIntentSchema = z.object({
   type: z.literal("ww_order"),

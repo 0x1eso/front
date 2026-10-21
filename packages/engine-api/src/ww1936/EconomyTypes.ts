@@ -9,6 +9,9 @@ export const RESOURCE_IDS = [
   "tungsten",
   "steel",
   "chromium",
+  // P6 (P6 spec §16.2), appended.
+  "uranium",
+  "coal",
 ] as const;
 export type ResourceId = (typeof RESOURCE_IDS)[number];
 export const RESOURCE_COUNT = RESOURCE_IDS.length;
@@ -55,6 +58,13 @@ export const BUILDING_IDS = [
   "coastal_fort",
   "synthetic_refinery",
   "fuel_silo",
+  // P6 (P6 spec §9.1, §16.2, §16.4), appended.
+  "facility_nuclear",
+  "facility_rocket",
+  "facility_science",
+  "rocket_site",
+  "power_plant",
+  "dam",
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 /** Construction points per building (spec §4.1; P2 spec §11.7). */
@@ -73,6 +83,13 @@ export const BUILDING_COST: Readonly<Record<BuildingId, number>> = {
   coastal_fort: 2_500,
   synthetic_refinery: 12_000,
   fuel_silo: 2_500,
+  facility_nuclear: 15_000,
+  facility_rocket: 8_000,
+  facility_science: 6_000,
+  rocket_site: 2_500,
+  power_plant: 5_000,
+  // P6 spec §16.4: a dam is only ever repaired (scenario dams at level 0).
+  dam: 6_000,
 };
 /** What can be built (P4 spec §5.1: dockyards from now on). */
 export const BUILDABLE: readonly BuildingId[] = [
@@ -90,6 +107,13 @@ export const BUILDABLE: readonly BuildingId[] = [
   "coastal_fort",
   "synthetic_refinery",
   "fuel_silo",
+  // P6 (plan Task 1 Step 2): the rest of their rules are depthBuildBlock's.
+  "facility_nuclear",
+  "facility_rocket",
+  "facility_science",
+  "rocket_site",
+  "power_plant",
+  "dam",
 ];
 export const MAX_INFRA = 5;
 /** Buildings that are a level of the region, not a slot (P2 plan decision 10). */
@@ -104,6 +128,9 @@ export const LEVEL_BUILDINGS: readonly BuildingId[] = [
   "anti_air",
   "radar",
   "coastal_fort",
+  // P6 (spec §9.1, §16.4): no slot.
+  "rocket_site",
+  "dam",
 ];
 /** Highest level of each level building. */
 export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
@@ -116,7 +143,21 @@ export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
   anti_air: 5,
   radar: 3,
   coastal_fort: 5,
+  // P6 (spec §9.1, §16.4).
+  rocket_site: 3,
+  dam: 1,
 };
+/**
+ * P6 (spec §9.1, §16.2): slot buildings with a cap per region (a power
+ * plant takes one shared slot a level, at most 3; a facility one, at most 1).
+ */
+export const SLOT_BUILDING_MAX: Readonly<Partial<Record<BuildingId, number>>> =
+  {
+    facility_nuclear: 1,
+    facility_rocket: 1,
+    facility_science: 1,
+    power_plant: 3,
+  };
 /**
  * Buildings that need a coast (P4 spec §5.1, §12.1): a dockyard a coastal
  * region, a naval base and a coastal fort a harbor zone (spec §3.5).
@@ -131,6 +172,10 @@ export const BUILDING_TECH: Readonly<Partial<Record<BuildingId, WwTechId>>> = {
   anti_air: "anti_air_1",
   radar: "radar_1",
   synthetic_refinery: "synthetic_oil_1",
+  // P6 (spec §9.1).
+  facility_nuclear: "nuclear_physics",
+  facility_rocket: "rocketry_1",
+  facility_science: "electronics_1",
 };
 
 export const EQUIPMENT_TYPES = [
@@ -154,6 +199,14 @@ export const EQUIPMENT_TYPES = [
   "cv_cas",
   "cv_naval_bomber",
   "convoy",
+  // P6 (plan decision 5): design slots (gen = slot), then the specials.
+  "tank_design",
+  "plane_design",
+  "railway_gun",
+  "floating_harbor",
+  "flying_bomb",
+  "ballistic_rocket",
+  "atomic_bomb",
 ] as const;
 export type EquipmentType = (typeof EQUIPMENT_TYPES)[number];
 export const EQUIPMENT_FAMILIES = [
@@ -163,6 +216,8 @@ export const EQUIPMENT_FAMILIES = [
   "aircraft",
   // P4: the convoy, built on naval lines only.
   "naval",
+  // P6: the atomic bomb (facilities make it).
+  "special",
 ] as const;
 export type EquipmentFamily = (typeof EQUIPMENT_FAMILIES)[number];
 
@@ -187,6 +242,13 @@ export const EQUIPMENT_GENS: Readonly<Record<EquipmentType, number>> = {
   cv_cas: 3,
   cv_naval_bomber: 3,
   convoy: 1,
+  tank_design: 12,
+  plane_design: 16,
+  railway_gun: 1,
+  floating_harbor: 1,
+  flying_bomb: 1,
+  ballistic_rocket: 1,
+  atomic_bomb: 1,
 };
 
 /** Stockpile slots: one per (type, generation), in EQUIPMENT_TYPES order. */
@@ -197,7 +259,7 @@ export const EQUIP_KEYS: readonly (readonly [EquipmentType, number])[] =
       (_, i) => [type, i + 1] as const,
     ),
   );
-export const EQUIP_KEY_COUNT = EQUIP_KEYS.length; // 23 before P4, 46 with it
+export const EQUIP_KEY_COUNT = EQUIP_KEYS.length; // 23 before P4, 46 with it, 79 with P6
 
 const KEY_BASE: ReadonlyMap<EquipmentType, number> = (() => {
   const m = new Map<EquipmentType, number>();
@@ -420,6 +482,40 @@ export const WW_TECH_IDS = [
   "synthetic_oil_2",
   // P5 (P5 spec §8.5), appended: the military police company.
   "military_police",
+  // P6 (P6 spec §5.2.5 then §5.7 order), appended.
+  "heavy_tank_1",
+  "heavy_tank_2",
+  "heavy_tank_3",
+  "tank_gun_2",
+  "tank_gun_3",
+  "cast_armor",
+  "diesel_engine",
+  "torsion_bar",
+  "tank_radio",
+  "sloped_armor",
+  "interleaved_wheels",
+  "amphibious_drive",
+  "flame_tank",
+  "dual_purpose_guns",
+  "naval_radar_2",
+  "armored_deck",
+  "mine_warfare_1",
+  "snorkel",
+  "super_heavy_battleship",
+  "floating_harbor_1",
+  "aircraft_cannon_1",
+  "aircraft_cannon_2",
+  "self_sealing_tanks",
+  "drop_tanks",
+  "bomb_sight_1",
+  "air_rockets_1",
+  "air_radar_1",
+  "railway_gun_1",
+  "cryptography_1",
+  "cryptography_2",
+  "cryptography_3",
+  "nuclear_physics",
+  "rocketry_1",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -563,6 +659,39 @@ export const WW_ORDER_BLOCKS = [
   "no_takeover",
   "disarmed",
   "subject_restricted",
+  // P6 (P6 spec §21.4), appended ("no_civs" and "no_xp" exist since P1/P2).
+  "no_cp",
+  "doctrine_locked",
+  "trait_unavailable",
+  "fm_limit",
+  "group_full",
+  "design_slots_full",
+  "module_locked",
+  "module_bad_slot",
+  "bad_base",
+  "treaty_limit",
+  "design_in_use",
+  "not_refittable",
+  "no_agency",
+  "no_operative",
+  "network_low",
+  "op_unavailable",
+  "no_crypto_target",
+  "not_decrypted",
+  "no_facility",
+  "project_locked",
+  "no_atomic",
+  "nuke_conditions",
+  "out_of_rocket_range",
+  "raid_conditions",
+  "embargoed",
+  "licence_exists",
+  "listing_bad",
+  "cfocus_locked",
+  "faction_leader_only",
+  "scorch_conditions",
+  "harbor_conditions",
+  "railgun_limit",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
@@ -592,6 +721,8 @@ export interface WwCountrySummary {
   slotPct: number;
   /** P4 spec §15.4: yesterday's fuel ratio ‰ (the fuel band, enemy fleets' fuel dots). */
   fuelRatioPm: number;
+  /** P6 spec §16.2: yesterday's energy ratio ‰ (1000: enough). */
+  energyPm: number;
 }
 
 export interface WwProjectData {
@@ -699,6 +830,17 @@ export interface WwRegionData {
   silo: number;
   /** Bomb damage milli, BUILDING_IDS order; empty when undamaged (P4 spec §14.8). */
   damage: number[];
+  /** P6 (scenario v5, spec §16.1–§16.4): deposits, hydro, the depth buildings and the dam. */
+  coal: number;
+  uranium: number;
+  hydro: number;
+  /** FACILITY_IDS index + 1 of the region's facility, 0: none. */
+  facility: number;
+  rocketSite: number;
+  powerPlant: number;
+  /** DAMS index + 1 of the region's dam, 0: none. */
+  dam: number;
+  damLevel: number;
   /**
    * P4 lane U: the repair of the building being mended (the first damaged
    * one, BUILDING_IDS order), ‰ of its next whole building; absent when

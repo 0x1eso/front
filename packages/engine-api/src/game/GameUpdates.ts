@@ -6,6 +6,7 @@ import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
 import type { WwAirData } from "../ww1936/AirTypes";
+import type { WwDepthData } from "../ww1936/DepthTypes";
 import type { WwEconomyData } from "../ww1936/EconomyTypes";
 import type { WwEndgameData } from "../ww1936/EndgameTypes";
 import type { WwLandData } from "../ww1936/LandTypes";
@@ -140,6 +141,8 @@ export enum GameUpdateType {
   WwAir,
   // World War 1936 P5 (P5 spec §21.4, plan decision 23)
   WwEndgame,
+  // World War 1936 P6 (P6 spec §21.5, plan decision 36)
+  WwDepth,
 }
 
 export type GameUpdate =
@@ -175,7 +178,8 @@ export type GameUpdate =
   | WwPoliticsUpdate
   | WwNavyUpdate
   | WwAirUpdate
-  | WwEndgameUpdate;
+  | WwEndgameUpdate
+  | WwDepthUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -515,4 +519,10 @@ export interface WwAirUpdate {
 export interface WwEndgameUpdate {
   type: GameUpdateType.WwEndgame;
   data: WwEndgameData;
+}
+
+/** World War 1936 P6: the depth systems' changes of the tick (P6 spec §21.5). */
+export interface WwDepthUpdate {
+  type: GameUpdateType.WwDepth;
+  data: WwDepthData;
 }

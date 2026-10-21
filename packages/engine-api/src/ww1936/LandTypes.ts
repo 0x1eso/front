@@ -1,7 +1,8 @@
 // World War 1936 P2 — divisions and front lines
 // (docs/superpowers/specs/2026-10-20-ww1936-p2-divisions-design.md).
 // zbin and snapshots store these lists by position: append only.
-import { EQUIP_KEYS, EquipmentType } from "./EconomyTypes";
+import { EXTRA_NEED_GROUPS, ExtraNeedGroup } from "./DepthTypes";
+import { EQUIP_KEYS, EQUIPMENT_TYPES, EquipmentType } from "./EconomyTypes";
 
 export const BATTALION_IDS = [
   "infantry",
@@ -16,6 +17,11 @@ export const BATTALION_IDS = [
   "anti_air",
   "light_armor",
   "medium_armor",
+  // P6 (P6 spec §5.2.6), appended: they carry tank designs only.
+  "heavy_armor",
+  "tank_destroyer",
+  "sp_artillery",
+  "sp_anti_air",
 ] as const;
 export type BattalionId = (typeof BATTALION_IDS)[number];
 
@@ -67,6 +73,19 @@ export const GENERAL_TRAITS = [
   "river_crosser",
   "logistics_wizard",
   "organizer",
+  // P6 (P6 spec §4.2), appended (23 bits: a trait mask stays 32-bit).
+  "forest_expert",
+  "urban_expert",
+  "swamp_expert",
+  "infantry_expert",
+  "armor_expert",
+  "artillery_officer",
+  "engineer_officer",
+  "trickster",
+  "commando",
+  "guerrilla_fighter",
+  "skirmisher",
+  "ambusher",
 ] as const;
 export type GeneralTrait = (typeof GENERAL_TRAITS)[number];
 /** Bit of a trait in a trait mask. */
@@ -147,10 +166,10 @@ export function idleOrder(): ArmyOrder {
 
 /**
  * The equipment a division carries (spec §5.2): an allow-list, so P4's
- * planes and convoy stay out and P6's tank designs (slots 18–29) are
- * appended on their own.
+ * planes and convoy stay out. P6 plan decision 6: the 8 static ground
+ * types and the tank designs (slots 18–29), in EQUIPMENT_TYPES order.
  */
-export const GROUND_EQUIPMENT: readonly EquipmentType[] = [
+export const GROUND_TYPES: readonly EquipmentType[] = [
   "infantry_equipment",
   "support_equipment",
   "artillery",
@@ -159,16 +178,39 @@ export const GROUND_EQUIPMENT: readonly EquipmentType[] = [
   "motorized",
   "light_tank",
   "medium_tank",
+  "tank_design",
 ];
-const GROUND_SET: ReadonlySet<EquipmentType> = new Set(GROUND_EQUIPMENT);
+/** P2's name of the static ground types (the 18 P2 slots). */
+export const GROUND_EQUIPMENT: readonly EquipmentType[] = GROUND_TYPES.filter(
+  (t) => t !== "tank_design",
+);
+const GROUND_SET: ReadonlySet<EquipmentType> = new Set(GROUND_TYPES);
 /**
  * EQUIP_KEYS indices of the ground equipment, in EQUIP_KEYS order: a
- * division's 18 equipment slots (spec §5.2).
+ * division's equipment slots (spec §5.2): the 18 P2 slots, then the 12
+ * tank design slots (P6 plan decision 6).
  */
 export const GROUND_EQUIP_KEYS: readonly number[] = EQUIP_KEYS.flatMap(
   ([t], i) => (GROUND_SET.has(t) ? [i] : []),
 );
-export const GROUND_SLOTS = GROUND_EQUIP_KEYS.length; // 18
+export const GROUND_SLOTS = GROUND_EQUIP_KEYS.length; // 30
+/** The first tank design slot (P6): slots below it are static. */
+export const GROUND_STATIC_SLOTS = 18;
+/** P6 plan decision 6: need groups = EQUIPMENT_TYPES then the four design-only groups. */
+export type NeedGroup = EquipmentType | ExtraNeedGroup;
+export const NEED_GROUPS: readonly NeedGroup[] = [
+  ...EQUIPMENT_TYPES,
+  ...EXTRA_NEED_GROUPS,
+];
+export const NEED_GROUP_COUNT = NEED_GROUPS.length;
+export const NG_HEAVY = EQUIPMENT_TYPES.length;
+export const NG_TD = NG_HEAVY + 1;
+export const NG_SPA = NG_HEAVY + 2;
+export const NG_SPAA = NG_HEAVY + 3;
+/** P6 spec §4.2: trait slots by general level 1..5 (index 0 unused). */
+export const TRAIT_SLOTS: readonly number[] = [0, 3, 4, 4, 5, 5];
+/** P6: the general terrain-day counters (P2's 4, then forest+jungle, urban, marsh). */
+export const TERRAIN_DAY_SLOTS = 7;
 /** The division slot of an EQUIP_KEYS index; -1 for aircraft. */
 export function groundSlotOf(key: number): number {
   return GROUND_EQUIP_KEYS.indexOf(key);
@@ -204,11 +246,20 @@ export const TPL_INFANTRY_DIV = 1 << 12;
 export const TPL_MOUNTAIN_ANY = 1 << 13;
 /** Any marine battalion (half river and strait penalty). */
 export const TPL_MARINE_ANY = 1 << 14;
+/**
+ * P6 (pre-flight §0-3c): design flags of the tanks a division holds
+ * (DivisionStats.designFlags, never the template-keyed flags).
+ */
+export const TPL_FLAME = 1 << 15;
+export const TPL_AMPHIBIOUS = 1 << 16;
+export const TPL_FLAIL = 1 << 17;
+export const TPL_TD_DEFEND = 1 << 18;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
  * armour/pierce in centi, org and HP and supply in milli, hardness ‰,
- * speed centi-km/h. `need` and `parts` are indexed by EQUIPMENT_TYPES.
+ * speed centi-km/h. `need` and `parts` are indexed by NEED_GROUPS (P6
+ * plan decision 6: EQUIPMENT_TYPES, then the four design-only groups).
  */
 export interface DivisionStats {
   width: number;
@@ -225,12 +276,12 @@ export interface DivisionStats {
   speedCenti: number;
   supplyMilli: number;
   trainDays: number;
-  /** Units the template needs, EQUIPMENT_TYPES order. */
+  /** Units the template needs, NEED_GROUPS order. */
   need: number[];
   /**
    * soft, hard, def, brk (centi) carried by battalions and companies whose
-   * main equipment is EQUIPMENT_TYPES[i]: four per type. divisionStats
-   * scales them by that type's fill.
+   * main equipment is NEED_GROUPS[i]: four per group. divisionStats
+   * scales them by that group's fill.
    */
   parts: number[];
   flags: number;
@@ -245,6 +296,8 @@ export interface DivisionStats {
   fuelWidthPm: number;
   /** P4 spec §15.3: Σ LAND_FUEL_PER_HOUR_MILLI of its battalions. */
   fuelHourMilli: number;
+  /** P6 (pre-flight §0-3c): TPL_FLAME … TPL_TD_DEFEND of the designs it holds. */
+  designFlags: number;
 }
 
 export interface CombatMods {

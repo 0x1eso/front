@@ -161,6 +161,79 @@ export const WW_STAT_KEYS = [
   "autonomyGainPct",
   "legitimacyGainPct",
   "occupationOutputPp",
+  // P6 (P6 spec §21.2), appended: the 74 depth names less the five P4
+  // doctrine keys above (capitalAttackPct, subVisibilityPct,
+  // fighterAttackPct, fighterAgilityPct, airLossCutPct). rsDoctrinePct now
+  // means "doctrine mastery speed" (spec §1.4).
+  "infAttackPct",
+  "infDefensePct",
+  "armorAttackPct",
+  "armorBrkPct",
+  "armorDefensePct",
+  "armorArmorPct",
+  "armorRelPp",
+  "motSpeedPct",
+  "motOrg",
+  "atHardPct",
+  "fortPenaltyCutPct",
+  "riverPenaltyCutPct",
+  "reinforcePct",
+  "entrenchSpeedPct",
+  "engineerMulPct",
+  "fortDefPerLevelBp",
+  "advanceSpeedPct",
+  "excessWidthCutPct",
+  "supportCompanyPct",
+  "divXpGainPct",
+  "cpGainPct",
+  "screenAttackPct",
+  "torpedoPct",
+  "depthChargePct",
+  "carrierDeckPct",
+  "navalOrg",
+  "navalDamageTakenPct",
+  "convoyLossPct",
+  "carrierCycleCut",
+  "bomberDefensePct",
+  "sortieEffPct",
+  "navalPatrolPct",
+  "reconPct",
+  "nightBombBp",
+  "enemyAirPenaltyPp",
+  "interceptShareBp",
+  "mioCostPct_infantry",
+  "mioCostPct_artillery",
+  "mioCostPct_armor",
+  "mioCostPct_air_light",
+  "mioCostPct_air_heavy",
+  "mioCostPct_naval",
+  "mioEffCapBp_infantry",
+  "mioEffCapBp_artillery",
+  "mioEffCapBp_armor",
+  "mioEffCapBp_air_light",
+  "mioEffCapBp_air_heavy",
+  "mioEffCapBp_naval",
+  "mioRelPp_infantry",
+  "mioRelPp_artillery",
+  "mioRelPp_armor",
+  "mioRelPp_air_light",
+  "mioRelPp_air_heavy",
+  "mioRelPp_naval",
+  "mioStatPct_infantry",
+  "mioStatPct_artillery",
+  "mioStatPct_armor",
+  "mioStatPct_air_light",
+  "mioStatPct_air_heavy",
+  "mioStatPct_naval",
+  "decryptPct",
+  "encryptPct",
+  "projectSpeedPct",
+  "energyPct",
+  "opSpeedPct",
+  "armorPiercePct",
+  "atPiercePct",
+  "artSpeedPct",
+  "airRangePct",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];
 export type WwStats = Record<WwStatKey, number>;
@@ -425,6 +498,20 @@ export const FOCUS_TREES = [
   "JPN",
   "FRA",
   "USA",
+  // P6 (P6 spec §11.1, plan decision 28), appended: the regional packs
+  // (DepthTypes FOCUS_PACKS order). A pack country plays the generic tree
+  // less the pack's `replaces`, plus the pack's own focuses.
+  "chn",
+  "ccp",
+  "chw",
+  "spa",
+  "pol",
+  "tur",
+  "bal",
+  "nor",
+  "lat",
+  "dom",
+  "new",
 ] as const;
 export type FocusTreeId = (typeof FOCUS_TREES)[number];
 export const FOCUS_BRANCHES = [
@@ -456,7 +543,10 @@ export interface AiWeight {
 export interface FocusDef {
   id: FocusId;
   tree: FocusTreeId;
-  /** Grid cell: column 0..19, row 0..14; unique within a tree. */
+  /**
+   * Grid cell: column 0..19 (P6: a pack's own focuses 20..35), row 0..14;
+   * unique within a country's combined tree.
+   */
   x: number;
   y: number;
   days: 35 | 70 | 105;
@@ -471,6 +561,11 @@ export interface FocusDef {
   cancelIf?: Condition;
   effects: readonly Effect[];
   ai?: AiWeight;
+  /**
+   * P6 (plan decision 28): a pack focus only these countries take (absent:
+   * every country of the pack).
+   */
+  countries?: readonly CountryTag[];
 }
 
 export interface BranchPoint {

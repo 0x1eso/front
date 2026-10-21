@@ -65,10 +65,36 @@ const P4_CLAMP: readonly (readonly [WwStatKey, number, number])[] = [
   ["occupationOutputPp", -50, 50],
 ];
 
-/** Spec §3.3: every …Pct sum is kept in −90..+300 (P4: and decision 25's ranges). */
+/**
+ * P6 (plan decision 24, pre-flight §0-6): the ranges of the P6 keys that are
+ * no …Pct: the MIO family keys (…Pct_<family>: −90..300), …Pp −50..50,
+ * …Org −20..20, the bp keys and carrierCycleCut. Only the P6 names: the
+ * older …Pp / …Bp keys keep their P3 meaning.
+ */
+const P6_FIRST = WW_STAT_KEYS.indexOf("infAttackPct");
+const P6_CLAMP: readonly (readonly [WwStatKey, number, number])[] =
+  WW_STAT_KEYS.slice(P6_FIRST).flatMap(
+    (k): (readonly [WwStatKey, number, number])[] => {
+      if (k.startsWith("mioCostPct_") || k.startsWith("mioStatPct_")) {
+        return [[k, -90, 300]];
+      }
+      if (k.startsWith("mioEffCapBp_")) return [[k, -2000, 2000]];
+      if (k.endsWith("Pp") || k.startsWith("mioRelPp_")) return [[k, -50, 50]];
+      if (k.endsWith("Org")) return [[k, -20, 20]];
+      if (k === "fortDefPerLevelBp") return [[k, 0, 1000]];
+      if (k === "nightBombBp" || k === "interceptShareBp") {
+        return [[k, 0, 10_000]];
+      }
+      if (k === "carrierCycleCut") return [[k, 0, 2]];
+      return [];
+    },
+  );
+
+/** Spec §3.3: every …Pct sum is kept in −90..+300 (P4: and decision 25's ranges; P6's). */
 export function clampStats(s: WwStats): WwStats {
   for (const k of PCT_STAT_KEYS) s[k] = Math.max(-90, Math.min(300, s[k]));
   for (const [k, lo, hi] of P4_CLAMP) s[k] = Math.max(lo, Math.min(hi, s[k]));
+  for (const [k, lo, hi] of P6_CLAMP) s[k] = Math.max(lo, Math.min(hi, s[k]));
   return s;
 }
 

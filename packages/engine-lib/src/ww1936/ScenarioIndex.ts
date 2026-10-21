@@ -6,7 +6,11 @@ import {
   DORMANT_TAGS,
   isDormantTag,
 } from "@openfront/engine-api/ww1936/Countries";
-import { CATEGORY_SLOTS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { DAMS, Landmark } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  CATEGORY_SLOTS,
+  RESOURCE_COUNT,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { LandTerrain } from "@openfront/engine-api/ww1936/LandTypes";
 import { SEA_SR_BASE } from "@openfront/engine-api/ww1936/NavyTypes";
 import {
@@ -140,6 +144,12 @@ export class ScenarioIndex {
    * slot (DORMANT_TAGS), on every map.
    */
   readonly countries: readonly CountryTag[];
+  /** P6 (spec §16.3): the region of each landmark on this map. */
+  readonly landmarkRegion = new Map<Landmark, number>();
+  /** P6 (spec §16.4): each dam's region, DAMS order (0: not on this map). */
+  readonly damRegion: number[] = DAMS.map(() => 0);
+  /** P6: each dam's downstream regions, DAMS order. */
+  readonly damDownstream: number[][] = DAMS.map(() => []);
   /** P5: how many of `countries` are the scenario's own (the rest are dormant slots). */
   readonly scenarioCount: number;
   /** Land regions sorted by id. */
@@ -195,14 +205,29 @@ export class ScenarioIndex {
     for (const s of data.seaZones) this.seaById.set(s.id, s);
     let maxId = 0;
     let vp = 0;
-    for (const r of data.regions) {
+    // P6 (spec §16.2): uranium and coal are resources like the six of P1
+    // (RESOURCE_IDS order), from the v5 fields; a v4 file gives 0.
+    const regions = data.regions.map(withDepthRes);
+    for (const r of regions) {
       this.regionById.set(r.id, r);
       if (r.id > maxId) maxId = r.id;
       vp += r.vp;
     }
     this._totalVp = vp;
     this.maxId = maxId;
-    this.landRegions = [...data.regions].sort((a, b) => a.id - b.id);
+    this.landRegions = [...regions].sort((a, b) => a.id - b.id);
+    for (const r of this.landRegions) {
+      for (const lm of r.landmarks ?? []) {
+        if (!this.landmarkRegion.has(lm)) this.landmarkRegion.set(lm, r.id);
+      }
+      if (r.dam !== undefined) {
+        const i = DAMS.indexOf(r.dam.id);
+        if (this.damRegion[i] === 0) {
+          this.damRegion[i] = r.id;
+          this.damDownstream[i] = [...r.dam.downstream];
+        }
+      }
+    }
     this.owners = new Uint16Array(maxId + 1);
     for (const r of data.regions) {
       const owner = this.smallIdOf(r.owner);
@@ -304,6 +329,30 @@ export class ScenarioIndex {
   /** Sea zones a land region touches, ascending. */
   regionSeaZones(id: number): readonly number[] {
     return this.adj().sea.get(id) ?? [];
+  }
+
+  /** P6 (scenario v5, spec §16.1): a region's coal deposit (0 on a v4 map). */
+  coalOf(id: number): number {
+    return this.region(id)?.coal ?? 0;
+  }
+
+  uraniumOf(id: number): number {
+    return this.region(id)?.uranium ?? 0;
+  }
+
+  hydroOf(id: number): number {
+    return this.region(id)?.hydro ?? 0;
+  }
+
+  /** P6: the landmarks of a region (LANDMARKS order of the file). */
+  landmarksOf(id: number): readonly Landmark[] {
+    return this.region(id)?.landmarks ?? [];
+  }
+
+  /** P6: the DAMS index of a region's dam, -1: none. */
+  damOf(id: number): number {
+    const d = this.region(id)?.dam;
+    return d === undefined ? -1 : DAMS.indexOf(d.id);
   }
 
   /** Base shared building slots of a land region (P1 spec §4.2). */
@@ -1097,4 +1146,13 @@ export function fillScenarioOwners(map: GameMap, index: ScenarioIndex): void {
     const owner = owners[id];
     if (owner !== 0) map.setOwnerID(t, owner);
   }
+}
+
+/** P6: a region with `res` RESOURCE_COUNT long (uranium and coal from the v5 fields). */
+function withDepthRes(r: ReadonlyScenarioRegion): ReadonlyScenarioRegion {
+  if (r.res.length >= RESOURCE_COUNT) return r;
+  const res = [...r.res];
+  while (res.length < 6) res.push(0);
+  res.push(r.uranium ?? 0, r.coal ?? 0);
+  return { ...r, res };
 }

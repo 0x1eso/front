@@ -159,18 +159,95 @@ export const EQUIPMENT: Readonly<Record<EquipmentType, EquipmentDef>> = {
     needPer100k: 0,
     techs: [],
   },
+  // P6 (plan Task 1 Step 2). Designs cost what their design says
+  // (depth equipCostMilli / equipResources); a design type's "generation"
+  // is its slot.
+  tank_design: {
+    family: "vehicles",
+    costMilli: 0,
+    resources: res({}),
+    needPer100k: 0,
+    techs: [],
+  },
+  plane_design: {
+    family: "aircraft",
+    costMilli: 0,
+    resources: res({}),
+    needPer100k: 0,
+    techs: [],
+  },
+  railway_gun: {
+    family: "guns",
+    costMilli: 40_000,
+    resources: res({ steel: 3, tungsten: 1 }),
+    needPer100k: 0,
+    techs: ["railway_gun_1"],
+  },
+  floating_harbor: {
+    family: "naval",
+    // Naval industry 3,000 (spec §16.6): built on naval lines.
+    costMilli: 3_000_000,
+    resources: res({}),
+    needPer100k: 0,
+    techs: ["floating_harbor_1"],
+  },
+  flying_bomb: {
+    family: "guns",
+    costMilli: 6_000,
+    resources: res({ aluminium: 1 }),
+    needPer100k: 0,
+    techs: [],
+  },
+  ballistic_rocket: {
+    family: "guns",
+    costMilli: 18_000,
+    resources: res({ aluminium: 1, oil: 1 }),
+    needPer100k: 0,
+    techs: [],
+  },
+  atomic_bomb: {
+    family: "special",
+    costMilli: 0,
+    resources: res({}),
+    needPer100k: 0,
+    techs: [],
+  },
 };
 
-/** P4 plan decision 14: the convoy is no P1 line's (naval lines build it). */
+/** P6 plan decision 5: the design types (a "generation" is a design slot). */
+export const DESIGN_TYPES: readonly EquipmentType[] = [
+  "tank_design",
+  "plane_design",
+];
+export function isDesignType(type: EquipmentType): boolean {
+  return type === "tank_design" || type === "plane_design";
+}
+/** P6: the types a project opens (equipmentBuildable's caller checks depth.projectDone). */
+export const PROJECT_TYPES: Readonly<Partial<Record<EquipmentType, number>>> = {
+  // SPECIAL_PROJECTS index: sp_flying_bomb, sp_ballistic.
+  flying_bomb: 1,
+  ballistic_rocket: 2,
+};
+
+/**
+ * P4 plan decision 14: the convoy is no P1 line's (naval lines build it).
+ * P6 (plan decision 5): nor the floating harbour (a naval line item) or
+ * the atomic bomb (facilities make it); flying bombs and ballistic rockets
+ * need their project (the line-order judge asks depth.projectDone).
+ */
 export function equipmentBuildable(type: EquipmentType): boolean {
-  return type !== "convoy";
+  return (
+    type !== "convoy" && type !== "floating_harbor" && type !== "atomic_bomb"
+  );
 }
 
-/** Cost of a later generation, percent of generation 1. */
+/** Cost of a later generation, percent of generation 1 (P6: design slots past 3 cost 100%). */
 export const GEN_COST_PCT: readonly number[] = [100, 125, 150];
 
 export function unitCostMilli(type: EquipmentType, gen: number): number {
-  return Math.floor((EQUIPMENT[type].costMilli * GEN_COST_PCT[gen - 1]) / 100);
+  return Math.floor(
+    (EQUIPMENT[type].costMilli * (GEN_COST_PCT[gen - 1] ?? 100)) / 100,
+  );
 }
 
 /** The tech that opens (type, gen). */

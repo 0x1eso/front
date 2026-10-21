@@ -4,6 +4,23 @@
 import { z } from "zod";
 import { COUNTRY_TAGS, CountryTag } from "./Countries";
 import {
+  AGENCY_UPGRADES,
+  AgencyUpgrade,
+  BOP_TAGS,
+  DOCTRINE_DOMAINS,
+  DOCTRINE_TRACKS,
+  DoctrineDomain,
+  DoctrineTrack,
+  GRAND_DOCTRINES,
+  GrandDoctrine,
+  INTEL_DOMAINS,
+  IntelDomain,
+  SPECIAL_PROJECTS,
+  SpecialProject,
+  Subdoctrine,
+  SUBDOCTRINES,
+} from "./DepthTypes";
+import {
   BUILDING_IDS,
   BuildingId,
   EQUIPMENT_TYPES,
@@ -141,6 +158,18 @@ export const CONDITION_KINDS = [
   "war_score_share_ge",
   "in_conference",
   "legitimacy_ge",
+  // P6 (P6 spec §18.3, plan decision 27), appended; nukes_on: the lobby key
+  // (pre-flight §0-11), so data gates its atomic lines.
+  "has_doctrine",
+  "mastery_level",
+  "has_agency",
+  "intel_level",
+  "project_done",
+  "has_atomic",
+  "congress_above",
+  "bop_range",
+  "energy_below",
+  "nukes_on",
 ] as const;
 export type ConditionKind = (typeof CONDITION_KINDS)[number];
 
@@ -219,6 +248,15 @@ export type LeafCondition = W &
     | { kind: "occupied_by"; group: string; of: Selector }
     | { kind: "resistance_ge" | "compliance_ge"; group: string; pct: number }
     | { kind: "war_score_share_ge"; of: Selector; pct: number }
+    // P6 (plan decision 27)
+    | { kind: "has_doctrine"; doctrine: GrandDoctrine | Subdoctrine }
+    | { kind: "mastery_level"; track: DoctrineTrack; level: number }
+    | { kind: "has_agency" | "nukes_on" }
+    | { kind: "intel_level"; of: Selector; domain: IntelDomain; pct: number }
+    | { kind: "project_done"; project: SpecialProject }
+    | { kind: "has_atomic"; count?: number }
+    | { kind: "congress_above" | "energy_below"; pct: number }
+    | { kind: "bop_range"; tag: "CHN" | "JPN" | "FRA"; band: number }
   );
 export type Condition =
   | { all: Condition[] }
@@ -330,6 +368,18 @@ export const EFFECT_KINDS = [
   "restore_country",
   // P5 pre-flight §A E × T1: navy experience (K4's focus rewards).
   "navy_xp",
+  // P6 (P6 spec §18.3 order, then plan decision 27's three), appended.
+  "doctrine_mastery",
+  "congress",
+  "bop",
+  "cp",
+  "intel_network",
+  "decrypt",
+  "project_progress",
+  "design_grant",
+  "energy",
+  "agency",
+  "cfocus_unlock",
 ] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 export type EffectGroup =
@@ -339,7 +389,8 @@ export type EffectGroup =
   | "diplo"
   | "territory"
   | "navy"
-  | "endgame";
+  | "endgame"
+  | "depth";
 
 const FIRST_ECON = EFFECT_KINDS.indexOf("build");
 const FIRST_EVENT = EFFECT_KINDS.indexOf("fire_event");
@@ -347,10 +398,13 @@ const FIRST_DIPLO = EFFECT_KINDS.indexOf("war_goal");
 const FIRST_TERRITORY = EFFECT_KINDS.indexOf("annex");
 const FIRST_NAVY = EFFECT_KINDS.indexOf("ships");
 const FIRST_ENDGAME = EFFECT_KINDS.indexOf("release");
+const FIRST_DEPTH = EFFECT_KINDS.indexOf("doctrine_mastery");
 
 /** Plan decision 12: who runs each kind. */
 export function effectGroup(k: EffectKind): EffectGroup {
   const i = EFFECT_KINDS.indexOf(k);
+  // P6 plan decision 27: first (the P6 kinds follow the P5 ones).
+  if (i >= FIRST_DEPTH) return "depth";
   // P5 plan decision 26: first (the P5 kinds follow the P4 ones).
   if (i >= FIRST_ENDGAME) return "endgame";
   // P4 plan decision 24: before the ranges below (the P4 kinds follow annex).
@@ -527,6 +581,28 @@ export type Effect = W &
     | { kind: "resistance" | "compliance"; group: string; pct: number }
     | { kind: "restore_country"; tag: CountryTag | "target" }
     | { kind: "navy_xp"; amount: number }
+    // P6 (plan decision 27)
+    | {
+        kind: "doctrine_mastery";
+        domain: DoctrineDomain;
+        track?: DoctrineTrack;
+        amount: number;
+      }
+    | { kind: "congress"; pp: number }
+    /** ‰ toward the right (+) or left (−). */
+    | { kind: "bop"; amount: number }
+    | { kind: "cp"; amount: number }
+    /** ‰ of network (or decryption) on that country. */
+    | { kind: "intel_network" | "decrypt"; on: Selector; pm: number }
+    | { kind: "project_progress"; project: SpecialProject; pct: number }
+    /** AI_DESIGN_PRESETS id into a free slot, origin "own". */
+    | { kind: "design_grant"; preset: string }
+    /** Permanent energy supply (pack hydro), stored per country. */
+    | { kind: "energy"; amount: number }
+    /** Found the agency free (if none), then the upgrade free. */
+    | { kind: "agency"; upgrade?: AgencyUpgrade }
+    /** Continuous focuses open now. */
+    | { kind: "cfocus_unlock" }
   );
 
 // ---- zod (content checks; the engine trusts checked data) ----
@@ -677,6 +753,24 @@ export const WwConditionSchema: z.ZodType<Condition> = z.lazy(() =>
       of: SelectorSchema,
       pct: int.min(0).max(100),
     }),
+    // P6 (plan decision 27)
+    ...leaf(["has_doctrine"], {
+      doctrine: z.union([z.enum(GRAND_DOCTRINES), z.enum(SUBDOCTRINES)]),
+    }),
+    ...leaf(["mastery_level"], {
+      track: z.enum(DOCTRINE_TRACKS),
+      level: int.min(1).max(5),
+    }),
+    ...leaf(["has_agency", "nukes_on"], {}),
+    ...leaf(["intel_level"], {
+      of: SelectorSchema,
+      domain: z.enum(INTEL_DOMAINS),
+      pct: int.min(0).max(100),
+    }),
+    ...leaf(["project_done"], { project: z.enum(SPECIAL_PROJECTS) }),
+    ...leaf(["has_atomic"], { count: int.min(1).max(10).optional() }),
+    ...leaf(["congress_above", "energy_below"], { pct: int.min(0).max(100) }),
+    ...leaf(["bop_range"], { tag: z.enum(BOP_TAGS), band: int.min(0).max(4) }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Condition>;
 
@@ -921,5 +1015,26 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
       tag: z.union([tag, z.literal("target")]),
     }),
     ...leaf(["navy_xp"], { amount: int.min(-1000).max(1000) }),
+    // P6 (plan decision 27)
+    ...leaf(["doctrine_mastery"], {
+      domain: z.enum(DOCTRINE_DOMAINS),
+      track: z.enum(DOCTRINE_TRACKS).optional(),
+      amount: int.min(1).max(600),
+    }),
+    ...leaf(["congress"], { pp: int.min(-50).max(100) }),
+    ...leaf(["bop"], { amount: int.min(-1000).max(1000) }),
+    ...leaf(["cp"], { amount: int.min(-100).max(100) }),
+    ...leaf(["intel_network", "decrypt"], {
+      on: SelectorSchema,
+      pm: int.min(-1000).max(1000),
+    }),
+    ...leaf(["project_progress"], {
+      project: z.enum(SPECIAL_PROJECTS),
+      pct: int.min(-100).max(100),
+    }),
+    ...leaf(["design_grant"], { preset: z.string().max(40) }),
+    ...leaf(["energy"], { amount: int.min(-50).max(50) }),
+    ...leaf(["agency"], { upgrade: z.enum(AGENCY_UPGRADES).optional() }),
+    ...leaf(["cfocus_unlock"], {}),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Effect>;

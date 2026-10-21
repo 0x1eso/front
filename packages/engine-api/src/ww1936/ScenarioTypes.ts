@@ -62,10 +62,12 @@ export const ScenarioRegionSchema = z.object({
   civ: Count.default(0),
   mil: Count.default(0),
   dock: Count.default(0),
-  /** Daily output at infrastructure 5, RESOURCE_IDS order. */
-  res: z
-    .tuple([Amount, Amount, Amount, Amount, Amount, Amount])
-    .default([0, 0, 0, 0, 0, 0]),
+  /**
+   * Daily output at infrastructure 5, RESOURCE_IDS order: the six P1
+   * resources in a file (P6: ScenarioIndex appends uranium and coal from
+   * the v5 fields, so a region it hands out holds RESOURCE_COUNT).
+   */
+  res: z.array(Amount).min(6).max(8).default([0, 0, 0, 0, 0, 0]),
   // P2 (P2 spec §3.1, version 3). Optional: the ScenarioIndex readers fill
   // a missing one from the other fields (plan decision 5).
   land: z.enum(LAND_TERRAINS).optional(),
@@ -89,8 +91,8 @@ export const ScenarioRegionSchema = z.object({
   airBase: z.number().int().min(0).max(10).optional(),
   aa: z.number().int().min(0).max(5).optional(),
   coastalFort: z.number().int().min(0).max(5).optional(),
-  // P6 (v5, P6 spec §16.1–§16.4). Optional: a v4 file reads none. P6's
-  // foundation adds the readers (ScenarioIndex).
+  // P6 (v5, P6 spec §16.1–§16.4). Optional: a v4 file reads none
+  // (ScenarioIndex's readers give 0, no landmark, no dam).
   coal: z.number().int().min(0).max(8).optional(),
   uranium: z.number().int().min(0).max(6).optional(),
   hydro: z.number().int().min(0).max(6).optional(),

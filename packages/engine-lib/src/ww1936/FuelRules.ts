@@ -42,6 +42,11 @@ export const LAND_FUEL_PER_HOUR_MILLI: Readonly<
   mot_artillery: 125,
   light_armor: 250,
   medium_armor: 375,
+  // P6 (spec §5.2.6): the tank-design battalions (by weight).
+  heavy_armor: 500,
+  tank_destroyer: 375,
+  sp_artillery: 375,
+  sp_anti_air: 250,
 };
 
 /** A tick (1.829 HOI4 hours) of a division's fuel battalions, milli. */
