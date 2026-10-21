@@ -247,10 +247,18 @@ function paradropBlock(
   if (!isLand(w, to)) return "bad_region";
   if (a.divisions === 0 || !a.allPara) return "bad_template";
   // Spec §7.6: every division at a city of 5+ victory points (the airfield
-  // stand-in), within 600 km of a target we are at war with.
-  if (!a.regions.every((r) => w.vp(r) >= WW_PARA_MIN_VP)) return "para_range";
+  // stand-in), within 600 km of a target we are at war with. P4 spec
+  // §14.10 replaces both with the air war's air base and transport range:
+  // with paraBlock set (World War 1936's air war) they are its to judge.
+  const p2 = w.paraBlock === undefined;
+  if (p2 && !a.regions.every((r) => w.vp(r) >= WW_PARA_MIN_VP)) {
+    return "para_range";
+  }
   if (!w.isEnemy(w.me, w.controller[to])) return "not_at_war";
-  if (!a.regions.every((r) => w.scenario.regionKm(r, to) <= WW_PARA_RANGE_KM)) {
+  if (
+    p2 &&
+    !a.regions.every((r) => w.scenario.regionKm(r, to) <= WW_PARA_RANGE_KM)
+  ) {
     return "para_range";
   }
   if (a.paraLastDay >= 0 && w.day - a.paraLastDay < WW_PARA_COOLDOWN_DAYS) {

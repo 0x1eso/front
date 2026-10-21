@@ -24,8 +24,7 @@ import { effectiveLevel } from "../economy/Buildings";
 import { damageDivisions, divisionWeightCenti } from "../land/SeaLift";
 import type { Army } from "../land/WwLand";
 import { onPlanesLost } from "../navy/EndgameHooks";
-import { airDuelMilli, type DuelPlanes } from "./AirCombat";
-import { zoneFlightsOf } from "./AirEffects";
+import { airDuelMilli, type DuelPlanes, zoneFlights } from "./AirCombat";
 import { radarPmAt } from "./AirSuperiority";
 import type { WwAir } from "./WwAir";
 
@@ -199,7 +198,7 @@ export function paradropLosses(
   const flown = new Map<number, number>();
   let interceptors = false;
   let side = 0;
-  for (const f of zoneFlightsOf(air, sr, land.day())) {
+  for (const f of zoneFlights(air, sr)) {
     if (f.mission !== M_SUP && f.mission !== M_INT) continue;
     const d = air.deployments.get(f.id);
     if (d === undefined) continue;

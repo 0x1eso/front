@@ -1,7 +1,7 @@
 // World War 1936 P4: what the sorties do (P4 spec §14.7–§14.10), lane A2
 // (Task 8). A zone's day, right after A1's sorties, combat and superiority
-// in the same call (the sorties are A1's zoneFlights): the close air support pool and its split over the
-// battles by frontage, strategic bombing (Bombing.ts), naval and port
+// in the same call (its zoneFlights are the sorties): the close air
+// support pool and its split over the battles by frontage, strategic bombing (Bombing.ts), naval and port
 // strikes with the ships' anti-air, air supply into the side's regions.
 // Naval patrol has no effect here (N1's spotting and C's escorts read its
 // sorties, A1 writes them). Everything the land war reads later in the day
@@ -9,7 +9,6 @@
 // supply, computed on the zone's day.
 import {
   AIR_MISSIONS,
-  AIR_TYPES,
   AirMission,
   PlaneStats,
   WW_AIR_SUPPLY_PER_SORTIE_MILLI,
@@ -17,9 +16,6 @@ import {
 import {
   casPoolCenti,
   casRoundHits,
-  rangeEffPm,
-  sortieEffPm,
-  WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import {
   orgDamageMilli,
@@ -28,17 +24,11 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { StrategicRegion } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
-import { damageOf, effectiveLevel } from "../economy/Buildings";
+import { effectiveLevel } from "../economy/Buildings";
 import { applyShipDamage } from "../navy/NavalBattles";
-import * as AirCombat from "./AirCombat";
+import { zoneFlights } from "./AirCombat";
 import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
-import {
-  type Deployment,
-  deploymentSide,
-  type WwAir,
-  type ZoneAirState,
-} from "./WwAir";
+import type { Deployment, WwAir, ZoneAirState } from "./WwAir";
 
 /** Spec §14.9: the hit chance of a naval strike (ships at sea) and a port strike (docked), ‰. */
 export const WW_NAVAL_STRIKE_HIT_PM = 100;
@@ -52,8 +42,6 @@ const SHIP_AA_LOSS_SEA = 3;
 const SHIP_AA_LOSS_PORT = 5;
 const PORT_AA_LOSS_MILLI = 5_000;
 
-const M_SUP = AIR_MISSIONS.indexOf("air_superiority");
-const M_INT = AIR_MISSIONS.indexOf("interception");
 /** The missions this file's day reads, in AIR_MISSIONS order. */
 const EFFECT_MISSIONS: readonly AirMission[] = [
   "cas",
@@ -96,124 +84,6 @@ function addTo(m: Map<number, number>, k: number, v: number): void {
 }
 
 /**
- * Spec §13.1, §14.2: the zone's weather share of the sorties ‰ — a land
- * zone's center region's P2 weather, a sea zone's center sea zone's
- * (latC, wcell) as plains.
- */
-export function zoneWeatherPm(air: WwAir, sr: number, day: number): number {
-  const sc = air.ww.scenario;
-  const s = sc.sr(sr);
-  if (s === undefined || s.members.length === 0) return 1000;
-  if (s.kind === "land") {
-    const at = sc.regionAt(s.center);
-    const r = s.members.includes(at) ? at : s.members[0];
-    return WEATHER_SORTIE_PM[air.land.weatherOn(r, day)];
-  }
-  const z =
-    s.members.find((m) => sc.zoneCenter(m) === s.center) ?? s.members[0];
-  return WEATHER_SORTIE_PM[
-    weatherAt(day, sc.zoneLatC(z), "plains", sc.zoneWcell(z))
-  ];
-}
-
-/** Spec §14.2: an air base's bomb damage, ‰ of its levels (0 for a carrier). */
-export function baseDamagePm(air: WwAir, base: number): number {
-  if (base <= 0) return 0;
-  const level = air.econ.buildingArray("air_base")[base] ?? 0;
-  if (level === 0) return 0;
-  return Math.min(
-    1000,
-    Math.floor(damageOf(air.econ, base, "air_base") / level),
-  );
-}
-
-/**
- * A deployment's day in the air (lane A1's AirCombat.AirFlight, the part
- * this lane reads): its sorties per generation, milli planes (planes ×
- * the sortie efficiency ‰), and the plane stats per generation.
- */
-export interface ZoneFlight {
-  /** The deployment's id. */
-  id: number;
-  /** deploymentSide: the volunteer host's side, else the owner's. */
-  side: number;
-  /** AIR_MISSIONS index. */
-  mission: number;
-  milli: readonly number[];
-  stats: readonly PlaneStats[];
-}
-
-type ZoneFlightsFn = (air: WwAir, sr: number) => readonly ZoneFlight[];
-
-/**
- * The zone's flights today (spec §14.2). The per-mission sorties come from
- * lane A1's AirCombat.zoneFlights (controller note): the flights its zone
- * day flew this tick — on yesterday's superiority, before the day's
- * losses — else computed from the state now. A1's function is not on this
- * lane's base, so it is looked up when called; until w4-a1 merges the same
- * rule runs here (localFlights). Integrator: once A1 is in, import
- * zoneFlights directly and drop localFlights.
- */
-export function zoneFlightsOf(
-  air: WwAir,
-  sr: number,
-  day: number,
-): readonly ZoneFlight[] {
-  const a1 = (AirCombat as unknown as { zoneFlights?: ZoneFlightsFn })
-    .zoneFlights;
-  return typeof a1 === "function" ? a1(air, sr) : localFlights(air, sr, day);
-}
-
-/**
- * Spec §14.2, A1's rule: per deployment of the zone and generation,
- * planes × weather × fuel × range (a carrier's own zone: 1000) × base
- * damage, and for every mission but superiority and interception × the
- * side's superiority over the zone as the state holds it.
- */
-function localFlights(air: WwAir, sr: number, day: number): ZoneFlight[] {
-  const ids = air.deploymentsIn(sr);
-  if (ids.length === 0) return [];
-  const sc = air.ww.scenario;
-  const z = air.zoneState[sc.srIdxOf(sr)];
-  const weatherPm = zoneWeatherPm(air, sr, day);
-  const out: ZoneFlight[] = [];
-  for (const id of ids) {
-    const d = air.deployments.get(id)!;
-    const ce = air.econ.country(d.owner);
-    if (ce === null) continue;
-    const side = deploymentSide(air, d);
-    const type = AIR_TYPES[d.type];
-    const km = d.base > 0 ? sc.srKm(d.base, sr) : 0;
-    const dmgPm = baseDamagePm(air, d.base);
-    const supPm =
-      d.mission === M_SUP || d.mission === M_INT
-        ? null
-        : (z.sup.get(side) ?? 0);
-    const stats: PlaneStats[] = [];
-    const milli: number[] = [];
-    let total = 0;
-    d.counts.forEach((n, i) => {
-      const st = air.planeStatsOf(d.owner, type, i + 1);
-      stats.push(st);
-      const eff =
-        n <= 0
-          ? 0
-          : sortieEffPm(
-              weatherPm,
-              ce.fuelRatioPm,
-              rangeEffPm(km, st.rangeKm),
-              dmgPm,
-              supPm,
-            );
-      milli.push(n * eff);
-      total += n * eff;
-    });
-    if (total > 0) out.push({ id, side, mission: d.mission, milli, stats });
-  }
-  return out;
-}
-
-/**
  * The zone's day of mission effects (spec §2.2-7, after A1's combat in
  * the same call): CAS, strategic bombing, naval and port strikes, air
  * supply. The day's first zone (srIdx 0) starts the day's slot of the
@@ -228,7 +98,8 @@ export function airMissionEffects(air: WwAir, sr: number, day: number): void {
   const groups = new Map<AirMission, Map<number, Sortie[]>>(
     EFFECT_MISSIONS.map((m) => [m, new Map()]),
   );
-  for (const f of zoneFlightsOf(air, sr, day)) {
+  // The sorties A1's zone day flew this tick (before its losses).
+  for (const f of zoneFlights(air, sr)) {
     const bySide = groups.get(AIR_MISSIONS[f.mission]);
     const d = air.deployments.get(f.id);
     if (bySide === undefined || d === undefined) continue;

@@ -3,7 +3,9 @@
 // 1936-06-01; two German paratrooper divisions stand in Berlin (air base
 // 2) and drop on Warsaw (163 km). The order is P2's (ten days of
 // preparation, the drop); the air war adds its conditions and the
-// transports' losses.
+// transports' losses. The range test runs on world1936 (the test maps
+// are smaller than a transport's 1,100 km).
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
   equipKey,
   EQUIPMENT_TYPES,
@@ -16,16 +18,22 @@ import {
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import type { Game } from "@openfront/engine/game/Game";
+import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   reservedTransports,
   transportsFor,
 } from "@openfront/engine/ww1936/air/Paradrop";
 import {
   damageBuilding,
+  effectiveLevel,
   repairBuilding,
 } from "@openfront/engine/ww1936/economy/Buildings";
 import { paradropLossPm } from "@openfront/engine/ww1936/land/LandAirBridge";
 import { orderCheckWorld } from "@openfront/engine/ww1936/land/Orders";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import path from "path";
+import { fileURLToPath } from "url";
+import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,
@@ -37,7 +45,9 @@ import {
   stamped,
   step,
   stepTo,
+  warAfterPrep,
   withTestPolitics,
+  wwGameStart,
   WwHuman,
   wwRunner,
 } from "./util";
@@ -196,4 +206,72 @@ describe("World War 1936 P4: paradrops (spec §14.10)", () => {
     expect(reservedTransports(air, deu, 0)).toBe(0);
     expect(ce.stock[TRANSPORT]).toBe(180);
   }, 60_000);
+
+  test("on world1936 the transports' range replaces P2's 600 km", async () => {
+    // The test maps are too small for 1,100 km: Britain drops from London.
+    const runner = await createGameRunner(
+      wwGameStart({}, [{ clientID: HUMAN, country: "GBR" }]),
+      undefined,
+      await loadMapFiles(
+        new NodeGameMapLoader(
+          path.resolve(
+            path.dirname(fileURLToPath(import.meta.url)),
+            "../../resources/maps",
+          ),
+        ),
+        GameMapType.World1936,
+        GameMapSize.Normal,
+      ),
+      (gu) => {
+        if ("errMsg" in gu) throw new Error(gu.errMsg);
+      },
+    );
+    const g = runner.game;
+    warAfterPrep(runner, HUMAN, "DEU");
+    const ww = g.worldWar()!;
+    const l = ww.land;
+    const sc = l.scenario;
+    const gbr = sc.smallIdOf("GBR");
+    const deu = sc.smallIdOf("DEU");
+    expect(l.isEnemy(gbr, deu)).toBe(true);
+    const london = sc.regionAt(sc.capitalTile("GBR"));
+    expect(effectiveLevel(ww.economy, london, "air_base")).toBeGreaterThan(0);
+    const km = (r: number) =>
+      sc.kmBetween(sc.centerTile(london), sc.centerTile(r));
+    // German regions beyond P2's 600 km: one within the 1,100 km of a
+    // 1937 transport, one beyond.
+    const german = sc.landRegions
+      .map((r) => r.id)
+      .filter((r) => l.controller[r] === deu);
+    const near = german.find((r) => km(r) > 600 && km(r) <= 1000)!;
+    const far = german.find((r) => km(r) > 1200)!;
+    expect(near).toBeDefined();
+    expect(far).toBeDefined();
+    const ce = ww.economy.country(gbr)!;
+    for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;
+    ce.manpower += 1_000_000;
+    ce.addTech("paratroopers");
+    ce.stock[TRANSPORT] = 60;
+    const cl = l.country(gbr)!;
+    const tpl = cl.nextTemplateId++;
+    cl.templates.push({
+      id: tpl,
+      key: "",
+      def: {
+        name: "Airborne",
+        battalions: Array(6).fill("paratrooper"),
+        support: [],
+      },
+    });
+    const a = placeArmy(g, "GBR", london, 1, tpl);
+    const side = l.sideOf(gbr);
+    for (const r of [near, far]) {
+      ww.air.setAirSup(sc.regionSr(r), new Map([[side, 1000]]));
+    }
+    const drop = (r: number) =>
+      l.issue(gbr, { kind: "paradrop", army: a.id, region: r });
+    expect(drop(far)).toBe("out_of_range");
+    expect(drop(near)).toBe(null);
+    expect(a.order.to).toBe(near);
+  }, 300_000);
 });
