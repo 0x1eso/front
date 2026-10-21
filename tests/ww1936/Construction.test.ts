@@ -201,15 +201,16 @@ describe("construction (spec §4)", () => {
       .filter((r) => r.id === munich.id);
     expect(regions[regions.length - 1].controller).toBe(fra.smallID());
     // The factories stay in Munich; Germany has only Berlin's 5 now, and
-    // France counts half of Munich's 4 (Germany still fights).
+    // France counts Munich's 4 at the P5 occupation share (spec P5 §8.6:
+    // 20% + compliance, none yet; it replaced P1's half).
     expect(econ.civ[munich.id]).toBe(4);
     expect(ce.totals.civ).toBe(5);
     expect(econ.isOccupied(munich.id)).toBe(true);
-    expect(fraCe.totals.civ).toBe(8 + Math.floor((4 * 50) / 100));
+    expect(fraCe.totals.civ).toBe(8 + Math.floor((4 * 20) / 100));
     expect(queueBuild(econ, fraCe, munich.id, "civ", 1)).toBe("occupied");
   });
 
-  test("occupied regions count half and cannot get factories", async () => {
+  test("occupied regions count at the occupation share and cannot get factories", async () => {
     const { runner, econ, deu, ce, fraCe, lyon } = await germany(true);
     stepTo(runner, WW_PREP_TICKS + 1);
     expect([ce.totals.civ, ce.totals.mil]).toEqual([9, 6]);
@@ -217,9 +218,10 @@ describe("construction (spec §4)", () => {
     finishDay(runner, 1);
     expect(econ.controllerOf(lyon.id)).toBe(deu.smallID());
     expect(econ.isOccupied(lyon.id)).toBe(true);
-    // Lyon: civ 3, mil 2 at 50%, each rounded down.
-    expect(ce.totals.civ).toBe(9 + 1);
-    expect(ce.totals.mil).toBe(6 + 1);
+    // Lyon: civ 3, mil 2 at the P5 occupation share (spec P5 §8.6: 20% +
+    // compliance, none yet; it replaced P1's half), each rounded down.
+    expect(ce.totals.civ).toBe(9 + Math.floor((3 * 20) / 100));
+    expect(ce.totals.mil).toBe(6 + Math.floor((2 * 20) / 100));
     expect(fraCe.totals.civ).toBe(5);
     expect(queueBuild(econ, ce, lyon.id, "civ", 1)).toBe("occupied");
     expect(queueBuild(econ, ce, lyon.id, "mil", 1)).toBe("occupied");

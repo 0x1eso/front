@@ -2,8 +2,12 @@
 // drift, elections, regime crises and changes of government, on the test
 // map ww1936pol with the test content.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CIVIL_WAR_SLOTS,
+  type CountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   IDEO_COM,
   IDEO_DEM,
@@ -487,6 +491,11 @@ describe("ideology", () => {
     const { g, p, id } = await game("DEU");
     const pl = id("POL");
     const c = p.country(pl)!;
+    // P3's fallback: with lane C merged, a dormant civil-war slot would
+    // split Poland instead (spec P5 §15), so every slot is taken here.
+    for (const t of CIVIL_WAR_SLOTS) {
+      p.ww.endgame.setCountryState(p.ww.scenario.smallIdOf(t), CS_ACTIVE);
+    }
     expect(resolveIdeology(p, pl, "largest_other")).toBe(IDEO_DEM);
     c.stabBaseBp = 2000;
     c.wsBaseBp = 4000;

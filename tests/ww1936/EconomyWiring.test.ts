@@ -278,7 +278,9 @@ describe("economy wiring (spec §6, §14)", () => {
     stepTo(runner, dayStartTick(2, WW_PREP_TICKS) + 1);
     expect(econ.controllerOf(krakow.id)).toBe(deu);
     expect(econ.isOccupied(krakow.id)).toBe(true);
-    expect(econ.controlPct(krakow.id)).toBe(50);
+    // P5 §8.6 (lane O): an administered occupied region gives 20% plus
+    // compliance (none yet), replacing P1's 50%.
+    expect(econ.controlPct(krakow.id)).toBe(20);
     expect(econ.manpowerPct(krakow.id)).toBe(0);
     expect(econ.regionsOf(deu)).toContain(krakow.id);
     expect(econ.countryNeighbours(deu)).toContain(sun);
