@@ -13,16 +13,25 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 
 import { DIAL_GLOW_CLASS } from "../../../src/client/hud/domestic/Dial";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
-import "../../../src/client/hud/ww1936/WwDials";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import {
+  WW_DIAL_BLOCK_PX,
+  WW_DIAL_COLS,
+  WW_DIAL_HOLD_MS,
+  WW_DIAL_ROWS,
+} from "../../../src/client/hud/ww1936/WwDials";
+import {
+  OpenWwAirEvent,
   OpenWwIndustryEvent,
+  OpenWwNavyEvent,
   OpenWwResearchEvent,
   WwDrawerEvent,
 } from "../../../src/client/hud/ww1936/WwDrawer";
+import { WwSeaAirController } from "../../../src/client/hud/ww1936/WwSeaAirController";
 import "../../../src/client/hud/ww1936/WwTopBand";
 import type { WwTopBand } from "../../../src/client/hud/ww1936/WwTopBand";
 import { detail, fakeEconGame, FakeOptions, summary } from "./EconomyFixture";
+import { fleet, navyDetail, seaGame, SeaOptions, ship } from "./SeaAirFixture";
 
 async function mountDials(o: FakeOptions = {}) {
   const { game, view } = fakeEconGame(o);
@@ -279,7 +288,8 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
     // chip — so the band sits left of the stack, with the whole chip.
     const wide = await bandAt(740, 225);
     expect(wide.box().getAttribute("style")).toContain("right: 233px");
-    expect(wide.box().className).toContain("overflow-hidden");
+    // P4: it clips sideways only (the ⛽ chip's hit area reaches below it).
+    expect(wide.box().className).toContain("overflow-x-clip");
     expect(wide.chip()!.dataset.wwEconomy).toBe("full");
     expect(wide.chip()!.querySelector("[data-ww-manpower]")).not.toBeNull();
     document.body.innerHTML = "";
@@ -317,5 +327,121 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
       capitulated: ["DEU"],
     });
     expect(dials.el.querySelector("[data-ww-dials]")).toBeNull();
+  });
+});
+
+describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  async function mountSea(o: SeaOptions = {}) {
+    const g = seaGame(o);
+    const bus = new EventBus();
+    const controller = new WwSeaAirController(g.game as never, bus);
+    controller.init();
+    const el = document.createElement("ww-dials") as WwDials;
+    el.game = g.game as never;
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    el.tick();
+    await el.updateComplete;
+    const dial = (id: string) =>
+      el.querySelector<HTMLButtonElement>(`[data-ww-dial='${id}']`);
+    return { ...g, el, bus, dial, controller };
+  }
+
+  it("eight dials, two columns of four rows, inside a landscape phone", async () => {
+    vi.stubGlobal("innerWidth", 844);
+    vi.stubGlobal("innerHeight", 390);
+    const m = await mountSea({
+      armies: [],
+      landDetails: [],
+    });
+    const grid = m.el.querySelector<HTMLElement>("[data-ww-dials]")!;
+    expect(grid.dataset.cols).toBe(String(WW_DIAL_COLS));
+    expect(grid.className).toContain("grid-cols-2");
+    expect(grid.className).toContain("gap-2");
+    const ids = [...grid.querySelectorAll("[data-ww-dial]")].map(
+      (b) => (b as HTMLElement).dataset.wwDial,
+    );
+    expect(ids).toEqual([
+      "industry",
+      "research",
+      "army",
+      "focus",
+      "politics",
+      "diplomacy",
+      "navy",
+      "air",
+    ]);
+    expect(WW_DIAL_COLS * WW_DIAL_ROWS).toBe(ids.length);
+    for (const b of grid.querySelectorAll("[data-ww-dial]")) {
+      expect(b.className).toContain("size-11");
+    }
+    // 4 × 44 + 3 × 8 + padding = 208 px: under the band, inside 390 px.
+    expect(WW_DIAL_BLOCK_PX).toBe(4 * 44 + 3 * 8 + 8);
+    expect(WW_DIAL_BLOCK_PX + 32).toBeLessThan(390);
+  });
+
+  it("⚓: the first naval line's ring, fleets in battle in red; a tap opens the drawer", async () => {
+    const m = await mountSea({
+      fleets: [
+        fleet({ id: 7, state: "battle", ships: [ship(1, "dd")] }),
+        fleet({ id: 8, ships: [ship(2, "dd")] }),
+      ],
+      navy: navyDetail("GBR", {
+        lines: [
+          {
+            id: 1,
+            cls: "dd",
+            gen: 1,
+            docks: 2,
+            activeDocks: 2,
+            progressMilli: 300_000,
+            costMilli: 1_200_000,
+            left: 1,
+            port: 10,
+            nextName: 0,
+            outputMilli: 5_000,
+            fill: 1000,
+          },
+        ],
+      }),
+    });
+    const navy = m.dial("navy")!;
+    expect(
+      navy.querySelector("[data-ring]")!.getAttribute("data-progress"),
+    ).toBe("0.25");
+    const badge = navy.querySelector<HTMLElement>("[data-dial-badge]")!;
+    expect(badge.dataset.dialBadge).toBe("battle");
+    expect(badge.textContent).toBe("1");
+    const opened: unknown[] = [];
+    m.bus.on(OpenWwNavyEvent, (e) => opened.push(e));
+    navy.click();
+    expect(opened).toHaveLength(1);
+  });
+
+  it("✈: a tap switches the air layer, a long press opens the air drawer", async () => {
+    vi.useFakeTimers();
+    const m = await mountSea();
+    const air = m.dial("air")!;
+    air.click();
+    expect(m.controller.selection.layer).toBe("air");
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(m.dial("air")!.getAttribute("aria-pressed")).toBe("true");
+    const opened: unknown[] = [];
+    m.bus.on(OpenWwAirEvent, (e) => opened.push(e));
+    m.dial("air")!.dispatchEvent(new Event("pointerdown"));
+    vi.advanceTimersByTime(WW_DIAL_HOLD_MS + 10);
+    m.dial("air")!.dispatchEvent(new Event("pointerup"));
+    m.dial("air")!.click();
+    expect(opened).toHaveLength(1);
+    // The long press didn't switch the layer back off.
+    expect(m.controller.selection.layer).toBe("air");
   });
 });

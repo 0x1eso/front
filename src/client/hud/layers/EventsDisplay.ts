@@ -28,6 +28,7 @@ import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
 import { armyName, generalName, regionName } from "../ww1936/LandModel";
+import { navyNoticeParams } from "../ww1936/NavyModel";
 import { POLITICS_NOTICES, politicsParams } from "../ww1936/PoliticsModel";
 import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
@@ -340,21 +341,14 @@ export class EventsDisplay extends LitElement implements Controller {
       if (typeof params.army === "number") {
         params = { ...params, army: armyName(params.army) };
       }
-      // P4 (lane E): a commissioned ship's class by id, its name by key, or
-      // the n of a numbered name ("No. n").
-      if (event.message === "events_display.ww1936_ship_commissioned") {
-        const { cls, ship } = params;
-        params = {
-          ...params,
-          cls:
-            typeof cls === "string"
-              ? translateText(`ww1936.ship_class.${cls}`)
-              : "",
-          ship:
-            typeof ship === "string"
-              ? translateText(`ww1936.ship.${ship}`)
-              : translateText("ww1936.navy.ship_numbered", { n: ship ?? 0 }),
-        };
+      // P4 (spec §18.10): sea regions, ports, ship classes, ships, fleets.
+      if (scenario !== null) {
+        params = navyNoticeParams(
+          event.message,
+          params,
+          scenario,
+          this.game?.wwNavy?.() ?? null,
+        );
       }
     }
     if (

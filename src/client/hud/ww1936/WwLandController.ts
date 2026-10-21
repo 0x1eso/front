@@ -41,6 +41,7 @@ import {
   WwSelectArmyEvent,
 } from "./LandSelection";
 import { isCapitulated, today, TWO_TAP_MIN_MS } from "./WorldWarModel";
+import type { WwSeaAirController } from "./WwSeaAirController";
 
 /** A finger's reach on the map (spec §15.9), in screen px. */
 export const TAP_RADIUS_PX = 24;
@@ -63,6 +64,11 @@ export interface LandTapDeps {
   hit: typeof hitToken;
   markers: typeof battleMarkers;
   now: () => number;
+  /** P4 (plan decision 40): the navy's and the air war's taps; null: none. */
+  seaAir: Pick<
+    WwSeaAirController,
+    "handleTap" | "keepsArmy" | "selectFleet" | "selectZone"
+  > | null;
 }
 
 /** The last tap the land flow took, per game (landTookTap). */
@@ -139,6 +145,7 @@ export class WwLandController implements Controller {
       hit: hitToken,
       markers: battleMarkers,
       now: () => Date.now(),
+      seaAir: null,
       ...deps,
     };
   }
@@ -216,6 +223,18 @@ export class WwLandController implements Controller {
         this.select(hit);
       }
       return true;
+    }
+    // P4 (plan decision 40): then the navy's and the air war's taps — a
+    // fleet token, a mission's or a landing's target, an air zone — unless
+    // the chosen army waits for its order's tap.
+    const seaAir = this.deps.seaAir;
+    if (seaAir !== null && (sel.army === null || sel.mode === "none")) {
+      // A landing's taps keep the army (asked before: its last tap ends the mode).
+      const keep = seaAir.keepsArmy();
+      if (seaAir.handleTap(w.x, w.y, radius, sel.army !== null)) {
+        if (sel.army !== null && !keep) this.select(null);
+        return true;
+      }
     }
     // 2. No army chosen: a battle marker opens its card; the rest is the
     // map's (the radial menu, the region card).
@@ -324,6 +343,11 @@ export class WwLandController implements Controller {
 
   private select(army: number | null): void {
     this.selection.select(army);
+    // One card at a time: an army hides the fleet's and the zone's (P4).
+    if (army !== null) {
+      this.deps.seaAir?.selectFleet(0);
+      this.deps.seaAir?.selectZone(0);
+    }
     this.unregisterBack?.();
     this.unregisterBack = null;
     if (army !== null) {

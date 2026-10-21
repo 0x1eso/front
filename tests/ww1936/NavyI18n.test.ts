@@ -15,12 +15,13 @@ import path from "path";
 import { describe, expect, it } from "vitest";
 import { en, hasKey, keyIn, ko } from "./contentUtil";
 
+// Lane U (merge glue): no engine sends ww1936_fleet_out_of_fuel, and the
+// named sinking is world news (ww1936.news.ww1936_ship_sunk_named).
 const EVENTS = [
   "air_superiority",
   "bombed",
   "convoys_lost",
   "convoys_sunk",
-  "fleet_out_of_fuel",
   "fleet_scuttled",
   "fuel_shortage",
   "invasion_aborted",
@@ -34,7 +35,6 @@ const EVENTS = [
   "port_captured",
   "ship_commissioned",
   "ship_sunk",
-  "ship_sunk_named",
 ].map((k) => `events_display.ww1936_${k}`);
 
 const LISTS: string[] = [
@@ -162,7 +162,11 @@ describe("P4 navy and air translations", () => {
     };
     for (const d of ["navy", "air", "economy"]) walk(path.join(root, d));
     for (const k of found) {
-      expect(hasKey(`events_display.${k}`), k).toBe(true);
+      // A notice, or a world-news item (politics.news: ww1936.news.<id>).
+      expect(
+        hasKey(`events_display.${k}`) || hasKey(`ww1936.news.${k}`),
+        k,
+      ).toBe(true);
     }
   });
 

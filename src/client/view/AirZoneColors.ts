@@ -12,6 +12,31 @@ export const LAYER_TABLE_SIZE = 256;
 export const LAYER_FILL_ALPHA = 110;
 /** Flag bit: my convoys were sunk here yesterday (the zone blinks). */
 export const LAYER_FLAG_CONVOY_LOSS = 1;
+/** Flag bit (lane U, spec §18.3-1): a sea region a mission may take now (it glows). */
+export const LAYER_FLAG_GLOW = 2;
+
+/**
+ * What glows for a map tap (spec §18.3): the sea regions a fleet's mission
+ * may take, or the land regions a port strike or a landing may aim at
+ * (WwSeaAirController.seaAirGlow); `key` changes whenever it may.
+ */
+export interface SeaAirGlowSource {
+  key(): string;
+  glow(): { kind: "sea" | "land"; ids: readonly number[] } | null;
+}
+
+/** Sets LAYER_FLAG_GLOW on the strategic-region index of each id (sea glow). */
+export function addGlowFlags(
+  sc: { srIdxOf(id: number): number },
+  ids: readonly number[],
+  out: Uint8Array,
+): Uint8Array {
+  for (const id of ids) {
+    const idx = sc.srIdxOf(id);
+    if (idx >= 0 && idx < LAYER_TABLE_SIZE) out[idx] |= LAYER_FLAG_GLOW;
+  }
+  return out;
+}
 
 type Rgb = readonly [number, number, number];
 

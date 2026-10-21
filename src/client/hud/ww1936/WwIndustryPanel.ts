@@ -78,7 +78,10 @@ import {
   WW_INDUSTRY_TABS,
   WwDrawerBase,
   WwIndustryTab,
+  WwProductionView,
 } from "./WwDrawer";
+// P4 (spec §18.8): the shipyards view is the navy drawer's <ww-shipyards>.
+import "./WwNavyPanel";
 
 const TAB_KEYS: Readonly<Record<WwIndustryTab, string>> = {
   construction: "ww1936.econ.tab_construction",
@@ -139,6 +142,8 @@ export class WwIndustryPanel extends WwDrawerBase {
   /** The line whose equipment picker is open. */
   @state() private switching: number | null = null;
   @state() private addingLine = false;
+  /** P4 (spec §18.8): the production tab shows munitions or shipyards. */
+  @state() private prodView: WwProductionView = "munitions";
   private readonly twoTap = new TwoTap();
   /** A line's factory count sent but not yet back from the engine. */
   private readonly pendingFactories = new Map<
@@ -160,11 +165,25 @@ export class WwIndustryPanel extends WwDrawerBase {
   }
 
   private onOpenEvent(e: OpenWwIndustryEvent) {
+    if (e.view !== null) this.prodView = e.view;
     if (e.region !== null) {
       this.tab = "construction";
       this.region = e.region;
+      // P4: the air drawer's "build more" picks the building too.
+      if (e.building !== null) this.building = e.building;
       this.count = 1;
       this.setOpen(true);
+      return;
+    }
+    if (e.fuel) {
+      // P4 (spec §18.1): the band's ⛽ — the resources tab, at the fuel row.
+      this.tab = "trade";
+      this.setOpen(true);
+      void this.updateComplete.then(() =>
+        this.querySelector("[data-ww-fuel-row]")?.scrollIntoView?.({
+          block: "nearest",
+        }),
+      );
       return;
     }
     if (this.open && (e.tab === null || e.tab === this.tab)) {
@@ -214,6 +233,10 @@ export class WwIndustryPanel extends WwDrawerBase {
       this.tab === "trade" ? (view?.version ?? 0) : 0,
       // P2: the manpower rows read the land war's country summary.
       this.game?.wwLand?.()?.countries.get(id) ?? null,
+      // P4: the shipyards view reads the navy.
+      this.tab === "production" && this.prodView === "shipyards"
+        ? (this.game?.wwNavy?.()?.version ?? 0)
+        : 0,
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -650,7 +673,51 @@ export class WwIndustryPanel extends WwDrawerBase {
     this.requestUpdate();
   }
 
+  /** P4 (spec §18.8): [Munitions | Shipyards] above the production tab. */
+  private renderProdSwitch(): TemplateResult {
+    const views: [WwProductionView, string][] = [
+      ["munitions", "ww1936.navy.ind_munitions"],
+      ["shipyards", "ww1936.navy.ind_docks"],
+    ];
+    return html`<div
+      data-ww-prod-switch
+      role="tablist"
+      class="mt-2 flex gap-1 rounded-md bg-white/5 p-0.5"
+    >
+      ${views.map(
+        ([v, key]) =>
+          html`<button
+            type="button"
+            role="tab"
+            data-ww-prod-view=${v}
+            aria-selected=${String(this.prodView === v)}
+            class="h-9 flex-1 rounded-md text-xs font-semibold ${this
+              .prodView === v
+              ? "bg-white/15 text-white"
+              : "text-white/70 hover:bg-white/10"}"
+            @click=${() => {
+              this.prodView = v;
+            }}
+          >
+            ${translateText(key)}
+          </button>`,
+      )}
+    </div>`;
+  }
+
   private renderProduction(c: Ctx): TemplateResult {
+    if (this.prodView === "shipyards") {
+      return html`${this.renderProdSwitch()}
+        <ww-shipyards
+          .game=${this.game}
+          .eventBus=${this.eventBus}
+          .version=${`${this.game.wwNavy?.()?.version ?? 0}:${c.view.version}`}
+        ></ww-shipyards>`;
+    }
+    return html`${this.renderProdSwitch()} ${this.renderMunitions(c)}`;
+  }
+
+  private renderMunitions(c: Ctx): TemplateResult {
     const d = c.detail;
     const rows = lineRows(d);
     const retention = retentionBpOf(d);
@@ -1020,12 +1087,66 @@ export class WwIndustryPanel extends WwDrawerBase {
           })}
         </tbody>
       </table>
+      ${this.renderFuel(c)}
       ${this.buyResource === null
         ? nothing
         : this.renderBuy(c, this.buyResource)}
       ${this.renderDeals(c, c.detail.buying, "buying")}
       ${this.renderDeals(c, c.detail.selling, "selling")}
     `;
+  }
+
+  /**
+   * P4 (spec §18.8): the fuel row — a day's gain, a day's use (land, navy,
+   * air), stock / capacity, yesterday's ratio, synthetic refineries.
+   */
+  private renderFuel(c: Ctx): TemplateResult {
+    const d = c.detail;
+    const k = (m: number) => renderNumber(Math.floor(m / 1000));
+    const pct = Math.floor(c.summary.fuelRatioPm / 10);
+    return html`<section
+      data-ww-fuel-row
+      class="mt-2 rounded-md border border-white/10 bg-white/5 p-2 text-xs"
+    >
+      <div class="flex items-center gap-1.5 font-semibold">
+        <span aria-hidden="true">⛽</span>
+        <span class="min-w-0 flex-1 truncate"
+          >${translateText("ww1936.navy.fuel_title")}</span
+        >
+        <span
+          data-ww-fuel-fill
+          class=${c.summary.fuelRatioPm < 1000
+            ? "text-red-400"
+            : "text-emerald-300"}
+          >${translateText("ww1936.navy.fuel_fill", { pct })}</span
+        >
+      </div>
+      <div class="mt-1 flex flex-wrap gap-x-2 tabular-nums text-white/80">
+        <span data-ww-fuel-gain
+          >${translateText("ww1936.navy.fuel_gain", {
+            n: k(d.fuelGainMilli),
+          })}</span
+        >
+        <span data-ww-fuel-use
+          >${translateText("ww1936.navy.fuel_use", {
+            l: k(d.fuelUseMilli[0]),
+            n: k(d.fuelUseMilli[1]),
+            a: k(d.fuelUseMilli[2]),
+          })}</span
+        >
+        <span data-ww-fuel-stock
+          >${translateText("ww1936.navy.fuel_stock", {
+            have: k(d.fuelMilli),
+            cap: k(d.fuelCapMilli),
+          })}</span
+        >
+        <span data-ww-fuel-refineries
+          >${translateText("ww1936.navy.fuel_refineries", {
+            n: d.refineries,
+          })}</span
+        >
+      </div>
+    </section>`;
   }
 
   private renderBuy(c: Ctx, resource: ResourceId): TemplateResult {

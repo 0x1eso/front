@@ -24,6 +24,12 @@ export class WwNavyView {
   detail: CountryNavyDetail | null = null;
   /** Bumped on every merge; screens redraw when it moves. */
   version = 0;
+  /**
+   * P4 (spec §18.1, the ⚓ dial): the tick of each of my ships sunk in a
+   * battle (the summaries' per-tick `sunk`, whose name owner is me),
+   * oldest first, the last 200.
+   */
+  readonly mySunkTicks: number[] = [];
   /** The tick each fleet's summary (its path and progress) arrived. */
   private arrived = new Map<number, number>();
 
@@ -43,10 +49,16 @@ export class WwNavyView {
       this.fleets.delete(id);
       this.arrived.delete(id);
     }
-    for (const b of d.battles) this.battles.set(b.zone, b);
+    const me = this.mySmallID();
+    for (const b of d.battles) {
+      this.battles.set(b.zone, b);
+      for (const s of b.sunk) if (s[3] === me) this.mySunkTicks.push(tick);
+    }
+    if (this.mySunkTicks.length > 200) {
+      this.mySunkTicks.splice(0, this.mySunkTicks.length - 200);
+    }
     for (const z of d.endedBattles) this.battles.delete(z);
     for (const s of d.seaRegions) this.seaRegions.set(s.sr, s);
-    const me = this.mySmallID();
     for (const x of d.details) if (x.smallID === me) this.detail = x;
     this.version++;
   }

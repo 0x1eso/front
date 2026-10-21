@@ -150,6 +150,34 @@ export function dailyRepair(navy: WwNavy, smallID: number, day: number): void {
   }
 }
 
+/**
+ * Lane U (the fleet card's "Repairing N d"): days until every ship of a
+ * docked fleet is whole at its base's daily repair (repairDayMilli, the
+ * dockyards it got today, else the ones it needs); 0 when whole, −1 when
+ * the base can't mend it.
+ */
+export function fleetRepairDays(navy: WwNavy, f: Fleet): number {
+  if (f.docked === 0) return 0;
+  const ce = navy.econ.country(f.owner);
+  if (ce === null) return 0;
+  const level = effectiveLevel(navy.econ, f.docked, "naval_base");
+  const t = navy.ships;
+  let days = 0;
+  for (const id of f.ships) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    const max = navy.shipStatsOf(r).hpMilli;
+    const miss = max - t.hp[r];
+    if (miss <= 0) continue;
+    const need = isBig(t.cls[r]) ? 2 : 1;
+    const lent = t.docks[r] > 0 ? t.docks[r] : need;
+    const add = repairDayMilli(max, level, ce.stats.repairPct, lent, need);
+    if (add <= 0) return -1;
+    days = Math.max(days, Math.ceil(miss / add));
+  }
+  return days;
+}
+
 /** The fleets in a battle now (both sides of every battle). */
 function fleetsInBattle(navy: WwNavy): Set<number> {
   const out = new Set<number>();

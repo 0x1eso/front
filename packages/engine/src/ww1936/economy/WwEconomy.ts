@@ -84,7 +84,7 @@ import { fuelCapOf, settleFuel, syntheticOilOf } from "./Fuel";
 import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
-import { stepRepairs } from "./Repairs";
+import { repairCostMilli, stepRepairs } from "./Repairs";
 import { stepResearch } from "./ResearchRun";
 import { tradeDelivery, tradePartners, validateTrades } from "./Trade";
 
@@ -1052,11 +1052,34 @@ export class WwEconomy {
         refinery: p.synthetic_refinery[id],
         silo: p.fuel_silo[id],
         damage: dmg.some((v) => v !== 0) ? Array.from(dmg) : [],
+        ...this.repairPmOf(id),
       });
     }
     this.dirtyCountries.clear();
     this.dirtyRegions.clear();
     return data;
+  }
+
+  /**
+   * Lane U (the region card's "repairing N%"): the first damaged building's
+   * repair progress, BUILDING_IDS order (stepRepairs mends in that order),
+   * ‰ of its next whole building (1,000 of damage at most).
+   */
+  private repairPmOf(region: number): { repairPm?: number } {
+    const n = BUILDING_IDS.length;
+    for (let bi = 0; bi < n; bi++) {
+      const i = region * n + bi;
+      const dmg = this.damage[i];
+      if (dmg <= 0) continue;
+      const cost = repairCostMilli(BUILDING_IDS[bi], Math.min(1000, dmg));
+      return {
+        repairPm:
+          cost <= 0
+            ? 0
+            : Math.min(1000, Math.floor((this.repair[i] * 1000) / cost)),
+      };
+    }
+    return {};
   }
 
   private summary(ce: CountryEconomy, fieldMen: number): WwCountrySummary {

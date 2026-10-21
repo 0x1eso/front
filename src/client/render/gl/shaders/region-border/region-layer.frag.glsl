@@ -8,7 +8,8 @@ precision highp usampler2D;
 // through the lookup (uLut: code -> strategic index + 1); the table (uTable,
 // 256 x 2 RGBA8) gives row 0 the region's fill (AirZoneColors: supremacy
 // blue <-> red, superiority green <-> red, clear when unknown) and row 1
-// its flags (bit 0: my convoys sank there yesterday, the zone blinks).
+// its flags (bit 0: my convoys sank there yesterday, the zone blinks;
+// bit 1: a region the mission being given may take, it glows).
 // Regions below uMinDomain are not in the layer (land under the sea layer).
 // Lines between the layer's regions are screen px wide; the chosen region
 // (uSel, index + 1) is outlined in white.
@@ -25,6 +26,7 @@ in vec2 vUV;
 out vec4 fragColor;
 
 const vec3 LOSS = vec3(1.0, 0.45, 0.1);
+const vec3 GLOW = vec3(1.0, 0.86, 0.35);
 
 int srAt(vec2 w) {
   ivec2 tc = clamp(ivec2(floor(w)), ivec2(0), ivec2(MAP_W - 1, MAP_H - 1));
@@ -52,6 +54,11 @@ void main() {
   if ((flags & 1) != 0) {
     float pulse = 0.5 + 0.5 * sin(uTime * 5.0);
     col = over(col, LOSS, 0.18 + 0.32 * pulse);
+  }
+  // Bit 1 (lane U): a region the mission being given may take — it glows.
+  if ((flags & 2) != 0) {
+    float pulse = 0.5 + 0.5 * sin(uTime * 3.0);
+    col = over(col, GLOW, 0.22 + 0.22 * pulse);
   }
   bool chosen = s == uSel;
   if (chosen) col = over(col, vec3(1.0), 0.12);

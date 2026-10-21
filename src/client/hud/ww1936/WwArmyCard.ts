@@ -8,6 +8,7 @@ import {
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_TARGETS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_INVASION_LAUNCH_SUP_PM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -44,9 +45,59 @@ import {
   WwLandSelection,
   WwSelectArmyEvent,
 } from "./LandSelection";
-import { isCapitulated, today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import {
+  invadeButtonBlock,
+  invasionOf,
+  invasionPreview,
+  NavyCtx,
+  navyCtx,
+  NavyGame,
+  srName,
+} from "./NavyModel";
+import {
+  isCapitulated,
+  today,
+  TWO_TAP_MS,
+  TwoTap,
+  WW_BAND_PX,
+} from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
+import {
+  seaAirOf,
+  WwSeaAirChangedEvent,
+  WwSeaAirModeEvent,
+} from "./WwSeaAirController";
+
+/** P4 (spec §18.3-5): a small ring of a landing's preparation. */
+function prepRing(done: number, of: number): TemplateResult {
+  const p = of <= 0 ? 0 : Math.max(0, Math.min(1, done / of));
+  const c = 2 * Math.PI * 7;
+  return html`<svg
+    viewBox="0 0 18 18"
+    class="inline-block size-4 align-middle"
+    aria-hidden="true"
+  >
+    <circle
+      cx="9"
+      cy="9"
+      r="7"
+      fill="none"
+      stroke="rgba(255,255,255,0.2)"
+      stroke-width="3"
+    ></circle>
+    <circle
+      cx="9"
+      cy="9"
+      r="7"
+      fill="none"
+      stroke="#38bdf8"
+      stroke-width="3"
+      stroke-dasharray=${`${(p * c).toFixed(2)} ${c.toFixed(2)}`}
+      transform="rotate(-90 9 9)"
+    ></circle>
+  </svg>`;
+}
 
 const BUTTON_KEYS: Readonly<Record<ArmyButton, string>> = {
   move: "ww1936.land.btn_move",
@@ -121,6 +172,12 @@ export interface CardPlace {
   bottom: number;
   /** px from the right edge when a drawer is open (left of it); null: centred. */
   right: number | null;
+  /**
+   * P4: px from the left edge on a short screen whose dials rise out of
+   * the bottom rows (WwDials compact): the card keeps right of them.
+   * Absent or null: as before.
+   */
+  left?: number | null;
   maxWidth: number;
   /** A quarter of the screen at most, and clear of the map's middle half. */
   maxHeight: number;
@@ -129,6 +186,8 @@ export interface CardPlace {
 const GAP = 8;
 /** Two rows of 36 px buttons and the padding: a card is never shorter. */
 export const CARD_MIN_PX = 88;
+/** P4: beside the risen dials a card needs at least this much width. */
+export const CARD_MIN_WIDTH_PX = 300;
 
 /**
  * A land card's place (spec §15.4, §15.9): bottom centre, right above the
@@ -152,6 +211,33 @@ export function cardPlace(): CardPlace {
     CARD_MIN_PX,
     Math.min(Math.floor(h / 4), Math.floor(rowsTop - GAP - (h * 3) / 4)),
   );
+  // P4: the risen dials (a short screen) stand above the rows' top: the
+  // card keeps right of them — or, when an open drawer leaves too little
+  // room there, sits above them (never over the 🏛 and 🌐 dials).
+  const dials = shown("[data-ww-dials][data-compact='true']");
+  if (dials !== null && dials.top < rowsTop - GAP) {
+    const end = drawer === null ? window.innerWidth - GAP : drawer.left - GAP;
+    if (end - (dials.right + GAP) >= CARD_MIN_WIDTH_PX) {
+      const left = dials.right + GAP;
+      return {
+        bottom,
+        right: null,
+        left,
+        maxWidth: Math.max(0, Math.min(560, end - left)),
+        maxHeight,
+      };
+    }
+    return {
+      bottom: h - dials.top + GAP,
+      right: null,
+      left: GAP,
+      maxWidth: Math.max(0, Math.min(560, end - GAP)),
+      maxHeight: Math.max(
+        CARD_MIN_PX,
+        Math.min(Math.floor(h / 4), dials.top - 2 * GAP - WW_BAND_PX),
+      ),
+    };
+  }
   if (drawer === null) {
     return {
       bottom,
@@ -170,6 +256,9 @@ export function cardPlace(): CardPlace {
 
 export function placeStyle(p: CardPlace): string {
   const size = `max-width: ${p.maxWidth}px; max-height: ${p.maxHeight}px;`;
+  if (p.left !== undefined && p.left !== null) {
+    return `bottom: ${p.bottom}px; left: ${p.left}px; ${size}`;
+  }
   return p.right === null
     ? `bottom: ${p.bottom}px; left: 50%; transform: translateX(-50%); ${size}`
     : `bottom: ${p.bottom}px; right: ${p.right}px; ${size}`;
@@ -179,6 +268,7 @@ export function samePlace(a: CardPlace, b: CardPlace): boolean {
   return (
     a.bottom === b.bottom &&
     a.right === b.right &&
+    (a.left ?? null) === (b.left ?? null) &&
     a.maxWidth === b.maxWidth &&
     a.maxHeight === b.maxHeight
   );
@@ -191,6 +281,8 @@ interface Ctx {
   day: number;
   sel: WwLandSelection;
   card: ArmyCardData;
+  /** P4: the navy screens' context (landings); null without the navy view. */
+  navy: NavyCtx | null;
 }
 
 /** At or below this viewport height the card starts folded to its strip. */
@@ -238,6 +330,8 @@ export class WwArmyCard extends LitElement implements Controller {
 
   init() {
     this.eventBus.on(WwLandChangedEvent, () => this.redraw());
+    // P4: a landing's taps (the sea-air flow keeps the army chosen).
+    this.eventBus.on(WwSeaAirChangedEvent, () => this.redraw());
     // A drawer opening or closing moves the card beside it.
     this.eventBus.on(WwDrawerEvent, () => {
       void this.updateComplete.then(() =>
@@ -268,6 +362,8 @@ export class WwArmyCard extends LitElement implements Controller {
       this.game.wwLand?.()?.version,
       this.game.wwEconomy?.()?.version,
       today(this.game),
+      this.game.wwNavy?.()?.version,
+      seaAirOf(this.game).draft.version,
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -284,8 +380,13 @@ export class WwArmyCard extends LitElement implements Controller {
       this.panel = "main";
       this.refused = null;
       this.collapsed = window.innerHeight <= CARD_FOLD_MAX_HEIGHT;
+      // A landing's taps belong to the army they started from.
+      const d = seaAirOf(this.game).draft;
+      if (d.mode === "invade" && d.army !== sel.army) {
+        this.eventBus.emit(new WwSeaAirModeEvent("none"));
+      }
     }
-    const ordering = sel.mode !== "none" || sel.pending !== null;
+    const ordering = this.isOrdering(sel);
     if (ordering !== this.wasOrdering) {
       this.wasOrdering = ordering;
       this.openWhileOrdering = false;
@@ -324,7 +425,24 @@ export class WwArmyCard extends LitElement implements Controller {
       day,
       landSidesOf(this.game),
     );
-    return card === null ? null : { view, economy, me, day, sel, card };
+    const navy = navyCtx(this.game as unknown as NavyGame);
+    return card === null ? null : { view, economy, me, day, sel, card, navy };
+  }
+
+  /** P4: the landing's tap mode for this army (spec §18.3-5). */
+  private invading(sel: WwLandSelection): boolean {
+    const d = seaAirOf(this.game).draft;
+    return d.mode === "invade" && d.army === sel.army;
+  }
+
+  private isOrdering(sel: WwLandSelection): boolean {
+    return sel.mode !== "none" || sel.pending !== null || this.invading(sel);
+  }
+
+  private setInvade(on: boolean, army: number) {
+    this.eventBus.emit(
+      new WwSeaAirModeEvent(on ? "invade" : "none", "patrol", army),
+    );
   }
 
   private send(order: LandOrder) {
@@ -399,7 +517,7 @@ export class WwArmyCard extends LitElement implements Controller {
   render() {
     const c = this.ctx();
     if (c === null) return nothing;
-    const ordering = c.sel.mode !== "none" || c.sel.pending !== null;
+    const ordering = this.isOrdering(c.sel);
     const strip = ordering ? !this.openWhileOrdering : this.collapsed;
     return strip ? this.renderStrip(c, ordering) : this.renderFull(c);
   }
@@ -442,9 +560,10 @@ export class WwArmyCard extends LitElement implements Controller {
       </span>
       ${c.sel.mode === "plan" ? this.executeButton(c, false) : nothing}
       ${ordering
-        ? this.button("cancel", translateText("common.cancel"), "✕", () =>
-            this.setMode("none"),
-          )
+        ? this.button("cancel", translateText("common.cancel"), "✕", () => {
+            if (this.invading(c.sel)) this.setInvade(false, 0);
+            else this.setMode("none");
+          })
         : nothing}
       ${this.foldButton(c, true)} ${this.closeButton()}
     </section>`;
@@ -452,7 +571,7 @@ export class WwArmyCard extends LitElement implements Controller {
 
   /** Fold to the strip, or open the whole card (36 px). */
   private foldButton(c: Ctx, folded: boolean): TemplateResult {
-    const ordering = c.sel.mode !== "none" || c.sel.pending !== null;
+    const ordering = this.isOrdering(c.sel);
     return html`<button
       type="button"
       data-ww-card-fold=${folded ? "open" : "fold"}
@@ -530,6 +649,7 @@ export class WwArmyCard extends LitElement implements Controller {
                   pct: Math.floor(c.card.supplyPm / 10),
                 })}</span
               >
+              ${this.renderInvasion(c)}
             </div>`}
         ${line}
       </div>
@@ -610,6 +730,7 @@ export class WwArmyCard extends LitElement implements Controller {
       </span>`;
     }
     const sel = c.sel;
+    if (this.invading(sel)) return this.renderInvadeLine(c, compact);
     if (sel.pending !== null) {
       return this.renderPreview(c, sel.pending, compact);
     }
@@ -638,6 +759,79 @@ export class WwArmyCard extends LitElement implements Controller {
                 .join(", ")}</span
             >`
         : nothing}
+    </span>`;
+  }
+
+  /** P4 (spec §11.2, §18.3-5): "Landing prep 37/60 d" with its ring, or the landing's state. */
+  private renderInvasion(c: Ctx): TemplateResult | typeof nothing {
+    const inv = c.navy === null ? null : invasionOf(c.navy, c.card.row.id);
+    if (inv === null) return nothing;
+    return html`<span data-ww-invasion=${inv.state} class="text-sky-300">
+      ${prepRing(inv.prepDone, inv.prepDays)}
+      ${inv.state === "preparing"
+        ? translateText("ww1936.navy.invasion_prep", {
+            d: inv.prepDone,
+            n: inv.prepDays,
+          })
+        : translateText(`ww1936.invasion_state.${inv.state}`)}
+      ·
+      ${translateText("ww1936.navy.invasion_target", {
+        region: regionName(c.view.scenario, inv.target),
+      })}
+    </span>`;
+  }
+
+  /** P4 (spec §18.3-5): the landing's hint, or the chips of the tapped coast. */
+  private renderInvadeLine(c: Ctx, compact: boolean): TemplateResult {
+    const d = seaAirOf(this.game).draft;
+    if (d.pending === 0 || c.navy === null) {
+      return html`<span
+        data-ww-hint="invade"
+        class="${compact ? "" : "block "}text-amber-200"
+        >${translateText("ww1936.navy.hint_invade")}</span
+      >`;
+    }
+    const p = invasionPreview(c.navy, c.card.row.id, d.pending);
+    if (p === null) return html``;
+    const sc = c.view.scenario;
+    return html`<span
+      data-ww-preview="invade"
+      class="${compact
+        ? "inline-flex max-w-full gap-x-2 whitespace-nowrap"
+        : "flex flex-wrap items-baseline gap-x-2"}"
+    >
+      <span>⚓ ${regionName(sc, p.target)}</span>
+      ${p.route.map(
+        (r) =>
+          html`<span
+            data-ww-route-chip=${r.ok ? "ok" : "low"}
+            class=${r.ok ? "text-emerald-300" : "text-red-300"}
+            >${translateText(
+              r.ok ? "ww1936.navy.route_chip_ok" : "ww1936.navy.route_chip_low",
+              { sr: srName(sc, r.sr), pct: Math.floor(r.supPm / 10) },
+            )}</span
+          >`,
+      )}
+      <span data-ww-invasion-convoys
+        >${translateText("ww1936.navy.invasion_convoys", {
+          need: p.convoysNeed,
+          idle: p.convoysIdle,
+        })}</span
+      >
+      <span data-ww-invasion-days
+        >${translateText("ww1936.navy.invasion_days", { n: p.prepDays })}</span
+      >
+      <span data-ww-invasion-divisions
+        >${translateText("ww1936.navy.invasion_divisions", {
+          n: p.divisions,
+          max: p.capacity,
+        })}</span
+      >
+      ${p.block === null
+        ? html`<span data-ww-tap-again class="font-semibold text-amber-200"
+            >${translateText("ww1936.navy.invasion_confirm")}</span
+          >`
+        : this.blockLine(p.block)}
     </span>`;
   }
 
@@ -794,8 +988,56 @@ export class WwArmyCard extends LitElement implements Controller {
     </button>`;
   }
 
+  /**
+   * P4 (spec §11.3): why the landing can't sail now — not ready, a route
+   * region under 50% supremacy, too few idle convoys; null: it can.
+   */
+  private launchBlock(c: Ctx): WwOrderBlock | null {
+    const inv = c.navy === null ? null : invasionOf(c.navy, c.card.row.id);
+    if (inv === null || c.navy === null) return "invasion_not_ready";
+    if (inv.state !== "ready") return "invasion_not_ready";
+    if (inv.route.some(([, pm]) => pm < WW_INVASION_LAUNCH_SUP_PM)) {
+      return "naval_supremacy_low";
+    }
+    const p = invasionPreview(c.navy, c.card.row.id, inv.target);
+    if (p !== null && p.convoysIdle < p.convoysNeed) return "no_convoys";
+    return null;
+  }
+
+  /** P4 (spec §18.3-5): [Launch the landing], two taps; greyed until it can sail. */
+  private launchButton(c: Ctx): TemplateResult {
+    const army = c.card.row.id;
+    const block = this.launchBlock(c);
+    const key = `invade:${army}`;
+    const armed = this.armed(key);
+    return this.button(
+      "invade_exec",
+      translateText(
+        armed ? "ww1936.land.tap_again" : "ww1936.navy.invasion_execute",
+      ),
+      "⚓",
+      () => {
+        if (block !== null) {
+          this.refused = { id: "invade_exec", block };
+          return;
+        }
+        this.refused = null;
+        this.confirmTap(key, () =>
+          this.eventBus.emit(
+            new SendWwOrderIntentEvent({ kind: "invasion_execute", army }),
+          ),
+        );
+      },
+      { grey: block !== null, danger: armed },
+    );
+  }
+
   private renderButtons(c: Ctx): TemplateResult[] {
+    const landing =
+      c.navy !== null && invasionOf(c.navy, c.card.row.id) !== null;
     return ARMY_BUTTONS.map((id) => {
+      // A landing in preparation takes the sea move's place.
+      if (id === "sea" && landing) return this.launchButton(c);
       const block = c.card.buttons.find((b) => b.id === id)?.block ?? null;
       const mode = BUTTON_MODES[id];
       const pressed =
@@ -942,9 +1184,57 @@ export class WwArmyCard extends LitElement implements Controller {
           pressed: c.sel.mode === "paradrop",
         },
       ),
+      ...this.invadeButtons(c),
       this.button("back", translateText("common.back"), "←", () => {
         this.panel = "main";
       }),
+    ];
+  }
+
+  /** P4 (spec §18.3-5): [Invade] (the map's coasts glow), or cancelling the landing (two taps). */
+  private invadeButtons(c: Ctx): TemplateResult[] {
+    if (c.navy === null) return [];
+    const army = c.card.row.id;
+    if (invasionOf(c.navy, army) !== null) {
+      const key = `invade_cancel:${army}`;
+      const armed = this.armed(key);
+      return [
+        this.button(
+          "invade_cancel",
+          translateText(
+            armed ? "ww1936.land.tap_again" : "ww1936.navy.invasion_cancel",
+          ),
+          "✖",
+          () =>
+            this.confirmTap(key, () => {
+              this.eventBus.emit(
+                new SendWwOrderIntentEvent({ kind: "invasion_cancel", army }),
+              );
+              this.panel = "main";
+            }),
+          { danger: armed },
+        ),
+      ];
+    }
+    const block = invadeButtonBlock(c.navy, army);
+    const on = this.invading(c.sel);
+    return [
+      this.button(
+        "invade",
+        translateText("ww1936.navy.btn_invade"),
+        "⚓",
+        () => {
+          if (block !== null && !on) {
+            this.refused = { id: "invade", block };
+            return;
+          }
+          this.refused = null;
+          this.panel = "main";
+          this.setMode("none");
+          this.setInvade(!on, army);
+        },
+        { grey: block !== null, pressed: on },
+      ),
     ];
   }
 

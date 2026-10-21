@@ -70,7 +70,12 @@ import { engageRegion } from "./Missions";
 import { stepNavalBattles } from "./NavalBattles";
 import { startNavy } from "./NavyStartRun";
 import { bestNavalBase, navalPort, navalPortsOf } from "./Ports";
-import { appointAdmiral, dailyNavyXp, dailyRepair } from "./Repair";
+import {
+  appointAdmiral,
+  dailyNavyXp,
+  dailyRepair,
+  fleetRepairDays,
+} from "./Repair";
 import { stepFleets } from "./SeaMove";
 import { dailyVoyages, issueSeaTransfer, stepSeaVoyages } from "./SeaTransfer";
 import { spotRegion } from "./Spotting";
@@ -1635,6 +1640,16 @@ export class WwNavy {
       engage: mine ? (ENGAGE_RULES[f.engage] ?? "always") : "always",
       returnAtPct: mine ? f.returnAtPct : 50,
       ships,
+      // Lane U (the fleet card): own fleets' home, repair days, deck mix.
+      ...(mine
+        ? {
+            home: f.home,
+            repairDays: fleetRepairDays(this, f),
+            ...(counts[SHIP_CLASSES.indexOf("cv")] > 0
+              ? { mix: [...f.mix] as [number, number, number] }
+              : {}),
+          }
+        : {}),
     };
   }
 
@@ -1795,6 +1810,22 @@ export class WwNavy {
       fuelMilli: ce.fuelMilli,
       fuelCapMilli: fuelCapOf(this.econ, ce),
       fuelRatioPm: ce.fuelRatioPm,
+      // Lane U: my landing divisions (the battle card's landing lines) and
+      // my admirals' skills now.
+      landing: [...this.landing.keys()]
+        .filter((d) => {
+          const r = this.land.divisions.rowOf(d);
+          return r >= 0 && this.land.divisions.owner[r] === id;
+        })
+        .sort((a, b) => a - b),
+      admiralSkills: [...this.admirals.values()]
+        .filter((a) => a.owner === id)
+        .map((a): [number, number, number, number, number, number, number] => [
+          a.id,
+          ...a.skills,
+          a.traits,
+          a.level,
+        ]),
     };
   }
 

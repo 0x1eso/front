@@ -1,4 +1,5 @@
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import { renderNumber } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
@@ -135,6 +136,31 @@ export interface BandLand {
   casualtiesText: string | null;
 }
 
+/**
+ * P4 (spec §18.1): "⛽ 34K" — my fuel stock, red while yesterday's fuel
+ * ratio was under 100%. Null with no economy chip.
+ */
+export interface BandFuel {
+  text: string;
+  short: boolean;
+  pct: number;
+}
+
+export function bandFuel(game: GameView): BandFuel | null {
+  const view = game.wwEconomy?.() ?? null;
+  const me = game.myPlayer();
+  if (view === null || me === null) return null;
+  const d = view.detail(me.smallID());
+  const s = view.summary(me.smallID());
+  if (d === null || s === null) return null;
+  const pct = Math.floor(s.fuelRatioPm / 10);
+  return {
+    text: renderNumber(Math.floor(d.fuelMilli / 1000)),
+    short: s.fuelRatioPm < 1000,
+    pct,
+  };
+}
+
 export function bandLand(game: GameView): BandLand | null {
   const me = game.myPlayer();
   const s =
@@ -169,6 +195,7 @@ export class WwTopBand extends LitElement implements Controller {
   private model: BandModel | null = null;
   private economy: TopBandEconomy | null = null;
   private land: BandLand | null = null;
+  private fuel: BandFuel | null = null;
   /** P3: my political power, stability, war support and the world's tension. */
   private politics: BandPolitics | null = null;
   /**
@@ -284,6 +311,12 @@ export class WwTopBand extends LitElement implements Controller {
     const was = this.economy;
     const land = econ === null ? null : bandLand(this.game);
     const wasLand = this.land;
+    const fuel = econ === null ? null : bandFuel(this.game);
+    if (JSON.stringify(fuel) !== JSON.stringify(this.fuel)) {
+      this.fuel = fuel;
+      this.chipShrink = 0;
+      this.requestUpdate();
+    }
     const pi = politicsInput(this.game);
     const pol = pi === null ? null : bandStats(pi);
     if (JSON.stringify(pol) !== JSON.stringify(this.politics)) {
@@ -333,7 +366,7 @@ export class WwTopBand extends LitElement implements Controller {
         data-ww-band
         class="fixed top-0 ${right === null
           ? "left-1/2 -translate-x-1/2"
-          : ""} z-[1002] h-8 flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-b-lg bg-gray-900/85 px-3 text-sm text-white shadow-md"
+          : ""} z-[1002] h-8 flex items-center gap-3 overflow-x-clip overflow-y-visible whitespace-nowrap rounded-b-lg bg-gray-900/85 px-3 text-sm text-white shadow-md"
         style="max-width: ${maxWidth}px;${right === null
           ? ""
           : ` right: ${right}px;`}"
@@ -375,6 +408,7 @@ export class WwTopBand extends LitElement implements Controller {
           ${translateText("ww1936.band.wars", { n: m.wars })}
         </button>
         ${this.renderEconomy(this.chip(maxWidth))}
+        ${this.renderFuel(this.chip(maxWidth))}
         ${this.renderPolitics(
           polMode(
             this.step(maxWidth),
@@ -430,6 +464,34 @@ export class WwTopBand extends LitElement implements Controller {
       >
         🌍 ${p.wtPct}%
       </button>`;
+  }
+
+  /**
+   * P4 (spec §18.1): "⛽ 34K" (red while short) opens the industry
+   * drawer's resources tab at the fuel row. 24 px drawn, 36 px to the
+   * finger: its hit area reaches the screen's top edge and below the band
+   * (the band clips sideways only).
+   */
+  private renderFuel(mode: ChipMode) {
+    const f = this.fuel;
+    if (f === null || mode === "none") return nothing;
+    const label = f.short
+      ? translateText("ww1936.navy.band_fuel_short", { pct: f.pct })
+      : translateText("ww1936.navy.band_fuel", { n: f.text });
+    return html`<button
+      type="button"
+      data-ww-fuel=${f.short ? "short" : "ok"}
+      aria-label=${label}
+      class="relative flex h-6 shrink-0 items-center rounded-md border px-2 text-xs tabular-nums after:absolute after:inset-x-0 after:-top-1 after:-bottom-2 after:content-[''] ${f.short
+        ? "border-red-400/70 bg-red-900/50 text-red-200"
+        : "border-white/15 bg-white/5 hover:bg-white/10"}"
+      @click=${() =>
+        this.eventBus.emit(
+          new OpenWwIndustryEvent("trade", null, null, null, true),
+        )}
+    >
+      ${translateText("ww1936.navy.band_fuel", { n: f.text })}
+    </button>`;
   }
 
   private renderEconomy(mode: ChipMode) {

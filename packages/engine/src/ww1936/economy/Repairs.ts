@@ -60,6 +60,8 @@ export function stepRepairs(
         buildingPct: buildingSpeedPct(ce, b),
       });
       econ.repair[i] += constructionProgress(given, speed);
+      // Lane U: the region card shows the repair's progress.
+      econ.markRegionDirty(r);
       // The top 1,000 first: a whole building works again soonest.
       while (econ.damage[i] > 0) {
         const chunk = Math.min(1000, econ.damage[i]);
