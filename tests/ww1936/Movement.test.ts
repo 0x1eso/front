@@ -3,14 +3,19 @@
 // rail, sea, taking an empty enemy region, never walking into a defended
 // one, neutral land closed, a faction partner's land open, the
 // preparation minute.
-import { MOVE_NONE, MOVE_WALK } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  MOVE_NONE,
+  MOVE_SEA,
+  MOVE_WALK,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_CONVOY_SPEED_KN } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   moveNeed,
   moveStep,
   railStep,
-  seaTicks,
 } from "@openfront/engine-lib/ww1936/MoveRules";
+import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { Game } from "@openfront/engine/game/Game";
 import { startHopInto } from "@openfront/engine/ww1936/land/Movement";
@@ -244,8 +249,20 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     expect(l.issue(fra, { kind: "army_sea", army: a.id, region: 10 })).toBe(
       null,
     );
-    expect(seaTicks(156)).toBe(45);
-    step(runner, 44);
+    // P4 (plan decision 34, lane C): a convoy voyage between the harbors
+    // at 12 knots, a day at least — no longer P2's seaTicks. Issued
+    // between ticks it sails from the next one (its departure tick) and
+    // lands on departTick + 7 at the earliest.
+    const navy = g.worldWar()!.navy;
+    const [v] = [...navy.voyages.values()];
+    expect(v.departTick).toBe(g.ticks());
+    const km = navy.routes.get(v.route)!.km;
+    const ticks = Math.max(
+      8,
+      Math.ceil((km * 1000) / tickMilliKm(WW_CONVOY_SPEED_KN * 100)),
+    );
+    expect(l.divisions.mode[rowOf(g, a)]).toBe(MOVE_SEA);
+    step(runner, ticks - 1);
     expect(l.divisions.region[rowOf(g, a)]).toBe(2);
     expect(l.divisions.org[rowOf(g, a)]).toBe(0);
     step(runner);

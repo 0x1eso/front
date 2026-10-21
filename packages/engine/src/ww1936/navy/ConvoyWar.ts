@@ -1,18 +1,350 @@
-// World War 1936 P4: convoy raiding, escorts and ASW (P4 spec §10.6).
-// Stubs with the final signatures (plan Task 1 Step 18); lane C (Task 5)
-// writes the bodies.
-import type { WwNavy } from "./WwNavy";
+// World War 1936 P4: convoy raiding, escorts and ASW (P4 spec §10.6), one
+// sea region's day (dailySeaRegion, after supremacy). Expected values with
+// milli remainders, no randomness: raid power of the raiders at war with a
+// country against the escorts of its side gives the loss rate ‰ of its
+// convoys through the region; the escorts' depth charges hurt the raiding
+// submarines they have spotted.
+import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  FLEET_MISSIONS,
+  SHIP_CLASSES,
+} from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  aswDamageMilli,
+  convoyLossRatePm,
+  convoySinkMilli,
+  escortPowerCenti,
+  raidPowerCenti,
+} from "@openfront/engine-lib/ww1936/ConvoyRules";
+import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { loseConvoys } from "../economy/Buildings";
+import { takeFromRoutes, USE_VOYAGE } from "./Convoys";
+import { applyShipDamage } from "./NavalBattles";
+import { setRest } from "./SeaTransfer";
+import type { Fleet, WwNavy } from "./WwNavy";
 
-/** A sea region's day of convoy war (dailySeaRegion, after supremacy). Stub: nothing. */
-export function convoyWar(navy: WwNavy, sr: number, day: number): void {
-  void navy;
-  void sr;
-  void day;
+const RAID = FLEET_MISSIONS.indexOf("raid");
+const ESCORT = FLEET_MISSIONS.indexOf("escort");
+const SS = SHIP_CLASSES.indexOf("ss");
+const DD = SHIP_CLASSES.indexOf("dd");
+const CL = SHIP_CLASSES.indexOf("cl");
+const NAVAL_STRIKE = AIR_MISSIONS.indexOf("naval_strike");
+
+/** A fleet on its mission in the region: at sea there, out of any battle. */
+function onMission(navy: WwNavy, f: Fleet, sr: number): boolean {
+  if (f.docked !== 0 || f.missionSr !== sr) return false;
+  if (navy.scenario.zoneSr(f.zone) !== sr) return false;
+  return !(
+    navy.battles.get(f.zone)?.fleets.some((l) => l.includes(f.id)) ?? false
+  );
+}
+
+function add(m: Map<number, number>, k: number, v: number): void {
+  m.set(k, (m.get(k) ?? 0) + v);
 }
 
 /**
- * The convoy loss rate ‰ of `owner` in sea region `sr` on the region's
- * last day (P5 lend-lease reads it): the state convoyWar writes
+ * Spec §10.6 for sea region `sr` on `day`: for every side A with raiders
+ * there and every country b at war with them whose routes cross the
+ * region (smallID order), the sinking of b's traffic by A's raid power
+ * (its members at war with b) against the escorts of b's side; the
+ * integer convoys go from b's stock and routes, the remainder stays. Then
+ * the escorts' ASW on the raiding submarines (the most damaged first), the
+ * loss rate by side (P5) and the day's records for spotting and screens.
+ */
+export function convoyWar(navy: WwNavy, sr: number, day: number): void {
+  const sc = navy.scenario;
+  const land = navy.land;
+  const s = sc.sr(sr);
+  const idx = sc.srIdxOf(sr);
+  if (s === undefined || s.kind !== "sea" || idx < 0) return;
+  const st = navy.srState[idx];
+  const tick = navy.mg.ticks();
+
+  // The raiders and escorts on station here, by fleet id.
+  const fleets: Fleet[] = [];
+  for (const z of s.members) {
+    for (const id of navy.fleetsIn(z)) {
+      const f = navy.fleets.get(id);
+      if (f !== undefined) fleets.push(f);
+    }
+  }
+  fleets.sort((a, b) => a.id - b.id);
+  const raidFleets = new Map<number, Fleet[]>();
+  const sub = new Map<number, number>();
+  const surf = new Map<number, number>();
+  const dd = new Map<number, number>();
+  const cl = new Map<number, number>();
+  const other = new Map<number, number>();
+  for (const f of fleets) {
+    if (!onMission(navy, f, sr)) continue;
+    const raid = f.mission === RAID;
+    if (!raid && f.mission !== ESCORT) continue;
+    if (raid) {
+      const l = raidFleets.get(f.owner);
+      if (l === undefined) raidFleets.set(f.owner, [f]);
+      else l.push(f);
+    }
+    for (const id of f.ships) {
+      const r = navy.ships.rowOf(id);
+      if (r < 0) continue;
+      const x = navy.shipStatsOf(r);
+      const c = navy.ships.cls[r];
+      if (raid) {
+        if (c === SS) add(sub, f.owner, x.torpedo);
+        else add(surf, f.owner, x.light + x.heavy);
+      } else if (c === DD) {
+        add(dd, f.owner, x.depth * 2 + x.light);
+      } else if (c === CL) {
+        add(cl, f.owner, x.depth + x.light);
+      } else {
+        add(other, f.owner, x.light);
+      }
+    }
+  }
+  const air = airOf(navy, sr, idx);
+
+  // Raid power per raiding country, escort power per side.
+  const raidPow = new Map<number, number>();
+  const raiders = [...new Set([...raidFleets.keys(), ...air.strike.keys()])];
+  raiders.sort((a, b) => a - b);
+  for (const m of raiders) {
+    const ce = navy.econ.country(m);
+    if (ce === null) continue;
+    const p = raidPowerCenti(
+      sub.get(m) ?? 0,
+      surf.get(m) ?? 0,
+      air.strike.get(m) ?? 0,
+      ce.stats,
+      ce.researched,
+      ce.fuelRatioPm,
+    );
+    if (p > 0) raidPow.set(m, p);
+  }
+  if (raidPow.size === 0) {
+    st.lossYesterday = new Map();
+    st.raidedYesterday = [];
+    st.lossRate = new Map();
+    return;
+  }
+  const escMember = new Map<number, number>();
+  const escorts = [
+    ...new Set([
+      ...dd.keys(),
+      ...cl.keys(),
+      ...other.keys(),
+      ...air.patrol.keys(),
+    ]),
+  ].sort((a, b) => a - b);
+  for (const m of escorts) {
+    const ce = navy.econ.country(m);
+    if (ce === null) continue;
+    const e = escortPowerCenti(
+      dd.get(m) ?? 0,
+      cl.get(m) ?? 0,
+      other.get(m) ?? 0,
+      air.patrol.get(m) ?? 0,
+      ce.stats,
+    );
+    if (e > 0) escMember.set(m, e);
+  }
+  const escortOf = (side: number): number => {
+    let e = 0;
+    for (const m of land.sideMembers(side)) e += escMember.get(m) ?? 0;
+    return e;
+  };
+  const raiderSides = new Map<number, number[]>();
+  for (const m of raidPow.keys()) {
+    const k = land.sideOf(m);
+    const l = raiderSides.get(k);
+    if (l === undefined) raiderSides.set(k, [m]);
+    else l.push(m);
+  }
+  const sides = [...raiderSides.keys()].sort((a, b) => a - b);
+
+  // Traffic: each route through here once (a voyage where it sails now).
+  const traffic = new Map<number, number>();
+  for (const r of navy.routes.values()) {
+    if (!r.srs.includes(sr)) continue;
+    let n = r.got;
+    if (r.use === USE_VOYAGE) {
+      const v = navy.voyages.get(r.ref);
+      const z =
+        v === undefined ? 0 : r.zones[Math.min(v.zoneIdx, r.zones.length - 1)];
+      n = v !== undefined && sc.zoneSr(z) === sr ? v.bound : 0;
+    }
+    if (n > 0) add(traffic, r.owner, n);
+  }
+  const victims = [...traffic.keys()].sort((a, b) => a - b);
+
+  // The sinking, side by side, victim by victim.
+  const sink = new Map<number, number>();
+  const raided = new Set<number>();
+  const asw: { f: Fleet; side: number; escort: number }[] = [];
+  const aswSeen = new Set<string>();
+  for (const a of sides) {
+    const ms = raiderSides.get(a)!;
+    for (const b of victims) {
+      const at = ms.filter((m) => land.isEnemy(m, b));
+      if (at.length === 0) continue;
+      let raid = 0;
+      for (const m of at) raid += raidPow.get(m)!;
+      const bSide = land.sideOf(b);
+      const escort = escortOf(bSide);
+      const milli = convoySinkMilli(traffic.get(b)!, raid, escort, s.area);
+      if (milli <= 0) continue;
+      add(sink, b, milli);
+      for (const m of at) {
+        for (const f of raidFleets.get(m) ?? []) {
+          raided.add(f.id);
+          const key = `${f.id}|${bSide}`;
+          if (escort > 0 && !aswSeen.has(key)) {
+            aswSeen.add(key);
+            asw.push({ f, side: bSide, escort });
+          }
+        }
+      }
+    }
+  }
+
+  // The loss rate ‰ by side (P5's lend-lease reads it): what every side at
+  // war with a raider here would lose today.
+  const rates = new Map<number, number>();
+  for (const side of land.sideList()) {
+    let rate = 0;
+    for (const a of sides) {
+      if (a === side.key) continue;
+      let raid = 0;
+      for (const m of raiderSides.get(a)!) {
+        if (side.members.some((y) => land.isEnemy(m, y)))
+          raid += raidPow.get(m)!;
+      }
+      if (raid > 0) rate += convoyLossRatePm(raid, escortOf(side.key), s.area);
+    }
+    if (rate > 0) rates.set(side.key, rate);
+  }
+
+  // The losses: the integer convoys, the remainder kept.
+  const lossToday = new Map<number, number>();
+  for (const b of victims) {
+    const milli = sink.get(b) ?? 0;
+    if (milli <= 0) continue;
+    lossToday.set(b, milli);
+    const rest = (st.raidRest.get(b) ?? 0) + milli;
+    const n = Math.floor(rest / 1000);
+    setRest(st.raidRest, b, rest - n * 1000);
+    const ce = navy.econ.country(b);
+    const lost = ce === null || n <= 0 ? 0 : loseConvoys(ce, n);
+    if (lost > 0) takeFromRoutes(navy, b, sr, lost);
+    const cn = navy.country(b);
+    if (cn !== null) cn.convoyLoss[day % 30] += milli;
+    navy.convoysSunkTotal += lost;
+    navy.markCountry(b);
+  }
+  st.lossYesterday = lossToday;
+  st.raidedYesterday = [...raided].sort((a, b) => a - b);
+  st.lossRate = rates;
+
+  // ASW: the escorts' depth charges on the raiding submarines they spotted.
+  for (const { f, side, escort } of asw) {
+    if (navy.fleets.get(f.id) !== f) continue;
+    const dmg = aswDamageMilli(escort, navy.spotPm(side, f.id));
+    if (dmg <= 0) continue;
+    let by = 0;
+    let best = 0;
+    for (const m of land.sideMembers(side)) {
+      const e = escMember.get(m) ?? 0;
+      if (e > best) {
+        best = e;
+        by = m;
+      }
+    }
+    hurtSubs(navy, f, dmg, tick, by);
+  }
+  navy.markSr(idx);
+}
+
+/** HP damage on a fleet's submarines, the lowest HP share first, the overflow to the next. */
+function hurtSubs(
+  navy: WwNavy,
+  f: Fleet,
+  dmg: number,
+  tick: number,
+  by: number,
+): void {
+  const t = navy.ships;
+  const subs: { id: number; hp: number; max: number }[] = [];
+  for (const id of f.ships) {
+    const r = t.rowOf(id);
+    if (r < 0 || t.cls[r] !== SS) continue;
+    subs.push({
+      id,
+      hp: t.hp[r],
+      max: Math.max(1, navy.shipStatsOf(r).hpMilli),
+    });
+  }
+  subs.sort((a, b) => a.hp * b.max - b.hp * a.max || a.id - b.id);
+  let left = dmg;
+  for (const x of subs) {
+    if (left <= 0) break;
+    const take = Math.min(x.hp, left);
+    left -= take;
+    applyShipDamage(navy, x.id, take, 0, tick, by);
+  }
+}
+
+/**
+ * The air war's part here (lanes A1/A2 keep the sorties): per country the
+ * naval strike planes' naval attack × sortie efficiency (its naval-strike
+ * milli-sorties over its planes there), centi; per country its naval
+ * patrol planes flying (anti-submarine milli-sorties / 1000).
+ */
+function airOf(
+  navy: WwNavy,
+  sr: number,
+  idx: number,
+): { strike: Map<number, number>; patrol: Map<number, number> } {
+  const strike = new Map<number, number>();
+  const patrol = new Map<number, number>();
+  const air = navy.ww.air;
+  const zs = air.zoneState[idx];
+  if (zs === undefined) return { strike, patrol };
+  for (const [m, v] of zs.navalAsw) {
+    const n = Math.floor(v / 1000);
+    if (n > 0) patrol.set(m, n);
+  }
+  const naval = new Map<number, number>();
+  const planes = new Map<number, number>();
+  for (const id of air.deploymentsIn(sr)) {
+    const d = air.deployments.get(id);
+    if (d === undefined || d.mission !== NAVAL_STRIKE) continue;
+    const ce = navy.econ.country(d.owner);
+    const type = AIR_TYPES[d.type];
+    if (ce === null || type === undefined) continue;
+    d.counts.forEach((n, g) => {
+      if (n <= 0) return;
+      add(
+        naval,
+        d.owner,
+        n * planeStats(type, g + 1, ce.stats, ce.researched).naval,
+      );
+      add(planes, d.owner, n);
+    });
+  }
+  for (const [m, v] of naval) {
+    const n = planes.get(m) ?? 0;
+    const eff =
+      n <= 0 ? 0 : Math.min(1000, Math.floor((zs.navalStrike.get(m) ?? 0) / n));
+    const c = Math.floor((v * eff) / 1000);
+    if (c > 0) strike.set(m, c);
+  }
+  return { strike, patrol };
+}
+
+/**
+ * The convoy loss rate ‰ of `owner`'s side in sea region `sr` on the
+ * region's last day (P5 lend-lease reads it): the state convoyWar writes
  * (SrNavyState.lossRate by side; WwNavy.lossRatePm).
  */
 export function convoyLossPmOf(
@@ -22,4 +354,62 @@ export function convoyLossPmOf(
 ): number {
   const i = navy.scenario.srIdxOf(sr);
   return i < 0 ? 0 : navy.lossRatePm(i, owner);
+}
+
+/**
+ * The country's day (allocateConvoys): one line each for the convoys it
+ * lost and those its raiders sank in the sea regions whose day ran since
+ * its own (spec §10.6, `{n, srs}`: srs = up to three strategic region ids,
+ * the heaviest first, comma-separated; the screens name them); and the
+ * 30-day loss ring's slot for tomorrow starts over.
+ */
+export function dailyConvoyNotices(
+  navy: WwNavy,
+  smallID: number,
+  day: number,
+): void {
+  const cn = navy.country(smallID);
+  if (cn === null) return;
+  cn.convoyLoss[(day + 1) % 30] = 0;
+  const k = smallID % WW_DAY_SPLIT;
+  const lost: [number, number][] = [];
+  const sunk: [number, number][] = [];
+  for (const s of navy.scenario.strategicList()) {
+    if (s.kind !== "sea") continue;
+    const st = navy.srState[s.idx];
+    if (st.lossYesterday.size === 0) continue;
+    const ki = s.idx % WW_DAY_SPLIT;
+    const fresh =
+      (st.lastDay === day && ki <= k) || (st.lastDay === day - 1 && ki > k);
+    if (!fresh) continue;
+    const l = st.lossYesterday.get(smallID) ?? 0;
+    if (l > 0) lost.push([s.id, l]);
+    if (st.raidedYesterday.some((f) => navy.fleets.get(f)?.owner === smallID)) {
+      let n = 0;
+      for (const [b, m] of st.lossYesterday) {
+        if (navy.land.isEnemy(smallID, b)) n += m;
+      }
+      if (n > 0) sunk.push([s.id, n]);
+    }
+  }
+  notice(navy, smallID, "events_display.ww1936_convoys_lost", lost);
+  notice(navy, smallID, "events_display.ww1936_convoys_sunk", sunk);
+}
+
+function notice(
+  navy: WwNavy,
+  to: number,
+  key: string,
+  bySr: [number, number][],
+): void {
+  let total = 0;
+  for (const [, m] of bySr) total += m;
+  const n = Math.floor(total / 1000);
+  if (n < 1) return;
+  const srs = [...bySr]
+    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+    .slice(0, 3)
+    .map(([sr]) => sr)
+    .join(",");
+  navy.message(to, key, { n, srs });
 }
