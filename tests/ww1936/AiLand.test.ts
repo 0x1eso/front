@@ -562,6 +562,52 @@ async function worldFiles(): Promise<MapFiles> {
 }
 
 describe("the AI's land war on world1936 (controller ruling 3)", () => {
+  test("Germany masses on Poland's border before 1939-09-01 under P3's beats (Task 11)", async () => {
+    // P3's planned wars within 60 days (Danzig, Poland, then France's and
+    // Britain's joins): all are fronted, and Poland, Germany's own
+    // offensive, gets twice its demand while France's front is only held.
+    const runner = await createGameRunner(
+      wwGameStart(),
+      undefined,
+      await worldFiles(),
+      (gu) => {
+        if ("errMsg" in gu) throw new Error(gu.errMsg);
+      },
+    );
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const l = ww.land;
+    const sc = l.scenario;
+    const deu = sc.smallIdOf("DEU");
+    const pol = sc.smallIdOf("POL");
+    const fra = sc.smallIdOf("FRA");
+    stepTo(runner, dayStartTick(dayOfDate("1939-08-25"), WW_PREP_TICKS));
+    expect(ww.isAtWar(deu, pol)).toBe(false);
+    expect(ww.politics.plannedWars(deu, ww.day(g.ticks()))).toContain(pol);
+    let onPoland = 0;
+    let onFrance = 0;
+    let all = 0;
+    for (const a of l.armiesOf(deu)) {
+      all += a.divisions.length;
+      if (a.order.kind !== "front" && a.order.kind !== "plan") continue;
+      if (a.order.enemy === pol) onPoland += a.divisions.length;
+      if (a.order.enemy === fra) onFrance += a.divisions.length;
+    }
+    expect(onPoland * 10).toBeGreaterThanOrEqual(all * 4);
+    expect(onPoland).toBeGreaterThan(onFrance);
+    // They stand on Polish border regions.
+    const t = l.divisions;
+    let atBorder = 0;
+    for (const a of l.armiesOf(deu)) {
+      if (a.order.enemy !== pol) continue;
+      for (const id of a.divisions) {
+        const r = t.region[t.rowOf(id)];
+        if (sc.edgesOf(r).some((e) => l.controller[e.to] === pol)) atBorder++;
+      }
+    }
+    expect(atBorder * 10).toBeGreaterThanOrEqual(onPoland * 5);
+  }, 600_000);
+
   test("Italy's 1936 plans on Addis Ababa stand on their own fronts from the start (Task 11, ruling 4)", async () => {
     const runner = await createGameRunner(
       wwGameStart(),

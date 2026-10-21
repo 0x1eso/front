@@ -118,7 +118,12 @@ export function warSupportEffects(w: number): Partial<WwStats> {
   return { recoveryPct: Math.floor(((w - 5000) * 2) / 1000) };
 }
 
-/** Spec §6.4. */
+/**
+ * Spec §6.4. The floor is 50%, or for a country whose base line is under
+ * 60% (P2 Task 11: France 31, Belgium 25, the Netherlands 26 — their
+ * colonies hold most of their points, so 80% of all of them was out of
+ * reach on the homeland) ten points under its base.
+ */
 export function effectiveSurrenderPct(
   basePct: number,
   stabBp: number,
@@ -127,7 +132,8 @@ export function effectiveSurrenderPct(
 ): number {
   const ws = Math.max(-10, Math.min(10, Math.floor((wsBp - 5000) / 500)));
   const st = Math.max(-5, Math.min(5, Math.floor((stabBp - 5000) / 1000)));
-  return Math.max(50, Math.min(98, basePct + ws + st + surrenderPp));
+  const floor = Math.min(50, basePct - 10);
+  return Math.max(floor, Math.min(98, basePct + ws + st + surrenderPp));
 }
 
 /** Spec §6.1: war-weariness line, bp (≤ 0). */

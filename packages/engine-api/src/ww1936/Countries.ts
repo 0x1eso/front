@@ -166,7 +166,15 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
     ...ALLIES,
     major: true,
   }),
-  FRA: def("France", "fr", [60, 95, 200], "europe", { ...ALLIES, major: true }),
+  // P2 Task 11 (controller ruling): HOI4-style per-country surrender
+  // limits for the colonial empires, about 80% of their homeland's share
+  // of their points (France 62 of 162, Belgium 6 of 19, the Netherlands 9
+  // of 28 are homeland; the rest lie in colonies).
+  FRA: def("France", "fr", [60, 95, 200], "europe", {
+    ...ALLIES,
+    major: true,
+    surrenderPct: 31,
+  }),
   USA: def("United States", "us", [75, 120, 175], "americas", { major: true }),
   SUN: def("Soviet Union", "ussr", [150, 30, 30], "europe", {
     ...COMINTERN,
@@ -183,8 +191,10 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
   GRC: def("Greece", "gr", [120, 180, 220], "europe"),
   ALB: def("Albania", "al", [175, 70, 70], "europe"),
   TUR: def("Turkey", "tr", [185, 145, 110], "europe"),
-  BEL: def("Belgium", "be", [205, 175, 60], "europe"),
-  NLD: def("Netherlands", "nl", [235, 140, 45], "europe"),
+  BEL: def("Belgium", "be", [205, 175, 60], "europe", { surrenderPct: 25 }),
+  NLD: def("Netherlands", "nl", [235, 140, 45], "europe", {
+    surrenderPct: 26,
+  }),
   LUX: def("Luxembourg", "lu", [130, 175, 225], "europe"),
   CHE: def("Switzerland", "ch", [205, 85, 85], "europe"),
   ESR: def(
