@@ -925,7 +925,64 @@ export class WwAir {
       if (r !== 0) h = (Math.imul(h, 31) + c.smallID * 19 + r) >>> 0;
     }
     h = (Math.imul(h, 31) + this.planesLostTotal) >>> 0;
-    return (Math.imul(h, 31) + this.bombPointsTotal) >>> 0;
+    h = (Math.imul(h, 31) + this.bombPointsTotal) >>> 0;
+    return this.hashRest(h) >>> 0;
+  }
+
+  /**
+   * P4 Task 16 (hash coverage, spec §19.5): everything else the snapshot
+   * holds — each deployment's type, counts per generation, target, base,
+   * loss remainder and flags; each zone's enemy superiority, sorties, naval
+   * search, ASW and strike pools, fighters' superiority and its day; each
+   * country's experience and auto zones — so a desync shows on the tick it
+   * happens. Derived fields (DERIVED_FIELDS) stay out.
+   */
+  private hashRest(h0: number): number {
+    let h = h0 | 0;
+    const mix = (v: number) => {
+      h = (Math.imul(h, 31) + (v | 0)) | 0;
+    };
+    const fold = (xs: ArrayLike<number>) => {
+      let s = xs.length;
+      for (let i = 0; i < xs.length; i++) s = (Math.imul(s, 33) + xs[i]) | 0;
+      mix(s);
+    };
+    const pairs = (m: ReadonlyMap<number, number>) => {
+      mix(m.size);
+      for (const [k, v] of m) {
+        mix(k);
+        mix(v);
+      }
+    };
+    for (const d of this.deployments.values()) {
+      mix(d.owner);
+      mix(d.type);
+      fold(d.counts);
+      mix(d.target);
+      mix(d.base);
+      mix(d.lossRest);
+      mix((d.auto ? 1 : 0) + d.volunteerFor * 2);
+    }
+    for (const z of this.zoneState) {
+      pairs(z.sup);
+      pairs(z.enemySup);
+      for (const [k, v] of z.sorties) {
+        mix(k);
+        fold(v);
+      }
+      pairs(z.navalSearch);
+      pairs(z.navalAsw);
+      pairs(z.navalStrike);
+      pairs(z.fightersSup);
+      mix(z.lastDay);
+    }
+    for (const c of this.countries()) {
+      mix(c.airXpMilli);
+      fold(c.autoZones);
+    }
+    mix(this.nextDeploymentId);
+    mix(this.lastCommonDay);
+    return h;
   }
 }
 

@@ -19,6 +19,10 @@ import {
   MOVE_RETREAT,
   MOVE_SEA,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  FLEET_STATES,
+  INVASION_STATES,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game } from "@openfront/engine/game/Game";
 import {
@@ -504,6 +508,114 @@ export function worldMoments(): Moment[] {
     {
       name: "the tick after a capitulation",
       when: grows((g) => g.worldWar()!.data().capitulated.length),
+    },
+    ...seaAirMoments(),
+  ];
+}
+
+const navyOf = (g: Game) => g.worldWar()!.navy;
+const airOf = (g: Game) => g.worldWar()!.air;
+const INV = (s: (typeof INVASION_STATES)[number]) => INVASION_STATES.indexOf(s);
+const MOVING = FLEET_STATES.indexOf("moving");
+
+/**
+ * P4 Task 16 (spec §23.2's last line): the moments of the navy and the air
+ * war a restore must survive, each taken the first time it comes (new
+ * closures every call).
+ */
+export function seaAirMoments(): Moment[] {
+  return [
+    {
+      name: "a naval battle in its fifth round",
+      when: (g) => {
+        for (const b of navyOf(g).battles.values())
+          if (b.round >= 5) return true;
+        return false;
+      },
+    },
+    {
+      name: "a fleet under way",
+      when: (g) => {
+        for (const f of navyOf(g).fleets.values()) {
+          if (f.state === MOVING && f.path.length > 0 && f.prog > 0)
+            return true;
+        }
+        return false;
+      },
+    },
+    {
+      name: "an invasion in preparation",
+      when: (g) => {
+        for (const x of navyOf(g).invasions.values()) {
+          if (x.state === INV("preparing") && x.prepDone > 0) return true;
+        }
+        return false;
+      },
+    },
+    {
+      name: "an invasion at sea",
+      when: (g) => {
+        const n = navyOf(g);
+        for (const x of n.invasions.values()) {
+          if (x.state !== INV("sailing")) continue;
+          const v = n.voyages.get(x.voyage);
+          if (v !== undefined && v.prog > 0) return true;
+        }
+        return false;
+      },
+    },
+    {
+      name: "a landing battle",
+      when: (g) => {
+        for (const x of navyOf(g).invasions.values()) {
+          if (x.state === INV("landing")) return true;
+        }
+        return false;
+      },
+    },
+    {
+      name: "convoys raided",
+      when: (g) => navyOf(g).srState.some((s) => s.lossYesterday.size > 0),
+    },
+    {
+      name: "a sea route found again tomorrow",
+      when: (g) => {
+        const n = navyOf(g);
+        const day = n.day(g.ticks());
+        for (const r of n.routes.values()) {
+          if (r.nextDay === day + 1 && r.got > 0) return true;
+        }
+        return false;
+      },
+    },
+    {
+      name: "an air campaign",
+      when: (g) => {
+        const a = airOf(g);
+        let flying = 0;
+        for (const d of a.deployments.values()) {
+          if (d.counts.some((c) => c > 0)) flying++;
+        }
+        return flying >= 2 && a.planesLostTotal > 0;
+      },
+    },
+    {
+      name: "a bombed building under repair",
+      when: (g) => {
+        const e = g.worldWar()!.economy;
+        for (let i = 0; i < e.damage.length; i++) {
+          if (e.damage[i] > 0 && e.repair[i] > 0) return true;
+        }
+        return false;
+      },
+    },
+    {
+      name: "a fuel shortage",
+      when: (g) =>
+        g
+          .worldWar()!
+          .economy.countries()
+          .some((c) => c.fuelRatioPm < 1000),
     },
   ];
 }
