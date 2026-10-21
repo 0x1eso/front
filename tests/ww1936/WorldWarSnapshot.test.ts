@@ -377,9 +377,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // repair) merged: same value in four runs. Re-pinned after N2 (naval
 // battles), R (rendering) and A2 (air effects) merged: same value in four
 // runs. Re-pinned after C (convoys) and I (invasions) merged, with no
-// reinforcement at sea: same value in four runs. The controller re-pins it
-// at every merge that changes the engine.
-const WW1936_DIGEST = "2084b718b00b563b";
+// reinforcement at sea: same value in four runs (U left it). Re-pinned
+// after P4 lane AI (the navy, invasion, air and production AI) merged:
+// same value in four runs. The controller re-pins it at every merge that
+// changes the engine.
+const WW1936_DIGEST = "9c4661ff0df3d43e";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
