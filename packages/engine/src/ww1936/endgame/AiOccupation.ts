@@ -260,12 +260,12 @@ function aiGarrisons(eg: WwEndgame, id: number): void {
   for (const r of eg.administeredOf(id)) need += needOf(eg, id, r);
   const armies = garrisonArmies(eg, id);
   const sups = armies.map((a) => armySuppression(land, a));
-  let have = sups.reduce((x, y) => x + y, 0);
+  const have = sups.reduce((x, y) => x + y, 0);
   const pct =
     need > 0 && frontHeavy(eg, id) ? AI_GARRISON_WAR_PCT : AI_GARRISON_PCT;
   const want = Math.ceil((need * pct) / 100);
   if (have < want) {
-    have = formGarrisons(eg, id, armies, have, want);
+    formGarrisons(eg, id, armies, have, want);
   } else if (
     armies.length > 0 &&
     have * 100 > need * AI_GARRISON_RELEASE_PCT &&
