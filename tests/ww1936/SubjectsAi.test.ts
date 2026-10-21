@@ -1,5 +1,6 @@
 // World War 1936 P5 lane S (plan Task 4 Step 6/7): the subjects' and
 // overlords' AI — upgrade request, independence war, demand, tighten, annex.
+import type { HistoryBeat } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { aiSubjectsDay } from "@openfront/engine/ww1936/endgame/AiSubjects";
 import {
@@ -144,7 +145,7 @@ describe("World War 1936 P5: subjects AI", () => {
 });
 
 describe("World War 1936 P5: subjects AI, historical", () => {
-  it("a historical overlord leaves tightening to the beats", async () => {
+  it("a historical overlord still tightens, but holds an annexation a beat concerns", async () => {
     const { g, ww } = await started(true);
     const eg = ww.endgame;
     const pol = ww.politics;
@@ -153,6 +154,62 @@ describe("World War 1936 P5: subjects AI, historical", () => {
     makeSubject(eg, ltu, deu, "puppet", false, g.ticks());
     subjectLine(eg, ltu)!.autBp = 9000;
     aiSubjectsDay(eg, deu, day(ww, g), g.ticks());
+    expect(pol.country(ltu)!.flags.has(FLAG_CONTROL_TIGHTENED)).toBe(true);
+    // Annexation: gated by a pending beat on the subject.
+    makeSubject(eg, ltu, deu, "integrated", false, g.ticks());
+    subjectLine(eg, ltu)!.autBp = 0;
+    bigVp = new Array<number>(eg.size).fill(1);
+    bigVp[deu] = 100;
+    const beats = pol.content.beats as HistoryBeat[];
+    beats.push({
+      id: "t_beat",
+      date: "1938-01-01",
+      actor: "LTU",
+      act: { kind: "focus", id: "gen_t_a" },
+    });
+    pol.beats.push({ fireDay: 9999, skipped: false, done: false });
+    aiSubjectsDay(eg, deu, day(ww, g), g.ticks());
+    const annex = () =>
+      pol.country(deu)!.missions.some((m) => m.id === "gen_annex_subject");
+    expect(annex()).toBe(false);
+    for (const b of pol.beats) b.done = true;
+    aiSubjectsDay(eg, deu, day(ww, g), g.ticks());
+    expect(annex()).toBe(true);
+    beats.pop();
+    pol.beats.pop();
+  });
+
+  it("a neutral collaborator is left alone by its overlord's AI", async () => {
+    const { g, ww } = await started(false);
+    const eg = ww.endgame;
+    const pol = ww.politics;
+    const [deu, ltu] = [endId("DEU"), endId("LTU")];
+    pol.country(deu)!.ppMilli = 500_000;
+    makeSubject(eg, ltu, deu, "puppet", true, g.ticks());
+    subjectLine(eg, ltu)!.autBp = 9000;
+    aiSubjectsDay(eg, deu, day(ww, g), g.ticks());
     expect(pol.country(ltu)!.flags.has(FLAG_CONTROL_TIGHTENED)).toBe(false);
+  });
+
+  it("under historical AI an overlord grants an upgrade request more often", async () => {
+    const hist = await started(true);
+    const plain = await started(false);
+    const grants = (t: Awaited<ReturnType<typeof started>>) => {
+      let a = 0;
+      let nul = 0;
+      for (let self = 1; self <= 400; self++) {
+        const c = t.ww.endgame.aiEventChoice("gen_subject_upgrade", self, 2);
+        if (c === null) nul++;
+        else if (c === "a") a++;
+      }
+      return { a, nul };
+    };
+    // Without historical AI P3's own weights decide (null).
+    expect(grants(plain).nul).toBe(400);
+    // 90 against 30: about 75% grants.
+    const h = grants(hist);
+    expect(h.nul).toBe(0);
+    expect(h.a / 400).toBeGreaterThan(0.65);
+    expect(h.a / 400).toBeLessThan(0.85);
   });
 });

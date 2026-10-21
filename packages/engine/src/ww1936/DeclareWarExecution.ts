@@ -35,7 +35,10 @@ export class DeclareWarExecution implements Execution {
     if (
       ww.endgame.subjectOf(this.player.smallID())?.overlord === target.smallID()
     ) {
-      declareIndependence(ww.endgame, this.player.smallID(), ticks);
+      const id = this.player.smallID();
+      if (!declareIndependence(ww.endgame, id, ticks)) {
+        ww.endgame.message(id, "ww1936_subject_restricted", {});
+      }
       return;
     }
     if (declareWarBlock(mg, ww, this.player, target, ticks) !== null) return;

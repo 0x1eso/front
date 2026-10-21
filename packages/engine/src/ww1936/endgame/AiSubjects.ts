@@ -2,9 +2,10 @@
 // and overlords' AI, on an AI country's endgame turn. A subject asks for
 // more autonomy at 100%, fights for independence once refused (when strong
 // enough and its overlord is at peace) and demands autonomy when its
-// ideology differs; an overlord (not with historical AI — the beats decide
-// then) tightens its grip on a restless non-dominion and annexes a spent,
-// small integrated puppet. Decisions go through P3 takeDecision (costs,
+// ideology differs; an overlord tightens its grip on a restless
+// non-dominion (both AI modes, owner direction) and annexes a spent, small
+// integrated puppet (with historical AI only when no history beat concerns
+// it). Decisions go through P3 takeDecision (costs,
 // cooldowns, the content's conditions).
 import { SUBJECT_LEVELS } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
@@ -17,6 +18,7 @@ import {
 import { controlledVp } from "../Capitulation";
 import { armyStrength } from "../politics/Conditions";
 import { takeDecision } from "../politics/Decisions";
+import { beatPending } from "../politics/HistoryBeats";
 import {
   declareIndependence,
   FLAG_INDEPENDENCE_DENIED,
@@ -35,7 +37,7 @@ export function aiSubjectsDay(
   settleSubjects(eg, tick);
   const s = subjectLine(eg, id);
   if (s !== null && !s.suspended) aiSubject(eg, s, day, tick);
-  if (!eg.mg.config().historicalAi()) aiOverlord(eg, id, tick);
+  aiOverlord(eg, id, tick);
 }
 
 /** Spec §9.3: strength ‰ against the overlord's (P3 strength_ratio_ge). */
@@ -85,17 +87,43 @@ function aiOverlord(eg: WwEndgame, id: number, tick: number): void {
   const pol = eg.ww.politics;
   let vp: number[] | null = null;
   for (const s of [...eg.subjects]) {
-    if (s.overlord !== id || s.suspended || !eg.isActor(s.subject)) continue;
+    if (s.overlord !== id || s.suspended || s.neutral) continue;
+    if (!eg.isActor(s.subject)) continue;
     if (subjectLine(eg, s.subject) !== s) continue;
     const level = SUBJECT_LEVELS[s.level];
     if (s.autBp >= WW_SUBJECT_TIGHTEN_AUT_BP && level !== "dominion") {
       takeDecision(pol, id, "gen_tighten_control", s.subject, tick, false);
     }
-    if (level === "integrated" && s.autBp === 0) {
+    if (
+      level === "integrated" &&
+      s.autBp === 0 &&
+      !annexHeld(eg, id, s.subject)
+    ) {
       vp ??= controlledVp(eg.mg, eg.ww);
       if (vp[s.subject] * 100 < vp[id] * WW_SUBJECT_ANNEX_VP_PCT) {
         takeDecision(pol, id, "gen_annex_subject", s.subject, tick, false);
       }
     }
   }
+}
+
+/** With historical AI: a pending history beat on the overlord's annexation or on the subject holds the annexation back. */
+function annexHeld(eg: WwEndgame, o: number, subject: number): boolean {
+  if (!eg.mg.config().historicalAi()) return false;
+  const pol = eg.ww.politics;
+  if (beatPending(pol, o, "gen_annex_subject")) return true;
+  const tag = pol.tagOf(subject);
+  return pol.content.beats.some((b, i) => {
+    const st = pol.beats[i];
+    if (st === undefined || st.skipped || st.done) return false;
+    const a = b.act;
+    return (
+      b.actor === tag ||
+      ((a.kind === "declare" ||
+        a.kind === "join" ||
+        a.kind === "decision" ||
+        a.kind === "diplo") &&
+        a.target === tag)
+    );
+  });
 }

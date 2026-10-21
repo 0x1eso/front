@@ -746,3 +746,23 @@ export function applySubjectEffect(
       return;
   }
 }
+
+/** Owner direction: with historical AI an overlord grants an upgrade request +20 more often (90 against 30), so requests do not routinely end in independence wars. */
+export const HISTORICAL_GRANT_BONUS = 20;
+
+/** The AI overlord's answer to gen_subject_upgrade under historical AI; null: P3's weights. */
+export function upgradeChoice(
+  eg: WwEndgame,
+  eventId: string,
+  self: number,
+): string | null {
+  if (eventId !== "gen_subject_upgrade" || !eg.mg.config().historicalAi()) {
+    return null;
+  }
+  const day = eg.ww.politics.day();
+  const roll = wwRoll(eg.ww.politics.seed, P_EVT, idHash(eventId), self, day);
+  return (roll >>> 8) % (100 + HISTORICAL_GRANT_BONUS) <
+    70 + HISTORICAL_GRANT_BONUS
+    ? "a"
+    : "b";
+}
