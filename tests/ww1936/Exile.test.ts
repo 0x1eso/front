@@ -1,7 +1,7 @@
 // World War 1936 P5 lane X (plan Task 5 Steps 3–4, spec §5.2, §10):
 // governments in exile — the host, the forces that escape, legitimacy,
 // liberated land, the return home and the collapse.
-import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   EQUIP_KEYS,
   equipKey,
@@ -153,9 +153,16 @@ describe("World War 1936 P5: governments in exile", () => {
       expect(t.org[r]).toBe(0);
     }
     // Spec §5.2: half the stock stays, a quarter to Germany with half the
-    // disbanded divisions' equipment; a quarter of the men.
+    // disbanded divisions' equipment; a quarter of the men. (Half the
+    // planes too, part of them now flying from the host's bases.)
+    const flying = new Array<number>(EQUIP_KEYS.length).fill(0);
+    for (const d of ww.air.deploymentsOf(pl)) {
+      d.counts.forEach((n, i) => {
+        flying[equipKey(AIR_TYPES[d.type], i + 1)] += n;
+      });
+    }
     EQUIP_KEYS.forEach((_, k) => {
-      expect(ceL.stock[k]).toBe(
+      expect(ceL.stock[k] + flying[k]).toBe(
         Math.floor((stockL[k] * WW_EXILE_STOCK_KEEP_PCT) / 100),
       );
     });
@@ -163,6 +170,66 @@ describe("World War 1936 P5: governments in exile", () => {
     expect(ceL.manpower).toBe(
       Math.floor((menL * WW_EXILE_MANPOWER_KEEP_PCT) / 100),
     );
+  });
+
+  it("exile planes fly from the host's air base; without one they wait in the stock", async () => {
+    const FIGHTER = equipKey("fighter", 1);
+    for (const hostBase of [true, false]) {
+      const { g, ww } = await started();
+      const eg = ww.endgame;
+      const [deu, pl, gbr] = [endId("DEU"), endId("POL"), endId("GBR")];
+      const tick = g.ticks();
+      ww.setWar(deu, pl, tick, { kind: "declare" });
+      ww.setWar(deu, gbr, tick, { kind: "into", warId: eg.warOfPair(deu, pl) });
+      // Poland: 100 fighters, 40 of them over Warsaw; London's air base.
+      const ce = ww.economy.country(pl)!;
+      for (const d of ww.air.deploymentsOf(pl)) {
+        ww.air.removeDeployment(d.id, false);
+      }
+      EQUIP_KEYS.forEach(([type], k) => {
+        if (AIR.has(type)) ce.stock[k] = 0;
+      });
+      ce.stock[FIGHTER] = 100;
+      const bases = ww.economy.buildingArray("air_base");
+      for (const d of ww.air.deploymentsOf(gbr)) {
+        ww.air.removeDeployment(d.id, true);
+      }
+      for (let r = 1; r < bases.length; r++) {
+        if (ww.land.controller[r] === gbr) bases[r] = 0;
+      }
+      if (hostBase) bases[10] = 1;
+      bases[6] = 1;
+      expect(
+        ww.air.issue(
+          pl,
+          {
+            kind: "air_deploy",
+            sr: ww.scenario.regionSr(6),
+            type: "fighter",
+            mission: "interception",
+            count: 40,
+          },
+          tick,
+        ),
+      ).toBeNull();
+      expect(ce.stock[FIGHTER]).toBe(60);
+      ww.addCapitulation(pl, deu, tick);
+      expect(formExile(eg, pl, deu, tick)).toBe(true);
+      capitulationForces(eg, pl, deu, gbr, tick);
+      const deps = ww.air.deploymentsOf(pl);
+      if (!hostBase) {
+        expect(deps).toEqual([]);
+        expect(ce.stock[FIGHTER]).toBe(50);
+        continue;
+      }
+      // Half of them, at London, on their old mission.
+      expect(ce.stock[FIGHTER]).toBe(0);
+      expect(deps).toHaveLength(1);
+      expect(deps[0].base).toBe(10);
+      expect(deps[0].sr).toBe(ww.scenario.regionSr(10));
+      expect(deps[0].mission).toBe(AIR_MISSIONS.indexOf("interception"));
+      expect(deps[0].counts.reduce((a, b) => a + b, 0)).toBe(50);
+    }
   });
 
   it("the host is chosen faction, guarantor, war side, factories in that order", async () => {

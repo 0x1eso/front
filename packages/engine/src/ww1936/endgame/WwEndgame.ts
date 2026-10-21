@@ -1524,7 +1524,15 @@ export class WwEndgame {
       mix(s.level);
       mix(s.autBp);
     }
-    for (const e of this.exiles) mix(e.legitBp);
+    // Lane X review: the host, zero days, capital and faction move too.
+    for (const e of this.exiles) {
+      mix(e.smallID);
+      mix(e.legitBp);
+      mix(e.host);
+      mix(e.zeroDays);
+      mix(e.capital);
+      mix(e.faction);
+    }
     for (const l of this.lendLease) mix(l.sentMilli % 1_000_003);
     for (const t of this.inTransit) mix(t.countMilli % 1_000_003);
     for (let i = 0; i < this.coreTable.length; i++) {

@@ -4,10 +4,19 @@
 // or collapse — and the takeover cards of a human left without a country.
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import {
+  AIR_MISSION_TYPES,
+  AIR_MISSIONS,
+  AIR_TYPES,
+  type AirMission,
+  LAND_ZONE_MISSIONS,
+  WW_MAX_DEPLOY_COUNT,
+} from "@openfront/engine-api/ww1936/AirTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
   EQUIP_KEYS,
+  equipKey,
+  EQUIPMENT_GENS,
   type EquipmentType,
   type WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -335,8 +344,13 @@ function exileForces(
     land.markCountry(loser);
   }
   exileNavy(eg, loser, victor, host, tick);
-  // Planes: every deployment back to the stock, then half of them stay.
+  // Planes: every deployment back to the stock (each type remembers the
+  // mission of its biggest group), then half of them stay.
+  const missions = new Map<number, [number, number]>();
   for (const d of ww.air.deploymentsOf(loser)) {
+    const n = d.counts.reduce((a, b) => a + b, 0);
+    if (n > (missions.get(d.type)?.[1] ?? 0))
+      missions.set(d.type, [d.mission, n]);
     ww.air.removeDeployment(d.id, true);
   }
   if (ceL !== null) {
@@ -360,6 +374,61 @@ function exileForces(
     }
   }
   if (ceR !== null && victor > 0) econ.markCountryDirty(victor);
+  if (ceL !== null) exilePlanes(eg, loser, host, missions, tick);
+}
+
+/**
+ * Spec §5.2, §10.4: the exile's planes fly from its host's air base (the
+ * host's with the most room; ties the smaller region) — one P4 air_deploy
+ * a type over that base's zone, its old mission when a land zone allows
+ * it, else the first one that does. No host base (or no mission, carrier
+ * wings): they wait in the stock.
+ */
+function exilePlanes(
+  eg: WwEndgame,
+  loser: number,
+  host: number,
+  missions: ReadonlyMap<number, [number, number]>,
+  tick: number,
+): void {
+  const ww = eg.ww;
+  const air = ww.air;
+  const levels = ww.economy.buildingArray("air_base");
+  let base = 0;
+  let room = 0;
+  for (let r = 1; r < levels.length; r++) {
+    if (levels[r] === 0 || ww.land.controller[r] !== host) continue;
+    const free = air.baseCapacity(r) - air.baseUse(r);
+    if (free > room) {
+      base = r;
+      room = free;
+    }
+  }
+  const sr = base === 0 ? 0 : ww.scenario.regionSr(base);
+  const ce = ww.economy.country(loser);
+  if (sr === 0 || ce === null) return;
+  AIR_TYPES.forEach((type, ti) => {
+    let count = 0;
+    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
+      count += ce.stock[equipKey(type, g)];
+    }
+    const old = missions.get(ti)?.[0] ?? -1;
+    const fits = (m: AirMission) =>
+      LAND_ZONE_MISSIONS.includes(m) && AIR_MISSION_TYPES[m].includes(type);
+    const mission =
+      old >= 0 && fits(AIR_MISSIONS[old])
+        ? AIR_MISSIONS[old]
+        : AIR_MISSIONS.find(fits);
+    if (count <= 0 || mission === undefined) return;
+    const order: WwOrder = {
+      kind: "air_deploy",
+      sr,
+      type,
+      mission,
+      count: Math.min(count, WW_MAX_DEPLOY_COUNT),
+    };
+    air.issue(loser, order, tick);
+  });
 }
 
 /**
