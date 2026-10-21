@@ -987,6 +987,19 @@ export class WwPeaceCard extends LitElement implements Controller {
       const group = m.groupOf(r);
       const bens = m.beneficiaries(r, me);
       const take = this.tryAdd(m, me, { kind: "take", region: r });
+      // "Take for…" opens only when one receiver could get it (Korea and
+      // Taiwan rules, the receiver's core): else greyed with the reason.
+      const forWhys = bens.map(
+        (b) =>
+          this.tryAdd(m, me, { kind: "take_for", region: r, beneficiary: b })
+            .why,
+      );
+      const forWhy: PeaceWhy | null =
+        bens.length === 0
+          ? { key: PEACE_WHY.core }
+          : forWhys.every((w) => w !== null)
+            ? forWhys[0]
+            : null;
       body = html`<span data-ww-peace-region class="font-semibold"
           >${translateText("ww1936.peace.region_line", {
             region: peaceRegionName(sc, r),
@@ -1009,14 +1022,14 @@ export class WwPeaceCard extends LitElement implements Controller {
             translateText("ww1936.peace.btn_zone"),
             { kind: "occupation_zone", region: r },
           )}
-          ${bens.length === 0
+          ${forWhy !== null
             ? this.btn(
                 "map-take-for",
                 html`<span class="block font-semibold"
                     >${translateText("ww1936.peace.btn_take_for")} ▾</span
                   >
                   <span data-ww-peace-why class="block text-amber-200/90"
-                    >${translateText(PEACE_WHY.core)}</span
+                    >${whyText(this.game, forWhy)}</span
                   >`,
                 () => {},
                 { disabled: true },
@@ -1042,7 +1055,7 @@ export class WwPeaceCard extends LitElement implements Controller {
                 { kind: "take_group", group },
               )}
         </div>
-        ${this.takeForOpen && bens.length > 0
+        ${this.takeForOpen && forWhy === null
           ? html`<div data-ww-peace-take-for class="flex flex-wrap gap-1">
               ${bens.map((b) =>
                 this.choice(

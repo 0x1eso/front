@@ -27,14 +27,21 @@ import {
   demandKindIndex,
   expandPeaceDemand,
   type PeaceBlock,
+  peaceBlockKey,
+  peaceClaimantTags,
   type PeaceDemandIn,
   type PeaceFacts,
+  peaceRegionBlock,
   peaceRegionCost,
+  type PeaceSensitivity,
+  peaceSensitivity,
   type PeaceSettledRow,
   type PeaceShip,
   type PeaceTable,
   planPeaceDemand,
   REGION_DEMAND_KINDS,
+  SENSITIVE_EXCLUDED_TAG,
+  type SensitiveBlock,
   TAKE_NAVY_PCT_MAX,
   TAKE_NAVY_PCT_MIN,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
@@ -53,13 +60,15 @@ import {
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { isCoreNow } from "./EconomyModel";
-import { countryName, isKoreanUi } from "./WorldWarModel";
+import {
+  countryName,
+  isKoreanUi,
+  wwActive,
+  type WwGame,
+} from "./WorldWarModel";
 
 /** What the conference screens read from the game (a fake in tests). */
-export type PeaceGame = Pick<
-  GameView,
-  "ticks" | "worldWarScenario" | "myPlayer" | "playerBySmallID"
-> &
+export type PeaceGame = WwGame &
   Partial<
     Pick<
       GameView,
@@ -88,6 +97,8 @@ export interface DemandEval {
 export interface PeaceWorld extends PeaceFacts {
   smallIdOf(tag: CountryTag): number;
   tagOf(smallID: number): CountryTag | null;
+  /** Still playing (the engine's isActor; wwActive on the client). */
+  isActor(smallID: number): boolean;
 }
 
 const NO_WORLD: PeaceWorld = {
@@ -100,6 +111,7 @@ const NO_WORLD: PeaceWorld = {
   ships: () => [],
   smallIdOf: () => 0,
   tagOf: () => null,
+  isActor: () => true,
 };
 
 /** Why keys (lane T's table); the engine's blocks are `ww1936.peace.why.<block>`. */
@@ -123,7 +135,7 @@ export const PEACE_WHY = {
 const WHY = PEACE_WHY;
 
 function blockWhy(b: PeaceBlock): PeaceWhy {
-  return { key: `ww1936.peace.why.${b}` };
+  return { key: peaceBlockKey(b) };
 }
 
 /** The country-wide demands of the card's "+ Country demand" list, in its order (spec §20.1). */
@@ -175,6 +187,8 @@ export class PeaceModel {
   readonly table: PeaceTable;
   /** Views made from wire demands the engine would refuse (expandPeaceDemand: null). */
   private readonly refusedViews = new WeakSet<WwDemandView>();
+  /** Korea's and Taiwan's rules for this conference (spec §6.9; PeaceRules). */
+  readonly sens: PeaceSensitivity;
 
   constructor(
     readonly conference: WwConferenceView | null,
@@ -192,8 +206,38 @@ export class PeaceModel {
       claims: c?.claims ?? [],
       conquer: c?.conquer ?? [],
       topple: c?.topple ?? [],
-      settled: settledRows(c),
+      // Everything settled so far, in settle order (lane W's view).
+      settled: (c?.settled ?? []).map((x) => ({
+        kind: demandKindIndex(x.kind),
+        by: x.by,
+        target: x.target,
+        k: x.k,
+        regions: x.regions,
+      })),
     };
+    // As the engine's peaceSens: Taiwan's claimants from the static
+    // claims table, those still playing.
+    this.sens = peaceSensitivity(
+      (g) => CONTENT.groupIdx.get(g)?.regions ?? [],
+      world.smallIdOf(SENSITIVE_EXCLUDED_TAG),
+      c?.mainVictor ?? 0,
+      peaceClaimantTags(CONTENT.claims)
+        .map((tag) => world.smallIdOf(tag))
+        .filter((id) => id > 0 && world.isActor(id)),
+    );
+  }
+
+  /**
+   * Why `region` can't go to `receiver` by `kind` from `p` (Korea: zone
+   * only; Taiwan: its claimant only — spec §6.9); null: it can.
+   */
+  sensitiveBlock(
+    p: number,
+    receiver: number,
+    kind: DemandKind,
+    region: number,
+  ): SensitiveBlock | null {
+    return peaceRegionBlock(this.sens, this.table, p, receiver, kind, region);
   }
 
   participant(me: number): WwConferenceView["participants"][number] | null {
@@ -281,11 +325,16 @@ export class PeaceModel {
       releasable: this.conference?.releasable ?? [],
       smallIdOf: (tag) => this.world.smallIdOf(tag),
       hasCore: (id, r) => this.world.hasCore(id, r),
+      sensitivity: this.sens,
     });
     const v = blankView(d.kind, slot);
     if (x === null) {
-      // Keep what names the row on the card.
+      // Keep what names the row on the card (and what the reason reads).
       if ("region" in d && d.region !== undefined) v.regions = [d.region];
+      if ("group" in d && d.group !== undefined) {
+        v.regions = this.groupRegions(d.group);
+      }
+      if (d.kind === "take_for") v.beneficiary = d.beneficiary;
       if ("target" in d) v.target = d.target;
       if (d.kind === "release" || d.kind === "liberate") {
         v.target = v.beneficiary = this.world.smallIdOf(d.tag);
@@ -330,8 +379,24 @@ export class PeaceModel {
           params: { max: WW_PEACE_DEMANDS_PER_ROUND },
         });
       }
-      if (refused) return fail({ key: WHY.bad });
-      const plan = planPeaceDemand(this.world, table, me, demandIn(view), free);
+      if (refused) {
+        // Korea / Taiwan regions are left out of a demand (expandPeaceDemand):
+        // say why rather than "not possible".
+        const to = view.kind === "take_for" ? view.beneficiary : me;
+        for (const r of view.regions) {
+          const b = this.sensitiveBlock(me, to, view.kind, r);
+          if (b !== null) return fail(blockWhy(b));
+        }
+        return fail({ key: WHY.bad });
+      }
+      const plan = planPeaceDemand(
+        this.world,
+        table,
+        me,
+        demandIn(view),
+        free,
+        this.sens,
+      );
       if (typeof plan === "string") {
         // "Nothing left" over named regions: say which way they are gone.
         if (plan === "no_target" && view.regions.length > 0) {
@@ -359,12 +424,15 @@ export class PeaceModel {
         if (kind !== "demilitarise") for (const r of got) taken.add(r);
         view.regions = got;
         view.cost = cost;
-        settled.push({
-          kind: demandKindIndex(kind === "take_group" ? "take" : kind),
-          target: 0,
-          k: 0,
-          regions: got,
-        });
+        for (const r of got) {
+          settled.push({
+            kind: demandKindIndex(kind === "take_group" ? "take" : kind),
+            by: me,
+            target: this.world.legalOwner(r),
+            k: 0,
+            regions: [r],
+          });
+        }
         return { view, ok: true, why: null, refused };
       }
       if (plan.cost > pts) return fail({ key: WHY.score }, plan.cost);
@@ -376,6 +444,7 @@ export class PeaceModel {
       }
       settled.push({
         kind: demandKindIndex(kind),
+        by: me,
         target: view.target,
         k: view.k,
         regions: [...plan.all],
@@ -422,6 +491,7 @@ export class PeaceModel {
       me,
       demandIn(v),
       (r) => this.regionBlock(r, me, new Set()) === null,
+      this.sens,
     );
     return typeof plan !== "string";
   }
@@ -511,23 +581,6 @@ export class PeaceModel {
   }
 }
 
-/**
- * The demands settled before this round, as far as the view tells: the
- * view has no settled rows yet (lane W), so the last round's successes
- * stand in for them (a reparations row without its k). Settled regions
- * need none: `settledBy` takes them out of the stake.
- */
-function settledRows(c: WwConferenceView | null): PeaceSettledRow[] {
-  return (c?.lastRound ?? [])
-    .filter((l) => l.ok)
-    .map((l) => ({
-      kind: demandKindIndex(l.kind),
-      target: l.target,
-      k: 0,
-      regions: [...l.regions],
-    }));
-}
-
 // ---- The world from the game's views ----
 
 /** The facts a demand reads, from the game's land, politics, endgame, economy and navy views. */
@@ -586,6 +639,7 @@ export function peaceWorldOf(game: PeaceGame): PeaceWorld {
     },
     smallIdOf: (tag) => sc.smallIdOf(tag),
     tagOf: (id) => sc.tagOfSmallId(id) ?? null,
+    isActor: (id) => wwActive(game, id),
   };
 }
 

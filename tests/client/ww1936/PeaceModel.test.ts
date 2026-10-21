@@ -6,6 +6,7 @@ import type {
   WwConferenceView,
   WwDemandView,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   AGG_PCT,
   aggregateCost,
@@ -14,6 +15,7 @@ import {
   maxReparations,
   reparationsCost,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { peaceBlockKey } from "@openfront/engine-lib/ww1936/PeaceRules";
 import { describe, expect, it } from "vitest";
 import {
   PEACE_WHY,
@@ -71,6 +73,8 @@ function conference(over: Partial<WwConferenceView> = {}): WwConferenceView {
     conquer: [],
     topple: [],
     reserved: [],
+    settled: [],
+    mainVictor: DEU,
     ...over,
   };
 }
@@ -89,6 +93,7 @@ function world(over: Partial<PeaceWorld> = {}): PeaceWorld {
     ships: () => [],
     smallIdOf: () => 0,
     tagOf: () => null,
+    isActor: () => true,
     ...over,
   };
 }
@@ -347,6 +352,8 @@ describe("World War 1936 P5: the conference map mode", () => {
       conquer: [],
       topple: [],
       reserved: [],
+      settled: [],
+      mainVictor: DEU,
     };
     eg.apply({ news: [], conference: conf });
     // Italy holds Krakow.
@@ -401,5 +408,139 @@ describe("World War 1936 P5: the conference map mode", () => {
     eg.apply({ news: [], conference: null });
     expect(peaceMapTap(game, KRAKOW)).toBe(false);
     expect(ui.map).toBe(false);
+  });
+});
+
+// ---- Korea and Taiwan (spec §6.9) and the settled rows (lane W's view) ----
+
+describe("World War 1936 P5: Korea, Taiwan and earlier rounds on the card", () => {
+  // The real map's regions, from the content (the card never lists them).
+  const KOREA = CONTENT.groupIdx.get("korea_north")!.regions[0];
+  const TAIWAN = CONTENT.groupIdx.get("taiwan")!.regions[0];
+  const JAP = 9;
+  const CHN = 7;
+
+  /**
+   * Japan lost Korea and Taiwan; Germany (me, holding the Korean region,
+   * with a war-goal claim on Taiwan) and China (Taiwan's claimant in the
+   * static claims table) take part.
+   */
+  function asian(me = DEU, chinaPlays = true) {
+    const conf = conference({
+      losers: [JAP],
+      participants: [
+        {
+          id: DEU,
+          pts: 200,
+          sharePm: 600,
+          order: 0,
+          human: true,
+          final: false,
+        },
+        {
+          id: CHN,
+          pts: 200,
+          sharePm: 400,
+          order: 1,
+          human: true,
+          final: false,
+        },
+      ],
+      stake: [
+        { region: KOREA, base: 20, settledBy: 0, zone: false },
+        { region: TAIWAN, base: 20, settledBy: 0, zone: false },
+      ],
+      // A war-goal claim: not what makes a claimant.
+      claims: [[DEU, TAIWAN]],
+      mainVictor: DEU,
+    });
+    const m = new PeaceModel(
+      conf,
+      world({
+        controller: (r) => (r === KOREA ? DEU : JAP),
+        legalOwner: (r) => (r === KOREA || r === TAIWAN ? JAP : 0),
+        hasCore: (id, r) => id === CHN && r === TAIWAN,
+        smallIdOf: (tag) => (tag === "JPN" ? JAP : tag === "CHN" ? CHN : 0),
+        isActor: (id) => id !== CHN || chinaPlays,
+      }),
+    );
+    const one = (d: Parameters<PeaceModel["expand"]>[0]) =>
+      m.evaluate(me, m.demandRows(me, [d]))[0];
+    return { m, one };
+  }
+
+  it("Korea's regions are only ever an occupation zone (zone_only)", () => {
+    const { one } = asian();
+    const zoneOnly = { key: peaceBlockKey("zone_only") };
+    expect(one({ kind: "take", region: KOREA }).why).toEqual(zoneOnly);
+    const group = one({ kind: "take_group", group: "korea_north" });
+    expect(group.why).toEqual(zoneOnly);
+    expect(group.refused).toBe(true);
+    // Japan holds Korea legally: never annexed whole.
+    expect(one({ kind: "annex_rest", target: JAP }).why).toEqual(zoneOnly);
+    // The zone itself is open (I control the region).
+    expect(one({ kind: "occupation_zone", region: KOREA }).ok).toBe(true);
+  });
+
+  it("Taiwan goes to its claimant only (claim_only)", () => {
+    const { one } = asian();
+    expect(one({ kind: "take", region: TAIWAN }).why).toEqual({
+      key: peaceBlockKey("claim_only"),
+    });
+    // Handed to China, its claimant, it may go.
+    expect(one({ kind: "take_for", region: TAIWAN, beneficiary: CHN }).ok).toBe(
+      true,
+    );
+    // China takes it itself.
+    expect(asian(CHN).one({ kind: "take", region: TAIWAN }).ok).toBe(true);
+    // With China out of the game nobody claims it: only the main victor's
+    // zone (Germany), never a take.
+    const { m } = asian(DEU, false);
+    expect(m.sensitiveBlock(DEU, DEU, "occupation_zone", TAIWAN)).toBeNull();
+    expect(m.sensitiveBlock(DEU, DEU, "take", TAIWAN)).toBe("claim_only");
+    expect(asian().m.sensitiveBlock(DEU, DEU, "occupation_zone", TAIWAN)).toBe(
+      "claim_only",
+    );
+  });
+
+  it("the settled rows come from the view", () => {
+    const row = (kind: WwDemandView["kind"], o: { k?: number } = {}) => ({
+      round: 1,
+      by: DEU,
+      kind,
+      target: POL,
+      beneficiary: DEU,
+      regions: [],
+      k: o.k ?? 0,
+      pct: 0,
+      cost: 5,
+    });
+    const m = new PeaceModel(
+      conference({
+        round: 2,
+        settled: [
+          row("disarm"),
+          row("reparations", { k: 2 }),
+          row("take_navy"),
+        ],
+      }),
+      world(),
+    );
+    expect(m.table.settled.map((x) => [x.by, x.target, x.k])).toEqual([
+      [DEU, POL, 0],
+      [DEU, POL, 2],
+      [DEU, POL, 0],
+    ]);
+    const why = (d: WwDemandView) => m.evaluate(DEU, [d])[0].why;
+    // Settled before: not again.
+    expect(why(onCountry("disarm", POL))).toEqual({ key: PEACE_WHY.bad });
+    expect(why(onCountry("take_navy", POL, { pct: 20 }))).toEqual({
+      key: peaceBlockKey("already_used"),
+    });
+    // 12 factories: 3 owed at most, 2 already.
+    expect(why(onCountry("reparations", POL, { k: 2 }))).toEqual({
+      key: PEACE_WHY.factories,
+    });
+    expect(why(onCountry("reparations", POL, { k: 1 }))).toBeNull();
   });
 });
