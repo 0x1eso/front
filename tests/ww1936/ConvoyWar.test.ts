@@ -52,6 +52,9 @@ function britishRoute(navy: WwNavy, got: number, day: number): SeaRoute {
 async function raiders(): Promise<{ g: SeaGame; day: number; idx: number }> {
   const g = await seaGame();
   war(g, "ITA", "GBR");
+  // Lane E's fuel: Italy has none of its own on the sea map, and raiders
+  // without fuel raid nothing once its day has run.
+  g.ce("ITA").fuelMilli = 1_000_000_000;
   fleetAtSea(
     g.navy,
     TAG_ID.ITA,

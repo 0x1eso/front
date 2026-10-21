@@ -104,6 +104,9 @@ describe("sea moves (spec §10.4)", () => {
     const land = ww.land;
     const game = runner.game;
     war(g, "ITA", "FRA");
+    // Lane E's fuel: Italy has none of its own on the sea map, and a fleet
+    // without fuel holds no supremacy.
+    g.ce("ITA").fuelMilli = 1_000_000_000;
     // An Italian patrol holds the Western Approaches: France's side 0‰.
     fleetAtSea(
       navy,
@@ -173,6 +176,9 @@ describe("sea moves (spec §10.4)", () => {
     const land = ww.land;
     const game = runner.game;
     war(g, "ITA", "FRA");
+    // Lane E's fuel: Italy has none of its own on the sea map, and a fleet
+    // without fuel holds no supremacy.
+    g.ce("ITA").fuelMilli = 1_000_000_000;
     navy.setSupremacy(
       SR.approaches,
       new Map([[land.sideOf(TAG_ID.ITA), 1000]]),
@@ -189,8 +195,9 @@ describe("sea moves (spec §10.4)", () => {
     const a = placeArmy(game, "FRA", REGION.lyon, 2);
     const [weak, strong] = a.divisions;
     const row = (d: number) => land.divisions.rowOf(d);
-    // No equipment to reinforce it (P2 reinforces at sea too): worn down to
-    // just above 10%, one more tenth sinks it.
+    // No equipment to reinforce it before it sails (P2 Sustain skips a
+    // division at sea): worn down to just above 10%, one more tenth sinks
+    // it.
     const fra = g.ce("FRA");
     const convoys = fra.stock[CONVOY];
     fra.stock.fill(0);
