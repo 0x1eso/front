@@ -14,8 +14,10 @@
 // situation carries it as `when` (the event's trigger without its date and
 // its human/historical-AI gate): the beat waits for it up to its window,
 // then lapses. The events keep their option guards.
+import { WARSAW_RISING } from "../events/endgame";
+import { PARIS_RISING } from "../events/fra";
 import { GRAND_COUNCIL_CRISIS } from "../events/ita";
-import { T, all, any, flag, gflag, not } from "../helpers";
+import { T, all, any, flag, gflag } from "../helpers";
 import type { HistoryBeat } from "../types";
 
 export const BEATS_P5: HistoryBeat[] = [
@@ -426,16 +428,14 @@ export const BEATS_P5: HistoryBeat[] = [
     date: "1944-08-01",
     actor: "POL",
     act: { kind: "event", id: "pol_warsaw_uprising" },
+    when: WARSAW_RISING,
   },
   {
     id: "b19440819_fra_paris_uprising",
     date: "1944-08-19",
     actor: "FRA",
     act: { kind: "event", id: "fra_paris_uprising" },
-    when: all(
-      { kind: "is_exile" },
-      not({ kind: "controls_group", group: "paris" }),
-    ),
+    when: PARIS_RISING,
   },
   {
     id: "b19440823_rou_august_coup",
