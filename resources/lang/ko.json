@@ -3679,7 +3679,7 @@
       "ita_motorised_divisions": "자동차화 사단",
       "ita_non_belligerence": "비교전 선언",
       "ita_northern_arsenal": "북부 병기창",
-      "ita_pact_of_steel": "강철 조약 준비",
+      "ita_steel_pact": "강철 조약 준비",
       "ita_parallel_war": "평행 전쟁",
       "ita_regia_aeronautica": "왕립 공군 재편",
       "ita_research_council": "국가 연구 회의",
@@ -3727,7 +3727,7 @@
       "ita_motorised_divisions": "트렌토·트리에스테 같은 트럭 보병 사단이 전차를 따라갈 수 있게 한다.",
       "ita_non_belligerence": "독일은 전쟁에 들어갔지만 이탈리아의 군과 비축은 준비가 덜 되었다. 로마는 중립도 참전도 아닌 비교전국을 선언한다.",
       "ita_northern_arsenal": "이탈리아 중공업 대부분이 토리노·밀라노·제노바에 모여 있다. 포강 유역에 새 병기 공장을 세운다.",
-      "ita_pact_of_steel": "치아노와 독일 외무장관이 서로의 전쟁에 함께 나서기로 하는 군사 동맹 초안을 다듬는다.",
+      "ita_steel_pact": "치아노와 독일 외무장관이 서로의 전쟁에 함께 나서기로 하는 군사 동맹 초안을 다듬는다.",
       "ita_parallel_war": "로마는 독일의 전쟁 곁에서 발칸과 아프리카에서 제 목표를 좇는 독자적인 전쟁을 치르려 한다.",
       "ita_regia_aeronautica": "1930년대 비행 기록을 세운 공군도 긴 전쟁을 치르려면 새 기종과 부품이 필요하다.",
       "ita_research_council": "마르코니가 오래 이끈 국가 연구 회의(CNR)가 대학과 연구소의 일을 나라의 필요에 맞춘다.",
@@ -3820,7 +3820,6 @@
     },
     "person": {
       "ita_balbo": "이탈로 발보",
-      "ita_bottai": "주세페 보타이",
       "ita_cavagnari": "도메니코 카바냐리",
       "ita_ciano": "갈레아초 치아노",
       "ita_fermi": "엔리코 페르미",
@@ -3835,6 +3834,7 @@
     },
     "title": {
       "ita_council_president": "각료 회의 의장",
+      "ita_education_minister": "국민교육부 장관",
       "ita_military_premier": "원수 출신 총리",
       "ita_supreme_command_chief": "최고 사령부 총장"
     },

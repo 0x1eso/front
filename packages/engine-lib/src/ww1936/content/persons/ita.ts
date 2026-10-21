@@ -5,6 +5,8 @@
 // security-police chief, no leader of mass killings, forced removals or
 // purge trials (tried or not). Where that is in doubt the office is shown
 // by its title, as spec §19.5 asks:
+// - The Minister of National Education 1936-11 to 1943-02 (Giuseppe Bottai:
+//   he enforced the 1938 racial laws in the schools) is a title card below.
 // - The Chief of the Supreme Command 1940-12 to 1943-02 (Ugo Cavallero: the
 //   April 1939 gas operation at the Gaia Zeret caves in Ethiopia was carried
 //   out on his order as commander in Italian East Africa — en.wikipedia
@@ -71,22 +73,21 @@ export const PERSONS_ITA: PersonDef[] = [
     source:
       "Governor-General of Libya 1934-01-01..1940-06-28 (killed over Tobruk): en.wikipedia Italo Balbo; Britannica",
   },
-  // source: Governor of Rome 1935-01-23 to 1936-11-15, Minister of National
+  // Title card for Giuseppe Bottai (see the header): Minister of National
   // Education 1936-11-15 to 1943-02-05 (en.wikipedia "Giuseppe Bottai";
-  // it.wikipedia "Giuseppe Bottai", which gives 6 February for the end).
-  // Check: death sentence in absentia at Verona (1944, RSI); after the war a
-  // life sentence for his part in founding the regime (the sanctions against
-  // Fascism, not a war-crimes court), amnestied in 1947.
+  // it.wikipedia "Giuseppe Bottai", which gives 6 February for the end). He
+  // carried out the 1938 racial laws in the schools, so the office is shown by
+  // its title (doubt resolves to a title card, spec §19.5).
   {
-    id: "ita_bottai",
-    nameKey: "ww1936.person.ita_bottai",
+    id: "title_ita_education_minister",
+    nameKey: "ww1936.title.ita_education_minister",
     country: "ITA",
     roles: ["advisor"],
     advisor: { slot: "political", traits: ["administrator"] },
     ideology: "fascist",
     until: "1943-02-05",
     source:
-      "Education Minister 1936-11-15..1943-02-05: en/it.wikipedia Giuseppe Bottai; post-war sanctions sentence (not war crimes), amnesty 1947",
+      "title card (spec §19.5): Minister of National Education 1936-11-15..1943-02-05, en/it.wikipedia Giuseppe Bottai; enforced the 1938 racial laws in schools",
   },
   // ---- army chief ----
   // source: Chief of Staff of the Army and Under-Secretary for War

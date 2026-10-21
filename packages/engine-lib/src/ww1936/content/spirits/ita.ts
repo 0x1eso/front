@@ -4,7 +4,7 @@
 import type { SpiritDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const SPIRITS_ITA: SpiritDef[] = [
-  // ita_pact_of_steel: war support +5%, justification time −10%.
+  // ita_steel_pact: war support +5%, justification time −10%.
   {
     id: "ita_pact",
     icon: "handshake",
