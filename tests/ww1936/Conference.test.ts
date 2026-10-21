@@ -3,6 +3,7 @@
 // human cards and the treaty.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  CS_GONE,
   PeaceDemand,
   WarLink,
   WW_PEACE_ROUND_TICKS,
@@ -13,6 +14,8 @@ import {
   expandPeaceDemand,
   type PeaceFacts,
   peacePlanCost,
+  peaceRegionBlock,
+  peaceSensitivity,
   type PeaceTable,
   planPeaceDemand,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
@@ -417,6 +420,82 @@ describe("World War 1936 P5: the peace conference (spec §6)", () => {
     expect(g.ownerID(tile)).toBe(id("DEU"));
   });
 
+  it("a participant that stopped playing settles nothing and the treaty ignores it", async () => {
+    const t = await atWar(["DEU", "ITA"]);
+    const { ww, eg } = t;
+    const [deu, ita, csk] = [id("DEU"), id("ITA"), id("CSK")];
+    ww.land.setController(R.slovakia, ita, t.g.ticks());
+    const c = beat(t, "CSK", [
+      ["DEU", 6000, [R.prague]],
+      ["ITA", 4000, []],
+    ]);
+    // Round 1: both settle (Italy: Slovakia as its occupation zone).
+    submit(t, c, "DEU", [{ kind: "take", region: R.sudetenland }]);
+    submit(t, c, "ITA", [{ kind: "occupation_zone", region: R.slovakia }]);
+    closeRound(t, c);
+    expect(c.round).toBe(2);
+    expect(c.settled.map((s) => s.by)).toEqual([deu, ita]);
+    // Italy stops playing in round 2: no AI demands, nothing settles for it.
+    eg.setCountryState(ita, CS_GONE);
+    submit(t, c, "ITA", [{ kind: "take", region: R.kosice }]);
+    submit(t, c, "DEU", null);
+    closeRound(t, c);
+    expect(c.status).toBe(2);
+    expect(c.lastRound.filter((x) => x.by === ita)).toEqual([]);
+    // Its zone is ignored: Slovakia is Czechoslovakia's again.
+    expect(eg.zones).toEqual([]);
+    expect(ww.land.controller[R.slovakia]).toBe(csk);
+    expect(ww.politics.legalOwner[R.sudetenland]).toBe(deu);
+    expect(eg.peaceLog[0].lines.map((l) => l.params.who)).toEqual(["DEU"]);
+  });
+
+  it("a puppet, disarmament and a demilitarised region apply to the loser that lives on", async () => {
+    const t = await atWar(["DEU"]);
+    const { ww, eg } = t;
+    const [deu, pl] = [id("DEU"), id("POL")];
+    const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
+    submit(t, c, "DEU", [
+      { kind: "puppet", target: pl },
+      { kind: "disarm", target: pl },
+      { kind: "demilitarise", region: R.warsaw },
+      // After the puppet settled, the rest stays the puppet's.
+      { kind: "take", region: R.krakow },
+    ]);
+    closeRound(t, c);
+    expect(c.lastRound.map((x) => x.ok)).toEqual([true, true, true, false]);
+    submit(t, c, "DEU", null);
+    closeRound(t, c);
+    expect(c.status).toBe(2);
+    expect(eg.countryState(pl)).toBe("active");
+    expect(eg.subjectOf(pl)).toMatchObject({ overlord: deu, level: "puppet" });
+    expect(eg.disarm.map(([x]) => x)).toEqual([pl]);
+    expect(eg.dmz).toEqual([[R.warsaw, pl]]);
+    expect(ww.politics.legalOwner[R.krakow]).toBe(pl);
+  });
+
+  it("the card's view lists what settled, in order, and the main victor", async () => {
+    const t = await atWar(["DEU"]);
+    const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
+    submit(t, c, "DEU", [{ kind: "take", region: R.warsaw }]);
+    closeRound(t, c);
+    const view = conferenceView(t.eg, c.id);
+    expect(view.mainVictor).toBe(id("DEU"));
+    expect(view.settled).toEqual([
+      {
+        round: 1,
+        by: id("DEU"),
+        kind: "take",
+        target: id("POL"),
+        beneficiary: id("DEU"),
+        regions: [R.warsaw],
+        k: 0,
+        pct: 0,
+        cost: c.settled[0].cost,
+      },
+    ]);
+    expect(c.settled[0].cost).toBeGreaterThan(0);
+  });
+
   it("a human conference waits in the queue while another is open", async () => {
     const t = await atWar(["DEU"]);
     const a = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
@@ -458,6 +537,8 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     topple: [],
     settled: [],
   };
+  /** No Korea or Taiwan here. */
+  const none = peaceSensitivity(() => [], 0, 5);
   const free = () => true;
   const d = (o: Partial<Parameters<typeof planPeaceDemand>[3]>) => ({
     kind: "take" as const,
@@ -468,10 +549,17 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     pct: 0,
     ...o,
   });
+  const plan = (
+    p: number,
+    o: Partial<Parameters<typeof planPeaceDemand>[3]>,
+    s = none,
+    t = table,
+    ok: (r: number) => boolean = free,
+  ) => planPeaceDemand(facts, t, p, d(o), ok, s);
 
   it("prices and reasons match the engine's", () => {
     // Control halves, another participant's control doubles.
-    const take = planPeaceDemand(facts, table, 5, d({ regions: [1, 2] }), free);
+    const take = plan(5, { regions: [1, 2] });
     expect(take).toEqual({
       each: [
         [1, 20],
@@ -479,71 +567,112 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
       ],
     });
     expect(peacePlanCost(take as Exclude<typeof take, string>)).toBe(60);
+    expect(plan(5, { kind: "take_for", regions: [3], beneficiary: 6 })).toEqual(
+      { each: [[3, 5]] },
+    );
+    expect(plan(5, { kind: "take_for", regions: [1], beneficiary: 6 })).toBe(
+      "no_core",
+    );
     expect(
-      planPeaceDemand(
-        facts,
-        table,
-        5,
-        d({ kind: "take_for", regions: [3], beneficiary: 6 }),
-        free,
-      ),
-    ).toEqual({ each: [[3, 5]] });
-    expect(
-      planPeaceDemand(
-        facts,
-        table,
-        5,
-        d({ kind: "take_for", regions: [1], beneficiary: 6 }),
-        free,
-      ),
-    ).toBe("no_core");
-    expect(
-      planPeaceDemand(
-        facts,
-        table,
+      plan(
         6,
-        d({ kind: "occupation_zone", regions: [3] }),
+        { kind: "occupation_zone", regions: [3] },
+        none,
+        table,
         (r) => r === 3,
       ),
     ).toBe("not_adjacent");
-    expect(
-      planPeaceDemand(
-        facts,
-        table,
-        5,
-        d({ kind: "dismantle", target: 9 }),
-        free,
-      ),
-    ).toBe("no_faction");
+    expect(plan(5, { kind: "dismantle", target: 9 })).toBe("no_faction");
     // A quarter of 12 civilian factories: 3 at most.
-    expect(
-      planPeaceDemand(
-        facts,
-        table,
-        5,
-        d({ kind: "reparations", target: 9, k: 4 }),
-        free,
-      ),
-    ).toBe("no_factories");
+    expect(plan(5, { kind: "reparations", target: 9, k: 4 })).toBe(
+      "no_factories",
+    );
     // Half the fleet's weight (20 of 40): the 10 fits, the 30 does not.
+    expect(plan(5, { kind: "take_navy", target: 9, pct: 50 })).toEqual({
+      all: [12],
+      cost: 20,
+      receiver: 5,
+    });
     expect(
-      planPeaceDemand(
-        facts,
-        table,
-        5,
-        d({ kind: "take_navy", target: 9, pct: 50 }),
-        free,
-      ),
-    ).toEqual({ all: [12], cost: 20, receiver: 5 });
-    expect(
-      planPeaceDemand(
-        facts,
-        table,
-        5,
-        d({ kind: "puppet", target: 9 }),
-        () => false,
-      ),
+      plan(5, { kind: "puppet", target: 9 }, none, table, () => false),
     ).toBe("no_target");
+  });
+
+  it("a puppet keeps the loser's other regions; a fleet goes over once", () => {
+    const after: PeaceTable = {
+      ...table,
+      settled: [
+        { kind: 5, by: 6, target: 9, k: 0, regions: [] }, // puppet
+        { kind: 13, by: 5, target: 9, k: 0, regions: [12] }, // take_navy
+      ],
+    };
+    expect(plan(5, { regions: [1, 3] }, none, after)).toBe("no_target");
+    expect(
+      plan(5, { kind: "take_navy", target: 9, pct: 50 }, none, after),
+    ).toBe("already_used");
+    expect(
+      plan(6, { kind: "take_navy", target: 9, pct: 50 }, none, after),
+    ).toBe("no_ships");
+  });
+
+  it("Korea is only ever an occupation zone; Taiwan only its claimant's", () => {
+    // Region 1 is "Korea", region 3 "Taiwan"; 7 is "Japan" (excluded).
+    const groups = (g: string) =>
+      g === "korea_north" ? [1] : g === "taiwan" ? [3] : [];
+    const s = peaceSensitivity(groups, 7, 5);
+    const rb = (
+      p: number,
+      kind: Parameters<typeof peaceRegionBlock>[4],
+      r: number,
+      t = table,
+      recv = p,
+    ) => peaceRegionBlock(s, t, p, recv, kind, r);
+    // Korea: a zone for anyone but Japan; nothing else, for nobody.
+    expect(rb(5, "occupation_zone", 1)).toBeNull();
+    expect(rb(7, "occupation_zone", 1)).toBe("zone_only");
+    for (const k of [
+      "take",
+      "take_group",
+      "take_for",
+      "annex_rest",
+      "release",
+      "demilitarise",
+    ] as const) {
+      expect(rb(5, k, 1)).toBe("zone_only");
+    }
+    expect(plan(5, { regions: [1] }, s)).toBe("zone_only");
+    expect(plan(5, { kind: "annex_rest", target: 9 }, s)).toBe("zone_only");
+    // Taiwan with a claimant (6): only 6 takes it, by any take; nobody else.
+    const claimed: PeaceTable = { ...table, claims: [[6, 3]] };
+    expect(rb(6, "take", 3, claimed)).toBeNull();
+    expect(rb(5, "take_for", 3, claimed, 6)).toBeNull();
+    expect(rb(5, "take", 3, claimed)).toBe("claim_only");
+    expect(rb(5, "occupation_zone", 3, claimed)).toBe("claim_only");
+    expect(plan(5, { regions: [3] }, s, claimed)).toBe("claim_only");
+    // Without a claimant: the main victor's (5) zone only; never Japan.
+    expect(rb(5, "occupation_zone", 3)).toBeNull();
+    expect(rb(6, "occupation_zone", 3)).toBe("claim_only");
+    expect(rb(5, "take", 3)).toBe("claim_only");
+    expect(rb(7, "take", 3, { ...table, claims: [[7, 3]] })).toBe("claim_only");
+    // Another region: no rule.
+    expect(rb(5, "take", 2)).toBeNull();
+    // A human's wire demand on Korea is refused (bad_demand), a group skips it.
+    const x = {
+      groupRegions: (g: string) => (g === "g" ? [1, 2] : []),
+      releasable: [] as CountryTag[],
+      smallIdOf: () => 0,
+      hasCore: facts.hasCore,
+      sensitivity: s,
+    };
+    expect(
+      expandPeaceDemand(table, 5, { kind: "take", region: 1 }, x),
+    ).toBeNull();
+    expect(
+      expandPeaceDemand(table, 5, { kind: "take_group", group: "g" }, x),
+    ).toMatchObject({ regions: [2] });
+    expect(
+      expandPeaceDemand(table, 5, { kind: "occupation_zone", region: 1 }, x),
+    ).toMatchObject({ regions: [1] });
   });
 
   it("a wire demand is spelled out or refused as the engine does", () => {
@@ -552,6 +681,7 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
       releasable: [] as CountryTag[],
       smallIdOf: () => 0,
       hasCore: facts.hasCore,
+      sensitivity: none,
     };
     expect(
       expandPeaceDemand(table, 5, { kind: "take_group", group: "g" }, x),

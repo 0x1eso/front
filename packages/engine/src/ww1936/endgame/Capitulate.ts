@@ -9,9 +9,8 @@
 import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { transferOnCapitulation } from "../land/Occupation";
 import { transferRegionPeaceful } from "../land/PoliticsBridge";
-import { countryParams } from "./Conference";
 import { capitulationForces, formExile, offerTakeover } from "./Exile";
-import { checkWarEnds } from "./Wars";
+import { checkWarEnds, countryParams } from "./Wars";
 import type { WwEndgame } from "./WwEndgame";
 
 export function capitulate(
@@ -50,7 +49,7 @@ export function capitulate(
     if (eg.member(w, L)?.state !== "active") continue;
     eg.setMemberState(id, L, host > 0 ? "exiled" : "capitulated");
   }
-  if (host === 0) endWarsKeepingWinners(eg, L);
+  const kept = host === 0 ? endWarsKeepingWinners(eg, L) : [];
   // 5. Forces, stock, ships, planes (spec §5.2 — X).
   capitulationForces(eg, L, R, host, tick);
   // 2. Control (the legal owner stays L's, spec §5.1-2).
@@ -63,7 +62,10 @@ export function capitulate(
   if (!own) leave(eg, L, host, tick);
   // 8. Wars that ended (spec §4.4) open their conferences.
   checkWarEnds(eg, day, tick);
-  if (own && ww.isCapitulated(L) && eg.countryState(L) !== "gone") {
+  // A winner kept only for an end that did not come has left after all
+  // (spec §4.3: no pair left in that war), so its side can still lose.
+  if (releaseKept(eg, kept)) checkWarEnds(eg, day, tick);
+  if (own && ownWar(eg, L)) {
     // Its own war goes on without it (another member still fights): the
     // capitulation's usual way after all.
     handOver(eg, L, R);
@@ -121,7 +123,8 @@ function leave(eg: WwEndgame, L: number, host: number, tick: number): void {
  * Slovakia is a participant of the Polish conference), and a side's
  * leader keeps its place.
  */
-function endWarsKeepingWinners(eg: WwEndgame, L: number): void {
+function endWarsKeepingWinners(eg: WwEndgame, L: number): [number, number][] {
+  const kept: [number, number][] = [];
   const before = new Map<number, { leaders: number[]; active: number[] }>();
   for (const id of eg.warsOf(L)) {
     const w = eg.war(id);
@@ -142,6 +145,7 @@ function endWarsKeepingWinners(eg: WwEndgame, L: number): void {
       for (const m of s.members) {
         if (m.state === "left" && b.active.includes(m.id)) {
           m.state = "active";
+          kept.push([id, m.id]);
           fixed = true;
         }
       }
@@ -155,4 +159,31 @@ function endWarsKeepingWinners(eg: WwEndgame, L: number): void {
     });
     eg.dirtyWars = true;
   }
+  return kept;
+}
+
+/**
+ * After the war-end check: each member endWarsKeepingWinners kept active
+ * whose war goes on and that has no pair left in it leaves it (spec §4.3).
+ * True when one did.
+ */
+function releaseKept(
+  eg: WwEndgame,
+  kept: readonly [number, number][],
+): boolean {
+  let changed = false;
+  for (const [wid, id] of kept) {
+    const w = eg.war(wid);
+    if (w === null || w.ended !== null) continue;
+    if (eg.member(w, id)?.state !== "active") continue;
+    let paired = false;
+    for (const [k, v] of eg.pairWar) {
+      if (v !== wid) continue;
+      if (Math.floor(k / eg.size) === id || k % eg.size === id) paired = true;
+    }
+    if (paired) continue;
+    eg.setMemberState(wid, id, "left");
+    changed = true;
+  }
+  return changed;
 }

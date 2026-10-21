@@ -10,6 +10,34 @@ import {
 import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
 import type { EconAdjust, WwEndgame } from "./WwEndgame";
 
+/**
+ * Message params of countries: each as its tag under `name` and under
+ * `nameTag` (the screens add the translated name of a `…Tag` param under
+ * the name without "Tag", WorldWarModel.translateCountryParams).
+ */
+export function countryParams(
+  eg: WwEndgame,
+  named: Record<string, number>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, id] of Object.entries(named)) {
+    const tag = eg.ww.tagOf(id);
+    out[k] = tag;
+    out[`${k}Tag`] = tag;
+  }
+  return out;
+}
+
+/** A list of countries: comma-joined tags; one country also as `nameTag`. */
+export function countryListParams(
+  eg: WwEndgame,
+  name: string,
+  ids: readonly number[],
+): Record<string, string> {
+  if (ids.length === 1) return countryParams(eg, { [name]: ids[0] });
+  return { [name]: ids.map((id) => eg.ww.tagOf(id)).join(",") };
+}
+
 /** Spec §4.5: war score milli per kill (a ship per supremacy weight). */
 export const KILL_MILLI = { ship: 10_000, convoy: 2_000, plane: 500 } as const;
 

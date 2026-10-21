@@ -6866,6 +6866,12 @@
       "scores": "지금 판정하면",
       "title": "외교"
     },
+    "peace": {
+      "why": {
+        "claim_only": "영유권을 가진 나라만 이 주를 가져갈 수 있습니다",
+        "zone_only": "이 주는 점령 지구로만 둘 수 있습니다"
+      }
+    },
     "person": {
       "arg_alvear": "마르셀로 T. 데 알베아르",
       "aut_renner": "카를 레너",
