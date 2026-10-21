@@ -335,10 +335,17 @@ export class WwTopBand extends LitElement implements Controller {
     const occ = occupationChip(this.game);
     if (JSON.stringify(occ) !== JSON.stringify(this.occ)) {
       this.occ = occ;
-      // No administered region left: the map mode goes with the chip.
-      if (occ === null) occupationModeOf(this.game).set(false);
       this.chipShrink = 0;
       this.requestUpdate();
+    }
+    // The map mode goes with its chip: no administered region left, or a
+    // band too narrow to show it (nothing would turn the mode off).
+    if (occ === null || !this.occupationChipShown()) {
+      const mode = occupationModeOf(this.game);
+      if (mode.on) {
+        mode.set(false);
+        this.requestUpdate();
+      }
     }
     const pi = politicsInput(this.game);
     const pol = pi === null ? null : bandStats(pi);
@@ -500,6 +507,15 @@ export class WwTopBand extends LitElement implements Controller {
    * words when the band is short of room) turns the occupation map mode
    * on and off; only while I administer occupied regions.
    */
+  /** The occupation chip has room in the band now (renderOccupation). */
+  private occupationChipShown(): boolean {
+    const { maxWidth } = this.placement ?? bandPlacement(this.stack);
+    return (
+      polMode(this.step(maxWidth), window.innerHeight <= COMPACT_MAX_HEIGHT) !==
+      "none"
+    );
+  }
+
   private renderOccupation(mode: PolMode) {
     const o = this.occ;
     if (o === null || mode === "none") return nothing;

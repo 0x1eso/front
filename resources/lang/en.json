@@ -3586,6 +3586,9 @@
       "research": "Research seat",
       "staff": "General staff seat"
     },
+    "aid": {
+      "incoming_line": "{from} · {item} · on the way {n} (arrives {date})"
+    },
     "air": {
       "base_damage": "Damaged {pct}%",
       "base_row": "{region} · level {lvl}",
@@ -8953,6 +8956,9 @@
       "panzer_leader": "Tank and motorized divisions: attack +10%, speed +10%",
       "river_crosser": "River crossing penalty halved",
       "winter_specialist": "Snow and bitter cold penalties halved"
+    },
+    "war": {
+      "my_share_pct": "My contribution {pct}%"
     },
     "wargoal": {
       "claim": "Territorial claim",

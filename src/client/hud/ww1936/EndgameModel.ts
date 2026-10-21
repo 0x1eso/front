@@ -20,8 +20,6 @@ import {
   type WarKind,
   WW_AIR_VOLUNTEER_MAX,
   WW_AIR_VOLUNTEER_PCT,
-  WW_INTEGRATE_COMP_BP,
-  WW_INTEGRATE_DAYS,
   WW_LL_TENSION_DEMOCRACY_PCT,
   WW_LL_TENSION_RECEIVER_PCT,
   WW_UPRISING_RES_BP,
@@ -428,18 +426,16 @@ export interface IntegrateRow {
 
 /**
  * The days a region's compliance has stayed at 90% (spec §7.3), as the
- * engine counts them; a row without the count (an older update) assumes
- * them done once compliance is there — the engine may still refuse.
+ * engine counts them; a row without the count counts none, so "Integrate"
+ * never shows where the engine would refuse it.
  */
 export function compHighDaysOf(o: WwOccView): number {
-  return (
-    o.compHighDays ?? (o.compBp >= WW_INTEGRATE_COMP_BP ? WW_INTEGRATE_DAYS : 0)
-  );
+  return o.compHighDays ?? 0;
 }
 
 /**
  * The regions I could integrate (spec §7.3): mine by law, held, someone
- * else's core, compliance at 90% for WW_INTEGRATE_DAYS days.
+ * else's core, compliance at 90% for 180 days (integrateBlock).
  */
 export function integrateRows(game: EndgameGame, me: number): IntegrateRow[] {
   const sc = game.worldWarScenario();
@@ -614,12 +610,45 @@ export function occupationCells(
   return out;
 }
 
-/** What GameRenderer hands the renderer (MapRenderer.setOccupationMap). */
+/** Who controls each region with an occupation row now (the cells' liveness). */
+function occControlKey(game: EndgameGame): number {
+  const v = egView(game);
+  const land = game.wwLand?.() ?? null;
+  if (v === null || land === null) return 0;
+  let h = 7;
+  for (const r of v.occupation.keys()) {
+    h = (Math.imul(h, 31) + r * 65_537 + (land.controller[r] ?? 0)) | 0;
+  }
+  return h;
+}
+
+/**
+ * What GameRenderer hands the renderer (MapRenderer.setOccupationMap). The
+ * key moves only when what the map shows may have: the mode, my country,
+ * the endgame's rows (endgameKey) or who holds those regions — worked out
+ * at most once a tick, so a steady map costs one string compare a frame.
+ */
 export function occupationMapSource(game: EndgameGame): OccupationSource {
   const mode = occupationModeOf(game);
+  let tick = -1;
+  let modeVersion = -1;
+  let key = "";
   return {
     on: () => mode.on,
-    key: () => `${mode.version}:${game.ticks()}:${myId(game)}`,
+    key: () => {
+      const t = game.ticks();
+      if (t !== tick || mode.version !== modeVersion) {
+        tick = t;
+        modeVersion = mode.version;
+        key = [
+          mode.version,
+          myId(game),
+          endgameKey(game),
+          occControlKey(game),
+        ].join(":");
+      }
+      return key;
+    },
     cells: () => occupationCells(game, myId(game)),
   };
 }
@@ -762,6 +791,11 @@ function finishGarrison(armies: number[], send: (o: WwOrder) => void): void {
  * (army_split); once the new armies show (pumpGarrison) they and the
  * armies picked whole merge into one, which gets army_garrison over all my
  * administered regions. False when there is nothing to pick.
+ *
+ * Approximate by design: army_split moves the *last* divisions of a
+ * template, so the divisions that go can differ from the picks (same
+ * template, same count), and an army of mine that appears for another
+ * reason while the job waits (GARRISON_JOB_MS) is taken as a split one.
  */
 export function startGarrison(
   game: EndgameGame,
@@ -1421,7 +1455,12 @@ export interface WarCard {
   kind: WarKind;
   ended: boolean;
   status: WarStatus;
-  sides: { leader: number; name: string; members: WarMemberView[] }[];
+  sides: {
+    leader: number;
+    name: string;
+    flag: string | null;
+    members: WarMemberView[];
+  }[];
   /** My side (0 attackers, 1 defenders), -1 outside the war. */
   mySide: number;
   /** My share of my side's war score, ‰; null outside the war. */
@@ -1477,6 +1516,7 @@ export function warCards(game: EndgameGame, me: number): WarCard[] {
     const sides = w.sides.map((s, n) => ({
       leader: s.leader,
       name: egName(game, s.leader),
+      flag: egFlag(game, s.leader),
       members: s.members.map((m) => {
         if (m.id === me) {
           mySide = n;

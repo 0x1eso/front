@@ -167,7 +167,7 @@ export class OccupationPass {
 
   private upload(): void {
     const gl = this.gl;
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    // RGBA8 rows are 4-byte aligned already: the default unpack state does.
     if (this.tableTex === null) {
       this.tableTex = createTexture2D(gl, {
         width: FLAG_TEX_SIZE,
@@ -216,6 +216,8 @@ export class OccupationPass {
       const code = tileCodeOf(this.regionIds[t] ?? 0);
       ids[t] = code < 0x4000 ? code : 0;
     }
+    // 2-byte texels: rows of an odd width are not 4-byte aligned.
+    const align = gl.getParameter(gl.UNPACK_ALIGNMENT) as number;
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     this.tileTex = createTexture2D(gl, {
       width: this.mapW,
@@ -226,6 +228,7 @@ export class OccupationPass {
       data: ids,
       filter: gl.NEAREST,
     });
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, align);
     this.vao = createMapQuad(gl, this.mapW, this.mapH);
     this.program = p;
     return p;

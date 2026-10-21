@@ -97,6 +97,7 @@ export class WwAidTab extends LitElement {
   @state() private walk: Walk | null = null;
   private presetSeen = -1;
   private readonly twoTap = new TwoTap();
+  private disarmTimer: ReturnType<typeof setTimeout> | null = null;
 
   createRenderRoot() {
     return this;
@@ -124,7 +125,18 @@ export class WwAidTab extends LitElement {
   private confirmTap(key: string, act: () => void) {
     if (this.twoTap.tap(key, Date.now())) act();
     this.requestUpdate();
-    setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
+    // Redraw once the arming runs out ("tap again" goes back to the label).
+    if (this.disarmTimer !== null) clearTimeout(this.disarmTimer);
+    this.disarmTimer = setTimeout(() => {
+      this.disarmTimer = null;
+      this.requestUpdate();
+    }, TWO_TAP_MS + 50);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.disarmTimer !== null) clearTimeout(this.disarmTimer);
+    this.disarmTimer = null;
   }
 
   private armed(key: string): boolean {

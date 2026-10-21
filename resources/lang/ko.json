@@ -3279,6 +3279,9 @@
       "research": "연구 고문 자리",
       "staff": "참모 자리"
     },
+    "aid": {
+      "incoming_line": "{from} · {item} · 운송 중 {n} (도착 {date})"
+    },
     "air": {
       "base_damage": "피해 {pct}%",
       "base_row": "{region} · {lvl}단계",
@@ -8646,6 +8649,9 @@
       "panzer_leader": "전차·차량화 사단 공격 +10%, 속도 +10%",
       "river_crosser": "강 도하 벌칙 절반",
       "winter_specialist": "눈·혹한 벌칙 절반"
+    },
+    "war": {
+      "my_share_pct": "내 기여 {pct}%"
     },
     "wargoal": {
       "claim": "영토 요구",

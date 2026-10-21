@@ -143,6 +143,7 @@ import {
 } from "./utils/GpuResources";
 import { HeatManager } from "./utils/HeatManager";
 
+/** Ghost types that trigger SAM radius overlay (matches upstream SAMRadiusLayer). */
 const SAM_RADIUS_GHOST_TYPES = new Set([
   "Missile Silo",
   "SAM Launcher",

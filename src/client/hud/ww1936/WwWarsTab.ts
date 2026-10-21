@@ -70,11 +70,14 @@ function card(c: WarCard): TemplateResult {
         >${translateText(`ww1936.war.${c.status}`)}</span
       >
     </div>
-    <p class="m-0 text-white/70">
-      ${translateText("ww1936.war.sides", {
-        a: c.sides[0]?.name ?? "",
-        b: c.sides[1]?.name ?? "",
-      })}
+    <p data-ww-war-sides class="m-0 flex items-center gap-1 text-white/70">
+      ${flag(c.sides[0]?.flag ?? null)} ${flag(c.sides[1]?.flag ?? null)}
+      <span class="min-w-0 truncate"
+        >${translateText("ww1936.war.sides", {
+          a: c.sides[0]?.name ?? "",
+          b: c.sides[1]?.name ?? "",
+        })}</span
+      >
     </p>
     <div class="mt-1 text-white/60">${translateText("ww1936.war.members")}</div>
     <div class="grid grid-cols-2 gap-x-2">
