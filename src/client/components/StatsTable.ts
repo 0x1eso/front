@@ -22,6 +22,10 @@ export interface StatsRow {
   pinned?: boolean;
   /** Strategic weapons: a satellite is in orbit or counting down (icon by the name). */
   satellite?: boolean;
+  /** World War 1936 P5 (spec §3.7): a gone country, its name struck through. */
+  struck?: boolean;
+  /** P5 (spec §20.6): a short badge before the name ("Exile"). */
+  badge?: string;
   onClick?: () => void;
 }
 
@@ -266,6 +270,7 @@ export abstract class StatsTable extends LitElement {
     text: string,
     borderClass: string,
     satellite = false,
+    mark: Pick<StatsRow, "struck" | "badge"> = {},
   ) {
     return html`
       <div
@@ -283,7 +288,19 @@ export abstract class StatsTable extends LitElement {
               title=${translateText("strategic.satellite_up")}
             />`
           : nothing}
-        <span class="block w-full truncate">${text}</span>
+        ${mark.badge
+          ? html`<span
+              data-row-badge
+              class="mr-1 shrink-0 rounded bg-sky-700/80 px-1 text-xs leading-4"
+              >${mark.badge}</span
+            >`
+          : nothing}
+        <span
+          class="block w-full truncate ${mark.struck
+            ? "text-white/40 line-through"
+            : ""}"
+          >${text}</span
+        >
       </div>
     `;
   }
@@ -319,6 +336,7 @@ export abstract class StatsTable extends LitElement {
               ),
               borderClass,
               column.id === "player" && row.satellite === true,
+              column.id === "player" ? row : {},
             ),
         )}
         <div
