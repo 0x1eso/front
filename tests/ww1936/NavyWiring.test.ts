@@ -20,6 +20,10 @@ import { convoyLossPmOf } from "@openfront/engine/ww1936/navy/ConvoyWar";
 import { navalBuildBlock } from "@openfront/engine/ww1936/navy/EndgameHooks";
 import { applyShipDamage } from "@openfront/engine/ww1936/navy/NavalBattles";
 import {
+  applyEffects,
+  makeCtx,
+} from "@openfront/engine/ww1936/politics/Dispatch";
+import {
   createScriptedRunner,
   scriptedGameStart,
   stepScripted,
@@ -160,6 +164,85 @@ describe("navy wiring", () => {
     expect(convoyLossPmOf(ww.navy, TAG_ID.GBR, 5)).toBe(0);
   });
 
+  it("ports follow the land war's control the tick a port falls", async () => {
+    const runner = await wwRunner({}, GBR_HUMAN, SEA.map);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const ce = ww.economy.country(TAG_ID.GBR)!;
+    ce.navalLines.push({
+      id: 99,
+      cls: 0,
+      gen: 1,
+      docks: 1,
+      activeDocks: 0,
+      progress: 0,
+      left: 1,
+      port: REGION.london,
+      fill: 0,
+      lastOutput: 0,
+      names: [],
+    });
+    const [gbrShip] = ww.navy.fleets.get(
+      ww.navy.createFleet(TAG_ID.GBR, REGION.malta, [["dd", 1, 1]]),
+    )!.ships;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(TAG_ID.DEU, TAG_ID.GBR, g.ticks());
+    takeRegion(g, REGION.london, "DEU");
+    // The economy's control copy still says Britain until its next turn.
+    expect(ww.economy.controllerOf(REGION.london)).toBe(TAG_ID.GBR);
+    // The line moved away from the port it lost (to Malta, its other base).
+    expect(ce.navalLines[ce.navalLines.length - 1].port).toBe(REGION.malta);
+    // The ships effect skips it too.
+    const ctx = makeCtx(ww.politics, TAG_ID.GBR, 0, 0, g.ticks());
+    applyEffects(ctx, [
+      { kind: "ships", cls: "cl", gen: 1, count: 1, port: REGION.london },
+    ]);
+    expect(
+      ww.navy.fleetsOf(TAG_ID.GBR).every((f) => f.docked !== REGION.london),
+    ).toBe(true);
+    // A transferred ship reaches the captor's new port.
+    ww.navy.transferShip(gbrShip, TAG_ID.DEU);
+    const deu = ww.navy.fleetsOf(TAG_ID.DEU);
+    expect(deu.map((f) => [f.docked, f.ships])).toEqual([
+      [REGION.london, [gbrShip]],
+    ]);
+  });
+
+  it("deck planes go back to the old owner's stock on transfer and disband", async () => {
+    const runner = await wwRunner({}, GBR_HUMAN, SEA.map);
+    const ww = runner.game.worldWar()!;
+    const navy = ww.navy;
+    const gbr = ww.economy.country(TAG_ID.GBR)!;
+    const fra = ww.economy.country(TAG_ID.FRA)!;
+    const k = equipKey("cv_fighter", 1);
+    const total = (c: typeof gbr) => c.stock[k] + c.planesDeployed[k];
+    const seed = () => {
+      const id = navy.createFleet(TAG_ID.GBR, REGION.london, [["cv", 2, 1]]);
+      const r = navy.ships.rowOf(navy.fleets.get(id)!.ships[0]);
+      navy.ships.deckOf(r)[0] = 10;
+      gbr.planesDeployed[k] += 10;
+      return navy.fleets.get(id)!.ships[0];
+    };
+    const ship = seed();
+    const before = [total(gbr), total(fra), gbr.stock[k]];
+    navy.transferUnits(TAG_ID.GBR, TAG_ID.FRA, "transfer");
+    expect([total(gbr), total(fra), gbr.stock[k]]).toEqual([
+      before[0],
+      before[1],
+      before[2] + 10,
+    ]);
+    const r = navy.ships.rowOf(ship);
+    expect(navy.ships.owner[r]).toBe(TAG_ID.FRA);
+    expect([...navy.ships.deckOf(r)].every((n) => n === 0)).toBe(true);
+    seed();
+    navy.transferUnits(TAG_ID.GBR, TAG_ID.FRA, "disband");
+    expect([total(gbr), gbr.stock[k], gbr.planesDeployed[k]]).toEqual([
+      before[0] + 10,
+      before[2] + 20,
+      0,
+    ]);
+  });
+
   it("a capitulated country's ships and deployments vanish", async () => {
     const runner = await wwRunner({}, [], SEA.map);
     const g = runner.game;
@@ -257,8 +340,96 @@ describe("navy wiring", () => {
     const ww = a.game.worldWar()!;
     navy.srState[0].lossRate.set(ww.land.sideOf(TAG_ID.GBR), 75);
     stepTo(a, dayStartTick(40, ww.prepEndTick()) + 3);
+    // Every kind of P4 state the stubs keep (P4 review): a deployment, a
+    // damaged building, a named naval line, a battle, a route, a voyage
+    // and a beachhead.
+    const tick = a.game.ticks();
+    const side = (id: number) => ww.land.sideOf(id);
+    ww.air.addDeployment({
+      owner: TAG_ID.DEU,
+      sr: 2,
+      type: 0,
+      mission: 1,
+      counts: [3, 0, 0],
+      target: 3,
+      base: REGION.berlin,
+      lossRest: 250,
+      auto: true,
+      volunteerFor: 0,
+    });
+    damageBuilding(ww.economy, REGION.paris, "mil", 1500);
+    ww.economy.country(TAG_ID.GBR)!.navalLines.push({
+      id: 77,
+      cls: 0,
+      gen: 1,
+      docks: 2,
+      activeDocks: 0,
+      progress: 1234,
+      left: 2,
+      port: REGION.london,
+      fill: 0,
+      lastOutput: 0,
+      names: [3, 1],
+    });
+    const [gbrFleet] = navy.fleetsOf(TAG_ID.GBR);
+    const [itaFleet] = navy.fleetsOf(TAG_ID.ITA);
+    navy.battles.set(ZONE.west, {
+      zone: ZONE.west,
+      sides: [side(TAG_ID.GBR), side(TAG_ID.ITA)],
+      fleets: [[gbrFleet.id], [itaFleet.id]],
+      round: 2,
+      startHp: [100_000, 200_000],
+      startOrg: [5000, 6000],
+      retreating: [false, true],
+      sunk: [
+        [0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0],
+      ],
+      sunkNamed: [],
+      startTick: tick,
+    });
+    const route = navy.nextRouteId++;
+    navy.routes.set(route, {
+      id: route,
+      use: 2,
+      owner: TAG_ID.GBR,
+      ref: 5,
+      zones: [ZONE.west, ZONE.middle],
+      km: 900,
+      srs: [1001, 1002],
+      need: 4,
+      got: 3,
+      nextDay: 50,
+    });
+    const voyage = navy.nextVoyageId++;
+    navy.voyages.set(voyage, {
+      id: voyage,
+      owner: TAG_ID.GBR,
+      army: 0,
+      invasion: false,
+      divisions: [],
+      from: REGION.london,
+      to: REGION.malta,
+      route,
+      zoneIdx: 0,
+      prog: 300,
+      need: 2,
+      bound: 2,
+      aborting: false,
+      departTick: tick,
+    });
+    navy.beachhead.set(REGION.lyon, { side: side(TAG_ID.GBR), until: 60 });
     const b = await wwRestore(a, GBR_HUMAN, SEA.map);
     expect(diffGraphs(a.game, b.game)).toEqual([]);
+    const nb = navyOf(b);
+    expect([nb.battles.size, nb.routes.size, nb.voyages.size]).toEqual([
+      1, 1, 1,
+    ]);
+    expect(nb.beachhead.get(REGION.lyon)?.until).toBe(60);
+    const lines = b.game.worldWar()!.economy.country(TAG_ID.GBR)!.navalLines;
+    expect(lines.find((l) => l.id === 77)?.names).toEqual([3, 1]);
+    expect(b.game.worldWar()!.air.deploymentsOf(TAG_ID.DEU)).toHaveLength(1);
+    expect(b.game.worldWar()!.economy.damage).toEqual(ww.economy.damage);
     for (let i = 0; i < 30; i++) {
       step(a);
       step(b);

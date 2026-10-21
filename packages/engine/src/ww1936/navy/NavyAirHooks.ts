@@ -36,7 +36,10 @@ export interface LandSeaAirHooks {
   airSupply(region: number, side: number): number;
   /** Spec §11.4: the defense cut of `side`'s divisions in `region` by enemy shore bombardment, bp ≤ 0. */
   shoreBombardBp(region: number, side: number): number;
-  /** Spec §11.4: a landing division's attack lines (landing and coastal fort); null for any other. */
+  /**
+   * Spec §11.4: a landing division's landing cut only (attackBp ≤ 0; the
+   * coastal fort's cut Battles computes itself); null for any other.
+   */
   amphibious(battleRegion: number, row: number): CombatMods | null;
 }
 

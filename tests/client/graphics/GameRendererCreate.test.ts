@@ -168,6 +168,9 @@ describe("createRenderer", () => {
       myPlayer: () => ({}),
       worldWarScenario: () => ({ regionIds }),
       wwLand: () => wwLand,
+      // P4: no navy or air views in this fake.
+      wwNavy: () => null,
+      wwAir: () => null,
       config: () => ({
         gameConfig: () => ({}),
         isReplay: () => false,
@@ -201,6 +204,8 @@ describe("createRenderer", () => {
     const ww = fakeEconGame({ ticks: 700, wars: [["DEU", "POL"]] });
     const game = {
       ...ww.game,
+      wwNavy: () => null,
+      wwAir: () => null,
       layers: () => [],
       width: () => 2,
       height: () => 2,

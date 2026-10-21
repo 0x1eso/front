@@ -21,7 +21,7 @@ export function applyNavyEffect(
       // `port` when it is the actor's working naval base, else its best one; none: skipped.
       const given =
         e.port !== undefined &&
-        ww.economy.controllerOf(e.port) === actor &&
+        ww.land.controller[e.port] === actor &&
         navalPort(ww, e.port)
           ? e.port
           : 0;

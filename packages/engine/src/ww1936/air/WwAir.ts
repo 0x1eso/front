@@ -254,9 +254,9 @@ export class WwAir {
         for (const s of this.ww.scenario.strategicList()) {
           if (s.idx % WW_DAY_SPLIT !== k) continue;
           this.zoneState[s.idx].lastDay = day;
+          // A1/A2 mark the zone (setAirSup, markZone) when it changed.
           dailyAirZone(this, s.id, day); // A1
           airMissionEffects(this, s.id, day); // A2
-          this.airDirtyZones.add(s.idx);
         }
         // ② countries: re-basing, refills, decks, AI
         for (let id = 1; id < this.countryList.length; id++) {
@@ -427,7 +427,20 @@ export class WwAir {
 
   /** Adds a deployment record (A1's deploy). Ids only rise: the Map stays in id order. */
   addDeployment(d: Omit<Deployment, "id">): Deployment {
-    const full: Deployment = { ...d, id: this.nextDeploymentId++ };
+    // Field by field in the snapshot's order, whatever the caller's.
+    const full: Deployment = {
+      id: this.nextDeploymentId++,
+      owner: d.owner,
+      sr: d.sr,
+      type: d.type,
+      mission: d.mission,
+      counts: [...d.counts],
+      target: d.target,
+      base: d.base,
+      lossRest: d.lossRest,
+      auto: d.auto,
+      volunteerFor: d.volunteerFor,
+    };
     this.deployments.set(full.id, full);
     this.indexDeployment(full);
     this.markDeployment(full.id);
@@ -558,6 +571,14 @@ export class WwAir {
   // ---- Screens (spec §19.4) ----
 
   takeData(): WwAirData | null {
+    if (
+      this.airDirtyZones.size === 0 &&
+      this.airDirtyDeployments.size === 0 &&
+      this.airDirtyCountries.size === 0 &&
+      this.removedDeploymentIds.length === 0
+    ) {
+      return null;
+    }
     const humans = new Set<number>();
     for (const c of this.countries()) {
       const p = this.mg.playerBySmallID(c.smallID);
@@ -821,6 +842,9 @@ export class WwAir {
     const n = new Array<number>(this.countryList.length).fill(0);
     for (const d of this.deployments.values()) {
       for (const c of d.counts) n[d.owner] += c;
+      // Where and what for (P4 review).
+      h = (Math.imul(h, 31) + d.id) >>> 0;
+      h = (Math.imul(h, 31) + d.sr * 16 + d.mission) >>> 0;
     }
     for (let id = 1; id < n.length; id++) {
       if (n[id] !== 0) h = (Math.imul(h, 31) + id * 7 + n[id]) >>> 0;

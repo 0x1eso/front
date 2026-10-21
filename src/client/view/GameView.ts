@@ -288,6 +288,10 @@ export class GameView implements GameLike {
   }
 
   /** World War 1936 P3: politics, factions, treaties, events; null when the mode is off. */
+  wwPolitics(): WwPoliticsView | null {
+    return this._wwPolitics;
+  }
+
   /** World War 1936 P4: the navy; null when the mode is off. */
   wwNavy(): WwNavyView | null {
     return this._wwNavy;
@@ -296,10 +300,6 @@ export class GameView implements GameLike {
   /** World War 1936 P4: the air war; null when the mode is off. */
   wwAir(): WwAirView | null {
     return this._wwAir;
-  }
-
-  wwPolitics(): WwPoliticsView | null {
-    return this._wwPolitics;
   }
 
   /**

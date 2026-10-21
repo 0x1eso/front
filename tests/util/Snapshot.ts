@@ -212,8 +212,9 @@ export const DERIVED_FIELDS = new Set<string>([
   // World War 1936 P4 (plan Task 1 Step 21): the navy's ship index, stats
   // memo, fleet indexes and screens' marks; the air war's deployment
   // indexes, plane stats memo and marks; the land war's hooks; the
-  // ScenarioIndex v4 tables; lane C's route cache; WwEconomy's naval-port
-  // version and bits; WorldWar's war version.
+  // ScenarioIndex v4 tables; WwEconomy's naval-port version and bits;
+  // WorldWar's war version. (Lane C's route cache, when it has one, adds
+  // its own name here.)
   "shipRowIndex",
   "shipStatsMemo",
   "fleetsByOwner",
@@ -236,7 +237,6 @@ export const DERIVED_FIELDS = new Set<string>([
   "strategicData",
   "harborData",
   "srKmMemo",
-  "routeMemo",
   "portVer",
   "portBits",
   "warVer",

@@ -504,6 +504,17 @@ describe("LandModel (spec §15)", () => {
     expect(levelDots(2)).toBe("●●○○○");
   });
 
+  it("a bombed fort counts as the engine counts it (P4 plan decision 13)", () => {
+    const damage = new Array<number>(14).fill(0);
+    damage[4] = 1500; // BUILDING_IDS[4] = "fort": one of two stopped
+    const { land, view } = game({
+      regions: [region(7, { fort: 2, damage })],
+      landRegions: [landRegion(7)],
+    });
+    expect(view.effectiveBuildings("fort", 7)).toBe(1);
+    expect(regionLandLines(land, view, DEU, 7, DAY).fort).toBe(1);
+  });
+
   it("what a tap means: my side moves, an enemy is attacked, elsewhere cancels", () => {
     const atWar = game(AT_WAR);
     const kind = (mode: Parameters<typeof tapKind>[2], r: number) =>

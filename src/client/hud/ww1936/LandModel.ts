@@ -1096,7 +1096,7 @@ export function attackPreview(
   const origins = attackOrigins(view, me, a, region, sides);
   const directions = Math.max(1, Math.min(4, origins.length));
   const { river, strait } = crossing(s, origins, region);
-  const fort = economy.fort[region] ?? 0;
+  const fort = economy.effectiveBuildings("fort", region);
   const def = enemySideAt(view, economy, me, region, sides);
   const width = combatWidth(land, directions);
   const att = divisionMods({
@@ -1258,7 +1258,7 @@ export function battleCard(
   const s = view.scenario;
   const land = s.landOf(region);
   const weather = weatherOf(s, region, day);
-  const fort = economy.fort[region] ?? 0;
+  const fort = economy.effectiveBuildings("fort", region);
   const attackerOrigins = s
     .edgesOf(region)
     .map((e) => e.to)
@@ -1357,7 +1357,7 @@ export function regionLandLines(
   return {
     land: s.landOf(region),
     weather: weatherOf(s, region, day),
-    fort: economy.fort[region] ?? 0,
+    fort: economy.effectiveBuildings("fort", region),
     rail: economy.rail[region] ?? 0,
     supplyMilli: mySide ? (r?.supplyMilli ?? -1) : -1,
     useMilli: mySide ? (r?.useMilli ?? -1) : -1,

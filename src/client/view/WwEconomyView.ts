@@ -6,6 +6,7 @@ import {
   WwEconomyData,
   WwRegionData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { effectiveCount } from "@openfront/engine-lib/ww1936/BuildingDamage";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 
 /**
@@ -174,9 +175,10 @@ export class WwEconomyView {
 
   /** P4 plan decision 13: the working buildings, count − whole damaged ones (the engine's effectiveBuildings). */
   effectiveBuildings(b: BuildingId, region: number): number {
-    const n = this.buildingCount(b, region);
-    const dmg = this.damage.get(region)?.[BUILDING_IDS.indexOf(b)] ?? 0;
-    return Math.max(0, n - Math.floor(dmg / 1000));
+    return effectiveCount(
+      this.buildingCount(b, region),
+      this.damage.get(region)?.[BUILDING_IDS.indexOf(b)] ?? 0,
+    );
   }
 
   /** P4 plan decision 11: the region's naval base works now (the engine's navalPort). */

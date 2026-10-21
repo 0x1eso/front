@@ -11,7 +11,6 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { navalStartTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
@@ -34,11 +33,6 @@ import {
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
-
-/** P4's sea and air techs of 1936 (appended to WW_TECH_IDS after rail_1). */
-const P4_1936 = WW_TECH_IDS.slice(WW_TECH_IDS.indexOf("rail_1") + 1).filter(
-  (id) => WW_TECHS[id].year <= 1936,
-);
 
 // ---- The pure plan ----
 
@@ -453,6 +447,14 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect([AI_SUPPORT_RESERVE, AI_SUPPORT_SHORT_PTS]).toEqual([400, 5]);
   });
 
+  test("P4's techs stay out of the AI's research order for now (interim)", () => {
+    const last = WW_TECH_IDS.indexOf("rail_1");
+    for (const tag of ["DEU", "GBR", "JPN", "USA", "ITA", "TUR"] as const) {
+      for (const t of aiResearchOrder(tag))
+        expect(WW_TECH_IDS.indexOf(t), `${tag} ${t}`).toBeLessThanOrEqual(last);
+    }
+  });
+
   test("doctrine by country", () => {
     const DONE_1936 = WW_TECH_IDS.filter(
       (t) => WW_TECHS[t].year === 1936 && WW_TECHS[t].school === undefined,
@@ -519,10 +521,6 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "engineer_company",
       "recon_company",
       "mountaineers",
-      // P4: its naval start techs (EconomyStart.navalStartTechs) and the
-      // other 1936 sea and air techs, so the land picks stay this test's.
-      ...navalStartTechs("DEU", 5, true),
-      ...P4_1936,
     ];
     const deu = (day: number, slotCount: number) =>
       only(

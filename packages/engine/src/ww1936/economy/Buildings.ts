@@ -8,6 +8,7 @@ import {
   EQUIPMENT_GENS,
   equipKey,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { effectiveCount } from "@openfront/engine-lib/ww1936/BuildingDamage";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
 const B_COUNT = BUILDING_IDS.length;
@@ -38,9 +39,10 @@ export function effectiveBuildings(
   region: number,
   b: BuildingId,
 ): number {
-  const n = econ.buildingArray(b)[region] ?? 0;
-  const dmg = econ.damage[region * B_COUNT + buildingIndex(b)] ?? 0;
-  return dmg === 0 ? n : Math.max(0, n - Math.floor(dmg / 1000));
+  return effectiveCount(
+    econ.buildingArray(b)[region] ?? 0,
+    econ.damage[region * B_COUNT + buildingIndex(b)] ?? 0,
+  );
 }
 
 /** A level building's working level (spec §14.8: as many levels lower as buildings are stopped). */

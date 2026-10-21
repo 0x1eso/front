@@ -69,7 +69,7 @@ import { dailyInvasions, issueInvasionOrder } from "./Invasions";
 import { engageRegion } from "./Missions";
 import { stepNavalBattles } from "./NavalBattles";
 import { startNavy } from "./NavyStartRun";
-import { bestNavalBase, navalPort } from "./Ports";
+import { bestNavalBase, navalPort, navalPortsOf } from "./Ports";
 import { appointAdmiral, dailyNavyXp, dailyRepair } from "./Repair";
 import { stepFleets } from "./SeaMove";
 import { dailyVoyages, issueSeaTransfer, stepSeaVoyages } from "./SeaTransfer";
@@ -1057,9 +1057,9 @@ export class WwNavy {
     if (r < 0 || this.country(to) === null) return;
     const from = t.owner[r];
     const zone = this.fleets.get(t.fleet[r])?.zone ?? 0;
-    const ports = this.econ
-      .regionsOf(to)
-      .filter((p) => navalPort(this.ww, p) && this.scenario.harborOf(p) !== 0);
+    const ports = navalPortsOf(this.ww, to).filter(
+      (p) => this.scenario.harborOf(p) !== 0,
+    );
     let best = 0;
     let bestKm = Infinity;
     for (const p of ports) {
@@ -1385,7 +1385,12 @@ export class WwNavy {
     tick: number,
   ): void {
     if (from === 0 || this.land.sameSide(from, to)) return;
-    for (const f of [...this.fleets.values()]) {
+    // Docked there: in its harbor zone (a copy: scuttling edits the index).
+    const harbor = this.scenario.harborOf(region);
+    const here = harbor === 0 ? NO_IDS : [...this.fleetsIn(harbor)];
+    for (const id of here) {
+      const f = this.fleets.get(id);
+      if (f === undefined) continue;
       if (f.docked !== region || !this.land.sameSide(f.owner, from)) continue;
       const base = this.nearestBase(f);
       if (base === 0) {
@@ -1456,13 +1461,22 @@ export class WwNavy {
   /**
    * Decision 32 (P3 annexation): "transfer": `from`'s fleets become `to`'s
    * (new fleet numbers of `to`), its ships keep their names; "disband":
-   * the ships are gone. Routes, voyages and invasions of `from` end.
+   * the ships are gone. Either way the decks' planes go back to `from`'s
+   * stock. Routes, voyages and invasions of `from` end.
    */
   transferUnits(from: number, to: number, mode: "transfer" | "disband"): void {
     const toCn = this.country(to);
     if (toCn === null || from === to) return;
     const tick = this.mg.ticks();
+    const ceFrom = this.econ.country(from);
     for (const f of this.fleetsOf(from)) {
+      // The decks' planes are `from`'s: back to its stock either way.
+      if (ceFrom !== null) {
+        for (const id of f.ships) {
+          const r = this.ships.rowOf(id);
+          if (r >= 0) this.returnDeck(ceFrom, this.ships.deckOf(r));
+        }
+      }
       if (mode === "disband") {
         for (const id of [...f.ships]) this.removeShip(id, false, tick);
         continue;
@@ -1502,6 +1516,17 @@ export class WwNavy {
 
   /** The changes since the last call, or null when nothing changed. */
   takeData(): WwNavyData | null {
+    if (
+      this.battles.size === 0 &&
+      this.navyDirtyFleets.size === 0 &&
+      this.navyDirtySrs.size === 0 &&
+      this.navyDirtyCountries.size === 0 &&
+      this.removedFleetIds.length === 0 &&
+      this.endedBattleZones.length === 0
+    ) {
+      this.navyDirtyBattles.clear();
+      return null;
+    }
     const humans = new Set<number>();
     for (const cn of this.countries()) {
       const p = this.mg.playerBySmallID(cn.smallID);
@@ -2008,6 +2033,25 @@ export class WwNavy {
       h = (Math.imul(h, 31) + v.zoneIdx) >>> 0;
       h = (Math.imul(h, 31) + v.prog) >>> 0;
     }
+    // Supremacy, spotting and the convoy routes (P4 review).
+    this.srState.forEach((s, i) => {
+      let sup = 0;
+      for (const [k, v] of s.sup) sup = (Math.imul(sup, 31) + k + v) | 0;
+      let spot = 0;
+      for (const [k, m] of s.spot) {
+        for (const [f, v] of m) spot = (Math.imul(spot, 31) + k + f + v) | 0;
+      }
+      if (sup !== 0 || spot !== 0) {
+        h = (Math.imul(h, 31) + i) >>> 0;
+        h = (Math.imul(h, 31) + sup) >>> 0;
+        h = (Math.imul(h, 31) + spot) >>> 0;
+      }
+    });
+    for (const r of this.routes.values()) {
+      h = (Math.imul(h, 31) + r.id) >>> 0;
+      h = (Math.imul(h, 31) + r.owner * 8 + r.use) >>> 0;
+      h = (Math.imul(h, 31) + r.got) >>> 0;
+    }
     return h;
   }
 }
@@ -2030,8 +2074,15 @@ export function dailySeaRegion(
   supremacyRegion(navy, sr); // N1
   convoyWar(navy, sr, day); // C
   engageRegion(navy, sr, tick); // N1 → N2
-  for (const f of [...navy.fleets.values()]) {
-    if (f.portStrike === 0 || navy.fleetZoneSr(f) !== sr) continue;
+  // Port strikes of the fleets in the region, zone by zone, then by id.
+  const strikers: Fleet[] = [];
+  for (const z of navy.scenario.sr(sr)?.members ?? NO_IDS) {
+    for (const id of navy.fleetsIn(z)) {
+      const f = navy.fleets.get(id);
+      if (f !== undefined && f.portStrike !== 0) strikers.push(f);
+    }
+  }
+  for (const f of strikers) {
     const port = f.portStrike;
     f.portStrike = 0;
     if (isNoStrike(navy.scenario, port)) continue; // P6 pre-flight
