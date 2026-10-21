@@ -184,7 +184,13 @@ describe("supply (P2 spec §11)", () => {
     const g = runner.game;
     const l = land(g);
     // Kiev to Germany: its neighbours are Polish Krakow and Soviet Moscow,
-    // so no Axis hub reaches it (and it is no port).
+    // so no Axis hub reaches it (and it is no port). At war: at peace, P5
+    // spec §5.3 (lane X) hands Kiev back to the Soviets the next day.
+    g.worldWar()!.setWar(
+      byTag(g, "DEU").smallID(),
+      byTag(g, "SUN").smallID(),
+      g.ticks(),
+    );
     takeRegion(g, KIEV, "DEU");
     const a = placeArmy(g, "DEU", KIEV, 2);
     const rows = () => a.divisions.map((d) => l.divisions.rowOf(d));

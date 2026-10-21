@@ -19,6 +19,9 @@ describe("overseas supply (spec §10.3)", () => {
     const game = runner.game;
     const side = land.sideOf(TAG_ID.ITA);
     // Italy holds Malta (an island: no railway to Rome), a division there.
+    // Italy's by law: held from Britain at peace, P5 spec §5.3 (lane X)
+    // would hand it back, and the war with Britain comes later here.
+    ww.politics.setLegalOwner(REGION.malta, TAG_ID.ITA);
     land.setController(REGION.malta, TAG_ID.ITA, game.ticks());
     placeArmy(game, "ITA", REGION.malta, 1);
     // Rome is Italy's capital: joined by rail, land supply, no sea hub.
@@ -60,6 +63,8 @@ describe("overseas supply (spec §10.3)", () => {
     const side = land.sideOf(TAG_ID.ITA);
     // The Isthmus (no naval base, a harbor on the East Sea, no land way
     // from Italy) taken by Italy: lane I's beachhead table, a division.
+    // At war with Turkey: at peace, P5 spec §5.3 (lane X) hands it back.
+    war(g, "ITA", "TUR");
     land.setController(REGION.isthmus, TAG_ID.ITA, game.ticks());
     placeArmy(game, "ITA", REGION.isthmus, 1);
     const day = ww.day(game.ticks());
@@ -86,7 +91,9 @@ describe("overseas supply (spec §10.3)", () => {
     const { ww, navy, runner } = g;
     const land = ww.land;
     const game = runner.game;
-    // Italy holds Kiev (its harbor: the East Sea), a division there.
+    // Italy holds Kiev (its harbor: the East Sea), a division there. At war
+    // with the Soviets: at peace, P5 spec §5.3 (lane X) hands Kiev back.
+    war(g, "ITA", "SUN");
     land.setController(REGION.kiev, TAG_ID.ITA, game.ticks());
     placeArmy(game, "ITA", REGION.kiev, 1);
     const day = ww.day(game.ticks());

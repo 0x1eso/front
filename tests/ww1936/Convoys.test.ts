@@ -127,7 +127,10 @@ describe("convoys (spec §10.1)", () => {
     const game = runner.game;
     const ita = g.ce("ITA");
     // Malta Italy's, a division there (the supply hub's demand), another
-    // army in Rome to sail there; Britain's only port is London.
+    // army in Rome to sail there; Britain's only port is London. Italy's
+    // by law too: held from Britain at peace, P5 spec §5.3 (lane X) would
+    // hand it back, and a war would close the trade with Britain.
+    ww.politics.setLegalOwner(REGION.malta, TAG_ID.ITA);
     land.setController(REGION.malta, TAG_ID.ITA, game.ticks());
     placeArmy(game, "ITA", REGION.malta, 1);
     const army = placeArmy(game, "ITA", REGION.rome, 1);
@@ -179,6 +182,8 @@ describe("convoys (spec §10.1)", () => {
     const land = ww.land;
     const game = runner.game;
     const ita = g.ce("ITA");
+    // Italy's by law (see above: a trade with Britain follows).
+    ww.politics.setLegalOwner(REGION.malta, TAG_ID.ITA);
     land.setController(REGION.malta, TAG_ID.ITA, game.ticks());
     placeArmy(game, "ITA", REGION.malta, 1);
     const army = placeArmy(game, "ITA", REGION.rome, 1);

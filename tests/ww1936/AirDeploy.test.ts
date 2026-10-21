@@ -324,6 +324,8 @@ describe("air deployments (spec §13)", () => {
       [REGION.london, 100, 300],
     ]);
     // Malta falls: nothing moves until Britain's day, then London takes all.
+    // At war: at peace, P5 spec §5.3 (lane X) hands Malta back.
+    ww.setWar(TAG_ID.ITA, gbr, runner.game.ticks());
     takeRegion(runner.game, REGION.malta, "ITA");
     expect(at()[0]).toEqual([REGION.malta, 200, 300]);
     runThrough(runner, today(runner) + 1, gbr % 7);

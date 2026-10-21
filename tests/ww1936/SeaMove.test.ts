@@ -254,6 +254,9 @@ describe("fleet movement (spec §7.3)", () => {
     // the side, and the smaller region id breaks the tie.
     const land = g.worldWar()!.land;
     expect(land.sameSide(GBR, TAG_ID.FRA)).toBe(true);
+    // At war: at peace, P5 spec §5.3 (lane X) hands the regions back.
+    g.worldWar()!.setWar(TAG_ID.ITA, GBR, g.ticks());
+    g.worldWar()!.setWar(TAG_ID.ITA, TAG_ID.FRA, g.ticks());
     takeRegion(g, REGION.malta, "ITA");
     // The docked fleet puts to sea toward Lyon that tick (spec §7.1) …
     expect([fd.home, fd.docked, state(fd)]).toEqual([
