@@ -170,6 +170,8 @@ export const DERIVED_FIELDS = new Set<string>([
   // id → row index (pre-flight U16: the real field names).
   "sideOfId",
   "sideListCache",
+  // P4 Task 15 (perf): side key → side, for sideMembers.
+  "sideByKey",
   "statsCache",
   "tplCache",
   // P2 Task 11 (perf): the stats inputs each cache entry was checked

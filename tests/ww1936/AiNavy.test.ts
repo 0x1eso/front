@@ -20,6 +20,7 @@ import {
   aiOverseasBlend,
   aiOverseasWarScore,
   aiPredictPm,
+  aiRegroups,
   AiSeaRegionView,
   aiSeaWarPm,
   AiShipRow,
@@ -298,6 +299,84 @@ describe("the navy AI's plan (spec §17.2)", () => {
       ),
     ).toEqual([
       { kind: "fleet_mission", fleet: main.id, mission: "hold", sr: 1001 },
+    ]);
+  });
+
+  // Task 15: the 1936 order of battle's submarines with screens, and a
+  // battle fleet's flotilla, sat in port all war (no role took them).
+  test("at war a fleet no role takes is regrouped", () => {
+    expect(aiRegroups(counts({ cl: 2, ss: 17 }))).toBe(true);
+    expect(aiRegroups(counts({ bb: 3, dd: 17, ss: 20 }))).toBe(true);
+    expect(aiRegroups(counts({ bb: 3, dd: 9 }))).toBe(false);
+    expect(aiRegroups(counts({ ss: 8 }))).toBe(false);
+    const mixed = fleet({ cl: 2, ss: 17 });
+    const orders = aiNavalPlan(input({ fleets: [mixed] }));
+    expect(orders).toEqual([
+      {
+        kind: "fleet_split",
+        fleet: mixed.id,
+        counts: [["ss", 10]],
+        ships: [],
+      },
+      { kind: "fleet_split", fleet: mixed.id, counts: [["ss", 7]], ships: [] },
+    ]);
+    // At peace it waits.
+    expect(
+      aiNavalPlan(input({ atWar: false, fleets: [mixed] })).some(
+        (o) => o.kind === "fleet_split",
+      ),
+    ).toBe(false);
+  });
+
+  // Task 15: with no threat at home a battle fleet goes where the enemy
+  // holds the sea, when it would win there; else it strikes from home.
+  test("a battle fleet with no threat at home contests the sea", () => {
+    const main = fleet({ bb: 2, dd: 6 });
+    const even = navalSideSum(rows({ bb: 2, dd: 2 }));
+    const strong = navalSideSum(rows({ bb: 4, dd: 8 }));
+    const plan = (enemySum: typeof even, rangeKm = 10_000) =>
+      missions(
+        aiNavalPlan(
+          input({
+            fleets: [{ ...main, rangeKm }],
+            regions: [
+              region(1001, { home: true, km: 0 }),
+              region(1002, { enemySup: 200 }),
+              region(1003, { enemySup: 600, enemySum }),
+            ],
+          }),
+        ),
+      );
+    expect(plan(even)).toEqual([`${main.id}:patrol@1003`]);
+    // Too strong there: the next contested region (nothing known there).
+    expect(plan(strong)).toEqual([`${main.id}:patrol@1002`]);
+    // Out of range: it strikes from home.
+    expect(plan(even, 100)).toEqual([`${main.id}:strike@1001`]);
+  });
+
+  // Task 15: short of fuel the fleets save it.
+  test("short of fuel, no contest and patrols only where home is threatened", () => {
+    const main = fleet({ bb: 2, dd: 6 });
+    const p = fleet({ cl: 2, dd: 3 });
+    const regions = (threat: number) => [
+      region(1001, { home: true, km: 0, enemySup: threat }),
+      region(1002, { traffic: 20 }),
+      region(1003, { enemySup: 600 }),
+    ];
+    const plan = (fuelShort: boolean, threat = 0) =>
+      missions(
+        aiNavalPlan(
+          input({ fleets: [main, p], regions: regions(threat), fuelShort }),
+        ),
+      );
+    expect(plan(false)).toEqual([
+      `${main.id}:patrol@1003`,
+      `${p.id}:patrol@1001`,
+    ]);
+    expect(plan(true)).toEqual([`${main.id}:strike@1001`]);
+    expect(plan(true, 300)).toEqual([
+      `${main.id}:strike@1001`,
+      `${p.id}:patrol@1001`,
     ]);
   });
 

@@ -46,8 +46,9 @@ describe("convoy rules", () => {
     expect(convoySinkMilli(300, 75_000, 125_000, 90)).toBe(3375);
     expect(escortCutPm(5, 0)).toBe(0);
     expect(escortCutPm(1, 1_000_000)).toBe(850);
-    expect(aswDamageMilli(125_000, 1000)).toBe(25_000);
-    expect(aswDamageMilli(125_000, 400)).toBe(10_000);
+    // Task 15: WW_ASW_K_PM 10 (was 20).
+    expect(aswDamageMilli(125_000, 1000)).toBe(12_500);
+    expect(aswDamageMilli(125_000, 400)).toBe(5_000);
     expect(interceptLossPm(0, 1)).toBe(100);
     expect(interceptLossPm(250, 1)).toBe(50);
     expect(interceptLossPm(500, 1)).toBe(0);

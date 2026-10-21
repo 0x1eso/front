@@ -65,6 +65,7 @@ import {
   extraction,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { fuelGain } from "@openfront/engine-lib/ww1936/FuelRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
@@ -951,6 +952,29 @@ export interface AiInput {
   /** P4 spec §17.5: its working dockyards and their target (none or 0: it builds none). */
   docks?: number;
   dockTarget?: number;
+  /**
+   * P4 Task 15: oil a day its fuel wants — yesterday's use in oil, while
+   * the stock is under half the capacity (0 or none: nothing).
+   */
+  fuelOil?: number;
+}
+
+/**
+ * Task 15 (내 판단): at most this much oil a day is bought for fuel. The
+ * lines alone asked for oil, so Britain (3 oil of its own), Italy, France
+ * and Japan ran dry from their first sorties and stayed short all war.
+ */
+export const AI_FUEL_OIL_MAX = 30;
+const OIL = RESOURCE_IDS.indexOf("oil");
+
+/** The trade's needs: the lines' and the fuel's oil (one unit serves both: the larger). */
+export function withFuelOil(
+  need: readonly number[],
+  fuelOil: number,
+): number[] {
+  const out = [...need];
+  if (fuelOil > out[OIL]) out[OIL] = fuelOil;
+  return out;
 }
 
 type AiPlainOrder = Extract<
@@ -1023,7 +1047,7 @@ export function aiPlan(input: AiInput): AiPlan {
   planConstruction(input, need, orders);
   orders.push(...lines.orders);
   planResearch(input, orders);
-  planTrade(input, need, orders);
+  planTrade(input, withFuelOil(need, input.fuelOil ?? 0), orders);
   return orders;
 }
 
@@ -1846,7 +1870,17 @@ export function aiInput(
       econ.regionsOf(me).some((r) => econ.scenario.harborOf(r) !== 0),
     docks: t.dock,
     dockTarget: aiDockTarget(ce.tag, warDays >= 0),
+    fuelOil: fuelOilOf(econ, ce),
   };
+}
+
+/** AiInput.fuelOil: yesterday's fuel use in oil while the stock is under half the capacity. */
+function fuelOilOf(econ: WwEconomy, ce: CountryEconomy): number {
+  if (ce.fuelMilli * 2 >= fuelCapOf(econ, ce)) return 0;
+  const used = ce.fuelUseMilli[0] + ce.fuelUseMilli[1] + ce.fuelUseMilli[2];
+  const perOil = fuelGain(1, ce.stats);
+  if (used <= 0 || perOil <= 0) return 0;
+  return Math.min(AI_FUEL_OIL_MAX, Math.ceil(used / perOil));
 }
 
 /** Runs one AI order through the functions a human's orders use. */

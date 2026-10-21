@@ -4,6 +4,7 @@ import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import {
+  AI_FIGHTER_HOME_PCT,
   aiAirDue,
   AiAirInput,
   aiAirPlan,
@@ -69,6 +70,25 @@ const deploys = (orders: ReturnType<typeof aiAirPlan>) =>
   );
 
 describe("the air AI's plan (spec §17.3)", () => {
+  // Task 15: Britain keeps 40% of its fighters over London (Fighter
+  // Command); the bombers still put 90% on the demands.
+  test("a home reserve keeps that share of the fighters at the capital", () => {
+    const orders = aiAirPlan(
+      input({
+        planes: planes({ fighter: 100, bomber: 100 }),
+        capitalSr: 3,
+        fighterHomePct: AI_FIGHTER_HOME_PCT.GBR,
+        zones: [zone(1, { front: true, enemyDivisions: 9, attacking: true })],
+      }),
+    );
+    expect(AI_FIGHTER_HOME_PCT.GBR).toBe(40);
+    expect(deploys(orders)).toEqual([
+      "1:fighter:air_superiority=60",
+      "1:bomber:cas=90",
+      "3:fighter:interception=40",
+    ]);
+  });
+
   test("fighters follow the front and keep 10% at the capital", () => {
     // 100 fighters: 90 over the fronts by their enemy divisions (weights
     // 1 + 9 and 1 + 19: 30 and 60), 10 intercept over the capital.

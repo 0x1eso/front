@@ -19,6 +19,7 @@ import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_FALLBACK_AHEAD_PCT,
+  AI_FUEL_OIL_MAX,
   AI_SUPPORT_RESERVE,
   AI_SUPPORT_SHORT_PTS,
   AI_SWITCH_DAY,
@@ -39,6 +40,7 @@ import {
   aiSeaSchool,
   aiTechDomain,
   isAiTurn,
+  withFuelOil,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
@@ -771,6 +773,40 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         lawCooldownUntil: { economy: 5, trade: -1, conscription: -1 },
       }),
     ).toEqual(["conscription:extensive"]);
+  });
+
+  // Task 15: the fuel's oil is bought too (its stock under half the
+  // capacity: aiInput's fuelOil); one unit serves the lines and the fuel.
+  test("buy oil for fuel", () => {
+    expect(withFuelOil(res({ oil: 4 }), 10)[RESOURCE_IDS.indexOf("oil")]).toBe(
+      10,
+    );
+    expect(withFuelOil(res({ oil: 12 }), 10)[RESOURCE_IDS.indexOf("oil")]).toBe(
+      12,
+    );
+    const partners = [
+      { smallID: 7, sameFaction: false, room: res({ oil: 80 }) },
+    ];
+    const buy = (fuelOil: number, produced = res({ oil: 2 })) =>
+      only(
+        aiPlan(
+          input({
+            freeCivMilli: 20_000,
+            payableCivs: 10,
+            partners,
+            produced,
+            fuelOil,
+          }),
+        ),
+        "open_trade",
+      );
+    // 12 oil wanted, 2 of its own: 10 to buy, two factories' worth (8 each).
+    expect(buy(12)).toEqual([
+      { kind: "open_trade", seller: 7, resource: "oil", civs: 2 },
+    ]);
+    expect(buy(0)).toEqual([]);
+    expect(buy(10, res({ oil: 10 }))).toEqual([]);
+    expect(AI_FUEL_OIL_MAX).toBe(30);
   });
 
   test("buy what lines lack, at most 30% of free civs", () => {

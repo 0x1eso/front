@@ -803,6 +803,8 @@ export class WwLand {
   // Derived (DERIVED_FIELDS).
   private sideOfId: number[] = [];
   private sideListCache: Side[] = [];
+  /** Derived: side key → its side (sideMembers in O(1): Task 15's perf pass). */
+  private sideByKey = new Map<number, Side>();
   private statsCache = new Map<number, StatsEntry>();
   /** owner × 65536 + template → the template's numbers by generation mix. */
   private tplCache = new Map<number, TemplateStatsEntry>();
@@ -1044,7 +1046,7 @@ export class WwLand {
   }
 
   sideMembers(side: number): readonly number[] {
-    return this.sideListCache.find((s) => s.key === side)?.members ?? [];
+    return this.sideByKey.get(side)?.members ?? [];
   }
 
   sideList(): readonly Side[] {
@@ -2502,6 +2504,7 @@ export class WwLand {
       s.members.push(id);
     }
     this.sideListCache = [...byKey.values()].sort((a, b) => a.rep - b.rep);
+    this.sideByKey = byKey;
     this.statsCache.clear();
     this.tplCache.clear();
     this.statsInputs = [];

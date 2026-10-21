@@ -20,6 +20,7 @@ import {
   AirType,
   WW_MAX_DEPLOY_COUNT,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -43,6 +44,15 @@ import type { WwAir } from "./WwAir";
 
 /** Spec §17.3-2: the share of each type's planes put on the demands. */
 export const AI_AIR_USE_PCT = 90;
+/**
+ * Task 15 (내 판단): the share of its fighters a country keeps over its
+ * capital (spec §17.3-2's 10% for the rest). Britain kept Fighter Command
+ * at home: its whole fighter force over France gave the Allies the sky
+ * there in every game and Germany never had it.
+ */
+export const AI_FIGHTER_HOME_PCT: Readonly<
+  Partial<Record<CountryTag, number>>
+> = { GBR: 40 };
 /** Spec §17.3-3: a zone losing more than this ‰ of its planes in 5 days… */
 export const AI_AIR_LOSS_PM = 150;
 /** …under this superiority loses its bombers. */
@@ -122,6 +132,8 @@ export interface AiAirInput {
   current: readonly AiAirTarget[];
   /** Zones the plan may change (undefined: all; a human: its auto zones). */
   only?: readonly number[];
+  /** Task 15: percent of the fighters kept over the capital (default 100 − AI_AIR_USE_PCT). */
+  fighterHomePct?: number;
 }
 /** An order the AI gives through air.issue (the same as a player's). */
 export type AiAirOrder = AirOrder;
@@ -221,8 +233,12 @@ export function aiAirPlan(input: AiAirInput): AiAirOrder[] {
     if (TYPE_MISSIONS[type] === undefined) return;
     const total = input.planes[ti] ?? 0;
     if (total <= 0) return;
-    const usable = Math.floor((total * AI_AIR_USE_PCT) / 100);
     const fighter = FIGHTERS.includes(type);
+    const usePct =
+      fighter && input.fighterHomePct !== undefined
+        ? 100 - input.fighterHomePct
+        : AI_AIR_USE_PCT;
+    const usable = Math.floor((total * usePct) / 100);
     let reserve = fighter ? total - usable : 0;
     if (input.atWar) {
       const demands = demandsOf(type, input, ti, noBombers);
@@ -507,6 +523,16 @@ export function aiAirInput(
     }
   }
   const zones: AiAirZoneView[] = [];
+  // One reach row per distance (most zones are out of reach: -1).
+  const reachByKm = new Map<number, readonly boolean[]>();
+  const reachOf = (minKm: number) => {
+    let r = reachByKm.get(minKm);
+    if (r === undefined) {
+      r = range.map((km) => minKm >= 0 && minKm <= km);
+      reachByKm.set(minKm, r);
+    }
+    return r;
+  };
   for (const s of sc.strategicList()) {
     const z = air.zoneState[s.idx];
     const v = shared[s.idx];
@@ -544,11 +570,12 @@ export function aiAirInput(
       supPm: air.airSup(side, s.id),
       encircled,
       lossPm: deployed === 0 ? 0 : Math.floor((lost * 1000) / deployed),
-      reach: range.map((km) => minKm >= 0 && minKm <= km),
+      reach: reachOf(minKm),
       beat: beatSrs.has(s.id),
     });
   }
   const cap = capitalRegion(land, smallID);
+  const home = human ? undefined : AI_FIGHTER_HOME_PCT[ce.tag];
   return {
     smallID,
     day,
@@ -558,6 +585,7 @@ export function aiAirInput(
     capitalSr: cap === 0 ? 0 : sc.regionSr(cap),
     current,
     ...(only === undefined ? {} : { only }),
+    ...(home === undefined ? {} : { fighterHomePct: home }),
   };
 }
 

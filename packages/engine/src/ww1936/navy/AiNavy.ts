@@ -172,7 +172,20 @@ export interface AiNavalInput {
   style: AiNavyStyle;
   /** The game's roll seed: ±5% jitter on the scores; 0 none. */
   seed: number;
+  /**
+   * Task 15: fuel runs short — yesterday's ratio under 1000‰, or the stock
+   * under AI_FUEL_RESERVE_DAYS of yesterday's use. Absent: false.
+   */
+  fuelShort?: boolean;
 }
+
+/**
+ * Task 15 (내 판단): with fewer days of fuel than this in the stock the
+ * fleets save it — no contest of the sea, no patrols but where home is
+ * threatened. Italy patrolled its lanes all war against Ethiopia and was
+ * short of fuel from 1936 to 1941.
+ */
+export const AI_FUEL_RESERVE_DAYS = 30;
 /** An order the AI gives through navy.issue (the same as a player's). */
 export type AiNavalOrder = WwOrder;
 
@@ -308,6 +321,19 @@ export function aiOrganise(counts: readonly number[]): {
     groups.push(g);
   }
   return { groups, rest: c };
+}
+
+/**
+ * Task 15 (내 판단): a fleet the war plan has no role for — submarines
+ * with screens ("mixed") — or a battle fleet with a submarine flotilla
+ * (AI_SUB_MIN boats) aboard: regrouped by aiOrganise like new ships.
+ */
+export function aiRegroups(counts: readonly number[]): boolean {
+  const role = fleetRole(counts);
+  return (
+    (role === "mixed" && sumOf(counts) > 0) ||
+    (role === "main" && counts[SS] >= AI_SUB_MIN)
+  );
 }
 
 /** A ship as the battle sums read it. */
@@ -641,11 +667,15 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
   const orders: AiNavalOrder[] = [];
   const fleets = [...input.fleets].sort((a, b) => a.id - b.id);
   const jit = (key: number) => aiJitterPm(input.seed, input.smallID, key);
-  // ① New ships into role fleets.
+  // ① New ships into role fleets; at war also a docked fleet no role
+  // takes (the 1936 order of battle's submarines with screens) and a
+  // battle fleet carrying a flotilla of submarines (Task 15: they sat in
+  // port all war, so no commerce war was fought).
   let fleetCount = input.fleetCount;
   const busy = new Set<number>();
   for (const f of fleets) {
-    if (!f.newShips || f.docked === 0 || f.state === "battle") continue;
+    if (f.docked === 0 || f.state === "battle") continue;
+    if (!f.newShips && !(input.atWar && aiRegroups(f.counts))) continue;
     const { groups, rest } = aiOrganise(f.counts);
     const restEmpty = sumOf(rest) === 0;
     if (groups.length === 0) {
@@ -780,11 +810,13 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
   for (const step of input.style.order) {
     if (step === "home") {
       // ③ A battle fleet strikes where the threat to home is greatest; a
-      // weaker one waits in port (a fleet in being). A patrol for every
-      // home region, the threatened first.
+      // weaker one waits in port (a fleet in being). With no threat at
+      // home it is left for the hunt (⑥) and the contest of the sea
+      // below (Task 15). A patrol for every home region, the threatened
+      // first.
       for (const f of byRole("main")) {
         const target = homes.find((r) => inRange(f, r.sr));
-        if (target === undefined) continue;
+        if (target === undefined || target.enemySup === 0) continue;
         want(
           f,
           aiPredictPm(f.sum, target.enemySum) >= AI_MAIN_ENGAGE_PM
@@ -793,6 +825,8 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
         );
       }
       for (const r of homes) {
+        // Short of fuel: only the threatened home regions (Task 15).
+        if (input.fuelShort && r.enemySup === 0) continue;
         const p = byRole("patrol").find((f) => inRange(f, r.sr));
         if (p !== undefined) want(p, go("patrol", r.sr, "if_stronger"));
       }
@@ -864,6 +898,38 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
     }
   }
 
+  // Task 15 (내 판단): a battle fleet with no threat at home and nothing
+  // to hunt contests the sea — on patrol (it fights there if stronger)
+  // where the enemy holds the most supremacy within its range and allowed
+  // seas, one fleet a region, when it would win (predicted 0.9); else it
+  // strikes from home as before. The 1936 navies sat in port all war:
+  // hardly a battle in nine years, none between Japan and the United States.
+  const contested = input.regions
+    .filter((r) => !input.fuelShort && r.enemySup > 0 && allowed(r.sr))
+    .sort((a, b) => threat(b) - threat(a) || a.sr - b.sr);
+  const contestedBy = new Set<number>();
+  for (const f of byRole("main")) {
+    const r = contested.find(
+      (x) =>
+        !contestedBy.has(x.sr) &&
+        inRange(f, x.sr) &&
+        aiPredictPm(f.sum, x.enemySum) >= AI_MAIN_ENGAGE_PM,
+    );
+    if (r !== undefined) {
+      contestedBy.add(r.sr);
+      want(f, go("patrol", r.sr, "if_stronger", true));
+      continue;
+    }
+    const home = homes.find((x) => inRange(f, x.sr));
+    if (home === undefined) continue;
+    want(
+      f,
+      aiPredictPm(f.sum, home.enemySum) >= AI_MAIN_ENGAGE_PM
+        ? go("strike", home.sr, "always", true)
+        : HOLD,
+    );
+  }
+
   // The rest: patrols where our convoys go (else at home), submarines
   // where the enemy sails; escorts with no loss to answer and battle
   // fleets wait in port (only Britain escorts its quiet lanes too).
@@ -874,9 +940,11 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
     if (wants.has(f.id)) continue;
     const role = fleetRole(f.counts);
     if (role === "patrol") {
-      const r =
-        lanes.find((x) => inRange(f, x.sr)) ??
-        homes.find((x) => inRange(f, x.sr));
+      // Short of fuel: a patrol sails only where home is threatened.
+      const r = input.fuelShort
+        ? homes.find((x) => x.enemySup > 0 && inRange(f, x.sr))
+        : (lanes.find((x) => inRange(f, x.sr)) ??
+          homes.find((x) => inRange(f, x.sr)));
       if (r !== undefined) {
         want(f, go("patrol", r.sr, "if_stronger"));
         continue;
@@ -1294,7 +1362,20 @@ export function aiNavalInput(
     ports,
     style: aiNavyStyle(tag),
     seed: ww.politics.seed,
+    fuelShort: aiFuelShort(navy, smallID),
   };
+}
+
+/** AiNavalInput.fuelShort: yesterday's ratio under 1000‰ or under AI_FUEL_RESERVE_DAYS of yesterday's use left. */
+export function aiFuelShort(navy: WwNavy, smallID: number): boolean {
+  const ce = navy.econ.country(smallID);
+  if (ce === null) return false;
+  const used = ce.fuelUseMilli[0] + ce.fuelUseMilli[1] + ce.fuelUseMilli[2];
+  return (
+    ce.fuelRatioPm < 1000 ||
+    ce.fuelMilli + ce.fuelGainMilli * AI_FUEL_RESERVE_DAYS <
+      used * AI_FUEL_RESERVE_DAYS
+  );
 }
 
 /** Spec §17.1: at war daily, else every 10 days. */

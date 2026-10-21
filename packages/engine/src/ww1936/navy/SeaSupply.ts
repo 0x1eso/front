@@ -96,9 +96,10 @@ function buildSide(navy: WwNavy, side: number): SideSupply {
   const sc = navy.scenario;
   const ctl = land.controller;
   const members = land.sideMembers(side);
+  // A member's region (sideOf: members are the countries of the side).
   const ours = (r: number): boolean => {
     const c = ctl[r] ?? 0;
-    return c !== 0 && members.includes(c);
+    return c !== 0 && land.sideOf(c) === side;
   };
   // P2 Supply.hubsOf: the rail net from the members' capitals.
   const rail = navy.econ.rail;
@@ -297,6 +298,17 @@ export function syncSupplyRoutes(
 ): void {
   const land = navy.land;
   const sc = navy.scenario;
+  // A hub of ours is a port or a beachhead we control: with neither there
+  // is nothing to ship to (Task 15's perf pass: the side's net unbuilt).
+  if (
+    portRegionsOf(navy, owner).length === 0 &&
+    ![...navy.beachhead.keys()].some((r) => land.controller[r] === owner)
+  ) {
+    for (const r of routesOf(navy, owner)) {
+      if (r.use === USE_SUPPLY) dropRoute(navy, r.id);
+    }
+    return;
+  }
   const side = land.sideOf(owner);
   const ss = sideSupply(navy, side);
   const sources: number[] = [];
