@@ -671,6 +671,25 @@ export class WwAir {
     };
   }
 
+  /**
+   * Spec §14.8 (the screens' hatching and bomb carpets): the regions `id`
+   * controls with bomb damage outstanding, [region, damage milli summed
+   * over its buildings], ascending. Repairs (lane E) take them off.
+   */
+  private bombedRegionsOf(id: number): [number, number][] {
+    const out: [number, number][] = [];
+    const n = BUILDING_IDS.length;
+    const dmg = this.econ.damage;
+    const ctl = this.ww.land.controller;
+    for (const r of this.ww.scenario.landRegions) {
+      if (ctl[r.id] !== id) continue;
+      let sum = 0;
+      for (let b = 0; b < n; b++) sum += dmg[r.id * n + b] ?? 0;
+      if (sum > 0) out.push([r.id, sum]);
+    }
+    return out.sort((a, b) => a[0] - b[0]);
+  }
+
   private countryDetail(id: number): CountryAirDetail {
     const c = this.country(id)!;
     const ce = this.econ.country(id)!;
@@ -734,7 +753,7 @@ export class WwAir {
         ring(c.tally[3]),
         ring(c.tally[4]),
       ],
-      bombedRegions: [],
+      bombedRegions: this.bombedRegionsOf(id),
       // Lane U: the zones the AI runs for this human (the zone card's auto).
       autoZones: [...c.autoZones].sort((a, b) => a - b),
     };
