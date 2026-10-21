@@ -1611,6 +1611,7 @@
     "ww1936_slot_free": "A research slot is free",
     "ww1936_spectating": "No country to take over in your faction — you are now spectating",
     "ww1936_subject_level": "{tag} is now: {level}",
+    "ww1936_subject_restricted": "You cannot declare war on your overlord.",
     "ww1936_takeover": "{toTag} is now played in place of {fromTag}",
     "ww1936_trade_closed": "Deal with {seller} for {resource} closed",
     "ww1936_treaty": "New {kind} between {a} and {b}",
