@@ -18,6 +18,8 @@ import {
   WW_BOMB_POINTS_PER_BUILDING,
   WW_CAS_HIT_SCALE_PM,
   WW_MAX_DEPLOYMENTS,
+  WW_PARADROP_AIRSUP_PM,
+  WW_PARADROP_PLANES_PER_WEIGHT,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -255,8 +257,24 @@ export interface ParadropAsk {
   airSupPm: number;
 }
 
-/** Spec §14.10: the P4 conditions of a paradrop; null when they hold (lane A2). */
+/**
+ * Spec §14.10: the P4 conditions of a paradrop, in this order — an air
+ * base where the army stands, the target's center within the transports'
+ * range, enough transports in the stock, and our superiority over the
+ * target's zone yesterday at least 70%; null when they hold. The army
+ * card and the engine (air/Paradrop.paradropBlockFor) share it.
+ */
 export function paradropBlockOf(a: ParadropAsk): WwOrderBlock | null {
-  void a;
+  if (!a.fromAirBase) return "no_air_base";
+  if (a.targetKm > a.transportRangeKm) return "out_of_range";
+  if (a.transportsFree < a.transportsNeed) return "no_transport_planes";
+  if (a.airSupPm < WW_PARADROP_AIRSUP_PM) return "air_superiority_low";
   return null;
+}
+
+/** Spec §14.10: the transports a paradrop needs from its divisions' weight (centi): 20 a weight point. */
+export function paradropTransports(weightCenti: number): number {
+  return Math.ceil(
+    (Math.max(0, weightCenti) * WW_PARADROP_PLANES_PER_WEIGHT) / 100,
+  );
 }

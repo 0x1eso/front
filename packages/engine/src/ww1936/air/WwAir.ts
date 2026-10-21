@@ -856,7 +856,12 @@ export class WwAir {
     removeFrom(this.deploysByBase, d.base, d.id);
   }
 
-  /** Per country the planes deployed; per zone the superiority by side; the losses and bomb points so far. */
+  /**
+   * Per country the planes deployed; per zone the superiority by side and
+   * the mission effects' state the land war reads later (CAS pool and
+   * shares, air supply, the results); per country the 30-day rings; the
+   * losses and bomb points so far. Empty state adds nothing.
+   */
   hash(): number {
     let h = 43;
     const n = new Array<number>(this.countryList.length).fill(0);
@@ -869,10 +874,21 @@ export class WwAir {
     for (let id = 1; id < n.length; id++) {
       if (n[id] !== 0) h = (Math.imul(h, 31) + id * 7 + n[id]) >>> 0;
     }
+    const mix = (x: number, v: number) => (Math.imul(x, 31) + v) | 0;
     this.zoneState.forEach((z, i) => {
       let sum = 0;
       for (const v of z.sup.values()) sum += v;
       if (sum !== 0) h = (Math.imul(h, 31) + i * 11 + sum) >>> 0;
+      // Lane A2 review: the effects' state of the zone.
+      let fx = 0;
+      for (const [k, v] of z.cas) fx = mix(mix(fx, k), v);
+      for (const [r, s, m] of z.casShare) fx = mix(mix(mix(fx, r), s), m);
+      for (const [r, s, m] of z.airSupply) fx = mix(mix(mix(fx, r), s), m);
+      for (const [k, row] of z.result) {
+        fx = mix(fx, k);
+        for (const v of row) fx = mix(fx, v);
+      }
+      if (fx !== 0) h = (Math.imul(h, 31) + i * 17 + fx) >>> 0;
       // A1: the battlefield-support bonus and the alerts' days (state).
       for (const [k, v] of z.enemyPp) {
         h = (Math.imul(h, 31) + i * 13 + k + v) >>> 0;
@@ -881,6 +897,12 @@ export class WwAir {
         h = (Math.imul(h, 31) + i * 17 + k + v) >>> 0;
       }
     });
+    for (const c of this.countries()) {
+      let r = 0;
+      for (const v of c.bombTaken) r = mix(r, v);
+      for (const t of c.tally) for (const v of t) r = mix(r, v);
+      if (r !== 0) h = (Math.imul(h, 31) + c.smallID * 19 + r) >>> 0;
+    }
     h = (Math.imul(h, 31) + this.planesLostTotal) >>> 0;
     return (Math.imul(h, 31) + this.bombPointsTotal) >>> 0;
   }
