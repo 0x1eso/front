@@ -295,10 +295,12 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(exportRoom(econ, sun.smallID, STEEL)).toBe(4);
     throughDay(runner, 0);
     expect(econ.trades()).toHaveLength(3);
-    // Germany takes Moscow: the next day it is occupied, the Soviet step
-    // finds only Kiev's 27 (21 for sale), and the day after the newest
-    // deal closes.
+    // Germany takes Moscow (a treaty's: legal owner too — at peace, P5
+    // spec §5.3 would hand an occupied region back; at war, the deal would
+    // end): the next day the Soviet step finds only Kiev's 27 (21 for
+    // sale), and the day after the newest deal closes.
     const moscow = ww.scenario.landRegions.find((r) => r.name === "Moscow")!;
+    ww.politics.setLegalOwner(moscow.id, id("DEU"));
     takeRegion(runner.game, moscow.id, "DEU");
     throughDay(runner, 1);
     expect(econ.controllerOf(moscow.id)).toBe(id("DEU"));
