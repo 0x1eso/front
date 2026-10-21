@@ -8,6 +8,7 @@
 // 600 ticks beside the game: the hash every tick, the snapshot every 25.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { StampedIntent } from "@openfront/engine-api/Schemas";
+import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { MOVE_RETREAT } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   WW_CAPITULATION_DAYS,
@@ -76,6 +77,11 @@ function germany(g: Game): StampedIntent[] {
     ];
   }
   if (t === WW_PREP_TICKS + 5) {
+    // P4 (lane A2): a paradrop needs our superiority over the target's
+    // zone: fighters over Krakow's and Warsaw's.
+    const srs = [...new Set([7, 6].map((r) => ww.scenario.regionSr(r)))].filter(
+      (sr) => sr > 0,
+    );
     return [
       order(HUMAN, {
         kind: "train",
@@ -84,6 +90,15 @@ function germany(g: Game): StampedIntent[] {
         army: 0,
         region: 0,
       }),
+      ...srs.map((sr) =>
+        order(HUMAN, {
+          kind: "air_deploy",
+          sr,
+          type: "fighter",
+          mission: "air_superiority",
+          count: 100,
+        }),
+      ),
     ];
   }
   if (!ww.isAtWar(deu, pol) || kOf(g) !== 4) return [];
@@ -138,6 +153,8 @@ function hand(g: Game): void {
       },
     });
     placeArmy(g, "DEU", 3, 2, tpl);
+    // P4 (lane A2): the transports a drop needs.
+    l.econ.country(deu)!.stock[equipKey("transport_plane", 1)] += 200;
   }
   if (!ww.isAtWar(deu, pol) || ww.isCapitulated(pol)) return;
   // Four days into the war Warsaw falls (as a won battle takes it) the

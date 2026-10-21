@@ -223,7 +223,9 @@ describe("engagements (spec §8.2, §9.1)", () => {
     expect(started).toEqual([[ZONE.west, ww.land.sideOf(GBR), ita]]);
     expect(navy.battles.has(ZONE.west)).toBe(true);
     const s = navy.fleets.get(sf)!;
-    expect(FLEET_STATES[s.state]).toBe("sortie");
+    // Out on its sortie, it joins lane N2's battle in that zone at once.
+    expect(FLEET_STATES[s.state]).toBe("battle");
+    expect(navy.battles.get(ZONE.west)!.fleets.flat()).toContain(sf);
     expect(s.sortieTarget).toBe(ita);
     // London's harbor zone is the enemy's: out at once.
     expect([s.docked, s.zone]).toEqual([0, ZONE.west]);

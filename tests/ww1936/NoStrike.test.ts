@@ -55,7 +55,7 @@ describe("no-strike regions", () => {
   it("a port strike on one is refused", () => {
     const navy = {
       scenario: world,
-      fleets: new Map([[7, { owner: 3 }]]),
+      fleets: new Map([[7, { owner: 3, ships: [] }]]),
     } as unknown as WwNavy;
     const strike = (port: number): CarrierOrder => ({
       kind: "fleet_port_strike",
@@ -63,7 +63,9 @@ describe("no-strike regions", () => {
       port,
     });
     expect(issueCarrierOrder(navy, 3, strike(901), 0)).toBe("no_strike_region");
-    expect(issueCarrierOrder(navy, 3, strike(758), 0)).toBeNull();
+    // Tokyo passes the no-strike check; lane N2's carrier checks come next
+    // (this fake fleet has no carrier).
+    expect(issueCarrierOrder(navy, 3, strike(758), 0)).toBe("bad_ship_class");
     expect(issueCarrierOrder(navy, 4, strike(758), 0)).toBe("no_fleet");
   });
 
