@@ -1,0 +1,29 @@
+{
+  "width": 1024,
+  "height": 128,
+  "cellSize": 64,
+  "cols": 16,
+  "rows": 2,
+  "source": "resources/atlases/src/ship-atlas.svg (rsvg-convert)",
+  "cells": {
+    "battleship": 0,
+    "carrier": 1,
+    "cruiser": 2,
+    "destroyer": 3,
+    "submarine": 4,
+    "merchant": 5,
+    "plane": 6,
+    "patrol": 7,
+    "strike": 8,
+    "raid": 9,
+    "escort": 10,
+    "invasion_support": 11,
+    "training": 12,
+    "battle": 13,
+    "repair": 14,
+    "low_fuel": 15,
+    "check": 16,
+    "cross": 17,
+    "digit0": 18
+  }
+}
