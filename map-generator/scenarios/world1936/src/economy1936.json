@@ -6,7 +6,7 @@
     "dev": 5,
     "civ": 32,
     "mil": 16,
-    "dock": 3,
+    "dock": 8,
     "infra": 5
   },
   {
@@ -16,7 +16,7 @@
     "dev": 3,
     "civ": 14,
     "mil": 7,
-    "dock": 4,
+    "dock": 9,
     "infra": 3,
     "nonCore": ["GRC"]
   },
@@ -27,7 +27,7 @@
     "dev": 3,
     "civ": 16,
     "mil": 8,
-    "dock": 8,
+    "dock": 14,
     "infra": 4,
     "nonCore": ["KOR", "PRK", "TWN", "CHN"]
   },
@@ -38,7 +38,7 @@
     "dev": 5,
     "civ": 32,
     "mil": 8,
-    "dock": 12,
+    "dock": 20,
     "infra": 4,
     "nonCore": ["CAN", "YEM"]
   },
@@ -49,7 +49,7 @@
     "dev": 4,
     "civ": 22,
     "mil": 8,
-    "dock": 4,
+    "dock": 10,
     "infra": 4,
     "nonCore": ["TUR"]
   },
@@ -60,7 +60,7 @@
     "dev": 5,
     "civ": 80,
     "mil": 5,
-    "dock": 10,
+    "dock": 16,
     "infra": 4,
     "nonCore": ["PHL", "PRI"],
     "admPop": {
@@ -124,7 +124,7 @@
     "dev": 3,
     "civ": 40,
     "mil": 22,
-    "dock": 4,
+    "dock": 8,
     "infra": 3
   },
   { "tag": "POL", "popCore": 34000, "popColonial": 0, "dev": 3 },
@@ -138,11 +138,11 @@
   { "tag": "ALB", "popCore": 1000, "popColonial": 0, "dev": 1 },
   { "tag": "TUR", "popCore": 16500, "popColonial": 0, "dev": 2 },
   { "tag": "BEL", "popCore": 8300, "popColonial": 10000, "dev": 5 },
-  { "tag": "NLD", "popCore": 8500, "popColonial": 61000, "dev": 5 },
+  { "tag": "NLD", "popCore": 8500, "popColonial": 61000, "dev": 5, "dock": 3 },
   { "tag": "LUX", "popCore": 300, "popColonial": 0, "dev": 5 },
   { "tag": "CHE", "popCore": 4200, "popColonial": 0, "dev": 5 },
-  { "tag": "ESR", "popCore": 14000, "popColonial": 0, "dev": 3 },
-  { "tag": "ESN", "popCore": 10000, "popColonial": 1000, "dev": 2 },
+  { "tag": "ESR", "popCore": 14000, "popColonial": 0, "dev": 3, "dock": 2 },
+  { "tag": "ESN", "popCore": 10000, "popColonial": 1000, "dev": 2, "dock": 2 },
   {
     "tag": "PRT",
     "popCore": 7300,
@@ -154,7 +154,14 @@
   { "tag": "DNK", "popCore": 3700, "popColonial": 20, "dev": 4 },
   { "tag": "ISL", "popCore": 120, "popColonial": 0, "dev": 3 },
   { "tag": "NOR", "popCore": 2900, "popColonial": 0, "dev": 4 },
-  { "tag": "SWE", "popCore": 6300, "popColonial": 0, "dev": 5, "mil": 2 },
+  {
+    "tag": "SWE",
+    "popCore": 6300,
+    "popColonial": 0,
+    "dev": 5,
+    "mil": 2,
+    "dock": 2
+  },
   { "tag": "FIN", "popCore": 3800, "popColonial": 0, "dev": 3 },
   { "tag": "EST", "popCore": 1100, "popColonial": 0, "dev": 3 },
   { "tag": "LVA", "popCore": 1950, "popColonial": 0, "dev": 3 },
@@ -182,7 +189,7 @@
   { "tag": "ETH", "popCore": 10000, "popColonial": 0, "dev": 1 },
   { "tag": "LBR", "popCore": 1500, "popColonial": 0, "dev": 1 },
   { "tag": "ZAF", "popCore": 9600, "popColonial": 360, "dev": 3 },
-  { "tag": "CAN", "popCore": 11000, "popColonial": 0, "dev": 4 },
+  { "tag": "CAN", "popCore": 11000, "popColonial": 0, "dev": 4, "dock": 2 },
   { "tag": "MEX", "popCore": 18500, "popColonial": 0, "dev": 2 },
   { "tag": "GTM", "popCore": 2200, "popColonial": 0, "dev": 1 },
   { "tag": "HND", "popCore": 1000, "popColonial": 0, "dev": 1 },
@@ -203,6 +210,6 @@
   { "tag": "URY", "popCore": 2000, "popColonial": 0, "dev": 3 },
   { "tag": "ARG", "popCore": 13000, "popColonial": 0, "dev": 3 },
   { "tag": "CHL", "popCore": 4600, "popColonial": 0, "dev": 2 },
-  { "tag": "AUS", "popCore": 6800, "popColonial": 1500, "dev": 4 },
+  { "tag": "AUS", "popCore": 6800, "popColonial": 1500, "dev": 4, "dock": 2 },
   { "tag": "NZL", "popCore": 1600, "popColonial": 0, "dev": 4 }
 ]

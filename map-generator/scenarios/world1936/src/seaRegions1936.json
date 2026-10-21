@@ -1,0 +1,392 @@
+[
+  {
+    "id": 1001,
+    "name": "Arctic Ocean",
+    "nameKo": "북극해",
+    "zones": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  },
+  {
+    "id": 1002,
+    "name": "Canadian Arctic Archipelago",
+    "nameKo": "캐나다 북극 제도",
+    "zones": [10, 12, 17, 23, 24, 26, 27]
+  },
+  {
+    "id": 1003,
+    "name": "Greenland Sea",
+    "nameKo": "그린란드해",
+    "zones": [11, 19]
+  },
+  {
+    "id": 1004,
+    "name": "Barents Sea",
+    "nameKo": "바렌츠해",
+    "zones": [13, 16, 33]
+  },
+  {
+    "id": 1005,
+    "name": "Kara and Laptev Seas",
+    "nameKo": "카라해·랍테프해",
+    "zones": [14, 15, 18, 25, 28]
+  },
+  {
+    "id": 1006,
+    "name": "East Siberian and Chukchi Seas",
+    "nameKo": "동시베리아해·축치해",
+    "zones": [21, 30]
+  },
+  {
+    "id": 1007,
+    "name": "Norwegian Sea",
+    "nameKo": "노르웨이해",
+    "zones": [22, 29]
+  },
+  {
+    "id": 1008,
+    "name": "Baffin and Hudson Bays",
+    "nameKo": "배핀만·허드슨만",
+    "zones": [20, 31, 32, 35, 38]
+  },
+  {
+    "id": 1009,
+    "name": "Denmark Strait (Iceland)",
+    "nameKo": "덴마크 해협(아이슬란드)",
+    "zones": [34]
+  },
+  {
+    "id": 1010,
+    "name": "North Western Approaches",
+    "nameKo": "북서 접근로",
+    "zones": [40]
+  },
+  {
+    "id": 1011,
+    "name": "North Sea",
+    "nameKo": "북해",
+    "zones": [46]
+  },
+  {
+    "id": 1012,
+    "name": "Skagerrak",
+    "nameKo": "스카게라크",
+    "zones": [156]
+  },
+  {
+    "id": 1013,
+    "name": "Baltic Sea",
+    "nameKo": "발트해",
+    "zones": [37, 41]
+  },
+  {
+    "id": 1014,
+    "name": "Gulf of Finland",
+    "nameKo": "핀란드만",
+    "zones": [157]
+  },
+  {
+    "id": 1015,
+    "name": "English Channel",
+    "nameKo": "영국 해협",
+    "zones": [150]
+  },
+  {
+    "id": 1016,
+    "name": "Western Approaches",
+    "nameKo": "서부 접근로",
+    "zones": [151, 152]
+  },
+  {
+    "id": 1017,
+    "name": "Bay of Biscay",
+    "nameKo": "비스케이만",
+    "zones": [61]
+  },
+  {
+    "id": 1018,
+    "name": "Central North Atlantic",
+    "nameKo": "북대서양 중부",
+    "zones": [43]
+  },
+  {
+    "id": 1019,
+    "name": "Western North Atlantic",
+    "nameKo": "북대서양 서부",
+    "zones": [47, 50, 54]
+  },
+  {
+    "id": 1020,
+    "name": "US East Coast",
+    "nameKo": "미국 동부 해안",
+    "zones": [69, 75]
+  },
+  {
+    "id": 1021,
+    "name": "Caribbean and Gulf of Mexico",
+    "nameKo": "카리브해·멕시코만",
+    "zones": [72, 83]
+  },
+  {
+    "id": 1022,
+    "name": "Central Atlantic",
+    "nameKo": "중부 대서양",
+    "zones": [70]
+  },
+  {
+    "id": 1023,
+    "name": "Approaches to Gibraltar",
+    "nameKo": "지브롤터 접근로",
+    "zones": [63]
+  },
+  {
+    "id": 1024,
+    "name": "Gulf of Guinea",
+    "nameKo": "기니만",
+    "zones": [86, 94]
+  },
+  {
+    "id": 1025,
+    "name": "Western Mediterranean",
+    "nameKo": "서지중해",
+    "zones": [153]
+  },
+  {
+    "id": 1026,
+    "name": "Tyrrhenian Sea",
+    "nameKo": "티레니아해",
+    "zones": [66]
+  },
+  {
+    "id": 1027,
+    "name": "Central Mediterranean",
+    "nameKo": "중앙 지중해",
+    "zones": [62, 64]
+  },
+  {
+    "id": 1028,
+    "name": "Adriatic Sea",
+    "nameKo": "아드리아해",
+    "zones": [155]
+  },
+  {
+    "id": 1029,
+    "name": "Aegean Sea",
+    "nameKo": "에게해",
+    "zones": [154]
+  },
+  {
+    "id": 1030,
+    "name": "Eastern Mediterranean",
+    "nameKo": "동지중해",
+    "zones": [160]
+  },
+  {
+    "id": 1031,
+    "name": "Black Sea",
+    "nameKo": "흑해",
+    "zones": [59]
+  },
+  {
+    "id": 1032,
+    "name": "Red Sea and Gulf of Aden",
+    "nameKo": "홍해·아덴만",
+    "zones": [77, 159]
+  },
+  {
+    "id": 1033,
+    "name": "Persian Gulf",
+    "nameKo": "페르시아만",
+    "zones": [158]
+  },
+  {
+    "id": 1034,
+    "name": "Arabian Sea",
+    "nameKo": "아라비아해",
+    "zones": [76, 87]
+  },
+  {
+    "id": 1035,
+    "name": "Bay of Bengal",
+    "nameKo": "벵골만",
+    "zones": [68]
+  },
+  {
+    "id": 1036,
+    "name": "Andaman Sea and Malacca",
+    "nameKo": "안다만해·말라카",
+    "zones": [85]
+  },
+  {
+    "id": 1037,
+    "name": "Western Indian Ocean",
+    "nameKo": "인도양 서부",
+    "zones": [91, 93, 121]
+  },
+  {
+    "id": 1038,
+    "name": "Central Indian Ocean",
+    "nameKo": "인도양 중부",
+    "zones": [96, 97]
+  },
+  {
+    "id": 1039,
+    "name": "Southern Indian Ocean",
+    "nameKo": "인도양 남부",
+    "zones": [116, 125, 128, 132, 136, 139, 141, 148]
+  },
+  {
+    "id": 1040,
+    "name": "South of Australia",
+    "nameKo": "오스트레일리아 남부",
+    "zones": [129, 135]
+  },
+  {
+    "id": 1041,
+    "name": "South China Sea",
+    "nameKo": "남중국해",
+    "zones": [80, 89]
+  },
+  {
+    "id": 1042,
+    "name": "Java Sea",
+    "nameKo": "자와해",
+    "zones": [100, 114]
+  },
+  {
+    "id": 1043,
+    "name": "Eastern East Indies",
+    "nameKo": "동인도 동부",
+    "zones": [88, 95, 101, 117]
+  },
+  {
+    "id": 1044,
+    "name": "Philippine Sea",
+    "nameKo": "필리핀해",
+    "zones": [74, 81]
+  },
+  {
+    "id": 1045,
+    "name": "East China and Yellow Seas",
+    "nameKo": "동중국해·황해",
+    "zones": [60, 73]
+  },
+  {
+    "id": 1046,
+    "name": "Sea of Japan",
+    "nameKo": "동해",
+    "zones": [57]
+  },
+  {
+    "id": 1047,
+    "name": "Sea of Okhotsk",
+    "nameKo": "오호츠크해",
+    "zones": [44, 49]
+  },
+  {
+    "id": 1048,
+    "name": "Japanese Home Waters",
+    "nameKo": "일본 근해",
+    "zones": [65]
+  },
+  {
+    "id": 1049,
+    "name": "Caroline Islands",
+    "nameKo": "캐롤라인 제도",
+    "zones": [79, 90]
+  },
+  {
+    "id": 1050,
+    "name": "Marshall Islands",
+    "nameKo": "마셜 제도",
+    "zones": [67]
+  },
+  {
+    "id": 1051,
+    "name": "Northwest Pacific",
+    "nameKo": "북서 태평양",
+    "zones": [39, 53]
+  },
+  {
+    "id": 1052,
+    "name": "Bering Sea and Gulf of Alaska",
+    "nameKo": "베링해·알래스카만",
+    "zones": [36, 42, 55]
+  },
+  {
+    "id": 1053,
+    "name": "Hawaiian Waters",
+    "nameKo": "하와이 해역",
+    "zones": [56, 78]
+  },
+  {
+    "id": 1054,
+    "name": "US West Coast",
+    "nameKo": "미국 서부 해안",
+    "zones": [45, 52, 71]
+  },
+  {
+    "id": 1055,
+    "name": "Eastern Pacific",
+    "nameKo": "동태평양",
+    "zones": [84, 92, 99]
+  },
+  {
+    "id": 1056,
+    "name": "West Coast of South America",
+    "nameKo": "남아메리카 서해안",
+    "zones": [106, 120, 123]
+  },
+  {
+    "id": 1057,
+    "name": "South Central Pacific",
+    "nameKo": "중남태평양",
+    "zones": [82, 102, 103, 104, 105, 113]
+  },
+  {
+    "id": 1058,
+    "name": "Solomons and Bismarck Sea",
+    "nameKo": "솔로몬 제도·비스마르크해",
+    "zones": [98, 110, 112]
+  },
+  {
+    "id": 1059,
+    "name": "Coral and Arafura Seas",
+    "nameKo": "산호해·아라푸라해",
+    "zones": [111, 115, 119, 122]
+  },
+  {
+    "id": 1060,
+    "name": "Tasman Sea",
+    "nameKo": "태즈먼해",
+    "zones": [126, 133, 142, 147]
+  },
+  {
+    "id": 1061,
+    "name": "Southern South Pacific",
+    "nameKo": "남태평양 남부",
+    "zones": [127, 131, 134, 137, 144, 145, 149]
+  },
+  {
+    "id": 1062,
+    "name": "Western South Atlantic",
+    "nameKo": "남대서양 서부",
+    "zones": [107, 118]
+  },
+  {
+    "id": 1063,
+    "name": "Central South Atlantic",
+    "nameKo": "남대서양 중부",
+    "zones": [108, 109, 124]
+  },
+  {
+    "id": 1064,
+    "name": "Cape of Good Hope",
+    "nameKo": "희망봉 해역",
+    "zones": [130, 140, 146]
+  },
+  {
+    "id": 1065,
+    "name": "Falklands and Southern South Atlantic",
+    "nameKo": "포클랜드·남대서양 남부",
+    "zones": [138, 143]
+  }
+]

@@ -138,42 +138,55 @@ type srcCountryOut struct {
 	Dev     int    `json:"dev"`
 }
 
-// srcRegionOut is a region of scenario.src.json, version 3 (P1 spec §3.1:
+// srcRegionOut is a region of scenario.src.json, version 4 (P1 spec §3.1:
 // the economy fields after vpTile; P2 spec §3.1: the land graph fields after
-// those). Port is a hand harbour (an island of islands1936.json), the
+// those; P4 spec §3.6: the strategic region, harbour and hand start levels
+// after island). Port is a hand harbour (an island of islands1936.json), the
 // generator's formula adds the rest. A region the generator drops has no
-// land-graph fields.
+// land-graph or version 4 fields. NavalBase, AirBase and CoastalFort are the
+// hand levels (bases.go); without one the generator applies the formula.
 type srcRegionOut struct {
-	ID      int     `json:"id"`
-	Name    string  `json:"name"`
-	NameKo  string  `json:"nameKo"`
-	Owner   string  `json:"owner"`
-	VP      int     `json:"vp"`
-	VPTile  *[2]int `json:"vpTile,omitempty"`
-	Cat     string  `json:"cat"`
-	Pop     int     `json:"pop"`
-	Infra   int     `json:"infra"`
-	Core    bool    `json:"core"`
-	Coastal bool    `json:"coastal"`
-	Civ     int     `json:"civ"`
-	Mil     int     `json:"mil"`
-	Dock    int     `json:"dock"`
-	Res     [6]int  `json:"res"`
-	Land    string  `json:"land,omitempty"`
-	Center  *[2]int `json:"center,omitempty"`
-	LatC    int     `json:"latC"`
-	WCell   int     `json:"wcell"`
-	Rail    int     `json:"rail"`
-	Fort    int     `json:"fort"`
-	Port    bool    `json:"port,omitempty"`
-	Island  string  `json:"island,omitempty"`
+	ID          int     `json:"id"`
+	Name        string  `json:"name"`
+	NameKo      string  `json:"nameKo"`
+	Owner       string  `json:"owner"`
+	VP          int     `json:"vp"`
+	VPTile      *[2]int `json:"vpTile,omitempty"`
+	Cat         string  `json:"cat"`
+	Pop         int     `json:"pop"`
+	Infra       int     `json:"infra"`
+	Core        bool    `json:"core"`
+	Coastal     bool    `json:"coastal"`
+	Civ         int     `json:"civ"`
+	Mil         int     `json:"mil"`
+	Dock        int     `json:"dock"`
+	Res         [6]int  `json:"res"`
+	Land        string  `json:"land,omitempty"`
+	Center      *[2]int `json:"center,omitempty"`
+	LatC        int     `json:"latC"`
+	WCell       int     `json:"wcell"`
+	Rail        int     `json:"rail"`
+	Fort        int     `json:"fort"`
+	Port        bool    `json:"port,omitempty"`
+	Island      string  `json:"island,omitempty"`
+	SR          int     `json:"sr,omitempty"`
+	Harbor      int     `json:"harbor,omitempty"`
+	NavalBase   *int    `json:"navalBase,omitempty"`
+	AirBase     *int    `json:"airBase,omitempty"`
+	CoastalFort *int    `json:"coastalFort,omitempty"`
 }
 
+// srcSeaOut is a sea zone of scenario.src.json; version 4 adds its centre,
+// latitude, weather cell and strategic region (0 for a lake).
 type srcSeaOut struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	NameKo string `json:"nameKo"`
-	Lake   bool   `json:"lake,omitempty"`
+	ID     int     `json:"id"`
+	Name   string  `json:"name"`
+	NameKo string  `json:"nameKo"`
+	Lake   bool    `json:"lake,omitempty"`
+	Center *[2]int `json:"center,omitempty"`
+	LatC   int     `json:"latC"`
+	WCell  int     `json:"wcell"`
+	SR     int     `json:"sr"`
 }
 
 // ScenarioSrcInput is what writeScenarioSrc writes.
@@ -189,10 +202,14 @@ type ScenarioSrcInput struct {
 	Sea      SeaGraph
 	Islands  []IslandRow
 	Places   []IslandPlace
+	SR       StrategicResult
+	Bases    HandBases
+	RowTable Rows
 }
 
 // writeScenarioSrc writes scenario.src.json (read by the map generator,
-// map-generator/regions.go), version 3.
+// map-generator/regions.go), version 4. Majors are the major powers, for the
+// generator's air base and anti-air formulas (spec §12.1).
 func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 	p := in.P
 	xy := func(px int) *[2]int { return &[2]int{px % p.Width, px / p.Width} }
@@ -206,7 +223,22 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 		Straits       []Strait        `json:"straits"`
 		HistoricalOob bool            `json:"historicalOob"`
 		KeepIslands   [][2]int        `json:"keepIslands"`
-	}{Version: 3, Edges: in.Land.Edges, SeaEdges: in.Sea.Edges, Straits: in.Sea.Straits, HistoricalOob: true}
+		Strategic     []Strategic     `json:"strategic"`
+		Rows          Rows            `json:"rows"`
+		Majors        []string        `json:"majors"`
+	}{Version: 4, Edges: in.Land.Edges, SeaEdges: in.Sea.Edges, Straits: in.Sea.Straits, HistoricalOob: true,
+		Strategic: in.SR.List, Rows: in.RowTable}
+	for _, c := range in.T.Countries {
+		if isMajor(c.Tag) {
+			out.Majors = append(out.Majors, c.Tag)
+		}
+	}
+	level := func(m map[int]int, id int) *int {
+		if v, ok := m[id]; ok {
+			return &v
+		}
+		return nil
+	}
 	for i, c := range in.T.Countries {
 		out.Countries = append(out.Countries, srcCountryOut{c.Tag, *xy(in.Capitals[i]), in.Rows[i].Dev})
 	}
@@ -226,11 +258,14 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 		}
 		if v, ok := in.Land.V3[r.ID]; ok {
 			row.Land, row.Center, row.LatC, row.WCell, row.Rail, row.Fort = v.Land, xy(v.Center), v.LatC, v.WCell, v.Rail, v.Fort
+			row.SR, row.Harbor = in.SR.RegionSR[r.ID], in.SR.Harbor[r.ID]
+			row.NavalBase, row.AirBase, row.CoastalFort = level(in.Bases.Naval, r.ID), level(in.Bases.Air, r.ID), level(in.Bases.Forts, r.ID)
 		}
 		out.Regions = append(out.Regions, row)
 	}
 	for _, z := range in.Seas {
-		out.SeaZones = append(out.SeaZones, srcSeaOut{z.ID, z.Name, z.NameKo, z.Lake})
+		v := in.SR.Zones[z.ID]
+		out.SeaZones = append(out.SeaZones, srcSeaOut{z.ID, z.Name, z.NameKo, z.Lake, xy(v.Center), v.LatC, v.WCell, v.SR})
 	}
 	for _, pl := range in.Places {
 		out.KeepIslands = append(out.KeepIslands, *xy(pl.Point))

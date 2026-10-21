@@ -305,8 +305,8 @@ describe("the world1936 economy (P1 spec §3)", () => {
     f: (r: ReadonlyScenarioRegion) => number,
   ) => rs.reduce((a, r) => a + f(r), 0);
 
-  test("the scenario is version 3 (P1's version 2 fields kept)", () => {
-    expect(data.scenario!.data.version).toBe(3);
+  test("the scenario is version 4 (P1's version 2 fields kept)", () => {
+    expect(data.scenario!.data.version).toBe(4);
     expect(economyTable.map((r) => r.tag).sort()).toEqual(
       [...COUNTRY_TAGS].sort(),
     );
@@ -327,14 +327,15 @@ describe("the world1936 economy (P1 spec §3)", () => {
         ];
       }),
     );
+    // P4 spec §6.5: the 1936 dockyards.
     expect(majors).toEqual({
-      DEU: [32, 16, 3],
-      ITA: [14, 7, 4],
-      JPN: [16, 8, 8],
-      GBR: [32, 8, 12],
-      FRA: [22, 8, 4],
-      USA: [80, 5, 10],
-      SUN: [40, 22, 4],
+      DEU: [32, 16, 8],
+      ITA: [14, 7, 9],
+      JPN: [16, 8, 14],
+      GBR: [32, 8, 20],
+      FRA: [22, 8, 10],
+      USA: [80, 5, 16],
+      SUN: [40, 22, 8],
     });
     // …and everyone else's the formula of spec §11.3, unless the table
     // gives a value (Czechoslovakia's mil 6, Sweden's mil 2).
@@ -461,10 +462,14 @@ describe("the world1936 economy (P1 spec §3)", () => {
       (r) => r.pop,
     );
     expect(alaska / homeland("USA")).toBeLessThan(0.01);
-    // The factories follow the people: the Ruhr out-builds Berlin.
+    // The factories follow the people: the Ruhr builds at least as much as
+    // Berlin (P4 spec §6.5's eight German dockyards fill the Lower Saxony
+    // yard, and the mil it held goes to Berlin: they tie, the Ruhr's
+    // metropolis slots full).
     const ruhr = regionAt(7.0, 51.5)!;
     const berlin = regionAt(13.4, 52.52)!;
-    expect(ruhr.civ + ruhr.mil).toBeGreaterThan(berlin.civ + berlin.mil);
+    expect(ruhr.civ + ruhr.mil).toBeGreaterThanOrEqual(berlin.civ + berlin.mil);
+    expect(ruhr.civ + ruhr.mil).toBe(CATEGORY_SLOTS[ruhr.cat]);
   });
 
   // Ruling 2026-10-20 (fix round 2): 1936 industrial geography.
@@ -606,9 +611,9 @@ function v2Fingerprint(regions: readonly ReadonlyScenarioRegion[]): {
 }
 
 describe("the world1936 land graph (P2 spec §3, scenario v3)", () => {
-  test("version 3, the hand order of battle, every country's dev, no kmPerTile", () => {
+  test("version 3 fields: the hand order of battle, every country's dev, no kmPerTile", () => {
     const d = data.scenario!.data;
-    expect(d.version).toBe(3);
+    expect(d.version).toBe(4);
     expect(d.historicalOob).toBe(true);
     expect(d.countries.filter((c) => c.dev === undefined)).toEqual([]);
     expect(d.kmPerTile).toBeUndefined();
@@ -941,5 +946,192 @@ describe("the P4 map fixes (P4 spec §3.1–3.3)", () => {
     expect(regionAt(101.69, 3.14)!.id).toBe(1087); // Malaya
     expect(regionAt(7.27, 43.7)!.id).toBe(531); // Nice, Alpes-Maritimes
     expect(regionAt(-155.5, 19.6)!.id).toBe(930); // Hawaii
+  });
+});
+
+// P4 spec §3.5, §6.4, §6.5, §12.1 (scenario version 4; P4 plan Task 2). The
+// version 4 fields are read from the file itself: the ScenarioIndex readers
+// (harborOf, startNavalBase, startAirBase, startAa, startCoastalFort) come
+// with P4 Task 1.
+interface V4Region {
+  id: number;
+  harbor: number;
+  navalBase: number;
+  airBase: number;
+  aa: number;
+  coastalFort: number;
+}
+const v4: {
+  height: number;
+  regions: V4Region[];
+  rows: { latC: number[]; kmxMilli: number[] };
+} = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../resources/maps/world1936/scenario.json",
+    ),
+    "utf8",
+  ),
+);
+const v4ById = new Map(v4.regions.map((r) => [r.id, r]));
+const v4At = (lon: number, lat: number): V4Region => {
+  const r = regionAt(lon, lat)!;
+  return v4ById.get(r.id)!;
+};
+const v4Island = (key: string): V4Region =>
+  v4ById.get(data.scenario!.landRegions.find((r) => r.island === key)!.id)!;
+
+describe("the world1936 start bases and harbours (P4 spec §3.5, §6.4, §12.1)", () => {
+  test("every region on a sea has the harbour it touches most, the others 0", () => {
+    const s = data.scenario!;
+    const map = data.gameMap;
+    const pairs = new Map<number, Map<number, number>>();
+    map.forEachTile((t) => {
+      if (!map.isLand(t)) return;
+      const id = s.regionAt(t);
+      for (const n of map.neighbors(t)) {
+        const z = s.regionAt(n);
+        if (map.isLand(n) || z <= SEA_ZONE_BASE || s.seaZone(z)?.lake) continue;
+        const m = pairs.get(id) ?? new Map<number, number>();
+        m.set(z, (m.get(z) ?? 0) + 1);
+        pairs.set(id, m);
+      }
+    });
+    const wrong: string[] = [];
+    for (const r of s.landRegions) {
+      let best = 0;
+      let bestN = 0;
+      for (const [z, n] of [...(pairs.get(r.id) ?? [])].sort(
+        (a, b) => a[0] - b[0],
+      )) {
+        if (n > bestN) [best, bestN] = [z, n];
+      }
+      if (v4ById.get(r.id)!.harbor !== best) wrong.push(`${r.id} ${r.name}`);
+      // A region off the coast has none; one on a lake only (the Caspian,
+      // the Great Lakes) is coastal without a harbour.
+      if (!r.coastal) expect(best, r.name).toBe(0);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  test.each([
+    ["Portsmouth", -1.09, 50.8],
+    ["Kiel", 10.14, 54.32],
+    ["Wilhelmshaven", 8.12, 53.52],
+    ["Toulon", 5.93, 43.12],
+    ["Brest", -4.49, 48.39],
+    ["Taranto", 17.24, 40.47],
+    ["La Spezia", 9.83, 44.1],
+    ["Yokosuka", 139.67, 35.28],
+    ["Kure", 132.56, 34.24],
+    ["Norfolk", -76.3, 36.95],
+  ] as const)("%s's region has a level 10 naval base", (_place, lon, lat) => {
+    expect(v4At(lon, lat).navalBase).toBe(10);
+  });
+
+  test("Pearl Harbor, Malta and Singapore have level 8 naval bases", () => {
+    expect(v4Island("oahu").navalBase).toBe(8);
+    expect(v4Island("malta").navalBase).toBe(8);
+    expect(v4Island("singapore").navalBase).toBe(8);
+    // Ten level-10 bases in all (spec §6.4).
+    expect(v4.regions.filter((r) => r.navalBase === 10).length).toBe(10);
+  });
+
+  test("naval bases and coastal forts only on a harbour; every port on a sea has a base", () => {
+    const s = data.scenario!;
+    for (const r of v4.regions) {
+      if (r.navalBase > 0 || r.coastalFort > 0) {
+        expect(r.harbor, `${r.id}`).toBeGreaterThan(0);
+      }
+    }
+    // A hand level or the formula min(3, 1 + dockyards), islands included:
+    // an island port without a hand base takes the formula (P4 pre-flight
+    // T2: Okinawa, the Azores… are supplied by sea), and a naval base makes
+    // a port, so the static port and the engine's naval-base port agree.
+    const ports = s.landRegions.filter(
+      (r) => r.port && v4ById.get(r.id)!.harbor > 0,
+    );
+    expect(ports.length).toBeGreaterThan(50);
+    for (const r of ports) {
+      expect(v4ById.get(r.id)!.navalBase, r.name).toBeGreaterThanOrEqual(1);
+    }
+    for (const r of s.landRegions) {
+      if (v4ById.get(r.id)!.navalBase > 0) expect(r.port, r.name).toBe(true);
+    }
+    expect(v4Island("okinawa").navalBase).toBe(1);
+  });
+
+  test("the majors' capitals have level 5 air bases and level 3 anti-air", () => {
+    const s = data.scenario!;
+    for (const tag of MAJORS) {
+      const capital = v4ById.get(s.regionAt(s.capitalTile(tag)))!;
+      expect([capital.airBase, capital.aa], tag).toEqual([5, 3]);
+    }
+    // The islands' own air bases (spec §12.1).
+    expect(
+      ["malta", "oahu", "singapore", "okinawa", "truk", "midway"].map(
+        (k) => v4Island(k).airBase,
+      ),
+    ).toEqual([2, 4, 3, 2, 2, 1]);
+  });
+
+  test.each([
+    ["Singapore", 103.82, 1.35],
+    ["Gibraltar", -5.35, 36.14],
+    ["Kronstadt (Leningrad)", 30.32, 59.94],
+    ["Manila", 120.98, 14.6],
+  ] as const)("%s has a level 3 coastal fort", (_place, lon, lat) => {
+    expect(v4At(lon, lat).coastalFort).toBe(3);
+  });
+
+  test("the 1936 dockyards (spec §6.5)", () => {
+    const docks = (tag: CountryTag) =>
+      data
+        .scenario!.landRegions.filter((r) => r.owner === tag)
+        .reduce((a, r) => a + r.dock, 0);
+    expect(
+      Object.fromEntries(
+        (
+          [
+            "DEU",
+            "ITA",
+            "JPN",
+            "GBR",
+            "FRA",
+            "USA",
+            "SUN",
+            "NLD",
+            "SWE",
+            "ESR",
+            "ESN",
+            "CAN",
+            "AUS",
+          ] as const
+        ).map((tag) => [tag, docks(tag)]),
+      ),
+    ).toEqual({
+      DEU: 8,
+      ITA: 9,
+      JPN: 14,
+      GBR: 20,
+      FRA: 10,
+      USA: 16,
+      SUN: 8,
+      NLD: 3,
+      SWE: 2,
+      ESR: 2,
+      ESN: 2,
+      CAN: 2,
+      AUS: 2,
+    });
+  });
+
+  test("the row table has a row per map row, its latitude falling southwards", () => {
+    expect(v4.rows.latC.length).toBe(v4.height);
+    expect(v4.rows.kmxMilli.length).toBe(v4.height);
+    for (let y = 1; y < v4.height; y++) {
+      expect(v4.rows.latC[y]).toBeLessThan(v4.rows.latC[y - 1]);
+    }
   });
 });

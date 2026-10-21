@@ -15,7 +15,9 @@ import (
 // raster and region list come from scenarios/<map>/ (drawn by
 // cmd/ww1936build); this file fixes them to the terrain the generator kept
 // and writes regions.bin and scenario.json next to map.bin. See
-// docs/superpowers/specs/2026-10-19-world-war-1936-design.md §4.
+// docs/superpowers/specs/2026-10-19-world-war-1936-design.md §4 and, for
+// version 4 (the strategic regions, harbours and start bases), P4 spec
+// §3.4–3.6, §6.4 and §12.1.
 
 const (
 	// Land regions are 1..seaZoneBase-1, sea zones seaZoneBase+1..65535.
@@ -281,6 +283,15 @@ type srcRegion struct {
 	// formula of buildScenario adds the rest.
 	Port   bool   `json:"port,omitempty"`
 	Island string `json:"island,omitempty"`
+	// Version 4: the land strategic region, the harbour zone the tool
+	// computed (buildScenario checks it against the final tiles) and the
+	// hand start levels (navalBases1936.json, coastalForts1936.json, the
+	// islands); without a hand level buildScenario applies the formula.
+	SR          int  `json:"sr,omitempty"`
+	Harbor      int  `json:"harbor,omitempty"`
+	NavalBase   *int `json:"navalBase,omitempty"`
+	AirBase     *int `json:"airBase,omitempty"`
+	CoastalFort *int `json:"coastalFort,omitempty"`
 }
 
 // LandGraph is a region's version 3 data (P2 spec §3.1), copied from
@@ -325,25 +336,56 @@ type Economy struct {
 	Res     [6]int `json:"res"`
 }
 
+// srcSea is a sea zone of scenario.src.json; version 4 adds its centre,
+// latitude, weather cell and sea strategic region (0 for a lake).
 type srcSea struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	NameKo string `json:"nameKo"`
-	Lake   bool   `json:"lake,omitempty"`
+	ID     int     `json:"id"`
+	Name   string  `json:"name"`
+	NameKo string  `json:"nameKo"`
+	Lake   bool    `json:"lake,omitempty"`
+	Center *[2]int `json:"center,omitempty"`
+	LatC   int     `json:"latC,omitempty"`
+	WCell  int     `json:"wcell,omitempty"`
+	SR     int     `json:"sr,omitempty"`
+}
+
+// strategicRegion is a strategic region (P4 spec §3.4): members are land
+// region ids or sea zone ids, ascending.
+type strategicRegion struct {
+	ID      int    `json:"id"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	NameKo  string `json:"nameKo"`
+	Center  [2]int `json:"center"`
+	LatC    int    `json:"latC"`
+	Members []int  `json:"members"`
+}
+
+// rowTable is P4 plan decision 9: per map row, the centre latitude in
+// hundredths of a degree and one tile's east-west km × 1000.
+type rowTable struct {
+	LatC     []int `json:"latC"`
+	KmxMilli []int `json:"kmxMilli"`
 }
 
 // scenarioSrc: KeepIslands are the kept islands' points, the land bodies
-// near which removeSmallIslands keeps (map_generator.go).
+// near which removeSmallIslands keeps (map_generator.go). Version 4 adds
+// the strategic regions, the row table and the major powers (for the air
+// base and anti-air formulas); a file without strategic regions writes no
+// version 4 fields.
 type scenarioSrc struct {
-	Version       int          `json:"version"`
-	Countries     []srcCountry `json:"countries"`
-	Regions       []srcRegion  `json:"regions"`
-	SeaZones      []srcSea     `json:"seaZones"`
-	Edges         []landEdge   `json:"edges,omitempty"`
-	SeaEdges      []seaEdge    `json:"seaEdges,omitempty"`
-	Straits       []strait     `json:"straits,omitempty"`
-	HistoricalOob bool         `json:"historicalOob,omitempty"`
-	KeepIslands   [][2]int     `json:"keepIslands,omitempty"`
+	Version       int               `json:"version"`
+	Countries     []srcCountry      `json:"countries"`
+	Regions       []srcRegion       `json:"regions"`
+	SeaZones      []srcSea          `json:"seaZones"`
+	Edges         []landEdge        `json:"edges,omitempty"`
+	SeaEdges      []seaEdge         `json:"seaEdges,omitempty"`
+	Straits       []strait          `json:"straits,omitempty"`
+	HistoricalOob bool              `json:"historicalOob,omitempty"`
+	KeepIslands   [][2]int          `json:"keepIslands,omitempty"`
+	Strategic     []strategicRegion `json:"strategic,omitempty"`
+	Rows          *rowTable         `json:"rows,omitempty"`
+	Majors        []string          `json:"majors,omitempty"`
 }
 
 // scenario.json (engine-api ScenarioDataSchema).
@@ -358,6 +400,18 @@ type outRegion struct {
 	Terrain string `json:"terrain"`
 	Economy
 	outLand
+	*outV4
+}
+
+// outV4 is a region's version 4 data in scenario.json (P4 spec §3.6): its
+// land strategic region, harbour zone (0: not on a sea) and start levels.
+type outV4 struct {
+	SR          int `json:"sr"`
+	Harbor      int `json:"harbor"`
+	NavalBase   int `json:"navalBase"`
+	AirBase     int `json:"airBase"`
+	AA          int `json:"aa"`
+	CoastalFort int `json:"coastalFort"`
 }
 
 // outLand is a region's version 3 data in scenario.json: the tool's land
@@ -375,8 +429,9 @@ type outLand struct {
 
 // scenarioVersion is the scenario.src.json / scenario.json version this
 // generator reads and writes (2: P1 economy fields; 3: P2 land graph and
-// the P4 map fixes).
-const scenarioVersion = 3
+// the P4 map fixes; 4: the P4 strategic regions, harbours, start bases and
+// row table).
+const scenarioVersion = 4
 
 type outSea struct {
 	ID     int    `json:"id"`
@@ -384,19 +439,30 @@ type outSea struct {
 	NameKo string `json:"nameKo"`
 	Tiles  int    `json:"tiles"`
 	Lake   bool   `json:"lake,omitempty"`
+	*outSeaV4
+}
+
+// outSeaV4 is a sea zone's version 4 data (P4 spec §3.6).
+type outSeaV4 struct {
+	Center [2]int `json:"center"`
+	LatC   int    `json:"latC"`
+	WCell  int    `json:"wcell"`
+	SR     int    `json:"sr"`
 }
 
 type scenarioOut struct {
-	Version       int          `json:"version"`
-	Width         int          `json:"width"`
-	Height        int          `json:"height"`
-	Countries     []srcCountry `json:"countries"`
-	Regions       []outRegion  `json:"regions"`
-	SeaZones      []outSea     `json:"seaZones"`
-	Edges         []landEdge   `json:"edges,omitempty"`
-	SeaEdges      []seaEdge    `json:"seaEdges,omitempty"`
-	Straits       []strait     `json:"straits,omitempty"`
-	HistoricalOob bool         `json:"historicalOob,omitempty"`
+	Version       int               `json:"version"`
+	Width         int               `json:"width"`
+	Height        int               `json:"height"`
+	Countries     []srcCountry      `json:"countries"`
+	Regions       []outRegion       `json:"regions"`
+	SeaZones      []outSea          `json:"seaZones"`
+	Edges         []landEdge        `json:"edges,omitempty"`
+	SeaEdges      []seaEdge         `json:"seaEdges,omitempty"`
+	Straits       []strait          `json:"straits,omitempty"`
+	HistoricalOob bool              `json:"historicalOob,omitempty"`
+	Strategic     []strategicRegion `json:"strategic,omitempty"`
+	Rows          *rowTable         `json:"rows,omitempty"`
 }
 
 // portMinVP: a coastal region with this many points or more has a port
@@ -636,8 +702,15 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 	if err != nil {
 		return out, notes, err
 	}
+	// The colony ports first (P2 Task 11): buildV4's naval-base formula
+	// reads the ports (P4 pre-flight, map chain).
 	if src.Edges != nil {
 		notes = append(notes, colonyPorts(&out, ocean)...)
+	}
+	if src.Strategic != nil {
+		if err := buildV4(src, &out, ids, w, h); err != nil {
+			return out, notes, err
+		}
 	}
 	return out, notes, nil
 }
@@ -711,6 +784,214 @@ func colonyPorts(out *scenarioOut, ocean map[int]bool) []string {
 		notes = append(notes, fmt.Sprintf("port added: region %d %q (%s), the only port of its %d region(s)", p.ID, p.Name, p.Owner, len(set)))
 	}
 	return notes
+}
+
+// harborZones gives each land region its harbour zone (P4 spec §3.5): of
+// the sea zones that are not lakes its tiles touch (4-neighbour), the one
+// with the most tile pairs, ties to the smaller id. A region on no sea is
+// missing. cmd/ww1936build strategic.go harbors computes the same on the
+// tool's tiles: keep the two in step.
+func harborZones(ids []uint16, w, h int, lake map[int]bool) map[int]int {
+	n := w * h
+	count := map[int64]int{}
+	for i := 0; i < n; i++ {
+		a := int(ids[i])
+		if a == 0 || a >= seaZoneBase {
+			continue
+		}
+		forNeighbours4(i, w, n, func(j int) {
+			z := int(ids[j])
+			if z > seaZoneBase && !lake[z] {
+				count[int64(a)<<16|int64(z)]++
+			}
+		})
+	}
+	keys := make([]int64, 0, len(count))
+	for k := range count {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(a, b int) bool { return keys[a] < keys[b] })
+	out := map[int]int{}
+	best := map[int]int{}
+	for _, k := range keys {
+		r, z, c := int(k>>16), int(k&0xffff), count[k]
+		if c > best[r] {
+			out[r], best[r] = z, c
+		}
+	}
+	return out
+}
+
+// startAirBase is P4 spec §12.1's air base start level (plan decision 6,
+// engine-lib ScenarioIndex.startAirBase without a version 4 field): a major's
+// capital 5, a major's region of 10 points or more 3, of 5 or more 1;
+// another country's capital 3 at dev 3 or more, else 1, its regions of 10
+// points or more 1. The islands' hand levels come before it.
+func startAirBase(major, capital bool, dev, vp int) int {
+	switch {
+	case major && capital:
+		return 5
+	case major && vp >= 10:
+		return 3
+	case major && vp >= 5:
+		return 1
+	case major:
+		return 0
+	case capital && dev >= 3:
+		return 3
+	case capital:
+		return 1
+	case vp >= 10:
+		return 1
+	}
+	return 0
+}
+
+// startAA is P4 spec §12.1's anti-air start level: a major's capital 3, a
+// major's region of 10 points or more 1, another country's capital 1 at dev
+// 3 or more.
+func startAA(major, capital bool, dev, vp int) int {
+	switch {
+	case major && capital:
+		return 3
+	case major && vp >= 10:
+		return 1
+	case !major && capital && dev >= 3:
+		return 1
+	}
+	return 0
+}
+
+// buildV4 writes the version 4 fields (P4 spec §3.4–3.6, §6.4, §12.1): the
+// harbours (the tool's, checked against the final tiles), the start levels
+// (the hand ones, else the formulas: a naval base min(3, 1 + dockyards) in a
+// port on a sea, the air base and anti-air of startAirBase and startAA, no
+// coastal fort; a region with a naval base is a port), each sea zone's centre, latitude, weather cell and
+// strategic region, the strategic regions (every region and every zone that
+// is not a lake in exactly one) and the row table.
+func buildV4(src scenarioSrc, out *scenarioOut, ids []uint16, w, h int) error {
+	lake := map[int]bool{}
+	srcZone := map[int]srcSea{}
+	for _, z := range src.SeaZones {
+		lake[z.ID] = z.Lake
+		srcZone[z.ID] = z
+	}
+	for _, z := range out.SeaZones {
+		if _, ok := srcZone[z.ID]; !ok {
+			return fmt.Errorf("sea zone %d is on the map but not in scenario.src.json: run cmd/ww1936build", z.ID)
+		}
+	}
+	srcRegionOf := map[int]srcRegion{}
+	for _, r := range src.Regions {
+		srcRegionOf[r.ID] = r
+	}
+	major := map[string]bool{}
+	for _, tag := range src.Majors {
+		major[tag] = true
+	}
+	dev := map[string]int{}
+	capital := map[int]bool{}
+	for _, c := range src.Countries {
+		dev[c.Tag] = c.Dev
+		capital[int(ids[c.Capital[1]*w+c.Capital[0]])] = true
+	}
+	harbor := harborZones(ids, w, h, lake)
+	for i := range out.Regions {
+		r := &out.Regions[i]
+		s := srcRegionOf[r.ID]
+		if s.Harbor != harbor[r.ID] {
+			return fmt.Errorf("region %d %q: harbour %d in scenario.src.json, %d on the final map", r.ID, r.Name, s.Harbor, harbor[r.ID])
+		}
+		if s.SR == 0 {
+			return fmt.Errorf("region %d %q has no strategic region", r.ID, r.Name)
+		}
+		v := &outV4{SR: s.SR, Harbor: harbor[r.ID]}
+		switch {
+		case s.NavalBase != nil:
+			v.NavalBase = *s.NavalBase
+		case r.Port && v.Harbor != 0:
+			v.NavalBase = min(3, 1+r.Dock)
+		}
+		if s.AirBase != nil {
+			v.AirBase = *s.AirBase
+		} else {
+			v.AirBase = startAirBase(major[r.Owner], capital[r.ID], dev[r.Owner], r.VP)
+		}
+		v.AA = startAA(major[r.Owner], capital[r.ID], dev[r.Owner], r.VP)
+		if s.CoastalFort != nil {
+			v.CoastalFort = *s.CoastalFort
+		}
+		if (v.NavalBase > 0 || v.CoastalFort > 0) && v.Harbor == 0 {
+			return fmt.Errorf("region %d %q: a naval base or coastal fort but no harbour", r.ID, r.Name)
+		}
+		// A naval base makes a port (P4 pre-flight T2): the static port and
+		// the engine's naval-base port agree at the start.
+		if v.NavalBase >= 1 {
+			r.Port = true
+		}
+		r.outV4 = v
+	}
+	for i := range out.SeaZones {
+		z := &out.SeaZones[i]
+		s := srcZone[z.ID]
+		c := s.Center
+		if c == nil || c[0] < 0 || c[0] >= w || c[1] < 0 || c[1] >= h || int(ids[c[1]*w+c[0]]) != z.ID {
+			return fmt.Errorf("sea zone %d %q: its center is not one of its tiles on the final map", z.ID, z.Name)
+		}
+		if (s.SR == 0) != z.Lake {
+			return fmt.Errorf("sea zone %d %q: strategic region %d, lake %v", z.ID, z.Name, s.SR, z.Lake)
+		}
+		z.outSeaV4 = &outSeaV4{Center: *c, LatC: s.LatC, WCell: s.WCell, SR: s.SR}
+	}
+	regionSR := map[int]int{}
+	for _, r := range out.Regions {
+		regionSR[r.ID] = r.SR
+	}
+	zoneSR := map[int]int{}
+	for _, z := range out.SeaZones {
+		zoneSR[z.ID] = z.SR
+	}
+	seen := map[int]bool{}
+	count := map[int]int{}
+	for _, s := range src.Strategic {
+		if seen[s.ID] || len(s.Members) == 0 || (s.Kind != "land" && s.Kind != "sea") {
+			return fmt.Errorf("strategic region %d: twice, empty, or of kind %q", s.ID, s.Kind)
+		}
+		seen[s.ID] = true
+		of := regionSR
+		if s.Kind == "sea" {
+			of = zoneSR
+		}
+		for k, m := range s.Members {
+			if k > 0 && m <= s.Members[k-1] {
+				return fmt.Errorf("strategic region %d: members out of order", s.ID)
+			}
+			if of[m] != s.ID {
+				return fmt.Errorf("strategic region %d: member %d is not on the map or is in %d", s.ID, m, of[m])
+			}
+			count[m]++
+		}
+		c := s.Center
+		if c[0] < 0 || c[0] >= w || c[1] < 0 || c[1] >= h || of[int(ids[c[1]*w+c[0]])] != s.ID {
+			return fmt.Errorf("strategic region %d: its center is not on one of its members", s.ID)
+		}
+		out.Strategic = append(out.Strategic, s)
+	}
+	for id, sr := range regionSR {
+		if count[id] != 1 || !seen[sr] {
+			return fmt.Errorf("region %d is in %d strategic regions", id, count[id])
+		}
+	}
+	for id, sr := range zoneSR {
+		if sr != 0 && (count[id] != 1 || !seen[sr]) {
+			return fmt.Errorf("sea zone %d is in %d strategic regions", id, count[id])
+		}
+	}
+	if r := src.Rows; r == nil || len(r.LatC) != h || len(r.KmxMilli) != h {
+		return fmt.Errorf("the row table does not have the map's %d rows", h)
+	}
+	out.Rows = src.Rows
+	return nil
 }
 
 var landOfClass = [3]string{"plains", "hills", "mountain"}
