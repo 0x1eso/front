@@ -195,7 +195,12 @@ export class WwPeaceCard extends LitElement implements Controller {
     const me = peaceMe(game);
     const conf = m?.conference ?? null;
     const now = Date.now();
-    if (conf !== null && m !== null && me !== null) {
+    // Only a participant or a loser follows the conference (spec §6.10).
+    const inIt =
+      m !== null &&
+      me !== null &&
+      (m.participant(me) !== null || m.isLoser(me));
+    if (conf !== null && m !== null && me !== null && inIt) {
       const seen = this.seen;
       // A round ended: its results for 1.5 s (spec §20.1).
       if (
@@ -230,8 +235,9 @@ export class WwPeaceCard extends LitElement implements Controller {
               .flatMap((v) => m.toWire(v))
               .slice(0, WW_PEACE_DEMANDS_PER_ROUND),
       );
-    } else if (this.seen !== null) {
-      // The conference ended: the treaty for 3 s, then the card goes.
+    } else if (this.seen !== null && this.conferenceGone(this.seen.conf)) {
+      // The conference ended: the treaty for 3 s, then the card goes. (Not
+      // when only my part in it went, e.g. a takeover: no treaty then.)
       this.result = {
         title: translateText("ww1936.peace.final_result"),
         lines: this.treatyLines(this.seen.losers),
@@ -301,6 +307,12 @@ export class WwPeaceCard extends LitElement implements Controller {
   }
 
   // ---- Actions ----
+
+  /** The conference `id` is over (closed, or no longer the open one). */
+  private conferenceGone(id: number): boolean {
+    const c = this.game.wwEndgame?.()?.conference() ?? null;
+    return c === null || c.status !== "open" || c.id !== id;
+  }
 
   private send(m: PeaceModel, passed: boolean) {
     const ui = peaceUiOf(this.game);
@@ -546,7 +558,10 @@ export class WwPeaceCard extends LitElement implements Controller {
   /** Adding `d` to my draft now: its price and why it would fail. */
   private tryAdd(m: PeaceModel, me: number, d: PeaceDemand): DemandEval {
     const ui = peaceUiOf(this.game);
-    const views = [...m.demandRows(me, ui.draft), m.expand(d, ui.draft.length)];
+    const views = [
+      ...m.demandRows(me, ui.draft),
+      m.expand(d, ui.draft.length, me),
+    ];
     const all = m.evaluate(me, views);
     return all[all.length - 1];
   }

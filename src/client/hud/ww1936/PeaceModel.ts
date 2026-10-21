@@ -593,8 +593,15 @@ export function peaceWorldOf(game: PeaceGame): PeaceWorld {
 export function peaceModelOf(game: PeaceGame): PeaceModel | null {
   const conf = game.wwEndgame?.()?.conference() ?? null;
   if (conf === null || conf.status !== "open") return null;
-  return new PeaceModel(conf, peaceWorldOf(game));
+  // One model per conference update: its tables come from the conference
+  // object (each update replaces it), its world reads the views live.
+  const hit = models.get(game);
+  if (hit !== undefined && hit.conference === conf) return hit;
+  const m = new PeaceModel(conf, peaceWorldOf(game));
+  models.set(game, m);
+  return m;
 }
+const models = new WeakMap<object, PeaceModel>();
 
 /** My smallID (the country I control now, P5 controllers); null: spectating. */
 export function peaceMe(game: PeaceGame): number | null {
@@ -821,7 +828,13 @@ export class PeaceUi {
     this.conf = conf;
     this.round = round;
     this.draft = submitted ?? [];
-    this.sent = submitted === null ? null : JSON.stringify(submitted);
+    // What the engine holds: nothing, a pass (no demands), or a list.
+    this.sent =
+      submitted === null
+        ? null
+        : submitted.length === 0
+          ? "pass"
+          : JSON.stringify(submitted);
     this.version++;
   }
 
@@ -848,7 +861,9 @@ export class PeaceUi {
     this.version++;
   }
 
+  /** A pass leaves no demands this round (the engine's), so the draft empties. */
   markSent(passed: boolean): void {
+    if (passed) this.draft = [];
     this.sent = passed ? "pass" : JSON.stringify(this.draft);
     this.version++;
   }
@@ -963,18 +978,32 @@ export function peaceMapRegions(game: PeaceGame): PeaceMapRegion[] {
 
 /** What PeaceMapPass reads (GameRenderer hands it to the map renderer). */
 export function peaceMapSource(game: PeaceGame): PeaceMapSource {
+  // What the map shows depends on: the conference update, my draft and
+  // pick, control, legal owners, factories and fleets (the prices), and
+  // who I am. Compared as numbers each frame; the key string is made only
+  // when one changed.
+  const seen = new Float64Array(7).fill(-1);
+  let key = "";
+  let changed = false;
+  const put = (i: number, v: number) => {
+    if (seen[i] === v) return;
+    seen[i] = v;
+    changed = true;
+  };
   return {
     key: () => {
       const ui = peaceUiOf(game);
       if (!ui.map) return "";
-      const conf = game.wwEndgame?.()?.conference() ?? null;
-      return [
-        confRevision(conf),
-        ui.version,
-        game.wwLand?.()?.version ?? 0,
-        game.wwPolitics?.()?.version ?? 0,
-        game.myPlayer()?.smallID() ?? 0,
-      ].join(":");
+      changed = key === "";
+      put(0, confRevision(game.wwEndgame?.()?.conference() ?? null));
+      put(1, ui.version);
+      put(2, game.wwLand?.()?.version ?? 0);
+      put(3, game.wwPolitics?.()?.version ?? 0);
+      put(4, game.wwEconomy?.()?.version ?? 0);
+      put(5, game.wwNavy?.()?.version ?? 0);
+      put(6, game.myPlayer()?.smallID() ?? 0);
+      if (changed) key = Array.from(seen).join(":");
+      return key;
     },
     regions: () => peaceMapRegions(game),
   };

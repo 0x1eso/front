@@ -17,9 +17,30 @@ import {
 import { describe, expect, it } from "vitest";
 import {
   PEACE_WHY,
+  type PeaceGame,
+  peaceMapRegions,
+  peaceMapSource,
+  peaceMapTap,
   PeaceModel,
+  peaceModelOf,
+  peaceUiOf,
   type PeaceWorld,
 } from "../../../src/client/hud/ww1936/PeaceModel";
+import {
+  PEACE_DECIDED,
+  PEACE_FREE,
+  PEACE_LABEL_CELL_PX,
+  PEACE_MINE,
+  PEACE_OTHER,
+  PEACE_SELECTED,
+  PEACE_TEX_SIZE,
+  peaceDigits,
+  peaceLabelCellPx,
+  peaceRegionTable,
+  peaceTableOffset,
+} from "../../../src/client/render/gl/passes/PeaceMapPass";
+import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
+import { fakePolGame } from "./PoliticsFixture";
 
 // The test map's ids (EconomyFixture): DEU 2, POL 4, ITA 3; Warsaw 6, Krakow 7.
 const DEU = 2;
@@ -246,5 +267,139 @@ describe("World War 1936 P5: the peace conference model", () => {
     const ok = leader.evaluate(DEU, [onCountry("dismantle", POL)])[0];
     expect(ok.why).toBeNull();
     expect(ok.view.cost).toBe(dismantleCost(3));
+  });
+});
+
+// ---- The conference map mode's data (PeaceMapPass helpers, the map's states, its taps) ----
+
+describe("World War 1936 P5: the conference map mode", () => {
+  it("the region table and the price labels", () => {
+    expect(peaceTableOffset(7)).toBe(28);
+    expect(peaceTableOffset(PEACE_TEX_SIZE + 1)).toBe((PEACE_TEX_SIZE + 1) * 4);
+    const t = peaceRegionTable([
+      {
+        region: 7,
+        state: PEACE_MINE | PEACE_SELECTED,
+        rgb: 0x123456,
+        value: 8,
+        x: 0,
+        y: 0,
+      },
+      // Outside the table: skipped.
+      { region: 0, state: PEACE_FREE, rgb: 0xffffff, value: 1, x: 0, y: 0 },
+      {
+        region: PEACE_TEX_SIZE * PEACE_TEX_SIZE,
+        state: PEACE_FREE,
+        rgb: 0xffffff,
+        value: 1,
+        x: 0,
+        y: 0,
+      },
+    ]);
+    expect([...t.slice(28, 32)]).toEqual([
+      0x12,
+      0x34,
+      0x56,
+      PEACE_MINE | PEACE_SELECTED,
+    ]);
+    expect(t.reduce((a, b) => a + b, 0)).toBe(
+      0x12 + 0x34 + 0x56 + (PEACE_MINE | PEACE_SELECTED),
+    );
+    expect([0, 9, 10, 99, 100, 999, 1000, 123456].map(peaceDigits)).toEqual([
+      1, 1, 2, 2, 3, 3, 4, 4,
+    ]);
+    // Full size from zoom 1.5, half size at the 0.5 threshold.
+    expect(peaceLabelCellPx(3)).toBe(PEACE_LABEL_CELL_PX);
+    expect(peaceLabelCellPx(1.5)).toBe(PEACE_LABEL_CELL_PX);
+    expect(peaceLabelCellPx(0.75)).toBe(PEACE_LABEL_CELL_PX / 2);
+    expect(peaceLabelCellPx(0.5)).toBe(PEACE_LABEL_CELL_PX / 2);
+  });
+
+  /** Germany (me), Italy and the Soviet Union against Poland; Munich, Warsaw, Krakow and Kiev at stake. */
+  function mapGame() {
+    const { game: base, land } = fakePolGame({ me: "DEU" });
+    const eg = new WwEndgameView();
+    const SUN = 5;
+    const conf = {
+      id: 4,
+      losers: [POL],
+      status: "open" as const,
+      round: 2,
+      roundEndTick: 900,
+      participants: [DEU, ITA, SUN].map((id, i) => ({
+        id,
+        pts: 100,
+        sharePm: 400 - i * 100,
+        order: i,
+        human: id === DEU,
+        final: false,
+      })),
+      stake: [
+        { region: 4, base: 10, settledBy: 0, zone: false },
+        { region: WARSAW, base: 40, settledBy: ITA, zone: false },
+        { region: KRAKOW, base: 30, settledBy: 0, zone: false },
+        { region: 9, base: 20, settledBy: 0, zone: false },
+      ],
+      mine: [{ id: DEU, submitted: null, ai: [] }],
+      lastRound: [],
+      releasable: [],
+      claims: [],
+      conquer: [],
+      topple: [],
+      reserved: [],
+    };
+    eg.apply({ news: [], conference: conf });
+    // Italy holds Krakow.
+    land.controller[KRAKOW] = ITA;
+    const game = { ...base, wwEndgame: () => eg } as unknown as PeaceGame;
+    return { game, eg, conf };
+  }
+
+  it("the map's states: decided over mine over another participant's control", () => {
+    const { game } = mapGame();
+    const ui = peaceUiOf(game);
+    expect(peaceMapRegions(game)).toEqual([]);
+    ui.openMap();
+    ui.setDraft([
+      { kind: "take", region: WARSAW },
+      { kind: "take", region: KRAKOW },
+    ]);
+    ui.pick(KRAKOW);
+    const state = new Map(
+      peaceMapRegions(game).map((r) => [r.region, r.state]),
+    );
+    // Munich: mine to take, nobody's demand (I control it).
+    expect(state.get(4)).toBe(PEACE_FREE);
+    // Warsaw: settled before, though in my draft.
+    expect(state.get(WARSAW)).toBe(PEACE_DECIDED);
+    // Krakow: Italy controls it, but it is my demand; and it is the tapped one.
+    expect(state.get(KRAKOW)).toBe(PEACE_MINE | PEACE_SELECTED);
+    // Kiev: the Soviet Union (a participant) controls it.
+    expect(state.get(9)).toBe(PEACE_OTHER);
+  });
+
+  it("map taps and the map's key", () => {
+    const { game, eg } = mapGame();
+    const ui = peaceUiOf(game);
+    const src = peaceMapSource(game);
+    // Off: the land flow keeps its taps and the map draws nothing.
+    expect(peaceMapTap(game, KRAKOW)).toBe(false);
+    expect(src.key()).toBe("");
+    ui.openMap();
+    const k1 = src.key();
+    expect(k1).not.toBe("");
+    expect(src.key()).toBe(k1);
+    // On: a stake region is picked, anywhere else picks nothing.
+    expect(peaceMapTap(game, KRAKOW)).toBe(true);
+    expect(ui.region).toBe(KRAKOW);
+    expect(src.key()).not.toBe(k1);
+    expect(peaceMapTap(game, 10)).toBe(true);
+    expect(ui.region).toBe(0);
+    // One model per conference update.
+    expect(peaceModelOf(game)).toBe(peaceModelOf(game));
+    // The conference closed: the mode ends and the tap goes back to the land flow.
+    eg.apply({ news: [], conference: null });
+    expect(peaceMapTap(game, KRAKOW)).toBe(false);
+    expect(ui.map).toBe(false);
   });
 });

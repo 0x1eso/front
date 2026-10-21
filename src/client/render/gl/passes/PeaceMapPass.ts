@@ -201,8 +201,24 @@ export class PeaceMapPass {
     const regions = key === "" ? [] : src.regions();
     this.on = regions.length > 0;
     if (!this.on) return;
-    this.ensure();
     const gl = this.gl;
+    // Runs between other passes (only when the key changed): leave the
+    // active unit's texture, the buffers, the program and the unpack
+    // alignment as they were (ensure() makes programs and a VAO once).
+    const prevTex = gl.getParameter(
+      gl.TEXTURE_BINDING_2D,
+    ) as WebGLTexture | null;
+    const prevBuf = gl.getParameter(
+      gl.ARRAY_BUFFER_BINDING,
+    ) as WebGLBuffer | null;
+    const prevVao = gl.getParameter(
+      gl.VERTEX_ARRAY_BINDING,
+    ) as WebGLVertexArrayObject | null;
+    const prevProgram = gl.getParameter(
+      gl.CURRENT_PROGRAM,
+    ) as WebGLProgram | null;
+    const prevAlign = gl.getParameter(gl.UNPACK_ALIGNMENT) as number;
+    this.ensure();
     peaceRegionTable(regions, this.table);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.bindTexture(gl.TEXTURE_2D, this.tableTex);
@@ -232,6 +248,11 @@ export class PeaceMapPass {
     this.labelCount = regions.length;
     gl.bindBuffer(gl.ARRAY_BUFFER, buf.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, o);
+    gl.bindBuffer(gl.ARRAY_BUFFER, prevBuf);
+    gl.bindVertexArray(prevVao);
+    gl.useProgram(prevProgram);
+    gl.bindTexture(gl.TEXTURE_2D, prevTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, prevAlign);
   }
 
   /** The map mode over the territory; `tilesPerPx` = world tiles per CSS px. */

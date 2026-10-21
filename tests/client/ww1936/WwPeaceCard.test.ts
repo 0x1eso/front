@@ -20,12 +20,20 @@ import {
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { peaceUiOf } from "../../../src/client/hud/ww1936/PeaceModel";
 import { TWO_TAP_MS } from "../../../src/client/hud/ww1936/WorldWarModel";
+import "../../../src/client/hud/ww1936/WwEventCards";
+import type { WwEventCards } from "../../../src/client/hud/ww1936/WwEventCards";
 import "../../../src/client/hud/ww1936/WwPeaceCard";
 import type { WwPeaceCard } from "../../../src/client/hud/ww1936/WwPeaceCard";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
 import { ID } from "./EconomyFixture";
-import { fakePolGame } from "./PoliticsFixture";
+import {
+  card,
+  fakePolGame,
+  polDetail,
+  PolOptions,
+  polSummary,
+} from "./PoliticsFixture";
 
 const WARSAW = 6;
 const KRAKOW = 7;
@@ -88,8 +96,8 @@ function conference(): WwConferenceView {
   };
 }
 
-async function mount(me: CountryTag) {
-  const { game: base } = fakePolGame({ me, ticks: TICKS });
+async function mount(me: CountryTag, o: PolOptions = {}) {
+  const { game: base } = fakePolGame({ me, ticks: TICKS, ...o });
   const eg = new WwEndgameView();
   eg.apply({ news: [], conference: conference() });
   const game = { ...base, wwEndgame: () => eg };
@@ -112,7 +120,7 @@ async function mount(me: CountryTag) {
     el.requestUpdate();
     await el.updateComplete;
   };
-  return { el, game, sent, layer, q, redraw };
+  return { el, game, bus, sent, layer, q, redraw };
 }
 
 describe("<ww-peace-card> (P5 spec §20.1)", () => {
@@ -231,5 +239,53 @@ describe("<ww-peace-card> (P5 spec §20.1)", () => {
     const other = await mount("GBR");
     expect(other.layer.childElementCount).toBe(0);
     expect(other.el.querySelector("[data-ww-peace-slot]")).toBeNull();
+  });
+  it("a pass after a draft is acknowledged and can't be sent again", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const m = await mount("DEU");
+    peaceUiOf(m.game).add({ kind: "take", region: WARSAW });
+    await m.redraw();
+    const pass = () => m.q<HTMLButtonElement>("[data-ww-peace-btn='pass']")!;
+    pass().click();
+    await m.redraw();
+    vi.setSystemTime(10_600);
+    pass().click();
+    await m.redraw();
+    expect(m.sent).toEqual([{ kind: "peace_pass", conf: 3 }]);
+    // No demands this round: the draft empties, "Confirmed" shows, and
+    // neither Pass nor Confirm can be sent again.
+    expect(peaceUiOf(m.game).draft).toEqual([]);
+    expect(m.q("[data-ww-peace-confirmed]")!.textContent!.trim()).toBe(
+      "[ww1936.peace.confirmed]",
+    );
+    expect(pass().disabled).toBe(true);
+    expect(
+      m.q<HTMLButtonElement>("[data-ww-peace-btn='confirm']")!.disabled,
+    ).toBe(true);
+    // A reload sees the engine's pass (an empty submission) the same way.
+    const ui = peaceUiOf({});
+    ui.sync(3, 1, []);
+    expect(ui.sent).toBe("pass");
+  });
+
+  it("under the peace card one event card shows, and +N", async () => {
+    const pending = [card({ uid: 1 }), card({ uid: 2 }), card({ uid: 3 })];
+    const m = await mount("DEU", {
+      polSummaries: [polSummary("DEU")],
+      polDetails: [polDetail("DEU", { pending })],
+    });
+    const el = document.createElement("ww-event-cards") as WwEventCards;
+    el.game = m.game as never;
+    el.eventBus = m.bus;
+    document.body.appendChild(el);
+    el.init();
+    el.tick();
+    await el.updateComplete;
+    const layer = el.cardLayer()!;
+    expect(layer.querySelectorAll("[data-ww-event]")).toHaveLength(1);
+    expect(
+      layer.querySelector("[data-ww-event-more]")!.textContent!.trim(),
+    ).toBe("[ww1936.eventui.more] n=2");
   });
 });
