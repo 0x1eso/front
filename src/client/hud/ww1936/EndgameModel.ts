@@ -54,7 +54,6 @@ import {
   volunteerCap,
   type VolunteerIn,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
   OCC_BLINK,
   OCC_HATCH,
@@ -65,13 +64,13 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import { equipmentName, genName, menText } from "./EconomyModel";
+import { countryFlagUrl, countryText } from "./EndgameNames";
 import { regionName } from "./LandModel";
 import { fleetName } from "./NavyModel";
 import {
   decisionName,
   decisionTab,
   type DecisionView,
-  flagUrl,
   type PolGame,
   politicsInput,
 } from "./PoliticsModel";
@@ -99,21 +98,12 @@ function myId(game: EndgameGame): number {
 
 /** A country's name on screen (spec §3.5: civil war slots, renames); "" for none. */
 export function egName(game: EndgameGame, id: number): string {
-  const sc = game.worldWarScenario();
-  const tag = sc?.tagOfSmallId(id);
-  const v = egView(game);
-  if (sc !== null && v !== null && tag !== undefined) {
-    return v.displayName(id, (i) => sc.tagOfSmallId(i)!);
-  }
-  return tag === undefined ? "" : countryName(tag);
+  return countryText(game, id);
 }
 
 /** A country's flag image (a civil war slot's ideology flag); null for none. */
 export function egFlag(game: EndgameGame, id: number): string | null {
-  const flag = egView(game)?.countries.get(id)?.flag;
-  if (flag) return assetUrl(`flags/${flag}.svg`);
-  const tag = game.worldWarScenario()?.tagOfSmallId(id);
-  return tag === undefined ? null : flagUrl(tag);
+  return countryFlagUrl(game, id) || null;
 }
 
 /**

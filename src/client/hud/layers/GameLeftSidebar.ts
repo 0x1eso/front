@@ -8,6 +8,8 @@ import type { Controller } from "../../Controller";
 import { themeProvider } from "../../theme/ThemeProvider";
 import { getTranslatedPlayerTeamLabel, translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import { peaceUiOf } from "../ww1936/PeaceModel";
 import { WwDrawerEvent, type WwDrawerId } from "../ww1936/WwDrawer";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import "./PlayerStats";
@@ -50,6 +52,15 @@ export class GameLeftSidebar extends LitElement implements Controller {
   private yieldToWwDrawer = false;
   /** The World War drawers open now. */
   private readonly wwDrawers = new Set<WwDrawerId>();
+  /**
+   * World War 1936 P5 (spec §20.9): on a phone the peace conference's map
+   * mode wants the whole map — the expanded leaderboard folds while it is
+   * on and comes back after. Its button still brings it back.
+   */
+  @state()
+  private yieldToPeaceMap = false;
+  /** Brought back by its button during this map mode. */
+  private peaceMapReopened = false;
 
   private playerColor: Colord = new Colord("#FFFFFF");
   @property({ attribute: false }) public game: GameView | null = null;
@@ -74,8 +85,12 @@ export class GameLeftSidebar extends LitElement implements Controller {
       if (e.open) this.wwDrawers.add(e.drawer);
       else this.wwDrawers.delete(e.drawer);
       // Once the drawer has drawn (and after a switch between drawers, which
-      // closes one as the other opens, so the board doesn't flicker).
-      requestAnimationFrame(() => this.fitWwDrawer());
+      // closes one as the other opens, so the board doesn't flicker). The
+      // conference map mode closes the drawers as it opens on a phone.
+      requestAnimationFrame(() => {
+        this.fitWwDrawer();
+        this.fitPeaceMap();
+      });
     });
     if (this.isTeamGame) {
       this.isPlayerTeamLabelVisible = true;
@@ -106,8 +121,22 @@ export class GameLeftSidebar extends LitElement implements Controller {
       this.isPlayerTeamLabelVisible = false;
     }
 
+    this.fitPeaceMap();
     this.playerStats?.refresh();
     this.teamStats?.refresh();
+  }
+
+  /** Fold the leaderboard while the conference map mode is on, on a phone. */
+  private fitPeaceMap(): void {
+    const game = this.game;
+    const on =
+      game !== null &&
+      (game.worldWarScenario?.() ?? null) !== null &&
+      window.innerHeight <= COMPACT_MAX_HEIGHT &&
+      peaceUiOf(game).map;
+    if (!on) this.peaceMapReopened = false;
+    const fold = on && !this.peaceMapReopened;
+    if (fold !== this.yieldToPeaceMap) this.yieldToPeaceMap = fold;
   }
 
   private get barOffset(): number {
@@ -130,6 +159,13 @@ export class GameLeftSidebar extends LitElement implements Controller {
   }
 
   private togglePlayerStats(): void {
+    // Folded for the conference map: the button brings it back over it.
+    if (this.yieldToPeaceMap) {
+      this.peaceMapReopened = true;
+      this.yieldToPeaceMap = false;
+      this.isPlayerStatsShown = true;
+      return;
+    }
     // Folded for a World War drawer: the button brings it back over it.
     if (this.yieldToWwDrawer) {
       this.yieldToWwDrawer = false;
@@ -141,7 +177,9 @@ export class GameLeftSidebar extends LitElement implements Controller {
 
   /** The player leaderboard shows (not folded for a World War drawer). */
   private get playerStatsVisible(): boolean {
-    return this.isPlayerStatsShown && !this.yieldToWwDrawer;
+    return (
+      this.isPlayerStatsShown && !this.yieldToWwDrawer && !this.yieldToPeaceMap
+    );
   }
 
   private toggleTeamStats(): void {

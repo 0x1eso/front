@@ -39,11 +39,12 @@ import type {
   UnitState,
 } from "../types";
 import type { OccupationSource } from "./passes/OccupationPass";
+import type { PeaceMapSource } from "./passes/PeaceMapPass";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
 import type { CountdownFx, PreparingFx } from "./passes/StrategicFxPass";
 import type { Ring } from "./passes/WarfareRingPass";
 import type { AttackTroopLabel } from "./passes/WorldTextPass";
-import { GPURenderer, type PeaceMapSourceLike } from "./Renderer";
+import { GPURenderer } from "./Renderer";
 import type { RenderSettings } from "./RenderSettings";
 
 export class MapRenderer {
@@ -65,7 +66,7 @@ export class MapRenderer {
   private storedWwEndgame: WwEndgameView | null = null;
   /** P5: the occupation and peace conference map modes' sources. */
   private storedOccupationMap: OccupationSource | null = null;
-  private storedPeaceMap: PeaceMapSourceLike | null = null;
+  private storedPeaceMap: PeaceMapSource | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -480,7 +481,7 @@ export class MapRenderer {
   }
 
   /** World War 1936 P5 (spec §20.2): the peace conference's map mode (PeaceModel.peaceMapSource). */
-  setPeaceMap(source: PeaceMapSourceLike): void {
+  setPeaceMap(source: PeaceMapSource): void {
     this.storedPeaceMap = source;
     this.renderer?.setPeaceMap(source);
   }

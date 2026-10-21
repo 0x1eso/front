@@ -14,7 +14,6 @@ import { WarshipSelectionController } from "../controllers/WarshipSelectionContr
 import { GameStartingModal } from "../GameStartingModal";
 import { migrateLegacyGraphicsSettings } from "../GraphicsPresets";
 import { MapRenderer } from "../render/gl";
-import type { PeaceMapSourceLike } from "../render/gl/Renderer";
 import { TransformHandler } from "../TransformHandler";
 import { UIState } from "../UIState";
 // The homepage loads it on demand, but the in-game instance (#game-settings)
@@ -63,7 +62,7 @@ import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { seaAirFacts } from "./ww1936/NavyModel";
-import * as PeaceModel from "./ww1936/PeaceModel";
+import { peaceMapSource } from "./ww1936/PeaceModel";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
@@ -72,12 +71,14 @@ import { WwBattleCard } from "./ww1936/WwBattleCard";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
 import { WwEventCards } from "./ww1936/WwEventCards";
+import { WwExileBand } from "./ww1936/WwExileBand";
 import { WwFleetCard } from "./ww1936/WwFleetCard";
 import { WwFocusPanel } from "./ww1936/WwFocusPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
+import { WwPeaceCard } from "./ww1936/WwPeaceCard";
 import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import {
@@ -85,35 +86,8 @@ import {
   seaAirOf,
   WwSeaAirController,
 } from "./ww1936/WwSeaAirController";
+import { WwTakeoverCard } from "./ww1936/WwTakeoverCard";
 import { WwTopBand } from "./ww1936/WwTopBand";
-
-/**
- * P5 bridge: lanes U1 (the peace card) and U3 (the takeover card, the
- * exile band) merge separately from this wiring; the glob loads whichever
- * of their modules are in (none before), so their elements are defined.
- * After the P5 merge these can be plain imports with instanceof checks.
- */
-import.meta.glob(
-  [
-    "./ww1936/WwPeaceCard.ts",
-    "./ww1936/WwTakeoverCard.ts",
-    "./ww1936/WwExileBand.ts",
-  ],
-  { eager: true },
-);
-/** Their tags (index.html), each a Controller with `game` and `eventBus`. */
-const P5_SCREEN_TAGS = [
-  "ww-peace-card",
-  "ww-takeover-card",
-  "ww-exile-band",
-] as const;
-
-/** Lane U1's PeaceModel.peaceMapSource, once that lane is merged (P5 bridge). */
-const peaceMapSource = (
-  PeaceModel as unknown as {
-    peaceMapSource?: (game: GameView) => PeaceMapSourceLike;
-  }
-).peaceMapSource;
 
 export function createRenderer(
   inputEl: HTMLElement,
@@ -523,21 +497,28 @@ export function createRenderer(
     console.error("ww focus panel not found");
   }
 
-  // P5 (lanes U1, U3): the peace card, the takeover card, the exile band.
-  const p5Screens: Controller[] = [];
-  for (const tag of P5_SCREEN_TAGS) {
-    const el = document.querySelector(tag);
-    if (el === null || customElements.get(tag) === undefined) {
-      console.error(`${tag} not found`);
-      continue;
-    }
-    const screen = el as unknown as Controller & {
-      game: GameView;
-      eventBus: EventBus;
-    };
-    screen.game = game;
-    screen.eventBus = eventBus;
-    p5Screens.push(screen);
+  // P5 (lanes U1, U3): the peace conference card, the takeover card, the
+  // band of a government in exile.
+  const wwPeaceCard = document.querySelector("ww-peace-card");
+  if (wwPeaceCard instanceof WwPeaceCard) {
+    wwPeaceCard.game = game;
+    wwPeaceCard.eventBus = eventBus;
+  } else {
+    console.error("ww peace card not found");
+  }
+  const wwTakeoverCard = document.querySelector("ww-takeover-card");
+  if (wwTakeoverCard instanceof WwTakeoverCard) {
+    wwTakeoverCard.game = game;
+    wwTakeoverCard.eventBus = eventBus;
+  } else {
+    console.error("ww takeover card not found");
+  }
+  const wwExileBand = document.querySelector("ww-exile-band");
+  if (wwExileBand instanceof WwExileBand) {
+    wwExileBand.game = game;
+    wwExileBand.eventBus = eventBus;
+  } else {
+    console.error("ww exile band not found");
   }
 
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
@@ -640,9 +621,7 @@ export function createRenderer(
       view.setWwEndgame(wwEndgame);
       // P5 (spec §20.2–§20.3): the occupation and peace conference map modes.
       view.setOccupationMap(occupationMapSource(game));
-      if (peaceMapSource !== undefined) {
-        view.setPeaceMap(peaceMapSource(game));
-      }
+      view.setPeaceMap(peaceMapSource(game));
     }
   }
 
@@ -705,10 +684,12 @@ export function createRenderer(
     ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
+    ...(wwTakeoverCard instanceof WwTakeoverCard ? [wwTakeoverCard] : []),
+    ...(wwPeaceCard instanceof WwPeaceCard ? [wwPeaceCard] : []),
     ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
     ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),
+    ...(wwExileBand instanceof WwExileBand ? [wwExileBand] : []),
     ...(wwFocusPanel instanceof WwFocusPanel ? [wwFocusPanel] : []),
-    ...p5Screens,
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,

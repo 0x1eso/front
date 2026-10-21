@@ -14,7 +14,8 @@ import {
   DrawerInsets,
   drawerInsets,
 } from "../domestic/DomesticPanel";
-import { countryBadges, egName, endgameKey } from "./EndgameModel";
+import { countryBadges, endgameKey } from "./EndgameModel";
+import { countryText } from "./EndgameNames";
 import {
   canAct,
   factionTab,
@@ -436,7 +437,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               : ""}"
           >
             ${this.flag(x.tag)}
-            ${egName(this.game, x.id) || x.name}${x.leader ? " ★" : ""}
+            ${countryText(this.game, x.id) || x.name}${x.leader ? " ★" : ""}
             ${this.badges(x.id)}
             ${mine && amLeader && !x.leader
               ? this.twoTapButton(
