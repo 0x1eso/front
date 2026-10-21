@@ -6,6 +6,7 @@ import {
   WW_FUEL_PER_OIL,
   WW_FUEL_SILO_CAP,
   WW_FUEL_START_DAYS,
+  WW_FUEL_START_FLOOR_PM,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   BattalionId,
@@ -63,7 +64,16 @@ export function fuelCombatBp(r: number, fuelWidthPm: number): number {
   return v <= 0 ? 0 : -v;
 }
 
-/** Spec §15.2: the 1936 stock, 90 days of gain within the capacity. */
+/**
+ * Spec §15.2: the 1936 stock, 90 days of gain within the capacity — and
+ * at least half the capacity (Task 15: an importer's own oil is nil).
+ */
 export function startFuelMilli(gainMilli: number, capMilli: number): number {
-  return Math.min(capMilli, gainMilli * WW_FUEL_START_DAYS);
+  return Math.min(
+    capMilli,
+    Math.max(
+      gainMilli * WW_FUEL_START_DAYS,
+      Math.floor((capMilli * WW_FUEL_START_FLOOR_PM) / 1000),
+    ),
+  );
 }

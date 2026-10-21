@@ -232,6 +232,12 @@ export interface FleetSummary {
   repairDays?: number;
   /** With a carrier: the deck mix in tenths, fighter / CAS / torpedo bomber (spec §9.6). */
   mix?: [number, number, number];
+  /**
+   * P4 Task 15, every fleet at sea: its shore bombardment guns (Σ heavy +
+   * light / 2, centi, at the owner's stats and techs) and the owner's
+   * shoreBombardPct — the battle card's bombardment at an ally's numbers.
+   */
+  bombard?: [number, number];
 }
 export interface NavalBattleSummary {
   zone: number;
@@ -316,6 +322,8 @@ export interface CountryNavyDetail {
   landing?: number[];
   /** P4 lane U: my admirals now — [id, attack, defense, maneuver, coordination, trait bits, level]. */
   admiralSkills?: [number, number, number, number, number, number, number][];
+  /** P4 Task 15: [the first tick of today, my ships sunk today by anything] (the ⚓ dial's badge). */
+  lostToday?: [number, number];
 }
 export interface WwNavyData {
   fleets: FleetSummary[];

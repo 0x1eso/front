@@ -642,10 +642,6 @@ function superiorityAlerts(
   const sc = air.ww.scenario;
   const s = sc.sr(sr)!;
   const land = air.land;
-  // Days past the spacing are forgotten (the state stays small).
-  for (const [side, last] of [...z.alertDay]) {
-    if (day - last >= SUP_ALERT_DAYS) z.alertDay.delete(side);
-  }
   const sides = new Set<number>([...before.keys(), ...after.keys()]);
   for (const side of [...sides].sort((a, b) => a - b)) {
     const was = before.get(side) ?? 0;
@@ -663,8 +659,13 @@ function superiorityAlerts(
       if (front) told.push(c);
     }
     if (told.length === 0) continue;
-    // Map order is key order (Global Constraints): insert sorted.
-    z.alertDay = sortedMap(new Map([...z.alertDay, [side, day]]));
+    // Map order is key order (Global Constraints): insert sorted. Day 0 is
+    // a day too (sortedMap drops zeros: Task 15).
+    z.alertDay = new Map(
+      [...z.alertDay, [side, day] as [number, number]].sort(
+        (a, b) => a[0] - b[0],
+      ),
+    );
     for (const c of told) {
       air.message(c, "events_display.ww1936_air_superiority", {
         sr,
@@ -694,9 +695,21 @@ function zoneIsEmpty(z: ZoneAirState): boolean {
     z.navalSearch.size === 0 &&
     z.navalAsw.size === 0 &&
     z.navalStrike.size === 0 &&
-    z.fightersSup.size === 0 &&
-    z.alertDay.size === 0
+    z.fightersSup.size === 0
   );
+}
+
+/**
+ * The alerts' days past the spacing are forgotten (the state stays
+ * small), first thing on the zone's day — before the emptiness check, so
+ * a quiet zone with an old alert is empty (Task 15: it was cleared and
+ * sent to the screens again every day until the alert aged out).
+ */
+function pruneAlerts(z: ZoneAirState, day: number): void {
+  if (z.alertDay.size === 0) return;
+  for (const [side, last] of [...z.alertDay]) {
+    if (day - last >= SUP_ALERT_DAYS) z.alertDay.delete(side);
+  }
 }
 
 /** Puts a key-ordered copy of `m` (non-zero values only). */
@@ -722,6 +735,7 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   const idx = sc.srIdxOf(sr);
   if (idx < 0) return;
   const z = air.zoneState[idx];
+  pruneAlerts(z, day);
   const flights = flightsOf(air, sr, day, true);
   lastFlights.set(air, { tick: air.mg.ticks(), sr, flights });
   if (flights.length === 0) {

@@ -12,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import { fleetFuelDay } from "../economy/Fuel";
 import { joinNavalBattle } from "./NavalBattles";
 import type { Fleet, WwNavy } from "./WwNavy";
 
@@ -224,7 +225,7 @@ function edgeTo(navy: WwNavy, f: Fleet, next: number): number {
  * the preparation minute (spec §2.2: no war yet) a fleet does not leave
  * the sea regions of its side's coast: it waits at the last zone inside
  * and goes on when the minute ends. A tick at sea is a day at sea
- * (`seaDay`, fuel).
+ * (`seaDay`: the owner's turn that bills it, Fuel.fleetFuelDay).
  */
 export function stepFleets(navy: WwNavy, tick: number): void {
   if (navy.fleets.size === 0) return;
@@ -239,7 +240,9 @@ export function stepFleets(navy: WwNavy, tick: number): void {
     if (f.path.length > 0 && !busy.has(f.id)) {
       stepFleet(navy, f, tick, prep ? waters : null);
     }
-    if (!prep && (atSea || f.docked === 0)) f.seaDay = day;
+    if (!prep && (atSea || f.docked === 0)) {
+      f.seaDay = fleetFuelDay(navy, f.owner, day, tick);
+    }
   }
 }
 

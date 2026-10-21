@@ -1281,7 +1281,10 @@ export interface NavyDialModel {
   progress: number;
   /** My fleets in a battle now. */
   battle: number;
-  /** My ships sunk in battle since today began (WwNavyView.mySunkTicks). */
+  /**
+   * My ships sunk since today began: in battle (WwNavyView.mySunkTicks) or
+   * by anything (air and port strikes too: the engine's lostToday, Task 15).
+   */
   lost: number;
 }
 
@@ -1295,7 +1298,12 @@ export function navyDial(ctx: NavyCtx, dayStart: number): NavyDialModel {
         ? 0
         : Math.min(1, line.progressMilli / line.costMilli),
     battle: mine.filter((f) => f.state === "battle").length,
-    lost: ctx.navy.mySunkTicks.filter((t) => t >= dayStart).length,
+    lost: Math.max(
+      ctx.navy.mySunkTicks.filter((t) => t >= dayStart).length,
+      ctx.navy.detail?.lostToday?.[0] === dayStart
+        ? ctx.navy.detail.lostToday[1]
+        : 0,
+    ),
   };
 }
 

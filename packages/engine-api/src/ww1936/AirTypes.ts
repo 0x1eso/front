@@ -187,6 +187,12 @@ export const WW_FUEL_BASE_CAP = 20_000;
 export const WW_FUEL_CAP_PER_OIL = 2_500;
 export const WW_FUEL_SILO_CAP = 10_000;
 export const WW_FUEL_START_DAYS = 90;
+/**
+ * P4 Task 15 (내 판단): the 1936 stock is at least this ‰ of the capacity.
+ * The start counts the country's own oil only (trade deals come on its
+ * first days), so an importer — Italy, France — began with nothing.
+ */
+export const WW_FUEL_START_FLOOR_PM = 500;
 
 /** The orders WwAir.issue takes (Extract<WwOrder, …>). */
 export type AirOrder = Extract<
