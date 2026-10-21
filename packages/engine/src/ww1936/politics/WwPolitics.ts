@@ -939,7 +939,18 @@ export class WwPolitics {
   }
 
   addDelayed(d: Omit<Delayed, "seq">): void {
-    const e: Delayed = { ...d, seq: this.nextSeq++ };
+    // The schema's field order, so a live entry and a restored one are the
+    // same object (snapshot diffs compare key order).
+    const e: Delayed = {
+      day: d.day,
+      seq: this.nextSeq++,
+      kind: d.kind,
+      eventId: d.eventId,
+      to: d.to,
+      from: d.from,
+      target: d.target,
+      option: d.option,
+    };
     let i = this.delayed.length;
     while (i > 0 && this.delayed[i - 1].day > e.day) i--;
     this.delayed.splice(i, 0, e);

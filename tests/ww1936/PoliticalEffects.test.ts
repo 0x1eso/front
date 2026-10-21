@@ -301,8 +301,10 @@ describe("political effects", () => {
     stepTo(runner, WW_PREP_TICKS + 1);
     afterDay(runner, gbr, 0);
     c.ppMilli = 1_000_000;
-    // Britain: 20% war support (+1% tension line), a democracy at 4% tension.
-    expect(c.wsBp).toBe(2120);
+    // Britain: 20% war support plus the tension line (30% of world
+    // tension: 4% at the start, less lane D's day-0 decay of 1 bp), a
+    // democracy.
+    expect(c.wsBp).toBe(2000 + Math.floor((p.wtBp * 3000) / 10_000));
     const block = (law: "economy" | "conscription" | "trade", v: string) =>
       lawBlock(ww.economy, ce, law, v as never, p.day());
     expect(block("conscription", "extensive")).toBe("law_ws");

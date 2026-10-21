@@ -375,12 +375,14 @@ describe("World War 1936 P2: army orders (P2 spec §16.3)", () => {
     // Empty Warsaw: taken, the paratroopers on 40% org — plus one tick of
     // recovery: the drop happens in applyArmyOrders and stepRecovery runs
     // later in the same tick (spec §9.8: floor(300 × 1.829 h) = 548 at full
-    // supply, no organizer, signal company or recovery tech).
+    // supply, no organizer or signal company, scaled by the country's
+    // recoveryPct — P3 §6.3: war support under 50% lowers it).
+    const recovery = Math.floor((548 * (100 + ce.stats.recoveryPct)) / 100);
     for (let i = 0; i < a.divisions.length; i++) {
       const r = rowOf(g, a, i);
       expect(l.divisions.region[r]).toBe(6);
       expect(l.divisions.org[r]).toBe(
-        Math.floor((l.orgMaxOf(r) * 40) / 100) + 548,
+        Math.floor((l.orgMaxOf(r) * 40) / 100) + recovery,
       );
     }
     expect(l.controller[6]).toBe(deu);
