@@ -171,11 +171,11 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     ]);
     // The victim's screens hatch Berlin: its air detail lists the region
     // with the damage outstanding.
-    const detail = updates
+    const details = updates
       .flatMap((u) => u.updates[GameUpdateType.WwAir] ?? [])
       .flatMap((x) => x.data.details)
-      .filter((d) => d.smallID === deu)
-      .at(-1)!;
+      .filter((d) => d.smallID === deu);
+    const detail = details[details.length - 1];
     expect(detail.bombedRegions).toEqual([[REGION.berlin, 1000]]);
   }, 60_000);
 
