@@ -365,9 +365,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned after the P2 balance round 1 (w2-bal) merged on top of P3 (U2,
 // screens only, changes no engine package): same value in four runs.
 // Re-pinned for the P4 foundation (navy and air state, start techs, fuel,
-// convoys, the stub clock): same value in three runs. The controller
+// convoys, the stub clock): same value in three runs. Re-pinned after the
+// P4 Task 1 review fixes (P4 techs out of the AI's research for now, the
+// navy and air hashes see supremacy, spotting, routes and deployments):
+// same value in three runs. The controller
 // re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "2e306d512f1d9780";
+const WW1936_DIGEST = "afac8d392c4336d0";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
