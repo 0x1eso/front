@@ -5,8 +5,10 @@ import type {
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
+import type { WwAirData } from "../ww1936/AirTypes";
 import type { WwEconomyData } from "../ww1936/EconomyTypes";
 import type { WwLandData } from "../ww1936/LandTypes";
+import type { WwNavyData } from "../ww1936/NavyTypes";
 import type { WwPoliticsData } from "../ww1936/PoliticsTypes";
 import type { WorldWarData } from "../ww1936/WorldWarTypes";
 import { TileRef } from "./GameMap";
@@ -132,6 +134,9 @@ export enum GameUpdateType {
   WwEconomy,
   WwLand,
   WwPolitics,
+  // World War 1936 P4 (P4 spec §19.4)
+  WwNavy,
+  WwAir,
 }
 
 export type GameUpdate =
@@ -164,7 +169,9 @@ export type GameUpdate =
   | WorldWarUpdate
   | WwEconomyUpdate
   | WwLandUpdate
-  | WwPoliticsUpdate;
+  | WwPoliticsUpdate
+  | WwNavyUpdate
+  | WwAirUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -486,4 +493,16 @@ export interface WwLandUpdate {
 export interface WwPoliticsUpdate {
   type: GameUpdateType.WwPolitics;
   data: WwPoliticsData;
+}
+
+/** World War 1936 P4: the navy's changes of the tick (P4 spec §19.4). */
+export interface WwNavyUpdate {
+  type: GameUpdateType.WwNavy;
+  data: WwNavyData;
+}
+
+/** World War 1936 P4: the air war's changes of the tick (P4 spec §19.4). */
+export interface WwAirUpdate {
+  type: GameUpdateType.WwAir;
+  data: WwAirData;
 }

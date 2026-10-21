@@ -42,7 +42,7 @@ export function sumStats(parts: readonly Partial<WwStats>[]): WwStats {
   return out;
 }
 
-/** The tech totals as stats (the P1+P2 keys are the first 34). */
+/** The tech totals as stats (the P1+P2 keys are the first 34; P4's nine follow by name). */
 export function techStats(t: TechTotals): WwStats {
   return sumStats([t as unknown as Partial<WwStats>]);
 }
@@ -52,9 +52,17 @@ export const PCT_STAT_KEYS: readonly WwStatKey[] = WW_STAT_KEYS.filter((k) =>
   k.endsWith("Pct"),
 );
 
-/** Spec §3.3: every …Pct sum is kept in −90..+300. */
+/** P4 plan decision 25: the ranges of the P4 keys that are no …Pct. */
+const P4_CLAMP: readonly (readonly [WwStatKey, number, number])[] = [
+  ["invasionCapacity", 0, 20],
+  ["navyXpMilli", 0, 10_000],
+  ["airXpMilli", 0, 10_000],
+];
+
+/** Spec §3.3: every …Pct sum is kept in −90..+300 (P4: and decision 25's ranges). */
 export function clampStats(s: WwStats): WwStats {
   for (const k of PCT_STAT_KEYS) s[k] = Math.max(-90, Math.min(300, s[k]));
+  for (const [k, lo, hi] of P4_CLAMP) s[k] = Math.max(lo, Math.min(hi, s[k]));
   return s;
 }
 
@@ -71,6 +79,7 @@ export const RS_STAT_OF_BRANCH: Readonly<Record<TechBranch, WwStatKey>> = {
   industry: "rsIndustryPct",
   electronics: "rsElectronicsPct",
   doctrine: "rsDoctrinePct",
+  naval: "rsNavalPct",
 };
 
 /** Spec §3.4: research speed % of a branch (the law's share is added by P1). */

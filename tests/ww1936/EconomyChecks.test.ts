@@ -68,9 +68,14 @@ describe("shared judgements (plan decision 3)", () => {
       levelWithQueue: 0,
       usedSlots: 5,
       slots: 6,
+      coastal: false,
+      harbor: false,
+      researched: new Set(),
     };
     expect(buildBlockOf(ok)).toBeNull();
-    expect(buildBlockOf({ ...ok, building: "dock" })).toBe("not_buildable");
+    // P4 spec §5.1: dockyards are built now, on a coast only.
+    expect(buildBlockOf({ ...ok, building: "dock" })).toBe("not_coastal");
+    expect(buildBlockOf({ ...ok, building: "dock", coastal: true })).toBeNull();
     expect(buildBlockOf({ ...ok, controlled: false })).toBe("not_controlled");
     expect(buildBlockOf({ ...ok, queueLength: 30 })).toBe("queue_full");
     expect(buildBlockOf({ ...ok, occupied: true })).toBe("occupied");
@@ -104,7 +109,19 @@ describe("shared judgements (plan decision 3)", () => {
         ],
         4,
       ),
-    ).toEqual({ factories: 2, infra: 1, fort: 2, rail: 0, supply_hub: 1 });
+    ).toEqual({
+      factories: 2,
+      infra: 1,
+      fort: 2,
+      rail: 0,
+      supply_hub: 1,
+      // P4's level buildings.
+      naval_base: 0,
+      air_base: 0,
+      anti_air: 0,
+      radar: 0,
+      coastal_fort: 0,
+    });
   });
 
   test("laws: ladder, same, cooldown, condition", () => {

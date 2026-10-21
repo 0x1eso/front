@@ -50,11 +50,13 @@ import { HISTORY_BEATS } from "./history";
 import { PERSONS_DEU } from "./persons/deu";
 import { PERSONS_GBR } from "./persons/gbr";
 import { PERSONS_LEADERS } from "./persons/leaders";
+import { PERSONS_P4 } from "./persons/p4";
 import { PERSONS_SUN } from "./persons/sun";
 import { REGION_GROUPS } from "./regionGroups";
 import { SPIRITS_DEU } from "./spirits/deu";
 import { SPIRITS_GBR } from "./spirits/gbr";
 import { SPIRITS_GEN } from "./spirits/gen";
+import { SPIRITS_P4 } from "./spirits/p4";
 import { SPIRITS_START } from "./spirits/start";
 import { SPIRITS_SUN } from "./spirits/sun";
 import { SPIRITS_WORLD } from "./spirits/world";
@@ -202,9 +204,18 @@ export const CONTENT_PARTS: ContentParts = {
     ...SPIRITS_GBR,
     ...SPIRITS_SUN,
     ...SPIRITS_WORLD,
+    // P4 (spec §16.4): the navy and air spirits, last.
+    ...SPIRITS_P4,
   ],
   traits: TRAITS,
-  persons: [...PERSONS_LEADERS, ...PERSONS_DEU, ...PERSONS_GBR, ...PERSONS_SUN],
+  // P4 (spec §16.3): the navy and air chiefs (AirChiefs.P4_PERSONS), last.
+  persons: [
+    ...PERSONS_LEADERS,
+    ...PERSONS_DEU,
+    ...PERSONS_GBR,
+    ...PERSONS_SUN,
+    ...PERSONS_P4,
+  ],
   beats: HISTORY_BEATS,
   groups: REGION_GROUPS,
   countries: COUNTRY_POLITICS,

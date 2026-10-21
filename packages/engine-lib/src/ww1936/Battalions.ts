@@ -42,6 +42,10 @@ export interface BattalionDef {
   speedCenti: number;
   supplyMilli: number;
   trainDays: number;
+  /** P4 spec §10.5: convoy weight, centi (infantry 0.5 → 50). */
+  weightCenti: number;
+  /** P4 spec §14.6: air attack against planes (anti-air battalion 20). */
+  airAtk: number;
   techs: readonly WwTechId[];
   /** Mountain, marine and paratrooper count against the special cap (spec §4.1). */
   special: boolean;
@@ -74,6 +78,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 400,
     supplyMilli: 70,
     trainDays: 90,
+    weightCenti: 50,
+    airAtk: 0,
     techs: ["inf_eq_1"],
   }),
   cavalry: b("cavalry", {
@@ -92,6 +98,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 600,
     supplyMilli: 100,
     trainDays: 90,
+    weightCenti: 50,
+    airAtk: 0,
     techs: [],
   }),
   mountain: b(
@@ -115,6 +123,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       speedCenti: 400,
       supplyMilli: 80,
       trainDays: 120,
+      weightCenti: 50,
+      airAtk: 0,
       techs: ["mountaineers"],
     },
     true,
@@ -140,6 +150,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       speedCenti: 400,
       supplyMilli: 80,
       trainDays: 120,
+      weightCenti: 50,
+      airAtk: 0,
       techs: ["marines"],
     },
     true,
@@ -165,6 +177,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       speedCenti: 400,
       supplyMilli: 80,
       trainDays: 150,
+      weightCenti: 50,
+      airAtk: 0,
       techs: ["paratroopers"],
     },
     true,
@@ -188,6 +202,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 1200,
     supplyMilli: 150,
     trainDays: 90,
+    weightCenti: 75,
+    airAtk: 0,
     techs: ["motorized_1"],
   }),
   artillery: b(
@@ -208,6 +224,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       speedCenti: 400,
       supplyMilli: 200,
       trainDays: 90,
+      weightCenti: 50,
+      airAtk: 0,
       techs: ["artillery_1"],
     },
     false,
@@ -234,6 +252,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       speedCenti: 1200,
       supplyMilli: 300,
       trainDays: 90,
+      weightCenti: 75,
+      airAtk: 0,
       techs: ["artillery_1", "motorized_1"],
     },
     false,
@@ -255,6 +275,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 400,
     supplyMilli: 150,
     trainDays: 90,
+    weightCenti: 50,
+    airAtk: 0,
     techs: ["anti_tank_1"],
   }),
   anti_air: b("gun", {
@@ -273,6 +295,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 400,
     supplyMilli: 150,
     trainDays: 90,
+    weightCenti: 50,
+    airAtk: 20,
     techs: ["anti_air_1"],
   }),
   light_armor: b("armor", {
@@ -291,6 +315,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 800,
     supplyMilli: 600,
     trainDays: 120,
+    weightCenti: 100,
+    airAtk: 0,
     techs: ["light_tank_1"],
   }),
   medium_armor: b("armor", {
@@ -309,12 +335,18 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     speedCenti: 600,
     supplyMilli: 800,
     trainDays: 150,
+    weightCenti: 150,
+    airAtk: 0,
     techs: ["medium_tank_1"],
   }),
 };
 
 export interface SupportDef {
   men: number;
+  /** P4 spec §10.5: every company 0.1 → 10 (centi). */
+  weightCenti: number;
+  /** P4 spec §14.6: the support anti-air company 10. */
+  airAtk: number;
   equip: readonly (readonly [EquipmentType, number])[];
   hpMilli: number;
   soft: number;
@@ -330,6 +362,8 @@ export interface SupportDef {
 const s = (
   r: Partial<SupportDef> & Pick<SupportDef, "men" | "equip" | "techs">,
 ): SupportDef => ({
+  weightCenti: 10,
+  airAtk: 0,
   hpMilli: 0,
   soft: 0,
   hard: 0,
@@ -377,6 +411,7 @@ export const SUPPORTS: Readonly<Record<SupportId, SupportDef>> = {
   }),
   support_anti_air: s({
     men: 200,
+    airAtk: 10,
     equip: [["anti_air", 8]],
     hpMilli: 200,
     soft: 200,

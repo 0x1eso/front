@@ -42,6 +42,12 @@ export interface OrderCheckWorld extends FrontWorld {
   vp(region: number): number;
   army(id: number): OrderCheckArmy | null;
   armyCount(): number;
+  /**
+   * P4 (pre-flight A20): the air war's conditions of a paradrop (an air
+   * base, transport planes, superiority); null when they hold. Optional:
+   * absent, only the P2 conditions apply.
+   */
+  paraBlock?: (army: number, target: number) => WwOrderBlock | null;
 }
 
 /** A plan's targets lie this many edges at most from our side (spec §14.4). */
@@ -83,7 +89,11 @@ export function landOrderBlockOf(
     case "army_merge":
       return mergeBlock(w, a, order.army, order.into);
     case "paradrop":
-      return paradropBlock(w, a, order.region);
+      // P4 (spec §14.10, plan decision 35): the air war's conditions first.
+      return (
+        w.paraBlock?.(order.army, order.region) ??
+        paradropBlock(w, a, order.region)
+      );
     default:
       // army_halt, army_disband, army_auto, army_general (Task 5's check).
       return null;

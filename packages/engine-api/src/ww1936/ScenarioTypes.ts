@@ -78,6 +78,16 @@ export const ScenarioRegionSchema = z.object({
   port: z.boolean().optional(),
   /** P4 spec §3.2: key of a preserved or stamped island (islands1936.json). */
   island: z.string().min(1).optional(),
+  // P4 (v4, P4 spec §3.6). Optional: the ScenarioIndex readers fill a
+  // missing one (plan decision 6).
+  /** Land strategic region. */
+  sr: z.number().int().min(1).max(999).optional(),
+  /** Harbor sea zone (spec §3.5); 0: not coastal. */
+  harbor: z.number().int().min(0).max(65535).optional(),
+  navalBase: z.number().int().min(0).max(10).optional(),
+  airBase: z.number().int().min(0).max(10).optional(),
+  aa: z.number().int().min(0).max(5).optional(),
+  coastalFort: z.number().int().min(0).max(5).optional(),
 });
 
 export const ScenarioSeaZoneSchema = z.object({
@@ -91,6 +101,30 @@ export const ScenarioSeaZoneSchema = z.object({
   tiles: z.number().int().min(1),
   /** P4 spec §3.1 (folded into P2's rebuild): a lake, not a sea. */
   lake: z.boolean().optional(),
+  // P4 (v4, P4 spec §3.6).
+  /** The water tile nearest the zone's centroid. */
+  center: XY.optional(),
+  latC: z.number().int().min(-9000).max(9000).optional(),
+  wcell: z.number().int().min(0).max(647).optional(),
+  /** Sea strategic region (0 for a lake). */
+  sr: z.number().int().min(0).max(1999).optional(),
+});
+
+/** P4 spec §3.4: a land or sea strategic region (an air zone, a naval mission area). */
+const StrategicSchema = z.object({
+  id: z.number().int().min(1).max(1999),
+  kind: z.enum(["land", "sea"]),
+  name: z.string().min(1),
+  nameKo: z.string().min(1),
+  center: XY,
+  latC: z.number().int().min(-9000).max(9000),
+  /** Land: region ids; sea: sea zone ids. Ascending. */
+  members: z.array(z.number().int().min(1).max(65535)).min(1),
+});
+/** Plan decision 9: per map row, the center latitude ×100 and one tile's east-west km ×1000. */
+const RowsSchema = z.object({
+  latC: z.array(z.number().int().min(-9000).max(9000)),
+  kmxMilli: z.array(z.number().int().min(0)),
 });
 
 /** [a, b, border, km, river 0..2, strait 0..1], a < b, sorted (P2 spec §3.1). */
@@ -119,10 +153,11 @@ const StraitSchema = z.object({
 
 /**
  * scenario.json next to regions.bin (spec §4.7; version 2: P1 spec §3.1;
- * version 3: P2 spec §3.1, the land graph).
+ * version 3: P2 spec §3.1, the land graph; version 4: P4 spec §3.6, the
+ * strategic regions, harbors, bases and the row table).
  */
 export const ScenarioDataSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   countries: z.array(ScenarioCountrySchema).min(2),
@@ -135,12 +170,17 @@ export const ScenarioDataSchema = z.object({
   historicalOob: z.boolean().optional(),
   /** Map km per tile for straight-line distances (regionKm); default 40075 / width. The test map says 4. */
   kmPerTile: z.number().positive().optional(),
+  /** P4 (v4): strategic regions, land ids ascending then sea ids ascending in the file. */
+  strategic: z.array(StrategicSchema).optional(),
+  /** P4 (v4, plan decision 9): the row table of kmBetween. */
+  rows: RowsSchema.optional(),
 });
 
 export type ScenarioData = z.infer<typeof ScenarioDataSchema>;
 export type ScenarioCountry = z.infer<typeof ScenarioCountrySchema>;
 export type ScenarioRegion = z.infer<typeof ScenarioRegionSchema>;
 export type ScenarioSeaZone = z.infer<typeof ScenarioSeaZoneSchema>;
+export type ScenarioStrategic = z.infer<typeof StrategicSchema>;
 
 /** Plain data with every property, array and tuple read-only, all the way down. */
 export type DeepReadonly<T> = T extends object

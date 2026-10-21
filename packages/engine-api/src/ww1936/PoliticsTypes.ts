@@ -108,6 +108,33 @@ export const WW_STAT_KEYS = [
   "airAttackPct",
   "fuelPct",
   "intelPct",
+  // P4 (P4 spec §16.3, plan decision 25), appended.
+  "navyDefensePct",
+  "navalDetectPct",
+  "positioningPct",
+  "screeningPct",
+  "carrierStrikePct",
+  "subAttackPct",
+  "convoyRaidPct",
+  "convoyEscortPct",
+  "navalSpeedPct",
+  "repairPct",
+  "navyXpMilli",
+  "invasionPrepPct",
+  "invasionCapacity",
+  "shoreBombardPct",
+  "airDefensePct",
+  "airAgilityPct",
+  "airDetectPct",
+  "casPct",
+  "stratBombPct",
+  "navalStrikePct",
+  "airXpMilli",
+  "aaPct",
+  "bombDamageTakenPct",
+  "fuelCapPct",
+  "fuelUsePct",
+  "paradropPrepPct",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];
 export type WwStats = Record<WwStatKey, number>;
@@ -132,6 +159,9 @@ export const ADVISOR_SLOTS = [
   "staff",
   "industry",
   "research",
+  // P4 (P4 spec §16.3), appended.
+  "navy_chief",
+  "air_chief",
 ] as const;
 export type AdvisorSlot = (typeof ADVISOR_SLOTS)[number];
 export const ADVISOR_COST: Readonly<Record<AdvisorSlot, number>> = {
@@ -140,6 +170,8 @@ export const ADVISOR_COST: Readonly<Record<AdvisorSlot, number>> = {
   staff: 100,
   industry: 100,
   research: 100,
+  navy_chief: 100,
+  air_chief: 100,
 };
 export const TRAIT_BRANCHES = [
   "political",
@@ -149,6 +181,9 @@ export const TRAIT_BRANCHES = [
   "industry",
   "research",
   "leader",
+  // P4 (P4 spec §16.3), appended.
+  "navy_chief",
+  "air_chief",
 ] as const;
 export type TraitBranch = (typeof TRAIT_BRANCHES)[number];
 /** Which trait branches a slot takes (spec §8.1). */
@@ -160,6 +195,8 @@ export const SLOT_BRANCHES: Readonly<
   staff: ["staff", "theorist"],
   industry: ["industry"],
   research: ["research"],
+  navy_chief: ["navy_chief"],
+  air_chief: ["air_chief"],
 };
 export const TRAIT_IDS = [
   // spec §8.3 (26)
@@ -200,6 +237,19 @@ export const TRAIT_IDS = [
   "caretaker",
   "strongman",
   "monarch",
+  // P4 navy and air chiefs (P4 spec §16.3 table order), appended.
+  "nc_fleet_battle",
+  "nc_raider",
+  "nc_escort",
+  "nc_carrier",
+  "nc_amphibious",
+  "nc_dockyard",
+  "ac_superiority",
+  "ac_bomber",
+  "ac_ground",
+  "ac_naval",
+  "ac_air_defense",
+  "ac_airlift",
 ] as const;
 export type TraitId = (typeof TRAIT_IDS)[number];
 

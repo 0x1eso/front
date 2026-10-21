@@ -1,3 +1,4 @@
+import { AIR_TYPES, AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   CountryLaws,
@@ -235,3 +236,140 @@ export function startStock(
 export function isMajor(tag: CountryTag): boolean {
   return COUNTRIES[tag].major;
 }
+
+// ---- P4 (P4 spec §4.3, §12.3, §12.4, §15.2) ----
+
+/** Spec §4.3, §12.3: the navy and air techs of 1936 (generation 1 is open to all). */
+const NAVAL_START: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> =
+  {
+    GBR: [
+      "dd_2",
+      "cl_2",
+      "ca_2",
+      "bb_2",
+      "cv_2",
+      "ss_2",
+      "sonar_1",
+      "carrier_aviation",
+      "naval_bomber_1",
+      "strat_bomber_1",
+    ],
+    USA: [
+      "dd_2",
+      "cl_2",
+      "ca_2",
+      "bb_2",
+      "cv_2",
+      "ss_2",
+      "carrier_aviation",
+      "naval_bomber_1",
+      "cas_1",
+    ],
+    JPN: [
+      "dd_2",
+      "cl_2",
+      "ca_2",
+      "bb_2",
+      "cv_2",
+      "ss_2",
+      "torpedo_1",
+      "carrier_aviation",
+      "naval_bomber_1",
+    ],
+    FRA: ["dd_2", "cl_2", "ca_2", "bc_2", "bb_2", "ss_2", "heavy_fighter_1"],
+    ITA: ["dd_2", "cl_2", "ca_2", "bb_2", "ss_2", "naval_bomber_1"],
+    DEU: [
+      "dd_2",
+      "cl_2",
+      "ca_2",
+      "bc_2",
+      "bb_2",
+      "ss_2",
+      "cas_1",
+      "heavy_fighter_1",
+      "transport_plane_1",
+      "synthetic_oil_1",
+    ],
+    SUN: [
+      "dd_2",
+      "cl_2",
+      "ss_2",
+      "cas_1",
+      "strat_bomber_1",
+      "transport_plane_1",
+    ],
+  };
+
+/**
+ * Spec §4.3, §12.3: a country's 1936 navy and air techs, by tag on every
+ * map; any other developed (dev ≥ 3) country with a coast `dd_2 ss_2`.
+ */
+export function navalStartTechs(
+  tag: CountryTag,
+  dev: number,
+  coastal: boolean,
+): WwTechId[] {
+  const m = NAVAL_START[tag];
+  if (m !== undefined) return [...m];
+  return dev >= 3 && coastal ? ["dd_2", "ss_2"] : [];
+}
+
+/** P1's fighter stock splits over these (spec §12.4); its bombers over the other AIR_TYPES. */
+const FIGHTER_LIKE: readonly AirType[] = [
+  "fighter",
+  "heavy_fighter",
+  "cv_fighter",
+];
+
+/**
+ * Spec §12.4 (historical order of battle only): the stock's generation-1
+ * fighters and bombers dealt over `split` (AIR_TYPES order). The sums stay
+ * P1's: a row that does not add up is scaled into them, the remainder
+ * staying with the fighter or the bomber.
+ */
+export function splitStartPlanes(
+  stock: number[],
+  split: readonly number[] | undefined,
+): void {
+  if (split === undefined) return;
+  const groups: [AirType, readonly AirType[]][] = [
+    ["fighter", FIGHTER_LIKE],
+    ["bomber", AIR_TYPES.filter((t) => !FIGHTER_LIKE.includes(t))],
+  ];
+  for (const [main, group] of groups) {
+    const mk = equipKey(main, 1);
+    const pool = stock[mk];
+    let total = 0;
+    for (const t of group) total += split[AIR_TYPES.indexOf(t)] ?? 0;
+    if (total <= 0) continue;
+    let given = 0;
+    for (const t of group) {
+      if (t === main) continue;
+      const n = Math.floor((pool * (split[AIR_TYPES.indexOf(t)] ?? 0)) / total);
+      stock[equipKey(t, 1)] += n;
+      given += n;
+    }
+    stock[mk] = pool - given;
+  }
+}
+
+/** Spec §12.1 (historical order of battle only): Germany's two synthetic fuel plants (Leuna, Pölitz). */
+export const REFINERY_START: Readonly<
+  Partial<Record<CountryTag, readonly (readonly [string, number])[]>>
+> = {
+  DEU: [
+    ["Sachsen-Anhalt", 1],
+    ["Pomerania", 1],
+  ],
+};
+
+/** Spec §15.2 (historical order of battle only): Japan's six fuel silos, at its home naval fuel depots. */
+export const SILO_START: Readonly<
+  Partial<Record<CountryTag, readonly (readonly [string, number])[]>>
+> = {
+  JPN: [
+    ["Tokyo", 2],
+    ["Hiroshima", 2],
+    ["Kumamoto", 2],
+  ],
+};

@@ -136,6 +136,11 @@ const neutral = (over: Partial<ModInput>): ModInput => ({
   excessBp: 0,
   supplyPm: 1000,
   encircled: false,
+  airBp: 0,
+  fuelBp: 0,
+  landingBp: 0,
+  coastalFortBp: 0,
+  shoreBp: 0,
   ...over,
 });
 
