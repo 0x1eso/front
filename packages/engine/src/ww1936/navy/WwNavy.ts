@@ -1820,16 +1820,12 @@ export class WwNavy {
         .sort((a, b) => a - b),
       admiralSkills: [...this.admirals.values()]
         .filter((a) => a.owner === id)
-        .map(
-          (
-            a,
-          ): [number, number, number, number, number, number, number] => [
-            a.id,
-            ...a.skills,
-            a.traits,
-            a.level,
-          ],
-        ),
+        .map((a): [number, number, number, number, number, number, number] => [
+          a.id,
+          ...a.skills,
+          a.traits,
+          a.level,
+        ]),
     };
   }
 
