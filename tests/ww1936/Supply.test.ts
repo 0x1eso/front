@@ -16,7 +16,6 @@ import {
   hubCapacityMilli,
   localSupplyMilli,
   regionSupplyMilli,
-  SEA_HUB_MILLI,
   supplyEdgeCost,
   supplyFrom,
   supplyRatePm,
@@ -246,12 +245,10 @@ describe("supply (P2 spec §11)", () => {
       expect(l.divisions.supply[r]).toBe(rate);
       expect(l.divisions.encircled[r]).toBe(0);
     }
-    // Lyon and London are ports: sea hubs of the side.
-    expect(liveHubs(l, side)).toContainEqual({
-      region: 2,
-      kind: HUB_SEA,
-      cap: SEA_HUB_MILLI,
-    });
+    // P4 spec §10.3 (lane C): a port is a sea hub only off the side's rail
+    // net and with convoys shipping to it — London is a capital, Lyon has
+    // no supply route: no sea hub, not P2's fixed HUB_SEA.
+    expect(liveHubs(l, side).filter((h) => h.kind === HUB_SEA)).toEqual([]);
   });
 
   test("division rate = region supply / use", async () => {

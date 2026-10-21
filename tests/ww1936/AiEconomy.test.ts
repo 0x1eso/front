@@ -1188,6 +1188,10 @@ describe("the AI economy in a game (spec §12)", () => {
     const ita = ce("ITA");
     const fra = ce("FRA");
     const gbr = ce("GBR");
+    // P4 spec §10.2 (lane C): the sea way is a route between naval bases;
+    // Rome gets one, as P1's shared sea zone made Britain Italy's partner.
+    econ.buildingArray("naval_base")[5] = 1;
+    econ.afterBuildingChange(5, "naval_base");
     // Their first turns: day 0, each on its own tick (Italy's 2, France's 4).
     throughDay(runner, 0);
     // Italy's artillery line wants tungsten; Britain sells it across the

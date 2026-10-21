@@ -396,7 +396,7 @@ export const GENERIC_FOCUSES: FocusDef[] = [
     prereq: [["gen_air_force"]],
     effects: [
       { kind: "research_bonus", branch: "air", pct: 50, uses: 2 },
-      { kind: "reserve", key: "air_base", amount: 2 },
+      { kind: "build", where: { best: 2 }, building: "air_base", count: 1 },
     ],
     ai: { base: 10 },
   },
@@ -418,7 +418,7 @@ export const GENERIC_FOCUSES: FocusDef[] = [
         building: "dock",
         count: 1,
       },
-      { kind: "reserve", key: "naval_research", amount: 50 },
+      { kind: "research_bonus", branch: "naval", pct: 50, uses: 1 },
     ],
     ai: { base: 10 },
   },
@@ -432,7 +432,14 @@ export const GENERIC_FOCUSES: FocusDef[] = [
     icon: "shield",
     prereq: [["gen_navy_yards"]],
     bypass: { kind: "landlocked" },
-    effects: [{ kind: "fort", where: { coastal: true, n: 2 }, amount: 1 }],
+    effects: [
+      {
+        kind: "build",
+        where: { coastal: true, n: 2 },
+        building: "coastal_fort",
+        count: 1,
+      },
+    ],
     ai: { base: 10 },
   },
   // ---- politics ----

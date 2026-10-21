@@ -65,8 +65,6 @@ export interface CountryGraph {
   regionsByCountry: number[][];
   /** By smallID: countries it shares a land border with, ascending. */
   neighbours: number[][];
-  /** By smallID: sea zones its regions touch. */
-  seaZones: Set<number>[];
 }
 
 /**
@@ -80,12 +78,10 @@ export function countryGraph(
   size: number,
 ): CountryGraph {
   const regionsByCountry = Array.from({ length: size }, (): number[] => []);
-  const seaZones = Array.from({ length: size }, () => new Set<number>());
   for (const r of scenario.landRegions) {
     const c = controller[r.id];
     if (c <= 0 || c >= size) continue;
     regionsByCountry[c].push(r.id);
-    for (const z of scenario.regionSeaZones(r.id)) seaZones[c].add(z);
   }
   const nb = Array.from({ length: size }, () => new Set<number>());
   for (const [a, b] of scenario.regionPairs()) {
@@ -96,7 +92,7 @@ export function countryGraph(
     nb[cb].add(ca);
   }
   const neighbours = nb.map((s) => [...s].sort((x, y) => x - y));
-  return { regionsByCountry, neighbours, seaZones };
+  return { regionsByCountry, neighbours };
 }
 
 // ---- Construction (spec §4.2, §4.3) ----

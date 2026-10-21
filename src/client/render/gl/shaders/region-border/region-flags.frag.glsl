@@ -9,7 +9,9 @@ precision highp usampler2D;
 //     colour on the enemy's side of the boundary, between dark rims;
 //   bit 2: red hatching (an encircled region of the viewer's side);
 //   bit 3: a soft breathing glow and a bright outline (pickable border
-//     region in front mode).
+//     region in front mode);
+//   bit 4 (P4): orange hatching the other way (a region of the viewer's
+//     bombed lately, air layer).
 // Widths are screen pixels, so the line reads the same at every zoom.
 
 uniform usampler2D uTiles;  // R16UI per tile: bit 15 edge, low 15 region id
@@ -24,6 +26,7 @@ out vec4 fragColor;
 
 const vec3 HATCH = vec3(0.86, 0.1, 0.08);
 const vec3 GLOW = vec3(1.0, 0.93, 0.6);
+const vec3 BOMBED = vec3(0.96, 0.55, 0.1);
 
 uint regionAt(vec2 w) {
   ivec2 tc = clamp(ivec2(floor(w)), ivec2(0), ivec2(MAP_W - 1, MAP_H - 1));
@@ -55,13 +58,19 @@ void main() {
   vec2 w = vUV * vec2(float(MAP_W), float(MAP_H));
   uint id = regionAt(w);
   uint f = flagsOf(id);
-  if ((f & 14u) == 0u) discard; // bits 1, 2, 3: only those regions draw
+  if ((f & 30u) == 0u) discard; // bits 1-4: only those regions draw
   vec4 col = vec4(0.0);
 
   if ((f & 4u) != 0u) {
     float s = (w.x + w.y) / uTilesPerPx;
     float stripe = 1.0 - step(2.5, mod(s, 9.0));
     col = over(col, HATCH, 0.06 + 0.42 * stripe);
+  }
+
+  if ((f & 16u) != 0u) {
+    float s = (w.x - w.y) / uTilesPerPx;
+    float stripe = 1.0 - step(2.0, mod(s, 8.0));
+    col = over(col, BOMBED, 0.05 + 0.5 * stripe);
   }
 
   if ((f & 8u) != 0u) {

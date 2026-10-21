@@ -360,7 +360,7 @@ function countingGL() {
 }
 
 describe("RegionBorderPass flags", () => {
-  test("tile codes: the edge bit over the land region id; sea zones are 0", () => {
+  test("tile codes: the edge bit over the land region id; sea zones carry their code (P4)", () => {
     // 4x3: two land regions over two sea zones.
     const ids = Uint16Array.from([
       1, 1, 2, 2, 1, 1, 2, 2, 40001, 40001, 40002, 40002,
@@ -370,8 +370,10 @@ describe("RegionBorderPass flags", () => {
     expect([...codes].map((c) => (c & TILE_EDGE_BIT ? 1 : 0))).toEqual([
       ...edges,
     ]);
+    // P4 (plan Task 11): a sea zone tile is SEA_CODE_BIT | its offset from
+    // SEA_ZONE_BASE, so the sea and air layers find its strategic region.
     expect([...codes].map((c) => c & 0x7fff)).toEqual([
-      1, 1, 2, 2, 1, 1, 2, 2, 0, 0, 0, 0,
+      1, 1, 2, 2, 1, 1, 2, 2, 0x4001, 0x4001, 0x4002, 0x4002,
     ]);
   });
 

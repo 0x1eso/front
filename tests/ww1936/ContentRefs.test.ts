@@ -106,6 +106,16 @@ function conditionRefs(
 }
 
 describe("content references", () => {
+  it("no reserve effect remains in the content", () => {
+    const out: string[] = [];
+    for (const [at, list] of allEffectLists()) {
+      walkEffects(list, (e) => {
+        if (e.kind === "reserve") out.push(at);
+      });
+    }
+    expect(out).toEqual([]);
+  });
+
   it("every effect names what exists; who is never on if or random_list", () => {
     const out: string[] = [];
     for (const [at, list] of allEffectLists()) {

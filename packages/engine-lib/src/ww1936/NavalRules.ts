@@ -580,8 +580,18 @@ export interface FleetMissionAsk {
   inBattle: boolean;
 }
 
-/** Spec §8.1, §8.3: why the fleet may not take the mission; null when it may (lane N1). */
+/**
+ * Spec §8.1, §8.3: why the fleet may not take the mission; null when it
+ * may (lane N1). A fleet in a battle takes none; `hold` needs no region;
+ * any other mission needs a sea region within the fleet's range of its
+ * home port by sea. (Training's "own coastal region" needs the map and
+ * the war: the engine checks it after this.)
+ */
 export function fleetMissionBlock(a: FleetMissionAsk): WwOrderBlock | null {
-  void a;
+  if (a.inBattle) return "fleet_busy";
+  if (a.mission === "hold") return null;
+  if (a.srKind !== "sea") return "bad_zone";
+  if (a.km === null) return "no_sea_path";
+  if (a.km > a.rangeKm) return "out_of_range";
   return null;
 }

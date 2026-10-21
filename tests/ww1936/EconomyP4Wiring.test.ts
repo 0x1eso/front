@@ -83,9 +83,11 @@ describe("economy P4 wiring", () => {
     noteFuelUse(ce, 1000, 0);
     expect(ce.fuelLedgerMilli).toBe(1000);
     stepTo(runner, turn + 1);
-    // The stub settlement after research emptied the ledger the same turn.
+    // The settlement after research emptied the ledger the same turn
+    // (lane E): France has no oil, so nothing covered the need.
     expect(ce.fuelLedgerMilli).toBe(0);
-    expect(ce.fuelRatioPm).toBe(1000);
+    expect(ce.fuelUseMilli).toEqual([1000, 0, 0]);
+    expect(ce.fuelRatioPm).toBe(0);
   });
 
   it("start fuel is the formula of day-0 oil", async () => {

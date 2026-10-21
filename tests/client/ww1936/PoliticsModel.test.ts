@@ -18,6 +18,7 @@ import type {
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { lawBlock } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { shipNameList } from "@openfront/engine-lib/ww1936/ShipNames";
 import fs from "fs";
 import path from "path";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
@@ -33,6 +34,7 @@ import {
   governmentTab,
   LAW_GATES,
   lawTab,
+  newsText,
   playerActions,
   POLITICS_NOTICES,
   politicsDial,
@@ -702,6 +704,43 @@ describe("PoliticsModel (P3 spec §21)", () => {
       const missing = [...ids].filter((id) => !(id in json.ww1936.spirit));
       expect(missing, lang).toEqual([]);
     }
+  });
+
+  it("a sunk named ship's news names the ship, its class and the sea (P4 lane N2)", () => {
+    const { game } = fakePolGame({});
+    const g = game as never;
+    // Bismarck is Germany's first battleship name (START_NAVY lines first).
+    const bb = shipNameList("DEU", "bb");
+    const i = bb.indexOf("deu_bismarck") + 1;
+    expect(i).toBeGreaterThan(0);
+    const named = newsText(g, "ww1936_ship_sunk_named", {
+      countryTag: "DEU",
+      byTag: "GBR",
+      cls: "bb",
+      nameIdx: i,
+      nameTag: "DEU",
+      sr: 0,
+    });
+    expect(named.startsWith("[ww1936.news.ww1936_ship_sunk_named]")).toBe(true);
+    for (const part of [
+      "country=[ww1936.country.DEU]",
+      "cls=[ww1936.ship_class.bb]",
+      "ship=[ww1936.ship.deu_bismarck]",
+      "sr=,",
+    ]) {
+      expect(named).toContain(part);
+    }
+    // A numbered ship: "No. n".
+    expect(
+      newsText(g, "ww1936_ship_sunk_named", {
+        countryTag: "DEU",
+        byTag: "none",
+        cls: "dd",
+        nameIdx: -7,
+        nameTag: "DEU",
+        sr: 0,
+      }),
+    ).toContain("ship=[ww1936.navy.ship_numbered] n=7");
   });
 
   it("news of two updates merged in one frame all reach the ticker", () => {

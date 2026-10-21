@@ -1638,6 +1638,39 @@ export class WwPolitics {
     add(moved);
     add(this.delayed.length);
     add(this.beats.filter((b) => b.done).length);
-    return h >>> 0;
+    // P3 Task 17 (hash coverage, spec §22.5): everything the snapshot
+    // holds, so a desync in a focus's progress, a justification, a flag or
+    // the delay list shows on the tick it happens. Derived fields
+    // (DERIVED_FIELDS) are not in the snapshot.
+    return foldPlain(h, this.snapshot()) >>> 0;
   }
+}
+
+/**
+ * Folds a snapshot value into a hash: integers (every number of the
+ * politics snapshot is one), booleans, strings (FNV-1a), arrays with their
+ * length, objects in their key order (the snapshot builds them in one).
+ */
+function foldPlain(h: number, v: unknown): number {
+  if (v === null || v === undefined) return (Math.imul(h, 31) + 1) | 0;
+  switch (typeof v) {
+    case "number":
+      return (Math.imul(h, 31) + (v | 0)) | 0;
+    case "boolean":
+      return (Math.imul(h, 31) + (v ? 3 : 2)) | 0;
+    case "string":
+      return (Math.imul(h, 31) + idHash(v)) | 0;
+    default:
+      break;
+  }
+  if (Array.isArray(v)) {
+    let x = (Math.imul(h, 31) + v.length) | 0;
+    for (const e of v) x = foldPlain(x, e);
+    return x;
+  }
+  let x = h;
+  for (const k of Object.keys(v as object)) {
+    x = foldPlain(x, (v as Record<string, unknown>)[k]);
+  }
+  return x;
 }
