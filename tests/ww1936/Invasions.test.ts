@@ -10,6 +10,7 @@ import {
   type BattalionId,
   GROUND_EQUIPMENT,
   MOVE_NONE,
+  MOVE_SEA,
   ROLE_ATTACK,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
@@ -19,12 +20,15 @@ import {
   INVASION_STATES,
   WW_BEACHHEAD_DAYS,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { divisionConvoys } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
   invasionCapacity,
   shoreBombardBp,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
+import { noStrikeRegions } from "@openfront/engine-lib/ww1936/NoStrike";
+import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import type { Game } from "@openfront/engine/game/Game";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
@@ -43,8 +47,11 @@ import {
   invasionLaunchBlock,
   landInvasion,
   launchInvasion,
+  shoreBombardAt,
 } from "@openfront/engine/ww1936/navy/Invasions";
 import type { Voyage, WwNavy } from "@openfront/engine/ww1936/navy/WwNavy";
+import fs from "fs";
+import path from "path";
 import { diffSnapshots } from "../util/Snapshot";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
@@ -472,8 +479,35 @@ describe("naval invasions", () => {
     // Only a landing division attacking where it landed has the line.
     const r = l.divisions.rowOf(inf.divisions[0]);
     expect(amphibiousModsFor(navy, REGION.krakow, r)).toBeNull();
+    // A landing battle that outlasts the mark's 30 days keeps it.
+    const until = navy.landing.get(inf.divisions[0])!;
+    dailyInvasions(navy, GBR, navy.day(g.ticks()), until + 1);
+    expect(navy.landing.get(inf.divisions[0])).toBe(until);
+    expect(amphibiousModsFor(navy, REGION.rome, r)?.attackBp).toBe(-7000);
+    // Out of its battle, an expired mark goes.
+    leaveBattle(l, l.divisions.rowOf(mar.divisions[0]));
+    l.moveToArmy(mar.divisions[0], l.newArmy(GBR)!);
+    dailyInvasions(navy, GBR, navy.day(g.ticks()), until + 1);
+    expect(navy.landing.has(mar.divisions[0])).toBe(false);
+    expect(navy.landing.has(inf.divisions[0])).toBe(true);
     navy.landing.delete(inf.divisions[0]);
     expect(amphibiousModsFor(navy, REGION.rome, r)).toBeNull();
+  });
+
+  it("no shore bombardment on a no-strike region (Korea, Taiwan)", () => {
+    const dir = path.join(__dirname, "../../resources/maps/world1936");
+    const world = ScenarioIndex.fromFiles(
+      JSON.parse(
+        fs.readFileSync(path.join(dir, "scenario.json"), "utf8"),
+      ) as ReadonlyScenarioData,
+      new Uint8Array(fs.readFileSync(path.join(dir, "regions.bin"))),
+    );
+    // A navy with only the scenario: the refusal comes before anything else is read.
+    const navy = { scenario: world } as unknown as WwNavy;
+    expect(noStrikeRegions(world).size).toBe(12);
+    for (const r of noStrikeRegions(world)) {
+      expect(shoreBombardAt(navy, r, 1)).toBe(0);
+    }
   });
 
   it("shore bombardment cuts the defense", async () => {
@@ -533,7 +567,14 @@ describe("naval invasions", () => {
       { region: REGION.rome },
     ]);
     expect(l.controller[REGION.rome]).toBe(ITA);
-    // Home to London on the convoys (lane C's voyage, or at once without one).
+    // At sea with no org (lane C's voyage, or the landing's own convoys).
+    const sea = l.divisions.rowOf(id);
+    expect([l.divisions.mode[sea], l.divisions.org[sea]]).toEqual([
+      MOVE_SEA,
+      0,
+    ]);
+    expect(navy.invasions.get(a.id)!.state).toBe(st("returning"));
+    // Home to London after the trip.
     for (let i = 0; i < 300; i++) {
       const row = l.divisions.rowOf(id);
       if (
@@ -656,6 +697,23 @@ describe("naval invasions", () => {
       { region: REGION.london },
       { region: REGION.london },
     ]);
+  });
+
+  it("the hash sees invasion targets and voyages, beachheads and landing marks", async () => {
+    const { g, navy } = await atWar();
+    const a = placeArmy(g, "GBR", REGION.london, 1);
+    expect(invade(navy, GBR, a, REGION.rome)).toBeNull();
+    const inv = navy.invasions.get(a.id)!;
+    const h0 = navy.hash();
+    inv.voyage = 5;
+    const h1 = navy.hash();
+    inv.target = REGION.malta;
+    const h2 = navy.hash();
+    navy.beachhead.set(REGION.krakow, { side: 3, until: 40 });
+    const h3 = navy.hash();
+    navy.landing.set(a.divisions[0], 900);
+    const h4 = navy.hash();
+    expect(new Set([h0, h1, h2, h3, h4]).size).toBe(5);
   });
 
   it("a game restored mid-preparation and mid-landing goes on the same", async () => {

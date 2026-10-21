@@ -27,6 +27,7 @@ import {
   type InvasionOrder,
   WW_BEACHHEAD_CAPACITY_MILLI,
   WW_BEACHHEAD_DAYS,
+  WW_CONVOY_SPEED_KN,
   WW_INVASION_ABORT_SUP_PM,
   WW_INVASION_LAUNCH_SUP_PM,
   WW_INVASION_MAX_KM,
@@ -44,6 +45,7 @@ import {
   landingBp,
   shoreBombardBp,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { joinBattle } from "../land/Battles";
@@ -51,6 +53,7 @@ import { enemyDivisionsIn, stopDivision } from "../land/Movement";
 import { capture } from "../land/Occupation";
 import { armyRows } from "../land/Plans";
 import {
+  atSea,
   damageDivisions,
   divisionWeightCenti,
   landDivisions,
@@ -423,7 +426,11 @@ export function dailyInvasions(
     } else if (inv.state === ST_LANDING) {
       resolveLanding(navy, inv, a, day, tick);
     } else if (inv.state === ST_RETURNING) {
-      if (!navy.voyages.has(inv.voyage)) dropInvasion(navy, inv);
+      if (inv.voyage !== 0) {
+        if (!navy.voyages.has(inv.voyage)) dropInvasion(navy, inv);
+      } else if (++inv.prepDone >= inv.prepDays) {
+        homeFromSea(navy, inv, a, tick);
+      }
     }
   }
   dailyBeachheads(navy, smallID, day);
@@ -569,17 +576,19 @@ export function landInvasion(navy: WwNavy, voyage: number, tick: number): void {
   }
   if (!land.isEnemy(owner, ctl)) {
     // Peace (or our side took it) while at sea: our region takes them in,
-    // else they go back to a port of the side (none: they disband).
+    // else they sail back to a port of the side (none: they disband).
+    const a = land.armies.get(inv.army);
+    const port = land.sameSide(owner, ctl)
+      ? 0
+      : returnPort(navy, owner, inv.from, navy.scenario.harborOf(target));
     if (land.sameSide(owner, ctl)) {
       landDivisions(land, ids, target, false, tick);
+    } else if (port !== 0 && a !== undefined) {
+      setArmyIdle(navy, a);
+      sendHome(navy, inv, a, ids, target, port, tick);
+      return;
     } else {
-      const zone = navy.scenario.harborOf(target);
-      const port = returnPort(navy, owner, inv.from, zone);
-      if (port !== 0) {
-        landDivisions(land, ids, port, false, tick);
-      } else {
-        for (const id of ids) land.killDivision(t.rowOf(id), false);
-      }
+      for (const id of ids) land.killDivision(t.rowOf(id), false);
     }
     dropInvasion(navy, inv);
     return;
@@ -648,9 +657,8 @@ function resolveLanding(
 
 /**
  * Spec §11.4: back to sea toward the departure port (lost: the nearest of
- * the side's) on lane C's convoys, 20% more men and equipment lost. When
- * no voyage can start, the landing's convoys take them straight back; with
- * no port of the side anywhere they stay where they are.
+ * the side's), 20% more men and equipment lost (sendHome). With no port of
+ * the side anywhere they stay where they are.
  */
 function landingFailed(
   navy: WwNavy,
@@ -679,28 +687,83 @@ function landingFailed(
     return;
   }
   setArmyIdle(navy, a);
-  const id = startVoyage(
-    navy,
-    inv.owner,
-    a.id,
-    alive,
-    target,
-    port,
-    true,
-    tick,
-  );
+  sendHome(navy, inv, a, alive, target, port, tick);
+}
+
+/**
+ * Divisions (ids) go back over the sea from region `at` to `port`: on lane
+ * C's voyage (`aborting`: landInvasion lands them like a sea move); when C
+ * refuses one (no idle convoys, no route) on the landing's own convoys —
+ * lifted (org 0) and at sea for the trip's days at 12 knots (navalSpeedPct)
+ * before they land in a port of the side. State `returning`; with no
+ * voyage (`voyage` 0) `prepDone` / `prepDays` count those days and `from`
+ * is the port.
+ */
+function sendHome(
+  navy: WwNavy,
+  inv: Invasion,
+  a: Army,
+  ids: readonly number[],
+  at: number,
+  port: number,
+  tick: number,
+): void {
+  const land = navy.land;
+  const sc = navy.scenario;
+  inv.state = ST_RETURNING;
+  navy.markCountry(inv.owner);
+  land.markArmy(a.id);
+  const id = startVoyage(navy, inv.owner, a.id, ids, at, port, true, tick);
   const v = id === 0 ? undefined : navy.voyages.get(id);
-  if (v === undefined) {
-    liftDivisions(land, alive);
-    landDivisions(land, alive, port, false, tick);
-    navy.invasions.delete(inv.army);
-    navy.markCountry(inv.owner);
+  if (v !== undefined) {
+    v.aborting = true;
+    inv.voyage = id;
     return;
   }
-  v.aborting = true;
-  inv.state = ST_RETURNING;
-  inv.voyage = id;
-  navy.markCountry(inv.owner);
+  liftDivisions(land, ids);
+  const path = seaPath(
+    sc,
+    [sc.harborOf(at)],
+    [sc.harborOf(port)],
+    navy.passable(inv.owner, false),
+  );
+  inv.voyage = 0;
+  inv.from = port;
+  inv.prepDone = 0;
+  inv.prepDays = tripDays(navy, inv.owner, path?.km ?? 0);
+}
+
+/** Days at sea for `km` at 12 knots × (100 + navalSpeedPct) / 100; at least one (spec §11.3). */
+function tripDays(navy: WwNavy, owner: number, km: number): number {
+  const pct = Math.max(
+    10,
+    100 + (navy.econ.country(owner)?.stats.navalSpeedPct ?? 0),
+  );
+  // Metres a day: knots × 1,852 m × 24 h.
+  const perDay = Math.floor((WW_CONVOY_SPEED_KN * 1852 * 24 * pct) / 100);
+  return Math.max(1, Math.ceil((km * 1000) / perDay));
+}
+
+/**
+ * The owner's day a convoy-less return ends: the army's divisions at sea
+ * land in its port (lost meanwhile: the side's nearest; none: they wait
+ * at sea another day).
+ */
+function homeFromSea(navy: WwNavy, inv: Invasion, a: Army, tick: number): void {
+  const land = navy.land;
+  const t = land.divisions;
+  const port = returnPort(
+    navy,
+    inv.owner,
+    inv.from,
+    navy.scenario.harborOf(inv.from),
+  );
+  if (port === 0) return;
+  const ids = armyRows(land, a)
+    .filter((r) => atSea(land, r))
+    .map((r) => t.id[r]);
+  if (ids.length > 0) landDivisions(land, ids, port, false, tick);
+  dropInvasion(navy, inv);
 }
 
 /**
@@ -763,11 +826,22 @@ function setArmyIdle(navy: WwNavy, a: Army): void {
   navy.land.markArmy(a.id);
 }
 
-/** Landing marks of dead divisions or past their end tick go (any country's day). */
+/**
+ * Landing marks of dead divisions go, and those past their end tick once
+ * the division is out of its landing battle (a landing battle that outlasts
+ * the 30 days keeps its marks until it ends). Any country's day.
+ */
 function sweepLandingMarks(navy: WwNavy, tick: number): void {
   const t = navy.land.divisions;
   for (const [id, until] of [...navy.landing]) {
-    if (t.rowOf(id) < 0 || tick > until) navy.landing.delete(id);
+    const r = t.rowOf(id);
+    if (
+      r < 0 ||
+      (tick > until &&
+        !(t.battle[r] === t.region[r] && t.role[r] === ROLE_ATTACK))
+    ) {
+      navy.landing.delete(id);
+    }
   }
 }
 
@@ -789,8 +863,8 @@ export function amphibiousModsFor(
   const land = navy.land;
   const t = land.divisions;
   const until = navy.landing.get(t.id[row]);
+  // The mark lasts as long as its landing battle (sweepLandingMarks).
   if (until === undefined || t.region[row] !== battleRegion) return null;
-  if (navy.mg.ticks() > until) return null;
   const ce = navy.econ.country(t.owner[row]);
   if (ce === null) return null;
   const marines = (land.flagsOf(row) & TPL_MARINE_ANY) !== 0;
@@ -798,13 +872,13 @@ export function amphibiousModsFor(
 }
 
 /**
- * Per tick: (sea region × 1024 + bombarding side) → the cut. Fleets move
- * only in the navy's tick, after the land war's: within one tick the value
- * cannot change, and a restored game computes the same one.
+ * Per tick: sea region → bombarding side → the cut. Fleets move only in
+ * the navy's tick, after the land war's: within one tick the value cannot
+ * change, and a restored game computes the same one.
  */
 const bombardMemo = new WeakMap<
   WwNavy,
-  { tick: number; bp: Map<number, number> }
+  { tick: number; bySr: Map<number, Map<number, number>> }
 >();
 
 /**
@@ -814,17 +888,20 @@ const bombardMemo = new WeakMap<
  * of the region's harbor zone, Σ(heavy + light / 2) × 0.1% × (100 +
  * shoreBombardPct) / 100, at most 25% (the stats of the country with the
  * most guns there). Every battle of a coastal region of that sea region
- * gets it, not only landings (HOI4).
+ * gets it, not only landings (HOI4). Shore bombardment is a ship strike:
+ * never on a no-strike region (Korea, Taiwan); a landing there is plain
+ * ground war.
  */
 export function shoreBombardAt(
   navy: WwNavy,
   region: number,
   side: number,
 ): number {
+  const sc = navy.scenario;
+  if (isNoStrike(sc, region)) return 0;
   const land = navy.land;
   const b = land.battles.get(region);
   if (b === undefined) return 0;
-  const sc = navy.scenario;
   const zone = sc.harborOf(region);
   const sr = zone === 0 ? 0 : sc.zoneSr(zone);
   if (sr === 0) return 0;
@@ -833,14 +910,15 @@ export function shoreBombardAt(
   const tick = navy.mg.ticks();
   let memo = bombardMemo.get(navy);
   if (memo === undefined || memo.tick !== tick) {
-    memo = { tick, bp: new Map() };
+    memo = { tick, bySr: new Map() };
     bombardMemo.set(navy, memo);
   }
-  const key = sr * 1024 + attSide;
-  const kept = memo.bp.get(key);
+  let bySide = memo.bySr.get(sr);
+  if (bySide === undefined) memo.bySr.set(sr, (bySide = new Map()));
+  const kept = bySide.get(attSide);
   if (kept !== undefined) return kept;
   const bp = bombardBp(navy, sr, attSide);
-  memo.bp.set(key, bp);
+  bySide.set(attSide, bp);
   return bp;
 }
 

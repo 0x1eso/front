@@ -1993,7 +1993,9 @@ export class WwNavy {
   /**
    * Per country (smallID order) the live ships and their HP; per fleet
    * (id, zone, docked, state, prog); per battle (zone, round); the convoys
-   * sunk; per invasion (army, state, prepDone); per voyage (id, zoneIdx, prog).
+   * sunk; per invasion (army, state, prepDone, target, voyage); per
+   * beachhead (region, side, until); per landing mark (division, until);
+   * per voyage (id, zoneIdx, prog).
    */
   hash(): number {
     let h = 41;
@@ -2027,6 +2029,18 @@ export class WwNavy {
       h = (Math.imul(h, 31) + x.army) >>> 0;
       h = (Math.imul(h, 31) + x.state) >>> 0;
       h = (Math.imul(h, 31) + x.prepDone) >>> 0;
+      h = (Math.imul(h, 31) + x.target) >>> 0;
+      h = (Math.imul(h, 31) + x.voyage) >>> 0;
+    }
+    // Lane I review: beachheads (region, side, until) and landing marks.
+    for (const [r, b] of this.beachhead) {
+      h = (Math.imul(h, 31) + r) >>> 0;
+      h = (Math.imul(h, 31) + b.side) >>> 0;
+      h = (Math.imul(h, 31) + b.until) >>> 0;
+    }
+    for (const [d, until] of this.landing) {
+      h = (Math.imul(h, 31) + d) >>> 0;
+      h = (Math.imul(h, 31) + until) >>> 0;
     }
     for (const v of this.voyages.values()) {
       h = (Math.imul(h, 31) + v.id) >>> 0;
