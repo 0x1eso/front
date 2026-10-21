@@ -48,16 +48,19 @@ describe("the historical calendar (spec §7.4; P3 history beats)", () => {
     step(a);
     step(b);
     const plan = pol(a.game).beats;
-    expect(plan).toHaveLength(HISTORY_BEATS.length);
+    // P5: the registry's beats are P3's table, then the endgame's.
+    const beats = pol(a.game).content.beats;
+    expect(beats.slice(0, HISTORY_BEATS.length)).toEqual(HISTORY_BEATS);
+    expect(plan).toHaveLength(beats.length);
     expect(pol(b.game).beats).toEqual(plan);
     let skipped = 0;
     plan.forEach((s, i) => {
       if (s.skipped) skipped++;
-      const day = dayOfDate(HISTORY_BEATS[i].date);
+      const day = dayOfDate(beats[i].date);
       expect(s.fireDay).toBeGreaterThanOrEqual(day);
       expect(s.fireDay).toBeLessThanOrEqual(day + HISTORY_MAX_DELAY_DAYS);
     });
-    expect(skipped).toBeLessThan(HISTORY_BEATS.length / 3);
+    expect(skipped).toBeLessThan(beats.length / 3);
   });
 
   test("historical AI off: every beat is skipped", async () => {

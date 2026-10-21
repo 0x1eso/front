@@ -158,6 +158,8 @@ function makeStartedRunner(
     inSpawnPhase: () => false,
     myPlayer: () => null,
     update: vi.fn(),
+    // World War 1936 P5: the controller changes a takeover queued (none).
+    takeControllerChanges: () => [],
   };
   const soundManager = { playBackgroundMusic: vi.fn(), dispose: vi.fn() };
   const userSettings = { goToPlayer: () => false };
