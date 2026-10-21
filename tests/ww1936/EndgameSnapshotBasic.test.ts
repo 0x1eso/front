@@ -3,6 +3,7 @@
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
+import { addContract } from "@openfront/engine/ww1936/endgame/LendLease";
 import {
   transferArmyTo,
   transferDivisionsTo,
@@ -85,6 +86,48 @@ describe("World War 1936 P5: the endgame in a snapshot", () => {
     expect(land.rowsOf(endId("CSK"))).toEqual(expect.arrayContaining(rows));
     step(a, 30);
     const b = await wwRestore(a, HUMANS, END_MAP);
+    lockstep(a, b, 60);
+  }, 60_000);
+
+  it("lend-lease contracts keep the aid AI's flag through a snapshot; the hash reads it", async () => {
+    const a = await wwRunner({}, HUMANS, END_MAP);
+    stepTo(a, WW_PREP_TICKS + 2);
+    const ww = a.game.worldWar()!;
+    const eg = ww.endgame;
+    const day = ww.day(a.game.ticks());
+    // One contract the aid AI owns (lane A's optional `ai`), one it does not.
+    const mine = addContract(
+      eg,
+      endId("GBR"),
+      endId("FRA"),
+      "infantry_equipment",
+      0,
+      100,
+      day,
+      null,
+    );
+    mine.ai = true;
+    addContract(eg, endId("GBR"), endId("POL"), "artillery", 0, 50, day, null);
+    const h = eg.hash();
+    mine.ai = undefined;
+    expect(eg.hash()).not.toBe(h);
+    mine.ai = true;
+    expect(eg.hash()).toBe(h);
+    mine.perMonth = 101;
+    expect(eg.hash()).not.toBe(h);
+    mine.perMonth = 100;
+    step(a, 1);
+    const flags = (r: GameRunner) =>
+      r.game
+        .worldWar()!
+        .endgame.lendLease.map((c) => [c.id, c.perMonth, c.ai ?? false]);
+    expect(flags(a)).toEqual([
+      [mine.id, 100, true],
+      [mine.id + 1, 50, false],
+    ]);
+    const b = await wwRestore(a, HUMANS, END_MAP);
+    expect(flags(b)).toEqual(flags(a));
+    expect(b.game.worldWar()!.endgame.hash()).toBe(eg.hash());
     lockstep(a, b, 60);
   }, 60_000);
 

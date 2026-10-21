@@ -1599,7 +1599,12 @@ export class WwEndgame {
       mix(e.capital);
       mix(e.faction);
     }
-    for (const l of this.lendLease) mix(l.sentMilli % 1_000_003);
+    // Batch 20 glue: the aid AI resizes the contracts it owns (lane A's `ai`).
+    for (const l of this.lendLease) {
+      mix(l.sentMilli % 1_000_003);
+      mix(l.perMonth);
+      mix(l.ai === true ? 1 : 0);
+    }
     for (const t of this.inTransit) mix(t.countMilli % 1_000_003);
     for (let i = 0; i < this.coreTable.length; i++) {
       if (this.coreTable[i] !== 0) mix(this.coreTable[i] * 7 + i);
