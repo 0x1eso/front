@@ -595,7 +595,7 @@ export class WwNavyPanel extends WwDrawerBase {
                   })}</span
                 >
                 <span class="ml-auto shrink-0"
-                  >${translateText(r.status.key, r.status.params)}</span
+                  >${translateText(`ww1936.fleet_state.${r.state}`)}</span
                 >
               </span>
             </button>
@@ -752,7 +752,7 @@ export class WwNavyPanel extends WwDrawerBase {
                     <span class="min-w-0 truncate font-semibold"
                       >${a.name}</span
                     >
-                    ${a.traits.map(
+                    ${(a.now?.traits ?? []).map(
                       (t) =>
                         html`<span
                           data-ww-trait=${t}
@@ -771,17 +771,23 @@ export class WwNavyPanel extends WwDrawerBase {
                           })}</span
                     >
                   </div>
-                  ${a.def === null
+                  ${a.now === null
                     ? nothing
                     : html`<div class="tabular-nums text-white/60">
                         ${translateText("ww1936.navy.admiral_stats", {
-                          a: a.def.atk,
-                          d: a.def.def,
-                          m: a.def.man,
-                          c: a.def.coord,
+                          a: a.now.skills[0],
+                          d: a.now.skills[1],
+                          m: a.now.skills[2],
+                          c: a.now.skills[3],
                         })}
+                        ${a.now.level > 0
+                          ? html` ·
+                            ${translateText("ww1936.navy.admiral_level", {
+                              n: a.now.level,
+                            })}`
+                          : nothing}
                       </div>`}
-                  ${a.traits.map(
+                  ${(a.now?.traits ?? []).map(
                     (t) =>
                       html`<div class="text-white/60">
                         ${ADMIRAL_TRAIT_ICONS[t]}

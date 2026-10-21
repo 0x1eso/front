@@ -61,7 +61,6 @@ import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { seaAirFacts } from "./ww1936/NavyModel";
-import type { SeaAirSelection } from "./ww1936/SeaAirSelection";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
@@ -78,7 +77,11 @@ import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
 import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
-import { WwSeaAirController } from "./ww1936/WwSeaAirController";
+import {
+  seaAirGlow,
+  seaAirOf,
+  WwSeaAirController,
+} from "./ww1936/WwSeaAirController";
 import { WwTopBand } from "./ww1936/WwTopBand";
 
 export function createRenderer(
@@ -565,12 +568,14 @@ export function createRenderer(
         () => transformHandler.scale,
       );
       // Lane R's passes read the shared choice (the layer, the fleet, the
-      // zone): MapRenderer.setSeaAirSelection once lane R's renderer is in.
-      (
-        view as unknown as {
-          setSeaAirSelection?: (s: SeaAirSelection) => void;
-        }
-      ).setSeaAirSelection?.(seaAirController.selection);
+      // zone) and what a map tap may aim at glows (spec §18.3).
+      view.setSeaAirSelection(seaAirController.selection);
+      const sa = seaAirOf(game);
+      view.setSeaAirGlow({
+        key: () =>
+          `${sa.draft.version}:${sa.selection.version}:${wwNavy.version}`,
+        glow: () => seaAirGlow(game),
+      });
       // The land cards' P4 battle lines and order checks (pre-flight ruling 3).
       if (wwLand !== null) {
         setLandSeaAir(wwLand, seaAirFacts(game, wwNavy, wwAir));

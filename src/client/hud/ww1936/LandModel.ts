@@ -54,6 +54,7 @@ import {
   frontSize,
   FrontWorld,
 } from "@openfront/engine-lib/ww1936/FrontRules";
+import { landFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import {
   GENERALS,
   isTitledGeneral,
@@ -90,6 +91,7 @@ import type { WwLandView } from "../../view/WwLandView";
 import { blockText } from "./EconomyModel";
 import {
   airBpOf,
+  airMoveOf,
   ArmyLift,
   fuelBpOf,
   landingBpsOf,
@@ -1143,21 +1145,33 @@ function p4Fields(
   attacking: boolean,
   opponent: number,
   div: Pick<DivisionStats, "airAtk" | "fuelWidthPm" | "flags"> | null,
-  army: number,
+  divisions: readonly number[],
 ): P4Fields {
+  void sides;
   const p4 = landSeaAirOf(view);
   const techs = researchedOf(economy, me);
+  const regionOf = (id: number) =>
+    detailOf(view, me)?.divisions.find((d) => d.id === id)?.region ?? 0;
   const landing =
-    attacking && owner === me && army > 0
-      ? landingBpsOf(p4, economy, me, army, region, div?.flags ?? 0, techs)
+    attacking && owner === me && divisions.length > 0
+      ? landingBpsOf(
+          p4,
+          economy,
+          me,
+          divisions,
+          regionOf,
+          region,
+          div?.flags ?? 0,
+          techs,
+        )
       : { landingBp: 0, coastalFortBp: 0 };
   return {
-    airBp: airBpOf(p4, sides, view.scenario, region, owner, div?.airAtk ?? 0),
+    airBp: airBpOf(p4, view.scenario, region, owner, div?.airAtk ?? 0),
     fuelBp: div === null ? 0 : fuelBpOf(economy, owner, div.fuelWidthPm),
     ...landing,
     shoreBp: attacking
       ? 0
-      : shoreBpOf(p4, sides, view.scenario, me, techs, region, opponent),
+      : shoreBpOf(p4, view.scenario, me, techs, region, opponent, owner),
   };
 }
 
@@ -1204,7 +1218,7 @@ function armyInput(
       attacking,
       opponent,
       ts,
-      a.id,
+      divs.map((d) => d.id),
     ),
   };
 }
@@ -1272,7 +1286,7 @@ export function attackPreview(
   }).mods;
   const dm = divisionMods({
     ...plainInput(false, land, weather),
-    ...p4Fields(view, economy, me, sides, holder, region, false, me, null, 0),
+    ...p4Fields(view, economy, me, sides, holder, region, false, me, null, []),
     excessBp: excessWidthBp(def.width, width),
     encircled: view.regions.get(region)?.encircled ?? false,
   }).mods;
@@ -1296,6 +1310,22 @@ export function attackPreview(
 }
 
 /** The army's pace: its slowest division's template speed (spec §7.2). */
+/** P4: a division of the army burns fuel to move (fuel battalions, spec §15.3). */
+function armyUsesFuel(
+  view: WwLandView,
+  economy: WwEconomyView,
+  me: number,
+  army: number,
+): boolean {
+  const tech = techOf(economy, me);
+  return divisionsOf(view, me, army).some((d) => {
+    const t = templateOf(view, me, d.template);
+    return (
+      t !== null && templateStats(templateDef(t), tech, GEN1).fuelHourMilli > 0
+    );
+  });
+}
+
 function armySpeed(
   view: WwLandView,
   economy: WwEconomyView,
@@ -1348,18 +1378,25 @@ export function movePreview(
   } else {
     const speed = armySpeed(view, economy, me, army);
     const supply = a.mine?.supplyPm ?? 1000;
+    // P4 (spec §14.6, §15.4): the engine's air and fuel cuts of a step.
+    const p4 = landSeaAirOf(view);
+    const fuel = armyUsesFuel(view, economy, me, army)
+      ? (economy.summary(me)?.fuelRatioPm ?? 1000)
+      : 1000;
     pass = ours;
-    cost = (e, to) =>
-      edgeTicks(
-        moveNeed(s.edge(e), s.landOf(to)),
-        moveStep(
-          speed,
-          economy.infra[to] ?? 1,
-          day < 0 ? "clear" : weatherOf(s, to, day),
-          supply,
-          0,
-        ),
+    cost = (e, to) => {
+      let step = moveStep(
+        speed,
+        economy.infra[to] ?? 1,
+        day < 0 ? "clear" : weatherOf(s, to, day),
+        supply,
+        0,
       );
+      const air = airMoveOf(p4, s, to, me);
+      if (air !== 1000) step = Math.floor((step * air) / 1000);
+      if (fuel < 1000) step = Math.floor((step * landFuelSpeedPm(fuel)) / 1000);
+      return edgeTicks(moveNeed(s.edge(e), s.landOf(to)), step);
+    };
   }
   const path = shortestPath(s, from, region, pass, cost);
   if (path.length === 0) return null;
@@ -1440,7 +1477,7 @@ export function battleCard(
       true,
       b.defender,
       null,
-      0,
+      [],
     ),
     ...crossing(s, attackerOrigins, region),
     fort,
@@ -1458,7 +1495,7 @@ export function battleCard(
       false,
       b.attacker,
       null,
-      0,
+      [],
     ),
     excessBp: excessWidthBp(b.defWidth, b.width),
     encircled: view.regions.get(region)?.encircled ?? false,
@@ -1499,7 +1536,7 @@ export function battleCard(
         attacking,
         opponent,
         ts,
-        d.army,
+        [d.id],
       ),
     };
   };

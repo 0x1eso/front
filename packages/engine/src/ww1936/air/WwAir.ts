@@ -735,6 +735,8 @@ export class WwAir {
         ring(c.tally[4]),
       ],
       bombedRegions: [],
+      // Lane U: the zones the AI runs for this human (the zone card's auto).
+      autoZones: [...c.autoZones].sort((a, b) => a - b),
     };
   }
 

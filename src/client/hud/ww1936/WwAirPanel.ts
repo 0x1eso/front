@@ -261,7 +261,10 @@ export class WwAirPanel extends WwDrawerBase {
                   html`<button
                     type="button"
                     data-ww-pick=${`deck:${f.id}:${mix.join("")}`}
-                    class=${BUTTON}
+                    aria-pressed=${String(f.mix?.join() === mix.join())}
+                    class="${BUTTON} ${f.mix?.join() === mix.join()
+                      ? "border-sky-300 bg-sky-800/60"
+                      : ""}"
                     @click=${() =>
                       this.eventBus.emit(
                         new SendWwOrderIntentEvent({

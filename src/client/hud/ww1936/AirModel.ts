@@ -267,6 +267,8 @@ export interface ZoneCardData {
   radar: number;
   rows: PlaneRowData[];
   result: AirZoneResult | null;
+  /** The AI runs this zone for me (air_auto, CountryAirDetail.autoZones). */
+  auto: boolean;
 }
 
 export function zoneCard(
@@ -347,6 +349,9 @@ export function zoneCard(
     radar,
     rows,
     result: zone?.result.find(([side]) => side === mySide)?.[1] ?? null,
+    auto:
+      ctx.air.detail?.smallID === ctx.me &&
+      (ctx.air.detail.autoZones ?? []).includes(sr),
   };
 }
 

@@ -18,10 +18,12 @@ import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
 import {
+  addGlowFlags,
   airLayerColors,
   LAYER_TABLE_SIZE,
   seaLayerColors,
   seaLayerFlags,
+  type SeaAirGlowSource,
 } from "../../view/AirZoneColors";
 import { FleetLayoutCache, fleetLod } from "../../view/FleetTokenLayout";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
@@ -87,6 +89,7 @@ import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
 import {
   addBombedFlags,
+  addPickableFlags,
   FLAG_TEX_SIZE,
   LAYER_AIR,
   LAYER_NONE,
@@ -277,6 +280,12 @@ export class GPURenderer {
   private wwNavy: WwNavyView | null = null;
   private wwAir: WwAirView | null = null;
   private seaAirSelection: SeaAirSelection | null = null;
+  private seaAirGlowSource: SeaAirGlowSource | null = null;
+  private seaAirGlowKey: string | null = null;
+  private seaAirGlow: ReturnType<SeaAirGlowSource["glow"]> = null;
+  private seaAirGlowVersion = 0;
+  private landFlagsGlow = -1;
+  private layerGlowSent = -1;
   private seaPasses: WwSeaPasses | null = null;
   private readonly fleetLayout = new FleetLayoutCache();
   /** The sea or air layer's table as built, and as the pass last got it. */
@@ -1871,15 +1880,18 @@ export class GPURenderer {
         ? this.wwAir
         : null;
     const airKey = air === null ? -1 : air.version;
+    this.refreshSeaAirGlow();
     if (
       !this.landFlagsStale &&
       land.view.version === this.landFlagsVersion &&
       sel.version === this.landFlagsSelection &&
       me === this.landFlagsMe &&
-      airKey === this.landFlagsAir
+      airKey === this.landFlagsAir &&
+      this.seaAirGlowVersion === this.landFlagsGlow
     ) {
       return;
     }
+    this.landFlagsGlow = this.seaAirGlowVersion;
     this.landFlagsVersion = land.view.version;
     this.landFlagsSelection = sel.version;
     this.landFlagsMe = me;
@@ -1894,6 +1906,10 @@ export class GPURenderer {
     );
     if (air !== null && air.detail !== null) {
       addBombedFlags(this.landFlags, air.detail.bombedRegions);
+    }
+    // Lane U: the ports a strike or the coasts a landing may aim at glow.
+    if (this.seaAirGlow?.kind === "land") {
+      addPickableFlags(this.landFlags, this.seaAirGlow.ids);
     }
     const limit = land.view.controller.length;
     let same = !this.landFlagsStale;
@@ -1976,6 +1992,22 @@ export class GPURenderer {
     this.seaAirSelection = selection;
   }
 
+  /** What glows for a map tap (lane U's sea-air controller, spec §18.3). */
+  setSeaAirGlow(source: SeaAirGlowSource): void {
+    this.seaAirGlowSource = source;
+    this.seaAirGlowKey = null;
+  }
+
+  /** The glow now; its version moves when it changed (asked once a frame). */
+  private refreshSeaAirGlow(): void {
+    const src = this.seaAirGlowSource;
+    const key = src === null ? "" : src.key();
+    if (key === this.seaAirGlowKey) return;
+    this.seaAirGlowKey = key;
+    this.seaAirGlow = src === null ? null : src.glow();
+    this.seaAirGlowVersion++;
+  }
+
   private ensureSeaPasses(): void {
     if (this.seaPasses !== null) return;
     const gl = this.gl;
@@ -2047,7 +2079,11 @@ export class GPURenderer {
   private syncSeaAirLayer(): void {
     const pass = this.regionBorderPass;
     if (pass === null) return;
-    const layer = this.seaAirSelection?.layer ?? "none";
+    this.refreshSeaAirGlow();
+    // Lane U: a mission's glowing regions show on the sea layer.
+    const seaGlow = this.seaAirGlow?.kind === "sea" ? this.seaAirGlow : null;
+    const layer =
+      seaGlow !== null ? "sea" : (this.seaAirSelection?.layer ?? "none");
     const navy = this.wwNavy;
     const air = this.wwAir;
     const kind =
@@ -2062,8 +2098,13 @@ export class GPURenderer {
         : kind === LAYER_AIR
           ? air!.version
           : -1;
-    if (kind === this.layerKindSent && version === this.layerVersionSent)
+    if (
+      kind === this.layerKindSent &&
+      version === this.layerVersionSent &&
+      this.seaAirGlowVersion === this.layerGlowSent
+    )
       return;
+    this.layerGlowSent = this.seaAirGlowVersion;
     const kindChanged = kind !== this.layerKindSent;
     this.layerKindSent = kind;
     this.layerVersionSent = version;
@@ -2076,6 +2117,7 @@ export class GPURenderer {
     if (kind === LAYER_SEA) {
       seaLayerColors(navy!, this.layerColors);
       seaLayerFlags(navy!, this.layerFlags);
+      if (seaGlow !== null) addGlowFlags(sc, seaGlow.ids, this.layerFlags);
     } else {
       airLayerColors(air!, this.layerColors);
       this.layerFlags.fill(0);

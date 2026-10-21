@@ -149,6 +149,8 @@ export interface CountryAirDetail {
   /** Last 30 days: shot down, lost, bomb points given, taken, ships and convoys sunk by planes. */
   tally30: number[];
   bombedRegions: [number, number][];
+  /** P4 lane U: the zones the AI runs for this human (air_auto), ascending. */
+  autoZones?: number[];
 }
 export interface WwAirData {
   zones: AirZoneData[];

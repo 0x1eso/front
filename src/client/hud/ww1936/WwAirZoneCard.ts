@@ -264,6 +264,18 @@ export class WwAirZoneCard extends LitElement implements Controller {
           ${this.renderSup(d)}
           <button
             type="button"
+            data-ww-air-auto
+            aria-pressed=${String(d.auto)}
+            class="h-9 shrink-0 rounded-md border px-1.5 ${d.auto
+              ? "border-sky-300 bg-sky-800/60"
+              : "border-white/15 bg-white/5 hover:bg-white/10"}"
+            @click=${() =>
+              this.send({ kind: "air_auto", sr: d.sr, on: !d.auto })}
+          >
+            🤖 ${translateText("ww1936.air.btn_auto")}
+          </button>
+          <button
+            type="button"
             data-ww-card-fold=${this.collapsed ? "open" : "fold"}
             class="size-9 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
             aria-label=${translateText(

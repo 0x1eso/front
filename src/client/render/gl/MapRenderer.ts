@@ -15,6 +15,7 @@ import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
+import type { SeaAirGlowSource } from "../../view/AirZoneColors";
 import type { LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwAirView } from "../../view/WwAirView";
 import type { WwLandView } from "../../view/WwLandView";
@@ -57,6 +58,7 @@ export class MapRenderer {
   private storedWwNavy: WwNavyView | null = null;
   private storedWwAir: WwAirView | null = null;
   private storedSeaAirSelection: SeaAirSelection | null = null;
+  private storedSeaAirGlow: SeaAirGlowSource | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -172,6 +174,9 @@ export class MapRenderer {
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
     if (this.storedSeaAirSelection !== null) {
       this.renderer?.setSeaAirSelection(this.storedSeaAirSelection);
+    }
+    if (this.storedSeaAirGlow !== null) {
+      this.renderer?.setSeaAirGlow(this.storedSeaAirGlow);
     }
     this.onContextRestored?.();
   };
@@ -435,6 +440,12 @@ export class MapRenderer {
   setSeaAirSelection(selection: SeaAirSelection): void {
     this.storedSeaAirSelection = selection;
     this.renderer?.setSeaAirSelection(selection);
+  }
+
+  /** World War 1936 P4: what glows for a map tap (spec §18.3; the sea-air controller). */
+  setSeaAirGlow(source: SeaAirGlowSource): void {
+    this.storedSeaAirGlow = source;
+    this.renderer?.setSeaAirGlow(source);
   }
 
   /** Set up map-layer passes from the loaded layer data. */

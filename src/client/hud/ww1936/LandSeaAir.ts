@@ -27,8 +27,9 @@ import {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
-  airPenaltyBp,
   paradropBlockOf,
+  zoneAirMoveFactorPm,
+  zoneAirPenaltyBp,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import {
   divisionConvoys,
@@ -40,6 +41,7 @@ import {
   landingBp,
   shoreBombardBp,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import {
@@ -105,29 +107,13 @@ export function sideMembersOf(
 
 // ---- The air war's battle line (spec §14.6) ----
 
-/** Spec §14.6: the highest air superiority over zone `sr` of a side at war with `owner`, ‰. */
-export function enemyAirSupPm(
-  p: LandSeaAir,
-  sides: SeaAirSides,
-  sr: number,
-  owner: number,
-): number {
-  const zone = p.air.zones.get(sr);
-  if (zone === undefined) return 0;
-  const mine = p.sideOf(owner);
-  let best = 0;
-  for (const s of zone.sides) {
-    if (s.side === mine) continue;
-    if (!p.membersOf(s.side).some((m) => sides.isEnemy(owner, m))) continue;
-    best = Math.max(best, s.supPm);
-  }
-  return best;
-}
-
-/** The engine's hooks.airPenaltyBp(region, side, divAirAtk) from the air view. */
+/**
+ * The engine's hooks.airPenaltyBp(region, side, divAirAtk) from the air
+ * view: lane A1's zoneAirPenaltyBp over the zone's enemySky (the worst
+ * enemy superiority and its battlefield-support bonus, spec §14.6).
+ */
 export function airBpOf(
   p: LandSeaAir | null,
-  sides: SeaAirSides,
   scenario: ScenarioIndex,
   region: number,
   owner: number,
@@ -136,7 +122,20 @@ export function airBpOf(
   if (p === null || owner <= 0) return 0;
   const sr = scenario.regionSr(region);
   if (sr === 0) return 0;
-  return airPenaltyBp(enemyAirSupPm(p, sides, sr, owner), divAirAtk);
+  return zoneAirPenaltyBp(p.air.zones.get(sr), p.sideOf(owner), divAirAtk);
+}
+
+/** The engine's hooks.airMoveFactorPm(region, side): a move into that zone, ‰ (A1). */
+export function airMoveOf(
+  p: LandSeaAir | null,
+  scenario: ScenarioIndex,
+  region: number,
+  owner: number,
+): number {
+  if (p === null || owner <= 0) return 1000;
+  const sr = scenario.regionSr(region);
+  if (sr === 0) return 1000;
+  return zoneAirMoveFactorPm(p.air.zones.get(sr), p.sideOf(owner));
 }
 
 /** The engine's fuel line: yesterday's fuel ratio of the owner (spec §15.4). */
@@ -150,15 +149,18 @@ export function fuelBpOf(
 }
 
 /**
- * Spec §11.4: a landing division's two cuts — the landing (lane I's hook,
- * landingBp) and the coastal fort (the engine adds it from the working
- * level) — when my army is landing at `region` now; zeros otherwise.
+ * Spec §11.4: a landing division's two cuts — the landing (lane I's
+ * amphibiousModsFor: −landingBp) and the coastal fort (the engine adds it
+ * from the working level) — when one of `divisions` (mine) has a landing
+ * mark (CountryNavyDetail.landing) and stands in the battle's `region`;
+ * zeros otherwise. `divRegion`: a division's region.
  */
 export function landingBpsOf(
   p: LandSeaAir | null,
   economy: WwEconomyView,
   me: number,
-  army: number,
+  divisions: readonly number[],
+  divRegion: (division: number) => number,
   region: number,
   flags: number,
   techs: ReadonlySet<WwTechId>,
@@ -166,10 +168,10 @@ export function landingBpsOf(
   const none = { landingBp: 0, coastalFortBp: 0 };
   const detail = p?.navy.detail ?? null;
   if (detail === null || detail.smallID !== me) return none;
-  const inv = detail.invasions.find(
-    (x) => x.army === army && x.target === region && x.state === "landing",
-  );
-  if (inv === undefined) return none;
+  const marked = new Set(detail.landing ?? []);
+  if (!divisions.some((d) => marked.has(d) && divRegion(d) === region)) {
+    return none;
+  }
   const lv = economy.effectiveBuildings("coastal_fort", region);
   return {
     landingBp: -landingBp((flags & TPL_MARINE_ANY) !== 0, techs),
@@ -195,36 +197,58 @@ export function fleetShipsOf(f: FleetSummary): [ShipClass, number, number][] {
 }
 
 /**
- * Spec §11.4 shore bombardment: the defenders of a coastal region lose
- * defense to the attacking side's fleets on invasion support or strike in
- * the sea region of the region's harbor zone, Σ(heavy + light / 2).
+ * Spec §11.4 shore bombardment, as lane I's shoreBombardAt: the defense
+ * cut of `defender`'s divisions in the battle of `region` (attacked by
+ * `attacker`'s side): the attacking side's ships at sea on invasion
+ * support or strike in the sea region of the region's harbor zone (not in
+ * a battle, not going home), Σ(heavy + light / 2) at the stats of the
+ * country with the most guns there; never on a no-strike region. Ships
+ * and stats are mine as the engine has them; others' at generation 1.
  */
 export function shoreBpOf(
   p: LandSeaAir | null,
-  sides: SeaAirSides,
   scenario: ScenarioIndex,
   me: number,
   techs: ReadonlySet<WwTechId>,
   region: number,
   attacker: number,
+  defender: number,
 ): number {
-  if (p === null || attacker <= 0) return 0;
+  if (p === null || attacker <= 0 || isNoStrike(scenario, region)) return 0;
   const harbor = scenario.harborOf(region);
   const sr = harbor === 0 ? 0 : scenario.zoneSr(harbor);
-  if (sr === 0) return 0;
-  const mine = attacker === me || sides.sameSide(attacker, me);
-  const stats = mine ? p.stats() : emptyStats();
-  const tech = mine ? techs : NO_TECHS;
-  let support = 0;
+  const s = sr === 0 ? undefined : scenario.sr(sr);
+  if (s === undefined) return 0;
+  const attSide = p.sideOf(attacker);
+  if (defender > 0 && p.sideOf(defender) === attSide) return 0;
+  const zones = new Set(s.members);
+  const byOwner = new Map<number, number>();
   for (const f of p.navy.fleets.values()) {
-    if (f.missionSr !== sr || !sides.sameSide(f.owner, attacker)) continue;
+    if (!zones.has(f.zone) || f.docked !== 0) continue;
     if (f.mission !== "invasion_support" && f.mission !== "strike") continue;
+    if (f.state === "battle" || f.state === "returning") continue;
+    if (p.sideOf(f.owner) !== attSide) continue;
+    const own = f.owner === me;
+    const stats = own ? p.stats() : emptyStats();
+    let guns = 0;
     for (const [cls, gen] of fleetShipsOf(f)) {
-      const s = shipStats(cls, gen, stats, tech);
-      support += s.heavy + Math.floor(s.light / 2);
+      const st = shipStats(cls, gen, stats, own ? techs : NO_TECHS);
+      guns += st.heavy + Math.floor(st.light / 2);
+    }
+    byOwner.set(f.owner, (byOwner.get(f.owner) ?? 0) + guns);
+  }
+  let total = 0;
+  let lead = 0;
+  let leadGuns = 0;
+  for (const [owner, guns] of [...byOwner].sort((x, y) => x[0] - y[0])) {
+    total += guns;
+    if (guns > leadGuns) {
+      lead = owner;
+      leadGuns = guns;
     }
   }
-  return support === 0 ? 0 : shoreBombardBp(support, stats);
+  if (lead === 0) return 0;
+  return shoreBombardBp(total, lead === me ? p.stats() : emptyStats());
 }
 
 const NO_TECHS: ReadonlySet<WwTechId> = new Set();

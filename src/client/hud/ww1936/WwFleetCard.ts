@@ -24,7 +24,6 @@ import { regionName } from "./LandModel";
 import {
   ADMIRAL_TRAIT_ICONS,
   admiralName,
-  admiralTraits,
   engageName,
   FleetBlock,
   fleetBlockText,
@@ -43,7 +42,6 @@ import {
   navyCtx,
   NavyGame,
   SHIP_ICONS,
-  shipClassName,
   shipGenName,
   shipName,
   splitOrder,
@@ -410,6 +408,7 @@ export class WwFleetCard extends LitElement implements Controller {
     const counts = html`<button
       type="button"
       data-ww-fleet-counts
+      aria-label=${translateText("ww1936.navy.btn_ships")}
       aria-expanded=${String(this.showShips)}
       class="flex min-h-9 min-w-0 items-center gap-x-2 overflow-hidden text-left tabular-nums"
       @click=${() => (this.showShips = !this.showShips)}
@@ -419,7 +418,9 @@ export class WwFleetCard extends LitElement implements Controller {
         ([cls, n]) =>
           html`<span data-ww-fleet-count=${cls} class="shrink-0"
             ><span aria-hidden="true">${SHIP_ICONS[cls]}</span
-            ><span class="sr-only">${shipClassName(cls)}</span>${n}</span
+            ><span class="sr-only"
+              >${translateText(`ww1936.ship_count.${cls}`, { n })}</span
+            ><span aria-hidden="true">${n}</span></span
           >`,
       )}
       <span class="shrink-0 text-white/60">${this.showShips ? "▾" : "▸"}</span>
@@ -515,7 +516,7 @@ export class WwFleetCard extends LitElement implements Controller {
       class="flex min-w-0 items-baseline gap-1.5"
     >
       <span class="min-w-0 truncate font-semibold">${a.name}</span>
-      ${admiralTraits(a.def).map(
+      ${(a.now?.traits ?? []).map(
         (t) =>
           html`<span
             data-ww-trait=${t}
@@ -525,14 +526,14 @@ export class WwFleetCard extends LitElement implements Controller {
             >${ADMIRAL_TRAIT_ICONS[t]}</span
           >`,
       )}
-      ${a.def === null
+      ${a.now === null
         ? nothing
         : html`<span class="min-w-0 truncate tabular-nums text-white/60"
             >${translateText("ww1936.navy.admiral_stats", {
-              a: a.def.atk,
-              d: a.def.def,
-              m: a.def.man,
-              c: a.def.coord,
+              a: a.now.skills[0],
+              d: a.now.skills[1],
+              m: a.now.skills[2],
+              c: a.now.skills[3],
             })}</span
           >`}
     </span>`;
@@ -595,6 +596,13 @@ export class WwFleetCard extends LitElement implements Controller {
     const d = this.state.draft;
     const f = c.card.fleet;
     const sc = c.ctx.scenario;
+    // The engage rules' panel says what the rule in force does.
+    if (this.panel === "engage" && d.mode === "none") {
+      return html`<span data-ww-hint="engage" class="${cls}text-white/80"
+        >${engageName(f.engage)} ·
+        ${translateText(`ww1936.engage_desc.${f.engage}`)}</span
+      >`;
+    }
     switch (d.mode) {
       case "mission": {
         if (d.pending === 0) {
@@ -794,8 +802,8 @@ export class WwFleetCard extends LitElement implements Controller {
           ),
           this.button(
             "return_at",
-            translateText("ww1936.navy.return_opt", { pct: f.returnAtPct }),
-            "↩",
+            translateText("ww1936.navy.btn_return_at"),
+            `↩ ${translateText("ww1936.navy.return_opt", { pct: f.returnAtPct })}`,
             () => {
               const i = RETURN_AT_PCTS.indexOf(
                 f.returnAtPct as (typeof RETURN_AT_PCTS)[number],
@@ -865,10 +873,16 @@ export class WwFleetCard extends LitElement implements Controller {
       case "deck":
         return [
           ...DECK_MIXES.map((mix) =>
-            this.button(`deck_${mix.join("")}`, mix.join("/"), "✈", () => {
-              this.send({ kind: "carrier_mix", fleet: f.id, mix });
-              this.panel = "main";
-            }),
+            this.button(
+              `deck_${mix.join("")}`,
+              mix.join("/"),
+              "✈",
+              () => {
+                this.send({ kind: "carrier_mix", fleet: f.id, mix });
+                this.panel = "main";
+              },
+              { pressed: f.mix !== undefined && f.mix.join() === mix.join() },
+            ),
           ),
           this.back(),
         ];

@@ -159,6 +159,14 @@ function setFlag(out: Uint8Array, region: number, bit: number): void {
   }
 }
 
+/** P4 (lane U): sets FLAG_PICKABLE (the soft glow) on each region a tap may aim at. */
+export function addPickableFlags(
+  out: Uint8Array,
+  regions: readonly number[],
+): void {
+  for (const r of regions) setFlag(out, r, FLAG_PICKABLE);
+}
+
 /** P4: sets FLAG_BOMBED on each region of [region, points] with points > 0. */
 export function addBombedFlags(
   out: Uint8Array,

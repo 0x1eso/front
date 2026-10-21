@@ -292,7 +292,9 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
   it("the region card: levels, bombed factories, the fleet in port, the zones", () => {
     const g = seaGame({
       fleets: [homeFleet()],
-      regions: [seaRegion(REGION.london, { civ: 5, damage: [2_400] })],
+      regions: [
+        seaRegion(REGION.london, { civ: 5, damage: [2_400], repairPm: 400 }),
+      ],
     });
     const l = regionSeaAirLines(sea, g.economy, g.navy, REGION.london, false);
     expect(l.levels).toEqual([
@@ -301,7 +303,7 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
       ["anti_air", 1],
       ["coastal_fort", 1],
     ]);
-    expect(l.bombed).toEqual({ stopped: 2, repairPct: 60 });
+    expect(l.bombed).toEqual({ stopped: 2, repairPct: 40 });
     expect(l.docked).toEqual([
       { name: "[ww1936.navy.fleet_name] n=1", ships: 3 },
     ]);

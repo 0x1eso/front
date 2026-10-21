@@ -80,6 +80,8 @@ export interface WwDialsModel {
   air: AirDialModel | null;
   /** The air layer is on (the ✈ dial is pressed). */
   airLayer: boolean;
+  /** The sea layer is on. */
+  seaLayer: boolean;
   /**
    * A short landscape screen: the 208 px block rises out of the bottom
    * rows instead of making them tall, so the drawers above the rows keep
@@ -198,6 +200,7 @@ export class WwDials extends LitElement implements Controller {
             ),
       air: ctx === null ? null : airDial(ctx),
       airLayer: seaAirOf(this.game).selection.layer === "air",
+      seaLayer: seaAirOf(this.game).selection.layer === "sea",
       compact: window.innerHeight <= COMPACT_MAX_HEIGHT,
     };
   }
@@ -281,12 +284,12 @@ export class WwDials extends LitElement implements Controller {
     const navy = this.renderDial(
       "navy",
       n !== null && n.battle > 0 ? "battle" : "idle",
-      n === null
+      (n === null
         ? translateText("ww1936.navy.dial_navy")
         : `${translateText("ww1936.navy.dial_navy")}: ${translateText(
             "ww1936.navy.dial_line",
             { pct: Math.round(n.progress * 100) },
-          )}`,
+          )}`) + (m.seaLayer ? ` · ${translateText("ww1936.navy.layer")}` : ""),
       ringSvg(n?.progress ?? 0, "science"),
       "⚓",
       null,
@@ -312,12 +315,12 @@ export class WwDials extends LitElement implements Controller {
     const air = this.renderDial(
       "air",
       m.airLayer ? "layer" : "idle",
-      a === null
+      (a === null
         ? translateText("ww1936.air.dial_air")
         : `${translateText("ww1936.air.dial_air")}: ${translateText(
             "ww1936.air.dial_sup",
             { pct: Math.floor(a.supPm / 10) },
-          )}`,
+          )}`) + (m.airLayer ? ` · ${translateText("ww1936.air.layer")}` : ""),
       ringSvg(a?.progress ?? 0, "victory"),
       "✈",
       null,

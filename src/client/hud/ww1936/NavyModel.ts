@@ -8,13 +8,13 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
-  BUILDING_IDS,
   type WwOrderBlock,
   type WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   ADMIRAL_TRAITS,
   AdmiralTrait,
+  admiralTraitBit,
   CONVOY_USES,
   ConvoyUse,
   ENGAGE_RULES,
@@ -381,10 +381,14 @@ export function fleetStatus(ctx: NavyCtx, f: FleetSummary): Line {
       return {
         key: "ww1936.navy.state_repairing",
         params: {
-          days: repairDays(
-            f.hpPm,
-            ctx.economy.effectiveBuildings("naval_base", f.docked),
-          ),
+          // The engine's days left (lane N2's repair pace); else a guess.
+          days:
+            f.repairDays !== undefined && f.repairDays >= 0
+              ? f.repairDays
+              : repairDays(
+                  f.hpPm,
+                  ctx.economy.effectiveBuildings("naval_base", f.docked),
+                ),
         },
       };
     case "returning":
@@ -419,9 +423,29 @@ export function fleetStatus(ctx: NavyCtx, f: FleetSummary): Line {
 
 // ---- Missions (spec §8.1, §8.3, §18.3-1) ----
 
-/** Where a fleet's range counts from: its port's harbor when docked, else its zone. */
+/**
+ * Where a fleet's range counts from (spec §8.3, the engine's missionKm):
+ * its home port's harbor; without a home on the wire, the port it lies
+ * in, else its zone.
+ */
 export function fleetFromZone(ctx: NavyCtx, f: FleetSummary): number {
+  if (f.home !== undefined && f.home > 0) return ctx.scenario.harborOf(f.home);
   return f.docked !== 0 ? ctx.scenario.harborOf(f.docked) : f.zone;
+}
+
+/** Spec §8.1 training: the sea regions of my side's coasts (lane N1's homeWaterSrs). */
+export function homeWaterSrs(ctx: NavyCtx): Set<number> {
+  const sc = ctx.scenario;
+  const out = new Set<number>();
+  for (const r of sc.landRegions) {
+    if (!ctx.sides.sameSide(ctx.me, ctx.economy.controller[r.id] ?? 0)) {
+      continue;
+    }
+    const z = sc.harborOf(r.id);
+    if (z !== 0) out.add(sc.zoneSr(z));
+  }
+  out.delete(0);
+  return out;
 }
 
 export interface MissionTarget {
@@ -447,6 +471,7 @@ export function missionTargets(
     true,
     fleetFromZone(ctx, f),
   );
+  const home = mission === "training" ? homeWaterSrs(ctx) : null;
   const out: MissionTarget[] = [];
   for (const s of ctx.scenario.strategicList()) {
     if (s.kind !== "sea") continue;
@@ -455,16 +480,18 @@ export function missionTargets(
       const d = dist.get(z);
       if (d !== undefined && (km === null || d < km)) km = d;
     }
+    const block = fleetMissionBlock({
+      mission,
+      srKind: "sea",
+      km,
+      rangeKm: n.rangeKm,
+      inBattle: f.state === "battle",
+    });
     out.push({
       sr: s.id,
       km,
-      block: fleetMissionBlock({
-        mission,
-        srKind: "sea",
-        km,
-        rangeKm: n.rangeKm,
-        inBattle: f.state === "battle",
-      }),
+      // Lane N1's orderMission: training only in my side's home waters.
+      block: block ?? (home !== null && !home.has(s.id) ? "bad_zone" : null),
     });
   }
   return out;
@@ -702,7 +729,7 @@ export function fleetBlockText(b: FleetBlock): string {
 export interface FleetCardData {
   fleet: FleetSummary;
   name: string;
-  admiral: { id: number; name: string; def: AdmiralDef | null } | null;
+  admiral: { id: number; name: string; now: AdmiralNow | null } | null;
   /** Ship counts by class, carriers and capital ships first: [class, n]. */
   counts: [ShipClass, number][];
   numbers: FleetNumbers;
@@ -775,7 +802,7 @@ export function fleetCard(ctx: NavyCtx, id: number): FleetCardData | null {
         ? {
             id: f.admiral,
             name: admiralName(f.admiral),
-            def: admiralDef(f.admiral),
+            now: admiralNow(ctx, f.admiral),
           }
         : null,
     counts,
@@ -830,6 +857,7 @@ export function homePorts(ctx: NavyCtx): number[] {
 
 export interface FleetRow {
   id: number;
+  state: FleetSummary["state"];
   name: string;
   admiral: string;
   counts: [ShipClass, number][];
@@ -848,6 +876,7 @@ export function fleetRows(ctx: NavyCtx): FleetRow[] {
       const sc = ctx.scenario;
       return {
         id: f.id,
+        state: f.state,
         name: c.name,
         admiral: admiralName(f.admiral),
         counts: c.counts,
@@ -1048,11 +1077,37 @@ export function convoyLosses(ctx: NavyCtx): {
 
 // ---- Admirals (spec §18.5-4) ----
 
+/** An admiral as he is now: skills (attack, defense, maneuver, coordination), traits, level. */
+export interface AdmiralNow {
+  skills: [number, number, number, number];
+  traits: AdmiralTrait[];
+  level: number;
+}
+
+/** From my detail's admiralSkills (titled admirals too); else a real one's table row. */
+export function admiralNow(ctx: NavyCtx, id: number): AdmiralNow | null {
+  const row = ctx.navy.detail?.admiralSkills?.find((x) => x[0] === id);
+  if (row !== undefined) {
+    return {
+      skills: [row[1], row[2], row[3], row[4]],
+      traits: ADMIRAL_TRAITS.filter((t) => (row[5] & admiralTraitBit(t)) !== 0),
+      level: row[6],
+    };
+  }
+  const def = admiralDef(id);
+  return def === null
+    ? null
+    : {
+        skills: [def.atk, def.def, def.man, def.coord],
+        traits: admiralTraits(def),
+        level: 0,
+      };
+}
+
 export interface AdmiralRow {
   id: number;
   name: string;
-  def: AdmiralDef | null;
-  traits: AdmiralTrait[];
+  now: AdmiralNow | null;
   fleet: number;
   fleetName: string | null;
 }
@@ -1062,13 +1117,11 @@ export function admiralRows(ctx: NavyCtx): AdmiralRow[] {
   if (d === null) return [];
   return d.admirals
     .map(([id, fleet]) => {
-      const def = admiralDef(id);
       const f = ctx.navy.fleets.get(fleet);
       return {
         id,
         name: admiralName(id),
-        def,
-        traits: admiralTraits(def),
+        now: admiralNow(ctx, id),
         fleet,
         fleetName: f === undefined ? null : fleetName(f),
       };
@@ -1376,8 +1429,8 @@ export interface RegionSeaAirLines {
   /** Working levels above 0: [building, level]. */
   levels: [(typeof REGION_LEVELS)[number][1], number][];
   /**
-   * Factories bombed out of work, and the repair of the one being mended:
-   * its damage's repaired share (the wire carries the damage only).
+   * Factories bombed out of work, and the repair of the building being
+   * mended (WwRegionData.repairPm, the engine's progress).
    */
   bombed: { stopped: number; repairPct: number } | null;
   docked: { name: string; ships: number }[];
@@ -1400,14 +1453,12 @@ export function regionSeaAirLines(
     if (n > 0) levels.push([key, n]);
   }
   let stopped = 0;
-  let partial = 0;
   for (const b of FACTORY_BUILDINGS) {
-    const count = economy.buildingCount(b, region);
-    const lost = count - economy.effectiveBuildings(b, region);
-    stopped += lost;
-    const dmg = economy.region(region).damage[BUILDING_IDS.indexOf(b)] ?? 0;
-    if (dmg % 1000 !== 0 && lost < count) partial = dmg % 1000;
+    stopped +=
+      economy.buildingCount(b, region) - economy.effectiveBuildings(b, region);
   }
+  const data = economy.region(region);
+  const damaged = data.damage.some((v) => v > 0);
   const docked = [...(navy?.fleets.values() ?? [])]
     .filter((f) => f.docked === region)
     .sort((a, b) => a.id - b.id)
@@ -1418,13 +1469,9 @@ export function regionSeaAirLines(
   const harbor = scenario.harborOf(region);
   return {
     levels,
-    bombed:
-      stopped === 0 && partial === 0
-        ? null
-        : {
-            stopped,
-            repairPct: partial === 0 ? 0 : 100 - Math.ceil(partial / 10),
-          },
+    bombed: !damaged
+      ? null
+      : { stopped, repairPct: Math.floor((data.repairPm ?? 0) / 10) },
     docked,
     harbor: harbor === 0 ? null : zoneName(scenario, harbor, korean),
     seaSr:

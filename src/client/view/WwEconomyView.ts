@@ -38,6 +38,8 @@ export class WwEconomyView {
   readonly silo: Uint8Array;
   /** P4 bomb damage by region (absent: none), BUILDING_IDS order, milli. */
   private damage = new Map<number, number[]>();
+  /** P4 (lane U): the repair's progress by damaged region, ‰ (WwRegionData.repairPm). */
+  private repairPm = new Map<number, number>();
   /** Bumped on every merge; screens redraw when it moves. */
   version = 0;
 
@@ -100,6 +102,8 @@ export class WwEconomyView {
       this.silo[r.id] = r.silo;
       if (r.damage.length === 0) this.damage.delete(r.id);
       else this.damage.set(r.id, [...r.damage]);
+      if (r.repairPm === undefined) this.repairPm.delete(r.id);
+      else this.repairPm.set(r.id, r.repairPm);
     }
     this.version++;
   }
@@ -136,6 +140,7 @@ export class WwEconomyView {
       refinery: this.refinery[id],
       silo: this.silo[id],
       damage: [...(this.damage.get(id) ?? [])],
+      ...(this.repairPm.has(id) ? { repairPm: this.repairPm.get(id)! } : {}),
     };
   }
 
