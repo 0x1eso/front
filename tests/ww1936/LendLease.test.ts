@@ -7,7 +7,10 @@ import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { LL_STOP_REASONS } from "@openfront/engine/ww1936/endgame/LendLease";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import fs from "fs";
+import path from "path";
 import { messages } from "./convoyUtil";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
@@ -165,11 +168,12 @@ describe("World War 1936 P5: lend-lease", () => {
     stepTo(runner, dayTick(d + 4) + 7);
     expect(stock(ita)).toBe(left);
     expect(eg.lendLease).toEqual([c]);
+    // One translated line per reason: Poland at peace, tension under 50%.
     expect(
-      messages(updates, "events_display.ww1936_ll_contract_stopped").map(
+      messages(updates, "events_display.ww1936_ll_stopped_ll_peace").map(
         (m) => m.params,
       ),
-    ).toEqual([{ reason: "ll_conditions" }]);
+    ).toEqual([{ need: 50 }]);
     // The war again: it runs on.
     ww.setWar(pl, sun, g.ticks(), { kind: "declare" });
     stepTo(runner, dayTick(d + 5) + 7);
@@ -195,5 +199,39 @@ describe("World War 1936 P5: lend-lease", () => {
     expect(stock(pl)).toBe(pBefore + 100);
     expect(ws()).toBe(before + 1_000);
     expect(eg.member(w, pl)!.wsMilli).toBe(0);
+  });
+
+  it("a contract to a country that no longer plays ends; what is on its way goes back", async () => {
+    const { runner, g, ww, eg, ita, pl, sun, stock, dayTick } = await game();
+    expect(eg.issue(ita, llOrder(pl, 300), g.ticks())).toBeNull();
+    until(runner, () => eg.inTransit.length >= 3);
+    const d = ww.day(g.ticks());
+    const out = eg.inTransit.reduce((n, t) => n + t.countMilli / 1000, 0);
+    expect(out).toBe(30);
+    const left = stock(ita);
+    // Poland capitulates: not an actor any more.
+    ww.addCapitulation(pl, sun, g.ticks());
+    stepTo(runner, dayTick(d + 1) + 7);
+    expect(eg.lendLease).toEqual([]);
+    expect(eg.inTransit).toEqual([]);
+    expect(stock(ita)).toBe(left + out);
+  });
+
+  it("every stop reason has its en and ko line", () => {
+    const lang = (f: string) =>
+      JSON.parse(
+        fs.readFileSync(
+          path.join(__dirname, `../../resources/lang/${f}.json`),
+          "utf8",
+        ),
+      ).events_display as Record<string, string>;
+    const [en, ko] = [lang("en"), lang("ko")];
+    for (const r of LL_STOP_REASONS) {
+      const key = `ww1936_ll_stopped_${r}`;
+      expect(typeof en[key], key).toBe("string");
+      expect(typeof ko[key], key).toBe("string");
+      // Korean ICU arguments are followed by a space.
+      expect(ko[key], key).not.toMatch(/\}[^\s]/);
+    }
   });
 });

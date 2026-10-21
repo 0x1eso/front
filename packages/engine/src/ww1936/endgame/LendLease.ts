@@ -20,6 +20,8 @@ import {
   type LendLeaseItem,
   WW_LL_LAND_DAYS,
   WW_LL_SEA_KM_PER_DAY,
+  WW_LL_TENSION_DEMOCRACY_PCT,
+  WW_LL_TENSION_RECEIVER_PCT,
   type WwAidView,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { CONVOY_USES } from "@openfront/engine-api/ww1936/NavyTypes";
@@ -225,6 +227,8 @@ export function upsertContract(
       same.perMonth = next;
       markAid(eg, from, to);
     }
+    // An order or an effect makes it theirs: the aid AI sizes it no more.
+    delete same.ai;
     return same;
   }
   if (llLimitBlock(contractsOf(eg, from).length) !== null) return null;
@@ -482,19 +486,64 @@ export function stepLendLease(
   }
 }
 
-function setBlocked(eg: WwEndgame, c: LendLease, b: string | null): void {
+/** Why a contract stopped (review fix round): one message key per reason (LL_STOP_KEY). */
+export const LL_STOP_REASONS = [
+  "at_war",
+  "ll_conditions",
+  "ll_peace",
+  "ll_rule",
+  "ll_tension",
+  "no_route",
+] as const;
+export type LlStopReason = (typeof LL_STOP_REASONS)[number];
+/** The message of each (full keys, so the translation check sees them). */
+const LL_STOP_KEY: Readonly<Record<LlStopReason, string>> = {
+  at_war: "events_display.ww1936_ll_stopped_at_war",
+  ll_conditions: "events_display.ww1936_ll_stopped_ll_conditions",
+  ll_peace: "events_display.ww1936_ll_stopped_ll_peace",
+  ll_rule: "events_display.ww1936_ll_stopped_ll_rule",
+  ll_tension: "events_display.ww1936_ll_stopped_ll_tension",
+  no_route: "events_display.ww1936_ll_stopped_no_route",
+};
+const EVENTS_DISPLAY = "events_display.";
+
+/** The reason llBlock refused (its own order of checks); null when it did not. */
+export function llStopReason(i: LlIn): LlStopReason | null {
+  if (llBlock(i) === null) return null;
+  if (i.atWarWithEachOther) return "at_war";
+  if (i.self || !i.bothActors) return "ll_conditions";
+  if (!i.receiverAtWar && i.tensionPct < WW_LL_TENSION_RECEIVER_PCT) {
+    return "ll_peace";
+  }
+  if (i.senderNoLendLeaseRule) return "ll_rule";
+  if (i.senderDemocracy && !i.senderLendLeaseFlag) return "ll_tension";
+  return "ll_conditions";
+}
+
+function setBlocked(
+  eg: WwEndgame,
+  c: LendLease,
+  b: string | null,
+  why: LlStopReason,
+): void {
   if (c.blocked === b) return;
   c.blocked = b;
   markAid(eg, c.from, c.to);
-  if (b !== null) {
-    eg.message(c.from, "ww1936_ll_contract_stopped", { reason: b });
+  if (b === null) return;
+  const params: Record<string, number> = {};
+  if (why === "ll_peace") params.need = WW_LL_TENSION_RECEIVER_PCT;
+  if (why === "ll_tension") {
+    params.need = WW_LL_TENSION_DEMOCRACY_PCT;
+    params.now = tensionPct(eg);
   }
+  eg.message(c.from, LL_STOP_KEY[why].slice(EVENTS_DISPLAY.length), params);
 }
 
 function stepContract(eg: WwEndgame, c: LendLease, day: number): void {
   const navy = eg.ww.navy;
   const S = c.from;
-  const block = llBlock(llIn(eg, S, c.to, day));
+  const li = llIn(eg, S, c.to, day);
+  const block = llBlock(li);
   const live = findRoute(navy, USE_LEND_LEASE, S, c.id);
   let route = ROUTE_NONE;
   let km = 0;
@@ -530,7 +579,12 @@ function stepContract(eg: WwEndgame, c: LendLease, day: number): void {
     c.route = route;
     markAid(eg, c.from, c.to);
   }
-  setBlocked(eg, c, block ?? (route === ROUTE_NONE ? LL_NO_ROUTE : null));
+  setBlocked(
+    eg,
+    c,
+    block ?? (route === ROUTE_NONE ? LL_NO_ROUTE : null),
+    llStopReason(li) ?? LL_NO_ROUTE,
+  );
   if (c.blocked !== null) return;
   // Spec §13.1: a month's worth over 30 days; a convoy shortage carries
   // over at most a month (P5 lane A), a stock shortage never.

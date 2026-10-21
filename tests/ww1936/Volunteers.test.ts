@@ -248,4 +248,60 @@ describe("World War 1936 P5: volunteers", () => {
     until(runner, () => l.controller[KIEV] !== sun);
     expect(l.controller[KIEV]).toBe(pl);
   });
+
+  it("volunteers whose sender joins the war stay where they are as its own army", async () => {
+    const x = await game();
+    const { runner, g, ww, l, eg, ita, pl, sun, a, dayTick } = x;
+    sendAndArrive(x);
+    // A volunteer goes only where its host's side or enemies are: not home.
+    expect(l.canArmyEnter(a, ROME)).toBe(false);
+    expect(volunteerRoom(eg, ita, pl)).toBe(0);
+    // Italy enters Poland's war on Poland's side.
+    ww.setWar(ita, sun, g.ticks(), { kind: "into", warId: 0 });
+    const d = ww.day(g.ticks());
+    stepTo(runner, dayTick(d + 1) + 1);
+    expect(a.volunteerFor).toBe(0);
+    expect(eg.volunteers).toEqual([]);
+    // Out of the cap and of the host-land rule; it stays in Krakow (Poland
+    // lets its co-belligerent in), the day's sweep with it.
+    expect(volunteerRoom(eg, ita, pl)).toBe(2);
+    expect(l.canArmyEnter(a, ROME)).toBe(true);
+    expect(ww.politics.hasAccess(ita, pl)).toBe(true);
+    stepTo(runner, dayTick(d + 3));
+    expect(l.armyRegion(a)).toBe(KRAKOW);
+    for (const r of armyRows(l, a)) {
+      expect(l.fightOwner(r)).toBe(ita);
+    }
+  });
+
+  it("volunteers go home when their host capitulates, and stay with an exile host", async () => {
+    const x = await game();
+    const { runner, g, ww, l, eg, pl, sun, a, dayTick } = x;
+    sendAndArrive(x);
+    // An exile host still fights: its volunteers stay.
+    eg.exiles.push({
+      smallID: pl,
+      host: endId("GBR"),
+      legitBp: 5000,
+      sinceDay: 0,
+      zeroDays: 0,
+      lastDelta: 0,
+      faction: -1,
+      capital: WARSAW,
+    });
+    eg.rebuildDerived();
+    let d = ww.day(g.ticks());
+    stepTo(runner, dayTick(d + 2));
+    expect(a.volunteerFor).toBe(pl);
+    expect(eg.volunteers).toHaveLength(1);
+    // Not an exile: it capitulates and is no actor any more.
+    eg.exiles = [];
+    eg.rebuildDerived();
+    ww.addCapitulation(pl, sun, g.ticks());
+    d = ww.day(g.ticks());
+    stepTo(runner, dayTick(d + 1) + 1);
+    expect(a.volunteerFor).toBe(0);
+    expect(eg.volunteers).toEqual([]);
+    expect(l.armyRegion(a)).toBe(ROME);
+  });
 });

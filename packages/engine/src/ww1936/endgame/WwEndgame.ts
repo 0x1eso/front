@@ -218,6 +218,8 @@ const LendLeaseSchema = z.object({
   sentMonth: zInt(),
   arrivedMonth: zInt(),
   route: zInt(),
+  /** P5 lane A (review fix round): opened by the aid AI, which sizes it; content and request contracts keep theirs. */
+  ai: z.boolean().optional(),
 });
 export type LendLease = z.infer<typeof LendLeaseSchema>;
 const InTransitSchema = z.object({

@@ -12,13 +12,18 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { EventDef } from "@openfront/engine-lib/ww1936/content/types";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
 import {
   aiAidEventChoice,
   aiLendLease,
   llRequestScore,
 } from "@openfront/engine/ww1936/endgame/AiAid";
-import { EVENT_LL } from "@openfront/engine/ww1936/endgame/LendLease";
+import {
+  addContract,
+  EVENT_LL,
+} from "@openfront/engine/ww1936/endgame/LendLease";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, step, stepTo, wwRunner } from "./util";
@@ -49,6 +54,32 @@ function until(runner: GameRunner, done: () => boolean, max = 1500): void {
   if (!done()) throw new Error("condition not reached");
 }
 
+/** Units of infantry equipment a month at the lines' last rate. */
+function monthOf(ce: CountryEconomy): number {
+  let month = 0;
+  for (const line of ce.lines) {
+    const [t, gen] = EQUIP_KEYS[line.key];
+    if (t !== INF || line.lastOutput <= 0) continue;
+    month += Math.floor((line.lastOutput * 30) / unitCostMilli(t, gen));
+  }
+  return month;
+}
+
+/** `id` without infantry equipment, in its stock or its divisions. */
+function emptyOf(ww: WorldWar, id: number): void {
+  const ce = ww.economy.country(id)!;
+  for (let gen = 1; gen <= EQUIPMENT_GENS[INF]; gen++) {
+    ce.stock[equipKey(INF, gen)] = 0;
+  }
+  const l = ww.land;
+  for (const r of l.rowsOf(id)) {
+    const eq = l.divisions.equipOf(r);
+    GROUND_EQUIP_KEYS.forEach((k, j) => {
+      if (EQUIP_KEYS[k][0] === INF) eq[j] = 0;
+    });
+  }
+}
+
 /** Italy (human) at war with the Soviet Union and out of infantry equipment. */
 async function game(historicalAi = true) {
   const runner = await wwRunner(
@@ -64,17 +95,7 @@ async function game(historicalAi = true) {
   );
   expect(ww.politics.sameFaction(deu, ita)).toBe(true);
   ww.setWar(ita, sun, g.ticks(), { kind: "declare" });
-  const ce = ww.economy.country(ita)!;
-  for (let gen = 1; gen <= EQUIPMENT_GENS[INF]; gen++) {
-    ce.stock[equipKey(INF, gen)] = 0;
-  }
-  const l = ww.land;
-  for (const r of l.rowsOf(ita)) {
-    const eq = l.divisions.equipOf(r);
-    GROUND_EQUIP_KEYS.forEach((k, j) => {
-      if (EQUIP_KEYS[k][0] === INF) eq[j] = 0;
-    });
-  }
+  emptyOf(ww, ita);
   return { runner, g, ww, eg: ww.endgame, deu, ita, sun, pl };
 }
 
@@ -84,13 +105,7 @@ describe("World War 1936 P5: the aid AI", () => {
     // Germany looks on day 1 (day % 30 === smallID % 30), on its turn (k = 1).
     const look = dayStartTick(1, ww.prepEndTick()) + (deu % 7);
     stepTo(runner, look);
-    const ce = ww.economy.country(deu)!;
-    let month = 0;
-    for (const line of ce.lines) {
-      const [t, gen] = EQUIP_KEYS[line.key];
-      if (t !== INF || line.lastOutput <= 0) continue;
-      month += Math.floor((line.lastOutput * 30) / unitCostMilli(t, gen));
-    }
+    const month = monthOf(ww.economy.country(deu)!);
     expect(month).toBeGreaterThan(0);
     expect(eg.lendLease.filter((c) => c.from === deu)).toEqual([]);
     step(runner);
@@ -117,6 +132,53 @@ describe("World War 1936 P5: the aid AI", () => {
         (x) => x.from === deu && x.to === ita && x.item === INF,
       ),
     ).toBe(false);
+  });
+
+  it("an item's AI contracts share 30% of its output: more receivers get less each, content keeps its size", async () => {
+    const { runner, ww, eg, deu, ita, sun } = await game();
+    const day = () => ww.day(runner.game.ticks());
+    // After Germany's first day of production (its turn: k = 1).
+    stepTo(runner, dayStartTick(0, ww.prepEndTick()) + (deu % 7) + 1);
+    const month = monthOf(ww.economy.country(deu)!);
+    const total = Math.floor((month * 30) / 100);
+    const cap = Math.floor((month * 15) / 100);
+    expect(cap).toBeGreaterThan(0);
+    const inf = () =>
+      eg.lendLease.filter((c) => c.from === deu && c.item === INF);
+    // Italy alone: one contract at the 15% cap.
+    aiLendLease(eg, deu, day());
+    expect(inf().map((c) => [c.to, c.perMonth, c.ai])).toEqual([
+      [ita, cap, true],
+    ]);
+    const first = inf()[0];
+    // Poland and Czechoslovakia join the war short of rifles: three
+    // receivers share the same 30%, Italy's own contract goes down.
+    const [pl, csk] = [endId("POL"), endId("CSK")];
+    for (const x of [pl, csk]) {
+      ww.setWar(x, sun, runner.game.ticks(), { kind: "declare" });
+      emptyOf(ww, x);
+    }
+    aiLendLease(eg, deu, day());
+    const shares = inf();
+    expect(shares.map((c) => c.to)).toEqual([ita, pl, csk]);
+    expect(shares[0]).toBe(first);
+    expect(first.perMonth).toBeLessThan(cap);
+    expect(shares.reduce((n, c) => n + c.perMonth, 0)).toBe(total);
+    for (const c of shares) {
+      expect(c.perMonth).toBeGreaterThanOrEqual(Math.floor(total / 3));
+      expect(c.perMonth).toBeLessThanOrEqual(cap);
+    }
+    // A content contract (to Austria, at war and short too) is not the
+    // AI's: it keeps its size and leaves less for the AI's own.
+    const aut = endId("AUT");
+    ww.setWar(aut, sun, runner.game.ticks(), { kind: "declare" });
+    emptyOf(ww, aut);
+    const content = addContract(eg, deu, aut, INF, 0, 4, day(), null);
+    aiLendLease(eg, deu, day());
+    expect(content.perMonth).toBe(4);
+    expect(eg.lendLease).toContain(content);
+    const own = inf().filter((c) => c.ai === true);
+    expect(own.reduce((n, c) => n + c.perMonth, 0)).toBe(total - 4);
   });
 
   it("an AI answers a lend-lease request by its score", async () => {

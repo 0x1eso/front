@@ -54,6 +54,7 @@ import { convoyPath, freeConvoysOf, portZonesOf } from "../navy/Convoys";
 import { cancelInvasion } from "../navy/Invasions";
 import { navalPort } from "../navy/Ports";
 import { convoysForDivisions } from "../navy/SeaTransfer";
+import { addAccess } from "../politics/Treaties";
 import { aidRuleBlocks, llIn, markAid, tensionPct, validId } from "./LendLease";
 import type { WwEndgame } from "./WwEndgame";
 
@@ -369,8 +370,9 @@ export function dailyVolunteers(eg: WwEndgame, day: number): void {
   const ww = eg.ww;
   const land = ww.land;
   if (eg.volunteers.length > 0) {
+    const listed = new Set(eg.volunteers.map((v) => v.army));
     for (const a of land.armies.values()) {
-      if (a.volunteerFor > 0 && !eg.volunteers.some((v) => v.army === a.id)) {
+      if (a.volunteerFor > 0 && !listed.has(a.id)) {
         eg.volunteers.push({
           army: a.id,
           from: a.owner,
@@ -387,9 +389,13 @@ export function dailyVolunteers(eg: WwEndgame, day: number): void {
         markAid(eg, v.from, v.to);
         continue;
       }
-      if (!eg.isActor(v.from) || joinedHostsWar(eg, v.from, v.to)) {
+      if (!eg.isActor(v.from)) {
         land.setVolunteerFor(a, 0);
         markAid(eg, v.from, v.to);
+        continue;
+      }
+      if (joinedHostsWar(eg, v.from, v.to)) {
+        joinAsRegulars(eg, a, v.from, v.to);
         continue;
       }
       if (v.recall || mustReturn(eg, v.from, v.to)) {
@@ -417,6 +423,23 @@ export function dailyVolunteers(eg: WwEndgame, day: number): void {
       markAid(eg, d.owner, d.volunteerFor);
     }
   }
+}
+
+/**
+ * Spec §12.3 (review fix round, HOI4): the sender joined its host's war —
+ * its volunteers stay where they stand as its own army (out of the cap and
+ * of the host-land rule). Co-belligerents use each other's land (HOI4):
+ * the host grants military access when the army stands on land its owner
+ * could not otherwise enter, so the day's sweep leaves it there.
+ */
+function joinAsRegulars(eg: WwEndgame, a: Army, from: number, to: number) {
+  const land = eg.ww.land;
+  land.setVolunteerFor(a, 0);
+  const stuck = armyRows(land, a).some(
+    (r) => !land.canEnter(from, land.divisions.region[r]),
+  );
+  if (stuck) addAccess(eg.ww.politics, from, to);
+  markAid(eg, from, to);
 }
 
 /** The sender is at war with an enemy of its host (spec §12.3). */

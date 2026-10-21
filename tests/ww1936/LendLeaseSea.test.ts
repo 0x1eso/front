@@ -16,6 +16,7 @@ import {
   CONVOY,
   dayTick,
   fleetAtSea,
+  messages,
   seaGame,
   setNavalBase,
   war,
@@ -116,5 +117,59 @@ describe("World War 1936 P5: lend-lease by sea", () => {
     expect(milli).toBe(194_000);
     expect(tur.stock[INF1]).toBe(before + 194);
     expect(eg.inTransit.some((x) => x === t)).toBe(false);
+  });
+
+  test("a cut route stops the contract; what already sails arrives", async () => {
+    const g = await seaGame();
+    const { ww, navy, runner, updates } = g;
+    const game = runner.game;
+    const eg = ww.endgame;
+    const [gbrId, turId] = [TAG_ID.GBR, TAG_ID.TUR];
+    clearLand(game);
+    clearStartSetup(ww.economy, g.ce("GBR"));
+    clearStartSetup(ww.economy, g.ce("TUR"));
+    war(g, "SUN", "TUR");
+    setNavalBase(ww, REGION.isthmus, 1);
+    setNavalBase(ww, REGION.malta, 0);
+    const gbr = g.ce("GBR");
+    const tur = g.ce("TUR");
+    gbr.stock[INF1] = 10_000;
+    expect(
+      eg.issue(
+        gbrId,
+        {
+          kind: "lend_lease",
+          to: turId,
+          item: "infantry_equipment",
+          gen: 1,
+          perMonth: 3_000,
+        },
+        game.ticks(),
+      ),
+    ).toBeNull();
+    const c = eg.lendLease[0];
+    const d = ww.day(game.ticks());
+    const k = gbrId % 7;
+    // Britain has convoys: the first day's goods sail.
+    stepTo(runner, dayTick(d, k) + 1);
+    expect(eg.inTransit).toHaveLength(1);
+    const sailing = eg.inTransit[0].countMilli / 1000;
+    const before = tur.stock[INF1];
+    // The Isthmus loses its naval base: nowhere to land any more.
+    setNavalBase(ww, REGION.isthmus, 0);
+    stepTo(runner, dayTick(d + 1, k) + 1);
+    expect(c.blocked).toBe("no_route");
+    expect(c.route).toBe(0);
+    expect(findRoute(navy, USE_LEND_LEASE, gbrId, c.id)).toBeNull();
+    expect(
+      messages(updates, "events_display.ww1936_ll_stopped_no_route").map(
+        (m) => m.to,
+      ),
+    ).toEqual([gbrId]);
+    // What sailed before the cut arrived; nothing more leaves.
+    expect(tur.stock[INF1]).toBe(before + sailing);
+    expect(eg.inTransit).toEqual([]);
+    expect(gbr.stock[INF1]).toBe(10_000 - sailing);
+    expect(eg.lendLease).toEqual([c]);
   });
 });

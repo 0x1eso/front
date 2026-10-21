@@ -3,8 +3,9 @@
 // Every 30 days (`day % 30 === id % 30`) an AI major looks at its
 // lend-lease: who it helps (faction members, exiles, the enemies of its
 // enemies — at peace, governments of its own ideology), what they lack
-// (equipment coverage under 70%) and how much (15% of its own month of
-// output). It ends a contract whose receiver is covered, or whose item it
+// (equipment coverage under 70%) and how much (by shortfall, all of an
+// item's AI contracts together 30% of its month of output, each at most
+// 15%). It ends a contract whose receiver is covered, or whose item it
 // lacks itself (under 80%). Faction leaders and exile hosts help exiles
 // with legitimacy ≥ 30% (5% of a month of infantry equipment and
 // artillery). Every 180 days a peacetime aggressor, communist or fascist
@@ -35,13 +36,14 @@ import { nearestBorder } from "../land/Fronts";
 import { isMajor } from "../politics/Factions";
 import { opinionOf } from "../politics/Treaties";
 import {
+  addContract,
   contractsOf,
   EVENT_LL,
   LL_REQUESTED,
   llIn,
+  markAid,
   pendingRequest,
   removeContract,
-  upsertContract,
 } from "./LendLease";
 import { applyVolunteersEffect, hostFront, volunteerIn } from "./Volunteers";
 import type { WwEndgame } from "./WwEndgame";
@@ -54,8 +56,10 @@ export const AI_VOLUNTEER_PERIOD_DAYS = 180;
 export const AI_LL_NEED_PM = 700;
 /** Spec §17.4: an AI sends nothing of an item it covers under 80%. */
 export const AI_LL_OWN_MIN_PM = 800;
-/** Spec §17.4: a major sends 15% of its month of output. */
+/** Spec §17.4: a major sends 15% of its month of output (one contract's most). */
 export const AI_LL_SHARE_PCT = 15;
+/** Review fix round: every AI contract of an item together, % of its month of output. */
+export const AI_LL_TOTAL_PCT = 30;
 /** Spec §17.4: an exile gets 5% of its helper's month of output. */
 export const AI_EXILE_SHARE_PCT = 5;
 /** Spec §17.4: exiles with legitimacy ≥ 30% are helped. */
@@ -265,15 +269,27 @@ function isHumanExile(eg: WwEndgame, x: number): boolean {
   return eg.isExile(x) && eg.isHumanControlled(x);
 }
 
+/** One AI contract's plan: its receiver, how much it lacks (‰ to full), the exile help reserved, the amount given. */
+interface LlShare {
+  to: number;
+  w: number;
+  reserve: number;
+  per: number;
+}
+
 /**
- * Spec §17.4 lend-lease: a major's wanted contracts are (receiver, needed
- * ground item) at 15% of its month of output, plus an exile's 5% of
- * infantry equipment and artillery from its helper. A running contract of
- * ground equipment is raised to what is wanted (never lowered: a content
- * or request contract keeps its size) and ends once its receiver is
- * covered (an exile's never) or the giver itself is short of the item.
- * New ones open while there is room (10): human exiles first, then by
- * receiver and item.
+ * Spec §17.4 lend-lease (review fix round: one budget per item). Every
+ * running ground contract ends once its receiver is covered (an exile's
+ * never) or the giver itself is short of the item (under 80%). Then, item
+ * by item, the AI's own contracts (`ai`) share one budget — 30% of its
+ * month of output less what its content and request contracts of the item
+ * send — each at most 15%: first an exile's help (5% of infantry
+ * equipment and artillery from its host or faction leader, human exiles
+ * first), then a major's split by shortfall (1000 − coverage ‰; a
+ * receiver comes in under 70% and stays until covered), the rounding
+ * remainder one each by shortfall then smallID. Its own contracts are set
+ * to their share (raised or lowered) or end; new ones open while there is
+ * room (10). A bigger war means more, smaller contracts, not a bigger total.
  */
 export function aiLendLease(eg: WwEndgame, id: number, day: number): void {
   const pol = eg.ww.politics;
@@ -294,55 +310,104 @@ export function aiLendLease(eg: WwEndgame, id: number, day: number): void {
     const covered = !eg.isExile(c.to) && cov(c.to)[i] >= 1000;
     if (own[i] < AI_LL_OWN_MIN_PM || covered) removeContract(eg, c.id);
   }
-  const want: { to: number; item: EquipmentType; per: number }[] = [];
-  const add = (to: number, item: EquipmentType, per: number) => {
-    if (per <= 0) return;
-    const w = want.find((x) => x.to === to && x.item === item);
-    if (w === undefined) want.push({ to, item, per });
-    else w.per = Math.max(w.per, per);
-  };
   const major = isMajor(pol, id);
-  for (const to of aidCandidates(eg, id)) {
-    if (llBlock(llIn(eg, id, to, day)) !== null) continue;
-    if (major) {
-      const need = cov(to);
-      for (const item of GROUND_EQUIPMENT) {
-        const i = typeIdx(item);
-        if (need[i] >= AI_LL_NEED_PM || own[i] < AI_LL_OWN_MIN_PM) continue;
-        const out = monthlyOutput(eg, id, item);
-        add(to, item, Math.floor((out * AI_LL_SHARE_PCT) / 100));
-      }
+  const cands = aidCandidates(eg, id).filter(
+    (to) => llBlock(llIn(eg, id, to, day)) === null,
+  );
+  const plans: { item: EquipmentType; shares: LlShare[] }[] = [];
+  for (const item of GROUND_EQUIPMENT) {
+    const i = typeIdx(item);
+    const mine = contractsOf(eg, id).filter((c) => c.item === item);
+    const out = monthlyOutput(eg, id, item);
+    let fixed = 0;
+    for (const c of mine) {
+      if (c.ai !== true && c.blocked !== LL_REQUESTED) fixed += c.perMonth;
     }
-    if (eg.isExile(to) && exileHelpable(eg, to) && exileHelper(eg, to, id)) {
-      for (const item of EXILE_ITEMS) {
-        if (own[typeIdx(item)] < AI_LL_OWN_MIN_PM) continue;
-        const out = monthlyOutput(eg, id, item);
-        add(to, item, Math.floor((out * AI_EXILE_SHARE_PCT) / 100));
+    const cap = Math.floor((out * AI_LL_SHARE_PCT) / 100);
+    const shares: LlShare[] = [];
+    for (const to of cands) {
+      // A content or request contract there already: that is its aid.
+      if (mine.some((c) => c.to === to && c.ai !== true)) continue;
+      const cv = cov(to)[i];
+      const had = mine.some((c) => c.to === to && c.ai === true);
+      const w =
+        major && (cv < AI_LL_NEED_PM || (had && cv < 1000)) ? 1000 - cv : 0;
+      const help =
+        EXILE_ITEMS.includes(item) &&
+        eg.isExile(to) &&
+        exileHelpable(eg, to) &&
+        exileHelper(eg, to, id);
+      const reserve = help ? Math.floor((out * AI_EXILE_SHARE_PCT) / 100) : 0;
+      if (w > 0 || reserve > 0) shares.push({ to, w, reserve, per: 0 });
+    }
+    let budget =
+      own[i] < AI_LL_OWN_MIN_PM
+        ? 0
+        : Math.max(0, Math.floor((out * AI_LL_TOTAL_PCT) / 100) - fixed);
+    // Exile help first, human exiles first.
+    const helpOrder = shares
+      .filter((x) => x.reserve > 0)
+      .sort(
+        (a, b) =>
+          Number(isHumanExile(eg, b.to)) - Number(isHumanExile(eg, a.to)) ||
+          a.to - b.to,
+      );
+    for (const x of helpOrder) {
+      const n = Math.min(x.reserve, budget, cap);
+      x.per = n;
+      budget -= n;
+    }
+    // The rest by shortfall (ties: smallID).
+    const needy = shares
+      .filter((x) => x.w > 0)
+      .sort((a, b) => b.w - a.w || a.to - b.to);
+    let total = 0;
+    for (const x of needy) total += x.w;
+    let given = 0;
+    for (const x of needy) {
+      const n = Math.min(
+        Math.floor((budget * x.w) / total),
+        Math.max(0, cap - x.per),
+      );
+      x.per += n;
+      given += n;
+    }
+    for (const x of needy) {
+      if (given >= budget) break;
+      if (x.per >= cap) continue;
+      x.per++;
+      given++;
+    }
+    plans.push({ item, shares });
+  }
+  // The AI's own contracts follow their shares; then the new ones.
+  for (const { item, shares } of plans) {
+    for (const c of contractsOf(eg, id)) {
+      if (c.ai !== true || c.item !== item) continue;
+      const x = shares.find((y) => y.to === c.to);
+      if (x === undefined || x.per <= 0) {
+        removeContract(eg, c.id);
+      } else if (c.perMonth !== x.per) {
+        c.perMonth = x.per;
+        markAid(eg, c.from, c.to);
       }
     }
   }
-  want.sort(
-    (a, b) =>
-      Number(isHumanExile(eg, b.to)) - Number(isHumanExile(eg, a.to)) ||
-      a.to - b.to ||
-      typeIdx(a.item) - typeIdx(b.item),
-  );
-  for (const w of want) {
-    const c = contractsOf(eg, id).find(
-      (x) =>
-        x.to === w.to &&
-        x.item === w.item &&
-        x.gen === 0 &&
-        x.blocked !== LL_REQUESTED,
+  for (const { item, shares } of plans) {
+    const order = [...shares].sort(
+      (a, b) =>
+        Number(isHumanExile(eg, b.to)) - Number(isHumanExile(eg, a.to)) ||
+        b.w - a.w ||
+        a.to - b.to,
     );
-    if (c !== undefined) {
-      if (c.perMonth < w.per) {
-        upsertContract(eg, id, w.to, w.item, 0, w.per, day, true);
+    for (const x of order) {
+      if (x.per <= 0) continue;
+      if (contractsOf(eg, id).some((c) => c.to === x.to && c.item === item)) {
+        continue;
       }
-      continue;
+      if (llLimitBlock(contractsOf(eg, id).length) !== null) return;
+      addContract(eg, id, x.to, item, 0, x.per, day, null).ai = true;
     }
-    if (llLimitBlock(contractsOf(eg, id).length) !== null) break;
-    upsertContract(eg, id, w.to, w.item, 0, w.per, day, true);
   }
 }
 
