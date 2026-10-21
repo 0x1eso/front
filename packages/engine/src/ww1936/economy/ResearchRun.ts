@@ -17,6 +17,7 @@ import {
 import { researchSpeedPct } from "@openfront/engine-lib/ww1936/Stats";
 import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
+import { sharedResearchPct } from "../depth/FactionRules";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
 function slotTechs(ce: CountryEconomy): (WwTechId | null)[] {
@@ -123,7 +124,11 @@ export function stepResearch(
     const def = WW_TECHS[s.tech];
     // P3 spec §3.4: the branch's research stat and the slot's bonus.
     const speed =
-      researchSpeedPct(ce.stats, def.branch) + lawPct + (s.bonusPct ?? 0);
+      researchSpeedPct(ce.stats, def.branch) +
+      lawPct +
+      (s.bonusPct ?? 0) +
+      // P6 hook (W3, spec §14): a faction's shared research.
+      sharedResearchPct(econ.ww.depth, ce.smallID, s.tech);
     s.progress += researchProgress(speed, aheadPct(def.year, day));
     if (s.progress < techDays(def.year) * 1000) continue;
     // Done; what runs over is dropped (§9.2).

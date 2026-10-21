@@ -56,6 +56,11 @@ export const BATTALION_ICONS: Readonly<Record<BattalionId, string>> = {
   anti_air: "✈",
   light_armor: "⬭",
   medium_armor: "⬬",
+  // P6 (spec §5.2.6).
+  heavy_armor: "⬛",
+  tank_destroyer: "◣",
+  sp_artillery: "💣",
+  sp_anti_air: "🔺",
 };
 
 export const SUPPORT_ICONS: Readonly<Record<SupportId, string>> = {

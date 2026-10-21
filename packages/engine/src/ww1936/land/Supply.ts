@@ -377,6 +377,9 @@ export function dailySupply(land: WwLand, side: number): void {
       // P5 hook (O, spec §8.6): resistance cuts an administered region's supply.
       const f = land.ww.endgame.supplyFactorPm(r);
       if (f !== 1000) s = Math.floor((s * f) / 1000);
+      // P6 hook (W1, pre-flight §D): flood, scorch and nuke status.
+      const d = land.depthHooks.supplyPm(r);
+      if (d !== 1000) s = Math.floor((s * Math.max(0, d)) / 1000);
     }
     // P4 spec §14.10: air supply, encircled regions too.
     s += land.hooks.airSupply(r, side);

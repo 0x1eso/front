@@ -24,6 +24,10 @@ const MISSION_PM: Readonly<Record<FleetMission, readonly [number, number]>> = {
   escort: [500, 500],
   invasion_support: [500, 1000],
   training: [200, 0],
+  // P6 (spec §14.1): mine layers and sweepers stay in their zone like a
+  // patrol (lane W2's Mines lays and sweeps), seen as a weak presence.
+  lay_mines: [200, 250],
+  sweep_mines: [200, 250],
 };
 /** Spec §8.1: a strike force waiting in its home port. */
 const STRIKE_DOCKED_PM = [300, 500] as const;
@@ -39,6 +43,8 @@ export const MISSION_ENGAGE: Readonly<Record<FleetMission, EngageRule>> = {
   escort: "always",
   invasion_support: "always",
   training: "avoid",
+  lay_mines: "avoid",
+  sweep_mines: "avoid",
 };
 
 /** Spec §15.4: a strike force with less fuel than this ‰ stays in port. */
@@ -64,6 +70,9 @@ export const MISSION = {
   escort: FLEET_MISSIONS.indexOf("escort"),
   invasionSupport: FLEET_MISSIONS.indexOf("invasion_support"),
   training: FLEET_MISSIONS.indexOf("training"),
+  // P6 (spec §14.1).
+  layMines: FLEET_MISSIONS.indexOf("lay_mines"),
+  sweepMines: FLEET_MISSIONS.indexOf("sweep_mines"),
 } as const;
 
 /** ENGAGE_RULES indexes. */

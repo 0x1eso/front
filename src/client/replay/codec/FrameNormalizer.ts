@@ -20,9 +20,11 @@ import {
   type GameUpdateViewData,
   type PlayerUpdate,
   type UnitUpdate,
+  type WwDepthUpdate,
   type WwEconomyUpdate,
   type WwEndgameUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
+import type { WwDepthData } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwEndgameData } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   unpackMotionPlans,
@@ -110,6 +112,10 @@ export const UPDATE_TYPE_ROUTING: Record<
   // (MISC_TRIM): countries, controllers, wars, the peace log, zones,
   // subjects, exiles and news.
   WwEndgame: "misc",
+  // World War 1936 P6 (pre-flight §A21): only what the map shows (MISC_TRIM):
+  // the world devices (nuked, flooded, scorched, harbours, dams), the strike
+  // effects and the news. A replay is fog-free and shows no depth panels.
+  WwDepth: "misc",
 };
 
 /**
@@ -374,6 +380,15 @@ const MISC_TRIM: Partial<
     if (Object.keys(out).length === 0) return null;
     // As an untrimmed update would be kept: no numeric type, the data.
     return { data: { news: [], ...out } satisfies WwEndgameData };
+  },
+  WwDepth: (u) => {
+    const d = (u as WwDepthUpdate).data;
+    const out: WwDepthData = { fx: d.fx, news: d.news };
+    if (d.world !== undefined) out.world = d.world;
+    if (out.world === undefined && d.fx.length === 0 && d.news.length === 0) {
+      return null;
+    }
+    return { data: out };
   },
 };
 

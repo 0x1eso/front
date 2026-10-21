@@ -75,6 +75,8 @@ import {
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { regionStatus } from "../depth/World";
+import type { WwDepth } from "../depth/WwDepth";
 import type { WorldWar } from "../WorldWar";
 import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
@@ -104,9 +106,11 @@ export interface Line {
   progress: number;
   fill: number;
   lastOutput: number;
+  /** P6 (spec §5.5, lane E): the EQUIP_KEYS index a converting line takes from stock; -1 none. */
+  convertFrom: number;
 }
 
-/** P4 plan decision 12: the buildings P4 adds, kept by building id. */
+/** P4 plan decision 12: the buildings P4 adds, kept by building id (P6 appends its six). */
 type P4BuildingId =
   | "naval_base"
   | "air_base"
@@ -114,7 +118,13 @@ type P4BuildingId =
   | "radar"
   | "coastal_fort"
   | "synthetic_refinery"
-  | "fuel_silo";
+  | "fuel_silo"
+  | "facility_nuclear"
+  | "facility_rocket"
+  | "facility_science"
+  | "rocket_site"
+  | "power_plant"
+  | "dam";
 
 /** P4 spec §5.2: a naval line on dockyards (lane E runs it; the foundation holds it). */
 export interface NavalLine {
@@ -139,6 +149,8 @@ export interface NavalLine {
    * historical names); empty: the country's next free name.
    */
   names: number[];
+  /** P6 (plan decision 8): the ship design slot it launches; 0 the base class. */
+  design: number;
 }
 
 export interface Project {
@@ -314,6 +326,8 @@ const LineSchema = z.object({
   progress: zInt(),
   fill: zInt(),
   lastOutput: zInt(),
+  /** P6: written always; absent reads -1. */
+  convertFrom: zInt().optional(),
 });
 const ProjectSchema = z.object({
   region: zInt(),
@@ -335,6 +349,8 @@ const NavalLineSchema = z.object({
   fill: zInt(),
   lastOutput: zInt(),
   names: z.array(zInt()),
+  /** P6 (plan decision 8): written always; absent reads 0. */
+  design: zInt().optional(),
 });
 const TotalsSchema = z.object({
   civ: zInt(),
@@ -429,6 +445,13 @@ export const WwEconomyStateSchema = z.object({
   coastal_fort: z.array(zInt()),
   synthetic_refinery: z.array(zInt()),
   fuel_silo: z.array(zInt()),
+  // P6 buildings (plan Task 1 Step 12): written always; absent reads 0.
+  facility_nuclear: z.array(zInt()).optional(),
+  facility_rocket: z.array(zInt()).optional(),
+  facility_science: z.array(zInt()).optional(),
+  rocket_site: z.array(zInt()).optional(),
+  power_plant: z.array(zInt()).optional(),
+  dam: z.array(zInt()).optional(),
   damage: z.array(zInt()),
   repair: z.array(zInt()),
 });
@@ -508,6 +531,12 @@ export class WwEconomy {
       coastal_fort: new Uint8Array(size),
       synthetic_refinery: new Uint8Array(size),
       fuel_silo: new Uint8Array(size),
+      facility_nuclear: new Uint8Array(size),
+      facility_rocket: new Uint8Array(size),
+      facility_science: new Uint8Array(size),
+      rocket_site: new Uint8Array(size),
+      power_plant: new Uint8Array(size),
+      dam: new Uint8Array(size),
     };
     this.damage = new Int32Array(size * BUILDING_IDS.length);
     this.repair = new Int32Array(size * BUILDING_IDS.length);
@@ -712,6 +741,7 @@ export class WwEconomy {
     let lastFights = false;
     const pol = this.ww.politics;
     const eg = this.ww.endgame;
+    const depth = this.ww.depth as WwDepth | undefined;
     for (const id of this.regionsOf(ce.smallID)) {
       const r = this.scenario.region(id)!;
       // P3 spec §17.1: the legal owner, not the 1936 one.
@@ -747,15 +777,22 @@ export class WwEconomy {
         law.conscriptionPermille,
         ce.stats.recruitablePct,
       );
+      // P6 hook (W1): scorched earth halves a region's resources for a while.
+      const rsPct =
+        depth === undefined ? 0 : regionStatus(depth, id).resourcePct;
       for (let k = 0; k < RESOURCE_COUNT; k++) {
         const deposit = r.res[k] + this.resBonus[id * RESOURCE_COUNT + k];
         if (deposit <= 0) continue;
-        produced[k] += extraction(
+        const got = extraction(
           deposit,
           this.infraEff[id],
           rp,
           ce.stats.extractionPct,
         );
+        produced[k] +=
+          rsPct === 0
+            ? got
+            : Math.floor((got * Math.max(0, 100 + rsPct)) / 100);
       }
       // P4 spec §15.5: synthetic oil after the infrastructure factor.
       produced[0] += syntheticOilOf(this, ce, id, cp);
@@ -786,6 +823,12 @@ export class WwEconomy {
     received += adj.civIn;
     paid += adj.civOut;
     recruitable += adj.manpower;
+    // P6 hook (M, I; plan decision 23): market payments and licence fees
+    // in and out, an agency upgrade's 2 — before the queue is assigned.
+    if (depth !== undefined) {
+      received += depth.civsIn(ce.smallID);
+      paid += depth.civsOut(ce.smallID);
+    }
     t.civ = civ;
     t.mil = mil + adj.virtualMil;
     t.dock = dock;
@@ -948,6 +991,12 @@ export class WwEconomy {
       case "coastal_fort":
       case "synthetic_refinery":
       case "fuel_silo":
+      case "facility_nuclear":
+      case "facility_rocket":
+      case "facility_science":
+      case "rocket_site":
+      case "power_plant":
+      case "dam":
         return this.p4Levels[b];
     }
   }
@@ -1093,12 +1142,49 @@ export class WwEconomy {
         refinery: p.synthetic_refinery[id],
         silo: p.fuel_silo[id],
         damage: dmg.some((v) => v !== 0) ? Array.from(dmg) : [],
+        // P6 (scenario v5, spec §16): deposits, the depth buildings, the dam.
+        ...this.depthRegionData(id),
         ...this.repairPmOf(id),
       });
     }
     this.dirtyCountries.clear();
     this.dirtyRegions.clear();
     return data;
+  }
+
+  /** P6: a region's v5 deposits, facility, rocket site, power plants and dam (WwRegionData). */
+  private depthRegionData(id: number): {
+    coal: number;
+    uranium: number;
+    hydro: number;
+    facility: number;
+    rocketSite: number;
+    powerPlant: number;
+    dam: number;
+    damLevel: number;
+  } {
+    const sc = this.scenario;
+    const p = this.p4Levels;
+    const facility =
+      p.facility_nuclear[id] > 0
+        ? 1
+        : p.facility_rocket[id] > 0
+          ? 2
+          : p.facility_science[id] > 0
+            ? 3
+            : 0;
+    const dam = sc.damOf(id);
+    const depth = this.ww.depth as WwDepth | undefined;
+    return {
+      coal: sc.coalOf(id),
+      uranium: sc.uraniumOf(id),
+      hydro: sc.hydroOf(id),
+      facility,
+      rocketSite: p.rocket_site[id],
+      powerPlant: p.power_plant[id],
+      dam: dam < 0 ? 0 : dam + 1,
+      damLevel: dam < 0 ? 0 : (depth?.world.damLevel[dam] ?? 0),
+    };
   }
 
   /**
@@ -1152,6 +1238,10 @@ export class WwEconomy {
       ),
       slotPct: ce.stats.slotPct,
       fuelRatioPm: ce.fuelRatioPm,
+      // P6 (spec §16.2): yesterday's energy ratio.
+      energyPm:
+        (this.ww.depth as WwDepth | undefined)?.country(ce.smallID)?.mech
+          .energyPm ?? 1000,
     };
   }
 
@@ -1302,7 +1392,14 @@ export class WwEconomy {
         p.radar[id] * 11 +
         p.coastal_fort[id] * 13 +
         p.synthetic_refinery[id] * 17 +
-        p.fuel_silo[id] * 19;
+        p.fuel_silo[id] * 19 +
+        // P6 (zero in every game without them).
+        p.facility_nuclear[id] * 23 +
+        p.facility_rocket[id] * 29 +
+        p.facility_science[id] * 31 +
+        p.rocket_site[id] * 37 +
+        p.power_plant[id] * 41 +
+        p.dam[id] * 43;
       if (v !== 0) h = (Math.imul(h, 31) + id + v) | 0;
     }
     for (let i = 0; i < this.damage.length; i++) {
@@ -1377,6 +1474,12 @@ export class WwEconomy {
       coastal_fort: Array.from(this.p4Levels.coastal_fort),
       synthetic_refinery: Array.from(this.p4Levels.synthetic_refinery),
       fuel_silo: Array.from(this.p4Levels.fuel_silo),
+      facility_nuclear: Array.from(this.p4Levels.facility_nuclear),
+      facility_rocket: Array.from(this.p4Levels.facility_rocket),
+      facility_science: Array.from(this.p4Levels.facility_science),
+      rocket_site: Array.from(this.p4Levels.rocket_site),
+      power_plant: Array.from(this.p4Levels.power_plant),
+      dam: Array.from(this.p4Levels.dam),
       damage: Array.from(this.damage),
       repair: Array.from(this.repair),
     };
@@ -1390,7 +1493,10 @@ export class WwEconomy {
       ce.manpower = c.manpower;
       ce.casualties = c.casualties;
       ce.stock = [...c.stock];
-      ce.lines = c.lines.map((l) => ({ ...l }));
+      ce.lines = c.lines.map((l) => ({
+        ...l,
+        convertFrom: l.convertFrom ?? -1,
+      }));
       ce.nextLineId = c.nextLineId;
       ce.queue = c.queue.map((q) => ({ ...q }));
       ce.slots = c.slots.map((x) =>
@@ -1433,6 +1539,19 @@ export class WwEconomy {
     this.p4Levels.coastal_fort.set(s.coastal_fort);
     this.p4Levels.synthetic_refinery.set(s.synthetic_refinery);
     this.p4Levels.fuel_silo.set(s.fuel_silo);
+    // P6.
+    for (const b of [
+      "facility_nuclear",
+      "facility_rocket",
+      "facility_science",
+      "rocket_site",
+      "power_plant",
+      "dam",
+    ] as const) {
+      this.p4Levels[b].fill(0);
+      const a = s[b];
+      if (a !== undefined) this.p4Levels[b].set(a);
+    }
     this.damage.set(s.damage);
     this.repair.set(s.repair);
     this._trades = s.trades.map((t) => ({ ...t }));
@@ -1468,8 +1587,10 @@ export class WwEconomy {
   }
 }
 
-function copyNavalLine(l: NavalLine): NavalLine {
-  return { ...l, names: [...l.names] };
+function copyNavalLine(
+  l: Omit<NavalLine, "design"> & { design?: number },
+): NavalLine {
+  return { ...l, names: [...l.names], design: l.design ?? 0 };
 }
 
 function copyTotals(t: Totals): Totals {

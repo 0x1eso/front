@@ -147,6 +147,21 @@ export const CONTENT_TARGETS = {
   dormant: 14,
 } as const;
 
+/** P6 (spec §11.1 table): each regional pack's own focuses (Phase A: K1–K4). */
+export const PACK_TARGETS = {
+  chn: 30,
+  ccp: 22,
+  chw: 20,
+  spa: 28,
+  pol: 22,
+  tur: 20,
+  bal: 30,
+  nor: 26,
+  lat: 26,
+  dom: 24,
+  new: 8,
+} as const;
+
 /** 0 (not filled yet) or at least the target (R19). */
 export function emptyOrAtLeast(n: number, min: number): boolean {
   return n === 0 || n >= min;

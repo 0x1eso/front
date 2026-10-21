@@ -3,24 +3,34 @@
 // tick one round of every battle, in region order (spec §2.2-5). Integer
 // arithmetic only, no randomness (plan decision 6).
 import {
+  KeyStatsTable,
+  KS,
+  KS_FIELDS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import {
   CombatMods,
   DivisionStats,
   GROUND_SLOTS,
+  GROUND_STATIC_SLOTS,
   MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_RAIL,
   MOVE_RETREAT,
   MOVE_SEA,
   MOVE_WALK,
+  NEED_GROUPS,
+  NG_SPA,
   ROLE_ATTACK,
   ROLE_DEFEND,
   ROLE_NONE,
+  TemplateDef,
   TPL_ENGINEER,
   TPL_HOSPITAL,
   TPL_SIGNAL,
   traitBit,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   applyBp,
   attackValue,
@@ -33,6 +43,7 @@ import {
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { reliabilityLossBp } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fuelCombatBp } from "@openfront/engine-lib/ww1936/FuelRules";
 import { coastalFortBp } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
@@ -296,6 +307,22 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   };
   cas(land.hooks.casHits(R, land.sideOf(b.attLead)), def.active, b.attLead);
   cas(land.hooks.casHits(R, land.sideOf(ctrl)), att.active, ctrl);
+  // P6 hook (W1, spec §16.5): railway guns, after close air support, the
+  // same round robin (no anti-air cut: they are guns).
+  const guns = (hits: number, targets: readonly number[], by: number) => {
+    if (hits <= 0 || targets.length === 0) return;
+    const to = targets[b.round % targets.length];
+    const dmg = roundDamage(hits, false);
+    org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
+    hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
+    deal(to, by, dmg.hpMilli);
+  };
+  guns(
+    land.depthHooks.railGunHits(R, land.sideOf(b.attLead)),
+    def.active,
+    b.attLead,
+  );
+  guns(land.depthHooks.railGunHits(R, land.sideOf(ctrl)), att.active, ctrl);
   const destroyed: DestroyedSink = { battle: b, counts: new Map() };
   sink = destroyed;
   try {
@@ -310,10 +337,18 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       const lost = t.id[r] === 0 ? menBefore : menBefore - t.men[r];
       if (lost > 0) noteBattleDamage(land, b, dealt.get(r), against, lost);
     }
+    const today = land.day();
     for (const r of [...att.active, ...def.active]) {
       // The tick of the round (Task 11): each country's day counts the
       // rounds since its previous day (Sustain.foughtTest).
       if (t.id[r] !== 0) t.lastFight[r] = tick;
+      // P6 hook (D, plan decision 12): once a day, its share of combat to
+      // its owner's doctrine tracks.
+      if (t.id[r] !== 0 && t.tallyDay[r] !== today) {
+        t.tallyDay[r] = today;
+        const h = trackHalvesOf(land, r);
+        land.depthHooks.noteLandCombat(t.owner[r], h[0], h[1], h[2]);
+      }
     }
     // 5. Zero org: defenders retreat (or die), attackers drop out (spec §9.3-7).
     for (const id of [...b.defenders]) {
@@ -664,13 +699,15 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   // P5 (plan decision 21): the battle's equipment ledger, by side.
   const bt = t.battle[row] === 0 ? undefined : land.battles.get(t.battle[row]);
   const side = t.role[row] === ROLE_ATTACK ? 0 : GROUND_SLOTS;
+  const ks = land.keyStatsOf(owner);
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const have = eq[base + j];
     const carry = t.lossEq[base + j];
     if (have <= 0 && carry === 0) continue;
     const m = all
       ? have * 1000
-      : Math.floor((have * hpMilli * 1000) / hpNow) + carry;
+      : designLossMilli(ks, j, Math.floor((have * hpMilli * 1000) / hpNow)) +
+        carry;
     const k = Math.min(have, Math.floor(m / 1000));
     t.lossEq[base + j] = k === have ? 0 : m - k * 1000;
     if (k > 0) eq[base + j] = have - k;
@@ -753,6 +790,10 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
   const t = land.divisions;
   const ce = land.econ.country(smallID);
   if (ce === null) return;
+  const ePct =
+    (ce.stats as Partial<Record<WwStatKey, number>>).entrenchSpeedPct ?? 0;
+  const entrenchEvery =
+    ePct === 0 ? 3 : Math.max(1, Math.floor(300 / Math.max(10, 100 + ePct)));
   const stepOf = new Map<number, number>();
   for (const r of land.rowsOf(smallID)) {
     if (t.mode[r] !== MOVE_NONE) {
@@ -761,7 +802,8 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
       continue;
     }
     t.stillDays[r] = Math.min(65_535, t.stillDays[r] + 1);
-    if (t.stillDays[r] % 3 !== 0) continue;
+    // P6 (spec §21.2): entrenchSpeedPct shortens the three days a level.
+    if (t.stillDays[r] % entrenchEvery !== 0) continue;
     const army = t.army[r];
     let step = stepOf.get(army);
     if (step === undefined) {
@@ -920,8 +962,9 @@ export function modInputOf(
     weather: land.weatherOn(region, land.day()),
     river,
     strait,
-    // P4 (spec §14.8): a bombed fort holds as the lower level.
-    fort: attacking ? effectiveLevel(land.econ, region, "fort") : 0,
+    // P4 (spec §14.8): a bombed fort holds as the lower level. P6 (spec
+    // §21.2 fortDefPerLevelBp): the defender reads its own region's fort.
+    fort: effectiveLevel(land.econ, region, "fort"),
     entrench: attacking ? 0 : t.entrench[row],
     excessBp: 0,
     supplyPm: t.supply[row],
@@ -931,6 +974,129 @@ export function modInputOf(
     landingBp,
     coastalFortBp: fortBp,
     shoreBp: attacking ? 0 : land.hooks.shoreBombardBp(region, side),
+    // P6 (pre-flight §0-2): flat O(1) reads of what the depth days stored.
+    ...depthModFields(land, row, region, attacking, fighter, base),
+  };
+}
+
+/**
+ * P6 (spec §5.2.2, plan Task 1 Step 13): a design slot's equipment losses
+ * scaled by its reliability (reliabilityLossBp); a static slot's as P2's.
+ */
+export function designLossMilli(
+  ks: KeyStatsTable,
+  j: number,
+  milli: number,
+): number {
+  if (j < GROUND_STATIC_SLOTS || milli <= 0) return milli;
+  const rel = ks.stats[j * KS_FIELDS + KS.relPm];
+  return rel <= 0
+    ? milli
+    : Math.floor((milli * reliabilityLossBp(rel)) / 10_000);
+}
+
+/** Spec §3.4 row 1: battalions in each doctrine track group. */
+const INF_TRACK: ReadonlySet<string> = new Set([
+  "infantry",
+  "cavalry",
+  "mountain",
+  "marine",
+  "paratrooper",
+  "motorized",
+]);
+const ARMOR_TRACK: ReadonlySet<string> = new Set([
+  "light_armor",
+  "medium_armor",
+  "heavy_armor",
+  "tank_destroyer",
+]);
+const TRACK_HALVES = new WeakMap<
+  TemplateDef,
+  readonly [number, number, number]
+>();
+const NO_HALVES: readonly [number, number, number] = [0, 0, 0];
+
+/**
+ * P6 (plan decision 12, spec §3.4): a division's battalions as half
+ * battalions in the infantry, armour and support tracks (a support
+ * company counts half), cached per template def (replaced, never written).
+ */
+function trackHalvesOf(
+  land: WwLand,
+  r: number,
+): readonly [number, number, number] {
+  const t = land.divisions;
+  const def = land.country(t.owner[r])?.template(t.template[r])?.def;
+  if (def === undefined) return NO_HALVES;
+  let h = TRACK_HALVES.get(def);
+  if (h === undefined) {
+    let inf = 0;
+    let arm = 0;
+    let sup = def.support.length;
+    for (const id of def.battalions) {
+      if (INF_TRACK.has(id)) inf += 2;
+      else if (ARMOR_TRACK.has(id)) arm += 2;
+      else sup += 2;
+    }
+    h = [inf, arm, sup];
+    TRACK_HALVES.set(def, h);
+  }
+  return h;
+}
+
+/** NEED_GROUPS of the artillery-like parts (artillery_officer's share). */
+const ART_GROUPS: readonly number[] = [
+  NEED_GROUPS.indexOf("artillery"),
+  NG_SPA,
+];
+
+/** P6 (spec §4.2 artillery_officer): the share of soft attack its artillery carries, ‰. */
+function artSoftPmOf(s: DivisionStats): number {
+  if (s.soft <= 0) return 0;
+  let a = 0;
+  for (const g of ART_GROUPS) a += s.parts[g * 4] ?? 0;
+  return Math.min(1000, Math.floor((a * 1000) / s.soft));
+}
+
+/**
+ * P6 hook (D, W1, W2; pre-flight §0-2): the army's field marshal and
+ * command values, the enemy's readiness cut, the railway guns' fort cut,
+ * the designs' flags and the artillery share.
+ */
+function depthModFields(
+  land: WwLand,
+  row: number,
+  region: number,
+  attacking: boolean,
+  fighter: number,
+  base: DivisionStats,
+): Pick<
+  ModInput,
+  | "fmAtt"
+  | "fmDef"
+  | "fmTraits"
+  | "cmdAttBp"
+  | "cmdDefBp"
+  | "enemyPlanCutBp"
+  | "fortCut"
+  | "halfSupply"
+  | "designFlags"
+  | "artSoftPm"
+> {
+  const t = land.divisions;
+  const h = land.depthHooks;
+  const am = h.armyMods(t.owner[row], t.army[row]);
+  return {
+    fmAtt: am.fmAtt,
+    fmDef: am.fmDef,
+    fmTraits: am.fmTraits,
+    cmdAttBp: am.cmdAttBp,
+    cmdDefBp: am.cmdDefBp,
+    enemyPlanCutBp: h.planCutBp(fighter, region),
+    fortCut: attacking ? h.fortCut(t.army[row], region) : 0,
+    halfSupply: am.halfSupply,
+    designFlags: base.designFlags,
+    artSoftPm: artSoftPmOf(base),
   };
 }
 

@@ -36,6 +36,11 @@ export class WwEconomyView {
   readonly coastalFort: Uint8Array;
   readonly refinery: Uint8Array;
   readonly silo: Uint8Array;
+  /** P6 (spec §9.1, §16.2, §16.4): FACILITY_IDS index + 1, rocket site level, power plants, the dam's level. */
+  readonly facility: Uint8Array;
+  readonly rocketSite: Uint8Array;
+  readonly powerPlant: Uint8Array;
+  readonly damLevel: Uint8Array;
   /** P4 bomb damage by region (absent: none), BUILDING_IDS order, milli. */
   private damage = new Map<number, number[]>();
   /** P4 (lane U): the repair's progress by damaged region, ‰ (WwRegionData.repairPm). */
@@ -62,6 +67,10 @@ export class WwEconomyView {
     this.coastalFort = new Uint8Array(size);
     this.refinery = new Uint8Array(size);
     this.silo = new Uint8Array(size);
+    this.facility = new Uint8Array(size);
+    this.rocketSite = new Uint8Array(size);
+    this.powerPlant = new Uint8Array(size);
+    this.damLevel = new Uint8Array(size);
     const owners = scenario.ownerByRegion();
     for (const r of regions) {
       this.civ[r.id] = r.civ;
@@ -76,6 +85,8 @@ export class WwEconomyView {
       this.airBase[r.id] = scenario.startAirBase(r.id);
       this.aa[r.id] = scenario.startAa(r.id);
       this.coastalFort[r.id] = scenario.startCoastalFort(r.id);
+      // P6: a dam of the scenario stands at the start (level 1).
+      this.damLevel[r.id] = scenario.damOf(r.id) >= 0 ? 1 : 0;
     }
   }
 
@@ -100,6 +111,10 @@ export class WwEconomyView {
       this.coastalFort[r.id] = r.coastalFort;
       this.refinery[r.id] = r.refinery;
       this.silo[r.id] = r.silo;
+      this.facility[r.id] = r.facility;
+      this.rocketSite[r.id] = r.rocketSite;
+      this.powerPlant[r.id] = r.powerPlant;
+      this.damLevel[r.id] = r.damLevel;
       if (r.damage.length === 0) this.damage.delete(r.id);
       else this.damage.set(r.id, [...r.damage]);
       if (r.repairPm === undefined) this.repairPm.delete(r.id);
@@ -140,6 +155,15 @@ export class WwEconomyView {
       refinery: this.refinery[id],
       silo: this.silo[id],
       damage: [...(this.damage.get(id) ?? [])],
+      // P6 (scenario v5): the deposits come from scenario.json.
+      coal: this.scenario.coalOf(id),
+      uranium: this.scenario.uraniumOf(id),
+      hydro: this.scenario.hydroOf(id),
+      facility: this.facility[id],
+      rocketSite: this.rocketSite[id],
+      powerPlant: this.powerPlant[id],
+      dam: this.scenario.damOf(id) + 1,
+      damLevel: this.damLevel[id],
       ...(this.repairPm.has(id) ? { repairPm: this.repairPm.get(id)! } : {}),
     };
   }
@@ -175,6 +199,19 @@ export class WwEconomyView {
         return this.refinery[region];
       case "fuel_silo":
         return this.silo[region];
+      // P6.
+      case "facility_nuclear":
+        return this.facility[region] === 1 ? 1 : 0;
+      case "facility_rocket":
+        return this.facility[region] === 2 ? 1 : 0;
+      case "facility_science":
+        return this.facility[region] === 3 ? 1 : 0;
+      case "rocket_site":
+        return this.rocketSite[region];
+      case "power_plant":
+        return this.powerPlant[region];
+      case "dam":
+        return this.damLevel[region];
     }
   }
 

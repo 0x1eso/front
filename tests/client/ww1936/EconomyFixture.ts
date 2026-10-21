@@ -54,6 +54,8 @@ export function summary(tag: CountryTag, over: Partial<Summary> = {}): Summary {
     exportRoom: [0, 0, 0, 0, 0, 0],
     slotPct: 0,
     fuelRatioPm: 1000,
+    // P6 (spec §16.2).
+    energyPm: 1000,
     ...over,
   };
 }
@@ -133,6 +135,15 @@ export function region(
     refinery: 0,
     silo: 0,
     damage: [],
+    // P6 (scenario v5).
+    coal: 0,
+    uranium: 0,
+    hydro: 0,
+    facility: 0,
+    rocketSite: 0,
+    powerPlant: 0,
+    dam: 0,
+    damLevel: 0,
     ...over,
   };
 }

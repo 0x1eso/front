@@ -1120,8 +1120,37 @@ function plainInput(
     landingBp: 0,
     coastalFortBp: 0,
     shoreBp: 0,
+    // P6 (pre-flight §0-2): the engine's flat depth fields; neutral until
+    // the depth screens (U1–U3) read them from WwDepthView.
+    ...NEUTRAL_DEPTH_INPUT,
   };
 }
+
+/** P6: ModInput's depth fields at their neutral values (the engine's with no depth system). */
+export const NEUTRAL_DEPTH_INPUT: Pick<
+  ModInput,
+  | "fmAtt"
+  | "fmDef"
+  | "fmTraits"
+  | "cmdAttBp"
+  | "cmdDefBp"
+  | "enemyPlanCutBp"
+  | "fortCut"
+  | "halfSupply"
+  | "designFlags"
+  | "artSoftPm"
+> = {
+  fmAtt: 0,
+  fmDef: 0,
+  fmTraits: 0,
+  cmdAttBp: 0,
+  cmdDefBp: 0,
+  enemyPlanCutBp: 0,
+  fortCut: 0,
+  halfSupply: false,
+  designFlags: 0,
+  artSoftPm: 0,
+};
 
 type P4Fields = Pick<
   ModInput,

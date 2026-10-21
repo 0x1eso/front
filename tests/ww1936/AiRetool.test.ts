@@ -39,6 +39,7 @@ test("a refused retooling tries the next line near its cap", async () => {
     progress: 0,
     fill: 1000,
     lastOutput: 0,
+    convertFrom: -1,
   });
   deu.lines = [near(101, "infantry_equipment"), near(102, "artillery")];
   deu.nextLineId = 103;

@@ -10,6 +10,7 @@ import {
   effectGroup,
   Selector,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
+import { applyDepthEffect } from "./EffectsDepth";
 import { applyDiploEffect } from "./EffectsDiplo";
 import { applyEconEffect } from "./EffectsEcon";
 import { applyEndgameEffect } from "./EffectsEndgame";
@@ -99,6 +100,10 @@ export function applyEffect(ctx: EffectCtx, e: Effect): void {
     // P5 plan decision 26.
     case "endgame":
       applyEndgameEffect(ctx, e, actor);
+      break;
+    // P6 plan decision 27.
+    case "depth":
+      applyDepthEffect(ctx, e, actor);
       break;
   }
 }

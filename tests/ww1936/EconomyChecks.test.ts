@@ -121,6 +121,11 @@ describe("shared judgements (plan decision 3)", () => {
       anti_air: 0,
       radar: 0,
       coastal_fort: 0,
+      // P6 (plan Task 1 Step 12).
+      rocket_site: 0,
+      dam: 0,
+      power_plant: 0,
+      facility: 0,
     });
   });
 
@@ -184,8 +189,10 @@ describe("shared judgements (plan decision 3)", () => {
     expect(researchBlockOf(state, "inf_eq_1")).toBe("researched");
     expect(researchBlockOf(state, "tools_2")).toBe("in_progress");
     expect(researchBlockOf(state, "inf_eq_3")).toBe("prereq");
-    expect(researchBlockOf(state, "mass_1")).toBe("doctrine");
-    expect(researchBlockOf(state, "mobile_2")).toBeNull();
+    // P6 plan decision 25: the old doctrine techs are retired (the grand
+    // doctrines replace them), so none of them can be researched.
+    expect(researchBlockOf(state, "mass_1")).toBe("no_tech");
+    expect(researchBlockOf(state, "mobile_2")).toBe("no_tech");
     expect(researchBlockOf(state, "inf_eq_2")).toBeNull();
     const full = { ...state, slots: ["tools_2", "inf_eq_2"] as const };
     expect(researchBlockOf(full, "support_eq_2")).toBe("prereq");

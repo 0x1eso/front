@@ -267,6 +267,24 @@ export const DERIVED_FIELDS = new Set<string>([
   "dirtyTakeover",
   "firstData",
   "volunteerArmyCount",
+  // World War 1936 P6 (plan Task 1 Step 10): the depth systems' design and
+  // key-stat caches, mine and facility indexes, cache keys and design
+  // versions; the tick's effects, news and change marks; the land war's
+  // depth hooks (the WwDepth itself, compared as WorldWar.depth).
+  "designStatCache",
+  "keyStatTables",
+  "mineIndex",
+  "facilityIndex",
+  "designCacheKey",
+  "designVer",
+  "depthFx",
+  "depthNews",
+  "depthDirty",
+  "depthDirtyIntel",
+  "depthDirtyStats",
+  "depthDirtyDesigns",
+  "depthDirtyGlobal",
+  "depthHooks",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

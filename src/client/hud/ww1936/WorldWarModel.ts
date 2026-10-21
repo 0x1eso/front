@@ -91,6 +91,8 @@ export const DECLARE_BLOCK_KEYS: Readonly<Record<DeclareWarBlock, string>> = {
   // P5 (spec §9.1, §10).
   subject_restricted: "ww1936.declare.block.subject_restricted",
   exile: "ww1936.declare.block.exile",
+  // P6 (spec §13.1).
+  congress: "ww1936.declare.block.congress",
 };
 
 export function factionName(id: FactionKey, game?: WwGame): string {

@@ -85,6 +85,8 @@ export function partnerJudge(
     if (econ.country(seller) === null || s.hasEmbargoAgainst(buyerPlayer)) {
       return "no_partner";
     }
+    // P6 hook (M, pre-flight §A9): the mode's embargo list.
+    if (ww.depth.embargoed(buyer, seller)) return "no_partner";
     if (ww.isAtWar(buyer, seller)) return "no_partner";
     reach ??= landReachOf(econ, buyer);
     if (reach.has(seller)) return null;

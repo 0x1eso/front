@@ -3,6 +3,10 @@
 // orders and the daily step.
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
+  FACILITY_IDS,
+  SPECIAL_PROJECTS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import {
   BUILDING_COST,
   BuildingId,
   LEVEL_MAX,
@@ -18,7 +22,13 @@ import {
   constructionProgress,
   projectSpeedPct,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
+import {
+  DEPTH_BUILDINGS,
+  depthBuildBlock,
+} from "@openfront/engine-lib/ww1936/WorldRules";
 import type { Player } from "../../game/Game";
+import { regionStatus } from "../depth/World";
+import type { WwDepth } from "../depth/WwDepth";
 import { navalBuildBlock } from "../navy/EndgameHooks";
 import { dmzRegions } from "../politics/Spirits";
 import type { CountryEconomy, Project, WwEconomy } from "./WwEconomy";
@@ -33,8 +43,55 @@ export function slotBuildings(econ: WwEconomy, region: number): number {
     econ.mil[region] +
     econ.dock[region] +
     econ.buildingArray("synthetic_refinery")[region] +
-    econ.buildingArray("fuel_silo")[region]
+    econ.buildingArray("fuel_silo")[region] +
+    // P6 (spec §9.1, §16.2): facilities and power plants share the slots.
+    econ.buildingArray("facility_nuclear")[region] +
+    econ.buildingArray("facility_rocket")[region] +
+    econ.buildingArray("facility_science")[region] +
+    econ.buildingArray("power_plant")[region]
   );
+}
+
+/** P6 hook (plan Task 1 Step 12): the P6 buildings' rules (WorldRules.depthBuildBlock). */
+function depthBlockOf(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  region: number,
+  building: BuildingId,
+  count: number,
+): WwOrderBlock | null | undefined {
+  if (!DEPTH_BUILDINGS.includes(building)) return undefined;
+  const depth = econ.ww.depth as WwDepth | undefined;
+  if (depth === undefined || econ.scenario.region(region) === undefined) {
+    return "not_buildable";
+  }
+  const q = queuedInRegion(ce.queue, region);
+  const dam = econ.scenario.damOf(region);
+  const built = FACILITY_IDS.findIndex(
+    (f) => econ.buildingArray(f)[region] > 0,
+  );
+  return depthBuildBlock({
+    building,
+    count,
+    core:
+      econ.ww.politics.isCore(region) &&
+      econ.ww.politics.legalOwner[region] === ce.smallID,
+    facility: built >= 0 ? built + 1 : q.facility,
+    researched: ce.researched,
+    infra: econ.infra[region],
+    nukesOn: depth.nukesOn(),
+    flyingBombDone: depth.projectDone(
+      ce.smallID,
+      SPECIAL_PROJECTS.indexOf("sp_flying_bomb"),
+    ),
+    levelWithQueue:
+      building === "power_plant"
+        ? econ.buildingArray("power_plant")[region] + q.power_plant
+        : econ.buildingArray(building)[region] + queuedLevels(q, building),
+    dam,
+    damLevel: dam < 0 ? 0 : (depth.world.damLevel[dam] ?? 0),
+    damQueued: q.dam > 0,
+  });
 }
 
 /** Factories built plus reserved by the controller's queue (spec §4.2). */
@@ -88,6 +145,8 @@ export function buildBlock(
     coastal: econ.scenario.region(region)?.coastal ?? false,
     harbor: econ.scenario.harborOf(region) !== 0,
     researched: ce.researched,
+    // P6 hook: the P6 buildings' own rules.
+    depthBlock: depthBlockOf(econ, ce, region, building, count),
   });
 }
 
@@ -172,6 +231,21 @@ function canComplete(econ: WwEconomy, ce: CountryEconomy, q: Project): boolean {
   return built + 1 <= econ.regionSlots(q.region, ce.stats.slotPct);
 }
 
+const FACILITY_SET: ReadonlySet<BuildingId> = new Set(FACILITY_IDS);
+
+/** P6 hook (W1): energy shortage (yesterday's) and the region's status (a nuke: −50%). */
+function depthBuildPct(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  region: number,
+): number {
+  const depth = econ.ww.depth as WwDepth | undefined;
+  if (depth === undefined) return 0;
+  return (
+    depth.energyOutputPct(ce.smallID) + regionStatus(depth, region).buildPct
+  );
+}
+
 /**
  * One day of construction for `ce` (spec §4.3): the free civilian factories
  * go front first, at most 15 to an entry; progress past a building's cost
@@ -192,7 +266,8 @@ export function stepConstruction(
       infra: econ.infraEff[q.region],
       tech: ce.stats,
       law,
-      buildingPct: buildingSpeedPct(ce, q.building),
+      buildingPct:
+        buildingSpeedPct(ce, q.building) + depthBuildPct(econ, ce, q.region),
     });
     q.lastAssigned = assigned[i];
     q.lastSpeedPct = speed;
@@ -204,7 +279,10 @@ export function stepConstruction(
         q.count = 0;
         break;
       }
-      econ.addBuilding(q.region, q.building, 1);
+      // P6 hook (W1): a dam's repair is the depth state's level, not a P1 count.
+      if (q.building === "dam") econ.ww.depth.onDamRepaired(q.region);
+      else econ.addBuilding(q.region, q.building, 1);
+      if (FACILITY_SET.has(q.building)) econ.ww.depth.onFacilityBuilt(q.region);
       q.count--;
       q.progress -= cost;
       built++;

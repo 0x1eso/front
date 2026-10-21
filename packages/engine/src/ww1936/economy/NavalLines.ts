@@ -2,7 +2,10 @@
 // orders, the dockyards assigned top down after what repairs borrowed,
 // the resources after P1's lines, the day's output, launches into the
 // port's new-ships fleet or the convoy stock, and the drawer's idle count.
-import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  equipKey,
+  WwOrderBlock,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   NavalLineOrder,
   SHIP_CLASSES,
@@ -23,6 +26,8 @@ import {
   lineUnitCost,
   shipGenTech,
 } from "@openfront/engine-lib/ww1936/ShipStats";
+import { navalLineDesignBlock } from "../depth/Designs";
+import { treatyLineBlock } from "../depth/NavalTreaty";
 import { navalBuildBlock } from "../navy/EndgameHooks";
 import { bestNavalBase, navalPort } from "../navy/Ports";
 import { addConvoys } from "./Buildings";
@@ -30,9 +35,17 @@ import type { CountryEconomy, NavalLine, WwEconomy } from "./WwEconomy";
 
 /** NavalLine.cls of a convoy line (SHIP_CLASSES.length). */
 const CONVOY_CLS = SHIP_CLASSES.length;
+/** P6 (pre-flight §A7): NavalLine.cls of a floating-harbour line. */
+export const HARBOR_CLS = SHIP_CLASSES.length + 1;
+/** P6 (spec §16.6): a floating harbour costs 3,000 naval industry. */
+const HARBOR_COST_MILLI = 3_000_000;
 
-function lineClass(l: NavalLine): ShipClass | "convoy" {
-  return l.cls >= CONVOY_CLS ? "convoy" : SHIP_CLASSES[l.cls];
+function lineClass(l: NavalLine): ShipClass | "convoy" | "floating_harbor" {
+  return l.cls === HARBOR_CLS
+    ? "floating_harbor"
+    : l.cls >= CONVOY_CLS
+      ? "convoy"
+      : SHIP_CLASSES[l.cls];
 }
 
 function lineIndex(ce: CountryEconomy, id: number): number {
@@ -60,10 +73,16 @@ function portUsable(econ: WwEconomy, owner: number, region: number): boolean {
 /** Why (cls, gen) may not go on a line now (spec §4.2, §4.3, §5.3); null if it may. */
 function classBlock(
   ce: CountryEconomy,
-  cls: ShipClass | "convoy",
+  cls: ShipClass | "convoy" | "floating_harbor",
   gen: number,
 ): WwOrderBlock | null {
   if (cls === "convoy") return gen === 1 ? null : "bad_ship_class";
+  // P6 (spec §16.6): the floating harbour needs its tech.
+  if (cls === "floating_harbor") {
+    return gen === 1 && ce.researched.has("floating_harbor_1")
+      ? null
+      : "bad_ship_class";
+  }
   if (!(gen >= 1 && gen <= SHIP_GENS[cls])) return "bad_ship_class";
   const tech = shipGenTech(cls, gen);
   return tech === null || ce.researched.has(tech) ? null : "bad_ship_class";
@@ -85,8 +104,30 @@ export function issueNavalLineOrder(
       if (ce.navalLines.length >= WW_MAX_NAVAL_LINES) return "line_full";
       const block = classBlock(ce, order.cls, order.gen);
       if (block !== null) return block;
-      const p5 = navalBuildBlock(econ, ce, order.cls);
-      if (p5 !== null) return p5;
+      if (order.cls !== "floating_harbor") {
+        const p5 = navalBuildBlock(econ, ce, order.cls);
+        if (p5 !== null) return p5;
+      }
+      // P6 hook (E, W3): a ship design (plan decision 8) and the naval treaty.
+      const design = order.design ?? 0;
+      if (order.cls !== "convoy" && order.cls !== "floating_harbor") {
+        const ci = SHIP_CLASSES.indexOf(order.cls);
+        if (design > 0) {
+          const d = navalLineDesignBlock(
+            econ.ww.depth,
+            ce.smallID,
+            ci,
+            order.gen,
+            design,
+          );
+          if (d !== null) return d;
+        }
+        if (treatyLineBlock(econ.ww.depth, ce.smallID, ci, order.gen)) {
+          return "treaty_limit";
+        }
+      } else if (design !== 0) {
+        return "bad_index";
+      }
       if (
         sc.region(order.port) === undefined ||
         !portUsable(econ, ce.smallID, order.port)
@@ -100,7 +141,11 @@ export function issueNavalLineOrder(
       ce.navalLines.push({
         id: ce.nextNavalLineId++,
         cls:
-          order.cls === "convoy" ? CONVOY_CLS : SHIP_CLASSES.indexOf(order.cls),
+          order.cls === "convoy"
+            ? CONVOY_CLS
+            : order.cls === "floating_harbor"
+              ? HARBOR_CLS
+              : SHIP_CLASSES.indexOf(order.cls),
         gen: order.gen,
         docks: dockCount(order.docks),
         activeDocks: 0,
@@ -110,6 +155,7 @@ export function issueNavalLineOrder(
         fill: 1000,
         lastOutput: 0,
         names: [],
+        design,
       });
       return null;
     }
@@ -202,7 +248,12 @@ export function navalLineDemand(
 ): number[][] {
   assignNavalLines(econ, ce);
   return ce.navalLines.map((l) => {
-    const per = lineResources(lineClass(l));
+    const cls = lineClass(l);
+    // P6: the floating harbour costs industry only.
+    const per =
+      cls === "floating_harbor"
+        ? lineResources("convoy").map(() => 0)
+        : lineResources(cls);
     return per.map((v) => v * l.activeDocks);
   });
 }
@@ -234,12 +285,16 @@ export function stepNavalLines(
     l.lastOutput = out;
     if (out === 0) continue;
     l.progress += out;
-    const cost = lineCostMilli(l);
     const cls = lineClass(l);
+    const cost =
+      cls === "floating_harbor" ? HARBOR_COST_MILLI : lineCostMilli(l);
     while (l.progress >= cost) {
       l.progress -= cost;
       if (cls === "convoy") {
         addConvoys(ce, 1);
+      } else if (cls === "floating_harbor") {
+        // P6 (spec §16.6): into the stock (lane W1 deploys it).
+        ce.stock[equipKey("floating_harbor", 1)]++;
       } else {
         // A 1936 line's historical names first, then the country's next.
         const name = l.names.shift() ?? 0;
@@ -249,6 +304,8 @@ export function stepNavalLines(
           l.gen,
           l.port,
           name > 0 ? name : undefined,
+          // P6 (plan decision 8): the line's design.
+          l.design,
         );
         ships++;
         const unit = lineUnitCost(cls, l.gen);

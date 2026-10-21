@@ -1,16 +1,16 @@
 // World War 1936 P2: the only paths between the P1 stockpile / manpower
 // pool and the divisions (P2 spec §5.5, §21.3). Generations never mix: a
 // slot goes back to its own key (Review Focus 4).
-import {
-  EQUIPMENT_GENS,
-  EquipmentType,
-  equipKey,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
-  groundSlotOf,
+  NEED_GROUPS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  groupDrawSlots,
+  STATIC_KEY_STATS,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { CountryEconomy } from "./WwEconomy";
 
 /** Takes up to `n` of stock key `key`; returns how many it took. */
@@ -36,53 +36,74 @@ export function returnManpower(ce: CountryEconomy, men: number): void {
 }
 
 /**
- * Fills `slots` (GROUND_SLOTS) toward `need` (EQUIPMENT_TYPES order) from
- * the stock, newest generation first (spec §5.1, §5.3); at most
- * `cap(need)` of each type this call (default: all that is missing).
+ * Fills `slots` (GROUND_SLOTS) toward `need` (P6: NEED_GROUPS order) from
+ * the stock, newest first (spec §5.1, §5.3; P6 plan decision 7: the
+ * group's slots, the newest year first, then the smaller slot — P2's
+ * newest generation first when it holds no design); at most `cap(need)` of
+ * each group this call (default: all that is missing).
  */
 export function drawTemplateEquip(
   ce: CountryEconomy,
   slots: number[] | Int32Array,
   need: readonly number[],
-  types: readonly EquipmentType[],
+  ks: KeyStatsTable = STATIC_KEY_STATS,
   cap: (needed: number) => number = (x) => x,
 ): void {
-  for (let i = 0; i < types.length; i++) {
-    const tk = typeSlots(types[i]);
+  const order = drawOrderOf(ks);
+  for (let g = 0; g < need.length; g++) {
+    const list = order[g];
+    if (list === undefined || list.length === 0) continue;
     let have = 0;
-    for (let k = 0; k < tk.slots.length; k++) have += slots[tk.slots[k]];
+    for (let k = 0; k < list.length; k++) have += slots[list[k]];
     // Nothing missing: nothing drawn (cap is never negative).
-    if (need[i] - have <= 0) continue;
-    let want = Math.min(need[i] - have, cap(need[i]));
-    for (let k = tk.slots.length - 1; k >= 0 && want > 0; k--) {
-      const got = drawEquip(ce, tk.keys[k], want);
-      slots[tk.slots[k]] += got;
-      want -= got;
-    }
+    if (need[g] - have <= 0) continue;
+    const want = Math.min(need[g] - have, cap(need[g]));
+    drawGroupInto(ce, list, want, slots);
   }
 }
 
-/** A type's division slots and their stock keys, generation 1 first (only generations a division holds). */
-interface TypeSlots {
-  slots: number[];
-  keys: number[];
+/**
+ * P6 (plan decision 7): takes up to `n` of need group `group` from the
+ * stock in draw order (the newest year first, then the smaller slot) and
+ * returns how many came from each division slot (GROUND_SLOTS long).
+ */
+export function drawGroupEquip(
+  ce: CountryEconomy,
+  group: number,
+  n: number,
+  ks: KeyStatsTable,
+): number[] {
+  const got = new Array<number>(GROUND_SLOTS).fill(0);
+  const list = drawOrderOf(ks)[group];
+  if (list !== undefined) drawGroupInto(ce, list, n, got);
+  return got;
 }
-const TYPE_SLOT_CACHE = new Map<EquipmentType, TypeSlots>();
 
-function typeSlots(type: EquipmentType): TypeSlots {
-  let ts = TYPE_SLOT_CACHE.get(type);
-  if (ts === undefined) {
-    ts = { slots: [], keys: [] };
-    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      const key = equipKey(type, g);
-      const s = groundSlotOf(key);
-      if (s < 0) continue;
-      ts.slots.push(s);
-      ts.keys.push(key);
-    }
-    TYPE_SLOT_CACHE.set(type, ts);
+function drawGroupInto(
+  ce: CountryEconomy,
+  list: readonly number[],
+  n: number,
+  into: number[] | Int32Array,
+): void {
+  let want = n;
+  for (let k = 0; k < list.length && want > 0; k++) {
+    const j = list[k];
+    const got = drawEquip(ce, GROUND_EQUIP_KEYS[j], want);
+    into[j] += got;
+    want -= got;
   }
-  return ts;
+}
+
+/** Each need group's division slots in draw order, kept per KeyStatsTable (never written into). */
+const DRAW_ORDER = new WeakMap<KeyStatsTable, number[][]>();
+
+function drawOrderOf(ks: KeyStatsTable): number[][] {
+  let o = DRAW_ORDER.get(ks);
+  if (o === undefined) {
+    o = NEED_GROUPS.map((_, g) => groupDrawSlots(ks, g));
+    DRAW_ORDER.set(ks, o);
+  }
+  return o;
 }
 
 /** A division's or trainee's men and every equipment slot back to the pool and stock. */

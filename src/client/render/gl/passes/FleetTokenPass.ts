@@ -91,6 +91,9 @@ export const MISSION_CELL: Readonly<Record<FleetMission, number>> = {
   escort: SHIP_CELL.escort,
   invasion_support: SHIP_CELL.invasion_support,
   training: SHIP_CELL.training,
+  // P6 (spec §14.1): mine layers and sweepers show the patrol mark.
+  lay_mines: SHIP_CELL.patrol,
+  sweep_mines: SHIP_CELL.patrol,
 };
 
 /** The shader's atlas layout. */

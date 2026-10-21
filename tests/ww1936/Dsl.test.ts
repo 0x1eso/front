@@ -103,6 +103,17 @@ const SAMPLE_CONDITIONS: Record<ConditionKind, LeafCondition> = {
   war_score_share_ge: { kind: "war_score_share_ge", of: DEU, pct: 30 },
   in_conference: { kind: "in_conference" },
   legitimacy_ge: { kind: "legitimacy_ge", pct: 50 },
+  // P6 (plan decision 27, pre-flight §0-11).
+  has_doctrine: { kind: "has_doctrine", doctrine: "gd_mobile" },
+  mastery_level: { kind: "mastery_level", track: "armor", level: 3 },
+  has_agency: { kind: "has_agency" },
+  intel_level: { kind: "intel_level", of: DEU, domain: "army", pct: 50 },
+  project_done: { kind: "project_done", project: "sp_atomic" },
+  has_atomic: { kind: "has_atomic", count: 2 },
+  congress_above: { kind: "congress_above", pct: 60 },
+  bop_range: { kind: "bop_range", tag: "FRA", band: 2 },
+  energy_below: { kind: "energy_below", pct: 80 },
+  nukes_on: { kind: "nukes_on" },
 };
 
 const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
@@ -275,6 +286,18 @@ const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
   compliance: { kind: "compliance", group: "paris", pct: -10 },
   restore_country: { kind: "restore_country", tag: "target" },
   navy_xp: { kind: "navy_xp", amount: 20 },
+  // P6 (plan decision 27).
+  doctrine_mastery: { kind: "doctrine_mastery", domain: "land", amount: 120 },
+  congress: { kind: "congress", pp: 10 },
+  bop: { kind: "bop", amount: -100 },
+  cp: { kind: "cp", amount: 20 },
+  intel_network: { kind: "intel_network", on: DEU, pm: 200 },
+  decrypt: { kind: "decrypt", on: DEU, pm: 300 },
+  project_progress: { kind: "project_progress", project: "sp_atomic", pct: 10 },
+  design_grant: { kind: "design_grant", preset: "test_tank" },
+  energy: { kind: "energy", amount: 12 },
+  agency: { kind: "agency", upgrade: "ag_ops_1" },
+  cfocus_unlock: { kind: "cfocus_unlock" },
 };
 
 /** The optional fields of each kind (besides `who`, optional everywhere). */
@@ -305,6 +328,10 @@ const OPTIONAL: Partial<Record<string, readonly string[]>> = {
   volunteers: ["divisions", "planes"],
   exile_legitimacy: ["scope"],
   surrender: ["to"],
+  // P6 (plan decision 27).
+  doctrine_mastery: ["track"],
+  has_atomic: ["count"],
+  agency: ["upgrade"],
 };
 /** A copy of `o` without the field `f`. */
 const without = (o: object, f: string) =>
@@ -389,8 +416,10 @@ describe("the condition and effect language", () => {
     for (let i = 1; i < groups.length; i++)
       if (groups[i] !== groups[i - 1]) changes++;
     // P4's navy block (ships, convoys, fuel) after the territory one, P5's
-    // endgame block (release … navy_xp) after it.
-    expect(changes).toBe(6);
+    // endgame block (release … navy_xp) after it, P6's depth block last.
+    expect(changes).toBe(7);
+    expect(effectGroup("doctrine_mastery")).toBe("depth");
+    expect(effectGroup("cfocus_unlock")).toBe("depth");
     expect(effectGroup("release")).toBe("endgame");
     expect(effectGroup("navy_xp")).toBe("endgame");
     expect(effectGroup("ships")).toBe("navy");

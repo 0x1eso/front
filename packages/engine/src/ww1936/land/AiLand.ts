@@ -13,12 +13,7 @@
 // for its auto armies (spec §8.5).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import {
-  equipKey,
-  EQUIPMENT_GENS,
-  EQUIPMENT_TYPES,
-  WwTechId,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
+import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
   type LandTerrain,
@@ -44,6 +39,7 @@ import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChe
 import { ALL_EDGES } from "@openfront/engine-lib/ww1936/SeaGraph";
 import {
   GEN1,
+  groupStock,
   specialCap,
   templateStats,
   templateXpCost,
@@ -1801,14 +1797,9 @@ class AiDay {
 
   // ---- Training, templates, building (spec §14.5) ----
 
-  /** Stock of EQUIPMENT_TYPES[i], every generation. */
+  /** Stock of need group i (P6 plan decision 6: NEED_GROUPS order), every slot of it. */
   private stockOf(i: number): number {
-    const type = EQUIPMENT_TYPES[i];
-    let have = 0;
-    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      have += this.ce.stock[equipKey(type, g)];
-    }
-    return have;
+    return groupStock(this.ce.stock, i, this.land.keyStatsOf(this.ce.smallID));
   }
 
   /** Stock against one division's need, its lowest type, ‰ (at most 1000). */

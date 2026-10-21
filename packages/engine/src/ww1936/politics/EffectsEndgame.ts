@@ -2,10 +2,11 @@
 // foundation writes the dispatch (each kind to the lane that owns its
 // state); P5 lane E fills applyOtherEndgameEffect (plan Task 8).
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
+import { setEmbargo } from "../depth/Embargo";
 import { applyActivationEffect } from "../endgame/Activate";
 import { applyAidEffect } from "../endgame/LendLease";
 import { applySubjectEffect } from "../endgame/Subjects";
-import type { EffectCtx } from "./Dispatch";
+import { EffectCtx, resolveSelector } from "./Dispatch";
 
 export function applyEndgameEffect(
   ctx: EffectCtx,
@@ -28,10 +29,17 @@ export function applyEndgameEffect(
     case "volunteers":
     case "transfer_ships":
     case "scuttle_fleet":
-    case "embargo":
-    case "end_embargo":
       applyAidEffect(ctx, e, actor); // A
       return;
+    // P6 hook (pre-flight §A9): the mode's one embargo list (lane M's depth state).
+    case "embargo":
+    case "end_embargo": {
+      const on = resolveSelector(ctx, e.on);
+      if (on !== 0 && on !== actor) {
+        setEmbargo(ctx.pol.ww.depth, actor, on, e.kind === "embargo");
+      }
+      return;
+    }
     default:
       applyOtherEndgameEffect(ctx, e, actor); // E
   }

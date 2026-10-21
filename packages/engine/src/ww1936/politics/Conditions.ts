@@ -3,18 +3,27 @@
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { LAW_LADDERS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
-import type {
+import {
   Condition,
+  CONDITION_KINDS,
   LeafCondition,
   Selector,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { conditionLeaves } from "@openfront/engine-lib/ww1936/Describe";
+import {
+  replacedInTree,
+  treePosIn,
+} from "@openfront/engine-lib/ww1936/content/registry";
+import { evalDepthCondition } from "./ConditionsDepth";
 import { evalEndgameCondition } from "./ConditionsEndgame";
 import { EffectCtx, resolveSelector } from "./Dispatch";
 import { opinionOf } from "./Treaties";
 import type { WwPolitics } from "./WwPolitics";
+
+/** P6 plan decision 27: the first depth condition kind (the ones W3 evaluates). */
+const DEPTH_CONDITION_FIRST = CONDITION_KINDS.indexOf("has_doctrine");
 
 export function evalCondition(
   ctx: EffectCtx,
@@ -145,14 +154,11 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
     case "has_spirit":
       return p.hasSpirit(c.id);
     case "focus_done": {
-      const pos = pol.content.treePos.get(c.id);
-      const fi = pol.content.focusIdx.get(c.id);
-      return (
-        pos !== undefined &&
-        fi !== undefined &&
-        pol.content.focuses[fi].tree === p.tree &&
-        p.focusState[pos] !== 0
-      );
+      // P6 (pre-flight §0-1): the country's tree (a pack's too); a focus
+      // its pack replaces counts as bypassed.
+      if (replacedInTree(pol.content, p.tree, c.id)) return true;
+      const pos = treePosIn(pol.content, p.tree, c.id);
+      return pos !== undefined && p.focusState[pos] !== 0;
     }
     case "focus_in_progress":
       return p.focus?.id === c.id;
@@ -260,8 +266,18 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
     }
     case "fuel_ratio_below":
       return (pol.econ.country(id)?.fuelRatioPm ?? 1000) < c.pct * 10;
-    // P5 plan decision 26: the endgame's conditions (lane E).
+    // P6 (pre-flight §0-11): the lobby's atomic bomb (the foundation's).
+    case "nukes_on":
+      return pol.ww.depth.nukesOn();
+    // P5 plan decision 26: the endgame's conditions (lane E); P6 plan
+    // decision 27: the depth conditions (lane W3) after them.
     default:
+      if (
+        DEPTH_CONDITION_FIRST >= 0 &&
+        CONDITION_KINDS.indexOf(c.kind) >= DEPTH_CONDITION_FIRST
+      ) {
+        return evalDepthCondition(ctx, c);
+      }
       return evalEndgameCondition(ctx, c);
   }
 }

@@ -256,6 +256,11 @@ export const ADMIRAL_TRAIT_ICONS: Readonly<Record<AdmiralTrait, string>> = {
   fleet_protector: "🛡",
   spotter: "🔭",
   amphibious_expert: "⚓",
+  // P6 (spec §4.2).
+  night_fighter: "🌙",
+  convoy_master: "📦",
+  fleet_tactician: "♞",
+  blockade_runner: "💨",
 };
 
 export const SHIP_ICONS: Readonly<Record<ShipClass | "convoy", string>> = {
@@ -277,6 +282,9 @@ export const MISSION_ICONS: Readonly<Record<FleetMission, string>> = {
   escort: "🛡",
   invasion_support: "⛵",
   training: "🚩",
+  // P6 (spec §14.1).
+  lay_mines: "💣",
+  sweep_mines: "🧹",
 };
 
 // ---- Fleet numbers ----

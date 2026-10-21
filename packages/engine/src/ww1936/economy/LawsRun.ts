@@ -2,7 +2,9 @@
 // engine-lib EconomyChecks (shared with the screens); P3 (plan decision 11)
 // adds the conditions of P3 spec §7.2 and the political power cost.
 import {
+  CONSCRIPTION_LAWS,
   ConscriptionLaw,
+  ECONOMY_LAWS,
   LawKind,
   LawValue,
   WW_LAW_COOLDOWN_DAYS,
@@ -12,6 +14,7 @@ import { IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { lawBlockOf } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { conscriptionPermille } from "@openfront/engine-lib/ww1936/WwLaws";
+import { congressBlock } from "../depth/Congress";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
 /** P3 spec §7.1: what the law conditions read for `ce` setting `value` now. */
@@ -40,7 +43,7 @@ export function lawBlock(
   value: LawValue,
   day: number,
 ): WwOrderBlock | null {
-  return lawBlockOf(
+  const block = lawBlockOf(
     ce.laws,
     ce.lawCooldownUntil,
     kind,
@@ -48,6 +51,20 @@ export function lawBlock(
     day,
     lawCtxOf(econ, ce, value),
   );
+  if (block !== null) return block;
+  // P6 hook (W3, spec §13.1): the US congress holds back conscription from
+  // "limited" and the economy from "partial_mobilization".
+  const gated =
+    (kind === "conscription" &&
+      CONSCRIPTION_LAWS.indexOf(value as never) >=
+        CONSCRIPTION_LAWS.indexOf("limited")) ||
+    (kind === "economy" &&
+      ECONOMY_LAWS.indexOf(value as never) >=
+        ECONOMY_LAWS.indexOf("partial_mobilization"));
+  if (gated && congressBlock(econ.ww.depth, ce.smallID, "law")) {
+    return "law_condition";
+  }
+  return null;
 }
 
 /**

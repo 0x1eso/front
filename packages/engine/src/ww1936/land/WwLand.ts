@@ -5,6 +5,7 @@
 import { Cell, MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   WW_DAY_SPLIT,
   WwOrderBlock,
@@ -43,6 +44,7 @@ import {
   STANCES,
   SupportId,
   TemplateDef,
+  TERRAIN_DAY_SLOTS,
   TrainingData,
   Weather,
   WEATHERS,
@@ -79,6 +81,7 @@ import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
 import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
 import { dailyEntrench, stepBattles, stepRecovery } from "./Battles";
+import { type LandDepthHooks, NEUTRAL_DEPTH_HOOKS } from "./DepthHooks";
 import { dailyFronts } from "./Fronts";
 import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
 import { noteLandFuel } from "./LandFuel";
@@ -127,6 +130,8 @@ const COLS = {
   lossMen: Int32Array,
   /** Last day it fought (experience, generals, army XP); -1: never. */
   lastFight: Int32Array,
+  /** P6 (plan decision 12): the day its combat last fed the doctrine tally; -1: never. */
+  tallyDay: Int16Array,
 } as const;
 export type DivisionColumn = keyof typeof COLS;
 export const DIVISION_COLUMNS = Object.keys(COLS) as DivisionColumn[];
@@ -168,6 +173,7 @@ export class DivisionTable {
   front = new Uint8Array(0);
   lossMen = new Int32Array(0);
   lastFight = new Int32Array(0);
+  tallyDay = new Int16Array(0);
   /** GROUND_SLOTS per row, GROUND_EQUIP_KEYS order. */
   equip = new Int32Array(0);
   /** Milli-units of equipment lost but not yet taken (spec §5.5). */
@@ -227,6 +233,7 @@ export class DivisionTable {
     this.edge[r] = -1;
     this.supply[r] = 1000;
     this.lastFight[r] = -1;
+    this.tallyDay[r] = -1;
     this.rowIndex.set(id, r);
     this.rowsVersion++;
     return r;
@@ -359,6 +366,17 @@ export interface Army {
    * WwLand.setVolunteerFor.
    */
   volunteerFor: number;
+  // P6 (plan decision 13; snapshot defaults).
+  /** Army group id; 0 none. */
+  group: number;
+  /** REINFORCE_PRIORITIES index (0 low, 1 normal, 2 high). */
+  priority: number;
+  /** Railway guns attached (spec §16.5). */
+  railGuns: number;
+  /** MEDALS index + 1; 0 none. */
+  medal: number;
+  /** The last day the medal works; -1 none. */
+  medalUntil: number;
 }
 
 export interface Battle {
@@ -451,8 +469,14 @@ export interface GeneralState {
   army: number;
   /** Days spent attacking, defending, preparing, short of supply (spec §6.2). */
   use: number[];
-  /** Battle days in winter, desert, mountains, across rivers (trait unlocks). */
+  /**
+   * Battle days in winter, desert, mountains, across rivers (trait
+   * unlocks); P6: then forest or jungle, urban, marsh (TERRAIN_DAY_SLOTS).
+   */
   terrainDays: number[];
+  /** P6 (plan decision 13): a field marshal, and its FM_TRAITS bits. */
+  fm: boolean;
+  fmTraits: number;
 }
 
 export class CountryLand {
@@ -540,6 +564,12 @@ export const WwLandStateSchema = z.object({
       pending: z.boolean(),
       paraLastDay: zInt(),
       volunteerFor: zInt().optional(),
+      // P6 (plan decision 13): written always; absent reads the defaults.
+      group: zInt().optional(),
+      priority: zInt().optional(),
+      railGuns: zInt().optional(),
+      medal: zInt().optional(),
+      medalUntil: zInt().optional(),
     }),
   ),
   battles: z.array(
@@ -618,6 +648,9 @@ export const WwLandStateSchema = z.object({
           army: zInt(),
           use: zInts(),
           terrainDays: zInts(),
+          // P6 (plan decision 13): written always; absent reads the defaults.
+          fm: z.boolean().optional(),
+          fmTraits: zInt().optional(),
         }),
       ),
       nextArmyNo: zInt(),
@@ -656,8 +689,10 @@ interface StatsEntry {
   men: number;
   /** GROUND_SLOTS, the equipment `base` / `eff` were computed from. */
   equip: Int32Array;
-  /** genMixOf(equip). */
+  /** genMixOf(equip, ks). */
   mix: number[];
+  /** P6 (pre-flight §0-3): the owner's KeyStatsTable the mix and fill read. */
+  ks: KeyStatsTable;
   base: DivisionStats;
   /** null: not computed since men or equipment moved. */
   eff: DivisionStats | null;
@@ -679,6 +714,8 @@ interface StatsEntry {
 interface StatsInputs {
   stats: WwStats | null;
   statsVer: number;
+  /** P6 (pre-flight §0-3a): the owner's KeyStatsTable (rebuilt, never written into). */
+  ks: KeyStatsTable | null;
   ids: number[];
   defs: TemplateDef[];
   epoch: number;
@@ -758,7 +795,7 @@ function strengthOfEntry(e: StatsEntry): number {
 }
 
 function fillOf(e: StatsEntry): number[] {
-  return (e.fill ??= equipFill(e.base, e.equip));
+  return (e.fill ??= equipFill(e.base, e.equip, e.ks));
 }
 
 function newRowStats(cap: number): RowStats {
@@ -808,6 +845,8 @@ export class WwLand {
   readonly seaHubUse: Int32Array;
   /** P4 (plan decision 36): what the land war reads from the navy, air and fuel (WorldWar installs it). */
   hooks: LandSeaAirHooks = NEUTRAL_HOOKS;
+  /** P6 (pre-flight §0-9): what the land war reads from the depth systems (WorldWar installs it). */
+  depthHooks: LandDepthHooks = NEUTRAL_DEPTH_HOOKS;
   readonly divisions = new DivisionTable();
   readonly armies = new Map<number, Army>();
   readonly battles = new Map<number, Battle>();
@@ -1156,6 +1195,8 @@ export class WwLand {
     this.ww.air.onControlChanged(region, old, by, tick);
     // P5 hook (O, plan decision 18): who administers it may change.
     this.ww.endgame.markControlChanged(region);
+    // P6 hook (S, W1): facilities lost, landmarks change sides.
+    this.depthHooks.onRegionControl(region, old, by, tick);
     // A capitulation hands over dozens of regions at once: no message each.
     if (notify && r.vp > 0) {
       this.message(by, "events_display.ww1936_region_taken", {
@@ -1490,16 +1531,18 @@ export class WwLand {
   private statsEpoch(owner: number): number {
     let s = this.statsInputs[owner];
     if (s === undefined) {
-      s = { stats: null, statsVer: -1, ids: [], defs: [], epoch: 0 };
+      s = { stats: null, statsVer: -1, ks: null, ids: [], defs: [], epoch: 0 };
       this.statsInputs[owner] = s;
     }
     const ce = this.econ.country(owner);
     const stats = ce?.stats ?? null;
     const statsVer = ce?.statsVer ?? -1;
+    const ks = this.depthHooks.keyStats(owner);
     const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
     let same =
       s.stats === stats &&
       s.statsVer === statsVer &&
+      s.ks === ks &&
       s.defs.length === tpls.length;
     for (let i = 0; same && i < tpls.length; i++) {
       same = tpls[i].def === s.defs[i] && tpls[i].id === s.ids[i];
@@ -1507,6 +1550,7 @@ export class WwLand {
     if (!same) {
       s.stats = stats;
       s.statsVer = statsVer;
+      s.ks = ks;
       s.ids = tpls.map((x) => x.id);
       s.defs = tpls.map((x) => x.def);
       s.epoch = ++this.statsEpochSeq;
@@ -1547,6 +1591,7 @@ export class WwLand {
       this.defOf(owner, template) ?? EMPTY_DEF,
       this.econ.country(owner)!.stats,
       mix,
+      this.keyStatsOf(owner),
     );
     if (gen1) e.gen1 = stats;
     else e.byMix.set(mixKey, stats);
@@ -1573,7 +1618,7 @@ export class WwLand {
       // Men or equipment moved: the base holds while the generation mix does.
       hit.men = men;
       for (let j = 0; j < GROUND_SLOTS; j++) he[j] = eq[base0 + j];
-      const mix = genMixInto(MIX_SCRATCH, he);
+      const mix = genMixInto(MIX_SCRATCH, he, hit.ks);
       let sameMix = true;
       for (let i = 0; sameMix && i < mix.length; i++) {
         sameMix = mix[i] === hit.mix[i];
@@ -1588,13 +1633,15 @@ export class WwLand {
       return hit;
     }
     const equip = eq.slice(base0, base0 + GROUND_SLOTS);
-    const mix = genMixOf(equip);
+    const ks = this.keyStatsOf(owner);
+    const mix = genMixOf(equip, ks);
     const entry: StatsEntry = {
       epoch,
       template: tpl,
       men,
       equip,
       mix,
+      ks,
       base: this.templateStatsAt(owner, tpl, mix, epoch),
       eff: null,
       strength: -1,
@@ -1602,6 +1649,43 @@ export class WwLand {
     };
     this.statsCache.set(id, entry);
     return entry;
+  }
+
+  /**
+   * P6 (plan decision 7): the country's division-slot numbers, the one its
+   * stats epoch was computed with (statsEpoch reads it first).
+   */
+  keyStatsOf(owner: number): KeyStatsTable {
+    return this.statsInputs[owner]?.ks ?? this.depthHooks.keyStats(owner);
+  }
+
+  /** P6 (plan decision 13): the country's field marshals now. */
+  fieldMarshalCount(smallID: number): number {
+    let n = 0;
+    for (const g of this.country(smallID)?.generals ?? []) if (g.fm) n++;
+    return n;
+  }
+
+  /**
+   * P6 (K5 START_FIELD_MARSHALS, spec §4.3): makes a general a field
+   * marshal with one FM trait (FM_TRAITS index). `general` is a GENERALS
+   * id, or "title:<key>" for the country's first titled general not yet
+   * one. False when the country has no such general.
+   */
+  markFieldMarshal(smallID: number, general: string, trait: number): boolean {
+    const cl = this.country(smallID);
+    if (cl === null) return false;
+    let g: GeneralState | undefined;
+    if (general.startsWith("title:")) {
+      g = cl.generals.find((x) => x.roster < 0 && !x.fm);
+    } else {
+      const roster = GENERALS.findIndex((x) => x.id === general);
+      g = cl.generals.find((x) => x.roster === roster && roster >= 0);
+    }
+    if (g === undefined) return false;
+    g.fm = true;
+    if (trait >= 0) g.fmTraits |= 1 << trait;
+    return true;
   }
 
   /** Template numbers at generation 1 (screens, AI), cached per country, template and stats epoch. */
@@ -1651,6 +1735,11 @@ export class WwLand {
       pending: false,
       paraLastDay: -1,
       volunteerFor: 0,
+      group: 0,
+      priority: 1,
+      railGuns: 0,
+      medal: 0,
+      medalUntil: -1,
     };
     this.armies.set(a.id, a);
     this.dirtyArmies.add(a.id);
@@ -2120,7 +2209,11 @@ export class WwLand {
     for (const r of this.rowsOf(id)) {
       inUse.set(t.template[r], (inUse.get(t.template[r]) ?? 0) + 1);
       const orgMax = this.orgMaxOf(r);
-      const fill = equipFill(this.baseStatsOf(r), t.equipOf(r));
+      const fill = equipFill(
+        this.baseStatsOf(r),
+        t.equipOf(r),
+        this.keyStatsOf(t.owner[r]),
+      );
       const need = this.baseStatsOf(r).need;
       let equipPm = 1000;
       fill.forEach((f, i) => {
@@ -2149,7 +2242,10 @@ export class WwLand {
           return {
             days: x.days,
             need: ts?.trainDays ?? 0,
-            fillPm: ts === null ? 0 : equipFillPm(ts, x.equip),
+            fillPm:
+              ts === null
+                ? 0
+                : equipFillPm(ts, x.equip, this.keyStatsOf(cl.smallID)),
           };
         });
       let waiting = "";
@@ -2164,7 +2260,8 @@ export class WwLand {
           return (
             ts !== null &&
             x.days >= ts.trainDays &&
-            lowestFillPm(ts, x.equip) < WW_DEPLOY_MIN_FILL_PM
+            lowestFillPm(ts, x.equip, this.keyStatsOf(cl.smallID)) <
+              WW_DEPLOY_MIN_FILL_PM
           );
         })
       ) {
@@ -2390,6 +2487,11 @@ export class WwLand {
         pending: a.pending,
         paraLastDay: a.paraLastDay,
         volunteerFor: a.volunteerFor,
+        group: a.group,
+        priority: a.priority,
+        railGuns: a.railGuns,
+        medal: a.medal,
+        medalUntil: a.medalUntil,
       })),
       battles: [...this.battles.values()].map((b) => ({
         region: b.region,
@@ -2483,6 +2585,11 @@ export class WwLand {
         pending: a.pending,
         paraLastDay: a.paraLastDay,
         volunteerFor: a.volunteerFor ?? 0,
+        group: a.group ?? 0,
+        priority: a.priority ?? 1,
+        railGuns: a.railGuns ?? 0,
+        medal: a.medal ?? 0,
+        medalUntil: a.medalUntil ?? -1,
       });
     }
     this.battles.clear();
@@ -2621,7 +2728,14 @@ function copyOrder(o: ArmyOrder): ArmyOrder {
   };
 }
 
-function copyGeneral(g: GeneralState): GeneralState {
+function copyGeneral(
+  g: Omit<GeneralState, "fm" | "fmTraits"> & {
+    fm?: boolean;
+    fmTraits?: number;
+  },
+): GeneralState {
+  const days = [...g.terrainDays];
+  while (days.length < TERRAIN_DAY_SLOTS) days.push(0);
   return {
     id: g.id,
     roster: g.roster,
@@ -2635,6 +2749,8 @@ function copyGeneral(g: GeneralState): GeneralState {
     level: g.level,
     army: g.army,
     use: [...g.use],
-    terrainDays: [...g.terrainDays],
+    terrainDays: days,
+    fm: g.fm ?? false,
+    fmTraits: g.fmTraits ?? 0,
   };
 }
