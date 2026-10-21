@@ -1,19 +1,25 @@
 // World War 1936 P4 Task 7 (lane A1): the land war under enemy air
 // superiority (spec §14.6) on ww1936sea. Germany and Poland are humans at
 // war; German fighters alone over the East give Germany all of its sky.
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   equipKey,
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { airPenaltyBp } from "@openfront/engine-lib/ww1936/AirRules";
+import {
+  airGroundPenaltyBp,
+  airPenaltyBp,
+  zoneAirMoveFactorPm,
+  zoneAirPenaltyBp,
+} from "@openfront/engine-lib/ww1936/AirRules";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { airPenaltyWithBonusBp } from "@openfront/engine/ww1936/air/AirSuperiority";
 import {
   battleMods,
   joinBattle,
   modInputOf,
 } from "@openfront/engine/ww1936/land/Battles";
+import { WwAirView } from "../../src/client/view/WwAirView";
 import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import {
   clearLand,
@@ -24,7 +30,7 @@ import {
   warAfterPrep,
   withTestPolitics,
   WwHuman,
-  wwRunner,
+  wwRunnerCapture,
 } from "./util";
 
 withTestPolitics();
@@ -35,9 +41,12 @@ const DEU_POL: WwHuman[] = [
 ];
 const WARSAW = 6;
 
-/** Germany at war with Poland, German fighters alone over the East for a day. */
-async function germanSky() {
-  const runner = await wwRunner({}, DEU_POL, SEA.map);
+/**
+ * Germany at war with Poland, German fighters alone over the East for a
+ * day; `support`: Germany has battlefield support (supPenaltyPp 5).
+ */
+async function germanSky(support = false) {
+  const { runner, updates } = await wwRunnerCapture({}, DEU_POL, SEA.map);
   const g = runner.game;
   const ww = g.worldWar()!;
   const [deu, pol] = [TAG_ID.DEU, TAG_ID.POL];
@@ -57,6 +66,10 @@ async function germanSky() {
     }
   }
   ww.economy.country(deu)!.stock[equipKey("fighter", 1)] = 200;
+  if (support) {
+    ww.economy.country(deu)!.addTech("battlefield_support_1");
+    expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(5);
+  }
   expect(
     ww.air.issue(
       deu,
@@ -79,7 +92,7 @@ async function germanSky() {
   const side = { deu: ww.land.sideOf(deu), pol: ww.land.sideOf(pol) };
   expect(ww.air.airSup(side.deu, SR.eastLand)).toBe(1000);
   expect(ww.scenario.regionSr(WARSAW)).toBe(SR.eastLand);
-  return { runner, g, ww, side };
+  return { runner, updates, g, ww, side };
 }
 
 describe("the land war under enemy air superiority (spec §14.6)", () => {
@@ -132,10 +145,44 @@ describe("the land war under enemy air superiority (spec §14.6)", () => {
   }, 60_000);
 
   it("battlefield support adds 5 points, up to 40%", () => {
-    expect(airPenaltyWithBonusBp(1000, 0, 0)).toBe(-3500);
-    expect(airPenaltyWithBonusBp(1000, 5, 0)).toBe(-4000);
-    expect(airPenaltyWithBonusBp(750, 5, 0)).toBe(-2250);
-    expect(airPenaltyWithBonusBp(1000, 50, 20)).toBe(-2800);
-    expect(airPenaltyWithBonusBp(500, 5, 0)).toBe(0);
+    expect(airGroundPenaltyBp(1000, 0, 0)).toBe(-3500);
+    expect(airGroundPenaltyBp(1000, 5, 0)).toBe(-4000);
+    expect(airGroundPenaltyBp(750, 5, 0)).toBe(-2250);
+    expect(airGroundPenaltyBp(1000, 50, 20)).toBe(-2800);
+    expect(airGroundPenaltyBp(500, 5, 0)).toBe(0);
   });
+
+  it("the battle card's cut from the air view is the engine's (battlefield support)", async () => {
+    const { updates, ww, side } = await germanSky(true);
+    const hooks = ww.land.hooks;
+    // The engine fights at −40% (−35% and the doctrine's 5 points).
+    expect(hooks.airPenaltyBp(WARSAW, side.pol, 0)).toBe(-4000);
+    expect(hooks.airPenaltyBp(WARSAW, side.pol, 20)).toBe(-2800);
+    // The client merges the same updates and runs the engine-lib rule.
+    const view = new WwAirView(ww.scenario, () => TAG_ID.POL);
+    for (const u of updates) {
+      for (const x of u.updates[GameUpdateType.WwAir] ?? []) view.apply(x.data);
+    }
+    const zone = view.zones.get(SR.eastLand);
+    expect(zone?.enemySky).toContainEqual({
+      side: side.pol,
+      enemySupPm: 1000,
+      bonusPp: 5,
+    });
+    for (const s of [side.pol, side.deu]) {
+      for (const aa of [0, 10, 20, 100]) {
+        expect(zoneAirPenaltyBp(zone, s, aa)).toBe(
+          hooks.airPenaltyBp(WARSAW, s, aa),
+        );
+      }
+      expect(zoneAirMoveFactorPm(zone, s)).toBe(
+        hooks.airMoveFactorPm(WARSAW, s),
+      );
+    }
+    // A zone with nobody overhead.
+    const west = view.zones.get(SR.westLand);
+    expect(zoneAirPenaltyBp(west, side.pol, 0)).toBe(
+      hooks.airPenaltyBp(REGION.paris, side.pol, 0),
+    );
+  }, 60_000);
 });

@@ -1,5 +1,6 @@
 // World War 1936 P4 Task 7 (lane A1): air superiority and radar (spec
 // §12.1, §14.5) on ww1936sea, human countries at war, no production.
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import type {
   AirMission,
   AirType,
@@ -24,12 +25,16 @@ import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   clearStartSetup,
+  gameHash,
   HUMAN,
+  step,
   stepTo,
   warAfterPrep,
   withTestPolitics,
   WwHuman,
+  wwRestore,
   wwRunner,
+  wwRunnerCapture,
 } from "./util";
 
 withTestPolitics();
@@ -200,4 +205,73 @@ describe("radar (spec §12.1)", () => {
     ww.economy.addBuilding(REGION.moscow, "radar", 1);
     expect(radarPmAt(ww.air, sun, SR.approaches)).toBe(300);
   }, 60_000);
+});
+
+describe("the 50% alert (spec §18.10)", () => {
+  it("goes out once in 7 days a side and zone, the same after a restore", async () => {
+    const { runner, updates } = await wwRunnerCapture({}, GBR_ITA, SEA.map);
+    const ww = runner.game.worldWar()!;
+    for (const id of [TAG_ID.GBR, TAG_ID.ITA]) {
+      clearStartSetup(ww.economy, ww.economy.country(id)!);
+    }
+    warAfterPrep(runner, HUMAN, "ITA");
+    const gbr = ww.land.sideOf(TAG_ID.GBR);
+    const z = () => ww.air.zoneState[ww.scenario.srIdxOf(SR.central)];
+    const alerts = (from: number) =>
+      updates
+        .slice(from)
+        .flatMap((u) => u.updates[GameUpdateType.DisplayEvent] ?? [])
+        .filter((m) => m.message === "events_display.ww1936_air_superiority");
+    const day = ww.day(runner.game.ticks()) + 1;
+    stepTo(runner, dayStartTick(day, ww.prepEndTick()));
+    setStock(ww, TAG_ID.GBR, "fighter", [100, 0, 0]);
+    deploy(runner, TAG_ID.GBR, SR.central, "fighter", "air_superiority", 100);
+    let mark = updates.length;
+    through(runner, day, 6);
+    // Britain's sky: 0 → 1000 over a zone it flies in, at war.
+    const first = alerts(mark);
+    expect(first).toHaveLength(1);
+    expect(first[0].params).toEqual({ sr: SR.central, pct: 100, gained: 1 });
+    expect(z().alertDay.get(gbr)).toBe(day);
+    // Called home: the sky is lost the next day, within 7 days — no alert.
+    ww.air.issue(
+      TAG_ID.GBR,
+      { kind: "air_recall", sr: SR.central },
+      runner.game.ticks(),
+    );
+    mark = updates.length;
+    through(runner, day + 1, 6);
+    expect(ww.air.airSup(gbr, SR.central)).toBe(0);
+    expect(alerts(mark)).toHaveLength(0);
+    expect(z().alertDay.get(gbr)).toBe(day);
+    // A restored game keeps the alert's day and follows the same way.
+    const b = await wwRestore(runner, GBR_ITA, SEA.map);
+    const wb = b.game.worldWar()!;
+    const zb = () => wb.air.zoneState[wb.scenario.srIdxOf(SR.central)];
+    expect([...zb().alertDay]).toEqual([...z().alertDay]);
+    const again = dayStartTick(day + 8, ww.prepEndTick());
+    while (runner.game.ticks() < again) {
+      step(runner);
+      step(b);
+      expect(gameHash(b)).toBe(gameHash(runner));
+    }
+    // Eight days on, out again: the old day is forgotten, a new alert.
+    for (const [g, w] of [
+      [runner, ww],
+      [b, wb],
+    ] as const) {
+      setStock(w, TAG_ID.GBR, "fighter", [100, 0, 0]);
+      deploy(g, TAG_ID.GBR, SR.central, "fighter", "air_superiority", 100);
+    }
+    mark = updates.length;
+    const end = dayStartTick(day + 8, ww.prepEndTick()) + 7;
+    while (runner.game.ticks() < end) {
+      step(runner);
+      step(b);
+      expect(gameHash(b)).toBe(gameHash(runner));
+    }
+    expect(alerts(mark)).toHaveLength(1);
+    expect(z().alertDay.get(gbr)).toBe(day + 8);
+    expect(zb().alertDay.get(gbr)).toBe(day + 8);
+  }, 120_000);
 });

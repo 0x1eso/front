@@ -622,16 +622,17 @@ function takeLosses(
   }
 }
 
-/** Alert spacing (spec §18.10: once in 7 days per zone): screens only, never state. */
-const alertDays = new WeakMap<WwAir, Map<number, number>>();
-
 /**
- * Spec §18.10 `ww1936_air_superiority`: our side's superiority over one of
- * our front zones crossed 50% (up or down). A front zone: one where we
- * fly, an enemy flies, or (land) our side and an enemy both hold ground.
+ * Spec §18.10 `ww1936_air_superiority`: a side's superiority over the zone
+ * crossed 50% (up or down); its countries at war that have the zone as a
+ * front (we fly there, an enemy flies there, or — a land zone — our side
+ * and an enemy both hold ground in it) are told, at most once in 7 days a
+ * side and zone. The days are state (ZoneAirState.alertDay, snapshotted
+ * and hashed), so a restored game repeats or skips none.
  */
 function superiorityAlerts(
   air: WwAir,
+  z: ZoneAirState,
   sr: number,
   day: number,
   before: ReadonlyMap<number, number>,
@@ -641,11 +642,17 @@ function superiorityAlerts(
   const sc = air.ww.scenario;
   const s = sc.sr(sr)!;
   const land = air.land;
+  // Days past the spacing are forgotten (the state stays small).
+  for (const [side, last] of [...z.alertDay]) {
+    if (day - last >= SUP_ALERT_DAYS) z.alertDay.delete(side);
+  }
   const sides = new Set<number>([...before.keys(), ...after.keys()]);
   for (const side of [...sides].sort((a, b) => a - b)) {
     const was = before.get(side) ?? 0;
     const now = after.get(side) ?? 0;
     if (was > 500 === now > 500) continue;
+    if (z.alertDay.has(side)) continue;
+    const told: number[] = [];
     for (const c of land.sideMembers(side)) {
       if (!air.ww.hasWar(c)) continue;
       const front =
@@ -653,13 +660,12 @@ function superiorityAlerts(
         (s.kind === "land" &&
           s.members.some((r) => land.isEnemy(c, land.controller[r] ?? 0)) &&
           s.members.some((r) => land.sameSide(c, land.controller[r] ?? 0)));
-      if (!front) continue;
-      let m = alertDays.get(air);
-      if (m === undefined) alertDays.set(air, (m = new Map()));
-      const key = c * 4096 + s.idx;
-      const last = m.get(key);
-      if (last !== undefined && day - last < SUP_ALERT_DAYS) continue;
-      m.set(key, day);
+      if (front) told.push(c);
+    }
+    if (told.length === 0) continue;
+    // Map order is key order (Global Constraints): insert sorted.
+    z.alertDay = sortedMap(new Map([...z.alertDay, [side, day]]));
+    for (const c of told) {
       air.message(c, "events_display.ww1936_air_superiority", {
         sr,
         pct: Math.floor(now / 10),
@@ -682,12 +688,14 @@ function zoneIsEmpty(z: ZoneAirState): boolean {
   return (
     z.sup.size === 0 &&
     z.enemySup.size === 0 &&
+    z.enemyPp.size === 0 &&
     z.sorties.size === 0 &&
     z.result.size === 0 &&
     z.navalSearch.size === 0 &&
     z.navalAsw.size === 0 &&
     z.navalStrike.size === 0 &&
-    z.fightersSup.size === 0
+    z.fightersSup.size === 0 &&
+    z.alertDay.size === 0
   );
 }
 
@@ -704,8 +712,8 @@ function sortedMap(m: ReadonlyMap<number, number>): Map<number, number> {
  * A zone's day (spec §14.2–§14.5), then A2's effects in the same call:
  * ① sorties and fuel, ② the air battles of the sides at war, ③ land AA,
  * ④ the losses at once, ⑤ superiority by side (setAirSup), the worst enemy
- * superiority by side (the land war's penalty; under −side the
- * battlefield-support bonus pp of the side that holds it), the sorties
+ * superiority by side and the battlefield-support bonus of the enemy that
+ * holds it (enemySup, enemyPp: the land war's penalty), the sorties
  * by side and type, each country's naval air and superiority fighters
  * (N1, milli-sorties) and results, ⑥ the 50% alerts.
  */
@@ -721,13 +729,14 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
       const before = z.sup;
       air.setAirSup(sr, new Map());
       z.enemySup = new Map();
+      z.enemyPp = new Map();
       z.sorties = new Map();
       z.result = new Map();
       z.navalSearch = new Map();
       z.navalAsw = new Map();
       z.navalStrike = new Map();
       z.fightersSup = new Map();
-      superiorityAlerts(air, sr, day, before, z.sup, flights);
+      superiorityAlerts(air, z, sr, day, before, z.sup, flights);
       air.markZone(idx);
     }
     return;
@@ -808,11 +817,10 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
       }
     }
   }
-  for (const [k, v] of enemyPp) if (v > 0) enemySup.set(-k, v);
   const before = z.sup;
   air.setAirSup(sr, sup);
-  const nextEnemy = sortedMap(enemySup);
-  z.enemySup = nextEnemy;
+  z.enemySup = sortedMap(enemySup);
+  z.enemyPp = sortedMap(enemyPp);
   const nextSorties = new Map<number, number[]>();
   for (const [k, row] of [...sorties].sort((a, b) => a[0] - b[0])) {
     nextSorties.set(
@@ -836,7 +844,7 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   z.navalStrike = sortedMap(strike);
   z.fightersSup = sortedMap(fighters);
   if (!sameNumberMap(before, z.sup)) {
-    superiorityAlerts(air, sr, day, before, z.sup, flights);
+    superiorityAlerts(air, z, sr, day, before, z.sup, flights);
   }
   air.markZone(idx);
 }

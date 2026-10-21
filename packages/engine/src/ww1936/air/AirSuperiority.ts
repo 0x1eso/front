@@ -2,25 +2,19 @@
 // §12.1 radar, §14.6). Lane A1 (Task 7). The penalties are O(1) reads of
 // what the zone's day stored (pre-flight D): ZoneAirState.enemySup holds,
 // per side, the worst superiority of a side at war with it over the zone,
-// and under the key −side the battlefield-support bonus (supPenaltyPp) of
-// the side that holds it. The superiority itself is AirCombat's
-// dailyAirZone (spec §14.5).
+// enemyPp that enemy's battlefield-support bonus (supPenaltyPp); the
+// screens get both (AirZoneData.enemySky) and the same engine-lib rule.
+// The superiority itself is AirCombat's dailyAirZone (spec §14.5).
 import {
-  WW_AA_CUT_MAX_PCT,
-  WW_AIR_PENALTY_BP_PER_PM,
-  WW_AIR_PENALTY_MAX_BP,
   WW_RADAR_DETECT_PM,
   WW_RADAR_RANGE_KM,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
+  airGroundPenaltyBp,
   airMoveFactorPm,
-  airPenaltyBp,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { effectiveLevel } from "../economy/Buildings";
 import type { WwAir, ZoneAirState } from "./WwAir";
-
-/** Spec §14.6 with battlefield support: the penalty's cap, bp (−35% − 5%p). */
-export const WW_AIR_PENALTY_DOCTRINE_MAX_BP = 4_000;
 
 /**
  * Spec §12.1: `side`'s radar detection bonus over zone `sr`, ‰: every
@@ -47,29 +41,6 @@ export function radarPmAt(air: WwAir, side: number, sr: number): number {
   return best;
 }
 
-/**
- * Spec §14.6: the cut, bp ≤ 0, of the worst enemy superiority `enemySupPm`
- * with the enemy's battlefield-support bonus `bonusPp` (+5%p a level of
- * it, up to −40% in all), less the division's anti-air. Without a bonus it
- * is engine-lib airPenaltyBp.
- */
-export function airPenaltyWithBonusBp(
-  enemySupPm: number,
-  bonusPp: number,
-  divAirAtk: number,
-): number {
-  if (bonusPp <= 0) return airPenaltyBp(enemySupPm, divAirAtk);
-  const base = Math.min(
-    WW_AIR_PENALTY_MAX_BP,
-    Math.max(0, enemySupPm - 500) * WW_AIR_PENALTY_BP_PER_PM,
-  );
-  if (base === 0) return 0;
-  const raw = Math.min(WW_AIR_PENALTY_DOCTRINE_MAX_BP, base + bonusPp * 100);
-  const cut = Math.min(WW_AA_CUT_MAX_PCT, Math.floor((divAirAtk * 3) / 2));
-  const v = Math.floor((raw * (100 - cut)) / 100);
-  return v === 0 ? 0 : -v;
-}
-
 function landZoneOf(air: WwAir, region: number): ZoneAirState | null {
   const sc = air.ww.scenario;
   const i = sc.srIdxOf(sc.regionSr(region));
@@ -87,7 +58,7 @@ export function airPenaltyFor(
   if (z === null) return 0;
   const worst = z.enemySup.get(side) ?? 0;
   if (worst <= 500) return 0;
-  return airPenaltyWithBonusBp(worst, z.enemySup.get(-side) ?? 0, divAirAtk);
+  return airGroundPenaltyBp(worst, z.enemyPp.get(side) ?? 0, divAirAtk);
 }
 
 /** Spec §14.6: movement into `region` under enemy superiority, ‰ (WwAir.airMoveFactorPm). */
