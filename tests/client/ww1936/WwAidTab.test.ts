@@ -23,7 +23,7 @@ import {
 } from "../../../src/client/hud/ww1936/WwAidTab";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { detail, ID, summary } from "./EconomyFixture";
-import { fakeEndGame } from "./EndgameFixture";
+import { type EndOptions, fakeEndGame } from "./EndgameFixture";
 
 /** Germany with 500 infantry equipment I and 120 II, fuel 3,000. */
 function stock(): number[] {
@@ -33,13 +33,14 @@ function stock(): number[] {
   return s;
 }
 
-async function mount() {
+async function mount(endgame: EndOptions["endgame"] = {}) {
   // Italy fights France; the Soviet Union is at peace (and tension is 0).
   const { game } = fakeEndGame({
     me: "DEU",
     wars: [["ITA", "FRA"]],
     summaries: [summary("DEU")],
     details: [detail("DEU", { stock: stock(), fuelMilli: 3_000_000 })],
+    endgame,
   });
   const bus = new EventBus();
   const sent: WwOrder[] = [];
@@ -139,5 +140,46 @@ describe("<ww-aid-tab> (P5 spec §20.5)", () => {
       },
     ]);
     expect(new OpenWwAidEvent(ID("ITA")).mode).toBe("send");
+  });
+
+  it("lend-lease I receive: human senders' contracts, then shipments on the way", async () => {
+    const line = (id: number, to: number) => ({
+      id,
+      to,
+      item: "artillery" as const,
+      gen: 1,
+      perMonth: 30,
+      sentMonth: 20,
+      arrivedMonth: 12,
+      blocked: null,
+    });
+    const aid = (tag: "DEU" | "ITA", o: object = {}) => ({
+      smallID: ID(tag),
+      contracts: [],
+      incoming: [],
+      volunteersOut: [],
+      volunteersIn: [],
+      ...o,
+    });
+    const { el } = await mount({
+      aid: [
+        aid("DEU", {
+          incoming: [
+            { from: ID("SUN"), item: "fuel", count: 400, arriveDay: 9 },
+          ],
+          volunteersIn: [{ army: 77, from: ID("ITA"), divisions: 3 }],
+        }),
+        aid("ITA", { contracts: [line(1, ID("DEU")), line(2, ID("FRA"))] }),
+      ],
+    });
+    const rows = [
+      ...el.querySelectorAll<HTMLElement>("[data-ww-aid-incoming] li"),
+    ].map((li) => li.textContent?.replace(/\s+/g, " ").trim() ?? "");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toContain("[ww1936.aid.received_line]");
+    expect(rows[0]).toContain("n=12");
+    expect(rows[1]).toContain("[ww1936.aid.incoming_line]");
+    expect(rows[1]).toContain("n=400");
+    expect(el.textContent).toContain("[ww1936.aid.volunteers_received]");
   });
 });

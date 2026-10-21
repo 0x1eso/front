@@ -899,6 +899,33 @@ export function myAid(game: EndgameGame, me: number): WwAidView | null {
   return egView(game)?.aid.get(me) ?? null;
 }
 
+/**
+ * Lend-lease contracts others run to `me` (spec §20.5 "lend-lease I
+ * receive"): the client sees the aid lines of human countries only, so an
+ * AI sender's shows as its shipments on the way (WwAidView.incoming).
+ */
+export function llReceived(
+  game: EndgameGame,
+  me: number,
+): { from: number; item: LendLeaseItem; arrivedMonth: number }[] {
+  const v = egView(game);
+  if (v === null) return [];
+  const out: { from: number; item: LendLeaseItem; arrivedMonth: number }[] = [];
+  for (const a of [...v.aid.values()].sort((x, y) => x.smallID - y.smallID)) {
+    if (a.smallID === me) continue;
+    for (const c of a.contracts) {
+      if (c.to === me) {
+        out.push({
+          from: a.smallID,
+          item: c.item,
+          arrivedMonth: c.arrivedMonth,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 /** llWhy's inputs for `me` sending to `to`, from the views. */
 export function llInputs(
   game: EndgameGame,

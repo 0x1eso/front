@@ -20,6 +20,7 @@ import {
   llGenName,
   llItemName,
   llItems,
+  llReceived,
   llRequestItems,
   myAid,
   shipFleets,
@@ -39,6 +40,7 @@ const HEADING =
 const BUTTON =
   "min-h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
 const CARD = "rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs";
+const SUBHEADING = "mt-1 text-xs text-white/60";
 const MAX_PER_MONTH = 100_000;
 
 /**
@@ -181,8 +183,7 @@ export class WwAidTab extends LitElement {
               </li>`;
             })}
           </ul>`}
-      ${this.renderWalk(game, me)}
-      ${aid === null ? nothing : this.renderReceived(game, aid)}
+      ${this.renderWalk(game, me)} ${this.renderReceived(game, me, aid)}
       ${aid === null ? nothing : this.renderVolunteers(game, aid)}
     `;
   }
@@ -433,11 +434,15 @@ export class WwAidTab extends LitElement {
 
   // ---- What comes to me, volunteers ----
 
+  /** Contracts to me (human senders), then every shipment on its way to me. */
   private renderReceived(
     game: EndgameGame,
-    aid: NonNullable<ReturnType<typeof myAid>>,
+    me: number,
+    aid: ReturnType<typeof myAid>,
   ) {
-    if (aid.incoming.length === 0) return nothing;
+    const received = llReceived(game, me);
+    const incoming = aid?.incoming ?? [];
+    if (received.length === 0 && incoming.length === 0) return nothing;
     return html`<div class=${HEADING}>
         ${translateText("ww1936.aid.received")}
       </div>
@@ -445,7 +450,20 @@ export class WwAidTab extends LitElement {
         data-ww-aid-incoming
         class="m-0 flex list-none flex-col gap-0.5 p-0 text-xs"
       >
-        ${aid.incoming.map(
+        ${received.map(
+          (r) =>
+            html`<li data-ww-aid-received class="flex items-center gap-1.5">
+              ${this.flag(egFlag(game, r.from))}
+              <span class="min-w-0"
+                >${translateText("ww1936.aid.received_line", {
+                  from: egName(game, r.from),
+                  item: llItemName(r.item),
+                  n: r.arrivedMonth.toLocaleString(),
+                })}</span
+              >
+            </li>`,
+        )}
+        ${incoming.map(
           (t) =>
             html`<li class="flex items-center gap-1.5">
               ${this.flag(egFlag(game, t.from))}
@@ -472,63 +490,69 @@ export class WwAidTab extends LitElement {
       return a === undefined ? String(army) : armyName(a.nameNo);
     };
     const me = game.myPlayer()?.smallID() ?? 0;
-    return html`${aid.volunteersOut.length === 0
-      ? nothing
-      : html`<div class=${HEADING}>
-            ${translateText("ww1936.aid.volunteers_sent")}
-          </div>
-          <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
-            ${aid.volunteersOut.map((v) => {
-              const key = `recall:${v.army}`;
-              const armed = this.armed(key);
-              return html`<li
-                data-ww-aid-volunteer=${v.army}
-                class="flex items-center gap-2"
-              >
-                <span class="min-w-0 flex-1"
-                  >${translateText("ww1936.aid.volunteers_line", {
-                    army: name(v.army),
-                    to: egName(game, v.to),
-                    n: v.divisions,
-                  })}</span
+    if (aid.volunteersOut.length === 0 && aid.volunteersIn.length === 0) {
+      return nothing;
+    }
+    return html`<div class=${HEADING}>
+        ${translateText("ww1936.aid.volunteers")}
+      </div>
+      ${aid.volunteersOut.length === 0
+        ? nothing
+        : html`<div class=${SUBHEADING}>
+              ${translateText("ww1936.aid.volunteers_sent")}
+            </div>
+            <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
+              ${aid.volunteersOut.map((v) => {
+                const key = `recall:${v.army}`;
+                const armed = this.armed(key);
+                return html`<li
+                  data-ww-aid-volunteer=${v.army}
+                  class="flex items-center gap-2"
                 >
-                <button
-                  type="button"
-                  data-ww-aid-recall=${v.army}
-                  data-armed=${String(armed)}
-                  class="${BUTTON} ${armed ? "ring-2 ring-red-400" : ""}"
-                  @click=${() =>
-                    this.confirmTap(key, () =>
-                      this.send({ kind: "volunteers_recall", army: v.army }),
-                    )}
-                >
-                  ${armed
-                    ? translateText("ww1936.pol.tap_again")
-                    : translateText("ww1936.aid.volunteers_recall")}
-                </button>
-              </li>`;
-            })}
-          </ul>`}
-    ${aid.volunteersIn.length === 0
-      ? nothing
-      : html`<div class=${HEADING}>
-            ${translateText("ww1936.aid.volunteers_received")}
-          </div>
-          <ul class="m-0 flex list-none flex-col gap-0.5 p-0 text-xs">
-            ${aid.volunteersIn.map(
-              (v) =>
-                html`<li class="flex items-center gap-1.5">
-                  ${this.flag(egFlag(game, v.from))}
-                  <span class="min-w-0"
+                  <span class="min-w-0 flex-1"
                     >${translateText("ww1936.aid.volunteers_line", {
-                      army: `${egName(game, v.from)} ${name(v.army)}`,
-                      to: egName(game, me),
+                      army: name(v.army),
+                      to: egName(game, v.to),
                       n: v.divisions,
                     })}</span
                   >
-                </li>`,
-            )}
-          </ul>`}`;
+                  <button
+                    type="button"
+                    data-ww-aid-recall=${v.army}
+                    data-armed=${String(armed)}
+                    class="${BUTTON} ${armed ? "ring-2 ring-red-400" : ""}"
+                    @click=${() =>
+                      this.confirmTap(key, () =>
+                        this.send({ kind: "volunteers_recall", army: v.army }),
+                      )}
+                  >
+                    ${armed
+                      ? translateText("ww1936.pol.tap_again")
+                      : translateText("ww1936.aid.volunteers_recall")}
+                  </button>
+                </li>`;
+              })}
+            </ul>`}
+      ${aid.volunteersIn.length === 0
+        ? nothing
+        : html`<div class=${SUBHEADING}>
+              ${translateText("ww1936.aid.volunteers_received")}
+            </div>
+            <ul class="m-0 flex list-none flex-col gap-0.5 p-0 text-xs">
+              ${aid.volunteersIn.map(
+                (v) =>
+                  html`<li class="flex items-center gap-1.5">
+                    ${this.flag(egFlag(game, v.from))}
+                    <span class="min-w-0"
+                      >${translateText("ww1936.aid.volunteers_line", {
+                        army: `${egName(game, v.from)} ${name(v.army)}`,
+                        to: egName(game, me),
+                        n: v.divisions,
+                      })}</span
+                    >
+                  </li>`,
+              )}
+            </ul>`}`;
   }
 
   private flag(url: string | null) {
@@ -596,7 +620,13 @@ export class AidActions {
     const ll = llGate(game, me, target);
     const vol = volunteerInputs(game, me, target, 0);
     const room = volunteerRoom(vol);
+    // The conditions without an army's size (spec §12.1), then the room left.
     const air = airVolunteerWhy(game, me, target);
+    const volBlock: Why | null =
+      air ??
+      (room === 0
+        ? { key: "ww1936.aid.why.volunteer_limit", params: {} }
+        : null);
     const ships = llGate(game, me, target, false);
     return html`<div data-ww-aid-actions class="flex flex-col gap-1.5">
       ${this.button(
@@ -617,11 +647,11 @@ export class AidActions {
           "ww1936.aid.volunteers_cap",
           { n: room },
         )}`,
-        null,
+        volBlock,
         () => toggle("volunteers"),
         this.pick === "volunteers",
       )}
-      ${this.pick === "volunteers"
+      ${this.pick === "volunteers" && volBlock === null
         ? this.renderArmies(game, me, target, send, confirm, armed)
         : nothing}
       ${this.button(

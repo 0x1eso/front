@@ -165,55 +165,66 @@ export class WwOccupationTab extends LitElement {
 
   private renderLaws(of: number, laws: LawButton[]): TemplateResult {
     return html`<div class="mt-1 grid grid-cols-3 gap-1">
-      ${laws.map((b) => {
-        const key = `law:${of}:${b.law}`;
-        const armed = !b.current && b.block === null && this.armed(key);
-        return html`<div class="flex min-w-0 flex-col">
-          <button
-            type="button"
-            data-ww-occ-law=${b.law}
-            data-state=${b.current
-              ? "current"
-              : b.block === null
-                ? "open"
-                : "blocked"}
-            data-armed=${String(armed)}
-            class="min-h-9 rounded-md border px-1 py-1 text-xs ${b.current
-              ? "border-emerald-400 bg-emerald-950/60"
-              : b.block === null
-                ? "border-white/20 bg-white/5 hover:border-amber-300"
-                : "border-white/5 bg-gray-900/60 text-white/50"} ${armed
-              ? "ring-2 ring-red-400"
-              : ""}"
-            ?disabled=${b.current || b.block !== null}
-            @click=${() =>
-              this.confirmTap(key, () =>
-                this.send({ kind: "occupation_law", of, law: b.law }),
-              )}
-          >
-            <span class="block truncate font-semibold"
-              >${armed ? translateText("ww1936.pol.tap_again") : b.name}</span
+        ${laws.map((b) => {
+          const key = `law:${of}:${b.law}`;
+          const armed = !b.current && b.block === null && this.armed(key);
+          return html`<div class="flex min-w-0 flex-col">
+            <button
+              type="button"
+              data-ww-occ-law=${b.law}
+              data-state=${b.current
+                ? "current"
+                : b.block === null
+                  ? "open"
+                  : "blocked"}
+              data-armed=${String(armed)}
+              class="min-h-9 rounded-md border px-1 py-1 text-xs ${b.current
+                ? "border-emerald-400 bg-emerald-950/60"
+                : b.block === null
+                  ? "border-white/20 bg-white/5 hover:border-amber-300"
+                  : "border-white/5 bg-gray-900/60 text-white/50"} ${armed
+                ? "ring-2 ring-red-400"
+                : ""}"
+              ?disabled=${b.current || b.block !== null}
+              @click=${() =>
+                this.confirmTap(key, () =>
+                  this.send({ kind: "occupation_law", of, law: b.law }),
+                )}
             >
-            ${b.current
-              ? html`<span class="block text-emerald-300"
-                  >${translateText("ww1936.pol.law.in_force")}</span
-                >`
-              : html`<span data-ww-occ-law-cost class="block text-white/60"
-                  >${translateText("ww1936.occ.law_cost", {
-                    pp: WW_OCC_LAW_COST_PP,
-                  })}</span
+              <span class="block truncate font-semibold"
+                >${armed ? translateText("ww1936.pol.tap_again") : b.name}</span
+              >
+              ${b.current
+                ? html`<span class="block text-emerald-300"
+                    >${translateText("ww1936.pol.law.in_force")}</span
+                  >`
+                : html`<span data-ww-occ-law-cost class="block text-white/60"
+                    >${translateText("ww1936.occ.law_cost", {
+                      pp: WW_OCC_LAW_COST_PP,
+                    })}</span
+                  >`}
+            </button>
+            ${b.why === null
+              ? nothing
+              : html`<span
+                  data-ww-occ-law-why=${b.block ?? ""}
+                  class="text-xs text-red-300"
+                  >${b.why}</span
                 >`}
-          </button>
-          ${b.why === null
-            ? nothing
-            : html`<span
-                data-ww-occ-law-why=${b.block ?? ""}
-                class="text-xs text-red-300"
-                >${b.why}</span
-              >`}
-        </div>`;
-      })}
-    </div>`;
+          </div>`;
+        })}
+      </div>
+      ${laws
+        .filter((b) => b.current)
+        .map(
+          (b) =>
+            html`<p
+              data-ww-occ-law-desc
+              class="m-0 mt-0.5 text-xs text-white/60"
+            >
+              ${translateText(`ww1936.occ_law_desc.${b.law}`)}
+            </p>`,
+        )}`;
   }
 
   private renderOwner(o: OwnerRow): TemplateResult {
@@ -277,6 +288,10 @@ export class WwOccupationTab extends LitElement {
                       <span class="shrink-0 tabular-nums"
                         >${translateText("ww1936.occ.resistance")}
                         ${pctOf(r.occ.resBp)}%</span
+                      >
+                      <span class="shrink-0 tabular-nums text-white/60"
+                        >${translateText("ww1936.occ.compliance")}
+                        ${pctOf(r.occ.compBp)}%</span
                       >
                     </button>
                   </li>`,
