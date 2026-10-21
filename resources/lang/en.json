@@ -7173,6 +7173,12 @@
       "scores": "If the war ended now",
       "title": "Diplomacy"
     },
+    "peace": {
+      "why": {
+        "claim_only": "Only a country with a claim can take this region",
+        "zone_only": "This region can only be an occupation zone"
+      }
+    },
     "person": {
       "arg_alvear": "Marcelo T. de Alvear",
       "aut_renner": "Karl Renner",

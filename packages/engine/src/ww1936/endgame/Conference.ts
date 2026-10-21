@@ -25,7 +25,10 @@ import {
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
-import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  IDEO_NEU,
+  IDEOLOGIES,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   participantPoints,
   regionBaseValue,
@@ -33,13 +36,20 @@ import {
   turnOrder,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
+  demandKindIndex,
   expandPeaceDemand,
   PeaceDemandIn,
   PeaceFacts,
+  peaceMainVictor,
   peacePlanCost,
+  peaceRegionBlock,
   peaceRegionCost,
+  PeaceSensitivity,
+  peaceSensitivity,
+  PeaceTable,
   planPeaceDemand,
   REGION_DEMAND_KINDS,
+  SENSITIVE_EXCLUDED_TAG,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { effectiveBuildings } from "../economy/Buildings";
@@ -52,12 +62,17 @@ import { endCivilWar } from "./CivilWar";
 import { endExile, offerTakeover } from "./Exile";
 import { aiDemands } from "./PeaceAi";
 import { endIndependenceWar, endSubject, makeSubject } from "./Subjects";
-import { loserIds, registerWarEnds } from "./Wars";
+import {
+  countryListParams,
+  countryParams,
+  loserIds,
+  registerWarEnds,
+} from "./Wars";
 import type { Conference, Settled, StoredDemand, WwEndgame } from "./WwEndgame";
 
 /** DEMAND_KINDS index of each kind (StoredDemand.kind, Settled.kind). */
 export const KIND = Object.fromEntries(
-  DEMAND_KINDS.map((k, i) => [k, i]),
+  DEMAND_KINDS.map((k) => [k, demandKindIndex(k)]),
 ) as Record<DemandKind, number>;
 /** Kinds that hand regions out (take, take_group, take_for, annex_rest, occupation_zone, release, liberate). */
 export const REGION_KINDS: ReadonlySet<number> = new Set(
@@ -100,34 +115,6 @@ export function stored(
   };
 }
 
-/**
- * Message params of countries: each as its tag under `name` and under
- * `nameTag` (the screens add the translated name of a `…Tag` param under
- * the name without "Tag", WorldWarModel.translateCountryParams).
- */
-export function countryParams(
-  eg: WwEndgame,
-  named: Record<string, number>,
-): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [k, id] of Object.entries(named)) {
-    const tag = eg.ww.tagOf(id);
-    out[k] = tag;
-    out[`${k}Tag`] = tag;
-  }
-  return out;
-}
-
-/** A list of countries: comma-joined tags; one country also as `nameTag`. */
-export function countryListParams(
-  eg: WwEndgame,
-  name: string,
-  ids: readonly number[],
-): Record<string, string> {
-  if (ids.length === 1) return countryParams(eg, { [name]: ids[0] });
-  return { [name]: ids.map((id) => eg.ww.tagOf(id)).join(",") };
-}
-
 // ---- Prices (spec §6.3, plan decision 13; the card previews the same) ----
 
 /** Spec §6.3 base(r) = 4 + 2 × VP + 2 × (civilian + military + dockyards) + ⌊tiles / 2000⌋. */
@@ -156,6 +143,40 @@ export function peaceFacts(eg: WwEndgame): PeaceFacts {
       return idx < 0 ? 0 : (ww.politics.faction(idx)?.members.length ?? 0);
     },
     ships: (L) => shipsOf(eg, L),
+  };
+}
+
+/**
+ * The conference as the demand rules read it: a demand settled by a
+ * participant that stopped playing does not count (its regions go back to
+ * the pool; the treaty ignores it).
+ */
+export function peaceTable(eg: WwEndgame, c: Conference): PeaceTable {
+  if (c.settled.every((s) => eg.isActor(s.by))) return c;
+  return { ...c, settled: c.settled.filter((s) => eg.isActor(s.by)) };
+}
+
+/** Korea's and Taiwan's rules for conference `c` (PeaceRules.peaceRegionBlock). */
+export function peaceSens(eg: WwEndgame, c: Conference): PeaceSensitivity {
+  const content = eg.ww.politics.content;
+  return peaceSensitivity(
+    (g) => content.groupIdx.get(g)?.regions ?? [],
+    eg.ww.scenario.smallIdOf(SENSITIVE_EXCLUDED_TAG),
+    peaceMainVictor(c.parts),
+  );
+}
+
+/** What one pass over a conference reads (built once per round, AI run or view). */
+export interface PeaceCtx {
+  facts: PeaceFacts;
+  table: PeaceTable;
+  sens: PeaceSensitivity;
+}
+export function peaceCtx(eg: WwEndgame, c: Conference): PeaceCtx {
+  return {
+    facts: peaceFacts(eg),
+    table: peaceTable(eg, c),
+    sens: peaceSens(eg, c),
   };
 }
 
@@ -215,11 +236,11 @@ export function shipsOf(eg: WwEndgame, L: number): { id: number; w: number }[] {
   return out.sort((a, b) => b.w - a.w || a.id - b.id);
 }
 
-/** The regions settled so far (any participant), region → receiver. */
-export function takenMap(c: Conference): Map<number, number> {
+/** The regions settled so far (any participant still playing), region → receiver. */
+export function takenMap(eg: WwEndgame, c: Conference): Map<number, number> {
   const taken = new Map<number, number>();
   for (const s of c.settled) {
-    if (!REGION_KINDS.has(s.kind)) continue;
+    if (!REGION_KINDS.has(s.kind) || !eg.isActor(s.by)) continue;
     for (const r of s.regions) taken.set(r, s.beneficiary || s.by);
   }
   return taken;
@@ -231,16 +252,17 @@ export function priceOf(
   c: Conference,
   p: number,
   d: StoredDemand,
-  taken: ReadonlyMap<number, number> = takenMap(c),
-  facts: PeaceFacts = peaceFacts(eg),
+  taken: ReadonlyMap<number, number> = takenMap(eg, c),
+  ctx: PeaceCtx = peaceCtx(eg, c),
 ): number {
   const stake = new Set(c.stake);
   const plan = planPeaceDemand(
-    facts,
-    c,
+    ctx.facts,
+    ctx.table,
     p,
     demandIn(d),
     (r) => stake.has(r) && !taken.has(r),
+    ctx.sens,
   );
   return typeof plan === "string" ? 0 : peacePlanCost(plan);
 }
@@ -388,10 +410,16 @@ function goalsOf(
   return { claims, conquer, topple };
 }
 
-/** Round start (spec §6.5-1): who is human now, and every participant's AI demands. */
+/**
+ * Round start (spec §6.5-1): who is human now, and every participant's AI
+ * demands (none for one that stopped playing).
+ */
 function refreshAi(eg: WwEndgame, c: Conference): void {
   for (const p of c.parts) p.human = eg.isHumanControlled(p.id);
-  c.ai = c.parts.map((p) => ({ id: p.id, demands: aiDemands(eg, c.id, p.id) }));
+  c.ai = c.parts.map((p) => ({
+    id: p.id,
+    demands: eg.isActor(p.id) ? aiDemands(eg, c.id, p.id) : [],
+  }));
 }
 
 // ---- Submissions (spec §6.5-2, plan decisions 11, 15) ----
@@ -407,7 +435,7 @@ export function submitDemands(
   const c = conferenceById(eg, conf);
   if (c === null || c.status !== 1) return "conference_closed";
   if (!c.parts.some((p) => p.id === smallID)) return "not_participant";
-  let list: StoredDemand[] = [];
+  const list: StoredDemand[] = [];
   if (demands !== null) {
     if (demands.length > WW_PEACE_DEMANDS_PER_ROUND) return "too_many_demands";
     for (let i = 0; i < demands.length; i++) {
@@ -415,11 +443,11 @@ export function submitDemands(
       if (sd === null) return "bad_demand";
       list.push(sd);
     }
-  } else list = [];
+  }
   c.subs = c.subs.filter((s) => s.id !== smallID);
   c.subs.push({ id: smallID, demands: list, passed: demands === null });
   c.subs.sort((a, b) => a.id - b.id);
-  const humans = c.parts.filter((p) => p.human);
+  const humans = c.parts.filter((p) => p.human && eg.isActor(p.id));
   if (humans.every((p) => c.subs.some((s) => s.id === p.id))) {
     c.roundEndTick = Math.min(c.roundEndTick, tick + 1);
   }
@@ -444,6 +472,7 @@ export function expandDemand(
         : [],
     smallIdOf: (tag) => eg.ww.scenario.smallIdOf(tag),
     hasCore: (id, r) => eg.hasCore(id, r),
+    sensitivity: peaceSens(eg, c),
   });
   return x === null
     ? null
@@ -485,7 +514,7 @@ export function stepConferences(eg: WwEndgame, tick: number): void {
 
 function closeRound(eg: WwEndgame, c: Conference, tick: number): void {
   const settled = resolveRound(eg, c);
-  const taken = takenMap(c);
+  const taken = takenMap(eg, c);
   const allTaken = c.stake.every((r) => taken.has(r));
   if (c.round >= WW_PEACE_MAX_ROUNDS || settled === 0 || allTaken) {
     finishConference(eg, c, tick);
@@ -510,23 +539,29 @@ function demandsOf(c: Conference, id: number): StoredDemand[] {
 
 /**
  * Plan decision 15 (control first): a region any of a participant's
- * demands names and that it controls now is its reservation this round.
+ * demands names and that it controls now is its reservation this round —
+ * when that demand may hand it to that participant at all (a Korea or
+ * Taiwan region the rules refuse it reserves nothing).
  */
 function reservations(
   eg: WwEndgame,
   c: Conference,
   order: readonly number[],
   taken: ReadonlyMap<number, number>,
+  sens: PeaceSensitivity,
 ): Map<number, number> {
   const ctrl = eg.ww.land.controller;
   const reserved = new Map<number, number>();
   for (const id of order) {
+    if (!eg.isActor(id)) continue;
     for (const d of demandsOf(c, id)) {
       if (!REGION_KINDS.has(d.kind)) continue;
+      const kind = DEMAND_KINDS[d.kind];
+      const to = kind === "take_for" ? d.beneficiary : id;
       for (const r of d.regions) {
-        if (!taken.has(r) && !reserved.has(r) && ctrl[r] === id) {
-          reserved.set(r, id);
-        }
+        if (taken.has(r) || reserved.has(r) || ctrl[r] !== id) continue;
+        if (peaceRegionBlock(sens, c, id, to, kind, r) !== null) continue;
+        reserved.set(r, id);
       }
     }
   }
@@ -539,20 +574,22 @@ function resolveRound(eg: WwEndgame, c: Conference): number {
     c.parts.map((p) => p.id),
     c.round,
   );
-  const taken = takenMap(c);
-  const reserved = reservations(eg, c, order, taken);
+  const taken = takenMap(eg, c);
+  const ctx = peaceCtx(eg, c);
+  const reserved = reservations(eg, c, order, taken, ctx.sens);
   const stake = new Set(c.stake);
-  const facts = peaceFacts(eg);
   c.lastRound = [];
   let n = 0;
   for (let slot = 0; slot < WW_PEACE_DEMANDS_PER_ROUND; slot++) {
     for (const id of order) {
+      // A participant that stopped playing settles nothing (its turn passes).
+      if (!eg.isActor(id)) continue;
       const part = c.parts.find((p) => p.id === id)!;
       for (const d of demandsOf(c, id)) {
         if (d.slot !== slot) continue;
         const free = (r: number) =>
           stake.has(r) && !taken.has(r) && (reserved.get(r) ?? id) === id;
-        const res = tryDemand(eg, c, part, d, free, taken, facts);
+        const res = tryDemand(eg, c, part, d, free, taken, ctx);
         c.lastRound.push({
           by: id,
           kind: d.kind,
@@ -576,10 +613,18 @@ function tryDemand(
   d: StoredDemand,
   free: (r: number) => boolean,
   taken: Map<number, number>,
-  facts: PeaceFacts,
+  ctx: PeaceCtx,
 ): { ok: boolean; regions: number[] } {
   const p = part.id;
-  const plan = planPeaceDemand(facts, c, p, demandIn(d), free);
+  // The table again for each demand: this round's settlements count.
+  const plan = planPeaceDemand(
+    ctx.facts,
+    peaceTable(eg, c),
+    p,
+    demandIn(d),
+    free,
+    ctx.sens,
+  );
   if (typeof plan === "string") return { ok: false, regions: [] };
   const legal = eg.ww.politics.legalOwner;
   const kind = DEMAND_KINDS[d.kind];
@@ -649,8 +694,11 @@ export function finishConference(
   const pol = ww.politics;
   const land = ww.land;
   const day = ww.inPrep(tick) ? 0 : ww.day(tick);
-  const of = (k: DemandKind) => c.settled.filter((s) => s.kind === KIND[k]);
   const actor = (id: number) => eg.isActor(id);
+  // A participant that stopped playing gets nothing: its settlements are
+  // ignored (their regions fall back to the loser in step 6).
+  const live = c.settled.filter((s) => actor(s.by));
+  const of = (k: DemandKind) => live.filter((s) => s.kind === KIND[k]);
   // 1. The ended wars' pairs (P3 end_war's pair removal only).
   const pairs: [number, number][] = [];
   for (const [key, w] of eg.pairWar) {
@@ -678,7 +726,7 @@ export function finishConference(
     const T = s.beneficiary;
     const tag = ww.tagOf(T);
     const release = s.kind === KIND.release;
-    const ruling = IDEOLOGIES[pol.country(p)?.ruling ?? 3];
+    const ruling = IDEOLOGIES[pol.country(p)?.ruling ?? IDEO_NEU];
     const named =
       (NAMED_DORMANT_TAGS as readonly string[]).includes(tag) &&
       eg.countryState(T) === "dormant";
@@ -719,20 +767,24 @@ export function finishConference(
     for (const r of left) transferRegionPeaceful(land, r, L, tick);
     landRegained(eg, L, tick);
     revived.push(L);
-    const puppet = c.settled.find(
-      (s) => s.kind === KIND.puppet && s.target === L,
-    );
+    // Its peace is made: out of its other wars too, so no second
+    // conference shares out its land (spec §4.4).
+    for (const w of eg.wars) {
+      if (w.ended !== null || c.warIds.includes(w.id)) continue;
+      if (eg.member(w, L)?.state === "capitulated") {
+        eg.setMemberState(w.id, L, "left");
+      }
+    }
+    const puppet = of("puppet").find((s) => s.target === L);
     if (puppet !== undefined) {
       makeSubject(eg, L, puppet.by, "puppet", false, tick);
     } else if (pol.factionIdx(L) >= 0) {
       // Pre-flight §0-9: a peace takes the loser out of its alliance.
       leaveFaction(pol, L, tick);
     }
-    const gov = c.settled.find(
-      (s) => s.kind === KIND.change_government && s.target === L,
-    );
+    const gov = of("change_government").find((s) => s.target === L);
     if (gov !== undefined) {
-      setGovernment(pol, L, pol.country(gov.by)?.ruling ?? 3, tick);
+      setGovernment(pol, L, pol.country(gov.by)?.ruling ?? IDEO_NEU, tick);
     }
   }
   // 7. Demilitarised regions, reparations, disarmament (a living loser only).
@@ -771,12 +823,18 @@ export function finishConference(
     if (revived.includes(L)) continue;
     for (const s of shipsOf(eg, L)) ww.navy.removeShip(s.id, false, tick);
   }
-  // 9. Exiles end (back home when the treaty left land); a gone human takes over.
+  // 9. Exiles end (X: one that holds land again plays on; the treaty is
+  // no liberation, so "collapsed"); a gone human without a card takes over.
   for (const L of c.losers) {
     const back = revived.includes(L);
-    if (eg.isExile(L)) endExile(eg, L, tick, back ? "returned" : "collapsed");
+    if (eg.isExile(L)) endExile(eg, L, tick, "collapsed");
     const client = eg.humanClientOf(L);
-    if (client !== null && !back && !eg.isActor(L)) {
+    if (
+      client !== null &&
+      !back &&
+      !eg.isActor(L) &&
+      !eg.takeoverCards.some((x) => x.client === client)
+    ) {
       offerTakeover(eg, client, L, tick);
     }
   }
@@ -794,7 +852,7 @@ export function finishConference(
     }
   }
   // 11. The record and the news.
-  const lines = treatyLines(eg, c);
+  const lines = treatyLines(eg, c, live);
   eg.peaceLog.unshift({ day, losers: [...c.losers], lines });
   if (eg.peaceLog.length > WW_PEACE_LOG_SIZE) {
     eg.peaceLog.length = WW_PEACE_LOG_SIZE;
@@ -843,6 +901,7 @@ function disarm(eg: WwEndgame, L: number, day: number): void {
 function treatyLines(
   eg: WwEndgame,
   c: Conference,
+  settled: readonly Settled[],
 ): { key: string; params: Record<string, string | number> }[] {
   const groups = new Map<
     string,
@@ -856,7 +915,7 @@ function treatyLines(
       loser: number;
     }
   >();
-  for (const s of c.settled) {
+  for (const s of settled) {
     const kind = DEMAND_KINDS[s.kind];
     const other =
       kind === "take_for" || kind === "release" || kind === "liberate"
@@ -864,7 +923,8 @@ function treatyLines(
         : REGION_KINDS.has(s.kind) || kind === "demilitarise"
           ? 0
           : s.target;
-    const key = `${s.by}:${s.kind}:${other}`;
+    // One line per loser too (a take of two losers' regions is two lines).
+    const key = `${s.by}:${s.kind}:${other}:${s.target}`;
     const g = groups.get(key);
     if (g === undefined) {
       groups.set(key, {
@@ -883,7 +943,8 @@ function treatyLines(
     }
   }
   const rows = [...groups.values()].sort(
-    (a, b) => a.by - b.by || a.kind - b.kind || a.other - b.other,
+    (a, b) =>
+      a.by - b.by || a.kind - b.kind || a.other - b.other || a.loser - b.loser,
   );
   return rows.map((g) => {
     const kind = DEMAND_KINDS[g.kind];
@@ -958,6 +1019,8 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
     conquer: [],
     topple: [],
     reserved: [],
+    settled: [],
+    mainVictor: 0,
   };
   if (c === null) return empty;
   const order = turnOrder(
@@ -965,7 +1028,8 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
     c.parts.map((p) => p.id),
     c.round,
   );
-  const taken = takenMap(c);
+  const taken = takenMap(eg, c);
+  const ctx = peaceCtx(eg, c);
   const ws = c.parts.map((p) => p.wsMilli);
   const view = (id: number, ds: readonly StoredDemand[]): WwDemandView[] =>
     ds.map((d) => ({
@@ -976,11 +1040,11 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
       beneficiary: d.beneficiary,
       k: d.k,
       pct: d.pct,
-      cost: priceOf(eg, c, id, d, taken),
+      cost: priceOf(eg, c, id, d, taken, ctx),
     }));
   const reserved =
     c.status === 1
-      ? reservations(eg, c, order, taken)
+      ? reservations(eg, c, order, taken, ctx.sens)
       : new Map<number, number>();
   return {
     id: c.id,
@@ -1030,6 +1094,22 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
     reserved: [...reserved]
       .sort((a, b) => a[0] - b[0])
       .map(([r, p]): [number, number] => [r, p]),
+    // In the order they settled; a participant that stopped playing's left out.
+    settled: ctx.table.settled.map((x) => {
+      const s = x as Settled;
+      return {
+        round: s.round,
+        by: s.by,
+        kind: DEMAND_KINDS[s.kind],
+        target: s.target,
+        beneficiary: s.beneficiary,
+        regions: [...s.regions],
+        k: s.k,
+        pct: s.pct,
+        cost: s.cost,
+      };
+    }),
+    mainVictor: ctx.sens.mainVictor,
   };
 }
 

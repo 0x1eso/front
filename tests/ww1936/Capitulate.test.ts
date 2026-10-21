@@ -149,4 +149,49 @@ describe("World War 1936 P5: capitulation (spec §5.1)", () => {
     expect(ww.politics.legalOwner[R.vienna]).toBe(aut);
     expect(ww.politics.legalOwner[R.munich]).toBe(deu);
   });
+
+  it("a winner kept for an end that did not come leaves, so the war can still end", async () => {
+    const { g, ww, eg } = await atWar();
+    const [deu, pl, ltu, fra] = ["DEU", "POL", "LTU", "FRA"].map((t) =>
+      endId(t as CountryTag),
+    );
+    // Germany–Poland; Lithuania joins against Poland only, France against Germany.
+    const w = war(g, "DEU", "POL");
+    war(g, "LTU", "POL", { kind: "into", warId: w.id });
+    war(g, "FRA", "DEU", { kind: "into", warId: w.id });
+    ww.land.setController(R.warsaw, deu, g.ticks());
+    capitulate(g, ww, player(g, "POL"), g.ticks());
+    // The war goes on (France): Lithuania, paired with nobody now, has left.
+    expect(w.ended).toBeNull();
+    expect(eg.member(w, ltu)!.state).toBe("left");
+    expect(eg.member(w, deu)!.state).toBe("active");
+    // Germany falls to France: the war ends and its conference opens.
+    ww.land.setController(R.berlin, fra, g.ticks());
+    capitulate(g, ww, player(g, "DEU"), g.ticks());
+    expect(w.ended?.winner).toBe(1);
+    const c = eg.conferences.find((x) => x.warIds.includes(w.id))!;
+    // Poland capitulated on the winning side: neither loser nor participant.
+    expect(c.losers).toEqual([deu]);
+    expect(c.parts.map((p) => p.id)).toEqual([fra]);
+    expect(eg.member(w, pl)!.state).toBe("capitulated");
+  });
+
+  it("a civil war's party keeps its land for that war's winner, not a foreign victor", async () => {
+    const { g, ww, eg } = await atWar();
+    const [deu, ltu, pl] = [endId("DEU"), endId("LTU"), endId("POL")];
+    // Poland rose against Lithuania's government (a civil war); Germany
+    // fights Lithuania too and holds Kaunas, so Germany is P0's victor.
+    const cw = war(g, "POL", "LTU", { kind: "declare", war: "civil" });
+    war(g, "DEU", "LTU");
+    ww.land.setController(R.kaunas, deu, g.ticks());
+    capitulate(g, ww, player(g, "LTU"), g.ticks());
+    expect(formExile).not.toHaveBeenCalled();
+    // The civil war ended on Poland's side (lane C's endCivilWar hands the
+    // land on); Memel did not go to Germany first.
+    expect(cw.ended?.winner).toBe(0);
+    expect(eg.member(cw, pl)!.state).toBe("active");
+    expect(ww.land.controller[R.memel]).not.toBe(deu);
+    expect(ww.politics.legalOwner[R.memel]).not.toBe(deu);
+    expect(ltu).toBeGreaterThan(0);
+  });
 });

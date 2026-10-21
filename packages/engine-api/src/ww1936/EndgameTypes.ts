@@ -311,6 +311,28 @@ export interface WwConferenceView {
   conquer: [number, number][];
   topple: [number, number][];
   reserved: [number, number][];
+  /**
+   * Lane W (for the card, U1): every demand settled so far, in the order it
+   * settled (round, then slot and turn) — derived from the conference's
+   * record, so a restore has it too.
+   */
+  settled: WwSettledView[];
+  /** The participant with the most war score (Taiwan's zone without a claimant: PeaceRules.peaceSensitivity). */
+  mainVictor: number;
+}
+/** A settled demand (a take: one region a row; take_navy: `regions` are ship ids). */
+export interface WwSettledView {
+  round: number;
+  by: number;
+  kind: DemandKind;
+  /** The loser it concerns (for a region: the region's legal owner then). */
+  target: number;
+  /** Who gets it (take_for's receiver, a released tag; else `by`). */
+  beneficiary: number;
+  regions: number[];
+  k: number;
+  pct: number;
+  cost: number;
 }
 export interface WwPeaceLogEntry {
   day: number;
