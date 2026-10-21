@@ -3,7 +3,6 @@
 // tallies; the tick order (spec §2.2-7), the order dispatch, the screens'
 // data, the snapshot and the hash. The lanes write the step functions
 // (Task 1 Step 18's stubs).
-import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   AIR_MISSIONS,
@@ -270,17 +269,18 @@ export class WwAir {
   private dailyCountry(id: number, day: number): void {
     const c = this.countryList[id];
     const p = this.mg.playerBySmallID(id);
+    // P5 plan decision 6: the countries that play (an exile does).
     if (
       c === null ||
       c === undefined ||
       !p.isPlayer() ||
-      !p.isAlive() ||
-      this.ww.isCapitulated(id)
+      !this.ww.isActor(id)
     ) {
       return;
     }
     dailyAirCountry(this, id, day); // A1
-    if (p.type() !== PlayerType.Human || c.autoZones.length > 0) {
+    // P5 plan decision 7: the AI runs a country no human controls now.
+    if (!this.ww.isHumanControlled(id) || c.autoZones.length > 0) {
       aiAir(this, id, day);
     }
     this.airDirtyCountries.add(id);
@@ -292,12 +292,8 @@ export class WwAir {
   issue(smallID: number, order: WwOrder, tick: number): WwOrderBlock | null {
     const c = this.country(smallID);
     const p = this.mg.playerBySmallID(smallID);
-    if (
-      c === null ||
-      !p.isPlayer() ||
-      !p.isAlive() ||
-      this.ww.isCapitulated(smallID)
-    ) {
+    // P5 plan decision 6: the country plays (an exile does).
+    if (c === null || !p.isPlayer() || !this.ww.isActor(smallID)) {
       return "dead";
     }
     switch (order.kind) {
@@ -582,7 +578,9 @@ export class WwAir {
     const humans = new Set<number>();
     for (const c of this.countries()) {
       const p = this.mg.playerBySmallID(c.smallID);
-      if (p.isPlayer() && p.type() === PlayerType.Human) humans.add(c.smallID);
+      if (p.isPlayer() && this.ww.isHumanControlled(c.smallID)) {
+        humans.add(c.smallID);
+      }
     }
     const data: WwAirData = {
       zones: [],

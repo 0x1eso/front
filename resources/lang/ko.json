@@ -3367,7 +3367,20 @@
       "threat_ge": "{of}의 긴장 기여 {pct}% 이상",
       "war_days_ge": "전쟁 {days}일 이상 지속",
       "ws_ge": "전쟁지지도 {pct}% 이상",
-      "wt_ge": "세계 긴장도 {pct}% 이상"
+      "wt_ge": "세계 긴장도 {pct}% 이상",
+      "is_exile": "망명 정부",
+      "exile_host": "{of}에 망명 중",
+      "is_subject": "속국",
+      "subject_of": "{of}의 속국",
+      "subject_level_ge": "속국 단계 {level} 이상",
+      "autonomy_ge": "자치도 {pct}% 이상",
+      "country_state": "{tag} 상태: {state}",
+      "occupied_by": "{of}가 {group} 점령",
+      "resistance_ge": "{group} 저항 {pct}% 이상",
+      "compliance_ge": "{group} 준수도 {pct}% 이상",
+      "war_score_share_ge": "{of} 상대 기여 점수 {pct}% 이상",
+      "in_conference": "평화 회의 참가 중",
+      "legitimacy_ge": "망명 정통성 {pct}% 이상"
     },
     "country": {
       "AFG": "아프가니스탄",
@@ -3448,7 +3461,21 @@
       "YEM": "예멘",
       "YUG": "유고슬라비아",
       "YUN": "윈난파",
-      "ZAF": "남아프리카 연방"
+      "ZAF": "남아프리카 연방",
+      "SVK": "슬로바키아",
+      "HRV": "크로아티아",
+      "VIC": "비시 프랑스",
+      "RSI": "이탈리아 사회 공화국",
+      "RNG": "난징 국민정부",
+      "MEN": "몽강",
+      "BRM": "버마",
+      "PHL": "필리핀",
+      "CW1": "분리 국가 1",
+      "CW2": "분리 국가 2",
+      "CW3": "분리 국가 3",
+      "CW4": "분리 국가 4",
+      "CW5": "분리 국가 5",
+      "CW6": "분리 국가 6"
     },
     "date": "{year}년 {month} {day}일",
     "decision": {
@@ -3556,7 +3583,9 @@
         "isolation": "고립주의가 막고 있습니다",
         "nap": "불가침 조약: 먼저 파기해야 합니다",
         "prep": "준비 시간에는 선포할 수 없습니다",
-        "self": "자기 나라에는 선포할 수 없습니다"
+        "self": "자기 나라에는 선포할 수 없습니다",
+        "subject_restricted": "속국은 종주국의 적과만 싸울 수 있습니다",
+        "exile": "망명 정부는 전쟁을 선포할 수 없습니다"
       },
       "button": "선전포고",
       "confirm": "확인: 선전포고{n, plural, =0 {} other { (진영 회원 #개국도 참전)}}"
@@ -3742,7 +3771,22 @@
         "too_many_fleets": "함대는 40개까지입니다",
         "too_many_templates": "편제가 너무 많습니다",
         "trades_full": "거래가 너무 많습니다",
-        "treaty_exists": "이미 맺은 상태입니다"
+        "treaty_exists": "이미 맺은 상태입니다",
+        "not_participant": "이 회의의 참가국이 아닙니다",
+        "conference_closed": "열려 있는 회의가 아닙니다",
+        "too_many_demands": "이번 라운드의 요구가 너무 많습니다",
+        "bad_demand": "할 수 없는 요구입니다",
+        "law_locked": "점령법을 바꾼 지 얼마 되지 않았습니다",
+        "not_integrable": "아직 편입할 수 없는 주입니다",
+        "ll_conditions": "지금은 랜드리스를 할 수 없습니다",
+        "ll_limit": "랜드리스 계약이 너무 많습니다",
+        "volunteer_conditions": "지금은 의용군을 보낼 수 없습니다",
+        "volunteer_limit": "의용군 사단이 너무 많습니다",
+        "not_volunteer": "의용군이 아닌 군입니다",
+        "ships_not_owned": "내 함선이 아닙니다",
+        "no_takeover": "넘겨받을 나라가 없습니다",
+        "disarmed": "군비 제한 조건으로 금지되어 있습니다",
+        "subject_restricted": "속국은 스스로 할 수 없습니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -5140,7 +5184,31 @@
       "unlock_decision": "결정 해금: {id}",
       "unlock_template": "사단 편제 해금: {template}",
       "war_goal": "{on}에 대한 전쟁 목표: {type}{group, select, none {} other { ({group})}}",
-      "war_support": "전쟁지지도 {pct, number, ::sign-always}%p"
+      "war_support": "전쟁지지도 {pct, number, ::sign-always}%p",
+      "release": "{tag} 독립{as, select, puppet { (괴뢰)} other {}}",
+      "create_state": "{from}의 땅에 {tag} 수립: {regions}",
+      "make_subject": "{target} 속국화 ({level})",
+      "end_subject": "{target} 속국 해제",
+      "autonomy": "자치도 {pct, number, ::sign-always}%",
+      "occupation_zone": "점령 지구: {group}",
+      "annex_occupied": "점령한 {group} 합병",
+      "separate_peace": "단독 강화: {with}",
+      "switch_sides": "{to} 편으로 전향",
+      "set_name": "국호 변경",
+      "transfer_ships": "함대의 {pct}%를 {to}에 인도",
+      "scuttle_fleet": "함대의 {pct}% 자침",
+      "lend_lease": "{to}에 랜드리스: 매월 {item} {perMonth}",
+      "volunteers": "{to}에 의용군",
+      "exile_legitimacy": "망명 정통성 {pct, number, ::sign-always}%",
+      "embargo": "{on} 금수",
+      "end_embargo": "{on} 금수 해제",
+      "reparations": "{to}에 배상: 공장 {k}개, {days}일",
+      "surrender": "항복",
+      "uprising": "{group} 봉기",
+      "resistance": "{group} 저항 {pct, number, ::sign-always}%",
+      "compliance": "{group} 준수도 {pct, number, ::sign-always}%",
+      "restore_country": "{tag} 복원",
+      "navy_xp": "해군 경험 {amount, number, ::sign-always}"
     },
     "gen": {
       "1": "I",
@@ -5570,7 +5638,21 @@
       "YEM": "야히야 무함마드 하미드 앗딘",
       "YUG": "파블레 섭정공",
       "YUN": "룽윈",
-      "ZAF": "J. B. M. 헤르초흐"
+      "ZAF": "J. B. M. 헤르초흐",
+      "SVK": "대통령",
+      "HRV": "국가 지도자",
+      "VIC": "국가 주석",
+      "RSI": "베니토 무솔리니",
+      "RNG": "국민정부 주석",
+      "MEN": "자치 정부 주석",
+      "BRM": "국가 대표",
+      "PHL": "마누엘 L. 케손",
+      "CW1": "임시 지도자",
+      "CW2": "임시 지도자",
+      "CW3": "임시 지도자",
+      "CW4": "임시 지도자",
+      "CW5": "임시 지도자",
+      "CW6": "임시 지도자"
     },
     "lobby": {
       "pick_country": "나라 고르기",
@@ -6806,7 +6888,14 @@
       "vehicleBonusPct": "트럭·전차 보너스 {value, number, ::sign-always}%",
       "warSupportBp": "전쟁지지도 {value, number, ::sign-always scale/0.01}%",
       "warSupportWeeklyBp": "전쟁지지도 매주 {value, number, ::sign-always scale/0.01}%",
-      "winterPenaltyPct": "겨울 벌칙 {value, number, ::sign-always scale/-1}%"
+      "winterPenaltyPct": "겨울 벌칙 {value, number, ::sign-always scale/-1}%",
+      "capturePct": "노획 장비 {value, number, ::sign-always}%",
+      "resistanceTargetPct": "저항 목표 {value, number, ::sign-always}%p",
+      "complianceGainPct": "준수도 증가 {value, number, ::sign-always}%",
+      "garrisonNeedPct": "수비대 요구 {value, number, ::sign-always}%",
+      "autonomyGainPct": "자치도 증가 {value, number, ::sign-always}%",
+      "legitimacyGainPct": "망명 정통성 증가 {value, number, ::sign-always}%",
+      "occupationOutputPp": "점령지 공장 산출 {value, number, ::sign-always}%p"
     },
     "support": {
       "engineer": "공병 중대",
@@ -6816,7 +6905,8 @@
       "signal": "통신 중대",
       "support_anti_air": "지원 대공",
       "support_anti_tank": "지원 대전차",
-      "support_artillery": "지원 포병"
+      "support_artillery": "지원 포병",
+      "military_police": "헌병 중대"
     },
     "tech": {
       "anti_air_1": "대공포 I",
@@ -6930,7 +7020,8 @@
       "torpedo_1": "어뢰 I",
       "trade_interdiction_1": "통상 파괴전 I",
       "trade_interdiction_2": "통상 파괴전 II",
-      "transport_plane_1": "수송기 I"
+      "transport_plane_1": "수송기 I",
+      "military_police": "헌병 중대"
     },
     "terrain": {
       "desert": "사막",
@@ -7118,6 +7209,12 @@
       "faction_won": "{faction} 승리",
       "mvp": "최우수",
       "your_faction": "내 진영 승리: {faction}"
+    },
+    "cw_name": {
+      "democratic": "자유 {country}",
+      "communist": "{country} 인민 정부",
+      "fascist": "{country} 국민 정부",
+      "neutral": "{country} 임시 정부"
     }
   }
 }

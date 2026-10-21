@@ -417,6 +417,8 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   radar_2: t("radar_2", "electronics", 1941, ["radar_1"], { airDetectPct: 5 }),
   synthetic_oil_1: t("synthetic_oil_1", "industry", 1937),
   synthetic_oil_2: t("synthetic_oil_2", "industry", 1941, ["synthetic_oil_1"]),
+  // P5 (P5 spec §8.5): the military police company (support equipment 1, like its P2 siblings).
+  military_police: t("military_police", "infantry", 1937, ["support_eq_1"]),
 } as Record<WwTechId, WwTechDef>;
 
 const ZERO: TechEffects = {

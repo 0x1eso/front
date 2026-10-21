@@ -54,6 +54,9 @@ export function aiChooseOption(
   target: number,
   day: number,
 ): string {
+  // P5 hook (A): the endgame's own events (gen_diplo_lend_lease) first.
+  const endgame = pol.ww.endgame.aiEventChoice(eventId, to, from);
+  if (endgame !== null) return endgame;
   const diplo = diploEventChoice(pol, eventId, to, from, target);
   if (diplo !== null) return diplo;
   const e = eventDef(pol, eventId);
@@ -127,6 +130,8 @@ export function applyOption(
   }
   applyEffects(ctx, o.effects);
   pol.markCountry(to);
+  // P5 hook (A, plan decision 38): the option actually applied.
+  pol.ww.endgame.onEventOption(e.id, o.id, to, from, tick);
 }
 
 /** One queued event reaches its receiver (spec §12.2-3, §12.4, §12.5). */

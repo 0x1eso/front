@@ -42,7 +42,7 @@ import {
   initialCenter,
 } from "./FocusLayout";
 import { lineText } from "./PoliticsModel";
-import { isCapitulated, TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
+import { TWO_TAP_MS, TwoTap, WW_BAND_PX, wwActive } from "./WorldWarModel";
 import { WwDrawerEvent, wwDrawerInsets } from "./WwDrawer";
 
 // World War 1936 P3 (spec §21.3): the national focus drawer — on top the
@@ -338,7 +338,8 @@ export class WwFocusPanel extends LitElement implements Controller {
       cards,
       running: pos(detail.focus?.id),
       queued: pos(detail.queued),
-      dead: !p.isAlive() || isCapitulated(this.game, me),
+      // P5 pre-flight §0-1: an exile still runs its focus.
+      dead: !wwActive(this.game, me),
     };
   }
 

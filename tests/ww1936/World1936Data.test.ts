@@ -2,6 +2,7 @@ import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
   COUNTRY_TAGS,
   CountryTag,
+  isDormantTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
   CATEGORY_SLOTS,
@@ -19,6 +20,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
+
+/** P5 plan decision 3: the 1936 countries (COUNTRY_TAGS ends with the dormant slots). */
+const SCENARIO_TAGS = COUNTRY_TAGS.filter((t) => !isDormantTag(t));
 
 const maps = new NodeGameMapLoader(
   path.resolve(
@@ -79,7 +83,7 @@ describe("the world1936 map", () => {
     expect(s.data.seaZones.length).toBeGreaterThanOrEqual(120);
     expect(s.data.seaZones.length).toBeLessThanOrEqual(300);
     const owners = new Set(s.landRegions.map((r) => r.owner));
-    expect(COUNTRY_TAGS.filter((t) => !owners.has(t))).toEqual([]);
+    expect(SCENARIO_TAGS.filter((t) => !owners.has(t))).toEqual([]);
   });
 
   test("every land tile has a land region and every water tile a sea zone", () => {
@@ -102,7 +106,7 @@ describe("the world1936 map", () => {
 
   test("capitals and VP tiles sit on their own land", () => {
     const s = data.scenario!;
-    for (const tag of s.countries) {
+    for (const tag of s.scenarioTags()) {
       expect(s.region(s.regionAt(s.capitalTile(tag)))?.owner, tag).toBe(tag);
     }
     for (const r of s.landRegions) {
@@ -229,7 +233,7 @@ describe("the world1936 map", () => {
     // country. The generator keeps min(capital, max(1, floor(rest / 2))).
     const s = data.scenario!;
     const over: string[] = [];
-    for (const tag of s.countries) {
+    for (const tag of s.scenarioTags()) {
       const own = s.landRegions.filter((r) => r.owner === tag);
       const total = own.reduce((a, r) => a + r.vp, 0);
       const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
@@ -308,7 +312,7 @@ describe("the world1936 economy (P1 spec §3)", () => {
   test("the scenario is version 4 (P1's version 2 fields kept)", () => {
     expect(data.scenario!.data.version).toBe(4);
     expect(economyTable.map((r) => r.tag).sort()).toEqual(
-      [...COUNTRY_TAGS].sort(),
+      [...SCENARIO_TAGS].sort(),
     );
   });
 
@@ -378,7 +382,7 @@ describe("the world1936 economy (P1 spec §3)", () => {
       const key = `${s.tag} ${s.res}`;
       want.set(key, (want.get(key) ?? 0) + s.amount);
     }
-    for (const tag of COUNTRY_TAGS) {
+    for (const tag of SCENARIO_TAGS) {
       const rs = regionsOf(tag);
       RESOURCE_IDS.forEach((res, k) => {
         expect(
@@ -433,7 +437,7 @@ describe("the world1936 economy (P1 spec §3)", () => {
 
   test("capitals are at least cities", () => {
     const s = data.scenario!;
-    for (const tag of s.countries) {
+    for (const tag of s.scenarioTags()) {
       const capital = s.region(s.regionAt(s.capitalTile(tag)))!;
       expect(
         REGION_CATEGORIES.indexOf(capital.cat),

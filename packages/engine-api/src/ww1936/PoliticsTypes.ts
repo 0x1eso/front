@@ -153,6 +153,14 @@ export const WW_STAT_KEYS = [
   "airNavalPct",
   "supPenaltyPp",
   "paradropPrepPct",
+  // P5 (P5 spec §16.4 order, plan decision 26), appended.
+  "capturePct",
+  "resistanceTargetPct",
+  "complianceGainPct",
+  "garrisonNeedPct",
+  "autonomyGainPct",
+  "legitimacyGainPct",
+  "occupationOutputPp",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];
 export type WwStats = Record<WwStatKey, number>;
@@ -407,7 +415,17 @@ export type PersonId = string;
 export type FlagId = string;
 export type RegionGroupId = string;
 export type TemplateUnlockId = string;
-export const FOCUS_TREES = ["generic", "DEU", "GBR", "SUN"] as const;
+export const FOCUS_TREES = [
+  "generic",
+  "DEU",
+  "GBR",
+  "SUN",
+  // P5 (P5 spec §18.1-5), appended.
+  "ITA",
+  "JPN",
+  "FRA",
+  "USA",
+] as const;
 export type FocusTreeId = (typeof FOCUS_TREES)[number];
 export const FOCUS_BRANCHES = [
   "politics",
@@ -461,6 +479,11 @@ export interface BranchPoint {
   historical: FocusId;
   alternatives: readonly FocusId[];
   political: boolean;
+  /**
+   * P5 pre-flight §C: the historical choice is not on the tree's path
+   * (Italy's crown branch); the path check skips it.
+   */
+  offPath?: true;
 }
 
 export interface OptionDef {
@@ -514,8 +537,13 @@ export interface DecisionDef {
   for: readonly CountryTag[] | "any";
   visible?: Condition;
   available?: Condition;
-  /** A targeted decision: one line per country for which `among` holds (who = the candidate, "self" = the decider). */
-  target?: { among: Condition };
+  /**
+   * A targeted decision: one line per country for which `among` holds (who
+   * = the candidate, "self" = the decider). P5 pre-flight §0-11 `dead`: the
+   * candidates are countries out of the game (neither actors nor dormant),
+   * e.g. a restoration.
+   */
+  target?: { among: Condition; dead?: true };
   cost?: DecisionCost;
   cooldownDays?: number;
   days?: number;
@@ -534,7 +562,12 @@ export type SpiritRule =
   | "free_guarantees"
   | { dmz: RegionGroupId }
   | { guaranteeGatePct: number }
-  | { factionGateMinusPp: number };
+  | { factionGateMinusPp: number }
+  // P5 (P5 spec §6.4, §13.2, §19.1; plan decision 26), appended.
+  | "no_lend_lease"
+  | "no_naval_build"
+  | { maxDivisions: number }
+  | { noAidTo: readonly CountryTag[] };
 export interface SpiritDef {
   id: SpiritId;
   stats: Partial<WwStats>;
@@ -588,7 +621,9 @@ export type BeatAct =
       kind: "diplo";
       order: "nap" | "guarantee" | "access" | "join_faction" | "invite";
       target: CountryTag;
-    };
+    }
+  // P5 (P5 spec §17.6): a beat whose act is effects on the actor.
+  | { kind: "effects"; effects: readonly Effect[] };
 export interface HistoryBeat {
   id: string;
   date: string;
@@ -596,6 +631,14 @@ export interface HistoryBeat {
   act: BeatAct;
   safety?: boolean;
   windowDays?: number;
+  /** P5 (P5 spec §15.6): a declare beat that starts a civil war record (Spain). */
+  civil?: boolean;
+  /**
+   * P5 pre-flight §0-7 (owner: the AI judges situations): checked on the
+   * actor when the beat is due; while false the beat waits (daily) up to
+   * `windowDays ?? WW_BEAT_WINDOW_DEFAULT_DAYS`, then lapses. Every act kind.
+   */
+  when?: Condition;
 }
 
 export interface CountryPoliticsDef {
@@ -631,6 +674,8 @@ export interface FactionNameDef {
   id: string;
   /** The creator must be one of these (in order of the table, first match wins). */
   creators: readonly CountryTag[];
+  /** P5 pre-flight §A S: members of any ideology may join (the Pan-American pact). */
+  anyIdeology?: true;
 }
 export interface TemplateUnlockDef {
   id: TemplateUnlockId;

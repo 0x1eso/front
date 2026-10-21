@@ -20,7 +20,7 @@ import {
   bandModel,
   countryName,
   enemiesOf,
-  isCapitulated,
+  wwActive,
 } from "./WorldWarModel";
 import {
   OpenWwDiplomacyEvent,
@@ -120,7 +120,8 @@ export function bandEconomy(game: GameView): TopBandEconomy | null {
   const view = game.wwEconomy?.() ?? null;
   const me = game.myPlayer();
   if (view === null || me === null) return null;
-  if (!me.isAlive() || isCapitulated(game, me.smallID())) return null;
+  // P5 pre-flight §0-1: an exile still has its band.
+  if (!wwActive(game, me.smallID())) return null;
   if (view.detail(me.smallID()) === null) return null;
   const s = view.summary(me.smallID());
   return s === null ? null : topBandEconomy(s);

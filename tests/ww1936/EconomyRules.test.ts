@@ -259,9 +259,10 @@ describe("research (spec §9)", () => {
     expect(researchSlotCount(true, 300)).toBe(5);
   });
 
-  test("112 techs; prerequisites exist and come no later", () => {
-    // P1's 46, P2's 10 (P2 spec §4.6) and P4's 56 (P4 spec §4.3, §12.3).
-    expect(WW_TECH_IDS.length).toBe(112);
+  test("113 techs; prerequisites exist and come no later", () => {
+    // P1's 46, P2's 10 (P2 spec §4.6), P4's 56 (P4 spec §4.3, §12.3) and
+    // P5's military police (P5 spec §8.5).
+    expect(WW_TECH_IDS.length).toBe(113);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {

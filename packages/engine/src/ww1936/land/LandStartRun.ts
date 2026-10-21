@@ -81,8 +81,10 @@ export function capitalRegion(land: WwLand, smallID: number): number {
   const sc = land.scenario;
   const tag = sc.tagOfSmallId(smallID);
   if (tag === undefined) return 0;
-  const cap = sc.regionAt(sc.capitalTile(tag));
-  if (land.controller[cap] === smallID) return cap;
+  // P5: a woken dormant slot has no scenario capital.
+  const tile = sc.capitalTileOrNull(tag);
+  const cap = tile === null ? 0 : sc.regionAt(tile);
+  if (cap !== 0 && land.controller[cap] === smallID) return cap;
   let best = 0;
   let bestVp = -1;
   for (const r of sc.landRegions) {
@@ -144,6 +146,9 @@ export function startLand(land: WwLand): void {
     for (const st of startTemplates(cl.tag, dev)) {
       cl.templates.push({ id: cl.nextTemplateId++, key: st.key, def: st.def });
     }
+    // P5 pre-flight §0-4: a dormant slot keeps its templates (to train once
+    // woken) but has no generals and no 1936 army.
+    if (sc.isDormantSlot(cl.smallID)) continue;
     for (const id of rosterOf(cl.tag))
       cl.generals.push(newGeneralState(id - 1));
     const oob = historical ? (START_OOB[cl.tag] ?? null) : null;

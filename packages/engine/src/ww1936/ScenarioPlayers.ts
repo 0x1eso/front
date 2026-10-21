@@ -11,6 +11,7 @@ import type {
 import {
   COUNTRIES,
   CountryTag,
+  isDormantTag,
   PICK_ORDER,
 } from "@openfront/engine-api/ww1936/Countries";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
@@ -48,13 +49,15 @@ export function assignCountries(
  * Every country of the scenario as a player, in scenario order (plan
  * decision 2): picked ones as humans, the rest as nations whose spawn cell
  * is their capital. The name is the country's English name (decision 3).
+ * P5 plan decision 4: then every dormant slot, a nation player with no
+ * land and no Nation (no spawn cell: no NationExecution until it wakes).
  */
 export function scenarioPlayers(
   players: readonly StartPlayer[],
   scenario: ScenarioIndex,
   random: PseudoRandom,
 ): { players: PlayerInfo[]; nations: Nation[] } {
-  const assigned = assignCountries(players, scenario.countries);
+  const assigned = assignCountries(players, scenario.scenarioTags());
   const humanByTag = new Map<CountryTag, StartPlayer>();
   for (const p of players) {
     const tag = assigned.get(p.clientID);
@@ -64,6 +67,22 @@ export function scenarioPlayers(
   const nations: Nation[] = [];
   for (const tag of scenario.countries) {
     const def = COUNTRIES[tag];
+    if (isDormantTag(tag)) {
+      infos.push(
+        new PlayerInfo(
+          def.name,
+          PlayerType.Nation,
+          null,
+          random.nextID(),
+          false,
+          null,
+          [],
+          null,
+          def.flag,
+        ),
+      );
+      continue;
+    }
     const human = humanByTag.get(tag);
     if (human !== undefined) {
       infos.push(

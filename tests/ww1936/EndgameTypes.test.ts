@@ -1,0 +1,140 @@
+// World War 1936 P5 (plan Task 1 Step 16): the appended lists keep their
+// order (wire, snapshot and content enums: append only).
+import { WwOrderSchema } from "@openfront/engine-api/Schemas";
+import {
+  COUNTRY_TAGS,
+  DORMANT_TAGS,
+  isDormantTag,
+  PICK_ORDER,
+} from "@openfront/engine-api/ww1936/Countries";
+import {
+  WW_ORDER_BLOCKS,
+  WW_TECH_IDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  COUNTRY_STATES,
+  DEMAND_KINDS,
+  ENDGAME_ORDER_KINDS,
+  MEMBER_STATES,
+  OCCUPATION_LAWS,
+  SUBJECT_LEVELS,
+  WAR_KINDS,
+} from "@openfront/engine-api/ww1936/EndgameTypes";
+import {
+  ARMY_ORDER_KINDS,
+  SUPPORT_IDS,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  CONVOY_USE_PRIORITY,
+  CONVOY_USES,
+} from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  CONDITION_KINDS,
+  EFFECT_KINDS,
+  effectGroup,
+} from "@openfront/engine-api/ww1936/PoliticsDsl";
+import {
+  FOCUS_TREES,
+  WW_STAT_KEYS,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { DECLARE_WAR_BLOCKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+
+const after = <T extends string>(list: readonly T[], anchor: T): T[] =>
+  list.slice(list.indexOf(anchor) + 1);
+
+describe("World War 1936 P5 lists", () => {
+  it("the 14 dormant slots are the last 14 tags, in order, and never picked", () => {
+    expect(DORMANT_TAGS).toHaveLength(14);
+    expect(COUNTRY_TAGS.slice(-14)).toEqual([...DORMANT_TAGS]);
+    expect(DORMANT_TAGS.every(isDormantTag)).toBe(true);
+    expect(isDormantTag("DEU")).toBe(false);
+    expect(PICK_ORDER.some((t) => isDormantTag(t))).toBe(false);
+  });
+
+  it("the 13 endgame orders follow air_auto in the ww_order union", () => {
+    const kinds = WwOrderSchema.options.map(
+      (o) => (o.shape.kind as { value: string }).value,
+    );
+    expect(ENDGAME_ORDER_KINDS).toHaveLength(13);
+    expect(after(kinds, "air_auto")).toEqual([...ENDGAME_ORDER_KINDS]);
+  });
+
+  it("the refusals, stats, effects and conditions are appended", () => {
+    expect(after(WW_ORDER_BLOCKS, "bad_zone")).toEqual([
+      "not_participant",
+      "conference_closed",
+      "too_many_demands",
+      "bad_demand",
+      "law_locked",
+      "not_integrable",
+      "ll_conditions",
+      "ll_limit",
+      "volunteer_conditions",
+      "volunteer_limit",
+      "not_volunteer",
+      "ships_not_owned",
+      "no_takeover",
+      "disarmed",
+      "subject_restricted",
+    ]);
+    expect(after(WW_STAT_KEYS, "paradropPrepPct")).toEqual([
+      "capturePct",
+      "resistanceTargetPct",
+      "complianceGainPct",
+      "garrisonNeedPct",
+      "autonomyGainPct",
+      "legitimacyGainPct",
+      "occupationOutputPp",
+    ]);
+    // Spec §16.4's 23 and the pre-flight's navy_xp.
+    const fx = after(EFFECT_KINDS, "fuel");
+    expect(fx).toHaveLength(24);
+    expect(fx[0]).toBe("release");
+    expect(fx[22]).toBe("restore_country");
+    expect(fx[23]).toBe("navy_xp");
+    const cond = after(CONDITION_KINDS, "fuel_ratio_below");
+    expect(cond).toHaveLength(13);
+    expect(cond[0]).toBe("is_exile");
+    expect(cond[12]).toBe("legitimacy_ge");
+    expect(effectGroup("release")).toBe("endgame");
+    expect(effectGroup("navy_xp")).toBe("endgame");
+    expect(effectGroup("ships")).toBe("navy");
+    expect(effectGroup("annex")).toBe("territory");
+  });
+
+  it("the other appended values sit after their anchors", () => {
+    expect(after(DECLARE_WAR_BLOCKS, "isolation")).toEqual([
+      "subject_restricted",
+      "exile",
+    ]);
+    expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
+    expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
+    expect(after(WW_TECH_IDS, "synthetic_oil_2")).toEqual(["military_police"]);
+    expect(after(CONVOY_USES, "trade")).toEqual(["lend_lease"]);
+    expect(CONVOY_USE_PRIORITY.lend_lease).toBe(30);
+    expect(after(FOCUS_TREES, "SUN")).toEqual(["ITA", "JPN", "FRA", "USA"]);
+  });
+
+  it("the endgame's own lists", () => {
+    expect([...COUNTRY_STATES]).toEqual(["dormant", "active", "gone"]);
+    expect([...WAR_KINDS]).toEqual(["normal", "civil", "independence"]);
+    expect([...MEMBER_STATES]).toEqual([
+      "active",
+      "capitulated",
+      "exiled",
+      "left",
+    ]);
+    expect([...SUBJECT_LEVELS]).toEqual([
+      "integrated",
+      "puppet",
+      "colony",
+      "dominion",
+    ]);
+    expect([...OCCUPATION_LAWS]).toEqual([
+      "occ_civil",
+      "occ_military",
+      "occ_martial",
+    ]);
+    expect(DEMAND_KINDS).toHaveLength(14);
+  });
+});

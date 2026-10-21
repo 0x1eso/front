@@ -1,8 +1,10 @@
 import {
   COUNTRIES,
   COUNTRY_TAGS,
+  DORMANT_TAGS,
   FACTION_LEADER,
   isCountryTag,
+  isDormantTag,
   MAJOR_TAGS,
   PICK_ORDER,
 } from "@openfront/engine-api/ww1936/Countries";
@@ -18,9 +20,10 @@ const FORBIDDEN_FLAG_NAME =
   /nazi|third.?reich|swastika|hakenkreuz|kriegsflagge|reichskriegs|rising.?sun/i;
 
 describe("the 1936 country table", () => {
-  test("79 unique tags, each with a definition", () => {
-    expect(COUNTRY_TAGS).toHaveLength(79);
-    expect(new Set(COUNTRY_TAGS).size).toBe(79);
+  test("79 unique tags and P5's 14 dormant slots, each with a definition", () => {
+    expect(COUNTRY_TAGS).toHaveLength(79 + 14);
+    expect(new Set(COUNTRY_TAGS).size).toBe(79 + 14);
+    expect(COUNTRY_TAGS.slice(79)).toEqual([...DORMANT_TAGS]);
     expect(Object.keys(COUNTRIES).sort()).toEqual([...COUNTRY_TAGS].sort());
     expect(isCountryTag("DEU")).toBe(true);
     expect(isCountryTag("KOR")).toBe(false);
@@ -80,12 +83,16 @@ describe("the 1936 country table", () => {
       "ITA",
       "JPN",
     ]);
-    expect([...PICK_ORDER].sort()).toEqual([...COUNTRY_TAGS].sort());
+    // P5 plan decision 3: never a dormant slot.
+    expect([...PICK_ORDER].sort()).toEqual(
+      COUNTRY_TAGS.filter((t) => !isDormantTag(t)).sort(),
+    );
   });
 
   test("names are Latin only (the map's label font)", () => {
     for (const tag of COUNTRY_TAGS) {
-      expect(COUNTRIES[tag].name, tag).toMatch(/^[A-Za-z .-]+$/);
+      // P5: the civil-war slots are numbered ("Breakaway State 1").
+      expect(COUNTRIES[tag].name, tag).toMatch(/^[A-Za-z0-9 .-]+$/);
     }
   });
 });

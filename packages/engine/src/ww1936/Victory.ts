@@ -17,23 +17,34 @@ export interface WorldWarWin {
   camp: CampScore;
 }
 
-/** Each country's numbers now (spec §7.6). Capitulated countries are not alive. */
+/**
+ * Each country's numbers now (spec §7.6). Capitulated countries are not
+ * alive; P5: an exile is (it plays on, spec §1.4), a dormant slot is not a
+ * line at all (P5 spec §16.1).
+ */
 export function scoreInputs(mg: Game, ww: WorldWar): CountryScoreInput[] {
   const vp = controlledVp(mg, ww);
-  return ww.scenario.countries.map((tag, i) => {
+  const out: CountryScoreInput[] = [];
+  ww.scenario.countries.forEach((tag, i) => {
     const id = i + 1;
+    if (ww.endgame.countryState(id) === "dormant") return;
     const p = mg.playerBySmallID(id);
-    const alive = p.isPlayer() && p.isAlive() && !ww.isCapitulated(id);
-    return {
+    const alive = ww.isActor(id);
+    // P5 spec §16.1: a subject without a faction of its own counts in its overlord's.
+    const own = ww.factionOf(id);
+    const overlord = ww.endgame.subjectOf(id)?.overlord ?? 0;
+    const faction = own ?? (overlord > 0 ? ww.factionOf(overlord) : null);
+    out.push({
       smallID: id,
       // P3 plan decision 8: the faction now (politics' state).
-      faction: ww.factionOf(id),
+      faction,
       major: COUNTRIES[tag].major,
       alive,
       vp: vp[id],
       tiles: p.isPlayer() ? p.numTilesOwned() : 0,
-    };
+    });
   });
+  return out;
 }
 
 export function worldWarCamps(mg: Game, ww: WorldWar): CampScore[] {

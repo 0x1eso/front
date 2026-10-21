@@ -40,7 +40,7 @@ import {
   WwLandSelection,
   WwSelectArmyEvent,
 } from "./LandSelection";
-import { isCapitulated, today, TWO_TAP_MIN_MS } from "./WorldWarModel";
+import { today, TWO_TAP_MIN_MS, wwActive } from "./WorldWarModel";
 
 /** A finger's reach on the map (spec §15.9), in screen px. */
 export const TAP_RADIUS_PX = 24;
@@ -179,8 +179,9 @@ export class WwLandController implements Controller {
   private myId(): number | null {
     if (this.game.worldWarScenario() === null) return null;
     const me = this.game.myPlayer();
-    if (me === null || !me.isAlive()) return null;
-    return isCapitulated(this.game, me.smallID()) ? null : me.smallID();
+    if (me === null) return null;
+    // P5 pre-flight §0-1: an exile still commands its divisions.
+    return wwActive(this.game, me.smallID()) ? me.smallID() : null;
   }
 
   private handle(x: number, y: number): boolean {

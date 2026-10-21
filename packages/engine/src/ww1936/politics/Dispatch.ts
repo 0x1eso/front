@@ -12,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { applyDiploEffect } from "./EffectsDiplo";
 import { applyEconEffect } from "./EffectsEcon";
+import { applyEndgameEffect } from "./EffectsEndgame";
 import { applyEventEffect } from "./EffectsEvent";
 import { applyNavyEffect } from "./EffectsNavy";
 import { applyPoliticalEffect } from "./EffectsPol";
@@ -57,6 +58,11 @@ export function resolveSelector(
     const of = resolveSelector(ctx, s.factionLeaderOf);
     return ctx.pol.faction(ctx.pol.factionIdx(of))?.leader ?? 0;
   }
+  // P5 (plan decision 26): the subject's overlord, 0 if none.
+  if ("overlordOf" in s) {
+    const of = resolveSelector(ctx, s.overlordOf);
+    return ctx.pol.ww.endgame.subjectOf(of)?.overlord ?? 0;
+  }
   const g = ctx.pol.content.groupIdx.get(s.ownerOf);
   if (g === undefined || g.regions.length === 0) return 0;
   return ctx.pol.legalOwner[g.regions[0]] ?? 0;
@@ -89,6 +95,10 @@ export function applyEffect(ctx: EffectCtx, e: Effect): void {
     // P4 plan decision 24.
     case "navy":
       applyNavyEffect(ctx, e, actor);
+      break;
+    // P5 plan decision 26.
+    case "endgame":
+      applyEndgameEffect(ctx, e, actor);
       break;
   }
 }

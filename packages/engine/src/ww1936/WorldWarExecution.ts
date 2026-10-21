@@ -68,6 +68,8 @@ export class WorldWarExecution implements Execution {
     stepTransfers(mg, ww);
     // P3 order 2 and 3: politics' common day, then this tick's countries.
     ww.politics.tick(ticks);
+    // P5 (spec §2.2 orders 2–3): the endgame's common day and its countries.
+    ww.endgame.clock(ticks);
     // P1 (spec §2): the day's common step, then this tick's share of countries.
     ww.economy.tick(ticks);
     // P2 (spec §2.2): the land war after the economy.
@@ -75,6 +77,8 @@ export class WorldWarExecution implements Execution {
     // P4 (spec §2.2-6, -7): the navy, then the air war.
     ww.navy.tick(ticks);
     ww.air.tick(ticks);
+    // P5 (spec §2.2 order 8): conference deadlines, takeovers, woken countries.
+    ww.endgame.tick(ticks);
     // P3 order 6: human event cards past their deadline.
     ww.politics.tickDeadlines(ticks);
     const data = ww.takeData();
@@ -96,6 +100,9 @@ export class WorldWarExecution implements Execution {
       mg.addUpdate({ type: GameUpdateType.WwNavy, data: navy });
     const air = ww.air.takeData();
     if (air !== null) mg.addUpdate({ type: GameUpdateType.WwAir, data: air });
+    // P5 (plan decision 23): after P4's.
+    const eg = ww.endgame.takeData();
+    if (eg !== null) mg.addUpdate({ type: GameUpdateType.WwEndgame, data: eg });
   }
 
   isActive(): boolean {

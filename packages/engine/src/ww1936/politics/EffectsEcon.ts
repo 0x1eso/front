@@ -63,7 +63,14 @@ function room(
   const econ = pol.econ;
   const max = LEVEL_MAX[b];
   if (max !== undefined) {
-    if (b === "fort" && dmzRegions(pol, actor).includes(region)) return 0;
+    if (
+      b === "fort" &&
+      (dmzRegions(pol, actor).includes(region) ||
+        // P5 (spec §6.4): a peace treaty's demilitarised region.
+        pol.ww.endgame.isDmz(region, actor))
+    ) {
+      return 0;
+    }
     // P4 (spec §12.1): a naval base or a coastal fort needs a harbor zone.
     if (
       (b === "naval_base" || b === "coastal_fort") &&

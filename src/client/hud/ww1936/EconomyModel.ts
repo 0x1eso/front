@@ -91,7 +91,7 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
-import { isCapitulated, today, type WwGame } from "./WorldWarModel";
+import { today, wwActive, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */
 export type WwEconGame = WwGame & Pick<GameView, "wwEconomy">;
@@ -343,6 +343,8 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   radar_2: "ww1936.tech.radar_2",
   synthetic_oil_1: "ww1936.tech.synthetic_oil_1",
   synthetic_oil_2: "ww1936.tech.synthetic_oil_2",
+  // P5 (spec §8.5).
+  military_police: "ww1936.tech.military_police",
 };
 
 export type EffectKey = keyof TechEffects | "unlock";
@@ -508,6 +510,22 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   too_many_deployments: "ww1936.econ.block.too_many_deployments",
   no_strike_region: "ww1936.econ.block.no_strike_region",
   bad_zone: "ww1936.econ.block.bad_zone",
+  // P5 (spec §21.3, plan decision 36).
+  not_participant: "ww1936.econ.block.not_participant",
+  conference_closed: "ww1936.econ.block.conference_closed",
+  too_many_demands: "ww1936.econ.block.too_many_demands",
+  bad_demand: "ww1936.econ.block.bad_demand",
+  law_locked: "ww1936.econ.block.law_locked",
+  not_integrable: "ww1936.econ.block.not_integrable",
+  ll_conditions: "ww1936.econ.block.ll_conditions",
+  ll_limit: "ww1936.econ.block.ll_limit",
+  volunteer_conditions: "ww1936.econ.block.volunteer_conditions",
+  volunteer_limit: "ww1936.econ.block.volunteer_limit",
+  not_volunteer: "ww1936.econ.block.not_volunteer",
+  ships_not_owned: "ww1936.econ.block.ships_not_owned",
+  no_takeover: "ww1936.econ.block.no_takeover",
+  disarmed: "ww1936.econ.block.disarmed",
+  subject_restricted: "ww1936.econ.block.subject_restricted",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -674,7 +692,8 @@ export function fightingFn(game: WwGame): (smallID: number) => boolean {
     } catch {
       return false;
     }
-    return p.isPlayer() && p.isAlive() && !isCapitulated(game, id);
+    // P5 pre-flight §0-1: an exile still fights.
+    return p.isPlayer() && wwActive(game, id);
   };
 }
 

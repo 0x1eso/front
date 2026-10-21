@@ -46,6 +46,10 @@ export const P_ELECTION = idHash("election");
 export const P_DELAY = idHash("delay");
 /** P4 (pre-flight A14): the naval and air history beats' skip and delay. */
 export const P_NAVALBEAT = idHash("navalbeat");
+/** P5 (pre-flight §0-8): a peace conference participant keeps its history row. */
+export const P_PEACE = idHash("peace");
+/** P5 (pre-flight §0-8): the general peace AI's seeded value jitter. */
+export const P_PEACE_JITTER = idHash("peace_jitter");
 
 /**
  * Spec §12.4, §18.5: weight = base × Π factor/100 (floor each step) over

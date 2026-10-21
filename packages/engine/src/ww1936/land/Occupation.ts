@@ -15,6 +15,7 @@ import {
   WW_SPREAD_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { Player } from "../../game/Game";
+import { captureOnEncircled } from "../endgame/Capture";
 import { closeBattle, leaveBattle, refugeOf, retreatDivision } from "./Battles";
 import { stopDivision } from "./Movement";
 import { disbandDivision } from "./Sustain";
@@ -64,10 +65,13 @@ function evict(land: WwLand, region: number, by: number): void {
   const t = land.divisions;
   const destroyed = new Map<number, number>();
   for (const r of [...land.rowsIn(region)]) {
+    if (t.id[r] === 0) continue;
     const o = t.owner[r];
-    if (t.id[r] === 0 || land.sameSide(o, by)) continue;
+    // P5 (plan decision 20): a volunteer is judged as the country it serves.
+    const fo = land.fightOwner(r);
+    if (land.sameSide(fo, by)) continue;
     if (t.mode[r] === MOVE_SEA) continue;
-    if (land.isEnemy(o, by)) {
+    if (land.isEnemy(fo, by)) {
       const m = t.mode[r];
       const retreating = m === MOVE_RETREAT;
       // "R을 떠나는 중": retreating, or walking, advancing or on a train
@@ -77,6 +81,8 @@ function evict(land: WwLand, region: number, by: number): void {
       const halfway = retreating && t.prog[r] * 2 < t.need[r];
       const broken = !leaving && t.org[r] * 10 < land.orgMaxOf(r);
       if (halfway || broken || !hasRefuge(land, r)) {
+        // P5 hook (A, spec §14): destroyed in a pocket, its equipment is taken.
+        if (t.encircled[r] !== 0) captureOnEncircled(land.ww.endgame, r, by);
         land.killDivision(r, true);
         destroyed.set(o, (destroyed.get(o) ?? 0) + 1);
       } else if (!leaving) {

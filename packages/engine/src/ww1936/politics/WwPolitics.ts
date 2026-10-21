@@ -2,7 +2,7 @@
 // One WwPolitics lives in WorldWar next to the economy and the land war.
 // WorldWarExecution runs tick() before economy.tick() and tickDeadlines()
 // after land.tick(). Everything iterates in smallID / content order.
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { PolOrder, WwOrder } from "@openfront/engine-api/Schemas";
 import {
   COUNTRIES,
@@ -404,7 +404,6 @@ export const WwPoliticsStateSchema = z.object({
   access: z.array(z.tuple([zInt(), zInt()])),
   opinions: z.array(z.tuple([zInt(), zInt(), zInt(), zInt()])),
   legalOwner: z.array(zInt()),
-  coreOverride: z.array(zInt()),
   gflags: z.array(z.tuple([zStr(), zInt()])),
   firedOnceGlobal: z.array(zStr()),
   removedGenerals: z.array(zStr()),
@@ -426,6 +425,20 @@ export const WwPoliticsStateSchema = z.object({
   nextUid: zInt(),
 });
 export type WwPoliticsState = z.infer<typeof WwPoliticsStateSchema>;
+
+/** P5 (spec §9.1): the orders a subject may not give on its own, by kind. */
+const SUBJECT_ACTION: Partial<
+  Record<PolOrder["kind"], "justify" | "faction" | "treaty" | "leave_faction">
+> = {
+  justify: "justify",
+  faction_create: "faction",
+  faction_invite: "faction",
+  faction_request: "faction",
+  faction_leave: "leave_faction",
+  guarantee: "treaty",
+  nap_offer: "treaty",
+  access_ask: "treaty",
+};
 
 /** WwPolDetail.statParts order. */
 const STAT_PARTS = [
@@ -460,8 +473,6 @@ export class WwPolitics {
   access: Access[] = [];
   opinions: OpinionMod[] = [];
   readonly legalOwner: Uint16Array;
-  /** 0: the scenario's core flag, 1: core of its legal owner, 2: not core (spec §17.6). */
-  readonly coreOverride: Uint8Array;
   gflags = new Map<string, number>();
   firedOnceGlobal = new Set<string>();
   removedGenerals = new Set<string>();
@@ -497,7 +508,6 @@ export class WwPolitics {
     this.factionOfIdx = new Array<number>(n).fill(-1);
     const size = sc.maxRegionId() + 1;
     this.legalOwner = new Uint16Array(size);
-    this.coreOverride = new Uint8Array(size);
     const owners = sc.ownerByRegion();
     for (const r of sc.landRegions) this.legalOwner[r.id] = owners[r.id];
     // Spec §15.1: the starting factions, FACTION_IDS order.
@@ -680,8 +690,9 @@ export class WwPolitics {
       return;
     }
     // Lane D fix 1 (controller ruling): a country that controls no region
-    // (annexed, its tiles still on their way) has no political day.
-    if (!this.controlsAnyRegion(id)) return;
+    // (annexed, its tiles still on their way) has no political day. P5: a
+    // government in exile has one (spec §10.4).
+    if (!this.controlsAnyRegion(id) && !this.ww.endgame.isExile(id)) return;
     dailyPower(this, id, day, tick);
     stepFocus(this, id, day, tick);
     stepDecisions(this, id, day, tick);
@@ -702,6 +713,12 @@ export class WwPolitics {
   issue(smallID: number, order: WwOrder, tick: number): WwOrderBlock | null {
     if (!this.living(smallID)) return "dead";
     const o = order as PolOrder;
+    // P5 (spec §9.1, pre-flight §A S × T1): a subject's own diplomacy is
+    // refused, its beats' too.
+    const action = SUBJECT_ACTION[o.kind];
+    if (action !== undefined && this.ww.endgame.subjectBlock(smallID, action)) {
+      return "subject_restricted";
+    }
     let block: WwOrderBlock | null;
     switch (o.kind) {
       case "focus_start":
@@ -958,20 +975,24 @@ export class WwPolitics {
 
   // ---- Land (spec §17, plan decision 17) ----
 
-  /** The only way a legal owner changes. `core`: undefined keeps the override. */
+  /**
+   * The only way a legal owner changes. P5 plan decision 17: `core` true
+   * makes the region a core of `to` too (the core table); false or absent
+   * leaves the cores as they are.
+   */
   setLegalOwner(region: number, to: number, core?: boolean): void {
-    if (this.legalOwner[region] === to && core === undefined) return;
+    if (core === true) this.ww.endgame.addCore(to, region);
+    if (this.legalOwner[region] === to) return;
     this.legalOwner[region] = to;
-    if (core !== undefined) this.coreOverride[region] = core ? 1 : 2;
     this.dirtyPolRegions.add(region);
     this.econ.markRegionDirty(region);
+    // P5: who is administered may change with the legal owner.
+    this.ww.endgame.markControlChanged(region);
   }
 
-  /** Spec §17.6: a core region of its legal owner. */
+  /** Spec §17.6, P5 pre-flight §0-5: a core region of its legal owner (the one entry point). */
   isCore(region: number): boolean {
-    const o = this.coreOverride[region];
-    if (o === 0) return this.ww.scenario.region(region)?.core ?? true;
-    return o === 1;
+    return this.ww.endgame.hasCore(this.legalOwner[region] ?? 0, region);
   }
 
   // ---- Queries ----
@@ -999,9 +1020,10 @@ export class WwPolitics {
     return p.isPlayer() ? p : null;
   }
 
+  /** P5 plan decision 6: the country plays (an exile does). */
   living(smallID: number): boolean {
-    const p = this.player(smallID);
-    return p !== null && p.isAlive() && !this.ww.isCapitulated(smallID);
+    if (smallID <= 0 || smallID >= this.countries.length) return false;
+    return this.ww.isActor(smallID);
   }
 
   /** The land war's control of at least one region. */
@@ -1013,8 +1035,10 @@ export class WwPolitics {
     return false;
   }
 
+  /** P5 plan decision 7: a human controls it now (a takeover moves it). */
   isHuman(smallID: number): boolean {
-    return this.player(smallID)?.type() === PlayerType.Human;
+    if (smallID <= 0 || smallID >= this.countries.length) return false;
+    return this.ww.isHumanControlled(smallID);
   }
 
   day(): number {
@@ -1139,15 +1163,11 @@ export class WwPolitics {
     this.polGlobalDirty = true;
   }
 
-  /** Spec §17.1: the loser's legal regions go to the victor; its cards vanish (spec §12.5). */
+  /**
+   * Spec §17.1: its cards vanish (spec §12.5). P5 (spec §5.1-2): the legal
+   * owner stays — the endgame's capitulation decides (its stub moves it).
+   */
   onCapitulated(loser: number, victor: number, tick: number): void {
-    if (victor !== 0) {
-      for (const r of this.ww.scenario.landRegions) {
-        if (this.legalOwner[r.id] === loser) {
-          this.setLegalOwner(r.id, victor, false);
-        }
-      }
-    }
     const c = this.countries[loser];
     if (c !== null && c !== undefined) {
       c.pending = [];
@@ -1170,7 +1190,7 @@ export class WwPolitics {
     params: Record<string, string | number> = {},
   ): void {
     const p = this.player(smallID);
-    if (p === null || p.type() !== PlayerType.Human) return;
+    if (p === null || !this.isHuman(smallID)) return;
     this.mg.displayMessage(
       `events_display.${key}`,
       MessageType.WORLD_WAR,
@@ -1387,7 +1407,6 @@ export class WwPolitics {
       access: this.access.map((x) => [x.by, x.from]),
       opinions: this.opinions.map((o) => [o.a, o.b, o.value, o.untilDay]),
       legalOwner: Array.from(this.legalOwner),
-      coreOverride: Array.from(this.coreOverride),
       gflags: [...this.gflags],
       firedOnceGlobal: [...this.firedOnceGlobal],
       removedGenerals: [...this.removedGenerals],
@@ -1553,7 +1572,6 @@ export class WwPolitics {
       untilDay,
     }));
     this.legalOwner.set(s.legalOwner);
-    this.coreOverride.set(s.coreOverride);
     this.gflags = new Map(s.gflags);
     this.firedOnceGlobal = new Set(s.firedOnceGlobal);
     this.removedGenerals = new Set(s.removedGenerals);

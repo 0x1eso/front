@@ -56,7 +56,7 @@ export type WwGame = Pick<
   | "usernameOf"
   | "numLandTiles"
 > &
-  Partial<Pick<GameView, "wwPolitics">>;
+  Partial<Pick<GameView, "wwPolitics" | "wwEndgame">>;
 
 export function countryName(tag: CountryTag): string {
   return translateText(`ww1936.country.${tag}`);
@@ -88,6 +88,9 @@ export const DECLARE_BLOCK_KEYS: Readonly<Record<DeclareWarBlock, string>> = {
   guarantor: "ww1936.declare.block.guarantor",
   democracy_no_goal: "ww1936.declare.block.democracy_no_goal",
   isolation: "ww1936.declare.block.isolation",
+  // P5 (spec §9.1, §10).
+  subject_restricted: "ww1936.declare.block.subject_restricted",
+  exile: "ww1936.declare.block.exile",
 };
 
 export function factionName(id: FactionKey, game?: WwGame): string {
@@ -177,6 +180,17 @@ export function isCapitulated(game: WwGame, smallID: number): boolean {
   );
 }
 
+/**
+ * P5 pre-flight §0-1: the country still plays — alive and not capitulated,
+ * or a government in exile (which has no land but fights on). The screens'
+ * "is it out of the game" question; the engine's is WorldWar.isActor.
+ */
+export function wwActive(game: WwGame, smallID: number): boolean {
+  if (game.wwEndgame?.()?.isExile(smallID) === true) return true;
+  const p = asPlayer(game, smallID);
+  return p !== null && p.isAlive() && !isCapitulated(game, smallID);
+}
+
 function asPlayer(game: WwGame, smallID: number): PlayerView | null {
   // GameView throws for a smallID whose first update has not arrived yet.
   let p: ReturnType<WwGame["playerBySmallID"]>;
@@ -261,17 +275,29 @@ export function viewScoreInputs(game: WwGame): CountryScoreInput[] {
     const owner = game.ownerID(s.vpTile(r));
     if (owner > 0 && owner < vp.length) vp[owner] += r.vp;
   }
-  return s.countries.map((tag, i) => {
+  const eg = game.wwEndgame?.() ?? null;
+  // P5 (spec §16.1): no dormant slot is a line; a subject without a
+  // faction of its own counts in its overlord's.
+  return s.countries.flatMap((tag, i) => {
     const id = i + 1;
+    const dormant =
+      eg !== null && eg.countries.has(id)
+        ? eg.isDormant(id)
+        : s.isDormantSlot(id);
+    if (dormant) return [];
     const p = asPlayer(game, id);
-    return {
-      smallID: id,
-      faction: factionOfId(game, id),
-      major: COUNTRIES[tag].major,
-      alive: p !== null && p.isAlive() && !isCapitulated(game, id),
-      vp: vp[id],
-      tiles: p?.numTilesOwned() ?? 0,
-    };
+    const own = factionOfId(game, id);
+    const overlord = eg?.subjectOf(id)?.overlord ?? 0;
+    return [
+      {
+        smallID: id,
+        faction: own ?? (overlord > 0 ? factionOfId(game, overlord) : null),
+        major: COUNTRIES[tag].major,
+        alive: wwActive(game, id),
+        vp: vp[id],
+        tiles: p?.numTilesOwned() ?? 0,
+      },
+    ];
   });
 }
 
@@ -348,8 +374,8 @@ export function diplomacyModel(game: WwGame): DiplomacyModel {
         .map((id) => ({
           tag: s.tagOfSmallId(id)!,
           smallID: id,
-          capitulated: isCapitulated(game, id),
-          alive: asPlayer(game, id)?.isAlive() ?? false,
+          capitulated: isCapitulated(game, id) && !wwActive(game, id),
+          alive: wwActive(game, id),
         })),
     }))
     .filter((f) => f.members.length > 0);
@@ -382,8 +408,8 @@ export function callIns(game: WwGame, target: PlayerView): number {
     const id = i + 1;
     if (id === target.smallID() || id === myID) return;
     if (factionOfId(game, id) !== faction || atWar.has(id)) return;
-    if (isCapitulated(game, id) || !(asPlayer(game, id)?.isAlive() ?? false))
-      return;
+    // P5 pre-flight §0-1: an exile of the faction is drawn in too.
+    if (!wwActive(game, id)) return;
     n++;
   });
   return n;

@@ -820,6 +820,16 @@ export class GameImpl implements Game {
   }
 
   playerByClientID(id: ClientID): Player | null {
+    // World War 1936 P5 (plan decision 7): a client that took over another
+    // country commands that one; a spectator (0) commands none.
+    if (this._worldWar !== null) {
+      const c = this._worldWar.controlledBy(id);
+      if (c === 0) return null;
+      if (c !== null) {
+        const p = this.playerBySmallID(c);
+        return p.isPlayer() ? p : null;
+      }
+    }
     for (const [, player] of this._players) {
       if (player.clientID() === id) {
         return player;

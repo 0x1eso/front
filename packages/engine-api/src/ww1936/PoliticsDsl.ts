@@ -19,6 +19,13 @@ import {
   WW_TECH_IDS,
   WwTechId,
 } from "./EconomyTypes";
+import {
+  COUNTRY_STATES,
+  CountryState,
+  LendLeaseItem,
+  SUBJECT_LEVELS,
+  SubjectLevel,
+} from "./EndgameTypes";
 import { SHIP_CLASSES, ShipClass } from "./NavyTypes";
 import {
   IDEOLOGIES,
@@ -38,7 +45,9 @@ export type Selector =
   | "target"
   | { tag: CountryTag }
   | { factionLeaderOf: Selector }
-  | { ownerOf: string };
+  | { ownerOf: string }
+  // P5 (plan decision 26): the country's overlord (0 when it is no subject).
+  | { overlordOf: Selector };
 
 /**
  * Spec §10.4 RegionPick, plus two picks the controller added for the
@@ -118,6 +127,20 @@ export const CONDITION_KINDS = [
   // P4 (P4 spec §16.3, plan decision 24), appended.
   "navy_size",
   "fuel_ratio_below",
+  // P5 (P5 spec §16.4, plan decision 26), appended.
+  "is_exile",
+  "exile_host",
+  "is_subject",
+  "subject_of",
+  "subject_level_ge",
+  "autonomy_ge",
+  "country_state",
+  "occupied_by",
+  "resistance_ge",
+  "compliance_ge",
+  "war_score_share_ge",
+  "in_conference",
+  "legitimacy_ge",
 ] as const;
 export type ConditionKind = (typeof CONDITION_KINDS)[number];
 
@@ -187,6 +210,15 @@ export type LeafCondition = W &
     // P4 (plan decision 24)
     | { kind: "navy_size"; min: number; cls?: ShipClass }
     | { kind: "fuel_ratio_below"; pct: number }
+    // P5 (plan decision 26)
+    | { kind: "is_exile" | "is_subject" | "in_conference" }
+    | { kind: "exile_host" | "subject_of"; of: Selector }
+    | { kind: "subject_level_ge"; level: SubjectLevel }
+    | { kind: "autonomy_ge" | "legitimacy_ge"; pct: number }
+    | { kind: "country_state"; tag: CountryTag; state: CountryState }
+    | { kind: "occupied_by"; group: string; of: Selector }
+    | { kind: "resistance_ge" | "compliance_ge"; group: string; pct: number }
+    | { kind: "war_score_share_ge"; of: Selector; pct: number }
   );
 export type Condition =
   | { all: Condition[] }
@@ -272,6 +304,32 @@ export const EFFECT_KINDS = [
   "ships",
   "convoys",
   "fuel",
+  // endgame (P5 spec §16.4 order, plan decision 26), appended.
+  "release",
+  "create_state",
+  "make_subject",
+  "end_subject",
+  "autonomy",
+  "occupation_zone",
+  "annex_occupied",
+  "separate_peace",
+  "switch_sides",
+  "set_name",
+  "transfer_ships",
+  "scuttle_fleet",
+  "lend_lease",
+  "volunteers",
+  "exile_legitimacy",
+  "embargo",
+  "end_embargo",
+  "reparations",
+  "surrender",
+  "uprising",
+  "resistance",
+  "compliance",
+  "restore_country",
+  // P5 pre-flight §A E × T1: navy experience (K4's focus rewards).
+  "navy_xp",
 ] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 export type EffectGroup =
@@ -280,17 +338,21 @@ export type EffectGroup =
   | "econ"
   | "diplo"
   | "territory"
-  | "navy";
+  | "navy"
+  | "endgame";
 
 const FIRST_ECON = EFFECT_KINDS.indexOf("build");
 const FIRST_EVENT = EFFECT_KINDS.indexOf("fire_event");
 const FIRST_DIPLO = EFFECT_KINDS.indexOf("war_goal");
 const FIRST_TERRITORY = EFFECT_KINDS.indexOf("annex");
 const FIRST_NAVY = EFFECT_KINDS.indexOf("ships");
+const FIRST_ENDGAME = EFFECT_KINDS.indexOf("release");
 
 /** Plan decision 12: who runs each kind. */
 export function effectGroup(k: EffectKind): EffectGroup {
   const i = EFFECT_KINDS.indexOf(k);
+  // P5 plan decision 26: first (the P5 kinds follow the P4 ones).
+  if (i >= FIRST_ENDGAME) return "endgame";
   // P4 plan decision 24: before the ranges below (the P4 kinds follow annex).
   if (i >= FIRST_NAVY) return "navy";
   if (i < FIRST_ECON) return "political";
@@ -405,6 +467,66 @@ export type Effect = W &
       }
     | { kind: "convoys"; amount: number }
     | { kind: "fuel"; amount: number }
+    // P5 (plan decision 26)
+    | {
+        kind: "release";
+        tag: CountryTag;
+        as: "puppet" | "free";
+        regions?: string;
+        overlord?: Selector;
+      }
+    | {
+        kind: "create_state";
+        tag: CountryTag;
+        regions: string[];
+        from: Selector;
+        overlord: Selector;
+        level: SubjectLevel;
+        neutral?: boolean;
+        ideology: Ideology;
+        leader?: string;
+      }
+    | {
+        kind: "make_subject";
+        target: Selector;
+        level: SubjectLevel | "up" | "down";
+        neutral?: boolean;
+      }
+    | { kind: "end_subject"; target: Selector }
+    | { kind: "autonomy"; pct: number }
+    | {
+        kind: "occupation_zone";
+        group: string;
+        holder?: Selector;
+        days?: number;
+        seize?: boolean;
+      }
+    | { kind: "annex_occupied"; group: string; to?: Selector }
+    | { kind: "separate_peace"; with: "all" | Selector }
+    | { kind: "switch_sides"; to: Selector }
+    | { kind: "set_name"; key: string }
+    | { kind: "transfer_ships"; to: Selector; pct: number }
+    | { kind: "scuttle_fleet"; pct: number }
+    | {
+        kind: "lend_lease";
+        to: Selector;
+        item: LendLeaseItem;
+        perMonth: number;
+        gen?: number;
+      }
+    | { kind: "volunteers"; to: Selector; divisions?: number; planes?: number }
+    | {
+        kind: "exile_legitimacy";
+        pct: number;
+        scope?: "self" | "faction_exiles";
+      }
+    | { kind: "embargo" | "end_embargo"; on: Selector }
+    | { kind: "reparations"; to: Selector; k: number; days: number }
+    | { kind: "surrender"; to?: Selector }
+    | { kind: "uprising"; group: string }
+    | { kind: "resistance" | "compliance"; group: string; pct: number }
+    | { kind: "restore_country"; tag: CountryTag | "target" }
+    | { kind: "navy_xp"; amount: number }
   );
 
 // ---- zod (content checks; the engine trusts checked data) ----
@@ -426,6 +548,8 @@ export const SelectorSchema: z.ZodType<Selector> = z.lazy(() =>
     z.object({ tag }).strict(),
     z.object({ factionLeaderOf: SelectorSchema }).strict(),
     z.object({ ownerOf: id }).strict(),
+    // P5 (plan decision 26)
+    z.object({ overlordOf: SelectorSchema }).strict(),
   ]),
 );
 const who = { who: SelectorSchema.optional() };
@@ -538,6 +662,21 @@ export const WwConditionSchema: z.ZodType<Condition> = z.lazy(() =>
       cls: z.enum(SHIP_CLASSES).optional(),
     }),
     ...leaf(["fuel_ratio_below"], { pct: pos.max(100) }),
+    // P5 (plan decision 26)
+    ...leaf(["is_exile", "is_subject", "in_conference"], {}),
+    ...leaf(["exile_host", "subject_of"], { of: SelectorSchema }),
+    ...leaf(["subject_level_ge"], { level: z.enum(SUBJECT_LEVELS) }),
+    ...leaf(["autonomy_ge", "legitimacy_ge"], { pct: int.min(0).max(100) }),
+    ...leaf(["country_state"], { tag, state: z.enum(COUNTRY_STATES) }),
+    ...leaf(["occupied_by"], { group: id, of: SelectorSchema }),
+    ...leaf(["resistance_ge", "compliance_ge"], {
+      group: id,
+      pct: int.min(0).max(100),
+    }),
+    ...leaf(["war_score_share_ge"], {
+      of: SelectorSchema,
+      pct: int.min(0).max(100),
+    }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Condition>;
 
@@ -708,5 +847,79 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
       port: pos.max(SEA_ZONE_BASE - 1).optional(),
     }),
     ...leaf(["convoys", "fuel"], { amount: int.min(-100_000).max(100_000) }),
+    // P5 (plan decision 26)
+    ...leaf(["release"], {
+      tag,
+      as: z.enum(["puppet", "free"]),
+      regions: id.optional(),
+      overlord: SelectorSchema.optional(),
+    }),
+    ...leaf(["create_state"], {
+      tag,
+      regions: z.array(id).min(1),
+      from: SelectorSchema,
+      overlord: SelectorSchema,
+      level: z.enum(SUBJECT_LEVELS),
+      neutral: z.boolean().optional(),
+      ideology: ideo,
+      leader: id.optional(),
+    }),
+    ...leaf(["make_subject"], {
+      target: SelectorSchema,
+      level: z.union([z.enum(SUBJECT_LEVELS), z.enum(["up", "down"])]),
+      neutral: z.boolean().optional(),
+    }),
+    ...leaf(["end_subject"], { target: SelectorSchema }),
+    ...leaf(["autonomy"], { pct: int.min(-100).max(100) }),
+    ...leaf(["exile_legitimacy"], {
+      pct: int.min(-100).max(100),
+      scope: z.enum(["self", "faction_exiles"]).optional(),
+    }),
+    ...leaf(["occupation_zone"], {
+      group: id,
+      holder: SelectorSchema.optional(),
+      days: pos.optional(),
+      seize: z.boolean().optional(),
+    }),
+    ...leaf(["annex_occupied"], { group: id, to: SelectorSchema.optional() }),
+    ...leaf(["separate_peace"], {
+      with: z.union([z.literal("all"), SelectorSchema]),
+    }),
+    ...leaf(["switch_sides"], { to: SelectorSchema }),
+    ...leaf(["set_name"], {
+      key: z
+        .string()
+        .regex(/^ww1936\.[a-z0-9_.]+$/)
+        .max(64),
+    }),
+    ...leaf(["transfer_ships"], { to: SelectorSchema, pct: pos.max(100) }),
+    ...leaf(["scuttle_fleet"], { pct: pos.max(100) }),
+    ...leaf(["lend_lease"], {
+      to: SelectorSchema,
+      item: z.union([z.enum(EQUIPMENT_TYPES), z.literal("fuel")]),
+      perMonth: pos.max(100_000),
+      gen: int.min(0).max(4).optional(),
+    }),
+    ...leaf(["volunteers"], {
+      to: SelectorSchema,
+      divisions: int.min(0).max(12).optional(),
+      planes: int.min(0).max(100).optional(),
+    }),
+    ...leaf(["embargo", "end_embargo"], { on: SelectorSchema }),
+    ...leaf(["reparations"], {
+      to: SelectorSchema,
+      k: pos.max(20),
+      days: pos.max(1461),
+    }),
+    ...leaf(["surrender"], { to: SelectorSchema.optional() }),
+    ...leaf(["uprising"], { group: id }),
+    ...leaf(["resistance", "compliance"], {
+      group: id,
+      pct: int.min(-100).max(100),
+    }),
+    ...leaf(["restore_country"], {
+      tag: z.union([tag, z.literal("target")]),
+    }),
+    ...leaf(["navy_xp"], { amount: int.min(-1000).max(1000) }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Effect>;

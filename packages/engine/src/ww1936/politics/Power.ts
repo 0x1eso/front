@@ -22,7 +22,13 @@ export function dailyPower(
 ): void {
   const c = pol.country(id)!;
   const before = c.ppMilli;
-  c.ppMilli = addPpCapped(c.ppMilli, dailyPpMilli(c.stats));
+  // P5 hook (X): an exile's daily political power is 50..100% (spec §10.4).
+  const pct = pol.ww.endgame.ppFactorPct(id);
+  const gain = dailyPpMilli(c.stats);
+  c.ppMilli = addPpCapped(
+    c.ppMilli,
+    pct === 100 ? gain : Math.floor((gain * pct) / 100),
+  );
   // The running total counts what was added (not what the cap took).
   c.ppCumMilli += Math.max(0, c.ppMilli - before);
   expireSpirits(pol, c, day);

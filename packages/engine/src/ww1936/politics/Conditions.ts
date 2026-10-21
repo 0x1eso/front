@@ -11,6 +11,7 @@ import type {
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { conditionLeaves } from "@openfront/engine-lib/ww1936/Describe";
+import { evalEndgameCondition } from "./ConditionsEndgame";
 import { EffectCtx, resolveSelector } from "./Dispatch";
 import { opinionOf } from "./Treaties";
 import type { WwPolitics } from "./WwPolitics";
@@ -55,9 +56,9 @@ export function armyStrength(pol: WwPolitics, id: number): number {
   return n;
 }
 
+/** P5: a woken dormant slot's capital is its best region (WorldWar.capitalRegion). */
 export function capitalRegion(pol: WwPolitics, id: number): number {
-  const sc = pol.ww.scenario;
-  return sc.regionAt(sc.capitalTile(pol.tagOf(id)));
+  return pol.ww.capitalRegion(id);
 }
 
 /** Spec §6.1, §6.4: % of the legal victory points someone else controls. */
@@ -259,7 +260,8 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
     }
     case "fuel_ratio_below":
       return (pol.econ.country(id)?.fuelRatioPm ?? 1000) < c.pct * 10;
+    // P5 plan decision 26: the endgame's conditions (lane E).
     default:
-      return false;
+      return evalEndgameCondition(ctx, c);
   }
 }

@@ -100,6 +100,11 @@ export class NationExecution implements Execution {
     }
   }
 
+  /** P5 (plan decision 5): the nation's player id (its player is null until init). */
+  nationPlayerId(): PlayerID {
+    return this.nation.playerInfo.id;
+  }
+
   private getAttackRate(): number {
     const { difficulty } = this.mg.config().gameConfig();
     switch (difficulty) {
@@ -117,6 +122,16 @@ export class NationExecution implements Execution {
   }
 
   tick(ticks: number) {
+    // World War 1936 P5 (plan decision 7): a country a human took over
+    // plays by its human's orders only.
+    const ww = this.mg.worldWar();
+    if (
+      ww !== null &&
+      this.player !== null &&
+      ww.isHumanControlled(this.player.smallID())
+    ) {
+      return;
+    }
     // Ship tracking
     if (
       this.behaviorsInitialized &&

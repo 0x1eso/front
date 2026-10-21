@@ -172,10 +172,14 @@ describe("a World War 1936 replay keeps only the economy's troop caps", () => {
     // Every country's cap, and today's, as the engine has it (P2: the men
     // in its field divisions, the troop mirror).
     const land = runner.game.worldWar()!.land;
-    for (const ce of econ.countries()) {
+    // P5 plan decision 4: the dormant slots have no economy (no updates).
+    const playing = econ
+      .countries()
+      .filter((ce) => !econ.scenario.isDormantSlot(ce.smallID));
+    for (const ce of playing) {
       expect(v.wwTroopCapOf(ce.smallID)).toBe(land.fieldMen(ce.smallID));
     }
-    expect(entries).toBeGreaterThan(12 * econ.countries().length);
+    expect(entries).toBeGreaterThan(12 * playing.length);
     console.log(
       `ww1936 replay economy: ${raw} B streamed, ${kept} B kept over ${entries} caps`,
     );

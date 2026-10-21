@@ -114,8 +114,10 @@ function playTo(
 /** Countries out of the game: capitulated, or conquered to the last tile. */
 function fallen(g: Game): number {
   const ww = g.worldWar()!;
+  // P5 plan decision 4: the dormant slots never lived.
   return g
     .allPlayers()
+    .filter((p) => !ww.scenario.isDormantSlot(p.smallID()))
     .filter((p) => !p.isAlive() || ww.isCapitulated(p.smallID())).length;
 }
 
@@ -368,9 +370,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // merged: same value in four runs. P4 foundation and its review fixes
 // (navy and air state, start techs, fuel, convoys, the stub clock; P4
 // techs out of the AI's research for now) with map v4 and the naval data:
-// same value in four runs. The controller re-pins it at every merge that
+// same value in four runs. P5 foundation (the 14 dormant slots: more
+// players and nextID draws, the endgame state and hash, the core table):
+// same value in three runs. The controller re-pins it at every merge that
 // changes the engine.
-const WW1936_DIGEST = "34154a63f3399d0e";
+const WW1936_DIGEST = "175463f03d6a6e0e";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

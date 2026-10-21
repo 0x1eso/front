@@ -69,7 +69,8 @@ export function targetDistances(land: WwLand, army: Army): Int32Array {
   for (let i = 0; i < queue.length; i++) {
     const u = queue[i];
     for (const e of sc.edgesOf(u)) {
-      if (dist[e.to] !== FAR || !land.canEnter(army.owner, e.to)) continue;
+      // P5 (pre-flight §A A × T1): a volunteer army by P5's rule.
+      if (dist[e.to] !== FAR || !land.canArmyEnter(army, e.to)) continue;
       dist[e.to] = dist[u] + 1;
       queue.push(e.to);
     }

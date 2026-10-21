@@ -22,7 +22,7 @@ export const SPIRITS_WORLD: SpiritDef[] = [
     id: "usa_isolation_cracked",
     stats: { warSupportBp: -800 },
     icon: "chain_broken",
-    rules: ["no_faction"],
+    rules: ["no_faction", "no_lend_lease"],
   },
   // United States after the 1937 recession: half of usa_depression.
   {

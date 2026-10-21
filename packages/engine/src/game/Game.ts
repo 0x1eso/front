@@ -669,6 +669,8 @@ export interface Game extends GameLike {
   ): Array<{ unit: Unit; distSquared: number }>;
 
   addExecution(...exec: Execution[]): void;
+  /** Every execution, running and not yet initialised (P5: a woken country's, never twice). */
+  executions(): Execution[];
   displayMessage(
     message: string,
     type: MessageType,

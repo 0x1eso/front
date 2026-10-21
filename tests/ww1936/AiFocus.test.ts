@@ -231,6 +231,9 @@ describe("the AI's focus", { timeout: 60_000 }, () => {
             dev ? bp.alternatives[0] : null,
           );
         }
+        // P5 (plan decision 30): the ITA, JPN, FRA and USA trees are empty
+        // until the content lanes merge (their AI picks no focus till then).
+        if ((p.content.paths[c.tree] ?? []).length === 0) continue;
         const path = historyPath(p, c);
         expect(path.length, t).toBeGreaterThan(20);
         for (const f of path) {

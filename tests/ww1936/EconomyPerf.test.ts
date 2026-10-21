@@ -118,7 +118,9 @@ describe("the economy's cost on world1936 (spec §14.6)", () => {
     );
     const g = runner.game;
     const econ = g.worldWar()!.economy;
-    expect(econ.countries()).toHaveLength(79);
+    // P5 plan decision 3: 79 countries and the 14 dormant slots.
+    expect(econ.countries()).toHaveLength(93);
+    expect(econ.scenario.scenarioCount).toBe(79);
     stepTo(runner, WW_PREP_TICKS);
     const tick = econ.tick.bind(econ);
     let cpu = 0;

@@ -519,6 +519,9 @@ export function createRenderer(
     if (wwNavy !== null) view.setWwNavy(wwNavy);
     const wwAir = game.wwAir();
     if (wwAir !== null) view.setWwAir(wwAir);
+    // P5 (plan Task 1 Step 14): the endgame's view (lanes U1, U2 draw it).
+    const wwEndgame = game.wwEndgame?.() ?? null;
+    if (wwEndgame !== null) view.setWwEndgame(wwEndgame);
   }
 
   const layers: Controller[] = [

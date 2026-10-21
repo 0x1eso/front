@@ -826,7 +826,9 @@ export const PERSONS_LEADERS: readonly PersonDef[] = [
     id: "fra_blum",
     nameKey: "ww1936.person.fra_blum",
     country: "FRA",
-    roles: ["leader"],
+    // P5 (P5 spec §19.5, pre-flight §C): also a political advisor.
+    roles: ["leader", "advisor"],
+    advisor: { slot: "political", traits: ["labour_organizer"] },
     ideology: "democratic",
     leaderTraits: ["popular_front"],
     source:
@@ -837,7 +839,9 @@ export const PERSONS_LEADERS: readonly PersonDef[] = [
     id: "fra_daladier",
     nameKey: "ww1936.person.fra_daladier",
     country: "FRA",
-    roles: ["leader"],
+    // P5 (P5 spec §19.5, pre-flight §C): also a political advisor.
+    roles: ["leader", "advisor"],
+    advisor: { slot: "political", traits: ["administrator"] },
     ideology: "democratic",
     source:
       "President of the Council from 1938-04-10 (en.wikipedia Edouard Daladier; USHMM collections)",

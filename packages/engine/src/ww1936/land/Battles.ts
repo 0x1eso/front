@@ -38,6 +38,8 @@ import { coastalFortBp } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { effectiveLevel } from "../economy/Buildings";
 import { returnManpower } from "../economy/Stock";
+import { captureOnBattleEnd, captureOnEncircled } from "../endgame/Capture";
+import { noteDamage } from "../endgame/Wars";
 import { generalOf } from "./GeneralsRun";
 import { startHopInto, stopDivision } from "./Movement";
 import { capture } from "./Occupation";
@@ -97,7 +99,8 @@ export function joinBattle(land: WwLand, div: number, region: number): void {
   if (r < 0 || t.org[r] <= 0) return;
   const m = t.mode[r];
   if (m === MOVE_RETREAT || m === MOVE_RAIL || m === MOVE_SEA) return;
-  const owner = t.owner[r];
+  // P5 (plan decision 20): a volunteer fights as the country it serves.
+  const owner = land.fightOwner(r);
   if (!land.isEnemy(owner, land.controller[region])) return;
   const at = t.region[r];
   if (at !== region && land.scenario.edgeBetween(at, region) < 0) return;
@@ -156,14 +159,14 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const ok =
       t.org[r] > 0 &&
       t.mode[r] !== MOVE_RETREAT &&
-      land.isEnemy(t.owner[r], ctrl) &&
+      land.isEnemy(land.fightOwner(r), ctrl) &&
       (at === R ||
         (land.scenario.edgeBetween(at, R) >= 0 && !land.battles.has(at)));
     if (!ok) release(land, r);
     return ok;
   });
   const attackerOwners = [
-    ...new Set(b.attackers.map((id) => t.owner[t.rowOf(id)])),
+    ...new Set(b.attackers.map((id) => land.fightOwner(t.rowOf(id)))),
   ];
   // 2. Defenders: in R, standing or walking, at war with every attacking
   // country. A division of R attacking a neighbour leaves that attack to
@@ -184,7 +187,9 @@ function fight(land: WwLand, b: Battle, tick: number): void {
         continue;
       }
       if (t.role[r] === ROLE_ATTACK && t.battle[r] === R) continue;
-      if (!attackerOwners.every((o) => land.isEnemy(o, t.owner[r]))) continue;
+      if (!attackerOwners.every((o) => land.isEnemy(o, land.fightOwner(r)))) {
+        continue;
+      }
       if (t.role[r] === ROLE_ATTACK) release(land, r);
       const id = t.id[r];
       if (!before.has(id)) b.startOrgMilli += t.org[r];
@@ -224,6 +229,14 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // 4. Every hit of the round first, then all of them at once (spec §9.3-6).
   const org = new Map<number, number>();
   const hp = new Map<number, number>();
+  // P5 hook (W, plan decision 21): who dealt each target's HP damage.
+  const dealt = new Map<number, [number, number][]>();
+  const deal = (to: number, by: number, hpMilli: number) => {
+    if (hpMilli <= 0) return;
+    const l = dealt.get(to);
+    if (l === undefined) dealt.set(to, [[by, hpMilli]]);
+    else l.push([by, hpMilli]);
+  };
   // Every number a hit reads, once per division (nothing changes before
   // the damage is applied below).
   const stats = new Map<number, DivisionStats>();
@@ -247,6 +260,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const dmg = roundDamage(roundHits(a, d), ts.armor > s.pierce);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
+    deal(to, land.fightOwner(from), dmg.hpMilli);
   };
   const mods = new Map<number, CombatMods>();
   for (const r of att.active) mods.set(r, modsOf(land, r, R, true));
@@ -266,7 +280,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // P4 spec §14.7: each side's close air support, a round's hits on one
   // enemy division in line (round robin), no block value; the target's
   // anti-air (1% a point, at most 60%) and the region's AA (5% a level) cut it.
-  const cas = (hits: number, targets: readonly number[]) => {
+  const cas = (hits: number, targets: readonly number[], by: number) => {
     if (hits <= 0 || targets.length === 0) return;
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
@@ -277,9 +291,10 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const dmg = roundDamage(h, false);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
+    deal(to, by, dmg.hpMilli);
   };
-  cas(land.hooks.casHits(R, land.sideOf(b.attLead)), def.active);
-  cas(land.hooks.casHits(R, land.sideOf(ctrl)), att.active);
+  cas(land.hooks.casHits(R, land.sideOf(b.attLead)), def.active, b.attLead);
+  cas(land.hooks.casHits(R, land.sideOf(ctrl)), att.active, ctrl);
   const destroyed: DestroyedSink = { battle: b, counts: new Map() };
   sink = destroyed;
   try {
@@ -288,7 +303,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       t.org[r] = Math.max(0, was - o);
       if (t.role[r] === ROLE_DEFEND) b.lostOrgMilli += was - t.org[r];
       land.markArmy(t.army[r]);
+      const menBefore = t.men[r];
+      const against = t.owner[r];
       applyHpLoss(land, r, hp.get(r) ?? 0);
+      const lost = t.id[r] === 0 ? menBefore : menBefore - t.men[r];
+      if (lost > 0) noteBattleDamage(land, b, dealt.get(r), against, lost);
     }
     for (const r of [...att.active, ...def.active]) {
       // The tick of the round (Task 11): each country's day counts the
@@ -388,7 +407,9 @@ function widestOwner(
   for (const id of line) {
     const r = t.rowOf(id);
     if (r < 0) continue;
-    w.set(t.owner[r], (w.get(t.owner[r]) ?? 0) + land.widthOf(r));
+    // P5 (plan decision 20): a volunteer counts for the country it serves.
+    const o = land.fightOwner(r);
+    w.set(o, (w.get(o) ?? 0) + land.widthOf(r));
   }
   let best = keep;
   let bestW = -1;
@@ -489,6 +510,8 @@ export function closeBattle(land: WwLand, region: number): void {
 
 /** Spec §9.3-8: nobody attacks any more; the attackers stay where they are and the spread goes back (Occupation). */
 function endDefended(land: WwLand, b: Battle): void {
+  // P5 hook (A, spec §14): the defenders held the field.
+  captureOnBattleEnd(land.ww.endgame, b, 1);
   const s = land.spreads.get(b.region);
   if (s !== undefined && s.by !== land.controller[b.region]) {
     s.kind = SPREAD_REVERT;
@@ -518,9 +541,12 @@ function won(land: WwLand, b: Battle, tick: number): void {
       advancers.push(r);
     }
   }
+  // P5 hook (A, spec §14): the attackers took the field.
+  captureOnBattleEnd(land.ww.endgame, b, 0);
   closeBattle(land, R);
   if (inside >= 0) {
-    capture(land, R, t.owner[inside], tick);
+    // P5 (plan decision 20): a volunteer takes it for the country it serves.
+    capture(land, R, land.fightOwner(inside), tick);
     return;
   }
   for (const r of advancers) startHopInto(land, r, R, MOVE_ADVANCE);
@@ -538,18 +564,23 @@ export function retreatDivision(land: WwLand, row: number): void {
   const to = refugeOf(land, row);
   if (to === 0) {
     const owner = t.owner[row];
+    const fo = land.fightOwner(row);
     const at = t.region[row];
     // The opponent: the other side of its battle, else whoever holds the
     // region it stands in or was heading for.
     let opponent = opponentOf(land, row);
-    if (opponent === 0 && land.isEnemy(owner, land.controller[at])) {
+    if (opponent === 0 && land.isEnemy(fo, land.controller[at])) {
       opponent = land.controller[at];
     }
     const next = t.next[row];
-    if (opponent === 0 && land.isEnemy(owner, land.controller[next])) {
+    if (opponent === 0 && land.isEnemy(fo, land.controller[next])) {
       opponent = land.controller[next];
     }
     const region = t.battle[row] !== 0 ? t.battle[row] : at;
+    // P5 hook (A, spec §14): destroyed in a pocket, its equipment is taken.
+    if (t.encircled[row] !== 0 && opponent > 0) {
+      captureOnEncircled(land.ww.endgame, row, opponent);
+    }
     land.killDivision(row, true);
     noteDestroyed(land, owner, region, opponent);
     return;
@@ -567,7 +598,8 @@ export function retreatDivision(land: WwLand, row: number): void {
  */
 export function refugeOf(land: WwLand, row: number): number {
   const t = land.divisions;
-  const owner = t.owner[row];
+  // P5 (plan decision 20): a volunteer retreats into its host's side.
+  const owner = land.fightOwner(row);
   const enc = t.encircled[row] !== 0;
   const sc = land.scenario;
   let best = 0;
@@ -628,6 +660,9 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   // Written in place, one touchDivision for all of it (P2 Task 11 perf).
   const eq = t.equip;
   const base = row * GROUND_SLOTS;
+  // P5 (plan decision 21): the battle's equipment ledger, by side.
+  const bt = t.battle[row] === 0 ? undefined : land.battles.get(t.battle[row]);
+  const side = t.role[row] === ROLE_ATTACK ? 0 : GROUND_SLOTS;
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const have = eq[base + j];
     const carry = t.lossEq[base + j];
@@ -638,6 +673,10 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     const k = Math.min(have, Math.floor(m / 1000));
     t.lossEq[base + j] = k === have ? 0 : m - k * 1000;
     if (k > 0) eq[base + j] = have - k;
+    if (k > 0 && bt !== undefined) {
+      bt.capEq ??= new Array<number>(2 * GROUND_SLOTS).fill(0);
+      bt.capEq[side + j] += k * 1000;
+    }
   }
   if (lost > 0) {
     const pct = (flags & TPL_HOSPITAL) !== 0 ? 50 : 20;
@@ -890,4 +929,37 @@ export function modInputOf(
     coastalFortBp: fortBp,
     shoreBp: attacking ? 0 : land.hooks.shoreBombardBp(region, side),
   };
+}
+
+/**
+ * P5 (plan decision 21): `lost` men of `against` died this round; each
+ * dealer gets its share by the HP it dealt (floor), into the battle's
+ * ledger and the war score (lane W's noteDamage).
+ */
+function noteBattleDamage(
+  land: WwLand,
+  b: Battle,
+  dealers: readonly [number, number][] | undefined,
+  against: number,
+  lost: number,
+): void {
+  if (dealers === undefined || dealers.length === 0) return;
+  const by = new Map<number, number>();
+  let total = 0;
+  for (const [o, h] of dealers) {
+    by.set(o, (by.get(o) ?? 0) + h);
+    total += h;
+  }
+  if (total <= 0) return;
+  const ledger = (b.dmgBy ??= []);
+  for (const [o, h] of [...by].sort((x, y) => x[0] - y[0])) {
+    const men = Math.floor((lost * h) / total);
+    if (men <= 0) continue;
+    const row = ledger.find((x) => x[0] === o);
+    if (row === undefined) {
+      ledger.push([o, men]);
+      ledger.sort((x, y) => x[0] - y[0]);
+    } else row[1] += men;
+    noteDamage(land.ww.endgame, o, against, men);
+  }
 }

@@ -51,7 +51,8 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [5, 2, 78, 15],
     stability: 55,
     warSupport: 65,
-    tree: "generic",
+    // P5 (P5 spec §18.1-5): its own tree.
+    tree: "ITA",
     spirits: ["ita_abyssinia", "ita_sanctions"],
     leaders: {
       democratic: "title:leader_democratic",
@@ -68,7 +69,8 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 2, 33, 50],
     stability: 50,
     warSupport: 55,
-    tree: "generic",
+    // P5 (P5 spec §18.1-5): its own tree.
+    tree: "JPN",
     spirits: ["jpn_service_rivalry"],
     // Pre-flight R7: Okada (leader_jpn) leads at the start only; after the
     // 26 February incident Japan shows the title (spec §5.7).
@@ -106,7 +108,8 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [60, 15, 10, 15],
     stability: 45,
     warSupport: 25,
-    tree: "generic",
+    // P5 (P5 spec §18.1-5): its own tree.
+    tree: "FRA",
     firstElection: "1936-04-26",
     spirits: ["fra_divided", "fra_defensive_mind", "fra_hollow_years"],
     leaders: {
@@ -124,7 +127,8 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [80, 2, 3, 15],
     stability: 60,
     warSupport: 15,
-    tree: "generic",
+    // P5 (P5 spec §18.1-5): its own tree.
+    tree: "USA",
     firstElection: "1936-11-03",
     spirits: ["usa_depression", "usa_isolation"],
     leaders: {

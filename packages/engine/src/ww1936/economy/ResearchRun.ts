@@ -1,7 +1,7 @@
 // World War 1936 P1: research slots (spec §9). The judgement is shared
 // with the screens (engine-lib EconomyChecks); the orders and the daily
 // step live here.
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
   WwOrderBlock,
   WwTechId,
@@ -103,7 +103,7 @@ export function stepResearch(
   p: Player,
   day: number,
 ): void {
-  const human = p.type() === PlayerType.Human;
+  const human = econ.ww.isHumanControlled(p.smallID());
   let added = 0;
   while (ce.slots.length < ce.totals.slotCount) {
     ce.slots.push(null);

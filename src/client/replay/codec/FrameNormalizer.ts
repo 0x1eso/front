@@ -21,7 +21,9 @@ import {
   type PlayerUpdate,
   type UnitUpdate,
   type WwEconomyUpdate,
+  type WwEndgameUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
+import type { WwEndgameData } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   unpackMotionPlans,
   type MotionPlanRecord,
@@ -104,6 +106,10 @@ export const UPDATE_TYPE_ROUTING: Record<
   // shows no World War HUD, so it keeps no fleets or air zones.
   WwNavy: "dropped",
   WwAir: "dropped",
+  // World War 1936 P5 (plan decision 23): only what the screens redraw
+  // (MISC_TRIM): countries, controllers, wars, the peace log, zones,
+  // subjects, exiles and news.
+  WwEndgame: "misc",
 };
 
 /**
@@ -353,6 +359,21 @@ const MISC_TRIM: Partial<
     const caps: number[] = [];
     for (const c of countries) caps.push(c.smallID, c.troopCap);
     return { caps } satisfies WwEconomyMisc;
+  },
+  WwEndgame: (u) => {
+    const d = (u as WwEndgameUpdate).data;
+    const out: Partial<WwEndgameData> = {};
+    if (d.countries !== undefined) out.countries = d.countries;
+    if (d.controllers !== undefined) out.controllers = d.controllers;
+    if (d.wars !== undefined) out.wars = d.wars;
+    if (d.peaceLog !== undefined) out.peaceLog = d.peaceLog;
+    if (d.zones !== undefined) out.zones = d.zones;
+    if (d.subjects !== undefined) out.subjects = d.subjects;
+    if (d.exiles !== undefined) out.exiles = d.exiles;
+    if (d.news.length > 0) out.news = d.news;
+    if (Object.keys(out).length === 0) return null;
+    // As an untrimmed update would be kept: no numeric type, the data.
+    return { data: { news: [], ...out } satisfies WwEndgameData };
   },
 };
 

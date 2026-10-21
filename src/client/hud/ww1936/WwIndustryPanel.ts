@@ -66,11 +66,11 @@ import {
 import { conscriptionLaw } from "./PoliticsModel";
 import {
   countryName,
-  isCapitulated,
   isKoreanUi,
   today,
   TWO_TAP_MS,
   TwoTap,
+  wwActive,
 } from "./WorldWarModel";
 import {
   OpenWwIndustryEvent,
@@ -195,7 +195,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       day: today(game),
       korean: isKoreanUi(),
       fighting: fightingFn(game),
-      dead: !me.isAlive() || isCapitulated(game, id),
+      // P5 pre-flight §0-1: an exile still builds.
+      dead: !wwActive(game, id),
     };
   }
 

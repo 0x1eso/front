@@ -252,6 +252,9 @@ export function queueTraining(
   cl: CountryLand,
   o: Extract<LandOrder, { kind: "train" }>,
 ): WwOrderBlock | null {
+  // P5 hook (W, spec §6.4): a disarmed country trains no more divisions.
+  const disarmed = land.ww.endgame.disarmBlock(cl.smallID, "train");
+  if (disarmed !== null) return disarmed;
   if (cl.training.length >= WW_MAX_TRAINING) return "queue_full";
   const s = land.templateStatsOf(cl.smallID, o.template);
   if (s === null) return "bad_template";

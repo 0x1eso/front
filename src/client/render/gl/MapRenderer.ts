@@ -16,6 +16,7 @@ import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwAirView } from "../../view/WwAirView";
+import type { WwEndgameView } from "../../view/WwEndgameView";
 import type { WwLandView } from "../../view/WwLandView";
 import type { WwNavyView } from "../../view/WwNavyView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
@@ -55,6 +56,8 @@ export class MapRenderer {
   /** P4: kept for lane R's passes (plan Task 11). */
   private storedWwNavy: WwNavyView | null = null;
   private storedWwAir: WwAirView | null = null;
+  /** P5 (plan Task 1 Step 14): the endgame view (lane U1 draws the conference map mode). */
+  private storedWwEndgame: WwEndgameView | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -415,6 +418,14 @@ export class MapRenderer {
   /** World War 1936 P4: the air view the air layer and sorties read (lane R). */
   setWwAir(view: WwAirView): void {
     this.storedWwAir = view;
+  }
+
+  /**
+   * World War 1936 P5: the endgame view the conference and occupation map
+   * modes read (lanes U1, U2 draw them).
+   */
+  setWwEndgame(view: WwEndgameView): void {
+    this.storedWwEndgame = view;
   }
 
   /** Set up map-layer passes from the loaded layer data. */

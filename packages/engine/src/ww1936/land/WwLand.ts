@@ -2,11 +2,7 @@
 // (docs/superpowers/specs/2026-10-20-ww1936-p2-divisions-design.md).
 // One WwLand lives in WorldWar next to the economy; WorldWarExecution
 // ticks it after economy.tick. Every list iterates in number order.
-import {
-  Cell,
-  MessageType,
-  PlayerType,
-} from "@openfront/engine-api/game/GameTypes";
+import { Cell, MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -355,6 +351,12 @@ export interface Army {
   pending: boolean;
   /** Day of the last paradrop; -1: never. */
   paraLastDay: number;
+  /**
+   * P5 (spec §12.2, plan decision 20): the country this army fights for as
+   * a volunteer (its side, its wars), 0 for its owner's own. Set only by
+   * WwLand.setVolunteerFor.
+   */
+  volunteerFor: number;
 }
 
 export interface Battle {
@@ -374,6 +376,14 @@ export interface Battle {
   /** Colour of the spread (spec §9.1): widest attacker country, defender = controller. */
   attLead: number;
   defLead: number;
+  /**
+   * P5 (plan decision 21, spec §14): equipment lost in it, milli, by side
+   * (the first GROUND_SLOTS the attackers', then the defenders'); written
+   * on the first loss.
+   */
+  capEq?: number[];
+  /** P5: men each country killed in it, by smallID ascending ([country, men]). */
+  dmgBy?: [number, number][];
 }
 
 export const SPREAD_BATTLE = 0;
@@ -527,6 +537,7 @@ export const WwLandStateSchema = z.object({
       path: zInts(),
       pending: z.boolean(),
       paraLastDay: zInt(),
+      volunteerFor: zInt().optional(),
     }),
   ),
   battles: z.array(
@@ -542,6 +553,8 @@ export const WwLandStateSchema = z.object({
       lostOrgMilli: zInt(),
       attLead: zInt(),
       defLead: zInt(),
+      capEq: zInts().optional(),
+      dmgBy: z.array(z.tuple([zInt(), zInt()])).optional(),
     }),
   ),
   spreads: z.array(
@@ -800,6 +813,8 @@ export class WwLand {
   private countryList: (CountryLand | null)[];
   // Derived (DERIVED_FIELDS).
   private sideOfId: number[] = [];
+  /** P5 (DERIVED_FIELDS): armies with volunteerFor > 0 (0: fightOwner is the owner). */
+  private volunteerArmyCount = 0;
   private sideListCache: Side[] = [];
   private statsCache = new Map<number, StatsEntry>();
   /** owner × 65536 + template → the template's numbers by generation mix. */
@@ -919,12 +934,12 @@ export class WwLand {
   private dailyCountry(id: number, day: number): void {
     const cl = this.countryList[id];
     const p = this.mg.playerBySmallID(id);
+    // P5 plan decision 6: the countries that play (an exile does).
     if (
       cl === null ||
       cl === undefined ||
       !p.isPlayer() ||
-      !p.isAlive() ||
-      this.ww.isCapitulated(id)
+      !this.ww.isActor(id)
     ) {
       return;
     }
@@ -934,8 +949,9 @@ export class WwLand {
     dailyFronts(this, id, day);
     dailySustain(this, id, day);
     dailyEntrench(this, id);
+    // P5 plan decision 7: the AI runs a country no human controls now.
     if (
-      p.type() !== PlayerType.Human ||
+      !this.ww.isHumanControlled(id) ||
       this.armiesOf(id).some((a) => a.auto)
     ) {
       aiLandTick(this, id, day);
@@ -959,12 +975,8 @@ export class WwLand {
   ): WwOrderBlock | null {
     const cl = this.country(smallID);
     const p = this.mg.playerBySmallID(smallID);
-    if (
-      cl === null ||
-      !p.isPlayer() ||
-      !p.isAlive() ||
-      this.ww.isCapitulated(smallID)
-    ) {
+    // P5 plan decision 6: the country plays (an exile does).
+    if (cl === null || !p.isPlayer() || !this.ww.isActor(smallID)) {
       return "dead";
     }
     let block: WwOrderBlock | null;
@@ -1042,6 +1054,43 @@ export class WwLand {
     return this.sideListCache;
   }
 
+  /**
+   * P5 (plan decision 20): the country a division fights as — its army's
+   * volunteerFor when it has one, else its owner. Enemy, side and capture
+   * judgements of a division read this.
+   */
+  fightOwner(row: number): number {
+    const owner = this.divisions.owner[row];
+    if (this.volunteerArmyCount === 0) return owner;
+    const v = this.armies.get(this.divisions.army[row])?.volunteerFor ?? 0;
+    return v > 0 ? v : owner;
+  }
+
+  /** P5 (plan decision 20): the side a division fights on. */
+  divisionSide(row: number): number {
+    return this.sideOf(this.fightOwner(row));
+  }
+
+  /** P5 lane A: an army fights for `to` (0: its owner again). */
+  setVolunteerFor(a: Army, to: number): void {
+    if (a.volunteerFor === to) return;
+    if (a.volunteerFor > 0) this.volunteerArmyCount--;
+    a.volunteerFor = to;
+    if (to > 0) this.volunteerArmyCount++;
+    this.dirtyArmies.add(a.id);
+  }
+
+  /**
+   * P5 (pre-flight §A A × T1): where an army may go — a volunteer army by
+   * P5's rule (lane A), else its owner's (canEnter).
+   */
+  canArmyEnter(a: Army, region: number): boolean {
+    if (a.volunteerFor > 0) {
+      return this.ww.endgame.volunteerCanEnter(a.id, region);
+    }
+    return this.canEnter(a.owner, region);
+  }
+
   /** At war and past the preparation minute (P0 canFight). */
   isEnemy(a: number, b: number): boolean {
     return a > 0 && b > 0 && this.ww.canFight(a, b, this.mg.ticks());
@@ -1054,6 +1103,8 @@ export class WwLand {
    */
   canEnter(smallID: number, region: number): boolean {
     if (dmzBlocks(this, smallID, region)) return false;
+    // P5 (spec §6.4): a peace treaty's demilitarised region.
+    if (this.ww.endgame.isDmz(region, smallID)) return false;
     const c = this.controller[region] ?? 0;
     return (
       c !== 0 &&
@@ -1090,6 +1141,8 @@ export class WwLand {
     // loser's side put to sea, bases change hands for the air war.
     this.ww.navy.onControlChanged(region, old, by, tick);
     this.ww.air.onControlChanged(region, old, by, tick);
+    // P5 hook (O, plan decision 18): who administers it may change.
+    this.ww.endgame.markControlChanged(region);
     // A capitulation hands over dozens of regions at once: no message each.
     if (notify && r.vp > 0) {
       this.message(by, "events_display.ww1936_region_taken", {
@@ -1561,6 +1614,7 @@ export class WwLand {
       path: [],
       pending: false,
       paraLastDay: -1,
+      volunteerFor: 0,
     };
     this.armies.set(a.id, a);
     this.dirtyArmies.add(a.id);
@@ -1573,6 +1627,7 @@ export class WwLand {
     if (a === undefined) return;
     const g = this.country(a.owner)?.generals.find((x) => x.army === id);
     if (g !== undefined) g.army = 0;
+    if (a.volunteerFor > 0) this.volunteerArmyCount--;
     this.armies.delete(id);
     this.dirtyArmies.delete(id);
     this.removedArmyIds.push(id);
@@ -1693,7 +1748,8 @@ export class WwLand {
     params: Record<string, string | number> = {},
   ): void {
     const p = this.mg.playerBySmallID(smallID);
-    if (!p.isPlayer() || p.type() !== PlayerType.Human) return;
+    // P5 plan decision 7: the human who controls the country now.
+    if (!p.isPlayer() || !this.ww.isHumanControlled(smallID)) return;
     this.mg.displayMessage(
       key,
       MessageType.WORLD_WAR,
@@ -1706,7 +1762,11 @@ export class WwLand {
   /** AttackExecution / TransportShipExecution refused one (decision 7): tell a human once a game. */
   noteVanillaAttack(p: Player): void {
     const cl = this.country(p.smallID());
-    if (cl === null || cl.warnedTileAttack || p.type() !== PlayerType.Human) {
+    if (
+      cl === null ||
+      cl.warnedTileAttack ||
+      !this.ww.isHumanControlled(p.smallID())
+    ) {
       return;
     }
     cl.warnedTileAttack = true;
@@ -1797,7 +1857,7 @@ export class WwLand {
       d.countries.push(this.countrySummary(cl));
       if (!this.dirtyLandDetails.has(id)) continue;
       const p = this.mg.playerBySmallID(id);
-      if (p.isPlayer() && p.type() === PlayerType.Human) {
+      if (p.isPlayer() && this.ww.isHumanControlled(id)) {
         d.details.push(this.countryDetail(cl));
       }
     }
@@ -1883,7 +1943,7 @@ export class WwLand {
         ? -1
         : BATTALION_IDS.indexOf(counts[0][0] as BattalionId);
     const p = this.mg.playerBySmallID(a.owner);
-    const human = p.isPlayer() && p.type() === PlayerType.Human;
+    const human = p.isPlayer() && this.ww.isHumanControlled(a.owner);
     return {
       id: a.id,
       owner: a.owner,
@@ -2181,6 +2241,7 @@ export class WwLand {
         path: [...a.path],
         pending: a.pending,
         paraLastDay: a.paraLastDay,
+        volunteerFor: a.volunteerFor,
       })),
       battles: [...this.battles.values()].map((b) => ({
         region: b.region,
@@ -2194,6 +2255,10 @@ export class WwLand {
         lostOrgMilli: b.lostOrgMilli,
         attLead: b.attLead,
         defLead: b.defLead,
+        ...(b.capEq === undefined ? {} : { capEq: [...b.capEq] }),
+        ...(b.dmgBy === undefined
+          ? {}
+          : { dmgBy: b.dmgBy.map(([c, m]): [number, number] => [c, m]) }),
       })),
       spreads: [...this.spreads.values()].map((s) => ({
         region: s.region,
@@ -2269,6 +2334,7 @@ export class WwLand {
         path: [...a.path],
         pending: a.pending,
         paraLastDay: a.paraLastDay,
+        volunteerFor: a.volunteerFor ?? 0,
       });
     }
     this.battles.clear();
@@ -2285,6 +2351,10 @@ export class WwLand {
         lostOrgMilli: b.lostOrgMilli,
         attLead: b.attLead,
         defLead: b.defLead,
+        ...(b.capEq === undefined ? {} : { capEq: [...b.capEq] }),
+        ...(b.dmgBy === undefined
+          ? {}
+          : { dmgBy: b.dmgBy.map(([c, m]): [number, number] => [c, m]) }),
       });
     }
     this.spreads.clear();
@@ -2358,8 +2428,10 @@ export class WwLand {
     const byKey = new Map<number, Side>();
     for (let id = 1; id < n; id++) {
       // P3 plan decision 8: the side of politics' faction (index), or alone.
-      const f = this.ww.politics.factionIdx(id);
-      const key = f < 0 ? id : 100_000 + f;
+      // P5 plan decision 20: an exile's side is its host's.
+      const so = this.ww.sideOwner(id);
+      const f = this.ww.politics.factionIdx(so);
+      const key = f < 0 ? so : 100_000 + f;
       this.sideOfId[id] = key;
       let s = byKey.get(key);
       if (s === undefined) byKey.set(key, (s = { key, rep: id, members: [] }));
@@ -2375,6 +2447,10 @@ export class WwLand {
     this.ownerRowsVersion = -1;
     this.divisions.rebuildIndex();
     this.spreadOrders.clear(); // Task 4 rebuilds an order on its first use
+    this.volunteerArmyCount = 0;
+    for (const a of this.armies.values()) {
+      if (a.volunteerFor > 0) this.volunteerArmyCount++;
+    }
   }
 
   /** P3 hook (P3 spec §17.3): factions changed, sides again. */

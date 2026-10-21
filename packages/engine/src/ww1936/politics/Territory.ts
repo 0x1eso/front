@@ -1,9 +1,12 @@
 // World War 1936 P3: peaceful annexation, partial transfers and peace
 // (spec §17.2–§17.4; plan decisions 17, 18). Control moves through the land
 // war's bridge (the victory-point tile this tick, the rest by the spread).
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
+import { offerTakeover } from "../endgame/Exile";
+import { makeSubject } from "../endgame/Subjects";
 import {
   endBattlesBetween,
   evictArmies,
@@ -71,6 +74,8 @@ export function annexCountry(
   const sc = pol.ww.scenario;
   // A human loses the country: say so while it is still theirs.
   pol.message(target, "ww1936_annexed", { countryTag: pol.tagOf(target) });
+  const eg = pol.ww.endgame;
+  const client = eg.humanClientOf(target);
   const taken: number[] = [];
   for (const r of sc.landRegions) {
     if (pol.legalOwner[r.id] === target) {
@@ -95,6 +100,14 @@ export function annexCountry(
     c.queued = null;
     c.missions = [];
   }
+  // P5 hooks (S, X): its subjects become `by`'s; it is gone; its human
+  // gets a takeover card (or spectates).
+  for (const s of eg.subjectsOf(target)) {
+    const sub = eg.subjectOf(s)!;
+    makeSubject(eg, s, by, sub.level, sub.neutral, tick);
+  }
+  eg.setCountryState(target, CS_GONE);
+  if (client !== null) offerTakeover(eg, client, target, tick);
   pol.recomputeStats(by);
   pol.markCountry(by);
   pol.markCountry(target);
@@ -164,7 +177,7 @@ function mergeEconomy(pol: WwPolitics, gone: number, by: number): void {
     // P1's rule (Trade.closeBroken): the buyer is told, naming the seller.
     if (tr.buyer === gone) continue;
     const p = pol.mg.playerBySmallID(tr.buyer);
-    if (!p.isPlayer() || p.type() !== PlayerType.Human) continue;
+    if (!p.isPlayer() || !pol.isHuman(tr.buyer)) continue;
     pol.mg.displayMessage(
       "events_display.ww1936_trade_closed",
       MessageType.WORLD_WAR,

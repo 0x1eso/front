@@ -12,6 +12,7 @@ Statecraft is a modified version of OpenFront, © OpenFront and Contributors, ht
 - `resources/atlases/unit-atlas.png`: upstream's unit sprite atlas (CC BY-SA 4.0, "OpenFront"), modified by this fork: three plane sprites and a conventional missile sprite drawn for this fork (`resources/atlases/src/unit-sprites.py`) are appended; the first twelve cells are unchanged. The modified atlas is CC BY-SA 4.0.
 - Upstream's all-rights-reserved assets (`proprietary/`: logos, the OpenFront font, music and the matchmaking chime) are not included.
 - `resources/flags/ww1936_YUG.svg`, `ww1936_ESN.svg`, `ww1936_RAJ.svg` (World War 1936 flags): drawn for this fork from simple shapes, CC BY-SA 4.0. `resources/flags/ww1936_ZAF.svg` is upstream's 1928 South African flag (CC BY-SA 4.0, "OpenFront") under a new file name.
+- World War 1936 dormant-country and civil-war flags (`resources/flags/ww_*.svg`): simple shapes drawn for this fork, CC BY-SA 4.0.
 - `resources/images/ww1936/focus/*.svg` (the 40 World War 1936 national focus icons): drawn for this fork from simple shapes, CC BY-SA 4.0.
 - `resources/images/ww1936/event/*.svg` (the 8 World War 1936 event card pictures: a conference table, a crowd, a newspaper, a border marker, a factory, a signed document, a marching column, a map): drawn for this fork as simple line art, CC BY-SA 4.0.
 

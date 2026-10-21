@@ -16,14 +16,23 @@ import {
 
 /**
  * Countries whose advisors may be real people (spec §19.9: Germany, Britain,
- * the Soviet Union in P3). A list: P5 adds Italy, France, the USA… Leaders
- * of any country are persons (K6's leaders.ts), Japan's by title only.
+ * the Soviet Union in P3; P5 pre-flight §0-12: Italy, France, the USA —
+ * never Japan). Leaders of any country are persons (K6's leaders.ts),
+ * Japan's by title only.
  */
 export const REAL_ADVISOR_COUNTRIES: readonly CountryTag[] = [
   "DEU",
   "GBR",
   "SUN",
+  "ITA",
+  "FRA",
+  "USA",
 ];
+
+/** P5 pre-flight §0-12: a title card (an advisor named by its office, not a person). */
+function isTitleCard(nameKey: string): boolean {
+  return nameKey.startsWith("ww1936.title.");
+}
 
 describe("person data", () => {
   const { persons, traitIdx } = CONTENT;
@@ -68,7 +77,7 @@ describe("person data", () => {
 
   it("real-name advisors only for the listed countries", () => {
     for (const p of persons) {
-      if (!p.roles.includes("advisor")) continue;
+      if (!p.roles.includes("advisor") || isTitleCard(p.nameKey)) continue;
       expect(REAL_ADVISOR_COUNTRIES, p.id).toContain(p.country);
     }
   });

@@ -44,10 +44,10 @@ import {
 } from "./LandSelection";
 import {
   dateLabel,
-  isCapitulated,
   today,
   TWO_TAP_MS,
   TwoTap,
+  wwActive,
 } from "./WorldWarModel";
 import { TRAIT_ICONS, traitsOf } from "./WwArmyCard";
 import { WwDrawerBase } from "./WwDrawer";
@@ -200,7 +200,8 @@ export class WwArmyPanel extends WwDrawerBase {
     const head = html`<span aria-hidden="true">⚔</span>
       <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">${label}</h3>`;
     const p = this.game.myPlayer()!;
-    if (!p.isAlive() || isCapitulated(this.game, c.me)) {
+    // P5 pre-flight §0-1: an exile still commands.
+    if (!wwActive(this.game, p.smallID())) {
       return this.renderFrame(
         label,
         head,

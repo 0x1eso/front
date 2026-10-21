@@ -374,6 +374,9 @@ export function dailySupply(land: WwLand, side: number): void {
         sc.region(r)!.core && land.sameSide(owners[r], land.controller[r]);
       const w = land.weatherOn(r, day);
       s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
+      // P5 hook (O, spec §8.6): resistance cuts an administered region's supply.
+      const f = land.ww.endgame.supplyFactorPm(r);
+      if (f !== 1000) s = Math.floor((s * f) / 1000);
     }
     // P4 spec §14.10: air supply, encircled regions too.
     s += land.hooks.airSupply(r, side);

@@ -27,7 +27,9 @@ import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/regis
 import { declareWar, declareWarBlock, joinWar } from "../Diplomacy";
 import { forceFocusNext } from "./AiFocus";
 import { AI_BEAT_WAIT_DAYS, aiBeatReady } from "./AiPolitics";
+import { evalCondition } from "./Conditions";
 import { takeDecision } from "./Decisions";
+import { applyEffects, makeCtx } from "./Dispatch";
 import type { BeatState, WwPolitics } from "./WwPolitics";
 
 /** Spec §18.2: a diplomacy beat's order (an AI asks like a human would). */
@@ -50,6 +52,15 @@ export function runBeats(pol: WwPolitics, day: number, tick: number): void {
       s.done = true;
       return;
     }
+    // P5 pre-flight §0-7 (owner: the AI judges situations): a beat with a
+    // situation waits for it, daily, up to its window, then lapses.
+    if (
+      b.when !== undefined &&
+      !evalCondition(makeCtx(pol, a, a, 0, tick), b.when)
+    ) {
+      s.done = day >= s.fireDay + (b.windowDays ?? WW_BEAT_WINDOW_DEFAULT_DAYS);
+      return;
+    }
     s.done = !runAct(pol, b, s, a, day, tick);
   });
 }
@@ -70,7 +81,15 @@ function runAct(
     case "join": {
       // Owner direction (lane A): the AI judges the suggestion first.
       if (!aiBeatReady(pol, b, a)) return day < s.fireDay + AI_BEAT_WAIT_DAYS;
-      const block = beatWar(pol, a, act.kind, act.target, day, tick);
+      const block = beatWar(
+        pol,
+        a,
+        act.kind,
+        act.target,
+        day,
+        tick,
+        b.civil === true,
+      );
       return block !== null && block !== "prep" && within(b.windowDays ?? 0);
     }
     case "decision": {
@@ -95,6 +114,10 @@ function runAct(
       const block = pol.issue(a, order, tick);
       return block !== null && within(b.windowDays ?? 0);
     }
+    // P5 (spec §17.6): effects on the actor.
+    case "effects":
+      applyEffects(makeCtx(pol, a, a, 0, tick), act.effects);
+      return false;
   }
 }
 
@@ -149,6 +172,7 @@ export function beatWar(
   targetTag: CountryTag,
   day: number,
   tick: number,
+  civil = false,
 ): DeclareWarBlock | null {
   const t = pol.idOfTag(targetTag);
   const ap = pol.player(a);
@@ -172,7 +196,9 @@ export function beatWar(
   }
   const block = declareWarBlock(pol.mg, pol.ww, ap, tp, tick, kind === "join");
   if (block !== null) return block;
-  if (kind === "declare") declareWar(pol.mg, pol.ww, ap, tp, tick);
-  else joinWar(pol.mg, pol.ww, ap, tp, tick);
+  // P5 (spec §15.6): a civil beat's war is a civil war record.
+  if (kind === "declare") {
+    declareWar(pol.mg, pol.ww, ap, tp, tick, civil ? { war: "civil" } : {});
+  } else joinWar(pol.mg, pol.ww, ap, tp, tick);
   return null;
 }

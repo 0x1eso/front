@@ -91,9 +91,10 @@ import {
 
 /** Every country selling `steel` (RESOURCE_IDS index 4) with `room` units a day. */
 function sellers(room: (tag: string) => number) {
-  return scenario.countries.map((tag) =>
-    summary(tag, { exportRoom: [0, 0, 0, 0, room(tag), 0] }),
-  );
+  // P5: a dormant slot has no summary until it wakes.
+  return scenario
+    .scenarioTags()
+    .map((tag) => summary(tag, { exportRoom: [0, 0, 0, 0, room(tag), 0] }));
 }
 
 describe("the World War 1936 economy screens' model (spec §13)", () => {
@@ -621,6 +622,8 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       field_hospital: "prereq",
       logistics_company: "prereq",
       paratroopers: "prereq",
+      // P5 (P5 spec §8.5): the military police company.
+      military_police: "prereq",
     });
     expect(states("doctrine")).toMatchObject({
       mobile_1: "done",

@@ -440,4 +440,11 @@ export const SUPPORTS: Readonly<Record<SupportId, SupportDef>> = {
     flag: TPL_SIGNAL,
     techs: ["signal_company"],
   }),
+  // P5 (P5 spec §8.5): no attack or defence; its suppression is
+  // EndgameRules.SUPPORT_SUPPRESS (no new column here).
+  military_police: s({
+    men: 300,
+    equip: [["support_equipment", 10]],
+    techs: ["military_police"],
+  }),
 };

@@ -67,6 +67,8 @@ export const SUPPORT_ICONS: Readonly<Record<SupportId, string>> = {
   field_hospital: "✚",
   logistics: "📦",
   signal: "📡",
+  // P5 (spec §8.5).
+  military_police: "🛡",
 };
 
 /** One row of the numbers table: its key and how to show a stat. */

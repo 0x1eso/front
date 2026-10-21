@@ -72,6 +72,11 @@ export class PlayerExecution implements Execution {
 
   constructor(private player: Player) {}
 
+  /** P5 (plan decision 5): whose execution this is. */
+  playerRef(): Player {
+    return this.player;
+  }
+
   activeDuringSpawnPhase(): boolean {
     return false;
   }

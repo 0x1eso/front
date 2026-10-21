@@ -21,6 +21,7 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { ClientID, GameStartInfo, Turn } from "@openfront/engine-api/Schemas";
+import { isDormantTag } from "@openfront/engine-api/ww1936/Countries";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
@@ -210,9 +211,14 @@ export class GameRunner {
   init() {
     // World War 1936 (plan decision 6): no spawn phase, no tribes, its own
     // clock before the win check.
-    if (this.game.worldWar() !== null) {
+    const ww = this.game.worldWar();
+    if (ww !== null) {
+      // P5 plan decision 5: woken countries' NationExecutions need the id.
+      ww.endgame.setGameID(this.execManager.gameID());
       this.game.addExecution(new WorldWarStartExecution());
       for (const p of this.game.allPlayers()) {
+        // P5 plan decision 4: a dormant slot gets its executions when it wakes.
+        if (isDormantTag(ww.tagOf(p.smallID()))) continue;
         this.game.addExecution(new PlayerExecution(p));
       }
       if (this.game.config().spawnNations()) {

@@ -38,7 +38,8 @@ export function applyWwOrder(
   day: number,
 ): WwOrderBlock | null {
   const ce = econ.country(p.smallID());
-  if (ce === null || !p.isAlive() || econ.ww.isCapitulated(p.smallID())) {
+  // P5 plan decision 6: the sender's country plays (an exile does).
+  if (ce === null || !econ.ww.isActor(p.smallID())) {
     return "dead";
   }
   let block: WwOrderBlock | null;
@@ -170,6 +171,22 @@ export function applyWwOrder(
     case "air_recall":
     case "air_auto":
       block = econ.ww.air.issue(p.smallID(), order, mg.ticks());
+      break;
+    // P5 (plan decision 10): the endgame's orders.
+    case "peace_submit":
+    case "peace_pass":
+    case "occupation_law":
+    case "integrate_region":
+    case "lend_lease":
+    case "lend_lease_cancel":
+    case "lend_lease_request":
+    case "volunteers_send":
+    case "volunteers_recall":
+    case "air_volunteers":
+    case "ships_transfer":
+    case "takeover_pick":
+    case "army_garrison":
+      block = econ.ww.endgame.issue(p.smallID(), order, mg.ticks());
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);

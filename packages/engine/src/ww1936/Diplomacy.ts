@@ -1,8 +1,17 @@
-import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
+import { MessageType } from "@openfront/engine-api/game/GameTypes";
+import type { WarKind } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
 import { declareWarRules } from "./politics/WarGoals";
 import type { WorldWar } from "./WorldWar";
+
+/** P5 (plan decision 38): what a declaration carries beyond P0's. */
+export interface DeclareOpts {
+  /** The war record's kind (a beat's civil: true → "civil"). */
+  war?: WarKind;
+  /** P5 lane S: a subject's independence war (no subject refusal). */
+  independence?: boolean;
+}
 
 /**
  * Why `attacker` may not declare war on `target` now (spec §7.3); null if
@@ -16,17 +25,47 @@ export function declareWarBlock(
   target: Player,
   tick: number,
   join = false,
+  opts: DeclareOpts = {},
 ): DeclareWarBlock | null {
   if (ww.inPrep(tick)) return "prep";
   if (attacker === target) return "self";
-  if (!attacker.isAlive() || !target.isAlive()) return "dead";
   const a = attacker.smallID();
   const b = target.smallID();
-  if (ww.isCapitulated(a) || ww.isCapitulated(b)) return "capitulated";
+  const eg = ww.endgame;
+  // P5 (pre-flight §0-1): an exile has no land but is in the game.
+  if (
+    (!attacker.isAlive() && !eg.isExile(a)) ||
+    (!target.isAlive() && !eg.isExile(b))
+  ) {
+    return "dead";
+  }
+  if (
+    (ww.isCapitulated(a) && !eg.isExile(a)) ||
+    (ww.isCapitulated(b) && !eg.isExile(b))
+  ) {
+    return "capitulated";
+  }
+  // P5 plan decision 6: both play (a dormant or gone country does not).
+  if (!ww.isActor(a) || !ww.isActor(b)) return "dead";
   if (ww.sameFaction(a, b)) return "faction";
   if (ww.isAtWar(a, b)) return "at_war";
   // P3 spec §14.5: the appended reasons.
-  return declareWarRules(ww.politics, a, b, join).block;
+  const block = declareWarRules(ww.politics, a, b, join).block;
+  if (block !== null) return block;
+  // P5 (spec §9.1, §10): a puppet fights only its overlord's enemies; an
+  // exile declares nothing (it joins its side's wars).
+  if (!opts.independence) {
+    const s = eg.subjectOf(a);
+    if (
+      s !== null &&
+      (s.level === "integrated" || s.level === "puppet") &&
+      !ww.isAtWar(s.overlord, b)
+    ) {
+      return "subject_restricted";
+    }
+  }
+  if (!join && eg.isExile(a)) return "exile";
+  return null;
 }
 
 /**
@@ -41,8 +80,11 @@ export function declareWar(
   attacker: Player,
   target: Player,
   tick: number,
+  opts: DeclareOpts = {},
 ): number[] {
-  if (declareWarBlock(mg, ww, attacker, target, tick) !== null) return [];
+  if (declareWarBlock(mg, ww, attacker, target, tick, false, opts) !== null) {
+    return [];
+  }
   const { noGoal } = declareWarRules(
     ww.politics,
     attacker.smallID(),
@@ -50,15 +92,24 @@ export function declareWar(
     false,
   );
   const a = attacker.smallID();
+  const b = target.smallID();
+  // P5 plan decision 8: the declaration makes a war record; its goal is
+  // P3's war goal on the target (pre-flight §B).
+  const g = ww.politics.country(a)?.warGoals.find((x) => x.on === b);
   const joined: number[] = [];
-  if (ww.setWar(a, target.smallID(), tick)) joined.push(target.smallID());
-  const faction = ww.factionOf(target.smallID());
+  const link = {
+    kind: "declare" as const,
+    ...(opts.war !== undefined ? { war: opts.war } : {}),
+    ...(g !== undefined ? { goal: { type: g.type, group: g.group } } : {}),
+  };
+  if (ww.setWar(a, b, tick, link)) joined.push(b);
+  const warId = ww.endgame.warOfPair(a, b);
+  const faction = ww.factionOf(b);
   if (faction !== null) {
     for (const m of ww.factionMembers(faction)) {
-      if (m === target.smallID() || m === a || ww.isCapitulated(m)) continue;
-      const p = mg.playerBySmallID(m);
-      if (!p.isPlayer() || !p.isAlive()) continue;
-      if (ww.setWar(a, m, tick)) joined.push(m);
+      // P5 pre-flight §0-1: exiles of the faction are drawn in too.
+      if (m === b || m === a || !ww.isActor(m)) continue;
+      if (ww.setWar(a, m, tick, { kind: "into", warId })) joined.push(m);
     }
   }
   mg.displayMessage(
@@ -85,7 +136,8 @@ export function joinWar(
   tick: number,
 ): boolean {
   if (declareWarBlock(mg, ww, actor, enemy, tick, true) !== null) return false;
-  ww.setWar(actor.smallID(), enemy.smallID(), tick);
+  // P5 plan decision 8: into the enemy's oldest war, on the other side.
+  ww.setWar(actor.smallID(), enemy.smallID(), tick, { kind: "into", warId: 0 });
   mg.displayMessage(
     "events_display.ww1936_war_joined",
     MessageType.WORLD_WAR,
@@ -112,7 +164,10 @@ export function reportNotAtWar(
   attacker: Player,
   target: Player,
 ): void {
-  if (attacker.type() !== PlayerType.Human || attacker.isFriendly(target)) {
+  if (
+    !ww.isHumanControlled(attacker.smallID()) ||
+    attacker.isFriendly(target)
+  ) {
     return;
   }
   if (ww.isAtWar(attacker.smallID(), target.smallID())) return;

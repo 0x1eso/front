@@ -102,12 +102,13 @@ import {
   liveFactions,
   today,
   translateCountryParams,
+  wwActive,
   type WwGame,
 } from "./WorldWarModel";
 
 /** What the politics screens read from the game (a fake in tests). */
 export type PolGame = WwGame &
-  Partial<Pick<GameView, "wwEconomy" | "wwLand" | "config">>;
+  Partial<Pick<GameView, "wwEconomy" | "wwLand" | "config" | "wwEndgame">>;
 
 export interface PoliticsModelInput {
   game: PolGame;
@@ -128,7 +129,8 @@ export function politicsInput(game: PolGame): PoliticsModelInput | null {
 /** My country can still act: alive and not capitulated (the engine refuses the rest, "dead"). */
 export function canAct(i: PoliticsModelInput): boolean {
   const me = i.game.myPlayer();
-  return me !== null && me.isAlive() && !isCapitulated(i.game, i.me);
+  // P5 pre-flight §0-1: an exile still acts.
+  return me !== null && wwActive(i.game, i.me);
 }
 
 // ---- Numbers ----
@@ -1511,15 +1513,6 @@ export interface FactionTab {
   invite: { id: number; tag: CountryTag; name: string; gate: Gate }[];
 }
 
-function isAliveId(game: WwGame, id: number): boolean | null {
-  try {
-    const p = game.playerBySmallID(id);
-    return p.isPlayer() ? p.isAlive() : null;
-  } catch {
-    return null;
-  }
-}
-
 function factionView(
   i: PoliticsModelInput,
   f: { id: FactionKey; leader: number; members: number[] },
@@ -1540,7 +1533,7 @@ function factionView(
         tag: m.tag,
         name: countryName(m.tag),
         leader: m.id === f.leader,
-        out: isCapitulated(i.game, m.id) || isAliveId(i.game, m.id) !== true,
+        out: !wwActive(i.game, m.id),
       })),
     request: null,
   };
@@ -1656,9 +1649,7 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
     for (const tag of sc.countries) {
       const id = sc.smallIdOf(tag);
       if (id === i.me || factionOfId(i.game, id) !== null) continue;
-      if (isCapitulated(i.game, id) || isAliveId(i.game, id) === false) {
-        continue;
-      }
+      if (!wwActive(i.game, id)) continue;
       invite.push({
         id,
         tag,
@@ -1993,10 +1984,13 @@ function declareBlockOf(
   const data = i.game.worldWarData();
   if (data === null || i.game.ticks() < data.prepEndTick) return "prep";
   if (other === i.me) return "self";
-  if (isAliveId(i.game, i.me) === false || isAliveId(i.game, other) === false) {
-    return "dead";
-  }
-  if (isCapitulated(i.game, i.me) || isCapitulated(i.game, other)) {
+  // P5 (engine declareWarBlock): both play; an exile may be declared on.
+  if (!wwActive(i.game, i.me) || !wwActive(i.game, other)) return "dead";
+  const eg = i.game.wwEndgame?.() ?? null;
+  if (
+    (isCapitulated(i.game, i.me) && eg?.isExile(i.me) !== true) ||
+    (isCapitulated(i.game, other) && eg?.isExile(other) !== true)
+  ) {
     return "capitulated";
   }
   const f = factionOfId(i.game, i.me);
@@ -2004,6 +1998,17 @@ function declareBlockOf(
   if (enemiesOf(i.game, i.me).includes(other)) return "at_war";
   if (napWith(i, other) !== undefined) return "nap";
   if (guarantees(i, i.me, other)) return "guarantor";
+  // P5 (spec §9.1, §10): a puppet fights its overlord's enemies only; an
+  // exile declares nothing.
+  const sub = eg?.subjectOf(i.me) ?? null;
+  if (
+    sub !== null &&
+    (sub.level === "integrated" || sub.level === "puppet") &&
+    !enemiesOf(i.game, sub.overlord).includes(other)
+  ) {
+    return "subject_restricted";
+  }
+  if (eg?.isExile(i.me) === true) return "exile";
   return null;
 }
 
@@ -2418,6 +2423,11 @@ function resolveSelector(
       resolveSelector(i, card, sel.factionLeaderOf),
     );
     return liveFactions(i.game).find((f) => f.id === key)?.leader ?? 0;
+  }
+  // P5 (plan decision 26): the subject's overlord, 0 if none.
+  if ("overlordOf" in sel) {
+    const of = resolveSelector(i, card, sel.overlordOf);
+    return i.game.wwEndgame?.()?.subjectOf(of)?.overlord ?? 0;
   }
   const r = CONTENT.groupIdx.get(sel.ownerOf)?.regions[0];
   return r === undefined ? 0 : (i.view.legalOwner[r] ?? 0);
