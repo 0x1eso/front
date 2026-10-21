@@ -267,6 +267,26 @@ describe("World War 1936 P2 in the HUD", () => {
         general: titledGeneralId(ID("DEU"), 2),
       }).general,
     ).toBe("[ww1936.land.titled_general] n=2");
+    // P4 (lane E): a commissioned ship's class and its name, or its number.
+    const ship = (params: Record<string, string | number>) =>
+      (
+        events as unknown as {
+          resolveParams(e: unknown): Record<string, string | number>;
+        }
+      ).resolveParams({
+        message: "events_display.ww1936_ship_commissioned",
+        params,
+      });
+    expect(ship({ n: 1, cls: "bb", ship: "deu_bismarck" })).toEqual({
+      n: 1,
+      cls: "[ww1936.ship_class.bb]",
+      ship: "[ww1936.ship.deu_bismarck]",
+    });
+    expect(ship({ n: 2, cls: "dd", ship: 7 })).toEqual({
+      n: 2,
+      cls: "[ww1936.ship_class.dd]",
+      ship: "[ww1936.navy.ship_numbered] n=7",
+    });
   });
 
   it("the diplomacy drawer marks a war with no land front as overseas", async () => {

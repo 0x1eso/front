@@ -15,7 +15,7 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { costWith } from "@openfront/engine-lib/ww1936/PoliticsRules";
-import { payPp } from "./Power";
+import { payPp } from "./PayPp";
 import type { CountryPol, WwPolitics } from "./WwPolitics";
 
 /** ISO date → day number, parsed once per string. */

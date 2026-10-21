@@ -82,6 +82,10 @@ export interface ZoneAirState {
   sup: Map<number, number>;
   /** side → the worst enemy superiority over the zone ‰ (A1: the land war's penalty reads it). */
   enemySup: Map<number, number>;
+  /** side → the battlefield-support bonus (supPenaltyPp) of the enemy holding that worst superiority (A1, spec §14.6). */
+  enemyPp: Map<number, number>;
+  /** side → the last day its ww1936_air_superiority alert went out for this zone (spec §18.10: 7 days apart). */
+  alertDay: Map<number, number>;
   /** side → CAS pool for today, centi-hits (spec §14.7). */
   cas: Map<number, number>;
   /** side → AIR_TYPES-indexed sorties yesterday (screens, AI). */
@@ -109,6 +113,8 @@ function emptyZone(): ZoneAirState {
   return {
     sup: new Map(),
     enemySup: new Map(),
+    enemyPp: new Map(),
+    alertDay: new Map(),
     cas: new Map(),
     sorties: new Map(),
     result: new Map(),
@@ -156,6 +162,8 @@ const DeploymentSchema = z.object({
 const ZoneSchema = z.object({
   sup: pairs(),
   enemySup: pairs(),
+  enemyPp: pairs(),
+  alertDay: pairs(),
   cas: pairs(),
   sorties: z.array(z.tuple([zInt(), zInts()])),
   result: z.array(z.tuple([zInt(), zInts()])),
@@ -596,6 +604,14 @@ export class WwAir {
       const sides = new Set<number>([...z.sup.keys(), ...z.sorties.keys()]);
       const zone: AirZoneData = {
         sr: list[i].id,
+        // Spec §14.6: what the battle card needs for the land war's air cut.
+        enemySky: [...z.enemySup]
+          .sort((a, b) => a[0] - b[0])
+          .map(([side, enemySupPm]) => ({
+            side,
+            enemySupPm,
+            bonusPp: z.enemyPp.get(side) ?? 0,
+          })),
         sides: [...sides]
           .sort((a, b) => a - b)
           .map((side) => ({
@@ -735,6 +751,8 @@ export class WwAir {
       zones: this.zoneState.map((z) => ({
         sup: arr(z.sup),
         enemySup: arr(z.enemySup),
+        enemyPp: arr(z.enemyPp),
+        alertDay: arr(z.alertDay),
         cas: arr(z.cas),
         sorties: [...z.sorties].map(([k, v]): [number, number[]] => [
           k,
@@ -780,6 +798,8 @@ export class WwAir {
       if (z === undefined) return;
       z.sup = mapOf(x.sup);
       z.enemySup = mapOf(x.enemySup);
+      z.enemyPp = mapOf(x.enemyPp);
+      z.alertDay = mapOf(x.alertDay);
       z.cas = mapOf(x.cas);
       z.sorties = new Map(x.sorties.map(([k, v]) => [k, [...v]]));
       z.result = new Map(x.result.map(([k, v]) => [k, [...v]]));
@@ -869,6 +889,13 @@ export class WwAir {
         for (const v of row) fx = mix(fx, v);
       }
       if (fx !== 0) h = (Math.imul(h, 31) + i * 17 + fx) >>> 0;
+      // A1: the battlefield-support bonus and the alerts' days (state).
+      for (const [k, v] of z.enemyPp) {
+        h = (Math.imul(h, 31) + i * 13 + k + v) >>> 0;
+      }
+      for (const [k, v] of z.alertDay) {
+        h = (Math.imul(h, 31) + i * 17 + k + v) >>> 0;
+      }
     });
     for (const c of this.countries()) {
       let r = 0;

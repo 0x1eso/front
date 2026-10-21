@@ -6,11 +6,13 @@ import {
   AIR_MISSION_TYPES,
   AirMission,
   AirType,
+  AirZoneData,
   LAND_ZONE_MISSIONS,
   SEA_ZONE_MISSIONS,
   WW_AA_CUT_MAX_PCT,
   WW_AIR_LOSS_K,
   WW_AIR_MOVE_PER_PM,
+  WW_AIR_PENALTY_BONUS_MAX_BP,
   WW_AIR_PENALTY_BP_PER_PM,
   WW_AIR_PENALTY_MAX_BP,
   WW_BOMB_POINTS_PER_BUILDING,
@@ -118,6 +120,51 @@ export function airMoveFactorPm(enemySupPm: number): number {
     1000 -
     Math.floor((Math.max(0, enemySupPm - 500) * WW_AIR_MOVE_PER_PM) / 1000)
   );
+}
+
+/**
+ * Spec §14.6 with the enemy's battlefield support: the cut, bp ≤ 0, of the
+ * worst enemy superiority less the division's anti-air (airPenaltyBp), then
+ * that enemy's bonus `bonusPp` (supPenaltyPp: +100 bp a point) on top — the
+ * spec lists it as a row of its own, after the anti-air cut (A1 review
+ * ruling) — up to −40% in all. No bonus without enemy superiority. With no
+ * bonus it is airPenaltyBp. The engine's hook and the battle card both call
+ * it.
+ */
+export function airGroundPenaltyBp(
+  enemySupPm: number,
+  bonusPp: number,
+  divAirAtk: number,
+): number {
+  const afterAa = -airPenaltyBp(enemySupPm, divAirAtk);
+  if (bonusPp <= 0 || enemySupPm <= 500) return afterAa === 0 ? 0 : -afterAa;
+  const v = Math.min(WW_AIR_PENALTY_BONUS_MAX_BP, afterAa + bonusPp * 100);
+  return v === 0 ? 0 : -v;
+}
+
+/**
+ * Spec §14.6 from a zone's view data (what the screens get): the cut of
+ * `side`'s division with air attack `divAirAtk` fighting under that zone.
+ */
+export function zoneAirPenaltyBp(
+  zone: Pick<AirZoneData, "enemySky"> | undefined,
+  side: number,
+  divAirAtk: number,
+): number {
+  const e = zone?.enemySky?.find((x) => x.side === side);
+  if (e === undefined || e.enemySupPm <= 500) return 0;
+  return airGroundPenaltyBp(e.enemySupPm, e.bonusPp, divAirAtk);
+}
+
+/** Spec §14.6 from a zone's view data: `side`'s movement into that zone, ‰. */
+export function zoneAirMoveFactorPm(
+  zone: Pick<AirZoneData, "enemySky"> | undefined,
+  side: number,
+): number {
+  const e = zone?.enemySky?.find((x) => x.side === side);
+  return e === undefined || e.enemySupPm <= 500
+    ? 1000
+    : airMoveFactorPm(e.enemySupPm);
 }
 
 /** Spec §14.7: the daily CAS pool, centi-hits: sorties × ground × mods × 300‰. sortiesMilli in milli planes. */
