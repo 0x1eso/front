@@ -72,6 +72,8 @@ export class WinModal extends LitElement implements Controller {
   public eventBus: EventBus;
 
   private hasShownDeathModal = false;
+  /** Consecutive ticks the player has been out of the game (World War 1936). */
+  private outTicks = 0;
 
   @state()
   isVisible = false;
@@ -769,7 +771,16 @@ export class WinModal extends LitElement implements Controller {
     const out = ww
       ? wwOutOfGame(this.game)
       : !!myPlayer && !myPlayer.isAlive() && myPlayer.hasSpawned();
-    if (!this.hasShownDeathModal && out && !this.game.inSpawnPhase()) {
+    // The exile or the takeover card may arrive a tick after the last tile
+    // is lost: in this mode wait until the player has been out two ticks.
+    this.outTicks = out ? this.outTicks + 1 : 0;
+    const settled = !ww || this.outTicks >= 2;
+    if (
+      !this.hasShownDeathModal &&
+      out &&
+      settled &&
+      !this.game.inSpawnPhase()
+    ) {
       this.hasShownDeathModal = true;
       // P5: no country left to take over in the faction: spectating.
       const spectating =
