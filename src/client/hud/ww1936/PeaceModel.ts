@@ -1,13 +1,13 @@
 // World War 1936 P5 (spec §6, §20.1–§20.2, plan Task 9): what the peace
-// conference card and the conference map mode read. The prices come from
-// the engine-lib rules the engine's conference uses (EndgameRules:
-// demandCost, aggregateCost, AGG_PCT, dismantleCost, reparationsCost,
-// takeNavyCost, maxReparations, turnOrder) over the inputs the engine
-// sends with the conference (WwConferenceView: base values, claims,
-// conquer and topple goals, reservations), so a card's price is the
-// engine's. The draft (what I am about to submit) and the map mode are a
-// per-game client state (peaceUiOf), shared by the card, the land tap flow
-// and the map pass.
+// conference card and the conference map mode read. A demand's legality,
+// regions and price come from the engine-lib rules the engine's
+// conference settles with (PeaceRules: planPeaceDemand, expandPeaceDemand,
+// peaceRegionCost), over the inputs the engine sends with the conference
+// (WwConferenceView: base values, claims, conquer and topple goals,
+// reservations) and the client's views of the world, so a card's price
+// and its reason for a failing demand are the engine's. The draft (what I
+// am about to submit) and the map mode are a per-game client state
+// (peaceUiOf), shared by the card, the land tap flow and the map pass.
 import {
   COUNTRIES,
   type CountryTag,
@@ -22,16 +22,22 @@ import {
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
+import { turnOrder } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
-  AGG_PCT,
-  aggregateCost,
-  demandCost,
-  dismantleCost,
-  maxReparations,
-  reparationsCost,
-  takeNavyCost,
-  turnOrder,
-} from "@openfront/engine-lib/ww1936/EndgameRules";
+  demandKindIndex,
+  expandPeaceDemand,
+  type PeaceBlock,
+  type PeaceDemandIn,
+  type PeaceFacts,
+  peaceRegionCost,
+  type PeaceSettledRow,
+  type PeaceShip,
+  type PeaceTable,
+  planPeaceDemand,
+  REGION_DEMAND_KINDS,
+  TAKE_NAVY_PCT_MAX,
+  TAKE_NAVY_PCT_MIN,
+} from "@openfront/engine-lib/ww1936/PeaceRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -74,21 +80,12 @@ export interface DemandEval {
   view: WwDemandView;
   ok: boolean;
   why: PeaceWhy | null;
+  /** The engine refuses the whole submission over it (bad_demand on the wire). */
+  refused: boolean;
 }
 
-/** The world facts a price reads (the game's views; a fake in tests). */
-export interface PeaceWorld {
-  controller(region: number): number;
-  legalOwner(region: number): number;
-  hasCore(smallID: number, region: number): boolean;
-  /** Land neighbours. */
-  neighbours(region: number): readonly number[];
-  /** Members of the faction `smallID` leads; 0: it leads none. */
-  ledFactionSize(smallID: number): number;
-  /** Civilian factories. */
-  civs(smallID: number): number;
-  /** The supremacy weight of each ship it has. */
-  shipWeights(smallID: number): readonly number[];
+/** The world facts a demand reads (PeaceRules' PeaceFacts) and the tags. */
+export interface PeaceWorld extends PeaceFacts {
   smallIdOf(tag: CountryTag): number;
   tagOf(smallID: number): CountryTag | null;
 }
@@ -98,14 +95,14 @@ const NO_WORLD: PeaceWorld = {
   legalOwner: () => 0,
   hasCore: () => false,
   neighbours: () => [],
+  regionCivs: () => 0,
   ledFactionSize: () => 0,
-  civs: () => 0,
-  shipWeights: () => [],
+  ships: () => [],
   smallIdOf: () => 0,
   tagOf: () => null,
 };
 
-/** Why keys (lane T's table). */
+/** Why keys (lane T's table); the engine's blocks are `ww1936.peace.why.<block>`. */
 export const PEACE_WHY = {
   slots: "ww1936.peace.why.too_many_demands",
   bad: "ww1936.peace.why.bad_demand",
@@ -125,16 +122,9 @@ export const PEACE_WHY = {
 } as const;
 const WHY = PEACE_WHY;
 
-/** Kinds that hand regions out (the engine's REGION_KINDS). */
-const REGION_KINDS: ReadonlySet<DemandKind> = new Set<DemandKind>([
-  "take",
-  "take_group",
-  "take_for",
-  "annex_rest",
-  "occupation_zone",
-  "release",
-  "liberate",
-]);
+function blockWhy(b: PeaceBlock): PeaceWhy {
+  return { key: `ww1936.peace.why.${b}` };
+}
 
 /** The country-wide demands of the card's "+ Country demand" list, in its order (spec §20.1). */
 export const COUNTRY_DEMANDS = [
@@ -149,8 +139,8 @@ export const COUNTRY_DEMANDS = [
 export type CountryDemandKind = (typeof COUNTRY_DEMANDS)[number];
 
 /** The fleet share steps of "take_navy" (spec §6.4: 10–50%). */
-export const NAVY_PCT_MIN = 10;
-export const NAVY_PCT_MAX = 50;
+export const NAVY_PCT_MIN = TAKE_NAVY_PCT_MIN;
+export const NAVY_PCT_MAX = TAKE_NAVY_PCT_MAX;
 export const NAVY_PCT_STEP = 10;
 
 function blankView(kind: DemandKind, slot: number): WwDemandView {
@@ -166,43 +156,44 @@ function blankView(kind: DemandKind, slot: number): WwDemandView {
   };
 }
 
-function pairKey(a: number, b: number): string {
-  return `${a}:${b}`;
-}
-
-interface Priced {
-  cost: number;
-  regions: number[];
-  why: PeaceWhy | null;
+function demandIn(v: WwDemandView): PeaceDemandIn {
+  return {
+    kind: v.kind,
+    regions: v.regions,
+    target: v.target,
+    beneficiary: v.beneficiary,
+    k: v.k,
+    pct: v.pct,
+  };
 }
 
 export class PeaceModel {
   private readonly stakeIdx = new Map<number, number>();
-  private readonly claimSet = new Set<string>();
-  private readonly conquerSet = new Set<string>();
-  private readonly toppleSet = new Set<string>();
   private readonly reservedBy = new Map<number, number>();
   private readonly partIds = new Set<number>();
-  /** Losers annexed or puppeted in the round before (its results). */
-  private readonly takenOver = new Set<number>();
+  /** The conference's inputs as PeaceRules reads them (the card's copy of the engine's record). */
+  readonly table: PeaceTable;
+  /** Views made from wire demands the engine would refuse (expandPeaceDemand: null). */
+  private readonly refusedViews = new WeakSet<WwDemandView>();
 
   constructor(
     readonly conference: WwConferenceView | null,
     readonly world: PeaceWorld = NO_WORLD,
   ) {
     const c = conference;
-    if (c === null) return;
-    c.stake.forEach((s, i) => this.stakeIdx.set(s.region, i));
-    for (const [p, r] of c.claims) this.claimSet.add(pairKey(p, r));
-    for (const [p, l] of c.conquer) this.conquerSet.add(pairKey(p, l));
-    for (const [p, l] of c.topple) this.toppleSet.add(pairKey(p, l));
-    for (const [r, p] of c.reserved) this.reservedBy.set(r, p);
-    for (const p of c.participants) this.partIds.add(p.id);
-    for (const l of c.lastRound) {
-      if (l.ok && (l.kind === "annex_rest" || l.kind === "puppet")) {
-        this.takenOver.add(l.target);
-      }
-    }
+    c?.stake.forEach((s, i) => this.stakeIdx.set(s.region, i));
+    for (const [r, p] of c?.reserved ?? []) this.reservedBy.set(r, p);
+    for (const p of c?.participants ?? []) this.partIds.add(p.id);
+    this.table = {
+      stake: (c?.stake ?? []).map((s) => s.region),
+      base: (c?.stake ?? []).map((s) => s.base),
+      losers: c?.losers ?? [],
+      parts: c?.participants ?? [],
+      claims: c?.claims ?? [],
+      conquer: c?.conquer ?? [],
+      topple: c?.topple ?? [],
+      settled: settledRows(c),
+    };
   }
 
   participant(me: number): WwConferenceView["participants"][number] | null {
@@ -219,20 +210,10 @@ export class PeaceModel {
     return i === undefined ? null : this.conference!.stake[i];
   }
 
-  /** The engine's regionCost (plan decision 13): `p` demands, `b` receives. */
+  /** The engine's region price (plan decision 13): `p` demands, `b` receives. */
   regionCost(region: number, p: number, b = p): number {
-    const s = this.stakeRegion(region);
-    if (s === null) return 0;
-    const ctrl = this.world.controller(region);
-    return demandCost(s.base, {
-      controls: ctrl === p,
-      core: this.world.hasCore(b, region),
-      claim: this.claimSet.has(pairKey(p, region)),
-      conquerGoal: this.conquerSet.has(
-        pairKey(p, this.world.legalOwner(region)),
-      ),
-      otherControls: ctrl !== p && ctrl !== b && this.partIds.has(ctrl),
-    });
+    if (this.stakeRegion(region) === null) return 0;
+    return peaceRegionCost(this.world, this.table, region, p, b);
   }
 
   /** My price for `region` has the control discount (the band's "(control discount)"). */
@@ -240,7 +221,10 @@ export class PeaceModel {
     return this.world.controller(region) === me;
   }
 
-  /** Why `region` can't go to `p` now; null: it is free. */
+  /**
+   * Why `region` is not free for `p` (the engine's `free`: at stake, not
+   * settled, not reserved by another participant's control); null: free.
+   */
   private regionBlock(
     region: number,
     p: number,
@@ -255,44 +239,11 @@ export class PeaceModel {
     return null;
   }
 
-  private free(region: number, p: number, taken: ReadonlySet<number>) {
-    return this.regionBlock(region, p, taken) === null;
-  }
-
-  /** The loser's stake regions still free for `p`, in stake order. */
-  private rest(loser: number, p: number, taken: ReadonlySet<number>): number[] {
-    return (this.conference?.stake ?? [])
-      .map((s) => s.region)
-      .filter(
-        (r) => this.world.legalOwner(r) === loser && this.free(r, p, taken),
-      );
-  }
-
-  /** Stake regions that are `tag`'s cores and still free for `p`. */
-  private releaseRegions(
-    tag: CountryTag,
-    p: number,
-    taken: ReadonlySet<number>,
-  ): number[] {
-    const t = this.world.smallIdOf(tag);
-    if (t === 0) return [];
-    return (this.conference?.stake ?? [])
-      .map((s) => s.region)
-      .filter((r) => this.world.hasCore(t, r) && this.free(r, p, taken));
-  }
-
-  private touchesMine(region: number, me: number): boolean {
-    return (
-      this.world.controller(region) === me ||
-      this.world.neighbours(region).some((n) => this.world.controller(n) === me)
-    );
-  }
-
   /** A content group ∩ the stake, in group order (the engine's take_group expansion). */
   groupRegions(group: string): number[] {
     const g = CONTENT.groupIdx.get(group);
     if (g === undefined) return [];
-    return g.regions.filter((r) => this.stakeIdx.has(r));
+    return [...new Set(g.regions.filter((r) => this.stakeIdx.has(r)))];
   }
 
   /**
@@ -312,252 +263,125 @@ export class PeaceModel {
     if (regions.length < 2) return null;
     const want = new Set(regions);
     for (const g of CONTENT.groups) {
-      const part = g.regions.filter((r) => this.stakeIdx.has(r));
-      if (part.length === want.size && part.every((r) => want.has(r))) {
+      const part = new Set(g.regions.filter((r) => this.stakeIdx.has(r)));
+      if (part.size === want.size && [...part].every((r) => want.has(r))) {
         return g.id;
       }
     }
     return null;
   }
 
-  /** The wire demand with its regions and targets spelled out (cost 0). */
-  expand(d: PeaceDemand, slot: number): WwDemandView {
+  /**
+   * The wire demand spelled out as the engine does (expandPeaceDemand, cost
+   * 0). One the engine would refuse comes back blank and marked refused.
+   */
+  expand(d: PeaceDemand, slot: number, me = 0): WwDemandView {
+    const x = expandPeaceDemand(this.table, me, d, {
+      groupRegions: (g) => CONTENT.groupIdx.get(g)?.regions ?? [],
+      releasable: this.conference?.releasable ?? [],
+      smallIdOf: (tag) => this.world.smallIdOf(tag),
+      hasCore: (id, r) => this.world.hasCore(id, r),
+    });
     const v = blankView(d.kind, slot);
-    switch (d.kind) {
-      case "take":
-      case "demilitarise":
-        v.regions = [d.region];
-        break;
-      case "take_group":
-        v.regions = this.groupRegions(d.group);
-        break;
-      case "take_for":
-        v.regions = [d.region];
-        v.beneficiary = d.beneficiary;
-        break;
-      case "occupation_zone":
-        v.regions =
-          d.group !== undefined
-            ? this.groupRegions(d.group)
-            : d.region !== undefined
-              ? [d.region]
-              : [];
-        break;
-      case "release":
-      case "liberate": {
-        const t = this.world.smallIdOf(d.tag);
-        v.target = t;
-        v.beneficiary = t;
-        break;
+    if (x === null) {
+      // Keep what names the row on the card.
+      if ("region" in d && d.region !== undefined) v.regions = [d.region];
+      if ("target" in d) v.target = d.target;
+      if (d.kind === "release" || d.kind === "liberate") {
+        v.target = v.beneficiary = this.world.smallIdOf(d.tag);
       }
-      case "reparations":
-        v.target = d.target;
-        v.k = d.k;
-        break;
-      case "take_navy":
-        v.target = d.target;
-        v.pct = d.pct;
-        break;
-      case "annex_rest":
-      case "puppet":
-      case "change_government":
-      case "dismantle":
-      case "disarm":
-        v.target = d.target;
-        break;
+      this.refusedViews.add(v);
+      return v;
     }
+    v.regions = [...x.regions];
+    v.target = x.target;
+    v.beneficiary = x.beneficiary;
+    v.k = x.k;
+    v.pct = x.pct;
     return v;
   }
 
   /**
-   * The engine's tryDemand, in order, for my list alone (spec §6.5): each
-   * demand's price at the moment it is processed, and why it would fail.
-   * Other participants' demands are not known; regions already settled or
-   * reserved by their controller are.
+   * The engine's resolution of my list alone (spec §6.5; Conference
+   * tryDemand over planPeaceDemand), in order: each demand's price at the
+   * moment it is processed, what it settles, and why it would fail. Other
+   * participants' demands of this round are not known; regions settled
+   * before and regions their controllers reserved are.
    */
   evaluate(me: number, demands: readonly WwDemandView[]): DemandEval[] {
     let pts = this.participant(me)?.pts ?? 0;
     const taken = new Set<number>();
-    const takenOver = new Set(this.takenOver);
-    const seen = new Set<string>();
+    const table: PeaceTable = {
+      ...this.table,
+      settled: [...this.table.settled],
+    };
+    const settled = table.settled as PeaceSettledRow[];
+    const free = (r: number) => this.regionBlock(r, me, taken) === null;
     return demands.map((d0, i) => {
       const view: WwDemandView = { ...d0, regions: [...d0.regions] };
-      const r = this.price(me, view, pts, taken, takenOver);
-      let why = r.why;
+      const refused = this.refusedViews.has(d0);
+      const fail = (why: PeaceWhy, cost = 0): DemandEval => {
+        view.cost = cost;
+        return { view, ok: false, why, refused };
+      };
       if (i >= WW_PEACE_DEMANDS_PER_ROUND) {
-        why = { key: WHY.slots, params: { max: WW_PEACE_DEMANDS_PER_ROUND } };
-      } else if (why === null && seen.has(demandKey(view))) {
-        why = { key: WHY.used };
+        return fail({
+          key: WHY.slots,
+          params: { max: WW_PEACE_DEMANDS_PER_ROUND },
+        });
       }
-      seen.add(demandKey(view));
-      view.cost = r.cost;
-      if (why === null && r.cost > pts) why = { key: WHY.score };
-      const ok = why === null;
-      if (ok) {
-        pts -= r.cost;
-        for (const x of r.regions) taken.add(x);
-        if (view.kind === "annex_rest" || view.kind === "puppet") {
-          takenOver.add(view.target);
+      if (refused) return fail({ key: WHY.bad });
+      const plan = planPeaceDemand(this.world, table, me, demandIn(view), free);
+      if (typeof plan === "string") {
+        // "Nothing left" over named regions: say which way they are gone.
+        if (plan === "no_target" && view.regions.length > 0) {
+          const b = view.regions
+            .map((r) => this.regionBlock(r, me, taken))
+            .find((x) => x !== null);
+          if (b !== undefined) return fail(b);
         }
-        if (REGION_KINDS.has(view.kind) && r.regions.length > 0) {
-          view.regions = r.regions;
-        }
+        return fail(blockWhy(plan));
       }
-      return { view, ok, why };
-    });
-  }
-
-  /** One demand's price now and the regions it would settle (its own points check only for takes). */
-  private price(
-    me: number,
-    d: WwDemandView,
-    pts: number,
-    taken: ReadonlySet<number>,
-    takenOver: ReadonlySet<number>,
-  ): Priced {
-    const none = (why: PeaceWhy, cost = 0): Priced => ({
-      cost,
-      regions: [],
-      why,
-    });
-    const sum = (regs: readonly number[], pct: number) =>
-      aggregateCost(
-        regs.map((r) => this.regionCost(r, me, me)),
-        pct,
-      );
-    switch (d.kind) {
-      case "take":
-      case "take_group": {
-        // Region by region (the engine's take): it succeeds when one does.
-        if (d.regions.length === 0) return none({ key: WHY.target });
-        let left = pts;
+      const kind = view.kind;
+      if ("each" in plan) {
+        // Region by region while the points last (tryDemand).
+        const got: number[] = [];
         let cost = 0;
         let full = 0;
-        const got: number[] = [];
-        let first: PeaceWhy | null = null;
-        for (const r of d.regions) {
-          const b = this.regionBlock(r, me, taken);
-          if (b !== null) {
-            first ??= b;
-            continue;
-          }
-          const c = this.regionCost(r, me, me);
+        for (const [r, c] of plan.each) {
           full += c;
-          if (c > left) continue;
-          left -= c;
+          if (c > pts - cost) continue;
           cost += c;
           got.push(r);
         }
-        if (got.length > 0) return { cost, regions: got, why: null };
-        if (full > 0) return none({ key: WHY.score }, full);
-        return none(first ?? { key: WHY.target });
+        if (got.length === 0) return fail({ key: WHY.score }, full);
+        pts -= cost;
+        if (kind !== "demilitarise") for (const r of got) taken.add(r);
+        view.regions = got;
+        view.cost = cost;
+        settled.push({
+          kind: demandKindIndex(kind === "take_group" ? "take" : kind),
+          target: 0,
+          k: 0,
+          regions: got,
+        });
+        return { view, ok: true, why: null, refused };
       }
-      case "take_for": {
-        const r = d.regions[0] ?? 0;
-        const blocked = this.regionBlock(r, me, taken);
-        if (blocked !== null) return none(blocked);
-        const b = d.beneficiary;
-        if (!this.partIds.has(b) || !this.world.hasCore(b, r)) {
-          return none({ key: WHY.core });
-        }
-        return { cost: this.regionCost(r, me, b), regions: [r], why: null };
+      if (plan.cost > pts) return fail({ key: WHY.score }, plan.cost);
+      pts -= plan.cost;
+      view.cost = plan.cost;
+      if (REGION_DEMAND_KINDS.has(kind)) {
+        for (const r of plan.all) taken.add(r);
+        view.regions = [...plan.all];
       }
-      case "annex_rest": {
-        const rest = this.rest(d.target, me, taken);
-        if (rest.length === 0) return none({ key: WHY.target });
-        return {
-          cost: sum(rest, AGG_PCT.annex_rest),
-          regions: rest,
-          why: null,
-        };
-      }
-      case "occupation_zone": {
-        if (d.regions.length === 0) return none({ key: WHY.target });
-        const regs = d.regions.filter(
-          (r) => this.free(r, me, taken) && this.touchesMine(r, me),
-        );
-        if (regs.length === 0) {
-          const blocked = d.regions
-            .map((r) => this.regionBlock(r, me, taken))
-            .find((b) => b !== null);
-          return none(blocked ?? { key: WHY.adjacent });
-        }
-        return {
-          cost: sum(regs, AGG_PCT.occupation_zone),
-          regions: regs,
-          why: null,
-        };
-      }
-      case "puppet": {
-        if (takenOver.has(d.target)) return none({ key: WHY.bad });
-        const rest = this.rest(d.target, me, taken);
-        if (rest.length === 0) return none({ key: WHY.target });
-        return { cost: sum(rest, AGG_PCT.puppet), regions: [], why: null };
-      }
-      case "release":
-      case "liberate": {
-        const tag = this.world.tagOf(d.beneficiary || d.target);
-        if (
-          tag === null ||
-          !(this.conference?.releasable ?? []).includes(tag)
-        ) {
-          return none({ key: WHY.release });
-        }
-        const regs = this.releaseRegions(tag, me, taken);
-        if (regs.length === 0) return none({ key: WHY.core });
-        const pct = d.kind === "release" ? AGG_PCT.release : AGG_PCT.liberate;
-        return { cost: sum(regs, pct), regions: regs, why: null };
-      }
-      case "change_government": {
-        if (takenOver.has(d.target)) return none({ key: WHY.bad });
-        const pct = this.toppleSet.has(pairKey(me, d.target))
-          ? AGG_PCT.change_government_topple
-          : AGG_PCT.change_government;
-        return {
-          cost: sum(this.rest(d.target, me, taken), pct),
-          regions: [],
-          why: null,
-        };
-      }
-      case "dismantle": {
-        const n = this.world.ledFactionSize(d.target);
-        if (n === 0) return none({ key: WHY.faction });
-        return { cost: dismantleCost(n), regions: [], why: null };
-      }
-      case "demilitarise": {
-        const r = d.regions[0] ?? 0;
-        const blocked = this.regionBlock(r, me, taken);
-        if (blocked !== null) return none(blocked);
-        const mine = this.world
-          .neighbours(r)
-          .some((n) => this.world.legalOwner(n) === me);
-        if (!mine) return none({ key: WHY.adjacent });
-        const cost = Math.max(
-          1,
-          Math.floor((this.regionCost(r, me, me) * AGG_PCT.demilitarise) / 100),
-        );
-        return { cost, regions: [], why: null };
-      }
-      case "reparations": {
-        if (d.k < 1 || d.k > maxReparations(this.world.civs(d.target))) {
-          return none({ key: WHY.factories }, reparationsCost(d.k));
-        }
-        if (this.rest(d.target, me, taken).length === 0) {
-          return none({ key: WHY.target });
-        }
-        return { cost: reparationsCost(d.k), regions: [], why: null };
-      }
-      case "disarm": {
-        const rest = this.rest(d.target, me, taken);
-        if (rest.length === 0) return none({ key: WHY.target });
-        return { cost: sum(rest, AGG_PCT.disarm), regions: [], why: null };
-      }
-      case "take_navy": {
-        const weight = navyShare(this.world.shipWeights(d.target), d.pct);
-        if (weight === 0) return none({ key: WHY.ships });
-        return { cost: takeNavyCost(weight), regions: [], why: null };
-      }
-    }
+      settled.push({
+        kind: demandKindIndex(kind),
+        target: view.target,
+        k: view.k,
+        regions: [...plan.all],
+      });
+      return { view, ok: true, why: null, refused };
+    });
   }
 
   /** My points left this round after `demands` (the ones that would pass). */
@@ -574,7 +398,7 @@ export class PeaceModel {
 
   /** The rows of my demand list: the draft when given, else what I submitted this round. */
   demandRows(me: number, draft?: readonly PeaceDemand[]): WwDemandView[] {
-    if (draft !== undefined) return draft.map((d, i) => this.expand(d, i));
+    if (draft !== undefined) return draft.map((d, i) => this.expand(d, i, me));
     return this.submitted(me) ?? [];
   }
 
@@ -588,10 +412,18 @@ export class PeaceModel {
     return this.conference?.mine.find((m) => m.id === me)?.ai ?? [];
   }
 
-  /** Whether `tag` may be released or liberated here (with a free core at stake). */
+  /** Whether `tag` may be released or liberated here by `me` (the engine would take it). */
   canRelease(tag: CountryTag, me = 0): boolean {
-    if (!(this.conference?.releasable ?? []).includes(tag)) return false;
-    return this.releaseRegions(tag, me, new Set()).length > 0;
+    const v = this.expand({ kind: "release", tag }, 0, me);
+    if (this.refusedViews.has(v)) return false;
+    const plan = planPeaceDemand(
+      this.world,
+      this.table,
+      me,
+      demandIn(v),
+      (r) => this.regionBlock(r, me, new Set()) === null,
+    );
+    return typeof plan !== "string";
   }
 
   /** My place in this round's turn order, 1-based (turnOrder by share, snake); 0: none. */
@@ -641,19 +473,13 @@ export class PeaceModel {
       case "occupation_zone":
         return list(true);
       case "take_for":
-        return v.regions.length === 0
-          ? []
-          : [
-              {
-                kind: "take_for",
-                region: v.regions[0],
-                beneficiary: v.beneficiary,
-              },
-            ];
+        return v.regions.map((r) => ({
+          kind: "take_for",
+          region: r,
+          beneficiary: v.beneficiary,
+        }));
       case "demilitarise":
-        return v.regions.length === 0
-          ? []
-          : [{ kind: "demilitarise", region: v.regions[0] }];
+        return v.regions.map((r) => ({ kind: "demilitarise", region: r }));
       case "release":
       case "liberate": {
         const tag = this.world.tagOf(v.beneficiary || v.target);
@@ -685,32 +511,26 @@ export class PeaceModel {
   }
 }
 
-/** The supremacy weight `take_navy {pct}` hands over: heaviest ships first, up to pct% of the fleet. */
-export function navyShare(weights: readonly number[], pct: number): number {
-  const sorted = weights.filter((w) => w > 0).sort((a, b) => b - a);
-  let total = 0;
-  for (const w of sorted) total += w;
-  const limit = Math.floor((total * pct) / 100);
-  let got = 0;
-  for (const w of sorted) {
-    if (got >= limit) break;
-    got += w;
-  }
-  return got;
-}
-
-/** A demand's identity in a list (the same demand twice is "already demanded"). */
-function demandKey(v: WwDemandView): string {
-  if (REGION_KINDS.has(v.kind) && v.regions.length > 0) {
-    const kind = v.kind === "take_group" ? "take" : v.kind;
-    return `${kind}:${v.regions.join(",")}`;
-  }
-  return `${v.kind}:${v.target}`;
+/**
+ * The demands settled before this round, as far as the view tells: the
+ * view has no settled rows yet (lane W), so the last round's successes
+ * stand in for them (a reparations row without its k). Settled regions
+ * need none: `settledBy` takes them out of the stake.
+ */
+function settledRows(c: WwConferenceView | null): PeaceSettledRow[] {
+  return (c?.lastRound ?? [])
+    .filter((l) => l.ok)
+    .map((l) => ({
+      kind: demandKindIndex(l.kind),
+      target: l.target,
+      k: 0,
+      regions: [...l.regions],
+    }));
 }
 
 // ---- The world from the game's views ----
 
-/** The facts a price reads, from the game's land, politics, endgame, economy and navy views. */
+/** The facts a demand reads, from the game's land, politics, endgame, economy and navy views. */
 export function peaceWorldOf(game: PeaceGame): PeaceWorld {
   const sc = game.worldWarScenario();
   if (sc === null) return NO_WORLD;
@@ -726,20 +546,43 @@ export function peaceWorldOf(game: PeaceGame): PeaceWorld {
     legalOwner: (r) => pol?.legalOwner[r] ?? owners[r] ?? 0,
     hasCore: (id, r) => isCoreNow(eg, sc, r, id),
     neighbours: (r) => sc.regionNeighbours(r),
-    ledFactionSize: (id) =>
-      pol?.global?.factions.find((f) => f.leader === id)?.members.length ?? 0,
-    civs: (id) => econ?.summary(id)?.civ ?? 0,
-    shipWeights: (id) => {
-      const out: number[] = [];
+    regionCivs: (r) => econ?.region(r).civ ?? sc.region(r)?.civ ?? 0,
+    ledFactionSize: (L) => {
+      // The faction L leads, or founded and lost the lead of when it
+      // capitulated (the engine's ledFaction, spec §6.4 dismantle).
+      const idx = pol?.factionIdx(L) ?? -1;
+      const f = pol?.global?.factions.find((x) => x.idx === idx) ?? null;
+      if (f === null) return 0;
+      const tag = sc.tagOfSmallId(L);
+      const founded =
+        f.leader === L ||
+        (tag !== undefined && f.nameTag === tag) ||
+        (tag !== undefined &&
+          CONTENT.factionNames.find((n) => n.id === f.name)?.creators[0] ===
+            tag);
+      return founded ? f.members.length : 0;
+    },
+    ships: (L) => {
+      const out: PeaceShip[] = [];
       for (const f of navy?.fleets.values() ?? []) {
-        if (f.owner !== id) continue;
-        f.counts.forEach((n, i) => {
+        if (f.owner !== L) continue;
+        if (f.ships.length > 0) {
+          for (const s of f.ships) {
+            out.push({ id: s.id, w: SHIP_BASE[s.cls].supWeight });
+          }
+          continue;
+        }
+        // Another country's fleet: its class counts only (ids stand in).
+        let n = 0;
+        f.counts.forEach((count, i) => {
           const cls = SHIP_CLASSES[i];
-          const w = cls === undefined ? 0 : SHIP_BASE[cls].supWeight;
-          for (let k = 0; k < n; k++) out.push(w);
+          if (cls === undefined) return;
+          for (let k = 0; k < count; k++) {
+            out.push({ id: -(f.id * 1000 + n++), w: SHIP_BASE[cls].supWeight });
+          }
         });
       }
-      return out;
+      return out.sort((a, b) => b.w - a.w || a.id - b.id);
     },
     smallIdOf: (tag) => sc.smallIdOf(tag),
     tagOf: (id) => sc.tagOfSmallId(id) ?? null,
@@ -790,8 +633,8 @@ export function peaceFlagUrl(game: PeaceGame, id: number): string | null {
   const sc = game.worldWarScenario();
   const tag = sc?.tagOfSmallId(id);
   if (sc === null || tag === undefined) return null;
-  const flag =
-    game.wwEndgame?.()?.countries.get(id)?.flag || COUNTRIES[tag].flag;
+  const own = game.wwEndgame?.()?.countries.get(id)?.flag ?? "";
+  const flag = own !== "" ? own : COUNTRIES[tag].flag;
   return assetUrl(`flags/${flag}.svg`);
 }
 
@@ -880,8 +723,9 @@ export function whyText(game: PeaceGame, why: PeaceWhy): string {
 
 /**
  * A peace-log line (lane W: ww1936.peace.line.<kind>) with its tags as
- * names; the engine's parameter names (by, target, beneficiary, n, group)
- * also fill the keys' (who, loser, to, what).
+ * names (`who`/`loser`/`to`/`tag`, each also as its `…Tag` raw tag); the
+ * key's `what` is built from `group`, `region` or `regions` (comma-joined
+ * ids).
  */
 export function peaceLineText(
   game: PeaceGame,
@@ -897,18 +741,39 @@ export function peaceLineText(
   for (const [k, v] of Object.entries(line.params)) {
     p[k.endsWith("Tag") ? k.slice(0, -3) : k] = name(v);
   }
-  p.who ??= p.by ?? "";
-  p.loser ??= p.target ?? "";
-  p.to ??= p.beneficiary ?? p.tag ?? "";
-  if (p.what === undefined) {
-    p.what =
-      typeof p.group === "string"
-        ? peaceGroupName(p.group)
-        : typeof p.region === "number" && sc !== null
-          ? peaceRegionName(sc, p.region)
+  p.what ??=
+    typeof p.group === "string"
+      ? peaceGroupName(p.group)
+      : typeof p.region === "number" && sc !== null
+        ? peaceRegionName(sc, p.region)
+        : typeof p.regions === "string" && sc !== null
+          ? regionIdsText(sc, p.regions)
           : "";
-  }
   return translateText(line.key, p);
+}
+
+/**
+ * A peace-log line's `regions` (lane W: comma-joined region ids) in words:
+ * the content group they make up, else the first region's name "+N".
+ */
+export function regionIdsText(sc: ScenarioIndex, ids: string): string {
+  const regions = ids
+    .split(",")
+    .map((x) => Number(x))
+    .filter((r) => Number.isInteger(r) && r > 0);
+  if (regions.length === 0) return "";
+  if (regions.length > 1) {
+    const want = new Set(regions);
+    const g = CONTENT.groups.find(
+      (x) =>
+        x.regions.length === want.size && x.regions.every((r) => want.has(r)),
+    );
+    if (g !== undefined) return peaceGroupName(g.id);
+  }
+  const first = peaceRegionName(sc, regions[0]);
+  return regions.length === 1
+    ? first
+    : `${first} ${translateText("ww1936.eventui.more", { n: regions.length - 1 })}`;
 }
 
 /** A country's colour (its territory colour; the endgame's for a civil-war slot). */

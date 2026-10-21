@@ -11,7 +11,7 @@ precision highp usampler2D;
 // stake). Outside the stake the map is dimmed; a stake region is lightened
 // and drawn by its state:
 //   free: a white rim;
-//   mine: my colour over it and a rim in it;
+//   mine: my colour (lightened) over it and a wide rim in it;
 //   decided: the settler's colour, hatched;
 //   other: a wide rim in the controlling participant's colour.
 // The selected region pulses a white outline. Widths are screen pixels.
@@ -65,7 +65,9 @@ void main() {
   }
   vec3 c = cell.rgb;
   vec4 col = vec4(1.0, 1.0, 1.0, 0.1);
-  if (kind == PEACE_MINE) col = over(col, c, 0.5);
+  // Mine: my colour, lightened so a dark national colour doesn't read as
+  // the dimmed outside, with a wide rim in it.
+  if (kind == PEACE_MINE) col = over(col, mix(c, vec3(1.0), 0.3), 0.6);
   if (kind == PEACE_DECIDED) {
     col = over(col, c, 0.3);
     float stripe = fract((w.x + w.y) / (9.0 * uTilesPerPx));
@@ -73,7 +75,7 @@ void main() {
   }
   float thin = 1.6 * uTilesPerPx;
   float wide = 3.5 * uTilesPerPx;
-  if (kind == PEACE_OTHER && otherAt(w, id, wide)) {
+  if ((kind == PEACE_OTHER || kind == PEACE_MINE) && otherAt(w, id, wide)) {
     col = over(col, c, 0.95);
   } else if (otherAt(w, id, thin)) {
     vec3 rim = kind == PEACE_FREE ? vec3(1.0) : c;

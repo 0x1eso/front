@@ -51,6 +51,7 @@ import {
   NAVY_PCT_MIN,
   NAVY_PCT_STEP,
   PEACE_WHY,
+  peaceColor,
   peaceCountryName,
   peaceFlagUrl,
   peaceLineText,
@@ -707,7 +708,11 @@ export class WwPeaceCard extends LitElement implements Controller {
               () => this.twoTapAction("confirm", () => this.send(m, false)),
               {
                 armed: this.twoTap.isArmed("confirm", now),
-                disabled: ui.draft.length === 0 || (confirmed && !passed),
+                // The engine refuses a list with a demand it can't spell out.
+                disabled:
+                  ui.draft.length === 0 ||
+                  (confirmed && !passed) ||
+                  rows.some((e) => e.refused),
                 extra: "flex-1 font-semibold",
               },
             )}
@@ -962,7 +967,7 @@ export class WwPeaceCard extends LitElement implements Controller {
       body = html`<span class="text-white/80"
           >${translateText("ww1936.peace.map_hint")}</span
         >
-        ${this.legend()}`;
+        ${this.legend(me)}`;
     } else {
       const group = m.groupOf(r);
       const bens = m.beneficiaries(r, me);
@@ -1046,20 +1051,29 @@ export class WwPeaceCard extends LitElement implements Controller {
       </div>`;
   }
 
-  private legend(): TemplateResult {
-    const item = (cls: string, key: string) =>
+  /** The map's states (spec §20.2): mine in my colour; decided and other in the deciding or controlling country's (patterns here). */
+  private legend(me: number): TemplateResult {
+    const item = (cls: string, key: string, style = "") =>
       html`<span class="flex items-center gap-1"
-        ><span class="inline-block size-3 rounded-sm ${cls}"></span
+        ><span
+          class="inline-block size-3 rounded-sm ${cls}"
+          style=${style}
+        ></span
         >${translateText(key)}</span
       >`;
+    const mine = `#${peaceColor(this.game, me).toString(16).padStart(6, "0")}`;
     return html`<div class="flex flex-wrap gap-x-3 gap-y-0.5 text-white/75">
       ${item("border-2 border-white", "ww1936.peace.map_free")}
-      ${item("bg-sky-400", "ww1936.peace.map_mine")}
       ${item(
-        "bg-[repeating-linear-gradient(45deg,#f59e0b_0_2px,transparent_2px_4px)]",
+        "border-2",
+        "ww1936.peace.map_mine",
+        `background:${mine};border-color:${mine}`,
+      )}
+      ${item(
+        "bg-[repeating-linear-gradient(45deg,#d1d5db_0_2px,transparent_2px_4px)]",
         "ww1936.peace.map_decided",
       )}
-      ${item("border-2 border-rose-400", "ww1936.peace.map_other")}
+      ${item("border-[3px] border-gray-300", "ww1936.peace.map_other")}
     </div>`;
   }
 }

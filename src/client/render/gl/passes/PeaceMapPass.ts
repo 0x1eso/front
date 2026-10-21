@@ -48,6 +48,17 @@ export const PEACE_SELECTED = 8;
 export const PEACE_LABEL_MIN_ZOOM = 0.5;
 /** CSS px per font pixel of the price digits. */
 export const PEACE_LABEL_CELL_PX = 2.4;
+/**
+ * Below this zoom the digits shrink with it (to half size at the threshold),
+ * so the labels of small neighbouring regions don't pile up when zoomed out.
+ */
+export const PEACE_LABEL_FULL_ZOOM = 1.5;
+
+/** A digit cell's size in CSS px at `zoom` (CSS px per tile). */
+export function peaceLabelCellPx(zoom: number): number {
+  const k = Math.min(1, Math.max(0.5, zoom / PEACE_LABEL_FULL_ZOOM));
+  return PEACE_LABEL_CELL_PX * k;
+}
 /** At most this many digits a price (larger prices show 9999). */
 export const PEACE_LABEL_MAX_DIGITS = 4;
 
@@ -245,7 +256,7 @@ export class PeaceMapPass {
     if (zoom < PEACE_LABEL_MIN_ZOOM || this.labelCount === 0) return;
     gl.useProgram(this.labelProgram);
     gl.uniformMatrix3fv(this.lCamera, false, cam);
-    gl.uniform1f(this.lCellWorld, PEACE_LABEL_CELL_PX * tilesPerPx);
+    gl.uniform1f(this.lCellWorld, peaceLabelCellPx(zoom) * tilesPerPx);
     gl.uniform1f(this.lAlpha, 1);
     gl.bindVertexArray(this.labelVao);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.labelCount);
