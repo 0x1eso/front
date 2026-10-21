@@ -151,11 +151,12 @@ describe(
         untilDay: -1,
         addedDay: 0,
       });
-      // Lane P (Task 4) reads spirit rules; until it does the rule reads false.
-      if (hasRule(p, deu, "no_justify")) {
-        expect(block("DEU", "CSK")).toBe("isolation");
-        expect(justifyBlock(p, deu, csk)).toBe("justify_blocked");
-      }
+      // Lane P reads the spirit's rule. Justifying is blocked too (on
+      // France: on Czechoslovakia the goal already held answers first).
+      expect(hasRule(p, deu, "no_justify")).toBe(true);
+      expect(block("DEU", "CSK")).toBe("isolation");
+      expect(justifyBlock(p, deu, csk)).toBe("treaty_exists");
+      expect(justifyBlock(p, deu, id("FRA"))).toBe("justify_blocked");
       expect(block("DEU", "CSK", true)).toBeNull();
       expect(joinWar(g, ww, byTag(g, "DEU"), byTag(g, "CSK"), g.ticks())).toBe(
         true,

@@ -28,8 +28,7 @@ beforeEach(() => usePoliticsContent(politicsFixture()));
 afterEach(() => usePoliticsContent(null));
 
 describe("politics on the clock", () => {
-  // Task 4 (lane P) revives it: the foundation's dailyPower gives no PP.
-  it.skip("politics daily step runs once per country per day", async () => {
+  it("politics daily step runs once per country per day", async () => {
     const runner = await wwRunner({}, DEU_HUMAN, POL);
     const g = runner.game;
     const id = byTag(g, "DEU").smallID();
@@ -54,9 +53,10 @@ describe("politics on the clock", () => {
       for (const [i, d] of days.entries()) {
         stepTo(runner, dayStart(d));
         // Full stability: +15% PP gain once the stats are summed again
-        // (spec §6.2), then back to 50% the next day.
+        // (spec §6.2), then back to 50% (+1% ruling party: 0) the next day.
+        // Stability is the base and its lines (spec §6.1), from the step.
         const want = i === 0 ? 15 : 0;
-        c.stabBp = i === 0 ? 10_000 : 5000;
+        c.stabBaseBp = i === 0 ? 10_000 : 5000;
         // Day d's ticks before the country's own: not yet.
         stepTo(runner, dayStart(d) + (id % WW_DAY_SPLIT));
         expect(c.stats.ppGainPct, `${tag} day ${d}`).toBe(15 - want);
@@ -78,7 +78,7 @@ describe("politics on the clock", () => {
     expect(c.focus).toEqual({ id: "gen_t_a", progressMilli: 0 });
     const pp = c.ppMilli;
     // No daily step: a changed base does not reach the stats.
-    c.stabBp = 10_000;
+    c.stabBaseBp = 10_000;
     stepTo(runner, WW_PREP_TICKS - 1);
     expect(c.stats.ppGainPct).toBe(0);
     expect(c.ppMilli).toBe(pp);

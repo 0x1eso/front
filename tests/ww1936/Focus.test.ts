@@ -8,6 +8,7 @@ import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { dailyPpMilli } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { EffectCtx } from "@openfront/engine/ww1936/politics/Dispatch";
@@ -34,7 +35,7 @@ import {
 } from "./util";
 
 // Every political effect a focus dispatches, recorded on its way to lane P's
-// body (the PP of `pp` itself is lane P's to test).
+// body (which runs: the 70-day test checks the PP it gives too).
 const applied = vi.hoisted(
   () => [] as { kind: string; actor: number; day: number }[],
 );
@@ -156,7 +157,10 @@ describe("national focus", { timeout: 60_000 }, () => {
     beforeSlot(g, 4 + 70);
     expect(g.c.focus?.progressMilli).toBe(69_000);
     expect(deuApplied()).toEqual([]);
+    const pp = g.c.ppMilli;
     step(g.runner);
+    // Lane P's pp effect: gen_t_a's 50 PP on top of the day's own gain.
+    expect(g.c.ppMilli - pp).toBe(dailyPpMilli(g.c.stats) + 50_000);
     expect(g.c.focus).toBeNull();
     expect(g.c.focusState[pos("gen_t_a")]).toBe(1);
     expect(g.c.focusesDone).toBe(1);

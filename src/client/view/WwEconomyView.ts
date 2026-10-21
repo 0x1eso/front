@@ -23,6 +23,8 @@ export class WwEconomyView {
   readonly rail: Uint8Array;
   readonly hub: Uint8Array;
   readonly controller: Uint16Array;
+  /** P3 deposit bonuses by region (absent: none), RESOURCE_IDS order. */
+  private resBonus = new Map<number, number[]>();
   /** Bumped on every merge; screens redraw when it moves. */
   version = 0;
 
@@ -62,6 +64,8 @@ export class WwEconomyView {
       this.rail[r.id] = r.rail;
       this.hub[r.id] = r.hub;
       this.controller[r.id] = r.controller;
+      if (r.res === undefined) this.resBonus.delete(r.id);
+      else this.resBonus.set(r.id, [...r.res]);
     }
     this.version++;
   }
@@ -89,6 +93,7 @@ export class WwEconomyView {
       fort: this.fort[id],
       rail: this.rail[id],
       hub: this.hub[id],
+      ...(this.resBonus.has(id) ? { res: [...this.resBonus.get(id)!] } : {}),
     };
   }
 }
