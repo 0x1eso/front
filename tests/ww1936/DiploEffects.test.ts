@@ -225,10 +225,12 @@ describe(
       expect(
         diploEventChoice(p, "gen_guarantee_called", gbr, id("POL"), deu),
       ).toBe("a");
+      // Lane A fix round 1 (controller): a guarantee is kept with or
+      // without a history beat (it brings the guarantor in reliably).
       p.beats[g3] = { fireDay: day + 2, skipped: true, done: false };
       expect(
         diploEventChoice(p, "gen_guarantee_called", gbr, id("POL"), deu),
-      ).toBeNull();
+      ).toBe("a");
       // Not a request event: the event's own weights decide.
       expect(diploEventChoice(p, "gen_t_choice", fra, gbr, deu)).toBeNull();
     });

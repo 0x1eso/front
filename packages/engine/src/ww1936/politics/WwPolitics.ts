@@ -71,7 +71,7 @@ import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WorldWar } from "../WorldWar";
 import { candidatesFor, fireAdvisor, hireAdvisor } from "./Advisors";
-import { aiPoliticsTick } from "./AiPolitics";
+import { aiBeatPlanned, aiPoliticsTick } from "./AiPolitics";
 import {
   cancelMission,
   decisionCards,
@@ -1102,6 +1102,9 @@ export class WwPolitics {
       if (b.act.kind !== "declare" && b.act.kind !== "join") return;
       const a = this.idOfTag(b.actor);
       const t = this.idOfTag(b.act.target);
+      // Lane A fix round 1: a due beat the AI rates far below its bar is
+      // not staged for (aiBeatPlanned: from 70% of it).
+      if (s.fireDay <= day && a !== 0 && !aiBeatPlanned(this, b, a)) return;
       if (a === smallID && t !== 0) out.add(t);
       if (t === smallID && a !== 0) out.add(a);
     });

@@ -49,7 +49,7 @@ import {
   justifyGate,
   lawCost,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
-import { aiWeight } from "@openfront/engine-lib/ww1936/Roll";
+import { aiWeight, idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { declareWar, declareWarBlock } from "../Diplomacy";
 import {
   AiPersonality,
@@ -72,6 +72,9 @@ import { hasRule, ruleValue } from "./Spirits";
 import { opinionOf } from "./Treaties";
 import { justifyBlock } from "./WarGoals";
 import type { CountryPol, WwPolitics } from "./WwPolitics";
+
+/** wwRoll purpose of the early-war roll (fix round 1). */
+const P_EARLY_WAR = idHash("ai_early_war");
 
 /** Spec §18.6-2: the traits an AI seats, in order, by P1 personality. */
 export const AI_ADVISOR_ORDER: Readonly<
@@ -106,12 +109,18 @@ export const AI_WAR_SCORE_PM: Readonly<Record<AiPersonality, number>> = {
 export const AI_BEAT_SCORE_PM = { declare: 800, join: 600 } as const;
 /** Owner direction: a beat the AI does not like yet waits up to this many days past its day, then lapses. */
 export const AI_BEAT_WAIT_DAYS = 180;
+/** Fix round 1: a waiting war beat is planned (the land AI stages) from 7/10 of its bar. */
+export const AI_BEAT_PLAN_TENTHS = 7;
 /**
  * Owner direction 3 (R11 as a safety rail): before the date of a history
  * beat still to come between the two, the war decision declares only with
- * a score this strong.
+ * a score this strong — and only in the games where the seeded roll lets
+ * that pair go early (AI_EARLY_WAR_PCT, fix round 1: an early war is the
+ * exception, not the rule).
  */
-export const AI_EARLY_WAR_SCORE_PM = 2000;
+export const AI_EARLY_WAR_SCORE_PM = 3000;
+/** Fix round 1: in this share of games (seeded per pair) a strong AI may go to war before history's date. */
+export const AI_EARLY_WAR_PCT = 25;
 /** Spec §18.7: war support, bp. */
 export const AI_WAR_SUPPORT_BP = 4000;
 /** Spec §18.6-6: a democratic major guarantees from this world tension, bp. */
@@ -135,6 +144,11 @@ export const AI_POLITICS_PERIOD_DAYS = 3;
  * candidate) on `(day + id) % 30 === 0`.
  */
 export const AI_DECISION_PERIOD_DAYS = 6;
+/**
+ * A decision this heavy (aiWeight) the AI can take but for its PP is saved
+ * for: no lighter one is taken meanwhile (spec §18.6's PP order).
+ */
+export const AI_DECISION_SAVE_WEIGHT = 15;
 export const AI_TARGETED_PERIOD_DAYS = 30;
 /** Spec §18.6-7: invitations (and join requests) on `(day + id) % 30 === 0`. */
 export const AI_FACTION_PERIOD_DAYS = 30;
@@ -159,6 +173,7 @@ export function aiPoliticsTick(
     const persona = aiPersonality(c.tag);
     const historical = pol.mg.config().historicalAi();
     const budget = new Budget(pol, id, day);
+    if (historical) aiHistoryGuarantees(pol, c, budget, day, tick);
     aiAdvisor(pol, c, persona, budget, day, tick);
     if (!historical) aiJustify(pol, c, persona, budget, day, tick);
     if ((day + id) % AI_DECISION_PERIOD_DAYS === 0) {
@@ -247,9 +262,10 @@ const DIPLO_BEAT_COST = {
 
 /**
  * Spec §18.2, §18.6-3 (R2): what `id`'s decision and diplomacy beats due
- * within 30 days (or due and not done yet) will cost — the beat sets the
- * date, so the AI has the PP there for it. 0 without historical AI (every
- * beat is skipped).
+ * within 30 days (or due and not done yet) that the AI would take will
+ * cost — the beat sets the date, so the AI has the PP there for it; none
+ * for a beat it is waiting on. 0 without historical AI (every beat is
+ * skipped).
  */
 export function reserveForBeats(
   pol: WwPolitics,
@@ -261,7 +277,10 @@ export function reserveForBeats(
     const s = pol.beats[i];
     if (s === undefined || s.skipped || s.done) continue;
     if (s.fireDay > day + WW_BEAT_WINDOW_DEFAULT_DAYS) continue;
-    const act = pol.content.beats[i].act;
+    const b = pol.content.beats[i];
+    const act = b.act;
+    // Not for a beat the AI is waiting on (fix round 1).
+    if (!aiBeatReady(pol, b, id)) continue;
     if (act.kind === "decision") {
       const d = decisionDef(pol, act.id);
       if (d !== undefined) pp += decisionCostPp(pol, id, d);
@@ -314,6 +333,75 @@ function issue(
   tick: number,
 ): boolean {
   return pol.issue(id, order, tick) === null;
+}
+
+// ---- History's guarantees (fix round 1) ----
+
+/** The countries a decision's effects guarantee, effect order (per decision, derived). */
+const GUARANTEES = new WeakMap<DecisionDef, CountryTag[]>();
+
+function guaranteeTargets(d: DecisionDef): CountryTag[] {
+  let out = GUARANTEES.get(d);
+  if (out === undefined) {
+    const found: CountryTag[] = [];
+    const walk = (x: unknown): void => {
+      if (Array.isArray(x)) {
+        for (const y of x) walk(y);
+      } else if (x !== null && typeof x === "object") {
+        const o = x as Record<string, unknown>;
+        const of = o.of as { tag?: CountryTag } | undefined;
+        if (o.kind === "guarantee" && of?.tag !== undefined) found.push(of.tag);
+        for (const v of Object.values(o)) walk(v);
+      }
+    };
+    walk(d.effects ?? []);
+    out = [...new Set(found)];
+    GUARANTEES.set(d, out);
+  }
+  return out;
+}
+
+/**
+ * Fix round 1 (guarantees bring their guarantors in): with historical AI,
+ * a guarantee one of `c`'s decision beats gives (the decision's effects
+ * guarantee a country) that the decision could not give — the beat ran
+ * out with the decision not taken, locked behind a focus the AI has not
+ * reached, say — is given by the guarantee order (its rules and cost),
+ * within AI_BEAT_WAIT_DAYS of the beat's day. One a day.
+ */
+function aiHistoryGuarantees(
+  pol: WwPolitics,
+  c: CountryPol,
+  budget: Budget,
+  day: number,
+  tick: number,
+): void {
+  for (const i of ppBeatsOf(pol.content, c.tag)) {
+    const s = pol.beats[i];
+    const act = pol.content.beats[i].act;
+    if (act.kind !== "decision" || s === undefined || s.skipped) continue;
+    if (!s.done || c.taken.has(act.id)) continue;
+    if (day >= s.fireDay + AI_BEAT_WAIT_DAYS) continue;
+    const d = decisionDef(pol, act.id);
+    if (d === undefined) continue;
+    for (const tag of guaranteeTargets(d)) {
+      const t = pol.idOfTag(tag);
+      if (t === 0 || t === c.smallID || !pol.living(t)) continue;
+      if (pol.guarantees.some((g) => g.by === c.smallID && g.to === t)) {
+        continue;
+      }
+      const cost = hasRule(pol, c.smallID, "free_guarantees")
+        ? 0
+        : costWith(WW_COST.guarantee, c.stats.diploCostPct);
+      if (!budget.affords(c, cost)) {
+        budget.saved += cost;
+        return;
+      }
+      if (issue(pol, c.smallID, { kind: "guarantee", target: t }, tick)) {
+        return;
+      }
+    }
+  }
 }
 
 // ---- 2. Advisors (spec §18.6-2) ----
@@ -450,6 +538,8 @@ function targetKeys(d: DecisionDef, n: number): string[] {
  * The heaviest decision `id` can take now (a targeted one per target):
  * weight 0 never, ties by content order, a targeted decision's targets in
  * smallID order; one a history beat has still to take is left to it (R2).
+ * One that is takeable but for its PP is saved for when its weight is
+ * ≥ AI_DECISION_SAVE_WEIGHT, else passed over for a lighter one.
  * The weight's mods are judged for the chooser (AiWeight), no target.
  */
 function aiDecision(
@@ -466,8 +556,7 @@ function aiDecision(
   for (const i of decisionsOf(pol.content, c.tag)) {
     const d = pol.content.decisions[i];
     if (d.target !== undefined && !targeted) continue;
-    // What decisionBlock would refuse first, cheaply: locked, on cooldown,
-    // short of PP before any reserve (that one is judged at the end).
+    // What decisionBlock would refuse first, cheaply: locked, on cooldown.
     if (
       (d.locked === true && !c.unlocked.has(d.id)) ||
       c.locked.has(d.id) ||
@@ -476,52 +565,65 @@ function aiDecision(
       continue;
     }
     const pp = decisionCostPp(pol, id, d);
-    if (c.ppMilli < (pp + budget.saved) * 1000) continue;
     const mods = d.ai.mods;
     const w =
       mods === undefined || mods.length === 0
         ? Math.max(0, d.ai.base)
         : aiWeight(d.ai, (j) => evalCondition(ctx, mods[j].if));
-    if (w > 0) options.push({ i, w, pp });
+    if (w <= 0) continue;
+    // Short of its PP: only a heavy decision is worth saving for.
+    if (c.ppMilli < (pp + budget.saved) * 1000 && w < AI_DECISION_SAVE_WEIGHT) {
+      continue;
+    }
+    options.push({ i, w, pp });
   }
   if (options.length === 0) return;
   options.sort((a, b) => b.w - a.w || a.i - b.i);
-  for (const { i, pp } of options) {
+  for (const { i, w, pp } of options) {
     const d = pol.content.decisions[i];
+    const pays = budget.affords(c, pp);
+    if (!pays && w < AI_DECISION_SAVE_WEIGHT) continue;
+    let target = -1;
+    let ready = false;
     if (d.target === undefined) {
-      if (decisionBlock(pol, id, d.id, 0) !== null) continue;
-      if (beatPending(pol, id, d.id) || !budget.affords(c, pp)) continue;
-      issue(
-        pol,
-        id,
-        { kind: "decision_take", decision: d.id, target: 0 },
-        tick,
-      );
+      const block = decisionBlock(pol, id, d.id, 0);
+      if (block !== null && block !== "no_pp") continue;
+      target = 0;
+      ready = block === null;
+    } else {
+      // The decider's own conditions first, once, when they do not look
+      // at the target (decisionBlock judges `among` before them, per target).
+      if (
+        !namesTarget(d) &&
+        (!evalCondition(ctx, d.visible ?? d.available) ||
+          !evalCondition(ctx, d.available))
+      ) {
+        continue;
+      }
+      const keys = targetKeys(d, pol.countries.length);
+      for (let t = 1; t < pol.countries.length; t++) {
+        // A target on cooldown first (most are, for a decision taken often).
+        if ((c.decisionCooldown.get(keys[t]) ?? -1) > day || t === id) {
+          continue;
+        }
+        if (!pol.living(t)) continue;
+        const block = decisionBlock(pol, id, d.id, t);
+        if (block !== null && block !== "no_pp") continue;
+        target = t;
+        ready = block === null;
+        break;
+      }
+      if (target < 0) continue;
+    }
+    if (beatPending(pol, id, d.id)) continue;
+    if (ready && pays) {
+      issue(pol, id, { kind: "decision_take", decision: d.id, target }, tick);
       return;
     }
-    // The decider's own conditions first, once, when they do not look at
-    // the target (decisionBlock judges `among` before them, per target).
-    if (
-      !namesTarget(d) &&
-      (!evalCondition(ctx, d.visible ?? d.available) ||
-        !evalCondition(ctx, d.available))
-    ) {
-      continue;
-    }
-    if (beatPending(pol, id, d.id) || !budget.affords(c, pp)) continue;
-    const keys = targetKeys(d, pol.countries.length);
-    for (let t = 1; t < pol.countries.length; t++) {
-      // A target on cooldown first (most are, for a decision taken often).
-      if ((c.decisionCooldown.get(keys[t]) ?? -1) > day || t === id) continue;
-      if (!pol.living(t) || decisionBlock(pol, id, d.id, t) !== null) continue;
-      issue(
-        pol,
-        id,
-        { kind: "decision_take", decision: d.id, target: t },
-        tick,
-      );
-      return;
-    }
+    // Takeable but for its PP: a heavy one is saved for (spec §18.6's PP
+    // order, as the advisor and the justification wait for theirs).
+    budget.saved += pp;
+    return;
   }
 }
 
@@ -604,9 +706,10 @@ export function aiWarScore(
   if (c === null || t === a) return 0;
   // A join is a war between the two only (P0 §7.3).
   const side = join ? (pol.living(t) ? [t] : []) : sideOf(pol, t, a);
+  // Both sides doubled, so a half is still a whole number.
   let against = 0;
   for (const x of side) {
-    if (!pol.ww.isAtWar(a, x)) against += aiStrength(pol, x);
+    if (!pol.ww.isAtWar(a, x)) against += 2 * aiStrength(pol, x);
   }
   if (!join) {
     for (const g of pol.guarantorsOf(t)) {
@@ -614,15 +717,15 @@ export function aiWarScore(
       if (!pol.living(g) || pol.sameFaction(a, g) || pol.ww.isAtWar(g, a)) {
         continue;
       }
-      against += aiStrength(pol, g) / 2;
+      against += aiStrength(pol, g);
     }
   }
-  let mine = aiStrength(pol, a);
+  let mine = 2 * aiStrength(pol, a);
   const counted = new Set<number>([a, ...side]);
   for (const e of pol.ww.enemiesOf(t)) {
     if (counted.has(e) || !pol.living(e)) continue;
     counted.add(e);
-    mine += aiStrength(pol, e);
+    mine += 2 * aiStrength(pol, e);
   }
   const idx = pol.factionIdx(a);
   const leads = idx >= 0 && pol.faction(idx)?.leader === a;
@@ -630,8 +733,11 @@ export function aiWarScore(
     for (const m of pol.factionMembers(idx)) {
       if (counted.has(m) || !pol.living(m)) continue;
       counted.add(m);
-      if (side.some((x) => pol.ww.isAtWar(m, x))) mine += aiStrength(pol, m);
-      else if (leads) mine += aiStrength(pol, m) / 2;
+      if (side.some((x) => pol.ww.isAtWar(m, x))) {
+        mine += 2 * aiStrength(pol, m);
+      } else if (leads) {
+        mine += aiStrength(pol, m);
+      }
     }
   }
   if (mine <= 0) return 0;
@@ -1022,6 +1128,15 @@ export function earlyForHistory(
   );
 }
 
+/** Fix round 1: whether this game lets `a` go to war on `t` before history's date (seeded, AI_EARLY_WAR_PCT of games). */
+export function earlyWarRolled(pol: WwPolitics, a: number, t: number): boolean {
+  return (
+    wwRoll(pol.seed, P_EARLY_WAR, idHash(pol.tagOf(a)), idHash(pol.tagOf(t))) %
+      100 <
+    AI_EARLY_WAR_PCT
+  );
+}
+
 /**
  * Spec §18.7's "at war with a major (the same faction's wars aside)": a
  * living major enemy that no faction mate fights beside me.
@@ -1074,8 +1189,8 @@ export function aiWarDecision(
     if (score < need) continue;
     if (
       historical &&
-      score < AI_EARLY_WAR_SCORE_PM &&
-      earlyForHistory(pol, id, t, day)
+      earlyForHistory(pol, id, t, day) &&
+      (score < AI_EARLY_WAR_SCORE_PM || !earlyWarRolled(pol, id, t))
     ) {
       continue;
     }
@@ -1101,8 +1216,9 @@ export function aiWarDecision(
 
 /**
  * Owner direction 1: with historical AI a history beat is a suggestion.
- * HistoryBeats asks before a declare or join beat, and before a decision
- * beat aimed at a country, acts: true when the AI takes it now — the war
+ * HistoryBeats asks before a declare or join beat, and before a war-like
+ * decision beat aimed at a country (warLikeDecision), acts: true when the
+ * AI takes it now — the war
  * score (aiWarScore: the target with its allies, other fronts, war
  * support) is ≥ 0.8 (a join, into a war others fight: 0.6), or the war is
  * owed (a faction mate already fights the target, or the AI guarantees a
@@ -1117,6 +1233,55 @@ export function aiBeatReady(
   b: HistoryBeat,
   a: number,
 ): boolean {
+  const v = beatVerdict(pol, b, a);
+  return v === null || v.score >= v.need;
+}
+
+/**
+ * Fix round 1: while a war beat waits, the land AI stages for it
+ * (plannedWars) only once the AI rates it at ≥ 70% of what it needs.
+ */
+export function aiBeatPlanned(
+  pol: WwPolitics,
+  b: HistoryBeat,
+  a: number,
+): boolean {
+  const v = beatVerdict(pol, b, a);
+  return v === null || v.score * 10 >= v.need * AI_BEAT_PLAN_TENTHS;
+}
+
+/** A decision that may bring a war: an ultimatum (annexation) or one whose effects declare or join a war (per decision, derived). */
+const WAR_LIKE = new WeakMap<DecisionDef, boolean>();
+
+export function warLikeDecision(d: DecisionDef): boolean {
+  let v = WAR_LIKE.get(d);
+  if (v === undefined) {
+    const effects = JSON.stringify([
+      d.effects ?? [],
+      d.completeEffects ?? [],
+      d.failEffects ?? [],
+    ]);
+    v =
+      d.category === "annexation" ||
+      effects.includes('"kind":"declare_war"') ||
+      effects.includes('"kind":"join_war"');
+    WAR_LIKE.set(d, v);
+  }
+  return v;
+}
+
+/**
+ * The war score a beat is judged on and the bar it must reach; null when
+ * the beat is not judged: not a war (a peaceful decision — an invitation,
+ * a base treaty — is subject only to its own cost and conditions), a war
+ * the act's own rules settle (the target gone, already at war, a faction
+ * partner), or a war owed.
+ */
+function beatVerdict(
+  pol: WwPolitics,
+  b: HistoryBeat,
+  a: number,
+): { score: number; need: number } | null {
   const act = b.act;
   let target: CountryTag;
   let join = false;
@@ -1124,21 +1289,24 @@ export function aiBeatReady(
     target = act.target;
     join = act.kind === "join";
   } else if (act.kind === "decision" && act.target !== undefined) {
+    const d = decisionDef(pol, act.id);
+    if (d === undefined || !warLikeDecision(d)) return null;
     target = act.target;
   } else {
-    return true;
+    return null;
   }
   const t = pol.idOfTag(target);
-  if (t === 0 || t === a || !pol.living(t) || !pol.living(a)) return true;
-  if (pol.ww.isAtWar(a, t) || pol.sameFaction(a, t)) return true;
-  if (warOwed(pol, a, t)) return true;
+  if (t === 0 || t === a || !pol.living(t) || !pol.living(a)) return null;
+  if (pol.ww.isAtWar(a, t) || pol.sameFaction(a, t)) return null;
+  if (warOwed(pol, a, t)) return null;
   // A join into a war nobody fights yet opens it: judged as a declaration.
   if (join && !pol.ww.enemiesOf(t).some((e) => e !== a && pol.living(e))) {
     join = false;
   }
-  return (
-    aiWarScore(pol, a, t, join) >= AI_BEAT_SCORE_PM[join ? "join" : "declare"]
-  );
+  return {
+    score: aiWarScore(pol, a, t, join),
+    need: AI_BEAT_SCORE_PM[join ? "join" : "declare"],
+  };
 }
 
 // ---- 4. Acceptance (spec §18.6-4) ----

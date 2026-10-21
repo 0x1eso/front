@@ -17,7 +17,7 @@ import {
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { sweepRefused } from "../land/PoliticsBridge";
 import { aiAcceptScore } from "./AiPolitics";
-import { callToArmsChoice, warBeatDue } from "./Factions";
+import { callToArmsChoice } from "./Factions";
 import { payPp } from "./Power";
 import { hasRule, ruleValue } from "./Spirits";
 import { addTension, scaledTension } from "./Tension";
@@ -391,7 +391,7 @@ const ASK_OF: Readonly<Record<string, DiploAsk>> = {
  * Controller ruling R1: the engine's answer to a diplomatic request event,
  * which E's aiChooseOption asks first and a human card shows as its
  * default. 1. A call to arms (spec §15.5, callToArmsChoice); a guarantee's
- * call that history keeps. 2. With historical AI, a request a due history
+ * call, always kept (lane A fix round 1). 2. With historical AI, a request a due history
  * beat makes is accepted. 3. The acceptance score (spec §18.6-4): ≥ 50
  * accepts ("a"), else "b". null: the event's own weights decide.
  */
@@ -405,13 +405,10 @@ export function diploEventChoice(
   if (eventId === "gen_call_to_arms") {
     return callToArmsChoice(pol, to, from, target);
   }
-  // A guarantee history keeps (1939-09-03): certain; else the event's weights.
-  if (eventId === "gen_guarantee_called") {
-    return pol.mg.config().historicalAi() &&
-      warBeatDue(pol, to, target, pol.day())
-      ? "a"
-      : null;
-  }
+  // Lane A fix round 1 (controller): a guarantee brings its guarantor in
+  // reliably — an AI keeps its word (spec §16.1's 85 / 15 weights no
+  // longer roll; option a falls back to b when it is closed).
+  if (eventId === "gen_guarantee_called") return "a";
   const kind = ASK_OF[eventId];
   if (kind === undefined) return null;
   if (pol.mg.config().historicalAi() && historyAsks(pol, kind, from, to)) {

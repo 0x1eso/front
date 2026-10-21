@@ -20,18 +20,23 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GENERIC_EVENTS } from "@openfront/engine-lib/ww1936/content/events/generic";
 import type { ContentParts } from "@openfront/engine-lib/ww1936/content/registry";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_ADVISOR_ORDER,
   AI_BEAT_WAIT_DAYS,
   AI_DECISION_PERIOD_DAYS,
+  AI_EARLY_WAR_PCT,
   AI_TARGETED_PERIOD_DAYS,
   aiAcceptScore,
+  aiBeatReady,
   aiPoliticsTick,
   aiWarDecision,
   aiWarScore,
+  earlyWarRolled,
   reserveForBeats,
   reserveForLaw,
 } from "@openfront/engine/ww1936/politics/AiPolitics";
@@ -386,6 +391,32 @@ describe("the AI's politics (spec §18.6)", { timeout: 60_000 }, () => {
     ]);
   });
 
+  it("an AI saves for a heavy decision it cannot pay yet", async () => {
+    const decisions = [
+      decision("t_heavy", 30, { cost: { pp: 200 } }),
+      decision("t_mid", 10, { cost: { pp: 200 } }),
+      decision("t_light", 5, { cost: { pp: 10 } }),
+    ];
+    const g = await aiGame(["DEU"], { decisions });
+    const deu = g.id("DEU");
+    const c = g.p.country(deu)!;
+    c.advisors = c.advisors.map(() => "title:orator");
+    const d = g.dayFor("DEU", AI_DECISION_PERIOD_DAYS);
+    const keep = reserveForLaw(g.p, deu, d) + reserveForBeats(g.p, deu, d);
+    // The heavy one (weight ≥ 15) is takeable but for its PP: saved for —
+    // the light one waits too.
+    c.ppMilli = (keep + 199) * 1000;
+    aiPoliticsTick(g.p, deu, d, g.tick());
+    expect([...c.taken]).toEqual([]);
+    c.ppMilli = (keep + 200) * 1000;
+    aiPoliticsTick(g.p, deu, d + 6, g.tick());
+    expect([...c.taken]).toEqual(["t_heavy"]);
+    // A lighter one short of PP (weight 10) is passed over for what can pay.
+    c.ppMilli = (keep + 100) * 1000;
+    aiPoliticsTick(g.p, deu, d + 12, g.tick());
+    expect([...c.taken]).toEqual(["t_heavy", "t_light"]);
+  });
+
   it("with historical AI off an aggressor justifies on a weaker neighbour", async () => {
     const groups = [
       ...politicsFixture().groups,
@@ -675,6 +706,11 @@ describe("the war decision (spec §18.7)", { timeout: 60_000 }, () => {
       const { p, deu, pl, d, armies, tick } = await war();
       armies({ DEU: 4, POL: 4 });
       expect(aiWarScore(p, deu, pl, false)).toBe(1000);
+      // Italy, a faction mate not yet fighting, counts half for its leader;
+      // the score stays a whole number (both sides doubled).
+      armies({ DEU: 3, ITA: 1, POL: 2 });
+      expect(aiWarScore(p, deu, pl, false)).toBe(1750);
+      armies({ DEU: 4, POL: 4 });
       expect(aiWarDecision(p, deu, d, tick())).toBe(0);
       armies({ DEU: 13, POL: 10 });
       expect(aiWarDecision(p, deu, d, tick())).toBe(pl);
@@ -733,19 +769,36 @@ describe("the war decision (spec §18.7)", { timeout: 60_000 }, () => {
     expect(c.ppMilli).toBe(keep * 1000);
   });
 
-  it("before a history beat's date only a strong AI declares (R11 as a rail)", async () => {
+  it("before a history beat's date only a strong AI declares, in a quarter of games (R11 as a rail)", async () => {
     // Germany's goal on Poland, the 1939-09-01 beat still to come.
     const { p, deu, pl, d, armies, tick, id } = await war(true);
     expect(d).toBeLessThan(dayOfDate("1939-09-01"));
-    armies({ DEU: 15, POL: 10 });
+    armies({ DEU: 29, POL: 10 });
     expect(aiWarDecision(p, deu, d, tick())).toBe(0);
-    armies({ DEU: 20, POL: 10 });
-    expect(aiWarDecision(p, deu, d, tick())).toBe(pl);
+    // Strong enough (×3): only where this game's seeded roll lets the pair
+    // go early.
+    armies({ DEU: 30, POL: 10 });
+    expect(aiWarDecision(p, deu, d, tick())).toBe(
+      earlyWarRolled(p, deu, pl) ? pl : 0,
+    );
     // Either way round: the Soviet Union and the 1941-06-22 German beat.
     const sun = id("SUN");
     addWarGoal(p, sun, deu, "conquer", "", 0);
-    armies({ SUN: 15, DEU: 10 });
+    armies({ SUN: 25, DEU: 10 });
     expect(aiWarDecision(p, sun, d, tick())).toBe(0);
+    // The roll lets about one game in four go early.
+    let early = 0;
+    for (let seed = 0; seed < 2000; seed++) {
+      if (
+        wwRoll(seed, idHash("ai_early_war"), idHash("DEU"), idHash("POL")) %
+          100 <
+        AI_EARLY_WAR_PCT
+      ) {
+        early++;
+      }
+    }
+    expect(early / 2000).toBeGreaterThan(0.2);
+    expect(early / 2000).toBeLessThan(0.3);
   });
 });
 
@@ -774,8 +827,11 @@ describe(
       runBeats(p, d, tick());
       expect(p.ww.isAtWar(deu, pl)).toBe(false);
       expect(p.beats[0].done).toBe(false);
-      // Still planned meanwhile (the land AI stages for it).
+      // Still planned meanwhile (the land AI stages for it) at 70% of the
+      // bar (700 ≥ 560), not far below it (fix round 1).
       expect(p.plannedWars(deu, d + 40)).toContain(pl);
+      armies({ DEU: 5, POL: 10 });
+      expect(p.plannedWars(deu, d + 40)).not.toContain(pl);
       runBeats(p, d + AI_BEAT_WAIT_DAYS - 1, tick());
       expect(p.beats[0].done).toBe(false);
       runBeats(p, d + AI_BEAT_WAIT_DAYS, tick());
@@ -856,6 +912,74 @@ describe(
         runBeats(p, d, tick());
         expect(p.ww.isAtWar(sun, pl)).toBe(true);
       }
+    });
+
+    it("a peaceful decision beat is not judged on war odds; an ultimatum is", async () => {
+      // K2's Balkan invitation and K4's Baltic ultimatum, both aimed at a
+      // country; Germany fights France on its border (its war score
+      // halves), the Soviet Union is weak.
+      const real = (id: string) => CONTENT.decisions.find((x) => x.id === id)!;
+      const list = [
+        beat("b_t_invite", "DEU", {
+          kind: "decision",
+          id: "deu_invite_balkans",
+          target: "AUT",
+        }),
+        beat("b_t_ultimatum", "SUN", {
+          kind: "decision",
+          id: "sun_baltic_ultimatum",
+          target: "EST",
+        }),
+      ];
+      const g = await aiGame(["DEU", "SUN"], {
+        decisions: [real("deu_invite_balkans"), real("sun_baltic_ultimatum")],
+        beats: list,
+      });
+      const { p, id, armies, tick } = g;
+      const d = p.ww.day(tick());
+      list.forEach(
+        (_, i) => (p.beats[i] = { fireDay: d, skipped: false, done: false }),
+      );
+      const [deu, sun] = [id("DEU"), id("SUN")];
+      armies({ DEU: 1, AUT: 3, SUN: 1, EST: 2 });
+      p.ww.setWar(deu, id("FRA"), tick());
+      expect(aiBeatReady(p, list[0], deu)).toBe(true);
+      expect(aiBeatReady(p, list[1], sun)).toBe(false);
+      // The PP is kept for the invitation, not for the ultimatum it waits on.
+      expect(reserveForBeats(p, deu, d)).toBe(25);
+      expect(reserveForBeats(p, sun, d)).toBe(0);
+      armies({ DEU: 1, AUT: 3, SUN: 3, EST: 1 });
+      expect(aiBeatReady(p, list[1], sun)).toBe(true);
+      expect(reserveForBeats(p, sun, d)).toBe(50);
+    });
+
+    it("a guarantee history's decision could not give is given by the order", async () => {
+      // Britain's 1939 guarantee of Poland sits behind a focus it has not
+      // reached: the beat ran out with the decision locked.
+      const real = CONTENT.decisions.find(
+        (x) => x.id === "gbr_guarantee_poland",
+      )!;
+      const list = [
+        beat("b_t_guarantee", "GBR", {
+          kind: "decision",
+          id: "gbr_guarantee_poland",
+        }),
+      ];
+      const g = await aiGame(["GBR"], { decisions: [real], beats: list });
+      const { p, id, tick } = g;
+      const [gbr, pl] = [id("GBR"), id("POL")];
+      const d = g.dayFor("GBR", 3);
+      p.beats[0] = { fireDay: d - 40, skipped: false, done: false };
+      runBeats(p, d - 40 + 29, tick());
+      expect(p.beats[0].done).toBe(false);
+      runBeats(p, d - 40 + 30, tick());
+      expect(p.beats[0].done).toBe(true);
+      expect(p.guarantorsOf(pl)).toEqual([]);
+      const c = p.country(gbr)!;
+      c.advisors = c.advisors.map(() => "title:orator");
+      c.ppMilli = 1_000_000;
+      aiPoliticsTick(p, gbr, d, tick());
+      expect(p.guarantorsOf(pl)).toEqual([gbr]);
     });
 
     it("different seeds give different histories", async () => {
