@@ -581,8 +581,6 @@ export function createRenderer(
         seaAir: seaAirController,
       });
     }
-    // P4 (plan decision 30): the vanilla gold box hides in this mode (index.html).
-    if (controlPanel instanceof ControlPanel) controlPanel.dataset.ww1936 = "";
   }
 
   const layers: Controller[] = [

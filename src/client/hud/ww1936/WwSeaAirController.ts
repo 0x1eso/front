@@ -225,9 +225,10 @@ export class WwSeaAirController implements Controller {
         return true;
       }
     }
+    // Elsewhere: the fleet's card goes, and the tap is the map's (like a zone).
     if (sel.fleet !== 0) {
       this.selectFleet(0);
-      return true;
+      return false;
     }
     if (sel.sr !== 0) {
       this.selectZone(0);
@@ -272,23 +273,25 @@ export class WwSeaAirController implements Controller {
   }
 
   /** The first tap of a target previews it; the same again (not a double tap) gives the order. */
-  private targetTap(target: number, order: () => WwOrder | null): void {
+  /** True when it sent the order. */
+  private targetTap(target: number, order: () => WwOrder | null): boolean {
     const d = this.draft;
     const now = this.deps.now();
     if (d.pending !== target) {
       d.pending = target;
       d.pendingAt = now;
       this.changed();
-      return;
+      return false;
     }
-    if (now - d.pendingAt < TWO_TAP_MIN_MS) return;
+    if (now - d.pendingAt < TWO_TAP_MIN_MS) return false;
     const o = order();
     // Refused: the card shows why (the same judge); the preview stays.
-    if (o === null) return;
+    if (o === null) return false;
     this.eventBus.emit(new SendWwOrderIntentEvent(o));
     d.mode = "none";
     d.pending = 0;
     this.changed();
+    return true;
   }
 
   private modeTap(ctx: NavyCtx, x: number, y: number, radius: number): void {
@@ -301,47 +304,50 @@ export class WwSeaAirController implements Controller {
         if (!missionCandidates(ctx, f, d.mission).includes(sr)) {
           return this.cancel();
         }
-        return this.targetTap(sr, () => ({
+        this.targetTap(sr, () => ({
           kind: "fleet_mission",
           fleet: f.id,
           mission: d.mission,
           sr,
         }));
+        return;
       }
       case "move": {
         const zone = this.zoneAt(ctx, x, y);
         if (zone === 0 || moveTarget(ctx, f, zone).km === null) {
           return this.cancel();
         }
-        return this.targetTap(zone, () => ({
+        this.targetTap(zone, () => ({
           kind: "fleet_move",
           fleet: f.id,
           zone,
         }));
+        return;
       }
       case "port_strike": {
         const region = this.regionAt(ctx, x, y);
         if (!portStrikeTargets(ctx, f).includes(region)) return this.cancel();
-        return this.targetTap(region, () => ({
+        this.targetTap(region, () => ({
           kind: "fleet_port_strike",
           fleet: f.id,
           port: region,
         }));
+        return;
       }
       case "merge": {
         const into = this.fleetAt(ctx, x, y);
         if (!mergeTargets(ctx, f).includes(into)) return this.cancel();
-        this.eventBus.emit(
-          new SendWwOrderIntentEvent({
+        // Irreversible: the first tap names the fleet, the second merges.
+        if (
+          this.targetTap(into, () => ({
             kind: "fleet_merge",
             fleet: f.id,
             into,
-          }),
-        );
-        d.mode = "none";
-        d.pending = 0;
-        // The merged fleet is gone: the card follows the one it joined.
-        this.selectFleet(into);
+          }))
+        ) {
+          // The merged fleet is gone: the card follows the one it joined.
+          this.selectFleet(into);
+        }
         return;
       }
       default:

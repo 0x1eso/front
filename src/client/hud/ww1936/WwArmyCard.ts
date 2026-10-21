@@ -54,7 +54,13 @@ import {
   NavyGame,
   srName,
 } from "./NavyModel";
-import { isCapitulated, today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import {
+  isCapitulated,
+  today,
+  TWO_TAP_MS,
+  TwoTap,
+  WW_BAND_PX,
+} from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
 import {
@@ -206,19 +212,30 @@ export function cardPlace(): CardPlace {
     Math.min(Math.floor(h / 4), Math.floor(rowsTop - GAP - (h * 3) / 4)),
   );
   // P4: the risen dials (a short screen) stand above the rows' top: the
-  // card keeps right of them — unless an open drawer leaves too little
-  // room there; then it covers them (the drawer they open is open).
+  // card keeps right of them — or, when an open drawer leaves too little
+  // room there, sits above them (never over the 🏛 and 🌐 dials).
   const dials = shown("[data-ww-dials][data-compact='true']");
   if (dials !== null && dials.top < rowsTop - GAP) {
     const end = drawer === null ? window.innerWidth - GAP : drawer.left - GAP;
-    const left =
-      end - (dials.right + GAP) >= CARD_MIN_WIDTH_PX ? dials.right + GAP : GAP;
+    if (end - (dials.right + GAP) >= CARD_MIN_WIDTH_PX) {
+      const left = dials.right + GAP;
+      return {
+        bottom,
+        right: null,
+        left,
+        maxWidth: Math.max(0, Math.min(560, end - left)),
+        maxHeight,
+      };
+    }
     return {
-      bottom,
+      bottom: h - dials.top + GAP,
       right: null,
-      left,
-      maxWidth: Math.max(0, Math.min(560, end - left)),
-      maxHeight,
+      left: GAP,
+      maxWidth: Math.max(0, Math.min(560, end - GAP)),
+      maxHeight: Math.max(
+        CARD_MIN_PX,
+        Math.min(Math.floor(h / 4), dials.top - 2 * GAP - WW_BAND_PX),
+      ),
     };
   }
   if (drawer === null) {

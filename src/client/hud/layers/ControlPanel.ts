@@ -478,24 +478,34 @@ export class ControlPanel extends LitElement implements Controller {
         <div class="flex-1 ${this.tutorialHighlightClass("troops")}">
           ${this.renderTroopBar()}
         </div>
-        <div
-          class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm py-0.5 px-1 min-w-[4.5rem] relative ${this.tutorialHighlightClass(
-            "gold",
-          )}"
-          translate="no"
-        >
-          ${this._goldGain !== null
-            ? keyed(
-                this._goldGainPulseId,
-                html`<span
-                  class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-sm font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
-                  >+${renderNumber(this._goldGain)}</span
-                >`,
-              )
-            : ""}
-          <img src=${goldCoinIcon} width="13" height="13" class="shrink-0" />
-          <span class="tabular-nums">${renderNumber(this._gold)}</span>
-        </div>
+        ${
+          // World War 1936 P4 (plan decision 30): no vanilla gold in the mode.
+          (this.game?.worldWarScenario?.() ?? null) !== null
+            ? ""
+            : html` <div
+                class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm py-0.5 px-1 min-w-[4.5rem] relative ${this.tutorialHighlightClass(
+                  "gold",
+                )}"
+                translate="no"
+              >
+                ${this._goldGain !== null
+                  ? keyed(
+                      this._goldGainPulseId,
+                      html`<span
+                        class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-sm font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
+                        >+${renderNumber(this._goldGain)}</span
+                      >`,
+                    )
+                  : ""}
+                <img
+                  src=${goldCoinIcon}
+                  width="13"
+                  height="13"
+                  class="shrink-0"
+                />
+                <span class="tabular-nums">${renderNumber(this._gold)}</span>
+              </div>`
+        }
       </div>
     `;
   }

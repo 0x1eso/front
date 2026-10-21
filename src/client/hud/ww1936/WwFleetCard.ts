@@ -32,6 +32,7 @@ import {
   fleetCard,
   FleetCardData,
   fleetFromZone,
+  fleetName,
   freeAdmirals,
   homePorts,
   MISSION_ICONS,
@@ -50,7 +51,7 @@ import {
   zoneName,
 } from "./NavyModel";
 import { WwFleetSelectedEvent } from "./SeaAirSelection";
-import { isCapitulated } from "./WorldWarModel";
+import { isCapitulated, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
 import {
   CARD_FOLD_MAX_HEIGHT,
   CARD_MIN_PX,
@@ -128,6 +129,7 @@ export class WwFleetCard extends LitElement implements Controller {
   @state() private showShips = false;
   private wasOrdering = false;
   private shownFleet = 0;
+  private readonly twoTap = new TwoTap();
   private redrawKey: readonly unknown[] = [];
 
   createRenderRoot() {
@@ -216,6 +218,17 @@ export class WwFleetCard extends LitElement implements Controller {
     this.eventBus.emit(new SendWwOrderIntentEvent(order));
   }
 
+  /** An irreversible action: the first tap arms `key`, a second within 3 s acts. */
+  private confirmTap(key: string, act: () => void) {
+    if (this.twoTap.tap(key, Date.now())) act();
+    this.requestUpdate();
+    setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
+  }
+
+  private armed(key: string): boolean {
+    return this.twoTap.isArmed(key, Date.now());
+  }
+
   private setMode(
     mode: WwSeaAirModeEvent["mode"],
     mission: FleetMission = "patrol",
@@ -258,8 +271,12 @@ export class WwFleetCard extends LitElement implements Controller {
         return;
       case "merge":
         if (c.mergeWith.length === 1) {
-          this.send({ kind: "fleet_merge", fleet: f.id, into: c.mergeWith[0] });
-          this.eventBus.emit(new WwFleetSelectedEvent(c.mergeWith[0]));
+          // Irreversible: two taps (3 s), like the token's merge.
+          const into = c.mergeWith[0];
+          this.confirmTap(`merge:${f.id}`, () => {
+            this.send({ kind: "fleet_merge", fleet: f.id, into });
+            this.eventBus.emit(new WwFleetSelectedEvent(into));
+          });
         } else {
           this.setMode(mode === "merge" ? "none" : "merge");
         }
@@ -658,10 +675,20 @@ export class WwFleetCard extends LitElement implements Controller {
           ></span
         >`;
       }
-      case "merge":
-        return html`<span data-ww-hint="merge" class="${cls}text-amber-200"
-          >${translateText("ww1936.navy.hint_merge")}</span
-        >`;
+      case "merge": {
+        const into =
+          d.pending === 0 ? undefined : c.ctx.navy.fleets.get(d.pending);
+        return into === undefined
+          ? html`<span data-ww-hint="merge" class="${cls}text-amber-200"
+              >${translateText("ww1936.navy.hint_merge")}</span
+            >`
+          : html`<span data-ww-preview="merge" class="${cls}text-amber-200"
+              >⊕ ${fleetName(into)} ·
+              <span data-ww-tap-again class="font-semibold"
+                >${translateText("ww1936.land.tap_again")}</span
+              ></span
+            >`;
+      }
       case "port_strike":
         return d.pending === 0
           ? html`<span data-ww-hint="port_strike" class="${cls}text-amber-200"
@@ -849,7 +876,11 @@ export class WwFleetCard extends LitElement implements Controller {
         return d.buttons.map(({ id, block }) =>
           this.button(
             id,
-            translateText(BUTTON_KEYS[id]),
+            translateText(
+              id === "merge" && this.armed(`merge:${f.id}`)
+                ? "ww1936.land.tap_again"
+                : BUTTON_KEYS[id],
+            ),
             BUTTON_ICONS[id],
             () => this.tapButton(d, id, block),
             {

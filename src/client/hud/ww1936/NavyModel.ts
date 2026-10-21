@@ -1224,41 +1224,17 @@ export function invadeButtonBlock(
 
 // ---- The ⚓ dial (spec §18.1) ----
 
-/**
- * Ships lost today: my ships that left my fleets since the day began
- * (sunk, scuttled or handed over), counted per day on the screen.
- */
-export class ShipLossTracker {
-  private day = -1;
-  private lost = 0;
-  private present: Set<number> | null = null;
-
-  update(day: number, ids: Iterable<number>): number {
-    if (day !== this.day) {
-      this.day = day;
-      this.lost = 0;
-    }
-    const now = new Set(ids);
-    if (this.present !== null) {
-      for (const id of this.present) if (!now.has(id)) this.lost++;
-    }
-    this.present = now;
-    return this.lost;
-  }
-}
-
 export interface NavyDialModel {
   /** The first naval line's progress, 0..1. */
   progress: number;
   /** My fleets in a battle now. */
   battle: number;
+  /** My ships sunk in battle since today began (WwNavyView.mySunkTicks). */
   lost: number;
 }
 
-export function navyDial(
-  ctx: NavyCtx,
-  tracker: ShipLossTracker,
-): NavyDialModel {
+/** `dayStart`: the first tick of today (Calendar.dayStartTick). */
+export function navyDial(ctx: NavyCtx, dayStart: number): NavyDialModel {
   const line = ctx.navy.detail?.lines[0];
   const mine = [...ctx.navy.fleets.values()].filter((f) => f.owner === ctx.me);
   return {
@@ -1267,10 +1243,7 @@ export function navyDial(
         ? 0
         : Math.min(1, line.progressMilli / line.costMilli),
     battle: mine.filter((f) => f.state === "battle").length,
-    lost: tracker.update(
-      ctx.day,
-      mine.flatMap((f) => f.ships.map((s) => s.id)),
-    ),
+    lost: ctx.navy.mySunkTicks.filter((t) => t >= dayStart).length,
   };
 }
 

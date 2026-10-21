@@ -229,8 +229,10 @@ export class WwLandController implements Controller {
     // the chosen army waits for its order's tap.
     const seaAir = this.deps.seaAir;
     if (seaAir !== null && (sel.army === null || sel.mode === "none")) {
+      // A landing's taps keep the army (asked before: its last tap ends the mode).
+      const keep = seaAir.keepsArmy();
       if (seaAir.handleTap(w.x, w.y, radius, sel.army !== null)) {
-        if (sel.army !== null && !seaAir.keepsArmy()) this.select(null);
+        if (sel.army !== null && !keep) this.select(null);
         return true;
       }
     }

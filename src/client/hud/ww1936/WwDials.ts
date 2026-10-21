@@ -1,3 +1,5 @@
+import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -21,13 +23,7 @@ import {
 } from "./EconomyModel";
 import { armyDial, ArmyDialModel } from "./LandModel";
 import { OpenWwArmyEvent } from "./LandSelection";
-import {
-  navyCtx,
-  navyDial,
-  NavyDialModel,
-  NavyGame,
-  ShipLossTracker,
-} from "./NavyModel";
+import { navyCtx, navyDial, NavyDialModel, NavyGame } from "./NavyModel";
 import {
   diplomacyDial,
   focusDial,
@@ -36,7 +32,7 @@ import {
   politicsInput,
 } from "./PoliticsModel";
 import { WwAirLayerEvent } from "./SeaAirSelection";
-import { isCapitulated } from "./WorldWarModel";
+import { isCapitulated, today } from "./WorldWarModel";
 import {
   OpenWwAirEvent,
   OpenWwDiplomacyEvent,
@@ -112,7 +108,7 @@ export class WwDials extends LitElement implements Controller {
   @state() private model: WwDialsModel | null = null;
   @state() private shown: WwDrawerId | null = null;
   private modelKey = "";
-  private readonly losses = new ShipLossTracker();
+  private inputsSeen = "";
   private holdTimer: ReturnType<typeof setTimeout> | null = null;
   private held = false;
 
@@ -133,7 +129,36 @@ export class WwDials extends LitElement implements Controller {
     return 250;
   }
 
+  /**
+   * Rebuild only when something the dials read moved: the views'
+   * versions, the shared sea-air choice, the day, the wars, my country,
+   * the screen's class (not every 250 ms).
+   */
+  private inputsKey(): string {
+    const g = this.game;
+    const me = g.myPlayer();
+    const data = g.worldWarData();
+    return [
+      g.wwEconomy?.()?.version,
+      g.wwLand?.()?.version,
+      g.wwPolitics?.()?.version,
+      g.wwNavy?.()?.version,
+      g.wwAir?.()?.version,
+      seaAirOf(g).selection.version,
+      today(g),
+      me?.smallID() ?? 0,
+      me?.isAlive() ?? false,
+      data?.wars.length ?? 0,
+      data?.capitulated.length ?? 0,
+      window.innerHeight <= COMPACT_MAX_HEIGHT,
+    ].join("|");
+  }
+
   tick() {
+    if (!this.game?.worldWarScenario()) return;
+    const inputs = this.inputsKey();
+    if (inputs === this.inputsSeen) return;
+    this.inputsSeen = inputs;
     const next = this.buildModel();
     const key = next === null ? "" : JSON.stringify(next);
     if (key === this.modelKey) return;
@@ -161,7 +186,16 @@ export class WwDials extends LitElement implements Controller {
       focus: pol === null ? null : focusDial(pol),
       politics: pol === null ? null : politicsDial(pol),
       diplomacy: pol === null ? null : diplomacyDial(pol),
-      navy: ctx === null ? null : navyDial(ctx, this.losses),
+      navy:
+        ctx === null
+          ? null
+          : navyDial(
+              ctx,
+              dayStartTick(
+                ctx.day,
+                this.game.worldWarData()?.prepEndTick ?? WW_PREP_TICKS,
+              ),
+            ),
       air: ctx === null ? null : airDial(ctx),
       airLayer: seaAirOf(this.game).selection.layer === "air",
       compact: window.innerHeight <= COMPACT_MAX_HEIGHT,

@@ -35,10 +35,10 @@ import {
   missionPreview,
   missionTargets,
   navyCtx,
+  navyDial,
   NavyGame,
   navyNoticeParams,
   regionSeaAirLines,
-  ShipLossTracker,
 } from "../../../src/client/hud/ww1936/NavyModel";
 import { sideKeyOf } from "../../../src/client/view/WwNavyView";
 import { PATH_KM, REGION, SEA_KM, SR, ZONE } from "../../ww1936/seaFixture";
@@ -347,12 +347,40 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
     );
   });
 
-  it("ships lost today: my ships that left my fleets since the day began", () => {
-    const t = new ShipLossTracker();
-    expect(t.update(3, [1, 2, 3])).toBe(0);
-    expect(t.update(3, [1, 3, 4])).toBe(1);
-    expect(t.update(3, [4])).toBe(3);
-    // A new day starts again.
-    expect(t.update(4, [4])).toBe(0);
+  it("ships lost today: my ships sunk in battle since the day began", () => {
+    const g = seaGame({ fleets: [homeFleet()] });
+    const battle = (sunk: [number, number, number, number][]) => ({
+      zone: ZONE.middle,
+      attacker: SID("GBR"),
+      defender: SID("ITA"),
+      round: 3,
+      hpPm: [900, 800] as [number, number],
+      orgPm: [900, 800] as [number, number],
+      ships: [3, 3] as [number, number],
+      sunk,
+    });
+    const upd = (tick: number, sunk: [number, number, number, number][]) =>
+      g.navy.apply(
+        {
+          fleets: [],
+          removedFleets: [],
+          battles: [battle(sunk)],
+          endedBattles: [],
+          seaRegions: [],
+          details: [],
+        },
+        tick,
+      );
+    // Mine (name owner GBR) twice, Italy's once.
+    upd(700, [[0, 0, -3, SID("GBR")]]);
+    upd(701, [
+      [4, 0, 1, SID("GBR")],
+      [0, 1, -2, SID("ITA")],
+    ]);
+    upd(720, [[0, 0, -4, SID("GBR")]]);
+    const ctx = ctxOf(g);
+    expect(navyDial(ctx, 650).lost).toBe(3);
+    // A new day began at tick 710.
+    expect(navyDial(ctx, 710).lost).toBe(1);
   });
 });
