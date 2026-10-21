@@ -23,7 +23,7 @@ import { costWith } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { drawEquip, drawManpower } from "../economy/Stock";
 import { evalCondition, failingLeaves } from "./Conditions";
 import { applyEffects, makeCtx } from "./Dispatch";
-import { payPp } from "./Power";
+import { payPp } from "./PayPp";
 import type { CountryPol, WwPolitics } from "./WwPolitics";
 
 export function decisionDef(

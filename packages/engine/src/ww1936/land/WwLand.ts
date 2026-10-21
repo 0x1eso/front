@@ -62,6 +62,7 @@ import {
   emptySide,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
+import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import {
   divisionStatsAt,
   equipFill,
@@ -806,6 +807,13 @@ export class WwLand {
   private tplCache = new Map<number, TemplateStatsEntry>();
   private statsInputs: (StatsInputs | undefined)[] = [];
   /**
+   * The last stats epoch handed out, land-wide (P2 Task 12): an epoch
+   * belongs to one country, so a row's cached numbers never match another
+   * owner's epoch after the division changes hands (annexation). Derived:
+   * a restored game counts from 0 and gets the same numbers.
+   */
+  private statsEpochSeq = 0;
+  /**
    * Org max, flags, width, supply use and template numbers by row
    * (stepRecovery reads every row every tick): valid while the row holds
    * the same division id and template and its country's stats epoch is the
@@ -1280,6 +1288,19 @@ export class WwLand {
     this.touchDivision(row);
   }
 
+  /**
+   * Hands a division to another country (P3 annexation): the rows by
+   * owner (rowsOf) are built again. Set its template to one of the new
+   * owner's next (setTemplate).
+   */
+  setOwner(row: number, owner: number): void {
+    const t = this.divisions;
+    if (t.owner[row] === owner) return;
+    t.owner[row] = owner;
+    t.rowsVersion++;
+    this.touchDivision(row);
+  }
+
   /** Moves a division to another template of its country. */
   setTemplate(row: number, template: number): void {
     this.divisions.template[row] = template;
@@ -1397,6 +1418,8 @@ export class WwLand {
   /**
    * The country's stats epoch (see StatsInputs): moves when its tech
    * totals object or any template's id or def is not the one last seen.
+   * Unique in the land (statsEpochSeq): the row caches key on it without
+   * the owner.
    */
   private statsEpoch(owner: number): number {
     let s = this.statsInputs[owner];
@@ -1420,7 +1443,7 @@ export class WwLand {
       s.statsVer = statsVer;
       s.ids = tpls.map((x) => x.id);
       s.defs = tpls.map((x) => x.def);
-      s.epoch++;
+      s.epoch = ++this.statsEpochSeq;
     }
     return s.epoch;
   }
@@ -2151,7 +2174,117 @@ export class WwLand {
     for (const s of this.spreads.values()) {
       h = (Math.imul(h, 31) + s.region * 7 + s.done) | 0;
     }
-    return h >>> 0;
+    return this.hashRest(h) >>> 0;
+  }
+
+  /**
+   * P2 Task 12 (hash coverage, spec §16.5): the rest of the land war's
+   * state, so a desync shows on the tick it happens rather than when it
+   * reaches the men or the regions: every division column and its
+   * equipment (tombstones are zero rows, equal in every copy), the
+   * regions' control and supply, the armies' orders, the battles' lines,
+   * the spreads, and each country's templates, training, generals and
+   * counts. Derived fields (DERIVED_FIELDS) stay out.
+   */
+  private hashRest(h0: number): number {
+    let h = h0;
+    const mix = (v: number) => {
+      h = (Math.imul(h, 31) + v) | 0;
+    };
+    const fold = (xs: ArrayLike<number>, n = xs.length) => {
+      let s = n;
+      for (let i = 0; i < n; i++) s = (Math.imul(s, 33) + xs[i]) | 0;
+      mix(s);
+    };
+    const t = this.divisions;
+    mix(t.rows);
+    for (const name of DIVISION_COLUMNS) fold(t.col(name), t.rows);
+    fold(t.equip, t.rows * GROUND_SLOTS);
+    fold(t.lossEq, t.rows * GROUND_SLOTS);
+    fold(this.controller);
+    fold(this.supplyMilli);
+    fold(this.encircled);
+    fold(this.useMilli);
+    mix(this.lastCommonDay);
+    for (const a of this.armies.values()) {
+      mix(a.id);
+      mix(a.owner * 7 + a.nameNo);
+      mix(a.general);
+      fold(a.divisions);
+      const o = a.order;
+      mix(ARMY_ORDER_KINDS.indexOf(o.kind) * 8 + STANCES.indexOf(o.stance));
+      mix(o.to * 3 + o.mode);
+      mix(o.anchor * 5 + o.enemy);
+      fold(o.targets);
+      mix((o.executing ? 1 : 0) + o.readyDay * 2);
+      mix((a.auto ? 1 : 0) + (a.pending ? 2 : 0) + a.planBp * 4);
+      fold(a.front);
+      fold(a.path);
+      mix(a.paraLastDay);
+    }
+    for (const b of this.battles.values()) {
+      mix(b.sinceTick);
+      mix(b.round);
+      fold(b.attackers);
+      fold(b.defenders);
+      fold(b.attLine);
+      fold(b.defLine);
+      mix(b.startOrgMilli);
+      mix(b.attLead * 1000 + b.defLead);
+    }
+    for (const s of this.spreads.values()) {
+      mix(s.by * 4 + s.kind);
+      fold(s.sources);
+      mix(s.dayBase);
+      mix(s.dayNo);
+    }
+    for (const cl of this.countries()) {
+      mix(cl.smallID);
+      for (const tpl of cl.templates) {
+        mix(tpl.id);
+        mix(idHash(tpl.key));
+        mix(idHash(tpl.def.name));
+        for (const b of tpl.def.battalions) mix(idHash(b));
+        for (const s of tpl.def.support) mix(idHash(s));
+      }
+      mix(cl.nextTemplateId);
+      for (const e of cl.training) {
+        mix(e.id);
+        mix(e.template);
+        mix(e.remaining);
+        mix(e.army);
+        mix(e.region);
+      }
+      for (const x of cl.trainees) {
+        mix(x.entry);
+        mix(x.template);
+        mix(x.men);
+        fold(x.equip);
+        mix(x.days);
+      }
+      mix(cl.nextEntryId);
+      mix(cl.armyXpMilli);
+      for (const g of cl.generals) {
+        mix(g.id);
+        mix(g.roster);
+        mix(g.titleNo);
+        mix(g.att * 1000 + g.dfn * 100 + g.plan * 10 + g.log);
+        mix(g.traits);
+        mix(g.xp);
+        mix(g.level);
+        mix(g.army);
+        fold(g.use);
+        fold(g.terrainDays);
+      }
+      mix(cl.nextArmyNo);
+      mix(cl.nextTitleNo);
+      mix(cl.casualtiesToday);
+      mix(cl.casualtiesTotal);
+      mix(cl.readyToday);
+      mix(cl.warnedTileAttack ? 1 : 0);
+      mix(cl.peakDivisions);
+    }
+    return h;
   }
 
   snapshot(): WwLandState {
