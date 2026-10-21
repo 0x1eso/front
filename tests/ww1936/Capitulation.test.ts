@@ -387,7 +387,11 @@ describe("victory points and capitulation (spec §7.5)", () => {
     nearlyFull(g, pol);
     nextDay(runner);
     step(runner, 3);
-    expect(g.playerByClientID(HUMAN)!.isAlive()).toBe(false);
+    expect(pol.isAlive()).toBe(false);
+    // P5 (lane W, spec §5.1-7): without a host the human gets a takeover
+    // card — with no candidate, it spectates (commands no country).
+    expect(ww.endgame.controlledBy(HUMAN)).toBe(0);
+    expect(g.playerByClientID(HUMAN)).toBeNull();
     expect(g.getWinner()).toBeNull();
   });
 

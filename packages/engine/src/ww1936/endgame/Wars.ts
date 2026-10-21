@@ -1,18 +1,239 @@
-// P5 lane W fills this file (plan Task 2): wars ending, war score,
-// reparations and disarmament. The foundation's stub: addWarScore and
-// warSummary have their bodies; the rest is neutral.
+// P5 lane W (plan Task 2): wars ending (spec §4.4), war score (spec §4.5),
+// reparations and disarmament (spec §6.4). Integers only; wars by id,
+// regions by id.
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
-import type {
+import {
+  WW_DISARM_MAX_DIVISIONS,
   WwWar,
   WwWarSummary,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
 import type { EconAdjust, WwEndgame } from "./WwEndgame";
 
-/** Spec §4.4: a war ends when one side has no active member; opens conferences. Stub: nothing. */
+/** Spec §4.5: war score milli per kill (a ship per supremacy weight). */
+export const KILL_MILLI = { ship: 10_000, convoy: 2_000, plane: 500 } as const;
+
+/**
+ * Spec §4.5: the smallest ongoing war in which `a` and `b` stand on
+ * opposite sides, neither of them gone out of it by a peace (left); null
+ * when none.
+ */
+export function warBetween(eg: WwEndgame, a: number, b: number): WwWar | null {
+  if (a <= 0 || b <= 0 || a === b) return null;
+  for (const id of eg.warsOf(a)) {
+    const w = eg.war(id);
+    if (w === null || w.ended !== null) continue;
+    const sa = eg.sideIndex(w, a);
+    const sb = eg.sideIndex(w, b);
+    if (sa < 0 || sb < 0 || sa === sb) continue;
+    if (eg.member(w, a)!.state === "left") continue;
+    if (eg.member(w, b)!.state === "left") continue;
+    return w;
+  }
+  return null;
+}
+
+/** The capitulated and exiled members of a war's losing side (ascending). */
+export function loserIds(w: WwWar): number[] {
+  if (w.ended === null || w.ended.winner === -1) return [];
+  return w.sides[1 - w.ended.winner].members
+    .filter((m) => m.state === "capitulated" || m.state === "exiled")
+    .map((m) => m.id)
+    .sort((a, b) => a - b);
+}
+
+/**
+ * What a war's end hands on to: the conference (this lane's Conference.ts),
+ * a civil war's end (lane C), an independence war's end (lane S).
+ * Conference.ts registers them when it loads (WwEndgame imports it), so
+ * this module stays light: P4's kill sites import it for the war score.
+ */
+export interface WarEndHooks {
+  openConference(
+    eg: WwEndgame,
+    warIds: readonly number[],
+    tick: number,
+  ): number;
+  endCivilWar(eg: WwEndgame, warId: number, winner: 0 | 1, tick: number): void;
+  endIndependenceWar(
+    eg: WwEndgame,
+    warId: number,
+    winner: 0 | 1,
+    tick: number,
+  ): void;
+}
+let warEnds: WarEndHooks | null = null;
+export function registerWarEnds(h: WarEndHooks): void {
+  warEnds = h;
+}
+function hooks(): WarEndHooks {
+  if (warEnds === null) throw new Error("ww1936: Conference.ts not loaded");
+  return warEnds;
+}
+
+/**
+ * Spec §4.4: a member still fights for its side — active in the record and
+ * playing (lane C: a country wiped off the map without capitulating, a
+ * dead player, is out).
+ */
+function fights(eg: WwEndgame, m: WwWar["sides"][0]["members"][number]) {
+  return m.state === "active" && eg.isActor(m.id);
+}
+
+/**
+ * Spec §4.4 (after the day's common step and after a capitulation): a war
+ * ends when a side has no active member. Civil and independence wars end
+ * by their own rules, a side that only left ends without a winner, an
+ * exile-only losing side passes into its host's war; the rest open
+ * conferences — same-tick ends sharing a loser as one. A member that
+ * stopped playing without capitulating counts as capitulated (HOI4: a
+ * country without land capitulates). Repeats until nothing more ends (a
+ * civil war's end takes its loser out of its other wars).
+ */
 export function checkWarEnds(eg: WwEndgame, day: number, tick: number): void {
-  void eg;
-  void day;
-  void tick;
+  const ended: WwWar[] = [];
+  let changed = false;
+  for (let more = true; more; ) {
+    more = false;
+    for (const w of eg.wars) {
+      if (w.ended !== null) continue;
+      if (endOne(eg, w, day, tick, ended)) {
+        changed = true;
+        more = true;
+      }
+    }
+  }
+  // Same-tick ends sharing a loser become one conference (spec §4.4):
+  // grouped by loser, in war order; each group's wars ascending.
+  const groups: WwWar[][] = [];
+  for (const w of ended) {
+    const ls = loserIds(w);
+    const hit = groups.filter((g) =>
+      g.some((y) => loserIds(y).some((id) => ls.includes(id))),
+    );
+    if (hit.length === 0) {
+      groups.push([w]);
+      continue;
+    }
+    // A war that links two groups merges them.
+    const merged = [...hit.flat(), w];
+    for (const g of hit) groups.splice(groups.indexOf(g), 1);
+    groups.push(merged);
+  }
+  groups.sort(
+    (a, b) => Math.min(...a.map((w) => w.id)) - Math.min(...b.map((w) => w.id)),
+  );
+  for (const g of groups) {
+    hooks().openConference(
+      eg,
+      g.map((w) => w.id).sort((a, b) => a - b),
+      tick,
+    );
+  }
+  if (changed) eg.dirtyWars = true;
+}
+
+/** Spec §4.4 for one ongoing war: true when it ended (a conference's wars go in `ended`). */
+function endOne(
+  eg: WwEndgame,
+  w: WwWar,
+  day: number,
+  tick: number,
+  ended: WwWar[],
+): boolean {
+  const dead = ([0, 1] as const).filter(
+    (s) => !w.sides[s].members.some((m) => fights(eg, m)),
+  );
+  if (dead.length === 0) return false;
+  if (dead.length === 2) {
+    w.ended = { day, winner: -1 };
+    return true;
+  }
+  const loser = dead[0];
+  const winner = (1 - loser) as 0 | 1;
+  const lm = w.sides[loser].members;
+  if (w.kind === "civil") {
+    w.ended = { day, winner };
+    hooks().endCivilWar(eg, w.id, winner, tick);
+    return true;
+  }
+  if (w.kind === "independence" && loser === 0) {
+    w.ended = { day, winner };
+    hooks().endIndependenceWar(eg, w.id, winner, tick);
+    return true;
+  }
+  if (lm.every((m) => m.state === "left")) {
+    w.ended = { day, winner: -1 };
+    return true;
+  }
+  // A member that dropped out without capitulating (no land left) lost.
+  for (const m of lm) {
+    if (m.state === "active") eg.setMemberState(w.id, m.id, "capitulated");
+  }
+  const losers = lm.filter(
+    (m) => m.state === "capitulated" || m.state === "exiled",
+  );
+  const passes =
+    losers.length > 0 &&
+    losers.every(
+      (m) =>
+        m.state === "exiled" &&
+        eg.warsOf(m.id).some((x) => x !== w.id && eg.war(x)?.ended === null),
+    );
+  if (passes) {
+    w.ended = { day, winner: -1 };
+    passIntoExileWar(eg, w, loser, day);
+    return true;
+  }
+  w.ended = { day, winner };
+  // Spec §4.4: an overlord that lost its subject's independence war goes to
+  // a conference like any loser; lane S hears of the end as well.
+  if (w.kind === "independence") {
+    hooks().endIndependenceWar(eg, w.id, winner, tick);
+  }
+  ended.push(w);
+  return true;
+}
+
+/**
+ * Spec §4.4 (Norway 1940): the losing side of `w` is exiles only, each
+ * still in another war. Every pair left in `w` (occupier and exile) moves
+ * to the exile's smallest other ongoing war; an occupier not yet in that
+ * war joins it on the exile's opposite side.
+ */
+function passIntoExileWar(
+  eg: WwEndgame,
+  w: WwWar,
+  loserSide: 0 | 1,
+  day: number,
+): void {
+  const size = eg.size;
+  const pairs: [number, number, number][] = [];
+  for (const [k, v] of eg.pairWar) {
+    if (v === w.id) pairs.push([k, Math.floor(k / size), k % size]);
+  }
+  let joined = false;
+  for (const [key, a, b] of pairs) {
+    const x = eg.sideIndex(w, a) === loserSide ? a : b;
+    const y = x === a ? b : a;
+    const v = eg
+      .warsOf(x)
+      .find((id) => id !== w.id && eg.war(id)?.ended === null);
+    if (v === undefined) continue;
+    const vw = eg.war(v)!;
+    eg.pairWar.set(key, v);
+    const sx = eg.sideIndex(vw, x);
+    if (sx < 0 || eg.sideIndex(vw, y) >= 0) continue;
+    vw.sides[1 - sx].members.push({
+      id: y,
+      state: eg.isExile(y) ? "exiled" : "active",
+      joinedDay: day,
+      wsMilli: 0,
+    });
+    joined = true;
+  }
+  // The war index is derived (one rebuild for every newcomer).
+  if (joined) eg.rebuildDerived();
 }
 
 /** Adds `milli` war score to `smallID`'s membership of war `warId`. */
@@ -29,20 +250,23 @@ export function addWarScore(
   eg.dirtyWars = true;
 }
 
-/** P2 battle casualties: `by` killed `men` of `against` (spec §4.5). Stub: nothing. */
+/**
+ * P2 battle casualties: `by` killed `men` of `against` (spec §4.5: 1,000
+ * men = 1 point = 1,000 milli), in their smallest shared war. A
+ * volunteer's damage arrives here as its receiver's (P2 fightOwner).
+ */
 export function noteDamage(
   eg: WwEndgame,
   by: number,
   against: number,
   men: number,
 ): void {
-  void eg;
-  void by;
-  void against;
-  void men;
+  if (men <= 0) return;
+  const w = warBetween(eg, by, against);
+  if (w !== null) addWarScore(eg, w.id, by, men);
 }
 
-/** P4 kills: ships (by weight), convoys, planes (spec §4.5). Stub: nothing. */
+/** P4 kills (spec §4.5): ships by supremacy weight ×10 points, convoys ×2, planes ×0.5. */
 export function noteKills(
   eg: WwEndgame,
   by: number,
@@ -50,52 +274,109 @@ export function noteKills(
   kind: "ship" | "convoy" | "plane",
   amount: number,
 ): void {
-  void eg;
-  void by;
-  void against;
-  void kind;
-  void amount;
+  if (amount <= 0) return;
+  const w = warBetween(eg, by, against);
+  if (w !== null) addWarScore(eg, w.id, by, KILL_MILLI[kind] * amount);
 }
 
-/** Spec §4.5: the day's occupation points. Stub: nothing. */
+/**
+ * Spec §4.5: a day of occupation — every region (by id) whose controller
+ * is at war with its legal owner gives the controller its victory points.
+ */
 export function dailyWarScore(eg: WwEndgame, day: number): void {
-  void eg;
   void day;
+  if (eg.wars.length === 0) return;
+  const ctrl = eg.ww.land.controller;
+  const legal = eg.ww.politics.legalOwner;
+  for (const r of eg.ww.scenario.landRegions) {
+    if (r.vp <= 0) continue;
+    const c = ctrl[r.id] ?? 0;
+    const l = legal[r.id] ?? 0;
+    if (c === l || c <= 0 || l <= 0) continue;
+    const w = warBetween(eg, c, l);
+    if (w !== null) addWarScore(eg, w.id, c, r.vp * 1000);
+  }
 }
 
-/** Spec §6.4 reparations: the civilian factories paid / received today. Stub: nothing. */
+/**
+ * Spec §6.4 reparations (plan decision 19): while both still play, the
+ * loser pays `k` civilian factories a day to the winner's construction.
+ */
 export function reparationsEconomy(
   eg: WwEndgame,
   id: number,
   out: EconAdjust,
 ): void {
-  void eg;
-  void id;
-  void out;
+  for (const x of eg.reparations) {
+    if (x.from !== id && x.to !== id) continue;
+    if (!eg.isActor(x.from) || !eg.isActor(x.to)) continue;
+    if (x.from === id) out.civOut += x.k;
+    if (x.to === id) out.civIn += x.k;
+  }
 }
 
-/** Spec §6.4 disarm: why `id` may not train / build ships / build docks. Stub: never. */
+/**
+ * Spec §6.4 disarm: a disarmed country (the treaty's record, or a spirit
+ * with the maxDivisions / no_naval_build rules) trains no division past
+ * its limit and builds no naval line or dockyard.
+ */
 export function disarmBlockOf(
   eg: WwEndgame,
   id: number,
   what: "train" | "naval" | "dock",
 ): WwOrderBlock | null {
-  void eg;
-  void id;
-  void what;
-  return null;
+  const lim = disarmLimits(eg, id);
+  if (what !== "train") return lim.noNaval ? "disarmed" : null;
+  if (lim.maxDivisions === null) return null;
+  return divisionCount(eg, id) >= lim.maxDivisions ? "disarmed" : null;
 }
 
-/** `smallID`'s share (‰) of its side's war score in its war against `ofSmallID`. Stub: 0. */
+/** The disarmament in force for `id`: a division limit (null: none) and the naval ban. */
+export function disarmLimits(
+  eg: WwEndgame,
+  id: number,
+): { maxDivisions: number | null; noNaval: boolean } {
+  let max: number | null = eg.disarm.some(([x]) => x === id)
+    ? WW_DISARM_MAX_DIVISIONS
+    : null;
+  let noNaval = max !== null;
+  const pol = eg.ww.politics;
+  for (const s of pol.country(id)?.spirits ?? []) {
+    for (const r of pol.content.spiritIdx.get(s.id)?.rules ?? []) {
+      if (r === "no_naval_build") noNaval = true;
+      else if (typeof r === "object" && "maxDivisions" in r) {
+        max = max === null ? r.maxDivisions : Math.min(max, r.maxDivisions);
+      }
+    }
+  }
+  return { maxDivisions: max, noNaval };
+}
+
+/** Divisions in the field and in training. */
+function divisionCount(eg: WwEndgame, id: number): number {
+  const land = eg.ww.land;
+  let n = land.rowsOf(id).length;
+  const cl = land.country(id);
+  if (cl !== null) {
+    n += cl.trainees.length;
+    for (const e of cl.training) n += e.remaining;
+  }
+  return n;
+}
+
+/** `smallID`'s share (‰) of its side's war score in its war against `ofSmallID` (0: no such war). */
 export function warScoreShare(
   eg: WwEndgame,
   smallID: number,
   ofSmallID: number,
 ): number {
-  void eg;
-  void smallID;
-  void ofSmallID;
-  return 0;
+  const w = warBetween(eg, smallID, ofSmallID);
+  if (w === null) return 0;
+  const s = eg.sideIndex(w, smallID) as 0 | 1;
+  return sharePm(
+    eg.member(w, smallID)!.wsMilli,
+    w.sides[s].members.map((m) => m.wsMilli),
+  );
 }
 
 /** The screens' line of a war: its sides, each member's ‰ of its side's war score. */
@@ -106,18 +387,13 @@ export function warSummary(eg: WwEndgame, w: WwWar): WwWarSummary {
     kind: w.kind,
     startDay: w.startDay,
     sides: w.sides.map((s) => {
-      let sum = 0;
-      for (const m of s.members) sum += Math.max(0, m.wsMilli);
-      const n = s.members.length;
+      const all = s.members.map((m) => m.wsMilli);
       return {
         leader: s.leader,
         members: s.members.map((m) => ({
           id: m.id,
           state: m.state,
-          sharePm:
-            sum === 0
-              ? Math.floor(1000 / Math.max(1, n))
-              : Math.floor((Math.max(0, m.wsMilli) * 1000) / sum),
+          sharePm: sharePm(m.wsMilli, all),
         })),
       };
     }),
