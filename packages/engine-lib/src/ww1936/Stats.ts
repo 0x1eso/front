@@ -90,6 +90,13 @@ const P6_CLAMP: readonly (readonly [WwStatKey, number, number])[] =
     },
   );
 
+/** P6: by WW_STAT_KEYS index, the [lo, hi] of a P6 key that is no …Pct (null otherwise). */
+export const P6_STAT_RANGE: readonly (readonly [number, number] | null)[] =
+  WW_STAT_KEYS.map((k) => {
+    const r = P6_CLAMP.find((x) => x[0] === k);
+    return r === undefined ? null : [r[1], r[2]];
+  });
+
 /** Spec §3.3: every …Pct sum is kept in −90..+300 (P4: and decision 25's ranges; P6's). */
 export function clampStats(s: WwStats): WwStats {
   for (const k of PCT_STAT_KEYS) s[k] = Math.max(-90, Math.min(300, s[k]));

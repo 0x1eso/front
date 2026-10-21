@@ -488,7 +488,16 @@ export function divisionMods(i: ModInput): ModResult {
   push(dAdd, "exp", expBp(i.exp));
   push(dAdd, "plan", planBp);
   push(dAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
-  push(dAdd, "engineer", has(i.flags, TPL_ENGINEER) ? 500 : 0);
+  // P6 (spec §21.2): engineerMulPct scales the engineers' line.
+  push(
+    dAdd,
+    "engineer",
+    has(i.flags, TPL_ENGINEER)
+      ? Math.floor(
+          (500 * Math.max(0, 100 + stat(i.tech, "engineerMulPct"))) / 100,
+        )
+      : 0,
+  );
   push(
     dAdd,
     "mountain",

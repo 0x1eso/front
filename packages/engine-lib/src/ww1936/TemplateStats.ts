@@ -46,7 +46,9 @@ import {
   WW_MAX_WIDTH,
   WW_TEMPLATE_NAME_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
+import { battalionStatPct, pctOf } from "./DoctrineRules";
 import { EQUIPMENT, unitCostMilli } from "./Equipment";
 import { LAND_FUEL_PER_HOUR_MILLI } from "./FuelRules";
 import { TechTotals, WW_TECHS } from "./WwTechs";
@@ -307,10 +309,13 @@ export function templateStats(
   let airAtk = 0;
   let fuelWidth = 0;
   let fuelHour = 0;
+  const st = tech as unknown as Partial<Record<WwStatKey, number>>;
   for (const id of def.battalions) {
     const d = BATTALIONS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
     const g = gens[main];
+    // P6 (plan Task 1 Step 13): the battalion's own P6 stats (all 0 without them).
+    const bp = battalionStatPct(st, id);
     const gp = genStatPct(g);
     const ga = genArmorPct(g);
     // P6: the designs of its group, blended with the static part by units.
@@ -336,12 +341,19 @@ export function templateStats(
     hp += Math.floor((d.hpMilli * gp) / 100);
     orgSum +=
       d.orgMilli +
+      bp.org * 1000 +
       (d.kind === "infantry" ? tech.infOrg * 1000 : 0) +
       (bl === null ? 0 : Math.floor((bl.sums[KS.orgAdd] * 1000) / bl.units));
     n++;
     hardSum += mix(d.hardnessPm, KS.hardnessPm);
-    const armor = mix(Math.floor((d.armor * ga) / 100), KS.armor);
-    const pierce = mix(Math.floor((d.pierce * ga) / 100), KS.pierce);
+    const armor = pctOf(
+      mix(Math.floor((d.armor * ga) / 100), KS.armor),
+      bp.armor,
+    );
+    const pierce = pctOf(
+      mix(Math.floor((d.pierce * ga) / 100), KS.pierce),
+      bp.pierce,
+    );
     armorMax = Math.max(armorMax, armor);
     armorSum += armor;
     pierceMax = Math.max(pierceMax, pierce);
@@ -351,17 +363,26 @@ export function templateStats(
     if (d.artillery) {
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
-    parts[main * 4] += soft;
-    parts[main * 4 + 1] += mix(Math.floor((d.hard * gp) / 100), KS.hard);
-    parts[main * 4 + 2] += mix(Math.floor((d.def * gp) / 100), KS.def);
-    parts[main * 4 + 3] += mix(Math.floor((d.brk * gp) / 100), KS.brk);
+    parts[main * 4] += pctOf(soft, bp.soft);
+    parts[main * 4 + 1] += pctOf(
+      mix(Math.floor((d.hard * gp) / 100), KS.hard),
+      bp.hard,
+    );
+    parts[main * 4 + 2] += pctOf(
+      mix(Math.floor((d.def * gp) / 100), KS.def),
+      bp.def,
+    );
+    parts[main * 4 + 3] += pctOf(
+      mix(Math.floor((d.brk * gp) / 100), KS.brk),
+      bp.brk,
+    );
     // Tanks gain 1 km/h a generation (spec §4.1).
     const sp = mix(
       d.speedCenti +
         (d.kind === "armor" ? Math.floor((clampGen(g) - 100) / 100) * 100 : 0),
       KS.speedCenti,
     );
-    speed = Math.min(speed, sp);
+    speed = Math.min(speed, pctOf(sp, bp.speed));
     supply += d.supplyMilli;
     const days =
       d.kind === "infantry"
@@ -377,10 +398,13 @@ export function templateStats(
     if (id === "cavalry") cavalryN++;
     if (id === "paratrooper") paraN++;
   }
+  // P6 (spec §21.2): supportCompanyPct scales every support company.
+  const supPct = st.supportCompanyPct ?? 0;
   for (const id of def.support) {
     const d = SUPPORTS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
     const gp = genStatPct(gens[main]);
+    const sbp = battalionStatPct(st, id);
     men += d.men;
     weight += d.weightCenti;
     airAtk += Math.floor((d.airAtk * gp) / 100);
@@ -389,12 +413,24 @@ export function templateStats(
     if (d.artillery) {
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
-    parts[main * 4] += soft;
-    parts[main * 4 + 1] += Math.floor((d.hard * gp) / 100);
-    parts[main * 4 + 2] += Math.floor((d.def * gp) / 100);
-    parts[main * 4 + 3] += Math.floor((d.brk * gp) / 100);
+    parts[main * 4] += pctOf(soft, supPct + sbp.soft);
+    parts[main * 4 + 1] += pctOf(
+      Math.floor((d.hard * gp) / 100),
+      supPct + sbp.hard,
+    );
+    parts[main * 4 + 2] += pctOf(
+      Math.floor((d.def * gp) / 100),
+      supPct + sbp.def,
+    );
+    parts[main * 4 + 3] += pctOf(
+      Math.floor((d.brk * gp) / 100),
+      supPct + sbp.brk,
+    );
     if (d.pierce > 0) {
-      const p = Math.floor((d.pierce * genArmorPct(gens[main])) / 100);
+      const p = pctOf(
+        Math.floor((d.pierce * genArmorPct(gens[main])) / 100),
+        sbp.pierce,
+      );
       pierceMax = Math.max(pierceMax, p);
       pierceSum += p;
       pierceN++;

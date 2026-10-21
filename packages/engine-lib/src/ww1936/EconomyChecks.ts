@@ -24,7 +24,12 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { exportCapacity } from "./EconomyRules";
-import { equipmentBuildable, genTech } from "./Equipment";
+import {
+  equipmentBuildable,
+  genTech,
+  isDesignType,
+  PROJECT_TYPES,
+} from "./Equipment";
 import { planeGenTechs } from "./PlaneStats";
 import { lawBlock, LawCtx } from "./PoliticsRules";
 import type { ScenarioIndex } from "./ScenarioIndex";
@@ -117,6 +122,13 @@ export interface QueuedInRegion {
   anti_air: number;
   radar: number;
   coastal_fort: number;
+  // P6 (plan Task 1 Step 12): the rocket site and dam levels, the power
+  // plants (also counted in factories: they hold a shared slot) and the
+  // facility queued (FACILITY_IDS index + 1, 0 none; also in factories).
+  rocket_site: number;
+  dam: number;
+  power_plant: number;
+  facility: number;
 }
 
 /** Factories and the levels of each level building a queue still adds to `region`. */
@@ -135,6 +147,10 @@ export function queuedInRegion(
     anti_air: 0,
     radar: 0,
     coastal_fort: 0,
+    rocket_site: 0,
+    dam: 0,
+    power_plant: 0,
+    facility: 0,
   };
   for (const q of queue) {
     if (q.region !== region) continue;
@@ -148,7 +164,25 @@ export function queuedInRegion(
       case "anti_air":
       case "radar":
       case "coastal_fort":
+      case "rocket_site":
+      case "dam":
         out[q.building] += q.count;
+        break;
+      case "power_plant":
+        out.power_plant += q.count;
+        out.factories += q.count;
+        break;
+      case "facility_nuclear":
+        out.facility = 1;
+        out.factories += q.count;
+        break;
+      case "facility_rocket":
+        out.facility = 2;
+        out.factories += q.count;
+        break;
+      case "facility_science":
+        out.facility = 3;
+        out.factories += q.count;
         break;
       default:
         // Slot buildings: factories, dockyards, refineries, fuel silos.
@@ -170,6 +204,8 @@ export function queuedLevels(q: QueuedInRegion, building: BuildingId): number {
     case "anti_air":
     case "radar":
     case "coastal_fort":
+    case "rocket_site":
+    case "dam":
       return q[building];
     default:
       return 0;
@@ -198,7 +234,23 @@ export interface BuildCheck {
   harbor: boolean;
   /** P4: the techs a building needs (BUILDING_TECH, radar_2 for a third radar level). */
   researched: ReadonlySet<WwTechId>;
+  /**
+   * P6 (plan Task 1 Step 12): depthBuildBlock's answer for a P6 building
+   * (the caller works it out; WorldRules). Absent: a P6 building is not
+   * buildable (a screen without the depth data).
+   */
+  depthBlock?: WwOrderBlock | null;
 }
+
+/** P6: the buildings whose rules live in WorldRules.depthBuildBlock. */
+const DEPTH_BUILDING_SET: ReadonlySet<BuildingId> = new Set([
+  "facility_nuclear",
+  "facility_rocket",
+  "facility_science",
+  "rocket_site",
+  "power_plant",
+  "dam",
+]);
 
 /** Spec §4.3 (P4 spec §5.1, §12.1): why the project cannot be queued; null when it can. */
 export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
@@ -207,6 +259,10 @@ export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
   if (c.queueLength >= WW_MAX_QUEUE) return "queue_full";
   if (COASTAL_BUILDINGS.includes(c.building)) {
     if (!(c.building === "dock" ? c.coastal : c.harbor)) return "not_coastal";
+  }
+  if (DEPTH_BUILDING_SET.has(c.building)) {
+    if (c.depthBlock === undefined) return "not_buildable";
+    if (c.depthBlock !== null) return c.depthBlock;
   }
   const tech = BUILDING_TECH[c.building];
   if (tech !== undefined && !c.researched.has(tech)) return "no_tech";
@@ -252,17 +308,46 @@ export function lawBlockOf(
 const AIR = new Set<EquipmentType>(AIR_TYPES);
 
 /**
+ * P6 (plan decision 5, spec §7.1): what the depth layer says about a
+ * line's equipment. The engine builds it from WwDepth, a screen from
+ * WwDepthView.
+ */
+export interface LineDepthCtx {
+  /** A design slot (1-based) may be produced: saved, own or licensed, not obsolete. */
+  designUsable: (type: EquipmentType, slot: number) => boolean;
+  /** EQUIP_KEYS indices the country holds a production licence for. */
+  licensed: ReadonlySet<number>;
+  /** SPECIAL_PROJECTS bits done. */
+  projectsDone: number;
+}
+
+/**
  * A generation needs its tech (and has to exist). P4: an aircraft type
  * needs planeGenTechs (a carrier type carrier_aviation too); the convoy is
- * built on naval lines only (equipmentBuildable).
+ * built on naval lines only (equipmentBuildable). P6: a design slot needs
+ * a usable design ("bad_line"), a project item its project
+ * ("project_locked"), and a licence stands in for the tech.
  */
 export function equipmentTechBlock(
   researched: ReadonlySet<WwTechId>,
   type: EquipmentType,
   gen: number,
+  depth?: LineDepthCtx,
 ): WwOrderBlock | null {
   if (equipKey(type, gen) < 0) return "no_tech";
   if (!equipmentBuildable(type)) return "not_buildable";
+  if (isDesignType(type)) {
+    return depth !== undefined && depth.designUsable(type, gen)
+      ? null
+      : "bad_line";
+  }
+  const project = PROJECT_TYPES[type];
+  if (project !== undefined) {
+    return depth !== undefined && (depth.projectsDone & (1 << project)) !== 0
+      ? null
+      : "project_locked";
+  }
+  if (depth?.licensed.has(equipKey(type, gen)) === true) return null;
   if (AIR.has(type)) {
     return planeGenTechs(type as AirType, gen).every((t) => researched.has(t))
       ? null
@@ -277,9 +362,10 @@ export function addLineBlockOf(
   lines: number,
   type: EquipmentType,
   gen: number,
+  depth?: LineDepthCtx,
 ): WwOrderBlock | null {
   if (lines >= WW_MAX_LINES) return "lines_full";
-  return equipmentTechBlock(researched, type, gen);
+  return equipmentTechBlock(researched, type, gen, depth);
 }
 
 // ---- Research (spec §9.1, §9.3) ----
@@ -310,6 +396,8 @@ export function researchBlockOf(
   if (s.researched.has(tech)) return "researched";
   if (s.slots.includes(tech)) return "in_progress";
   const def = WW_TECHS[tech];
+  // P6 plan decision 25: a retired doctrine tech is never researched again.
+  if (def.retired === true) return "no_tech";
   if (def.prereqs.some((p) => !s.researched.has(p))) return "prereq";
   if (def.school !== undefined) {
     // P4 plan decision 23: one school a domain (land, sea, air).

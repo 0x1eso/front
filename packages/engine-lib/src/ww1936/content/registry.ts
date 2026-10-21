@@ -3,6 +3,17 @@
 // follow it, spec §12.3), and the indices the engine reads are built once.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type {
+  AgencyStartDef,
+  AiDesignPreset,
+  ContinuousFocus,
+  FocusPackDef,
+  NukeTargetDef,
+  ScientistDef,
+  StartDoctrineDef,
+  StartFmDef,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import { CODENAME_COUNT } from "@openfront/engine-api/ww1936/DepthTypes";
+import type {
   CivilWarSeedDef,
   CoreDef,
   OccupationDefaultDef,
@@ -30,14 +41,28 @@ import {
 import { dayOfDate } from "../Calendar";
 import { idHash } from "../Roll";
 import { TRAITS } from "./advisors";
+import { CONTINUOUS_FOCUS_TABLE } from "./continuous";
 import { CLAIMS, COUNTRY_POLITICS, FACTION_NAMES } from "./countries";
+import { DEPTH_DECISIONS } from "./decisions/depth";
 import { ENDGAME_DECISIONS } from "./decisions/endgame";
 import { FRA_DECISIONS } from "./decisions/fra";
 import { GENERIC_DECISIONS } from "./decisions/generic";
 import { ITA_DECISIONS } from "./decisions/ita";
 import { JPN_DECISIONS } from "./decisions/jpn";
 import { NATIONAL_DECISIONS } from "./decisions/national";
+import { PACK_CHINA_DECISIONS } from "./decisions/pack_china";
+import { PACK_NORTH_DECISIONS } from "./decisions/pack_north";
+import { PACK_WEST_DECISIONS } from "./decisions/pack_west";
+import { PACK_WORLD_DECISIONS } from "./decisions/pack_world";
 import { USA_DECISIONS } from "./decisions/usa";
+import { DEPTH_BEATS, DEPTH_FLAGS } from "./depth/beats";
+import { START_FIELD_MARSHALS } from "./depth/command";
+import { AI_DESIGN_PRESETS } from "./depth/designs";
+import { START_DOCTRINES } from "./depth/doctrine";
+import { AGENCY_STARTS } from "./depth/intel";
+import { DEPTH_SPIRITS } from "./depth/mech";
+import { NUKE_TARGETS, SCIENTISTS } from "./depth/projects";
+import { DEPTH_EVENTS } from "./depth/world";
 import { BEATS_P5 } from "./endgame/beats";
 import { CLAIMS_P5 } from "./endgame/claims";
 import { CORES_1936 } from "./endgame/cores";
@@ -46,14 +71,25 @@ import { REGION_GROUPS_P5 } from "./endgame/groups";
 import { OCCUPATION_DEFAULTS } from "./endgame/occupation";
 import { HISTORY_PEACE } from "./endgame/peace";
 import { CIVIL_WAR_SEEDS } from "./endgame/seeds";
+import { BAL_EVENTS } from "./events/bal";
+import { CCP_EVENTS } from "./events/ccp";
+import { CHN_EVENTS } from "./events/chn";
+import { CHW_EVENTS } from "./events/chw";
 import { DEU_EVENTS } from "./events/deu";
+import { DOM_EVENTS } from "./events/dom";
 import { ENDGAME_EVENTS } from "./events/endgame";
 import { FRA_EVENTS } from "./events/fra";
 import { GBR_EVENTS } from "./events/gbr";
 import { GENERIC_EVENTS } from "./events/generic";
 import { ITA_EVENTS } from "./events/ita";
 import { JPN_EVENTS } from "./events/jpn";
+import { LAT_EVENTS } from "./events/lat";
+import { NEW_EVENTS } from "./events/new";
+import { NOR_EVENTS } from "./events/nor";
+import { POL_EVENTS } from "./events/pol";
+import { SPA_EVENTS } from "./events/spa";
 import { SUN_EVENTS } from "./events/sun";
+import { TUR_EVENTS } from "./events/tur";
 import { USA_EVENTS } from "./events/usa";
 import { WORLD_EVENTS } from "./events/world";
 import { FLAGS_BASE, FLAGS_P5_BASE } from "./flags/base";
@@ -64,10 +100,16 @@ import { FLAGS_GBR } from "./flags/gbr";
 import { FLAGS_GEN } from "./flags/gen";
 import { FLAGS_ITA } from "./flags/ita";
 import { FLAGS_JPN } from "./flags/jpn";
+import { FLAGS_PACK_NORTH } from "./flags/pack_north";
 import { FLAGS_SUN } from "./flags/sun";
 import { FLAGS_USA } from "./flags/usa";
 import { FLAGS_WORLD } from "./flags/world";
+import { BAL_BRANCHES, BAL_FOCUSES, BAL_PATH } from "./focus/bal";
+import { CCP_BRANCHES, CCP_FOCUSES, CCP_PATH } from "./focus/ccp";
+import { CHN_BRANCHES, CHN_FOCUSES, CHN_PATH } from "./focus/chn";
+import { CHW_BRANCHES, CHW_FOCUSES, CHW_PATH } from "./focus/chw";
 import { DEU_BRANCHES, DEU_FOCUSES, DEU_PATH } from "./focus/deu";
+import { DOM_BRANCHES, DOM_FOCUSES, DOM_PATH } from "./focus/dom";
 import { FRA_BRANCHES, FRA_FOCUSES, FRA_PATH } from "./focus/fra";
 import { GBR_BRANCHES, GBR_FOCUSES, GBR_PATH } from "./focus/gbr";
 import {
@@ -77,9 +119,16 @@ import {
 } from "./focus/generic";
 import { ITA_BRANCHES, ITA_FOCUSES, ITA_PATH } from "./focus/ita";
 import { JPN_BRANCHES, JPN_FOCUSES, JPN_PATH } from "./focus/jpn";
+import { LAT_BRANCHES, LAT_FOCUSES, LAT_PATH } from "./focus/lat";
+import { NEW_BRANCHES, NEW_FOCUSES, NEW_PATH } from "./focus/new";
+import { NOR_BRANCHES, NOR_FOCUSES, NOR_PATH } from "./focus/nor";
+import { POL_BRANCHES, POL_FOCUSES, POL_PATH } from "./focus/pol";
+import { SPA_BRANCHES, SPA_FOCUSES, SPA_PATH } from "./focus/spa";
 import { SUN_BRANCHES, SUN_FOCUSES, SUN_PATH } from "./focus/sun";
+import { TUR_BRANCHES, TUR_FOCUSES, TUR_PATH } from "./focus/tur";
 import { USA_BRANCHES, USA_FOCUSES, USA_PATH } from "./focus/usa";
 import { HISTORY_BEATS } from "./history";
+import { PACKS } from "./packs";
 import { PERSONS_DEU } from "./persons/deu";
 import { PERSONS_ENDGAME } from "./persons/endgame";
 import { PERSONS_FRA } from "./persons/fra";
@@ -99,6 +148,10 @@ import { SPIRITS_GEN } from "./spirits/gen";
 import { SPIRITS_ITA } from "./spirits/ita";
 import { SPIRITS_JPN } from "./spirits/jpn";
 import { SPIRITS_P4 } from "./spirits/p4";
+import { SPIRITS_PACK_CHINA } from "./spirits/pack_china";
+import { SPIRITS_PACK_NORTH } from "./spirits/pack_north";
+import { SPIRITS_PACK_WEST } from "./spirits/pack_west";
+import { SPIRITS_PACK_WORLD } from "./spirits/pack_world";
 import { SPIRITS_START } from "./spirits/start";
 import { SPIRITS_SUN } from "./spirits/sun";
 import { SPIRITS_USA } from "./spirits/usa";
@@ -109,6 +162,10 @@ import { TEMPLATES_GBR } from "./templates/gbr";
 import { TEMPLATES_GEN } from "./templates/gen";
 import { TEMPLATES_ITA } from "./templates/ita";
 import { TEMPLATES_JPN } from "./templates/jpn";
+import { TEMPLATES_PACK_CHINA } from "./templates/pack_china";
+import { TEMPLATES_PACK_NORTH } from "./templates/pack_north";
+import { TEMPLATES_PACK_WEST } from "./templates/pack_west";
+import { TEMPLATES_PACK_WORLD } from "./templates/pack_world";
 import { TEMPLATES_SUN } from "./templates/sun";
 import { TEMPLATES_USA } from "./templates/usa";
 import { START_NAPS } from "./treaties";
@@ -136,6 +193,22 @@ export interface ContentParts {
   cores: readonly CoreDef[];
   seeds: readonly CivilWarSeedDef[];
   occupationDefaults: readonly OccupationDefaultDef[];
+  // P6 (plan Task 1 Step 20): the depth tables. Optional so earlier test
+  // content needs none; buildRegistry fills [] / 0.
+  packs?: readonly FocusPackDef[];
+  startDoctrines?: readonly StartDoctrineDef[];
+  startFieldMarshals?: readonly StartFmDef[];
+  scientists?: readonly ScientistDef[];
+  aiDesignPresets?: readonly AiDesignPreset[];
+  nukeTargets?: readonly NukeTargetDef[];
+  agencyStarts?: readonly AgencyStartDef[];
+  /** How many codenames there are (the texts are keys ww1936.codename.c<n>). */
+  codenames?: number;
+  /** CONTINUOUS_FOCUSES order check (K4's table). */
+  continuous?: readonly {
+    readonly id: ContinuousFocus;
+    readonly icon: string;
+  }[];
 }
 
 export interface ContentRegistry extends ContentParts {
@@ -166,7 +239,64 @@ export interface ContentRegistry extends ContentParts {
   peaceByLoser: Map<CountryTag, PeaceDefaultDef[]>;
   /** P5: the CORES_1936 groups of each tag, in table order. */
   coresByTag: Map<CountryTag, string[]>;
+  // P6 (pre-flight §0-1, plan decision 28): composite pack trees.
+  packs: readonly FocusPackDef[];
+  startDoctrines: readonly StartDoctrineDef[];
+  startFieldMarshals: readonly StartFmDef[];
+  scientists: readonly ScientistDef[];
+  aiDesignPresets: readonly AiDesignPreset[];
+  nukeTargets: readonly NukeTargetDef[];
+  agencyStarts: readonly AgencyStartDef[];
+  codenames: number;
+  continuous: readonly {
+    readonly id: ContinuousFocus;
+    readonly icon: string;
+  }[];
+  /**
+   * Each tree's position of every focus in it (treeFocuses order). A pack
+   * tree holds the generic focuses not replaced, then the pack's own; any
+   * other tree its own focuses (where treePos is the same number).
+   */
+  posInTree: Record<FocusTreeId, Map<FocusId, number>>;
+  /** The generic focuses a pack tree hides (bypassed for prerequisites). */
+  replacedIn: Record<FocusTreeId, ReadonlySet<FocusId>>;
+  /** Pre-flight §0-11: Korea's and Taiwan's regions (P5 groups), never struck. */
+  noStrikeRegions: ReadonlySet<number>;
 }
+
+/** P6 (pre-flight §0-1): the focus's position in `tree`, undefined when the tree has none. */
+export function treePosIn(
+  c: ContentRegistry,
+  tree: FocusTreeId,
+  id: FocusId,
+): number | undefined {
+  return c.posInTree[tree].get(id);
+}
+
+/** P6 (pre-flight §0-1): the tree holds the focus. */
+export function inTree(
+  c: ContentRegistry,
+  tree: FocusTreeId,
+  id: FocusId,
+): boolean {
+  return c.posInTree[tree].has(id);
+}
+
+/** P6: a generic focus the tree's pack replaces (it counts as bypassed). */
+export function replacedInTree(
+  c: ContentRegistry,
+  tree: FocusTreeId,
+  id: FocusId,
+): boolean {
+  return c.replacedIn[tree].has(id);
+}
+
+/** P6 (pre-flight §0-11): the P5 region groups whose regions are never struck. */
+export const NO_STRIKE_GROUPS: readonly string[] = [
+  "korea_north",
+  "korea_south",
+  "taiwan",
+];
 
 const push = <K, V>(m: Map<K, V[]>, k: K, v: V) => {
   const l = m.get(k);
@@ -185,6 +315,30 @@ export function buildRegistry(p: ContentParts): ContentRegistry {
     treePos.set(f.id, treeFocuses[f.tree].length);
     treeFocuses[f.tree].push(i);
   });
+  // P6 (pre-flight §0-1): a pack tree is the generic focuses not replaced
+  // (generic order), then the pack's own. The pack's own list is built
+  // first, so treePos keeps its P3 meaning (the home tree's position).
+  const packs = p.packs ?? [];
+  const replacedIn = Object.fromEntries(
+    FOCUS_TREES.map((t) => [t, new Set<FocusId>()]),
+  ) as Record<FocusTreeId, Set<FocusId>>;
+  for (const pk of packs) {
+    const own = treeFocuses[pk.id];
+    const rep = new Set<FocusId>(pk.replaces);
+    replacedIn[pk.id] = rep;
+    treeFocuses[pk.id] = [
+      ...treeFocuses.generic.filter((i) => !rep.has(p.focuses[i].id)),
+      ...own,
+    ];
+  }
+  const posInTree = Object.fromEntries(
+    FOCUS_TREES.map((t) => [
+      t,
+      new Map<FocusId, number>(
+        treeFocuses[t].map((fi, pos) => [p.focuses[fi].id, pos]),
+      ),
+    ]),
+  ) as Record<FocusTreeId, Map<FocusId, number>>;
   const eventIdx = new Map<string, number>();
   const eventsByTag = new Map<CountryTag, number[]>();
   const eventsAny: number[] = [];
@@ -210,8 +364,26 @@ export function buildRegistry(p: ContentParts): ContentRegistry {
   for (const x of p.peace) push(peaceByLoser, x.loser, x);
   const coresByTag = new Map<CountryTag, string[]>();
   for (const c of p.cores) for (const g of c.groups) push(coresByTag, c.tag, g);
+  const noStrikeRegions = new Set<number>();
+  for (const g of p.groups) {
+    if (NO_STRIKE_GROUPS.includes(g.id)) {
+      for (const r of g.regions) noStrikeRegions.add(r);
+    }
+  }
   return {
     ...p,
+    packs,
+    startDoctrines: p.startDoctrines ?? [],
+    startFieldMarshals: p.startFieldMarshals ?? [],
+    scientists: p.scientists ?? [],
+    aiDesignPresets: p.aiDesignPresets ?? [],
+    nukeTargets: p.nukeTargets ?? [],
+    agencyStarts: p.agencyStarts ?? [],
+    codenames: p.codenames ?? 0,
+    continuous: p.continuous ?? [],
+    posInTree,
+    replacedIn,
+    noStrikeRegions,
     focusIdx,
     treeFocuses,
     treePos,
@@ -271,6 +443,18 @@ export const CONTENT_PARTS: ContentParts = {
     ...JPN_FOCUSES,
     ...FRA_FOCUSES,
     ...USA_FOCUSES,
+    // P6 (plan decision 32): the regional packs, FOCUS_PACKS order.
+    ...CHN_FOCUSES,
+    ...CCP_FOCUSES,
+    ...CHW_FOCUSES,
+    ...SPA_FOCUSES,
+    ...POL_FOCUSES,
+    ...TUR_FOCUSES,
+    ...BAL_FOCUSES,
+    ...NOR_FOCUSES,
+    ...LAT_FOCUSES,
+    ...DOM_FOCUSES,
+    ...NEW_FOCUSES,
   ],
   paths: {
     generic: GENERIC_PATH,
@@ -281,6 +465,17 @@ export const CONTENT_PARTS: ContentParts = {
     JPN: JPN_PATH,
     FRA: FRA_PATH,
     USA: USA_PATH,
+    chn: CHN_PATH,
+    ccp: CCP_PATH,
+    chw: CHW_PATH,
+    spa: SPA_PATH,
+    pol: POL_PATH,
+    tur: TUR_PATH,
+    bal: BAL_PATH,
+    nor: NOR_PATH,
+    lat: LAT_PATH,
+    dom: DOM_PATH,
+    new: NEW_PATH,
   },
   branchPoints: {
     generic: GENERIC_BRANCHES,
@@ -291,6 +486,17 @@ export const CONTENT_PARTS: ContentParts = {
     JPN: JPN_BRANCHES,
     FRA: FRA_BRANCHES,
     USA: USA_BRANCHES,
+    chn: CHN_BRANCHES,
+    ccp: CCP_BRANCHES,
+    chw: CHW_BRANCHES,
+    spa: SPA_BRANCHES,
+    pol: POL_BRANCHES,
+    tur: TUR_BRANCHES,
+    bal: BAL_BRANCHES,
+    nor: NOR_BRANCHES,
+    lat: LAT_BRANCHES,
+    dom: DOM_BRANCHES,
+    new: NEW_BRANCHES,
   },
   events: [
     ...GENERIC_EVENTS,
@@ -303,6 +509,19 @@ export const CONTENT_PARTS: ContentParts = {
     ...FRA_EVENTS,
     ...USA_EVENTS,
     ...ENDGAME_EVENTS,
+    // P6 (plan decision 32): pack events, then the depth events.
+    ...CHN_EVENTS,
+    ...CCP_EVENTS,
+    ...CHW_EVENTS,
+    ...SPA_EVENTS,
+    ...POL_EVENTS,
+    ...TUR_EVENTS,
+    ...BAL_EVENTS,
+    ...NOR_EVENTS,
+    ...LAT_EVENTS,
+    ...DOM_EVENTS,
+    ...NEW_EVENTS,
+    ...DEPTH_EVENTS,
   ],
   decisions: [
     ...GENERIC_DECISIONS,
@@ -312,6 +531,12 @@ export const CONTENT_PARTS: ContentParts = {
     ...FRA_DECISIONS,
     ...USA_DECISIONS,
     ...ENDGAME_DECISIONS,
+    // P6 (plan decision 32).
+    ...PACK_CHINA_DECISIONS,
+    ...PACK_WEST_DECISIONS,
+    ...PACK_NORTH_DECISIONS,
+    ...PACK_WORLD_DECISIONS,
+    ...DEPTH_DECISIONS,
   ],
   spirits: [
     ...SPIRITS_START,
@@ -327,6 +552,12 @@ export const CONTENT_PARTS: ContentParts = {
     ...SPIRITS_FRA,
     ...SPIRITS_USA,
     ...SPIRITS_ENDGAME,
+    // P6 (plan decision 32).
+    ...SPIRITS_PACK_CHINA,
+    ...SPIRITS_PACK_WEST,
+    ...SPIRITS_PACK_NORTH,
+    ...SPIRITS_PACK_WORLD,
+    ...DEPTH_SPIRITS,
   ],
   traits: TRAITS,
   // P4 (spec §16.3): the navy and air chiefs (AirChiefs.P4_PERSONS), last.
@@ -343,7 +574,8 @@ export const CONTENT_PARTS: ContentParts = {
     // P5 pre-flight §A K1–K5: K5's persons (the Philippines' leader).
     ...PERSONS_ENDGAME,
   ],
-  beats: [...HISTORY_BEATS, ...BEATS_P5],
+  // P6 (plan Task 1 Step 20): the depth beats after P5's.
+  beats: [...HISTORY_BEATS, ...BEATS_P5, ...DEPTH_BEATS],
   groups: [...REGION_GROUPS, ...REGION_GROUPS_P5],
   countries: [...COUNTRY_POLITICS, ...DORMANT_POLITICS],
   claims: mergeClaims(CLAIMS, CLAIMS_P5),
@@ -357,6 +589,11 @@ export const CONTENT_PARTS: ContentParts = {
     ...TEMPLATES_JPN,
     ...TEMPLATES_FRA,
     ...TEMPLATES_USA,
+    // P6 (plan decision 32).
+    ...TEMPLATES_PACK_CHINA,
+    ...TEMPLATES_PACK_WEST,
+    ...TEMPLATES_PACK_NORTH,
+    ...TEMPLATES_PACK_WORLD,
   ],
   flags: [
     ...FLAGS_BASE,
@@ -371,11 +608,24 @@ export const CONTENT_PARTS: ContentParts = {
     ...FLAGS_USA,
     ...FLAGS_ENDGAME,
     ...FLAGS_P5_BASE,
+    // P6 (pre-flight §C1).
+    ...FLAGS_PACK_NORTH,
+    ...DEPTH_FLAGS,
   ],
   startNaps: START_NAPS,
   peace: HISTORY_PEACE,
   cores: CORES_1936,
   seeds: CIVIL_WAR_SEEDS,
   occupationDefaults: OCCUPATION_DEFAULTS,
+  // P6 (plan Task 1 Step 20).
+  packs: PACKS,
+  startDoctrines: START_DOCTRINES,
+  startFieldMarshals: START_FIELD_MARSHALS,
+  scientists: SCIENTISTS,
+  aiDesignPresets: AI_DESIGN_PRESETS,
+  nukeTargets: NUKE_TARGETS,
+  agencyStarts: AGENCY_STARTS,
+  codenames: CODENAME_COUNT,
+  continuous: CONTINUOUS_FOCUS_TABLE,
 };
 export const CONTENT: ContentRegistry = buildRegistry(CONTENT_PARTS);

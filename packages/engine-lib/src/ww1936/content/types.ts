@@ -34,6 +34,17 @@ export type {
   TemplateUnlockDef,
   TraitDef,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+// P6 (plan Task 1 Step 20): the depth content shapes.
+export type {
+  AgencyStartDef,
+  AiDesignPreset,
+  ContinuousFocus,
+  FocusPackDef,
+  NukeTargetDef,
+  ScientistDef,
+  StartDoctrineDef,
+  StartFmDef,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 // P5 (plan decisions 29, 30): the endgame content shapes.
 export type {
   CivilWarSeedDef,
