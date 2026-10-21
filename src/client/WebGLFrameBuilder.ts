@@ -1,5 +1,6 @@
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
+import type { WwCountryView } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
   type EffectAttributesFor,
@@ -11,6 +12,7 @@ import {
 } from "@openfront/shared/CosmeticSchemas";
 import { colord } from "colord";
 import { getCachedCosmetics } from "./Cosmetics";
+import { wwMapName } from "./hud/ww1936/EndgameNames";
 import { orbitalImpactPoints } from "./render/frame/derive/OrbitalStrikes";
 import { samRangeResolver } from "./render/frame/derive/SamRanges";
 import {
@@ -58,6 +60,7 @@ import {
   UT_MIRV_WARHEAD,
 } from "./render/types/UnitType";
 import type { GameView, PlayerView } from "./view";
+import type { WwEndgameView } from "./view/WwEndgameView";
 
 // A human player counts as "small" (and glows) at or below this fraction of the
 // map; the glow is suppressed for a grace window after the game starts.
@@ -174,6 +177,11 @@ export class WebGLFrameBuilder {
   private skinsInitialized = false;
   /** World congress: the emergency target whose border pulses (0 = none), as last pushed. */
   private congressPulseTarget = 0;
+  /**
+   * World War 1936 P5 (spec §3.5): each endgame country view whose name and
+   * flag are on the map (the view replaces a country's object on change).
+   */
+  private readonly wwCountriesDrawn = new Map<number, WwCountryView>();
   // The renderer needs to know which player is "me" so affiliation tint,
   // unit colors, and SAM-radius perspective work. Push it once the local
   // player's update arrives (may take several ticks during join).
@@ -228,10 +236,47 @@ export class WebGLFrameBuilder {
    */
   refreshNames(gameView: GameView): void {
     const displayNames = new Map<string, string>();
+    const ww = wwEndgameOf(gameView);
     for (const p of gameView.players()) {
-      displayNames.set(p.id(), p.displayName());
+      displayNames.set(p.id(), mapName(p, ww));
     }
     this.view.refreshNames(displayNames);
+  }
+
+  /**
+   * World War 1936 P5 (spec §3.5): a woken civil-war slot or a renamed
+   * country is labelled with the endgame's English name ("Free Spain") and
+   * flies the endgame's flag (a civil-war slot's ideology flag) — pushed
+   * when its endgame view changes.
+   */
+  private syncWwCountries(gameView: GameView): void {
+    const ww = wwEndgameOf(gameView);
+    if (ww === null) return;
+    const names = new Map<string, string>();
+    const restyled: PlayerStatic[] = [];
+    for (const [smallID, c] of ww.countries) {
+      const drawn = this.wwCountriesDrawn.get(smallID);
+      if (drawn === c) continue;
+      this.wwCountriesDrawn.set(smallID, c);
+      // Not on the map yet: syncPlayers writes it with these.
+      if (!this.knownSmallIDs.has(smallID)) continue;
+      const p = gameView.playerBySmallID(smallID);
+      if (!p.isPlayer()) continue;
+      const pv = p as PlayerView;
+      names.set(pv.id(), mapName(pv, ww));
+      if (drawn?.flag !== c.flag) {
+        restyled.push(this.writePlayerCosmetics(pv, ww));
+      }
+    }
+    if (names.size > 0) this.view.refreshNames(names);
+    if (restyled.length > 0) {
+      this.view.updatePlayerCosmetics(
+        restyled,
+        this.palette,
+        this.patternMeta,
+        this.patternData,
+      );
+    }
   }
 
   /**
@@ -256,6 +301,7 @@ export class WebGLFrameBuilder {
 
   update(gameView: GameView): void {
     this.syncPlayers(gameView);
+    this.syncWwCountries(gameView);
     this.syncPlayerEffects(gameView);
     this.syncPlayerSpawns(gameView);
     this.syncLocalPlayer(gameView);
@@ -631,7 +677,7 @@ export class WebGLFrameBuilder {
       const smallID = p.smallID();
       if (this.knownSmallIDs.has(smallID)) continue;
       this.knownSmallIDs.add(smallID);
-      newPlayers.push(this.writePlayerCosmetics(p));
+      newPlayers.push(this.writePlayerCosmetics(p, wwEndgameOf(gameView)));
     }
     if (newPlayers.length > 0) {
       this.view.addPlayers(
@@ -653,7 +699,7 @@ export class WebGLFrameBuilder {
     const players: PlayerStatic[] = [];
     for (const p of gameView.players()) {
       if (!this.knownSmallIDs.has(p.smallID())) continue;
-      players.push(this.writePlayerCosmetics(p));
+      players.push(this.writePlayerCosmetics(p, wwEndgameOf(gameView)));
     }
     this.view.updatePlayerCosmetics(
       players,
@@ -670,7 +716,10 @@ export class WebGLFrameBuilder {
    * Write a player's palette entry, skin and pattern for upload, and return
    * their renderer header. Also clears whatever a now-hidden cosmetic wrote.
    */
-  private writePlayerCosmetics(p: PlayerView): PlayerStatic {
+  private writePlayerCosmetics(
+    p: PlayerView,
+    ww: WwEndgameView | null = null,
+  ): PlayerStatic {
     const smallID = p.smallID();
     writePaletteEntry(
       this.palette,
@@ -682,7 +731,9 @@ export class WebGLFrameBuilder {
     // p.cosmetics.flag has already been server-resolved to either a full URL
     // or a relative asset path (e.g. "/flags/US.svg" or a CDN URL for a
     // custom flag). assetUrl() passes URLs through and rewrites paths.
-    const flagRef = p.cosmetics.flag;
+    // World War 1936 P5 (spec §3.5): the endgame's flag first.
+    const wwFlag = ww?.countries.get(smallID)?.flag;
+    const flagRef = wwFlag ? `flags/${wwFlag}.svg` : p.cosmetics.flag;
     const flagUrl = flagRef ? assetUrl(flagRef) : undefined;
 
     // Crown cosmetic: already server-resolved to the catalog image URL.
@@ -705,7 +756,7 @@ export class WebGLFrameBuilder {
       ...p.static,
       // displayName() honors the anonymous-names setting; static.displayName
       // is always the real name.
-      displayName: p.displayName(),
+      displayName: mapName(p, ww),
       flag: flagUrl,
       crown: crownUrl,
       verified: p.cosmetics.verified === true,
@@ -750,4 +801,18 @@ export class WebGLFrameBuilder {
     }
     if (dirty) this.view.updateEffectPalette(this.effectPalette);
   }
+}
+
+/**
+ * The name a player is labelled with on the map: its display name (which
+ * honors Anonymous Names) — or, in World War 1936 P5, the endgame's English
+ * name for a civil-war slot or a renamed country (spec §3.5).
+ */
+function mapName(p: PlayerView, ww: WwEndgameView | null): string {
+  return wwMapName(ww?.countries.get(p.smallID())) ?? p.displayName();
+}
+
+/** The World War 1936 endgame view; optional call: test doubles of the game predate it. */
+function wwEndgameOf(gameView: GameView): WwEndgameView | null {
+  return gameView.wwEndgame?.() ?? null;
 }

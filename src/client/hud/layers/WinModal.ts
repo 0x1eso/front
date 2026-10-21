@@ -48,6 +48,7 @@ import { steamSDK } from "../../SteamSDK";
 import { SendWinnerEvent } from "../../Transport";
 import { GameView } from "../../view";
 import { wwWinView } from "../ww1936/WorldWarModel";
+import { wwOutOfGame } from "../ww1936/WwTakeoverCard";
 
 type LegendCeremonyModule = typeof import("../../components/LegendCeremony");
 
@@ -759,13 +760,16 @@ export class WinModal extends LitElement implements Controller {
 
   tick() {
     const myPlayer = this.game.myPlayer();
-    if (
-      !this.hasShownDeathModal &&
-      myPlayer &&
-      !myPlayer.isAlive() &&
-      !this.game.inSpawnPhase() &&
-      myPlayer.hasSpawned()
-    ) {
+    // World War 1936 P5 (spec §10, §11): a government in exile and a human
+    // picking a country to take over play on; spectating (no candidate)
+    // is out of the game. Optional calls: test doubles predate the mode.
+    const ww =
+      (this.game.worldWarScenario?.() ?? null) !== null &&
+      (this.game.wwEndgame?.() ?? null) !== null;
+    const out = ww
+      ? wwOutOfGame(this.game)
+      : !!myPlayer && !myPlayer.isAlive() && myPlayer.hasSpawned();
+    if (!this.hasShownDeathModal && out && !this.game.inSpawnPhase()) {
       this.hasShownDeathModal = true;
       this._title = translateText("win_modal.died");
       this.eventBus.emit(new PlaySoundEffectEvent("defeat"));
