@@ -11,6 +11,7 @@ import {
   FLEET_STATES,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
+import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { joinNavalBattle } from "./NavalBattles";
 import type { Fleet, WwNavy } from "./WwNavy";
 
@@ -83,11 +84,33 @@ export function holdFleet(navy: WwNavy, f: Fleet): void {
   navy.markFleet(f.id);
 }
 
+/** A fleet part-way along an edge (its progress is on the way to path[0]). */
+export function midEdge(f: Fleet): boolean {
+  return f.edge >= 0 && f.path.length > 0;
+}
+
+/**
+ * The way `f` would take to the nearest of `toZones` (seaPath, zones from
+ * its start): from its zone, or, part-way along an edge, on from the zone
+ * it is sailing to (that edge's progress is kept). null when none. The
+ * orders check it before they change anything.
+ */
+export function wayAhead(
+  navy: WwNavy,
+  f: Fleet,
+  toZones: readonly number[],
+  passable: (edge: number) => boolean = navy.passable(f.owner, true),
+): { zones: number[]; km: number } | null {
+  const from = midEdge(f) ? f.path[0] : f.zone;
+  return seaPath(navy.scenario, [from], toZones, passable);
+}
+
 /**
  * Sends `f` toward the nearest of `toZones` (seaPath over the edges open
- * to its owner now); "no_sea_path" changes nothing. A fleet already there
- * arrives at once. Sailing home or on a sortie it keeps that state, else
- * it is "moving".
+ * to its owner now); "no_sea_path" changes nothing. Part-way along an
+ * edge, the fleet first reaches the zone ahead (its progress kept), then
+ * follows the new way. A fleet already there arrives at once. Sailing
+ * home or on a sortie it keeps that state, else it is "moving".
  */
 export function startFleetMove(
   navy: WwNavy,
@@ -95,12 +118,17 @@ export function startFleetMove(
   toZones: readonly number[],
   tick: number,
 ): WwOrderBlock | null {
-  const p = navy.pathFor(f, toZones);
+  const p = wayAhead(navy, f, toZones);
   if (p === null) return "no_sea_path";
-  f.path = p.zones.slice(1);
-  f.edge = -1;
-  f.prog = 0;
-  f.need = 0;
+  if (midEdge(f)) {
+    // p.zones[0] is the zone ahead: the edge, its km and progress stay.
+    f.path = p.zones;
+  } else {
+    f.path = p.zones.slice(1);
+    f.edge = -1;
+    f.prog = 0;
+    f.need = 0;
+  }
   f.dest = p.zones[p.zones.length - 1];
   if (f.state !== RETURNING && f.state !== SORTIE) f.state = MOVING;
   navy.markFleet(f.id);

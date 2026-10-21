@@ -11,17 +11,21 @@ import {
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
+import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import type { Fleet } from "@openfront/engine/ww1936/navy/WwNavy";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
+import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { PATH_KM, REGION, SEA, SEA_KM, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
+  gameHash,
   HUMAN,
   step,
   stepTo,
   takeRegion,
   withTestPolitics,
   wwGameStart,
+  wwRestore,
   wwRunner,
 } from "./util";
 
@@ -90,6 +94,33 @@ describe("fleet movement (spec §7.3)", () => {
     expect(f.lastSr).toBe(SR.eastern);
     const ww = runner.game.worldWar()!;
     expect(f.seaDay).toBe(ww.day(runner.game.ticks() - 1));
+  });
+
+  it("a new way part-way along an edge keeps that edge's progress", async () => {
+    const runner = await game();
+    const navy = navyOf(runner);
+    const id = navy.createFleet(GBR, REGION.london, [["dd", 1, 4]]);
+    const f = navy.fleets.get(id)!;
+    expect(
+      issue(runner, GBR, { kind: "fleet_move", fleet: id, zone: ZONE.east }),
+    ).toBeNull();
+    step(runner);
+    expect([f.zone, f.prog, f.path]).toEqual([ZONE.west, 115_168, [ZONE.east]]);
+    // Now to the Middle Sea: on to the East Sea first, then the canal way.
+    expect(
+      issue(runner, GBR, { kind: "fleet_move", fleet: id, zone: ZONE.middle }),
+    ).toBeNull();
+    expect([f.zone, f.prog, f.path, f.dest]).toEqual([
+      ZONE.west,
+      115_168,
+      [ZONE.east, ZONE.narrows, ZONE.middle],
+      ZONE.middle,
+    ]);
+    step(runner, 2);
+    expect([f.zone, f.path]).toEqual([ZONE.east, [ZONE.narrows, ZONE.middle]]);
+    // 60 km (one tick), then 160 km (two).
+    expect(stepUntil(runner, () => f.zone === ZONE.middle)).toBe(3);
+    expect(state(f)).toBe("on_station");
   });
 
   it("a closed canal sends the fleet round", async () => {
@@ -293,6 +324,74 @@ describe("fleet movement (spec §7.3)", () => {
     stepUntil(runner, () => f.docked === REGION.london);
     expect([state(f), FLEET_MISSIONS[f.mission]]).toEqual(["docked", "hold"]);
   });
+});
+
+describe("snapshots (Review Focus 1)", () => {
+  it("restoring mid-move and mid-spotting continues exactly", async () => {
+    const a = await game();
+    const navy = navyOf(a);
+    war(a, GBR, TAG_ID.ITA);
+    // Britain spots Italy's battle line a third a day in the Central Waters.
+    const pat = navy.createFleet(GBR, REGION.malta, [["dd", 1, 1]]);
+    expect(
+      issue(a, GBR, {
+        kind: "fleet_mission",
+        fleet: pat,
+        mission: "patrol",
+        sr: SR.central,
+      }),
+    ).toBeNull();
+    const ita = navy.createFleet(TAG_ID.ITA, REGION.rome, [
+      ["bb", 1, 2],
+      ["dd", 1, 4],
+    ]);
+    expect(
+      issue(a, TAG_ID.ITA, {
+        kind: "fleet_move",
+        fleet: ita,
+        zone: ZONE.middle,
+      }),
+    ).toBeNull();
+    const i = navy.scenario.srIdxOf(SR.central);
+    const last = navy.srState[i].lastDay;
+    stepUntil(a, () => navy.srState[i].lastDay !== last, 20);
+    const side = navy.sideOf(GBR);
+    expect(navy.spotPm(side, ita)).toBe(333);
+    // A fleet part-way over the date line, and one through the canal.
+    const east = navy.createFleet(GBR, REGION.london, [["dd", 1, 4]]);
+    expect(
+      issue(a, GBR, { kind: "fleet_move", fleet: east, zone: ZONE.east }),
+    ).toBeNull();
+    const slow = navy.createFleet(TAG_ID.ITA, REGION.rome, [["bb", 1, 2]]);
+    expect(
+      issue(a, TAG_ID.ITA, {
+        kind: "fleet_move",
+        fleet: slow,
+        zone: ZONE.east,
+      }),
+    ).toBeNull();
+    step(a);
+    const fe = navy.fleets.get(east)!;
+    expect([fe.edge >= 0, fe.prog]).toEqual([true, 115_168]);
+    const b = await wwRestore(a, HUMANS, SEA.map);
+    expect(diffGraphs(a.game, b.game)).toEqual([]);
+    const nb = navyOf(b);
+    expect(nb.fleets.get(east)!.prog).toBe(115_168);
+    expect(nb.spotPm(side, ita)).toBe(333);
+    for (let t = 0; t < 40; t++) {
+      step(a);
+      step(b);
+      expect(gameHash(b)).toBe(gameHash(a));
+    }
+    // Both went on: spotted further, arrived.
+    expect(nb.spotPm(side, ita)).toBe(navy.spotPm(side, ita));
+    expect(nb.spotPm(side, ita)).toBeGreaterThan(333);
+    expect(nb.fleets.get(east)!.zone).toBe(ZONE.east);
+    expect(nb.fleets.get(slow)!.zone).toBe(ZONE.east);
+    expect(diffSnapshots(snapshotGame(a.game), snapshotGame(b.game))).toEqual(
+      [],
+    );
+  }, 120_000);
 });
 
 describe("the preparation minute (spec §2.2)", () => {

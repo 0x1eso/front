@@ -239,6 +239,66 @@ describe("engagements (spec §8.2, §9.1)", () => {
     expect(FLEET_MISSIONS[s.mission]).toBe("strike");
   });
 
+  it("two enemies spotted the same day: the strike force sorties once", async () => {
+    const runner = await atWar();
+    const navy = navyOf(runner);
+    const side = navy.sideOf(GBR);
+    const sf = onMission(
+      runner,
+      GBR,
+      REGION.malta,
+      [
+        ["bb", 1, 2],
+        ["dd", 1, 6],
+      ],
+      "strike",
+      SR.central,
+    );
+    const pat = onMission(
+      runner,
+      GBR,
+      REGION.malta,
+      [
+        ["dd", 1, 4],
+        ["cl", 1, 2],
+      ],
+      "patrol",
+      SR.central,
+    );
+    expect(
+      issue(runner, GBR, { kind: "fleet_engage", fleet: pat, rule: "always" }),
+    ).toBeNull();
+    // Two Italian fleets at sea in the Narrows (Central Waters, not Malta's
+    // zone), put there directly: sailing there would cross a region day.
+    const comps: Comp[] = [
+      [
+        ["bb", 1, 2],
+        ["dd", 1, 4],
+      ],
+      [
+        ["dd", 1, 4],
+        ["cl", 1, 2],
+      ],
+    ];
+    const [one, two] = comps.map((c) => {
+      const f = navy.fleets.get(navy.createFleet(ITA, REGION.rome, c))!;
+      f.docked = 0;
+      navy.setFleetZone(f, ZONE.narrows);
+      f.state = FLEET_STATES.indexOf("on_station");
+      return f.id;
+    });
+    // Search 160 + 190 × 300‰ in port = 217: both seen the same day.
+    regionDay(runner, SR.central);
+    expect(navy.spotted(side, one) && navy.spotted(side, two)).toBe(true);
+    expect(started).toEqual([
+      [ZONE.narrows, side, one],
+      [ZONE.narrows, side, two],
+    ]);
+    const s = navy.fleets.get(sf)!;
+    expect([FLEET_STATES[s.state], s.sortieTarget]).toEqual(["sortie", one]);
+    expect(s.path).toEqual([ZONE.narrows]);
+  });
+
   it("a strike force short of fuel stays in port", async () => {
     const runner = await atWar();
     const navy = navyOf(runner);

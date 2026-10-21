@@ -252,7 +252,9 @@ export function engageRegion(navy: WwNavy, sr: number, tick: number): void {
     for (const m of sideMembers(navy, side)) {
       for (const f of navy.fleetsOf(m)) {
         if (f.mission !== MISSION.strike || f.missionSr !== sr) continue;
-        if (f.docked === 0 || f.state === FST.repairing || !fights(f)) continue;
+        if (f.docked === 0 || !fights(f)) continue;
+        // Repairing, or already sortied (earlier today, against another pair).
+        if (f.state === FST.repairing || f.state === FST.sortie) continue;
         if (fuelPmOf(navy, f.owner) < STRIKE_MIN_FUEL_PM) continue;
         if (belowReturnAt(navy, f)) continue;
         strikes.push(f);

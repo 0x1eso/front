@@ -13,7 +13,7 @@ import { ADMIRALS } from "@openfront/engine-lib/ww1936/Admirals";
 import { fleetMissionBlock } from "@openfront/engine-lib/ww1936/NavalRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
-import { HUMAN, stepTo, withTestPolitics, wwRunner } from "./util";
+import { HUMAN, step, stepTo, withTestPolitics, wwRunner } from "./util";
 
 withTestPolitics();
 
@@ -136,6 +136,10 @@ describe("fleet orders (spec §7.2, §8.1, §8.3)", () => {
     t.hp[t.rowOf(d2)] -= 5000;
     t.hp[t.rowOf(d4)] -= 9000;
     t.hp[t.rowOf(d3)] -= 5000;
+    f.nameIdx = 3;
+    expect(
+      issue(runner, GBR, { kind: "fleet_engage", fleet: id, rule: "always" }),
+    ).toBeNull();
     const order = (counts: [string, number][], ships: number[] = []) =>
       issue(runner, GBR, {
         kind: "fleet_split",
@@ -166,6 +170,9 @@ describe("fleet orders (spec §7.2, §8.1, §8.3)", () => {
     ]);
     expect(FLEET_MISSIONS[nf.mission]).toBe("hold");
     expect(t.fleet[t.rowOf(d2)]).toBe(nf.id);
+    // The new fleet keeps the parent's rule and name (its own number).
+    expect([nf.engage, nf.nameIdx]).toEqual([f.engage, f.nameIdx]);
+    expect(nf.num).not.toBe(f.num);
     // By ship list, at sea: the new fleet holds in the same zone.
     expect(
       issue(runner, GBR, { kind: "fleet_move", fleet: id, zone: ZONE.west }),
@@ -220,6 +227,21 @@ describe("fleet orders (spec §7.2, §8.1, §8.3)", () => {
     // The merged fleet keeps `into`'s mission.
     expect(FLEET_MISSIONS[navy.fleets.get(c)!.mission]).toBe("patrol");
     expect(navy.fleets.get(c)!.ships).toHaveLength(2);
+    // A fleet part-way along an edge is between zones: no merge.
+    const g = navy.createFleet(GBR, REGION.malta, [["dd", 1, 1]]);
+    expect(
+      issue(runner, GBR, { kind: "fleet_move", fleet: g, zone: ZONE.middle }),
+    ).toBeNull();
+    expect(
+      issue(runner, GBR, { kind: "fleet_move", fleet: c, zone: ZONE.west }),
+    ).toBeNull();
+    step(runner);
+    expect([navy.fleets.get(c)!.zone, navy.fleets.get(c)!.edge >= 0]).toEqual([
+      ZONE.middle,
+      true,
+    ]);
+    expect(merge(g, c)).toBe("not_adjacent");
+    expect(merge(c, g)).toBe("not_adjacent");
   });
 
   it("too many fleets", async () => {

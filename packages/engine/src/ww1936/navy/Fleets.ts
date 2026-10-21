@@ -32,8 +32,10 @@ import {
   holdFleet,
   homeUsable,
   homeWaterSrs,
+  midEdge,
   sendHome,
   startFleetMove,
+  wayAhead,
 } from "./SeaMove";
 import type { AdmiralState, Fleet, WwNavy } from "./WwNavy";
 
@@ -141,7 +143,7 @@ function orderMission(
   if (mission === "training" && !homeWaterSrs(navy, f.owner).has(sr)) {
     return "bad_zone";
   }
-  if (mission !== "strike" && navy.pathFor(f, s!.members) === null) {
+  if (mission !== "strike" && wayAhead(navy, f, s!.members) === null) {
     return "no_sea_path";
   }
   f.mission = FLEET_MISSIONS.indexOf(mission);
@@ -179,8 +181,8 @@ function orderMove(
   const sc = navy.scenario;
   if (sc.seaZone(zone) === undefined) return "bad_zone";
   if (sc.isLake(zone)) return "lake";
-  if (navy.pathFor(f, [zone]) === null) {
-    const open = seaPath(sc, [f.zone], [zone], ALL_EDGES);
+  if (wayAhead(navy, f, [zone]) === null) {
+    const open = wayAhead(navy, f, [zone], ALL_EDGES);
     return open === null ? "no_sea_path" : "canal_closed";
   }
   f.mission = MISSION.hold;
@@ -199,7 +201,7 @@ function orderReturn(
   tick: number,
 ): WwOrderBlock | null {
   const z = navy.scenario.harborOf(f.home);
-  if (z === 0 || navy.pathFor(f, [z]) === null) return "no_sea_path";
+  if (z === 0 || wayAhead(navy, f, [z]) === null) return "no_sea_path";
   f.mission = MISSION.hold;
   f.missionSr = 0;
   f.resumeDay = -1;
@@ -277,8 +279,13 @@ function splitFleet(
     }
   }
   if (take.size === 0 || take.size >= f.ships.length) return "bad_index";
-  const nf = navy.newFleet(f.owner, f.docked !== 0 ? f.docked : f.home, 0);
+  const nf = navy.newFleet(
+    f.owner,
+    f.docked !== 0 ? f.docked : f.home,
+    f.nameIdx,
+  );
   nf.home = f.home;
+  nf.engage = f.engage;
   nf.returnAtPct = f.returnAtPct;
   nf.mix = [...f.mix] as [number, number, number];
   if (f.docked === 0) {
@@ -302,6 +309,8 @@ function splitFleet(
  */
 function mergeFleet(navy: WwNavy, f: Fleet, into: Fleet): WwOrderBlock | null {
   if (into.id === f.id) return "bad_index";
+  // Part-way along an edge a fleet is between zones: not beside the other.
+  if (midEdge(f) || midEdge(into)) return "not_adjacent";
   const together =
     f.docked !== 0
       ? f.docked === into.docked
