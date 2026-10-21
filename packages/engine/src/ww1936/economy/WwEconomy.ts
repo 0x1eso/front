@@ -86,7 +86,7 @@ import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
 import { stepRepairs } from "./Repairs";
 import { stepResearch } from "./ResearchRun";
-import { tradePartners, validateTrades } from "./Trade";
+import { tradeDelivery, tradePartners, validateTrades } from "./Trade";
 
 export interface Line {
   id: number;
@@ -737,11 +737,13 @@ export class WwEconomy {
     const imported = zeros();
     let paid = 0;
     let received = 0;
+    // P4 spec §10.2 (lane C): a sea deal delivers by its convoys.
+    const deliver = tradeDelivery(this, ce.smallID);
     for (const tr of this._trades) {
       if (tr.buyer === ce.smallID) {
         paid += tr.civs;
         // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
-        imported[tr.res] += tr.civs * tradeUnitsPerCiv(ce.stats);
+        imported[tr.res] += deliver(tr, tr.civs * tradeUnitsPerCiv(ce.stats));
       }
       if (tr.seller === ce.smallID) {
         received += tr.civs;

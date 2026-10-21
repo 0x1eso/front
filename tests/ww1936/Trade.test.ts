@@ -44,6 +44,8 @@ import {
 // Every country is human: no AI economy (Task 6) opens deals that would
 // share these sellers' room or these buyers' factories (pre-flight S3).
 const TAGS = ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const;
+const ROME = 5;
+const KRAKOW = 7;
 const clientOf = (tag: CountryTag) =>
   `HUMAN00${TAGS.indexOf(tag as (typeof TAGS)[number]) + 1}`;
 
@@ -77,6 +79,13 @@ async function game(): Promise<Game1936> {
   const p = (tag: CountryTag) => byTag(g, tag);
   const id = (tag: CountryTag) => p(tag).smallID();
   const ce = (tag: CountryTag) => econ.country(id(tag))!;
+  // P4 spec §10.2 (lane C): partner rule 3 is a sea route between working
+  // naval bases. Rome and Krakow get one, so Italy and Poland still reach
+  // London by sea as P1's shared sea zone let them.
+  for (const r of [ROME, KRAKOW]) {
+    econ.buildingArray("naval_base")[r] = 1;
+    econ.afterBuildingChange(r, "naval_base");
+  }
   return {
     runner,
     updates,
@@ -272,6 +281,13 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(buy("ITA", "GBR", "tungsten")).toBeNull();
     throughDay(runner, 2);
     expect(dealsOf(econ)).toEqual([[ita, gbr, "tungsten", 1]]);
+    // P4 spec §10.2: the sea way is a route between working naval bases —
+    // Rome's bombed out, Italy is no partner of Britain's and the deal goes.
+    econ.buildingArray("naval_base")[ROME] = 0;
+    econ.afterBuildingChange(ROME, "naval_base");
+    expect(tradePartnerBlock(econ, ita, gbr)).toBe("no_partner");
+    throughDay(runner, 3);
+    expect(dealsOf(econ)).toEqual([]);
   });
 
   test("war and embargo close a deal", async () => {
