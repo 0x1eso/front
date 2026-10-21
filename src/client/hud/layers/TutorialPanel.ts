@@ -164,10 +164,13 @@ export class TutorialPanel extends LitElement implements Controller {
     if (!this.started) {
       this.started = true;
       // World War 1936 has no unowned land, alliances, silos or atom bombs,
-      // which the steps teach: the tutorial stays off there.
+      // which the steps teach: the tutorial stays off there. The steps walk
+      // a new game from its spawn; a resumed save is well past that, and
+      // would hold the spawn ring up until the next attack.
       this.setActive(
         !this.userSettings.tutorialDismissed() &&
-          this.game.worldWarScenario() === null,
+          this.game.worldWarScenario() === null &&
+          !this.game.resumedFromSave(),
       );
     }
     if (!this.active) return;

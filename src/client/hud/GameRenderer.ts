@@ -247,6 +247,7 @@ export function createRenderer(
     console.error("settings modal not found");
   }
   settingsModal.eventBus = eventBus;
+  settingsModal.game = game;
 
   // The in-game settings instance needs the bus so the Audio sliders reach
   // SoundManager, which caches its volumes at construction, and UIState so the

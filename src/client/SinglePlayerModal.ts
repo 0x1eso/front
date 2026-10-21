@@ -7,6 +7,7 @@ import {
   maps,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import { GameConfig, TeamCountConfig } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -30,6 +31,8 @@ import { BaseModal } from "./components/BaseModal";
 import "./components/GameConfigSettings";
 import "./components/InputCard";
 import { MEDAL_ORDER, medalIcon } from "./components/map/Medals";
+import "./components/SavedGamesPanel";
+import type { LoadSavedGameDetail } from "./components/SavedGamesPanel";
 import "./components/ToggleInputCard";
 import { modalHeader } from "./components/ui/ModalHeader";
 import "./components/ww1936/CountryPicker";
@@ -39,6 +42,7 @@ import { GameStartingModal } from "./GameStartingModal";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
+import { downloadSavedGame } from "./SavedGamesApi";
 import { isSelfHosted } from "./SelfHosted";
 import { lastUserMeResponse } from "./UserMeBroadcast";
 import { UsernameInput } from "./UsernameInput";
@@ -107,6 +111,16 @@ function withDeadline<T>(
  */
 export const SHORT_LANDSCAPE_QUERY =
   "(max-height: 500px) and (orientation: landscape)";
+
+/** A saved game that can't be started, with the message that says why. */
+class SavedGameLoadError extends Error {
+  constructor(readonly messageKey: string) {
+    super(messageKey);
+  }
+}
+
+// Saved games' public ids (nanoid). Anything else in a link is not one.
+const SAVED_GAME_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** What a start has to wait for before it can dispatch join-lobby. */
 type StartPreparation = {
@@ -265,6 +279,8 @@ export class SinglePlayerModal extends BaseModal {
   // nothing visible until every await in startGame() settles, which reads as
   // a hang rather than as loading whenever the network is slow or absent.
   @state() private starting: boolean = false;
+  // A shared save opened from a `#modal=single-player&save=<id>` link.
+  @state() private sharedSaveId: string | null = null;
   // Identifies the current start attempt. Bumped on every start and on every
   // close, so an attempt that outlives its modal can tell it has been retired.
   private startAttempt: number = 0;
@@ -581,6 +597,13 @@ export class SinglePlayerModal extends BaseModal {
           data-solo-scroll
           class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
         >
+          <saved-games-panel
+            class="block mb-6"
+            .signedIn=${responseHasLinkedIdentity(this.userMeResponse)}
+            .sharedId=${this.sharedSaveId}
+            .busy=${this.starting}
+            @load-saved-game=${this.handleLoadSavedGame}
+          ></saved-games-panel>
           <game-config-settings
             class="block"
             .sectionGapClass=${"space-y-6"}
@@ -821,6 +844,7 @@ export class SinglePlayerModal extends BaseModal {
         startingModal.hide();
       }
     }
+    this.sharedSaveId = null;
     this.resetOptions();
   }
 
@@ -885,7 +909,12 @@ export class SinglePlayerModal extends BaseModal {
     this.overtimeStartMinutes = DEFAULT_OPTIONS.overtimeStartMinutes;
   }
 
-  protected onOpen(): void {
+  protected onOpen(args?: Record<string, unknown>): void {
+    const save = args?.save;
+    this.sharedSaveId =
+      typeof save === "string" && SAVED_GAME_ID.test(save) ? save : null;
+    // Saves made since the list last loaded (a game played in between).
+    void this.querySelector("saved-games-panel")?.refresh();
     void this.loadNationCount();
     // Spend the cosmetics round trip while the player is picking a map, not
     // after they commit. startGame() still resolves cosmetics properly; this
@@ -1316,62 +1345,12 @@ export class SinglePlayerModal extends BaseModal {
       finalMaxTimerValue = Math.max(1, Math.min(120, this.maxTimerValue));
     }
 
-    // Everything past this point awaits something, some of it network-bound.
-    // Hold the button in its busy state until join-lobby is away so the wait
-    // reads as loading rather than as a dead click.
-    this.starting = true;
-    const attempt = ++this.startAttempt;
-    // The full-screen starting overlay, up from the click rather than at
-    // prestart: it also covers Main's own awaits after the dispatch. On
-    // success GameRenderer hides it (a canPlay() refusal hides it in
-    // handleJoinLobby); an attempt that never dispatches reaches neither, so
-    // onClose (or the finally below, for exits without a close) releases it.
-    const startingModal = document.querySelector("game-starting-modal");
-    const overlay =
-      startingModal instanceof GameStartingModal ? startingModal : null;
-    this.overlayAttempt = attempt;
-    overlay?.show();
-    try {
+    await this.launch(async ({ resolvedName, cosmetics }, usernameInput) => {
       console.log(
         `Starting single player game with map: ${GameMapType[this.selectedMap as keyof typeof GameMapType]}${this.useRandomMap ? " (Randomly selected)" : ""}`,
       );
       const clientID = generateID();
       const gameID = generateID();
-
-      const usernameInput = document.querySelector(
-        "username-input",
-      ) as UsernameInput | null;
-
-      // Resolved before the dispatch rather than inside it, so every wait is
-      // attributable to the busy button above, and bounded so none of them
-      // can outlive it.
-      const { resolvedName, cosmetics } =
-        await this.resolveNameAndCosmetics(usernameInput);
-
-      // Retired while this was resolving — the modal was closed, and possibly
-      // reopened and started again. The live attempt owns the start; this one
-      // would otherwise race it into join-lobby with stale settings.
-      //
-      // A start has exactly two side effects that leave this component, and
-      // BOTH must sit behind this check. Anything added here that escapes the
-      // component needs the same gate:
-      //   1. awaitMidgameAd() — shows the player a real ad, so an abandoned
-      //      attempt reaching it advertises a game that never starts, and a
-      //      reopened modal can put a second request in flight beside it.
-      //   2. the join-lobby dispatch — and everything downstream of it,
-      //      including Main's gameplayStart() and incrementGamesPlayed().
-      // resolveNameAndCosmetics() above is deliberately NOT gated: its only
-      // writes are validating stored cosmetic selections against the catalog
-      // and profile, which happens on any cosmetics resolution (menu
-      // background, store, inventory) rather than as a consequence of this
-      // start.
-      if (attempt !== this.startAttempt) return;
-
-      await this.awaitMidgameAd();
-
-      // The ad is long enough that the modal can be closed while it runs.
-      if (attempt !== this.startAttempt) return;
-
       const baseConfig: GameConfig = {
         gameMap: this.selectedMap,
         gameMapSize: this.compactMap ? GameMapSize.Compact : GameMapSize.Normal,
@@ -1441,29 +1420,177 @@ export class SinglePlayerModal extends BaseModal {
       // World War 1936 (spec §2.2): the client loads the map named here, so
       // the mode's fixed map and rules are applied before the start.
       const config = normalizeWorldWar1936Config(baseConfig);
+      return {
+        gameID: gameID,
+        gameStartInfo: {
+          gameID: gameID,
+          players: [
+            {
+              clientID,
+              username: resolvedName.name,
+              clanTag: usernameInput?.getClanTag() ?? null,
+              cosmetics,
+              ...(this.worldWar1936 && this.country !== null
+                ? { country: this.country }
+                : {}),
+            },
+          ],
+          config,
+          lobbyCreatedAt: Date.now(), // ms; server should be authoritative in MP
+        },
+        source: "singleplayer",
+      };
+    });
+  }
+
+  private handleLoadSavedGame = (e: Event) => {
+    const { id, shared } = (e as CustomEvent<LoadSavedGameDetail>).detail;
+    void this.startSavedGame(id, shared);
+  };
+
+  /**
+   * Resumes a saved game, the player's own or a shared one, where it was
+   * saved. The game itself comes from the snapshot; the start only supplies
+   * who is playing it.
+   */
+  private async startSavedGame(id: string, shared: boolean) {
+    if (this.starting) return;
+    try {
+      await this.launch(async ({ resolvedName, cosmetics }, usernameInput) => {
+        const snapshot = await downloadSavedGame(id, shared);
+        if (typeof snapshot === "string") {
+          throw new SavedGameLoadError(
+            snapshot === "not_found"
+              ? "saved_games.error.not_found"
+              : "saved_games.error.download_failed",
+          );
+        }
+        // The engine reads it, on a worker of its own (this page can't load
+        // the engine).
+        const { readSnapshotHeader } = await import("./WorkerClient");
+        let header: SnapshotHeader;
+        try {
+          header = await readSnapshotHeader(snapshot);
+        } catch (err) {
+          console.warn("Saved game is not a snapshot this build reads", err);
+          throw new SavedGameLoadError("saved_games.error.unreadable");
+        }
+        const human = header.humans[0];
+        if (
+          header.gameConfig.gameType !== GameType.Singleplayer ||
+          header.humans.length !== 1
+        ) {
+          throw new SavedGameLoadError("saved_games.error.not_singleplayer");
+        }
+        console.log(
+          `Resuming saved game ${id} on ${header.gameConfig.gameMap} at tick ${header.tick}`,
+        );
+        // A fresh id: a shared save is played by many, each its own game.
+        const gameID = generateID();
+        return {
+          gameID,
+          gameStartInfo: {
+            gameID,
+            players: [
+              {
+                // The saved game's own player: the engine finds a player by
+                // the clientID its intents carry.
+                clientID: human.clientID,
+                username: resolvedName.name,
+                clanTag: usernameInput?.getClanTag() ?? null,
+                cosmetics,
+              },
+            ],
+            config: header.gameConfig,
+            lobbyCreatedAt: Date.now(),
+          },
+          snapshot,
+          source: "singleplayer",
+        };
+      });
+    } catch (err) {
+      if (!(err instanceof SavedGameLoadError)) {
+        console.error("Failed to start the saved game", err);
+      }
+      await showInGameAlert(
+        translateText(
+          err instanceof SavedGameLoadError
+            ? err.messageKey
+            : "saved_games.error.load_failed",
+        ),
+      );
+    }
+  }
+
+  /**
+   * What every solo start shares: the busy button, the starting overlay, the
+   * player's name and cosmetics, the midgame ad and the join-lobby dispatch.
+   * `build` makes the event once the name and cosmetics are known, before
+   * the ad; throwing from it abandons the start (and reaches the caller).
+   */
+  private async launch(
+    build: (
+      prepared: StartPreparation,
+      usernameInput: UsernameInput | null,
+    ) => Promise<JoinLobbyEvent>,
+  ): Promise<void> {
+    // Everything past this point awaits something, some of it network-bound.
+    // Hold the button in its busy state until join-lobby is away so the wait
+    // reads as loading rather than as a dead click.
+    this.starting = true;
+    const attempt = ++this.startAttempt;
+    // The full-screen starting overlay, up from the click rather than at
+    // prestart: it also covers Main's own awaits after the dispatch. On
+    // success GameRenderer hides it (a canPlay() refusal hides it in
+    // handleJoinLobby); an attempt that never dispatches reaches neither, so
+    // onClose (or the finally below, for exits without a close) releases it.
+    const startingModal = document.querySelector("game-starting-modal");
+    const overlay =
+      startingModal instanceof GameStartingModal ? startingModal : null;
+    this.overlayAttempt = attempt;
+    overlay?.show();
+    try {
+      const usernameInput = document.querySelector(
+        "username-input",
+      ) as UsernameInput | null;
+
+      // Resolved before the dispatch rather than inside it, so every wait is
+      // attributable to the busy button above, and bounded so none of them
+      // can outlive it.
+      const prepared = await this.resolveNameAndCosmetics(usernameInput);
+
+      // Retired while this was resolving — the modal was closed, and possibly
+      // reopened and started again. The live attempt owns the start; this one
+      // would otherwise race it into join-lobby with stale settings.
+      //
+      // A start has exactly two side effects that leave this component, and
+      // BOTH must sit behind this check. Anything added here that escapes the
+      // component needs the same gate:
+      //   1. awaitMidgameAd() — shows the player a real ad, so an abandoned
+      //      attempt reaching it advertises a game that never starts, and a
+      //      reopened modal can put a second request in flight beside it.
+      //   2. the join-lobby dispatch — and everything downstream of it,
+      //      including Main's gameplayStart() and incrementGamesPlayed().
+      // resolveNameAndCosmetics() above is deliberately NOT gated: its only
+      // writes are validating stored cosmetic selections against the catalog
+      // and profile, which happens on any cosmetics resolution (menu
+      // background, store, inventory) rather than as a consequence of this
+      // start.
+      if (attempt !== this.startAttempt) return;
+
+      const detail = await build(prepared, usernameInput);
+
+      // Building can wait on the network (a saved game's download).
+      if (attempt !== this.startAttempt) return;
+
+      await this.awaitMidgameAd();
+
+      // The ad is long enough that the modal can be closed while it runs.
+      if (attempt !== this.startAttempt) return;
 
       this.dispatchEvent(
         new CustomEvent("join-lobby", {
-          detail: {
-            gameID: gameID,
-            gameStartInfo: {
-              gameID: gameID,
-              players: [
-                {
-                  clientID,
-                  username: resolvedName.name,
-                  clanTag: usernameInput?.getClanTag() ?? null,
-                  cosmetics,
-                  ...(this.worldWar1936 && this.country !== null
-                    ? { country: this.country }
-                    : {}),
-                },
-              ],
-              config,
-              lobbyCreatedAt: Date.now(), // ms; server should be authoritative in MP
-            },
-            source: "singleplayer",
-          } satisfies JoinLobbyEvent,
+          detail,
           bubbles: true,
           composed: true,
         }),
