@@ -85,7 +85,7 @@ function enemyStrength(land: WwLand, me: number, region: number): number {
   for (const r of land.rowsIn(region)) {
     const m = t.mode[r];
     if (m === MOVE_ADVANCE || m === MOVE_RETREAT) continue;
-    if (land.isEnemy(me, t.owner[r])) s += land.statsOf(r).def;
+    if (land.isEnemy(me, land.fightOwner(r))) s += land.statsOf(r).def;
   }
   return s;
 }
@@ -106,7 +106,8 @@ export function planDay(
 ): void {
   const o = army.order;
   if (o.kind !== "plan" || !o.executing) return;
-  const me = army.owner;
+  // P5 lane A: a volunteer army attacks its host's enemies.
+  const me = land.ownerForSides(army);
   if (
     o.targets.length > 0 &&
     o.targets.every((r) => land.sameSide(me, land.controller[r]))
@@ -241,7 +242,9 @@ export function predictAttack(
   const from = new Set<number>();
   for (const r of attackers) {
     addToSide(att, land.statsOf(r), t.org[r]);
-    if (!owners.includes(t.owner[r])) owners.push(t.owner[r]);
+    // P5 lane A: volunteers on either side count as the side they serve.
+    const o = land.fightOwner(r);
+    if (!owners.includes(o)) owners.push(o);
     from.add(t.region[r]);
   }
   const def = emptySide();
@@ -251,7 +254,7 @@ export function predictAttack(
     if (m === MOVE_ADVANCE || m === MOVE_RETREAT) continue;
     if (
       owners.length === 0 ||
-      !owners.every((o) => land.isEnemy(o, t.owner[r]))
+      !owners.every((o) => land.isEnemy(o, land.fightOwner(r)))
     ) {
       continue;
     }

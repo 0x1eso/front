@@ -40,8 +40,9 @@ const FRONT_TARGET_WEIGHT = 2;
  */
 export function dailyFronts(land: WwLand, smallID: number, day: number): void {
   const tick = land.mg.ticks();
-  // Nothing changes control during this step: one border set per enemy.
-  const borders = new Map<number, ReadonlySet<number>>();
+  // Nothing changes control during this step: one border set per enemy
+  // (and per side: P5 lane A, a volunteer army stands on its host's).
+  const borders = new Map<string, ReadonlySet<number>>();
   for (const a of land.armiesOf(smallID)) {
     if (a.order.kind === "move") {
       finishMove(land, a);
@@ -49,10 +50,12 @@ export function dailyFronts(land: WwLand, smallID: number, day: number): void {
     }
     if (a.order.kind !== "front" && a.order.kind !== "plan") continue;
     const enemy = a.order.enemy;
-    let border = borders.get(enemy);
+    const me = land.ownerForSides(a);
+    const key = `${me}:${enemy}`;
+    let border = borders.get(key);
     if (border === undefined) {
-      border = new Set(borderRegionsOf(land, smallID, enemy));
-      borders.set(enemy, border);
+      border = new Set(borderRegionsOf(land, me, enemy));
+      borders.set(key, border);
     }
     // The plan's target distances, once (nothing between moves control).
     const dist: TargetDist = { value: null };
@@ -154,7 +157,8 @@ function threatIn(
   for (const r of land.rowsIn(region)) {
     const m = t.mode[r];
     if (m === MOVE_ADVANCE || m === MOVE_RETREAT) continue;
-    const o = t.owner[r];
+    // P5 lane A: a volunteer division counts for the side it serves.
+    const o = land.fightOwner(r);
     if (land.sameSide(me, o)) continue;
     if (enemy !== 0 ? land.sameSide(o, enemy) : land.isEnemy(me, o)) n++;
   }
@@ -169,7 +173,8 @@ function busy(land: WwLand, r: number): boolean {
   if (m === MOVE_RETREAT || m === MOVE_ADVANCE) return true;
   if (m === MOVE_RAIL || m === MOVE_SEA) return true;
   return (
-    m === MOVE_WALK && !land.sameSide(t.owner[r], land.controller[t.next[r]])
+    m === MOVE_WALK &&
+    !land.sameSide(land.fightOwner(r), land.controller[t.next[r]])
   );
 }
 
@@ -187,12 +192,13 @@ export function assignFront(
   a: Army,
   tick: number,
   border: ReadonlySet<number> = new Set(
-    borderRegionsOf(land, a.owner, a.order.enemy),
+    borderRegionsOf(land, land.ownerForSides(a), a.order.enemy),
   ),
   dist: TargetDist = { value: null },
 ): boolean {
   const o = a.order;
-  const me = a.owner;
+  // P5 lane A: a volunteer army's front is its host's.
+  const me = land.ownerForSides(a);
   if (!border.has(o.anchor)) {
     const anchor = nearestBorder(land, border, [o.anchor], (r) =>
       land.sameSide(me, land.controller[r]),

@@ -219,6 +219,8 @@ const LendLeaseSchema = z.object({
   sentMonth: zInt(),
   arrivedMonth: zInt(),
   route: zInt(),
+  /** P5 lane A (review fix round): opened by the aid AI, which sizes it; content and request contracts keep theirs. */
+  ai: z.boolean().optional(),
 });
 export type LendLease = z.infer<typeof LendLeaseSchema>;
 const InTransitSchema = z.object({
@@ -1241,8 +1243,27 @@ export class WwEndgame {
       const rows = mine.filter((x) => x[1] === kind);
       if (rows.length === 0) continue;
       const items = rows.map((x) => `${x[2]}:${x[3]}:${x[4]}`).join(",");
-      this.message(id, NOTE_KEYS[kind], { items });
+      this.message(id, NOTE_KEYS[kind], {
+        ...this.noteArgs(kind, rows),
+        items,
+      });
     }
+  }
+  /**
+   * P5 lane A (controller ruling): a batch's own params (NOTE_ARGS) — the
+   * value of the named column in its biggest row (ties: the first), a
+   * country column as its tag.
+   */
+  private noteArgs(
+    kind: number,
+    rows: readonly (readonly number[])[],
+  ): Record<string, string | number> {
+    const arg = NOTE_ARGS[kind];
+    if (arg === null || arg === undefined) return {};
+    let top = rows[0];
+    for (const x of rows) if (x[4] > top[4]) top = x;
+    const v = top[arg.col];
+    return { [arg.param]: arg.country ? this.ww.tagOf(v) : v };
   }
 
   // ---- Screens, snapshot, hash ----
@@ -1609,3 +1630,16 @@ export const NOTE_KEYS = [
 export const NOTE_CAPTURE = 0;
 export const NOTE_LL = 1;
 export const NOTE_GARRISON = 2;
+/**
+ * The param each batch adds to `items` (lane T's keys, spec §22): the row
+ * column (2: a, 3: b) it reads, a country (sent as its tag) or not.
+ */
+export const NOTE_ARGS: readonly ({
+  param: string;
+  col: 2 | 3;
+  country: boolean;
+} | null)[] = [
+  { param: "region", col: 3, country: false },
+  { param: "fromTag", col: 2, country: true },
+  null,
+];
