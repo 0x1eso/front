@@ -3882,13 +3882,21 @@
       "deu_soviet_pact_proposal": "Propose a Pact to Moscow",
       "fra_dissolve_vichy": "Dissolve the Vichy Regime",
       "gbr_destroyers_for_bases": "Bases for Destroyers",
+      "gbr_free_french_recognition": "Recognise Free France",
       "gbr_guarantee_poland": "Guarantee Poland",
       "gbr_guarantee_romania_greece": "Guarantee Romania and Greece",
+      "gbr_levant_intervention": "Intervene in the Levant",
+      "gbr_occupy_iceland": "Secure Iceland",
+      "gen_annex_subject": "Absorb an Integrated Puppet",
       "gen_coup_com": "Back a Communist Coup",
       "gen_coup_dem": "Back a Democratic Coup",
       "gen_coup_fas": "Back a Fascist Coup",
       "gen_coup_neu": "Back a Non-Aligned Coup",
+      "gen_demand_autonomy": "Press for Self-Government",
+      "gen_downgrade_subject": "Reduce a Subject's Status",
       "gen_emergency_draft": "Emergency Call-Up",
+      "gen_exile_recruit": "Recruit Abroad",
+      "gen_exile_resistance": "Support the Resistance",
       "gen_fortify_border": "Fortify the Border",
       "gen_hire_general": "Promote an Officer",
       "gen_industrial_subsidy": "Industrial Subsidies",
@@ -3897,14 +3905,19 @@
       "gen_join_axis": "Ask to Join the Axis",
       "gen_join_comintern": "Ask to Join the Comintern",
       "gen_martial_law": "Martial Law",
+      "gen_partisan_support": "Arm the Partisans",
       "gen_party_support_com": "Back the Communists",
       "gen_party_support_dem": "Back the Democrats",
       "gen_party_support_fas": "Back the Fascists",
       "gen_party_support_neu": "Back the Non-Aligned",
       "gen_rally": "Mass Rallies",
+      "gen_release_subject": "Release a Subject",
+      "gen_request_autonomy": "Request Greater Autonomy",
+      "gen_restore_country": "Restore a Fallen Country",
       "gen_suppress_opposition": "Curb the Opposition",
       "gen_suspend_elections": "Suspend Elections",
       "gen_tech_exchange": "Technical Exchange",
+      "gen_tighten_control": "Tighten Control",
       "gen_war_bonds": "War Bonds",
       "hun_request_arbitration": "Ask for Arbitration",
       "hun_request_transylvania": "Claim Transylvania",
@@ -3935,13 +3948,21 @@
       "deu_soviet_pact_proposal": "Send the foreign minister to Moscow to offer a non-aggression pact and a secret division of eastern Europe.",
       "fra_dissolve_vichy": "With Paris in French hands again, the Provisional Government declares the acts of the Vichy regime void and takes over the territories it still holds.",
       "gbr_destroyers_for_bases": "Offer the United States long leases on Atlantic bases in return for fifty old destroyers.",
+      "gbr_free_french_recognition": "Recognise the French leaders who fight on from London as the voice of France at war.",
       "gbr_guarantee_poland": "Pledge to defend Poland if its independence is threatened, and ask France to join.",
       "gbr_guarantee_romania_greece": "Extend the same pledge of defence to Romania and Greece to hold the eastern Mediterranean.",
+      "gbr_levant_intervention": "Prepare an advance from Palestine into Vichy-held Syria and Lebanon.",
+      "gbr_occupy_iceland": "With Denmark in German hands, land troops in Iceland before Germany can use it against the Atlantic routes.",
+      "gen_annex_subject": "Over 180 days, merge a fully integrated puppet and its army into our own state.",
       "gen_coup_com": "For 90 days, arms and money go to communists abroad; if they reach half the country's support, its government falls.",
       "gen_coup_dem": "For 90 days, arms and money go to democrats abroad; if they reach half the country's support, its government falls.",
       "gen_coup_fas": "For 90 days, arms and money go to fascists abroad; if they reach half the country's support, its government falls.",
       "gen_coup_neu": "For 90 days, arms and money go to non-aligned factions abroad; if they reach half the country's support, its government falls.",
+      "gen_demand_autonomy": "Push our overlord for a larger say in our own affairs: autonomy +10%.",
+      "gen_downgrade_subject": "Bring a subject with no autonomy left one step closer under our rule.",
       "gen_emergency_draft": "Wider age limits and fewer deferments put more men into uniform at once.",
+      "gen_exile_recruit": "Enlist our citizens who escaped abroad and those in allied hands: manpower from 1% of the core population our side holds.",
+      "gen_exile_resistance": "Send money, radios and organisers into our occupied homeland: resistance there grows faster for 90 days.",
       "gen_fortify_border": "Positions and obstacles go up quickly along the border with the most threatening neighbour.",
       "gen_hire_general": "An able colonel is promoted to general and given an army to lead.",
       "gen_industrial_subsidy": "Grants to builders and manufacturers speed up work on civilian factories.",
@@ -3950,14 +3971,19 @@
       "gen_join_axis": "Ask the leader of the Axis to accept us as a member.",
       "gen_join_comintern": "Ask the leader of the Comintern to accept us as a member.",
       "gen_martial_law": "The army takes over policing and bans gatherings; order returns, but the factories slow down.",
+      "gen_partisan_support": "Supply the partisans behind enemy lines in our occupied lands: resistance there rises for 90 days.",
       "gen_party_support_com": "Money and leaflets for another country's communists widen their support for 180 days.",
       "gen_party_support_dem": "Money and newspapers for another country's democratic parties widen their support for 180 days.",
       "gen_party_support_fas": "Money and leaflets for another country's fascists widen their support for 180 days.",
       "gen_party_support_neu": "Money and newspapers for another country's non-aligned factions widen their support for 180 days.",
       "gen_rally": "Rallies across the country win new supporters for the ruling party for 90 days.",
+      "gen_release_subject": "End our protection over a subject; it stays in our faction.",
+      "gen_request_autonomy": "Our autonomy has reached its limit: ask the overlord to raise our status, or to let us go if we are already a dominion.",
+      "gen_restore_country": "Where we have freed the core lands of a country that no longer exists, recreate its state and invite it to our faction.",
       "gen_suppress_opposition": "The largest opposition's papers and meetings are restricted; its support falls, but resentment grows.",
       "gen_suspend_elections": "General elections wait until the war is over, and the sitting parliament carries on.",
       "gen_tech_exchange": "Engineers sent to our faction's leader bring home a technology we still lack.",
+      "gen_tighten_control": "For 90 days, officials and advisers sent to a subject hold back its autonomy.",
       "gen_war_bonds": "Selling bonds to the public raises money for the war and ties citizens to its outcome.",
       "hun_request_arbitration": "Ask Germany and Italy to arbitrate Hungary's claim to southern Slovakia.",
       "hun_request_transylvania": "Ask Berlin to settle Hungary's claim to northern Transylvania by arbitration.",
@@ -4364,32 +4390,46 @@
       "aut_berlin_ultimatum": "Berlin demands that the Chancellor call off his plebiscite on independence and hand power to the Austrian National Socialists, or German troops will cross the border. No foreign government has promised to help Vienna.",
       "bal_mutual_assistance": "Moscow demands a mutual assistance pact that would station Soviet garrisons, air bases and naval bases on our soil. Germany, now bound to the Soviet Union, offers no help, and the Red Army is massing at the border. Refusing means risking war.",
       "bal_soviet_ultimatum": "Moscow accuses us of plotting against the Soviet Union and demands a new government and free entry for any number of Soviet troops, with only hours to answer. No power in Europe is in a position to stand with us.",
+      "bgr_fatherland_front": "The Soviet Union has declared war on us and its troops are crossing the Danube. In Sofia, the Fatherland Front coalition has taken over the ministries overnight and offers to join the war against Germany.",
+      "bgr_greek_thrace": "Our army has followed the German advance into eastern Macedonia and Western Thrace, and the Greek government has gone into exile. Sofia regards the region, with its outlet to the Aegean, as land lost in 1919 and wants to join it to the kingdom.",
       "can_parliament_decides": "Prime Minister Mackenzie King promised that Parliament would decide whether Canada goes to war. In a special session the members vote to stand with Britain, and Canada declares war on Germany in its own name, a week after Britain.",
+      "casablanca_conference": "The President and the Prime Minister have met in Casablanca to plan the coming year of the war. Before they part, they agree to accept nothing short of the unconditional surrender of Germany, Italy and Japan.",
       "chn_soviet_treaty": "Moscow offers China a treaty of non-aggression, and with it credits, aircraft and volunteer pilots for the war against Japan. Signing will alarm Tokyo and the Western powers, but no one else is offering guns.",
       "chn_xian_incident": "Marshal Zhang Xueliang has detained Chiang Kai-shek at Xi'an, demanding an end to the war on the Communists and a united front against Japan. Chiang's release now depends on what Nanjing is willing to promise. In Nanjing, some call for troops to march on Xi'an.",
       "csk_munich_dictate": "The terms have reached Prague: the German-speaking border districts must be handed to Germany within days, with the fortifications built to defend them. If we refuse, we will have to fight Germany alone. None of Prague's allies will step in.",
       "csk_prague_ultimatum": "The President has been summoned to Berlin and told that German troops will march at dawn. If he signs, Bohemia and Moravia become a German protectorate and the rest of the state falls apart; if he refuses, Prague will be bombed.",
       "csk_vienna_award_notice": "Meeting in Vienna, the German and Italian foreign ministers have drawn a new frontier between Czechoslovakia and Hungary. The southern strip of Slovakia, with Košice, passes to Hungary; Prague was not asked to agree. There is no way to refuse.",
       "csk_zaolzie_ultimatum": "Poland demands the Teschen district of Silesia, with its coal mines and ironworks, and gives Prague less than a day to answer. With the Sudeten frontier already gone, the army is in no position to fight on a second front. Hungary is pressing claims on the southern frontier too.",
+      "deu_annex_west_poland": "The Polish government has fled abroad and fights on from exile. Our administrators propose to join the western provinces, the corridor, Posen and eastern Upper Silesia, to the Reich by decree rather than wait for a peace treaty.",
       "deu_army_command": "War Minister Blomberg has resigned, and the army's commander-in-chief Fritsch has been pushed out as well. Hitler means to abolish the War Ministry and command the armed forces directly through a newly created High Command of the Armed Forces. Among the generals there is talk that the army's independence is over.",
       "deu_austria_refused": "The Austrian government has rejected the demand for union and vowed to defend its independence by plebiscite. Troops are already massed at the border. Sending them in means war; backing down shakes the regime's prestige.",
       "deu_case_anton": "With the Allies in North Africa, Berlin no longer trusts the armistice. German columns cross the demarcation line towards the Mediterranean coast and Italian troops land on Corsica. The French State keeps its ministers but loses its last unoccupied territory.",
       "deu_compiegne_armistice": "In the railway carriage where Germany signed the armistice of 1918, French envoys accept German terms. The north and the Atlantic coast stay occupied, a French government keeps the south and the empire, and the fleet is to be disarmed in its home ports.",
+      "deu_croatian_state": "Yugoslavia has collapsed, and its king and government have fled abroad. In Zagreb a nationalist movement has proclaimed an independent Croatian state and asks for our recognition. It would take in Bosnia and Herzegovina, and Italy expects its share of the coast.",
+      "deu_denmark_takeover": "Strikes and sabotage have spread through Danish towns, and the government in Copenhagen has refused our demand for emergency measures. Our plenipotentiary proposes to end the policy of cooperation, disarm the Danish forces and rule the country directly.",
+      "deu_hungary_coup": "The Hungarian Regent has broadcast an armistice. Our troops in Budapest and the Hungarian officers who reject it can take the castle hill, make the Regent step down and hand power to a government that will keep Hungary in the war.",
+      "deu_italy_betrayal": "Rome has announced an armistice with the Allies behind our backs. Our divisions in Italy are ordered to disarm the Italian army, take the Alpine passes and the northern cities, and hold the peninsula as far south as they can.",
       "deu_july_plot": "A bomb has gone off during a briefing at Hitler's headquarters in East Prussia. In Berlin, officers are using the reserve army's mobilization plan to take over government offices. Within hours it will be decided.",
       "deu_mr_pact_offer": "Moscow has proposed a non-aggression treaty first. The Soviet foreign commissar also wants to discuss a secret protocol dividing Eastern Europe into spheres of interest. Signing would leave Germany free to face the West without worrying about the East.",
+      "deu_occupy_hungary": "Our envoys report that Budapest is seeking a separate peace while the Red Army nears the Carpathians. The Regent has been summoned to talks in Austria; while he is away, our divisions can secure Hungary and install a reliable government.",
       "deu_olympics": "The XI Olympic Games open in Berlin. The government has built a new stadium and dressed the streets for foreign visitors. For two weeks the eyes of the world are on Germany, and the regime means to show it a calm and orderly country.",
       "deu_poland": "German forces crossed the border into Poland at dawn. Panzer divisions and dive bombers lead the way while the Polish army fights back all along the frontier. The question now is whether Poland's allies will keep their word.",
       "deu_renounce_polish_pact": "Poland has flatly refused the demands over Danzig and the Corridor. Berlin holds that the 1934 German–Polish declaration of non-aggression no longer means anything and prepares to announce in the Reichstag that it is void.",
       "deu_rhineland_bluff": "France has begun to mobilize in answer to the march into the Rhineland. The generals warn that the few battalions on the border cannot stop the French army. Pulling back costs face; standing firm means risking war.",
       "deu_september_coup": "Officers around General Ludwig Beck have finally moved. Troops of the Berlin military district are heading for the government quarter, but no one knows how the police and the party will respond. The officers mean to arrest the regime's leaders and form a provisional government.",
+      "deu_social_republic": "German paratroopers have freed Mussolini from his mountain prison. He is ready to head a fascist government in the north of Italy, seated at Salò on Lake Garda, that would keep the occupied provinces at our side.",
       "deu_sudeten_refused": "Czechoslovakia refuses to give up the Sudetenland. Its border fortifications are strong, and no one knows what the Western powers will do. Choosing war may mean a wider conflict; stepping back costs the regime face.",
       "deu_tripartite_signing": "Germany has sent the text of a treaty to be signed together in Berlin. The three powers recognize each other's new order in Europe and East Asia and pledge to stand together if any of them is attacked by a power not yet in the war.",
       "deu_vienna_award_1": "After Munich, Hungary asks for arbitration to recover the Hungarian-populated districts of southern Czechoslovakia. The German and Italian foreign ministers offer to draw a new border in Vienna. If the award goes ahead, southern Slovakia passes to Hungary.",
       "deu_vienna_award_2": "With Romania having yielded Bessarabia to the Soviets, Hungary demands Transylvania and threatens war. Needing Romania's oil safe, Germany joins Italy in arbitrating once more to draw a line between the two.",
       "dnk_german_treaty": "Berlin offers Copenhagen a treaty of non-aggression. Sweden and Norway have declined the same offer, but Denmark shares a land border with Germany and has almost no army to defend it. Signing would calm relations with Berlin but displease London.",
       "esp_civil_war": "Army garrisons in Morocco and across the mainland have risen against the Republic. Where the rising failed, workers' militias hold the streets; where it succeeded, the generals rule. Spain is split in two. Foreign governments weigh which side to help.",
+      "esp_civil_war_ends": "The last resistance of the other side has collapsed and the guns have fallen silent across Spain. The victors now govern the whole country and must rebuild the towns, railways and fields the war has ruined.",
       "esp_civil_war_won": "The other side has collapsed and the guns have fallen silent across Spain. The country is exhausted and divided, but the war that split it in two is over. Towns lie in ruins and many thousands have fled across the border.",
+      "esr_international_brigades": "Volunteers from dozens of countries are arriving at Albacete to fight for the Republic. Many have never held a rifle, but they come with conviction, and the government has agreed to organise them into brigades of their own.",
       "esr_popular_front": "The left-wing Popular Front has narrowly won the February general election. A Republican government takes office amid strikes, land seizures and street fighting, while army officers and the right talk openly of a rising. The country is pulling apart.",
+      "eth_restoration": "British and Commonwealth troops, with Ethiopian patriot fighters, have driven the Italians from Addis Ababa. Emperor Haile Selassie, in exile since 1936, is ready to enter his capital five years to the day after the Italians took it.",
+      "fin_moscow_armistice": "The Soviet summer offensive has broken our lines on the Karelian Isthmus. Moscow's terms: the 1940 border, Petsamo, a lease on the Porkkala peninsula, reparations, and the removal of German troops from Finnish soil, by force if need be.",
       "fin_moscow_peace": "Moscow offers peace at a heavy price: the whole Karelian Isthmus with Viipuri, the shores of Lake Ladoga and land in the far north. The army can hold for weeks more, not months, and Western help has not arrived.",
       "fin_soviet_demands": "Moscow demands that we move the border on the Karelian Isthmus back from Leningrad, hand over islands in the Gulf of Finland and lease the port of Hanko as a naval base. Our delegates have come home to consult the government. Most Finns oppose any concession.",
       "fin_winter_war_flag": "Soviet troops have crossed the Finnish border and bombers have struck Helsinki. Finland's small army digs in on the Karelian Isthmus and in the frozen forests to the north. Most observers expect the fight to last only weeks.",
@@ -4411,8 +4451,11 @@
       "gbr_eden_resigns": "Foreign Secretary Anthony Eden resigns after clashing with the Prime Minister over talks with Italy. Chamberlain wants to deal with Mussolini now; Eden wants concessions from Rome first. Lord Halifax takes over the Foreign Office.",
       "gbr_eden_returns": "Lord Halifax leaves for Washington as ambassador. Anthony Eden returns to the Foreign Office, where wartime diplomacy now means keeping the Americans and the Soviets close.",
       "gbr_election_1945": "With the war in Europe over, the coalition breaks up and the first general election in ten years is held. The count waited three weeks for the servicemen's votes. The country has chosen between the leader who won the war and a promise to rebuild.",
+      "gbr_habbaniya": "Iraqi troops have taken the heights above our air base at Habbaniya and threaten the road to the Gulf oil fields. The government in Baghdad will not pull them back. Under the 1930 treaty we have the right to move troops through Iraq.",
+      "gbr_levant_campaign": "German aircraft bound for Iraq have refuelled on Vichy airfields in Syria. The Levant could become an Axis foothold beside Suez. Our forces in Palestine, with the Free French, are ready to march on Damascus and Beirut.",
       "gbr_mers_el_kebir": "A large part of the French battle fleet lies at Mers-el-Kébir near Oran, and Britain cannot risk those ships passing to Germany. A British squadron arrives off the harbour with terms: sail with us, sail to a distant port under guard, or scuttle.",
       "gbr_new_king": "On 20 January 1936 King George V dies at Sandringham, and the Prince of Wales succeeds him as Edward VIII. The new King is popular, but his attachment to an American divorcée already worries the Cabinet.",
+      "gbr_non_intervention_committee": "Delegates of twenty-seven governments meet in London and agree that no arms will reach either side in Spain. Germany, Italy and the Soviet Union have signed too, and few expect them to keep their word. Staying out may spare Europe a wider war, or simply leave the Republic alone.",
       "gbr_prague_shock": "German troops have entered Prague, less than six months after the promises made at Munich. In a speech in Birmingham the Prime Minister asks whether this is the last attack on a small state, and public opinion decides that the time for concessions is over.",
       "gbr_soviet_alliance_offer": "Having turned Germany away, the Soviet government offers Britain and France a treaty of mutual assistance. With it Germany would face enemies in both east and west, but many in London still distrust the Bolsheviks.",
       "gbr_soviet_overture": "The British ambassador brings the Kremlin a draft pact: neither country will attack the other, and both will stand against aggression. If they are at war, a clause also lets each side's forces cross the other's territory.",
@@ -4421,17 +4464,30 @@
       "gen_diplo_access": "A government asks that its troops be allowed to cross our territory. If we agree, its armies may move through and stay on our soil. We may withdraw permission whenever we wish.",
       "gen_diplo_faction_invite": "The leader of a faction has invited us to become a member. Members fight together and defend one another. If the faction is at war, we will be at war with its enemies at once.",
       "gen_diplo_faction_request": "A government has asked to join our faction. Accepting means its borders become a front we must help to hold. A new member takes part in every war the faction fights.",
+      "gen_diplo_lend_lease": "A government asks us to send equipment from our stockpiles every month, shipped at our expense. The supplies would strengthen a useful friend but leave less for our own divisions.",
       "gen_diplo_nap": "A government proposes a treaty under which neither side will attack the other. While it lasts, neither may justify a war against the other or declare one. Breaking it later would take time and cost us dearly.",
       "gen_election": "The polls have closed and every ballot box has been opened. The voters decide who should lead parliament, but how the result is received is for the present government to settle. The whole country is watching.",
+      "gen_exile_formed": "The country's armies have been defeated and its land is occupied, but its government has escaped abroad. From an allied capital it keeps its remaining forces in the war and speaks for the occupied people.",
       "gen_government_shift": "A political movement has won over most of the nation and now speaks for the majority. Crowds and newspapers demand that the cabinet step down and hand over power. The government cannot put off its answer for long.",
       "gen_guarantee_called": "A country whose independence we guaranteed has been attacked. Keeping our word means war with the aggressor. Standing aside would spare us the fighting, but our promises would carry little weight again.",
       "gen_justified_against": "Reports say a foreign government has begun building a case for war against us. The newspapers write daily of troop movements and hostile speeches beyond the border. Now is the time to strengthen our defences.",
       "gen_munich_conference": "Germany demands the Sudetenland and threatens war if it is refused. The leaders of the great powers meet in Munich to settle Czechoslovakia's frontier, with no Czechoslovak at the table. Our word will decide whether Prague is told to yield or is defended.",
+      "gen_peace_conference": "The guns have fallen silent and the victors are gathering to decide the fate of the defeated. Each will press its claims in turn; the larger its part in the victory, the more it can ask for.",
       "gen_peace_movement": "As the war drags on, rallies and petitions for peace appear across the country. More deputies speak openly of a negotiated end. The government must let the movement be heard or answer it with propaganda.",
       "gen_regime_crisis": "For more than a month a movement outside the government has held the support of most of the people. Strikes and demonstrations go on, and doubts are spreading among officers and officials. The government must step aside or hold on by force.",
       "gen_strike": "Workers angered by low wages and rising prices have laid down their tools. Factories stand idle, and the strike is spreading to the docks and railways. The government can bear the lost output or end the strike with concessions.",
+      "gen_subject_upgrade": "A government under our protection asks to manage more of its own affairs. Granting it would loosen our hold but earn goodwill; refusing would keep it close and may push it toward a break.",
       "gen_unrest": "Distrust of the government has grown, and protests and clashes break out in several cities. Reports say the police alone can no longer keep order. We must wait for calm or declare martial law.",
+      "gen_uprising": "Armed fighters have driven the occupying garrison out of a region and raised their own flag over its town halls. Whether they can hold it depends on how quickly help arrives.",
+      "gen_volunteers_arrive": "A friendly government has sent volunteers to fight at our side. They come with their own officers and equipment and stay under their own command, but they will fight our enemies.",
       "gen_war_weariness": "Lost provinces and ever longer casualty lists weigh on the people. More men dodge the draft, and the newspapers have grown gloomy. The government can let morale sag or spend heavily to lift it.",
+      "hun_horthy_armistice": "The Red Army stands on the Great Hungarian Plain. The Regent's envoys in Moscow have agreed preliminary armistice terms, and he is ready to announce on the radio that Hungary is leaving the war. Berlin will not stand by.",
+      "irn_armistice": "British troops advance from Iraq and the Gulf, Soviet columns from the Caucasus, and our army cannot hold either front. The two powers demand a supply route to the Soviet Union and the expulsion of German nationals. The Shah's government can stop the fighting today.",
+      "irn_new_shah": "Reza Shah has abdicated as Soviet troops approach Tehran and will leave the country. His son Mohammad Reza takes the oath before the Majlis and promises to rule as a constitutional monarch.",
+      "irq_armistice": "British columns are closing on Baghdad and German air support has come too late. The leaders of the coup are fleeing to Iran. Officers loyal to the regent are ready to sign an armistice and bring back the old government.",
+      "irq_golden_square": "Four army colonels known as the Golden Square have surrounded the palace in Baghdad. The regent has fled, and the officers want a National Defence Government that would end British influence and look to the Axis for help.",
+      "isl_british_occupation": "British warships have landed troops at Reykjavík without asking. London says it must keep Iceland out of German hands now that Denmark is occupied, and promises to leave when the war ends. We have no army to resist them.",
+      "isl_us_garrison": "Washington offers to take over the defence of Iceland from the British, and our government has invited it. American marines will garrison the island while the British troops leave for other fronts.",
       "ita_addis_ababa": "Italian columns have entered Addis Ababa and the Emperor has left for exile. Rome is ready to proclaim the King of Italy Emperor of Ethiopia and join the country to its East African possessions, whatever the League decides.",
       "ita_albania": "Italian troops have landed at Durrës and other Albanian ports. King Zog has fled across the border, and Rome prepares to offer the Albanian crown to the King of Italy. The small kingdom's army cannot hold out for long.",
       "ita_alpine_armistice": "France has laid down its arms, and its delegates have signed a separate armistice with Italy at Villa Incisa near Rome. Italy keeps the ground its troops hold beyond the Alps, and a demilitarised strip is drawn along the frontier.",
@@ -4458,12 +4514,17 @@
       "jpn_surrender_decision": "The Soviet Union has declared war and driven into Manchuria, and the cities of the home islands are being destroyed from the air. The Supreme War Council is split three against three over accepting the Potsdam terms. An imperial conference must make the final decision.",
       "jpn_surrender_effect": "Through neutral governments, Japan has told the Allies it accepts the Potsdam Declaration, and the surrender has been announced to the nation by radio. The armed forces have been ordered to cease fire. The war in Asia and the Pacific is drawing to an end.",
       "ltu_memel_ultimatum": "Berlin demands the Memel Territory, detached from Germany after the war and held by Lithuania since 1923, and hints that any delay will be settled by force. Britain and France have just stood aside over Prague.",
+      "phl_osmena_succeeds": "President Quezon has died at Saranac Lake, New York, after a long illness. Vice President Sergio Osmeña takes the oath of office in Washington and pledges to bring the Commonwealth government home to Manila.",
       "pol_danzig_bargain": "Berlin offers Warsaw a partnership: if Danzig returns to Germany and a German road crosses the corridor, Germany will guarantee Poland's frontiers and share its gains in the east. The offer comes with a smile and an army behind it.",
       "pol_danzig_demand": "Germany demands the Free City of Danzig and an extraterritorial road and railway across the Polish corridor to East Prussia. Warsaw sees the corridor as its outlet to the sea, and the army has begun calling up reservists.",
+      "pol_warsaw_uprising": "Soviet tanks are reported on the eastern approaches to Warsaw. The commander of the Home Army in the city asks our authorisation to rise against the German garrison and free the capital before the Red Army arrives.",
+      "potsdam_conference": "At Cecilienhof, outside ruined Berlin, the victorious powers fix Germany's eastern border on the Oder and the Neisse and divide East Prussia. Before they part, they will call on Japan to surrender.",
       "rou_antonescu": "Blamed for the summer's losses of territory, King Carol II has abdicated in favour of his son Michael. The general he named prime minister now rules with full powers as Conducător of the state, backed by the Iron Guard. Parliament stays dissolved.",
+      "rou_august_coup": "Soviet armies have broken through in Moldavia. The young King and the opposition parties are ready to arrest the head of government at the palace, announce an armistice with the Allies on the radio and turn the army against Germany.",
       "rou_bessarabia_ultimatum": "Moscow demands Bessarabia and northern Bukovina, with twenty-four hours to answer and four days to evacuate. Berlin advises Bucharest to give way, and no ally is ready to help. If we refuse, Soviet troops will cross the Dniester.",
       "rou_dobruja": "Sofia asks for the return of Southern Dobruja, taken from Bulgaria after the Balkan wars. Berlin backs the claim, and after this summer's losses Bucharest has neither the will nor the friends to refuse. The agreement is to be signed at Craiova.",
       "rou_vienna_award_notice": "Summoned to Vienna, our foreign minister has been handed a map: northern Transylvania, with Cluj and Oradea, goes to Hungary. Germany and Italy will guarantee what is left of Romania if we accept. At home, the news is met with fury.",
+      "sun_annex_east_poland": "Assemblies convened in the occupied Polish east have asked to join the Ukrainian and Belorussian Soviet republics. The Supreme Soviet can accept the request and make the border final.",
       "sun_barbarossa": "At dawn, German armies cross the border along its whole length, from the Baltic to the Black Sea. Airfields are bombed before the planes can take off, and whole armies are cut off within days. Molotov speaks to the country by radio: \"Our cause is just.\"",
       "sun_blyukher_arrest": "Marshal Vasily Blyukher, a hero of the Civil War who had led the army in the Far East since 1929, is relieved after the fighting at Lake Khasan and arrested on 22 October. He dies in custody the following month.",
       "sun_bukharin_arrest": "At the February–March plenum of the Central Committee, Nikolai Bukharin and Alexei Rykov are expelled from the party and arrested on 27 February. Bukharin edited Izvestia from 1934; Rykov had headed the government until 1930.",
@@ -4483,7 +4544,13 @@
       "sun_third_moscow_trial": "Nikolai Bukharin, Alexei Rykov and nineteen other former leaders stand trial in Moscow for treason and sabotage. Foreign diplomats and journalists watch from the gallery as the defendants confess. On 13 March the court convicts all twenty-one.",
       "sun_tupolev_arrest": "Aircraft designer Andrei Tupolev is arrested along with several of his engineers, among them Vladimir Petlyakov. From 1939 they design aircraft in a design bureau set up inside a prison.",
       "sun_tupolev_released": "Andrei Tupolev and many of his engineers are released early to build aircraft for the war. The Tu-2 bomber they designed in prison is readied for production. Tupolev will not be fully rehabilitated until 1955.",
+      "sun_vilnius_to_lithuania": "Our troops hold Vilnius, which Lithuania has claimed as its capital since 1920. A mutual assistance treaty would hand the city to the government in Kaunas in return for Soviet garrisons on Lithuanian soil.",
       "sun_yegorov_replaced": "Marshal Alexander Yegorov hands the General Staff over to Boris Shaposhnikov and becomes First Deputy People's Commissar of Defense. It is one move in a sweeping reshuffle of the high command that spring.",
+      "svk_independence": "With Bohemia and Moravia in our hands, Slovak politicians in Bratislava are ready to declare a state of their own under our protection. A separate Slovakia would guard our flank at little cost; ruling it directly would keep the land in our own hands.",
+      "svk_national_uprising": "Army units and partisans in the central Slovak mountains have risen against the government and its German protectors, with Banská Bystrica as their centre. German divisions are moving in to put the rising down and occupy the region.",
+      "tehran_conference": "For the first time the leaders of the Soviet Union, the United States and the United Kingdom sit at one table, at the Soviet embassy in Tehran. They agree that a second front will open in France in the spring of 1944.",
+      "tha_border_war": "With France defeated, crowds in Bangkok demand the return of the lands west of the Mekong that Siam ceded to French Indochina in 1904 and 1907. Border clashes have already begun, and the government must choose between war and patience.",
+      "tha_tokyo_peace": "Japan has offered to mediate the border war with Siam and expects an answer. Its terms would cede the lands west of the Mekong and around Battambang to Siam. Refusing would mean fighting on alone.",
       "tur_ataturk_dies": "Mustafa Kemal Atatürk, founder of the Republic, has died in Istanbul. The Grand National Assembly turns to İsmet İnönü, his long-serving prime minister and comrade from the War of Independence. The country goes into deep mourning.",
       "usa_atlantic_charter": "Meeting aboard warships off Newfoundland, the President and the British Prime Minister have set out common aims for the world after the war: no territorial gains, self-determination, open trade and freedom from fear and want.",
       "usa_destroyers_for_bases": "London asks for fifty old American destroyers to guard its convoys. In return Britain offers ninety-nine-year leases on bases from Newfoundland to British Guiana. The deal would bypass Congress and stretch neutrality to its limit.",
@@ -4507,7 +4574,10 @@
       "vic_madagascar_armistice": "Six months after British troops landed at Diego-Suarez, the last Vichy garrison in the south of the island has nowhere left to fall back to. The governor-general signs an armistice.",
       "vic_torch": "American and British troops have landed at Casablanca, Oran and Algiers. After two days of fighting, the senior Vichy commanders in Algiers must decide whether to order a ceasefire or keep fighting the landings.",
       "vic_toulon": "German troops are racing into the naval base at Toulon to seize the fleet. The admirals have standing orders that no ship may fall into foreign hands, and the scuttling charges are already in place.",
+      "yalta_conference": "The three Allied leaders meet at the Livadia Palace in the Crimea. They settle the zones of occupation in Germany, and the Soviet Union promises to enter the war against Japan within three months of Germany's defeat.",
       "yug_belgrade_coup": "Air force officers move against the government that signed the pact. Crowds fill the streets of Belgrade, and the conspirators want to declare the seventeen-year-old Peter II of age and end the regency. Berlin will treat it as a betrayal.",
+      "yug_occupation_partition": "With the Yugoslav government in exile, the occupying powers draw their lines. We take northern Slovenia; Italy takes Ljubljana and the Dalmatian coast; Hungary takes Bačka and Baranja; Bulgaria takes Vardar Macedonia. What remains of Serbia stays under our military administration.",
+      "yug_rump_serbia": "The peace has left us only the Serbian heartland, bound to Germany. The name of a kingdom of the South Slavs no longer fits a state that rules from Belgrade alone, and the cabinet proposes to call the country Serbia.",
       "yug_tripartite": "Berlin presses Belgrade to join the Tripartite Pact. Every neighbour but Greece has already signed, and the Regent has been promised that no Axis troops will cross Yugoslav soil. Many officers and Serbian politicians are bitterly opposed.",
       "zaf_parliament_vote": "Britain's declaration of war on Germany splits the South African parliament. The Prime Minister wants to stay neutral; his deputy, Jan Smuts, wants to fight beside Britain. The vote will decide the country's course."
     },
@@ -4524,8 +4594,18 @@
         "a": "Let the troops in",
         "b": "Resist"
       },
+      "bgr_fatherland_front": {
+        "a": "The Fatherland Front takes power",
+        "b": "The cabinet stays"
+      },
+      "bgr_greek_thrace": {
+        "a": "Annex the region"
+      },
       "can_parliament_decides": {
         "a": "Declare war on Germany"
+      },
+      "casablanca_conference": {
+        "a": "Demand unconditional surrender"
       },
       "chn_soviet_treaty": {
         "a": "Sign the treaty",
@@ -4550,6 +4630,10 @@
         "a": "Give up Teschen",
         "b": "Refuse"
       },
+      "deu_annex_west_poland": {
+        "a": "Annex them by decree",
+        "b": "Keep them under occupation"
+      },
       "deu_army_command": {
         "a": "The head of state takes command",
         "b": "Leave the army its independence"
@@ -4565,6 +4649,22 @@
         "a": "Leave the south to a French government",
         "b": "Occupy all of France"
       },
+      "deu_croatian_state": {
+        "a": "Recognise the Croatian state",
+        "b": "Keep the occupation as it is"
+      },
+      "deu_denmark_takeover": {
+        "a": "Take over the administration",
+        "b": "Keep the cooperation policy"
+      },
+      "deu_hungary_coup": {
+        "a": "Remove the Regent",
+        "b": "Let Hungary go"
+      },
+      "deu_italy_betrayal": {
+        "a": "Occupy Italy",
+        "b": "Let Italy go"
+      },
       "deu_july_plot": {
         "a": "The plot fails",
         "b": "The plot succeeds"
@@ -4572,6 +4672,10 @@
       "deu_mr_pact_offer": {
         "a": "Sign the treaty",
         "b": "Decline"
+      },
+      "deu_occupy_hungary": {
+        "a": "Occupy Hungary",
+        "b": "Trust the Regent"
       },
       "deu_olympics": {
         "a": "Welcome the guests"
@@ -4585,6 +4689,10 @@
       },
       "deu_september_coup": {
         "a": "Await the outcome"
+      },
+      "deu_social_republic": {
+        "a": "Found the Social Republic",
+        "b": "Rule the north ourselves"
       },
       "deu_sudeten_refused": {
         "a": "Choose war",
@@ -4606,11 +4714,25 @@
         "a": "Sign the treaty",
         "b": "Decline politely"
       },
+      "esp_civil_war_ends": {
+        "a": "Proclaim the state anew"
+      },
       "esp_civil_war_won": {
         "a": "Rebuild the country"
       },
+      "esr_international_brigades": {
+        "a": "Welcome the brigades"
+      },
       "esr_popular_front": {
         "a": "Form the government"
+      },
+      "eth_restoration": {
+        "a": "Restore the Ethiopian state",
+        "b": "Keep a military administration"
+      },
+      "fin_moscow_armistice": {
+        "a": "Accept the armistice",
+        "b": "Fight to the end"
       },
       "fin_moscow_peace": {
         "a": "Make peace",
@@ -4680,12 +4802,24 @@
         "a": "Labour wins",
         "b": "The Conservatives hold on"
       },
+      "gbr_habbaniya": {
+        "a": "Strike first",
+        "b": "Avoid a war in Iraq"
+      },
+      "gbr_levant_campaign": {
+        "a": "Advance into the Levant",
+        "b": "Hold back"
+      },
       "gbr_mers_el_kebir": {
         "a": "Open fire on the fleet",
         "b": "Demand that the ships be interned"
       },
       "gbr_new_king": {
         "a": "Long live the King"
+      },
+      "gbr_non_intervention_committee": {
+        "a": "Join the committee",
+        "b": "Arm the Republic"
       },
       "gbr_prague_shock": {
         "a": "No more concessions"
@@ -4716,6 +4850,10 @@
       "gen_diplo_faction_request": {
         "a": "Welcome them",
         "b": "Turn them down"
+      },
+      "gen_diplo_lend_lease": {
+        "a": "Agree to send it",
+        "b": "Refuse the request"
       },
       "gen_diplo_nap": {
         "a": "Sign the pact",
@@ -4755,6 +4893,10 @@
         "a": "Ride it out",
         "b": "Settle with the unions"
       },
+      "gen_subject_upgrade": {
+        "a": "Grant more autonomy",
+        "b": "Refuse the request"
+      },
       "gen_unrest": {
         "a": "Wait for calm",
         "b": "Declare martial law"
@@ -4762,6 +4904,32 @@
       "gen_war_weariness": {
         "a": "Let it pass",
         "b": "Lift the nation's spirits"
+      },
+      "hun_horthy_armistice": {
+        "a": "Announce the armistice",
+        "b": "Fight on"
+      },
+      "irn_armistice": {
+        "a": "Order the ceasefire",
+        "b": "Keep resisting"
+      },
+      "irn_new_shah": {
+        "a": "Swear in the young Shah"
+      },
+      "irq_armistice": {
+        "a": "Sign the armistice",
+        "b": "Fight on"
+      },
+      "irq_golden_square": {
+        "a": "The coup succeeds",
+        "b": "The regent holds on"
+      },
+      "isl_british_occupation": {
+        "a": "Protest and accept",
+        "b": "Refuse the occupation"
+      },
+      "isl_us_garrison": {
+        "a": "Welcome the American garrison"
       },
       "ita_addis_ababa": {
         "a": "Proclaim the empire"
@@ -4847,6 +5015,9 @@
         "a": "Return Memel",
         "b": "Refuse"
       },
+      "phl_osmena_succeeds": {
+        "a": "Swear in President Osmeña"
+      },
       "pol_danzig_bargain": {
         "a": "Accept the bargain",
         "b": "Keep the Free City"
@@ -4855,8 +5026,19 @@
         "a": "Reject the demands",
         "b": "Give up Danzig"
       },
+      "pol_warsaw_uprising": {
+        "a": "Order the uprising",
+        "b": "Wait for the front"
+      },
+      "potsdam_conference": {
+        "a": "Settle the peace in Europe"
+      },
       "rou_antonescu": {
         "a": "The general takes power"
+      },
+      "rou_august_coup": {
+        "a": "The King changes course",
+        "b": "The regime stays"
       },
       "rou_bessarabia_ultimatum": {
         "a": "Yield the provinces",
@@ -4868,6 +5050,10 @@
       },
       "rou_vienna_award_notice": {
         "a": "Accept the award"
+      },
+      "sun_annex_east_poland": {
+        "a": "Accept the request",
+        "b": "Leave the matter for now"
       },
       "sun_barbarossa": {
         "a": "Defend the country"
@@ -4924,8 +5110,31 @@
       "sun_tupolev_released": {
         "a": "Tupolev returns to work"
       },
+      "sun_vilnius_to_lithuania": {
+        "a": "Hand Vilnius to Lithuania",
+        "b": "Keep the city"
+      },
       "sun_yegorov_replaced": {
         "a": "Shaposhnikov takes over"
+      },
+      "svk_independence": {
+        "a": "Recognise a Slovak state",
+        "b": "Rule it directly"
+      },
+      "svk_national_uprising": {
+        "a": "The rising breaks out",
+        "b": "The army stays loyal"
+      },
+      "tehran_conference": {
+        "a": "Agree on the second front"
+      },
+      "tha_border_war": {
+        "a": "Take back the provinces",
+        "b": "Show restraint"
+      },
+      "tha_tokyo_peace": {
+        "a": "Accept Japanese mediation",
+        "b": "Refuse mediation"
       },
       "tur_ataturk_dies": {
         "a": "İnönü succeeds him"
@@ -5014,9 +5223,18 @@
         "a": "Scuttle the fleet",
         "b": "Break out to sea"
       },
+      "yalta_conference": {
+        "a": "Agree on the post-war order"
+      },
       "yug_belgrade_coup": {
         "a": "The coup succeeds",
         "b": "The regency holds"
+      },
+      "yug_occupation_partition": {
+        "a": "Draw the borders"
+      },
+      "yug_rump_serbia": {
+        "a": "Take the name Serbia"
       },
       "yug_tripartite": {
         "a": "Sign the pact",
@@ -5031,32 +5249,46 @@
       "aut_berlin_ultimatum": "Ultimatum from Berlin",
       "bal_mutual_assistance": "Moscow's Mutual Assistance Pact",
       "bal_soviet_ultimatum": "The Soviet Ultimatum",
+      "bgr_fatherland_front": "The Fatherland Front",
+      "bgr_greek_thrace": "Western Thrace",
       "can_parliament_decides": "Canada's Parliament Decides",
+      "casablanca_conference": "The Casablanca Conference",
       "chn_soviet_treaty": "The Sino-Soviet Treaty",
       "chn_xian_incident": "The Xi'an Incident",
       "csk_munich_dictate": "The Munich Terms",
       "csk_prague_ultimatum": "The Summons to Berlin",
       "csk_vienna_award_notice": "The First Vienna Award",
       "csk_zaolzie_ultimatum": "Warsaw's Ultimatum",
+      "deu_annex_west_poland": "The Western Polish Provinces",
       "deu_army_command": "A New High Command",
       "deu_austria_refused": "Vienna Says No",
       "deu_case_anton": "Case Anton",
       "deu_compiegne_armistice": "The Armistice of Compiègne",
+      "deu_croatian_state": "A Croatian State",
+      "deu_denmark_takeover": "The End of Cooperation in Denmark",
+      "deu_hungary_coup": "Coup in Budapest",
+      "deu_italy_betrayal": "Italy Changes Sides",
       "deu_july_plot": "The 20 July Plot",
       "deu_mr_pact_offer": "A Soviet Treaty Offer",
+      "deu_occupy_hungary": "The Occupation of Hungary",
       "deu_olympics": "The Berlin Olympics",
       "deu_poland": "The Invasion of Poland",
       "deu_renounce_polish_pact": "Renouncing the Polish Pact",
       "deu_rhineland_bluff": "France Mobilizes",
       "deu_september_coup": "The Officers Strike",
+      "deu_social_republic": "The Italian Social Republic",
       "deu_sudeten_refused": "The Sudeten Demand Blocked",
       "deu_tripartite_signing": "The Tripartite Pact",
       "deu_vienna_award_1": "The First Vienna Award",
       "deu_vienna_award_2": "The Second Vienna Award",
       "dnk_german_treaty": "A Treaty with Germany",
       "esp_civil_war": "Civil War in Spain",
+      "esp_civil_war_ends": "The Civil War Is Over",
       "esp_civil_war_won": "The Civil War Ends",
+      "esr_international_brigades": "The International Brigades",
       "esr_popular_front": "The Popular Front Wins",
+      "eth_restoration": "The Emperor Returns",
+      "fin_moscow_armistice": "The Moscow Armistice",
       "fin_moscow_peace": "The Moscow Peace",
       "fin_soviet_demands": "Moscow's Demands",
       "fin_winter_war_flag": "The Winter War",
@@ -5078,8 +5310,11 @@
       "gbr_eden_resigns": "Eden Resigns",
       "gbr_eden_returns": "Eden Returns",
       "gbr_election_1945": "The 1945 General Election",
+      "gbr_habbaniya": "The Siege of Habbaniya",
+      "gbr_levant_campaign": "Into Syria and Lebanon",
       "gbr_mers_el_kebir": "Mers-el-Kébir",
       "gbr_new_king": "A New King",
+      "gbr_non_intervention_committee": "The Non-Intervention Committee",
       "gbr_prague_shock": "The Shock of Prague",
       "gbr_soviet_alliance_offer": "A Soviet Offer of Alliance",
       "gbr_soviet_overture": "A British Proposal",
@@ -5088,17 +5323,30 @@
       "gen_diplo_access": "A Request for Passage",
       "gen_diplo_faction_invite": "An Invitation to Join",
       "gen_diplo_faction_request": "A Request to Join",
+      "gen_diplo_lend_lease": "A Lend-Lease Request",
       "gen_diplo_nap": "A Non-Aggression Offer",
       "gen_election": "General Election",
+      "gen_exile_formed": "A Government in Exile",
       "gen_government_shift": "Calls for a New Government",
       "gen_guarantee_called": "A Guarantee Is Called",
       "gen_justified_against": "A Threat on the Border",
       "gen_munich_conference": "The Munich Conference",
+      "gen_peace_conference": "A Peace Conference",
       "gen_peace_movement": "The Peace Movement",
       "gen_regime_crisis": "Crisis of the Regime",
       "gen_strike": "A General Strike",
+      "gen_subject_upgrade": "A Request for Autonomy",
       "gen_unrest": "Unrest in the Streets",
+      "gen_uprising": "An Uprising",
+      "gen_volunteers_arrive": "Foreign Volunteers Arrive",
       "gen_war_weariness": "War Weariness",
+      "hun_horthy_armistice": "Horthy's Armistice",
+      "irn_armistice": "Ceasefire in Iran",
+      "irn_new_shah": "A Change of Shah",
+      "irq_armistice": "Armistice in Iraq",
+      "irq_golden_square": "The Golden Square",
+      "isl_british_occupation": "British Troops in Reykjavík",
+      "isl_us_garrison": "American Troops for Iceland",
       "ita_addis_ababa": "The Fall of Addis Ababa",
       "ita_albania": "Landings in Albania",
       "ita_alpine_armistice": "Armistice at Villa Incisa",
@@ -5125,12 +5373,17 @@
       "jpn_surrender_decision": "The Decision to Surrender",
       "jpn_surrender_effect": "Japan Surrenders",
       "ltu_memel_ultimatum": "The Memel Ultimatum",
+      "phl_osmena_succeeds": "Osmeña Takes the Oath",
       "pol_danzig_bargain": "A Bargain over Danzig",
       "pol_danzig_demand": "Berlin's Demands on Danzig",
+      "pol_warsaw_uprising": "Warsaw Rises",
+      "potsdam_conference": "The Potsdam Conference",
       "rou_antonescu": "The King Abdicates",
+      "rou_august_coup": "The King's Coup",
       "rou_bessarabia_ultimatum": "The Bessarabian Ultimatum",
       "rou_dobruja": "Southern Dobruja",
       "rou_vienna_award_notice": "The Second Vienna Award",
+      "sun_annex_east_poland": "Western Ukraine and Western Belorussia",
       "sun_barbarossa": "Germany Attacks",
       "sun_blyukher_arrest": "Marshal Blyukher Arrested",
       "sun_bukharin_arrest": "Bukharin and Rykov Arrested",
@@ -5150,7 +5403,13 @@
       "sun_third_moscow_trial": "The Third Moscow Trial",
       "sun_tupolev_arrest": "Tupolev Arrested",
       "sun_tupolev_released": "Tupolev Released",
+      "sun_vilnius_to_lithuania": "Vilnius and Lithuania",
       "sun_yegorov_replaced": "A New Chief of Staff",
+      "svk_independence": "The Slovak Question",
+      "svk_national_uprising": "The Slovak National Uprising",
+      "tehran_conference": "The Tehran Conference",
+      "tha_border_war": "The Lost Provinces",
+      "tha_tokyo_peace": "The Tokyo Peace",
       "tur_ataturk_dies": "The Death of Atatürk",
       "usa_atlantic_charter": "The Atlantic Charter",
       "usa_destroyers_for_bases": "Destroyers for Bases",
@@ -5174,7 +5433,10 @@
       "vic_madagascar_armistice": "Armistice in Madagascar",
       "vic_torch": "Landings in North Africa",
       "vic_toulon": "The Fleet at Toulon",
+      "yalta_conference": "The Yalta Conference",
       "yug_belgrade_coup": "The Belgrade Coup",
+      "yug_occupation_partition": "The Partition of Yugoslavia",
+      "yug_rump_serbia": "Serbia",
       "yug_tripartite": "The Tripartite Pact",
       "zaf_parliament_vote": "Parliament Decides"
     },
@@ -6268,6 +6530,9 @@
       "zhukov": "Georgy Zhukov"
     },
     "gov": {
+      "BRM": {
+        "neutral": "State of Burma"
+      },
       "CHN": {
         "neutral": "Nationalist Government"
       },
@@ -6300,6 +6565,9 @@
         "fascist": "British Union Government",
         "neutral": "King's Party Government"
       },
+      "HRV": {
+        "fascist": "Independent State of Croatia"
+      },
       "HUN": {
         "democratic": "Republican Government",
         "neutral": "National Unity Government"
@@ -6316,19 +6584,35 @@
         "fascist": "Imperial Rule Assistance Association",
         "neutral": "Cabinet Government"
       },
+      "MEN": {
+        "neutral": "Mengjiang United Autonomous Government"
+      },
+      "PHL": {
+        "democratic": "Commonwealth of the Philippines",
+        "neutral": "Republic of the Philippines"
+      },
       "POL": {
         "democratic": "People's Party Government",
         "neutral": "Sanation Government"
       },
+      "RNG": {
+        "neutral": "National Government in Nanjing"
+      },
       "ROU": {
         "democratic": "National Peasants' Government",
         "neutral": "National Liberal Government"
+      },
+      "RSI": {
+        "fascist": "Italian Social Republic"
       },
       "SUN": {
         "communist": "Council of People's Commissars",
         "democratic": "Provisional Government",
         "fascist": "Russian National Government",
         "neutral": "Russian State"
+      },
+      "SVK": {
+        "neutral": "Slovak State"
       },
       "TUR": {
         "neutral": "Republican People's Party Government"
@@ -6355,9 +6639,86 @@
     },
     "group": {
       "africa_oceania": "Africa and Oceania",
+      "alsace_lorraine": "Alsace-Lorraine",
       "americas": "Americas",
       "asia": "Asia and the Middle East",
-      "europe": "Europe"
+      "belgian_border_fr": "French-Belgian border",
+      "brenner": "South Tyrol and Trentino",
+      "burma": "Burma",
+      "caribbean_bases": "Caribbean bases",
+      "central_slovakia": "Central Slovakia",
+      "corsica": "Corsica",
+      "croatia": "Croatia",
+      "dalmatia": "Dalmatia",
+      "de_fr_zone": "French zone of Germany",
+      "de_soviet_zone": "Soviet zone of Germany",
+      "de_uk_zone": "British zone of Germany",
+      "de_us_zone": "American zone of Germany",
+      "denmark": "Denmark",
+      "dodecanese": "Dodecanese",
+      "dutch_east_indies": "Dutch East Indies",
+      "east_china_occupied": "Occupied eastern China",
+      "east_prussia_north": "Northern East Prussia",
+      "east_prussia_south": "Southern East Prussia",
+      "egypt": "Egypt",
+      "europe": "Europe",
+      "france_free_zone": "Unoccupied France",
+      "france_italian_zone": "Nice and Menton",
+      "france_occupied_zone": "Occupied France",
+      "french_equatorial_africa": "French Equatorial Africa",
+      "french_north_africa": "French North Africa",
+      "french_west_africa": "French West Africa",
+      "german_east_of_oder": "German lands east of the Oder",
+      "great_lakes": "Great Lakes industry",
+      "greece_german": "German-occupied Greece",
+      "greece_italian": "Italian-occupied Greece",
+      "greek_thrace": "Eastern Macedonia and Thrace",
+      "iceland": "Iceland",
+      "indochina": "French Indochina",
+      "inner_mongolia": "Inner Mongolia",
+      "iran_north": "Northern Iran",
+      "iran_south": "Southern Iran",
+      "istria": "Istria and Trieste",
+      "italy_alpine_border": "Italian Alps",
+      "italy_alpine_border_fr": "French Alps",
+      "italy_north": "Northern Italy",
+      "japan_home": "Japanese home islands",
+      "korea_north": "Korea north of the 38th parallel",
+      "korea_south": "Korea south of the 38th parallel",
+      "kurils": "Kuril Islands",
+      "kwantung": "Kwantung Leased Territory",
+      "levant": "Syria and Lebanon",
+      "libya": "Libya",
+      "libya_tripoli": "Tripolitania",
+      "ljubljana": "Ljubljana",
+      "madagascar": "Madagascar",
+      "malaya": "Malaya",
+      "manchukuo_soviet_border": "Manchurian border with the Soviet Union",
+      "manchuria": "Manchuria",
+      "montenegro": "Montenegro",
+      "nord_lorraine": "Nord and Lorraine",
+      "oahu": "Oahu",
+      "oran": "Oran",
+      "pacific_mandates": "Pacific mandate islands",
+      "panama_canal": "Panama Canal",
+      "paris": "Paris",
+      "petsamo": "Petsamo",
+      "philippines": "Philippines",
+      "po_valley": "Po Valley",
+      "poland_general_government": "General Government",
+      "poland_german_annexed": "Western Poland (annexed 1939)",
+      "poland_german_zone": "German-occupied Poland",
+      "poland_soviet_zone": "Eastern Poland",
+      "porkkala": "Porkkala",
+      "sicily": "Sicily",
+      "south_sakhalin": "Southern Sakhalin",
+      "southwest_france": "South-western France",
+      "taiwan": "Taiwan",
+      "tennessee": "Tennessee Valley",
+      "us_east_coast": "US East Coast",
+      "us_west_coast": "US West Coast",
+      "vardar_macedonia": "Vardar Macedonia",
+      "warsaw": "Warsaw"
     },
     "ideology": {
       "communist": "Communism",
@@ -6807,6 +7168,10 @@
       "deu_poland": "Germany has invaded Poland.",
       "esp_civil_war": "An army rising splits Spain: civil war between the Republic and the Nationalists.",
       "fin_winter_war_flag": "Soviet troops cross into Finland: the Winter War begins.",
+      "gen_exile_formed": "A defeated government escapes abroad and fights on in exile.",
+      "gen_peace_conference": "A peace conference opens to settle the end of a war.",
+      "gen_uprising": "An uprising breaks out in an occupied region.",
+      "gen_volunteers_arrive": "Foreign volunteers arrive to join the fighting.",
       "ita_albania": "Italy invades Albania; King Zog flees the country.",
       "ita_news_alpine_armistice": "France and Italy have signed an armistice; Italy holds a zone along the Alpine frontier.",
       "ita_news_armistice": "Italy has announced an armistice with the Allies and left the war.",
@@ -6820,8 +7185,14 @@
       "news_baltics": "A Baltic state is annexed by the Soviet Union after an ultimatum.",
       "news_belgrade_coup": "Coup in Belgrade: Yugoslavia's new government turns away from the Axis.",
       "news_bessarabia": "Romania cedes Bessarabia and northern Bukovina to the Soviet Union.",
+      "news_casablanca": "At Casablanca, the Allies declare they will accept only unconditional surrender.",
+      "news_croatian_state": "An Independent State of Croatia is proclaimed in Zagreb under Axis protection.",
       "news_danzig": "The Free City of Danzig is joined to Germany.",
+      "news_denmark_takeover": "Germany ends its cooperation with the Danish government and imposes direct rule.",
       "news_dobruja": "Treaty of Craiova: Romania returns Southern Dobruja to Bulgaria.",
+      "news_esp_civil_war_ends": "The Spanish Civil War is over; one government now rules all of Spain.",
+      "news_ethiopia_restored": "Emperor Haile Selassie returns to Addis Ababa; Ethiopia is restored.",
+      "news_fatherland_front": "The Fatherland Front takes power in Sofia; Bulgaria turns against Germany.",
       "news_fra_free_french_africa": "Chad, Cameroon and the French Congo rally to General de Gaulle.",
       "news_fra_paris_uprising": "Paris rises against its German garrison.",
       "news_fra_vichy_dissolved": "The Provisional Government declares the Vichy regime's acts void and takes over its last territories.",
@@ -6829,13 +7200,32 @@
       "news_gbr_anglo_soviet": "Britain and the Soviet Union sign an agreement to fight Germany together.",
       "news_gbr_churchill": "Winston Churchill becomes Prime Minister of Britain.",
       "news_gbr_election_1945": "Labour wins Britain's general election by a landslide; Clement Attlee becomes Prime Minister.",
+      "news_golden_square": "A military coup in Baghdad brings a pro-Axis government to power in Iraq.",
+      "news_greek_thrace": "Bulgaria annexes eastern Macedonia and Western Thrace.",
       "news_hatay": "Hatay joins Turkey with French consent.",
+      "news_horthy_armistice": "Regent Horthy announces on the radio that Hungary seeks an armistice.",
+      "news_hungary_coup": "A German-backed coup in Budapest removes the Regent; Hungary stays in the war.",
+      "news_hungary_occupied": "German troops occupy Hungary; the Regent stays in office under a pro-German cabinet.",
+      "news_iceland_occupied": "British forces land in Iceland to keep the island out of German hands.",
+      "news_iceland_us_garrison": "United States Marines arrive to garrison Iceland.",
+      "news_international_brigades": "The first International Brigades form at Albacete to fight for the Spanish Republic.",
+      "news_iran_armistice": "Iran orders a ceasefire; British and Soviet troops occupy the south and the north.",
+      "news_italy_occupied": "German troops disarm the Italian army and occupy northern and central Italy.",
       "news_memel": "Lithuania returns the Memel Territory to Germany.",
+      "news_moscow_armistice": "Finland signs an armistice with the Soviet Union and turns against the German troops in Lapland.",
       "news_moscow_peace": "The Moscow Peace ends the Winter War; Finland cedes Karelia.",
       "news_mr_pact": "Germany and the Soviet Union sign a non-aggression pact in Moscow.",
       "news_munich": "The Munich Agreement is signed: the Sudetenland passes to Germany.",
+      "news_new_shah": "Reza Shah abdicates; his son Mohammad Reza Pahlavi becomes Shah of Iran.",
       "news_pearl_harbor": "Japanese carrier aircraft strike Pearl Harbor; the United States enters the war.",
+      "news_potsdam": "At Potsdam, the Allies fix Germany's eastern border on the Oder-Neisse line.",
       "news_prague": "German troops enter Prague; Czechoslovakia ceases to exist.",
+      "news_romania_switches": "A royal coup in Bucharest: Romania leaves the Axis and turns on Germany.",
+      "news_slovak_state": "A Slovak state is proclaimed in Bratislava under German protection.",
+      "news_slovak_uprising": "The Slovak National Uprising begins; German troops move into Slovakia.",
+      "news_social_republic": "Mussolini heads an Italian Social Republic in German-held northern Italy.",
+      "news_tehran": "At Tehran, the Allied leaders agree on a landing in France in 1944.",
+      "news_tokyo_peace": "The Treaty of Tokyo ends the war between France and Siam; Siam regains its border provinces.",
       "news_united_nations": "Twenty-six nations sign the Declaration by United Nations in Washington.",
       "news_vic_case_anton": "German troops occupy southern France; Italian troops land on Corsica.",
       "news_vic_dakar": "Vichy's guns at Dakar drive off a British and Free French squadron.",
@@ -6848,6 +7238,10 @@
       "news_vic_toulon": "The French fleet at Toulon scuttles itself before German troops can seize it.",
       "news_vienna_award_1": "First Vienna Award: southern Slovakia passes to Hungary.",
       "news_vienna_award_2": "Second Vienna Award: northern Transylvania passes to Hungary.",
+      "news_vilnius_to_lithuania": "The Soviet Union hands Vilnius to Lithuania and stations troops in the country.",
+      "news_warsaw_uprising": "The Polish Home Army rises against the German garrison in Warsaw.",
+      "news_yalta": "At Yalta, the Allies settle the occupation of Germany; the Soviet Union pledges war on Japan.",
+      "news_yugoslavia_partition": "Germany, Italy, Hungary and Bulgaria divide occupied Yugoslavia between them.",
       "sun_poland": "The Soviet Union invades Poland from the east",
       "ww1936_ship_sunk_named": "{country}'s {cls} {ship} has been sunk in the {sr}."
     },
@@ -6926,6 +7320,7 @@
       "grc_sofoulis": "Themistoklis Sofoulis",
       "hun_karolyi": "Mihály Károlyi",
       "irl_oduffy": "Eoin O'Duffy",
+      "irn_mohammad_reza": "Mohammad Reza Pahlavi",
       "ita_balbo": "Italo Balbo",
       "ita_cavagnari": "Domenico Cavagnari",
       "ita_ciano": "Galeazzo Ciano",
@@ -6938,9 +7333,12 @@
       "ita_pricolo": "Francesco Pricolo",
       "ita_riccardi": "Arturo Riccardi",
       "ita_valle": "Giuseppe Valle",
+      "phl_osmena": "Sergio Osmeña",
+      "phl_quezon": "Manuel L. Quezon",
       "pol_witos": "Wincenty Witos",
       "prt_rolao_preto": "Francisco Rolão Preto",
       "rou_maniu": "Iuliu Maniu",
+      "rou_michael": "Michael I",
       "sun_antonov": "Aleksei Antonov",
       "sun_bukharin": "Nikolai Bukharin",
       "sun_isserson": "Georgii Isserson",
@@ -7190,6 +7588,11 @@
       "rural": "Rural",
       "town": "Town",
       "wasteland": "Wasteland"
+    },
+    "rename": {
+      "serbia": "Serbia",
+      "spain": "Spain",
+      "spanish_republic": "Spanish Republic"
     },
     "res": {
       "aluminium": "Aluminium",
@@ -7820,15 +8223,19 @@
       "gbr_war_coalition": "Wartime Coalition",
       "gen_allied_course": "Allied Course",
       "gen_armed_neutrality": "Armed Neutrality",
+      "gen_arms_limit": "Arms Limitation",
       "gen_civil_strife": "Scars of Civil Strife",
       "gen_democratic_movement": "Democratic Movement",
       "gen_efficient_government": "Efficient Government",
+      "gen_exile_no_elections": "No Elections in Exile",
       "gen_industrial_subsidy_spirit": "Industrial Subsidies",
       "gen_industrial_zone": "Planned Industrial Zones",
       "gen_labour_movement": "Labour Movement",
       "gen_martial_law_spirit": "Under Martial Law",
       "gen_mining_drive": "Mining Drive",
       "gen_neutrality_declared": "Declared Neutrality",
+      "gen_non_intervention": "Non-Intervention",
+      "gen_partisan_support_spirit": "Partisan Supply",
       "gen_party_support_communist": "Support for Communism",
       "gen_party_support_democratic": "Support for Democracy",
       "gen_party_support_fascist": "Support for Fascism",
@@ -7836,6 +8243,7 @@
       "gen_rally_spirit": "Mass Rallies",
       "gen_renewal_movement": "Renewal Movement",
       "gen_research_institutes": "National Laboratories",
+      "gen_resistance_support": "Resistance Support",
       "gen_skilled_workforce": "Trained Workforce",
       "gen_staff_training": "Staff Training",
       "gen_strike_losses": "Strike Losses",
@@ -7979,18 +8387,23 @@
       "gbr_university_drive": "University laboratories work for the armed services, speeding up research.",
       "gbr_war_coalition": "All parties sit in one cabinet and share the responsibility for the war.",
       "gen_armed_neutrality": "Neutrality backed by a ready army makes any would-be attacker hesitate.",
+      "gen_arms_limit": "A peace treaty caps our army at twelve divisions, forbids naval construction and halves the output of our arms factories.",
       "gen_civil_strife": "The government changed after civil strife, but wrecked factories and a divided people remain.",
       "gen_democratic_movement": "Civic leagues that stand for democracy keep winning new supporters.",
       "gen_efficient_government": "A leaner administration gets more done with the same effort.",
+      "gen_exile_no_elections": "A government abroad cannot hold elections until it returns home.",
       "gen_industrial_subsidy_spirit": "Subsidised builders put up civilian factories faster.",
       "gen_industrial_zone": "Ready-made industrial zones let new buildings go up faster.",
       "gen_labour_movement": "Unions and left-wing clubs widen support for communism step by step.",
       "gen_martial_law_spirit": "Soldiers on the streets have restored order, but the factories have lost hands.",
       "gen_mining_drive": "New mines and machinery bring more ore and oil out of the ground.",
       "gen_neutrality_declared": "Our formal neutrality makes it slower for others to build a case for war against us.",
+      "gen_non_intervention": "We have pledged to send neither volunteers nor lend-lease to either side in Spain.",
+      "gen_partisan_support_spirit": "Airdrops and couriers keep the partisans fighting behind enemy lines in our occupied lands.",
       "gen_rally_spirit": "While the rallies go on, the ruling party gains a little support every day.",
       "gen_renewal_movement": "A mass movement calling for national renewal keeps widening support for fascism.",
       "gen_research_institutes": "State-funded laboratories speed up every field of research a little.",
+      "gen_resistance_support": "Our agents and radios keep the resistance in our occupied homeland growing.",
       "gen_skilled_workforce": "Graduates of the trade schools push the production lines closer to their best.",
       "gen_staff_training": "Staff college graduates prepare operations sooner and pass their experience to the army.",
       "gen_strike_losses": "Factories that stood idle have not yet returned to full speed.",
@@ -8354,11 +8767,13 @@
       "ac_naval": "Air Chief (Naval Aviation)",
       "ac_superiority": "Air Chief (Command of the Sky)",
       "administrator": "Career Administrator",
+      "brm_head": "Head of State",
       "chief_defense": "Army Chief (Defense)",
       "chief_maneuver": "Army Chief (Maneuver)",
       "chief_offense": "Army Chief (Offense)",
       "chief_organizer": "Army Chief (Organizer)",
       "conciliator": "Conciliator",
+      "cw_provisional_leader": "Provisional Leader",
       "deu_armaments_minister": "Armaments Minister",
       "deu_foreign_minister": "Foreign Minister",
       "deu_four_year_plenipotentiary": "Four Year Plan Plenipotentiary",
@@ -8371,9 +8786,13 @@
       "fra_council_president": "President of the Council",
       "fra_vice_premier": "Vice-President of the Council",
       "hawk": "Hardline Politician",
+      "hrv_head": "State Leader",
+      "hun_nation_leader": "Leader of the Nation",
       "ind_construction": "Construction Engineer",
       "ind_production": "Factory Manager",
       "ind_resources": "Mining Engineer",
+      "irq_national_defence_head": "Head of the National Defence Government",
+      "irq_regent": "Regent of Iraq",
       "ita_council_president": "President of the Council of Ministers",
       "ita_education_minister": "Minister of National Education",
       "ita_military_premier": "Marshal-Premier",
@@ -8394,6 +8813,7 @@
       "leader_democratic": "Head of Government",
       "leader_fascist": "National Leader",
       "leader_neutral": "Head of State",
+      "men_head": "Chairman of the Autonomous Government",
       "nc_amphibious": "Navy Chief (Amphibious)",
       "nc_carrier": "Navy Chief (Carriers)",
       "nc_dockyard": "Navy Chief (Dockyards)",
@@ -8402,8 +8822,10 @@
       "nc_raider": "Navy Chief (Commerce Raiding)",
       "orator": "Party Orator",
       "party_ideologue": "Party Theorist",
+      "phl_head": "President of the Republic",
       "planner": "State Planner",
       "propagandist": "Press Officer",
+      "rng_head": "Chairman of the National Government",
       "rou_conducator": "Conducător",
       "rs_aircraft": "Aircraft Designer",
       "rs_armor": "Armor Designer",
@@ -8415,8 +8837,10 @@
       "sun_national_head": "Head of the National Government",
       "sun_provisional_head": "Head of the Provisional Government",
       "sun_supreme_ruler": "Supreme Ruler",
+      "svk_head": "President",
       "theorist_armor": "Armor Theorist",
       "theorist_land": "Land Warfare Theorist",
+      "vic_head": "Head of State",
       "vic_head_of_state": "Head of the French State",
       "vic_prime_minister": "Head of Government"
     },
