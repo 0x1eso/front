@@ -80,7 +80,7 @@ import type { WorldWar } from "../WorldWar";
 import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
 import { stepConstruction } from "./Construction";
-import { fuelCapOf, settleFuel } from "./Fuel";
+import { fuelCapOf, settleFuel, syntheticOilOf } from "./Fuel";
 import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
@@ -246,6 +246,8 @@ export class CountryEconomy {
   fuelMilli = 0;
   fuelRatioPm = 1000;
   fuelLedgerMilli = 0;
+  /** The ledger by kind (land, navy, air), milli; Σ = fuelLedgerMilli (lane E: settleFuel moves it to fuelUseMilli). */
+  fuelLedgerKinds: [number, number, number] = [0, 0, 0];
   /** Yesterday's gain and use (land, navy, air), milli: the screens. */
   fuelGainMilli = 0;
   fuelUseMilli: [number, number, number] = [0, 0, 0];
@@ -381,6 +383,7 @@ const CountrySchema = z.object({
   fuelMilli: zInt(),
   fuelRatioPm: zInt(),
   fuelLedgerMilli: zInt(),
+  fuelLedgerKinds: z.tuple([zInt(), zInt(), zInt()]),
   fuelGainMilli: zInt(),
   fuelUseMilli: z.tuple([zInt(), zInt(), zInt()]),
   fuelShortDay: zInt(),
@@ -732,6 +735,8 @@ export class WwEconomy {
           ce.stats.extractionPct,
         );
       }
+      // P4 spec §15.5: synthetic oil after the infrastructure factor.
+      produced[0] += syntheticOilOf(this, ce, id, cp);
     }
     const exported = zeros();
     const imported = zeros();
@@ -1281,6 +1286,7 @@ export class WwEconomy {
         fuelMilli: ce.fuelMilli,
         fuelRatioPm: ce.fuelRatioPm,
         fuelLedgerMilli: ce.fuelLedgerMilli,
+        fuelLedgerKinds: [...ce.fuelLedgerKinds] as [number, number, number],
         fuelGainMilli: ce.fuelGainMilli,
         fuelUseMilli: [...ce.fuelUseMilli] as [number, number, number],
         fuelShortDay: ce.fuelShortDay,
@@ -1340,6 +1346,7 @@ export class WwEconomy {
       ce.fuelMilli = c.fuelMilli;
       ce.fuelRatioPm = c.fuelRatioPm;
       ce.fuelLedgerMilli = c.fuelLedgerMilli;
+      ce.fuelLedgerKinds = [...c.fuelLedgerKinds] as [number, number, number];
       ce.fuelGainMilli = c.fuelGainMilli;
       ce.fuelUseMilli = [...c.fuelUseMilli] as [number, number, number];
       ce.fuelShortDay = c.fuelShortDay;
