@@ -145,7 +145,7 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_recession_response"]],
     available: { kind: "wt_ge", pct: 30 },
     effects: [
-      { kind: "add_spirit", id: "usa_preparedness" },
+      { kind: "add_spirit", id: "usa_preparedness_spirit" },
       { kind: "war_support", pct: 5 },
     ],
     ai: { base: 10 },
@@ -253,7 +253,7 @@ export const USA_FOCUSES: FocusDef[] = [
     branch: "industry",
     icon: "scales",
     prereq: [["usa_america_first"]],
-    effects: [{ kind: "add_spirit", id: "usa_neutral_trade" }],
+    effects: [{ kind: "add_spirit", id: "usa_neutral_trade_spirit" }],
     ai: { base: 5 },
   },
   {
@@ -473,7 +473,7 @@ export const USA_FOCUSES: FocusDef[] = [
     exclusive: ["usa_pacific_first"],
     available: { kind: "at_war" },
     effects: [
-      { kind: "add_spirit", id: "usa_europe_first" },
+      { kind: "add_spirit", id: "usa_europe_first_spirit" },
       { kind: "opinion", who: T("GBR"), of: "self", value: 20, days: 365 },
     ],
     ai: { base: 10 },
@@ -489,7 +489,7 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_lend_lease_bill"]],
     exclusive: ["usa_europe_first"],
     available: { kind: "at_war" },
-    effects: [{ kind: "add_spirit", id: "usa_pacific_first" }],
+    effects: [{ kind: "add_spirit", id: "usa_pacific_first_spirit" }],
     ai: {
       base: 5,
       mods: [

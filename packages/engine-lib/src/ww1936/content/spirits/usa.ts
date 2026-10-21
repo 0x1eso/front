@@ -10,9 +10,9 @@ export const SPIRITS_USA: SpiritDef[] = [
     icon: "factory",
     stats: { consumerGoodsPp: 5, stabilityBp: -500 },
   },
-  // usa_preparedness
+  // usa_preparedness_spirit
   {
-    id: "usa_preparedness",
+    id: "usa_preparedness_spirit",
     icon: "shield",
     stats: { milConstructionPct: 15 },
   },
@@ -34,23 +34,23 @@ export const SPIRITS_USA: SpiritDef[] = [
     icon: "fort",
     stats: { defensePct: 10, enemyJustifyTimePct: 50 },
   },
-  // usa_neutral_trade
+  // usa_neutral_trade_spirit
   {
-    id: "usa_neutral_trade",
+    id: "usa_neutral_trade_spirit",
     icon: "scales",
     stats: { tradeCostPct: -15, consumerGoodsPp: -2 },
   },
   // usa_neutrality_patrol
   { id: "usa_patrol_fleet", icon: "compass", stats: { navalDetectPct: 10 } },
-  // usa_europe_first: "준비도 속도" is the battle-plan speed
+  // usa_europe_first_spirit: "준비도 속도" is the battle-plan speed
   {
-    id: "usa_europe_first",
+    id: "usa_europe_first_spirit",
     icon: "map",
     stats: { planSpeedPct: 10, invasionPrepPct: -15 },
   },
-  // usa_pacific_first
+  // usa_pacific_first_spirit
   {
-    id: "usa_pacific_first",
+    id: "usa_pacific_first_spirit",
     icon: "carrier",
     stats: { carrierStrikePct: 10, invasionCapacity: 5 },
   },
