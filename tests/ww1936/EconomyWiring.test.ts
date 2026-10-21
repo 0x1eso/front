@@ -15,6 +15,7 @@ import {
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { regionSlots } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { OCC_LAW } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -280,8 +281,11 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(econ.controllerOf(krakow.id)).toBe(deu);
     expect(econ.isOccupied(krakow.id)).toBe(true);
     // P5 §8.6 (lane O): an administered occupied region gives 20% plus
-    // compliance (none yet), replacing P1's 50%.
-    expect(econ.controlPct(krakow.id)).toBe(20);
+    // compliance (none yet) plus the law, replacing P1's 50%. At war the
+    // historical AI puts Germany's Polish regions under martial law (+15).
+    const law = ww.endgame.occupationLawOf(deu, pol);
+    expect(law).toBe("occ_martial");
+    expect(econ.controlPct(krakow.id)).toBe(20 + OCC_LAW[law].outputPp);
     expect(econ.manpowerPct(krakow.id)).toBe(0);
     expect(econ.regionsOf(deu)).toContain(krakow.id);
     expect(econ.countryNeighbours(deu)).toContain(sun);

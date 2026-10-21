@@ -43,6 +43,9 @@ async function aiGame() {
   for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;
   ce.manpower += 1_000_000;
   for (const r of CZECH) ww.land.setController(r, deu, g.ticks());
+  // Czechoslovakia has capitulated (its legal owner stays until a peace):
+  // a playing owner at peace would get its land back (lane X, spec §5.3).
+  ww.addCapitulation(endId("CSK"), deu, g.ticks());
   return { runner, g, ww, eg: ww.endgame, land: ww.land, deu };
 }
 

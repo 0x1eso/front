@@ -470,9 +470,15 @@ describe("World War 1936 P5: occupation rule (spec §8)", () => {
   }
 
   it("resistance rises without a garrison and falls with one", async () => {
-    const { runner, g, ww, eg, deu } = await occGame();
+    const { runner, g, ww, eg, deu, csk } = await occGame();
     exileCsk(ww, ww.day(g.ticks()));
-    ww.land.setController(SLOVAKIA, deu, g.ticks());
+    // At war: at peace, lane X (spec §5.3) hands Slovakia back to the exile.
+    // Germany holds all of Czechoslovakia: an exile holding its capital
+    // goes home, and land it holds would raise its legitimacy (lane X).
+    ww.setWar(deu, csk, g.ticks());
+    for (const n of ["sudetenland", "prague", "slovakia", "kosice"]) {
+      ww.land.setController(END.region[n], deu, g.ticks());
+    }
     expect(eg.isAdministered(SLOVAKIA)).toBe(true);
     days(runner, 1);
     const r0 = eg.resBp[SLOVAKIA];

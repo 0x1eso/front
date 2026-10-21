@@ -183,11 +183,13 @@ describe("construction (spec §4)", () => {
   });
 
   test("losing a region drops its projects", async () => {
-    const { runner, updates, econ, ce, fra, fraCe, munich, berlin } =
+    const { runner, updates, ww, econ, ce, deu, fra, fraCe, munich, berlin } =
       await germany(true);
     expect(queueBuild(econ, ce, munich.id, "civ", 1)).toBeNull();
     expect(queueBuild(econ, ce, berlin.id, "civ", 1)).toBeNull();
     stepTo(runner, WW_PREP_TICKS + 1);
+    // At war: at peace, P5 spec §5.3 (lane X) hands Munich back next day.
+    ww.setWar(deu.smallID(), fra.smallID(), runner.game.ticks());
     takeRegion(runner.game, munich.id, "FRA");
     // Until the next day's common step the region is still Germany's.
     finishDay(runner, 0);
@@ -211,9 +213,11 @@ describe("construction (spec §4)", () => {
   });
 
   test("occupied regions count at the occupation share and cannot get factories", async () => {
-    const { runner, econ, deu, ce, fraCe, lyon } = await germany(true);
+    const { runner, ww, econ, deu, fra, ce, fraCe, lyon } = await germany(true);
     stepTo(runner, WW_PREP_TICKS + 1);
     expect([ce.totals.civ, ce.totals.mil]).toEqual([9, 6]);
+    // At war: at peace, P5 spec §5.3 (lane X) hands Lyon back next day.
+    ww.setWar(deu.smallID(), fra.smallID(), runner.game.ticks());
     takeRegion(runner.game, lyon.id, "DEU");
     finishDay(runner, 1);
     expect(econ.controllerOf(lyon.id)).toBe(deu.smallID());
