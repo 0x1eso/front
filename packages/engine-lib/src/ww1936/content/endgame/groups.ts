@@ -5,10 +5,10 @@
 // coarse, so a group is the nearest set of whole regions. Groups used together
 // in one chain or one peace-table row do not overlap.
 //
-// Six groups are empty because the v2 map has no region for them: corsica,
-// dodecanese and pacific_mandates wait for the restored islands of map v3
-// (region ids from 1343); laos_cambodia_west, slovenia_north and backa_baranja
-// cannot be cut out of the coarse regions. oahu and porkkala use a stand-in.
+// corsica, dodecanese, pacific_mandates and oahu use the restored islands of
+// map v3 (region ids from 1343). laos_cambodia_west, slovenia_north and
+// backa_baranja cannot be cut out of the coarse regions and have no group;
+// porkkala uses a stand-in.
 //
 // korea_north, korea_south and taiwan appear only in the peace table and the
 // claims (spec §18.1-2, plan decision 32).
@@ -86,7 +86,7 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
   // regions: Alpes-Maritimes (Menton and Nice)
   { id: "france_italian_zone", regions: [531], owner1936: "FRA" },
   // regions: (none) (EMPTY: Corsica is not on the v2 map; it needs the restored island (map v3, id >= 1343))
-  { id: "corsica", regions: [], owner1936: "FRA" },
+  { id: "corsica", regions: [1367], owner1936: "FRA" },
   // regions: Paris
   { id: "paris", regions: [396], owner1936: "FRA" },
   // regions: Pas-de-Calais, Meuse, Marne (Nord, the Ardennes and the Meuse)
@@ -121,8 +121,6 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
   { id: "levant", regions: [729], owner1936: "FRA" },
   // regions: Ha Noi, Saigon
   { id: "indochina", regions: [918, 988], owner1936: "FRA" },
-  // regions: (none) (EMPTY: the 1941 cessions are not separate regions; Laos and Cambodia lie inside the Ha Noi and Saigon regions)
-  { id: "laos_cambodia_west", regions: [], owner1936: "FRA" },
   // regions: Analamanga
   { id: "madagascar", regions: [1196], owner1936: "FRA" },
   // ---- Italy and the Balkans ----
@@ -147,15 +145,13 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
   // regions: Udine (the Udine region holds Trieste, Pula and the Julian March)
   { id: "istria", regions: [473], owner1936: "ITA" },
   // regions: (none) (EMPTY: the islands are not on the v2 map; they need the restored islands (map v3, id >= 1343))
-  { id: "dodecanese", regions: [], owner1936: "ITA" },
+  { id: "dodecanese", regions: [1362, 1363], owner1936: "ITA" },
   // regions: Tripolitania, Ajdabiya, Al Jufrah, Murzuq, Al Kufrah
   { id: "libya", regions: [809, 812, 849, 884, 885], owner1936: "ITA" },
   // regions: Tripolitania
   { id: "libya_tripoli", regions: [809], owner1936: "ITA" },
   // regions: Cairo, Al Bahr al Ahmar, Al Wadi at Jadid (the protectorate was folded into the United Kingdom (P0))
   { id: "egypt", regions: [767, 854, 875], owner1936: "GBR" },
-  // regions: (none) (EMPTY: Lower Styria lies in the Zagreb region and Upper Carniola in the Ljubljana region; no region is mainly the 1941 German annexation)
-  { id: "slovenia_north", regions: [], owner1936: "YUG" },
   // regions: Ljubljana (Ljubljana with Sušak)
   { id: "ljubljana", regions: [474], owner1936: "YUG" },
   // regions: Zadarska (the Zadar hinterland with Šibenik; Split lies in the West Bosnia region)
@@ -164,8 +160,6 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
   { id: "croatia", regions: [467, 471, 498, 506, 525, 529], owner1936: "YUG" },
   // regions: Podgorica (with the Bay of Kotor)
   { id: "montenegro", regions: [557], owner1936: "YUG" },
-  // regions: (none) (EMPTY: Bačka lies in the Belgrade and Banja Luka regions; no region is mainly the 1941 Hungarian annexation)
-  { id: "backa_baranja", regions: [], owner1936: "YUG" },
   // regions: Skopje, Prilep
   { id: "vardar_macedonia", regions: [569, 583], owner1936: "YUG" },
   // regions: Thessalia, Ipeiros, Stereá Elláda (Thessaly, Epirus and Central Greece)
@@ -227,7 +221,7 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
     id: "japan_home",
     regions: [
       508, 612, 649, 691, 703, 716, 723, 735, 754, 757, 758, 766, 772, 791, 800,
-      801,
+      801, 1354, 1355,
     ],
     owner1936: "JPN",
   },
@@ -236,7 +230,7 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
   // regions: Northern Kurils, Southern Kurils
   { id: "kurils", regions: [357, 492], owner1936: "JPN" },
   // regions: (none) (EMPTY: the mandated islands are not on the v2 map; they need the restored islands (map v3, id >= 1343))
-  { id: "pacific_mandates", regions: [], owner1936: "JPN" },
+  { id: "pacific_mandates", regions: [1350, 1351, 1352], owner1936: "JPN" },
   // regions: Philippines
   { id: "philippines", regions: [945], owner1936: "USA" },
   // regions: Kachin, Sagaing, Shan, Chin, Mandalay, Magway, Rakhine, Kayin, Bago, Yangon, Tanintharyi
@@ -253,8 +247,8 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
     regions: [1094, 1106, 1108, 1137, 1179],
     owner1936: "NLD",
   },
-  // regions: Hawaii (STAND-IN: Oahu is not on the v2 map; the Hawaii region stands in until the restored island (map v3, id >= 1343) replaces it)
-  { id: "oahu", regions: [930], owner1936: "USA" },
+  // regions: Oahu (restored island, map v3)
+  { id: "oahu", regions: [1344], owner1936: "USA" },
   // ---- The Americas ----
   // regions: Kentucky, Tennessee, Alabama (the Tennessee Valley Authority area)
   { id: "tennessee", regions: [689, 745, 785], owner1936: "USA" },

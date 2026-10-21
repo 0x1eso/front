@@ -102,11 +102,7 @@ export const HISTORY_PEACE: PeaceDefaultDef[] = [
     lines: [
       {
         by: T("DEU"),
-        demands: [
-          { kind: "take_group", group: "slovenia_north" },
-          { kind: "release", tag: "HRV" },
-          { kind: "puppet" },
-        ],
+        demands: [{ kind: "release", tag: "HRV" }, { kind: "puppet" }],
       },
       {
         by: T("ITA"),
@@ -115,10 +111,6 @@ export const HISTORY_PEACE: PeaceDefaultDef[] = [
           { kind: "take_group", group: "dalmatia" },
           { kind: "occupation_zone", group: "montenegro" },
         ],
-      },
-      {
-        by: T("HUN"),
-        demands: [{ kind: "take_group", group: "backa_baranja" }],
       },
       {
         by: T("BGR"),

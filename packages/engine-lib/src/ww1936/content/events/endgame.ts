@@ -259,7 +259,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
             kind: "war_goal",
             on: T("VIC"),
             type: "claim",
-            group: "laos_cambodia_west",
+            group: "indochina",
           },
           { kind: "declare_war", on: T("VIC"), goal: "claim" },
         ],
@@ -375,10 +375,8 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 10 },
         effects: [
           { kind: "news", id: "news_yugoslavia_partition" },
-          { kind: "annex_occupied", group: "slovenia_north" },
           { kind: "annex_occupied", who: T("ITA"), group: "ljubljana" },
           { kind: "annex_occupied", who: T("ITA"), group: "dalmatia" },
-          { kind: "annex_occupied", who: T("HUN"), group: "backa_baranja" },
           { kind: "annex_occupied", who: T("BGR"), group: "vardar_macedonia" },
         ],
       },
@@ -466,7 +464,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
           { kind: "news", id: "news_tokyo_peace" },
           {
             kind: "transfer_regions",
-            group: "laos_cambodia_west",
+            group: "indochina",
             to: T("THA"),
           },
           { kind: "end_war", of: T("THA") },
