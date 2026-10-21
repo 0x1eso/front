@@ -9,6 +9,7 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { declareWar, declareWarBlock } from "./Diplomacy";
+import { declareIndependence } from "./endgame/Subjects";
 
 /** World War 1936 (spec §7.3): the declare_war intent. */
 export class DeclareWarExecution implements Execution {
@@ -30,6 +31,13 @@ export class DeclareWarExecution implements Execution {
     const ww = mg?.worldWar() ?? null;
     if (mg === null || ww === null || !mg.hasPlayer(this.targetID)) return;
     const target = mg.player(this.targetID);
+    // P5 lane S: a subject declaring on its overlord is its independence war.
+    if (
+      ww.endgame.subjectOf(this.player.smallID())?.overlord === target.smallID()
+    ) {
+      declareIndependence(ww.endgame, this.player.smallID(), ticks);
+      return;
+    }
     if (declareWarBlock(mg, ww, this.player, target, ticks) !== null) return;
     declareWar(mg, ww, this.player, target, ticks);
   }
