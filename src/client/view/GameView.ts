@@ -61,8 +61,10 @@ import {
 } from "./MotionPlanResolver";
 import { PlayerView } from "./PlayerView";
 import { UnitView } from "./UnitView";
+import { WwAirView } from "./WwAirView";
 import { WwEconomyView } from "./WwEconomyView";
 import { WwLandView } from "./WwLandView";
+import { sideKeyOf, WwNavyView } from "./WwNavyView";
 import { WwPoliticsView } from "./WwPoliticsView";
 
 function readCosmeticVisibility(): CosmeticVisibility {
@@ -128,6 +130,9 @@ export class GameView implements GameLike {
   /** World War 1936 P2: the merged land war updates; null when the mode is off. */
   private _wwLand: WwLandView | null = null;
   private _wwPolitics: WwPoliticsView | null = null;
+  /** P4 (plan Task 1 Step 22): the navy and the air war; null when the mode is off. */
+  private _wwNavy: WwNavyView | null = null;
+  private _wwAir: WwAirView | null = null;
   private readonly _usernames: Map<ClientID, string>;
 
   // ── populateFrame dirty flags ──────────────────────────────────────────
@@ -190,6 +195,11 @@ export class GameView implements GameLike {
       this._wwEconomy = new WwEconomyView(scenario);
       this._wwLand = new WwLandView(scenario);
       this._wwPolitics = new WwPoliticsView(scenario);
+      const me = () => this.myPlayer()?.smallID() ?? 0;
+      const side = () =>
+        sideKeyOf(me(), this._wwPolitics?.factionIdx(me()) ?? -1);
+      this._wwNavy = new WwNavyView(scenario, me, side);
+      this._wwAir = new WwAirView(scenario, me, side);
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
@@ -278,6 +288,16 @@ export class GameView implements GameLike {
   }
 
   /** World War 1936 P3: politics, factions, treaties, events; null when the mode is off. */
+  /** World War 1936 P4: the navy; null when the mode is off. */
+  wwNavy(): WwNavyView | null {
+    return this._wwNavy;
+  }
+
+  /** World War 1936 P4: the air war; null when the mode is off. */
+  wwAir(): WwAirView | null {
+    return this._wwAir;
+  }
+
   wwPolitics(): WwPoliticsView | null {
     return this._wwPolitics;
   }
@@ -411,6 +431,13 @@ export class GameView implements GameLike {
       this._wwPolitics?.apply(u.data, gu.tick);
       // P3: factions are state; the map's relations follow them.
       if (u.data.global !== null) this.syncWorldWarTeams(u.data.global);
+    }
+    // P4 (plan decision 4): after P3's.
+    for (const u of gu.updates[GameUpdateType.WwNavy] ?? []) {
+      this._wwNavy?.apply(u.data, gu.tick);
+    }
+    for (const u of gu.updates[GameUpdateType.WwAir] ?? []) {
+      this._wwAir?.apply(u.data);
     }
 
     const myDisplayName = formatPlayerDisplayName(

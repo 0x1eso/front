@@ -100,6 +100,10 @@ export const UPDATE_TYPE_ROUTING: Record<
   WwLand: "dropped",
   // World War 1936 P3: politics' changes of the tick (plan decision 4).
   WwPolitics: "misc",
+  // World War 1936 P4 (pre-flight ruling: like the land war's): a replay
+  // shows no World War HUD, so it keeps no fleets or air zones.
+  WwNavy: "dropped",
+  WwAir: "dropped",
 };
 
 /**

@@ -1,4 +1,6 @@
 import {
+  BUILDING_IDS,
+  BuildingId,
   WwCountryDetail,
   WwCountrySummary,
   WwEconomyData,
@@ -25,6 +27,16 @@ export class WwEconomyView {
   readonly controller: Uint16Array;
   /** P3 deposit bonuses by region (absent: none), RESOURCE_IDS order. */
   private resBonus = new Map<number, number[]>();
+  /** P4 buildings (P4 spec §12.1). */
+  readonly navalBase: Uint8Array;
+  readonly airBase: Uint8Array;
+  readonly aa: Uint8Array;
+  readonly radar: Uint8Array;
+  readonly coastalFort: Uint8Array;
+  readonly refinery: Uint8Array;
+  readonly silo: Uint8Array;
+  /** P4 bomb damage by region (absent: none), BUILDING_IDS order, milli. */
+  private damage = new Map<number, number[]>();
   /** Bumped on every merge; screens redraw when it moves. */
   version = 0;
 
@@ -40,6 +52,13 @@ export class WwEconomyView {
     this.rail = new Uint8Array(size);
     this.hub = new Uint8Array(size);
     this.controller = new Uint16Array(size);
+    this.navalBase = new Uint8Array(size);
+    this.airBase = new Uint8Array(size);
+    this.aa = new Uint8Array(size);
+    this.radar = new Uint8Array(size);
+    this.coastalFort = new Uint8Array(size);
+    this.refinery = new Uint8Array(size);
+    this.silo = new Uint8Array(size);
     const owners = scenario.ownerByRegion();
     for (const r of regions) {
       this.civ[r.id] = r.civ;
@@ -49,6 +68,11 @@ export class WwEconomyView {
       this.fort[r.id] = scenario.startFort(r.id);
       this.rail[r.id] = scenario.startRail(r.id);
       this.controller[r.id] = owners[r.id];
+      // P4: the engine's start levels (the refineries and silos come in the first update).
+      this.navalBase[r.id] = scenario.startNavalBase(r.id);
+      this.airBase[r.id] = scenario.startAirBase(r.id);
+      this.aa[r.id] = scenario.startAa(r.id);
+      this.coastalFort[r.id] = scenario.startCoastalFort(r.id);
     }
   }
 
@@ -66,6 +90,15 @@ export class WwEconomyView {
       this.controller[r.id] = r.controller;
       if (r.res === undefined) this.resBonus.delete(r.id);
       else this.resBonus.set(r.id, [...r.res]);
+      this.navalBase[r.id] = r.navalBase;
+      this.airBase[r.id] = r.airBase;
+      this.aa[r.id] = r.aa;
+      this.radar[r.id] = r.radar;
+      this.coastalFort[r.id] = r.coastalFort;
+      this.refinery[r.id] = r.refinery;
+      this.silo[r.id] = r.silo;
+      if (r.damage.length === 0) this.damage.delete(r.id);
+      else this.damage.set(r.id, [...r.damage]);
     }
     this.version++;
   }
@@ -94,6 +127,60 @@ export class WwEconomyView {
       rail: this.rail[id],
       hub: this.hub[id],
       ...(this.resBonus.has(id) ? { res: [...this.resBonus.get(id)!] } : {}),
+      navalBase: this.navalBase[id],
+      airBase: this.airBase[id],
+      aa: this.aa[id],
+      radar: this.radar[id],
+      coastalFort: this.coastalFort[id],
+      refinery: this.refinery[id],
+      silo: this.silo[id],
+      damage: [...(this.damage.get(id) ?? [])],
     };
+  }
+
+  /** P4: a building's count or level in a region (before damage). */
+  buildingCount(b: BuildingId, region: number): number {
+    switch (b) {
+      case "civ":
+        return this.civ[region];
+      case "mil":
+        return this.mil[region];
+      case "dock":
+        return this.dock[region];
+      case "infra":
+        return this.infra[region];
+      case "fort":
+        return this.fort[region];
+      case "rail":
+        return this.rail[region];
+      case "supply_hub":
+        return this.hub[region];
+      case "naval_base":
+        return this.navalBase[region];
+      case "air_base":
+        return this.airBase[region];
+      case "anti_air":
+        return this.aa[region];
+      case "radar":
+        return this.radar[region];
+      case "coastal_fort":
+        return this.coastalFort[region];
+      case "synthetic_refinery":
+        return this.refinery[region];
+      case "fuel_silo":
+        return this.silo[region];
+    }
+  }
+
+  /** P4 plan decision 13: the working buildings, count − whole damaged ones (the engine's effectiveBuildings). */
+  effectiveBuildings(b: BuildingId, region: number): number {
+    const n = this.buildingCount(b, region);
+    const dmg = this.damage.get(region)?.[BUILDING_IDS.indexOf(b)] ?? 0;
+    return Math.max(0, n - Math.floor(dmg / 1000));
+  }
+
+  /** P4 plan decision 11: the region's naval base works now (the engine's navalPort). */
+  navalPort(region: number): boolean {
+    return this.effectiveBuildings("naval_base", region) >= 1;
   }
 }
