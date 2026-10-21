@@ -37,7 +37,8 @@ export function startNavy(navy: WwNavy): void {
   if (sc.data.historicalOob === true) {
     for (const def of START_NAVY) {
       const owner = sc.smallIdOf(def.tag);
-      if (owner === 0) continue;
+      // P5 (pre-flight §0-4): a country with no land (a dormant slot) starts with no navy.
+      if (owner === 0 || navy.econ.regionsOf(owner).length === 0) continue;
       // Ships are dealt to the fleets class by class in table order (the
       // first fleet takes the first counts[c] ships of class c).
       const queues = new Map<
@@ -106,7 +107,7 @@ export function startNavy(navy: WwNavy): void {
   // Spec §7.4: the admirals of the countries in the game (decision 17: id = ADMIRALS index + 1).
   ADMIRALS.forEach((a, i) => {
     const owner = sc.smallIdOf(a.tag);
-    if (owner === 0) return;
+    if (owner === 0 || navy.econ.regionsOf(owner).length === 0) return;
     let traits = 0;
     for (const t of a.traits) traits |= admiralTraitBit(t);
     navy.admirals.set(i + 1, {

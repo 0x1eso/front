@@ -30,9 +30,10 @@ import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
-import { buildingIndex, returnPlanes } from "../economy/Buildings";
+import { buildingIndex, losePlanes, returnPlanes } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
 import type { WwLand } from "../land/WwLand";
+import { onPlanesLost } from "../navy/EndgameHooks";
 import type { WwNavy } from "../navy/WwNavy";
 import type { WorldWar } from "../WorldWar";
 import { aiAir } from "./AiAir";
@@ -59,6 +60,17 @@ export interface Deployment {
   /** Losses not yet taken, milli (spec §14.3). */
   lossRest: number;
   auto: boolean;
+  /**
+   * P5 (pre-flight §0-10): the country a volunteer wing flies for (its
+   * side fights), 0 for the owner's own. A1/A2 take sides through
+   * deploymentSide.
+   */
+  volunteerFor: number;
+}
+
+/** The side a deployment fights for: its volunteer host's, else its owner's (P5 volunteers). */
+export function deploymentSide(air: WwAir, d: Deployment): number {
+  return air.land.sideOf(d.volunteerFor !== 0 ? d.volunteerFor : d.owner);
 }
 
 /**
@@ -139,6 +151,7 @@ const DeploymentSchema = z.object({
   base: zInt(),
   lossRest: zInt(),
   auto: z.boolean(),
+  volunteerFor: zInt(),
 });
 const ZoneSchema = z.object({
   sup: pairs(),
@@ -443,6 +456,31 @@ export class WwAir {
     this.airDirtyDeployments.delete(id);
     this.removedDeploymentIds.push(id);
     this.airDirtyCountries.add(d.owner);
+  }
+
+  /**
+   * The kill site of every air loss (A1's combat, AA, N2's fleet AA, A2):
+   * takes `counts` (per generation) off deployment `id` and the deployed
+   * ledger, and names the killer `by` (0: nobody — fuel, crashes) to P5's
+   * war score (EndgameHooks.onPlanesLost). A deployment left empty stays
+   * (its refill is A1's); returns the planes taken.
+   */
+  shootDown(id: number, counts: readonly number[], by: number): number {
+    const d = this.deployments.get(id);
+    if (d === undefined) return 0;
+    const took = d.counts.map((c, i) =>
+      Math.max(0, Math.min(c, Math.floor(counts[i] ?? 0))),
+    );
+    const n = took.reduce((a, b) => a + b, 0);
+    if (n === 0) return 0;
+    took.forEach((c, i) => (d.counts[i] -= c));
+    const type = AIR_TYPES[d.type];
+    const ce = this.econ.country(d.owner);
+    if (ce !== null) losePlanes(ce, type, took);
+    onPlanesLost(this, d.owner, by, type, n);
+    this.markDeployment(id);
+    this.airDirtyCountries.add(d.owner);
+    return n;
   }
 
   /** Moves a deployment to another base (A1's re-basing). */

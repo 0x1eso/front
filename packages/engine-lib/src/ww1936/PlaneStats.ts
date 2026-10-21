@@ -150,7 +150,11 @@ const GEN_PCT = [100, 130, 160];
 const GEN_SPEED = [0, 80, 160];
 const GEN_RANGE_PCT = [100, 120, 140];
 
-/** Spec §12.2–§12.3: a plane's numbers at its generation, techs read by id (plan decision 23). */
+/**
+ * Spec §12.2–§12.3: a plane's numbers at its generation; the doctrine
+ * bonuses come as stat keys (P6 pre-flight: P6's grand doctrines feed the
+ * same keys), `techs` stays for the generation techs P6's designs read.
+ */
 export function planeStats(
   type: AirType,
   gen: number,
@@ -160,27 +164,27 @@ export function planeStats(
   const b = PLANE_BASE[type];
   const g = gen - 1;
   const fighterLike = type === "fighter" || type === "cv_fighter";
+  // Doctrine bonuses come as stat keys (P6 pre-flight).
+  void techs;
   const atkPct =
     GEN_PCT[g] +
     stats.airAttackPct +
-    (fighterLike && techs.has("strategic_destruction_1") ? 5 : 0);
+    (fighterLike ? stats.fighterAttackPct : 0);
   const defPct =
     GEN_PCT[g] +
     stats.airDefensePct +
-    ((type === "heavy_fighter" || type === "strat_bomber") &&
-    techs.has("strategic_destruction_2")
-      ? 15
+    (type === "heavy_fighter" || type === "strat_bomber"
+      ? stats.heavyDefensePct
       : 0);
   const agiPct =
     GEN_PCT[g] +
     stats.airAgilityPct +
-    (b.fighter && techs.has("operational_integrity_1") ? 10 : 0);
+    (b.fighter ? stats.fighterAgilityPct : 0);
   const navPct =
     GEN_PCT[g] +
-    (techs.has("operational_integrity_2") ? 10 : 0) +
-    ((type === "naval_bomber" || type === "cv_naval_bomber") &&
-    techs.has("base_strike_2")
-      ? 15
+    stats.airNavalPct +
+    (type === "naval_bomber" || type === "cv_naval_bomber"
+      ? stats.navalBomberPct
       : 0);
   const airAtk = b.airAtk * atkPct;
   const airDef = b.airDef * defPct;

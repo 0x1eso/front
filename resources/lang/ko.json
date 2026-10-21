@@ -3680,7 +3680,8 @@
         "no_transport_planes": "수송기가 모자랍니다",
         "air_superiority_low": "제공권이 70% 미만입니다",
         "too_many_deployments": "공군 배치가 너무 많습니다",
-        "bad_zone": "해역이나 공역이 아닙니다"
+        "bad_zone": "해역이나 공역이 아닙니다",
+        "no_strike_region": "공격 대상에서 제외된 지역입니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -3802,7 +3803,22 @@
       "casPct": "근접 지원 +{n}%",
       "paradropPrepPct": "공수 준비 {n}%",
       "airDetectPct": "공중 탐지 +{n}%",
-      "navalDetectPct": "해상 탐지 +{n}%"
+      "navalDetectPct": "해상 탐지 +{n}%",
+      "capitalAttackPct": "주력함 공격 +{n}%",
+      "capitalHpPct": "전함·순양전함 HP +{n}%",
+      "subTorpedoPct": "잠수함 어뢰 +{n}%",
+      "subVisibilityPct": "잠수함 피발견도 {n}%",
+      "subOrg": "잠수함 조직력 +{n}",
+      "surfaceRaidPct": "수상 통상 파괴함 +{n}%",
+      "deckPct": "항모 갑판 +{n}%",
+      "navalBomberPct": "해군 폭격기 해상 공격 +{n}%",
+      "carrierRoundsCut": "항모 공격 주기 {n}라운드 단축",
+      "fighterAttackPct": "전투기 공중 공격 +{n}%",
+      "heavyDefensePct": "중전투기·전략 폭격기 공중 방어 +{n}%",
+      "fighterAgilityPct": "전투기 기동성 +{n}%",
+      "airLossCutPct": "공중전 손실 −{n}%",
+      "airNavalPct": "항공기 해상 공격 +{n}%",
+      "supPenaltyPp": "적 제공권 벌칙 +{n}%p"
     },
     "equip": {
       "anti_air": "대공포",
@@ -6110,7 +6126,22 @@
       "bombDamageTakenPct": "받는 폭격 피해 {value, number, ::sign-always}%",
       "fuelCapPct": "연료 용량 {value, number, ::sign-always}%",
       "fuelUsePct": "연료 소비 {value, number, ::sign-always}%",
-      "paradropPrepPct": "공수 준비 {value, number, ::sign-always}%"
+      "paradropPrepPct": "공수 준비 {value, number, ::sign-always}%",
+      "capitalAttackPct": "주력함 공격 {value, number, ::sign-always}%",
+      "capitalHpPct": "전함·순양전함 HP {value, number, ::sign-always}%",
+      "subTorpedoPct": "잠수함 어뢰 {value, number, ::sign-always}%",
+      "subVisibilityPct": "잠수함 피발견도 {value, number, ::sign-always}%",
+      "subOrg": "잠수함 조직력 {value, number, ::sign-always}",
+      "surfaceRaidPct": "수상 통상 파괴함 {value, number, ::sign-always}%",
+      "deckPct": "항모 갑판 {value, number, ::sign-always}%",
+      "navalBomberPct": "해군 폭격기 해상 공격 {value, number, ::sign-always}%",
+      "carrierRoundsCut": "항모 공격 주기 {value, number}라운드 단축",
+      "fighterAttackPct": "전투기 공중 공격 {value, number, ::sign-always}%",
+      "heavyDefensePct": "중전투기·전략 폭격기 공중 방어 {value, number, ::sign-always}%",
+      "fighterAgilityPct": "전투기 기동성 {value, number, ::sign-always}%",
+      "airLossCutPct": "공중전 손실 감소 {value, number, ::sign-always}%",
+      "airNavalPct": "항공기 해상 공격 {value, number, ::sign-always}%",
+      "supPenaltyPp": "적 제공권 벌칙 {value, number, ::sign-always}%p"
     },
     "support": {
       "engineer": "공병 중대",

@@ -10,14 +10,16 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   void day;
 }
 
-/** Yesterday's convoy loss rate ‰ of `owner` in sea region `sr` (P5 lend-lease reads it). Stub: 0. */
+/**
+ * The convoy loss rate ‰ of `owner` in sea region `sr` on the region's
+ * last day (P5 lend-lease reads it): the state convoyWar writes
+ * (SrNavyState.lossRate by side; WwNavy.lossRatePm).
+ */
 export function convoyLossPmOf(
   navy: WwNavy,
   owner: number,
   sr: number,
 ): number {
-  void navy;
-  void owner;
-  void sr;
-  return 0;
+  const i = navy.scenario.srIdxOf(sr);
+  return i < 0 ? 0 : navy.lossRatePm(i, owner);
 }

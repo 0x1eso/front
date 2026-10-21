@@ -46,6 +46,8 @@ export function applyShipDamage(
   hpMilli: number,
   orgMilli: number,
   tick: number,
+  /** The country whose guns, torpedoes or planes did it (P5 war score). */
+  by: number,
 ): void {
   const t = navy.ships;
   const r = t.rowOf(shipId);
@@ -53,5 +55,5 @@ export function applyShipDamage(
   t.hp[r] = Math.max(0, t.hp[r] - Math.max(0, hpMilli));
   t.org[r] = Math.max(0, t.org[r] - Math.max(0, orgMilli));
   navy.markFleet(t.fleet[r]);
-  if (t.hp[r] === 0) navy.removeShip(shipId, true, tick);
+  if (t.hp[r] === 0) navy.removeShip(shipId, true, tick, by);
 }

@@ -19,6 +19,7 @@ import {
   projectSpeedPct,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { Player } from "../../game/Game";
+import { navalBuildBlock } from "../navy/EndgameHooks";
 import { dmzRegions } from "../politics/Spirits";
 import type { CountryEconomy, Project, WwEconomy } from "./WwEconomy";
 
@@ -60,6 +61,11 @@ export function buildBlock(
     dmzRegions(econ.ww.politics, ce.smallID).includes(region)
   ) {
     return "not_controlled";
+  }
+  // P5 (pre-flight §0-10): a defeated country's naval restrictions.
+  if (building === "dock" || building === "naval_base") {
+    const naval = navalBuildBlock(econ, ce, building);
+    if (naval !== null) return naval;
   }
   return buildBlockOf({
     building,

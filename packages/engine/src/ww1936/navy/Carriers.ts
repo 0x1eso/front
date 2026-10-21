@@ -3,9 +3,14 @@
 // (Task 4) writes the bodies.
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { CarrierOrder } from "@openfront/engine-api/ww1936/NavyTypes";
+import { strikeBlock } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { WwNavy } from "./WwNavy";
 
-/** fleet_port_strike / carrier_mix. Stub: "no_fleet" unless the fleet is the sender's, then null. */
+/**
+ * fleet_port_strike / carrier_mix. Stub: "no_fleet" unless the fleet is
+ * the sender's; a port strike on a no-strike region (engine-lib NoStrike)
+ * is refused; then null.
+ */
 export function issueCarrierOrder(
   navy: WwNavy,
   smallID: number,
@@ -14,7 +19,11 @@ export function issueCarrierOrder(
 ): WwOrderBlock | null {
   void tick;
   const f = navy.fleets.get(order.fleet);
-  return f === undefined || f.owner !== smallID ? "no_fleet" : null;
+  if (f === undefined || f.owner !== smallID) return "no_fleet";
+  if (order.kind === "fleet_port_strike") {
+    return strikeBlock(navy.scenario, order.port);
+  }
+  return null;
 }
 
 /** Spec §9.6: docked carriers' decks from the stock (lane A1 calls it in dailyAirCountry). Stub: nothing. */

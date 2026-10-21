@@ -186,9 +186,10 @@ export function genSpeedKn(cls: ShipClass, gen: number): number {
 }
 
 /**
- * Spec §4.1–§4.3: a ship's numbers at its generation, with the techs that
- * change a class read by id (plan decision 23). `stats` are battle
- * modifiers (NavalRules); P6's designs will read them here.
+ * Spec §4.1–§4.3: a ship's numbers at its generation. Equipment techs
+ * (sonar, torpedo, radar) are read by id (plan decision 23); doctrine
+ * bonuses only as stat keys (P6 pre-flight: P6 retires the doctrine techs
+ * and feeds the same keys from grand doctrines).
  */
 export function shipStats(
   cls: ShipClass,
@@ -201,15 +202,14 @@ export function shipStats(
   const role = SHIP_ROLE[cls];
   const sonar = (techs.has("sonar_1") ? 1 : 0) + (techs.has("sonar_2") ? 1 : 0);
   const screen = role === "screen";
-  let hpPct = GEN_HP_PCT[g];
-  if ((cls === "bb" || cls === "bc") && techs.has("fleet_in_being_2")) {
-    hpPct += 10;
-  }
+  // Doctrine bonuses come as stat keys (P6 pre-flight), techs by id.
+  const capital = cls === "bb" || cls === "bc";
+  const hpPct = GEN_HP_PCT[g] + (capital ? stats.capitalHpPct : 0);
   const atk = GEN_ATK_PCT[g];
   const torpPct =
     atk +
     (techs.has("torpedo_1") ? 15 : 0) +
-    (cls === "ss" && techs.has("trade_interdiction_1") ? 15 : 0);
+    (cls === "ss" ? stats.subTorpedoPct : 0);
   const depthPct = atk + (screen ? 15 * sonar : 0);
   const pierce = GEN_PIERCE_PCT[g];
   const surf = Math.floor(
@@ -223,25 +223,14 @@ export function shipStats(
     cls === "ss"
       ? Math.max(
           1,
-          Math.floor(
-            (GEN_SUB_VIS[g] *
-              (100 - (techs.has("trade_interdiction_1") ? 10 : 0))) /
-              100,
-          ),
+          Math.floor((GEN_SUB_VIS[g] * (100 + stats.subVisibilityPct)) / 100),
         )
       : b.vis;
   const deck =
-    cls === "cv"
-      ? Math.floor(
-          (GEN_DECK[g] * (100 + (techs.has("base_strike_1") ? 10 : 0))) / 100,
-        )
-      : 0;
-  void stats;
+    cls === "cv" ? Math.floor((GEN_DECK[g] * (100 + stats.deckPct)) / 100) : 0;
   return {
     hpMilli: b.hp * hpPct * 10,
-    orgMilli:
-      (b.org + (cls === "ss" && techs.has("trade_interdiction_2") ? 10 : 0)) *
-      1000,
+    orgMilli: (b.org + (cls === "ss" ? stats.subOrg : 0)) * 1000,
     light: b.light * atk,
     lightPierce: b.lightPierce * pierce,
     heavy: b.heavy * atk,

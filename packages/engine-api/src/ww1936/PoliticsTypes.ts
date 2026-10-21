@@ -134,6 +134,24 @@ export const WW_STAT_KEYS = [
   "bombDamageTakenPct",
   "fuelCapPct",
   "fuelUsePct",
+  // P4 doctrine keys (P6 pre-flight): the sea and air doctrine techs feed
+  // them, and ship, plane and convoy rules read only these, so P6's grand
+  // doctrines can feed the same keys.
+  "capitalAttackPct",
+  "capitalHpPct",
+  "subTorpedoPct",
+  "subVisibilityPct",
+  "subOrg",
+  "surfaceRaidPct",
+  "deckPct",
+  "navalBomberPct",
+  "carrierRoundsCut",
+  "fighterAttackPct",
+  "heavyDefensePct",
+  "fighterAgilityPct",
+  "airLossCutPct",
+  "airNavalPct",
+  "supPenaltyPp",
   "paradropPrepPct",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];

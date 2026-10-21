@@ -54,8 +54,8 @@ export function divisionConvoys(weightCenti: number): number {
 
 /**
  * Spec §10.6 raid power, centi. Submarines: torpedo × (100 + subAttack +
- * convoyRaid + doctrine) / 100; surface raiders: (light + heavy) × 0.5
- * (× 1.5 with trade_interdiction_2) × (100 + convoyRaid) / 100; planes:
+ * convoyRaid) / 100 (the doctrine's raid bonus is convoyRaid, once); surface raiders: (light + heavy) × 0.5
+ * (× (100 + surfaceRaidPct) / 100) × (100 + convoyRaid) / 100; planes:
  * naval attack × 0.2 (sorties already applied); × the fuel ratio.
  */
 export function raidPowerCenti(
@@ -66,16 +66,16 @@ export function raidPowerCenti(
   techs: ReadonlySet<WwTechId>,
   fuelPm: number,
 ): number {
-  const doc =
-    (techs.has("trade_interdiction_1") ? 15 : 0) +
-    (techs.has("trade_interdiction_2") ? 15 : 0);
+  // The doctrine terms are stat keys (P6 pre-flight): its raid bonus is
+  // convoyRaidPct (counted once), surfaceRaidPct trade_interdiction_2's
+  // ×1.5 (+50).
+  void techs;
   const sub = Math.floor(
-    (subTorpedoCenti * (100 + stats.subAttackPct + stats.convoyRaidPct + doc)) /
-      100,
+    (subTorpedoCenti * (100 + stats.subAttackPct + stats.convoyRaidPct)) / 100,
   );
-  const surfK = techs.has("trade_interdiction_2") ? 3 : 2; // ×1.5 or ×1, over 2 (the 0.5)
   const surf = Math.floor(
-    (Math.floor((surfaceGunsCenti * surfK) / 4) * (100 + stats.convoyRaidPct)) /
+    (Math.floor((surfaceGunsCenti * (100 + stats.surfaceRaidPct)) / 200) *
+      (100 + stats.convoyRaidPct)) /
       100,
   );
   const air = Math.floor(planeNavalCenti / 5);

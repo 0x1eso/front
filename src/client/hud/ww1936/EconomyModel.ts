@@ -392,6 +392,21 @@ export const EFFECT_KEYS: Readonly<Record<EffectKey, string>> = {
   paradropPrepPct: "ww1936.effect.paradropPrepPct",
   airDetectPct: "ww1936.effect.airDetectPct",
   navalDetectPct: "ww1936.effect.navalDetectPct",
+  capitalAttackPct: "ww1936.effect.capitalAttackPct",
+  capitalHpPct: "ww1936.effect.capitalHpPct",
+  subTorpedoPct: "ww1936.effect.subTorpedoPct",
+  subVisibilityPct: "ww1936.effect.subVisibilityPct",
+  subOrg: "ww1936.effect.subOrg",
+  surfaceRaidPct: "ww1936.effect.surfaceRaidPct",
+  deckPct: "ww1936.effect.deckPct",
+  navalBomberPct: "ww1936.effect.navalBomberPct",
+  carrierRoundsCut: "ww1936.effect.carrierRoundsCut",
+  fighterAttackPct: "ww1936.effect.fighterAttackPct",
+  heavyDefensePct: "ww1936.effect.heavyDefensePct",
+  fighterAgilityPct: "ww1936.effect.fighterAgilityPct",
+  airLossCutPct: "ww1936.effect.airLossCutPct",
+  airNavalPct: "ww1936.effect.airNavalPct",
+  supPenaltyPp: "ww1936.effect.supPenaltyPp",
   unlock: "ww1936.effect.unlock",
 };
 
@@ -491,6 +506,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   no_transport_planes: "ww1936.econ.block.no_transport_planes",
   air_superiority_low: "ww1936.econ.block.air_superiority_low",
   too_many_deployments: "ww1936.econ.block.too_many_deployments",
+  no_strike_region: "ww1936.econ.block.no_strike_region",
   bad_zone: "ww1936.econ.block.bad_zone",
 };
 

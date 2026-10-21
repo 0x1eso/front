@@ -139,27 +139,28 @@ export function idleOrder(): ArmyOrder {
   };
 }
 
-/** Equipment no division carries: aircraft and (P4) the convoy. */
-const NOT_GROUND: ReadonlySet<EquipmentType> = new Set<EquipmentType>([
-  "fighter",
-  "bomber",
-  // P4 (pre-flight ruling 1): every P4 type is air or naval.
-  "heavy_fighter",
-  "cas",
-  "naval_bomber",
-  "strat_bomber",
-  "transport_plane",
-  "cv_fighter",
-  "cv_cas",
-  "cv_naval_bomber",
-  "convoy",
-]);
 /**
- * EQUIP_KEYS indices of the ground equipment (no aircraft, no convoy), in
- * EQUIP_KEYS order: a division's 18 equipment slots (spec §5.2).
+ * The equipment a division carries (spec §5.2): an allow-list, so P4's
+ * planes and convoy stay out and P6's tank designs (slots 18–29) are
+ * appended on their own.
+ */
+export const GROUND_EQUIPMENT: readonly EquipmentType[] = [
+  "infantry_equipment",
+  "support_equipment",
+  "artillery",
+  "anti_tank",
+  "anti_air",
+  "motorized",
+  "light_tank",
+  "medium_tank",
+];
+const GROUND_SET: ReadonlySet<EquipmentType> = new Set(GROUND_EQUIPMENT);
+/**
+ * EQUIP_KEYS indices of the ground equipment, in EQUIP_KEYS order: a
+ * division's 18 equipment slots (spec §5.2).
  */
 export const GROUND_EQUIP_KEYS: readonly number[] = EQUIP_KEYS.flatMap(
-  ([t], i) => (NOT_GROUND.has(t) ? [] : [i]),
+  ([t], i) => (GROUND_SET.has(t) ? [i] : []),
 );
 export const GROUND_SLOTS = GROUND_EQUIP_KEYS.length; // 18
 /** The division slot of an EQUIP_KEYS index; -1 for aircraft. */

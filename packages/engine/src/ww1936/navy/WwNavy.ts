@@ -39,6 +39,7 @@ import { fleetFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import { lineCostMilli } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { idHash, P_NAVALBEAT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { edgePassable, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
@@ -58,6 +59,7 @@ import { aiNavy } from "./AiNavy";
 import { carrierPortStrike, issueCarrierOrder } from "./Carriers";
 import { allocateConvoys } from "./Convoys";
 import { convoyWar } from "./ConvoyWar";
+import { exileNavyAndAir, onPlanesLost, onShipSunk } from "./EndgameHooks";
 import {
   applyFleetOrders,
   dailyFleetHousekeeping,
@@ -403,6 +405,11 @@ export class CountryNavy {
 
 /** Per sea region state, srIdx order (decision 19). */
 export interface SrNavyState {
+  /**
+   * P5 (pre-flight §0-10): side key → the convoy loss rate ‰ of the
+   * region's last day (lane C's convoy war writes it; lend-lease reads it).
+   */
+  lossRate: Map<number, number>;
   /** side key → supremacy ‰, computed on the region's day. */
   sup: Map<number, number>;
   /** side key → (fleet id → spotting ‰), non-zero only. */
@@ -419,6 +426,7 @@ export interface SrNavyState {
 
 function emptySrState(): SrNavyState {
   return {
+    lossRate: new Map(),
     sup: new Map(),
     spot: new Map(),
     raidRest: new Map(),
@@ -556,6 +564,7 @@ const AdmiralSchema = z.object({
   usage: z.tuple([zInt(), zInt(), zInt(), zInt()]),
 });
 const SrSchema = z.object({
+  lossRate: z.array(z.tuple([zInt(), zInt()])),
   sup: z.array(z.tuple([zInt(), zInt()])),
   spot: z.array(z.tuple([zInt(), zInt(), zInt()])),
   raidRest: z.array(z.tuple([zInt(), zInt()])),
@@ -989,17 +998,18 @@ export class WwNavy {
 
   /**
    * Sinks (`sunk`) or removes a ship: its row, its fleet slot (an empty
-   * fleet goes), its deck planes (lost).
+   * fleet goes), its deck planes (lost). `by`: the country that sank it
+   * (P5 war score: EndgameHooks.onShipSunk), 0 when nobody did.
    */
-  removeShip(id: number, sunk: boolean, tick: number): void {
-    void tick;
+  removeShip(id: number, sunk: boolean, tick: number, by = 0): void {
     const t = this.ships;
     const r = t.rowOf(id);
     if (r < 0) return;
     const owner = t.owner[r];
     const fleetId = t.fleet[r];
+    if (sunk) onShipSunk(this, id, owner, SHIP_CLASSES[t.cls[r]], by, tick);
     const ce = this.econ.country(owner);
-    if (ce !== null) this.loseDeck(ce, t.deckOf(r));
+    if (ce !== null) this.loseDeck(ce, t.deckOf(r), sunk ? by : -1);
     const f = this.fleets.get(fleetId);
     if (f !== undefined) {
       f.ships = f.ships.filter((s) => s !== id);
@@ -1013,15 +1023,25 @@ export class WwNavy {
     this.removeFleetIfEmpty(fleetId);
   }
 
-  /** A deck's planes off the deployed ledger (DECK_SLOTS: 3 types × 3 generations). */
+  /**
+   * A deck's planes off the deployed ledger (DECK_SLOTS: 3 types × 3
+   * generations); `by` ≥ 0: they went down with the ship, sunk by `by`
+   * (EndgameHooks.onPlanesLost), −1: removed.
+   */
   private loseDeck(
     ce: NonNullable<ReturnType<WwEconomy["country"]>>,
     deck: Int32Array,
+    by: number,
   ): void {
     const types = ["cv_fighter", "cv_cas", "cv_naval_bomber"] as const;
     types.forEach((type, i) => {
       const counts = [deck[i * 3], deck[i * 3 + 1], deck[i * 3 + 2]];
-      if (counts.some((c) => c > 0)) losePlanes(ce, type, counts);
+      if (!counts.some((c) => c > 0)) return;
+      losePlanes(ce, type, counts);
+      if (by >= 0) {
+        const n = counts[0] + counts[1] + counts[2];
+        onPlanesLost(this.ww.air, ce.smallID, by, type, n);
+      }
     });
   }
 
@@ -1265,6 +1285,11 @@ export class WwNavy {
     this.markSr(i);
   }
 
+  /** P5 (pre-flight §0-10): `owner`'s side's convoy loss rate ‰ in sea region srIdx (its last day). */
+  lossRatePm(srIdx: number, owner: number): number {
+    return this.srState[srIdx]?.lossRate.get(this.sideOf(owner)) ?? 0;
+  }
+
   /** A side's spotting progress ‰ on a fleet, in the fleet's sea region. */
   spotPm(side: number, fleet: number): number {
     const f = this.fleets.get(fleet);
@@ -1407,7 +1432,8 @@ export class WwNavy {
    * fleets of them).
    */
   onCapitulation(loser: number, victor: number): void {
-    void victor;
+    // P5 (pre-flight §0-2): an exile fleet and air force may leave first.
+    exileNavyAndAir(this, this.ww.air, loser, victor);
     const tick = this.mg.ticks();
     for (const f of this.fleetsOf(loser)) {
       for (const id of [...f.ships]) this.removeShip(id, false, tick);
@@ -1763,6 +1789,7 @@ export class WwNavy {
         usage: [...a.usage] as [number, number, number, number],
       })),
       srs: this.srState.map((s) => ({
+        lossRate: [...s.lossRate].map(([k, v]): [number, number] => [k, v]),
         sup: [...s.sup].map(([k, v]): [number, number] => [k, v]),
         spot: [...s.spot].flatMap(([side, m]) =>
           [...m].map(([f, pm]): [number, number, number] => [side, f, pm]),
@@ -1851,6 +1878,7 @@ export class WwNavy {
     s.srs.forEach((x, i) => {
       const st = this.srState[i];
       if (st === undefined) return;
+      st.lossRate = new Map(x.lossRate.map(([k, v]) => [k, v]));
       st.sup = new Map(x.sup.map(([k, v]) => [k, v]));
       st.spot = new Map();
       for (const [side, f, pm] of x.spot) {
@@ -2006,6 +2034,7 @@ export function dailySeaRegion(
     if (f.portStrike === 0 || navy.fleetZoneSr(f) !== sr) continue;
     const port = f.portStrike;
     f.portStrike = 0;
+    if (isNoStrike(navy.scenario, port)) continue; // P6 pre-flight
     carrierPortStrike(navy, f.id, port, tick); // N2
   }
   navy.markSr(idx);

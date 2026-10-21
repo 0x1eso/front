@@ -75,6 +75,38 @@ export interface TechEffects {
   paradropPrepPct: number;
   airDetectPct: number;
   navalDetectPct: number;
+  // P4 doctrine keys (P6 pre-flight): the rules read these, never a
+  // doctrine tech id.
+  /** fleet_in_being_1: capital ship attack (N2). */
+  capitalAttackPct: number;
+  /** fleet_in_being_2: BB and BC HP (shipStats). */
+  capitalHpPct: number;
+  /** trade_interdiction_1: submarine torpedo (shipStats). */
+  subTorpedoPct: number;
+  /** trade_interdiction_1: submarine visibility, negative hides (shipStats). */
+  subVisibilityPct: number;
+  /** trade_interdiction_2: submarine organization, points (shipStats). */
+  subOrg: number;
+  /** trade_interdiction_2: surface raiders' raid power (raidPowerCenti). */
+  surfaceRaidPct: number;
+  /** base_strike_1: carrier deck size (shipStats). */
+  deckPct: number;
+  /** base_strike_2: naval and carrier torpedo bombers' naval attack (planeStats). */
+  navalBomberPct: number;
+  /** base_strike_2: carrier strike cycle, rounds fewer (N2). */
+  carrierRoundsCut: number;
+  /** strategic_destruction_1: fighters' air attack (planeStats). */
+  fighterAttackPct: number;
+  /** strategic_destruction_2: heavy fighters' and strategic bombers' air defense (planeStats). */
+  heavyDefensePct: number;
+  /** operational_integrity_1: fighters' agility (planeStats). */
+  fighterAgilityPct: number;
+  /** operational_integrity_2: air combat losses cut (A1). */
+  airLossCutPct: number;
+  /** operational_integrity_2: every plane's naval attack (planeStats). */
+  airNavalPct: number;
+  /** battlefield_support_1: the superiority penalty dealt to the enemy, points (A2). */
+  supPenaltyPp: number;
 }
 export type TechTotals = TechEffects;
 
@@ -272,13 +304,14 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   // Capacity and preparation: invasionCapacity / invasionPrepDays read the ids.
   landing_craft_1: t("landing_craft_1", "naval", 1939, ["marines"]),
   landing_craft_2: t("landing_craft_2", "naval", 1942, ["landing_craft_1"]),
-  // Capital ship attack +10% (N2), BB/BC HP +10% (shipStats).
+  // The sea doctrines (P4 spec §4.3): every bonus is a stat key (P6
+  // pre-flight), read by shipStats, planeStats, raidPowerCenti and N2.
   fleet_in_being_1: t(
     "fleet_in_being_1",
     "naval",
     1936,
     [],
-    { positioningPct: 5 },
+    { positioningPct: 5, capitalAttackPct: 10 },
     "fleet_in_being",
   ),
   fleet_in_being_2: t(
@@ -286,7 +319,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "naval",
     1939,
     ["fleet_in_being_1"],
-    { screeningPct: 15 },
+    { screeningPct: 15, capitalHpPct: 10 },
     "fleet_in_being",
   ),
   trade_interdiction_1: t(
@@ -294,7 +327,11 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "naval",
     1936,
     [],
-    { convoyRaidPct: 15 },
+    {
+      convoyRaidPct: 15,
+      subTorpedoPct: 15,
+      subVisibilityPct: -10,
+    },
     "trade_interdiction",
   ),
   trade_interdiction_2: t(
@@ -302,7 +339,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "naval",
     1939,
     ["trade_interdiction_1"],
-    { convoyRaidPct: 15 },
+    { convoyRaidPct: 15, surfaceRaidPct: 50, subOrg: 10 },
     "trade_interdiction",
   ),
   base_strike_1: t(
@@ -310,7 +347,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "naval",
     1936,
     [],
-    { carrierStrikePct: 20 },
+    { carrierStrikePct: 20, deckPct: 10 },
     "base_strike",
   ),
   base_strike_2: t(
@@ -318,7 +355,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "naval",
     1939,
     ["base_strike_1"],
-    {},
+    { navalBomberPct: 15, carrierRoundsCut: 1 },
     "base_strike",
   ),
   ...gens("heavy_fighter", [1936, 1940, 1944], "air", 1),
@@ -332,7 +369,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1936,
     [],
-    { stratBombPct: 15 },
+    { stratBombPct: 15, fighterAttackPct: 5 },
     "strategic_destruction",
   ),
   strategic_destruction_2: t(
@@ -340,7 +377,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1939,
     ["strategic_destruction_1"],
-    { stratBombPct: 15 },
+    { stratBombPct: 15, heavyDefensePct: 15 },
     "strategic_destruction",
   ),
   battlefield_support_1: t(
@@ -348,7 +385,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1936,
     [],
-    { casPct: 15 },
+    { casPct: 15, supPenaltyPp: 5 },
     "battlefield_support",
   ),
   battlefield_support_2: t(
@@ -364,16 +401,15 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1936,
     [],
-    { airDetectPct: 10 },
+    { airDetectPct: 10, fighterAgilityPct: 10 },
     "operational_integrity",
   ),
-  // Air combat losses −15%, naval attack +10% (planeStats, A1).
   operational_integrity_2: t(
     "operational_integrity_2",
     "air",
     1939,
     ["operational_integrity_1"],
-    {},
+    { airLossCutPct: 15, airNavalPct: 10 },
     "operational_integrity",
   ),
   radar_1: t("radar_1", "electronics", 1938, ["electronics_1"]),
@@ -427,6 +463,21 @@ const ZERO: TechEffects = {
   paradropPrepPct: 0,
   airDetectPct: 0,
   navalDetectPct: 0,
+  capitalAttackPct: 0,
+  capitalHpPct: 0,
+  subTorpedoPct: 0,
+  subVisibilityPct: 0,
+  subOrg: 0,
+  surfaceRaidPct: 0,
+  deckPct: 0,
+  navalBomberPct: 0,
+  carrierRoundsCut: 0,
+  fighterAttackPct: 0,
+  heavyDefensePct: 0,
+  fighterAgilityPct: 0,
+  airLossCutPct: 0,
+  airNavalPct: 0,
+  supPenaltyPp: 0,
 };
 
 /** Summed effects of researched techs (fixed WW_TECH_IDS order). */

@@ -542,6 +542,8 @@ export const WW_ORDER_BLOCKS = [
   "no_transport_planes",
   "air_superiority_low",
   "too_many_deployments",
+  // P6 pre-flight: engine-lib NoStrike (Korea and Taiwan are never struck).
+  "no_strike_region",
   "bad_zone",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];

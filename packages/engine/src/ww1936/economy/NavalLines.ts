@@ -6,7 +6,10 @@ import type { NavalLineOrder } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
-/** naval_line_add / _docks / _count / _remove / _move (spec §5.2). Stub: refused. */
+/**
+ * naval_line_add / _docks / _count / _remove / _move (spec §5.2); a new
+ * line asks navy/EndgameHooks.navalBuildBlock first (P5). Stub: refused.
+ */
 export function issueNavalLineOrder(
   econ: WwEconomy,
   ce: CountryEconomy,
