@@ -28,6 +28,7 @@ import {
   type AirDeploySummary,
   type AirType,
   type AirZoneData,
+  type AirZoneResult,
   type CountryAirDetail,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { carpetBombPoints } from "@openfront/engine-lib/warfare/Warfare";
@@ -87,25 +88,34 @@ export function sortiePlanes(sorties: number): number {
   return Math.min(SORTIE_PLANES_MAX, Math.ceil(sorties / SORTIES_PER_PLANE));
 }
 
-/** plane-atlas column and size (tiles) of each type. */
+/**
+ * plane-atlas column and size (tiles) of each type: smaller than expanded
+ * warfare's planes, the 1936 map being much bigger.
+ */
 function planeLook(type: AirType): { col: number; size: number } {
   switch (type) {
     case "fighter":
     case "heavy_fighter":
     case "cv_fighter":
-      return { col: PLANE_ATLAS_ORDER.indexOf(UT_BOMBER), size: 14 };
+      return { col: PLANE_ATLAS_ORDER.indexOf(UT_BOMBER), size: 7 };
     case "cas":
     case "cv_cas":
-      return { col: PLANE_ATLAS_ORDER.indexOf(UT_BOMBER), size: 16 };
+      return { col: PLANE_ATLAS_ORDER.indexOf(UT_BOMBER), size: 8 };
     case "strat_bomber":
-      return { col: 2, size: 26 };
+      return { col: 2, size: 12 };
     case "transport_plane":
-      return { col: 2, size: 22 };
+      return { col: 2, size: 10 };
     default:
-      return { col: 0, size: 20 };
+      return { col: 0, size: 9 };
   }
 }
 const LOOK = new Map(AIR_TYPES.map((t) => [t, planeLook(t)]));
+
+/** The receiving country's result in a zone's day, null when it has none. */
+function resultOf(zone: AirZoneData, id: number): AirZoneResult | null {
+  for (const [k, r] of zone.result) if (k === id) return r;
+  return null;
+}
 
 interface Sortie {
   active: boolean;
@@ -164,6 +174,10 @@ export class AirSortiePass {
   private readonly point: TilePoint = { x: 0, y: 0 };
   /** Planes in the air per deployment id. */
   private readonly airborne = new Map<number, number>();
+  /** Indices of the sorties not in the air (a stack). */
+  private readonly free: number[] = [];
+  /** The viewer's planes per (zone, type): sr * 16 + AIR_TYPES index. */
+  private readonly myPlanes = new Map<number, number>();
   /** Each zone's day as last seen (a new object is a new day). */
   private readonly seenZone = new Map<number, AirZoneData>();
   private readonly changed = new Set<number>();
@@ -266,6 +280,7 @@ export class AirSortiePass {
     gl.bindVertexArray(null);
 
     for (let i = 0; i < SORTIE_CAP; i++) {
+      this.free.push(SORTIE_CAP - 1 - i);
       this.sorties.push({
         active: false,
         dep: 0,
@@ -387,6 +402,15 @@ export class AirSortiePass {
     const me = air.mySmallID();
     const sc = air.scenario;
     const W = sc.width;
+    const mine = this.myPlanes;
+    mine.clear();
+    for (const d of air.deployments.values()) {
+      if (d.owner !== me) continue;
+      const key = d.sr * 16 + AIR_TYPES.indexOf(d.type);
+      let n = 0;
+      for (const c of d.counts) n += c;
+      mine.set(key, (mine.get(key) ?? 0) + n);
+    }
     for (const d of air.deployments.values()) {
       if (!changed.has(d.sr)) continue;
       const zone = air.zones.get(d.sr)!;
@@ -410,8 +434,8 @@ export class AirSortiePass {
       if (d.mission === "strategic_bombing" && s.kind === "land") {
         // The engine picks the regions it hits; the screen shows one of
         // the zone's regions taking the carpet.
-        const res = zone.result.find(([id]) => id === me)?.[1];
-        if (res !== undefined && res.bombPoints > 0 && s.members.length > 0) {
+        const res = resultOf(zone, me);
+        if (res !== null && res.bombPoints > 0 && s.members.length > 0) {
           const pick = Math.floor(((this.jitter() + 1) / 2) * s.members.length);
           this.carpetAtRegion(
             air,
@@ -425,8 +449,8 @@ export class AirSortiePass {
     // The viewer's losses: wrecks over the zone.
     for (const sr of changed) {
       const zone = air.zones.get(sr)!;
-      const res = zone.result.find(([id]) => id === me)?.[1];
-      if (res === undefined || res.lost <= 0) continue;
+      const res = resultOf(zone, me);
+      if (res === null || res.lost <= 0) continue;
       const s = sc.sr(sr);
       if (s === undefined) continue;
       const n = Math.min(3, Math.ceil(res.lost / 20));
@@ -456,11 +480,7 @@ export class AirSortiePass {
     const ti = AIR_TYPES.indexOf(d.type);
     let flown = 0;
     for (const s of zone.sides) if (s.side === side) flown = s.sorties[ti] ?? 0;
-    let mine = 0;
-    for (const o of air.deployments.values()) {
-      if (o.owner !== me || o.sr !== d.sr || o.type !== d.type) continue;
-      for (const c of o.counts) mine += c;
-    }
+    const mine = this.myPlanes.get(d.sr * 16 + ti) ?? 0;
     return mine > 0 ? (flown * planes) / mine : 0;
   }
 
@@ -483,7 +503,9 @@ export class AirSortiePass {
     if (navy === null) return null;
     const ship = -d.base;
     for (const f of navy.fleets.values()) {
-      if (!f.ships.some((s) => s.id === ship)) continue;
+      let has = false;
+      for (const s of f.ships) if (s.id === ship) has = true;
+      if (!has) continue;
       const [x, y] = navy.fleetXY(f.id, 0, 0);
       p.x = ((x % W) + W) % W;
       p.y = y;
@@ -501,8 +523,9 @@ export class AirSortiePass {
     cy: number,
     start: number,
   ): boolean {
-    const s = this.sorties.find((x) => !x.active);
-    if (s === undefined) return false;
+    const i = this.free.pop();
+    if (i === undefined) return false;
+    const s = this.sorties[i];
     const len = Math.hypot(cx - bx, cy - by);
     s.active = true;
     s.dep = d.id;
@@ -530,8 +553,9 @@ export class AirSortiePass {
     return true;
   }
 
-  private land(s: Sortie): void {
+  private land(s: Sortie, i: number): void {
     s.active = false;
+    this.free.push(i);
     const n = (this.airborne.get(s.dep) ?? 1) - 1;
     if (n > 0) this.airborne.set(s.dep, n);
     else this.airborne.delete(s.dep);
@@ -594,7 +618,8 @@ export class AirSortiePass {
     const f = this.buf.float32;
     const p = this.point;
     let n = 0;
-    for (const s of this.sorties) {
+    for (let i = 0; i < this.sorties.length; i++) {
+      const s = this.sorties[i];
       if (!s.active) continue;
       if (nowMs < s.start) continue;
       if (s.leg === 0 && nowMs >= s.start + s.legMs) {
@@ -605,7 +630,7 @@ export class AirSortiePass {
         s.track.glideTo(s.len, t, s.legMs);
       }
       if (s.leg === 1 && nowMs >= s.start + 2 * s.legMs) {
-        this.land(s);
+        this.land(s, i);
         continue;
       }
       const flown = s.track.shownAt(nowMs);
@@ -727,8 +752,9 @@ export class AirSortiePass {
       }
     } else {
       // Zoomed far out: the planes in the air land unseen.
-      for (const s of this.sorties) {
-        if (s.active && nowMs >= s.start + 2 * s.legMs) this.land(s);
+      for (let i = 0; i < this.sorties.length; i++) {
+        const s = this.sorties[i];
+        if (s.active && nowMs >= s.start + 2 * s.legMs) this.land(s, i);
       }
     }
     this.updateChips(air, airLayer);

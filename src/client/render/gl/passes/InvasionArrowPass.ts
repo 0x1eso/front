@@ -11,8 +11,8 @@
  * The bands reuse P2's plan-arrow shaders (PlanArrowPass's piece format,
  * built here along a Catmull-Rom curve through the route); the ring and
  * chips are ship sprites. A route across the date line is drawn at both
- * ends of the map. Rebuilt only when the view or the zoom changed (the
- * head stops a few screen px short of the target).
+ * ends of the map. Rebuilt only when the viewer's detail (its invasions)
+ * or the zoom changed (the head stops a few screen px short of the target).
  */
 
 import { WW_INVASION_LAUNCH_SUP_PM } from "@openfront/engine-api/ww1936/NavyTypes";
@@ -300,7 +300,8 @@ export class InvasionArrowPass {
   private arrows: ArrowBatch;
   private batch: ShipSpriteBatch;
   private seenView: WwNavyView | null = null;
-  private seenVersion = -1;
+  /** The viewer's detail the pieces were built from (replaced on its updates). */
+  private seenDetail: WwNavyView["detail"] = null;
   private seenTilesPerPx = -1;
   private pts = new Float64Array(64);
   private curve = new Float64Array(64 * SPAN_SAMPLES);
@@ -322,13 +323,13 @@ export class InvasionArrowPass {
   update(view: WwNavyView, tilesPerPx: number): void {
     if (
       view === this.seenView &&
-      view.version === this.seenVersion &&
+      view.detail === this.seenDetail &&
       tilesPerPx === this.seenTilesPerPx
     ) {
       return;
     }
     this.seenView = view;
-    this.seenVersion = view.version;
+    this.seenDetail = view.detail;
     this.seenTilesPerPx = tilesPerPx;
     const arrows = this.arrows;
     const batch = this.batch;

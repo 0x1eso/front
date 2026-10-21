@@ -11,8 +11,9 @@
  * - With the sea layer on, the routes themselves as thin dotted lines (P2's
  *   plan-arrow dots).
  *
- * Screen only. The routes are rebuilt when the view moves; each frame only
- * moves the ships (a few dozen instances, nothing allocated).
+ * Screen only. The routes are rebuilt when the viewer's detail changes,
+ * the splashes when the view moves; each frame only moves the ships (a few
+ * dozen instances, nothing allocated).
  */
 
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -67,6 +68,8 @@ export class ConvoyFxPass {
   private dots: ArrowBatch;
   private seenView: WwNavyView | null = null;
   private seenVersion = -1;
+  /** The viewer's detail the routes were built from (replaced on its updates). */
+  private seenDetail: WwNavyView["detail"] = null;
   private seenDots = false;
 
   // Route polylines: points (x unwrapped along the route) and arc lengths,
@@ -104,13 +107,15 @@ export class ConvoyFxPass {
    * routes when the sea layer was switched.
    */
   update(view: WwNavyView, seaLayer: boolean): void {
-    const moved = view !== this.seenView || view.version !== this.seenVersion;
-    if (moved) {
-      this.seenView = view;
-      this.seenVersion = view.version;
-      this.rebuild(view);
-    }
-    if (moved || seaLayer !== this.seenDots) {
+    const fresh = view !== this.seenView;
+    const routes = fresh || view.detail !== this.seenDetail;
+    const moved = fresh || view.version !== this.seenVersion;
+    this.seenView = view;
+    this.seenVersion = view.version;
+    this.seenDetail = view.detail;
+    if (routes) this.rebuildRoutes(view);
+    if (moved) this.rebuildSplashes(view);
+    if (routes || seaLayer !== this.seenDots) {
       this.seenDots = seaLayer;
       this.dots.clear();
       if (seaLayer) {
@@ -135,7 +140,8 @@ export class ConvoyFxPass {
     }
   }
 
-  private rebuild(view: WwNavyView): void {
+  /** Route polylines and their ships, from the viewer's detail. */
+  private rebuildRoutes(view: WwNavyView): void {
     const sc = view.scenario;
     const W = sc.width;
     this.mapW = W;
@@ -192,8 +198,13 @@ export class ConvoyFxPass {
         this.shipDir.push(j % 2 === 0 ? 1 : -1);
       }
     }
+  }
 
-    // Splashes where my convoys sank yesterday.
+  /** Splashes where my convoys sank yesterday (the sea regions' days). */
+  private rebuildSplashes(view: WwNavyView): void {
+    const sc = view.scenario;
+    const W = sc.width;
+    const routes = view.detail?.routes ?? [];
     this.splashX.length = 0;
     this.splashY.length = 0;
     const me = view.mySmallID();

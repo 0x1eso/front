@@ -19,8 +19,8 @@ type Rgb = readonly [number, number, number];
 export const RAMP_ENEMY: Rgb = [214, 52, 40];
 /** 500 ‰: contested. */
 export const RAMP_CONTESTED: Rgb = [236, 226, 196];
-/** 1000 ‰ end of the sea ramp: my side's supremacy (blue). */
-export const RAMP_SEA_MINE: Rgb = [40, 110, 200];
+/** 1000 ‰ end of the sea ramp: my side's supremacy (a light blue that reads on the ocean). */
+export const RAMP_SEA_MINE: Rgb = [70, 160, 240];
 /** 1000 ‰ end of the air ramp: my side's superiority (green). */
 export const RAMP_AIR_MINE: Rgb = [52, 168, 72];
 

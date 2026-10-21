@@ -18,7 +18,10 @@
  * choice or the viewer changed; nothing is allocated per frame.
  */
 
-import type { FleetMission } from "@openfront/engine-api/ww1936/NavyTypes";
+import type {
+  FleetMission,
+  FleetSummary,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import { FLEET_FLAG_LOW_FUEL } from "@openfront/engine-api/ww1936/NavyTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import shipAtlasMeta from "resources/atlases/ship-atlas-meta.json";
@@ -440,12 +443,19 @@ export function fleetStateBits(state: string, flags: number): number {
   return s;
 }
 
+/** Per-fleet token attributes cached between samples (FLEET_ATTRS each). */
+const FLEET_ATTRS = 8;
+
 export class FleetTokenPass {
   private batch: ShipSpriteBatch;
   private seenView: WwNavyView | null = null;
   private seenVersion = -1;
   private seenSelection = -1;
   private seenFleet = -1;
+  /** The layout sample the attributes below were worked out for. */
+  private seenSamples = -1;
+  /** owner, cell, ships, HP, org, mission, state, flags per fleet of layout.fleets. */
+  private attrs = new Float32Array(64 * FLEET_ATTRS);
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -461,7 +471,9 @@ export class FleetTokenPass {
 
   /**
    * Rewrites the instances when `layoutMoved` or the view or the choice
-   * changed. `layout` must be updated for this frame.
+   * changed. `layout` must be updated for this frame. What a token shows
+   * is worked out again only when the layout sampled the fleets again;
+   * a frame in between only moves the tokens.
    */
   update(
     view: WwNavyView,
@@ -483,25 +495,50 @@ export class FleetTokenPass {
     this.seenVersion = view.version;
     this.seenSelection = selection?.version ?? -1;
     this.seenFleet = chosen;
+    if (layout.samples !== this.seenSamples) {
+      this.seenSamples = layout.samples;
+      this.cacheAttrs(layout.fleets);
+    }
     const kind = layout.lod === 0 ? KIND_TOKEN : KIND_CHIP;
     const b = this.batch;
     b.begin(layout.count);
-    let last = -1;
+    let last = false;
     for (let i = 0; i < layout.count; i++) {
       if (layout.slotFleet[i].id === chosen) {
-        last = i;
+        last = true;
         continue;
       }
       this.write(layout, i, kind, false);
     }
     // The chosen fleet on top (both its slots on the date line).
-    if (last >= 0) {
+    if (last) {
       for (let i = 0; i < layout.count; i++) {
-        if (layout.slotFleet[i].id === chosen)
+        if (layout.slotFleet[i].id === chosen) {
           this.write(layout, i, kind, true);
+        }
       }
     }
     b.upload();
+  }
+
+  private cacheAttrs(fleets: readonly FleetSummary[]): void {
+    if (this.attrs.length < fleets.length * FLEET_ATTRS) {
+      this.attrs = new Float32Array(fleets.length * FLEET_ATTRS * 2);
+    }
+    const a = this.attrs;
+    for (let k = 0; k < fleets.length; k++) {
+      const f = fleets[k];
+      const cls = tokenClass(f.counts);
+      const o = k * FLEET_ATTRS;
+      a[o] = f.owner;
+      a[o + 1] = cls === null ? -1 : CLASS_CELL[cls];
+      a[o + 2] = shipCount(f.counts);
+      a[o + 3] = f.hpPm;
+      a[o + 4] = f.orgPm;
+      a[o + 5] = MISSION_CELL[f.mission] ?? -1;
+      a[o + 6] = fleetStateBits(f.state, f.flags);
+      a[o + 7] = f.docked !== 0 ? TOKEN_DOCKED : 0;
+    }
   }
 
   private write(
@@ -510,21 +547,21 @@ export class FleetTokenPass {
     kind: number,
     chosen: boolean,
   ): void {
-    const f = layout.slotFleet[i];
     const s = layout.slots[i];
-    const cls = tokenClass(f.counts);
+    const a = this.attrs;
+    const o = layout.slotIndex[i] * FLEET_ATTRS;
     this.batch.putToken(
       s.x,
       s.y,
       kind,
-      f.owner,
-      cls === null ? -1 : CLASS_CELL[cls],
-      shipCount(f.counts),
-      f.hpPm,
-      f.orgPm,
-      MISSION_CELL[f.mission] ?? -1,
-      fleetStateBits(f.state, f.flags),
-      (chosen ? TOKEN_CHOSEN : 0) | (f.docked !== 0 ? TOKEN_DOCKED : 0),
+      a[o],
+      a[o + 1],
+      a[o + 2],
+      a[o + 3],
+      a[o + 4],
+      a[o + 5],
+      a[o + 6],
+      a[o + 7] | (chosen ? TOKEN_CHOSEN : 0),
     );
   }
 

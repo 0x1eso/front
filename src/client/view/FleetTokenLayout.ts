@@ -263,13 +263,17 @@ export class FleetLayoutCache {
   readonly slots: TokenSlot[] = [];
   /** The fleet of each slot (a date-line token has two slots). */
   readonly slotFleet: FleetSummary[] = [];
+  /** Each slot's place in `fleets` (by id). */
+  readonly slotIndex: number[] = [];
   count = 0;
+  /** Bumped each time the fleets were sorted and placed again (view or zoom moved). */
+  samples = 0;
   /** fleetLod of the last zoom. */
   lod = 0;
   /** Some token moves or circles: slots change every frame. */
   moving = false;
 
-  private fleets: FleetSummary[] = [];
+  private readonly list: FleetSummary[] = [];
   private mode = new Uint8Array(64);
   private bx = new Float64Array(64);
   private by = new Float64Array(64);
@@ -284,6 +288,11 @@ export class FleetLayoutCache {
   private seenZoom = Number.NaN;
   private lastT = Number.NaN;
   private baseTick = Number.NaN;
+
+  /** The fleets by id, as last sampled (slotIndex points into it). */
+  get fleets(): readonly FleetSummary[] {
+    return this.list;
+  }
 
   /** Lays the tokens out at `tick + alpha`; true when a slot changed. */
   update(view: WwNavyView, tick: number, alpha: number, zoom: number): boolean {
@@ -306,9 +315,9 @@ export class FleetLayoutCache {
    */
   private glide(view: WwNavyView, tick: number): void {
     this.baseTick = tick;
-    for (let i = 0; i < this.fleets.length; i++) {
+    for (let i = 0; i < this.list.length; i++) {
       if (this.mode[i] !== MODE_MOVING) continue;
-      const id = this.fleets[i].id;
+      const id = this.list[i].id;
       const a = view.fleetXY(id, tick, 0);
       const b = view.fleetXY(id, tick + 1, 0);
       this.bx[i] = a[0];
@@ -323,7 +332,8 @@ export class FleetLayoutCache {
     this.seenVersion = view.version;
     this.seenZoom = zoom;
     this.lod = fleetLod(zoom);
-    const fleets = this.fleets;
+    this.samples++;
+    const fleets = this.list;
     fleets.length = 0;
     for (const f of view.fleets.values()) fleets.push(f);
     fleets.sort((a, b) => a.id - b.id);
@@ -347,12 +357,12 @@ export class FleetLayoutCache {
       const f = fleets[i];
       this.loops[i] = null;
       if (f.docked !== 0) {
-        const [x, y] = dockXY(sc, f.docked);
+        const dock = dockXY(sc, f.docked);
         const k = fan.get(f.docked) ?? 0;
         fan.set(f.docked, k + 1);
         this.mode[i] = MODE_STILL;
-        this.bx[i] = x;
-        this.by[i] = y + fanSlot(k) * step * DOCKED_SCALE;
+        this.bx[i] = dock[0];
+        this.by[i] = dock[1] + fanSlot(k) * step * DOCKED_SCALE;
         continue;
       }
       if (f.path.length > 0) {
@@ -371,7 +381,10 @@ export class FleetLayoutCache {
         this.moving = true;
         continue;
       }
-      const [x, y] = view.fleetXY(f.id, 0, 0);
+      // Still at sea: the zone's center (fleetXY with no path).
+      const c = sc.zoneCenter(f.zone);
+      const x = c % sc.width;
+      const y = Math.floor(c / sc.width);
       const k = fan.get(f.zone) ?? 0;
       fan.set(f.zone, k + 1);
       const slot = k + (view.battles.has(f.zone) ? 1 : 0);
@@ -391,8 +404,8 @@ export class FleetLayoutCache {
     const radius = FLEET_HIT_PX / Math.max(zoom, 1e-6);
     const pt = this.pt;
     this.count = 0;
-    for (let i = 0; i < this.fleets.length; i++) {
-      const f = this.fleets[i];
+    for (let i = 0; i < this.list.length; i++) {
+      const f = this.list[i];
       let x: number;
       let y: number;
       const mode = this.mode[i];
@@ -407,13 +420,19 @@ export class FleetLayoutCache {
         x = this.bx[i];
         y = this.by[i];
       }
-      this.push(f, x, y, radius);
-      if (x < 0) this.push(f, x + W, y, radius);
-      else if (x >= W) this.push(f, x - W, y, radius);
+      this.push(f, i, x, y, radius);
+      if (x < 0) this.push(f, i, x + W, y, radius);
+      else if (x >= W) this.push(f, i, x - W, y, radius);
     }
   }
 
-  private push(f: FleetSummary, x: number, y: number, radius: number): void {
+  private push(
+    f: FleetSummary,
+    i: number,
+    x: number,
+    y: number,
+    radius: number,
+  ): void {
     let s = this.slots[this.count];
     if (s === undefined) {
       s = { fleet: 0, x: 0, y: 0, radius: 0 };
@@ -424,6 +443,7 @@ export class FleetLayoutCache {
     s.y = y;
     s.radius = radius;
     this.slotFleet[this.count] = f;
+    this.slotIndex[this.count] = i;
     this.count++;
   }
 }

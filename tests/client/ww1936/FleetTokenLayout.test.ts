@@ -12,8 +12,9 @@ import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import fs from "fs";
 import path from "path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SeaAirSelection } from "../../../src/client/hud/ww1936/SeaAirSelection";
+import { MapRenderer } from "../../../src/client/render/gl/MapRenderer";
 import {
   convoyShips,
   MAX_CONVOY_SHIPS,
@@ -56,6 +57,29 @@ import {
 } from "../../../src/client/view/FleetTokenLayout";
 import { WwNavyView } from "../../../src/client/view/WwNavyView";
 import { HARBOR, REGION, SEA, SR, ZONE } from "../../ww1936/seaFixture";
+
+// MapRenderer's GPU renderer, recording what each one is handed.
+const stub = vi.hoisted(() => ({ calls: [] as string[] }));
+vi.mock("../../../src/client/render/gl/Renderer", () => ({
+  GPURenderer: class {
+    dispose() {}
+    resize() {}
+    setWwNavy() {
+      stub.calls.push("navy");
+    }
+    setWwAir() {
+      stub.calls.push("air");
+    }
+    setSeaAirSelection() {
+      stub.calls.push("selection");
+    }
+  },
+}));
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
 
 const DIR = path.join(__dirname, "../../testdata/maps/ww1936sea");
 const scenario = ScenarioIndex.fromFiles(
@@ -430,5 +454,35 @@ describe("navy passes (spec §18.2)", () => {
     const big = convoyShips([1000, 1000, 10]);
     expect(big.reduce((a, b) => a + b, 0)).toBe(MAX_CONVOY_SHIPS);
     expect(big[2]).toBe(1);
+  });
+});
+
+describe("MapRenderer (P4)", () => {
+  it("hands the navy, the air war and the choice on again after a context restore", async () => {
+    const { WwAirView } = await import("../../../src/client/view/WwAirView");
+    const canvas = document.createElement("canvas");
+    const view = new MapRenderer(
+      canvas,
+      { players: [] } as never,
+      () => new Uint8Array(0),
+      new Float32Array(0),
+      {} as never,
+      {} as never,
+    );
+    view.setWwNavy(viewWith([]));
+    view.setWwAir(new WwAirView(scenario, () => 3));
+    view.setSeaAirSelection(new SeaAirSelection());
+    expect(stub.calls).toEqual(["navy", "air", "selection"]);
+    canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
+    canvas.dispatchEvent(new Event("webglcontextrestored"));
+    expect(stub.calls).toEqual([
+      "navy",
+      "air",
+      "selection",
+      "navy",
+      "air",
+      "selection",
+    ]);
+    view.dispose();
   });
 });
