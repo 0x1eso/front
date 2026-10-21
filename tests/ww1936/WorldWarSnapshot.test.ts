@@ -366,8 +366,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // screens only, changes no engine package): same value in four runs
 // (balance round 2 left it). Re-pinned after P3 lane A (the politics AI)
 // merged: same value in four runs. The controller re-pins it at every
-// merge that changes the engine.
-const WW1936_DIGEST = "9f12594be9b5b5f7";
+// merge that changes the engine. Re-pinned by the P2 Task 12 / P3 Task 17
+// determinism lane: the land and politics hashes now cover all their
+// state (WwLand.hashRest, WwPolitics' snapshot fold). The game itself plays
+// as before: with the old hashes the lane's fixes (stats epochs unique per
+// country, the rows by owner after an annexation) still give 9f12594be9b5b5f7
+// (the test map has no annexation). Same value in three runs.
+const WW1936_DIGEST = "28dd8e4894e22e91";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
