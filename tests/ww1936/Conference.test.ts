@@ -538,7 +538,7 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     settled: [],
   };
   /** No Korea or Taiwan here. */
-  const none = peaceSensitivity(() => [], 0, 5);
+  const none = peaceSensitivity(() => [], 0, 5, []);
   const free = () => true;
   const d = (o: Partial<Parameters<typeof planPeaceDemand>[3]>) => ({
     kind: "take" as const,
@@ -619,14 +619,17 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     // Region 1 is "Korea", region 3 "Taiwan"; 7 is "Japan" (excluded).
     const groups = (g: string) =>
       g === "korea_north" ? [1] : g === "taiwan" ? [3] : [];
-    const s = peaceSensitivity(groups, 7, 5);
+    const s = peaceSensitivity(groups, 7, 5, []);
+    // 6 holds Taiwan's static claim (CLAIMS).
+    const sClaim = peaceSensitivity(groups, 7, 5, [6]);
     const rb = (
       p: number,
       kind: Parameters<typeof peaceRegionBlock>[4],
       r: number,
-      t = table,
+      sens = s,
       recv = p,
-    ) => peaceRegionBlock(s, t, p, recv, kind, r);
+      t = table,
+    ) => peaceRegionBlock(sens, t, p, recv, kind, r);
     // Korea: a zone for anyone but Japan; nothing else, for nobody.
     expect(rb(5, "occupation_zone", 1)).toBeNull();
     expect(rb(7, "occupation_zone", 1)).toBe("zone_only");
@@ -643,17 +646,22 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     expect(plan(5, { regions: [1] }, s)).toBe("zone_only");
     expect(plan(5, { kind: "annex_rest", target: 9 }, s)).toBe("zone_only");
     // Taiwan with a claimant (6): only 6 takes it, by any take; nobody else.
-    const claimed: PeaceTable = { ...table, claims: [[6, 3]] };
-    expect(rb(6, "take", 3, claimed)).toBeNull();
-    expect(rb(5, "take_for", 3, claimed, 6)).toBeNull();
-    expect(rb(5, "take", 3, claimed)).toBe("claim_only");
-    expect(rb(5, "occupation_zone", 3, claimed)).toBe("claim_only");
-    expect(plan(5, { regions: [3] }, s, claimed)).toBe("claim_only");
+    expect(rb(6, "take", 3, sClaim)).toBeNull();
+    expect(rb(5, "take_for", 3, sClaim, 6)).toBeNull();
+    expect(rb(5, "take", 3, sClaim)).toBe("claim_only");
+    expect(rb(5, "occupation_zone", 3, sClaim)).toBe("claim_only");
+    expect(plan(5, { regions: [3] }, sClaim)).toBe("claim_only");
     // Without a claimant: the main victor's (5) zone only; never Japan.
     expect(rb(5, "occupation_zone", 3)).toBeNull();
     expect(rb(6, "occupation_zone", 3)).toBe("claim_only");
     expect(rb(5, "take", 3)).toBe("claim_only");
-    expect(rb(7, "take", 3, { ...table, claims: [[7, 3]] })).toBe("claim_only");
+    expect(rb(7, "take", 3, peaceSensitivity(groups, 7, 5, [7]))).toBe(
+      "claim_only",
+    );
+    // A war-goal claim (the conference's claims list) makes no claimant.
+    const goal: PeaceTable = { ...table, claims: [[6, 3]] };
+    expect(rb(6, "take", 3, s, 6, goal)).toBe("claim_only");
+    expect(rb(6, "occupation_zone", 3, s, 6, goal)).toBe("claim_only");
     // Another region: no rule.
     expect(rb(5, "take", 2)).toBeNull();
     // A human's wire demand on Korea is refused (bad_demand), a group skips it.

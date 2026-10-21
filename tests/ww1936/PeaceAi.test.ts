@@ -390,4 +390,85 @@ describe("World War 1936 P5: Korea and Taiwan at the conference (spec §6.9)", (
     ]);
     for (const r of KOREA) expect(ww.politics.legalOwner[r]).toBe(id("CSK"));
   });
+
+  it("a puppet settled first does not stop the Korea zones", async () => {
+    usePoliticsContent(koreaFixture());
+    const { runner, g, ww, eg } = await atWar({ historicalAi: false }, ["GBR"]);
+    const c = beatCsk(g);
+    const [gbr, sun, csk] = [id("GBR"), id("SUN"), id("CSK")];
+    // Britain (first turn) puppets the loser at slot 0, before the
+    // Soviet Union's Korea zone (its slot 0) and its own (slot 1).
+    expect(
+      submitDemands(
+        eg,
+        gbr,
+        c.id,
+        [
+          { kind: "puppet", target: csk },
+          { kind: "occupation_zone", group: "korea_south" },
+        ],
+        g.ticks(),
+      ),
+    ).toBeNull();
+    while (c.round === 1 && c.status === 1) step(runner);
+    const ok = (by: number, kind: string) =>
+      c.lastRound.find((x) => x.by === by && DEMAND_KINDS[x.kind] === kind)?.ok;
+    expect(ok(gbr, "puppet")).toBe(true);
+    expect(ok(sun, "occupation_zone")).toBe(true);
+    expect(ok(gbr, "occupation_zone")).toBe(true);
+    // Taiwan still goes to its claimant.
+    expect(
+      c.settled.some((s) => s.by === id("ITA") && s.regions.includes(TAIWAN)),
+    ).toBe(true);
+    if (c.status === 1) {
+      expect(submitDemands(eg, gbr, c.id, null, g.ticks())).toBeNull();
+      while (c.status === 1) step(runner);
+    }
+    // Control to the zones' holders; the legal owner stays.
+    for (const r of NORTH) expect(ww.land.controller[r]).toBe(sun);
+    for (const r of SOUTH) expect(ww.land.controller[r]).toBe(gbr);
+    for (const r of KOREA) expect(ww.politics.legalOwner[r]).toBe(csk);
+    expect(ww.politics.legalOwner[TAIWAN]).toBe(id("ITA"));
+  });
+
+  it("a war goal on Taiwan makes no claimant: only the static claims table does", async () => {
+    // No CLAIMS row for Taiwan; Britain declared with a claim goal on it.
+    usePoliticsContent(koreaFixture(false));
+    const { g, ww, eg } = await atWar({ historicalAi: false });
+    const [gbr, sun, csk] = [id("GBR"), id("SUN"), id("CSK")];
+    expect(
+      ww.setWar(gbr, csk, g.ticks(), {
+        kind: "declare",
+        goal: { type: "claim", group: "taiwan" },
+      }),
+    ).toBe(true);
+    const w = eg.war(eg.warOfPair(gbr, csk))!;
+    ww.setWar(sun, csk, g.ticks(), { kind: "into", warId: w.id });
+    addWarScore(eg, w.id, gbr, 6000);
+    addWarScore(eg, w.id, sun, 4000);
+    ww.land.setController(R.prague, gbr, g.ticks());
+    capitulate(g, ww, player(g, "CSK"), g.ticks());
+    const c = eg.conferences[eg.conferences.length - 1];
+    // The war goal is in the conference's claims (its price discount) …
+    expect(c.claims).toContainEqual([gbr, TAIWAN]);
+    // … but Britain is no claimant: a take is refused, only its zone (main victor).
+    const ctx = peaceCtx(eg, c);
+    const plan = (p: number, kind: "take" | "occupation_zone") =>
+      planPeaceDemand(
+        ctx.facts,
+        ctx.table,
+        p,
+        { kind, regions: [TAIWAN], target: 0, beneficiary: 0, k: 0, pct: 0 },
+        () => true,
+        ctx.sens,
+      );
+    expect(plan(gbr, "take")).toBe("claim_only");
+    expect(plan(sun, "take")).toBe("claim_only");
+    expect(plan(gbr, "occupation_zone")).toMatchObject({ all: [TAIWAN] });
+    for (const d of aiDemands(eg, c.id, gbr)) {
+      if (DEMAND_KINDS[d.kind] !== "occupation_zone") {
+        expect(d.regions).not.toContain(TAIWAN);
+      }
+    }
+  });
 });

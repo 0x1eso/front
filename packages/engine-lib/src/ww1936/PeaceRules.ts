@@ -169,13 +169,23 @@ export interface PeaceSensitivity {
   readonly excluded: number;
   /** The participant with the most war score (peaceMainVictor). */
   readonly mainVictor: number;
+  /**
+   * Taiwan's claimants: countries whose static CLAIMS row names a
+   * CLAIM_ONLY_GROUPS group (CHN, spec §16.4) — never a war goal (spec:
+   * these groups live only in the conference and claims tables).
+   */
+  readonly claimants: ReadonlySet<number>;
 }
 
-/** The rules from the content's groups (`groupRegions`: a group's regions). */
+/**
+ * The rules from the content's groups (`groupRegions`: a group's regions)
+ * and Taiwan's claimants (peaceClaimants; pass only countries still playing).
+ */
 export function peaceSensitivity(
   groupRegions: (group: string) => readonly number[],
   excluded: number,
   mainVictor: number,
+  claimants: readonly number[],
 ): PeaceSensitivity {
   const of = (groups: readonly string[]) =>
     new Set(groups.flatMap((g) => [...groupRegions(g)]));
@@ -184,7 +194,20 @@ export function peaceSensitivity(
     claimOnly: of(CLAIM_ONLY_GROUPS),
     excluded,
     mainVictor,
+    claimants: new Set(claimants),
   };
+}
+
+/** The tags whose static CLAIMS row names a CLAIM_ONLY_GROUPS group (content order). */
+export function peaceClaimantTags(
+  claims: readonly {
+    readonly tag: CountryTag;
+    readonly groups: readonly string[];
+  }[],
+): CountryTag[] {
+  return claims
+    .filter((c) => c.groups.some((g) => CLAIM_ONLY_GROUPS.includes(g)))
+    .map((c) => c.tag);
 }
 
 /** The main victor: most war score, ties the smaller smallID (round 1's first turn); 0: none. */
@@ -208,8 +231,10 @@ export function peaceMainVictor(
  * the excluded country (zone_only). Taiwan's: taken (take, take_group,
  * take_for, annex_rest) or zoned only for a participant claiming it; with
  * no claiming participant, only the main victor's occupation zone; never
- * the excluded country (claim_only). Every other region: null. The engine
- * (submissions, reservations, settling, the AI) and the card ask this.
+ * the excluded country (claim_only). A claimant is a participant in
+ * `s.claimants` (the static CLAIMS table) — a war-goal claim in `t.claims`
+ * does not count. Every other region: null. The engine (submissions,
+ * reservations, settling, the AI) and the card ask this.
  */
 export function peaceRegionBlock(
   s: PeaceSensitivity,
@@ -224,7 +249,7 @@ export function peaceRegionBlock(
   }
   if (!s.claimOnly.has(region)) return null;
   if (p === s.excluded || receiver === s.excluded) return "claim_only";
-  const holders = t.claims.filter(([, r]) => r === region).map(([x]) => x);
+  const holders = t.parts.map((x) => x.id).filter((x) => s.claimants.has(x));
   if (holders.length > 0) {
     const gets =
       kind === "take" ||
@@ -373,8 +398,9 @@ export function peaceReparationsRoom(
  * not settled, and not reserved by another participant's control this
  * round (plan decision 15). `s`: Korea's and Taiwan's rules
  * (peaceRegionBlock). A puppet settled on a loser keeps its other regions
- * (HOI4: the puppet keeps what nobody took before). Points are the
- * caller's (spent only when it settles).
+ * (HOI4: the puppet keeps what nobody took before) — except Korea's and
+ * Taiwan's, whose fixed outcomes stand. Points are the caller's (spent
+ * only when it settles).
  */
 export function planPeaceDemand(
   f: PeaceFacts,
@@ -399,7 +425,9 @@ export function planPeaceDemand(
   /** Of `regs`, those free and allowed to go to `receiver` by this kind. */
   const open = (regs: readonly number[], receiver = p): number[] =>
     regs.filter((r) => {
-      if (!free(r) || puppeted(r)) return false;
+      // Korea's and Taiwan's regions follow their own rule, not the lock.
+      const locked = puppeted(r) && !s.zoneOnly.has(r) && !s.claimOnly.has(r);
+      if (!free(r) || locked) return false;
       const b = peaceRegionBlock(s, t, p, receiver, d.kind, r);
       if (b !== null) why ??= b;
       return b === null;
