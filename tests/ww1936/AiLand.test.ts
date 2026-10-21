@@ -15,7 +15,13 @@ import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import {
   AI_ATTACK_ORG_PM,
+  AI_HOLD_DIV_WIDTH,
+  AI_HOLD_FORT_PCT,
+  AI_HOLD_WIDTHS,
+  AI_OFFENSE_DEMAND_PCT,
   AI_REATTACK_READY_BP,
+  AI_SEA_MAX_KM,
+  aiBorderDemand,
   aiFrontPlan,
   AiRole,
   aiTargets,
@@ -39,6 +45,7 @@ import {
   pol,
   step,
   stepTo,
+  takeRegion,
   warAfterPrep,
   wwGameStart,
   wwRunner,
@@ -106,6 +113,44 @@ async function aiWar(a: "DEU" | "GBR", b: "POL" | "SUN") {
 }
 
 describe("the AI's land decisions (spec §14, pure)", () => {
+  test("a border region's demand: offensive twice, a held one capped by its width and forts (Task 11)", () => {
+    const at = (
+      facing: number,
+      offensive: boolean,
+      dirs = 1,
+      fort = 0,
+      land: "plains" | "hills" = "plains",
+    ) =>
+      aiBorderDemand({
+        facingMilli: facing * 1000,
+        offensive,
+        land,
+        dirs,
+        fort,
+      });
+    // 1.2 a facing division, tenths; at least 1 division.
+    expect(at(5, false)).toBe(60);
+    expect(at(0, false)).toBe(10);
+    // An offensive front asks double (and its minimum too).
+    expect(AI_OFFENSE_DEMAND_PCT).toBe(200);
+    expect(at(5, true)).toBe(120);
+    expect(at(0, true)).toBe(20);
+    expect(at(50, true)).toBe(1200);
+    // Held: plains 90 wide, filled twice by 20-wide divisions = 9 of them.
+    expect([AI_HOLD_WIDTHS, AI_HOLD_DIV_WIDTH, AI_HOLD_FORT_PCT]).toEqual([
+      2, 20, 10,
+    ]);
+    expect(at(50, false)).toBe(90);
+    // Two ways in: 135 wide, 13.5 divisions.
+    expect(at(50, false, 2)).toBe(135);
+    // A fort takes a tenth a level off: level 5 half.
+    expect(at(50, false, 1, 5)).toBe(45);
+    // Hills are narrower (80).
+    expect(at(50, false, 1, 0, "hills")).toBe(80);
+    // Never under the minimum.
+    expect(at(50, false, 1, 9)).toBe(45);
+  });
+
   test("thresholds by personality", () => {
     expect(aiThresholdPm("aggressor")).toBe(1100);
     expect(aiThresholdPm("democracy")).toBe(1500);
@@ -350,7 +395,9 @@ describe("the AI's land war on the test map (spec §14)", () => {
     // A human's auto army runs on the AI's gates. Sixty days into the war
     // the spec's readiness gate is open, but no attack on defenders starts
     // under AI_REATTACK_READY_BP: the army fronts Warsaw from 0 readiness
-    // and attacks on the day it reaches 500 (100 a day), at full org.
+    // and attacks on the day it reaches 500 (100 a day), at full org. (An
+    // even fight: three against three, under the pursuit ratio, where no
+    // floor applies.)
     // (Poland is human too, so its division stays in Warsaw.)
     const runner = await wwRunner({ historicalAi: false }, [
       { clientID: HUMAN, country: "DEU" },
@@ -377,7 +424,7 @@ describe("the AI's land war on the test map (spec §14)", () => {
       for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 10_000;
     }
     const a = placeArmy(g, "DEU", 3, 3);
-    placeArmy(g, "POL", 6, 1);
+    placeArmy(g, "POL", 6, 3);
     expect(
       l.issue(deu, { kind: "army_front", army: a.id, anchor: 3, enemy: pol }),
     ).toBe(null);
@@ -416,6 +463,24 @@ describe("the AI's land war on the test map (spec §14)", () => {
     expect(g.worldWar()!.isAtWar(fra, deu)).toBe(true);
     for (const r of plans(fra)) expect([fra, gbr]).toContain(owners[r]);
     expect(plans(deu).length).toBeGreaterThan(0);
+    // Round 2: once Germany holds Paris, the rule is lifted: France plans
+    // into German land too (Germany's divisions gone, so France attacks).
+    takeRegion(g, 1, "DEU");
+    for (let r = 0; r < l.divisions.rows; r++) {
+      if (l.divisions.alive(r) && l.divisions.owner[r] === deu) {
+        l.killDivision(r, false);
+      }
+    }
+    const from = calls.length;
+    stepTo(runner, 12_000 + 30 * 8);
+    const later = calls
+      .slice(from)
+      .flatMap((c) =>
+        c.smallID === fra && c.order.kind === "army_plan"
+          ? c.order.targets
+          : [],
+      );
+    expect(later.some((r) => owners[r] === deu)).toBe(true);
   }, 120_000);
 
   test("guards hold the capital and the victory points near the enemy, measured on the high-water mark", async () => {
@@ -653,6 +718,13 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
       ).toBe(true);
     }
     expect(new Set(start.map((a) => a.order.anchor)).size).toBe(2);
+    // The AI's sea reach (Task 11: 6,000 km) covers Italy's ports to
+    // Eritrea's, which 3,000 km did not.
+    const napoli = sc.landRegions.find((r) => r.name === "Napoli")!.id;
+    const eritrea = sc.landRegions.find((r) => r.name === "Eritrea")!.id;
+    expect(sc.isPort(napoli) && sc.isPort(eritrea)).toBe(true);
+    expect(sc.regionKm(napoli, eritrea)).toBeGreaterThan(3000);
+    expect(sc.regionKm(napoli, eritrea)).toBeLessThanOrEqual(AI_SEA_MAX_KM);
     // Day 0's front step (and the AI's day) keeps them.
     stepTo(runner, dayStartTick(1, WW_PREP_TICKS) + WW_DAY_SPLIT);
     for (const a of start) {

@@ -15,6 +15,8 @@ import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_FALLBACK_AHEAD_PCT,
+  AI_SUPPORT_RESERVE,
+  AI_SUPPORT_SHORT_PTS,
   AI_SWITCH_DAY,
   aiInput,
   AiInput,
@@ -415,6 +417,24 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       const s = aiLineShares(tag, true, light, false);
       expect(Object.values(s).reduce((a, b) => a + b, 0)).toBe(100);
     }
+  });
+
+  test("a major short of support equipment moves rifle points to support (P2 Task 11)", () => {
+    const light = new Set<WwTechId>(["light_tank_1"]);
+    const base = aiLineShares("DEU", true, light, false);
+    const short = aiLineShares("DEU", true, light, false, true);
+    expect(short.support_equipment).toBe(
+      base.support_equipment + AI_SUPPORT_SHORT_PTS,
+    );
+    expect(short.infantry_equipment).toBe(
+      base.infantry_equipment - AI_SUPPORT_SHORT_PTS,
+    );
+    expect(Object.values(short).reduce((a, b) => a + b, 0)).toBe(100);
+    // A minor's shares do not move.
+    expect(aiLineShares("POL", false, light, false, true)).toEqual(
+      aiLineShares("POL", false, light, false),
+    );
+    expect([AI_SUPPORT_RESERVE, AI_SUPPORT_SHORT_PTS]).toEqual([400, 5]);
   });
 
   test("doctrine by country", () => {
