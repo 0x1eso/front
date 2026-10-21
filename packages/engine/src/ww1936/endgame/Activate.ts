@@ -109,7 +109,7 @@ export function activateCountry(
   if (fresh) {
     startEconomy(eg, id, tag, regions, opts);
     startArmy(eg, id, regions, opts);
-    startPolitics(eg, id, was === CS_GONE, opts, tick);
+    startPolitics(eg, id, was === CS_GONE);
   }
   // 3. The faction, straight in (no P3 join rule).
   const pol = ww.politics;
@@ -124,7 +124,8 @@ export function activateCountry(
     if (pol.factionIdx(id) >= 0) leaveFaction(pol, id, tick);
     joinFaction(pol, id, want, tick);
   }
-  // Spec §9.5: a subject from its first tick (lane S).
+  // Spec §9.5: a subject from its first tick (lane S). First: S gives a
+  // new subject its overlord's government, which `government` then replaces.
   if (opts.overlord !== undefined) {
     makeSubject(
       eg,
@@ -134,6 +135,14 @@ export function activateCountry(
       opts.overlord.neutral ?? false,
       tick,
     );
+  }
+  // Spec §3.3-7: a `government` changes ideology and leader (P3 §5.6).
+  const g = opts.government;
+  if (g !== undefined) {
+    setGovernment(pol, id, IDEOLOGIES.indexOf(g.ideology), tick);
+    if (g.leader !== undefined) setLeader(pol, id, g.leader, tick);
+    pol.recomputeStats(id);
+    pol.markCountry(id);
   }
   // 9–10. The screens and everyone hear of it.
   if (fresh) {
@@ -289,15 +298,9 @@ function topUp(slots: number[], need: readonly number[]): void {
  * Spec §3.3-7, §3.4: a dormant slot keeps P3's starting values (its row of
  * the politics table), with the generic tree and 100 political power; a
  * revived one keeps its politics, stability 50% and war support 40% at
- * base. A `government` changes ideology and leader (P3 §5.6).
+ * base. (A `government` comes after the overlord, in activateCountry.)
  */
-function startPolitics(
-  eg: WwEndgame,
-  id: number,
-  revived: boolean,
-  opts: ActivateOpts,
-  tick: number,
-): void {
+function startPolitics(eg: WwEndgame, id: number, revived: boolean): void {
   const pol = eg.ww.politics;
   const c = pol.country(id);
   if (c === null) return;
@@ -312,11 +315,6 @@ function startPolitics(
     c.focus = null;
     c.queued = null;
     c.ppMilli = 100_000;
-  }
-  const g = opts.government;
-  if (g !== undefined) {
-    setGovernment(pol, id, IDEOLOGIES.indexOf(g.ideology), tick);
-    if (g.leader !== undefined) setLeader(pol, id, g.leader, tick);
   }
   pol.recomputeStats(id);
   pol.markCountry(id);
