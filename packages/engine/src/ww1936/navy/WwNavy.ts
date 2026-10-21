@@ -851,7 +851,7 @@ export class WwNavy {
       case "army_invade":
       case "invasion_execute":
       case "invasion_cancel":
-        block = issueInvasionOrder(this, smallID, order, tick); // I
+        block = issueInvasionOrder(this, smallID, order, tick, by); // I
         break;
       default:
         return "bad_index";

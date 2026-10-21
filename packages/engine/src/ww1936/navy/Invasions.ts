@@ -10,6 +10,7 @@ import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   type CombatMods,
   idleOrder,
+  type LandOrderSource,
   MOVE_ADVANCE,
   MOVE_RAIL,
   MOVE_RETREAT,
@@ -101,17 +102,29 @@ export function issueInvasionOrder(
   smallID: number,
   order: InvasionOrder,
   tick: number,
+  by: LandOrderSource = "player",
 ): WwOrderBlock | null {
   const a = navy.land.armies.get(order.army);
   if (a === undefined || a.owner !== smallID) return "no_army";
+  let block: WwOrderBlock | null;
   switch (order.kind) {
     case "army_invade":
-      return orderInvasion(navy, a, order.target);
+      block = orderInvasion(navy, a, order.target);
+      break;
     case "invasion_execute":
-      return launchInvasion(navy, a.id, tick);
+      block = launchInvasion(navy, a.id, tick);
+      break;
     case "invasion_cancel":
-      return cancelOrder(navy, a);
+      block = cancelOrder(navy, a);
+      break;
   }
+  // P2 issueArmyOrder (spec §8.5): a player's order turns the army's auto
+  // off; the AI's does not.
+  if (block === null && by === "player" && a.auto) {
+    a.auto = false;
+    navy.land.markArmy(a.id);
+  }
+  return block;
 }
 
 /** Where an army stands for an invasion: one port of its side, nobody busy. */

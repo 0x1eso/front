@@ -23,6 +23,7 @@ import {
   weatherAt,
 } from "@openfront/engine-lib/ww1936/Weather";
 import { assignGeneral } from "@openfront/engine/ww1936/land/GeneralsRun";
+import { atSea, liftDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import {
   dailySustain,
   foughtTest,
@@ -93,6 +94,23 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     t.supply[r] = 0;
     dailySustain(l, id, SUMMER + 2);
     expect(t.men[r]).toBe(6_575 - Math.floor((6_575 * 10) / 1000));
+  });
+
+  test("a division on a convoy gets no reinforcement or upgrade until it lands (P4)", async () => {
+    const { l, id, ce, r, a } = await oneDivision();
+    const t = l.divisions;
+    l.setMen(r, 5_000);
+    l.addEquip(r, slot(INF1), -300);
+    ce.stock[INF2] = 1_000;
+    liftDivisions(l, [a.divisions[0]]);
+    expect(atSea(l, r)).toBe(true);
+    const manpower = ce.manpower;
+    const rifles = [ce.stock[INF1], ce.stock[INF2]];
+    dailySustain(l, id, SUMMER);
+    expect(t.men[r]).toBeLessThanOrEqual(5_000);
+    expect(ce.manpower).toBe(manpower);
+    expect([ce.stock[INF1], ce.stock[INF2]]).toEqual(rifles);
+    expect(t.equip[r * GROUND_SLOTS + slot(INF2)]).toBe(0);
   });
 
   test("experience dilutes on reinforcement (half with a field hospital)", async () => {

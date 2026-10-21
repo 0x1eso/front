@@ -18,6 +18,7 @@ import {
   ARMY_BATTLE,
   ARMY_ENCIRCLED,
   ARMY_EXECUTING,
+  ARMY_INVADE,
   ARMY_MOVING,
   ARMY_ORDER_KINDS,
   ARMY_PARA,
@@ -1875,6 +1876,8 @@ export class WwLand {
     if (a.order.executing) state |= ARMY_EXECUTING;
     if (a.auto) state |= ARMY_AUTO;
     if (a.order.kind === "paradrop") state |= ARMY_PARA;
+    // P4 (lane I): preparing or sailing a naval invasion.
+    if (a.order.kind === "invade") state |= ARMY_INVADE;
     let move: ArmySummary["move"] = null;
     let eta = -1;
     if (slowest >= 0) {

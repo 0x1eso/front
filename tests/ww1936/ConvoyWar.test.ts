@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { routeFor } from "@openfront/engine/ww1936/navy/Convoys";
 import {
   convoyLossPmOf,
   convoyWar,
@@ -25,7 +26,7 @@ import {
   war,
 } from "./convoyUtil";
 import { REGION, SR, TAG_ID, ZONE } from "./seaFixture";
-import { step, stepTo, withTestPolitics } from "./util";
+import { placeArmy, step, stepTo, withTestPolitics } from "./util";
 
 withTestPolitics();
 
@@ -51,6 +52,9 @@ function britishRoute(navy: WwNavy, got: number, day: number): SeaRoute {
 async function raiders(): Promise<{ g: SeaGame; day: number; idx: number }> {
   const g = await seaGame();
   war(g, "ITA", "GBR");
+  // Lane E's fuel: Italy has none of its own on the sea map, and raiders
+  // without fuel raid nothing once its day has run.
+  g.ce("ITA").fuelMilli = 1_000_000_000;
   fleetAtSea(
     g.navy,
     TAG_ID.ITA,
@@ -205,6 +209,70 @@ describe("convoy war (spec §10.6)", () => {
     const next = navy.ships.rowOf(ids[sunk]);
     expect(maxHp - navy.ships.hp[next]).toBe(dmg - sunk * maxHp);
   });
+
+  test("on the clock: a real supply route, raiders and escorts sent by order, real spotting", async () => {
+    // Lanes C, N1 and N2 together, nothing hand-set but the board: a
+    // British division on Malta (supplied over the Western Approaches and
+    // the Central Waters), Italian submarines ordered to raid the Central
+    // Waters, later British destroyers ordered to escort there. Italy's
+    // start ships are taken off (a surface battle is N2's test) and Italy
+    // gets fuel (none of its own on the sea map: E's fuel would keep the
+    // submarines in port).
+    const g = await seaGame();
+    const { ww, navy, runner } = g;
+    const game = runner.game;
+    war(g, "ITA", "GBR");
+    for (const f of navy.fleetsOf(TAG_ID.ITA)) {
+      for (const id of [...f.ships]) navy.removeShip(id, false, game.ticks());
+    }
+    g.ce("ITA").fuelMilli = 1_000_000_000;
+    placeArmy(game, "GBR", REGION.malta, 1);
+    const order = (who: number, fleet: number, mission: "raid" | "escort") =>
+      navy.issue(
+        who,
+        { kind: "fleet_mission", fleet, mission, sr: SR.central },
+        game.ticks(),
+      );
+    const subs = navy.createFleet(TAG_ID.ITA, REGION.rome, [["ss", 2, 30]]);
+    expect(order(TAG_ID.ITA, subs, "raid")).toBeNull();
+    const idx = ww.scenario.srIdxOf(SR.central);
+    const day0 = ww.day(game.ticks());
+    const days = (from: number, to: number, each: () => void) => {
+      for (let d = from; d <= to; d++) {
+        stepTo(runner, dayTick(d, 6));
+        each();
+      }
+    };
+    // Raiders alone: Malta's supply convoys go down in the Central Waters.
+    let lost = 0;
+    days(day0 + 1, day0 + 10, () => {
+      lost += navy.srState[idx].lossYesterday.get(TAG_ID.GBR) ?? 0;
+    });
+    const r = routeFor(navy, "supply", TAG_ID.GBR, REGION.malta)!;
+    expect(r.srs).toContain(SR.central);
+    expect(lost).toBeGreaterThan(0);
+    expect(navy.srState[idx].raidedYesterday).toContain(subs);
+    // Escorts sent there: they spot the raiders and hurt them (ASW or a
+    // battle with them).
+    const escorts = navy.createFleet(TAG_ID.GBR, REGION.london, [
+      ["dd", 1, 40],
+    ]);
+    expect(order(TAG_ID.GBR, escorts, "escort")).toBeNull();
+    const ids = [...navy.fleets.get(subs)!.ships];
+    const hpOf = () =>
+      ids.reduce((n, id) => {
+        const row = navy.ships.rowOf(id);
+        return n + (row < 0 ? 0 : navy.ships.hp[row]);
+      }, 0);
+    const hp0 = hpOf();
+    const gbrSide = ww.land.sideOf(TAG_ID.GBR);
+    let spotted = false;
+    days(day0 + 11, day0 + 25, () => {
+      spotted ||= navy.spotted(gbrSide, subs);
+    });
+    expect(spotted).toBe(true);
+    expect(hpOf()).toBeLessThan(hp0);
+  }, 120_000);
 
   test("the loss ring and messages", async () => {
     const { g, day } = await raiders();
