@@ -67,7 +67,7 @@ export interface LandTapDeps {
   /** P4 (plan decision 40): the navy's and the air war's taps; null: none. */
   seaAir: Pick<
     WwSeaAirController,
-    "handleTap" | "keepsArmy" | "selectFleet"
+    "handleTap" | "keepsArmy" | "selectFleet" | "selectZone"
   > | null;
 }
 
@@ -341,8 +341,11 @@ export class WwLandController implements Controller {
 
   private select(army: number | null): void {
     this.selection.select(army);
-    // One card at a time: an army hides the fleet's (P4).
-    if (army !== null) this.deps.seaAir?.selectFleet(0);
+    // One card at a time: an army hides the fleet's and the zone's (P4).
+    if (army !== null) {
+      this.deps.seaAir?.selectFleet(0);
+      this.deps.seaAir?.selectZone(0);
+    }
     this.unregisterBack?.();
     this.unregisterBack = null;
     if (army !== null) {

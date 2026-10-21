@@ -11,6 +11,7 @@ import {
   DialColor,
   ringSvg,
 } from "../domestic/Dial";
+import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { airDial, AirDialModel } from "./AirModel";
 import {
   IndustryDial,
@@ -83,6 +84,12 @@ export interface WwDialsModel {
   air: AirDialModel | null;
   /** The air layer is on (the ✈ dial is pressed). */
   airLayer: boolean;
+  /**
+   * A short landscape screen: the 208 px block rises out of the bottom
+   * rows instead of making them tall, so the drawers above the rows keep
+   * their height (the cards keep right of it, WwArmyCard.cardPlace).
+   */
+  compact: boolean;
 }
 
 /**
@@ -157,6 +164,7 @@ export class WwDials extends LitElement implements Controller {
       navy: ctx === null ? null : navyDial(ctx, this.losses),
       air: ctx === null ? null : airDial(ctx),
       airLayer: seaAirOf(this.game).selection.layer === "air",
+      compact: window.innerHeight <= COMPACT_MAX_HEIGHT,
     };
   }
 
@@ -165,52 +173,65 @@ export class WwDials extends LitElement implements Controller {
     if (m === null) return nothing;
     const i = m.industry;
     const r = m.research;
-    return html`
-      ${DIAL_STYLES}
-      <div
-        data-ww-dials
-        data-cols=${WW_DIAL_COLS}
-        class="grid grid-cols-2 items-start gap-2 px-1.5 py-1 text-white select-none"
-        @contextmenu=${(e: Event) => e.preventDefault()}
-      >
-        ${this.renderDial(
-          "industry",
-          i.queued > 0 ? "building" : "idle",
-          translateText("ww1936.econ.industry"),
-          ringSvg(i.progress, i.queued > 0 ? "victory" : "grey"),
-          "🏭",
-          null,
-          i.idle > 0
-            ? this.badge(
-                "idle",
-                i.idle,
-                "bg-amber-400 text-gray-900",
-                translateText("ww1936.econ.idle_factories", { n: i.idle }),
-              )
-            : nothing,
-          () => this.eventBus.emit(new OpenWwIndustryEvent()),
-        )}
-        ${this.renderDial(
-          "research",
-          r.free > 0 ? "free" : "running",
-          translateText("ww1936.econ.research"),
-          ringSvg(r.free > 0 && r.running === 0 ? 1 : r.progress, "science"),
-          "🔬",
-          r.free > 0 ? "science" : null,
-          r.free > 0
-            ? this.badge(
-                "free",
-                r.free,
-                "bg-yellow-300 text-gray-900",
-                translateText("ww1936.econ.free_slots", { n: r.free }),
-              )
-            : nothing,
-          () => this.eventBus.emit(new OpenWwResearchEvent()),
-        )}
-        ${m.army === null ? nothing : this.renderArmy(m.army)}
-        ${this.renderPolitics(m)} ${this.renderSeaAir(m)}
-      </div>
-    `;
+    const grid = html`<div
+      data-ww-dials
+      data-cols=${WW_DIAL_COLS}
+      data-compact=${String(m.compact)}
+      class="grid grid-cols-2 items-start gap-2 px-1.5 py-1 text-white select-none ${m.compact
+        ? "absolute bottom-0 left-0 rounded-t-lg bg-gray-800/92"
+        : ""}"
+      @contextmenu=${(e: Event) => e.preventDefault()}
+    >
+      ${this.renderDial(
+        "industry",
+        i.queued > 0 ? "building" : "idle",
+        translateText("ww1936.econ.industry"),
+        ringSvg(i.progress, i.queued > 0 ? "victory" : "grey"),
+        "🏭",
+        null,
+        i.idle > 0
+          ? this.badge(
+              "idle",
+              i.idle,
+              "bg-amber-400 text-gray-900",
+              translateText("ww1936.econ.idle_factories", { n: i.idle }),
+            )
+          : nothing,
+        () => this.eventBus.emit(new OpenWwIndustryEvent()),
+      )}
+      ${this.renderDial(
+        "research",
+        r.free > 0 ? "free" : "running",
+        translateText("ww1936.econ.research"),
+        ringSvg(r.free > 0 && r.running === 0 ? 1 : r.progress, "science"),
+        "🔬",
+        r.free > 0 ? "science" : null,
+        r.free > 0
+          ? this.badge(
+              "free",
+              r.free,
+              "bg-yellow-300 text-gray-900",
+              translateText("ww1936.econ.free_slots", { n: r.free }),
+            )
+          : nothing,
+        () => this.eventBus.emit(new OpenWwResearchEvent()),
+      )}
+      ${m.army === null ? nothing : this.renderArmy(m.army)}
+      ${this.renderPolitics(m)} ${this.renderSeaAir(m)}
+    </div>`;
+    // The footprint the rows keep: one row of dials.
+    return html`${DIAL_STYLES}
+    ${m.compact
+      ? html`<div
+          data-ww-dials-slot
+          class="relative"
+          style="width: ${WW_DIAL_COLS * WW_DIAL_SIZE_PX +
+          WW_DIAL_GAP_PX +
+          12}px; height: ${WW_DIAL_SIZE_PX + 2 * WW_DIAL_PAD_PX}px"
+        >
+          ${grid}
+        </div>`
+      : grid}`;
   }
 
   /**

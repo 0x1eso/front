@@ -18,6 +18,7 @@ import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { hitFleet, layoutFleets } from "../../view/FleetTokenLayout";
+import { landSelectionOf, WwSelectArmyEvent } from "./LandSelection";
 import {
   invasionPreview,
   invasionTargets,
@@ -391,8 +392,9 @@ export class WwSeaAirController implements Controller {
       d.mode = "none";
       d.pending = 0;
     }
-    // One card at a time: a fleet hides the zone's card.
+    // One card at a time: a fleet hides the zone's card and the army's.
     if (fleet !== 0 && sel.sr !== 0) sel.selectZone(0);
+    if (fleet !== 0) this.dropArmy();
     this.unregisterBack?.();
     this.unregisterBack = null;
     if (fleet !== 0) {
@@ -407,9 +409,19 @@ export class WwSeaAirController implements Controller {
 
   selectZone(sr: number): void {
     const sel = this.selection;
+    if (sel.sr === sr) return;
     sel.selectZone(sr);
     if (sr !== 0 && sel.fleet !== 0) this.selectFleet(0);
+    if (sr !== 0) this.dropArmy();
     this.changed();
+  }
+
+  /** The army card gives way (not while a landing's taps keep the army). */
+  private dropArmy(): void {
+    if (this.draft.mode === "invade") return;
+    if (landSelectionOf(this.game).army !== null) {
+      this.eventBus.emit(new WwSelectArmyEvent(null));
+    }
   }
 
   setLayer(layer: SeaAirSelection["layer"]): void {

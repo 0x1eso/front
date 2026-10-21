@@ -16,15 +16,21 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 }));
 
 import {
+  landSelectionOf,
+  WwSelectArmyEvent,
+} from "../../../src/client/hud/ww1936/LandSelection";
+import {
   WwAirLayerEvent,
   WwAirZoneSelectedEvent,
 } from "../../../src/client/hud/ww1936/SeaAirSelection";
 import "../../../src/client/hud/ww1936/WwAirZoneCard";
 import type { WwAirZoneCard } from "../../../src/client/hud/ww1936/WwAirZoneCard";
+import { WwLandController } from "../../../src/client/hud/ww1936/WwLandController";
 import { WwSeaAirController } from "../../../src/client/hud/ww1936/WwSeaAirController";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { REGION, SR } from "../../ww1936/seaFixture";
-import { airDetail, seaGame, SeaOptions, SID } from "./SeaAirFixture";
+import { army, division, landDetail, mine } from "./LandFixture";
+import { airDetail, sea, seaGame, SeaOptions, SID } from "./SeaAirFixture";
 
 async function mount(o: SeaOptions = {}) {
   const g = seaGame({
@@ -162,5 +168,47 @@ describe("<ww-air-zone-card> (spec §18.6)", () => {
     await m.release(50);
     expect(m.sent).toEqual([]);
     expect(m.q("[data-ww-block]")!.dataset.wwBlock).toBe("no_air_base");
+  });
+});
+
+describe("the air layer only colours (spec §18.11)", () => {
+  it("with the layer on, my army token is still tapped first; a region tap picks the zone", async () => {
+    const g = seaGame({
+      armies: [army(1, "GBR", REGION.london, { mine: mine() })],
+      landDetails: [
+        landDetail("GBR", { divisions: [division(1, 1, REGION.london)] }),
+      ],
+    });
+    const bus = new EventBus();
+    const seaAir = new WwSeaAirController(g.game as never, bus, () => 4, {
+      layout: () => [],
+      hit: () => 0,
+    });
+    seaAir.init();
+    const t = sea.centerTile(REGION.london);
+    const [lx, ly] = [t % sea.width, Math.floor(t / sea.width)];
+    const land = new WwLandController(
+      g.game as never,
+      bus,
+      { scale: 4, screenToWorldCoordinatesFloat: (x, y) => ({ x, y }) },
+      {
+        layout: () => [
+          { army: 1, region: REGION.london, x: lx, y: ly } as never,
+        ],
+        hit: (slots, x, y) =>
+          Math.abs(x - lx) + Math.abs(y - ly) < 2 ? 1 : null,
+        markers: () => [],
+        seaAir,
+      },
+    );
+    land.init();
+    bus.emit(new WwAirLayerEvent(true));
+    expect(land.tap(lx, ly)).toBe(true);
+    expect(landSelectionOf(g.game).army).toBe(1);
+    expect(seaAir.selection.sr).toBe(0);
+    // Let go of the army: a region tap now chooses the air zone.
+    bus.emit(new WwSelectArmyEvent(null));
+    expect(land.tap(65, 85)).toBe(true);
+    expect(seaAir.selection.sr).toBe(SR.westLand);
   });
 });

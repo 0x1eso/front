@@ -166,6 +166,12 @@ export interface CardPlace {
   bottom: number;
   /** px from the right edge when a drawer is open (left of it); null: centred. */
   right: number | null;
+  /**
+   * P4: px from the left edge on a short screen whose dials rise out of
+   * the bottom rows (WwDials compact): the card keeps right of them.
+   * Absent or null: as before.
+   */
+  left?: number | null;
   maxWidth: number;
   /** A quarter of the screen at most, and clear of the map's middle half. */
   maxHeight: number;
@@ -174,6 +180,8 @@ export interface CardPlace {
 const GAP = 8;
 /** Two rows of 36 px buttons and the padding: a card is never shorter. */
 export const CARD_MIN_PX = 88;
+/** P4: beside the risen dials a card needs at least this much width. */
+export const CARD_MIN_WIDTH_PX = 300;
 
 /**
  * A land card's place (spec §15.4, §15.9): bottom centre, right above the
@@ -197,6 +205,22 @@ export function cardPlace(): CardPlace {
     CARD_MIN_PX,
     Math.min(Math.floor(h / 4), Math.floor(rowsTop - GAP - (h * 3) / 4)),
   );
+  // P4: the risen dials (a short screen) stand above the rows' top: the
+  // card keeps right of them — unless an open drawer leaves too little
+  // room there; then it covers them (the drawer they open is open).
+  const dials = shown("[data-ww-dials][data-compact='true']");
+  if (dials !== null && dials.top < rowsTop - GAP) {
+    const end = drawer === null ? window.innerWidth - GAP : drawer.left - GAP;
+    const left =
+      end - (dials.right + GAP) >= CARD_MIN_WIDTH_PX ? dials.right + GAP : GAP;
+    return {
+      bottom,
+      right: null,
+      left,
+      maxWidth: Math.max(0, Math.min(560, end - left)),
+      maxHeight,
+    };
+  }
   if (drawer === null) {
     return {
       bottom,
@@ -215,6 +239,9 @@ export function cardPlace(): CardPlace {
 
 export function placeStyle(p: CardPlace): string {
   const size = `max-width: ${p.maxWidth}px; max-height: ${p.maxHeight}px;`;
+  if (p.left !== undefined && p.left !== null) {
+    return `bottom: ${p.bottom}px; left: ${p.left}px; ${size}`;
+  }
   return p.right === null
     ? `bottom: ${p.bottom}px; left: 50%; transform: translateX(-50%); ${size}`
     : `bottom: ${p.bottom}px; right: ${p.right}px; ${size}`;
@@ -224,6 +251,7 @@ export function samePlace(a: CardPlace, b: CardPlace): boolean {
   return (
     a.bottom === b.bottom &&
     a.right === b.right &&
+    (a.left ?? null) === (b.left ?? null) &&
     a.maxWidth === b.maxWidth &&
     a.maxHeight === b.maxHeight
   );

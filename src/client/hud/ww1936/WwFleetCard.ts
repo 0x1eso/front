@@ -316,11 +316,11 @@ export class WwFleetCard extends LitElement implements Controller {
       data-ww-fleet-card=${f.id}
       data-collapsed="true"
       aria-label=${c.card.name}
-      class="fixed z-[1001] flex items-center gap-1.5 rounded-lg border border-white/15 bg-gray-900/70 p-0.5 pl-2 text-xs text-white shadow-xl"
+      class="fixed z-[1001] flex items-center gap-1.5 overflow-hidden rounded-lg border border-white/15 bg-gray-900/70 p-0.5 pl-2 text-xs text-white shadow-xl"
       style=${placeStyle(this.place)}
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
-      <span class="shrink-0 font-bold">${c.card.name}</span>
+      <span class="min-w-0 shrink truncate font-bold">${c.card.name}</span>
       <span class="shrink-0 tabular-nums text-white/70"
         >${translateText("ww1936.navy.ships_total", {
           n: c.card.numbers.ships,
@@ -386,6 +386,81 @@ export class WwFleetCard extends LitElement implements Controller {
     const d = c.card;
     const f = d.fleet;
     const line = this.renderLine(c);
+    // A landscape phone's card (two rows of 36 px at most) stacks: the
+    // name, ships and bars in one row, every button in the next; the
+    // admiral and the details wait for the drawer.
+    const roomy = this.place.maxHeight > CARD_MIN_PX;
+    const counts = html`<button
+      type="button"
+      data-ww-fleet-counts
+      aria-expanded=${String(this.showShips)}
+      class="flex min-h-9 min-w-0 items-center gap-x-2 overflow-hidden text-left tabular-nums"
+      @click=${() => (this.showShips = !this.showShips)}
+    >
+      <span class="shrink-0 text-sm font-bold">${d.name}</span>
+      ${d.counts.map(
+        ([cls, n]) =>
+          html`<span data-ww-fleet-count=${cls} class="shrink-0"
+            ><span aria-hidden="true">${SHIP_ICONS[cls]}</span
+            ><span class="sr-only">${shipClassName(cls)}</span>${n}</span
+          >`,
+      )}
+      <span class="shrink-0 text-white/60">${this.showShips ? "▾" : "▸"}</span>
+    </button>`;
+    const status = html`<div
+      data-ww-fleet-status
+      class="flex ${roomy
+        ? "flex-wrap"
+        : "min-w-0 flex-1 truncate"} gap-x-2 text-white/80"
+    >
+      <span>${translateText(d.status.key, d.status.params)}</span>
+      ${d.lowFuel
+        ? html`<span data-ww-low-fuel class="text-red-300"
+            >${translateText("ww1936.navy.state_no_fuel")}</span
+          >`
+        : nothing}
+      <span data-ww-fleet-fuel
+        >${translateText("ww1936.navy.fuel_day", {
+          n: (d.numbers.fuelPerDayMilli / 1000).toFixed(1),
+        })}</span
+      >
+      <span data-ww-fleet-engage
+        >${translateText("ww1936.navy.engage_line", {
+          rule: engageName(f.engage),
+        })}</span
+      >
+      <span data-ww-fleet-return
+        >${translateText("ww1936.navy.return_line", {
+          pct: f.returnAtPct,
+        })}</span
+      >
+    </div>`;
+    if (!roomy) {
+      return html`<section
+        data-ww-fleet-card=${f.id}
+        data-collapsed="false"
+        aria-label=${d.name}
+        class="fixed z-[1001] flex flex-col gap-1 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1 text-xs text-white shadow-xl"
+        style=${placeStyle(this.place)}
+        @contextmenu=${(e: Event) => e.preventDefault()}
+      >
+        <div class="flex min-w-0 items-center gap-1.5">
+          ${counts}
+          <div class="w-14 shrink-0">${this.renderBars(f.hpPm, f.orgPm)}</div>
+          ${line !== nothing
+            ? html`<span class="min-w-0 flex-1 truncate">${line}</span>`
+            : status}
+          ${this.foldButton(false)} ${this.closeButton()}
+        </div>
+        ${this.showShips ? this.renderShips(c) : nothing}
+        <div
+          data-ww-card-buttons=${this.panel}
+          class="grid auto-cols-fr grid-flow-col gap-1"
+        >
+          ${this.renderPanel(c)}
+        </div>
+      </section>`;
+    }
     return html`<section
       data-ww-fleet-card=${f.id}
       data-collapsed="false"
@@ -395,57 +470,9 @@ export class WwFleetCard extends LitElement implements Controller {
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div class="flex min-w-0 items-baseline gap-1.5">
-          <span class="shrink-0 text-sm font-bold">${d.name}</span>
-          ${this.renderAdmiral(d)}
-        </div>
-        <button
-          type="button"
-          data-ww-fleet-counts
-          aria-expanded=${String(this.showShips)}
-          class="flex min-h-9 flex-wrap items-center gap-x-2 text-left tabular-nums"
-          @click=${() => (this.showShips = !this.showShips)}
-        >
-          ${d.counts.map(
-            ([cls, n]) =>
-              html`<span data-ww-fleet-count=${cls}
-                ><span aria-hidden="true">${SHIP_ICONS[cls]}</span>
-                <span class="sr-only">${shipClassName(cls)}</span>${n}</span
-              >`,
-          )}
-          <span class="text-white/60">${this.showShips ? "▾" : "▸"}</span>
-        </button>
+        ${counts} ${this.renderAdmiral(d)}
         ${this.showShips ? this.renderShips(c) : nothing}
-        ${this.renderBars(f.hpPm, f.orgPm)}
-        ${line !== nothing && this.place.maxHeight <= CARD_MIN_PX
-          ? nothing
-          : html`<div
-              data-ww-fleet-status
-              class="flex flex-wrap gap-x-2 text-white/80"
-            >
-              <span>${translateText(d.status.key, d.status.params)}</span>
-              ${d.lowFuel
-                ? html`<span data-ww-low-fuel class="text-red-300"
-                    >${translateText("ww1936.navy.state_no_fuel")}</span
-                  >`
-                : nothing}
-              <span data-ww-fleet-fuel
-                >${translateText("ww1936.navy.fuel_day", {
-                  n: (d.numbers.fuelPerDayMilli / 1000).toFixed(1),
-                })}</span
-              >
-              <span data-ww-fleet-engage
-                >${translateText("ww1936.navy.engage_line", {
-                  rule: engageName(f.engage),
-                })}</span
-              >
-              <span data-ww-fleet-return
-                >${translateText("ww1936.navy.return_line", {
-                  pct: f.returnAtPct,
-                })}</span
-              >
-            </div>`}
-        ${line}
+        ${this.renderBars(f.hpPm, f.orgPm)} ${status} ${line}
       </div>
       <div
         data-ww-card-buttons=${this.panel}
@@ -568,6 +595,13 @@ export class WwFleetCard extends LitElement implements Controller {
             : "flex flex-wrap items-baseline gap-x-2"}"
         >
           <span>${MISSION_ICONS[d.mission]} ${srName(sc, p.sr)}</span>
+          ${p.block === null
+            ? html`<span data-ww-tap-again class="font-semibold text-amber-200"
+                >${translateText("ww1936.navy.preview_confirm")}</span
+              >`
+            : html`<span data-ww-block=${p.block} class="text-red-300"
+                >🔒 ${blockText(p.block)}</span
+              >`}
           <span data-ww-preview-sup
             >${translateText("ww1936.navy.preview_sup", {
               pct: Math.floor(p.supPm / 10),
@@ -600,13 +634,6 @@ export class WwFleetCard extends LitElement implements Controller {
               n: (p.fuelPerDayMilli / 1000).toFixed(1),
             })}</span
           >
-          ${p.block === null
-            ? html`<span data-ww-tap-again class="font-semibold text-amber-200"
-                >${translateText("ww1936.navy.preview_confirm")}</span
-              >`
-            : html`<span data-ww-block=${p.block} class="text-red-300"
-                >🔒 ${blockText(p.block)}</span
-              >`}
         </span>`;
       }
       case "move": {
