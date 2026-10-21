@@ -19,7 +19,8 @@ const HUMAN = "HUMANPOL";
 const SAMPLES: [WwOrder, string | null][] = [
   [{ kind: "peace_submit", conf: 1, demands: [] }, "not_participant"],
   [{ kind: "peace_pass", conf: 1 }, "not_participant"],
-  [{ kind: "occupation_law", of: 0, law: "occ_civil" }, "not_integrable"],
+  // Lane O: Poland's 50 political power pays the 25 (no longer the stub's refusal).
+  [{ kind: "occupation_law", of: 0, law: "occ_civil" }, null],
   [{ kind: "integrate_region", region: 15 }, "not_integrable"],
   [
     {
