@@ -57,6 +57,7 @@ import {
   aiPersonality,
 } from "../economy/AiEconomy";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { aiOverseasWarScore } from "../navy/AiNavy";
 import { candidatesFor } from "./Advisors";
 import { evalCondition } from "./Conditions";
 import {
@@ -745,6 +746,7 @@ export function aiWarScore(
     against <= 0
       ? SCORE_MAX
       : Math.min(SCORE_MAX, Math.floor((mine * 1000) / against));
+  score = aiOverseasWarScore(pol.ww, a, t, side, score); // P4 lane AI: an overseas war is fought at sea
   const near = pol.econ.countryNeighbours(a);
   for (const e of pol.ww.enemiesOf(a)) {
     if (e === t || !isMajor(pol, e) || !pol.living(e)) continue;

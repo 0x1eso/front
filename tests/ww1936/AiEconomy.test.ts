@@ -1,4 +1,7 @@
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  COUNTRIES,
+  type CountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
   RESOURCE_COUNT,
@@ -11,6 +14,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { navalStartTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
@@ -18,6 +22,7 @@ import {
   AI_SUPPORT_RESERVE,
   AI_SUPPORT_SHORT_PTS,
   AI_SWITCH_DAY,
+  aiAirSchool,
   aiInput,
   AiInput,
   aiLineShares,
@@ -26,9 +31,13 @@ import {
   aiPlan,
   aiReactions,
   aiReactPlan,
+  aiResearchCaps,
+  aiResearchMix,
   aiResearchOrder,
   aiRetools,
   aiSchool,
+  aiSeaSchool,
+  aiTechDomain,
   isAiTurn,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
@@ -385,35 +394,39 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     // Spec §12.2 for a major, plus Germany's mobile-warfare lean (its
     // vehicles come out of guns and bombers, not rifles: Task 9).
     // (P2 Task 11: a major's support share is 10, out of the rifles.)
+    // P4 lane AI (spec §17.5): the planes take 17 points (fighters 8,
+    // heavy fighters 1, close support 5, naval bombers 2, transports 1;
+    // the tactical bombers' 3 are the lean's), the ground lines share the
+    // other 83 as they shared their 95 (largest remainders).
     expect(aiLineShares("DEU", true, light, false)).toEqual({
-      infantry_equipment: 35,
-      support_equipment: 10,
-      artillery: 10,
-      anti_tank: 5,
-      anti_air: 5,
-      motorized: 10,
-      light_tank: 20,
+      infantry_equipment: 31,
+      support_equipment: 9,
+      artillery: 9,
+      anti_tank: 4,
+      anti_air: 4,
+      motorized: 9,
+      light_tank: 17,
       medium_tank: 0,
-      fighter: 5,
+      fighter: 8,
       bomber: 0,
-      // P4's planes and convoys: none until lane AI's tilt (plan Task 1).
-      heavy_fighter: 0,
-      cas: 0,
-      naval_bomber: 0,
+      heavy_fighter: 1,
+      cas: 5,
+      naval_bomber: 2,
       strat_bomber: 0,
-      transport_plane: 0,
+      transport_plane: 1,
       cv_fighter: 0,
       cv_cas: 0,
       cv_naval_bomber: 0,
       convoy: 0,
     });
     expect(aiLineShares("SUN", true, medium, false)).toMatchObject({
-      infantry_equipment: 45,
-      artillery: 20,
+      infantry_equipment: 39,
+      artillery: 18,
       light_tank: 0,
-      medium_tank: 10,
+      medium_tank: 9,
       motorized: 0,
       bomber: 0,
+      cas: 5,
     });
     for (const tag of [
       "DEU",
@@ -447,12 +460,85 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect([AI_SUPPORT_RESERVE, AI_SUPPORT_SHORT_PTS]).toEqual([400, 5]);
   });
 
-  test("P4's techs stay out of the AI's research order for now (interim)", () => {
+  test("P4 lane AI: the sea and air techs by role; none at sea for a landlocked country", () => {
     const last = WW_TECH_IDS.indexOf("rail_1");
-    for (const tag of ["DEU", "GBR", "JPN", "USA", "ITA", "TUR"] as const) {
-      for (const t of aiResearchOrder(tag))
-        expect(WW_TECH_IDS.indexOf(t), `${tag} ${t}`).toBeLessThanOrEqual(last);
+    const p4 = (tag: CountryTag, coastal = true) =>
+      aiResearchOrder(tag, coastal).filter(
+        (t) => WW_TECH_IDS.indexOf(t) > last,
+      );
+    // The foundation's interim filter is gone: the naval powers order
+    // their ship and plane techs in among the land ones.
+    for (const tag of ["DEU", "GBR", "JPN", "USA", "ITA"] as const) {
+      expect(p4(tag).length, tag).toBeGreaterThan(10);
     }
+    // Germany submarines first, Britain sonar and radar, Japan and the
+    // United States carriers; only the carrier navies research carriers.
+    const firstSea = (tag: CountryTag) =>
+      p4(tag).find((t) => aiTechDomain(t) === "sea");
+    expect(firstSea("DEU")).toBe("trade_interdiction_1");
+    expect(firstSea("GBR")).toBe("sonar_1");
+    expect(firstSea("JPN")).toBe("base_strike_1");
+    expect(p4("DEU").some((t) => t.startsWith("cv_"))).toBe(false);
+    expect(p4("JPN").includes("cv_3")).toBe(true);
+    // A landlocked country researches no sea tech; a minor no plane.
+    for (const tag of ["DEU", "TUR", "HUN"] as const) {
+      expect(p4(tag, false).some((t) => aiTechDomain(t) === "sea")).toBe(false);
+    }
+    expect(p4("TUR").every((t) => aiTechDomain(t) !== "air")).toBe(true);
+    // (Synthetic oil is industry: the land's.)
+    expect(p4("HUN", false)).toEqual(["synthetic_oil_1", "synthetic_oil_2"]);
+    // Land techs are not starved: of 3 slots Britain keeps 2 for the
+    // land, of 5 three; the Soviet Union keeps 3 of 3.
+    expect(aiResearchCaps(aiResearchMix("GBR", true), 3)).toEqual({
+      sea: 1,
+      air: 0,
+    });
+    expect(aiResearchCaps(aiResearchMix("GBR", true), 5)).toEqual({
+      sea: 1,
+      air: 1,
+    });
+    expect(aiResearchCaps(aiResearchMix("SUN", true), 3)).toEqual({
+      sea: 0,
+      air: 0,
+    });
+    expect(aiResearchCaps(aiResearchMix("DEU", true), 5)).toEqual({
+      sea: 1,
+      air: 1,
+    });
+  });
+
+  test("P4 lane AI: a sea or air slot over the cap waits for a land tech", () => {
+    // Britain, 3 slots, every 1936 tech done but one land, one sea and
+    // two air ones: the land and the sea take a slot each, air none (its
+    // cap at 3 slots is 0), and the third slot stays with the land list.
+    const done = WW_TECH_IDS.filter(
+      (t) =>
+        WW_TECHS[t].year === 1936 &&
+        ![
+          "construction_1",
+          "electronics_1",
+          "fleet_in_being_1",
+          "strategic_destruction_1",
+          "carrier_aviation",
+        ].includes(t),
+    );
+    const picks = only(
+      aiPlan(
+        input({
+          tag: "GBR",
+          personality: "democracy",
+          major: true,
+          slotCount: 3,
+          researched: done.filter((t) => {
+            const s = WW_TECHS[t].school;
+            return s === undefined;
+          }),
+        }),
+      ),
+      "research",
+    ).map((o) => aiTechDomain(o.tech));
+    expect(picks.filter((d) => d === "land").length).toBe(2);
+    expect(picks.filter((d) => d !== "land").length).toBe(1);
   });
 
   test("doctrine by country", () => {
@@ -475,12 +561,20 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       const t = tag as CountryTag;
       expect(aiSchool(t)).toBe(s);
       const order = aiResearchOrder(t);
-      // Every tech once; no other school's doctrine.
+      // Every tech once; no other school's doctrine (P4 lane AI: the land
+      // school, the sea school of a navy and the air school of a major).
       expect(new Set(order).size).toBe(order.length);
       const schools = new Set(
         order.map((id) => WW_TECHS[id].school).filter((x) => x !== undefined),
       );
-      expect([...schools]).toEqual([s]);
+      const own = [
+        s,
+        aiSeaSchool(t),
+        COUNTRIES[t].major ? aiAirSchool(t) : null,
+      ]
+        .filter((x) => x !== null)
+        .sort();
+      expect([...schools].sort()).toEqual(own);
       // Every other 1936 tech done: on day 0 the free slot opens the school.
       const plan = aiPlan(
         input({
@@ -521,6 +615,8 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "engineer_company",
       "recon_company",
       "mountaineers",
+      // P4: its sea and air start techs (EconomyStart.navalStartTechs).
+      ...navalStartTechs("DEU", 5, true),
     ];
     const deu = (day: number, slotCount: number) =>
       only(
@@ -537,15 +633,29 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         "research",
       ).map((o) => o.tech);
     expect(AI_FALLBACK_AHEAD_PCT).toBe(75);
-    expect(deu(0, 3)).toEqual(["mobile_1", "fortification_1", "electronics_1"]);
-    expect(deu(0, 5)).toEqual(["mobile_1", "fortification_1", "electronics_1"]);
-    // 1936-04-02: 1937 techs are 74% ahead (rail_1 leads them on
-    // Germany's list, in its construction group).
-    expect(deu(dayOfDate("1936-04-02"), 4)).toEqual([
+    // P4 lane AI: of 3 slots the land keeps 2 (Germany's share 60%) and
+    // its air doctrine takes the third; of 5 the land keeps 3 and the
+    // sea (Commerce warfare) and the air take one each.
+    expect(deu(0, 3)).toEqual([
+      "battlefield_support_1",
+      "mobile_1",
+      "fortification_1",
+    ]);
+    expect(deu(0, 5)).toEqual([
+      "battlefield_support_1",
+      "trade_interdiction_1",
       "mobile_1",
       "fortification_1",
       "electronics_1",
-      "rail_1",
+    ]);
+    // 1936-04-02: 1937 techs are 74% ahead (rail_1 leads them on
+    // Germany's list, in its construction group) — but 4 slots keep 3
+    // for the land (ceil 60%) and the air takes one: rail_1 waits.
+    expect(deu(dayOfDate("1936-04-02"), 4)).toEqual([
+      "battlefield_support_1",
+      "mobile_1",
+      "fortification_1",
+      "electronics_1",
     ]);
     // Mid-1937: 1938 techs are 50% ahead; tools_2 leads Germany's list.
     expect(deu(dayOfDate("1937-07-04"), 1)).toEqual(["tools_2"]);

@@ -9,10 +9,13 @@
 // a human's orders use (a refused order is skipped). No randomness: every
 // tie goes to the lower id or the earlier list entry.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  BuildingId,
   CONSCRIPTION_LAWS,
   CountryLaws,
+  DOCTRINE_DOMAIN,
   DoctrineSchool,
   EQUIP_KEYS,
   equipKey,
@@ -38,6 +41,14 @@ import {
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  NavalLineOrder,
+  SHIP_CLASSES,
+  SHIP_GENS,
+  ShipClass,
+  WW_MAX_DOCKS_PER_LINE,
+  WW_MAX_NAVAL_LINES,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   exportRoomOf,
@@ -54,10 +65,22 @@ import {
   extraction,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
+import { capitalRegion } from "../land/LandStartRun";
+import {
+  aiMainBase,
+  capitalsOf,
+  fleetCounts,
+  invasionRouteSrs,
+} from "../navy/AiNavy";
+import { navalPort, navalPortsOf } from "../navy/Ports";
+import { convoysOf } from "./Buildings";
 import { moveBuild, queueBuild, usedSlots } from "./Construction";
+import { fuelCapOf } from "./Fuel";
 import { lawCtxOf, setLaw } from "./LawsRun";
 import { addLine, changeLine, setLineFactories } from "./Production";
 import { startResearch } from "./ResearchRun";
@@ -105,6 +128,33 @@ export const AI_MIL_PER_CIV: Readonly<Record<AiPersonality, number>> = {
   minor: 3,
 };
 
+/** P4 spec §17.5: military factories queued to one dockyard while short of the target. */
+export const AI_MIL_PER_DOCK = 4;
+/**
+ * P4 spec §17.5: dockyard targets (the United States' only at war; any
+ * other country builds none beyond its own).
+ */
+export function aiDockTarget(tag: CountryTag, atWar: boolean): number {
+  switch (tag) {
+    case "GBR":
+      return 30;
+    case "USA":
+      return atWar ? 40 : 0;
+    case "JPN":
+      return 25;
+    case "DEU":
+      return 15;
+    case "ITA":
+      return 12;
+    case "FRA":
+      return 14;
+    case "SUN":
+      return 12;
+    default:
+      return 0;
+  }
+}
+
 const DAY_1938 = dayOfDate("1938-01-01");
 const DAY_1939 = dayOfDate("1939-01-01");
 
@@ -117,6 +167,8 @@ export type AiLineSlot = EquipmentType | "tank";
  * 5, out of the rifles): every 1936 major template has engineers or
  * recon, 35 support equipment a German division against 900 rifles, so
  * 5% left the support stock at 0 and the 50% fill gate shut training.
+ * P4 lane AI: a major's planes come from aiAirShares instead of its
+ * fighter and bomber rows (spec §17.5); the ground rows share the rest.
  */
 export const AI_LINE_SHARES: Readonly<
   Record<"major" | "minor", Readonly<Partial<Record<AiLineSlot, number>>>>
@@ -197,13 +249,70 @@ export function aiSchool(tag: CountryTag): DoctrineSchool {
   return aiPersonality(tag) === "democracy" ? "firepower" : "battleplan";
 }
 
-/** Today's line targets in percent, by equipment (spec §12.2). */
+/** What the aircraft shares look at (spec §17.5): the war, world tension. */
+export interface AiAirShareCtx {
+  atWar: boolean;
+  wtBp: number;
+}
+
+/**
+ * P4 spec §17.5: a major's aircraft lines, percent (they replace P1's
+ * fighter 5 and bomber 5; the ground lines give up the difference):
+ * fighters 8, heavy fighters 1, close support 3 (Germany, the Soviet Union
+ * and Japan 5), tactical bombers 3, naval bombers 2 (Japan, Britain, the
+ * United States and Italy 4), transports 1 (Germany, the Soviet Union),
+ * carrier wings 2 (Japan, the United States, Britain: fighters and torpedo
+ * bombers). Strategic bombers (Task 10, no dates: the situation): Britain
+ * 3 once at war or world tension reaches 50%, the United States 4 at war.
+ */
+export function aiAirShares(
+  tag: CountryTag,
+  ctx: AiAirShareCtx,
+): Partial<Record<EquipmentType, number>> {
+  const carrier = CARRIER_NAVIES.includes(tag) ? 1 : 0;
+  let strat = 0;
+  if (tag === "GBR" && (ctx.atWar || ctx.wtBp >= 5000)) strat = 3;
+  if (tag === "USA" && ctx.atWar) strat = 4;
+  return {
+    fighter: 8,
+    heavy_fighter: 1,
+    cas: ["DEU", "SUN", "JPN"].includes(tag) ? 5 : 3,
+    bomber: 3,
+    naval_bomber: ["JPN", "GBR", "USA", "ITA"].includes(tag) ? 4 : 2,
+    strat_bomber: strat,
+    transport_plane: tag === "DEU" || tag === "SUN" ? 1 : 0,
+    cv_fighter: carrier,
+    cv_naval_bomber: carrier,
+  };
+}
+
+const AIR_EQUIPMENT: ReadonlySet<EquipmentType> = new Set(AIR_TYPES);
+
+/** `n` over the weights: floors, then one each to the biggest remainders (ties: list order). */
+function shareOut(n: number, weights: readonly number[]): number[] {
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (total <= 0 || n <= 0) return weights.map(() => 0);
+  const out = weights.map((w) => Math.floor((n * w) / total));
+  let left = n - out.reduce((a, b) => a + b, 0);
+  const order = weights
+    .map((w, k) => ({ k, r: (n * w) % total }))
+    .sort((a, b) => b.r - a.r || a.k - b.k);
+  for (const { k } of order) {
+    if (left <= 0) break;
+    out[k]++;
+    left--;
+  }
+  return out;
+}
+
+/** Today's line targets in percent, by equipment (spec §12.2; P4 spec §17.5 for a major's planes). */
 export function aiLineShares(
   tag: CountryTag,
   major: boolean,
   researched: ReadonlySet<WwTechId>,
   infSurplus: boolean,
   supportShort = false,
+  ctx: AiAirShareCtx = { atWar: false, wtBp: 0 },
 ): Record<EquipmentType, number> {
   const out = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t, 0])) as Record<
     EquipmentType,
@@ -216,9 +325,25 @@ export function aiLineShares(
   const tank: EquipmentType = researched.has("medium_tank_1")
     ? "medium_tank"
     : "light_tank";
+  const air = major ? aiAirShares(tag, ctx) : {};
   for (const slot of [...EQUIPMENT_TYPES, "tank"] as const) {
     const t = slot === "tank" ? tank : slot;
-    out[t] += (base[slot] ?? 0) + (tilt[slot] ?? 0);
+    const own =
+      major && AIR_EQUIPMENT.has(t) ? (air[t] ?? 0) : (base[slot] ?? 0);
+    out[t] += own + (tilt[slot] ?? 0);
+  }
+  for (const t of EQUIPMENT_TYPES) out[t] = Math.max(0, out[t]);
+  if (major) {
+    // P4: the planes take their points; the ground lines share the rest
+    // as they shared theirs (largest remainders, EQUIPMENT_TYPES order).
+    let planes = 0;
+    for (const t of EQUIPMENT_TYPES) if (AIR_EQUIPMENT.has(t)) planes += out[t];
+    const ground = EQUIPMENT_TYPES.filter((t) => !AIR_EQUIPMENT.has(t));
+    const scaled = shareOut(
+      Math.max(0, 100 - planes),
+      ground.map((t) => out[t]),
+    );
+    ground.forEach((t, k) => (out[t] = scaled[k]));
   }
   // Spec §12.2: rifles pile up, so five points go to the guns (R6.6).
   if (infSurplus) {
@@ -391,23 +516,297 @@ function groupTechs(
 const TECH_INDEX: ReadonlyMap<WwTechId, number> = new Map(
   WW_TECH_IDS.map((t, i) => [t, i]),
 );
-const researchOrders = new Map<CountryTag, readonly WwTechId[]>();
+const researchOrders = new Map<string, readonly WwTechId[]>();
+
+// ---- P4 research (Task 10): the sea and air techs by the country's role ----
+
+/** Where a tech's slot counts: land (P1, P2, synthetic oil), sea or air (P4). */
+export type AiTechDomain = "land" | "sea" | "air";
+const LAST_LAND_TECH = WW_TECH_IDS.indexOf("rail_1");
+
+export function aiTechDomain(t: WwTechId): AiTechDomain {
+  if (TECH_INDEX.get(t)! <= LAST_LAND_TECH) return "land";
+  const d = WW_TECHS[t];
+  const school = d.school === undefined ? null : DOCTRINE_DOMAIN[d.school];
+  if (d.branch === "naval" || school === "sea") return "sea";
+  // Radar is the air war's (detection, the radar station).
+  if (d.branch === "air" || school === "air" || t.startsWith("radar")) {
+    return "air";
+  }
+  return "land";
+}
+
+/** Spec §17.5 (내 판단): the sea doctrine each opens (Battle line, Commerce warfare, Carrier striking force). */
+const SEA_SCHOOL_OF: Readonly<Partial<Record<CountryTag, DoctrineSchool>>> = {
+  GBR: "fleet_in_being",
+  USA: "base_strike",
+  JPN: "base_strike",
+  DEU: "trade_interdiction",
+  ITA: "fleet_in_being",
+  FRA: "fleet_in_being",
+  SUN: "trade_interdiction",
+};
+/** Spec §17.5 (내 판단): the air doctrine (Bomber offensive, Army cooperation, Unified air command). */
+const AIR_SCHOOL_OF: Readonly<Partial<Record<CountryTag, DoctrineSchool>>> = {
+  GBR: "strategic_destruction",
+  USA: "strategic_destruction",
+  DEU: "battlefield_support",
+  SUN: "battlefield_support",
+  JPN: "operational_integrity",
+  ITA: "operational_integrity",
+  FRA: "operational_integrity",
+};
+
+/** The sea doctrine an AI follows; a minor none (its navy is destroyers and submarines). */
+export function aiSeaSchool(tag: CountryTag): DoctrineSchool | null {
+  return SEA_SCHOOL_OF[tag] ?? null;
+}
+/** The air doctrine an AI follows; a minor supports its army. */
+export function aiAirSchool(tag: CountryTag): DoctrineSchool {
+  return AIR_SCHOOL_OF[tag] ?? "battlefield_support";
+}
 
 /**
- * The tech priority list of `tag`: its groups, the tail, then everything
- * else; each group in WW_TECH_IDS order. Other schools' doctrines are left
- * out (one school only, spec §9.3), and so are the special troops it does
- * not field (wantsTech).
+ * Research slots by domain, percent [land, sea, air] (내 판단, spec §17.5:
+ * the naval powers in proportion to their fleets): Britain and Japan lean
+ * to the sea, Germany to the air, the Soviet Union stays an army; a minor
+ * with a navy (a harbor and dockyards) spares a little for destroyers
+ * and submarines, nothing for planes (it builds none); a landlocked
+ * country no sea techs.
  */
-/**
- * Interim (P4 Task 1 review): P4's techs (appended after rail_1) stay out
- * of the AI's research until lane AI orders them; the AI's sea and air
- * start techs still come from EconomyStart.navalStartTechs.
- */
-const AI_LAST_TECH = WW_TECH_IDS.indexOf("rail_1");
+export const AI_RESEARCH_MIX: Readonly<
+  Partial<Record<CountryTag, readonly [number, number, number]>>
+> = {
+  GBR: [50, 30, 20],
+  USA: [50, 25, 25],
+  JPN: [45, 35, 20],
+  DEU: [60, 15, 25],
+  ITA: [60, 20, 20],
+  FRA: [65, 15, 20],
+  SUN: [75, 5, 20],
+};
 
-export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
-  const cached = researchOrders.get(tag);
+export function aiResearchMix(
+  tag: CountryTag,
+  coastal: boolean,
+): readonly [number, number, number] {
+  const mix = AI_RESEARCH_MIX[tag];
+  if (mix !== undefined) return coastal ? mix : [mix[0] + mix[1], 0, mix[2]];
+  // A minor builds no planes (spec §12.2 lines): its slots are the army's,
+  // and a little for destroyers and submarines when it has a navy.
+  return coastal ? [95, 5, 0] : [100, 0, 0];
+}
+
+/** Spec §17.5: the navies that build carriers, and those that build capital ships too. */
+const CARRIER_NAVIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];
+const BATTLE_NAVIES: readonly CountryTag[] = [
+  "GBR",
+  "USA",
+  "JPN",
+  "DEU",
+  "ITA",
+  "FRA",
+];
+
+/**
+ * Spec §17.5: each one's sea and air techs first (Germany submarines and
+ * close support, Britain radar and escorts, Japan carriers and torpedoes,
+ * the United States carriers and bombers …); the rest of the domain
+ * follows in WW_TECH_IDS order.
+ */
+const SEA_FOCUS: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
+  DEU: [
+    "trade_interdiction_1",
+    "ss_3",
+    "torpedo_1",
+    "trade_interdiction_2",
+    "dd_3",
+    "ss_4",
+  ],
+  GBR: [
+    "sonar_1",
+    "dd_3",
+    "fleet_in_being_1",
+    "sonar_2",
+    "naval_radar_1",
+    "cv_3",
+    "fleet_in_being_2",
+    "landing_craft_1",
+  ],
+  JPN: [
+    "base_strike_1",
+    "cv_3",
+    "torpedo_1",
+    "base_strike_2",
+    "dd_3",
+    "landing_craft_1",
+    "cv_4",
+  ],
+  USA: [
+    "base_strike_1",
+    "cv_3",
+    "dd_3",
+    "sonar_1",
+    "base_strike_2",
+    "landing_craft_1",
+    "naval_radar_1",
+    "cv_4",
+  ],
+  ITA: ["fleet_in_being_1", "bb_3", "cl_3", "ss_3", "torpedo_1"],
+  FRA: ["fleet_in_being_1", "bb_3", "dd_3", "ss_3"],
+  SUN: ["trade_interdiction_1", "ss_3", "dd_3"],
+};
+const AIR_FOCUS: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
+  DEU: [
+    "battlefield_support_1",
+    "cas_2",
+    "battlefield_support_2",
+    "heavy_fighter_2",
+    "radar_1",
+    "cas_3",
+  ],
+  GBR: [
+    "radar_1",
+    "strategic_destruction_1",
+    "naval_bomber_2",
+    "strat_bomber_2",
+    "radar_2",
+    "strategic_destruction_2",
+    "strat_bomber_3",
+  ],
+  JPN: [
+    "operational_integrity_1",
+    "naval_bomber_2",
+    "operational_integrity_2",
+    "naval_bomber_3",
+  ],
+  USA: [
+    "strategic_destruction_1",
+    "strat_bomber_1",
+    "naval_bomber_2",
+    "strat_bomber_2",
+    "strategic_destruction_2",
+    "radar_1",
+    "strat_bomber_3",
+  ],
+  SUN: ["battlefield_support_1", "cas_2", "battlefield_support_2", "cas_3"],
+  ITA: ["operational_integrity_1", "naval_bomber_2", "heavy_fighter_2"],
+  FRA: ["operational_integrity_1", "heavy_fighter_2", "cas_2"],
+};
+
+/** Whether `tag`'s AI researches P4 tech `t` at all (its navy, its air force, its coast). */
+function wantsP4(tag: CountryTag, t: WwTechId, coastal: boolean): boolean {
+  const def = WW_TECHS[t];
+  const major = COUNTRIES[tag].major;
+  const dom = aiTechDomain(t);
+  if (dom === "sea" && !coastal) return false;
+  if (def.school !== undefined) {
+    return def.school === aiSeaSchool(tag) || def.school === aiAirSchool(tag);
+  }
+  if (dom === "sea") {
+    if (t.startsWith("landing_craft")) return MARINE_COUNTRIES.includes(tag);
+    if (t.startsWith("cv_")) return CARRIER_NAVIES.includes(tag);
+    if (t.startsWith("dd_") || t.startsWith("ss_") || t.startsWith("sonar")) {
+      return true;
+    }
+    if (t === "torpedo_1") return true;
+    return BATTLE_NAVIES.includes(tag);
+  }
+  if (dom === "air") {
+    if (t === "carrier_aviation") return CARRIER_NAVIES.includes(tag);
+    if (t.startsWith("naval_bomber")) return coastal;
+    if (t.startsWith("cas_")) return true;
+    return major;
+  }
+  return true;
+}
+
+/** A P4 domain's list: the country's focus, then the rest in WW_TECH_IDS order. */
+function p4Order(
+  tag: CountryTag,
+  dom: "sea" | "air",
+  coastal: boolean,
+): WwTechId[] {
+  const focus = (dom === "sea" ? SEA_FOCUS : AIR_FOCUS)[tag] ?? [];
+  const out: WwTechId[] = [];
+  const add = (t: WwTechId) => {
+    if (
+      !out.includes(t) &&
+      aiTechDomain(t) === dom &&
+      wantsP4(tag, t, coastal)
+    ) {
+      out.push(t);
+    }
+  };
+  focus.forEach(add);
+  WW_TECH_IDS.slice(LAST_LAND_TECH + 1).forEach(add);
+  return out;
+}
+
+/**
+ * Weighted interleave (a domain is taken when it is furthest behind its
+ * share; ties: land, sea, air): a naval power's list mixes its ship and
+ * plane techs in among the land ones instead of after them.
+ */
+function interleave(
+  lists: readonly (readonly WwTechId[])[],
+  weights: readonly number[],
+): WwTechId[] {
+  const taken = lists.map(() => 0);
+  const out: WwTechId[] = [];
+  for (;;) {
+    let best = -1;
+    for (let d = 0; d < lists.length; d++) {
+      if (weights[d] <= 0 || taken[d] >= lists[d].length) continue;
+      if (
+        best < 0 ||
+        (taken[d] + 1) * weights[best] < (taken[best] + 1) * weights[d]
+      ) {
+        best = d;
+      }
+    }
+    if (best < 0) return out;
+    out.push(lists[best][taken[best]++]);
+  }
+}
+
+/**
+ * The most slots the sea and air techs may hold at once (Task 10: no
+ * starving the land war): the land keeps its share rounded up, the rest
+ * goes one slot at a time to the domain furthest behind its share.
+ */
+export function aiResearchCaps(
+  mix: readonly [number, number, number],
+  slotCount: number,
+): { sea: number; air: number } {
+  const landMin = Math.ceil((slotCount * mix[0]) / 100);
+  let left = Math.max(0, slotCount - landMin);
+  const caps = [0, 0];
+  const w = [mix[1], mix[2]];
+  while (left > 0 && (w[0] > 0 || w[1] > 0)) {
+    const d =
+      w[1] <= 0 || (w[0] > 0 && (caps[0] + 1) * w[1] <= (caps[1] + 1) * w[0])
+        ? 0
+        : 1;
+    caps[d]++;
+    left--;
+  }
+  return { sea: caps[0], air: caps[1] };
+}
+
+/**
+ * The tech priority list of `tag`: the land list (its groups, the tail,
+ * then every other land tech; each group in WW_TECH_IDS order; other land
+ * schools and special troops it does not field left out) interleaved
+ * with its sea and air lists by AI_RESEARCH_MIX. P4 Task 10: replaces the
+ * foundation's interim filter (no tech after rail_1).
+ */
+export function aiResearchOrder(
+  tag: CountryTag,
+  coastal = true,
+): readonly WwTechId[] {
+  const key = `${tag}:${coastal ? 1 : 0}`;
+  const cached = researchOrders.get(key);
   if (cached !== undefined) return cached;
   const school = aiSchool(tag);
   const groups = [
@@ -415,15 +814,15 @@ export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
     ...TAIL,
   ];
   const seen = new Set<WwTechId>();
-  const out: WwTechId[] = [];
+  const land: WwTechId[] = [];
   const add = (techs: readonly WwTechId[]) => {
     const sorted = [...techs].sort(
       (a, b) => TECH_INDEX.get(a)! - TECH_INDEX.get(b)!,
     );
     for (const t of sorted) {
-      if (seen.has(t) || TECH_INDEX.get(t)! > AI_LAST_TECH) continue;
+      if (seen.has(t) || aiTechDomain(t) !== "land") continue;
       seen.add(t);
-      out.push(t);
+      land.push(t);
     }
   };
   const schoolTechs = WW_TECH_IDS.filter((t) => WW_TECHS[t].school === school);
@@ -436,7 +835,12 @@ export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
       return (s === undefined || s === school) && wantsTech(tag, t);
     }),
   );
-  researchOrders.set(tag, out);
+  const mix = aiResearchMix(tag, coastal);
+  const out = interleave(
+    [land, p4Order(tag, "sea", coastal), p4Order(tag, "air", coastal)],
+    mix,
+  );
+  researchOrders.set(key, out);
   return out;
 }
 
@@ -471,6 +875,8 @@ export interface AiRegion {
   occupied: boolean;
   /** Deposits, RESOURCE_IDS order. */
   res: readonly number[];
+  /** P4: on a coast (a dockyard may go there). */
+  coastal?: boolean;
 }
 
 export interface AiPartner {
@@ -540,6 +946,11 @@ export interface AiInput {
   readonly partners: readonly AiPartner[];
   /** The land regions it controls, by id. */
   regions: readonly AiRegion[];
+  /** P4: it fields a navy — a harbor (a minor: and dockyards); its research takes sea techs. Default true. */
+  coastal?: boolean;
+  /** P4 spec §17.5: its working dockyards and their target (none or 0: it builds none). */
+  docks?: number;
+  dockTarget?: number;
 }
 
 type AiPlainOrder = Extract<
@@ -730,6 +1141,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
     researched,
     i.infStock * 10 > i.manpower,
     (i.supStock ?? AI_SUPPORT_RESERVE) < AI_SUPPORT_RESERVE,
+    { atWar: i.warDays >= 0, wtBp: i.wtBp },
   );
   // Once medium tanks are researched the tank share is theirs, and the light
   // tank lines (which keep their factories, R6.5) count against it: else a
@@ -890,15 +1302,21 @@ function planConstruction(
   let length = i.queue.length;
   let civEntries = 0;
   let milEntries = 0;
+  let dockEntries = 0;
+  let docksQueued = 0;
   let infraQueued = false;
   for (const q of i.queue) {
     if (q.building === "civ") civEntries++;
     if (q.building === "mil") milEntries++;
+    if (q.building === "dock") {
+      dockEntries++;
+      docksQueued += q.count;
+    }
     if (q.building === "infra") infraQueued = true;
   }
   const build = (
     r: AiRegion,
-    building: "civ" | "mil" | "infra",
+    building: "civ" | "mil" | "infra" | "dock",
     count: number,
   ) => {
     orders.push({ kind: "build", region: r.region, building, count });
@@ -907,6 +1325,10 @@ function planConstruction(
     else r.free -= count;
     if (building === "civ") civEntries++;
     if (building === "mil") milEntries++;
+    if (building === "dock") {
+      dockEntries++;
+      docksQueued += count;
+    }
   };
 
   // Controller guidance: a resource the lines lack gets one infrastructure
@@ -932,6 +1354,23 @@ function planConstruction(
   }
 
   while (length < target) {
+    // P4 spec §17.5: after the switch, dockyards short of the target take
+    // one entry in AI_MIL_PER_DOCK + 1 (four military to one dockyard).
+    if (
+      switched &&
+      (i.docks ?? 0) + docksQueued < (i.dockTarget ?? 0) &&
+      milEntries >= AI_MIL_PER_DOCK * (dockEntries + 1)
+    ) {
+      const r = bestRegion(
+        regions,
+        (x) => !x.occupied && x.free > 0 && x.coastal === true,
+      );
+      if (r !== null) {
+        const room = (i.dockTarget ?? 0) - (i.docks ?? 0) - docksQueued;
+        build(r, "dock", Math.min(3, r.free, room));
+        continue;
+      }
+    }
     // R6.2: before the switch civilian, after it AI_MIL_PER_CIV military
     // to 1 civilian (military only at war).
     const ratio = AI_MIL_PER_CIV[i.personality];
@@ -974,7 +1413,16 @@ function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
-  const list = aiResearchOrder(i.tag);
+  const coastal = i.coastal ?? true;
+  const list = aiResearchOrder(i.tag, coastal);
+  // P4 Task 10: the sea and air techs hold at most their share of the slots.
+  const caps = aiResearchCaps(aiResearchMix(i.tag, coastal), i.slotCount);
+  const running = { land: 0, sea: 0, air: 0 };
+  for (const t of slots) if (t !== null) running[aiTechDomain(t)]++;
+  const capped = (t: WwTechId) => {
+    const d = aiTechDomain(t);
+    return d !== "land" && running[d] >= caps[d];
+  };
   const ahead = new Map<number, number>();
   const aheadOf = (year: number) => {
     let a = ahead.get(year);
@@ -984,11 +1432,12 @@ function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
     }
     return a;
   };
-  const pick = (maxAhead: number) =>
+  const pick = (maxAhead: number, withCaps = true) =>
     list.find(
       (t) =>
         !researched.has(t) &&
         aheadOf(WW_TECHS[t].year) <= maxAhead &&
+        !(withCaps && capped(t)) &&
         researchBlockOf({ researched, slots, slotCount: i.slotCount }, t) ===
           null,
     );
@@ -1014,12 +1463,15 @@ function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
   for (;;) {
     const slot = freeResearchSlot(slots, i.slotCount);
     if (slot < 0) return;
+    // The shares first; a slot with nothing else close takes any (R6.8).
     const tech =
       pick(AI_MAX_AHEAD_PCT) ??
       pick(AI_FALLBACK_AHEAD_PCT) ??
+      pick(AI_MAX_AHEAD_PCT, false) ??
       (fill ? leastAhead() : undefined);
     if (tech === undefined) return;
     slots[slot] = tech;
+    running[aiTechDomain(tech)]++;
     orders.push({ kind: "research", tech });
   }
 }
@@ -1104,6 +1556,183 @@ function planTrade(
   }
 }
 
+// ---- 6. Naval lines (P4 spec §17.5) ----
+
+/** A naval line's build: a ship class, or convoys. */
+export type AiNavalSlot = ShipClass | "convoy";
+const NAVAL_SLOTS: readonly AiNavalSlot[] = [...SHIP_CLASSES, "convoy"];
+
+/**
+ * P4 spec §17.5 (내 판단, 1936–1945 building in proportion): dockyard
+ * shares in percent; the BC·BB column builds battleships.
+ */
+export const AI_NAVAL_SHARES: Readonly<
+  Partial<Record<CountryTag, Readonly<Partial<Record<AiNavalSlot, number>>>>>
+> = {
+  GBR: { dd: 35, cl: 15, bb: 10, cv: 15, ss: 5, convoy: 20 },
+  USA: { dd: 35, cl: 10, bb: 10, cv: 25, ss: 10, convoy: 10 },
+  JPN: { dd: 30, cl: 10, ca: 5, bb: 10, cv: 25, ss: 15, convoy: 5 },
+  DEU: { dd: 15, ca: 5, bb: 15, ss: 60, convoy: 5 },
+  ITA: { dd: 30, cl: 15, bb: 15, ss: 30, convoy: 10 },
+  FRA: { dd: 30, cl: 20, bb: 15, ss: 25, convoy: 10 },
+  SUN: { dd: 30, cl: 15, ss: 50, convoy: 5 },
+};
+/** Spec §17.5: any other country with dockyards. */
+export const AI_NAVAL_SHARES_OTHER: Readonly<
+  Partial<Record<AiNavalSlot, number>>
+> = { dd: 50, ss: 40, convoy: 10 };
+/** Spec §17.5: convoys short (need > 90% of the stock) take this share of the dockyards. */
+export const AI_CONVOY_RUSH_PCT = 30;
+/** 내 판단: units a new line orders (convoys keep going). */
+export const AI_NAVAL_BATCH: Readonly<Record<AiNavalSlot, number>> = {
+  dd: 6,
+  cl: 3,
+  ca: 2,
+  bc: 1,
+  bb: 1,
+  cv: 1,
+  ss: 8,
+  convoy: 0,
+};
+
+/** Whether the convoys run short: the routes need more than 90% of the stock. */
+export function aiConvoyShort(need: number, stock: number): boolean {
+  return need * 10 > stock * 9;
+}
+
+/** Spec §17.5: today's dockyard shares, percent (convoys short: 30%, the ships the rest in proportion). */
+export function aiNavalShares(
+  tag: CountryTag,
+  convoyShort: boolean,
+): Record<AiNavalSlot, number> {
+  const base = AI_NAVAL_SHARES[tag] ?? AI_NAVAL_SHARES_OTHER;
+  const out = Object.fromEntries(
+    NAVAL_SLOTS.map((k) => [k, base[k] ?? 0]),
+  ) as Record<AiNavalSlot, number>;
+  if (!convoyShort || out.convoy >= AI_CONVOY_RUSH_PCT) return out;
+  const ships = NAVAL_SLOTS.filter((k) => k !== "convoy");
+  const scaled = shareOut(
+    100 - AI_CONVOY_RUSH_PCT,
+    ships.map((k) => out[k]),
+  );
+  ships.forEach((k, j) => (out[k] = scaled[j]));
+  out.convoy = AI_CONVOY_RUSH_PCT;
+  return out;
+}
+
+/** One naval line, as the plan reads it. */
+export interface AiNavalLineView {
+  id: number;
+  slot: AiNavalSlot;
+  gen: number;
+  docks: number;
+}
+
+export interface AiNavalLineInput {
+  tag: CountryTag;
+  /** Working dockyards. */
+  docks: number;
+  lines: readonly AiNavalLineView[];
+  researched: ReadonlySet<WwTechId>;
+  convoyStock: number;
+  /** Convoys the routes ask for. */
+  convoyNeed: number;
+  /** The launch port of a new line (the best naval base); 0: none, no new line. */
+  port: number;
+}
+
+/** The newest generation `tag` may build of a class (gen 1 is always open). */
+export function newestShipGen(
+  slot: AiNavalSlot,
+  researched: ReadonlySet<WwTechId>,
+): number {
+  if (slot === "convoy") return 1;
+  for (let g = SHIP_GENS[slot]; g > 1; g--) {
+    const t = shipGenTech(slot, g);
+    if (t !== null && researched.has(t)) return g;
+  }
+  return 1;
+}
+
+/**
+ * Pure (spec §17.5): idle dockyards one at a time to the class furthest
+ * under its share (ties: SHIP_CLASSES order, convoys last); a class's
+ * newest-generation line takes them (up to 15), else a new line of the
+ * newest generation. Once convoys are no longer short, a convoy line
+ * over its share gives the extra dockyards back.
+ */
+export function aiNavalLinePlan(i: AiNavalLineInput): NavalLineOrder[] {
+  const orders: NavalLineOrder[] = [];
+  const short = aiConvoyShort(i.convoyNeed, i.convoyStock);
+  const shares = aiNavalShares(i.tag, short);
+  const assigned = new Map<AiNavalSlot, number>();
+  let used = 0;
+  for (const l of i.lines) {
+    assigned.set(l.slot, (assigned.get(l.slot) ?? 0) + l.docks);
+    used += l.docks;
+  }
+  if (!short) {
+    const cap = Math.ceil((shares.convoy * i.docks) / 100);
+    let over = (assigned.get("convoy") ?? 0) - cap;
+    for (const l of [...i.lines].reverse()) {
+      if (over <= 0 || l.slot !== "convoy" || l.docks <= 1) continue;
+      const cut = Math.min(over, l.docks - 1);
+      orders.push({
+        kind: "naval_line_docks",
+        line: l.id,
+        docks: l.docks - cut,
+      });
+      over -= cut;
+      used -= cut;
+      assigned.set("convoy", (assigned.get("convoy") ?? 0) - cut);
+    }
+  }
+  const added = new Map<AiNavalSlot, number>();
+  for (let n = Math.max(0, i.docks - used); n > 0; n--) {
+    let best: AiNavalSlot | null = null;
+    let bestGap = 0;
+    for (const k of NAVAL_SLOTS) {
+      if (shares[k] <= 0) continue;
+      const gap = shares[k] * i.docks - 100 * (assigned.get(k) ?? 0);
+      if (best === null || gap > bestGap) {
+        best = k;
+        bestGap = gap;
+      }
+    }
+    if (best === null) break;
+    assigned.set(best, (assigned.get(best) ?? 0) + 1);
+    added.set(best, (added.get(best) ?? 0) + 1);
+  }
+  let lineCount = i.lines.length;
+  for (const k of NAVAL_SLOTS) {
+    let n = added.get(k) ?? 0;
+    if (n === 0) continue;
+    const gen = newestShipGen(k, i.researched);
+    const line = i.lines.find(
+      (l) => l.slot === k && l.gen === gen && l.docks < WW_MAX_DOCKS_PER_LINE,
+    );
+    if (line !== undefined) {
+      const docks = Math.min(WW_MAX_DOCKS_PER_LINE, line.docks + n);
+      orders.push({ kind: "naval_line_docks", line: line.id, docks });
+      n -= docks - line.docks;
+    }
+    while (n > 0 && i.port !== 0 && lineCount < WW_MAX_NAVAL_LINES) {
+      const docks = Math.min(WW_MAX_DOCKS_PER_LINE, n);
+      orders.push({
+        kind: "naval_line_add",
+        cls: k,
+        gen,
+        docks,
+        count: AI_NAVAL_BATCH[k],
+        port: i.port,
+      });
+      lineCount++;
+      n -= docks;
+    }
+  }
+  return orders;
+}
+
 // ---- The engine side ----
 
 /** The plain data an AI turn of `ce` looks at (aiPlan's input). */
@@ -1159,14 +1788,16 @@ export function aiInput(
         occupied: econ.isOccupied(id),
         // P3's resource effect counts (WwEconomy.resBonus).
         res: econ.deposits(id),
+        coastal: econ.scenario.region(id)?.coastal ?? false,
       };
     });
+  const warDays = econ.warDays(me, tick);
   return {
     tag: ce.tag,
     personality: aiPersonality(ce.tag),
     major: COUNTRIES[ce.tag].major,
     day,
-    warDays: econ.warDays(me, tick),
+    warDays,
     laws: { ...ce.laws },
     lawCooldownUntil: { ...ce.lawCooldownUntil },
     ...politicsInput(econ, ce),
@@ -1209,6 +1840,12 @@ export function aiInput(
     get regions() {
       return (regions ??= findRegions());
     },
+    // A navy: a harbor (a minor: and dockyards to build in).
+    coastal:
+      (ce.major || t.dock > 0) &&
+      econ.regionsOf(me).some((r) => econ.scenario.harborOf(r) !== 0),
+    docks: t.dock,
+    dockTarget: aiDockTarget(ce.tag, warDays >= 0),
   };
 }
 
@@ -1351,6 +1988,255 @@ export function aiEconomyTick(
       if (alt.line === o.line) continue;
       if (applyAiOrder(econ, ce, alt, day) === null) break;
     }
+  }
+  // P4 spec §17.5: the naval lines and the sea and air buildings, on the turn.
+  if (isAiTurn(ce.smallID, day, ce.major)) {
+    aiNavalLinesTurn(econ, ce, tick);
+    aiP4Builds(econ, ce, day);
+  }
+}
+
+/** P4 spec §17.5: the turn's naval line orders, through navy.issue (a player's path). */
+function aiNavalLinesTurn(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  tick: number,
+): void {
+  const docks = ce.totals.dock;
+  if (docks <= 0 && ce.navalLines.length === 0) return;
+  const navy = econ.ww.navy;
+  let need = 0;
+  for (const r of navy.routes.values())
+    if (r.owner === ce.smallID) need += r.need;
+  const orders = aiNavalLinePlan({
+    tag: ce.tag,
+    docks,
+    lines: ce.navalLines.map((l) => ({
+      id: l.id,
+      slot: l.cls >= SHIP_CLASSES.length ? "convoy" : SHIP_CLASSES[l.cls],
+      gen: l.gen,
+      docks: l.docks,
+    })),
+    researched: ce.researched,
+    convoyStock: convoysOf(ce),
+    convoyNeed: need,
+    port: aiMainBase(econ.ww, ce.smallID),
+  });
+  for (const o of orders) navy.issue(ce.smallID, o, tick, "ai");
+}
+
+/** P4 spec §17.5: sea and air buildings a turn (the factories keep the rest of the queue). */
+export const AI_P4_BUILDS_AT_WAR = 2;
+export const AI_P4_BUILDS_AT_PEACE = 1;
+/** Spec §17.5: naval bases at front and departure ports up to this level. */
+export const AI_NAVAL_BASE_MAX = 6;
+/** Spec §17.3-2: air bases at the fronts up to this level. */
+export const AI_AIR_BASE_MAX = 5;
+/** 내 판단: the AI's anti-air, coastal forts and radar stop here (the factories come first). */
+export const AI_AA_MAX = 3;
+export const AI_COASTAL_FORT_MAX = 3;
+export const AI_RADAR_REGIONS = 4;
+/** Spec §17.5: a fuel shortage below this ratio builds a synthetic refinery. */
+export const AI_SYNTH_RATIO_PM = 800;
+/** Spec §17.5: fuel at its cap this long builds a silo (no shortage since). */
+export const AI_SILO_FULL_DAYS = 60;
+
+/**
+ * P4 spec §17.5 (the situation decides, no dates): naval bases at the
+ * ports facing an enemy's coast or sailing an invasion (to 6); air bases
+ * in the zones whose deployments find no room (to 5); anti-air at the
+ * capital and the 10-point regions once an enemy has strategic bombers;
+ * radar on the coast (radar_1) and coastal forts on the based islands
+ * once an enemy flies bombers or sails capital ships; a synthetic
+ * refinery when fuel runs short (synthetic_oil_1), a silo when it
+ * overflows. At most two entries a turn at war, one at peace.
+ */
+function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
+  const ww = econ.ww;
+  const sc = econ.scenario;
+  const land = ww.land;
+  const me = ce.smallID;
+  const enemies = ww.enemiesOf(me).filter((e) => land.isEnemy(me, e));
+  const atWar = enemies.length > 0;
+  let budget = atWar ? AI_P4_BUILDS_AT_WAR : AI_P4_BUILDS_AT_PEACE;
+  // Never in a no-strike region (no bases placed in Korea or Taiwan).
+  const regions = econ
+    .regionsOf(me)
+    .filter((r) => econ.controllerOf(r) === me && !isNoStrike(sc, r))
+    .sort((a, b) => a - b);
+  const vp = (r: number) => sc.region(r)?.vp ?? 0;
+  const level = (r: number, b: BuildingId) => econ.buildingArray(b)[r] ?? 0;
+  const queued = (r: number, b: BuildingId) =>
+    ce.queue.some((q) => q.region === r && q.building === b);
+  const build = (r: number, b: BuildingId): boolean => {
+    if (budget <= 0 || ce.queue.length >= WW_MAX_QUEUE || queued(r, b)) {
+      return false;
+    }
+    if (queueBuild(econ, ce, r, b, 1) !== null) return false;
+    budget--;
+    return true;
+  };
+  /** The first region of `list` (already in priority order) that builds `b`. */
+  const first = (list: readonly number[], b: BuildingId) => {
+    for (const r of list) if (build(r, b)) return true;
+    return false;
+  };
+  if (atWar) {
+    const navy = ww.navy;
+    // Naval bases: our ports on a sea where an enemy holds a port, or on
+    // an invasion's route, and our invasions' departure ports.
+    const hostileSrs = new Set<number>();
+    for (const e of enemies) {
+      for (const r of navalPortsOf(ww, e)) {
+        const z = sc.harborOf(r);
+        if (z !== 0) hostileSrs.add(sc.zoneSr(z));
+      }
+    }
+    for (const sr of invasionRouteSrs(navy, me)) hostileSrs.add(sr);
+    const departures = new Set<number>();
+    for (const inv of navy.invasions.values()) {
+      if (inv.owner === me) departures.add(inv.from);
+    }
+    const ports = regions
+      .filter((r) => {
+        const z = sc.harborOf(r);
+        if (z === 0 || !navalPort(ww, r)) return false;
+        if (level(r, "naval_base") >= AI_NAVAL_BASE_MAX) return false;
+        return departures.has(r) || hostileSrs.has(sc.zoneSr(z));
+      })
+      .sort(
+        (a, b) =>
+          Number(departures.has(b)) - Number(departures.has(a)) ||
+          level(a, "naval_base") - level(b, "naval_base") ||
+          vp(b) - vp(a) ||
+          a - b,
+      );
+    first(ports, "naval_base");
+    // Air bases where the deployments find no room.
+    const air = ww.air;
+    const short = new Set<number>();
+    const groups = new Map<number, { target: number; have: number }>();
+    for (const d of air.deploymentsOf(me)) {
+      if (d.base < 0) continue;
+      const k = d.sr * 1000 + d.type * 20 + d.mission;
+      const g = groups.get(k) ?? { target: d.target, have: 0 };
+      g.have += d.counts.reduce((x, y) => x + y, 0);
+      groups.set(k, g);
+    }
+    for (const [k, g] of groups)
+      if (g.have < g.target) short.add(Math.floor(k / 1000));
+    const airBases = regions
+      .filter(
+        (r) =>
+          short.has(sc.regionSr(r)) && level(r, "air_base") < AI_AIR_BASE_MAX,
+      )
+      .sort(
+        (a, b) =>
+          level(b, "air_base") - level(a, "air_base") || vp(b) - vp(a) || a - b,
+      );
+    first(airBases, "air_base");
+    // What the enemy flies and sails.
+    let stratBombers = false;
+    let bombers = false;
+    let bigShips = false;
+    for (const e of enemies) {
+      const ec = econ.country(e);
+      if (ec !== null) {
+        const has = (type: "strat_bomber" | "bomber") =>
+          [1, 2, 3].some((g) => (ec.stock[equipKey(type, g)] ?? 0) > 0) ||
+          (ec.planesDeployed[equipKey(type, 1)] ?? 0) > 0;
+        if (has("strat_bomber")) stratBombers = true;
+        if (has("bomber") || has("strat_bomber")) bombers = true;
+      }
+      for (const f of navy.fleetsOf(e)) {
+        const c = fleetCounts(navy, f);
+        if (capitalsOf(c) + c[SHIP_CLASSES.indexOf("cv")] > 0) bigShips = true;
+      }
+    }
+    if (stratBombers) {
+      const cap = capitalRegion(land, me);
+      const aa = regions
+        .filter(
+          (r) =>
+            (r === cap || vp(r) >= 10) &&
+            level(r, "anti_air") < AI_AA_MAX &&
+            ce.researched.has("anti_air_1"),
+        )
+        .sort(
+          (a, b) =>
+            Number(b === cap) - Number(a === cap) ||
+            level(a, "anti_air") - level(b, "anti_air") ||
+            vp(b) - vp(a) ||
+            a - b,
+        );
+      first(aa, "anti_air");
+    }
+    if (bombers && ce.researched.has("radar_1")) {
+      const top = ce.researched.has("radar_2") ? 3 : 2;
+      const withRadar = regions.filter((r) => level(r, "radar") > 0).length;
+      const radar = regions
+        .filter(
+          (r) =>
+            sc.harborOf(r) !== 0 &&
+            vp(r) > 0 &&
+            level(r, "radar") < top &&
+            (level(r, "radar") > 0 || withRadar < AI_RADAR_REGIONS),
+        )
+        .sort((a, b) => vp(b) - vp(a) || a - b);
+      first(radar, "radar");
+    }
+    if (bigShips) {
+      const forts = regions
+        .filter(
+          (r) =>
+            sc.harborOf(r) !== 0 &&
+            (sc.region(r)?.island !== undefined ||
+              sc.edgesOf(r).length === 0) &&
+            (level(r, "naval_base") > 0 || level(r, "air_base") > 0) &&
+            level(r, "coastal_fort") < AI_COASTAL_FORT_MAX,
+        )
+        .sort(
+          (a, b) =>
+            level(a, "coastal_fort") - level(b, "coastal_fort") ||
+            vp(b) - vp(a) ||
+            a - b,
+        );
+      first(forts, "coastal_fort");
+    }
+  }
+  // Fuel: a refinery when short, a silo when full for a while.
+  const slotRegions = () =>
+    regions
+      .filter((r) => !econ.isOccupied(r))
+      .map((r) => ({
+        r,
+        free:
+          econ.regionSlots(r, ce.stats.slotPct) -
+          usedSlots(econ, r) -
+          queuedInRegion(ce.queue, r).factories,
+      }))
+      .filter((x) => x.free > 0)
+      .sort(
+        (a, b) =>
+          (econ.infra[b.r] ?? 0) - (econ.infra[a.r] ?? 0) ||
+          b.free - a.free ||
+          a.r - b.r,
+      )
+      .map((x) => x.r);
+  const anyQueued = (b: BuildingId) => ce.queue.some((q) => q.building === b);
+  if (
+    ce.fuelRatioPm < AI_SYNTH_RATIO_PM &&
+    ce.researched.has("synthetic_oil_1") &&
+    !anyQueued("synthetic_refinery")
+  ) {
+    first(slotRegions(), "synthetic_refinery");
+  }
+  if (
+    ce.fuelMilli >= fuelCapOf(econ, ce) &&
+    day - ce.fuelShortDay > AI_SILO_FULL_DAYS &&
+    !anyQueued("fuel_silo")
+  ) {
+    first(slotRegions(), "fuel_silo");
   }
 }
 
