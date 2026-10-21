@@ -15,7 +15,7 @@ afterEach(() => usePoliticsContent(null));
 
 const HUMAN = "HUMANPOL";
 
-/** One sample of each order and the foundation's stub answer. */
+/** One sample of each order and its answer here (lane A: POL at peace, tension under 50%). */
 const SAMPLES: [WwOrder, string | null][] = [
   [{ kind: "peace_submit", conf: 1, demands: [] }, "not_participant"],
   [{ kind: "peace_pass", conf: 1 }, "not_participant"],
@@ -31,13 +31,13 @@ const SAMPLES: [WwOrder, string | null][] = [
     },
     "ll_conditions",
   ],
-  [{ kind: "lend_lease_cancel", id: 1 }, "ll_conditions"],
+  [{ kind: "lend_lease_cancel", id: 1 }, "bad_index"],
   [
     { kind: "lend_lease_request", from: 3, item: "fuel", perMonth: 50 },
     "ll_conditions",
   ],
-  [{ kind: "volunteers_send", army: 1, to: 4 }, "ll_conditions"],
-  [{ kind: "volunteers_recall", army: 1 }, "ll_conditions"],
+  [{ kind: "volunteers_send", army: 1, to: 4 }, "bad_index"],
+  [{ kind: "volunteers_recall", army: 1 }, "not_volunteer"],
   [
     {
       kind: "air_volunteers",
@@ -46,7 +46,7 @@ const SAMPLES: [WwOrder, string | null][] = [
       plane: "fighter",
       count: 10,
     },
-    "ll_conditions",
+    "volunteer_conditions",
   ],
   [{ kind: "ships_transfer", to: 4, ships: [1] }, "ll_conditions"],
   [{ kind: "takeover_pick", smallID: 2 }, "no_takeover"],

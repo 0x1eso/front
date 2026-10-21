@@ -104,11 +104,11 @@ export function captureOnEncircled(
 
 /**
  * Spec §5.2, §14: a capitulation's share for the victor — 25% of every
- * stock line of the loser and 50% of the equipment of its disbanded
- * divisions. Call it after the survivors moved and before the loser's
- * forces go: every division the loser still has outside its side's land
- * counts as disbanded (for an exile, its host's side; with no exile all of
- * them). It only adds to the victor: the loser's stock and divisions are
+ * stock line of the loser and 50% of the equipment of its divisions (all
+ * of them disband: this is the no-exile case). Lane X calls it before the
+ * loser's forces go; an exile's capitulation is lane X's own (its
+ * escaping divisions are not disbanded), so nothing is taken for one
+ * here. It only adds to the victor: the loser's stock and divisions are
  * the caller's (spec §5.2's table).
  */
 export function captureOnCapitulation(
@@ -116,7 +116,7 @@ export function captureOnCapitulation(
   loser: number,
   victor: number,
 ): void {
-  if (victor === loser || !eg.isActor(victor)) return;
+  if (victor === loser || !eg.isActor(victor) || eg.isExile(loser)) return;
   const econ = eg.ww.economy;
   const from = econ.country(loser);
   const to = econ.country(victor);
@@ -129,13 +129,8 @@ export function captureOnCapitulation(
   }
   const land = eg.ww.land;
   const t = land.divisions;
-  const host = eg.isExile(loser) ? eg.sideOwner(loser) : 0;
   const slots = new Array<number>(GROUND_SLOTS).fill(0);
   for (const r of land.rowsOf(loser)) {
-    const c = land.controller[t.region[r]] ?? 0;
-    if (host > 0 && c !== 0 && c !== loser && land.sameSide(host, c)) {
-      continue;
-    }
     const eq = t.equipOf(r);
     for (let j = 0; j < GROUND_SLOTS; j++) slots[j] += eq[j];
   }

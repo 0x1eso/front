@@ -148,8 +148,12 @@ describe("World War 1936 P5: hook points", () => {
     expect(fuel.mock.calls.every((c) => c[0] === pl)).toBe(true);
     air.mockRestore();
     fuel.mockRestore();
-    // Lane A's rule (stub: nowhere).
+    // Lane A's rule: the host's side and the host's enemies, nowhere else.
+    expect(l.canArmyEnter(a, 6)).toBe(true);
     expect(l.canArmyEnter(a, 5)).toBe(false);
+    expect(l.canArmyEnter(a, 8)).toBe(false);
+    ww.setWar(pl, endId("SUN"), 0, { kind: "declare" });
+    expect(l.canArmyEnter(a, 8)).toBe(true);
     l.setVolunteerFor(a, 0);
     expect(l.fightOwner(row)).toBe(ita);
     expect(l.canArmyEnter(a, 5)).toBe(true);
