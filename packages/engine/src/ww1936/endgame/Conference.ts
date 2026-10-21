@@ -152,8 +152,16 @@ export function peaceFacts(eg: WwEndgame): PeaceFacts {
  * the pool; the treaty ignores it).
  */
 export function peaceTable(eg: WwEndgame, c: Conference): PeaceTable {
-  if (c.settled.every((s) => eg.isActor(s.by))) return c;
-  return { ...c, settled: c.settled.filter((s) => eg.isActor(s.by)) };
+  const live = (id: number) => eg.isActor(id);
+  if (c.settled.every((s) => live(s.by)) && c.claims.every(([p]) => live(p))) {
+    return c;
+  }
+  // A claim of a participant that stopped playing holds nothing (Taiwan).
+  return {
+    ...c,
+    settled: c.settled.filter((s) => live(s.by)),
+    claims: c.claims.filter(([p]) => live(p)),
+  };
 }
 
 /** Korea's and Taiwan's rules for conference `c` (PeaceRules.peaceRegionBlock). */
@@ -162,7 +170,7 @@ export function peaceSens(eg: WwEndgame, c: Conference): PeaceSensitivity {
   return peaceSensitivity(
     (g) => content.groupIdx.get(g)?.regions ?? [],
     eg.ww.scenario.smallIdOf(SENSITIVE_EXCLUDED_TAG),
-    peaceMainVictor(c.parts),
+    peaceMainVictor(c.parts.filter((p) => eg.isActor(p.id))),
   );
 }
 

@@ -390,4 +390,44 @@ describe("World War 1936 P5: Korea and Taiwan at the conference (spec §6.9)", (
     ]);
     for (const r of KOREA) expect(ww.politics.legalOwner[r]).toBe(id("CSK"));
   });
+
+  it("a puppet settled first does not stop the Korea zones", async () => {
+    usePoliticsContent(koreaFixture());
+    const { runner, g, ww, eg } = await atWar({ historicalAi: false }, ["GBR"]);
+    const c = beatCsk(g);
+    const [gbr, sun, csk] = [id("GBR"), id("SUN"), id("CSK")];
+    // Britain (first turn) puppets the loser at slot 0, before the
+    // Soviet Union's Korea zone (its slot 0) and its own (slot 1).
+    expect(
+      submitDemands(
+        eg,
+        gbr,
+        c.id,
+        [
+          { kind: "puppet", target: csk },
+          { kind: "occupation_zone", group: "korea_south" },
+        ],
+        g.ticks(),
+      ),
+    ).toBeNull();
+    while (c.round === 1 && c.status === 1) step(runner);
+    const ok = (by: number, kind: string) =>
+      c.lastRound.find((x) => x.by === by && DEMAND_KINDS[x.kind] === kind)?.ok;
+    expect(ok(gbr, "puppet")).toBe(true);
+    expect(ok(sun, "occupation_zone")).toBe(true);
+    expect(ok(gbr, "occupation_zone")).toBe(true);
+    // Taiwan still goes to its claimant.
+    expect(
+      c.settled.some((s) => s.by === id("ITA") && s.regions.includes(TAIWAN)),
+    ).toBe(true);
+    if (c.status === 1) {
+      expect(submitDemands(eg, gbr, c.id, null, g.ticks())).toBeNull();
+      while (c.status === 1) step(runner);
+    }
+    // Control to the zones' holders; the legal owner stays.
+    for (const r of NORTH) expect(ww.land.controller[r]).toBe(sun);
+    for (const r of SOUTH) expect(ww.land.controller[r]).toBe(gbr);
+    for (const r of KOREA) expect(ww.politics.legalOwner[r]).toBe(csk);
+    expect(ww.politics.legalOwner[TAIWAN]).toBe(id("ITA"));
+  });
 });

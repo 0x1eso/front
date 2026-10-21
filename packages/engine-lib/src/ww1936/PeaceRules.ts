@@ -373,8 +373,9 @@ export function peaceReparationsRoom(
  * not settled, and not reserved by another participant's control this
  * round (plan decision 15). `s`: Korea's and Taiwan's rules
  * (peaceRegionBlock). A puppet settled on a loser keeps its other regions
- * (HOI4: the puppet keeps what nobody took before). Points are the
- * caller's (spent only when it settles).
+ * (HOI4: the puppet keeps what nobody took before) — except Korea's and
+ * Taiwan's, whose fixed outcomes stand. Points are the caller's (spent
+ * only when it settles).
  */
 export function planPeaceDemand(
   f: PeaceFacts,
@@ -399,7 +400,9 @@ export function planPeaceDemand(
   /** Of `regs`, those free and allowed to go to `receiver` by this kind. */
   const open = (regs: readonly number[], receiver = p): number[] =>
     regs.filter((r) => {
-      if (!free(r) || puppeted(r)) return false;
+      // Korea's and Taiwan's regions follow their own rule, not the lock.
+      const locked = puppeted(r) && !s.zoneOnly.has(r) && !s.claimOnly.has(r);
+      if (!free(r) || locked) return false;
       const b = peaceRegionBlock(s, t, p, receiver, d.kind, r);
       if (b !== null) why ??= b;
       return b === null;
