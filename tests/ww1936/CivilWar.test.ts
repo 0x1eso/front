@@ -410,6 +410,8 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(queue).toHaveBeenCalledWith("esp_civil_war_ends", esn, esn, 0, 0);
     // The flush applied the event: the spirit is lifted.
     expect(pc.hasSpirit("gen_civil_strife")).toBe(false);
+    // TODO(batch20): assert rename — once lane X's set_name is merged, give
+    // ESP_END K5's set_name effect and check the winner's new name here.
   }, 60_000);
 
   it("a failed activation puts the held fleets back in their docks", async () => {
