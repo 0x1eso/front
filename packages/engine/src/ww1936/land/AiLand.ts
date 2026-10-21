@@ -603,6 +603,9 @@ class AiDay {
         set.add(j.on);
       }
       for (const g of c?.warGoals ?? []) set.add(g.on);
+      // P3 lane A: a war this country declared (the declaration used its
+      // goal up — politics' war decision; R12's declaredOn list).
+      for (const t of c?.declaredOn ?? []) set.add(t);
       for (const [a, b] of WW_INITIAL_WARS) {
         if (a !== this.tag) continue;
         const t = this.land.scenario.smallIdOf(b);

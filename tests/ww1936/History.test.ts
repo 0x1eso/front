@@ -9,6 +9,7 @@ import {
   HISTORY,
   HISTORY_MAX_DELAY_DAYS,
 } from "@openfront/engine-lib/ww1936/History";
+import { addGuarantee } from "@openfront/engine/ww1936/politics/Treaties";
 import type { WwPolitics } from "@openfront/engine/ww1936/politics/WwPolitics";
 import { byTag, HUMAN, pol, step, stepTo, wwRunner } from "./util";
 
@@ -77,6 +78,10 @@ describe("the historical calendar (spec §7.4; P3 history beats)", () => {
     );
     expect(ww.isAtWar(deu.smallID(), pl.smallID())).toBe(true);
     expect(ww.isAtWar(gbr.smallID(), deu.smallID())).toBe(false);
+    // P3 lane A (owner direction): a beat is a suggestion the AI judges; a
+    // join it owes — Britain guarantees Poland, as in 1939 — goes ahead
+    // whatever the odds.
+    addGuarantee(pol(g), gbr.smallID(), pl.smallID(), 0);
     stepTo(runner, dayStartTick(3, WW_PREP_TICKS) + 1);
     expect(ww.isAtWar(gbr.smallID(), deu.smallID())).toBe(true);
     expect(ww.isAtWar(gbr.smallID(), ita.smallID())).toBe(false);

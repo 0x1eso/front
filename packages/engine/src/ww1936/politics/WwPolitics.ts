@@ -1095,8 +1095,10 @@ export class WwPolitics {
     const out = new Set<number>();
     this.content.beats.forEach((b, i) => {
       const s = this.beats[i];
+      // A due beat not done yet is still planned: the AI may be waiting
+      // for a better moment (owner direction, AiPolitics.aiBeatReady).
       if (s === undefined || s.skipped || s.done) return;
-      if (s.fireDay < day || s.fireDay > day + 60) return;
+      if (s.fireDay > day + 60) return;
       if (b.act.kind !== "declare" && b.act.kind !== "join") return;
       const a = this.idOfTag(b.actor);
       const t = this.idOfTag(b.act.target);
