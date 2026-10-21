@@ -40,11 +40,17 @@ import {
   predictNaval,
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
-import { idHash, P_NAVALBEAT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import {
+  idHash,
+  P_AI_NAVY,
+  P_NAVALBEAT,
+  wwRoll,
+} from "@openfront/engine-lib/ww1936/Roll";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { GEN_HP_PCT } from "@openfront/engine-lib/ww1936/ShipStats";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
+import { MISSION_ENGAGE } from "./Missions";
 import { navalPort, navalPortsOf } from "./Ports";
 import type { Fleet, WwNavy } from "./WwNavy";
 
@@ -74,8 +80,6 @@ export const AI_STRIKE_CARRIERS = 3;
 export const AI_STRIKE_CAPITALS = 4;
 /** Spec §17.6: a history beat multiplies its target's score by this. */
 export const AI_BEAT_FACTOR = 10;
-/** The navy AI's jitter purpose (per game, country and region). */
-const P_AI_NAVY = idHash("ai_navy");
 
 // ---- The pure plan's data ----
 
@@ -442,6 +446,50 @@ export function seaDistances(
   return out;
 }
 
+/** Distances from some zones, and to each sea strategic region (its nearest zone). */
+export interface SeaReach {
+  dist: ReadonlyMap<number, number>;
+  sr: ReadonlyMap<number, number>;
+}
+
+/**
+ * Derived, never state: seaDistances by its sources and by which strait
+ * and canal edges are open to the asker (the only edges that close), so
+ * a value depends on its key alone — live and restored games read the
+ * same. Bounded (cleared at 4,096 keys).
+ */
+const reachMemo = new WeakMap<ScenarioIndex, Map<string, SeaReach>>();
+
+export function seaReach(
+  sc: ScenarioIndex,
+  from: readonly number[],
+  passable: (edge: number) => boolean,
+): SeaReach {
+  let m = reachMemo.get(sc);
+  if (m === undefined) {
+    m = new Map();
+    reachMemo.set(sc, m);
+  }
+  let sig = "";
+  for (let i = 0; i < sc.seaEdgeCount(); i++) {
+    if (sc.seaEdge(i).strait >= 0) sig += passable(i) ? "1" : "0";
+  }
+  const key = `${sig}|${from.join(",")}`;
+  const hit = m.get(key);
+  if (hit !== undefined) return hit;
+  const dist = seaDistances(sc, from, passable);
+  const sr = new Map<number, number>();
+  for (const s of sc.strategicList()) {
+    if (s.kind !== "sea") continue;
+    const k = srKmIn(sc, dist, s.id);
+    if (k >= 0) sr.set(s.id, k);
+  }
+  if (m.size >= 4096) m.clear();
+  const out = { dist, sr };
+  m.set(key, out);
+  return out;
+}
+
 /** The nearest zone of a sea strategic region in `dist` (km), or -1. */
 export function srKmIn(
   sc: ScenarioIndex,
@@ -464,7 +512,9 @@ export function srKmIn(
 export function aiMainBase(ww: WwNavy["ww"], smallID: number): number {
   let best = 0;
   let bestLevel = 0;
-  for (const r of navalPortsOf(ww, smallID)) {
+  // The economy's region list, the land war's control (Ports.navalPortsOf's rule).
+  for (const r of [...ww.economy.regionsOf(smallID)].sort((a, b) => a - b)) {
+    if (ww.land.controller[r] !== smallID || !navalPort(ww, r)) continue;
     if (isNoStrike(ww.scenario, r)) continue;
     const lv = effectiveLevel(ww.economy, r, "naval_base");
     if (lv > bestLevel) {
@@ -890,10 +940,18 @@ function emit(
   for (const f of fleets) {
     const w = wants.get(f.id);
     if (w === undefined) continue;
+    // A new-ships fleet the plan keeps as a role fleet is given its mission
+    // even when it is the same (the order ends its new-ships status: lane
+    // N1's housekeeping and the next launches then treat it as a fleet).
+    const adopt = f.newShips && f.docked !== 0;
     if (w.home) {
       if (f.docked === 0 && f.state !== "returning") {
         orders.push({ kind: "fleet_return", fleet: f.id });
-      } else if (f.docked !== 0 && f.mission !== "hold" && f.sr > 0) {
+      } else if (
+        f.docked !== 0 &&
+        (f.mission !== "hold" || adopt) &&
+        f.sr > 0
+      ) {
         orders.push({
           kind: "fleet_mission",
           fleet: f.id,
@@ -903,7 +961,18 @@ function emit(
       }
       continue;
     }
-    if (w.engage !== null && w.engage !== f.engage) {
+    // The mission first: its order resets the rule to the mission's own.
+    let engage = f.engage;
+    if (w.mission !== f.mission || w.sr !== f.missionSr || adopt) {
+      orders.push({
+        kind: "fleet_mission",
+        fleet: f.id,
+        mission: w.mission,
+        sr: w.sr,
+      });
+      engage = MISSION_ENGAGE[w.mission];
+    }
+    if (w.engage !== null && w.engage !== engage) {
       orders.push({ kind: "fleet_engage", fleet: f.id, rule: w.engage });
     }
     if (w.returnAt !== null && w.returnAt !== f.returnAtPct) {
@@ -913,21 +982,143 @@ function emit(
         pct: w.returnAt as 0 | 30 | 50 | 70,
       });
     }
-    if (w.mission !== f.mission || w.sr !== f.missionSr) {
-      orders.push({
-        kind: "fleet_mission",
-        fleet: f.id,
-        mission: w.mission,
-        sr: w.sr,
-      });
-    }
   }
 }
 
 // ---- The engine side ----
 
-/** A fleet's ships as AiShipRows. */
+/**
+ * Derived, never state: memos valid for one tick (fleets move and fight
+ * every tick, so a restored game recomputes the same values at its tick).
+ */
+interface TickMemo {
+  tick: number;
+  /** Fleet id → its ship list (a split or merge makes a new one; a launch adds one) and rows. */
+  rows: Map<number, { ships: readonly number[]; n: number; rows: AiShipRow[] }>;
+  enemy: Map<string, Map<number, AiEnemySea>>;
+  traffic: Map<number, Map<number, number>> | null;
+}
+const tickMemos = new WeakMap<WwNavy, TickMemo>();
+function tickMemo(navy: WwNavy): TickMemo {
+  const tick = navy.mg.ticks();
+  let m = tickMemos.get(navy);
+  if (m === undefined || m.tick !== tick) {
+    m = { tick, rows: new Map(), enemy: new Map(), traffic: null };
+    tickMemos.set(navy, m);
+  }
+  return m;
+}
+
+/** A sea region's enemy fleets as one side sees them. */
+export interface AiEnemySea {
+  /** Supremacy power (docked fleets at half). */
+  sup: number;
+  /** fleetPower of the screen-only fleets. */
+  escort: number;
+  sum: NavalSideSum;
+  spotted: boolean;
+  raider: boolean;
+}
+
+/**
+ * The enemy fleets by sea region for `me` (its wars, its side's
+ * spotting), shared by the countries with the same enemies and side on
+ * the same tick (the per-tick memo).
+ */
+export function aiEnemySeaView(
+  navy: WwNavy,
+  me: number,
+): ReadonlyMap<number, AiEnemySea> {
+  const land = navy.land;
+  const side = navy.sideOf(me);
+  const enemies = navy.ww
+    .enemiesOf(me)
+    .filter((e) => land.isEnemy(me, e))
+    .sort((a, b) => a - b);
+  const key = `${side}|${enemies.join(",")}`;
+  const memo = tickMemo(navy);
+  const hit = memo.enemy.get(key);
+  if (hit !== undefined) return hit;
+  const foes = new Set(enemies);
+  const sc = navy.scenario;
+  const acc = new Map<
+    number,
+    {
+      sup: number;
+      escort: number;
+      rows: AiShipRow[];
+      spotted: boolean;
+      raider: boolean;
+    }
+  >();
+  // Fleets in id order; a sea region's zones in any order give the same sums.
+  for (const f of navy.fleets.values()) {
+    if (!foes.has(f.owner)) continue;
+    const sr = sc.zoneSr(f.zone);
+    if (sr === 0) continue;
+    let a = acc.get(sr);
+    if (a === undefined) {
+      a = { sup: 0, escort: 0, rows: [], spotted: false, raider: false };
+      acc.set(sr, a);
+    }
+    const fr = fleetRows(navy, f);
+    a.rows.push(...fr);
+    const sup = aiSupPower(fr);
+    a.sup += f.docked !== 0 ? Math.floor(sup / 2) : sup;
+    const counts = fleetCounts(navy, f);
+    const role = fleetRole(counts);
+    if (role === "patrol" || role === "escort") {
+      a.escort += fleetPower(
+        fr.map((x) => ({ stats: x.stats, hpMilli: x.hpMilli })),
+      );
+    }
+    if (navy.spotted(side, f.id)) {
+      a.spotted = true;
+      if (counts[SS] > 0 || capitalsOf(counts) === 0) a.raider = true;
+    }
+  }
+  const out = new Map<number, AiEnemySea>();
+  for (const [sr, a] of [...acc].sort((x, y) => x[0] - y[0])) {
+    out.set(sr, {
+      sup: a.sup,
+      escort: a.escort,
+      sum: navalSideSum(a.rows),
+      spotted: a.spotted,
+      raider: a.raider,
+    });
+  }
+  memo.enemy.set(key, out);
+  return out;
+}
+
+/** Convoy traffic (the routes' need, or what they got) by owner and sea region, a tick's memo. */
+function routeTraffic(navy: WwNavy): Map<number, Map<number, number>> {
+  const memo = tickMemo(navy);
+  if (memo.traffic !== null) return memo.traffic;
+  const out = new Map<number, Map<number, number>>();
+  for (const r of navy.routes.values()) {
+    let m = out.get(r.owner);
+    if (m === undefined) out.set(r.owner, (m = new Map()));
+    const n = Math.max(r.need, r.got);
+    for (const sr of r.srs) m.set(sr, (m.get(sr) ?? 0) + n);
+  }
+  memo.traffic = out;
+  return out;
+}
+
+/** A fleet's ships as AiShipRows (memoised for the tick). */
 export function fleetRows(navy: WwNavy, f: Fleet): AiShipRow[] {
+  const memo = tickMemo(navy);
+  const hit = memo.rows.get(f.id);
+  if (hit !== undefined && hit.ships === f.ships && hit.n === f.ships.length) {
+    return hit.rows;
+  }
+  const rows = fleetRowsNow(navy, f);
+  memo.rows.set(f.id, { ships: f.ships, n: f.ships.length, rows });
+  return rows;
+}
+
+function fleetRowsNow(navy: WwNavy, f: Fleet): AiShipRow[] {
   const t = navy.ships;
   const out: AiShipRow[] = [];
   for (const id of f.ships) {
@@ -988,12 +1179,13 @@ export function aiNavalInput(
   const side = navy.sideOf(smallID);
   const tag = sc.tagOfSmallId(smallID)!;
   const pass = navy.passable(smallID, true);
-  const dists = new Map<number, Map<number, number>>();
+  const dists = new Map<number, SeaReach>();
+  const none: SeaReach = { dist: new Map(), sr: new Map() };
   const distFrom = (port: number) => {
     let d = dists.get(port);
     if (d === undefined) {
       const z = port === 0 ? 0 : sc.harborOf(port);
-      d = z === 0 ? new Map() : seaDistances(sc, [z], pass);
+      d = z === 0 ? none : seaReach(sc, [z], pass);
       dists.set(port, d);
     }
     return d;
@@ -1004,82 +1196,49 @@ export function aiNavalInput(
   const invasion = atWar ? invasionRouteSrs(navy, smallID) : new Set<number>();
   // Home: the regions holding a harbor of one of our core ports.
   const homeSrs = new Set<number>();
-  for (const r of sc.landRegions) {
-    if (!r.core || r.owner !== tag || land.controller[r.id] !== smallID) {
-      continue;
-    }
-    const z = sc.harborOf(r.id);
-    if (z !== 0 && navalPort(ww, r.id) && sc.zoneSr(z) !== 0) {
+  for (const id of ww.economy.regionsOf(smallID)) {
+    const r = sc.region(id);
+    if (r === undefined || !r.core || r.owner !== tag) continue;
+    if (land.controller[id] !== smallID) continue;
+    const z = sc.harborOf(id);
+    if (z !== 0 && navalPort(ww, id) && sc.zoneSr(z) !== 0) {
       homeSrs.add(sc.zoneSr(z));
     }
   }
-  // Convoy traffic by sea region: ours, the enemy's.
-  const traffic = new Map<number, number>();
+  // Convoy traffic by sea region: ours, the enemy's (one pass a tick).
+  const byOwner = routeTraffic(navy);
+  const traffic = byOwner.get(smallID) ?? new Map<number, number>();
   const enemyTraffic = new Map<number, number>();
-  for (const r of navy.routes.values()) {
-    const into =
-      r.owner === smallID ? traffic : enemy(r.owner) ? enemyTraffic : null;
-    if (into === null) continue;
-    for (const sr of r.srs) {
-      into.set(sr, (into.get(sr) ?? 0) + Math.max(r.need, r.got));
-    }
+  for (const [owner, m] of byOwner) {
+    if (!enemy(owner)) continue;
+    for (const [sr, n] of m)
+      enemyTraffic.set(sr, (enemyTraffic.get(sr) ?? 0) + n);
   }
   const regions: AiSeaRegionView[] = [];
+  const enemyView = atWar ? aiEnemySeaView(navy, smallID) : null;
   for (const s of sc.strategicList()) {
     if (s.kind !== "sea") continue;
-    let enemySup = 0;
-    let enemyEscort = 0;
-    let spotted = false;
-    let raider = false;
-    const rows: AiShipRow[] = [];
-    if (atWar) {
-      for (const z of s.members) {
-        for (const fid of navy.fleetsIn(z)) {
-          const f = navy.fleets.get(fid);
-          if (f === undefined || !enemy(f.owner)) continue;
-          const fr = fleetRows(navy, f);
-          rows.push(...fr);
-          const sup = aiSupPower(fr);
-          enemySup += f.docked !== 0 ? Math.floor(sup / 2) : sup;
-          const counts = fleetCounts(navy, f);
-          const role = fleetRole(counts);
-          if (role === "patrol" || role === "escort") {
-            enemyEscort += fleetPower(
-              fr.map((x) => ({ stats: x.stats, hpMilli: x.hpMilli })),
-            );
-          }
-          if (navy.spotted(side, fid)) {
-            spotted = true;
-            if (counts[SS] > 0 || capitalsOf(counts) === 0) raider = true;
-          }
-        }
-      }
-    }
+    const e = enemyView?.get(s.id);
     const st = navy.srState[s.idx];
     regions.push({
       sr: s.id,
-      km: srKmIn(sc, mainDist, s.id),
+      km: mainDist.sr.get(s.id) ?? -1,
       home: homeSrs.has(s.id),
       traffic: traffic.get(s.id) ?? 0,
       lossMilli:
         (st?.lossYesterday.get(smallID) ?? 0) + (st?.lossRate.get(side) ?? 0),
-      raiderSpotted: raider,
+      raiderSpotted: e?.raider ?? false,
       enemyTraffic: enemyTraffic.get(s.id) ?? 0,
-      enemyEscort,
-      enemySup,
-      enemySum: rows.length === 0 ? null : navalSideSum(rows),
-      enemySpotted: spotted,
+      enemyEscort: e?.escort ?? 0,
+      enemySup: e?.sup ?? 0,
+      enemySum: e?.sum ?? null,
+      enemySpotted: e?.spotted ?? false,
       invasion: invasion.has(s.id),
     });
   }
   const views: AiFleetView[] = fleets.map((f) => {
     const rows = fleetRows(navy, f);
-    const d = distFrom(f.home);
-    const km = new Map<number, number>();
-    for (const r of regions) {
-      const k = srKmIn(sc, d, r.sr);
-      if (k >= 0) km.set(r.sr, k);
-    }
+    const km = distFrom(f.home).sr;
     return {
       id: f.id,
       counts: fleetCounts(navy, f),
@@ -1102,7 +1261,12 @@ export function aiNavalInput(
   const ports: AiPortView[] = [];
   if (atWar && views.some((v) => v.counts[CV] > 0)) {
     const beats = activeBeatTargets(navy, smallID, day, "port_strike");
-    for (const r of sc.landRegions) {
+    const enemyRegions = new Set<number>();
+    for (const e of ww.enemiesOf(smallID)) {
+      for (const id of ww.economy.regionsOf(e)) enemyRegions.add(id);
+    }
+    for (const id of [...enemyRegions].sort((a, b) => a - b)) {
+      const r = sc.region(id)!;
       const c = land.controller[r.id];
       if (!enemy(c) || isNoStrike(sc, r.id) || !navalPort(ww, r.id)) continue;
       const z = sc.harborOf(r.id);
@@ -1246,15 +1410,15 @@ export function aiSeaWarPmOf(
   // The theatre (none when `a` has no port: its fleets cannot sail).
   const theatre = new Set<number>();
   if (fromA.length > 0) {
-    const distA = seaDistances(sc, fromA, navy.passable(a, true));
+    const distA = seaReach(sc, fromA, navy.passable(a, true)).dist;
     const distT =
       fromT.length === 0
         ? null
-        : seaDistances(
+        : seaReach(
             sc,
             [...new Set(fromT)].sort((x, y) => x - y),
-            () => true,
-          );
+            ALL_EDGES,
+          ).dist;
     for (const [z, km] of distA) {
       if (km > AI_INVASION_REACH_KM) continue;
       const kt = distT === null ? 0 : (distT.get(z) ?? Infinity);

@@ -29,6 +29,7 @@ import {
   Stance,
   SupportId,
   TPL_ARMOR_ANY,
+  TPL_PARA_ANY,
   WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_SUPPORT,
@@ -52,7 +53,7 @@ import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
 import { convoysOf } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { seaDistances } from "../navy/AiNavy";
+import { seaReach } from "../navy/AiNavy";
 import { navalPort, navalPortsOf } from "../navy/Ports";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
@@ -594,6 +595,23 @@ export function aiSideStretches(
   return { comp: v.comp, ports: v.ports };
 }
 
+/** An army all of paratroopers (the paradrop planner's, AiAir.aiParadrops). */
+function paraArmy(land: WwLand, a: Army): boolean {
+  if (a.divisions.length === 0) return false;
+  const t = land.divisions;
+  return a.divisions.every((id) => {
+    const r = t.rowOf(id);
+    return r >= 0 && (land.baseStatsOf(r).flags & TPL_PARA_ANY) !== 0;
+  });
+}
+
+/** Derived (one tick): the coastal guard's threat zones by the enemies' list. */
+const threatMemo = new WeakMap<
+  WwLand,
+  { tick: number; m: Map<string, ReadonlySet<number>> }
+>();
+const NO_ZONES: ReadonlySet<number> = new Set();
+
 class AiDay {
   readonly me: number;
   readonly tag: CountryTag;
@@ -774,12 +792,13 @@ class AiDay {
   /**
    * The armies the AI commands today: all of an AI country's; a human's
    * auto ones. P4 (spec §17.4): an army preparing or sailing an invasion
-   * is the invasion planner's (AiInvasion), until it lands.
+   * is the invasion planner's (AiInvasion), until it lands; an army all of
+   * paratroopers is the paradrop planner's (AiAir).
    */
   private armies(): Army[] {
     const all = this.land
       .armiesOf(this.me)
-      .filter((a) => a.order.kind !== "invade");
+      .filter((a) => a.order.kind !== "invade" && !paraArmy(this.land, a));
     return this.human ? all.filter((a) => a.auto) : all;
   }
 
@@ -872,9 +891,25 @@ class AiDay {
    * AI_INVASION_KM by sea of an enemy-at-war fleet, or of an enemy's
    * ports while it has convoys. Empty at peace or with no navy about.
    */
-  private seaThreatZones(): Set<number> {
+  private seaThreatZones(): ReadonlySet<number> {
+    if (this.atWar.length === 0) return NO_ZONES;
+    // Shared by the countries with the same enemies on this tick.
+    const tick = this.land.mg.ticks();
+    let memo = threatMemo.get(this.land);
+    if (memo === undefined || memo.tick !== tick) {
+      memo = { tick, m: new Map() };
+      threatMemo.set(this.land, memo);
+    }
+    const key = this.atWar.join(",");
+    const hit = memo.m.get(key);
+    if (hit !== undefined) return hit;
+    const out = this.seaThreatZonesNow();
+    memo.m.set(key, out);
+    return out;
+  }
+
+  private seaThreatZonesNow(): Set<number> {
     const out = new Set<number>();
-    if (this.atWar.length === 0) return out;
     const ww = this.land.ww;
     const sc = this.land.scenario;
     const navy = ww.navy;
@@ -889,11 +924,11 @@ class AiDay {
       }
     }
     if (from.size === 0) return out;
-    const dist = seaDistances(
+    const dist = seaReach(
       sc,
       [...from].sort((a, b) => a - b),
       ALL_EDGES,
-    );
+    ).dist;
     for (const [z, km] of dist) if (km <= AI_INVASION_KM) out.add(z);
     return out;
   }
@@ -1895,6 +1930,7 @@ class AiDay {
       // port): the new divisions appear at the capital and would be left
       // behind on another stretch, the army split over the sea.
       if (a.order.kind === "invade" || a.order.kind === "move") continue;
+      if (paraArmy(land, a)) continue;
       if (comp[land.armyRegion(a)] !== comp[cap]) continue;
       const n = a.divisions.length + (waiting.get(a.id) ?? 0);
       if (n < bestN) {

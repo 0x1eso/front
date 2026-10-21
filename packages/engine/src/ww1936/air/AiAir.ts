@@ -11,6 +11,7 @@
 // gets no bombers. aiAirPlan is pure; aiAir reads what a player's
 // screens show and orders through air.issue. No randomness.
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
+import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   AIR_MISSIONS,
   AIR_TYPES,
@@ -23,11 +24,21 @@ import {
   equipKey,
   EQUIPMENT_GENS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { TPL_PARA_ANY } from "@openfront/engine-api/ww1936/LandTypes";
+import { paradropBlockOf } from "@openfront/engine-lib/ww1936/AirRules";
+import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { effectiveBuildings, effectiveLevel } from "../economy/Buildings";
 import { capitalRegion } from "../land/LandStartRun";
 import { enemyDivisionsIn } from "../land/Movement";
-import { activeBeatTargets, AI_BEAT_FACTOR, aiAtWar } from "../navy/AiNavy";
-import { bombableRegions } from "./Bombing";
+import type { Army } from "../land/WwLand";
+import {
+  activeBeatTargets,
+  AI_BEAT_FACTOR,
+  aiAtWar,
+  beatWindow,
+} from "../navy/AiNavy";
+import { paradropAskOf } from "./Paradrop";
 import type { WwAir } from "./WwAir";
 
 /** Spec §17.3-2: the share of each type's planes put on the demands. */
@@ -263,6 +274,146 @@ export function aiAirDue(
   return atWar ? (day + smallID) % 5 === 0 : (day + smallID) % 10 === 0;
 }
 
+/** One zone as every country of a side with the same enemies sees it (a tick's memo). */
+interface AirZoneShared {
+  enemyPlanes: number;
+  enemyBombers: number;
+  /** An enemy region here borders our side. */
+  front: boolean;
+  enemyDivisions: number;
+  /** Bombable enemy industry (civilian + military + dockyards). */
+  industry: number;
+  /** A spotted enemy fleet (sea). */
+  enemyFleet: boolean;
+  /** km from our side's nearest working air base; -1: none. */
+  minKm: number;
+}
+
+/**
+ * Derived, never state: km from the nearest of a set of air bases to each
+ * zone (srIdx order), by the set itself (bases change rarely: built,
+ * bombed, taken). Bounded (cleared at 512 sets).
+ */
+const reachByBases = new WeakMap<WwAir, Map<string, Int32Array>>();
+
+function basesReach(air: WwAir, bases: readonly number[]): Int32Array {
+  let m = reachByBases.get(air);
+  if (m === undefined) {
+    m = new Map();
+    reachByBases.set(air, m);
+  }
+  const key = bases.join(",");
+  const hit = m.get(key);
+  if (hit !== undefined) return hit;
+  const sc = air.ww.scenario;
+  const list = sc.strategicList();
+  const out = new Int32Array(list.length).fill(-1);
+  for (const s of list) {
+    for (const b of bases) {
+      const km = sc.srKm(b, s.id);
+      if (out[s.idx] < 0 || km < out[s.idx]) out[s.idx] = km;
+    }
+  }
+  if (m.size >= 512) m.clear();
+  m.set(key, out);
+  return out;
+}
+
+/** Derived (one tick): the zones by (side, enemies), srIdx order. */
+const airShared = new WeakMap<
+  WwAir,
+  { tick: number; m: Map<string, AirZoneShared[]> }
+>();
+
+function airSharedView(air: WwAir, me: number): AirZoneShared[] {
+  const land = air.land;
+  const ww = air.ww;
+  const sc = ww.scenario;
+  const econ = air.econ;
+  const navy = air.navy;
+  const side = land.sideOf(me);
+  const enemies = ww
+    .enemiesOf(me)
+    .filter((e) => land.isEnemy(me, e))
+    .sort((a, b) => a - b);
+  const key = `${side}|${enemies.join(",")}`;
+  const tick = air.mg.ticks();
+  let memo = airShared.get(air);
+  if (memo === undefined || memo.tick !== tick) {
+    memo = { tick, m: new Map() };
+    airShared.set(air, memo);
+  }
+  const hit = memo.m.get(key);
+  if (hit !== undefined) return hit;
+  const foes = new Set(enemies);
+  const enemy = (c: number) => foes.has(c);
+  // Our side's working air bases (its members' regions held by the side).
+  const members = land.sideMembers(side);
+  const bases: number[] = [];
+  for (const m of members.length === 0 ? [me] : members) {
+    for (const r of econ.regionsOf(m)) {
+      if (!land.sameSide(me, land.controller[r])) continue;
+      if (effectiveLevel(econ, r, "air_base") >= 1) bases.push(r);
+    }
+  }
+  bases.sort((a, b) => a - b);
+  const minKm = basesReach(air, bases);
+  const enemySides = new Set<number>();
+  for (const sd of land.sideList()) {
+    if (sd.members.some((m) => enemy(m))) enemySides.add(sd.key);
+  }
+  const bomberTypes = [
+    AIR_TYPES.indexOf("bomber"),
+    AIR_TYPES.indexOf("strat_bomber"),
+  ];
+  const list = sc.strategicList();
+  const out: AirZoneShared[] = list.map((s) => {
+    const z = air.zoneState[s.idx];
+    const v: AirZoneShared = {
+      enemyPlanes: 0,
+      enemyBombers: 0,
+      front: false,
+      enemyDivisions: 0,
+      industry: 0,
+      enemyFleet: false,
+      minKm: minKm[s.idx],
+    };
+    for (const [k, sorties] of z.sorties) {
+      if (k === side || !enemySides.has(k)) continue;
+      for (const n of sorties) v.enemyPlanes += n;
+      for (const t of bomberTypes) v.enemyBombers += sorties[t] ?? 0;
+    }
+    return v;
+  });
+  // The enemy's regions: its industry, its front with us (sums: any order).
+  for (const e of enemies) {
+    for (const r of econ.regionsOf(e)) {
+      if (!enemy(land.controller[r] ?? 0)) continue;
+      const i = sc.srIdxOf(sc.regionSr(r));
+      if (i < 0) continue;
+      const v = out[i];
+      // bombableRegions' rule: never a no-strike region.
+      if (!isNoStrike(sc, r)) {
+        v.industry +=
+          effectiveBuildings(econ, r, "civ") +
+          effectiveBuildings(econ, r, "mil") +
+          effectiveBuildings(econ, r, "dock");
+      }
+      if (sc.edgesOf(r).some((x) => land.sameSide(me, land.controller[x.to]))) {
+        v.front = true;
+        v.enemyDivisions += enemyDivisionsIn(land, me, r);
+      }
+    }
+    // Its fleets our side has spotted.
+    for (const f of navy.fleetsOf(e)) {
+      const i = sc.srIdxOf(sc.zoneSr(f.zone));
+      if (i >= 0 && navy.spotted(side, f.id)) out[i].enemyFleet = true;
+    }
+  }
+  memo.m.set(key, out);
+  return out;
+}
+
 /** What the plan reads of `smallID`'s air war today. */
 export function aiAirInput(
   air: WwAir,
@@ -281,8 +432,6 @@ export function aiAirInput(
   const ca = air.country(smallID)!;
   const only = human ? [...ca.autoZones] : undefined;
   const commanded = (sr: number) => only === undefined || only.includes(sr);
-  const enemy = (c: number) =>
-    c !== 0 && c !== smallID && land.isEnemy(smallID, c);
   // Planes: the stock and the deployments the AI commands.
   const planes = AIR_TYPES.map((type) => {
     let n = 0;
@@ -309,99 +458,78 @@ export function aiAirInput(
       current.push({ sr: d.sr, type, mission, count: d.target });
     }
   }
-  // Our side's working air bases, for the reach.
-  const bases: number[] = [];
-  for (const r of sc.landRegions) {
-    if (!land.sameSide(smallID, land.controller[r.id])) continue;
-    if (effectiveLevel(econ, r.id, "air_base") >= 1) bases.push(r.id);
+  // Lane A1's rule (Deploy.bestRange): generation 1's range, or the best
+  // of the generations it has in the stock or out.
+  const has = new Set<number>();
+  for (const d of air.deploymentsOf(smallID)) {
+    d.counts.forEach((c, g) => {
+      if (c > 0) has.add(d.type * 8 + g + 1);
+    });
   }
-  const range = AIR_TYPES.map((type) => {
-    let km = 0;
+  const range = AIR_TYPES.map((type, ti) => {
+    let km = air.planeStatsOf(smallID, type, 1).rangeKm;
     for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      km = Math.max(km, air.planeStatsOf(smallID, type, g).rangeKm);
+      if ((ce.stock[equipKey(type, g)] ?? 0) > 0 || has.has(ti * 8 + g)) {
+        km = Math.max(km, air.planeStatsOf(smallID, type, g).rangeKm);
+      }
     }
     return km;
   });
-  const beatRegions = activeBeatTargets(navy, smallID, day, "air_campaign");
+  // Air campaigns, and the sky over a paradrop's target (70% needed).
+  const beatRegions = new Set([
+    ...activeBeatTargets(navy, smallID, day, "air_campaign"),
+    ...activeBeatTargets(navy, smallID, day, "paradrop"),
+  ]);
   const beatSrs = new Set([...beatRegions].map((r) => sc.regionSr(r)));
   const bombsTaken = ca.bombTaken.reduce((a, b) => a + b, 0) > 0;
-  const bomberTypes = [
-    AIR_TYPES.indexOf("bomber"),
-    AIR_TYPES.indexOf("strat_bomber"),
-  ];
-  const ours = (r: number) => land.controller[r] === smallID;
+  const shared = airSharedView(air, smallID);
+  // Ours: regions held, encircled, attacked from.
+  const mineSr = new Set<number>();
+  const encircledSr = new Set<number>();
+  for (const r of econ.regionsOf(smallID)) {
+    if (land.controller[r] !== smallID) continue;
+    const sr = sc.regionSr(r);
+    mineSr.add(sr);
+    if (land.encircled[r] === 1) encircledSr.add(sr);
+  }
+  const attackingSr = new Set<number>();
+  const t = land.divisions;
+  for (const b of land.battles.values()) {
+    const sr = sc.regionSr(b.region);
+    if (attackingSr.has(sr)) continue;
+    if (
+      b.attackers.some((id) => {
+        const row = t.rowOf(id);
+        return row >= 0 && t.owner[row] === smallID;
+      })
+    ) {
+      attackingSr.add(sr);
+    }
+  }
   const zones: AiAirZoneView[] = [];
   for (const s of sc.strategicList()) {
     const z = air.zoneState[s.idx];
-    let enemyPlanes = 0;
-    let enemyBombers = 0;
-    for (const [k, sorties] of z.sorties) {
-      if (k === side || !land.sideMembers(k).some((m) => enemy(m))) continue;
-      for (const n of sorties) enemyPlanes += n;
-      for (const t of bomberTypes) enemyBombers += sorties[t] ?? 0;
-    }
-    let front = false;
-    let enemyDivisions = 0;
-    let attacking = false;
-    let industry = 0;
-    let encircled = false;
-    let mine = false;
+    const v = shared[s.idx];
     let convoyLoss = false;
-    let enemyFleet = false;
-    if (s.kind === "land") {
-      const bombable = new Set(bombableRegions(air, s.id));
-      for (const r of s.members) {
-        const c = land.controller[r] ?? 0;
-        if (ours(r)) {
-          mine = true;
-          if (land.encircled[r] === 1) encircled = true;
-        } else if (enemy(c)) {
-          if (atWar && bombable.has(r)) {
-            industry +=
-              effectiveBuildings(econ, r, "civ") +
-              effectiveBuildings(econ, r, "mil") +
-              effectiveBuildings(econ, r, "dock");
-          }
-          if (
-            sc
-              .edgesOf(r)
-              .some((e) => land.sameSide(smallID, land.controller[e.to]))
-          ) {
-            front = true;
-            enemyDivisions += enemyDivisionsIn(land, smallID, r);
-          }
-        }
-        const b = land.battles.get(r);
-        if (b !== undefined) {
-          const t = land.divisions;
-          attacking ||= b.attackers.some((id) => {
-            const row = t.rowOf(id);
-            return row >= 0 && t.owner[row] === smallID;
-          });
-        }
-      }
-    } else {
+    if (s.kind === "sea") {
       const st = navy.srState[s.idx];
       convoyLoss =
         (st?.lossYesterday.get(smallID) ?? 0) > 0 ||
         (st?.lossRate.get(side) ?? 0) > 0;
-      for (const zone of s.members) {
-        for (const fid of navy.fleetsIn(zone)) {
-          const f = navy.fleets.get(fid);
-          if (f !== undefined && enemy(f.owner) && navy.spotted(side, fid)) {
-            enemyFleet = true;
-          }
-        }
-      }
     }
+    const enemyPlanes = v.enemyPlanes;
+    const front = s.kind === "land" && v.front;
+    const enemyDivisions = v.enemyDivisions;
+    const attacking = s.kind === "land" && attackingSr.has(s.id);
+    const industry = atWar ? v.industry : 0;
+    const encircled = encircledSr.has(s.id);
+    const mine = mineSr.has(s.id);
+    const enemyFleet = v.enemyFleet;
+    const enemyBombers = v.enemyBombers;
+    const minKm = v.minKm;
     // Losses: yesterday's × 5 for the five days (the zone keeps one day).
     const lost = (z.result.get(smallID)?.[1] ?? 0) * 5;
     const deployed = deployedIn.get(s.id) ?? 0;
-    let minKm = -1;
-    for (const b of bases) {
-      const km = sc.srKm(b, s.id);
-      if (minKm < 0 || km < minKm) minKm = km;
-    }
     zones.push({
       sr: s.id,
       kind: s.kind,
@@ -447,5 +575,182 @@ export function aiAir(air: WwAir, smallID: number, day: number): void {
   const tick = air.mg.ticks();
   for (const o of aiAirPlan(aiAirInput(air, smallID, day, atWar, human))) {
     air.issue(smallID, o, tick);
+  }
+  if (!human) aiParadrops(air, smallID, day, atWar);
+}
+
+// ---- Paradrops (lane AI review; spec §14.10, §17.6: Crete) ----
+
+/** 내 판단: the paratrooper force an AI raises for a paradrop beat. */
+export const AI_PARA_DIVISIONS = 3;
+export const AI_PARA_BATTALIONS = 4;
+/** 내 판단: it starts this long before the beat (a paratrooper battalion trains 150 days). */
+export const AI_PARA_LEAD_DAYS = 240;
+/** Targets tried a day (each one a judge of the order). */
+const AI_PARA_TRIES = 5;
+
+/** Every division of `a` is a paratrooper's (P2's drop condition). */
+export function isParaArmy(land: WwAir["land"], a: Army): boolean {
+  if (a.divisions.length === 0) return false;
+  const t = land.divisions;
+  return a.divisions.every((id) => {
+    const r = t.rowOf(id);
+    return r >= 0 && (land.baseStatsOf(r).flags & TPL_PARA_ANY) !== 0;
+  });
+}
+
+/** `me`'s paratrooper templates, by id. */
+function paraTemplates(land: WwAir["land"], me: number): number[] {
+  const out: number[] = [];
+  for (const tpl of land.country(me)?.templates ?? []) {
+    const st = land.templateStatsOf(me, tpl.id);
+    if (st !== null && (st.flags & TPL_PARA_ANY) !== 0) out.push(tpl.id);
+  }
+  return out;
+}
+
+/** A paradrop beat of `me`'s from its lead time to its window's end (historical AI). */
+function paraBeatAhead(air: WwAir, me: number, day: number): boolean {
+  const mg = air.mg;
+  if (mg.config().historicalAi() !== true) return false;
+  const tag = air.ww.scenario.tagOfSmallId(me);
+  return NAVAL_BEATS.some((b, i) => {
+    if (b.tag !== tag || b.kind !== "paradrop") return false;
+    const roll = air.navy.beats[i];
+    if (roll === undefined || roll[2]) return false;
+    const w = beatWindow(b, roll[1], 0);
+    return day >= w[0] - AI_PARA_LEAD_DAYS && day <= w[1];
+  });
+}
+
+/**
+ * Pure: a paradrop target's score — (VP + 5) × 100 / (1 + enemy
+ * divisions × 3), ×10 for a beat's target; an ordinary target must stand
+ * empty (a drop is no assault but on a beat).
+ */
+export function aiParadropScore(i: {
+  vp: number;
+  divisions: number;
+  beat: boolean;
+}): number {
+  if (!i.beat && i.divisions > 0) return 0;
+  const s = Math.floor(((i.vp + 5) * 100) / (1 + i.divisions * 3));
+  return i.beat ? s * AI_BEAT_FACTOR : s;
+}
+
+/**
+ * The AI's paradrops: before a paradrop beat (from AI_PARA_LEAD_DAYS) it
+ * raises a paratrooper template and three divisions; at war, an army all
+ * of paratroopers drops on the best target the air war's judge allows
+ * (paradropAskOf / paradropBlockOf: an air base, the transports' range
+ * and number, 70% of the sky) — the beat's targets (×10, never a
+ * no-strike region) or an empty enemy city of 5 victory points or more.
+ * Out of range of a beat's target it first goes to our air base nearest
+ * it. Orders only (land.issue), no memory.
+ */
+export function aiParadrops(
+  air: WwAir,
+  me: number,
+  day: number,
+  atWar: boolean,
+): void {
+  const land = air.land;
+  const sc = air.ww.scenario;
+  const ce = air.econ.country(me);
+  const cl = land.country(me);
+  if (ce === null || cl === null) return;
+  const issue = (o: WwOrder) => land.issue(me, o, "ai") === null;
+  if (ce.researched.has("paratroopers") && paraBeatAhead(air, me, day)) {
+    const tpls = paraTemplates(land, me);
+    if (tpls.length === 0) {
+      issue({
+        kind: "template_save",
+        template: 0,
+        base: cl.templates[0]?.id ?? 0,
+        name: "",
+        battalions: new Array(AI_PARA_BATTALIONS).fill("paratrooper"),
+        support: [],
+      });
+    } else {
+      const t = land.divisions;
+      let n = 0;
+      for (const a of land.armiesOf(me)) {
+        for (const id of a.divisions) {
+          const r = t.rowOf(id);
+          if (r >= 0 && tpls.includes(t.template[r])) n++;
+        }
+      }
+      for (const e of cl.training)
+        if (tpls.includes(e.template)) n += e.remaining;
+      for (const x of cl.trainees) if (tpls.includes(x.template)) n++;
+      if (n < AI_PARA_DIVISIONS) {
+        issue({
+          kind: "train",
+          template: tpls[0],
+          count: AI_PARA_DIVISIONS - n,
+          army: 0,
+          region: 0,
+        });
+      }
+    }
+  }
+  if (!atWar) return;
+  const armies = land
+    .armiesOf(me)
+    .filter(
+      (a) =>
+        a.order.kind !== "paradrop" &&
+        a.order.kind !== "invade" &&
+        !(a.order.kind === "plan" && a.order.executing) &&
+        isParaArmy(land, a),
+    );
+  if (armies.length === 0) return;
+  const beats = activeBeatTargets(air.navy, me, day, "paradrop");
+  const targets: { r: number; score: number; beat: boolean }[] = [];
+  for (const reg of sc.landRegions) {
+    const c = land.controller[reg.id] ?? 0;
+    if (c === 0 || !land.isEnemy(me, c) || isNoStrike(sc, reg.id)) continue;
+    const beat = beats.has(reg.id);
+    if (!beat && reg.vp < 5) continue;
+    const score = aiParadropScore({
+      vp: reg.vp,
+      divisions: enemyDivisionsIn(land, me, reg.id),
+      beat,
+    });
+    if (score > 0) targets.push({ r: reg.id, score, beat });
+  }
+  targets.sort((a, b) => b.score - a.score || a.r - b.r);
+  const top = targets.slice(0, AI_PARA_TRIES);
+  for (const a of armies) {
+    for (const t of top) {
+      const block = paradropBlockOf(paradropAskOf(air, a, t.r));
+      if (block === null) {
+        if (issue({ kind: "paradrop", army: a.id, region: t.r })) return;
+        continue;
+      }
+      if (!t.beat || (block !== "no_air_base" && block !== "out_of_range")) {
+        continue;
+      }
+      // A beat's target out of reach: to our air base nearest it, in range.
+      const range = air.planeStatsOf(me, "transport_plane", 1).rangeKm;
+      const to = sc.centerTile(t.r);
+      let best = 0;
+      let bestKm = Infinity;
+      for (const reg of sc.landRegions) {
+        if (land.controller[reg.id] !== me) continue;
+        if (effectiveLevel(air.econ, reg.id, "air_base") < 1) continue;
+        const km = sc.kmBetween(sc.centerTile(reg.id), to);
+        if (km <= range && km < bestKm) {
+          best = reg.id;
+          bestKm = km;
+        }
+      }
+      if (best === 0 || land.armyRegion(a) === best) continue;
+      if (a.order.kind === "move" && a.order.to === best) break;
+      if (!issue({ kind: "army_rail", army: a.id, region: best })) {
+        issue({ kind: "army_move", army: a.id, region: best });
+      }
+      break;
+    }
   }
 }

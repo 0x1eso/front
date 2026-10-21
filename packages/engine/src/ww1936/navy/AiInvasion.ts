@@ -5,13 +5,15 @@
 // hold the route to (600‰), and readies an army for the best one: 3 to
 // the invasion capacity divisions (marines first) gather in its nearest
 // port and get army_invade; the navy AI covers the route (invasion
-// support). Every day a prepared invasion sails once the route's
-// supremacy allows it. After the landing the land AI carries on (its sea
+// support). Lane I sails a prepared invasion as soon as it can; one that
+// stays stuck is cancelled (aiGiveUpInvasion), freeing the army for the
+// next plan. After the landing the land AI carries on (its sea
 // moves reach the new stretch through the captured port). The planner
 // keeps no memory: the invasion records (lane I) and the armies' orders
 // are its state, and it never reads another country's orders.
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   MOVE_NONE,
   WW_MAX_ARMY_DIVISIONS,
@@ -20,29 +22,33 @@ import {
   INVASION_STATES,
   WW_INVASION_MAX_KM,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { divisionConvoys } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
   invasionCapacity,
   invasionPrepDays,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
-import { effectiveLevel } from "../economy/Buildings";
+import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { aiSideStretches } from "../land/AiLand";
 import { capitalRegion } from "../land/LandStartRun";
 import { enemyDivisionsIn } from "../land/Movement";
+import { divisionWeightCenti } from "../land/SeaLift";
 import type { Army } from "../land/WwLand";
 import {
   activeBeatTargets,
   AI_BEAT_FACTOR,
   AI_INVASION_SUP_PM,
   aiAtWar,
+  aiEnemySeaView,
   aiJitterPm,
   aiSupPower,
   fleetCounts,
   fleetRole,
   fleetRows,
-  seaDistances,
+  seaReach,
 } from "./AiNavy";
+import { invasionLaunchBlock } from "./Invasions";
 import { navalPort, navalPortsOf } from "./Ports";
 import type { WwNavy } from "./WwNavy";
 
@@ -134,13 +140,7 @@ export function expectedSupPm(ours: number, enemyWorst: number): number {
 /** The enemy's supremacy power by sea region (fleets present; docked at half). */
 function enemySupBySr(navy: WwNavy, me: number): Map<number, number> {
   const out = new Map<number, number>();
-  for (const f of navy.fleets.values()) {
-    if (f.owner === me || !navy.land.isEnemy(me, f.owner)) continue;
-    const sr = navy.scenario.zoneSr(f.zone);
-    if (sr === 0) continue;
-    const sup = aiSupPower(fleetRows(navy, f));
-    out.set(sr, (out.get(sr) ?? 0) + (f.docked !== 0 ? sup >> 1 : sup));
-  }
+  for (const [sr, e] of aiEnemySeaView(navy, me)) out.set(sr, e.sup);
   return out;
 }
 
@@ -189,18 +189,94 @@ function freeArmy(navy: WwNavy, a: Army): boolean {
   );
 }
 
+/** Lane AI review: a ready invasion that cannot sail is looked at again every this many days. */
+export const AI_INVASION_REVIEW_DAYS = 30;
+
+/** The review day of a country's stuck invasions (no memory: a fixed day of the cycle). */
+export function aiInvasionReviewDue(smallID: number, day: number): boolean {
+  return day % AI_INVASION_REVIEW_DAYS === smallID % AI_INVASION_REVIEW_DAYS;
+}
+
+/** Our battle fleets' and patrols' supremacy power (what can hold a route). */
+function routePower(navy: WwNavy, me: number): number {
+  let ours = 0;
+  for (const f of navy.fleetsOf(me)) {
+    const role = fleetRole(fleetCounts(navy, f));
+    if (role === "main" || role === "patrol") {
+      ours += aiSupPower(fleetRows(navy, f));
+    }
+  }
+  return ours;
+}
+
 /**
- * Spec §11.3, §17.4: a prepared invasion sails as soon as every route
- * region holds 500‰ (the AI does not wait for a click).
+ * Pure (lane AI review): whether a ready invasion that could not sail
+ * today is given up — at once when it never will (the convoys it needs
+ * exceed our whole stock, our whole navy cannot hold the route at 500‰,
+ * or anything else: no war, no way, the army moved), else on the review
+ * day when it is still stuck (support fleets had the preparation and up
+ * to 30 days more to take the route).
  */
-function launchReady(navy: WwNavy, me: number, tick: number): void {
-  const side = navy.sideOf(me);
+export function aiGiveUpInvasion(i: {
+  block: WwOrderBlock;
+  convoyStock: number;
+  convoysNeed: number;
+  expectedSupPm: number;
+  reviewDay: boolean;
+}): boolean {
+  if (i.block === "no_convoys") {
+    return i.convoyStock < i.convoysNeed || i.reviewDay;
+  }
+  if (i.block === "naval_supremacy_low") {
+    return i.expectedSupPm < AI_LAUNCH_SUP_PM || i.reviewDay;
+  }
+  return true;
+}
+
+/**
+ * Lane AI review: lane I sails a ready invasion as soon as it can (its
+ * daily step runs before this one); one still waiting is cancelled
+ * (aiGiveUpInvasion), so the army is free again and another landing can
+ * be planned.
+ */
+function reviewReady(
+  navy: WwNavy,
+  me: number,
+  day: number,
+  tick: number,
+): void {
+  const ce = navy.econ.country(me);
+  if (ce === null) return;
+  let enemySup: Map<number, number> | null = null;
+  let ours = -1;
   for (const inv of [...navy.invasions.values()]) {
     if (inv.owner !== me || inv.state !== READY) continue;
-    const srs = routeSrs(navy, me, inv.from, inv.target);
-    if (srs === null) continue;
-    if (srs.every((sr) => navy.supremacy(side, sr) >= AI_LAUNCH_SUP_PM)) {
-      navy.issue(me, { kind: "invasion_execute", army: inv.army }, tick, "ai");
+    const block = invasionLaunchBlock(navy, inv.army);
+    if (block === null) continue;
+    const a = navy.land.armies.get(inv.army);
+    let need = 0;
+    for (const id of a?.divisions ?? []) {
+      need += divisionConvoys(divisionWeightCenti(navy.land, id));
+    }
+    let expected = 0;
+    if (block === "naval_supremacy_low") {
+      enemySup ??= enemySupBySr(navy, me);
+      if (ours < 0) ours = routePower(navy, me);
+      let worst = 0;
+      for (const sr of routeSrs(navy, me, inv.from, inv.target) ?? []) {
+        worst = Math.max(worst, enemySup.get(sr) ?? 0);
+      }
+      expected = expectedSupPm(ours, worst);
+    }
+    const giveUp = aiGiveUpInvasion({
+      block,
+      convoyStock: convoysOf(ce),
+      convoysNeed: need,
+      expectedSupPm: expected,
+      reviewDay: aiInvasionReviewDue(me, day),
+    });
+    if (giveUp) {
+      navy.issue(me, { kind: "invasion_cancel", army: inv.army }, tick, "ai");
     }
   }
 }
@@ -214,9 +290,9 @@ export function aiInvasionDue(smallID: number, day: number): boolean {
 export function aiInvasions(navy: WwNavy, smallID: number, day: number): void {
   const p = navy.mg.playerBySmallID(smallID);
   if (!p.isPlayer() || p.type() === PlayerType.Human) return;
-  if (!aiAtWar(navy, smallID)) return;
   const tick = navy.mg.ticks();
-  launchReady(navy, smallID, tick);
+  reviewReady(navy, smallID, day, tick);
+  if (!aiAtWar(navy, smallID)) return;
   if (!aiInvasionDue(smallID, day)) return;
   // One invasion at a time.
   for (const inv of navy.invasions.values()) if (inv.owner === smallID) return;
@@ -237,13 +313,7 @@ function planInvasion(
   const ww = navy.ww;
   const sc = navy.scenario;
   // Our fleets' power that can hold a route (battle fleets and patrols).
-  let ours = 0;
-  for (const f of navy.fleetsOf(me)) {
-    const role = fleetRole(fleetCounts(navy, f));
-    if (role === "main" || role === "patrol") {
-      ours += aiSupPower(fleetRows(navy, f));
-    }
-  }
+  const ours = routePower(navy, me);
   if (ours <= 0) return;
   const enemies = ww.enemiesOf(me).filter((e) => land.isEnemy(me, e));
   const { comp } = aiSideStretches(land, me);
@@ -284,7 +354,7 @@ function planInvasion(
   );
   if (ports.length === 0) return;
   const pass = navy.passable(me, true);
-  const dists = ports.map((r) => seaDistances(sc, [sc.harborOf(r)], pass));
+  const dists = ports.map((r) => seaReach(sc, [sc.harborOf(r)], pass).dist);
   const ce = navy.econ.country(me)!;
   // The beat window's preparation: an ordinary army's (not all marines).
   const prep = invasionPrepDays(ce.stats, ce.researched, false, false);

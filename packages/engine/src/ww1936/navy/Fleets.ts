@@ -80,8 +80,17 @@ export function issueFleetOrder(
     return "fleet_busy";
   }
   switch (order.kind) {
-    case "fleet_mission":
-      return orderMission(navy, f, order.mission, order.sr, tick);
+    case "fleet_mission": {
+      const block = orderMission(navy, f, order.mission, order.sr, tick);
+      // Lane AI review: a mission makes the port's new-ships fleet a fleet
+      // of its own (housekeeping, return and rehoming apply; the next
+      // launch starts another new-ships fleet).
+      if (block === null && f.newShips) {
+        f.newShips = false;
+        navy.markFleet(f.id);
+      }
+      return block;
+    }
     case "fleet_move":
       return orderMove(navy, f, order.zone, tick);
     case "fleet_return":

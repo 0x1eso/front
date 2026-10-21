@@ -4,6 +4,7 @@ import {
   SHIP_CLASSES,
   ShipClass,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { fleetPower } from "@openfront/engine-lib/ww1936/NavalRules";
 import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
@@ -23,6 +24,7 @@ import {
   aiSeaWarPm,
   AiShipRow,
   aiSupPower,
+  fleetCounts,
   fleetRole,
   navalSideSum,
 } from "@openfront/engine/ww1936/navy/AiNavy";
@@ -32,7 +34,7 @@ import {
   aiWarScore,
 } from "@openfront/engine/ww1936/politics/AiPolitics";
 import { REGION, SEA, TAG_ID } from "./seaFixture";
-import { pol, step, takeRegion, wwRunner } from "./util";
+import { pol, step, stepTo, takeRegion, wwRunner } from "./util";
 
 const counts = (c: Partial<Record<ShipClass, number>>) =>
   SHIP_CLASSES.map((k) => c[k] ?? 0);
@@ -248,11 +250,8 @@ describe("the navy AI's plan (spec §17.2)", () => {
       }),
     );
     expect(missions(deu)).toEqual([`${subs.id}:raid@1003`]);
-    expect(deu).toContainEqual({
-      kind: "fleet_engage",
-      fleet: subs.id,
-      rule: "avoid",
-    });
+    // (The raid's own rule is avoid: the mission order sets it, no more.)
+    expect(deu.some((o) => o.kind === "fleet_engage")).toBe(false);
   });
 
   test("a weaker battle fleet stays in port", () => {
@@ -283,10 +282,10 @@ describe("the navy AI's plan (spec §17.2)", () => {
         }),
       );
     expect(plan(weak)).toEqual([{ kind: "fleet_return", fleet: main.id }]);
+    // The mission first (its order sets the strike's own rule, always).
     expect(plan(even)).toEqual([
-      { kind: "fleet_engage", fleet: main.id, rule: "always" },
-      { kind: "fleet_return_at", fleet: main.id, pct: 70 },
       { kind: "fleet_mission", fleet: main.id, mission: "strike", sr: 1002 },
+      { kind: "fleet_return_at", fleet: main.id, pct: 70 },
     ]);
     // Docked already: it holds there.
     const docked = { ...main, docked: REGION.london, state: "docked" as const };
@@ -353,6 +352,43 @@ describe("the navy AI's plan (spec §17.2)", () => {
     expect(few(false)).toBe(false);
     expect(few(true)).toBe(true);
   });
+});
+
+describe("the navy AI in a game (lane AI review)", () => {
+  test("role fleets split from a new-ships fleet are fleets of their own", async () => {
+    // An AI Britain at peace: launches in London make a new-ships fleet
+    // (two battleships, six destroyers, six submarines). On its navy days
+    // the battle group splits off and the flotilla left behind is given
+    // its mission: no fleet keeps the new-ships mark, so lane N1's
+    // housekeeping (return, rehoming) applies to them all, and the next
+    // launch starts a new new-ships fleet.
+    const runner = await wwRunner({}, [], SEA.map);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const navy = ww.navy;
+    const gbr = TAG_ID.GBR;
+    for (const [cls, n] of [
+      ["bb", 2],
+      ["dd", 6],
+      ["ss", 6],
+    ] as const) {
+      for (let i = 0; i < n; i++)
+        navy.commissionShip(gbr, cls, 2, REGION.london);
+    }
+    const first = navy.fleetsOf(gbr);
+    expect(first.map((f) => f.newShips)).toEqual([true]);
+    stepTo(runner, dayStartTick(25, ww.prepEndTick()));
+    const fleets = navy.fleetsOf(gbr);
+    expect(fleets.map((f) => fleetRole(fleetCounts(navy, f))).sort()).toEqual([
+      "main",
+      "sub",
+    ]);
+    expect(fleets.every((f) => !f.newShips)).toBe(true);
+    navy.commissionShip(gbr, "dd", 2, REGION.london);
+    const fresh = navy.fleetsOf(gbr).filter((f) => f.newShips);
+    expect(fresh.length).toBe(1);
+    expect(fresh[0].ships.length).toBe(1);
+  }, 120_000);
 });
 
 describe("P3's war score at sea (controller addition)", () => {

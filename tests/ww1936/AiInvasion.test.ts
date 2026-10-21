@@ -1,9 +1,12 @@
 // P4 Task 10 (lane AI): the invasion planner (spec §17.4).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
+  aiGiveUpInvasion,
   AiInvasionInput,
   aiInvasionPick,
+  aiInvasionReviewDue,
   aiInvasionScore,
   expectedSupPm,
 } from "@openfront/engine/ww1936/navy/AiInvasion";
@@ -101,6 +104,75 @@ describe("the invasion planner (spec §17.4)", () => {
     expect(ww.land.armyRegion(a)).toBe(REGION.london);
     expect(a.divisions.length).toBeGreaterThanOrEqual(3);
     expect(a.divisions.length).toBeLessThanOrEqual(10);
+  }, 120_000);
+
+  test("a ready invasion that cannot sail is cancelled and its army freed", async () => {
+    // Pure: hopeless at once (no convoys to be had, a navy too weak for
+    // 500‰, anything else), else on the 30-day review.
+    const base = {
+      block: "no_convoys" as const,
+      convoyStock: 10,
+      convoysNeed: 20,
+      expectedSupPm: 900,
+      reviewDay: false,
+    };
+    expect(aiGiveUpInvasion(base)).toBe(true);
+    expect(aiGiveUpInvasion({ ...base, convoyStock: 40 })).toBe(false);
+    expect(
+      aiGiveUpInvasion({ ...base, convoyStock: 40, reviewDay: true }),
+    ).toBe(true);
+    const sup = { ...base, block: "naval_supremacy_low" as const };
+    expect(aiGiveUpInvasion(sup)).toBe(false);
+    expect(aiGiveUpInvasion({ ...sup, expectedSupPm: 499 })).toBe(true);
+    expect(aiGiveUpInvasion({ ...sup, reviewDay: true })).toBe(true);
+    expect(aiGiveUpInvasion({ ...base, block: "not_at_war" })).toBe(true);
+    expect(aiInvasionReviewDue(3, 33)).toBe(true);
+    expect(aiInvasionReviewDue(3, 34)).toBe(false);
+    // In a game: Britain's landing on Rome is prepared, but Britain has
+    // no convoy left at all: the day it is ready lane I cannot sail it,
+    // the AI cancels it and the army is free again.
+    const runner = await wwRunner(
+      {},
+      [{ clientID: HUMAN, country: "ITA" }],
+      SEA.map,
+    );
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const gbr = TAG_ID.GBR;
+    leaveFaction(pol(g), gbr, g.ticks());
+    ww.navy.createFleet(gbr, REGION.london, [
+      ["bb", 2, 2],
+      ["dd", 2, 6],
+    ]);
+    placeArmy(g, "GBR", REGION.london, 4);
+    const cancels: number[] = [];
+    const issue = ww.navy.issue.bind(ww.navy);
+    ww.navy.issue = (id, o, tick, by) => {
+      const r = issue(id, o, tick, by);
+      if (id === gbr && o.kind === "invasion_cancel" && r === null) {
+        cancels.push(o.army);
+      }
+      return r;
+    };
+    warAfterPrep(runner, HUMAN, "GBR");
+    const end = dayStartTick(ww.day(g.ticks()) + 40, ww.prepEndTick());
+    let army = 0;
+    while (g.ticks() < end && cancels.length === 0) {
+      step(runner);
+      const inv = [...ww.navy.invasions.values()].find((x) => x.owner === gbr);
+      if (inv !== undefined && army === 0) {
+        army = inv.army;
+        // Ready tomorrow, with not a single convoy to carry it.
+        inv.prepDone = inv.prepDays - 1;
+        ww.economy.country(gbr)!.stock[equipKey("convoy", 1)] = 0;
+      }
+    }
+    expect(army).not.toBe(0);
+    expect(cancels).toEqual([army]);
+    expect([...ww.navy.invasions.values()].some((x) => x.owner === gbr)).toBe(
+      false,
+    );
+    expect(ww.land.armies.get(army)?.order.kind).toBe("idle");
   }, 120_000);
 
   test("no fleet, no landing: the route cannot be held", async () => {
