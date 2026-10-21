@@ -23,6 +23,7 @@ import {
   AiTrainInput,
   aiTrainPlan,
 } from "@openfront/engine/ww1936/land/AiLand";
+import { leaveFaction } from "@openfront/engine/ww1936/politics/Factions";
 import { addWarGoal } from "@openfront/engine/ww1936/politics/WarGoals";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
@@ -357,6 +358,13 @@ describe("the AI's land war on the test map (spec §14)", () => {
     ]);
     const g = runner.game;
     const l = land(g);
+    // Germany alone: P3's call to arms (lane D) would bring its 1936
+    // faction partner Italy (AI) in, which takes all of Poland's land within
+    // the 61 days and leaves no Polish border to front.
+    const p = g.worldWar()!.politics;
+    const ita = byTag(g, "ITA").smallID();
+    expect(p.factionIdx(ita)).toBe(p.factionIdx(byTag(g, "DEU").smallID()));
+    leaveFaction(p, ita, g.ticks());
     warAfterPrep(runner, HUMAN, "POL");
     const d0 = today(g);
     finishDay(runner, d0 + 61);
