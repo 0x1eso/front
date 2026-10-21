@@ -462,9 +462,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
 
   test("P4 lane AI: the sea and air techs by role; none at sea for a landlocked country", () => {
     const last = WW_TECH_IDS.indexOf("rail_1");
+    // P4's techs: after P2's rail and before P5's (military police on).
+    const p5 = WW_TECH_IDS.indexOf("military_police");
     const p4 = (tag: CountryTag, coastal = true) =>
       aiResearchOrder(tag, coastal).filter(
-        (t) => WW_TECH_IDS.indexOf(t) > last,
+        (t) => WW_TECH_IDS.indexOf(t) > last && WW_TECH_IDS.indexOf(t) < p5,
       );
     // The foundation's interim filter is gone: the naval powers order
     // their ship and plane techs in among the land ones.
