@@ -471,7 +471,6 @@ export class WwEconomy {
   // Derived (DERIVED_FIELDS), rebuilt by rebuildDerived().
   private regionsByCountry: number[][] = [];
   private neighbourLists: number[][] = [];
-  private seaZoneSets: Set<number>[] = [];
   private dirtyCountries = new Set<number>();
   private dirtyRegions = new Set<number>();
   /** P4 (derived): 1 where the naval base works now (afterBuildingChange's portVer). */
@@ -997,10 +996,6 @@ export class WwEconomy {
     return this.neighbourLists[smallID] ?? [];
   }
 
-  countrySeaZones(smallID: number): ReadonlySet<number> {
-    return this.seaZoneSets[smallID] ?? new Set();
-  }
-
   markCountryDirty(smallID: number): void {
     this.dirtyCountries.add(smallID);
   }
@@ -1392,7 +1387,6 @@ export class WwEconomy {
     );
     this.regionsByCountry = g.regionsByCountry;
     this.neighbourLists = g.neighbours;
-    this.seaZoneSets = g.seaZones;
     for (const ce of this.countries()) ce.tech = techTotals(ce.researched);
     // P4: the effective infrastructure and naval-port bits from the levels and the damage.
     for (const r of this.scenario.landRegions) {

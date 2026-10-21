@@ -329,35 +329,3 @@ export function coveragePermille(
     Math.floor((stock * 100_000_000) / (troops * needPer100k)),
   );
 }
-
-// ---- Trade routes (spec §7.4); the engine and the screens share it ----
-
-export interface TradeGraph {
-  atWar(a: number, b: number): boolean;
-  sameFaction(a: number, b: number): boolean;
-  neighbours(c: number): readonly number[];
-  seaZones(c: number): ReadonlySet<number>;
-}
-
-/** Same faction, a shared sea zone, or land through countries at peace with the buyer. */
-export function tradeRouteOk(
-  g: TradeGraph,
-  buyer: number,
-  seller: number,
-): boolean {
-  if (buyer === seller || g.atWar(buyer, seller)) return false;
-  if (g.sameFaction(buyer, seller)) return true;
-  const zb = g.seaZones(buyer);
-  for (const z of g.seaZones(seller)) if (zb.has(z)) return true;
-  const seen = new Set<number>([buyer]);
-  const queue = [buyer];
-  for (let i = 0; i < queue.length; i++) {
-    for (const n of g.neighbours(queue[i])) {
-      if (seen.has(n)) continue;
-      if (n === seller) return true;
-      seen.add(n);
-      if (!g.atWar(buyer, n)) queue.push(n);
-    }
-  }
-  return false;
-}

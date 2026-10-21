@@ -173,6 +173,49 @@ describe("convoys (spec §10.1)", () => {
     expect(freeConvoysOf(navy, TAG_ID.ITA)).toBe(need + 1);
   }, 60_000);
 
+  test("a convoys effect below 0 never leaves more bound than the stock", async () => {
+    const g = await seaGame();
+    const { ww, navy, runner } = g;
+    const land = ww.land;
+    const game = runner.game;
+    const ita = g.ce("ITA");
+    land.setController(REGION.malta, TAG_ID.ITA, game.ticks());
+    placeArmy(game, "ITA", REGION.malta, 1);
+    const army = placeArmy(game, "ITA", REGION.rome, 1);
+    stepTo(runner, dayTick(3));
+    expect(openTrade(ww.economy, ita, TAG_ID.GBR, TUNGSTEN, 1)).toBeNull();
+    expect(
+      navy.issue(
+        TAG_ID.ITA,
+        { kind: "army_sea", army: army.id, region: REGION.malta },
+        game.ticks(),
+      ),
+    ).toBeNull();
+    const held = () => {
+      let n = 0;
+      for (const v of navy.voyages.values())
+        if (v.owner === TAG_ID.ITA) n += v.bound;
+      for (const r of navy.routes.values())
+        if (r.owner === TAG_ID.ITA) n += r.got;
+      return n;
+    };
+    const [v] = [...navy.voyages.values()];
+    expect(held()).toBe(v.bound + 2);
+    // P3's effect takes all but one: trades give way first, then supply,
+    // then the voyage.
+    applyEffects(makeCtx(ww.politics, TAG_ID.ITA, 0, 0, game.ticks()), [
+      { kind: "convoys", amount: -(ita.stock[CONVOY] - 1) },
+    ]);
+    expect(ita.stock[CONVOY]).toBe(1);
+    expect(held()).toBe(1);
+    expect(held() + freeConvoysOf(navy, TAG_ID.ITA)).toBe(ita.stock[CONVOY]);
+    for (let i = 0; i < 30; i++) {
+      step(runner);
+      expect(held()).toBeLessThanOrEqual(ita.stock[CONVOY]);
+      expect(held() + freeConvoysOf(navy, TAG_ID.ITA)).toBe(ita.stock[CONVOY]);
+    }
+  });
+
   test("a restored game goes on exactly: routes, voyages, losses", async () => {
     const g = await seaGame();
     const { ww, navy, runner } = g;

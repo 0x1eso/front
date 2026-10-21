@@ -314,7 +314,6 @@ describe("the engine's judgements use them", () => {
     const graph = countryGraph(ww.scenario, econ.controller, size);
     for (let id = 1; id < size; id++) {
       expect(graph.neighbours[id]).toEqual(econ.countryNeighbours(id));
-      expect(graph.seaZones[id]).toEqual(econ.countrySeaZones(id));
       expect(graph.regionsByCountry[id]).toEqual(econ.regionsOf(id));
     }
   });

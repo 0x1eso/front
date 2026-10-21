@@ -109,4 +109,33 @@ describe("sea trade (spec §10.2)", () => {
       params: { sellerTag: "GBR", resource: "tungsten" },
     });
   });
+
+  test("a faction's deal with no way left closes", async () => {
+    const g = await seaGame();
+    const { ww, navy, runner, updates } = g;
+    const fra = g.ce("FRA");
+    // France and Britain are allies; no land border, the sea joins them
+    // (Lyon and London share the West Sea: 0 km, no convoys).
+    expect(ww.sameFaction(TAG_ID.FRA, TAG_ID.GBR)).toBe(true);
+    expect(tradeRoute(navy, TAG_ID.FRA, TAG_ID.GBR)?.km).toBe(0);
+    expect(openTrade(ww.economy, fra, TAG_ID.GBR, TUNGSTEN, 1)).toBeNull();
+    // Britain's bases bombed out: no sea route, and the faction alone
+    // carries nothing (spec §10.2) — the deal closes, the civilian
+    // factories are not billed for nothing.
+    damageBuilding(ww.economy, REGION.london, "naval_base", 6_000);
+    damageBuilding(ww.economy, REGION.malta, "naval_base", 1_000);
+    expect(tradePartnerBlock(ww.economy, TAG_ID.FRA, TAG_ID.GBR)).toBe(
+      "no_partner",
+    );
+    const day = ww.day(runner.game.ticks());
+    stepTo(runner, dayTick(day + 2));
+    expect(ww.economy.trades()).toEqual([]);
+    expect(fra.totals.paidCivs).toBe(0);
+    expect(
+      messages(updates, "events_display.ww1936_trade_closed"),
+    ).toContainEqual({
+      to: TAG_ID.FRA,
+      params: { sellerTag: "GBR", resource: "tungsten" },
+    });
+  });
 });

@@ -251,7 +251,10 @@ export interface ConvoyRouteData {
   id: number;
   use: ConvoyUse;
   owner: number;
-  /** Trade: the seller; supply: the hub region; voyage: the army. */
+  /**
+   * Trade: the trade id (its seller is in the economy's trade list);
+   * supply: the hub region; voyage: the voyage id (lane C's SeaRoute.ref).
+   */
   ref: number;
   zones: number[];
   km: number;

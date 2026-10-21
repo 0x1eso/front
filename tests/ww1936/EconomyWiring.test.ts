@@ -257,7 +257,7 @@ describe("economy wiring (spec §6, §14)", () => {
     }
   });
 
-  test("the country graph and sea zones follow region control", async () => {
+  test("the country graph follows region control", async () => {
     const runner = await wwRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
@@ -267,8 +267,6 @@ describe("economy wiring (spec §6, §14)", () => {
     ).map((t) => byTag(g, t).smallID());
     expect(econ.countryNeighbours(deu)).toEqual([ita, fra, pol]);
     expect(econ.countryNeighbours(gbr)).toEqual([]);
-    expect([...econ.countrySeaZones(pol)]).toEqual([40001, 40002]);
-    expect(econ.countrySeaZones(deu).size).toBe(0);
     // Germany takes Krakow (P2: the land war's control): at the next day's
     // common step the economy follows (occupied: Poland still fights) and
     // Germany borders Russia.
@@ -282,7 +280,6 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(econ.manpowerPct(krakow.id)).toBe(0);
     expect(econ.regionsOf(deu)).toContain(krakow.id);
     expect(econ.countryNeighbours(deu)).toContain(sun);
-    expect([...econ.countrySeaZones(deu)]).toEqual([40001, 40002]);
   });
 
   test("a region changing hands reaches the screens", async () => {

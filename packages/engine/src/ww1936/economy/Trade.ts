@@ -56,11 +56,13 @@ export function landReachOf(econ: WwEconomy, buyer: number): Set<number> {
 }
 
 /**
- * The partner rules for one buyer and many sellers (spec §7.4): the same
- * faction (1), land through countries at peace (2), or — P4 spec §10.2 —
- * a sea route between working naval bases (3). The buyer's land reach and
- * its convoys' reach are each searched once, on the first seller that
- * needs it (pre-flight D13).
+ * The partner rules for one buyer and many sellers (spec §7.4): a way for
+ * the goods — land through countries at peace (2) or, P4 spec §10.2, a sea
+ * route between working naval bases (3). A faction (1) carries nothing by
+ * itself any more: "같은 진영이라도 육로가 없으면 해로다", and a deal with
+ * neither way closes (P1 §7.5) rather than bill its factories for nothing
+ * (P4 lane C review). The buyer's land reach and its convoys' reach are
+ * each searched once, on the first seller that needs it (pre-flight D13).
  */
 export function partnerJudge(
   econ: WwEconomy,
@@ -84,7 +86,6 @@ export function partnerJudge(
       return "no_partner";
     }
     if (ww.isAtWar(buyer, seller)) return "no_partner";
-    if (ww.sameFaction(buyer, seller)) return null;
     reach ??= landReachOf(econ, buyer);
     if (reach.has(seller)) return null;
     sea ??= seaNeighbourJudge(ww.navy, buyer);

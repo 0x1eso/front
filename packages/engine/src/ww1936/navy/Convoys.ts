@@ -38,6 +38,8 @@ interface ConvoyMemo {
   paths: Map<string, ConvoyPath | null>;
   /** controlChanges and portVer. */
   portStamp: string;
+  /** The ports by owner as text: a change of them starts the path memo over too. */
+  portSig: string;
   portZones: Map<number, number[]>;
   portRegions: Map<number, number[]>;
   shores: number[];
@@ -52,6 +54,7 @@ function memoOf(navy: WwNavy): ConvoyMemo {
       pathStamp: "",
       paths: new Map(),
       portStamp: "",
+      portSig: "",
       portZones: new Map(),
       portRegions: new Map(),
       shores: shoreRegions(navy.scenario),
@@ -70,12 +73,17 @@ function shoreRegions(sc: ScenarioIndex): number[] {
   return [...out].sort((a, b) => a - b);
 }
 
+/** Paths kept at most (a cache: dropping it changes no result). */
+const PATH_MEMO_MAX = 4096;
+
 /**
  * The convoys' seaPath from any of `from` to the nearest of `to` (zones
  * ascending), memoised. A convoy's edgePassable reads only the strait
  * shores' controllers and who is at war (the Montreux rule is the
  * warships'), so the memo starts over when one of those changes
- * (pre-flight T5: the day a war closes a canal, the route changes).
+ * (pre-flight T5: the day a war closes a canal, the route changes). The
+ * keys are port harbors: it also starts over when the ports change hands
+ * or stop working (portMemo), and past PATH_MEMO_MAX entries.
  */
 export function convoyPath(
   navy: WwNavy,
@@ -98,6 +106,7 @@ export function convoyPath(
   if (hit !== undefined) return hit;
   const p = seaPath(navy.scenario, from, to, navy.passable(owner, false));
   const v = p === null ? null : { zones: p.zones, km: p.km };
+  if (m.paths.size >= PATH_MEMO_MAX) m.paths.clear();
   m.paths.set(key, v);
   return v;
 }
@@ -135,6 +144,15 @@ function portMemo(navy: WwNavy): ConvoyMemo {
     }
     for (const l of m.portRegions.values()) l.sort((a, b) => a - b);
     for (const l of m.portZones.values()) l.sort((a, b) => a - b);
+    // Bounded growth (lane C review): new ports, new path keys.
+    let sig = "";
+    for (const [c, l] of [...m.portRegions].sort((a, b) => a[0] - b[0])) {
+      sig += `${c}:${l.join(",")};`;
+    }
+    if (sig !== m.portSig) {
+      m.portSig = sig;
+      m.paths.clear();
+    }
   }
   return m;
 }

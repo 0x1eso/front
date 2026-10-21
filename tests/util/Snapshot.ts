@@ -163,7 +163,6 @@ export const DERIVED_FIELDS = new Set<string>([
   // executions' tech.
   "regionsByCountry",
   "neighbourLists",
-  "seaZoneSets",
   "dirtyCountries",
   "dirtyRegions",
   // WwLand (P2): sides, the stats caches, the region row lists, the spread
