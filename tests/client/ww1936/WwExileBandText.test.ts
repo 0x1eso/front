@@ -50,7 +50,8 @@ describe("exile band without a capital", () => {
     for (const l of ["en", "ko"]) {
       lang = l;
       const t = exileBandModel(game(0))!.text;
-      expect(t).not.toMatch(/—$|: *$|\u0000|undefined/);
+      expect(t).not.toMatch(/—$|: *$|undefined/);
+      expect(t.includes("\u0000")).toBe(false);
       expect(t).toMatch(/54%/);
       expect(t).not.toMatch(/retake|되찾기/);
     }
