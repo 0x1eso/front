@@ -1223,7 +1223,7 @@ export const WORLD_EVENTS: EventDef[] = [
               },
             ],
           },
-          { kind: "reserve", who: T("GBR"), key: "destroyers", amount: 50 },
+          { kind: "ships", who: T("GBR"), cls: "dd", gen: 1, count: 50 },
           { kind: "opinion", of: T("GBR"), value: 30, days: 3650 },
           { kind: "opinion", who: T("GBR"), of: "self", value: 30, days: 3650 },
         ],

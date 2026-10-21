@@ -14,7 +14,6 @@ import {
   DrawerInsets,
   drawerInsets,
 } from "../domestic/DomesticPanel";
-import { isOverseas, landSidesOf } from "./LandModel";
 import {
   canAct,
   factionTab,
@@ -187,14 +186,6 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
 
   private armed(key: string): boolean {
     return this.twoTap.isArmed(key, Date.now());
-  }
-
-  /** P2 (spec §13.3): a war with no land front (landings come with P4). */
-  private overseas(id: number): boolean {
-    const view = this.game.wwLand?.() ?? null;
-    const me = this.game.myPlayer()?.smallID() ?? 0;
-    if (view === null || me === 0) return false;
-    return isOverseas(view, me, id, landSidesOf(this.game));
   }
 
   private flag(tag: CountryTag) {
@@ -521,17 +512,14 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
             data-ww-my-wars
             class="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-xs"
           >
-            ${m.myWars.map((tag) => {
-              const id = this.game.worldWarScenario()?.smallIdOf(tag) ?? 0;
-              return html`<li class="flex items-center gap-1">
-                ${this.flag(tag)} ${countryName(tag)}
-                ${this.overseas(id)
-                  ? html`<span data-ww-overseas class="text-sky-300"
-                      >· ${translateText("ww1936.land.overseas")}</span
-                    >`
-                  : nothing}
-              </li>`;
-            })}
+            ${m.myWars.map(
+              // P4 (plan decision 33): landings reach a war across the sea,
+              // so it is no longer marked "overseas".
+              (tag) =>
+                html`<li class="flex items-center gap-1">
+                  ${this.flag(tag)} ${countryName(tag)}
+                </li>`,
+            )}
           </ul>`}`;
     if (i === null) return myWars;
     const t = warGoalTab(i);

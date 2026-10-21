@@ -28,6 +28,7 @@ import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
 import { armyName, generalName, regionName } from "../ww1936/LandModel";
+import { navyNoticeParams } from "../ww1936/NavyModel";
 import { POLITICS_NOTICES, politicsParams } from "../ww1936/PoliticsModel";
 import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
@@ -339,6 +340,15 @@ export class EventsDisplay extends LitElement implements Controller {
       }
       if (typeof params.army === "number") {
         params = { ...params, army: armyName(params.army) };
+      }
+      // P4 (spec §18.10): sea regions, ports, ship classes, ships, fleets.
+      if (scenario !== null) {
+        params = navyNoticeParams(
+          event.message,
+          params,
+          scenario,
+          this.game?.wwNavy?.() ?? null,
+        );
       }
     }
     if (

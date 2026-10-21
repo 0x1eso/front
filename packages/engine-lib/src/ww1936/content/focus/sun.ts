@@ -744,8 +744,10 @@ export const SUN_FOCUSES = [
     branch: "air",
     icon: "bomber",
     prereq: [["sun_red_air_force"]],
-    // Close air support research arrives with P4 (plan decision 20).
-    effects: [{ kind: "reserve", key: "cas", amount: 50 }],
+    effects: [
+      { kind: "research_bonus", branch: "air", pct: 50, uses: 1 },
+      { kind: "add_spirit", id: "p4_shturmovik" },
+    ],
     ai: { base: 10 },
   },
   {
@@ -775,7 +777,10 @@ export const SUN_FOCUSES = [
     branch: "navy",
     icon: "submarine",
     prereq: [["sun_ocean_fleet"]],
-    effects: [{ kind: "reserve", key: "sub_doctrine", amount: 50 }],
+    effects: [
+      { kind: "research_bonus", tech: "ss_3", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "p4_submarine_fleet" },
+    ],
     ai: { base: 10 },
   },
 ] satisfies FocusDef[];

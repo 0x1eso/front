@@ -38,6 +38,10 @@ async function germany() {
   const pol = byTag(g, "POL");
   const c = ww.politics.country(deu.smallID())!;
   c.ppMilli = 500_000;
+  // P4 spec §10.2 (lane C): the sea way is a route between naval bases;
+  // Rome gets one, so the AIs trade across the sea as with P1's rule.
+  econ.buildingArray("naval_base")[5] = 1;
+  econ.afterBuildingChange(5, "naval_base");
   return {
     runner,
     g,

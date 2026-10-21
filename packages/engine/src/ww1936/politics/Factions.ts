@@ -18,7 +18,7 @@ import {
   factionGate,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { idHash, P_EVT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { payPp } from "./Power";
+import { payPp } from "./PayPp";
 import { hasRule, ruleValue } from "./Spirits";
 import { declareWarRules } from "./WarGoals";
 import type { FactionState, WwPolitics } from "./WwPolitics";

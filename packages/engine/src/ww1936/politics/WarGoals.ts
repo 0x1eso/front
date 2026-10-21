@@ -15,7 +15,7 @@ import {
   tensionFor,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { callToArms, isMajor, passLeadership } from "./Factions";
-import { payPp } from "./Power";
+import { payPp } from "./PayPp";
 import { hasRule } from "./Spirits";
 import { addTension } from "./Tension";
 import { addOpinion, endTreatiesOf, guaranteeCalled } from "./Treaties";

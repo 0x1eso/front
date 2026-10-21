@@ -232,6 +232,13 @@ export interface FleetSummary {
   engage: EngageRule;
   returnAtPct: number;
   ships: FleetShipData[];
+  // P4 lane U (screens, plan Task 12): own fleets only.
+  /** The home port's region (mission range counts from its harbor, spec §8.3). */
+  home?: number;
+  /** In port: days until every ship is whole at today's repair pace (spec §7.1); 0 whole. */
+  repairDays?: number;
+  /** With a carrier: the deck mix in tenths, fighter / CAS / torpedo bomber (spec §9.6). */
+  mix?: [number, number, number];
 }
 export interface NavalBattleSummary {
   zone: number;
@@ -258,7 +265,10 @@ export interface ConvoyRouteData {
   id: number;
   use: ConvoyUse;
   owner: number;
-  /** Trade: the seller; supply: the hub region; voyage: the army. */
+  /**
+   * Trade: the trade id (its seller is in the economy's trade list);
+   * supply: the hub region; voyage: the voyage id (lane C's SeaRoute.ref).
+   */
   ref: number;
   zones: number[];
   km: number;
@@ -309,6 +319,10 @@ export interface CountryNavyDetail {
   fuelMilli: number;
   fuelCapMilli: number;
   fuelRatioPm: number;
+  /** P4 lane U: my divisions with a landing mark (spec §11.4: they fight at the landing's cut). */
+  landing?: number[];
+  /** P4 lane U: my admirals now — [id, attack, defense, maneuver, coordination, trait bits, level]. */
+  admiralSkills?: [number, number, number, number, number, number, number][];
 }
 export interface WwNavyData {
   fleets: FleetSummary[];

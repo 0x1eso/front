@@ -699,6 +699,12 @@ export interface WwRegionData {
   silo: number;
   /** Bomb damage milli, BUILDING_IDS order; empty when undamaged (P4 spec §14.8). */
   damage: number[];
+  /**
+   * P4 lane U: the repair of the building being mended (the first damaged
+   * one, BUILDING_IDS order), ‰ of its next whole building; absent when
+   * undamaged.
+   */
+  repairPm?: number;
 }
 
 export interface WwEconomyData {

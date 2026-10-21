@@ -3,6 +3,7 @@
 // split, merge, disband, halt and the paradrop; and the shared check over
 // plain data (LandOrderChecks), as the army card calls it.
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
@@ -358,6 +359,11 @@ describe("World War 1936 P2: army orders (P2 spec §16.3)", () => {
     });
     const a = placeArmy(g, "DEU", 3, 2, tpl);
     const ww = g.worldWar()!;
+    // P4 (spec §14.10): transports for the drop (10 a paratrooper
+    // battalion) and 70% air superiority over Warsaw's zone; Berlin has
+    // its air base.
+    ce.stock[equipKey("transport_plane", 1)] = 120;
+    ww.air.setAirSup(ww.scenario.regionSr(6), new Map([[l.sideOf(deu), 1000]]));
     // Berlin–Warsaw 163 km; Kiev's Soviets are not at war with us.
     expect(l.scenario.regionKm(3, 6)).toBe(163);
     expect(l.issue(deu, { kind: "paradrop", army: a.id, region: 9 })).toBe(

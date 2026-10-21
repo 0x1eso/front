@@ -163,7 +163,6 @@ export const DERIVED_FIELDS = new Set<string>([
   // executions' tech.
   "regionsByCountry",
   "neighbourLists",
-  "seaZoneSets",
   "dirtyCountries",
   "dirtyRegions",
   // WwLand (P2): sides, the stats caches, the region row lists, the spread
@@ -177,6 +176,8 @@ export const DERIVED_FIELDS = new Set<string>([
   // against, the org max, flags and width by row, the day's weather by
   // region.
   "statsInputs",
+  // ...and the land-wide counter their epochs come from (P2 Task 12).
+  "statsEpochSeq",
   "rowStats",
   "weatherCache",
   // ...the rows by owner and the table version they were built at, the
@@ -225,6 +226,7 @@ export const DERIVED_FIELDS = new Set<string>([
   "navyDirtyCountries",
   "removedFleetIds",
   "endedBattleZones",
+  "sunkThisTick",
   "deploysBySr",
   "deploysByBase",
   "planeStatsMemo",
@@ -274,6 +276,11 @@ export const DERIVED_FIELDS = new Set<string>([
   "_miniStamp",
   // SharedWaterCache
   "playerWater",
+  // AbstractGraph (the hierarchical water graph): each edge's tile path,
+  // memoised by AStar.WaterHierarchical from a search inside the edge's
+  // cluster of the static water map, cleared when the graph is rebuilt.
+  // P2 Task 12: the real world1936 map's ships fill it before a restore.
+  "_pathCache",
   // Config / EngineConfig
   "unitInfoCache",
   "engineUnitInfoCache",

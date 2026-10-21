@@ -58,19 +58,30 @@ import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
+import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
+import { seaAirFacts } from "./ww1936/NavyModel";
+import { WwAirPanel } from "./ww1936/WwAirPanel";
+import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
 import { WwArmyPanel } from "./ww1936/WwArmyPanel";
 import { WwBattleCard } from "./ww1936/WwBattleCard";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
 import { WwEventCards } from "./ww1936/WwEventCards";
+import { WwFleetCard } from "./ww1936/WwFleetCard";
 import { WwFocusPanel } from "./ww1936/WwFocusPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
+import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
 import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
+import {
+  seaAirGlow,
+  seaAirOf,
+  WwSeaAirController,
+} from "./ww1936/WwSeaAirController";
 import { WwTopBand } from "./ww1936/WwTopBand";
 
 export function createRenderer(
@@ -418,6 +429,36 @@ export function createRenderer(
   } else {
     console.error("ww battle card not found");
   }
+  // P4 (spec §18.4–§18.7): the navy and air drawers, the chosen fleet's
+  // and air zone's cards.
+  const wwNavyPanel = document.querySelector("ww-navy-panel");
+  if (wwNavyPanel instanceof WwNavyPanel) {
+    wwNavyPanel.game = game;
+    wwNavyPanel.eventBus = eventBus;
+  } else {
+    console.error("ww navy panel not found");
+  }
+  const wwAirPanel = document.querySelector("ww-air-panel");
+  if (wwAirPanel instanceof WwAirPanel) {
+    wwAirPanel.game = game;
+    wwAirPanel.eventBus = eventBus;
+  } else {
+    console.error("ww air panel not found");
+  }
+  const wwFleetCard = document.querySelector("ww-fleet-card");
+  if (wwFleetCard instanceof WwFleetCard) {
+    wwFleetCard.game = game;
+    wwFleetCard.eventBus = eventBus;
+  } else {
+    console.error("ww fleet card not found");
+  }
+  const wwAirZoneCard = document.querySelector("ww-air-zone-card");
+  if (wwAirZoneCard instanceof WwAirZoneCard) {
+    wwAirZoneCard.game = game;
+    wwAirZoneCard.eventBus = eventBus;
+  } else {
+    console.error("ww air zone card not found");
+  }
 
   // P3 (spec §21): the politics drawer, the event cards above the dials,
   // the world news under the band.
@@ -497,6 +538,8 @@ export function createRenderer(
   const wwScenario = game.worldWarScenario();
   // P2 (plan decision 25): the land war's map taps.
   let landController: WwLandController | null = null;
+  // P4 (plan decision 40): the navy's and the air war's taps, asked by the land flow.
+  let seaAirController: WwSeaAirController | null = null;
   if (wwScenario !== null) {
     view.setRegions(wwScenario.regionIds);
     // P2: the land war's tokens, battle markers and plan arrows (Task 7).
@@ -512,13 +555,37 @@ export function createRenderer(
         landWarInputsOf(game),
       );
       setLandSides(wwLand, landSidesOf(game));
-      landController = new WwLandController(game, eventBus, transformHandler);
     }
     // P4 (plan Task 1 Step 22): the navy's and the air war's views (lane R draws them).
     const wwNavy = game.wwNavy();
     if (wwNavy !== null) view.setWwNavy(wwNavy);
     const wwAir = game.wwAir();
     if (wwAir !== null) view.setWwAir(wwAir);
+    if (wwNavy !== null && wwAir !== null) {
+      seaAirController = new WwSeaAirController(
+        game,
+        eventBus,
+        () => transformHandler.scale,
+      );
+      // Lane R's passes read the shared choice (the layer, the fleet, the
+      // zone) and what a map tap may aim at glows (spec §18.3).
+      view.setSeaAirSelection(seaAirController.selection);
+      const sa = seaAirOf(game);
+      view.setSeaAirGlow({
+        key: () =>
+          `${sa.draft.version}:${sa.selection.version}:${wwNavy.version}`,
+        glow: () => seaAirGlow(game),
+      });
+      // The land cards' P4 battle lines and order checks (pre-flight ruling 3).
+      if (wwLand !== null) {
+        setLandSeaAir(wwLand, seaAirFacts(game, wwNavy, wwAir));
+      }
+    }
+    if (wwLand !== null) {
+      landController = new WwLandController(game, eventBus, transformHandler, {
+        seaAir: seaAirController,
+      });
+    }
     // P5 (plan Task 1 Step 14): the endgame's view (lanes U1, U2 draw it).
     const wwEndgame = game.wwEndgame?.() ?? null;
     if (wwEndgame !== null) view.setWwEndgame(wwEndgame);
@@ -528,6 +595,7 @@ export function createRenderer(
     // First, so it hears a map tap before the warship controller, whose
     // touch fallback (the radial menu) skips a tap the land flow took.
     ...(landController === null ? [] : [landController]),
+    ...(seaAirController === null ? [] : [seaAirController]),
     new WarshipSelectionController(
       game,
       landController === null ? eventBus : new LandTapBus(eventBus, game),
@@ -577,6 +645,10 @@ export function createRenderer(
     ...(wwArmyPanel instanceof WwArmyPanel ? [wwArmyPanel] : []),
     ...(wwArmyCard instanceof WwArmyCard ? [wwArmyCard] : []),
     ...(wwBattleCard instanceof WwBattleCard ? [wwBattleCard] : []),
+    ...(wwNavyPanel instanceof WwNavyPanel ? [wwNavyPanel] : []),
+    ...(wwAirPanel instanceof WwAirPanel ? [wwAirPanel] : []),
+    ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
+    ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
     ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
     ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),

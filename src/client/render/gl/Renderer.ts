@@ -15,10 +15,22 @@ import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
+import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
+import {
+  addGlowFlags,
+  airLayerColors,
+  LAYER_TABLE_SIZE,
+  seaLayerColors,
+  seaLayerFlags,
+  type SeaAirGlowSource,
+} from "../../view/AirZoneColors";
+import { FleetLayoutCache, fleetLod } from "../../view/FleetTokenLayout";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
+import type { WwAirView } from "../../view/WwAirView";
 import type { WwLandView } from "../../view/WwLandView";
+import type { WwNavyView } from "../../view/WwNavyView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
 import type {
   AttackRingInput,
@@ -36,27 +48,36 @@ import type {
   TerrainRect,
   UnitState,
 } from "../types";
-import { UT_SHELL, UT_TRANSPORT_PLANE } from "../types";
+import { UT_SHELL, UT_TRANSPORT_PLANE, UT_WARSHIP } from "../types";
 import { Camera } from "./Camera";
 import { GLUnavailableError, initGL } from "./initGL";
 import { LandAtlas } from "./LandAtlas";
 import { LandTickClock, ParadropFlights } from "./LandFrame";
 import { AirFxPass } from "./passes/AirFxPass";
+import { AirSortiePass } from "./passes/AirSortiePass";
 import { ArmyTokenPass } from "./passes/ArmyTokenPass";
 import { BarPass } from "./passes/BarPass";
 import { BattleMarkerPass } from "./passes/BattleMarkerPass";
 import { BorderComputePass } from "./passes/BorderComputePass";
 import { BorderStampPass } from "./passes/BorderStampPass";
+import { ConvoyFxPass } from "./passes/ConvoyFxPass";
 import { CoordinateGridPass } from "./passes/CoordinateGridPass";
 import { CrosshairPass } from "./passes/CrosshairPass";
 import { DefenseCoveragePass } from "./passes/DefenseCoveragePass";
 import { FalloutBloomPass } from "./passes/FalloutBloomPass";
 import { FalloutLightPass } from "./passes/FalloutLightPass";
+import {
+  FleetTokenPass,
+  ShipAtlas,
+  ShipSpriteProgram,
+} from "./passes/FleetTokenPass";
 import { FxPass } from "./passes/fx-pass";
+import { InvasionArrowPass } from "./passes/InvasionArrowPass";
 import { LightmapPass } from "./passes/LightmapPass";
 import { MapLayerPass } from "./passes/MapLayerPass";
 import { MoveIndicatorPass } from "./passes/MoveIndicatorPass";
 import { NamePass } from "./passes/name-pass";
+import { NavalBattleMarkerPass } from "./passes/NavalBattleMarkerPass";
 import { NightCompositePass } from "./passes/NightCompositePass";
 import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
@@ -67,9 +88,15 @@ import { PointLightPass } from "./passes/PointLightPass";
 import { RailroadPass } from "./passes/RailroadPass";
 import { RangeCirclePass } from "./passes/RangeCirclePass";
 import {
+  addBombedFlags,
+  addPickableFlags,
   FLAG_TEX_SIZE,
+  LAYER_AIR,
+  LAYER_NONE,
+  LAYER_SEA,
   RegionBorderPass,
   regionFlagBytes,
+  strategicLookup,
 } from "./passes/RegionBorderPass";
 import { SAMRadiusPass } from "./passes/SamRadiusPass";
 import { SelectionBoxPass } from "./passes/SelectionBoxPass";
@@ -164,6 +191,17 @@ interface WwLandPasses {
   arrows: PlanArrowPass;
 }
 
+/** World War 1936 P4: the navy's and the air war's passes, made by setWwNavy / setWwAir. */
+interface WwSeaPasses {
+  atlas: ShipAtlas;
+  sprites: ShipSpriteProgram;
+  fleets: FleetTokenPass;
+  battles: NavalBattleMarkerPass;
+  convoys: ConvoyFxPass;
+  invasions: InvasionArrowPass;
+  sorties: AirSortiePass;
+}
+
 export class GPURenderer {
   private gl: WebGL2RenderingContext;
   private camera: Camera;
@@ -238,6 +276,27 @@ export class GPURenderer {
   private landFlagsMe = -1;
   /** The game tick tokens glide from (spec §15.2). */
   private landClock: LandTickClock = new LandTickClock(100);
+  /** World War 1936 P4 (spec §18.2): the navy, the air war, their passes. */
+  private wwNavy: WwNavyView | null = null;
+  private wwAir: WwAirView | null = null;
+  private seaAirSelection: SeaAirSelection | null = null;
+  private seaAirGlowSource: SeaAirGlowSource | null = null;
+  private seaAirGlowKey: string | null = null;
+  private seaAirGlow: ReturnType<SeaAirGlowSource["glow"]> = null;
+  private seaAirGlowVersion = 0;
+  private landFlagsGlow = -1;
+  private layerGlowSent = -1;
+  private seaPasses: WwSeaPasses | null = null;
+  private readonly fleetLayout = new FleetLayoutCache();
+  /** The sea or air layer's table as built, and as the pass last got it. */
+  private readonly layerColors = new Uint8Array(LAYER_TABLE_SIZE * 4);
+  private readonly layerFlags = new Uint8Array(LAYER_TABLE_SIZE);
+  private readonly layerColorsSent = new Uint8Array(LAYER_TABLE_SIZE * 4);
+  private readonly layerFlagsSent = new Uint8Array(LAYER_TABLE_SIZE);
+  private layerKindSent = -1;
+  private layerVersionSent = -1;
+  /** The air layer's part of the region flags (bombed regions) as last built. */
+  private landFlagsAir = -1;
   /** Paradrop planes flown through PlanePass (spec §7.6). */
   private readonly paradrops = new ParadropFlights();
   private readonly openParachutes = (x: number, y: number, owner: number) =>
@@ -1018,6 +1077,9 @@ export class GPURenderer {
     this.unitPass.setFrameTick(this.frameTick);
     this.unitPass.updateUnits(units, gameTick);
     let planeUnits: ReadonlyMap<number, UnitState> = units;
+    if (this.wwLand === null && this.seaPasses !== null) {
+      this.landClock.note(gameTick, performance.now());
+    }
     if (this.wwLand !== null) {
       this.landClock.note(gameTick, performance.now());
       planeUnits = this.paradrops.withFlights(
@@ -1618,6 +1680,18 @@ export class GPURenderer {
         this.wwLand.me(),
       );
     }
+    // P4: the sea or the air layer (spec §18.2).
+    if (this.seaPasses !== null && this.regionBorderPass !== null) {
+      this.syncSeaAirLayer();
+      if (this.regionBorderPass.layer !== LAYER_NONE) {
+        this.regionBorderPass.drawLayer(
+          cam,
+          renderDpr() / Math.max(this.camera.zoom, 1e-6),
+          performance.now() / 1000,
+          this.chosenZoneIdx(),
+        );
+      }
+    }
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1678,6 +1752,8 @@ export class GPURenderer {
 
     // World War 1936 P2: battles, plan arrows and army tokens over the names.
     if (this.wwLand !== null) this.drawWwLand(cam, performance.now());
+    // P4: convoys, invasions, naval battles, fleets, then the planes above.
+    if (this.seaPasses !== null) this.drawWwSeaAir(cam, performance.now());
 
     // World text (attack-troop labels, popups, ghost cost) draws on top of
     // player names so attack callouts aren't hidden behind a centered name.
@@ -1737,6 +1813,7 @@ export class GPURenderer {
       this.mapH,
     );
     this.landFlagsStale = true;
+    this.layerKindSent = -1;
   }
 
   // ---------------------------------------------------------------------------
@@ -1797,17 +1874,28 @@ export class GPURenderer {
     if (land === null || pass === null) return;
     const me = land.me();
     const sel = land.selection;
+    // P4: with the air layer on, the viewer's bombed regions are hatched.
+    const air =
+      this.seaAirSelection?.layer === "air" && this.wwAir !== null
+        ? this.wwAir
+        : null;
+    const airKey = air === null ? -1 : air.version;
+    this.refreshSeaAirGlow();
     if (
       !this.landFlagsStale &&
       land.view.version === this.landFlagsVersion &&
       sel.version === this.landFlagsSelection &&
-      me === this.landFlagsMe
+      me === this.landFlagsMe &&
+      airKey === this.landFlagsAir &&
+      this.seaAirGlowVersion === this.landFlagsGlow
     ) {
       return;
     }
+    this.landFlagsGlow = this.seaAirGlowVersion;
     this.landFlagsVersion = land.view.version;
     this.landFlagsSelection = sel.version;
     this.landFlagsMe = me;
+    this.landFlagsAir = airKey;
     regionFlagBytes(
       land.view,
       sel,
@@ -1816,6 +1904,13 @@ export class GPURenderer {
       land.world,
       this.landFlags,
     );
+    if (air !== null && air.detail !== null) {
+      addBombedFlags(this.landFlags, air.detail.bombedRegions);
+    }
+    // Lane U: the ports a strike or the coasts a landing may aim at glow.
+    if (this.seaAirGlow?.kind === "land") {
+      addPickableFlags(this.landFlags, this.seaAirGlow.ids);
+    }
     const limit = land.view.controller.length;
     let same = !this.landFlagsStale;
     for (let i = 0; same && i < limit && i < this.landFlags.length; i++) {
@@ -1876,6 +1971,208 @@ export class GPURenderer {
     passes.tokens.draw(cam, tilesPerPx, timeSec);
   }
 
+  // ---------------------------------------------------------------------------
+  // World War 1936 P4: the navy and the air war (spec §18.2)
+  // ---------------------------------------------------------------------------
+
+  /** Draw the navy from `view`: fleet tokens, naval battles, convoys, invasions, the sea layer. */
+  setWwNavy(view: WwNavyView): void {
+    this.wwNavy = view;
+    this.ensureSeaPasses();
+  }
+
+  /** Draw the air war from `view`: sorties, wrecks, carpets, the air layer and its chips. */
+  setWwAir(view: WwAirView): void {
+    this.wwAir = view;
+    this.ensureSeaPasses();
+  }
+
+  /** The navy and air HUD's shared choice: the layer shown, the chosen fleet and zone. */
+  setSeaAirSelection(selection: SeaAirSelection): void {
+    this.seaAirSelection = selection;
+  }
+
+  /** What glows for a map tap (lane U's sea-air controller, spec §18.3). */
+  setSeaAirGlow(source: SeaAirGlowSource): void {
+    this.seaAirGlowSource = source;
+    this.seaAirGlowKey = null;
+  }
+
+  /** The glow now; its version moves when it changed (asked once a frame). */
+  private refreshSeaAirGlow(): void {
+    const src = this.seaAirGlowSource;
+    const key = src === null ? "" : src.key();
+    if (key === this.seaAirGlowKey) return;
+    this.seaAirGlowKey = key;
+    this.seaAirGlow = src === null ? null : src.glow();
+    this.seaAirGlowVersion++;
+  }
+
+  private ensureSeaPasses(): void {
+    if (this.seaPasses !== null) return;
+    const gl = this.gl;
+    const atlas = new ShipAtlas(gl);
+    const sprites = new ShipSpriteProgram(gl, this.paletteTex, atlas.texture);
+    const battles = new NavalBattleMarkerPass(
+      gl,
+      this.paletteTex,
+      atlas.texture,
+    );
+    const w = this.mapW;
+    battles.setSinkHandler((x, y, ships) => {
+      for (let i = 0; i < Math.min(3, ships); i++) {
+        this.fxPass.applyDeadUnits([
+          {
+            unitType: UT_WARSHIP,
+            pos: (y + i * 2) * w + x + i * 3,
+            reachedTarget: false,
+            ownerSmallID: 0,
+          },
+        ]);
+      }
+    });
+    const sorties = new AirSortiePass(gl, this.paletteTex, sprites);
+    sorties.setBombHandler((fx, fy, x, y) =>
+      this.airFxPass.spawnBomb(fx, fy, x, y),
+    );
+    sorties.setWreckHandler((x, y) => {
+      this.airFxPass.spawnFlash(x, y);
+      this.airFxPass.spawnSmoke(x, y);
+    });
+    this.seaPasses = {
+      atlas,
+      sprites,
+      fleets: new FleetTokenPass(gl, sprites),
+      battles,
+      convoys: new ConvoyFxPass(gl, sprites),
+      invasions: new InvasionArrowPass(gl, sprites),
+      sorties,
+    };
+    this.layerKindSent = -1;
+  }
+
+  private disposeSeaPasses(): void {
+    const p = this.seaPasses;
+    if (p === null) return;
+    p.fleets.dispose();
+    p.battles.dispose();
+    p.convoys.dispose();
+    p.invasions.dispose();
+    p.sorties.dispose();
+    p.sprites.dispose();
+    p.atlas.dispose();
+    this.seaPasses = null;
+  }
+
+  /** The chosen air or sea zone's strategic index, -1 for none. */
+  private chosenZoneIdx(): number {
+    const sr = this.seaAirSelection?.sr ?? 0;
+    const view = this.wwNavy ?? this.wwAir;
+    return sr === 0 || view === null ? -1 : view.scenario.srIdxOf(sr);
+  }
+
+  /**
+   * The sea or air layer's table (spec §18.2, §20.1): rebuilt only when the
+   * layer or its view moved (a zone's day arrived), sent only when a byte
+   * differs.
+   */
+  private syncSeaAirLayer(): void {
+    const pass = this.regionBorderPass;
+    if (pass === null) return;
+    this.refreshSeaAirGlow();
+    // Lane U: a mission's glowing regions show on the sea layer.
+    const seaGlow = this.seaAirGlow?.kind === "sea" ? this.seaAirGlow : null;
+    const layer =
+      seaGlow !== null ? "sea" : (this.seaAirSelection?.layer ?? "none");
+    const navy = this.wwNavy;
+    const air = this.wwAir;
+    const kind =
+      layer === "sea" && navy !== null
+        ? LAYER_SEA
+        : layer === "air" && air !== null
+          ? LAYER_AIR
+          : LAYER_NONE;
+    const version =
+      kind === LAYER_SEA
+        ? navy!.version
+        : kind === LAYER_AIR
+          ? air!.version
+          : -1;
+    if (
+      kind === this.layerKindSent &&
+      version === this.layerVersionSent &&
+      this.seaAirGlowVersion === this.layerGlowSent
+    )
+      return;
+    this.layerGlowSent = this.seaAirGlowVersion;
+    const kindChanged = kind !== this.layerKindSent;
+    this.layerKindSent = kind;
+    this.layerVersionSent = version;
+    if (kind === LAYER_NONE) {
+      pass.setLayer(LAYER_NONE, 0, this.layerColors, this.layerFlags);
+      return;
+    }
+    const sc = kind === LAYER_SEA ? navy!.scenario : air!.scenario;
+    if (!pass.hasStrategic) pass.setStrategicLookup(strategicLookup(sc));
+    if (kind === LAYER_SEA) {
+      seaLayerColors(navy!, this.layerColors);
+      seaLayerFlags(navy!, this.layerFlags);
+      if (seaGlow !== null) addGlowFlags(sc, seaGlow.ids, this.layerFlags);
+    } else {
+      airLayerColors(air!, this.layerColors);
+      this.layerFlags.fill(0);
+    }
+    let same = !kindChanged;
+    for (let i = 0; same && i < this.layerColors.length; i++) {
+      if (this.layerColors[i] !== this.layerColorsSent[i]) same = false;
+    }
+    for (let i = 0; same && i < this.layerFlags.length; i++) {
+      if (this.layerFlags[i] !== this.layerFlagsSent[i]) same = false;
+    }
+    if (same) return;
+    this.layerColorsSent.set(this.layerColors);
+    this.layerFlagsSent.set(this.layerFlags);
+    const firstSea = sc.strategicList().length - sc.seaSrCount();
+    pass.setLayer(kind, firstSea, this.layerColors, this.layerFlags);
+  }
+
+  /** Convoys, invasion arrows, naval battles, fleet tokens, then sorties and the air chips. */
+  private drawWwSeaAir(cam: Float32Array, now: number): void {
+    const passes = this.seaPasses;
+    if (passes === null) return;
+    const zoom = this.camera.zoom / renderDpr();
+    const tilesPerPx = 1 / Math.max(zoom, 1e-6);
+    const timeSec = now / 1000;
+    const layer = this.seaAirSelection?.layer ?? "none";
+    const navy = this.wwNavy;
+    if (navy !== null) {
+      const t = this.landClock.at(now);
+      const tick = Math.floor(t);
+      const moved = this.fleetLayout.update(navy, tick, t - tick, zoom);
+      passes.convoys.update(navy, layer === "sea");
+      passes.invasions.update(navy, tilesPerPx);
+      passes.battles.update(navy, fleetLod(zoom));
+      passes.fleets.update(navy, this.fleetLayout, moved, this.seaAirSelection);
+      passes.convoys.draw(cam, tilesPerPx, timeSec);
+      passes.invasions.draw(cam, tilesPerPx, timeSec);
+      passes.battles.draw(cam, tilesPerPx, timeSec);
+      passes.fleets.draw(cam, tilesPerPx, timeSec);
+    }
+    const air = this.wwAir;
+    if (air !== null) {
+      passes.sorties.update(air, navy, now, zoom);
+      passes.sorties.draw(
+        cam,
+        tilesPerPx,
+        timeSec,
+        now,
+        zoom,
+        air,
+        layer === "air",
+      );
+    }
+  }
+
   /** Toggle visibility of a single layer (driven by graphics settings). */
   setLayerVisible(layerId: string, visible: boolean): void {
     this.mapLayerPasses.get(layerId)?.setVisible(visible);
@@ -1918,6 +2215,7 @@ export class GPURenderer {
     this.regionBorderPass?.dispose();
     this.regionBorderPass = null;
     this.disposeWwLand();
+    this.disposeSeaPasses();
     if (this.terrainBytesTex) {
       this.gl.deleteTexture(this.terrainBytesTex);
       this.terrainBytesTex = null;

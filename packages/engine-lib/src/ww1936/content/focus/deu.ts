@@ -396,7 +396,12 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_four_year_plan"]],
     effects: [
       { kind: "resource", where: { best: 2 }, res: "oil", amount: 2 },
-      { kind: "reserve", key: "synthetic_refinery", amount: 2 },
+      {
+        kind: "build",
+        where: { coreBest: 2 },
+        building: "synthetic_refinery",
+        count: 2,
+      },
     ],
     ai: { base: 10 },
   },
@@ -538,7 +543,7 @@ export const DEU_FOCUSES: FocusDef[] = [
         building: "mil",
         count: 4,
       },
-      { kind: "reserve", key: "bomb_damage_cut", amount: 15 },
+      { kind: "add_spirit", id: "p4_dispersal" },
     ],
     ai: { base: 10 },
   },
@@ -742,7 +747,8 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_luftwaffe"]],
     effects: [
       { kind: "research_bonus", branch: "air", pct: 50, uses: 1 },
-      { kind: "reserve", key: "cas", amount: 10 },
+      { kind: "research_bonus", tech: "cas_2", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "p4_dive_bombing" },
     ],
     ai: { base: 10 },
   },
@@ -761,6 +767,7 @@ export const DEU_FOCUSES: FocusDef[] = [
         building: "dock",
         count: 3,
       },
+      { kind: "research_bonus", branch: "naval", pct: 50, uses: 2 },
     ],
     ai: { base: 10 },
   },
@@ -774,7 +781,10 @@ export const DEU_FOCUSES: FocusDef[] = [
     icon: "submarine",
     prereq: [["deu_plan_z"]],
     exclusive: ["deu_battle_fleet"],
-    effects: [{ kind: "reserve", key: "sub_doctrine", amount: 10 }],
+    effects: [
+      { kind: "research_bonus", tech: "ss_3", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "p4_uboat_priority" },
+    ],
     ai: { base: 10 },
   },
   {
@@ -787,7 +797,10 @@ export const DEU_FOCUSES: FocusDef[] = [
     icon: "ship",
     prereq: [["deu_plan_z"]],
     exclusive: ["deu_uboats"],
-    effects: [{ kind: "reserve", key: "fleet_doctrine", amount: 5 }],
+    effects: [
+      { kind: "research_bonus", tech: "bb_3", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "p4_high_seas_fleet" },
+    ],
     ai: { base: 5 },
   },
 ];

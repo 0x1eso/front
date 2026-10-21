@@ -299,7 +299,6 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
       expect([...eb.countryNeighbours(id)]).toEqual([
         ...ea.countryNeighbours(id),
       ]);
-      expect([...eb.countrySeaZones(id)]).toEqual([...ea.countrySeaZones(id)]);
       expect([...eb.regionsOf(id)]).toEqual([...ea.regionsOf(id)]);
       expect(eb.country(id)!.tech).toEqual(ce.tech);
       expect([...eb.country(id)!.researched]).toEqual([...ce.researched]);

@@ -28,7 +28,6 @@ import {
   regionSlots,
   researchProgress,
   researchSlotCount,
-  tradeRouteOk,
   yearStartDay,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
@@ -324,34 +323,6 @@ describe("stock coverage (spec §10; the stockpile bars)", () => {
     expect(coveragePermille(200, 100_000, 400)).toBe(500);
     expect(coveragePermille(5, 0, 400)).toBe(0);
     expect(coveragePermille(5, 100, 0)).toBe(0);
-  });
-});
-
-describe("trade routes (spec §7.4)", () => {
-  // 1 - 2 - 3 - 4 by land; 5 shares a sea zone with 1; 6 is alone.
-  const graph = (wars: [number, number][] = [], factions: number[][] = []) => ({
-    atWar: (a: number, b: number) =>
-      wars.some(([x, y]) => (x === a && y === b) || (x === b && y === a)),
-    sameFaction: (a: number, b: number) =>
-      factions.some((f) => f.includes(a) && f.includes(b)),
-    neighbours: (c: number) =>
-      ({ 1: [2], 2: [1, 3], 3: [2, 4], 4: [3] })[c] ?? [],
-    seaZones: (c: number) =>
-      new Set(c === 1 || c === 5 ? [40001] : c === 4 ? [40002] : []),
-  });
-
-  test("land through countries at peace, a shared sea, or the faction", () => {
-    expect(tradeRouteOk(graph(), 1, 4)).toBe(true);
-    expect(tradeRouteOk(graph(), 1, 5)).toBe(true);
-    expect(tradeRouteOk(graph(), 1, 6)).toBe(false);
-    expect(tradeRouteOk(graph([], [[1, 6]]), 1, 6)).toBe(true);
-    expect(tradeRouteOk(graph(), 1, 1)).toBe(false);
-  });
-
-  test("a war cuts the land route and the trade itself", () => {
-    expect(tradeRouteOk(graph([[1, 3]]), 1, 4)).toBe(false);
-    expect(tradeRouteOk(graph([[1, 3]]), 1, 3)).toBe(false);
-    expect(tradeRouteOk(graph([[1, 4]], [[1, 4]]), 1, 4)).toBe(false);
   });
 });
 

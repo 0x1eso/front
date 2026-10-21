@@ -14,6 +14,8 @@
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
+import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
+import type { SeaAirGlowSource } from "../../view/AirZoneColors";
 import type { LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwAirView } from "../../view/WwAirView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
@@ -53,9 +55,11 @@ export class MapRenderer {
   private storedRegions: Uint16Array | null = null;
   /** World War 1936 P2 land war inputs, re-applied after a context restore. */
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
-  /** P4: kept for lane R's passes (plan Task 11). */
+  /** World War 1936 P4 inputs, re-applied after a context restore. */
   private storedWwNavy: WwNavyView | null = null;
   private storedWwAir: WwAirView | null = null;
+  private storedSeaAirSelection: SeaAirSelection | null = null;
+  private storedSeaAirGlow: SeaAirGlowSource | null = null;
   /** P5 (plan Task 1 Step 14): the endgame view (lane U1 draws the conference map mode). */
   private storedWwEndgame: WwEndgameView | null = null;
   // Layer state that survives context loss (GPU textures do not).
@@ -168,6 +172,14 @@ export class MapRenderer {
     }
     if (this.storedWwLand !== null) {
       this.renderer?.setWwLand(...this.storedWwLand);
+    }
+    if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
+    if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
+    if (this.storedSeaAirSelection !== null) {
+      this.renderer?.setSeaAirSelection(this.storedSeaAirSelection);
+    }
+    if (this.storedSeaAirGlow !== null) {
+      this.renderer?.setSeaAirGlow(this.storedSeaAirGlow);
     }
     this.onContextRestored?.();
   };
@@ -408,16 +420,35 @@ export class MapRenderer {
   }
 
   /**
-   * World War 1936 P4 (plan Task 1 Step 22): the navy view the fleet
-   * tokens, battle markers and the sea layer read (lane R draws them).
+   * World War 1936 P4 (spec §18.2): draw the navy from `view` — fleet
+   * tokens, naval battle markers, the viewer's convoys and invasions, and
+   * the sea layer when the selection shows it.
    */
   setWwNavy(view: WwNavyView): void {
     this.storedWwNavy = view;
+    this.renderer?.setWwNavy(view);
   }
 
-  /** World War 1936 P4: the air view the air layer and sorties read (lane R). */
+  /** World War 1936 P4: draw the air war from `view` — sorties, wrecks, carpets, the air layer. */
   setWwAir(view: WwAirView): void {
     this.storedWwAir = view;
+    this.renderer?.setWwAir(view);
+  }
+
+  /**
+   * World War 1936 P4: the navy and air HUD's shared choice (SeaAirSelection:
+   * the layer shown, the chosen fleet and zone). Without it no layer shows
+   * and no fleet is chosen.
+   */
+  setSeaAirSelection(selection: SeaAirSelection): void {
+    this.storedSeaAirSelection = selection;
+    this.renderer?.setSeaAirSelection(selection);
+  }
+
+  /** World War 1936 P4: what glows for a map tap (spec §18.3; the sea-air controller). */
+  setSeaAirGlow(source: SeaAirGlowSource): void {
+    this.storedSeaAirGlow = source;
+    this.renderer?.setSeaAirGlow(source);
   }
 
   /**

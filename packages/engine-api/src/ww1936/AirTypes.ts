@@ -103,11 +103,24 @@ export interface AirZoneResult {
   bombPoints: number;
   navalDamageMilli: number;
 }
+/**
+ * Spec §14.6: a side under enemy air over a zone — the worst superiority ‰
+ * of a side at war with it there, and that enemy's battlefield-support
+ * bonus (its supPenaltyPp). The land war's penalty reads exactly these
+ * (engine-lib zoneAirPenaltyBp).
+ */
+export interface AirEnemySky {
+  side: number;
+  enemySupPm: number;
+  bonusPp: number;
+}
 export interface AirZoneData {
   sr: number;
   sides: AirZoneSide[];
   /** The receiving side's results yesterday (own side only). */
   result: [number, AirZoneResult][];
+  /** Every side with an enemy flying over the zone, by side (the engine always sends it). */
+  enemySky?: AirEnemySky[];
 }
 export interface AirDeploySummary {
   id: number;
@@ -136,6 +149,8 @@ export interface CountryAirDetail {
   /** Last 30 days: shot down, lost, bomb points given, taken, ships and convoys sunk by planes. */
   tally30: number[];
   bombedRegions: [number, number][];
+  /** P4 lane U: the zones the AI runs for this human (air_auto), ascending. */
+  autoZones?: number[];
 }
 export interface WwAirData {
   zones: AirZoneData[];
@@ -160,6 +175,8 @@ export const WW_PARADROP_PLANES_PER_WEIGHT = 20;
 export const WW_AIR_SUPPLY_PER_SORTIE_MILLI = 20;
 export const WW_AIR_PENALTY_BP_PER_PM = 7;
 export const WW_AIR_PENALTY_MAX_BP = 3_500;
+/** Spec §14.6 with the enemy's battlefield support (+5%p): −35% − 5%p. */
+export const WW_AIR_PENALTY_BONUS_MAX_BP = 4_000;
 export const WW_AIR_MOVE_PER_PM = 600;
 export const WW_AA_CUT_MAX_PCT = 70;
 export const WW_RADAR_RANGE_KM = 300;

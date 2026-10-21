@@ -11,16 +11,27 @@
  * region across it), red hatching on the viewer's side's encircled regions
  * and a soft glow on the border regions a front can be given to. A game
  * without the land war never makes the texture or the program.
+ *
+ * P4 (spec §18.2) adds the sea and air layers: the tile codes carry the sea
+ * zone too (SEA_CODE_BIT), a 256 × 128 lookup texture turns any tile code
+ * into its strategic region's index + 1 (strategicLookup), and a 256 × 2
+ * table gives each strategic region its colour (AirZoneColors) and flags.
+ * The layer program fills the zones of the layer, draws the lines between
+ * them, blinks the convoy-loss zones and outlines the chosen zone. The
+ * flags program hatches the regions bombed (FLAG_BOMBED). Nothing is made
+ * before a layer is first shown.
  */
 
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
+import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
 import type { LandFrontWorld } from "../../../view/LandFrontWorld";
 import type { WwLandView } from "../../../view/WwLandView";
 import fragSrc from "../shaders/region-border/region-border.frag.glsl?raw";
 import vertSrc from "../shaders/region-border/region-border.vert.glsl?raw";
 import flagsFragSrc from "../shaders/region-border/region-flags.frag.glsl?raw";
+import layerFragSrc from "../shaders/region-border/region-layer.frag.glsl?raw";
 import {
   createMapQuad,
   createProgram,
@@ -43,11 +54,25 @@ export const FLAG_ENEMY = 2;
 export const FLAG_ENCIRCLED = 4;
 /** Bit 3: a border region a front can be given to (front mode). */
 export const FLAG_PICKABLE = 8;
+/** Bit 4 (P4): a region of the viewer's bombed lately (air layer hatching). */
+export const FLAG_BOMBED = 16;
 
 /** Tile code bit: the tile's right or lower neighbour is another land region. */
 export const TILE_EDGE_BIT = 0x8000;
-/** Tile code bits: the land region id (0 for water, sea zones and ids past them). */
+/**
+ * Tile code bits: the land region id; a sea zone tile has SEA_CODE_BIT and
+ * its zone's offset from SEA_ZONE_BASE; 0 for tiles outside every region.
+ */
 export const TILE_REGION_MASK = 0x7fff;
+/** P4: set in a sea zone tile's code (land region ids stay far below it). */
+export const SEA_CODE_BIT = 0x4000;
+/** P4: the strategic lookup texture's size (one byte per tile code). */
+export const SR_LUT_W = 256;
+export const SR_LUT_H = 128;
+/** P4: layer kinds. */
+export const LAYER_NONE = 0;
+export const LAYER_SEA = 1;
+export const LAYER_AIR = 2;
 
 function isEdge(ids: Uint16Array, w: number, h: number, t: number): boolean {
   const id = ids[t];
@@ -76,10 +101,19 @@ export function regionEdgeMask(
   return out;
 }
 
+/** P4: the code of a region or sea zone id (0 for none or out of range). */
+export function tileCodeOf(id: number): number {
+  if (id === 0) return 0;
+  if (id < SEA_ZONE_BASE) return id < SEA_CODE_BIT ? id : 0;
+  const z = id - SEA_ZONE_BASE;
+  return z > 0 && z < SEA_CODE_BIT ? SEA_CODE_BIT | z : 0;
+}
+
 /**
  * The pass's tile texture (R16UI, one value per tile): TILE_EDGE_BIT where
- * regionEdgeMask has a 1, and the land region id in the low 15 bits for the
- * flag lookup (0 for water and sea zones; land ids are far below 32768).
+ * regionEdgeMask has a 1, and in the low 15 bits the land region id for the
+ * flag lookup, or (P4) SEA_CODE_BIT | the sea zone's offset for the layers
+ * (tileCodeOf). No flag is ever set past the land ids.
  */
 export function regionTileCodes(
   ids: Uint16Array,
@@ -88,10 +122,26 @@ export function regionTileCodes(
 ): Uint16Array {
   const out = new Uint16Array(w * h);
   for (let t = 0; t < w * h; t++) {
-    const id = ids[t];
-    const land = id < SEA_ZONE_BASE && id <= TILE_REGION_MASK ? id : 0;
-    out[t] = (isEdge(ids, w, h, t) ? TILE_EDGE_BIT : 0) | land;
+    out[t] = (isEdge(ids, w, h, t) ? TILE_EDGE_BIT : 0) | tileCodeOf(ids[t]);
   }
+  return out;
+}
+
+/**
+ * P4: the strategic lookup (SR_LUT_W × SR_LUT_H bytes, one per tile code):
+ * the strategic region index + 1 of every land region and sea zone (its
+ * regionSr / zoneSr); 0 for lakes, unknown ids and indices past 254.
+ */
+export function strategicLookup(sc: ScenarioIndex): Uint8Array {
+  const out = new Uint8Array(SR_LUT_W * SR_LUT_H);
+  const put = (code: number, sr: number) => {
+    const idx = sc.srIdxOf(sr);
+    if (code > 0 && code < out.length && idx >= 0 && idx < 255) {
+      out[code] = idx + 1;
+    }
+  };
+  for (const r of sc.landRegions) put(tileCodeOf(r.id), sc.regionSr(r.id));
+  for (const z of sc.data.seaZones) put(tileCodeOf(z.id), sc.zoneSr(z.id));
   return out;
 }
 
@@ -106,6 +156,24 @@ export function flagIndex(region: number): number {
 function setFlag(out: Uint8Array, region: number, bit: number): void {
   if (region > 0 && region < FLAG_TEX_SIZE * FLAG_TEX_SIZE) {
     out[flagIndex(region)] |= bit;
+  }
+}
+
+/** P4 (lane U): sets FLAG_PICKABLE (the soft glow) on each region a tap may aim at. */
+export function addPickableFlags(
+  out: Uint8Array,
+  regions: readonly number[],
+): void {
+  for (const r of regions) setFlag(out, r, FLAG_PICKABLE);
+}
+
+/** P4: sets FLAG_BOMBED on each region of [region, points] with points > 0. */
+export function addBombedFlags(
+  out: Uint8Array,
+  bombed: readonly (readonly [number, number])[],
+): void {
+  for (const [region, points] of bombed) {
+    if (points > 0) setFlag(out, region, FLAG_BOMBED);
   }
 }
 
@@ -180,6 +248,19 @@ export class RegionBorderPass {
   private fTilesPerPx: WebGLUniformLocation | null = null;
   private fTime: WebGLUniformLocation | null = null;
   private fMe: WebGLUniformLocation | null = null;
+
+  // P4 layers: made on the first setStrategicLookup / setLayer.
+  private lutTex: WebGLTexture | null = null;
+  private tableTex: WebGLTexture | null = null;
+  private layerProgram: WebGLProgram | null = null;
+  private lCamera: WebGLUniformLocation | null = null;
+  private lTilesPerPx: WebGLUniformLocation | null = null;
+  private lTime: WebGLUniformLocation | null = null;
+  private lMinDomain: WebGLUniformLocation | null = null;
+  private lSel: WebGLUniformLocation | null = null;
+  private layerKind = LAYER_NONE;
+  private layerMin = 1;
+  private readonly table = new Uint8Array(256 * 2 * 4);
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -342,5 +423,152 @@ export class RegionBorderPass {
     if (this.flagTex !== null) gl.deleteTexture(this.flagTex);
     this.flagProgram = null;
     this.flagTex = null;
+    if (this.layerProgram !== null) gl.deleteProgram(this.layerProgram);
+    if (this.lutTex !== null) gl.deleteTexture(this.lutTex);
+    if (this.tableTex !== null) gl.deleteTexture(this.tableTex);
+    this.layerProgram = null;
+    this.lutTex = null;
+    this.tableTex = null;
+  }
+
+  // ---- P4: the sea and air layers (spec §18.2) ----
+
+  /** True once the strategic lookup is in (setStrategicLookup). */
+  get hasStrategic(): boolean {
+    return this.lutTex !== null;
+  }
+
+  /** The strategic lookup bytes (strategicLookup), sent once. */
+  setStrategicLookup(lut: Uint8Array): void {
+    const gl = this.gl;
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    if (this.lutTex !== null) gl.deleteTexture(this.lutTex);
+    this.lutTex = createTexture2D(gl, {
+      width: SR_LUT_W,
+      height: SR_LUT_H,
+      internalFormat: gl.R8UI,
+      format: gl.RED_INTEGER,
+      type: gl.UNSIGNED_BYTE,
+      data: lut,
+      filter: gl.NEAREST,
+    });
+  }
+
+  /**
+   * Shows layer `kind` (LAYER_SEA: the sea regions, strategic indices from
+   * `firstSea` on; LAYER_AIR: every region) with `colors` (256 × 4 bytes,
+   * AirZoneColors) and `flags` (256 bytes); LAYER_NONE hides it. The
+   * caller sends them only when they changed.
+   */
+  setLayer(
+    kind: number,
+    firstSea: number,
+    colors: Uint8Array,
+    flags: Uint8Array,
+  ): void {
+    this.layerKind = kind;
+    this.layerMin = kind === LAYER_SEA ? firstSea + 1 : 1;
+    if (kind === LAYER_NONE) return;
+    const t = this.table;
+    t.set(colors.subarray(0, 256 * 4));
+    for (let i = 0; i < 256; i++) {
+      const o = (256 + i) * 4;
+      t[o] = flags[i] ?? 0;
+      t[o + 1] = 0;
+      t[o + 2] = 0;
+      t[o + 3] = 0;
+    }
+    const gl = this.gl;
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    if (this.tableTex === null) {
+      this.tableTex = createTexture2D(gl, {
+        width: 256,
+        height: 2,
+        internalFormat: gl.RGBA8,
+        format: gl.RGBA,
+        type: gl.UNSIGNED_BYTE,
+        data: t,
+        filter: gl.NEAREST,
+      });
+      return;
+    }
+    gl.bindTexture(gl.TEXTURE_2D, this.tableTex);
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      0,
+      0,
+      256,
+      2,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      t,
+    );
+  }
+
+  /** The layer shown (LAYER_NONE, LAYER_SEA, LAYER_AIR). */
+  get layer(): number {
+    return this.layerKind;
+  }
+
+  private ensureLayerProgram(): WebGLProgram {
+    if (this.layerProgram !== null) return this.layerProgram;
+    const gl = this.gl;
+    const defs = { MAP_W: this.mapW, MAP_H: this.mapH, SR_LUT_W };
+    const p = createProgram(
+      gl,
+      shaderSrc(vertSrc, defs),
+      shaderSrc(layerFragSrc, defs),
+      "RegionBorderPass.layer",
+    );
+    const u = (n: string) => gl.getUniformLocation(p, n);
+    this.lCamera = u("uCamera");
+    this.lTilesPerPx = u("uTilesPerPx");
+    this.lTime = u("uTime");
+    this.lMinDomain = u("uMinDomain");
+    this.lSel = u("uSel");
+    gl.useProgram(p);
+    gl.uniform1i(u("uTiles"), 0);
+    gl.uniform1i(u("uLut"), 1);
+    gl.uniform1i(u("uTable"), 2);
+    this.layerProgram = p;
+    return p;
+  }
+
+  /**
+   * P4: the layer over the territory at any zoom: zone fills, the lines
+   * between the layer's zones, blinking loss zones, the chosen zone
+   * (`selectedIdx`: its strategic index, -1 for none) outlined.
+   */
+  drawLayer(
+    cam: Float32Array,
+    tilesPerPx: number,
+    timeSec: number,
+    selectedIdx: number,
+  ): void {
+    if (
+      this.layerKind === LAYER_NONE ||
+      this.lutTex === null ||
+      this.tableTex === null
+    ) {
+      return;
+    }
+    const gl = this.gl;
+    gl.useProgram(this.ensureLayerProgram());
+    gl.uniformMatrix3fv(this.lCamera, false, cam);
+    gl.uniform1f(this.lTilesPerPx, tilesPerPx);
+    gl.uniform1f(this.lTime, timeSec);
+    gl.uniform1i(this.lMinDomain, this.layerMin);
+    gl.uniform1i(this.lSel, selectedIdx + 1);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.tileTex);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.lutTex);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.tableTex);
+    gl.bindVertexArray(this.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindVertexArray(null);
+    gl.activeTexture(gl.TEXTURE0);
   }
 }

@@ -444,7 +444,7 @@ function moveDivisions(
     leaveBattle(land, r);
     stopDivision(land, r);
     land.moveToArmy(id, dest);
-    t.owner[r] = to;
+    land.setOwner(r, to);
     t.front[r] = 0;
     land.setTemplate(r, tpl);
   }

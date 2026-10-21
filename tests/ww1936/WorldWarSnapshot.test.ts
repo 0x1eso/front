@@ -370,11 +370,20 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // merged: same value in four runs. P4 foundation and its review fixes
 // (navy and air state, start techs, fuel, convoys, the stub clock; P4
 // techs out of the AI's research for now) with map v4 and the naval data:
-// same value in four runs. P5 foundation (the 14 dormant slots: more
-// players and nextID draws, the endgame state and hash, the core table):
-// same value in three runs. The controller re-pins it at every merge that
-// changes the engine.
-const WW1936_DIGEST = "175463f03d6a6e0e";
+// same value in four runs. The P2 Task 12 / P3 Task 17 determinism lane:
+// the land and politics hashes now cover all their state (WwLand.hashRest,
+// WwPolitics' snapshot fold); the game plays as before (with the old hashes
+// its fixes still gave 9f12594be9b5b5f7 on P3) — with lane G7's navy and
+// air content effects: same value in four runs. Re-pinned after P4 lanes
+// N1 (fleets, missions), A1 (the air war's core) and E (naval lines, fuel,
+// repair) merged: same value in four runs. Re-pinned after N2 (naval
+// battles), R (rendering) and A2 (air effects) merged: same value in four
+// runs. Re-pinned after C (convoys) and I (invasions) merged, with no
+// reinforcement at sea: same value in four runs. P5 foundation (the 14
+// dormant slots: more players and nextID draws, the endgame state and
+// hash, the core table): same value in three runs. The controller re-pins
+// it at every merge that changes the engine.
+const WW1936_DIGEST = "2084b718b00b563b";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
