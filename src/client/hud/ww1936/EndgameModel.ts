@@ -53,6 +53,11 @@ import {
   type VolunteerIn,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
+  paidCivsAt,
+  subjectFlows,
+  subjectTradeCivPct,
+} from "@openfront/engine-lib/ww1936/SubjectRules";
+import {
   OCC_BLINK,
   OCC_HATCH,
   type OccupationCell,
@@ -1341,13 +1346,53 @@ function decisionAction(
   return out;
 }
 
+/**
+ * The civilian factories `buyer` pays for its deals buying from `seller`,
+ * and their full price (spec §9.1: half from its own dominion — lane S's
+ * subjectTradeCivPct and paidCivsAt, as the engine's tradePaidCivs). Only
+ * my own deals are on the client: zeros for anyone else.
+ */
+export function tradeCivsWith(
+  game: EndgameGame,
+  buyer: number,
+  seller: number,
+): { paid: number; full: number } {
+  const deals = game.wwEconomy?.()?.detail(buyer)?.buying ?? [];
+  const pct = subjectTradeCivPct(
+    egView(game)?.subjectOf(seller) ?? null,
+    buyer,
+  );
+  let paid = 0;
+  let full = 0;
+  for (const t of deals) {
+    if (t.seller !== seller) continue;
+    full += t.civs;
+    paid += paidCivsAt(t.civs, pct);
+  }
+  return { paid, full };
+}
+
+/**
+ * What the overlord gets from a subject (spec §9.1): the level's resource
+ * share and, as the engine counts them (subjectFlows), civilian factories
+ * and men; then what its deals with the subject cost ("🤝 🏭 paid/full")
+ * when that is less than the full price (a dominion).
+ */
 function shareText(game: EndgameGame, s: WwSubjectView): string {
   const p = subjectShares(s.level);
-  if (p.resourcePct === 0 && p.civPct === 0 && p.manpowerPct === 0) return "—";
-  const sum = game.wwEconomy?.()?.summary(s.subject) ?? null;
-  const civ = Math.floor(((sum?.civ ?? 0) * p.civPct) / 100);
-  const men = Math.floor(((sum?.recruitable ?? 0) * p.manpowerPct) / 100);
-  return `⛏ ${p.resourcePct}% · 🏭 ${civ} · 👥 ${menText(men)}`;
+  const parts: string[] = [];
+  if (p.resourcePct > 0 || p.civPct > 0 || p.manpowerPct > 0) {
+    const sum = game.wwEconomy?.()?.summary(s.subject) ?? null;
+    const f = subjectFlows(s.level, [], sum?.civ ?? 0, sum?.recruitable ?? 0);
+    parts.push(
+      `⛏ ${p.resourcePct}%`,
+      `🏭 ${f.civ}`,
+      `👥 ${menText(f.manpower)}`,
+    );
+  }
+  const t = tradeCivsWith(game, s.overlord, s.subject);
+  if (t.full > 0 && t.paid !== t.full) parts.push(`🤝 🏭 ${t.paid}/${t.full}`);
+  return parts.length === 0 ? "—" : parts.join(" · ");
 }
 
 /** The subjects tab (spec §20.5): my subjects as their overlord, and my own overlord. */

@@ -20,7 +20,7 @@ import {
   warCardsTemplate,
 } from "../../../src/client/hud/ww1936/WwWarsTab";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
-import { ID } from "./EconomyFixture";
+import { detail, ID, summary } from "./EconomyFixture";
 import { type EndOptions, fakeEndGame } from "./EndgameFixture";
 import { polDetail, polSummary } from "./PoliticsFixture";
 
@@ -131,6 +131,47 @@ describe("<ww-subjects-tab> (P5 spec §20.5)", () => {
         .querySelector('[data-ww-subject-why="ask_more"]')
         ?.textContent?.trim(),
     ).toBe("[ww1936.subject.why.not_max]");
+  });
+
+  it("the share line: the engine's flows, and a dominion's half-price deals", async () => {
+    const sub = (level: "puppet" | "dominion") => ({
+      subject: ID("ITA"),
+      overlord: ID("DEU"),
+      level,
+      autBp: 5_000,
+      deltaBp: 0,
+      neutral: false,
+    });
+    const deals = {
+      buying: [
+        {
+          id: 1,
+          buyer: ID("DEU"),
+          seller: ID("ITA"),
+          resource: "steel" as const,
+          civs: 3,
+        },
+      ],
+    };
+    const share = async (level: "puppet" | "dominion") => {
+      const { el } = await mountSubjects({
+        me: "DEU",
+        summaries: [summary("ITA", { civ: 20, recruitable: 100_000 })],
+        details: [detail("DEU", deals)],
+        endgame: { subjects: [sub(level)] },
+      });
+      const text = el
+        .querySelector(`[data-ww-subject="${ID("ITA")}"]`)!
+        .textContent!.replace(/\s+/g, " ");
+      document.body.innerHTML = "";
+      return text;
+    };
+    // A puppet: 30% of resources, 15% of 20 factories, 15% of the men; deals at full price.
+    const puppet = await share("puppet");
+    expect(puppet).toContain("⛏ 30% · 🏭 3 · 👥");
+    expect(puppet).not.toContain("🤝");
+    // A dominion: nothing taken, its 3-factory deal costs 2 (half, rounded up).
+    expect(await share("dominion")).toContain("text=🤝 🏭 2/3");
   });
 
   it("no subjects: one line", async () => {
