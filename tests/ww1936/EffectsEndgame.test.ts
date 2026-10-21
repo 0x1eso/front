@@ -220,6 +220,86 @@ describe("World War 1936 P5: endgame effects", { timeout: 60_000 }, () => {
     expect(eg.zones).toHaveLength(4);
   });
 
+  it("occupation_zone with seize from another actor hands over what it holds, control only", async () => {
+    const { g, ww, p, eg, id, run } = await game();
+    const [csk, deu, aut] = [id("CSK"), id("DEU"), id("AUT")];
+    const land = ww.land;
+    // Group slovakia = Slovakia (15) and Kosice (20), on the island chain
+    // that touches no German region. Austria holds Slovakia; nobody is at
+    // war with Czechoslovakia.
+    takeRegion(g, 15, "AUT");
+    const ce = ww.economy.country(csk)!;
+    for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 10_000;
+    ce.manpower += 100_000;
+    const army = placeArmy(g, "CSK", 20, 1);
+    const row = land.divisions.rowOf(army.divisions[0])!;
+    run(csk, [
+      {
+        kind: "occupation_zone",
+        group: "slovakia",
+        holder: T("DEU"),
+        seize: true,
+      },
+    ]);
+    // What the actor held goes, adjacent to the holder or not; the region a
+    // third country holds stays, and the actor keeps the rest of its land.
+    expect([13, 14, 15, 20].map((r) => land.controller[r])).toEqual([
+      csk,
+      csk,
+      aut,
+      deu,
+    ]);
+    expect(eg.zones).toEqual([{ region: 20, holder: deu, untilDay: -1 }]);
+    // Control only: the legal owner and the cores stay, no war is made.
+    for (const r of [15, 20]) {
+      expect(p.legalOwner[r], `owner ${r}`).toBe(csk);
+      expect(eg.hasCore(csk, r), `core ${r}`).toBe(true);
+      expect(eg.hasCore(deu, r), `deu core ${r}`).toBe(false);
+    }
+    expect(ww.isAtWar(csk, deu)).toBe(false);
+    // The actor's division went home from the handed-over region.
+    expect(land.divisions.alive(row)).toBe(true);
+    expect(land.divisions.owner[row]).toBe(csk);
+    expect([13, 14]).toContain(land.divisions.region[row]);
+  });
+
+  it("divisions at an exile's capital stand in its host's capital, none when the host holds no land", async () => {
+    const { g, ww, eg, id, run } = await game();
+    const [pl, gbr] = [id("POL"), id("GBR")];
+    const london = 10;
+    eg.exiles.push({
+      smallID: pl,
+      host: gbr,
+      legitBp: 5000,
+      sinceDay: 0,
+      zeroDays: 0,
+      lastDelta: 0,
+      faction: -1,
+      capital: 6,
+    });
+    eg.rebuildDerived();
+    const ce = ww.economy.country(pl)!;
+    for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 10_000;
+    ce.manpower += 100_000;
+    const land = ww.land;
+    const at = (r: number) =>
+      land.rowsOf(pl).filter((x) => land.divisions.region[x] === r).length;
+    const before = land.rowsOf(pl).length;
+    const raise = {
+      kind: "divisions",
+      template: "infantry",
+      count: 2,
+      where: "capital",
+    } as const;
+    run(pl, [raise]);
+    expect(at(london)).toBe(2);
+    expect(land.rowsOf(pl).length).toBe(before + 2);
+    // P2's capitalRegion answers 0 for a host with no land: nothing raised.
+    takeRegion(g, london, "FRA");
+    run(pl, [raise]);
+    expect(land.rowsOf(pl).length).toBe(before + 2);
+  });
+
   it("annex_occupied changes the legal owner only for a capitulated owner", async () => {
     const { g, ww, p, eg, id, run } = await game();
     const [deu, pl, ltu] = [id("DEU"), id("POL"), id("LTU")];
@@ -255,7 +335,9 @@ describe("World War 1936 P5: endgame effects", { timeout: 60_000 }, () => {
       { kind: "compliance", group: "t_poland", pct: 30 },
       { kind: "uprising", group: "t_poland" },
     ]);
-    expect([eg.resBp[6], eg.resBp[7]]).toEqual([2000, 0]);
+    // Lane O's uprising (batch 19 merge): Poland is not at war with
+    // Germany, so it fails and leaves resistance at 50% (was 20%).
+    expect([eg.resBp[6], eg.resBp[7]]).toEqual([5000, 0]);
     expect([eg.compBp[6], eg.compBp[7]]).toEqual([3000, 0]);
     expect(vi.mocked(uprisingNow).mock.calls.map((c) => c[1])).toEqual([6]);
     // Compliance stops at 80% while Poland plays on; both stay in range.

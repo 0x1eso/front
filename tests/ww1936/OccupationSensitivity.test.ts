@@ -10,6 +10,10 @@ import {
   integrateBlockOf,
   uprisingNow,
 } from "@openfront/engine/ww1936/endgame/Occupation";
+import {
+  applyEffects,
+  makeCtx,
+} from "@openfront/engine/ww1936/politics/Dispatch";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -99,6 +103,64 @@ describe("World War 1936 P5: Korea and Taiwan are never administered", () => {
     stepTo(runner, dayStartTick(ww.day(g.ticks()) + 40, ww.prepEndTick()));
     for (const r of IDS) {
       expect(eg.isAdministered(r)).toBe(false);
+      zero(eg, r);
+    }
+  }, 600_000);
+
+  // Lane E review (batch 19 glue): the occupation_zone effect on the
+  // Korean groups changes control only — the legal owner stays Japan's.
+  it("the occupation_zone effect on Korea moves control only, the legal owner stays", async () => {
+    const { runner, g, ww, eg, sc } = await game();
+    const pol = ww.politics;
+    const [usa, sun, jpn] = (["USA", "SUN", "JPN"] as const).map((t) =>
+      sc.smallIdOf(t),
+    );
+    const groups = pol.content.groupIdx;
+    const south = [...groups.get("korea_south")!.regions];
+    const north = [...groups.get("korea_north")!.regions];
+    for (const r of [...south, ...north]) {
+      expect(ww.land.controller[r], `ctl ${r}`).toBe(jpn);
+      expect(pol.legalOwner[r], `owner ${r}`).toBe(jpn);
+    }
+    const run = (self: number, effects: Parameters<typeof applyEffects>[1]) =>
+      applyEffects(makeCtx(pol, self, 0, 0, g.ticks()), effects);
+    // Japan hands the zones over (seize: actor ≠ holder) ...
+    run(jpn, [
+      {
+        kind: "occupation_zone",
+        group: "korea_south",
+        holder: { tag: "USA" },
+        seize: true,
+      },
+      {
+        kind: "occupation_zone",
+        group: "korea_north",
+        holder: { tag: "SUN" },
+        seize: true,
+      },
+    ]);
+    // ... and a holder already in control records its zone (no seize).
+    run(usa, [{ kind: "occupation_zone", group: "korea_south" }]);
+    for (const [regions, holder] of [
+      [south, usa],
+      [north, sun],
+    ] as const) {
+      for (const r of regions) {
+        expect(ww.land.controller[r], `ctl ${r}`).toBe(holder);
+        expect(pol.legalOwner[r], `owner ${r}`).toBe(jpn);
+        expect(eg.hasCore(holder, r), `core ${r}`).toBe(false);
+        expect(eg.isAdministered(r), `admin ${r}`).toBe(false);
+        expect(eg.zones.find((z) => z.region === r)).toEqual({
+          region: r,
+          holder,
+          untilDay: -1,
+        });
+      }
+    }
+    expect(ww.isAtWar(jpn, usa)).toBe(false);
+    stepTo(runner, dayStartTick(ww.day(g.ticks()) + 40, ww.prepEndTick()));
+    for (const r of [...south, ...north]) {
+      expect(pol.legalOwner[r], `owner ${r}`).toBe(jpn);
       zero(eg, r);
     }
   }, 600_000);
