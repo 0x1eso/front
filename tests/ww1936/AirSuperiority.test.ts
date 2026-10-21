@@ -145,6 +145,9 @@ describe("air superiority (spec §14.5)", () => {
     f.missionSr = SR.central;
     f.state = FLEET_STATES.indexOf("on_station");
     deploy(runner, TAG_ID.ITA, SR.central, "fighter", "air_superiority", 30);
+    // Lane E's fuel: Italy's stock runs dry by the next day on the sea map,
+    // and planes without fuel stay on the ground.
+    ww.economy.country(TAG_ID.ITA)!.fuelMilli = 1_000_000_000;
     // Britain's day puts the deck in the air; the zone flies it the next day.
     through(runner, day + 1, 6);
     const wing = ww.air
@@ -170,10 +173,13 @@ describe("air superiority (spec §14.5)", () => {
       airSupPm(27, 30),
     );
     expect(airSupPm(27, 30)).toBe(473);
-    // The carrier docks: its wing is gone on Britain's next day.
+    // The carrier docks: its wing is gone on Britain's next day. (Its
+    // mission goes too: lane N1's fleets sail back on station while on
+    // patrol.)
     f.docked = REGION.london;
     navy.setFleetZone(f, ZONE.west);
     f.state = FLEET_STATES.indexOf("docked");
+    f.mission = FLEET_MISSIONS.indexOf("hold");
     through(runner, day + 2, 6);
     expect(
       ww.air
