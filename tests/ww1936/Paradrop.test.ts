@@ -16,7 +16,10 @@ import {
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import type { Game } from "@openfront/engine/game/Game";
-import { transportsFor } from "@openfront/engine/ww1936/air/Paradrop";
+import {
+  reservedTransports,
+  transportsFor,
+} from "@openfront/engine/ww1936/air/Paradrop";
 import {
   damageBuilding,
   repairBuilding,
@@ -83,7 +86,7 @@ async function paraWar() {
     },
   });
   const a = placeArmy(g, "DEU", REGION.berlin, 2, tpl);
-  return { runner, g, ww, l, air: ww.air, deu, ce, a };
+  return { runner, g, ww, l, air: ww.air, deu, ce, a, tpl };
 }
 
 describe("World War 1936 P4: paradrops (spec §14.10)", () => {
@@ -166,5 +169,31 @@ describe("World War 1936 P4: paradrops (spec §14.10)", () => {
     // 120 × 15‰ = 1.8 transports: one lost, the rest back in the stock.
     expect(ce.stock[TRANSPORT]).toBe(119);
     expect(air.planesLostTotal).toBe(1);
+  }, 60_000);
+
+  test("two prepared paradrops cannot share the same transports", async () => {
+    const { runner, g, l, air, deu, ce, a, tpl } = await paraWar();
+    air.setAirSup(SR.eastLand, new Map([[l.sideOf(deu), 1000]]));
+    const b = placeArmy(g, "DEU", REGION.berlin, 1, tpl);
+    expect(transportsFor(air, a)).toBe(120);
+    expect(transportsFor(air, b)).toBe(60);
+    ce.stock[TRANSPORT] = 150;
+    const drop = (id: number) =>
+      l.issue(deu, { kind: "paradrop", army: id, region: REGION.warsaw });
+    expect(drop(a.id)).toBe(null);
+    // The first drop holds 120 of the 150 until it lands.
+    expect(reservedTransports(air, deu, b.id)).toBe(120);
+    expect(drop(b.id)).toBe("no_transport_planes");
+    // An army's own order does not count against itself (it may re-order).
+    expect(drop(a.id)).toBe(null);
+    ce.stock[TRANSPORT] = 180;
+    expect(drop(b.id)).toBe(null);
+    expect(reservedTransports(air, deu, 0)).toBe(180);
+    // Both land the same day (army id order); then nothing is held.
+    stepTo(runner, dayStartTick(a.order.readyDay, WW_PREP_TICKS));
+    step(runner);
+    expect([a.order.kind, b.order.kind]).toEqual(["idle", "idle"]);
+    expect(reservedTransports(air, deu, 0)).toBe(0);
+    expect(ce.stock[TRANSPORT]).toBe(180);
   }, 60_000);
 });

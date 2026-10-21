@@ -61,11 +61,33 @@ export function transportsFor(air: WwAir, a: Army): number {
 }
 
 /**
+ * The transports the owner's other paradrops in preparation hold (lane A2
+ * review): Σ of their needs, armies in id order, `except` left out. They
+ * stay in the stock until their drop, so the check counts them taken —
+ * two armies cannot both pass against the same planes. Derived from the
+ * armies' orders: nothing to save or restore.
+ */
+export function reservedTransports(
+  air: WwAir,
+  owner: number,
+  except: number,
+): number {
+  let n = 0;
+  for (const b of air.land.armiesOf(owner)) {
+    if (b.id !== except && b.order.kind === "paradrop") {
+      n += transportsFor(air, b);
+    }
+  }
+  return n;
+}
+
+/**
  * Spec §14.10: the air war's view of a paradrop of `a` onto `target` for
- * the pure judge: every region of the army has a working air base, the
- * farthest of them to the target's center against the transports' range,
- * the stock against the need, our superiority over the target's zone (its
- * last day: yesterday's).
+ * the pure judge: every region the army's divisions stand in has a
+ * working air base, the farthest of them to the target's center against
+ * the transports' range, the stock less the other prepared drops'
+ * transports against the need, our superiority over the target's zone
+ * (its last day: yesterday's).
  */
 export function paradropAskOf(
   air: WwAir,
@@ -90,7 +112,10 @@ export function paradropAskOf(
     fromAirBase: base,
     targetKm: km,
     transportRangeKm: air.planeStatsOf(a.owner, TRANSPORT, 1).rangeKm,
-    transportsFree: transportStock(air, a.owner),
+    transportsFree: Math.max(
+      0,
+      transportStock(air, a.owner) - reservedTransports(air, a.owner, a.id),
+    ),
     transportsNeed: transportsFor(air, a),
     airSupPm: air.airSup(land.sideOf(a.owner), sc.regionSr(target)),
   };

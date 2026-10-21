@@ -245,4 +245,31 @@ describe("World War 1936 P4: close air support (spec §14.7)", () => {
     );
     expect(cut).toBeLessThan(withCas.hits);
   }, 120_000);
+
+  test("the effects' state is in the air war's hash", async () => {
+    const { ww, air, deu } = await juneWar();
+    const z = air.zoneState[ww.scenario.srIdxOf(SR.eastLand)];
+    const c = air.country(deu)!;
+    const h0 = air.hash();
+    const changes: [() => void, () => void][] = [
+      [() => z.cas.set(deu, 5), () => z.cas.clear()],
+      [
+        () => (z.casShare = [[REGION.krakow, deu, 1000]]),
+        () => (z.casShare = []),
+      ],
+      [
+        () => (z.airSupply = [[REGION.krakow, deu, 2000]]),
+        () => (z.airSupply = []),
+      ],
+      [() => z.result.set(deu, [0, 0, 7, 0, 0]), () => z.result.clear()],
+      [() => (c.bombTaken[3] = 400), () => (c.bombTaken[3] = 0)],
+      [() => (c.tally[2][5] = 9), () => (c.tally[2][5] = 0)],
+    ];
+    for (const [change, undo] of changes) {
+      change();
+      expect(air.hash()).not.toBe(h0);
+      undo();
+      expect(air.hash()).toBe(h0);
+    }
+  }, 60_000);
 });
