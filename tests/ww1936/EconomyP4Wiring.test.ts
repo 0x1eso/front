@@ -1,6 +1,7 @@
 // World War 1936 P4 (plan Task 1 Step 25): the economy's P4 places —
 // bombed buildings, the coast and tech rules of the new buildings, the
 // country turn's order, start fuel.
+import { effectiveCount } from "@openfront/engine-lib/ww1936/BuildingDamage";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   fuelCap,
@@ -21,6 +22,13 @@ withTestPolitics();
 const HUMANS = [{ clientID: HUMAN, country: "FRA" as const }];
 
 describe("economy P4 wiring", () => {
+  it("one rule counts working buildings, engine and screens alike", () => {
+    expect(effectiveCount(3, 0)).toBe(3);
+    expect(effectiveCount(3, 999)).toBe(3);
+    expect(effectiveCount(3, 1999)).toBe(2);
+    expect(effectiveCount(3, 9000)).toBe(0);
+  });
+
   it("effectiveBuildings subtracts whole damaged buildings", async () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const econ = runner.game.worldWar()!.economy;

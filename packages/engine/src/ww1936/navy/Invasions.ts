@@ -68,7 +68,13 @@ export function shoreBombardAt(
   return 0;
 }
 
-/** Spec §11.4: a landing division's battle lines (the hooks), null for any other. Stub: null. */
+/**
+ * Spec §11.4: a landing division's own landing cut, `attackBp` ≤ 0 (−70%,
+ * marines −35%, landing_craft_2 +10%p: InvasionRules.landingBp) — the
+ * landing part only. The coastal fort's cut is not in it: Battles adds
+ * that itself from the effective coastal_fort level (coastalFortBp). Null
+ * for any other division. Stub: null.
+ */
 export function amphibiousModsFor(
   navy: WwNavy,
   battleRegion: number,

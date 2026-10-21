@@ -12,6 +12,7 @@ const HOI4_PHRASES = [
   "Army Innovations",
   "Aviation Effort",
   "Base Strike",
+  "Battlefield Support",
   "Bomber Effort",
   "CAS Effort",
   "Coastal Fortification Effort",
@@ -26,17 +27,21 @@ const HOI4_PHRASES = [
   "Fighter Focus",
   "Fleet in Being",
   "Flexible Navy",
+  "Grand Battleplan",
   "Hardline Communism",
   "Ideological Fanaticism",
   "Industrial Effort",
   "Infrastructure Effort",
   "Internal Affairs",
+  "Mass Assault",
   "Mechanization Effort",
+  "Mobile Warfare",
   "Motorization Effort",
   "Naval Air Effort",
   "Naval Innovations",
   "Neutrality Focus",
   "Nuclear Effort",
+  "Operational Integrity",
   "Oppose Hitler",
   "Paramilitarism",
   "Paratrooper Effort",
@@ -46,13 +51,34 @@ const HOI4_PHRASES = [
   "Rocket Effort",
   "Secret Weapons",
   "Special Forces Effort",
+  "Strategic Destruction",
+  "Superior Firepower",
+  "Trade Interdiction",
 ];
+
+/**
+ * P4 review: the doctrine schools, the techs and the advisor traits are
+ * compared too (screen keys, but names a player reads as content).
+ */
+const NAMED_GROUPS = ["school", "tech", "trait"] as const;
+function namedTexts(json: unknown): [string, string][] {
+  const root =
+    (json as { ww1936?: Record<string, Record<string, unknown>> }).ww1936 ?? {};
+  const out: [string, string][] = [];
+  for (const g of NAMED_GROUPS) {
+    for (const [k, v] of Object.entries(root[g] ?? {})) {
+      if (typeof v === "string") out.push([`ww1936.${g}.${k}`, v]);
+    }
+  }
+  return out;
+}
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 describe("content originality", () => {
-  it("the list has 40 phrases, sorted", () => {
-    expect(HOI4_PHRASES).toHaveLength(40);
+  it("the list has 48 phrases, sorted", () => {
+    // P4 review: the eight doctrine school names added.
+    expect(HOI4_PHRASES).toHaveLength(48);
     expect([...HOI4_PHRASES].sort()).toEqual(HOI4_PHRASES);
   });
 
@@ -60,7 +86,8 @@ describe("content originality", () => {
     const patterns = HOI4_PHRASES.map(
       (p) => new RegExp(`\\b${escape(p)}\\b`, "i"),
     );
-    for (const [key, text] of contentTexts(en)) {
+    expect(namedTexts(en).length).toBeGreaterThan(100);
+    for (const [key, text] of [...contentTexts(en), ...namedTexts(en)]) {
       for (const [i, re] of patterns.entries()) {
         expect(re.test(text), `${key}: "${HOI4_PHRASES[i]}"`).toBe(false);
       }

@@ -10,13 +10,29 @@ export function navalPort(ww: WorldWar, region: number): boolean {
 }
 
 /**
+ * The working naval bases `owner` controls now, ascending. Control is the
+ * land war's (`land.controller`, set the tick a region changes hands);
+ * the economy's copy catches up on its next turn, so a port captured
+ * this tick is already the captor's here.
+ */
+export function navalPortsOf(ww: WorldWar, owner: number): number[] {
+  const out: number[] = [];
+  if (owner === 0) return out;
+  const ctl = ww.land.controller;
+  for (const r of ww.scenario.landRegions) {
+    if (ctl[r.id] === owner && navalPort(ww, r.id)) out.push(r.id);
+  }
+  return out;
+}
+
+/**
  * The best naval base `owner` controls: the highest working level, then
  * the smaller region id; 0 when it controls none.
  */
 export function bestNavalBase(ww: WorldWar, owner: number): number {
   let best = 0;
   let bestLevel = 0;
-  for (const r of ww.economy.regionsOf(owner)) {
+  for (const r of navalPortsOf(ww, owner)) {
     const lv = effectiveLevel(ww.economy, r, "naval_base");
     if (lv > bestLevel) {
       best = r;

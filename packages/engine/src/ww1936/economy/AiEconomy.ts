@@ -399,6 +399,13 @@ const researchOrders = new Map<CountryTag, readonly WwTechId[]>();
  * out (one school only, spec §9.3), and so are the special troops it does
  * not field (wantsTech).
  */
+/**
+ * Interim (P4 Task 1 review): P4's techs (appended after rail_1) stay out
+ * of the AI's research until lane AI orders them; the AI's sea and air
+ * start techs still come from EconomyStart.navalStartTechs.
+ */
+const AI_LAST_TECH = WW_TECH_IDS.indexOf("rail_1");
+
 export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
   const cached = researchOrders.get(tag);
   if (cached !== undefined) return cached;
@@ -414,7 +421,7 @@ export function aiResearchOrder(tag: CountryTag): readonly WwTechId[] {
       (a, b) => TECH_INDEX.get(a)! - TECH_INDEX.get(b)!,
     );
     for (const t of sorted) {
-      if (seen.has(t)) continue;
+      if (seen.has(t) || TECH_INDEX.get(t)! > AI_LAST_TECH) continue;
       seen.add(t);
       out.push(t);
     }

@@ -862,7 +862,8 @@ export function modInputOf(
     const engineers = (land.flagsOf(row) & TPL_ENGINEER) !== 0;
     const lv = effectiveLevel(land.econ, region, "coastal_fort");
     fortBp = lv === 0 ? 0 : -coastalFortBp(lv, engineers);
-    landingBp = amph.attackBp - fortBp;
+    // The hook gives the landing part only (lane I); the fort is ours.
+    landingBp = amph.attackBp;
   }
   return {
     attacking,
