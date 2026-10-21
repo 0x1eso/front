@@ -17,6 +17,7 @@ import {
   planeStockRows,
   zoneRows,
 } from "./AirModel";
+import { designButton } from "./DesignButton";
 import { blockText, EQUIPMENT_ICONS, genName } from "./EconomyModel";
 import {
   fleetName,
@@ -194,6 +195,7 @@ export class WwAirPanel extends WwDrawerBase {
       .filter((f) => f.owner === ctx.me && fleetNumbers(ctx, f).hasCarrier)
       .sort((a, b) => a.id - b.id);
     return html`
+      ${designButton(this.eventBus, "plane")}
       ${rows.length === 0
         ? html`<p class="m-0 mt-2 text-xs text-white/60">
             ${translateText("ww1936.air.rows_none")}

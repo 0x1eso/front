@@ -589,6 +589,9 @@ export function createRenderer(
     // P5 (plan Task 1 Step 14): the endgame's view (lanes U1, U2 draw it).
     const wwEndgame = game.wwEndgame?.() ?? null;
     if (wwEndgame !== null) view.setWwEndgame(wwEndgame);
+    // P6 (plan Task 1 Step 17): the depth systems' view (U3, U4 draw it).
+    const wwDepth = game.wwDepth?.() ?? null;
+    if (wwDepth !== null) view.setWwDepth(wwDepth);
   }
 
   const layers: Controller[] = [

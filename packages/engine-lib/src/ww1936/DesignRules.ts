@@ -1437,26 +1437,29 @@ export function recommendedTank(
   const susp =
     role === "sp_artillery" || role === "sp_anti_air"
       ? "bogie"
-      : pick(
-          w === "heavy"
-            ? ["interleaved", "torsion", "bogie"]
-            : w === "light"
-              ? ["christie", "bogie"]
-              : ["torsion", "bogie"],
-          "suspension",
-        );
+      : base === "light_1"
+        ? "bogie"
+        : pick(
+            w === "heavy"
+              ? ["interleaved", "torsion", "bogie"]
+              : w === "light"
+                ? ["christie", "bogie"]
+                : ["torsion", "bogie"],
+            "suspension",
+          );
   const armor =
     base === "light_1"
       ? "riveted"
       : w === "heavy" || base === "medium_3"
         ? pick(["cast", "welded"], "armor")
         : "welded";
+  // Spec §5.2.3 table: a diesel for medium II, medium III and the tank
+  // destroyer when it is researched; a petrol engine elsewhere.
   const engine =
-    w === "heavy" || role !== "tank"
-      ? role === "tank_destroyer"
-        ? pick(["diesel", "petrol"], "engine")
-        : "petrol"
-      : pick(["diesel", "petrol"], "engine");
+    role === "tank_destroyer" ||
+    (role === "tank" && (base === "medium_2" || base === "medium_3"))
+      ? pick(["diesel", "petrol"], "engine")
+      : "petrol";
   const specialsOf = (): string[] => {
     if (base === "light_1") return [];
     if (role === "sp_artillery") return ["aux_mg"];

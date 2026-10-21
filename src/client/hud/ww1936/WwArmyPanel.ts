@@ -18,6 +18,7 @@ import { translateText } from "../../Utils";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import { designButton } from "./DesignButton";
 import { blockText, equipmentName, menText } from "./EconomyModel";
 import {
   armyName,
@@ -559,10 +560,8 @@ export class WwArmyPanel extends WwDrawerBase {
       ></ww-template-designer>`;
     }
     const full = c.land.templates.length >= WW_MAX_TEMPLATES;
-    return html`<ul
-        data-ww-templates
-        class="m-0 mt-2 flex list-none flex-col gap-1 p-0"
-      >
+    return html`${designButton(this.eventBus, "tank")}
+      <ul data-ww-templates class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
         ${c.land.templates.map(
           (t) =>
             html`<li>

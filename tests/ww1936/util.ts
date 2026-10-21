@@ -47,6 +47,8 @@ export const POL = "ww1936pol";
 export const SEA_MAP = "ww1936sea";
 /** P5 (plan decision 31): ww1936pol plus Kosice (20, Czechoslovakia) east of Slovakia (endFixture.ts). */
 export const END_MAP = "ww1936end";
+/** P6 (plan Task 1 Step 19): ww1936sea plus the scenario v5 fields (deepFixture.ts). */
+export const DEEP_MAP = "ww1936deep";
 export const HUMAN = "HUMAN001";
 
 export interface WwHuman {
@@ -118,7 +120,13 @@ export async function wwRunnerCapture(
 export async function wwRunner(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
-  map: "ww1936mini" | "ww1936pol" | "ww1936sea" | "ww1936end" | string = MINI,
+  map:
+    | "ww1936mini"
+    | "ww1936pol"
+    | "ww1936sea"
+    | "ww1936end"
+    | "ww1936deep"
+    | string = MINI,
 ): Promise<GameRunner> {
   return (await wwRunnerCapture(config, humans, map)).runner;
 }

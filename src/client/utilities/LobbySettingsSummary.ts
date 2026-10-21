@@ -118,6 +118,15 @@ export function notableLobbySettings(
       label: translateText("game_settings.historical_ai"),
       value: c.historicalAi === false ? disabled : enabled,
     });
+    // P6 (spec §9.8): the atomic bomb.
+    items.push({
+      label: translateText("ww1936.lobby.nukes"),
+      value: translateText(
+        c.ww1936Nukes === false
+          ? "ww1936.lobby.nukes_off"
+          : "ww1936.lobby.nukes_on",
+      ),
+    });
   }
   if (c.domesticMode && c.congress && c.gameMode === GameMode.FFA)
     items.push({

@@ -62,6 +62,7 @@ import {
 import { PlayerView } from "./PlayerView";
 import { UnitView } from "./UnitView";
 import { WwAirView } from "./WwAirView";
+import { WwDepthView } from "./WwDepthView";
 import { WwEconomyView } from "./WwEconomyView";
 import { WwControllerChangedEvent, WwEndgameView } from "./WwEndgameView";
 import { WwLandView } from "./WwLandView";
@@ -136,6 +137,8 @@ export class GameView implements GameLike {
   private _wwAir: WwAirView | null = null;
   /** P5 (plan Task 1 Step 14): the endgame; null when the mode is off. */
   private _wwEndgame: WwEndgameView | null = null;
+  /** World War 1936 P6 (plan decision 36): the depth systems. */
+  private _wwDepth: WwDepthView | null = null;
   /** P5: my controller changed this tick (takeControllerChanges). */
   private _controllerChanges: WwControllerChangedEvent[] = [];
   private readonly _usernames: Map<ClientID, string>;
@@ -206,6 +209,7 @@ export class GameView implements GameLike {
       this._wwNavy = new WwNavyView(scenario, me, side);
       this._wwAir = new WwAirView(scenario, me, side);
       this._wwEndgame = new WwEndgameView();
+      this._wwDepth = new WwDepthView();
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);
@@ -311,6 +315,11 @@ export class GameView implements GameLike {
   /** World War 1936 P5: the endgame; null when the mode is off. */
   wwEndgame(): WwEndgameView | null {
     return this._wwEndgame;
+  }
+
+  /** World War 1936 P6: the depth systems; null when the mode is off. */
+  wwDepth(): WwDepthView | null {
+    return this._wwDepth;
   }
 
   /** P5: the controller changes since the last call (the runner emits them; U3's drawers close). */
@@ -463,6 +472,10 @@ export class GameView implements GameLike {
     for (const u of gu.updates[GameUpdateType.WwEndgame] ?? []) {
       this._wwEndgame?.apply(u.data);
       if (u.data.controllers !== undefined) controllersArrived = true;
+    }
+    // P6 (plan decision 36): after P5's.
+    for (const u of gu.updates[GameUpdateType.WwDepth] ?? []) {
+      this._wwDepth?.apply(u.data);
     }
 
     const myDisplayName = formatPlayerDisplayName(

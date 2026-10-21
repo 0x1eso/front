@@ -10,13 +10,12 @@ import {
   aheadPct,
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
-import { techDays } from "@openfront/engine-lib/ww1936/WwTechs";
+import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "@openfront/engine/game/Game";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import {
   cancelResearch,
-  researchBlock,
   startResearch,
 } from "@openfront/engine/ww1936/economy/ResearchRun";
 import {
@@ -107,13 +106,14 @@ describe("research (spec §9)", () => {
     expect(researchProgress(0, aheadPct(1939, 400))).toBeGreaterThan(250);
   });
 
-  test("slots, prerequisites, doctrine", async () => {
+  test("slots, prerequisites; the doctrine techs are retired (P6)", async () => {
     const { runner, econ, deu, ce } = await germany();
-    expect(startResearch(econ, ce, "mobile_1")).toBeNull();
-    expect(startResearch(econ, ce, "mobile_1")).toBe("in_progress");
-    // One land doctrine school only: mobile warfare closed firepower.
-    expect(startResearch(econ, ce, "firepower_1")).toBe("doctrine");
-    expect(researchBlock(econ, ce, "mobile_2")).toBe("prereq");
+    // P6 plan decision 25: the old doctrine techs can no longer be
+    // researched (the grand doctrines give their bonuses).
+    expect(startResearch(econ, ce, "mobile_1")).toBe("no_tech");
+    expect(startResearch(econ, ce, "firepower_1")).toBe("no_tech");
+    expect(startResearch(econ, ce, "inf_eq_2")).toBeNull();
+    expect(startResearch(econ, ce, "inf_eq_2")).toBe("in_progress");
     expect(startResearch(econ, ce, "inf_eq_3")).toBe("prereq");
     expect(startResearch(econ, ce, "tools_1")).toBe("researched");
     expect(startResearch(econ, ce, "electronics_1")).toBeNull();
@@ -125,31 +125,40 @@ describe("research (spec §9)", () => {
       }),
     ]);
     expect(ce.slots.map((s) => s?.tech ?? null)).toEqual([
-      "mobile_1",
+      "inf_eq_2",
       "electronics_1",
       "tools_2",
     ]);
-    expect(startResearch(econ, ce, "inf_eq_2")).toBe("no_slot");
+    // Any other tech open to Germany now finds no slot.
+    const other = WW_TECH_IDS.find(
+      (t) =>
+        !ce.researched.has(t) &&
+        !ce.slots.some((x) => x?.tech === t) &&
+        !WW_TECHS[t].prereqs.some((q) => !ce.researched.has(q)) &&
+        WW_TECHS[t].retired !== true &&
+        WW_TECHS[t].school === undefined,
+    )!;
+    expect(startResearch(econ, ce, other)).toBe("no_slot");
     // A refused order changes nothing.
     step(runner, 1, [
       stamped(HUMAN, {
         type: "ww_order",
-        order: { kind: "research", tech: "inf_eq_2" },
+        order: { kind: "research", tech: other },
       }),
     ]);
     expect(ce.slots.map((s) => s?.tech ?? null)).toEqual([
-      "mobile_1",
+      "inf_eq_2",
       "electronics_1",
       "tools_2",
     ]);
-    // Finished, the school stays: firepower is still closed.
-    ce.slots[0]!.progress = techDays(1936) * 1000 - 1;
+    // Finished, the slot frees up.
+    ce.slots[0]!.progress = techDays(WW_TECHS.inf_eq_2.year) * 1000 - 1;
     throughDay(runner, deu, 0);
-    expect(ce.researched.has("mobile_1")).toBe(true);
-    expect(startResearch(econ, ce, "mobile_1")).toBe("researched");
-    expect(startResearch(econ, ce, "firepower_1")).toBe("doctrine");
-    expect(startResearch(econ, ce, "mobile_2")).toBeNull();
-    expect(ce.slots[0]!.tech).toBe("mobile_2");
+    expect(ce.researched.has("inf_eq_2")).toBe(true);
+    expect(startResearch(econ, ce, "inf_eq_2")).toBe("researched");
+    expect(startResearch(econ, ce, "mobile_2")).toBe("no_tech");
+    expect(startResearch(econ, ce, other)).toBeNull();
+    expect(ce.slots[0]!.tech).toBe(other);
   });
 
   test("completion unlocks the generation", async () => {

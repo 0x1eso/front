@@ -147,6 +147,8 @@ const DEFAULT_OPTIONS = {
   overtimeStartMinutes: undefined as number | undefined,
   worldWar1936: false,
   historicalAi: true,
+  // World War 1936 P6 (spec §9.8): the atomic bomb, on by default.
+  ww1936Nukes: true,
   country: null as CountryTag | null,
 } as const;
 
@@ -247,6 +249,7 @@ export class SinglePlayerModal extends BaseModal {
     DEFAULT_OPTIONS.overtimeStartMinutes;
   @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
+  @state() private ww1936Nukes: boolean = DEFAULT_OPTIONS.ww1936Nukes;
   @state() private country: CountryTag | null = DEFAULT_OPTIONS.country;
   /** SHORT_LANDSCAPE_QUERY matches. */
   @state() private shortLandscape = false;
@@ -620,6 +623,10 @@ export class SinglePlayerModal extends BaseModal {
                         checked: this.historicalAi,
                       },
                       {
+                        labelKey: "ww1936.lobby.nukes",
+                        checked: this.ww1936Nukes,
+                      },
+                      {
                         labelKey: "game_settings.instant_build",
                         checked: this.instantBuild,
                       },
@@ -859,6 +866,7 @@ export class SinglePlayerModal extends BaseModal {
     this.strategicWeapons = DEFAULT_OPTIONS.strategicWeapons;
     this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
+    this.ww1936Nukes = DEFAULT_OPTIONS.ww1936Nukes;
     this.country = DEFAULT_OPTIONS.country;
     this.congress = DEFAULT_OPTIONS.congress;
     this.conquestPercent = DEFAULT_OPTIONS.conquestPercent;
@@ -1000,6 +1008,9 @@ export class SinglePlayerModal extends BaseModal {
         break;
       case "game_settings.historical_ai":
         this.historicalAi = checked;
+        break;
+      case "ww1936.lobby.nukes":
+        this.ww1936Nukes = checked;
         break;
       default:
         break;
@@ -1406,7 +1417,11 @@ export class SinglePlayerModal extends BaseModal {
             }
           : {}),
         ...(this.worldWar1936
-          ? { worldWar1936: true, historicalAi: this.historicalAi }
+          ? {
+              worldWar1936: true,
+              historicalAi: this.historicalAi,
+              ww1936Nukes: this.ww1936Nukes,
+            }
           : {}),
       };
       // World War 1936 (spec §2.2): the client loads the map named here, so

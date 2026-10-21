@@ -59,7 +59,8 @@ function orderKinds(): string[] {
 describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
   it("ship classes and missions", () => {
     expect(SHIP_CLASSES).toEqual(["dd", "cl", "ca", "bc", "bb", "cv", "ss"]);
-    expect(FLEET_MISSIONS).toHaveLength(7);
+    // P6 (spec §14.1) appends lay_mines and sweep_mines.
+    expect(FLEET_MISSIONS).toHaveLength(9);
   });
 
   it("the 24 navy and air orders follow improve_relations, in order", () => {
@@ -74,17 +75,21 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
     ]);
   });
 
-  it("23 more stock slots, the old ones unmoved; divisions keep 18 slots", () => {
-    expect(EQUIP_KEY_COUNT).toBe(P3_EQUIP_KEYS.length + 23);
+  it("23 more stock slots, the old ones unmoved; divisions keep their 18 slots first", () => {
+    // P4's 23, then P6's 33 (plan decision 5).
+    expect(EQUIP_KEY_COUNT).toBe(P3_EQUIP_KEYS.length + 23 + 33);
     expect(EQUIP_KEYS.slice(0, 23).map(([t, g]) => [t, g])).toEqual(
       P3_EQUIP_KEYS,
     );
-    // Pre-flight ruling 1: no plane and no convoy in a division.
-    expect(GROUND_SLOTS).toBe(18);
-    // An allow-list (P6 pre-flight: P6's tank designs append slots 18–29).
+    // Pre-flight ruling 1: no plane and no convoy in a division. P6
+    // (pre-flight §0-4): the first 18 slots are the P2 keys, then the 12
+    // tank design keys (GROUND_TYPES allow-list).
+    expect(GROUND_SLOTS).toBe(30);
     expect(GROUND_EQUIPMENT).toHaveLength(8);
-    expect(GROUND_EQUIP_KEYS.every((k) => k < 18)).toBe(true);
-    expect(GROUND_EQUIP_KEYS.every((k) => k < 18 + 5)).toBe(true);
+    expect(GROUND_EQUIP_KEYS.slice(0, 18).every((k) => k < 18)).toBe(true);
+    expect(GROUND_EQUIP_KEYS.slice(18).map((k) => EQUIP_KEYS[k][0])).toEqual(
+      new Array<string>(12).fill("tank_design"),
+    );
   });
 
   it("buildings, techs, refusals and stats are appended", () => {
@@ -97,7 +102,8 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
       "rail",
       "supply_hub",
     ]);
-    expect(BUILDING_IDS).toHaveLength(14);
+    // P6 (spec §9.1, §16) appends six.
+    expect(BUILDING_IDS).toHaveLength(20);
     // P5 appends military_police after P4's 56.
     const p4 = WW_TECH_IDS.indexOf("dd_2");
     expect(WW_TECH_IDS[p4 + 55]).toBe("synthetic_oil_2");

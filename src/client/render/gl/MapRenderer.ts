@@ -18,6 +18,7 @@ import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import type { SeaAirGlowSource } from "../../view/AirZoneColors";
 import type { LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwAirView } from "../../view/WwAirView";
+import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import type { WwLandView } from "../../view/WwLandView";
 import type { WwNavyView } from "../../view/WwNavyView";
@@ -62,6 +63,8 @@ export class MapRenderer {
   private storedSeaAirGlow: SeaAirGlowSource | null = null;
   /** P5 (plan Task 1 Step 14): the endgame view (lane U1 draws the conference map mode). */
   private storedWwEndgame: WwEndgameView | null = null;
+  /** World War 1936 P6: the depth view (lanes U3, U4 hand it to their passes). */
+  private storedWwDepth: WwDepthView | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -457,6 +460,11 @@ export class MapRenderer {
    */
   setWwEndgame(view: WwEndgameView): void {
     this.storedWwEndgame = view;
+  }
+
+  /** World War 1936 P6 (plan Task 1 Step 17): the depth systems' view. */
+  setWwDepth(view: WwDepthView): void {
+    this.storedWwDepth = view;
   }
 
   /** Set up map-layer passes from the loaded layer data. */

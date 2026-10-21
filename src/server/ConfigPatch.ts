@@ -39,6 +39,8 @@ const COPIED_KEYS = [
   "congress",
   "worldWar1936",
   "historicalAi",
+  // P6 (plan decision 21): the atomic bomb.
+  "ww1936Nukes",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a

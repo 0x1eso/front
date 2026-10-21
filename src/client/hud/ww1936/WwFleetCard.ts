@@ -20,6 +20,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { blockText } from "./EconomyModel";
+import { fogModelOf } from "./FogModel";
 import { regionName } from "./LandModel";
 import {
   ADMIRAL_TRAIT_ICONS,
@@ -634,7 +635,11 @@ export class WwFleetCard extends LitElement implements Controller {
           >
           <span data-ww-preview-enemy
             >${translateText("ww1936.navy.preview_enemy", {
-              n: Math.round(p.enemyPower / 100),
+              // P6 (plan decision 19): the enemy's power through the fog.
+              n: fogModelOf(this.game).previewEnemyValue(
+                Math.round(p.enemyPower / 100),
+                0,
+              ),
             })}</span
           >
           ${p.ratioPm === null

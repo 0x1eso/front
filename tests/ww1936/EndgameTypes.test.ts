@@ -56,11 +56,15 @@ describe("World War 1936 P5 lists", () => {
       (o) => (o.shape.kind as { value: string }).value,
     );
     expect(ENDGAME_ORDER_KINDS).toHaveLength(13);
-    expect(after(kinds, "air_auto")).toEqual([...ENDGAME_ORDER_KINDS]);
+    // P6 (plan decision 4) appends its 57 after army_garrison.
+    expect(after(kinds, "air_auto").slice(0, 13)).toEqual([
+      ...ENDGAME_ORDER_KINDS,
+    ]);
   });
 
   it("the refusals, stats, effects and conditions are appended", () => {
-    expect(after(WW_ORDER_BLOCKS, "bad_zone")).toEqual([
+    // P6 appends its own after subject_restricted.
+    expect(after(WW_ORDER_BLOCKS, "bad_zone").slice(0, 15)).toEqual([
       "not_participant",
       "conference_closed",
       "too_many_demands",
@@ -77,7 +81,7 @@ describe("World War 1936 P5 lists", () => {
       "disarmed",
       "subject_restricted",
     ]);
-    expect(after(WW_STAT_KEYS, "paradropPrepPct")).toEqual([
+    expect(after(WW_STAT_KEYS, "paradropPrepPct").slice(0, 7)).toEqual([
       "capturePct",
       "resistanceTargetPct",
       "complianceGainPct",
@@ -87,12 +91,14 @@ describe("World War 1936 P5 lists", () => {
       "occupationOutputPp",
     ]);
     // Spec §16.4's 23 and the pre-flight's navy_xp.
-    const fx = after(EFFECT_KINDS, "fuel");
+    // P6 (plan decision 27) appends 11 after navy_xp.
+    const fx = after(EFFECT_KINDS, "fuel").slice(0, 24);
     expect(fx).toHaveLength(24);
     expect(fx[0]).toBe("release");
     expect(fx[22]).toBe("restore_country");
     expect(fx[23]).toBe("navy_xp");
-    const cond = after(CONDITION_KINDS, "fuel_ratio_below");
+    // P6 (plan decision 27, pre-flight §0-11) appends 10 after legitimacy_ge.
+    const cond = after(CONDITION_KINDS, "fuel_ratio_below").slice(0, 13);
     expect(cond).toHaveLength(13);
     expect(cond[0]).toBe("is_exile");
     expect(cond[12]).toBe("legitimacy_ge");
@@ -103,16 +109,23 @@ describe("World War 1936 P5 lists", () => {
   });
 
   it("the other appended values sit after their anchors", () => {
+    // P6 (spec §13.1) appends congress.
     expect(after(DECLARE_WAR_BLOCKS, "isolation")).toEqual([
       "subject_restricted",
       "exile",
+      "congress",
     ]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
-    expect(after(WW_TECH_IDS, "synthetic_oil_2")).toEqual(["military_police"]);
+    expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");
     expect(after(CONVOY_USES, "trade")).toEqual(["lend_lease"]);
     expect(CONVOY_USE_PRIORITY.lend_lease).toBe(30);
-    expect(after(FOCUS_TREES, "SUN")).toEqual(["ITA", "JPN", "FRA", "USA"]);
+    expect(after(FOCUS_TREES, "SUN").slice(0, 4)).toEqual([
+      "ITA",
+      "JPN",
+      "FRA",
+      "USA",
+    ]);
   });
 
   it("the endgame's own lists", () => {

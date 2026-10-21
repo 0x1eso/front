@@ -3260,7 +3260,11 @@
       "fleet_protector": "함대 수호자",
       "sea_wolf": "바다 늑대",
       "spotter": "탐색 전문가",
-      "superior_tactician": "뛰어난 전술가"
+      "superior_tactician": "뛰어난 전술가",
+      "blockade_runner": "봉쇄 돌파",
+      "convoy_master": "호송 달인",
+      "fleet_tactician": "함대 전술",
+      "night_fighter": "야간전 전문"
     },
     "admiral_trait_desc": {
       "amphibious_expert": "상륙 준비 −20%, 해안 포격 +25%.",
@@ -3268,7 +3272,11 @@
       "fleet_protector": "차단 효율 +15%p, 호송 +15%.",
       "sea_wolf": "잠수함 공격과 통상 파괴 +15%.",
       "spotter": "탐지 +20%.",
-      "superior_tactician": "진형 +10%."
+      "superior_tactician": "진형 +10%.",
+      "blockade_runner": "통상 파괴로 받는 손실 −15%, 그 함대 피발견도 −10%. 단계 2, 지휘력 15.",
+      "convoy_master": "호송 +20%. 단계 2, 지휘력 15.",
+      "fleet_tactician": "진형 +10%. 단계 2, 지휘력 15.",
+      "night_fighter": "어뢰 +15%. 단계 2, 지휘력 15."
     },
     "advisor_slot": {
       "air_chief": "공군 총장 자리",
@@ -3332,7 +3340,8 @@
       "naval_strike": "해상 공격",
       "paradrop": "공수 강하",
       "port_strike": "항구 공격",
-      "strategic_bombing": "전략 폭격"
+      "strategic_bombing": "전략 폭격",
+      "recon": "정찰"
     },
     "band": {
       "prep": "준비 {time}",
@@ -3350,7 +3359,11 @@
       "mot_artillery": "기계화 포병",
       "motorized": "차량화 보병",
       "mountain": "산악병",
-      "paratrooper": "공수병"
+      "paratrooper": "공수병",
+      "heavy_armor": "중전차",
+      "tank_destroyer": "구축전차",
+      "sp_artillery": "자주포",
+      "sp_anti_air": "자주 대공포"
     },
     "branch": {
       "air": "항공",
@@ -3376,7 +3389,13 @@
       "radar": "레이더",
       "rail": "철도",
       "supply_hub": "보급 허브",
-      "synthetic_refinery": "합성 정유소"
+      "synthetic_refinery": "합성 정유소",
+      "facility_nuclear": "원자력 연구소",
+      "facility_rocket": "로켓 시험장",
+      "facility_science": "과학 연구소",
+      "rocket_site": "로켓 발사장",
+      "power_plant": "발전소",
+      "dam": "댐"
     },
     "cond": {
       "all": "모두 만족:",
@@ -3452,7 +3471,17 @@
       "war_days_ge": "전쟁 {days}일 이상 지속",
       "war_score_share_ge": "{of} 상대 기여 점수 {pct}% 이상",
       "ws_ge": "전쟁지지도 {pct}% 이상",
-      "wt_ge": "세계 긴장도 {pct}% 이상"
+      "wt_ge": "세계 긴장도 {pct}% 이상",
+      "has_doctrine": "교리 {doctrine} 채택",
+      "mastery_level": "교리 트랙 {track} {level}단계 이상",
+      "has_agency": "정보 기관 보유",
+      "intel_level": "{of} 정보 수준({domain}) {pct}% 이상",
+      "project_done": "프로젝트 {project} 완료",
+      "has_atomic": "원자탄 보유",
+      "congress_above": "의회 지지 {pct}% 초과",
+      "bop_range": "{tag} 세력 균형 {band}단계",
+      "energy_below": "에너지 {pct}% 미만",
+      "nukes_on": "이 판은 원자탄을 허용함"
     },
     "convoy_use": {
       "idle": "놀고 있음",
@@ -3708,7 +3737,8 @@
         "nap": "불가침 조약: 먼저 파기해야 합니다",
         "prep": "준비 시간에는 선포할 수 없습니다",
         "self": "자기 나라에는 선포할 수 없습니다",
-        "subject_restricted": "속국은 종주국의 적과만 싸울 수 있습니다"
+        "subject_restricted": "속국은 종주국의 적과만 싸울 수 있습니다",
+        "congress": "의회가 전쟁을 승인하지 않습니다"
       },
       "button": "선전포고",
       "confirm": "확인: 선전포고{n, plural, =0 {} other { (진영 회원 #개국도 참전)}}"
@@ -3909,7 +3939,39 @@
         "trades_full": "거래가 너무 많습니다",
         "treaty_exists": "이미 맺은 상태입니다",
         "volunteer_conditions": "지금은 의용군을 보낼 수 없습니다",
-        "volunteer_limit": "의용군 사단이 너무 많습니다"
+        "volunteer_limit": "의용군 사단이 너무 많습니다",
+        "no_cp": "지휘력이 모자랍니다",
+        "doctrine_locked": "바꾼 지 얼마 되지 않았습니다",
+        "trait_unavailable": "지금은 이 특성을 줄 수 없습니다",
+        "fm_limit": "원수를 더 둘 수 없습니다",
+        "group_full": "집단군이 가득 찼습니다",
+        "design_slots_full": "설계 칸이 모두 찼습니다",
+        "module_locked": "아직 연구하지 않은 모듈이 있습니다",
+        "module_bad_slot": "칸에 맞지 않는 모듈이 있습니다",
+        "bad_base": "쓸 수 없는 차대·선체입니다",
+        "treaty_limit": "해군 조약이 막습니다",
+        "design_in_use": "쓰이고 있는 설계입니다",
+        "not_refittable": "지금은 개장할 수 없는 함선입니다",
+        "no_agency": "정보 기관이 없습니다",
+        "no_operative": "남은 공작원이 없습니다",
+        "network_low": "정보망이 약합니다",
+        "op_unavailable": "지금은 이 작전을 시작할 수 없습니다",
+        "no_crypto_target": "먼저 해독할 대상을 고르세요",
+        "not_decrypted": "아직 암호를 풀지 못했습니다",
+        "no_facility": "알맞은 시설이 없습니다",
+        "project_locked": "이 프로젝트를 쓸 수 없습니다",
+        "no_atomic": "원자탄이 없습니다",
+        "nuke_conditions": "투하 조건이 맞지 않습니다",
+        "out_of_rocket_range": "로켓 사정거리 밖입니다",
+        "raid_conditions": "습격 조건이 맞지 않습니다",
+        "embargoed": "금수 조치 중입니다",
+        "licence_exists": "이미 면허가 있습니다",
+        "listing_bad": "판매 목록이 맞지 않습니다",
+        "cfocus_locked": "아직 연속 중점을 바꿀 수 없습니다",
+        "faction_leader_only": "진영 지도국만 할 수 있습니다",
+        "scorch_conditions": "여기서는 초토화할 수 없습니다",
+        "harbor_conditions": "여기에 부유항을 둘 수 없습니다",
+        "railgun_limit": "이 군에 열차포를 더 붙일 수 없습니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -4077,7 +4139,14 @@
       "naval_bomber": "해군 폭격기",
       "strat_bomber": "전략 폭격기",
       "support_equipment": "지원 장비",
-      "transport_plane": "수송기"
+      "transport_plane": "수송기",
+      "tank_design": "전차 설계",
+      "plane_design": "항공기 설계",
+      "railway_gun": "열차포",
+      "floating_harbor": "부유항",
+      "flying_bomb": "비행 폭탄",
+      "ballistic_rocket": "탄도 로켓",
+      "atomic_bomb": "원자탄"
     },
     "event_desc": {
       "aut_berlin_ultimatum": "베를린이 총리에게 독립을 묻는 국민투표를 취소하고 오스트리아 국가사회주의자들에게 정권을 넘기라고 요구했다. 따르지 않으면 독일군이 국경을 넘는다. 빈을 돕겠다고 나선 외국 정부는 없다.",
@@ -6107,7 +6176,18 @@
       "uprising": "{group} 봉기",
       "volunteers": "{to}에 의용군",
       "war_goal": "{on}에 대한 전쟁 목표: {type}{group, select, none {} other { ({group})}}",
-      "war_support": "전쟁지지도 {pct, number, ::sign-always}%p"
+      "war_support": "전쟁지지도 {pct, number, ::sign-always}%p",
+      "doctrine_mastery": "교리 숙련 {amount, number, ::sign-always} ({domain})",
+      "congress": "의회 지지 {pp, number, ::sign-always}%p",
+      "bop": "세력 균형 {amount, number, ::sign-always}",
+      "cp": "지휘력 {amount, number, ::sign-always}",
+      "intel_network": "{on} 정보망 {pm, number, ::sign-always}‰",
+      "decrypt": "{on} 암호 해독 {pm, number, ::sign-always}‰",
+      "project_progress": "프로젝트 {project} {pct, number, ::sign-always}%",
+      "design_grant": "설계 {preset} 받음",
+      "energy": "에너지 공급 {amount, number, ::sign-always}",
+      "agency": "정보 기관 설립·강화",
+      "cfocus_unlock": "연속 중점 열림"
     },
     "gen": {
       "1": "I",
@@ -6587,7 +6667,10 @@
     "lobby": {
       "pick_country": "나라 고르기",
       "pick_hint": "고르지 않은 나라는 모두 AI가 맡습니다. 다른 사람이 고른 나라는 흐리게 보입니다.",
-      "taken_by": "{name} 님이 골랐습니다"
+      "taken_by": "{name} 님이 골랐습니다",
+      "nukes": "원자탄 허용",
+      "nukes_on": "허용",
+      "nukes_off": "금지"
     },
     "mission": {
       "escort": "호송",
@@ -6596,7 +6679,9 @@
       "patrol": "순찰",
       "raid": "통상 파괴",
       "strike": "타격 부대",
-      "training": "훈련"
+      "training": "훈련",
+      "lay_mines": "기뢰 부설",
+      "sweep_mines": "소해"
     },
     "mission_desc": {
       "escort": "구역을 지나는 아군 수송선단을 지킵니다",
@@ -6605,7 +6690,9 @@
       "patrol": "구역을 돌며 적을 찾습니다",
       "raid": "적 수송선단을 노립니다",
       "strike": "항구에서 대기하다 구역에서 발견한 적에게 출격합니다",
-      "training": "조직력을 쓰고 해군 경험치를 얻습니다"
+      "training": "조직력을 쓰고 해군 경험치를 얻습니다",
+      "lay_mines": "구역에 기뢰를 부설합니다. 그곳의 적 함선과 수송선단이 피해를 입습니다",
+      "sweep_mines": "구역의 적 기뢰를 제거합니다"
     },
     "mod": {
       "air": "항공 지원",
@@ -6631,7 +6718,13 @@
       "supply": "보급",
       "terrain": "지형",
       "trait": "특성",
-      "weather": "날씨"
+      "weather": "날씨",
+      "field_marshal": "원수",
+      "fm_trait": "원수 특성",
+      "command": "지휘",
+      "flame": "화염 전차",
+      "tank_destroyer": "구축전차",
+      "fort_def": "요새 방어"
     },
     "month": {
       "m01": "1월",
@@ -7247,7 +7340,8 @@
         "laws": "법",
         "leader": "지도자",
         "spirits": "국민정신",
-        "tech": "기술"
+        "tech": "기술",
+        "depth": "교리·산업 조직"
       },
       "spirit": {
         "left": "{days}일 남음",
@@ -7293,7 +7387,9 @@
       "oil": "석유",
       "rubber": "고무",
       "steel": "강철",
-      "tungsten": "텅스텐"
+      "tungsten": "텅스텐",
+      "uranium": "우라늄",
+      "coal": "석탄"
     },
     "reserve": {
       "air_base": "비행장 수용량",
@@ -8314,7 +8410,76 @@
       "vehicleBonusPct": "트럭·전차 보너스 {value, number, ::sign-always}%",
       "warSupportBp": "전쟁지지도 {value, number, ::sign-always scale/0.01}%",
       "warSupportWeeklyBp": "전쟁지지도 매주 {value, number, ::sign-always scale/0.01}%",
-      "winterPenaltyPct": "겨울 벌칙 {value, number, ::sign-always scale/-1}%"
+      "winterPenaltyPct": "겨울 벌칙 {value, number, ::sign-always scale/-1}%",
+      "infAttackPct": "보병 공격 {value, number, ::sign-always}%",
+      "infDefensePct": "보병 방어 {value, number, ::sign-always}%",
+      "armorAttackPct": "전차 공격 {value, number, ::sign-always}%",
+      "armorBrkPct": "전차 돌파 {value, number, ::sign-always}%",
+      "armorDefensePct": "전차 방어 {value, number, ::sign-always}%",
+      "armorArmorPct": "전차 장갑 {value, number, ::sign-always}%",
+      "armorRelPp": "전차 신뢰도 {value, number, ::sign-always}%p",
+      "motSpeedPct": "차량화 속도 {value, number, ::sign-always}%",
+      "motOrg": "차량화 조직력 {value, number, ::sign-always}",
+      "atHardPct": "대전차 경성 공격 {value, number, ::sign-always}%",
+      "fortPenaltyCutPct": "요새 벌칙 {value, number, ::sign-always}% 감소",
+      "riverPenaltyCutPct": "강 벌칙 {value, number, ::sign-always}% 감소",
+      "reinforcePct": "보충 {value, number, ::sign-always}%",
+      "entrenchSpeedPct": "참호 속도 {value, number, ::sign-always}%",
+      "engineerMulPct": "공병 효과 {value, number, ::sign-always}%",
+      "fortDefPerLevelBp": "요새 단계당 방어 {value, number, ::sign-always scale/0.01}%",
+      "advanceSpeedPct": "전진 속도 {value, number, ::sign-always}%",
+      "excessWidthCutPct": "초과 폭 벌칙 {value, number, ::sign-always}% 감소",
+      "supportCompanyPct": "지원 중대 {value, number, ::sign-always}%",
+      "divXpGainPct": "사단 경험 증가 {value, number, ::sign-always}%",
+      "cpGainPct": "지휘력 증가 {value, number, ::sign-always}%",
+      "screenAttackPct": "호위함 공격 {value, number, ::sign-always}%",
+      "torpedoPct": "어뢰 공격 {value, number, ::sign-always}%",
+      "depthChargePct": "폭뢰 {value, number, ::sign-always}%",
+      "carrierDeckPct": "항모 갑판 {value, number, ::sign-always}%",
+      "navalOrg": "해군 조직력 {value, number, ::sign-always}",
+      "navalDamageTakenPct": "함선 받는 피해 {value, number, ::sign-always}%",
+      "convoyLossPct": "수송선단 손실 {value, number, ::sign-always}%",
+      "carrierCycleCut": "항모 공격 주기 {value, number, ::sign-always}",
+      "bomberDefensePct": "폭격기 방어 {value, number, ::sign-always}%",
+      "sortieEffPct": "출격 효율 {value, number, ::sign-always}%",
+      "navalPatrolPct": "해상 초계 {value, number, ::sign-always}%",
+      "reconPct": "정찰 {value, number, ::sign-always}%",
+      "nightBombBp": "야간 폭격 {value, number, ::sign-always scale/0.01}%",
+      "enemyAirPenaltyPp": "적 제공권 벌칙 {value, number, ::sign-always}%p",
+      "interceptShareBp": "요격 몫 {value, number, ::sign-always scale/0.01}%",
+      "mioCostPct_infantry": "군산복합체: 보병 비용 {value, number, ::sign-always}%",
+      "mioCostPct_artillery": "군산복합체: 포병 비용 {value, number, ::sign-always}%",
+      "mioCostPct_armor": "군산복합체: 기갑 비용 {value, number, ::sign-always}%",
+      "mioCostPct_air_light": "군산복합체: 경항공기 비용 {value, number, ::sign-always}%",
+      "mioCostPct_air_heavy": "군산복합체: 중항공기 비용 {value, number, ::sign-always}%",
+      "mioCostPct_naval": "군산복합체: 해군 비용 {value, number, ::sign-always}%",
+      "mioEffCapBp_infantry": "군산복합체: 보병 효율 상한 {value, number, ::sign-always scale/0.01}%",
+      "mioEffCapBp_artillery": "군산복합체: 포병 효율 상한 {value, number, ::sign-always scale/0.01}%",
+      "mioEffCapBp_armor": "군산복합체: 기갑 효율 상한 {value, number, ::sign-always scale/0.01}%",
+      "mioEffCapBp_air_light": "군산복합체: 경항공기 효율 상한 {value, number, ::sign-always scale/0.01}%",
+      "mioEffCapBp_air_heavy": "군산복합체: 중항공기 효율 상한 {value, number, ::sign-always scale/0.01}%",
+      "mioEffCapBp_naval": "군산복합체: 해군 효율 상한 {value, number, ::sign-always scale/0.01}%",
+      "mioRelPp_infantry": "군산복합체: 보병 신뢰도 {value, number, ::sign-always}%p",
+      "mioRelPp_artillery": "군산복합체: 포병 신뢰도 {value, number, ::sign-always}%p",
+      "mioRelPp_armor": "군산복합체: 기갑 신뢰도 {value, number, ::sign-always}%p",
+      "mioRelPp_air_light": "군산복합체: 경항공기 신뢰도 {value, number, ::sign-always}%p",
+      "mioRelPp_air_heavy": "군산복합체: 중항공기 신뢰도 {value, number, ::sign-always}%p",
+      "mioRelPp_naval": "군산복합체: 해군 신뢰도 {value, number, ::sign-always}%p",
+      "mioStatPct_infantry": "군산복합체: 보병 장비 성능 {value, number, ::sign-always}%",
+      "mioStatPct_artillery": "군산복합체: 포병 장비 성능 {value, number, ::sign-always}%",
+      "mioStatPct_armor": "군산복합체: 기갑 장비 성능 {value, number, ::sign-always}%",
+      "mioStatPct_air_light": "군산복합체: 경항공기 장비 성능 {value, number, ::sign-always}%",
+      "mioStatPct_air_heavy": "군산복합체: 중항공기 장비 성능 {value, number, ::sign-always}%",
+      "mioStatPct_naval": "군산복합체: 해군 장비 성능 {value, number, ::sign-always}%",
+      "decryptPct": "암호 해독 {value, number, ::sign-always}%",
+      "encryptPct": "암호 강도 {value, number, ::sign-always}%",
+      "projectSpeedPct": "특수 프로젝트 속도 {value, number, ::sign-always}%",
+      "energyPct": "에너지 {value, number, ::sign-always}%",
+      "opSpeedPct": "작전 속도 {value, number, ::sign-always}%",
+      "armorPiercePct": "전차 관통 {value, number, ::sign-always}%",
+      "atPiercePct": "대전차 관통 {value, number, ::sign-always}%",
+      "artSpeedPct": "자주 포병 속도 {value, number, ::sign-always}%",
+      "airRangePct": "항공기 항속 {value, number, ::sign-always}%"
     },
     "support": {
       "engineer": "공병 중대",
@@ -8440,7 +8605,40 @@
       "torpedo_1": "어뢰 I",
       "trade_interdiction_1": "통상 파괴전 I",
       "trade_interdiction_2": "통상 파괴전 II",
-      "transport_plane_1": "수송기 I"
+      "transport_plane_1": "수송기 I",
+      "heavy_tank_1": "중전차 I",
+      "heavy_tank_2": "중전차 II",
+      "heavy_tank_3": "중전차 III",
+      "tank_gun_2": "전차포 II",
+      "tank_gun_3": "전차포 III",
+      "cast_armor": "주조 장갑",
+      "diesel_engine": "디젤 엔진",
+      "torsion_bar": "토션 바 현가",
+      "tank_radio": "전차 무선기",
+      "sloped_armor": "경사 장갑",
+      "interleaved_wheels": "겹바퀴",
+      "amphibious_drive": "수륙 양용 구동",
+      "flame_tank": "화염 전차",
+      "dual_purpose_guns": "양용포",
+      "naval_radar_2": "함선 레이더 II",
+      "armored_deck": "장갑 갑판",
+      "mine_warfare_1": "기뢰전",
+      "snorkel": "스노클",
+      "super_heavy_battleship": "초중전함",
+      "floating_harbor_1": "부유항 건조",
+      "aircraft_cannon_1": "항공 기관포 I",
+      "aircraft_cannon_2": "항공 기관포 II",
+      "self_sealing_tanks": "자동 밀폐 연료탱크",
+      "drop_tanks": "보조 연료탱크",
+      "bomb_sight_1": "폭격 조준기",
+      "air_rockets_1": "항공 로켓",
+      "air_radar_1": "항공 레이더",
+      "railway_gun_1": "열차포 개발",
+      "cryptography_1": "암호학 I",
+      "cryptography_2": "암호학 II",
+      "cryptography_3": "암호학 III",
+      "nuclear_physics": "핵물리학",
+      "rocketry_1": "로켓 공학"
     },
     "terrain": {
       "desert": "사막",
@@ -8632,7 +8830,19 @@
       "organizer": "조직가",
       "panzer_leader": "기갑 지휘관",
       "river_crosser": "도하 전문가",
-      "winter_specialist": "겨울 전문가"
+      "winter_specialist": "겨울 전문가",
+      "ambusher": "매복",
+      "armor_expert": "기갑 전문가",
+      "artillery_officer": "포병 장교",
+      "commando": "특수전 지휘",
+      "engineer_officer": "공병 장교",
+      "forest_expert": "숲 전문가",
+      "guerrilla_fighter": "비정규전",
+      "infantry_expert": "보병 전문가",
+      "skirmisher": "정찰전",
+      "swamp_expert": "습지 전문가",
+      "trickster": "기만술사",
+      "urban_expert": "시가전 전문가"
     },
     "trait_desc": {
       "cavalry_officer": "기병 사단 공격 +10%, 속도 +10%",
@@ -8645,7 +8855,19 @@
       "organizer": "조직력 회복 +20%",
       "panzer_leader": "전차·차량화 사단 공격 +10%, 속도 +10%",
       "river_crosser": "강 도하 벌칙 절반",
-      "winter_specialist": "눈·혹한 벌칙 절반"
+      "winter_specialist": "눈·혹한 벌칙 절반",
+      "ambusher": "방어 측일 때 공격 +15%. 단계 3, 방어 전문가 필요, 지휘력 25.",
+      "armor_expert": "전차 대대 돌파 +10%, 기갑 사단 공격 +10%. 단계 2, 기갑 지휘관 필요, 지휘력 20.",
+      "artillery_officer": "포병류 연성 +10%. 단계 1, 지휘력 15.",
+      "commando": "산악·해병·공수 사단 공격 +10%, 습격 준비 −25%. 단계 2, 지휘력 15.",
+      "engineer_officer": "강·요새 벌칙 −15%. 단계 2, 지휘력 15.",
+      "forest_expert": "숲·정글 공격 +10%, 방어 +5%. 그 지형에서 전투 60일로 얻는다.",
+      "guerrilla_fighter": "보급 벌칙 절반, 포위 중에도 조직력 회복 그대로. 단계 2, 지휘력 15.",
+      "infantry_expert": "보병 사단 공격·방어 +10%. 단계 2, 보병 지휘관 필요, 지휘력 15.",
+      "skirmisher": "맞닿은 적 군에 대한 육군 정보 +20%p. 단계 1, 지휘력 15.",
+      "swamp_expert": "습지 공격 +10%, 이동 +10%. 습지 전투 60일로 얻는다.",
+      "trickster": "이 군을 상대하는 적의 준비도 보너스 −10%p. 단계 3, 지휘력 20.",
+      "urban_expert": "도시 공격 +10%, 방어 +10%. 도시 전투 60일로 얻는다."
     },
     "wargoal": {
       "claim": "영토 요구",
@@ -8665,6 +8887,12 @@
       "faction_won": "{faction} 승리",
       "mvp": "최우수",
       "your_faction": "내 진영 승리: {faction}"
+    },
+    "depth": {
+      "design_tank": "전차 설계",
+      "design_ship": "함선 설계",
+      "design_plane": "기체 설계",
+      "designs": "설계"
     }
   }
 }

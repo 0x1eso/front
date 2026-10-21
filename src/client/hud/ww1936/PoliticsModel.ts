@@ -856,6 +856,8 @@ const SOURCE_KEYS = [
   "ww1936.pol.source.government",
   "ww1936.pol.source.leader",
   "ww1936.pol.source.dynamic",
+  // P6 (plan decision 24): the depth systems' part.
+  "ww1936.pol.source.depth",
 ] as const;
 
 /** Share of my legal victory points someone else controls now (P0's gauge over P3's legal owners), %. */

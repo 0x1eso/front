@@ -17,6 +17,7 @@ import { GoToPositionEvent } from "../../TransformHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { designButton } from "./DesignButton";
 import { blockText, genName } from "./EconomyModel";
 import { regionName } from "./LandModel";
 import {
@@ -524,12 +525,13 @@ export class WwNavyPanel extends WwDrawerBase {
       case "fleets":
         return this.renderFleets(ctx);
       case "shipyards":
-        return html`<ww-shipyards
-          .game=${this.game}
-          .eventBus=${this.eventBus}
-          .preset=${this.preset}
-          .version=${`${ctx.navy.version}:${ctx.economy.version}`}
-        ></ww-shipyards>`;
+        return html`${designButton(this.eventBus, "ship")}
+          <ww-shipyards
+            .game=${this.game}
+            .eventBus=${this.eventBus}
+            .preset=${this.preset}
+            .version=${`${ctx.navy.version}:${ctx.economy.version}`}
+          ></ww-shipyards>`;
       case "convoys":
         return this.renderConvoys(ctx);
       case "admirals":

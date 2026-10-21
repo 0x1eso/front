@@ -33,6 +33,7 @@ import {
   ZoneCardData,
 } from "./AirModel";
 import { blockText, EQUIPMENT_ICONS, genName } from "./EconomyModel";
+import { fogModelOf } from "./FogModel";
 import { NavyGame } from "./NavyModel";
 import { WwAirZoneSelectedEvent } from "./SeaAirSelection";
 import { isCapitulated, WW_BAND_PX } from "./WorldWarModel";
@@ -324,6 +325,9 @@ export class WwAirZoneCard extends LitElement implements Controller {
 
   private renderBody(c: { ctx: AirCtx; card: ZoneCardData }): TemplateResult {
     const d = c.card;
+    // P6 (plan decision 19): the enemy planes seen, through the fog.
+    const fog = fogModelOf(this.game);
+    const seen = (n: number) => (fog.fogOff() ? n : fog.countLabel(0, n));
     return html`<div
         data-ww-zone-info
         class="flex shrink-0 flex-wrap gap-x-2 text-white/80"
@@ -333,7 +337,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
             ? translateText("ww1936.air.zone_enemy_none")
             : translateText("ww1936.air.zone_enemy_seen", {
                 list: d.enemySeen
-                  .map(([t, n]) => `${EQUIPMENT_ICONS[t]}${n}`)
+                  .map(([t, n]) => `${EQUIPMENT_ICONS[t]}${seen(n)}`)
                   .join(" "),
               })}</span
         >
