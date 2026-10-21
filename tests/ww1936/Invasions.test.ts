@@ -7,6 +7,7 @@
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  ARMY_INVADE,
   type BattalionId,
   GROUND_EQUIPMENT,
   MOVE_NONE,
@@ -697,6 +698,90 @@ describe("naval invasions", () => {
       { region: REGION.london },
       { region: REGION.london },
     ]);
+  });
+
+  it("end to end on the clock: order, preparation, launch on real supremacy, voyage, landing battle, beachhead", async () => {
+    // Lanes N1 (patrols), A1/A2, C (the voyage) and I together; nothing is
+    // set by hand but the board: Italy's and Poland's ships are taken off
+    // (their sea fights are N2's tests), a weak Pole holds Krakow.
+    const { runner, g, navy, l } = await atWar(["POL"]);
+    for (const tag of [ITA, TAG_ID.POL]) {
+      for (const f of navy.fleetsOf(tag)) {
+        for (const id of [...f.ships]) navy.removeShip(id, false, g.ticks());
+      }
+    }
+    // London → Krakow crosses 1001 and 1002: a British patrol in each.
+    for (const sr of [SR.approaches, SR.central]) {
+      const id = navy.createFleet(GBR, REGION.london, [
+        ["bb", 1, 2],
+        ["dd", 1, 4],
+      ]);
+      expect(
+        navy.issue(
+          GBR,
+          { kind: "fleet_mission", fleet: id, mission: "patrol", sr },
+          g.ticks(),
+        ),
+      ).toBeNull();
+    }
+    const a = placeArmy(g, "GBR", REGION.london, 3);
+    a.auto = true;
+    // Three divisions need more than Britain's 35 start convoys.
+    navy.econ.country(GBR)!.stock[equipKey("convoy", 1)] = 100;
+    const [pole] = placeArmy(g, "POL", REGION.krakow, 1).divisions;
+    // A player's order turns the army's auto off (P2 spec §8.5).
+    expect(invade(navy, GBR, a, REGION.krakow)).toBeNull();
+    expect(a.auto).toBe(false);
+    expect(l.armySummary(a).state & ARMY_INVADE).toBe(ARMY_INVADE);
+    const inv = navy.invasions.get(a.id)!;
+    let n = 0;
+    while (inv.state !== st("ready") && n++ < 5000) step(runner);
+    expect(inv.state).toBe(st("ready"));
+    // The patrols' supremacy, computed on the sea regions' days.
+    expect(invasionLaunchBlock(navy, a.id)).toBeNull();
+    // The Pole worn down as the convoys sail (its org recovers in port).
+    l.divisions.org[l.divisions.rowOf(pole)] = 1;
+    expect(
+      navy.issue(GBR, { kind: "invasion_execute", army: a.id }, g.ticks()),
+    ).toBeNull();
+    expect(inv.state).toBe(st("sailing"));
+    expect(navy.voyages.size).toBe(1);
+    let battle = false;
+    n = 0;
+    while (l.controller[REGION.krakow] !== GBR && n++ < 3000) {
+      step(runner);
+      battle ||= l.battles.has(REGION.krakow);
+    }
+    expect(battle).toBe(true);
+    expect(l.controller[REGION.krakow]).toBe(GBR);
+    expect(navy.voyages.size).toBe(0);
+    // Britain's next day resolves the landing: Krakow has no naval base,
+    // a 30-day beachhead, and the invasion is over.
+    n = 0;
+    while (!beachheads(navy).has(REGION.krakow) && n++ < 40) step(runner);
+    expect(beachheads(navy).get(REGION.krakow)?.side).toBe(sideOf(navy, GBR));
+    expect(navy.invasions.has(a.id)).toBe(false);
+    // Ashore, off the convoys (some may already push on inland).
+    for (const id of a.divisions) {
+      const r = l.divisions.rowOf(id);
+      expect(l.divisions.mode[r]).not.toBe(MOVE_SEA);
+      expect(l.divisions.region[r]).not.toBe(REGION.london);
+    }
+  }, 180_000);
+
+  it("an AI's invasion order leaves its army's auto alone", async () => {
+    const { g, navy } = await atWar();
+    const a = placeArmy(g, "GBR", REGION.london, 1);
+    a.auto = true;
+    expect(
+      navy.issue(
+        GBR,
+        { kind: "army_invade", army: a.id, target: REGION.rome },
+        g.ticks(),
+        "ai",
+      ),
+    ).toBeNull();
+    expect(a.auto).toBe(true);
   });
 
   it("the hash sees invasion targets and voyages, beachheads and landing marks", async () => {

@@ -26,6 +26,7 @@ import {
 } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { dailyGenerals, generalOf } from "./GeneralsRun";
+import { atSea } from "./SeaLift";
 import {
   applySlots,
   dailyTraining,
@@ -118,6 +119,9 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
  */
 export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   const t = land.divisions;
+  // P4 (lane I/C): a division on a convoy gets no men or equipment until it
+  // lands (HOI4: no reinforcement at sea).
+  if (atSea(land, r)) return;
   const supply = t.supply[r];
   if (supply <= 0) return;
   // Men, need and flags read only the template def and the stats.
@@ -147,6 +151,8 @@ const REINFORCE_SLOTS = new Int32Array(GROUND_SLOTS);
  * holds, which go back to their own generation's key.
  */
 export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
+  // Nor new equipment at sea (as reinforce).
+  if (atSea(land, r)) return;
   const t = land.divisions;
   // The need reads only the template def and the stats.
   const s = land.templateNumbersOf(r);
