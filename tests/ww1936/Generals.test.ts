@@ -10,7 +10,7 @@ import {
   WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   GeneralDef,
   GENERALS,
@@ -23,15 +23,19 @@ import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import {
   applyGeneralDates,
   assignGeneral,
+  GENERAL_XP_CENTI,
 } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { dailySustain } from "@openfront/engine/ww1936/land/Sustain";
 import { byTag, HUMAN, land, step, stepTo, wwRunnerCapture } from "./util";
 
 const SUMMER = dayOfDate("1936-06-15");
 const WINTER = dayOfDate("1937-01-20");
-const BERLIN = 3;
 const WARSAW = 6;
 const MOSCOW = 8;
+/** A round's tick that day `d`'s step counts (lastFight is a tick, Task 11). */
+const fightOn = (d: number) => dayStartTick(d, WW_PREP_TICKS) - 1;
+/** Whole experience points in GeneralState.xp (hundredths, Task 11). */
+const XP = GENERAL_XP_CENTI;
 
 async function germany() {
   const { runner, updates } = await wwRunnerCapture({}, [
@@ -191,12 +195,12 @@ describe("generals (P2 spec §6.2)", () => {
     const r = t.rowOf(first.divisions[0]);
     // Days defending: defence grows at the level.
     g.use = [0, 3, 0, 0];
-    g.xp = 99;
+    g.xp = 99 * XP;
     const dfn = g.dfn;
-    t.lastFight[r] = SUMMER;
+    t.lastFight[r] = fightOn(SUMMER);
     t.role[r] = ROLE_DEFEND;
     dailySustain(l, id, SUMMER);
-    expect(g.xp).toBe(100);
+    expect(g.xp).toBe(100 * XP);
     expect(g.level).toBe(2);
     expect(g.use[1]).toBe(4);
     expect(g.dfn).toBe(dfn + 1);
@@ -206,25 +210,34 @@ describe("generals (P2 spec §6.2)", () => {
     g.dfn = 2;
     g.plan = 2;
     g.log = 2;
-    g.xp = 199;
-    t.lastFight[r] = SUMMER + 1;
+    g.xp = 199 * XP;
+    t.lastFight[r] = fightOn(SUMMER + 1);
     t.role[r] = 0;
     dailySustain(l, id, SUMMER + 1);
     expect(g.level).toBe(3);
     expect([g.att, g.dfn, g.plan, g.log]).toEqual([5, 3, 2, 2]);
-    // No battle, no experience; preparing a front and short supply count.
+    // No battle, no experience; preparing a front (readiness under its
+    // cap) and short supply (most of the army) count.
     first.order = { ...first.order, kind: "front", executing: false };
+    first.planBp = 0;
     for (const d of first.divisions) t.supply[t.rowOf(d)] = 900;
     const use = [...g.use];
     const xp = g.xp;
     dailySustain(l, id, SUMMER + 2);
     expect(g.xp).toBe(xp);
     expect(g.use).toEqual([use[0], use[1], use[2] + 1, use[3] + 1]);
+    // Task 11: at the readiness cap preparing counts no more, and one
+    // division short of supply is not the army short.
+    first.planBp = 3000;
+    for (const d of first.divisions) t.supply[t.rowOf(d)] = 1000;
+    t.supply[r] = 900;
+    dailySustain(l, id, SUMMER + 3);
+    expect(g.use).toEqual([use[0], use[1], use[2] + 1, use[3] + 1]);
     // Level 5 at most.
     g.level = 5;
-    g.xp = 10_000;
-    t.lastFight[r] = SUMMER + 3;
-    dailySustain(l, id, SUMMER + 3);
+    g.xp = 10_000 * XP;
+    t.lastFight[r] = fightOn(SUMMER + 4);
+    dailySustain(l, id, SUMMER + 4);
     expect(g.level).toBe(5);
   });
 
@@ -232,19 +245,20 @@ describe("generals (P2 spec §6.2)", () => {
     const { l, id, cl, first, second } = await germany();
     const t = l.divisions;
     const sc = l.scenario;
+    // Warsaw: a continental winter (Berlin's is temperate since Task 11).
     const w = weatherAt(
       WINTER,
-      sc.latC(BERLIN),
-      sc.landOf(BERLIN),
-      sc.wcell(BERLIN),
+      sc.latC(WARSAW),
+      sc.landOf(WARSAW),
+      sc.wcell(WARSAW),
     );
     expect(["snow", "frozen"]).toContain(w);
     const g = cl.generals.find((x) => x.id === first.general)!;
     const r = t.rowOf(first.divisions[0]);
     g.terrainDays = [59, 0, 0, 0];
-    t.lastFight[r] = WINTER;
+    t.lastFight[r] = fightOn(WINTER);
     t.role[r] = ROLE_DEFEND;
-    t.battle[r] = BERLIN;
+    t.battle[r] = WARSAW;
     dailySustain(l, id, WINTER);
     expect(g.terrainDays[0]).toBe(60);
     expect(g.traits & traitBit("winter_specialist")).not.toBe(0);
@@ -252,7 +266,7 @@ describe("generals (P2 spec §6.2)", () => {
     const b = cl.generals.find((x) => x.id === second.general)!;
     const s = t.rowOf(second.divisions[0]);
     l.setDivisionRegion(s, WARSAW);
-    t.lastFight[s] = WINTER + 1;
+    t.lastFight[s] = fightOn(WINTER + 1);
     t.role[s] = ROLE_ATTACK;
     t.battle[s] = MOSCOW;
     b.terrainDays = [0, 0, 0, 59];
@@ -266,7 +280,7 @@ describe("generals (P2 spec §6.2)", () => {
       traitBit("defensive_doctrine");
     g.terrainDays = [60, 0, 59, 0];
     t.battle[r] = 5; // Rome: mountains
-    t.lastFight[r] = WINTER + 2;
+    t.lastFight[r] = fightOn(WINTER + 2);
     dailySustain(l, id, WINTER + 2);
     expect(g.terrainDays[2]).toBe(60);
     expect(g.traits & traitBit("mountaineer")).toBe(0);

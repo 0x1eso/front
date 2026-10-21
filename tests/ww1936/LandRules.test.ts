@@ -47,6 +47,7 @@ import {
   HUB_CITY,
   HUB_SEA,
   hubCapacityMilli,
+  SEA_HUB_MILLI,
   supplyEdgeCost,
   supplyFrom,
   supplyRatePm,
@@ -345,8 +346,9 @@ describe("combat (P2 spec §9)", () => {
     expect(divisionMods(neutral({})).mods.attackBp).toBe(10_500);
     // A big river, halved by the engineers.
     expect(divisionMods(neutral({ river: 2 })).mods.attackBp).toBe(8400);
+    // Fort 3, −15% a level (Task 11), engineers take a quarter off.
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
-      -2700,
+      -3375,
     );
     // The defender's entrenchment, engineers and recon.
     expect(
@@ -424,9 +426,10 @@ describe("movement, supply and weather (P2 spec §7, §10, §11)", () => {
   test("supply (spec §11)", () => {
     expect(hubCapacityMilli(HUB_CAPITAL, 3)).toBe(65_000);
     expect(hubCapacityMilli(HUB_CITY, 3)).toBe(32_000);
-    expect(hubCapacityMilli(HUB_SEA, 3)).toBe(12_000);
+    expect(hubCapacityMilli(HUB_SEA, 3)).toBe(SEA_HUB_MILLI);
     expect(supplyEdgeCost(300, 3, 3, "plains", 5)).toBe(6000);
-    expect(supplyEdgeCost(300, 0, 3, "plains", 1)).toBe(50_000);
+    // A road: 300 km × 100% / (100 + 10 × 1), Task 11's doubled reach.
+    expect(supplyEdgeCost(300, 0, 3, "plains", 1)).toBe(27_272);
     expect(supplyFrom(65_000, 6000)).toBe(58_500);
     expect(supplyFrom(65_000, 60_000)).toBe(0);
     expect(supplyRatePm(8500, 17_000)).toBe(500);

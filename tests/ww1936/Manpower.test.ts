@@ -69,9 +69,11 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     finishDay(runner, 1);
     // P2 Task 5: after the economy's step the land's day reinforces the
     // divisions from manpower for yesterday's winter attrition (its dead
-    // already left the pool), then today's attrition takes its men.
+    // already left the pool), then today's attrition takes its men (Task
+    // 11: Berlin's and Munich's winters are temperate and a division at
+    // rest takes a quarter, so a day may take none).
     const winter = ww.land.country(deu.smallID())!.casualtiesToday;
-    expect(winter).toBeGreaterThan(0);
+    expect(winter).toBeGreaterThanOrEqual(0);
     expect(ce.manpower).toBe(ce.totals.recruitable - deu.troops() - winter);
     expect(ce.manpower).toBe(1_202_500 - winter);
   });

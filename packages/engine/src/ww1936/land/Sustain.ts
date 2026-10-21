@@ -8,12 +8,14 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_SLOTS,
+  MOVE_NONE,
   TPL_HOSPITAL,
   traitBit,
   WW_ARMY_XP_MAX_MILLI,
   WW_EXP_PER_DAY,
   WW_UPGRADE_PM,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import {
   drawEquip,
@@ -36,23 +38,35 @@ import type { WwLand } from "./WwLand";
 export const ATTRITION_SUPPLY_PM = 500;
 /** Spec §5.3, §11.5: 1% a day (ppm) without supply or encircled. */
 export const ATTRITION_CUT_PPM = 10_000;
+/**
+ * Task 11 balance (controller ruling 1; HOI4: weather attrition hits units
+ * that move, fight or lack supply, a trickle otherwise): a division resting
+ * in full supply takes this share of the day's weather attrition, %.
+ */
+export const WEATHER_ATTRITION_IDLE_PCT = 25;
 /** Spec §5.4: army experience a day, milli (a major twice), and per division that fought (at most 5 a day). */
 export const ARMY_XP_DAY_MILLI = 100;
 export const ARMY_XP_FIGHT_MILLI = 50;
 export const ARMY_XP_FIGHT_MAX_MILLI = 5_000;
 
 /**
- * Whether a division fought since its country's last day. Battles run
- * after the daily steps in a tick, so a country whose day comes on the
- * day's first tick (smallID % 7 = 0) sees yesterday's fights; the others
- * see today's (spec §5.4 "전투에 참가한 날").
+ * Whether a division fought since its country's last day (spec §5.4
+ * "전투에 참가한 날"): lastFight is the tick of its last round. The
+ * country's day comes on tick k = smallID % 7 of each day, before that
+ * tick's battles, so the window is from yesterday's tick k (its rounds
+ * came after yesterday's step) up to today's tick k, not included. Every
+ * round counts once, whatever tick of the day it fell on (Task 11: a
+ * k ≥ 1 country used to miss the rounds of yesterday's tail).
  */
 export function foughtTest(
   smallID: number,
   day: number,
+  prepEndTick: number,
 ): (lastFight: number) => boolean {
-  const d = smallID % WW_DAY_SPLIT === 0 ? day - 1 : day;
-  return (lastFight) => lastFight >= 0 && lastFight === d;
+  const k = smallID % WW_DAY_SPLIT;
+  const to = dayStartTick(day, prepEndTick) + k;
+  const from = day <= 0 ? 0 : dayStartTick(day - 1, prepEndTick) + k;
+  return (lastFight) => lastFight >= from && lastFight < to;
 }
 
 /** Spec §5.1, §5.3, §5.4, §6.2 dates and experience: the country's day. */
@@ -69,7 +83,7 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
     });
   }
   // Spec §5.3, §5.4: the divisions in id order (the oldest fill first).
-  const fought = foughtTest(smallID, day);
+  const fought = foughtTest(smallID, day, land.ww.prepEndTick());
   const t = land.divisions;
   let foughtN = 0;
   // (No division is added or removed below: the country's row list holds.)
@@ -162,7 +176,8 @@ export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
  * Spec §5.3, §10, §11.5 attrition, ppm of men and of every equipment slot:
  * below 50% supply `(500 − supply) / 500 × 1%`, encircled 1%, plus the
  * day's weather in its region (a winter specialist halves snow and frost,
- * a desert fox ignores heat). The remainders build up in lossMen / lossEq
+ * a desert fox ignores heat; a division at rest in full supply takes a
+ * quarter of it, Task 11). The remainders build up in lossMen / lossEq
  * (milli) as HP losses do; nothing goes back, the men lost are dead.
  */
 export function attritionPpm(land: WwLand, r: number, day: number): number {
@@ -189,6 +204,11 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
       wpm = Math.floor(wpm / 2);
     }
     if (w === "heat" && (traits & traitBit("desert_fox")) !== 0) wpm = 0;
+    // Task 11 (ruling 1): full only on the move, in a battle or short of
+    // supply; a quarter at rest in full supply.
+    const exposed =
+      t.mode[r] !== MOVE_NONE || t.battle[r] !== 0 || t.supply[r] < 1000;
+    if (!exposed) wpm = Math.floor((wpm * WEATHER_ATTRITION_IDLE_PCT) / 100);
   }
   return ppm + wpm;
 }

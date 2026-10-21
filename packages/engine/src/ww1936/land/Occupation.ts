@@ -6,6 +6,7 @@
 // spread gets budget (pre-flight C2).
 import {
   MOVE_ADVANCE,
+  MOVE_RAIL,
   MOVE_RETREAT,
   MOVE_SEA,
   MOVE_WALK,
@@ -69,8 +70,10 @@ function evict(land: WwLand, region: number, by: number): void {
     if (land.isEnemy(o, by)) {
       const m = t.mode[r];
       const retreating = m === MOVE_RETREAT;
-      // "R을 떠나는 중": retreating, or walking or advancing out of R.
-      const leaving = retreating || m === MOVE_WALK || m === MOVE_ADVANCE;
+      // "R을 떠나는 중": retreating, or walking, advancing or on a train
+      // out of R (Task 11: a rail mover leaves like a walker).
+      const leaving =
+        retreating || m === MOVE_WALK || m === MOVE_ADVANCE || m === MOVE_RAIL;
       const halfway = retreating && t.prog[r] * 2 < t.need[r];
       const broken = !leaving && t.org[r] * 10 < land.orgMaxOf(r);
       if (halfway || broken || !hasRefuge(land, r)) {

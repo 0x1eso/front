@@ -479,8 +479,10 @@ func TestV3FieldsAreCopied(t *testing.T) {
 		t.Fatalf("dev %d, lake %v, version %d", out.Countries[0].Dev, out.SeaZones[1].Lake, out.Version)
 	}
 	// A hand harbour makes a port of a coastal region without a dockyard or
-	// points; inland it does not.
+	// points; inland it does not. (Without the land graph: with it, the
+	// colony rule gives the coast of a region set without a port one.)
 	src.Regions[1].Dock = 0
+	src.Edges = nil
 	out, _, err = buildScenario(src, ids, packed, w, h)
 	if err != nil || out.Regions[1].Port {
 		t.Fatalf("no dock, no hand port: port %v, %v", out.Regions[1].Port, err)
@@ -489,6 +491,83 @@ func TestV3FieldsAreCopied(t *testing.T) {
 	out, _, _ = buildScenario(src, ids, packed, w, h)
 	if !out.Regions[1].Port {
 		t.Fatal("a hand harbour on the coast is no port")
+	}
+}
+
+// P2 Task 11 (controller ruling 2): every set of a country's regions joined
+// by land that touches the open sea gets a port when it has none: its
+// region on the open sea with the most points (then people, then the
+// smaller id). A set with a port, a lake shore and a strait do not count.
+func TestEveryCoastalRegionSetGetsAPort(t *testing.T) {
+	packed, w, h := grid(
+		"LLLLLLLL~~",
+		"LLLLLLLL~~",
+		"LLLLLLLL~~",
+	)
+	// Region 1 inland (x < 4); 2, 3, 4 a column of rows (x 4..7); the sea
+	// east of them, but beside region 3 a lake.
+	ids := make([]uint16, w*h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			switch {
+			case x < 4:
+				ids[y*w+x] = 1
+			case x < 8:
+				ids[y*w+x] = uint16(2 + y)
+			case y == 1:
+				ids[y*w+x] = 40002
+			default:
+				ids[y*w+x] = 40001
+			}
+		}
+	}
+	eco := func(pop int) Economy { return Economy{Cat: "rural", Pop: pop, Infra: 2, Core: true} }
+	src := scenarioSrc{
+		Version:   scenarioVersion,
+		Countries: []srcCountry{{Tag: "ITA", Capital: [2]int{1, 1}}},
+		Regions: []srcRegion{
+			{ID: 1, Name: "Inland", NameKo: "내륙", Owner: "ITA", Economy: eco(10)},
+			{ID: 2, Name: "North", NameKo: "북", Owner: "ITA", VP: 1, Economy: eco(10)},
+			{ID: 3, Name: "Lakeside", NameKo: "호숫가", Owner: "ITA", VP: 4, Economy: eco(99)},
+			{ID: 4, Name: "South", NameKo: "남", Owner: "ITA", VP: 1, Economy: eco(20)},
+		},
+		SeaZones: []srcSea{{ID: 40001, Name: "Sea", NameKo: "바다"}, {ID: 40002, Name: "Lake", NameKo: "호수", Lake: true}},
+		Edges:    []landEdge{{1, 2, 1, 100, 0, 0}, {1, 3, 1, 100, 0, 0}, {1, 4, 1, 100, 0, 0}, {2, 3, 4, 100, 0, 0}, {3, 4, 4, 100, 0, 0}},
+	}
+	ports := func(out scenarioOut) []int {
+		var p []int
+		for _, r := range out.Regions {
+			if r.Port {
+				p = append(p, r.ID)
+			}
+		}
+		return p
+	}
+	out, notes, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// One set (all Italian, joined by land); the lakeside is no harbour:
+	// South beats North on people.
+	if p := ports(out); len(p) != 1 || p[0] != 4 {
+		t.Fatalf("ports %v, notes %v", p, notes)
+	}
+	if !strings.Contains(strings.Join(notes, "\n"), "port added: region 4") {
+		t.Fatalf("notes %v", notes)
+	}
+	// A dockyard in the set already makes its port: none added.
+	src.Regions[1].Dock = 1
+	out, _, err = buildScenario(src, ids, packed, w, h)
+	if p := ports(out); err != nil || len(p) != 1 || p[0] != 2 {
+		t.Fatalf("ports %v, %v", p, err)
+	}
+	// Two owners: each coastal set gets its own.
+	src.Regions[1].Dock = 0
+	src.Countries = append(src.Countries, srcCountry{Tag: "FRA", Capital: [2]int{5, 2}})
+	src.Regions[3].Owner = "FRA"
+	out, _, err = buildScenario(src, ids, packed, w, h)
+	if p := ports(out); err != nil || len(p) != 2 || p[0] != 2 || p[1] != 4 {
+		t.Fatalf("ports %v, %v", p, err)
 	}
 }
 

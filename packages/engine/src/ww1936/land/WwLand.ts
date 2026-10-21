@@ -81,7 +81,7 @@ import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
 import { dailyEntrench, stepBattles, stepRecovery } from "./Battles";
 import { dailyFronts } from "./Fronts";
-import { appointGeneral, assignGeneral } from "./GeneralsRun";
+import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
 import { startLand } from "./LandStartRun";
 import { stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
@@ -2072,7 +2072,7 @@ export class WwLand {
         log: g.log,
         traits: g.traits,
         level: g.level,
-        xp: g.xp,
+        xp: Math.floor(g.xp / GENERAL_XP_CENTI),
         army: g.army,
         // -1: open (no date in the roster).
         from: def?.from === undefined ? -1 : dayOfDate(def.from),

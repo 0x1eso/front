@@ -3,7 +3,10 @@
 // experience, §10 weather). Germany is human; the country's day is called
 // directly, on a summer day unless the test is about winter.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  equipKey,
+  WW_DAY_SPLIT,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_SLOTS,
   groundSlotOf,
@@ -11,10 +14,17 @@ import {
   WW_ARMY_XP_MAX_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
-import { WEATHER, weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import {
+  climateOf,
+  WEATHER,
+  weatherAt,
+} from "@openfront/engine-lib/ww1936/Weather";
 import { assignGeneral } from "@openfront/engine/ww1936/land/GeneralsRun";
-import { dailySustain } from "@openfront/engine/ww1936/land/Sustain";
+import {
+  dailySustain,
+  foughtTest,
+} from "@openfront/engine/ww1936/land/Sustain";
 import {
   byTag,
   clearLand,
@@ -29,6 +39,9 @@ import {
 const SUMMER = dayOfDate("1936-06-15");
 const WINTER = dayOfDate("1937-01-20");
 const BERLIN = 3;
+const WARSAW = 6;
+/** A round's tick that day `d`'s step counts (lastFight is a tick, Task 11). */
+const fightOn = (d: number) => dayStartTick(d, WW_PREP_TICKS) - 1;
 const INF1 = equipKey("infantry_equipment", 1);
 const INF2 = equipKey("infantry_equipment", 2);
 const ART1 = equipKey("artillery", 1);
@@ -143,36 +156,58 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     expect(ce.manpower).toBe(manpower);
   });
 
-  test("winter attrition", async () => {
-    const { l, id, a, r, cl } = await oneDivision();
+  test("winter attrition: full on the move, in a battle or short of supply, a quarter at rest", async () => {
+    // Warsaw: a continental winter (Berlin's is temperate since Task 11).
+    const { l, id, a, r, cl } = await oneDivision("DEU", WARSAW);
     const t = l.divisions;
     const sc = l.scenario;
-    const w = weatherAt(
-      WINTER,
-      sc.latC(BERLIN),
-      sc.landOf(BERLIN),
-      sc.wcell(BERLIN),
-    );
+    const weather = (d: number) =>
+      weatherAt(d, sc.latC(WARSAW), sc.landOf(WARSAW), sc.wcell(WARSAW));
+    const w = weather(WINTER);
     expect(["snow", "frozen"]).toContain(w);
     const ppm = WEATHER[w].attritionPm * 1000;
     expect(ppm).toBeGreaterThan(0);
+    const after = (p: number) => 10_500 - Math.floor((10_500 * p) / 1_000_000);
+    // At rest in full supply: a quarter (Task 11, controller ruling 1).
+    t.supply[r] = 1000;
     dailySustain(l, id, WINTER);
-    expect(t.men[r]).toBe(10_500 - Math.floor((10_500 * ppm) / 1_000_000));
-    // A winter specialist at the head of the army halves it.
+    expect(t.men[r]).toBe(after(Math.floor((ppm * 25) / 100)));
+    // Short of supply: all of it (reinforced back to 10,500 first).
+    t.lossMen[r] = 0;
+    t.supply[r] = 999;
+    dailySustain(l, id, WINTER + 1);
+    const w1 = weather(WINTER + 1);
+    expect(t.men[r]).toBe(after(WEATHER[w1].attritionPm * 1000));
+    // In a battle: all of it, halved by a winter specialist at the head.
     const g = cl.generals[0];
     g.traits |= traitBit("winter_specialist");
     expect(assignGeneral(l, cl, a.id, g.id)).toBeNull();
     t.lossMen[r] = 0;
-    dailySustain(l, id, WINTER + 1);
-    const w2 = weatherAt(
-      WINTER + 1,
-      sc.latC(BERLIN),
-      sc.landOf(BERLIN),
-      sc.wcell(BERLIN),
+    t.supply[r] = 1000;
+    t.battle[r] = WARSAW;
+    dailySustain(l, id, WINTER + 2);
+    t.battle[r] = 0;
+    const w2 = weather(WINTER + 2);
+    expect(t.men[r]).toBe(
+      after(Math.floor((WEATHER[w2].attritionPm * 1000) / 2)),
     );
-    const half = Math.floor((WEATHER[w2].attritionPm * 1000) / 2);
-    // (Reinforced back to 10,500 first.)
-    expect(t.men[r]).toBe(10_500 - Math.floor((10_500 * half) / 1_000_000));
+  });
+
+  test("Paris, London and Berlin winters are temperate; Warsaw's continental (Task 11)", async () => {
+    const { l } = await oneDivision();
+    const sc = l.scenario;
+    for (const [region, band] of [
+      [1, "temperate"],
+      [3, "temperate"],
+      [4, "temperate"],
+      [10, "temperate"],
+      [6, "continental"],
+      [8, "continental"],
+    ] as const) {
+      expect(
+        climateOf(sc.latC(region), sc.landOf(region), sc.wcell(region)),
+      ).toBe(band);
+    }
   });
 
   test("upgrades swap 5% a day for a newer generation", async () => {
@@ -197,16 +232,44 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
   test("experience grows 3 a day in battle", async () => {
     const { l, id, r } = await oneDivision();
     const t = l.divisions;
-    t.lastFight[r] = SUMMER;
+    t.lastFight[r] = fightOn(SUMMER);
     dailySustain(l, id, SUMMER);
     expect(t.exp[r]).toBe(3);
     // Not today: none.
     dailySustain(l, id, SUMMER + 1);
     expect(t.exp[r]).toBe(3);
     t.exp[r] = 999;
-    t.lastFight[r] = SUMMER + 2;
+    t.lastFight[r] = fightOn(SUMMER + 2);
     dailySustain(l, id, SUMMER + 2);
     expect(t.exp[r]).toBe(1000);
+  });
+
+  test("foughtTest counts every round once, whatever tick of the day (Task 11)", () => {
+    const P = WW_PREP_TICKS;
+    // smallID 7, 1 and 6: a country's day on tick 0, 1 and 6 of each day.
+    for (const smallID of [7, 1, 6]) {
+      const k = smallID % WW_DAY_SPLIT;
+      const seen = new Map<number, number>();
+      for (let day = 1; day <= 20; day++) {
+        const fought = foughtTest(smallID, day, P);
+        for (let tick = P; tick < dayStartTick(22, P); tick++) {
+          if (fought(tick)) seen.set(tick, (seen.get(tick) ?? 0) + 1);
+        }
+      }
+      // Each tick from day 0's step to day 20's (not included) counts once:
+      // the window runs from the previous step's tick up to this one's.
+      for (let tick = P + k; tick < dayStartTick(20, P) + k; tick++) {
+        expect(seen.get(tick)).toBe(1);
+      }
+      expect(seen.size).toBe(dayStartTick(20, P) - P);
+      // A round late on day 5, after the step: counted on day 6 (it used
+      // to be lost for a country whose step is not on the day's first tick).
+      const late = dayStartTick(5, P) + 6;
+      expect(foughtTest(smallID, 5, P)(late)).toBe(false);
+      expect(foughtTest(smallID, 6, P)(late)).toBe(true);
+    }
+    // Never fought.
+    expect(foughtTest(1, 3, P)(-1)).toBe(false);
   });
 
   test("army XP grows 0.1 a day (0.2 for a major)", async () => {
@@ -215,7 +278,7 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     dailySustain(deu.l, deu.id, SUMMER);
     expect(deu.cl.armyXpMilli).toBe(200);
     // A division that fought: +0.05.
-    deu.l.divisions.lastFight[deu.r] = SUMMER + 1;
+    deu.l.divisions.lastFight[deu.r] = fightOn(SUMMER + 1);
     dailySustain(deu.l, deu.id, SUMMER + 1);
     expect(deu.cl.armyXpMilli).toBe(200 + 200 + 50);
     deu.cl.armyXpMilli = WW_ARMY_XP_MAX_MILLI - 10;

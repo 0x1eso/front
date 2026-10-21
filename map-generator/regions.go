@@ -466,6 +466,15 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 	tiles := map[int]int{}
 	terrain := map[int]*[3]int{}
 	coastal := map[int]bool{}
+	// ocean: the region touches a sea zone that is no lake (the colony
+	// ports below go on the open sea).
+	ocean := map[int]bool{}
+	openSea := map[int]bool{}
+	for _, s := range src.SeaZones {
+		if !s.Lake {
+			openSea[s.ID] = true
+		}
+	}
 	for i := 0; i < n; i++ {
 		id := int(ids[i])
 		if id == 0 {
@@ -473,10 +482,13 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		}
 		tiles[id]++
 		if id < seaZoneBase {
-			if !coastal[id] {
+			if !ocean[id] {
 				forNeighbours4(i, w, n, func(j int) {
 					if ids[j] > seaZoneBase {
 						coastal[id] = true
+						if openSea[int(ids[j])] {
+							ocean[id] = true
+						}
 					}
 				})
 			}
@@ -624,7 +636,81 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 	if err != nil {
 		return out, notes, err
 	}
+	if src.Edges != nil {
+		notes = append(notes, colonyPorts(&out, ocean)...)
+	}
 	return out, notes, nil
+}
+
+// colonyPorts gives a port to every set of a country's regions joined by
+// land (edges, no straits) that touches the open sea but has none: the one
+// of its regions on the open sea with the most points, then the most
+// people, then the smaller id. P2 Task 11 (controller ruling 2): a colony
+// or an island without a port got no sea hub and no sea move at all
+// (Eritrea, Italian Somaliland and Libya held Italy's East African and
+// Libyan armies "encircled" from the first day). Each port it adds is a
+// note.
+func colonyPorts(out *scenarioOut, ocean map[int]bool) []string {
+	index := map[int]int{}
+	for i, r := range out.Regions {
+		index[r.ID] = i
+	}
+	adj := map[int][]int{}
+	for _, e := range out.Edges {
+		if e[5] != 0 {
+			continue
+		}
+		a, b := e[0], e[1]
+		if out.Regions[index[a]].Owner != out.Regions[index[b]].Owner {
+			continue
+		}
+		adj[a] = append(adj[a], b)
+		adj[b] = append(adj[b], a)
+	}
+	var notes []string
+	seen := map[int]bool{}
+	for _, r := range out.Regions {
+		if seen[r.ID] {
+			continue
+		}
+		seen[r.ID] = true
+		set := []int{r.ID}
+		for k := 0; k < len(set); k++ {
+			for _, v := range adj[set[k]] {
+				if !seen[v] {
+					seen[v] = true
+					set = append(set, v)
+				}
+			}
+		}
+		best := -1
+		hasPort := false
+		for _, id := range set {
+			c := out.Regions[index[id]]
+			if c.Port {
+				hasPort = true
+				break
+			}
+			if !c.Coastal || !ocean[id] {
+				continue
+			}
+			if best < 0 {
+				best = id
+				continue
+			}
+			b := out.Regions[index[best]]
+			if c.VP > b.VP || (c.VP == b.VP && (c.Pop > b.Pop || (c.Pop == b.Pop && id < best))) {
+				best = id
+			}
+		}
+		if hasPort || best < 0 {
+			continue
+		}
+		p := &out.Regions[index[best]]
+		p.Port = true
+		notes = append(notes, fmt.Sprintf("port added: region %d %q (%s), the only port of its %d region(s)", p.ID, p.Name, p.Owner, len(set)))
+	}
+	return notes
 }
 
 var landOfClass = [3]string{"plains", "hills", "mountain"}

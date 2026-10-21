@@ -11,6 +11,7 @@ import {
   traitBit,
   WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { planMaxBp } from "@openfront/engine-lib/ww1936/CombatRules";
 import {
   GeneralDef,
   GENERALS,
@@ -27,6 +28,12 @@ export const GENERAL_LEVEL_MAX = 5;
 /** Battle days on one kind of ground that teach its trait (spec §6.2). */
 export const TERRAIN_TRAIT_DAYS = 60;
 export const GENERAL_TRAITS_MAX = 3;
+/**
+ * Task 11: a general's experience is kept in hundredths (GeneralState.xp),
+ * so generalXpPct counts below +100% too (+1.00 a battle day, × (100 +
+ * generalXpPct)%); the screens get whole points (WwLand.takeData).
+ */
+export const GENERAL_XP_CENTI = 100;
 /** GeneralState.terrainDays order: snow or frost, desert, hills or mountains, attacks across a river. */
 export const TERRAIN_TRAITS: readonly GeneralTrait[] = [
   "winter_specialist",
@@ -167,9 +174,10 @@ export function applyGeneralDates(
 /**
  * Spec §6.2, the country's day: the dates, then every army's general. A
  * day its divisions fought (`fought` reads a division's lastFight) gives
- * experience (+1, × generalXpPct) and counts its ground; the uses count
- * the days it attacked, defended, prepared (a front or a plan not
- * executing) and was short of supply. At 100 × level a level comes with
+ * experience (+1, × generalXpPct, in hundredths) and counts its ground;
+ * the uses count the days it attacked, defended, prepared (a front or a
+ * plan not executing, its readiness under the cap) and was short of
+ * supply (most of its divisions). At 100 × level a level comes with
  * +1 to the most used skill (ties: attack, defence, planning, logistics;
  * never past 5); 60 battle days on one ground teach its trait (3 at most).
  */
@@ -189,12 +197,14 @@ export function dailyGenerals(
     let fight = false;
     let att = false;
     let dfn = false;
-    let short = false;
     const ground = [false, false, false, false];
+    let rows = 0;
+    let shortRows = 0;
     for (const id of a.divisions) {
       const r = t.rowOf(id);
       if (r < 0) continue;
-      if (t.supply[r] < 1000) short = true;
+      rows++;
+      if (t.supply[r] < 1000) shortRows++;
       if (!fought(t.lastFight[r])) continue;
       fight = true;
       const role = t.role[r];
@@ -212,15 +222,21 @@ export function dailyGenerals(
         if (e >= 0 && sc.edge(e).river > 0) ground[3] = true;
       }
     }
+    // Task 11: the skill uses balance the fights against the rest. A day
+    // preparing counts while the readiness still grows (not for every
+    // day an army sits at its cap), a day short of supply when most of
+    // the army is short (not one straggler's day).
+    const short = shortRows * 2 > rows;
     const preparing =
       (a.order.kind === "front" || a.order.kind === "plan") &&
-      !a.order.executing;
+      !a.order.executing &&
+      a.planBp < planMaxBp(ce.stats);
     if (att) g.use[0]++;
     if (dfn) g.use[1]++;
     if (preparing) g.use[2]++;
     if (short) g.use[3]++;
     if (fight) {
-      g.xp += Math.max(1, Math.floor((100 + ce.stats.generalXpPct) / 100));
+      g.xp += Math.max(1, 100 + ce.stats.generalXpPct);
       ground.forEach((on, i) => {
         if (on) g.terrainDays[i]++;
       });
@@ -233,7 +249,9 @@ export function dailyGenerals(
 
 /** Spec §6.2: a level at 100 × level experience, +1 to the most used skill below 5. */
 function levelUp(g: GeneralState): void {
-  if (g.level >= GENERAL_LEVEL_MAX || g.xp < 100 * g.level) return;
+  if (g.level >= GENERAL_LEVEL_MAX || g.xp < 100 * GENERAL_XP_CENTI * g.level) {
+    return;
+  }
   g.level++;
   const skills = [g.att, g.dfn, g.plan, g.log];
   let best = -1;

@@ -379,17 +379,18 @@ describe("LandModel (spec §15)", () => {
       path: [2, 10],
       ticks: 45,
     });
-    // In mud the same walk takes longer.
-    const mud = Array.from({ length: 400 }, (_, d) => d).find(
+    // In snow the same walk takes longer (70% speed; Munich's winter is
+    // temperate since Task 11: snow, rain or clear by the week).
+    const snow = Array.from({ length: 400 }, (_, d) => d).find(
       (d) =>
         weatherAt(
           d,
           view.scenario.latC(4),
           "forest",
           view.scenario.wcell(4),
-        ) === "mud",
+        ) === "snow",
     )!;
-    expect(movePreview(land, view, DEU, 1, 4, "move", mud)!.ticks).toBe(40);
+    expect(movePreview(land, view, DEU, 1, 4, "move", snow)!.ticks).toBe(29);
   });
 
   it("the designer's numbers are templateStats' and its cost templateXpCost's", () => {

@@ -146,13 +146,18 @@ describe("stability and war support (spec §6)", () => {
     expect(warSupportEffects(10_000)).toEqual({ recoveryPct: 10 });
   });
 
-  it("surrender line moves at most ±15 points and stays in 50..98", () => {
+  it("surrender line moves at most ±15 points and stays in 50..98 (a base under 60: 10 under it)", () => {
     expect(effectiveSurrenderPct(80, 5000, 5000, 0)).toBe(80);
     expect(effectiveSurrenderPct(80, 10_000, 10_000, 0)).toBe(95);
     expect(effectiveSurrenderPct(80, 0, 0, 0)).toBe(65);
     expect(effectiveSurrenderPct(90, 10_000, 10_000, 0)).toBe(98);
     expect(effectiveSurrenderPct(90, 10_000, 10_000, 5)).toBe(98);
     expect(effectiveSurrenderPct(60, 0, 0, -10)).toBe(50);
+    // P2 Task 11: a colonial empire's low base line (France 31) moves the
+    // same, its floor ten points under it.
+    expect(effectiveSurrenderPct(31, 5000, 5000, 0)).toBe(31);
+    expect(effectiveSurrenderPct(31, 10_000, 10_000, 0)).toBe(46);
+    expect(effectiveSurrenderPct(31, 0, 0, 0)).toBe(21);
     // Steps: 5%p of war support a point, 10%p of stability a point.
     expect(effectiveSurrenderPct(80, 5000, 5499, 0)).toBe(80);
     expect(effectiveSurrenderPct(80, 5000, 5500, 0)).toBe(81);

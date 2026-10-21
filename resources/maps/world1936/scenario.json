@@ -424,7 +424,7 @@
       "wcell": 518,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 2,
@@ -502,7 +502,7 @@
       "wcell": 514,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 5,
@@ -606,7 +606,7 @@
       "wcell": 527,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 9,
@@ -658,7 +658,7 @@
       "wcell": 528,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 11,
@@ -684,7 +684,7 @@
       "wcell": 476,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 12,
@@ -710,7 +710,7 @@
       "wcell": 527,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 13,
@@ -736,7 +736,7 @@
       "wcell": 531,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 14,
@@ -788,7 +788,7 @@
       "wcell": 528,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 16,
@@ -814,7 +814,7 @@
       "wcell": 526,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 17,
@@ -840,7 +840,7 @@
       "wcell": 529,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 18,
@@ -892,7 +892,7 @@
       "wcell": 488,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 20,
@@ -918,7 +918,7 @@
       "wcell": 527,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 21,
@@ -970,7 +970,7 @@
       "wcell": 525,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 24,
@@ -996,7 +996,7 @@
       "wcell": 495,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 25,
@@ -1022,7 +1022,7 @@
       "wcell": 487,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 26,
@@ -1074,7 +1074,7 @@
       "wcell": 493,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 28,
@@ -1126,7 +1126,7 @@
       "wcell": 496,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 30,
@@ -1152,7 +1152,7 @@
       "wcell": 475,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 31,
@@ -1204,7 +1204,7 @@
       "wcell": 476,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 33,
@@ -1230,7 +1230,7 @@
       "wcell": 474,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 34,
@@ -1256,7 +1256,7 @@
       "wcell": 488,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 35,
@@ -1282,7 +1282,7 @@
       "wcell": 474,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 36,
@@ -1308,7 +1308,7 @@
       "wcell": 476,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 37,
@@ -1334,7 +1334,7 @@
       "wcell": 475,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 38,
@@ -1386,7 +1386,7 @@
       "wcell": 474,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 41,
@@ -1412,7 +1412,7 @@
       "wcell": 477,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 42,
@@ -1438,7 +1438,7 @@
       "wcell": 491,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 43,
@@ -1464,7 +1464,7 @@
       "wcell": 474,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 44,
@@ -1516,7 +1516,7 @@
       "wcell": 500,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 46,
@@ -1568,7 +1568,7 @@
       "wcell": 500,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 49,
@@ -1594,7 +1594,7 @@
       "wcell": 476,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 50,
@@ -1698,7 +1698,7 @@
       "wcell": 476,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 54,
@@ -1750,7 +1750,7 @@
       "wcell": 473,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 56,
@@ -1802,7 +1802,7 @@
       "wcell": 500,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 59,
@@ -1932,7 +1932,7 @@
       "wcell": 478,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 64,
@@ -1958,7 +1958,7 @@
       "wcell": 442,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 65,
@@ -1984,7 +1984,7 @@
       "wcell": 475,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 66,
@@ -2166,7 +2166,7 @@
       "wcell": 468,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 73,
@@ -2504,7 +2504,7 @@
       "wcell": 440,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 87,
@@ -2686,7 +2686,7 @@
       "wcell": 454,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 94,
@@ -2816,7 +2816,7 @@
       "wcell": 432,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 99,
@@ -2972,7 +2972,7 @@
       "wcell": 442,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 105,
@@ -3128,7 +3128,7 @@
       "wcell": 435,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 111,
@@ -3414,7 +3414,7 @@
       "wcell": 441,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 122,
@@ -3518,7 +3518,7 @@
       "wcell": 447,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 126,
@@ -4454,7 +4454,7 @@
       "wcell": 452,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 163,
@@ -4766,7 +4766,7 @@
       "wcell": 415,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 176,
@@ -4792,7 +4792,7 @@
       "wcell": 407,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 177,
@@ -4844,7 +4844,7 @@
       "wcell": 415,
       "rail": 3,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 179,
@@ -5130,7 +5130,7 @@
       "wcell": 416,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 190,
@@ -5364,7 +5364,7 @@
       "wcell": 398,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 199,
@@ -5884,7 +5884,7 @@
       "wcell": 416,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 219,
@@ -6482,7 +6482,7 @@
       "wcell": 416,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 243,
@@ -6560,7 +6560,7 @@
       "wcell": 400,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 246,
@@ -6664,7 +6664,7 @@
       "wcell": 415,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 250,
@@ -6742,7 +6742,7 @@
       "wcell": 414,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 253,
@@ -7002,7 +7002,7 @@
       "wcell": 416,
       "rail": 4,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 264,
@@ -7392,7 +7392,7 @@
       "wcell": 415,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 279,
@@ -7522,7 +7522,7 @@
       "wcell": 428,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 284,
@@ -7626,7 +7626,7 @@
       "wcell": 400,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 288,
@@ -7652,7 +7652,7 @@
       "wcell": 413,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 289,
@@ -7756,7 +7756,7 @@
       "wcell": 397,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 293,
@@ -8770,7 +8770,7 @@
       "wcell": 372,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 333,
@@ -9420,7 +9420,7 @@
       "wcell": 429,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 358,
@@ -10096,7 +10096,7 @@
       "wcell": 392,
       "rail": 3,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 384,
@@ -12878,7 +12878,7 @@
       "wcell": 392,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 493,
@@ -13294,7 +13294,7 @@
       "wcell": 392,
       "rail": 3,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 509,
@@ -13346,7 +13346,7 @@
       "wcell": 380,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 511,
@@ -13736,7 +13736,7 @@
       "wcell": 379,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 526,
@@ -13970,7 +13970,7 @@
       "wcell": 379,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 535,
@@ -14230,7 +14230,7 @@
       "wcell": 377,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 545,
@@ -14282,7 +14282,7 @@
       "wcell": 377,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 547,
@@ -14308,7 +14308,7 @@
       "wcell": 380,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 548,
@@ -14464,7 +14464,7 @@
       "wcell": 390,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 554,
@@ -15088,7 +15088,7 @@
       "wcell": 380,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 578,
@@ -16180,7 +16180,7 @@
       "wcell": 378,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 620,
@@ -17246,7 +17246,7 @@
       "wcell": 342,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 661,
@@ -18130,7 +18130,7 @@
       "wcell": 341,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 696,
@@ -18182,7 +18182,7 @@
       "wcell": 343,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 698,
@@ -18442,7 +18442,7 @@
       "wcell": 344,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 708,
@@ -19768,7 +19768,7 @@
       "wcell": 341,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 761,
@@ -19872,7 +19872,7 @@
       "wcell": 341,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 765,
@@ -21042,7 +21042,7 @@
       "wcell": 343,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 810,
@@ -21068,7 +21068,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 811,
@@ -21458,7 +21458,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 828,
@@ -21926,7 +21926,7 @@
       "wcell": 310,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 846,
@@ -22056,7 +22056,7 @@
       "wcell": 304,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 851,
@@ -22134,7 +22134,7 @@
       "wcell": 304,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 854,
@@ -23018,7 +23018,7 @@
       "wcell": 298,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 888,
@@ -23096,7 +23096,7 @@
       "wcell": 311,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 892,
@@ -23122,7 +23122,7 @@
       "wcell": 311,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 893,
@@ -23148,7 +23148,7 @@
       "wcell": 316,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 894,
@@ -23798,7 +23798,7 @@
       "wcell": 297,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 920,
@@ -23902,7 +23902,7 @@
       "wcell": 295,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 924,
@@ -24084,7 +24084,7 @@
       "wcell": 254,
       "rail": 3,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 931,
@@ -24110,7 +24110,7 @@
       "wcell": 317,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 932,
@@ -24604,7 +24604,7 @@
       "wcell": 262,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 951,
@@ -24630,7 +24630,7 @@
       "wcell": 280,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 952,
@@ -24656,7 +24656,7 @@
       "wcell": 262,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 953,
@@ -24734,7 +24734,7 @@
       "wcell": 263,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 956,
@@ -25046,7 +25046,7 @@
       "wcell": 262,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 971,
@@ -25072,7 +25072,7 @@
       "wcell": 263,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 972,
@@ -25124,7 +25124,7 @@
       "wcell": 261,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 974,
@@ -25280,7 +25280,7 @@
       "wcell": 273,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 981,
@@ -25644,7 +25644,7 @@
       "wcell": 260,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 996,
@@ -25696,7 +25696,7 @@
       "wcell": 274,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 998,
@@ -25852,7 +25852,7 @@
       "wcell": 277,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1005,
@@ -26060,7 +26060,7 @@
       "wcell": 261,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1013,
@@ -26138,7 +26138,7 @@
       "wcell": 280,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1016,
@@ -26216,7 +26216,7 @@
       "wcell": 261,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1019,
@@ -26320,7 +26320,7 @@
       "wcell": 268,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1023,
@@ -26372,7 +26372,7 @@
       "wcell": 279,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1026,
@@ -26450,7 +26450,7 @@
       "wcell": 261,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1029,
@@ -26528,7 +26528,7 @@
       "wcell": 268,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1032,
@@ -26554,7 +26554,7 @@
       "wcell": 274,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1033,
@@ -26710,7 +26710,7 @@
       "wcell": 238,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1040,
@@ -26736,7 +26736,7 @@
       "wcell": 226,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1041,
@@ -26814,7 +26814,7 @@
       "wcell": 238,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1044,
@@ -26944,7 +26944,7 @@
       "wcell": 233,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1049,
@@ -26996,7 +26996,7 @@
       "wcell": 225,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1051,
@@ -27256,7 +27256,7 @@
       "wcell": 232,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1062,
@@ -27282,7 +27282,7 @@
       "wcell": 242,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1063,
@@ -27386,7 +27386,7 @@
       "wcell": 226,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1068,
@@ -27542,7 +27542,7 @@
       "wcell": 232,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1074,
@@ -27750,7 +27750,7 @@
       "wcell": 245,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1084,
@@ -27984,7 +27984,7 @@
       "wcell": 228,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1094,
@@ -28036,7 +28036,7 @@
       "wcell": 226,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1096,
@@ -28088,7 +28088,7 @@
       "wcell": 228,
       "rail": 3,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1099,
@@ -28270,7 +28270,7 @@
       "wcell": 210,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1107,
@@ -28322,7 +28322,7 @@
       "wcell": 209,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1109,
@@ -28374,7 +28374,7 @@
       "wcell": 235,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1111,
@@ -28738,7 +28738,7 @@
       "wcell": 188,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1130,
@@ -28998,7 +28998,7 @@
       "wcell": 190,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1140,
@@ -29076,7 +29076,7 @@
       "wcell": 212,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1144,
@@ -29310,7 +29310,7 @@
       "wcell": 199,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1156,
@@ -29492,7 +29492,7 @@
       "wcell": 199,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1164,
@@ -29726,7 +29726,7 @@
       "wcell": 210,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1175,
@@ -29856,7 +29856,7 @@
       "wcell": 210,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1182,
@@ -30012,7 +30012,7 @@
       "wcell": 154,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1188,
@@ -30480,7 +30480,7 @@
       "wcell": 129,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1210,
@@ -30636,7 +30636,7 @@
       "wcell": 179,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1218,
@@ -30948,7 +30948,7 @@
       "wcell": 142,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1235,
@@ -32482,7 +32482,7 @@
       "wcell": 84,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1302,
@@ -32508,7 +32508,7 @@
       "wcell": 83,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1304,
@@ -32664,7 +32664,7 @@
       "wcell": 82,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1310,
@@ -32898,7 +32898,7 @@
       "wcell": 68,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1321,
@@ -33002,7 +33002,7 @@
       "wcell": 71,
       "rail": 2,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1326,
@@ -33184,7 +33184,7 @@
       "wcell": 60,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1337,
@@ -33210,7 +33210,7 @@
       "wcell": 12,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1338,
@@ -33236,7 +33236,7 @@
       "wcell": 11,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1340,
@@ -33262,7 +33262,7 @@
       "wcell": 11,
       "rail": 1,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1342,
@@ -33288,7 +33288,7 @@
       "wcell": 14,
       "rail": 0,
       "fort": 0,
-      "port": false
+      "port": true
     },
     {
       "id": 1343,
@@ -33449,7 +33449,7 @@
       "wcell": 431,
       "rail": 1,
       "fort": 0,
-      "port": false,
+      "port": true,
       "island": "kiska"
     },
     {
@@ -33476,7 +33476,7 @@
       "wcell": 431,
       "rail": 1,
       "fort": 0,
-      "port": false,
+      "port": true,
       "island": "attu"
     },
     {
@@ -33611,7 +33611,7 @@
       "wcell": 320,
       "rail": 1,
       "fort": 0,
-      "port": false,
+      "port": true,
       "island": "iwo_jima"
     },
     {
@@ -33665,7 +33665,7 @@
       "wcell": 251,
       "rail": 0,
       "fort": 0,
-      "port": false,
+      "port": true,
       "island": "tarawa"
     },
     {
@@ -33881,7 +33881,7 @@
       "wcell": 343,
       "rail": 1,
       "fort": 0,
-      "port": false,
+      "port": true,
       "island": "pantelleria"
     },
     {
