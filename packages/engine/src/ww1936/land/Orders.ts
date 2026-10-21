@@ -73,7 +73,10 @@ export function issueArmyOrder(
   switch (order.kind) {
     case "army_move":
       // Spec §7.3: a move onto an enemy region is a one-target attack.
-      if (!land.sameSide(a.owner, land.controller[order.region])) {
+      // P5 lane A: a volunteer army's side is its host's (ownerForSides).
+      if (
+        !land.sameSide(land.ownerForSides(a), land.controller[order.region])
+      ) {
         setPlan(land, a, [order.region], "aggressive", true);
       } else {
         setMove(land, a, order.region, MOVE_WALK);
@@ -167,12 +170,13 @@ export function setGarrison(land: WwLand, a: Army, scope: number): void {
 function setMove(land: WwLand, a: Army, to: number, mode: number): void {
   const from = land.armyRegion(a);
   setOrder(a, { ...idleOrder(), kind: "move", to, mode });
-  const ours = (r: number) => land.sameSide(a.owner, land.controller[r]);
+  const me = land.ownerForSides(a);
+  const ours = (r: number) => land.sameSide(me, land.controller[r]);
   a.path =
     mode === MOVE_SEA
       ? [from, to]
       : mode === MOVE_RAIL
-        ? railPath(land, a.owner, from, to)
+        ? railPath(land, me, from, to)
         : findPath(land, a, from, to, ours);
 }
 
@@ -239,12 +243,13 @@ function autoAnchor(
   enemy: number,
   targets: readonly number[],
 ): number {
-  const border = new Set(borderRegionsOf(land, a.owner, enemy));
+  const me = land.ownerForSides(a);
+  const border = new Set(borderRegionsOf(land, me, enemy));
   if (targets.length > 0) {
     return nearestBorder(land, border, targets, () => true);
   }
   return nearestBorder(land, border, [land.armyRegion(a)], (r) =>
-    land.sameSide(a.owner, land.controller[r]),
+    land.sameSide(me, land.controller[r]),
   );
 }
 
@@ -256,6 +261,8 @@ function split(land: WwLand, a: Army, count: number, template: number): void {
   );
   const b = land.newArmy(a.owner);
   if (b === null) return;
+  // P5 lane A: a volunteer army's part stays a volunteer of the same host.
+  if (a.volunteerFor > 0) land.setVolunteerFor(b, a.volunteerFor);
   for (const id of ids.slice(ids.length - count)) land.moveToArmy(id, b);
   b.pending = true;
 }
@@ -311,7 +318,7 @@ export function stopOrFinishEdge(land: WwLand, r: number): void {
     t.dest[r] = t.region[r];
   } else if (
     m === MOVE_WALK &&
-    !land.sameSide(t.owner[r], land.controller[t.next[r]])
+    !land.sameSide(land.fightOwner(r), land.controller[t.next[r]])
   ) {
     stopDivision(land, r);
   } else if (m === MOVE_WALK || m === MOVE_RAIL || m === MOVE_SEA) {
@@ -323,6 +330,7 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
   const t = land.divisions;
   const o = a.order;
   const rows = armyRows(land, a);
+  const me = land.ownerForSides(a);
   switch (o.kind) {
     case "idle":
       for (const r of rows) {
@@ -344,10 +352,7 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
           if (t.mode[r] !== MOVE_NONE) t.org[r] = 0;
           continue;
         }
-        if (
-          m === MOVE_WALK &&
-          !land.sameSide(a.owner, land.controller[t.next[r]])
-        ) {
+        if (m === MOVE_WALK && !land.sameSide(me, land.controller[t.next[r]])) {
           stopDivision(land, r);
         }
         t.dest[r] = o.to;
@@ -362,7 +367,7 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
           leaveAttack(land, r);
           if (
             t.mode[r] === MOVE_WALK &&
-            !land.sameSide(a.owner, land.controller[t.next[r]])
+            !land.sameSide(me, land.controller[t.next[r]])
           ) {
             stopDivision(land, r);
           }
@@ -483,6 +488,8 @@ export function orderCheckArmy(land: WwLand, a: Army): OrderCheckArmy {
   }
   return {
     owner: a.owner,
+    // P5 lane A: a volunteer army's side checks read its host.
+    sides: land.ownerForSides(a),
     divisions: templates.length,
     regions: [...regions].sort((x, y) => x - y),
     fighting,

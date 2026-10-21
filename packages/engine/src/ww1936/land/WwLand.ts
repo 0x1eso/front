@@ -1094,6 +1094,16 @@ export class WwLand {
   }
 
   /**
+   * P5 lane A (controller ruling): the country whose side an army's orders
+   * read — its volunteer host when it has one (HOI4: the sender commands
+   * its volunteers inside the host's war), else its owner. Supply, stock,
+   * reinforcement and readiness stay the owner's.
+   */
+  ownerForSides(a: Army): number {
+    return a.volunteerFor > 0 ? a.volunteerFor : a.owner;
+  }
+
+  /**
    * P5 (pre-flight §A A × T1): where an army may go — a volunteer army by
    * P5's rule (lane A), else its owner's (canEnter).
    */

@@ -198,6 +198,16 @@ export function sweepRefused(land: WwLand): void {
     const at = t.region[r];
     const c = land.controller[at];
     if (c === 0 || c === owner || land.canEnter(owner, at)) continue;
+    // P5 lane A (controller ruling): a volunteer stands where its host's
+    // side may (P5 spec §12.2); the volunteers' own day sends it home.
+    const army = land.armies.get(t.army[r]);
+    if (
+      army !== undefined &&
+      army.volunteerFor > 0 &&
+      land.canArmyEnter(army, at)
+    ) {
+      continue;
+    }
     teleport(
       land,
       r,

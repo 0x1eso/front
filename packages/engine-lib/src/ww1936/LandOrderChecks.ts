@@ -31,6 +31,11 @@ export interface OrderCheckArmy {
    * and a plan without targets are not judged on it (the engine fills it).
    */
   front?: boolean;
+  /**
+   * P5 lane A: the country whose side the army's orders read — a volunteer
+   * army's host (P5 spec §12.2). Optional: absent, its owner.
+   */
+  sides?: number;
 }
 
 export interface OrderCheckWorld extends FrontWorld {
@@ -63,6 +68,20 @@ export function landOrderBlockOf(
   if (!("army" in order)) return null;
   const a = w.army(order.army);
   if (a === null || a.owner !== w.me) return "no_army";
+  // P5 lane A: the owner gives the order; a volunteer army's side checks
+  // (where it may go, what it may attack) read its host's.
+  const sides = a.sides ?? w.me;
+  if (sides !== w.me && order.kind !== "army_merge") {
+    return armyOrderBlockAs({ ...w, me: sides }, a, order);
+  }
+  return armyOrderBlockAs(w, a, order);
+}
+
+function armyOrderBlockAs(
+  w: OrderCheckWorld,
+  a: OrderCheckArmy,
+  order: Extract<LandOrder, { army: number }>,
+): WwOrderBlock | null {
   switch (order.kind) {
     case "army_move":
       return moveBlock(w, a, order.region);
@@ -235,6 +254,8 @@ function mergeBlock(
   const b = w.army(into);
   if (b === null || b.owner !== w.me) return "no_army";
   if (into === id) return "bad_index";
+  // P5 lane A: a volunteer army and an army of another side stay apart.
+  if ((a.sides ?? a.owner) !== (b.sides ?? b.owner)) return "not_adjacent";
   if (!a.regions.some((r) => b.regions.includes(r))) return "not_adjacent";
   return a.divisions + b.divisions > WW_MAX_ARMY_DIVISIONS ? "army_full" : null;
 }
