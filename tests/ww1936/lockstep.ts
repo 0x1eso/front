@@ -11,13 +11,15 @@ import type {
   GameStartInfo,
   StampedIntent,
   Turn,
+  WwOrder,
 } from "@openfront/engine-api/Schemas";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   MOVE_RAIL,
   MOVE_RETREAT,
   MOVE_SEA,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game } from "@openfront/engine/game/Game";
 import {
   createGameRunner,
@@ -31,6 +33,7 @@ import {
   SPREAD_CAPTURE,
   SPREAD_REVERT,
 } from "@openfront/engine/ww1936/land/WwLand";
+import { focusCards } from "@openfront/engine/ww1936/politics/Focus";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -503,4 +506,58 @@ export function worldMoments(): Moment[] {
       when: grows((g) => g.worldWar()!.data().capitulated.length),
     },
   ];
+}
+
+// ---- A scripted human (det-sim --human) ----
+
+/**
+ * A human country's turns on any map, read from the game alone: a focus
+ * whenever none runs (the first open one of its tree), each event card
+ * answered "a" a day after it came, and on 1939-08-25 the pact with Poland
+ * broken and on 1939-09-01 war declared on it (beats never move a human).
+ * Refused orders are fine: they are part of the replayed turns too.
+ */
+export function scriptedHuman(
+  tag: CountryTag,
+  clientID: string,
+): (g: Game) => StampedIntent[] {
+  const ord = (o: WwOrder): StampedIntent =>
+    ({ type: "ww_order", order: o, clientID }) as StampedIntent;
+  return (g) => {
+    const ww = g.worldWar()!;
+    const me = ww.playerOfTag(tag);
+    if (me === null || !me.isAlive() || ww.inPrep(g.ticks())) return [];
+    const p = ww.politics;
+    const c = p.country(me.smallID())!;
+    const day = ww.day(g.ticks());
+    const k = g.ticks() - dayStartTick(day, ww.prepEndTick());
+    const out: StampedIntent[] = [];
+    for (const card of c.pending) {
+      if (g.ticks() === card.firedTick + 8) {
+        out.push(ord({ kind: "event_choose", uid: card.uid, option: "a" }));
+      }
+    }
+    if (k !== 2) return out;
+    if (c.focus === null) {
+      const open = focusCards(p, me.smallID()).find((x) => x.state === 0);
+      if (open !== undefined) {
+        const fi = p.content.treeFocuses[c.tree][open.idx];
+        out.push(ord({ kind: "focus_start", focus: p.content.focuses[fi].id }));
+      }
+    }
+    const pol = ww.playerOfTag("POL");
+    if (pol !== null && tag !== "POL") {
+      if (day === dayOfDate("1939-08-25")) {
+        out.push(ord({ kind: "nap_break", target: pol.smallID() }));
+      }
+      if (day === dayOfDate("1939-09-01")) {
+        out.push({
+          type: "declare_war",
+          target: pol.id(),
+          clientID,
+        } as StampedIntent);
+      }
+    }
+    return out;
+  };
 }

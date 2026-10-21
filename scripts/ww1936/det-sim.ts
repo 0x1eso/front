@@ -13,7 +13,11 @@
  *
  *   npx tsx scripts/ww1936/det-sim.ts [--seed WWDET001] [--until 20000]
  *       [--historical on|off|both] [--window 1000] [--ww 25]
- *       [--periodic 1500] [--no-graphs] [--no-replay]
+ *       [--periodic 1500] [--human DEU] [--no-graphs] [--no-replay]
+ *
+ * --human: that country is a human's, played by lockstep.ts's
+ * scriptedHuman (focuses, event cards, the 1939 war on Poland); the replay
+ * then sends its turns through the binary turn message and JSON first.
  *
  * Exits 1 at the first difference, with the copy, the tick and the paths.
  */
@@ -24,10 +28,17 @@ import {
   GameMode,
   GameType,
 } from "@openfront/engine-api/game/GameTypes";
-import type { GameStartInfo } from "@openfront/engine-api/Schemas";
+import type { GameStartInfo, Turn } from "@openfront/engine-api/Schemas";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  createGameWireContext,
+  decodeServerMessage,
+  encodeServerMessage,
+} from "@openfront/shared/ZbinWire";
 import {
   replay,
   runLockstep,
+  scriptedHuman,
   worldFiles,
   worldMoments,
 } from "../../tests/ww1936/lockstep";
@@ -41,6 +52,7 @@ interface Opts {
   periodic: number;
   graphs: boolean;
   replay: boolean;
+  human: CountryTag | null;
 }
 
 function parse(argv: string[]): Opts {
@@ -53,6 +65,7 @@ function parse(argv: string[]): Opts {
     periodic: 1500,
     graphs: true,
     replay: true,
+    human: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const next = () => argv[++i];
@@ -77,6 +90,9 @@ function parse(argv: string[]): Opts {
       case "--periodic":
         o.periodic = Number(next());
         break;
+      case "--human":
+        o.human = next() as CountryTag;
+        break;
       case "--no-graphs":
         o.graphs = false;
         break;
@@ -90,7 +106,13 @@ function parse(argv: string[]): Opts {
   return o;
 }
 
-function startInfo(seed: string, historical: boolean): GameStartInfo {
+const HUMAN_ID = "HUMAN001";
+
+function startInfo(
+  seed: string,
+  historical: boolean,
+  human: CountryTag | null,
+): GameStartInfo {
   return {
     gameID: seed,
     lobbyCreatedAt: 0,
@@ -111,7 +133,18 @@ function startInfo(seed: string, historical: boolean): GameStartInfo {
       worldWar1936: true,
       historicalAi: historical,
     },
-    players: [],
+    players:
+      human === null
+        ? []
+        : [
+            {
+              clientID: HUMAN_ID,
+              username: "player0",
+              clanTag: null,
+              isLobbyCreator: true,
+              country: human,
+            },
+          ],
   };
 }
 
@@ -119,7 +152,7 @@ async function main(): Promise<void> {
   const o = parse(process.argv.slice(2));
   const files = await worldFiles();
   for (const historical of o.historical) {
-    const start = startInfo(o.seed, historical);
+    const start = startInfo(o.seed, historical, o.human);
     const t0 = performance.now();
     console.log(
       `== ${o.seed}, historical ${historical ? "on" : "off"}, to tick ${o.until}`,
@@ -133,6 +166,7 @@ async function main(): Promise<void> {
       graphs: o.graphs,
       periodic: o.periodic,
       moments: worldMoments(),
+      intents: o.human === null ? undefined : scriptedHuman(o.human, HUMAN_ID),
       log: (l) => console.log(l),
     });
     console.log(
@@ -144,13 +178,24 @@ async function main(): Promise<void> {
     const last = rep.hashes[rep.hashes.length - 1];
     console.log(`final hash ${last}`);
     if (o.replay) {
-      const again = await replay(start, files, rep.turns);
+      // As the server relays the turns (binary) and archives them (JSON).
+      const ctx = createGameWireContext(start.players);
+      const turns = rep.turns.map((turn) => {
+        const m = decodeServerMessage(
+          encodeServerMessage({ type: "turn", turn }, ctx),
+          ctx,
+        );
+        if (m.type !== "turn") throw new Error("not a turn");
+        return JSON.parse(JSON.stringify(m.turn)) as Turn;
+      });
+      const orders = turns.reduce((n, t) => n + t.intents.length, 0);
+      const again = await replay(start, files, turns);
       const i = again.findIndex((h, k) => h !== rep.hashes[k]);
       if (i >= 0) {
         throw new Error(`the replay diverged at tick ${i + 1}`);
       }
       console.log(
-        `replay from turn 0: the same hash on all ${again.length} ticks`,
+        `replay from turn 0 (${orders} intents): the same hash on all ${again.length} ticks`,
       );
     }
   }
