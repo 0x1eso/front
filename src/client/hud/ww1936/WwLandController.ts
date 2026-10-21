@@ -40,6 +40,7 @@ import {
   WwLandSelection,
   WwSelectArmyEvent,
 } from "./LandSelection";
+import { peaceMapTap } from "./PeaceModel";
 import { today, TWO_TAP_MIN_MS, wwActive } from "./WorldWarModel";
 import type { WwSeaAirController } from "./WwSeaAirController";
 
@@ -201,6 +202,8 @@ export class WwLandController implements Controller {
     }
     const zoom = Math.max(1e-6, this.transform.scale);
     const w = this.transform.screenToWorldCoordinatesFloat(x, y);
+    // P5 (lane U1, spec §20.2): the conference map mode takes every tap first.
+    if (peaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     const radius = TAP_RADIUS_PX / zoom;
     // 1. One of my tokens: choose it (over a stack, the one after the chosen).
     const mine = this.deps

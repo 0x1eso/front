@@ -6,6 +6,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import { peaceRole, peaceUiOf } from "./PeaceModel";
 import {
   canAct,
   eventCardModel,
@@ -17,6 +18,8 @@ import { TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
 
 /** Spec §21.6: at most this many cards open at once; the rest wait behind "+N". */
 export const MAX_SHOWN_CARDS = 2;
+/** P5 spec §20.1: under the peace conference card only one card shows. */
+export const MAX_SHOWN_WITH_PEACE = 1;
 /** A card's width: as wide as the congress cards' column allows, at most 380 px. */
 const CARD_WIDTH = "w-[min(46vw,380px)]";
 /** Space kept below the band, in CSS px. */
@@ -46,7 +49,8 @@ export const EVENT_LAYER_CLASS = "fixed z-[1003] pointer-events-none";
  * country over), a time bar and what happens when time runs out. The
  * first tap on an option arms it ("tap again to confirm", 3 s), the second
  * sends ww_order {event_choose}; the card then says it waits for the next
- * tick. "–" folds a card to a strip (its time still runs).
+ * tick. "–" folds a card to a strip (its time still runs). P5 (spec §20.1):
+ * while the peace conference card shows above, one card and "+N" only.
  */
 @customElement("ww-event-cards")
 export class WwEventCards extends LitElement implements Controller {
@@ -57,6 +61,11 @@ export class WwEventCards extends LitElement implements Controller {
   private readonly chosen = new Map<number, { option: string; tick: number }>();
   private readonly folded = new Set<number>();
   private readonly unfolded = new Set<number>();
+  /**
+   * P5: on a phone the card under the peace conference card starts as a
+   * strip; the ones opened again stay open.
+   */
+  private readonly peaceOpened = new Set<number>();
   private layer: HTMLDivElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private stackTemplate: TemplateResult | null = null;
@@ -123,13 +132,16 @@ export class WwEventCards extends LitElement implements Controller {
         this.requestUpdate();
       }
     }
-    for (const set of [this.folded, this.unfolded]) {
+    for (const set of [this.folded, this.unfolded, this.peaceOpened]) {
       for (const uid of [...set]) if (!live.has(uid)) set.delete(uid);
     }
     const key = [
       i?.view.version ?? 0,
       Math.ceil((this.game?.ticks() ?? 0) / 10),
       cards.length,
+      // P5: the peace card above (one card under it) and its map mode.
+      this.game ? peaceRole(this.game) : null,
+      this.game ? peaceUiOf(this.game).map : false,
     ];
     if (key.some((v, n) => v !== this.drawn[n])) {
       this.drawn = key;
@@ -153,8 +165,16 @@ export class WwEventCards extends LitElement implements Controller {
     const slot = this.querySelector<HTMLElement>("[data-ww-event-slot]");
     const stack = layer.querySelector<HTMLElement>("[data-ww-event-stack]");
     if (slot === null || stack === null) return;
+    // P5: the peace conference card stands above the slot (spec §20.1).
+    const peace =
+      document
+        .querySelector<HTMLElement>("[data-ww-peace-stack]")
+        ?.getBoundingClientRect().height ?? 0;
     const room = (r: DOMRect) =>
-      Math.max(96, Math.floor(r.bottom - WW_BAND_PX - TOP_GAP));
+      Math.max(
+        peace > 0 ? 48 : 96,
+        Math.floor(r.bottom - WW_BAND_PX - TOP_GAP - peace),
+      );
     const before = slot.getBoundingClientRect();
     stack.style.maxHeight = `${room(before)}px`;
     const height = `${Math.round(stack.getBoundingClientRect().height)}px`;
@@ -197,14 +217,25 @@ export class WwEventCards extends LitElement implements Controller {
       .map((c) => eventCardModel(i, c))
       .filter((c): c is EventCardView => c !== null);
     if (cards.length === 0) return nothing;
-    const shown = cards.slice(0, MAX_SHOWN_CARDS);
+    // P5 (spec §20.1, §20.9): under a peace conference card one card shows
+    // (on a phone as a strip until opened); in the conference map mode on a
+    // phone none (the map mode's band alone).
+    const peace = peaceRole(this.game) !== null;
+    const compact = window.innerHeight <= COMPACT_MAX_HEIGHT;
+    if (peace && compact && peaceUiOf(this.game).map) return nothing;
+    const shown = cards.slice(
+      0,
+      peace ? MAX_SHOWN_WITH_PEACE : MAX_SHOWN_CARDS,
+    );
     const more = cards.length - shown.length;
+    const strip = (uid: number) =>
+      this.folded.has(uid) || (peace && compact && !this.peaceOpened.has(uid));
     this.stackTemplate = html`<div
       data-ww-event-stack
       class="flex flex-col items-start gap-1 overflow-y-auto"
     >
       ${shown.map((c) =>
-        this.folded.has(c.uid) ? this.renderStrip(c) : this.renderCard(c),
+        strip(c.uid) ? this.renderStrip(c) : this.renderCard(c),
       )}
       ${more > 0
         ? html`<span
@@ -248,6 +279,7 @@ export class WwEventCards extends LitElement implements Controller {
           aria-label=${translateText("ww1936.eventui.expand")}
           @click=${() => {
             this.folded.delete(c.uid);
+            this.peaceOpened.add(c.uid);
             this.requestUpdate();
           }}
         >
@@ -311,6 +343,7 @@ export class WwEventCards extends LitElement implements Controller {
             aria-label=${translateText("ww1936.eventui.collapse")}
             @click=${() => {
               this.folded.add(c.uid);
+              this.peaceOpened.delete(c.uid);
               this.requestUpdate();
             }}
           >
