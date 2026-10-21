@@ -35,7 +35,7 @@ export class PlayerStats extends StatsTable {
           myPlayer !== null &&
           (player === myPlayer ||
             player.isOnSameTeam(myPlayer) ||
-            (ww && sameFaction(myPlayer, player))),
+            (ww && sameFaction(myPlayer, player, game))),
         pinned: player === myPlayer,
         onClick: () => {
           if (this.eventBus !== null) {

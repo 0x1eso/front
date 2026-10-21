@@ -15,12 +15,17 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { DIAL_GLOW_CLASS } from "../../../src/client/hud/domestic/Dial";
+import "../../../src/client/hud/ww1936/WwDials";
+import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import {
   OpenWwIndustryEvent,
   OpenWwPoliticsEvent,
   WwDrawerEvent,
   WwPoliticsTab,
 } from "../../../src/client/hud/ww1936/WwDrawer";
+import "../../../src/client/hud/ww1936/WwFocusPanel";
+import type { WwFocusPanel } from "../../../src/client/hud/ww1936/WwFocusPanel";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
 import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
 import "../../../src/client/hud/ww1936/WwPoliticsPanel";
@@ -310,6 +315,90 @@ describe("<ww-politics-panel> (P3 spec §21.4)", () => {
       decision: "gen_coup_dem",
       target: ID("POL"),
     });
+  });
+
+  it("a filled seat may be replaced; a coup takes two taps", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const m = mount(
+      mine(
+        {
+          candidates: ["title:administrator"],
+          advisors: [
+            "title:fiscal_hawk",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+          ],
+          decisions: [
+            {
+              id: "gen_coup_dem",
+              target: ID("POL"),
+              state: 0,
+              costPp: 150,
+              cooldownUntil: 0,
+              failing: [],
+            },
+          ],
+        },
+        { ruling: 0 },
+      ),
+    );
+    await m.open("advisors");
+    await m.click("[data-ww-seat='0'] [data-ww-seat-pick]");
+    const hire = m.q("[data-ww-hire='title:administrator']")!;
+    expect(hire.textContent).toContain("[ww1936.pol.adv.replace]");
+    await m.click("[data-ww-hire='title:administrator']");
+    expect(m.sent).toEqual([
+      { kind: "advisor_hire", slot: 0, advisor: "title:administrator" },
+    ]);
+    await m.open("decisions");
+    const coup = m.q("[data-ww-decision='gen_coup_dem']")!;
+    expect(coup.textContent).toContain(
+      "[ww1936.equip.infantry_equipment] 1,000",
+    );
+    await m.click(`[data-ww-take-target='${ID("POL")}']`);
+    expect(m.sent).toHaveLength(1);
+    expect(m.q(`[data-ww-take-target='${ID("POL")}']`)!.textContent).toContain(
+      "[ww1936.pol.tap_again]",
+    );
+    vi.setSystemTime(10_500);
+    await m.click(`[data-ww-take-target='${ID("POL")}']`);
+    expect(m.sent[1]).toEqual({
+      kind: "decision_take",
+      decision: "gen_coup_dem",
+      target: ID("POL"),
+    });
+  });
+
+  it("the 🎯 dial opens the focus drawer (Task 7's panel)", async () => {
+    const m = mount(mine({}, {}));
+    const focus = document.createElement("ww-focus-panel") as WwFocusPanel;
+    focus.game = m.game as never;
+    focus.eventBus = m.bus;
+    document.body.appendChild(focus);
+    focus.init();
+    const dials = document.createElement("ww-dials") as WwDials;
+    dials.game = m.game as never;
+    dials.eventBus = m.bus;
+    document.body.appendChild(dials);
+    dials.init();
+    dials.tick();
+    await dials.updateComplete;
+    const dial = dials.querySelector<HTMLButtonElement>(
+      "[data-ww-dial='focus']",
+    )!;
+    expect(dial.className).toContain(DIAL_GLOW_CLASS);
+    dial.click();
+    focus.tick();
+    await focus.updateComplete;
+    expect(focus.querySelector("[data-ww-drawer='focus']")).not.toBeNull();
+    await dials.updateComplete;
+    expect(dial.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("one drawer at a time, and the industry drawer's tab opens the laws", async () => {

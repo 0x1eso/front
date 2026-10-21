@@ -3712,7 +3712,6 @@
       "stock_only": "비축만 됩니다(항공전은 뒤 단계)",
       "stockpile": "비축",
       "tab_construction": "건설",
-      "tab_laws": "법·인력",
       "tab_production": "생산",
       "tab_trade": "자원·무역",
       "trade_civs": "무역 {n}",
@@ -5191,7 +5190,6 @@
       "btn_stop": "중지",
       "card_collapse": "군 카드 접기",
       "card_expand": "군 카드 펼치기",
-      "casualties_today": "오늘 사상자",
       "deploy_now": "즉시 배치",
       "designer_copy": "복사",
       "designer_delete": "삭제",
@@ -5456,9 +5454,7 @@
       "sun_poland": "소련이 동쪽에서 폴란드를 침공했다"
     },
     "panel": {
-      "at_peace": "평화",
       "my_wars": "내 전쟁",
-      "next_history": "역사상 다음 사건: {date}",
       "scores": "지금 판정하면",
       "title": "외교"
     },
@@ -5549,7 +5545,8 @@
         "in_seat": "재직 중",
         "locked": "{days}일 동안 바꿀 수 없음",
         "no_candidates": "아직 후보가 없습니다",
-        "until": "{date}까지 재직"
+        "until": "{date}까지 재직",
+        "replace": "교체"
       },
       "band": {
         "pp": "정치력 {pp}, 하루 {gain}",
@@ -5722,8 +5719,8 @@
       "who_prefix": "{who}: "
     },
     "region": {
-      "original_owner": "1936년: {country}",
-      "vp": "승점 {vp}"
+      "vp": "승점 {vp}",
+      "legal_owner": "법적 주인: {country}"
     },
     "region_cat": {
       "city": "도시",
@@ -5848,7 +5845,12 @@
       "usa_depression": "대공황의 그늘",
       "usa_depression_eased": "누그러진 불황",
       "usa_isolation": "고립주의",
-      "usa_isolation_cracked": "고립주의의 균열"
+      "usa_isolation_cracked": "고립주의의 균열",
+      "gen_allied_course": "동맹 노선",
+      "gen_party_support_communist": "공산주의 지지 운동",
+      "gen_party_support_democratic": "민주주의 지지 운동",
+      "gen_party_support_fascist": "파시즘 지지 운동",
+      "gen_party_support_neutral": "비동맹 지지 운동"
     },
     "spirit_desc": {
       "chn_warlords": "지방의 장군들은 자기에게 이로울 때만 난징 정부를 따른다.",

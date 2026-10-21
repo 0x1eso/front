@@ -190,9 +190,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
           <span class="text-white/60"
             >${translateText("ww1936.pol.gov.leader")}</span
           >
-          <b data-ww-leader class="min-w-0 truncate"
-            >${g.leader === "" ? translateText("ww1936.pol.none") : g.leader}</b
-          >
+          <b data-ww-leader class="min-w-0 truncate">${g.leader}</b>
         </div>
       </section>
       <div class=${HEADING}>${translateText("ww1936.pol.gov.support")}</div>
@@ -339,7 +337,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
         ? "border-amber-300"
         : ""}"
     >
-      <span class="truncate text-[10px] uppercase tracking-wide text-white/60"
+      <span class="truncate text-xs uppercase tracking-wide text-white/60"
         >${s.slotName}</span
       >
       ${h === null
@@ -353,7 +351,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
             ${translateText("ww1936.pol.adv.empty")}
           </button>`
         : html`<b class="truncate">${h.name}</b>
-            <span class="text-[10px] text-emerald-300"
+            <span class="text-xs text-emerald-300"
               >${translateText("ww1936.pol.adv.in_seat")}</span
             >
             <span class="truncate text-white/70">${h.traits.join(", ")}</span>
@@ -363,21 +361,33 @@ export class WwPoliticsPanel extends WwDrawerBase {
             ${h.until === null
               ? nothing
               : html`<span class="text-white/60">${h.until}</span>`}
-            <button
-              type="button"
-              data-ww-fire=${s.index}
-              data-armed=${String(armed)}
-              class="${BUTTON} ${armed ? "ring-2 ring-red-400" : ""}"
-              ?disabled=${s.lockDays > 0}
-              @click=${() =>
-                this.confirmTap(key, () =>
-                  this.send({ kind: "advisor_fire", slot: s.index }),
-                )}
-            >
-              ${armed
-                ? translateText("ww1936.pol.tap_again")
-                : translateText("ww1936.pol.adv.fire")}
-            </button>`}
+            <span class="flex gap-1">
+              <button
+                type="button"
+                data-ww-seat-pick
+                class="${BUTTON} flex-1"
+                ?disabled=${s.lockDays > 0}
+                @click=${() =>
+                  (this.pickSeat = this.pickSeat === s.index ? null : s.index)}
+              >
+                ${translateText("ww1936.pol.adv.replace")}
+              </button>
+              <button
+                type="button"
+                data-ww-fire=${s.index}
+                data-armed=${String(armed)}
+                class="${BUTTON} flex-1 ${armed ? "ring-2 ring-red-400" : ""}"
+                ?disabled=${s.lockDays > 0}
+                @click=${() =>
+                  this.confirmTap(key, () =>
+                    this.send({ kind: "advisor_fire", slot: s.index }),
+                  )}
+              >
+                ${armed
+                  ? translateText("ww1936.pol.tap_again")
+                  : translateText("ww1936.pol.adv.fire")}
+              </button>
+            </span>`}
       ${s.locked === null
         ? nothing
         : html`<span data-ww-seat-locked class="text-amber-300"
@@ -448,7 +458,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
                       this.pickSeat = null;
                     }}
                   >
-                    <span>${translateText("ww1936.pol.adv.hire")}</span>
+                    <span>${c.action}</span>
                     <span class="font-normal text-white/70">${c.cost}</span>
                   </button>
                 </li>`,
@@ -640,8 +650,17 @@ export class WwPoliticsPanel extends WwDrawerBase {
   }
 
   private renderDecision(d: DecisionView): TemplateResult {
-    const take = (target: number) =>
-      this.send({ kind: "decision_take", decision: d.id, target });
+    // A coup takes two taps (it can't be undone); the rest one.
+    const take = (target: number) => {
+      const send = () =>
+        this.send({ kind: "decision_take", decision: d.id, target });
+      if (d.twoTap) this.confirmTap(`take:${d.id}:${target}`, send);
+      else send();
+    };
+    const label = (target: number) =>
+      d.twoTap && this.armed(`take:${d.id}:${target}`)
+        ? translateText("ww1936.pol.tap_again")
+        : translateText("ww1936.pol.decision.take");
     return html`<li data-ww-decision=${d.id} class="${CARD}">
       <div class="flex items-start gap-2">
         <div class="min-w-0 flex-1">
@@ -665,7 +684,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
               ?disabled=${d.state !== 0}
               @click=${() => take(0)}
             >
-              ${translateText("ww1936.pol.decision.take")}
+              ${label(0)}
             </button>`}
       </div>
       ${d.reason === null
@@ -707,10 +726,13 @@ export class WwPoliticsPanel extends WwDrawerBase {
                       type="button"
                       data-ww-take-target=${t.target}
                       class=${BUTTON}
+                      data-armed=${String(
+                        d.twoTap && this.armed(`take:${d.id}:${t.target}`),
+                      )}
                       ?disabled=${t.state !== 0}
                       @click=${() => take(t.target)}
                     >
-                      ${translateText("ww1936.pol.decision.take")}
+                      ${label(t.target)}
                     </button>
                   </li>`,
               )}

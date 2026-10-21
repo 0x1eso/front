@@ -11,9 +11,15 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { EVENT_PICTURES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import fs from "fs";
+import path from "path";
 import { OpenWwDiplomacyEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwEventCards";
-import type { WwEventCards } from "../../../src/client/hud/ww1936/WwEventCards";
+import {
+  CHOICE_WAIT_TICKS,
+  type WwEventCards,
+} from "../../../src/client/hud/ww1936/WwEventCards";
 import "../../../src/client/hud/ww1936/WwNewsTicker";
 import {
   NEWS_SHOW_MS,
@@ -127,9 +133,9 @@ describe("<ww-event-cards> (P3 spec §21.6)", () => {
       "[ww1936.eventui.default] option=[ww1936.event_opt.gen_diplo_nap.a]",
     );
     // An option's effects: the first two lines of describeEffects.
-    expect(c.querySelector("[data-ww-option='a']")!.textContent).toContain(
-      "[ww1936.fx.nap] of=[ww1936.pol.sel.from]",
-    );
+    const a = c.querySelector("[data-ww-option='a']")!.textContent!;
+    expect(a).toContain("[ww1936.fx.nap]");
+    expect(a).toContain("of=[ww1936.pol.sel.from]");
     document.body.innerHTML = "";
     // A human default wins over the AI's pick at the deadline (spec §12.5).
     const ultimatum = await mount(
@@ -175,6 +181,61 @@ describe("<ww-event-cards> (P3 spec §21.6)", () => {
     expect(closed.q<HTMLButtonElement>("[data-ww-option='a']")!.disabled).toBe(
       true,
     );
+  });
+
+  it("a refused choice gives the options back", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const m = await mount(me([card({ uid: 9 })]));
+    const option = () => m.q<HTMLButtonElement>("[data-ww-option='b']")!;
+    option().click();
+    vi.setSystemTime(10_500);
+    option().click();
+    await m.redraw();
+    expect(m.q<HTMLButtonElement>("[data-ww-option='a']")!.disabled).toBe(true);
+    // The card is still there two seconds later: the engine refused it.
+    const game = m.el.game as unknown as { ticks: () => number };
+    const t = game.ticks();
+    game.ticks = () => t + CHOICE_WAIT_TICKS;
+    m.el.tick();
+    await m.redraw();
+    expect(m.q<HTMLButtonElement>("[data-ww-option='a']")!.disabled).toBe(
+      false,
+    );
+    expect(m.q("[data-ww-event-sent]")).toBeNull();
+  });
+
+  it("on a short phone the time stays under the title and the text scrolls", async () => {
+    vi.stubGlobal("innerHeight", 390);
+    const m = await mount(me([card({ uid: 1 })]));
+    const c = m.q("[data-ww-event='1']")!;
+    const order = [
+      ...c.querySelectorAll("[data-ww-event-default], [data-ww-event-body]"),
+    ].map((e) => (e.hasAttribute("data-ww-event-body") ? "body" : "time"));
+    expect(order).toEqual(["time", "body"]);
+    expect(c.querySelector("[data-ww-event-scroll]")!.className).toContain(
+      "overflow-y-auto",
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("the eight pictures are small, plain line drawings", () => {
+    const DIR = path.join(__dirname, "../../../resources/images/ww1936/event");
+    const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".svg"));
+    expect(files.sort()).toEqual(EVENT_PICTURES.map((p) => `${p}.svg`).sort());
+    for (const f of files) {
+      const svg = fs.readFileSync(path.join(DIR, f), "utf8");
+      expect(svg.length, f).toBeLessThanOrEqual(4096);
+      expect(svg, f).not.toMatch(
+        /<script|on[a-z]+=|href=|<image|<foreignObject|<text|style=|Gradient/i,
+      );
+      expect(svg, f).toContain('viewBox="0 0 160 64"');
+      expect(svg, f).toContain("CC BY-SA 4.0");
+      // One light line colour, no fills.
+      for (const m of svg.matchAll(/(fill|stroke)="([^"]*)"/g)) {
+        expect(["none", "#e5e7eb"], `${f} ${m[1]}`).toContain(m[2]);
+      }
+    }
   });
 
   it("a capitulated country and a spectator get no cards", async () => {

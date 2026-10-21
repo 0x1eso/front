@@ -33,6 +33,7 @@ import {
   countryName,
   diplomacyModel,
   factionName,
+  today,
   TWO_TAP_MS,
   TwoTap,
   WW_BAND_PX,
@@ -162,10 +163,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     if (!this.open) return;
     // The HUD around the drawer grows and shrinks during the game.
     this.refit();
+    // Redraw when politics, the wars or the day change (not every tick).
     const key = [
       this.game?.wwPolitics?.()?.version ?? 0,
       this.game?.worldWarData() ?? null,
-      this.game?.ticks() ?? 0,
+      this.game?.worldWarScenario() ? today(this.game) : 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
@@ -301,7 +303,10 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
         ?disabled=${gate.block !== null}
         @click=${() => this.send(order)}
       >
-        ${label} <span class="font-normal text-white/60">· ${gate.cost}</span>
+        ${label}
+        ${gate.cost === null
+          ? nothing
+          : html`<span class="font-normal text-white/60">· ${gate.cost}</span>`}
       </button>
       ${gate.block === null
         ? nothing
@@ -496,7 +501,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               ${translateText("ww1936.diplo.faction.others")}
             </div>
             ${t.others.map((f) =>
-              this.renderFaction(f, false, false, act ? t.request : null),
+              this.renderFaction(f, false, false, act ? f.request : null),
             )}`}
     `;
   }
@@ -698,7 +703,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
                   ></span>`,
               )}
             </div>
-            <div class="relative h-3 text-[10px] text-white/50">
+            <div class="relative h-4 text-xs text-white/50">
               ${w.ticks.map(
                 (t) =>
                   html`<span

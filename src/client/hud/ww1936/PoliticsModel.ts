@@ -33,6 +33,8 @@ import {
   FactionKey,
   factionKeyOf,
   IDEO_DEM,
+  IDEO_FAS,
+  IDEO_NEU,
   IDEOLOGIES,
   Ideology,
   SLOT_BRANCHES,
@@ -42,6 +44,7 @@ import {
   WW_COST,
   WW_CRISIS_DAYS,
   WW_FOREVER,
+  WW_NAP_BREAK_DAYS,
   WW_PP_BASE_MILLI,
   WW_STAT_KEYS,
   WwEventCard,
@@ -87,7 +90,6 @@ import {
   lawPoliticsOf,
   liveWarDays,
   resourceName,
-  TECH_KEYS,
 } from "./EconomyModel";
 import {
   countryName,
@@ -219,14 +221,15 @@ export function ideologyName(i: number | Ideology): string {
   return translateText(`ww1936.ideology.${id}`);
 }
 
-/** A person by id (its nameKey), or a title card ("title:<id>"). */
+/** A person by id (its nameKey), or a title card ("title:<id>"); "None" for nobody. */
 export function personName(id: string): string {
-  if (id === "") return "";
   if (id.startsWith("title:")) {
     return translateText(`ww1936.title.${id.slice("title:".length)}`);
   }
-  const p = CONTENT.personIdx.get(id);
-  return p === undefined ? "" : translateText(p.nameKey);
+  const p = id === "" ? undefined : CONTENT.personIdx.get(id);
+  return p === undefined
+    ? translateText("ww1936.pol.none")
+    : translateText(p.nameKey);
 }
 
 /** Spec §5.3: the country's own government name, else the generic one. */
@@ -290,6 +293,34 @@ export function newsTag(
   }
   return null;
 }
+
+/**
+ * Plan decision 5: the P3 notices (spec §21.8's 16 and the plan's 3), all
+ * MessageType.WORLD_WAR; EventsDisplay names their content ids
+ * (politicsParams). The engine sends them through WwPolitics.message, which
+ * adds the "events_display." prefix.
+ */
+export const POLITICS_NOTICES: ReadonlySet<string> = new Set([
+  "events_display.ww1936_focus_done",
+  "events_display.ww1936_focus_queue_failed",
+  "events_display.ww1936_advisor_left",
+  "events_display.ww1936_government_changed",
+  "events_display.ww1936_leader_changed",
+  "events_display.ww1936_faction_joined",
+  "events_display.ww1936_faction_left",
+  "events_display.ww1936_faction_leader",
+  "events_display.ww1936_treaty",
+  "events_display.ww1936_treaty_ended",
+  "events_display.ww1936_justify_started",
+  "events_display.ww1936_justified_against",
+  "events_display.ww1936_election",
+  "events_display.ww1936_decision",
+  "events_display.ww1936_mission_done",
+  "events_display.ww1936_mission_failed",
+  "events_display.ww1936_event_auto_chosen",
+  "events_display.ww1936_war_goal_expired",
+  "events_display.ww1936_annexed",
+]);
 
 /**
  * Controller ruling R3: the params of a P3 notice or news item as text —
@@ -469,103 +500,96 @@ function ideologyParam(v: string): string {
   return IDEOLOGIES.includes(v as Ideology) ? ideologyName(v as Ideology) : v;
 }
 
-/** The params of a describe line, turned into text as its key expects. */
-function renderParams(
+/** One param of a describe line as text (the T9 key table's rules). */
+function paramText(
   kind: string,
-  raw: Record<string, string | number>,
-  defaults: boolean,
-): Record<string, string | number> {
-  const p: Record<string, string | number> = { ...raw };
-  if (defaults) {
-    for (const k of ZERO_PARAMS) if (!(k in p)) p[k] = 0;
-    for (const k of NONE_PARAMS) if (!(k in p)) p[k] = "none";
+  k: string,
+  v: string | number,
+  params: Record<string, string | number>,
+): string | number {
+  if (typeof v === "number") return v;
+  switch (k) {
+    case "on":
+    case "of":
+    case "vs":
+    case "target":
+      return selectorText(v);
+    case "where":
+      return pickText(v);
+    case "from":
+    case "to":
+      if (kind === "move_buildings") return pickText(v);
+      if (kind === "swap_spirit") return spiritName(v);
+      return selectorText(v);
+    case "tag":
+      return isCountryTag(v) ? countryName(v) : v;
+    case "id":
+      return idText(kind, v);
+    case "person":
+      return personName(v);
+    case "trait":
+      return traitName(v);
+    case "ideology":
+      return ideologyParam(v);
+    case "law":
+      return lawKindName(v as LawKind);
+    case "value":
+      return kind === "law" || kind === "law_ge" || kind === "set_law"
+        ? translateText(`ww1936.law.${params.law}.${v}`)
+        : v;
+    case "building":
+      return buildingName(v as never);
+    case "res":
+      return resourceName(v as never);
+    case "tech":
+      return translateText(`ww1936.tech.${v}`);
+    case "type":
+      return kind === "war_goal" ? wargoalName(v) : equipmentName(v as never);
+    case "goal":
+      return wargoalName(v);
+    case "branch":
+      return branchName(v as never);
+    case "key":
+      return kind === "reserve" ? reserveName(v) : v;
+    case "template":
+      return tplName(v);
+    case "general":
+      return generalIdName(v);
+    case "group":
+      return groupName(v);
+    case "name":
+      return translateText(`ww1936.faction_name.${v}`, { country: "" });
+    case "date":
+      return dateLabel(dayOfDate(v));
   }
-  const str = (k: string) =>
-    typeof raw[k] === "string" ? (raw[k] as string) : null;
-  for (const k of ["who", "on", "of", "vs", "target"]) {
-    const v = str(k);
-    if (v !== null) p[k] = selectorText(v);
-  }
-  const where = str("where");
-  if (where !== null) p.where = pickText(where);
-  for (const k of ["from", "to"]) {
-    const v = str(k);
-    if (v === null) continue;
-    if (kind === "move_buildings") p[k] = pickText(v);
-    else if (kind === "swap_spirit") p[k] = spiritName(v);
-    else p[k] = selectorText(v);
-  }
-  const tag = str("tag");
-  if (tag !== null && isCountryTag(tag)) p.tag = countryName(tag);
-  const id = str("id");
-  if (id !== null) p.id = idText(kind, id);
-  const person = str("person");
-  if (person !== null) p.person = personName(person);
-  const trait = str("trait");
-  if (trait !== null) p.trait = traitName(trait);
-  const ideology = str("ideology");
-  if (ideology !== null) p.ideology = ideologyParam(ideology);
-  const law = str("law");
-  if (law !== null) p.law = lawKindName(law as LawKind);
-  const value = str("value");
-  if (
-    value !== null &&
-    (kind === "law" || kind === "law_ge" || kind === "set_law")
-  ) {
-    p.value = lawName(value as LawValue);
-  }
-  const building = str("building");
-  if (building !== null) p.building = buildingName(building as never);
-  const res = str("res");
-  if (res !== null) p.res = resourceName(res as never);
-  const tech = str("tech");
-  if (tech !== null) {
-    p.tech = translateText(TECH_KEYS[tech as keyof typeof TECH_KEYS]);
-  }
-  const type = str("type");
-  if (type !== null) {
-    p.type =
-      kind === "war_goal" ? wargoalName(type) : equipmentName(type as never);
-  }
-  const goal = str("goal");
-  if (goal !== null) p.goal = wargoalName(goal);
-  const branch = str("branch");
-  if (branch !== null) p.branch = branchName(branch as never);
-  const key = str("key");
-  if (key !== null && kind === "reserve") p.key = reserveName(key);
-  const template = str("template");
-  if (template !== null) p.template = tplName(template);
-  const general = str("general");
-  if (general !== null) p.general = generalIdName(general);
-  const group = str("group");
-  if (group !== null) p.group = groupName(group);
-  const name = str("name");
-  if (name !== null) {
-    p.name = translateText(`ww1936.faction_name.${name}`, { country: "" });
-  }
-  const date = str("date");
-  if (date !== null) p.date = dateLabel(dayOfDate(date));
-  return p;
+  return v;
 }
 
-/** One explain line as text, with "‹who›: " in front when it is not about me. */
+/**
+ * One explain line (Describe) as text, its codes turned into names; a line
+ * about another country starts with "‹who›: ". Effects and conditions read
+ * the key table's defaults for their absent optional params; a stat line
+ * has only its value. The one renderer of the politics and focus screens.
+ */
 export function lineText(l: DescLine): string {
   const kind = l.key.slice(l.key.lastIndexOf(".") + 1);
-  // A stat line has only its value; effects and conditions read the
-  // key table's defaults for their absent optional params.
-  const p = renderParams(kind, l.params, !l.key.startsWith("ww1936.stat."));
+  const stat = l.key.startsWith("ww1936.stat.");
+  const p: Record<string, string | number> = {};
+  if (!stat) {
+    for (const k of ZERO_PARAMS) p[k] = 0;
+    for (const k of NONE_PARAMS) p[k] = "none";
+  }
+  for (const [k, v] of Object.entries(l.params)) {
+    if (k === "who") continue;
+    p[k] = paramText(kind, k, v, l.params);
+  }
   let text: string;
   if (l.key.startsWith(FX)) text = translateText(`ww1936.fx.${kind}`, p);
   else if (l.key.startsWith(COND)) {
     text = translateText(`ww1936.cond.${kind}`, p);
   } else text = translateText(`ww1936.stat.${kind}`, p);
   const who = l.params.who;
-  if (
-    typeof who === "string" &&
-    who !== "@self" &&
-    who !== "self" &&
-    !l.key.startsWith("ww1936.stat.")
-  ) {
+  if (typeof who === "string" && who !== "@self" && who !== "self" && !stat) {
     return (
       translateText("ww1936.pol.who_prefix", { who: selectorText(who) }) + text
     );
@@ -944,6 +968,8 @@ export interface AdvisorCandidate {
   until: string | null;
   /** Why "Hire" can't go now; null: it can. */
   block: string | null;
+  /** "Hire" into an empty seat, "Replace" the one in it (the engine replaces). */
+  action: string;
 }
 
 export interface AdvisorSeat {
@@ -1036,6 +1062,10 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
               : s.ppMilli < costPp * 1000
                 ? blockText("no_pp")
                 : null,
+          action:
+            held === null
+              ? translateText("ww1936.pol.adv.hire")
+              : translateText("ww1936.pol.adv.replace"),
         };
       });
     const heldTraits = held === null ? [] : traitsOf(held);
@@ -1268,6 +1298,8 @@ export interface DecisionView {
   duration: string | null;
   effects: TextLine[];
   targeted: boolean;
+  /** Taking it can't be undone and costs dearly (a coup): two taps. */
+  twoTap: boolean;
   /** Untargeted: its card's state (0 can take, 1 condition, 2 cost, 3 cooldown, 4 mission). */
   state: number;
   reason: string | null;
@@ -1297,6 +1329,39 @@ export interface DecisionTab {
 function decisionDef(id: string): DecisionDef | null {
   const n = CONTENT.decisionIdx.get(id);
   return n === undefined ? null : CONTENT.decisions[n];
+}
+
+/** Spec §13.2: a coup (gen_coup_*) is a costly mission that can't be undone: two taps. */
+export function decisionTwoTap(id: string): boolean {
+  return id.startsWith("gen_coup_");
+}
+
+/**
+ * What a decision costs: its PP (the engine's, with decisionCostPct) and
+ * any equipment, manpower or army experience it also takes (spec §13.1).
+ */
+export function decisionCostText(id: string, costPp: number): string | null {
+  const c = decisionDef(id)?.cost;
+  const parts: string[] = [];
+  if (costPp > 0) {
+    parts.push(translateText("ww1936.pol.decision.cost", { pp: costPp }));
+  }
+  if (c?.equipment !== undefined) {
+    const [type, count] = c.equipment;
+    parts.push(`${equipmentName(type)} ${count.toLocaleString()}`);
+  }
+  if (c?.manpower !== undefined && c.manpower > 0) {
+    parts.push(
+      translateText("ww1936.fx.manpower", {
+        amount: -c.manpower,
+        recruitablePct: 0,
+      }),
+    );
+  }
+  if (c?.armyXp !== undefined && c.armyXp > 0) {
+    parts.push(translateText("ww1936.fx.army_xp", { amount: -c.armyXp }));
+  }
+  return parts.length === 0 ? null : parts.join(" · ");
 }
 
 function decisionReason(
@@ -1363,10 +1428,7 @@ export function decisionTab(i: PoliticsModelInput): DecisionTab {
         id: c.id,
         name: decisionName(c.id),
         desc: decisionDesc(c.id),
-        cost:
-          c.costPp > 0
-            ? translateText("ww1936.pol.decision.cost", { pp: c.costPp })
-            : null,
+        cost: decisionCostText(c.id, c.costPp),
         duration:
           def?.days === undefined
             ? null
@@ -1376,6 +1438,7 @@ export function decisionTab(i: PoliticsModelInput): DecisionTab {
           ...effectLines(def?.completeEffects),
         ].slice(0, 4),
         targeted: def?.target !== undefined,
+        twoTap: decisionTwoTap(c.id),
         state: c.state,
         reason: null,
         failing: [],
@@ -1427,10 +1490,14 @@ export interface FactionView {
     /** Capitulated or gone (struck through). */
     out: boolean;
   }[];
+  /** Not in a faction: asking to join this one (sent to its leader); null otherwise. */
+  request: Gate | null;
 }
 
 export interface Gate {
-  cost: string;
+  cost: string | null;
+  /** The PP it costs (0: none), to see it was spent. */
+  pp: number;
   block: string | null;
 }
 
@@ -1438,10 +1505,8 @@ export interface FactionTab {
   mine: FactionView | null;
   amLeader: boolean;
   others: FactionView[];
-  /** Not in a faction: "Found a faction". */
+  /** Not in a faction, a major: "Found a faction". */
   create: Gate | null;
-  /** Not in a faction: ask to join another (sent to its leader). */
-  request: Gate | null;
   /** The leader's invite list: the unaligned countries. */
   invite: { id: number; tag: CountryTag; name: string; gate: Gate }[];
 }
@@ -1477,7 +1542,52 @@ function factionView(
         leader: m.id === f.leader,
         out: isCapitulated(i.game, m.id) || isAliveId(i.game, m.id) !== true,
       })),
+    request: null,
   };
+}
+
+type LiveFaction = { id: FactionKey; leader: number; members: number[] };
+
+/**
+ * Spec §15.3's ideology rule: `country`'s government is the faction's (its
+ * leader's), or a non-aligned one in a non-aligned or fascist faction, or
+ * they fight a common enemy. Unknown governments are left to the engine.
+ */
+function fitsFaction(
+  i: PoliticsModelInput,
+  country: number,
+  f: LiveFaction,
+): boolean {
+  const ruling = i.view.summary(country)?.ruling;
+  const theirs = i.view.summary(f.leader)?.ruling;
+  if (ruling === undefined || theirs === undefined || ruling === theirs) {
+    return true;
+  }
+  if (ruling === IDEO_NEU && (theirs === IDEO_NEU || theirs === IDEO_FAS)) {
+    return true;
+  }
+  const enemies = new Set(enemiesOf(i.game, country));
+  return f.members.some((m) =>
+    enemiesOf(i.game, m).some((e) => enemies.has(e)),
+  );
+}
+
+/**
+ * Spec §15.3: why `country` may not join faction `f` (an invite from its
+ * leader or a request of its own); null: it may as far as the screens see.
+ * `gov` is the side whose tension gate and spirit rules apply.
+ */
+function joinBlock(
+  i: PoliticsModelInput,
+  country: number,
+  f: LiveFaction,
+  gov: WwOrderBlock | null,
+): WwOrderBlock | null {
+  if (factionOfId(i.game, country) !== null) return "bad_target";
+  if (gov !== null) return gov;
+  const atWar = new Set(enemiesOf(i.game, country));
+  if (f.members.some((m) => atWar.has(m))) return "faction_war";
+  return fitsFaction(i, country, f) ? null : "faction_rule";
 }
 
 /** My spirits' rules (spec §9.1). */
@@ -1512,6 +1622,7 @@ function costGate(
 ): Gate {
   return {
     cost: translateText("ww1936.pol.pp_amount", { pp: costPp }),
+    pp: costPp,
     block:
       block !== null
         ? blockText(block)
@@ -1528,9 +1639,7 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
   const mineF = all.find((f) => f.members.includes(i.me)) ?? null;
   const mine = mineF === null ? null : factionView(i, mineF);
   const amLeader = mine !== null && mine.leader === i.me;
-  const others = all
-    .filter((f) => f !== mineF && f.members.length > 0)
-    .map((f) => factionView(i, f));
+  const otherFactions = all.filter((f) => f !== mineF && f.members.length > 0);
   const gateOk = factionGate(
     s?.ruling ?? 3,
     i.view.global?.wtBp ?? 0,
@@ -1543,8 +1652,7 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
       : null;
   const invite: FactionTab["invite"] = [];
   const sc = i.game.worldWarScenario();
-  if (amLeader && sc !== null) {
-    const atWar = new Set(enemiesOf(i.game, i.me));
+  if (amLeader && sc !== null && mineF !== null) {
     for (const tag of sc.countries) {
       const id = sc.smallIdOf(tag);
       if (id === i.me || factionOfId(i.game, id) !== null) continue;
@@ -1558,23 +1666,34 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
         gate: costGate(
           s,
           diploCost(d, WW_COST.factionInvite),
-          atWar.has(id) ? "faction_war" : block,
+          joinBlock(i, id, mineF, block),
         ),
       });
     }
     invite.sort((a, b) => a.name.localeCompare(b.name));
   }
+  // Not in a faction: a request to each other faction, by its own rules.
+  const others = otherFactions.map((f) => ({
+    ...factionView(i, f),
+    request:
+      mine === null
+        ? costGate(
+            s,
+            diploCost(d, WW_COST.factionRequest),
+            joinBlock(i, i.me, f, block),
+          )
+        : null,
+  }));
+  const myTag = tagOf(i.game, i.me);
   return {
     mine,
     amLeader,
     others,
+    // Spec §15.3: majors found factions (a focus flag may let a minor; the
+    // screens can't see flags, so a minor's button stays hidden).
     create:
-      mine === null
+      mine === null && myTag !== null && COUNTRIES[myTag].major
         ? costGate(s, diploCost(d, WW_COST.factionCreate), block)
-        : null,
-    request:
-      mine === null
-        ? costGate(s, diploCost(d, WW_COST.factionRequest), block)
         : null,
     invite,
   };
@@ -1663,7 +1782,7 @@ function napBreakIn(
   nap: readonly [number, number, number, boolean],
   day: number,
 ): number {
-  return nap[3] ? 0 : Math.max(0, nap[2] + 180 - day);
+  return nap[3] ? 0 : Math.max(0, nap[2] + WW_NAP_BREAK_DAYS - day);
 }
 
 export function treatyTab(i: PoliticsModelInput): TreatyTab {
@@ -1782,10 +1901,17 @@ export interface PlayerAction {
   id: string;
   label: string;
   cost: string | null;
+  /** The PP it spends (0: none): the screen confirms a request by its spending. */
+  costPp: number;
   block: string | null;
   twoTap: boolean;
   /** What it sends; "declare" is P0's declare_war intent; "justify" opens the goal picker. */
   order: WwOrder | "declare" | "justify";
+  /**
+   * What clears the block, beside its reason: a pact blocks war, and
+   * breaking it (50 PP) comes first (HOI4: break, then declare with a goal).
+   */
+  fix: PlayerAction | null;
 }
 
 export interface PlayerActions {
@@ -1839,6 +1965,7 @@ export interface DeclareButton {
   label: string;
   /** Why it can't go now (ww1936.declare.block.*); null: it can. */
   block: string | null;
+  blockId: DeclareWarBlock | null;
 }
 
 function napWith(i: PoliticsModelInput, other: number) {
@@ -1915,6 +2042,7 @@ export function declareButton(
   return {
     label,
     block: block === null ? null : translateText(DECLARE_BLOCK_KEYS[block]),
+    blockId: block,
   };
 }
 
@@ -2011,10 +2139,7 @@ export function playerActions(
       ? null
       : translateText("ww1936.diplo.info", {
           ideology: ideologyName(o.ruling),
-          leader:
-            o.leader === ""
-              ? translateText("ww1936.pol.none")
-              : personName(o.leader),
+          leader: personName(o.leader),
           stab: pctOf(o.stabBp),
           ws: pctOf(o.wsBp),
         });
@@ -2044,9 +2169,11 @@ export function playerActions(
       id,
       label,
       cost: gt?.cost ?? null,
+      costPp: gt?.pp ?? 0,
       block: gt?.block ?? null,
       twoTap,
       order,
+      fix: null,
     });
   // Justify a war goal (spec §14.3): the goal picker shows cost and days.
   if (!atWar && !(d?.warGoals ?? []).some((w) => w.on === other)) {
@@ -2069,21 +2196,45 @@ export function playerActions(
         cost: translateText("ww1936.pol.pp_amount", {
           pp: justifyCost(isMajor(i, other), statsOf(d)),
         }),
+        pp: 0,
         block: j === null ? null : blockText(j),
       },
       "justify",
     );
   }
+  // Breaking a pact (spec §16.2): beside the declare button when the pact
+  // is what blocks war, else in the list.
+  const napBreak: PlayerAction | null =
+    nap === undefined
+      ? null
+      : {
+          id: "nap_break",
+          label: translateText("ww1936.diplo.act.nap_break"),
+          ...(({ cost, pp, block }) => ({ cost, costPp: pp, block }))(
+            gate(
+              WW_COST.napBreak,
+              napBreakIn(nap, day) > 0 ? "nap_young" : null,
+            ),
+          ),
+          twoTap: true,
+          order: { kind: "nap_break", target: other },
+          fix: null,
+        };
   // Declare war (P0's intent, spec §14.5's text).
+  let napShown = false;
   if (!atWar && !same) {
     const b = declareButton(i, other, engineDeclare);
+    const pactBlocks = napBreak !== null && b.blockId === "nap";
+    napShown = pactBlocks;
     actions.push({
       id: "declare",
       label: b.label,
       cost: null,
+      costPp: 0,
       block: b.block,
       twoTap: true,
       order: "declare",
+      fix: pactBlocks ? napBreak : null,
     });
   }
   // Guarantee (spec §16.1).
@@ -2100,10 +2251,9 @@ export function playerActions(
     const mineOnThem =
       d?.justification?.on === other ||
       (d?.warGoals ?? []).some((w) => w.on === other);
-    const block: WwOrderBlock | null = atWar
-      ? "bad_target"
-      : mineOnThem
-        ? "justify_blocked"
+    const block: WwOrderBlock | null =
+      atWar || mineOnThem
+        ? "bad_target"
         : !guaranteeGate(
               s?.ruling ?? 3,
               g?.wtBp ?? 0,
@@ -2122,14 +2272,8 @@ export function playerActions(
     );
   }
   // Non-aggression pact (spec §16.2).
-  if (nap !== undefined) {
-    push(
-      "nap_break",
-      translateText("ww1936.diplo.act.nap_break"),
-      gate(WW_COST.napBreak, napBreakIn(nap, day) > 0 ? "nap_young" : null),
-      { kind: "nap_break", target: other },
-      true,
-    );
+  if (napBreak !== null) {
+    if (!napShown) actions.push(napBreak);
   } else if (!same && !atWar) {
     push(
       "nap_offer",
@@ -2176,7 +2320,7 @@ export function playerActions(
     push(
       "faction_request",
       translateText("ww1936.diplo.act.faction_request"),
-      ft.request,
+      ft.others.find((f) => f.key === theirFaction)?.request ?? null,
       { kind: "faction_request", target: other },
     );
   }
@@ -2198,7 +2342,8 @@ export function playerActions(
         ideology: ideologyName(s.ruling),
       }),
       {
-        cost: translateText("ww1936.pol.pp_amount", { pp: party.costPp }),
+        cost: decisionCostText(party.id, party.costPp),
+        pp: party.costPp,
         block: decisionReason(party.state, party.cooldownUntil, day, undefined),
       },
       { kind: "decision_take", decision: party.id, target: other },
@@ -2210,7 +2355,8 @@ export function playerActions(
       "coup",
       translateText("ww1936.diplo.act.coup"),
       {
-        cost: translateText("ww1936.pol.pp_amount", { pp: coup.costPp }),
+        cost: decisionCostText(coup.id, coup.costPp),
+        pp: coup.costPp,
         block: decisionReason(
           coup.state,
           coup.cooldownUntil,

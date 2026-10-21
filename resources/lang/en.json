@@ -4019,7 +4019,6 @@
       "stock_only": "Stockpile only until air war arrives",
       "stockpile": "Stockpile",
       "tab_construction": "Construction",
-      "tab_laws": "Laws & manpower",
       "tab_production": "Production",
       "tab_trade": "Resources & trade",
       "trade_civs": "Trade {n}",
@@ -5498,7 +5497,6 @@
       "btn_stop": "Stop",
       "card_collapse": "Fold the army card",
       "card_expand": "Open the army card",
-      "casualties_today": "Casualties today",
       "deploy_now": "Deploy now",
       "designer_copy": "Copy",
       "designer_delete": "Delete",
@@ -5763,9 +5761,7 @@
       "sun_poland": "The Soviet Union invades Poland from the east"
     },
     "panel": {
-      "at_peace": "At peace",
       "my_wars": "My wars",
-      "next_history": "Next in history: {date}",
       "scores": "If the war ended now",
       "title": "Diplomacy"
     },
@@ -5856,6 +5852,7 @@
         "in_seat": "In office",
         "locked": "Cannot change for {days, plural, one {# day} other {# days}}",
         "no_candidates": "No candidates yet",
+        "replace": "Replace",
         "until": "Serves until {date}"
       },
       "band": {
@@ -6029,7 +6026,7 @@
       "who_prefix": "{who}: "
     },
     "region": {
-      "original_owner": "1936: {country}",
+      "legal_owner": "Legal owner: {country}",
       "vp": "{vp} VP"
     },
     "region_cat": {
@@ -6111,6 +6108,7 @@
       "gbr_united_empire": "A United Empire",
       "gbr_university_drive": "Universities at War",
       "gbr_war_coalition": "Wartime Coalition",
+      "gen_allied_course": "Allied Course",
       "gen_armed_neutrality": "Armed Neutrality",
       "gen_civil_strife": "Scars of Civil Strife",
       "gen_democratic_movement": "Democratic Movement",
@@ -6121,6 +6119,10 @@
       "gen_martial_law_spirit": "Under Martial Law",
       "gen_mining_drive": "Mining Drive",
       "gen_neutrality_declared": "Declared Neutrality",
+      "gen_party_support_communist": "Support for Communism",
+      "gen_party_support_democratic": "Support for Democracy",
+      "gen_party_support_fascist": "Support for Fascism",
+      "gen_party_support_neutral": "Support for Non-alignment",
       "gen_rally_spirit": "Mass Rallies",
       "gen_renewal_movement": "Renewal Movement",
       "gen_research_institutes": "National Laboratories",

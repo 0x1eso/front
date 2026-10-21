@@ -12,6 +12,7 @@ import {
   flattenedEmojiTable,
   type WwOrder,
 } from "@openfront/engine-api/Schemas";
+import { WW_IMPROVE_RELATIONS_DAYS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import type { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -61,6 +62,7 @@ import {
 import {
   callIns,
   shownName,
+  today,
   TWO_TAP_MS,
   TwoTap,
 } from "../ww1936/WorldWarModel";
@@ -112,8 +114,21 @@ export class PlayerPanel extends LitElement implements Controller {
   private wwTap = new TwoTap();
   /** P3: the country whose war-goal picker is open; null: none. */
   @state() private wwJustifyFor: number | null = null;
-  /** P3: the request just sent ("Request sent" under it for 3 s). */
+  /**
+   * P3: a request just sent, until my PP shows it was spent (the engine
+   * refuses silently): then "Request sent" shows under it for 3 s.
+   */
+  private wwPending: {
+    id: string;
+    target: number;
+    ppMilli: number;
+    costPp: number;
+    day: number;
+    tick: number;
+  } | null = null;
   @state() private wwSent: string | null = null;
+  /** P3 (spec §16.4): improve relations, once per country per 180 days (this session's). */
+  private wwImproved = new Map<number, number>();
 
   @state() private sendTarget: PlayerView | null = null;
   @state() private sendMode: "troops" | "gold" | "none" = "none";
@@ -947,7 +962,7 @@ export class PlayerPanel extends LitElement implements Controller {
    * war (war goal: conquest)", or without a reason and its penalty); a
    * blocked declaration is grey with its reason.
    */
-  private renderDeclareWar(other: PlayerView) {
+  private renderDeclareWar(other: PlayerView, fix: PlayerAction | null = null) {
     const i = politicsInput(this.g);
     const b =
       i === null || i.view.summary(i.me) === null
@@ -961,7 +976,7 @@ export class PlayerPanel extends LitElement implements Controller {
     const label = armed
       ? translateText("ww1936.declare.confirm", { n: callIns(this.g, other) })
       : (b?.label ?? translateText("ww1936.declare.button"));
-    return this.wwButton(
+    const button = this.wwButton(
       "declare",
       label,
       null,
@@ -969,6 +984,26 @@ export class PlayerPanel extends LitElement implements Controller {
       armed,
       true,
       (e: MouseEvent) => this.handleDeclareWarClick(e, other),
+    );
+    if (fix === null) return button;
+    // A pact blocks the war: breaking it comes first (HOI4), beside the reason.
+    return html`<div class="flex flex-col gap-1">
+      ${button} ${this.renderWwAction(fix, other)}
+    </div>`;
+  }
+
+  /** One action of the World War list (two taps for an irreversible one). */
+  private renderWwAction(a: PlayerAction, other: PlayerView) {
+    const armed =
+      a.twoTap && this.wwTap.isArmed(`${a.id}:${other.id()}`, Date.now());
+    return this.wwButton(
+      a.id,
+      armed ? translateText("ww1936.pol.tap_again") : a.label,
+      a.cost,
+      a.block,
+      armed,
+      a.twoTap,
+      (e: MouseEvent) => this.handleWwAction(e, a, other),
     );
   }
 
@@ -1036,10 +1071,47 @@ export class PlayerPanel extends LitElement implements Controller {
       }
     }
     this.sendWw(order);
-    this.wwSent = a.id;
-    setTimeout(() => {
-      if (this.wwSent === a.id) this.wwSent = null;
-    }, TWO_TAP_MS);
+    const i = politicsInput(this.g);
+    const s = i?.view.summary(i.me) ?? null;
+    if (i === null || s === null || a.costPp <= 0) return;
+    this.wwPending = {
+      id: a.id,
+      target: other.smallID(),
+      ppMilli: s.ppMilli,
+      costPp: a.costPp,
+      day: today(this.g),
+      tick: this.g.ticks(),
+    };
+    // Look for the spending as the next updates arrive.
+    for (let n = 1; n <= 6; n++) {
+      setTimeout(() => this.requestUpdate(), n * 500);
+    }
+  }
+
+  /**
+   * A pending request was spent for (my PP fell by its cost, net of the
+   * days' income): "Request sent", and improve relations starts its wait.
+   * Not spent within 3 s: the engine refused it, and nothing is said.
+   */
+  private checkWwPending() {
+    const p = this.wwPending;
+    if (p === null) return;
+    const i = politicsInput(this.g);
+    const s = i?.view.summary(i.me) ?? null;
+    if (i === null || s === null) return;
+    const gain = i.view.detail(i.me)?.ppGainMilli ?? 0;
+    const expected = p.ppMilli + gain * Math.max(0, today(this.g) - p.day);
+    if (expected - s.ppMilli >= p.costPp * 1000 - gain) {
+      this.wwPending = null;
+      if (p.id === "improve") this.wwImproved.set(p.target, p.day);
+      this.wwSent = p.id;
+      setTimeout(() => {
+        if (this.wwSent === p.id) this.wwSent = null;
+      }, TWO_TAP_MS);
+      setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
+    } else if (this.g.ticks() - p.tick > 30) {
+      this.wwPending = null;
+    }
   }
 
   /**
@@ -1057,11 +1129,24 @@ export class PlayerPanel extends LitElement implements Controller {
         ? this.renderDeclareWar(other)
         : html``;
     }
+    this.checkWwPending();
     const m = playerActions(
       i,
       other.smallID(),
       this.actions?.interaction?.canDeclareWar,
     );
+    // Spec §16.4: one improvement per country per 180 days.
+    const improvedOn = this.wwImproved.get(other.smallID());
+    const wait =
+      improvedOn === undefined
+        ? 0
+        : improvedOn + WW_IMPROVE_RELATIONS_DAYS - today(this.g);
+    const improve = m.actions.find((a) => a.id === "improve");
+    if (improve !== undefined && wait > 0) {
+      improve.block = translateText("ww1936.pol.decision.cooldown", {
+        days: wait,
+      });
+    }
     return html`<div data-ww-actions class="flex flex-col gap-1.5">
       ${m.info === null
         ? ""
@@ -1073,20 +1158,8 @@ export class PlayerPanel extends LitElement implements Controller {
           </p>`}
       ${m.actions.map((a) =>
         a.id === "declare"
-          ? this.renderDeclareWar(other)
-          : this.wwButton(
-              a.id,
-              a.twoTap &&
-                this.wwTap.isArmed(`${a.id}:${other.id()}`, Date.now())
-                ? translateText("ww1936.pol.tap_again")
-                : a.label,
-              a.cost,
-              a.block,
-              a.twoTap &&
-                this.wwTap.isArmed(`${a.id}:${other.id()}`, Date.now()),
-              a.twoTap,
-              (e: MouseEvent) => this.handleWwAction(e, a, other),
-            ),
+          ? this.renderDeclareWar(other, a.fix)
+          : this.renderWwAction(a, other),
       )}
       ${this.wwJustifyFor === other.smallID()
         ? html`<div data-ww-justify-pick class="flex flex-col gap-1 pl-2">

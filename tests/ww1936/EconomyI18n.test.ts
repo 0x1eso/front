@@ -48,7 +48,6 @@ const ECON = [
   "tab_construction",
   "tab_production",
   "tab_trade",
-  "tab_laws",
   "free_civs",
   "consumer_goods",
   "trade_civs",
@@ -162,10 +161,9 @@ const KEYS = [
   ...WW_ORDER_BLOCKS.map((b) => `ww1936.econ.block.${b}`),
   ...LAW_NEED.map((v) => `ww1936.econ.law_need.${v}`),
   ...ECON.map((e) => `ww1936.econ.${e}`),
-  // P2 (plan Task 1 Step 22): the manpower tab's land rows.
-  ...["field_men", "training_men", "casualties_today"].map(
-    (e) => `ww1936.land.${e}`,
-  ),
+  // P2 (plan Task 1 Step 22): the manpower tab's land rows (P3: today's
+  // casualties are ww1936.pol.manpower.casualties).
+  ...["field_men", "training_men"].map((e) => `ww1936.land.${e}`),
   ...[
     "ww1936_research_done",
     "ww1936_built",

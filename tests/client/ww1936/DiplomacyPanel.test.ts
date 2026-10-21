@@ -120,16 +120,20 @@ describe("<ww-diplomacy-panel> (P3 spec §21.5)", () => {
     expect(m.q("[data-ww-act='faction_dissolve']")).not.toBeNull();
   });
 
-  it("factions: outside one I may found one or ask to join (its leader receives it)", async () => {
+  it("factions: outside one a major may found one or ask to join (its leader receives it)", async () => {
+    // Italy outside the Axis, under a democratic government.
+    const factions = startFactions();
+    factions[0].members = [ID("DEU")];
     const m = mount(
       axis({
-        me: "POL",
+        me: "ITA",
         polSummaries: [
-          polSummary("POL", { ruling: 3 }),
+          polSummary("ITA", { ruling: 0 }),
           polSummary("GBR", { faction: 1, ruling: 0 }),
+          polSummary("DEU", { faction: 0, ruling: 2 }),
         ],
-        polDetails: [polDetail("POL")],
-        global: { factions: startFactions(), wtBp: 4_500 },
+        polDetails: [polDetail("ITA")],
+        global: { factions, wtBp: 4_500 },
       }),
     );
     await m.open("factions");
@@ -139,8 +143,24 @@ describe("<ww-diplomacy-panel> (P3 spec §21.5)", () => {
     expect(m.q("[data-ww-act='faction_create']")!.textContent).toContain(
       "[ww1936.pol.pp_amount] pp=50",
     );
+    // The fascist Axis won't have a democracy (spec §15.3): its reason shows.
+    expect(
+      m.q("[data-ww-faction='axis'] [data-ww-act-block]")!.textContent,
+    ).toContain("[ww1936.econ.block.faction_rule]");
     await m.click("[data-ww-faction='allies'] [data-ww-act='faction_request']");
     expect(m.sent).toEqual([{ kind: "faction_request", target: ID("GBR") }]);
+    document.body.innerHTML = "";
+    // A minor founds none.
+    const minor = mount(
+      axis({
+        me: "POL",
+        polSummaries: [polSummary("POL")],
+        polDetails: [polDetail("POL")],
+        global: { factions: startFactions(), wtBp: 4_500 },
+      }),
+    );
+    await minor.open("factions");
+    expect(minor.q("[data-ww-act='faction_create']")).toBeNull();
   });
 
   it("wars: my wars, my goals, my justification and who justifies against me", async () => {
@@ -263,7 +283,7 @@ describe("the player panel's diplomacy (P3 spec §21.5)", () => {
   });
 
   function panel(o: PolOptions) {
-    const { game } = fakePolGame(o);
+    const { game, pol } = fakePolGame(o);
     const p = document.createElement("player-panel") as PlayerPanel;
     p.g = game as never;
     p.eventBus = new EventBus();
@@ -285,7 +305,7 @@ describe("the player panel's diplomacy (P3 spec §21.5)", () => {
     draw();
     const act = (id: string) =>
       div.querySelector<HTMLButtonElement>(`[data-ww-act='${id}']`);
-    return { p, div, draw, act, sent, declared };
+    return { p, div, draw, act, sent, declared, pol };
   }
 
   it("the action list: the country's line, a goal picker, requests, and blocks with one reason", () => {
@@ -319,10 +339,24 @@ describe("the player panel's diplomacy (P3 spec §21.5)", () => {
     expect(m.sent).toEqual([
       { kind: "justify", target: ID("POL"), goal: "conquer", group: "" },
     ]);
-    // A request goes in one tap and says so.
+    // A request goes in one tap; it says so once my PP shows it was spent
+    // (the engine refuses silently).
     m.act("nap_offer")!.click();
     m.draw();
     expect(m.sent[1]).toEqual({ kind: "nap_offer", target: ID("POL") });
+    expect(m.div.querySelector("[data-ww-sent]")).toBeNull();
+    m.pol.apply(
+      {
+        countries: [polSummary("DEU", { ruling: 2, ppMilli: 475_000 })],
+        details: [],
+        global: null,
+        regions: [],
+        news: [],
+        cards: [],
+      },
+      700,
+    );
+    m.draw();
     expect(m.div.querySelector("[data-ww-sent]")!.textContent).toContain(
       "[ww1936.diplo.act.sent]",
     );
@@ -335,6 +369,31 @@ describe("the player panel's diplomacy (P3 spec §21.5)", () => {
     vi.setSystemTime(10_500);
     m.act("declare")!.click();
     expect(m.declared).toHaveLength(1);
+  });
+
+  it("a pact blocks the war: breaking it (two taps) sits beside the reason", () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const m = panel({
+      me: "DEU",
+      polSummaries: [polSummary("DEU", { ruling: 2 }), polSummary("POL")],
+      polDetails: [polDetail("DEU")],
+      global: { naps: [[ID("DEU"), ID("POL"), 0, true]] },
+    });
+    const declare = m.act("declare")!;
+    expect(declare.disabled).toBe(true);
+    const box = declare.parentElement!.parentElement!;
+    expect(box.textContent).toContain("[ww1936.declare.block.nap]");
+    const brk = box.querySelector<HTMLButtonElement>(
+      "[data-ww-act='nap_break']",
+    )!;
+    expect(brk.textContent).toContain("[ww1936.pol.pp_amount] pp=50");
+    brk.click();
+    expect(m.sent).toEqual([]);
+    vi.setSystemTime(10_500);
+    m.draw();
+    m.act("nap_break")!.click();
+    expect(m.sent).toEqual([{ kind: "nap_break", target: ID("POL") }]);
   });
 
   it("a democracy without a goal sees why it can't declare", () => {

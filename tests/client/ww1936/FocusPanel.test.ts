@@ -21,12 +21,10 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { lineText } from "../../../src/client/hud/ww1936/PoliticsModel";
 import { WwDrawerEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwFocusPanel";
-import {
-  lineText,
-  WwFocusPanel,
-} from "../../../src/client/hud/ww1936/WwFocusPanel";
+import { WwFocusPanel } from "../../../src/client/hud/ww1936/WwFocusPanel";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { fakeEconGame, FakeOptions, ID } from "./EconomyFixture";
 

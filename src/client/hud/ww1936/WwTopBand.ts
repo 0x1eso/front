@@ -407,7 +407,7 @@ export class WwTopBand extends LitElement implements Controller {
         <span data-ww-pp class="flex flex-col items-center leading-none">
           <span>🏛 ${p.pp}</span>
           ${mode === "full"
-            ? html`<span data-ww-pp-gain class="text-[9px] text-emerald-300"
+            ? html`<span data-ww-pp-gain class="text-xs text-emerald-300"
                 >${p.gain}</span
               >`
             : nothing}

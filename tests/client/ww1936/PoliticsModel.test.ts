@@ -11,19 +11,30 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 }));
 
 import { LAW_VALUES } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type {
+  Condition,
+  Effect,
+} from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { lawBlock } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import fs from "fs";
+import path from "path";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
 import {
   advisorTab,
+  annexerOf,
   bandStats,
+  decisionTab,
   declareButton,
   effectLines,
+  factionTab,
   focusDial,
   governmentTab,
   LAW_GATES,
   lawTab,
   playerActions,
+  POLITICS_NOTICES,
   politicsDial,
   politicsInput,
   politicsParams,
@@ -36,6 +47,7 @@ import { LandFrontWorld } from "../../../src/client/view/LandFrontWorld";
 import { WwPoliticsView } from "../../../src/client/view/WwPoliticsView";
 import { detail, ID, scenario, summary, tileOf } from "./EconomyFixture";
 import {
+  card,
   fakePolGame,
   polDetail,
   polGlobal,
@@ -176,7 +188,7 @@ describe("PoliticsModel (P3 spec §21)", () => {
       polDetails: [polDetail("DEU")],
     }).i;
     // No goal: allowed with the penalty (spec §14.5): 2 × 2 + 4, a major 2 × 5 + 4.
-    expect(declareButton(fascist, pol)).toEqual({
+    expect(declareButton(fascist, pol)).toMatchObject({
       label: "[ww1936.diplo.act.declare_no_goal] tension=8",
       block: null,
     });
@@ -191,12 +203,12 @@ describe("PoliticsModel (P3 spec §21)", () => {
         }),
       ],
     }).i;
-    expect(declareButton(withGoal, pol)).toEqual({
+    expect(declareButton(withGoal, pol)).toMatchObject({
       label: "[ww1936.diplo.act.declare_goal] type=[ww1936.wargoal.conquer]",
       block: null,
     });
     // A democracy without a goal may not.
-    expect(declareButton(withGoal, fra)).toEqual({
+    expect(declareButton(withGoal, fra)).toMatchObject({
       label: "[ww1936.declare.button]",
       block: "[ww1936.declare.block.democracy_no_goal]",
     });
@@ -215,7 +227,7 @@ describe("PoliticsModel (P3 spec §21)", () => {
     const { game } = fakePolGame({});
     const fresh = new WwPoliticsView(scenario);
     const p0 = politicsInput({ ...game, wwPolitics: () => fresh } as never)!;
-    expect(declareButton(p0, pol)).toEqual({
+    expect(declareButton(p0, pol)).toMatchObject({
       label: "[ww1936.declare.button]",
       block: null,
     });
@@ -257,13 +269,41 @@ describe("PoliticsModel (P3 spec §21)", () => {
       polDetails: [polDetail("DEU")],
       global: { naps: [[ID("DEU"), pol, 0, false]] },
     }).i;
-    const breakNap = playerActions(young, pol).actions.find(
-      (a) => a.id === "nap_break",
+    // The pact is what blocks the war: breaking it (50 PP) sits beside the
+    // declare button's reason (HOI4: break, then declare with a goal).
+    const declare = playerActions(young, pol).actions.find(
+      (a) => a.id === "declare",
     )!;
-    expect(breakNap).toMatchObject({
+    expect(declare.block).toBe("[ww1936.declare.block.nap]");
+    expect(declare.fix).toMatchObject({
+      id: "nap_break",
       twoTap: true,
+      cost: "[ww1936.pol.pp_amount] pp=50",
       block: "[ww1936.econ.block.nap_young]",
+      order: { kind: "nap_break", target: pol },
     });
+    expect(
+      playerActions(young, pol).actions.filter((a) => a.id === "nap_break"),
+    ).toHaveLength(0);
+    // My own justification on them: the guarantee is not for a target.
+    const justifying = input({
+      polSummaries: [polSummary("DEU", { ruling: 2 })],
+      polDetails: [
+        polDetail("DEU", {
+          justification: {
+            on: pol,
+            type: "conquer",
+            progressDays: 1,
+            totalDays: 100,
+            blocked: false,
+          },
+        }),
+      ],
+    }).i;
+    expect(
+      playerActions(justifying, pol).actions.find((a) => a.id === "guarantee")!
+        .block,
+    ).toBe("[ww1936.econ.block.bad_target]");
   });
 
   it("advisor candidates with cost", () => {
@@ -502,6 +542,165 @@ describe("PoliticsModel (P3 spec §21)", () => {
     expect(lines[5]).toContain(
       "[ww1936.pol.who_prefix] who=[ww1936.country.DEU]",
     );
+  });
+
+  it("an annexation warning finds a nested annex, and names the annexer", () => {
+    const { i } = input({
+      me: "POL",
+      polSummaries: [polSummary("POL")],
+      polDetails: [polDetail("POL")],
+    });
+    const c = card({ from: ID("DEU") });
+    expect(
+      annexerOf(i, c, [
+        {
+          kind: "if",
+          cond: { kind: "at_war" },
+          then: [{ kind: "pp", amount: 5 }],
+          else: [
+            {
+              kind: "random_list",
+              options: [
+                { weight: 1, effects: [] },
+                {
+                  weight: 1,
+                  effects: [{ kind: "annex", who: "from", target: "self" }],
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    ).toBe(ID("DEU"));
+    // Someone else annexed by the sender: no warning for me.
+    expect(
+      annexerOf(i, c, [{ kind: "annex", who: "from", target: { tag: "FRA" } }]),
+    ).toBeNull();
+  });
+
+  it("a coup costs its equipment too, and takes two taps", () => {
+    const { i } = input({
+      polSummaries: [polSummary("DEU", { ruling: 0 }), polSummary("POL")],
+      polDetails: [
+        polDetail("DEU", {
+          decisions: [
+            {
+              id: "gen_coup_dem",
+              target: ID("POL"),
+              state: 0,
+              costPp: 150,
+              cooldownUntil: 0,
+              failing: [],
+            },
+          ],
+        }),
+      ],
+    });
+    const coup = playerActions(i, ID("POL")).actions.find(
+      (a) => a.id === "coup",
+    )!;
+    expect(coup.twoTap).toBe(true);
+    expect(coup.cost).toBe(
+      "[ww1936.pol.decision.cost] pp=150 · [ww1936.equip.infantry_equipment] 1,000",
+    );
+    expect(decisionTab(i).groups[0].decisions[0]).toMatchObject({
+      id: "gen_coup_dem",
+      twoTap: true,
+    });
+  });
+
+  it("factions: a minor founds none; the ideology rule blocks an invite", () => {
+    // Poland (a minor) outside any faction: no "found a faction".
+    const minor = input({
+      me: "POL",
+      polSummaries: [polSummary("POL")],
+      polDetails: [polDetail("POL")],
+      global: { factions: startFactions(), wtBp: 5_000 },
+    }).i;
+    expect(factionTab(minor).create).toBeNull();
+    // Italy (a major) outside one may; Britain's democratic Allies don't
+    // take a fascist (spec §15.3), Germany's Axis would.
+    const factions = startFactions();
+    factions[0].members = [ID("DEU")];
+    const major = input({
+      me: "ITA",
+      polSummaries: [
+        polSummary("ITA", { ruling: 2 }),
+        polSummary("GBR", { ruling: 0, faction: 1 }),
+        polSummary("DEU", { ruling: 2, faction: 0 }),
+      ],
+      polDetails: [polDetail("ITA")],
+      global: { factions },
+    }).i;
+    const t = factionTab(major);
+    expect(t.create).not.toBeNull();
+    const request = (key: string) =>
+      t.others.find((f) => f.key === key)!.request!.block;
+    expect(request("allies")).toBe("[ww1936.econ.block.faction_rule]");
+    expect(request("axis")).toBeNull();
+  });
+
+  it("the 19 P3 notices (plan decision 5) exist in en and ko", () => {
+    expect(POLITICS_NOTICES.size).toBe(19);
+    for (const lang of ["en", "ko"]) {
+      const json = JSON.parse(
+        fs.readFileSync(
+          path.join(__dirname, `../../../resources/lang/${lang}.json`),
+          "utf8",
+        ),
+      );
+      for (const key of POLITICS_NOTICES) {
+        expect(
+          json.events_display[key.slice("events_display.".length)],
+          `${lang} ${key}`,
+        ).toBeTypeOf("string");
+      }
+    }
+  });
+
+  it("every spirit an effect or condition names has a name in en and ko", () => {
+    const ids = new Set<string>();
+    const walkC = (c: Condition | undefined): void => {
+      if (c === undefined) return;
+      if ("all" in c) c.all.forEach(walkC);
+      else if ("any" in c) c.any.forEach(walkC);
+      else if ("not" in c) walkC(c.not);
+      else if (c.kind === "has_spirit") ids.add(c.id);
+    };
+    const walk = (effects: readonly Effect[] | undefined): void => {
+      for (const e of effects ?? []) {
+        if (e.kind === "add_spirit" || e.kind === "remove_spirit")
+          ids.add(e.id);
+        if (e.kind === "swap_spirit") [e.from, e.to].forEach((x) => ids.add(x));
+        if (e.kind === "if") {
+          walkC(e.cond);
+          walk(e.then);
+          walk(e.else);
+        }
+        if (e.kind === "random_list") e.options.forEach((o) => walk(o.effects));
+      }
+    };
+    for (const f of CONTENT.focuses) walk(f.effects);
+    for (const ev of CONTENT.events) {
+      walkC(ev.trigger);
+      for (const o of ev.options) walk(o.effects);
+    }
+    for (const d of CONTENT.decisions) {
+      walkC(d.available);
+      walk(d.effects);
+      walk(d.completeEffects);
+      walk(d.failEffects);
+    }
+    for (const lang of ["en", "ko"]) {
+      const json = JSON.parse(
+        fs.readFileSync(
+          path.join(__dirname, `../../../resources/lang/${lang}.json`),
+          "utf8",
+        ),
+      );
+      const missing = [...ids].filter((id) => !(id in json.ww1936.spirit));
+      expect(missing, lang).toEqual([]);
+    }
   });
 
   it("news of two updates merged in one frame all reach the ticker", () => {

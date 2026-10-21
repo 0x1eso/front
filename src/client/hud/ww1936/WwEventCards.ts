@@ -5,6 +5,7 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import {
   canAct,
   eventCardModel,
@@ -22,6 +23,11 @@ const CARD_WIDTH = "w-[min(46vw,380px)]";
 const TOP_GAP = 8;
 /** A body longer than this many characters folds to three lines. */
 const LONG_BODY = 110;
+/**
+ * A chosen option is applied on the next tick and the card goes; a card
+ * still there this long after (2 s) was refused, and may be chosen again.
+ */
+export const CHOICE_WAIT_TICKS = 20;
 
 /**
  * The card stack's own layer: over the drawers (z-1002) and the hover card
@@ -47,8 +53,8 @@ export class WwEventCards extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   private readonly twoTap = new TwoTap();
-  /** Options sent, by card uid: the card waits for the engine. */
-  private readonly chosen = new Map<number, string>();
+  /** Options sent, by card uid, and the tick they went: the card waits for the engine. */
+  private readonly chosen = new Map<number, { option: string; tick: number }>();
   private readonly folded = new Set<number>();
   private readonly unfolded = new Set<number>();
   private layer: HTMLDivElement | null = null;
@@ -108,8 +114,14 @@ export class WwEventCards extends LitElement implements Controller {
     const cards = i === null ? [] : i.view.cards(i.me);
     // Forget cards that are gone (chosen, or their time ran out).
     const live = new Set(cards.map((c) => c.uid));
-    for (const uid of [...this.chosen.keys()]) {
-      if (!live.has(uid)) this.chosen.delete(uid);
+    const now = this.game?.ticks() ?? 0;
+    for (const [uid, c] of [...this.chosen]) {
+      // Gone: taken. Still there after a while: the engine refused it (the
+      // option closed meanwhile), and the options come back.
+      if (!live.has(uid) || now - c.tick >= CHOICE_WAIT_TICKS) {
+        this.chosen.delete(uid);
+        this.requestUpdate();
+      }
     }
     for (const set of [this.folded, this.unfolded]) {
       for (const uid of [...set]) if (!live.has(uid)) set.delete(uid);
@@ -165,7 +177,7 @@ export class WwEventCards extends LitElement implements Controller {
       this.refresh();
       return;
     }
-    this.chosen.set(card.uid, option);
+    this.chosen.set(card.uid, { option, tick: this.game?.ticks() ?? 0 });
     this.eventBus.emit(
       new SendWwOrderIntentEvent({
         kind: "event_choose",
@@ -247,9 +259,19 @@ export class WwEventCards extends LitElement implements Controller {
   }
 
   private renderCard(c: EventCardView): TemplateResult {
-    const sent = this.chosen.get(c.uid) ?? null;
+    const sent = this.chosen.get(c.uid)?.option ?? null;
     const long = c.body.length > LONG_BODY;
     const open = this.unfolded.has(c.uid);
+    // A short landscape screen: the time and what happens when it runs
+    // out stay under the title; the text and the options scroll.
+    const compact = window.innerHeight <= COMPACT_MAX_HEIGHT;
+    const time = html`${this.timeBar(c)}
+      <div class="flex justify-between gap-2 text-white/60">
+        <span data-ww-event-default class="min-w-0 truncate"
+          >${c.defaultText}</span
+        >
+        <span class="shrink-0 tabular-nums">${c.seconds}</span>
+      </div>`;
     return html`<div
       data-ww-event=${c.uid}
       data-event-id=${c.eventId}
@@ -295,82 +317,84 @@ export class WwEventCards extends LitElement implements Controller {
             –
           </button>
         </div>
-        <p
-          data-ww-event-body
-          class="m-0 text-white/80 ${long && !open ? "line-clamp-3" : ""}"
+        ${compact ? time : nothing}
+        <div
+          data-ww-event-scroll
+          class="flex flex-col gap-1 ${compact
+            ? "max-h-[45vh] overflow-y-auto"
+            : ""}"
         >
-          ${c.body}
-        </p>
-        ${long
-          ? html`<button
-              type="button"
-              data-ww-event-more-text
-              class="self-start text-sky-300 underline"
-              @click=${() => {
-                if (open) this.unfolded.delete(c.uid);
-                else this.unfolded.add(c.uid);
-                this.requestUpdate();
-              }}
-            >
-              ${translateText(
-                open ? "ww1936.eventui.read_less" : "ww1936.eventui.read_more",
-              )}
-            </button>`
-          : nothing}
-        <div class="flex flex-col gap-1">
-          ${c.options.map((o) => {
-            const armed =
-              sent === null &&
-              this.twoTap.isArmed(`${c.uid}:${o.id}`, Date.now());
-            const picked = sent === o.id;
-            return html`<button
-              type="button"
-              data-ww-option=${o.id}
-              data-armed=${String(armed)}
-              class="min-h-9 rounded-md border px-2 py-1 text-left ${picked
-                ? "border-emerald-400 bg-emerald-950/70"
-                : armed
-                  ? "border-amber-300 bg-amber-900/60"
-                  : "border-white/20 bg-gray-800 hover:bg-gray-700"} disabled:opacity-40"
-              ?disabled=${!o.open || (sent !== null && !picked)}
-              @click=${() => this.pick(c, o.id)}
-            >
-              <span class="block font-semibold"
-                >${o.label}${o.id === c.defaultOption ? " ⏱" : ""}</span
-              >
-              ${o.effects.map(
-                (e) =>
-                  html`<span class="block text-[11px] text-white/70"
-                    >${e}</span
-                  >`,
-              )}
-              ${o.annexWarning === null
-                ? nothing
-                : html`<span
-                    data-ww-annex-warning
-                    class="block font-semibold text-red-400"
-                    >${o.annexWarning}</span
-                  >`}
-              ${armed
-                ? html`<span data-ww-confirm class="block text-amber-200"
-                    >${translateText("ww1936.eventui.confirm")}</span
-                  >`
-                : nothing}
-            </button>`;
-          })}
-        </div>
-        ${sent === null
-          ? nothing
-          : html`<span data-ww-event-sent class="text-emerald-300"
-              >${translateText("ww1936.eventui.sent")}</span
-            >`}
-        ${this.timeBar(c)}
-        <div class="flex justify-between gap-2 text-white/60">
-          <span data-ww-event-default class="min-w-0 truncate"
-            >${c.defaultText}</span
+          <p
+            data-ww-event-body
+            class="m-0 text-white/80 ${long && !open ? "line-clamp-3" : ""}"
           >
-          <span class="shrink-0 tabular-nums">${c.seconds}</span>
+            ${c.body}
+          </p>
+          ${long
+            ? html`<button
+                type="button"
+                data-ww-event-more-text
+                class="self-start text-sky-300 underline"
+                @click=${() => {
+                  if (open) this.unfolded.delete(c.uid);
+                  else this.unfolded.add(c.uid);
+                  this.requestUpdate();
+                }}
+              >
+                ${translateText(
+                  open
+                    ? "ww1936.eventui.read_less"
+                    : "ww1936.eventui.read_more",
+                )}
+              </button>`
+            : nothing}
+          <div class="flex flex-col gap-1">
+            ${c.options.map((o) => {
+              const armed =
+                sent === null &&
+                this.twoTap.isArmed(`${c.uid}:${o.id}`, Date.now());
+              const picked = sent === o.id;
+              return html`<button
+                type="button"
+                data-ww-option=${o.id}
+                data-armed=${String(armed)}
+                class="min-h-9 rounded-md border px-2 py-1 text-left ${picked
+                  ? "border-emerald-400 bg-emerald-950/70"
+                  : armed
+                    ? "border-amber-300 bg-amber-900/60"
+                    : "border-white/20 bg-gray-800 hover:bg-gray-700"} disabled:opacity-40"
+                ?disabled=${!o.open || (sent !== null && !picked)}
+                @click=${() => this.pick(c, o.id)}
+              >
+                <span class="block font-semibold"
+                  >${o.label}${o.id === c.defaultOption ? " ⏱" : ""}</span
+                >
+                ${o.effects.map(
+                  (e) =>
+                    html`<span class="block text-xs text-white/70">${e}</span>`,
+                )}
+                ${o.annexWarning === null
+                  ? nothing
+                  : html`<span
+                      data-ww-annex-warning
+                      class="block font-semibold text-red-400"
+                      >${o.annexWarning}</span
+                    >`}
+                ${armed
+                  ? html`<span data-ww-confirm class="block text-amber-200"
+                      >${translateText("ww1936.eventui.confirm")}</span
+                    >`
+                  : nothing}
+              </button>`;
+            })}
+          </div>
+          ${sent === null
+            ? nothing
+            : html`<span data-ww-event-sent class="text-emerald-300"
+                >${translateText("ww1936.eventui.sent")}</span
+              >`}
         </div>
+        ${compact ? nothing : time}
       </div>
     </div>`;
   }
