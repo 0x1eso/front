@@ -11,6 +11,20 @@
 // situation instead. Effects that can take land away come after the news.
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { T, after, all, any, gflag, not } from "../helpers";
+import type { Condition } from "../types";
+
+/** An Allied army, or the exile itself, next to Paris. */
+const PARIS_RISING_FRONT: Condition = any(
+  { kind: "borders_group", who: T("GBR"), group: "paris" },
+  { kind: "borders_group", who: T("USA"), group: "paris" },
+  { kind: "borders_group", group: "paris" },
+);
+/** Spec §17.6 beat window: the exile, Paris held by the enemy, the front there. */
+export const PARIS_RISING: Condition = all(
+  { kind: "is_exile" },
+  not({ kind: "controls_group", group: "paris" }),
+  PARIS_RISING_FRONT,
+);
 
 export const FRA_EVENTS: EventDef[] = [
   // #3, 1940-06-22: France has fallen and Germany holds Paris; the Vichy
@@ -441,8 +455,7 @@ export const FRA_EVENTS: EventDef[] = [
     ],
   },
   // #40, 1944-08-19 (beat): the exile government, Paris still held by the
-  // enemy. "Allies touching Paris" has no condition kind; the date after the
-  // landings stands in for it.
+  // enemy, an Allied army (or the exile itself) bordering it.
   {
     id: "fra_paris_uprising",
     kind: "country",
@@ -451,7 +464,7 @@ export const FRA_EVENTS: EventDef[] = [
     trigger: all(
       any({ kind: "is_human" }, not({ kind: "historical_ai" })),
       { kind: "is_exile" },
-      after("1944-08-19"),
+      PARIS_RISING_FRONT,
       not({ kind: "controls_group", group: "paris" }),
     ),
     once: "game",

@@ -387,6 +387,12 @@ export const WW_TENSION_START_BP = 400;
 export const WW_BEAT_SKIP_ODDS = 10;
 export const WW_BEAT_MAX_DELAY_DAYS = 20;
 export const WW_BEAT_WINDOW_DEFAULT_DAYS = 30;
+/**
+ * P5 controller ruling (owner: history as flavor, situational): a beat with
+ * a `when` and no windowDays waits this long for its situation, so a
+ * historical AI still gets the event when the situation comes late.
+ */
+export const WW_BEAT_WHEN_WINDOW_DAYS = 720;
 export const WW_BEAT_MAX_SKIP_AHEAD = 3;
 export const WW_IMPROVE_RELATIONS_DAYS = 180;
 export const WW_NEWS_KEEP = 30;
@@ -636,7 +642,7 @@ export interface HistoryBeat {
   /**
    * P5 pre-flight §0-7 (owner: the AI judges situations): checked on the
    * actor when the beat is due; while false the beat waits (daily) up to
-   * `windowDays ?? WW_BEAT_WINDOW_DEFAULT_DAYS`, then lapses. Every act kind.
+   * `windowDays ?? WW_BEAT_WHEN_WINDOW_DAYS`, then lapses. Every act kind.
    */
   when?: Condition;
 }

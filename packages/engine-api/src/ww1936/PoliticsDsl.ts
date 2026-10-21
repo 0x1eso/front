@@ -141,6 +141,9 @@ export const CONDITION_KINDS = [
   "war_score_share_ge",
   "in_conference",
   "legitimacy_ge",
+  // P5 lane E (the content lanes' "next to a group" gap, spec §17.6's
+  // Warsaw and Paris uprisings): holds land bordering the group.
+  "borders_group",
 ] as const;
 export type ConditionKind = (typeof CONDITION_KINDS)[number];
 
@@ -219,6 +222,7 @@ export type LeafCondition = W &
     | { kind: "occupied_by"; group: string; of: Selector }
     | { kind: "resistance_ge" | "compliance_ge"; group: string; pct: number }
     | { kind: "war_score_share_ge"; of: Selector; pct: number }
+    | { kind: "borders_group"; group: string }
   );
 export type Condition =
   | { all: Condition[] }
@@ -677,6 +681,7 @@ export const WwConditionSchema: z.ZodType<Condition> = z.lazy(() =>
       of: SelectorSchema,
       pct: int.min(0).max(100),
     }),
+    ...leaf(["borders_group"], { group: id }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Condition>;
 
