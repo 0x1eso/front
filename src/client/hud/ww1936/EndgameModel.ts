@@ -4,6 +4,7 @@
 // volunteerBlock…), so a greyed button gives the engine's answer.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES, type AirType } from "@openfront/engine-api/ww1936/AirTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -16,6 +17,7 @@ import {
   OCCUPATION_LAWS,
   type OccupationLaw,
   type SubjectLevel,
+  type WarKind,
   WW_AIR_VOLUNTEER_MAX,
   WW_AIR_VOLUNTEER_PCT,
   WW_INTEGRATE_COMP_BP,
@@ -112,6 +114,43 @@ export function egFlag(game: EndgameGame, id: number): string | null {
   if (flag) return assetUrl(`flags/${flag}.svg`);
   const tag = game.worldWarScenario()?.tagOfSmallId(id);
   return tag === undefined ? null : flagUrl(tag);
+}
+
+/**
+ * The seat of a government in exile (spec §20.6, "망명 정부 — 런던"): the
+ * host's capital region, else the host country (as lane U3's band).
+ */
+export function exileSeat(game: EndgameGame, host: number): string {
+  const sc = game.worldWarScenario();
+  const tag = sc?.tagOfSmallId(host);
+  const tile = sc && tag ? sc.capitalTileOrNull(tag) : null;
+  const region = sc && tile !== null ? regionName(sc, sc.regionAt(tile)) : "";
+  return region || egName(game, host);
+}
+
+/**
+ * The politics drawer's government tab line for a government in exile
+ * (spec §10, §20.6): "Seat: London · Legitimacy 54% · Virtual factories
+ * 3"; null unless `me` is one.
+ */
+export function exileLine(game: EndgameGame, me: number): string | null {
+  const e = egView(game)?.exiles.find((x) => x.smallID === me);
+  if (e === undefined) return null;
+  return [
+    translateText("ww1936.exile.host", { host: exileSeat(game, e.host) }),
+    `${translateText("ww1936.exile.legitimacy")} ${pctOf(e.legitBp)}%`,
+    `${translateText("ww1936.exile.virtual_factories")} ${e.virtualMil}`,
+  ].join(" · ");
+}
+
+/** The diplomacy drawer's badges beside a country (spec §20.5–§20.6): exile, subject. */
+export function countryBadges(game: EndgameGame, id: number): string[] {
+  const v = egView(game);
+  if (v === null) return [];
+  const out: string[] = [];
+  if (v.isExile(id)) out.push(translateText("ww1936.exile.badge"));
+  if (v.subjectOf(id) !== null) out.push(translateText("ww1936.subject.badge"));
+  return out;
 }
 
 export const occLawName = (law: OccupationLaw) =>
@@ -397,9 +436,19 @@ export interface IntegrateRow {
 }
 
 /**
+ * The days a region's compliance has stayed at 90% (spec §7.3), as the
+ * engine counts them; a row without the count (an older update) assumes
+ * them done once compliance is there — the engine may still refuse.
+ */
+export function compHighDaysOf(o: WwOccView): number {
+  return (
+    o.compHighDays ?? (o.compBp >= WW_INTEGRATE_COMP_BP ? WW_INTEGRATE_DAYS : 0)
+  );
+}
+
+/**
  * The regions I could integrate (spec §7.3): mine by law, held, someone
- * else's core, compliance at 90%. The view does not carry the days at 90%
- * (compHighDays): the engine checks those and may still refuse.
+ * else's core, compliance at 90% for WW_INTEGRATE_DAYS days.
  */
 export function integrateRows(game: EndgameGame, me: number): IntegrateRow[] {
   const sc = game.worldWarScenario();
@@ -415,8 +464,7 @@ export function integrateRows(game: EndgameGame, me: number): IntegrateRow[] {
       controls: true,
       hasCore: false,
       compBp: r.occ.compBp,
-      compHighDays:
-        r.occ.compBp >= WW_INTEGRATE_COMP_BP ? WW_INTEGRATE_DAYS : 0,
+      compHighDays: compHighDaysOf(r.occ),
       enemyHoldsCore: coreHoldersNow(game, r.region).some((h) =>
         enemies.has(h),
       ),
@@ -1193,7 +1241,12 @@ export interface SubjectRow {
   actions: SubjectAction[];
 }
 
+/** P3 decision card states (PoliticsModel.DecisionView.state). */
+const DECISION_COST = 2;
+const DECISION_COOLDOWN = 3;
+
 function decisionAction(
+  game: EndgameGame,
   views: Map<string, DecisionView>,
   id: SubjectActionId,
   target: number,
@@ -1202,28 +1255,38 @@ function decisionAction(
   const decision = SUBJECT_DECISIONS[id];
   const v = views.get(decision);
   const locked = translateText("ww1936.pol.decision.locked");
-  if (v === undefined) {
-    return { id, decision, label, target, state: 1, reason: locked };
-  }
-  if (target > 0) {
-    const t = v.targets.find((x) => x.target === target);
-    return {
-      id,
-      decision,
-      label,
-      target,
-      state: t?.state ?? 1,
-      reason: t === undefined ? locked : t.reason,
-    };
-  }
-  return {
+  const out: SubjectAction = {
     id,
     decision,
     label,
-    target: 0,
-    state: v.state,
-    reason: v.reason ?? v.failing[0] ?? null,
+    target,
+    state: 1,
+    reason: locked,
   };
+  if (v !== undefined && target > 0) {
+    const t = v.targets.find((x) => x.target === target);
+    out.state = t?.state ?? 1;
+    out.reason = t === undefined ? locked : t.reason;
+  } else if (v !== undefined) {
+    out.state = v.state;
+    out.reason = v.reason ?? v.failing[0] ?? null;
+  }
+  // The subject screens' own words for the usual refusals (spec §9.3).
+  if (out.state === DECISION_COST) {
+    out.reason = translateText("ww1936.subject.why.no_pp");
+  } else if (
+    id === "annex" &&
+    out.state !== 0 &&
+    enemiesOf(game, target).length > 0
+  ) {
+    out.reason = translateText("ww1936.subject.why.at_war");
+  } else if (
+    (id === "ask_more" || id === "ask_independence") &&
+    out.state === DECISION_COOLDOWN
+  ) {
+    out.reason = translateText("ww1936.subject.request_pending");
+  }
+  return out;
 }
 
 function shareText(game: EndgameGame, s: WwSubjectView): string {
@@ -1271,6 +1334,7 @@ export function subjectsTab(
         s.subject,
         (["tighten", "lower", "annex", "release"] as const).map((a) =>
           decisionAction(
+            game,
             views,
             a,
             s.subject,
@@ -1285,6 +1349,7 @@ export function subjectsTab(
     const ask: SubjectActionId =
       own.level === "dominion" ? "ask_independence" : "ask_more";
     const request = decisionAction(
+      game,
       views,
       ask,
       0,
@@ -1296,7 +1361,13 @@ export function subjectsTab(
     }
     overlord = row(own, own.overlord, [
       request,
-      decisionAction(views, "demand", 0, decisionName("gen_demand_autonomy")),
+      decisionAction(
+        game,
+        views,
+        "demand",
+        0,
+        decisionName("gen_demand_autonomy"),
+      ),
     ]);
   }
   return { mine, overlord };
@@ -1323,11 +1394,16 @@ export interface WarMemberView {
   me: boolean;
 }
 
+/** A war card's badge: still fought, over, over with its conference to come. */
+export type WarStatus = "ongoing" | "ended" | "conference_pending";
+
 export interface WarCard {
   id: number;
   name: string;
+  kind: WarKind;
   ended: boolean;
-  sides: { leader: number; members: WarMemberView[] }[];
+  status: WarStatus;
+  sides: { leader: number; name: string; members: WarMemberView[] }[];
   /** My side (0 attackers, 1 defenders), -1 outside the war. */
   mySide: number;
   /** My share of my side's war score, ‰; null outside the war. */
@@ -1360,6 +1436,19 @@ export function warName(game: EndgameGame, w: WwWarSummary): string {
   });
 }
 
+/**
+ * An ended war whose losers still wait for their peace conference (open
+ * or queued, spec §5.1) shows "Peace conference pending".
+ */
+function warStatus(game: EndgameGame, w: WwWarSummary): WarStatus {
+  if (!w.ended) return "ongoing";
+  const v = egView(game);
+  const conf = v?.conference() ?? null;
+  const members = new Set(w.sides.flatMap((s) => s.members.map((m) => m.id)));
+  const open = conf !== null && conf.losers.some((l) => members.has(l));
+  return open || (v?.queued ?? 0) > 0 ? "conference_pending" : "ended";
+}
+
 /** The war cards: my ongoing wars, other ongoing wars, then my ended ones; by id within each. */
 export function warCards(game: EndgameGame, me: number): WarCard[] {
   const v = egView(game);
@@ -1369,6 +1458,7 @@ export function warCards(game: EndgameGame, me: number): WarCard[] {
     let mySharePm: number | null = null;
     const sides = w.sides.map((s, n) => ({
       leader: s.leader,
+      name: egName(game, s.leader),
       members: s.members.map((m) => {
         if (m.id === me) {
           mySide = n;
@@ -1388,7 +1478,9 @@ export function warCards(game: EndgameGame, me: number): WarCard[] {
     return {
       id: w.id,
       name: warName(game, w),
+      kind: w.kind,
       ended: w.ended,
+      status: warStatus(game, w),
       sides,
       mySide,
       mySharePm,
@@ -1403,23 +1495,65 @@ export function warCards(game: EndgameGame, me: number): WarCard[] {
 
 export interface PastConference {
   date: string;
-  losers: string;
+  /** "Poland · Germany, Soviet Union": the losers, then who took something. */
+  line: string;
   lines: string[];
+}
+
+/** Region names of a treaty line's "12,13,14" (three, then "+N"). */
+function regionList(game: EndgameGame, regions: string): string {
+  const sc = game.worldWarScenario();
+  const ids = regions
+    .split(",")
+    .map(Number)
+    .filter((r) => r > 0);
+  if (sc === null || ids.length === 0) return "";
+  const names = ids.slice(0, 3).map((r) => regionName(sc, r));
+  if (ids.length > 3) {
+    names.push(translateText("ww1936.eventui.more", { n: ids.length - 3 }));
+  }
+  return names.join(", ");
+}
+
+/** A treaty line (spec §6.5) as text: country tags as names, `regions` as `what`. */
+export function treatyLineText(
+  game: EndgameGame,
+  l: { key: string; params: Record<string, string | number> },
+): string {
+  const p = translateCountryParams(l.params);
+  if (p.what === undefined && typeof l.params.regions === "string") {
+    p.what = regionList(game, l.params.regions);
+  }
+  return translateText(l.key, p);
 }
 
 /** The last ten conferences, newest first (spec §20.5 "past conferences"). */
 export function pastConferences(game: EndgameGame): PastConference[] {
+  const sc = game.worldWarScenario();
   const log = egView(game)?.peaceLog ?? [];
   return [...log]
-    .reverse()
+    .sort((a, b) => b.day - a.day)
     .slice(0, 10)
-    .map((e) => ({
-      date: dateLabel(e.day),
-      losers: e.losers.map((id) => egName(game, id)).join(", "),
-      lines: e.lines.map((l) =>
-        translateText(l.key, translateCountryParams(l.params)),
-      ),
-    }));
+    .map((e) => {
+      const victors = [
+        ...new Set(
+          e.lines
+            .map((l) => l.params.whoTag)
+            .filter((t): t is string => typeof t === "string"),
+        ),
+      ].map((t) => {
+        const id = sc?.smallIdOf(t as CountryTag) ?? 0;
+        return id > 0 ? egName(game, id) : t;
+      });
+      return {
+        date: dateLabel(e.day),
+        line: translateText("ww1936.peace.past_line", {
+          losers: e.losers.map((id) => egName(game, id)).join(", "),
+          victors: victors.join(", "),
+        }),
+        lines: e.lines.map((l) => treatyLineText(game, l)),
+      };
+    });
 }
 
 // ---- The model the tabs read (plan Task 10 Interfaces) ----

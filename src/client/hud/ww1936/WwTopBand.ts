@@ -6,10 +6,12 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { factionDotClass } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
+import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { menText, TopBandEconomy, topBandEconomy } from "./EconomyModel";
+import { occupationChip, occupationModeOf, pumpGarrison } from "./EndgameModel";
 import {
   BandPolitics,
   bandStats,
@@ -199,6 +201,8 @@ export class WwTopBand extends LitElement implements Controller {
   private fuel: BandFuel | null = null;
   /** P3: my political power, stability, war support and the world's tension. */
   private politics: BandPolitics | null = null;
+  /** P5 (spec §20.3): "🗺 Occupation 38 · resistance 41%"; null without administered regions. */
+  private occ: { n: number; resPct: number } | null = null;
   /**
    * Steps the chip lost beyond chipMode() because the band measured as
    * overflowing (updated); reset whenever the room or the chip changes.
@@ -318,6 +322,24 @@ export class WwTopBand extends LitElement implements Controller {
       this.chipShrink = 0;
       this.requestUpdate();
     }
+    // P5: "raise garrison forces" waits for its split armies (EndgameModel).
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    if (me > 0) {
+      pumpGarrison(
+        this.game,
+        me,
+        (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+        Date.now(),
+      );
+    }
+    const occ = occupationChip(this.game);
+    if (JSON.stringify(occ) !== JSON.stringify(this.occ)) {
+      this.occ = occ;
+      // No administered region left: the map mode goes with the chip.
+      if (occ === null) occupationModeOf(this.game).set(false);
+      this.chipShrink = 0;
+      this.requestUpdate();
+    }
     const pi = politicsInput(this.game);
     const pol = pi === null ? null : bandStats(pi);
     if (JSON.stringify(pol) !== JSON.stringify(this.politics)) {
@@ -410,6 +432,12 @@ export class WwTopBand extends LitElement implements Controller {
         </button>
         ${this.renderEconomy(this.chip(maxWidth))}
         ${this.renderFuel(this.chip(maxWidth))}
+        ${this.renderOccupation(
+          polMode(
+            this.step(maxWidth),
+            window.innerHeight <= COMPACT_MAX_HEIGHT,
+          ),
+        )}
         ${this.renderPolitics(
           polMode(
             this.step(maxWidth),
@@ -465,6 +493,33 @@ export class WwTopBand extends LitElement implements Controller {
       >
         🌍 ${p.wtPct}%
       </button>`;
+  }
+
+  /**
+   * P5 (spec §20.3): "🗺 Occupation 38 · resistance 41%" (without the
+   * words when the band is short of room) turns the occupation map mode
+   * on and off; only while I administer occupied regions.
+   */
+  private renderOccupation(mode: PolMode) {
+    const o = this.occ;
+    if (o === null || mode === "none") return nothing;
+    const on = occupationModeOf(this.game).on;
+    const label = translateText("ww1936.occ.chip", { n: o.n, pct: o.resPct });
+    return html`<button
+      type="button"
+      data-ww-occ-chip=${on ? "on" : "off"}
+      aria-pressed=${String(on)}
+      aria-label=${`${translateText("ww1936.occ.map_title")}: ${label}`}
+      class="relative flex h-6 shrink-0 items-center rounded-md border px-2 text-xs tabular-nums after:absolute after:inset-x-0 after:-top-1 after:-bottom-2 after:content-[''] ${on
+        ? "border-amber-300 bg-amber-700/50"
+        : "border-white/15 bg-white/5 hover:bg-white/10"}"
+      @click=${() => {
+        occupationModeOf(this.game).toggle();
+        this.requestUpdate();
+      }}
+    >
+      🗺 ${mode === "full" ? label : `${o.n} · ${o.resPct}%`}
+    </button>`;
   }
 
   /**

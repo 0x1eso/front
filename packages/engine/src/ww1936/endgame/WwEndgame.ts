@@ -1266,7 +1266,7 @@ export class WwEndgame {
             (this.isHumanControlled(this.ww.land.controller[r]) ||
               this.coreHolders(r).some((h) => this.isHumanControlled(h))),
         )
-        .map((r) => occView(this, r));
+        .map((r) => ({ ...occView(this, r), compHighDays: this.compHigh[r] }));
       d.occLaws = this.occLaw.map((x) => ({
         by: x.by,
         of: x.of,

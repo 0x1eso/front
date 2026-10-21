@@ -38,11 +38,12 @@ import type {
   TerrainRect,
   UnitState,
 } from "../types";
+import type { OccupationSource } from "./passes/OccupationPass";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
 import type { CountdownFx, PreparingFx } from "./passes/StrategicFxPass";
 import type { Ring } from "./passes/WarfareRingPass";
 import type { AttackTroopLabel } from "./passes/WorldTextPass";
-import { GPURenderer } from "./Renderer";
+import { GPURenderer, type PeaceMapSourceLike } from "./Renderer";
 import type { RenderSettings } from "./RenderSettings";
 
 export class MapRenderer {
@@ -62,6 +63,9 @@ export class MapRenderer {
   private storedSeaAirGlow: SeaAirGlowSource | null = null;
   /** P5 (plan Task 1 Step 14): the endgame view (lane U1 draws the conference map mode). */
   private storedWwEndgame: WwEndgameView | null = null;
+  /** P5: the occupation and peace conference map modes' sources. */
+  private storedOccupationMap: OccupationSource | null = null;
+  private storedPeaceMap: PeaceMapSourceLike | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -180,6 +184,12 @@ export class MapRenderer {
     }
     if (this.storedSeaAirGlow !== null) {
       this.renderer?.setSeaAirGlow(this.storedSeaAirGlow);
+    }
+    if (this.storedOccupationMap !== null) {
+      this.renderer?.setOccupationMap(this.storedOccupationMap);
+    }
+    if (this.storedPeaceMap !== null) {
+      this.renderer?.setPeaceMap(this.storedPeaceMap);
     }
     this.onContextRestored?.();
   };
@@ -457,6 +467,22 @@ export class MapRenderer {
    */
   setWwEndgame(view: WwEndgameView): void {
     this.storedWwEndgame = view;
+  }
+
+  /**
+   * World War 1936 P5 (spec §20.3): the occupation map mode — resistance
+   * colours, short garrisons hatched, a blinking rim near an uprising —
+   * drawn from `source` (EndgameModel.occupationMapSource) while it is on.
+   */
+  setOccupationMap(source: OccupationSource): void {
+    this.storedOccupationMap = source;
+    this.renderer?.setOccupationMap(source);
+  }
+
+  /** World War 1936 P5 (spec §20.2): the peace conference's map mode (PeaceModel.peaceMapSource). */
+  setPeaceMap(source: PeaceMapSourceLike): void {
+    this.storedPeaceMap = source;
+    this.renderer?.setPeaceMap(source);
   }
 
   /** Set up map-layer passes from the loaded layer data. */

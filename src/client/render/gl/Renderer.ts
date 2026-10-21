@@ -81,6 +81,7 @@ import { NavalBattleMarkerPass } from "./passes/NavalBattleMarkerPass";
 import { NightCompositePass } from "./passes/NightCompositePass";
 import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
+import { OccupationPass, type OccupationSource } from "./passes/OccupationPass";
 import { OrbitalBeamPass } from "./passes/OrbitalBeamPass";
 import { PlanArrowPass } from "./passes/PlanArrowPass";
 import { PlanePass } from "./passes/PlanePass";
@@ -140,6 +141,39 @@ import {
   type GPUResources,
 } from "./utils/GpuResources";
 import { HeatManager } from "./utils/HeatManager";
+
+/** What lane U1's PeaceMapPass reads (PeaceModel.peaceMapSource): a key, the stake regions. */
+export interface PeaceMapSourceLike {
+  key(): string;
+  regions(): readonly unknown[];
+}
+
+/** Lane U1's PeaceMapPass (passes/PeaceMapPass.ts) as the renderer drives it. */
+interface PeaceMapPassLike {
+  update(src: PeaceMapSourceLike): void;
+  draw(cam: Float32Array, tilesPerPx: number, timeSec: number): void;
+  dispose(): void;
+}
+
+type PeaceMapPassCtor = new (
+  gl: WebGL2RenderingContext,
+  regionIds: Uint16Array,
+  mapW: number,
+  mapH: number,
+) => PeaceMapPassLike;
+
+/**
+ * P5 bridge: lanes U1 (the peace map pass) and U2 (this hook) merge
+ * separately; the glob finds the pass once both are in (empty before).
+ * After the P5 merge this can be `import { PeaceMapPass }`.
+ */
+const PEACE_MAP_PASS: PeaceMapPassCtor | null =
+  Object.values(
+    import.meta.glob<{ PeaceMapPass: PeaceMapPassCtor }>(
+      "./passes/PeaceMapPass.ts",
+      { eager: true },
+    ),
+  )[0]?.PeaceMapPass ?? null;
 
 /** Ghost types that trigger SAM radius overlay (matches upstream SAMRadiusLayer). */
 const SAM_RADIUS_GHOST_TYPES = new Set([
@@ -261,6 +295,13 @@ export class GPURenderer {
   private mapLayerPasses: Map<string, MapLayerPass> = new Map();
   /** World War 1936: region and sea-zone lines; null otherwise. */
   private regionBorderPass: RegionBorderPass | null = null;
+  /** The region ids setRegions got (the P5 map modes build on them). */
+  private regionIds: Uint16Array | null = null;
+  /** World War 1936 P5 (spec §20.2–§20.3): the occupation and peace conference map modes. */
+  private occupationSource: OccupationSource | null = null;
+  private occupationPass: OccupationPass | null = null;
+  private peaceSource: PeaceMapSourceLike | null = null;
+  private peacePass: PeaceMapPassLike | null = null;
   /** World War 1936 P2: the land war; null without it. */
   private wwLand: WwLandInput | null = null;
   private wwPasses: WwLandPasses | null = null;
@@ -1692,6 +1733,19 @@ export class GPURenderer {
         );
       }
     }
+    // P5: the occupation map, then the peace conference's (it dims the rest).
+    if (this.occupationPass !== null || this.peacePass !== null) {
+      const tilesPerPx = renderDpr() / Math.max(this.camera.zoom, 1e-6);
+      const timeSec = performance.now() / 1000;
+      if (this.occupationPass !== null) {
+        this.occupationPass.sync();
+        this.occupationPass.draw(cam, tilesPerPx, timeSec);
+      }
+      if (this.peacePass !== null && this.peaceSource !== null) {
+        this.peacePass.update(this.peaceSource);
+        this.peacePass.draw(cam, tilesPerPx, timeSec);
+      }
+    }
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1814,6 +1868,52 @@ export class GPURenderer {
     );
     this.landFlagsStale = true;
     this.layerKindSent = -1;
+    this.regionIds = regionIds;
+    this.makeRegionModes();
+  }
+
+  /**
+   * World War 1936 P5 (spec §20.3): the occupation map mode reads `source`
+   * (EndgameModel.occupationMapSource) each frame; it draws only while on.
+   */
+  setOccupationMap(source: OccupationSource): void {
+    this.occupationSource = source;
+    this.makeRegionModes();
+  }
+
+  /**
+   * World War 1936 P5 (spec §20.2): the peace conference's map mode (lane
+   * U1's PeaceMapPass) reads `source` (PeaceModel.peaceMapSource).
+   */
+  setPeaceMap(source: PeaceMapSourceLike): void {
+    this.peaceSource = source;
+    this.makeRegionModes();
+  }
+
+  /** (Re)makes the P5 map modes' passes once both the regions and a source are in. */
+  private makeRegionModes(): void {
+    this.disposeRegionModes();
+    const ids = this.regionIds;
+    if (ids === null) return;
+    if (this.occupationSource !== null) {
+      this.occupationPass = new OccupationPass(
+        this.gl,
+        ids,
+        this.mapW,
+        this.mapH,
+        this.occupationSource,
+      );
+    }
+    if (this.peaceSource !== null && PEACE_MAP_PASS !== null) {
+      this.peacePass = new PEACE_MAP_PASS(this.gl, ids, this.mapW, this.mapH);
+    }
+  }
+
+  private disposeRegionModes(): void {
+    this.occupationPass?.dispose();
+    this.occupationPass = null;
+    this.peacePass?.dispose();
+    this.peacePass = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -2214,6 +2314,7 @@ export class GPURenderer {
     this.mapLayerPasses.clear();
     this.regionBorderPass?.dispose();
     this.regionBorderPass = null;
+    this.disposeRegionModes();
     this.disposeWwLand();
     this.disposeSeaPasses();
     if (this.terrainBytesTex) {

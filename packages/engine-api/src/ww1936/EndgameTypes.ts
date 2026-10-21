@@ -328,6 +328,12 @@ export interface WwOccView {
   factoryPct: number;
   law: OccupationLaw;
   uprisingDays: number;
+  /**
+   * The days compliance has stayed at WW_INTEGRATE_COMP_BP (spec §7.3), so
+   * the occupation tab greys "Integrate" as the engine refuses it. Filled
+   * by WwEndgame.takeData.
+   */
+  compHighDays?: number;
 }
 export interface WwSubjectView {
   subject: number;

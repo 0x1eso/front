@@ -14,6 +14,7 @@ import { WarshipSelectionController } from "../controllers/WarshipSelectionContr
 import { GameStartingModal } from "../GameStartingModal";
 import { migrateLegacyGraphicsSettings } from "../GraphicsPresets";
 import { MapRenderer } from "../render/gl";
+import type { PeaceMapSourceLike } from "../render/gl/Renderer";
 import { TransformHandler } from "../TransformHandler";
 import { UIState } from "../UIState";
 // The homepage loads it on demand, but the in-game instance (#game-settings)
@@ -57,10 +58,12 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { occupationMapSource } from "./ww1936/EndgameModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { seaAirFacts } from "./ww1936/NavyModel";
+import * as PeaceModel from "./ww1936/PeaceModel";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
@@ -83,6 +86,34 @@ import {
   WwSeaAirController,
 } from "./ww1936/WwSeaAirController";
 import { WwTopBand } from "./ww1936/WwTopBand";
+
+/**
+ * P5 bridge: lanes U1 (the peace card) and U3 (the takeover card, the
+ * exile band) merge separately from this wiring; the glob loads whichever
+ * of their modules are in (none before), so their elements are defined.
+ * After the P5 merge these can be plain imports with instanceof checks.
+ */
+import.meta.glob(
+  [
+    "./ww1936/WwPeaceCard.ts",
+    "./ww1936/WwTakeoverCard.ts",
+    "./ww1936/WwExileBand.ts",
+  ],
+  { eager: true },
+);
+/** Their tags (index.html), each a Controller with `game` and `eventBus`. */
+const P5_SCREEN_TAGS = [
+  "ww-peace-card",
+  "ww-takeover-card",
+  "ww-exile-band",
+] as const;
+
+/** Lane U1's PeaceModel.peaceMapSource, once that lane is merged (P5 bridge). */
+const peaceMapSource = (
+  PeaceModel as unknown as {
+    peaceMapSource?: (game: GameView) => PeaceMapSourceLike;
+  }
+).peaceMapSource;
 
 export function createRenderer(
   inputEl: HTMLElement,
@@ -492,6 +523,23 @@ export function createRenderer(
     console.error("ww focus panel not found");
   }
 
+  // P5 (lanes U1, U3): the peace card, the takeover card, the exile band.
+  const p5Screens: Controller[] = [];
+  for (const tag of P5_SCREEN_TAGS) {
+    const el = document.querySelector(tag);
+    if (el === null || customElements.get(tag) === undefined) {
+      console.error(`${tag} not found`);
+      continue;
+    }
+    const screen = el as unknown as Controller & {
+      game: GameView;
+      eventBus: EventBus;
+    };
+    screen.game = game;
+    screen.eventBus = eventBus;
+    p5Screens.push(screen);
+  }
+
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
   const congressCards = document.querySelector("congress-cards");
   if (congressCards instanceof CongressCards) {
@@ -588,7 +636,14 @@ export function createRenderer(
     }
     // P5 (plan Task 1 Step 14): the endgame's view (lanes U1, U2 draw it).
     const wwEndgame = game.wwEndgame?.() ?? null;
-    if (wwEndgame !== null) view.setWwEndgame(wwEndgame);
+    if (wwEndgame !== null) {
+      view.setWwEndgame(wwEndgame);
+      // P5 (spec §20.2–§20.3): the occupation and peace conference map modes.
+      view.setOccupationMap(occupationMapSource(game));
+      if (peaceMapSource !== undefined) {
+        view.setPeaceMap(peaceMapSource(game));
+      }
+    }
   }
 
   const layers: Controller[] = [
@@ -653,6 +708,7 @@ export function createRenderer(
     ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
     ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),
     ...(wwFocusPanel instanceof WwFocusPanel ? [wwFocusPanel] : []),
+    ...p5Screens,
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,

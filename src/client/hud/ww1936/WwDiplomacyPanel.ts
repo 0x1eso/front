@@ -14,6 +14,7 @@ import {
   DrawerInsets,
   drawerInsets,
 } from "../domestic/DomesticPanel";
+import { countryBadges, egName, endgameKey } from "./EndgameModel";
 import {
   canAct,
   factionTab,
@@ -37,13 +38,44 @@ import {
   TwoTap,
   WW_BAND_PX,
 } from "./WorldWarModel";
+import { type AidPreset, OpenWwAidEvent } from "./WwAidTab";
 import {
   OpenWwDiplomacyEvent,
   WW_DIPLOMACY_TABS,
   WwDiplomacyTab,
   WwDrawerEvent,
 } from "./WwDrawer";
+import "./WwSubjectsTab";
 import { ToggleWwDiplomacyEvent } from "./WwTopBand";
+import { pastConferencesTemplate, warCardsTemplate } from "./WwWarsTab";
+
+/**
+ * P5 (spec §20.5): P3's four tabs with aid and subjects between treaties
+ * and the world — on a phone they scroll sideways, an icon and a short name each.
+ */
+export type DiploDrawerTab = WwDiplomacyTab | "aid" | "subjects";
+export const DIPLO_DRAWER_TABS: readonly DiploDrawerTab[] = [
+  WW_DIPLOMACY_TABS[0],
+  WW_DIPLOMACY_TABS[1],
+  WW_DIPLOMACY_TABS[2],
+  "aid",
+  "subjects",
+  WW_DIPLOMACY_TABS[3],
+];
+const TAB_ICONS: Readonly<Record<DiploDrawerTab, string>> = {
+  factions: "🤝",
+  wars: "⚔",
+  treaties: "📜",
+  aid: "📦",
+  subjects: "👑",
+  world: "🌐",
+};
+
+function tabLabel(t: DiploDrawerTab): string {
+  if (t === "aid") return translateText("ww1936.aid.tab");
+  if (t === "subjects") return translateText("ww1936.subject.tab");
+  return translateText(`ww1936.diplo.tab.${t}`);
+}
 
 /** Camps listed under "if the war ended now" (mine is always added). */
 const SHOWN_CAMPS = 6;
@@ -78,7 +110,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   @state() private open = false;
-  @state() private tab: WwDiplomacyTab = "factions";
+  @state() private tab: DiploDrawerTab = "factions";
+  /** P5: the aid tab's walk started from the player panel (OpenWwAidEvent). */
+  @state() private aidPreset: AidPreset | null = null;
+  /** Bumped with each redraw, so the aid and subjects tabs (own elements) redraw too. */
+  private stamp = 0;
   /** The leader's invite list is unfolded. */
   @state() private inviting = false;
   @state() private insets: DrawerInsets = {
@@ -113,6 +149,16 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       if (e.tab !== null) this.tab = e.tab;
       this.setOpen(true);
     });
+    // P5 (spec §20.7): the player panel's "send lend-lease" / "ask for it".
+    this.eventBus.on(OpenWwAidEvent, (e) => {
+      this.aidPreset = {
+        to: e.to,
+        mode: e.mode,
+        nonce: (this.aidPreset?.nonce ?? 0) + 1,
+      };
+      this.tab = "aid";
+      this.setOpen(true);
+    });
     // One drawer at a time (P1 pre-flight R7.2): another one opening closes this.
     this.eventBus.on(WwDrawerEvent, (e) => {
       if (e.open && e.drawer !== "diplomacy") this.setOpen(false);
@@ -138,7 +184,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
   }
 
   /** The tab on show. */
-  shownTab(): WwDiplomacyTab {
+  shownTab(): DiploDrawerTab {
     return this.tab;
   }
 
@@ -163,13 +209,19 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     // The HUD around the drawer grows and shrinks during the game.
     this.refit();
     // Redraw when politics, the wars or the day change (not every tick).
+    const me = this.game?.myPlayer()?.smallID() ?? 0;
     const key = [
       this.game?.wwPolitics?.()?.version ?? 0,
       this.game?.worldWarData() ?? null,
       this.game?.worldWarScenario() ? today(this.game) : 0,
+      // P5: the endgame (wars, aid, subjects, exiles); the aid tab's stock and armies.
+      this.game ? endgameKey(this.game) : 0,
+      this.tab === "aid" ? (this.game?.wwEconomy?.()?.detail(me) ?? null) : 0,
+      this.tab === "aid" ? (this.game?.wwLand?.()?.version ?? 0) : 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
+      this.stamp++;
       this.requestUpdate();
     }
   }
@@ -209,23 +261,26 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
         ? "flex-1"
         : "shrink-0 border-b border-white/10 px-2 pb-1"}"
     >
-      ${WW_DIPLOMACY_TABS.map(
+      ${DIPLO_DRAWER_TABS.map(
         (t) =>
           html`<button
             type="button"
             role="tab"
             data-ww-tab=${t}
             aria-selected=${String(t === this.tab)}
-            class="h-9 min-w-9 shrink-0 rounded-md px-2 text-xs font-semibold ${t ===
+            class="flex h-9 min-w-9 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold ${t ===
             this.tab
               ? "bg-white/15 text-white"
               : "text-white/70 hover:bg-white/10"}"
             @click=${() => {
               this.tab = t;
               this.inviting = false;
+              this.redrawKey = [];
+              this.tick();
             }}
           >
-            ${translateText(`ww1936.diplo.tab.${t}`)}
+            <span aria-hidden="true">${TAB_ICONS[t]}</span>
+            <span class="max-w-24 truncate">${tabLabel(t)}</span>
           </button>`,
       )}
     </div>`;
@@ -275,6 +330,19 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
         return this.renderWars(i);
       case "treaties":
         return i === null ? html`${nothing}` : this.renderTreaties(i);
+      case "aid":
+        return html`<ww-aid-tab
+          .game=${this.game}
+          .eventBus=${this.eventBus}
+          .stamp=${this.stamp}
+          .preset=${this.aidPreset}
+        ></ww-aid-tab>`;
+      case "subjects":
+        return html`<ww-subjects-tab
+          .game=${this.game}
+          .eventBus=${this.eventBus}
+          .stamp=${this.stamp}
+        ></ww-subjects-tab>`;
       case "world":
         return this.renderWorld(i);
     }
@@ -367,7 +435,9 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               ? "text-white/40 line-through"
               : ""}"
           >
-            ${this.flag(x.tag)} ${x.name}${x.leader ? " ★" : ""}
+            ${this.flag(x.tag)}
+            ${egName(this.game, x.id) || x.name}${x.leader ? " ★" : ""}
+            ${this.badges(x.id)}
             ${mine && amLeader && !x.leader
               ? this.twoTapButton(
                   key,
@@ -414,6 +484,9 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
                       : ""}"
                   >
                     ${this.flag(x.tag)} ${countryName(x.tag)}
+                    ${this.badges(
+                      this.game.worldWarScenario()?.smallIdOf(x.tag) ?? 0,
+                    )}
                   </li>`,
               )}
             </ul>
@@ -501,6 +574,10 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
 
   private renderWars(i: PoliticsModelInput | null): TemplateResult {
     const m = diplomacyModel(this.game);
+    // P5 (spec §20.5): the war records first, the past conferences last.
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    const cards = warCardsTemplate(this.game, me);
+    const past = pastConferencesTemplate(this.game);
     const myWars = html`<div class=${HEADING}>
         ${translateText("ww1936.panel.my_wars")}
       </div>
@@ -521,11 +598,12 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
                 </li>`,
             )}
           </ul>`}`;
-    if (i === null) return myWars;
+    if (i === null) return html`${cards} ${myWars} ${past}`;
     const t = warGoalTab(i);
     const s = i.view.summary(i.me);
     const j = t.justification;
     return html`
+      ${cards}
       ${s === null
         ? nothing
         : html`<p data-ww-surrender class="m-0 mt-2 text-xs text-white/70">
@@ -584,7 +662,20 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
           >
             ${t.against.map((a) => html`<li>${a}</li>`)}
           </ul>`}
+      ${past}
     `;
+  }
+
+  /** P5 (spec §20.5–§20.6): "Exile" and "Subject" beside a country's name. */
+  private badges(id: number) {
+    return countryBadges(this.game, id).map(
+      (b) =>
+        html`<span
+          data-ww-badge
+          class="rounded border border-amber-300/50 px-1 text-xs text-amber-200 no-underline"
+          >${b}</span
+        >`,
+    );
   }
 
   // ---- Treaties ----

@@ -66,6 +66,7 @@ import {
   TWO_TAP_MS,
   TwoTap,
 } from "../ww1936/WorldWarModel";
+import { AidActions, OpenWwAidEvent } from "../ww1936/WwAidTab";
 import { ChatModal } from "./ChatModal";
 import { EmojiTable } from "./EmojiTable";
 import "./PlayerModerationModal";
@@ -129,6 +130,8 @@ export class PlayerPanel extends LitElement implements Controller {
   @state() private wwSent: string | null = null;
   /** P3 (spec §16.4): improve relations, once per country per 180 days (this session's). */
   private wwImproved = new Map<number, number>();
+  /** P5 (spec §20.7): lend-lease, volunteers, ships and the subject decisions. */
+  private wwAid = new AidActions();
 
   @state() private sendTarget: PlayerView | null = null;
   @state() private sendMode: "troops" | "gold" | "none" = "none";
@@ -188,6 +191,8 @@ export class PlayerPanel extends LitElement implements Controller {
     });
   }
   init() {
+    // P5: "send lend-lease" opens the diplomacy drawer's aid tab instead.
+    this.eventBus.on(OpenWwAidEvent, () => this.hide());
     this.eventBus.on(MouseUpEvent, () => {
       if (this.suppressNextHide) {
         this.suppressNextHide = false;
@@ -1193,6 +1198,9 @@ export class PlayerPanel extends LitElement implements Controller {
             )}
           </div>`
         : ""}
+      ${this.wwAid.render(this.g, this.eventBus, other.smallID(), () =>
+        this.requestUpdate(),
+      )}
     </div>`;
   }
 
