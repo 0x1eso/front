@@ -38,6 +38,7 @@ import {
 import {
   demandKindIndex,
   expandPeaceDemand,
+  peaceClaimantTags,
   PeaceDemandIn,
   PeaceFacts,
   peaceMainVictor,
@@ -171,6 +172,9 @@ export function peaceSens(eg: WwEndgame, c: Conference): PeaceSensitivity {
     (g) => content.groupIdx.get(g)?.regions ?? [],
     eg.ww.scenario.smallIdOf(SENSITIVE_EXCLUDED_TAG),
     peaceMainVictor(c.parts.filter((p) => eg.isActor(p.id))),
+    peaceClaimantTags(content.claims)
+      .map((tag) => eg.ww.scenario.smallIdOf(tag))
+      .filter((id) => id > 0 && eg.isActor(id)),
   );
 }
 
