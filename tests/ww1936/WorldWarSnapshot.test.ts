@@ -368,9 +368,9 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // merged: same value in four runs. P4 foundation and its review fixes
 // (navy and air state, start techs, fuel, convoys, the stub clock; P4
 // techs out of the AI's research for now) with map v4 and the naval data:
-// re-pinned at the end of the P4 integration batch. The controller re-pins
-// it at every merge that changes the engine.
-const WW1936_DIGEST = "9f12594be9b5b5f7";
+// same value in four runs. The controller re-pins it at every merge that
+// changes the engine.
+const WW1936_DIGEST = "34154a63f3399d0e";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
