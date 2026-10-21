@@ -182,10 +182,10 @@ describe("World War 1936 P2 in the HUD", () => {
       war.band.querySelector("[data-ww-economy] [data-ww-divisions]"),
     ).not.toBeNull();
     // The wars button and the economy chip (P3's politics and tension
-    // chips sit beside them).
+    // chips and P4's fuel chip sit beside them).
     expect(
       war.band.querySelectorAll(
-        "button:not([data-ww-politics]):not([data-ww-tension])",
+        "button:not([data-ww-politics]):not([data-ww-tension]):not([data-ww-fuel])",
       ),
     ).toHaveLength(2);
   });
@@ -269,7 +269,7 @@ describe("World War 1936 P2 in the HUD", () => {
     ).toBe("[ww1936.land.titled_general] n=2");
   });
 
-  it("the diplomacy drawer marks a war with no land front as overseas", async () => {
+  it("the diplomacy drawer no longer marks a war across the sea (P4 plan decision 33)", async () => {
     const g = game({
       ticks: 700,
       wars: [
@@ -286,15 +286,10 @@ describe("World War 1936 P2 in the HUD", () => {
     // P3 (spec §21.5): my wars are on the "wars and goals" tab.
     bus.emit(new OpenWwDiplomacyEvent("wars"));
     await el.updateComplete;
-    const wars = [...el.querySelectorAll("[data-ww-my-wars] li")].map((li) => [
-      li.textContent!.includes("[ww1936.country.POL]"),
-      li.querySelector("[data-ww-overseas]") !== null,
-    ]);
-    // Poland borders Germany; Britain only across the sea.
-    expect(wars).toEqual([
-      [true, false],
-      [false, true],
-    ]);
+    const wars = [...el.querySelectorAll("[data-ww-my-wars] li")];
+    // Poland borders Germany; Britain only across the sea — a landing reaches it now.
+    expect(wars.length).toBe(2);
+    expect(el.querySelector("[data-ww-overseas]")).toBeNull();
   });
 
   it("the radial menu has no tile attack and no boat in this mode", () => {

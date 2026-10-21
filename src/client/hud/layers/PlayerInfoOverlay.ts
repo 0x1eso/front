@@ -54,6 +54,7 @@ import {
   levelDots,
   regionLandLines,
 } from "../ww1936/LandModel";
+import { regionSeaAirLines } from "../ww1936/NavyModel";
 import {
   countryName,
   isKoreanUi,
@@ -702,13 +703,18 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         <!-- Left: Gold & Troop bar -->
         <div class="flex flex-col gap-1 shrink-0 w-28 md:w-36">
           <div class="flex items-center gap-1">
-            <div
-              class="flex items-center justify-center px-1 py-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm lg:gap-1"
-              translate="no"
-            >
-              <img src=${goldCoinIcon} width="13" height="13" />
-              <span class="px-0.5">${renderNumber(player.gold())}</span>
-            </div>
+            ${
+              // World War 1936 P4 (plan decision 30): no vanilla gold here.
+              this.game.worldWarScenario() !== null
+                ? ""
+                : html`<div
+                    class="flex items-center justify-center px-1 py-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm lg:gap-1"
+                    translate="no"
+                  >
+                    <img src=${goldCoinIcon} width="13" height="13" />
+                    <span class="px-0.5">${renderNumber(player.gold())}</span>
+                  </div>`
+            }
             <div
               class="flex flex-1 flex-col items-center justify-center text-xs font-bold ${attackingTroops >
               0
@@ -975,7 +981,74 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               })}</span
             >`}
       </div>
-      ${this.renderRegionEconomy(tile)} ${this.renderRegionLand(tile)}`;
+      ${this.renderRegionEconomy(tile)} ${this.renderRegionLand(tile)}
+      ${this.renderRegionSeaAir(tile)}`;
+  }
+
+  /**
+   * World War 1936 P4 (spec §18.9): the region's naval base, air base,
+   * anti-air, radar and coastal fort levels, its bomb damage, the fleets in
+   * its port, its harbor zone and sea region, its land air zone.
+   */
+  private renderRegionSeaAir(tile: TileRef) {
+    const s = this.game.worldWarScenario();
+    const economy = this.game.wwEconomy?.() ?? null;
+    if (s === null || economy === null) return "";
+    const region = s.regionAt(tile);
+    if (s.region(region) === undefined) return "";
+    const l = regionSeaAirLines(
+      s,
+      economy,
+      this.game.wwNavy?.() ?? null,
+      region,
+    );
+    return html`<div
+      data-ww-region-sea-air
+      class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-white/80"
+    >
+      ${l.levels.map(
+        ([b, n]) =>
+          html`<span data-ww-region-level=${b}
+            >${translateText(`ww1936.navy.region_${b}`, { n })}</span
+          >`,
+      )}
+      ${l.bombed === null
+        ? ""
+        : html`<span data-ww-region-bombed class="text-red-300"
+            >${translateText("ww1936.navy.region_bomb_damage", {
+              n: l.bombed.stopped,
+              pct: l.bombed.repairPct,
+            })}</span
+          >`}
+      ${l.docked.map(
+        (d) =>
+          html`<span data-ww-region-docked
+            >${translateText("ww1936.navy.region_docked", {
+              fleet: d.name,
+              n: d.ships,
+            })}</span
+          >`,
+      )}
+      ${l.harbor === null
+        ? ""
+        : html`<span data-ww-region-harbor
+              >${translateText("ww1936.navy.region_port_sea", {
+                sea: l.harbor,
+              })}</span
+            >
+            <span data-ww-region-sea-sr
+              >${translateText("ww1936.navy.region_sea_zone", {
+                sr: l.seaSr,
+              })}</span
+            >`}
+      ${l.airZone === ""
+        ? ""
+        : html`<span data-ww-region-air-zone
+            >${translateText("ww1936.navy.region_air_zone", {
+              zone: l.airZone,
+            })}</span
+          >`}
+    </div>`;
   }
 
   /**

@@ -88,6 +88,16 @@ import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { blockText } from "./EconomyModel";
+import {
+  airBpOf,
+  ArmyLift,
+  fuelBpOf,
+  landingBpsOf,
+  landSeaAirOf,
+  paraBlockFor,
+  seaMoveBlock,
+  shoreBpOf,
+} from "./LandSeaAir";
 import type { LandMode } from "./LandSelection";
 import { factionOfId, isKoreanUi, type WwGame } from "./WorldWarModel";
 
@@ -433,6 +443,68 @@ export function orderCheckWorld(
       return a === undefined ? null : orderCheckArmy(view, me, a);
     },
     armyCount: () => view.armiesOf(me).length,
+    // P4 (plan decision 35): the air war's conditions first, as the engine.
+    ...(landSeaAirOf(view) === null
+      ? {}
+      : {
+          paraBlock: (army: number, target: number) =>
+            paraBlockFor(
+              landSeaAirOf(view),
+              view.scenario,
+              economy,
+              me,
+              armyLift(view, economy, me, army),
+              target,
+              researchedOf(economy, me),
+            ),
+        }),
+  };
+}
+
+/**
+ * P4: my army as the sea and air checks see it — its divisions' regions,
+ * weights (convoys, transport planes) and marines, and whether one fights.
+ */
+export function armyLift(
+  view: WwLandView,
+  economy: WwEconomyView,
+  me: number,
+  army: number,
+): ArmyLift {
+  const a = myArmy(view, me, army);
+  if (a === null) {
+    return {
+      regions: [],
+      weightsCenti: [],
+      allMarines: false,
+      inBattle: false,
+    };
+  }
+  const tech = techOf(economy, me);
+  const divs = divisionsOf(view, me, army);
+  const stats = new Map<number, DivisionStats | null>();
+  const statsOf = (id: number) => {
+    if (!stats.has(id)) {
+      const t = templateOf(view, me, id);
+      stats.set(
+        id,
+        t === null ? null : templateStats(templateDef(t), tech, GEN1),
+      );
+    }
+    return stats.get(id) ?? null;
+  };
+  const check = orderCheckArmy(view, me, a);
+  return {
+    regions: [...check.regions],
+    weightsCenti: divs.map((d) => statsOf(d.template)?.weightCenti ?? 0),
+    allMarines:
+      divs.length > 0 &&
+      divs.every(
+        (d) =>
+          templateOf(view, me, d.template)?.battalions.includes("marine") ??
+          false,
+      ),
+    inBattle: check.fighting,
   };
 }
 
@@ -715,6 +787,7 @@ function mergeTargets(
 function buttonBlocks(
   w: OrderCheckWorld,
   view: WwLandView,
+  economy: WwEconomyView,
   me: number,
   a: ArmySummary,
   sides: LandSides,
@@ -748,10 +821,22 @@ function buttonBlocks(
       "no_army",
     ),
     rail: check({ kind: "army_rail", army, region: at }, "no_army"),
-    sea: check(
-      port === undefined ? null : { kind: "army_sea", army, region: port },
-      "no_port",
-    ),
+    sea:
+      check(
+        port === undefined ? null : { kind: "army_sea", army, region: port },
+        "no_port",
+      ) ??
+      (port === undefined
+        ? null
+        : seaMoveBlock(
+            landSeaAirOf(view),
+            view.scenario,
+            economy,
+            sides,
+            me,
+            armyLift(view, economy, me, army),
+            port,
+          )),
     split:
       a.divisions < 2
         ? "split_single"
@@ -789,7 +874,7 @@ export function armyCard(
     status: armyStatus(view, me, a, day),
     planBp: a.mine?.planBp ?? 0,
     supplyPm: a.mine?.supplyPm ?? 1000,
-    buttons: buttonBlocks(w, view, me, a, sides, enemy, merge.block),
+    buttons: buttonBlocks(w, view, economy, me, a, sides, enemy, merge.block),
     general: generalData(view, me, a.general),
     auto: a.mine?.auto ?? false,
     executing: a.mine?.order.executing ?? false,
@@ -886,9 +971,20 @@ export function orderBlock(
   order: LandOrder,
   sides: LandSides = sidesOf(view),
 ): WwOrderBlock | null {
-  return landOrderBlockOf(
+  const block = landOrderBlockOf(
     orderCheckWorld(view, economy, me, day, sides),
     order,
+  );
+  // P4 (plan decision 34): a sea move also needs its convoys (lane C).
+  if (block !== null || order.kind !== "army_sea") return block;
+  return seaMoveBlock(
+    landSeaAirOf(view),
+    view.scenario,
+    economy,
+    sides,
+    me,
+    armyLift(view, economy, me, order.army),
+    order.region,
   );
 }
 
@@ -1016,12 +1112,52 @@ function plainInput(
     excessBp: 0,
     supplyPm: 1000,
     encircled: false,
-    // P4 (pre-flight ruling 3): lane U fills these from the navy and air views.
+    // P4 (pre-flight ruling 3): p4Fields fills these from the navy and air views.
     airBp: 0,
     fuelBp: 0,
     landingBp: 0,
     coastalFortBp: 0,
     shoreBp: 0,
+  };
+}
+
+type P4Fields = Pick<
+  ModInput,
+  "airBp" | "fuelBp" | "landingBp" | "coastalFortBp" | "shoreBp"
+>;
+
+/**
+ * P4 (pre-flight ruling 3): the five lines the engine's modInputOf fills
+ * from its hooks — enemy air superiority over the region's zone, the
+ * owner's fuel, my landing's cuts, the attacker's shore bombardment — from
+ * the navy and air views (LandSeaAir). `div`: the division's template
+ * numbers (null: unknown, an enemy's stand-in: no anti-air, no fuel).
+ */
+function p4Fields(
+  view: WwLandView,
+  economy: WwEconomyView,
+  me: number,
+  sides: LandSides,
+  owner: number,
+  region: number,
+  attacking: boolean,
+  opponent: number,
+  div: Pick<DivisionStats, "airAtk" | "fuelWidthPm" | "flags"> | null,
+  army: number,
+): P4Fields {
+  const p4 = landSeaAirOf(view);
+  const techs = researchedOf(economy, me);
+  const landing =
+    attacking && owner === me && army > 0
+      ? landingBpsOf(p4, economy, me, army, region, div?.flags ?? 0, techs)
+      : { landingBp: 0, coastalFortBp: 0 };
+  return {
+    airBp: airBpOf(p4, sides, view.scenario, region, owner, div?.airAtk ?? 0),
+    fuelBp: div === null ? 0 : fuelBpOf(economy, owner, div.fuelWidthPm),
+    ...landing,
+    shoreBp: attacking
+      ? 0
+      : shoreBpOf(p4, sides, view.scenario, me, techs, region, opponent),
   };
 }
 
@@ -1034,10 +1170,14 @@ function armyInput(
   attacking: boolean,
   land: LandTerrain,
   weather: Weather,
+  region: number,
+  sides: LandSides,
+  opponent: number,
 ): ModInput {
   const divs = divisionsOf(view, me, a.id);
   const tech = techOf(economy, me);
   const t = templateOf(view, me, mainTemplate(divs));
+  const ts = t === null ? null : templateStats(templateDef(t), tech, GEN1);
   const g = generalData(view, me, a.general);
   const exp =
     divs.length === 0
@@ -1048,12 +1188,24 @@ function armyInput(
     genAtt: g?.att ?? 0,
     genDef: g?.def ?? 0,
     traits: g?.traits ?? 0,
-    flags: t === null ? 0 : templateStats(templateDef(t), tech, GEN1).flags,
+    flags: ts?.flags ?? 0,
     tech,
     exp,
     planBp: a.mine?.planBp ?? 0,
     supplyPm: a.mine?.supplyPm ?? 1000,
     encircled: (a.state & ARMY_ENCIRCLED) !== 0,
+    ...p4Fields(
+      view,
+      economy,
+      me,
+      sides,
+      me,
+      region,
+      attacking,
+      opponent,
+      ts,
+      a.id,
+    ),
   };
 }
 
@@ -1099,8 +1251,20 @@ export function attackPreview(
   const fort = economy.effectiveBuildings("fort", region);
   const def = enemySideAt(view, economy, me, region, sides);
   const width = combatWidth(land, directions);
+  const holder = view.controller[region] ?? 0;
   const att = divisionMods({
-    ...armyInput(view, economy, me, a, true, land, weather),
+    ...armyInput(
+      view,
+      economy,
+      me,
+      a,
+      true,
+      land,
+      weather,
+      region,
+      sides,
+      holder,
+    ),
     river,
     strait,
     fort,
@@ -1108,6 +1272,7 @@ export function attackPreview(
   }).mods;
   const dm = divisionMods({
     ...plainInput(false, land, weather),
+    ...p4Fields(view, economy, me, sides, holder, region, false, me, null, 0),
     excessBp: excessWidthBp(def.width, width),
     encircled: view.regions.get(region)?.encircled ?? false,
   }).mods;
@@ -1265,12 +1430,36 @@ export function battleCard(
     .filter((r) => sides.sameSide(b.attacker, view.controller[r]));
   let att: ModInput = {
     ...plainInput(true, land, weather),
+    ...p4Fields(
+      view,
+      economy,
+      me,
+      sides,
+      b.attacker,
+      region,
+      true,
+      b.defender,
+      null,
+      0,
+    ),
     ...crossing(s, attackerOrigins, region),
     fort,
     excessBp: excessWidthBp(b.attWidth, b.width),
   };
   let def: ModInput = {
     ...plainInput(false, land, weather),
+    ...p4Fields(
+      view,
+      economy,
+      me,
+      sides,
+      b.defender,
+      region,
+      false,
+      b.attacker,
+      null,
+      0,
+    ),
     excessBp: excessWidthBp(b.defWidth, b.width),
     encircled: view.regions.get(region)?.encircled ?? false,
   };
@@ -1282,11 +1471,36 @@ export function battleCard(
     const a = myArmy(view, me, d.army);
     if (a === null) return null;
     const t = templateOf(view, me, d.template);
+    const ts = t === null ? null : templateStats(templateDef(t), tech, GEN1);
+    const opponent = attacking ? b.defender : b.attacker;
     return {
-      ...armyInput(view, economy, me, a, attacking, land, weather),
-      flags: t === null ? 0 : templateStats(templateDef(t), tech, GEN1).flags,
+      ...armyInput(
+        view,
+        economy,
+        me,
+        a,
+        attacking,
+        land,
+        weather,
+        region,
+        sides,
+        opponent,
+      ),
+      flags: ts?.flags ?? 0,
       exp: d.exp,
       supplyPm: d.supplyPm,
+      ...p4Fields(
+        view,
+        economy,
+        me,
+        sides,
+        me,
+        region,
+        attacking,
+        opponent,
+        ts,
+        d.army,
+      ),
     };
   };
   const mineAtt = divs.find((d) => d.role === ROLE_ATTACK);

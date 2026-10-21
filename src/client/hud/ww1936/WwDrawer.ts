@@ -1,3 +1,4 @@
+import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { state } from "lit/decorators.js";
@@ -77,7 +78,48 @@ export class OpenWwIndustryEvent implements GameEvent {
   constructor(
     public readonly tab: WwIndustryTab | null = null,
     public readonly region: number | null = null,
+    /** P4: with a region, the building picked there (the air drawer's "build more"). */
+    public readonly building: BuildingId | null = null,
+    /** P4 (spec §18.8): the production tab's view, munitions or shipyards. */
+    public readonly view: WwProductionView | null = null,
+    /** P4 (spec §18.1): the band's ⛽ — the resources tab at the fuel row. */
+    public readonly fuel = false,
   ) {}
+}
+
+/** P4 (spec §18.8): the industry drawer's production tab shows munitions or shipyards. */
+export type WwProductionView = "munitions" | "shipyards";
+
+/** P4 spec §18.5: the navy drawer's four tabs. */
+export type WwNavyTab = "fleets" | "shipyards" | "convoys" | "admirals";
+export const WW_NAVY_TABS: readonly WwNavyTab[] = [
+  "fleets",
+  "shipyards",
+  "convoys",
+  "admirals",
+];
+
+/** P4 spec §18.7: the air drawer's four tabs. */
+export type WwAirTab = "zones" | "planes" | "bases" | "record";
+export const WW_AIR_TABS: readonly WwAirTab[] = [
+  "zones",
+  "planes",
+  "bases",
+  "record",
+];
+
+/**
+ * Open the navy drawer (the ⚓ dial, spec §18.1): with a tab, on that tab;
+ * without one, on the last. Either toggles it shut when it already shows
+ * that tab.
+ */
+export class OpenWwNavyEvent implements GameEvent {
+  constructor(public readonly tab: WwNavyTab | null = null) {}
+}
+
+/** Open the air drawer (a long press on the ✈ dial, spec §18.1), like the navy drawer. */
+export class OpenWwAirEvent implements GameEvent {
+  constructor(public readonly tab: WwAirTab | null = null) {}
 }
 
 /** Open the research drawer, or close it when it is open. */
@@ -91,7 +133,10 @@ export type WwDrawerId =
   // P3 Task 7 (pre-flight R15): the national focus drawer.
   | "focus"
   // P3 Task 8: the politics drawer.
-  | "politics";
+  | "politics"
+  // P4 (spec §18.5, §18.7): the navy and air drawers.
+  | "navy"
+  | "air";
 
 /**
  * A World War drawer opened or closed (pre-flight R7.2): one at a time, so
