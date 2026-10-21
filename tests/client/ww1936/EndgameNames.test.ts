@@ -2,13 +2,17 @@
 // label of a civil-war slot, the leaderboard (no dormant slot, a gone
 // country struck through, an exile badged, the human on the country they
 // play now) and the P5 notices' params.
-import { MessageType } from "@openfront/engine-api/game/GameTypes";
+import {
+  MessageType,
+  type TerraNullius,
+} from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   COUNTRIES,
   type CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import type { WwCountryView } from "@openfront/engine-api/ww1936/EndgameTypes";
+import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
@@ -27,6 +31,7 @@ import {
   countryFlagUrl,
   countryText,
   endgameNoticeParams,
+  occupationParams,
   wwMapName,
 } from "../../../src/client/hud/ww1936/EndgameNames";
 import { UserSettings } from "../../../src/client/UserSettings";
@@ -93,13 +98,14 @@ function fakeGame(
     game: {
       ticks: () => 600,
       worldWarScenario: () => scenario,
-      worldWarData: () => ({
-        wars: [],
-        capitulated: (o.capitulated ?? []).map((t) => ({ smallID: ID(t) })),
-      }),
+      worldWarData: () =>
+        ({
+          wars: [],
+          capitulated: (o.capitulated ?? []).map((t) => ({ smallID: ID(t) })),
+        }) as unknown as WorldWarData,
       wwEndgame: () => eg,
       playerBySmallID: (id: number) =>
-        byId.get(id) ?? { isPlayer: () => false },
+        byId.get(id) ?? ({ isPlayer: () => false } as unknown as TerraNullius),
       playerByClientID: (c: string) =>
         views.find((p) => p.clientID() === c) ?? null,
       myPlayer: () => (me === null ? null : (byId.get(ID(me)) ?? null)),
@@ -290,6 +296,24 @@ describe("World War 1936 P5: endgame names", () => {
         game,
       ).level,
     ).toBe("[ww1936.subject_level.puppet]");
+  });
+
+  it("occupation notices name the region and the law, never an id", () => {
+    const { game } = fakeGame(new WwEndgameView(), [
+      { tag: "DEU", tiles: 5, client: "c1" },
+    ]);
+    const regionId = 5;
+    const o = occupationParams(game, { region: regionId, law: "occ_civil" });
+    expect(o.region).not.toBe(String(regionId));
+    expect(o.region).not.toMatch(/^\d+$/);
+    expect(o.law).toBe("[ww1936.occ_law.occ_civil]");
+    expect(
+      endgameNoticeParams(
+        "events_display.ww1936_uprising",
+        { region: regionId },
+        game,
+      ).region,
+    ).toBe(o.region);
   });
 
   it("the spectate notice reaches the human whose country it was", () => {

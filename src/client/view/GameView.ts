@@ -20,7 +20,10 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import { GameLike, UnitPredicate } from "@openfront/engine-api/game/ReadViews";
 import { ClientID, GameID } from "@openfront/engine-api/Schemas";
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CIVIL_WAR_SLOTS,
+  COUNTRIES,
+} from "@openfront/engine-api/ww1936/Countries";
 import type { WwPolGlobal } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { Config } from "@openfront/engine-lib/configuration/Config";
@@ -67,6 +70,16 @@ import { WwControllerChangedEvent, WwEndgameView } from "./WwEndgameView";
 import { WwLandView } from "./WwLandView";
 import { sideKeyOf, WwNavyView } from "./WwNavyView";
 import { WwPoliticsView } from "./WwPoliticsView";
+
+/** Territory colours of the civil-war slots (CW1..CW6), distinct from the gray default. */
+const CIVIL_WAR_COLORS = [
+  "#c2410c",
+  "#0e7490",
+  "#a21caf",
+  "#4d7c0f",
+  "#be123c",
+  "#a16207",
+] as const;
 
 function readCosmeticVisibility(): CosmeticVisibility {
   return new UserSettings().graphicsOverrides().cosmetics ?? {};
@@ -360,6 +373,15 @@ export class GameView implements GameLike {
     if (tag === undefined) return null;
     const def = COUNTRIES[tag];
     const hex = (n: number) => n.toString(16).padStart(2, "0");
+    // P5: a civil-war slot wears its own distinct colour (fixed per slot, so
+    // every client draws the same), never the shared gray.
+    const cw = CIVIL_WAR_SLOTS.indexOf(tag as (typeof CIVIL_WAR_SLOTS)[number]);
+    if (cw >= 0) {
+      return {
+        flag: `/flags/${def.flag}.svg`,
+        color: { color: CIVIL_WAR_COLORS[cw % CIVIL_WAR_COLORS.length] },
+      };
+    }
     return {
       flag: `/flags/${def.flag}.svg`,
       color: {

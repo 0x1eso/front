@@ -96,6 +96,7 @@ import {
   liveWarDays,
   resourceName,
 } from "./EconomyModel";
+import { occupationParams } from "./EndgameNames";
 import {
   countryName,
   dateLabel,
@@ -291,6 +292,7 @@ export function newsText(
   return translateText(`ww1936.news.${id}`, {
     ...politicsParams(params, game),
     ...shipNewsParams(game, params),
+    ...occupationParams(game, params),
   });
 }
 

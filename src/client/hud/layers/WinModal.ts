@@ -771,7 +771,14 @@ export class WinModal extends LitElement implements Controller {
       : !!myPlayer && !myPlayer.isAlive() && myPlayer.hasSpawned();
     if (!this.hasShownDeathModal && out && !this.game.inSpawnPhase()) {
       this.hasShownDeathModal = true;
-      this._title = translateText("win_modal.died");
+      // P5: no country left to take over in the faction: spectating.
+      const spectating =
+        ww &&
+        !!this.game.myClientID?.() &&
+        this.game.wwEndgame?.()?.controlledBy(this.game.myClientID()!) === 0;
+      this._title = translateText(
+        spectating ? "ww1936.takeover.spectate" : "win_modal.died",
+      );
       this.eventBus.emit(new PlaySoundEffectEvent("defeat"));
       void this.updateXp(false);
       this.show();

@@ -277,6 +277,27 @@ const COUNTRY_PARAMS = ["tag", "hostTag", "fromTag", "toTag"] as const;
  *   fuel) → the items, from the senders;
  * - garrison short: "0:0:n" → n regions.
  */
+/**
+ * Occupation notices (uprising, law, garrison): `region` is a numeric region
+ * id and `law` the raw law id; return their display texts, so no one reads
+ * "Uprising in 563". Only the keys present are returned.
+ */
+export function occupationParams(
+  game: WwGame,
+  params: Record<string, string | number>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const scenario = game.worldWarScenario();
+  const r = params.region;
+  if (scenario !== null && r !== undefined && /^\d+$/.test(String(r))) {
+    out.region = regionName(scenario, Number(r));
+  }
+  if (typeof params.law === "string") {
+    out.law = translateText(`ww1936.occ_law.${params.law}`);
+  }
+  return out;
+}
+
 export function endgameNoticeParams(
   message: string,
   params: Record<string, string | number>,
@@ -299,9 +320,7 @@ export function endgameNoticeParams(
   if (typeof params.level === "string") {
     out.level = translateText(`ww1936.subject_level.${params.level}`);
   }
-  if (typeof params.law === "string") {
-    out.law = translateText(`ww1936.occ_law.${params.law}`);
-  }
+  Object.assign(out, occupationParams(game, params));
   if (typeof params.reason === "string") {
     out.reason = translateText(`ww1936.aid.why.${params.reason}`);
   }

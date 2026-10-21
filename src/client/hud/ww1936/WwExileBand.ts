@@ -77,6 +77,8 @@ export class WwExileBand extends LitElement implements Controller {
   @state() private model: ExileBandView | null = null;
   /** What the model was made from: it is made again only when one changes. */
   private madeFrom: readonly unknown[] = [];
+  /** When the "exile ended" line goes away (ms), 0 when not showing. */
+  private endedUntil = 0;
 
   createRenderRoot() {
     return this;
@@ -93,7 +95,23 @@ export class WwExileBand extends LitElement implements Controller {
     const from = [this.game.wwEndgame()?.exiles, this.game.myPlayer()];
     if (from.every((v, i) => v === this.madeFrom[i])) return;
     this.madeFrom = from;
-    const m = exileBandModel(this.game);
+    let m = exileBandModel(this.game);
+    // The exile ended (home again, or gone): say so for a few seconds.
+    if (m === null && this.model !== null && this.endedUntil === 0) {
+      this.endedUntil = Date.now() + 5000;
+    }
+    if (m === null && this.endedUntil > Date.now()) {
+      m = {
+        text: translateText(
+          this.game.myPlayer()?.isAlive()
+            ? "ww1936.exile.return"
+            : "ww1936.exile.ended",
+        ),
+      };
+      this.madeFrom = [];
+    } else if (m === null) {
+      this.endedUntil = 0;
+    }
     if (m?.text !== this.model?.text) this.model = m;
   }
 
