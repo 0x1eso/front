@@ -80,6 +80,7 @@ import {
   subjectBlock,
   subjectEconomy,
   tradeCivFactorPct,
+  upgradeChoice,
 } from "./Subjects";
 import {
   checkWarEnds,
@@ -1182,7 +1183,10 @@ export class WwEndgame {
    * receiver (gen_diplo_lend_lease by llRequestScore), or null for P3's.
    */
   aiEventChoice(eventId: string, self: number, from: number): string | null {
-    return aiAidEventChoice(this, eventId, self, from); // A
+    return (
+      upgradeChoice(this, eventId, self) ?? // S
+      aiAidEventChoice(this, eventId, self, from) // A
+    );
   }
 
   // ---- News, messages, daily notes ----
