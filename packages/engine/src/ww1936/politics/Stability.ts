@@ -10,6 +10,7 @@ import {
   rulingPartyBp,
   wearinessBp,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { bombFatigueBp } from "../air/Bombing";
 import { capitalRegion } from "./Conditions";
 import type { WwPolitics } from "./WwPolitics";
 
@@ -145,6 +146,8 @@ function lines(
       wearinessBp(casualties, f.corePop[id] ?? 0, 0),
     );
     add("ww1936.pol.line.ws_lost_vp", 0 - lostPct * 20);
+    // P4 spec §14.8: the last 30 days' bombing (lane A2's bombFatigueBp).
+    add("ww1936.pol.line.ws_bomb_fatigue", bombFatigueBp(pol.ww.air, id));
   }
   return Math.max(0, Math.min(10_000, sum));
 }

@@ -25,6 +25,9 @@ import {
   type OrderCheckArmy,
   type OrderCheckWorld,
 } from "@openfront/engine-lib/ww1936/LandOrderChecks";
+import { resolveParadrop } from "../air/Paradrop";
+import { cancelInvasion } from "../navy/Invasions";
+import { navalPort } from "../navy/Ports";
 import { joinBattle } from "./Battles";
 import { assignFront, nearestBorder, type TargetDist } from "./Fronts";
 import {
@@ -58,6 +61,15 @@ export function issueArmyOrder(
   if (!("army" in order)) return null;
   const a = land.armies.get(order.army)!;
   if (by === "player" && order.kind !== "army_auto") a.auto = false;
+  // P4 spec §11.1 (pre-flight A11): another standing order drops the
+  // army's invasion (lane I); the general and auto keep it.
+  if (
+    order.kind !== "army_auto" &&
+    order.kind !== "army_general" &&
+    order.kind !== "army_execute"
+  ) {
+    cancelInvasion(land.ww.navy, a.id);
+  }
   switch (order.kind) {
     case "army_move":
       // Spec §7.3: a move onto an enemy region is a one-target attack.
@@ -109,14 +121,20 @@ export function issueArmyOrder(
     case "army_auto":
       a.auto = order.on;
       break;
-    case "paradrop":
+    case "paradrop": {
+      // P4 (spec §14.10, pre-flight A12): paradropPrepPct shortens it.
+      const pct =
+        100 + (land.econ.country(a.owner)?.stats.paradropPrepPct ?? 0);
       setOrder(a, {
         ...idleOrder(),
         kind: "paradrop",
         to: order.region,
-        readyDay: land.day() + WW_PARA_PREP_DAYS,
+        readyDay:
+          land.day() +
+          Math.max(1, Math.ceil((WW_PARA_PREP_DAYS * Math.max(10, pct)) / 100)),
       });
       break;
+    }
     default:
       // army_general: Task 5's assignGeneral (WwLand.issue routes it).
       break;
@@ -386,6 +404,8 @@ function drop(land: WwLand, a: Army, tick: number, day: number): void {
     ids.push(t.id[r]);
   }
   a.paraLastDay = day;
+  // P4 plan decision 35: the transports' losses (lane A2).
+  resolveParadrop(land.ww.air, a.id, tick);
   if (!enemy) return;
   if (enemyDivisionsIn(land, me, to) === 0) {
     capture(land, to, me, tick);
@@ -414,7 +434,10 @@ export function orderCheckWorld(land: WwLand, me: number): OrderCheckWorld {
     me,
     day: land.day(),
     rail: (r) => land.econ.rail[r] ?? 0,
-    isPort: (r) => sc.isPort(r),
+    // P4 plan decision 11: a working naval base now.
+    isPort: (r) => navalPort(land.ww, r),
+    // P4 (pre-flight A20): the air war's paradrop conditions (lane A2).
+    paraBlock: (army, target) => land.ww.air.paradropBlock(me, army, target),
     vp: (r) => sc.region(r)?.vp ?? 0,
     army: (id) => {
       const a = land.armies.get(id);

@@ -14,6 +14,7 @@ import {
   TPL_MOTOR_ANY,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { landFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import {
   edgeTicks,
   moveNeed,
@@ -22,6 +23,7 @@ import {
   seaTicks,
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
+import { navalPort } from "../navy/Ports";
 import { joinBattle, retreatDivision } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { capture } from "./Occupation";
@@ -33,6 +35,9 @@ export function stepMovement(land: WwLand, tick: number): void {
   const prep = land.ww.inPrep(tick);
   for (let r = 0; r < t.rows; r++) {
     if (t.id[r] === 0 || t.mode[r] === MOVE_NONE) continue;
+    // P4 (pre-flight A17): a division on a convoy voyage (SeaLift: sea,
+    // need 0) moves with its voyage.
+    if (t.mode[r] === MOVE_SEA && t.need[r] === 0) continue;
     const owner = t.owner[r];
     const mode = t.mode[r];
     const to = t.next[r];
@@ -75,16 +80,25 @@ function stepOf(land: WwLand, r: number, mode: number): number {
   const to = t.next[r];
   const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
-  return moveStep(
+  let step = moveStep(
     s.speedCenti,
-    land.econ.infra[to],
+    land.econ.infraEff[to],
     w,
     t.supply[r],
     ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags),
   );
+  // P4 (spec §14.6, §15.4): enemy air superiority over the way, fuel.
+  const air = land.hooks.airMoveFactorPm(to, land.sideOf(t.owner[r]));
+  if (air !== 1000) step = Math.floor((step * air) / 1000);
+  if (s.fuelHourMilli > 0) {
+    const fuel = land.hooks.fuelFactorPm(t.owner[r]);
+    if (fuel < 1000) step = Math.floor((step * landFuelSpeedPm(fuel)) / 1000);
+  }
+  return step;
 }
 
-function arrive(land: WwLand, r: number, tick: number): void {
+/** A division arriving at t.next (P2; P4's SeaLift.landDivisions too). */
+export function arrive(land: WwLand, r: number, tick: number): void {
   const t = land.divisions;
   const owner = t.owner[r];
   const to = t.next[r];
@@ -175,7 +189,8 @@ export function startNextHop(land: WwLand, row: number, tick: number): void {
   let need = 0;
   if (mode === MOVE_SEA) {
     // Spec §7.5: one hop, from port to port, in milli-ticks.
-    if (ours(dest) && sc.isPort(dest)) {
+    // P4 plan decision 11: a working naval base now.
+    if (ours(dest) && navalPort(land.ww, dest)) {
       next = dest;
       need = seaTicks(sc.regionKm(here, dest)) * 1000;
     }
@@ -311,7 +326,7 @@ function walkStepInto(land: WwLand, r: number, to: number): number {
   const s = land.baseStatsOf(r);
   return moveStep(
     s.speedCenti,
-    land.econ.infra[to],
+    land.econ.infraEff[to],
     w,
     t.supply[r],
     (ce === null ? 0 : ce.stats.speedPct * 100) +

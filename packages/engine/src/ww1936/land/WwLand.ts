@@ -77,11 +77,13 @@ import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import type { WwEconomy } from "../economy/WwEconomy";
+import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
 import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
 import { dailyEntrench, stepBattles, stepRecovery } from "./Battles";
 import { dailyFronts } from "./Fronts";
 import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
+import { noteLandFuel } from "./LandFuel";
 import { startLand } from "./LandStartRun";
 import { stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
@@ -504,6 +506,8 @@ export const WwLandStateSchema = z.object({
   supplyMilli: zInts(),
   encircled: zInts(),
   useMilli: zInts(),
+  /** P4 (pre-flight A16): Σ use fed by each sea hub (hub region), written when any. */
+  seaHubUse: zInts().optional(),
   lastCommonDay: zInt(),
   nextDivisionId: zInt(),
   nextArmyId: zInt(),
@@ -777,6 +781,14 @@ export class WwLand {
    * (pre-flight U12: the region card's "use"). Task 5's daily supply writes it.
    */
   readonly useMilli: Int32Array;
+  /**
+   * P4 (pre-flight A16): by sea-hub region, the supply use of the side's
+   * regions whose best share comes from that hub, milli (the side's daily
+   * supply writes it; lane C's supply convoys read it the next day).
+   */
+  readonly seaHubUse: Int32Array;
+  /** P4 (plan decision 36): what the land war reads from the navy, air and fuel (WorldWar installs it). */
+  hooks: LandSeaAirHooks = NEUTRAL_HOOKS;
   readonly divisions = new DivisionTable();
   readonly armies = new Map<number, Army>();
   readonly battles = new Map<number, Battle>();
@@ -840,6 +852,7 @@ export class WwLand {
     this.supplyMilli = new Int32Array(size);
     this.encircled = new Uint8Array(size);
     this.useMilli = new Int32Array(size);
+    this.seaHubUse = new Int32Array(size);
     const owners = sc.ownerByRegion();
     for (const r of sc.landRegions) this.controller[r.id] = owners[r.id];
     this.countryList = [
@@ -892,6 +905,8 @@ export class WwLand {
     applyArmyOrders(this, ticks);
     stepMovement(this, ticks);
     if (!prep) stepBattles(this, ticks);
+    // P4 plan decision 37: the fuel battalions moving or fighting this tick.
+    noteLandFuel(this, ticks);
     stepRecovery(this);
     if (!prep) stepSpread(this);
   }
@@ -983,9 +998,13 @@ export class WwLand {
       case "appoint_general":
         block = appointGeneral(this, cl);
         break;
+      case "army_sea":
+        // P4 plan decision 34 (pre-flight §0-6): the navy carries it, the
+        // AI's sea moves too (convoys, routes, interception: lane C).
+        block = this.ww.navy.issue(smallID, order, this.mg.ticks(), by);
+        break;
       case "army_move":
       case "army_rail":
-      case "army_sea":
       case "army_attack":
       case "army_front":
       case "army_plan":
@@ -1067,6 +1086,10 @@ export class WwLand {
     }
     this.dirtyLandRegions.add(region);
     this.econ.markRegionDirty(region);
+    // P4 (spec §7.1, decision 32): the same tick, docked fleets of the
+    // loser's side put to sea, bases change hands for the air war.
+    this.ww.navy.onControlChanged(region, old, by, tick);
+    this.ww.air.onControlChanged(region, old, by, tick);
     // A capitulation hands over dozens of regions at once: no message each.
     if (notify && r.vp > 0) {
       this.message(by, "events_display.ww1936_region_taken", {
@@ -1078,7 +1101,6 @@ export class WwLand {
         });
       }
     }
-    void tick;
   }
 
   /**
@@ -2138,6 +2160,9 @@ export class WwLand {
       supplyMilli: Array.from(this.supplyMilli),
       encircled: Array.from(this.encircled),
       useMilli: Array.from(this.useMilli),
+      ...(this.seaHubUse.some((v) => v !== 0)
+        ? { seaHubUse: Array.from(this.seaHubUse) }
+        : {}),
       lastCommonDay: this.lastCommonDay,
       nextDivisionId: this.nextDivisionId,
       nextArmyId: this.nextArmyId,
@@ -2222,6 +2247,8 @@ export class WwLand {
     this.supplyMilli.set(s.supplyMilli);
     this.encircled.set(s.encircled);
     this.useMilli.set(s.useMilli);
+    this.seaHubUse.fill(0);
+    if (s.seaHubUse !== undefined) this.seaHubUse.set(s.seaHubUse);
     this.lastCommonDay = s.lastCommonDay;
     this.nextDivisionId = s.nextDivisionId;
     this.nextArmyId = s.nextArmyId;

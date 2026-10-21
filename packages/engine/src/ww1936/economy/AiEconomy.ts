@@ -159,7 +159,8 @@ export const AI_SUPPORT_SHORT_PTS = 5;
  * 1939 Wehrmacht was an infantry army; §16 wants 1.2M men).
  */
 export const AI_SCHOOL_TILT: Readonly<
-  Record<DoctrineSchool, Readonly<Partial<Record<AiLineSlot, number>>>>
+  // P4: the sea and air schools tilt nothing here (Task 10's).
+  Partial<Record<DoctrineSchool, Readonly<Partial<Record<AiLineSlot, number>>>>>
 > = {
   mobile: { tank: 5, motorized: 5, artillery: -5, bomber: -5 },
   mass: {
@@ -210,7 +211,7 @@ export function aiLineShares(
   >;
   const base = AI_LINE_SHARES[major ? "major" : "minor"];
   const tilt: Readonly<Partial<Record<AiLineSlot, number>>> = major
-    ? AI_SCHOOL_TILT[aiSchool(tag)]
+    ? (AI_SCHOOL_TILT[aiSchool(tag)] ?? {})
     : {};
   const tank: EquipmentType = researched.has("medium_tank_1")
     ? "medium_tank"

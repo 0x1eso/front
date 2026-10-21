@@ -37,6 +37,8 @@ export class WorldWarExecution implements Execution {
     if (ww !== null && !ww.politics.rolled()) {
       ww.politics.roll(this.seed + 1, mg.config().historicalAi());
     }
+    // P4 (pre-flight A14): the naval and air beats, once, the same seed base.
+    if (ww !== null && !ww.navy.beatsRolled) ww.navy.rollBeats(this.seed + 1);
   }
 
   tick(ticks: number): void {
@@ -70,6 +72,9 @@ export class WorldWarExecution implements Execution {
     ww.economy.tick(ticks);
     // P2 (spec §2.2): the land war after the economy.
     ww.land.tick(ticks);
+    // P4 (spec §2.2-6, -7): the navy, then the air war.
+    ww.navy.tick(ticks);
+    ww.air.tick(ticks);
     // P3 order 6: human event cards past their deadline.
     ww.politics.tickDeadlines(ticks);
     const data = ww.takeData();
@@ -85,6 +90,12 @@ export class WorldWarExecution implements Execution {
     if (pol !== null) {
       mg.addUpdate({ type: GameUpdateType.WwPolitics, data: pol });
     }
+    // P4 (plan decision 4): after P3's.
+    const navy = ww.navy.takeData();
+    if (navy !== null)
+      mg.addUpdate({ type: GameUpdateType.WwNavy, data: navy });
+    const air = ww.air.takeData();
+    if (air !== null) mg.addUpdate({ type: GameUpdateType.WwAir, data: air });
   }
 
   isActive(): boolean {

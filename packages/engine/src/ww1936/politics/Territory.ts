@@ -79,6 +79,9 @@ export function annexCountry(
     if (land.controller[r.id] === target) taken.push(r.id);
   }
   transferCountryUnits(land, target, by, units ?? "transfer");
+  // P4 decision 32: the fleets and air deployments too (P3's merge then moves the stock).
+  pol.ww.navy.transferUnits(target, by, units ?? "transfer");
+  pol.ww.air.transferUnits(target, by, units ?? "transfer");
   for (const r of taken) transferRegionPeaceful(land, r, by, tick);
   sweepStrayTiles(pol, target, by, new Set(taken));
   mergeEconomy(pol, target, by);
@@ -152,6 +155,8 @@ function mergeEconomy(pol: WwPolitics, gone: number, by: number): void {
   from.manpower = 0;
   from.queue = [];
   from.lines = [];
+  // P4: its naval lines end with it (the dockyards change hands with the regions).
+  from.navalLines = [];
   from.slots = from.slots.map(() => null);
   for (const tr of [...econ.trades()]) {
     if (tr.buyer !== gone && tr.seller !== gone) continue;

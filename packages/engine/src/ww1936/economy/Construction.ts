@@ -22,9 +22,23 @@ import type { Player } from "../../game/Game";
 import { dmzRegions } from "../politics/Spirits";
 import type { CountryEconomy, Project, WwEconomy } from "./WwEconomy";
 
+/**
+ * The slot buildings of a region (spec §4.2; P4: the synthetic refineries
+ * and fuel silos share the slots; a bombed-out one still holds its slot).
+ */
+export function slotBuildings(econ: WwEconomy, region: number): number {
+  return (
+    econ.civ[region] +
+    econ.mil[region] +
+    econ.dock[region] +
+    econ.buildingArray("synthetic_refinery")[region] +
+    econ.buildingArray("fuel_silo")[region]
+  );
+}
+
 /** Factories built plus reserved by the controller's queue (spec §4.2). */
 export function usedSlots(econ: WwEconomy, region: number): number {
-  const built = econ.civ[region] + econ.mil[region] + econ.dock[region];
+  const built = slotBuildings(econ, region);
   const ce = econ.country(econ.controllerOf(region));
   return ce === null
     ? built
@@ -61,6 +75,11 @@ export function buildBlock(
         : 0,
     usedSlots: exists ? usedSlots(econ, region) : 0,
     slots: econ.regionSlots(region, ce.stats.slotPct),
+    // P4 (spec §5.1, §12.1): a dockyard on a coast, a naval base or a
+    // coastal fort on a harbor zone, the techs.
+    coastal: econ.scenario.region(region)?.coastal ?? false,
+    harbor: econ.scenario.harborOf(region) !== 0,
+    researched: ce.researched,
   });
 }
 
@@ -141,7 +160,7 @@ function canComplete(econ: WwEconomy, ce: CountryEconomy, q: Project): boolean {
   const max = LEVEL_MAX[q.building];
   if (max !== undefined) return econ.buildingArray(q.building)[q.region] < max;
   if (econ.isOccupied(q.region)) return false;
-  const built = econ.civ[q.region] + econ.mil[q.region] + econ.dock[q.region];
+  const built = slotBuildings(econ, q.region);
   return built + 1 <= econ.regionSlots(q.region, ce.stats.slotPct);
 }
 
@@ -161,7 +180,8 @@ export function stepConstruction(
   ce.queue.forEach((q, i) => {
     const speed = projectSpeedPct({
       building: q.building,
-      infra: econ.infra[q.region],
+      // P4 (spec §14.8): bombed infrastructure builds as the lower level.
+      infra: econ.infraEff[q.region],
       tech: ce.stats,
       law,
       buildingPct: buildingSpeedPct(ce, q.building),

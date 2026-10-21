@@ -22,6 +22,7 @@ import {
   lineOutputMilli,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
+import { navalLineDemand } from "./NavalLines";
 import type { CountryEconomy, Line, WwEconomy } from "./WwEconomy";
 
 /** 0..WW_MAX_LINE_FACTORIES; a value that is no number at all (NaN) is 0. */
@@ -143,11 +144,19 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
   }
   t.idleMil = avail;
   const available = t.produced.map((v, k) => v - t.exported[k] + t.imported[k]);
+  // P4 spec §5.2: after every P1 line the naval lines, in their order
+  // (lane E's demand); each naval line's fill is today's share.
+  const naval = navalLineDemand(econ, ce);
   const alloc = allocateResources(
     available,
     ce.lines.map((l) => ({ key: l.key, factories: l.active })),
+    naval,
   );
   t.used = alloc.used;
+  naval.forEach((_, i) => {
+    const l = ce.navalLines[i];
+    if (l !== undefined) l.fill = alloc.extraFill[i];
+  });
   const outputPct = ce.law().outputPct + ce.stats.outputPct;
   const cap = effCapBp(ce.stats);
   ce.lines.forEach((line, i) => {

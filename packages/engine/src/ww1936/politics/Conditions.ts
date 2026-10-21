@@ -2,6 +2,7 @@
 // Conditions only read state, so the foundation finishes them all.
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { LAW_LADDERS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import type {
   Condition,
   LeafCondition,
@@ -240,6 +241,24 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
       const o = other(c.of);
       return o !== 0 && (pol.country(o)?.declaredOn.includes(id) ?? false);
     }
+    // P4 (plan decision 24).
+    case "navy_size": {
+      const t = pol.ww.navy.ships;
+      const cls = c.cls === undefined ? -1 : SHIP_CLASSES.indexOf(c.cls);
+      let n = 0;
+      for (let r = 0; r < t.rows; r++) {
+        if (
+          t.id[r] !== 0 &&
+          t.owner[r] === id &&
+          (cls < 0 || t.cls[r] === cls)
+        ) {
+          n++;
+        }
+      }
+      return n >= c.min;
+    }
+    case "fuel_ratio_below":
+      return (pol.econ.country(id)?.fuelRatioPm ?? 1000) < c.pct * 10;
     default:
       return false;
   }

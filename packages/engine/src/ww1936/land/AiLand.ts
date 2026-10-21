@@ -47,6 +47,7 @@ import {
 import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
 import { queueBuild } from "../economy/Construction";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { navalPort } from "../navy/Ports";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import { enemyDivisionsIn } from "./Movement";
@@ -462,6 +463,8 @@ const sideViews = new WeakMap<
     epoch: number;
     changes: number;
     sides: readonly unknown[];
+    /** P4 (pre-flight §0-5): the naval ports' version (a base bombed out or built). */
+    portVer: number;
     bySide: Map<number, SideView>;
   }
 >();
@@ -475,9 +478,16 @@ function sideView(land: WwLand, me: number): SideView {
     cache === undefined ||
     cache.epoch !== epoch ||
     cache.changes !== land.controlChanges ||
-    cache.sides !== sides
+    cache.sides !== sides ||
+    cache.portVer !== land.econ.portVer
   ) {
-    cache = { epoch, changes: land.controlChanges, sides, bySide: new Map() };
+    cache = {
+      epoch,
+      changes: land.controlChanges,
+      sides,
+      portVer: land.econ.portVer,
+      bySide: new Map(),
+    };
     sideViews.set(land, cache);
   }
   const key = land.sideOf(me);
@@ -507,7 +517,7 @@ function sideView(land: WwLand, me: number): SideView {
     }
   }
   for (const r of regions) {
-    if (sc.isPort(r)) ports[comp[r]].push(r);
+    if (navalPort(land.ww, r)) ports[comp[r]].push(r);
   }
   const view = { comp, regions, ports };
   cache.bySide.set(key, view);
@@ -741,7 +751,8 @@ class AiDay {
     const zones = new Set<number>();
     for (const e of this.atWar) {
       for (const r of land.econ.regionsOf(e)) {
-        if (sc.isPort(r)) for (const z of sc.regionSeaZones(r)) zones.add(z);
+        if (navalPort(land.ww, r))
+          for (const z of sc.regionSeaZones(r)) zones.add(z);
       }
     }
     const inland: number[] = [];
@@ -749,7 +760,10 @@ class AiDay {
     for (const r of land.econ.regionsOf(this.me)) {
       if (out.includes(r) || owners[r] !== this.me || vp(r) <= 0) continue;
       if (near[r] !== FAR) inland.push(r);
-      else if (sc.isPort(r) && sc.regionSeaZones(r).some((z) => zones.has(z))) {
+      else if (
+        navalPort(land.ww, r) &&
+        sc.regionSeaZones(r).some((z) => zones.has(z))
+      ) {
         coast.push(r);
       }
     }
@@ -1213,7 +1227,7 @@ class AiDay {
     const together = rows.every(
       (r) => t.region[r] === here && t.mode[r] === MOVE_NONE,
     );
-    if (together && sc.isPort(here) && comp[here] >= 0) {
+    if (together && navalPort(land.ww, here) && comp[here] >= 0) {
       const fromAnchor = this.bfs([anchor], (r) => comp[r] === f.comp);
       let best = 0;
       for (const p of this.portsOf(f.comp)) {
