@@ -65,6 +65,7 @@ import { WwBattleCard } from "./ww1936/WwBattleCard";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
 import { WwEventCards } from "./ww1936/WwEventCards";
+import { WwFocusPanel } from "./ww1936/WwFocusPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
@@ -441,20 +442,13 @@ export function createRenderer(
   } else {
     console.error("ww news ticker not found");
   }
-  // P3 Task 7's focus drawer (lane U1, controller ruling R15): wired by its
-  // tag; the element is defined once its module (./ww1936/WwFocusPanel) is
-  // imported here, at the merge of the two lanes.
-  const wwFocusEl = document.querySelector("ww-focus-panel");
-  const wwFocusPanel =
-    wwFocusEl !== null && customElements.get("ww-focus-panel") !== undefined
-      ? (wwFocusEl as unknown as Controller & {
-          game: GameView;
-          eventBus: EventBus;
-        })
-      : null;
-  if (wwFocusPanel !== null) {
+  // P3 Task 7's focus drawer (lane U1, controller ruling R15).
+  const wwFocusPanel = document.querySelector("ww-focus-panel");
+  if (wwFocusPanel instanceof WwFocusPanel) {
     wwFocusPanel.game = game;
     wwFocusPanel.eventBus = eventBus;
+  } else {
+    console.error("ww focus panel not found");
   }
 
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
@@ -578,7 +572,7 @@ export function createRenderer(
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
     ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
     ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),
-    ...(wwFocusPanel === null ? [] : [wwFocusPanel]),
+    ...(wwFocusPanel instanceof WwFocusPanel ? [wwFocusPanel] : []),
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),
     gameLeftSidebar,

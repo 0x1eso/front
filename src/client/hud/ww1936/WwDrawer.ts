@@ -68,12 +68,6 @@ export class OpenWwDiplomacyEvent implements GameEvent {
 }
 
 /**
- * Open the focus drawer, or close it when it is open (the 🎯 dial; P3 Task
- * 7's <ww-focus-panel> listens).
- */
-export class OpenWwFocusEvent implements GameEvent {}
-
-/**
  * Open the industry drawer (pre-flight R7.3, I4). With a tab, on that tab;
  * without one, on the last tab. Either toggles it shut when it already
  * shows that tab — except with a region ("Build here" on the region card),
@@ -94,7 +88,9 @@ export type WwDrawerId =
   | "research"
   | "diplomacy"
   | "army"
+  // P3 Task 7 (pre-flight R15): the national focus drawer.
   | "focus"
+  // P3 Task 8: the politics drawer.
   | "politics";
 
 /**

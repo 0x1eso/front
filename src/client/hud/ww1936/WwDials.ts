@@ -30,13 +30,13 @@ import {
 import { isCapitulated } from "./WorldWarModel";
 import {
   OpenWwDiplomacyEvent,
-  OpenWwFocusEvent,
   OpenWwIndustryEvent,
   OpenWwPoliticsEvent,
   OpenWwResearchEvent,
   WwDrawerEvent,
   WwDrawerId,
 } from "./WwDrawer";
+import { OpenWwFocusEvent } from "./WwFocusPanel";
 
 export interface WwDialsModel {
   industry: IndustryDial;
