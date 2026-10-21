@@ -596,7 +596,13 @@ export const GBR_FOCUSES: FocusDef[] = [
     prereq: [["gbr_scientific_committee"]],
     effects: [
       { kind: "research_bonus", branch: "electronics", pct: 100, uses: 1 },
-      { kind: "reserve", key: "radar", amount: 4 },
+      { kind: "add_tech", tech: "radar_1" },
+      {
+        kind: "build",
+        where: { coastal: true, n: 4 },
+        building: "radar",
+        count: 1,
+      },
       { kind: "add_advisor_candidate", person: "gbr_watson_watt" },
     ],
     ai: { base: 10 },
@@ -779,7 +785,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     prereq: [["gbr_raf_expansion"]],
     effects: [
       { kind: "research_bonus", tech: "fighter_2", pct: 100, uses: 1 },
-      { kind: "reserve", key: "fighter_research", amount: 100 },
+      { kind: "add_spirit", id: "p4_fighter_command" },
     ],
     ai: { base: 10 },
   },
@@ -793,8 +799,8 @@ export const GBR_FOCUSES: FocusDef[] = [
     icon: "bomber",
     prereq: [["gbr_raf_expansion"]],
     effects: [
-      { kind: "research_bonus", tech: "bomber_2", pct: 100, uses: 1 },
-      { kind: "reserve", key: "bomber_research", amount: 100 },
+      { kind: "research_bonus", tech: "strat_bomber_2", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "p4_bomber_command" },
     ],
     ai: { base: 10 },
   },
@@ -825,7 +831,10 @@ export const GBR_FOCUSES: FocusDef[] = [
     branch: "navy",
     icon: "submarine",
     prereq: [["gbr_home_fleet"]],
-    effects: [{ kind: "reserve", key: "convoy", amount: 100 }],
+    effects: [
+      { kind: "add_spirit", id: "p4_convoy_system" },
+      { kind: "convoys", amount: 100 },
+    ],
     ai: { base: 10 },
   },
   {
@@ -837,7 +846,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     branch: "navy",
     icon: "carrier",
     prereq: [["gbr_home_fleet"]],
-    effects: [{ kind: "reserve", key: "carriers", amount: 100 }],
+    effects: [{ kind: "research_bonus", tech: "cv_3", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {
@@ -849,7 +858,10 @@ export const GBR_FOCUSES: FocusDef[] = [
     branch: "navy",
     icon: "plane",
     prereq: [["gbr_carriers"]],
-    effects: [{ kind: "reserve", key: "naval_air", amount: 100 }],
+    effects: [
+      { kind: "research_bonus", tech: "naval_bomber_2", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "p4_fleet_air_arm" },
+    ],
     ai: { base: 10 },
   },
 ];
