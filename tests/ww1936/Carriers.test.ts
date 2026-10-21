@@ -186,6 +186,28 @@ describe("carriers (spec §9.4, §9.6, §13.4)", () => {
     expect(stock2 + out2).toBe(stock1 + out1);
   });
 
+  it("a carrier sunk with a full deck takes its planes off the ledger", async () => {
+    const { navy, tick } = await seaWar();
+    const ce = navy.econ.country(GBR)!;
+    const g = stockedCarrier(navy);
+    const cv = g.ships[0];
+    const [stock0, out0] = cvPlanes(ce);
+    expect(out0).toBe(40);
+    toSea(navy, g, ZONE.west);
+    // One round from an Italian battleship sinks the carrier at 1 milli HP.
+    navy.ships.hp[navy.ships.rowOf(cv)] = 1;
+    const i = fleet(navy, ITA, [["bb", 1, 1]]);
+    toSea(navy, i, ZONE.west);
+    startNavalBattle(navy, ZONE.west, navy.sideOf(GBR), i.id, tick);
+    stepNavalBattles(navy, tick);
+    expect(navy.ships.rowOf(cv)).toBe(-1);
+    expect(navy.fleets.has(g.id)).toBe(false);
+    // The 40 deck planes went down with it: off the deployed ledger, the
+    // stock untouched, nothing else lost.
+    expect(cvPlanes(ce)).toEqual([stock0, out0 - 40]);
+    expect(navy.battles.has(ZONE.west)).toBe(false);
+  });
+
   it("a port strike hits docked ships once", async () => {
     const { runner, navy, tick } = await seaWar();
     const g = stockedCarrier(navy);

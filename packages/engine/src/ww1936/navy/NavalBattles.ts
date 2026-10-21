@@ -124,6 +124,14 @@ interface SideCtx {
   cScreen: number;
 }
 
+/** A round's memo of modsBp and the hit techs (they only change between rounds). */
+interface RoundMemo {
+  /** shooter key → (target key → bp); see modsKey. */
+  mods: Map<number, Map<number, number>>;
+  /** owner → [radar %, guns %]. */
+  hitPct: Map<number, [number, number]>;
+}
+
 interface Hit {
   hp: number;
   org: number;
@@ -711,6 +719,34 @@ const DEPTH_SHARES = [0, 0, 0, 1000];
  */
 function modsBp(
   navy: WwNavy,
+  memo: RoundMemo,
+  shooter: BShip,
+  target: BShip,
+  carrierStrike: boolean,
+): number {
+  // What the bp depends on: the shooter's owner, admiral and kind of shot;
+  // the target's owner and admiral (admiral ids < 1,000,000).
+  const role = SHIP_ROLE[shooter.cls];
+  const kind = carrierStrike
+    ? 3
+    : role === "capital"
+      ? 1
+      : role === "sub"
+        ? 2
+        : 0;
+  const sKey = (shooter.owner * 1_000_000 + shooter.fleet.admiral) * 4 + kind;
+  const tKey = target.owner * 1_000_000 + target.fleet.admiral;
+  let byTarget = memo.mods.get(sKey);
+  if (byTarget === undefined) memo.mods.set(sKey, (byTarget = new Map()));
+  const hit = byTarget.get(tKey);
+  if (hit !== undefined) return hit;
+  const bp = modsBpOf(navy, shooter, target, carrierStrike);
+  byTarget.set(tKey, bp);
+  return bp;
+}
+
+function modsBpOf(
+  navy: WwNavy,
   shooter: BShip,
   target: BShip,
   carrierStrike: boolean,
@@ -764,6 +800,7 @@ function addHit(
  */
 function fire(
   navy: WwNavy,
+  memo: RoundMemo,
   round: number,
   a: SideCtx,
   t: SideCtx,
@@ -782,10 +819,16 @@ function fire(
     if (sh.retreating || org[sh.row] <= 0) continue;
     const me = i++;
     const st = sh.stats;
-    const radar = hasTech(navy, sh.owner, RADAR) ? RADAR_HIT_PCT : 0;
-    const guns =
-      radar +
-      (hasTech(navy, sh.owner, FIRE_CONTROL) ? FIRE_CONTROL_HIT_PCT : 0);
+    let pct = memo.hitPct.get(sh.owner);
+    if (pct === undefined) {
+      const r = hasTech(navy, sh.owner, RADAR) ? RADAR_HIT_PCT : 0;
+      pct = [
+        r,
+        r + (hasTech(navy, sh.owner, FIRE_CONTROL) ? FIRE_CONTROL_HIT_PCT : 0),
+      ];
+      memo.hitPct.set(sh.owner, pct);
+    }
+    const [radar, guns] = pct;
     const shoot = (
       attack: number,
       hitPm: number,
@@ -808,7 +851,7 @@ function fire(
           pierce === null ? 1000 : pierceFactorPm(pierce, target.stats.armor);
         const d = shotDamageMilli(
           attack,
-          modsBp(navy, sh, target, isStrike),
+          modsBp(navy, memo, sh, target, isStrike),
           hit,
           visFactorPm(target.stats.vis, depth),
           a.posDmg,
@@ -923,9 +966,10 @@ function playRound(navy: WwNavy, b: NavalBattle, tick: number): void {
   formation(navy, sides[0], sides[1]);
   // Every shot first, then all the damage at once (spec §9.4 end).
   const hits = new Map<number, Hit>();
+  const memo: RoundMemo = { mods: new Map(), hitPct: new Map() };
   const shots = [
-    fire(navy, round, sides[0], sides[1], hits),
-    fire(navy, round, sides[1], sides[0], hits),
+    fire(navy, memo, round, sides[0], sides[1], hits),
+    fire(navy, memo, round, sides[1], sides[0], hits),
   ];
   for (const [id, h] of hits) {
     const r = t.rowOf(id);
@@ -934,10 +978,16 @@ function playRound(navy: WwNavy, b: NavalBattle, tick: number): void {
     t.org[r] = Math.max(0, t.org[r] - h.org);
     navy.markFleet(t.fleet[r]);
   }
-  // Spec §9.4: the strike planes the enemy's anti-air and deck fighters take.
-  for (const s of [0, 1] as const) {
-    if (shots[s].strikers.length > 0) {
-      strikeLosses(navy, shots[s].strikers, sides[1 - s]);
+  // Spec §9.4: the strike planes the enemy's anti-air and deck fighters
+  // take, both sides read before either loses any (simultaneous).
+  const strikes = [0, 1].map((s) =>
+    shots[s].strikers.length === 0
+      ? null
+      : strikeLossInput(navy, shots[s].strikers, sides[1 - s]),
+  );
+  for (const x of strikes) {
+    if (x !== null) {
+      loseStrikePlanes(navy, x.carriers, x.aaMilli, x.fighters, x.by);
     }
   }
   sinkings(navy, b, sides, hits, tick, sr);
@@ -973,9 +1023,11 @@ function playRound(navy: WwNavy, b: NavalBattle, tick: number): void {
   const inN = [0, 0];
   const activeN = [0, 0];
   for (const s of [0, 1] as const) {
-    for (const id of battleShipsOf(navy, b.zone, s)) {
+    const listed = new Set(b.fleets[s]);
+    for (const x of sides[s].ships) {
+      if (x.dead || !listed.has(x.fleet.id) || t.escape[x.row] === 0) continue;
       inN[s]++;
-      if (t.escape[t.rowOf(id)] < 0) activeN[s]++;
+      if (t.escape[x.row] < 0) activeN[s]++;
     }
   }
   if (inN[0] === 0 || inN[1] === 0) {
@@ -1076,8 +1128,8 @@ function retreats(
     }
     if (!b.retreating[s]) {
       const sum = sideSums(navy, b, s);
-      const mine = powerOf(navy, b, s);
-      const theirs = powerOf(navy, b, s === 0 ? 1 : 0);
+      const mine = powerOf(navy, sides[s]);
+      const theirs = powerOf(navy, sides[1 - s]);
       const ratio = theirs === 0 ? 4000 : Math.floor((mine * 1000) / theirs);
       b.retreating[s] = sideRetreats(
         round,
@@ -1117,27 +1169,33 @@ function sideSums(
   return { hp, org };
 }
 
-/** Spec §9.9: fleetPower of the side's ships still in the battle. */
-function powerOf(navy: WwNavy, b: NavalBattle, s: SideIdx): number {
+/** Spec §9.9: fleetPower of the side's ships still in the battle (the round's list). */
+function powerOf(navy: WwNavy, side: SideCtx): number {
   const t = navy.ships;
-  return fleetPower(
-    battleShipsOf(navy, b.zone, s).map((id) => {
-      const r = t.rowOf(id);
-      return { stats: navy.shipStatsOf(r), hpMilli: t.hp[r] };
-    }),
-  );
+  const ships: { stats: ShipStats; hpMilli: number }[] = [];
+  for (const x of side.ships) {
+    if (!x.dead && t.escape[x.row] !== 0) {
+      ships.push({ stats: x.stats, hpMilli: t.hp[x.row] });
+    }
+  }
+  return fleetPower(ships);
 }
 
 /**
- * Spec §9.4: a side's carrier strike planes lost to the enemy's ships'
- * anti-air (Σ AA × 0.05 planes) and its deck fighters (airDuelMilli,
- * detection 1000).
+ * Spec §9.4: what a side's carrier strike planes face — the enemy ships'
+ * anti-air (Σ AA × 0.05 planes, milli) and its deck fighters (a copy of
+ * their counts now, for airDuelMilli at detection 1000).
  */
-function strikeLosses(
+function strikeLossInput(
   navy: WwNavy,
   strikers: readonly BShip[],
   enemy: SideCtx,
-): void {
+): {
+  carriers: number[];
+  aaMilli: number;
+  fighters: { owner: number; counts: number[] }[];
+  by: number;
+} {
   const t = navy.ships;
   let aaCenti = 0;
   const fighters: { owner: number; counts: number[] }[] = [];
@@ -1149,13 +1207,12 @@ function strikeLosses(
       if (d.some((n) => n > 0)) fighters.push({ owner: e.owner, counts: d });
     }
   }
-  loseStrikePlanes(
-    navy,
-    strikers.map((x) => x.id),
-    Math.floor(aaCenti / 2),
+  return {
+    carriers: strikers.map((x) => x.id),
+    aaMilli: Math.floor(aaCenti / 2),
     fighters,
-    enemy.lead,
-  );
+    by: enemy.lead,
+  };
 }
 
 /**

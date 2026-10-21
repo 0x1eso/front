@@ -1991,25 +1991,41 @@ export class WwNavy {
   }
 
   /**
-   * Per country (smallID order) the live ships and their HP; per fleet
-   * (id, zone, docked, state, prog); per battle (zone, round); the convoys
-   * sunk; per invasion (army, state, prepDone); per voyage (id, zoneIdx, prog).
+   * Per country (smallID order) the live ships, their HP, organisation and
+   * battle marks (reveal, escape, docks held, in ship order); per fleet
+   * (id, zone, docked, state, prog); per battle (zone, round, retreating,
+   * start HP and organisation); per admiral (id, experience, skills,
+   * usage); each country's navy experience; the convoys sunk; per
+   * invasion (army, state, prepDone); per voyage (id, zoneIdx, prog).
    */
   hash(): number {
     let h = 41;
     const t = this.ships;
-    const n = new Array<number>(this.countryList.length).fill(0);
-    const hp = new Array<number>(this.countryList.length).fill(0);
+    const len = this.countryList.length;
+    const n = new Array<number>(len).fill(0);
+    const hp = new Array<number>(len).fill(0);
+    const org = new Array<number>(len).fill(0);
+    const marks = new Array<number>(len).fill(0);
     for (let r = 0; r < t.rows; r++) {
       if (t.id[r] === 0) continue;
-      n[t.owner[r]]++;
-      hp[t.owner[r]] = (hp[t.owner[r]] + t.hp[r]) | 0;
+      const o = t.owner[r];
+      n[o]++;
+      hp[o] = (hp[o] + t.hp[r]) | 0;
+      org[o] = (org[o] + t.org[r]) | 0;
+      marks[o] =
+        (Math.imul(marks[o], 31) +
+          t.reveal[r] * 1024 +
+          (t.escape[r] + 1) * 16 +
+          t.docks[r]) |
+        0;
     }
-    for (let id = 1; id < n.length; id++) {
+    for (let id = 1; id < len; id++) {
       if (n[id] === 0) continue;
       h = (Math.imul(h, 31) + id) >>> 0;
       h = (Math.imul(h, 31) + n[id]) >>> 0;
       h = (Math.imul(h, 31) + hp[id]) >>> 0;
+      h = (Math.imul(h, 31) + org[id]) >>> 0;
+      h = (Math.imul(h, 31) + marks[id]) >>> 0;
     }
     for (const f of this.fleets.values()) {
       h = (Math.imul(h, 31) + f.id) >>> 0;
@@ -2021,6 +2037,24 @@ export class WwNavy {
     for (const b of this.battles.values()) {
       h = (Math.imul(h, 31) + b.zone) >>> 0;
       h = (Math.imul(h, 31) + b.round) >>> 0;
+      h =
+        (Math.imul(h, 31) +
+          (b.retreating[0] ? 1 : 0) +
+          (b.retreating[1] ? 2 : 0)) >>>
+        0;
+      h = (Math.imul(h, 31) + b.startHp[0]) >>> 0;
+      h = (Math.imul(h, 31) + b.startHp[1]) >>> 0;
+      h = (Math.imul(h, 31) + b.startOrg[0]) >>> 0;
+      h = (Math.imul(h, 31) + b.startOrg[1]) >>> 0;
+    }
+    for (const a of this.admirals.values()) {
+      h = (Math.imul(h, 31) + a.id) >>> 0;
+      h = (Math.imul(h, 31) + a.xpMilli) >>> 0;
+      for (const v of a.skills) h = (Math.imul(h, 31) + v) >>> 0;
+      for (const v of a.usage) h = (Math.imul(h, 31) + v) >>> 0;
+    }
+    for (const c of this.countries()) {
+      h = (Math.imul(h, 31) + c.navyXpMilli) >>> 0;
     }
     h = (Math.imul(h, 31) + this.convoysSunkTotal) >>> 0;
     for (const x of this.invasions.values()) {
