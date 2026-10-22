@@ -11,6 +11,8 @@ import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { ringSvg } from "../domestic/Dial";
+import { WwDepthOpenEvent } from "./DepthEvents";
+import { DepthIndustryModel } from "./DepthIndustryModel";
 import {
   blockText,
   branchName,
@@ -28,6 +30,8 @@ import {
 } from "./EconomyModel";
 import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
+import { renderProjectsTab } from "./WwProjectsTab";
+import { TabUi } from "./WwTabUi";
 
 const STATE_KEYS: Readonly<Record<ResearchCardState, string>> = {
   done: "ww1936.econ.state_done",
@@ -63,7 +67,8 @@ const STATE_COLOR: Readonly<Record<ResearchCardState, string>> = {
 @customElement("ww-research-panel")
 export class WwResearchPanel extends WwDrawerBase {
   protected readonly drawerId = "research" as const;
-  @state() private branch: TechBranch = "infantry";
+  @state() private branch: TechBranch | "projects" = "infantry";
+  private readonly tabPick: Record<string, number> = {};
   /** The card tapped while it could not start, and why. */
   @state() private refused: { tech: WwTechId; block: WwOrderBlock } | null =
     null;
@@ -73,6 +78,11 @@ export class WwResearchPanel extends WwDrawerBase {
   init() {
     super.init();
     this.eventBus.on(OpenWwResearchEvent, () => this.setOpen(!this.open));
+    this.eventBus.on(WwDepthOpenEvent, (e) => {
+      if (e.kind !== "projects") return;
+      this.branch = "projects";
+      this.setOpen(true);
+    });
   }
 
   protected setOpen(open: boolean) {
@@ -97,6 +107,25 @@ export class WwResearchPanel extends WwDrawerBase {
       this.redrawKey = key;
       this.requestUpdate();
     }
+  }
+
+  private tabUi(): TabUi {
+    const sc = this.game.worldWarScenario()!;
+    return {
+      send: (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+      confirm: (k, act) => {
+        if (this.twoTap.tap(k, Date.now())) act();
+        this.requestUpdate();
+        setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
+      },
+      armed: (k) => this.twoTap.isArmed(k, Date.now()),
+      redraw: () => this.requestUpdate(),
+      name: (id) => {
+        const tag = sc.tagOfSmallId(id);
+        return tag === undefined ? "?" : translateText(`ww1936.country.${tag}`);
+      },
+      pick: this.tabPick,
+    };
   }
 
   private send(tech: WwTechId) {
@@ -150,14 +179,25 @@ export class WwResearchPanel extends WwDrawerBase {
     }
     const day = today(this.game);
     const slots = this.renderSlots(researchSlots(d, day));
-    const cards = this.renderCards(d, researchCards(d, this.branch, day));
+    const cards =
+      this.branch === "projects"
+        ? renderProjectsTab(new DepthIndustryModel(this.game), this.tabUi())
+        : this.renderCards(d, researchCards(d, this.branch, day));
     return this.renderFrame(
       translateText("ww1936.econ.research"),
       html`<span aria-hidden="true">🔬</span> ${slots}`,
-      this.renderTabs(TECH_BRANCHES, this.branch, branchName, (b) => {
-        this.branch = b;
-        this.refused = null;
-      }),
+      this.renderTabs(
+        [...TECH_BRANCHES, "projects"] as const,
+        this.branch,
+        (b) =>
+          b === "projects"
+            ? translateText("ww1936.project_ui.tab")
+            : branchName(b),
+        (b) => {
+          this.branch = b;
+          this.refused = null;
+        },
+      ),
       // On a short screen the tabs take the head's row (renderFrame): the
       // slots open the list instead, which gets that row's room.
       this.compact ? html`${slots}${cards}` : cards,
@@ -232,7 +272,7 @@ export class WwResearchPanel extends WwDrawerBase {
     d: WwCountryDetail,
     cards: ResearchCard[],
   ): TemplateResult {
-    if (this.branch !== "doctrine") {
+    if (this.branch !== "doctrine" && this.branch !== "projects") {
       return html`<ul
         data-ww-cards
         class="m-0 mt-2 flex list-none flex-col gap-1.5 p-0"

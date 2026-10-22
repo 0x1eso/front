@@ -83,9 +83,20 @@ import {
   WwProductionView,
 } from "./WwDrawer";
 // P4 (spec §18.8): the shipyards view is the navy drawer's <ww-shipyards>.
+import { WwDepthOpenEvent } from "./DepthEvents";
+import { DepthIndustryModel } from "./DepthIndustryModel";
+import { renderMarketTab } from "./WwMarketTab";
+import { renderMioTab } from "./WwMioTab";
 import "./WwNavyPanel";
+import { TabUi } from "./WwTabUi";
 
-const TAB_KEYS: Readonly<Record<WwIndustryTab, string>> = {
+/** P6 (spec §20.8): the MIO and market tabs follow the four of P1. */
+type DepthTab = WwIndustryTab | "mio" | "market";
+const ALL_TABS: readonly DepthTab[] = [...WW_INDUSTRY_TABS, "mio", "market"];
+
+const TAB_KEYS: Readonly<Record<DepthTab, string>> = {
+  mio: "ww1936.mio.tab",
+  market: "ww1936.market.tab",
   construction: "ww1936.econ.tab_construction",
   production: "ww1936.econ.tab_production",
   trade: "ww1936.econ.tab_trade",
@@ -132,7 +143,8 @@ interface Ctx {
 @customElement("ww-industry-panel")
 export class WwIndustryPanel extends WwDrawerBase {
   protected readonly drawerId = "industry" as const;
-  @state() private tab: WwIndustryTab = "construction";
+  @state() private tab: DepthTab = "construction";
+  private readonly tabPick: Record<string, number> = {};
   @state() private building: BuildingId = "civ";
   /** The region picked for "new construction"; null: the best candidate. */
   @state() private region: number | null = null;
@@ -161,10 +173,15 @@ export class WwIndustryPanel extends WwDrawerBase {
   init() {
     super.init();
     this.eventBus.on(OpenWwIndustryEvent, (e) => this.onOpenEvent(e));
+    this.eventBus.on(WwDepthOpenEvent, (e) => {
+      if (e.kind !== "mio" && e.kind !== "market") return;
+      this.tab = e.kind;
+      this.setOpen(true);
+    });
   }
 
   /** The tab on show. */
-  shownTab(): WwIndustryTab {
+  shownTab(): DepthTab {
     return this.tab;
   }
 
@@ -350,7 +367,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       c.dead
         ? nothing
         : this.renderTabs(
-            WW_INDUSTRY_TABS,
+            ALL_TABS,
             this.tab,
             (t) => translateText(TAB_KEYS[t]),
             (t) => {
@@ -372,7 +389,57 @@ export class WwIndustryPanel extends WwDrawerBase {
         return this.renderTrade(c);
       case "manpower":
         return this.renderManpower(c);
+      case "mio":
+        return renderMioTab(this.depthModel(), this.tabUi(c));
+      case "market":
+        return renderMarketTab(this.depthModel(), this.tabUi(c));
     }
+  }
+
+  private depthModel(): DepthIndustryModel {
+    return new DepthIndustryModel(this.game);
+  }
+
+  private tabUi(c: Ctx): TabUi {
+    return {
+      send: (o) => this.send(o),
+      confirm: (k, act) => this.confirmTap(k, act),
+      armed: (k) => this.armed(k),
+      redraw: () => this.requestUpdate(),
+      name: (id) => {
+        const tag = c.scenario.tagOfSmallId(id);
+        return tag === undefined ? "?" : countryName(tag);
+      },
+      pick: this.tabPick,
+    };
+  }
+
+  /** P6 (spec §20.8): the energy line and the coal and uranium rows. */
+  private renderEnergy(): TemplateResult {
+    const m = this.depthModel();
+    const e = m.energyLine();
+    if (e === null) return html`${nothing}`;
+    return html`<div data-ww-energy class="mt-2 text-xs tabular-nums">
+      <div class="${e.short ? "text-amber-300" : "text-emerald-300"}">
+        ⚡
+        ${translateText("ww1936.energy.line", {
+          pct: e.pct,
+          coal: e.coalUnits,
+          coalPower: e.coalPower,
+          hydro: e.hydroPower,
+          plants: e.plantPower,
+          demand: e.demand,
+        })}
+      </div>
+      ${m
+        .resourceLines()
+        .map(
+          (r) =>
+            html`<div data-ww-energy-res=${r.id} class="text-white/80">
+              ${translateText(`ww1936.res.${r.id}`)} ${signedText(r.balance)}
+            </div>`,
+        )}
+    </div>`;
   }
 
   // ---- Construction ----
@@ -1099,7 +1166,7 @@ export class WwIndustryPanel extends WwDrawerBase {
           })}
         </tbody>
       </table>
-      ${this.renderFuel(c)}
+      ${this.renderFuel(c)} ${this.renderEnergy()}
       ${this.buyResource === null
         ? nothing
         : this.renderBuy(c, this.buyResource)}
