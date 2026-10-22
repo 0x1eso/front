@@ -152,7 +152,7 @@ export function issueDesign(
       if (!s.obsolete) {
         // Spec §5.1: the flag only; the day's check frees the slot.
         s.obsolete = true;
-        d.markDesign(id, o.design, o.slot);
+        d.markDesignView(id, o.design, o.slot);
       }
       return null;
     }
@@ -161,7 +161,7 @@ export function issueDesign(
       const s = d.designSlot(id, o.design, o.slot);
       if (s === null) return "bad_slot";
       s.def.name = o.name;
-      d.markDesign(id, o.design, o.slot);
+      d.markDesignView(id, o.design, o.slot);
       return null;
     }
     case "ship_refit":

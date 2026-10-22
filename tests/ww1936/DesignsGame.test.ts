@@ -414,6 +414,36 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(ww.economy.hash()).not.toBe(e0);
   });
 
+  // Batch P6-4 (lane E review minor 6): a rename or the obsolete flag
+  // changes no number — the view hears of it, the stats are not rebuilt.
+  it("a rename or the obsolete flag only tells the view", async () => {
+    const { runner, ww, d } = await game();
+    prepare(ww, GBR, TANK_TECHS);
+    const tick = runner.game.ticks();
+    expect(d.issue(GBR, { kind: "design_save", def: MED1 }, tick)).toBeNull();
+    d.takeData();
+    const ver = d.designVersion(GBR);
+    const seq = d.keyStatsSeq;
+    const stats = d.designStatsOf(GBR, "tank", 1);
+    const order = (o: DepthOrder) => expect(d.issue(GBR, o, tick)).toBeNull();
+    order({ kind: "design_rename", design: "tank", slot: 1, name: "Other" });
+    order({ kind: "design_obsolete", design: "tank", slot: 1 });
+    expect(d.designVersion(GBR)).toBe(ver);
+    expect(d.keyStatsSeq).toBe(seq);
+    expect(d.designStatsOf(GBR, "tank", 1)).toBe(stats);
+    const data = d.takeData()!;
+    expect(data.designsOf?.map((x) => x.def?.name)).toEqual(["Other", "Other"]);
+    const mine = data.details?.find((x) => x.smallID === GBR);
+    expect(mine?.designs.find((x) => x.slot === 1)).toMatchObject({
+      obsolete: true,
+      def: { name: "Other" },
+    });
+    // A new save still rebuilds them.
+    order({ kind: "design_save", def: MED2 });
+    expect(d.designVersion(GBR)).toBe(ver + 1);
+    expect(d.keyStatsSeq).not.toBe(seq);
+  });
+
   it("line conversion consumes old stock", async () => {
     const { runner, ww, d } = await game();
     prepare(ww, GBR, TANK_TECHS);

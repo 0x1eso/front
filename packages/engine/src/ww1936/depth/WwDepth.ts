@@ -1048,6 +1048,16 @@ export class WwDepth implements LandDepthHooks {
     return this.designVer.get(id) ?? 0;
   }
 
+  /**
+   * Lane E review minor 6 (batch P6-4): a rename or the obsolete flag
+   * changes no number (designStats reads neither), so only the view is
+   * told — no new design version, KeyStatsTable or stats recompute.
+   */
+  markDesignView(id: number, kind: DesignKind, slot: number): void {
+    this.depthDirtyDesigns.push([id, kind, slot]);
+    this.depthDirty.add(id);
+  }
+
   markDesign(id: number, kind: DesignKind, slot: number): void {
     this.designVer.set(id, this.designVersion(id) + 1);
     this.depthDirtyDesigns.push([id, kind, slot]);
