@@ -1104,7 +1104,8 @@ class AiDay {
     if (armies.length === 0) return;
     const sum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
     const free = cl.generals
-      .filter((g) => g.army === 0 && canServe(this.land, g, this.day))
+      // P6 (spec §4.3, lane D): never a field marshal.
+      .filter((g) => g.army === 0 && !g.fm && canServe(this.land, g, this.day))
       .sort((a, b) => sum(b) - sum(a) || a.id - b.id);
     for (let i = 0; i < armies.length && i < free.length; i++) {
       this.issue({

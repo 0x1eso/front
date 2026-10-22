@@ -13,23 +13,35 @@ import {
   groupArmyCap,
   splitFront,
 } from "@openfront/engine-lib/ww1936/CommandRules";
-import {
-  GENERAL_LEVEL_MAX,
-  GENERAL_SKILL_MAX,
-  GENERAL_XP_CENTI,
-} from "../land/GeneralsRun";
+import { levelUp } from "../land/GeneralsRun";
 import { foughtTest } from "../land/Sustain";
 import type { CountryLand, GeneralState } from "../land/WwLand";
 import type { WwDepth } from "./WwDepth";
 
 /**
- * Spec §4.3 "원수는 군을 직접 맡지 않는다": a field marshal's
- * GeneralState.army (P2 reads 0 as "free"), so P2's AI and screens never
- * hand him an army.
+ * Spec §4.3 "원수는 군을 직접 맡지 않는다". `GeneralState.fm` is the one
+ * truth: P2's army_general order (GeneralsRun.assignGeneral), its AI
+ * (AiLand) and the army panel all refuse or hide a field marshal. His
+ * `army` reads FM_ARMY as a busy hint only — P3's advisor list then
+ * treats him as leading an army (Advisors.leadsArmy), and a P2 reset to 0
+ * is harmless (the depth day sets it back).
  */
 export const FM_ARMY = -1;
 
 type Group = WwDepth["groups"][number];
+
+/**
+ * The version of lane D's command state (groups, marshals, medals, traits)
+ * per game: commandLandMods' per-tick memo is valid only for the version it
+ * was built at. Bumped by every change of that state; a derived counter.
+ */
+const commandVersion = new WeakMap<WwDepth, number>();
+export function commandVer(d: WwDepth): number {
+  return commandVersion.get(d) ?? 0;
+}
+export function touchCommand(d: WwDepth): void {
+  commandVersion.set(d, commandVer(d) + 1);
+}
 
 /**
  * A general of the country by id, O(1). The index is checked against the
@@ -69,6 +81,7 @@ function disband(d: WwDepth, g: Group): void {
   }
   d.groups = d.groups.filter((x) => x !== g);
   d.markGlobal();
+  touchCommand(d);
 }
 
 /** Every group of the country led by general `fm` disbands (he is no field marshal any more). */
@@ -76,24 +89,6 @@ export function disbandGroupsOf(d: WwDepth, id: number, fm: number): void {
   for (const g of d.groups.filter((x) => x.owner === id && x.fm === fm)) {
     disband(d, g);
   }
-}
-
-/** Spec §6.2 as P2's levelUp: a level at 100 × level experience, +1 to the most used skill below 5. */
-function levelUp(g: GeneralState): void {
-  if (g.level >= GENERAL_LEVEL_MAX || g.xp < 100 * GENERAL_XP_CENTI * g.level) {
-    return;
-  }
-  g.level++;
-  const skills = [g.att, g.dfn, g.plan, g.log];
-  let best = -1;
-  for (let i = 0; i < skills.length; i++) {
-    if (skills[i] >= GENERAL_SKILL_MAX) continue;
-    if (best < 0 || g.use[i] > g.use[best]) best = i;
-  }
-  if (best === 0) g.att++;
-  else if (best === 1) g.dfn++;
-  else if (best === 2) g.plan++;
-  else if (best === 3) g.log++;
 }
 
 /**
@@ -107,6 +102,11 @@ function levelUp(g: GeneralState): void {
 export function dailyArmyGroups(d: WwDepth, id: number, day: number): void {
   const land = d.ww.land;
   const cl = land.country(id);
+  // A country that stopped playing (capitulated, not in exile) has no day
+  // of its own: its groups go on any playing country's day (review 15).
+  for (const g of d.groups.filter((x) => !d.ww.isActor(x.owner))) {
+    disband(d, g);
+  }
   for (const g of d.groups.filter((x) => x.owner === id)) {
     const keep = g.armies.filter((aid) => {
       const a = land.armies.get(aid);
@@ -119,6 +119,7 @@ export function dailyArmyGroups(d: WwDepth, id: number, day: number): void {
     } else if (keep.length !== g.armies.length) {
       g.armies = keep;
       d.markGlobal();
+      touchCommand(d);
     }
   }
   if (cl === null) return;
@@ -146,6 +147,7 @@ export function dailyArmyGroups(d: WwDepth, id: number, day: number): void {
     if (dfn) fm.use[1]++;
     levelUp(fm);
     land.markCountry(id);
+    touchCommand(d);
   }
 }
 
@@ -190,6 +192,7 @@ export function issueArmyGroup(
       if (g.auto) a.auto = true;
       land.markArmy(a.id);
       d.markGlobal();
+      touchCommand(d);
       return null;
     }
     case "ag_remove": {
@@ -200,6 +203,7 @@ export function issueArmyGroup(
       g.armies = g.armies.filter((x) => x !== a.id);
       a.group = 0;
       land.markArmy(a.id);
+      touchCommand(d);
       if (g.armies.length === 0) disband(d, g);
       else d.markGlobal();
       return null;
@@ -230,7 +234,11 @@ export function issueArmyGroup(
       g.auto = o.on;
       for (const aid of g.armies) {
         if (land.armies.has(aid)) {
-          land.issue(id, { kind: "army_auto", army: aid, on: o.on }, "player");
+          land.issue(
+            id,
+            { kind: "army_auto", army: aid, on: o.on },
+            sourceOf(d, id),
+          );
         }
       }
       d.markGlobal();
@@ -273,6 +281,7 @@ export function createGroup(
     land.markArmy(aid);
   }
   d.markGlobal();
+  touchCommand(d);
   return null;
 }
 

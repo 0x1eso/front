@@ -1354,6 +1354,38 @@ export class WwDepth implements LandDepthHooks {
       mix(c.proj.running.reduce((a, r) => a + r.progressMilli, 0));
       mix(atomicStockOf(this.ww, id));
       mix(c.mech.energyPm);
+      // Lane D (review 3): every doctrine and command field, in index order;
+      // the tuple lists by their first number.
+      for (const xs of [
+        c.doc.gd,
+        c.doc.gdLock,
+        c.doc.sub,
+        c.doc.subLock,
+        c.doc.masteryMilli,
+        c.doc.announced,
+        c.doc.gain,
+        c.cmd.spirits,
+        c.cmd.spiritLock,
+      ]) {
+        mix(xs.length);
+        for (const v of xs) mix(v);
+      }
+      for (const list of [c.cmd.medalReady, c.cmd.traitsSeen]) {
+        mix(list.length);
+        for (const [k, v] of [...list].sort((x, y) => x[0] - y[0])) {
+          mix(k);
+          mix(v);
+        }
+      }
+    }
+    // Lane D (review 3): the army groups by number, their armies ascending.
+    for (const g of [...this.groups].sort((a, b) => a.id - b.id)) {
+      mix(g.id);
+      mix(g.owner);
+      mix(g.fm);
+      mix(g.auto ? 1 : 0);
+      mix(g.armies.length);
+      for (const a of [...g.armies].sort((x, y) => x - y)) mix(a);
     }
     for (const [k, v] of [...this.intelNet.entries()].sort(
       (a, b) => a[0] - b[0],

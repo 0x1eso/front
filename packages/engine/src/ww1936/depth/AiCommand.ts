@@ -140,10 +140,10 @@ export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   if (c === null || d.ww.land.country(id) === null) return;
   if (c.doc.gd.every((g) => g < 0)) startDoctrineFor(d, id);
   if (!d.ww.hasWar(id) && day % 10 !== id % 10) return;
-  aiSpirits(d, id, day);
-  aiPriorities(d, id, day);
+  aiSpirits(d, id);
+  aiPriorities(d, id);
   aiMarshals(d, id, day);
-  aiGroups(d, id, day);
+  aiGroups(d, id);
   aiTraits(d, id);
   aiMedal(d, id, day);
 }
@@ -211,7 +211,7 @@ export function aiSpiritPlan(d: WwDepth, id: number): number[] {
 }
 
 /** Spec §19.2 officer corps: each category's plan once the domain has the experience; never switched. */
-function aiSpirits(d: WwDepth, id: number, day: number): void {
+function aiSpirits(d: WwDepth, id: number): void {
   const c = d.country(id)!;
   if (c.cmd.spirits.every((s) => s >= 0)) return;
   const plan = aiSpiritPlan(d, id);
@@ -223,13 +223,13 @@ function aiSpirits(d: WwDepth, id: number, day: number): void {
       d,
       id,
       { kind: "army_spirit_pick", category, id: ARMY_SPIRITS[plan[cat]] },
-      tickOf(d, day),
+      tickOf(d),
     );
   });
 }
 
 /** Spec §4.6 / §19.2: front armies high, P5 garrisons low, the rest normal. */
-function aiPriorities(d: WwDepth, id: number, day: number): void {
+function aiPriorities(d: WwDepth, id: number): void {
   for (const a of d.ww.land.armiesOf(id)) {
     const k = a.order.kind;
     const want = k === "garrison" ? 0 : k === "front" || k === "plan" ? 2 : 1;
@@ -238,14 +238,13 @@ function aiPriorities(d: WwDepth, id: number, day: number): void {
       d,
       id,
       { kind: "army_priority", army: a.id, value: want },
-      tickOf(d, day),
+      tickOf(d),
     );
   }
 }
 
-/** A tick of `day` for the orders the AI gives on its depth turn (they read only its day). */
-function tickOf(d: WwDepth, day: number): number {
-  void day;
+/** The tick the AI's orders are given on (its depth turn's). */
+function tickOf(d: WwDepth): number {
   return d.mg.ticks();
 }
 
@@ -305,7 +304,7 @@ function aiMarshals(d: WwDepth, id: number, day: number): void {
           titled--;
           continue;
         }
-        if (promoteTitled(d, id, cl, trait, day)) return;
+        if (promoteTitled(d, id, cl, trait)) return;
         continue;
       }
       const g = cl.generals.find(
@@ -345,9 +344,7 @@ function promoteTitled(
   id: number,
   cl: CountryLand,
   trait: number,
-  day: number,
 ): boolean {
-  void day;
   const land = d.ww.land;
   const c = d.country(id)!;
   if (land.fieldMarshalCount(id) >= fieldMarshalCap(land.rowsOf(id).length)) {
@@ -376,10 +373,10 @@ function promoteTitled(
  * first). The armies keep the fronts P2's AI planner gave them (an
  * ag_front on top would reset their readiness).
  */
-function aiGroups(d: WwDepth, id: number, day: number): void {
+function aiGroups(d: WwDepth, id: number): void {
   const land = d.ww.land;
   const cl = land.country(id)!;
-  const tick = tickOf(d, day);
+  const tick = tickOf(d);
   for (const g of d.groups.filter((x) => x.owner === id)) {
     for (const aid of [...g.armies]) {
       const k = land.armies.get(aid)?.order.kind;
@@ -532,6 +529,6 @@ function aiMedal(d: WwDepth, id: number, day: number): void {
       army: best.id,
       medal: MEDALS[attack ? 0 : 1],
     },
-    tickOf(d, day),
+    tickOf(d),
   );
 }

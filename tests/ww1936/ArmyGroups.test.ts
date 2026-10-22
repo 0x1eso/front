@@ -11,12 +11,21 @@ import { canServe } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { order, placeArmy, step, stepTo, wwRunner } from "./util";
+import {
+  gameHash,
+  order,
+  placeArmy,
+  step,
+  stepTo,
+  wwRestore,
+  wwRunner,
+} from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
 const H = "HUMANDEU";
+const HUMANS = [{ clientID: H, country: "DEU" as const }];
 const DEU = DEEP.tag.DEU;
 const POL = DEEP.tag.POL;
 
@@ -176,5 +185,57 @@ describe("army groups (spec §4.3)", () => {
     // No fight, no experience.
     dailyArmyGroups(d, DEU, day + 1);
     expect(fm.xp).toBe(xp + 100);
+  });
+
+  it("a group, a marshal, a medal and the notices told survive a snapshot", async () => {
+    const { runner, ww, d, land, fm } = await germany();
+    stepTo(runner, afterTurn(runner, 1));
+    const a = placeArmy(runner.game, "DEU", DEEP.region.berlin, 2);
+    const tick = runner.game.ticks();
+    const c = d.country(DEU)!;
+    c.cmd.cpMilli = 50_000;
+    expect(
+      d.issue(DEU, { kind: "ag_create", fm: fm.id, armies: [a.id] }, tick),
+    ).toBeNull();
+    expect(
+      d.issue(
+        DEU,
+        { kind: "medal_award", army: a.id, medal: "medal_valor" },
+        tick,
+      ),
+    ).toBeNull();
+    expect(
+      d.issue(DEU, { kind: "army_priority", army: a.id, value: 2 }, tick),
+    ).toBeNull();
+    c.cmd.traitsSeen.push([fm.id, 1 << 11]);
+    step(runner, 3);
+    const b = await wwRestore(runner, HUMANS, DEEP.map);
+    expect(gameHash(b)).toBe(gameHash(runner));
+    const ww2 = b.game.worldWar()!;
+    const d2 = ww2.depth;
+    expect(d2.groups).toEqual(d.groups);
+    expect(d2.country(DEU)!.cmd).toEqual(c.cmd);
+    expect(d2.country(DEU)!.doc).toEqual(c.doc);
+    const a2 = ww2.land.armies.get(a.id)!;
+    expect([a2.group, a2.priority, a2.medal, a2.medalUntil]).toEqual([
+      a.group,
+      a.priority,
+      a.medal,
+      a.medalUntil,
+    ]);
+    const fm2 = ww2.land.country(DEU)!.generals.find((x) => x.id === fm.id)!;
+    expect([fm2.fm, fm2.fmTraits, fm2.army]).toEqual([
+      fm.fm,
+      fm.fmTraits,
+      fm.army,
+    ]);
+    expect(d2.armyMods(DEU, a.id)).toEqual(d.armyMods(DEU, a.id));
+    for (let i = 0; i < 30; i++) {
+      step(runner);
+      step(b);
+      expect(gameHash(b), `tick ${i}`).toBe(gameHash(runner));
+    }
+    void land;
+    void ww;
   });
 });

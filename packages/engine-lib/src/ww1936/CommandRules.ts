@@ -136,7 +136,7 @@ export const ASSIGNABLE_ADMIRAL_TRAITS: readonly AdmiralTrait[] = [
 
 /** Spec §4.2: field marshal traits a marshal may hold — one at promotion, one more at levels 3 and 5. */
 export function fmTraitAllowance(level: number): number {
-  return 1 + (level >= 3 ? 1 : 0) + (level >= 5 ? 1 : 0);
+  return 1 + FM_TRAIT_LEVELS.filter((l) => level >= l).length;
 }
 
 /** Spec §4.2: the command power a trait_assign costs (0: not bought). */

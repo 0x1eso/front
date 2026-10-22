@@ -157,7 +157,9 @@ describe("command (spec §4)", () => {
   it("a terrain trait arrives after 60 forest battle days", async () => {
     const { runner, land, d } = await germany();
     const g = land.country(DEU)!.generals.find((x) => x.army === 0)!;
-    const spy = vi.spyOn(d, "message");
+    // The key the screen gets (WwPolitics.message adds "events_display.").
+    const spy = vi.spyOn(runner.game, "displayMessage");
+    void d;
     g.terrainDays[4] = 59;
     stepTo(runner, afterTurn(runner, 0));
     expect(g.traits & traitBit("forest_expert")).toBe(0);
@@ -166,15 +168,13 @@ describe("command (spec §4)", () => {
     expect(g.traits & traitBit("forest_expert")).not.toBe(0);
     const told = () =>
       spy.mock.calls.filter(
-        (x) => x[1] === "events_display.ww1936_trait_unlocked",
+        (x) => x[0] === "events_display.ww1936_trait_unlocked",
       );
-    expect(told()).toEqual([
-      [
-        DEU,
-        "events_display.ww1936_trait_unlocked",
-        { name: g.id, general: g.id, trait: "forest_expert" },
-      ],
-    ]);
+    expect(told().length).toBe(1);
+    expect(told()[0][4]).toEqual({ general: g.id, trait: "forest_expert" });
+    expect(
+      spy.mock.calls.some((x) => x[0].startsWith("events_display.events_")),
+    ).toBe(false);
     // Told once.
     stepTo(runner, afterTurn(runner, 3));
     expect(told().length).toBe(1);
@@ -194,7 +194,18 @@ describe("command (spec §4)", () => {
     const tick = runner.game.ticks();
     const promote = (general: number) =>
       d.issue(DEU, { kind: "promote_fm", general, trait: "fm_thorough" }, tick);
+    const shown = vi.spyOn(runner.game, "displayMessage");
     expect(promote(g.id)).toBeNull();
+    expect(
+      shown.mock.calls.find(
+        (x) => x[0] === "events_display.ww1936_fm_promoted",
+      )?.[4],
+    ).toEqual({ general: g.id });
+    shown.mockRestore();
+    // P2's army_general refuses a field marshal (spec §4.3; review 2).
+    expect(
+      land.issue(DEU, { kind: "army_general", army: army.id, general: g.id }),
+    ).toBe("general_unavailable");
     expect(c.cmd.cpMilli).toBe(10_000);
     expect(pol.ppMilli).toBe(75_000);
     expect(g.fm).toBe(true);
@@ -261,8 +272,19 @@ describe("command (spec §4)", () => {
     expect(
       divisionMods(other).attackLines.some((l) => l.id === "field_marshal"),
     ).toBe(false);
-    // A fresh object each read (the query object is reused).
-    expect(d.armyMods(DEU, a.id)).not.toBe(d.armyMods(DEU, a.id));
+    // One frozen value per army and tick (the query object is reused, the
+    // result is no scratch); a change within the tick is read at once.
+    const m1 = d.armyMods(DEU, a.id);
+    expect(Object.isFrozen(m1)).toBe(true);
+    expect(d.armyMods(DEU, a.id)).toBe(m1);
+    expect(
+      d.issue(
+        DEU,
+        { kind: "ag_remove", group: a.group, army: a.id },
+        runner.game.ticks(),
+      ),
+    ).toBeNull();
+    expect(d.armyMods(DEU, a.id).fmAtt).toBe(0);
     void ww;
   });
 
@@ -406,5 +428,52 @@ describe("command (spec §4)", () => {
     expect(d.xpOf(DEU, 0)).toBe(25);
     expect(ce.stats.reinforcePct).toBe(before);
     expect(c.cmd.spirits[0]).toBe(0);
+  });
+
+  it("every lane-D field moves the hashes", async () => {
+    const { ww, c, land, d } = await germany();
+    const [a] = land.armiesOf(DEU);
+    const g = land.country(DEU)!.generals[0];
+    const hashes = () => [d.hash(), land.hash(), ww.hash()];
+    const moves = (label: string, f: () => void) => {
+      const before = hashes();
+      f();
+      const after = hashes();
+      expect(after[2], label).not.toBe(before[2]);
+    };
+    const doc = c.doc;
+    const cmd = c.cmd;
+    moves("gd", () => (doc.gd[2] = 7));
+    moves("gdLock", () => (doc.gdLock[0] = 33));
+    moves("sub", () => (doc.sub[5] = 13));
+    moves("subLock", () => (doc.subLock[3] = 44));
+    moves("announced", () => (doc.announced[4] = 2));
+    moves("gain", () => (doc.gain[7] = 345));
+    moves("spirits", () => (cmd.spirits[6] = 19));
+    moves("spiritLock", () => (cmd.spiritLock[1] = 55));
+    moves("medalReady", () => cmd.medalReady.push([a.id, 66]));
+    moves("medalReady day", () => (cmd.medalReady[0][1] = 67));
+    moves("traitsSeen", () => cmd.traitsSeen.push([g.id, 2]));
+    moves("traitsSeen bits", () => (cmd.traitsSeen[0][1] = 4));
+    moves("group", () =>
+      d.groups.push({
+        id: 999,
+        owner: DEU,
+        fm: g.id,
+        armies: [a.id],
+        auto: false,
+      }),
+    );
+    moves("group fm", () => (d.groups[d.groups.length - 1].fm = g.id + 1));
+    moves("group armies", () =>
+      d.groups[d.groups.length - 1].armies.push(9_999),
+    );
+    moves("group auto", () => (d.groups[d.groups.length - 1].auto = true));
+    moves("fm", () => (g.fm = !g.fm));
+    moves("fmTraits", () => (g.fmTraits ^= 2));
+    moves("army group", () => (a.group = 999));
+    moves("priority", () => (a.priority = a.priority === 2 ? 0 : 2));
+    moves("medal", () => (a.medal = 1));
+    moves("medalUntil", () => (a.medalUntil = 77));
   });
 });

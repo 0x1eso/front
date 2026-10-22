@@ -334,7 +334,9 @@ describe("P6: the screens' detail numbers come from the rules (review E6)", () =
     });
     ce.stock[equipKey("tank_design", 1)] = 5;
     d.dayTally[id * 9] = 2_000_000;
-    // Lane D: the detail shows the gain the country's last depth day applied.
+    // Lane D: the detail shows the gain the country's last depth day applied
+    // (a land grand doctrine picked: without one only the base counts).
+    c.doc.gd[0] = 0;
     dailyDoctrine(d, id, ww.day(runner.game.ticks()));
     d.markCountry(id);
     const data = d.takeData()!;

@@ -88,6 +88,28 @@ export const NAVAL_SHARE_MICRO = {
 } as const;
 export const AIR_SHARE_MICRO_PER_SORTIE = 500;
 
+/**
+ * Lane D (review 11; HOI4: air wings gain experience flying their
+ * missions): air experience a day, milli — 0.002 for each plane a
+ * deployment flies over its zone that day (the sorties the depth tally
+ * counts), at most 3 a day, plus the country's airXpMilli stat (the air
+ * college officer corps, the continuous focus). No plane up, no
+ * experience: unlike the army's and the navy's, P4 has no base.
+ */
+export const AIR_XP_SORTIE_MILLI = 2;
+export const AIR_XP_SORTIE_CAP_MILLI = 3_000;
+/** The air experience a country can hold, milli (P2's and P4's 500). */
+export const AIR_XP_MAX_MILLI = 500_000;
+
+export function airXpDayMilli(sorties: number, statMilli: number): number {
+  return (
+    Math.min(
+      AIR_XP_SORTIE_CAP_MILLI,
+      Math.max(0, sorties) * AIR_XP_SORTIE_MILLI,
+    ) + statMilli
+  );
+}
+
 export interface DoctrineChoice {
   /** GRAND_DOCTRINES index per domain, -1 none. */
   gd: readonly number[];
@@ -125,8 +147,7 @@ export const GRAND_DOCTRINE_STATS: Readonly<
  * the "(approx)" rows are recorded in lane D's report (the closest key a
  * reader has, e.g. "infantry division breakthrough" on every division's).
  * Omitted (no key): nav_cruiser L5 range +20% (its torpedoes ride on the
- * light-gun key) and nav_carrier_support L3 (carrier fighters × 1.5 in the
- * sea zone's superiority).
+ * light-gun key).
  */
 export const SUBDOCTRINE_REWARDS: Readonly<
   Record<Subdoctrine, readonly Partial<WwStats>[]>
@@ -255,8 +276,9 @@ export const SUBDOCTRINE_REWARDS: Readonly<
   nav_carrier_support: [
     { aaPct: 10 },
     { navalDetectPct: 10 },
-    // Carrier fighters × 1.5 in the sea zone's superiority: no key.
-    {},
+    // (approx) carrier fighters × 1.5 in the sea zone's superiority: the
+    // fighters' air attack (nav_carrier_force L5's stand-in; review 10).
+    { fighterAttackPct: 10 },
     { shoreBombardPct: 15 },
     // (approx) carriers' HP: the fleet's defence.
     { navyDefensePct: 10, airLossCutPct: 15 },

@@ -2499,6 +2499,10 @@ export class WwLand {
       fold(a.front);
       fold(a.path);
       mix(a.paraLastDay);
+      // P6 (lane D): the army group, reinforcement priority and medal.
+      mix(a.group);
+      mix(a.priority);
+      mix(a.medal * 100_000 + a.medalUntil);
     }
     for (const b of this.battles.values()) {
       mix(b.sinceTick);
@@ -2553,6 +2557,8 @@ export class WwLand {
         mix(g.army);
         fold(g.use);
         fold(g.terrainDays);
+        // P6 (lane D): a field marshal and his traits.
+        mix((g.fm ? 1 : 0) + g.fmTraits * 2);
       }
       mix(cl.nextArmyNo);
       mix(cl.nextTitleNo);

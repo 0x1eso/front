@@ -19,6 +19,7 @@ import { FM_ARMY } from "@openfront/engine/ww1936/depth/ArmyGroups";
 import { makeMarshal } from "@openfront/engine/ww1936/depth/Command";
 import { aiPersonality } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { activateCountry } from "@openfront/engine/ww1936/endgame/Activate";
+import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
 import { canServe } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
@@ -217,5 +218,40 @@ describe("the AI's doctrines and command (spec §19.2)", () => {
     for (const a of fronts) expect(a.group).toBe(group!.id);
     // Front armies come first for reinforcement (spec §19.2).
     for (const a of fronts) expect(a.priority).toBe(2);
+  });
+
+  it("P2's AI never seats a field marshal, even right after an army reset", async () => {
+    const runner = await wwRunner(
+      {},
+      [{ clientID: "HUMANPOL", country: "POL" }],
+      DEEP.map,
+    );
+    const g = runner.game;
+    dropPact(g, "DEU", "POL");
+    warAfterPrep(runner, "HUMANPOL", "DEU");
+    const ww = g.worldWar()!;
+    const land = ww.land;
+    const cl = land.country(DEU)!;
+    const day = ww.day(g.ticks());
+    const fm = cl.generals.find((x) => x.army === 0 && canServe(land, x, day))!;
+    makeMarshal(ww.depth, DEU, fm, 0);
+    // The best general there is: P2's AI would take him first.
+    fm.att = 5;
+    fm.dfn = 5;
+    fm.plan = 5;
+    fm.log = 5;
+    const ce = ww.economy.country(DEU)!;
+    ce.manpower = 1_000_000;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 100_000;
+    const big = placeArmy(g, "DEU", DEEP.region.berlin, 6);
+    // A P2 reset (capitulation, purge, roster end) leaves him at army 0
+    // until the next depth day; the new army has no general.
+    fm.army = 0;
+    expect(big.general).toBe(0);
+    aiLandTick(land, DEU, day);
+    expect(land.armiesOf(DEU).some((a) => a.general === fm.id)).toBe(false);
+    expect(fm.army).toBe(0);
+    // AiLand skipped him: the next free general took the army.
+    expect(big.general).not.toBe(0);
   });
 });

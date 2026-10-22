@@ -49,9 +49,15 @@ import {
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { addStatsInto, emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { canServe, TERRAIN_TRAITS } from "../land/GeneralsRun";
-import type { CountryLand, GeneralState } from "../land/WwLand";
+import type { Army, CountryLand, GeneralState } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
-import { disbandGroupsOf, FM_ARMY, generalById } from "./ArmyGroups";
+import {
+  commandVer,
+  disbandGroupsOf,
+  FM_ARMY,
+  generalById,
+  touchCommand,
+} from "./ArmyGroups";
 import { cryptoModsVs } from "./Crypto";
 import {
   ArmyDepthMods,
@@ -139,15 +145,23 @@ export function dailyCommand(d: WwDepth, id: number, day: number): void {
       a.medal = 0;
       a.medalUntil = -1;
       land.markArmy(a.id);
+      touchCommand(d);
     }
   }
   cmd.medalReady = cmd.medalReady.filter(
     ([army, ready]) => ready > day && land.armies.get(army)?.owner === id,
   );
-  if (changed) land.markCountry(id);
+  if (changed) {
+    land.markCountry(id);
+    touchCommand(d);
+  }
 }
 
-/** A field marshal's day: no army; gone when he cannot serve or his K5 row ends today. True when it changed something. */
+/**
+ * A field marshal's day: no army; gone when he cannot serve, or — for an
+ * AI country with the historical AI only (history as flavour; review 8) —
+ * when his K5 row's last day comes. True when it changed something.
+ */
 function keepMarshal(
   d: WwDepth,
   id: number,
@@ -159,6 +173,8 @@ function keepMarshal(
   const tag = d.ww.tagOf(id);
   const rowEnds =
     key !== undefined &&
+    !d.ww.isHumanControlled(id) &&
+    d.mg.config().historicalAi() === true &&
     d.ww.politics.content.startFieldMarshals.some(
       (r) =>
         r.tag === tag &&
@@ -187,6 +203,7 @@ export function stripMarshal(d: WwDepth, id: number, g: GeneralState): void {
   if (g.army === FM_ARMY) g.army = 0;
   disbandGroupsOf(d, id, g.id);
   d.ww.land.markCountry(id);
+  touchCommand(d);
 }
 
 /** Spec §4.2 terrain traits 5–7 and their notice (once per trait, cmd.traitsSeen). True when it changed something. */
@@ -215,8 +232,9 @@ function terrainTraits(d: WwDepth, id: number, g: GeneralState): boolean {
     const bit = traitBit(TERRAIN_TRAITS[i]);
     if ((g.traits & bit) === 0 || (seen & bit) !== 0) continue;
     now |= bit;
-    d.message(id, "events_display.ww1936_trait_unlocked", {
-      name: g.id,
+    // WwPolitics.message adds "events_display."; the client names the
+    // general from `general` (EventsDisplay), never from `name`.
+    d.message(id, "ww1936_trait_unlocked", {
       general: g.id,
       trait: TERRAIN_TRAITS[i],
     });
@@ -292,6 +310,7 @@ export function issueCommand(
       if (c.cmd.cpMilli < MEDAL_CP * 1000) return "no_cp";
       c.cmd.cpMilli -= MEDAL_CP * 1000;
       a.medal = MEDALS.indexOf(o.medal) + 1;
+      touchCommand(d);
       a.medalUntil = day + MEDAL_DAYS - 1;
       if (ready !== undefined) ready[1] = day + MEDAL_COOLDOWN_DAYS;
       else {
@@ -350,6 +369,7 @@ export function assignGeneralTrait(
   const fmBit = FM_TRAITS.indexOf(trait as (typeof FM_TRAITS)[number]);
   if (fmBit >= 0) g.fmTraits |= 1 << fmBit;
   else g.traits |= traitBit(trait as GeneralTrait);
+  touchCommand(d);
   if (g.army > 0) land.markArmy(g.army);
   land.markCountry(id);
   return null;
@@ -434,14 +454,26 @@ export function makeMarshal(
   g.army = FM_ARMY;
   g.fm = true;
   if (trait >= 0) g.fmTraits |= 1 << trait;
+  touchCommand(d);
   land.markCountry(id);
-  d.message(id, "events_display.ww1936_fm_promoted", {
-    name: g.id,
-    general: g.id,
-  });
+  d.message(id, "ww1936_fm_promoted", { general: g.id });
 }
 
 // ---- what the land war reads ----
+
+/** commandLandMods' per-tick memo entry: what it was built from, and the frozen result. */
+interface ModsMemoEntry {
+  ver: number;
+  general: number;
+  enemy: number;
+  group: number;
+  medal: number;
+  mods: ArmyDepthMods;
+}
+const modsMemo = new WeakMap<
+  WwDepth,
+  { tick: number; byArmy: Map<number, ModsMemoEntry> }
+>();
 
 /**
  * Spec §18.2 (pre-flight §0-2, review L4): the army's command values for
@@ -451,27 +483,61 @@ export function makeMarshal(
  * cryptoModsVs) and its general's guerrilla_fighter. The general traits'
  * combat lines are CombatRules.divisionMods'.
  *
- * Computed live from state with O(1) lookups (no cache to go stale after a
- * restore). Returns a FRESH object every time it is not neutral (T1a
- * re-review): WwDepth.armyMods reuses its query object `q`, so nothing here
- * may keep `q` or hand back a shared scratch object a caller could still
- * hold. NEUTRAL_ARMY_MODS is a constant nobody writes.
+ * Built once per army and tick (review 5): the memo is keyed by the tick,
+ * lane D's command version (ArmyGroups.touchCommand) and the army's
+ * general, front enemy, group and medal, so a change made earlier in the
+ * tick is seen, and a restored game (which starts on a tick boundary)
+ * builds the same values. The result is a frozen object of its own, never
+ * a shared scratch (T1a re-review): WwDepth.armyMods reuses its query
+ * object `q`, and nothing here keeps it. NEUTRAL_ARMY_MODS is a constant
+ * nobody writes.
  */
 export function commandLandMods(d: WwDepth, q: LandModQuery): ArmyDepthMods {
-  const land = d.ww.land;
-  const a = land.armies.get(q.armyId);
+  const a = d.ww.land.armies.get(q.armyId);
   if (a === undefined) return NEUTRAL_ARMY_MODS;
+  const tick = d.mg.ticks();
+  let memo = modsMemo.get(d);
+  if (memo === undefined || memo.tick !== tick) {
+    memo = { tick, byArmy: new Map() };
+    modsMemo.set(d, memo);
+  }
+  const ver = commandVer(d);
+  const o = a.order;
+  const enemy = o.kind === "front" || o.kind === "plan" ? o.enemy : 0;
+  const e = memo.byArmy.get(a.id);
+  if (
+    e !== undefined &&
+    e.ver === ver &&
+    e.general === a.general &&
+    e.enemy === enemy &&
+    e.group === a.group &&
+    e.medal === a.medal
+  ) {
+    return e.mods;
+  }
+  const mods = buildMods(d, a, enemy);
+  memo.byArmy.set(a.id, {
+    ver,
+    general: a.general,
+    enemy,
+    group: a.group,
+    medal: a.medal,
+    mods,
+  });
+  return mods;
+}
+
+function buildMods(d: WwDepth, a: Army, enemy: number): ArmyDepthMods {
+  const land = d.ww.land;
   let attBp = 0;
   let defBp = 0;
   let recoveryPct = 0;
-  if (a.medal > 0) {
+  if (a.medal > 0 && a.medal <= MEDALS.length) {
     const m = MEDAL_STATS[MEDALS[a.medal - 1]] as MedalStats;
     attBp += m.attackBp ?? 0;
     defBp += m.defenseBp ?? 0;
     recoveryPct += m.recoveryPct ?? 0;
   }
-  const o = a.order;
-  const enemy = o.kind === "front" || o.kind === "plan" ? o.enemy : 0;
   if (enemy > 0) {
     const bp = cryptoModsVs(d, a.owner, enemy);
     attBp += bp;
@@ -492,7 +558,7 @@ export function commandLandMods(d: WwDepth, q: LandModQuery): ArmyDepthMods {
     return NEUTRAL_ARMY_MODS;
   }
   const fs = fm === null ? null : fmArmyStats(fm.fmTraits);
-  return {
+  return Object.freeze({
     fmAtt: fm?.att ?? 0,
     fmDef: fm?.dfn ?? 0,
     fmTraits: fm?.fmTraits ?? 0,
@@ -507,7 +573,7 @@ export function commandLandMods(d: WwDepth, q: LandModQuery): ArmyDepthMods {
     supplyUsePct: fs?.supplyUsePct ?? 0,
     fmPlan: fm?.plan ?? 0,
     fmLog: fm?.log ?? 0,
-  };
+  });
 }
 
 /** The field marshal leading army group `group` of the country, null when none. */

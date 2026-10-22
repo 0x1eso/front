@@ -2,6 +2,7 @@
 // doctrines and sub-doctrines, on the deep map with a human Germany (no P6
 // AI of its own, plan decision 30).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   GRAND_DOCTRINES,
   SUBDOCTRINES,
@@ -10,13 +11,19 @@ import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
+  AIR_XP_SORTIE_CAP_MILLI,
+  AIR_XP_SORTIE_MILLI,
   GRAND_DOCTRINE_STATS,
   SUBDOCTRINE_REWARDS,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { applyMasteryEffect } from "@openfront/engine/ww1936/depth/Doctrine";
+import {
+  applyMasteryEffect,
+  dailyDoctrine,
+} from "@openfront/engine/ww1936/depth/Doctrine";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
+import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import {
@@ -236,5 +243,83 @@ describe("doctrine mastery (spec §3.4)", () => {
     stepTo(runner, afterTurn(runner, 3));
     expect(doc.masteryMilli[4] - m).toBe(345);
     expect(doc.gain[4]).toBe(345);
+  });
+
+  it("without a grand doctrine a domain grows by the base alone", async () => {
+    const { runner, ww, d, doc } = await germany();
+    // No land grand doctrine (spec §3.2's last bullet), at war.
+    dropPact(runner.game, "DEU", "POL");
+    stepTo(runner, ww.prepEndTick() + 1);
+    step(runner, 2, [
+      stamped(H, {
+        type: "declare_war",
+        target: byTag(runner.game, "POL").id(),
+      }),
+    ]);
+    const armies = ww.land.armiesOf(DEU).map((a) => a.id);
+    step(
+      runner,
+      1,
+      armies.map((army) =>
+        order(H, { kind: "army_attack", army, region: DEEP.region.warsaw }),
+      ),
+    );
+    const day0 = ww.day(runner.game.ticks()) + 1;
+    let fought = 0;
+    for (let day = day0; day < day0 + 15; day++) {
+      stepTo(runner, afterTurn(runner, day) - 1);
+      const t = d.dayTally;
+      if (t[DEU * 9] + t[DEU * 9 + 1] + t[DEU * 9 + 2] > 0) fought++;
+      step(runner, 1);
+      expect(
+        LAND.map((k) => doc.gain[k]),
+        `day ${day}`,
+      ).toEqual([300, 300, 300]);
+    }
+    expect(fought).toBeGreaterThan(0);
+    expect(doc.gd[0]).toBe(-1);
+  });
+
+  it("a level reached shows under its own notice key", async () => {
+    const { runner, doc } = await germany();
+    const shown = vi.spyOn(runner.game, "displayMessage");
+    doc.masteryMilli[1] = 99_900;
+    stepTo(runner, afterTurn(runner, 0));
+    const calls = shown.mock.calls.filter(
+      (x) => x[0] === "events_display.ww1936_mastery_level",
+    );
+    expect(calls.length).toBe(1);
+    expect(calls[0][4]).toEqual({ domain: "land", track: "armor", level: 1 });
+    shown.mockRestore();
+  });
+
+  it("air wings on missions earn air experience", async () => {
+    const { runner, ww, d } = await germany();
+    const ca = ww.air.country(DEU)!;
+    const day = ww.day(runner.game.ticks());
+    const fly = (sorties: number) => {
+      ca.airXpMilli = 0;
+      d.noteSorties(DEU, AIR_MISSIONS.indexOf("air_superiority"), sorties);
+      dailyDoctrine(d, DEU, day);
+      return ca.airXpMilli;
+    };
+    expect(fly(0)).toBe(0);
+    expect(fly(400)).toBe(400 * AIR_XP_SORTIE_MILLI);
+    expect(fly(100_000)).toBe(AIR_XP_SORTIE_CAP_MILLI);
+    // The air college officer corps: +0.05 a day, planes or not.
+    grantDoctrineStats(ww, DEU, { airXpMilli: 50 });
+    expect(fly(0)).toBe(50);
+    // A switch of the air grand doctrine is now within reach (75).
+    ca.airXpMilli = 80_000;
+    const tick = runner.game.ticks();
+    const pick = (id: string) =>
+      d.issue(
+        DEU,
+        { kind: "doctrine_pick", domain: "air", id } as WwOrder,
+        tick,
+      );
+    expect(pick("gd_strategic_destruction")).toBeNull();
+    expect(pick("gd_battlefield_support")).toBeNull();
+    expect(d.xpOf(DEU, 2)).toBe(5);
   });
 });

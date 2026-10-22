@@ -619,7 +619,10 @@ export class WwArmyPanel extends WwDrawerBase {
   // ---- Generals ----
 
   private renderGenerals(c: Ctx): TemplateResult {
-    const rows = generalRows(c.view, c.me, c.day);
+    // P6 (spec §4.3, lane D): a field marshal leads an army group, not an army.
+    const rows = generalRows(c.view, c.me, c.day).filter(
+      (r) => r.data.fm !== true,
+    );
     const army =
       c.army !== null && c.view.armies.get(c.army)?.owner === c.me
         ? c.view.armies.get(c.army)!

@@ -23,6 +23,9 @@ import type {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   addMastery,
+  AIR_SHARE_MICRO_PER_SORTIE,
+  AIR_XP_MAX_MILLI,
+  airXpDayMilli,
   doctrinePickBlock,
   doctrineStats,
   masteryGain,
@@ -58,12 +61,12 @@ export function dailyDoctrine(d: WwDepth, id: number, day: number): void {
   }
   const doc = c.doc;
   const pct = speedPct(d, id);
+  dailyAirXp(d, id);
   let levelChanged = false;
   let best = -1;
   let bestLevel = 0;
   for (let dom = 0; dom < 3; dom++) {
-    const o = id * TRACKS + dom * 3;
-    const gain = masteryGain([t[o] ?? 0, t[o + 1] ?? 0, t[o + 2] ?? 0], pct);
+    const gain = masteryGain(domainTally(d, c, id, dom), pct);
     for (let k = 0; k < 3; k++) {
       const tr = dom * 3 + k;
       const before = doc.masteryMilli[tr];
@@ -84,11 +87,55 @@ export function dailyDoctrine(d: WwDepth, id: number, day: number): void {
   t.fill(0, id * TRACKS, id * TRACKS + TRACKS);
   if (levelChanged) d.markStats(id);
   if (best >= 0) {
-    d.message(id, "events_display.ww1936_mastery_level", {
+    // WwPolitics.message adds "events_display.".
+    d.message(id, "ww1936_mastery_level", {
       domain: DOCTRINE_DOMAINS[Math.floor(best / 3)],
       track: DOCTRINE_TRACKS[best],
       level: bestLevel,
     });
+  }
+}
+
+/**
+ * Spec §3.4 combat shares of the domain's three tracks; spec §3.2's last
+ * bullet: while the domain has no grand doctrine its tracks grow by the
+ * base 0.3 alone (review 4).
+ */
+function domainTally(
+  d: WwDepth,
+  c: CountryDepth,
+  id: number,
+  dom: number,
+): [number, number, number] {
+  if ((c.doc.gd[dom] ?? -1) < 0) return [0, 0, 0];
+  const t = d.dayTally;
+  const o = id * TRACKS + dom * 3;
+  return [t[o] ?? 0, t[o + 1] ?? 0, t[o + 2] ?? 0];
+}
+
+/**
+ * Lane D (review 11): the day's air experience from the air tracks' tally
+ * (AIR_SHARE_MICRO_PER_SORTIE micro-mastery a sortie) and the airXpMilli
+ * stat — DoctrineRules.airXpDayMilli. Read before the tally empties.
+ */
+function dailyAirXp(d: WwDepth, id: number): void {
+  const ca = d.ww.air.country(id);
+  if (ca === null) return;
+  const t = d.dayTally;
+  const o = id * TRACKS + 6;
+  const sorties = Math.floor(
+    ((t[o] ?? 0) + (t[o + 1] ?? 0) + (t[o + 2] ?? 0)) /
+      AIR_SHARE_MICRO_PER_SORTIE,
+  );
+  const s = d.ww.economy.country(id)?.stats as
+    | Partial<Record<WwStatKey, number>>
+    | undefined;
+  const gain = airXpDayMilli(sorties, s?.airXpMilli ?? 0);
+  if (gain === 0) return;
+  const next = Math.max(0, Math.min(AIR_XP_MAX_MILLI, ca.airXpMilli + gain));
+  if (next !== ca.airXpMilli) {
+    ca.airXpMilli = next;
+    d.ww.air.markCountry(id);
   }
 }
 
@@ -226,11 +273,9 @@ export function doctrineGainMilli(d: WwDepth, id: number): number[] {
   if (c === null) return new Array<number>(TRACKS).fill(0);
   if (c.doc.gain.some((g) => g !== 0)) return [...c.doc.gain];
   const pct = speedPct(d, id);
-  const t = d.dayTally;
   const out: number[] = [];
   for (let dom = 0; dom < 3; dom++) {
-    const o = id * TRACKS + dom * 3;
-    const g = masteryGain([t[o] ?? 0, t[o + 1] ?? 0, t[o + 2] ?? 0], pct);
+    const g = masteryGain(domainTally(d, c, id, dom), pct);
     for (let k = 0; k < 3; k++) {
       const m = c.doc.masteryMilli[dom * 3 + k];
       out.push(Math.min(g[k], MASTERY_MAX_MILLI - m));
