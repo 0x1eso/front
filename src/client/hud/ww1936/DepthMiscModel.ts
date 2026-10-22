@@ -176,35 +176,40 @@ export interface RaidTarget {
 
 const FACILITY_BUILDINGS: ReadonlySet<BuildingId> = new Set(FACILITY_IDS);
 
-/** The notices of §20.11 plus the plan's three. */
+/**
+ * The notices of §20.11 plus the plan's three, by their full keys: the
+ * engine sends "ww1936_<x>" and EventsDisplay reads
+ * "events_display.ww1936_<x>", so the list names the keys TranslationSystem
+ * looks for (as P5's ENDGAME_NOTICES do).
+ */
 export const DEPTH_NOTICE_KEYS: readonly string[] = [
-  "ww1936_mastery_level",
-  "ww1936_design_saved",
-  "ww1936_mio_size",
-  "ww1936_licence_granted",
-  "ww1936_licence_denied",
-  "ww1936_licence_ended",
-  "ww1936_market_sale",
-  "ww1936_operative_captured",
-  "ww1936_operation_done",
-  "ww1936_operation_failed",
-  "ww1936_decrypted",
-  "ww1936_codes_broken",
-  "ww1936_project_milestone",
-  "ww1936_project_done",
-  "ww1936_nuke_dropped",
-  "ww1936_nuke_intercepted",
-  "ww1936_rocket_strike",
-  "ww1936_raid_result",
-  "ww1936_dam_destroyed",
-  "ww1936_scorched",
-  "ww1936_ace",
-  "ww1936_energy_shortage",
-  "ww1936_congress_threshold",
-  "ww1936_faction_goal",
-  "ww1936_trait_unlocked",
-  "ww1936_fm_promoted",
-  "ww1936_operative_released",
+  "events_display.ww1936_mastery_level",
+  "events_display.ww1936_design_saved",
+  "events_display.ww1936_mio_size",
+  "events_display.ww1936_licence_granted",
+  "events_display.ww1936_licence_denied",
+  "events_display.ww1936_licence_ended",
+  "events_display.ww1936_market_sale",
+  "events_display.ww1936_operative_captured",
+  "events_display.ww1936_operation_done",
+  "events_display.ww1936_operation_failed",
+  "events_display.ww1936_decrypted",
+  "events_display.ww1936_codes_broken",
+  "events_display.ww1936_project_milestone",
+  "events_display.ww1936_project_done",
+  "events_display.ww1936_nuke_dropped",
+  "events_display.ww1936_nuke_intercepted",
+  "events_display.ww1936_rocket_strike",
+  "events_display.ww1936_raid_result",
+  "events_display.ww1936_dam_destroyed",
+  "events_display.ww1936_scorched",
+  "events_display.ww1936_ace",
+  "events_display.ww1936_energy_shortage",
+  "events_display.ww1936_congress_threshold",
+  "events_display.ww1936_faction_goal",
+  "events_display.ww1936_trait_unlocked",
+  "events_display.ww1936_fm_promoted",
+  "events_display.ww1936_operative_released",
 ];
 
 /** Notices drawn in the world-news colour (everyone gets them). */
@@ -253,8 +258,7 @@ export function depthNoticeParams(
   message: string,
   params: Record<string, string | number>,
 ): Record<string, string | number> {
-  const name = message.replace("events_display.", "");
-  if (!DEPTH_NOTICE_KEYS.includes(name)) return params;
+  if (!DEPTH_NOTICE_KEYS.includes(message)) return params;
   let out = params;
   for (const [k, prefix] of Object.entries(NOTICE_ID_PARAMS)) {
     const v = params[k];

@@ -16,7 +16,8 @@ const SCREEN_NS = [
   "licence",
   "intel",
   "crypto",
-  "fog",
+  // "fog" went in batch P6-2: no screen read it (the fog's "?" and "~"
+  // are engine-lib fogCountLabel's language-neutral glyphs).
   "project_ui",
   "nuke",
   "rocket",
@@ -202,7 +203,8 @@ describe("P6 depth screen texts", () => {
     const e = ownKeys(ENK).sort();
     const k = ownKeys(KOK).sort();
     expect(k).toEqual(e);
-    expect(e.length).toBeGreaterThan(400);
+    // 316 after batch P6-2 dropped the keys no screen reads (was 437).
+    expect(e.length).toBeGreaterThanOrEqual(316);
   });
 
   it("has every text non-empty, and ko actually translated", () => {
@@ -241,8 +243,6 @@ describe("P6 depth screen texts", () => {
     expect(keyIn(en, "ww1936.design.auto")).toBe("{base} {role}");
     expect(keyIn(ko, "ww1936.design.auto")).toBe("{base} {role}");
     expect(keyIn(ko, "ww1936.design.auto_gun")).toBe("{base} {gun}형");
-    expect(keyIn(en, "ww1936.fog.unknown")).toBe("?");
-    expect(keyIn(ko, "ww1936.fog.range")).toBe("{min}~{max}");
   });
 
   it("has the 27 notification keys and the world news in both languages", () => {

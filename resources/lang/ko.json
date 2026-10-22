@@ -3343,29 +3343,22 @@
       "staff": "참모 자리"
     },
     "ag": {
-      "armies": "군",
       "auto": "자동",
       "cancel": "취소",
       "create": "집단군 만들기",
       "disband": "해체",
-      "disband_confirm": "한 번 더 눌러 해체",
-      "divisions": "사단 {n}개",
       "empty": "집단군이 없습니다. 군을 길게 눌러 여러 개를 고르세요.",
       "exec_all": "모두 작전 실행",
-      "exec_confirm": "한 번 더 눌러 모두 실행",
       "front": "전선",
       "front_confirm": "한 번 더 눌러 전선 배정",
       "front_hint": "지도에서 전선 지역을 누르세요",
-      "full": "집단군은 군 {max}개까지 둘 수 있습니다",
       "hold_hint": "군을 길게 눌러 여러 개 고르기",
       "no_marshal": "빈 원수가 없습니다",
       "number": "집단군 {n}",
       "open_command": "지휘 열기",
-      "pick_marshal": "원수 고르기",
       "remove": "집단군에서 빼기",
       "selected": "군 {n}개 선택",
-      "tab": "집단군",
-      "title": "집단군"
+      "tab": "집단군"
     },
     "agency_up": {
       "ag_air_dept": "공군 정보부",
@@ -3600,11 +3593,7 @@
     },
     "bop": {
       "band": "5단계 중 {band}단계",
-      "decisions": "결정",
-      "spirit": "이 범위의 정신",
-      "title": "세력 균형",
-      "track": "세력 균형: {tag}",
-      "value": "지금 {value}"
+      "track": "세력 균형: {tag}"
     },
     "branch": {
       "air": "항공",
@@ -3648,22 +3637,10 @@
       "cf_stability": "민심 안정",
       "cf_war_effort": "전시 여론"
     },
-    "cf_desc": {
-      "cf_army": "기동 훈련과 참모 연구로 육군과 그 교리를 다듬는다.",
-      "cf_construction": "건설 인력과 자재를 새 공사에 먼저 보낸다.",
-      "cf_industry": "모든 공장이 산출을 늘리는 데 힘을 모은다.",
-      "cf_navy_air": "함대 훈련과 비행 시간으로 수병과 조종사를 기른다.",
-      "cf_political": "정부가 언론과 정당, 인사를 움직여 지지를 모은다.",
-      "cf_research": "연구소와 대학에 예산과 인력을 더 준다.",
-      "cf_stability": "구호와 질서, 화해가 매주 나라를 안정시킨다.",
-      "cf_war_effort": "홍보와 집회, 신문이 국민을 전쟁에 대비시킨다."
-    },
     "cfocus_ui": {
       "locked_days": "{days}일 동안 잠김",
       "not_open": "완료 중점 10개 또는 {date} 이후 열림",
-      "pack_chip": "팩: {pack}",
-      "selected": "선택됨",
-      "title": "연속 중점"
+      "pack_chip": "팩: {pack}"
     },
     "codename": {
       "c0": "황조롱이",
@@ -3728,14 +3705,11 @@
       "c9": "되새"
     },
     "command": {
-      "admirals": "제독",
       "award": "수여",
       "award_pick": "훈장을 줄 군 고르기",
       "band_cp": "지휘력 {cp}",
-      "buy_trait": "특성 고르기",
       "cp": "지휘력",
       "cp_gain": "하루 +{gain}",
-      "cp_value": "지휘력 {cp}",
       "generals": "장군",
       "marshal_cap": "원수 {n}/{max}",
       "marshals": "원수",
@@ -3743,12 +3717,7 @@
       "none": "지금 특성을 얻을 수 있는 인물이 없습니다",
       "pick_trait": "원수 특성 고르기",
       "promote": "원수 진급",
-      "promote_tap": "한 번 더 눌러 진급",
-      "skills": "공격 {atk} · 방어 {def} · 계획 {plan} · 병참 {log}",
-      "title": "지휘",
       "trait_cost": "지휘력 {cp}",
-      "trait_need": "{trait} 필요",
-      "trait_need_level": "{level}단계 필요",
       "trait_slots": "빈 칸 {free}/{total}",
       "traits": "특성",
       "upkeep": "원수 유지비 하루 {n}"
@@ -3842,15 +3811,11 @@
     },
     "congress": {
       "band": "의회 {pct}%",
-      "blocks_war": "의회가 아직 전쟁을 승인하지 않음",
-      "decisions": "결정",
       "passed": "넘음",
       "pending": "아직",
       "support": "지지 {pct}%",
       "tab": "의회",
-      "threshold": "문턱 {pct}%",
-      "threshold_marks": "50 / 60 / 70",
-      "title": "의회"
+      "threshold": "문턱 {pct}%"
     },
     "convoy_use": {
       "idle": "놀고 있음",
@@ -3956,7 +3921,6 @@
     },
     "crypto": {
       "broken_list": "우리가 푼 암호",
-      "broken_log": "우리 암호를 읽은 나라: {country}",
       "broken_none": "암호가 읽힌 흔적 없음",
       "change_target": "대상 바꾸기",
       "days_left": "남은 날 {days}일",
@@ -3965,11 +3929,8 @@
       "exploiting": "활용 중, 남은 날 {days}일",
       "none_target": "해독 대상 없음",
       "power": "우리 해독력",
-      "progress": "진행 {pct}%",
-      "source": "{label} {value, number, ::sign-always}",
       "strength": "우리 암호 강도",
-      "target": "해독 중인 나라: {country}",
-      "title": "암호"
+      "target": "해독 중인 나라: {country}"
     },
     "cw_name": {
       "communist": "{country} 인민 정부",
@@ -4204,15 +4165,10 @@
       "base_plane": "기체",
       "base_ship": "함체",
       "base_tank": "차대",
-      "better": "{value} 좋음",
-      "compare_base": "기본형 대비",
-      "compare_to": "{name} 대비",
       "cost": "산업력 비용",
       "edit_new": "고쳐서 새로",
       "engine_step": "엔진 단계 {n}",
       "fuel": "연료",
-      "key_stats": "핵심 수치",
-      "licence_request": "면허 요청",
       "licence_waiting": "{country} 면허 요청",
       "list_empty": "설계가 없습니다",
       "list_line": "라인 {line} · 비축 {stock} · 사단 {divisions}",
@@ -4220,23 +4176,15 @@
       "module_cost_diff": "비용 {value, number, ::sign-always}",
       "module_dup": "이 모듈은 다른 칸에 이미 들어 있습니다",
       "module_locked": "기술: {tech} ({year})",
-      "module_pick": "모듈 고르기",
       "module_project": "프로젝트 {project} 필요",
       "name": "이름",
-      "name_edit": "눌러서 이름 바꾸기",
-      "open_designer": "설계",
       "recommend": "추천 채우기",
-      "resources": "자원",
       "retire": "단종",
       "retire_confirm": "한 번 더 눌러 단종",
-      "retired": "단종됨",
-      "role": "역할",
       "save": "저장",
       "save_blocked": "저장할 수 없음: {reason}",
       "save_confirm": "한 번 더 눌러 저장",
-      "saved": "저장함",
       "slot_empty": "비어 있음",
-      "slots": "칸",
       "source_captured": "노획",
       "source_gift": "받은 것",
       "source_licence": "면허",
@@ -4262,58 +4210,12 @@
         "strategic": "전략 폭격",
         "torpedo": "어뢰"
       },
-      "stats": "수치",
       "tab_designs": "설계 목록",
       "tab_plane": "항공기",
       "tab_ship": "함선",
       "tab_tank": "전차",
       "title": "설계기",
-      "worse": "{value} 나쁨",
-      "xp_cost": "{kind} 경험치 {cost} / 보유 {have}",
-      "xp_cost_air": "공군 경험치 {cost} / 보유 {have}"
-    },
-    "design_name": {
-      "gun_auto20": "기관포형",
-      "gun_flame": "화염 방사형",
-      "gun_gun_cs": "지원포형",
-      "gun_gun_heavy": "대구경포형",
-      "gun_gun_hv": "장포신형",
-      "gun_gun_small": "소구경포형",
-      "gun_mg": "기관총형",
-      "plane_bomber": "전술 폭격기",
-      "plane_cas": "근접 지원기",
-      "plane_cv_cas": "함상 폭격기",
-      "plane_cv_fighter": "함상 전투기",
-      "plane_cv_naval_bomber": "함상 뇌격기",
-      "plane_fighter": "전투기",
-      "plane_heavy_fighter": "중전투기",
-      "plane_naval_bomber": "해군 폭격기",
-      "plane_strat_bomber": "전략 폭격기",
-      "plane_transport_plane": "수송기",
-      "role_sp_anti_air": "자주 대공포",
-      "role_sp_artillery": "자주포",
-      "role_tank_destroyer": "구축전차",
-      "ship_armor_heavy": "중장갑형",
-      "ship_engine_fast": "고속형",
-      "ship_hangar_large": "대형 격납고형",
-      "ship_mine_layer": "기뢰 부설형",
-      "ship_minesweep": "소해형",
-      "ship_radar_adv": "레이더형",
-      "ship_radar_microwave": "마이크로파 레이더형",
-      "ship_radar_surface": "레이더형",
-      "ship_sec_dp": "양용포형",
-      "ship_shbb_hull": "초대형",
-      "ship_snorkel": "스노클형",
-      "ship_standard": "표준형",
-      "ship_torp_heavy": "뇌장 강화형",
-      "tank_heavy_1": "중전차 I",
-      "tank_heavy_2": "중전차 II",
-      "tank_heavy_3": "중전차 III",
-      "tank_light_1": "경전차 I",
-      "tank_light_2": "경전차 II",
-      "tank_medium_1": "중형 전차 I",
-      "tank_medium_2": "중형 전차 II",
-      "tank_medium_3": "중형 전차 III"
+      "xp_cost": "{kind} 경험치 {cost} / 보유 {have}"
     },
     "diplo": {
       "act": {
@@ -4398,28 +4300,20 @@
     "doctrine": {
       "badge_points": "쓸 수 있는 특성 점 {n}개",
       "badge_unpicked": "고르지 않은 교리가 있음",
-      "band_label": "교리 트랙, 가장 낮은 단계 {level}",
       "base_effect": "기본 효과",
       "choose": "고르기",
       "choose_prompt": "고르세요",
       "chosen": "선택됨",
       "days": "약 {days}일",
       "dial": "교리",
-      "field_cost": "비용 정치력 {pp}",
-      "field_design": "안 {n}",
-      "field_locked": "{days}일 동안 잠김",
-      "field_picked": "적용 중",
-      "field_title": "분야",
       "full_effect": "완성 효과",
       "grand_title": "대교리",
-      "level": "{level}단계",
       "level_short": "L{level}",
       "locked_days": "{days}일 동안 잠김",
       "next": "다음: L{level} {reward}",
       "next_done": "트랙 완성",
       "per_day": "+{x}/일",
       "sub_none": "고르지 않음",
-      "sub_title": "세부 교리",
       "switch": "바꾸기 — 경험치 {xp}, 숙련 절반",
       "switch_sub": "바꾸기 ({xp})",
       "tab_air": "공군",
@@ -4727,7 +4621,6 @@
       "band": "에너지 {pct}%",
       "coal_line": "석탄 {stock}, 하루 {gain}",
       "line": "에너지 {pct}% (석탄 {coal}×3 + 수력 {hydro} + 발전소 {plants} / 수요 {demand})",
-      "short": "부족해서 공장이 느려짐",
       "uranium_line": "우라늄 {stock}, 하루 {gain}"
     },
     "engage": {
@@ -6084,11 +5977,6 @@
       "facility_rocket": "로켓 시험장",
       "facility_science": "종합 실험소"
     },
-    "facility_desc": {
-      "facility_nuclear": "원자탄 프로젝트를 돌리고 원자탄을 만든다. 핵물리학 기술과 인프라 3 이상의 코어 주 필요.",
-      "facility_rocket": "비행 폭탄·탄도 로켓 프로젝트를 돌린다. 첫 로켓 기술과 코어 주 필요.",
-      "facility_science": "제트 엔진·마이크로파 레이더·근접 신관 프로젝트를 돌린다. 첫 전자 기술과 코어 주 필요."
-    },
     "faction": {
       "allies": "연합국",
       "axis": "추축국",
@@ -6101,14 +5989,6 @@
       "fg_members": "넓은 연대",
       "fg_research": "과학 동맹",
       "fg_sea_lanes": "바다를 쥐다"
-    },
-    "faction_goal_desc": {
-      "fg_europe_vp": "유럽 승점의 40% 이상 통제. 보상: 1년 동안 안정도 +5%.",
-      "fg_industry": "회원 군수 공장 합 400 이상. 보상: 1년 동안 공장 산출 +5%.",
-      "fg_liberation": "점령당한 회원의 수도를 되찾는다. 보상: 전쟁지지도 +10%p.",
-      "fg_members": "회원 6개국 이상. 보상: 정치력 +50.",
-      "fg_research": "회원 기술 합이 회원 수 × 50 이상. 보상: 1년 동안 연구 +5%.",
-      "fg_sea_lanes": "바다 전략 구역 20개 이상에서 해상 우세 60% 이상. 보상: 1년 동안 수송선단 손실 −10%."
     },
     "faction_name": {
       "auto": "{country} 진영",
@@ -6125,19 +6005,9 @@
       "fr_shared_intel": "정보 공유",
       "fr_shared_research": "공동 연구"
     },
-    "faction_rule_desc": {
-      "fr_ideology_lock": "진영 지도자와 집권 이념이 다른 나라는 가입·초청할 수 없다.",
-      "fr_shared_intel": "회원끼리 정보망의 절반과 해독한 암호를 나눠 쓴다.",
-      "fr_shared_research": "회원이 기술을 연구할 때 그 기술을 가진 다른 회원 하나마다 +10%(최대 +30%)."
-    },
     "faction_ui": {
-      "goal_done": "달성",
       "goal_empty": "빈 칸",
-      "goal_progress": "{label} {pct}%",
       "goals_title": "진영 목표",
-      "leader_only": "진영 지도자만 바꿀 수 있음",
-      "relation_value": "{value, number, ::sign-always}",
-      "relations": "관계",
       "relations_best": "관계가 가장 좋은 나라",
       "relations_worst": "관계가 가장 나쁜 나라",
       "rule_off": "끔",
@@ -7510,15 +7380,6 @@
       "unqueue": "예약 빼기",
       "unqueue_tap": "한 번 더 눌러 예약 빼기"
     },
-    "fog": {
-      "approx": "진행 중",
-      "exact": "{n}",
-      "ghost": "{days}일 전 마지막 목격",
-      "hidden": "안개에 가려짐",
-      "not_seen": "보이지 않음",
-      "range": "{min}~{max}",
-      "unknown": "?"
-    },
     "fx": {
       "access": "군사 통행 허가 받음: {of}",
       "add_advisor_candidate": "고문 후보 등장: {person}",
@@ -7765,34 +7626,6 @@
       "zhu_de": "주더",
       "zhukov": "게오르기 주코프"
     },
-    "general_trait": {
-      "ambusher": "매복",
-      "armor_expert": "기갑 전문가",
-      "artillery_officer": "포병 장교",
-      "commando": "특수전 지휘",
-      "engineer_officer": "공병 장교",
-      "forest_expert": "숲 전문가",
-      "guerrilla_fighter": "비정규전",
-      "infantry_expert": "보병 전문가",
-      "skirmisher": "정찰전",
-      "swamp_expert": "습지 전문가",
-      "trickster": "기만술사",
-      "urban_expert": "시가전 전문가"
-    },
-    "general_trait_desc": {
-      "ambusher": "방어 측일 때 공격 +15%. 단계 3, 방어 전문가 필요, 지휘력 25.",
-      "armor_expert": "전차 대대 돌파 +10%, 기갑 사단 공격 +10%. 단계 2, 기갑 지휘관 필요, 지휘력 20.",
-      "artillery_officer": "포병류 연성 +10%. 단계 1, 지휘력 15.",
-      "commando": "산악·해병·공수 사단 공격 +10%, 습격 준비 −25%. 단계 2, 지휘력 15.",
-      "engineer_officer": "강·요새 벌칙 −15%. 단계 2, 지휘력 15.",
-      "forest_expert": "숲·정글 공격 +10%, 방어 +5%. 그 지형에서 전투 60일로 얻는다.",
-      "guerrilla_fighter": "보급 벌칙 절반, 포위 중에도 조직력 회복 그대로. 단계 2, 지휘력 15.",
-      "infantry_expert": "보병 사단 공격·방어 +10%. 단계 2, 보병 지휘관 필요, 지휘력 15.",
-      "skirmisher": "맞닿은 적 군에 대한 육군 정보 +20%p. 단계 1, 지휘력 15.",
-      "swamp_expert": "습지 공격 +10%, 이동 +10%. 습지 전투 60일로 얻는다.",
-      "trickster": "이 군을 상대하는 적의 준비도 보너스 −10%p. 단계 3, 지휘력 20.",
-      "urban_expert": "도시 공격 +10%, 방어 +10%. 도시 전투 60일로 얻는다."
-    },
     "gov": {
       "BRM": {
         "neutral": "버마국"
@@ -7923,18 +7756,10 @@
         "civil": "민간",
         "navy": "해군"
       },
-      "band_dot": {
-        "0": "모름",
-        "1": "대략",
-        "2": "근사",
-        "3": "정확"
-      },
       "dial": "정보",
       "found": "기관 설립 — 정치력 {pp}",
       "infiltrated": "침투",
-      "level_total": "정보 수준 {pct}%",
       "missions": "임무",
-      "network": "정보망",
       "no_agency": "정보 기관이 아직 없습니다",
       "op_cond_captive": "체포된 공작원 {have}/{need}",
       "op_cond_network": "정보망 {have}/{need}",
@@ -7945,10 +7770,8 @@
       "op_start": "시작",
       "op_success": "성공률 {pct}%",
       "operations": "작전",
-      "operative_stars": "숙련 {n}",
       "pick_target": "대상 나라 고르기",
       "recruit": "모집 {days}일",
-      "sources": "정보 수준의 출처",
       "src": {
         "at_war": "전쟁 중",
         "base": "기본",
@@ -7978,17 +7801,8 @@
       "tab_crypto": "암호",
       "tab_intel": "정보",
       "tab_operatives": "공작원",
-      "target_net": "정보망 {pct}%",
       "title": "정보",
-      "upgrade_locked": "{upgrade} 필요",
-      "upgrade_progress": "{pct}% 진행",
-      "upgrade_start": "시작"
-    },
-    "intel_band": {
-      "0": "모름",
-      "1": "대략",
-      "2": "근사",
-      "3": "정확"
+      "upgrade_locked": "{upgrade} 필요"
     },
     "intel_mission": {
       "boost_ideology": "이념 공작",
@@ -7997,14 +7811,6 @@
       "propaganda": "선전 공작",
       "support_resistance": "저항 지원",
       "suppress_resistance": "저항 진압"
-    },
-    "intel_mission_desc": {
-      "boost_ideology": "대상 나라에서 우리 집권 이념의 지지율을 올린다. 정보망 10%와 평화가 필요하다.",
-      "build_network": "대상 나라에 정보망을 쌓는다. 숙련이 높을수록 빠르다.",
-      "counter_intelligence": "우리 땅의 적 공작원을 쫓고 적 정보망 성장을 늦춘다.",
-      "propaganda": "대상의 안정도와 전쟁지지도를 조금씩 깎는다(한도 있음). 정보망 20% 필요.",
-      "support_resistance": "대상이 점령 통치하는 주의 저항을 높인다. 정보망 20% 필요.",
-      "suppress_resistance": "우리가 점령 통치하는 주의 저항을 낮춘다."
     },
     "invasion_state": {
       "landing": "상륙 중",
@@ -8266,15 +8072,11 @@
     "licence": {
       "accept": "허가",
       "card_design": "설계: {design}",
-      "card_terms": "대가 {fee} · {days}일",
       "card_title": "{country} 면허 요청",
       "end": "끝내기",
-      "end_confirm": "한 번 더 눌러 끝내기",
       "granted": "준 면허",
-      "none": "면허 없음",
       "received": "받은 면허",
       "refuse": "거절",
-      "since": "시작일 {date}",
       "title": "면허"
     },
     "lobby": {
@@ -8287,27 +8089,17 @@
     },
     "market": {
       "buy": "사기",
-      "buy_confirm": "한 번 더 눌러 사기",
       "deal_delivery": "인도 {pct}%",
       "deal_pay": "결제 {pct}%",
       "deals": "진행 중 거래",
       "embargoes": "금수 목록",
       "empty": "나온 물건이 없습니다",
-      "filter_air": "항공기",
       "filter_all": "전체",
-      "filter_armor": "기갑",
-      "filter_artillery": "포",
-      "filter_infantry": "보병",
       "lift_embargo": "금수 해제",
       "list_item": "내놓기",
-      "listing": "{item} {count}개 · {gen}세대 · 개당 {price}",
       "my_listings": "내가 내놓은 것",
-      "no_embargo": "금수 없음",
       "preview": "민간 공장 {n}개 × 30일",
-      "quantity": "수량",
-      "seller": "판매국 {country}",
       "tab": "시장",
-      "title": "무기 시장",
       "withdraw": "거두기"
     },
     "medal": {
@@ -8322,21 +8114,12 @@
       "left": "이탈"
     },
     "mio": {
-      "archetype": "원형",
-      "buy": "이 특성 얻기",
-      "change_arch": "원형 바꾸기 ({cost})",
       "empty": "기관이 없습니다",
       "funds": "다음 규모까지 {n}",
       "invest": "투자 ({cost})",
       "points_left": "남은 점 {n}",
       "size": "규모 {size}",
-      "tab": "기관",
-      "tap_again": "한 번 더 눌러 확인",
-      "title": "군수 기관",
-      "trait_buyable": "얻을 수 있음",
-      "trait_exclusive": "다른 특성과 함께 못 얻음",
-      "trait_locked": "더 큰 규모 필요",
-      "trait_owned": "보유"
+      "tab": "기관"
     },
     "mio_arch": {
       "design_bureau": "{country} 전문 설계국",
@@ -8417,74 +8200,6 @@
         "s1": "함체 설계",
         "s2": "사격 통제",
         "s3": "잠수함 설계"
-      }
-    },
-    "mio_trait_desc": {
-      "mio_air_heavy": {
-        "p1": "이 계열 생산 비용 −5%.",
-        "p2": "이 계열 라인 효율 상한 +5%p.",
-        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
-        "q1": "신뢰도 +5%p.",
-        "q2": "주 수치 +5%: 전략·지상·해상 공격, 공중 방어.",
-        "q3": "주 수치 +8%: 전략·지상·해상 공격, 공중 방어. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
-        "s1": "항속 +15%.",
-        "s2": "전략·지상 공격 +8%.",
-        "s3": "공중 방어 +8%."
-      },
-      "mio_air_light": {
-        "p1": "이 계열 생산 비용 −5%.",
-        "p2": "이 계열 라인 효율 상한 +5%p.",
-        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
-        "q1": "신뢰도 +5%p.",
-        "q2": "주 수치 +5%: 공중 공격·지상 공격.",
-        "q3": "주 수치 +8%: 공중 공격·지상 공격. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
-        "s1": "기동 +5%, 속도 +3%.",
-        "s2": "공중 공격 +5%.",
-        "s3": "함재기 항속 +10%, 갑판 +5%."
-      },
-      "mio_armor": {
-        "p1": "이 계열 생산 비용 −5%.",
-        "p2": "이 계열 라인 효율 상한 +5%p.",
-        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
-        "q1": "신뢰도 +5%p.",
-        "q2": "주 수치 +5%: 전차·구축전차·자주포 연성·경성·돌파.",
-        "q3": "주 수치 +8%: 전차·구축전차·자주포 연성·경성·돌파. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
-        "s1": "전차 대대 돌파 +5%.",
-        "s2": "전차 장갑 +5%.",
-        "s3": "전차 관통 +8%."
-      },
-      "mio_artillery": {
-        "p1": "이 계열 생산 비용 −5%.",
-        "p2": "이 계열 라인 효율 상한 +5%p.",
-        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
-        "q1": "생산 비용 −3%.",
-        "q2": "주 수치 +5%: 포병류·대전차류·대공 연성·경성.",
-        "q3": "주 수치 +8%: 포병류·대전차류·대공 연성·경성. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
-        "s1": "포병류 연성 +5%.",
-        "s2": "기계화 포병 속도 +10%.",
-        "s3": "대전차류 관통 +10%."
-      },
-      "mio_infantry": {
-        "p1": "이 계열 생산 비용 −5%.",
-        "p2": "이 계열 라인 효율 상한 +5%p.",
-        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
-        "q1": "생산 비용 −3%.",
-        "q2": "주 수치 +5%: 보병류 대대 공격·방어.",
-        "q3": "주 수치 +8%: 보병류 대대 공격·방어. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
-        "s1": "보병 대대 공격 +3%.",
-        "s2": "보급 사용 −5%.",
-        "s3": "차량화 속도 +5%, 트럭 연료 절약."
-      },
-      "mio_naval": {
-        "p1": "이 계열 생산 비용 −5%.",
-        "p2": "이 계열 라인 효율 상한 +5%p.",
-        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
-        "q1": "생산 비용 −3%.",
-        "q2": "주 수치 +5%: 함선의 모든 사격(경포·중포·어뢰·폭뢰).",
-        "q3": "주 수치 +8%: 함선의 모든 사격(경포·중포·어뢰·폭뢰). 비용 +5%. 저가 양산과 함께 고를 수 없다.",
-        "s1": "함선 HP +5%.",
-        "s2": "경포·중포 +5%.",
-        "s3": "잠수함 어뢰 +10%, 피발견도 −5%."
       }
     },
     "mission": {
@@ -8886,20 +8601,12 @@
       "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다."
     },
     "nuke": {
-      "again": "주를 한 번 더 누르기",
       "band": "원자탄 {n}",
-      "cancel": "취소",
       "confirm": "투하 확인",
       "confirm_tap": "한 번 더 눌러 투하",
       "drop": "원자탄 투하",
-      "intercepted": "요격됨",
-      "night": "야간",
       "pick_region": "적 주 고르기",
-      "preview": "공장 {factories}개 중 {destroyed}개 파괴, {stopped}개 멈춤 · 사단 {divisions}개 · 요격 위험 {pct}%",
-      "preview_fog": "피해 알 수 없음 · 요격 위험 {pct}%",
-      "recon": "정찰",
-      "sent": "원자탄 출격",
-      "stock": "원자탄 비축 {n}"
+      "preview": "공장 {factories}개 중 {destroyed}개 파괴, {stopped}개 멈춤 · 사단 {divisions}개 · 요격 위험 {pct}%"
     },
     "occ": {
       "chip": "점령 {n} · 저항 {pct}%",
@@ -8964,19 +8671,6 @@
       "op_sabotage": "대상의 특수 프로젝트를 늦추거나 군수 공장 2개를 멈춘다. 정보망 30%, 공작원 1명, 45일, 정치력 25.",
       "op_steal_blueprints": "대상이 가졌고 우리에게 없는 기술의 연구 보너스와 대상의 최신 설계 하나. 정보망 40%, 공작원 1명, 90일, 정치력 25.",
       "op_uprising": "대상이 점령한 우리 코어 주의 저항 +15%p, 봉기 문턱 −10%p. 정보망 40%, 공작원 1명, 60일, 정치력 25와 보병 장비 500."
-    },
-    "pack": {
-      "bal": "발칸",
-      "ccp": "중국 공산당",
-      "chn": "중국 국민정부",
-      "chw": "중국 지방 군벌",
-      "dom": "영연방 자치령",
-      "lat": "라틴아메리카",
-      "new": "신생 국가",
-      "nor": "북유럽",
-      "pol": "폴란드",
-      "spa": "스페인",
-      "tur": "튀르키예"
     },
     "panel": {
       "my_wars": "내 전쟁",
@@ -9506,14 +9200,6 @@
       "sp_jet_engine": "제트 엔진",
       "sp_proximity_fuze": "근접 신관"
     },
-    "project_desc": {
-      "sp_atomic": "원자력 연구소에서 1,900일, 우라늄 하루 2. 끝나면 연구소마다 120일에 원자탄 1발을 만든다.",
-      "sp_ballistic": "비행 폭탄 다음, 로켓 시험장에서 700일. 탄도 로켓 생산을 연다.",
-      "sp_cavity_magnetron": "종합 실험소에서 450일. 레이더 건물 탐지 향상, 마이크로파 함선 레이더, 항공 레이더 효과 ×1.5.",
-      "sp_flying_bomb": "로켓 시험장에서 500일. 비행 폭탄 생산과 로켓 발사 기지를 연다.",
-      "sp_jet_engine": "종합 실험소에서 650일. 제트 기체를 연다.",
-      "sp_proximity_fuze": "종합 실험소에서 500일. 함선·주·사단 대공 피해 ×1.5, 포병류 연성 +5%."
-    },
     "project_ui": {
       "change_scientist": "과학자 바꾸기",
       "days_left": "남은 날 {days}일",
@@ -9521,43 +9207,28 @@
       "facility_row": "{facility} · {region}",
       "idle": "놀고 있음",
       "input": "{item} {have}/{need}",
-      "milestone": "이정표 {n}",
       "none": "할 수 있는 프로젝트가 없습니다",
-      "pick_facility": "시설 고르기",
       "progress": "진행 {pct}%",
       "scientist": "과학자: {name}",
       "start": "시작",
-      "tab": "특수 프로젝트",
-      "title": "특수 프로젝트"
+      "tab": "특수 프로젝트"
     },
     "raid": {
       "raid_bomb": "정밀 폭격 습격",
       "raid_commando": "특수 부대 습격",
       "raid_para": "공수 습격"
     },
-    "raid_desc": {
-      "raid_bomb": "그 공역에 배치된 폭격기 50대 이상이 건물 하나(댐 포함)를 노린다. 준비 7일.",
-      "raid_commando": "해병·산악 사단이 바다로 상륙해 해군 기지, 해안 요새, 조선소, 시설, 댐을 노린다. 준비 15일.",
-      "raid_para": "공수 사단이 건물 하나를 노린다: 시설, 공군 기지, 레이더, 댐, 해안 요새, 로켓 발사 기지. 준비 20일."
-    },
     "raid_ui": {
-      "ace": "에이스",
       "confirm": "한 번 더 눌러 습격",
-      "hidden": "시설은 더 자세한 정보가 필요",
       "medal": "훈장",
-      "mine_lay": "기뢰 부설",
-      "mine_sweep": "소해",
       "night_off": "야간 폭격 끔",
       "night_on": "야간 폭격 켬",
       "precision": "정밀 폭격 습격",
-      "priority": "보충 우선순위",
       "priority_high": "높음",
       "priority_low": "낮음",
       "priority_normal": "보통",
       "raid": "습격",
-      "railgun": "철도포 {n}/{max}",
-      "recon": "정찰",
-      "title": "목표 건물 고르기"
+      "railgun": "철도포 {n}/{max}"
     },
     "region": {
       "legal_owner": "법적 주인: {country}",
@@ -9626,12 +9297,9 @@
     "rocket": {
       "count": "수 {n}",
       "fire": "발사",
-      "fired": "발사함",
-      "kind": "종류",
       "launch": "로켓 발사",
       "none_in_range": "사거리 안에 목표 없음",
-      "pick_target": "사거리 안 적 주 고르기",
-      "range": "사거리 {n}개 주"
+      "pick_target": "사거리 안 적 주 고르기"
     },
     "role": {
       "sp_anti_air": "자주 대공포",

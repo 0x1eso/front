@@ -3650,29 +3650,22 @@
       "staff": "General staff seat"
     },
     "ag": {
-      "armies": "Armies",
       "auto": "Auto",
       "cancel": "Cancel",
       "create": "Form an army group",
       "disband": "Disband",
-      "disband_confirm": "Tap again to disband",
-      "divisions": "{n, plural, one {# division} other {# divisions}}",
       "empty": "No army groups yet. Press and hold an army to select several.",
       "exec_all": "Run every plan",
-      "exec_confirm": "Tap again to run every plan",
       "front": "Front",
       "front_confirm": "Tap again to assign the front",
       "front_hint": "Tap a front region on the map",
-      "full": "The group holds {max} armies at most",
       "hold_hint": "Press and hold an army to select several",
       "no_marshal": "No field marshal is free",
       "number": "Group {n}",
       "open_command": "Open command",
-      "pick_marshal": "Choose a field marshal",
       "remove": "Remove from group",
       "selected": "{n, plural, one {# army} other {# armies}} selected",
-      "tab": "Army groups",
-      "title": "Army groups"
+      "tab": "Army groups"
     },
     "agency_up": {
       "ag_air_dept": "Air Intelligence Branch",
@@ -3907,11 +3900,7 @@
     },
     "bop": {
       "band": "Band {band} of 5",
-      "decisions": "Decisions",
-      "spirit": "Spirit of this band",
-      "title": "Balance of power",
-      "track": "Balance of power: {tag}",
-      "value": "Now {value}"
+      "track": "Balance of power: {tag}"
     },
     "branch": {
       "air": "Air",
@@ -3955,22 +3944,10 @@
       "cf_stability": "Calming the Country",
       "cf_war_effort": "Rallying for War"
     },
-    "cf_desc": {
-      "cf_army": "Exercises and staff studies sharpen the army and its doctrine.",
-      "cf_construction": "Builders and materials go to new construction first.",
-      "cf_industry": "Every factory works toward higher output.",
-      "cf_navy_air": "Fleet exercises and flying hours train sailors and airmen.",
-      "cf_political": "The government works the press, the parties and its appointments for support.",
-      "cf_research": "Laboratories and universities get more money and staff.",
-      "cf_stability": "Relief, order and conciliation steady the country week by week.",
-      "cf_war_effort": "Campaigns, rallies and newspapers prepare the public for war."
-    },
     "cfocus_ui": {
       "locked_days": "Locked for {days, plural, one {# day} other {# days}}",
       "not_open": "Opens after 10 completed focuses or {date}",
-      "pack_chip": "Pack: {pack}",
-      "selected": "Chosen",
-      "title": "Continuous focus"
+      "pack_chip": "Pack: {pack}"
     },
     "codename": {
       "c0": "Kestrel",
@@ -4035,14 +4012,11 @@
       "c9": "Finch"
     },
     "command": {
-      "admirals": "Admirals",
       "award": "Award",
       "award_pick": "Choose the army to decorate",
       "band_cp": "Command power {cp}",
-      "buy_trait": "Take a trait",
       "cp": "Command power",
       "cp_gain": "+{gain} a day",
-      "cp_value": "Command power {cp}",
       "generals": "Generals",
       "marshal_cap": "{n} of {max} marshals",
       "marshals": "Field marshals",
@@ -4050,12 +4024,7 @@
       "none": "Nobody can take a trait now",
       "pick_trait": "Choose the marshal's trait",
       "promote": "Promote to marshal",
-      "promote_tap": "Tap again to promote",
-      "skills": "Attack {atk} · Defence {def} · Planning {plan} · Logistics {log}",
-      "title": "Command",
       "trait_cost": "{cp} command power",
-      "trait_need": "Needs {trait}",
-      "trait_need_level": "Needs level {level}",
       "trait_slots": "{free} of {total} slots free",
       "traits": "Traits",
       "upkeep": "Marshal upkeep {n} a day"
@@ -4149,15 +4118,11 @@
     },
     "congress": {
       "band": "Congress {pct}%",
-      "blocks_war": "Congress will not approve a war yet",
-      "decisions": "Decisions",
       "passed": "Passed",
       "pending": "Not yet",
       "support": "Support {pct}%",
       "tab": "Congress",
-      "threshold": "Threshold {pct}%",
-      "threshold_marks": "50 / 60 / 70",
-      "title": "Congress"
+      "threshold": "Threshold {pct}%"
     },
     "convoy_use": {
       "idle": "Idle",
@@ -4263,7 +4228,6 @@
     },
     "crypto": {
       "broken_list": "Codes we have broken",
-      "broken_log": "Our codes were read by {country}",
       "broken_none": "No sign that our codes were read",
       "change_target": "Change target",
       "days_left": "{days, plural, one {# day} other {# days}} left",
@@ -4272,11 +4236,8 @@
       "exploiting": "In use, {days, plural, one {# day} other {# days}} left",
       "none_target": "No target chosen",
       "power": "Our code-breaking power",
-      "progress": "Progress {pct}%",
-      "source": "{label} {value, number, ::sign-always}",
       "strength": "Our cipher strength",
-      "target": "Breaking the codes of {country}",
-      "title": "Codes"
+      "target": "Breaking the codes of {country}"
     },
     "cw_name": {
       "communist": "People's {country}",
@@ -4511,15 +4472,10 @@
       "base_plane": "Airframe",
       "base_ship": "Hull",
       "base_tank": "Chassis",
-      "better": "Better by {value}",
-      "compare_base": "Compared with the base design",
-      "compare_to": "Compared with {name}",
       "cost": "Industrial cost",
       "edit_new": "Edit as new",
       "engine_step": "Engine step {n}",
       "fuel": "Fuel",
-      "key_stats": "Key figures",
-      "licence_request": "Licence request",
       "licence_waiting": "{country} asks for a licence",
       "list_empty": "No designs yet",
       "list_line": "Line {line} · Stock {stock} · Divisions {divisions}",
@@ -4527,23 +4483,15 @@
       "module_cost_diff": "Cost {value, number, ::sign-always}",
       "module_dup": "This module is already in another slot",
       "module_locked": "Technology: {tech} ({year})",
-      "module_pick": "Choose a module",
       "module_project": "Needs the project {project}",
       "name": "Name",
-      "name_edit": "Tap to rename",
-      "open_designer": "Design",
       "recommend": "Fill recommended",
-      "resources": "Resources",
       "retire": "Retire",
       "retire_confirm": "Tap again to retire",
-      "retired": "Retired",
-      "role": "Role",
       "save": "Save",
       "save_blocked": "Cannot save: {reason}",
       "save_confirm": "Tap again to save",
-      "saved": "Saved",
       "slot_empty": "Empty",
-      "slots": "Slots",
       "source_captured": "Captured",
       "source_gift": "Received",
       "source_licence": "Licensed",
@@ -4569,58 +4517,12 @@
         "strategic": "Strategic bombing",
         "torpedo": "Torpedoes"
       },
-      "stats": "Figures",
       "tab_designs": "Designs",
       "tab_plane": "Aircraft",
       "tab_ship": "Ships",
       "tab_tank": "Tanks",
       "title": "Designer",
-      "worse": "Worse by {value}",
-      "xp_cost": "{kind} experience {cost} / held {have}",
-      "xp_cost_air": "Air force experience {cost} / held {have}"
-    },
-    "design_name": {
-      "gun_auto20": "Autocannon",
-      "gun_flame": "Flame",
-      "gun_gun_cs": "Support Gun",
-      "gun_gun_heavy": "Heavy Gun",
-      "gun_gun_hv": "Long Gun",
-      "gun_gun_small": "Light Gun",
-      "gun_mg": "MG",
-      "plane_bomber": "Tactical Bomber",
-      "plane_cas": "Close Support",
-      "plane_cv_cas": "Carrier Dive Bomber",
-      "plane_cv_fighter": "Carrier Fighter",
-      "plane_cv_naval_bomber": "Carrier Torpedo Bomber",
-      "plane_fighter": "Fighter",
-      "plane_heavy_fighter": "Heavy Fighter",
-      "plane_naval_bomber": "Naval Bomber",
-      "plane_strat_bomber": "Strategic Bomber",
-      "plane_transport_plane": "Transport",
-      "role_sp_anti_air": "Self-Propelled Anti-Air",
-      "role_sp_artillery": "Self-Propelled Gun",
-      "role_tank_destroyer": "Tank Destroyer",
-      "ship_armor_heavy": "Heavy Armour",
-      "ship_engine_fast": "Fast",
-      "ship_hangar_large": "Large Hangar",
-      "ship_mine_layer": "Minelayer",
-      "ship_minesweep": "Minesweeper",
-      "ship_radar_adv": "Radar",
-      "ship_radar_microwave": "Microwave Radar",
-      "ship_radar_surface": "Radar",
-      "ship_sec_dp": "Dual-Purpose",
-      "ship_shbb_hull": "Super-Heavy",
-      "ship_snorkel": "Snorkel",
-      "ship_standard": "Standard",
-      "ship_torp_heavy": "Torpedo",
-      "tank_heavy_1": "Heavy Tank I",
-      "tank_heavy_2": "Heavy Tank II",
-      "tank_heavy_3": "Heavy Tank III",
-      "tank_light_1": "Light Tank I",
-      "tank_light_2": "Light Tank II",
-      "tank_medium_1": "Medium Tank I",
-      "tank_medium_2": "Medium Tank II",
-      "tank_medium_3": "Medium Tank III"
+      "xp_cost": "{kind} experience {cost} / held {have}"
     },
     "diplo": {
       "act": {
@@ -4705,28 +4607,20 @@
     "doctrine": {
       "badge_points": "{n, plural, one {# trait point} other {# trait points}} to spend",
       "badge_unpicked": "A doctrine is waiting to be chosen",
-      "band_label": "Doctrine tracks, lowest at level {level}",
       "base_effect": "Basic effect",
       "choose": "Choose",
       "choose_prompt": "Choose one",
       "chosen": "Chosen",
       "days": "about {days, plural, one {# day} other {# days}}",
       "dial": "Doctrine",
-      "field_cost": "Cost {pp} political power",
-      "field_design": "Plan {n}",
-      "field_locked": "Locked for {days, plural, one {# day} other {# days}}",
-      "field_picked": "In use",
-      "field_title": "Fields",
       "full_effect": "Complete effect",
       "grand_title": "Grand doctrine",
-      "level": "Level {level}",
       "level_short": "L{level}",
       "locked_days": "Locked for {days, plural, one {# day} other {# days}}",
       "next": "Next: L{level} {reward}",
       "next_done": "Track complete",
       "per_day": "+{x}/day",
       "sub_none": "None chosen",
-      "sub_title": "Sub-doctrines",
       "switch": "Switch — {xp} experience, mastery halved",
       "switch_sub": "Switch ({xp})",
       "tab_air": "Air force",
@@ -5034,7 +4928,6 @@
       "band": "Energy {pct}%",
       "coal_line": "Coal {stock}, {gain} a day",
       "line": "Energy {pct}% (coal {coal}×3 + hydro {hydro} + power plants {plants} / demand {demand})",
-      "short": "Factories are slowed by the shortage",
       "uranium_line": "Uranium {stock}, {gain} a day"
     },
     "engage": {
@@ -6391,11 +6284,6 @@
       "facility_rocket": "Rocket Test Range",
       "facility_science": "Research Laboratory Complex"
     },
-    "facility_desc": {
-      "facility_nuclear": "Runs the atomic bomb project and builds the bombs. Needs the nuclear physics technology and a core region with infrastructure 3 or more.",
-      "facility_rocket": "Runs the flying bomb and ballistic rocket projects. Needs the first rocketry technology and a core region.",
-      "facility_science": "Runs the jet engine, microwave radar and proximity fuze projects. Needs the first electronics technology and a core region."
-    },
     "faction": {
       "allies": "Allies",
       "axis": "Axis",
@@ -6408,14 +6296,6 @@
       "fg_members": "Broad Alliance",
       "fg_research": "Alliance of Science",
       "fg_sea_lanes": "Command of the Sea"
-    },
-    "faction_goal_desc": {
-      "fg_europe_vp": "Control 40% of Europe's victory points. Reward: stability +5% for a year.",
-      "fg_industry": "The members' military factories add up to 400. Reward: factory output +5% for a year.",
-      "fg_liberation": "Retake the capital of an occupied member. Reward: war support +10%.",
-      "fg_members": "Six or more members. Reward: political power +50.",
-      "fg_research": "The members' technologies add up to 50 per member. Reward: research +5% for a year.",
-      "fg_sea_lanes": "Naval supremacy of 60% or more in 20 sea regions. Reward: convoy losses −10% for a year."
     },
     "faction_name": {
       "auto": "{country} faction",
@@ -6432,19 +6312,9 @@
       "fr_shared_intel": "Intelligence Sharing",
       "fr_shared_research": "Joint Research"
     },
-    "faction_rule_desc": {
-      "fr_ideology_lock": "Countries whose ruling ideology differs from the leader's cannot join or be invited.",
-      "fr_shared_intel": "Members share half of their intelligence networks and the ciphers they have broken.",
-      "fr_shared_research": "A member researching a technology gets +10% for each other member that has it, up to +30%."
-    },
     "faction_ui": {
-      "goal_done": "Reached",
       "goal_empty": "Open slot",
-      "goal_progress": "{label} {pct}%",
       "goals_title": "Faction goals",
-      "leader_only": "Only the faction leader can switch",
-      "relation_value": "{value, number, ::sign-always}",
-      "relations": "Relations",
       "relations_best": "Best relations",
       "relations_worst": "Worst relations",
       "rule_off": "Off",
@@ -7817,15 +7687,6 @@
       "unqueue": "Remove from queue",
       "unqueue_tap": "Tap again to remove"
     },
-    "fog": {
-      "approx": "In progress",
-      "exact": "{n}",
-      "ghost": "Last seen {days, plural, one {# day} other {# days}} ago",
-      "hidden": "Hidden by the fog",
-      "not_seen": "Not seen",
-      "range": "{min}~{max}",
-      "unknown": "?"
-    },
     "fx": {
       "access": "Receives military access from {of}",
       "add_advisor_candidate": "{person} can be hired as an advisor",
@@ -8072,34 +7933,6 @@
       "zhu_de": "Zhu De",
       "zhukov": "Georgy Zhukov"
     },
-    "general_trait": {
-      "ambusher": "Ambush Master",
-      "armor_expert": "Armour Master",
-      "artillery_officer": "Gunner Officer",
-      "commando": "Raid Leader",
-      "engineer_officer": "Sapper Officer",
-      "forest_expert": "Forest Fighter",
-      "guerrilla_fighter": "Irregular Warfare",
-      "infantry_expert": "Infantry Master",
-      "skirmisher": "Scout Leader",
-      "swamp_expert": "Marsh Fighter",
-      "trickster": "Deceiver",
-      "urban_expert": "Street Fighter"
-    },
-    "general_trait_desc": {
-      "ambusher": "Attack +15% while defending. Level 3, needs Defensive Doctrine; 25 command power.",
-      "armor_expert": "Tank battalions +10% breakthrough, armoured divisions +10% attack. Level 2, needs Panzer Leader; 20 command power.",
-      "artillery_officer": "Artillery-type battalions +10% soft attack. Level 1; 15 command power.",
-      "commando": "Mountain, marine and airborne divisions +10% attack; raid preparation −25%. Level 2; 15 command power.",
-      "engineer_officer": "River and fort penalties −15%. Level 2; 15 command power.",
-      "forest_expert": "Forest and jungle: attack +10%, defence +5%. Earned by 60 days of battle there.",
-      "guerrilla_fighter": "Supply penalties halved; organisation recovers normally while encircled. Level 2; 15 command power.",
-      "infantry_expert": "Infantry divisions: attack and defence +10%. Level 2, needs Infantry Officer; 15 command power.",
-      "skirmisher": "Army intelligence on enemy armies in contact +20 points. Level 1; 15 command power.",
-      "swamp_expert": "Marshes: attack +10%, movement +10%. Earned by 60 days of marsh battles.",
-      "trickster": "Enemies facing this army lose 10 points of planning bonus. Level 3; 20 command power.",
-      "urban_expert": "Cities: attack +10%, defence +10%. Earned by 60 days of city battles."
-    },
     "gov": {
       "BRM": {
         "neutral": "State of Burma"
@@ -8230,18 +8063,10 @@
         "civil": "Civil",
         "navy": "Navy"
       },
-      "band_dot": {
-        "0": "Unknown",
-        "1": "Rough",
-        "2": "Close",
-        "3": "Exact"
-      },
       "dial": "Intelligence",
       "found": "Found the agency — {pp} political power",
       "infiltrated": "Infiltrated",
-      "level_total": "Intelligence level {pct}%",
       "missions": "Missions",
-      "network": "Spy network",
       "no_agency": "No intelligence agency yet",
       "op_cond_captive": "Captured operatives {have}/{need}",
       "op_cond_network": "Spy network {have}/{need}",
@@ -8252,10 +8077,8 @@
       "op_start": "Start",
       "op_success": "{pct}% success",
       "operations": "Operations",
-      "operative_stars": "Skill {n}",
       "pick_target": "Choose a target country",
       "recruit": "Recruit — {days} days",
-      "sources": "Where the level comes from",
       "src": {
         "at_war": "At war",
         "base": "Base",
@@ -8285,17 +8108,8 @@
       "tab_crypto": "Codes",
       "tab_intel": "Intelligence",
       "tab_operatives": "Operatives",
-      "target_net": "Spy network {pct}%",
       "title": "Intelligence",
-      "upgrade_locked": "Needs {upgrade}",
-      "upgrade_progress": "{pct}% done",
-      "upgrade_start": "Start"
-    },
-    "intel_band": {
-      "0": "Unknown",
-      "1": "Rough",
-      "2": "Close",
-      "3": "Exact"
+      "upgrade_locked": "Needs {upgrade}"
     },
     "intel_mission": {
       "boost_ideology": "Political Influence",
@@ -8304,14 +8118,6 @@
       "propaganda": "Propaganda Work",
       "support_resistance": "Aid the Resistance",
       "suppress_resistance": "Suppress the Resistance"
-    },
-    "intel_mission_desc": {
-      "boost_ideology": "Raises support for our ruling ideology in the target. Needs a 10% network and peace with it.",
-      "build_network": "Builds our intelligence network in the target country, faster with skill.",
-      "counter_intelligence": "Hunts enemy operatives at home and slows enemy networks.",
-      "propaganda": "Wears down the target's stability and war support, down to a limit. Needs a 20% network.",
-      "support_resistance": "Raises resistance in the occupied regions the target holds. Needs a 20% network.",
-      "suppress_resistance": "Lowers resistance in the occupied regions we hold."
     },
     "invasion_state": {
       "landing": "Landing",
@@ -8573,15 +8379,11 @@
     "licence": {
       "accept": "Grant",
       "card_design": "Design: {design}",
-      "card_terms": "Fee {fee} · {days, plural, one {# day} other {# days}}",
       "card_title": "{country} asks for a licence",
       "end": "End licence",
-      "end_confirm": "Tap again to end",
       "granted": "Licences granted",
-      "none": "No licences",
       "received": "Licences received",
       "refuse": "Refuse",
-      "since": "Since {date}",
       "title": "Licences"
     },
     "lobby": {
@@ -8594,27 +8396,17 @@
     },
     "market": {
       "buy": "Buy",
-      "buy_confirm": "Tap again to buy",
       "deal_delivery": "Delivery {pct}%",
       "deal_pay": "Payment {pct}%",
       "deals": "Deals in progress",
       "embargoes": "Embargoes",
       "empty": "Nothing is for sale",
-      "filter_air": "Aircraft",
       "filter_all": "All",
-      "filter_armor": "Armour",
-      "filter_artillery": "Artillery",
-      "filter_infantry": "Infantry",
       "lift_embargo": "Lift embargo",
       "list_item": "Offer for sale",
-      "listing": "{count} × {item} · generation {gen} · {price} each",
       "my_listings": "My offers",
-      "no_embargo": "No embargoes",
       "preview": "{n, plural, one {# civilian factory} other {# civilian factories}} × 30 days",
-      "quantity": "Quantity",
-      "seller": "Seller {country}",
       "tab": "Market",
-      "title": "Arms market",
       "withdraw": "Withdraw"
     },
     "medal": {
@@ -8629,21 +8421,12 @@
       "left": "Withdrawn"
     },
     "mio": {
-      "archetype": "Archetype",
-      "buy": "Take this trait",
-      "change_arch": "Change archetype ({cost})",
       "empty": "No organisation yet",
       "funds": "{n} to the next size",
       "invest": "Invest ({cost})",
       "points_left": "{n, plural, one {# point left} other {# points left}}",
       "size": "Size {size}",
-      "tab": "Organisations",
-      "tap_again": "Tap again to confirm",
-      "title": "Military industrial organisations",
-      "trait_buyable": "Available",
-      "trait_exclusive": "Excluded by another trait",
-      "trait_locked": "Needs a larger organisation",
-      "trait_owned": "Held"
+      "tab": "Organisations"
     },
     "mio_arch": {
       "design_bureau": "{country} Design Bureau",
@@ -8724,74 +8507,6 @@
         "s1": "Hull Design",
         "s2": "Gunnery Control",
         "s3": "Submarine Design"
-      }
-    },
-    "mio_trait_desc": {
-      "mio_air_heavy": {
-        "p1": "This family's production cost −5%.",
-        "p2": "This family's line efficiency cap +5 points.",
-        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
-        "q1": "Reliability +5 points.",
-        "q2": "Main stats +5%: strategic, ground and naval attack and air defence.",
-        "q3": "Main stats +8%: strategic, ground and naval attack and air defence; cost +5%. Cannot be taken with Cheap Mass Output.",
-        "s1": "Range +15%.",
-        "s2": "Strategic and ground attack +8%.",
-        "s3": "Air defence +8%."
-      },
-      "mio_air_light": {
-        "p1": "This family's production cost −5%.",
-        "p2": "This family's line efficiency cap +5 points.",
-        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
-        "q1": "Reliability +5 points.",
-        "q2": "Main stats +5%: air and ground attack.",
-        "q3": "Main stats +8%: air and ground attack; cost +5%. Cannot be taken with Cheap Mass Output.",
-        "s1": "Agility +5%, speed +3%.",
-        "s2": "Air attack +5%.",
-        "s3": "Carrier aircraft range +10%, deck +5%."
-      },
-      "mio_armor": {
-        "p1": "This family's production cost −5%.",
-        "p2": "This family's line efficiency cap +5 points.",
-        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
-        "q1": "Reliability +5 points.",
-        "q2": "Main stats +5%: tank, tank destroyer and self-propelled gun attack and breakthrough.",
-        "q3": "Main stats +8%: tank, tank destroyer and self-propelled gun attack and breakthrough; cost +5%. Cannot be taken with Cheap Mass Output.",
-        "s1": "Tank battalions +5% breakthrough.",
-        "s2": "Tank armour +5%.",
-        "s3": "Tank piercing +8%."
-      },
-      "mio_artillery": {
-        "p1": "This family's production cost −5%.",
-        "p2": "This family's line efficiency cap +5 points.",
-        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
-        "q1": "Production cost −3%.",
-        "q2": "Main stats +5%: artillery, anti-tank and anti-air attack.",
-        "q3": "Main stats +8%: artillery, anti-tank and anti-air attack; cost +5%. Cannot be taken with Cheap Mass Output.",
-        "s1": "Artillery-type soft attack +5%.",
-        "s2": "Mechanised artillery speed +10%.",
-        "s3": "Anti-tank piercing +10%."
-      },
-      "mio_infantry": {
-        "p1": "This family's production cost −5%.",
-        "p2": "This family's line efficiency cap +5 points.",
-        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
-        "q1": "Production cost −3%.",
-        "q2": "Main stats +5%: infantry-type battalion attack and defence.",
-        "q3": "Main stats +8%: infantry-type battalion attack and defence; cost +5%. Cannot be taken with Cheap Mass Output.",
-        "s1": "Infantry-type battalions +3% attack.",
-        "s2": "Supply use −5%.",
-        "s3": "Motorised speed +5%, trucks use less fuel."
-      },
-      "mio_naval": {
-        "p1": "This family's production cost −5%.",
-        "p2": "This family's line efficiency cap +5 points.",
-        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
-        "q1": "Production cost −3%.",
-        "q2": "Main stats +5%: every ship gun, torpedo and depth charge.",
-        "q3": "Main stats +8%: every ship gun, torpedo and depth charge; cost +5%. Cannot be taken with Cheap Mass Output.",
-        "s1": "Ship HP +5%.",
-        "s2": "Light and heavy guns +5%.",
-        "s3": "Submarine torpedoes +10%, visibility −5%."
       }
     },
     "mission": {
@@ -9193,20 +8908,12 @@
       "ww1936_ship_sunk_named": "{country}'s {cls} {ship} has been sunk in the {sr}."
     },
     "nuke": {
-      "again": "Tap the region again",
       "band": "Atomic bombs {n}",
-      "cancel": "Cancel",
       "confirm": "Confirm the drop",
       "confirm_tap": "Tap again to drop",
       "drop": "Drop an atomic bomb",
-      "intercepted": "Intercepted",
-      "night": "Night",
       "pick_region": "Choose an enemy region",
-      "preview": "Of {factories} factories, {destroyed} destroyed, {stopped} stopped · divisions {divisions} · interception risk {pct}%",
-      "preview_fog": "Damage unknown · interception risk {pct}%",
-      "recon": "Reconnaissance",
-      "sent": "The bomb is on its way",
-      "stock": "Atomic bombs in stock: {n}"
+      "preview": "Of {factories} factories, {destroyed} destroyed, {stopped} stopped · divisions {divisions} · interception risk {pct}%"
     },
     "occ": {
       "chip": "Occupation {n} · resistance {pct}%",
@@ -9271,19 +8978,6 @@
       "op_sabotage": "Sets back the target's special project, or halts two of its arms factories. 30% network, 1 operative, 45 days, 25 political power.",
       "op_steal_blueprints": "A research bonus for a technology the target has and we lack, and a copy of its newest design. 40% network, 1 operative, 90 days, 25 political power.",
       "op_uprising": "Resistance +15 points in our occupied core regions the target holds, and the uprising threshold −10 points. 40% network, 1 operative, 60 days, 25 political power and 500 infantry equipment."
-    },
-    "pack": {
-      "bal": "Balkans",
-      "ccp": "Chinese Communists",
-      "chn": "Nationalist China",
-      "chw": "Chinese Regional Cliques",
-      "dom": "The Dominions",
-      "lat": "Latin America",
-      "new": "New States",
-      "nor": "Nordic Countries",
-      "pol": "Poland",
-      "spa": "Spain",
-      "tur": "Turkey"
     },
     "panel": {
       "my_wars": "My wars",
@@ -9813,14 +9507,6 @@
       "sp_jet_engine": "Jet Engine",
       "sp_proximity_fuze": "Proximity Fuze"
     },
-    "project_desc": {
-      "sp_atomic": "At a nuclear research institute: 1,900 days and 2 uranium a day. Then each institute builds an atomic bomb every 120 days.",
-      "sp_ballistic": "At a rocket test range, after the flying bomb: 700 days. Opens ballistic rocket production.",
-      "sp_cavity_magnetron": "At a research laboratory complex: 450 days. Better radar stations, the microwave ship radar and stronger airborne radar.",
-      "sp_flying_bomb": "At a rocket test range: 500 days. Opens flying bomb production and rocket launch sites.",
-      "sp_jet_engine": "At a research laboratory complex: 650 days. Opens the jet airframe.",
-      "sp_proximity_fuze": "At a research laboratory complex: 500 days. Anti-air damage ×1.5 on ships, in regions and in divisions; artillery soft attack +5%."
-    },
     "project_ui": {
       "change_scientist": "Change scientist",
       "days_left": "{days, plural, one {# day} other {# days}} left",
@@ -9828,43 +9514,28 @@
       "facility_row": "{facility} · {region}",
       "idle": "Idle",
       "input": "{item} {have}/{need}",
-      "milestone": "Milestone {n}",
       "none": "No project is available",
-      "pick_facility": "Choose a facility",
       "progress": "Progress {pct}%",
       "scientist": "Scientist: {name}",
       "start": "Start",
-      "tab": "Special projects",
-      "title": "Special projects"
+      "tab": "Special projects"
     },
     "raid": {
       "raid_bomb": "Precision Bombing Raid",
       "raid_commando": "Commando Raid",
       "raid_para": "Airborne Raid"
     },
-    "raid_desc": {
-      "raid_bomb": "At least 50 bombers in the air zone go for one building, dams included. 7 days to prepare.",
-      "raid_commando": "Marines or mountain troops land from the sea against a naval base, coastal fort, dockyard, facility or dam. 15 days to prepare.",
-      "raid_para": "An airborne division goes for one building: a facility, air base, radar, dam, coastal fort or rocket site. 20 days to prepare."
-    },
     "raid_ui": {
-      "ace": "Ace",
       "confirm": "Tap again to raid",
-      "hidden": "Facilities need closer intelligence",
       "medal": "Medal",
-      "mine_lay": "Lay mines",
-      "mine_sweep": "Sweep mines",
       "night_off": "Night bombing off",
       "night_on": "Night bombing on",
       "precision": "Precision bombing raid",
-      "priority": "Replacement priority",
       "priority_high": "High",
       "priority_low": "Low",
       "priority_normal": "Normal",
       "raid": "Raid",
-      "railgun": "Railway guns {n}/{max}",
-      "recon": "Reconnaissance",
-      "title": "Choose a target building"
+      "railgun": "Railway guns {n}/{max}"
     },
     "region": {
       "legal_owner": "Legal owner: {country}",
@@ -9933,12 +9604,9 @@
     "rocket": {
       "count": "Number {n}",
       "fire": "Launch",
-      "fired": "Launched",
-      "kind": "Kind",
       "launch": "Launch a rocket",
       "none_in_range": "Nothing in range",
-      "pick_target": "Choose an enemy region in range",
-      "range": "Range {n} regions"
+      "pick_target": "Choose an enemy region in range"
     },
     "role": {
       "sp_anti_air": "Self-Propelled Anti-Air",

@@ -73,7 +73,7 @@ describe("World War 1936 depth notices", () => {
     for (const key of DEPTH_NOTICE_KEYS) {
       ed.onDisplayMessageEvent({
         type: GameUpdateType.DisplayEvent,
-        message: `events_display.${key}`,
+        message: key,
         messageType: MessageType.WORLD_WAR,
         playerID: 1,
         params: { project: "sp_atomic", n: 1 },
@@ -81,9 +81,7 @@ describe("World War 1936 depth notices", () => {
     }
     const out = events();
     expect(out.length).toBe(DEPTH_NOTICE_KEYS.length);
-    DEPTH_NOTICE_KEYS.forEach((key, i) =>
-      expect(out[i]).toContain(`[events_display.${key}]`),
-    );
+    DEPTH_NOTICE_KEYS.forEach((key, i) => expect(out[i]).toContain(`[${key}]`));
     // The project id came out as the project's name.
     expect(out[0]).toContain("[ww1936.project.sp_atomic]");
   });

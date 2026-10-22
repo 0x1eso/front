@@ -33,6 +33,15 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // World War 1936 P5: a civil-war country's name, by ideology
   // (engine-lib EndgameRules.civilWarNameKey; the engine sends the key).
   /^ww1936\.cw_name\.[^.]+$/,
+  // World War 1936 P6 (batch P6-2): an operative's codename by its number
+  // (IntelModel, DepthMiscModel: `ww1936.codename.c${n}`, K5's keys).
+  /^ww1936\.codename\.c\d+$/,
+  // World War 1936 P6: K5's MIO and scientist names, read through the
+  // key helpers of DepthIndustryModel (mioFamilyKey, mioArchKey,
+  // mioTraitKey, scientistKey), which the scan cannot follow.
+  /^ww1936\.mio_(?:family|arch)\.[^.]+$/,
+  /^ww1936\.mio_trait\.[^.]+\.[^.]+$/,
+  /^ww1936\.scientist\.[^.]+$/,
 ];
 
 /**
@@ -40,13 +49,6 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
  */
 const IGNORED_UNUSED_KEY_PATTERNS: RegExp[] = [
   /^lang\./, // language metadata, not a UI translation key
-  // TODO(P6 U1-U5 merge): World War 1936 P6 content lanes K1-K5's name
-  // keys (merged in batch P6-1: pack names, continuous focuses and the depth
-  // names) are read by the P6 screens of lanes U1-U5, which merge later;
-  // lane K5b deletes the general_trait/general_trait_desc pair. Remove this
-  // pattern at that merge: every key must then be used. It covers exactly
-  // these 47 namespaces, all new in P6 (652 keys at batch P6-1).
-  /^ww1936\.(ace|agency_up|agency_up_desc|army_spirit|army_spirit_cat|army_spirit_desc|base|cf|cf_desc|codename|dam|design_name|facility|facility_desc|faction_goal|faction_goal_desc|faction_rule|faction_rule_desc|fm_trait|fm_trait_desc|gd|gd_desc|general_trait|general_trait_desc|intel_band|intel_mission|intel_mission_desc|landmark|medal|mio_arch|mio_family|mio_trait|mio_trait_desc|module|module_slot|op|op_desc|pack|project|project_desc|raid|raid_desc|role|scientist|subdoc|subdoc_desc|track)\./,
   // Steam rich presence status frames. Never rendered by the client, so there
   // is no translateText() call to find: the Electron shell reads them out of
   // resources/lang/*.json at build time and writes them into the localization
