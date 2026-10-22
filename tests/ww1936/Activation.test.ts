@@ -9,6 +9,7 @@ import {
 import {
   CS_GONE,
   WW_WAKE_EQUIP_PCT,
+  WW_WAKE_FUEL_PCT,
   WW_WAKE_MANPOWER_PCT,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
@@ -19,6 +20,7 @@ import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { recruitableMen } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { fuelCap } from "@openfront/engine-lib/ww1936/FuelRules";
 import {
   genMixOf,
   templateStats,
@@ -35,7 +37,14 @@ import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
 import { setGovernment } from "@openfront/engine/ww1936/politics/Ideology";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
-import { clearLand, END_MAP, placeArmy, stepTo, wwRunner } from "./util";
+import {
+  clearLand,
+  END_MAP,
+  placeArmy,
+  stepTo,
+  stepToDate,
+  wwRunner,
+} from "./util";
 
 afterEach(() => usePoliticsContent(null));
 
@@ -131,6 +140,44 @@ describe("World War 1936 P5: waking and reviving countries", () => {
     expect(sce.manpower).toBe(Math.floor((men * WW_WAKE_MANPOWER_PCT) / 100));
     expect(ww.politics.country(svk)!.ppMilli).toBe(100_000);
     expect(ww.politics.country(svk)!.tree).toBe("generic");
+  });
+
+  it("a woken country starts with a base fuel stock: half its capacity at waking", async () => {
+    const { runner, g, ww } = await started();
+    const eg = ww.endgame;
+    const [svk, csk, deu] = [endId("SVK"), endId("CSK"), endId("DEU")];
+    const sce = ww.economy.country(svk)!;
+    // A dormant slot never started: no fuel before it wakes.
+    expect(sce.fuelMilli).toBe(0);
+    activateCountry(eg, "SVK", { regions: [20, 15], from: [csk] }, g.ticks());
+    const want = (id: number) =>
+      Math.floor(
+        (fuelCap(
+          0,
+          ww.economy.countryBuildings(id, "fuel_silo"),
+          ww.economy.country(id)!.stats,
+        ) *
+          WW_WAKE_FUEL_PCT) /
+          100,
+      );
+    expect(sce.fuelMilli).toBe(want(svk));
+    expect(sce.fuelMilli).toBeGreaterThan(0);
+    expect(sce.fuelRatioPm).toBe(1000);
+    // A revived country starts afresh too, whatever it had left.
+    const tick = g.ticks();
+    for (const r of [13, 14]) give(ww, r, deu, tick);
+    ww.addCapitulation(csk, deu, tick);
+    eg.setCountryState(csk, CS_GONE);
+    const cce = ww.economy.country(csk)!;
+    cce.fuelMilli = 0;
+    cce.fuelRatioPm = 0;
+    activateCountry(eg, "CSK", { regions: [14] }, tick);
+    expect(cce.fuelMilli).toBe(want(csk));
+    expect(cce.fuelRatioPm).toBe(1000);
+    // The daily settlement takes over: a woken country keeps fuel to run on.
+    stepToDate(runner, "1936-01-20");
+    expect(sce.fuelMilli).toBeGreaterThan(0);
+    expect(sce.fuelRatioPm).toBe(1000);
   });
 
   it("woken divisions follow the victory points and equipFrom", async () => {

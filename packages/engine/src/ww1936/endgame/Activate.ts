@@ -22,6 +22,7 @@ import {
   CS_GONE,
   WW_WAKE_DIV_MAX,
   WW_WAKE_EQUIP_PCT,
+  WW_WAKE_FUEL_PCT,
   WW_WAKE_MANPOWER_PCT,
   WW_WAKE_TECH_LAG_YEARS,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
@@ -37,6 +38,7 @@ import {
   navalStartTechs,
   startTechs,
 } from "@openfront/engine-lib/ww1936/EconomyStart";
+import { fuelCap } from "@openfront/engine-lib/ww1936/FuelRules";
 import { landStartTechs } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   genMixOf,
@@ -163,6 +165,16 @@ export function landRegained(eg: WwEndgame, id: number, tick: number): void {
   eg.dirtyCountries.add(id);
   eg.ww.clearCapitulation(id);
   eg.wakeQueue.push(id);
+  // P5 final lane (the exile return loop, HOI4: a liberated country is not
+  // surrendered again over what it had already lost): its capitulation line
+  // counts from the victory points it holds now.
+  const ww = eg.ww;
+  let lost = 0;
+  for (const r of ww.scenario.landRegions) {
+    if ((ww.politics.legalOwner[r.id] ?? 0) !== id) continue;
+    if (ww.land.controller[r.id] !== id) lost += r.vp;
+  }
+  eg.setCapitulationBase(id, lost);
 }
 
 /** Spec §3.3-4, -6: laws, lines, stock, manpower and research. */
@@ -219,6 +231,16 @@ function startEconomy(
     );
   }
   ce.manpower = Math.floor((men * WW_WAKE_MANPOWER_PCT) / 100);
+  // Controller ruling (P5 final lane): a base fuel stock, as HOI4 gives a
+  // released nation — WW_WAKE_FUEL_PCT of its capacity at waking (no oil of
+  // its own yet: the base and its regions' silos). A revived country starts
+  // afresh like its stock. The first daily settlement takes over from here.
+  ce.fuelMilli = Math.floor(
+    (fuelCap(0, econ.countryBuildings(id, "fuel_silo"), ce.stats) *
+      WW_WAKE_FUEL_PCT) /
+      100,
+  );
+  ce.fuelRatioPm = 1000;
   econ.markCountryDirty(id);
 }
 

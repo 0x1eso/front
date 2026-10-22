@@ -85,8 +85,15 @@ export function startCivilWar(
   });
   if (slotTag === undefined) return false;
   const share = civilWarShareBp(c.pop[ideo]);
+  // Owner ruling (sensitivity): Korea and Taiwan never change legal owner
+  // but by China's claim — they stay with the government, out of the split.
   const cands = sc.landRegions
-    .filter((r) => pol.legalOwner[r.id] === X && ww.land.controller[r.id] === X)
+    .filter(
+      (r) =>
+        pol.legalOwner[r.id] === X &&
+        ww.land.controller[r.id] === X &&
+        !eg.neverAdministered.has(r.id),
+    )
     .map((r) => r.id);
   const capital = capitalRegionOf(eg, X, cands);
   const tag = nameTagOf(eg, X);
@@ -180,7 +187,11 @@ export function endCivilWar(
   // legal owner, not the winner.
   const taken: { r: number; to: number }[] = [];
   for (const r of sc.landRegions) {
-    if (pol.legalOwner[r.id] === L) pol.setLegalOwner(r.id, W);
+    // Owner ruling (sensitivity): Korea's and Taiwan's legal owner stays;
+    // only their control goes to the winner.
+    if (pol.legalOwner[r.id] === L && !eg.neverAdministered.has(r.id)) {
+      pol.setLegalOwner(r.id, W);
+    }
     if (eg.hasCore(L, r.id)) eg.addCore(W, r.id);
     if (land.controller[r.id] === L) {
       const owner = pol.legalOwner[r.id];
@@ -609,7 +620,7 @@ function splitPlanes(
       xe.planesDeployed[k] -= m;
       re.planesDeployed[k] += m;
     });
-    d.owner = R;
+    air.setDeploymentOwner(d, R);
     d.auto = false;
     const sum = d.counts.reduce((a, b) => a + b, 0);
     groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);

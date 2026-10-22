@@ -23,6 +23,7 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import { landRegained } from "@openfront/engine/ww1936/endgame/Activate";
 import {
   capitulationForces,
   formExile,
@@ -31,7 +32,7 @@ import {
 } from "@openfront/engine/ww1936/endgame/Exile";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { joinFaction } from "@openfront/engine/ww1936/politics/Factions";
-import { endId } from "./endFixture";
+import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import {
   clearLand,
@@ -339,6 +340,53 @@ describe("World War 1936 P5: governments in exile", () => {
     // Elections again.
     expect(noElections()).toBe(false);
   });
+
+  it("a country back from exile is not surrendered again over what it had already lost", async () => {
+    // The exile return loop (P5 final lane: the Netherlands capitulated 27
+    // times — its East Indies stayed Japanese, so every return ran the
+    // gauge out again). Poland comes back without Warsaw (21 of 24 points).
+    // Humans hold the AIs of the war's sides still.
+    const runner = await wwRunner(
+      {},
+      (["DEU", "POL", "FRA", "SUN"] as const).map((country, i) => ({
+        clientID: `HUMAN${i + 1}0X`,
+        country,
+      })),
+      END_MAP,
+    );
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const eg = ww.endgame;
+    const [deu, pl] = [endId("DEU"), endId("POL")];
+    clearLand(g);
+    ww.setWar(deu, pl, g.ticks(), { kind: "declare" });
+    takeRegion(g, 6, "DEU");
+    nextDay(runner);
+    nextDay(runner);
+    expect(ww.capitulationGauge(pl)).toBeGreaterThan(0);
+    // It comes back (an exile's return, a treaty's leftover land): the
+    // gauge starts again from nothing and does not run on Warsaw's loss.
+    landRegained(eg, pl, g.ticks());
+    expect(eg.capitulationBase(pl)).toBe(END.vp[6]);
+    for (let d = 0; d < 5; d++) nextDay(runner);
+    expect(ww.isAtWar(deu, pl)).toBe(true);
+    expect(ww.capitulationGauge(pl)).toBe(0);
+    // A recovery lowers the baseline: Warsaw back, then lost anew, runs the
+    // gauge again (a new loss is on its line).
+    takeRegion(g, 6, "POL");
+    nextDay(runner);
+    expect(eg.capitulationBase(pl)).toBe(0);
+    takeRegion(g, 6, "DEU");
+    nextDay(runner);
+    nextDay(runner);
+    expect(ww.capitulationGauge(pl)).toBeGreaterThan(0);
+    // At peace its line is whole again.
+    const csk = endId("CSK");
+    eg.setCapitulationBase(csk, 5);
+    nextDay(runner);
+    expect(eg.capitulationBase(csk)).toBe(0);
+  }, 60_000);
 
   it("legitimacy at zero for 30 days ends the exile", async () => {
     const { g, ww, eg, pl, deu, ltu } = await polandInExile();

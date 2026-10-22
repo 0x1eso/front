@@ -29,10 +29,12 @@ export const BEATS_P5: HistoryBeat[] = [
     act: {
       kind: "effects",
       effects: [
-        { kind: "volunteers", to: T("ESN"), divisions: 1, planes: 100 },
+        // P5 balance (Task 18): 1 → 3 divisions (the volunteer cap still
+        // limits them), a 120-day window (the rising may start weeks late).
+        { kind: "volunteers", to: T("ESN"), divisions: 3, planes: 100 },
       ],
     },
-    windowDays: 30,
+    windowDays: 120,
   },
   {
     id: "b19361015_sun_volunteers_esr",
@@ -58,7 +60,8 @@ export const BEATS_P5: HistoryBeat[] = [
       kind: "effects",
       effects: [{ kind: "volunteers", to: T("ESN"), divisions: 4 }],
     },
-    windowDays: 30,
+    // P5 balance (Task 18): 30 → 120 days, as the Condor beat.
+    windowDays: 120,
   },
   {
     id: "b19371101_sun_volunteers_chn",

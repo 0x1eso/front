@@ -2,6 +2,7 @@
 // the end map. Italy (50 divisions; army 5 is two of them in Rome) sends
 // to Poland (8 divisions, at war with the Soviet Union) over Rome–Krakow;
 // Italy, Poland and the Soviet Union are human (no AI moves them).
+import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { MOVE_NONE } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -10,10 +11,19 @@ import type { GameRunner } from "@openfront/engine/GameRunner";
 import { volunteerRoom } from "@openfront/engine/ww1936/endgame/Volunteers";
 import { armyRows } from "@openfront/engine/ww1936/land/Plans";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
-import { messages } from "./convoyUtil";
+import {
+  CONVOY,
+  messages,
+  seaGame,
+  war as seaWar,
+  setNavalBase,
+} from "./convoyUtil";
 import { endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
+import { politicsFixture } from "./politicsFixture";
+import { REGION, TAG_ID } from "./seaFixture";
 import {
+  clearLand,
   END_MAP,
   order,
   placeArmy,
@@ -133,6 +143,45 @@ describe("World War 1936 P5: volunteers", () => {
       expect(l.fightOwner(r)).toBe(pl);
     }
   });
+
+  it("volunteers by sea land where the host's front is reachable, not on an island", async () => {
+    // Spain (P5 final lane): Italy's volunteers for the Nationalists landed
+    // on the Balearic Islands — the port of its side nearest Italy — and
+    // never reached the front. On the sea map: the Soviet Union fights
+    // Poland and also holds Malta, an island in Rome's own waters.
+    usePoliticsContent(politicsFixture());
+    const sg = await seaGame();
+    const { ww, runner } = sg;
+    const g = runner.game;
+    const eg = ww.endgame;
+    const l = ww.land;
+    const [ita, sun] = [TAG_ID.ITA, TAG_ID.SUN];
+    clearLand(g);
+    seaWar(sg, "SUN", "POL");
+    l.setController(REGION.malta, sun, g.ticks());
+    setNavalBase(ww, REGION.malta, 1);
+    setNavalBase(ww, REGION.kiev, 1);
+    sg.ce("ITA").stock[CONVOY] = 200;
+    sg.ce("ITA").manpower += 1_000_000;
+    for (const t of ["infantry_equipment", "support_equipment", "artillery"]) {
+      sg.ce("ITA").stock[equipKey(t as "artillery", 1)] += 100_000;
+    }
+    sg.ce("SUN").manpower += 100_000;
+    placeArmy(g, "ITA", REGION.rome, 10);
+    placeArmy(g, "SUN", REGION.kiev, 3);
+    const a = placeArmy(g, "ITA", REGION.rome, 1);
+    expect(
+      eg.issue(
+        ita,
+        { kind: "volunteers_send", army: a.id, to: sun },
+        g.ticks(),
+      ),
+    ).toBeNull();
+    const at = () => l.armyRegion(a);
+    for (let i = 0; i < 120 && at() === REGION.rome; i++) step(runner, 8);
+    // Kiev, on the front; never Malta, which no Soviet land joins.
+    expect(at()).toBe(REGION.kiev);
+  }, 120_000);
 
   it("volunteer captures go to the target", async () => {
     const x = await game();

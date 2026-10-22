@@ -23,11 +23,19 @@ import {
   IDEO_FAS,
   IDEO_NEU,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { turnOrder } from "@openfront/engine-lib/ww1936/EndgameRules";
+import {
+  AGG_PCT,
+  aggregateCost,
+  reparationsCost,
+  takeNavyCost,
+  turnOrder,
+} from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   peacePickShips,
   peaceRegionBlock,
+  peaceRegionCost,
   peaceReparationsRoom,
+  peaceSettledOn,
   peaceZoneRegions,
   TAKE_NAVY_PCT_MAX,
   TAKE_NAVY_PCT_MIN,
@@ -76,21 +84,77 @@ export function keepsHistoryRow(
   return (roll >>> 8) % 100 < WW_PEACE_HISTORY_KEEP_PCT;
 }
 
+/**
+ * P5 final lane (perf: 30 participants × 150 stake regions took 50–60 ms in
+ * one tick): what every participant's AI reads alike in one pass over a
+ * conference — the demand rules' context, the fixed Korea and Taiwan
+ * defaults, the releasable tags, each stake region's worth and each
+ * loser's fleet weight a take_navy would pick. refreshAi builds it once;
+ * the demands are the same as without it.
+ */
+export interface PeaceAiShared {
+  conf: number;
+  ctx: PeaceCtx;
+  fixed: FixedDemand[];
+  releasable: CountryTag[];
+  worth: Map<number, number>;
+  navyW: Map<number, number>;
+  losers: Map<number, { lVp: number; zoneOnly: boolean }>;
+  reparations: Map<number, number>;
+  legalVp: Map<number, number> | null;
+}
+
+export function peaceAiShared(eg: WwEndgame, c: Conference): PeaceAiShared {
+  const base = peaceCtx(eg, c);
+  // A loser's ship list once per pass (each participant prices take_navy).
+  const ships = new Map<number, ReturnType<PeaceCtx["facts"]["ships"]>>();
+  const ctx: PeaceCtx = {
+    ...base,
+    facts: {
+      ...base.facts,
+      ships: (L) => {
+        let s = ships.get(L);
+        if (s === undefined) {
+          s = base.facts.ships(L);
+          ships.set(L, s);
+        }
+        return s;
+      },
+    },
+  };
+  return {
+    conf: c.id,
+    ctx,
+    fixed: fixedPlan(eg, c, takenMap(eg, c), ctx),
+    releasable: releasableTags(eg, c.stake),
+    worth: new Map(),
+    navyW: new Map(),
+    losers: new Map(),
+    reparations: new Map(),
+    legalVp: null,
+  };
+}
+
 /** The AI's demands of `smallID` this round of conference `conf`. */
 export function aiDemands(
   eg: WwEndgame,
   conf: number,
   smallID: number,
+  shared?: PeaceAiShared,
 ): StoredDemand[] {
   const c = conferenceById(eg, conf);
   const part = c?.parts.find((p) => p.id === smallID);
   if (c === null || part === undefined || part.pts <= 0 || c.status === 2) {
     return [];
   }
+  const sh =
+    shared !== undefined && shared.conf === c.id
+      ? shared
+      : peaceAiShared(eg, c);
   const stake = new Set(c.stake);
   const used = takenMap(eg, c);
   const free = (r: number) => stake.has(r) && !used.has(r);
-  const ctx = peaceCtx(eg, c);
+  const ctx = sh.ctx;
   const out: StoredDemand[] = [];
   let spent = 0;
   const take = (sd: StoredDemand, cost: number): void => {
@@ -101,23 +165,23 @@ export function aiDemands(
     }
   };
   // 1. Korea's zones and Taiwan (always), then the history table.
-  for (const z of fixedPlan(eg, c, used, ctx)) {
+  for (const z of sh.fixed) {
     if (z.holder !== smallID || out.length >= WW_PEACE_DEMANDS_PER_ROUND) {
       continue;
     }
     const sd = stored(z.kind, out.length, z.regions.filter(free));
-    const cost = priceOf(eg, c, smallID, sd, used, ctx);
+    const cost = priceOf(eg, c, smallID, sd, used, ctx, free);
     if (cost > 0) take(sd, cost);
   }
   for (const { L, dd } of historyLines(eg, c, smallID)) {
     if (out.length >= WW_PEACE_DEMANDS_PER_ROUND) break;
-    const sd = fromDefault(eg, c, L, dd, out.length, free, ctx);
+    const sd = fromDefault(eg, c, L, dd, out.length, free, ctx, sh);
     if (sd === null) continue;
-    const cost = priceOf(eg, c, smallID, sd, used, ctx);
+    const cost = priceOf(eg, c, smallID, sd, used, ctx, free);
     if (cost > 0) take(sd, cost);
   }
   // 2. The general AI in the slots left.
-  generalAi(eg, c, part, out, used, spent, ctx);
+  generalAi(eg, c, part, out, used, spent, ctx, sh);
   return out;
 }
 
@@ -254,6 +318,7 @@ function fromDefault(
   slot: number,
   free: (r: number) => boolean,
   ctx: PeaceCtx,
+  sh: PeaceAiShared,
 ): StoredDemand | null {
   const sc = eg.ww.scenario;
   const loserOf = (t: CountryTag | undefined) => {
@@ -287,7 +352,7 @@ function fromDefault(
     }
     case "release":
     case "liberate": {
-      if (!releasableTags(eg, c.stake).includes(dd.tag)) return null;
+      if (!sh.releasable.includes(dd.tag)) return null;
       const t = sc.smallIdOf(dd.tag);
       return t === 0
         ? null
@@ -323,6 +388,10 @@ interface Cand {
   /** Ties and jitter: the region, or the target country. */
   key: number;
   sd: StoredDemand;
+  /** v × 1000 / cost, floored (the sort's key, once). */
+  score: number;
+  /** KIND[kind] (the sort's tie-break, once). */
+  k: number;
 }
 
 /**
@@ -339,6 +408,7 @@ function generalAi(
   used: Map<number, number>,
   spentBefore: number,
   ctx: PeaceCtx,
+  sh: PeaceAiShared,
 ): void {
   const id = part.id;
   const pol = eg.ww.politics;
@@ -361,6 +431,8 @@ function generalAi(
   const bordersMine = (r: number) =>
     sc.regionNeighbours(r).some((n) => legal[n] === id);
   const worth = (r: number): number => {
+    const known = sh.worth.get(r);
+    if (known !== undefined) return known;
     const reg = sc.region(r);
     if (reg === undefined) return 0;
     let res = 0;
@@ -369,9 +441,11 @@ function generalAi(
       effectiveBuildings(econ, r, "civ") +
       effectiveBuildings(econ, r, "mil") +
       effectiveBuildings(econ, r, "dock");
-    return 10 * reg.vp + 8 * f + 2 * res;
+    const v = 10 * reg.vp + 8 * f + 2 * res;
+    sh.worth.set(r, v);
+    return v;
   };
-  const takeValue = (r: number, coreOf = id): number => {
+  const takeValueOf = (r: number, coreOf: number): number => {
     let v =
       worth(r) +
       (eg.hasCore(coreOf, r) ? 40 : 0) +
@@ -384,26 +458,79 @@ function generalAi(
     }
     return Math.max(0, v);
   };
-  let myVp = 0;
-  for (const r of sc.landRegions) if (legal[r.id] === id) myVp += r.vp;
+  // Its own takes' values, once a region (the region and country loops
+  // both read them; P5 final lane perf).
+  const ownValue = new Map<number, number>();
+  const takeValue = (r: number, coreOf = id): number => {
+    if (coreOf !== id) return takeValueOf(r, coreOf);
+    let v = ownValue.get(r);
+    if (v === undefined) {
+      v = takeValueOf(r, id);
+      ownValue.set(r, v);
+    }
+    return v;
+  };
+  // Every participant's legal points, one pass for all (P5 final lane perf).
+  if (sh.legalVp === null) {
+    const vp = new Map<number, number>();
+    for (const r of sc.landRegions) {
+      const o = legal[r.id] ?? 0;
+      if (o > 0) vp.set(o, (vp.get(o) ?? 0) + r.vp);
+    }
+    sh.legalVp = vp;
+  }
+  const myVp = sh.legalVp.get(id) ?? 0;
   const cands: Cand[] = [];
-  const add = (kind: DemandKind, v: number, key: number, sd: StoredDemand) => {
+  const add = (
+    kind: DemandKind,
+    v: number,
+    key: number,
+    sd: StoredDemand,
+    known?: number,
+  ) => {
     if (v <= 0) return;
     const cost =
-      sd.regions.length === 1 && (kind === "take" || kind === "take_for")
+      known ??
+      (sd.regions.length === 1 && (kind === "take" || kind === "take_for")
         ? regionCost(eg, c, sd.regions[0], id, sd.beneficiary || id, ctx.facts)
-        : priceOf(eg, c, id, sd, used, ctx);
+        : priceOf(eg, c, id, sd, used, ctx, free));
     if (cost <= 0) return;
-    cands.push({ kind, v: jitter(eg, c, id, kind, key, v), cost, key, sd });
+    const jv = jitter(eg, c, id, kind, key, v);
+    cands.push({
+      kind,
+      v: jv,
+      cost,
+      key,
+      sd,
+      score: Math.floor((jv * 1000) / cost),
+      k: KIND[kind],
+    });
   };
+  // A one-region occupation zone's price, as priceOf → planPeaceDemand
+  // reckons it once the region is free, allowed (may) and held or bordered
+  // (P5 final lane perf: the same number without the plan's sets): 0 when a
+  // puppet settlement locks the region.
+  const zoneCost = (r: number): number => {
+    const locked =
+      peaceSettledOn(ctx.table, ctx.facts.legalOwner(r), "puppet") &&
+      !ctx.sens.zoneOnly.has(r) &&
+      !ctx.sens.claimOnly.has(r);
+    if (locked) return 0;
+    return aggregateCost(
+      [peaceRegionCost(ctx.facts, ctx.table, r, id, id)],
+      AGG_PCT.occupation_zone,
+    );
+  };
+  // The participants of its own faction (take_for's receivers), in order.
+  const friends = c.parts.filter(
+    (b) => b.id !== id && pol.sameFaction(id, b.id),
+  );
   // Regions (Korea: occupation zones only; Taiwan: its claimant — spec §6.9).
   for (const r of c.stake) {
     if (!free(r)) continue;
     if (may("take", r)) add("take", takeValue(r), r, stored("take", 0, [r]));
-    for (const b of c.parts) {
-      if (b.id === id || !pol.sameFaction(id, b.id) || !eg.hasCore(b.id, r)) {
-        continue;
-      }
+    for (const b of friends) {
+      if (!eg.hasCore(b.id, r)) continue;
       if (!may("take_for", r, b.id)) continue;
       add(
         "take_for",
@@ -414,15 +541,20 @@ function generalAi(
     }
     if (
       may("occupation_zone", r) &&
-      peaceZoneRegions(ctx.facts, id, [r], free).length > 0
+      // peaceZoneRegions of one free region: held, or next to a held one.
+      (ctrl[r] === id || sc.regionNeighbours(r).some((n) => ctrl[n] === id))
     ) {
       const pct = dem && isMajor(eg, legal[r]) ? 70 : 20;
-      add(
-        "occupation_zone",
-        Math.floor((takeValue(r) * pct) / 100),
-        r,
-        stored("occupation_zone", 0, [r]),
-      );
+      const v = Math.floor((takeValue(r) * pct) / 100);
+      if (v > 0) {
+        add(
+          "occupation_zone",
+          v,
+          r,
+          stored("occupation_zone", 0, [r]),
+          zoneCost(r),
+        );
+      }
     }
     if (
       may("demilitarise", r) &&
@@ -432,18 +564,41 @@ function generalAi(
       add("demilitarise", 20, r, stored("demilitarise", 0, [r]));
     }
   }
-  // Countries.
+  // Countries. A loser's stake points and whether it holds a Korea region
+  // legally are the same for every participant (P5 final lane perf).
+  const loserFacts = (L: number): { lVp: number; zoneOnly: boolean } => {
+    let f = sh.losers.get(L);
+    if (f === undefined) {
+      let lVp = 0;
+      for (const r of c.stake) if (legal[r] === L) lVp += sc.region(r)?.vp ?? 0;
+      const zoneOnly = c.stake.some(
+        (r) => legal[r] === L && ctx.sens.zoneOnly.has(r),
+      );
+      f = { lVp, zoneOnly };
+      sh.losers.set(L, f);
+    }
+    return f;
+  };
   for (const L of c.losers) {
     const rest = c.stake.filter((r) => legal[r] === L && free(r));
     let restV = 0;
     for (const r of rest) restV += takeValue(r);
-    let lVp = 0;
-    for (const r of c.stake) if (legal[r] === L) lVp += sc.region(r)?.vp ?? 0;
+    const { lVp, zoneOnly } = loserFacts(L);
     const major = isMajor(eg, L);
-    // Never annexed while it holds a Korea region legally (spec §6.9).
-    const zoneOnly = c.stake.some(
-      (r) => legal[r] === L && ctx.sens.zoneOnly.has(r),
-    );
+    // P5 final lane (perf): the country-wide prices priceOf → planPeaceDemand
+    // would give, from the rest's region prices reckoned once (puppet,
+    // regime change and disarm sum them).
+    let restCosts: number[] | null = null;
+    const restCost = (pct: number): number => {
+      if (rest.length === 0) return 0;
+      restCosts ??= rest.map((r) =>
+        peaceRegionCost(ctx.facts, ctx.table, r, id, id),
+      );
+      return aggregateCost(restCosts, pct);
+    };
+    const settledOn = (...kinds: DemandKind[]) =>
+      peaceSettledOn(ctx.table, L, ...kinds);
+    // Never annexed while it holds a Korea region legally (spec §6.9): zoneOnly.
     if (aggressive && lVp * 100 < myVp * 15 && !zoneOnly) {
       add(
         "annex_rest",
@@ -458,53 +613,88 @@ function generalAi(
       Math.floor((restV * puppetPct) / 100),
       L,
       stored("puppet", 0, [], { target: L }),
+      settledOn("annex_rest", "puppet") ? 0 : restCost(AGG_PCT.puppet),
     );
     const lr = pol.country(L)?.ruling ?? IDEO_NEU;
     if (lr !== ruling) {
+      const topple = ctx.table.topple.some(([x, y]) => x === id && y === L);
       add(
         "change_government",
         lr === IDEO_COM || lr === IDEO_FAS ? 200 : 120,
         L,
         stored("change_government", 0, [], { target: L }),
+        settledOn("annex_rest", "puppet", "change_government")
+          ? 0
+          : restCost(
+              topple
+                ? AGG_PCT.change_government_topple
+                : AGG_PCT.change_government,
+            ),
       );
     }
     if (ledFaction(eg, L) >= 0) {
       add("dismantle", 150, L, stored("dismantle", 0, [], { target: L }));
     }
-    const k = peaceReparationsRoom(ctx.facts, ctx.table, L, free);
+    // Before any take of its own the free regions are every participant's:
+    // the room is shared (P5 final lane perf).
+    const fresh = out.length === 0;
+    let k = fresh ? sh.reparations.get(L) : undefined;
+    if (k === undefined) {
+      k = peaceReparationsRoom(ctx.facts, ctx.table, L, free);
+      if (fresh) sh.reparations.set(L, k);
+    }
     if (k >= 1) {
       add(
         "reparations",
         10 * k,
         L,
         stored("reparations", 0, [], { target: L, k }),
+        rest.length === 0 ? 0 : reparationsCost(k),
       );
     }
-    if (major) add("disarm", 100, L, stored("disarm", 0, [], { target: L }));
+    if (major) {
+      add(
+        "disarm",
+        100,
+        L,
+        stored("disarm", 0, [], { target: L }),
+        settledOn("disarm") ? 0 : restCost(AGG_PCT.disarm),
+      );
+    }
     // One fleet hand-over a loser (not a share of what is left each round).
     const navyDone = ctx.table.settled.some(
       (s) => s.kind === KIND.take_navy && s.target === L,
     );
     let w = 0;
     if (!navyDone) {
-      for (const s of peacePickShips(
-        ctx.facts,
-        ctx.table,
-        L,
-        TAKE_NAVY_PCT_MAX,
-      ))
-        w += s.w;
+      const known = sh.navyW.get(L);
+      if (known !== undefined) {
+        w = known;
+      } else {
+        for (const s of peacePickShips(
+          ctx.facts,
+          ctx.table,
+          L,
+          TAKE_NAVY_PCT_MAX,
+        ))
+          w += s.w;
+        sh.navyW.set(L, w);
+      }
     }
     if (w > 0) {
+      const usedNavy = ctx.table.settled.some(
+        (s) => s.kind === KIND.take_navy && s.target === L && s.by === id,
+      );
       add(
         "take_navy",
         3 * w,
         L,
         stored("take_navy", 0, [], { target: L, pct: TAKE_NAVY_PCT_MAX }),
+        usedNavy ? 0 : takeNavyCost(w),
       );
     }
   }
-  for (const tag of releasableTags(eg, c.stake)) {
+  for (const tag of sh.releasable) {
     const T = sc.smallIdOf(tag);
     if (T === 0) continue;
     const kind = dem ? "liberate" : "release";
@@ -521,11 +711,7 @@ function generalAi(
       stored(kind, 0, [], { target: T, beneficiary: T }),
     );
   }
-  const score = (x: Cand) => Math.floor((x.v * 1000) / x.cost);
-  cands.sort(
-    (a, b) =>
-      score(b) - score(a) || KIND[a.kind] - KIND[b.kind] || a.key - b.key,
-  );
+  cands.sort((a, b) => b.score - a.score || a.k - b.k || a.key - b.key);
   // Picking: within the points, five slots, no region twice, one
   // country-wide settlement (annex / puppet / regime change) per loser.
   let spent = spentBefore;
@@ -549,8 +735,17 @@ function generalAi(
     if (LIVES.has(DEMAND_KINDS[s.kind])) keep.add(s.target);
     if (s.kind === KIND.puppet) puppets.add(s.target);
   }
-  const leftOf = (L: number) =>
-    c.stake.filter((r) => legal[r] === L && free(r));
+  // A loser's free stake regions, kept until `used` changes (P5 final lane
+  // perf: strands asked it of every candidate).
+  let usedVer = 0;
+  const leftMemo = new Map<number, { ver: number; left: number[] }>();
+  const leftOf = (L: number): number[] => {
+    const m = leftMemo.get(L);
+    if (m !== undefined && m.ver === usedVer) return m.left;
+    const left = c.stake.filter((r) => legal[r] === L && free(r));
+    leftMemo.set(L, { ver: usedVer, left });
+    return left;
+  };
   const usesOf = (x: Cand): number[] =>
     x.kind === "release" || x.kind === "liberate"
       ? c.stake.filter((r) => free(r) && eg.hasCore(x.sd.beneficiary, r))
@@ -626,14 +821,23 @@ function generalAi(
     if (x.kind === "puppet") puppets.add(sd.target);
     if (x.kind === "annex_rest") {
       for (const r of c.stake) {
-        if (legal[r] === sd.target && free(r)) used.set(r, id);
+        if (legal[r] === sd.target && free(r)) {
+          used.set(r, id);
+          usedVer++;
+        }
       }
     } else if (x.kind === "release" || x.kind === "liberate") {
       for (const r of c.stake) {
-        if (free(r) && eg.hasCore(sd.beneficiary, r)) used.set(r, id);
+        if (free(r) && eg.hasCore(sd.beneficiary, r)) {
+          used.set(r, id);
+          usedVer++;
+        }
       }
     } else {
-      for (const r of sd.regions) used.set(r, id);
+      for (const r of sd.regions) {
+        used.set(r, id);
+        usedVer++;
+      }
     }
   }
 }

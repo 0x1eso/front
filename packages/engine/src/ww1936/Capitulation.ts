@@ -134,15 +134,28 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
     const p = mg.playerBySmallID(id);
     if (!p.isPlayer() || !p.isAlive() || !ww.hasWar(id)) {
       ww.setCapitulationGauge(id, 0);
+      // P5 hook (final lane): at peace its line is whole again.
+      if (!ww.hasWar(id)) ww.endgame.setCapitulationBase(id, 0);
       continue;
+    }
+    // P5 hook (final lane, the exile return loop): a country back from
+    // exile or revived counts from what it held when it came back — what it
+    // had lost before is off its line (a recovery lowers that baseline).
+    const base = ww.endgame.capitulationBase(id);
+    let lost = start[id] - held[id];
+    let line = start[id];
+    if (base > 0) {
+      if (lost < base) ww.endgame.setCapitulationBase(id, lost);
+      const b = Math.min(base, lost);
+      lost -= b;
+      line -= b;
     }
     // A country whose regions are all worth 0 has no surrender line: it
     // never capitulates by points (below, 0 lost of 0 counts as past it).
-    if (start[id] === 0) continue;
-    const lost = start[id] - held[id];
+    if (line === 0) continue;
     const gauge = ww.capitulationGauge(id);
     // P3 spec §6.4: the line moves with stability and war support.
-    if (lost * 100 < start[id] * ww.politics.surrenderPct(id)) {
+    if (lost * 100 < line * ww.politics.surrenderPct(id)) {
       if (gauge > 0) ww.setCapitulationGauge(id, gauge - 1);
       continue;
     }

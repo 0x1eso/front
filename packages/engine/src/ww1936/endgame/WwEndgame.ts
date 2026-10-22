@@ -314,6 +314,8 @@ export const WwEndgameStateSchema = z.object({
   wakeQueue: zIds(),
   /** Daily one-line batches (spec §20.8): [to, kind, a, b, n]. Kinds: NOTE_KEYS. */
   dayNotes: z.array(z.tuple([zInt(), zInt(), zInt(), zInt(), zInt()])),
+  /** P5 final lane: [smallID, victory points lost when it came back] (capitulationBase). */
+  capBase: z.array(z.tuple([zInt(), zInt()])).optional(),
 });
 export type WwEndgameState = z.infer<typeof WwEndgameStateSchema>;
 
@@ -382,6 +384,13 @@ export class WwEndgame {
   }[] = [];
   wakeQueue: number[] = [];
   dayNotes: [number, number, number, number, number][] = [];
+  /**
+   * P5 final lane (the exile return loop): a country back from exile, or
+   * revived, with the victory points it had lost when it came back, by
+   * smallID. P0's capitulation check counts only what it loses after that
+   * (Capitulation.checkCapitulations); a recovery lowers it, peace clears it.
+   */
+  capBase: [number, number][] = [];
 
   // ---- Derived (DERIVED_FIELDS) ----
   /** smallID → clientID of its human controller (plan decision 7). */
@@ -819,6 +828,18 @@ export class WwEndgame {
       this.rebuildWarIdx();
       this.dirtyWars = true;
     }
+  }
+
+  // ---- Capitulation baseline (P5 final lane, the exile return loop) ----
+
+  /** Victory points `id` had lost when it came back (0: none). */
+  capitulationBase(id: number): number {
+    return this.capBase.find(([x]) => x === id)?.[1] ?? 0;
+  }
+  setCapitulationBase(id: number, lostVp: number): void {
+    const kept = this.capBase.filter(([x]) => x !== id);
+    if (lostVp > 0) kept.push([id, lostVp]);
+    this.capBase = kept.sort((a, b) => a[0] - b[0]);
   }
 
   // ---- Countries, actors, controllers (plan decisions 6, 7) ----
@@ -1483,6 +1504,7 @@ export class WwEndgame {
       takeoverCards: this.takeoverCards,
       wakeQueue: this.wakeQueue,
       dayNotes: this.dayNotes,
+      capBase: this.capBase,
     });
   }
 
@@ -1543,6 +1565,7 @@ export class WwEndgame {
     this.takeoverCards = c.takeoverCards;
     this.wakeQueue = c.wakeQueue;
     this.dayNotes = c.dayNotes;
+    this.capBase = c.capBase ?? [];
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
     this.firstData = true;
@@ -1743,6 +1766,8 @@ export class WwEndgame {
       mix(c.length);
       mix(id);
     }
+    // P5 final lane: the capitulation baselines (none in most games).
+    if (this.capBase.length > 0) pairs(this.capBase);
     return h;
   }
 }

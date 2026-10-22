@@ -603,6 +603,22 @@ export class WwAir {
     return n;
   }
 
+  /**
+   * Hands a deployment to another owner (P5 civil war, spec §15.3: planes
+   * based in the rebels' regions); the owner index follows (P5 final lane:
+   * a bare `d.owner =` left the old owner's index with a stale id).
+   */
+  setDeploymentOwner(d: Deployment, owner: number): void {
+    if (d.owner === owner) return;
+    const from = d.owner;
+    this.unindexDeployment(d);
+    d.owner = owner;
+    this.indexDeployment(d);
+    this.markDeployment(d.id);
+    this.airDirtyCountries.add(from);
+    this.airDirtyCountries.add(owner);
+  }
+
   /** Moves a deployment to another base (A1's re-basing). */
   setDeploymentBase(d: Deployment, base: number): void {
     if (d.base === base) return;

@@ -99,7 +99,9 @@ export const GENERIC_EVENTS: EventDef[] = [
         id: "c",
         available: not({ kind: "stability_ge", pct: 25 }),
         effects: [{ kind: "civil_war", ideology: "largest_other" }],
-        ai: { base: 60 },
+        // P5 balance (Task 18): 60 → 20 (2–6 civil wars a game with the
+        // historical AI off; target 0–3).
+        ai: { base: 20 },
       },
     ],
   },
