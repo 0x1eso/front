@@ -625,7 +625,14 @@ export const GENERIC_FOCUSES: FocusDef[] = [
       { kind: "create_faction" },
       { kind: "unlock_decision", id: "gen_invite_neighbours" },
     ],
-    ai: { base: 10 },
+    // Final balance: Poland's path has no league of its own (pol_intermarium
+    // is its 15% branch); off the path it took this one in 1938 in most
+    // games, so the 1939 Memel crisis pulled it into an early war alone and
+    // it fell without an exile.
+    ai: {
+      base: 10,
+      mods: [{ if: { kind: "tag", tag: "POL" }, factor: 10 }],
+    },
   },
   {
     id: "gen_pol_claims",

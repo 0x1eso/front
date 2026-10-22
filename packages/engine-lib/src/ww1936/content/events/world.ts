@@ -199,13 +199,24 @@ export const WORLD_EVENTS: EventDef[] = [
     trigger: all(after("1936-07-01"), { kind: "at_war_with", of: T("ESR") }),
     once: "game",
     // Final balance (P5 Spain targets): the rising's recruits (the Army of
-    // Africa's levies, the Carlist and Falangist militias). Without them
-    // the Nationalists ran out of manpower by mid-1938 in most games.
+    // Africa's levies, the Carlist and Falangist militias) and the army's
+    // depots in the Nationalist zone. Without them the Nationalists, with
+    // one civilian factory and no military one, could not field more than
+    // 13–15 divisions and ran out of manpower by mid-1938.
     options: [
       {
         id: "a",
         ai: { base: 1 },
-        effects: [{ kind: "manpower", amount: 100_000 }],
+        effects: [
+          { kind: "manpower", amount: 100_000 },
+          {
+            kind: "equipment",
+            type: "infantry_equipment",
+            gen: 1,
+            count: 5_000,
+          },
+          { kind: "equipment", type: "artillery", gen: 1, count: 1_000 },
+        ],
       },
     ],
   },

@@ -440,6 +440,9 @@ const GROUP_TECHS: Readonly<
   electronics: [
     "electronics_1",
     "computing_1",
+    // Final balance: the atomic facility's tech. It came last of every
+    // list, so no AI ever built a nuclear facility or started sp_atomic.
+    "nuclear_physics",
     "computing_2",
     "signal_company",
   ],
