@@ -6,6 +6,7 @@ import {
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  type LandTerrain,
   MOVE_WALK,
   traitBit,
   WW_ROUND_HOUR_MILLI,
@@ -102,7 +103,8 @@ describe("T1b-L: lane D's land traits", () => {
     const rb = t.rowOf(b.divisions[0]);
     const flags = l.baseStatsOf(ra).flags;
     // The deep map has no marsh: Munich becomes one for this test.
-    const munich = l.scenario.region(MUNICH)!;
+    // (A test-only write: the scenario's region is read-only data.)
+    const munich = l.scenario.region(MUNICH)! as { land?: LandTerrain };
     const was = munich.land;
     try {
       expect(traitSpeedBp(l, ra, flags, MUNICH)).toBe(0);
