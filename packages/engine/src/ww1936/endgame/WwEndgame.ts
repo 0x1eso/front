@@ -1559,10 +1559,123 @@ export class WwEndgame {
         }
       }
     }
+    // Batch 21 glue (lane W review, minor 13): every stored conference
+    // field, and the zones, demilitarised regions, reparations, arms limits
+    // and peace log lane W writes. Field by field, never by key order (a
+    // restored object's keys follow the schema).
+    const ids = (a: readonly number[]) => {
+      mix(a.length);
+      for (const v of a) mix(v);
+    };
+    const pairs = (a: readonly (readonly [number, number])[]) => {
+      mix(a.length);
+      for (const [x, y] of a) {
+        mix(x);
+        mix(y);
+      }
+    };
+    const text = (s: string) => {
+      mix(s.length);
+      for (let i = 0; i < s.length; i++) mix(s.charCodeAt(i));
+    };
+    const demands = (ds: readonly StoredDemand[]) => {
+      mix(ds.length);
+      for (const d of ds) {
+        mix(d.kind);
+        mix(d.slot);
+        ids(d.regions);
+        mix(d.target);
+        mix(d.beneficiary);
+        mix(d.k);
+        mix(d.pct);
+      }
+    };
+    mix(this.nextConfId);
+    mix(this.conferences.length);
     for (const c of this.conferences) {
-      mix(c.round);
-      mix(c.settled.length);
+      mix(c.id);
+      ids(c.warIds);
+      ids(c.losers);
+      ids(c.stake);
+      ids(c.base);
+      mix(c.parts.length);
+      for (const p of c.parts) {
+        mix(p.id);
+        mix(p.wsMilli % 1_000_003);
+        mix(p.pts);
+        mix(p.human ? 1 : 0);
+      }
+      pairs(c.claims);
+      pairs(c.conquer);
+      pairs(c.topple);
       mix(c.status);
+      mix(c.doneDay);
+      mix(c.round);
+      mix(c.roundEndTick);
+      mix(c.openTick);
+      mix(c.subs.length);
+      for (const s of c.subs) {
+        mix(s.id);
+        demands(s.demands);
+        mix(s.passed ? 1 : 0);
+      }
+      mix(c.ai.length);
+      for (const a of c.ai) {
+        mix(a.id);
+        demands(a.demands);
+      }
+      mix(c.settled.length);
+      for (const s of c.settled) {
+        mix(s.kind);
+        mix(s.by);
+        ids(s.regions);
+        mix(s.target);
+        mix(s.beneficiary);
+        mix(s.k);
+        mix(s.pct);
+        mix(s.round);
+        mix(s.cost);
+      }
+      mix(c.lastRound.length);
+      for (const l of c.lastRound) {
+        mix(l.by);
+        mix(l.kind);
+        ids(l.regions);
+        mix(l.target);
+        mix(l.ok ? 1 : 0);
+      }
+    }
+    mix(this.zones.length);
+    for (const z of this.zones) {
+      mix(z.region);
+      mix(z.holder);
+      mix(z.untilDay);
+    }
+    pairs(this.dmz);
+    mix(this.reparations.length);
+    for (const x of this.reparations) {
+      mix(x.from);
+      mix(x.to);
+      mix(x.k);
+      mix(x.untilDay);
+    }
+    pairs(this.disarm);
+    mix(this.peaceLog.length);
+    for (const e of this.peaceLog) {
+      mix(e.day);
+      ids(e.losers);
+      mix(e.lines.length);
+      for (const l of e.lines) {
+        text(l.key);
+        const keys = Object.keys(l.params).sort();
+        mix(keys.length);
+        for (const k of keys) {
+          text(k);
+          const v = l.params[k];
+          if (typeof v === "number") mix(v);
+          else text(v);
+        }
+      }
     }
     for (let r = 1; r < this.regionCap; r++) {
       if (

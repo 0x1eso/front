@@ -4,6 +4,10 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { addContract } from "@openfront/engine/ww1936/endgame/LendLease";
+import type {
+  Conference,
+  StoredDemand,
+} from "@openfront/engine/ww1936/endgame/WwEndgame";
 import {
   transferArmyTo,
   transferDivisionsTo,
@@ -18,6 +22,27 @@ beforeEach(() => usePoliticsContent(endgameFixture()));
 afterEach(() => usePoliticsContent(null));
 
 const HUMANS = [{ clientID: "HUMANPOL", country: "POL" as const }];
+
+/** Every number, boolean and string under `o`, as a settable place. */
+interface Leaf {
+  path: string;
+  get(): unknown;
+  set(v: unknown): void;
+}
+function leavesOf(o: unknown, path: string, out: Leaf[] = []): Leaf[] {
+  const at = (parent: Record<string | number, unknown>, k: string | number) => {
+    const v = parent[k];
+    const p = `${path}.${k}`;
+    if (["number", "boolean", "string"].includes(typeof v)) {
+      out.push({ path: p, get: () => parent[k], set: (x) => (parent[k] = x) });
+    } else if (v !== null && typeof v === "object") leavesOf(v, p, out);
+  };
+  if (Array.isArray(o)) o.forEach((_, i) => at(o as never, i));
+  else if (o !== null && typeof o === "object") {
+    for (const k of Object.keys(o)) at(o as never, k);
+  }
+  return out;
+}
 
 function lockstep(a: GameRunner, b: GameRunner, ticks: number): void {
   expect(diffGraphs(a.game, b.game)).toEqual([]);
@@ -129,6 +154,104 @@ describe("World War 1936 P5: the endgame in a snapshot", () => {
     expect(flags(b)).toEqual(flags(a));
     expect(b.game.worldWar()!.endgame.hash()).toBe(eg.hash());
     lockstep(a, b, 60);
+  }, 60_000);
+
+  // Batch 21 glue (lane W review, minor 13): a field left out of the hash
+  // hides a desync; a field left out of the snapshot breaks a restore.
+  it("every stored conference, zone, dmz, reparation, arms-limit and peace-log field moves the hash and survives a restore", async () => {
+    const a = await wwRunner({}, HUMANS, END_MAP);
+    stepTo(a, WW_PREP_TICKS + 2);
+    const eg = a.game.worldWar()!.endgame;
+    const [deu, pl, sun] = [endId("DEU"), endId("POL"), endId("SUN")];
+    const demand = (slot: number): StoredDemand => ({
+      kind: 1,
+      slot,
+      regions: [6, 7],
+      target: pl,
+      beneficiary: deu,
+      k: 2,
+      pct: 30,
+    });
+    // Every list holds a row, so every field of a row is a leaf below. A
+    // closed conference far from its wars' end: the game leaves it be.
+    const conf: Conference = {
+      id: eg.nextConfId++,
+      warIds: [77],
+      losers: [pl],
+      stake: [6, 7],
+      base: [120, 40],
+      parts: [
+        { id: deu, wsMilli: 12_345, pts: 600, human: true },
+        { id: sun, wsMilli: 2_000, pts: 400, human: false },
+      ],
+      claims: [[deu, 6]],
+      conquer: [[deu, pl]],
+      topple: [[sun, pl]],
+      status: 2,
+      doneDay: 10_000,
+      round: 2,
+      roundEndTick: 99_999,
+      openTick: 5,
+      subs: [{ id: deu, demands: [demand(0)], passed: false }],
+      ai: [{ id: sun, demands: [demand(1)] }],
+      settled: [
+        {
+          kind: 0,
+          by: deu,
+          regions: [6],
+          target: pl,
+          beneficiary: deu,
+          k: 0,
+          pct: 0,
+          round: 1,
+          cost: 300,
+        },
+      ],
+      lastRound: [{ by: deu, kind: 0, regions: [6], target: pl, ok: true }],
+    };
+    eg.conferences.push(conf);
+    eg.zones.push({ region: 7, holder: sun, untilDay: 4_000 });
+    eg.dmz.push([4, deu]);
+    eg.reparations.push({ from: pl, to: deu, k: 3, untilDay: 7_000 });
+    eg.disarm.push([pl, 9_000]);
+    eg.peaceLog.push({
+      day: 3,
+      losers: [pl],
+      lines: [{ key: "ww1936.peace.line.take", params: { who: "DEU", n: 2 } }],
+    });
+    const stored = {
+      conference: conf,
+      zones: eg.zones,
+      dmz: eg.dmz,
+      reparations: eg.reparations,
+      disarm: eg.disarm,
+      peaceLog: eg.peaceLog,
+    };
+    const leaves = leavesOf(stored, "eg");
+    expect(leaves.length).toBeGreaterThan(70);
+    const h = eg.hash();
+    for (const l of leaves) {
+      const v = l.get();
+      l.set(
+        typeof v === "number" ? v + 1 : typeof v === "boolean" ? !v : `${v}x`,
+      );
+      expect(eg.hash(), l.path).not.toBe(h);
+      l.set(v);
+    }
+    expect(eg.hash()).toBe(h);
+    // The snapshot carries all of it: same rows, same hash, same game.
+    const b = await wwRestore(a, HUMANS, END_MAP);
+    const eb = b.game.worldWar()!.endgame;
+    expect(eb.hash()).toBe(h);
+    expect({
+      conference: eb.conferences.find((c) => c.id === conf.id),
+      zones: eb.zones,
+      dmz: eb.dmz,
+      reparations: eb.reparations,
+      disarm: eb.disarm,
+      peaceLog: eb.peaceLog,
+    }).toEqual(stored);
+    lockstep(a, b, 30);
   }, 60_000);
 
   it("the first update after a restore sends the cores, occupation and aid", async () => {
