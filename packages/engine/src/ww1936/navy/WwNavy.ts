@@ -45,7 +45,11 @@ import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { idHash, P_NAVALBEAT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { edgePassable, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import {
+  edgePassable,
+  seaDistances,
+  seaPath,
+} from "@openfront/engine-lib/ww1936/SeaGraph";
 import { queuedShipName } from "@openfront/engine-lib/ww1936/ShipNames";
 import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
@@ -1568,15 +1572,30 @@ export class WwNavy {
   private nearestBase(f: Fleet): number {
     let best = 0;
     let bestKm = Infinity;
+    // Final perf lane: one Dijkstra from the fleet to every zone (each
+    // port's km is the pathFor km it replaces; seaDistances says why).
+    let dist: Float64Array | null = null;
+    let at: Map<number, number> | null = null;
     for (const r of this.scenario.landRegions) {
       if (!this.land.sameSide(f.owner, this.land.controller[r.id])) continue;
       if (!navalPort(this.ww, r.id)) continue;
       const z = this.scenario.harborOf(r.id);
       if (z === 0) continue;
-      const p = this.pathFor(f, [z]);
-      if (p !== null && p.km < bestKm) {
+      if (dist === null || at === null) {
+        dist = seaDistances(
+          this.scenario,
+          [f.zone],
+          this.passable(f.owner, true),
+        );
+        at = new Map();
+        const zones = this.scenario.navalZones();
+        for (let i = 0; i < zones.length; i++) at.set(zones[i], i);
+      }
+      const i = at.get(z);
+      const km = i === undefined ? Infinity : dist[i];
+      if (km !== Infinity && km < bestKm) {
         best = r.id;
-        bestKm = p.km;
+        bestKm = km;
       }
     }
     return best;

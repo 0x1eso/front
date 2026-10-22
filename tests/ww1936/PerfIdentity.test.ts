@@ -16,6 +16,7 @@ import {
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
+import { seaDistances, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { skirmisherContact } from "@openfront/engine/ww1936/depth/Command";
 import { equipCostMilli } from "@openfront/engine/ww1936/depth/Designs";
 import { energyParts } from "@openfront/engine/ww1936/depth/Energy";
@@ -191,6 +192,31 @@ describe("final perf lane: same answers", () => {
     check();
     eg.wars.reverse();
     check();
+  });
+
+  test("seaDistances gives every zone the km seaPath to it alone gives", async () => {
+    usePoliticsContent(depthFixture());
+    const runner = await wwRunner({}, [], DEEP.map);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const ww = runner.game.worldWar()!;
+    const sc = ww.scenario;
+    const zones = sc.navalZones();
+    expect(zones.length).toBeGreaterThan(2);
+    const passes = [
+      () => true,
+      ww.navy.passable(DEEP.tag.GBR, true),
+      // Every third edge closed: some zones out of reach.
+      (e: number) => e % 3 !== 0,
+    ];
+    for (const passable of passes) {
+      for (const from of zones) {
+        const dist = seaDistances(sc, [from], passable);
+        zones.forEach((z, i) => {
+          const p = seaPath(sc, [from], [z], passable);
+          expect(dist[i], `${from} -> ${z}`).toBe(p === null ? Infinity : p.km);
+        });
+      }
+    }
   });
 
   test("intel rows: the skirmisher line is Command.skirmisherContact's answer for every target", async () => {
