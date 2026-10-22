@@ -979,3 +979,26 @@ export function designPlaneLossBp(
   const s = d.designStatsOf(owner, "plane", slot) as PlaneDesignStats | null;
   return s === null ? 10_000 : reliabilityLossBp(s.relPm);
 }
+
+/**
+ * T1b's air losses (spec §5.4.2): a deployment's loss multiplier, bp — its
+ * planes' reliabilityLossBp weighted by count (static generations 10000,
+ * each design slot its own); 10000 with no plane.
+ */
+export function planesLossBp(
+  d: WwDepth,
+  owner: number,
+  counts: ArrayLike<number>,
+  dcounts: ArrayLike<number>,
+): number {
+  let n = 0;
+  for (let g = 0; g < counts.length; g++) n += counts[g];
+  let sum = n * 10_000;
+  for (let s = 0; s < dcounts.length; s++) {
+    const c = dcounts[s];
+    if (c <= 0) continue;
+    n += c;
+    sum += c * designPlaneLossBp(d, owner, s + 1);
+  }
+  return n === 0 ? 10_000 : Math.floor(sum / n);
+}

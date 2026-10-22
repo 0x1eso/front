@@ -50,6 +50,7 @@ import {
   navalLineCostMilli,
   navalLineDesignBlock,
   planeDesignSlotsOf,
+  planesLossBp,
   planeStatsOfKey,
   returnDesignPlanes,
   saveDesign,
@@ -675,6 +676,13 @@ describe("World War 1936 P6: design planes for P4's deployments", () => {
     expect(designPlaneP4(d, GBR, 9, "fighter")).toBeNull();
     expect(designPlaneLossBp(d, GBR, 2)).toBe(reliabilityLossBp(s2.relPm));
     expect(designPlaneLossBp(d, GBR, 9)).toBe(10_000);
+    // A record of 6 static planes and 2 of slot 2: their weighted multiplier.
+    const dc = new Array<number>(16).fill(0);
+    dc[1] = 2;
+    expect(planesLossBp(d, GBR, [6, 0, 0], dc)).toBe(
+      Math.floor((6 * 10_000 + 2 * designPlaneLossBp(d, GBR, 2)) / 8),
+    );
+    expect(planesLossBp(d, GBR, [0, 0, 0], new Array(16).fill(0))).toBe(10_000);
   });
 });
 
