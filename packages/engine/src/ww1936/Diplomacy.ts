@@ -3,6 +3,7 @@ import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { WarKind } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
+import { congressBlock } from "./depth/Congress";
 import { declareWarRules } from "./politics/WarGoals";
 import type { WorldWar } from "./WorldWar";
 
@@ -81,6 +82,8 @@ export function declareWarBlock(
     }
   }
   if (!join && eg.isExile(a)) return "exile";
+  // P6 hook (W3, spec §13.1): the US congress (under 60%).
+  if (!join && congressBlock(ww.depth, a, "declare", b)) return "congress";
   return null;
 }
 

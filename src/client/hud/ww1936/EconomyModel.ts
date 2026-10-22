@@ -115,6 +115,13 @@ export const BUILDING_KEYS: Readonly<Record<BuildingId, string>> = {
   coastal_fort: "ww1936.building.coastal_fort",
   synthetic_refinery: "ww1936.building.synthetic_refinery",
   fuel_silo: "ww1936.building.fuel_silo",
+  // P6 (spec §9.1, §16.2, §16.4).
+  facility_nuclear: "ww1936.building.facility_nuclear",
+  facility_rocket: "ww1936.building.facility_rocket",
+  facility_science: "ww1936.building.facility_science",
+  rocket_site: "ww1936.building.rocket_site",
+  power_plant: "ww1936.building.power_plant",
+  dam: "ww1936.building.dam",
 };
 
 export const RESOURCE_KEYS: Readonly<Record<ResourceId, string>> = {
@@ -124,6 +131,9 @@ export const RESOURCE_KEYS: Readonly<Record<ResourceId, string>> = {
   tungsten: "ww1936.res.tungsten",
   steel: "ww1936.res.steel",
   chromium: "ww1936.res.chromium",
+  // P6 (spec §9.3, §16.2).
+  uranium: "ww1936.res.uranium",
+  coal: "ww1936.res.coal",
 };
 
 export const EQUIPMENT_KEYS: Readonly<Record<EquipmentType, string>> = {
@@ -146,6 +156,14 @@ export const EQUIPMENT_KEYS: Readonly<Record<EquipmentType, string>> = {
   cv_cas: "ww1936.equip.cv_cas",
   cv_naval_bomber: "ww1936.equip.cv_naval_bomber",
   convoy: "ww1936.equip.convoy",
+  // P6 (plan decision 5).
+  tank_design: "ww1936.equip.tank_design",
+  plane_design: "ww1936.equip.plane_design",
+  railway_gun: "ww1936.equip.railway_gun",
+  floating_harbor: "ww1936.equip.floating_harbor",
+  flying_bomb: "ww1936.equip.flying_bomb",
+  ballistic_rocket: "ww1936.equip.ballistic_rocket",
+  atomic_bomb: "ww1936.equip.atomic_bomb",
 };
 
 /** By generation − 1. */
@@ -346,6 +364,40 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   synthetic_oil_2: "ww1936.tech.synthetic_oil_2",
   // P5 (spec §8.5).
   military_police: "ww1936.tech.military_police",
+  // P6 (spec §5.2.5, §5.7).
+  heavy_tank_1: "ww1936.tech.heavy_tank_1",
+  heavy_tank_2: "ww1936.tech.heavy_tank_2",
+  heavy_tank_3: "ww1936.tech.heavy_tank_3",
+  tank_gun_2: "ww1936.tech.tank_gun_2",
+  tank_gun_3: "ww1936.tech.tank_gun_3",
+  cast_armor: "ww1936.tech.cast_armor",
+  diesel_engine: "ww1936.tech.diesel_engine",
+  torsion_bar: "ww1936.tech.torsion_bar",
+  tank_radio: "ww1936.tech.tank_radio",
+  sloped_armor: "ww1936.tech.sloped_armor",
+  interleaved_wheels: "ww1936.tech.interleaved_wheels",
+  amphibious_drive: "ww1936.tech.amphibious_drive",
+  flame_tank: "ww1936.tech.flame_tank",
+  dual_purpose_guns: "ww1936.tech.dual_purpose_guns",
+  naval_radar_2: "ww1936.tech.naval_radar_2",
+  armored_deck: "ww1936.tech.armored_deck",
+  mine_warfare_1: "ww1936.tech.mine_warfare_1",
+  snorkel: "ww1936.tech.snorkel",
+  super_heavy_battleship: "ww1936.tech.super_heavy_battleship",
+  floating_harbor_1: "ww1936.tech.floating_harbor_1",
+  aircraft_cannon_1: "ww1936.tech.aircraft_cannon_1",
+  aircraft_cannon_2: "ww1936.tech.aircraft_cannon_2",
+  self_sealing_tanks: "ww1936.tech.self_sealing_tanks",
+  drop_tanks: "ww1936.tech.drop_tanks",
+  bomb_sight_1: "ww1936.tech.bomb_sight_1",
+  air_rockets_1: "ww1936.tech.air_rockets_1",
+  air_radar_1: "ww1936.tech.air_radar_1",
+  railway_gun_1: "ww1936.tech.railway_gun_1",
+  cryptography_1: "ww1936.tech.cryptography_1",
+  cryptography_2: "ww1936.tech.cryptography_2",
+  cryptography_3: "ww1936.tech.cryptography_3",
+  nuclear_physics: "ww1936.tech.nuclear_physics",
+  rocketry_1: "ww1936.tech.rocketry_1",
 };
 
 export type EffectKey = keyof TechEffects | "unlock";
@@ -527,6 +579,39 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   no_takeover: "ww1936.econ.block.no_takeover",
   disarmed: "ww1936.econ.block.disarmed",
   subject_restricted: "ww1936.econ.block.subject_restricted",
+  // P6 (spec §21.4).
+  no_cp: "ww1936.econ.block.no_cp",
+  doctrine_locked: "ww1936.econ.block.doctrine_locked",
+  trait_unavailable: "ww1936.econ.block.trait_unavailable",
+  fm_limit: "ww1936.econ.block.fm_limit",
+  group_full: "ww1936.econ.block.group_full",
+  design_slots_full: "ww1936.econ.block.design_slots_full",
+  module_locked: "ww1936.econ.block.module_locked",
+  module_bad_slot: "ww1936.econ.block.module_bad_slot",
+  bad_base: "ww1936.econ.block.bad_base",
+  treaty_limit: "ww1936.econ.block.treaty_limit",
+  design_in_use: "ww1936.econ.block.design_in_use",
+  not_refittable: "ww1936.econ.block.not_refittable",
+  no_agency: "ww1936.econ.block.no_agency",
+  no_operative: "ww1936.econ.block.no_operative",
+  network_low: "ww1936.econ.block.network_low",
+  op_unavailable: "ww1936.econ.block.op_unavailable",
+  no_crypto_target: "ww1936.econ.block.no_crypto_target",
+  not_decrypted: "ww1936.econ.block.not_decrypted",
+  no_facility: "ww1936.econ.block.no_facility",
+  project_locked: "ww1936.econ.block.project_locked",
+  no_atomic: "ww1936.econ.block.no_atomic",
+  nuke_conditions: "ww1936.econ.block.nuke_conditions",
+  out_of_rocket_range: "ww1936.econ.block.out_of_rocket_range",
+  raid_conditions: "ww1936.econ.block.raid_conditions",
+  embargoed: "ww1936.econ.block.embargoed",
+  licence_exists: "ww1936.econ.block.licence_exists",
+  listing_bad: "ww1936.econ.block.listing_bad",
+  cfocus_locked: "ww1936.econ.block.cfocus_locked",
+  faction_leader_only: "ww1936.econ.block.faction_leader_only",
+  scorch_conditions: "ww1936.econ.block.scorch_conditions",
+  harbor_conditions: "ww1936.econ.block.harbor_conditions",
+  railgun_limit: "ww1936.econ.block.railgun_limit",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -538,6 +623,8 @@ export const RESOURCE_ICONS: Readonly<Record<ResourceId, string>> = {
   tungsten: "🪨",
   steel: "🔩",
   chromium: "💎",
+  uranium: "☢️",
+  coal: "⚫",
 };
 
 export const BUILDING_ICONS: Readonly<Record<BuildingId, string>> = {
@@ -555,6 +642,12 @@ export const BUILDING_ICONS: Readonly<Record<BuildingId, string>> = {
   coastal_fort: "🏯",
   synthetic_refinery: "🛢️",
   fuel_silo: "⛽",
+  facility_nuclear: "⚛️",
+  facility_rocket: "🚀",
+  facility_science: "🔬",
+  rocket_site: "🎆",
+  power_plant: "⚡",
+  dam: "🌊",
 };
 
 export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
@@ -577,6 +670,13 @@ export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
   cv_cas: "🛩️",
   cv_naval_bomber: "🛩️",
   convoy: "🚢",
+  tank_design: "🛡️",
+  plane_design: "✈️",
+  railway_gun: "🚂",
+  floating_harbor: "⚓",
+  flying_bomb: "🚀",
+  ballistic_rocket: "🚀",
+  atomic_bomb: "☢️",
 };
 
 // ---- Names ----
@@ -1432,30 +1532,31 @@ export function researchCards(
     slotCount: detail.slotCount,
   };
   const speed = researchSpeedPct(detail);
-  return WW_TECH_IDS.filter((id) => WW_TECHS[id].branch === branch).map(
-    (id) => {
-      const def = WW_TECHS[id];
-      const days = techDays(def.year);
-      const ahead = aheadPct(def.year, day);
-      const perDay = researchProgress(speed, ahead);
-      const slot = detail.slots.find((s) => s?.tech === id) ?? null;
-      const left =
-        slot === null
-          ? days * 1000
-          : Math.max(0, slot.totalMilli - slot.progressMilli);
-      const block = researchBlockOf(state, id);
-      return {
-        id,
-        year: def.year,
-        days,
-        etaDays: perDay > 0 ? Math.ceil(left / perDay) : 0,
-        ahead,
-        state: cardState(block),
-        block,
-        school: def.school ?? null,
-      };
-    },
-  );
+  // P6 plan decision 25: the retired doctrine techs are never offered.
+  return WW_TECH_IDS.filter(
+    (id) => WW_TECHS[id].branch === branch && WW_TECHS[id].retired !== true,
+  ).map((id) => {
+    const def = WW_TECHS[id];
+    const days = techDays(def.year);
+    const ahead = aheadPct(def.year, day);
+    const perDay = researchProgress(speed, ahead);
+    const slot = detail.slots.find((s) => s?.tech === id) ?? null;
+    const left =
+      slot === null
+        ? days * 1000
+        : Math.max(0, slot.totalMilli - slot.progressMilli);
+    const block = researchBlockOf(state, id);
+    return {
+      id,
+      year: def.year,
+      days,
+      etaDays: perDay > 0 ? Math.ceil(left / perDay) : 0,
+      ahead,
+      state: cardState(block),
+      block,
+      school: def.school ?? null,
+    };
+  });
 }
 
 export interface SlotRow {

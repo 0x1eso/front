@@ -140,39 +140,20 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.sent).toEqual([{ kind: "cancel_research", slot: 0 }]);
   });
 
-  it("the doctrine tab lists the schools, one of them open", async () => {
+  it("the doctrine tab offers no retired tech (P6 plan decision 25)", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { researched: ["mobile_1"] })],
     });
     await m.click("[data-ww-tab='doctrine']");
-    expect(
-      [...m.el.querySelectorAll("[data-ww-school]")].map((s) =>
-        s.getAttribute("data-ww-school"),
-      ),
-    ).toEqual([
-      "mobile",
-      "firepower",
-      "battleplan",
-      "mass",
-      // P4 (plan decision 23): three sea and three air schools.
-      "fleet_in_being",
-      "trade_interdiction",
-      "base_strike",
-      "strategic_destruction",
-      "battlefield_support",
-      "operational_integrity",
-    ]);
-    expect(m.q("[data-ww-school='mass']")!.textContent).toContain(
-      "[ww1936.school.mass]",
+    expect(m.q("[data-ww-school]")).toBeNull();
+    expect(m.q("[data-ww-doctrine-moved]")!.textContent).toContain(
+      "ww1936.econ.doctrine_moved",
     );
-    expect(m.q("[data-ww-tech='firepower_1']")!.dataset.state).toBe("doctrine");
-    expect(m.q("[data-ww-tech='mobile_2']")!.dataset.state).toBe("available");
-    // The effect lines: mass_1 raises the recruitable pool and cuts the
-    // infantry's training (P2 plan decision 11).
-    expect(m.q("[data-ww-tech='mass_1'] [data-ww-effects]")!.textContent).toBe(
-      "[ww1936.effect.recruitablePct] n=10 · [ww1936.effect.infTrainCutPct] n=33",
-    );
+    expect(m.q("[data-ww-tech='mobile_2']")).toBeNull();
+    await m.click("[data-ww-tab='naval']");
+    expect(m.q("[data-ww-tech='fleet_in_being_1']")).toBeNull();
+    expect(m.q("[data-ww-tech]")).not.toBeNull();
   });
 
   it("the air cards say they only fill the stockpile", async () => {

@@ -377,6 +377,9 @@ export function dailySupply(land: WwLand, side: number): void {
       // P5 hook (O, spec §8.6): resistance cuts an administered region's supply.
       const f = land.ww.endgame.supplyFactorPm(r);
       if (f !== 1000) s = Math.floor((s * f) / 1000);
+      // P6 hook (W1, pre-flight §D): flood, scorch and nuke status.
+      const d = land.depthHooks.supplyPm(r);
+      if (d !== 1000) s = Math.floor((s * Math.max(0, d)) / 1000);
     }
     // P4 spec §14.10: air supply, encircled regions too.
     s += land.hooks.airSupply(r, side);
@@ -537,7 +540,10 @@ function divisionRates(
   const t = land.divisions;
   const use = st.use;
   for (const r of regions) use[r] = 0;
-  const logOf = new Map<number, { log: number; wizard: boolean }>();
+  const logOf = new Map<
+    number,
+    { log: number; wizard: boolean; usePct: number }
+  >();
   const wizard = traitBit("logistics_wizard");
   // The side's divisions, member by member (sums and sets: the order is free).
   const rows: number[] = [];
@@ -551,9 +557,15 @@ function divisionRates(
       if (g === undefined) {
         const army = land.armies.get(t.army[row]);
         const gen = army === undefined ? null : generalOf(land, army);
+        // Review L4 (spec §4.3): the field marshal's logistics and traits.
+        const am =
+          army === undefined
+            ? null
+            : land.depthHooks.armyMods(army.owner, army.id);
         g = {
-          log: gen?.log ?? 0,
+          log: (gen?.log ?? 0) + (am?.fmLog ?? 0),
           wizard: gen !== null && (gen.traits & wizard) !== 0,
+          usePct: am?.supplyUsePct ?? 0,
         };
         logOf.set(t.army[row], g);
       }
@@ -562,7 +574,7 @@ function divisionRates(
         g.log,
         (land.flagsOf(row) & TPL_LOGISTICS) !== 0,
         g.wizard,
-        usePct,
+        usePct + g.usePct,
       );
     }
   }

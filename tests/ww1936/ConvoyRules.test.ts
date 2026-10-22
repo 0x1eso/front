@@ -1,5 +1,5 @@
 // World War 1936 P4 (plan Task 1 Step 25): convoy formulas (spec §10).
-import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   aswDamageMilli,
   convoyLossRatePm,
@@ -13,13 +13,12 @@ import {
   routeEffPm,
   seaHubCapacity,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
-import { emptyStats, techStats } from "@openfront/engine-lib/ww1936/Stats";
-import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 
 const Z = emptyStats();
 const none = new Set<never>();
-/** The stats a doctrine tech feeds (its bonuses are stat keys: P6 pre-flight). */
-const doc = (...ids: WwTechId[]) => techStats(techTotals(new Set(ids)));
+/** A doctrine's stat keys (P6 pre-flight §0-5: the old tech's values). */
+const doc = (s: Partial<WwStats>): WwStats => ({ ...Z, ...s });
 
 describe("convoy rules", () => {
   it("convoys needed", () => {
@@ -58,12 +57,16 @@ describe("convoy rules", () => {
   it("raid power", () => {
     expect(raidPowerCenti(75_000, 0, 0, Z, none, 1000)).toBe(75_000);
     // The doctrine's raid bonus is its convoyRaidPct, counted once.
-    const ti1 = doc("trade_interdiction_1");
+    const ti1 = doc({
+      convoyRaidPct: 15,
+      subTorpedoPct: 15,
+      subVisibilityPct: -10,
+    });
     expect(raidPowerCenti(75_000, 0, 0, ti1, none, 1000)).toBe(86_250);
     expect(raidPowerCenti(75_000, 0, 0, Z, none, 500)).toBe(37_500);
     expect(raidPowerCenti(0, 10_000, 0, Z, none, 1000)).toBe(5000);
     // trade_interdiction_2 alone: surface ×1.5, convoy raid +15%.
-    const ti2 = doc("trade_interdiction_2");
+    const ti2 = doc({ convoyRaidPct: 15, surfaceRaidPct: 50, subOrg: 10 });
     expect(raidPowerCenti(0, 10_000, 0, ti2, none, 1000)).toBe(8625);
     const ti2Only = { ...Z, surfaceRaidPct: 50 };
     expect(raidPowerCenti(0, 10_000, 0, ti2Only, none, 1000)).toBe(7500);

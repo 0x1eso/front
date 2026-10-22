@@ -46,7 +46,10 @@ import {
   invasionCapacity,
   invasionPrepDays,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
-import { nextLaunchDays } from "@openfront/engine-lib/ww1936/NavalLineRules";
+import {
+  navalLineCls,
+  nextLaunchDays,
+} from "@openfront/engine-lib/ww1936/NavalLineRules";
 import {
   fleetMissionBlock,
   fleetPower,
@@ -256,9 +259,16 @@ export const ADMIRAL_TRAIT_ICONS: Readonly<Record<AdmiralTrait, string>> = {
   fleet_protector: "🛡",
   spotter: "🔭",
   amphibious_expert: "⚓",
+  // P6 (spec §4.2).
+  night_fighter: "🌙",
+  convoy_master: "📦",
+  fleet_tactician: "♞",
+  blockade_runner: "💨",
 };
 
-export const SHIP_ICONS: Readonly<Record<ShipClass | "convoy", string>> = {
+export const SHIP_ICONS: Readonly<
+  Record<ShipClass | "convoy" | "floating_harbor", string>
+> = {
   dd: "⛴",
   cl: "🚤",
   ca: "🛥",
@@ -267,6 +277,7 @@ export const SHIP_ICONS: Readonly<Record<ShipClass | "convoy", string>> = {
   cv: "🛳",
   ss: "🐟",
   convoy: "📦",
+  floating_harbor: "⚓",
 };
 
 export const MISSION_ICONS: Readonly<Record<FleetMission, string>> = {
@@ -277,6 +288,9 @@ export const MISSION_ICONS: Readonly<Record<FleetMission, string>> = {
   escort: "🛡",
   invasion_support: "⛵",
   training: "🚩",
+  // P6 (spec §14.1).
+  lay_mines: "💣",
+  sweep_mines: "🧹",
 };
 
 // ---- Fleet numbers ----
@@ -923,10 +937,9 @@ export function lineCards(ctx: NavyCtx): LineCard[] {
   const d = ctx.navy.detail;
   if (d === null) return [];
   return d.lines.map((l, index) => {
-    const cls =
-      l.cls === "convoy" ? SHIP_CLASSES.length : SHIP_CLASSES.indexOf(l.cls);
+    const cls = navalLineCls(l.cls);
     const key =
-      l.cls === "convoy" || l.nextName <= 0
+      l.cls === "convoy" || l.cls === "floating_harbor" || l.nextName <= 0
         ? null
         : shipNameKey(ctx.tag, l.cls, l.nextName);
     return {

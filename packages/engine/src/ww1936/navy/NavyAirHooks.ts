@@ -11,6 +11,8 @@ import {
 } from "@openfront/engine-lib/ww1936/SupplyRules";
 import { airSupplyAt, casHitsFor } from "../air/AirEffects";
 import type { WwAir } from "../air/WwAir";
+import { harborLevelOf } from "../depth/Harbors";
+import type { WwDepth } from "../depth/WwDepth";
 import {
   amphibiousModsFor,
   beachheadCapacityMilli,
@@ -78,7 +80,15 @@ export class NavyAirHooks implements LandSeaAirHooks {
     return seaHubCapacityMilli(this.navy, region, side); // C
   }
   beachheadCapacity(region: number, side: number): number {
-    return beachheadCapacityMilli(this.navy, region, side); // I
+    const b = beachheadCapacityMilli(this.navy, region, side); // I
+    // P6 hook (W1, spec §16.6): a floating harbour works as a port of its
+    // level (5 for 60 days, then down to 0 by day 120) for its controller's side.
+    const depth = this.navy.ww.depth as WwDepth | undefined;
+    if (depth === undefined) return b;
+    const lv = harborLevelOf(depth, region);
+    const c = this.navy.land.controller[region] ?? 0;
+    if (lv <= 0 || c === 0 || this.navy.land.sideOf(c) !== side) return b;
+    return Math.max(b, 4_000 + 2 * lv);
   }
   airSupply(region: number, side: number): number {
     return airSupplyAt(this.air, region, side); // A2

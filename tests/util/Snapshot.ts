@@ -173,6 +173,9 @@ export const DERIVED_FIELDS = new Set<string>([
   // P4 Task 15 (perf): side key → side, for sideMembers.
   "sideByKey",
   "statsCache",
+  "statsReadPass",
+  "statsReadPassSeq",
+  "statsPassStamp",
   "tplCache",
   // P2 Task 11 (perf): the stats inputs each cache entry was checked
   // against, the org max, flags and width by row, the day's weather by
@@ -274,6 +277,28 @@ export const DERIVED_FIELDS = new Set<string>([
   "dirtyTakeover",
   "firstData",
   "volunteerArmyCount",
+  // World War 1936 P6 (plan Task 1 Step 10): the depth systems' design and
+  // key-stat caches, mine and facility indexes, cache keys and design
+  // versions; the tick's effects, news and change marks; the land war's
+  // depth hooks (the WwDepth itself, compared as WorldWar.depth).
+  "designStatCache",
+  "keyStatTables",
+  "keyStatsSeq",
+  "regionStatusIndex",
+  "resistBoostIndex",
+  "reconIndex",
+  "modQuery",
+  "mineIndex",
+  "facilityIndex",
+  "designCacheKey",
+  "designVer",
+  "depthFx",
+  "depthNews",
+  "depthDirty",
+  "depthDirtyIntel",
+  "depthDirtyDesigns",
+  "depthDirtyGlobal",
+  "depthHooks",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",
   "_waterStampArr",

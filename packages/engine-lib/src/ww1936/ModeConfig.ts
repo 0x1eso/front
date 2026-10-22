@@ -55,6 +55,9 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
   c.customAllianceDuration = 0;
   c.spawnImmunityDuration = 0;
   c.historicalAi = c.historicalAi ?? true;
+  // P6 (spec §9.8, plan decision 21): the atomic bomb, on unless the host
+  // turned it off (nothing reads it outside the mode).
+  c.ww1936Nukes = c.ww1936Nukes ?? true;
   // The AI plays its wars at one level in this mode (owner decision,
   // 2026-10-20): the lobby shows no difficulty for it.
   c.difficulty = Difficulty.Medium;

@@ -12,6 +12,7 @@ import {
   isDormantTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
+  equipKey,
   RESOURCE_COUNT,
   WW_DAY_SPLIT,
   WwOrderBlock,
@@ -591,6 +592,9 @@ export class WwEndgame {
   // ---- Capitulation (plan decision 9) ----
 
   onCapitulated(loser: number, victor: number, tick: number): void {
+    // P6 hook (plan decision 20): atomic bombs are never captured.
+    const ce = this.ww.economy.country(loser);
+    if (ce !== null) ce.stock[equipKey("atomic_bomb", 1)] = 0;
     capitulate(this, loser, victor, tick); // W (the foundation's stub mimics P0–P4)
   }
 

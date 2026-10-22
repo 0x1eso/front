@@ -2,10 +2,7 @@
 // spec §5.1, §5.3, §5.4, §6.2): a country's day of training, its
 // divisions by id, its army experience and its generals. disbandDivision
 // is the foundation's (one path for the equipment back to the stock).
-import {
-  EQUIPMENT_TYPES,
-  WW_DAY_SPLIT,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
+import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_SLOTS,
   MOVE_NONE,
@@ -15,6 +12,7 @@ import {
   WW_EXP_PER_DAY,
   WW_UPGRADE_PM,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import {
@@ -25,6 +23,7 @@ import {
   returnEquip,
 } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { designLossMilli } from "./Battles";
 import { dailyGenerals, generalOf } from "./GeneralsRun";
 import { atSea } from "./SeaLift";
 import {
@@ -88,14 +87,34 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const t = land.divisions;
   let foughtN = 0;
   // (No division is added or removed below: the country's row list holds.)
+  // P6 hook (D, spec §4.6): the armies' reinforcement priority first; the
+  // rest of the day (attrition, experience) touches no stock, so it may run
+  // in row order after.
+  const order = land.depthHooks.reinforceOrder(smallID);
+  if (order !== null) {
+    for (const id of order) {
+      const r = t.rowOf(id);
+      if (r < 0 || t.owner[r] !== smallID || t.encircled[r] !== 0) continue;
+      reinforce(land, ce, r);
+      upgrade(land, ce, r);
+    }
+  }
+  // P6 (spec §21.2, §4.5): division experience gain and the army's medal.
+  const xpPct =
+    (ce.stats as Partial<Record<WwStatKey, number>>).divXpGainPct ?? 0;
   for (const r of land.rowsOf(smallID)) {
-    if (t.encircled[r] === 0) {
+    if (order === null && t.encircled[r] === 0) {
       reinforce(land, ce, r);
       upgrade(land, ce, r);
     }
     attrition(land, r, day);
     if (fought(t.lastFight[r])) {
-      t.exp[r] = Math.min(1000, t.exp[r] + WW_EXP_PER_DAY);
+      const pct = xpPct + land.depthHooks.medalXpPct(t.army[r]);
+      const add =
+        pct === 0
+          ? WW_EXP_PER_DAY
+          : Math.max(0, Math.floor((WW_EXP_PER_DAY * (100 + pct)) / 100));
+      t.exp[r] = Math.min(1000, t.exp[r] + add);
       foughtN++;
     }
   }
@@ -126,7 +145,12 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   if (supply <= 0) return;
   // Men, need and flags read only the template def and the stats.
   const s = land.templateNumbersOf(r);
-  const cap = reinforceCap(supply);
+  // P6 (spec §21.2): reinforcePct speeds the day's share.
+  const rPct =
+    (ce.stats as Partial<Record<WwStatKey, number>>).reinforcePct ?? 0;
+  const cap = reinforceCap(
+    rPct === 0 ? supply : Math.floor((supply * Math.max(0, 100 + rPct)) / 100),
+  );
   const men = t.men[r];
   const add = Math.min(s.men - men, cap(s.men), ce.manpower);
   if (add > 0 && drawManpower(ce, add)) {
@@ -138,7 +162,8 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   }
   const slots = REINFORCE_SLOTS;
   slots.set(t.equipOf(r));
-  drawTemplateEquip(ce, slots, s.need, EQUIPMENT_TYPES, cap);
+  // P6 (plan decision 7): need groups, the country's slot numbers.
+  drawTemplateEquip(ce, slots, s.need, land.keyStatsOf(t.owner[r]), cap);
   applySlots(land, r, slots);
 }
 
@@ -234,10 +259,16 @@ function attrition(land: WwLand, r: number, day: number): void {
     }
   }
   const base = r * GROUND_SLOTS;
+  // P6: a design slot loses by its reliability.
+  const ks = land.keyStatsOf(t.owner[r]);
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const have = t.equip[base + j];
     if (have <= 0) continue;
-    t.lossEq[base + j] += Math.floor((have * ppm) / 1000);
+    t.lossEq[base + j] += designLossMilli(
+      ks,
+      j,
+      Math.floor((have * ppm) / 1000),
+    );
     const lost = Math.min(have, Math.floor(t.lossEq[base + j] / 1000));
     t.lossEq[base + j] -= lost * 1000;
     if (lost > 0) land.addEquip(r, j, -lost);

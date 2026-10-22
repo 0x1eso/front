@@ -2,12 +2,24 @@
 // the owner's and the host's sensitivity rules, checked on every content
 // table and text. Passes on empty tables.
 import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
+import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { JPN_DECISIONS } from "@openfront/engine-lib/ww1936/content/decisions/jpn";
+import { NUKE_TARGETS } from "@openfront/engine-lib/ww1936/content/depth/projects";
 import { JPN_EVENTS } from "@openfront/engine-lib/ww1936/content/events/jpn";
 import { JPN_FOCUSES } from "@openfront/engine-lib/ww1936/content/focus/jpn";
 import { PERSONS_JPN } from "@openfront/engine-lib/ww1936/content/persons/jpn";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { SPIRITS_JPN } from "@openfront/engine-lib/ww1936/content/spirits/jpn";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import {
+  nukeDropBlock,
+  raidBlock,
+  rocketTargetBlock,
+} from "@openfront/engine-lib/ww1936/ProjectRules";
+import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { scorchBlock } from "@openfront/engine-lib/ww1936/WorldRules";
+import fs from "fs";
+import path from "path";
 import {
   allEffectLists,
   BANNED_PERSON_IDS,
@@ -269,5 +281,86 @@ describe("content sensitivity", () => {
     expect(keyIn(en, "ww1936.econ.block.no_pp")).toBe(
       "Not enough political power",
     );
+  });
+
+  // ---- P6 (plan decision 33, pre-flight §0-11) ----
+
+  it("P6: Korea and Taiwan hold no coal, uranium, hydro, landmark or dam, and no target", () => {
+    const dir = path.join(__dirname, "../../resources/maps/world1936");
+    const world = ScenarioIndex.fromFiles(
+      JSON.parse(
+        fs.readFileSync(path.join(dir, "scenario.json"), "utf8"),
+      ) as ReadonlyScenarioData,
+      new Uint8Array(fs.readFileSync(path.join(dir, "regions.bin"))),
+    );
+    // KOREA_TAIWAN_REGIONS: the P5 groups korea_north, korea_south, taiwan.
+    const koreaTaiwan = [...CONTENT.noStrikeRegions];
+    expect(koreaTaiwan.length).toBeGreaterThan(0);
+    for (const r of koreaTaiwan) {
+      expect(isNoStrike(world, r), `${r}`).toBe(true);
+      expect(world.coalOf(r), `${r}`).toBe(0);
+      expect(world.uraniumOf(r), `${r}`).toBe(0);
+      expect(world.hydroOf(r), `${r}`).toBe(0);
+      expect(world.landmarksOf(r), `${r}`).toEqual([]);
+      expect(world.damOf(r), `${r}`).toBe(-1);
+    }
+    for (const t of NUKE_TARGETS) {
+      for (const r of t.regions) {
+        expect(koreaTaiwan.includes(r), `${t.attacker}-${t.target} ${r}`).toBe(
+          false,
+        );
+      }
+    }
+    // The pack data names no Korean or Taiwanese region or group.
+    const korea = /"(korea_[a-z_]*|taiwan[a-z_]*)"/;
+    const packs = CONTENT.focuses.filter((f) =>
+      CONTENT.packs.some((p) => p.id === f.tree),
+    );
+    expect(korea.test(JSON.stringify(packs))).toBe(false);
+  });
+
+  it("P6: every strike on a no-strike region is refused for that reason (the judges' first line)", () => {
+    expect(
+      nukeDropBlock({
+        stock: 1,
+        atWar: true,
+        bombersInZone: 50,
+        nukesOn: true,
+        rocket: false,
+        ballisticDone: false,
+        rocketKm: 0,
+        ballisticStock: 0,
+        noStrike: true,
+      }),
+    ).toBe("no_strike_region");
+    expect(
+      raidBlock({
+        kind: "raid_bomb",
+        unitOk: true,
+        targetOk: true,
+        reachOk: true,
+        running: 0,
+        intelClose: true,
+        facilityTarget: false,
+        noStrike: true,
+      }),
+    ).toBe("no_strike_region");
+    expect(
+      scorchBlock({
+        legalOwner: true,
+        controls: true,
+        enemyAdjacent: true,
+        pp: 100,
+        queued: false,
+        noStrike: true,
+      }),
+    ).toBe("no_strike_region");
+    expect(rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: true })).toBe(
+      "no_strike_region",
+    );
+    // The control: elsewhere the reason is never the no-strike one.
+    expect(
+      rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: false }),
+    ).not.toBe("no_strike_region");
   });
 });

@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
+  NeedGroup,
   SupportId,
   TPL_ENGINEER,
   TPL_HOSPITAL,
@@ -28,8 +29,11 @@ export interface BattalionDef {
   kind: BattalionKind;
   width: number;
   men: number;
-  /** Main equipment first: it scales the battalion (spec §4.3). */
-  equip: readonly (readonly [EquipmentType, number])[];
+  /**
+   * Main equipment first: it scales the battalion (spec §4.3). P6 (plan
+   * decision 6): a need group (an equipment type, or a design-only group).
+   */
+  equip: readonly (readonly [NeedGroup, number])[];
   hpMilli: number;
   orgMilli: number;
   soft: number;
@@ -338,6 +342,94 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     weightCenti: 150,
     airAtk: 0,
     techs: ["medium_tank_1"],
+  }),
+  // P6 (P6 spec §5.2.6): they hold tank designs only; attack, defence,
+  // armour, pierce, hardness, speed and anti-air come from the designs'
+  // KeyStatsTable rows (TemplateStats), so their own numbers are 0.
+  heavy_armor: b("armor", {
+    width: 3,
+    men: 500,
+    equip: [["heavy_tank_g", 40]],
+    hpMilli: 3000,
+    orgMilli: 10_000,
+    soft: 0,
+    hard: 0,
+    def: 0,
+    brk: 0,
+    pierce: 0,
+    armor: 0,
+    hardnessPm: 0,
+    speedCenti: 0,
+    supplyMilli: 1000,
+    trainDays: 180,
+    weightCenti: 200,
+    airAtk: 0,
+    techs: ["heavy_tank_1"],
+  }),
+  tank_destroyer: b("armor", {
+    width: 2,
+    men: 500,
+    equip: [["td_g", 40]],
+    hpMilli: 2000,
+    orgMilli: 10_000,
+    soft: 0,
+    hard: 0,
+    def: 0,
+    brk: 0,
+    pierce: 0,
+    armor: 0,
+    hardnessPm: 0,
+    speedCenti: 0,
+    supplyMilli: 700,
+    trainDays: 150,
+    weightCenti: 150,
+    airAtk: 0,
+    techs: ["anti_tank_1"],
+  }),
+  sp_artillery: b(
+    "armor",
+    {
+      width: 3,
+      men: 500,
+      equip: [["spa_g", 36]],
+      hpMilli: 1000,
+      orgMilli: 0,
+      soft: 0,
+      hard: 0,
+      def: 0,
+      brk: 0,
+      pierce: 0,
+      armor: 0,
+      hardnessPm: 0,
+      speedCenti: 0,
+      supplyMilli: 600,
+      trainDays: 150,
+      weightCenti: 150,
+      airAtk: 0,
+      techs: ["artillery_2"],
+    },
+    false,
+    true,
+  ),
+  sp_anti_air: b("armor", {
+    width: 1,
+    men: 500,
+    equip: [["spaa_g", 36]],
+    hpMilli: 1000,
+    orgMilli: 0,
+    soft: 0,
+    hard: 0,
+    def: 0,
+    brk: 0,
+    pierce: 0,
+    armor: 0,
+    hardnessPm: 0,
+    speedCenti: 0,
+    supplyMilli: 400,
+    trainDays: 120,
+    weightCenti: 100,
+    airAtk: 0,
+    techs: ["anti_air_1"],
   }),
 };
 

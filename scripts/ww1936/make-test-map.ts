@@ -23,6 +23,11 @@
 // — the pol variant (regions 1–19, edges, zones, kmPerTile, dev, version:
 // the same code) plus one island region 20 "Kosice" (Czechoslovakia) east
 // of Slovakia and the edge 15–20, the plan's "test map ww1936end" table.
+// P6 (plan Task 1 Step 19): `--variant deep` writes tests/testdata/maps/
+// ww1936deep — the sea variant byte for byte (tiles, regions 1–12, edges,
+// zones, strategic regions, bases) plus the scenario v5 fields of the P6
+// plan's "test map ww1936deep" table: coal, uranium, hydro, landmarks and
+// two dams (Möhne at Munich over Berlin, Dnipro at Kiev over the Isthmus).
 import {
   CATEGORY_SLOTS,
   RegionCategory,
@@ -41,14 +46,49 @@ const variantAt = process.argv.indexOf("--variant");
 /** P5: the end variant is the pol variant plus Kosice. */
 const END = variantAt >= 0 && process.argv[variantAt + 1] === "end";
 const POL = END || (variantAt >= 0 && process.argv[variantAt + 1] === "pol");
-const SEA = variantAt >= 0 && process.argv[variantAt + 1] === "sea";
+/** P6: the deep variant is the sea variant plus the v5 fields. */
+const DEEP = variantAt >= 0 && process.argv[variantAt + 1] === "deep";
+const SEA = DEEP || (variantAt >= 0 && process.argv[variantAt + 1] === "sea");
 const NAME = END
   ? "ww1936end"
   : POL
     ? "ww1936pol"
-    : SEA
-      ? "ww1936sea"
-      : "ww1936mini";
+    : DEEP
+      ? "ww1936deep"
+      : SEA
+        ? "ww1936sea"
+        : "ww1936mini";
+
+/** P6 (deep variant): the plan's "test map ww1936deep" table, by region. */
+const DEEP_V5: Readonly<
+  Record<
+    number,
+    {
+      coal?: number;
+      uranium?: number;
+      hydro?: number;
+      landmarks?: (
+        | "lm_eiffel"
+        | "lm_brandenburg"
+        | "lm_colosseum"
+        | "lm_kremlin"
+        | "lm_westminster"
+      )[];
+      dam?: { id: "dam_mohne" | "dam_dnipro"; downstream: number[] };
+    }
+  >
+> = {
+  1: { coal: 2, landmarks: ["lm_eiffel"] },
+  2: { uranium: 2, hydro: 2 },
+  3: { coal: 4, landmarks: ["lm_brandenburg"] },
+  4: { coal: 1, hydro: 2, dam: { id: "dam_mohne", downstream: [3] } },
+  5: { hydro: 3, landmarks: ["lm_colosseum"] },
+  6: { coal: 1 },
+  7: { coal: 2, uranium: 1 },
+  8: { coal: 1, landmarks: ["lm_kremlin"] },
+  9: { coal: 2, dam: { id: "dam_dnipro", downstream: [11] } },
+  10: { coal: 3, landmarks: ["lm_westminster"] },
+};
 const OUT = path.join(process.cwd(), `tests/testdata/maps/${NAME}`);
 
 /** P3 islands (pol variant): [x0, x1) × [y0, y1), the plan's table. */
@@ -894,7 +934,7 @@ if (SEA) {
 }
 
 const scenario: ScenarioData = {
-  version: SEA ? 4 : 3,
+  version: DEEP ? 5 : SEA ? 4 : 3,
   width: W,
   height: H,
   countries: Object.entries(CAPITALS).map(([tag, capital]) => ({
@@ -931,6 +971,8 @@ const scenario: ScenarioData = {
           coastalFort: r.id === 10 ? 1 : 0,
         }
       : {}),
+    // P6 (deep variant): scenario v5.
+    ...(DEEP ? (DEEP_V5[r.id] ?? {}) : {}),
   })),
   seaZones: SEAS.map((s) => ({
     id: s.id,

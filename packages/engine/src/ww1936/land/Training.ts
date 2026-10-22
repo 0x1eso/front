@@ -3,6 +3,7 @@
 // every unit a division or a trainee holds came out of the pool or the
 // stock and goes back to its own generation's key.
 import type { LandOrder } from "@openfront/engine-api/Schemas";
+import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -11,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   DivisionStats,
+  GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
   groundSlotOf,
   TemplateDef,
@@ -23,11 +25,13 @@ import {
 import {
   equipFill,
   specialCap,
+  STATIC_KEY_STATS,
   templateBlock,
   templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import {
   drawManpower,
+  drawOrderOf,
   drawTemplateEquip,
   returnDivisionEquip,
   returnEquip,
@@ -75,9 +79,10 @@ export function reinforceCap(supplyPm: number): (need: number) => number {
 export function lowestFillPm(
   s: DivisionStats,
   equip: ArrayLike<number>,
+  ks: KeyStatsTable = STATIC_KEY_STATS,
 ): number {
   let low = 1000;
-  equipFill(s, equip).forEach((f, i) => {
+  equipFill(s, equip, ks).forEach((f, i) => {
     if (s.need[i] > 0) low = Math.min(low, f);
   });
   return low;
@@ -146,7 +151,7 @@ function refitTemplate(
       land.setMen(r, s.men);
     }
     const slots = Array.from(t.equipOf(r));
-    returnExcess(ce, slots, s.need);
+    returnExcess(ce, slots, s.need, land.keyStatsOf(cl.smallID));
     applySlots(land, r, slots);
     const max = land.orgMaxOf(r);
     if (t.org[r] > max) t.org[r] = max;
@@ -159,28 +164,34 @@ function refitTemplate(
       returnManpower(ce, x.men - s.men);
       x.men = s.men;
     }
-    returnExcess(ce, x.equip, s.need);
+    returnExcess(ce, x.equip, s.need, land.keyStatsOf(cl.smallID));
   }
 }
 
-/** Gives back what `slots` hold above `need` (EQUIPMENT_TYPES order), oldest generation first. */
+/**
+ * Gives back what `slots` hold above `need` (P6: NEED_GROUPS order), the
+ * oldest first (the draw order backwards: P2's oldest generation first).
+ */
 function returnExcess(
   ce: CountryEconomy,
   slots: number[],
   need: readonly number[],
+  ks: KeyStatsTable,
 ): void {
-  TYPE_SLOTS.forEach((list, i) => {
+  for (let g = 0; g < need.length; g++) {
+    // (The cached draw order, reversed: no sort per group.)
+    const list = [...drawOrderOf(ks)[g]].reverse();
     let have = 0;
-    for (const { slot } of list) have += slots[slot];
-    let extra = have - need[i];
-    for (const { slot, key } of list) {
+    for (const j of list) have += slots[j];
+    let extra = have - need[g];
+    for (const j of list) {
       if (extra <= 0) break;
-      const n = Math.min(extra, slots[slot]);
-      returnEquip(ce, key, n);
-      slots[slot] -= n;
+      const n = Math.min(extra, slots[j]);
+      returnEquip(ce, GROUND_EQUIP_KEYS[j], n);
+      slots[j] -= n;
       extra -= n;
     }
-  });
+  }
 }
 
 /** Writes a division's new slots through WwLand.addEquip (pre-flight U8). */
@@ -375,10 +386,14 @@ export function dailyTraining(
       ce,
       x.equip,
       s.need,
-      EQUIPMENT_TYPES,
+      land.keyStatsOf(cl.smallID),
       trained ? (n) => n : reinforceCap(1000),
     );
-    if (trained && lowestFillPm(s, x.equip) >= WW_DEPLOY_MIN_FILL_PM) {
+    if (
+      trained &&
+      lowestFillPm(s, x.equip, land.keyStatsOf(cl.smallID)) >=
+        WW_DEPLOY_MIN_FILL_PM
+    ) {
       const e = cl.training.find((en) => en.id === x.entry);
       const region = deployRegion(land, cl.smallID, e?.region ?? 0);
       const army = region === 0 ? null : deployArmy(land, cl, e, region);
@@ -398,7 +413,7 @@ export function dailyTraining(
       // Spec §5.1: the men leave the pool at once; the equipment as available.
       if (!drawManpower(ce, s.men)) break;
       const equip = new Array<number>(GROUND_SLOTS).fill(0);
-      drawTemplateEquip(ce, equip, s.need, EQUIPMENT_TYPES);
+      drawTemplateEquip(ce, equip, s.need, land.keyStatsOf(cl.smallID));
       cl.trainees.push({
         entry: e.id,
         template: e.template,

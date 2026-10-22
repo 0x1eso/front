@@ -1,5 +1,5 @@
 // World War 1936 P4 (plan Task 1 Step 25): air rules (spec §12.2, §13.3, §14).
-import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   aaLossPm,
   agilityFactorPm,
@@ -19,13 +19,12 @@ import {
   planeGenTechs,
   planeStats,
 } from "@openfront/engine-lib/ww1936/PlaneStats";
-import { emptyStats, techStats } from "@openfront/engine-lib/ww1936/Stats";
-import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 
 const Z = emptyStats();
 const none = new Set<never>();
-/** The stats a doctrine tech feeds (its bonuses are stat keys: P6 pre-flight). */
-const doc = (...ids: WwTechId[]) => techStats(techTotals(new Set(ids)));
+/** A doctrine's stat keys (P6 pre-flight §0-5: the old tech's values). */
+const doc = (s: Partial<WwStats>): WwStats => ({ ...Z, ...s });
 
 describe("air rules", () => {
   it("plane stats", () => {
@@ -44,13 +43,28 @@ describe("air rules", () => {
         .airAtk,
     ).toBe(1800);
     expect(
-      planeStats("fighter", 1, doc("strategic_destruction_1"), none).airAtk,
+      planeStats(
+        "fighter",
+        1,
+        doc({ stratBombPct: 15, fighterAttackPct: 5 }),
+        none,
+      ).airAtk,
     ).toBe(1890);
     expect(
-      planeStats("naval_bomber", 1, doc("base_strike_2"), none).naval,
+      planeStats(
+        "naval_bomber",
+        1,
+        doc({ navalBomberPct: 15, carrierRoundsCut: 1 }),
+        none,
+      ).naval,
     ).toBe((planeStats("naval_bomber", 1, Z, none).naval * 115) / 100);
     expect(
-      planeStats("fighter", 1, doc("operational_integrity_1"), none).agility,
+      planeStats(
+        "fighter",
+        1,
+        doc({ airDetectPct: 10, fighterAgilityPct: 10 }),
+        none,
+      ).agility,
     ).toBe(Math.floor((planeStats("fighter", 1, Z, none).agility * 110) / 100));
     expect(planeStats("cas", 1, Z, none).supWeightMilli).toBe(100);
     expect(planeGenTechs("cv_fighter", 2)).toEqual([

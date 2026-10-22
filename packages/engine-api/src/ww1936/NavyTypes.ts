@@ -36,6 +36,9 @@ export const FLEET_MISSIONS = [
   "escort",
   "invasion_support",
   "training",
+  // P6 (P6 spec §15.1), appended: the fleet stays in its zone (as patrol).
+  "lay_mines",
+  "sweep_mines",
 ] as const;
 export type FleetMission = (typeof FLEET_MISSIONS)[number];
 export const ENGAGE_RULES = ["avoid", "if_stronger", "always"] as const;
@@ -58,8 +61,15 @@ export const ADMIRAL_TRAITS = [
   "fleet_protector",
   "spotter",
   "amphibious_expert",
+  // P6 (P6 spec §4.2), appended: assigned with command power.
+  "night_fighter",
+  "convoy_master",
+  "fleet_tactician",
+  "blockade_runner",
 ] as const;
 export type AdmiralTrait = (typeof ADMIRAL_TRAITS)[number];
+/** P6 (pre-flight §A4): an admiral's trait cap (trait_assign enforces it). */
+export const WW_ADMIRAL_TRAIT_MAX = 3;
 export function admiralTraitBit(t: AdmiralTrait): number {
   return 1 << ADMIRAL_TRAITS.indexOf(t);
 }
@@ -295,7 +305,8 @@ export interface InvasionData {
 }
 export interface NavalLineData {
   id: number;
-  cls: ShipClass | "convoy";
+  /** P6 (review E4): a floating-harbour line is its own kind. */
+  cls: ShipClass | "convoy" | "floating_harbor";
   gen: number;
   docks: number;
   activeDocks: number;

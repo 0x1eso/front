@@ -86,12 +86,13 @@ describe("economy wiring (spec §6, §14)", () => {
     expect(deu.wwTroopCap()).toBe(deu.troops());
     // A major has three research slots (none new on day 0), all at work
     // (HOI4's 1936 start, aiStartSetup); fortification_1 (P2 Task 6: the
-    // construction group) is a 1936 tech ahead of electronics_1.
+    // construction group) is a 1936 tech ahead of electronics_1 (P6 plan
+    // decision 25: mobile_1 is retired; cryptography_1 is P6's).
     expect(ce.totals.slotCount).toBe(3);
     expect(ce.slots.map((x) => x?.tech)).toEqual([
-      "mobile_1",
       "fortification_1",
       "electronics_1",
+      "cryptography_1",
     ]);
   });
 
@@ -324,6 +325,15 @@ describe("economy wiring (spec §6, §14)", () => {
       refinery: 0,
       silo: 0,
       damage: [],
+      // P6: its depth buildings and v5 resources (none on this map).
+      rocketSite: 0,
+      dam: 0,
+      powerPlant: 0,
+      facility: 0,
+      coal: 0,
+      uranium: 0,
+      hydro: 0,
+      damLevel: 0,
     });
     expect(view.troopCap(byTag(g, "DEU").smallID())).toBe(
       ww.land.fieldMen(byTag(g, "DEU").smallID()),

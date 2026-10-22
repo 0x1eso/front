@@ -7,7 +7,6 @@ import {
   BuildingId,
   equipKey,
   EQUIPMENT_GENS,
-  EQUIPMENT_TYPES,
   LEVEL_MAX,
   RESOURCE_COUNT,
   RESOURCE_IDS,
@@ -294,8 +293,9 @@ function addDivisions(
     const men = Math.min(s.men, ce.manpower);
     if (men <= 0 || !drawManpower(ce, men)) break;
     const slots = new Array<number>(GROUND_SLOTS).fill(0);
-    drawTemplateEquip(ce, slots, s.need, EQUIPMENT_TYPES);
-    const full = templateStats(tpl.def, ce.stats, genMixOf(slots));
+    const ks = land.keyStatsOf(actor);
+    drawTemplateEquip(ce, slots, s.need, ks);
+    const full = templateStats(tpl.def, ce.stats, genMixOf(slots, ks), ks);
     land.spawnDivision(actor, tpl.id, region, army, men, slots, full.orgMilli);
   }
   if (army.divisions.length === 0) land.removeArmy(army.id);

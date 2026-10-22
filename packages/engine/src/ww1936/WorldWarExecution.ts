@@ -70,6 +70,9 @@ export class WorldWarExecution implements Execution {
     ww.politics.tick(ticks);
     // P5 (spec §2.2 orders 2–3): the endgame's common day and its countries.
     ww.endgame.clock(ticks);
+    // P6 (plan decision 3): the depth systems' common day and countries,
+    // before the economy turn (pre-flight §0-8).
+    ww.depth.clock(ticks);
     // P1 (spec §2): the day's common step, then this tick's share of countries.
     ww.economy.tick(ticks);
     // P2 (spec §2.2): the land war after the economy.
@@ -81,6 +84,9 @@ export class WorldWarExecution implements Execution {
     ww.endgame.tick(ticks);
     // P3 order 6: human event cards past their deadline.
     ww.politics.tickDeadlines(ticks);
+    // P6 (review E1): the tick's pending depth stats, recomputed before the
+    // tick ends (nothing pending crosses into a snapshot).
+    ww.depth.endTick();
     const data = ww.takeData();
     if (data !== null) mg.addUpdate({ type: GameUpdateType.WorldWar, data });
     const econ = ww.economy.takeData();
@@ -103,6 +109,9 @@ export class WorldWarExecution implements Execution {
     // P5 (plan decision 23): after P4's.
     const eg = ww.endgame.takeData();
     if (eg !== null) mg.addUpdate({ type: GameUpdateType.WwEndgame, data: eg });
+    // P6 (plan decision 36): after P5's.
+    const dp = ww.depth.takeData();
+    if (dp !== null) mg.addUpdate({ type: GameUpdateType.WwDepth, data: dp });
   }
 
   isActive(): boolean {

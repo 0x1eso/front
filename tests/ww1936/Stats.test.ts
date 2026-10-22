@@ -61,9 +61,9 @@ describe("politics stats", () => {
     for (const k of P4_TECH_KEYS) expect(WW_STAT_KEYS).toContain(k);
   });
 
-  it("stat keys are unique: 14 + 20 + 42 + P4's 41 + P5's 7", () => {
+  it("stat keys are unique: 14 + 20 + 42 + P4's 41 + P5's 7 + P6's 69", () => {
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
-    expect(WW_STAT_KEYS).toHaveLength(76 + 41 + 7);
+    expect(WW_STAT_KEYS).toHaveLength(76 + 41 + 7 + 69);
   });
 
   it("sums add by key; a missing key is 0", () => {
@@ -75,7 +75,7 @@ describe("politics stats", () => {
     addStatsInto(t, { orgPct: 2 }, 3);
     expect(t.orgPct).toBe(6);
     expect(statsArray({ constructionPct: 4 })[0]).toBe(4);
-    expect(statsArray({})).toHaveLength(76 + 41 + 7);
+    expect(statsArray({})).toHaveLength(76 + 41 + 7 + 69);
   });
 
   it("the tech totals become the tech stats (the first 34 and P4's 24)", () => {
@@ -90,8 +90,10 @@ describe("politics stats", () => {
         expect(s[k], k).toBe(0);
       }
     }
-    expect(s.positioningPct).toBe(5);
-    expect(s.capitalAttackPct).toBe(10);
+    // P6 plan decision 25: fleet_in_being_1 is retired — it adds nothing
+    // (gd_fleet_in_being gives these values as a grand doctrine).
+    expect(s.positioningPct).toBe(0);
+    expect(s.capitalAttackPct).toBe(0);
   });
 
   it("Pct sums are clamped to −90..300", () => {

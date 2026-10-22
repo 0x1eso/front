@@ -33,6 +33,8 @@ export const AIR_MISSIONS = [
   "naval_patrol",
   "paradrop",
   "air_supply",
+  // P6 (P6 spec §15.4), appended: sorties over a land zone, no target.
+  "recon",
 ] as const;
 export type AirMission = (typeof AIR_MISSIONS)[number];
 /** Which types fly which mission (spec §14.1). paradrop is an army order, never a deployment. */
@@ -48,6 +50,7 @@ export const AIR_MISSION_TYPES: Readonly<
   naval_patrol: ["naval_bomber", "cv_naval_bomber"],
   paradrop: [],
   air_supply: ["transport_plane"],
+  recon: ["fighter", "heavy_fighter", "cas"],
 };
 /** Spec §14.1 last line: what a sea zone and a land zone allow. */
 export const SEA_ZONE_MISSIONS: readonly AirMission[] = [
@@ -64,6 +67,7 @@ export const LAND_ZONE_MISSIONS: readonly AirMission[] = [
   "strategic_bombing",
   "port_strike",
   "air_supply",
+  "recon",
 ];
 
 export const AIR_ORDER_KINDS = [

@@ -18,6 +18,8 @@ import {
   factionGate,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { idHash, P_EVT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { congressBlock } from "../depth/Congress";
+import { ideologyLocked } from "../depth/FactionRules";
 import { payPp } from "./PayPp";
 import { hasRule, ruleValue } from "./Spirits";
 import { declareWarRules } from "./WarGoals";
@@ -103,6 +105,13 @@ export function joinBlock(
     return "faction_rule";
   }
   if (hasRule(pol, joiner, "no_faction")) return "faction_rule";
+  // P6 hook (W3, spec §14): the leader's ideology lock; the US congress.
+  if (
+    ideologyLocked(pol.ww.depth, f.leader, joiner) ||
+    congressBlock(pol.ww.depth, joiner, "faction")
+  ) {
+    return "faction_rule";
+  }
   if (!gateOk(pol, joiner) || !gateOk(pol, f.leader)) return "tension_gate";
   return null;
 }
@@ -129,6 +138,8 @@ export function factionOrder(
         return "faction_rule";
       }
       if (hasRule(pol, id, "no_faction")) return "faction_rule";
+      // P6 hook (W3, spec §13.1): the US congress.
+      if (congressBlock(pol.ww.depth, id, "faction")) return "faction_rule";
       if (pol.factions.length >= WW_MAX_FACTIONS) return "faction_rule";
       if (!gateOk(pol, id)) return "tension_gate";
       if (!payPp(pol, id, diploCost(pol, id, WW_COST.factionCreate))) {

@@ -20,6 +20,7 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
 import { WwAir, WwAirStateSchema } from "./air/WwAir";
+import { WwDepth, WwDepthStateSchema } from "./depth/WwDepth";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
 import { WwEndgame, WwEndgameStateSchema } from "./endgame/WwEndgame";
 import { WwLand, WwLandStateSchema } from "./land/WwLand";
@@ -52,6 +53,8 @@ export const WorldWarStateSchema = z.object({
   air: WwAirStateSchema.optional(),
   /** P5 (P5 plan decision 25): always written; a snapshot without it is refused. */
   endgame: WwEndgameStateSchema.optional(),
+  /** P6 (P6 plan decision 26): always written; a snapshot without it is refused. */
+  depth: WwDepthStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -105,6 +108,8 @@ export class WorldWar {
   readonly air: WwAir;
   /** P5 endgame (P5 spec §21.1, plan decision 2): after the air war. */
   readonly endgame: WwEndgame;
+  /** P6 depth systems (P6 plan decision 2): after the endgame. */
+  readonly depth: WwDepth;
 
   constructor(
     private readonly mg: Game,
@@ -121,6 +126,10 @@ export class WorldWar {
     // Plan decision 36: the land war reads the navy, the air war and fuel.
     this.land.hooks = new NavyAirHooks(this.navy, this.air);
     this.endgame = new WwEndgame(mg, this);
+    // P6 (plan decision 2, pre-flight §0-9): last; the land war reads it
+    // through its depth hooks.
+    this.depth = new WwDepth(mg, this);
+    this.land.depthHooks = this.depth;
   }
 
   /**
@@ -162,6 +171,9 @@ export class WorldWar {
     // P4 (plan decision 2): the 1936 navies, then the air war (nothing deployed).
     this.navy.start();
     this.air.start();
+    // P6 (plan decision 2): last; recomputeStats and the economy read its
+    // neutral answers until now (pre-flight §0-9).
+    this.depth.start();
   }
 
   // ---- Queries ----
@@ -469,7 +481,9 @@ export class WorldWar {
     h = (Math.imul(h, 31) + this.navy.hash()) | 0;
     h = (Math.imul(h, 31) + this.air.hash()) | 0;
     // P5 (spec §21.5): after P4's.
-    return (Math.imul(h, 31) + this.endgame.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.endgame.hash()) | 0;
+    // P6 (spec §21.6): after P5's.
+    return (Math.imul(h, 31) + this.depth.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -495,6 +509,7 @@ export class WorldWar {
       navy: this.navy.snapshot(),
       air: this.air.snapshot(),
       endgame: this.endgame.snapshot(),
+      depth: this.depth.snapshot(),
     };
   }
 
@@ -520,6 +535,12 @@ export class WorldWar {
     // No P4 game continues with P5 code (P5 plan decision 25).
     if (s.endgame === undefined) {
       throw new Error("snapshot without the P5 endgame state");
+    }
+    // No P5 game continues with P6 code (P6 plan decision 26).
+    if (s.depth === undefined) {
+      throw new Error(
+        "World War 1936 snapshot without its depth (made before P6)",
+      );
     }
     // P5: first — who plays, who is human, who is an exile (the phases'
     // restores and their derived sides ask; the administered regions are
@@ -554,6 +575,8 @@ export class WorldWar {
     this.politics.restoreState(s.politics);
     this.navy.restoreState(s.navy);
     this.air.restoreState(s.air);
+    // P6: last (its derived design caches read the economy's techs).
+    this.depth.restoreState(s.depth);
   }
 
   private rebuildMatrix(): void {

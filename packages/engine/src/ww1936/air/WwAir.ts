@@ -16,6 +16,7 @@ import {
   WwAirData,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { WW_PLANE_DESIGN_SLOTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDING_IDS,
   equipKey,
@@ -29,6 +30,8 @@ import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
+import { designPlaneAsP4, planeStatsOfKey } from "../depth/Designs";
+import type { WwDepth } from "../depth/WwDepth";
 import { buildingIndex, losePlanes, returnPlanes } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
 import type { WwLand } from "../land/WwLand";
@@ -65,6 +68,71 @@ export interface Deployment {
    * deploymentSide.
    */
   volunteerFor: number;
+  // P6 (plan decision 9, spec §15): snapshot defaults.
+  /** Planes of each plane design slot judged to fly as this type (WW_PLANE_DESIGN_SLOTS). */
+  dcounts: number[];
+  /** Flies at night (spec §15.1, lane W2). */
+  night: boolean;
+  /** Its ace (lane W2), 0 none. */
+  ace: number;
+}
+
+/** P6 (plan decision 9): every plane of a deployment, static generations then design slots. */
+export function deploymentPlanes(d: Deployment): number {
+  let n = 0;
+  for (const c of d.counts) n += c;
+  for (const c of d.dcounts) n += c;
+  return n;
+}
+
+const PLANE_FIELDS: readonly (keyof PlaneStats)[] = [
+  "airAtk",
+  "airDef",
+  "agility",
+  "speedKmh",
+  "rangeKm",
+  "ground",
+  "strat",
+  "naval",
+  "supWeightMilli",
+  "fuelPerSortieMilli",
+];
+
+/**
+ * P6 (plan decision 9): a deployment's numbers, its planes' weighted by
+ * count over its static generations (P4's planeStatsOf) and its design
+ * slots (lane E's planeStatsOfKey as P4's type, designPlaneAsP4). With no
+ * design planes, the P4 numbers of its generations.
+ */
+export function deploymentStats(air: WwAir, d: Deployment): PlaneStats {
+  const type = AIR_TYPES[d.type];
+  const parts: [PlaneStats, number][] = [];
+  d.counts.forEach((n, g) => {
+    if (n > 0) parts.push([air.planeStatsOf(d.owner, type, g + 1), n]);
+  });
+  const depth = air.ww.depth as WwDepth | undefined;
+  if (depth !== undefined) {
+    d.dcounts.forEach((n, s) => {
+      if (n <= 0) return;
+      const ds = planeStatsOfKey(
+        depth,
+        d.owner,
+        equipKey("plane_design", s + 1),
+      );
+      if (ds !== null) parts.push([designPlaneAsP4(ds, type), n]);
+    });
+  }
+  if (parts.length === 0) return air.planeStatsOf(d.owner, type, 1);
+  if (parts.length === 1) return parts[0][0];
+  let total = 0;
+  for (const [, n] of parts) total += n;
+  const out = { ...parts[0][0] };
+  for (const f of PLANE_FIELDS) {
+    let sum = 0;
+    for (const [st, n] of parts) sum += st[f] * n;
+    out[f] = Math.floor(sum / total);
+  }
+  return out;
 }
 
 /** The side a deployment fights for: its volunteer host's, else its owner's (P5 volunteers). */
@@ -157,6 +225,10 @@ const DeploymentSchema = z.object({
   lossRest: zInt(),
   auto: z.boolean(),
   volunteerFor: zInt(),
+  // P6 (plan decision 9): written always; absent reads the defaults.
+  dcounts: zInts().optional(),
+  night: z.boolean().optional(),
+  ace: zInt().optional(),
 });
 const ZoneSchema = z.object({
   sup: pairs(),
@@ -266,6 +338,11 @@ export class WwAir {
           // A1/A2 mark the zone (setAirSup, markZone) when it changed.
           dailyAirZone(this, s.id, day); // A1
           airMissionEffects(this, s.id, day); // A2
+          // P6 hooks (D, W2, S; plan decisions 3, 12): the zone's sorties
+          // to the air doctrine tracks, then the depth's zone day (mines'
+          // air side, night, aces, recon, then the atomic drops).
+          this.noteZoneSorties(s.id);
+          this.ww.depth.airZoneDay(s.id, day, ticks);
         }
         // ② countries: re-basing, refills, decks, AI
         for (let id = 1; id < this.countryList.length; id++) {
@@ -273,6 +350,16 @@ export class WwAir {
         }
       }
       stepParadrops(this, ticks); // ③ A2
+    }
+  }
+
+  /** P6 (plan decision 12): every deployment over the zone flies its planes once today. */
+  private noteZoneSorties(sr: number): void {
+    for (const id of this.deploysBySr.get(sr) ?? []) {
+      const d = this.deployments.get(id);
+      if (d === undefined) continue;
+      const n = deploymentPlanes(d);
+      if (n > 0) this.ww.depth.noteSorties(d.owner, d.mission, n);
     }
   }
 
@@ -437,7 +524,10 @@ export class WwAir {
   }
 
   /** Adds a deployment record (A1's deploy). Ids only rise: the Map stays in id order. */
-  addDeployment(d: Omit<Deployment, "id">): Deployment {
+  addDeployment(
+    d: Omit<Deployment, "id" | "dcounts" | "night" | "ace"> &
+      Partial<Pick<Deployment, "dcounts" | "night" | "ace">>,
+  ): Deployment {
     // Field by field in the snapshot's order, whatever the caller's.
     const full: Deployment = {
       id: this.nextDeploymentId++,
@@ -451,6 +541,12 @@ export class WwAir {
       lossRest: d.lossRest,
       auto: d.auto,
       volunteerFor: d.volunteerFor,
+      dcounts:
+        d.dcounts === undefined
+          ? new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0)
+          : [...d.dcounts],
+      night: d.night ?? false,
+      ace: d.ace ?? 0,
     };
     this.deployments.set(full.id, full);
     this.indexDeployment(full);
@@ -773,6 +869,7 @@ export class WwAir {
       deployments: [...this.deployments.values()].map((d) => ({
         ...d,
         counts: [...d.counts],
+        dcounts: [...d.dcounts],
       })),
       zones: this.zoneState.map((z) => ({
         sup: arr(z.sup),
@@ -817,7 +914,16 @@ export class WwAir {
   restoreState(s: WwAirState): void {
     this.deployments.clear();
     for (const d of s.deployments) {
-      this.deployments.set(d.id, { ...d, counts: [...d.counts] });
+      this.deployments.set(d.id, {
+        ...d,
+        counts: [...d.counts],
+        dcounts:
+          d.dcounts === undefined
+            ? new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0)
+            : [...d.dcounts],
+        night: d.night ?? false,
+        ace: d.ace ?? 0,
+      });
     }
     s.zones.forEach((x, i) => {
       const z = this.zoneState[i];

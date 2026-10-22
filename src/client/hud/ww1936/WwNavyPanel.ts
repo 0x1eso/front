@@ -17,6 +17,7 @@ import { GoToPositionEvent } from "../../TransformHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { designButton } from "./DesignButton";
 import { blockText, genName } from "./EconomyModel";
 import { regionName } from "./LandModel";
 import {
@@ -64,9 +65,9 @@ const BUTTON =
 const ICON_BUTTON =
   "size-9 shrink-0 rounded-md border border-white/10 bg-white/5 text-xs hover:bg-white/10 disabled:opacity-30";
 
-function lineClassName(cls: ShipClass | "convoy"): string {
-  return cls === "convoy"
-    ? translateText("ww1936.equip.convoy")
+function lineClassName(cls: ShipClass | "convoy" | "floating_harbor"): string {
+  return cls === "convoy" || cls === "floating_harbor"
+    ? translateText(`ww1936.equip.${cls}`)
     : shipClassName(cls);
 }
 
@@ -183,7 +184,10 @@ export class WwShipyards extends LitElement {
         <span class="min-w-0 flex-1 truncate font-semibold"
           >${translateText("ww1936.navy.line_ship", {
             cls: lineClassName(l.cls),
-            gen: l.cls === "convoy" ? genName(1) : shipGenName(l.gen),
+            gen:
+              l.cls === "convoy" || l.cls === "floating_harbor"
+                ? genName(1)
+                : shipGenName(l.gen),
           })}</span
         >
         <button
@@ -524,12 +528,13 @@ export class WwNavyPanel extends WwDrawerBase {
       case "fleets":
         return this.renderFleets(ctx);
       case "shipyards":
-        return html`<ww-shipyards
-          .game=${this.game}
-          .eventBus=${this.eventBus}
-          .preset=${this.preset}
-          .version=${`${ctx.navy.version}:${ctx.economy.version}`}
-        ></ww-shipyards>`;
+        return html`${designButton(this.eventBus, "ship")}
+          <ww-shipyards
+            .game=${this.game}
+            .eventBus=${this.eventBus}
+            .preset=${this.preset}
+            .version=${`${ctx.navy.version}:${ctx.economy.version}`}
+          ></ww-shipyards>`;
       case "convoys":
         return this.renderConvoys(ctx);
       case "admirals":

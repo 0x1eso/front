@@ -1,6 +1,7 @@
 // World War 1936 P2: the pure land-war rules in engine-lib (P2 spec §4,
 // §7, §9, §10, §11; plan Task 1 Step 21). Review Focus 3's numbers.
 import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
+import type { GrandDoctrine } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   WW_TECH_IDS,
@@ -32,6 +33,7 @@ import {
   roundHits,
   TERRAIN,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { GRAND_DOCTRINE_STATS } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   edgeTicks,
@@ -68,7 +70,7 @@ import {
   weatherAt,
   weatherCell,
 } from "@openfront/engine-lib/ww1936/Weather";
-import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import { TechTotals, techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import fs from "fs";
 import path from "path";
 
@@ -143,6 +145,18 @@ const neutral = (over: Partial<ModInput>): ModInput => ({
   landingBp: 0,
   coastalFortBp: 0,
   shoreBp: 0,
+  // P6 (pre-flight §0-2): the depth fields, neutral.
+  fmAtt: 0,
+  fmDef: 0,
+  fmTraits: 0,
+  cmdAttBp: 0,
+  cmdDefBp: 0,
+  enemyPlanCutBp: 0,
+  fortCut: 0,
+  halfSupply: false,
+  designFlags: 0,
+  artSoftPm: 0,
+  fmPlanBp: 0,
   ...over,
 });
 
@@ -204,27 +218,29 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     const gen2 = GEN1.map((g, i) => (i === 6 ? 200 : g));
     const s = templateStats(lt, ZERO_TECH, gen2);
     expect([s.soft, s.armor, s.speedCenti]).toEqual([1500, 1400, 900]);
+    // P6 plan decision 25: the doctrine techs are retired; the same values
+    // come from the grand doctrines' stats (base, then base + completion).
+    const gd = (g: GrandDoctrine, complete: boolean): TechTotals => {
+      const [base, done] = GRAND_DOCTRINE_STATS[g];
+      const out = { ...ZERO_TECH } as unknown as Record<string, number>;
+      for (const p of complete ? [base, done] : [base]) {
+        for (const [k, v] of Object.entries(p)) out[k] = (out[k] ?? 0) + v;
+      }
+      return out as unknown as TechTotals;
+    };
     const art = def([["artillery", 1]]);
-    expect(
-      templateStats(art, techTotals(new Set(["firepower_1"])), GEN1).soft,
-    ).toBe(3000);
+    expect(templateStats(art, gd("gd_firepower", false), GEN1).soft).toBe(3000);
     const inf = def([["infantry", 1]]);
-    expect(
-      templateStats(inf, techTotals(new Set(["mass_1", "mass_2"])), GEN1)
-        .orgMilli,
-    ).toBe(70_000);
+    expect(templateStats(inf, gd("gd_mass", true), GEN1).orgMilli).toBe(70_000);
     const armour = def([
       ["light_armor", 4],
       ["motorized", 2],
     ]);
     const base = templateStats(armour, ZERO_TECH, GEN1).orgMilli;
-    expect(
-      templateStats(armour, techTotals(new Set(["mobile_1", "mobile_2"])), GEN1)
-        .orgMilli,
-    ).toBe(base + 5_000);
-    expect(
-      templateStats(inf, techTotals(new Set(["mass_1"])), GEN1).trainDays,
-    ).toBe(60);
+    expect(templateStats(armour, gd("gd_mobile", true), GEN1).orgMilli).toBe(
+      base + 5_000,
+    );
+    expect(templateStats(inf, gd("gd_mass", false), GEN1).trainDays).toBe(60);
   });
 
   test("divisionStats and strength follow equipment and men", () => {

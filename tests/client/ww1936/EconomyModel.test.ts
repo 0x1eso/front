@@ -663,14 +663,11 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       // P5 (P5 spec §8.5): the military police company.
       military_police: "prereq",
     });
-    expect(states("doctrine")).toMatchObject({
-      mobile_1: "done",
-      mobile_2: "available",
-      firepower_1: "doctrine",
-      battleplan_1: "doctrine",
-      mass_1: "doctrine",
-      firepower_2: "prereq",
-    });
+    // P6 plan decision 25: the doctrine techs are retired, none is offered
+    // (the grand doctrines take their place).
+    expect(states("doctrine")).toEqual({});
+    expect(states("naval")).not.toHaveProperty("fleet_in_being_1");
+    expect(states("air")).not.toHaveProperty("strategic_destruction_1");
     const cards = researchCards(d, "infantry", 0);
     // 1936: 120 days; 1939 three years early: +300%, a quarter of the speed.
     expect(cards.find((c) => c.id === "support_eq_1")).toMatchObject({

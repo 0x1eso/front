@@ -100,6 +100,8 @@ export function startNavy(navy: WwNavy): void {
           names: ld.names
             .map((n) => shipNameIdx(def.tag, ld.cls, n))
             .filter((i) => i > 0),
+          // P6 (plan decision 8): the 1936 lines build the base classes.
+          design: 0,
         });
       }
     }

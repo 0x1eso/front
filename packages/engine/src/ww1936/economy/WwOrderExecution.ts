@@ -1,4 +1,9 @@
-import { WwOrder, WwOrderSchema } from "@openfront/engine-api/Schemas";
+import {
+  DepthOrder,
+  WwOrder,
+  WwOrderSchema,
+} from "@openfront/engine-api/Schemas";
+import { DEPTH_ORDER_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   RESOURCE_IDS,
   WwOrderBlock,
@@ -41,6 +46,12 @@ export function applyWwOrder(
   // P5 plan decision 6: the sender's country plays (an exile does).
   if (ce === null || !econ.ww.isActor(p.smallID())) {
     return "dead";
+  }
+  // P6 (plan decision 4): the 57 depth orders go to the depth systems.
+  if (isDepthOrder(order)) {
+    const block = econ.ww.depth.issue(p.smallID(), order, mg.ticks());
+    if (block === null) econ.markCountryDirty(ce.smallID);
+    return block;
   }
   let block: WwOrderBlock | null;
   switch (order.kind) {
@@ -195,6 +206,13 @@ export function applyWwOrder(
   }
   if (block === null) econ.markCountryDirty(ce.smallID);
   return block;
+}
+
+const DEPTH_KINDS: ReadonlySet<string> = new Set(DEPTH_ORDER_KINDS);
+
+/** P6: one of the depth systems' orders (plan decision 4). */
+export function isDepthOrder(o: WwOrder): o is DepthOrder {
+  return DEPTH_KINDS.has(o.kind);
 }
 
 /**

@@ -24,6 +24,7 @@ import { translateText } from "../../Utils";
 import type { PlayerView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
+import { designsButton } from "./DesignButton";
 import {
   addLineBlock,
   armyMenOf,
@@ -743,7 +744,8 @@ export class WwIndustryPanel extends WwDrawerBase {
           this.renderLine(c, r, d.lines[r.index], rows.length, retention),
         )}
       </ul>
-      ${this.renderNewLine(c)} ${this.renderStock(c)}
+      ${this.renderNewLine(c)} ${designsButton(this.eventBus)}
+      ${this.renderStock(c)}
     `;
   }
 

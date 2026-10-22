@@ -121,6 +121,8 @@ export class HostLobbyModal extends BaseModal {
   @state() private conquestPercent: number | undefined = undefined;
   @state() private worldWar1936 = false;
   @state() private historicalAi = true;
+  /** World War 1936 P6 (spec §9.8, plan decision 21): the atomic bomb, on by default. */
+  @state() private ww1936Nukes = true;
   @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
   @state() private lobbyId = "";
   @state() private lobbyUrlSuffix = "";
@@ -769,6 +771,10 @@ export class HostLobbyModal extends BaseModal {
                         checked: this.historicalAi,
                       },
                       {
+                        labelKey: "ww1936.lobby.nukes",
+                        checked: this.ww1936Nukes,
+                      },
+                      {
                         labelKey: "game_settings.instant_build",
                         checked: this.instantBuild,
                       },
@@ -1215,6 +1221,7 @@ export class HostLobbyModal extends BaseModal {
     this.conquestPercent = undefined;
     this.worldWar1936 = false;
     this.historicalAi = true;
+    this.ww1936Nukes = true;
     this.countryPicks = [];
     this.hostCheatsEnabled = false;
     this.hostCheatInfiniteGold = false;
@@ -1367,6 +1374,10 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.historical_ai":
         this.historicalAi = checked;
+        this.putGameConfig();
+        break;
+      case "ww1936.lobby.nukes":
+        this.ww1936Nukes = checked;
         this.putGameConfig();
         break;
       default:
@@ -1936,6 +1947,8 @@ export class HostLobbyModal extends BaseModal {
             // false so the server turns the mode off.
             worldWar1936: this.worldWar1936,
             historicalAi: this.historicalAi,
+            // P6: the atomic-bomb key only with the mode (vanilla never carries it).
+            ...(this.worldWar1936 ? { ww1936Nukes: this.ww1936Nukes } : {}),
             congress:
               this.domesticMode &&
               this.congress &&

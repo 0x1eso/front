@@ -181,6 +181,11 @@ export interface LineNeed {
   key: number;
   /** Working factories. */
   factories: number;
+  /**
+   * P6 (pre-flight §0-10): resources per factory, RESOURCE_IDS order (a
+   * design's modules); absent: the equipment table's.
+   */
+  per?: readonly number[];
 }
 
 export interface Allocation {
@@ -195,6 +200,8 @@ export interface Allocation {
   short: number[][];
   /** P4: the fill ‰ of each extra demand (naval lines), in order. */
   extraFill: number[];
+  /** P6 (plan decision 22): what the priority demand got, RESOURCE_IDS order. */
+  preGot: number[];
 }
 
 /**
@@ -205,17 +212,29 @@ export function allocateResources(
   available: readonly number[],
   lines: readonly LineNeed[],
   extra: readonly (readonly number[])[] = [],
+  pre: readonly number[] = [],
 ): Allocation {
   const left = available.slice(0, RESOURCE_COUNT);
   const used = new Array<number>(RESOURCE_COUNT).fill(0);
   const fill: number[] = [];
   const short: number[][] = [];
+  // P6 (plan decision 22): uranium for the atomic project, coal for the
+  // refineries and the energy, before any line.
+  const preGot = new Array<number>(RESOURCE_COUNT).fill(0);
+  for (let r = 0; r < RESOURCE_COUNT; r++) {
+    const n = pre[r] ?? 0;
+    if (n <= 0) continue;
+    const give = Math.min(n, Math.max(0, left[r]));
+    left[r] -= give;
+    used[r] += give;
+    preGot[r] = give;
+  }
   for (const line of lines) {
-    const per = EQUIPMENT[EQUIP_KEYS[line.key][0]].resources;
+    const per = line.per ?? EQUIPMENT[EQUIP_KEYS[line.key][0]].resources;
     let f = 1000;
     const lacks: number[] = [];
     for (let r = 0; r < RESOURCE_COUNT; r++) {
-      const need = per[r] * line.factories;
+      const need = (per[r] ?? 0) * line.factories;
       if (need === 0) continue;
       const give = Math.min(need, Math.max(0, left[r]));
       left[r] -= give;
@@ -239,7 +258,7 @@ export function allocateResources(
     }
     extraFill.push(f);
   }
-  return { fill, used, short, extraFill };
+  return { fill, used, short, extraFill, preGot };
 }
 
 // ---- Resources (spec §7.1) ----

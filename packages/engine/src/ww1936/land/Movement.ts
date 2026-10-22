@@ -14,6 +14,7 @@ import {
   TPL_MOTOR_ANY,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { landFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import {
   edgeTicks,
@@ -94,6 +95,15 @@ function stepOf(land: WwLand, r: number, mode: number): number {
   if (s.fuelHourMilli > 0) {
     const fuel = land.hooks.fuelFactorPm(t.owner[r]);
     if (fuel < 1000) step = Math.floor((step * landFuelSpeedPm(fuel)) / 1000);
+  }
+  // P6 hook (W1; pre-flight §D: on moveStep's result, never in a memo):
+  // a flooded region slows the way in; P6 (spec §21.2) advanceSpeedPct.
+  const cut = land.depthHooks.moveCutPct(to);
+  if (cut !== 0) step = Math.floor((step * Math.max(0, 100 - cut)) / 100);
+  if (mode === MOVE_ADVANCE) {
+    const adv =
+      (ce.stats as Partial<Record<WwStatKey, number>>).advanceSpeedPct ?? 0;
+    if (adv !== 0) step = Math.floor((step * Math.max(0, 100 + adv)) / 100);
   }
   return step;
 }

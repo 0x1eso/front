@@ -17,6 +17,7 @@ import {
   WwOrder,
 } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game, Player } from "@openfront/engine/game/Game";
@@ -36,6 +37,7 @@ import { capture } from "@openfront/engine/ww1936/land/Occupation";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WwPolitics } from "@openfront/engine/ww1936/politics/WwPolitics";
+import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 import { politicsFixture } from "./politicsFixture";
@@ -47,6 +49,8 @@ export const POL = "ww1936pol";
 export const SEA_MAP = "ww1936sea";
 /** P5 (plan decision 31): ww1936pol plus Kosice (20, Czechoslovakia) east of Slovakia (endFixture.ts). */
 export const END_MAP = "ww1936end";
+/** P6 (plan Task 1 Step 19): ww1936sea plus the scenario v5 fields (deepFixture.ts). */
+export const DEEP_MAP = "ww1936deep";
 export const HUMAN = "HUMAN001";
 
 export interface WwHuman {
@@ -118,7 +122,13 @@ export async function wwRunnerCapture(
 export async function wwRunner(
   config: Partial<GameConfig> = {},
   humans: WwHuman[] = [],
-  map: "ww1936mini" | "ww1936pol" | "ww1936sea" | "ww1936end" | string = MINI,
+  map:
+    | "ww1936mini"
+    | "ww1936pol"
+    | "ww1936sea"
+    | "ww1936end"
+    | "ww1936deep"
+    | string = MINI,
 ): Promise<GameRunner> {
   return (await wwRunnerCapture(config, humans, map)).runner;
 }
@@ -306,4 +316,39 @@ export function gameHash(runner: GameRunner): number {
 export function withTestPolitics(): void {
   beforeEach(() => usePoliticsContent(politicsFixture()));
   afterEach(() => usePoliticsContent(null));
+}
+
+/**
+ * P6 plan decision 25: the retired doctrine techs add nothing; a test that
+ * needs a doctrine's stat keys gives them to the country through the depth
+ * stats part (where lane D's grand doctrines put them), then recomputes.
+ * Adds up over calls; the game's own WwDepth only.
+ */
+export function grantDoctrineStats(
+  ww: WorldWar,
+  id: number,
+  part: Partial<WwStats>,
+): void {
+  const d = ww.depth as WorldWar["depth"] & {
+    testStats?: Map<number, Partial<WwStats>>;
+  };
+  if (d.testStats === undefined) {
+    const extra = new Map<number, Partial<WwStats>>();
+    const own = d.statsPart.bind(d);
+    d.testStats = extra;
+    d.statsPart = (x: number): WwStats => {
+      const s = own(x);
+      for (const [k, v] of Object.entries(extra.get(x) ?? {})) {
+        s[k as keyof WwStats] += v ?? 0;
+      }
+      return s;
+    };
+  }
+  const prev = d.testStats.get(id) ?? {};
+  const next: Partial<WwStats> = { ...prev };
+  for (const [k, v] of Object.entries(part)) {
+    next[k as keyof WwStats] = (prev[k as keyof WwStats] ?? 0) + (v ?? 0);
+  }
+  d.testStats.set(id, next);
+  ww.politics.recomputeStats(id);
 }

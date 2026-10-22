@@ -199,7 +199,10 @@ export function readinessDay(land: WwLand, army: Army): void {
   if (ce === null) return;
   const t = land.divisions;
   const g = generalOf(land, army);
-  const plan = g === null ? 0 : g.plan;
+  // Review L4 (spec §4.3): the field marshal's planning adds to the general's;
+  // its traits speed the readiness and raise its cap (lane D).
+  const am = land.depthHooks.armyMods(army.owner, army.id);
+  const plan = (g === null ? 0 : g.plan) + am.fmPlan;
   const rows = armyRows(land, army);
   let bp = army.planBp;
   if (!(o.kind === "plan" && o.executing)) {
@@ -211,12 +214,13 @@ export function readinessDay(land: WwLand, army: Army): void {
       plan * 10 +
       (signal ? 10 : 0) +
       (doctrine ? 10 : 0) +
-      ce.stats.planSpeedPct;
+      ce.stats.planSpeedPct +
+      am.planSpeedPct;
     bp += Math.floor((WW_PLAN_DAY_BP * pct) / 100);
   } else if (rows.some((r) => t.battle[r] !== 0)) {
     bp -= Math.floor((WW_PLAN_FIGHT_BP * Math.max(0, 100 - plan * 10)) / 100);
   }
-  bp = Math.max(0, Math.min(planMaxBp(ce.stats), bp));
+  bp = Math.max(0, Math.min(planMaxBp(ce.stats) + am.planMaxBp, bp));
   if (bp !== army.planBp) {
     army.planBp = bp;
     land.markArmy(army.id);

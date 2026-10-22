@@ -7,6 +7,7 @@
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { WW_PLANE_DESIGN_SLOTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   WW_DAY_SPLIT,
@@ -35,9 +36,13 @@ import {
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { applyShipDesign } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fleetFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
-import { lineCostMilli } from "@openfront/engine-lib/ww1936/NavalLineRules";
+import {
+  lineCostMilli,
+  navalLineClass,
+} from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { idHash, P_NAVALBEAT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -48,6 +53,7 @@ import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
+import { shipDesignOf } from "../depth/Designs";
 import { convoysOf, losePlanes } from "../economy/Buildings";
 import { fuelCapOf, noteFleetFuel } from "../economy/Fuel";
 import { dockyardsFree, issueNavalLineOrder } from "../economy/NavalLines";
@@ -66,7 +72,7 @@ import {
   issueFleetOrder,
 } from "./Fleets";
 import { dailyInvasions, issueInvasionOrder } from "./Invasions";
-import { engageRegion } from "./Missions";
+import { engageRegion, FST } from "./Missions";
 import { stepNavalBattles } from "./NavalBattles";
 import { startNavy } from "./NavyStartRun";
 import { bestNavalBase, navalPort, navalPortsOf } from "./Ports";
@@ -80,6 +86,13 @@ import { stepFleets } from "./SeaMove";
 import { dailyVoyages, issueSeaTransfer, stepSeaVoyages } from "./SeaTransfer";
 import { spotRegion } from "./Spotting";
 import { supremacyRegion } from "./Supremacy";
+
+/** P6 (plan decision 9): [index, value] of the non-zero cells. */
+function nonZeroCells(a: Int32Array): [number, number][] {
+  const out: [number, number][] = [];
+  for (let i = 0; i < a.length; i++) if (a[i] !== 0) out.push([i, a[i]]);
+  return out;
+}
 
 // ---- Ships: one row each, columns (plan decision 16) ----
 
@@ -100,6 +113,15 @@ const SHIP_COLS = {
   docks: Uint8Array,
   /** The country whose name list nameIdx is of (a transferred ship keeps its name). */
   nameOwner: Uint16Array,
+  // P6 (plan decision 8, Task 1 Step 2).
+  /** Ship design slot (1..24); 0: the base class. */
+  design: Uint8Array,
+  /** The design slot a refit gives; 0 none (lane E's Refit). */
+  refitTo: Uint8Array,
+  /** Refit days left; a ship with > 0 stays in port like a repair. */
+  refitLeft: Int16Array,
+  /** P6 (plan decision 12): the day its battle last fed the doctrine tally; -1: never. */
+  tallyDay: Int16Array,
 } as const;
 type ShipColumn = keyof typeof SHIP_COLS;
 const SHIP_COLUMNS = Object.keys(SHIP_COLS) as ShipColumn[];
@@ -127,6 +149,13 @@ export class ShipTable {
   nameOwner = new Uint16Array(0);
   /** DECK_SLOTS per row: (cv_fighter, cv_cas, cv_naval_bomber) × gen 1..3. */
   deck = new Int32Array(0);
+  // P6 (plan decisions 8, 9).
+  design = new Uint8Array(0);
+  refitTo = new Uint8Array(0);
+  refitLeft = new Int16Array(0);
+  tallyDay = new Int16Array(0);
+  /** WW_PLANE_DESIGN_SLOTS per row: carrier planes of each plane design slot. */
+  deckD = new Int32Array(0);
   /** Derived (DERIVED_FIELDS): ship id → row. */
   shipRowIndex = new Map<number, number>();
   private capacity = 0;
@@ -150,6 +179,9 @@ export class ShipTable {
     const deck = new Int32Array(cap * DECK_SLOTS);
     deck.set(this.deck.subarray(0, this.rows * DECK_SLOTS));
     this.deck = deck;
+    const deckD = new Int32Array(cap * WW_PLANE_DESIGN_SLOTS);
+    deckD.set(this.deckD.subarray(0, this.rows * WW_PLANE_DESIGN_SLOTS));
+    this.deckD = deckD;
     this.capacity = cap;
   }
 
@@ -168,6 +200,12 @@ export class ShipTable {
     const r = this.rows++;
     for (const name of SHIP_COLUMNS) this.col(name)[r] = 0;
     this.deck.fill(0, r * DECK_SLOTS, (r + 1) * DECK_SLOTS);
+    this.deckD.fill(
+      0,
+      r * WW_PLANE_DESIGN_SLOTS,
+      (r + 1) * WW_PLANE_DESIGN_SLOTS,
+    );
+    this.tallyDay[r] = -1;
     this.id[r] = id;
     this.owner[r] = owner;
     this.cls[r] = cls;
@@ -200,6 +238,19 @@ export class ShipTable {
     for (const name of SHIP_COLUMNS) this.col(name)[r] = 0;
     this.escape[r] = -1;
     this.deck.fill(0, r * DECK_SLOTS, (r + 1) * DECK_SLOTS);
+    this.deckD.fill(
+      0,
+      r * WW_PLANE_DESIGN_SLOTS,
+      (r + 1) * WW_PLANE_DESIGN_SLOTS,
+    );
+  }
+
+  /** P6: the row's design-plane deck slots (a view: valid until the table grows). */
+  deckDOf(r: number): Int32Array {
+    return this.deckD.subarray(
+      r * WW_PLANE_DESIGN_SLOTS,
+      (r + 1) * WW_PLANE_DESIGN_SLOTS,
+    );
   }
 
   /** The row's deck slots (a view: valid until the table grows). */
@@ -219,6 +270,11 @@ export class ShipTable {
           r * DECK_SLOTS,
           (r + 1) * DECK_SLOTS,
         );
+        this.deckD.copyWithin(
+          w * WW_PLANE_DESIGN_SLOTS,
+          r * WW_PLANE_DESIGN_SLOTS,
+          (r + 1) * WW_PLANE_DESIGN_SLOTS,
+        );
       }
       w++;
     }
@@ -226,6 +282,11 @@ export class ShipTable {
     // The tail is zeros again, so a restored table is equal element by element.
     for (const name of SHIP_COLUMNS) this.col(name).fill(0, w, this.rows);
     this.deck.fill(0, w * DECK_SLOTS, this.rows * DECK_SLOTS);
+    this.deckD.fill(
+      0,
+      w * WW_PLANE_DESIGN_SLOTS,
+      this.rows * WW_PLANE_DESIGN_SLOTS,
+    );
     this.rows = w;
     this.rebuildIndex();
     return moved;
@@ -249,6 +310,10 @@ export class ShipTable {
       rows: this.rows,
       capacity: this.capacity,
       deck: Array.from(this.deck.subarray(0, this.rows * DECK_SLOTS)),
+      // P6 (plan decision 9): the non-zero cells only, [index, planes].
+      deckD: nonZeroCells(
+        this.deckD.subarray(0, this.rows * WW_PLANE_DESIGN_SLOTS),
+      ),
     };
   }
 
@@ -256,8 +321,9 @@ export class ShipTable {
     this.rows = 0;
     this.capacity = 0;
     this.grow(s.capacity);
-    for (const name of SHIP_COLUMNS) this.col(name).set(s[name]);
+    for (const name of SHIP_COLUMNS) this.col(name).set(s[name] ?? []);
     this.deck.set(s.deck);
+    for (const [i, v] of s.deckD ?? []) this.deckD[i] = v;
     this.rows = s.rows;
     this.rebuildIndex();
   }
@@ -476,6 +542,12 @@ const ShipTableSchema = z.object({
   docks: zInts(),
   nameOwner: zInts(),
   deck: zInts(),
+  // P6 (plan decisions 8, 9, 12): written always (a P6 snapshot has them).
+  design: zInts().optional(),
+  refitTo: zInts().optional(),
+  refitLeft: zInts().optional(),
+  tallyDay: zInts().optional(),
+  deckD: z.array(z.tuple([zInt(), zInt()])).optional(),
 });
 type ShipTableState = z.infer<typeof ShipTableSchema>;
 const FleetSchema = z.object({
@@ -649,7 +721,12 @@ export class WwNavy {
   /** owner × 64 + cls × 8 + gen → the stats at that stats version and tech set (pre-flight §0-7). */
   private shipStatsMemo = new Map<
     number,
-    { statsVer: number; researched: unknown; stats: ShipStats }
+    {
+      statsVer: number;
+      researched: unknown;
+      designVer: number;
+      stats: ShipStats;
+    }
   >();
   private fleetsByOwner: number[][] = [];
   private fleetsByZone = new Map<number, number[]>();
@@ -773,6 +850,7 @@ export class WwNavy {
     dailyVoyages(this, id, day); // C (pre-flight §0-8)
     dailyInvasions(this, id, day, tick); // I
     dailyNavyXp(this, id, day); // N2
+    noteNavalMissions(this, id); // P6 hook (D, plan decision 12)
     // P5 plan decision 7: the AI runs a country no human controls now.
     if (
       !this.ww.isHumanControlled(id) ||
@@ -886,6 +964,7 @@ export class WwNavy {
     gen: number,
     port: number,
     nameIdx?: number,
+    design = 0,
   ): number {
     const cn = this.country(owner)!;
     let f: Fleet | undefined;
@@ -904,7 +983,13 @@ export class WwNavy {
       f = this.newFleet(owner, port, 0);
       f.newShips = true;
     }
-    const id = this.addShip(f, cls, gen, nameIdx ?? this.nextName(cn, cls));
+    const id = this.addShip(
+      f,
+      cls,
+      gen,
+      nameIdx ?? this.nextName(cn, cls),
+      design,
+    );
     cn.commissionedToday.push(id);
     return id;
   }
@@ -968,10 +1053,18 @@ export class WwNavy {
   }
 
   /** Adds a ship at full HP and org to `f`; returns its id. */
-  addShip(f: Fleet, cls: ShipClass, gen: number, nameIdx: number): number {
+  addShip(
+    f: Fleet,
+    cls: ShipClass,
+    gen: number,
+    nameIdx: number,
+    design = 0,
+  ): number {
     const id = this.nextShipId++;
     const ci = SHIP_CLASSES.indexOf(cls);
     const r = this.ships.add(id, f.owner, ci, gen, f.id, 0, 0, nameIdx);
+    // P6 (plan decision 8): a design line launches its design.
+    this.ships.design[r] = design;
     const s = this.shipStatsOf(r);
     this.ships.hp[r] = s.hpMilli;
     this.ships.org[r] = s.orgMilli;
@@ -1168,30 +1261,48 @@ export class WwNavy {
    */
   shipStatsOf(row: number): ShipStats {
     const t = this.ships;
-    return this.statsFor(t.owner[row], SHIP_CLASSES[t.cls[row]], t.gen[row]);
+    return this.statsFor(
+      t.owner[row],
+      SHIP_CLASSES[t.cls[row]],
+      t.gen[row],
+      t.design[row],
+    );
   }
 
-  /** shipStats of (owner, class, generation), memoised like shipStatsOf. */
-  statsFor(owner: number, cls: ShipClass, gen: number): ShipStats {
+  /**
+   * shipStats of (owner, class, generation), memoised like shipStatsOf.
+   * P6 (plan decision 8, pre-flight §A6): with a design slot, the design's
+   * modifiers over it (lane E's shipDesignOf), the memo keyed by the slot
+   * and the owner's design version too.
+   */
+  statsFor(owner: number, cls: ShipClass, gen: number, design = 0): ShipStats {
     const ce = this.econ.country(owner);
-    const key = owner * 64 + SHIP_CLASSES.indexOf(cls) * 8 + gen;
+    const key =
+      (owner * 64 + SHIP_CLASSES.indexOf(cls) * 8 + gen) * 32 + design;
+    const dv = design === 0 ? 0 : this.ww.depth.designVersion(owner);
     const hit = this.shipStatsMemo.get(key);
     if (
       ce !== null &&
       hit !== undefined &&
       hit.statsVer === ce.statsVer &&
-      hit.researched === ce.researched
+      hit.researched === ce.researched &&
+      hit.designVer === dv
     ) {
       return hit.stats;
     }
-    const stats =
+    const base =
       ce === null
         ? shipStats(cls, gen, emptyStats(), new Set())
         : shipStats(cls, gen, ce.stats, ce.researched);
+    const stats =
+      design === 0
+        ? base
+        : applyShipDesign(base, shipDesignOf(this.ww.depth, owner, design));
     if (ce !== null) {
       this.shipStatsMemo.set(key, {
         statsVer: ce.statsVer,
         researched: ce.researched,
+        designVer: dv,
         stats,
       });
     }
@@ -1767,7 +1878,7 @@ export class WwNavy {
       smallID: id,
       lines: ce.navalLines.map((l) => ({
         id: l.id,
-        cls: l.cls >= SHIP_CLASSES.length ? "convoy" : SHIP_CLASSES[l.cls],
+        cls: navalLineClass(l.cls),
         gen: l.gen,
         docks: l.docks,
         activeDocks: l.activeDocks,
@@ -1777,7 +1888,8 @@ export class WwNavy {
         port: l.port,
         nextName:
           l.names[0] ??
-          (l.cls >= SHIP_CLASSES.length ||
+          (navalLineClass(l.cls) === "convoy" ||
+          navalLineClass(l.cls) === "floating_harbor" ||
           SHIP_CLASSES[l.cls] === "dd" ||
           SHIP_CLASSES[l.cls] === "ss"
             ? 0
@@ -2317,7 +2429,12 @@ export function dailySeaRegion(
   spotRegion(navy, sr, day); // N1
   supremacyRegion(navy, sr); // N1
   convoyWar(navy, sr, day); // C
+  // P6 hook (W2, plan decision 3): mines laid, swept, struck.
+  navy.ww.depth.seaRegionDay(sr, day);
   engageRegion(navy, sr, tick); // N1 → N2
+  // P6 hook (D, plan decision 12): ships in battle here today feed their
+  // owners' naval doctrine tracks once a day (ShipTable.tallyDay).
+  noteNavalBattles(navy, sr, day);
   // Port strikes of the fleets in the region, zone by zone, then by id.
   const strikers: Fleet[] = [];
   for (const z of navy.scenario.sr(sr)?.members ?? NO_IDS) {
@@ -2336,3 +2453,36 @@ export function dailySeaRegion(
 }
 
 const NO_IDS: readonly number[] = [];
+
+/** P6 (plan decision 12): each ship of a fleet in battle in the region, once a day. */
+function noteNavalBattles(navy: WwNavy, sr: number, day: number): void {
+  const t = navy.ships;
+  for (const z of navy.scenario.sr(sr)?.members ?? NO_IDS) {
+    for (const id of navy.fleetsIn(z)) {
+      const f = navy.fleets.get(id);
+      if (f === undefined || f.state !== FST.battle) continue;
+      for (const sid of f.ships) {
+        const r = t.rowOf(sid);
+        if (r < 0 || t.tallyDay[r] === day) continue;
+        t.tallyDay[r] = day;
+        navy.ww.depth.noteNavalCombat(t.owner[r], t.cls[r], true);
+      }
+    }
+  }
+}
+
+/** P6 (plan decision 12): the ships of the country's fleets on a mission, the country's day. */
+function noteNavalMissions(navy: WwNavy, id: number): void {
+  const t = navy.ships;
+  const perCls = new Array<number>(SHIP_CLASSES.length).fill(0);
+  for (const f of navy.fleetsOf(id)) {
+    if (f.state !== FST.onStation) continue;
+    for (const sid of f.ships) {
+      const r = t.rowOf(sid);
+      if (r >= 0) perCls[t.cls[r]]++;
+    }
+  }
+  perCls.forEach((n, cls) => {
+    if (n > 0) navy.ww.depth.noteNavalCombat(id, cls, false, n);
+  });
+}

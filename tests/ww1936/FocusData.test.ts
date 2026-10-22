@@ -1,14 +1,31 @@
 // World War 1936 P3 (spec §11, §24.2): the focus trees' data. Passes on
 // empty tables; the content lanes fill them (plan Task 1 Step 15).
 import {
+  FOCUS_PACKS,
+  FocusPack,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import {
   WwConditionSchema,
   WwEffectSchema,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { FOCUS_TREES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { PACK_COUNTRIES } from "@openfront/engine-lib/ww1936/content/packs";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { FOCUS_ICONS } from "@openfront/engine-lib/ww1936/content/types";
 import fs from "fs";
-import { CONTENT_TARGETS, hasKey } from "./contentUtil";
+import { CONTENT_TARGETS, hasKey, PACK_TARGETS } from "./contentUtil";
+
+/** P6 (pre-flight §0-1): a regional pack's tree. */
+const isPack = (t: string): t is FocusPack =>
+  (FOCUS_PACKS as readonly string[]).includes(t);
+/** P6: a pack focus may carry the pack's prefix or one of its countries' (rou_, fin_ …). */
+const packPrefixes = (t: FocusPack) => [
+  `${t}_`,
+  ...PACK_COUNTRIES[t].map((c) => `${c.toLowerCase()}_`),
+];
+/** P6: a pack tree also reaches the generic focuses it keeps. */
+const sameTreeOk = (from: string, to: string) =>
+  from === to || (isPack(from) && to === "generic");
 
 /** Task 7 draws the icons; until it merges a missing file is fine. */
 const ICONS_PENDING = false;
@@ -38,8 +55,25 @@ describe("focus data", () => {
 
   it("ids carry their tree prefix", () => {
     for (const f of focuses) {
-      const prefix = f.tree === "generic" ? "gen_" : `${f.tree.toLowerCase()}_`;
-      expect(f.id.startsWith(prefix), f.id).toBe(true);
+      const t = f.tree;
+      const prefixes = isPack(t)
+        ? packPrefixes(t)
+        : [t === "generic" ? "gen_" : `${t.toLowerCase()}_`];
+      expect(
+        prefixes.some((p) => f.id.startsWith(p)),
+        f.id,
+      ).toBe(true);
+    }
+  });
+
+  it("a pack focus names only its pack's countries", () => {
+    for (const f of focuses) {
+      if (f.countries === undefined) continue;
+      expect(isPack(f.tree), f.id).toBe(true);
+      if (!isPack(f.tree)) continue;
+      for (const c of f.countries) {
+        expect(PACK_COUNTRIES[f.tree], `${f.id}: ${c}`).toContain(c);
+      }
     }
   });
 
@@ -48,7 +82,11 @@ describe("focus data", () => {
       const seen = new Set<string>();
       for (const i of treeFocuses[t]) {
         const f = focuses[i];
-        expect(f.x >= 0 && f.x <= 19 && f.y >= 0 && f.y <= 14, f.id).toBe(true);
+        // P6 (spec §11.1): a pack's own focuses in columns 20..35.
+        const [x0, x1] = isPack(f.tree) ? [20, 35] : [0, 19];
+        expect(f.x >= x0 && f.x <= x1 && f.y >= 0 && f.y <= 14, f.id).toBe(
+          true,
+        );
         expect(seen.has(`${f.x},${f.y}`), f.id).toBe(false);
         seen.add(`${f.x},${f.y}`);
       }
@@ -61,7 +99,7 @@ describe("focus data", () => {
         for (const p of group) {
           const q = focuses[focusIdx.get(p) ?? -1];
           expect(q, `${f.id} needs ${p}`).toBeDefined();
-          expect(q.tree).toBe(f.tree);
+          expect(sameTreeOk(f.tree, q.tree), `${f.id} needs ${p}`).toBe(true);
           // Strictly above: no cycle can form.
           expect(q.y, `${f.id} needs ${p}`).toBeLessThan(f.y);
         }
@@ -75,7 +113,10 @@ describe("focus data", () => {
         const q = focuses[focusIdx.get(x) ?? -1];
         expect(q, `${f.id} excludes ${x}`).toBeDefined();
         expect(q.exclusive ?? [], `${x} excludes ${f.id}`).toContain(f.id);
-        expect(q.tree).toBe(f.tree);
+        expect(
+          sameTreeOk(f.tree, q.tree) || sameTreeOk(q.tree, f.tree),
+          `${f.id} / ${x}`,
+        ).toBe(true);
         expect((f.prereq ?? []).flat()).not.toContain(x);
       }
     }
@@ -84,6 +125,12 @@ describe("focus data", () => {
   it("days are 35, 70 or 105 and the trees have their sizes", () => {
     for (const f of focuses) expect([35, 70, 105]).toContain(f.days);
     for (const t of FOCUS_TREES) {
+      if (isPack(t)) {
+        // P6: a pack's own focuses (its tree adds the generic ones it keeps).
+        const own = focuses.filter((f) => f.tree === t).length;
+        expect([0, PACK_TARGETS[t]], t).toContain(own);
+        continue;
+      }
       expect([0, CONTENT_TARGETS[t]], t).toContain(treeFocuses[t].length);
     }
   });
@@ -95,10 +142,16 @@ describe("focus data", () => {
       const seen = new Set<string>();
       for (const id of path) {
         const f = focuses[focusIdx.get(id) ?? -1];
-        expect(f?.tree, `${t} path ${id}`).toBe(t);
+        expect(
+          f !== undefined && sameTreeOk(t, f.tree),
+          `${t} path ${id}`,
+        ).toBe(true);
         for (const group of f.prereq ?? []) {
           const met = group.some(
-            (p) => seen.has(p) || (t === "generic" && p.startsWith("gen_pol_")),
+            (p) =>
+              seen.has(p) ||
+              ((t === "generic" || isPack(t)) && p.startsWith("gen_pol_")) ||
+              CONTENT.replacedIn[t].has(p),
           );
           expect(met, `${id} before its prerequisite`).toBe(true);
         }

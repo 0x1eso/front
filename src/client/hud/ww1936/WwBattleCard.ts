@@ -9,6 +9,7 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { fogModelOf } from "./FogModel";
 import {
   battleCard,
   BattleCardData,
@@ -230,6 +231,11 @@ export class WwBattleCard extends LitElement implements Controller {
     mods: ModLine[],
   ): TemplateResult {
     const tag = this.game.worldWarScenario()?.tagOfSmallId(smallID);
+    // P6 (plan decision 19): an enemy side's numbers through the fog.
+    const fog = fogModelOf(this.game);
+    const enemy = smallID !== (this.game.myPlayer()?.smallID() ?? 0);
+    const count = (n: number) =>
+      fog.fogOff() || !enemy ? n : fog.countLabel(smallID, n);
     const bar = (pm: number, color: string) =>
       html`<div class="h-1.5 rounded bg-white/10">
         <div
@@ -254,9 +260,13 @@ export class WwBattleCard extends LitElement implements Controller {
               >`}
       </div>
       <div class="flex flex-wrap gap-x-2 text-white/70 tabular-nums">
-        <span>${translateText("ww1936.land.battle_line", { n: line })}</span>
         <span
-          >${translateText("ww1936.land.battle_reserve", { n: reserve })}</span
+          >${translateText("ww1936.land.battle_line", { n: count(line) })}</span
+        >
+        <span
+          >${translateText("ww1936.land.battle_reserve", {
+            n: count(reserve),
+          })}</span
         >
         <span data-ww-battle-width
           >${translateText("ww1936.land.battle_width", {

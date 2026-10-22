@@ -385,7 +385,8 @@ describe("the world1936 economy (P1 spec §3)", () => {
     }
     for (const tag of SCENARIO_TAGS) {
       const rs = regionsOf(tag);
-      RESOURCE_IDS.forEach((res, k) => {
+      // P1's six (P6's uranium and coal come from the v5 region fields).
+      RESOURCE_IDS.slice(0, 6).forEach((res, k) => {
         expect(
           total(rs, (r) => r.res[k]),
           `${tag} ${res}`,

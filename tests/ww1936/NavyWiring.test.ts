@@ -181,6 +181,7 @@ describe("navy wiring", () => {
       fill: 0,
       lastOutput: 0,
       names: [],
+      design: 0,
     });
     const [gbrShip] = ww.navy.fleets.get(
       ww.navy.createFleet(TAG_ID.GBR, REGION.malta, [["dd", 1, 1]]),
@@ -370,6 +371,7 @@ describe("navy wiring", () => {
       fill: 0,
       lastOutput: 0,
       names: [3, 1],
+      design: 0,
     });
     const [gbrFleet] = navy.fleetsOf(TAG_ID.GBR);
     const [itaFleet] = navy.fleetsOf(TAG_ID.ITA);

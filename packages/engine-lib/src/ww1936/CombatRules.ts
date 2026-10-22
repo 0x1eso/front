@@ -1,6 +1,7 @@
 // World War 1936 P2: the combat rules (P2 spec §9.2–§9.4, §9.9). The
 // engine's battle lane, the AI, the attack preview and the battle card call
 // the same pure integer functions.
+import { FM_TRAITS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BattleCtx,
   BattlePrediction,
@@ -8,23 +9,38 @@ import {
   LandTerrain,
   ModLine,
   SideSum,
+  TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
   TPL_ARMOR_MAJOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
+  TPL_FLAIL,
+  TPL_FLAME,
   TPL_INFANTRY_DIV,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
   TPL_MOTOR_ANY,
   TPL_MOUNTAIN_ANY,
   TPL_MOUNTAIN_MAJOR,
+  TPL_PARA_ANY,
   TPL_RECON,
+  TPL_TD_DEFEND,
   traitBit,
   Weather,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import type {
+  WwStatKey,
+  WwStats,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { FM_TRAIT_STATS } from "./CommandRules";
 import { WEATHER } from "./Weather";
 import { TechTotals } from "./WwTechs";
+
+/** A P6 stat of a TechTotals that is the country's WwStats (0 when absent: a neutral tech). */
+function stat(t: TechTotals, k: WwStatKey): number {
+  return (t as unknown as Partial<WwStats>)[k] ?? 0;
+}
 
 export interface TerrainDef {
   width: number;
@@ -233,6 +249,32 @@ export interface ModInput {
   coastalFortBp: number;
   /** Spec §11.4, a defender: the enemy's shore bombardment. */
   shoreBp: number;
+  // P6 (pre-flight §0-2): always present, flat, O(1) reads of values the
+  // depth systems store on their days, so modsOf's cache stays exact and
+  // the battle card shows the engine's lines.
+  /** Spec §4.3: the army group's field marshal (0s when none): attack and defence skill, FM_TRAITS mask. */
+  fmAtt: number;
+  fmDef: number;
+  fmTraits: number;
+  /** Spec §4.4, §4.5, §8.7: officer corps, medal and decryption of the army, bp. */
+  cmdAttBp: number;
+  cmdDefBp: number;
+  /** The enemy's cut of this division's readiness (recon, trickster), bp ≤ 0. */
+  enemyPlanCutBp: number;
+  /** Spec §16.5: railway guns' fort level cut (attacker), levels. */
+  fortCut: number;
+  /** Spec §4.2 guerrilla_fighter on the army group: supply penalties halved. */
+  halfSupply: boolean;
+  /** TPL_FLAME … TPL_TD_DEFEND of the designs the division holds (DivisionStats.designFlags). */
+  designFlags: number;
+  /** The share of its soft attack its artillery carries, ‰ (artillery_officer). */
+  artSoftPm: number;
+  /**
+   * Review L4 (preflight §D "fm_plan"): the part of the army's readiness
+   * above the country's cap that its field marshal's planMaxBp allows, bp
+   * ≥ 0 (planBp holds the rest). Shown as its own line, "fm_plan".
+   */
+  fmPlanBp: number;
 }
 
 export interface ModResult {
@@ -277,7 +319,33 @@ export function divisionMods(i: ModInput): ModResult {
   if (has(i.traits, TB("offensive_doctrine"))) trait += 500;
   if (has(i.traits, TB("desert_fox")) && i.land === "desert") trait += 1000;
   if (has(i.traits, TB("mountaineer")) && hillsOrMountain) trait += 1000;
+  // P6 (spec §4.2): the new general traits.
+  const forest = i.land === "forest" || i.land === "jungle";
+  if (has(i.traits, TB("forest_expert")) && forest) trait += 1000;
+  if (has(i.traits, TB("urban_expert")) && i.land === "urban") trait += 1000;
+  if (has(i.traits, TB("swamp_expert")) && i.land === "marsh") trait += 1000;
+  if (has(i.traits, TB("infantry_expert")) && has(i.flags, TPL_INFANTRY_DIV)) {
+    trait += 1000;
+  }
+  if (has(i.traits, TB("armor_expert")) && has(i.flags, TPL_ARMOR_ANY)) {
+    trait += 1000;
+  }
+  // (An approximation: the share of the division's soft attack its
+  // artillery carries, in bp, on the whole attack line.)
+  if (has(i.traits, TB("artillery_officer"))) trait += i.artSoftPm;
+  if (
+    has(i.traits, TB("commando")) &&
+    has(i.flags, TPL_MOUNTAIN_MAJOR | TPL_MARINE_MAJOR | TPL_PARA_ANY)
+  ) {
+    trait += 1000;
+  }
+  if (has(i.traits, TB("ambusher")) && !i.attacking) trait += 1500;
   push(aAdd, "trait", trait);
+  // P6 (spec §4.3, plan decision 14): the field marshal's half skill and
+  // traits, the officer corps / medal / decryption line.
+  push(aAdd, "field_marshal", i.fmAtt * 250);
+  push(aAdd, "fm_trait", fmTraitBp(i.fmTraits, "attackBp"));
+  push(aAdd, "command", i.cmdAttBp);
   push(
     aAdd,
     "doctrine",
@@ -285,7 +353,16 @@ export function divisionMods(i: ModInput): ModResult {
       (i.land === "desert" ? i.tech.desertAttackPct * 100 : 0),
   );
   push(aAdd, "exp", expBp(i.exp));
-  push(aAdd, "plan", i.planBp);
+  // P6: the enemy's recon and trickster cut the readiness (never below 0);
+  // the field marshal's part above the country's cap is its own line.
+  const planTotal = Math.max(
+    0,
+    i.planBp + i.fmPlanBp + Math.min(0, i.enemyPlanCutBp),
+  );
+  const fmPlanBp = Math.max(0, planTotal - i.planBp);
+  const planBp = planTotal - fmPlanBp;
+  push(aAdd, "plan", planBp);
+  push(aAdd, "fm_plan", fmPlanBp);
   push(aAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
   push(
     aAdd,
@@ -306,25 +383,46 @@ export function divisionMods(i: ModInput): ModResult {
       }
     }
     push(aCut, "terrain", TERRAIN[i.land].attackBp);
+    // P6 (spec §4.2, §5.2.2, §21.2): engineer officers, amphibious and
+    // flail tanks, the river and fort penalty cuts.
+    const engOfficer = has(i.traits, TB("engineer_officer")) ? 85 : 100;
+    const amph = has(i.designFlags, TPL_AMPHIBIOUS);
     if (i.river > 0) {
       const n =
         (has(i.flags, TPL_ENGINEER) ? 1 : 0) +
-        (has(i.flags, TPL_MARINE_ANY) ? 1 : 0) +
+        (has(i.flags, TPL_MARINE_ANY) || amph ? 1 : 0) +
         (has(i.traits, TB("river_crosser")) ? 1 : 0);
-      push(aCut, "river", halve(RIVER_ATTACK_BP[i.river], n));
-    }
-    if (i.strait) {
-      push(aCut, "strait", has(i.flags, TPL_MARINE_ANY) ? -2500 : -5000);
-    }
-    if (i.fort > 0) {
       push(
         aCut,
-        "fort",
-        -Math.floor(
-          (-FORT_ATTACK_BP * i.fort * (has(i.flags, TPL_ENGINEER) ? 75 : 100)) /
-            100,
+        "river",
+        cutBy(
+          cutBy(
+            halve(RIVER_ATTACK_BP[i.river], n),
+            100 - stat(i.tech, "riverPenaltyCutPct"),
+          ),
+          engOfficer,
         ),
       );
+    }
+    if (i.strait) {
+      push(
+        aCut,
+        "strait",
+        has(i.flags, TPL_MARINE_ANY) || amph ? -2500 : -5000,
+      );
+    }
+    const fort = Math.max(0, i.fort - i.fortCut);
+    if (fort > 0) {
+      let f = -Math.floor(
+        (-FORT_ATTACK_BP * fort * (has(i.flags, TPL_ENGINEER) ? 75 : 100)) /
+          100,
+      );
+      if (has(i.designFlags, TPL_FLAIL)) f = cutBy(f, 75);
+      f = cutBy(f, 100 - stat(i.tech, "fortPenaltyCutPct"));
+      push(aCut, "fort", cutBy(f, engOfficer));
+    }
+    if (has(i.designFlags, TPL_FLAME) && (i.land === "urban" || fort > 0)) {
+      push(aAdd, "flame", 1000);
     }
     let w = WEATHER[i.weather].attackBp;
     if (i.weather === "snow" || i.weather === "frozen") {
@@ -337,8 +435,16 @@ export function divisionMods(i: ModInput): ModResult {
     if (i.weather === "heat" && has(i.traits, TB("desert_fox"))) w = 0;
     push(aCut, "weather", w);
   }
-  push(aCut, "excess", i.excessBp);
-  const supplyCut = -(1000 - Math.max(0, Math.min(1000, i.supplyPm))) * 5;
+  // P6 (spec §21.2, review L2): excessWidthCutPct shrinks the excess-width penalty.
+  push(
+    aCut,
+    "excess",
+    cutBy(i.excessBp, 100 - stat(i.tech, "excessWidthCutPct")),
+  );
+  let supplyCut = -(1000 - Math.max(0, Math.min(1000, i.supplyPm))) * 5;
+  // P6 (spec §4.2 guerrilla_fighter): supply penalties halved. One source:
+  // lane D's commandLandMods sets halfSupply for the trait.
+  if (i.halfSupply) supplyCut = halve(supplyCut, 1);
   push(aCut, "supply", supplyCut);
   push(aCut, "encircled", i.encircled ? -5000 : 0);
   // P4 (spec §14.6, §15.4, §11.4).
@@ -355,7 +461,31 @@ export function divisionMods(i: ModInput): ModResult {
     dTrait += 500;
   }
   if (has(i.traits, TB("defensive_doctrine"))) dTrait += 1000;
+  // P6 (spec §4.2).
+  if (
+    has(i.traits, TB("forest_expert")) &&
+    (i.land === "forest" || i.land === "jungle")
+  ) {
+    dTrait += 500;
+  }
+  if (has(i.traits, TB("urban_expert")) && i.land === "urban") dTrait += 1000;
+  if (has(i.traits, TB("infantry_expert")) && has(i.flags, TPL_INFANTRY_DIV)) {
+    dTrait += 1000;
+  }
+  if (
+    has(i.traits, TB("armor_expert")) &&
+    i.attacking &&
+    has(i.flags, TPL_ARMOR_ANY)
+  ) {
+    dTrait += 1000;
+  }
   push(dAdd, "trait", dTrait);
+  push(dAdd, "field_marshal", i.fmDef * 250);
+  push(dAdd, "fm_trait", fmTraitBp(i.fmTraits, "defenseBp"));
+  push(dAdd, "command", i.cmdDefBp);
+  if (!i.attacking && has(i.designFlags, TPL_TD_DEFEND)) {
+    push(dAdd, "tank_destroyer", 1000);
+  }
   if (i.attacking) {
     const mech = has(i.flags, TPL_ARMOR_ANY | TPL_MOTOR_ANY)
       ? i.tech.mechBreakPct
@@ -369,11 +499,23 @@ export function divisionMods(i: ModInput): ModResult {
         (i.land === "forest" ? i.tech.forestDefensePct * 100 : 0),
     );
     push(dAdd, "entrench", i.entrench * 300);
+    // P6 (spec §21.2): the fort's defence per level (its own region's fort).
+    push(dAdd, "fort_def", i.fort * stat(i.tech, "fortDefPerLevelBp"));
   }
   push(dAdd, "exp", expBp(i.exp));
-  push(dAdd, "plan", i.planBp);
+  push(dAdd, "plan", planBp);
+  push(dAdd, "fm_plan", fmPlanBp);
   push(dAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
-  push(dAdd, "engineer", has(i.flags, TPL_ENGINEER) ? 500 : 0);
+  // P6 (spec §21.2): engineerMulPct scales the engineers' line.
+  push(
+    dAdd,
+    "engineer",
+    has(i.flags, TPL_ENGINEER)
+      ? Math.floor(
+          (500 * Math.max(0, 100 + stat(i.tech, "engineerMulPct"))) / 100,
+        )
+      : 0,
+  );
   push(
     dAdd,
     "mountain",
@@ -393,6 +535,21 @@ export function divisionMods(i: ModInput): ModResult {
     attackLines: [...aAdd, ...aCut],
     defenseLines: [...dAdd, ...dCut],
   };
+}
+
+/** P6: a negative bp kept at pct% (toward zero). */
+function cutBy(bp: number, pct: number): number {
+  return -Math.floor((-bp * Math.max(0, pct)) / 100);
+}
+
+/** P6 (spec §4.2): the field marshal traits' attack or defence bp. */
+export function fmTraitBp(mask: number, k: "attackBp" | "defenseBp"): number {
+  if (mask === 0) return 0;
+  let bp = 0;
+  for (let b = 0; b < FM_TRAITS.length; b++) {
+    if ((mask & (1 << b)) !== 0) bp += FM_TRAIT_STATS[FM_TRAITS[b]][k] ?? 0;
+  }
+  return bp;
 }
 
 /** Readiness cap (spec §8.3): 30% (+10%p battleplan_1, + P3 planMaxBp). */

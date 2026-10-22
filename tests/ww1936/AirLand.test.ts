@@ -14,6 +14,7 @@ import {
   zoneAirPenaltyBp,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { GRAND_DOCTRINE_STATS } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import {
   battleMods,
   joinBattle,
@@ -24,6 +25,7 @@ import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import {
   clearLand,
   clearStartSetup,
+  grantDoctrineStats,
   HUMAN,
   placeArmy,
   stepTo,
@@ -67,7 +69,11 @@ async function germanSky(support = false) {
   }
   ww.economy.country(deu)!.stock[equipKey("fighter", 1)] = 200;
   if (support) {
+    // P6 plan decision 25: the doctrine's stat key (battlefield_support_1
+    // is retired and adds nothing).
     ww.economy.country(deu)!.addTech("battlefield_support_1");
+    expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(0);
+    grantDoctrineStats(ww, deu, GRAND_DOCTRINE_STATS.gd_battlefield_support[0]);
     expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(5);
   }
   expect(

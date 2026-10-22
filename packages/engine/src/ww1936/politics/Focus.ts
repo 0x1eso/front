@@ -8,6 +8,11 @@ import type {
   FocusId,
   WwFocusCard,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  inTree,
+  replacedInTree,
+  treePosIn,
+} from "@openfront/engine-lib/ww1936/content/registry";
 import { aiPickFocus } from "./AiFocus";
 import { evalCondition, failingLeaves } from "./Conditions";
 import { applyEffects, EffectCtx, makeCtx } from "./Dispatch";
@@ -28,12 +33,11 @@ export function focusFinished(
   c: CountryPol,
   id: FocusId,
 ): boolean {
-  const pos = pol.content.treePos.get(id);
-  return (
-    pos !== undefined &&
-    focusDef(pol, id)?.tree === c.tree &&
-    c.focusState[pos] !== 0
-  );
+  // P6 (pre-flight §0-1): a generic focus the country's pack replaces
+  // counts as bypassed; the position is the one in the country's tree.
+  if (replacedInTree(pol.content, c.tree, id)) return true;
+  const pos = treePosIn(pol.content, c.tree, id);
+  return pos !== undefined && c.focusState[pos] !== 0;
 }
 
 /** Done with its effects (a bypassed focus does not block its exclusive partners). */
@@ -42,12 +46,8 @@ export function focusCompleted(
   c: CountryPol,
   id: FocusId,
 ): boolean {
-  const pos = pol.content.treePos.get(id);
-  return (
-    pos !== undefined &&
-    focusDef(pol, id)?.tree === c.tree &&
-    c.focusState[pos] === 1
-  );
+  const pos = treePosIn(pol.content, c.tree, id);
+  return pos !== undefined && c.focusState[pos] === 1;
 }
 
 /**
@@ -65,7 +65,14 @@ export function focusBlock(
 ): WwOrderBlock | null {
   const c = pol.country(id);
   const f = focusDef(pol, focus);
-  if (c === null || f === undefined || f.tree !== c.tree) {
+  // P6 (pre-flight §0-1): in the country's tree (a pack's: the generic
+  // focuses it keeps and its own), and for its tag when the focus names some.
+  if (
+    c === null ||
+    f === undefined ||
+    !inTree(pol.content, c.tree, focus) ||
+    (f.countries !== undefined && !f.countries.includes(c.tag))
+  ) {
     return "focus_unavailable";
   }
   if (focusFinished(pol, c, focus)) return "focus_done";
@@ -101,7 +108,7 @@ function markFinished(
   f: FocusDef,
   state: 1 | 2,
 ): void {
-  c.focusState[pol.content.treePos.get(f.id)!] = state;
+  c.focusState[treePosIn(pol.content, c.tree, f.id)!] = state;
   if (state === 1) c.focusesDone++;
   c.partial.delete(f.id);
   pol.markCountry(c.smallID);

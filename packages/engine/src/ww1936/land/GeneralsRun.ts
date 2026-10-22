@@ -12,6 +12,7 @@ import {
   WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { planMaxBp } from "@openfront/engine-lib/ww1936/CombatRules";
+import { traitSlots } from "@openfront/engine-lib/ww1936/CommandRules";
 import {
   GeneralDef,
   GENERALS,
@@ -27,6 +28,7 @@ export const GENERAL_SKILL_MAX = 5;
 export const GENERAL_LEVEL_MAX = 5;
 /** Battle days on one kind of ground that teach its trait (spec §6.2). */
 export const TERRAIN_TRAIT_DAYS = 60;
+/** P2's cap; P6 (spec §4.2): CommandRules.traitSlots(level) — 3/4/4/5/5. */
 export const GENERAL_TRAITS_MAX = 3;
 /**
  * Task 11: a general's experience is kept in hundredths (GeneralState.xp),
@@ -34,12 +36,19 @@ export const GENERAL_TRAITS_MAX = 3;
  * generalXpPct)%); the screens get whole points (WwLand.takeData).
  */
 export const GENERAL_XP_CENTI = 100;
-/** GeneralState.terrainDays order: snow or frost, desert, hills or mountains, attacks across a river. */
+/**
+ * GeneralState.terrainDays order: snow or frost, desert, hills or
+ * mountains, attacks across a river; P6 (spec §4.2): forest or jungle,
+ * urban, marsh.
+ */
 export const TERRAIN_TRAITS: readonly GeneralTrait[] = [
   "winter_specialist",
   "desert_fox",
   "mountaineer",
   "river_crosser",
+  "forest_expert",
+  "urban_expert",
+  "swamp_expert",
 ];
 
 /** The roster entry of a named general; undefined for a titled one. */
@@ -197,7 +206,7 @@ export function dailyGenerals(
     let fight = false;
     let att = false;
     let dfn = false;
-    const ground = [false, false, false, false];
+    const ground = [false, false, false, false, false, false, false];
     let rows = 0;
     let shortRows = 0;
     for (const id of a.divisions) {
@@ -217,6 +226,10 @@ export function dailyGenerals(
       const terrain = sc.landOf(b);
       if (terrain === "desert") ground[1] = true;
       if (terrain === "hills" || terrain === "mountain") ground[2] = true;
+      // P6 (spec §4.2): forest or jungle, urban, marsh.
+      if (terrain === "forest" || terrain === "jungle") ground[4] = true;
+      if (terrain === "urban") ground[5] = true;
+      if (terrain === "marsh") ground[6] = true;
       if (role === ROLE_ATTACK) {
         const e = sc.edgeBetween(t.region[r], b);
         if (e >= 0 && sc.edge(e).river > 0) ground[3] = true;
@@ -230,7 +243,8 @@ export function dailyGenerals(
     const preparing =
       (a.order.kind === "front" || a.order.kind === "plan") &&
       !a.order.executing &&
-      a.planBp < planMaxBp(ce.stats);
+      a.planBp <
+        planMaxBp(ce.stats) + land.depthHooks.armyMods(a.owner, a.id).planMaxBp;
     if (att) g.use[0]++;
     if (dfn) g.use[1]++;
     if (preparing) g.use[2]++;
@@ -238,7 +252,7 @@ export function dailyGenerals(
     if (fight) {
       g.xp += Math.max(1, 100 + ce.stats.generalXpPct);
       ground.forEach((on, i) => {
-        if (on) g.terrainDays[i]++;
+        if (on) g.terrainDays[i] = (g.terrainDays[i] ?? 0) + 1;
       });
     }
     levelUp(g);
@@ -265,14 +279,17 @@ function levelUp(g: GeneralState): void {
   else if (best === 3) g.log++;
 }
 
-/** Spec §6.2: 60 battle days on a ground teach its trait, three traits at most. */
+/**
+ * Spec §6.2: 60 battle days on a ground teach its trait; P6 (spec §4.2):
+ * as many traits as the level's slots (traitSlots), not three.
+ */
 function learnTraits(g: GeneralState): void {
   TERRAIN_TRAITS.forEach((trait, i) => {
     const bit = traitBit(trait);
     if (
-      g.terrainDays[i] >= TERRAIN_TRAIT_DAYS &&
+      (g.terrainDays[i] ?? 0) >= TERRAIN_TRAIT_DAYS &&
       (g.traits & bit) === 0 &&
-      traitCount(g.traits) < GENERAL_TRAITS_MAX
+      traitCount(g.traits) < traitSlots(g.level)
     ) {
       g.traits |= bit;
     }

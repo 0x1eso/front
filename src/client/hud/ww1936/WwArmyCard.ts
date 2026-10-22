@@ -149,6 +149,19 @@ export const TRAIT_ICONS: Readonly<Record<GeneralTrait, string>> = {
   river_crosser: "🌊",
   logistics_wizard: "📦",
   organizer: "📋",
+  // P6 (spec §4.2).
+  forest_expert: "🌲",
+  urban_expert: "🏙",
+  swamp_expert: "🐊",
+  infantry_expert: "🎖",
+  armor_expert: "🛡",
+  artillery_officer: "💥",
+  engineer_officer: "⛏",
+  trickster: "🎭",
+  commando: "🗡",
+  guerrilla_fighter: "🌿",
+  skirmisher: "👁",
+  ambusher: "🪤",
 };
 
 const STANCE_KEYS = {

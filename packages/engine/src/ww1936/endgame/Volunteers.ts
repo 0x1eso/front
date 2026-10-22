@@ -577,7 +577,8 @@ export function sendAirVolunteers(
       air.markDeployment(d.id);
     }
   } else {
-    const d: Omit<Deployment, "id"> = {
+    // P6's per-deployment design counts, night flag and ace start neutral.
+    const d: Omit<Deployment, "id" | "dcounts" | "night" | "ace"> = {
       owner: from,
       sr: zone,
       type,

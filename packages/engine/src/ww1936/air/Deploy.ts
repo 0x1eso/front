@@ -39,7 +39,11 @@ const FLYING_STATES: ReadonlySet<number> = new Set(
   ),
 );
 
-type GroupProto = Omit<Deployment, "id" | "counts" | "base" | "lossRest">;
+// P6 hook (W2, E): the depth fields take WwAir.addDeployment's defaults.
+type GroupProto = Omit<
+  Deployment,
+  "id" | "counts" | "base" | "lossRest" | "dcounts" | "night" | "ace"
+>;
 
 const sum = (a: readonly number[]) => a.reduce((x, y) => x + y, 0);
 

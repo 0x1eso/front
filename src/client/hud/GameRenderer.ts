@@ -623,6 +623,9 @@ export function createRenderer(
       view.setOccupationMap(occupationMapSource(game));
       view.setPeaceMap(peaceMapSource(game));
     }
+    // P6 (plan Task 1 Step 17): the depth systems' view (U3, U4 draw it).
+    const wwDepth = game.wwDepth?.() ?? null;
+    if (wwDepth !== null) view.setWwDepth(wwDepth);
   }
 
   const layers: Controller[] = [

@@ -1,6 +1,7 @@
 // World War 1936 P1: production lines (spec §8): factories assigned top
 // down, resources allocated in line order (§7.3), output into the
 // stockpile, and the HOI4 efficiency rules (§8.3).
+import { MIO_FAMILIES } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   equipKey,
@@ -8,9 +9,11 @@ import {
   WW_MAX_LINE_FACTORIES,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   addLineBlockOf,
   equipmentTechBlock,
+  LineDepthCtx,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   allocateResources,
@@ -22,6 +25,15 @@ import {
   lineOutputMilli,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
+import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
+import {
+  conversionCostMilli,
+  equipCostMilli,
+  equipResources,
+  lineRetentionBp,
+} from "../depth/Designs";
+import { licenceKeys } from "../depth/Licences";
+import type { WwDepth } from "../depth/WwDepth";
 import { navalLineDemand } from "./NavalLines";
 import type { CountryEconomy, Line, WwEconomy } from "./WwEconomy";
 
@@ -43,7 +55,13 @@ export function addLine(
   gen: number,
   factories: number,
 ): WwOrderBlock | null {
-  const block = addLineBlockOf(ce.researched, ce.lines.length, type, gen);
+  const block = addLineBlockOf(
+    ce.researched,
+    ce.lines.length,
+    type,
+    gen,
+    lineDepthCtx(econ, ce),
+  );
   if (block !== null) return block;
   const line: Line = {
     id: ce.nextLineId++,
@@ -54,6 +72,7 @@ export function addLine(
     progress: 0,
     fill: 1000,
     lastOutput: 0,
+    convertFrom: -1,
   };
   ce.lines.push(line);
   return null;
@@ -69,21 +88,37 @@ export function changeLine(
 ): WwOrderBlock | null {
   const i = lineIndex(ce, lineId);
   if (i < 0) return "bad_line";
-  const block = equipmentTechBlock(ce.researched, type, gen);
+  const block = equipmentTechBlock(
+    ce.researched,
+    type,
+    gen,
+    lineDepthCtx(econ, ce),
+  );
   if (block !== null) return block;
   const line = ce.lines[i];
   const [from, fromGen] = EQUIP_KEYS[line.key];
   if (from === type && fromGen === gen) return null;
-  line.effBp = effAfterSwitch(
-    line.effBp,
-    from,
-    fromGen,
-    type,
-    gen,
-    ce.stats.retentionBp,
-  );
-  line.key = equipKey(type, gen);
+  // P6 hook (E, spec §5.5): a design's retention, else P1's rule.
+  const toKey = equipKey(type, gen);
+  const depth = econ.ww.depth as WwDepth | undefined;
+  const bp =
+    depth === undefined
+      ? -1
+      : lineRetentionBp(depth, ce.smallID, line.key, toKey);
+  line.effBp =
+    bp >= 0
+      ? Math.max(EFF_FLOOR_BP, Math.floor((line.effBp * bp) / 10_000))
+      : effAfterSwitch(
+          line.effBp,
+          from,
+          fromGen,
+          type,
+          gen,
+          ce.stats.retentionBp,
+        );
+  line.key = toKey;
   line.progress = 0;
+  line.convertFrom = -1;
   return null;
 }
 
@@ -147,17 +182,34 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
   // P4 spec §5.2: after every P1 line the naval lines, in their order
   // (lane E's demand); each naval line's fill is today's share.
   const naval = navalLineDemand(econ, ce);
+  // P6 hook (E, S, W1; plan decision 22): designs' resources per factory,
+  // and uranium and coal taken first.
+  const depth = econ.ww.depth as WwDepth | undefined;
   const alloc = allocateResources(
     available,
-    ce.lines.map((l) => ({ key: l.key, factories: l.active })),
+    ce.lines.map((l) =>
+      depth === undefined
+        ? { key: l.key, factories: l.active }
+        : {
+            key: l.key,
+            factories: l.active,
+            per: equipResources(depth, ce.smallID, l.key),
+          },
+    ),
     naval,
+    depth === undefined ? [] : depth.priorityDemand(ce.smallID),
   );
+  depth?.priorityGot(ce.smallID, alloc.preGot);
   t.used = alloc.used;
   naval.forEach((_, i) => {
     const l = ce.navalLines[i];
     if (l !== undefined) l.fill = alloc.extraFill[i];
   });
-  const outputPct = ce.law().outputPct + ce.stats.outputPct;
+  // P6 hook (W1, plan decision 22): yesterday's energy shortage.
+  const outputPct =
+    ce.law().outputPct +
+    ce.stats.outputPct +
+    (depth?.energyOutputPct(ce.smallID) ?? 0);
   const cap = effCapBp(ce.stats);
   ce.lines.forEach((line, i) => {
     line.fill = alloc.fill[i];
@@ -169,10 +221,80 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
     line.lastOutput = out;
     line.progress += out;
     const [type, gen] = EQUIP_KEYS[line.key];
-    const cost = unitCostMilli(type, gen);
-    const units = Math.floor(line.progress / cost);
-    ce.stock[line.key] += units;
-    line.progress -= units * cost;
-    line.effBp = efficiencyGrowth(line.effBp, cap);
+    // P6 hook (E): a design's cost (the stub: P1's table).
+    const cost =
+      depth === undefined
+        ? unitCostMilli(type, gen)
+        : equipCostMilli(depth, ce.smallID, line.key);
+    if (cost <= 0) {
+      line.progress = 0;
+      return;
+    }
+    // P6 hook (E, spec §5.5): a converting line rebuilds stock it takes.
+    const conv =
+      depth === undefined || line.convertFrom < 0
+        ? null
+        : conversionCostMilli(depth, ce.smallID, line.id, line.key);
+    if (conv === null) {
+      const units = Math.floor(line.progress / cost);
+      ce.stock[line.key] += units;
+      line.progress -= units * cost;
+    } else {
+      for (;;) {
+        const from = ce.stock[line.convertFrom] ?? 0;
+        const c = from > 0 ? Math.max(1, conv) : cost;
+        if (line.progress < c) break;
+        line.progress -= c;
+        if (from > 0) ce.stock[line.convertFrom]--;
+        ce.stock[line.key]++;
+      }
+    }
+    line.effBp = efficiencyGrowth(line.effBp, lineCapBp(ce, cap, type));
   });
+}
+
+/** P6 hook (M, spec §6.3): the line's MIO efficiency cap on top of the country's. */
+function lineCapBp(
+  ce: CountryEconomy,
+  cap: number,
+  type: EquipmentType,
+): number {
+  const fam = mioFamilyOf(type);
+  if (fam < 0) return cap;
+  const key = `mioEffCapBp_${MIO_FAMILIES[fam].slice(4)}` as WwStatKey;
+  const add = (ce.stats as Partial<Record<WwStatKey, number>>)[key] ?? 0;
+  return add === 0 ? cap : Math.max(EFF_FLOOR_BP, Math.min(10_000, cap + add));
+}
+
+/**
+ * P6 (plan decision 5, spec §7.1): the depth layer's word on a line's
+ * equipment — a usable design slot, licences, projects done.
+ */
+export function lineDepthCtx(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+): LineDepthCtx | undefined {
+  const depth = econ.ww.depth as WwDepth | undefined;
+  if (depth === undefined || depth.country(ce.smallID) === null) {
+    return undefined;
+  }
+  return {
+    designUsable: (type, slot) => {
+      const kind =
+        type === "tank_design"
+          ? "tank"
+          : type === "plane_design"
+            ? "plane"
+            : null;
+      if (kind === null) return false;
+      const s = depth.designSlot(ce.smallID, kind, slot);
+      return (
+        s !== null &&
+        !s.obsolete &&
+        (s.origin === "own" || s.origin === "licensed")
+      );
+    },
+    licensed: new Set(licenceKeys(depth, ce.smallID)),
+    projectsDone: depth.country(ce.smallID)?.proj.done ?? 0,
+  };
 }

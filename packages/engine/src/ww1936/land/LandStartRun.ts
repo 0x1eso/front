@@ -1,9 +1,9 @@
 // World War 1936 P2: the 1936 order of battle (P2 spec §4.5, §4.6, §6.4,
 // plan decision 14). Runs once, from WwLand.start after economy.start.
-import { EQUIPMENT_TYPES } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_SLOTS,
   idleOrder,
+  TERRAIN_DAY_SLOTS,
   WW_MAX_ARMY_DIVISIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { startArmy } from "@openfront/engine-lib/ww1936/EconomyStart";
@@ -50,7 +50,10 @@ export function newGeneralState(rosterIndex: number): GeneralState {
     level: 1,
     army: 0,
     use: [0, 0, 0, 0],
-    terrainDays: [0, 0, 0, 0],
+    // P6: forest or jungle, urban and marsh after P2's four.
+    terrainDays: new Array<number>(TERRAIN_DAY_SLOTS).fill(0),
+    fm: false,
+    fmTraits: 0,
   };
 }
 
@@ -72,7 +75,10 @@ export function newTitledGeneralState(
     level: 1,
     army: 0,
     use: [0, 0, 0, 0],
-    terrainDays: [0, 0, 0, 0],
+    // P6: forest or jungle, urban and marsh after P2's four.
+    terrainDays: new Array<number>(TERRAIN_DAY_SLOTS).fill(0),
+    fm: false,
+    fmTraits: 0,
   };
 }
 
@@ -112,8 +118,9 @@ export function fieldDivision(
   );
   if (!drawManpower(ce, s.men)) return false;
   const slots = new Array<number>(GROUND_SLOTS).fill(0);
-  drawTemplateEquip(ce, slots, s.need, EQUIPMENT_TYPES);
-  const full = templateStats(tpl.def, ce.stats, genMixOf(slots));
+  const ks = land.keyStatsOf(cl.smallID);
+  drawTemplateEquip(ce, slots, s.need, ks);
+  const full = templateStats(tpl.def, ce.stats, genMixOf(slots, ks), ks);
   land.spawnDivision(
     cl.smallID,
     tpl.id,

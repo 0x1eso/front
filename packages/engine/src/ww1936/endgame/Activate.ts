@@ -269,7 +269,8 @@ function startArmy(
     );
     const slots = new Array<number>(GROUND_SLOTS).fill(0);
     if (from !== null && from !== ce) {
-      drawTemplateEquip(from, slots, s.need, EQUIPMENT_TYPES);
+      // The giver's static equipment only (P6: its design slots are its own).
+      drawTemplateEquip(from, slots, s.need);
     }
     topUp(slots, s.need);
     const full = templateStats(tpl.def, ce.stats, genMixOf(slots));

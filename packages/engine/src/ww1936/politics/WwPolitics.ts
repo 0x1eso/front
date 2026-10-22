@@ -45,7 +45,10 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
+import {
+  type ContentRegistry,
+  treePosIn,
+} from "@openfront/engine-lib/ww1936/content/registry";
 import {
   dailyPpMilli,
   effectiveSurrenderPct,
@@ -63,12 +66,14 @@ import {
 import {
   addStatsInto,
   emptyStats,
+  P6_STAT_RANGE,
   PCT_STAT_KEYS,
   statsArray,
   zeroStats,
 } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import type { WwDepth } from "../depth/WwDepth";
 import type { WorldWar } from "../WorldWar";
 import { candidatesFor, fireAdvisor, hireAdvisor } from "./Advisors";
 import { aiBeatPlanned, aiPoliticsTick } from "./AiPolitics";
@@ -449,6 +454,8 @@ const STAT_PARTS = [
   "government",
   "leader",
   "dynamic",
+  // P6 (plan decision 24): the depth systems' part (ww1936.stat_src.depth).
+  "depth",
 ] as const;
 /** recomputeStats' sum, reused (never state: each call starts from 0). */
 const SUM_SCRATCH: WwStats = emptyStats();
@@ -813,6 +820,9 @@ export class WwPolitics {
       let v = total[k];
       total[k] = 0;
       if (IS_PCT[i]) v = Math.max(-90, Math.min(300, v));
+      // P6 (plan decision 24): the ranges of the P6 keys that are no …Pct.
+      const r = P6_STAT_RANGE[i];
+      if (r !== null) v = Math.max(r[0], Math.min(r[1], v));
       if (st[k] !== v) {
         st[k] = v;
         changed = true;
@@ -869,6 +879,10 @@ export class WwPolitics {
     for (const t of this.leaderTraits(c)) this.addTrait(5, t, c, atWar, add);
     add(6, stabilityEffects(c.stabBp));
     add(6, warSupportEffects(c.wsBp));
+    // P6 hook (plan decision 24): doctrine, officer corps, MIOs,
+    // mechanisms, landmarks (neutral before depth.start, pre-flight §0-9).
+    const depth = this.ww.depth as WwDepth | undefined;
+    if (depth !== undefined) add(7, depth.statsPart(c.smallID));
   }
 
   private addTrait(
@@ -912,7 +926,15 @@ export class WwPolitics {
     const c = this.countries[smallID];
     const base = COUNTRIES[this.tagOf(smallID)].surrenderPct;
     if (c === null || c === undefined) return base;
-    return effectiveSurrenderPct(base, c.stabBp, c.wsBp, c.stats.surrenderPp);
+    // P6 hook (I, S): collaboration and atomic bombs lower the line.
+    const cut =
+      (this.ww.depth as WwDepth | undefined)?.surrenderCutPp(smallID) ?? 0;
+    return effectiveSurrenderPct(
+      base,
+      c.stabBp,
+      c.wsBp,
+      c.stats.surrenderPp - cut,
+    );
   }
 
   dailyGainMilli(smallID: number): number {
@@ -996,6 +1018,17 @@ export class WwPolitics {
   }
 
   // ---- Queries ----
+
+  /** P6 (pre-flight §A17): the focuses done or bypassed (W3's continuous focus unlock). */
+  doneFocusCount(smallID: number): number {
+    const c = this.countries[smallID];
+    if (c === null || c === undefined) return 0;
+    let n = 0;
+    for (let i = 0; i < c.focusState.length; i++) {
+      if (c.focusState[i] === 1 || c.focusState[i] === 2) n++;
+    }
+    return n;
+  }
 
   list(): CountryPol[] {
     return this.countries.filter((c): c is CountryPol => c !== null);
@@ -1509,11 +1542,10 @@ export class WwPolitics {
       c.queued = x.queued;
       // Spec §22.5: by id; an id no longer in this tree is dropped.
       c.focusState = new Uint8Array(this.content.treeFocuses[c.tree].length);
+      // P6 (pre-flight §0-1): the position in the country's tree (a pack's too).
       const mark = (id: string, v: number) => {
-        const pos = this.content.treePos.get(id);
-        const fi = this.content.focusIdx.get(id);
-        if (pos === undefined || fi === undefined) return;
-        if (this.content.focuses[fi].tree !== c.tree) return;
+        const pos = treePosIn(this.content, c.tree, id);
+        if (pos === undefined) return;
         c.focusState[pos] = v;
       };
       for (const id of x.done) mark(id, 1);

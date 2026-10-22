@@ -7,6 +7,7 @@ import {
   FocusId,
   WW_BEAT_MAX_SKIP_AHEAD,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { inTree } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   aiWeight,
   P_FOCUS,
@@ -82,6 +83,10 @@ export function historyPath(pol: WwPolitics, c: CountryPol): FocusId[] {
         id = alt;
       }
     }
+    // P6 (pre-flight §0-1): a pack path skips the focuses this country
+    // cannot take, so "three blocked" never ends it early.
+    const f = focusDef(pol, id);
+    if (f?.countries !== undefined && !f.countries.includes(c.tag)) continue;
     out.push(id);
   }
   return out;
@@ -99,7 +104,13 @@ function focusDead(
   depth = 0,
 ): boolean {
   const f = focusDef(pol, id);
-  if (f === undefined || f.tree !== c.tree) return true;
+  if (
+    f === undefined ||
+    !inTree(pol.content, c.tree, id) ||
+    (f.countries !== undefined && !f.countries.includes(c.tag))
+  ) {
+    return true;
+  }
   if (focusFinished(pol, c, id)) return false;
   if ((f.exclusive ?? []).some((x) => focusCompleted(pol, c, x))) return true;
   if (depth >= 32) return false;
