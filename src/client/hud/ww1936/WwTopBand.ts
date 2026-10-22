@@ -484,11 +484,10 @@ export class WwTopBand extends LitElement implements Controller {
   private depthChips(rowOnly: boolean | null) {
     const d = this.depth;
     if (d === null) return nothing;
-    const short = window.innerHeight <= COMPACT_MAX_HEIGHT;
     const cmd = html`${this.depthChip(
       "cp",
       `🎖 ${d.cpText}`,
-      translateText("ww1936.command.band_cp", { n: d.cpText }),
+      translateText("ww1936.command.band_cp", { cp: d.cpText }),
       () =>
         this.eventBus.emit(
           new WwDepthOpenEvent("doctrine", { tab: "command" }),
@@ -499,9 +498,7 @@ export class WwTopBand extends LitElement implements Controller {
         ? nothing
         : this.depthChip(
             "congress",
-            short
-              ? `🏛 ${d.congressPct}%`
-              : `🏛 ${translateText("ww1936.congress.band_short")} ${d.congressPct}%`,
+            `🏛 ${d.congressPct}%`,
             translateText("ww1936.congress.band", { pct: d.congressPct }),
             () => this.eventBus.emit(new OpenWwPoliticsEvent("decisions")),
           );
@@ -624,7 +621,7 @@ export class WwTopBand extends LitElement implements Controller {
         : nothing}
       ${this.frontNote && group === undefined
         ? html`<p class="m-0 text-amber-300">
-            ${translateText("ww1936.ag.front_needs_group")}
+            ${translateText("ww1936.ag.hold_hint")}
           </p>`
         : nothing}
       ${this.choosingFm

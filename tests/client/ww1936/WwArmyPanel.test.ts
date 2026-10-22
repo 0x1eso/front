@@ -90,7 +90,7 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("four tabs; one drawer at a time; no title, finger-sized buttons", async () => {
+  it("five tabs; one drawer at a time; no title, finger-sized buttons", async () => {
     const m = await mount();
     const drawers: [string, boolean][] = [];
     m.bus.on(WwDrawerEvent, (e) => drawers.push([e.drawer, e.open]));
@@ -99,7 +99,7 @@ describe("<ww-army-panel> (spec §15.5)", () => {
       [...m.el.querySelectorAll("[data-ww-tab]")].map(
         (t) => (t as HTMLElement).dataset.wwTab,
       ),
-    ).toEqual(["armies", "training", "templates", "generals"]);
+    ).toEqual(["armies", "training", "templates", "generals", "groups"]);
     for (const tab of ["training", "templates", "generals", "armies"]) {
       await m.click(`[data-ww-tab='${tab}']`);
       expect(m.q(`[data-ww-tab='${tab}']`)!.getAttribute("aria-selected")).toBe(

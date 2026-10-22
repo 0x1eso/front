@@ -46,7 +46,7 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
         style="background: ${groupColor(g.id)}"
       ></span>
       <span class="font-bold"
-        >${translateText("ww1936.ag.group_name", { n: g.id })}</span
+        >${translateText("ww1936.ag.number", { n: g.id })}</span
       >
       <span class="ml-auto text-white/60"
         >${translateText("ww1936.land.band_divisions", { n: divisions })}</span
@@ -112,8 +112,8 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
           c.confirmTap(exec, () => c.send({ kind: "ag_execute", group: g.id }))}
       >
         ${c.armed(exec)
-          ? translateText("ww1936.doctrine.confirm")
-          : translateText("ww1936.ag.execute")}
+          ? translateText("ww1936.doctrine.tap_again")
+          : translateText("ww1936.ag.exec_all")}
       </button>
       <button
         type="button"
@@ -134,7 +134,7 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
           )}
       >
         ${c.armed(disband)
-          ? translateText("ww1936.doctrine.confirm")
+          ? translateText("ww1936.doctrine.tap_again")
           : translateText("ww1936.ag.disband")}
       </button>
     </div>
@@ -148,7 +148,7 @@ export function renderGroupTab(c: GroupTabCtx): TemplateResult {
   return html`<div data-ww-groups class="flex flex-col gap-1.5 pt-2">
     ${groups.length === 0
       ? html`<p data-ww-empty class="m-0 text-xs text-white/60">
-          ${translateText("ww1936.ag.none")}
+          ${translateText("ww1936.ag.empty")}
         </p>`
       : groups.map((g) => renderGroup(c, g))}
     ${multi.frontGroup !== null

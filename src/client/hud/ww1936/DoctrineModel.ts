@@ -74,14 +74,14 @@ export type DoctrineBlock =
   | "not_ready";
 
 export const DOCTRINE_BLOCK_KEYS: Readonly<Record<DoctrineBlock, string>> = {
-  doctrine_locked: "ww1936.doctrine.block_locked",
-  no_xp: "ww1936.doctrine.block_no_xp",
-  bad_index: "ww1936.doctrine.block_same",
-  no_cp: "ww1936.command.block_no_cp",
-  no_pp: "ww1936.command.block_no_pp",
-  no_slot: "ww1936.command.block_no_slot",
-  fm_cap: "ww1936.command.block_fm_cap",
-  not_ready: "ww1936.command.block_not_ready",
+  doctrine_locked: "ww1936.econ.block.doctrine_locked",
+  no_xp: "ww1936.econ.block.no_xp",
+  bad_index: "ww1936.econ.block.bad_index",
+  no_cp: "ww1936.econ.block.no_cp",
+  no_pp: "ww1936.econ.block.no_pp",
+  no_slot: "ww1936.econ.block.trait_unavailable",
+  fm_cap: "ww1936.econ.block.fm_limit",
+  not_ready: "ww1936.econ.block.general_unavailable",
 };
 
 const MAX_LEVEL = 5;

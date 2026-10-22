@@ -159,7 +159,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
     const open = this.chip ?? (d.picked >= 0 ? d.picked : null);
     return html`<div data-ww-domain=${d.id}>
       <div class="${HEADING} flex items-center gap-2">
-        <span>${translateText("ww1936.doctrine.grand")}</span>
+        <span>${translateText("ww1936.doctrine.grand_title")}</span>
         ${d.xp === null
           ? nothing
           : html`<span class="ml-auto normal-case text-white/60"
@@ -171,7 +171,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
             data-ww-pick-prompt
             class="m-0 mb-1 animate-pulse text-xs font-bold text-amber-300"
           >
-            ${translateText("ww1936.doctrine.pick_prompt")}
+            ${translateText("ww1936.doctrine.choose_prompt")}
           </p>`
         : nothing}
       <div class="flex flex-wrap gap-1">
@@ -218,20 +218,20 @@ export class WwDoctrinePanel extends WwDrawerBase {
         ${translateText(`ww1936.gd_desc.${chip.id}`)}
       </div>
       <div class="mt-1 font-semibold">
-        ${translateText("ww1936.doctrine.base")}
+        ${translateText("ww1936.doctrine.base_effect")}
       </div>
       <ul class="m-0 list-none p-0">
         ${stats(0).map((l) => html`<li>${l}</li>`)}
       </ul>
       <div class="mt-1 font-semibold">
-        ${translateText("ww1936.doctrine.complete", { n: 6 })}
+        ${translateText("ww1936.doctrine.full_effect")}
       </div>
       <ul class="m-0 list-none p-0">
         ${stats(1).map((l) => html`<li>${l}</li>`)}
       </ul>
       ${chip.picked
         ? html`<div class="mt-1 text-emerald-300">
-            ✓ ${translateText("ww1936.doctrine.picked")}
+            ✓ ${translateText("ww1936.doctrine.chosen")}
           </div>`
         : this.pickButton(key, pick, d.xp, () =>
             this.send(model.gdOrder(d.domain, gd)),
@@ -249,9 +249,9 @@ export class WwDoctrinePanel extends WwDrawerBase {
   ): TemplateResult {
     const blocked = pick.block !== null;
     const label = !pick.switching
-      ? translateText("ww1936.doctrine.pick")
+      ? translateText("ww1936.doctrine.choose")
       : this.armed(key)
-        ? translateText("ww1936.doctrine.confirm")
+        ? translateText("ww1936.doctrine.tap_again")
         : translateText(
             sub ? "ww1936.doctrine.switch_sub" : "ww1936.doctrine.switch",
             { xp: pick.xpCost },
@@ -292,11 +292,13 @@ export class WwDoctrinePanel extends WwDrawerBase {
           >
           <span class="min-w-0 flex-1 truncate text-white/70"
             >${sub === undefined
-              ? translateText("ww1936.doctrine.no_sub")
+              ? translateText("ww1936.doctrine.sub_none")
               : translateText(`ww1936.subdoc.${sub.id}`)}</span
           >
           <span data-ww-level class="font-black tabular-nums"
-            >${translateText("ww1936.doctrine.level", { n: t.level })}</span
+            >${translateText("ww1936.doctrine.level_short", {
+              level: t.level,
+            })}</span
           >
         </span>
         <span class="flex w-full gap-0.5" data-ww-ticks=${t.level}>
@@ -320,13 +322,13 @@ export class WwDoctrinePanel extends WwDrawerBase {
           ${next === null
             ? html`<span class="min-w-0 flex-1"
                 >${t.level === 5
-                  ? translateText("ww1936.doctrine.maxed")
+                  ? translateText("ww1936.doctrine.next_done")
                   : ""}</span
               >`
             : html`<span data-ww-next class="min-w-0 flex-1 truncate"
                 >${translateText("ww1936.doctrine.next", {
                   level: next.level,
-                  effects: statLines(next.stats).join(", "),
+                  reward: statLines(next.stats).join(", "),
                 })}${t.days === null
                   ? ""
                   : ` · ${translateText("ww1936.doctrine.days", { days: t.days })}`}</span
@@ -334,7 +336,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
           ${t.gainText === ""
             ? nothing
             : html`<span data-ww-gain class="shrink-0 tabular-nums"
-                >${translateText("ww1936.doctrine.gain", {
+                >${translateText("ww1936.doctrine.per_day", {
                   x: t.gainText,
                 })}</span
               >`}
@@ -391,7 +393,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
               >
               <span class="ml-auto text-white/60"
                 >${c.lockDays > 0
-                  ? translateText("ww1936.doctrine.locked", {
+                  ? translateText("ww1936.doctrine.locked_days", {
                       days: c.lockDays,
                     })
                   : translateText("ww1936.doctrine.xp_cost", {
@@ -435,9 +437,9 @@ export class WwDoctrinePanel extends WwDrawerBase {
                                 )}
                         >
                           ${c.picked < 0
-                            ? translateText("ww1936.doctrine.pick")
+                            ? translateText("ww1936.doctrine.choose")
                             : this.armed(key)
-                              ? translateText("ww1936.doctrine.confirm")
+                              ? translateText("ww1936.doctrine.tap_again")
                               : translateText("ww1936.doctrine.switch_sub", {
                                   xp: c.cost,
                                 })}
@@ -490,23 +492,25 @@ export class WwDoctrinePanel extends WwDrawerBase {
         <div class="mt-1 text-white/70">
           ${translateText("ww1936.command.cp_gain", {
             gain: (bar.gainMilli / 1000).toFixed(2),
-            upkeep: (bar.upkeepMilli / 1000).toFixed(2),
           })}
+          ${bar.upkeepMilli > 0
+            ? `· ${translateText("ww1936.command.upkeep", { n: (bar.upkeepMilli / 1000).toFixed(2) })}`
+            : ""}
         </div>
       </div>
 
-      <div class=${HEADING}>${translateText("ww1936.command.people")}</div>
+      <div class=${HEADING}>${translateText("ww1936.command.generals")}</div>
       ${people.length === 0
         ? html`<p class="m-0 text-xs text-white/60">
-            ${translateText("ww1936.command.no_people")}
+            ${translateText("ww1936.command.none")}
           </p>`
         : people.map((p) => this.renderPerson(model, p))}
 
       <div class=${HEADING}>${translateText("ww1936.command.marshals")}</div>
       <p class="m-0 text-xs text-white/60">
-        ${translateText("ww1936.command.marshal_count", {
+        ${translateText("ww1936.command.marshal_cap", {
           n: bar.marshals,
-          cap: bar.cap,
+          max: bar.cap,
         })}
       </p>
       ${marshals.map(
@@ -516,7 +520,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
               <span class="font-bold">${f.name}</span>
               ${f.group > 0
                 ? html`<span class="ml-auto text-white/60"
-                    >${translateText("ww1936.ag.group_name", {
+                    >${translateText("ww1936.ag.number", {
                       n: f.group,
                     })}</span
                   >`
@@ -575,7 +579,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
     const rows = land === null ? [] : armyRows(land, me);
     return html`<div class="mt-1 flex flex-col gap-1">
       <div class="text-white/70">
-        ${translateText("ww1936.command.pick_army")}
+        ${translateText("ww1936.command.award_pick")}
       </div>
       ${rows.map(
         (r) =>
@@ -611,10 +615,10 @@ export class WwDoctrinePanel extends WwDrawerBase {
           >${p.admiral ? "⚓ " : ""}${p.name}</span
         >
         <span class="shrink-0 text-white/60"
-          >${translateText("ww1936.command.rank", { n: p.level })} ·
-          ${translateText("ww1936.command.slots", {
-            used: p.used,
-            n: p.slots,
+          >${translateText("ww1936.doctrine.level_short", { level: p.level })} ·
+          ${translateText("ww1936.command.trait_slots", {
+            free: p.slots - p.used,
+            total: p.slots,
           })}</span
         >
         <button
@@ -653,7 +657,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
                     @click=${() =>
                       this.send(model.traitOrder(p.id, c.trait, p.admiral))}
                   >
-                    ${translateText("ww1936.command.buy", { cp: c.cp })}
+                    ${translateText("ww1936.command.trait_cost", { cp: c.cp })}
                   </button>
                   ${c.block === null
                     ? nothing
@@ -701,7 +705,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
                     class="${BTN} mt-1 w-full"
                     @click=${() => this.send(model.traitOrder(id, t, false))}
                   >
-                    ${translateText("ww1936.command.buy", {
+                    ${translateText("ww1936.command.trait_cost", {
                       cp: model.fmTraitCp,
                     })}
                   </button>
@@ -734,7 +738,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
       ${open
         ? html`<div class="mt-1 flex flex-col gap-1">
             <div class="text-white/70">
-              ${translateText("ww1936.command.pick_fm_trait")}
+              ${translateText("ww1936.command.pick_trait")}
             </div>
             ${FM_TRAITS.map((t) => {
               const key = `fm${g.id}${t}`;
@@ -751,7 +755,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
                   })}
               >
                 ${this.armed(key)
-                  ? translateText("ww1936.doctrine.confirm")
+                  ? translateText("ww1936.doctrine.tap_again")
                   : translateText(`ww1936.fm_trait.${t}`)}
               </button>`;
             })}

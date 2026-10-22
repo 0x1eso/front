@@ -405,8 +405,8 @@ export class WwDials extends LitElement implements Controller {
                   : "bg-amber-400 text-gray-900",
                 translateText(
                   d.badge.kind === "unpicked"
-                    ? "ww1936.doctrine.dial_unpicked"
-                    : "ww1936.doctrine.dial_points",
+                    ? "ww1936.doctrine.badge_unpicked"
+                    : "ww1936.doctrine.badge_points",
                   { n: d.badge.n },
                 ),
               ),
@@ -431,8 +431,8 @@ export class WwDials extends LitElement implements Controller {
                   : "bg-white text-gray-900",
                 translateText(
                   i.badge.kind === "captured"
-                    ? "ww1936.intel.dial_captured"
-                    : "ww1936.intel.dial_idle",
+                    ? "ww1936.intel.dial"
+                    : "ww1936.intel.dial",
                   { n: i.badge.n },
                 ),
               ),
