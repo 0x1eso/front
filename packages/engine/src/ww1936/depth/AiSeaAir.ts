@@ -223,10 +223,13 @@ function aiMines(d: WwDepth, id: number): void {
 function aiNight(d: WwDepth, id: number, day: number): void {
   const ww = d.ww;
   const air = ww.air;
-  const bombers = air
-    .deploymentsOf(id)
-    .filter((x) => x.mission === M_BOMB && !isCarrierWing(x))
-    .sort((a, b) => a.id - b.id);
+  // The deployments map is in id order (ids only rise).
+  const bombers: Deployment[] = [];
+  for (const x of air.deployments.values()) {
+    if (x.owner === id && x.mission === M_BOMB && !isCarrierWing(x)) {
+      bombers.push(x);
+    }
+  }
   if (bombers.length === 0) return;
   const gbr = ww.tagOf(id) === "GBR" && day >= GBR_NIGHT_DAY;
   const side = ww.land.sideOf(id);

@@ -4,7 +4,9 @@
 // +5% (aceMods, P4's air combat reads it, T1b). Born on a zone's day when a
 // country's planes shot down 20 or more there (a 2% roll), lost on a day
 // its record fought in the air (a 0.5% roll). The rolls are P3's stateless
-// wwRoll with the "ace_spawn" / "ace_death" purposes (spec §21.3).
+// wwRoll with the "ace_spawn" / "ace_death" purposes (spec §21.3). The
+// notice (lane T's events_display.ww1936_ace {callsign, state}) carries the
+// callsign number; the screen names it with ww1936.ace.callsign {n}.
 import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   P_ACE_DEATH,
@@ -110,7 +112,7 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
     dep.ace = 0;
     air.markDeployment(dep.id);
     d.markGlobal();
-    d.message(a.owner, "ww1936_ace", { n: a.callNo, sr, lost: 1 });
+    d.message(a.owner, "ww1936_ace", { callsign: a.callNo, state: "lost" });
   }
   // Born.
   const z = air.zoneState[idx];
@@ -159,6 +161,6 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
     best.ace = ace.id;
     air.markDeployment(best.id);
     d.markGlobal();
-    d.message(c, "ww1936_ace", { n: ace.callNo, sr, lost: 0 });
+    d.message(c, "ww1936_ace", { callsign: ace.callNo, state: "rise" });
   }
 }

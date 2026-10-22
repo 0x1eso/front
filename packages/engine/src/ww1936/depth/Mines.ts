@@ -111,6 +111,8 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
   const t = navy.ships;
   const land = ww.land;
   const before = regionEntries(d, sr);
+  // No mines here and no layer at work: nothing to do (the usual day).
+  if (before.size === 0 && !anyLayer(d, s.members)) return;
   const bySide = new Map<number, SideShips>();
   for (const z of s.members) {
     for (const id of navy.fleetsIn(z)) {
@@ -139,7 +141,6 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
       }
     }
   }
-  if (before.size === 0 && bySide.size === 0) return;
   // ① Re-key, ② decay.
   const now = new Map<number, number>();
   for (const [k, v] of before) {
@@ -230,6 +231,20 @@ function damageSide(
     const by = layers.find((m) => land.isEnemy(m, r.owner)) ?? 0;
     applyShipDamage(navy, r.id, parts[i], 0, tick, by);
   });
+}
+
+/** A lay_mines fleet works in one of the zones. */
+function anyLayer(d: WwDepth, zones: readonly number[]): boolean {
+  const navy = d.ww.navy;
+  for (const z of zones) {
+    for (const id of navy.fleetsIn(z)) {
+      const f = navy.fleets.get(id);
+      if (f !== undefined && f.mission === MISSION.layMines && working(f)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /** The region's entries: side → milli. */

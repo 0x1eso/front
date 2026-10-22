@@ -762,6 +762,8 @@ export class WwAir {
       counts: [...d.counts],
       target: d.target,
       base: d.base,
+      // P6 (lane W2): the night flag, only when on (day records keep P4's shape).
+      ...(d.night ? { night: true } : {}),
     };
   }
 

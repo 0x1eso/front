@@ -136,6 +136,8 @@ export interface AirDeploySummary {
   target: number;
   /** Region of the base, or −(ship id) for a carrier. */
   base: number;
+  /** P6 (spec §15.3, lane W2): present and true while it bombs by night. */
+  night?: boolean;
 }
 export interface AirBaseUse {
   region: number;
