@@ -85,9 +85,19 @@ export function nextLaunchDays(
   line: NavalLineLike,
   outputMilli: number,
 ): number {
+  return launchDaysAt(lineCostMilli(line), line.progress, outputMilli);
+}
+
+/**
+ * nextLaunchDays at a unit cost the caller knows (P6 T1b: the naval line
+ * view's costMilli, which holds the ship design's modules, the naval MIO
+ * and a licence — lane E's navalLineCostMilli).
+ */
+export function launchDaysAt(
+  costMilli: number,
+  progressMilli: number,
+  outputMilli: number,
+): number {
   if (outputMilli <= 0) return -1;
-  return Math.max(
-    0,
-    Math.ceil((lineCostMilli(line) - line.progress) / outputMilli),
-  );
+  return Math.max(0, Math.ceil((costMilli - progressMilli) / outputMilli));
 }

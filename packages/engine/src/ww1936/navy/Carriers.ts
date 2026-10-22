@@ -4,7 +4,14 @@
 // planes are on the deployed ledger (drawPlanes / returnPlanes), so stock
 // + deployed only falls by the planes lost.
 import { CARRIER_AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
-import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  type PlaneDesignStats,
+  WW_PLANE_DESIGN_SLOTS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  equipKey,
+  type WwOrderBlock,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   admiralTraitBit,
   CarrierOrder,
@@ -21,11 +28,18 @@ import { isNoStrike, strikeBlock } from "@openfront/engine-lib/ww1936/NoStrike";
 import { GEN_DECK } from "@openfront/engine-lib/ww1936/ShipStats";
 import { airDuelMilli, type DuelPlanes } from "../air/AirCombat";
 import {
-  drawPlanes,
-  effectiveLevel,
-  losePlanes,
-  returnPlanes,
-} from "../economy/Buildings";
+  deckDesignCounts,
+  designSlotsFor,
+  oldestFirst,
+  planeSources,
+} from "../air/DesignPlanes";
+import { withFuze } from "../air/ProjectEffects";
+import {
+  designPlaneP4,
+  loseDesignPlanes,
+  returnDesignPlanes,
+} from "../depth/Designs";
+import { effectiveLevel, losePlanes, returnPlanes } from "../economy/Buildings";
 import { onPlanesLost } from "./EndgameHooks";
 import { applyShipDamage } from "./NavalBattles";
 import type { Fleet, WwNavy } from "./WwNavy";
@@ -97,8 +111,11 @@ export function deckSize(navy: WwNavy, row: number, f: Fleet): number {
   const t = navy.ships;
   if (t.cls[row] !== CV) return 0;
   const adm = f.admiral === 0 ? undefined : navy.admirals.get(f.admiral);
+  const st = navy.econ.country(t.owner[row])?.stats;
   const pct =
-    (navy.econ.country(t.owner[row])?.stats.deckPct ?? 0) +
+    (st?.deckPct ?? 0) +
+    // P6 (spec §21.2, T1b): carrierDeckPct.
+    (st?.carrierDeckPct ?? 0) +
     (((adm?.traits ?? 0) & AVIATOR) !== 0 ? AVIATOR_DECK_PCT : 0);
   return Math.floor((GEN_DECK[t.gen[row] - 1] * (100 + pct)) / 100);
 }
@@ -117,7 +134,33 @@ export function deckAttackCenti(
       if (n > 0) a += n * navy.ww.air.planeStatsOf(owner, type, g + 1).naval;
     }
   });
+  // P6 (lane E): the deck's design planes, each at its design's naval attack.
+  const dd = navy.ships.deckDOf(row);
+  for (let s = 1; s <= dd.length; s++) {
+    const n = dd[s - 1];
+    if (n <= 0) continue;
+    const ds = navy.ww.depth.designStatsOf(
+      owner,
+      "plane",
+      s,
+    ) as PlaneDesignStats | null;
+    const st =
+      ds === null ? null : designPlaneP4(navy.ww.depth, owner, s, ds.type);
+    if (st !== null) a += n * st.naval;
+  }
   return a;
+}
+
+/** P6 (lane E): moves up to `n` of one static generation or design slot from the stock onto the deployed ledger. */
+function drawExact(
+  ce: NonNullable<ReturnType<WwNavy["econ"]["country"]>>,
+  key: number,
+  n: number,
+): number {
+  const take = Math.max(0, Math.min(n, ce.stock[key]));
+  ce.stock[key] -= take;
+  ce.planesDeployed[key] += take;
+  return take;
 }
 
 /**
@@ -125,11 +168,14 @@ export function deckAttackCenti(
  * carrier of the country, by ship id, fills its deck to deck × mix / 10 a
  * type from the stock (the newest generation first); a type over its
  * share goes back (the oldest first). Carriers at sea keep what they have.
+ * P6 (lane E, spec §5.2.4): the carrier designs of a type (deckD) count in
+ * its share and join the order by year.
  */
 export function fillDecks(navy: WwNavy, smallID: number): void {
   const ce = navy.econ.country(smallID);
   if (ce === null) return;
   const t = navy.ships;
+  const depth = navy.ww.depth;
   const carriers: { id: number; f: Fleet }[] = [];
   for (const f of navy.fleetsOf(smallID)) {
     if (f.docked === 0) continue;
@@ -142,27 +188,41 @@ export function fillDecks(navy: WwNavy, smallID: number): void {
     const r = t.rowOf(id);
     const size = deckSize(navy, r, f);
     const d = t.deckOf(r);
+    const dd = t.deckDOf(r);
     let changed = false;
     CARRIER_AIR_TYPES.forEach((type, ty) => {
       const want = Math.floor((size * f.mix[ty]) / 10);
-      const have = d[ty * 3] + d[ty * 3 + 1] + d[ty * 3 + 2];
+      const mine = designSlotsFor(depth, smallID, type);
+      let have = d[ty * 3] + d[ty * 3 + 1] + d[ty * 3 + 2];
+      for (const s of mine) have += dd[s - 1];
       if (have > want) {
-        let over = have - want;
-        const back = [0, 0, 0];
-        for (let g = 0; g < 3 && over > 0; g++) {
-          const take = Math.min(over, d[ty * 3 + g]);
-          back[g] = take;
-          d[ty * 3 + g] -= take;
-          over -= take;
+        const own = [d[ty * 3], d[ty * 3 + 1], d[ty * 3 + 2]];
+        const ownD = new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
+        for (const s of mine) ownD[s - 1] = dd[s - 1];
+        const out = oldestFirst(depth, smallID, type, own, ownD, have - want);
+        out.gens.forEach((c, g) => (d[ty * 3 + g] -= c));
+        returnPlanes(ce, type, out.gens);
+        if (out.slots !== null) {
+          out.slots.forEach((c, s) => (dd[s] -= c));
+          returnDesignPlanes(depth, smallID, out.slots);
         }
-        returnPlanes(ce, type, back);
         changed = true;
       } else if (have < want) {
-        const got = drawPlanes(ce, type, want - have);
-        got.forEach((c, g) => {
-          d[ty * 3 + g] += c;
-          if (c > 0) changed = true;
-        });
+        // The newest first: P4's generations, and the designs at their year.
+        let left = want - have;
+        for (const x of planeSources(depth, smallID, type)) {
+          if (left <= 0) break;
+          const k =
+            x.slot === 0
+              ? equipKey(type, x.gen)
+              : equipKey("plane_design", x.slot);
+          const c = drawExact(ce, k, left);
+          if (c <= 0) continue;
+          if (x.slot === 0) d[ty * 3 + x.gen - 1] += c;
+          else dd[x.slot - 1] += c;
+          left -= c;
+          changed = true;
+        }
       }
     });
     if (changed) navy.markFleet(f.id);
@@ -181,11 +241,17 @@ export function loseStrikePlanes(
   navy: WwNavy,
   carriers: readonly number[],
   aaMilli: number,
-  enemyFighters: readonly { owner: number; counts: readonly number[] }[],
+  enemyFighters: readonly {
+    owner: number;
+    counts: readonly number[];
+    /** P6 (lane E): the deck's carrier fighter designs, per slot. */
+    dcounts?: readonly number[];
+  }[],
   by: number,
 ): number {
   const t = navy.ships;
   const air = navy.ww.air;
+  const depth = navy.ww.depth;
   const units: {
     row: number;
     owner: number;
@@ -214,6 +280,14 @@ export function loseStrikePlanes(
           weight,
         });
       }
+      // P6 (lane E): the deck's designs of the type, at their numbers.
+      const dd = deckDesignCounts(depth, owner, r, type);
+      dd?.forEach((k, s) => {
+        const st = k > 0 ? designPlaneP4(depth, owner, s + 1, type) : null;
+        if (st === null) return;
+        c += k;
+        defenders.push({ stats: st, milli: k * 1000, weight });
+      });
       if (c > 0) {
         units.push({ row: r, owner, ty, n: c, w: weight });
         n += c;
@@ -232,6 +306,12 @@ export function loseStrikePlanes(
           weight: 1,
         });
       }
+    });
+    e.dcounts?.forEach((k, s) => {
+      const st =
+        k > 0 ? designPlaneP4(depth, e.owner, s + 1, "cv_fighter") : null;
+      if (st !== null)
+        attackers.push({ stats: st, milli: k * 1000, weight: 1 });
     });
   }
   const duel =
@@ -269,21 +349,30 @@ export function loseStrikePlanes(
   }
   let lost = 0;
   units.forEach((u, i) => {
-    let k = alloc[i];
+    const k = alloc[i];
     if (k <= 0) return;
     const d = t.deckOf(u.row);
-    const counts = [0, 0, 0];
-    for (let g = 0; g < 3 && k > 0; g++) {
-      const take = Math.min(k, d[u.ty * 3 + g]);
-      counts[g] = take;
-      d[u.ty * 3 + g] -= take;
-      k -= take;
-    }
-    const taken = counts[0] + counts[1] + counts[2];
-    if (taken === 0) return;
     const type = CARRIER_AIR_TYPES[u.ty];
+    // The oldest first (P6: the deck's designs of the type at their year).
+    const own = [d[u.ty * 3], d[u.ty * 3 + 1], d[u.ty * 3 + 2]];
+    const ownD =
+      deckDesignCounts(depth, u.owner, u.row, type) ??
+      new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
+    const out = oldestFirst(depth, u.owner, type, own, ownD, k);
+    const counts = out.gens;
+    counts.forEach((c, g) => (d[u.ty * 3 + g] -= c));
+    let taken = counts[0] + counts[1] + counts[2];
+    if (out.slots !== null) {
+      const dd = t.deckDOf(u.row);
+      out.slots.forEach((c, s) => {
+        dd[s] -= c;
+        taken += c;
+      });
+    }
+    if (taken === 0) return;
     const ce = navy.econ.country(u.owner);
     if (ce !== null) losePlanes(ce, type, counts);
+    if (out.slots !== null) loseDesignPlanes(depth, u.owner, out.slots);
     onPlanesLost(air, u.owner, by, type, taken);
     navy.markFleet(t.fleet[u.row]);
     lost += taken;
@@ -390,7 +479,10 @@ export function carrierPortStrike(
     if (d > 0) pending.set(x.id, (pending.get(x.id) ?? 0) + d);
   }
   let aaCenti = 0;
-  for (const x of targets) aaCenti += navy.shipStatsOf(x.r).aa;
+  // P6 (spec §9.3, T1b): each ship owner's proximity fuze.
+  for (const x of targets) {
+    aaCenti += withFuze(navy.ww.depth, x.owner, navy.shipStatsOf(x.r).aa);
+  }
   const sunkBy = new Map<number, number>();
   for (const x of targets) {
     const d = pending.get(x.id) ?? 0;
@@ -409,7 +501,12 @@ export function carrierPortStrike(
     }
   }
   const aaMilli =
-    aaCenti * 5 + effectiveLevel(navy.econ, port, "anti_air") * 5000;
+    aaCenti * 5 +
+    withFuze(
+      navy.ww.depth,
+      navy.land.controller[port] ?? 0,
+      effectiveLevel(navy.econ, port, "anti_air") * 5000,
+    );
   loseStrikePlanes(
     navy,
     carriers,

@@ -138,6 +138,8 @@ export interface AirDeploySummary {
   base: number;
   /** P6 (spec §15.3, lane W2): present and true while it bombs by night. */
   night?: boolean;
+  /** P6 (lane E, T1b): planes per plane design slot, present only with some. */
+  dcounts?: number[];
 }
 export interface AirBaseUse {
   region: number;

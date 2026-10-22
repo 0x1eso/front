@@ -30,7 +30,12 @@ import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
-import { designPlaneAsP4, planeStatsOfKey } from "../depth/Designs";
+import {
+  designPlaneAsP4,
+  loseDesignPlanes,
+  planeStatsOfKey,
+  returnDesignPlanes,
+} from "../depth/Designs";
 import type { WwDepth } from "../depth/WwDepth";
 import { buildingIndex, losePlanes, returnPlanes } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
@@ -43,6 +48,7 @@ import { dailyAirZone } from "./AirCombat";
 import { airMissionEffects, airSupplyAt } from "./AirEffects";
 import { airMoveFactorFor, airPenaltyFor } from "./AirSuperiority";
 import { dailyAirCountry, issueAirOrder } from "./Deploy";
+import { designSlotsFor } from "./DesignPlanes";
 import { paradropBlockFor, stepParadrops } from "./Paradrop";
 
 export interface Deployment {
@@ -470,11 +476,12 @@ export class WwAir {
     return out;
   }
 
-  /** Planes based at a region now (capacity check, spec §13.3). */
+  /** Planes based at a region now (capacity check, spec §13.3; P6: design planes too). */
   baseUse(region: number): number {
     let n = 0;
     for (const id of this.deploysByBase.get(region) ?? NO_IDS) {
-      for (const c of this.deployments.get(id)?.counts ?? []) n += c;
+      const d = this.deployments.get(id);
+      if (d !== undefined) n += deploymentPlanes(d);
     }
     return n;
   }
@@ -570,6 +577,10 @@ export class WwAir {
             ce.planesDeployed[k] = Math.max(0, ce.planesDeployed[k] - c);
         });
       }
+      // P6 (lane E): its design planes the same way (a carrier wing's
+      // record mirrors its deck: the deck keeps them, its caller zeroes it).
+      if (back) returnDesignPlanes(this.ww.depth, d.owner, d.dcounts);
+      else loseDesignPlanes(this.ww.depth, d.owner, d.dcounts);
     }
     this.deployments.delete(id);
     this.unindexDeployment(d);
@@ -583,20 +594,34 @@ export class WwAir {
    * takes `counts` (per generation) off deployment `id` and the deployed
    * ledger, and names the killer `by` (0: nobody — fuel, crashes) to P5's
    * war score (EndgameHooks.onPlanesLost). A deployment left empty stays
-   * (its refill is A1's); returns the planes taken.
+   * (its refill is A1's); returns the planes taken. P6 (lane E): the
+   * entries of `counts` past the record's generations are its design
+   * slots (index gens + slot − 1), off `dcounts` and the design ledger.
    */
   shootDown(id: number, counts: readonly number[], by: number): number {
     const d = this.deployments.get(id);
     if (d === undefined) return 0;
+    const gens = d.counts.length;
     const took = d.counts.map((c, i) =>
       Math.max(0, Math.min(c, Math.floor(counts[i] ?? 0))),
     );
-    const n = took.reduce((a, b) => a + b, 0);
+    let n = took.reduce((a, b) => a + b, 0);
+    let tookD: number[] | null = null;
+    if (counts.length > gens) {
+      tookD = d.dcounts.map((c, s) =>
+        Math.max(0, Math.min(c, Math.floor(counts[gens + s] ?? 0))),
+      );
+      for (const c of tookD) n += c;
+    }
     if (n === 0) return 0;
     took.forEach((c, i) => (d.counts[i] -= c));
     const type = AIR_TYPES[d.type];
     const ce = this.econ.country(d.owner);
     if (ce !== null) losePlanes(ce, type, took);
+    if (tookD !== null) {
+      tookD.forEach((c, s) => (d.dcounts[s] -= c));
+      loseDesignPlanes(this.ww.depth, d.owner, tookD);
+    }
     onPlanesLost(this, d.owner, by, type, n);
     this.markDeployment(id);
     this.airDirtyCountries.add(d.owner);
@@ -787,6 +812,8 @@ export class WwAir {
       base: d.base,
       // P6 (lane W2): the night flag, only when on (day records keep P4's shape).
       ...(d.night ? { night: true } : {}),
+      // P6 (lane E): the design planes per slot, only with some.
+      ...(d.dcounts.some((c) => c > 0) ? { dcounts: [...d.dcounts] } : {}),
     };
   }
 
@@ -815,14 +842,19 @@ export class WwAir {
     const bases = new Map<number, number>();
     for (const d of this.deploymentsOf(id)) {
       if (d.base <= 0) continue;
-      let n = 0;
-      for (const k of d.counts) n += k;
+      const n = deploymentPlanes(d);
       bases.set(d.base, (bases.get(d.base) ?? 0) + n);
     }
+    // P6 (lane E): each type's design slots (the designs flying as it).
+    const depth = this.ww.depth;
+    const dslots = AIR_TYPES.map((type) => designSlotsFor(depth, id, type));
     const sum = (arr: readonly number[], type: AirType) => {
       let n = 0;
       for (let g = 1; g <= EQUIPMENT_GENS[type]; g++)
         n += arr[equipKey(type, g)];
+      for (const s of dslots[AIR_TYPES.indexOf(type)]) {
+        n += arr[equipKey("plane_design", s)] ?? 0;
+      }
       return n;
     };
     const decks = AIR_TYPES.map(() => 0);
@@ -831,8 +863,9 @@ export class WwAir {
       if (t.id[r] === 0 || t.owner[r] !== id) continue;
       const deck = t.deckOf(r);
       ["cv_fighter", "cv_cas", "cv_naval_bomber"].forEach((type, i) => {
-        decks[AIR_TYPES.indexOf(type as AirType)] +=
-          deck[i * 3] + deck[i * 3 + 1] + deck[i * 3 + 2];
+        const ti = AIR_TYPES.indexOf(type as AirType);
+        decks[ti] += deck[i * 3] + deck[i * 3 + 1] + deck[i * 3 + 2];
+        for (const s of dslots[ti]) decks[ti] += t.deckDOf(r)[s - 1] ?? 0;
       });
     }
     const deployed = AIR_TYPES.map((type, i) =>
@@ -1020,6 +1053,13 @@ export class WwAir {
     const n = new Array<number>(this.countryList.length).fill(0);
     for (const d of this.deployments.values()) {
       for (const c of d.counts) n[d.owner] += c;
+      // P6 (lane E): the design planes by slot (only when some fly, so a
+      // game without them keeps its hash).
+      for (let s = 0; s < d.dcounts.length; s++) {
+        if (d.dcounts[s] !== 0) {
+          h = (Math.imul(h, 31) + (s + 1) * 4096 + d.dcounts[s]) >>> 0;
+        }
+      }
       // Where and what for (P4 review).
       h = (Math.imul(h, 31) + d.id) >>> 0;
       h = (Math.imul(h, 31) + d.sr * 16 + d.mission) >>> 0;

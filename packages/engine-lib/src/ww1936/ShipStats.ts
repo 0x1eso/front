@@ -206,11 +206,19 @@ export function shipStats(
   const capital = cls === "bb" || cls === "bc";
   const hpPct = GEN_HP_PCT[g] + (capital ? stats.capitalHpPct : 0);
   const atk = GEN_ATK_PCT[g];
+  // P6 (spec §21.2, T1b): torpedoPct on every ship's torpedoes,
+  // depthChargePct on its depth charges.
   const torpPct =
     atk +
     (techs.has("torpedo_1") ? 15 : 0) +
-    (cls === "ss" ? stats.subTorpedoPct : 0);
-  const depthPct = atk + (screen ? 15 * sonar : 0);
+    (cls === "ss" ? stats.subTorpedoPct : 0) +
+    stats.torpedoPct;
+  const depthPct = atk + (screen ? 15 * sonar : 0) + stats.depthChargePct;
+  // P6 (lane M, T1b): the naval MIO's stat % on every weapon.
+  const mio = (v: number) =>
+    stats.mioStatPct_naval === 0
+      ? v
+      : Math.floor((v * (100 + stats.mioStatPct_naval)) / 100);
   const pierce = GEN_PIERCE_PCT[g];
   const surf = Math.floor(
     ((b.surfDetect + GEN_DETECT[g]) *
@@ -226,19 +234,27 @@ export function shipStats(
           Math.floor((GEN_SUB_VIS[g] * (100 + stats.subVisibilityPct)) / 100),
         )
       : b.vis;
+  // P6 (spec §21.2, T1b): carrierDeckPct beside the MIO's deckPct.
   const deck =
-    cls === "cv" ? Math.floor((GEN_DECK[g] * (100 + stats.deckPct)) / 100) : 0;
+    cls === "cv"
+      ? Math.floor(
+          (GEN_DECK[g] * (100 + stats.deckPct + stats.carrierDeckPct)) / 100,
+        )
+      : 0;
   return {
     hpMilli: b.hp * hpPct * 10,
-    orgMilli: (b.org + (cls === "ss" ? stats.subOrg : 0)) * 1000,
-    light: b.light * atk,
+    // P6 (spec §21.2, T1b): navalOrg on every ship.
+    orgMilli:
+      Math.max(1, b.org + (cls === "ss" ? stats.subOrg : 0) + stats.navalOrg) *
+      1000,
+    light: mio(b.light * atk),
     lightPierce: b.lightPierce * pierce,
-    heavy: b.heavy * atk,
+    heavy: mio(b.heavy * atk),
     heavyPierce: b.heavyPierce * pierce,
-    torpedo: b.torpedo * torpPct,
-    depth: b.depth * depthPct,
+    torpedo: mio(b.torpedo * Math.max(0, torpPct)),
+    depth: mio(b.depth * Math.max(0, depthPct)),
     armor: b.armor * pierce,
-    aa: b.aa * atk,
+    aa: mio(b.aa * atk),
     speedCentiKn: (b.speedKn + genSpeedKn(cls, gen)) * 100,
     rangeKm: b.rangeKm,
     vis,

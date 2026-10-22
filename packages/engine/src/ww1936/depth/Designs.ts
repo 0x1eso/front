@@ -69,7 +69,11 @@ import {
   lineCostMilli,
   NavalLineLike,
 } from "@openfront/engine-lib/ww1936/NavalLineRules";
-import { PLANE_BASE } from "@openfront/engine-lib/ww1936/PlaneStats";
+import {
+  BOMBER_TYPES,
+  HEAVY_AIR_TYPES,
+  PLANE_BASE,
+} from "@openfront/engine-lib/ww1936/PlaneStats";
 import type { EffectCtx } from "../politics/Dispatch";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
@@ -698,7 +702,9 @@ function withAirStats(b: PlaneDesignStats, st: WwStats): PlaneDesignStats {
   const def =
     100 +
     st.airDefensePct +
-    (t === "heavy_fighter" || t === "strat_bomber" ? st.heavyDefensePct : 0);
+    (t === "heavy_fighter" || t === "strat_bomber" ? st.heavyDefensePct : 0) +
+    // T1b (spec §21.2): as planeStats, the bombers' air defence.
+    (BOMBER_TYPES.has(t) ? st.bomberDefensePct : 0);
   const agi =
     100 +
     st.airAgilityPct +
@@ -707,14 +713,34 @@ function withAirStats(b: PlaneDesignStats, st: WwStats): PlaneDesignStats {
     100 +
     st.airNavalPct +
     (t === "naval_bomber" || t === "cv_naval_bomber" ? st.navalBomberPct : 0);
-  if (atk === 100 && def === 100 && agi === 100 && nav === 100) return b;
+  // T1b (lane M, spec §21.2): as planeStats, the aircraft MIO's stat % on
+  // the attacks (by the P4 type's family) and airRangePct.
+  const mio =
+    100 +
+    (HEAVY_AIR_TYPES.has(t)
+      ? st.mioStatPct_air_heavy
+      : st.mioStatPct_air_light);
+  const range = 100 + st.airRangePct;
+  if (
+    atk === 100 &&
+    def === 100 &&
+    agi === 100 &&
+    nav === 100 &&
+    mio === 100 &&
+    range === 100
+  ) {
+    return b;
+  }
   const pct = (v: number, x: number) => Math.floor((v * Math.max(10, x)) / 100);
   return {
     ...b,
-    airAttack: pct(b.airAttack, atk),
+    airAttack: pct(pct(b.airAttack, atk), mio),
     airDefense: pct(b.airDefense, def),
     agility: Math.max(1, pct(b.agility, agi)),
-    naval: pct(b.naval, nav),
+    ground: pct(b.ground, mio),
+    strategic: pct(b.strategic, mio),
+    naval: pct(pct(b.naval, nav), mio),
+    range: pct(b.range, range),
   };
 }
 

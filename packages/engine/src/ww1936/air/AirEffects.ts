@@ -9,6 +9,7 @@
 // supply, computed on the zone's day.
 import {
   AIR_MISSIONS,
+  AIR_TYPES,
   AirMission,
   PlaneStats,
   WW_AIR_SUPPLY_PER_SORTIE_MILLI,
@@ -24,10 +25,14 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { StrategicRegion } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { planesLossBp } from "../depth/Designs";
 import { effectiveLevel } from "../economy/Buildings";
 import { applyShipDamage } from "../navy/NavalBattles";
 import { zoneFlights } from "./AirCombat";
 import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
+import { isCarrierWing, takeOffDeck } from "./Deploy";
+import { oldestFirst } from "./DesignPlanes";
+import { withFuze } from "./ProjectEffects";
 import type { Deployment, WwAir, ZoneAirState } from "./WwAir";
 
 /** Spec §14.9: the hit chance of a naval strike (ships at sea) and a port strike (docked), ‰. */
@@ -328,8 +333,12 @@ function portStrikes(
         any = true;
       }
       if (any) {
-        baseAaMilli +=
-          effectiveLevel(air.econ, port, "anti_air") * PORT_AA_LOSS_MILLI;
+        // P6 (spec §9.3, T1b): the port's holder's proximity fuze.
+        baseAaMilli += withFuze(
+          air.ww.depth,
+          air.land.controller[port] ?? 0,
+          effectiveLevel(air.econ, port, "anti_air") * PORT_AA_LOSS_MILLI,
+        );
       }
     }
     ships.sort((a, b) => a - b);
@@ -412,7 +421,8 @@ function strike(
   let aaMilli = baseAaMilli;
   const aaByOwner = new Map<number, number>();
   for (const x of targets) {
-    aaMilli += x.aa * aaLossPerCenti;
+    // P6 (spec §9.3, T1b): the ship owner's proximity fuze.
+    aaMilli += withFuze(air.ww.depth, x.owner, x.aa * aaLossPerCenti);
     aaByOwner.set(x.owner, (aaByOwner.get(x.owner) ?? 0) + x.aa);
   }
   const dmg = new Array<number>(targets.length).fill(0);
@@ -515,18 +525,30 @@ function takeLosses(
   ids.forEach((id, i) => {
     const d = air.deployments.get(id);
     if (d === undefined || parts[i] <= 0) return;
-    d.lossRest += parts[i];
+    // P6 (spec §5.4.2, lane E): design planes' reliability, by count.
+    const depth = air.ww.depth;
+    d.lossRest += Math.floor(
+      (parts[i] * planesLossBp(depth, d.owner, d.counts, d.dcounts)) / 10_000,
+    );
     air.markDeployment(id);
     const n = Math.floor(d.lossRest / 1000);
     if (n <= 0) return;
     d.lossRest -= n * 1000;
-    const counts = d.counts.map(() => 0);
-    let need = n;
-    for (let g = 0; g < d.counts.length && need > 0; g++) {
-      counts[g] = Math.min(need, d.counts[g]);
-      need -= counts[g];
-    }
-    air.planesLostTotal += air.shootDown(id, counts, by);
+    // The oldest first (P6: the design slots at their year).
+    const out = oldestFirst(
+      depth,
+      d.owner,
+      AIR_TYPES[d.type],
+      d.counts,
+      d.dcounts,
+      n,
+    );
+    const counts = out.slots === null ? out.gens : [...out.gens, ...out.slots];
+    const lost = air.shootDown(id, counts, by);
+    air.planesLostTotal += lost;
+    // T1b: a carrier wing's losses come off its deck too (the record
+    // mirrors the deck: without this the deck kept them, the ledger not).
+    if (lost > 0 && isCarrierWing(d)) takeOffDeck(air, d, out.gens, out.slots);
   });
 }
 

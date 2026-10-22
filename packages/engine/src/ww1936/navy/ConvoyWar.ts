@@ -18,7 +18,11 @@ import {
   raidPowerCenti,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { exploiting } from "../depth/Crypto";
+import { designPlaneP4 } from "../depth/Designs";
+import { minesConvoyLossPm } from "../depth/Mines";
 import { loseConvoys } from "../economy/Buildings";
+import { admiralPct, fleetAdmiralTraits } from "./AdmiralTraits";
 import { takeFromRoutes, USE_VOYAGE } from "./Convoys";
 import { onConvoysLost } from "./EndgameHooks";
 import { applyShipDamage } from "./NavalBattles";
@@ -31,6 +35,8 @@ const SS = SHIP_CLASSES.indexOf("ss");
 const DD = SHIP_CLASSES.indexOf("dd");
 const CL = SHIP_CLASSES.indexOf("cl");
 const NAVAL_STRIKE = AIR_MISSIONS.indexOf("naval_strike");
+/** P6 spec §8.7 (pre-flight A12): a raider exploiting the victim's broken codes raids it +10%. */
+const EXPLOIT_RAID_PCT = 10;
 
 /** A fleet on its mission in the region: at sea there, out of any battle. */
 function onMission(navy: WwNavy, f: Fleet, sr: number): boolean {
@@ -87,6 +93,11 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       if (l === undefined) raidFleets.set(f.owner, [f]);
       else l.push(f);
     }
+    // P6 (spec §4.2): convoy_master's escort +20%, on its fleet's ships.
+    const esc = raid ? 0 : admiralPct(fleetAdmiralTraits(navy, f), "escortPct");
+    let fdd = 0;
+    let fcl = 0;
+    let fother = 0;
     for (const id of f.ships) {
       const r = navy.ships.rowOf(id);
       if (r < 0) continue;
@@ -96,12 +107,19 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
         if (c === SS) add(sub, f.owner, x.torpedo);
         else add(surf, f.owner, x.light + x.heavy);
       } else if (c === DD) {
-        add(dd, f.owner, x.depth * 2 + x.light);
+        fdd += x.depth * 2 + x.light;
       } else if (c === CL) {
-        add(cl, f.owner, x.depth + x.light);
+        fcl += x.depth + x.light;
       } else {
-        add(other, f.owner, x.light);
+        fother += x.light;
       }
+    }
+    if (!raid) {
+      const k = (v: number) =>
+        esc === 0 ? v : Math.floor((v * (100 + esc)) / 100);
+      if (fdd > 0) add(dd, f.owner, k(fdd));
+      if (fcl > 0) add(cl, f.owner, k(fcl));
+      if (fother > 0) add(other, f.owner, k(fother));
     }
   }
   const air = airOf(navy, sr, idx);
@@ -123,7 +141,8 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
     );
     if (p > 0) raidPow.set(m, p);
   }
-  if (raidPow.size === 0) {
+  // P6 (spec §15.1): a mined region still sinks convoys with no raider here.
+  if (raidPow.size === 0 && navy.ww.depth.mineIndex.get(sr) === undefined) {
     st.lossYesterday = new Map();
     st.raidedYesterday = [];
     st.lossRate = new Map();
@@ -163,6 +182,14 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
     else l.push(m);
   }
   const sides = [...raiderSides.keys()].sort((a, b) => a - b);
+  // P6 (spec §8.7): raider m's power against country b (+10% exploiting b's codes).
+  const depth = navy.ww.depth;
+  const powVs = (m: number, b: number): number => {
+    const p = raidPow.get(m)!;
+    return exploiting(depth, m, b)
+      ? Math.floor((p * (100 + EXPLOIT_RAID_PCT)) / 100)
+      : p;
+  };
 
   // Traffic: each route through here once (a voyage where it sails now).
   const traffic = new Map<number, number>();
@@ -193,7 +220,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       const at = ms.filter((m) => land.isEnemy(m, b));
       if (at.length === 0) continue;
       let raid = 0;
-      for (const m of at) raid += raidPow.get(m)!;
+      for (const m of at) raid += powVs(m, b);
       const bSide = land.sideOf(b);
       const escort = escortOf(bSide);
       const milli = convoySinkMilli(traffic.get(b)!, raid, escort, s.area);
@@ -202,7 +229,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       let by = sinkBy.get(b);
       if (by === undefined) sinkBy.set(b, (by = new Map()));
       for (const m of at) {
-        add(by, m, Math.floor((milli * raidPow.get(m)!) / raid));
+        add(by, m, Math.floor((milli * powVs(m, b)) / raid));
       }
       for (const m of at) {
         for (const f of raidFleets.get(m) ?? []) {
@@ -226,8 +253,12 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       if (a === side.key) continue;
       let raid = 0;
       for (const m of raiderSides.get(a)!) {
-        if (side.members.some((y) => land.isEnemy(m, y)))
-          raid += raidPow.get(m)!;
+        if (!side.members.some((y) => land.isEnemy(m, y))) continue;
+        // The display rate: +10% when it exploits any member's codes.
+        const p = raidPow.get(m)!;
+        raid += side.members.some((y) => exploiting(depth, m, y))
+          ? Math.floor((p * (100 + EXPLOIT_RAID_PCT)) / 100)
+          : p;
       }
       if (raid > 0) rate += convoyLossRatePm(raid, escortOf(side.key), s.area);
     }
@@ -237,7 +268,17 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   // The losses: the integer convoys, the remainder kept.
   const lossToday = new Map<number, number>();
   for (const b of victims) {
-    const milli = sink.get(b) ?? 0;
+    // P6 (spec §15.1): enemy mines add m / 10 ‰ of the traffic (traffic
+    // convoys × ‰ = milli-convoys). Nobody is credited for them.
+    const lossPct = navy.econ.country(b)?.stats.convoyLossPct ?? 0;
+    const raw =
+      (sink.get(b) ?? 0) +
+      traffic.get(b)! * minesConvoyLossPm(navy.ww.depth, sr, b);
+    // P6 (spec §21.2, T1b): the victim's convoyLossPct (−: fewer lost).
+    const milli =
+      lossPct === 0
+        ? raw
+        : Math.floor((raw * Math.max(0, 100 + lossPct)) / 100);
     if (milli <= 0) continue;
     lossToday.set(b, milli);
     const rest = (st.raidRest.get(b) ?? 0) + milli;
@@ -259,7 +300,10 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   // ASW: the escorts' depth charges on the raiding submarines they spotted.
   for (const { f, side, escort } of asw) {
     if (navy.fleets.get(f.id) !== f) continue;
-    const dmg = aswDamageMilli(escort, navy.spotPm(side, f.id));
+    // P6 (spec §4.2): blockade_runner's raiders take 15% less.
+    const cut = admiralPct(fleetAdmiralTraits(navy, f), "raidLossPct");
+    const raw = aswDamageMilli(escort, navy.spotPm(side, f.id));
+    const dmg = cut === 0 ? raw : Math.floor((raw * (100 + cut)) / 100);
     if (dmg <= 0) continue;
     let by = 0;
     let best = 0;
@@ -341,6 +385,14 @@ function airOf(
       );
       add(planes, d.owner, n);
     });
+    // P6 (lane E): its design planes, at their design's naval attack.
+    d.dcounts.forEach((n, s) => {
+      const st =
+        n > 0 ? designPlaneP4(navy.ww.depth, d.owner, s + 1, type) : null;
+      if (st === null) return;
+      add(naval, d.owner, n * st.naval);
+      add(planes, d.owner, n);
+    });
   }
   for (const [m, v] of naval) {
     const n = planes.get(m) ?? 0;
@@ -390,7 +442,13 @@ export function convoyLossPmOf(
   sr: number,
 ): number {
   const i = navy.scenario.srIdxOf(sr);
-  return i < 0 ? 0 : navy.lossRatePm(i, owner);
+  // P6 (spec §15.1): plus the enemy mines' convoy losses there; P6
+  // (spec §21.2, T1b): × the owner's convoyLossPct.
+  const pm =
+    (i < 0 ? 0 : navy.lossRatePm(i, owner)) +
+    minesConvoyLossPm(navy.ww.depth, sr, owner);
+  const pct = navy.econ.country(owner)?.stats.convoyLossPct ?? 0;
+  return pct === 0 ? pm : Math.floor((pm * Math.max(0, 100 + pct)) / 100);
 }
 
 /**

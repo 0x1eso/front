@@ -4,9 +4,12 @@
 // computed on the zone's day and read on the observer's turn), the night
 // flag of every record of a night group, then the aces (Aces.ts).
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
-import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
+import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { DS_RADAR, DS_RECON } from "@openfront/engine-api/ww1936/DepthTypes";
-import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIPMENT_GENS,
+  type WwOrderBlock,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   nightBombBp,
   nightLossBp,
@@ -48,9 +51,10 @@ function planeFlags(d: WwDepth, owner: number, slot: number): number {
 
 /**
  * Spec §15.4: a land zone's recon sorties by side today — P4's sorties of
- * the recon deployments (spec §14.2), their design planes at the same rate
- * (a recon camera design twice over), × (100 + reconPct)%. Kept as
- * [side, sr, sorties], sorted by (sr, side), only sides with sorties.
+ * the recon deployments (spec §14.2), design planes included (T1b: they
+ * fly in the flight after its generations; a recon camera design counts
+ * twice over), × (100 + reconPct)%. Kept as [side, sr, sorties], sorted
+ * by (sr, side), only sides with sorties.
  */
 function reconDay(d: WwDepth, sr: number): void {
   const ww = d.ww;
@@ -61,18 +65,14 @@ function reconDay(d: WwDepth, sr: number): void {
     for (const f of zoneFlights(air, sr)) {
       if (f.mission !== M_RECON || f.total <= 0) continue;
       let milli = f.total;
-      const dep = air.deployments.get(f.id);
-      const planes = sum(f.counts);
-      if (dep !== undefined && planes > 0) {
-        const effPm = Math.floor(f.total / planes);
-        dep.dcounts.forEach((n, i) => {
-          if (n <= 0) return;
-          const x =
-            (planeFlags(d, dep.owner, i + 1) & DS_RECON) !== 0
-              ? RECON_CAMERA_X
-              : 1;
-          milli += n * effPm * x;
-        });
+      // The design slots' sorties (index gens + slot − 1), already in the
+      // total once: a camera design's count again (RECON_CAMERA_X).
+      const gens = EQUIPMENT_GENS[AIR_TYPES[f.type]];
+      for (let i = gens; i < f.milli.length; i++) {
+        if (f.milli[i] <= 0) continue;
+        if ((planeFlags(d, f.owner, i - gens + 1) & DS_RECON) !== 0) {
+          milli += f.milli[i] * (RECON_CAMERA_X - 1);
+        }
       }
       const pct = ww.economy.country(f.owner)?.stats.reconPct ?? 0;
       milli = Math.floor((milli * Math.max(0, 100 + pct)) / 100);

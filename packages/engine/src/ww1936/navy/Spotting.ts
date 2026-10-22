@@ -16,6 +16,9 @@ import {
   searchPoints,
   spotGainPm,
 } from "@openfront/engine-lib/ww1936/NavalRules";
+import { exploiting } from "../depth/Crypto";
+import { hasUp } from "../depth/Operatives";
+import { admiralPct, fleetAdmiralTraits } from "./AdmiralTraits";
 import {
   fleetMissionPm,
   noteNewlySpotted,
@@ -26,6 +29,10 @@ import type { Fleet, WwNavy } from "./WwNavy";
 
 /** Spec §7.4: the spotter trait's search bonus, %. */
 const SPOTTER_PCT = 20;
+/** P6 spec §8.2: the naval intelligence department (ag_navy_dept): our fleets' search +5%. */
+const NAVY_DEPT_PCT = 5;
+/** P6 spec §8.7 (pre-flight A12): exploiting the target's broken codes, search on its fleets +20%. */
+const EXPLOIT_SPOT_PCT = 20;
 /** Spec §7.4: search % per point of the admiral's manoeuvre. */
 const MANEUVER_SEARCH_PCT = 5;
 
@@ -44,6 +51,9 @@ interface Search {
  */
 export function fleetSearchModPct(navy: WwNavy, f: Fleet): number {
   let pct = navy.econ.country(f.owner)?.stats.navalDetectPct ?? 0;
+  if (hasUp(navy.ww.depth.country(f.owner), "ag_navy_dept")) {
+    pct += NAVY_DEPT_PCT;
+  }
   const a = navy.admirals.get(f.admiral);
   if (a !== undefined && a.fleet === f.id) {
     pct += a.skills[2] * MANEUVER_SEARCH_PCT;
@@ -74,15 +84,20 @@ export function fleetVisOf(
       surfMax = Math.max(surfMax, v);
     }
   }
+  // P6 (spec §4.2): blockade_runner's fleet is 10% harder to find.
+  const pct = admiralPct(fleetAdmiralTraits(navy, f), "visibilityPct");
+  const k = (v: number) =>
+    pct === 0 ? v : Math.max(1, Math.floor((v * (100 + pct)) / 100));
   if (surfN > 0)
-    return { vis: fleetVis(surfMax, surfN, false), subsOnly: false };
-  return { vis: fleetVis(subMax, subN, true), subsOnly: true };
+    return { vis: k(fleetVis(surfMax, surfN, false)), subsOnly: false };
+  return { vis: k(fleetVis(subMax, subN, true)), subsOnly: true };
 }
 
 /**
  * A sea region's day of spotting progress (WwNavy.setSpotPm). Sides in
  * key order, enemy fleets in id order; the pairs that reach 1000‰ today
- * go to this region's engageRegion (spec §9.1).
+ * go to this region's engageRegion (spec §9.1). P6 (spec §8.7): a side
+ * one of whose members exploits the fleet owner's codes searches it +20%.
  */
 export function spotRegion(navy: WwNavy, sr: number, day: number): void {
   const sc = navy.scenario;
@@ -164,6 +179,7 @@ export function spotRegion(navy: WwNavy, sr: number, day: number): void {
       const sub =
         x === undefined ? 0 : x.sub + Math.floor(x.airSubMilli / 1000);
       const atWar = new Map<number, boolean>();
+      const cracked = new Map<number, boolean>();
       for (const f of targets) {
         if (navy.sideOf(f.owner) === side) continue;
         let w = atWar.get(f.owner);
@@ -174,7 +190,15 @@ export function spotRegion(navy: WwNavy, sr: number, day: number): void {
         if (!w) continue;
         seen.add(f.id);
         const v = visOf(f);
-        const srch = v.subsOnly ? sub : surf;
+        let c = cracked.get(f.owner);
+        if (c === undefined) {
+          c = members.some((m) => exploiting(navy.ww.depth, m, f.owner));
+          cracked.set(f.owner, c);
+        }
+        const base = v.subsOnly ? sub : surf;
+        const srch = c
+          ? Math.floor((base * (100 + EXPLOIT_SPOT_PCT)) / 100)
+          : base;
         const was = before.get(f.id) ?? 0;
         const bonus = raided.has(f.id) ? WW_SPOT_RAID_BONUS_PM : 0;
         let p = was + bonus;

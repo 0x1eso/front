@@ -48,6 +48,7 @@ import {
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { GEN_HP_PCT } from "@openfront/engine-lib/ww1936/ShipStats";
+import { isDepthFleet } from "../depth/AiSeaAir";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { MISSION_ENGAGE } from "./Missions";
 import { navalPort, navalPortsOf } from "./Ports";
@@ -1551,10 +1552,13 @@ export function aiNavy(navy: WwNavy, smallID: number, day: number): void {
   if (!p.isPlayer()) return;
   // P5 plan decision 7: a human controls it now.
   const human = navy.ww.isHumanControlled(smallID);
-  // A fleet in battle takes no orders today.
+  // A fleet in battle takes no orders today. P6 (spec §19.7): the mine
+  // fleets are the depth AI's (AiSeaAir), never P4's.
   const fleets = navy
     .fleetsOf(smallID)
-    .filter((f) => (!human || f.auto) && f.state !== STATE_BATTLE);
+    .filter(
+      (f) => (!human || f.auto) && f.state !== STATE_BATTLE && !isDepthFleet(f),
+    );
   if (fleets.length === 0) return;
   const atWar = aiAtWar(navy, smallID);
   if (!aiNavyDue(smallID, day, atWar)) return;

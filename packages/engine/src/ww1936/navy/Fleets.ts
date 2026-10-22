@@ -24,6 +24,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { fleetMissionBlock } from "@openfront/engine-lib/ww1936/NavalRules";
 import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import { refitHolds } from "../depth/Refit";
 import { belowReturnAt, FST, MISSION, MISSION_ENGAGE } from "./Missions";
 import {
   battleFleetIds,
@@ -76,6 +77,18 @@ export function issueFleetOrder(
   }
   const busy = battleFleetIds(navy);
   if (busy.has(f.id) || (into !== undefined && busy.has(into.id))) {
+    return "fleet_busy";
+  }
+  // P6 (lane E, spec §5.3.3): a fleet holding a refitting ship stays in
+  // its refit port (Refit's hold): no order sails it. A split or merge
+  // still may (the ships split off sail free).
+  if (
+    (order.kind === "fleet_mission" ||
+      order.kind === "fleet_move" ||
+      order.kind === "fleet_base" ||
+      order.kind === "fleet_return") &&
+    refitHolds(navy, f)
+  ) {
     return "fleet_busy";
   }
   switch (order.kind) {

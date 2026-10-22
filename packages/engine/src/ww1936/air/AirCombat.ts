@@ -9,6 +9,7 @@ import {
   AIR_TYPES,
   PlaneStats,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { DS_RADAR } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BuildingId,
   EQUIPMENT_GENS,
@@ -25,6 +26,9 @@ import {
   WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { aceMods } from "../depth/Aces";
+import { nightMods } from "../depth/AirExtras";
+import { designPlaneP4, planesLossBp } from "../depth/Designs";
 import {
   damageOf,
   effectiveBuildings,
@@ -33,8 +37,20 @@ import {
 import { noteFuelUse } from "../economy/Fuel";
 import { navalPort } from "../navy/Ports";
 import { radarPmAt } from "./AirSuperiority";
-import { carrierWingDeck, isCarrierWing } from "./Deploy";
-import { deploymentSide, WwAir, ZoneAirState } from "./WwAir";
+import {
+  carrierWingDeck,
+  carrierWingDeckD,
+  isCarrierWing,
+  takeOffDeck,
+} from "./Deploy";
+import { oldestFirst } from "./DesignPlanes";
+import {
+  hasMagnetron,
+  RADAR_PATROL_MAGNETRON_PCT,
+  RADAR_PATROL_PCT,
+  withFuze,
+} from "./ProjectEffects";
+import { deploymentPlanes, deploymentSide, WwAir, ZoneAirState } from "./WwAir";
 
 /** One group of planes in a duel: its numbers and how many fly, milli planes. */
 export interface DuelPlanes {
@@ -72,12 +88,16 @@ export interface AirFlight {
   /** AIR_MISSIONS index. */
   mission: number;
   base: number;
-  /** Planes flying per generation (index gen − 1). */
+  /**
+   * Planes flying per generation (index gen − 1). P6 (lane E): a record
+   * with design planes adds one entry per plane design slot after its
+   * generations (index gens + slot − 1), here and in `milli` and `stats`.
+   */
   counts: number[];
   /** Sorties per generation, milli planes: counts × eff‰. */
   milli: number[];
   total: number;
-  /** planeStats per generation at the owner's stats. */
+  /** planeStats per generation at the owner's stats (P6: a design slot's as the type flies it). */
   stats: PlaneStats[];
 }
 
@@ -86,6 +106,39 @@ const isFighter = (type: number) => {
   const t = AIR_TYPES[type];
   return t === "fighter" || t === "heavy_fighter" || t === "cv_fighter";
 };
+
+/**
+ * P6 (lane E, spec §5.4.2): the air radar module's naval patrol — a
+ * DS_RADAR design's sorties count ×1.3 (×1.5 with the magnetron): the
+ * part above its plain sorties, which the flight's total holds once.
+ */
+function radarPatrolExtra(air: WwAir, f: AirFlight): number {
+  const gens = EQUIPMENT_GENS[AIR_TYPES[f.type]];
+  if (f.milli.length <= gens) return 0;
+  const pct = hasMagnetron(air.ww.depth, f.owner)
+    ? RADAR_PATROL_MAGNETRON_PCT
+    : RADAR_PATROL_PCT;
+  let extra = 0;
+  for (let i = gens; i < f.milli.length; i++) {
+    if (f.milli[i] <= 0) continue;
+    const flags = air.ww.depth.designStatsOf(
+      f.owner,
+      "plane",
+      i - gens + 1,
+    )?.flags;
+    if (((flags ?? 0) & DS_RADAR) !== 0) {
+      extra += Math.floor((f.milli[i] * (pct - 100)) / 100);
+    }
+  }
+  return extra;
+}
+
+/** P6 (spec §21.2, T1b): a sortie rate ‰ × (100 + sortieEffPct)%, at most one sortie a day. */
+function effWith(pct: number, pm: number): number {
+  return pct === 0
+    ? pm
+    : Math.min(1000, Math.floor((pm * Math.max(0, 100 + pct)) / 100));
+}
 
 /**
  * Spec §13.1: a zone's weather — a land zone's is its center region's (P2
@@ -137,17 +190,27 @@ function flightsOf(
   for (const id of ids) {
     const d = air.deployments.get(id)!;
     let counts: readonly number[] = d.counts;
+    let dcounts: readonly number[] = d.dcounts;
     if (isCarrierWing(d)) {
       const deck = carrierWingDeck(air, d);
+      const deckD = deck === null ? null : carrierWingDeckD(air, d);
       // The record mirrors the deck (N2's carrier battles take planes off it).
-      if (deck !== null && deck.some((c, i) => c !== d.counts[i])) {
+      if (
+        deck !== null &&
+        (deck.some((c, i) => c !== d.counts[i]) ||
+          d.dcounts.some((c, s) => c !== (deckD?.[s] ?? 0)))
+      ) {
         d.counts = [...deck];
-        d.target = sum(deck);
+        if (deckD !== null) d.dcounts = [...deckD];
+        else d.dcounts.fill(0);
+        d.target = sum(deck) + (deckD === null ? 0 : sum(deckD));
         air.markDeployment(d.id);
       }
       counts = deck ?? [];
+      dcounts = deckD ?? [];
     }
-    if (sum(counts) === 0) continue;
+    const designs = sum(dcounts);
+    if (sum(counts) + designs === 0) continue;
     const ce = econ.country(d.owner);
     if (ce === null) continue;
     const side = deploymentSide(air, d);
@@ -170,6 +233,8 @@ function flightsOf(
     const milli: number[] = [];
     let total = 0;
     let fuel = 0;
+    // P6 (spec §21.2, T1b): the owner's sortieEffPct (effWith).
+    const effPct = ce.stats.sortieEffPct;
     for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
       const st = air.planeStatsOf(d.owner, type, g);
       stats.push(st);
@@ -177,17 +242,49 @@ function flightsOf(
       const eff =
         n === 0
           ? 0
-          : sortieEffPm(
-              weatherPm,
-              ce.fuelRatioPm,
-              rangeEffPm(km, st.rangeKm),
-              dmgPm,
-              supPm,
+          : effWith(
+              effPct,
+              sortieEffPm(
+                weatherPm,
+                ce.fuelRatioPm,
+                rangeEffPm(km, st.rangeKm),
+                dmgPm,
+                supPm,
+              ),
             );
       const m = n * eff;
       milli.push(m);
       total += m;
       fuel += Math.floor((m * st.fuelPerSortieMilli) / 1000);
+    }
+    // P6 (lane E): the design slots, each at its design's numbers (its
+    // range, its fuel), after the generations.
+    if (designs > 0) {
+      for (let s = 1; s <= dcounts.length; s++) {
+        const n = dcounts[s - 1];
+        const st = n > 0 ? designPlaneP4(air.ww.depth, d.owner, s, type) : null;
+        if (st === null) {
+          stats.push(stats[0]);
+          milli.push(0);
+          continue;
+        }
+        stats.push(st);
+        const m =
+          n *
+          effWith(
+            effPct,
+            sortieEffPm(
+              weatherPm,
+              ce.fuelRatioPm,
+              rangeEffPm(km, st.rangeKm),
+              dmgPm,
+              supPm,
+            ),
+          );
+        milli.push(m);
+        total += m;
+        fuel += Math.floor((m * st.fuelPerSortieMilli) / 1000);
+      }
     }
     if (burnFuel && fuel > 0) noteFuelUse(ce, fuel, 2);
     if (total === 0) continue;
@@ -198,7 +295,7 @@ function flightsOf(
       type: d.type,
       mission: d.mission,
       base: d.base,
-      counts: [...counts],
+      counts: designs > 0 ? [...counts, ...dcounts] : [...counts],
       milli,
       total,
       stats,
@@ -303,6 +400,51 @@ function addLoss(
   p.by.set(by, (p.by.get(by) ?? 0) + milli);
 }
 
+/**
+ * P6 (spec §15.2): a record with a living ace fights with its air attack
+ * +10% and agility +5% (aceMods); any other record keeps P4's numbers.
+ */
+function aceStats(air: WwAir, id: number, st: PlaneStats): PlaneStats {
+  if ((air.deployments.get(id)?.ace ?? 0) === 0) return st;
+  const a = aceMods(air.ww.depth, id);
+  if (a.attackPct === 0 && a.agilityPct === 0) return st;
+  return {
+    ...st,
+    airAtk: Math.floor((st.airAtk * (100 + a.attackPct)) / 100),
+    agility: Math.floor((st.agility * (100 + a.agilityPct)) / 100),
+  };
+}
+
+/**
+ * P6 (spec §15.3): the share of its losses a night strategic bombing
+ * record takes, bp (nightMods: ×0.5, the radar-design night fighters among
+ * `shooters` not halved); 10 000 for any other record. `night`: some
+ * record over the zone flies by night (nightIn), else nothing is asked.
+ */
+function nightLossBp(
+  air: WwAir,
+  night: boolean,
+  f: AirFlight,
+  shooters?: readonly number[],
+): number {
+  if (!night || f.mission !== M_BOMB) return 10_000;
+  return nightMods(air.ww.depth, f.id, shooters).lossBp;
+}
+
+/**
+ * Some strategic bombing record over the zone carries the night flag. A
+ * night group's records share it (air_night sets them all; AirExtras
+ * syncs a record P4 adds), so a zone without one has no night raid.
+ */
+function nightIn(air: WwAir, flights: readonly AirFlight[]): boolean {
+  for (const f of flights) {
+    if (f.mission === M_BOMB && air.deployments.get(f.id)?.night === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Whether two sides are at war (some member of one with some member of the other). */
 function sidesAtWar(air: WwAir, a: number, b: number): boolean {
   if (a === b) return false;
@@ -320,7 +462,8 @@ function sidesAtWar(air: WwAir, a: number, b: number): boolean {
  * interception, its kill power goes against the sides at war with it that
  * fly here (split by their weighted sorties), each side's losses spread
  * over its deployments by weight (largest remainders), cut by the
- * victim's airLossCutPct (operational_integrity_2).
+ * victim's airLossCutPct (operational_integrity_2). P6: aces fight better
+ * (spec §15.2) and night raids take half (spec §15.3).
  */
 function airBattles(
   air: WwAir,
@@ -329,6 +472,7 @@ function airBattles(
   sides: readonly number[],
   atWar: (a: number, b: number) => boolean,
   pending: Map<number, PendingLoss>,
+  night: boolean,
 ): void {
   const sc = air.ww.scenario;
   const s = sc.sr(sr)!;
@@ -354,7 +498,10 @@ function airBattles(
       if (ce !== null) detectPct = Math.max(detectPct, ce.stats.airDetectPct);
       let kp = 0;
       f.stats.forEach(
-        (st, g) => (kp += Math.floor((f.milli[g] * st.airAtk) / 1000)),
+        (st, g) =>
+          (kp += Math.floor(
+            (f.milli[g] * aceStats(air, f.id, st).airAtk) / 1000,
+          )),
       );
       kpOf.set(f.owner, (kpOf.get(f.owner) ?? 0) + kp);
     }
@@ -386,7 +533,11 @@ function airBattles(
     for (const f of shooters) {
       f.stats.forEach((stats, g) => {
         if (f.milli[g] > 0)
-          attackers.push({ stats, milli: f.milli[g], weight: 1 });
+          attackers.push({
+            stats: aceStats(air, f.id, stats),
+            milli: f.milli[g],
+            weight: 1,
+          });
       });
     }
     // The kill power splits over the enemy sides by their weighted sorties.
@@ -398,6 +549,10 @@ function airBattles(
       return m;
     };
     const masses = enemies.map(massOf);
+    // The night factor's shooters (built once, only for a night raid).
+    let shooterIds: number[] | undefined;
+    const shooterIdsOf = (): number[] =>
+      (shooterIds ??= shooters.map((x) => x.id));
     const allMass = masses.reduce((a, b) => a + b, 0);
     if (allMass === 0) continue;
     enemies.forEach((B, bi) => {
@@ -408,7 +563,11 @@ function airBattles(
         const weight = weightOf(f);
         f.stats.forEach((stats, g) => {
           if (f.milli[g] > 0)
-            defenders.push({ stats, milli: f.milli[g], weight });
+            defenders.push({
+              stats: aceStats(air, f.id, stats),
+              milli: f.milli[g],
+              weight,
+            });
         });
       }
       let loss = airDuelMilli(attackers, defenders, det);
@@ -424,7 +583,11 @@ function airBattles(
       targets.forEach((f, i) => {
         const cut = econ.country(f.owner)?.stats.airLossCutPct ?? 0;
         const milli = Math.floor((parts[i] * (100 - Math.min(100, cut))) / 100);
-        addLoss(pending, f.id, milli, lead);
+        const nightBp =
+          night && f.mission === M_BOMB
+            ? nightLossBp(air, night, f, shooterIdsOf())
+            : 10_000;
+        addLoss(pending, f.id, Math.floor((milli * nightBp) / 10_000), lead);
       });
     });
   }
@@ -459,6 +622,7 @@ function landAntiAir(
   sr: number,
   flights: readonly AirFlight[],
   pending: Map<number, PendingLoss>,
+  night: boolean,
 ): void {
   const sc = air.ww.scenario;
   const s = sc.sr(sr);
@@ -483,8 +647,11 @@ function landAntiAir(
     let pmSum = 0;
     let by = 0;
     let byW = -1;
-    const add = (w: number, pm: number, who: number) => {
+    const add = (w: number, pm0: number, who: number) => {
       if (w <= 0) return;
+      // P6 (spec §9.3, T1b): the defender's proximity fuze, ×1.5 (its
+      // guns' and its divisions' anti-air).
+      const pm = withFuze(air.ww.depth, who, pm0);
       wSum += w;
       pmSum += w * pm;
       if (w > byW) {
@@ -553,7 +720,15 @@ function landAntiAir(
       continue;
     }
     const [pm, by] = rateOf(f.side, f.mission);
-    if (pm > 0) addLoss(pending, f.id, Math.floor((f.total * pm) / 1000), by);
+    if (pm <= 0) continue;
+    // P6 (spec §15.3, HOI4): the guns hit night raiders half as often.
+    const milli = Math.floor((f.total * pm) / 1000);
+    addLoss(
+      pending,
+      f.id,
+      Math.floor((milli * nightLossBp(air, night, f)) / 10_000),
+      by,
+    );
   }
 }
 
@@ -576,16 +751,25 @@ function takeLosses(
     const d = air.deployments.get(id);
     const p = pending.get(id)!;
     if (d === undefined) continue;
-    d.lossRest += p.milli;
+    // P6 (spec §5.4.2, lane E): design planes' reliability, by count.
+    d.lossRest += Math.floor(
+      (p.milli * planesLossBp(air.ww.depth, d.owner, d.counts, d.dcounts)) /
+        10_000,
+    );
     air.markDeployment(id);
-    let whole = Math.floor(d.lossRest / 1000);
+    const whole = Math.floor(d.lossRest / 1000);
     if (whole <= 0) continue;
-    const took = d.counts.map(() => 0);
-    for (let g = 0; g < d.counts.length && whole > 0; g++) {
-      const n = Math.min(whole, d.counts[g]);
-      took[g] = n;
-      whole -= n;
-    }
+    // The oldest first (P6: the design slots at their year).
+    const out = oldestFirst(
+      air.ww.depth,
+      d.owner,
+      AIR_TYPES[d.type],
+      d.counts,
+      d.dcounts,
+      whole,
+    );
+    const took = out.gens;
+    const tookD = out.slots;
     let by = 0;
     let byMilli = -1;
     for (const [who, m] of [...p.by].sort((a, b) => a[0] - b[0])) {
@@ -594,23 +778,15 @@ function takeLosses(
         byMilli = m;
       }
     }
-    const n = air.shootDown(id, took, by);
+    const n = air.shootDown(
+      id,
+      tookD === null ? took : [...took, ...tookD],
+      by,
+    );
     if (n <= 0) continue;
     d.lossRest -= n * 1000;
-    if (d.counts.every((c) => c === 0)) d.lossRest = 0;
-    if (isCarrierWing(d)) {
-      const r = air.navy.ships.rowOf(-d.base);
-      const slot = ["cv_fighter", "cv_cas", "cv_naval_bomber"].indexOf(
-        AIR_TYPES[d.type],
-      );
-      if (r >= 0 && slot >= 0) {
-        const deck = air.navy.ships.deckOf(r);
-        took.forEach((c, g) => {
-          deck[slot * 3 + g] = Math.max(0, deck[slot * 3 + g] - c);
-        });
-        air.navy.markFleet(air.navy.ships.fleet[r]);
-      }
-    }
+    if (deploymentPlanes(d) === 0) d.lossRest = 0;
+    if (isCarrierWing(d)) takeOffDeck(air, d, took, tookD);
     air.planesLostTotal += n;
     lost.set(d.owner, (lost.get(d.owner) ?? 0) + n);
     if (by > 0) shotDown.set(by, (shotDown.get(by) ?? 0) + n);
@@ -798,8 +974,9 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   };
   // ②–④
   const pending = new Map<number, PendingLoss>();
-  airBattles(air, sr, flights, sides, atWar, pending);
-  landAntiAir(air, sr, flights, pending);
+  const night = nightIn(air, flights);
+  airBattles(air, sr, flights, sides, atWar, pending, night);
+  landAntiAir(air, sr, flights, pending, night);
   const shotDown = new Map<number, number>();
   const lost = new Map<number, number>();
   takeLosses(air, pending, day, shotDown, lost);
@@ -816,19 +993,38 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
     if (v !== 0) m.set(k, (m.get(k) ?? 0) + v);
   };
   for (const f of flights) {
+    const ce = air.econ.country(f.owner);
+    // P6 (spec §21.2, T1b): interception's share of the superiority,
+    // half (P4) + interceptShareBp, at most whole.
+    const intBp = Math.min(10_000, 5_000 + (ce?.stats.interceptShareBp ?? 0));
     let sc2 = 0;
     f.stats.forEach((st, g) => {
       const w = Math.floor((f.milli[g] * st.supWeightMilli) / 1000);
-      sc2 += f.mission === M_INT ? Math.floor(w / 2) : w;
+      sc2 += f.mission === M_INT ? Math.floor((w * intBp) / 10_000) : w;
     });
     add(score, f.side, sc2);
-    const ce = air.econ.country(f.owner);
-    pp.set(f.side, Math.max(pp.get(f.side) ?? 0, ce?.stats.supPenaltyPp ?? 0));
+    // P6 (spec §21.2, T1b): enemyAirPenaltyPp beside P4's supPenaltyPp.
+    pp.set(
+      f.side,
+      Math.max(
+        pp.get(f.side) ?? 0,
+        (ce?.stats.supPenaltyPp ?? 0) + (ce?.stats.enemyAirPenaltyPp ?? 0),
+      ),
+    );
     let row = sorties.get(f.side);
     if (row === undefined) sorties.set(f.side, (row = AIR_TYPES.map(() => 0)));
     row[f.type] += f.total;
     if (f.mission === M_PATROL) {
-      add(search, f.owner, f.type === T_NAVAL_BOMBER ? f.total * 3 : f.total);
+      // P6 (spec §21.2, T1b): navalPatrolPct on the search.
+      const pat = ce?.stats.navalPatrolPct ?? 0;
+      const s0 =
+        (f.type === T_NAVAL_BOMBER ? 3 : 1) *
+        (f.total + radarPatrolExtra(air, f));
+      add(
+        search,
+        f.owner,
+        pat === 0 ? s0 : Math.floor((s0 * Math.max(0, 100 + pat)) / 100),
+      );
       add(asw, f.owner, f.total);
     } else if (f.mission === M_STRIKE) {
       add(strike, f.owner, f.total);

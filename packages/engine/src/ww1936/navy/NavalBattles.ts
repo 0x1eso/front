@@ -42,6 +42,10 @@ import {
   visFactorPm,
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { deckDesignCounts } from "../air/DesignPlanes";
+import { withFuze } from "../air/ProjectEffects";
+import { shipDesignOf } from "../depth/Designs";
+import { admiralPct } from "./AdmiralTraits";
 import { deckAttackCenti, deckPlanes, loseStrikePlanes } from "./Carriers";
 import { sendHome } from "./SeaMove";
 import type { AdmiralState, Fleet, NavalBattle, WwNavy } from "./WwNavy";
@@ -509,6 +513,13 @@ function hasTech(navy: WwNavy, owner: number, tech: WwTechId): boolean {
   return navy.econ.country(owner)?.researched.has(tech) ?? false;
 }
 
+/** P6 (plan Step 15): a ship's design hit bonus, % (0: a ship of its static class). */
+function designHitPct(navy: WwNavy, sh: BShip): number {
+  const slot = navy.ships.design[sh.row];
+  if (slot === 0) return 0;
+  return shipDesignOf(navy.ww.depth, sh.owner, slot)?.hitPct ?? 0;
+}
+
 /** The side's ships still in the battle (alive, not got away), side order. */
 function sideShips(navy: WwNavy, b: NavalBattle, s: SideIdx): BShip[] {
   const t = navy.ships;
@@ -614,7 +625,9 @@ function formation(navy: WwNavy, a: SideCtx, d: SideCtx): void {
       them.count,
       me.maneuver,
       st.positioningPct,
-      (me.traits & TACTICIAN) !== 0 ? TACTICIAN_POS_PM : 0,
+      ((me.traits & TACTICIAN) !== 0 ? TACTICIAN_POS_PM : 0) +
+        // P6 (spec §4.2): fleet_tactician's positioning, % as ‰ × 10.
+        admiralPct(me.traits, "positioningPct") * 10,
     );
     me.posDmg = posDamagePm(me.pos);
     me.screen = screenPm(
@@ -724,8 +737,16 @@ function modsBpOf(
     adds.push(sa.capitalAttackPct * 100);
   } else if (role === "sub") {
     adds.push(sa.subAttackPct * 100, (traits & SEA_WOLF) !== 0 ? 1500 : 0);
+  } else if (role === "screen") {
+    // P6 (spec §21.2, T1b): the destroyers' and light cruisers' fire.
+    adds.push(sa.screenAttackPct * 100);
   }
-  const cuts = [-(tadm?.skills[1] ?? 0) * 400, -st.navyDefensePct * 100];
+  const cuts = [
+    -(tadm?.skills[1] ?? 0) * 400,
+    -st.navyDefensePct * 100,
+    // P6 (spec §21.2, T1b): the target's naval damage taken (−: less).
+    st.navalDamageTakenPct * 100,
+  ];
   return combineMods(adds, cuts) - 10_000;
 }
 
@@ -783,7 +804,21 @@ function fire(
       ];
       memo.hitPct.set(sh.owner, pct);
     }
-    const [radar, guns] = pct;
+    // P6 (plan Step 15, spec §5.3): the ship design's hit % on every
+    // weapon of its own (not its deck's planes).
+    const dHit = designHitPct(navy, sh);
+    const radar = pct[0];
+    const guns = pct[1] + dHit;
+    const radarShip = radar + dHit;
+    // P6 (spec §4.2): night_fighter's torpedoes.
+    const torpPct = admiralPct(
+      admiralOf(navy, sh.fleet)?.traits ?? 0,
+      "torpedoPct",
+    );
+    const torpedo =
+      torpPct === 0
+        ? st.torpedo
+        : Math.floor((st.torpedo * (100 + torpPct)) / 100);
     const shoot = (
       attack: number,
       hitPm: number,
@@ -832,7 +867,15 @@ function fire(
       }
       if (
         round % 2 === 0 &&
-        shoot(st.torpedo, WW_HIT_TORPEDO_PM, radar, null, subTorp, false, false)
+        shoot(
+          torpedo,
+          WW_HIT_TORPEDO_PM,
+          radarShip,
+          null,
+          subTorp,
+          false,
+          false,
+        )
       ) {
         subsFired.add(sh.id);
       }
@@ -840,14 +883,24 @@ function fire(
     }
     shoot(st.light, WW_HIT_LIGHT_PM, guns, st.lightPierce, light, false, false);
     shoot(st.heavy, WW_HIT_HEAVY_PM, guns, st.heavyPierce, heavy, false, false);
-    shoot(st.torpedo, WW_HIT_TORPEDO_PM, radar, null, light, false, false);
+    shoot(torpedo, WW_HIT_TORPEDO_PM, radarShip, null, light, false, false);
     if (canDepth) {
-      shoot(st.depth, WW_HIT_DEPTH_PM, radar, null, DEPTH_SHARES, true, false);
+      shoot(
+        st.depth,
+        WW_HIT_DEPTH_PM,
+        radarShip,
+        null,
+        DEPTH_SHARES,
+        true,
+        false,
+      );
     }
     if (sh.cls === "cv") {
+      const cst = statsOf(navy, sh.owner);
+      // P6 (spec §21.2, T1b): carrierCycleCut beside the doctrine's rounds cut.
       const every = Math.max(
         1,
-        CARRIER_EVERY - statsOf(navy, sh.owner).carrierRoundsCut,
+        CARRIER_EVERY - cst.carrierRoundsCut - cst.carrierCycleCut,
       );
       if (
         round % every === 0 &&
@@ -1149,18 +1202,28 @@ function strikeLossInput(
 ): {
   carriers: number[];
   aaMilli: number;
-  fighters: { owner: number; counts: number[] }[];
+  fighters: { owner: number; counts: number[]; dcounts?: number[] }[];
   by: number;
 } {
   const t = navy.ships;
   let aaCenti = 0;
-  const fighters: { owner: number; counts: number[] }[] = [];
+  const fighters: { owner: number; counts: number[]; dcounts?: number[] }[] =
+    [];
   for (const e of enemy.ships) {
     if (e.dead || t.rowOf(e.id) < 0) continue;
-    aaCenti += e.stats.aa;
+    // P6 (spec §9.3, T1b): the ship owner's proximity fuze.
+    aaCenti += withFuze(navy.ww.depth, e.owner, e.stats.aa);
     if (e.cls === "cv") {
       const d = deckPlanes(navy, e.row)[0];
-      if (d.some((n) => n > 0)) fighters.push({ owner: e.owner, counts: d });
+      // P6 (lane E): its carrier fighter designs fly with them.
+      const dd = deckDesignCounts(navy.ww.depth, e.owner, e.row, "cv_fighter");
+      if (d.some((n) => n > 0) || dd !== null) {
+        fighters.push({
+          owner: e.owner,
+          counts: d,
+          ...(dd === null ? {} : { dcounts: dd }),
+        });
+      }
     }
   }
   return {
