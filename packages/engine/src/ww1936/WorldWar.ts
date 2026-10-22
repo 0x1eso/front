@@ -487,6 +487,24 @@ export class WorldWar {
     for (const [id, days] of this.gauges()) {
       h = (Math.imul(h, 31) + id * 257 + days + 3) | 0;
     }
+    // Final review A, finding 3: the day last run, the start VP and the
+    // land transfers under way, in their list order (stepTransfers walks
+    // it): each one's pair, cursor, size and its first, next and last tile
+    // (a capitulation's list can hold a whole country's tiles; the tiles it
+    // has moved are in the players' hashes).
+    h = (Math.imul(h, 31) + this._lastDay) | 0;
+    for (const vp of this._startVp) h = (Math.imul(h, 31) + vp) | 0;
+    h = (Math.imul(h, 31) + this._transfers.length) | 0;
+    for (const t of this._transfers) {
+      const n = t.tiles.length;
+      h = (Math.imul(h, 31) + t.from * 1009 + t.to) | 0;
+      h = (Math.imul(h, 31) + t.next) | 0;
+      h = (Math.imul(h, 31) + n) | 0;
+      if (n === 0) continue;
+      h = (Math.imul(h, 31) + t.tiles[0]) | 0;
+      h = (Math.imul(h, 31) + (t.tiles[t.next] ?? -1)) | 0;
+      h = (Math.imul(h, 31) + t.tiles[n - 1]) | 0;
+    }
     h = (Math.imul(h, 31) + this.economy.hash()) | 0;
     h = (Math.imul(h, 31) + this.land.hash()) | 0;
     h = (Math.imul(h, 31) + this.politics.hash()) | 0;
