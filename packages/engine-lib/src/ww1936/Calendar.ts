@@ -53,11 +53,23 @@ export function dateOfDay(day: number): CivilDate {
   return civilFromDays(EPOCH_1936 + day);
 }
 
+/**
+ * dayOfDate's answers by date (final perf lane: content rows are read
+ * every day — general rosters, start field marshals, beats — and the
+ * parse is pure). Only valid dates go in; a bad one still throws.
+ */
+const DAY_OF_DATE = new Map<string, number>();
+
 /** Days since 1936-01-01 of an ISO date "YYYY-MM-DD". */
 export function dayOfDate(iso: string): number {
+  const known = DAY_OF_DATE.get(iso);
+  if (known !== undefined) return known;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (m === null) throw new Error(`not an ISO date: ${iso}`);
-  return daysFromCivil(Number(m[1]), Number(m[2]), Number(m[3])) - EPOCH_1936;
+  const day =
+    daysFromCivil(Number(m[1]), Number(m[2]), Number(m[3])) - EPOCH_1936;
+  DAY_OF_DATE.set(iso, day);
+  return day;
 }
 
 export function formatIsoDate(d: CivilDate): string {

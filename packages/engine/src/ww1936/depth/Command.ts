@@ -213,8 +213,9 @@ function terrainTraits(d: WwDepth, id: number, g: GeneralState): boolean {
   for (let b = 0; b < GENERAL_TRAITS.length; b++) {
     if ((g.traits & (1 << b)) !== 0) count++;
   }
+  const bits = terrainBits();
   for (let i = P6_TERRAIN_FIRST; i < TERRAIN_TRAITS.length; i++) {
-    const bit = traitBit(TERRAIN_TRAITS[i]);
+    const bit = bits[i];
     if (
       (g.traits & bit) === 0 &&
       !g.fm &&
@@ -229,7 +230,7 @@ function terrainTraits(d: WwDepth, id: number, g: GeneralState): boolean {
   const seen = seenBits(d, id, g.id);
   let now = seen;
   for (let i = P6_TERRAIN_FIRST; i < TERRAIN_TRAITS.length; i++) {
-    const bit = traitBit(TERRAIN_TRAITS[i]);
+    const bit = bits[i];
     if ((g.traits & bit) === 0 || (seen & bit) !== 0) continue;
     now |= bit;
     // WwPolitics.message adds "events_display."; the client names the
@@ -241,6 +242,13 @@ function terrainTraits(d: WwDepth, id: number, g: GeneralState): boolean {
   }
   if (now !== seen) setSeenBits(d, id, g.id, now);
   return changed;
+}
+
+/** TERRAIN_TRAITS' bits (final perf lane: each general's day read them by name). */
+let terrainBitsMemo: number[] | null = null;
+function terrainBits(): number[] {
+  terrainBitsMemo ??= TERRAIN_TRAITS.map((t) => traitBit(t));
+  return terrainBitsMemo;
 }
 
 function seenBits(d: WwDepth, id: number, general: number): number {
@@ -710,9 +718,7 @@ export function skirmisherContact(
   let theirs: Set<number> | null = null;
   const sc = d.ww.scenario;
   for (const a of land.armiesOf(observer)) {
-    if (a.general === 0) continue;
-    const g = generalById(cl, a.general);
-    if (g === null || (g.traits & SKIRMISHER) === 0) continue;
+    if (!isSkirmisherArmy(cl, a)) continue;
     if (theirs === null) {
       theirs = new Set<number>();
       for (const r of land.rowsOf(target)) theirs.add(t.region[r]);
@@ -727,6 +733,13 @@ export function skirmisherContact(
     }
   }
   return false;
+}
+
+/** The army is led by a general with the skirmisher trait (spec §4.2). */
+export function isSkirmisherArmy(cl: CountryLand, a: Army): boolean {
+  if (a.general === 0) return false;
+  const g = generalById(cl, a.general);
+  return g !== null && (g.traits & SKIRMISHER) !== 0;
 }
 
 /** Spec §4.5: a medal's division experience gain, percent, for the army. */

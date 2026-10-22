@@ -25,6 +25,7 @@ import {
   IDEO_DEM,
   IDEO_NEU,
   IDEOLOGIES,
+  PersonDef,
   PersonId,
   RESERVE_KEYS,
   TraitDef,
@@ -473,6 +474,31 @@ const addToScratch = (_part: number, p: Partial<WwStats>): void =>
 const IS_PCT: readonly boolean[] = WW_STAT_KEYS.map((k) =>
   PCT_STAT_KEYS.includes(k),
 );
+
+/**
+ * General id → the persons whose `alsoGeneral` it is, from the content's
+ * person table (static content; derived once per table).
+ */
+const ALSO_GENERAL = new WeakMap<
+  ReadonlyMap<string, PersonDef>,
+  Map<string, string[]>
+>();
+function alsoGeneralIndex(
+  persons: ReadonlyMap<string, PersonDef>,
+): Map<string, string[]> {
+  let m = ALSO_GENERAL.get(persons);
+  if (m === undefined) {
+    m = new Map();
+    for (const [id, p] of persons) {
+      if (p.alsoGeneral === undefined) continue;
+      const l = m.get(p.alsoGeneral);
+      if (l === undefined) m.set(p.alsoGeneral, [id]);
+      else l.push(id);
+    }
+    ALSO_GENERAL.set(persons, m);
+  }
+  return m;
+}
 
 export class WwPolitics {
   countries: (CountryPol | null)[];
@@ -1137,12 +1163,13 @@ export class WwPolitics {
 
   /** Plan decision 19: a person serving as an advisor somewhere is not a general meanwhile. */
   advisorHolds(generalId: string): boolean {
+    // Final perf lane: only the persons who are also this general can hold
+    // him (most generals have none: no walk over every country's advisors).
+    const persons = alsoGeneralIndex(this.content.personIdx).get(generalId);
+    if (persons === undefined) return false;
     for (const c of this.list()) {
       for (const a of c.advisors) {
-        if (a === null) continue;
-        if (this.content.personIdx.get(a)?.alsoGeneral === generalId) {
-          return true;
-        }
+        if (a !== null && persons.includes(a)) return true;
       }
     }
     return false;

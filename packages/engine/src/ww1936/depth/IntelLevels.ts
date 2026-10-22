@@ -21,7 +21,7 @@ import {
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { effectiveLevel } from "../economy/Buildings";
 import { reconCovers } from "./AirExtras";
-import { skirmisherContact } from "./Command";
+import { isSkirmisherArmy } from "./Command";
 import {
   cryptoDaysLeft,
   decryptedOwn,
@@ -55,6 +55,11 @@ interface TickCache {
   infil: Uint8Array;
   codes: Uint8Array;
   radar: Uint8Array;
+  /**
+   * Final perf lane: the regions the observer's skirmisher armies stand in
+   * or next to (null until a target needs it; fillObserver clears it).
+   */
+  skirm: Set<number> | null;
   ins: IntelInput[];
 }
 
@@ -80,6 +85,7 @@ function tickCache(d: WwDepth, keep = true): TickCache {
       infil: new Uint8Array(d.cap),
       codes: new Uint8Array(d.cap),
       radar: new Uint8Array(d.cap),
+      skirm: null,
       ins: DOMAINS.map((domain) => ({
         domain,
         sameFaction: false,
@@ -108,10 +114,9 @@ function tickCache(d: WwDepth, keep = true): TickCache {
   const econ = d.ww.economy;
   c.zonesOf = Array.from({ length: d.cap }, () => []);
   c.byZone = new Map();
-  for (const r of sc.landRegions) {
-    const z = sc.harborOf(r.id);
-    if (z === 0) continue;
-    const owner = econ.controllerOf(r.id);
+  // The land regions with a harbour zone, in landRegions order.
+  for (const [rid, z] of harbourRegions(sc)) {
+    const owner = econ.controllerOf(rid);
     if (owner <= 0 || owner >= d.cap) continue;
     const zs = c.zonesOf[owner];
     if (!zs.includes(z)) zs.push(z);
@@ -122,7 +127,23 @@ function tickCache(d: WwDepth, keep = true): TickCache {
   return c;
 }
 
-// ---- static: the land strategic regions a radar reaches ----
+// ---- static: the harbour regions, the land strategic regions a radar reaches ----
+
+const HARBOURS = new WeakMap<ScenarioIndex, [number, number][]>();
+
+/** [land region, its harbour zone] of every land region with one, in landRegions order. */
+function harbourRegions(sc: ScenarioIndex): [number, number][] {
+  let v = HARBOURS.get(sc);
+  if (v === undefined) {
+    v = [];
+    for (const r of sc.landRegions) {
+      const z = sc.harborOf(r.id);
+      if (z !== 0) v.push([r.id, z]);
+    }
+    HARBOURS.set(sc, v);
+  }
+  return v;
+}
 
 const RADAR_REACH = new WeakMap<ScenarioIndex, Map<number, number[]>>();
 
@@ -183,6 +204,7 @@ function fillObserver(
   c.infil.fill(0);
   c.codes.fill(0);
   c.radar.fill(0);
+  c.skirm = null;
   for (const t of d.ww.economy.countryNeighbours(o)) {
     if (t < d.cap) c.nb[t] = 1;
   }
@@ -208,6 +230,41 @@ function fillObserver(
   }
 }
 
+/**
+ * Command.skirmisherContact for one observer and every target (final perf
+ * lane): the regions `o`'s skirmisher armies' divisions stand in, and their
+ * neighbours. A target is in contact when one of its divisions stands in
+ * one of them — the same test, the observer's half made once a row.
+ */
+function skirmisherReach(d: WwDepth, o: number): Set<number> {
+  const out = new Set<number>();
+  const land = d.ww.land;
+  const cl = land.country(o);
+  if (cl === null) return out;
+  const t = land.divisions;
+  const sc = d.ww.scenario;
+  for (const a of land.armiesOf(o)) {
+    if (!isSkirmisherArmy(cl, a)) continue;
+    for (const div of a.divisions) {
+      const r = t.rowOf(div);
+      if (r < 0) continue;
+      const at = t.region[r];
+      out.add(at);
+      for (const n of sc.regionNeighbours(at)) out.add(n);
+    }
+  }
+  return out;
+}
+
+/** A division of `target` stands in one of `reach`'s regions. */
+function touches(d: WwDepth, reach: Set<number>, target: number): boolean {
+  if (reach.size === 0) return false;
+  const land = d.ww.land;
+  const t = land.divisions;
+  for (const r of land.rowsOf(target)) if (reach.has(t.region[r])) return true;
+  return false;
+}
+
 /** Spec §8.8: writes the four inputs of `o` on `t` into the scratch inputs. */
 function fillInputs(
   d: WwDepth,
@@ -229,7 +286,8 @@ function fillInputs(
   const mask = c.infil[t];
   const recon = reconCovers(d, o, t);
   // Contact needs armies side by side: a war or a border.
-  const skirmisher = (atWar || neighbour) && skirmisherContact(d, o, t);
+  const skirmisher =
+    (atWar || neighbour) && touches(d, (c.skirm ??= skirmisherReach(d, o)), t);
   const radar = c.radar[t] === 1;
   const counter = c.counter[t];
   for (const i of c.ins) {
