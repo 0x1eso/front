@@ -9,7 +9,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 import { DoctrineModel } from "../../../src/client/hud/ww1936/DoctrineModel";
 import { doctrineGame } from "./DoctrineFixture";
 import { detail } from "./EconomyFixture";
-import { landDetail } from "./LandFixture";
+import { general, landDetail } from "./LandFixture";
 
 const base = {
   details: [detail("DEU")],
@@ -48,6 +48,48 @@ describe("DoctrineModel (spec §20.2, §20.3)", () => {
       "armor",
       "support",
     ]);
+  });
+
+  it("command screens judge with lane D's rules: traits, marshals, spirits, medals, air xp", () => {
+    const g = doctrineGame({
+      details: [detail("DEU")],
+      landDetails: [
+        landDetail("DEU", {
+          armyXpMilli: 150_000,
+          generals: [
+            // A level-3 general with free slots; a marshal (army -1).
+            general(1, { key: "bock", level: 3 }),
+            general(2, {
+              key: "kluge",
+              level: 3,
+              fm: true,
+              fmTraits: 1,
+              army: -1,
+            }),
+          ],
+        }),
+      ],
+      detail: {
+        doctrine: { xp: [150, 40, 7] },
+        command: { cpMilli: 34_000, medalCooldown: [[5, 40]] },
+      },
+    });
+    const m = new DoctrineModel(g.game as never);
+    const people = m.commandPeople();
+    // The marshal is no general in the trait list (traitAssignBlock).
+    expect(people.map((p) => p.id)).toEqual([1]);
+    const trickster = people[0].candidates.find((c) => c.trait === "trickster");
+    expect(trickster).toEqual({ trait: "trickster", cp: 20, block: null });
+    // A marshal's own traits: cost 20 command power, he holds one.
+    expect(m.fmTraitBlock(2, "fm_thorough")).toBe(null);
+    expect(m.fmTraitBlock(1, "fm_thorough")).toBe("no_slot");
+    // Officer corps from spiritPickBlock with the air experience of the detail.
+    expect(m.spiritBlock(0, 0)).toBe(null);
+    expect(m.spiritBlock(0, 5)).toBe("bad_index");
+    expect(m.domains()[2].xp).toBe(7);
+    // Medal cooldown: army 5 waits until day 40.
+    expect(m.medalDaysLeft(5)).toBeGreaterThan(0);
+    expect(m.medalDaysLeft(6)).toBe(0);
   });
 
   it("a switch shows the xp cost and the lock", () => {

@@ -10,8 +10,6 @@ import {
   CP_MAX_MILLI,
   DOCTRINE_DOMAINS,
   DOCTRINE_TRACKS,
-  FM_PROMOTE_CP,
-  FM_PROMOTE_PP,
   FM_TRAITS,
   GD_DOMAIN,
   GD_SWITCH_XP,
@@ -20,8 +18,6 @@ import {
   MEDAL_CP,
   MEDALS,
   SPIRIT_CAT_DOMAIN,
-  SPIRIT_PICK_XP,
-  SPIRIT_SWITCH_XP,
   SUB_SWITCH_XP,
   SUB_TRACK,
   SUBDOCTRINES,
@@ -42,14 +38,20 @@ import {
   WW_ADMIRAL_TRAIT_MAX,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  ADMIRAL_ASSIGN_CP,
-  ADMIRAL_ASSIGN_LEVEL,
+  ASSIGNABLE_ADMIRAL_TRAITS,
   fieldMarshalCap,
   FM_EXTRA_TRAIT_CP,
-  NEW_GENERAL_TRAITS,
+  fmEligible,
+  promoteFmBlock,
+  spiritCost,
+  spiritPickBlock,
+  traitAssignBlock,
+  traitCost,
   traitSlots,
 } from "@openfront/engine-lib/ww1936/CommandRules";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   doctrinePickBlock,
   masteryLevel,
@@ -235,22 +237,43 @@ export function generalTraitIds(mask: number): GeneralTrait[] {
   return GENERAL_TRAITS.filter((t) => (mask & traitBit(t)) !== 0);
 }
 
-/** The field marshal fields of a general record: optional until the engine sends them (concern in the report). */
-type MarshalFields = { fm?: boolean; fmTraits?: number };
-
+/** Lane D's field marshal flag (GeneralData.fm; a marshal's army is -1). */
 export function isMarshal(g: GeneralData): boolean {
-  return (g as GeneralData & MarshalFields).fm === true;
+  return g.fm === true;
 }
 
 export function marshalTraitIds(g: GeneralData): string[] {
-  const mask = (g as GeneralData & MarshalFields).fmTraits ?? 0;
+  const mask = g.fmTraits ?? 0;
   return FM_TRAITS.filter((_, i) => (mask & (1 << i)) !== 0);
 }
 
-/** Spec §4.3: level 3, or abilities summing to 12. */
-// TODO(lane D): use a shared promoteBlock from engine-lib.
-export function promotable(g: GeneralData): boolean {
-  return g.level >= 3 || g.att + g.def + g.plan + g.log >= 12;
+/** A K5 START_FIELD_MARSHALS row names this general of `tag` on `day` (as lane D's listedFm). */
+function listedMarshal(
+  tag: string | null,
+  g: GeneralData,
+  day: number,
+): boolean {
+  if (tag === null || g.key === "") return false;
+  return CONTENT.startFieldMarshals.some(
+    (r) =>
+      r.tag === tag &&
+      r.general === g.key &&
+      (r.from === undefined || dayOfDate(r.from) <= day) &&
+      (r.until === undefined || day < dayOfDate(r.until)),
+  );
+}
+
+/** Spec §4.3 (lane D's fmEligible): level 3, abilities summing to 12, or a K5 row. */
+export function promotable(
+  g: GeneralData,
+  tag: string | null = null,
+  day = 0,
+): boolean {
+  return fmEligible(
+    g.level,
+    g.att + g.def + g.plan + g.log,
+    listedMarshal(tag, g, day),
+  );
 }
 
 interface Ctx {
@@ -298,7 +321,10 @@ export class DoctrineModel {
     ].join("|");
   }
 
+  /** Lane D's detail.doctrine.xp (army, navy, air), whole points. */
   private xp(c: Ctx): DomainXp {
+    const x = c.detail.doctrine.xp;
+    if (x !== undefined) return [x[0] ?? 0, x[1] ?? 0, x[2] ?? 0];
     const land = c.game.wwLand?.()?.details.get(c.me)?.armyXpMilli ?? 0;
     const navy = c.game.wwNavy?.()?.detail?.navyXpMilli ?? 0;
     return [Math.floor(land / 1000), Math.floor(navy / 1000), null];
@@ -511,21 +537,27 @@ export class DoctrineModel {
           id: ARMY_SPIRITS[category * 3 + k],
           picked: category * 3 + k === picked,
         })),
-        cost: picked >= 0 ? SPIRIT_SWITCH_XP : SPIRIT_PICK_XP,
+        cost: spiritCost(picked),
         lockDays: picked >= 0 && lock > c.day ? lock - c.day : 0,
       };
     });
   }
 
-  // TODO(lane D): use the engine-lib check when one exists.
+  /** Lane D's spiritPickBlock (the engine's own check). */
   spiritBlock(category: number, index: number): DoctrineBlock | null {
     const c = this.ctx();
     if (c === null) return "not_ready";
     const card = this.spiritCards()[category];
-    if (card === undefined || card.picked === index) return "bad_index";
-    if (card.lockDays > 0) return "doctrine_locked";
+    if (card === undefined) return "bad_index";
     const have = this.xp(c)[card.domain];
-    return have !== null && have < card.cost ? "no_xp" : null;
+    return spiritPickBlock({
+      category,
+      spirit: index,
+      current: card.picked,
+      lockUntil: c.detail.command.spiritLock[category] ?? -1,
+      day: c.day,
+      xp: have ?? Number.MAX_SAFE_INTEGER,
+    });
   }
 
   spiritOrder(category: number, index: number): WwOrder {
@@ -609,48 +641,91 @@ export class DoctrineModel {
     );
   }
 
-  // TODO(lane D): use traitAssignBlock (and a shared promoteBlock) instead of this copied logic.
-  private generalCandidates(c: Ctx, g: GeneralData): TraitCandidate[] {
-    const mask = g.traits;
-    const full = generalTraitIds(mask).length >= traitSlots(g.level);
-    const cp = c.detail.command.cpMilli;
+  /**
+   * The traits lane D's traitAssignBlock lets this person take once there
+   * is room and command power, each with why not now: "no_cp", or
+   * "no_slot" when only the slots refuse it.
+   */
+  private candidatesOf(
+    c: Ctx,
+    admiral: boolean,
+    pool: readonly string[],
+    base: {
+      level: number;
+      traits: readonly string[];
+      slots: number;
+      isFm: boolean;
+      fmTraits: readonly string[];
+    },
+  ): TraitCandidate[] {
     const out: TraitCandidate[] = [];
-    for (const t of GENERAL_TRAITS) {
-      const def = NEW_GENERAL_TRAITS[t];
-      if (def === undefined || def.kind !== "assign") continue;
-      if ((mask & traitBit(t)) !== 0 || g.level < def.level) continue;
-      if (def.needs !== undefined && (mask & traitBit(def.needs)) === 0) {
-        continue;
-      }
+    for (const t of pool) {
+      const judge = (cpMilli: number, slots: number) =>
+        traitAssignBlock({ ...base, admiral, trait: t, cpMilli, slots });
+      // Room and power aside, the trait must be open to him.
+      const open = admiral
+        ? base.level >= 2 && !base.traits.includes(t)
+        : judge(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER) === null;
+      if (!open) continue;
+      const real = judge(c.detail.command.cpMilli, base.slots);
       out.push({
         trait: t,
-        cp: def.cp,
-        block: full ? "no_slot" : cp < def.cp * 1000 ? "no_cp" : null,
+        cp: traitCost(t, admiral),
+        block:
+          real === null
+            ? null
+            : real === "no_cp"
+              ? "no_cp"
+              : ("no_slot" as const),
       });
     }
     return out;
   }
 
-  // TODO(lane D): use traitAssignBlock instead of this copied logic.
+  private generalCandidates(c: Ctx, g: GeneralData): TraitCandidate[] {
+    return this.candidatesOf(c, false, GENERAL_TRAITS, {
+      level: g.level,
+      traits: generalTraitIds(g.traits),
+      slots: traitSlots(g.level),
+      isFm: isMarshal(g),
+      fmTraits: marshalTraitIds(g),
+    });
+  }
+
   private admiralCandidates(
     c: Ctx,
     level: number,
     held: readonly AdmiralTrait[],
   ): TraitCandidate[] {
-    if (level < ADMIRAL_ASSIGN_LEVEL) return [];
-    const cp = c.detail.command.cpMilli;
-    return ADMIRAL_TRAITS.slice(6)
-      .filter((t) => !held.includes(t))
-      .map((t) => ({
-        trait: t,
-        cp: ADMIRAL_ASSIGN_CP,
-        block:
-          held.length >= WW_ADMIRAL_TRAIT_MAX
-            ? ("no_slot" as const)
-            : cp < ADMIRAL_ASSIGN_CP * 1000
-              ? ("no_cp" as const)
-              : null,
-      }));
+    return this.candidatesOf(c, true, ASSIGNABLE_ADMIRAL_TRAITS, {
+      level,
+      traits: held,
+      slots: WW_ADMIRAL_TRAIT_MAX,
+      isFm: false,
+      fmTraits: [],
+    });
+  }
+
+  /** Why a marshal cannot take field marshal trait `trait` now (lane D's traitAssignBlock); null: he can. */
+  fmTraitBlock(marshal: number, trait: string): DoctrineBlock | null {
+    const c = this.ctx();
+    if (c === null) return "not_ready";
+    const g = c.game
+      .wwLand?.()
+      ?.details.get(c.me)
+      ?.generals.find((x) => x.id === marshal);
+    if (g === undefined) return "not_ready";
+    const b = traitAssignBlock({
+      admiral: false,
+      level: g.level,
+      traits: generalTraitIds(g.traits),
+      slots: traitSlots(g.level),
+      trait,
+      cpMilli: c.detail.command.cpMilli,
+      isFm: isMarshal(g),
+      fmTraits: marshalTraitIds(g),
+    });
+    return b === null ? null : b === "no_cp" ? "no_cp" : "no_slot";
   }
 
   traitOrder(general: number, trait: string, admiral: boolean): WwOrder {
@@ -699,21 +774,47 @@ export class DoctrineModel {
     if (c === null || bar === null) return [];
     const pp = this.pp(c);
     const land = c.game.wwLand?.()?.details.get(c.me);
+    const tag = c.game.myPlayer()?.countryTag?.() ?? null;
+    const divisions = c.game.wwLand?.()?.countries.get(c.me)?.divisions ?? 0;
     return (land?.generals ?? [])
-      .filter((g) => !isMarshal(g) && promotable(g))
-      .map((g) => ({
-        id: g.id,
-        name: rosterName(g),
-        level: g.level,
-        block:
-          bar.marshals >= bar.cap
-            ? ("fm_cap" as const)
-            : c.detail.command.cpMilli < FM_PROMOTE_CP * 1000
-              ? ("no_cp" as const)
-              : pp !== null && pp < FM_PROMOTE_PP
-                ? ("no_pp" as const)
-                : null,
-      }));
+      .filter((g) => !isMarshal(g) && promotable(g, tag, c.day))
+      .map((g) => {
+        // Lane D's promoteFmBlock (serving is the engine's to judge).
+        const b = promoteFmBlock({
+          isFm: false,
+          serves: true,
+          level: g.level,
+          skillSum: g.att + g.def + g.plan + g.log,
+          listed: listedMarshal(tag, g, c.day),
+          fieldMarshals: bar.marshals,
+          divisions,
+          cpMilli: c.detail.command.cpMilli,
+          pp: pp ?? Number.MAX_SAFE_INTEGER,
+        });
+        return {
+          id: g.id,
+          name: rosterName(g),
+          level: g.level,
+          block:
+            b === null
+              ? null
+              : b === "fm_limit"
+                ? ("fm_cap" as const)
+                : b === "no_cp" || b === "no_pp"
+                  ? b
+                  : ("not_ready" as const),
+        };
+      });
+  }
+
+  /** Days until `army` may get a medal again (lane D's detail.command.medalCooldown); 0: now. */
+  medalDaysLeft(army: number): number {
+    const c = this.ctx();
+    if (c === null) return 0;
+    const row = (c.detail.command.medalCooldown ?? []).find(
+      (m) => m[0] === army,
+    );
+    return row === undefined ? 0 : Math.max(0, row[1] - c.day);
   }
 
   promoteOrder(general: number, trait: string): WwOrder {

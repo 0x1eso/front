@@ -584,24 +584,33 @@ export class WwDoctrinePanel extends WwDrawerBase {
       <div class="text-white/70">
         ${translateText("ww1936.command.award_pick")}
       </div>
-      ${rows.map(
-        (r) =>
-          html`<button
-            type="button"
-            data-ww-medal-army=${r.id}
-            class=${BTN}
-            @click=${() => {
-              this.send({
-                kind: "medal_award",
-                army: r.id,
-                medal: medal as (typeof MEDALS)[number],
-              });
-              this.medal = null;
-            }}
-          >
-            ${armyName(r.nameNo)}
-          </button>`,
-      )}
+      ${rows.map((r) => {
+        // Lane D: an army waits out its medal cooldown.
+        const wait = model.medalDaysLeft(r.id);
+        return html`<button
+          type="button"
+          data-ww-medal-army=${r.id}
+          ?disabled=${wait > 0}
+          class=${BTN}
+          @click=${() => {
+            this.send({
+              kind: "medal_award",
+              army: r.id,
+              medal: medal as (typeof MEDALS)[number],
+            });
+            this.medal = null;
+          }}
+        >
+          ${armyName(r.nameNo)}
+          ${wait > 0
+            ? html`<span class="text-white/60"
+                >${translateText("ww1936.doctrine.locked_days", {
+                  days: wait,
+                })}</span
+              >`
+            : nothing}
+        </button>`;
+      })}
     </div>`;
   }
 
@@ -704,7 +713,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
                   <button
                     type="button"
                     data-ww-fm-trait-buy=${t}
-                    ?disabled=${cp < model.fmTraitCp}
+                    ?disabled=${model.fmTraitBlock(id, t) !== null}
                     class="${BTN} mt-1 w-full"
                     @click=${() => this.send(model.traitOrder(id, t, false))}
                   >
