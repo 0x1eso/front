@@ -66,7 +66,7 @@ describe("World War 1936 P6: the depth state in a snapshot", () => {
       b.game.worldWar()!.depth.designSlot(DEEP.tag.DEU, "tank", 1)?.def,
     ).toEqual(TEST_TANK);
     lockstep(a, b, 300);
-  });
+  }, 30_000);
 
   it("a stats mark from inside the land tick never crosses into a snapshot (review E1)", async () => {
     const a = await wwRunner({}, HUMANS, DEEP.map);

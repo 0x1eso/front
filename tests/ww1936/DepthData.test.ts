@@ -38,6 +38,14 @@ const ALL_PROJECTS = (1 << SPECIAL_PROJECTS.length) - 1;
 const K5_KEYS = hasKey("ww1936.gd.gd_mobile");
 
 describe("depth data", () => {
+  it("the nine <damId>_destroyed flags are declared (pre-flight §C5, review L3)", () => {
+    expect(DAMS).toHaveLength(9);
+    for (const d of DAMS) {
+      expect(CONTENT.flagSet.has(`${d}_destroyed`), d).toBe(true);
+      expect(CONTENT.flags, d).toContain(`${d}_destroyed`);
+    }
+  });
+
   it("start doctrines name doctrines of the right domain and track", () => {
     for (const s of CONTENT.startDoctrines) {
       s.gd.forEach((g, dom) => {
