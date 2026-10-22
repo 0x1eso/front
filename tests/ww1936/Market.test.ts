@@ -9,6 +9,7 @@ import { MARKET_DAYS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { grantLicence } from "@openfront/engine/ww1936/depth/Licences";
 import {
   dayCommonMarket,
@@ -22,25 +23,23 @@ import {
 } from "@openfront/engine/ww1936/economy/Trade";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { vi } from "vitest";
+import { diffSnapshots } from "../util/Snapshot";
 import { DEEP } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
-import { gameHash, stepTo, wwRunner } from "./util";
+import { gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
 const { DEU, FRA, POL } = DEEP.tag;
+const HUMANS = [
+  { clientID: "HUMANDEU", country: "DEU" as const },
+  { clientID: "HUMANFRA", country: "FRA" as const },
+];
 const INF1 = equipKey("infantry_equipment", 1);
 
 async function deep() {
-  const runner = await wwRunner(
-    {},
-    [
-      { clientID: "HUMANDEU", country: "DEU" },
-      { clientID: "HUMANFRA", country: "FRA" },
-    ],
-    DEEP.map,
-  );
+  const runner = await wwRunner({}, HUMANS, DEEP.map);
   stepTo(runner, WW_PREP_TICKS + 2);
   const ww = runner.game.worldWar()!;
   const tick = runner.game.ticks();
@@ -365,6 +364,51 @@ describe("World War 1936 P6: the arms market", () => {
     dayCommonMarket(d, day + 2, tick);
     expect(d.market.deals).toEqual([]);
     expect(deu.stock[INF1]).toBe(deuStock);
+  });
+
+  it("deals, licences and listings in progress survive a snapshot", async () => {
+    const { runner: a, ww, d, tick, day } = await deep();
+    ww.economy.country(DEU)!.addTech("medium_tank_1");
+    expect(
+      d.issue(
+        FRA,
+        {
+          kind: "licence_request",
+          from: DEU,
+          key: equipKey("medium_tank", 1),
+        },
+        tick,
+      ),
+    ).toBeNull();
+    d.issue(DEU, { kind: "market_list", key: INF1, count: 900 }, tick);
+    const listing = d.market.listings[0].id;
+    d.issue(FRA, { kind: "market_buy", listing, count: 600 }, tick);
+    d.issue(
+      DEU,
+      { kind: "mio_pick", family: "mio_infantry", archetype: "state_arsenal" },
+      tick,
+    );
+    // Under way: the deal delivering, the licence card still waiting.
+    stepTo(a, a.game.ticks() + 120);
+    expect(d.market.pending).toHaveLength(1);
+    expect(ww.day(a.game.ticks()) - day).toBeGreaterThan(12);
+    expect(d.market.deals).toHaveLength(1);
+    expect(d.market.deals[0].deliveredMilli).toBeGreaterThan(0);
+    const b = await wwRestore(a, HUMANS, DEEP.map);
+    expect(gameHash(b)).toBe(gameHash(a));
+    for (let i = 0; i < 300; i++) {
+      step(a);
+      step(b);
+      if (gameHash(a) !== gameHash(b)) {
+        throw new Error(`hash diverged ${i + 1} tick(s) after restore`);
+      }
+    }
+    expect(diffSnapshots(snapshotGame(a.game), snapshotGame(b.game))).toEqual(
+      [],
+    );
+    expect(JSON.stringify(b.game.worldWar()!.depth.market)).toBe(
+      JSON.stringify(d.market),
+    );
   });
 
   it("a refused market order changes nothing", async () => {
