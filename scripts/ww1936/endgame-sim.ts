@@ -254,6 +254,8 @@ interface RunResult {
     { state: string; independent: boolean; autPct: number; level: string }
   >;
   signature: string;
+  /** Sensitivity (owner ruling): Korea annexed or administered, Taiwan to anyone but CHN — first day of each. */
+  sensitive: { day: number; region: number; what: string }[];
   perf: {
     tick: PerfStat;
     endgame: PerfStat;
@@ -450,6 +452,7 @@ async function runOne(
     },
     dominions: {},
     signature: "",
+    sensitive: [],
     perf: {
       tick: stat([]),
       endgame: stat([]),
@@ -524,7 +527,7 @@ async function runOne(
   };
   const polNews = pol.news.bind(pol);
   pol.news = (id: string, params: Record<string, string | number> = {}) => {
-    if (res.newsFirst[id] === undefined) res.newsFirst[id] = today();
+    res.newsFirst[id] ??= today();
     polNews(id, params);
   };
 
@@ -693,6 +696,21 @@ async function runOne(
         };
   };
   const seenEnded = new Set<number>();
+  // Sensitivity: Korea's regions stay Japan's by law (zones move control
+  // only) and are never administered; Taiwan's legal owner is JPN or CHN.
+  const grp = (g: string) => pol.content.groupIdx.get(g)?.regions ?? [];
+  const korea = [...grp("korea_north"), ...grp("korea_south")];
+  const taiwan = grp("taiwan");
+  const jpn = idOf("JPN");
+  const chn = idOf("CHN");
+  const flagged = new Set<string>();
+  const flag = (day: number, region: number, what: string) => {
+    const k = `${region}:${what}`;
+    if (flagged.has(k)) return;
+    flagged.add(k);
+    res.sensitive.push({ day, region, what });
+    row(day, "sensitive", region, what);
+  };
   let prevDay = -1;
   const t0 = performance.now();
   while (g.ticks() < endTick) {
@@ -760,6 +778,16 @@ async function runOne(
       res.france.vichyDay = done;
     }
     if (done === d194112) res.exiles194112 = eg.exiles.length;
+    for (const r of korea) {
+      const lo = pol.legalOwner[r] ?? 0;
+      if (lo !== jpn) flag(done, r, `korea legal ${tagOf(lo)}`);
+      if (eg.isAdministered(r)) flag(done, r, "korea administered");
+    }
+    for (const r of taiwan) {
+      const lo = pol.legalOwner[r] ?? 0;
+      if (lo !== jpn && lo !== chn) flag(done, r, `taiwan legal ${tagOf(lo)}`);
+      if (eg.isAdministered(r)) flag(done, r, "taiwan administered");
+    }
     // Italy leaves the war: down, the armistice, or peace with the Allies.
     if (res.italy.leftDay === null) {
       const allied = ALLIED_MAJORS.some((t) => ww.isAtWar(ita, idOf(t)));
@@ -1068,6 +1096,7 @@ function checksOn(rs: RunResult[]): Check[] {
       ok: aut >= 60 || ind >= scale(8),
     });
   }
+  out.push(sensitivityCheck(rs));
   // Variety.
   const sigs = new Map<string, number>();
   for (const r of rs) sigs.set(r.signature, (sigs.get(r.signature) ?? 0) + 1);
@@ -1078,6 +1107,19 @@ function checksOn(rs: RunResult[]): Check[] {
     ok: sigs.size >= 4 && top <= scale(8),
   });
   return out;
+}
+
+function sensitivityCheck(rs: RunResult[]): Check {
+  const sens = rs.filter((r) => (r.sensitive ?? []).length > 0);
+  const what = sens
+    .map((r) => `${r.seed}: ${r.sensitive.map((x) => x.what).join("; ")}`)
+    .join(" | ");
+  return {
+    target:
+      "Sensitivity: Korea never annexed/administered, Taiwan only JPN/CHN",
+    value: `${sens.length}/${rs.length} games flagged${sens.length > 0 ? ` (${what})` : ""}`,
+    ok: sens.length === 0,
+  };
 }
 
 function checksOff(rs: RunResult[]): Check[] {
@@ -1101,6 +1143,7 @@ function checksOff(rs: RunResult[]): Check[] {
       value: `${exiles}/${n}`,
       ok: exiles * 10 >= n * 6,
     },
+    sensitivityCheck(rs),
   ];
 }
 
