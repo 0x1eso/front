@@ -1,11 +1,436 @@
-// World War 1936 P6 — the `tur` pack's focuses (spec §11). Content lane K2
-// (plan Task 17) fills this file; the foundation registers it empty.
+// World War 1936 P6 — the Turkish pack `tur` (spec §11.7, 20 focuses). Turkey
+// keeps the generic tree except gen_pol_claims (content/packs.ts); the pack's
+// Hatay focus opens the P3 decision instead. Columns: industry 20–22, army and
+// navy 24–26, diplomacy 28–34. Region groups turkish_straits, east_thrace,
+// eastern_anatolia, karabuk and malatya are K5 requests (lane report); hatay
+// is the P3 group. Data only (ContentPurity).
 import type {
   BranchPoint,
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { T, after, all, fire, not } from "../helpers";
 
-export const TUR_FOCUSES: readonly FocusDef[] = [];
-export const TUR_PATH: readonly FocusId[] = [];
-export const TUR_BRANCHES: readonly BranchPoint[] = [];
+export const TUR_FOCUSES: FocusDef[] = [
+  // ---- industry ----
+  {
+    id: "tur_first_plan",
+    tree: "tur",
+    x: 20,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory",
+    effects: [{ kind: "build", where: { best: 2 }, building: "civ", count: 2 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_karabuk",
+    tree: "tur",
+    x: 20,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "steel",
+    prereq: [["tur_first_plan"]],
+    effects: [
+      { kind: "build", where: { group: "karabuk" }, building: "mil", count: 1 },
+      {
+        kind: "resource",
+        where: { group: "karabuk" },
+        res: "steel",
+        amount: 3,
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_second_plan",
+    tree: "tur",
+    x: 21,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "industry",
+    prereq: [["tur_first_plan"]],
+    effects: [
+      { kind: "build", where: { best: 2 }, building: "civ", count: 2 },
+      { kind: "infra", where: { best: 2 }, amount: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_eastern_rail",
+    tree: "tur",
+    x: 21,
+    y: 2,
+    days: 70,
+    branch: "industry",
+    icon: "rail",
+    prereq: [["tur_second_plan"]],
+    effects: [
+      { kind: "rail", where: { group: "eastern_anatolia" }, amount: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_village_institutes",
+    tree: "tur",
+    x: 22,
+    y: 1,
+    days: 70,
+    branch: "research",
+    icon: "research",
+    prereq: [["tur_first_plan"]],
+    effects: [
+      { kind: "add_spirit", id: "tur_village_schools" },
+      { kind: "stability", pct: 5 },
+    ],
+    ai: { base: 10 },
+  },
+
+  // ---- army, navy and air ----
+  {
+    id: "tur_army_reform",
+    tree: "tur",
+    x: 24,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    effects: [{ kind: "army_xp", amount: 25 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_thrace",
+    tree: "tur",
+    x: 24,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    prereq: [["tur_army_reform"]],
+    effects: [{ kind: "fort", where: { group: "east_thrace" }, amount: 2 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_montreux",
+    tree: "tur",
+    x: 25,
+    y: 0,
+    days: 35,
+    branch: "navy",
+    icon: "document",
+    effects: [
+      {
+        kind: "build",
+        where: { group: "turkish_straits" },
+        building: "coastal_fort",
+        count: 2,
+      },
+      { kind: "stability", pct: 5 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_straits_fleet",
+    tree: "tur",
+    x: 25,
+    y: 1,
+    days: 70,
+    branch: "navy",
+    icon: "ship",
+    prereq: [["tur_montreux"]],
+    effects: [
+      {
+        kind: "build",
+        where: { group: "turkish_straits" },
+        building: "dock",
+        count: 1,
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_straits_guardian",
+    tree: "tur",
+    x: 24,
+    y: 2,
+    days: 105,
+    branch: "army",
+    icon: "shield",
+    prereq: [["tur_thrace"], ["tur_straits_fleet"]],
+    effects: [{ kind: "add_spirit", id: "tur_straits_watch" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_air_force",
+    tree: "tur",
+    x: 26,
+    y: 0,
+    days: 70,
+    branch: "air",
+    icon: "plane",
+    effects: [{ kind: "equipment", type: "fighter", gen: 1, count: 40 }],
+    ai: { base: 10 },
+  },
+
+  // ---- diplomacy ----
+  {
+    id: "tur_hatay",
+    tree: "tur",
+    x: 28,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "map",
+    effects: [{ kind: "unlock_decision", id: "tur_hatay_question" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_balkan_entente",
+    tree: "tur",
+    x: 29,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    exclusive: ["tur_saadabad"],
+    effects: [
+      { kind: "opinion", of: T("GRC"), value: 30, days: 365 },
+      { kind: "opinion", who: T("GRC"), of: "self", value: 30, days: 365 },
+      { kind: "opinion", of: T("YUG"), value: 30, days: 365 },
+      { kind: "opinion", who: T("YUG"), of: "self", value: 30, days: 365 },
+      { kind: "opinion", of: T("ROU"), value: 30, days: 365 },
+      { kind: "opinion", who: T("ROU"), of: "self", value: 30, days: 365 },
+      { kind: "set_flag", flag: "can_create_faction" },
+    ],
+    ai: { base: 5 },
+  },
+  {
+    id: "tur_saadabad",
+    tree: "tur",
+    x: 30,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    exclusive: ["tur_balkan_entente"],
+    effects: [
+      {
+        kind: "if",
+        cond: all(
+          { kind: "exists", who: T("IRN") },
+          not({ kind: "nap_with", of: T("IRN") }),
+        ),
+        then: [fire("gen_diplo_nap", T("IRN"))],
+      },
+      {
+        kind: "if",
+        cond: all(
+          { kind: "exists", who: T("IRQ") },
+          not({ kind: "nap_with", of: T("IRQ") }),
+        ),
+        then: [fire("gen_diplo_nap", T("IRQ"))],
+      },
+      {
+        kind: "if",
+        cond: all(
+          { kind: "exists", who: T("AFG") },
+          not({ kind: "nap_with", of: T("AFG") }),
+        ),
+        then: [fire("gen_diplo_nap", T("AFG"))],
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_active_neutrality",
+    tree: "tur",
+    x: 32,
+    y: 0,
+    days: 70,
+    branch: "politics",
+    icon: "scales",
+    effects: [{ kind: "add_spirit", id: "tur_active_neutrality_spirit" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_chromium",
+    tree: "tur",
+    x: 32,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "mine",
+    prereq: [["tur_active_neutrality"]],
+    effects: [
+      {
+        kind: "resource",
+        where: { group: "malatya" },
+        res: "chromium",
+        amount: 3,
+      },
+      { kind: "pp", amount: 25 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_allied_treaty",
+    tree: "tur",
+    x: 31,
+    y: 1,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    prereq: [["tur_active_neutrality"]],
+    exclusive: ["tur_german_treaty"],
+    effects: [
+      { kind: "opinion", of: T("GBR"), value: 30, days: 365 },
+      { kind: "opinion", who: T("GBR"), of: "self", value: 30, days: 365 },
+      { kind: "opinion", of: T("FRA"), value: 30, days: 365 },
+      { kind: "opinion", who: T("FRA"), of: "self", value: 30, days: 365 },
+      {
+        kind: "if",
+        cond: { kind: "exists", who: T("GBR") },
+        then: [fire("tur_aid_request", T("GBR"))],
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_german_treaty",
+    tree: "tur",
+    x: 33,
+    y: 1,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    prereq: [["tur_active_neutrality"]],
+    exclusive: ["tur_allied_treaty"],
+    available: all(
+      { kind: "exists", who: T("DEU") },
+      not({ kind: "at_war_with", of: T("DEU") }),
+    ),
+    effects: [
+      {
+        kind: "if",
+        cond: not({ kind: "nap_with", of: T("DEU") }),
+        then: [fire("gen_diplo_nap", T("DEU"))],
+      },
+      { kind: "opinion", of: T("DEU"), value: 30, days: 365 },
+      { kind: "opinion", who: T("DEU"), of: "self", value: 30, days: 365 },
+    ],
+    ai: { base: 5 },
+  },
+  {
+    // Asks the Allied leader to take Turkey in (the P3 path of gen_join_allies)
+    // and declares war on Germany.
+    id: "tur_join_allies",
+    tree: "tur",
+    x: 31,
+    y: 2,
+    days: 70,
+    branch: "diplomacy",
+    icon: "flag",
+    prereq: [["tur_allied_treaty"]],
+    available: all(
+      after("1945-01-01"),
+      { kind: "exists", who: T("DEU") },
+      not({ kind: "at_war_with", of: T("DEU") }),
+    ),
+    effects: [
+      {
+        kind: "if",
+        cond: not({ kind: "in_faction" }),
+        then: [
+          fire("gen_diplo_faction_request", { factionLeaderOf: T("GBR") }),
+        ],
+      },
+      { kind: "war_goal", on: T("DEU"), type: "topple" },
+      { kind: "declare_war", on: T("DEU"), goal: "topple" },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "tur_succession",
+    tree: "tur",
+    x: 34,
+    y: 0,
+    days: 35,
+    branch: "politics",
+    icon: "ballot",
+    available: after("1938-11-10"),
+    effects: [
+      { kind: "stability", pct: 5 },
+      { kind: "pp", amount: 50 },
+    ],
+    ai: { base: 10 },
+  },
+];
+
+/**
+ * The history path (spec §11.1): Montreux and the first five-year plan, the
+ * Saadabad pact, Hatay, Karabük, the succession of 1938, active neutrality
+ * with the Anglo-French treaty and the chromium trade, and the declaration of
+ * 1945 (it waits for its date), with the generic tree in between (its own
+ * ideology focus, no regional league).
+ */
+export const TUR_PATH: FocusId[] = [
+  "tur_montreux",
+  "tur_first_plan",
+  "tur_saadabad",
+  "tur_hatay",
+  "tur_karabuk",
+  "tur_army_reform",
+  "gen_ind_survey",
+  "tur_second_plan",
+  "tur_succession",
+  "tur_active_neutrality",
+  "tur_allied_treaty",
+  "tur_village_institutes",
+  "tur_chromium",
+  "tur_thrace",
+  "tur_eastern_rail",
+  "tur_join_allies",
+  "gen_ind_civ_1",
+  "gen_ind_mil_1",
+  "gen_ind_infra",
+  "gen_pol_unity",
+  "@ideo",
+  "tur_straits_fleet",
+  "tur_air_force",
+  "gen_rs_1",
+  "gen_army_reform",
+  "tur_straits_guardian",
+  "gen_ind_civ_2",
+  "gen_ind_mil_2",
+  "gen_army_infantry",
+  "gen_army_artillery",
+  "gen_ind_resources",
+  "gen_pol_admin",
+  "gen_army_doctrine",
+  "gen_army_fort",
+  "gen_rs_2",
+  "gen_pol_defence_spirit",
+  "gen_army_staff",
+  "gen_air_force",
+  "gen_navy_yards",
+  "gen_air_bases",
+  "gen_navy_coast",
+];
+
+export const TUR_BRANCHES: BranchPoint[] = [
+  {
+    id: "tur_alignment",
+    historical: "tur_allied_treaty",
+    alternatives: ["tur_german_treaty"],
+    political: true,
+  },
+  {
+    id: "tur_region",
+    historical: "tur_saadabad",
+    alternatives: ["tur_balkan_entente"],
+    political: false,
+  },
+];

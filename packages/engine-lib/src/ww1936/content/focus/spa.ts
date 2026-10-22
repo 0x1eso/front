@@ -1,11 +1,579 @@
-// World War 1936 P6 — the `spa` pack's focuses (spec §11). Content lane K2
-// (plan Task 17) fills this file; the foundation registers it empty.
+// World War 1936 P6 — the Spanish pack `spa` (spec §11.5, 28 focuses) for the
+// Spanish Republic (ESR) and Nationalist Spain (ESN). Both countries get the
+// generic tree minus the political focuses the pack replaces (content/packs.ts)
+// plus these; a focus with `countries` belongs to one side only. Columns: the
+// Republic 20–24, both sides 24–26, the Nationalists 26–29, and below them
+// the post-war focuses (rows 4–6) that open once the civil war is over.
+// Military facts only: no reprisals or bombings of towns are focuses (§24-7).
+// Region groups (madrid, catalonia, spanish_morocco, gibraltar,
+// french_morocco, spanish_galicia) are K5 requests (lane report).
+// Data only (ContentPurity).
 import type {
   BranchPoint,
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { T, all, any, fire, not } from "../helpers";
 
-export const SPA_FOCUSES: readonly FocusDef[] = [];
-export const SPA_PATH: readonly FocusId[] = [];
-export const SPA_BRANCHES: readonly BranchPoint[] = [];
+export const SPA_FOCUSES: FocusDef[] = [
+  // ---- both sides: the war effort ----
+  {
+    id: "spa_mobilize",
+    tree: "spa",
+    x: 25,
+    y: 0,
+    days: 35,
+    branch: "army",
+    icon: "infantry",
+    effects: [
+      { kind: "law_step", law: "conscription", steps: 1 },
+      { kind: "war_support", pct: 10 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_air_war",
+    tree: "spa",
+    x: 24,
+    y: 0,
+    days: 70,
+    branch: "air",
+    icon: "plane",
+    effects: [
+      { kind: "equipment", type: "fighter", gen: 1, count: 50 },
+      { kind: "research_bonus", branch: "air", pct: 50, uses: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_war_industry",
+    tree: "spa",
+    x: 25,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "factory_mil",
+    prereq: [["spa_mobilize"]],
+    effects: [{ kind: "build", where: { best: 2 }, building: "mil", count: 2 }],
+    ai: { base: 10 },
+  },
+  {
+    // Raises the AI weight of the aid requests this side sends (spa_aid_request).
+    id: "spa_foreign_volunteers",
+    tree: "spa",
+    x: 26,
+    y: 1,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    prereq: [["spa_mobilize"]],
+    effects: [{ kind: "army_xp", amount: 20 }],
+    ai: { base: 10 },
+  },
+
+  // ---- the Republic (ESR) ----
+  {
+    id: "spa_madrid_defense",
+    tree: "spa",
+    x: 20,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    countries: ["ESR"],
+    effects: [
+      { kind: "fort", where: { group: "madrid" }, amount: 3 },
+      { kind: "add_spirit", id: "spa_capital_holds", days: 365 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_catalan_industry",
+    tree: "spa",
+    x: 21,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory",
+    countries: ["ESR"],
+    effects: [
+      {
+        kind: "build",
+        where: { best: 2, of: "catalonia" },
+        building: "civ",
+        count: 2,
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_republic_unity",
+    tree: "spa",
+    x: 21,
+    y: 1,
+    days: 70,
+    branch: "politics",
+    icon: "handshake",
+    countries: ["ESR"],
+    prereq: [["spa_catalan_industry"]],
+    effects: [
+      { kind: "stability", pct: 10 },
+      { kind: "pp", amount: 50 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // "The capital is lost": a government in exile, or Madrid's region gone.
+    id: "spa_republic_exile",
+    tree: "spa",
+    x: 21,
+    y: 2,
+    days: 70,
+    branch: "politics",
+    icon: "flag",
+    countries: ["ESR"],
+    prereq: [["spa_republic_unity"]],
+    available: any(
+      { kind: "is_exile" },
+      not({ kind: "controls_capital_of", of: "self" }),
+    ),
+    effects: [{ kind: "exile_legitimacy", pct: 20 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_popular_army",
+    tree: "spa",
+    x: 23,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    countries: ["ESR"],
+    prereq: [["spa_mobilize"]],
+    effects: [
+      { kind: "unlock_template", template: "spa_mixed_brigades" },
+      {
+        kind: "divisions",
+        template: "spa_mixed_brigades",
+        count: 6,
+        where: "capital",
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_ebro",
+    tree: "spa",
+    x: 22,
+    y: 2,
+    days: 70,
+    branch: "army",
+    icon: "map",
+    countries: ["ESR"],
+    prereq: [["spa_popular_army"]],
+    effects: [{ kind: "add_spirit", id: "spa_ebro_offensive", days: 120 }],
+    ai: { base: 10 },
+  },
+  {
+    // The request goes to Moscow; the Soviet AI accepts it three times as
+    // often (spa_aid_request option a).
+    id: "spa_gold_reserve",
+    tree: "spa",
+    x: 23,
+    y: 2,
+    days: 70,
+    branch: "diplomacy",
+    icon: "document",
+    countries: ["ESR"],
+    prereq: [["spa_popular_army"]],
+    available: { kind: "exists", who: T("SUN") },
+    effects: [
+      fire("spa_aid_request", T("SUN")),
+      { kind: "stability", pct: -5 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // The DSL has no division experience level: army experience stands in
+    // for "experience level 2" (lane report, DSL gaps).
+    id: "spa_international_brigades",
+    tree: "spa",
+    x: 24,
+    y: 2,
+    days: 35,
+    branch: "army",
+    icon: "star_plain",
+    countries: ["ESR"],
+    prereq: [["spa_foreign_volunteers"]],
+    effects: [
+      {
+        kind: "divisions",
+        template: "spa_mixed_brigades",
+        count: 3,
+        where: "capital",
+      },
+      { kind: "army_xp", amount: 10 },
+    ],
+    ai: { base: 10 },
+  },
+
+  // ---- the Nationalists (ESN) ----
+  {
+    id: "spa_axis_aid",
+    tree: "spa",
+    x: 26,
+    y: 2,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    countries: ["ESN"],
+    prereq: [["spa_foreign_volunteers"]],
+    effects: [
+      {
+        kind: "if",
+        cond: { kind: "exists", who: T("DEU") },
+        then: [fire("spa_aid_request", T("DEU"))],
+      },
+      {
+        kind: "if",
+        cond: { kind: "exists", who: T("ITA") },
+        then: [fire("spa_aid_request", T("ITA"))],
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // Infantry brigades, not mountain divisions: a 1936 Nationalist Spain has
+    // no mountaineers tech and the P2 template check would refuse them.
+    id: "spa_navarre_volunteers",
+    tree: "spa",
+    x: 27,
+    y: 1,
+    days: 35,
+    branch: "army",
+    icon: "flag",
+    countries: ["ESN"],
+    prereq: [["spa_mobilize"]],
+    effects: [
+      { kind: "unlock_template", template: "spa_navarre_brigades" },
+      {
+        kind: "divisions",
+        template: "spa_navarre_brigades",
+        count: 2,
+        where: "capital",
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_army_of_africa",
+    tree: "spa",
+    x: 28,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    countries: ["ESN"],
+    effects: [
+      { kind: "unlock_template", template: "spa_africa_division" },
+      {
+        kind: "divisions",
+        template: "spa_africa_division",
+        count: 4,
+        where: { group: "spanish_morocco" },
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_strait_airlift",
+    tree: "spa",
+    x: 28,
+    y: 1,
+    days: 35,
+    branch: "air",
+    icon: "plane",
+    countries: ["ESN"],
+    prereq: [["spa_army_of_africa"]],
+    effects: [
+      { kind: "equipment", type: "transport_plane", gen: 1, count: 40 },
+      { kind: "add_spirit", id: "spa_airlift_ready", days: 60 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_unified_command",
+    tree: "spa",
+    x: 29,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "medal",
+    countries: ["ESN"],
+    prereq: [["spa_army_of_africa"]],
+    effects: [
+      { kind: "army_xp", amount: 30 },
+      { kind: "add_spirit", id: "spa_unified_staff", days: 365 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_northern_campaign",
+    tree: "spa",
+    x: 29,
+    y: 2,
+    days: 70,
+    branch: "army",
+    icon: "map",
+    countries: ["ESN"],
+    prereq: [["spa_unified_command"]],
+    effects: [{ kind: "add_spirit", id: "spa_northern_offensive", days: 90 }],
+    ai: { base: 10 },
+  },
+
+  // ---- after the civil war (both sides) ----
+  {
+    // The civil war spirit goes when the war ends (P3 esp_civil_war_won,
+    // P5 esp_civil_war_ends); no war between the two Spains is left.
+    id: "spa_reconstruction",
+    tree: "spa",
+    x: 25,
+    y: 4,
+    days: 70,
+    branch: "industry",
+    icon: "industry",
+    available: all(
+      not({ kind: "has_spirit", id: "esp_civil_war_nation" }),
+      not({ kind: "at_war_with", of: T("ESR") }),
+      not({ kind: "at_war_with", of: T("ESN") }),
+    ),
+    effects: [
+      { kind: "build", where: { best: 3 }, building: "civ", count: 3 },
+      { kind: "infra", where: { best: 3 }, amount: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_wolfram",
+    tree: "spa",
+    x: 23,
+    y: 5,
+    days: 70,
+    branch: "industry",
+    icon: "mine",
+    prereq: [["spa_reconstruction"]],
+    effects: [
+      {
+        kind: "resource",
+        where: { group: "spanish_galicia" },
+        res: "tungsten",
+        amount: 2,
+      },
+      { kind: "add_spirit", id: "spa_wolfram_trade" },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_non_belligerence",
+    tree: "spa",
+    x: 24,
+    y: 5,
+    days: 70,
+    branch: "politics",
+    icon: "scales",
+    prereq: [["spa_reconstruction"]],
+    exclusive: ["spa_join_axis"],
+    effects: [{ kind: "add_spirit", id: "spa_non_belligerent" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_join_axis",
+    tree: "spa",
+    x: 26,
+    y: 5,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    prereq: [["spa_reconstruction"]],
+    exclusive: ["spa_non_belligerence"],
+    effects: [{ kind: "unlock_decision", id: "gen_join_axis" }],
+    ai: { base: 5 },
+  },
+  {
+    id: "spa_navy_rebuild",
+    tree: "spa",
+    x: 27,
+    y: 5,
+    days: 70,
+    branch: "navy",
+    icon: "ship",
+    prereq: [["spa_reconstruction"]],
+    effects: [
+      {
+        kind: "build",
+        where: { coastal: true, n: 2 },
+        building: "dock",
+        count: 2,
+      },
+      { kind: "research_bonus", branch: "naval", pct: 50, uses: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // "Every division +5 experience" has no DSL kind: a year of faster
+    // division experience stands in (lane report, approximations).
+    id: "spa_rebuild_army",
+    tree: "spa",
+    x: 28,
+    y: 5,
+    days: 70,
+    branch: "army",
+    icon: "medal",
+    prereq: [["spa_reconstruction"]],
+    effects: [
+      { kind: "army_xp", amount: 30 },
+      { kind: "add_spirit", id: "spa_army_rebuilt", days: 365 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_iberian_pact",
+    tree: "spa",
+    x: 23,
+    y: 6,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    prereq: [["spa_non_belligerence"]],
+    available: all(
+      { kind: "exists", who: T("PRT") },
+      not({ kind: "nap_with", of: T("PRT") }),
+      not({ kind: "at_war_with", of: T("PRT") }),
+    ),
+    effects: [fire("gen_diplo_nap", T("PRT"))],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_eastern_division",
+    tree: "spa",
+    x: 24,
+    y: 6,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    countries: ["ESN"],
+    prereq: [["spa_non_belligerence"]],
+    available: { kind: "at_war_with", who: T("DEU"), of: T("SUN") },
+    effects: [{ kind: "unlock_decision", id: "spa_eastern_division" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "spa_gibraltar",
+    tree: "spa",
+    x: 26,
+    y: 6,
+    days: 70,
+    branch: "diplomacy",
+    icon: "map",
+    prereq: [["spa_join_axis"]],
+    available: all(
+      { kind: "exists", who: T("GBR") },
+      { kind: "owns_group", who: T("GBR"), group: "gibraltar" },
+    ),
+    effects: [
+      { kind: "war_goal", on: T("GBR"), type: "claim", group: "gibraltar" },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // France or, after 1940, whoever holds the protectorate (Vichy).
+    id: "spa_morocco_claims",
+    tree: "spa",
+    x: 27,
+    y: 6,
+    days: 70,
+    branch: "diplomacy",
+    icon: "map",
+    prereq: [["spa_join_axis"]],
+    available: not({ kind: "owns_group", group: "french_morocco" }),
+    effects: [
+      {
+        kind: "war_goal",
+        on: { ownerOf: "french_morocco" },
+        type: "claim",
+        group: "french_morocco",
+      },
+    ],
+    ai: { base: 10 },
+  },
+];
+
+/**
+ * The history path of both Spains (spec §11.1): the civil war focuses of the
+ * Republic and of the Nationalists side by side — each country's tree holds
+ * only its own (`countries`), and the focus AI skips what it cannot take —
+ * then the generic tree without its replaced political focuses, then the
+ * post-war line (non-belligerence, the eastern volunteers, the Iberian pact;
+ * the two claims after joining the Axis are only taken by a country that
+ * left the historical branch).
+ */
+export const SPA_PATH: FocusId[] = [
+  "spa_mobilize",
+  "spa_army_of_africa",
+  "spa_madrid_defense",
+  "spa_strait_airlift",
+  "spa_popular_army",
+  "spa_foreign_volunteers",
+  "spa_axis_aid",
+  "spa_gold_reserve",
+  "spa_international_brigades",
+  "spa_unified_command",
+  "spa_navarre_volunteers",
+  "spa_northern_campaign",
+  "spa_catalan_industry",
+  "spa_war_industry",
+  "spa_air_war",
+  "spa_republic_unity",
+  "spa_ebro",
+  "spa_republic_exile",
+  "gen_ind_survey",
+  "gen_ind_civ_1",
+  "spa_reconstruction",
+  "spa_non_belligerence",
+  "spa_eastern_division",
+  "spa_iberian_pact",
+  "spa_gibraltar",
+  "spa_morocco_claims",
+  "spa_wolfram",
+  "spa_rebuild_army",
+  "gen_ind_mil_1",
+  "gen_ind_infra",
+  "gen_pol_unity",
+  "gen_rs_1",
+  "gen_army_reform",
+  "spa_navy_rebuild",
+  "gen_ind_civ_2",
+  "gen_ind_mil_2",
+  "gen_army_infantry",
+  "gen_army_artillery",
+  "gen_ind_resources",
+  "gen_pol_admin",
+  "gen_army_doctrine",
+  "gen_army_fort",
+  "gen_rs_2",
+  "gen_pol_defence_spirit",
+  "gen_army_staff",
+  "gen_air_force",
+  "gen_navy_yards",
+  "gen_air_bases",
+  "gen_navy_coast",
+];
+
+export const SPA_BRANCHES: BranchPoint[] = [
+  {
+    id: "spa_postwar",
+    historical: "spa_non_belligerence",
+    alternatives: ["spa_join_axis"],
+    political: true,
+  },
+];
