@@ -6,6 +6,7 @@
 
 import { ARMY_PARA } from "@openfront/engine-api/ww1936/LandTypes";
 import { PLANE_SPEED } from "@openfront/engine-lib/warfare/Warfare";
+import { fogOfLand } from "../../hud/ww1936/FogModel";
 import type { WwLandView } from "../../view/WwLandView";
 import { nextTickSpan } from "../frame/derive/PlaneTrack";
 import { UT_TRANSPORT_PLANE, type UnitState } from "../types";
@@ -135,11 +136,14 @@ export class ParadropFlights {
   private findDrops(view: WwLandView, gameTick: number): void {
     const sc = view.scenario;
     const w = sc.width;
+    const fog = fogOfLand(view);
     for (const a of view.armies.values()) {
       const now = a.region * 2 + ((a.state & ARMY_PARA) !== 0 ? 1 : 0);
       const before = this.seen.get(a.id);
       this.seen.set(a.id, now);
       if (before === undefined || before % 2 === 0 || now % 2 === 1) continue;
+      // P6 (spec §8.9): no flight for an army the fog hides (seen is kept current).
+      if (fog !== undefined && !fog.armyView(a.id).visible) continue;
       const from = Math.floor(before / 2);
       if (from === a.region || from === 0 || a.region === 0) continue;
       const t0 = sc.centerTile(from);

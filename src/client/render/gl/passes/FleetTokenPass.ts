@@ -25,6 +25,7 @@ import type {
 import { FLEET_FLAG_LOW_FUEL } from "@openfront/engine-api/ww1936/NavyTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import shipAtlasMeta from "resources/atlases/ship-atlas-meta.json";
+import { fogOfNavy } from "../../../hud/ww1936/FogModel";
 import type { SeaAirSelection } from "../../../hud/ww1936/SeaAirSelection";
 import {
   DOCKED_SCALE,
@@ -448,6 +449,8 @@ export function fleetStateBits(state: string, flags: number): number {
 
 /** Per-fleet token attributes cached between samples (FLEET_ATTRS each). */
 const FLEET_ATTRS = 8;
+/** Cell value of a fleet the fog hides. */
+const HIDDEN = -2;
 
 export class FleetTokenPass {
   private batch: ShipSpriteBatch;
@@ -455,10 +458,12 @@ export class FleetTokenPass {
   private seenVersion = -1;
   private seenSelection = -1;
   private seenFleet = -1;
+  private seenFog = -1;
   /** The layout sample the attributes below were worked out for. */
   private seenSamples = -1;
   /** owner, cell, ships, HP, org, mission, state, flags per fleet of layout.fleets. */
   private attrs = new Float32Array(64 * FLEET_ATTRS);
+  private attrsFog = -1;
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -485,7 +490,11 @@ export class FleetTokenPass {
     selection: SeaAirSelection | null,
   ): void {
     const chosen = selection?.fleet ?? 0;
+    // P6 (spec §8.9, §20.7): a fleet the fog hides gets no instance.
+    const fog = fogOfNavy(view);
+    const fogStamp = fog?.stamp() ?? -1;
     if (
+      fogStamp === this.seenFog &&
       !layoutMoved &&
       view === this.seenView &&
       view.version === this.seenVersion &&
@@ -498,15 +507,20 @@ export class FleetTokenPass {
     this.seenVersion = view.version;
     this.seenSelection = selection?.version ?? -1;
     this.seenFleet = chosen;
-    if (layout.samples !== this.seenSamples) {
+    this.seenFog = fogStamp;
+    if (layout.samples !== this.seenSamples || fogStamp !== this.attrsFog) {
       this.seenSamples = layout.samples;
-      this.cacheAttrs(layout.fleets);
+      this.attrsFog = fogStamp;
+      this.cacheAttrs(layout.fleets, view);
     }
     const kind = layout.lod === 0 ? KIND_TOKEN : KIND_CHIP;
     const b = this.batch;
     b.begin(layout.count);
     let last = false;
     for (let i = 0; i < layout.count; i++) {
+      if (this.attrs[layout.slotIndex[i] * FLEET_ATTRS + 1] === HIDDEN) {
+        continue;
+      }
       if (layout.slotFleet[i].id === chosen) {
         last = true;
         continue;
@@ -516,7 +530,10 @@ export class FleetTokenPass {
     // The chosen fleet on top (both its slots on the date line).
     if (last) {
       for (let i = 0; i < layout.count; i++) {
-        if (layout.slotFleet[i].id === chosen) {
+        if (
+          layout.slotFleet[i].id === chosen &&
+          this.attrs[layout.slotIndex[i] * FLEET_ATTRS + 1] !== HIDDEN
+        ) {
           this.write(layout, i, kind, true);
         }
       }
@@ -524,7 +541,8 @@ export class FleetTokenPass {
     b.upload();
   }
 
-  private cacheAttrs(fleets: readonly FleetSummary[]): void {
+  private cacheAttrs(fleets: readonly FleetSummary[], view: WwNavyView): void {
+    const fog = fogOfNavy(view);
     if (this.attrs.length < fleets.length * FLEET_ATTRS) {
       this.attrs = new Float32Array(fleets.length * FLEET_ATTRS * 2);
     }
@@ -533,11 +551,27 @@ export class FleetTokenPass {
       const f = fleets[k];
       const cls = tokenClass(f.counts);
       const o = k * FLEET_ATTRS;
+      const fv = fog?.fleetView(f.id) ?? null;
       a[o] = f.owner;
+      if (fv !== null && !fv.visible) {
+        a[o + 1] = HIDDEN;
+        continue;
+      }
       a[o + 1] = cls === null ? -1 : CLASS_CELL[cls];
-      a[o + 2] = shipCount(f.counts);
-      a[o + 3] = f.hpPm;
-      a[o + 4] = f.orgPm;
+      // Through the fog: the count (or a band's top, or -1), bars in steps or unknown (-1).
+      a[o + 2] = fv === null ? shipCount(f.counts) : fv.shown;
+      a[o + 3] =
+        fv === null || fv.bars === "exact"
+          ? f.hpPm
+          : fv.bars === "gray"
+            ? -1
+            : Math.min(1000, Math.ceil(f.hpPm / 200) * 200);
+      a[o + 4] =
+        fv === null || fv.bars === "exact"
+          ? f.orgPm
+          : fv.bars === "gray"
+            ? -1
+            : Math.min(1000, Math.ceil(f.orgPm / 200) * 200);
       a[o + 5] = MISSION_CELL[f.mission] ?? -1;
       a[o + 6] = fleetStateBits(f.state, f.flags);
       a[o + 7] = f.docked !== 0 ? TOKEN_DOCKED : 0;

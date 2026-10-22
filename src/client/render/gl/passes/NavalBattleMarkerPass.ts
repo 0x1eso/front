@@ -15,6 +15,7 @@
 import type { NavalBattleSummary } from "@openfront/engine-api/ww1936/NavyTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import fxAtlasMeta from "resources/atlases/fx-atlas-meta.json";
+import { fogOfNavy } from "../../../hud/ww1936/FogModel";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/naval-battle/naval-battle.frag.glsl?raw";
@@ -50,6 +51,7 @@ export class NavalBattleMarkerPass {
   private seenView: WwNavyView | null = null;
   private seenVersion = -1;
   private seenLod = -1;
+  private seenFog = -1;
   private fxRequested = false;
   private disposed = false;
   /** Each zone's battle update as last seen: a new one with sinkings calls onSunk. */
@@ -146,7 +148,11 @@ export class NavalBattleMarkerPass {
 
   /** Rewrites the markers when the view or the LOD (0 marker, 1 point) changed. */
   update(view: WwNavyView, lod: number): void {
+    // P6 (spec §8.9): a battle the fog hides gets no marker.
+    const fog = fogOfNavy(view);
+    const fogStamp = fog?.stamp() ?? -1;
     if (
+      fogStamp === this.seenFog &&
       view === this.seenView &&
       view.version === this.seenVersion &&
       lod === this.seenLod
@@ -157,6 +163,7 @@ export class NavalBattleMarkerPass {
     this.seenView = view;
     this.seenVersion = view.version;
     this.seenLod = lod;
+    this.seenFog = fogStamp;
     const n = view.battles.size;
     this.count = n;
     const sc = view.scenario;
@@ -172,7 +179,12 @@ export class NavalBattleMarkerPass {
     this.buf.ensureCapacity(n);
     const f = this.buf.float32;
     let o = 0;
+    let shownCount = 0;
     for (const b of view.battles.values()) {
+      if (fog && !fog.navalBattleVisible(b.attacker, b.defender, b.zone)) {
+        continue;
+      }
+      shownCount++;
       const t = sc.zoneCenter(b.zone);
       const x = t % w;
       const y = Math.floor(t / w);
@@ -190,6 +202,7 @@ export class NavalBattleMarkerPass {
       f[o + 7] = 0;
       o += FLOATS;
     }
+    this.count = shownCount;
     const gl = this.gl;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, o);

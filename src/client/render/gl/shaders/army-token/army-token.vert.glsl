@@ -8,7 +8,7 @@ layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec4 aA;
 // branch symbol (-1 none), divisions, strength ‰, organisation ‰
 layout(location = 2) in vec4 aB;
-// state bits (ARMY_*), flags (1 chosen), front dots, group colour (1..8)
+// state bits (ARMY_*), flags (1 chosen), front dots, fog bits (1..7) + 8 × group colour (1..8)
 layout(location = 3) in vec4 aC;
 
 uniform mat3 uCamera;

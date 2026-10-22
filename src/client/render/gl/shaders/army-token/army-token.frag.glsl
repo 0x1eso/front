@@ -98,6 +98,14 @@ void main() {
   int state = int(vC.x + 0.5);
   bool chosen = mod(vC.y, 2.0) > 0.5;
   bool encircled = (state & ENCIRCLED) != 0;
+  // P6 fog (spec §8.9): vC.w bits 1 band's top ("~"), 2 ghost (alpha 0.4), 4 gray bars;
+  // above them (× 8) the army group colour 1..8 (0 none).
+  int packedW = int(vC.w + 0.5);
+  int fogFlags = packedW & 7;
+  int groupColor = packedW >> 3;
+  bool approx = (fogFlags & 1) != 0;
+  bool ghost = (fogFlags & 2) != 0;
+  bool grayBars = (fogFlags & 4) != 0;
   vec4 col = vec4(0.0);
 
   if (kind < 0.5) {
@@ -107,8 +115,10 @@ void main() {
     vec2 iconC = vec2(17.0, -11.0);
     vec2 iconUV = (p - iconC + 7.5) / 15.0;
     float count = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
+    float numCell = vB.y < -0.5 ? float(CELL_QUESTION) : float(NUMBER_CELL0) + count;
     vec4 tSym = atlas(vB.x, symUV);
-    vec4 tNum = atlas(float(NUMBER_CELL0) + count, numUV);
+    vec4 tNum = atlas(numCell, numUV);
+    vec4 tTilde = atlas(float(CELL_TILDE), (p - vec2(14.0, -8.0)) / 9.0 + 0.5);
     float icon = stateIcon(state);
     vec4 tIcon = atlas(max(icon, 0.0), iconUV);
 
@@ -122,6 +132,7 @@ void main() {
     col = over(col, FRAME, cover(dFrame));
     if (vB.x >= 0.0) col = overTexel(col, tSym, cover(dFrame));
     col = overTexel(col, tNum, cover(sdBox(p - vec2(9.0, 0.0), vec2(9.0, 10.0), 0.0)));
+    if (approx) col = overTexel(col, tTilde, cover(sdBox(p - vec2(14.0, -8.0), vec2(4.5, 4.5), 0.0)));
 
     // Strength and organisation bars under the box.
     float dBars = sdBox(p - vec2(0.0, 16.5), vec2(18.0, 4.0), 1.0);
@@ -131,12 +142,17 @@ void main() {
     float org = clamp(vB.w / 1000.0, 0.0, 1.0);
     float inStr = cover(sdBox(p - vec2(0.0, 14.75), vec2(17.0, 1.25), 0.0));
     float inOrg = cover(sdBox(p - vec2(0.0, 18.25), vec2(17.0, 1.25), 0.0));
-    col = over(col, STRENGTH, inStr * step(x01, str));
-    col = over(col, ORG, inOrg * step(x01, org));
+    if (grayBars) {
+      col = over(col, vec3(0.55), inStr * step(x01, 1.0));
+      col = over(col, vec3(0.55), inOrg * step(x01, 1.0));
+    } else {
+      col = over(col, STRENGTH, inStr * step(x01, str));
+      col = over(col, ORG, inOrg * step(x01, org));
+    }
 
     // Army group band under the bars (same colour for the whole group).
-    if (vC.w > 0.5) {
-      int gi = clamp(int(vC.w + 0.5) - 1, 0, 7);
+    if (groupColor > 0) {
+      int gi = clamp(groupColor - 1, 0, 7);
       col = over(col, GROUP[gi], cover(sdBox(p - vec2(0.0, 23.0), vec2(18.0, 1.6), 0.5)));
     }
 
@@ -148,12 +164,15 @@ void main() {
   } else if (kind < 1.5) {
     // Number chip.
     float count = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
-    vec4 tNum = atlas(float(NUMBER_CELL0) + count, (p + 9.0) / 18.0);
+    float numCell = vB.y < -0.5 ? float(CELL_QUESTION) : float(NUMBER_CELL0) + count;
+    vec4 tNum = atlas(numCell, (p + 9.0) / 18.0);
+    vec4 tTilde = atlas(float(CELL_TILDE), (p - vec2(8.0, -4.0)) / 8.0 + 0.5);
     float dBox = sdBox(p, vec2(12.0, 7.5), 3.0);
     col = rings(col, dBox, chosen, encircled);
     col = over(col, edge, cover(dBox));
     col = over(col, terr, cover(dBox + 1.25));
     col = overTexel(col, tNum, cover(dBox));
+    if (approx) col = overTexel(col, tTilde, cover(sdBox(p - vec2(8.0, -4.0), vec2(4.0, 4.0), 0.0)));
   } else if (kind < 2.5) {
     // Dot.
     float d = length(p) - 3.5;
@@ -170,6 +189,7 @@ void main() {
     col = over(col, edge, cover(d));
     col = over(col, terr, cover(d + 0.9));
   }
+  if (ghost) col.a *= 0.4;
   if (col.a <= 0.003) discard;
   fragColor = col;
 }

@@ -16,6 +16,11 @@
  * without armies.
  */
 
+import {
+  type FogArmyView,
+  type FogGhost,
+  fogOfLand,
+} from "../../../hud/ww1936/FogModel";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
 import {
   armyGroupColorsOf,
@@ -27,6 +32,8 @@ import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import {
   ATLAS_COLS,
   ATLAS_ROWS,
+  CELL_QUESTION,
+  CELL_TILDE,
   ICON_BATTLE,
   ICON_MOVE,
   ICON_PARA,
@@ -59,7 +66,21 @@ export const ATLAS_DEFINES: Record<string, number> = {
   ICON_RAIL,
   ICON_SEA,
   ICON_PARA,
+  CELL_QUESTION,
+  CELL_TILDE,
 };
+
+/** Fog flags in an instance's last float (army-token.frag.glsl). */
+const FOG_APPROX = 1;
+const FOG_GHOST = 2;
+const FOG_GRAY = 4;
+/** The army group colour sits above the fog bits in the same float (army-token.frag.glsl). */
+const GROUP_UNIT = 8;
+/** A bar in five steps (spec §8.9, "close" band). */
+const stepPm = (pm: number): number =>
+  Math.min(1000, Math.ceil(pm / 200) * 200);
+
+const NO_GHOSTS: readonly FogGhost[] = [];
 
 export class ArmyTokenPass {
   private program: WebGLProgram;
@@ -78,6 +99,7 @@ export class ArmyTokenPass {
   private seenMe = -1;
   private seenMulti = -1;
   private seenGroups = -1;
+  private seenFog = -1;
   private seenView: WwLandView | null = null;
 
   /** Front-dot rows (FLOATS each), rebuilt when the view changes. */
@@ -153,7 +175,11 @@ export class ArmyTokenPass {
   ): void {
     const multi = multiSelectOf(selection);
     const groups = armyGroupColorsOf(view);
+    // P6 (spec §8.9, §20.7): an enemy token the fog hides gets no instance.
+    const fog = fogOfLand(view);
+    const fogStamp = fog?.stamp() ?? -1;
     if (
+      fogStamp === this.seenFog &&
       !layoutChanged &&
       multi.version === this.seenMulti &&
       groups.version === this.seenGroups &&
@@ -172,17 +198,22 @@ export class ArmyTokenPass {
     this.seenMe = me;
     this.seenMulti = multi.version;
     this.seenGroups = groups.version;
+    this.seenFog = fogStamp;
 
     const n = layout.count;
+    const ghosts: readonly FogGhost[] = fog?.ghosts() ?? NO_GHOSTS;
     const lod = n > 0 ? layout.placements[0].lod : 0;
     const fronts = lod <= 1 ? this.frontDots(view, me) : 0;
-    this.buf.ensureCapacity(n + fronts);
+    this.buf.ensureCapacity(n + fronts + ghosts.length);
     const f = this.buf.float32;
     let o = 0;
     for (let i = 0; i < fronts * FLOATS; i++) f[o++] = this.frontData[i];
     const kind = lod === 0 ? KIND_TOKEN : lod === 1 ? KIND_CHIP : KIND_DOT;
     let chosen = -1;
+    for (const g of ghosts) o = this.writeGhost(f, o, g, kind);
     for (let i = 0; i < n; i++) {
+      const fv = fog?.armyView(layout.armies[i].id) ?? null;
+      if (fv !== null && !fv.visible) continue;
       if (layout.armies[i].id === selection.army) {
         chosen = i; // drawn last, on top
         continue;
@@ -195,9 +226,10 @@ export class ArmyTokenPass {
         kind,
         multi.has(layout.armies[i].id),
         groups.colorOf(layout.armies[i].id),
+        fv,
       );
     }
-    if (chosen >= 0)
+    if (chosen >= 0) {
       o = this.writeToken(
         f,
         o,
@@ -206,7 +238,9 @@ export class ArmyTokenPass {
         kind,
         true,
         groups.colorOf(layout.armies[chosen].id),
+        fog?.armyView(layout.armies[chosen].id) ?? null,
       );
+    }
     this.count = o / FLOATS;
     if (this.count > 0) {
       const gl = this.gl;
@@ -223,6 +257,7 @@ export class ArmyTokenPass {
     kind: number,
     chosen: boolean,
     group: number,
+    fog: FogArmyView | null,
   ): number {
     const a = layout.armies[i];
     const p = layout.placements[i];
@@ -231,14 +266,48 @@ export class ArmyTokenPass {
     f[o + 2] = kind;
     f[o + 3] = a.owner;
     f[o + 4] = a.symbol;
-    f[o + 5] = a.divisions;
-    f[o + 6] = a.strengthPm;
-    f[o + 7] = a.orgPm;
+    const fv = fog !== null && fog.visible ? fog : null;
+    f[o + 5] = fv === null ? a.divisions : fv.shown;
+    f[o + 6] =
+      fv === null || fv.bars === "exact" ? a.strengthPm : stepPm(a.strengthPm);
+    f[o + 7] = fv === null || fv.bars === "exact" ? a.orgPm : stepPm(a.orgPm);
     f[o + 8] = a.state;
     f[o + 9] = chosen ? 1 : 0;
     f[o + 10] = 0;
-    // The army group's palette colour (1..8, 0 none): a thin band under the token.
-    f[o + 11] = group;
+    // Fog bits (FOG_*) and, above them, the army group's palette colour
+    // (1..8, 0 none: a thin band under the token; U1 and U3 share the float).
+    f[o + 11] =
+      (fv === null
+        ? 0
+        : (fv.approx ? FOG_APPROX : 0) | (fv.bars === "gray" ? FOG_GRAY : 0)) +
+      GROUP_UNIT * group;
+    if (fv !== null && fv.bars === "gray") {
+      // Unknown strength: nothing real reaches the instance.
+      f[o + 6] = 0;
+      f[o + 7] = 0;
+    }
+    return o + FLOATS;
+  }
+
+  /** A remembered enemy army: its last place, faded (spec §8.9, alpha 0.4). */
+  private writeGhost(
+    f: Float32Array,
+    o: number,
+    g: FogGhost,
+    kind: number,
+  ): number {
+    f[o] = g.x;
+    f[o + 1] = g.y;
+    f[o + 2] = kind;
+    f[o + 3] = g.owner;
+    f[o + 4] = g.symbol;
+    f[o + 5] = g.shown;
+    f[o + 6] = 0;
+    f[o + 7] = 0;
+    f[o + 8] = 0;
+    f[o + 9] = 0;
+    f[o + 10] = 0;
+    f[o + 11] = FOG_GHOST | FOG_GRAY | (g.approx ? FOG_APPROX : 0);
     return o + FLOATS;
   }
 

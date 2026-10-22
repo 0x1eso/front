@@ -19,6 +19,9 @@ export const ATLAS_ROWS = 4;
 /** First number cell: cell NUMBER_CELL0 + n shows n (0..MAX_NUMBER). */
 export const NUMBER_CELL0 = 16;
 export const MAX_NUMBER = 24;
+/** P6 fog (spec §8.9): "?" for an unknown count and "~" marking a band's top. */
+export const CELL_QUESTION = 41;
+export const CELL_TILDE = 42;
 export const ICON_MOVE = 48;
 export const ICON_BATTLE = 49;
 export const ICON_RAIL = 50;
@@ -245,6 +248,17 @@ export function drawLandAtlas(ctx: Ctx): void {
     ctx.strokeText(String(n), x + 32, y + 34, 60);
     ctx.fillStyle = WHITE;
     ctx.fillText(String(n), x + 32, y + 34, 60);
+  }
+  for (const [cell, ch] of [
+    [CELL_QUESTION, "?"],
+    [CELL_TILDE, "~"],
+  ] as const) {
+    const [x, y] = cellOrigin(cell);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 9;
+    ctx.strokeText(ch, x + 32, y + 34, 60);
+    ctx.fillStyle = WHITE;
+    ctx.fillText(ch, x + 32, y + 34, 60);
   }
   for (const cell of [ICON_MOVE, ICON_BATTLE, ICON_RAIL, ICON_SEA, ICON_PARA]) {
     const [x, y] = cellOrigin(cell);

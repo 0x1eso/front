@@ -1,4 +1,5 @@
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { ModLine } from "@openfront/engine-api/ww1936/LandTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -236,13 +237,23 @@ export class WwBattleCard extends LitElement implements Controller {
     const enemy = smallID !== (this.game.myPlayer()?.smallID() ?? 0);
     const count = (n: number) =>
       fog.fogOff() || !enemy ? n : fog.countLabel(smallID, n);
-    const bar = (pm: number, color: string) =>
-      html`<div class="h-1.5 rounded bg-white/10">
+    // Spec §8.9: an enemy side's bars from "close" up, its widths only when exact.
+    const band = fog.fogOff() || !enemy ? 3 : fog.bandOf(smallID, ID_ARMY);
+    // Spec §8.9: exact at the exact band, five steps at "close", a gray bar below.
+    const bar = (pm: number, color: string) => {
+      const shown =
+        band >= 3
+          ? Math.max(0, Math.min(1000, pm))
+          : band === 2
+            ? Math.min(1000, Math.ceil(Math.max(0, pm) / 200) * 200)
+            : 1000;
+      return html`<div class="h-1.5 rounded bg-white/10">
         <div
-          class="h-1.5 rounded ${color}"
-          style="width: ${Math.max(0, Math.min(1000, pm)) / 10}%"
+          class="h-1.5 rounded ${band < 2 ? "bg-gray-500" : color}"
+          style="width: ${shown / 10}%"
         ></div>
       </div>`;
+    };
     return html`<div
       data-ww-battle-side=${side}
       class="flex min-w-0 flex-col gap-0.5"
@@ -268,16 +279,18 @@ export class WwBattleCard extends LitElement implements Controller {
             n: count(reserve),
           })}</span
         >
-        <span data-ww-battle-width
-          >${translateText("ww1936.land.battle_width", {
-            used,
-            width,
-          })}</span
-        >
+        ${band < 3
+          ? nothing
+          : html`<span data-ww-battle-width
+              >${translateText("ww1936.land.battle_width", {
+                used,
+                width,
+              })}</span
+            >`}
       </div>
       ${bar(orgPm, "bg-sky-400")} ${bar(strPm, "bg-emerald-400")}
       <ul data-ww-mods=${side} class="m-0 list-none p-0">
-        ${mods.map(
+        ${(band < 3 ? [] : mods).map(
           (m) =>
             html`<li data-ww-mod=${m.id} class="flex justify-between gap-2">
               <span class="truncate"
