@@ -1,11 +1,522 @@
-// World War 1936 P6 — the `lat` pack's focuses (spec §11). Content lane K4
-// (plan Task 19) fills this file; the foundation registers it empty.
+// World War 1936 P6 — the Latin American pack `lat` (spec §11.10): 26
+// focuses beside the generic tree for the twenty republics of the Americas.
+// Grid columns 20–35: politics and diplomacy 20–24, industry 25–32, army,
+// air and navy 33–35. Country-only focuses carry `countries`. Data only
+// (ContentPurity): the helpers come from ../helpers.
+import type { Condition } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type {
   BranchPoint,
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { T, after, all, any, not } from "../helpers";
 
-export const LAT_FOCUSES: readonly FocusDef[] = [];
-export const LAT_PATH: readonly FocusId[] = [];
-export const LAT_BRANCHES: readonly BranchPoint[] = [];
+/** The republics whose 1936 regions hold oil (scenario.json: Mexico, Colombia, Venezuela, Ecuador, Peru, Argentina). */
+const HAS_OIL: Condition = any(
+  { kind: "tag", tag: "MEX" },
+  { kind: "tag", tag: "COL" },
+  { kind: "tag", tag: "VEN" },
+  { kind: "tag", tag: "ECU" },
+  { kind: "tag", tag: "PER" },
+  { kind: "tag", tag: "ARG" },
+);
+
+/**
+ * Breaking with the Axis follows each republic's own date: most after the
+ * Rio conference of January 1942, Chile on 1943-01-20, Argentina on
+ * 1944-01-26.
+ */
+const BREAK_AXIS_DATE: Condition = any(
+  all(
+    not({ kind: "tag", tag: "ARG" }),
+    not({ kind: "tag", tag: "CHL" }),
+    after("1942-01-01"),
+  ),
+  all({ kind: "tag", tag: "CHL" }, after("1943-01-20")),
+  all({ kind: "tag", tag: "ARG" }, after("1944-01-26")),
+);
+
+export const LAT_FOCUSES: FocusDef[] = [
+  // ---- Politics and diplomacy (columns 20–24) ----
+  {
+    id: "lat_good_neighbor",
+    tree: "lat",
+    x: 20,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    exclusive: ["lat_third_way"],
+    // The US opinion is half of its lend-lease answer score (P5 llRequestScore).
+    effects: [
+      { kind: "opinion", who: T("USA"), of: "self", value: 30, days: 365 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_third_way",
+    tree: "lat",
+    x: 22,
+    y: 0,
+    days: 70,
+    branch: "politics",
+    icon: "compass",
+    exclusive: ["lat_good_neighbor"],
+    effects: [{ kind: "add_spirit", id: "lat_independent_course" }],
+    ai: { base: 5 },
+  },
+  {
+    id: "lat_hemisphere_defense",
+    tree: "lat",
+    x: 20,
+    y: 1,
+    days: 70,
+    branch: "diplomacy",
+    icon: "shield",
+    prereq: [["lat_good_neighbor"]],
+    effects: [
+      { kind: "unlock_decision", id: "lat_join_hemisphere" },
+      {
+        kind: "build",
+        where: { coastal: true, n: 1 },
+        building: "coastal_fort",
+        count: 1,
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_break_axis",
+    tree: "lat",
+    x: 21,
+    y: 1,
+    days: 35,
+    branch: "diplomacy",
+    icon: "chain_broken",
+    prereq: [["lat_good_neighbor"]],
+    available: BREAK_AXIS_DATE,
+    // "Allied entry weight": war support and the US opinion (report: approximation).
+    effects: [
+      { kind: "opinion", of: T("DEU"), value: -50, days: 365 },
+      { kind: "opinion", of: T("ITA"), value: -50, days: 365 },
+      { kind: "opinion", of: T("JPN"), value: -50, days: 365 },
+      { kind: "opinion", who: T("USA"), of: "self", value: 20, days: 365 },
+      { kind: "war_support", pct: 10 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_regional_bloc",
+    tree: "lat",
+    x: 22,
+    y: 1,
+    days: 105,
+    branch: "diplomacy",
+    icon: "flag",
+    prereq: [["lat_third_way"]],
+    available: not({ kind: "in_faction" }),
+    effects: [
+      { kind: "set_flag", flag: "can_create_faction" },
+      { kind: "create_faction" },
+    ],
+    ai: { base: 5 },
+  },
+  {
+    id: "bra_new_state",
+    tree: "lat",
+    x: 23,
+    y: 0,
+    days: 70,
+    branch: "politics",
+    icon: "document",
+    countries: ["BRA"],
+    effects: [{ kind: "stability", pct: 10 }],
+    ai: { base: 15 },
+  },
+  {
+    id: "arg_neutrality",
+    tree: "lat",
+    x: 24,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "dove",
+    countries: ["ARG"],
+    effects: [{ kind: "add_spirit", id: "arg_neutral_course" }],
+    ai: { base: 15 },
+  },
+
+  // ---- Industry and resources (columns 24–32) ----
+  {
+    id: "lat_import_substitution",
+    tree: "lat",
+    x: 25,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory",
+    effects: [{ kind: "build", where: { best: 2 }, building: "civ", count: 2 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_inland_rail",
+    tree: "lat",
+    x: 24,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "rail",
+    prereq: [["lat_import_substitution"]],
+    effects: [{ kind: "infra", where: { best: 3 }, amount: 1 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_state_steel",
+    tree: "lat",
+    x: 25,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "steel",
+    prereq: [["lat_import_substitution"]],
+    effects: [
+      { kind: "build", where: { best: 1 }, building: "mil", count: 1 },
+      { kind: "resource", where: { best: 1 }, res: "steel", amount: 2 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "bra_steel_mill",
+    tree: "lat",
+    x: 25,
+    y: 2,
+    days: 70,
+    branch: "industry",
+    icon: "steel",
+    countries: ["BRA"],
+    prereq: [["lat_state_steel"]],
+    effects: [
+      { kind: "build", where: { best: 2 }, building: "mil", count: 2 },
+      { kind: "resource", where: { best: 1 }, res: "steel", amount: 3 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "arg_military_factories",
+    tree: "lat",
+    x: 26,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory_mil",
+    countries: ["ARG"],
+    effects: [{ kind: "build", where: { best: 2 }, building: "mil", count: 2 }],
+    ai: { base: 15 },
+  },
+  {
+    // Without oil regions the focus is bypassed (spec: "없으면 건너뜀").
+    id: "lat_national_oil",
+    tree: "lat",
+    x: 27,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "oil",
+    bypass: not(HAS_OIL),
+    effects: [
+      { kind: "resource", where: { best: 1 }, res: "oil", amount: 2 },
+      { kind: "pp", amount: 50 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // The US opinion −20 lasts a year, then relations are back (spec: "365일 뒤 +20").
+    id: "mex_oil_expropriation",
+    tree: "lat",
+    x: 27,
+    y: 1,
+    days: 35,
+    branch: "industry",
+    icon: "oil",
+    countries: ["MEX"],
+    prereq: [["lat_national_oil"]],
+    effects: [
+      { kind: "resource", where: { best: 1 }, res: "oil", amount: 3 },
+      { kind: "opinion", who: T("USA"), of: "self", value: -20, days: 365 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    // Zulia (region 1040) holds Venezuela's oil: group maracaibo (K5 request).
+    id: "ven_maracaibo",
+    tree: "lat",
+    x: 28,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "oil",
+    countries: ["VEN"],
+    effects: [
+      {
+        kind: "resource",
+        where: { group: "maracaibo" },
+        res: "oil",
+        amount: 3,
+      },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    id: "chl_mining",
+    tree: "lat",
+    x: 29,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "mine",
+    countries: ["CHL"],
+    effects: [
+      { kind: "resource", where: { best: 1 }, res: "steel", amount: 1 },
+      { kind: "pp", amount: 50 },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    // Brazil is the one republic with rubber regions in scenario.json.
+    id: "lat_rubber",
+    tree: "lat",
+    x: 30,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "wheat",
+    effects: [
+      {
+        kind: "if",
+        cond: { kind: "tag", tag: "BRA" },
+        then: [
+          { kind: "resource", where: { best: 1 }, res: "rubber", amount: 2 },
+        ],
+        else: [
+          { kind: "resource", where: { best: 1 }, res: "rubber", amount: 1 },
+          { kind: "add_spirit", id: "lat_rubber_trade" },
+        ],
+      },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_export_boom",
+    tree: "lat",
+    x: 30,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "globe",
+    prereq: [["lat_rubber"]],
+    effects: [
+      { kind: "pp", amount: 100 },
+      { kind: "add_spirit", id: "lat_export_trade" },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_sugar",
+    tree: "lat",
+    x: 31,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "wheat",
+    countries: ["CUB", "DOM", "HTI"],
+    effects: [{ kind: "pp", amount: 50 }],
+    ai: { base: 15 },
+  },
+  {
+    id: "arg_grain_exports",
+    tree: "lat",
+    x: 32,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "wheat",
+    countries: ["ARG"],
+    effects: [{ kind: "pp", amount: 75 }],
+    ai: { base: 15 },
+  },
+
+  // ---- Army, air and navy (columns 33–35) ----
+  {
+    id: "lat_army_modernization",
+    tree: "lat",
+    x: 33,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    effects: [{ kind: "army_xp", amount: 25 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_air_routes",
+    tree: "lat",
+    x: 34,
+    y: 0,
+    days: 70,
+    branch: "air",
+    icon: "plane",
+    effects: [
+      { kind: "equipment", type: "transport_plane", gen: 1, count: 20 },
+      { kind: "build", where: "capital", building: "air_base", count: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_coastal_patrol",
+    tree: "lat",
+    x: 35,
+    y: 0,
+    days: 70,
+    branch: "navy",
+    icon: "ship",
+    effects: [
+      {
+        kind: "build",
+        where: { coastal: true, n: 1 },
+        building: "dock",
+        count: 1,
+      },
+      { kind: "research_bonus", branch: "naval", pct: 50, uses: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "lat_chaco_veterans",
+    tree: "lat",
+    x: 33,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "medal",
+    countries: ["BOL", "PRY"],
+    effects: [{ kind: "army_xp", amount: 40 }, { kind: "add_general" }],
+    ai: { base: 15 },
+  },
+  {
+    // The FEB fought in Italy: at war with Germany or Italy.
+    id: "bra_expeditionary",
+    tree: "lat",
+    x: 34,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    countries: ["BRA"],
+    available: any(
+      { kind: "at_war_with", of: T("DEU") },
+      { kind: "at_war_with", of: T("ITA") },
+    ),
+    effects: [
+      { kind: "unlock_template", template: "bra_feb_division" },
+      {
+        kind: "divisions",
+        template: "bra_feb_division",
+        count: 5,
+        where: "capital",
+      },
+    ],
+    ai: { base: 15 },
+  },
+  {
+    // Spec: at war with Germany; Mexico's squadron fought Japan (report: deviation).
+    id: "mex_squadron",
+    tree: "lat",
+    x: 35,
+    y: 1,
+    days: 70,
+    branch: "air",
+    icon: "plane",
+    countries: ["MEX"],
+    available: any(
+      { kind: "at_war_with", of: T("DEU") },
+      { kind: "at_war_with", of: T("JPN") },
+    ),
+    effects: [
+      { kind: "equipment", type: "fighter", gen: 2, count: 30 },
+      { kind: "unlock_decision", id: "mex_volunteer_squadron" },
+    ],
+    ai: { base: 15 },
+  },
+];
+
+/**
+ * The pack's history path, generic focuses included ("@ideo" is the ruling
+ * ideology's focus, P3 historyPath). The ideology alliance focus is left out:
+ * the republics joined the American camp through lat_join_hemisphere.
+ */
+export const LAT_PATH: FocusId[] = [
+  "gen_ind_survey",
+  "lat_import_substitution",
+  "lat_national_oil",
+  "mex_oil_expropriation",
+  "gen_ind_civ_1",
+  "bra_new_state",
+  "arg_neutrality",
+  "gen_pol_unity",
+  "@ideo",
+  "lat_good_neighbor",
+  "gen_ind_mil_1",
+  "lat_inland_rail",
+  "lat_state_steel",
+  "ven_maracaibo",
+  "chl_mining",
+  "lat_sugar",
+  "arg_grain_exports",
+  "arg_military_factories",
+  "gen_ind_infra",
+  "lat_rubber",
+  "gen_rs_1",
+  "lat_army_modernization",
+  "lat_chaco_veterans",
+  "gen_army_reform",
+  "lat_hemisphere_defense",
+  "bra_steel_mill",
+  "lat_export_boom",
+  "gen_ind_civ_2",
+  "lat_air_routes",
+  "lat_coastal_patrol",
+  "gen_ind_mil_2",
+  "lat_break_axis",
+  "bra_expeditionary",
+  "mex_squadron",
+  "gen_army_infantry",
+  "gen_army_artillery",
+  "gen_ind_resources",
+  "gen_pol_admin",
+  "gen_army_doctrine",
+  "gen_army_fort",
+  "gen_rs_2",
+  "gen_pol_defence_spirit",
+  "gen_army_staff",
+  "gen_air_force",
+  "gen_navy_yards",
+  "gen_air_bases",
+  "gen_navy_coast",
+  "gen_pol_claims",
+];
+
+export const LAT_BRANCHES: BranchPoint[] = [
+  // The generic political branch point, kept for the pack tree.
+  {
+    id: "lat_politics",
+    historical: "@ideo",
+    alternatives: ["gen_pol_dem", "gen_pol_com", "gen_pol_fas", "gen_pol_neu"],
+    political: true,
+  },
+  {
+    id: "lat_course",
+    historical: "lat_good_neighbor",
+    alternatives: ["lat_third_way"],
+    political: true,
+  },
+];
