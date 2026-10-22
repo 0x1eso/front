@@ -33,9 +33,23 @@ import type { WwEconomy } from "./WwEconomy";
 /**
  * Applies one order for `p`'s country (plan decision 3); null when it took
  * effect. A refusal changes nothing and is not logged: the screens grey the
- * button with the same block functions.
+ * button with the same block functions. Final review A, finding 1: what
+ * the order left pending (queued event cards, depth stats marks) is drained
+ * before it returns, since an order applies after the tick's flushes.
  */
 export function applyWwOrder(
+  mg: Game,
+  econ: WwEconomy,
+  p: Player,
+  order: WwOrder,
+  day: number,
+): WwOrderBlock | null {
+  const block = applyOrder(mg, econ, p, order, day);
+  econ.ww.settleOrder(mg.ticks());
+  return block;
+}
+
+function applyOrder(
   mg: Game,
   econ: WwEconomy,
   p: Player,
@@ -266,7 +280,11 @@ export class WwTakeoverPickExecution implements Execution {
   ) {}
 
   init(mg: Game, ticks: number): void {
-    mg.worldWar()?.endgame.takeoverPickBy(this.client, this.pick, ticks);
+    const ww = mg.worldWar();
+    if (ww === null) return;
+    ww.endgame.takeoverPickBy(this.client, this.pick, ticks);
+    // Final review A, finding 1: as applyWwOrder.
+    ww.settleOrder(ticks);
   }
 
   tick(_ticks: number): void {}

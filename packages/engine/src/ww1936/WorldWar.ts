@@ -335,6 +335,19 @@ export class WorldWar {
   // ---- Changes (the lanes' functions call these) ----
 
   /**
+   * Final review A, finding 1: an order (a ww_order, a takeover pick, a
+   * declare_war) applies after this tick's WorldWarExecution.tick, so after
+   * its end-of-tick flushes. What it left pending (politics' event queue,
+   * the depth stats marks) is not state, so it is drained here before the
+   * order's execution returns: nothing pending crosses into a snapshot.
+   * Events first (a delivered card's effects can mark stats).
+   */
+  settleOrder(tick: number): void {
+    this.politics.flushEvents(tick);
+    this.depth.endTick();
+  }
+
+  /**
    * Starts a war; false when it already runs or a == b. P5 plan decision 8:
    * `link` says which war record the pair joins (a new war declared by `a`
    * on `b`, or `a` into an existing war against `b`). Every engine caller

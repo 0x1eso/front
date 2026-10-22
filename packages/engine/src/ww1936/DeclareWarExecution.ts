@@ -10,6 +10,7 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { declareWar, declareWarBlock } from "./Diplomacy";
 import { declareIndependence } from "./endgame/Subjects";
+import type { WorldWar } from "./WorldWar";
 
 /** World War 1936 (spec §7.3): the declare_war intent. */
 export class DeclareWarExecution implements Execution {
@@ -30,6 +31,14 @@ export class DeclareWarExecution implements Execution {
     const mg = this.mg;
     const ww = mg?.worldWar() ?? null;
     if (mg === null || ww === null || !mg.hasPlayer(this.targetID)) return;
+    this.declare(mg, ww, ticks);
+    // Final review A, finding 1: this runs after the tick's
+    // WorldWarExecution (added later), so after its flushes; what the
+    // declaration left pending is drained here.
+    ww.settleOrder(ticks);
+  }
+
+  private declare(mg: Game, ww: WorldWar, ticks: number): void {
     const target = mg.player(this.targetID);
     // P5 lane S: a subject declaring on its overlord is its independence war.
     if (
@@ -41,8 +50,9 @@ export class DeclareWarExecution implements Execution {
       }
       return;
     }
-    if (declareWarBlock(mg, ww, this.player, target, ticks) !== null) return;
-    declareWar(mg, ww, this.player, target, ticks);
+    if (declareWarBlock(mg, ww, this.player, target, ticks) === null) {
+      declareWar(mg, ww, this.player, target, ticks);
+    }
   }
 
   isActive(): boolean {

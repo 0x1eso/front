@@ -1133,7 +1133,10 @@ export class WwDepth implements LandDepthHooks {
 
   /**
    * Review E1 (plan decision 24): the tick's one stats recompute, at its
-   * end (WorldWarExecution), so no mark crosses a tick boundary.
+   * end (WorldWarExecution). Orders apply after that (GameImpl inits new
+   * executions after the ticks), so their marks are flushed by `issue` and
+   * by WorldWar.settleOrder when the order returns (final review A,
+   * finding 1); together no mark crosses a tick boundary.
    */
   endTick(): void {
     this.flushStats();
