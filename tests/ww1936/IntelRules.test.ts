@@ -9,6 +9,7 @@ import {
   capturePmMilli,
   counterHalf,
   decryptPerDayMilli,
+  externalResistPp,
   fogCountLabel,
   fogPreviewValue,
   intelBand,
@@ -16,6 +17,8 @@ import {
   intelLevel,
   networkGainMilli,
   opSuccessPm,
+  RESIST_EXT_CAP_PP,
+  RESIST_EXT_FULL_PP,
 } from "@openfront/engine-lib/ww1936/IntelRules";
 
 const base: IntelInput = {
@@ -106,5 +109,24 @@ describe("intelligence rules", () => {
     expect(fogPreviewValue(12, 2)).toBe(15);
     expect(fogPreviewValue(12, 1)).toBe(18);
     expect(fogPreviewValue(12, 0)).toBe(24);
+  });
+
+  it("external resistance in one region: full to 15pp, then half, at most +25pp", () => {
+    expect(RESIST_EXT_FULL_PP).toBe(15);
+    expect(RESIST_EXT_CAP_PP).toBe(25);
+    // One country's support (≤ 15pp) or an uprising alone is unchanged.
+    expect([0, 5, 10, 15].map(externalResistPp)).toEqual([0, 5, 10, 15]);
+    // Support stacked from several countries and an uprising: diminishing.
+    expect(externalResistPp(25)).toBe(20); // 15 + 10/2
+    expect(externalResistPp(30)).toBe(22); // support 15 + uprising 15
+    expect(externalResistPp(35)).toBe(25);
+    expect(externalResistPp(60)).toBe(25); // three supports + an uprising
+    expect(externalResistPp(1_000)).toBe(25);
+    // Monotone: more support never lowers the result.
+    for (let pp = 0; pp < 80; pp++) {
+      expect(externalResistPp(pp + 1)).toBeGreaterThanOrEqual(
+        externalResistPp(pp),
+      );
+    }
   });
 });

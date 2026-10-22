@@ -25,6 +25,7 @@ import {
 } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
   coupNeedBp,
+  externalResistPp,
   OPERATION_DEFS,
   operationDays,
   opStartBlock,
@@ -549,12 +550,18 @@ function bundle(d: WwDepth, regions: readonly number[]): number[] {
  * regions) and the uprisings (+15pp, 60 days), of countries that still
  * play. Rebuilt from state on the day's common step (WwDepth.resistBoost
  * and its index): only administered regions ever get a row, so Korea and
- * Taiwan never do (plan decision 33).
+ * Taiwan never do (plan decision 33). Final balance: what other countries
+ * add to a region is capped with diminishing returns (externalResistPp,
+ * at most +25pp); the occupier's suppression comes off after the cap.
  */
 export function rebuildResistBoost(d: WwDepth): void {
   const eg = d.ww.endgame;
-  const add = new Map<number, number>();
-  const put = (r: number, pp: number) => add.set(r, (add.get(r) ?? 0) + pp);
+  const ext = new Map<number, number>();
+  const sup = new Map<number, number>();
+  const put = (r: number, pp: number) => {
+    const m = pp > 0 ? ext : sup;
+    m.set(r, (m.get(r) ?? 0) + pp);
+  };
   for (let id = 1; id < d.countries.length; id++) {
     const c = d.countries[id];
     if (c === null || c === undefined || c.intel.operatives.length === 0) {
@@ -588,6 +595,9 @@ export function rebuildResistBoost(d: WwDepth): void {
       put(r, UPRISING_PP);
     }
   }
+  const add = new Map<number, number>();
+  for (const [r, pp] of ext) add.set(r, externalResistPp(pp));
+  for (const [r, pp] of sup) add.set(r, (add.get(r) ?? 0) + pp);
   const next = [...add.entries()]
     .filter(([, pp]) => pp !== 0)
     .sort((a, b) => a[0] - b[0]);
