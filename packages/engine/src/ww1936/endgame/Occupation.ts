@@ -133,7 +133,12 @@ function targetOf(
     compBp: eg.compBp[region],
     coveragePct: cov,
     exileLegitBp: h.legitBp,
-    statPct: eg.ww.politics.stats(c).resistanceTargetPct + h.holderPct,
+    // P6 (pre-flight A10, T1b): lane I's operations (support, suppress,
+    // uprising) and a nuked region (lane S) join the holders' pp input.
+    statPct:
+      eg.ww.politics.stats(c).resistanceTargetPct +
+      h.holderPct +
+      eg.ww.depth.resistanceAdjPp(region),
   });
 }
 

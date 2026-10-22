@@ -52,6 +52,7 @@ import {
   volunteerCap,
   type VolunteerIn,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { CONGRESS } from "@openfront/engine-lib/ww1936/MechRules";
 import {
   paidCivsAt,
   subjectFlows,
@@ -87,7 +88,8 @@ import {
 } from "./WorldWarModel";
 
 /** What the endgame screens read from the game (a fake in tests). */
-export type EndgameGame = PolGame & Partial<Pick<GameView, "wwNavy" | "wwAir">>;
+export type EndgameGame = PolGame &
+  Partial<Pick<GameView, "wwNavy" | "wwAir" | "wwDepth">>;
 
 function egView(game: EndgameGame): WwEndgameView | null {
   return game.wwEndgame?.() ?? null;
@@ -895,16 +897,32 @@ function hasRule(
 export interface LlCheckIn extends LlIn {
   tensionPct: number;
   contracts: number;
+  /**
+   * P6 (spec §13.1, T1b): the US congress support, whole percent, when it
+   * holds lend-lease back (under 50% and no `lend_lease` flag); absent or
+   * null when it does not.
+   */
+  congressPct?: number | null;
 }
 
 /**
  * Why a lend-lease contract may not run (spec §13.2), in llBlock's order,
  * with the democracy line's numbers (spec §20.7: "Democratic government:
- * world tension 40% needed (now 31%)"); null when it may.
+ * world tension 40% needed (now 31%)"); null when it may. P6 (T1b): the
+ * US congress first, as the engine's order checks it.
  */
 export function llWhy(i: LlCheckIn): Why | null {
   if (llLimitBlock(i.contracts) !== null) {
     return { key: "ww1936.aid.why.ll_limit", params: {} };
+  }
+  if (i.congressPct !== undefined && i.congressPct !== null) {
+    return {
+      key: "ww1936.aid.why.congress",
+      params: {
+        need: Math.floor(CONGRESS.lendLease / 100),
+        now: i.congressPct,
+      },
+    };
   }
   if (llBlock(i) === null) return null;
   if (i.self || !i.bothActors) {
@@ -971,6 +989,15 @@ export function llInputs(
     democracy &&
     tension < WW_LL_TENSION_DEMOCRACY_PCT &&
     (aid?.contracts ?? []).some((c) => c.blocked === null);
+  // P6 (W3's congress, T1b): the United States under 50% support, unless
+  // a running contract shows the flag (the same guess as above).
+  const depth = game.wwDepth?.() ?? null;
+  const usa = game.worldWarScenario()?.tagOfSmallId(me) === "USA";
+  const running = (aid?.contracts ?? []).some((c) => c.blocked === null);
+  const congressPct =
+    depth !== null && usa && depth.congressBp < CONGRESS.lendLease && !running
+      ? Math.floor(depth.congressBp / 100)
+      : null;
   return {
     self: me === to,
     atWarWithEachOther: enemiesOf(game, me).includes(to),
@@ -981,6 +1008,7 @@ export function llInputs(
     senderLendLeaseFlag: flag,
     senderNoLendLeaseRule: hasRule(game, me, (r) => r === "no_lend_lease"),
     contracts: newContract ? (aid?.contracts.length ?? 0) : 0,
+    congressPct,
   };
 }
 

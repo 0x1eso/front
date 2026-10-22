@@ -1,6 +1,9 @@
 // World War 1936 P5 lane A (plan Task 6; spec §14): captured equipment.
 // Same equipment, same generation (GROUND_EQUIP_KEYS slot by slot); the
-// captor's capturePct adds whole percent to the share.
+// captor's capturePct adds whole percent to the share. P6 (T1b, spec §5.6,
+// §26): a design slot names the giver's design, so it goes through lane
+// E's receiveKey — the captor's own copy of the design ("captured"), or
+// the nearest static equipment when no slot is free.
 import { EQUIP_KEY_COUNT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   WW_CAPITULATION_STOCK_TO_VICTOR_PCT,
@@ -11,8 +14,10 @@ import {
 import {
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
+  GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { captureMilli } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { receiveKey, remapGroundSlots } from "../depth/DesignCopy";
 import { returnEquip } from "../economy/Stock";
 import type { Battle } from "../land/WwLand";
 import { NOTE_CAPTURE, type WwEndgame } from "./WwEndgame";
@@ -23,19 +28,37 @@ export function captureBpOf(eg: WwEndgame, id: number, baseBp: number): number {
   return Math.max(0, baseBp + pct * 100);
 }
 
+/**
+ * `n` of ground slot `j` to `to`. A design slot is `from`'s design: `to`
+ * receives its own copy's slot (or the nearest static; nothing when
+ * `from` no longer has the design), and the day's note names the slot it
+ * landed in.
+ */
 function give(
   eg: WwEndgame,
   to: number,
   j: number,
   n: number,
   region: number,
+  from: number,
 ): void {
   if (n <= 0) return;
   const ce = eg.ww.economy.country(to);
   if (ce === null) return;
-  returnEquip(ce, GROUND_EQUIP_KEYS[j], n);
+  const key =
+    j >= GROUND_STATIC_SLOTS && from > 0
+      ? receiveKey(eg.ww.depth, from, GROUND_EQUIP_KEYS[j], to, "captured")
+      : GROUND_EQUIP_KEYS[j];
+  if (key < 0) return;
+  returnEquip(ce, key, n);
   eg.ww.economy.markCountryDirty(to);
-  eg.note(to, NOTE_CAPTURE, j, region, n);
+  eg.note(
+    to,
+    NOTE_CAPTURE,
+    Math.max(0, GROUND_EQUIP_KEYS.indexOf(key)),
+    region,
+    n,
+  );
 }
 
 /**
@@ -43,6 +66,11 @@ function give(
  * the field. The winners share the loser's lost equipment (capEq) by the
  * casualties each dealt in it (dmgBy; floor, the remainder to the one
  * that dealt most), each at its own share (5% + capturePct).
+ *
+ * P6 (T1b): capEq is kept per side, not per owner, so a design slot is
+ * read as the losing side's lead's design (an approximation: a design of
+ * another country on that side lands as the lead's, or as the nearest
+ * static equipment when the lead has none there).
  */
 export function captureOnBattleEnd(
   eg: WwEndgame,
@@ -67,6 +95,7 @@ export function captureOnBattleEnd(
     if (winners[i][1] > winners[top][1]) top = i;
   }
   const lostAt = (1 - winnerSide) * GROUND_SLOTS;
+  const loserLead = winnerSide === 0 ? battle.defLead : battle.attLead;
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const lost = cap[lostAt + j];
     if (lost <= 0) continue;
@@ -79,7 +108,7 @@ export function captureOnBattleEnd(
         parts[i],
         captureBpOf(eg, c, WW_CAPTURE_BASE_BP),
       );
-      give(eg, c, j, Math.floor(milli / 1000), battle.region);
+      give(eg, c, j, Math.floor(milli / 1000), battle.region, loserLead);
     });
   }
 }
@@ -98,7 +127,7 @@ export function captureOnEncircled(
   const eq = t.equipOf(row);
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const milli = captureMilli(eq[j] * 1000, bp);
-    give(eg, by, j, Math.floor(milli / 1000), region);
+    give(eg, by, j, Math.floor(milli / 1000), region, t.owner[row]);
   }
 }
 
@@ -121,11 +150,15 @@ export function captureOnCapitulation(
   const from = econ.country(loser);
   const to = econ.country(victor);
   if (from === null || to === null) return;
+  const depth = eg.ww.depth;
   for (let k = 0; k < EQUIP_KEY_COUNT; k++) {
     const n = Math.floor(
       (from.stock[k] * WW_CAPITULATION_STOCK_TO_VICTOR_PCT) / 100,
     );
-    returnEquip(to, k, n);
+    if (n <= 0) continue;
+    // P6 (T1b): a design key becomes the victor's copy (−1: lost).
+    const k2 = receiveKey(depth, loser, k, victor, "captured");
+    if (k2 >= 0) returnEquip(to, k2, n);
   }
   const land = eg.ww.land;
   const t = land.divisions;
@@ -134,6 +167,8 @@ export function captureOnCapitulation(
     const eq = t.equipOf(r);
     for (let j = 0; j < GROUND_SLOTS; j++) slots[j] += eq[j];
   }
+  // P6 (T1b): the design slots move to the victor's copies first.
+  remapGroundSlots(depth, slots, loser, victor, "captured");
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const n = Math.floor((slots[j] * WW_DISBANDED_EQUIP_TO_VICTOR_PCT) / 100);
     returnEquip(to, GROUND_EQUIP_KEYS[j], n);

@@ -39,6 +39,8 @@ import {
   llLimitBlock,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
+import { congressBlock } from "../depth/Congress";
+import { receiveKey } from "../depth/DesignCopy";
 import { fuelCapOf } from "../economy/Fuel";
 import { drawEquip, returnEquip } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
@@ -144,6 +146,22 @@ export function llIn(
     senderNoLendLeaseRule:
       hasNoLendLease(pol, from) || aidRuleBlocks(pol, from, to),
   };
+}
+
+/**
+ * A lend-lease order's refusal (P6 spec §13.1, T1b): W3's US congress
+ * first — the United States needs 50% support or its `lend_lease` flag
+ * (the same "ll_conditions" answer, as the congress's law and faction
+ * checks reuse their own blocks) — then P5's llBlock.
+ */
+export function llOrderBlock(
+  eg: WwEndgame,
+  from: number,
+  to: number,
+  day: number,
+): WwOrderBlock | null {
+  if (congressBlock(eg.ww.depth, from, "lend_lease")) return "ll_conditions";
+  return llBlock(llIn(eg, from, to, day));
 }
 
 // ---- Contracts ----
@@ -339,7 +357,7 @@ export function openLendLease(
   day: number,
 ): WwOrderBlock | null {
   if (!validId(eg, to) || !itemOk(item, gen)) return "bad_index";
-  const block = llBlock(llIn(eg, from, to, day));
+  const block = llOrderBlock(eg, from, to, day);
   if (block !== null) return block;
   return upsertContract(eg, from, to, item, gen, perMonth, day, false) === null
     ? "ll_limit"
@@ -361,7 +379,7 @@ export function requestLendLease(
 ): WwOrderBlock | null {
   if (!validId(eg, giver) || !itemOk(item, 0)) return "bad_index";
   const block =
-    llBlock(llIn(eg, giver, requester, day)) ??
+    llOrderBlock(eg, giver, requester, day) ??
     llLimitBlock(contractsOf(eg, giver).length);
   if (block !== null) return block;
   addContract(
@@ -727,7 +745,25 @@ function arrive(eg: WwEndgame, t: InTransit): void {
   const ce = eg.ww.economy.country(t.to);
   const n = Math.floor(t.countMilli / 1000);
   if (ce === null || n <= 0) return;
-  addStock(eg, ce, t.item, t.gen, n);
+  // P6 (T1b, spec §5.6, §26): a design key is the sender's; the receiver
+  // gets its own copy's slot ("received"), or the nearest static
+  // equipment when no slot is free (−1: the sender no longer has it, lost).
+  const key =
+    t.item === "fuel"
+      ? -1
+      : receiveKey(
+          eg.ww.depth,
+          t.from,
+          equipKey(t.item as EquipmentType, t.gen),
+          t.to,
+          "received",
+        );
+  if (t.item === "fuel") {
+    addStock(eg, ce, t.item, t.gen, n);
+  } else if (key >= 0) {
+    returnEquip(ce, key, n);
+    eg.ww.economy.markCountryDirty(ce.smallID);
+  }
   const cost = Math.floor((n * t.costMilli) / 1000);
   const war = sameSideWar(eg, t.from, t.to);
   if (war > 0 && cost >= 50) {
@@ -738,8 +774,7 @@ function arrive(eg: WwEndgame, t: InTransit): void {
   if (si !== undefined && eg.subjects[si].overlord === t.from) {
     eg.subjects[si].llToday += cost;
   }
-  const key = t.item === "fuel" ? -1 : equipKey(t.item as EquipmentType, t.gen);
-  eg.note(t.to, NOTE_LL, t.from, key, n);
+  if (t.item === "fuel" || key >= 0) eg.note(t.to, NOTE_LL, t.from, key, n);
   const c = eg.lendLease.find((x) => x.id === t.contract);
   if (c !== undefined) c.arrivedMonth += n;
 }
