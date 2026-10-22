@@ -239,11 +239,11 @@ function intercepted(
  * of its civilian and military factories and dockyards gone, every other
  * building of R damaged 800 milli each (capped at all stopped); divisions
  * in R lose 60% (P2's HP loss) and all their organisation, those next door
- * 15%; ships in R's port lose half their HP; the victim's war support base
- * −15 points and its surrender line 10 lower (at most 30, nukeCutPp), its
- * war allies −5 points; tension +10 by the dropper; R nuked for 365 days;
- * R's dam destroyed; world news and the strike's fx. Tiles, their owners
- * and the terrain stay as they are.
+ * 15% (never in a no-strike region); ships in R's port lose half their
+ * HP; the victim's war support base −15 points and its surrender line 10
+ * lower (at most 30, nukeCutPp), its war allies −5 points; tension +10 by
+ * the dropper; R nuked for 365 days; R's dam destroyed; world news and the
+ * strike's fx. Tiles, their owners and the terrain stay as they are.
  */
 export function applyNuke(
   d: WwDepth,
@@ -293,6 +293,8 @@ export function applyNuke(
     land.markArmy(t.army[row]);
   }
   for (const n of [...sc.regionNeighbours(region)].sort((a, b) => a - b)) {
+    // Sensitivity (decision 34): the blast never reaches a no-strike region.
+    if (d.noStrike(n)) continue;
     damageDivisions(land, idsIn(n), out.neighbourLossPct * 10);
   }
   const navy = ww.navy;

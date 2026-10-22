@@ -116,7 +116,9 @@ function bonusPctOf(d: WwDepth, id: number, project: SpecialProject): number {
       d.ww.land.controller[vemorkRegion] === id &&
       (d.world.damLevel[VEMORK] ?? 0) > 0,
     norHeavyWater: pol.gflags.has("nor_heavy_water") || flag("nor_heavy_water"),
-    quebec: pol.gflags.has("quebec_agreement") && d.ww.tagOf(id) === "USA",
+    quebec:
+      (pol.gflags.has("quebec_agreement") || flag("quebec_agreement")) &&
+      d.ww.tagOf(id) === "USA",
   });
 }
 
@@ -209,7 +211,8 @@ export function dailyProjects(d: WwDepth, id: number, day: number): void {
           }
         }
       }
-      // An effect may have filled a paused row too.
+      // A project_progress effect (content) may fill a paused row too: the
+      // project is given, it completes without a facility (spec §18.3).
       if (run.progressMilli >= FULL) done.push(run);
     });
     for (const run of done) completeProject(d, id, c, run);

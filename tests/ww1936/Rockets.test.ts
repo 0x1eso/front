@@ -29,6 +29,19 @@ import { HUMAN, takeRegion, warAfterPrep, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
+/** Pre-flight §0-11: `regions` in P5's group korea_north (the engine's no-strike set). */
+function withNoStrike(regions: number[]): void {
+  const base = depthFixture();
+  usePoliticsContent(
+    depthFixture({
+      groups: [
+        ...base.groups,
+        { id: "korea_north", regions, owner1936: "GBR" },
+      ],
+    }),
+  );
+}
+
 const LYON = DEEP.region.lyon;
 const LONDON = DEEP.region.london;
 const FLYING = equipKey("flying_bomb", 1);
@@ -155,5 +168,47 @@ describe("World War 1936 P6: rockets (spec §9.7)", () => {
     ce.stock[FLYING] = 5;
     expect(strike(5)).toBe(null);
     expect(strike(1)).toBe("raid_conditions");
+  }, 60_000);
+
+  it("no rocket lands on a no-strike region (pre-flight §0-11)", async () => {
+    withNoStrike([LONDON]);
+    const { g, ww, d, deu, gbr, ce } = await rocketWar();
+    expect(d.noStrike(LONDON)).toBe(true);
+    const tick = g.ticks();
+    for (const rocket of ["flying_bomb", "ballistic_rocket"] as const) {
+      expect(
+        d.issue(
+          deu,
+          {
+            kind: "rocket_strike",
+            site: LYON,
+            target: LONDON,
+            rocket,
+            count: 1,
+          },
+          tick,
+        ),
+      ).toBe("no_strike_region");
+    }
+    expect(d.rocketQueue).toEqual([]);
+    // A volley already queued (say, before the list held it) never fires.
+    d.rocketQueue.push({
+      owner: deu,
+      site: LYON,
+      target: LONDON,
+      kind: 0,
+      count: 10,
+      day: ww.day(tick),
+    });
+    const msg = vi.spyOn(d, "message");
+    const fx = vi.spyOn(d, "addFx");
+    processRockets(d, ww.day(tick) + 1, tick);
+    expect(d.rocketQueue).toEqual([]);
+    expect(ce.stock[FLYING]).toBe(40);
+    expect(ce.stock[BALLISTIC]).toBe(5);
+    expect(londonDamage(ww)).toBe(0);
+    expect(ww.air.country(gbr)!.bombTaken.every((x) => x === 0)).toBe(true);
+    expect(msg).not.toHaveBeenCalled();
+    expect(fx).not.toHaveBeenCalled();
   }, 60_000);
 });

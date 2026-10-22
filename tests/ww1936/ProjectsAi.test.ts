@@ -15,9 +15,31 @@ import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, stepTo, warAfterPrep, wwRunner } from "./util";
+import {
+  HUMAN,
+  step,
+  stepTo,
+  takeRegion,
+  warAfterPrep,
+  wwRunner,
+} from "./util";
 
 afterEach(() => usePoliticsContent(null));
+
+/**
+ * Pre-flight §0-11: the test content with `regions` in P5's group
+ * korea_north (the engine's no-strike set), and `extra` content.
+ */
+function noStrikeContent(
+  regions: number[],
+  extra: Parameters<typeof depthFixture>[0] = {},
+) {
+  const base = depthFixture();
+  return depthFixture({
+    ...extra,
+    groups: [...base.groups, { id: "korea_north", regions, owner1936: "DEU" }],
+  });
+}
 
 const ATOMIC = SPECIAL_PROJECTS.indexOf("sp_atomic");
 const LONDON = DEEP.region.london;
@@ -33,7 +55,7 @@ function aiDayFrom(date: string, id: number): number {
 }
 
 /** Britain (AI) at war with a human Germany, a bomb in stock and 10 strategic bombers over the zone West. */
-async function britishBomb(): Promise<GameRunner> {
+async function britishBomb(bombers = 10): Promise<GameRunner> {
   const runner = await wwRunner(
     { historicalAi: true },
     [{ clientID: HUMAN, country: "DEU" }],
@@ -43,14 +65,14 @@ async function britishBomb(): Promise<GameRunner> {
   const ww = runner.game.worldWar()!;
   const ce = ww.economy.country(GBR)!;
   ce.stock[equipKey("atomic_bomb", 1)] = 1;
-  ce.stock[equipKey("strat_bomber", 1)] = 10;
+  ce.stock[equipKey("strat_bomber", 1)] = bombers;
   ww.air.addDeployment({
     owner: GBR,
     sr: DEEP.sr.westLand,
     type: AIR_TYPES.indexOf("strat_bomber"),
     mission: AIR_MISSIONS.indexOf("strategic_bombing"),
-    counts: drawPlanes(ce, "strat_bomber", 10),
-    target: 10,
+    counts: drawPlanes(ce, "strat_bomber", bombers),
+    target: bombers,
     base: LONDON,
     lossRest: 0,
     auto: false,
@@ -183,5 +205,85 @@ describe("World War 1936 P6: the projects AI (spec §19.6)", () => {
         facility: DEEP.region.rome,
       },
     ]);
+  }, 60_000);
+});
+
+describe("World War 1936 P6: the AI never picks a no-strike region (pre-flight §0-11)", () => {
+  it("the bomb picker, with and without the content's targets", async () => {
+    // Berlin is the capital: Munich is the only region the picker may take.
+    for (const extra of [
+      {},
+      {
+        nukeTargets: [
+          {
+            attacker: "GBR" as const,
+            target: "DEU" as const,
+            regions: [MUNICH],
+            notBefore: "1944-01-01",
+          },
+        ],
+      },
+    ]) {
+      usePoliticsContent(noStrikeContent([MUNICH], extra));
+      const runner = await britishBomb();
+      const ww = runner.game.worldWar()!;
+      const d = ww.depth;
+      expect(d.noStrike(MUNICH)).toBe(true);
+      aiProjectsDay(d, GBR, dayOfDate("1944-01-01"));
+      aiProjectsDay(d, GBR, dayOfDate("1945-09-01"));
+      expect(d.nukeQueue).toEqual([]);
+      expect(ww.economy.country(GBR)!.stock[equipKey("atomic_bomb", 1)]).toBe(
+        1,
+      );
+    }
+  }, 60_000);
+
+  it("the rocket picker", async () => {
+    const LYON = DEEP.region.lyon;
+    const PARIS = DEEP.region.paris;
+    const deu = DEEP.tag.DEU;
+    const fire = async (noStrike: number[]) => {
+      usePoliticsContent(noStrikeContent(noStrike));
+      const runner = await wwRunner(
+        { historicalAi: true },
+        [{ clientID: HUMAN, country: "GBR" }],
+        DEEP.map,
+      );
+      warAfterPrep(runner, HUMAN, "DEU");
+      const g = runner.game;
+      const ww = g.worldWar()!;
+      const d = ww.depth;
+      takeRegion(g, LYON, "DEU");
+      // P1 takes the new control on its next turn (its region lists).
+      step(runner, 8);
+      expect(ww.economy.regionsOf(deu)).toContain(LYON);
+      d.country(deu)!.proj.done |=
+        1 << SPECIAL_PROJECTS.indexOf("sp_flying_bomb");
+      ww.economy.buildingArray("rocket_site")[LYON] = 1;
+      ww.economy.country(deu)!.stock[equipKey("flying_bomb", 1)] = 20;
+      // Off its 10-day turn: only the war-time pickers run.
+      const day = aiDayFrom("1941-01-01", deu) + 1;
+      aiProjectsDay(d, deu, day);
+      return d.rocketQueue.map((e) => e.target);
+    };
+    // The control: London (or Paris, when France has joined) in range.
+    expect([[LONDON], [PARIS]]).toContainEqual(await fire([]));
+    // Every enemy region in the site's range on the no-strike list: nothing.
+    expect(await fire([LONDON, PARIS])).toEqual([]);
+  }, 60_000);
+
+  it("the raid picker", async () => {
+    // Britain's raid turn: day % 10 and floor(day / 10) % 18 on its id.
+    const day = (GBR % 10) + 10 * (GBR % 18);
+    const raids = async (noStrike: number[]) => {
+      usePoliticsContent(noStrikeContent(noStrike));
+      const runner = await britishBomb(50);
+      const d = runner.game.worldWar()!.depth;
+      aiProjectsDay(d, GBR, day);
+      return d.raids.map((r) => [r.kind, r.target]);
+    };
+    // The control: the Möhne dam in Munich by precision bombing.
+    expect(await raids([])).toEqual([[2, MUNICH]]);
+    expect(await raids([MUNICH])).toEqual([]);
   }, 60_000);
 });
