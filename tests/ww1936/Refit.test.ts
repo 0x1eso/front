@@ -1,6 +1,6 @@
 // World War 1936 P6 lane E (plan Task 3 Step 8, spec §5.3.4): ship
 // refits — a human Britain's destroyers in London (naval base 6).
-import type { DesignDef } from "@openfront/engine-api/ww1936/DepthTypes";
+import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import {
   FLEET_MISSIONS,
   FLEET_STATES,
@@ -24,7 +24,7 @@ const LONDON = DEEP.region.london;
 const MALTA = DEEP.region.malta;
 const REPAIRING = FLEET_STATES.indexOf("repairing");
 /** A destroyer II with more anti-air (+60%, cost +5%). */
-const AA_DD: DesignDef = {
+const AA_DD: Extract<DepthOrder, { kind: "design_save" }>["def"] = {
   kind: "ship",
   base: "dd_2",
   modules: ["", "", "sec_aa", ""],

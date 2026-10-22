@@ -1,11 +1,8 @@
 // World War 1936 P6 lane E (plan Task 3 Step 8, spec §5): designs in a
 // real game — a human Britain on ww1936deep, the techs and experience
 // given by the test (plan decision 30).
-import type { WwOrder } from "@openfront/engine-api/Schemas";
-import type {
-  DesignDef,
-  TankDesignStats,
-} from "@openfront/engine-api/ww1936/DepthTypes";
+import type { DepthOrder, WwOrder } from "@openfront/engine-api/Schemas";
+import type { TankDesignStats } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   equipKey,
@@ -49,12 +46,15 @@ import {
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
+/** A design as the order carries it (the wire's zod type). */
+type Def = Extract<DepthOrder, { kind: "design_save" }>["def"];
+
 const GBR = DEEP.tag.GBR;
 const DEU = DEEP.tag.DEU;
 const LONDON = DEEP.region.london;
 
 /** A heavy I tank: the support gun, a three-man turret, a radio. */
-const HEAVY: DesignDef = {
+const HEAVY: Def = {
   kind: "tank",
   base: "heavy_1",
   modules: ["gun_cs", "turret_3", "bogie", "welded", "petrol", "radio", ""],
@@ -62,7 +62,7 @@ const HEAVY: DesignDef = {
   engineLevel: 0,
   name: "Heavy",
 };
-const MED1: DesignDef = {
+const MED1: Def = {
   kind: "tank",
   base: "medium_1",
   modules: ["gun_cs", "turret_2", "bogie", "welded", "petrol", "", ""],
@@ -70,10 +70,14 @@ const MED1: DesignDef = {
   engineLevel: 0,
   name: "Med I",
 };
-const MED2: DesignDef = { ...MED1, base: "medium_2", name: "Med II" };
+const MED2: Def = { ...MED1, base: "medium_2", name: "Med II" };
 
 /** A game past the preparation minute (the depth days run from there). */
-async function game(humans = [{ clientID: HUMAN, country: "GBR" as const }]) {
+async function game(
+  humans: { clientID: string; country: "GBR" | "DEU" }[] = [
+    { clientID: HUMAN, country: "GBR" },
+  ],
+) {
   const runner = await wwRunner({}, humans, DEEP.map);
   stepTo(runner, WW_PREP_TICKS + 2);
   const ww = runner.game.worldWar()!;
@@ -364,7 +368,7 @@ describe("World War 1936 P6: designs in the game", () => {
     ]);
     prepare(ww, GBR, ["bb_2"]);
     prepare(ww, DEU, ["bb_2"]);
-    const bb: DesignDef = {
+    const bb: Def = {
       kind: "ship",
       base: "bb_2",
       modules: ["main_heavy", "", "", "", "", ""],
@@ -377,7 +381,12 @@ describe("World War 1936 P6: designs in the game", () => {
     // Not a member: Germany may.
     expect(d.issue(DEU, { kind: "design_save", def: bb }, tick)).toBeNull();
     // Britain's standard battleship is fine, and its line too.
-    const std = { ...bb, modules: ["", "sec_aa", "", "", "", "floatplane"] };
+    const std: Def = {
+      kind: "ship",
+      base: "bb_2",
+      modules: ["", "sec_aa", "", "", "", "floatplane"],
+      name: "Standard",
+    };
     expect(d.issue(GBR, { kind: "design_save", def: std }, tick)).toBeNull();
     const BB = SHIP_CLASSES.indexOf("bb");
     expect(navalLineDesignBlock(d, GBR, BB, 2, 1)).toBeNull();
