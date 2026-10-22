@@ -1432,8 +1432,14 @@ describe("the final balance's map-bound content numbers", () => {
       Math.round((80 * burgos.vp) / total),
     );
     expect(COUNTRIES.ESN.surrenderPct * total).toBeLessThan(burgos.vp * 100);
-    // The Republic keeps the default line: all its points are at home.
-    expect(COUNTRIES.ESR.surrenderPct).toBe(80);
+    // The Republic's line: Barcelona's fall alone ends it.
+    const esr = s.landRegions.filter((r) => r.owner === "ESR" && r.vp > 0);
+    const esrTotal = esr.reduce((a, r) => a + r.vp, 0);
+    const barcelona = esr.find((r) => r.name === "Barcelona")!;
+    expect(COUNTRIES.ESR.surrenderPct * esrTotal).toBeLessThan(
+      barcelona.vp * 100,
+    );
+    expect(COUNTRIES.ESR.surrenderPct).toBe(60);
     // The rising brings the Nationalists their levies.
     const rising = WORLD_EVENTS.find((e) => e.id === "esp_civil_war")!;
     expect(rising.receivers).toEqual(["ESN"]);

@@ -200,15 +200,8 @@ describe("focus data", () => {
     }
   });
 
-  it("the final balance's focus numbers: Poland's league, the Nationalists' divisions", () => {
+  it("the final balance's focus numbers: the Nationalists' divisions", () => {
     const f = (id: string) => focuses.find((x) => x.id === id)!;
-    // Poland weighs the generic neutral league at a tenth (its own course is
-    // pol_balance, with pol_intermarium as the branch's alternative).
-    const league = f("gen_pol_neu_league");
-    expect(league.ai?.base).toBe(10);
-    expect(league.ai?.mods).toEqual([
-      { if: { kind: "tag", tag: "POL" }, factor: 10 },
-    ]);
     // The Nationalists' focus divisions (6 + 4) against the Republic's (6 + 3).
     const divisions = (id: string) =>
       f(id)

@@ -40,7 +40,7 @@ import type { WwDepth } from "./WwDepth";
  * plant at a time could follow and sat at 40–50% from 1940.
  */
 export const AI_ENERGY_PM = 980;
-export const AI_PLANTS_QUEUED = 6;
+export const AI_PLANTS_QUEUED = 8;
 /** Spec §16.7: the Soviet scorched earth starts in 1941. */
 export const AI_SCORCH_FROM = "1941-01-01";
 /** Spec §16.7: a region with this many factories is worth moving and burning. */
