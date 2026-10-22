@@ -50,15 +50,23 @@ export function renderMarketTab(
   </div>`;
 }
 
+/**
+ * Final review D (D2): the schema's cap on a market order's count
+ * (`market_list` and `market_buy`, Schemas.ts); a count past it would get
+ * the sender kicked.
+ */
+export const MARKET_MAX_COUNT = 1_000_000;
+
 function renderRow(
   m: DepthIndustryModel,
   ui: TabUi,
   r: ListingRow,
   open: boolean,
 ): TemplateResult {
+  const most = Math.min(r.count, MARKET_MAX_COUNT);
   const count = Math.max(
     1,
-    Math.min(r.count, ui.pick.count > 0 ? ui.pick.count : r.count),
+    Math.min(most, ui.pick.count > 0 ? ui.pick.count : most),
   );
   const prev = m.buyPreview(r, count);
   const key = `market_buy:${r.id}:${count}`;
@@ -97,7 +105,7 @@ function renderRow(
             type="range"
             data-ww-buy-count
             min="1"
-            max=${r.count}
+            max=${most}
             .value=${String(count)}
             @input=${(e: Event) => {
               ui.pick.count = Number((e.target as HTMLInputElement).value);
@@ -141,7 +149,10 @@ function renderOffer(m: DepthIndustryModel, ui: TabUi): TemplateResult {
     .map((n, key) => ({ n, key }))
     .filter((x) => x.n > 0);
   const key = ui.pick.sellKey ?? keys[0]?.key ?? -1;
-  const have = keys.find((x) => x.key === key)?.n ?? 0;
+  const have = Math.min(
+    keys.find((x) => x.key === key)?.n ?? 0,
+    MARKET_MAX_COUNT,
+  );
   const count = Math.max(1, Math.min(have, ui.pick.sellCount || have));
   return html`<div data-ww-offer class="mt-2 flex flex-wrap items-center gap-1">
     <select

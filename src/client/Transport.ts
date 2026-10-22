@@ -22,6 +22,7 @@ import {
   AllPlayersStats,
   ClientID,
   Intent,
+  IntentSchema,
   Winner,
   WwOrder,
 } from "@openfront/engine-api/Schemas";
@@ -79,7 +80,7 @@ import {
 import { LocalServer } from "./LocalServer";
 import { hideReconnectBanner, showReconnectBanner } from "./ReconnectBanner";
 import { describeSocketClose } from "./SocketClose";
-import { translateText } from "./Utils";
+import { showToast, translateText } from "./Utils";
 import { PlayerView } from "./view";
 
 export class PauseGameIntentEvent implements GameEvent {
@@ -1319,7 +1320,33 @@ export class Transport {
     return false;
   }
 
+  /** Intent kinds already logged as dropped by the schema guard (one line each). */
+  private readonly droppedIntentKinds = new Set<string>();
+
+  // Final review D (D1): the server kicks — and bans — a client whose
+  // message fails its schema, and zbin encodes values the schema refuses
+  // (a name with a space at either end, a count past its cap). Every
+  // outgoing intent is checked here: a schema-invalid one is dropped, with
+  // one log line per kind and a short notice, so a UI slip costs one
+  // ignored click instead of the game.
   private sendIntent(intent: Intent) {
+    const parsed = IntentSchema.safeParse(intent);
+    if (!parsed.success) {
+      const kind =
+        intent.type === "ww_order"
+          ? `ww_order:${intent.order.kind}`
+          : intent.type;
+      if (!this.droppedIntentKinds.has(kind)) {
+        this.droppedIntentKinds.add(kind);
+        console.error(
+          new Error(
+            `Dropped ${kind} intent that fails its schema: ${parsed.error.message}`,
+          ),
+        );
+      }
+      showToast(translateText("common.order_not_sent"), "red");
+      return;
+    }
     const msg = {
       type: "intent",
       intent: intent,

@@ -42,9 +42,11 @@ vi.mock("../../src/client/LocalServer", () => ({
 vi.mock("../../src/client/InGameModal", () => ({
   showInGameConfirm: async () => false,
 }));
+const showToast = vi.hoisted(() => vi.fn());
 vi.mock("../../src/client/Utils", () => ({
   translateText: (key: string) => key,
   homeHref: () => "/",
+  showToast,
 }));
 
 import type { LobbyConfig } from "../../src/client/ClientGameRunner";
@@ -59,6 +61,7 @@ import {
   SendQueueResearchIntentEvent,
   SendSpawnIntentEvent,
   SendWinnerEvent,
+  SendWwOrderIntentEvent,
   Transport,
 } from "../../src/client/Transport";
 import type { PlayerView } from "../../src/client/view";
@@ -221,6 +224,50 @@ describe("Transport send paths", () => {
         type: "intent",
         intent: { type: "boat", troops: 0, dst: 7 },
       });
+    });
+
+    // Final review D (D1): the server kicks and bans a client whose intent
+    // fails its schema — and zbin happily encodes a design name with a
+    // trailing space or a count past its cap. Such an intent never leaves.
+    it("drops a schema-invalid intent before the socket, logs it once and says so", () => {
+      const { eventBus, ws } = connected();
+      showToast.mockClear();
+      const before = ws.sent.length;
+      const design = (name: string) =>
+        new SendWwOrderIntentEvent({
+          kind: "design_save",
+          def: {
+            kind: "tank",
+            base: "medium_2",
+            modules: ["gun_hv", "", "", "", "", ""],
+            armorLevel: 0,
+            engineLevel: 0,
+            name,
+          },
+        } as never);
+      eventBus.emit(design("Tiger "));
+      eventBus.emit(design("<b>Tiger</b>"));
+      eventBus.emit(
+        new SendWwOrderIntentEvent({
+          kind: "air_deploy",
+          sr: 1,
+          type: "fighter",
+          mission: "air_superiority",
+          count: 5_001,
+        }),
+      );
+      expect(ws.sent).toHaveLength(before);
+      // One log line per kind; a notice for every dropped order.
+      expect(console.error).toHaveBeenCalledTimes(2);
+      expect(showToast).toHaveBeenCalledTimes(3);
+      expect(showToast).toHaveBeenCalledWith("common.order_not_sent", "red");
+      // The trimmed name goes out.
+      eventBus.emit(design("Tiger"));
+      expect(ws.sent).toHaveLength(before + 1);
+      const last = decodeFrames(ws).at(-1) as {
+        intent: { order: { def: { name: string } } };
+      };
+      expect(last.intent.order.def.name).toBe("Tiger");
     });
 
     it("turns a research reservation and its cancel into queue_research frames", () => {

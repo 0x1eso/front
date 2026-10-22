@@ -13,6 +13,7 @@ import {
   LAND_ZONE_MISSIONS,
   SEA_ZONE_MISSIONS,
   WW_AIR_BASE_CAPACITY,
+  WW_MAX_DEPLOY_COUNT,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   equipKey,
@@ -133,7 +134,12 @@ export function idlePlanes(ctx: AirCtx, type: AirType): number {
   return d?.smallID === ctx.me ? (d.stock[AIR_TYPES.indexOf(type)] ?? 0) : 0;
 }
 
-/** Spec §18.6: a row's slider runs 0 .. deployed here on that mission + the idle reserve. */
+/**
+ * Spec §18.6: a row's slider runs 0 .. deployed here on that mission + the
+ * idle reserve — at most the order's cap (final review D, D2: the schema
+ * takes counts up to WW_MAX_DEPLOY_COUNT, and a count past it would get
+ * the sender kicked).
+ */
 export function sliderRange(
   ctx: AirCtx,
   sr: number,
@@ -142,7 +148,12 @@ export function sliderRange(
 ): { min: number; max: number; value: number; free: number } {
   const value = deployedHere(ctx.air, ctx.me, sr, type, mission);
   const free = idlePlanes(ctx, type);
-  return { min: 0, max: value + free, value, free };
+  return {
+    min: 0,
+    max: Math.min(WW_MAX_DEPLOY_COUNT, value + free),
+    value,
+    free,
+  };
 }
 
 /** The best generation I have of a type (reserve or anywhere deployed); 1 with none. */
@@ -248,7 +259,13 @@ export function deployOrder(
   mission: AirMission,
   count: number,
 ): WwOrder {
-  return { kind: "air_deploy", sr, type, mission, count };
+  return {
+    kind: "air_deploy",
+    sr,
+    type,
+    mission,
+    count: Math.max(0, Math.min(WW_MAX_DEPLOY_COUNT, Math.round(count))),
+  };
 }
 
 export interface PlaneRowData {

@@ -110,6 +110,50 @@ describe("<ww-designer>", () => {
     el.remove();
   });
 
+  it("final review D (D1): a name typed with a trailing space saves trimmed", async () => {
+    const { EventBus } = await import("@openfront/shared/EventBus");
+    const { WwDepthOpenEvent } =
+      await import("../../../src/client/hud/ww1936/DepthEvents");
+    const { SendWwOrderIntentEvent } =
+      await import("../../../src/client/Transport");
+    const { IntentSchema } = await import("@openfront/engine-api/Schemas");
+    await import("../../../src/client/hud/ww1936/WwDesigner");
+    const bus = new EventBus();
+    const sent: { def: { name: string } }[] = [];
+    bus.on(SendWwOrderIntentEvent, (e) => sent.push(e.order as never));
+    const el = document.createElement("ww-designer") as HTMLElement & {
+      game: unknown;
+      eventBus: unknown;
+      updateComplete: Promise<boolean>;
+      init(): void;
+    };
+    el.game = designerGame();
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    bus.emit(new WwDepthOpenEvent("designer", { kind: "tank" }));
+    await el.updateComplete;
+    (el.querySelector("[data-ww-base=medium_2]") as HTMLElement).click();
+    await el.updateComplete;
+    const input = el.querySelector("[data-ww-design-name]") as HTMLInputElement;
+    input.value = "티거 ";
+    input.dispatchEvent(new Event("change"));
+    await el.updateComplete;
+    expect(el.querySelector("[data-ww-block='bad_name']")).toBeNull();
+    const save = el.querySelector("[data-ww-design-save]") as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    save.click();
+    await el.updateComplete;
+    await new Promise((r) => setTimeout(r, 400));
+    (el.querySelector("[data-ww-design-save]") as HTMLElement).click();
+    await el.updateComplete;
+    expect(sent.map((o) => o.def.name)).toEqual(["티거"]);
+    expect(
+      IntentSchema.safeParse({ type: "ww_order", order: sent[0] }).success,
+    ).toBe(true);
+    el.remove();
+  });
+
   it("the licence request card opens the industry drawer's market tab (U4's entry point)", async () => {
     const { EventBus } = await import("@openfront/shared/EventBus");
     const { WwDepthOpenEvent } =

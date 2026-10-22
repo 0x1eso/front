@@ -6,9 +6,11 @@
 // WwDesignList) only draw what it returns.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
+  DESIGN_NAME_MAX,
   DESIGN_SLOTS,
   DesignDef,
   DesignKind,
+  DesignNameSchema,
   DesignStats,
   PLANE_BASES,
   PlaneDesignStats,
@@ -203,6 +205,27 @@ function techYear(t: WwTechId | undefined | null): number {
   return t === undefined || t === null ? 0 : (WW_TECHS[t]?.year ?? 0);
 }
 
+/**
+ * Final review D (D1): a typed design name as DesignNameSchema takes it —
+ * no `<` or `>`, no control or format characters (bidi marks, the
+ * zero-width joiner inside some emoji), no lone surrogate, no space at
+ * either end, and at most DESIGN_NAME_MAX UTF-16 units, cut at a whole
+ * character. "Tiger " and "티거 " (an IME's trailing space) save as
+ * "Tiger" and "티거".
+ */
+export function cleanDesignName(name: string): string {
+  let s = name.replace(/[<>\p{Cc}\p{Cf}\p{Cs}]/gu, "").trim();
+  if (s.length > DESIGN_NAME_MAX) {
+    let cut = "";
+    for (const ch of s) {
+      if (cut.length + ch.length > DESIGN_NAME_MAX) break;
+      cut += ch;
+    }
+    s = cut.trim();
+  }
+  return s;
+}
+
 /** The MIO family a design's reliability and cost come from (the engine's designFamily). */
 function familyKey(def: DesignDef): string {
   if (def.kind === "tank") return "armor";
@@ -304,11 +327,26 @@ export class DesignerModel {
     this.bump();
   }
 
-  /** The typed name; empty goes back to the automatic one ("@"). */
+  /**
+   * The typed name, cleaned to what the order's schema takes
+   * (`cleanDesignName`); empty goes back to the automatic one ("@").
+   */
   setName(name: string): void {
     if (this.draft === null) return;
-    this.draft = { ...this.draft, name: name.trim() === "" ? "@" : name };
+    const clean = cleanDesignName(name);
+    this.draft = { ...this.draft, name: clean === "" ? "@" : clean };
     this.bump();
+  }
+
+  /**
+   * Final review D (D1): the draft's name passes DesignNameSchema. The
+   * server kicks (and bans) a client whose order fails the schema, so a
+   * name it would refuse never leaves: Save stays grey with a reason.
+   */
+  nameOk(): boolean {
+    return (
+      this.draft !== null && DesignNameSchema.safeParse(this.draft.name).success
+    );
   }
 
   /** [Recommended fill] (spec §5.2.3): one tap, the base, the role and the name kept. */
@@ -333,7 +371,9 @@ export class DesignerModel {
    * returns the order, or null while armed or when the draft is refused.
    */
   tapSave(nowMs: number): WwOrder | null {
-    if (this.draft === null || this.block() !== null) return null;
+    if (this.draft === null || this.block() !== null || !this.nameOk()) {
+      return null;
+    }
     this.taps++;
     if (!this.saveTap.tap("save", nowMs)) return null;
     return this.save();
@@ -344,7 +384,9 @@ export class DesignerModel {
   }
 
   save(): WwOrder | null {
-    if (this.draft === null || this.block() !== null) return null;
+    if (this.draft === null || this.block() !== null || !this.nameOk()) {
+      return null;
+    }
     return { kind: "design_save", def: this.draft } as WwOrder;
   }
 

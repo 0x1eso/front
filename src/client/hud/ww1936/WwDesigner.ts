@@ -452,6 +452,8 @@ export class WwDesigner extends WwDrawerBase {
   private renderBottom(m: DesignerModel): TemplateResult {
     const d = m.draft;
     const block = m.block();
+    // Final review D (D1): a name the order's schema refuses never saves.
+    const badName = d !== null && !m.nameOk();
     const have = m.xpHave();
     const armed = m.isSaveArmed(performance.now());
     const cost = m.xpCost();
@@ -486,7 +488,16 @@ export class WwDesigner extends WwDrawerBase {
                 reason: orderBlockText(block),
               })}</span
             >`
-          : nothing}
+          : badName
+            ? html`<span
+                data-ww-block="bad_name"
+                class="min-w-0 truncate text-amber-300"
+                >🔒
+                ${translateText("ww1936.design.save_blocked", {
+                  reason: translateText("ww1936.design.bad_name"),
+                })}</span
+              >`
+            : nothing}
       </div>
       <div class="flex items-center gap-1">
         <input
@@ -517,7 +528,7 @@ export class WwDesigner extends WwDrawerBase {
           class="${BTN} h-8 ${armed
             ? "border-amber-400/70 bg-amber-500/20"
             : ""}"
-          ?disabled=${d === null || block !== null}
+          ?disabled=${d === null || block !== null || badName}
           @click=${() => this.onSave(m)}
         >
           ${translateText(
