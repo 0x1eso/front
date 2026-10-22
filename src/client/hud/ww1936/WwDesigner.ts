@@ -23,7 +23,7 @@ import {
   DesignerModel,
 } from "./DesignerModel";
 import { blockText as orderBlockText } from "./EconomyModel";
-import { TwoTap } from "./WorldWarModel";
+import { countryName, TwoTap } from "./WorldWarModel";
 import { renderDesignList } from "./WwDesignList";
 import {
   chipClass,
@@ -31,16 +31,16 @@ import {
   renderDesignSheet,
   slotName,
 } from "./WwDesignSheet";
-import { WwDrawerBase } from "./WwDrawer";
+import { OpenWwIndustryEvent, WwDrawerBase } from "./WwDrawer";
 
 type DesignerTab = "design" | "list";
 
 const BTN =
   "h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
 const KIND_KEYS: Readonly<Record<DesignKind, string>> = {
-  tank: "ww1936.design.kind_tank",
-  ship: "ww1936.design.kind_ship",
-  plane: "ww1936.design.kind_plane",
+  tank: "ww1936.design.tab_tank",
+  ship: "ww1936.design.tab_ship",
+  plane: "ww1936.design.tab_plane",
 };
 
 @customElement("ww-designer")
@@ -154,7 +154,7 @@ export class WwDesigner extends WwDrawerBase {
             : ""}"
           @click=${() => (this.tab = "list")}
         >
-          ${translateText("ww1936.depth.designs")}
+          ${translateText("ww1936.design.tab_designs")}
         </button>
       </div>
       <button
@@ -197,7 +197,10 @@ export class WwDesigner extends WwDrawerBase {
           );
         },
         openLicences: () => this.setOpen(false),
-        pendingLicences: m.pendingLicences(),
+        licenceFrom: this.licenceFrom(m),
+        makeLine: () => {
+          this.eventBus.emit(new OpenWwIndustryEvent("production"));
+        },
       })}
     </div>`;
   }
@@ -240,7 +243,7 @@ export class WwDesigner extends WwDrawerBase {
         <div class="relative flex min-h-0 min-w-0 flex-1 flex-col gap-1">
           ${m.draft === null
             ? html`<p class="m-0 text-xs text-white/60">
-                ${translateText("ww1936.design.pick_base")}
+                ${translateText(`ww1936.design.base_${m.kind}`)}
               </p>`
             : this.renderGrid(m)}
           ${m.openSlot !== null
@@ -257,6 +260,14 @@ export class WwDesigner extends WwDrawerBase {
       </div>
       ${this.renderBottom(m)}
     `;
+  }
+
+  /** The country asking me for a licence (the first request), or null. */
+  private licenceFrom(m: DesignerModel): string | null {
+    const id = m.pendingLicenceFrom();
+    if (id === null) return null;
+    const tag = this.game?.worldWarScenario?.()?.tagOfSmallId(id);
+    return tag === undefined || tag === null ? "" : countryName(tag);
   }
 
   private sheetBase(): number {
@@ -297,7 +308,7 @@ export class WwDesigner extends WwDrawerBase {
                   : c.chips.map(
                       (x) =>
                         html`<span class="${chipClass(x.sign)} rounded px-0.5"
-                          >${translateText(`ww1936.design.stat_${x.id}`)}
+                          >${translateText(`ww1936.design.stat.${x.id}`)}
                           ${x.text}</span
                         >`,
                     )}
@@ -341,11 +352,17 @@ export class WwDesigner extends WwDrawerBase {
         </button>
       </div>`;
     return html`<div class="flex shrink-0 flex-wrap gap-x-3 gap-y-1">
-      ${stepper("armor", translateText("ww1936.design.armor_level"), a, (n) =>
-        m.setLevel(n, e),
+      ${stepper(
+        "armor",
+        translateText("ww1936.design.armor_step", { n: a }),
+        a,
+        (n) => m.setLevel(n, e),
       )}
-      ${stepper("engine", translateText("ww1936.design.engine_level"), e, (n) =>
-        m.setLevel(a, n),
+      ${stepper(
+        "engine",
+        translateText("ww1936.design.engine_step", { n: e }),
+        e,
+        (n) => m.setLevel(a, n),
       )}
     </div>`;
   }
@@ -374,7 +391,7 @@ export class WwDesigner extends WwDrawerBase {
             style="line-height: 18px"
           >
             <span class="min-w-0 flex-1 truncate text-white/70"
-              >${translateText(`ww1936.design.stat_${r.id}`)}</span
+              >${translateText(`ww1936.design.stat.${r.id}`)}</span
             >
             <span class="font-semibold">${r.text}</span>
             <span
@@ -390,9 +407,8 @@ export class WwDesigner extends WwDrawerBase {
       ${cost === null
         ? nothing
         : html`<div data-ww-cost class="mt-1 text-xs text-white/80">
-            ${translateText("ww1936.design.cost", {
-              n: Math.round(cost.cost * 10) / 10,
-            })}
+            ${translateText("ww1936.design.cost")}
+            ${Math.round(cost.cost * 10) / 10}
             <span
               class=${cost.sign > 0
                 ? "text-green-300"
@@ -401,7 +417,7 @@ export class WwDesigner extends WwDrawerBase {
                   : ""}
               >${cost.sign > 0 ? "▲" : cost.sign < 0 ? "▼" : ""}</span
             >
-            · ${translateText("ww1936.design.fuel", { n: cost.fuelText })}
+            · ${translateText("ww1936.design.fuel")} ${cost.fuelText}
             <div class="text-[11px] text-white/60">
               ${cost.resources
                 .map(([id, n]) => `${translateText(`ww1936.res.${id}`)} ${n}`)
@@ -428,18 +444,20 @@ export class WwDesigner extends WwDrawerBase {
           : html`<span
               data-ww-design-xp
               class=${have !== null && cost * 1000 > have ? "text-red-300" : ""}
-              >${have === null
-                ? translateText(`${m.xpKey()}_cost`, { cost })
-                : translateText(m.xpKey(), {
-                    cost,
-                    have: Math.floor(have / 1000),
-                  })}</span
+              >${translateText("ww1936.design.xp_cost", {
+                kind: translateText(m.xpKey()),
+                cost,
+                have: have === null ? "?" : Math.floor(have / 1000),
+              })}</span
             >`}
         ${block !== null && d !== null
           ? html`<span
               data-ww-block=${block}
               class="min-w-0 truncate text-amber-300"
-              >🔒 ${orderBlockText(block)}</span
+              >🔒
+              ${translateText("ww1936.design.save_blocked", {
+                reason: orderBlockText(block),
+              })}</span
             >`
           : nothing}
       </div>

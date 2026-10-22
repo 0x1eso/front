@@ -16,14 +16,15 @@ export interface DesignListEnv {
   retire: (row: WwDesignSlotData) => void;
   openLicences: () => void;
   /** The licence requests waiting for my answer. */
-  pendingLicences: number;
+  licenceFrom: string | null;
+  makeLine: (row: WwDesignSlotData) => void;
 }
 
 const ORIGIN_KEYS = {
   own: "",
-  captured: "ww1936.design.origin_captured",
-  received: "ww1936.design.origin_received",
-  licensed: "ww1936.design.origin_licensed",
+  captured: "ww1936.design.source_captured",
+  received: "ww1936.design.source_gift",
+  licensed: "ww1936.design.source_licence",
 } as const;
 
 /** "Lines 2 · Stock 340 · Divisions 61" for one saved design. */
@@ -76,29 +77,43 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
       ${stats.map(
         (s) =>
           html`<span class="rounded bg-white/10 px-1 text-[11px]"
-            >${translateText(`ww1936.design.stat_${s.id}`)}
+            >${translateText(`ww1936.design.stat.${s.id}`)}
             ${numText(s.raw, s.div)}</span
           >`,
       )}
     </div>
     <div data-ww-design-use class="text-white/60">
-      ${translateText("ww1936.design.use", use)}
+      ${translateText("ww1936.design.list_line", {
+        line: use.lines,
+        stock: use.stock,
+        divisions: use.users,
+      })}
     </div>
-    <div class="flex gap-1">
+    <div class="flex flex-wrap gap-1">
       <button
         type="button"
         data-ww-design-copy
-        class="h-9 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
+        class="h-9 min-w-24 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
         @click=${() => env.copy(row)}
       >
-        ${translateText("ww1936.design.copy")}
+        ${translateText("ww1936.design.edit_new")}
       </button>
+      ${row.kind === "ship" || row.obsolete
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-design-line
+            class="h-9 min-w-24 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
+            @click=${() => env.makeLine(row)}
+          >
+            ${translateText("ww1936.design.make_line")}
+          </button>`}
       ${row.obsolete
         ? nothing
         : html`<button
             type="button"
             data-ww-design-retire
-            class="h-9 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
+            class="h-9 min-w-24 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
             @click=${() => env.retire(row)}
           >
             ${translateText(
@@ -116,15 +131,15 @@ export function renderDesignList(env: DesignListEnv): TemplateResult {
     .wwDepth?.()
     ?.detail(env.model.view.myPlayer()?.smallID() ?? 0)?.designs;
   return html`<div data-ww-design-list class="flex flex-col gap-2">
-    ${env.pendingLicences > 0
+    ${env.licenceFrom !== null
       ? html`<button
           type="button"
           data-ww-licence-request
           class="rounded-md border border-amber-400/50 bg-amber-500/10 px-2 py-2 text-left text-xs font-semibold"
           @click=${env.openLicences}
         >
-          ${translateText("ww1936.design.licence_pending", {
-            n: env.pendingLicences,
+          ${translateText("ww1936.design.licence_waiting", {
+            country: env.licenceFrom ?? "",
           })}
         </button>`
       : nothing}

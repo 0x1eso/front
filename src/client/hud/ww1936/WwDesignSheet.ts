@@ -15,11 +15,7 @@ export function moduleName(
   id: string,
 ): string {
   if (id !== "") return translateText(`ww1936.module.${id}`);
-  return translateText(
-    kind === "tank"
-      ? "ww1936.design.module_empty"
-      : "ww1936.design.module_base",
-  );
+  return translateText("ww1936.design.slot_empty");
 }
 
 export function slotName(kind: string, slotKind: string): string {
@@ -38,7 +34,7 @@ export function renderChip(c: StatChip): TemplateResult {
   return html`<span
     data-ww-design-chip=${c.id}
     class="rounded px-1 text-[11px] leading-4 ${chipClass(c.sign)}"
-    >${translateText(`ww1936.design.stat_${c.id}`)} ${c.text}</span
+    >${translateText(`ww1936.design.stat.${c.id}`)} ${c.text}</span
   >`;
 }
 
@@ -70,7 +66,7 @@ function renderRow(
     data-ww-module-row=${r.id}
     data-ww-blocked=${r.block === null ? nothing : "true"}
     aria-disabled=${r.block === null ? "false" : "true"}
-    class="flex min-h-11 w-full flex-col gap-0.5 rounded-md border px-2 py-1 text-left text-xs ${r.current
+    class="flex min-h-11 w-full shrink-0 flex-col gap-0.5 rounded-md border px-2 py-1 text-left text-xs ${r.current
       ? "border-sky-400/60 bg-sky-500/10"
       : "border-white/10 bg-white/5"} ${r.block === null
       ? "hover:bg-white/10"
@@ -89,7 +85,9 @@ function renderRow(
             class="shrink-0 ${r.costDiff > 0
               ? "text-red-300"
               : "text-green-300"}"
-            >${translateText("ww1936.design.cost_diff", { n: diff })}</span
+            >${translateText("ww1936.design.module_cost_diff", {
+              value: diff,
+            })}</span
           >`}
     </span>
     ${r.block === null

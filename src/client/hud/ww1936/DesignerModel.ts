@@ -70,7 +70,7 @@ export type StatSign = -1 | 0 | 1;
 
 /** A changed number as a chip: "+10" with its stat (green) or "-3" (red). */
 export interface StatChip {
-  /** ww1936.design.stat_<id>. */
+  /** ww1936.design.stat.<id>. */
   id: string;
   text: string;
   sign: StatSign;
@@ -155,9 +155,9 @@ interface Numbers {
 }
 
 const TANK_ROW_IDS = [
-  "soft",
-  "hard",
-  "pierce",
+  "soft_attack",
+  "hard_attack",
+  "piercing",
   "breakthrough",
   "defense",
   "armor",
@@ -172,7 +172,7 @@ const SHIP_ROW_IDS = [
   "aa",
   "armor",
   "speed",
-  "detect",
+  "detection",
   "range",
 ] as const;
 const SHIP_DIVS = [1000, 1, 1, 1, 1, 100, 1, 1] as const;
@@ -182,9 +182,9 @@ const PLANE_ROW_IDS = [
   "agility",
   "speed",
   "range",
-  "ground",
+  "ground_attack",
   "strategic",
-  "naval",
+  "naval_attack",
 ] as const;
 const PLANE_DIVS = [100, 100, 1, 1, 1, 100, 100, 100] as const;
 
@@ -388,9 +388,9 @@ export class DesignerModel {
     return null;
   }
 
-  /** ww1936.design.xp_<kind>: the experience the cost is paid in. */
+  /** The experience kind's name (ww1936.design.tab_<kind>) for xp_cost. */
   xpKey(): string {
-    return `ww1936.design.xp_${this.draft?.kind ?? this.kind}`;
+    return `ww1936.design.tab_${this.draft?.kind ?? this.kind}`;
   }
 
   /** The base chips of the kind (locked ones dimmed with their tech). */
@@ -623,14 +623,13 @@ export class DesignerModel {
     return translateText(roleKeyOf(def, this.ctx(def)));
   }
 
-  /** Licence requests waiting for my answer. */
-  pendingLicences(): number {
+  /** The country of the first licence request waiting for my answer, or null. */
+  pendingLicenceFrom(): number | null {
     const me = this.me();
-    return (
-      this.view
-        .wwDepth?.()
-        ?.marketData.pendingLicences.filter((p) => p.to === me).length ?? 0
-    );
+    const p = this.view
+      .wwDepth?.()
+      ?.marketData.pendingLicences.find((x) => x.to === me);
+    return p === undefined ? null : p.from;
   }
 
   // ---- internals ----

@@ -28,8 +28,10 @@ describe("DesignerModel", () => {
     expect(m.stats()).toEqual(designStats(m.draft!, CTX));
     const s = designStats(m.draft!, CTX) as { soft: number; pierce: number };
     const rows = m.statRows();
-    expect(rows.find((r) => r.id === "soft")?.text).toBe(String(s.soft / 100));
-    expect(rows.find((r) => r.id === "pierce")?.text).toBe(
+    expect(rows.find((r) => r.id === "soft_attack")?.text).toBe(
+      String(s.soft / 100),
+    );
+    expect(rows.find((r) => r.id === "piercing")?.text).toBe(
       String(s.pierce / 100),
     );
     expect(rows).toHaveLength(8);
@@ -53,8 +55,8 @@ describe("DesignerModel", () => {
     m.recommend();
     // The compare target is the base fitting: the recommended fit hits harder.
     const rows = m.statRows();
-    expect(rows.find((r) => r.id === "pierce")?.sign).toBe(1);
-    expect(rows.find((r) => r.id === "pierce")?.diffText).toMatch(/^\+/);
+    expect(rows.find((r) => r.id === "piercing")?.sign).toBe(1);
+    expect(rows.find((r) => r.id === "piercing")?.diffText).toMatch(/^\+/);
     // A newer saved design of the same role becomes the target.
     const better: DesignDef = { ...m.draft!, name: "x", armorLevel: 10 };
     const m2 = new DesignerModel(designerGame({ designs: [saved(better, 1)] }));
