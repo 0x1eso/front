@@ -58,7 +58,6 @@ export class MapRenderer {
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
   /** World War 1936 P4 inputs, re-applied after a context restore. */
   private storedWwNavy: WwNavyView | null = null;
-  private storedWwDepth: WwDepthView | null = null;
   private storedWwAir: WwAirView | null = null;
   private storedSeaAirSelection: SeaAirSelection | null = null;
   private storedSeaAirGlow: SeaAirGlowSource | null = null;
@@ -470,11 +469,6 @@ export class MapRenderer {
    */
   setWwEndgame(view: WwEndgameView): void {
     this.storedWwEndgame = view;
-  }
-
-  /** World War 1936 P6 (plan Task 1 Step 17): the depth systems' view. */
-  setWwDepth(view: WwDepthView): void {
-    this.storedWwDepth = view;
   }
 
   /** Set up map-layer passes from the loaded layer data. */
