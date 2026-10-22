@@ -12,7 +12,10 @@ import {
   AI_TD_DAY,
   aiDesignsDay,
 } from "@openfront/engine/ww1936/depth/AiDesigns";
-import { sameDesign } from "@openfront/engine/ww1936/depth/Designs";
+import {
+  grantDesign,
+  sameDesign,
+} from "@openfront/engine/ww1936/depth/Designs";
 import type {
   DesignSlot,
   WwDepth,
@@ -20,6 +23,7 @@ import type {
 import { issueNavalLineOrder } from "@openfront/engine/ww1936/economy/NavalLines";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { clearStartSetup, HUMAN, step, stepTo, wwRunner } from "./util";
@@ -222,5 +226,20 @@ describe("World War 1936 P6: the AI's designs", () => {
     expect(d.country(GBR)!.des.ship.filter((x) => x !== null).length).toBe(
       before,
     );
+  });
+
+  it("design_grant hands out a preset for free (spec §18.3)", async () => {
+    const { runner, ww, d } = await game([PRESET]);
+    const GBR = DEEP.tag.GBR;
+    const xp = d.xpOf(GBR, 0);
+    const ctx = makeCtx(ww.politics, GBR, GBR, GBR, runner.game.ticks());
+    grantDesign(ctx, { kind: "design_grant", preset: "preset_medium_1" }, GBR);
+    grantDesign(ctx, { kind: "design_grant", preset: "no_such_preset" }, GBR);
+    const list = tanks(d, GBR);
+    expect(list).toHaveLength(1);
+    expect(list[0].def.name).toBe("@preset_medium_1");
+    expect(list[0].def.modules).toEqual(PRESET.def.modules);
+    expect(list[0].origin).toBe("own");
+    expect(d.xpOf(GBR, 0)).toBe(xp);
   });
 });

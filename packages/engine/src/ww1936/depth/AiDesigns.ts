@@ -52,7 +52,7 @@ import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { aiPersonality } from "../economy/AiEconomy";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { DESIGN_DOMAIN, sameDesign, saveDesign } from "./Designs";
+import { DESIGN_DOMAIN, presetName, sameDesign, saveDesign } from "./Designs";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
@@ -186,10 +186,10 @@ function tankFit(
   );
   const raw: DesignDef =
     p !== null
-      ? { ...p.def, name: `@${p.id}` }
+      ? { ...p.def, name: presetName(p.id) }
       : {
           ...recommendedTank(base, ce.researched, role),
-          name: `@rec_${roleTag(role)}${base}`,
+          name: presetName(`rec_${roleTag(role)}${base}`),
         };
   return withoutLocked(raw, ce.researched, d.country(id)?.proj.done ?? 0);
 }
@@ -446,7 +446,7 @@ function shipFit(
   const projects = d.country(id)?.proj.done ?? 0;
   if (p !== null) {
     return withoutLocked(
-      { ...p.def, name: `@${p.id}` },
+      { ...p.def, name: presetName(p.id) },
       ce.researched,
       projects,
     );
@@ -469,7 +469,7 @@ function shipFit(
     put("special", "snorkel");
   }
   return withoutLocked(
-    { ...def, modules: slots, name: `@rec_${base}` },
+    { ...def, modules: slots, name: presetName(`rec_${base}`) },
     ce.researched,
     projects,
   );

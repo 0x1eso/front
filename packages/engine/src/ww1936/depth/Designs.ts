@@ -12,6 +12,7 @@ import {
   PlaneStats,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
+  DESIGN_NAME_MAX,
   DESIGN_SLOTS,
   DesignDef,
   DesignKind,
@@ -35,7 +36,10 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { GROUND_STATIC_SLOTS } from "@openfront/engine-api/ww1936/LandTypes";
-import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  SHIP_CLASSES,
+  SHIP_GENS,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type {
   WwStatKey,
@@ -46,8 +50,10 @@ import {
   designBlock,
   designRetentionBp,
   designXpCost,
+  licenceCostPct,
   PLANE_BASE_DEFS,
   shipBase,
+  shipYear,
   TANK_BASE_DEFS,
   tankRole,
 } from "@openfront/engine-lib/ww1936/DesignRules";
@@ -56,6 +62,10 @@ import {
   unitCostMilli,
 } from "@openfront/engine-lib/ww1936/Equipment";
 import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
+import {
+  lineCostMilli,
+  NavalLineLike,
+} from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { PLANE_BASE } from "@openfront/engine-lib/ww1936/PlaneStats";
 import type { EffectCtx } from "../politics/Dispatch";
 import { licenceCostPctFor } from "./Licences";
@@ -184,7 +194,7 @@ function saveOrder(
   }
   const got = saveDesign(d, id, def, slot, "own", 0, 0, day);
   if (typeof got !== "number") return got;
-  d.message(id, "events_display.ww1936_design_saved", { name: def.name });
+  d.message(id, "ww1936_design_saved", { name: def.name });
   return null;
 }
 
@@ -242,9 +252,8 @@ export function designHeld(
       }
     }
     if (ce.navalLines.some((l) => l.design === slot)) return true;
-    return m.licences.some(
-      (l) => l.from === id && l.ship > 0 && l.slot === slot,
-    );
+    // Lane M's licence record names the licensor's ship slot in `ship`.
+    return m.licences.some((l) => l.from === id && l.ship === slot);
   }
   const type = kind === "tank" ? "tank_design" : "plane_design";
   const key = designEquipKey(type, slot);
@@ -371,7 +380,8 @@ export function sameDesign(a: DesignDef, b: DesignDef): boolean {
 /**
  * A unit's industry cost, milli, of an EQUIP_KEYS index: a design slot's
  * designStats cost (its MIO cost is inside, plan decision 11), a static
- * key P1's table × its family's MIO cost; a licence adds its surcharge.
+ * key P1's table × its family's MIO cost; a licence adds its surcharge
+ * (lane M's licenceCostPctFor, pre-flight A8: 0 without a licence).
  */
 export function equipCostMilli(d: WwDepth, id: number, key: number): number {
   const [type, gen] = EQUIP_KEYS[key];
@@ -394,8 +404,66 @@ export function equipCostMilli(d: WwDepth, id: number, key: number): number {
           ] ?? 0);
     if (pct !== 0) cost = Math.floor((cost * Math.max(10, 100 + pct)) / 100);
   }
+  // Lane M (pre-flight A8): the licence surcharge, percent.
   const lic = licenceCostPctFor(d, id, key);
   return lic === 0 ? cost : Math.floor((cost * (100 + lic)) / 100);
+}
+
+/**
+ * Spec §5.3.4, §6, §7.1 — a naval line's unit cost, naval industry milli:
+ * P4's (lineCostMilli) × (100 + the line's ship design's module cost
+ * percent) / 100 × the naval MIO cost, and for a licensed ship design the
+ * licence surcharge (shipLicenceCostPct). Merge glue: P4's
+ * NavalLines.stepNavalLines still reads lineCostMilli(l); it should read
+ * this (a ship design costs its modules, a licence its surcharge).
+ */
+export function navalLineCostMilli(
+  d: WwDepth,
+  id: number,
+  line: NavalLineLike & { design: number },
+): number {
+  let cost = lineCostMilli(line);
+  const mods =
+    line.cls < SHIP_CLASSES.length ? shipDesignOf(d, id, line.design) : null;
+  if (mods !== null && mods.costPct !== 0) {
+    cost = Math.floor((cost * Math.max(10, 100 + mods.costPct)) / 100);
+  }
+  const mio = statsOf(d, id)["mioCostPct_naval" as WwStatKey] ?? 0;
+  if (mio !== 0) cost = Math.floor((cost * Math.max(10, 100 + mio)) / 100);
+  const lic =
+    line.cls < SHIP_CLASSES.length ? shipLicenceCostPct(d, id, line.design) : 0;
+  return lic === 0 ? cost : Math.floor((cost * (100 + lic)) / 100);
+}
+
+/**
+ * Lane M's licence rule (licenceCostPct of the item's year over the
+ * newest year of the licensee's own line, 1936 at least) for a ship
+ * design, which has no EQUIP_KEYS key: a "licensed" slot only; its hull
+ * year over the newest generation of the class the licensee researched
+ * or designed itself.
+ */
+export function shipLicenceCostPct(
+  d: WwDepth,
+  id: number,
+  design: number,
+): number {
+  const s = design > 0 ? d.designSlot(id, "ship", design) : null;
+  if (s === null || s.origin !== "licensed") return 0;
+  const sb = shipBase(s.def.base);
+  if (sb === null) return 0;
+  const done = d.ww.economy.country(id)?.researched;
+  let own = 1936;
+  for (let g = 1; g <= SHIP_GENS[sb.cls]; g++) {
+    if (g === 1 || done?.has(`${sb.cls}_${g}` as WwTechId) === true) {
+      own = Math.max(own, shipYear(sb.cls, g));
+    }
+  }
+  d.country(id)?.des.ship.forEach((x) => {
+    const b = x !== null && x.origin === "own" ? shipBase(x.def.base) : null;
+    if (b !== null && b.cls === sb.cls)
+      own = Math.max(own, shipYear(b.cls, b.gen));
+  });
+  return licenceCostPct(shipYear(sb.cls, sb.gen) - own);
 }
 
 function statsOf(d: WwDepth, id: number): Partial<Record<WwStatKey, number>> {
@@ -657,6 +725,11 @@ export function navalLineDesignBlock(
   return null;
 }
 
+/** "@" + a preset id, within the name's 24 characters (DesignNameSchema: the snapshot checks it). */
+export function presetName(id: string): string {
+  return `@${id}`.slice(0, DESIGN_NAME_MAX);
+}
+
 /**
  * The design_grant effect (spec §18.3): K5's AI_DESIGN_PRESETS[preset]
  * into the actor's first free slot, free of experience, origin "own",
@@ -672,7 +745,7 @@ export function grantDesign(
   if (d === undefined || d.country(actor) === null) return;
   const p = ctx.pol.content.aiDesignPresets.find((x) => x.id === e.preset);
   if (p === undefined) return;
-  const def = { ...p.def, name: `@${p.id}` } as DesignDef;
+  const def = { ...p.def, name: presetName(p.id) } as DesignDef;
   const bad = designBlock(def, {
     techs: ALL_TECHS,
     projects: -1,

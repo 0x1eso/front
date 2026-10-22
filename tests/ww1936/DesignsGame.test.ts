@@ -17,25 +17,32 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   convertCost,
   designXpCost,
+  licenceCostPct,
   reliabilityLossBp,
 } from "@openfront/engine-lib/ww1936/DesignRules";
+import { lineUnitCost } from "@openfront/engine-lib/ww1936/ShipStats";
 import { copyDesignTo } from "@openfront/engine/ww1936/depth/DesignCopy";
 import {
   conversionCostMilli,
   equipCostMilli,
   equipResources,
   lineRetentionBp,
+  navalLineCostMilli,
   navalLineDesignBlock,
   saveDesign,
+  shipLicenceCostPct,
 } from "@openfront/engine/ww1936/depth/Designs";
+import { designCtxOf } from "@openfront/engine/ww1936/depth/WwDepth";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import { designLossMilli } from "@openfront/engine/ww1936/land/Battles";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import {
   clearStartSetup,
+  grantDoctrineStats,
   HUMAN,
   placeArmy,
   step,
@@ -142,9 +149,18 @@ describe("World War 1936 P6: designs in the game", () => {
     const { runner, ww, d } = await game();
     prepare(ww, GBR, TANK_TECHS);
     const xp0 = d.xpOf(GBR, 0);
+    const shown = vi.spyOn(runner.game, "displayMessage");
     expect(
       d.issue(GBR, { kind: "design_save", def: HEAVY }, runner.game.ticks()),
     ).toBeNull();
+    // The notice's final key (P3 message adds "events_display.") and its arg.
+    const notes = shown.mock.calls.filter((c) =>
+      String(c[0]).includes("ww1936_design_saved"),
+    );
+    expect(notes.map((c) => [c[0], c[4]])).toEqual([
+      ["events_display.ww1936_design_saved", { name: "Heavy" }],
+    ]);
+    shown.mockRestore();
     expect(d.xpOf(GBR, 0)).toBe(xp0 - designXpCost(null, HEAVY));
     const slot = d.designSlot(GBR, "tank", 1)!;
     expect(slot.origin).toBe("own");
@@ -395,5 +411,34 @@ describe("World War 1936 P6: designs in the game", () => {
     const lic = copyDesignTo(d, DEU, 1, "ship", GBR, "licensed")!;
     expect(navalLineDesignBlock(d, GBR, BB, 2, lic)).toBe("treaty_limit");
     expect(navalLineDesignBlock(d, DEU, BB, 2, 1)).toBeNull();
+    // Spec §5.3.4 / §7.1: a naval line pays its design's modules (+8%) and
+    // a licence's surcharge (10% at no gap over Britain's own bb_2).
+    const hull = lineUnitCost("bb", 2) * 1000;
+    const line = (design: number) => ({ cls: BB, gen: 2, progress: 0, design });
+    expect(navalLineCostMilli(d, GBR, line(0))).toBe(hull);
+    expect(navalLineCostMilli(d, GBR, line(1))).toBe(
+      Math.floor((hull * 108) / 100),
+    );
+    expect(shipLicenceCostPct(d, GBR, lic)).toBe(licenceCostPct(0));
+    expect(navalLineCostMilli(d, GBR, line(lic))).toBe(
+      Math.floor(
+        (Math.floor((hull * 110) / 100) * (100 + licenceCostPct(0))) / 100,
+      ),
+    );
+    expect(shipLicenceCostPct(d, GBR, 1)).toBe(0);
+  });
+
+  it("a jet airframe draws on the light aircraft MIO (spec §6.1)", async () => {
+    const { ww, d } = await game();
+    grantDoctrineStats(ww, GBR, {
+      mioCostPct_air_light: -10,
+      mioCostPct_air_heavy: 5,
+    });
+    const ctx = (base: string) =>
+      designCtxOf(d, GBR, { kind: "plane", base }).costPct;
+    expect(ctx("jet_1")).toBe(-10);
+    expect(ctx("small_2")).toBe(-10);
+    expect(ctx("medium_1")).toBe(5);
+    expect(ctx("large_3")).toBe(5);
   });
 });
