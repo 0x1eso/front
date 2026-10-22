@@ -15,7 +15,7 @@ import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { fogOfNavy } from "../../hud/ww1936/FogModel";
+import { fogOfLand, fogOfNavy } from "../../hud/ww1936/FogModel";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
@@ -2100,6 +2100,8 @@ export class GPURenderer {
       world: new LandFrontWorld(view, war),
     };
     this.landClock.reset(war?.ticks() ?? 0, performance.now());
+    // P6 (final review C I1): the name plates' troop rows through the fog.
+    this.namePass.setTroopFog(() => fogOfLand(view));
     const atlas = new LandAtlas(this.gl);
     this.wwPasses = {
       atlas,
@@ -2119,6 +2121,7 @@ export class GPURenderer {
     }
     this.wwPasses = null;
     this.wwLand = null;
+    this.namePass.setTroopFog(null);
     this.paradrops.reset();
   }
 

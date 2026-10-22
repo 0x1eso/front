@@ -52,6 +52,7 @@ import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { renderDuration, showToast, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import { fogModelOf } from "../ww1936/FogModel";
 import {
   declareButton,
   justifyOptions,
@@ -745,28 +746,43 @@ export class PlayerPanel extends LitElement implements Controller {
   }
 
   private renderResources(other: PlayerView) {
+    // World War 1936 (spec §8.9, final review C I2): the mode has no gold,
+    // and another country's men are an army number — through the fog's
+    // army band, as on the hover card ("?" or a range; exact for my side).
+    const ww = this.g.worldWarScenario() !== null;
+    const men = other.troops() || 0;
+    const troops = ww
+      ? (fogModelOf(this.g).troopsLabel(other.smallID(), men) ??
+        renderTroops(men))
+      : renderTroops(men);
     return html`
       <div class="mb-1 flex justify-between gap-2">
-        <div
-          class="inline-flex items-center gap-1.5 rounded-lg bg-white/4 px-3 py-1.5 shrink-0
+        ${ww
+          ? ""
+          : html`<div
+              class="inline-flex items-center gap-1.5 rounded-lg bg-white/4 px-3 py-1.5 shrink-0
                     text-white w-35"
-        >
-          <span class="mr-0.5">💰</span>
-          <span translate="no" class="tabular-nums w-[5ch] font-semibold">
-            ${renderNumber(other.gold() || 0)}
-          </span>
-          <span class="text-zinc-200 whitespace-nowrap">
-            ${translateText("player_panel.gold")}</span
-          >
-        </div>
+            >
+              <span class="mr-0.5">💰</span>
+              <span translate="no" class="tabular-nums w-[5ch] font-semibold">
+                ${renderNumber(other.gold() || 0)}
+              </span>
+              <span class="text-zinc-200 whitespace-nowrap">
+                ${translateText("player_panel.gold")}</span
+              >
+            </div>`}
 
         <div
+          data-player-troops
           class="inline-flex items-center gap-1.5 rounded-lg bg-white/4 px-3 py-1.5
-                    text-white w-35 shrink-0"
+                    text-white ${ww ? "min-w-35" : "w-35"} shrink-0"
         >
           <span class="mr-0.5">🛡️</span>
-          <span translate="no" class="tabular-nums w-[5ch] font-semibold">
-            ${renderTroops(other.troops() || 0)}
+          <span
+            translate="no"
+            class="tabular-nums ${ww ? "" : "w-[5ch]"} font-semibold"
+          >
+            ${troops}
           </span>
           <span class="text-zinc-200 whitespace-nowrap">
             ${translateText("player_panel.troops")}</span

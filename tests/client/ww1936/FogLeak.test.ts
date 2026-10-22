@@ -1,10 +1,11 @@
 // World War 1936 P6 (spec §8.9, §25.3): the fog must not leak. A hidden
 // enemy's numbers never reach a card's text, a tooltip or a token's data,
 // and no card reads the enemy's counts without the fog model.
+import { renderTroops } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
 import path from "path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/client/Utils")>()),
@@ -20,6 +21,10 @@ import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { render } from "lit";
 import "../../../src/client/hud/layers/PlayerInfoOverlay";
 import type { PlayerInfoOverlay } from "../../../src/client/hud/layers/PlayerInfoOverlay";
+import "../../../src/client/hud/layers/PlayerPanel";
+import type { PlayerPanel } from "../../../src/client/hud/layers/PlayerPanel";
+import "../../../src/client/hud/layers/PlayerStats";
+import type { PlayerStats } from "../../../src/client/hud/layers/PlayerStats";
 import { occRegionLine } from "../../../src/client/hud/ww1936/EndgameModel";
 import { fogModelOf } from "../../../src/client/hud/ww1936/FogModel";
 import { attackPreview } from "../../../src/client/hud/ww1936/LandModel";
@@ -33,6 +38,10 @@ import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
 import "../../../src/client/hud/ww1936/WwBattleCard";
 import type { WwBattleCard } from "../../../src/client/hud/ww1936/WwBattleCard";
 import { takeoverCardModel } from "../../../src/client/hud/ww1936/WwTakeoverCard";
+import { preloadAtlasData } from "../../../src/client/render/gl/passes/name-pass/AtlasData";
+import { NamePass } from "../../../src/client/render/gl/passes/name-pass/index";
+import { LINES_PER_PLAYER } from "../../../src/client/render/gl/passes/name-pass/Types";
+import { createRenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import {
   hitToken,
   layoutTokens,
@@ -83,9 +92,118 @@ async function battleCard(level: number) {
   return { g, el };
 }
 
+/** A WebGL2 stand-in: enums read 0, every call returns a truthy object. */
+function fakeGL(): WebGL2RenderingContext {
+  return new Proxy(
+    {},
+    {
+      get(_t, prop) {
+        if (typeof prop !== "string") return undefined;
+        if (prop === "getParameter") return () => 256;
+        if (/^[A-Z0-9_]+$/.test(prop)) return 0;
+        return () => ({});
+      },
+    },
+  ) as WebGL2RenderingContext;
+}
+
+/**
+ * Final review C (I1): the map's name plates for Germany (me) and Poland,
+ * each with `men` troops, through the name pass's real updateNames. The
+ * troop rows it uploads, by country tag.
+ */
+function namePlateRows(
+  fog: Parameters<NamePass["setTroopFog"]>[0] | "unset",
+  men: number,
+): Record<string, string> {
+  const tags = ["DEU", "POL"] as const;
+  const players = tags.map((tag) => ({
+    smallID: ID(tag),
+    id: `P${ID(tag)}`,
+    name: tag,
+    displayName: tag,
+    clanTag: null,
+    clientID: null,
+    playerType: 0,
+    team: null,
+    isLobbyCreator: false,
+  }));
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = (() => ({})) as never;
+  const pass = new NamePass(
+    fakeGL(),
+    { mapWidth: 100, mapHeight: 100, unitTypes: [], players } as never,
+    new Float32Array(64 * 4),
+    createRenderSettings(),
+    { allianceExtensionPromptOffset: () => 0 } as never,
+  );
+  HTMLCanvasElement.prototype.getContext = getContext;
+  if (fog !== "unset") pass.setTroopFog(fog);
+  const upload = vi.spyOn(
+    NamePass.prototype as unknown as {
+      uploadStringRow(row: number, text: string): number;
+    },
+    "uploadStringRow",
+  );
+  const names = new Map(
+    players.map((p) => [p.id, { playerID: p.id, x: 10, y: 10, size: 4 }]),
+  );
+  const states = new Map(
+    players.map((p) => [
+      p.smallID,
+      { smallID: p.smallID, isAlive: true, troops: men, outgoingEmojis: [] },
+    ]),
+  );
+  pass.updateNames(names, states as never, true);
+  const rows: Record<string, string> = {};
+  // Slot i's first row is its name, the next its troops.
+  for (const [row, text] of upload.mock.calls) {
+    if (row % LINES_PER_PLAYER === 1) {
+      rows[tags[Math.floor(row / LINES_PER_PLAYER)]] = text;
+    }
+  }
+  upload.mockRestore();
+  return rows;
+}
+
 describe("fog leaks (spec §8.9)", () => {
+  beforeAll(async () => {
+    vi.stubGlobal("fetch", async () => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        JSON.parse(
+          fs.readFileSync(
+            path.join(__dirname, "../../../resources/atlases/msdf-atlas.json"),
+            "utf8",
+          ),
+        ),
+    }));
+    await preloadAtlasData();
+    vi.unstubAllGlobals();
+  });
+
   afterEach(() => {
     document.body.innerHTML = "";
+  });
+
+  it("final review C (I1): the name plates show another country's men through the fog", () => {
+    const MEN = 4_870_000;
+    const exact = renderTroops(MEN);
+    // Other modes (no fog): every plate shows the exact troops.
+    expect(namePlateRows("unset", MEN)).toEqual({ DEU: exact, POL: exact });
+    // The mode, as the renderer wires it: Poland's men at Germany's army band.
+    const g = fogGame({ level: 0 });
+    const f = fogModelOf(g.game as never);
+    const at0 = namePlateRows(() => f, MEN);
+    expect(at0.DEU).toBe(exact);
+    expect(at0.POL).toBe("?");
+    g.setLevels([0, 20, 0, 0]);
+    const rough = namePlateRows(() => f, MEN);
+    expect(rough.POL).toContain("~");
+    expect(rough.POL).not.toContain(exact);
+    g.setLevels([0, 80, 0, 0]);
+    expect(namePlateRows(() => f, MEN).POL).toBe(exact);
   });
 
   it("fog hides exact enemy counts in every card", async () => {
@@ -130,6 +248,50 @@ describe("fog leaks (spec §8.9)", () => {
       all: false,
       atomic: "hidden",
     });
+  });
+
+  it("final review C (I2): the leaderboard and the player panel keep another country's men fogged", () => {
+    const g = fogGame({ level: 0 });
+    // The leaderboard: the troop columns (maxtroops is a default) are gone
+    // in the mode, and stay in the user's choice for other games.
+    const columns = (game: unknown) => {
+      const t = document.createElement("player-stats") as PlayerStats;
+      t.game = game as never;
+      return (t as unknown as { visibleColumns(): readonly { id: string }[] })
+        .visibleColumns()
+        .map((c) => c.id);
+    };
+    const ww = columns(g.game);
+    expect(ww).not.toContain("maxtroops");
+    expect(ww).not.toContain("troops");
+    expect(ww).toContain("tiles");
+    expect(columns({ ...g.game, worldWarScenario: () => null })).toContain(
+      "maxtroops",
+    );
+    // The player panel's chips: no gold in the mode, Poland's men at my
+    // army band, mine exact.
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g.game as never;
+    const chips = (tag: "DEU" | "POL") => {
+      const box = document.createElement("div");
+      render(
+        (
+          panel as unknown as { renderResources(p: unknown): unknown }
+        ).renderResources(g.game.playerBySmallID(ID(tag))) as never,
+        box,
+      );
+      return box;
+    };
+    const exact = renderTroops(480_000);
+    const pol = chips("POL");
+    expect(pol.textContent).not.toContain(exact);
+    expect(pol.querySelector("[data-player-troops]")!.textContent).toContain(
+      "?",
+    );
+    expect(pol.textContent).not.toContain("[player_panel.gold]");
+    expect(chips("DEU").textContent).toContain(exact);
+    g.setLevels([0, 80, 0, 0]);
+    expect(chips("POL").textContent).toContain(exact);
   });
 
   it("gives a hidden army no token data at all", () => {

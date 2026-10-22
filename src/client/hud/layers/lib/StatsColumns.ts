@@ -75,6 +75,12 @@ export interface ColumnDef {
   readonly strategicOnly?: true;
   /** Only exists in world-congress games (StatsTable.congress). */
   readonly congressOnly?: true;
+  /**
+   * World War 1936 (spec §8.9, final review C I2): never shown in the
+   * mode — the number is another country's army size, which the fog hides
+   * (and sorting by it would rank the hidden armies).
+   */
+  readonly worldWarHidden?: true;
   /** Header is a sort button. True exactly when `value` is set. */
   readonly isOrderable: boolean;
   /** Number behind the column — sorting and team totals. */
@@ -297,6 +303,7 @@ export const COLUMN_DEFS: readonly ColumnDef[] = [
     id: "troops",
     labelKey: "leaderboard.troops",
     headerVisual: troopHeaderVisual,
+    worldWarHidden: true,
     value: (player) => player.troops(),
     cell: (row) => renderTroops(row.value),
   }),
@@ -307,6 +314,7 @@ export const COLUMN_DEFS: readonly ColumnDef[] = [
       ...troopHeaderVisual,
       superscript: { src: upperLimitIcon, white: true },
     },
+    worldWarHidden: true,
     value: (player, game) => game.config().maxTroops(player),
     cell: (row) => renderTroops(row.value),
   }),

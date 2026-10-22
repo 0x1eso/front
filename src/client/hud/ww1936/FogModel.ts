@@ -18,6 +18,7 @@ import {
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { ARMY_BATTLE } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { renderTroops } from "@openfront/engine-lib/Format";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   fogCountLabel,
@@ -169,6 +170,29 @@ function bucket(n: number): number {
   return b;
 }
 
+/** What `wwOutOfGame` reads (the game view, or a fake in tests). */
+export type OutOfGameView = Pick<GameView, "myPlayer"> &
+  Partial<Pick<GameView, "myClientID" | "wwEndgame">>;
+
+/**
+ * The P0 spectate screen's question in World War 1936 P5 (spec §11): is
+ * my client out of the game — spectating (no candidate), or its country
+ * gone with no exile, no takeover card and no new country? An exile and a
+ * human picking a country play on. (P5 lane U3's rule; it lives here so
+ * the fog can ask it without the takeover card's element.)
+ */
+export function wwOutOfGame(game: OutOfGameView): boolean {
+  const client = game.myClientID?.();
+  const eg = game.wwEndgame?.() ?? null;
+  if (!client || eg === null) return false;
+  if (eg.controlledBy(client) === 0) return true;
+  if (eg.takeoverFor(client) !== null) return false;
+  const me = game.myPlayer();
+  return (
+    me !== null && me.hasSpawned() && !me.isAlive() && !eg.isExile(me.smallID())
+  );
+}
+
 const LAND_FOG = new WeakMap<object, FogModel>();
 const NAVY_FOG = new WeakMap<object, FogModel>();
 const AIR_FOG = new WeakMap<object, FogModel>();
@@ -230,12 +254,22 @@ export class FogModel {
       : (this.view.myPlayer?.()?.smallID() ?? 0);
   }
 
-  /** Spectators, the game's end and replays see everything. */
+  /**
+   * Spectators, the game's end and replays see everything. Final review
+   * C (I3): with the endgame view, a client is a spectator only when it is
+   * out of the game (`wwOutOfGame`) — a government in exile holds no land
+   * (the engine's isAlive is tiles > 0) yet still commands forces, and a
+   * human picking a takeover country still plays: both keep the fog.
+   */
   fogOff(): boolean {
     if (this.forcedOff || this.me() === 0) return true;
     // No depth view (the mode's depth systems are off): nothing to hide by.
     if (!this.view.wwDepth?.()) return true;
     if (this.view.gameOver?.() === true) return true;
+    if (this.view.config?.()?.isReplay?.() === true) return true;
+    if ((this.view.wwEndgame?.() ?? null) !== null) {
+      return wwOutOfGame(this.view);
+    }
     return this.view.isSpectator?.() === true;
   }
 
@@ -315,6 +349,9 @@ export class FogModel {
   }
   private dirty = true;
 
+  /** The observer the sightings below belong to. */
+  private seenBy = -1;
+
   private rebuild(): void {
     const view = this.view;
     const land = view.wwLand?.() ?? null;
@@ -322,6 +359,15 @@ export class FogModel {
     const off = this.fogOff();
     const me = this.me();
     const day = this.today();
+    // Final review C (I3 Minor): a takeover (or any observer change) does
+    // not inherit the old country's sightings as ghosts.
+    if (me !== this.seenBy) {
+      this.seenBy = me;
+      this.seen.clear();
+      this.ghostUntil.clear();
+      this.ghostData.clear();
+      this.ghostList = [];
+    }
 
     // The lowest band over the countries at war with me, by domain.
     this.enemyMin[0] = this.enemyMin[1] = this.enemyMin[2] = 3;
@@ -665,6 +711,22 @@ export class FogModel {
       owner === 0 ? this.lowestEnemyBand(ID_NAVY) : this.bandOf(owner, ID_ARMY);
     const v = fogPreviewValue(count, band);
     return band <= 0 ? bucket(v) : v;
+  }
+
+  /**
+   * Final review C (I1, I2): another country's men (its `troops`, the men
+   * in its field divisions) as a screen shows them — null when the
+   * observer sees them exactly (its own side, the fog off, an exact army
+   * band), else "?" or a range of `renderTroops` parts ("240K~720K").
+   * The hover card's troop bar, the map's name plates and the player
+   * panel share it.
+   */
+  troopsLabel(owner: number, men: number): string | null {
+    if (this.bandOf(owner, ID_ARMY) >= 3) return null;
+    return this.countLabel(owner, men, ID_ARMY)
+      .split("~")
+      .map((x) => (x === "?" ? x : renderTroops(Number(x))))
+      .join("~");
   }
 
   /**

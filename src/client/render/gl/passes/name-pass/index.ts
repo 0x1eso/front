@@ -17,6 +17,7 @@
  */
 
 import type { Config } from "@openfront/engine-lib/configuration/Config";
+import type { FogModel } from "../../../../hud/ww1936/FogModel";
 import type {
   NameEntry,
   PlayerState,
@@ -116,6 +117,14 @@ export class NamePass {
   /** Slots refreshed per updateNames call: index % UPDATE_SLICES === phase. */
   private static readonly UPDATE_SLICES = 4;
   private slicePhase = 0;
+
+  /**
+   * World War 1936 P6 (spec §8.9, final review C I1): the fog the troop
+   * row asks for another country's men — "?" or a range below the exact
+   * army band. Null (other modes): every row shows its exact troops.
+   */
+  private troopFog: (() => Pick<FogModel, "troopsLabel"> | undefined) | null =
+    null;
 
   // Hovered player's small ID (0 = no highlight, matches TerritoryPass).
   private highlightOwnerID = 0;
@@ -240,6 +249,17 @@ export class NamePass {
   // -------------------------------------------------------------------------
   // Late player registration (bots arrive on tick 1)
   // -------------------------------------------------------------------------
+
+  /**
+   * World War 1936 P6 (final review C I1): route the troop rows through the
+   * fog (null: exact troops). Every row is written again on the next pass.
+   */
+  setTroopFog(
+    fog: (() => Pick<FogModel, "troopsLabel"> | undefined) | null,
+  ): void {
+    this.troopFog = fog;
+    for (const slot of this.slots.values()) slot.lastTroopBucket = -1;
+  }
 
   /** Register players that arrived after construction (palette already updated). */
   addPlayers(players: PlayerStatic[], paletteData: Float32Array): void {
@@ -483,7 +503,9 @@ export class NamePass {
       if (snap || slot.troopLen === 0 || troopBucket !== slot.lastTroopBucket) {
         slot.lastTroopBucket = troopBucket;
         const troops = ps?.troops ?? 0;
-        const troopStr = renderTroops(troops);
+        const troopStr =
+          this.troopFog?.()?.troopsLabel(slot.static.smallID, troops) ??
+          renderTroops(troops);
         if (troopStr !== slot.lastTroopStr) {
           slot.troopLen = Math.min(troopStr.length, MAX_CHARS);
           slot.lastTroopStr = troopStr;
