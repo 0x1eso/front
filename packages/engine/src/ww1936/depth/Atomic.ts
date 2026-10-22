@@ -220,7 +220,19 @@ function intercepted(
       counts[g] = take;
       left -= take;
     }
-    air.shootDown(dep.id, counts, victim);
+    // T1b (lane E): then its design planes (shootDown's entries past the
+    // generations), slot order.
+    const dc = dep.dcounts.map(() => 0);
+    for (let s = 0; s < dep.dcounts.length && left > 0; s++) {
+      const take = Math.min(left, dep.dcounts[s]);
+      dc[s] = take;
+      left -= take;
+    }
+    air.shootDown(
+      dep.id,
+      dc.some((c) => c > 0) ? [...counts, ...dc] : counts,
+      victim,
+    );
   }
   d.message(owner, "ww1936_nuke_intercepted", { region });
   if (victim > 0) d.message(victim, "ww1936_nuke_intercepted", { region });

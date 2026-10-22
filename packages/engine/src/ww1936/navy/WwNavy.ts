@@ -6,6 +6,7 @@
 // state and the orchestration.
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import type { AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_PLANE_DESIGN_SLOTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -51,7 +52,11 @@ import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
 import { receiveShip, returnDeckDesigns } from "../depth/DesignCopy";
-import { navalLineCostMilli, shipDesignOf } from "../depth/Designs";
+import {
+  loseDesignPlanes,
+  navalLineCostMilli,
+  shipDesignOf,
+} from "../depth/Designs";
 import { convoysOf, losePlanes } from "../economy/Buildings";
 import { fuelCapOf, noteFleetFuel } from "../economy/Fuel";
 import { dockyardsFree, issueNavalLineOrder } from "../economy/NavalLines";
@@ -85,6 +90,8 @@ import { dailyVoyages, issueSeaTransfer, stepSeaVoyages } from "./SeaTransfer";
 import { spotRegion } from "./Spotting";
 import { supremacyRegion } from "./Supremacy";
 
+/** The carrier class (decks: P6 T1b hash). */
+const CV_CLS = SHIP_CLASSES.indexOf("cv");
 /** P6 (plan decision 9): [index, value] of the non-zero cells. */
 function nonZeroCells(a: Int32Array): [number, number][] {
   const out: [number, number][] = [];
@@ -1108,6 +1115,8 @@ export class WwNavy {
     if (sunk) onShipSunk(this, id, owner, SHIP_CLASSES[t.cls[r]], by, tick);
     const ce = this.econ.country(owner);
     if (ce !== null) this.loseDeck(ce, t.deckOf(r), sunk ? by : -1);
+    // P6 (lane E): the deck's design planes go down with it too.
+    if (ce !== null) this.loseDeckDesigns(owner, r, sunk ? by : -1);
     const f = this.fleets.get(fleetId);
     if (f !== undefined) {
       f.ships = f.ships.filter((s) => s !== id);
@@ -1143,6 +1152,26 @@ export class WwNavy {
         onPlanesLost(this.ww.air, ce.smallID, by, type, n);
       }
     });
+  }
+
+  /** P6 (lane E): loseDeck for the deck's design planes (deckD), by their design's P4 type. */
+  private loseDeckDesigns(owner: number, r: number, by: number): void {
+    const dd = this.ships.deckDOf(r);
+    let any = false;
+    for (let s = 0; s < dd.length; s++) if (dd[s] > 0) any = true;
+    if (!any) return;
+    const depth = this.ww.depth;
+    loseDesignPlanes(depth, owner, dd);
+    if (by < 0) return;
+    for (let s = 0; s < dd.length; s++) {
+      if (dd[s] <= 0) continue;
+      const ds = depth.designStatsOf(owner, "plane", s + 1) as {
+        type: string;
+      } | null;
+      if (ds !== null) {
+        onPlanesLost(this.ww.air, owner, by, ds.type as AirType, dd[s]);
+      }
+    }
   }
 
   /**
@@ -2214,6 +2243,13 @@ export class WwNavy {
       const o = t.owner[r];
       const dv = t.design[r] + t.refitTo[r] * 32 + t.refitLeft[r] * 1024;
       if (dv !== 0) des[o] = (Math.imul(des[o], 31) + t.id[r] + dv) | 0;
+      // P6 T1b (lane E): a deck's design planes, only when it carries some.
+      for (let s = 0; t.cls[r] === CV_CLS && s < WW_PLANE_DESIGN_SLOTS; s++) {
+        const c = t.deckD[r * WW_PLANE_DESIGN_SLOTS + s];
+        if (c !== 0) {
+          des[o] = (Math.imul(des[o], 31) + t.id[r] + (s + 1) * 4096 + c) | 0;
+        }
+      }
       n[o]++;
       hp[o] = (hp[o] + t.hp[r]) | 0;
       org[o] = (org[o] + t.org[r]) | 0;

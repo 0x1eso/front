@@ -12,6 +12,7 @@ import {
   CARRIER_AIR_TYPES,
   WW_MAX_DEPLOYMENTS,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { WW_PLANE_DESIGN_SLOTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -23,10 +24,16 @@ import {
   WW_SPOT_FULL_PM,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
+import {
+  designPlaneP4,
+  planeDesignSlotsOf,
+  returnDesignPlanes,
+} from "../depth/Designs";
 import { drawPlanes, returnPlanes } from "../economy/Buildings";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { fillDecks } from "../navy/Carriers";
-import { Deployment, deploymentSide, WwAir } from "./WwAir";
+import { deckDesignCounts, oldestFirst, planeSources } from "./DesignPlanes";
+import { Deployment, deploymentPlanes, deploymentSide, WwAir } from "./WwAir";
 
 const MISSION_SUP = AIR_MISSIONS.indexOf("air_superiority");
 const MISSION_STRIKE = AIR_MISSIONS.indexOf("naval_strike");
@@ -78,6 +85,45 @@ export function carrierWingDeck(air: WwAir, d: Deployment): number[] | null {
   }
   const deck = navy.ships.deckOf(r);
   return [deck[slot * 3], deck[slot * 3 + 1], deck[slot * 3 + 2]];
+}
+
+/**
+ * P6 (lane E): the design planes a carrier wing flies today, per design
+ * slot (the deck's design planes of its type): null when its carrier does
+ * not fly (carrierWingDeck) or carries none.
+ */
+export function carrierWingDeckD(air: WwAir, d: Deployment): number[] | null {
+  const r = air.navy.ships.rowOf(-d.base);
+  if (r < 0 || carrierWingDeck(air, d) === null) return null;
+  return deckDesignCounts(air.ww.depth, d.owner, r, AIR_TYPES[d.type]);
+}
+
+/** P6 (lane E): a design slot's stock key. */
+const designKey = (slot: number) => equipKey("plane_design", slot);
+
+/** P6 (lane E): moves up to `n` planes of design slot `slot` from the stock onto the deployed ledger. */
+function drawDesignSlot(ce: CountryEconomy, slot: number, n: number): number {
+  const k = designKey(slot);
+  const take = Math.max(0, Math.min(n, ce.stock[k]));
+  ce.stock[k] -= take;
+  ce.planesDeployed[k] += take;
+  return take;
+}
+
+/** The planes of P4 type `type` in `owner`'s stock: its generations and (P6) its designs flying as it. */
+function stockOf(
+  air: WwAir,
+  ce: CountryEconomy,
+  owner: number,
+  type: number,
+): number {
+  const t = AIR_TYPES[type];
+  let n = 0;
+  for (let g = 1; g <= EQUIPMENT_GENS[t]; g++) n += ce.stock[equipKey(t, g)];
+  for (const s of planeDesignSlotsOf(air.ww.depth, owner, t)) {
+    n += ce.stock[designKey(s)];
+  }
+  return n;
 }
 
 /** A group's land-based records, by id. */
@@ -174,6 +220,14 @@ function bestRange(
       ce.stock[equipKey(t, g)] > 0 || group.some((d) => d.counts[g - 1] > 0);
     if (has) best = Math.max(best, air.planeStatsOf(owner, t, g).rangeKm);
   }
+  // P6 (lane E): the design slots flying as the type, in stock or out.
+  const depth = air.ww.depth;
+  for (const s of planeDesignSlotsOf(depth, owner, t)) {
+    const has =
+      ce.stock[designKey(s)] > 0 || group.some((d) => d.dcounts[s - 1] > 0);
+    const km = has ? (designPlaneP4(depth, owner, s, t)?.rangeKm ?? 0) : 0;
+    best = Math.max(best, km);
+  }
   return best;
 }
 
@@ -187,7 +241,7 @@ function recordAt(
   const hit = group.find((d) => d.base === base);
   if (hit !== undefined) return hit;
   // An empty record waiting on base 0 takes the first base it finds.
-  const waiting = group.find((d) => d.base === 0 && sum(d.counts) === 0);
+  const waiting = group.find((d) => d.base === 0 && deploymentPlanes(d) === 0);
   if (waiting !== undefined) {
     air.setDeploymentBase(waiting, base);
     return waiting;
@@ -203,10 +257,24 @@ function recordAt(
   return d;
 }
 
+/** P6 (lane E): a source's range (a generation's P4 range, a design's own). */
+function sourceRange(
+  air: WwAir,
+  owner: number,
+  t: (typeof AIR_TYPES)[number],
+  x: { gen: number; slot: number },
+): number {
+  return x.slot === 0
+    ? air.planeStatsOf(owner, t, x.gen).rangeKm
+    : (designPlaneP4(air.ww.depth, owner, x.slot, t)?.rangeKm ?? 0);
+}
+
 /**
  * Spec §13.2–§13.3: places up to `need` planes of the group from the stock,
  * the newest generation first, each generation into the bases in its range
- * nearest first while they have room (one record a base).
+ * nearest first while they have room (one record a base). P6 (lane E,
+ * spec §5.2.4): the design slots flying as the type join the order by
+ * year (planeSources) and fill `dcounts`, each from its own slot.
  */
 function placeFromStock(
   air: WwAir,
@@ -217,10 +285,11 @@ function placeFromStock(
   need: number,
 ): void {
   const t = AIR_TYPES[proto.type];
-  for (let g = EQUIPMENT_GENS[t]; g >= 1 && need > 0; g--) {
-    const k = equipKey(t, g);
+  for (const x of planeSources(air.ww.depth, proto.owner, t)) {
+    if (need <= 0) break;
+    const k = x.slot === 0 ? equipKey(t, x.gen) : designKey(x.slot);
     if (ce.stock[k] <= 0) continue;
-    const range = air.planeStatsOf(proto.owner, t, g).rangeKm;
+    const range = sourceRange(air, proto.owner, t, x);
     for (const { base } of basesInRange(air, side, proto.sr, range)) {
       if (need <= 0 || ce.stock[k] <= 0) break;
       const room = air.baseCapacity(base) - air.baseUse(base);
@@ -228,11 +297,17 @@ function placeFromStock(
       if (put <= 0) continue;
       const d = recordAt(air, group, proto, base);
       if (d === null) continue;
-      // The newer generations are out of stock or found no room in their
-      // (longer) range, so the newest-first draw takes this generation.
-      const got = drawPlanes(ce, t, put);
-      got.forEach((n, i) => (d.counts[i] += n));
-      need -= sum(got);
+      if (x.slot === 0) {
+        // The newer generations are out of stock or found no room in their
+        // (longer) range, so the newest-first draw takes this generation.
+        const got = drawPlanes(ce, t, put);
+        got.forEach((n, i) => (d.counts[i] += n));
+        need -= sum(got);
+      } else {
+        const got = drawDesignSlot(ce, x.slot, put);
+        d.dcounts[x.slot - 1] += got;
+        need -= got;
+      }
       air.markDeployment(d.id);
     }
   }
@@ -247,21 +322,44 @@ function returnToStock(
 ): void {
   if (group.length === 0 || n <= 0) return;
   const t = AIR_TYPES[group[0].type];
+  const owner = group[0].owner;
+  const depth = air.ww.depth;
   const sc = air.ww.scenario;
   const km = (d: Deployment) => (d.base > 0 ? sc.srKm(d.base, d.sr) : 0);
   const order = [...group].sort(
     (a, b) => km(b) - km(a) || b.base - a.base || a.id - b.id,
   );
-  for (let g = 1; g <= EQUIPMENT_GENS[t] && n > 0; g++) {
+  // P6 (lane E): the design slots at their year (oldest first, as P4's
+  // generations); without design planes out, P4's order.
+  const designs = group.some((d) => d.dcounts.some((c) => c > 0));
+  const src = designs
+    ? planeSources(depth, owner, t).reverse()
+    : [...Array(EQUIPMENT_GENS[t]).keys()].map((i) => ({
+        gen: i + 1,
+        slot: 0,
+      }));
+  for (const x of src) {
+    if (n <= 0) break;
     for (const d of order) {
-      const take = Math.min(n, d.counts[g - 1]);
-      if (take <= 0) continue;
-      const back = new Array<number>(d.counts.length).fill(0);
-      back[g - 1] = take;
-      d.counts[g - 1] -= take;
-      returnPlanes(ce, t, back);
+      if (x.slot === 0) {
+        const g = x.gen;
+        const take = Math.min(n, d.counts[g - 1]);
+        if (take <= 0) continue;
+        const back = new Array<number>(d.counts.length).fill(0);
+        back[g - 1] = take;
+        d.counts[g - 1] -= take;
+        returnPlanes(ce, t, back);
+        n -= take;
+      } else {
+        const take = Math.min(n, d.dcounts[x.slot - 1]);
+        if (take <= 0) continue;
+        const back = new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
+        back[x.slot - 1] = take;
+        d.dcounts[x.slot - 1] -= take;
+        returnDesignPlanes(depth, owner, back);
+        n -= take;
+      }
       air.markDeployment(d.id);
-      n -= take;
       if (n <= 0) break;
     }
   }
@@ -278,7 +376,7 @@ function settleGroup(air: WwAir, group: Deployment[], target: number): void {
       air.markDeployment(d.id);
     }
   }
-  const empty = group.filter((d) => sum(d.counts) === 0);
+  const empty = group.filter((d) => deploymentPlanes(d) === 0);
   const keep = target > 0 && empty.length === group.length ? empty[0] : null;
   for (const d of empty) {
     if (d === keep) {
@@ -312,7 +410,7 @@ function setGroupTarget(
     volunteerFor: 0,
   };
   let now = 0;
-  for (const d of group) now += sum(d.counts);
+  for (const d of group) now += deploymentPlanes(d);
   if (now < target) {
     if (group.length === 0 && recordsUsed(air, owner) < WW_MAX_DEPLOYMENTS) {
       // The record that holds the target while it waits for room.
@@ -354,11 +452,9 @@ export function issueAirOrder(
       const type = AIR_TYPES.indexOf(order.type);
       const mission = AIR_MISSIONS.indexOf(order.mission);
       const group = groupOf(air, smallID, order.sr, type, mission, 0);
-      let have = 0;
-      for (let g = 1; g <= EQUIPMENT_GENS[order.type]; g++) {
-        have += ce.stock[equipKey(order.type, g)];
-      }
-      for (const d of group) have += sum(d.counts);
+      // P6 (lane E): the designs flying as the type count, in stock or out.
+      let have = stockOf(air, ce, smallID, type);
+      for (const d of group) have += deploymentPlanes(d);
       const range = bestRange(air, smallID, ce, type, group);
       const block = airDeployBlock({
         sr: order.sr,
@@ -413,26 +509,27 @@ export function issueAirOrder(
  */
 function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
   const land = air.land;
+  const depth = air.ww.depth;
   const own = air
     .deploymentsOf(owner)
-    .filter((d) => d.base > 0 && sum(d.counts) > 0);
+    .filter((d) => d.base > 0 && deploymentPlanes(d) > 0);
   for (const d of own) {
     const base = d.base;
     const c = land.controller[base] ?? 0;
     const lost = c === 0 || land.sideOf(c) !== deploymentSide(air, d);
+    const all = deploymentPlanes(d);
     const over = lost
-      ? sum(d.counts)
-      : Math.min(sum(d.counts), air.baseUse(base) - air.baseCapacity(base));
+      ? all
+      : Math.min(all, air.baseUse(base) - air.baseCapacity(base));
     if (over <= 0) continue;
-    // The planes leaving: the oldest first (the newest keep the farthest reach).
-    const leaving = new Array<number>(d.counts.length).fill(0);
-    let left = over;
-    for (let g = 1; g <= d.counts.length && left > 0; g++) {
-      const n = Math.min(left, d.counts[g - 1]);
-      leaving[g - 1] = n;
-      d.counts[g - 1] -= n;
-      left -= n;
-    }
+    // The planes leaving: the oldest first (the newest keep the farthest
+    // reach); P6 (lane E): the design slots at their year.
+    const t = AIR_TYPES[d.type];
+    const out = oldestFirst(depth, owner, t, d.counts, d.dcounts, over);
+    const leaving = out.gens;
+    leaving.forEach((n, i) => (d.counts[i] -= n));
+    const leavingD = out.slots;
+    leavingD?.forEach((n, s) => (d.dcounts[s] -= n));
     air.markDeployment(d.id);
     const group = groupOf(air, owner, d.sr, d.type, d.mission, d.volunteerFor);
     const proto: GroupProto = {
@@ -445,12 +542,19 @@ function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
       volunteerFor: d.volunteerFor,
     };
     const side = deploymentSide(air, d);
-    const t = AIR_TYPES[d.type];
     const back = new Array<number>(d.counts.length).fill(0);
-    for (let g = leaving.length; g >= 1; g--) {
-      let n = leaving[g - 1];
+    const backD = new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
+    // Newest first, each source in its own range (P4: generation by generation).
+    const src =
+      leavingD === null
+        ? [...Array(leaving.length).keys()]
+            .reverse()
+            .map((i) => ({ gen: i + 1, slot: 0 }))
+        : planeSources(depth, owner, t);
+    for (const x of src) {
+      let n = x.slot === 0 ? leaving[x.gen - 1] : leavingD![x.slot - 1];
       if (n <= 0) continue;
-      const range = air.planeStatsOf(owner, t, g).rangeKm;
+      const range = sourceRange(air, owner, t, x);
       for (const { base: b } of basesInRange(air, side, d.sr, range)) {
         if (n <= 0) break;
         if (b === base) continue;
@@ -458,13 +562,20 @@ function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
         if (put <= 0) continue;
         const to = recordAt(air, group, proto, b);
         if (to === null) continue;
-        to.counts[g - 1] += put;
+        if (x.slot === 0) to.counts[x.gen - 1] += put;
+        else to.dcounts[x.slot - 1] += put;
         air.markDeployment(to.id);
         n -= put;
       }
-      back[g - 1] = n;
+      if (x.slot === 0) back[x.gen - 1] = n;
+      else backD[x.slot - 1] = n;
     }
+    // A design slot no longer flying as the type: back to the stock.
+    leavingD?.forEach((n, s) => {
+      if (n > 0 && !src.some((x) => x.slot === s + 1)) backD[s] += n;
+    });
     if (sum(back) > 0) returnPlanes(ce, t, back);
+    if (sum(backD) > 0) returnDesignPlanes(depth, owner, backD);
     settleGroup(air, group, d.target);
   }
 }
@@ -479,14 +590,10 @@ function refill(air: WwAir, owner: number, ce: CountryEconomy): void {
     seen.add(key);
     const group = groupOf(air, owner, d.sr, d.type, d.mission, d.volunteerFor);
     let now = 0;
-    for (const x of group) now += sum(x.counts);
+    for (const x of group) now += deploymentPlanes(x);
     if (now >= d.target) continue;
-    const t = AIR_TYPES[d.type];
-    let stock = 0;
-    for (let g = 1; g <= EQUIPMENT_GENS[t]; g++) {
-      stock += ce.stock[equipKey(t, g)];
-    }
-    if (stock === 0) continue;
+    // P6 (lane E): the designs flying as the type refill it too.
+    if (stockOf(air, ce, owner, d.type) === 0) continue;
     const proto: GroupProto = {
       owner,
       sr: d.sr,
@@ -541,6 +648,8 @@ function carrierWings(air: WwAir, owner: number): void {
       type: number;
       mission: number;
       counts: number[];
+      /** P6 (lane E): the deck's design planes of the type, per slot. */
+      dcounts: number[] | null;
     }
   >();
   for (const f of navy.fleetsOf(owner)) {
@@ -554,14 +663,22 @@ function carrierWings(air: WwAir, owner: number): void {
       const deck = t.deckOf(r);
       CARRIER_AIR_TYPES.forEach((ct, slot) => {
         const counts = [deck[slot * 3], deck[slot * 3 + 1], deck[slot * 3 + 2]];
-        if (sum(counts) === 0) return;
+        const dcounts = deckDesignCounts(air.ww.depth, owner, r, ct);
+        if (sum(counts) === 0 && dcounts === null) return;
         let mission = MISSION_SUP;
         if (ct !== "cv_fighter") {
           strike ??= spottedEnemyIn(air, owner, sr);
           mission = strike ? MISSION_STRIKE : MISSION_PATROL;
         }
         const type = AIR_TYPES.indexOf(ct);
-        want.set(`${ship}:${type}`, { ship, sr, type, mission, counts });
+        want.set(`${ship}:${type}`, {
+          ship,
+          sr,
+          type,
+          mission,
+          counts,
+          dcounts,
+        });
       });
     }
   }
@@ -572,14 +689,22 @@ function carrierWings(air: WwAir, owner: number): void {
     if (w === undefined || w.sr !== d.sr) {
       // The deck keeps its planes: the record goes without touching the stock.
       d.counts.fill(0);
+      d.dcounts.fill(0);
       air.removeDeployment(d.id, true);
       continue;
     }
     want.delete(key);
-    if (d.mission !== w.mission || d.counts.some((c, i) => c !== w.counts[i])) {
+    const wd = w.dcounts;
+    if (
+      d.mission !== w.mission ||
+      d.counts.some((c, i) => c !== w.counts[i]) ||
+      d.dcounts.some((c, s) => c !== (wd?.[s] ?? 0))
+    ) {
       d.mission = w.mission;
       d.counts = [...w.counts];
-      d.target = sum(w.counts);
+      if (wd !== null) d.dcounts = [...wd];
+      else d.dcounts.fill(0);
+      d.target = sum(w.counts) + (wd === null ? 0 : sum(wd));
       air.markDeployment(d.id);
     }
   }
@@ -593,11 +718,12 @@ function carrierWings(air: WwAir, owner: number): void {
       type: w.type,
       mission: w.mission,
       counts: w.counts,
-      target: sum(w.counts),
+      target: sum(w.counts) + (w.dcounts === null ? 0 : sum(w.dcounts)),
       base: -w.ship,
       lossRest: 0,
       auto: false,
       volunteerFor: 0,
+      ...(w.dcounts === null ? {} : { dcounts: w.dcounts }),
     });
   }
 }

@@ -9,7 +9,11 @@ import {
   COUNTRIES,
   CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
-import { equipKey, LAW_KINDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEYS,
+  equipKey,
+  LAW_KINDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { CS_DORMANT, CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { MOVE_SEA } from "@openfront/engine-api/ww1936/LandTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
@@ -31,6 +35,8 @@ import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
+import { deploymentPlanes } from "../air/WwAir";
+import { receiveKey } from "../depth/DesignCopy";
 import {
   evictDivisions,
   transferArmyTo,
@@ -620,9 +626,26 @@ function splitPlanes(
       xe.planesDeployed[k] -= m;
       re.planesDeployed[k] += m;
     });
+    // P6 (lane E, spec §26): design planes become the rebels' copy of the
+    // design (receiveKey; with no slot free, the type's newest static
+    // generation the rebels have; an empty slot's are lost).
+    const dcounts = d.dcounts.map(() => 0);
+    d.dcounts.forEach((n, s) => {
+      if (n <= 0) return;
+      const k = equipKey("plane_design", s + 1);
+      xe.planesDeployed[k] = Math.max(0, xe.planesDeployed[k] - n);
+      const k2 = receiveKey(eg.ww.depth, X, k, R, "received");
+      const to = k2 < 0 ? undefined : EQUIP_KEYS[k2];
+      if (to === undefined) return;
+      if (to[0] === "plane_design") dcounts[to[1] - 1] += n;
+      else if (to[0] === type) d.counts[to[1] - 1] += n;
+      else return;
+      re.planesDeployed[k2] += n;
+    });
+    d.dcounts = dcounts;
     air.setDeploymentOwner(d, R);
     d.auto = false;
-    const sum = d.counts.reduce((a, b) => a + b, 0);
+    const sum = deploymentPlanes(d);
     groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);
     air.markDeployment(d.id);
   }

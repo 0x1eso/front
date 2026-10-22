@@ -117,7 +117,14 @@ export function deployedHere(
   type: AirType,
   mission: AirMission | null,
 ): number {
-  return deployedGens(air, me, sr, type, mission).reduce((a, b) => a + b, 0);
+  let n = deployedGens(air, me, sr, type, mission).reduce((a, b) => a + b, 0);
+  // P6 T1b (lane E): the design planes flying as the type.
+  for (const d of air.deployments.values()) {
+    if (d.owner !== me || d.sr !== sr || d.type !== type) continue;
+    if (mission !== null && d.mission !== mission) continue;
+    for (const c of d.dcounts ?? []) n += c;
+  }
+  return n;
 }
 
 /** My idle planes of a type (the reserve: stock, plan Review Focus 3). */
@@ -402,7 +409,9 @@ export function zoneRows(ctx: AirCtx): ZoneRow[] {
     const m = by.get(d.sr) ?? new Map<AirMission, number>();
     m.set(
       d.mission,
-      (m.get(d.mission) ?? 0) + d.counts.reduce((a, b) => a + b, 0),
+      (m.get(d.mission) ?? 0) +
+        d.counts.reduce((a, b) => a + b, 0) +
+        (d.dcounts ?? []).reduce((a, b) => a + b, 0),
     );
     by.set(d.sr, m);
   }

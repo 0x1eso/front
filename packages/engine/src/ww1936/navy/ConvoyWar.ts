@@ -18,6 +18,7 @@ import {
   raidPowerCenti,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { designPlaneP4 } from "../depth/Designs";
 import { minesConvoyLossPm } from "../depth/Mines";
 import { loseConvoys } from "../economy/Buildings";
 import { takeFromRoutes, USE_VOYAGE } from "./Convoys";
@@ -345,6 +346,14 @@ function airOf(
         d.owner,
         n * planeStats(type, g + 1, ce.stats, ce.researched).naval,
       );
+      add(planes, d.owner, n);
+    });
+    // P6 (lane E): its design planes, at their design's naval attack.
+    d.dcounts.forEach((n, s) => {
+      const st =
+        n > 0 ? designPlaneP4(navy.ww.depth, d.owner, s + 1, type) : null;
+      if (st === null) return;
+      add(naval, d.owner, n * st.naval);
       add(planes, d.owner, n);
     });
   }

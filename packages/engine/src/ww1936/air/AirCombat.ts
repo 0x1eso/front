@@ -27,6 +27,7 @@ import {
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { aceMods } from "../depth/Aces";
 import { nightMods } from "../depth/AirExtras";
+import { designPlaneP4, planesLossBp } from "../depth/Designs";
 import {
   damageOf,
   effectiveBuildings,
@@ -35,8 +36,9 @@ import {
 import { noteFuelUse } from "../economy/Fuel";
 import { navalPort } from "../navy/Ports";
 import { radarPmAt } from "./AirSuperiority";
-import { carrierWingDeck, isCarrierWing } from "./Deploy";
-import { deploymentSide, WwAir, ZoneAirState } from "./WwAir";
+import { carrierWingDeck, carrierWingDeckD, isCarrierWing } from "./Deploy";
+import { oldestFirst } from "./DesignPlanes";
+import { deploymentPlanes, deploymentSide, WwAir, ZoneAirState } from "./WwAir";
 
 /** One group of planes in a duel: its numbers and how many fly, milli planes. */
 export interface DuelPlanes {
@@ -74,12 +76,16 @@ export interface AirFlight {
   /** AIR_MISSIONS index. */
   mission: number;
   base: number;
-  /** Planes flying per generation (index gen − 1). */
+  /**
+   * Planes flying per generation (index gen − 1). P6 (lane E): a record
+   * with design planes adds one entry per plane design slot after its
+   * generations (index gens + slot − 1), here and in `milli` and `stats`.
+   */
   counts: number[];
   /** Sorties per generation, milli planes: counts × eff‰. */
   milli: number[];
   total: number;
-  /** planeStats per generation at the owner's stats. */
+  /** planeStats per generation at the owner's stats (P6: a design slot's as the type flies it). */
   stats: PlaneStats[];
 }
 
@@ -139,17 +145,27 @@ function flightsOf(
   for (const id of ids) {
     const d = air.deployments.get(id)!;
     let counts: readonly number[] = d.counts;
+    let dcounts: readonly number[] = d.dcounts;
     if (isCarrierWing(d)) {
       const deck = carrierWingDeck(air, d);
+      const deckD = deck === null ? null : carrierWingDeckD(air, d);
       // The record mirrors the deck (N2's carrier battles take planes off it).
-      if (deck !== null && deck.some((c, i) => c !== d.counts[i])) {
+      if (
+        deck !== null &&
+        (deck.some((c, i) => c !== d.counts[i]) ||
+          d.dcounts.some((c, s) => c !== (deckD?.[s] ?? 0)))
+      ) {
         d.counts = [...deck];
-        d.target = sum(deck);
+        if (deckD !== null) d.dcounts = [...deckD];
+        else d.dcounts.fill(0);
+        d.target = sum(deck) + (deckD === null ? 0 : sum(deckD));
         air.markDeployment(d.id);
       }
       counts = deck ?? [];
+      dcounts = deckD ?? [];
     }
-    if (sum(counts) === 0) continue;
+    const designs = sum(dcounts);
+    if (sum(counts) + designs === 0) continue;
     const ce = econ.country(d.owner);
     if (ce === null) continue;
     const side = deploymentSide(air, d);
@@ -191,6 +207,32 @@ function flightsOf(
       total += m;
       fuel += Math.floor((m * st.fuelPerSortieMilli) / 1000);
     }
+    // P6 (lane E): the design slots, each at its design's numbers (its
+    // range, its fuel), after the generations.
+    if (designs > 0) {
+      for (let s = 1; s <= dcounts.length; s++) {
+        const n = dcounts[s - 1];
+        const st = n > 0 ? designPlaneP4(air.ww.depth, d.owner, s, type) : null;
+        if (st === null) {
+          stats.push(stats[0]);
+          milli.push(0);
+          continue;
+        }
+        stats.push(st);
+        const m =
+          n *
+          sortieEffPm(
+            weatherPm,
+            ce.fuelRatioPm,
+            rangeEffPm(km, st.rangeKm),
+            dmgPm,
+            supPm,
+          );
+        milli.push(m);
+        total += m;
+        fuel += Math.floor((m * st.fuelPerSortieMilli) / 1000);
+      }
+    }
     if (burnFuel && fuel > 0) noteFuelUse(ce, fuel, 2);
     if (total === 0) continue;
     out.push({
@@ -200,7 +242,7 @@ function flightsOf(
       type: d.type,
       mission: d.mission,
       base: d.base,
-      counts: [...counts],
+      counts: designs > 0 ? [...counts, ...dcounts] : [...counts],
       milli,
       total,
       stats,
@@ -653,16 +695,25 @@ function takeLosses(
     const d = air.deployments.get(id);
     const p = pending.get(id)!;
     if (d === undefined) continue;
-    d.lossRest += p.milli;
+    // P6 (spec §5.4.2, lane E): design planes' reliability, by count.
+    d.lossRest += Math.floor(
+      (p.milli * planesLossBp(air.ww.depth, d.owner, d.counts, d.dcounts)) /
+        10_000,
+    );
     air.markDeployment(id);
-    let whole = Math.floor(d.lossRest / 1000);
+    const whole = Math.floor(d.lossRest / 1000);
     if (whole <= 0) continue;
-    const took = d.counts.map(() => 0);
-    for (let g = 0; g < d.counts.length && whole > 0; g++) {
-      const n = Math.min(whole, d.counts[g]);
-      took[g] = n;
-      whole -= n;
-    }
+    // The oldest first (P6: the design slots at their year).
+    const out = oldestFirst(
+      air.ww.depth,
+      d.owner,
+      AIR_TYPES[d.type],
+      d.counts,
+      d.dcounts,
+      whole,
+    );
+    const took = out.gens;
+    const tookD = out.slots;
     let by = 0;
     let byMilli = -1;
     for (const [who, m] of [...p.by].sort((a, b) => a[0] - b[0])) {
@@ -671,10 +722,14 @@ function takeLosses(
         byMilli = m;
       }
     }
-    const n = air.shootDown(id, took, by);
+    const n = air.shootDown(
+      id,
+      tookD === null ? took : [...took, ...tookD],
+      by,
+    );
     if (n <= 0) continue;
     d.lossRest -= n * 1000;
-    if (d.counts.every((c) => c === 0)) d.lossRest = 0;
+    if (deploymentPlanes(d) === 0) d.lossRest = 0;
     if (isCarrierWing(d)) {
       const r = air.navy.ships.rowOf(-d.base);
       const slot = ["cv_fighter", "cv_cas", "cv_naval_bomber"].indexOf(
@@ -685,6 +740,13 @@ function takeLosses(
         took.forEach((c, g) => {
           deck[slot * 3 + g] = Math.max(0, deck[slot * 3 + g] - c);
         });
+        // P6 (lane E): and its design planes off the deck's design slots.
+        if (tookD !== null) {
+          const deckD = air.navy.ships.deckDOf(r);
+          tookD.forEach((c, s) => {
+            deckD[s] = Math.max(0, deckD[s] - c);
+          });
+        }
         air.navy.markFleet(air.navy.ships.fleet[r]);
       }
     }

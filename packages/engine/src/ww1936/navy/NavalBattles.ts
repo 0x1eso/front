@@ -42,6 +42,7 @@ import {
   visFactorPm,
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { deckDesignCounts } from "../air/DesignPlanes";
 import { deckAttackCenti, deckPlanes, loseStrikePlanes } from "./Carriers";
 import { sendHome } from "./SeaMove";
 import type { AdmiralState, Fleet, NavalBattle, WwNavy } from "./WwNavy";
@@ -1149,18 +1150,27 @@ function strikeLossInput(
 ): {
   carriers: number[];
   aaMilli: number;
-  fighters: { owner: number; counts: number[] }[];
+  fighters: { owner: number; counts: number[]; dcounts?: number[] }[];
   by: number;
 } {
   const t = navy.ships;
   let aaCenti = 0;
-  const fighters: { owner: number; counts: number[] }[] = [];
+  const fighters: { owner: number; counts: number[]; dcounts?: number[] }[] =
+    [];
   for (const e of enemy.ships) {
     if (e.dead || t.rowOf(e.id) < 0) continue;
     aaCenti += e.stats.aa;
     if (e.cls === "cv") {
       const d = deckPlanes(navy, e.row)[0];
-      if (d.some((n) => n > 0)) fighters.push({ owner: e.owner, counts: d });
+      // P6 (lane E): its carrier fighter designs fly with them.
+      const dd = deckDesignCounts(navy.ww.depth, e.owner, e.row, "cv_fighter");
+      if (d.some((n) => n > 0) || dd !== null) {
+        fighters.push({
+          owner: e.owner,
+          counts: d,
+          ...(dd === null ? {} : { dcounts: dd }),
+        });
+      }
     }
   }
   return {

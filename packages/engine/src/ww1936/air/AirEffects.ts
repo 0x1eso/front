@@ -9,6 +9,7 @@
 // supply, computed on the zone's day.
 import {
   AIR_MISSIONS,
+  AIR_TYPES,
   AirMission,
   PlaneStats,
   WW_AIR_SUPPLY_PER_SORTIE_MILLI,
@@ -24,10 +25,12 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { StrategicRegion } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { planesLossBp } from "../depth/Designs";
 import { effectiveLevel } from "../economy/Buildings";
 import { applyShipDamage } from "../navy/NavalBattles";
 import { zoneFlights } from "./AirCombat";
 import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
+import { oldestFirst } from "./DesignPlanes";
 import type { Deployment, WwAir, ZoneAirState } from "./WwAir";
 
 /** Spec §14.9: the hit chance of a naval strike (ships at sea) and a port strike (docked), ‰. */
@@ -515,17 +518,25 @@ function takeLosses(
   ids.forEach((id, i) => {
     const d = air.deployments.get(id);
     if (d === undefined || parts[i] <= 0) return;
-    d.lossRest += parts[i];
+    // P6 (spec §5.4.2, lane E): design planes' reliability, by count.
+    const depth = air.ww.depth;
+    d.lossRest += Math.floor(
+      (parts[i] * planesLossBp(depth, d.owner, d.counts, d.dcounts)) / 10_000,
+    );
     air.markDeployment(id);
     const n = Math.floor(d.lossRest / 1000);
     if (n <= 0) return;
     d.lossRest -= n * 1000;
-    const counts = d.counts.map(() => 0);
-    let need = n;
-    for (let g = 0; g < d.counts.length && need > 0; g++) {
-      counts[g] = Math.min(need, d.counts[g]);
-      need -= counts[g];
-    }
+    // The oldest first (P6: the design slots at their year).
+    const out = oldestFirst(
+      depth,
+      d.owner,
+      AIR_TYPES[d.type],
+      d.counts,
+      d.dcounts,
+      n,
+    );
+    const counts = out.slots === null ? out.gens : [...out.gens, ...out.slots];
     air.planesLostTotal += air.shootDown(id, counts, by);
   });
 }
