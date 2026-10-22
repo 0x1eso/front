@@ -419,9 +419,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // operations and cryptology; S projects, the bomb, rockets and raids; W1
 // coal, energy, dams, rail guns, harbours and scorched earth; K5b content;
 // the AI buying the coal and uranium taken before the lines): same value in
-// three runs.
+// three runs (7c4c0ca9e9c65748). Re-pinned after batch P6-4 (E tank, ship
+// and plane designs, refits, design copies and the design AI; the design
+// state in the depth, navy and economy hashes; P5's final lane: subjects
+// at peace with their overlord's side, the capitulation baseline, the
+// conference AI's shared pricing, sea volunteers): same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "7c4c0ca9e9c65748";
+const WW1936_DIGEST = "3aaca5d2a7c8cd58";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
