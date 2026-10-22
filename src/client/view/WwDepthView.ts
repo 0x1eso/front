@@ -38,6 +38,8 @@ export class WwDepthView {
     damLevel: [],
   };
   congressBp = 3_000;
+  /** T1b: the US congress lets lend-lease through now (the engine's judge); null before it arrives. */
+  congressLl: boolean | null = null;
   bopData: [number, number][] = [];
   treatyData: NonNullable<WwDepthData["treaty"]> = {
     members: [],
@@ -68,6 +70,7 @@ export class WwDepthView {
     if (d.aces) this.acesData = d.aces;
     if (d.world) this.worldData = d.world;
     if (d.congressBp !== undefined) this.congressBp = d.congressBp;
+    if (d.congressLl !== undefined) this.congressLl = d.congressLl;
     if (d.bop) this.bopData = d.bop;
     if (d.treaty) this.treatyData = d.treaty;
     if (d.factionRules) this.factionRulesData = d.factionRules;

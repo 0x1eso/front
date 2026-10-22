@@ -995,21 +995,30 @@ export function llInputs(
   const tension = tensionPct(game);
   const democracy = isDemocracy(game, me);
   const aid = myAid(game, me);
-  // The client does not see P3 flags: a contract of mine running under the
-  // democracy's tension mark means the lend-lease flag is set.
-  const flag =
-    democracy &&
-    tension < WW_LL_TENSION_DEMOCRACY_PCT &&
-    (aid?.contracts ?? []).some((c) => c.blocked === null);
-  // P6 (W3's congress, T1b): the United States under 50% support, unless
-  // a running contract shows the flag (the same guess as above).
+  // P6 (W3's congress, T1b): the engine's own judge for the United States
+  // (50% support or the lend_lease flag: WwDepthView.congressLl); before
+  // it arrives, the support alone.
   const depth = game.wwDepth?.() ?? null;
   const usa = game.worldWarScenario()?.tagOfSmallId(me) === "USA";
-  const running = (aid?.contracts ?? []).some((c) => c.blocked === null);
+  const congressOk =
+    depth === null || !usa
+      ? true
+      : (depth.congressLl ?? depth.congressBp >= CONGRESS.lendLease);
   const congressPct =
-    depth !== null && usa && depth.congressBp < CONGRESS.lendLease && !running
-      ? Math.floor(depth.congressBp / 100)
-      : null;
+    congressOk || depth === null ? null : Math.floor(depth.congressBp / 100);
+  // The client does not see P3 flags: a contract of mine running under the
+  // democracy's tension mark means the lend-lease flag is set. The US's
+  // shows through its congress: let through under 50% support, it is set.
+  const usFlag =
+    usa &&
+    depth !== null &&
+    depth.congressLl === true &&
+    depth.congressBp < CONGRESS.lendLease;
+  const flag =
+    usFlag ||
+    (democracy &&
+      tension < WW_LL_TENSION_DEMOCRACY_PCT &&
+      (aid?.contracts ?? []).some((c) => c.blocked === null));
   return {
     self: me === to,
     atWarWithEachOther: enemiesOf(game, me).includes(to),

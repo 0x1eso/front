@@ -2210,7 +2210,7 @@ export class WwLand {
         : BATTALION_IDS.indexOf(counts[0][0] as BattalionId);
     const p = this.mg.playerBySmallID(a.owner);
     const human = p.isPlayer() && this.ww.isHumanControlled(a.owner);
-    return {
+    const out: ArmySummary = {
       id: a.id,
       owner: a.owner,
       nameNo: a.nameNo,
@@ -2238,6 +2238,10 @@ export class WwLand {
           }
         : null,
     };
+    // T1b: whom a volunteer army fights for (the fog's side; the field
+    // only when it has one, so other armies' summaries are as before).
+    if (a.volunteerFor > 0) out.volunteerFor = a.volunteerFor;
+    return out;
   }
 
   battleSummary(b: Battle): BattleSummary {

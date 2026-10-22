@@ -10,6 +10,7 @@ import {
   GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { congressDay } from "@openfront/engine/ww1936/depth/Congress";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
 import {
   captureOnBattleEnd,
@@ -245,5 +246,45 @@ describe("T1b-L: the US congress before P5's llBlock (spec §13.1)", () => {
       openLendLease(eg, GBR, FRA, "infantry_equipment", 1, 100, day),
     ).toBeNull();
     expect(contractsOf(eg, GBR)).toHaveLength(1);
+  }, 60_000);
+
+  it("the depth view carries the congress's judge; a flag change goes out on the US day", async () => {
+    const { ww, d } = await game();
+    const pol = ww.politics;
+    const idOfTag = pol.idOfTag.bind(pol);
+    vi.spyOn(pol, "idOfTag").mockImplementation((t) =>
+      t === "USA" ? GBR : idOfTag(t),
+    );
+    // Support at its target (20% at no tension): the day moves nothing.
+    pol.wtBp = 0;
+    d.mech.congressBp = 2_000;
+    const day = Math.max(0, d.lastCommonDay);
+    d.markGlobal();
+    expect(d.takeData()?.congressLl).toBe(false);
+    congressDay(d, GBR, day);
+    expect(d.mech.congressBp).toBe(2_000);
+    expect(d.takeData()?.congressLl).toBeUndefined();
+    // The 1941 act: the flag alone, no move of support — sent that day.
+    pol.country(GBR)!.flags.set("lend_lease", [0, -1]);
+    congressDay(d, GBR, day);
+    expect(d.mech.congressBp).toBe(2_000);
+    expect(d.takeData()?.congressLl).toBe(true);
+    // A country that is not the US is never held back.
+    vi.restoreAllMocks();
+    d.markGlobal();
+    expect(d.takeData()?.congressLl).toBe(true);
+  }, 60_000);
+});
+
+describe("T1b-L: a volunteer army's summary names whom it fights for", () => {
+  it("volunteerFor is sent while it serves, and absent otherwise", async () => {
+    const { g, ww } = await game();
+    const land = ww.land;
+    const a = placeArmy(g, "DEU", BERLIN, 1);
+    expect(land.armySummary(a).volunteerFor).toBeUndefined();
+    land.setVolunteerFor(a, FRA);
+    expect(land.armySummary(a).volunteerFor).toBe(FRA);
+    land.setVolunteerFor(a, 0);
+    expect("volunteerFor" in land.armySummary(a)).toBe(false);
   }, 60_000);
 });
