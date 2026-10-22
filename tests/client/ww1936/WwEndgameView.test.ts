@@ -32,6 +32,27 @@ describe("World War 1936 P5: the endgame view", () => {
     expect(v.coreHolders(4)).toEqual([]);
   });
 
+  it("an occupation row listed as gone is dropped", () => {
+    const v = new WwEndgameView();
+    const row = {
+      region: 6,
+      controller: 2,
+      resBp: 0,
+      targetBp: 0,
+      compBp: 0,
+      needDeci: 0,
+      supDeci: 0,
+      factoryPct: 0,
+      law: "occ_military",
+      uprisingDays: 0,
+      compHighDays: 0,
+    } as unknown as NonNullable<WwEndgameData["occupation"]>[number];
+    v.apply({ news: [], occupation: [row, { ...row, region: 7 }] });
+    expect([...v.occupation.keys()]).toEqual([6, 7]);
+    v.apply({ news: [], occupation: [], occupationGone: [6] });
+    expect([...v.occupation.keys()]).toEqual([7]);
+  });
+
   it("wwActive reads the endgame's country state", () => {
     const v = new WwEndgameView();
     const g = fakeGame(v);

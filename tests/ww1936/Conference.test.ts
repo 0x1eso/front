@@ -8,6 +8,7 @@ import {
   WarLink,
   WW_PEACE_ROUND_TICKS,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { IDEO_FAS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { participantPoints } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
@@ -34,6 +35,10 @@ import type {
   WwEndgame,
 } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  createFaction,
+  joinFaction,
+} from "@openfront/engine/ww1936/politics/Factions";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
@@ -689,5 +694,145 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     expect(
       expandPeaceDemand(table, 5, { kind: "take_navy", target: 9, pct: 30 }, x),
     ).toMatchObject({ target: 9, pct: 30 });
+  });
+});
+
+describe("World War 1936 P5: the treaty's results (spec §6.7)", () => {
+  /** Runs the conference to its end: `tag` passes every round left. */
+  function finish(t: Game5, c: Conference, tags: CountryTag[]): void {
+    while (c.status === 1) {
+      for (const tag of tags) {
+        if (!c.subs.some((x) => x.id === id(tag))) submit(t, c, tag, null);
+      }
+      closeRound(t, c);
+    }
+  }
+
+  it("annex_rest takes every region the loser has left", async () => {
+    const t = await atWar(["DEU"]);
+    const { ww, eg } = t;
+    const [deu, ltu] = [id("DEU"), id("LTU")];
+    const c = beat(t, "LTU", [["DEU", 1000, [R.kaunas]]]);
+    submit(t, c, "DEU", [{ kind: "annex_rest", target: ltu }]);
+    finish(t, c, ["DEU"]);
+    for (const r of [R.memel, R.kaunas]) {
+      expect(ww.politics.legalOwner[r]).toBe(deu);
+      expect(ww.land.controller[r]).toBe(deu);
+    }
+    expect(eg.countryState(ltu)).toBe("gone");
+    expect(eg.peaceLog[0].lines.map((l) => l.key)).toEqual([
+      "ww1936.peace.line.annex_rest",
+    ]);
+  });
+
+  it("reparations and a change of government apply to the loser that lives on", async () => {
+    const t = await atWar(["DEU"]);
+    const { ww, eg } = t;
+    const [deu, pl] = [id("DEU"), id("POL")];
+    ww.politics.country(deu)!.ruling = IDEO_FAS;
+    const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
+    // Warsaw 3 + Krakow 1 civilian factories: one factory owed at most.
+    submit(t, c, "DEU", [
+      { kind: "reparations", target: pl, k: 1 },
+      { kind: "change_government", target: pl },
+      { kind: "take", region: R.warsaw },
+    ]);
+    closeRound(t, c);
+    expect(c.lastRound.map((x) => x.ok)).toEqual([true, true, true]);
+    finish(t, c, ["DEU"]);
+    expect(eg.countryState(pl)).toBe("active");
+    expect(ww.politics.country(pl)!.ruling).toBe(IDEO_FAS);
+    expect(eg.reparations).toEqual([
+      expect.objectContaining({ from: pl, to: deu, k: 1 }),
+    ]);
+  });
+
+  it("take_navy hands the heaviest ships over once", async () => {
+    const t = await atWar(["GBR"]);
+    const { ww, eg } = t;
+    const [gbr, fra] = [id("GBR"), id("FRA")];
+    const c = beat(t, "FRA", [["GBR", 1000, [R.paris]]]);
+    // France's fleet in Lyon (after the capitulation's scuttling).
+    ww.navy.createFleet(fra, R.lyon, [
+      ["bb", 1, 1],
+      ["dd", 1, 2],
+    ]);
+    const ships = () =>
+      [...Array(ww.navy.ships.rows).keys()]
+        .filter((r) => ww.navy.ships.alive(r))
+        .map((r) => ww.navy.ships.owner[r]);
+    expect(ships().filter((o) => o === fra)).toHaveLength(3);
+    submit(t, c, "GBR", [
+      { kind: "take_navy", target: fra, pct: 50 },
+      { kind: "take_navy", target: fra, pct: 50 },
+    ]);
+    closeRound(t, c);
+    // The second one is refused (once per participant and loser).
+    expect(c.lastRound.map((x) => x.ok)).toEqual([true, false]);
+    const taken = c.settled.find((x) => x.kind === 13)!.regions;
+    expect(taken.length).toBeGreaterThan(0);
+    finish(t, c, ["GBR"]);
+    for (const sid of taken) {
+      const r = ww.navy.ships.rowOf(sid);
+      // Handed over (or, with no way to a British port, gone): never French.
+      if (r >= 0) expect(ww.navy.ships.owner[r]).toBe(gbr);
+    }
+    expect(eg.peaceLog[0].lines.map((l) => l.key)).toContain(
+      "ww1936.peace.line.take_navy",
+    );
+  });
+
+  it("liberate wakes a dormant tag as an independent country", async () => {
+    const t = await atWar(["DEU"]);
+    const { ww, eg } = t;
+    const svk = id("SVK");
+    const c = beat(t, "CSK", [["DEU", 1000, [R.prague]]]);
+    submit(t, c, "DEU", [{ kind: "liberate", tag: "SVK" }]);
+    finish(t, c, ["DEU"]);
+    expect(eg.countryState(svk)).toBe("active");
+    expect(eg.subjectOf(svk)).toBeNull();
+    for (const r of [R.slovakia, R.kosice]) {
+      expect(ww.politics.legalOwner[r]).toBe(svk);
+    }
+  });
+
+  it("a revived loser leaves its other wars, so no second conference shares its land", async () => {
+    const t = await atWar(["DEU"]);
+    const { g, ww, eg } = t;
+    const [pl] = [id("POL")];
+    // A second war on Poland (the Soviet Union; Lithuania on Poland's side).
+    const b = war(g, "SUN", "POL");
+    war(g, "LTU", "SUN", { kind: "into", warId: b.id });
+    const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
+    expect(b.ended).toBeNull();
+    expect(eg.member(b, pl)!.state).toBe("capitulated");
+    submit(t, c, "DEU", [{ kind: "take", region: R.warsaw }]);
+    finish(t, c, ["DEU"]);
+    expect(eg.countryState(pl)).toBe("active");
+    expect(eg.member(b, pl)!.state).toBe("left");
+    expect(ww.politics.legalOwner[R.krakow]).toBe(pl);
+  });
+
+  it("a human loser's takeover card is not offered twice", async () => {
+    const t = await atWar(["DEU", "POL"]);
+    const { g, ww, eg } = t;
+    const pl = id("POL");
+    // Poland in a faction with Lithuania (an AI friend to take over).
+    const f = createFaction(ww.politics, pl, undefined, ww.day(g.ticks()));
+    joinFaction(ww.politics, id("LTU"), f, g.ticks());
+    const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
+    const card = eg.takeoverCards.find((x) => x.client === "HPOL");
+    expect(card).toBeDefined();
+    const deadline = card!.deadlineTick;
+    submit(t, c, "DEU", [
+      { kind: "take", region: R.warsaw },
+      { kind: "take", region: R.krakow },
+    ]);
+    closeRound(t, c);
+    expect(c.status).toBe(2);
+    expect(eg.countryState(pl)).toBe("gone");
+    const after = eg.takeoverCards.filter((x) => x.client === "HPOL");
+    expect(after.length).toBeLessThanOrEqual(1);
+    if (after.length === 1) expect(after[0].deadlineTick).toBe(deadline);
   });
 });

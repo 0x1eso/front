@@ -413,6 +413,8 @@ export interface WwEndgameData {
   queuedConferences?: number;
   peaceLog?: WwPeaceLogEntry[];
   occupation?: WwOccView[];
+  /** Regions whose occupation row went (no longer administered, or no human's concern): drop them. */
+  occupationGone?: number[];
   occLaws?: {
     by: number;
     of: number;

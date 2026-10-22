@@ -9,6 +9,7 @@
 import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { transferOnCapitulation } from "../land/Occupation";
 import { transferRegionPeaceful } from "../land/PoliticsBridge";
+import { settleSensitiveZones } from "./Conference";
 import { capitulationForces, formExile, offerTakeover } from "./Exile";
 import { checkWarEnds, countryParams } from "./Wars";
 import type { WwEndgame } from "./WwEndgame";
@@ -22,6 +23,9 @@ export function capitulate(
   const ww = eg.ww;
   const pol = ww.politics;
   const day = ww.inPrep(tick) ? 0 : ww.day(tick);
+  // Owner ruling: a Korea or Taiwan zone it held passes on first, never
+  // with its land to its victor or back to Japan.
+  settleSensitiveZones(eg, tick);
   // Spec §5.1-3: a civil war's party and an independence war's subject
   // look for no host.
   const own = ownWar(eg, L);

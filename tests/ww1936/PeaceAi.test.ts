@@ -3,6 +3,7 @@
 // point within the points, takes bundled into one slot.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  CS_GONE,
   DEMAND_KINDS,
   WarLink,
   WW_PEACE_DEMANDS_PER_ROUND,
@@ -17,6 +18,7 @@ import {
   peaceCtx,
   priceOf,
   regionCost,
+  settleSensitiveZones,
   submitDemands,
 } from "@openfront/engine/ww1936/endgame/Conference";
 import {
@@ -164,11 +166,14 @@ describe("World War 1936 P5: the conference AI (spec §6.9, §17.1)", () => {
 // on Czechoslovakia's regions: Slovakia + Kosice = "korea_north", Prague =
 // "korea_south", Sudetenland = "taiwan"; Italy plays China (it claims
 // "taiwan"), the history row is a JPN-style one.
-function koreaFixture(claimant = true) {
+function koreaFixture(
+  claimant = true,
+  north: number[] = [R.slovakia, R.kosice],
+) {
   return endgameFixture({
     groups: [
       ...END_GROUPS,
-      { id: "korea_north", regions: [R.slovakia, R.kosice], owner1936: "CSK" },
+      { id: "korea_north", regions: north, owner1936: "CSK" },
       { id: "korea_south", regions: [R.prague], owner1936: "CSK" },
       { id: "taiwan", regions: [R.sudetenland], owner1936: "CSK" },
     ],
@@ -457,5 +462,159 @@ describe("World War 1936 P5: Korea and Taiwan at the conference (spec §6.9)", (
         expect(d.regions).not.toContain(TAIWAN);
       }
     }
+  });
+
+  it("a Korea zone whose holder stops playing in the conference goes to the other zone holder", async () => {
+    usePoliticsContent(koreaFixture());
+    const { runner, g, ww, eg } = await atWar({ historicalAi: false });
+    const c = beatCsk(g);
+    const [gbr, sun, csk] = [id("GBR"), id("SUN"), id("CSK")];
+    // The Soviet Union, the north's holder, stops playing before the round.
+    eg.setCountryState(sun, CS_GONE);
+    step(runner);
+    expect(c.status).toBe(2);
+    for (const r of KOREA) {
+      expect(eg.zoneHolder(r)).toBe(gbr);
+      expect(ww.land.controller[r]).toBe(gbr);
+      expect(ww.politics.legalOwner[r]).toBe(csk);
+    }
+  });
+
+  it("unzoned Korea goes to the main victor's zone, not back to its 1936 owner", async () => {
+    // Slovakia is no Korea here: Czechoslovakia lives on with it.
+    usePoliticsContent(koreaFixture(true, [R.kosice]));
+    const t = await atWar({ historicalAi: false }, ["GBR", "SUN", "ITA"]);
+    const { runner, g, ww, eg } = t;
+    const c = beatCsk(g);
+    const [gbr, csk] = [id("GBR"), id("CSK")];
+    // Nobody asks for anything: the conference ends after round 1.
+    for (const tag of ["GBR", "SUN", "ITA"] as const) {
+      expect(submitDemands(eg, id(tag), c.id, null, g.ticks())).toBeNull();
+    }
+    while (c.status === 1) step(runner);
+    expect(eg.countryState(csk)).toBe("active");
+    expect(ww.land.controller[R.slovakia]).toBe(csk);
+    for (const r of [R.kosice, R.prague, TAIWAN]) {
+      expect(eg.zoneHolder(r)).toBe(gbr);
+      expect(ww.land.controller[r]).toBe(gbr);
+      expect(ww.politics.legalOwner[r]).toBe(csk);
+    }
+  });
+
+  it("after the treaty a zone passes to the other holder, then the main victor, and never back", async () => {
+    usePoliticsContent(koreaFixture(true, [R.kosice]));
+    const t = await atWar({ historicalAi: false }, ["GBR", "SUN", "ITA"]);
+    const { runner, g, ww, eg } = t;
+    const c = beatCsk(g);
+    const [gbr, sun, ita, csk] = ["GBR", "SUN", "ITA", "CSK"].map((x) =>
+      id(x as CountryTag),
+    );
+    const sub = (tag: CountryTag, ds: Parameters<typeof submitDemands>[3]) =>
+      expect(submitDemands(eg, id(tag), c.id, ds, g.ticks())).toBeNull();
+    sub("GBR", [{ kind: "occupation_zone", group: "korea_south" }]);
+    sub("SUN", [{ kind: "occupation_zone", group: "korea_north" }]);
+    sub("ITA", [{ kind: "take_group", group: "taiwan" }]);
+    while (c.round === 1 && c.status === 1) step(runner);
+    if (c.status === 1) {
+      for (const tag of ["GBR", "SUN", "ITA"] as const) sub(tag, null);
+      while (c.status === 1) step(runner);
+    }
+    expect(eg.zoneHolder(R.kosice)).toBe(sun);
+    expect(eg.zoneHolder(R.prague)).toBe(gbr);
+    expect(eg.countryState(csk)).toBe("active");
+    // The Soviet Union stops playing: its zone goes to the other holder.
+    eg.setCountryState(sun, CS_GONE);
+    settleSensitiveZones(eg, g.ticks());
+    expect(eg.zoneHolder(R.kosice)).toBe(gbr);
+    expect(ww.land.controller[R.kosice]).toBe(gbr);
+    // Britain too (on the next day's step): the main victor still playing.
+    eg.setCountryState(gbr, CS_GONE);
+    const day = ww.day(g.ticks());
+    while (ww.day(g.ticks()) === day) step(runner);
+    step(runner);
+    for (const r of [R.kosice, R.prague]) {
+      expect(eg.zoneHolder(r)).toBe(ita);
+      expect(ww.land.controller[r]).toBe(ita);
+    }
+    // Nobody left: the control stays as it is — never Czechoslovakia's.
+    eg.setCountryState(ita, CS_GONE);
+    settleSensitiveZones(eg, g.ticks());
+    const day2 = ww.day(g.ticks());
+    while (ww.day(g.ticks()) <= day2 + 1) step(runner);
+    for (const r of [R.kosice, R.prague]) {
+      expect(ww.land.controller[r]).toBe(ita);
+      expect(ww.politics.legalOwner[r]).toBe(csk);
+    }
+  });
+
+  it("Taiwan's zone without a claimant passes on like Korea's", async () => {
+    usePoliticsContent(koreaFixture(false, [R.kosice]));
+    const t = await atWar({ historicalAi: false }, ["GBR", "SUN"]);
+    const { runner, g, ww, eg } = t;
+    const c = beatCsk(g, false);
+    const [gbr, sun, csk] = [id("GBR"), id("SUN"), id("CSK")];
+    expect(
+      submitDemands(
+        eg,
+        gbr,
+        c.id,
+        [{ kind: "occupation_zone", region: TAIWAN }],
+        g.ticks(),
+      ),
+    ).toBeNull();
+    expect(submitDemands(eg, sun, c.id, null, g.ticks())).toBeNull();
+    while (c.round === 1 && c.status === 1) step(runner);
+    if (c.status === 1) {
+      submitDemands(eg, gbr, c.id, null, g.ticks());
+      submitDemands(eg, sun, c.id, null, g.ticks());
+      while (c.status === 1) step(runner);
+    }
+    expect(eg.zoneHolder(TAIWAN)).toBe(gbr);
+    // Britain stops playing: the main victor still playing is the Soviet Union.
+    eg.setCountryState(gbr, CS_GONE);
+    settleSensitiveZones(eg, g.ticks());
+    expect(eg.zoneHolder(TAIWAN)).toBe(sun);
+    expect(ww.land.controller[TAIWAN]).toBe(sun);
+    expect(ww.politics.legalOwner[TAIWAN]).toBe(csk);
+  });
+
+  it("Taiwan is never taken for another (no core can be held there); its claimant takes it", async () => {
+    usePoliticsContent(koreaFixture());
+    const { runner, g, ww, eg } = await atWar({ historicalAi: false }, [
+      "GBR",
+      "ITA",
+    ]);
+    const c = beatCsk(g);
+    const [gbr, ita] = [id("GBR"), id("ITA")];
+    // No country holds a core in Taiwan (never administered), so a take_for
+    // has no receiver, even for the claimant.
+    eg.addCore(ita, TAIWAN);
+    expect(eg.hasCore(ita, TAIWAN)).toBe(false);
+    expect(
+      submitDemands(
+        eg,
+        gbr,
+        c.id,
+        [{ kind: "take_for", region: TAIWAN, beneficiary: ita }],
+        g.ticks(),
+      ),
+    ).toBe("bad_demand");
+    expect(submitDemands(eg, gbr, c.id, null, g.ticks())).toBeNull();
+    expect(
+      submitDemands(
+        eg,
+        ita,
+        c.id,
+        [{ kind: "take", region: TAIWAN }],
+        g.ticks(),
+      ),
+    ).toBeNull();
+    while (c.round === 1 && c.status === 1) step(runner);
+    if (c.status === 1) {
+      submitDemands(eg, gbr, c.id, null, g.ticks());
+      submitDemands(eg, ita, c.id, null, g.ticks());
+      while (c.status === 1) step(runner);
+    }
+    expect(ww.politics.legalOwner[TAIWAN]).toBe(ita);
   });
 });
