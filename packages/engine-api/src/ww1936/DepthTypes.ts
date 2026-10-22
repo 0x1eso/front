@@ -332,7 +332,9 @@ export interface DesignDef {
 export const DesignNameSchema = zb.string({
   min: 1,
   max: DESIGN_NAME_MAX,
-  regex: /^[^<>\n\r\t]+$/,
+  // Review L6: P2's template-name rule (no control or format characters
+  // such as bidi overrides, no space at either end) and no markup.
+  regex: /^[^\s\p{Cc}\p{Cf}<>](?:[^\p{Cc}\p{Cf}<>]*[^\s\p{Cc}\p{Cf}<>])?$/u,
 });
 export const DesignDefSchema = z.discriminatedUnion("kind", [
   z.object({

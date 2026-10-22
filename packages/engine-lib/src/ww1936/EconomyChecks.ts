@@ -3,6 +3,7 @@
 // the same ones; whatever needs engine objects (who is alive, embargoes)
 // the caller works out first and hands in as a value.
 import { AIR_TYPES, AirType } from "@openfront/engine-api/ww1936/AirTypes";
+import { FACILITY_IDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDABLE,
   BUILDING_TECH,
@@ -173,15 +174,10 @@ export function queuedInRegion(
         out.factories += q.count;
         break;
       case "facility_nuclear":
-        out.facility = 1;
-        out.factories += q.count;
-        break;
       case "facility_rocket":
-        out.facility = 2;
-        out.factories += q.count;
-        break;
       case "facility_science":
-        out.facility = 3;
+        // Review L10: FACILITY_IDS index + 1, derived.
+        out.facility = FACILITY_IDS.indexOf(q.building) + 1;
         out.factories += q.count;
         break;
       default:

@@ -67,7 +67,11 @@ export const ScenarioRegionSchema = z.object({
    * resources in a file (P6: ScenarioIndex appends uranium and coal from
    * the v5 fields, so a region it hands out holds RESOURCE_COUNT).
    */
-  res: z.array(Amount).min(6).max(8).default([0, 0, 0, 0, 0, 0]),
+  // P1's six, or P6's eight (uranium, coal): never seven (review L9).
+  res: z
+    .array(Amount)
+    .refine((a) => a.length === 6 || a.length === 8)
+    .default([0, 0, 0, 0, 0, 0]),
   // P2 (P2 spec §3.1, version 3). Optional: the ScenarioIndex readers fill
   // a missing one from the other fields (plan decision 5).
   land: z.enum(LAND_TERRAINS).optional(),
