@@ -213,6 +213,37 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     });
   }, 60_000);
 
+  it("planes that change sides move in the air indexes (no stale owner row)", async () => {
+    const s = await started();
+    const { ww } = s;
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    const ce = ww.economy.country(sun)!;
+    ce.stock[equipKey("fighter", 1)] += 40;
+    const d = ww.air.addDeployment({
+      owner: sun,
+      sr: ww.scenario.regionSr(KIEV),
+      type: AIR_TYPES.indexOf("fighter"),
+      mission: 0,
+      counts: drawPlanes(ce, "fighter", 12),
+      target: 12,
+      base: KIEV,
+      lossRest: 0,
+      auto: true,
+      volunteerFor: 0,
+    });
+    sovietSplit(s);
+    expect(d.owner).toBe(cw);
+    expect(ww.air.deploymentsOf(cw)).toEqual([d]);
+    expect(ww.air.deploymentsOf(sun)).not.toContain(d);
+    // Its end leaves no row behind under either owner (the old index kept
+    // the id and deploymentsOf returned undefined: a crash in rebase).
+    ww.air.removeDeployment(d.id, true);
+    expect(ww.air.deploymentsOf(cw)).toEqual([]);
+    for (const x of ww.air.deploymentsOf(sun)) expect(x).toBeDefined();
+    // A day of every country's air turn runs.
+    step(s.runner, 10);
+  }, 60_000);
+
   it("every rebel region's victory-point tile is the rebel's on the split tick", async () => {
     const s = await started();
     const { g, ww, eg } = s;

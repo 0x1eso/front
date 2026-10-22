@@ -609,7 +609,7 @@ function splitPlanes(
       xe.planesDeployed[k] -= m;
       re.planesDeployed[k] += m;
     });
-    d.owner = R;
+    air.setDeploymentOwner(d, R);
     d.auto = false;
     const sum = d.counts.reduce((a, b) => a + b, 0);
     groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);

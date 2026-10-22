@@ -389,7 +389,10 @@ async function runOne(
     undefined,
     files,
     (gu) => {
-      if ("errMsg" in gu) throw new Error(gu.errMsg);
+      if ("errMsg" in gu) {
+        const st = (gu as { stack?: string }).stack;
+        throw new Error(`${gu.errMsg}\n${st ?? ""}`);
+      }
     },
   );
   const g: Game = runner.game;
@@ -1277,12 +1280,18 @@ async function main(): Promise<void> {
   const mode = o.historical ? "on" : "off";
   let next = 0;
   let doneN = 0;
+  const failed: string[] = [];
   const t0 = performance.now();
   const worker = async () => {
     while (next < o.seeds.length) {
       const s = o.seeds[next++];
       const json = path.join(o.out, `${s}-${mode}.json`);
-      await runChild(o, s, json, path.join(o.out, `${s}-${mode}.csv`));
+      try {
+        await runChild(o, s, json, path.join(o.out, `${s}-${mode}.csv`));
+      } catch (e) {
+        failed.push(s);
+        console.error(`FAILED ${s} ${mode}: ${String(e)}`);
+      }
       doneN++;
       console.error(
         `done ${s} ${mode} (${doneN}/${o.seeds.length}, ${((performance.now() - t0) / 1000).toFixed(0)} s, load ${os.loadavg()[0].toFixed(1)})`,
@@ -1293,6 +1302,7 @@ async function main(): Promise<void> {
     Array.from({ length: Math.min(o.jobs, o.seeds.length) }, worker),
   );
   report(readResults(o.out, o.historical));
+  if (failed.length > 0) console.log(`\nFAILED runs: ${failed.join(" ")}`);
 }
 
 main().catch((e) => {
