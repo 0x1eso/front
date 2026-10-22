@@ -1574,7 +1574,7 @@
     "ww1936_faction_leader": "{country} now leads {faction}",
     "ww1936_faction_left": "{country} left {faction}",
     "ww1936_fleet_scuttled": "{fleet} was scuttled: its port is lost",
-    "ww1936_fm_promoted": "{name} was promoted to field marshal",
+    "ww1936_fm_promoted": "{general} was promoted to field marshal",
     "ww1936_focus_done": "Focus completed: {focus}",
     "ww1936_focus_queue_failed": "The queued focus could not start: {focus}",
     "ww1936_fuel_shortage": "Fuel is short: {pct}% supplied",
@@ -1622,7 +1622,7 @@
     "ww1936_ship_sunk": "{n, plural, one {A {cls} was sunk in the {sr}} other {# × {cls} sunk in the {sr}}}",
     "ww1936_slot_free": "A research slot is free",
     "ww1936_trade_closed": "Deal with {seller} for {resource} closed",
-    "ww1936_trait_unlocked": "{name} gained the trait {trait}",
+    "ww1936_trait_unlocked": "{general} gained the trait {trait}",
     "ww1936_treaty": "New {kind} between {a} and {b}",
     "ww1936_treaty_ended": "The {kind} between {a} and {b} has ended",
     "ww1936_war_declared": "{attacker} declared war on {target}{allies, plural, =0 {} one { and # ally} other { and # allies}}",
@@ -3633,11 +3633,15 @@
       "exec_all": "Run every plan",
       "exec_confirm": "Tap again to run every plan",
       "front": "Front",
+      "front_confirm": "Tap again to assign the front",
+      "front_hint": "Tap a front region on the map",
       "full": "The group holds {max} armies at most",
       "hold_hint": "Press and hold an army to select several",
       "no_marshal": "No field marshal is free",
       "number": "Group {n}",
+      "open_command": "Open command",
       "pick_marshal": "Choose a field marshal",
+      "remove": "Remove from group",
       "selected": "{n, plural, one {# army} other {# armies}} selected",
       "tab": "Army groups",
       "title": "Army groups"
@@ -4196,8 +4200,10 @@
       "list_line": "Line {line} · Stock {stock} · Divisions {divisions}",
       "make_line": "Make a production line",
       "module_cost_diff": "Cost {value, number, ::sign-always}",
+      "module_dup": "This module is already in another slot",
       "module_locked": "Technology: {tech} ({year})",
       "module_pick": "Choose a module",
+      "module_project": "Needs the project {project}",
       "name": "Name",
       "name_edit": "Tap to rename",
       "open_designer": "Design",
@@ -4245,7 +4251,8 @@
       "tab_tank": "Tanks",
       "title": "Designer",
       "worse": "Worse by {value}",
-      "xp_cost": "{kind} experience {cost} / held {have}"
+      "xp_cost": "{kind} experience {cost} / held {have}",
+      "xp_cost_air": "Air force experience {cost} / held {have}"
     },
     "diplo": {
       "act": {
@@ -4361,7 +4368,11 @@
       "tab_officers": "Officer corps",
       "tap_again": "Tap again to confirm",
       "title": "Doctrine",
-      "tracks": "Tracks"
+      "tracks": "Tracks",
+      "xp_air": "Air force experience {xp}",
+      "xp_cost": "Experience {xp}",
+      "xp_land": "Army experience {xp}",
+      "xp_naval": "Navy experience {xp}"
     },
     "econ": {
       "add_to_queue": "Add to queue",
@@ -6995,6 +7006,8 @@
     },
     "intel": {
       "arrest_risk": "Arrest risk {pct}% a day",
+      "badge_captured": "{n, plural, one {# operative captured} other {# operatives captured}}",
+      "badge_idle": "{n, plural, one {# operative idle} other {# operatives idle}}",
       "band": {
         "air": "Air",
         "army": "Army",
@@ -7013,6 +7026,8 @@
       "level_total": "Intelligence level {pct}%",
       "missions": "Missions",
       "network": "Spy network",
+      "no_agency": "No intelligence agency yet",
+      "op_cond_captive": "Captured operatives {have}/{need}",
       "op_cond_network": "Spy network {have}/{need}",
       "op_cond_operatives": "Operatives {have}/{need}",
       "op_cond_pp": "Political power {need}",
@@ -7036,6 +7051,7 @@
         "line": "{label} {value, number, ::sign-always}",
         "neighbour": "Neighbour",
         "network": "Spy network",
+        "other": "Other sources",
         "radar": "Radar",
         "recon": "Reconnaissance",
         "same_faction": "Same faction",
@@ -7336,6 +7352,7 @@
       "filter_armor": "Armour",
       "filter_artillery": "Artillery",
       "filter_infantry": "Infantry",
+      "lift_embargo": "Lift embargo",
       "list_item": "Offer for sale",
       "listing": "{count} × {item} · generation {gen} · {price} each",
       "my_listings": "My offers",
@@ -8099,6 +8116,9 @@
       "night_on": "Night bombing on",
       "precision": "Precision bombing raid",
       "priority": "Replacement priority",
+      "priority_high": "High",
+      "priority_low": "Low",
+      "priority_normal": "Normal",
       "raid": "Raid",
       "railgun": "Railway guns {n}/{max}",
       "recon": "Reconnaissance",
@@ -9641,6 +9661,7 @@
       "winter_specialist": "Snow and bitter cold penalties halved"
     },
     "treaty": {
+      "banned": "Banned by the treaty",
       "escalated": "The treaty has lapsed",
       "leave": "Leave the treaty",
       "leave_confirm": "Tap again to leave",

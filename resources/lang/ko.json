@@ -1526,8 +1526,8 @@
     "ww1936_energy_shortage": "에너지 {pct}%: 공장 가동 저하",
     "ww1936_congress_threshold": "의회 지지 {pct}% 돌파",
     "ww1936_faction_goal": "진영 목표 달성: {goal}",
-    "ww1936_trait_unlocked": "{name}: 특성 {trait} 획득",
-    "ww1936_fm_promoted": "{name} 원수 진급",
+    "ww1936_trait_unlocked": "{general}: 특성 {trait} 획득",
+    "ww1936_fm_promoted": "{general} 원수 진급",
     "ww1936_operative_released": "공작원 {codename} 석방: {country}"
   },
   "featured_stream": {
@@ -8958,7 +8958,11 @@
       "field_locked": "{days}일 동안 잠김",
       "field_picked": "적용 중",
       "field_design": "안 {n}",
-      "band_label": "교리 트랙, 가장 낮은 단계 {level}"
+      "band_label": "교리 트랙, 가장 낮은 단계 {level}",
+      "xp_land": "육군 경험치 {xp}",
+      "xp_naval": "해군 경험치 {xp}",
+      "xp_air": "공군 경험치 {xp}",
+      "xp_cost": "경험치 {xp}"
     },
     "command": {
       "title": "지휘",
@@ -9005,7 +9009,11 @@
       "number": "집단군 {n}",
       "empty": "집단군이 없습니다. 군을 길게 눌러 여러 개를 고르세요.",
       "hold_hint": "군을 길게 눌러 여러 개 고르기",
-      "full": "집단군은 군 {max}개까지 둘 수 있습니다"
+      "full": "집단군은 군 {max}개까지 둘 수 있습니다",
+      "front_hint": "지도에서 전선 지역을 누르세요",
+      "front_confirm": "한 번 더 눌러 전선 배정",
+      "remove": "집단군에서 빼기",
+      "open_command": "지휘 열기"
     },
     "design": {
       "title": "설계기",
@@ -9078,7 +9086,10 @@
       "source_licence": "면허",
       "licence_request": "면허 요청",
       "licence_waiting": "{country} 면허 요청",
-      "make_line": "생산 라인 만들기"
+      "make_line": "생산 라인 만들기",
+      "module_dup": "이 모듈은 다른 칸에 이미 들어 있습니다",
+      "module_project": "프로젝트 {project} 필요",
+      "xp_cost_air": "공군 경험치 {cost} / 보유 {have}"
     },
     "mio": {
       "title": "군수 기관",
@@ -9119,7 +9130,8 @@
       "deal_delivery": "인도 {pct}%",
       "embargoes": "금수 목록",
       "empty": "나온 물건이 없습니다",
-      "no_embargo": "금수 없음"
+      "no_embargo": "금수 없음",
+      "lift_embargo": "금수 해제"
     },
     "licence": {
       "title": "면허",
@@ -9198,8 +9210,13 @@
         "radar": "레이더",
         "counter": "방첩",
         "upgrades": "기관 업그레이드",
-        "line": "{label} {value, number, ::sign-always}"
-      }
+        "line": "{label} {value, number, ::sign-always}",
+        "other": "그 밖의 출처"
+      },
+      "badge_captured": "체포된 공작원 {n}명",
+      "badge_idle": "쉬는 공작원 {n}명",
+      "no_agency": "정보 기관이 아직 없습니다",
+      "op_cond_captive": "체포된 공작원 {have}/{need}"
     },
     "crypto": {
       "title": "암호",
@@ -9283,7 +9300,10 @@
       "medal": "훈장",
       "priority": "보충 우선순위",
       "mine_lay": "기뢰 부설",
-      "mine_sweep": "소해"
+      "mine_sweep": "소해",
+      "priority_low": "낮음",
+      "priority_normal": "보통",
+      "priority_high": "높음"
     },
     "congress": {
       "title": "의회",
@@ -9313,7 +9333,8 @@
       "leave": "조약 탈퇴",
       "leave_confirm": "한 번 더 눌러 탈퇴",
       "not_member": "회원이 아님",
-      "escalated": "조약이 효력을 잃음"
+      "escalated": "조약이 효력을 잃음",
+      "banned": "조약으로 금지됨"
     },
     "faction_ui": {
       "rules_title": "진영 규칙",
