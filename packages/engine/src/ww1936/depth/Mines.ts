@@ -68,21 +68,21 @@ function working(f: Fleet): boolean {
 
 /** Enemy mines (Σ over the sides at war with `side`, a side key or a smallID) in region `sr`, milli. */
 export function enemyMinesMilli(d: WwDepth, sr: number, side: number): number {
-  const mines = d.sea.mines;
-  if (mines.length === 0) return 0;
+  const at = d.mineIndex.get(sr);
+  if (at === undefined || at.size === 0) return 0;
   const s = sideKeyOf(d, side);
   let m = 0;
-  for (const [r, k, v] of mines) {
-    if (r === sr && v > 0 && sidesAtWar(d, k, s)) m += v;
+  for (const [k, i] of at) {
+    const v = d.sea.mines[i]?.[2] ?? 0;
+    if (v > 0 && sidesAtWar(d, k, s)) m += v;
   }
   return m;
 }
 
 /** A side's own mines (a side key or a smallID) in region `sr`, milli. */
 export function ownMinesMilli(d: WwDepth, sr: number, side: number): number {
-  const s = sideKeyOf(d, side);
-  for (const [r, k, v] of d.sea.mines) if (r === sr && k === s) return v;
-  return 0;
+  const i = d.mineAt(sr, sideKeyOf(d, side));
+  return i < 0 ? 0 : (d.sea.mines[i]?.[2] ?? 0);
 }
 
 interface SideShips {
@@ -91,12 +91,15 @@ interface SideShips {
   /** Today's laying and sweeping, milli. */
   lay: number;
   sweep: number;
+  /** A minesweeper design ship works here (halves the damage, whatever its class sweeps). */
+  sweeper: boolean;
 }
 
 /**
  * The sea region's day (after P4's convoy war): ① a country that joined a
- * faction brings its mines to the faction's key, a faction that is gone
- * takes its mines with it; ② yesterday's mines decay 0.5%; ③ the sides'
+ * faction brings its mines to the faction's key; a faction that is gone
+ * leaves them to the side holding the most ports on the region (its former
+ * members are not known any more); ② yesterday's mines decay 0.5%; ③ the sides'
  * lay_mines fleets lay (their mine-layer design ships); ④ their
  * sweep_mines fleets clear enemy mines (minesweeper design ships), side
  * key order; ⑤ each side's ships at sea in the region (on a mission,
@@ -121,7 +124,7 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
       const side = land.sideOf(f.owner);
       let x = bySide.get(side);
       if (x === undefined) {
-        bySide.set(side, (x = { ships: [], lay: 0, sweep: 0 }));
+        bySide.set(side, (x = { ships: [], lay: 0, sweep: 0, sweeper: false }));
       }
       const lays = f.mission === MISSION.layMines && working(f);
       const sweeps = f.mission === MISSION.sweepMines && working(f);
@@ -137,6 +140,7 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
         }
         if (sweeps && (flags & DS_MINESWEEP) !== 0) {
           x.sweep += MINE_SWEEP_PER_DAY[cls] ?? 0;
+          x.sweeper = true;
         }
       }
     }
@@ -146,7 +150,8 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
   for (const [k, v] of before) {
     let key = k;
     if (k < d.cap) key = land.sideOf(k);
-    else if (land.sideMembers(k).length === 0) continue;
+    else if (land.sideMembers(k).length === 0) key = portSide(d, s.members);
+    if (key <= 0) continue;
     now.set(key, Math.min(MINE_MAX, (now.get(key) ?? 0) + v));
   }
   for (const [k, v] of now) now.set(k, v - mineDecay(v));
@@ -186,7 +191,7 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
         worstSide = k;
       }
     }
-    if (enemy > 0) damageSide(d, x, enemy, x.sweep > 0, worstSide, tick);
+    if (enemy > 0) damageSide(d, x, enemy, x.sweeper, worstSide, tick);
   }
 }
 
@@ -247,10 +252,43 @@ function anyLayer(d: WwDepth, zones: readonly number[]): boolean {
   return false;
 }
 
-/** The region's entries: side → milli. */
+/**
+ * The side holding the most ports (land regions whose harbour zone is one
+ * of `zones`; ties: the smaller key), 0 when none: the heir of a dissolved
+ * faction's minefield.
+ */
+function portSide(d: WwDepth, zones: readonly number[]): number {
+  const sc = d.ww.scenario;
+  const land = d.ww.land;
+  const inZones = new Set(zones);
+  const n = new Map<number, number>();
+  for (const r of sc.landRegions) {
+    if (!inZones.has(sc.harborOf(r.id))) continue;
+    const c = land.controller[r.id] ?? 0;
+    if (c === 0) continue;
+    const side = land.sideOf(c);
+    n.set(side, (n.get(side) ?? 0) + 1);
+  }
+  let best = 0;
+  let bestN = 0;
+  for (const [side, k] of [...n].sort((a, b) => a[0] - b[0])) {
+    if (k > bestN) {
+      best = side;
+      bestN = k;
+    }
+  }
+  return best;
+}
+
+/** The region's entries: side → milli (WwDepth.mineIndex). */
 function regionEntries(d: WwDepth, sr: number): Map<number, number> {
   const out = new Map<number, number>();
-  for (const [r, k, v] of d.sea.mines) if (r === sr) out.set(k, v);
+  const at = d.mineIndex.get(sr);
+  if (at === undefined) return out;
+  for (const [k, i] of [...at].sort((a, b) => a[0] - b[0])) {
+    const v = d.sea.mines[i]?.[2] ?? 0;
+    if (v > 0) out.set(k, v);
+  }
   return out;
 }
 
@@ -285,6 +323,7 @@ function writeRegion(
   if (n !== before.size) seen = true;
   keep.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   d.sea.mines = keep;
+  d.reindexSparse();
   if (seen) d.markGlobal();
 }
 
@@ -294,7 +333,6 @@ export function minesConvoyLossPm(
   sr: number,
   side: number,
 ): number {
-  if (d.sea.mines.length === 0) return 0;
   return mineConvoyLossPm(enemyMinesMilli(d, sr, side));
 }
 
@@ -304,6 +342,5 @@ export function minesInvasionCutPct(
   sr: number,
   side: number,
 ): number {
-  if (d.sea.mines.length === 0) return 0;
   return mineInvasionCutPct(enemyMinesMilli(d, sr, side));
 }

@@ -92,10 +92,11 @@ function reconDay(d: WwDepth, sr: number): void {
   ) {
     return;
   }
-  // A new list (never edited in place).
+  // A new list (never edited in place), then the foundation's index.
   d.sea.reconBySide = [...old.filter((e) => e[1] !== sr), ...rows].sort(
     (a, b) => a[1] - b[1] || a[0] - b[0],
   );
+  d.reindexSparse();
 }
 
 /** The records of a deployment's group (owner, zone, type, mission, volunteer host), land-based. */
@@ -144,6 +145,15 @@ export function fliesAtNight(d: WwDepth, dep: Deployment): boolean {
   return groupRecords(d, dep).some((x) => x.night);
 }
 
+/** The zone's land regions are all no-strike regions (nothing a raid may hit). */
+function nightNoStrike(d: WwDepth, sr: number): boolean {
+  const s = d.ww.scenario.sr(sr);
+  if (s === undefined || s.kind !== "land" || s.members.length === 0) {
+    return false;
+  }
+  return s.members.every((r) => d.noStrike(r));
+}
+
 /** air_night {deployment, on}: the whole group of a strategic bombing deployment flies by night or by day. */
 export function issueSeaAir(
   d: WwDepth,
@@ -158,6 +168,9 @@ export function issueSeaAir(
   if (dep === undefined) return "bad_index";
   if (dep.owner !== id) return "not_controlled";
   if (dep.mission !== M_BOMB || isCarrierWing(dep)) return "bad_air_mission";
+  // Sensitivity (decisions.md, pre-flight §0-11): no night raid where every
+  // region the zone could bomb is a no-strike region (Korea, Taiwan).
+  if (o.on && nightNoStrike(d, dep.sr)) return "no_strike_region";
   for (const x of groupRecords(d, dep)) {
     if (x.night !== o.on) {
       x.night = o.on;
@@ -195,11 +208,8 @@ export function reconPlanCutBp(
 
 /** `side`'s (a side key or a smallID) recon sorties on the zone's last day. */
 export function reconToday(d: WwDepth, side: number, sr: number): number {
-  const rows = d.sea.reconBySide;
-  if (rows.length === 0) return 0;
-  const s = sideKeyOf(d, side);
-  for (const [k, z, n] of rows) if (z === sr && k === s) return n;
-  return 0;
+  const i = d.reconAt(sideKeyOf(d, side), sr);
+  return i < 0 ? 0 : (d.sea.reconBySide[i]?.[2] ?? 0);
 }
 
 /**
@@ -211,13 +221,13 @@ export function reconCovers(
   observer: number,
   target: number,
 ): boolean {
-  const rows = d.sea.reconBySide;
-  if (rows.length === 0 || observer === target) return false;
+  if (observer === target) return false;
   const ww = d.ww;
-  const side = ww.land.sideOf(observer);
+  const mine = d.reconIndex.get(ww.land.sideOf(observer));
+  if (mine === undefined || mine.size === 0) return false;
   const ctrl = ww.land.controller;
-  for (const [k, sr, n] of rows) {
-    if (k !== side || n < RECON_SORTIES) continue;
+  for (const [sr, i] of [...mine].sort((a, b) => a[0] - b[0])) {
+    if ((d.sea.reconBySide[i]?.[2] ?? 0) < RECON_SORTIES) continue;
     const s = ww.scenario.sr(sr);
     if (s === undefined || s.kind !== "land") continue;
     if (s.members.some((r) => ctrl[r] === target)) return true;

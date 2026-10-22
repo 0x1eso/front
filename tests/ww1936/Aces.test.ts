@@ -159,6 +159,13 @@ describe("World War 1936 P6: aces (spec §15.2)", () => {
     air.removeDeployment(small.id, true);
     dailyAces(d, WEST, lives);
     expect(d.sea.aces.some((a) => a.id === other.id)).toBe(false);
+    // A record that changed hands: its ace retires and it may earn another.
+    const third = d.sea.aces[0];
+    const rec = air.deployments.get(third.deployment)!;
+    rec.owner = ITA;
+    dailyAces(d, WEST, lives);
+    expect(d.sea.aces.some((a) => a.id === third.id)).toBe(false);
+    expect(rec.ace).toBe(0);
   });
 
   it("the same game rolls the same aces", async () => {

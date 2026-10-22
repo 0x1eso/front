@@ -95,7 +95,15 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
   if (d.sea.aces.length > 0) {
     const kept = d.sea.aces.filter((a) => {
       const dep = air.deployments.get(a.deployment);
-      return dep !== undefined && dep.owner === a.owner && dep.ace === a.id;
+      if (dep !== undefined && dep.owner === a.owner && dep.ace === a.id) {
+        return true;
+      }
+      // Retired: a record still here (another owner now) can earn a new one.
+      if (dep !== undefined && dep.ace === a.id) {
+        dep.ace = 0;
+        air.markDeployment(dep.id);
+      }
+      return false;
     });
     if (kept.length !== d.sea.aces.length) {
       d.sea.aces = kept;

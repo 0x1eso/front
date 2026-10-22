@@ -198,7 +198,7 @@ function aiMines(d: WwDepth, id: number): void {
     }
   }
   // Fleets no longer wanted come home (P4's AI takes them again).
-  for (const f of navy.fleetsOf(id)) {
+  for (const f of [...navy.fleetsOf(id)].sort((a, b) => a.id - b.id)) {
     if (!isDepthFleet(f) || f.state === FST.battle) continue;
     const want = f.mission === MISSION.layMines ? lay : sweep;
     if (!want.has(f.missionSr)) {
@@ -333,7 +333,7 @@ function aiRecon(d: WwDepth, id: number): void {
 
 /** At peace: the mine fleets come home, the recon groups land. */
 function aiPeace(d: WwDepth, id: number): void {
-  for (const f of d.ww.navy.fleetsOf(id)) {
+  for (const f of [...d.ww.navy.fleetsOf(id)].sort((a, b) => a.id - b.id)) {
     if (isDepthFleet(f) && f.state !== FST.battle) {
       issueNavy(d, id, { kind: "fleet_return", fleet: f.id });
     }

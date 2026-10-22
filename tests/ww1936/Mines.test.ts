@@ -1,6 +1,7 @@
 // World War 1936 P6 (plan Task 8, lane W2): naval mines (spec §15.1) on
 // ww1936deep — Britain and Italy, both human, at war; the AI's mines
 // (spec §19.7) with Britain or Italy left to the AI.
+import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import type { DesignDef } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   FLEET_MISSIONS,
@@ -31,7 +32,7 @@ import type { WwDepth } from "@openfront/engine/ww1936/depth/WwDepth";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { step, stepTo, wwRunner } from "./util";
+import { step, stepTo, takeRegion, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -133,6 +134,12 @@ function shipsAtSea(runner: GameRunner, owner: number): number[][] {
   return out.sort((a, b) => a[0] - b[0]);
 }
 
+/** Test helper: the minefields as given (the foundation's index rebuilt). */
+function setMines(d: WwDepth, rows: [number, number, number][]): void {
+  d.sea.mines = rows;
+  d.reindexSparse();
+}
+
 function hpOf(runner: GameRunner, ship: number): number {
   const t = runner.game.worldWar()!.navy.ships;
   return t.hp[t.rowOf(ship)];
@@ -161,7 +168,7 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     seaRegionDay(d, CENTRAL, day);
     expect(ownMinesMilli(d, CENTRAL, ITA)).toBe(2 * 2_000);
     // A full field: yesterday's 1000 decays, the layers add theirs.
-    d.sea.mines = [[CENTRAL, ww.land.sideOf(ITA), 1_000_000]];
+    setMines(d, [[CENTRAL, ww.land.sideOf(ITA), 1_000_000]]);
     const gbr = shipsAtSea(runner, GBR);
     const ita = shipsAtSea(runner, ITA);
     expect(gbr.length).toBe(3);
@@ -199,7 +206,7 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     mission(runner, GBR, sweepers, "sweep_mines");
     const escorts = fleet(runner, GBR, DEEP.region.malta, 2, 0);
     mission(runner, GBR, escorts, "patrol");
-    d.sea.mines = [[CENTRAL, ww.land.sideOf(ITA), 1_000_000]];
+    setMines(d, [[CENTRAL, ww.land.sideOf(ITA), 1_000_000]]);
     const gbr = shipsAtSea(runner, GBR);
     expect(gbr.length).toBe(4);
     seaRegionDay(d, CENTRAL, day);
@@ -217,7 +224,7 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     seaRegionDay(d, CENTRAL, day + 1);
     expect(ownMinesMilli(d, CENTRAL, ITA)).toBe(before - mineDecay(before));
     // A small field is swept clean and leaves the list.
-    d.sea.mines = [[CENTRAL, ww.land.sideOf(ITA), 5_000]];
+    setMines(d, [[CENTRAL, ww.land.sideOf(ITA), 5_000]]);
     mission(runner, GBR, sweepers, "sweep_mines");
     seaRegionDay(d, CENTRAL, day + 2);
     expect(d.sea.mines).toEqual([]);
@@ -229,7 +236,7 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     const d = ww.depth;
     const day = ww.day(runner.game.ticks());
     const side = ww.land.sideOf(ITA);
-    d.sea.mines = [[CENTRAL, side, 200_000]];
+    setMines(d, [[CENTRAL, side, 200_000]]);
     seaRegionDay(d, CENTRAL, day);
     expect(ownMinesMilli(d, CENTRAL, ITA)).toBe(199_000);
     seaRegionDay(d, CENTRAL, day + 1);
@@ -240,16 +247,140 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     expect(ownMinesMilli(d, CENTRAL, ITA)).toBe(198_005 - mineDecay(198_005));
     expect(d.sea.mines).toEqual([[CENTRAL, side, 197_015]]);
     // Below one unit a field does nothing (and would never decay): it goes.
-    d.sea.mines = [[CENTRAL, side, 1_004]];
+    setMines(d, [[CENTRAL, side, 1_004]]);
     seaRegionDay(d, CENTRAL, day + 2);
     expect(d.sea.mines).toEqual([]);
     // Sorted by (region, side), one entry each.
-    d.sea.mines = [
+    setMines(d, [
       [CENTRAL, side, 10_000],
       [DEEP.sr.approaches, side, 10_000],
-    ];
+    ]);
     seaRegionDay(d, CENTRAL, day + 3);
     expect(d.sea.mines.map((x) => x[0])).toEqual([DEEP.sr.approaches, CENTRAL]);
+  });
+  it("a dissolved faction's mines go to the side holding the region's ports", async () => {
+    const runner = await atWar();
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const day = ww.day(runner.game.ticks());
+    // A faction key no side has any more (dissolved).
+    const gone = 100_000 + 77;
+    expect(ww.land.sideMembers(gone)).toEqual([]);
+    // Italy holds two of the Central Waters' three ports (Rome, Malta).
+    takeRegion(runner.game, DEEP.region.malta, "ITA");
+    setMines(d, [[CENTRAL, gone, 300_000]]);
+    seaRegionDay(d, CENTRAL, day);
+    const heir = ww.land.sideOf(ITA);
+    expect(d.sea.mines).toEqual([
+      [CENTRAL, heir, 300_000 - mineDecay(300_000)],
+    ]);
+    expect(d.mineAt(CENTRAL, heir)).toBe(0);
+    expect(d.mineAt(CENTRAL, gone)).toBe(-1);
+  });
+
+  it("a minesweeper of a class that sweeps nothing still halves the damage", async () => {
+    const runner = await atWar();
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const navy = ww.navy;
+    const day = ww.day(runner.game.ticks());
+    // A heavy cruiser carrying the sweep gear: no MINE_SWEEP_PER_DAY row.
+    d.country(GBR)!.des.ship[1] = {
+      def: {
+        kind: "ship",
+        base: "ca_1",
+        modules: ["", "", "", "", "", "minesweep"],
+        name: "Test CA",
+      } as never,
+      origin: "own",
+      from: 0,
+      fromSlot: 0,
+      obsolete: false,
+      savedDay: 0,
+    };
+    d.markDesign(GBR, "ship", 2);
+    const ca = navy.createFleet(GBR, DEEP.region.malta, [["ca", 1, 1]]);
+    for (const sid of navy.fleets.get(ca)!.ships) {
+      navy.ships.design[navy.ships.rowOf(sid)] = 2;
+    }
+    mission(runner, GBR, ca, "sweep_mines");
+    setMines(d, [[CENTRAL, ww.land.sideOf(ITA), 1_000_000]]);
+    const gbr = shipsAtSea(runner, GBR);
+    seaRegionDay(d, CENTRAL, day);
+    // Nothing swept (decay only), but the damage is halved.
+    const m = 1_000_000 - mineDecay(1_000_000);
+    expect(ownMinesMilli(d, CENTRAL, ITA)).toBe(m);
+    const total = gbr.reduce((a, x) => a + x[1], 0);
+    const parts = split(mineDamageMilli(total, m, true), gbr);
+    gbr.forEach((x, i) => expect(hpOf(runner, x[0])).toBe(x[1] - parts[i]));
+  });
+
+  it("every W2 field moves the hashes", async () => {
+    const runner = await atWar();
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const air = ww.air;
+    const a = ww.land.sideOf(ITA);
+    const b = ww.land.sideOf(GBR);
+    const seen = new Set<number>([d.hash()]);
+    const moved = () => {
+      const h = d.hash();
+      expect(seen.has(h)).toBe(false);
+      seen.add(h);
+    };
+    // Minefields: the amount, the side and the region each count, the
+    // list order does not.
+    setMines(d, [[CENTRAL, a, 5_000]]);
+    moved();
+    setMines(d, [[CENTRAL, a, 6_000]]);
+    moved();
+    setMines(d, [[CENTRAL, b, 6_000]]);
+    moved();
+    setMines(d, [[DEEP.sr.approaches, b, 6_000]]);
+    moved();
+    setMines(d, [
+      [DEEP.sr.approaches, b, 6_000],
+      [CENTRAL, a, 1_000],
+    ]);
+    moved();
+    const two = d.hash();
+    setMines(d, [
+      [CENTRAL, a, 1_000],
+      [DEEP.sr.approaches, b, 6_000],
+    ]);
+    expect(d.hash()).toBe(two);
+    // Recon rows: a row, its sorties, its side.
+    d.sea.reconBySide = [[b, DEEP.sr.westLand, 20]];
+    moved();
+    d.sea.reconBySide = [[b, DEEP.sr.westLand, 21]];
+    moved();
+    d.sea.reconBySide = [[a, DEEP.sr.westLand, 21]];
+    moved();
+    // Aces: one, then its record.
+    d.sea.aces = [{ id: 9, owner: GBR, deployment: 4, sinceDay: 1, callNo: 5 }];
+    moved();
+    d.sea.aces = [{ id: 9, owner: GBR, deployment: 5, sinceDay: 1, callNo: 6 }];
+    moved();
+    // The air war's hash: a deployment's night flag and its ace.
+    const counts = [10, 0, 0];
+    const dep = air.addDeployment({
+      owner: GBR,
+      sr: DEEP.sr.westLand,
+      type: AIR_TYPES.indexOf("strat_bomber"),
+      mission: AIR_MISSIONS.indexOf("strategic_bombing"),
+      counts,
+      target: 10,
+      base: 0,
+      lossRest: 0,
+      auto: false,
+      volunteerFor: 0,
+    });
+    const airSeen = new Set<number>([air.hash()]);
+    dep.night = true;
+    expect(airSeen.has(air.hash())).toBe(false);
+    airSeen.add(air.hash());
+    dep.ace = 9;
+    expect(airSeen.has(air.hash())).toBe(false);
   });
 });
 
@@ -291,13 +422,13 @@ describe("World War 1936 P6: the AI's mines (spec §19.7)", () => {
     ddDesign(d, ITA, "minesweep");
     const itaHome = homeSeaRegions(d, ITA);
     const sweepers = fleet(runner, ITA, DEEP.region.rome, 2, 2);
-    d.sea.mines = [[itaHome[0], ww.land.sideOf(GBR), 100_000]];
+    setMines(d, [[itaHome[0], ww.land.sideOf(GBR), 100_000]]);
     aiSeaAirDay(d, ITA, day);
     const f = navy.fleets.get(sweepers)!;
     expect(FLEET_MISSIONS[f.mission]).toBe("sweep_mines");
     expect(f.missionSr).toBe(itaHome[0]);
     // Swept clean: home again.
-    d.sea.mines = [];
+    setMines(d, []);
     aiSeaAirDay(d, ITA, day + 1);
     expect(FLEET_MISSIONS[navy.fleets.get(sweepers)!.mission]).toBe("hold");
   });

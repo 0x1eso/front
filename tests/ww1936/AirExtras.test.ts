@@ -155,6 +155,17 @@ describe("World War 1936 P6: night bombing (spec §15.3)", () => {
     expect(night(runner, ITA, bombers.id, false)).toBe("not_controlled");
     expect(night(runner, GBR, fighters.id, true)).toBe("bad_air_mission");
     expect(night(runner, GBR, 99_999, true)).toBe("bad_index");
+    // Sensitivity: no night raid over a zone of no-strike regions only
+    // (the deep map has none: the judge is made to say so for this zone).
+    const zone = ww.scenario.sr(WEST)!.members;
+    const judge = vi
+      .spyOn(d, "noStrike")
+      .mockImplementation((r: number) => zone.includes(r));
+    expect(night(runner, GBR, bombers.id, false)).toBeNull();
+    expect(night(runner, GBR, bombers.id, true)).toBe("no_strike_region");
+    expect(bombers.night).toBe(false);
+    judge.mockRestore();
+    expect(night(runner, GBR, bombers.id, true)).toBeNull();
     expect(nightMods(d, fighters.id)).toEqual({
       lossBp: 10_000,
       bombBp: 10_000,
