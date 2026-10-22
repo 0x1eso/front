@@ -115,7 +115,7 @@ export const ENDGAME_DECISIONS: DecisionDef[] = [
     id: "gen_exile_resistance",
     category: "military",
     for: "any",
-    visible: { kind: "is_exile" },
+    visible: all({ kind: "is_exile" }, not({ kind: "has_agency" })),
     available: { kind: "is_exile" },
     cost: { pp: 50 },
     cooldownDays: 180,

@@ -177,40 +177,6 @@ const AHEAD_ELECTRONICS: Condition = any(
     not({ kind: "has_tech", tech: "computing_2" }),
   ),
 );
-const AHEAD_DOCTRINE: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "mobile_1" },
-    not({ kind: "has_tech", tech: "mobile_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "mobile_2" },
-    not({ kind: "has_tech", tech: "mobile_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "firepower_1" },
-    not({ kind: "has_tech", tech: "firepower_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "firepower_2" },
-    not({ kind: "has_tech", tech: "firepower_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "battleplan_1" },
-    not({ kind: "has_tech", tech: "battleplan_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "battleplan_2" },
-    not({ kind: "has_tech", tech: "battleplan_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "mass_1" },
-    not({ kind: "has_tech", tech: "mass_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "mass_2" },
-    not({ kind: "has_tech", tech: "mass_2" }),
-  ),
-);
 /** The first branch (TECH_BRANCHES order) where the leader is ahead gets +100% once (plan: branch chain). */
 const TECH_EXCHANGE: Effect = {
   kind: "if",
@@ -261,18 +227,12 @@ const TECH_EXCHANGE: Effect = {
                           uses: 1,
                         },
                       ],
+                      // Doctrine: mastery on land (the old doctrine techs are retired).
                       else: [
                         {
-                          kind: "if",
-                          cond: AHEAD_DOCTRINE,
-                          then: [
-                            {
-                              kind: "research_bonus",
-                              branch: "doctrine",
-                              pct: 100,
-                              uses: 1,
-                            },
-                          ],
+                          kind: "doctrine_mastery",
+                          domain: "land",
+                          amount: 60,
                         },
                       ],
                     },
@@ -459,7 +419,6 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
         AHEAD_AIR,
         AHEAD_INDUSTRY,
         AHEAD_ELECTRONICS,
-        AHEAD_DOCTRINE,
       ),
     ),
     cost: { pp: 50 },
@@ -472,7 +431,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_party_support_dem",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "democratic" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "democratic", pct: 10 },
@@ -496,7 +455,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_party_support_com",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "communist" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "communist", pct: 10 },
@@ -520,7 +479,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_party_support_fas",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "fascist" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "fascist", pct: 10 },
@@ -544,7 +503,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_party_support_neu",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "neutral" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "neutral", pct: 10 },
@@ -569,7 +528,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_coup_dem",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "democratic" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "democratic", pct: 40 },
@@ -603,7 +562,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_coup_com",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "communist" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "communist", pct: 40 },
@@ -632,7 +591,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_coup_fas",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "fascist" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "fascist", pct: 40 },
@@ -661,7 +620,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_coup_neu",
     category: "diplomacy",
     for: "any",
-    visible: { kind: "ruling", ideology: "neutral" },
+    visible: { kind: "always", value: false },
     target: {
       among: all(
         { kind: "pop_ge", ideology: "neutral", pct: 40 },

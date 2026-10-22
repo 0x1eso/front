@@ -167,7 +167,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "pol",
     spirits: ["pol_between"],
     leaders: {
       democratic: "pol_witos",
@@ -215,7 +215,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "bal",
     leaders: {
       democratic: "hun_karolyi",
       communist: "title:leader_communist",
@@ -231,7 +231,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "bal",
     leaders: {
       democratic: "rou_maniu",
       communist: "title:leader_communist",
@@ -247,7 +247,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "bal",
     leaders: {
       democratic: "yug_macek",
       communist: "title:leader_communist",
@@ -263,7 +263,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "bal",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -279,7 +279,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "bal",
     leaders: {
       democratic: "grc_sofoulis",
       communist: "title:leader_communist",
@@ -294,7 +294,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "bal",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -309,7 +309,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "tur",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -386,7 +386,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "spa",
     spirits: ["esp_civil_war_nation"],
     leaders: {
       democratic: "leader_esr",
@@ -403,7 +403,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [7, 4, 65, 24],
     stability: 50,
     warSupport: 35,
-    tree: "generic",
+    tree: "spa",
     spirits: ["esp_civil_war_nation"],
     leaders: {
       democratic: "title:leader_democratic",
@@ -450,7 +450,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "nor",
     leaders: {
       democratic: "leader_dnk",
       communist: "title:leader_communist",
@@ -465,7 +465,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "nor",
     leaders: {
       democratic: "leader_isl",
       communist: "title:leader_communist",
@@ -480,7 +480,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "nor",
     leaders: {
       democratic: "leader_nor",
       communist: "title:leader_communist",
@@ -495,7 +495,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "nor",
     spirits: ["gen_armed_neutrality"],
     leaders: {
       democratic: "leader_swe",
@@ -511,7 +511,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "nor",
     leaders: {
       democratic: "leader_fin",
       communist: "title:leader_communist",
@@ -667,7 +667,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "chn",
     spirits: ["chn_warlords"],
     leaders: {
       democratic: "title:leader_democratic",
@@ -684,7 +684,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [6, 65, 8, 21],
     stability: 50,
     warSupport: 35,
-    tree: "generic",
+    tree: "ccp",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "leader_ccp",
@@ -699,7 +699,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "chw",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -714,7 +714,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "chw",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -729,7 +729,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "chw",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -744,7 +744,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "chw",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -759,7 +759,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "chw",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -911,7 +911,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "dom",
     leaders: {
       democratic: "leader_zaf",
       communist: "title:leader_communist",
@@ -928,7 +928,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "dom",
     leaders: {
       democratic: "leader_can",
       communist: "title:leader_communist",
@@ -943,7 +943,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -958,7 +958,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -973,7 +973,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -988,7 +988,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1003,7 +1003,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1018,7 +1018,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "leader_cri",
       communist: "title:leader_communist",
@@ -1033,7 +1033,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1048,7 +1048,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1063,7 +1063,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1078,7 +1078,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1093,7 +1093,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "leader_col",
       communist: "title:leader_communist",
@@ -1108,7 +1108,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1123,7 +1123,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1138,7 +1138,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1153,7 +1153,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1168,7 +1168,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "bra_prestes",
@@ -1183,7 +1183,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1200,7 +1200,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "title:leader_democratic",
       communist: "title:leader_communist",
@@ -1215,7 +1215,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [15, 10, 20, 55],
     stability: 50,
     warSupport: 30,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "arg_alvear",
       communist: "title:leader_communist",
@@ -1230,7 +1230,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "lat",
     leaders: {
       democratic: "leader_chl",
       communist: "title:leader_communist",
@@ -1247,7 +1247,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "dom",
     leaders: {
       democratic: "leader_aus",
       communist: "title:leader_communist",
@@ -1262,7 +1262,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     popularity: [65, 4, 8, 23],
     stability: 55,
     warSupport: 20,
-    tree: "generic",
+    tree: "dom",
     leaders: {
       democratic: "leader_nzl",
       communist: "title:leader_communist",

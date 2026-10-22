@@ -339,9 +339,7 @@ export const GENERIC_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "sword",
     prereq: [["gen_army_infantry", "gen_army_artillery"]],
-    effects: [
-      { kind: "research_bonus", branch: "doctrine", pct: 100, uses: 2 },
-    ],
+    effects: [{ kind: "doctrine_mastery", domain: "land", amount: 120 }],
     ai: { base: 10 },
   },
   {

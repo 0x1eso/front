@@ -638,13 +638,8 @@ export const DEU_FOCUSES: FocusDef[] = [
     icon: "artillery",
     prereq: [["deu_panzer_arm"]],
     effects: [
-      // Mobile doctrine: the next step Germany does not have yet.
-      {
-        kind: "if",
-        cond: { kind: "has_tech", tech: "mobile_1" },
-        then: [{ kind: "research_bonus", tech: "mobile_2", pct: 100, uses: 1 }],
-        else: [{ kind: "research_bonus", tech: "mobile_1", pct: 100, uses: 1 }],
-      },
+      // Armour doctrine mastery (the retired mobile techs are gone).
+      { kind: "doctrine_mastery", domain: "land", track: "armor", amount: 60 },
       { kind: "add_spirit", id: "deu_combined_doctrine" },
     ],
     ai: { base: 10 },

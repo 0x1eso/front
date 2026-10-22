@@ -597,7 +597,7 @@ export const FRA_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "unlock_template", template: "fra_armoured_ii" },
       // "Mobile doctrine research +100% once": the doctrine branch.
-      { kind: "research_bonus", branch: "doctrine", pct: 100, uses: 1 },
+      { kind: "doctrine_mastery", domain: "land", amount: 60 },
       // Usable now, whatever the P2 roster's `from` says.
       { kind: "add_general", general: "de_gaulle" },
     ],
