@@ -14,6 +14,20 @@ import { gameHash, order, step, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
+/**
+ * Lane S (plan Task 6): Germany's real refusals of the samples — no
+ * nuclear physics, no project, no bomb, no rocket site, no raiders.
+ */
+const S_BLOCK: readonly string[] = [
+  "project_locked",
+  "bad_index",
+  "bad_index",
+  "no_atomic",
+  "no_facility",
+  "raid_conditions",
+  "bad_index",
+];
+
 /** The stub's refusal of each lane (plan Task 1 Step 11). */
 const LANE_BLOCK = (k: number): string =>
   k <= 1
@@ -35,7 +49,7 @@ const LANE_BLOCK = (k: number): string =>
                   : k <= 39
                     ? "no_agency"
                     : k <= 46
-                      ? "project_locked"
+                      ? S_BLOCK[k - 40]
                       : k <= 51
                         ? "cfocus_locked"
                         : k <= 55

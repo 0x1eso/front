@@ -6,9 +6,16 @@ import {
   ATOMIC_BOMB_DAYS,
   ATOMIC_MILESTONES_PM,
   FacilityId,
+  INTEL_BAND_FLOORS,
+  NUKE_MIN_BOMBERS,
+  RAID_KINDS,
+  RAID_PREP_DAYS,
   RaidKind,
+  ROCKET_RANGE_KM,
   ScientistSpec,
+  SPECIAL_PROJECTS,
   SpecialProject,
+  WW_MAX_RAIDS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type {
   BuildingId,
@@ -73,6 +80,55 @@ export const PROJECT_DEFS: Readonly<Record<SpecialProject, ProjectDef>> = {
 /** Spec §9.2. */
 export function scientistPct(skill: number, matches: boolean): number {
   return 15 * (skill - 1) + (matches ? 25 : 0);
+}
+
+/** Spec §9.2: a scientist at work gains a skill level every 365 days, up to 5. */
+export const SCIENTIST_SKILL_DAYS = 365;
+export const SCIENTIST_MAX_SKILL = 5;
+
+/** The SPECIAL_PROJECTS bit of a project (proj.done, blueprints, halved). */
+export function projectBit(p: SpecialProject): number {
+  return 1 << SPECIAL_PROJECTS.indexOf(p);
+}
+
+/** Spec §9.1: a captured blueprint cuts the project's base days by 20%, once. */
+export function projectBaseDays(days: number, blueprint: boolean): number {
+  return blueprint ? Math.floor((days * 80) / 100) : days;
+}
+
+/**
+ * Spec §18.5 and the content's flags (P5 heavy_water and radar_lab, K3
+ * nor_heavy_water, K5 quebec_agreement): what a project adds to its speed
+ * on top of the scientist and projectSpeedPct, percent.
+ */
+export interface ProjectBonusInput {
+  project: SpecialProject;
+  /** The country's P5 flag heavy_water (the French heavy water reached it). */
+  heavyWater: boolean;
+  /** The country's P5 flag radar_lab. */
+  radarLab: boolean;
+  /** It controls the Vemork dam's region and the plant stands (level > 0). */
+  vemork: boolean;
+  /** The K3 flag nor_heavy_water (the country's or the world's). */
+  norHeavyWater: boolean;
+  /** The world flag quebec_agreement, read for the United States' project (K5). */
+  quebec: boolean;
+}
+
+export function projectBonusPct(i: ProjectBonusInput): number {
+  switch (i.project) {
+    case "sp_atomic":
+      return (
+        (i.heavyWater ? 10 : 0) +
+        (i.vemork ? (i.norHeavyWater ? 20 : 10) : 0) +
+        (i.quebec ? 15 : 0)
+      );
+    case "sp_cavity_magnetron":
+    case "sp_proximity_fuze":
+      return i.radarLab ? 20 : 0;
+    default:
+      return 0;
+  }
 }
 
 /** Spec §9.3: a day's progress, milli‰. Skill 4 + match (+70), full input: 1900 days → 894 a day → 1,119 days. */
@@ -254,11 +310,28 @@ export interface ProjectStartInput {
   nukesOn: boolean;
 }
 
-/** Refusal of project_start (plan decision 40). S fills (spec §9.3). */
+/**
+ * Refusal of project_start (plan decision 40, spec §9.3): the atomic
+ * project needs the lobby's ww1936Nukes; a project is started once (not
+ * done, its techs and its predecessor done); one project runs in one
+ * place (a paused one — facility 0 — may start again); the region holds a
+ * facility of the project's kind (`facilityKind`, null none) that runs
+ * nothing else.
+ */
 export function projectStartBlock(
   i: ProjectStartInput,
 ): "no_facility" | "project_locked" | "in_progress" | null {
-  return "project_locked";
+  const def = PROJECT_DEFS[i.project];
+  if (i.project === "sp_atomic" && !i.nukesOn) return "project_locked";
+  if ((i.done & projectBit(i.project)) !== 0) return "project_locked";
+  if (def.techs.some((t) => !i.techs.has(t))) return "project_locked";
+  if (def.after !== undefined && (i.done & projectBit(def.after)) === 0) {
+    return "project_locked";
+  }
+  if (i.running) return "in_progress";
+  if (i.facilityKind !== def.facility) return "no_facility";
+  if (i.facilityBusy) return "in_progress";
+  return null;
 }
 
 export interface NukeDropInput {
@@ -274,7 +347,20 @@ export interface NukeDropInput {
   noStrike: boolean;
 }
 
-/** Refusal of nuke_drop (plan decision 40). S fills (spec §9.5); a no-strike region is always refused. */
+/** Spec §9.5: a ballistic rocket carries the bomb this far (its own range). */
+export const NUKE_ROCKET_RANGE_KM = ROCKET_RANGE_KM[1];
+/** Spec §9.5: the bombers an interception costs. */
+export const NUKE_INTERCEPT_BOMBERS = 10;
+
+/**
+ * Refusal of nuke_drop (plan decision 40, spec §9.5). A no-strike region
+ * is always refused first. Then the lobby key, a bomb in stock, a war with
+ * the target region's controller, and the carrier: a ballistic rocket
+ * (sp_ballistic done, one in stock, the target's center within 320 km of
+ * one of our rocket sites' centers — `rocketKm` < 0: no site) or 10
+ * strategic bombers of ours or our side on strategic bombing over the
+ * target's land zone.
+ */
 export function nukeDropBlock(
   i: NukeDropInput,
 ):
@@ -285,7 +371,16 @@ export function nukeDropBlock(
   | null {
   // Sensitivity (decision 34): the no-strike line first; lane S keeps it.
   if (i.noStrike) return "no_strike_region";
-  return "nuke_conditions";
+  if (!i.nukesOn) return "nuke_conditions";
+  if (i.stock < 1) return "no_atomic";
+  if (!i.atWar) return "nuke_conditions";
+  if (i.rocket) {
+    if (!i.ballisticDone || i.ballisticStock < 1 || i.rocketKm < 0) {
+      return "nuke_conditions";
+    }
+    return i.rocketKm > NUKE_ROCKET_RANGE_KM ? "out_of_rocket_range" : null;
+  }
+  return i.bombersInZone >= NUKE_MIN_BOMBERS ? null : "nuke_conditions";
 }
 
 export interface RaidInput {
@@ -300,20 +395,71 @@ export interface RaidInput {
   noStrike: boolean;
 }
 
-/** Refusal of raid (plan decision 40). S fills (spec §10); a no-strike region is always refused. */
+/**
+ * Refusal of raid (plan decision 40, spec §10). A no-strike region is
+ * always refused first. Then two raids a country at once, the unit (a
+ * division mostly of paratroopers, or of marines and mountain troops; a
+ * bomber deployment over the target's zone), its reach (the air base,
+ * 20 transports and their range; the port, 10 convoys, the sea route at
+ * 30% supremacy; 50 bombers over the zone), the target (a building of the
+ * kind's list in an enemy's region), and a facility only when our civil
+ * intelligence on the target region's controller is at least "close".
+ */
 export function raidBlock(
   i: RaidInput,
 ): "no_strike_region" | "raid_conditions" | null {
   if (i.noStrike) return "no_strike_region";
-  return "raid_conditions";
+  if (i.running >= WW_MAX_RAIDS) return "raid_conditions";
+  if (!i.unitOk || !i.reachOk || !i.targetOk) return "raid_conditions";
+  if (i.facilityTarget && !i.intelClose) return "raid_conditions";
+  return null;
 }
 
-/** Spec §9.7: the target check of rocket_strike (pre-flight §0-11: never a no-strike region). S fills the range part. */
+/** Spec §10: what a raid needs (the reach rows of the table). */
+export const RAID_MIN_TRANSPORTS = 20;
+export const RAID_MIN_CONVOYS = 10;
+export const RAID_ROUTE_SUP_PM = 300;
+export const RAID_MIN_BOMBERS = 50;
+/** Spec §10: a facility is a target only with civil intelligence "close" or better. */
+export const RAID_FACILITY_INTEL = INTEL_BAND_FLOORS[2];
+/** Spec §10: a facility hit loses 15% of its project, milli‰. */
+export const RAID_FACILITY_CUT_MILLI = 150_000;
+/** Spec §10: strength lost, ‰ of HP (success, failure); bombers lost on a failed precision raid, percent. */
+export const RAID_SUCCESS_LOSS_PM = 200;
+export const RAID_FAIL_LOSS_PM = 500;
+export const RAID_BOMBER_LOSS_PCT = 10;
+
+/** Spec §10: the target buildings a kind may hit. */
+export function raidTargetOk(kind: RaidKind, building: BuildingId): boolean {
+  return RAID_TARGETS[kind].includes(building);
+}
+
+/** Spec §10, §4.2: the preparation days; a commando general cuts them by 25%. */
+export function raidPrepDays(kind: RaidKind, commando: boolean): number {
+  const days = RAID_PREP_DAYS[RAID_KINDS.indexOf(kind)];
+  return commando ? Math.floor((days * 75) / 100) : days;
+}
+
+/** Spec §10: the levels a successful raid takes off its building (a dockyard: buildings). */
+export function raidLevelCut(kind: RaidKind): number {
+  return kind === "raid_bomb" ? 1 : 2;
+}
+
+/** P2 spec §5.4's experience levels 0..3 (recruit … elite) for the raid odds. */
+export function raidExpLevel(exp: number): number {
+  return exp < 250 ? 0 : exp < 500 ? 1 : exp < 750 ? 2 : 3;
+}
+
+/**
+ * Spec §9.7: the target check of rocket_strike — never a no-strike region
+ * (pre-flight §0-11, first), then the rocket's range between the site's
+ * and the target's centers.
+ */
 export function rocketTargetBlock(i: {
   km: number;
   rangeKm: number;
   noStrike: boolean;
 }): "no_strike_region" | "out_of_rocket_range" | "raid_conditions" | null {
   if (i.noStrike) return "no_strike_region";
-  return "out_of_rocket_range";
+  return i.km > i.rangeKm ? "out_of_rocket_range" : null;
 }
