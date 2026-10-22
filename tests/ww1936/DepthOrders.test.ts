@@ -14,8 +14,21 @@ import { gameHash, order, step, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
+/**
+ * Lane W3 (plan Task 9): Germany's answers on day 0 — continuous focuses
+ * closed, its faction's rule and goal taken (it leads the Axis), no treaty
+ * to leave.
+ */
+const W3_ANSWER: readonly (string | null)[] = [
+  "cfocus_locked",
+  "cfocus_locked",
+  null,
+  null,
+  "bad_index",
+];
+
 /** The stub's refusal of each lane (plan Task 1 Step 11). */
-const LANE_BLOCK = (k: number): string =>
+const LANE_BLOCK = (k: number): string | null =>
   k <= 1
     ? "doctrine_locked"
     : k <= 4 || k === 12 || k === 13
@@ -37,7 +50,7 @@ const LANE_BLOCK = (k: number): string =>
                     : k <= 46
                       ? "project_locked"
                       : k <= 51
-                        ? "cfocus_locked"
+                        ? W3_ANSWER[k - 47]
                         : k <= 55
                           ? "railgun_limit"
                           : "bad_index";
@@ -66,7 +79,9 @@ describe("World War 1936 P6: the depth orders", () => {
     ww.depth.markStats(DEEP.tag.GBR);
     const before = gameHash(runner);
     const snap = JSON.stringify(ww.depth.snapshot());
-    for (const kind of DEPTH_ORDER_KINDS) {
+    // The refused ones (W3's faction rule and goal are Germany's to take).
+    for (const [k, kind] of DEPTH_ORDER_KINDS.entries()) {
+      if (LANE_BLOCK(k) === null) continue;
       expect(
         ww.depth.issue(DEEP.tag.DEU, SAMPLES[kind] as WwOrder, 1),
         kind,
