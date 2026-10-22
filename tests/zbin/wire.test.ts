@@ -1245,7 +1245,10 @@ describe("zbin wire: the P6 depth orders (plan Task 1 Step 4)", () => {
           {
             type: "ww_order",
             clientID: P1,
-            order: { kind: "design_save", def: { ...TEST_TANK, name } },
+            order: {
+              kind: "design_save",
+              def: { ...TEST_TANK, name } as never,
+            },
           },
         ],
       },

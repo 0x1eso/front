@@ -25,6 +25,8 @@ describe("the deep test map", () => {
     const deep = json("ww1936deep");
     const sea = json("ww1936sea");
     expect(deep.version).toBe(5);
+    // Sensitivity (decision 34): no Korean or Taiwanese region on the map.
+    expect(JSON.stringify(deep)).not.toMatch(/korea|taiwan/i);
     const strip = (s: ReadonlyScenarioData) =>
       JSON.stringify({
         ...s,

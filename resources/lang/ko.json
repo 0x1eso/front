@@ -4046,7 +4046,8 @@
       "tab_trade": "자원·무역",
       "trade_civs": "무역 {n}",
       "troops": "병력",
-      "used": "사용"
+      "used": "사용",
+      "doctrine_moved": "교리는 이제 연구하지 않고 교리 화면에서 고릅니다(대교리와 숙련)."
     },
     "effect": {
       "airDetectPct": "공중 탐지 +{n}%",

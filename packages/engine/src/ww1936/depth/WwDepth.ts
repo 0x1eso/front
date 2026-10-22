@@ -7,7 +7,6 @@
 import type { DepthOrder, WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import {
-  AGENCY_UPGRADES,
   ATOMIC_MILESTONES_PM,
   DEPTH_ORDER_KINDS,
   DESIGN_KINDS,
@@ -17,9 +16,13 @@ import {
   DesignStats,
   FACILITY_IDS,
   FM_TRAITS,
+  GRAND_DOCTRINES,
+  INTEL_MISSIONS as INTEL_MISSION_IDS,
+  INTEL_OPERATIONS as INTEL_OPERATION_IDS,
   KeyStatsTable,
   MIO_FAMILIES,
   SPECIAL_PROJECTS,
+  SUBDOCTRINES,
   TREATY_END_DATE,
   WW_PLANE_DESIGN_SLOTS,
   WW_SHIP_DESIGN_SLOTS,
@@ -60,10 +63,7 @@ import {
   NAVAL_SHARE_MICRO,
   startDoctrinePick,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
-import {
-  energyPenaltyPct,
-  energySupply,
-} from "@openfront/engine-lib/ww1936/EnergyRules";
+import { energyPenaltyPct } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { marketPriceMilli } from "@openfront/engine-lib/ww1936/MarketRules";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
 import { mioPoints, mioSize } from "@openfront/engine-lib/ww1936/MioRules";
@@ -1724,10 +1724,6 @@ function applyStartDoctrine(
   });
 }
 
-import {
-  GRAND_DOCTRINES,
-  SUBDOCTRINES,
-} from "@openfront/engine-api/ww1936/DepthTypes";
 const GRAND_DOCTRINE_INDEX = new Map<string, number>(
   GRAND_DOCTRINES.map((g, i) => [g, i]),
 );
@@ -1930,11 +1926,6 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
   };
 }
 
-import {
-  INTEL_MISSIONS as INTEL_MISSION_IDS,
-  INTEL_OPERATIONS as INTEL_OPERATION_IDS,
-} from "@openfront/engine-api/ww1936/DepthTypes";
-
 function bopOf(d: WwDepth, id: number): [number, number, number] | undefined {
   const tag = d.ww.tagOf(id);
   const i = BOP_DEFS.findIndex((b) => b.tag === tag);
@@ -2028,6 +2019,3 @@ function globalDataOf(d: WwDepth): Partial<WwDepthData> {
     ]),
   };
 }
-
-// Kept for the lanes (the energy card's supply line).
-export { AGENCY_UPGRADES, energySupply };

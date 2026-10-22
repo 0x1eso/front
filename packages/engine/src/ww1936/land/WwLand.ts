@@ -885,9 +885,9 @@ export class WwLand {
    * counter, and the pass each row's stats entry was last checked in.
    * Derived, never state.
    */
-  private readPass = 0;
-  private readPassSeq = 0;
-  private passStamp = new Int32Array(0);
+  private statsReadPass = 0;
+  private statsReadPassSeq = 0;
+  private statsPassStamp = new Int32Array(0);
   /**
    * Org max, flags, width, supply use and template numbers by row
    * (stepRecovery reads every row every tick): valid while the row holds
@@ -1625,14 +1625,14 @@ export class WwLand {
   }
 
   private statsEntry(row: number): StatsEntry {
-    const pass = this.readPass;
+    const pass = this.statsReadPass;
     if (pass === 0) return this.statsEntryChecked(row);
     // In a read-only pass (takeData) nothing moves: once checked, kept.
-    let stamps = this.passStamp;
+    let stamps = this.statsPassStamp;
     if (row >= stamps.length) {
       const grown = new Int32Array(Math.max(row + 1, stamps.length * 2, 64));
       grown.set(stamps);
-      stamps = this.passStamp = grown;
+      stamps = this.statsPassStamp = grown;
     }
     if (stamps[row] === pass) {
       const hit = this.statsCache.get(this.divisions.id[row]);
@@ -2048,11 +2048,11 @@ export class WwLand {
       return null;
     }
     // A read-only pass: a row's stats entry is checked once (statsEntry).
-    this.readPass = ++this.readPassSeq;
+    this.statsReadPass = ++this.statsReadPassSeq;
     try {
       return this.takeDataPass();
     } finally {
-      this.readPass = 0;
+      this.statsReadPass = 0;
     }
   }
 

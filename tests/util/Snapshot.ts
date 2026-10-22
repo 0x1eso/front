@@ -171,9 +171,9 @@ export const DERIVED_FIELDS = new Set<string>([
   "sideOfId",
   "sideListCache",
   "statsCache",
-  "readPass",
-  "readPassSeq",
-  "passStamp",
+  "statsReadPass",
+  "statsReadPassSeq",
+  "statsPassStamp",
   "tplCache",
   // P2 Task 11 (perf): the stats inputs each cache entry was checked
   // against, the org max, flags and width by row, the day's weather by

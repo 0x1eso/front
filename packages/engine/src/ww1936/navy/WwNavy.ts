@@ -542,7 +542,7 @@ const ShipTableSchema = z.object({
   docks: zInts(),
   nameOwner: zInts(),
   deck: zInts(),
-  // P6 (plan decisions 8, 9, 12): written always; absent reads 0 (tallyDay −1).
+  // P6 (plan decisions 8, 9, 12): written always (a P6 snapshot has them).
   design: zInts().optional(),
   refitTo: zInts().optional(),
   refitLeft: zInts().optional(),

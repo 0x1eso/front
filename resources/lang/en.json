@@ -4298,6 +4298,7 @@
       "cooldown": "{n} days to wait",
       "coverage": "Coverage {n}%",
       "days_left": "{n} days",
+      "doctrine_moved": "Doctrines are now chosen in the doctrine screen (grand doctrines and mastery), not researched.",
       "efficiency": "Efficiency {n}% (cap {cap}%)",
       "export_room": "{n} a day for sale",
       "exported": "Exported",

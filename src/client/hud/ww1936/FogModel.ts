@@ -76,7 +76,8 @@ export class FogModel {
   armyView(armyId: number): FogArmyView {
     const a = this.view.wwLand()?.armies.get(armyId);
     return {
-      visible: true,
+      // An army the view no longer knows draws nothing (no "0" token).
+      visible: a !== undefined,
       ghost: false,
       countLabel: String(a?.divisions ?? 0),
       bars: "exact",
@@ -92,7 +93,7 @@ export class FogModel {
     let ships = 0;
     for (const n of f?.counts ?? []) ships += n;
     return {
-      visible: true,
+      visible: f !== undefined,
       ghost: false,
       countLabel: String(ships),
       shipsLabel: String(ships),

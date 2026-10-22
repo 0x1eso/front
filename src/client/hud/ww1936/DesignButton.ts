@@ -20,7 +20,7 @@ export function designButton(
   return html`<button
     type="button"
     data-ww-designer=${kind}
-    class="mt-2 flex min-h-9 w-full items-center justify-center rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10"
+    class="mt-2 flex min-h-11 w-full items-center justify-center rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10"
     @click=${() => eventBus.emit(new WwDepthOpenEvent("designer", { kind }))}
   >
     ${translateText(DESIGN_BUTTON_KEYS[kind])}
@@ -32,7 +32,7 @@ export function designsButton(eventBus: EventBus): TemplateResult {
   return html`<button
     type="button"
     data-ww-designs
-    class="mt-2 flex min-h-9 w-full items-center justify-center rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10"
+    class="mt-2 flex min-h-11 w-full items-center justify-center rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10"
     @click=${() => eventBus.emit(new WwDepthOpenEvent("designs"))}
   >
     ${translateText("ww1936.depth.designs")}
