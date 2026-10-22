@@ -451,7 +451,8 @@ export class WwTopBand extends LitElement implements Controller {
   /** Whether the band is too full for command power and congress inline (a later shed step). */
   private depthInRow(): boolean {
     const { maxWidth } = this.placement ?? bandPlacement();
-    return this.step(maxWidth) >= 3;
+    const step = this.step(maxWidth);
+    return step >= 3 && step < MAX_SHED_STEP;
   }
 
   private depthRowHolds(): boolean {
@@ -528,11 +529,17 @@ export class WwTopBand extends LitElement implements Controller {
 
   private renderDepth(step: number) {
     // Command power and congress inline while there is room; energy and bombs always.
-    return this.depthChips(step >= 3 ? false : null);
+    return this.depthChips(step >= 3 && step < MAX_SHED_STEP ? false : null);
   }
 
   private renderDepthRow(step: number, maxWidth: number, right: number | null) {
-    if (step < 3 || !this.depthRow || this.depth === null) return nothing;
+    if (
+      step < 3 ||
+      step >= MAX_SHED_STEP ||
+      !this.depthRow ||
+      this.depth === null
+    )
+      return nothing;
     return html`<div
       data-ww-depth-row
       class="fixed top-8 ${right === null
@@ -569,14 +576,16 @@ export class WwTopBand extends LitElement implements Controller {
       "h-9 shrink-0 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20";
     return html`<div
       data-ww-multi
-      class="fixed ${this.depthRow ? "top-16" : "top-9"} ${right === null
+      class="fixed ${this.depthRow
+        ? "top-16"
+        : "top-9"} max-h-40 overflow-y-auto ${right === null
         ? "left-1/2 -translate-x-1/2"
         : ""} z-[1002] flex flex-col gap-1 rounded-lg bg-gray-900/92 px-2 py-1 text-xs text-white shadow-md"
       style="max-width: ${maxWidth}px;${right === null
         ? ""
         : ` right: ${right}px;`}"
     >
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <span data-ww-multi-count class="shrink-0 font-bold"
           >${translateText("ww1936.ag.selected", {
             n: multi.armies.length,

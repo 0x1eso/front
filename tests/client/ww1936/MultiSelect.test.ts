@@ -52,15 +52,9 @@ import {
 } from "../../../src/client/InputHandler";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import type { TokenPlacement } from "../../../src/client/view/LandTokenLayout";
+import { doctrineGame, type DoctrineOptions } from "./DoctrineFixture";
 import { detail } from "./EconomyFixture";
-import {
-  army,
-  division,
-  fakeLandGame,
-  landDetail,
-  LandOptions,
-  scenario,
-} from "./LandFixture";
+import { army, division, landDetail, scenario } from "./LandFixture";
 
 /** Screen px per tile: a tap reaches 24 px = 6 tiles. */
 const SCALE = 4;
@@ -103,8 +97,8 @@ function hit(
   return near[(i + 1) % near.length];
 }
 
-function setup(o: LandOptions = {}) {
-  const g = fakeLandGame({
+function setup(o: DoctrineOptions = {}) {
+  const g = doctrineGame({
     ticks: 700,
     wars: [["DEU", "POL"]],
     details: [detail("DEU")],
@@ -218,5 +212,67 @@ describe("multi-select (spec §20.4)", () => {
     m.bus.emit(new DragEvent(30, 0));
     vi.advanceTimersByTime(600);
     expect(multiSelectOf(m.sel).active).toBe(false);
+  });
+});
+
+describe("group front and army group orders send once (spec §20.4)", () => {
+  const group = [{ id: 1, owner: 1, fm: 7, armies: [1] }];
+
+  function front(m: ReturnType<typeof setup>) {
+    const [x, y] = awayFromToken(3);
+    const down = () => m.bus.emit(new MouseDownEvent(x * SCALE, y * SCALE));
+    const up = () => m.bus.emit(new TouchEvent(x * SCALE, y * SCALE));
+    // First tap: the preview; a double tap before 350 ms confirms nothing.
+    down();
+    up();
+    m.advance(10);
+    down();
+    up();
+    expect(m.sent).toHaveLength(0);
+    m.advance(500);
+    down();
+    up();
+    // Further taps send nothing more.
+    m.advance(500);
+    down();
+    up();
+    m.advance(500);
+    down();
+    up();
+  }
+
+  it("[Front] of the group tab (no multi-select) sends ag_front once", () => {
+    const m = setup({ groups: group });
+    multiSelectOf(m.sel).startFront(1);
+    front(m);
+    const fronts = m.sent.filter((o) => o.kind === "ag_front");
+    expect(fronts).toHaveLength(1);
+    expect(fronts[0]).toMatchObject({ group: 1, enemy: 0 });
+    expect(m.sent).toHaveLength(1);
+    expect(multiSelectOf(m.sel).frontGroup).toBeNull();
+  });
+
+  it("[Front] of the multi bar's selection sends ag_front once", () => {
+    const m = setup({ groups: group });
+    m.controller.startMulti(1);
+    multiSelectOf(m.sel).startFront(1);
+    front(m);
+    expect(m.sent.filter((o) => o.kind === "ag_front")).toHaveLength(1);
+    expect(m.sent).toHaveLength(1);
+  });
+
+  it("a hold during multi-select keeps the selection", () => {
+    vi.useFakeTimers();
+    const m = setup({
+      armies: [army(1, "DEU", 3), army(2, "DEU", 4)],
+    });
+    m.controller.startMulti(1);
+    const multi = multiSelectOf(m.sel);
+    m.tap(...center(4));
+    expect(multi.armies).toEqual([1, 2]);
+    const [x, y] = center(4);
+    m.bus.emit(new MouseDownEvent(x * SCALE, y * SCALE));
+    vi.advanceTimersByTime(600);
+    expect(multi.armies).toEqual([1, 2]);
   });
 });

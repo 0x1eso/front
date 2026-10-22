@@ -214,7 +214,8 @@ export class WwLandController implements Controller {
         .layout(view, this.game.ticks(), zoom)
         .filter((p) => view.armies.get(p.army)?.owner === me);
       const hit = this.deps.hit(mine, w.x, w.y, TAP_RADIUS_PX / zoom, null);
-      if (hit === null) return;
+      // A hold during multi-select keeps the selection.
+      if (hit === null || this.multi.active) return;
       // The release that follows is not a tap.
       this.pressed = true;
       this.startMulti(hit);
@@ -272,8 +273,11 @@ export class WwLandController implements Controller {
     const region = this.regionAt(view, w.x, w.y);
     const sides = this.sides();
     if (!borderRegions(view, me, sides).includes(region)) {
-      m.pending = null;
-      m.version++;
+      // Elsewhere: a front flow begun from the group tab ends; the bar's stays.
+      if (m.active) {
+        m.pending = null;
+        m.version++;
+      } else m.cancel();
       this.changed();
       return true;
     }
@@ -354,7 +358,9 @@ export class WwLandController implements Controller {
     const zoom = Math.max(1e-6, this.transform.scale);
     const w = this.transform.screenToWorldCoordinatesFloat(x, y);
     const radius = TAP_RADIUS_PX / zoom;
-    if (this.multi.active) return this.multiTap(view, me, w, zoom);
+    if (this.multi.active || this.multi.frontGroup !== null) {
+      return this.multiTap(view, me, w, zoom);
+    }
     // 1. One of my tokens: choose it (over a stack, the one after the chosen).
     const mine = this.deps
       .layout(view, this.game.ticks(), zoom)

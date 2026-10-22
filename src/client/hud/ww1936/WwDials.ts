@@ -431,8 +431,8 @@ export class WwDials extends LitElement implements Controller {
                   : "bg-white text-gray-900",
                 translateText(
                   i.badge.kind === "captured"
-                    ? "ww1936.intel.dial"
-                    : "ww1936.intel.dial",
+                    ? "ww1936.intel.badge_captured"
+                    : "ww1936.intel.badge_idle",
                   { n: i.badge.n },
                 ),
               ),

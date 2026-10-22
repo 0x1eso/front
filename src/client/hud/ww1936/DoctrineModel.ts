@@ -248,6 +248,7 @@ export function marshalTraitIds(g: GeneralData): string[] {
 }
 
 /** Spec §4.3: level 3, or abilities summing to 12. */
+// TODO(lane D): use a shared promoteBlock from engine-lib.
 export function promotable(g: GeneralData): boolean {
   return g.level >= 3 || g.att + g.def + g.plan + g.log >= 12;
 }
@@ -516,6 +517,7 @@ export class DoctrineModel {
     });
   }
 
+  // TODO(lane D): use the engine-lib check when one exists.
   spiritBlock(category: number, index: number): DoctrineBlock | null {
     const c = this.ctx();
     if (c === null) return "not_ready";
@@ -607,6 +609,7 @@ export class DoctrineModel {
     );
   }
 
+  // TODO(lane D): use traitAssignBlock (and a shared promoteBlock) instead of this copied logic.
   private generalCandidates(c: Ctx, g: GeneralData): TraitCandidate[] {
     const mask = g.traits;
     const full = generalTraitIds(mask).length >= traitSlots(g.level);
@@ -628,6 +631,7 @@ export class DoctrineModel {
     return out;
   }
 
+  // TODO(lane D): use traitAssignBlock instead of this copied logic.
   private admiralCandidates(
     c: Ctx,
     level: number,

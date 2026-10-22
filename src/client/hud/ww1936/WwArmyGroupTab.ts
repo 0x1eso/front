@@ -3,6 +3,7 @@
 // [Execute all] (two taps), [Auto], [Disband] (two taps). Rendered by
 // WwArmyPanel, which owns the two-tap state and the order sending.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { WwLandView } from "../../view/WwLandView";
@@ -71,7 +72,7 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
           <span class="tabular-nums"
             >${translateText("ww1936.land.divisions_of", {
               n: a.divisions,
-              max: 24,
+              max: WW_MAX_ARMY_DIVISIONS,
             })}</span
           >
           <span class="ml-auto min-w-0 truncate text-white/70"

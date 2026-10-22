@@ -211,7 +211,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
     if (chip === undefined) return html``;
     const pick = model.pickBlock({ domain: d.domain, gd });
     const key = `gd${gd}`;
-    const stats = (i: 0 | 1) => statLines(GRAND_STATS(chip.id)[i]);
+    const stats = (i: 0 | 1) => statLines(grandStats(chip.id)[i]);
     return html`<div data-ww-gd-card=${chip.id} class="${CARD} mt-1">
       <div class="font-bold">${translateText(`ww1936.gd.${chip.id}`)}</div>
       <div class="text-white/60">
@@ -360,7 +360,10 @@ export class WwDoctrinePanel extends WwDrawerBase {
                   ${s.rewards.map(
                     (r, i) =>
                       html`<li class=${i < t.level ? "text-emerald-300" : ""}>
-                        L${i + 1} ${statLines(r).join(", ")}
+                        ${translateText("ww1936.doctrine.level_short", {
+                          level: i + 1,
+                        })}
+                        ${statLines(r).join(", ")}
                       </li>`,
                   )}
                 </ul>
@@ -765,7 +768,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
   }
 }
 
-function GRAND_STATS(id: GrandDoctrine) {
+function grandStats(id: GrandDoctrine) {
   return GRAND_DOCTRINE_STATS[id];
 }
 function isGeneralTrait(t: string): boolean {
