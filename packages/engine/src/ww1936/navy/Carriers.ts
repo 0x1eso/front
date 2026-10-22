@@ -110,8 +110,11 @@ export function deckSize(navy: WwNavy, row: number, f: Fleet): number {
   const t = navy.ships;
   if (t.cls[row] !== CV) return 0;
   const adm = f.admiral === 0 ? undefined : navy.admirals.get(f.admiral);
+  const st = navy.econ.country(t.owner[row])?.stats;
   const pct =
-    (navy.econ.country(t.owner[row])?.stats.deckPct ?? 0) +
+    (st?.deckPct ?? 0) +
+    // P6 (spec §21.2, T1b): carrierDeckPct.
+    (st?.carrierDeckPct ?? 0) +
     (((adm?.traits ?? 0) & AVIATOR) !== 0 ? AVIATOR_DECK_PCT : 0);
   return Math.floor((GEN_DECK[t.gen[row] - 1] * (100 + pct)) / 100);
 }

@@ -147,6 +147,20 @@ export const PLANE_BASE: Readonly<Record<AirType, PlaneBase>> = {
 };
 /** Spec §12.2 generations: +30% / +60% attack, defense, agility, ground, strategic, naval. */
 const GEN_PCT = [100, 130, 160];
+/** P6 (spec §21.2): the types bomberDefensePct reads (strategic, tactical and naval bombers). */
+export const BOMBER_TYPES: ReadonlySet<string> = new Set([
+  "bomber",
+  "strat_bomber",
+  "naval_bomber",
+  "cv_naval_bomber",
+]);
+/** P6 (spec §6.1): the types of the heavy aircraft MIO family (the rest are light). */
+export const HEAVY_AIR_TYPES: ReadonlySet<string> = new Set([
+  "bomber",
+  "heavy_fighter",
+  "strat_bomber",
+  "transport_plane",
+]);
 const GEN_SPEED = [0, 80, 160];
 const GEN_RANGE_PCT = [100, 120, 140];
 
@@ -175,7 +189,9 @@ export function planeStats(
     stats.airDefensePct +
     (type === "heavy_fighter" || type === "strat_bomber"
       ? stats.heavyDefensePct
-      : 0);
+      : 0) +
+    // P6 (spec §21.2, T1b): the bombers' air defence.
+    (BOMBER_TYPES.has(type) ? stats.bomberDefensePct : 0);
   const agiPct =
     GEN_PCT[g] +
     stats.airAgilityPct +
@@ -186,17 +202,28 @@ export function planeStats(
     (type === "naval_bomber" || type === "cv_naval_bomber"
       ? stats.navalBomberPct
       : 0);
-  const airAtk = b.airAtk * atkPct;
+  // P6 (lane M, T1b): the type's aircraft MIO's stat % on its attacks.
+  const mioPct = HEAVY_AIR_TYPES.has(type)
+    ? stats.mioStatPct_air_heavy
+    : stats.mioStatPct_air_light;
+  const mio = (v: number) =>
+    mioPct === 0 ? v : Math.floor((v * (100 + mioPct)) / 100);
+  const airAtk = mio(b.airAtk * atkPct);
   const airDef = b.airDef * defPct;
   return {
     airAtk,
     airDef,
     agility: Math.floor((b.agility * agiPct) / 100),
     speedKmh: b.speedKmh + GEN_SPEED[g],
-    rangeKm: Math.floor((b.rangeKm * GEN_RANGE_PCT[g]) / 100),
-    ground: b.ground * GEN_PCT[g],
-    strat: b.strat * GEN_PCT[g],
-    naval: b.naval * navPct,
+    // P6 (spec §21.2, T1b): airRangePct.
+    rangeKm: Math.floor(
+      (Math.floor((b.rangeKm * GEN_RANGE_PCT[g]) / 100) *
+        Math.max(10, 100 + stats.airRangePct)) /
+        100,
+    ),
+    ground: mio(b.ground * GEN_PCT[g]),
+    strat: mio(b.strat * GEN_PCT[g]),
+    naval: mio(b.naval * navPct),
     supWeightMilli: b.fighter ? Math.floor((airAtk + airDef) / 3) : 100,
     fuelPerSortieMilli: b.fuel * 100,
   };

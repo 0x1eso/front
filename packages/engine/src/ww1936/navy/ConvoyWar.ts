@@ -270,9 +270,15 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   for (const b of victims) {
     // P6 (spec §15.1): enemy mines add m / 10 ‰ of the traffic (traffic
     // convoys × ‰ = milli-convoys). Nobody is credited for them.
-    const milli =
+    const lossPct = navy.econ.country(b)?.stats.convoyLossPct ?? 0;
+    const raw =
       (sink.get(b) ?? 0) +
       traffic.get(b)! * minesConvoyLossPm(navy.ww.depth, sr, b);
+    // P6 (spec §21.2, T1b): the victim's convoyLossPct (−: fewer lost).
+    const milli =
+      lossPct === 0
+        ? raw
+        : Math.floor((raw * Math.max(0, 100 + lossPct)) / 100);
     if (milli <= 0) continue;
     lossToday.set(b, milli);
     const rest = (st.raidRest.get(b) ?? 0) + milli;
@@ -436,11 +442,13 @@ export function convoyLossPmOf(
   sr: number,
 ): number {
   const i = navy.scenario.srIdxOf(sr);
-  // P6 (spec §15.1): plus the enemy mines' convoy losses there.
-  return (
+  // P6 (spec §15.1): plus the enemy mines' convoy losses there; P6
+  // (spec §21.2, T1b): × the owner's convoyLossPct.
+  const pm =
     (i < 0 ? 0 : navy.lossRatePm(i, owner)) +
-    minesConvoyLossPm(navy.ww.depth, sr, owner)
-  );
+    minesConvoyLossPm(navy.ww.depth, sr, owner);
+  const pct = navy.econ.country(owner)?.stats.convoyLossPct ?? 0;
+  return pct === 0 ? pm : Math.floor((pm * Math.max(0, 100 + pct)) / 100);
 }
 
 /**

@@ -736,8 +736,16 @@ function modsBpOf(
     adds.push(sa.capitalAttackPct * 100);
   } else if (role === "sub") {
     adds.push(sa.subAttackPct * 100, (traits & SEA_WOLF) !== 0 ? 1500 : 0);
+  } else if (role === "screen") {
+    // P6 (spec §21.2, T1b): the destroyers' and light cruisers' fire.
+    adds.push(sa.screenAttackPct * 100);
   }
-  const cuts = [-(tadm?.skills[1] ?? 0) * 400, -st.navyDefensePct * 100];
+  const cuts = [
+    -(tadm?.skills[1] ?? 0) * 400,
+    -st.navyDefensePct * 100,
+    // P6 (spec §21.2, T1b): the target's naval damage taken (−: less).
+    st.navalDamageTakenPct * 100,
+  ];
   return combineMods(adds, cuts) - 10_000;
 }
 
@@ -887,9 +895,11 @@ function fire(
       );
     }
     if (sh.cls === "cv") {
+      const cst = statsOf(navy, sh.owner);
+      // P6 (spec §21.2, T1b): carrierCycleCut beside the doctrine's rounds cut.
       const every = Math.max(
         1,
-        CARRIER_EVERY - statsOf(navy, sh.owner).carrierRoundsCut,
+        CARRIER_EVERY - cst.carrierRoundsCut - cst.carrierCycleCut,
       );
       if (
         round % every === 0 &&

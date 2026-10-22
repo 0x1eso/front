@@ -95,6 +95,13 @@ const isFighter = (type: number) => {
   return t === "fighter" || t === "heavy_fighter" || t === "cv_fighter";
 };
 
+/** P6 (spec §21.2, T1b): a sortie rate ‰ × (100 + sortieEffPct)%, at most one sortie a day. */
+function effWith(pct: number, pm: number): number {
+  return pct === 0
+    ? pm
+    : Math.min(1000, Math.floor((pm * Math.max(0, 100 + pct)) / 100));
+}
+
 /**
  * Spec §13.1: a zone's weather — a land zone's is its center region's (P2
  * weatherOn), a sea zone's its center sea zone's latitude and cell, on
@@ -188,6 +195,8 @@ function flightsOf(
     const milli: number[] = [];
     let total = 0;
     let fuel = 0;
+    // P6 (spec §21.2, T1b): the owner's sortieEffPct (effWith).
+    const effPct = ce.stats.sortieEffPct;
     for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
       const st = air.planeStatsOf(d.owner, type, g);
       stats.push(st);
@@ -195,12 +204,15 @@ function flightsOf(
       const eff =
         n === 0
           ? 0
-          : sortieEffPm(
-              weatherPm,
-              ce.fuelRatioPm,
-              rangeEffPm(km, st.rangeKm),
-              dmgPm,
-              supPm,
+          : effWith(
+              effPct,
+              sortieEffPm(
+                weatherPm,
+                ce.fuelRatioPm,
+                rangeEffPm(km, st.rangeKm),
+                dmgPm,
+                supPm,
+              ),
             );
       const m = n * eff;
       milli.push(m);
@@ -221,12 +233,15 @@ function flightsOf(
         stats.push(st);
         const m =
           n *
-          sortieEffPm(
-            weatherPm,
-            ce.fuelRatioPm,
-            rangeEffPm(km, st.rangeKm),
-            dmgPm,
-            supPm,
+          effWith(
+            effPct,
+            sortieEffPm(
+              weatherPm,
+              ce.fuelRatioPm,
+              rangeEffPm(km, st.rangeKm),
+              dmgPm,
+              supPm,
+            ),
           );
         milli.push(m);
         total += m;
@@ -956,19 +971,36 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
     if (v !== 0) m.set(k, (m.get(k) ?? 0) + v);
   };
   for (const f of flights) {
+    const ce = air.econ.country(f.owner);
+    // P6 (spec §21.2, T1b): interception's share of the superiority,
+    // half (P4) + interceptShareBp, at most whole.
+    const intBp = Math.min(10_000, 5_000 + (ce?.stats.interceptShareBp ?? 0));
     let sc2 = 0;
     f.stats.forEach((st, g) => {
       const w = Math.floor((f.milli[g] * st.supWeightMilli) / 1000);
-      sc2 += f.mission === M_INT ? Math.floor(w / 2) : w;
+      sc2 += f.mission === M_INT ? Math.floor((w * intBp) / 10_000) : w;
     });
     add(score, f.side, sc2);
-    const ce = air.econ.country(f.owner);
-    pp.set(f.side, Math.max(pp.get(f.side) ?? 0, ce?.stats.supPenaltyPp ?? 0));
+    // P6 (spec §21.2, T1b): enemyAirPenaltyPp beside P4's supPenaltyPp.
+    pp.set(
+      f.side,
+      Math.max(
+        pp.get(f.side) ?? 0,
+        (ce?.stats.supPenaltyPp ?? 0) + (ce?.stats.enemyAirPenaltyPp ?? 0),
+      ),
+    );
     let row = sorties.get(f.side);
     if (row === undefined) sorties.set(f.side, (row = AIR_TYPES.map(() => 0)));
     row[f.type] += f.total;
     if (f.mission === M_PATROL) {
-      add(search, f.owner, f.type === T_NAVAL_BOMBER ? f.total * 3 : f.total);
+      // P6 (spec §21.2, T1b): navalPatrolPct on the search.
+      const pat = ce?.stats.navalPatrolPct ?? 0;
+      const s0 = f.type === T_NAVAL_BOMBER ? f.total * 3 : f.total;
+      add(
+        search,
+        f.owner,
+        pat === 0 ? s0 : Math.floor((s0 * Math.max(0, 100 + pat)) / 100),
+      );
       add(asw, f.owner, f.total);
     } else if (f.mission === M_STRIKE) {
       add(strike, f.owner, f.total);
