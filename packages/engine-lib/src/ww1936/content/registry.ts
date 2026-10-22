@@ -92,7 +92,11 @@ import { SUN_EVENTS } from "./events/sun";
 import { TUR_EVENTS } from "./events/tur";
 import { USA_EVENTS } from "./events/usa";
 import { WORLD_EVENTS } from "./events/world";
-import { FLAGS_BASE, FLAGS_P5_BASE } from "./flags/base";
+import {
+  FLAGS_BASE,
+  FLAGS_P5_BASE,
+  FLAGS_P6_BASE,
+} from "./flags/base";
 import { FLAGS_DEU } from "./flags/deu";
 import { FLAGS_ENDGAME } from "./flags/endgame";
 import { FLAGS_FRA } from "./flags/fra";
@@ -608,7 +612,8 @@ export const CONTENT_PARTS: ContentParts = {
     ...FLAGS_USA,
     ...FLAGS_ENDGAME,
     ...FLAGS_P5_BASE,
-    // P6 (pre-flight §C1).
+    // P6 (pre-flight §C1, §C5).
+    ...FLAGS_P6_BASE,
     ...FLAGS_PACK_NORTH,
     ...DEPTH_FLAGS,
   ],

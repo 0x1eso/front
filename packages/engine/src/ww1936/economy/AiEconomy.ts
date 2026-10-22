@@ -65,6 +65,7 @@ import {
   extraction,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { navalLineClass } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
@@ -1972,12 +1973,15 @@ function aiNavalLinesTurn(
   const orders = aiNavalLinePlan({
     tag: ce.tag,
     docks,
-    lines: ce.navalLines.map((l) => ({
-      id: l.id,
-      slot: l.cls >= SHIP_CLASSES.length ? "convoy" : SHIP_CLASSES[l.cls],
-      gen: l.gen,
-      docks: l.docks,
-    })),
+    // (A floating-harbour line is never the AI's plan: left out.)
+    lines: ce.navalLines
+      .filter((l) => navalLineClass(l.cls) !== "floating_harbor")
+      .map((l) => ({
+        id: l.id,
+        slot: navalLineClass(l.cls) as ShipClass | "convoy",
+        gen: l.gen,
+        docks: l.docks,
+      })),
     researched: ce.researched,
     convoyStock: convoysOf(ce),
     convoyNeed: need,

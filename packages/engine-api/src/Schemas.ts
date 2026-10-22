@@ -1260,7 +1260,8 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("ag_front"),
     group: WwId,
     frontRegions: z.array(WwRegionId).min(1).max(120),
-    enemy: zb.uint({ max: 255 }),
+    // Review L7: a smallID, as P2's army_front.enemy.
+    enemy: zb.uint({ max: 1000 }),
   }),
   z.object({ kind: z.literal("ag_execute"), group: WwId }),
   z.object({ kind: z.literal("ag_auto"), group: WwId, on: z.boolean() }),

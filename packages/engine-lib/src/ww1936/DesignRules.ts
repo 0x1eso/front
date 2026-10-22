@@ -1427,7 +1427,10 @@ export function recommendedTank(
             ? "auto20"
             : base === "medium_1"
               ? pick(["gun_cs", "gun_small"], "gun")
-              : pick(["gun_hv", "gun_cs", "gun_small", "auto20"], "gun");
+              : base === "light_2"
+                ? // Spec §5.2.3 (review L12): light II carries the small gun.
+                  pick(["gun_small", "auto20"], "gun")
+                : pick(["gun_hv", "gun_cs", "gun_small", "auto20"], "gun");
   const turret =
     role === "sp_artillery" || role === "sp_anti_air"
       ? "turret_open"
@@ -1447,10 +1450,11 @@ export function recommendedTank(
                 : ["torsion", "bogie"],
             "suspension",
           );
+  // Spec §5.2.3 (review L12): a tank destroyer is welded.
   const armor =
     base === "light_1"
       ? "riveted"
-      : w === "heavy" || base === "medium_3"
+      : role !== "tank_destroyer" && (w === "heavy" || base === "medium_3")
         ? pick(["cast", "welded"], "armor")
         : "welded";
   // Spec §5.2.3 table: a diesel for medium II, medium III and the tank

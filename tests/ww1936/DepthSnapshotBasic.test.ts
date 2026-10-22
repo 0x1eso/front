@@ -6,6 +6,7 @@ import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { setEmbargo } from "@openfront/engine/ww1936/depth/Embargo";
 import type { DesignSlot } from "@openfront/engine/ww1936/depth/WwDepth";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import { vi } from "vitest";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { DEEP } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
@@ -51,13 +52,49 @@ describe("World War 1936 P6: the depth state in a snapshot", () => {
     d.markNuked(DEEP.region.berlin, 400);
     d.sea.mines.push([1002, DEEP.tag.ITA, 5_000]);
     d.world.damLevel[DEEP.dam.dam_mohne.index] = 0;
-    stepTo(a, 600);
+    // Pre-flight §0-8: the four values made on one day and read on a later
+    // one are state (review E5).
+    d.lastPriorityGot.set(DEEP.tag.DEU, [0, 0, 0, 0, 0, 0, 2, 1]);
+    d.sea.reconBySide.push([1, DEEP.sr.central, 12]);
+    d.resistBoost.push([DEEP.region.warsaw, 5]);
+    d.world.regionStatus.push([DEEP.region.paris, 900, 80, 10, 95]);
+    d.reindexSparse();
+    step(a, 600);
     const b = await wwRestore(a, HUMANS, DEEP.map);
     expect(gameHash(b)).toBe(gameHash(a));
     expect(
       b.game.worldWar()!.depth.designSlot(DEEP.tag.DEU, "tank", 1)?.def,
     ).toEqual(TEST_TANK);
     lockstep(a, b, 300);
+  });
+
+  it("a stats mark from inside the land tick never crosses into a snapshot (review E1)", async () => {
+    const a = await wwRunner({}, HUMANS, DEEP.map);
+    stepTo(a, WW_PREP_TICKS + 2);
+    // A landmark region changing hands mid-tick (after depth.clock).
+    const ww = a.game.worldWar()!;
+    const land = ww.land;
+    const tick = land.tick.bind(land);
+    let done = false;
+    land.tick = (t: number) => {
+      tick(t);
+      if (!done) {
+        done = true;
+        land.setController(DEEP.region.paris, DEEP.tag.DEU, t);
+      }
+    };
+    const marks = vi.spyOn(ww.depth, "markStats");
+    step(a, 1);
+    land.tick = tick;
+    expect(marks).toHaveBeenCalledWith(DEEP.tag.DEU);
+    marks.mockRestore();
+    expect(
+      (ww.depth as unknown as { depthDirtyStats: Set<number> }).depthDirtyStats
+        .size,
+    ).toBe(0);
+    const b = await wwRestore(a, HUMANS, DEEP.map);
+    expect(gameHash(b)).toBe(gameHash(a));
+    lockstep(a, b, 120);
   });
 
   it("a snapshot without depth is refused", async () => {

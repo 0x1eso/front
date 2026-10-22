@@ -299,7 +299,8 @@ export interface InvasionData {
 }
 export interface NavalLineData {
   id: number;
-  cls: ShipClass | "convoy";
+  /** P6 (review E4): a floating-harbour line is its own kind. */
+  cls: ShipClass | "convoy" | "floating_harbor";
   gen: number;
   docks: number;
   activeDocks: number;

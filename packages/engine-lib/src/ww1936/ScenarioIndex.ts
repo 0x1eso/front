@@ -1150,8 +1150,10 @@ export function fillScenarioOwners(map: GameMap, index: ScenarioIndex): void {
 
 /** P6: a region with `res` RESOURCE_COUNT long (uranium and coal from the v5 fields). */
 function withDepthRes(r: ReadonlyScenarioRegion): ReadonlyScenarioRegion {
-  if (r.res.length >= RESOURCE_COUNT) return r;
-  const res = [...r.res];
+  if (r.res.length === RESOURCE_COUNT) return r;
+  // Review L9: P1's six, then uranium and coal from the v5 fields (a
+  // stray seventh entry is not kept).
+  const res = r.res.slice(0, 6);
   while (res.length < 6) res.push(0);
   res.push(r.uranium ?? 0, r.coal ?? 0);
   return { ...r, res };

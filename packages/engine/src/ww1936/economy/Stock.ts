@@ -97,7 +97,7 @@ function drawGroupInto(
 /** Each need group's division slots in draw order, kept per KeyStatsTable (never written into). */
 const DRAW_ORDER = new WeakMap<KeyStatsTable, number[][]>();
 
-function drawOrderOf(ks: KeyStatsTable): number[][] {
+export function drawOrderOf(ks: KeyStatsTable): number[][] {
   let o = DRAW_ORDER.get(ks);
   if (o === undefined) {
     o = NEED_GROUPS.map((_, g) => groupDrawSlots(ks, g));

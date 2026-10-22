@@ -319,7 +319,7 @@ describe("content sensitivity", () => {
     expect(korea.test(JSON.stringify(packs))).toBe(false);
   });
 
-  it("P6: every strike on a no-strike region is refused", () => {
+  it("P6: every strike on a no-strike region is refused for that reason (the judges' first line)", () => {
     expect(
       nukeDropBlock({
         stock: 1,
@@ -332,7 +332,7 @@ describe("content sensitivity", () => {
         ballisticStock: 0,
         noStrike: true,
       }),
-    ).not.toBeNull();
+    ).toBe("no_strike_region");
     expect(
       raidBlock({
         kind: "raid_bomb",
@@ -344,7 +344,7 @@ describe("content sensitivity", () => {
         facilityTarget: false,
         noStrike: true,
       }),
-    ).not.toBeNull();
+    ).toBe("no_strike_region");
     expect(
       scorchBlock({
         legalOwner: true,
@@ -354,9 +354,13 @@ describe("content sensitivity", () => {
         queued: false,
         noStrike: true,
       }),
-    ).not.toBeNull();
+    ).toBe("no_strike_region");
+    expect(rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: true })).toBe(
+      "no_strike_region",
+    );
+    // The control: elsewhere the reason is never the no-strike one.
     expect(
-      rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: true }),
-    ).not.toBeNull();
+      rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: false }),
+    ).not.toBe("no_strike_region");
   });
 });

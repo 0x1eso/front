@@ -260,7 +260,10 @@ export function operationDays(
   return Math.max(1, Math.floor((OPERATION_DEFS[op].days * (100 - cut)) / 100));
 }
 
-/** Spec §8.5: success ‰ of op_collaboration / op_coup (deterministic threshold for wwRoll % 1000). */
+/**
+ * Spec §8.5: success ‰ of op_collaboration / op_coup. Pre-flight §A13:
+ * compare `wwRoll % 1_000_000 < pm * 1000` (milli‰ everywhere).
+ */
 export function opSuccessPm(
   networkPm: number,
   avgSkillMilli: number,

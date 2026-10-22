@@ -17,7 +17,6 @@ import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 
 const Z = emptyStats();
 const none = new Set<never>();
-/** The stats a doctrine tech feeds (its bonuses are stat keys: P6 pre-flight). */
 /** A doctrine's stat keys (P6 pre-flight §0-5: the old tech's values). */
 const doc = (s: Partial<WwStats>): WwStats => ({ ...Z, ...s });
 

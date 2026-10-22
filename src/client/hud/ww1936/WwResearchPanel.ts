@@ -240,6 +240,17 @@ export class WwResearchPanel extends WwDrawerBase {
         ${cards.map((c) => this.renderCard(d, c))}
       </ul>`;
     }
+    // P6 plan decision 25 (review "rest" 1): every doctrine tech is retired;
+    // a short line says where the doctrines went.
+    if (cards.length === 0) {
+      return html`<p
+        data-ww-cards
+        data-ww-doctrine-moved
+        class="mt-2 text-xs text-white/60"
+      >
+        ${translateText("ww1936.econ.doctrine_moved")}
+      </p>`;
+    }
     // One school only (spec §9.3): the cards by school, under its name
     // (P6 plan decision 25: a school whose techs are all retired is not shown).
     return html`<div data-ww-cards class="mt-2 flex flex-col gap-2">

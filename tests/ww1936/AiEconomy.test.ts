@@ -576,7 +576,9 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       const order = aiResearchOrder(t);
       // Every tech once; P6 plan decision 25: every school's doctrine
       // techs are retired, so none is listed (lane D's AI picks the grand
-      // doctrines); the school still leans the lines.
+      // doctrines). The school still leans the lines: "majors' lines lean
+      // to their doctrine" pins Germany's shares; lane D's AI tests take
+      // over the sea and air schools.
       expect(new Set(order).size).toBe(order.length);
       expect(order.filter((id) => WW_TECHS[id].school !== undefined)).toEqual(
         [],
@@ -645,6 +647,8 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     // P4 lane AI: of 3 slots the land keeps 2 (Germany's share 60%) and
     // the air takes the third; of 5 the land keeps 3 and the sea and the
     // air take one each.
+    // (A pure plan from this input; the all-AI game starts Germany on its
+    // aiStartPlan slots instead, see "research slots start filled".)
     expect(deu(0, 3)).toEqual([
       "naval_bomber_1",
       "fortification_1",

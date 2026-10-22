@@ -243,7 +243,8 @@ export function dailyGenerals(
     const preparing =
       (a.order.kind === "front" || a.order.kind === "plan") &&
       !a.order.executing &&
-      a.planBp < planMaxBp(ce.stats);
+      a.planBp <
+        planMaxBp(ce.stats) + land.depthHooks.armyMods(a.owner, a.id).planMaxBp;
     if (att) g.use[0]++;
     if (dfn) g.use[1]++;
     if (preparing) g.use[2]++;

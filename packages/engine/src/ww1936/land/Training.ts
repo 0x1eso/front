@@ -24,7 +24,6 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   equipFill,
-  groupDrawSlots,
   specialCap,
   STATIC_KEY_STATS,
   templateBlock,
@@ -32,6 +31,7 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import {
   drawManpower,
+  drawOrderOf,
   drawTemplateEquip,
   returnDivisionEquip,
   returnEquip,
@@ -179,7 +179,8 @@ function returnExcess(
   ks: KeyStatsTable,
 ): void {
   for (let g = 0; g < need.length; g++) {
-    const list = groupDrawSlots(ks, g).reverse();
+    // (The cached draw order, reversed: no sort per group.)
+    const list = [...drawOrderOf(ks)[g]].reverse();
     let have = 0;
     for (const j of list) have += slots[j];
     let extra = have - need[g];

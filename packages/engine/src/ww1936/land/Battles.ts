@@ -40,6 +40,7 @@ import {
   excessWidthBp,
   ModInput,
   ModResult,
+  planMaxBp,
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -762,7 +763,9 @@ export function stepRecovery(land: WwLand): void {
       pct =
         100 +
         (g !== null && (g.traits & traitBit("organizer")) !== 0 ? 20 : 0) +
-        (land.econ.country(t.owner[r])?.stats.recoveryPct ?? 0);
+        (land.econ.country(t.owner[r])?.stats.recoveryPct ?? 0) +
+        // Review L4: the army's field marshal and medal (lane D).
+        (army > 0 ? land.depthHooks.armyMods(t.owner[r], army).recoveryPct : 0);
       pctOf.set(key, pct);
     }
     const signal =
@@ -792,8 +795,10 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
   if (ce === null) return;
   const ePct =
     (ce.stats as Partial<Record<WwStatKey, number>>).entrenchSpeedPct ?? 0;
-  const entrenchEvery =
-    ePct === 0 ? 3 : Math.max(1, Math.floor(300 / Math.max(10, 100 + ePct)));
+  // P6 (spec §21.2): entrenchSpeedPct shortens the three days a level
+  // (whole days: an approximation, recorded); review L4: plus the army's
+  // field marshal (lane D).
+  const everyOf = new Map<number, number>();
   const stepOf = new Map<number, number>();
   for (const r of land.rowsOf(smallID)) {
     if (t.mode[r] !== MOVE_NONE) {
@@ -802,9 +807,19 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
       continue;
     }
     t.stillDays[r] = Math.min(65_535, t.stillDays[r] + 1);
-    // P6 (spec §21.2): entrenchSpeedPct shortens the three days a level.
-    if (t.stillDays[r] % entrenchEvery !== 0) continue;
     const army = t.army[r];
+    let entrenchEvery = everyOf.get(army);
+    if (entrenchEvery === undefined) {
+      const pct =
+        ePct +
+        (army > 0
+          ? land.depthHooks.armyMods(smallID, army).entrenchSpeedPct
+          : 0);
+      entrenchEvery =
+        pct === 0 ? 3 : Math.max(1, Math.floor(300 / Math.max(10, 100 + pct)));
+      everyOf.set(army, entrenchEvery);
+    }
+    if (t.stillDays[r] % entrenchEvery !== 0) continue;
     let step = stepOf.get(army);
     if (step === undefined) {
       const a = land.armies.get(army);
@@ -916,6 +931,16 @@ export function modInputOf(
   ) {
     planBp = a.planBp;
   }
+  const ce = land.econ.country(t.owner[row]);
+  const tech = ce?.stats ?? NEUTRAL_TECH;
+  // P6 (pre-flight §0-2): flat O(1) reads of what the depth days stored
+  // (one armyMods read; no object built per call).
+  const h = land.depthHooks;
+  const am = h.armyMods(t.owner[row], t.army[row]);
+  // Review L4: the readiness above the country's cap is the field
+  // marshal's (planMaxBp), its own line.
+  const fmPlanBp = Math.max(0, planBp - planMaxBp(tech));
+  planBp -= fmPlanBp;
   // The edge it attacks over (none when dropped in).
   let river: 0 | 1 | 2 = 0;
   let strait = false;
@@ -955,7 +980,7 @@ export function modInputOf(
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
     flags: land.flagsOf(row),
-    tech: land.econ.country(t.owner[row])?.stats ?? NEUTRAL_TECH,
+    tech,
     exp: t.exp[row],
     planBp,
     land: landOf,
@@ -974,8 +999,17 @@ export function modInputOf(
     landingBp,
     coastalFortBp: fortBp,
     shoreBp: attacking ? 0 : land.hooks.shoreBombardBp(region, side),
-    // P6 (pre-flight §0-2): flat O(1) reads of what the depth days stored.
-    ...depthModFields(land, row, region, attacking, fighter, base),
+    fmAtt: am.fmAtt,
+    fmDef: am.fmDef,
+    fmTraits: am.fmTraits,
+    cmdAttBp: am.cmdAttBp,
+    cmdDefBp: am.cmdDefBp,
+    enemyPlanCutBp: h.planCutBp(fighter, region),
+    fortCut: attacking ? h.fortCut(t.army[row], region) : 0,
+    halfSupply: am.halfSupply,
+    designFlags: base.designFlags,
+    artSoftPm: artSoftPmOf(base),
+    fmPlanBp,
   };
 }
 
@@ -1056,48 +1090,6 @@ function artSoftPmOf(s: DivisionStats): number {
   let a = 0;
   for (const g of ART_GROUPS) a += s.parts[g * 4] ?? 0;
   return Math.min(1000, Math.floor((a * 1000) / s.soft));
-}
-
-/**
- * P6 hook (D, W1, W2; pre-flight §0-2): the army's field marshal and
- * command values, the enemy's readiness cut, the railway guns' fort cut,
- * the designs' flags and the artillery share.
- */
-function depthModFields(
-  land: WwLand,
-  row: number,
-  region: number,
-  attacking: boolean,
-  fighter: number,
-  base: DivisionStats,
-): Pick<
-  ModInput,
-  | "fmAtt"
-  | "fmDef"
-  | "fmTraits"
-  | "cmdAttBp"
-  | "cmdDefBp"
-  | "enemyPlanCutBp"
-  | "fortCut"
-  | "halfSupply"
-  | "designFlags"
-  | "artSoftPm"
-> {
-  const t = land.divisions;
-  const h = land.depthHooks;
-  const am = h.armyMods(t.owner[row], t.army[row]);
-  return {
-    fmAtt: am.fmAtt,
-    fmDef: am.fmDef,
-    fmTraits: am.fmTraits,
-    cmdAttBp: am.cmdAttBp,
-    cmdDefBp: am.cmdDefBp,
-    enemyPlanCutBp: h.planCutBp(fighter, region),
-    fortCut: attacking ? h.fortCut(t.army[row], region) : 0,
-    halfSupply: am.halfSupply,
-    designFlags: base.designFlags,
-    artSoftPm: artSoftPmOf(base),
-  };
 }
 
 /**

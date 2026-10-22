@@ -39,7 +39,10 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { applyShipDesign } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fleetFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
-import { lineCostMilli } from "@openfront/engine-lib/ww1936/NavalLineRules";
+import {
+  lineCostMilli,
+  navalLineClass,
+} from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { idHash, P_NAVALBEAT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -539,7 +542,7 @@ const ShipTableSchema = z.object({
   docks: zInts(),
   nameOwner: zInts(),
   deck: zInts(),
-  // P6 (plan decisions 8, 9, 12): written always; absent reads 0 (tallyDay −1).
+  // P6 (plan decisions 8, 9, 12): written always (a P6 snapshot has them).
   design: zInts().optional(),
   refitTo: zInts().optional(),
   refitLeft: zInts().optional(),
@@ -1851,7 +1854,7 @@ export class WwNavy {
       smallID: id,
       lines: ce.navalLines.map((l) => ({
         id: l.id,
-        cls: l.cls >= SHIP_CLASSES.length ? "convoy" : SHIP_CLASSES[l.cls],
+        cls: navalLineClass(l.cls),
         gen: l.gen,
         docks: l.docks,
         activeDocks: l.activeDocks,
@@ -1861,7 +1864,8 @@ export class WwNavy {
         port: l.port,
         nextName:
           l.names[0] ??
-          (l.cls >= SHIP_CLASSES.length ||
+          (navalLineClass(l.cls) === "convoy" ||
+          navalLineClass(l.cls) === "floating_harbor" ||
           SHIP_CLASSES[l.cls] === "dd" ||
           SHIP_CLASSES[l.cls] === "ss"
             ? 0

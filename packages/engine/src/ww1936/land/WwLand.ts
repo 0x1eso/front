@@ -717,9 +717,13 @@ interface StatsInputs {
   statsVer: number;
   /** P6 (pre-flight §0-3a): the owner's KeyStatsTable (rebuilt, never written into). */
   ks: KeyStatsTable | null;
-  /** The hooks and their keyStatsSeq `ks` was read at. */
+  /** The hooks, their keyStatsSeq and the statsVer / researched set `ks` was read at. */
   hooks: LandDepthHooks | null;
   ksSeq: number;
+  ksVer: number;
+  ksResearched: ReadonlySet<unknown> | null;
+  /** The table the epoch was made with. */
+  epochKs: KeyStatsTable | null;
   ids: number[];
   defs: TemplateDef[];
   epoch: number;
@@ -881,9 +885,9 @@ export class WwLand {
    * counter, and the pass each row's stats entry was last checked in.
    * Derived, never state.
    */
-  private readPass = 0;
-  private readPassSeq = 0;
-  private passStamp = new Int32Array(0);
+  private statsReadPass = 0;
+  private statsReadPassSeq = 0;
+  private statsPassStamp = new Int32Array(0);
   /**
    * Org max, flags, width, supply use and template numbers by row
    * (stepRecovery reads every row every tick): valid while the row holds
@@ -1422,7 +1426,17 @@ export class WwLand {
 
   /** Maximum org with P3's orgPct (spec §9.8). */
   orgMaxOf(row: number): number {
-    return this.rowOrgEntry(row) ? this.rowStats.orgMax[row] : 0;
+    return this.rowOrgEntry(row)
+      ? this.rowStats.orgMax[row] + this.armyOrgAddMilli(row)
+      : 0;
+  }
+
+  /** Review L4: the org the row's army adds (its field marshal; lane D), milli. */
+  private armyOrgAddMilli(row: number): number {
+    const army = this.divisions.army[row];
+    return army > 0
+      ? this.depthHooks.armyMods(this.divisions.owner[row], army).orgAdd * 1000
+      : 0;
   }
 
   /**
@@ -1438,7 +1452,9 @@ export class WwLand {
 
   /** orgMaxOf with the owner's stats epoch from statsEpochs (this pass). */
   orgMaxAt(row: number, epoch: number): number {
-    return this.rowOrgEntry(row, epoch) ? this.rowStats.orgMax[row] : 0;
+    return this.rowOrgEntry(row, epoch)
+      ? this.rowStats.orgMax[row] + this.armyOrgAddMilli(row)
+      : 0;
   }
 
   /** flagsOf with the owner's stats epoch from statsEpochs (this pass). */
@@ -1541,43 +1557,18 @@ export class WwLand {
    * the owner.
    */
   private statsEpoch(owner: number): number {
-    let s = this.statsInputs[owner];
-    if (s === undefined) {
-      s = {
-        stats: null,
-        statsVer: -1,
-        ks: null,
-        hooks: null,
-        ksSeq: -1,
-        ids: [],
-        defs: [],
-        epoch: 0,
-      };
-      this.statsInputs[owner] = s;
-    }
+    const s = this.statsInputsOf(owner);
     const ce = this.econ.country(owner);
     const stats = ce?.stats ?? null;
     const statsVer = ce?.statsVer ?? -1;
-    // P6: the slot table is fetched again only when the hooks' tables or
-    // this country's stats moved (keyStatsSeq; the depth layer's lazy
-    // check reads statsVer).
-    const hooks = this.depthHooks;
-    let ks = s.ks;
-    if (
-      s.hooks !== hooks ||
-      s.ksSeq !== hooks.keyStatsSeq ||
-      s.statsVer !== statsVer ||
-      ks === null
-    ) {
-      ks = hooks.keyStats(owner);
-      s.hooks = hooks;
-      s.ksSeq = hooks.keyStatsSeq;
-    }
+    // P6: the slot table through the shared check (review E2); the epoch
+    // moves when it is not the one the epoch was made with.
+    const ks = this.currentKs(owner, s);
     const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
     let same =
       s.stats === stats &&
       s.statsVer === statsVer &&
-      s.ks === ks &&
+      s.epochKs === ks &&
       s.defs.length === tpls.length;
     for (let i = 0; same && i < tpls.length; i++) {
       same = tpls[i].def === s.defs[i] && tpls[i].id === s.ids[i];
@@ -1585,7 +1576,7 @@ export class WwLand {
     if (!same) {
       s.stats = stats;
       s.statsVer = statsVer;
-      s.ks = ks;
+      s.epochKs = ks;
       s.ids = tpls.map((x) => x.id);
       s.defs = tpls.map((x) => x.def);
       s.epoch = ++this.statsEpochSeq;
@@ -1634,14 +1625,14 @@ export class WwLand {
   }
 
   private statsEntry(row: number): StatsEntry {
-    const pass = this.readPass;
+    const pass = this.statsReadPass;
     if (pass === 0) return this.statsEntryChecked(row);
     // In a read-only pass (takeData) nothing moves: once checked, kept.
-    let stamps = this.passStamp;
+    let stamps = this.statsPassStamp;
     if (row >= stamps.length) {
       const grown = new Int32Array(Math.max(row + 1, stamps.length * 2, 64));
       grown.set(stamps);
-      stamps = this.passStamp = grown;
+      stamps = this.statsPassStamp = grown;
     }
     if (stamps[row] === pass) {
       const hit = this.statsCache.get(this.divisions.id[row]);
@@ -1710,7 +1701,56 @@ export class WwLand {
    * stats epoch was computed with (statsEpoch reads it first).
    */
   keyStatsOf(owner: number): KeyStatsTable {
-    return this.statsInputs[owner]?.ks ?? this.depthHooks.keyStats(owner);
+    return this.currentKs(owner, this.statsInputsOf(owner));
+  }
+
+  private statsInputsOf(owner: number): StatsInputs {
+    let s = this.statsInputs[owner];
+    if (s === undefined) {
+      s = {
+        stats: null,
+        statsVer: -1,
+        ks: null,
+        hooks: null,
+        ksSeq: -1,
+        ksVer: -1,
+        ksResearched: null,
+        epochKs: null,
+        ids: [],
+        defs: [],
+        epoch: 0,
+      };
+      this.statsInputs[owner] = s;
+    }
+    return s;
+  }
+
+  /**
+   * P6 (review E2): the owner's KeyStatsTable, re-read from the hooks when
+   * they, their keyStatsSeq, or the country's statsVer or researched set
+   * moved — the one check statsEpoch and keyStatsOf share, so no reader
+   * sees a stale table a restored game would not.
+   */
+  private currentKs(owner: number, s: StatsInputs): KeyStatsTable {
+    const hooks = this.depthHooks;
+    const ce = this.econ.country(owner);
+    const ver = ce?.statsVer ?? -1;
+    const researched = ce?.researched ?? null;
+    if (
+      s.ks === null ||
+      s.hooks !== hooks ||
+      s.ksSeq !== hooks.keyStatsSeq ||
+      s.ksVer !== ver ||
+      s.ksResearched !== researched
+    ) {
+      const ks = hooks.keyStats(owner);
+      s.ks = ks;
+      s.hooks = hooks;
+      s.ksSeq = hooks.keyStatsSeq;
+      s.ksVer = ver;
+      s.ksResearched = researched;
+    }
+    return s.ks;
   }
 
   /** P6 (plan decision 13): the country's field marshals now. */
@@ -2008,11 +2048,11 @@ export class WwLand {
       return null;
     }
     // A read-only pass: a row's stats entry is checked once (statsEntry).
-    this.readPass = ++this.readPassSeq;
+    this.statsReadPass = ++this.statsReadPassSeq;
     try {
       return this.takeDataPass();
     } finally {
-      this.readPass = 0;
+      this.statsReadPass = 0;
     }
   }
 

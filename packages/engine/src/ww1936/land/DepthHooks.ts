@@ -14,6 +14,15 @@ export interface ArmyDepthModsLike {
   cmdAttBp: number;
   cmdDefBp: number;
   halfSupply: boolean;
+  // Review L4: the army's non-combat command effects (see WwDepth.ArmyDepthMods).
+  orgAdd: number;
+  recoveryPct: number;
+  planSpeedPct: number;
+  planMaxBp: number;
+  entrenchSpeedPct: number;
+  supplyUsePct: number;
+  fmPlan: number;
+  fmLog: number;
 }
 
 export interface LandDepthHooks {
@@ -59,6 +68,14 @@ const NEUTRAL_MODS: ArmyDepthModsLike = {
   cmdAttBp: 0,
   cmdDefBp: 0,
   halfSupply: false,
+  orgAdd: 0,
+  recoveryPct: 0,
+  planSpeedPct: 0,
+  planMaxBp: 0,
+  entrenchSpeedPct: 0,
+  supplyUsePct: 0,
+  fmPlan: 0,
+  fmLog: 0,
 };
 
 export const NEUTRAL_DEPTH_HOOKS: LandDepthHooks = {

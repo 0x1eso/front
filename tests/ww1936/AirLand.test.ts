@@ -14,6 +14,7 @@ import {
   zoneAirPenaltyBp,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { GRAND_DOCTRINE_STATS } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import {
   battleMods,
   joinBattle,
@@ -72,7 +73,7 @@ async function germanSky(support = false) {
     // is retired and adds nothing).
     ww.economy.country(deu)!.addTech("battlefield_support_1");
     expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(0);
-    grantDoctrineStats(ww, deu, { supPenaltyPp: 5 });
+    grantDoctrineStats(ww, deu, GRAND_DOCTRINE_STATS.gd_battlefield_support[0]);
     expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(5);
   }
   expect(

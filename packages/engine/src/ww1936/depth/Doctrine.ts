@@ -3,7 +3,11 @@
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import type {
+  WwStatKey,
+  WwStats,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { masteryGain } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import type { EffectCtx } from "../politics/Dispatch";
 import type { WwDepth } from "./WwDepth";
 
@@ -33,3 +37,21 @@ export function applyMasteryEffect(
   e: Extract<Effect, { kind: "doctrine_mastery" }>,
   actor: number,
 ): void {}
+
+/**
+ * Review E6: today's mastery gain per track so far, milli (spec §3.4
+ * masteryGain of the day's tally and rsDoctrinePct); lane D may refine.
+ */
+export function doctrineGainMilli(d: WwDepth, id: number): number[] {
+  const s = d.ww.economy.country(id)?.stats as
+    | Partial<Record<WwStatKey, number>>
+    | undefined;
+  const pct = s?.rsDoctrinePct ?? 0;
+  const out: number[] = [];
+  for (let dom = 0; dom < 3; dom++) {
+    const o = id * 9 + dom * 3;
+    const t = d.dayTally;
+    out.push(...masteryGain([t[o] ?? 0, t[o + 1] ?? 0, t[o + 2] ?? 0], pct));
+  }
+  return out;
+}

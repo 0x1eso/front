@@ -500,6 +500,15 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> =
     }),
   ) as Record<WwTechId, WwTechDef>;
 
+/**
+ * P6 (spec §3.2, pre-flight §0-5): a retired doctrine tech's own effects,
+ * the values its grand doctrine carries on the same stat keys (one source:
+ * DoctrineRules.GRAND_DOCTRINE_STATS is built from these).
+ */
+export function retiredTechEffects(id: WwTechId): Partial<TechEffects> {
+  return BASE_TECHS[id].effects;
+}
+
 /** P6: a tech no one researches (plan decision 25). */
 export function isRetiredTech(id: WwTechId): boolean {
   return WW_TECHS[id].retired === true;

@@ -41,7 +41,7 @@ export function tricksterCutBp(
   return 0;
 }
 
-/** Spec §4.6: the order P2 reinforces the country's divisions in. Stub: division id order (P2's). */
+/** Spec §4.6: the order P2 reinforces the country's divisions in. Stub: row order (P2's). */
 export function reinforceOrder(d: WwDepth, id: number): number[] {
   const t = d.ww.land.divisions;
   return d.ww.land.rowsOf(id).map((r) => t.id[r]);

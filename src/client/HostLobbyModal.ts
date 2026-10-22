@@ -1947,7 +1947,8 @@ export class HostLobbyModal extends BaseModal {
             // false so the server turns the mode off.
             worldWar1936: this.worldWar1936,
             historicalAi: this.historicalAi,
-            ww1936Nukes: this.ww1936Nukes,
+            // P6: the atomic-bomb key only with the mode (vanilla never carries it).
+            ...(this.worldWar1936 ? { ww1936Nukes: this.ww1936Nukes } : {}),
             congress:
               this.domesticMode &&
               this.congress &&

@@ -3,6 +3,7 @@
 // foundation fixes the names and shapes (pre-flight A21).
 import {
   SHIP_CLASSES,
+  type ShipClass,
   WW_DOCK_OUTPUT_MILLI,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { RES_FLOOR_PERMILLE } from "./EconomyRules";
@@ -10,18 +11,48 @@ import { lineUnitCost } from "./ShipStats";
 
 /** What a naval line looks like to the pure rules (engine NavalLine, the screens' NavalLineData). */
 export interface NavalLineLike {
-  /** SHIP_CLASSES index, or SHIP_CLASSES.length for a convoy line. */
+  /** SHIP_CLASSES index, SHIP_CLASSES.length for a convoy line, HARBOR_LINE_CLS for a floating harbour. */
   cls: number;
   gen: number;
   /** Industry milli done on the next unit. */
   progress: number;
 }
 
+/** NavalLine.cls of a convoy line. */
+export const CONVOY_LINE_CLS = SHIP_CLASSES.length;
+/** P6 (pre-flight §A7, review E4): NavalLine.cls of a floating-harbour line, its own kind. */
+export const HARBOR_LINE_CLS = SHIP_CLASSES.length + 1;
+/** P6 (spec §16.6): a floating harbour costs 3,000 naval industry. */
+export const HARBOR_COST_MILLI = 3_000_000;
+
+/** The line kind of a NavalLine.cls. */
+export function navalLineClass(
+  cls: number,
+): ShipClass | "convoy" | "floating_harbor" {
+  return cls === HARBOR_LINE_CLS
+    ? "floating_harbor"
+    : cls >= CONVOY_LINE_CLS
+      ? "convoy"
+      : SHIP_CLASSES[cls];
+}
+
+/** NavalLine.cls of a line kind (the screens' NavalLineData.cls back to the index). */
+export function navalLineCls(
+  kind: ShipClass | "convoy" | "floating_harbor",
+): number {
+  return kind === "floating_harbor"
+    ? HARBOR_LINE_CLS
+    : kind === "convoy"
+      ? CONVOY_LINE_CLS
+      : SHIP_CLASSES.indexOf(kind);
+}
+
 /** A line's unit cost, industry milli. */
 export function lineCostMilli(line: NavalLineLike): number {
-  const cls =
-    line.cls >= SHIP_CLASSES.length ? "convoy" : SHIP_CLASSES[line.cls];
-  return lineUnitCost(cls, line.gen) * 1000;
+  const kind = navalLineClass(line.cls);
+  return kind === "floating_harbor"
+    ? HARBOR_COST_MILLI
+    : lineUnitCost(kind, line.gen) * 1000;
 }
 
 /**

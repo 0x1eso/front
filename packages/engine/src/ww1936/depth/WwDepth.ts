@@ -7,7 +7,6 @@
 import type { DepthOrder, WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import {
-  AGENCY_UPGRADES,
   ATOMIC_MILESTONES_PM,
   DEPTH_ORDER_KINDS,
   DESIGN_KINDS,
@@ -17,9 +16,13 @@ import {
   DesignStats,
   FACILITY_IDS,
   FM_TRAITS,
+  GRAND_DOCTRINES,
+  INTEL_MISSIONS as INTEL_MISSION_IDS,
+  INTEL_OPERATIONS as INTEL_OPERATION_IDS,
   KeyStatsTable,
   MIO_FAMILIES,
   SPECIAL_PROJECTS,
+  SUBDOCTRINES,
   TREATY_END_DATE,
   WW_PLANE_DESIGN_SLOTS,
   WW_SHIP_DESIGN_SLOTS,
@@ -58,11 +61,9 @@ import {
   landCombatShare,
   masteryLevel,
   NAVAL_SHARE_MICRO,
+  startDoctrinePick,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
-import {
-  energyPenaltyPct,
-  energySupply,
-} from "@openfront/engine-lib/ww1936/EnergyRules";
+import { energyPenaltyPct } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { marketPriceMilli } from "@openfront/engine-lib/ww1936/MarketRules";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
 import { mioPoints, mioSize } from "@openfront/engine-lib/ww1936/MioRules";
@@ -71,6 +72,7 @@ import { addStatsInto, emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
+import { aiPersonality } from "../economy/AiEconomy";
 import type { LandDepthHooks } from "../land/DepthHooks";
 import type { WorldWar } from "../WorldWar";
 import { dailyIntel, issueIntel } from "./Agency";
@@ -95,25 +97,38 @@ import {
   tricksterCutBp,
 } from "./Command";
 import { mechStatsOf } from "./ContinuousFocus";
+import { cipherOf, decryptOf } from "./Crypto";
 import {
   dailyDesigns,
+  designInUse,
   equipCostMilli,
   fillDesignRows,
   issueDesign,
 } from "./Designs";
-import { dailyDoctrine, doctrineStatsOf, issueDoctrine } from "./Doctrine";
-import { coalDemand, dailyEnergy } from "./Energy";
+import {
+  dailyDoctrine,
+  doctrineGainMilli,
+  doctrineStatsOf,
+  issueDoctrine,
+} from "./Doctrine";
+import { coalDemand, dailyEnergy, energyDemand } from "./Energy";
 import { computeIntelRow } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade } from "./Market";
 import { dailyMechanisms, dayCommonMech, issueMech } from "./Mechanisms";
 import { seaRegionDay } from "./Mines";
 import { dailyMio, issueMio, mioStatsOf } from "./Mio";
-import { collabCutPp, intelResistancePp } from "./Operations";
+import {
+  collabCutPp,
+  intelResistancePp,
+  operationSuccessPm,
+} from "./Operations";
+import { operativeCapturePm } from "./Operatives";
 import {
   dailyProjects,
   issueProjects,
   onRegionControl,
+  projectEta,
   uraniumDemand,
 } from "./Projects";
 import { processRaids } from "./Raids";
@@ -412,8 +427,25 @@ export interface ArmyDepthMods {
   fmTraits: number;
   cmdAttBp: number;
   cmdDefBp: number;
-  /** Spec §4.2 guerrilla_fighter on the army group: supply penalties halved. */
+  /** Spec §4.2 guerrilla_fighter (the army's general or its group): supply penalties halved. */
   halfSupply: boolean;
+  // Review L4 (spec §4.3, §4.5; FM_TRAIT_STATS, MEDAL_STATS): the army's
+  // non-combat command effects, read by P2 where its country stats are.
+  /** Org points added to the max org of the army's divisions (fm_inspiring). */
+  orgAdd: number;
+  /** Org recovery, percent (fm_inspiring, medal_service). */
+  recoveryPct: number;
+  /** Readiness growth, percent (fm_offensive, fm_fast_planner). */
+  planSpeedPct: number;
+  /** Readiness cap raise, bp (fm_thorough): ModInput's "fm_plan" line. */
+  planMaxBp: number;
+  /** Entrenchment speed, percent (fm_defensive). */
+  entrenchSpeedPct: number;
+  /** Supply use, percent (fm_logistics). */
+  supplyUsePct: number;
+  /** Spec §4.3: the field marshal's planning and logistics skills, added to the army general's. */
+  fmPlan: number;
+  fmLog: number;
 }
 export const NEUTRAL_ARMY_MODS: ArmyDepthMods = {
   fmAtt: 0,
@@ -422,6 +454,14 @@ export const NEUTRAL_ARMY_MODS: ArmyDepthMods = {
   cmdAttBp: 0,
   cmdDefBp: 0,
   halfSupply: false,
+  orgAdd: 0,
+  recoveryPct: 0,
+  planSpeedPct: 0,
+  planMaxBp: 0,
+  entrenchSpeedPct: 0,
+  supplyUsePct: 0,
+  fmPlan: 0,
+  fmLog: 0,
 };
 
 /** What lane D's commandLandMods is asked (pre-flight §0-2: per army, never per battle). */
@@ -485,12 +525,31 @@ export class WwDepth implements LandDepthHooks {
   keyStatTables = new Map<number, KeyStatsTable>();
   /** LandDepthHooks.keyStatsSeq: moves with every keyStatTables change (derived). */
   keyStatsSeq = 1;
-  /** sr * 64 + side → index in sea.mines. */
-  mineIndex = new Map<number, number>();
+  /** armyMods' reused query (derived scratch). */
+  private modQuery: LandModQuery = { owner: 0, armyId: 0 };
+  /**
+   * Strategic region → side → index in sea.mines (W2 review: P4 side keys
+   * are smallIDs or 100000 + faction, so no flat composite). Derived:
+   * rebuilt by reindexSparse.
+   */
+  mineIndex = new Map<number, Map<number, number>>();
   /** region → FACILITY_IDS index + 1. */
   facilityIndex = new Map<number, number>();
-  /** Pre-flight §0-3(d): what each design cache row was built from (statsVer, researched). */
-  private designCacheKey = new Map<number, [number, ReadonlySet<unknown>]>();
+  /**
+   * Review E16: O(1) reads of the §0-8 sparse tuples — key → index in
+   * world.regionStatus (region), resistBoost (region) and sea.reconBySide
+   * (side * 1024 + strategic region). Derived: rebuilt by reindexSparse,
+   * which a lane calls after it adds or removes a tuple.
+   */
+  regionStatusIndex = new Map<number, number>();
+  resistBoostIndex = new Map<number, number>();
+  /** Side → strategic region → index in sea.reconBySide. */
+  reconIndex = new Map<number, Map<number, number>>();
+  /** Pre-flight §0-3(d): what each design cache row was built from (statsVer, researched, projects done). */
+  private designCacheKey = new Map<
+    number,
+    [number, ReadonlySet<unknown>, number]
+  >();
   /** Pre-flight §0-3(d): bumped on every design change of a country (P4's stats memos key on it). */
   private designVer = new Map<number, number>();
   // ---- this tick (not state) ----
@@ -517,6 +576,8 @@ export class WwDepth implements LandDepthHooks {
     );
     this.dayTally = new Array<number>(this.cap * 9).fill(0);
     this.intelLevels = new Uint8Array(this.cap * this.cap * 4);
+    // Review E12: no fog until lane I computes the rows (the stub's 100).
+    this.intelLevels.fill(100);
     this.world.damLevel = this.ww.scenario.damRegion.map((r) =>
       r > 0 ? 1 : 0,
     );
@@ -539,6 +600,9 @@ export class WwDepth implements LandDepthHooks {
     const day = this.ww.day(ticks);
     if (day !== this.lastCommonDay) {
       this.lastCommonDay = day;
+      // Pre-flight §0-9: the seeded start choices on day 0's common step
+      // (politics.seed is set by then).
+      if (day === 0) this.startAiDoctrines();
       this.dayCommon(day, ticks);
     }
     // The P1 WwEconomy.tick split.
@@ -551,6 +615,41 @@ export class WwDepth implements LandDepthHooks {
       }
     }
     this.flushStats();
+  }
+
+  /**
+   * Spec §3.5 / §19.2 (review E3): every AI country's grand doctrines and
+   * sub-doctrines, once, on day 0 (DoctrineRules.startDoctrinePick). A
+   * human picks for themselves.
+   */
+  private startAiDoctrines(): void {
+    const content = this.ww.politics.content;
+    const historical = this.mg.config().historicalAi() === true;
+    const econ = this.ww.economy;
+    for (let id = 1; id < this.cap; id++) {
+      const c = this.countries[id];
+      if (c === null || c === undefined) continue;
+      if (isDormant(this, id) || !this.ww.isActor(id)) continue;
+      if (this.ww.isHumanControlled(id)) continue;
+      const tag = this.ww.tagOf(id);
+      const ce = econ.country(id);
+      const navy =
+        ce !== null &&
+        ce.totals.dock >= 3 &&
+        econ.regionsOf(id).some((r) => this.ww.scenario.harborOf(r) !== 0);
+      const pick = startDoctrinePick({
+        table: content.startDoctrines,
+        tag,
+        personality: aiPersonality(tag),
+        historical,
+        navy,
+        seed: this.ww.politics.seed,
+        id,
+      });
+      applyStartDoctrine(c, pick.gd, pick.sub);
+      this.markStats(id);
+      this.depthDirty.add(id);
+    }
   }
 
   dayCommon(day: number, tick: number): void {
@@ -607,9 +706,15 @@ export class WwDepth implements LandDepthHooks {
 
   /** Pre-flight §0-2: the army's ModInput values (lane D, O(1)). */
   armyMods(owner: number, armyId: number): ArmyDepthMods {
-    return this.countries[owner] === null || this.countries[owner] === undefined
-      ? NEUTRAL_ARMY_MODS
-      : commandLandMods(this, { owner, armyId });
+    if (this.countries[owner] === null || this.countries[owner] === undefined) {
+      return NEUTRAL_ARMY_MODS;
+    }
+    // One query object, reused (per division and round: no allocation);
+    // commandLandMods reads it and must not keep it.
+    const q = this.modQuery;
+    q.owner = owner;
+    q.armyId = armyId;
+    return commandLandMods(this, q);
   }
 
   /** The readiness cut `victim`'s enemies impose at `region` (recon W2, trickster D), bp ≤ 0. */
@@ -654,8 +759,12 @@ export class WwDepth implements LandDepthHooks {
   ): void {
     if (this.countries.length === 0) return;
     onRegionControl(this, region, from, to, tick);
-    if (from > 0) this.markStats(from);
-    if (to > 0) this.markStats(to);
+    // Landmark stats are the only depth stats that follow control (lane S
+    // marks its own facility losses).
+    if (this.ww.scenario.landmarksOf(region).length > 0) {
+      if (from > 0) this.markStats(from);
+      if (to > 0) this.markStats(to);
+    }
     this.facilityIndex.delete(region);
     const f = facilityOf(this.ww, region);
     if (f > 0) this.facilityIndex.set(region, f);
@@ -905,6 +1014,8 @@ export class WwDepth implements LandDepthHooks {
   }
 
   markNuked(region: number, untilDay: number): void {
+    // Sensitivity (decision 34): never a no-strike region, whatever calls.
+    if (this.noStrike(region)) return;
     this.nuked.set(region, untilDay);
     this.depthDirtyGlobal = true;
   }
@@ -951,10 +1062,16 @@ export class WwDepth implements LandDepthHooks {
     if (this.depthDirtyStats.size === 0) return;
     const ids = [...this.depthDirtyStats].sort((a, b) => a - b);
     this.depthDirtyStats.clear();
-    for (const id of ids) {
-      this.ww.politics.recomputeStats(id);
-      this.refreshDesignCache(id);
-    }
+    // (The design caches follow lazily: checkDesignCache reads statsVer.)
+    for (const id of ids) this.ww.politics.recomputeStats(id);
+  }
+
+  /**
+   * Review E1 (plan decision 24): the tick's one stats recompute, at its
+   * end (WorldWarExecution), so no mark crosses a tick boundary.
+   */
+  endTick(): void {
+    this.flushStats();
   }
 
   // ---- orders (plan decision 4) ----
@@ -984,8 +1101,11 @@ export class WwDepth implements LandDepthHooks {
     else if (k <= 51) r = issueMech(this, id, d, tick);
     else if (k <= 55) r = issueWorld(this, id, d, tick);
     else r = issueSeaAir(this, id, d, tick);
-    if (r === null) this.depthDirty.add(id);
-    this.flushStats();
+    // A refusal changes nothing (review E1): only a taken order flushes.
+    if (r === null) {
+      this.depthDirty.add(id);
+      this.flushStats();
+    }
     return r;
   }
 
@@ -997,20 +1117,45 @@ export class WwDepth implements LandDepthHooks {
     this.designVer.clear();
     this.keyStatTables.clear();
     this.keyStatsSeq++;
-    this.mineIndex.clear();
+    this.reindexSparse();
     this.facilityIndex.clear();
     for (let id = 1; id < this.cap; id++) {
       if (this.countries[id] !== null && this.countries[id] !== undefined) {
         this.refreshDesignCache(id);
       }
     }
-    this.sea.mines.forEach(([sr, side], i) =>
-      this.mineIndex.set(sr * 64 + side, i),
-    );
     for (const r of this.ww.scenario.landRegions) {
       const f = facilityOf(this.ww, r.id);
       if (f > 0) this.facilityIndex.set(r.id, f);
     }
+  }
+
+  /** Review E16: the §0-8 sparse tuples' and the minefields' indexes again (after a lane adds or removes a tuple). */
+  reindexSparse(): void {
+    this.regionStatusIndex.clear();
+    this.world.regionStatus.forEach((x, i) =>
+      this.regionStatusIndex.set(x[0], i),
+    );
+    this.resistBoostIndex.clear();
+    this.resistBoost.forEach((x, i) => this.resistBoostIndex.set(x[0], i));
+    this.reconIndex.clear();
+    this.sea.reconBySide.forEach(([side, sr], i) =>
+      nested(this.reconIndex, side).set(sr, i),
+    );
+    this.mineIndex.clear();
+    this.sea.mines.forEach(([sr, side], i) =>
+      nested(this.mineIndex, sr).set(side, i),
+    );
+  }
+
+  /** Index in sea.mines of `side`'s minefield in `sr`, -1 none. */
+  mineAt(sr: number, side: number): number {
+    return this.mineIndex.get(sr)?.get(side) ?? -1;
+  }
+
+  /** Index in sea.reconBySide of `side`'s recon over `sr`, -1 none. */
+  reconAt(side: number, sr: number): number {
+    return this.reconIndex.get(side)?.get(sr) ?? -1;
   }
 
   /** Every design slot's stats again, and a new KeyStatsTable on next read (pre-flight §0-3). */
@@ -1027,7 +1172,11 @@ export class WwDepth implements LandDepthHooks {
     }
     this.designStatCache.set(id, rows);
     const ce = this.ww.economy.country(id);
-    this.designCacheKey.set(id, [ce?.statsVer ?? -1, ce?.researched ?? EMPTY]);
+    this.designCacheKey.set(id, [
+      ce?.statsVer ?? -1,
+      ce?.researched ?? EMPTY,
+      c.proj.done,
+    ]);
     this.keyStatTables.delete(id);
     this.keyStatsSeq++;
   }
@@ -1041,7 +1190,11 @@ export class WwDepth implements LandDepthHooks {
     const key = this.designCacheKey.get(id);
     const ce = this.ww.economy.country(id);
     if (key === undefined || ce === null) return;
-    if (key[0] !== ce.statsVer || key[1] !== ce.researched) {
+    if (
+      key[0] !== ce.statsVer ||
+      key[1] !== ce.researched ||
+      key[2] !== (this.countries[id]?.proj.done ?? 0)
+    ) {
       this.refreshDesignCache(id);
     }
   }
@@ -1207,11 +1360,38 @@ export class WwDepth implements LandDepthHooks {
     mix(this.sea.mines.reduce((a, m) => a + m[2], 0));
     mix(this.nuked.size);
     mix(this.market.deals.length);
+    // Review E9: the §0-8 state and the other day-driving lists, folded.
+    for (const [id, got] of this.lastPriorityGot) {
+      mix(id);
+      mix(got.reduce((a, b) => a + b, 0));
+    }
+    mix(this.sea.reconBySide.reduce((a, x) => a + x[0] + x[1] * 7 + x[2], 0));
+    mix(this.resistBoost.reduce((a, x) => a + x[0] * 7 + x[1], 0));
+    for (const x of this.world.regionStatus) {
+      mix(x[0]);
+      mix(x[1] + x[2] * 3 + x[3] * 5 + x[4] * 7);
+    }
+    mix(this.groups.length);
+    mix(this.market.embargoes.length);
+    mix(this.world.damLevel.reduce((a, l, i) => a + l * (i + 1), 0));
     return h;
   }
 }
 
 // ---- helpers (the foundation's bodies) ----
+
+/** The inner map of `outer` at `k`, made when missing. */
+function nested<V>(
+  outer: Map<number, Map<number, V>>,
+  k: number,
+): Map<number, V> {
+  let m = outer.get(k);
+  if (m === undefined) {
+    m = new Map<number, V>();
+    outer.set(k, m);
+  }
+  return m;
+}
 
 const EMPTY: ReadonlySet<unknown> = new Set();
 
@@ -1491,10 +1671,7 @@ function startDepthContent(d: WwDepth): void {
     if (c === null || c === undefined) continue;
     const tag = d.ww.tagOf(id);
     if (isDormant(d, id)) continue;
-    if (!d.ww.isHumanControlled(id)) {
-      const row = content.startDoctrines.find((s) => s.tag === tag);
-      if (row !== undefined) applyStartDoctrine(c, row.gd, row.sub);
-    }
+    // (The AI's doctrines come on day 0: WwDepth.startAiDoctrines.)
     const major = d.ww.economy.country(id)?.major ?? false;
     const rows = content.scientists.filter(
       (s) => s.tag === tag && (s.from === undefined || dayOfDate(s.from) <= 0),
@@ -1547,10 +1724,6 @@ function applyStartDoctrine(
   });
 }
 
-import {
-  GRAND_DOCTRINES,
-  SUBDOCTRINES,
-} from "@openfront/engine-api/ww1936/DepthTypes";
 const GRAND_DOCTRINE_INDEX = new Map<string, number>(
   GRAND_DOCTRINES.map((g, i) => [g, i]),
 );
@@ -1613,7 +1786,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         origin: s.origin,
         from: s.from,
         obsolete: s.obsolete,
-        inUse: 0,
+        inUse: designInUse(d, id, kind, i + 1),
       });
     });
   }
@@ -1634,7 +1807,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       sub: [...c.doc.sub],
       subLock: [...c.doc.subLock],
       masteryMilli: [...c.doc.masteryMilli],
-      gainMilli: new Array<number>(9).fill(0),
+      gainMilli: doctrineGainMilli(d, id),
     },
     command: {
       cpMilli: c.cmd.cpMilli,
@@ -1670,7 +1843,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         mission: o.mission < 0 ? null : (INTEL_MISSION_IDS[o.mission] ?? null),
         op: o.op,
         daysLeft: Math.max(0, o.travelLeft, o.recruitLeft),
-        capturePm: 0,
+        capturePm: operativeCapturePm(d, id, o),
       })),
       operations: d.ops
         .filter((o) => o.owner === id)
@@ -1681,15 +1854,15 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
           operatives: [...o.operatives],
           startDay: o.startDay,
           endDay: o.endDay,
-          successPm: 0,
+          successPm: operationSuccessPm(d, id, o),
         })),
       cryptoTarget: c.intel.cryptoTarget,
       cryptoPm: Math.floor(
         (d.decrypted.find((x) => x.o === id && x.t === c.intel.cryptoTarget)
           ?.progressMilli ?? 0) / 1000,
       ),
-      cipher: 0,
-      decrypt: 0,
+      cipher: cipherOf(d, id),
+      decrypt: decryptOf(d, id),
       decrypted: d.decrypted
         .filter((x) => x.o === id && x.activeUntil >= 0)
         .map((x) => ({ target: x.t, activeUntil: x.activeUntil })),
@@ -1699,14 +1872,17 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         .map(([k, v]) => [k % 1024, Math.floor(v / 1000)] as [number, number]),
     },
     projects: {
-      running: c.proj.running.map((r) => ({
-        project: SPECIAL_PROJECTS[r.project] ?? "sp_atomic",
-        facility: r.facility,
-        progressPm: Math.floor(r.progressMilli / 1000),
-        daysLeft: 0,
-        scientist: r.scientist,
-        inputPm: 1000,
-      })),
+      running: c.proj.running.map((r) => {
+        const eta = projectEta(d, id, r);
+        return {
+          project: SPECIAL_PROJECTS[r.project] ?? "sp_atomic",
+          facility: r.facility,
+          progressPm: Math.floor(r.progressMilli / 1000),
+          daysLeft: eta.daysLeft,
+          scientist: r.scientist,
+          inputPm: eta.inputPm,
+        };
+      }),
       done: c.proj.done,
       scientists: c.proj.scientists.map((s) => ({
         id: s.id,
@@ -1740,7 +1916,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       treatyMember: d.mech.treaty.members.includes(id) && !d.mech.treaty.ended,
     },
     energy: {
-      demand: 0,
+      demand: energyDemand(d, id),
       coal: d.lastPriorityGot.get(id)?.[RESOURCE_IDS.indexOf("coal")] ?? 0,
       hydro,
       plants,
@@ -1749,11 +1925,6 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
     },
   };
 }
-
-import {
-  INTEL_MISSIONS as INTEL_MISSION_IDS,
-  INTEL_OPERATIONS as INTEL_OPERATION_IDS,
-} from "@openfront/engine-api/ww1936/DepthTypes";
 
 function bopOf(d: WwDepth, id: number): [number, number, number] | undefined {
   const tag = d.ww.tagOf(id);
@@ -1848,6 +2019,3 @@ function globalDataOf(d: WwDepth): Partial<WwDepthData> {
     ]),
   };
 }
-
-// Kept for the lanes (the energy card's supply line).
-export { AGENCY_UPGRADES, energySupply };

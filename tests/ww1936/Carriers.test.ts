@@ -7,6 +7,7 @@ import {
   FLEET_STATES,
   ShipClass,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { GRAND_DOCTRINE_STATS } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
 import { fillDecks } from "@openfront/engine/ww1936/navy/Carriers";
@@ -138,8 +139,15 @@ describe("carriers (spec §9.4, §9.6, §13.4)", () => {
   it("the first carrier strike comes in round 3 (base_strike_2: round 2)", async () => {
     const firstStrike = async (cut: boolean): Promise<number[]> => {
       const { navy, tick } = await seaWar();
-      // P6 plan decision 25: base_strike_2 is retired; its stat key.
-      if (cut) grantDoctrineStats(navy.ww, GBR, { carrierRoundsCut: 1 });
+      // P6 plan decision 25: base_strike_2 is retired; the grand
+      // doctrine's completion carries its keys.
+      if (cut) {
+        grantDoctrineStats(
+          navy.ww,
+          GBR,
+          GRAND_DOCTRINE_STATS.gd_base_strike[1],
+        );
+      }
       expect(navy.econ.country(GBR)!.stats.carrierRoundsCut).toBe(cut ? 1 : 0);
       const g = stockedCarrier(navy);
       toSea(navy, g, ZONE.west);

@@ -147,6 +147,9 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     });
     await m.click("[data-ww-tab='doctrine']");
     expect(m.q("[data-ww-school]")).toBeNull();
+    expect(m.q("[data-ww-doctrine-moved]")!.textContent).toContain(
+      "ww1936.econ.doctrine_moved",
+    );
     expect(m.q("[data-ww-tech='mobile_2']")).toBeNull();
     await m.click("[data-ww-tab='naval']");
     expect(m.q("[data-ww-tech='fleet_in_being_1']")).toBeNull();

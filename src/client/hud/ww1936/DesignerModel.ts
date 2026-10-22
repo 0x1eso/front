@@ -27,6 +27,11 @@ export class DesignerModel {
 
   constructor(readonly view: GameView) {}
 
+  /**
+   * The foundation's stub: with a base the draft starts empty on it; a new
+   * design without a base has no draft yet (lane U2 replaces open with the
+   * chassis picker).
+   */
   open(kind: DesignKind, base?: string): void {
     this.base = null;
     this.draft =

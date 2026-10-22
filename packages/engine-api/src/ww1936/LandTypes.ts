@@ -195,7 +195,9 @@ export const GROUND_EQUIP_KEYS: readonly number[] = EQUIP_KEYS.flatMap(
 );
 export const GROUND_SLOTS = GROUND_EQUIP_KEYS.length; // 30
 /** The first tank design slot (P6): slots below it are static. */
-export const GROUND_STATIC_SLOTS = 18;
+export const GROUND_STATIC_SLOTS = GROUND_EQUIP_KEYS.findIndex(
+  (k) => EQUIP_KEYS[k][0] === "tank_design",
+); // 18
 /** P6 plan decision 6: need groups = EQUIPMENT_TYPES then the four design-only groups. */
 export type NeedGroup = EquipmentType | ExtraNeedGroup;
 export const NEED_GROUPS: readonly NeedGroup[] = [

@@ -1,3 +1,4 @@
+import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EquipmentFamily,
   EquipmentType,
@@ -224,9 +225,9 @@ export function isDesignType(type: EquipmentType): boolean {
 }
 /** P6: the types a project opens (equipmentBuildable's caller checks depth.projectDone). */
 export const PROJECT_TYPES: Readonly<Partial<Record<EquipmentType, number>>> = {
-  // SPECIAL_PROJECTS index: sp_flying_bomb, sp_ballistic.
-  flying_bomb: 1,
-  ballistic_rocket: 2,
+  // SPECIAL_PROJECTS index (review L10: derived, not literal).
+  flying_bomb: SPECIAL_PROJECTS.indexOf("sp_flying_bomb"),
+  ballistic_rocket: SPECIAL_PROJECTS.indexOf("sp_ballistic"),
 };
 
 /**

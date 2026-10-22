@@ -10,9 +10,11 @@ import type {
   ShipDesignMods,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  equipKey as designEquipKey,
   EQUIP_KEYS,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { GROUND_STATIC_SLOTS } from "@openfront/engine-api/ww1936/LandTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import {
   EQUIPMENT,
@@ -134,3 +136,34 @@ export function grantDesign(
   e: Extract<Effect, { kind: "design_grant" }>,
   actor: number,
 ): void {}
+
+/**
+ * Review E6: units of a design in use (the designer's "in use"): a tank
+ * design's units in the country's divisions and stock, a plane design's
+ * in the stock, a ship design's ships. The foundation's body; lane E may
+ * add the deployed planes.
+ */
+export function designInUse(
+  d: WwDepth,
+  id: number,
+  kind: "tank" | "ship" | "plane",
+  slot: number,
+): number {
+  const ce = d.ww.economy.country(id);
+  if (kind === "ship") {
+    const t = d.ww.navy.ships;
+    let n = 0;
+    for (let r = 0; r < t.rows; r++) {
+      if (t.id[r] !== 0 && t.owner[r] === id && t.design[r] === slot) n++;
+    }
+    return n;
+  }
+  if (kind === "plane") {
+    return ce?.stock[designEquipKey("plane_design", slot)] ?? 0;
+  }
+  const land = d.ww.land;
+  const j = GROUND_STATIC_SLOTS + slot - 1;
+  let n = ce?.stock[designEquipKey("tank_design", slot)] ?? 0;
+  for (const r of land.rowsOf(id)) n += land.divisions.equipOf(r)[j] ?? 0;
+  return n;
+}

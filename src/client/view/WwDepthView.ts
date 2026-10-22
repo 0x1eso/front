@@ -47,6 +47,7 @@ export class WwDepthView {
   factionRulesData: [number, number, boolean][] = [];
   factionGoalsData: [number, number[], number][] = [];
   private fxQueue: WwDepthFx[] = [];
+  static readonly FX_QUEUE_MAX = 256;
   /** Bumped on every applied update (screens cache on it). */
   version = 0;
 
@@ -72,6 +73,10 @@ export class WwDepthView {
     if (d.factionRules) this.factionRulesData = d.factionRules;
     if (d.factionGoals) this.factionGoalsData = d.factionGoals;
     this.fxQueue.push(...d.fx);
+    // Bounded until the U lanes drain it (takeFx): the newest are kept.
+    if (this.fxQueue.length > WwDepthView.FX_QUEUE_MAX) {
+      this.fxQueue.splice(0, this.fxQueue.length - WwDepthView.FX_QUEUE_MAX);
+    }
     this.version++;
   }
 
