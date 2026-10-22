@@ -14,12 +14,14 @@ import {
   GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { designStats } from "@openfront/engine-lib/ww1936/DesignRules";
 import {
   copyDesignTo,
   newestGen,
   receiveKey,
 } from "@openfront/engine/ww1936/depth/DesignCopy";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
+import { designCtxOf } from "@openfront/engine/ww1936/depth/WwDepth";
 import { transferDivisionsTo } from "@openfront/engine/ww1936/land/PoliticsBridge";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
@@ -148,12 +150,26 @@ describe("World War 1936 P6: design copies", () => {
     expect(
       receiveKey(d, GBR, equipKey("plane_design", 1), to, "received"),
     ).toBe(equipKey("plane_design", 1));
-    const a = d.designStatsOf(GBR, "tank", 1) as TankDesignStats;
-    const b = d.designStatsOf(to, "tank", 1) as TankDesignStats;
-    expect(b).toEqual(a);
+    // Every number the units fight with is the sender's. The cost is the
+    // builder's (batch P6-4, lane M merged): designCtxOf reads each
+    // country's own MIO cost %, and Britain starts with an armour MIO.
+    type Costed = TankDesignStats | PlaneDesignStats;
+    const sameButCost = (kind: "tank" | "plane", def: DesignDef): Costed => {
+      const a = d.designStatsOf(GBR, kind, 1) as Costed;
+      const b = d.designStatsOf(to, kind, 1) as Costed;
+      expect({ ...b, costMilli: 0 }).toEqual({ ...a, costMilli: 0 });
+      const ctx = {
+        ...designCtxOf(d, GBR, def),
+        costPct: designCtxOf(d, to, def).costPct,
+      };
+      expect(b.costMilli).toBe((designStats(def, ctx) as Costed).costMilli);
+      return a;
+    };
+    const a = sameButCost("tank", TD) as TankDesignStats;
     expect(a.role).toBe("tank_destroyer");
-    expect(d.designStatsOf(to, "plane", 1) as PlaneDesignStats).toEqual(
-      d.designStatsOf(GBR, "plane", 1),
+    expect(sameButCost("plane", FIGHTER) as PlaneDesignStats).toBeTruthy();
+    expect(designCtxOf(d, GBR, TD).costPct).not.toBe(
+      designCtxOf(d, to, TD).costPct,
     );
     // The receiver's divisions read the same numbers (KeyStatsTable row).
     const j = GROUND_STATIC_SLOTS;
