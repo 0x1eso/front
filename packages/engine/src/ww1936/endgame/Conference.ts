@@ -5,6 +5,7 @@
 // participants by smallID, regions by id, demands by slot.
 import {
   COUNTRIES,
+  CountryTag,
   NAMED_DORMANT_TAGS,
 } from "@openfront/engine-api/ww1936/Countries";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -36,6 +37,7 @@ import {
   turnOrder,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
+  CLAIM_ONLY_GROUPS,
   demandKindIndex,
   expandPeaceDemand,
   peaceClaimantTags,
@@ -51,6 +53,7 @@ import {
   planPeaceDemand,
   REGION_DEMAND_KINDS,
   SENSITIVE_EXCLUDED_TAG,
+  ZONE_ONLY_GROUPS,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { effectiveBuildings } from "../economy/Buildings";
@@ -766,12 +769,25 @@ export function finishConference(
     }
     eg.dirtyZones = true;
   }
-  // 6. What nobody took goes back to its loser, which lives again.
+  // 6. What nobody took goes back to its loser, which lives again —
+  // except Korea and Taiwan for their 1936 owner (owner ruling): never
+  // back under its control; a zone for zoneHeir, else control stays.
   const revived: number[] = [];
+  const owners = sensitiveOwners(eg);
   for (const L of c.losers) {
-    const left = c.stake.filter(
-      (r) => pol.legalOwner[r] === L && !eg.isZone(r),
-    );
+    const left: number[] = [];
+    for (const r of c.stake) {
+      if (pol.legalOwner[r] !== L || eg.isZone(r)) continue;
+      if (owners.get(r) !== ww.tagOf(L)) {
+        left.push(r);
+        continue;
+      }
+      const h = zoneHeir(eg, c, r, 0);
+      if (h === 0) continue;
+      eg.zones.push({ region: r, holder: h, untilDay: -1 });
+      transferRegionPeaceful(land, r, h, tick);
+      eg.dirtyZones = true;
+    }
     if (left.length === 0) {
       eg.setCountryState(L, CS_GONE);
       continue;
@@ -881,6 +897,79 @@ export function finishConference(
   eg.dirtyPeaceLog = true;
   eg.dirtyWars = true;
   eg.adminDirty = true;
+}
+
+// ---- Korea and Taiwan after the treaty (owner ruling, review N4) ----
+
+/** Korea's and Taiwan's regions → their group's 1936 owner (content: JPN). */
+function sensitiveOwners(eg: WwEndgame): Map<number, CountryTag> {
+  const out = new Map<number, CountryTag>();
+  const content = eg.ww.politics.content;
+  for (const g of [...ZONE_ONLY_GROUPS, ...CLAIM_ONLY_GROUPS]) {
+    const def = content.groupIdx.get(g);
+    if (def === undefined) continue;
+    for (const r of def.regions) out.set(r, def.owner1936);
+  }
+  return out;
+}
+
+/**
+ * Owner ruling: who holds a Korea or Taiwan region as a zone when its
+ * holder stopped playing (`gone`), or when the treaty zoned it for nobody —
+ * the other zone holder of the same kind still playing (zones in order),
+ * else conference `c`'s main victor still playing; 0: nobody (its control
+ * stays as it is). Never the region's 1936 owner (Japan), its legal owner
+ * or the excluded country.
+ */
+function zoneHeir(
+  eg: WwEndgame,
+  c: Conference | null,
+  region: number,
+  gone: number,
+): number {
+  const content = eg.ww.politics.content;
+  const korea = (r: number) =>
+    ZONE_ONLY_GROUPS.some((g) => content.groupIdx.get(g)?.regions.includes(r));
+  const owners = sensitiveOwners(eg);
+  const sc = eg.ww.scenario;
+  const tag = owners.get(region);
+  const owner1936 = tag === undefined ? 0 : sc.smallIdOf(tag);
+  const ok = (id: number) =>
+    id > 0 &&
+    id !== gone &&
+    id !== owner1936 &&
+    id !== (eg.ww.politics.legalOwner[region] ?? 0) &&
+    id !== sc.smallIdOf(SENSITIVE_EXCLUDED_TAG) &&
+    eg.isActor(id);
+  for (const z of eg.zones) {
+    if (!owners.has(z.region) || korea(z.region) !== korea(region)) continue;
+    if (ok(z.holder)) return z.holder;
+  }
+  if (c === null) return 0;
+  return peaceMainVictor(c.parts.filter((p) => ok(p.id)));
+}
+
+/**
+ * Owner ruling (daily, and first in a capitulation): a Korea or Taiwan
+ * zone whose holder stopped playing passes to zoneHeir (the conference
+ * that zoned it gives the main victor); with nobody left it stays as it
+ * is — never back under Japan.
+ */
+export function settleSensitiveZones(eg: WwEndgame, tick: number): void {
+  if (eg.zones.length === 0) return;
+  const owners = sensitiveOwners(eg);
+  for (const z of eg.zones) {
+    if (!owners.has(z.region) || eg.isActor(z.holder)) continue;
+    let c: Conference | null = null;
+    for (const x of eg.conferences) {
+      if (x.status === 2 && x.stake.includes(z.region)) c = x;
+    }
+    const h = zoneHeir(eg, c, z.region, z.holder);
+    if (h === 0) continue;
+    z.holder = h;
+    transferRegionPeaceful(eg.ww.land, z.region, h, tick);
+    eg.dirtyZones = true;
+  }
 }
 
 /** Spec §6.4 disarm: 1,095 days of arms limitation; divisions past 12 disband, the weakest first. */

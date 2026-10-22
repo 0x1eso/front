@@ -69,6 +69,7 @@ export class WwEndgameView {
     if (d.queuedConferences !== undefined) this.queued = d.queuedConferences;
     if (d.peaceLog !== undefined) this.peaceLog = d.peaceLog;
     for (const o of d.occupation ?? []) this.occupation.set(o.region, o);
+    for (const r of d.occupationGone ?? []) this.occupation.delete(r);
     if (d.occLaws !== undefined) this.occLaws = d.occLaws;
     // Kept when empty too: a region whose cores all went is nobody's core,
     // not the scenario's (coreHolders).

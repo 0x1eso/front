@@ -45,7 +45,12 @@ import { aiAidDay, aiAidEventChoice } from "./AiAid";
 import { aiOccupationDay } from "./AiOccupation";
 import { aiSubjectsDay } from "./AiSubjects";
 import { capitulate } from "./Capitulate";
-import { conferenceView, stepConferences, submitDemands } from "./Conference";
+import {
+  conferenceView,
+  settleSensitiveZones,
+  stepConferences,
+  submitDemands,
+} from "./Conference";
 import { wakePending } from "./Executions";
 import {
   exileEconomy,
@@ -504,6 +509,7 @@ export class WwEndgame {
     this.settleAdmin();
     returnLiberated(this, day, tick); // X: spec §5.3
     this.expireZones(day);
+    settleSensitiveZones(this, tick); // W: Korea/Taiwan zones never go back to Japan
     dailyWarScore(this, day); // W: occupation points (spec §4.5)
     checkWarEnds(this, day, tick); // W: spec §4.4, opens conferences
     deliverLendLease(this, day); // A: spec §13.3
@@ -1308,14 +1314,21 @@ export class WwEndgame {
             this.isAdministered(r),
           )
         : [...this.dirtyOcc].sort((a, b) => a - b);
-      d.occupation = occIds
-        .filter(
-          (r) =>
-            this.isAdministered(r) &&
-            (this.isHumanControlled(this.ww.land.controller[r]) ||
-              this.coreHolders(r).some((h) => this.isHumanControlled(h))),
-        )
-        .map((r) => ({ ...occView(this, r), compHighDays: this.compHigh[r] }));
+      const shown = occIds.filter(
+        (r) =>
+          this.isAdministered(r) &&
+          (this.isHumanControlled(this.ww.land.controller[r]) ||
+            this.coreHolders(r).some((h) => this.isHumanControlled(h))),
+      );
+      d.occupation = shown.map((r) => ({
+        ...occView(this, r),
+        compHighDays: this.compHigh[r],
+      }));
+      // A changed region without a row now: the screens drop its old one.
+      if (!first) {
+        const gone = occIds.filter((r) => r > 0 && !shown.includes(r));
+        if (gone.length > 0) d.occupationGone = gone;
+      }
       d.occLaws = this.occLaw.map((x) => ({
         by: x.by,
         of: x.of,
