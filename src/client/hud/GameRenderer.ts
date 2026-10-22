@@ -57,6 +57,7 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { fogModelOf } from "./ww1936/FogModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
@@ -72,6 +73,7 @@ import { WwEventCards } from "./ww1936/WwEventCards";
 import { WwFleetCard } from "./ww1936/WwFleetCard";
 import { WwFocusPanel } from "./ww1936/WwFocusPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
+import { WwIntelPanel } from "./ww1936/WwIntelPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
@@ -438,6 +440,15 @@ export function createRenderer(
   } else {
     console.error("ww navy panel not found");
   }
+  // P6 (spec §20.6): the intelligence drawer; the fog model is made before
+  // the token passes first ask for it (U3).
+  const wwIntelPanel = document.querySelector("ww-intel-panel");
+  if (wwIntelPanel instanceof WwIntelPanel) {
+    wwIntelPanel.game = game;
+    wwIntelPanel.eventBus = eventBus;
+  } else {
+    console.error("ww intel panel not found");
+  }
   const wwAirPanel = document.querySelector("ww-air-panel");
   if (wwAirPanel instanceof WwAirPanel) {
     wwAirPanel.game = game;
@@ -543,6 +554,9 @@ export function createRenderer(
   if (wwScenario !== null) {
     view.setRegions(wwScenario.regionIds);
     // P2: the land war's tokens, battle markers and plan arrows (Task 7).
+    // P6 (spec §20.7): the fog model registers itself for the token passes
+    // before they first draw, so an enemy token never shows unfiltered.
+    fogModelOf(game);
     const wwLand = game.wwLand();
     if (wwLand !== null) {
       // The engine's enemies (P0 wars past the preparation minute) for the
@@ -649,6 +663,7 @@ export function createRenderer(
     ...(wwArmyCard instanceof WwArmyCard ? [wwArmyCard] : []),
     ...(wwBattleCard instanceof WwBattleCard ? [wwBattleCard] : []),
     ...(wwNavyPanel instanceof WwNavyPanel ? [wwNavyPanel] : []),
+    ...(wwIntelPanel instanceof WwIntelPanel ? [wwIntelPanel] : []),
     ...(wwAirPanel instanceof WwAirPanel ? [wwAirPanel] : []),
     ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
