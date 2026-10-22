@@ -31,6 +31,12 @@ const vec3 STRENGTH = vec3(0.90, 0.86, 0.66);
 const vec3 ORG = vec3(0.36, 0.78, 0.36);
 const vec3 GLOW = vec3(1.0, 0.9, 0.5);
 const vec3 RING = vec3(0.86, 0.1, 0.08);
+// Army group colours (hud/ww1936/MultiSelect GROUP_COLORS).
+const vec3 GROUP[8] = vec3[8](
+  vec3(0.902, 0.098, 0.294), vec3(0.235, 0.706, 0.294),
+  vec3(1.000, 0.882, 0.098), vec3(0.263, 0.388, 0.847),
+  vec3(0.961, 0.510, 0.192), vec3(0.569, 0.118, 0.706),
+  vec3(0.259, 0.831, 0.957), vec3(0.941, 0.196, 0.902));
 
 float sdBox(vec2 p, vec2 b, float r) {
   vec2 q = abs(p) - b + r;
@@ -127,6 +133,12 @@ void main() {
     float inOrg = cover(sdBox(p - vec2(0.0, 18.25), vec2(17.0, 1.25), 0.0));
     col = over(col, STRENGTH, inStr * step(x01, str));
     col = over(col, ORG, inOrg * step(x01, org));
+
+    // Army group band under the bars (same colour for the whole group).
+    if (vC.w > 0.5) {
+      int gi = clamp(int(vC.w + 0.5) - 1, 0, 7);
+      col = over(col, GROUP[gi], cover(sdBox(p - vec2(0.0, 23.0), vec2(18.0, 1.6), 0.5)));
+    }
 
     if (icon >= 0.0) {
       float dIcon = length(p - iconC) - 7.5;

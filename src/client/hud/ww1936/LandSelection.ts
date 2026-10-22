@@ -14,7 +14,13 @@ export type LandMode =
   | "rail"
   | "sea"
   | "paradrop";
-export type WwArmyTab = "armies" | "training" | "templates" | "generals";
+export type WwArmyTab =
+  | "armies"
+  | "training"
+  | "templates"
+  | "generals"
+  // P6 (spec §20.4): army groups.
+  | "groups";
 
 /** The chosen army and the tap flow's draft; shared by the controller, the card and the passes. */
 export class WwLandSelection {

@@ -17,6 +17,10 @@
  */
 
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
+import {
+  armyGroupColorsOf,
+  multiSelectOf,
+} from "../../../hud/ww1936/MultiSelect";
 import type { TokenLayoutCache } from "../../../view/LandTokenLayout";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
@@ -72,6 +76,8 @@ export class ArmyTokenPass {
   private seenSelection = -1;
   private seenArmy: number | null = null;
   private seenMe = -1;
+  private seenMulti = -1;
+  private seenGroups = -1;
   private seenView: WwLandView | null = null;
 
   /** Front-dot rows (FLOATS each), rebuilt when the view changes. */
@@ -145,8 +151,12 @@ export class ArmyTokenPass {
     selection: WwLandSelection,
     me: number,
   ): void {
+    const multi = multiSelectOf(selection);
+    const groups = armyGroupColorsOf(view);
     if (
       !layoutChanged &&
+      multi.version === this.seenMulti &&
+      groups.version === this.seenGroups &&
       view === this.seenView &&
       view.version === this.seenVersion &&
       selection.version === this.seenSelection &&
@@ -160,6 +170,8 @@ export class ArmyTokenPass {
     this.seenSelection = selection.version;
     this.seenArmy = selection.army;
     this.seenMe = me;
+    this.seenMulti = multi.version;
+    this.seenGroups = groups.version;
 
     const n = layout.count;
     const lod = n > 0 ? layout.placements[0].lod : 0;
@@ -175,9 +187,26 @@ export class ArmyTokenPass {
         chosen = i; // drawn last, on top
         continue;
       }
-      o = this.writeToken(f, o, layout, i, kind, false);
+      o = this.writeToken(
+        f,
+        o,
+        layout,
+        i,
+        kind,
+        multi.has(layout.armies[i].id),
+        groups.colorOf(layout.armies[i].id),
+      );
     }
-    if (chosen >= 0) o = this.writeToken(f, o, layout, chosen, kind, true);
+    if (chosen >= 0)
+      o = this.writeToken(
+        f,
+        o,
+        layout,
+        chosen,
+        kind,
+        true,
+        groups.colorOf(layout.armies[chosen].id),
+      );
     this.count = o / FLOATS;
     if (this.count > 0) {
       const gl = this.gl;
@@ -193,6 +222,7 @@ export class ArmyTokenPass {
     i: number,
     kind: number,
     chosen: boolean,
+    group: number,
   ): number {
     const a = layout.armies[i];
     const p = layout.placements[i];
@@ -207,7 +237,8 @@ export class ArmyTokenPass {
     f[o + 8] = a.state;
     f[o + 9] = chosen ? 1 : 0;
     f[o + 10] = 0;
-    f[o + 11] = 0;
+    // The army group's palette colour (1..8, 0 none): a thin band under the token.
+    f[o + 11] = group;
     return o + FLOATS;
   }
 

@@ -51,6 +51,7 @@ import {
   wwActive,
 } from "./WorldWarModel";
 import { TRAIT_ICONS, traitsOf } from "./WwArmyCard";
+import { renderGroupTab } from "./WwArmyGroupTab";
 import { WwDrawerBase } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
 import "./WwTemplateDesigner";
@@ -60,6 +61,7 @@ export const ARMY_TABS: readonly WwArmyTab[] = [
   "training",
   "templates",
   "generals",
+  "groups",
 ];
 
 const TAB_KEYS: Readonly<Record<WwArmyTab, string>> = {
@@ -67,6 +69,7 @@ const TAB_KEYS: Readonly<Record<WwArmyTab, string>> = {
   training: "ww1936.land.tab_training",
   templates: "ww1936.land.tab_templates",
   generals: "ww1936.land.tab_generals",
+  groups: "ww1936.ag.tab",
 };
 
 const EXP_KEYS = {
@@ -151,6 +154,7 @@ export class WwArmyPanel extends WwDrawerBase {
     const key = [
       this.game.wwLand?.()?.version,
       this.game.wwEconomy?.()?.version,
+      this.game.wwDepth?.()?.version,
       landSelectionOf(this.game).version,
       this.game.worldWarScenario() ? today(this.game) : 0,
     ];
@@ -235,6 +239,20 @@ export class WwArmyPanel extends WwDrawerBase {
         break;
       case "generals":
         body = this.renderGenerals(c);
+        break;
+      case "groups":
+        body = renderGroupTab({
+          game: this.game,
+          view: c.view,
+          me: c.me,
+          day: c.day,
+          send: (o) => this.send(o),
+          armed: (k) => this.armed(k),
+          confirmTap: (k, a) => this.confirmTap(k, a),
+          onFront: () => {
+            if (window.innerHeight <= COMPACT_MAX_HEIGHT) this.setOpen(false);
+          },
+        });
         break;
     }
     return this.renderFrame(label, head, tabs, body);

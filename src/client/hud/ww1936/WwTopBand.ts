@@ -6,10 +6,15 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { factionDotClass } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
+import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import { WwDepthOpenEvent, WwMultiSelectEvent } from "./DepthEvents";
+import { BandDepth, DoctrineModel } from "./DoctrineModel";
 import { menText, TopBandEconomy, topBandEconomy } from "./EconomyModel";
+import { landSelectionOf } from "./LandSelection";
+import { multiSelectOf } from "./MultiSelect";
 import {
   BandPolitics,
   bandStats,
@@ -199,6 +204,14 @@ export class WwTopBand extends LitElement implements Controller {
   private fuel: BandFuel | null = null;
   /** P3: my political power, stability, war support and the world's tension. */
   private politics: BandPolitics | null = null;
+  /** P6 (spec §20.1): command power, energy, congress, atomic bombs. */
+  private depth: BandDepth | null = null;
+  /** The small row command power and congress move to when the band is full (the 🏛 cell opens it). */
+  @state() private depthRow = false;
+  /** The multi-select bar's version, and whether its marshal list is open. */
+  private multiSeen = -1;
+  @state() private choosingFm = false;
+  @state() private frontNote = false;
   /**
    * Steps the chip lost beyond chipMode() because the band measured as
    * overflowing (updated); reset whenever the room or the chip changes.
@@ -318,6 +331,18 @@ export class WwTopBand extends LitElement implements Controller {
       this.chipShrink = 0;
       this.requestUpdate();
     }
+    const depth = new DoctrineModel(this.game).band();
+    if (JSON.stringify(depth) !== JSON.stringify(this.depth)) {
+      this.depth = depth;
+      this.chipShrink = 0;
+      this.requestUpdate();
+    }
+    const multi = multiSelectOf(landSelectionOf(this.game));
+    if (multi.version !== this.multiSeen) {
+      this.multiSeen = multi.version;
+      if (!multi.active) this.choosingFm = this.frontNote = false;
+      this.requestUpdate();
+    }
     const pi = politicsInput(this.game);
     const pol = pi === null ? null : bandStats(pi);
     if (JSON.stringify(pol) !== JSON.stringify(this.politics)) {
@@ -416,8 +441,236 @@ export class WwTopBand extends LitElement implements Controller {
             window.innerHeight <= COMPACT_MAX_HEIGHT,
           ),
         )}
+        ${this.renderDepth(this.step(maxWidth))}
       </div>
+      ${this.renderDepthRow(this.step(maxWidth), maxWidth, right)}
+      ${this.renderMultiBar(maxWidth, right)}
     `;
+  }
+
+  /** Whether the band is too full for command power and congress inline (a later shed step). */
+  private depthInRow(): boolean {
+    const { maxWidth } = this.placement ?? bandPlacement();
+    return this.step(maxWidth) >= 3;
+  }
+
+  private depthRowHolds(): boolean {
+    return this.depth !== null;
+  }
+
+  /**
+   * P6 (spec §20.1): "🎖 3.4" command power (opens the doctrine drawer's
+   * command tab), "⚡ 92%" under full energy (orange), "🏛 의회 34%" for
+   * the US, "☢ 2" my atomic bombs. Icon and number only on a short screen.
+   */
+  private depthChip(
+    kind: string,
+    text: string,
+    label: string,
+    open: () => void,
+    tone = "",
+  ) {
+    return html`<button
+      type="button"
+      data-ww-depth=${kind}
+      aria-label=${label}
+      class="relative flex h-6 shrink-0 items-center rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums after:absolute after:inset-x-0 after:-top-1 after:-bottom-2 after:content-[''] hover:bg-white/10 ${tone}"
+      @click=${open}
+    >
+      ${text}
+    </button>`;
+  }
+
+  private depthChips(rowOnly: boolean | null) {
+    const d = this.depth;
+    if (d === null) return nothing;
+    const short = window.innerHeight <= COMPACT_MAX_HEIGHT;
+    const cmd = html`${this.depthChip(
+      "cp",
+      `🎖 ${d.cpText}`,
+      translateText("ww1936.command.band_cp", { n: d.cpText }),
+      () =>
+        this.eventBus.emit(
+          new WwDepthOpenEvent("doctrine", { tab: "command" }),
+        ),
+    )}`;
+    const congress =
+      d.congressPct === null
+        ? nothing
+        : this.depthChip(
+            "congress",
+            short
+              ? `🏛 ${d.congressPct}%`
+              : `🏛 ${translateText("ww1936.congress.band_short")} ${d.congressPct}%`,
+            translateText("ww1936.congress.band", { pct: d.congressPct }),
+            () => this.eventBus.emit(new OpenWwPoliticsEvent("decisions")),
+          );
+    const energy =
+      d.energyPct === null
+        ? nothing
+        : this.depthChip(
+            "energy",
+            `⚡ ${d.energyPct}%`,
+            translateText("ww1936.energy.band", { pct: d.energyPct }),
+            () => this.eventBus.emit(new OpenWwIndustryEvent("construction")),
+            "border-amber-400/70 bg-amber-900/40 text-amber-200",
+          );
+    const nukes =
+      d.nukes === null
+        ? nothing
+        : this.depthChip(
+            "nukes",
+            `☢ ${d.nukes}`,
+            translateText("ww1936.nuke.band", { n: d.nukes }),
+            () => this.eventBus.emit(new WwDepthOpenEvent("projects")),
+          );
+    if (rowOnly === true) return html`${cmd} ${congress}`;
+    if (rowOnly === false) return html`${energy} ${nukes}`;
+    return html`${cmd} ${congress} ${energy} ${nukes}`;
+  }
+
+  private renderDepth(step: number) {
+    // Command power and congress inline while there is room; energy and bombs always.
+    return this.depthChips(step >= 3 ? false : null);
+  }
+
+  private renderDepthRow(step: number, maxWidth: number, right: number | null) {
+    if (step < 3 || !this.depthRow || this.depth === null) return nothing;
+    return html`<div
+      data-ww-depth-row
+      class="fixed top-8 ${right === null
+        ? "left-1/2 -translate-x-1/2"
+        : ""} z-[1002] flex items-center gap-2 rounded-b-lg bg-gray-900/85 px-3 py-1 text-white shadow-md"
+      style="max-width: ${maxWidth}px;${right === null
+        ? ""
+        : ` right: ${right}px;`}"
+    >
+      ${this.depthChips(true)}
+    </div>`;
+  }
+
+  /**
+   * P6 (spec §20.4): "3 armies chosen · [Make army group] [Front] [Cancel]"
+   * under the band while several armies are chosen.
+   */
+  private renderMultiBar(maxWidth: number, right: number | null) {
+    const multi = multiSelectOf(landSelectionOf(this.game));
+    if (!multi.active) return nothing;
+    const model = new DoctrineModel(this.game);
+    const group = model
+      .groups()
+      .find(
+        (g) =>
+          g.armies.length === multi.armies.length &&
+          g.armies.every((a) => multi.has(a)),
+      );
+    const cancel = () => {
+      multi.cancel();
+      this.eventBus.emit(new WwMultiSelectEvent([]));
+    };
+    const btn =
+      "h-9 shrink-0 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20";
+    return html`<div
+      data-ww-multi
+      class="fixed ${this.depthRow ? "top-16" : "top-9"} ${right === null
+        ? "left-1/2 -translate-x-1/2"
+        : ""} z-[1002] flex flex-col gap-1 rounded-lg bg-gray-900/92 px-2 py-1 text-xs text-white shadow-md"
+      style="max-width: ${maxWidth}px;${right === null
+        ? ""
+        : ` right: ${right}px;`}"
+    >
+      <div class="flex items-center gap-2">
+        <span data-ww-multi-count class="shrink-0 font-bold"
+          >${translateText("ww1936.ag.selected", {
+            n: multi.armies.length,
+          })}</span
+        >
+        <button
+          type="button"
+          data-ww-multi-create
+          class=${btn}
+          @click=${() => (this.choosingFm = !this.choosingFm)}
+        >
+          ${translateText("ww1936.ag.create")}
+        </button>
+        <button
+          type="button"
+          data-ww-multi-front
+          class=${btn}
+          @click=${() => {
+            if (group === undefined) this.frontNote = true;
+            else multi.startFront(group.id);
+          }}
+        >
+          ${translateText("ww1936.ag.front")}
+        </button>
+        <button
+          type="button"
+          data-ww-multi-cancel
+          class=${btn}
+          @click=${cancel}
+        >
+          ${translateText("ww1936.ag.cancel")}
+        </button>
+      </div>
+      ${multi.frontGroup !== null
+        ? html`<p data-ww-multi-hint class="m-0 text-amber-300">
+            ${translateText(
+              multi.pending === null
+                ? "ww1936.ag.front_hint"
+                : "ww1936.ag.front_confirm",
+            )}
+          </p>`
+        : nothing}
+      ${this.frontNote && group === undefined
+        ? html`<p class="m-0 text-amber-300">
+            ${translateText("ww1936.ag.front_needs_group")}
+          </p>`
+        : nothing}
+      ${this.choosingFm
+        ? html`<div data-ww-multi-fms class="flex flex-col gap-1">
+            ${model.freeMarshals().length === 0
+              ? html`<p class="m-0 text-white/70">
+                    ${translateText("ww1936.ag.no_marshal")}
+                  </p>
+                  <button
+                    type="button"
+                    class=${btn}
+                    @click=${() =>
+                      this.eventBus.emit(
+                        new WwDepthOpenEvent("doctrine", { tab: "command" }),
+                      )}
+                  >
+                    ${translateText("ww1936.ag.open_command")}
+                  </button>`
+              : model.freeMarshals().map(
+                  (f) =>
+                    html`<button
+                      type="button"
+                      data-ww-multi-fm=${f.id}
+                      class="${btn} text-left"
+                      @click=${() => {
+                        this.eventBus.emit(
+                          new SendWwOrderIntentEvent({
+                            kind: "ag_create",
+                            fm: f.id,
+                            armies: [...multi.armies],
+                          }),
+                        );
+                        cancel();
+                      }}
+                    >
+                      ${f.name}
+                      <span class="text-white/60"
+                        >${f.traits
+                          .map((t) => translateText(`ww1936.fm_trait.${t}`))
+                          .join(", ")}</span
+                      >
+                    </button>`,
+                )}
+          </div>`
+        : nothing}
+    </div>`;
   }
 
   /**
@@ -436,8 +689,12 @@ export class WwTopBand extends LitElement implements Controller {
           ? p.ppLabel
           : `${p.ppLabel}, ${p.stabLabel}, ${p.wsLabel}`}
         class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
-        @click=${() =>
-          this.eventBus.emit(new OpenWwPoliticsEvent("government"))}
+        @click=${() => {
+          // A full band keeps command power and congress in a row this cell opens.
+          if (this.depthInRow() && this.depthRowHolds()) {
+            this.depthRow = !this.depthRow;
+          } else this.eventBus.emit(new OpenWwPoliticsEvent("government"));
+        }}
       >
         <span data-ww-pp class="flex flex-col items-center leading-none">
           <span>🏛 ${p.pp}</span>
