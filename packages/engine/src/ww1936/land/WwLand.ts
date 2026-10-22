@@ -68,6 +68,7 @@ import {
   equipFillPm,
   genMixInto,
   genMixOf,
+  isGen1Mix,
   strengthPmAt,
   templateCounts,
   templateStats,
@@ -716,6 +717,9 @@ interface StatsInputs {
   statsVer: number;
   /** P6 (pre-flight §0-3a): the owner's KeyStatsTable (rebuilt, never written into). */
   ks: KeyStatsTable | null;
+  /** The hooks and their keyStatsSeq `ks` was read at. */
+  hooks: LandDepthHooks | null;
+  ksSeq: number;
   ids: number[];
   defs: TemplateDef[];
   epoch: number;
@@ -872,6 +876,14 @@ export class WwLand {
    * a restored game counts from 0 and gets the same numbers.
    */
   private statsEpochSeq = 0;
+  /**
+   * P6 (performance): the read-only pass now (takeData; 0: none), its
+   * counter, and the pass each row's stats entry was last checked in.
+   * Derived, never state.
+   */
+  private readPass = 0;
+  private readPassSeq = 0;
+  private passStamp = new Int32Array(0);
   /**
    * Org max, flags, width, supply use and template numbers by row
    * (stepRecovery reads every row every tick): valid while the row holds
@@ -1531,13 +1543,36 @@ export class WwLand {
   private statsEpoch(owner: number): number {
     let s = this.statsInputs[owner];
     if (s === undefined) {
-      s = { stats: null, statsVer: -1, ks: null, ids: [], defs: [], epoch: 0 };
+      s = {
+        stats: null,
+        statsVer: -1,
+        ks: null,
+        hooks: null,
+        ksSeq: -1,
+        ids: [],
+        defs: [],
+        epoch: 0,
+      };
       this.statsInputs[owner] = s;
     }
     const ce = this.econ.country(owner);
     const stats = ce?.stats ?? null;
     const statsVer = ce?.statsVer ?? -1;
-    const ks = this.depthHooks.keyStats(owner);
+    // P6: the slot table is fetched again only when the hooks' tables or
+    // this country's stats moved (keyStatsSeq; the depth layer's lazy
+    // check reads statsVer).
+    const hooks = this.depthHooks;
+    let ks = s.ks;
+    if (
+      s.hooks !== hooks ||
+      s.ksSeq !== hooks.keyStatsSeq ||
+      s.statsVer !== statsVer ||
+      ks === null
+    ) {
+      ks = hooks.keyStats(owner);
+      s.hooks = hooks;
+      s.ksSeq = hooks.keyStatsSeq;
+    }
     const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
     let same =
       s.stats === stats &&
@@ -1579,8 +1614,8 @@ export class WwLand {
       e = { epoch, gen1: null, byMix: new Map() };
       this.tplCache.set(key, e);
     }
-    let gen1 = true;
-    for (let i = 0; gen1 && i < mix.length; i++) gen1 = mix[i] === 100;
+    // (P6: the mix's design part is zeros at generation 1.)
+    const gen1 = isGen1Mix(mix);
     if (gen1 && e.gen1 !== null) return e.gen1;
     const mixKey = gen1 ? "" : mix.join(",");
     if (!gen1) {
@@ -1599,6 +1634,25 @@ export class WwLand {
   }
 
   private statsEntry(row: number): StatsEntry {
+    const pass = this.readPass;
+    if (pass === 0) return this.statsEntryChecked(row);
+    // In a read-only pass (takeData) nothing moves: once checked, kept.
+    let stamps = this.passStamp;
+    if (row >= stamps.length) {
+      const grown = new Int32Array(Math.max(row + 1, stamps.length * 2, 64));
+      grown.set(stamps);
+      stamps = this.passStamp = grown;
+    }
+    if (stamps[row] === pass) {
+      const hit = this.statsCache.get(this.divisions.id[row]);
+      if (hit !== undefined) return hit;
+    }
+    const e = this.statsEntryChecked(row);
+    stamps[row] = pass;
+    return e;
+  }
+
+  private statsEntryChecked(row: number): StatsEntry {
     const t = this.divisions;
     const id = t.id[row];
     const owner = t.owner[row];
@@ -1953,6 +2007,16 @@ export class WwLand {
     ) {
       return null;
     }
+    // A read-only pass: a row's stats entry is checked once (statsEntry).
+    this.readPass = ++this.readPassSeq;
+    try {
+      return this.takeDataPass();
+    } finally {
+      this.readPass = 0;
+    }
+  }
+
+  private takeDataPass(): WwLandData {
     const asc = (s: Iterable<number>) => [...s].sort((a, b) => a - b);
     const d: WwLandData = {
       armies: [],

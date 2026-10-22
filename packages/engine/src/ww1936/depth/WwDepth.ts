@@ -483,6 +483,8 @@ export class WwDepth implements LandDepthHooks {
   designStatCache = new Map<number, (DesignStats | null)[][]>();
   /** Pre-flight §0-3(a): rebuilt as a new object, never mutated (its identity joins P2's StatsInputs). */
   keyStatTables = new Map<number, KeyStatsTable>();
+  /** LandDepthHooks.keyStatsSeq: moves with every keyStatTables change (derived). */
+  keyStatsSeq = 1;
   /** sr * 64 + side → index in sea.mines. */
   mineIndex = new Map<number, number>();
   /** region → FACILITY_IDS index + 1. */
@@ -994,6 +996,7 @@ export class WwDepth implements LandDepthHooks {
     this.designCacheKey.clear();
     this.designVer.clear();
     this.keyStatTables.clear();
+    this.keyStatsSeq++;
     this.mineIndex.clear();
     this.facilityIndex.clear();
     for (let id = 1; id < this.cap; id++) {
@@ -1026,6 +1029,7 @@ export class WwDepth implements LandDepthHooks {
     const ce = this.ww.economy.country(id);
     this.designCacheKey.set(id, [ce?.statsVer ?? -1, ce?.researched ?? EMPTY]);
     this.keyStatTables.delete(id);
+    this.keyStatsSeq++;
   }
 
   /**

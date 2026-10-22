@@ -68,7 +68,7 @@ import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
-import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
+import { isRetiredTech, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { capitalRegion } from "../land/LandStartRun";
 import {
@@ -615,83 +615,41 @@ const BATTLE_NAVIES: readonly CountryTag[] = [
  * follows in WW_TECH_IDS order.
  */
 const SEA_FOCUS: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
-  DEU: [
-    "trade_interdiction_1",
-    "ss_3",
-    "torpedo_1",
-    "trade_interdiction_2",
-    "dd_3",
-    "ss_4",
-  ],
+  DEU: ["ss_3", "torpedo_1", "dd_3", "ss_4"],
   GBR: [
     "sonar_1",
     "dd_3",
-    "fleet_in_being_1",
     "sonar_2",
     "naval_radar_1",
     "cv_3",
-    "fleet_in_being_2",
     "landing_craft_1",
   ],
-  JPN: [
-    "base_strike_1",
-    "cv_3",
-    "torpedo_1",
-    "base_strike_2",
-    "dd_3",
-    "landing_craft_1",
-    "cv_4",
-  ],
-  USA: [
-    "base_strike_1",
-    "cv_3",
-    "dd_3",
-    "sonar_1",
-    "base_strike_2",
-    "landing_craft_1",
-    "naval_radar_1",
-    "cv_4",
-  ],
-  ITA: ["fleet_in_being_1", "bb_3", "cl_3", "ss_3", "torpedo_1"],
-  FRA: ["fleet_in_being_1", "bb_3", "dd_3", "ss_3"],
-  SUN: ["trade_interdiction_1", "ss_3", "dd_3"],
+  JPN: ["cv_3", "torpedo_1", "dd_3", "landing_craft_1", "cv_4"],
+  USA: ["cv_3", "dd_3", "sonar_1", "landing_craft_1", "naval_radar_1", "cv_4"],
+  ITA: ["bb_3", "cl_3", "ss_3", "torpedo_1"],
+  FRA: ["bb_3", "dd_3", "ss_3"],
+  SUN: ["ss_3", "dd_3"],
 };
 const AIR_FOCUS: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
-  DEU: [
-    "battlefield_support_1",
-    "cas_2",
-    "battlefield_support_2",
-    "heavy_fighter_2",
-    "radar_1",
-    "cas_3",
-  ],
+  DEU: ["cas_2", "heavy_fighter_2", "radar_1", "cas_3"],
   GBR: [
     "radar_1",
-    "strategic_destruction_1",
     "naval_bomber_2",
     "strat_bomber_2",
     "radar_2",
-    "strategic_destruction_2",
     "strat_bomber_3",
   ],
-  JPN: [
-    "operational_integrity_1",
-    "naval_bomber_2",
-    "operational_integrity_2",
-    "naval_bomber_3",
-  ],
+  JPN: ["naval_bomber_2", "naval_bomber_3"],
   USA: [
-    "strategic_destruction_1",
     "strat_bomber_1",
     "naval_bomber_2",
     "strat_bomber_2",
-    "strategic_destruction_2",
     "radar_1",
     "strat_bomber_3",
   ],
-  SUN: ["battlefield_support_1", "cas_2", "battlefield_support_2", "cas_3"],
-  ITA: ["operational_integrity_1", "naval_bomber_2", "heavy_fighter_2"],
-  FRA: ["operational_integrity_1", "heavy_fighter_2", "cas_2"],
+  SUN: ["cas_2", "cas_3"],
+  ITA: ["naval_bomber_2", "heavy_fighter_2"],
+  FRA: ["heavy_fighter_2", "cas_2"],
 };
 
 /** Whether `tag`'s AI researches P4 tech `t` at all (its navy, its air force, its coast). */
@@ -732,6 +690,7 @@ function p4Order(
   const add = (t: WwTechId) => {
     if (
       !out.includes(t) &&
+      !isRetiredTech(t) &&
       aiTechDomain(t) === dom &&
       wantsP4(tag, t, coastal)
     ) {
@@ -820,7 +779,9 @@ export function aiResearchOrder(
       (a, b) => TECH_INDEX.get(a)! - TECH_INDEX.get(b)!,
     );
     for (const t of sorted) {
-      if (seen.has(t) || aiTechDomain(t) !== "land") continue;
+      if (seen.has(t) || isRetiredTech(t) || aiTechDomain(t) !== "land") {
+        continue;
+      }
       seen.add(t);
       land.push(t);
     }

@@ -88,6 +88,13 @@ export const GEN1: GenMix = [
   ...new Array<number>(GEN_MIX_LENGTH - T).fill(0),
 ];
 
+/** The mix is GEN1 (every group at generation 1, no design unit). */
+export function isGen1Mix(mix: GenMix): boolean {
+  for (let i = 0; i < T; i++) if (mix[i] !== 100) return false;
+  for (let i = T; i < mix.length; i++) if (mix[i] !== 0) return false;
+  return true;
+}
+
 /** The draw-order year of a static slot: its generation's tech year (1936 without one). */
 function staticYear(j: number): number {
   const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
@@ -499,9 +506,15 @@ export function equipByType(
   ks: KeyStatsTable = STATIC_KEY_STATS,
 ): number[] {
   const have = new Array<number>(T).fill(0);
-  for (let j = 0; j < GROUND_SLOTS; j++) {
-    const g = slotGroup(ks, j);
-    if (g >= 0) have[g] += equip[j] ?? 0;
+  // (slotGroup inlined: the static slots' groups are fixed.)
+  for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
+    have[SLOT_TYPE[j]] += equip[j] ?? 0;
+  }
+  for (let j = GROUND_STATIC_SLOTS; j < GROUND_SLOTS; j++) {
+    const n = equip[j] ?? 0;
+    if (n === 0) continue;
+    const g = ks.group[j];
+    if (g >= 0) have[g] += n;
   }
   return have;
 }
@@ -576,6 +589,17 @@ export function divisionStatsAt(
   };
 }
 
+/**
+ * Each need group's unit cost at generation 1 (the fill weights); P6: a
+ * design-only group weighs as a medium tank (designs have no table cost).
+ */
+const GROUP_COST_MILLI: readonly number[] = NEED_GROUPS.map((_, i) =>
+  unitCostMilli(
+    i < EQUIPMENT_TYPES.length ? EQUIPMENT_TYPES[i] : "medium_tank",
+    1,
+  ),
+);
+
 /** Cost-weighted equipment fill of a division, ‰ (spec §4.3's strength bar, equipment half). */
 export function equipFillPm(
   s: DivisionStats,
@@ -592,14 +616,11 @@ export function equipFillPmAt(
 ): number {
   let w = 0;
   let got = 0;
+  const need = s.need;
   for (let i = 0; i < T; i++) {
-    // P6: a design-only group weighs as a medium tank (designs have no table cost).
-    const c =
-      s.need[i] *
-      unitCostMilli(
-        i < EQUIPMENT_TYPES.length ? EQUIPMENT_TYPES[i] : "medium_tank",
-        1,
-      );
+    const nd = need[i];
+    if (nd === 0) continue;
+    const c = nd * GROUP_COST_MILLI[i];
     w += c;
     got += Math.floor((c * fill[i]) / 1000);
   }

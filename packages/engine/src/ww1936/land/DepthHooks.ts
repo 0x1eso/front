@@ -44,6 +44,12 @@ export interface LandDepthHooks {
   onRegionControl(region: number, from: number, to: number, tick: number): void;
   /** The country's division-slot numbers (plan decision 7). */
   keyStats(owner: number): KeyStatsTable;
+  /**
+   * Moves whenever a keyStats table may have changed (a design cache
+   * refreshed, the tables rebuilt): the land war re-reads keyStats only
+   * then, or when the country's statsVer moved (derived, never state).
+   */
+  readonly keyStatsSeq: number;
 }
 
 const NEUTRAL_MODS: ArmyDepthModsLike = {
@@ -67,4 +73,5 @@ export const NEUTRAL_DEPTH_HOOKS: LandDepthHooks = {
   moveCutPct: () => 0,
   onRegionControl: () => {},
   keyStats: () => STATIC_KEY_STATS,
+  keyStatsSeq: 0,
 };

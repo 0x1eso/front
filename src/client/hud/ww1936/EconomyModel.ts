@@ -1531,30 +1531,31 @@ export function researchCards(
     slotCount: detail.slotCount,
   };
   const speed = researchSpeedPct(detail);
-  return WW_TECH_IDS.filter((id) => WW_TECHS[id].branch === branch).map(
-    (id) => {
-      const def = WW_TECHS[id];
-      const days = techDays(def.year);
-      const ahead = aheadPct(def.year, day);
-      const perDay = researchProgress(speed, ahead);
-      const slot = detail.slots.find((s) => s?.tech === id) ?? null;
-      const left =
-        slot === null
-          ? days * 1000
-          : Math.max(0, slot.totalMilli - slot.progressMilli);
-      const block = researchBlockOf(state, id);
-      return {
-        id,
-        year: def.year,
-        days,
-        etaDays: perDay > 0 ? Math.ceil(left / perDay) : 0,
-        ahead,
-        state: cardState(block),
-        block,
-        school: def.school ?? null,
-      };
-    },
-  );
+  // P6 plan decision 25: the retired doctrine techs are never offered.
+  return WW_TECH_IDS.filter(
+    (id) => WW_TECHS[id].branch === branch && WW_TECHS[id].retired !== true,
+  ).map((id) => {
+    const def = WW_TECHS[id];
+    const days = techDays(def.year);
+    const ahead = aheadPct(def.year, day);
+    const perDay = researchProgress(speed, ahead);
+    const slot = detail.slots.find((s) => s?.tech === id) ?? null;
+    const left =
+      slot === null
+        ? days * 1000
+        : Math.max(0, slot.totalMilli - slot.progressMilli);
+    const block = researchBlockOf(state, id);
+    return {
+      id,
+      year: def.year,
+      days,
+      etaDays: perDay > 0 ? Math.ceil(left / perDay) : 0,
+      ahead,
+      state: cardState(block),
+      block,
+      school: def.school ?? null,
+    };
+  });
 }
 
 export interface SlotRow {
