@@ -397,7 +397,10 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // zones, dmz, reparations, arms limits and peace log): same value in three
 // runs (32da07d0f19f912a). Re-pinned after batch 22 (P4 lane bal: partial
 // trade deals, aluminium x2, synthetic rubber, AI air and navy tuning,
-// P4 caches): same value in three runs.
+// P4 caches): same value in three runs. Batch 23 (W: Korea/Taiwan zones
+// never go back to Japan, occupation removals) leaves it as it is (three
+// runs): the pinned game has no Korea or Taiwan zone and the removals are
+// screen data.
 // The controller re-pins it at every merge that changes the engine.
 const WW1936_DIGEST = "8737d7c989ba2e96";
 
