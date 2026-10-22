@@ -2206,9 +2206,14 @@ export class WwNavy {
     const hp = new Array<number>(len).fill(0);
     const org = new Array<number>(len).fill(0);
     const marks = new Array<number>(len).fill(0);
+    // Lane E review minor 8 (batch P6-4): ships' designs and refits, per
+    // owner in row order; a navy of base-class ships adds nothing.
+    const des = new Array<number>(len).fill(0);
     for (let r = 0; r < t.rows; r++) {
       if (t.id[r] === 0) continue;
       const o = t.owner[r];
+      const dv = t.design[r] + t.refitTo[r] * 32 + t.refitLeft[r] * 1024;
+      if (dv !== 0) des[o] = (Math.imul(des[o], 31) + t.id[r] + dv) | 0;
       n[o]++;
       hp[o] = (hp[o] + t.hp[r]) | 0;
       org[o] = (org[o] + t.org[r]) | 0;
@@ -2226,6 +2231,7 @@ export class WwNavy {
       h = (Math.imul(h, 31) + hp[id]) >>> 0;
       h = (Math.imul(h, 31) + org[id]) >>> 0;
       h = (Math.imul(h, 31) + marks[id]) >>> 0;
+      if (des[id] !== 0) h = (Math.imul(h, 31) + des[id]) >>> 0;
     }
     for (const f of this.fleets.values()) {
       h = (Math.imul(h, 31) + f.id) >>> 0;

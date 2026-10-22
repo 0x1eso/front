@@ -1375,6 +1375,9 @@ export class WwEconomy {
       for (const l of ce.lines) {
         h = (Math.imul(h, 31) + l.effBp + l.factories) | 0;
         h = (Math.imul(h, 31) + l.progress + l.active * 7) | 0;
+        // Lane E review minor 8 (batch P6-4): what the line builds and the
+        // stock it converts from (-1: none).
+        h = (Math.imul(h, 31) + l.key + (l.convertFrom + 1) * 4096) | 0;
       }
       // Progress, so a desync in construction or research shows the same
       // day (not when a building or tech completes).

@@ -56,7 +56,10 @@ import {
   saveDesign,
   shipLicenceCostPct,
 } from "@openfront/engine/ww1936/depth/Designs";
-import { designCtxOf } from "@openfront/engine/ww1936/depth/WwDepth";
+import {
+  designCtxOf,
+  designDefHash,
+} from "@openfront/engine/ww1936/depth/WwDepth";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import {
   designLossMilli,
@@ -351,6 +354,64 @@ describe("World War 1936 P6: designs in the game", () => {
     step(runner, 8 * 15);
     expect(d.designSlot(GBR, "tank", 1)).toBeNull();
     expect(ww.land.keyStatsOf(GBR).group[GROUND_STATIC_SLOTS]).toBe(-1);
+  });
+
+  // Batch P6-4 (lane E review minor 8): a desync in a design, a ship's
+  // design or refit, or a line's conversion shows in the hash the same tick.
+  it("the design state moves the hashes", async () => {
+    const { runner, ww, d } = await game();
+    prepare(ww, GBR, TANK_TECHS);
+    const tick = runner.game.ticks();
+    const depth = () => d.hash();
+    const h0 = depth();
+    expect(d.issue(GBR, { kind: "design_save", def: MED1 }, tick)).toBeNull();
+    const h1 = depth();
+    expect(h1).not.toBe(h0);
+    expect(
+      d.issue(
+        GBR,
+        { kind: "design_rename", design: "tank", slot: 1, name: "Other" },
+        tick,
+      ),
+    ).toBeNull();
+    const h2 = depth();
+    expect(h2).not.toBe(h1);
+    expect(
+      d.issue(GBR, { kind: "design_obsolete", design: "tank", slot: 1 }, tick),
+    ).toBeNull();
+    expect(depth()).not.toBe(h2);
+    // The fit, the origin and the day each count.
+    const slot = d.designSlot(GBR, "tank", 1)!;
+    const h3 = depth();
+    slot.savedDay++;
+    expect(depth()).not.toBe(h3);
+    slot.origin = "received";
+    const h4 = depth();
+    expect(h4).not.toBe(h3);
+    expect(designDefHash({ ...MED1, modules: [...MED1.modules] })).toBe(
+      designDefHash(MED1),
+    );
+    expect(designDefHash({ ...MED1, armorLevel: 1 })).not.toBe(
+      designDefHash(MED1),
+    );
+    // A ship's design and its refit (WwNavy.hash).
+    const t = ww.navy.ships;
+    const fid = ww.navy.createFleet(GBR, LONDON, [["dd", 2, 1]]);
+    const r = t.rowOf(ww.navy.fleets.get(fid)!.ships[0]);
+    expect(r).toBeGreaterThanOrEqual(0);
+    const n0 = ww.navy.hash();
+    t.design[r] = 1;
+    const n1 = ww.navy.hash();
+    expect(n1).not.toBe(n0);
+    t.refitTo[r] = 2;
+    t.refitLeft[r] = 9;
+    expect(ww.navy.hash()).not.toBe(n1);
+    // A line's conversion source (WwEconomy.hash).
+    const ce = ww.economy.country(GBR)!;
+    const l = ce.lines[0];
+    const e0 = ww.economy.hash();
+    l.convertFrom = equipKey("light_tank", 1);
+    expect(ww.economy.hash()).not.toBe(e0);
   });
 
   it("line conversion consumes old stock", async () => {

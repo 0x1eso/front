@@ -11,6 +11,7 @@ import {
   DEPTH_ORDER_KINDS,
   DESIGN_KINDS,
   DESIGN_ORIGINS,
+  DesignDef,
   DesignDefSchema,
   DesignKind,
   DesignStats,
@@ -1492,8 +1493,44 @@ export class WwDepth implements LandDepthHooks {
       mix(rows.length);
       for (const row of [...rows].sort(byFields)) for (const v of row) mix(v);
     });
+    // Lane E review minor 8 (batch P6-4): every saved design, by country,
+    // kind (DESIGN_KINDS order) and slot — its origin, source, flag, day and
+    // fit (the name included: a rename is state). No design adds nothing.
+    for (let id = 1; id < this.cap; id++) {
+      const c = this.countries[id];
+      if (c === null || c === undefined) continue;
+      DESIGN_KINDS.forEach((kind, k) => {
+        c.des[kind].forEach((s, slot) => {
+          if (s === null) return;
+          mix(2_000 + id);
+          mix(k * 64 + slot);
+          mix(DESIGN_ORIGINS.indexOf(s.origin));
+          mix(s.from * 64 + s.fromSlot);
+          mix(s.obsolete ? 1 : 0);
+          mix(s.savedDay);
+          mix(designDefHash(s.def));
+        });
+      });
+    }
     return h;
   }
+}
+
+/** Lane E review minor 8: a design's fit as one number (base, modules, levels, name). */
+export function designDefHash(def: DesignDef): number {
+  let h = 7;
+  const text = [
+    def.kind,
+    def.base,
+    def.modules.join(","),
+    def.armorLevel ?? -1,
+    def.engineLevel ?? -1,
+    def.name,
+  ].join("|");
+  for (let i = 0; i < text.length; i++) {
+    h = (Math.imul(h, 31) + text.charCodeAt(i)) >>> 0;
+  }
+  return h;
 }
 
 // ---- helpers (the foundation's bodies) ----
