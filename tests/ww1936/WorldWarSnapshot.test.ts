@@ -391,9 +391,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // subjects, C civil wars, E endgame effects and conditions, T keys): same
 // value in three runs (1bc3bc0601b4afa9). Re-pinned after P5 batch 20
 // (lanes X waking countries and exiles, A aid; the hash reads lend-lease
-// size and the AI flag): same value in three runs.
+// size and the AI flag): same value in three runs (9921b6744d8c5f55).
+// Re-pinned after P5 batch 21 (lane W war end, capitulation and peace
+// conference; U1-U3 screens; the hash reads every conference field and the
+// zones, dmz, reparations, arms limits and peace log): same value in three
+// runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "9921b6744d8c5f55";
+const WW1936_DIGEST = "32da07d0f19f912a";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
