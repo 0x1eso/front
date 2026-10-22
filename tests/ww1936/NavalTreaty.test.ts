@@ -72,6 +72,30 @@ describe("World War 1936 P6: the naval treaty", () => {
     expect(treatyMember(d, GBR)).toBe(false);
   });
 
+  it("a former member's battleships do not escalate", async () => {
+    const runner = await wwRunner({}, [], DEEP.map);
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    stepToDate(runner, "1936-01-03");
+    const tick = runner.game.ticks();
+    const day = ww.day(tick);
+    // France is out (released or left) and lays down a BB 3 line: the
+    // treaty answers outside powers only.
+    d.mech.treaty.members = d.mech.treaty.members.filter((x) => x !== FRA);
+    ww.economy.country(FRA)!.navalLines.push(bbLine(3));
+    treatyDay(d, day, tick);
+    expect(treatyEscalated(d)).toBe(false);
+    // A leaver on its way out neither.
+    d.mech.treaty.leaving.push([GBR, day + 20]);
+    ww.economy.country(GBR)!.navalLines.push(bbLine(3));
+    treatyDay(d, day, tick);
+    expect(treatyEscalated(d)).toBe(false);
+    // Italy, never a member, does.
+    ww.economy.country(ITA)!.navalLines.push(bbLine(3));
+    treatyDay(d, day, tick);
+    expect(treatyEscalated(d)).toBe(true);
+  });
+
   it("the escalator event's flag escalates too", async () => {
     const runner = await wwRunner({}, [], DEEP.map);
     const ww = runner.game.worldWar()!;

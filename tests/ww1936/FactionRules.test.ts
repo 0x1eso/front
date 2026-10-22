@@ -2,7 +2,10 @@
 // (spec §14) on the deep test map. Britain (human) leads the Allies; the
 // tests bring countries in with P3's joinFaction.
 import { FACTION_GOALS } from "@openfront/engine-api/ww1936/DepthTypes";
-import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  WW_TECH_IDS,
+  type WwTechId,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   IDEO_FAS,
   type SpiritDef,
@@ -11,12 +14,15 @@ import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   factionGoalsDay,
   GOAL_SPIRIT_DAYS,
+  goalMet,
+  goalProgressPm,
   ideologyLocked,
   sharedIntel,
   sharedResearchPct,
 } from "@openfront/engine/ww1936/depth/FactionRules";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
+  dissolveFaction,
   joinBlock,
   joinFaction,
   leaveFaction,
@@ -172,5 +178,75 @@ describe("World War 1936 P6: faction rules and goals", () => {
     // The same government is welcome.
     expect(ideologyLocked(d, GBR, TUR)).toBe(false);
     expect(joinBlock(pol, TUR, allies)).toBeNull();
+  });
+});
+
+describe("World War 1936 P6: the other faction goals", () => {
+  it("research, Europe, sea lanes and liberation are judged on the faction's state", async () => {
+    const { runner, allies } = await alliesGame();
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const tick = runner.game.ticks();
+    const day = ww.day(tick);
+    const p = ww.politics;
+    const met = (g: (typeof FACTION_GOALS)[number]) => goalMet(d, allies, g);
+    // fg_research: the members' techs ≥ 50 each.
+    expect(met("fg_research")).toBe(false);
+    for (const m of [GBR, FRA]) {
+      const ce = ww.economy.country(m)!;
+      for (const t of WW_TECH_IDS.slice(0, 60)) ce.researched.add(t);
+    }
+    expect(met("fg_research")).toBe(true);
+    // fg_europe_vp: 40% of Europe's VP (the deep map is all Europe).
+    expect(goalProgressPm(d, allies, "fg_europe_vp")).toBeLessThan(1000);
+    expect(met("fg_europe_vp")).toBe(false);
+    ww.land.controller[DEEP.region.berlin] = GBR;
+    expect(met("fg_europe_vp")).toBe(true);
+    // fg_sea_lanes: 20 sea regions at 60% supremacy (the deep map has fewer).
+    const seas = ww.scenario.strategicList().filter((s) => s.kind === "sea");
+    expect(seas.length).toBeGreaterThan(0);
+    const side = ww.navy.sideOf(GBR);
+    for (const sr of seas) ww.navy.setSupremacy(sr.id, new Map([[side, 600]]));
+    expect(goalProgressPm(d, allies, "fg_sea_lanes")).toBe(
+      Math.floor((seas.length * 1000) / 20),
+    );
+    expect(met("fg_sea_lanes")).toBe(seas.length >= 20);
+    // fg_liberation: a capitulated member's capital held by the faction again.
+    expect(goalProgressPm(d, allies, "fg_liberation")).toBe(0);
+    ww.addCapitulation(FRA, DEU, tick);
+    ww.land.controller[DEEP.region.paris] = DEU;
+    expect(goalProgressPm(d, allies, "fg_liberation")).toBe(500);
+    ww.land.controller[DEEP.region.paris] = GBR;
+    expect(met("fg_liberation")).toBe(true);
+    // Its reward: war support +10 points for every member.
+    const ws = p.country(GBR)!.wsBaseBp;
+    const issue = (slot: number, goal: (typeof FACTION_GOALS)[number]) =>
+      d.issue(GBR, { kind: "faction_goal", slot, goal } as never, tick);
+    expect(issue(0, "fg_liberation")).toBeNull();
+    factionGoalsDay(d, day);
+    expect(p.country(GBR)!.wsBaseBp).toBe(Math.min(10_000, ws + 1_000));
+  });
+
+  it("a dissolved faction's rules and goals go", async () => {
+    const { runner, allies } = await alliesGame();
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const tick = runner.game.ticks();
+    expect(
+      d.issue(
+        GBR,
+        { kind: "faction_rule", rule: "fr_shared_intel", on: true },
+        tick,
+      ),
+    ).toBeNull();
+    expect(
+      d.issue(GBR, { kind: "faction_goal", slot: 1, goal: "fg_members" }, tick),
+    ).toBeNull();
+    expect(d.mech.factionRules.some((r) => r[0] === allies)).toBe(true);
+    dissolveFaction(ww.politics, allies, tick);
+    factionGoalsDay(d, ww.day(tick));
+    expect(d.mech.factionRules.some((r) => r[0] === allies)).toBe(false);
+    expect(d.mech.factionGoals.some((g) => g.faction === allies)).toBe(false);
+    expect(sharedIntel(d, GBR, FRA)).toBe(false);
   });
 });

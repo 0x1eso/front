@@ -199,13 +199,28 @@ export function factionGoalsDay(d: WwDepth, day: number): void {
 
 /** Spec §14.2 conditions, judged on the faction as it stands. */
 export function goalMet(d: WwDepth, f: number, goal: FactionGoal): boolean {
+  return goalProgressPm(d, f, goal) >= 1000;
+}
+
+/**
+ * How far the faction is toward the goal, ‰ (1000 or more: met). The AI
+ * ranks its slots by it. Liberation has no measure: 1000 when met, 500
+ * while a member has lost its country, else 0.
+ */
+export function goalProgressPm(
+  d: WwDepth,
+  f: number,
+  goal: FactionGoal,
+): number {
   const pol = d.ww.politics;
   const fs = pol.faction(f);
-  if (fs === null) return false;
+  if (fs === null) return 0;
   const members = fs.members;
+  const pm = (have: number, need: number) =>
+    need <= 0 ? 0 : Math.floor((have * 1000) / need);
   switch (goal) {
     case "fg_members":
-      return members.length >= GOAL_MEMBERS;
+      return pm(members.length, GOAL_MEMBERS);
     case "fg_europe_vp": {
       let all = 0;
       let held = 0;
@@ -213,7 +228,7 @@ export function goalMet(d: WwDepth, f: number, goal: FactionGoal): boolean {
         all += vp;
         if (pol.factionIdx(d.ww.land.controller[r] ?? 0) === f) held += vp;
       }
-      return all > 0 && held * 100 >= all * GOAL_EUROPE_VP_PCT;
+      return pm(held * 100, all * GOAL_EUROPE_VP_PCT);
     }
     case "fg_sea_lanes": {
       const side = d.ww.navy.sideOf(fs.leader);
@@ -222,28 +237,34 @@ export function goalMet(d: WwDepth, f: number, goal: FactionGoal): boolean {
         if (sr.kind !== "sea") continue;
         if (d.ww.navy.supremacy(side, sr.id) >= GOAL_SEA_SUPREMACY_PM) n++;
       }
-      return n >= GOAL_SEA_REGIONS;
+      return pm(n, GOAL_SEA_REGIONS);
     }
     case "fg_research": {
       let techs = 0;
       for (const m of members) {
         techs += d.ww.economy.country(m)?.researched.size ?? 0;
       }
-      return techs >= members.length * GOAL_TECHS_PER_MEMBER;
+      return pm(techs, members.length * GOAL_TECHS_PER_MEMBER);
     }
     case "fg_industry": {
       let mil = 0;
       for (const m of members) mil += d.ww.economy.country(m)?.totals.mil ?? 0;
-      return mil >= GOAL_MIL_FACTORIES;
+      return pm(mil, GOAL_MIL_FACTORIES);
     }
-    case "fg_liberation":
+    case "fg_liberation": {
       // A member that lost its country (capitulated, or a government in
       // exile) whose capital the faction holds again.
-      return members.some((m) => {
-        if (!d.ww.isCapitulated(m) && !d.ww.endgame.isExile(m)) return false;
+      let lost = false;
+      for (const m of members) {
+        if (!d.ww.isCapitulated(m) && !d.ww.endgame.isExile(m)) continue;
+        lost = true;
         const cap = d.ww.capitalRegion(m);
-        return cap > 0 && pol.factionIdx(d.ww.land.controller[cap] ?? 0) === f;
-      });
+        if (cap > 0 && pol.factionIdx(d.ww.land.controller[cap] ?? 0) === f) {
+          return 1000;
+        }
+      }
+      return lost ? 500 : 0;
+    }
   }
 }
 

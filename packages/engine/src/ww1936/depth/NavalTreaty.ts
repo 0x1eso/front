@@ -27,6 +27,8 @@ export const ESCALATOR_BB_GEN = 3;
 /** Spec §13.3: +2% world tension (the leaver's own). */
 export const TREATY_LEAVE_TENSION_BP = 200;
 export const TREATY_ESCALATION_EVENT = "treaty_escalation";
+/** The 1936 members (WwDepth.start's list); nobody joins later. */
+const TREATY_START_TAGS: readonly string[] = ["GBR", "USA", "FRA"];
 export const TREATY_ESCALATED_FLAG = "treaty_escalated";
 
 /** A member of the naval treaty now (the foundation's body: the list). */
@@ -106,7 +108,10 @@ export function treatyDay(d: WwDepth, day: number, tick: number): void {
   if (!t.escalated && escalatorDue(d, day)) escalate(d, tick);
 }
 
-/** A non-member major's BB 3+ line, or the K5 event's flag on someone. */
+/**
+ * A BB 3+ line of a major that was never a member (a leaver or a released
+ * member is no outside power), or the K5 event's flag on someone.
+ */
 function escalatorDue(d: WwDepth, day: number): boolean {
   const pol = d.ww.politics;
   if (pol.gflags.has(TREATY_ESCALATED_FLAG)) return true;
@@ -115,6 +120,7 @@ function escalatorDue(d: WwDepth, day: number): boolean {
       return true;
     }
     if (
+      TREATY_START_TAGS.includes(d.ww.scenario.tagOfSmallId(id) ?? "") ||
       d.mech.treaty.members.includes(id) ||
       !isMajor(d, id) ||
       !d.ww.isActor(id)

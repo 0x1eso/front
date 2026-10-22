@@ -9,6 +9,7 @@ import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
+import { applyEffect, makeCtx } from "../politics/Dispatch";
 import { addSpirit, removeSpirit, swapSpirit } from "../politics/Spirits";
 import type { WwDepth } from "./WwDepth";
 
@@ -43,18 +44,28 @@ export function bopBandOf(d: WwDepth, tag: string): number {
   return i < 0 ? -1 : (entryOf(d, i)?.[2] ?? -1);
 }
 
-/** The country's turn: end, drift, band spirit. */
+/** The country's turn: drift, band spirit (the end is the day's common step's). */
 export function dailyBop(d: WwDepth, id: number, day: number): void {
   const tag = d.ww.tagOf(id);
   const i = bopDefIndex(tag);
   if (i < 0) return;
   const e = entryOf(d, i);
   if (e === undefined) return;
-  if (bopEnds(d, id, tag, day)) {
-    stopBop(d, id, i);
-    return;
-  }
   setBop(d, id, i, e[1] + bopDrift(d, id, tag, day), day);
+}
+
+/**
+ * The day's common step (review fix): the ends, whatever the country's
+ * state — a capitulated or gone country plays no turn, so its mechanism
+ * and band spirit would otherwise stay for good.
+ */
+export function bopEndsDay(d: WwDepth, day: number): void {
+  for (const [i] of [...d.mech.bop]) {
+    const tag = BOP_DEFS[i]?.tag;
+    if (tag === undefined) continue;
+    const id = d.ww.politics.idOfTag(tag);
+    if (id > 0 && bopEnds(d, id, tag, day)) stopBop(d, id, i);
+  }
 }
 
 /** A `bop` effect (or a decision): ± ‰ while the country's mechanism is on. */
@@ -116,11 +127,16 @@ function syncBandSpirit(
   if (wantOk && !c.hasSpirit(want)) addSpirit(pol, id, want, undefined, day);
 }
 
-/** Spec §13.2: Japan in August 1945; France with another government or capitulated. */
+/**
+ * Spec §13.2: Japan in August 1945; France with another government. Any of
+ * the three when it capitulates or is gone (its government no longer plays).
+ */
 function bopEnds(d: WwDepth, id: number, tag: string, day: number): boolean {
+  if (d.ww.isCapitulated(id) || d.ww.endgame.countryState(id) === "gone") {
+    return true;
+  }
   if (tag === "JPN") return day >= dayOfDate(JPN_END_DATE);
   if (tag === "FRA") {
-    if (d.ww.isCapitulated(id)) return true;
     const pol = d.ww.politics;
     const start = IDEOLOGIES.indexOf(
       pol.content.countryIdx.get(tag)?.ruling ?? "neutral",
@@ -155,21 +171,39 @@ function bopDrift(d: WwDepth, id: number, tag: string, day: number): number {
  * The warlords China has annexed since its last turn: gone (P5) with their
  * capital region China's (P3 legal owner), not counted yet. Each count is
  * kept as a P3 flag on China, `bop_annexed_<TAG>` (state, so a restore
- * counts the same).
+ * counts the same), set through P3's set_flag (the country goes out).
  */
 function warlordsAnnexedNow(d: WwDepth, chn: number, day: number): number {
+  const pol = d.ww.politics;
+  return warlordsAnnexedFor(
+    d,
+    chn,
+    CHN_WARLORDS.map((t) => pol.idOfTag(t)).filter((w) => w > 0),
+    day,
+  );
+}
+
+/** warlordsAnnexedNow for given warlord smallIDs (the test map has no China). */
+export function warlordsAnnexedFor(
+  d: WwDepth,
+  chn: number,
+  warlords: readonly number[],
+  day: number,
+): number {
   const pol = d.ww.politics;
   const c = pol.country(chn);
   if (c === null) return 0;
   let n = 0;
-  for (const tag of CHN_WARLORDS) {
-    const w = pol.idOfTag(tag);
-    if (w <= 0 || d.ww.endgame.countryState(w) !== "gone") continue;
+  for (const w of warlords) {
+    if (d.ww.endgame.countryState(w) !== "gone") continue;
     const cap = d.ww.capitalRegion(w);
     if (cap <= 0 || pol.legalOwner[cap] !== chn) continue;
-    const flag = `bop_annexed_${tag}`;
-    if (c.flags.has(flag)) continue;
-    c.flags.set(flag, [day, -1]);
+    const flag = `bop_annexed_${pol.tagOf(w)}`;
+    if (c.hasFlag(flag, day)) continue;
+    applyEffect(makeCtx(pol, chn, chn, 0, d.mg.ticks()), {
+      kind: "set_flag",
+      flag,
+    });
     n++;
   }
   return n;

@@ -26,6 +26,7 @@ import {
   FACTION_GOAL_SLOTS,
   FR_SHARED_INTEL,
   FR_SHARED_RESEARCH,
+  goalProgressPm,
   issueFactionGoal,
   issueFactionRule,
   ruleOn,
@@ -36,7 +37,7 @@ import type { WwDepth } from "./WwDepth";
 const AI_CONGRESS_TENSION_BP = 4_000;
 /** PP an AI keeps after paying for a faction rule. */
 const AI_PP_RESERVE = 50;
-/** Spec §14.2 AI: members first, then industry (then the rest). */
+/** Spec §14.2 AI: members first, then industry (then the rest) — the tie order. */
 const AI_GOAL_ORDER: readonly FactionGoal[] = [
   "fg_members",
   "fg_industry",
@@ -77,7 +78,12 @@ function aiContinuousFocus(d: WwDepth, id: number, day: number): void {
   if (block === null) setCfocus(d, id, i, day);
 }
 
-/** A mechanism decision this AI takes itself (unweighted in the data), when allowed now. */
+/**
+ * A mechanism decision this AI takes itself (unweighted in the data), when
+ * allowed now. K5's congress and balance decisions all carry AI weights,
+ * so with K5's data P3's decision AI takes them and aiCongress/aiBalance
+ * take nothing: they stand for data that leaves a decision to this AI.
+ */
 function takeMechDecision(d: WwDepth, id: number, decision: string): boolean {
   const pol = d.ww.politics;
   const def = decisionDef(pol, decision);
@@ -196,20 +202,37 @@ function isMajorId(d: WwDepth, id: number): boolean {
   return tag !== undefined && COUNTRIES[tag].major;
 }
 
-/** Spec §14.2 AI: the leader fills empty slots, members and industry first. */
+/**
+ * Spec §14.2 AI: the leader watches the three open goals its faction is
+ * closest to (goalProgressPm; ties members, industry, research, Europe,
+ * sea lanes, liberation). A slotted goal that fell behind is replaced, so
+ * a faction too small for six members or short of 400 factories turns to
+ * what it can reach. Slots cost nothing and goals keep no progress.
+ */
 function aiFactionGoals(d: WwDepth, id: number): void {
   const { f } = led(d, id);
   if (f < 0) return;
-  for (let s = 0; s < FACTION_GOAL_SLOTS; s++) {
-    const g = d.mech.factionGoals.find((x) => x.faction === f);
-    const slots = g?.slots ?? [];
-    const achieved = g?.achieved ?? 0;
-    if ((slots[s] ?? -1) >= 0) continue;
-    const pick = AI_GOAL_ORDER.find((goal) => {
-      const i = FACTION_GOALS.indexOf(goal);
-      return (achieved & (1 << i)) === 0 && !slots.includes(i);
+  const g = d.mech.factionGoals.find((x) => x.faction === f);
+  const achieved = g?.achieved ?? 0;
+  const want = AI_GOAL_ORDER.map((goal, k) => ({
+    i: FACTION_GOALS.indexOf(goal),
+    k,
+    p: goalProgressPm(d, f, goal),
+  }))
+    .filter((x) => (achieved & (1 << x.i)) === 0)
+    .sort((a, b) => b.p - a.p || a.k - b.k)
+    .slice(0, FACTION_GOAL_SLOTS)
+    .map((x) => x.i);
+  const slots = [...(g?.slots ?? [])];
+  const missing = want.filter((i) => !slots.includes(i));
+  for (let s = 0; s < FACTION_GOAL_SLOTS && missing.length > 0; s++) {
+    const cur = slots[s] ?? -1;
+    if (cur >= 0 && want.includes(cur)) continue;
+    const goal = missing.shift()!;
+    issueFactionGoal(d, id, {
+      kind: "faction_goal",
+      slot: s,
+      goal: FACTION_GOALS[goal],
     });
-    if (pick === undefined) return;
-    issueFactionGoal(d, id, { kind: "faction_goal", slot: s, goal: pick });
   }
 }

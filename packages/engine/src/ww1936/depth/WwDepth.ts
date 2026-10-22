@@ -106,7 +106,12 @@ import { coalDemand, dailyEnergy } from "./Energy";
 import { computeIntelRow } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade } from "./Market";
-import { dailyMechanisms, dayCommonMech, issueMech } from "./Mechanisms";
+import {
+  dailyMechanisms,
+  dayCommonMech,
+  issueMech,
+  mixMechanismsHash,
+} from "./Mechanisms";
 import { seaRegionDay } from "./Mines";
 import { dailyMio, issueMio, mioStatsOf } from "./Mio";
 import { collabCutPp, intelResistancePp } from "./Operations";
@@ -1207,6 +1212,7 @@ export class WwDepth implements LandDepthHooks {
     mix(this.sea.mines.reduce((a, m) => a + m[2], 0));
     mix(this.nuked.size);
     mix(this.market.deals.length);
+    h = mixMechanismsHash(h, this); // W3 (review fix): the mechanisms' state
     return h;
   }
 }

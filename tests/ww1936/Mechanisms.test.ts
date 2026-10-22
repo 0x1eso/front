@@ -5,6 +5,7 @@ import {
   CONTINUOUS_FOCUSES,
   FACTION_GOALS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type {
   DecisionDef,
   SpiritDef,
@@ -14,13 +15,16 @@ import { BOP_DEFS } from "@openfront/engine-lib/ww1936/MechRules";
 import { aiMechDay } from "@openfront/engine/ww1936/depth/AiMech";
 import {
   addBop,
+  BOP_WARLORD_ANNEX_PM,
   bopBandOf,
   bopValue,
+  warlordsAnnexedFor,
 } from "@openfront/engine/ww1936/depth/BalanceOfPower";
 import { mechStatsOf } from "@openfront/engine/ww1936/depth/ContinuousFocus";
 import {
   FR_SHARED_INTEL,
   FR_SHARED_RESEARCH,
+  goalProgressPm,
   ruleOn,
 } from "@openfront/engine/ww1936/depth/FactionRules";
 import { dailyMechanisms } from "@openfront/engine/ww1936/depth/Mechanisms";
@@ -28,7 +32,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { politicsFixture } from "./politicsFixture";
-import { pol, step, stepToDate, wwRunner } from "./util";
+import { gameHash, pol, step, stepToDate, wwRestore, wwRunner } from "./util";
 
 const FRA_SPIRITS: SpiritDef[] = BOP_DEFS.find((b) => b.tag === "FRA")!
   .spirits.filter((s): s is string => s !== null)
@@ -171,20 +175,35 @@ describe("World War 1936 P6: the mechanisms' AI", () => {
     aiMechDay(d, POL, 6);
     const cf = (id: string) => CONTINUOUS_FOCUSES.indexOf(id as never);
     expect(d.country(POL)!.mech.cfocus).toBe(cf("cf_construction"));
-    // The Allies' leader fills its three goal slots, members and industry first.
-    aiMechDay(d, GBR, 3);
-    const g = d.mech.factionGoals.find(
-      (x) => x.faction === ww.politics.factionIdx(GBR),
-    )!;
-    expect(g.slots.map((s) => FACTION_GOALS[s])).toEqual([
-      "fg_members",
-      "fg_industry",
-      "fg_research",
-    ]);
-    // Shared research from 1939 (at peace), paid from its PP.
+    // The Allies' leader watches the three goals it is closest to.
     const f = ww.politics.factionIdx(GBR);
-    ww.politics.country(GBR)!.ppMilli = 200_000;
+    const closest = () =>
+      FACTION_GOALS.map((goal, k) => ({
+        goal,
+        k,
+        p: goalProgressPm(d, f, goal),
+      }))
+        .sort((a, b) => b.p - a.p || a.k - b.k)
+        .slice(0, 3)
+        .map((x) => x.goal)
+        .sort();
+    const slotted = () =>
+      d.mech.factionGoals
+        .find((x) => x.faction === f)!
+        .slots.map((s) => FACTION_GOALS[s])
+        .sort();
+    aiMechDay(d, GBR, 3);
+    expect(slotted()).toEqual(closest());
+    // One that falls behind gives its slot to one that came close: 390
+    // military factories put industry first.
+    expect(slotted()).not.toContain("fg_industry");
+    ww.economy.country(GBR)!.totals.mil = 390;
     aiMechDay(d, GBR, 13);
+    expect(slotted()).toContain("fg_industry");
+    expect(slotted()).toEqual(closest());
+    // Shared research from 1939 (at peace), paid from its PP.
+    ww.politics.country(GBR)!.ppMilli = 200_000;
+    aiMechDay(d, GBR, 23);
     expect(ruleOn(d, f, FR_SHARED_RESEARCH)).toBe(false);
     const day1939 = dayOfDate("1939-01-01");
     aiMechDay(d, GBR, day1939 + ((13 - (day1939 % 10)) % 10));
@@ -227,5 +246,196 @@ describe("World War 1936 P6: the mechanisms' AI", () => {
       aiMechDay(d, fra, day1938 + ((14 - (day1938 % 10)) % 10));
       expect(bopValue(d, "FRA")).toBe(base === 0 ? v + 150 : v);
     }
+  });
+});
+
+describe("World War 1936 P6: the mechanisms' state", () => {
+  it("France's balance and its band spirit end when France capitulates", async () => {
+    const { runner, ww, d, fra } = await franceGame("1936-01-03");
+    addBop(d, fra, -900, ww.day(runner.game.ticks()));
+    const c = pol(runner.game).country(fra)!;
+    expect(c.hasSpirit(FRA_SPIRITS[0].id)).toBe(true);
+    ww.addCapitulation(fra, DEEP.tag.DEU, runner.game.ticks());
+    expect(ww.isActor(fra)).toBe(false); // no turn of its own from now on
+    stepToDate(runner, "1936-01-05");
+    expect(bopBandOf(d, "FRA")).toBe(-1);
+    expect(c.hasSpirit(FRA_SPIRITS[0].id)).toBe(false);
+    expect(d.mech.bop.map((b) => BOP_DEFS[b[0]].tag)).not.toContain("FRA");
+  });
+
+  it("every field of the mechanisms moves the depth hash", async () => {
+    const { runner, d, fra } = await franceGame("1936-01-03");
+    void runner;
+    const base = d.hash();
+    const saved = JSON.stringify([d.mech, d.country(fra)!.mech]);
+    const cases: [string, () => void][] = [
+      ["congressBp", () => (d.mech.congressBp += 1)],
+      ["congressFull", () => (d.mech.congressFull = 900)],
+      ["attackedUntil", () => (d.mech.attackedUntil = 900)],
+      ["isolationCleared", () => (d.mech.isolationCleared = true)],
+      ["bop value", () => (d.mech.bop[2][1] += 1)],
+      ["bop band", () => (d.mech.bop[2][2] = 4)],
+      ["bop entry", () => d.mech.bop.pop()],
+      ["treaty escalated", () => (d.mech.treaty.escalated = true)],
+      ["treaty ended", () => (d.mech.treaty.ended = true)],
+      ["treaty members", () => d.mech.treaty.members.pop()],
+      ["treaty leaving", () => d.mech.treaty.leaving.push([fra, 40])],
+      ["faction rule", () => d.mech.factionRules.push([9, 0, true, 200])],
+      ["faction goal", () => d.mech.factionGoals.push(goalRow())],
+      ["cfocus", () => (d.country(fra)!.mech.cfocus = 2)],
+      ["cfocusLock", () => (d.country(fra)!.mech.cfocusLock = 77)],
+      ["cfocusOpen", () => (d.country(fra)!.mech.cfocusOpen = true)],
+    ];
+    function goalRow() {
+      return { faction: 9, slots: [0, -1, -1], achieved: 0 };
+    }
+    const restore = () => {
+      const [m, cm] = JSON.parse(saved);
+      d.mech = m;
+      d.country(fra)!.mech = cm;
+    };
+    for (const [name, change] of cases) {
+      change();
+      expect(d.hash(), name).not.toBe(base);
+      restore();
+      expect(d.hash(), name).toBe(base);
+    }
+    // Inside a rule and a goal row too.
+    d.mech.factionRules.push([9, 0, true, 200]);
+    d.mech.factionGoals.push(goalRow());
+    const withRows = d.hash();
+    // (The AI leaders may hold rows of their own: change the ones pushed here.)
+    const rule = () => d.mech.factionRules[d.mech.factionRules.length - 1];
+    const goal = () => d.mech.factionGoals[d.mech.factionGoals.length - 1];
+    for (const [name, change] of [
+      ["rule on", () => (rule()[2] = false)],
+      ["rule lock", () => (rule()[3] = 201)],
+      ["goal slot", () => (goal().slots[1] = 3)],
+      ["goal achieved", () => (goal().achieved = 2)],
+    ] as const) {
+      const keep = JSON.stringify(d.mech);
+      change();
+      expect(d.hash(), name).not.toBe(withRows);
+      d.mech = JSON.parse(keep);
+    }
+  });
+
+  it("a refused mechanism order changes nothing", async () => {
+    const runner = await wwRunner(
+      {},
+      [{ clientID: "HUMANGBR", country: "GBR" }],
+      DEEP.map,
+    );
+    stepToDate(runner, "1936-01-03");
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const p = ww.politics;
+    const { GBR, FRA, ITA } = DEEP.tag;
+    const tick = runner.game.ticks();
+    const allies = p.factionIdx(GBR);
+    // A rule changed today (locked 180 days) and a goal in slot 0.
+    p.country(GBR)!.ppMilli = 60_000;
+    const on = { kind: "faction_rule", rule: "fr_shared_research", on: true };
+    expect(d.issue(GBR, on as never, tick)).toBeNull();
+    expect(
+      d.issue(GBR, { kind: "faction_goal", slot: 0, goal: "fg_members" }, tick),
+    ).toBeNull();
+    expect(d.mech.factionRules[0][0]).toBe(allies);
+    const state = () =>
+      JSON.stringify({
+        mech: d.mech,
+        cm: [GBR, FRA, ITA].map((id) => d.country(id)!.mech),
+        pp: [GBR, FRA, ITA].map((id) => p.country(id)!.ppMilli),
+        wt: p.wtBp,
+        threat: [...p.threatBp],
+        hash: d.hash(),
+      });
+    const before = state();
+    const refused: [unknown, number, string][] = [
+      [{ kind: "cfocus_set", id: "cf_industry" }, GBR, "cfocus_locked"],
+      [{ kind: "cfocus_clear" }, GBR, "cfocus_locked"],
+      [{ ...on, on: false }, GBR, "faction_rule"], // locked
+      [{ ...on, rule: "fr_shared_intel" }, GBR, "no_pp"], // 10 PP left
+      [on, FRA, "faction_leader_only"],
+      [{ kind: "faction_goal", slot: 1, goal: "fg_members" }, GBR, "bad_index"],
+      // Italy is in the Axis but does not lead it.
+      [
+        { kind: "faction_goal", slot: 0, goal: "fg_industry" },
+        ITA,
+        "faction_leader_only",
+      ],
+      [{ kind: "treaty_leave" }, ITA, "bad_index"],
+      [{ kind: "treaty_leave" }, GBR, "no_pp"],
+    ];
+    for (const [o, id, why] of refused) {
+      expect(d.issue(id, o as never, tick)).toBe(why);
+      expect(state()).toBe(before);
+    }
+  });
+
+  it("the mechanisms' state survives a snapshot mid-flight", async () => {
+    const humans = [{ clientID: "HUMANGBR", country: "GBR" as const }];
+    const a = await wwRunner({}, humans, DEEP.map);
+    stepToDate(a, "1936-01-03");
+    const ww = a.game.worldWar()!;
+    const d = ww.depth;
+    const { GBR, FRA } = DEEP.tag;
+    const tick = a.game.ticks();
+    ww.politics.country(GBR)!.ppMilli = 300_000;
+    expect(d.issue(GBR, { kind: "treaty_leave" }, tick)).toBeNull();
+    expect(
+      d.issue(
+        GBR,
+        { kind: "faction_rule", rule: "fr_shared_intel", on: true },
+        tick,
+      ),
+    ).toBeNull();
+    expect(
+      d.issue(
+        GBR,
+        { kind: "faction_goal", slot: 2, goal: "fg_research" },
+        tick,
+      ),
+    ).toBeNull();
+    d.country(FRA)!.mech.cfocusOpen = true;
+    expect(
+      d.issue(FRA, { kind: "cfocus_set", id: "cf_navy_air" }, tick),
+    ).toBeNull();
+    d.mech.congressBp = 4_321;
+    d.mech.attackedUntil = 400;
+    addBop(d, FRA, 333, ww.day(tick));
+    step(a, 5);
+    const b = await wwRestore(a, humans, DEEP.map);
+    const db = b.game.worldWar()!.depth;
+    expect(db.mech).toEqual(d.mech);
+    expect(db.country(FRA)!.mech).toEqual(d.country(FRA)!.mech);
+    expect(db.hash()).toBe(d.hash());
+    expect(mechStatsOf(db, FRA)).toEqual(mechStatsOf(d, FRA));
+    for (let i = 0; i < 60; i++) {
+      step(a);
+      step(b);
+      expect(gameHash(b), `tick ${i + 1}`).toBe(gameHash(a));
+    }
+    expect(db.mech).toEqual(d.mech);
+  });
+
+  it("counts a warlord China annexes once (the -150 path)", async () => {
+    const runner = await wwRunner({}, [], DEEP.map);
+    stepToDate(runner, "1936-01-03");
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    // Poland stands in for China, Turkey for a warlord.
+    const { POL, TUR } = DEEP.tag;
+    const day = ww.day(runner.game.ticks());
+    expect(warlordsAnnexedFor(d, POL, [TUR], day)).toBe(0); // alive
+    ww.endgame.setCountryState(TUR, CS_GONE);
+    expect(warlordsAnnexedFor(d, POL, [TUR], day)).toBe(0); // not Poland's
+    ww.politics.legalOwner[ww.capitalRegion(TUR)] = POL;
+    expect(warlordsAnnexedFor(d, POL, [TUR], day)).toBe(1);
+    expect(ww.politics.country(POL)!.hasFlag("bop_annexed_TUR", day)).toBe(
+      true,
+    );
+    expect(warlordsAnnexedFor(d, POL, [TUR], day + 1)).toBe(0); // once
+    expect(BOP_WARLORD_ANNEX_PM).toBe(-150);
   });
 });
