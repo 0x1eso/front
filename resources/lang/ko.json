@@ -2660,11 +2660,13 @@
     "title": "보상"
   },
   "saved_games": {
+    "code_placeholder": "공유 링크나 코드를 붙여 넣으세요",
     "copy_link": "링크 복사",
     "delete": "삭제",
     "delete_confirm": "\"{name}\"을(를) 삭제할까요? 되돌릴 수 없습니다.",
     "empty": "저장한 게임이 없습니다. 게임 메뉴에서 저장하세요.",
     "error": {
+      "code_invalid": "공유 게임 링크나 코드가 아닙니다.",
       "copy_failed": "링크를 복사하지 못했습니다.",
       "download_failed": "저장한 게임을 내려받지 못했습니다. 다시 시도하세요.",
       "list_failed": "저장한 게임 목록을 불러오지 못했습니다.",
@@ -2679,6 +2681,7 @@
     },
     "link_copied": "링크를 복사했습니다",
     "loading": "불러오는 중…",
+    "open": "열기",
     "play": "플레이",
     "rename": "이름 바꾸기",
     "rename_save": "저장",
