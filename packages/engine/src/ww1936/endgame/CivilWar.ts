@@ -393,11 +393,16 @@ function splitForces(
   const xe = econ.country(X);
   const re = econ.country(R);
   if (xe === null || re === null) return;
-  // Every stock slot (planes in stock too): ⌊× s⌋.
+  // Every stock slot (planes in stock too): ⌊× s⌋. P6 (batch P6-5, lane
+  // E spec §26): a design key becomes the rebels' copy of the design, or
+  // with no slot free the nearest static equipment (receiveKey, as
+  // receiveStock does for an annexation); an empty slot's units are lost.
   for (let k = 0; k < xe.stock.length; k++) {
     const m = Math.floor((xe.stock[k] * share) / 10000);
+    if (m === 0) continue;
     xe.stock[k] -= m;
-    re.stock[k] += m;
+    const to = m > 0 ? receiveKey(eg.ww.depth, X, k, R, "received") : k;
+    if (to >= 0) re.stock[to] += m;
   }
   // The pool is the share alone (a woken slot's own start pool would be
   // men out of nowhere).

@@ -14,6 +14,7 @@ import {
 import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
+import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import {
   endCivilWar,
@@ -24,6 +25,7 @@ import { civilWar } from "@openfront/engine/ww1936/politics/Ideology";
 import { setLawFree } from "@openfront/engine/ww1936/politics/Laws";
 import { addSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
+import { TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
@@ -211,6 +213,44 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
       id: "news_civil_war",
       params: { tag: "SUN", ideology: "fascist" },
     });
+  }, 60_000);
+
+  // Batch P6-5 glue (a): the stock split carries designs the way an
+  // annexation does (lane E, spec §26) — the rebels' own copy of the design,
+  // not the government's slot number.
+  it("design stock goes to the rebels as their copy of the design", async () => {
+    const s = await started();
+    const { ww } = s;
+    const d = ww.depth;
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    const pc = ww.politics.country(sun)!;
+    addPopularity(pc.pop, IDEO_FAS, 4000 - pc.pop[IDEO_FAS]);
+    const share = 4000;
+    // The government's tank design sits in its slot 2; the rebels have none.
+    expect(saveDesign(d, sun, TEST_TANK, 2, "own", 0, 0, 0)).toBe(2);
+    const ce = ww.economy.country(sun)!;
+    const slot2 = equipKey("tank_design", 2);
+    const slot1 = equipKey("tank_design", 1);
+    ce.stock[slot2] = 50;
+    ce.stock[slot1] = 0;
+    const inf = equipKey("infantry_equipment", 1);
+    const inf0 = ce.stock[inf];
+    sovietSplit(s);
+    const m = Math.floor((50 * share) / 10000);
+    const re = ww.economy.country(cw)!;
+    expect(ce.stock[slot2]).toBe(50 - m);
+    // The rebels' first free slot holds the received copy, with its units.
+    const copy = d.designSlot(cw, "tank", 1)!;
+    expect(copy).toMatchObject({ origin: "received", from: sun, fromSlot: 2 });
+    expect(re.stock[slot1]).toBe(m);
+    expect(re.stock[slot2]).toBe(0);
+    expect(d.designStatsOf(cw, "tank", 1)).toEqual(
+      d.designStatsOf(sun, "tank", 2),
+    );
+    // Static keys split as before.
+    const mi = Math.floor((inf0 * share) / 10000);
+    expect(re.stock[inf]).toBe(mi);
+    expect(ce.stock[inf]).toBe(inf0 - mi);
   }, 60_000);
 
   it("planes that change sides move in the air indexes (no stale owner row)", async () => {
