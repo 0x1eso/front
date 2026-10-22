@@ -717,9 +717,9 @@
     },
     {
       "owner": "JPN",
-      "note": "Karafuto, Sakhalin south of the 50th parallel",
+      "note": "South Sakhalin, Sakhalin south of the 50th parallel (final review B M6: the neutral geographic name, not the colonial Karafuto)",
       "adm0": ["RUS"],
-      "name": ["Karafuto", "가라후토"],
+      "name": ["South Sakhalin", "남사할린"],
       "polygon": [
         [141.5, 45.8],
         [144.9, 45.8],

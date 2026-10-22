@@ -309,7 +309,7 @@ export const START_OOB: Readonly<
       titledGeneral: true,
     },
     {
-      // Korea garrison: Hamgyŏng-bukto, Keijō.
+      // Korea garrison: Hamgyŏng-bukto, Seoul.
       regions: [563, 679],
       divisions: [["square", 2]],
     },

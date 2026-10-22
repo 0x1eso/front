@@ -2,36 +2,32 @@
 // may target — Korea's eleven regions and Taiwan, held by Japan in 1936.
 // Strategic bombing, port strikes and every later strike picker (AI and
 // human; P6's rockets, nuclear weapons and raids) refuse them with
-// "no_strike_region". Resolved by name, so a scenario's ids may move.
+// "no_strike_region", and nothing is built there (final review B: I1, I3).
+// Final review B, I2: a fixed id list (the controller's rulings), not
+// names, so a rename never drops a region from the rule. world1936's region
+// ids are stable (the map tool keeps them); map-generator/regions.go holds
+// the same list for the start bases.
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { ScenarioIndex } from "./ScenarioIndex";
 
-/** world1936's region names (resources/maps/world1936/scenario.json). */
-export const NO_STRIKE_REGION_NAMES: readonly string[] = [
-  "Hamgyŏng-bukto",
-  "Ryanggang",
-  "Chagang-do",
-  "Hamgyŏng-namdo",
-  "P'yŏngan-namdo",
-  "P'yŏngyang",
-  "Gangwon",
-  "Keijō (Seoul)",
-  "North Chungcheong",
-  "North Gyeongsang",
-  "South Jeolla",
-  "Taiwan",
+/**
+ * world1936's no-strike region ids (resources/maps/world1936/scenario.json):
+ * Hamgyŏng-bukto, Ryanggang, Chagang-do, Hamgyŏng-namdo, P'yŏngan-namdo,
+ * Seoul, P'yŏngyang, Gangwon, North Chungcheong, North Gyeongsang, South
+ * Jeolla and Taiwan.
+ */
+export const NO_STRIKE_REGION_IDS: readonly number[] = [
+  563, 598, 604, 622, 639, 679, 686, 701, 732, 734, 761, 901,
 ];
 
 const MEMO = new WeakMap<ScenarioIndex, ReadonlySet<number>>();
 
-/** The scenario's no-strike region ids (names it lacks are skipped: test maps). */
+/** The scenario's no-strike region ids (ids it lacks are skipped: the test maps have 20 regions at most). */
 export function noStrikeRegions(sc: ScenarioIndex): ReadonlySet<number> {
   let set = MEMO.get(sc);
   if (set === undefined) {
-    const names = new Set(NO_STRIKE_REGION_NAMES);
-    set = new Set(
-      sc.landRegions.filter((r) => names.has(r.name)).map((r) => r.id),
-    );
+    const ids = new Set(NO_STRIKE_REGION_IDS);
+    set = new Set(sc.landRegions.filter((r) => ids.has(r.id)).map((r) => r.id));
     MEMO.set(sc, set);
   }
   return set;

@@ -4,7 +4,7 @@ import type { CarrierOrder } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import {
   isNoStrike,
-  NO_STRIKE_REGION_NAMES,
+  NO_STRIKE_REGION_IDS,
   noStrikeRegions,
   strikeBlock,
 } from "@openfront/engine-lib/ww1936/NoStrike";
@@ -34,11 +34,21 @@ const KOREA_TAIWAN = [
 ];
 
 describe("no-strike regions", () => {
-  it("every name resolves on world1936: Korea's eleven and Taiwan", () => {
-    expect(NO_STRIKE_REGION_NAMES).toHaveLength(12);
+  it("the fixed id list is Korea's eleven and Taiwan, all on world1936", () => {
+    // Final review B, I2: ids, not names (a rename never drops one).
+    expect([...NO_STRIKE_REGION_IDS]).toEqual(KOREA_TAIWAN);
     expect([...noStrikeRegions(world)].sort((a, b) => a - b)).toEqual(
       KOREA_TAIWAN,
     );
+    const name = (id: number) =>
+      world.landRegions.find((r) => r.id === id)?.name;
+    expect(KOREA_TAIWAN.map((id) => world.region(id)?.owner)).toEqual(
+      KOREA_TAIWAN.map(() => "JPN"),
+    );
+    // Seoul under its own name (not the colonial Keijō / 경성), Taiwan's.
+    expect(name(679)).toBe("Seoul");
+    expect(world.landRegions.find((r) => r.id === 679)?.nameKo).toBe("서울");
+    expect(name(901)).toBe("Taiwan");
     expect(strikeBlock(world, 901)).toBe("no_strike_region");
     expect(strikeBlock(world, 679)).toBe("no_strike_region");
     // Japan's home islands and its other holdings are not exempt.
@@ -47,7 +57,7 @@ describe("no-strike regions", () => {
     expect(isNoStrike(world, 666)).toBe(false); // Kwantung
   });
 
-  it("a test map without those names has none", () => {
+  it("a test map without those ids has none", () => {
     const sea = scenarioOf(path.join(__dirname, `../testdata/maps/${SEA.map}`));
     expect(noStrikeRegions(sea).size).toBe(0);
   });

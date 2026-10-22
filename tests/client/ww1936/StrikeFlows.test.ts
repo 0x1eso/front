@@ -12,7 +12,7 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
 import path from "path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { WwStrikeFlowEvent } from "../../../src/client/hud/ww1936/DepthEvents";
 import {
   offered,
@@ -25,17 +25,40 @@ import { depthGame } from "./DepthU4Fixture";
 import { division, landDetail } from "./LandFixture";
 import { seaDetail, SID } from "./SeaAirFixture";
 
+/**
+ * Final review B, I2: the judge goes by world1936's fixed ids, so the test
+ * map's stand-ins are added to it for one scenario index (the real judge
+ * for every other index, the real map's included).
+ */
+const STAND_INS = new WeakMap<object, ReadonlySet<number>>();
+vi.mock("@openfront/engine-lib/ww1936/NoStrike", async (importOriginal) => {
+  const m =
+    await importOriginal<
+      typeof import("@openfront/engine-lib/ww1936/NoStrike")
+    >();
+  const judge = (sc: ScenarioIndex, r: number) =>
+    (STAND_INS.get(sc)?.has(r) ?? false) || m.isNoStrike(sc, r);
+  return {
+    ...m,
+    isNoStrike: judge,
+    strikeBlock: (sc: ScenarioIndex, r: number) =>
+      judge(sc, r) ? "no_strike_region" : null,
+  };
+});
+
 const SEA_DIR = path.join(__dirname, "../../testdata/maps/ww1936sea");
 const seaData = JSON.parse(
   fs.readFileSync(path.join(SEA_DIR, "scenario.json"), "utf8"),
 ) as ReadonlyScenarioData & { regions: { id: number; name: string }[] };
 const bin = new Uint8Array(fs.readFileSync(path.join(SEA_DIR, "regions.bin")));
 
-/** The sea map with some regions renamed to Korea/Taiwan names (same ids). */
+/** The sea map with some regions standing in for Korea/Taiwan (same ids, names). */
 function renamed(names: Record<number, string>): ScenarioIndex {
   const data = structuredClone(seaData);
   for (const r of data.regions) if (names[r.id]) r.name = names[r.id];
-  return ScenarioIndex.fromFiles(data, bin);
+  const sc = ScenarioIndex.fromFiles(data, bin);
+  STAND_INS.set(sc, new Set(Object.keys(names).map(Number)));
+  return sc;
 }
 
 type GameLike = { wwLand(): { controller: Uint16Array } | null };
@@ -189,7 +212,7 @@ describe("the no-strike rule in every strike flow", () => {
     );
     const ids = world.landRegions.map((r) => r.id);
     const rows = strikeTargets(world, ids, () => true);
-    const seoul = world.landRegions.find((r) => r.name === "Keijō (Seoul)")!;
+    const seoul = world.landRegions.find((r) => r.name === "Seoul")!;
     for (const id of [901, seoul.id]) {
       expect(rows.find((r) => r.region === id)?.noStrike, `${id}`).toBe(true);
       expect(offered(rows)).not.toContain(id);
@@ -200,7 +223,7 @@ describe("the no-strike rule in every strike flow", () => {
   });
 
   it("bomb, rocket, bomber raid, paratrooper and commando flows never offer or take them", () => {
-    // Berlin and Rome stand in for Korea and Taiwan: renamed, the judge refuses them.
+    // Berlin and Rome stand in for Korea and Taiwan: the judge refuses them.
     const names = { [REGION.berlin]: "Taiwan", [REGION.rome]: "Ryanggang" };
     // Control: without the names every flow offers its region.
     const ctl = setup(null);

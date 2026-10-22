@@ -762,7 +762,7 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
     // (the home islands' armies crossed the sea, spec §13.3).
     const region = (name: string) =>
       sc.landRegions.find((r) => r.name === name)!.id;
-    const seoul = region("Keijō (Seoul)");
+    const seoul = region("Seoul");
     expect(l.controller[seoul]).toBe(jpn);
     expect(l.controller[region("Kwantung")]).toBe(jpn);
     const mainland = new Set<number>([seoul]);

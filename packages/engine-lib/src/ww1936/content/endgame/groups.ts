@@ -214,7 +214,7 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
     regions: [563, 598, 604, 622, 639, 686],
     owner1936: "JPN",
   },
-  // regions: Keijō (Seoul), Gangwon, North Chungcheong, North Gyeongsang, South Jeolla (south of 38 N; the Keijo region's centre is at 38.2 N because it reaches into Hwanghae, but Seoul (37.6 N) lay south of the 1945 line)
+  // regions: Seoul, Gangwon, North Chungcheong, North Gyeongsang, South Jeolla (south of 38 N; the Seoul region's centre is at 38.2 N because it reaches into Hwanghae, but Seoul (37.6 N) lay south of the 1945 line)
   { id: "korea_south", regions: [679, 701, 732, 734, 761], owner1936: "JPN" },
   // regions: Hokkaidō, Akita, Iwate, Yamagata, Nagano, Fukushima, Fukui, Tochigi, Gifu, Hiroshima, Tokyo, Ōsaka, Hyōgo, Kōchi, Kumamoto, Miyazaki, Iwo Jima, Okinawa, Nagasaki (map v5)
   {
@@ -225,7 +225,7 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
     ],
     owner1936: "JPN",
   },
-  // regions: Karafuto
+  // regions: South Sakhalin
   { id: "south_sakhalin", regions: [383], owner1936: "JPN" },
   // regions: Northern Kurils, Southern Kurils
   { id: "kurils", regions: [357, 492], owner1936: "JPN" },

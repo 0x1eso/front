@@ -139,15 +139,16 @@ describe("DepthIndustryModel", () => {
   });
 
   it("strike targets grey out the no-strike regions with the engine-lib judge", () => {
+    // Final review B, I2: the judge goes by world1936's fixed ids.
     const sc = {
       landRegions: [
-        { id: 1, name: "Taiwan" },
-        { id: 2, name: "Keijō (Seoul)" },
-        { id: 3, name: "Honshu" },
+        { id: 901, name: "Taiwan" },
+        { id: 679, name: "Seoul" },
+        { id: 758, name: "Tokyo" },
       ],
     } as never;
-    const rows = strikeTargets(sc, [1, 2, 3], () => true);
+    const rows = strikeTargets(sc, [901, 679, 758], () => true);
     expect(rows.map((r) => r.noStrike)).toEqual([true, true, false]);
-    expect(offered(rows)).toEqual([3]);
+    expect(offered(rows)).toEqual([758]);
   });
 });
