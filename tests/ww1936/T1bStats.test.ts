@@ -265,7 +265,7 @@ describe("T1b: the new stat keys in the air", () => {
     type: AirType,
     mission: AirMission,
     planes: number,
-    sr = WEST,
+    sr: number = WEST,
   ): Deployment {
     const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
     counts[0] = planes;
