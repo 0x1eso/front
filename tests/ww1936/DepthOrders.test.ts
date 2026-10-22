@@ -46,6 +46,20 @@ const D_ANSWER: Readonly<Record<string, string | null>> = {
 };
 
 /**
+ * Lane E (plan Task 3): Germany's refusals of the samples (kinds 14–19;
+ * 1936): no medium II chassis, empty slot 1 (a copy, the flag, a name, a
+ * refit), no design on line 1.
+ */
+const DESIGN_BLOCK: readonly string[] = [
+  "bad_base",
+  "bad_slot",
+  "bad_slot",
+  "bad_slot",
+  "bad_slot",
+  "bad_line",
+];
+
+/**
  * Lane W3 (plan Task 9): Germany's answers on day 0 — continuous focuses
  * closed, its faction's rule refused for want of PP (the case runs at 0 PP
  * for lane I's intel_found), its goal taken (it leads the Axis, free), no
@@ -75,7 +89,7 @@ const S_BLOCK: readonly string[] = [
 
 /**
  * The stub's refusal of each lane (plan Task 1 Step 11), now each lane's
- * own: D (0–13), M (20–30, own tests), I (31–39), S (40–46), W3 (47–51),
+ * own: D (0–13), E (14–19), M (20–30, own tests), I (31–39), S (40–46), W3 (47–51),
  * W1 (52–55: Germany has no railway gun, Lyon is French, Berlin has no
  * enemy near).
  */
@@ -83,7 +97,7 @@ const LANE_BLOCK = (k: number): string | null =>
   k <= 13
     ? D_ANSWER[DEPTH_ORDER_KINDS[k]]
     : k <= 19
-      ? "design_slots_full"
+      ? DESIGN_BLOCK[k - 14]
       : k <= 22
         ? "bad_index"
         : k <= 25

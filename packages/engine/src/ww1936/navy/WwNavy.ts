@@ -39,10 +39,7 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { applyShipDesign } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fleetFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
-import {
-  lineCostMilli,
-  navalLineClass,
-} from "@openfront/engine-lib/ww1936/NavalLineRules";
+import { navalLineClass } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { idHash, P_NAVALBEAT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -53,7 +50,8 @@ import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
-import { shipDesignOf } from "../depth/Designs";
+import { receiveShip, returnDeckDesigns } from "../depth/DesignCopy";
+import { navalLineCostMilli, shipDesignOf } from "../depth/Designs";
 import { convoysOf, losePlanes } from "../economy/Buildings";
 import { fuelCapOf, noteFleetFuel } from "../economy/Fuel";
 import { dockyardsFree, issueNavalLineOrder } from "../economy/NavalLines";
@@ -1182,6 +1180,8 @@ export class WwNavy {
     }
     const ceFrom = this.econ.country(from);
     if (ceFrom !== null) this.returnDeck(ceFrom, t.deckOf(r));
+    // P6 (lane E, spec §26): deck design planes go back too.
+    returnDeckDesigns(this.ww.depth, from, r);
     const old = t.fleet[r];
     const f0 = this.fleets.get(old);
     if (f0 !== undefined) {
@@ -1195,6 +1195,8 @@ export class WwNavy {
     }
     f ??= Object.assign(this.newFleet(to, best, 0), { newShips: true });
     t.owner[r] = to;
+    // P6 (lane E, spec §26): its design becomes `to`'s copy of it.
+    receiveShip(this.ww.depth, r, from, to);
     t.fleet[r] = f.id;
     f.ships.push(id);
     f.ships.sort((a, b) => a - b);
@@ -1594,7 +1596,10 @@ export class WwNavy {
       if (ceFrom !== null) {
         for (const id of f.ships) {
           const r = this.ships.rowOf(id);
-          if (r >= 0) this.returnDeck(ceFrom, this.ships.deckOf(r));
+          if (r < 0) continue;
+          this.returnDeck(ceFrom, this.ships.deckOf(r));
+          // P6 (lane E, spec §26): and the deck's design planes.
+          returnDeckDesigns(this.ww.depth, from, r);
         }
       }
       if (mode === "disband") {
@@ -1612,7 +1617,10 @@ export class WwNavy {
       this.fleetsByOwner[to].sort((a, b) => a - b);
       for (const id of f.ships) {
         const r = this.ships.rowOf(id);
-        if (r >= 0) this.ships.owner[r] = to;
+        if (r < 0) continue;
+        this.ships.owner[r] = to;
+        // P6 (lane E, spec §26): its design becomes `to`'s copy of it.
+        receiveShip(this.ww.depth, r, from, to);
       }
       this.markFleet(f.id);
     }
@@ -1883,7 +1891,8 @@ export class WwNavy {
         docks: l.docks,
         activeDocks: l.activeDocks,
         progressMilli: l.progress,
-        costMilli: lineCostMilli(l),
+        // P6 (lane E, review E3): what the line pays (design, MIO, licence).
+        costMilli: navalLineCostMilli(this.ww.depth, id, l),
         left: l.left,
         port: l.port,
         nextName:

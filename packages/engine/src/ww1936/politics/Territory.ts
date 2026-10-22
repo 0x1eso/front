@@ -5,6 +5,8 @@ import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
+import { receiveStock } from "../depth/DesignCopy";
+import type { WwDepth } from "../depth/WwDepth";
 import { offerTakeover } from "../endgame/Exile";
 import { makeSubject } from "../endgame/Subjects";
 import {
@@ -152,9 +154,15 @@ function mergeEconomy(pol: WwPolitics, gone: number, by: number): void {
   const from = econ.country(gone);
   const to = econ.country(by);
   if (from === null || to === null) return;
-  for (let i = 0; i < from.stock.length; i++) {
-    to.stock[i] += from.stock[i];
-    from.stock[i] = 0;
+  // P6 (lane E, spec §26): a design key becomes `by`'s copy of the design.
+  const depth = pol.ww.depth as WwDepth | undefined;
+  if (depth !== undefined) {
+    receiveStock(depth, gone, by, "received");
+  } else {
+    for (let i = 0; i < from.stock.length; i++) {
+      to.stock[i] += from.stock[i];
+      from.stock[i] = 0;
+    }
   }
   // Manpower up to what the two countries' regions can give, less the army.
   const ceiling = Math.max(

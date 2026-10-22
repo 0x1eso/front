@@ -1638,7 +1638,12 @@ const MIO_KEY: readonly string[] = MIO_FAMILIES.map((f) => f.slice(4));
 function designFamily(kind: DesignKind, base: string): number {
   if (kind === "tank") return MIO_KEY.indexOf("armor");
   if (kind === "ship") return MIO_KEY.indexOf("naval");
-  return MIO_KEY.indexOf(base.startsWith("small") ? "air_light" : "air_heavy");
+  // Spec §6.1 (lane M review): small and jet airframes are light aircraft.
+  return MIO_KEY.indexOf(
+    base.startsWith("small") || base.startsWith("jet")
+      ? "air_light"
+      : "air_heavy",
+  );
 }
 
 /** Plan decision 11: what a design's numbers read from its country. */

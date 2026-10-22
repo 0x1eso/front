@@ -18,7 +18,6 @@ import {
 import {
   CONVOY_LINE_CLS,
   HARBOR_LINE_CLS,
-  lineCostMilli,
   navalLineClass,
   navalLineOutputMilli,
 } from "@openfront/engine-lib/ww1936/NavalLineRules";
@@ -29,7 +28,7 @@ import {
   lineUnitCost,
   shipGenTech,
 } from "@openfront/engine-lib/ww1936/ShipStats";
-import { navalLineDesignBlock } from "../depth/Designs";
+import { navalLineCostMilli, navalLineDesignBlock } from "../depth/Designs";
 import { treatyLineBlock } from "../depth/NavalTreaty";
 import { navalBuildBlock } from "../navy/EndgameHooks";
 import { bestNavalBase, navalPort } from "../navy/Ports";
@@ -283,7 +282,8 @@ export function stepNavalLines(
     if (out === 0) continue;
     l.progress += out;
     const cls = lineClass(l);
-    const cost = lineCostMilli(l);
+    // P6 (lane E, review E3): the line's design, MIO and licence costs.
+    const cost = navalLineCostMilli(econ.ww.depth, owner, l);
     while (l.progress >= cost) {
       l.progress -= cost;
       if (cls === "convoy") {

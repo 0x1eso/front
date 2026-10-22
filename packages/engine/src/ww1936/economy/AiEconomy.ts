@@ -73,6 +73,7 @@ import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
 import { isRetiredTech, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
+import { designShareType, equipResources } from "../depth/Designs";
 import type { WwDepth } from "../depth/WwDepth";
 import { capitalRegion } from "../land/LandStartRun";
 import {
@@ -843,6 +844,14 @@ export interface AiLine {
   effBp: number;
   /** Resources it got on the last day, per mille of its need. */
   fill: number;
+  /**
+   * P6 (lane E, review E4): a design line's static type — the share it
+   * counts against (a light-chassis tank: light tanks, any other tank
+   * design: medium tanks, a plane design: its P4 type) — and its design's
+   * resources per factory.
+   */
+  as?: EquipmentType;
+  per?: readonly number[];
 }
 
 export interface AiRegion {
@@ -1021,7 +1030,9 @@ export interface AiReact {
 export function aiReactPlan(input: AiInput, react: AiReact): AiPlan {
   const orders: AiOrder[] = [];
   const lines = planLines(input, false);
-  if (react.construction) planConstruction(input, needs(lines.working), orders);
+  if (react.construction) {
+    planConstruction(input, needs(lines.working, linePer(input.lines)), orders);
+  }
   if (react.lines) orders.push(...lines.orders);
   if (react.research) planResearch(input, orders);
   return orders;
@@ -1046,7 +1057,7 @@ export function aiPlan(input: AiInput): AiPlan {
   // The lines are decided before the construction and trade orders are
   // written: both look at what the planned lines will need tomorrow.
   const lines = planLines(input);
-  const need = needs(lines.working);
+  const need = needs(lines.working, linePer(input.lines));
   planConstruction(input, need, orders);
   orders.push(...lines.orders);
   planResearch(input, orders);
@@ -1167,6 +1178,18 @@ function typeOf(key: number): EquipmentType {
   return EQUIP_KEYS[key][0];
 }
 
+/** The type a line counts as (P6: a design line its static type's). */
+function lineType(l: AiLine): EquipmentType {
+  return l.as ?? typeOf(l.key);
+}
+
+/** P6: the design lines' resources per factory by key (the rest: P1's table). */
+function linePer(lines: readonly AiLine[]): Map<number, readonly number[]> {
+  const out = new Map<number, readonly number[]>();
+  for (const l of lines) if (l.per !== undefined) out.set(l.key, l.per);
+  return out;
+}
+
 function planLines(i: AiInput, retool = true): PlannedLines {
   const researched = new Set(i.researched);
   const shares = aiLineShares(
@@ -1186,7 +1209,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
   const assigned = new Map<EquipmentType, number>();
   const hasLine = new Set<EquipmentType>();
   for (const l of i.lines) {
-    const t = typeOf(l.key);
+    const t = lineType(l);
     const s = shareOf(t);
     assigned.set(s, (assigned.get(s) ?? 0) + l.factories);
     hasLine.add(t);
@@ -1196,7 +1219,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
   // or a mine brings some (the lines keep what they have).
   const starved = new Set<EquipmentType>();
   for (const t of hasLine) {
-    const working = i.lines.filter((l) => typeOf(l.key) === t && l.active > 0);
+    const working = i.lines.filter((l) => lineType(l) === t && l.active > 0);
     if (working.length > 0 && working.every((l) => l.fill === 0)) {
       starved.add(t);
     }
@@ -1236,7 +1259,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
     // The type's most efficient line takes them (ties: the higher one).
     let line: AiLine | null = null;
     for (const l of i.lines) {
-      if (typeOf(l.key) !== t) continue;
+      if (lineType(l) !== t) continue;
       if (line === null || l.effBp > line.effBp) line = l;
     }
     if (line !== null) {
@@ -1278,11 +1301,14 @@ export function aiRetools(
   return out;
 }
 
-/** Resources a day the lines need, RESOURCE_IDS order. */
-function needs(working: ReadonlyMap<number, number>): number[] {
+/** Resources a day the lines need, RESOURCE_IDS order (P6: a design's own). */
+function needs(
+  working: ReadonlyMap<number, number>,
+  perOf: ReadonlyMap<number, readonly number[]> = new Map(),
+): number[] {
   const need = new Array<number>(RESOURCE_COUNT).fill(0);
   for (const [key, n] of working) {
-    const per = EQUIPMENT[typeOf(key)].resources;
+    const per = perOf.get(key) ?? EQUIPMENT[typeOf(key)].resources;
     for (let r = 0; r < RESOURCE_COUNT; r++) need[r] += per[r] * n;
   }
   return need;
@@ -1862,14 +1888,24 @@ export function aiInput(
     mil: t.mil,
     idleMil: t.idleMil,
     effCapBp: effCapBp(ce.stats),
-    lines: ce.lines.map((l) => ({
-      id: l.id,
-      key: l.key,
-      factories: l.factories,
-      active: l.active,
-      effBp: l.effBp,
-      fill: l.fill,
-    })),
+    lines: ce.lines.map((l) => {
+      const line: AiLine = {
+        id: l.id,
+        key: l.key,
+        factories: l.factories,
+        active: l.active,
+        effBp: l.effBp,
+        fill: l.fill,
+      };
+      // P6 (lane E, review E4): a design line counts as its static type.
+      const depth = econ.ww.depth as WwDepth | undefined;
+      const as = depth === undefined ? null : designShareType(depth, me, l.key);
+      if (as !== null) {
+        line.as = as;
+        line.per = equipResources(depth!, me, l.key);
+      }
+      return line;
+    }),
     queue: ce.queue.map((q) => ({
       region: q.region,
       building: q.building,
