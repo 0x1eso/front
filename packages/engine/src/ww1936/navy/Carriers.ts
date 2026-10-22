@@ -29,6 +29,7 @@ import { GEN_DECK } from "@openfront/engine-lib/ww1936/ShipStats";
 import { airDuelMilli, type DuelPlanes } from "../air/AirCombat";
 import {
   deckDesignCounts,
+  designSlotsFor,
   oldestFirst,
   planeSources,
 } from "../air/DesignPlanes";
@@ -36,7 +37,6 @@ import { withFuze } from "../air/ProjectEffects";
 import {
   designPlaneP4,
   loseDesignPlanes,
-  planeDesignSlotsOf,
   returnDesignPlanes,
 } from "../depth/Designs";
 import { effectiveLevel, losePlanes, returnPlanes } from "../economy/Buildings";
@@ -192,7 +192,7 @@ export function fillDecks(navy: WwNavy, smallID: number): void {
     let changed = false;
     CARRIER_AIR_TYPES.forEach((type, ty) => {
       const want = Math.floor((size * f.mix[ty]) / 10);
-      const mine = planeDesignSlotsOf(depth, smallID, type);
+      const mine = designSlotsFor(depth, smallID, type);
       let have = d[ty * 3] + d[ty * 3 + 1] + d[ty * 3 + 2];
       for (const s of mine) have += dd[s - 1];
       if (have > want) {

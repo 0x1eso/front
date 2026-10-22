@@ -24,15 +24,16 @@ import {
   WW_SPOT_FULL_PM,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
-import {
-  designPlaneP4,
-  planeDesignSlotsOf,
-  returnDesignPlanes,
-} from "../depth/Designs";
+import { designPlaneP4, returnDesignPlanes } from "../depth/Designs";
 import { drawPlanes, returnPlanes } from "../economy/Buildings";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { fillDecks } from "../navy/Carriers";
-import { deckDesignCounts, oldestFirst, planeSources } from "./DesignPlanes";
+import {
+  deckDesignCounts,
+  designSlotsFor,
+  oldestFirst,
+  planeSources,
+} from "./DesignPlanes";
 import { Deployment, deploymentPlanes, deploymentSide, WwAir } from "./WwAir";
 
 const MISSION_SUP = AIR_MISSIONS.indexOf("air_superiority");
@@ -120,7 +121,7 @@ function stockOf(
   const t = AIR_TYPES[type];
   let n = 0;
   for (let g = 1; g <= EQUIPMENT_GENS[t]; g++) n += ce.stock[equipKey(t, g)];
-  for (const s of planeDesignSlotsOf(air.ww.depth, owner, t)) {
+  for (const s of designSlotsFor(air.ww.depth, owner, t)) {
     n += ce.stock[designKey(s)];
   }
   return n;
@@ -222,7 +223,7 @@ function bestRange(
   }
   // P6 (lane E): the design slots flying as the type, in stock or out.
   const depth = air.ww.depth;
-  for (const s of planeDesignSlotsOf(depth, owner, t)) {
+  for (const s of designSlotsFor(depth, owner, t)) {
     const has =
       ce.stock[designKey(s)] > 0 || group.some((d) => d.dcounts[s - 1] > 0);
     const km = has ? (designPlaneP4(depth, owner, s, t)?.rangeKm ?? 0) : 0;

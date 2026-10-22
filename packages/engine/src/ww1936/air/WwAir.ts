@@ -33,7 +33,6 @@ import type { Game } from "../../game/Game";
 import {
   designPlaneAsP4,
   loseDesignPlanes,
-  planeDesignSlotsOf,
   planeStatsOfKey,
   returnDesignPlanes,
 } from "../depth/Designs";
@@ -49,6 +48,7 @@ import { dailyAirZone } from "./AirCombat";
 import { airMissionEffects, airSupplyAt } from "./AirEffects";
 import { airMoveFactorFor, airPenaltyFor } from "./AirSuperiority";
 import { dailyAirCountry, issueAirOrder } from "./Deploy";
+import { designSlotsFor } from "./DesignPlanes";
 import { paradropBlockFor, stepParadrops } from "./Paradrop";
 
 export interface Deployment {
@@ -847,7 +847,7 @@ export class WwAir {
     }
     // P6 (lane E): each type's design slots (the designs flying as it).
     const depth = this.ww.depth;
-    const dslots = AIR_TYPES.map((type) => planeDesignSlotsOf(depth, id, type));
+    const dslots = AIR_TYPES.map((type) => designSlotsFor(depth, id, type));
     const sum = (arr: readonly number[], type: AirType) => {
       let n = 0;
       for (let g = 1; g <= EQUIPMENT_GENS[type]; g++)

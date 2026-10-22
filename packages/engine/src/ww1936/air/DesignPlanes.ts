@@ -25,6 +25,29 @@ export interface PlaneSource {
   slot: number;
 }
 
+/**
+ * The owner holds a plane design in some slot. Most countries hold none
+ * (the AI designs no planes): their draws and returns skip the design
+ * lookups and keep P4's order (perf: no per-slot design reads).
+ */
+export function anyPlaneDesign(depth: WwDepth, owner: number): boolean {
+  const c = depth.country(owner);
+  if (c === null) return false;
+  for (const s of c.des.plane) if (s !== null) return true;
+  return false;
+}
+
+/** The slots flying as `type` (planeDesignSlotsOf), none without a plane design. */
+export function designSlotsFor(
+  depth: WwDepth,
+  owner: number,
+  type: string,
+): number[] {
+  return anyPlaneDesign(depth, owner)
+    ? planeDesignSlotsOf(depth, owner, type)
+    : [];
+}
+
 /** The year of a static generation of a P4 type (its tech's; 1936 without one). */
 function genYear(type: string, gen: number): number {
   const tech = genTech(type as EquipmentType, gen);
@@ -49,7 +72,7 @@ export function planeSources(
   for (let g = gens; g >= 1; g--) {
     rows.push([genYear(type, g), 0, gens - g, { gen: g, slot: 0 }]);
   }
-  const slots = planeDesignSlotsOf(depth, owner, type);
+  const slots = designSlotsFor(depth, owner, type);
   for (let i = 0; i < slots.length; i++) {
     const st = depth.designStatsOf(
       owner,
@@ -130,7 +153,7 @@ export function deckDesignCounts(
   for (let s = 0; s < dd.length; s++) if (dd[s] > 0) any = true;
   if (!any) return null;
   let out: number[] | null = null;
-  for (const s of planeDesignSlotsOf(depth, owner, type)) {
+  for (const s of designSlotsFor(depth, owner, type)) {
     const n = dd[s - 1] ?? 0;
     if (n <= 0) continue;
     out ??= new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
