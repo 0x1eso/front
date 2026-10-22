@@ -59,10 +59,11 @@ describe("World War 1936 P6: the depth clock", () => {
     expect(d.lastCommonDay).toBe(-1);
     expect(common).not.toHaveBeenCalled();
     expect(country).not.toHaveBeenCalled();
-    // Orders are taken (the lanes' answers; the stub refuses).
+    // Orders are taken: lane I's agency is founded in the minute too (spec §8.2).
     expect(
       d.issue(DEEP.tag.DEU, { kind: "intel_found" }, runner.game.ticks()),
-    ).toBe("no_agency");
+    ).toBeNull();
+    expect(d.country(DEEP.tag.DEU)!.intel.agency).toBe(true);
     common.mockRestore();
     country.mockRestore();
   });

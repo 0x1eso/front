@@ -112,7 +112,7 @@ import {
   issueDoctrine,
 } from "./Doctrine";
 import { coalDemand, dailyEnergy, energyDemand } from "./Energy";
-import { computeIntelRow } from "./IntelLevels";
+import { computeIntelRow, intelDetailOf } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade } from "./Market";
 import { dailyMechanisms, dayCommonMech, issueMech } from "./Mechanisms";
@@ -1846,7 +1846,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         capturePm: operativeCapturePm(d, id, o),
       })),
       operations: d.ops
-        .filter((o) => o.owner === id)
+        .filter((o) => o.owner === id && o.operatives.length > 0)
         .map((o) => ({
           uid: o.uid,
           kind: INTEL_OPERATION_IDS[o.kind] ?? "op_infiltrate_army",
@@ -1863,13 +1863,12 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       ),
       cipher: cipherOf(d, id),
       decrypt: decryptOf(d, id),
-      decrypted: d.decrypted
-        .filter((x) => x.o === id && x.activeUntil >= 0)
-        .map((x) => ({ target: x.t, activeUntil: x.activeUntil })),
       networks: [...d.intelNet.entries()]
         .filter(([k]) => Math.floor(k / 1024) === id)
         .sort((a, b) => a[0] - b[0])
         .map(([k, v]) => [k % 1024, Math.floor(v / 1000)] as [number, number]),
+      // Lane I (wave B notes, lane U3's list).
+      ...intelDetailOf(d, id),
     },
     projects: {
       running: c.proj.running.map((r) => {

@@ -14,7 +14,10 @@ import { gameHash, order, step, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
-/** The stub's refusal of each lane (plan Task 1 Step 11). */
+/**
+ * The stub's refusal of each lane (plan Task 1 Step 11). Lane I: Germany
+ * has no PP left for intel_found (k 31) and so no agency for the rest.
+ */
 const LANE_BLOCK = (k: number): string =>
   k <= 1
     ? "doctrine_locked"
@@ -30,7 +33,7 @@ const LANE_BLOCK = (k: number): string =>
               ? "no_partner"
               : k <= 28
                 ? "listing_bad"
-                : k <= 30
+                : k <= 31
                   ? "no_pp"
                   : k <= 39
                     ? "no_agency"
@@ -46,6 +49,7 @@ describe("World War 1936 P6: the depth orders", () => {
   it("every kind is valid on the wire and goes to its lane", async () => {
     const runner = await wwRunner({}, [], DEEP.map);
     const d = runner.game.worldWar()!.depth;
+    runner.game.worldWar()!.politics.country(DEEP.tag.DEU)!.ppMilli = 0;
     DEPTH_ORDER_KINDS.forEach((kind, k) => {
       const o = SAMPLES[kind];
       expect(() => WwOrderSchema.parse(o), kind).not.toThrow();
@@ -60,6 +64,8 @@ describe("World War 1936 P6: the depth orders", () => {
     const runner = await wwRunner({}, [], DEEP.map);
     step(runner, 2);
     const ww = runner.game.worldWar()!;
+    // Lane I: no PP, so intel_found is refused too.
+    ww.politics.country(DEEP.tag.DEU)!.ppMilli = 0;
     // A pending stats mark another country made is not flushed by a refusal.
     const pending = (ww.depth as unknown as { depthDirtyStats: Set<number> })
       .depthDirtyStats;
