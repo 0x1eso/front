@@ -277,7 +277,14 @@ export interface NukeDropInput {
 /** Refusal of nuke_drop (plan decision 40). S fills (spec §9.5); a no-strike region is always refused. */
 export function nukeDropBlock(
   i: NukeDropInput,
-): "no_atomic" | "nuke_conditions" | "out_of_rocket_range" | null {
+):
+  | "no_strike_region"
+  | "no_atomic"
+  | "nuke_conditions"
+  | "out_of_rocket_range"
+  | null {
+  // Sensitivity (decision 34): the no-strike line first; lane S keeps it.
+  if (i.noStrike) return "no_strike_region";
   return "nuke_conditions";
 }
 
@@ -294,7 +301,10 @@ export interface RaidInput {
 }
 
 /** Refusal of raid (plan decision 40). S fills (spec §10); a no-strike region is always refused. */
-export function raidBlock(i: RaidInput): "raid_conditions" | null {
+export function raidBlock(
+  i: RaidInput,
+): "no_strike_region" | "raid_conditions" | null {
+  if (i.noStrike) return "no_strike_region";
   return "raid_conditions";
 }
 
@@ -303,6 +313,7 @@ export function rocketTargetBlock(i: {
   km: number;
   rangeKm: number;
   noStrike: boolean;
-}): "out_of_rocket_range" | "raid_conditions" | null {
+}): "no_strike_region" | "out_of_rocket_range" | "raid_conditions" | null {
+  if (i.noStrike) return "no_strike_region";
   return "out_of_rocket_range";
 }

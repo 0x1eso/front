@@ -8,7 +8,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
-import { order, step, wwRunner } from "./util";
+import { gameHash, order, step, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -162,6 +162,29 @@ describe("World War 1936 P6: the depth orders", () => {
         kind,
       ).toBe(LANE_BLOCK(k));
     });
+  });
+
+  it("a refusal changes nothing (hash and snapshot)", async () => {
+    const runner = await wwRunner({}, [], DEEP.map);
+    step(runner, 2);
+    const ww = runner.game.worldWar()!;
+    // A pending stats mark another country made is not flushed by a refusal.
+    const pending = (ww.depth as unknown as { depthDirtyStats: Set<number> })
+      .depthDirtyStats;
+    ww.depth.markStats(DEEP.tag.GBR);
+    const before = gameHash(runner);
+    const snap = JSON.stringify(ww.depth.snapshot());
+    for (const kind of DEPTH_ORDER_KINDS) {
+      expect(
+        ww.depth.issue(DEEP.tag.DEU, SAMPLES[kind] as WwOrder, 1),
+        kind,
+      ).not.toBeNull();
+    }
+    expect(gameHash(runner)).toBe(before);
+    expect(JSON.stringify(ww.depth.snapshot())).toBe(snap);
+    expect([...pending]).toEqual([DEEP.tag.GBR]);
+    ww.depth.endTick();
+    expect(pending.size).toBe(0);
   });
 
   it("a dead country's order is dead; an order on the wire is routed", async () => {

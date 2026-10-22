@@ -85,7 +85,8 @@ export interface ScorchInput {
 /** Refusal of scorch (plan decision 40). W1 fills (spec §16.7); a no-strike region is always refused. */
 export function scorchBlock(
   i: ScorchInput,
-): "scorch_conditions" | "no_pp" | null {
+): "no_strike_region" | "scorch_conditions" | "no_pp" | null {
+  if (i.noStrike) return "no_strike_region";
   return "scorch_conditions";
 }
 
