@@ -216,6 +216,64 @@ describe("World War 1936 P6: intelligence operations (lane I)", () => {
       GBR,
       "captured",
     );
+    // Ties between kinds: tank, plane, ship (the brief's order).
+    vi.mocked(copyDesignTo).mockClear();
+    deu.des.tank[1] = slot(3);
+    deu.des.tank[2] = slot(3);
+    deu.des.ship[0] = slot(12);
+    deu.des.plane[3] = slot(12);
+    runOp(d, "op_steal_blueprints", DEU, [a.uid], null);
+    expect(vi.mocked(copyDesignTo)).toHaveBeenCalledWith(
+      d,
+      DEU,
+      4,
+      "plane",
+      GBR,
+      "captured",
+    );
+  });
+
+  it("collaboration and a coup fail when war or peace changed meanwhile", async () => {
+    const r = await game();
+    const ww = r.game.worldWar()!;
+    const d = ww.depth;
+    const pol = ww.politics;
+    const [a, b] = agency(d, [51, 52]);
+    // A collaboration whose war ended: failed, the cost spent, no cut.
+    ww.setWar(GBR, DEU, r.game.ticks());
+    d.setNetMilli(GBR, DEU, 900_000);
+    const pm = operationSuccessPm(d, GBR, {
+      target: DEU,
+      operatives: [a.uid, b.uid],
+    });
+    d.nextUid = opUid(ww.politics.seed, pm, true, d.nextUid);
+    expect(
+      startOperation(d, GBR, "op_collaboration", DEU, [a.uid, b.uid], 0),
+    ).toBeNull();
+    ww.endWar(GBR, DEU);
+    const msg = vi.spyOn(d, "message");
+    dailyOperations(d, GBR, d.ops[0].endDay);
+    expect(collabCutPp(d, DEU)).toBe(0);
+    expect(msg.mock.calls.map((c) => c[1])).toEqual([
+      "ww1936_operation_failed",
+      "ww1936_operation_failed",
+    ]);
+    // A coup against a country now at war with us: failed, nobody caught.
+    d.setNetMilli(GBR, ITA, 900_000);
+    pol.country(ITA)!.pop = [1_000, 500, 3_000, 5_500];
+    const pm2 = operationSuccessPm(d, GBR, {
+      target: ITA,
+      operatives: [a.uid, b.uid],
+    });
+    d.nextUid = opUid(ww.politics.seed, pm2, true, d.nextUid);
+    expect(
+      startOperation(d, GBR, "op_coup", ITA, [a.uid, b.uid], 0),
+    ).toBeNull();
+    ww.setWar(GBR, ITA, r.game.ticks());
+    const ruling = pol.country(ITA)!.ruling;
+    dailyOperations(d, GBR, d.ops[0].endDay);
+    expect(pol.country(ITA)!.ruling).toBe(ruling);
+    expect([a.state, b.state]).toEqual([ST_IDLE, ST_IDLE]);
   });
 
   it("sabotage hits a running project, else the most military factories", async () => {
@@ -238,7 +296,8 @@ describe("World War 1936 P6: intelligence operations (lane I)", () => {
       scientist: -1,
     });
     runOp(d, "op_sabotage", DEU, [a.uid], null);
-    expect(d.country(DEU)!.proj.running[0].progressMilli).toBe(200_000);
+    // 10% of the project's progress (the brief).
+    expect(d.country(DEU)!.proj.running[0].progressMilli).toBe(270_000);
     expect(effectiveBuildings(ww.economy, berlin, "mil")).toBe(before - 2);
   });
 

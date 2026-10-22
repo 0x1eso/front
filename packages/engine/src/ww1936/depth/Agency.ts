@@ -127,22 +127,96 @@ function dailyUpgrade(d: WwDepth, id: number): void {
   d.markCountry(id);
 }
 
-/** Pre-flight §0-8: the resistance table is rebuilt from state once a tick (its first agency turn). */
-const BOOST_TICK = new WeakMap<WwDepth, number>();
-
-/** Spec §8.2–§8.7: upgrades → operatives → operations → cryptology (then the resistance table). */
+/**
+ * Spec §8.2–§8.7: upgrades → operatives → operations → cryptology. A
+ * country without an agency has none of them (review 7: nothing to do).
+ */
 export function dailyIntel(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
-  if (c === null) return;
+  if (c === null || !c.intel.agency) return;
   dailyUpgrade(d, id);
   dailyOperatives(d, id, day);
   dailyOperations(d, id, day);
   dailyCrypto(d, id, day);
-  if (!c.intel.agency && d.resistBoost.length === 0) return;
-  const tick = d.mg.ticks();
-  if (BOOST_TICK.get(d) === tick) return;
-  BOOST_TICK.set(d, tick);
+}
+
+/**
+ * Pre-flight §0-8 (review 6): the day's resistance table, rebuilt from
+ * state once a day on the day's common step (a fixed point of the day, so
+ * a game restored within the day keeps the table it read).
+ */
+export function dayCommonIntel(d: WwDepth, day: number): void {
+  void day;
   rebuildResistBoost(d);
+}
+
+/**
+ * Review 10 (spec §21.6): lane I's state folded into WwDepth.hash in a
+ * fixed order — each country's agency, upgrades, codename counter, code
+ * target, propaganda and collaboration rows and operatives (by uid), then
+ * the operations (by uid), infiltrations, decryptions (by breaker and
+ * target) and the intel rows (4 bytes a word, endian-free). The networks
+ * and the resistance table are WwDepth.hash's own lines.
+ */
+export function mixIntel(d: WwDepth, mix: (v: number) => void): void {
+  for (let id = 1; id < d.countries.length; id++) {
+    const c = d.countries[id];
+    if (c === null || c === undefined) continue;
+    const i = c.intel;
+    mix(id);
+    mix(i.agency ? 1 : 0);
+    mix(i.upgrades);
+    mix(i.upId);
+    mix(i.upMilli);
+    mix(i.nextCodename);
+    mix(i.cryptoTarget);
+    for (const [t, bp] of i.propagandaBp) {
+      mix(t);
+      mix(bp);
+    }
+    for (const [t, pp] of i.collabPp) {
+      mix(t);
+      mix(pp);
+    }
+    for (const o of [...i.operatives].sort((a, b) => a.uid - b.uid)) {
+      mix(o.uid);
+      mix(o.codename);
+      mix(o.skill);
+      mix(o.abroadDays);
+      mix(o.state);
+      mix(o.target);
+      mix(o.mission);
+      mix(o.op);
+      mix(o.sinceDay);
+      mix(o.travelLeft);
+      mix(o.releaseDay);
+      mix(o.recruitLeft);
+    }
+  }
+  for (const r of [...d.ops].sort((a, b) => a.uid - b.uid)) {
+    mix(r.uid);
+    mix(r.kind);
+    mix(r.owner);
+    mix(r.target);
+    for (const u of r.operatives) mix(u);
+    mix(r.startDay);
+    mix(r.endDay);
+  }
+  for (const [o, t, dom] of [...d.infiltrations].sort(
+    (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2],
+  )) {
+    mix(o * 1024 + t);
+    mix(dom);
+  }
+  for (const r of [...d.decrypted].sort((a, b) => a.o - b.o || a.t - b.t)) {
+    mix(r.o * 1024 + r.t);
+    mix(r.progressMilli);
+    mix(r.activeUntil);
+  }
+  const lv = d.intelLevels;
+  for (let k = 0; k + 3 < lv.length; k += 4) {
+    mix(lv[k] | (lv[k + 1] << 8) | (lv[k + 2] << 16) | (lv[k + 3] << 24));
+  }
 }
 
 /** The intel_network, decrypt and agency effects (spec §18.3). */

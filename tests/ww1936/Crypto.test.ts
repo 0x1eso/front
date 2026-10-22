@@ -7,6 +7,7 @@ import { decryptPerDayMilli } from "@openfront/engine-lib/ww1936/IntelRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   activateCrypto,
+  addDecryptMilli,
   cipherOf,
   cryptoModsVs,
   dailyCrypto,
@@ -14,17 +15,28 @@ import {
   decryptRow,
   exploiting,
 } from "@openfront/engine/ww1936/depth/Crypto";
+import { sharedIntel } from "@openfront/engine/ww1936/depth/FactionRules";
 import { intelDetailOf } from "@openfront/engine/ww1936/depth/IntelLevels";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import { dissolveFaction } from "@openfront/engine/ww1936/politics/Factions";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { stepTo, wwRunner } from "./util";
 
-beforeEach(() => usePoliticsContent(depthFixture()));
-afterEach(() => usePoliticsContent(null));
+vi.mock("@openfront/engine/ww1936/depth/FactionRules", async (orig) => {
+  const m =
+    await orig<typeof import("@openfront/engine/ww1936/depth/FactionRules")>();
+  return { ...m, sharedIntel: vi.fn(m.sharedIntel) };
+});
 
-const { DEU, GBR } = DEEP.tag;
+beforeEach(() => usePoliticsContent(depthFixture()));
+afterEach(() => {
+  usePoliticsContent(null);
+  vi.mocked(sharedIntel).mockReset();
+});
+
+const { DEU, GBR, FRA } = DEEP.tag;
 const HUMANS = [
   { clientID: "HUMANGBR", country: "GBR" as const },
   { clientID: "HUMANDEU", country: "DEU" as const },
@@ -133,5 +145,33 @@ describe("World War 1936 P6: cryptology (lane I)", () => {
     // Once: the next days say nothing.
     dailyCrypto(d, GBR, start + 91);
     expect(told().length).toBe(1);
+  });
+
+  it("a sharer's exploitation ends the day the faction dissolves", async () => {
+    const r = await game();
+    const ww = r.game.worldWar()!;
+    const d = ww.depth;
+    // fr_shared_intel on (lane W3's rule) while they share a faction.
+    vi.mocked(sharedIntel).mockImplementation((_d, a, b) =>
+      ww.sameFaction(a, b),
+    );
+    expect(ww.sameFaction(GBR, FRA)).toBe(true);
+    d.country(GBR)!.intel.agency = true;
+    addDecryptMilli(d, FRA, DEU, 1_000_000);
+    d.lastCommonDay = 200;
+    expect(activateCrypto(d, GBR, DEU, 200)).toBeNull();
+    dailyCrypto(d, GBR, 201);
+    d.lastCommonDay = 201;
+    expect(cryptoModsVs(d, GBR, DEU)).toBe(500);
+    const msg = vi.spyOn(d, "message");
+    dissolveFaction(ww.politics, ww.politics.factionIdx(GBR), r.game.ticks());
+    expect(ww.sameFaction(GBR, FRA)).toBe(false);
+    d.lastCommonDay = 202;
+    dailyCrypto(d, GBR, 202);
+    expect(cryptoModsVs(d, GBR, DEU)).toBe(0);
+    expect(decryptRow(d, GBR, DEU)!.activeUntil).toBe(-2 - 202);
+    expect(msg).toHaveBeenCalledWith(DEU, "ww1936_codes_broken");
+    // France's own break stands.
+    expect(decryptRow(d, FRA, DEU)!.progressMilli).toBe(1_000_000);
   });
 });

@@ -14,12 +14,14 @@ import {
   intelLevel,
 } from "@openfront/engine-lib/ww1936/IntelRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import {
   computeIntelRow,
   levelLines,
   radarSrOf,
 } from "@openfront/engine/ww1936/depth/IntelLevels";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
@@ -100,6 +102,83 @@ describe("World War 1936 P6: intelligence levels (lane I)", () => {
     expect(gameHash(c)).toBe(gameHash(a));
     // Not the stub's 100s any more.
     expect(da.intelOf(GBR, TUR, ID_ARMY)).toBeLessThan(80);
+  }, 120_000);
+
+  it("a game restored with operatives in the field continues identically", async () => {
+    const a = await game();
+    const ww = a.game.worldWar()!;
+    const d = ww.depth;
+    const tick = a.game.ticks();
+    expect(d.issue(GBR, { kind: "intel_found" }, tick)).toBeNull();
+    const c = d.country(GBR)!;
+    // Three slots, three recruits ready.
+    c.intel.upgrades |= 1 | 2;
+    for (let n = 0; n < 3; n++) {
+      expect(d.issue(GBR, { kind: "operative_recruit" }, tick)).toBeNull();
+    }
+    for (const o of c.intel.operatives) o.recruitLeft = 0;
+    const [net, op, road] = c.intel.operatives;
+    ww.politics.country(GBR)!.ppMilli = 200_000;
+    d.setNetMilli(GBR, DEU, 400_000);
+    // One builds the network in Germany, one infiltrates its army, one is
+    // on the road to Italy; the codes are broken and exploited.
+    for (const [o, target] of [
+      [net, DEU],
+      [road, ITA],
+    ] as const) {
+      expect(
+        d.issue(
+          GBR,
+          {
+            kind: "operative_assign",
+            operative: o.uid,
+            target,
+            mission: "build_network",
+          },
+          tick,
+        ),
+      ).toBeNull();
+    }
+    expect(
+      d.issue(
+        GBR,
+        {
+          kind: "operation_start",
+          op: "op_infiltrate_army",
+          target: DEU,
+          operatives: [op.uid],
+        },
+        tick,
+      ),
+    ).toBeNull();
+    d.decrypted.push({
+      o: GBR,
+      t: DEU,
+      progressMilli: 1_000_000,
+      activeUntil: -1,
+    });
+    expect(
+      d.issue(GBR, { kind: "crypto_activate", target: DEU }, tick),
+    ).toBeNull();
+    step(a, 150);
+    expect(d.ops.length).toBe(1);
+    const b = await wwRestore(a, HUMANS, DEEP.map);
+    expect(gameHash(b)).toBe(gameHash(a));
+    for (let i = 0; i < 300; i++) {
+      step(a);
+      step(b);
+      expect(gameHash(b)).toBe(gameHash(a));
+    }
+    expect(diffSnapshots(snapshotGame(a.game), snapshotGame(b.game))).toEqual(
+      [],
+    );
+    expect(diffGraphs(a.game, b.game)).toEqual([]);
+    // The same field in both: operatives, operations, codes.
+    const db = b.game.worldWar()!.depth;
+    expect(db.country(GBR)!.intel).toEqual(c.intel);
+    expect(db.ops).toEqual(d.ops);
+    expect(db.infiltrations).toEqual(d.infiltrations);
+    expect(db.decrypted).toEqual(d.decrypted);
   }, 120_000);
 
   it("a faction member sees at least 80", async () => {

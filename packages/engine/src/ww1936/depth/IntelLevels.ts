@@ -195,7 +195,8 @@ function fillObserver(
   for (const r of d.decrypted) {
     if (r.t >= d.cap || (r.o !== o && !sharers.includes(r.o))) continue;
     if (decryptedOwn(d, r.o, r.t)) c.codes[r.t] |= 1;
-    if (r.o === o && exploiting(d, o, r.t)) c.codes[r.t] |= 2;
+    // Brief Step 5: decrypted and exploited, mine or faction-shared.
+    if (exploiting(d, r.o, r.t)) c.codes[r.t] |= 2;
   }
   const econ = d.ww.economy;
   const sc = d.ww.scenario;

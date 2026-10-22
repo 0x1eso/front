@@ -7,7 +7,6 @@
 // no operatives for its 60 days (startDay = the day it finished), so the
 // table keeps raising those regions.
 import {
-  DESIGN_KINDS,
   DesignKind,
   INTEL_OPERATIONS,
   IntelOperation,
@@ -66,6 +65,8 @@ import type { WwDepth, WwDepthState } from "./WwDepth";
 type OpRow = WwDepthState["ops"][number];
 
 const K = (op: IntelOperation) => INTEL_OPERATIONS.indexOf(op);
+/** The brief's tie order of the newest design (review 2): tank, plane, ship. */
+const STEAL_KIND_ORDER: readonly DesignKind[] = ["tank", "plane", "ship"];
 const OP_UPRISING = K("op_uprising");
 /** The domain (ID_ARMY, ID_NAVY, ID_AIR) of each infiltration. */
 const INFILTRATE_DOMAIN: ReadonlyMap<number, number> = new Map([
@@ -79,8 +80,8 @@ export const INFIL_LOSS_MILLI = 5_000;
 /** Spec §8.5 op_collaboration: the cut per success and the cap per target, pp. */
 export const COLLAB_PP = 10;
 export const COLLAB_MAX_PP = 20;
-/** Spec §8.5 op_sabotage: a project's progress lost (10% of the whole), milli; a factory region's damage. */
-export const SABOTAGE_PROJECT_MILLI = 100_000;
+/** Spec §8.5 op_sabotage: a project's progress lost, percent of its progress; a factory region's damage. */
+export const SABOTAGE_PROJECT_PCT = 10;
 export const SABOTAGE_DAMAGE_MILLI = 2_000;
 /** Spec §8.5 op_coup: a failed coup's opinion. */
 export const COUP_FAIL_OPINION = -50;
@@ -298,7 +299,8 @@ function finishOperation(d: WwDepth, row: OpRow, day: number): void {
       break;
     case "op_collaboration": {
       tellTarget = true;
-      ok = rollSuccess(d, id, row);
+      // Review 8: still at war when it ends, or it fails (no refund).
+      ok = d.ww.isAtWar(id, t) && rollSuccess(d, id, row);
       if (ok) {
         const has = collabCutPp(d, t);
         const add = Math.min(COLLAB_PP, COLLAB_MAX_PP - has);
@@ -311,7 +313,10 @@ function finishOperation(d: WwDepth, row: OpRow, day: number): void {
       const pol = d.ww.politics;
       const me = pol.country(id);
       const tc = pol.country(t);
+      // Review 8: a war since it began ends it (failed, no one caught).
+      const peace = !d.ww.isAtWar(id, t);
       ok =
+        peace &&
         me !== null &&
         tc !== null &&
         tc.pop[me.ruling] >= coupNeedBp(tc.stabBp) &&
@@ -326,7 +331,7 @@ function finishOperation(d: WwDepth, row: OpRow, day: number): void {
           },
           { kind: "fire_event", id: "gen_coup_done", to: "target" },
         ]);
-      } else {
+      } else if (peace) {
         // Spec §8.5: both operatives are caught, relations −50.
         for (const o of opers) holdOperative(d, id, o, day, 0);
         addOpinion(pol, id, t, COUP_FAIL_OPINION, INTEL_OPINION_DAYS);
@@ -422,7 +427,7 @@ function stealBlueprints(
   let kind: DesignKind | null = null;
   let slot = 0;
   let saved = 0;
-  for (const k of DESIGN_KINDS) {
+  for (const k of STEAL_KIND_ORDER) {
     const slots = tc.des[k];
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
@@ -436,15 +441,17 @@ function stealBlueprints(
 }
 
 /**
- * Spec §8.5 op_sabotage: a running project of the target loses 10% (lane
- * S's proj.running[0]); else its region with the most working military
+ * Spec §8.5 op_sabotage: a running project of the target loses 10% of its
+ * progress (lane S's proj.running[0]); else its region with the most working military
  * factories (ties: the lower id; never a no-strike region) takes 2,000
  * milli of bomb damage on them (two factories stop).
  */
 function sabotage(d: WwDepth, t: number): void {
   const run = d.country(t)?.proj.running[0];
   if (run !== undefined) {
-    run.progressMilli = Math.max(0, run.progressMilli - SABOTAGE_PROJECT_MILLI);
+    run.progressMilli -= Math.floor(
+      (run.progressMilli * SABOTAGE_PROJECT_PCT) / 100,
+    );
     d.markCountry(t);
     return;
   }
@@ -539,9 +546,10 @@ function bundle(d: WwDepth, regions: readonly number[]): number[] {
  * most resisting administered regions, ×1.5 for an exile or the core's
  * holder; network ≥ 200‰, 100‰ for an exile at its own cores),
  * suppress_resistance (−5pp × skill / 3 on the owner's administered
- * regions) and the uprisings (+15pp, 60 days). Rebuilt from state at most
- * once a tick (WwDepth.resistBoost and its index): only administered
- * regions ever get a row, so Korea and Taiwan never do (plan decision 33).
+ * regions) and the uprisings (+15pp, 60 days), of countries that still
+ * play. Rebuilt from state on the day's common step (WwDepth.resistBoost
+ * and its index): only administered regions ever get a row, so Korea and
+ * Taiwan never do (plan decision 33).
  */
 export function rebuildResistBoost(d: WwDepth): void {
   const eg = d.ww.endgame;
@@ -552,6 +560,8 @@ export function rebuildResistBoost(d: WwDepth): void {
     if (c === null || c === undefined || c.intel.operatives.length === 0) {
       continue;
     }
+    // Review 1: a country that no longer plays has its operatives frozen.
+    if (!d.ww.isActor(id)) continue;
     for (const o of c.intel.operatives) {
       if (o.state !== ST_MISSION) continue;
       if (o.mission === M_SUPPORT_RES && o.target !== id) {
@@ -573,7 +583,7 @@ export function rebuildResistBoost(d: WwDepth): void {
   const today = d.lastCommonDay;
   for (const row of d.ops) {
     if (row.kind !== OP_UPRISING || row.operatives.length > 0) continue;
-    if (today >= row.endDay) continue;
+    if (today >= row.endDay || !d.ww.isActor(row.owner)) continue;
     for (const r of bundle(d, myCoresHeldBy(d, row.owner, row.target))) {
       put(r, UPRISING_PP);
     }

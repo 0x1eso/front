@@ -86,10 +86,10 @@ export function isAbroad(o: Operative, owner: number): boolean {
   );
 }
 
-/** The counter_intelligence operatives `t` keeps at home. */
+/** The counter_intelligence operatives `t` keeps at home (none once it no longer plays: review 1). */
 export function counterMissions(d: WwDepth, t: number): number {
   const c = d.country(t);
-  if (c === null) return 0;
+  if (c === null || !d.ww.isActor(t)) return 0;
   let n = 0;
   for (const o of c.intel.operatives) {
     if (o.state === ST_MISSION && o.mission === M_COUNTER && o.target === t) {
@@ -205,9 +205,11 @@ export function isFree(o: Operative): boolean {
   return o.state === ST_IDLE && o.recruitLeft === 0;
 }
 
-/** A target country of an order: a scenario slot other than `id`. */
+/** A target country of an order: another country that still plays (review 4). */
 export function validTarget(d: WwDepth, id: number, t: number): boolean {
-  return t > 0 && t < d.cap && t !== id && d.country(t) !== null;
+  return (
+    t > 0 && t < d.cap && t !== id && d.country(t) !== null && d.ww.isActor(t)
+  );
 }
 
 /**

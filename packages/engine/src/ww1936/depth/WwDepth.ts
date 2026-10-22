@@ -75,7 +75,7 @@ import type { Game } from "../../game/Game";
 import { aiPersonality } from "../economy/AiEconomy";
 import type { LandDepthHooks } from "../land/DepthHooks";
 import type { WorldWar } from "../WorldWar";
-import { dailyIntel, issueIntel } from "./Agency";
+import { dailyIntel, dayCommonIntel, issueIntel, mixIntel } from "./Agency";
 import { aiCommandDay } from "./AiCommand";
 import { aiDesignsDay } from "./AiDesigns";
 import { aiIntelDay } from "./AiIntel";
@@ -658,6 +658,7 @@ export class WwDepth implements LandDepthHooks {
     dayCommonMech(this, day, tick); // W3: faction goals, treaty clock, congress drift, BoP drift
     processRockets(this, day, tick); // S
     processRaids(this, day, tick); // S
+    dayCommonIntel(this, day); // I: the day's resistance table (pre-flight §0-8)
   }
 
   countryTurn(id: number, day: number, tick: number): void {
@@ -1384,6 +1385,8 @@ export class WwDepth implements LandDepthHooks {
     mix(this.groups.length);
     mix(this.market.embargoes.length);
     mix(this.world.damLevel.reduce((a, l, i) => a + l * (i + 1), 0));
+    // Lane I review 10: agencies, operatives, operations, codes, intel rows.
+    mixIntel(this, mix);
     return h;
   }
 }

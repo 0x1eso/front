@@ -83,7 +83,9 @@ export function intelSharers(d: WwDepth, o: number): number[] {
   const pol = d.ww.politics;
   const f = pol.factionIdx(o);
   if (f < 0) return [];
-  return pol.factionMembers(f).filter((m) => m !== o && sharedIntel(d, o, m));
+  return pol
+    .factionMembers(f)
+    .filter((m) => m !== o && d.ww.isActor(m) && sharedIntel(d, o, m));
 }
 
 /** Spec §8.7: broken by `o` or by a member sharing intelligence with it. */
@@ -212,9 +214,13 @@ export function activateCrypto(
  */
 export function dailyCrypto(d: WwDepth, id: number, day: number): void {
   for (const r of d.decrypted) {
-    if (r.o !== id || r.activeUntil < 0 || day < r.activeUntil) continue;
+    if (r.o !== id || r.activeUntil < 0) continue;
+    // Review 5: a sharer's break that is no longer shared (the faction
+    // dissolved, fr_shared_intel off) ends the exploitation today.
+    const over = day >= r.activeUntil || !decryptedFor(d, id, r.t);
+    if (!over) continue;
     r.progressMilli = Math.min(r.progressMilli, DECRYPT_RESET_PM * 1000);
-    r.activeUntil = -2 - r.activeUntil;
+    r.activeUntil = -2 - Math.min(r.activeUntil, day);
     markExploits(d);
     d.message(r.t, "ww1936_codes_broken");
     d.markCountry(id);
