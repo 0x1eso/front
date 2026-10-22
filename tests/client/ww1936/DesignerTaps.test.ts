@@ -110,6 +110,34 @@ describe("<ww-designer>", () => {
     el.remove();
   });
 
+  it("the licence request card opens the industry drawer's market tab (U4's entry point)", async () => {
+    const { EventBus } = await import("@openfront/shared/EventBus");
+    const { WwDepthOpenEvent } =
+      await import("../../../src/client/hud/ww1936/DepthEvents");
+    await import("../../../src/client/hud/ww1936/WwDesigner");
+    const bus = new EventBus();
+    const opened: string[] = [];
+    bus.on(WwDepthOpenEvent, (e) => opened.push(e.kind));
+    const el = document.createElement("ww-designer") as HTMLElement & {
+      game: unknown;
+      eventBus: unknown;
+      updateComplete: Promise<boolean>;
+      init(): void;
+    };
+    el.game = designerGame({ pendingLicences: [{ from: 2, to: 1 }] });
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    bus.emit(new WwDepthOpenEvent("designs"));
+    await el.updateComplete;
+    const card = el.querySelector("[data-ww-licence-request]") as HTMLElement;
+    expect(card).not.toBeNull();
+    card.click();
+    await el.updateComplete;
+    expect(opened).toEqual(["designs", "market"]);
+    el.remove();
+  });
+
   it("a 7-slot tank at 844 x 390 fits its grid, steppers and bottom bar in the drawer", async () => {
     const { EventBus } = await import("@openfront/shared/EventBus");
     const { WwDepthOpenEvent } =

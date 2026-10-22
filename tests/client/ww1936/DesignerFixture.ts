@@ -13,6 +13,8 @@ export interface DesignerFake {
   techs?: readonly WwTechId[];
   armyXp?: number;
   designs?: WwDesignSlotData[];
+  /** Licence requests waiting (from, to). */
+  pendingLicences?: { from: number; to: number }[];
 }
 
 export function designerGame(o: DesignerFake = {}) {
@@ -27,7 +29,7 @@ export function designerGame(o: DesignerFake = {}) {
     wwDepth: () => ({
       version: 1,
       treatyData: { members: [], escalated: false, endDay: 0 },
-      marketData: { pendingLicences: [] },
+      marketData: { pendingLicences: o.pendingLicences ?? [] },
       detail: () => ({ designs, projects: { done: 0 } }),
     }),
     wwLand: () => ({

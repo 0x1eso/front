@@ -207,7 +207,12 @@ export class WwDesigner extends WwDrawerBase {
             } as never),
           );
         },
-        openLicences: () => this.setOpen(false),
+        // Merge glue (U2 -> U4): the licence requests live on the
+        // industry drawer's market tab.
+        openLicences: () => {
+          this.setOpen(false);
+          this.eventBus.emit(new WwDepthOpenEvent("market"));
+        },
         licenceFrom: this.licenceFrom(m),
         makeLine: () => {
           this.eventBus.emit(new OpenWwIndustryEvent("production"));
