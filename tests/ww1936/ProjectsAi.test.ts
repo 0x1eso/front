@@ -253,6 +253,9 @@ describe("World War 1936 P6: the AI never picks a no-strike region (pre-flight ย
       const g = runner.game;
       const ww = g.worldWar()!;
       const d = ww.depth;
+      // Germany's by law: held from France at peace, P5 spec ยง5.3 (lane X)
+      // would hand it back the next day (batch P6-3 merge).
+      ww.politics.setLegalOwner(LYON, deu);
       takeRegion(g, LYON, "DEU");
       // P1 takes the new control on its next turn (its region lists).
       step(runner, 8);

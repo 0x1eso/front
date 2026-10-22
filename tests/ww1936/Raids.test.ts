@@ -277,7 +277,10 @@ describe("World War 1936 P6: raids (spec §10)", () => {
   }, 60_000);
 
   it("a failed raid costs half the division", async () => {
-    const { g, ww, d, deu, run, army, div } = await paraRaid();
+    const { g, ww, d, deu, fra, run, army, div } = await paraRaid();
+    // A facility needs Germany's close civil intelligence on France (lane
+    // I's real levels since batch P6-3; the stub's row had it).
+    d.intelLevels[(deu * d.cap + fra) * 4] = 50;
     rigNextRaid(d, false);
     const day = ww.day(g.ticks());
     expect(
