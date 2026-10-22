@@ -390,7 +390,8 @@ describe("World War 1936 P6: the arms market", () => {
     );
     // Under way: the deal delivering, the licence card still waiting.
     stepTo(a, a.game.ticks() + 120);
-    expect(d.market.pending).toHaveLength(1);
+    // (Italy, an AI in Germany's faction, has asked its human leader too.)
+    expect(d.market.pending.map((p) => p.from)).toContain(FRA);
     expect(ww.day(a.game.ticks()) - day).toBeGreaterThan(12);
     expect(d.market.deals).toHaveLength(1);
     expect(d.market.deals[0].deliveredMilli).toBeGreaterThan(0);
