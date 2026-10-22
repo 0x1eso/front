@@ -14,6 +14,8 @@ import { WW_BEAT_WHEN_WINDOW_DAYS } from "@openfront/engine-api/ww1936/PoliticsT
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { DEPTH_BEATS } from "@openfront/engine-lib/ww1936/content/depth/beats";
+import { BEATS_P5 } from "@openfront/engine-lib/ww1936/content/endgame/beats";
 import { HISTORY_BEATS } from "@openfront/engine-lib/ww1936/content/history";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { HISTORY } from "@openfront/engine-lib/ww1936/History";
@@ -59,12 +61,16 @@ describe("history beats", () => {
   });
 
   it("each block is in date order (P0's 48, then the new beats)", () => {
-    // P5 (plan decision 30): the P5 beats follow P3's, a block of their own.
+    // P5 (plan decision 30): the P5 beats follow P3's, a block of their own;
+    // P6's depth beats (K5) follow P5's, another block.
+    const p6 = HISTORY_BEATS.length + BEATS_P5.length;
     const blocks = [
       beats.slice(0, HISTORY.length),
       beats.slice(HISTORY.length, HISTORY_BEATS.length),
-      beats.slice(HISTORY_BEATS.length),
+      beats.slice(HISTORY_BEATS.length, p6),
+      beats.slice(p6),
     ];
+    expect(beats.slice(p6)).toEqual(DEPTH_BEATS);
     for (const block of blocks) {
       for (let i = 1; i < block.length; i++) {
         expect(dayOfDate(block[i].date), block[i].id).toBeGreaterThanOrEqual(

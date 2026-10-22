@@ -55,15 +55,15 @@ export const SCIENTISTS: readonly ScientistDef[] = [
 ];
 
 // Spec §19.6: with the historical AI on, the United States picks these
-// regions first, from 1945-08-01. Hiroshima is region 757 (히로시마현).
-// The 1936 map has no Nagasaki region: Nagasaki's tiles lie in region 800
-// (named Kumamoto, 구마모토현), which covers western Kyushu. Home islands
-// only — never a Korean or Taiwanese region (spec §24-3).
+// regions first, from 1945-08-01. Hiroshima is region 757 (히로시마현);
+// Nagasaki is region 1369, carved out of Kumamoto (800) by map v5 (Task 15;
+// ledger ruling: [757, 1369]). Home islands only — never a Korean or
+// Taiwanese region (spec §24-3).
 export const NUKE_TARGETS: readonly NukeTargetDef[] = [
   {
     attacker: "USA",
     target: "JPN",
-    regions: [757, 800],
+    regions: [757, 1369],
     notBefore: "1945-08-01",
   },
 ];

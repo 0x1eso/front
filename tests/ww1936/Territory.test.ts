@@ -174,6 +174,26 @@ describe("peaceful territory changes (spec §17)", { timeout: 60_000 }, () => {
     expect(seen[seen.length - 1]).toBe(all);
   });
 
+  it("a transfer to oneself with core makes the group's regions cores (P6 pre-flight C2)", async () => {
+    const { runner, g, ww, p, l, id } = await game();
+    const [deu, csk] = [id("DEU"), id("CSK")];
+    anschluss(runner);
+    transferGroup(p, csk, deu, "sudetenland", false, g.ticks());
+    expect(p.legalOwner[13]).toBe(deu);
+    expect(p.isCore(13)).toBe(false);
+    // Without core it does nothing; nothing changes hands either way.
+    transferGroup(p, deu, deu, "sudetenland", false, g.ticks());
+    expect(p.isCore(13)).toBe(false);
+    transferGroup(p, deu, deu, "sudetenland", true, g.ticks());
+    expect(p.isCore(13)).toBe(true);
+    expect(p.legalOwner[13]).toBe(deu);
+    expect(l.controller[13]).toBe(deu);
+    // A region it does not legally own stays as it is.
+    transferGroup(p, deu, deu, "bohemia_moravia", true, g.ticks());
+    expect(p.legalOwner[14]).toBe(csk);
+    expect(ww.endgame.hasCore(deu, 14)).toBe(false);
+  });
+
   it("end_war returns occupied regions to their legal owner", async () => {
     const { runner, g, ww, p, l, id } = await game();
     const [deu, csk] = [id("DEU"), id("CSK")];

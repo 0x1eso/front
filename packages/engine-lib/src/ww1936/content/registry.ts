@@ -59,6 +59,7 @@ import { DEPTH_BEATS, DEPTH_FLAGS } from "./depth/beats";
 import { START_FIELD_MARSHALS } from "./depth/command";
 import { AI_DESIGN_PRESETS } from "./depth/designs";
 import { START_DOCTRINES } from "./depth/doctrine";
+import { REGION_GROUPS_P6 } from "./depth/groups";
 import { AGENCY_STARTS } from "./depth/intel";
 import { DEPTH_SPIRITS } from "./depth/mech";
 import { NUKE_TARGETS, SCIENTISTS } from "./depth/projects";
@@ -92,11 +93,7 @@ import { SUN_EVENTS } from "./events/sun";
 import { TUR_EVENTS } from "./events/tur";
 import { USA_EVENTS } from "./events/usa";
 import { WORLD_EVENTS } from "./events/world";
-import {
-  FLAGS_BASE,
-  FLAGS_P5_BASE,
-  FLAGS_P6_BASE,
-} from "./flags/base";
+import { FLAGS_BASE, FLAGS_P5_BASE, FLAGS_P6_BASE } from "./flags/base";
 import { FLAGS_DEU } from "./flags/deu";
 import { FLAGS_ENDGAME } from "./flags/endgame";
 import { FLAGS_FRA } from "./flags/fra";
@@ -580,7 +577,8 @@ export const CONTENT_PARTS: ContentParts = {
   ],
   // P6 (plan Task 1 Step 20): the depth beats after P5's.
   beats: [...HISTORY_BEATS, ...BEATS_P5, ...DEPTH_BEATS],
-  groups: [...REGION_GROUPS, ...REGION_GROUPS_P5],
+  // P6 (Phase B): the focus packs' groups after P5's.
+  groups: [...REGION_GROUPS, ...REGION_GROUPS_P5, ...REGION_GROUPS_P6],
   countries: [...COUNTRY_POLITICS, ...DORMANT_POLITICS],
   claims: mergeClaims(CLAIMS, CLAIMS_P5),
   factionNames: FACTION_NAMES,

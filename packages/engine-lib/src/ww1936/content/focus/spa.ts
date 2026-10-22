@@ -464,7 +464,7 @@ export const SPA_FOCUSES: FocusDef[] = [
     countries: ["ESN"],
     prereq: [["spa_non_belligerence"]],
     available: { kind: "at_war_with", who: T("DEU"), of: T("SUN") },
-    effects: [{ kind: "unlock_decision", id: "spa_eastern_division" }],
+    effects: [{ kind: "unlock_decision", id: "spa_send_eastern_division" }],
     ai: { base: 10 },
   },
   {
@@ -542,8 +542,6 @@ export const SPA_PATH: FocusId[] = [
   "spa_non_belligerence",
   "spa_eastern_division",
   "spa_iberian_pact",
-  "spa_gibraltar",
-  "spa_morocco_claims",
   "spa_wolfram",
   "spa_rebuild_army",
   "gen_ind_mil_1",

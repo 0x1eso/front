@@ -10,6 +10,4 @@ export const FLAGS_PACK_NORTH: readonly string[] = [
   "nordic_union_formed",
   "bal_bloc_founder",
   "balkan_bloc_formed",
-  // Set by lane W1's destroyDam (world flag <dam id>_destroyed); nor_heavy_water_raid reads it.
-  "dam_vemork_destroyed",
 ];

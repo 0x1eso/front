@@ -1299,4 +1299,8 @@ export const FACTION_NAMES: readonly FactionNameDef[] = [
   // Only when the United States founds a faction outside the Allies. P5
   // (K4's hemisphere invites): members of any ideology may join.
   { id: "pan_american", creators: ["USA"], anyIdeology: true },
+  // P6 (K2, focus pol_intermarium): the bloc "between the seas".
+  { id: "intermarium", creators: ["POL"] },
+  // P6 (K1, focus chw_regional_power): the southwest cliques' bloc.
+  { id: "southwest_alliance", creators: ["GXC", "YUN"] },
 ];

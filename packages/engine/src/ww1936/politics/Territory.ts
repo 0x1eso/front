@@ -206,7 +206,17 @@ export function transferGroup(
   tick: number,
 ): void {
   const g = pol.content.groupIdx.get(group);
-  if (g === undefined || to <= 0 || to === from || !pol.living(to)) return;
+  if (g === undefined || to <= 0 || !pol.living(to)) return;
+  if (to === from) {
+    // P6 (pre-flight §C2, K1's chn_unification): a transfer to oneself
+    // with `core` makes the group's regions it legally owns its cores.
+    if (core !== true) return;
+    for (const r of [...g.regions].sort((a, b) => a - b)) {
+      if (pol.legalOwner[r] === from) pol.setLegalOwner(r, from, true);
+    }
+    pol.markCountry(from);
+    return;
+  }
   const land = pol.land;
   const regions = [...g.regions]
     .filter((r) => pol.legalOwner[r] === from)

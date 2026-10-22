@@ -184,7 +184,9 @@ export const TUR_FOCUSES: FocusDef[] = [
     days: 70,
     branch: "diplomacy",
     icon: "map",
-    effects: [{ kind: "unlock_decision", id: "tur_hatay_question" }],
+    // P3's tur_hatay_question is not locked (the P3 beat takes it), so an
+    // unlock would do nothing (Phase B ruling: the unlock is dropped).
+    effects: [],
     ai: { base: 10 },
   },
   {

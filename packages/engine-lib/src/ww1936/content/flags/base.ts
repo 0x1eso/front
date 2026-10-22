@@ -1,6 +1,5 @@
 // World War 1936 P3 (spec §20.1, plan decision 31): the flags the spec
 // already names (the foundation's); each content lane adds its own file.
-import { DAMS } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { FlagId } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const FLAGS_BASE: readonly FlagId[] = [
@@ -50,6 +49,15 @@ export const FLAGS_P5_BASE: readonly FlagId[] = [
  * P6 (pre-flight §C5, review L3): W1's destroyDam sets the world flag
  * `<damId>_destroyed`; all nine are declared here (K3 drops its own line).
  */
-export const FLAGS_P6_BASE: readonly FlagId[] = DAMS.map(
-  (d) => `${d}_destroyed` as FlagId,
-);
+export const FLAGS_P6_BASE: readonly FlagId[] = [
+  // DAMS order (DepthTypes).
+  "dam_hoover_destroyed",
+  "dam_grand_coulee_destroyed",
+  "dam_norris_destroyed",
+  "dam_dnipro_destroyed",
+  "dam_mohne_destroyed",
+  "dam_eder_destroyed",
+  "dam_kembs_destroyed",
+  "dam_galloway_destroyed",
+  "dam_vemork_destroyed",
+];

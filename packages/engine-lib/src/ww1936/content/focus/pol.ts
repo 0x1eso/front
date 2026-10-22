@@ -329,7 +329,9 @@ export const POL_FOCUSES: FocusDef[] = [
     branch: "diplomacy",
     icon: "map",
     prereq: [["pol_balance"]],
-    effects: [{ kind: "unlock_decision", id: "pol_zaolzie_ultimatum" }],
+    // P3's pol_zaolzie_ultimatum is not locked (the P3 beat takes it), so
+    // an unlock would do nothing (Phase B ruling: the unlock is dropped).
+    effects: [],
     ai: { base: 10 },
   },
 
@@ -388,7 +390,7 @@ export const POL_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "fist",
     prereq: [["pol_home_army"]],
-    effects: [{ kind: "unlock_decision", id: "pol_uprising" }],
+    effects: [{ kind: "unlock_decision", id: "pol_order_uprising" }],
     ai: { base: 10 },
   },
   {
