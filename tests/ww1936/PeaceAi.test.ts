@@ -30,25 +30,14 @@ import type {
 } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
-import { vi } from "vitest";
 import { END, endId } from "./endFixture";
 import { END_GROUPS, endgameFixture } from "./endgameFixture";
 import { END_MAP, step, stepTo, wwRunner } from "./util";
 
-// Lane X lists the tags a conference may free (the CSK row names SVK).
-vi.mock("@openfront/engine/ww1936/endgame/Activate", async (original) => {
-  const real =
-    await original<
-      typeof import("@openfront/engine/ww1936/endgame/Activate")
-    >();
-  return { ...real, releasableTags: vi.fn(real.releasableTags) };
-});
-
+// Lane X's real releasableTags (batch 21: the mock is gone; the end
+// fixture gives SVK its cores, so the CSK row's release names it).
 beforeEach(() => usePoliticsContent(endgameFixture()));
-afterEach(() => {
-  usePoliticsContent(null);
-  vi.mocked(releasableTags).mockReset();
-});
+afterEach(() => usePoliticsContent(null));
 
 const R = END.region;
 const id = (t: CountryTag) => endId(t);
@@ -100,9 +89,6 @@ const kinds = (ds: { kind: number }[]) => ds.map((d) => DEMAND_KINDS[d.kind]);
 describe("World War 1936 P5: the conference AI (spec §6.9, §17.1)", () => {
   it("the history table goes first", async () => {
     const { g, ww, eg } = await atWar();
-    vi.mocked(releasableTags).mockImplementation((_e, stake) =>
-      stake.includes(R.slovakia) ? ["SVK"] : [],
-    );
     // A seed whose game keeps Germany's CSK row in this conference
     // (pre-flight §0-8: ~75% of seeds).
     const pol = ww.politics as unknown as { _seed: number };
@@ -110,6 +96,7 @@ describe("World War 1936 P5: the conference AI (spec §6.9, §17.1)", () => {
     while (!keepsHistoryRow(seed, "CSK", id("DEU"), eg.nextConfId)) seed++;
     pol._seed = seed;
     const c = beat(g, "CSK", [["DEU", 1000, [R.prague]]]);
+    expect(releasableTags(eg, c.stake)).toContain("SVK");
     const ai = aiDemands(eg, c.id, id("DEU"));
     // The test row: DEU take_group prague, release SVK — in that order.
     expect(kinds(ai).slice(0, 2)).toEqual(["take_group", "release"]);

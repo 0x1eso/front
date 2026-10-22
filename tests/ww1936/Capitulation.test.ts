@@ -337,7 +337,6 @@ describe("victory points and capitulation (spec §7.5)", () => {
     );
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
-    ww.setWar(fra.smallID(), deu.smallID(), g.ticks());
     control(g, "Warsaw", deu);
     nearlyFull(g, pol);
     // Poland capitulates at the next day's first tick: Krakow moves by the
@@ -345,6 +344,11 @@ describe("victory points and capitulation (spec §7.5)", () => {
     stepTo(runner, dayStartTick(ww.day(g.ticks()) + 1, WW_PREP_TICKS) + 1);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
     expect(pol.numTilesOwned()).toBe(1499);
+    // France enters only now: an enemy of Germany's on its own land would
+    // have hosted Poland's government in exile (P5 lane X), and France's
+    // victory would then hand Poland's regions back to it (lane W).
+    expect(ww.endgame.isExile(pol.smallID())).toBe(false);
+    ww.setWar(fra.smallID(), deu.smallID(), g.ticks());
 
     // Germany falls while Poland's last land is still on its way to it.
     // P3 spec §17.1: Poland's regions are Germany's legal ones now (49

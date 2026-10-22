@@ -5,27 +5,17 @@ import type { WarLink } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "@openfront/engine/game/Game";
 import { capitulate } from "@openfront/engine/ww1936/Capitulation";
-import { formExile } from "@openfront/engine/ww1936/endgame/Exile";
 import type { WwEndgame } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
-import { vi } from "vitest";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, stepTo, wwRunner } from "./util";
 
-// Lane X decides the exile (formExile); one test gives Poland a host.
-vi.mock("@openfront/engine/ww1936/endgame/Exile", async (original) => {
-  const real =
-    await original<typeof import("@openfront/engine/ww1936/endgame/Exile")>();
-  return { ...real, formExile: vi.fn(real.formExile) };
-});
-
+// Lane X's real formExile decides the exile (batch 21: the mock that gave
+// Poland a host is gone; an enemy of the victor on its own land hosts).
 beforeEach(() => usePoliticsContent(endgameFixture()));
-afterEach(() => {
-  usePoliticsContent(null);
-  vi.mocked(formExile).mockClear();
-});
+afterEach(() => usePoliticsContent(null));
 
 async function atWar(): Promise<{ g: Game; ww: WorldWar; eg: WwEndgame }> {
   const runner = await wwRunner({}, [], END_MAP);
@@ -77,23 +67,10 @@ describe("World War 1936 P5: capitulation (spec §5.1)", () => {
     const w = war(g, "DEU", "POL");
     war(g, "GBR", "DEU", { kind: "into", warId: w.id });
     ww.land.setController(R.warsaw, deu, g.ticks());
-    vi.mocked(formExile).mockImplementationOnce((e, loser) => {
-      e.exiles.push({
-        smallID: loser,
-        host: gbr,
-        legitBp: 5000,
-        sinceDay: ww.day(g.ticks()),
-        zeroDays: 0,
-        lastDelta: 0,
-        faction: -1,
-        capital: END.capital.GBR!,
-      });
-      e.rebuildDerived();
-      return true;
-    });
     capitulate(g, ww, player(g, "POL"), g.ticks());
-    expect(formExile).toHaveBeenCalledWith(eg, pl, deu, g.ticks());
+    // Britain, Germany's enemy on its side of the war, hosts it.
     expect(eg.isExile(pl)).toBe(true);
+    expect(eg.exileHost(pl)).toBe(gbr);
     expect(eg.member(w, pl)!.state).toBe("exiled");
     // Its pairs stay: still at war with Germany; the war goes on.
     expect(ww.isAtWar(pl, deu)).toBe(true);
@@ -116,7 +93,7 @@ describe("World War 1936 P5: capitulation (spec §5.1)", () => {
     const w2 = war(g, "SUN", "POL");
     ww.land.setController(R.warsaw, deu, g.ticks());
     capitulate(g, ww, player(g, "POL"), g.ticks());
-    expect(formExile).toHaveBeenCalled();
+    // Nobody fights Germany: no host.
     expect(eg.isExile(pl)).toBe(false);
     expect(ww.isAtWar(pl, deu)).toBe(false);
     expect(ww.isAtWar(pl, sun)).toBe(false);
@@ -159,8 +136,10 @@ describe("World War 1936 P5: capitulation (spec §5.1)", () => {
     const w = war(g, "DEU", "POL");
     war(g, "LTU", "POL", { kind: "into", warId: w.id });
     war(g, "FRA", "DEU", { kind: "into", warId: w.id });
-    ww.land.setController(R.warsaw, deu, g.ticks());
+    // Nobody holds Poland's land, so there is no victor and no host (with
+    // Germany the victor, France — its enemy — would host Poland in exile).
     capitulate(g, ww, player(g, "POL"), g.ticks());
+    expect(eg.isExile(pl)).toBe(false);
     // The war goes on (France): Lithuania, paired with nobody now, has left.
     expect(w.ended).toBeNull();
     expect(eg.member(w, ltu)!.state).toBe("left");
@@ -185,7 +164,8 @@ describe("World War 1936 P5: capitulation (spec §5.1)", () => {
     war(g, "DEU", "LTU");
     ww.land.setController(R.kaunas, deu, g.ticks());
     capitulate(g, ww, player(g, "LTU"), g.ticks());
-    expect(formExile).not.toHaveBeenCalled();
+    // A civil war's party looks for no host (spec §5.1-3).
+    expect(eg.isExile(ltu)).toBe(false);
     // The civil war ended on Poland's side (lane C's endCivilWar hands the
     // land on); Memel did not go to Germany first.
     expect(cw.ended?.winner).toBe(0);

@@ -22,10 +22,7 @@ import {
 import type { Game, Player } from "@openfront/engine/game/Game";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { capitulate } from "@openfront/engine/ww1936/Capitulation";
-import {
-  activateCountry,
-  releasableTags,
-} from "@openfront/engine/ww1936/endgame/Activate";
+import { releasableTags } from "@openfront/engine/ww1936/endgame/Activate";
 import {
   conferenceView,
   regionBase,
@@ -38,30 +35,14 @@ import type {
 } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
-import { vi } from "vitest";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, order, step, stepTo, type WwHuman, wwRunner } from "./util";
 
-// Lane X lists the tags a conference may free; the release test names SVK.
-vi.mock("@openfront/engine/ww1936/endgame/Activate", async (original) => {
-  const real =
-    await original<
-      typeof import("@openfront/engine/ww1936/endgame/Activate")
-    >();
-  return {
-    ...real,
-    releasableTags: vi.fn(real.releasableTags),
-    activateCountry: vi.fn(real.activateCountry),
-  };
-});
-
+// Lane X's real releasableTags and activateCountry (batch 21: the mocks are
+// gone; the end fixture gives SVK its cores in Slovakia and Kosice).
 beforeEach(() => usePoliticsContent(endgameFixture()));
-afterEach(() => {
-  usePoliticsContent(null);
-  vi.mocked(releasableTags).mockReset();
-  vi.mocked(activateCountry).mockClear();
-});
+afterEach(() => usePoliticsContent(null));
 
 const R = END.region;
 const id = (t: CountryTag) => endId(t);
@@ -357,28 +338,17 @@ describe("World War 1936 P5: the peace conference (spec §6)", () => {
     const t = await atWar(["DEU"]);
     const { ww, eg } = t;
     const [deu, svk] = [id("DEU"), id("SVK")];
-    vi.mocked(releasableTags).mockImplementation((_e, stake) =>
-      stake.includes(R.slovakia) ? ["SVK"] : [],
-    );
     expect(eg.countryState(svk)).toBe("dormant");
     const c = beat(t, "CSK", [["DEU", 1000, [R.prague]]]);
+    expect(releasableTags(eg, c.stake)).toContain("SVK");
     submit(t, c, "DEU", [{ kind: "release", tag: "SVK" }]);
     closeRound(t, c);
     submit(t, c, "DEU", null);
     closeRound(t, c);
     expect(c.status).toBe(2);
-    expect(activateCountry).toHaveBeenCalledWith(
-      eg,
-      "SVK",
-      expect.objectContaining({
-        regions: [R.slovakia, R.kosice],
-        overlord: { smallID: deu, level: "puppet" },
-        equipFrom: deu,
-        techFrom: deu,
-        faction: "overlord",
-      }),
-      expect.any(Number),
-    );
+    // Woken as Germany's puppet in its faction (activateCountry's opts).
+    expect(eg.subjectOf(svk)).toMatchObject({ overlord: deu, level: "puppet" });
+    expect(ww.politics.factionIdx(svk)).toBe(ww.politics.factionIdx(deu));
     for (const r of [R.slovakia, R.kosice]) {
       expect(ww.politics.legalOwner[r]).toBe(svk);
       expect(ww.land.controller[r]).toBe(svk);
