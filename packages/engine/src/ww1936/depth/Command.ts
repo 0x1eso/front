@@ -304,10 +304,10 @@ export function issueCommand(
     case "army_priority": {
       const a = land.armies.get(o.army);
       if (a === undefined || a.owner !== id) return "no_army";
-      if (a.priority !== o.value) {
-        a.priority = o.value;
-        land.markArmy(a.id);
-      }
+      // The same priority changes nothing: refused, as every no-op order.
+      if (a.priority === o.value) return "bad_index";
+      a.priority = o.value;
+      land.markArmy(a.id);
       return null;
     }
     default:
