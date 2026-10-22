@@ -404,9 +404,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // foundation T1a — depth state, clock, hooks, retired doctrine techs, the
 // 30-slot division equipment — and content K1-K5 with its Phase B: depth
 // beats, events, decisions and spirits, start doctrines and marshals):
-// same value in three runs.
+// same value in three runs (fdfd53d422c2db36). Re-pinned after batch P6-2
+// (W3 continuous focuses, congress, balance of power, treaty, faction
+// rules and goals, the mechanisms in the depth hash; W2 mines, aces, night
+// bombing and recon, every minefield, recon row and ace hashed; the U
+// screens add no engine state): same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "fdfd53d422c2db36";
+const WW1936_DIGEST = "0763ee638cbeac6a";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
