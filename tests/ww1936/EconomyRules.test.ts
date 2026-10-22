@@ -157,13 +157,14 @@ describe("resources (spec §7)", () => {
   test("lines take their resources in order", () => {
     const art = equipKey("artillery", 1); // 2 steel, 1 tungsten per factory
     const inf = equipKey("infantry_equipment", 1); // 1 steel
-    const avail = [0, 0, 0, 5, 30, 0];
+    // (P6: coal and uranium after P1's six.)
+    const avail = [0, 0, 0, 5, 30, 0, 0, 0];
     const a = allocateResources(avail, [
       { key: art, factories: 10 },
       { key: inf, factories: 20 },
     ]);
     expect(a.fill).toEqual([500, 500]); // tungsten 5/10, then steel 10/20
-    expect(a.used).toEqual([0, 0, 0, 5, 30, 0]);
+    expect(a.used).toEqual([0, 0, 0, 5, 30, 0, 0, 0]);
     // Which resources each line lacks (RESOURCE_IDS indices): artillery
     // gets all 20 steel but half its tungsten; the rifles the 10 steel left.
     expect(a.short).toEqual([[3], [4]]);
@@ -258,10 +259,10 @@ describe("research (spec §9)", () => {
     expect(researchSlotCount(true, 300)).toBe(5);
   });
 
-  test("113 techs; prerequisites exist and come no later", () => {
-    // P1's 46, P2's 10 (P2 spec §4.6), P4's 56 (P4 spec §4.3, §12.3) and
-    // P5's military police (P5 spec §8.5).
-    expect(WW_TECH_IDS.length).toBe(113);
+  test("146 techs; prerequisites exist and come no later", () => {
+    // P1's 46, P2's 10 (P2 spec §4.6), P4's 56 (P4 spec §4.3, §12.3),
+    // P5's military police (P5 spec §8.5) and P6's 33 (P6 spec §1.4).
+    expect(WW_TECH_IDS.length).toBe(146);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {
@@ -271,12 +272,20 @@ describe("research (spec §9)", () => {
   });
 
   test("every generation has its tech", () => {
-    // P1's 23 and P4's 23 (eight plane types, convoys).
-    expect(EQUIP_KEY_COUNT).toBe(46);
+    // P1's 23, P4's 23 (eight plane types, convoys) and P6's 33.
+    expect(EQUIP_KEY_COUNT).toBe(79);
     for (const [type, def] of Object.entries(EQUIPMENT)) {
-      // P4: the convoy's one generation needs no tech.
+      // P4: the convoy's one generation needs no tech; P6: the design
+      // slots and the project-gated weapons neither (plan decision 7).
       expect(def.techs.length).toBe(
-        type === "convoy"
+        [
+          "convoy",
+          "tank_design",
+          "plane_design",
+          "flying_bomb",
+          "ballistic_rocket",
+          "atomic_bomb",
+        ].includes(type)
           ? 0
           : EQUIPMENT_GENS[type as keyof typeof EQUIPMENT_GENS],
       );
@@ -294,7 +303,9 @@ describe("research (spec §9)", () => {
 
   test("stock keys follow EQUIPMENT_TYPES, generation by generation", () => {
     expect(EQUIP_KEYS[0]).toEqual(["infantry_equipment", 1]);
-    expect(EQUIP_KEYS[EQUIP_KEY_COUNT - 1]).toEqual(["convoy", 1]);
+    // (P6's seven types follow P4's convoy.)
+    expect(EQUIP_KEYS[equipKey("convoy", 1) + 1]).toEqual(["tank_design", 1]);
+    expect(EQUIP_KEYS[EQUIP_KEY_COUNT - 1]).toEqual(["atomic_bomb", 1]);
     for (const t of EQUIPMENT_TYPES) {
       for (let g = 1; g <= EQUIPMENT_GENS[t]; g++) {
         expect(EQUIP_KEYS[equipKey(t, g)]).toEqual([t, g]);
@@ -308,9 +319,10 @@ describe("research (spec §9)", () => {
     );
     expect(t.constructionPct).toBe(20);
     expect(t.slotPct).toBe(40);
-    expect(t.recruitablePct).toBe(10);
-    // P2 plan decision 11: mass_1 cuts infantry training a third.
-    expect(t.infTrainCutPct).toBe(33);
+    // P6 plan decision 25: mass_1 is retired and adds nothing (its values
+    // come from the grand doctrines' stat keys now).
+    expect(t.recruitablePct).toBe(0);
+    expect(t.infTrainCutPct).toBe(0);
     expect(t.trainPct).toBe(0);
     expect(openSchool(["tools_1", "mobile_1"])).toBe("mobile");
     expect(openSchool(["tools_1"])).toBeNull();

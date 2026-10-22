@@ -24,6 +24,7 @@ import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import {
   clearLand,
   clearStartSetup,
+  grantDoctrineStats,
   HUMAN,
   placeArmy,
   stepTo,
@@ -67,7 +68,11 @@ async function germanSky(support = false) {
   }
   ww.economy.country(deu)!.stock[equipKey("fighter", 1)] = 200;
   if (support) {
+    // P6 plan decision 25: the doctrine's stat key (battlefield_support_1
+    // is retired and adds nothing).
     ww.economy.country(deu)!.addTech("battlefield_support_1");
+    expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(0);
+    grantDoctrineStats(ww, deu, { supPenaltyPp: 5 });
     expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(5);
   }
   expect(

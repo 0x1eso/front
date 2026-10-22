@@ -4,6 +4,7 @@
 // buildings, the orders' path, the stats caches and the land hash.
 import { PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
+import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   WW_DAY_SPLIT,
@@ -457,9 +458,13 @@ describe("World War 1936 P2: the land war's state", () => {
     l.setMen(r, 10_500);
     l.addEquip(r, art, 24);
     expect(l.statsOf(r)).toEqual(full);
-    // A tech the same day: firepower_1's artillery soft attack.
-    const ce = l.econ.country(byTag(g, "DEU").smallID())!;
-    ce.addTech("firepower_1");
+    // A stats change the same day (P6 plan decision 25: firepower_1 is
+    // retired; the proximity fuze's artillery soft attack, the depth part).
+    const deuId = byTag(g, "DEU").smallID();
+    const ww = g.worldWar()!;
+    ww.depth.country(deuId)!.proj.done |=
+      1 << SPECIAL_PROJECTS.indexOf("sp_proximity_fuze");
+    ww.politics.recomputeStats(deuId);
     expect(l.statsOf(r).soft).toBeGreaterThan(full.soft);
     const tpl = l.templateStatsOf(byTag(g, "DEU").smallID(), 1)!;
     expect(tpl.soft).toBe(l.statsOf(r).soft);

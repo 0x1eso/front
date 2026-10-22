@@ -20,6 +20,7 @@ import type { Army } from "@openfront/engine/ww1936/land/WwLand";
 import {
   byTag,
   clearLand,
+  grantDoctrineStats,
   HUMAN,
   land,
   placeArmy,
@@ -91,9 +92,15 @@ describe("World War 1936 P2: readiness (P2 spec §8.3)", () => {
     expect(a.planBp).toBe(3000);
   });
 
-  test("battleplan_1 lifts the cap to 40%", async () => {
-    const { runner, a, d0, ce } = await frontArmy();
+  test("the battle-plan doctrine's planMaxBp lifts the cap to 40%", async () => {
+    const { runner, g, a, d0, ce } = await frontArmy();
+    // P6 plan decision 25: battleplan_1 is retired and adds nothing; the
+    // doctrine's stat key comes through the depth stats part (lane D fills
+    // GRAND_DOCTRINE_STATS' share of it).
     ce.addTech("battleplan_1");
+    expect(ce.stats.planMaxBp).toBe(0);
+    grantDoctrineStats(g.worldWar()!, ce.smallID, { planMaxBp: 1000 });
+    expect(ce.stats.planMaxBp).toBe(1000);
     finishDay(runner, d0 + 40);
     expect(a.planBp).toBe(4000);
     finishDay(runner, d0 + 45);

@@ -20,7 +20,12 @@ import {
   type WwNavy,
 } from "@openfront/engine/ww1936/navy/WwNavy";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
-import { warAfterPrep, withTestPolitics, wwRunner } from "./util";
+import {
+  grantDoctrineStats,
+  warAfterPrep,
+  withTestPolitics,
+  wwRunner,
+} from "./util";
 
 withTestPolitics();
 
@@ -133,7 +138,8 @@ describe("carriers (spec §9.4, §9.6, §13.4)", () => {
   it("the first carrier strike comes in round 3 (base_strike_2: round 2)", async () => {
     const firstStrike = async (cut: boolean): Promise<number[]> => {
       const { navy, tick } = await seaWar();
-      if (cut) navy.econ.country(GBR)!.addTech("base_strike_2");
+      // P6 plan decision 25: base_strike_2 is retired; its stat key.
+      if (cut) grantDoctrineStats(navy.ww, GBR, { carrierRoundsCut: 1 });
       expect(navy.econ.country(GBR)!.stats.carrierRoundsCut).toBe(cut ? 1 : 0);
       const g = stockedCarrier(navy);
       toSea(navy, g, ZONE.west);
