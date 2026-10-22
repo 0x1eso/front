@@ -75,6 +75,9 @@ describe("World War 1936 P6: railway guns (spec §16.5)", () => {
     ce.stock[GUN] = 3;
     expect(assign(2)).toBeNull();
     expect(a.railGuns).toBe(WW_MAX_RAILGUNS);
+    // The army card reads them (and the priority) from my army's own data.
+    expect(l.armySummary(a).mine?.railGuns).toBe(WW_MAX_RAILGUNS);
+    expect(l.armySummary(a).mine?.priority).toBe(a.priority);
     expect(ce.stock[GUN]).toBe(1);
     expect(assign(1)).toBe("railgun_limit");
     expect(

@@ -270,13 +270,23 @@ export function depthNoticeParams(
   if (typeof params.trait === "string" && ID_LIKE.test(params.trait)) {
     out = { ...out, trait: translateText(traitKey(params.trait)) };
   }
-  // Operatives go by codename number (K5's ww1936.codename.c<n>), aces by
-  // their wing's number (W2: ww1936.ace.callsign {n}).
-  if (typeof params.codename === "number") {
-    out = {
-      ...out,
-      codename: translateText(`ww1936.codename.c${params.codename}`),
-    };
+  // Operatives go by codename (K5's ww1936.codename.c<n>; lane I sends
+  // "c<n>", a number is taken too), aces by their wing's number (W2:
+  // ww1936.ace.callsign {n}).
+  const cn = params.codename;
+  if (typeof cn === "number" || (typeof cn === "string" && /^c\d+$/.test(cn))) {
+    const id = typeof cn === "number" ? `c${cn}` : cn;
+    out = { ...out, codename: translateText(`ww1936.codename.${id}`) };
+  }
+  // Lane M: a static licence names its equipment (design === item, an
+  // EQUIP_KEYS type); a design licence keeps the design's own name.
+  if (
+    typeof params.design === "string" &&
+    typeof params.item === "string" &&
+    params.design === params.item &&
+    ID_LIKE.test(params.item)
+  ) {
+    out = { ...out, design: translateText(`ww1936.equip.${params.item}`) };
   }
   if (typeof params.callsign === "number") {
     out = {
@@ -706,10 +716,9 @@ export class DepthMiscModel {
         false
       );
     });
-    // The W lanes add these two to the army summary; absent: the defaults.
-    const extra = a as unknown as { railGuns?: number; priority?: number };
-    const guns = extra.railGuns ?? 0;
-    const prio = extra.priority ?? 1;
+    // W1's railway guns and lane D's priority, in my army's own data.
+    const guns = a.mine?.railGuns ?? 0;
+    const prio = a.mine?.priority ?? 1;
     const out: ArmyExtraButton[] = [];
     if (raider) {
       out.push({
@@ -726,7 +735,8 @@ export class DepthMiscModel {
       }),
       order:
         guns < WW_MAX_RAILGUNS
-          ? { kind: "railgun_assign", army: armyId, count: guns + 1 }
+          ? // W1 adds `count` guns to the army.
+            { kind: "railgun_assign", army: armyId, count: 1 }
           : { kind: "railgun_return", army: armyId },
     });
     out.push({

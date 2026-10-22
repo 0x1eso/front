@@ -149,6 +149,33 @@ describe("DepthMiscModel", () => {
     expect(free.chips.every((c) => !c.disabled)).toBe(true);
   });
 
+  it("the army card's rail guns and priority come from my army's own data (W1, lane D)", () => {
+    const army = (railGuns: number, priority: number) => ({
+      armies: new Map([[5, { id: 5, owner: 1, mine: { railGuns, priority } }]]),
+      details: new Map([[1, { divisions: [], templates: [] }]]),
+    });
+    const at = (railGuns: number, priority: number) =>
+      model(
+        "DEU",
+        () => {},
+        {},
+        { wwLand: () => army(railGuns, priority) },
+      ).armyButtons(5);
+    const one = at(1, 2);
+    const gun = one.find((b) => b.id === "railgun")!;
+    // W1 adds `count` guns: one more.
+    expect(gun.order).toEqual({ kind: "railgun_assign", army: 5, count: 1 });
+    expect(gun.label).toContain("n=1");
+    const prio = one.find((b) => b.id === "priority")!;
+    expect(prio.label).toBe("[ww1936.raid_ui.priority_high]");
+    expect(prio.order).toEqual({ kind: "army_priority", army: 5, value: 0 });
+    // Both guns: the button gives them back.
+    expect(at(2, 1).find((b) => b.id === "railgun")!.order).toEqual({
+      kind: "railgun_return",
+      army: 5,
+    });
+  });
+
   it("a BoP bar shows its band and spirit", () => {
     const m = model("CHN", (d) =>
       d.apply({ bop: [[0, 700]], fx: [], news: [] }),
@@ -232,6 +259,24 @@ describe("DepthMiscModel", () => {
     expect(p("ww1936_licence_granted", { design: "Cromwell" }).design).toBe(
       "Cromwell",
     );
+    // Lane I sends "c<n>"; lane M's static licence names its equipment.
+    expect(p("ww1936_operative_captured", { codename: "c12" }).codename).toBe(
+      "[ww1936.codename.c12]",
+    );
+    expect(
+      p("ww1936_licence_ended", {
+        design: "medium_tank",
+        item: "medium_tank",
+        gen: 2,
+      }).design,
+    ).toBe("[ww1936.equip.medium_tank]");
+    expect(
+      p("ww1936_licence_ended", {
+        design: "Cromwell",
+        item: "tank_design",
+        gen: 3,
+      }).design,
+    ).toBe("Cromwell");
   });
 
   it("notice params: each id arg of the manifest is translated, other args pass", () => {

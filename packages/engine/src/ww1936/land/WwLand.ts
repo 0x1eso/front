@@ -2233,6 +2233,8 @@ export class WwLand {
             supplyPm: n === 0 ? 0 : Math.floor(supply / n),
             etaTicks: eta,
             paraLastDay: a.paraLastDay,
+            railGuns: a.railGuns,
+            priority: a.priority,
           }
         : null,
     };

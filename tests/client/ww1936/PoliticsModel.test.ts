@@ -706,6 +706,18 @@ describe("PoliticsModel (P3 spec §21)", () => {
     }
   });
 
+  it("an atomic drop's news names the region from its id (P6 lane S)", () => {
+    const { game } = fakePolGame({});
+    const g = game as never;
+    const text = newsText(g, "news_nuke_dropped", {
+      countryTag: "USA",
+      region: 3,
+    });
+    expect(text.startsWith("[ww1936.news.news_nuke_dropped]")).toBe(true);
+    expect(text).not.toContain("region=3");
+    expect(text).toMatch(/region=[^,]+/);
+  });
+
   it("a sunk named ship's news names the ship, its class and the sea (P4 lane N2)", () => {
     const { game } = fakePolGame({});
     const g = game as never;

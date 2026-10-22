@@ -405,6 +405,10 @@ export interface ArmyMineData {
   etaTicks: number;
   /** Day of the last paradrop; -1: never (LandOrderChecks' cooldown). */
   paraLastDay: number;
+  /** P6 (W1, always sent): railway guns with the army. Mine only (the fog). */
+  railGuns?: number;
+  /** P6 (lane D, always sent): replacement priority, REINFORCE_PRIORITIES index. */
+  priority?: number;
 }
 
 export interface BattleSummary {
