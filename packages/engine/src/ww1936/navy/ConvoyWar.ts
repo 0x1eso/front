@@ -22,6 +22,7 @@ import { exploiting } from "../depth/Crypto";
 import { designPlaneP4 } from "../depth/Designs";
 import { minesConvoyLossPm } from "../depth/Mines";
 import { loseConvoys } from "../economy/Buildings";
+import { admiralPct, fleetAdmiralTraits } from "./AdmiralTraits";
 import { takeFromRoutes, USE_VOYAGE } from "./Convoys";
 import { onConvoysLost } from "./EndgameHooks";
 import { applyShipDamage } from "./NavalBattles";
@@ -92,6 +93,11 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       if (l === undefined) raidFleets.set(f.owner, [f]);
       else l.push(f);
     }
+    // P6 (spec §4.2): convoy_master's escort +20%, on its fleet's ships.
+    const esc = raid ? 0 : admiralPct(fleetAdmiralTraits(navy, f), "escortPct");
+    let fdd = 0;
+    let fcl = 0;
+    let fother = 0;
     for (const id of f.ships) {
       const r = navy.ships.rowOf(id);
       if (r < 0) continue;
@@ -101,12 +107,19 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
         if (c === SS) add(sub, f.owner, x.torpedo);
         else add(surf, f.owner, x.light + x.heavy);
       } else if (c === DD) {
-        add(dd, f.owner, x.depth * 2 + x.light);
+        fdd += x.depth * 2 + x.light;
       } else if (c === CL) {
-        add(cl, f.owner, x.depth + x.light);
+        fcl += x.depth + x.light;
       } else {
-        add(other, f.owner, x.light);
+        fother += x.light;
       }
+    }
+    if (!raid) {
+      const k = (v: number) =>
+        esc === 0 ? v : Math.floor((v * (100 + esc)) / 100);
+      if (fdd > 0) add(dd, f.owner, k(fdd));
+      if (fcl > 0) add(cl, f.owner, k(fcl));
+      if (fother > 0) add(other, f.owner, k(fother));
     }
   }
   const air = airOf(navy, sr, idx);
@@ -281,7 +294,10 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   // ASW: the escorts' depth charges on the raiding submarines they spotted.
   for (const { f, side, escort } of asw) {
     if (navy.fleets.get(f.id) !== f) continue;
-    const dmg = aswDamageMilli(escort, navy.spotPm(side, f.id));
+    // P6 (spec §4.2): blockade_runner's raiders take 15% less.
+    const cut = admiralPct(fleetAdmiralTraits(navy, f), "raidLossPct");
+    const raw = aswDamageMilli(escort, navy.spotPm(side, f.id));
+    const dmg = cut === 0 ? raw : Math.floor((raw * (100 + cut)) / 100);
     if (dmg <= 0) continue;
     let by = 0;
     let best = 0;

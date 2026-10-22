@@ -18,6 +18,7 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { exploiting } from "../depth/Crypto";
 import { hasUp } from "../depth/Operatives";
+import { admiralPct, fleetAdmiralTraits } from "./AdmiralTraits";
 import {
   fleetMissionPm,
   noteNewlySpotted,
@@ -83,9 +84,13 @@ export function fleetVisOf(
       surfMax = Math.max(surfMax, v);
     }
   }
+  // P6 (spec §4.2): blockade_runner's fleet is 10% harder to find.
+  const pct = admiralPct(fleetAdmiralTraits(navy, f), "visibilityPct");
+  const k = (v: number) =>
+    pct === 0 ? v : Math.max(1, Math.floor((v * (100 + pct)) / 100));
   if (surfN > 0)
-    return { vis: fleetVis(surfMax, surfN, false), subsOnly: false };
-  return { vis: fleetVis(subMax, subN, true), subsOnly: true };
+    return { vis: k(fleetVis(surfMax, surfN, false)), subsOnly: false };
+  return { vis: k(fleetVis(subMax, subN, true)), subsOnly: true };
 }
 
 /**

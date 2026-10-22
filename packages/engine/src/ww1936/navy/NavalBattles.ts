@@ -43,6 +43,8 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { deckDesignCounts } from "../air/DesignPlanes";
+import { shipDesignOf } from "../depth/Designs";
+import { admiralPct } from "./AdmiralTraits";
 import { deckAttackCenti, deckPlanes, loseStrikePlanes } from "./Carriers";
 import { sendHome } from "./SeaMove";
 import type { AdmiralState, Fleet, NavalBattle, WwNavy } from "./WwNavy";
@@ -510,6 +512,13 @@ function hasTech(navy: WwNavy, owner: number, tech: WwTechId): boolean {
   return navy.econ.country(owner)?.researched.has(tech) ?? false;
 }
 
+/** P6 (plan Step 15): a ship's design hit bonus, % (0: a ship of its static class). */
+function designHitPct(navy: WwNavy, sh: BShip): number {
+  const slot = navy.ships.design[sh.row];
+  if (slot === 0) return 0;
+  return shipDesignOf(navy.ww.depth, sh.owner, slot)?.hitPct ?? 0;
+}
+
 /** The side's ships still in the battle (alive, not got away), side order. */
 function sideShips(navy: WwNavy, b: NavalBattle, s: SideIdx): BShip[] {
   const t = navy.ships;
@@ -615,7 +624,9 @@ function formation(navy: WwNavy, a: SideCtx, d: SideCtx): void {
       them.count,
       me.maneuver,
       st.positioningPct,
-      (me.traits & TACTICIAN) !== 0 ? TACTICIAN_POS_PM : 0,
+      ((me.traits & TACTICIAN) !== 0 ? TACTICIAN_POS_PM : 0) +
+        // P6 (spec §4.2): fleet_tactician's positioning, % as ‰ × 10.
+        admiralPct(me.traits, "positioningPct") * 10,
     );
     me.posDmg = posDamagePm(me.pos);
     me.screen = screenPm(
@@ -784,7 +795,21 @@ function fire(
       ];
       memo.hitPct.set(sh.owner, pct);
     }
-    const [radar, guns] = pct;
+    // P6 (plan Step 15, spec §5.3): the ship design's hit % on every
+    // weapon of its own (not its deck's planes).
+    const dHit = designHitPct(navy, sh);
+    const radar = pct[0];
+    const guns = pct[1] + dHit;
+    const radarShip = radar + dHit;
+    // P6 (spec §4.2): night_fighter's torpedoes.
+    const torpPct = admiralPct(
+      admiralOf(navy, sh.fleet)?.traits ?? 0,
+      "torpedoPct",
+    );
+    const torpedo =
+      torpPct === 0
+        ? st.torpedo
+        : Math.floor((st.torpedo * (100 + torpPct)) / 100);
     const shoot = (
       attack: number,
       hitPm: number,
@@ -833,7 +858,15 @@ function fire(
       }
       if (
         round % 2 === 0 &&
-        shoot(st.torpedo, WW_HIT_TORPEDO_PM, radar, null, subTorp, false, false)
+        shoot(
+          torpedo,
+          WW_HIT_TORPEDO_PM,
+          radarShip,
+          null,
+          subTorp,
+          false,
+          false,
+        )
       ) {
         subsFired.add(sh.id);
       }
@@ -841,9 +874,17 @@ function fire(
     }
     shoot(st.light, WW_HIT_LIGHT_PM, guns, st.lightPierce, light, false, false);
     shoot(st.heavy, WW_HIT_HEAVY_PM, guns, st.heavyPierce, heavy, false, false);
-    shoot(st.torpedo, WW_HIT_TORPEDO_PM, radar, null, light, false, false);
+    shoot(torpedo, WW_HIT_TORPEDO_PM, radarShip, null, light, false, false);
     if (canDepth) {
-      shoot(st.depth, WW_HIT_DEPTH_PM, radar, null, DEPTH_SHARES, true, false);
+      shoot(
+        st.depth,
+        WW_HIT_DEPTH_PM,
+        radarShip,
+        null,
+        DEPTH_SHARES,
+        true,
+        false,
+      );
     }
     if (sh.cls === "cv") {
       const every = Math.max(
