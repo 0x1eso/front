@@ -3541,6 +3541,9 @@
     "your_team": "Your team won!"
   },
   "ww1936": {
+    "ace": {
+      "callsign": "Ace of Fighter Wing {n}"
+    },
     "admiral": {
       "deu_carls": "Rolf Carls",
       "deu_ciliax": "Otto Ciliax",
@@ -3618,6 +3621,34 @@
       "political": "Political seat",
       "research": "Research seat",
       "staff": "General staff seat"
+    },
+    "agency_up": {
+      "ag_air_dept": "Air Intelligence Branch",
+      "ag_army_dept": "Army Intelligence Branch",
+      "ag_cipher": "Code Security Office",
+      "ag_civil_dept": "Political Intelligence Branch",
+      "ag_counter": "Counter-Espionage Office",
+      "ag_crypto_1": "Cipher Section",
+      "ag_crypto_2": "Machine Room",
+      "ag_navy_dept": "Naval Intelligence Branch",
+      "ag_ops_1": "Field Agent School",
+      "ag_ops_2": "Overseas Contacts",
+      "ag_ops_3": "Covert Stations",
+      "ag_special_ops": "Special Operations Section"
+    },
+    "agency_up_desc": {
+      "ag_air_dept": "Air intelligence +10 points.",
+      "ag_army_dept": "Army intelligence on every country +10 points; army infiltration takes 25% less time.",
+      "ag_cipher": "Cipher strength +50.",
+      "ag_civil_dept": "Civil intelligence +10 points; coup and collaboration operations +5 points success.",
+      "ag_counter": "Enemy operatives on our soil are caught twice as often; enemy networks grow 30% slower.",
+      "ag_crypto_1": "Decryption +20.",
+      "ag_crypto_2": "Decryption +30. Needs the Cipher Section and the first computing technology.",
+      "ag_navy_dept": "Naval intelligence +10 points; our fleets' detection +5%.",
+      "ag_ops_1": "One more operative slot.",
+      "ag_ops_2": "One more operative slot. Needs the Field Agent School.",
+      "ag_ops_3": "One more operative slot. Needs Overseas Contacts.",
+      "ag_special_ops": "Operations take 20% less time; new operatives start one skill higher. Needs the Field Agent School."
     },
     "aid": {
       "air_volunteers": "Volunteer air group",
@@ -3721,9 +3752,88 @@
       "recon": "Reconnaissance",
       "strategic_bombing": "Strategic bombing"
     },
+    "army_spirit": {
+      "as_aggressive_fleet": "Offensive Handling",
+      "as_air_college": "Air War College",
+      "as_army_cooperation": "Army Cooperation",
+      "as_central_command": "Top-Down Command",
+      "as_combined_arms": "All-Arms Cooperation",
+      "as_conscript": "Mass Call-Up",
+      "as_damage_control": "Damage Control Parties",
+      "as_elite_units": "Picked Formations",
+      "as_escort_first": "Escort First",
+      "as_fleet_drill": "Fleet Exercises",
+      "as_fleet_preservation": "Preserve the Fleet",
+      "as_ground_crew": "Ground Crew Drill",
+      "as_independent_air": "Separate Air Service",
+      "as_joint_ops": "Joint Operations",
+      "as_mass_formation": "Massed Formations",
+      "as_mission_command": "Orders by Intent",
+      "as_night_training": "Night Action Drill",
+      "as_pilot_school": "Flight Schools",
+      "as_political_officers": "Commissar System",
+      "as_professional": "Career Officers",
+      "as_reserve": "Reserve System"
+    },
+    "army_spirit_cat": {
+      "air_command": "Air Command",
+      "air_personnel": "Air Personnel",
+      "land_command": "Command",
+      "land_formation": "Formations",
+      "land_recruit": "Recruitment and Training",
+      "naval_ops": "Fleet Handling",
+      "naval_training": "Naval Training"
+    },
+    "army_spirit_desc": {
+      "as_aggressive_fleet": "Naval attack +5%; fleets turn for port 10 points later.",
+      "as_air_college": "Air experience +0.05 a day.",
+      "as_army_cooperation": "Close air support +10%.",
+      "as_central_command": "Planning maximum +5 points, defence +3%.",
+      "as_combined_arms": "Support company effects +25%.",
+      "as_conscript": "Training −10%; new divisions start with −10 experience.",
+      "as_damage_control": "Damage taken −5%, repairs +15%.",
+      "as_elite_units": "Division experience gain +25%.",
+      "as_escort_first": "Bomber losses in the same air zone −10%.",
+      "as_fleet_drill": "Naval experience +0.05 a day, ship organisation +5.",
+      "as_fleet_preservation": "Fleets withdraw 10 points earlier; damage from sinkings −10%.",
+      "as_ground_crew": "Sortie efficiency +5%.",
+      "as_independent_air": "Strategic bombing +10%.",
+      "as_joint_ops": "Invasion preparation −15%.",
+      "as_mass_formation": "Over-width penalty halved.",
+      "as_mission_command": "Planning speed +10%, breakthrough +5%.",
+      "as_night_training": "Torpedoes +10%.",
+      "as_pilot_school": "Air combat losses −10%.",
+      "as_political_officers": "Organisation +5; divisions hold on longer before they retreat.",
+      "as_professional": "New divisions start with +10 experience; army experience +0.05 a day.",
+      "as_reserve": "Reinforcement speed +25%."
+    },
     "band": {
       "prep": "Preparation {time}",
       "wars": "{n, plural, =0 {At peace} one {# war} other {# wars}}"
+    },
+    "base": {
+      "plane": {
+        "jet_1": "Jet Airframe",
+        "large_1": "Large Airframe I",
+        "large_2": "Large Airframe II",
+        "large_3": "Large Airframe III",
+        "medium_1": "Medium Airframe I",
+        "medium_2": "Medium Airframe II",
+        "medium_3": "Medium Airframe III",
+        "small_1": "Small Airframe I",
+        "small_2": "Small Airframe II",
+        "small_3": "Small Airframe III"
+      },
+      "tank": {
+        "heavy_1": "Heavy Chassis I",
+        "heavy_2": "Heavy Chassis II",
+        "heavy_3": "Heavy Chassis III",
+        "light_1": "Light Chassis I",
+        "light_2": "Light Chassis II",
+        "medium_1": "Medium Chassis I",
+        "medium_2": "Medium Chassis II",
+        "medium_3": "Medium Chassis III"
+      }
     },
     "battalion": {
       "anti_air": "Anti-Air",
@@ -3794,6 +3904,68 @@
       "cf_research": "Laboratories and universities get more money and staff.",
       "cf_stability": "Relief, order and conciliation steady the country week by week.",
       "cf_war_effort": "Campaigns, rallies and newspapers prepare the public for war."
+    },
+    "codename": {
+      "c0": "Kestrel",
+      "c1": "Heron",
+      "c10": "Plover",
+      "c11": "Egret",
+      "c12": "Magpie",
+      "c13": "Thrush",
+      "c14": "Kite",
+      "c15": "Osprey",
+      "c16": "Petrel",
+      "c17": "Starling",
+      "c18": "Curlew",
+      "c19": "Grebe",
+      "c2": "Swift",
+      "c20": "Birch",
+      "c21": "Pine",
+      "c22": "Oak",
+      "c23": "Willow",
+      "c24": "Maple",
+      "c25": "Larch",
+      "c26": "Elm",
+      "c27": "Ash",
+      "c28": "Cedar",
+      "c29": "Poplar",
+      "c3": "Lark",
+      "c30": "Linden",
+      "c31": "Alder",
+      "c32": "Hazel",
+      "c33": "Juniper",
+      "c34": "Rowan",
+      "c35": "Spruce",
+      "c36": "Yew",
+      "c37": "Beech",
+      "c38": "Hornbeam",
+      "c39": "Chestnut",
+      "c4": "Crane",
+      "c40": "North Wind",
+      "c41": "Drizzle",
+      "c42": "Hail",
+      "c43": "Frost",
+      "c44": "Gale",
+      "c45": "Mist",
+      "c46": "Thunder",
+      "c47": "Squall",
+      "c48": "Dew",
+      "c49": "Sleet",
+      "c5": "Falcon",
+      "c50": "Monsoon",
+      "c51": "Breeze",
+      "c52": "Haze",
+      "c53": "Snowdrift",
+      "c54": "Rainbow",
+      "c55": "Cloudburst",
+      "c56": "Whirlwind",
+      "c57": "Rime",
+      "c58": "Overcast",
+      "c59": "Downpour",
+      "c6": "Owl",
+      "c7": "Raven",
+      "c8": "Wren",
+      "c9": "Finch"
     },
     "cond": {
       "all": "All of these:",
@@ -3990,11 +4162,24 @@
       "fascist": "National {country}",
       "neutral": "Provisional {country}"
     },
+    "dam": {
+      "dam_dnipro": "Dnipro Hydroelectric Station",
+      "dam_eder": "Eder Dam",
+      "dam_galloway": "Galloway Hydro Scheme",
+      "dam_grand_coulee": "Grand Coulee Dam",
+      "dam_hoover": "Hoover Dam",
+      "dam_kembs": "Kembs Dam",
+      "dam_mohne": "Möhne Dam",
+      "dam_norris": "Norris Dam",
+      "dam_vemork": "Vemork Hydro and Heavy-Water Plant"
+    },
     "date": "{day} {month} {year}",
     "decision": {
       "bgr_demand_dobruja": "Reclaim Southern Dobruja",
       "ccp_new_base_area": "Found a Base Area",
+      "chn_central_officers": "Dispatch Central Army Officers",
       "chn_integrate_warlord": "Integrate a Regional Clique",
+      "chn_regional_appeasement": "Conciliate the Provinces",
       "chn_request_soviet_aid": "Ask Moscow for Aid",
       "deu_demand_austria": "Demand Austria",
       "deu_demand_bohemia": "Demand Bohemia and Moravia",
@@ -4005,6 +4190,8 @@
       "deu_sign_tripartite": "Sign the Tripartite Pact",
       "deu_soviet_pact_proposal": "Propose a Pact to Moscow",
       "fra_dissolve_vichy": "Dissolve the Vichy Regime",
+      "fra_rearmament_act": "Rearmament Act",
+      "fra_social_reform": "Social Reform Programme",
       "gbr_destroyers_for_bases": "Bases for Destroyers",
       "gbr_free_french_recognition": "Recognise Free France",
       "gbr_guarantee_poland": "Guarantee Poland",
@@ -4038,6 +4225,7 @@
       "gen_release_subject": "Release a Subject",
       "gen_request_autonomy": "Request Greater Autonomy",
       "gen_restore_country": "Restore a Fallen Country",
+      "gen_staff_college": "Expand the Staff College",
       "gen_suppress_opposition": "Curb the Opposition",
       "gen_suspend_elections": "Suspend Elections",
       "gen_tech_exchange": "Technical Exchange",
@@ -4046,7 +4234,9 @@
       "hun_request_arbitration": "Ask for Arbitration",
       "hun_request_transylvania": "Claim Transylvania",
       "ita_send_ctv": "Send the Volunteer Corps",
+      "jpn_army_budget": "Army Budget Priority",
       "jpn_demand_indochina_access": "Demand Access to Indochina",
+      "jpn_navy_budget": "Navy Budget Priority",
       "lat_join_hemisphere": "Join the Hemisphere Alliance",
       "mex_volunteer_squadron": "Send Fighter Squadron 201",
       "pol_uprising": "Rising in Warsaw",
@@ -4060,6 +4250,9 @@
       "sun_offer_finnish_peace": "Offer Peace to Finland",
       "sun_propose_pact": "Propose a Pact to Berlin",
       "tur_hatay_question": "Raise the Hatay Question",
+      "usa_defense_bill": "National Defense Appropriations",
+      "usa_fireside_chat": "Fireside Chat",
+      "usa_lobby_congress": "Lobby Congress",
       "usa_oil_embargo": "Oil Embargo on Japan",
       "usa_recognize_exiles": "Recognise the Governments in Exile",
       "usa_volunteer_air_group": "Volunteer Air Group for China"
@@ -4067,7 +4260,9 @@
     "decision_desc": {
       "bgr_demand_dobruja": "Ask Romania to return Southern Dobruja, lost to it in 1913.",
       "ccp_new_base_area": "Send work teams into Japanese-occupied areas to found a new base and raise local resistance.",
+      "chn_central_officers": "Officers trained by the central government take over provincial units. The balance moves 8 toward the centre.",
       "chn_integrate_warlord": "Ask a clique marked for integration to hand its army and administration to the centre. Possible only with good relations or at war.",
+      "chn_regional_appeasement": "Titles and subsidies keep the provincial commanders quiet. The balance moves 8 toward the regions, stability +3%.",
       "chn_request_soviet_aid": "Ask the Soviet Union for lend-lease, after first winning Moscow's goodwill.",
       "deu_demand_austria": "Order Vienna to hand power to the Austrian National Socialists and accept union with the Reich.",
       "deu_demand_bohemia": "Summon the Czech president to Berlin and demand that his state place itself under German protection.",
@@ -4078,6 +4273,8 @@
       "deu_sign_tripartite": "Bind Germany, Italy and Japan to aid one another against any power that enters the war against them.",
       "deu_soviet_pact_proposal": "Send the foreign minister to Moscow to offer a non-aggression pact and a secret division of eastern Europe.",
       "fra_dissolve_vichy": "With Paris in French hands again, the Provisional Government declares the acts of the Vichy regime void and takes over the territories it still holds.",
+      "fra_rearmament_act": "A large rearmament programme rallies the centre and the right. The balance moves 15 to the right.",
+      "fra_social_reform": "Paid holidays and the forty-hour week widen the Popular Front's support. The balance moves 10 to the left.",
       "gbr_destroyers_for_bases": "Offer the United States long leases on Atlantic bases in return for fifty old destroyers.",
       "gbr_free_french_recognition": "Recognise the French leaders who fight on from London as the voice of France at war.",
       "gbr_guarantee_poland": "Pledge to defend Poland if its independence is threatened, and ask France to join.",
@@ -4111,6 +4308,7 @@
       "gen_release_subject": "End our protection over a subject; it stays in our faction.",
       "gen_request_autonomy": "Our autonomy has reached its limit: ask the overlord to raise our status, or to let us go if we are already a dominion.",
       "gen_restore_country": "Where we have freed the core lands of a country that no longer exists, recreate its state and invite it to our faction.",
+      "gen_staff_college": "More officers pass through the staff course. Command power gain +25% for 180 days.",
       "gen_suppress_opposition": "The largest opposition's papers and meetings are restricted; its support falls, but resentment grows.",
       "gen_suspend_elections": "General elections wait until the war is over, and the sitting parliament carries on.",
       "gen_tech_exchange": "Engineers sent to our faction's leader bring home a technology we still lack.",
@@ -4119,7 +4317,9 @@
       "hun_request_arbitration": "Ask Germany and Italy to arbitrate Hungary's claim to southern Slovakia.",
       "hun_request_transylvania": "Ask Berlin to settle Hungary's claim to northern Transylvania by arbitration.",
       "ita_send_ctv": "Four divisions of the Corpo Truppe Volontarie sail for Spain to fight beside Franco's Nationalists.",
+      "jpn_army_budget": "The army's share of the budget grows. The balance moves 10 toward the army.",
       "jpn_demand_indochina_access": "Demand that the authorities of French Indochina let Japanese troops in — first the north, then the south.",
+      "jpn_navy_budget": "The navy's share of the budget grows. The balance moves 10 toward the navy.",
       "lat_join_hemisphere": "Ask to join the alliance the United States leads, or the Allies if Washington leads none.",
       "mex_volunteer_squadron": "The squadron, trained on American fighters, joins the air war in the Pacific beside American units.",
       "pol_uprising": "Order the underground army to rise in the capital while the occupier's hold is weak.",
@@ -4133,6 +4333,9 @@
       "sun_offer_finnish_peace": "Offer to end the war in return for the Karelian Isthmus, the Ladoga shore and land in the north.",
       "sun_propose_pact": "Offer Germany a non-aggression pact before the Western powers can draw us into their war.",
       "tur_hatay_question": "Press France to let the Sanjak of Alexandretta join Turkey.",
+      "usa_defense_bill": "Congress funds new arms plants at a political price. Two military factories, support of Congress −5 points.",
+      "usa_fireside_chat": "The President speaks to the nation over the radio. Support of Congress +12 points, war support +3%.",
+      "usa_lobby_congress": "The administration wins over committee chairs and party whips one by one. Support of Congress +8 points.",
       "usa_oil_embargo": "Japanese assets in the United States are frozen and oil exports stop. Japan loses most of its fuel imports.",
       "usa_recognize_exiles": "Washington formally recognises the allied governments in exile and receives their envoys, backing their claim to speak for their peoples.",
       "usa_volunteer_air_group": "American pilots leave the services and sign on to fly fighters for China, in aircraft bought on American credit."
@@ -4177,6 +4380,49 @@
       "design_ship": "Design a ship",
       "design_tank": "Design a tank",
       "designs": "Designs"
+    },
+    "design_name": {
+      "gun_auto20": "Autocannon",
+      "gun_flame": "Flame",
+      "gun_gun_cs": "Support Gun",
+      "gun_gun_heavy": "Heavy Gun",
+      "gun_gun_hv": "Long Gun",
+      "gun_gun_small": "Light Gun",
+      "gun_mg": "MG",
+      "plane_bomber": "Tactical Bomber",
+      "plane_cas": "Close Support",
+      "plane_cv_cas": "Carrier Dive Bomber",
+      "plane_cv_fighter": "Carrier Fighter",
+      "plane_cv_naval_bomber": "Carrier Torpedo Bomber",
+      "plane_fighter": "Fighter",
+      "plane_heavy_fighter": "Heavy Fighter",
+      "plane_naval_bomber": "Naval Bomber",
+      "plane_strat_bomber": "Strategic Bomber",
+      "plane_transport_plane": "Transport",
+      "role_sp_anti_air": "Self-Propelled Anti-Air",
+      "role_sp_artillery": "Self-Propelled Gun",
+      "role_tank_destroyer": "Tank Destroyer",
+      "ship_armor_heavy": "Heavy Armour",
+      "ship_engine_fast": "Fast",
+      "ship_hangar_large": "Large Hangar",
+      "ship_mine_layer": "Minelayer",
+      "ship_minesweep": "Minesweeper",
+      "ship_radar_adv": "Radar",
+      "ship_radar_microwave": "Microwave Radar",
+      "ship_radar_surface": "Radar",
+      "ship_sec_dp": "Dual-Purpose",
+      "ship_shbb_hull": "Super-Heavy",
+      "ship_snorkel": "Snorkel",
+      "ship_standard": "Standard",
+      "ship_torp_heavy": "Torpedo",
+      "tank_heavy_1": "Heavy Tank I",
+      "tank_heavy_2": "Heavy Tank II",
+      "tank_heavy_3": "Heavy Tank III",
+      "tank_light_1": "Light Tank I",
+      "tank_light_2": "Light Tank II",
+      "tank_medium_1": "Medium Tank I",
+      "tank_medium_2": "Medium Tank II",
+      "tank_medium_3": "Medium Tank III"
     },
     "diplo": {
       "act": {
@@ -4740,6 +4986,7 @@
       "pol_pyry_meeting": "In the Kabaty forest near Pyry, south of Warsaw, the Cipher Bureau receives British and French codebreakers. For years Polish mathematicians have been reading messages sent with the German cipher machine. Now they can hand their methods and replica machines to the allies who have promised to defend Poland.",
       "pol_warsaw_uprising": "Soviet tanks are reported on the eastern approaches to Warsaw. The commander of the Home Army in the city asks our authorisation to rise against the German garrison and free the capital before the Red Army arrives.",
       "potsdam_conference": "At Cecilienhof, outside ruined Berlin, the victorious powers fix Germany's eastern border on the Oder and the Neisse and divide East Prussia. Before they part, they will call on Japan to surrender.",
+      "quebec_agreement": "Meeting in Quebec, the British and American leaders agree to pool their atomic research. British scientists join the American project; neither country will use the weapon against the other, nor against a third country without the other's consent.",
       "rou_antonescu": "Blamed for the summer's losses of territory, King Carol II has abdicated in favour of his son Michael. The general he named prime minister now rules with full powers as Conducător of the state, backed by the Iron Guard. Parliament stays dissolved.",
       "rou_august_coup": "Soviet armies have broken through in Moldavia. The young King and the opposition parties are ready to arrest the head of government at the palace, announce an armistice with the Allies on the radio and turn the army against Germany.",
       "rou_bessarabia_ultimatum": "Moscow demands Bessarabia and northern Bukovina, with twenty-four hours to answer and four days to evacuate. Berlin advises Bucharest to give way, and no ally is ready to help. If we refuse, Soviet troops will cross the Dniester.",
@@ -4777,6 +5024,7 @@
       "tehran_conference": "For the first time the leaders of the Soviet Union, the United States and the United Kingdom sit at one table, at the Soviet embassy in Tehran. They agree that a second front will open in France in the spring of 1944.",
       "tha_border_war": "With France defeated, crowds in Bangkok demand the return of the lands west of the Mekong that Siam ceded to French Indochina in 1904 and 1907. Border clashes have already begun, and the government must choose between war and patience.",
       "tha_tokyo_peace": "Japan has offered to mediate the border war with Siam and expects an answer. Its terms would cede the lands west of the Mekong and around Battambang to Siam. Refusing would mean fighting on alone.",
+      "treaty_escalation": "A power outside the 1936 London naval treaty is building battleships beyond its limits. The treaty members agree to invoke the escalator clause: the displacement limit rises and heavier guns are allowed again.",
       "tur_aid_request": "Under the treaty of mutual assistance Ankara asks for aircraft, rifles and credits to modernise its army. Turkey guards the Straits and the road to the Middle East. Yet every aircraft sent to Anatolia is one fewer for our own squadrons.",
       "tur_ataturk_dies": "Mustafa Kemal Atatürk, founder of the Republic, has died in Istanbul. The Grand National Assembly turns to İsmet İnönü, his long-serving prime minister and comrade from the War of Independence. The country goes into deep mourning.",
       "tur_hatay_state": "The assembly of the sanjak of Alexandretta has met for the first time and proclaimed the State of Hatay. French and Turkish troops supervise the territory together. In Ankara the question is whether to press for union at once or to let the new state settle first.",
@@ -4795,6 +5043,7 @@
       "usa_recession_1937": "Share prices have plunged and factory output is falling fast after Washington cut spending to balance the budget. Advisers urge the President to open the public purse again; the Treasury warns that the deficits will never end.",
       "usa_roosevelt_dies": "Franklin D. Roosevelt has died at Warm Springs, Georgia, before the war's end. Vice President Harry S. Truman, little known abroad and barely briefed on the war, takes the oath of office.",
       "usa_united_nations": "Representatives of the nations at war with the Axis gather in Washington to sign a joint declaration: each pledges its full resources to the common struggle and promises not to make a separate peace. It is the first document to use the name 'United Nations'.",
+      "usa_uranium_committee": "A letter warning that uranium could yield a bomb of enormous power has reached the President. He has asked a small committee of government scientists and officers of the army and navy to decide whether the research deserves federal money.",
       "vic_dakar": "A British and Free French squadron appears off Dakar and calls on the colony to join General de Gaulle. The battleship in the harbour and the coastal batteries stand ready, and the governor-general must choose between the guns and the envoys.",
       "vic_fleet_ultimatum": "The British admiral gives our squadron a few hours: sail to a British port or to the West Indies under guard, or be sunk where it lies. Yet the armistice forbids us to hand over a single ship.",
       "vic_full_powers": "Meeting in the casino theatre at Vichy, deputies and senators vote 569 to 80 to grant full powers to write a new constitution. The next day the President of the Council becomes Head of the French State, and the Third Republic is over.",
@@ -5354,6 +5603,10 @@
       "potsdam_conference": {
         "a": "Settle the peace in Europe"
       },
+      "quebec_agreement": {
+        "a": "Sign the agreement",
+        "b": "Keep our research to ourselves"
+      },
       "rou_antonescu": {
         "a": "The general takes power"
       },
@@ -5482,6 +5735,10 @@
         "a": "Accept Japanese mediation",
         "b": "Refuse mediation"
       },
+      "treaty_escalation": {
+        "a": "Raise the limit",
+        "b": "Keep the old limit and save the money"
+      },
       "tur_aid_request": {
         "a": "Deliver the arms",
         "b": "We need them ourselves"
@@ -5554,6 +5811,10 @@
       "usa_united_nations": {
         "a": "Sign the declaration",
         "b": "Not yet"
+      },
+      "usa_uranium_committee": {
+        "a": "Fund the uranium research",
+        "b": "Leave it to the universities"
       },
       "vic_dakar": {
         "a": "Defend Dakar",
@@ -5766,6 +6027,7 @@
       "pol_pyry_meeting": "The Meeting at Pyry",
       "pol_warsaw_uprising": "Warsaw Rises",
       "potsdam_conference": "The Potsdam Conference",
+      "quebec_agreement": "The Quebec Agreement",
       "rou_antonescu": "The King Abdicates",
       "rou_august_coup": "The King's Coup",
       "rou_bessarabia_ultimatum": "The Bessarabian Ultimatum",
@@ -5803,6 +6065,7 @@
       "tehran_conference": "The Tehran Conference",
       "tha_border_war": "The Lost Provinces",
       "tha_tokyo_peace": "The Tokyo Peace",
+      "treaty_escalation": "The Treaty Limit Is Raised",
       "tur_aid_request": "Turkey Invokes the Treaty",
       "tur_ataturk_dies": "The Death of Atatürk",
       "tur_hatay_state": "The State of Hatay",
@@ -5821,6 +6084,7 @@
       "usa_recession_1937": "The Recession of 1937",
       "usa_roosevelt_dies": "The President Is Dead",
       "usa_united_nations": "The Declaration by United Nations",
+      "usa_uranium_committee": "The Advisory Committee on Uranium",
       "vic_dakar": "The Dakar Expedition",
       "vic_fleet_ultimatum": "A British Ultimatum",
       "vic_full_powers": "Full Powers",
@@ -5877,10 +6141,36 @@
       "regular": "Regular",
       "veteran": "Veteran"
     },
+    "facility": {
+      "facility_nuclear": "Nuclear Research Institute",
+      "facility_rocket": "Rocket Test Range",
+      "facility_science": "Research Laboratory Complex"
+    },
+    "facility_desc": {
+      "facility_nuclear": "Runs the atomic bomb project and builds the bombs. Needs the nuclear physics technology and a core region with infrastructure 3 or more.",
+      "facility_rocket": "Runs the flying bomb and ballistic rocket projects. Needs the first rocketry technology and a core region.",
+      "facility_science": "Runs the jet engine, microwave radar and proximity fuze projects. Needs the first electronics technology and a core region."
+    },
     "faction": {
       "allies": "Allies",
       "axis": "Axis",
       "comintern": "Comintern"
+    },
+    "faction_goal": {
+      "fg_europe_vp": "Heart of Europe",
+      "fg_industry": "Workshop of the Alliance",
+      "fg_liberation": "Liberation",
+      "fg_members": "Broad Alliance",
+      "fg_research": "Alliance of Science",
+      "fg_sea_lanes": "Command of the Sea"
+    },
+    "faction_goal_desc": {
+      "fg_europe_vp": "Control 40% of Europe's victory points. Reward: stability +5% for a year.",
+      "fg_industry": "The members' military factories add up to 400. Reward: factory output +5% for a year.",
+      "fg_liberation": "Retake the capital of an occupied member. Reward: war support +10%.",
+      "fg_members": "Six or more members. Reward: political power +50.",
+      "fg_research": "The members' technologies add up to 50 per member. Reward: research +5% for a year.",
+      "fg_sea_lanes": "Naval supremacy of 60% or more in 20 sea regions. Reward: convoy losses −10% for a year."
     },
     "faction_name": {
       "auto": "{country} faction",
@@ -5890,6 +6180,16 @@
       "little_entente": "Little Entente",
       "nordic_defence": "Nordic Defence Union",
       "pan_american": "Pan-American Defence"
+    },
+    "faction_rule": {
+      "fr_ideology_lock": "Ideological Bar",
+      "fr_shared_intel": "Intelligence Sharing",
+      "fr_shared_research": "Joint Research"
+    },
+    "faction_rule_desc": {
+      "fr_ideology_lock": "Countries whose ruling ideology differs from the leader's cannot join or be invited.",
+      "fr_shared_intel": "Members share half of their intelligence networks and the ciphers they have broken.",
+      "fr_shared_research": "A member researching a technology gets +10% for each other member that has it, up to +30%."
     },
     "fleet": {
       "arg_sea_fleet": "Sea Fleet",
@@ -5953,6 +6253,24 @@
       "repairing": "Repairing",
       "returning": "Returning",
       "sortie": "Sortie"
+    },
+    "fm_trait": {
+      "fm_defensive": "Holding Marshal",
+      "fm_fast_planner": "Quick Planner",
+      "fm_inspiring": "Rallying Presence",
+      "fm_logistics": "Supply Marshal",
+      "fm_offensive": "Attacking Marshal",
+      "fm_strategist": "Grand Strategist",
+      "fm_thorough": "Careful Planner"
+    },
+    "fm_trait_desc": {
+      "fm_defensive": "Army group: defence +5%, entrenchment speed +25%.",
+      "fm_fast_planner": "Army group: planning speed +20%.",
+      "fm_inspiring": "Army group: organisation recovery +10%, organisation +3.",
+      "fm_logistics": "Army group: supply use −10%.",
+      "fm_offensive": "Army group: attack +5%, planning speed +10%.",
+      "fm_strategist": "Army group: attack and defence +3%; it can hold one more army (6).",
+      "fm_thorough": "Army group: planning maximum +10 points."
     },
     "focus": {
       "alb_reforms": "Kingdom Reforms",
@@ -7347,6 +7665,30 @@
       "war_goal": "War goal on {on}: {type}{group, select, none {} other { ({group})}}",
       "war_support": "War support {pct, number, ::sign-always}%p"
     },
+    "gd": {
+      "gd_base_strike": "Strikes on Fleet Bases",
+      "gd_battlefield_support": "Air Support of the Army",
+      "gd_battleplan": "Methodical Battle",
+      "gd_firepower": "Fire Superiority",
+      "gd_fleet_in_being": "Main Fleet Engagement",
+      "gd_mass": "Massed Infantry Tactics",
+      "gd_mobile": "War of Movement",
+      "gd_operational_integrity": "Integrated Air Operations",
+      "gd_strategic_destruction": "Strategic Air Offensive",
+      "gd_trade_interdiction": "Commerce Raiding"
+    },
+    "gd_desc": {
+      "gd_base_strike": "Base: carrier attack +20%, deck size +10%. Complete: naval and carrier torpedo bombers +15% naval attack, carriers strike every 2 rounds instead of 3.",
+      "gd_battlefield_support": "Base: close air support +15%, the air penalty we inflict +5 points. Complete: close air support +15% more, airborne preparation −50%.",
+      "gd_battleplan": "Base: defence +10%, planning maximum +10 points. Complete: defence +10% more, planning speed +50%, entrenchment maximum +2.",
+      "gd_firepower": "Base: artillery, mechanised artillery, support artillery and self-propelled guns +20% soft attack. Complete: every attack +10%.",
+      "gd_fleet_in_being": "Base: capital ships +10% attack, positioning +5%. Complete: screening +15%, battleships and battlecruisers +10% HP.",
+      "gd_mass": "Base: recruitable population +10%, infantry battalions train 33% faster. Complete: attack and defence +5%, infantry battalions +10 organisation.",
+      "gd_mobile": "Base: all divisions move 10% faster. Complete (track levels 6+): divisions with tank or motorised battalions get +20% breakthrough and +5 organisation.",
+      "gd_operational_integrity": "Base: fighter agility +10%, air detection +10%. Complete: air combat losses −15%, naval attack +10%.",
+      "gd_strategic_destruction": "Base: strategic bombing +15%, fighter air attack +5%. Complete: strategic bombing +15% more, heavy fighters and strategic bombers +15% air defence.",
+      "gd_trade_interdiction": "Base: submarine torpedoes +15%, submarine visibility −10%, convoy raiding +15%. Complete: convoy raiding +15% more, cruisers raid at ×1.5, submarines +10 organisation."
+    },
     "gen": {
       "1": "I",
       "2": "II",
@@ -7459,6 +7801,34 @@
       "zhang_zhizhong": "Zhang Zhizhong",
       "zhu_de": "Zhu De",
       "zhukov": "Georgy Zhukov"
+    },
+    "general_trait": {
+      "ambusher": "Ambush Master",
+      "armor_expert": "Armour Master",
+      "artillery_officer": "Gunner Officer",
+      "commando": "Raid Leader",
+      "engineer_officer": "Sapper Officer",
+      "forest_expert": "Forest Fighter",
+      "guerrilla_fighter": "Irregular Warfare",
+      "infantry_expert": "Infantry Master",
+      "skirmisher": "Scout Leader",
+      "swamp_expert": "Marsh Fighter",
+      "trickster": "Deceiver",
+      "urban_expert": "Street Fighter"
+    },
+    "general_trait_desc": {
+      "ambusher": "Attack +15% while defending. Level 3, needs Defensive Doctrine; 25 command power.",
+      "armor_expert": "Tank battalions +10% breakthrough, armoured divisions +10% attack. Level 2, needs Panzer Leader; 20 command power.",
+      "artillery_officer": "Artillery-type battalions +10% soft attack. Level 1; 15 command power.",
+      "commando": "Mountain, marine and airborne divisions +10% attack; raid preparation −25%. Level 2; 15 command power.",
+      "engineer_officer": "River and fort penalties −15%. Level 2; 15 command power.",
+      "forest_expert": "Forest and jungle: attack +10%, defence +5%. Earned by 60 days of battle there.",
+      "guerrilla_fighter": "Supply penalties halved; organisation recovers normally while encircled. Level 2; 15 command power.",
+      "infantry_expert": "Infantry divisions: attack and defence +10%. Level 2, needs Infantry Officer; 15 command power.",
+      "skirmisher": "Army intelligence on enemy armies in contact +20 points. Level 1; 15 command power.",
+      "swamp_expert": "Marshes: attack +10%, movement +10%. Earned by 60 days of marsh battles.",
+      "trickster": "Enemies facing this army lose 10 points of planning bonus. Level 3; 20 command power.",
+      "urban_expert": "Cities: attack +10%, defence +10%. Earned by 60 days of city battles."
     },
     "gov": {
       "BRM": {
@@ -7580,6 +7950,28 @@
       "fascist": "Fascism",
       "neutral": "Non-aligned"
     },
+    "intel_band": {
+      "0": "Unknown",
+      "1": "Rough",
+      "2": "Close",
+      "3": "Exact"
+    },
+    "intel_mission": {
+      "boost_ideology": "Political Influence",
+      "build_network": "Build a Network",
+      "counter_intelligence": "Counter-Intelligence",
+      "propaganda": "Propaganda Work",
+      "support_resistance": "Aid the Resistance",
+      "suppress_resistance": "Suppress the Resistance"
+    },
+    "intel_mission_desc": {
+      "boost_ideology": "Raises support for our ruling ideology in the target. Needs a 10% network and peace with it.",
+      "build_network": "Builds our intelligence network in the target country, faster with skill.",
+      "counter_intelligence": "Hunts enemy operatives at home and slows enemy networks.",
+      "propaganda": "Wears down the target's stability and war support, down to a limit. Needs a 20% network.",
+      "support_resistance": "Raises resistance in the occupied regions the target holds. Needs a 20% network.",
+      "suppress_resistance": "Lowers resistance in the occupied regions we hold."
+    },
     "invasion_state": {
       "landing": "Landing",
       "preparing": "Preparing",
@@ -7697,6 +8089,21 @@
       "training_men": "In training",
       "waiting_equipment": "Waiting for equipment {pct}%",
       "waiting_manpower": "Waiting for manpower"
+    },
+    "landmark": {
+      "lm_brandenburg": "Brandenburg Gate",
+      "lm_christ_redeemer": "Christ the Redeemer",
+      "lm_colosseum": "Colosseum",
+      "lm_eiffel": "Eiffel Tower",
+      "lm_empire_state": "Empire State Building",
+      "lm_forbidden_city": "Forbidden City",
+      "lm_golden_gate": "Golden Gate Bridge",
+      "lm_hagia_sophia": "Hagia Sophia",
+      "lm_himeji": "Himeji Castle",
+      "lm_kremlin": "The Kremlin",
+      "lm_liberty": "Statue of Liberty",
+      "lm_taj_mahal": "Taj Mahal",
+      "lm_westminster": "Westminster Clock Tower"
     },
     "law": {
       "conscription": {
@@ -7830,11 +8237,165 @@
       "pick_hint": "Every country you leave is played by the AI. A country someone else holds is greyed out.",
       "taken_by": "Taken by {name}"
     },
+    "medal": {
+      "medal_defense": "Defence Star",
+      "medal_service": "Service Ribbon",
+      "medal_valor": "Merit Star"
+    },
     "member_state": {
       "active": "Active",
       "capitulated": "Capitulated",
       "exiled": "Exiled",
       "left": "Withdrawn"
+    },
+    "mio_arch": {
+      "design_bureau": "{country} Design Bureau",
+      "private_combine": "{country} Heavy Industry Combine",
+      "state_arsenal": "{country} State Arsenal"
+    },
+    "mio_family": {
+      "mio_air_heavy": "Medium and Heavy Aircraft",
+      "mio_air_light": "Light Aircraft",
+      "mio_armor": "Armour",
+      "mio_artillery": "Guns",
+      "mio_infantry": "Infantry Equipment",
+      "mio_naval": "Naval"
+    },
+    "mio_trait": {
+      "mio_air_heavy": {
+        "p1": "Process Standards",
+        "p2": "Longer Assembly Lines",
+        "p3": "Cheap Mass Output",
+        "q1": "Inspection Regime",
+        "q2": "Proving Ground Trials",
+        "q3": "Precision Machining",
+        "s1": "Long-Range Flying",
+        "s2": "Bigger Bomb Bays",
+        "s3": "Defensive Firepower"
+      },
+      "mio_air_light": {
+        "p1": "Process Standards",
+        "p2": "Longer Assembly Lines",
+        "p3": "Cheap Mass Output",
+        "q1": "Inspection Regime",
+        "q2": "Proving Ground Trials",
+        "q3": "Precision Machining",
+        "s1": "Engine Tuning",
+        "s2": "Heavier Armament",
+        "s3": "Naval Aircraft Refinements"
+      },
+      "mio_armor": {
+        "p1": "Process Standards",
+        "p2": "Longer Assembly Lines",
+        "p3": "Cheap Mass Output",
+        "q1": "Inspection Regime",
+        "q2": "Proving Ground Trials",
+        "q3": "Precision Machining",
+        "s1": "Standard Radios",
+        "s2": "Armour Plate Process",
+        "s3": "Gun Improvements"
+      },
+      "mio_artillery": {
+        "p1": "Process Standards",
+        "p2": "Longer Assembly Lines",
+        "p3": "Cheap Mass Output",
+        "q1": "Inspection Regime",
+        "q2": "Proving Ground Trials",
+        "q3": "Precision Machining",
+        "s1": "Firing Tables",
+        "s2": "Better Gun Tractors",
+        "s3": "High-Velocity Shot"
+      },
+      "mio_infantry": {
+        "p1": "Process Standards",
+        "p2": "Longer Assembly Lines",
+        "p3": "Cheap Mass Output",
+        "q1": "Inspection Regime",
+        "q2": "Proving Ground Trials",
+        "q3": "Precision Machining",
+        "s1": "Lighter Small Arms",
+        "s2": "Common Ammunition",
+        "s3": "Truck Maintenance"
+      },
+      "mio_naval": {
+        "p1": "Process Standards",
+        "p2": "Longer Assembly Lines",
+        "p3": "Cheap Mass Output",
+        "q1": "Inspection Regime",
+        "q2": "Proving Ground Trials",
+        "q3": "Precision Machining",
+        "s1": "Hull Design",
+        "s2": "Gunnery Control",
+        "s3": "Submarine Design"
+      }
+    },
+    "mio_trait_desc": {
+      "mio_air_heavy": {
+        "p1": "This family's production cost −5%.",
+        "p2": "This family's line efficiency cap +5 points.",
+        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
+        "q1": "Reliability +5 points.",
+        "q2": "Main stats +5%: strategic, ground and naval attack and air defence.",
+        "q3": "Main stats +8%: strategic, ground and naval attack and air defence; cost +5%. Cannot be taken with Cheap Mass Output.",
+        "s1": "Range +15%.",
+        "s2": "Strategic and ground attack +8%.",
+        "s3": "Air defence +8%."
+      },
+      "mio_air_light": {
+        "p1": "This family's production cost −5%.",
+        "p2": "This family's line efficiency cap +5 points.",
+        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
+        "q1": "Reliability +5 points.",
+        "q2": "Main stats +5%: air and ground attack.",
+        "q3": "Main stats +8%: air and ground attack; cost +5%. Cannot be taken with Cheap Mass Output.",
+        "s1": "Agility +5%, speed +3%.",
+        "s2": "Air attack +5%.",
+        "s3": "Carrier aircraft range +10%, deck +5%."
+      },
+      "mio_armor": {
+        "p1": "This family's production cost −5%.",
+        "p2": "This family's line efficiency cap +5 points.",
+        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
+        "q1": "Reliability +5 points.",
+        "q2": "Main stats +5%: tank, tank destroyer and self-propelled gun attack and breakthrough.",
+        "q3": "Main stats +8%: tank, tank destroyer and self-propelled gun attack and breakthrough; cost +5%. Cannot be taken with Cheap Mass Output.",
+        "s1": "Tank battalions +5% breakthrough.",
+        "s2": "Tank armour +5%.",
+        "s3": "Tank piercing +8%."
+      },
+      "mio_artillery": {
+        "p1": "This family's production cost −5%.",
+        "p2": "This family's line efficiency cap +5 points.",
+        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
+        "q1": "Production cost −3%.",
+        "q2": "Main stats +5%: artillery, anti-tank and anti-air attack.",
+        "q3": "Main stats +8%: artillery, anti-tank and anti-air attack; cost +5%. Cannot be taken with Cheap Mass Output.",
+        "s1": "Artillery-type soft attack +5%.",
+        "s2": "Mechanised artillery speed +10%.",
+        "s3": "Anti-tank piercing +10%."
+      },
+      "mio_infantry": {
+        "p1": "This family's production cost −5%.",
+        "p2": "This family's line efficiency cap +5 points.",
+        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
+        "q1": "Production cost −3%.",
+        "q2": "Main stats +5%: infantry-type battalion attack and defence.",
+        "q3": "Main stats +8%: infantry-type battalion attack and defence; cost +5%. Cannot be taken with Cheap Mass Output.",
+        "s1": "Infantry-type battalions +3% attack.",
+        "s2": "Supply use −5%.",
+        "s3": "Motorised speed +5%, trucks use less fuel."
+      },
+      "mio_naval": {
+        "p1": "This family's production cost −5%.",
+        "p2": "This family's line efficiency cap +5 points.",
+        "p3": "Cost −10%, reliability −5 points. Cannot be taken with Precision Machining.",
+        "q1": "Production cost −3%.",
+        "q2": "Main stats +5%: every ship gun, torpedo and depth charge.",
+        "q3": "Main stats +8%: every ship gun, torpedo and depth charge; cost +5%. Cannot be taken with Cheap Mass Output.",
+        "s1": "Ship HP +5%.",
+        "s2": "Light and heavy guns +5%.",
+        "s3": "Submarine torpedoes +10%, visibility −5%."
+      }
     },
     "mission": {
       "escort": "Convoy escort",
@@ -7889,6 +8450,111 @@
       "terrain": "Terrain",
       "trait": "Traits",
       "weather": "Weather"
+    },
+    "module": {
+      "aa_auto": "Anti-Air Autocannon",
+      "amphibious": "Deep-Wading Kit",
+      "armor_deck": "Armoured Flight Deck",
+      "armor_heavy": "Thicker Belt",
+      "armor_light": "Light Protection",
+      "asw_dc_heavy": "Extra Depth Charges",
+      "asw_sonar": "Sonar Set",
+      "auto20": "20 mm Autocannon",
+      "aux_mg": "Auxiliary Machine Gun",
+      "bogie": "Leaf-Spring Bogies",
+      "cast": "Cast Hull",
+      "christie": "Coil-Spring Suspension",
+      "diesel": "Diesel Engine",
+      "engine_fast": "High-Speed Machinery",
+      "engine_long": "Long-Range Machinery",
+      "fc_improved": "Improved Fire Control",
+      "flail": "Mine-Clearing Flail",
+      "flame": "Flamethrower",
+      "floatplane": "Spotter Floatplane",
+      "gun_cs": "75 mm Short Support Gun",
+      "gun_heavy": "88 mm-Class Heavy Gun",
+      "gun_hv": "75 mm Long Gun",
+      "gun_small": "37–47 mm Gun",
+      "hangar_large": "Large Hangar",
+      "hangar_small": "Small Hangar",
+      "howitzer": "105 mm Howitzer",
+      "interleaved": "Overlapping Road Wheels",
+      "m_armor": "Pilot Armour",
+      "m_bomb_sight": "Bombsight",
+      "m_carrier": "Arrester Gear",
+      "m_def_turret": "Gunner's Turret",
+      "m_dive_brakes": "Dive Brakes",
+      "m_drop_tank": "External Fuel Tanks",
+      "m_engine_boost": "Uprated Engine",
+      "m_radar": "Airborne Radar",
+      "m_recon_camera": "Camera Pack",
+      "m_self_sealing": "Self-Sealing Fuel Cells",
+      "main_heavy": "Heavier Main Battery",
+      "main_light": "Lighter Main Battery",
+      "mg": "Machine Guns",
+      "mine_layer": "Mine Rails",
+      "minesweep": "Minesweeping Gear",
+      "petrol": "Petrol Engine",
+      "radar_adv": "Improved Radar",
+      "radar_microwave": "Microwave Radar",
+      "radar_surface": "Surface Search Radar",
+      "radio": "Radio Set",
+      "riveted": "Riveted Plates",
+      "sec_aa": "Extra Anti-Air",
+      "sec_dp": "Dual-Purpose Guns",
+      "sec_light": "Heavier Secondaries",
+      "shbb_hull": "Super-Heavy Hull",
+      "skirts": "Spaced Side Plates",
+      "sloped": "Angled Plates",
+      "smoke": "Smoke Mortars",
+      "snorkel": "Snorkel",
+      "torp_heavy": "Heavy Torpedo Battery",
+      "torp_none": "No Torpedoes",
+      "torsion": "Torsion Bars",
+      "turret_1": "One-Man Turret",
+      "turret_2": "Two-Man Turret",
+      "turret_3": "Three-Man Turret",
+      "turret_none": "Fixed Casemate",
+      "turret_open": "Open-Topped Mount",
+      "w_bombs_l": "Heavy Bomb Bay",
+      "w_bombs_m": "Internal Bomb Bay",
+      "w_bombs_s": "Underwing Bomb Racks",
+      "w_cannon20": "20 mm Cannon",
+      "w_cannon30": "30 mm Cannon",
+      "w_cargo": "Freight Bay",
+      "w_hmg": "Heavy Machine Guns",
+      "w_mg2": "Two Machine Guns",
+      "w_mg4": "Four Machine Guns",
+      "w_rockets": "Air-to-Ground Rockets",
+      "w_torpedo": "Aerial Torpedo",
+      "welded": "Welded Plates"
+    },
+    "module_slot": {
+      "plane": {
+        "aux": "Auxiliary",
+        "defense": "Defence",
+        "special": "Special Fitting",
+        "weapon": "Main Armament"
+      },
+      "ship": {
+        "armor": "Protection",
+        "asw": "Anti-Submarine",
+        "engine": "Machinery",
+        "fire_control": "Fire Control and Radar",
+        "hangar": "Hangar",
+        "main": "Main Battery",
+        "secondary": "Secondary and Anti-Air",
+        "special": "Special Fitting",
+        "torpedo": "Torpedoes"
+      },
+      "tank": {
+        "armor": "Armour Type",
+        "engine": "Engine",
+        "gun": "Main Gun",
+        "special": "Special Fitting",
+        "suspension": "Suspension",
+        "turret": "Turret"
+      }
     },
     "month": {
       "m01": "January",
@@ -8165,6 +8831,30 @@
       "occ_civil": "Less resistance, faster compliance; fewer garrisons and a smaller share of output",
       "occ_martial": "More output and manpower from the land, but more resistance and slower compliance",
       "occ_military": "The default balance"
+    },
+    "op": {
+      "op_capture_cipher": "Seize Cipher Material",
+      "op_collaboration": "Cultivate Collaborators",
+      "op_coup": "Coup",
+      "op_infiltrate_air": "Penetrate the Air Staff",
+      "op_infiltrate_army": "Penetrate the Army Staff",
+      "op_infiltrate_navy": "Penetrate the Naval Staff",
+      "op_rescue": "Free an Operative",
+      "op_sabotage": "Sabotage",
+      "op_steal_blueprints": "Obtain Blueprints",
+      "op_uprising": "Back an Uprising"
+    },
+    "op_desc": {
+      "op_capture_cipher": "Decryption progress against the target +50%. 50% network, 2 operatives, 90 days, 50 political power.",
+      "op_collaboration": "The surrender threshold of an enemy at war with us −10 points. May fail. 60% network, 2 operatives, 120 days, 50 political power.",
+      "op_coup": "Brings our ideology to power in the target when it has enough support there. If it fails, both operatives are caught. 80% network, 2 operatives, 150 days, 100 political power and 1,000 infantry equipment.",
+      "op_infiltrate_air": "Air intelligence on the target +30 points. 30% network, 1 operative, 60 days, 25 political power.",
+      "op_infiltrate_army": "Army intelligence on the target +30 points. 30% network, 1 operative, 60 days, 25 political power.",
+      "op_infiltrate_navy": "Naval intelligence on the target +30 points. 30% network, 1 operative, 60 days, 25 political power.",
+      "op_rescue": "Brings home one of our operatives held by the target. 30% network, 1 operative, 30 days, 25 political power.",
+      "op_sabotage": "Sets back the target's special project, or halts two of its arms factories. 30% network, 1 operative, 45 days, 25 political power.",
+      "op_steal_blueprints": "A research bonus for a technology the target has and we lack, and a copy of its newest design. 40% network, 1 operative, 90 days, 25 political power.",
+      "op_uprising": "Resistance +15 points in our occupied core regions the target holds, and the uprising threshold −10 points. 40% network, 1 operative, 60 days, 25 political power and 500 infantry equipment."
     },
     "pack": {
       "bal": "Balkans",
@@ -8666,6 +9356,32 @@
       "value_signed": "{v, number, ::sign-always}",
       "who_prefix": "{who}: "
     },
+    "project": {
+      "sp_atomic": "Atomic Bomb Project",
+      "sp_ballistic": "Ballistic Rocket",
+      "sp_cavity_magnetron": "Microwave Radar",
+      "sp_flying_bomb": "Flying Bomb",
+      "sp_jet_engine": "Jet Engine",
+      "sp_proximity_fuze": "Proximity Fuze"
+    },
+    "project_desc": {
+      "sp_atomic": "At a nuclear research institute: 1,900 days and 2 uranium a day. Then each institute builds an atomic bomb every 120 days.",
+      "sp_ballistic": "At a rocket test range, after the flying bomb: 700 days. Opens ballistic rocket production.",
+      "sp_cavity_magnetron": "At a research laboratory complex: 450 days. Better radar stations, the microwave ship radar and stronger airborne radar.",
+      "sp_flying_bomb": "At a rocket test range: 500 days. Opens flying bomb production and rocket launch sites.",
+      "sp_jet_engine": "At a research laboratory complex: 650 days. Opens the jet airframe.",
+      "sp_proximity_fuze": "At a research laboratory complex: 500 days. Anti-air damage ×1.5 on ships, in regions and in divisions; artillery soft attack +5%."
+    },
+    "raid": {
+      "raid_bomb": "Precision Bombing Raid",
+      "raid_commando": "Commando Raid",
+      "raid_para": "Airborne Raid"
+    },
+    "raid_desc": {
+      "raid_bomb": "At least 50 bombers in the air zone go for one building, dams included. 7 days to prepare.",
+      "raid_commando": "Marines or mountain troops land from the sea against a naval base, coastal fort, dockyard, facility or dam. 15 days to prepare.",
+      "raid_para": "An airborne division goes for one building: a facility, air base, radar, dam, coastal fort or rocket site. 20 days to prepare."
+    },
     "region": {
       "legal_owner": "Legal owner: {country}",
       "vp": "{vp} VP"
@@ -8712,6 +9428,12 @@
       "sub_doctrine": "Submarine doctrine",
       "synthetic_refinery": "Synthetic refinery"
     },
+    "role": {
+      "sp_anti_air": "Self-Propelled Anti-Air",
+      "sp_artillery": "Self-Propelled Gun",
+      "tank": "Tank",
+      "tank_destroyer": "Tank Destroyer"
+    },
     "school": {
       "base_strike": "Carrier striking force",
       "battlefield_support": "Army cooperation",
@@ -8723,6 +9445,12 @@
       "operational_integrity": "Unified air command",
       "strategic_destruction": "Bomber offensive",
       "trade_interdiction": "Commerce warfare"
+    },
+    "scientist": {
+      "aviation": "Aeronautical Engineer {n}",
+      "electronics": "Electronics Engineer {n}",
+      "nuclear": "Nuclear Physicist {n}",
+      "rocket": "Rocket Engineer {n}"
     },
     "ship": {
       "arg_almirante_brown": "Almirante Brown",
@@ -9267,6 +9995,13 @@
       "bal_arms_contracts": "Arms Import Contracts",
       "bal_highland_drill": "Highland Drill",
       "bal_partisan_war": "Partisan War",
+      "bop_chn_strong_centre": "Strong Central Government",
+      "bop_chn_warlords": "A Country of Warlords",
+      "bop_fra_national_union": "National Union",
+      "bop_fra_popular_front": "Popular Front",
+      "bop_jpn_army": "Army Ascendancy",
+      "bop_jpn_balance": "Army and Navy in Balance",
+      "bop_jpn_navy": "Navy Ascendancy",
       "bra_feb_veterans": "Veterans of Italy",
       "ccp_anti_japan_front": "The United Front",
       "ccp_cadre_training": "Cadre Education",
@@ -9306,6 +10041,10 @@
       "dom_mining_drive": "Mining Drive",
       "dom_wartime_output": "Wartime Output",
       "esp_civil_war_nation": "A Nation Torn by War",
+      "fg_arsenal": "Workshop of the Alliance",
+      "fg_cohesion": "Faction Cohesion",
+      "fg_science": "Shared Science",
+      "fg_sea_control": "Command of the Sea Lanes",
       "fin_civil_guard_spirit": "Civil Guard",
       "fin_motti_tactics": "Forest Encirclement",
       "fra_armament_ministry": "Ministry of Armament",
@@ -9371,6 +10110,7 @@
       "gen_research_institutes": "National Laboratories",
       "gen_resistance_support": "Resistance Support",
       "gen_skilled_workforce": "Trained Workforce",
+      "gen_staff_college": "Staff College Expansion",
       "gen_staff_training": "Staff Training",
       "gen_strike_losses": "Strike Losses",
       "gen_war_bonds_spirit": "War Bonds",
@@ -9494,6 +10234,13 @@
       "bal_arms_contracts": "Foreign arms come on easier credit and barter terms.",
       "bal_highland_drill": "Infantry trained in the hills fights harder on the attack.",
       "bal_partisan_war": "Bands in the mountains keep the occupied lands restless.",
+      "bop_chn_strong_centre": "The central government's word carries into the provinces. Stability +10%, political power gain +10%.",
+      "bop_chn_warlords": "Provincial commanders look after themselves first. Political power gain −20%, recruitable population +10%.",
+      "bop_fra_national_union": "The centre and the right unite around rearmament. Military construction +10%, stability −5%.",
+      "bop_fra_popular_front": "A coalition of the left governs with the unions' backing. Consumer goods +3 points, stability +5%, military construction −10%.",
+      "bop_jpn_army": "The army sets the national course. Land research +10%, attack +5%, naval research −10%.",
+      "bop_jpn_balance": "Neither service holds the budget. Research +3%.",
+      "bop_jpn_navy": "The navy sets the national course. Naval research +10%, dockyard output +5%, land research −10%.",
       "bra_feb_veterans": "Officers back from the Italian front pass on what they learned.",
       "ccp_anti_japan_front": "Cooperation with the Nationalists focuses effort on the war against Japan.",
       "ccp_cadre_training": "Graduates of the party school run the base areas.",
@@ -9533,6 +10280,10 @@
       "dom_mining_drive": "New mines and state contracts raise the output of strategic metals.",
       "dom_wartime_output": "Factories run extra shifts under government controllers.",
       "esp_civil_war_nation": "Spain has split in two, and every factory and village has had to choose a side.",
+      "fg_arsenal": "The members' factories work as one. Factory output +5%.",
+      "fg_cohesion": "The faction holds the heart of Europe. Stability +5%.",
+      "fg_science": "The members share their laboratories. Research +5%.",
+      "fg_sea_control": "The faction commands the sea lanes. Convoy losses −10%.",
       "fin_civil_guard_spirit": "The Civil Guard stands ready to fill the ranks.",
       "fin_motti_tactics": "In the forest the enemy is cut off and surrounded piece by piece.",
       "fra_armament_ministry": "One ministry plans the production of arms from the mine to the front.",
@@ -9593,6 +10344,7 @@
       "gen_research_institutes": "State-funded laboratories speed up every field of research a little.",
       "gen_resistance_support": "Our agents and radios keep the resistance in our occupied homeland growing.",
       "gen_skilled_workforce": "Graduates of the trade schools push the production lines closer to their best.",
+      "gen_staff_college": "More officers pass through the staff course. Command power gain +25%.",
       "gen_staff_training": "Staff college graduates prepare operations sooner and pass their experience to the army.",
       "gen_strike_losses": "Factories that stood idle have not yet returned to full speed.",
       "gen_war_bonds_spirit": "Citizens who bought bonds see the war as their own, though they also want more consumer goods.",
@@ -9910,6 +10662,52 @@
       "warSupportWeeklyBp": "War support each week {value, number, ::sign-always scale/0.01}%",
       "winterPenaltyPct": "Winter penalty {value, number, ::sign-always scale/-1}%"
     },
+    "subdoc": {
+      "air_escort": "Escort Fighters",
+      "air_ground_attack": "Ground Attack Wings",
+      "air_interceptor": "Interception Network",
+      "air_maritime_patrol": "Sea Lane Patrols",
+      "air_maritime_strike": "Anti-Shipping Strikes",
+      "air_strategic_campaign": "Bombing Campaign",
+      "arm_breakthrough": "Armoured Thrust",
+      "arm_inf_support": "Tanks with the Infantry",
+      "arm_mech": "Mechanised Cooperation",
+      "inf_assault": "Shock Infantry Training",
+      "inf_elastic": "Flexible Defence Lines",
+      "inf_mass_mob": "National Levy",
+      "nav_battleline": "Battleship Squadrons",
+      "nav_carrier_force": "Fast Carrier Groups",
+      "nav_carrier_support": "Carriers with the Fleet",
+      "nav_convoy_escort": "Escort Groups",
+      "nav_cruiser": "Cruiser Squadrons",
+      "nav_wolfpack": "Pack Tactics",
+      "sup_artillery": "Artillery Concentration",
+      "sup_deep_ops": "Operations in Depth",
+      "sup_entrenched": "Positional Warfare"
+    },
+    "subdoc_desc": {
+      "air_escort": "Fighters fly with the bombers: superiority attack, agility, fewer bomber losses and longer range.",
+      "air_ground_attack": "Aircraft over the front line: close air support, fewer losses to anti-air, stronger tactical bombers.",
+      "air_interceptor": "A defence that meets the bombers: interception attack, air detection and fighter defence.",
+      "air_maritime_patrol": "Aircraft watch the sea lanes: patrol search, anti-submarine escort and submarine detection.",
+      "air_maritime_strike": "Aircraft against ships: naval and port strikes, naval bomber defence.",
+      "air_strategic_campaign": "Bomb the enemy's industry: strategic bombing, bomber defence and better night raids.",
+      "arm_breakthrough": "Tanks punch through: tank breakthrough, armoured division speed and organisation, then soft attack and fuel savings.",
+      "arm_inf_support": "Tanks move with the infantry: tank defence, reliability and armour, and stronger mixed infantry divisions.",
+      "arm_mech": "Motorised infantry keeps up with the tanks: speed, organisation, lower supply use and faster planning.",
+      "inf_assault": "Infantry trained to attack: attack bonuses at levels 1, 3 and 5, lighter river and fort penalties, more breakthrough.",
+      "inf_elastic": "Infantry that gives ground and holds: defence and entrenchment grow level by level, ending with +10% defence and faster digging.",
+      "inf_mass_mob": "Many men, quickly: faster training, more recruits, faster reinforcement and more manpower.",
+      "nav_battleline": "Battleships in line: heavy guns, positioning and armour, then sturdier capital ships.",
+      "nav_carrier_force": "Carriers lead the fleet: carrier attack and decks, naval attack, quicker strikes and carrier fighters.",
+      "nav_carrier_support": "Carriers cover the fleet: fleet anti-air and detection, carrier fighters over the sea, shore bombardment.",
+      "nav_convoy_escort": "Convoys sail under guard: depth charges, escort strength, submarine detection and fewer convoy losses.",
+      "nav_cruiser": "Cruisers range far: light guns, speed, raiding and detection, then range.",
+      "nav_wolfpack": "Submarines hunt together: torpedoes, stealth, raiding and organisation.",
+      "sup_artillery": "The guns decide the battle: artillery soft attack at every level, fort penalties cut, anti-tank hard attack.",
+      "sup_deep_ops": "Plan deep and move fast: planning speed and maximum, bold attacks, breakthrough and advance speed.",
+      "sup_entrenched": "Hold prepared positions: deeper trenches, stronger engineers, defence for every fort level."
+    },
     "subject": {
       "annex": "Annex",
       "ask_independence": "Demand independence",
@@ -10156,6 +10954,7 @@
       "ita_education_minister": "Minister of National Education",
       "ita_military_premier": "Marshal-Premier",
       "ita_supreme_command_chief": "Chief of the Supreme Command",
+      "ita_supreme_staff": "Chief of the General Staff",
       "jpn_army_aviation": "Head of Army Aviation",
       "jpn_army_minister": "Army Minister",
       "jpn_chief_of_staff": "Chief of the Army General Staff",
@@ -10167,6 +10966,7 @@
       "jpn_planning_board": "President of the Planning Board",
       "jpn_prime_minister": "Prime Minister",
       "jpn_research_institute": "Director of RIKEN",
+      "jpn_southern_army": "Commander of the Southern Army Group",
       "labour_organizer": "Union Organizer",
       "leader_communist": "Party Leader",
       "leader_democratic": "Head of Government",
@@ -10254,6 +11054,17 @@
       "usa_armored_division": "Armored Division",
       "usa_infantry_ii": "Infantry Division II",
       "usa_marine_division": "Marine Division"
+    },
+    "track": {
+      "armor": "Armour",
+      "bomber": "Bombers",
+      "carrier": "Carriers",
+      "escort": "Escorts and Submarines",
+      "fighter": "Fighters",
+      "infantry": "Infantry",
+      "naval_air": "Maritime Air",
+      "support": "Support and Operations",
+      "surface": "Surface Fleet"
     },
     "trait": {
       "adv_ac_air_defense": "Air Defense Commander",

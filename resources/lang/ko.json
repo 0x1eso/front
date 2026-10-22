@@ -3234,6 +3234,9 @@
     "your_team": "우리팀이 승리했습니다!"
   },
   "ww1936": {
+    "ace": {
+      "callsign": "제{n}전투비행단 에이스"
+    },
     "admiral": {
       "deu_carls": "롤프 카를스",
       "deu_ciliax": "오토 칠리악스",
@@ -3311,6 +3314,34 @@
       "political": "정치 고문 자리",
       "research": "연구 고문 자리",
       "staff": "참모 자리"
+    },
+    "agency_up": {
+      "ag_air_dept": "공군 정보부",
+      "ag_army_dept": "육군 정보부",
+      "ag_cipher": "암호 보안부",
+      "ag_civil_dept": "정치 정보부",
+      "ag_counter": "방첩부",
+      "ag_crypto_1": "암호 해독반",
+      "ag_crypto_2": "해독 기계실",
+      "ag_navy_dept": "해군 정보부",
+      "ag_ops_1": "공작원 학교",
+      "ag_ops_2": "해외 연락망",
+      "ag_ops_3": "비밀 지부",
+      "ag_special_ops": "특수 작전과"
+    },
+    "agency_up_desc": {
+      "ag_air_dept": "공군 정보 +10%p.",
+      "ag_army_dept": "모든 상대 육군 정보 +10%p, 군부 침투 작전 날 −25%.",
+      "ag_cipher": "암호 강도 +50.",
+      "ag_civil_dept": "민간 정보 +10%p, 쿠데타·협력 정부 공작 성공 +5%p.",
+      "ag_counter": "우리 땅의 적 공작원 체포 ×2, 적 정보망 성장 −30%.",
+      "ag_crypto_1": "해독력 +20.",
+      "ag_crypto_2": "해독력 +30. 암호 해독반과 첫 계산 기술 필요.",
+      "ag_navy_dept": "해군 정보 +10%p, 우리 함대 탐지 +5%.",
+      "ag_ops_1": "공작원 칸 +1.",
+      "ag_ops_2": "공작원 칸 +1. 공작원 학교 필요.",
+      "ag_ops_3": "공작원 칸 +1. 해외 연락망 필요.",
+      "ag_special_ops": "작전 날 −20%, 새 공작원 숙련 +1. 공작원 학교 필요."
     },
     "aid": {
       "air_volunteers": "의용 항공단",
@@ -3414,9 +3445,88 @@
       "recon": "정찰",
       "strategic_bombing": "전략 폭격"
     },
+    "army_spirit": {
+      "as_aggressive_fleet": "공세 운용",
+      "as_air_college": "공군 대학",
+      "as_army_cooperation": "육군 협동",
+      "as_central_command": "중앙 통제",
+      "as_combined_arms": "제병 협동",
+      "as_conscript": "대규모 징집",
+      "as_damage_control": "피해 통제",
+      "as_elite_units": "정예 편성",
+      "as_escort_first": "호위 우선",
+      "as_fleet_drill": "함대 훈련",
+      "as_fleet_preservation": "함대 보존",
+      "as_ground_crew": "정비 체계",
+      "as_independent_air": "독립 공군",
+      "as_joint_ops": "공동 작전",
+      "as_mass_formation": "대규모 편성",
+      "as_mission_command": "임무형 지휘",
+      "as_night_training": "야간 훈련",
+      "as_pilot_school": "조종사 양성",
+      "as_political_officers": "정치 장교",
+      "as_professional": "직업 장교단",
+      "as_reserve": "예비군 제도"
+    },
+    "army_spirit_cat": {
+      "air_command": "공군 지휘",
+      "air_personnel": "공군 인력",
+      "land_command": "지휘",
+      "land_formation": "편성",
+      "land_recruit": "모집과 훈련",
+      "naval_ops": "함대 운용",
+      "naval_training": "해군 훈련"
+    },
+    "army_spirit_desc": {
+      "as_aggressive_fleet": "해전 공격 +5%, 귀항 문턱 −10%p.",
+      "as_air_college": "공군 경험치 하루 +0.05.",
+      "as_army_cooperation": "근접 지원 +10%.",
+      "as_central_command": "준비도 최대 +5%p, 방어 +3%.",
+      "as_combined_arms": "지원 중대 효과 +25%.",
+      "as_conscript": "훈련 −10%, 새 사단 경험 −10.",
+      "as_damage_control": "받는 피해 −5%, 수리 +15%.",
+      "as_elite_units": "사단 경험 증가 +25%.",
+      "as_escort_first": "같은 공역 폭격기 손실 −10%.",
+      "as_fleet_drill": "해군 경험치 하루 +0.05, 함선 조직력 +5.",
+      "as_fleet_preservation": "후퇴 시작 +10%p 이르게, 격침 피해 −10%.",
+      "as_ground_crew": "출격 효율 +5%.",
+      "as_independent_air": "전략 폭격 +10%.",
+      "as_joint_ops": "상륙 준비 −15%.",
+      "as_mass_formation": "초과 폭 벌칙 절반.",
+      "as_mission_command": "준비도 속도 +10%, 돌파 +5%.",
+      "as_night_training": "어뢰 +10%.",
+      "as_pilot_school": "공중전 손실 −10%.",
+      "as_political_officers": "조직력 +5, 사단이 더 오래 버틴 뒤 후퇴한다.",
+      "as_professional": "새 사단 경험 +10, 육군 경험치 하루 +0.05.",
+      "as_reserve": "보충 속도 +25%."
+    },
     "band": {
       "prep": "준비 {time}",
       "wars": "{n, plural, =0 {평화} other {전쟁 #개}}"
+    },
+    "base": {
+      "plane": {
+        "jet_1": "제트 기체",
+        "large_1": "대형 기체 I",
+        "large_2": "대형 기체 II",
+        "large_3": "대형 기체 III",
+        "medium_1": "중형 기체 I",
+        "medium_2": "중형 기체 II",
+        "medium_3": "중형 기체 III",
+        "small_1": "소형 기체 I",
+        "small_2": "소형 기체 II",
+        "small_3": "소형 기체 III"
+      },
+      "tank": {
+        "heavy_1": "중전차 차대 I",
+        "heavy_2": "중전차 차대 II",
+        "heavy_3": "중전차 차대 III",
+        "light_1": "경전차 차대 I",
+        "light_2": "경전차 차대 II",
+        "medium_1": "중형 차대 I",
+        "medium_2": "중형 차대 II",
+        "medium_3": "중형 차대 III"
+      }
     },
     "battalion": {
       "anti_air": "대공",
@@ -3487,6 +3597,68 @@
       "cf_research": "연구소와 대학에 예산과 인력을 더 준다.",
       "cf_stability": "구호와 질서, 화해가 매주 나라를 안정시킨다.",
       "cf_war_effort": "홍보와 집회, 신문이 국민을 전쟁에 대비시킨다."
+    },
+    "codename": {
+      "c0": "황조롱이",
+      "c1": "왜가리",
+      "c10": "물떼새",
+      "c11": "백로",
+      "c12": "까치",
+      "c13": "개똥지빠귀",
+      "c14": "솔개",
+      "c15": "물수리",
+      "c16": "바다제비",
+      "c17": "찌르레기",
+      "c18": "마도요",
+      "c19": "논병아리",
+      "c2": "칼새",
+      "c20": "자작나무",
+      "c21": "소나무",
+      "c22": "참나무",
+      "c23": "버드나무",
+      "c24": "단풍나무",
+      "c25": "낙엽송",
+      "c26": "느릅나무",
+      "c27": "물푸레나무",
+      "c28": "삼나무",
+      "c29": "포플러",
+      "c3": "종다리",
+      "c30": "피나무",
+      "c31": "오리나무",
+      "c32": "개암나무",
+      "c33": "향나무",
+      "c34": "마가목",
+      "c35": "가문비나무",
+      "c36": "주목",
+      "c37": "너도밤나무",
+      "c38": "서어나무",
+      "c39": "밤나무",
+      "c4": "두루미",
+      "c40": "북풍",
+      "c41": "이슬비",
+      "c42": "우박",
+      "c43": "서리",
+      "c44": "돌풍",
+      "c45": "물안개",
+      "c46": "천둥",
+      "c47": "스콜",
+      "c48": "이슬",
+      "c49": "진눈깨비",
+      "c5": "매",
+      "c50": "장마",
+      "c51": "산들바람",
+      "c52": "연무",
+      "c53": "눈더미",
+      "c54": "무지개",
+      "c55": "소나기",
+      "c56": "회오리",
+      "c57": "상고대",
+      "c58": "흐림",
+      "c59": "폭우",
+      "c6": "올빼미",
+      "c7": "큰까마귀",
+      "c8": "굴뚝새",
+      "c9": "되새"
     },
     "cond": {
       "all": "모두 만족:",
@@ -3683,11 +3855,24 @@
       "fascist": "{country} 국민 정부",
       "neutral": "{country} 임시 정부"
     },
+    "dam": {
+      "dam_dnipro": "드니프로 수력 발전소",
+      "dam_eder": "에더 댐",
+      "dam_galloway": "갤러웨이 수력",
+      "dam_grand_coulee": "그랜드쿨리 댐",
+      "dam_hoover": "후버 댐",
+      "dam_kembs": "켐브 댐",
+      "dam_mohne": "뫼네 댐",
+      "dam_norris": "노리스 댐",
+      "dam_vemork": "베모르크 수력·중수 공장"
+    },
     "date": "{year}년 {month} {day}일",
     "decision": {
       "bgr_demand_dobruja": "남도브루자 반환 요구",
       "ccp_new_base_area": "근거지 세우기",
+      "chn_central_officers": "중앙 군관 파견",
       "chn_integrate_warlord": "지방 세력 통합",
+      "chn_regional_appeasement": "지방 회유",
       "chn_request_soviet_aid": "소련 원조 요청",
       "deu_demand_austria": "오스트리아 병합 요구",
       "deu_demand_bohemia": "보헤미아·모라비아 요구",
@@ -3698,6 +3883,8 @@
       "deu_sign_tripartite": "삼국 동맹 체결",
       "deu_soviet_pact_proposal": "모스크바에 조약 제안",
       "fra_dissolve_vichy": "비시 정권 해체",
+      "fra_rearmament_act": "재무장 법",
+      "fra_social_reform": "사회 개혁",
       "gbr_destroyers_for_bases": "기지를 내주고 구축함을",
       "gbr_free_french_recognition": "자유 프랑스 승인",
       "gbr_guarantee_poland": "폴란드 보장",
@@ -3731,6 +3918,7 @@
       "gen_release_subject": "속국 풀어 주기",
       "gen_request_autonomy": "자치 확대 요구",
       "gen_restore_country": "사라진 나라 복원",
+      "gen_staff_college": "참모 대학 확장",
       "gen_suppress_opposition": "반대파 단속",
       "gen_suspend_elections": "선거 연기",
       "gen_tech_exchange": "기술 교류",
@@ -3739,7 +3927,9 @@
       "hun_request_arbitration": "중재 요청",
       "hun_request_transylvania": "트란실바니아 요구",
       "ita_send_ctv": "의용 군단 파견",
+      "jpn_army_budget": "육군 예산 우선",
       "jpn_demand_indochina_access": "인도차이나 통행 요구",
+      "jpn_navy_budget": "해군 예산 우선",
       "lat_join_hemisphere": "반구 동맹 가입",
       "mex_volunteer_squadron": "제201 전투비행대 파견",
       "pol_uprising": "바르샤바 봉기",
@@ -3753,6 +3943,9 @@
       "sun_offer_finnish_peace": "핀란드에 강화 제안",
       "sun_propose_pact": "베를린에 조약 제안",
       "tur_hatay_question": "하타이 문제 제기",
+      "usa_defense_bill": "국방 예산 법안",
+      "usa_fireside_chat": "노변담화",
+      "usa_lobby_congress": "의원 설득",
       "usa_oil_embargo": "대일 석유 금수",
       "usa_recognize_exiles": "망명 정부 승인",
       "usa_volunteer_air_group": "중국 의용 항공단"
@@ -3760,7 +3953,9 @@
     "decision_desc": {
       "bgr_demand_dobruja": "1913년에 루마니아에 내준 남도브루자를 돌려 달라고 요구한다.",
       "ccp_new_base_area": "일본군 점령지에 공작대를 보내 새 근거지를 세우고 주민의 저항을 키운다.",
+      "chn_central_officers": "중앙에서 길러 낸 군관이 지방 부대를 맡는다. 세력 균형이 중앙 쪽으로 8 움직인다.",
       "chn_integrate_warlord": "통합 대상이 된 지방 세력에 군대와 행정을 중앙에 넘기라고 요구한다. 관계가 좋거나 전쟁 중일 때만 할 수 있다.",
+      "chn_regional_appeasement": "지방 실력자에게 직함과 보조금을 내주어 잠잠하게 한다. 세력 균형이 지방 쪽으로 8 움직이고 안정도 +3%.",
       "chn_request_soviet_aid": "모스크바의 호의를 먼저 얻은 뒤 소련에 무기 대여를 요청한다.",
       "deu_demand_austria": "빈에 오스트리아 국가사회주의자들에게 정권을 넘기고 독일과의 합병을 받아들이라고 요구한다.",
       "deu_demand_bohemia": "체코 대통령을 베를린으로 불러, 남은 나라를 독일의 보호 아래 두라고 요구한다.",
@@ -3771,6 +3966,8 @@
       "deu_sign_tripartite": "독일·이탈리아·일본이 그들에 맞서 참전하는 나라에 함께 대항하도록 조약으로 묶는다.",
       "deu_soviet_pact_proposal": "외무장관을 모스크바로 보내 불가침 조약과 동유럽을 나누는 비밀 의정서를 제안한다.",
       "fra_dissolve_vichy": "파리를 되찾은 임시 정부가 비시 정권의 모든 법령을 무효로 하고, 그 정권이 아직 가진 땅을 넘겨받는다.",
+      "fra_rearmament_act": "대규모 재무장 계획이 중도와 우파를 하나로 모은다. 세력 균형이 오른쪽으로 15 움직인다.",
+      "fra_social_reform": "유급 휴가와 주 40시간 노동이 인민전선의 지지를 넓힌다. 세력 균형이 왼쪽으로 10 움직인다.",
       "gbr_destroyers_for_bases": "대서양의 기지를 오래 빌려주는 대가로 미국에 낡은 구축함 50척을 청한다.",
       "gbr_free_french_recognition": "런던에서 싸움을 이어 가는 프랑스 지도자들을 싸우는 프랑스의 대표로 인정한다.",
       "gbr_guarantee_poland": "폴란드의 독립이 위협받으면 지키겠다고 약속하고, 프랑스에도 함께하자고 요청한다.",
@@ -3804,6 +4001,7 @@
       "gen_release_subject": "속국에 대한 보호 관계를 끝낸다. 그 나라는 우리 진영에 남는다.",
       "gen_request_autonomy": "자치도가 한계에 이르렀다. 종주국에 지위를 높여 달라고, 이미 자치령이라면 독립시켜 달라고 요구한다.",
       "gen_restore_country": "더 이상 존재하지 않는 나라의 본토를 우리가 되찾았다면, 그 나라를 다시 세우고 우리 진영에 초청한다.",
+      "gen_staff_college": "더 많은 장교가 참모 과정을 거친다. 180일 동안 지휘력 증가 +25%.",
       "gen_suppress_opposition": "가장 큰 반대 세력의 신문과 집회를 제한한다. 지지는 줄지만 불만이 쌓인다.",
       "gen_suspend_elections": "전쟁이 끝날 때까지 총선거를 미루고 지금의 의회가 계속 일한다.",
       "gen_tech_exchange": "진영 지도국에 기술자를 보내 우리가 아직 갖지 못한 기술을 배워 온다.",
@@ -3812,7 +4010,9 @@
       "hun_request_arbitration": "남슬로바키아에 대한 헝가리의 요구를 독일과 이탈리아가 중재해 달라고 청한다.",
       "hun_request_transylvania": "북트란실바니아에 대한 헝가리의 요구를 중재로 풀어 달라고 베를린에 청한다.",
       "ita_send_ctv": "의용군 군단(CTV)의 4개 사단이 프랑코의 국민파 곁에서 싸우러 스페인으로 떠난다.",
+      "jpn_army_budget": "예산에서 육군 몫이 커진다. 세력 균형이 육군 쪽으로 10 움직인다.",
       "jpn_demand_indochina_access": "프랑스령 인도차이나 당국에 일본군의 주둔과 통행을 요구한다. 처음에는 북부, 다음에는 남부가 대상이다.",
+      "jpn_navy_budget": "예산에서 해군 몫이 커진다. 세력 균형이 해군 쪽으로 10 움직인다.",
       "lat_join_hemisphere": "미국이 이끄는 진영에, 그런 진영이 없으면 연합국에 가입을 요청한다.",
       "mex_volunteer_squadron": "미국 전투기로 훈련받은 비행대가 미군 부대와 함께 태평양 항공전에 나선다.",
       "pol_uprising": "점령군의 장악이 약해진 때에 지하 군대에 수도에서 봉기하라고 명령한다.",
@@ -3826,6 +4026,9 @@
       "sun_offer_finnish_peace": "카렐리야 지협과 라도가 호숫가, 북쪽의 땅을 받는 대가로 전쟁을 끝내자고 제안한다.",
       "sun_propose_pact": "서방 열강이 우리를 그들의 전쟁에 끌어들이기 전에 독일에 불가침 조약을 제안한다.",
       "tur_hatay_question": "알렉산드레타 산자크를 튀르키예에 넘기라고 프랑스를 압박한다.",
+      "usa_defense_bill": "의회가 새 군수 공장 예산을 통과시키지만 정치적 대가가 따른다. 군수 공장 +2, 의회 지지 −5%p.",
+      "usa_fireside_chat": "대통령이 라디오로 국민에게 직접 말한다. 의회 지지 +12%p, 전쟁지지도 +3%.",
+      "usa_lobby_congress": "행정부가 위원장과 원내 총무를 한 사람씩 설득한다. 의회 지지 +8%p.",
       "usa_oil_embargo": "미국 안의 일본 자산을 동결하고 석유 수출을 끊는다. 일본은 연료 수입 대부분을 잃는다.",
       "usa_recognize_exiles": "미국이 우방 망명 정부들을 정식으로 승인하고 그 사절을 맞아, 그들이 자기 국민을 대표한다는 주장에 힘을 싣는다.",
       "usa_volunteer_air_group": "미국 조종사들이 군을 떠나 중국을 위해 전투기를 몰기로 계약하고, 기체는 미국의 차관으로 사들인다."
@@ -3870,6 +4073,49 @@
       "design_ship": "함선 설계",
       "design_tank": "전차 설계",
       "designs": "설계"
+    },
+    "design_name": {
+      "gun_auto20": "기관포형",
+      "gun_flame": "화염 방사형",
+      "gun_gun_cs": "지원포형",
+      "gun_gun_heavy": "대구경포형",
+      "gun_gun_hv": "장포신형",
+      "gun_gun_small": "소구경포형",
+      "gun_mg": "기관총형",
+      "plane_bomber": "전술 폭격기",
+      "plane_cas": "근접 지원기",
+      "plane_cv_cas": "함상 폭격기",
+      "plane_cv_fighter": "함상 전투기",
+      "plane_cv_naval_bomber": "함상 뇌격기",
+      "plane_fighter": "전투기",
+      "plane_heavy_fighter": "중전투기",
+      "plane_naval_bomber": "해군 폭격기",
+      "plane_strat_bomber": "전략 폭격기",
+      "plane_transport_plane": "수송기",
+      "role_sp_anti_air": "자주 대공포",
+      "role_sp_artillery": "자주포",
+      "role_tank_destroyer": "구축전차",
+      "ship_armor_heavy": "중장갑형",
+      "ship_engine_fast": "고속형",
+      "ship_hangar_large": "대형 격납고형",
+      "ship_mine_layer": "기뢰 부설형",
+      "ship_minesweep": "소해형",
+      "ship_radar_adv": "레이더형",
+      "ship_radar_microwave": "마이크로파 레이더형",
+      "ship_radar_surface": "레이더형",
+      "ship_sec_dp": "양용포형",
+      "ship_shbb_hull": "초대형",
+      "ship_snorkel": "스노클형",
+      "ship_standard": "표준형",
+      "ship_torp_heavy": "뇌장 강화형",
+      "tank_heavy_1": "중전차 I",
+      "tank_heavy_2": "중전차 II",
+      "tank_heavy_3": "중전차 III",
+      "tank_light_1": "경전차 I",
+      "tank_light_2": "경전차 II",
+      "tank_medium_1": "중형 전차 I",
+      "tank_medium_2": "중형 전차 II",
+      "tank_medium_3": "중형 전차 III"
     },
     "diplo": {
       "act": {
@@ -4433,6 +4679,7 @@
       "pol_pyry_meeting": "바르샤바 남쪽 피리 근처 카바티 숲에서 암호국이 영국과 프랑스의 암호 해독가들을 맞았다. 폴란드 수학자들은 여러 해 동안 독일 암호 기계로 보낸 통신을 읽어 왔다. 이제 폴란드를 지키겠다고 약속한 동맹에 그 방법과 복제 기계를 넘길 수 있다.",
       "pol_warsaw_uprising": "소련 전차가 바르샤바 동쪽 길목에 나타났다는 보고가 들어왔다. 시내의 국내군 사령관은 붉은 군대가 들어오기 전에 독일 수비대에 맞서 봉기해 수도를 해방하게 해 달라고 승인을 구한다.",
       "potsdam_conference": "폐허가 된 베를린 근교의 체칠리엔호프 궁전에서 승전국들이 독일의 동쪽 국경을 오데르강과 나이세강으로 정하고 동프로이센을 나누었다. 회담을 마치기 전 이들은 일본에 항복을 요구할 것이다.",
+      "quebec_agreement": "퀘벡에서 만난 영국과 미국의 지도자가 원자 연구를 합치기로 했다. 영국 과학자들이 미국 계획에 합류하고, 두 나라는 서로에게 그 무기를 쓰지 않으며 상대의 동의 없이 제3국에도 쓰지 않기로 한다.",
       "rou_antonescu": "여름 동안 영토를 잃은 책임을 떠안은 카롤 2세가 아들 미하이에게 왕위를 넘기고 물러났다. 국왕이 총리로 앉혔던 장군이 철위대의 지지를 받으며 '국가 지도자'로서 전권을 쥔다. 의회는 해산된 채로 남는다.",
       "rou_august_coup": "소련군이 몰다비아에서 전선을 돌파했다. 젊은 국왕과 야당들은 왕궁에서 정부 수반을 체포하고, 라디오로 연합국과의 휴전을 발표한 뒤 군대를 독일에 맞서게 하려 한다.",
       "rou_bessarabia_ultimatum": "모스크바가 베사라비아와 북부 부코비나를 내놓으라며 답변에 24시간, 철수에 나흘을 주었다. 베를린은 부쿠레슈티에 양보하라고 권하고, 도와줄 동맹국은 없다. 거부하면 소련군이 드네스트르강을 넘어올 것이다.",
@@ -4470,6 +4717,7 @@
       "tehran_conference": "소련, 미국, 영국의 지도자가 처음으로 테헤란의 소련 대사관에서 한자리에 앉았다. 세 사람은 1944년 봄 프랑스에 제2전선을 열기로 합의했다.",
       "tha_border_war": "프랑스가 패하자 방콕의 군중은 1904년과 1907년에 프랑스령 인도차이나에 넘겨준 메콩강 서쪽 땅을 되찾자고 외친다. 국경에서는 이미 충돌이 시작되었다. 정부는 전쟁과 인내 가운데 하나를 골라야 한다.",
       "tha_tokyo_peace": "일본이 시암과의 국경 전쟁을 중재하겠다며 답을 기다린다. 조건은 메콩강 서쪽과 바탐방 일대의 땅을 시암에 넘기는 것이다. 거절하면 홀로 싸움을 이어 가야 한다.",
+      "treaty_escalation": "1936년 런던 해군 조약 밖의 나라가 조약 상한을 넘는 전함을 짓고 있다. 조약 회원국들은 상향 조항을 발동하기로 합의했다. 배수량 상한이 오르고 더 큰 주포가 다시 허용된다.",
       "tur_aid_request": "상호 원조 조약에 따라 앙카라가 군 현대화에 쓸 항공기와 소총, 차관을 요청했다. 튀르키예는 해협과 중동으로 가는 길목을 지킨다. 다만 아나톨리아로 보내는 항공기만큼 우리 비행대는 줄어든다.",
       "tur_ataturk_dies": "공화국을 세운 무스타파 케말 아타튀르크가 이스탄불에서 세상을 떠났다. 대국민의회는 오랫동안 총리를 지냈고 독립 전쟁을 함께 치른 이스메트 이뇌뉘를 후계자로 고른다. 나라는 깊은 애도에 잠긴다.",
       "tur_hatay_state": "알렉산드레타 산자크 의회가 처음 열려 하타이 국가를 선포했다. 프랑스군과 튀르키예군이 함께 이 지역을 감독한다. 앙카라에서는 곧바로 병합을 밀어붙일지, 새 국가가 자리 잡을 때까지 기다릴지를 두고 논의가 오간다.",
@@ -4488,6 +4736,7 @@
       "usa_recession_1937": "균형 예산을 위해 연방 지출을 줄이자 주가가 폭락하고 공장 생산이 빠르게 줄고 있다. 보좌관들은 다시 나랏돈을 풀자고 하고, 재무부는 그러면 적자가 끝없이 이어질 것이라고 경고한다.",
       "usa_roosevelt_dies": "프랭클린 D. 루스벨트가 전쟁이 끝나기도 전에 조지아주 웜스프링스에서 세상을 떠났다. 외국에 잘 알려지지 않았고 전쟁 상황도 거의 보고받지 못한 해리 S. 트루먼 부통령이 취임 선서를 한다.",
       "usa_united_nations": "추축국과 싸우는 나라들의 대표가 워싱턴에 모여 공동 선언에 서명한다. 모든 나라가 공동의 싸움에 가진 힘을 다 쏟고, 따로 강화하지 않겠다고 약속한다. 이 선언은 '연합국(United Nations)'이라는 이름을 처음 쓴 문서다.",
+      "usa_uranium_committee": "우라늄으로 엄청난 위력의 폭탄을 만들 수 있다는 경고 편지가 대통령에게 전해졌다. 대통령은 정부 과학자와 육해군 장교로 꾸린 작은 위원회에 그 연구를 연방 예산으로 지원할지 검토하게 했다.",
       "vic_dakar": "영국과 자유 프랑스 함대가 다카르 앞바다에 나타나 드골 장군에게 합류하라고 요구한다. 항구의 전함과 해안 포대는 준비를 마쳤고, 총독은 대포와 사절 가운데 하나를 골라야 한다.",
       "vic_fleet_ultimatum": "영국 제독이 우리 함대에 몇 시간을 준다. 감시 아래 영국 항구나 서인도 제도로 떠나든지, 그 자리에서 가라앉으라는 것이다. 그러나 휴전 협정은 군함 한 척도 넘기지 말라고 정하고 있다.",
       "vic_full_powers": "비시의 카지노 극장에 모인 하원과 상원 의원들이 569 대 80으로 새 헌법을 만들 전권을 넘긴다. 이튿날 각료 회의 의장이 프랑스국의 국가 주석에 오르고, 제3공화국은 막을 내린다.",
@@ -5047,6 +5296,10 @@
       "potsdam_conference": {
         "a": "유럽의 강화를 매듭짓는다"
       },
+      "quebec_agreement": {
+        "a": "협정에 서명한다",
+        "b": "연구를 따로 지킨다"
+      },
       "rou_antonescu": {
         "a": "장군이 전권을 쥔다"
       },
@@ -5175,6 +5428,10 @@
         "a": "일본의 중재를 받아들인다",
         "b": "중재를 거부한다"
       },
+      "treaty_escalation": {
+        "a": "상한을 올린다",
+        "b": "옛 상한을 지키고 예산을 아낀다"
+      },
       "tur_aid_request": {
         "a": "무기를 보낸다",
         "b": "우리도 쓸 데가 있다"
@@ -5247,6 +5504,10 @@
       "usa_united_nations": {
         "a": "선언에 서명한다",
         "b": "아직은 때가 아니다"
+      },
+      "usa_uranium_committee": {
+        "a": "우라늄 연구를 지원한다",
+        "b": "대학에 맡겨 둔다"
       },
       "vic_dakar": {
         "a": "다카르를 지킨다",
@@ -5459,6 +5720,7 @@
       "pol_pyry_meeting": "피리 회동",
       "pol_warsaw_uprising": "바르샤바 봉기",
       "potsdam_conference": "포츠담 회담",
+      "quebec_agreement": "퀘벡 협정",
       "rou_antonescu": "국왕의 퇴위",
       "rou_august_coup": "미하이 국왕의 쿠데타",
       "rou_bessarabia_ultimatum": "베사라비아 최후통첩",
@@ -5496,6 +5758,7 @@
       "tehran_conference": "테헤란 회담",
       "tha_border_war": "잃어버린 영토",
       "tha_tokyo_peace": "도쿄 강화",
+      "treaty_escalation": "조약 상한 상향",
       "tur_aid_request": "튀르키예의 원조 요청",
       "tur_ataturk_dies": "아타튀르크의 죽음",
       "tur_hatay_state": "하타이 국가 수립",
@@ -5514,6 +5777,7 @@
       "usa_recession_1937": "1937년 경기 후퇴",
       "usa_roosevelt_dies": "대통령의 죽음",
       "usa_united_nations": "연합국 공동 선언",
+      "usa_uranium_committee": "우라늄 자문 위원회",
       "vic_dakar": "다카르 원정",
       "vic_fleet_ultimatum": "영국의 최후통첩",
       "vic_full_powers": "전권 위임",
@@ -5570,10 +5834,36 @@
       "regular": "정규",
       "veteran": "숙련"
     },
+    "facility": {
+      "facility_nuclear": "원자력 연구소",
+      "facility_rocket": "로켓 시험장",
+      "facility_science": "종합 실험소"
+    },
+    "facility_desc": {
+      "facility_nuclear": "원자탄 프로젝트를 돌리고 원자탄을 만든다. 핵물리학 기술과 인프라 3 이상의 코어 주 필요.",
+      "facility_rocket": "비행 폭탄·탄도 로켓 프로젝트를 돌린다. 첫 로켓 기술과 코어 주 필요.",
+      "facility_science": "제트 엔진·마이크로파 레이더·근접 신관 프로젝트를 돌린다. 첫 전자 기술과 코어 주 필요."
+    },
     "faction": {
       "allies": "연합국",
       "axis": "추축국",
       "comintern": "코민테른"
+    },
+    "faction_goal": {
+      "fg_europe_vp": "유럽의 중심",
+      "fg_industry": "동맹의 병기창",
+      "fg_liberation": "해방",
+      "fg_members": "넓은 연대",
+      "fg_research": "과학 동맹",
+      "fg_sea_lanes": "바다를 쥐다"
+    },
+    "faction_goal_desc": {
+      "fg_europe_vp": "유럽 승점의 40% 이상 통제. 보상: 1년 동안 안정도 +5%.",
+      "fg_industry": "회원 군수 공장 합 400 이상. 보상: 1년 동안 공장 산출 +5%.",
+      "fg_liberation": "점령당한 회원의 수도를 되찾는다. 보상: 전쟁지지도 +10%p.",
+      "fg_members": "회원 6개국 이상. 보상: 정치력 +50.",
+      "fg_research": "회원 기술 합이 회원 수 × 50 이상. 보상: 1년 동안 연구 +5%.",
+      "fg_sea_lanes": "바다 전략 구역 20개 이상에서 해상 우세 60% 이상. 보상: 1년 동안 수송선단 손실 −10%."
     },
     "faction_name": {
       "auto": "{country} 진영",
@@ -5583,6 +5873,16 @@
       "little_entente": "소협상",
       "nordic_defence": "북유럽 방위 동맹",
       "pan_american": "범아메리카 방위"
+    },
+    "faction_rule": {
+      "fr_ideology_lock": "이념 제한",
+      "fr_shared_intel": "정보 공유",
+      "fr_shared_research": "공동 연구"
+    },
+    "faction_rule_desc": {
+      "fr_ideology_lock": "진영 지도자와 집권 이념이 다른 나라는 가입·초청할 수 없다.",
+      "fr_shared_intel": "회원끼리 정보망의 절반과 해독한 암호를 나눠 쓴다.",
+      "fr_shared_research": "회원이 기술을 연구할 때 그 기술을 가진 다른 회원 하나마다 +10%(최대 +30%)."
     },
     "fleet": {
       "arg_sea_fleet": "외양 함대",
@@ -5646,6 +5946,24 @@
       "repairing": "수리 중",
       "returning": "귀항 중",
       "sortie": "출격"
+    },
+    "fm_trait": {
+      "fm_defensive": "방어 원수",
+      "fm_fast_planner": "빠른 계획가",
+      "fm_inspiring": "사기 고취",
+      "fm_logistics": "병참 원수",
+      "fm_offensive": "공세 원수",
+      "fm_strategist": "전략가",
+      "fm_thorough": "철저한 계획가"
+    },
+    "fm_trait_desc": {
+      "fm_defensive": "집단군 전체 방어 +5%, 참호 쌓는 속도 +25%.",
+      "fm_fast_planner": "집단군 전체 준비도 속도 +20%.",
+      "fm_inspiring": "집단군 전체 조직력 회복 +10%, 조직력 +3.",
+      "fm_logistics": "집단군 전체 보급 사용 −10%.",
+      "fm_offensive": "집단군 전체 공격 +5%, 준비도 속도 +10%.",
+      "fm_strategist": "집단군 전체 공격·방어 +3%, 집단군 군 한도 +1(6개).",
+      "fm_thorough": "집단군 전체 준비도 최대 +10%p."
     },
     "focus": {
       "alb_reforms": "왕국 개혁",
@@ -7040,6 +7358,30 @@
       "war_goal": "{on}에 대한 전쟁 목표: {type}{group, select, none {} other { ({group})}}",
       "war_support": "전쟁지지도 {pct, number, ::sign-always}%p"
     },
+    "gd": {
+      "gd_base_strike": "기지 타격",
+      "gd_battlefield_support": "전장 지원",
+      "gd_battleplan": "전투 계획",
+      "gd_firepower": "화력 우세",
+      "gd_fleet_in_being": "함대 결전",
+      "gd_mass": "인해 전술",
+      "gd_mobile": "기동전",
+      "gd_operational_integrity": "작전 통합",
+      "gd_strategic_destruction": "전략 파괴",
+      "gd_trade_interdiction": "통상 파괴"
+    },
+    "gd_desc": {
+      "gd_base_strike": "기본: 항모 공격 +20%, 갑판 +10%. 완성: 해군 폭격기·함상 뇌격기 해상 공격 +15%, 항모 공격 주기 3 → 2라운드.",
+      "gd_battlefield_support": "기본: 근접 지원 +15%, 적에게 주는 제공권 벌칙 +5%p. 완성: 근접 지원 +15%, 공수 준비 −50%.",
+      "gd_battleplan": "기본: 방어 +10%, 준비도 최대 +10%p. 완성: 방어 +10%, 준비도 속도 +50%, 참호 최대 +2.",
+      "gd_firepower": "기본: 포병·기계화 포병·지원 포병·자주포 연성 +20%. 완성: 모든 공격 +10%.",
+      "gd_fleet_in_being": "기본: 주력함 공격 +10%, 진형 +5%. 완성: 차단 효율 +15%, 전함·순양전함 HP +10%.",
+      "gd_mass": "기본: 모집 가능 인구 +10%, 보병 대대 훈련 −33%. 완성: 공격·방어 +5%, 보병 대대 조직력 +10.",
+      "gd_mobile": "기본: 모든 사단 속도 +10%. 완성(트랙 레벨 합 6 이상): 전차·차량화 대대가 있는 사단 돌파 +20%, 조직력 +5.",
+      "gd_operational_integrity": "기본: 전투기 기동성 +10%, 공중 탐지 +10%. 완성: 공중전 손실 −15%, 해상 공격 +10%.",
+      "gd_strategic_destruction": "기본: 전략 폭격 +15%, 전투기 공중 공격 +5%. 완성: 전략 폭격 +15%, 중전투기·전략 폭격기 공중 방어 +15%.",
+      "gd_trade_interdiction": "기본: 잠수함 어뢰 +15%, 잠수함 피발견도 −10%, 통상 파괴 +15%. 완성: 통상 파괴 +15%, 경·중순양함 통상 파괴력 ×1.5, 잠수함 조직력 +10."
+    },
     "gen": {
       "1": "I",
       "2": "II",
@@ -7152,6 +7494,34 @@
       "zhang_zhizhong": "장즈중",
       "zhu_de": "주더",
       "zhukov": "게오르기 주코프"
+    },
+    "general_trait": {
+      "ambusher": "매복",
+      "armor_expert": "기갑 전문가",
+      "artillery_officer": "포병 장교",
+      "commando": "특수전 지휘",
+      "engineer_officer": "공병 장교",
+      "forest_expert": "숲 전문가",
+      "guerrilla_fighter": "비정규전",
+      "infantry_expert": "보병 전문가",
+      "skirmisher": "정찰전",
+      "swamp_expert": "습지 전문가",
+      "trickster": "기만술사",
+      "urban_expert": "시가전 전문가"
+    },
+    "general_trait_desc": {
+      "ambusher": "방어 측일 때 공격 +15%. 단계 3, 방어 전문가 필요, 지휘력 25.",
+      "armor_expert": "전차 대대 돌파 +10%, 기갑 사단 공격 +10%. 단계 2, 기갑 지휘관 필요, 지휘력 20.",
+      "artillery_officer": "포병류 연성 +10%. 단계 1, 지휘력 15.",
+      "commando": "산악·해병·공수 사단 공격 +10%, 습격 준비 −25%. 단계 2, 지휘력 15.",
+      "engineer_officer": "강·요새 벌칙 −15%. 단계 2, 지휘력 15.",
+      "forest_expert": "숲·정글 공격 +10%, 방어 +5%. 그 지형에서 전투 60일로 얻는다.",
+      "guerrilla_fighter": "보급 벌칙 절반, 포위 중에도 조직력 회복 그대로. 단계 2, 지휘력 15.",
+      "infantry_expert": "보병 사단 공격·방어 +10%. 단계 2, 보병 지휘관 필요, 지휘력 15.",
+      "skirmisher": "맞닿은 적 군에 대한 육군 정보 +20%p. 단계 1, 지휘력 15.",
+      "swamp_expert": "습지 공격 +10%, 이동 +10%. 습지 전투 60일로 얻는다.",
+      "trickster": "이 군을 상대하는 적의 준비도 보너스 −10%p. 단계 3, 지휘력 20.",
+      "urban_expert": "도시 공격 +10%, 방어 +10%. 도시 전투 60일로 얻는다."
     },
     "gov": {
       "BRM": {
@@ -7273,6 +7643,28 @@
       "fascist": "파시즘",
       "neutral": "비동맹"
     },
+    "intel_band": {
+      "0": "모름",
+      "1": "대략",
+      "2": "근사",
+      "3": "정확"
+    },
+    "intel_mission": {
+      "boost_ideology": "이념 공작",
+      "build_network": "정보망 구축",
+      "counter_intelligence": "방첩",
+      "propaganda": "선전 공작",
+      "support_resistance": "저항 지원",
+      "suppress_resistance": "저항 진압"
+    },
+    "intel_mission_desc": {
+      "boost_ideology": "대상 나라에서 우리 집권 이념의 지지율을 올린다. 정보망 10%와 평화가 필요하다.",
+      "build_network": "대상 나라에 정보망을 쌓는다. 숙련이 높을수록 빠르다.",
+      "counter_intelligence": "우리 땅의 적 공작원을 쫓고 적 정보망 성장을 늦춘다.",
+      "propaganda": "대상의 안정도와 전쟁지지도를 조금씩 깎는다(한도 있음). 정보망 20% 필요.",
+      "support_resistance": "대상이 점령 통치하는 주의 저항을 높인다. 정보망 20% 필요.",
+      "suppress_resistance": "우리가 점령 통치하는 주의 저항을 낮춘다."
+    },
     "invasion_state": {
       "landing": "상륙 중",
       "preparing": "준비 중",
@@ -7390,6 +7782,21 @@
       "training_men": "훈련 중",
       "waiting_equipment": "장비 대기 중 {pct}%",
       "waiting_manpower": "인력 대기 중"
+    },
+    "landmark": {
+      "lm_brandenburg": "브란덴부르크 문",
+      "lm_christ_redeemer": "구세주 그리스도상",
+      "lm_colosseum": "콜로세움",
+      "lm_eiffel": "에펠탑",
+      "lm_empire_state": "엠파이어 스테이트 빌딩",
+      "lm_forbidden_city": "자금성",
+      "lm_golden_gate": "금문교",
+      "lm_hagia_sophia": "아야소피아",
+      "lm_himeji": "히메지성",
+      "lm_kremlin": "크렘린",
+      "lm_liberty": "자유의 여신상",
+      "lm_taj_mahal": "타지마할",
+      "lm_westminster": "웨스트민스터 시계탑"
     },
     "law": {
       "conscription": {
@@ -7523,11 +7930,165 @@
       "pick_hint": "고르지 않은 나라는 모두 AI가 맡습니다. 다른 사람이 고른 나라는 흐리게 보입니다.",
       "taken_by": "{name} 님이 골랐습니다"
     },
+    "medal": {
+      "medal_defense": "방어 훈장",
+      "medal_service": "근무 훈장",
+      "medal_valor": "무공 훈장"
+    },
     "member_state": {
       "active": "활동",
       "capitulated": "항복",
       "exiled": "망명",
       "left": "이탈"
+    },
+    "mio_arch": {
+      "design_bureau": "{country} 전문 설계국",
+      "private_combine": "{country} 민간 중공업 연합",
+      "state_arsenal": "{country} 국영 병기창"
+    },
+    "mio_family": {
+      "mio_air_heavy": "중대형 항공기",
+      "mio_air_light": "소형 항공기",
+      "mio_armor": "기갑",
+      "mio_artillery": "포",
+      "mio_infantry": "보병 장비",
+      "mio_naval": "해군"
+    },
+    "mio_trait": {
+      "mio_air_heavy": {
+        "p1": "공정 표준화",
+        "p2": "조립 라인 확장",
+        "p3": "저가 양산",
+        "q1": "품질 관리",
+        "q2": "시험장 평가",
+        "q3": "정밀 공작",
+        "s1": "장거리 비행",
+        "s2": "폭탄창 확대",
+        "s3": "방어 화력"
+      },
+      "mio_air_light": {
+        "p1": "공정 표준화",
+        "p2": "조립 라인 확장",
+        "p3": "저가 양산",
+        "q1": "품질 관리",
+        "q2": "시험장 평가",
+        "q3": "정밀 공작",
+        "s1": "엔진 조율",
+        "s2": "무장 강화",
+        "s3": "함재기 개량"
+      },
+      "mio_armor": {
+        "p1": "공정 표준화",
+        "p2": "조립 라인 확장",
+        "p3": "저가 양산",
+        "q1": "품질 관리",
+        "q2": "시험장 평가",
+        "q3": "정밀 공작",
+        "s1": "무선 표준화",
+        "s2": "장갑 공정",
+        "s3": "주포 개량"
+      },
+      "mio_artillery": {
+        "p1": "공정 표준화",
+        "p2": "조립 라인 확장",
+        "p3": "저가 양산",
+        "q1": "품질 관리",
+        "q2": "시험장 평가",
+        "q3": "정밀 공작",
+        "s1": "사격 표",
+        "s2": "견인차 개량",
+        "s3": "고속탄"
+      },
+      "mio_infantry": {
+        "p1": "공정 표준화",
+        "p2": "조립 라인 확장",
+        "p3": "저가 양산",
+        "q1": "품질 관리",
+        "q2": "시험장 평가",
+        "q3": "정밀 공작",
+        "s1": "경량 화기",
+        "s2": "표준 탄약",
+        "s3": "트럭 정비"
+      },
+      "mio_naval": {
+        "p1": "공정 표준화",
+        "p2": "조립 라인 확장",
+        "p3": "저가 양산",
+        "q1": "품질 관리",
+        "q2": "시험장 평가",
+        "q3": "정밀 공작",
+        "s1": "함체 설계",
+        "s2": "사격 통제",
+        "s3": "잠수함 설계"
+      }
+    },
+    "mio_trait_desc": {
+      "mio_air_heavy": {
+        "p1": "이 계열 생산 비용 −5%.",
+        "p2": "이 계열 라인 효율 상한 +5%p.",
+        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
+        "q1": "신뢰도 +5%p.",
+        "q2": "주 수치 +5%: 전략·지상·해상 공격, 공중 방어.",
+        "q3": "주 수치 +8%: 전략·지상·해상 공격, 공중 방어. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
+        "s1": "항속 +15%.",
+        "s2": "전략·지상 공격 +8%.",
+        "s3": "공중 방어 +8%."
+      },
+      "mio_air_light": {
+        "p1": "이 계열 생산 비용 −5%.",
+        "p2": "이 계열 라인 효율 상한 +5%p.",
+        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
+        "q1": "신뢰도 +5%p.",
+        "q2": "주 수치 +5%: 공중 공격·지상 공격.",
+        "q3": "주 수치 +8%: 공중 공격·지상 공격. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
+        "s1": "기동 +5%, 속도 +3%.",
+        "s2": "공중 공격 +5%.",
+        "s3": "함재기 항속 +10%, 갑판 +5%."
+      },
+      "mio_armor": {
+        "p1": "이 계열 생산 비용 −5%.",
+        "p2": "이 계열 라인 효율 상한 +5%p.",
+        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
+        "q1": "신뢰도 +5%p.",
+        "q2": "주 수치 +5%: 전차·구축전차·자주포 연성·경성·돌파.",
+        "q3": "주 수치 +8%: 전차·구축전차·자주포 연성·경성·돌파. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
+        "s1": "전차 대대 돌파 +5%.",
+        "s2": "전차 장갑 +5%.",
+        "s3": "전차 관통 +8%."
+      },
+      "mio_artillery": {
+        "p1": "이 계열 생산 비용 −5%.",
+        "p2": "이 계열 라인 효율 상한 +5%p.",
+        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
+        "q1": "생산 비용 −3%.",
+        "q2": "주 수치 +5%: 포병류·대전차류·대공 연성·경성.",
+        "q3": "주 수치 +8%: 포병류·대전차류·대공 연성·경성. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
+        "s1": "포병류 연성 +5%.",
+        "s2": "기계화 포병 속도 +10%.",
+        "s3": "대전차류 관통 +10%."
+      },
+      "mio_infantry": {
+        "p1": "이 계열 생산 비용 −5%.",
+        "p2": "이 계열 라인 효율 상한 +5%p.",
+        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
+        "q1": "생산 비용 −3%.",
+        "q2": "주 수치 +5%: 보병류 대대 공격·방어.",
+        "q3": "주 수치 +8%: 보병류 대대 공격·방어. 비용 +5%. 저가 양산과 함께 고를 수 없다.",
+        "s1": "보병 대대 공격 +3%.",
+        "s2": "보급 사용 −5%.",
+        "s3": "차량화 속도 +5%, 트럭 연료 절약."
+      },
+      "mio_naval": {
+        "p1": "이 계열 생산 비용 −5%.",
+        "p2": "이 계열 라인 효율 상한 +5%p.",
+        "p3": "비용 −10%, 신뢰도 −5%p. 정밀 공작과 함께 고를 수 없다.",
+        "q1": "생산 비용 −3%.",
+        "q2": "주 수치 +5%: 함선의 모든 사격(경포·중포·어뢰·폭뢰).",
+        "q3": "주 수치 +8%: 함선의 모든 사격(경포·중포·어뢰·폭뢰). 비용 +5%. 저가 양산과 함께 고를 수 없다.",
+        "s1": "함선 HP +5%.",
+        "s2": "경포·중포 +5%.",
+        "s3": "잠수함 어뢰 +10%, 피발견도 −5%."
+      }
     },
     "mission": {
       "escort": "호송",
@@ -7582,6 +8143,111 @@
       "terrain": "지형",
       "trait": "특성",
       "weather": "날씨"
+    },
+    "module": {
+      "aa_auto": "대공 기관포",
+      "amphibious": "상륙 장비",
+      "armor_deck": "장갑 비행갑판",
+      "armor_heavy": "장갑 강화",
+      "armor_light": "경장갑",
+      "asw_dc_heavy": "폭뢰 강화",
+      "asw_sonar": "소나",
+      "auto20": "20mm 기관포",
+      "aux_mg": "보조 기관총",
+      "bogie": "판스프링 보기",
+      "cast": "주조 장갑",
+      "christie": "대형 바퀴 코일 현가",
+      "diesel": "디젤 기관",
+      "engine_fast": "고속 기관",
+      "engine_long": "장거리 기관",
+      "fc_improved": "개량 사격 통제",
+      "flail": "지뢰 제거 장비",
+      "flame": "화염 방사기",
+      "floatplane": "함재 수상기",
+      "gun_cs": "75mm 단포신 지원포",
+      "gun_heavy": "88mm급 대구경포",
+      "gun_hv": "75mm 장포신포",
+      "gun_small": "37~47mm 포",
+      "hangar_large": "대형 격납고",
+      "hangar_small": "소형 격납고",
+      "howitzer": "105mm 곡사포",
+      "interleaved": "겹바퀴",
+      "m_armor": "장갑판",
+      "m_bomb_sight": "폭격 조준기",
+      "m_carrier": "함재 장비",
+      "m_def_turret": "방어 기총탑",
+      "m_dive_brakes": "급강하 장치",
+      "m_drop_tank": "보조 연료 탱크",
+      "m_engine_boost": "고출력 엔진",
+      "m_radar": "항공 레이더",
+      "m_recon_camera": "정찰 카메라",
+      "m_self_sealing": "방탄 연료 탱크",
+      "main_heavy": "주포 강화",
+      "main_light": "주포 경량화",
+      "mg": "기관총",
+      "mine_layer": "기뢰 부설 장치",
+      "minesweep": "소해 장비",
+      "petrol": "가솔린 기관",
+      "radar_adv": "개량 레이더",
+      "radar_microwave": "마이크로파 레이더",
+      "radar_surface": "수상 레이더",
+      "radio": "무선기",
+      "riveted": "리벳 장갑",
+      "sec_aa": "대공 강화",
+      "sec_dp": "양용포",
+      "sec_light": "부포 강화",
+      "shbb_hull": "초대형 함체",
+      "skirts": "증가 장갑판",
+      "sloped": "경사 장갑",
+      "smoke": "연막 발사기",
+      "snorkel": "스노클",
+      "torp_heavy": "어뢰 강화",
+      "torp_none": "어뢰 없음",
+      "torsion": "토션 바",
+      "turret_1": "1인 포탑",
+      "turret_2": "2인 포탑",
+      "turret_3": "3인 포탑",
+      "turret_none": "고정 전투실",
+      "turret_open": "무개 포탑",
+      "w_bombs_l": "대형 폭탄창",
+      "w_bombs_m": "중형 폭탄창",
+      "w_bombs_s": "소형 폭탄 걸이",
+      "w_cannon20": "20mm 기관포",
+      "w_cannon30": "30mm 기관포",
+      "w_cargo": "화물칸",
+      "w_hmg": "중기관총",
+      "w_mg2": "기관총 2정",
+      "w_mg4": "기관총 4정",
+      "w_rockets": "공대지 로켓",
+      "w_torpedo": "항공 어뢰",
+      "welded": "용접 장갑"
+    },
+    "module_slot": {
+      "plane": {
+        "aux": "보조",
+        "defense": "방어",
+        "special": "특수 장비",
+        "weapon": "주무장"
+      },
+      "ship": {
+        "armor": "장갑",
+        "asw": "대잠",
+        "engine": "기관",
+        "fire_control": "사격·레이더",
+        "hangar": "격납고",
+        "main": "주포",
+        "secondary": "부포·대공",
+        "special": "특수 장비",
+        "torpedo": "어뢰"
+      },
+      "tank": {
+        "armor": "장갑 방식",
+        "engine": "기관",
+        "gun": "주포",
+        "special": "특수 장비",
+        "suspension": "현가 장치",
+        "turret": "포탑"
+      }
     },
     "month": {
       "m01": "1월",
@@ -7858,6 +8524,30 @@
       "occ_civil": "저항이 낮고 준수도가 빨리 오르며 수비대가 적게 필요하지만 공장·자원 몫이 줄어듭니다",
       "occ_martial": "공장·자원 몫이 늘지만 저항이 높고 준수도가 느리게 오르며 수비대가 더 필요합니다",
       "occ_military": "기본 균형입니다"
+    },
+    "op": {
+      "op_capture_cipher": "암호 탈취",
+      "op_collaboration": "협력 정부 공작",
+      "op_coup": "쿠데타",
+      "op_infiltrate_air": "공군 침투",
+      "op_infiltrate_army": "군부 침투",
+      "op_infiltrate_navy": "해군 침투",
+      "op_rescue": "공작원 구출",
+      "op_sabotage": "사보타주",
+      "op_steal_blueprints": "설계도 탈취",
+      "op_uprising": "봉기 지원"
+    },
+    "op_desc": {
+      "op_capture_cipher": "대상 해독 진행 +50%. 정보망 50%, 공작원 2명, 90일, 정치력 50.",
+      "op_collaboration": "우리와 전쟁 중인 대상의 항복 기준선 −10%p. 실패할 수 있다. 정보망 60%, 공작원 2명, 120일, 정치력 50.",
+      "op_coup": "대상에서 우리 이념 지지가 충분하면 그 이념의 정부를 세운다. 실패하면 두 공작원이 체포된다. 정보망 80%, 공작원 2명, 150일, 정치력 100과 보병 장비 1,000.",
+      "op_infiltrate_air": "대상 공군 정보 +30%p. 정보망 30%, 공작원 1명, 60일, 정치력 25.",
+      "op_infiltrate_army": "대상 육군 정보 +30%p. 정보망 30%, 공작원 1명, 60일, 정치력 25.",
+      "op_infiltrate_navy": "대상 해군 정보 +30%p. 정보망 30%, 공작원 1명, 60일, 정치력 25.",
+      "op_rescue": "대상에 붙잡힌 우리 공작원 한 명을 데려온다. 정보망 30%, 공작원 1명, 30일, 정치력 25.",
+      "op_sabotage": "대상의 특수 프로젝트를 늦추거나 군수 공장 2개를 멈춘다. 정보망 30%, 공작원 1명, 45일, 정치력 25.",
+      "op_steal_blueprints": "대상이 가졌고 우리에게 없는 기술의 연구 보너스와 대상의 최신 설계 하나. 정보망 40%, 공작원 1명, 90일, 정치력 25.",
+      "op_uprising": "대상이 점령한 우리 코어 주의 저항 +15%p, 봉기 문턱 −10%p. 정보망 40%, 공작원 1명, 60일, 정치력 25와 보병 장비 500."
     },
     "pack": {
       "bal": "발칸",
@@ -8359,6 +9049,32 @@
       "value_signed": "{v, number, ::sign-always}",
       "who_prefix": "{who}: "
     },
+    "project": {
+      "sp_atomic": "원자탄 개발",
+      "sp_ballistic": "탄도 로켓",
+      "sp_cavity_magnetron": "마이크로파 레이더",
+      "sp_flying_bomb": "비행 폭탄",
+      "sp_jet_engine": "제트 엔진",
+      "sp_proximity_fuze": "근접 신관"
+    },
+    "project_desc": {
+      "sp_atomic": "원자력 연구소에서 1,900일, 우라늄 하루 2. 끝나면 연구소마다 120일에 원자탄 1발을 만든다.",
+      "sp_ballistic": "비행 폭탄 다음, 로켓 시험장에서 700일. 탄도 로켓 생산을 연다.",
+      "sp_cavity_magnetron": "종합 실험소에서 450일. 레이더 건물 탐지 향상, 마이크로파 함선 레이더, 항공 레이더 효과 ×1.5.",
+      "sp_flying_bomb": "로켓 시험장에서 500일. 비행 폭탄 생산과 로켓 발사 기지를 연다.",
+      "sp_jet_engine": "종합 실험소에서 650일. 제트 기체를 연다.",
+      "sp_proximity_fuze": "종합 실험소에서 500일. 함선·주·사단 대공 피해 ×1.5, 포병류 연성 +5%."
+    },
+    "raid": {
+      "raid_bomb": "정밀 폭격 습격",
+      "raid_commando": "특수 부대 습격",
+      "raid_para": "공수 습격"
+    },
+    "raid_desc": {
+      "raid_bomb": "그 공역에 배치된 폭격기 50대 이상이 건물 하나(댐 포함)를 노린다. 준비 7일.",
+      "raid_commando": "해병·산악 사단이 바다로 상륙해 해군 기지, 해안 요새, 조선소, 시설, 댐을 노린다. 준비 15일.",
+      "raid_para": "공수 사단이 건물 하나를 노린다: 시설, 공군 기지, 레이더, 댐, 해안 요새, 로켓 발사 기지. 준비 20일."
+    },
     "region": {
       "legal_owner": "법적 주인: {country}",
       "vp": "승점 {vp}"
@@ -8405,6 +9121,12 @@
       "sub_doctrine": "잠수함 교리",
       "synthetic_refinery": "합성 연료 공장"
     },
+    "role": {
+      "sp_anti_air": "자주 대공포",
+      "sp_artillery": "자주포",
+      "tank": "전차",
+      "tank_destroyer": "구축전차"
+    },
     "school": {
       "base_strike": "항모 기동부대",
       "battlefield_support": "지상 협동",
@@ -8416,6 +9138,12 @@
       "operational_integrity": "통합 항공 지휘",
       "strategic_destruction": "폭격 공세",
       "trade_interdiction": "통상 파괴전"
+    },
+    "scientist": {
+      "aviation": "항공 공학자 {n}",
+      "electronics": "전자 공학자 {n}",
+      "nuclear": "핵물리학자 {n}",
+      "rocket": "로켓 공학자 {n}"
     },
     "ship": {
       "arg_almirante_brown": "알미란테 브라운",
@@ -8960,6 +9688,13 @@
       "bal_arms_contracts": "무기 수입 계약",
       "bal_highland_drill": "산악 훈련",
       "bal_partisan_war": "산악 유격전",
+      "bop_chn_strong_centre": "강한 중앙",
+      "bop_chn_warlords": "군벌의 나라",
+      "bop_fra_national_union": "국민 연합",
+      "bop_fra_popular_front": "인민전선",
+      "bop_jpn_army": "육군 우위",
+      "bop_jpn_balance": "육해군 균형",
+      "bop_jpn_navy": "해군 우위",
       "bra_feb_veterans": "이탈리아 전선 경험",
       "ccp_anti_japan_front": "통일 전선",
       "ccp_cadre_training": "간부 교육",
@@ -8999,6 +9734,10 @@
       "dom_mining_drive": "광산 개발",
       "dom_wartime_output": "전시 생산",
       "esp_civil_war_nation": "내전의 나라",
+      "fg_arsenal": "동맹의 병기창",
+      "fg_cohesion": "진영 결속",
+      "fg_science": "과학 동맹",
+      "fg_sea_control": "바닷길 장악",
       "fin_civil_guard_spirit": "수호대 동원",
       "fin_motti_tactics": "숲 포위 전술",
       "fra_armament_ministry": "군비부",
@@ -9064,6 +9803,7 @@
       "gen_research_institutes": "국립 연구소",
       "gen_resistance_support": "저항 지원",
       "gen_skilled_workforce": "숙련공 양성",
+      "gen_staff_college": "참모 대학 확장",
       "gen_staff_training": "참모 교육",
       "gen_strike_losses": "파업의 여파",
       "gen_war_bonds_spirit": "전쟁 공채",
@@ -9187,6 +9927,13 @@
       "bal_arms_contracts": "외국 무기를 더 나은 차관·물물 교환 조건으로 들여온다.",
       "bal_highland_drill": "산에서 훈련한 보병이 공격에서 더 잘 싸운다.",
       "bal_partisan_war": "산속의 유격대가 점령된 땅을 늘 들끓게 한다.",
+      "bop_chn_strong_centre": "중앙 정부의 말이 지방까지 통한다. 안정도 +10%, 정치력 +10%.",
+      "bop_chn_warlords": "지방 군벌이 먼저 자기 이익을 따진다. 정치력 −20%, 모집 가능 인구 +10%.",
+      "bop_fra_national_union": "중도와 우파가 재무장을 중심으로 뭉친다. 군수 건설 +10%, 안정도 −5%.",
+      "bop_fra_popular_front": "좌파 연합이 노동조합의 지지로 정부를 이끈다. 소비재 +3%p, 안정도 +5%, 군수 건설 −10%.",
+      "bop_jpn_army": "육군이 국가의 방침을 정한다. 지상 연구 +10%, 공격 +5%, 해군 연구 −10%.",
+      "bop_jpn_balance": "어느 군도 예산을 독차지하지 않는다. 연구 +3%.",
+      "bop_jpn_navy": "해군이 국가의 방침을 정한다. 해군 연구 +10%, 조선소 산출 +5%, 지상 연구 −10%.",
       "bra_feb_veterans": "이탈리아 전선에서 돌아온 장교들이 배운 것을 전한다.",
       "ccp_anti_japan_front": "국민정부와의 합작으로 항일 전쟁에 힘을 모은다.",
       "ccp_cadre_training": "당 학교를 거친 간부들이 근거지의 행정을 이끈다.",
@@ -9226,6 +9973,10 @@
       "dom_mining_drive": "새 광산과 정부 계약으로 전략 금속 산출이 는다.",
       "dom_wartime_output": "공장들이 정부 통제관 아래 교대를 늘려 돌아간다.",
       "esp_civil_war_nation": "스페인은 둘로 갈라졌고 공장과 마을마다 편을 골라야 했다.",
+      "fg_arsenal": "회원국의 공장이 하나처럼 돌아간다. 공장 산출 +5%.",
+      "fg_cohesion": "진영이 유럽의 중심을 쥐었다. 안정도 +5%.",
+      "fg_science": "회원국이 연구소를 함께 쓴다. 연구 +5%.",
+      "fg_sea_control": "진영이 바닷길을 장악했다. 수송선단 손실 −10%.",
       "fin_civil_guard_spirit": "수호대가 언제든 대열을 채울 준비가 되어 있다.",
       "fin_motti_tactics": "숲에서는 적을 끊어 내고 토막마다 에워싼다.",
       "fra_armament_ministry": "한 부처가 광산에서 전선까지 무기 생산을 계획한다.",
@@ -9286,6 +10037,7 @@
       "gen_research_institutes": "나라가 세운 연구소들이 모든 분야의 연구를 조금씩 앞당긴다.",
       "gen_resistance_support": "우리 요원과 무전기가 점령당한 본토의 저항 운동을 키우고 있다.",
       "gen_skilled_workforce": "기술 학교를 나온 숙련공들이 생산 라인의 효율을 한층 끌어올린다.",
+      "gen_staff_college": "더 많은 장교가 참모 과정을 거친다. 지휘력 증가 +25%.",
       "gen_staff_training": "참모 대학 출신 장교들이 작전 준비를 앞당기고 군에 경험을 쌓아 준다.",
       "gen_strike_losses": "멈췄던 공장들이 아직 제 속도를 되찾지 못했다.",
       "gen_war_bonds_spirit": "공채를 산 국민은 전쟁을 자기 일로 여기지만, 그만큼 생필품 수요도 늘었다.",
@@ -9603,6 +10355,52 @@
       "warSupportWeeklyBp": "전쟁지지도 매주 {value, number, ::sign-always scale/0.01}%",
       "winterPenaltyPct": "겨울 벌칙 {value, number, ::sign-always scale/-1}%"
     },
+    "subdoc": {
+      "air_escort": "호위 전투",
+      "air_ground_attack": "지상 공격",
+      "air_interceptor": "요격 체계",
+      "air_maritime_patrol": "해상 초계",
+      "air_maritime_strike": "해상 타격",
+      "air_strategic_campaign": "전략 폭격 작전",
+      "arm_breakthrough": "전격 돌파",
+      "arm_inf_support": "보병 지원 전차",
+      "arm_mech": "기계화 협동",
+      "inf_assault": "돌격 보병",
+      "inf_elastic": "탄력 방어",
+      "inf_mass_mob": "대량 동원",
+      "nav_battleline": "전열 함대",
+      "nav_carrier_force": "항모 기동 부대",
+      "nav_carrier_support": "항모 지원",
+      "nav_convoy_escort": "호송 체계",
+      "nav_cruiser": "순양함 작전",
+      "nav_wolfpack": "늑대 떼",
+      "sup_artillery": "포병 집중",
+      "sup_deep_ops": "종심 작전",
+      "sup_entrenched": "진지전"
+    },
+    "subdoc_desc": {
+      "air_escort": "전투기가 폭격기와 함께 난다. 제공 공격·기동성이 늘고 폭격기 손실이 줄며 항속이 는다.",
+      "air_ground_attack": "전선 위의 항공기. 근접 지원이 늘고 대공 손실이 줄며 전술 폭격기 지상 공격이 는다.",
+      "air_interceptor": "폭격기를 맞받는 방공. 요격 공격·공중 탐지·전투기 공중 방어가 는다.",
+      "air_maritime_patrol": "바닷길을 지키는 항공기. 초계 탐색·대잠 호위·잠수함 탐지가 늘고 손실이 준다.",
+      "air_maritime_strike": "함선을 노리는 항공기. 해상·항구 공격과 해군 폭격기 공중 방어가 는다.",
+      "air_strategic_campaign": "적의 공업을 폭격한다. 전략 폭격·폭격기 공중 방어가 늘고 야간 폭격이 나아진다.",
+      "arm_breakthrough": "전차로 뚫는다. 전차 돌파와 기갑 사단 속도·조직력이 늘고, 마지막에 연성 공격과 연료 절약을 얻는다.",
+      "arm_inf_support": "전차가 보병과 함께 움직인다. 전차 방어·신뢰도·장갑이 늘고 보병·전차 혼성 사단이 강해진다.",
+      "arm_mech": "차량화 보병이 전차를 따라간다. 속도·조직력이 늘고 보급 사용이 줄며 준비도가 빨리 찬다.",
+      "inf_assault": "공격에 맞춘 보병. 1·3·5단계에 보병 공격이 오르고, 강·요새 벌칙이 줄며 돌파가 는다.",
+      "inf_elastic": "물러서며 버티는 보병. 단계마다 보병 방어와 참호가 늘고, 마지막에 방어 +10%와 빠른 참호 구축을 얻는다.",
+      "inf_mass_mob": "많은 병력을 빨리 모은다. 훈련이 빨라지고 모집 가능 인구·보충 속도·인력 증가가 는다.",
+      "nav_battleline": "전함이 전열을 이룬다. 주력함 중포·진형·장갑이 늘고 마지막에 전함·순양전함 HP가 는다.",
+      "nav_carrier_force": "항모가 함대를 이끈다. 항모 공격·갑판·해상 공격이 늘고 공격 주기가 빨라진다.",
+      "nav_carrier_support": "항모가 함대를 엄호한다. 함대 대공·탐지와 바다 위 제공권, 해안 포격이 는다.",
+      "nav_convoy_escort": "수송선단을 지켜 보낸다. 폭뢰·호송·대잠 탐지가 늘고 수송선단 손실이 준다.",
+      "nav_cruiser": "순양함이 멀리 나간다. 경포·속도·통상 파괴·탐지가 늘고 마지막에 항속이 는다.",
+      "nav_wolfpack": "잠수함이 무리 지어 사냥한다. 어뢰·은밀성·통상 파괴·조직력이 는다.",
+      "sup_artillery": "포가 전투를 정한다. 단계마다 포병류 연성이 오르고 요새 벌칙이 줄며 대전차류 경성이 는다.",
+      "sup_deep_ops": "깊이 계획하고 빨리 나아간다. 준비도 속도·최대, 과감한 공세의 공격, 돌파, 전진 속도가 는다.",
+      "sup_entrenched": "준비된 진지를 지킨다. 참호가 깊어지고 공병이 강해지며 요새 단계마다 방어가 는다."
+    },
     "subject": {
       "annex": "합병",
       "ask_independence": "독립 요구",
@@ -9849,6 +10647,7 @@
       "ita_education_minister": "국민교육부 장관",
       "ita_military_premier": "원수 출신 총리",
       "ita_supreme_command_chief": "최고 사령부 총장",
+      "ita_supreme_staff": "총참모장",
       "jpn_army_aviation": "육군 항공 본부장",
       "jpn_army_minister": "육군대신",
       "jpn_chief_of_staff": "참모총장",
@@ -9860,6 +10659,7 @@
       "jpn_planning_board": "기획원 총재",
       "jpn_prime_minister": "내각 총리대신",
       "jpn_research_institute": "이화학 연구소장",
+      "jpn_southern_army": "남방군 총사령관",
       "labour_organizer": "노조 조직가",
       "leader_communist": "당 지도자",
       "leader_democratic": "정부 수반",
@@ -9947,6 +10747,17 @@
       "usa_armored_division": "기갑 사단",
       "usa_infantry_ii": "보병 사단 II",
       "usa_marine_division": "해병 사단"
+    },
+    "track": {
+      "armor": "기갑",
+      "bomber": "폭격",
+      "carrier": "항모",
+      "escort": "호위·잠수",
+      "fighter": "전투기",
+      "infantry": "보병",
+      "naval_air": "해상 항공",
+      "support": "지원·작전",
+      "surface": "수상 함대"
     },
     "trait": {
       "adv_ac_air_defense": "방공 지휘",
