@@ -236,6 +236,42 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     expect(harborLevelOf(d, malta)).toBe(0);
   }, 60_000);
 
+  it("the no-strike list: no scorched earth, no dam blown, no flood (sensitivity)", async () => {
+    // Berlin and Munich stand in for Korea and Taiwan (P5's region groups).
+    const base = depthFixture();
+    const { berlin, munich } = DEEP.region;
+    usePoliticsContent(
+      depthFixture({
+        groups: [
+          ...base.groups,
+          { id: "taiwan", regions: [berlin, munich], owner1936: "DEU" },
+        ],
+      }),
+    );
+    const runner = await wwRunner(
+      {},
+      [{ clientID: HUMAN, country: "DEU" }],
+      DEEP.map,
+    );
+    warAfterPrep(runner, HUMAN, "POL");
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const deu = DEEP.tag.DEU;
+    ww.politics.country(deu)!.ppMilli = 100_000;
+    expect(d.noStrike(berlin)).toBe(true);
+    const tick = runner.game.ticks();
+    expect(d.issue(deu, { kind: "scorch", region: berlin }, tick)).toBe(
+      "no_strike_region",
+    );
+    const infra = ww.economy.infra[munich];
+    destroyDam(d, DEEP.dam.dam_mohne.index, DEEP.tag.POL, tick);
+    expect(d.world.damLevel[DEEP.dam.dam_mohne.index]).toBe(1);
+    floodRegions(d, [berlin, munich], ww.day(tick));
+    expect(d.world.floodUntil).toEqual([]);
+    expect(ww.economy.infra[munich]).toBe(infra);
+    expect(ww.politics.gflags.has("dam_mohne_destroyed")).toBe(false);
+  }, 60_000);
+
   it("landmarks give their stats to the controller and cost the legal owner", async () => {
     const { runner, ww } = await deep("FRA");
     const d = ww.depth;
