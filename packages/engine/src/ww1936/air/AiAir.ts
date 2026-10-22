@@ -28,6 +28,7 @@ import { TPL_PARA_ANY } from "@openfront/engine-api/ww1936/LandTypes";
 import { paradropBlockOf } from "@openfront/engine-lib/ww1936/AirRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import { isDepthDeployment } from "../depth/AiSeaAir";
 import { effectiveBuildings, effectiveLevel } from "../economy/Buildings";
 import { capitalRegion } from "../land/LandStartRun";
 import { enemyDivisionsIn } from "../land/Movement";
@@ -39,7 +40,7 @@ import {
   beatWindow,
 } from "../navy/AiNavy";
 import { paradropAskOf } from "./Paradrop";
-import type { WwAir } from "./WwAir";
+import { deploymentPlanes, type WwAir } from "./WwAir";
 
 /** Spec §17.3-2: the share of each type's planes put on the demands. */
 export const AI_AIR_USE_PCT = 90;
@@ -521,8 +522,11 @@ export function aiAirInput(
   const current: AiAirTarget[] = [];
   const deployedIn = new Map<number, number>();
   for (const d of air.deploymentsOf(smallID)) {
-    if (d.base < 0 || !commanded(d.sr)) continue;
-    const n = d.counts.reduce((a, b) => a + b, 0);
+    // P6 (spec §19.7): the recon groups are the depth AI's (AiSeaAir): no
+    // recall, and their planes are not P4's to place.
+    if (d.base < 0 || !commanded(d.sr) || isDepthDeployment(d)) continue;
+    // P6 (lane E): a record's design planes fly with its static ones.
+    const n = deploymentPlanes(d);
     planes[d.type] += n;
     deployedIn.set(d.sr, (deployedIn.get(d.sr) ?? 0) + n);
     // Every record of a group carries the group's target: count it once.
