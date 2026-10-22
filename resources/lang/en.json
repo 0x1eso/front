@@ -4228,6 +4228,7 @@
     },
     "crypto": {
       "broken_list": "Codes we have broken",
+      "broken_log": "Our codes were read by {country}",
       "broken_none": "No sign that our codes were read",
       "change_target": "Change target",
       "days_left": "{days, plural, one {# day} other {# days}} left",

@@ -378,12 +378,22 @@ export class FogModel {
       const sr = sc.regionSr(region);
       if (sr > 0) {
         if (air.mySuperiority(sr) >= SUPERIORITY_SEEN_PM) return true;
-        let recon = 0;
-        for (const d of air.deployments.values()) {
-          if (d.sr !== sr || d.mission !== "recon") continue;
-          for (const c of d.counts) recon += c;
+        // Lane I's reconSorties: my side's sorties over the zone yesterday
+        // (W2's reconBySide); without them, my own recon wings stand in.
+        const sorties = this.view.wwDepth?.()?.detail(this.me())
+          ?.intel.reconSorties;
+        if (sorties !== undefined) {
+          if (sorties.some((x) => x[0] === sr && x[2] >= RECON_SEEN)) {
+            return true;
+          }
+        } else {
+          let recon = 0;
+          for (const d of air.deployments.values()) {
+            if (d.sr !== sr || d.mission !== "recon") continue;
+            for (const c of d.counts) recon += c;
+          }
+          if (recon >= RECON_SEEN) return true;
         }
-        if (recon >= RECON_SEEN) return true;
       }
     }
     return false;
@@ -574,7 +584,13 @@ export class FogModel {
     let n = 0;
     for (const c of s.sorties) n += c;
     if (this.fogOff() || side === this.sideOf(this.me())) return String(n);
-    return fogCountLabel(n, this.sideBand(side, ID_AIR));
+    // Spec §8.8 (lane I's radarSr): my radar over the zone, one band up.
+    const radar = this.view.wwDepth?.()?.detail(this.me())?.intel.radarSr;
+    const band = this.sideBand(side, ID_AIR);
+    return fogCountLabel(
+      n,
+      radar?.includes(srIdx) === true ? Math.min(3, band + 1) : band,
+    );
   }
 
   /**

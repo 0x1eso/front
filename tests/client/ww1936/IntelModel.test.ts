@@ -110,3 +110,68 @@ describe("IntelModel (spec §20.6)", () => {
     expect(m.targetRows()[0].atWar).toBe(true);
   });
 });
+
+describe("IntelModel with lane I's view data (batch P6-3 glue)", () => {
+  it("reads lane I's level lines, broken codes, capture risk, codenames and recruits", () => {
+    const pol = ID("POL");
+    const { m } = withDetail({
+      operatives: [
+        {
+          uid: 7,
+          codename: 63,
+          skill: 1,
+          state: "idle",
+          target: pol,
+          mission: "build_network",
+          op: -1,
+          daysLeft: 0,
+          capturePm: 3,
+        },
+        {
+          uid: 8,
+          codename: 4,
+          skill: 1,
+          state: "idle",
+          target: 0,
+          mission: null,
+          op: -1,
+          daysLeft: 12,
+          capturePm: 0,
+        },
+      ],
+      levelParts: [
+        [pol, 1, "base", 5],
+        [pol, 1, "recon", 12],
+        [pol, 1, "counter", -4],
+        [pol, 2, "base", 5],
+      ],
+      decrypted: [
+        { target: pol, activeUntil: -1 },
+        { target: ID("ITA"), activeUntil: 99_999 },
+      ],
+      decryptLog: [{ target: ID("SUN"), day: 40 }],
+      cryptoTarget: pol,
+      cryptoDaysLeft: 17,
+    });
+    // Lane I's own lines, in its order, zero lines left out.
+    expect(m.levelSources(pol, 1)).toEqual([
+      { key: "base", value: 5 },
+      { key: "recon", value: 12 },
+      { key: "counter", value: -4 },
+    ]);
+    // The view's capture chance is ‰: 3‰ a day is 0.3%.
+    const [first] = m.operativeCards();
+    expect(first.risk).toBe("0.3%");
+    // Codename 63 is K5's c3, the second of its name.
+    expect(first.codename.endsWith(" 2")).toBe(true);
+    // A recruit still training is not free for an operation.
+    expect(m.freeOperatives().map((o) => o.uid)).toEqual([7]);
+    const crypto = m.cryptoCard();
+    expect(crypto.daysLeft).toBe(17);
+    expect(crypto.decrypted.map((d) => [d.target, d.exploiting])).toEqual([
+      [pol, false],
+      [ID("ITA"), true],
+    ]);
+    expect(crypto.brokenLog).toEqual([{ target: ID("SUN"), day: 40 }]);
+  });
+});

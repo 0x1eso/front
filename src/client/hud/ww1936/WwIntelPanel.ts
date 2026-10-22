@@ -595,9 +595,22 @@ export class WwIntelPanel extends WwDrawerBase {
               : nothing}
           </button>`;
         })}
-      <p class="m-0 text-white/50">
-        ${translateText("ww1936.crypto.broken_none")}
-      </p>
+      ${c.decrypted.length === 0
+        ? html`<p class="m-0 text-white/50">
+            ${translateText("ww1936.crypto.broken_none")}
+          </p>`
+        : nothing}
+      ${c.brokenLog.map(
+        (b) =>
+          html`<p
+            data-ww-crypto-broken-log=${b.target}
+            class="m-0 text-red-300"
+          >
+            ${translateText("ww1936.crypto.broken_log", {
+              country: nameOf(b.target),
+            })}
+          </p>`,
+      )}
     </div>`;
   }
 }

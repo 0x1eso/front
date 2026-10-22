@@ -116,13 +116,27 @@ export interface CryptoCard {
   progressPm: number;
   /** Days left at the pace seen so far; null before two readings. */
   daysLeft: number | null;
-  decrypted: { target: number; activeUntil: number; daysLeft: number }[];
+  /** Broken codes: exploiting while activeUntil ≥ 0 (lane I sends −1 for a code broken but not used now). */
+  decrypted: {
+    target: number;
+    activeUntil: number;
+    exploiting: boolean;
+    daysLeft: number;
+  }[];
+  /** Lane I's decryptLog: who read our codes (we learn it when they stop). */
+  brokenLog: { target: number; day: number }[];
 }
 
-/** One day's capture chance as the card's text: "0.3%". */
+/** One day's capture chance as the card's text: "0.3%" (from milli‰: 1% = 10 000). */
 export function riskText(milli: number): string {
-  const tenths = Math.round(milli / 100);
+  const tenths = Math.round(milli / 1000);
   return `${Math.floor(tenths / 10)}.${tenths % 10}%`;
+}
+
+/** An operative's codename: lane I's counter n is K5's c<n % 60>, " 2" and on past 60. */
+export function codenameText(n: number): string {
+  const name = translateText(`ww1936.codename.c${n % 60}`);
+  return n >= 60 ? `${name} ${Math.floor(n / 60) + 1}` : name;
 }
 
 export class IntelModel {
@@ -206,11 +220,25 @@ export class IntelModel {
 
   // ---- tab 2: the operatives --------------------------------------------
 
-  /** Capture chance a day for an operative, milli‰ (the engine's capturePm when it sends one). */
+  /** Capture chance a day for an operative, milli‰ (the engine's capturePm is ‰). */
   captureMilli(o: WwOperativeData): number {
     return o.capturePm > 0
-      ? o.capturePm
-      : capturePmMilli(o.state === "operation", Math.max(1, o.skill), 0, false);
+      ? o.capturePm * 1000
+      : capturePmMilli(
+          o.state === "operation",
+          Math.max(1, o.skill),
+          this.counterOf(o.target),
+          false,
+        );
+  }
+
+  /** Lane I's targetCounter: a target's counter-intelligence, half units. */
+  counterOf(target: number): number {
+    return (
+      (this.detail()?.intel.targetCounter ?? []).find(
+        (x) => x[0] === target,
+      )?.[1] ?? 0
+    );
   }
 
   operativeCards(): OperativeCard[] {
@@ -227,7 +255,7 @@ export class IntelModel {
       const left = operation ? operation.endDay - today : 0;
       out.push({
         uid: o.uid,
-        codename: translateText(`ww1936.codename.c${o.codename}`),
+        codename: codenameText(o.codename),
         skill: o.skill,
         state: o.state,
         target: o.target,
@@ -294,9 +322,13 @@ export class IntelModel {
         }
       }
     }
+    // Running infiltrations and lane I's finished ones.
     const infiltrating = new Set<number>();
     for (const o of d?.intel.operations ?? []) {
       if (o.kind.startsWith("op_infiltrate")) infiltrating.add(o.target);
+    }
+    for (const [t, bits] of d?.intel.infiltrated ?? []) {
+      if (bits !== 0) infiltrating.add(t);
     }
     const nets = new Map<number, number>(d?.intel.networks ?? []);
     const rows: TargetRow[] = [];
@@ -338,10 +370,10 @@ export class IntelModel {
     return intelBand(this.levelOn(target, domain));
   }
 
-  /** Idle operatives, the chosen one first. */
+  /** Idle operatives, the chosen one first (a recruit still training is not free: lane I refuses it). */
   freeOperatives(first = 0): WwOperativeData[] {
     return (this.detail()?.intel.operatives ?? [])
-      .filter((o) => o.state === "idle")
+      .filter((o) => o.state === "idle" && o.daysLeft <= 0)
       .sort(
         (a, b) =>
           Number(b.uid === first) - Number(a.uid === first) || a.uid - b.uid,
@@ -424,7 +456,12 @@ export class IntelModel {
           0,
         ),
         successPm: def.rolls
-          ? opSuccessPm(net, avg, this.hasUpgrade("ag_civil_dept"), 0)
+          ? opSuccessPm(
+              net,
+              avg,
+              this.hasUpgrade("ag_civil_dept"),
+              this.counterOf(target),
+            )
           : null,
         ok: conditions.every((c) => c.ok),
       };
@@ -454,6 +491,13 @@ export class IntelModel {
    * "other" line, so the lines always add up to the engine level.
    */
   levelSources(target: number, domain: number): SourceLine[] {
+    // Lane I's own lines (they add up to the level) when it sends them.
+    const parts = this.detail()?.intel.levelParts;
+    if (parts !== undefined) {
+      return parts
+        .filter((x) => x[0] === target && x[1] === domain && x[3] !== 0)
+        .map((x) => ({ key: x[2], value: x[3] }));
+    }
     const engine = this.levelOn(target, domain);
     const me = this.me();
     const row = this.targetRows().find((r) => r.id === target);
@@ -472,7 +516,9 @@ export class IntelModel {
       (d?.intel.networks ?? []).find((n) => n[0] === target)?.[1] ?? 0;
     add("network", Math.min(50, Math.floor(net / 20)));
     add("department", this.hasUpgrade(DEPARTMENT[domain]) ? 10 : 0);
-    const exploit = (d?.intel.decrypted ?? []).some((x) => x.target === target);
+    const exploit = (d?.intel.decrypted ?? []).some(
+      (x) => x.target === target && x.activeUntil >= 0,
+    );
     add("exploiting", exploit ? (domain === ID_CIVIL ? 15 : 30) : 0);
     const known = lines.reduce((s, l) => s + l.value, 0);
     add("other", engine - known);
@@ -504,15 +550,26 @@ export class IntelModel {
       decrypt: i?.decrypt ?? 0,
       target,
       progressPm: pm,
+      // Lane I's own estimate when it sends one; else the pace seen here.
       daysLeft:
-        target !== 0 && this.cryptoRate > 0
-          ? Math.ceil((1000 - pm) / this.cryptoRate)
-          : null,
+        target === 0
+          ? null
+          : i?.cryptoDaysLeft !== undefined
+            ? i.cryptoDaysLeft >= 0
+              ? i.cryptoDaysLeft
+              : null
+            : this.cryptoRate > 0
+              ? Math.ceil((1000 - pm) / this.cryptoRate)
+              : null,
       decrypted: (i?.decrypted ?? []).map((x) => ({
         target: x.target,
         activeUntil: x.activeUntil,
-        daysLeft: Math.max(0, x.activeUntil - today),
+        exploiting: x.activeUntil >= 0,
+        daysLeft: x.activeUntil >= 0 ? Math.max(0, x.activeUntil - today) : 0,
       })),
+      brokenLog: [...(i?.decryptLog ?? [])].sort(
+        (a, b) => b.day - a.day || a.target - b.target,
+      ),
     };
   }
 

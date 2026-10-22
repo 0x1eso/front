@@ -3921,6 +3921,7 @@
     },
     "crypto": {
       "broken_list": "우리가 푼 암호",
+      "broken_log": "우리 암호를 읽은 나라: {country}",
       "broken_none": "암호가 읽힌 흔적 없음",
       "change_target": "대상 바꾸기",
       "days_left": "남은 날 {days}일",
