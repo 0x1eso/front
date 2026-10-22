@@ -485,6 +485,9 @@ export interface LandModQuery {
   armyId: number;
 }
 
+/** RESOURCE_IDS indices of the resources taken before the lines (priorityDemand). */
+const URANIUM = RESOURCE_IDS.indexOf("uranium");
+const COAL = RESOURCE_IDS.indexOf("coal");
 /** Spec §9.6: the proximity fuze's project index (statsPart reads it daily). */
 const PROXIMITY_FUZE = SPECIAL_PROJECTS.indexOf("sp_proximity_fuze");
 
@@ -876,8 +879,8 @@ export class WwDepth implements LandDepthHooks {
     const out = new Array<number>(RESOURCE_COUNT).fill(0);
     const c = this.countries[id];
     if (c === null || c === undefined) return out;
-    out[RESOURCE_IDS.indexOf("uranium")] = uraniumDemand(this, id);
-    out[RESOURCE_IDS.indexOf("coal")] = coalDemand(this, id);
+    out[URANIUM] = uraniumDemand(this, id);
+    out[COAL] = coalDemand(this, id);
     return out;
   }
 

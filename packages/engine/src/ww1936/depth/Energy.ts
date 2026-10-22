@@ -30,6 +30,7 @@ import {
   energySupply,
 } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { DAM_FROM } from "@openfront/engine-lib/ww1936/WorldRules";
+import { effectiveBuildings } from "../economy/Buildings";
 import type { EffectCtx } from "../politics/Dispatch";
 import type { WwDepth } from "./WwDepth";
 
@@ -80,14 +81,25 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
   const demand = energyDemand(d, id);
   let hydro = 0;
   let built = 0;
+  // Final perf lane: one walk over the regions for the hydro, the built-up
+  // regions and the two buildings (countryBuildings' sums; a region with
+  // none of a building adds 0 working ones, so it is skipped).
+  let plants = 0;
+  let refineries = 0;
+  const plantLv = econ.buildingArray("power_plant");
+  const refLv = econ.buildingArray("synthetic_refinery");
   for (const r of econ.regionsOf(id)) {
     hydro += sc.hydroOf(r);
     // Bombed-out infrastructure counts as the level left (P4's infraEff).
     if ((econ.infraEff[r] ?? 0) >= 1) built++;
+    if ((plantLv[r] ?? 0) > 0) {
+      plants += effectiveBuildings(econ, r, "power_plant");
+    }
+    if ((refLv[r] ?? 0) > 0) {
+      refineries += effectiveBuildings(econ, r, "synthetic_refinery");
+    }
   }
   const base = energyBase(demand, built);
-  const plants = econ.countryBuildings(id, "power_plant");
-  const refineries = econ.countryBuildings(id, "synthetic_refinery");
   const dams = damEnergyOf(d, id, day);
   const extra = d.country(id)?.mech.energyExtra ?? 0;
   const got = d.lastPriorityGot.get(id);

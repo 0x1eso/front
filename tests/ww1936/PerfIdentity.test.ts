@@ -1,15 +1,27 @@
 // World War 1936, the final perf lane: each speed-up answers exactly what
 // the code it replaced answered. The old computations are written out here
 // as references, and every case compares against them.
+import { MIO_FAMILIES } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  EQUIP_KEYS,
+  equipKey,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { traitBit } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   dayOfDate,
   daysFromCivil,
 } from "@openfront/engine-lib/ww1936/Calendar";
+import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
+import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
 import { skirmisherContact } from "@openfront/engine/ww1936/depth/Command";
+import { equipCostMilli } from "@openfront/engine/ww1936/depth/Designs";
+import { energyParts } from "@openfront/engine/ww1936/depth/Energy";
 import { levelPartsOf } from "@openfront/engine/ww1936/depth/IntelLevels";
+import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
+import { lineCapBp } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WwPolitics } from "@openfront/engine/ww1936/politics/WwPolitics";
 import { DEEP } from "./deepFixture";
@@ -79,6 +91,73 @@ describe("final perf lane: same answers", () => {
     check();
     c.advisors.fill(null);
     check();
+  });
+
+  test("energyParts' one walk counts the working power plants and refineries countryBuildings counts", async () => {
+    usePoliticsContent(depthFixture());
+    const runner = await wwRunner({}, [], DEEP.map);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const ww = runner.game.worldWar()!;
+    const econ = ww.economy;
+    const d = ww.depth;
+    const DEU = DEEP.tag.DEU;
+    const check = () => {
+      const p = energyParts(d, DEU, 0);
+      expect(p.plants).toBe(econ.countryBuildings(DEU, "power_plant"));
+      expect(p.refineries).toBe(
+        econ.countryBuildings(DEU, "synthetic_refinery"),
+      );
+    };
+    check();
+    const regions = econ.regionsOf(DEU);
+    expect(regions.length).toBeGreaterThan(1);
+    const plants = econ.buildingArray("power_plant");
+    const refs = econ.buildingArray("synthetic_refinery");
+    plants[regions[0]] = 3;
+    refs[regions[0]] = 1;
+    plants[regions[1]] = 2;
+    check();
+    // Bombed: a stopped building does not work.
+    damageBuilding(econ, regions[0], "power_plant", 2_500);
+    damageBuilding(econ, regions[0], "synthetic_refinery", 1_000);
+    check();
+    expect(energyParts(d, DEU, 0).plants).toBe(3);
+  });
+
+  test("the MIO cost and cap keys read the same stats as the names built each time", async () => {
+    usePoliticsContent(depthFixture());
+    const runner = await wwRunner({}, [], DEEP.map);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const DEU = DEEP.tag.DEU;
+    const ce = ww.economy.country(DEU)!;
+    const stats = ce.stats as unknown as Record<string, number>;
+    for (let f = 0; f < MIO_FAMILIES.length; f++) {
+      const fam = MIO_FAMILIES[f].slice(4);
+      stats[`mioCostPct_${fam}`] = -10 - f;
+      stats[`mioEffCapBp_${fam}`] = -500 - 100 * f;
+    }
+    let seen = 0;
+    for (let key = 0; key < EQUIP_KEYS.length; key++) {
+      const [type, gen] = EQUIP_KEYS[key];
+      const f = mioFamilyOf(type);
+      if (f < 0 || type === "tank_design" || type === "plane_design") continue;
+      seen++;
+      const pct = stats[`mioCostPct_${MIO_FAMILIES[f].slice(4)}` as WwStatKey];
+      const cost = unitCostMilli(type, gen);
+      expect(equipCostMilli(d, DEU, key), type).toBe(
+        Math.floor((cost * Math.max(10, 100 + pct)) / 100),
+      );
+      const add = stats[`mioEffCapBp_${MIO_FAMILIES[f].slice(4)}`];
+      expect(lineCapBp(d, ce, 8_000, key), type).toBe(
+        Math.max(1_000, Math.min(10_000, 8_000 + add)),
+      );
+    }
+    expect(seen).toBeGreaterThan(5);
+    expect(lineCapBp(d, ce, 8_000, equipKey("infantry_equipment", 1))).toBe(
+      7_500,
+    );
   });
 
   test("intel rows: the skirmisher line is Command.skirmisherContact's answer for every target", async () => {

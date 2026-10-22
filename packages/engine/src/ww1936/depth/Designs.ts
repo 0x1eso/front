@@ -394,6 +394,11 @@ export function sameDesign(a: DesignDef, b: DesignDef): boolean {
   );
 }
 
+/** mioCostPct_<family> by MIO_FAMILIES index (final perf lane: built once, not per line a day). */
+const MIO_COST_KEYS = MIO_FAMILIES.map(
+  (f) => `mioCostPct_${f.slice(4)}` as WwStatKey,
+);
+
 /**
  * A unit's industry cost, milli, of an EQUIP_KEYS index: a design slot's
  * designStats cost (its MIO cost is inside, plan decision 11), a static
@@ -413,12 +418,7 @@ export function equipCostMilli(d: WwDepth, id: number, key: number): number {
   } else {
     cost = unitCostMilli(type, gen);
     const f = mioFamilyOf(type);
-    const pct =
-      f < 0
-        ? 0
-        : (statsOf(d, id)[
-            `mioCostPct_${MIO_FAMILIES[f].slice(4)}` as WwStatKey
-          ] ?? 0);
+    const pct = f < 0 ? 0 : (statsOf(d, id)[MIO_COST_KEYS[f]] ?? 0);
     if (pct !== 0) cost = Math.floor((cost * Math.max(10, 100 + pct)) / 100);
   }
   // Lane M (pre-flight A8): the licence surcharge, percent.

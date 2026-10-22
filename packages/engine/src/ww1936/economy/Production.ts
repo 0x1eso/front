@@ -272,6 +272,11 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
   });
 }
 
+/** mioEffCapBp_<family> by MIO_FAMILIES index (final perf lane: built once). */
+const MIO_CAP_KEYS = MIO_FAMILIES.map(
+  (f) => `mioEffCapBp_${f.slice(4)}` as WwStatKey,
+);
+
 /**
  * P6 hook (M, spec §6.3): the line's MIO efficiency cap on top of the
  * country's. Lane M review glue 3: a plane design's family goes by its
@@ -288,7 +293,7 @@ export function lineCapBp(
       ? mioFamilyOf(EQUIP_KEYS[lineKey][0])
       : mioFamilyOfKey(depth, ce.smallID, lineKey);
   if (fam < 0) return cap;
-  const key = `mioEffCapBp_${MIO_FAMILIES[fam].slice(4)}` as WwStatKey;
+  const key = MIO_CAP_KEYS[fam];
   const add = (ce.stats as Partial<Record<WwStatKey, number>>)[key] ?? 0;
   return add === 0 ? cap : Math.max(EFF_FLOOR_BP, Math.min(10_000, cap + add));
 }
