@@ -12,7 +12,6 @@ import { capturePmMilli } from "@openfront/engine-lib/ww1936/IntelRules";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { isRetiredTech, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { copyDesignTo } from "@openfront/engine/ww1936/depth/DesignCopy";
 import {
   collabCutPp,
   dailyOperations,
@@ -37,17 +36,8 @@ import { DEEP, findRoll } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
 import { stepTo, wwRunner } from "./util";
 
-vi.mock("@openfront/engine/ww1936/depth/DesignCopy", async (orig) => {
-  const m =
-    await orig<typeof import("@openfront/engine/ww1936/depth/DesignCopy")>();
-  return { ...m, copyDesignTo: vi.fn(m.copyDesignTo) };
-});
-
 beforeEach(() => usePoliticsContent(depthFixture()));
-afterEach(() => {
-  usePoliticsContent(null);
-  vi.mocked(copyDesignTo).mockClear();
-});
+afterEach(() => usePoliticsContent(null));
 
 const { DEU, GBR, ITA } = DEEP.tag;
 const HUMANS = [{ clientID: "HUMANGBR", country: "GBR" as const }];
@@ -207,30 +197,29 @@ describe("World War 1936 P6: intelligence operations (lane I)", () => {
       pct: 100,
       uses: 1,
     });
-    // The newest saved design (ties: the lower slot), copied by lane E.
-    expect(vi.mocked(copyDesignTo)).toHaveBeenCalledWith(
-      d,
-      DEU,
-      2,
-      "tank",
-      GBR,
-      "captured",
-    );
-    // Ties between kinds: tank, plane, ship (the brief's order).
-    vi.mocked(copyDesignTo).mockClear();
+    // The newest saved design (ties: the lower slot), copied by lane E's
+    // copyDesignTo (batch P6-4: the real one; a module mock no longer
+    // reaches Operations through DesignCopy's imports).
+    const captured = () =>
+      (["tank", "plane", "ship"] as const).flatMap((k) =>
+        d
+          .country(GBR)!
+          .des[k].filter((x) => x !== null && x.origin === "captured")
+          .map((x) => [x!.from, x!.fromSlot]),
+      );
+    expect(captured()).toEqual([[DEU, 2]]);
+    // Ties between kinds: tank, plane, ship (the brief's order). Every
+    // fixture slot holds TEST_TANK, so the copy lands among Britain's tanks;
+    // its source slot 4 is Germany's plane slot (the ship's would be 1).
     deu.des.tank[1] = slot(3);
     deu.des.tank[2] = slot(3);
     deu.des.ship[0] = slot(12);
     deu.des.plane[3] = slot(12);
     runOp(d, "op_steal_blueprints", DEU, [a.uid], null);
-    expect(vi.mocked(copyDesignTo)).toHaveBeenCalledWith(
-      d,
-      DEU,
-      4,
-      "plane",
-      GBR,
-      "captured",
-    );
+    expect(captured()).toEqual([
+      [DEU, 2],
+      [DEU, 4],
+    ]);
   });
 
   it("collaboration and a coup fail when war or peace changed meanwhile", async () => {
