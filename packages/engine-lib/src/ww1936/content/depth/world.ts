@@ -59,6 +59,10 @@ export const DEPTH_EVENTS: readonly EventDef[] = [
             pct: 100,
             uses: 1,
           },
+          // Final balance: the sites' flag (AiProjects) from here too, so a
+          // skipped sites beat (1 game in 10) does not leave the United
+          // States without a free slot for its facilities by 1942.
+          { kind: "set_flag", flag: "hist_usa_atomic_sites" },
         ],
       },
       {

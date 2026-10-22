@@ -17,6 +17,8 @@ import {
   loadTerrainMap,
   TerrainMapData,
 } from "@openfront/engine-lib/game/TerrainMapLoader";
+import { DEPTH_BEATS } from "@openfront/engine-lib/ww1936/content/depth/beats";
+import { DEPTH_EVENTS } from "@openfront/engine-lib/ww1936/content/depth/world";
 import { GRAND_COUNCIL_CRISIS } from "@openfront/engine-lib/ww1936/content/events/ita";
 import { WORLD_EVENTS } from "@openfront/engine-lib/ww1936/content/events/world";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -1464,5 +1466,28 @@ describe("the final balance's map-bound content numbers", () => {
     );
     expect(lost).not.toBeNull();
     expect(Number(lost![1]) * total).toBeGreaterThan(africa * 100);
+  });
+
+  test("the United States' atomic sites come before its regions fill up (1939-10 and 1940-06, not 1942-06)", () => {
+    // By mid-1941 the AI had filled every US region with infrastructure 3+;
+    // the sites flag now comes from the Uranium Committee's historical
+    // option and the NDRC's beat, so the facilities find their slots.
+    const committee = DEPTH_EVENTS.find(
+      (e) => e.id === "usa_uranium_committee",
+    )!;
+    const hist = committee.options.find((o) => o.history === true)!;
+    expect(hist.effects).toContainEqual({
+      kind: "set_flag",
+      flag: "hist_usa_atomic_sites",
+    });
+    const sites = DEPTH_BEATS.find(
+      (b) => b.id === "b19420601_usa_atomic_sites",
+    )!;
+    expect(sites.date).toBe("1940-06-27");
+    // The project itself still starts with the Manhattan District.
+    const start = DEPTH_BEATS.find(
+      (b) => b.id === "b19420813_usa_atomic_start",
+    )!;
+    expect(start.date).toBe("1942-08-13");
   });
 });

@@ -35,11 +35,11 @@ import type { WwDepth } from "./WwDepth";
 
 /**
  * Spec §16.2: the AI acts on its energy below this ratio, ‰. Final
- * balance: 900 → 980 and up to AI_PLANTS_QUEUED plants at once (it was
+ * balance: 900 → 990 and up to AI_PLANTS_QUEUED plants at once (it was
  * one): a big builder (the United States) added demand faster than one
  * plant at a time could follow and sat at 40–50% from 1940.
  */
-export const AI_ENERGY_PM = 980;
+export const AI_ENERGY_PM = 990;
 export const AI_PLANTS_QUEUED = 8;
 /** Spec §16.7: the Soviet scorched earth starts in 1941. */
 export const AI_SCORCH_FROM = "1941-01-01";
