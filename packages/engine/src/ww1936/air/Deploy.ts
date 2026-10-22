@@ -461,6 +461,18 @@ function setGroupTarget(
 }
 
 /**
+ * Final review B, M2 (DeployAsk.allNoStrike): a land zone whose every
+ * member is a no-strike region (the Korean Peninsula, Taiwan).
+ */
+export function allNoStrikeZone(air: WwAir, sr: number): boolean {
+  const s = air.ww.scenario.sr(sr);
+  if (s === undefined || s.kind !== "land" || s.members.length === 0) {
+    return false;
+  }
+  return s.members.every((r) => air.ww.depth.noStrike(r));
+}
+
+/**
  * air_deploy / air_recall / air_auto (spec §13.2). The judge is engine-lib
  * airDeployBlock, the one the zone card asks; a deployment takes effect at
  * once (what fits), the rest waits for the country's day.
@@ -497,6 +509,7 @@ export function issueAirOrder(
         anyBaseInRange:
           basesInRange(air, air.land.sideOf(smallID), order.sr, range).length >
           0,
+        allNoStrike: allNoStrikeZone(air, order.sr),
       });
       if (block !== null) return block;
       setGroupTarget(air, smallID, order.sr, type, mission, order.count);

@@ -43,7 +43,7 @@ import {
   type VolunteerIn,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
-import { basesInRange, isCarrierWing } from "../air/Deploy";
+import { allNoStrikeZone, basesInRange, isCarrierWing } from "../air/Deploy";
 import type { Deployment } from "../air/WwAir";
 import { leaveBattle } from "../land/Battles";
 import { nearestBorder } from "../land/Fronts";
@@ -586,6 +586,7 @@ export function sendAirVolunteers(
     deploymentsUsed: group.length > 0 ? 0 : used,
     anyBaseInRange:
       basesInRange(air, ww.land.sideOf(to), zone, range).length > 0,
+    allNoStrike: allNoStrikeZone(air, zone),
   });
   if (b !== null) return b;
   if (group.length > 0) {

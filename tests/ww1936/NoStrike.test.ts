@@ -3,6 +3,10 @@
 import type { CarrierOrder } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import {
+  airDeployBlock,
+  STRIKE_AIR_MISSIONS,
+} from "@openfront/engine-lib/ww1936/AirRules";
+import {
   isNoStrike,
   NO_STRIKE_REGION_IDS,
   noStrikeRegions,
@@ -10,8 +14,10 @@ import {
 } from "@openfront/engine-lib/ww1936/NoStrike";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { bombableRegions } from "@openfront/engine/ww1936/air/Bombing";
+import { allNoStrikeZone } from "@openfront/engine/ww1936/air/Deploy";
 import type { WwAir } from "@openfront/engine/ww1936/air/WwAir";
 import { issueCarrierOrder } from "@openfront/engine/ww1936/navy/Carriers";
+import { shoreBombardAt } from "@openfront/engine/ww1936/navy/Invasions";
 import type { WwNavy } from "@openfront/engine/ww1936/navy/WwNavy";
 import fs from "fs";
 import path from "path";
@@ -89,5 +95,78 @@ describe("no-strike regions", () => {
     }
     const tokyoSr = world.regionSr(758);
     expect(bombableRegions(air, tokyoSr)).toContain(758);
+  });
+
+  it("Seoul (679) is refused by the other strike judges too (final review B, M3)", () => {
+    // Shore bombardment: no cut, before any battle is looked at.
+    const navy = { scenario: world } as unknown as WwNavy;
+    expect(shoreBombardAt(navy, 679, 1)).toBe(0);
+    // A carrier port strike.
+    const carrierNavy = {
+      scenario: world,
+      fleets: new Map([[7, { owner: 3, ships: [] }]]),
+    } as unknown as WwNavy;
+    expect(
+      issueCarrierOrder(
+        carrierNavy,
+        3,
+        { kind: "fleet_port_strike", fleet: 7, port: 679 },
+        0,
+      ),
+    ).toBe("no_strike_region");
+    // Strategic bombing never picks it.
+    const air = { ww: { scenario: world } } as unknown as WwAir;
+    expect(bombableRegions(air, world.regionSr(679))).not.toContain(679);
+  });
+
+  it("a strike mission over the Korean Peninsula or Taiwan zone is refused (final review B, M2)", () => {
+    const air = {
+      ww: {
+        scenario: world,
+        depth: { noStrike: (r: number) => isNoStrike(world, r) },
+      },
+    } as unknown as WwAir;
+    const korea = world.regionSr(679);
+    const taiwan = world.regionSr(901);
+    expect(allNoStrikeZone(air, korea)).toBe(true);
+    expect(allNoStrikeZone(air, taiwan)).toBe(true);
+    expect(allNoStrikeZone(air, world.regionSr(758))).toBe(false); // Tokyo's
+    const ask = {
+      sr: korea,
+      srKind: "land" as const,
+      type: "cas" as const,
+      mission: "cas" as const,
+      count: 10,
+      have: 50,
+      deploymentsUsed: 0,
+      anyBaseInRange: true,
+    };
+    expect(STRIKE_AIR_MISSIONS).toEqual([
+      "cas",
+      "strategic_bombing",
+      "port_strike",
+    ]);
+    expect(airDeployBlock(ask)).toBeNull();
+    expect(airDeployBlock({ ...ask, allNoStrike: true })).toBe(
+      "no_strike_region",
+    );
+    expect(
+      airDeployBlock({
+        ...ask,
+        type: "strat_bomber",
+        mission: "strategic_bombing",
+        allNoStrike: true,
+      }),
+    ).toBe("no_strike_region");
+    // Fighters may still defend it, and a recall (count 0) is never refused.
+    expect(
+      airDeployBlock({
+        ...ask,
+        type: "fighter",
+        mission: "air_superiority",
+        allNoStrike: true,
+      }),
+    ).toBeNull();
+    expect(airDeployBlock({ ...ask, count: 0, allNoStrike: true })).toBeNull();
   });
 });
