@@ -306,4 +306,31 @@ describe("generals (P2 spec §6.2)", () => {
     expect(g.terrainDays[2]).toBe(60);
     expect(g.traits & traitBit("mountaineer")).toBe(0);
   });
+
+  test("P6: forest days give forest_expert; a level's trait slots (traitSlots)", async () => {
+    const { l, id, cl, first } = await germany();
+    const t = l.divisions;
+    const g = cl.generals.find((x) => x.id === first.general)!;
+    const r = t.rowOf(first.divisions[0]);
+    // Munich is forest: the fifth ground (spec §4.2).
+    g.traits = 0;
+    g.level = 1;
+    g.terrainDays = [0, 0, 0, 0, 59, 0, 0];
+    t.lastFight[r] = fightOn(SUMMER);
+    t.role[r] = ROLE_DEFEND;
+    t.battle[r] = 4;
+    dailySustain(l, id, SUMMER);
+    expect(g.terrainDays[4]).toBe(60);
+    expect(g.traits & traitBit("forest_expert")).not.toBe(0);
+    // Level 2 has four slots (P2's cap was three).
+    g.level = 2;
+    g.traits =
+      traitBit("winter_specialist") |
+      traitBit("organizer") |
+      traitBit("defensive_doctrine");
+    g.terrainDays = [0, 0, 0, 0, 60, 0, 0];
+    t.lastFight[r] = fightOn(SUMMER + 1);
+    dailySustain(l, id, SUMMER + 1);
+    expect(g.traits & traitBit("forest_expert")).not.toBe(0);
+  });
 });

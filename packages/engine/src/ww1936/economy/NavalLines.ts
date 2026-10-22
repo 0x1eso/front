@@ -16,7 +16,10 @@ import {
   WW_MAX_NAVAL_LINES,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import {
+  CONVOY_LINE_CLS,
+  HARBOR_LINE_CLS,
   lineCostMilli,
+  navalLineClass,
   navalLineOutputMilli,
 } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -34,18 +37,12 @@ import { addConvoys } from "./Buildings";
 import type { CountryEconomy, NavalLine, WwEconomy } from "./WwEconomy";
 
 /** NavalLine.cls of a convoy line (SHIP_CLASSES.length). */
-const CONVOY_CLS = SHIP_CLASSES.length;
+const CONVOY_CLS = CONVOY_LINE_CLS;
 /** P6 (pre-flight §A7): NavalLine.cls of a floating-harbour line. */
-export const HARBOR_CLS = SHIP_CLASSES.length + 1;
-/** P6 (spec §16.6): a floating harbour costs 3,000 naval industry. */
-const HARBOR_COST_MILLI = 3_000_000;
+export const HARBOR_CLS = HARBOR_LINE_CLS;
 
 function lineClass(l: NavalLine): ShipClass | "convoy" | "floating_harbor" {
-  return l.cls === HARBOR_CLS
-    ? "floating_harbor"
-    : l.cls >= CONVOY_CLS
-      ? "convoy"
-      : SHIP_CLASSES[l.cls];
+  return navalLineClass(l.cls);
 }
 
 function lineIndex(ce: CountryEconomy, id: number): number {
@@ -286,8 +283,7 @@ export function stepNavalLines(
     if (out === 0) continue;
     l.progress += out;
     const cls = lineClass(l);
-    const cost =
-      cls === "floating_harbor" ? HARBOR_COST_MILLI : lineCostMilli(l);
+    const cost = lineCostMilli(l);
     while (l.progress >= cost) {
       l.progress -= cost;
       if (cls === "convoy") {

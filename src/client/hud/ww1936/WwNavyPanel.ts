@@ -65,9 +65,9 @@ const BUTTON =
 const ICON_BUTTON =
   "size-9 shrink-0 rounded-md border border-white/10 bg-white/5 text-xs hover:bg-white/10 disabled:opacity-30";
 
-function lineClassName(cls: ShipClass | "convoy"): string {
-  return cls === "convoy"
-    ? translateText("ww1936.equip.convoy")
+function lineClassName(cls: ShipClass | "convoy" | "floating_harbor"): string {
+  return cls === "convoy" || cls === "floating_harbor"
+    ? translateText(`ww1936.equip.${cls}`)
     : shipClassName(cls);
 }
 
@@ -184,7 +184,10 @@ export class WwShipyards extends LitElement {
         <span class="min-w-0 flex-1 truncate font-semibold"
           >${translateText("ww1936.navy.line_ship", {
             cls: lineClassName(l.cls),
-            gen: l.cls === "convoy" ? genName(1) : shipGenName(l.gen),
+            gen:
+              l.cls === "convoy" || l.cls === "floating_harbor"
+                ? genName(1)
+                : shipGenName(l.gen),
           })}</span
         >
         <button

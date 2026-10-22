@@ -22,7 +22,7 @@ const TABLE: StartDoctrineDef[] = [
   {
     tag: "DEU",
     gd: ["gd_mobile", "gd_trade_interdiction", "gd_battlefield_support"],
-    sub: ["inf_elastic", "arm_blitz"],
+    sub: ["inf_elastic", "arm_breakthrough"],
   },
   { tag: "@minor", gd: ["gd_mass", "gd_fleet_in_being", null], sub: [] },
 ];
@@ -48,7 +48,7 @@ describe("start doctrines", () => {
       "gd_trade_interdiction",
       "gd_battlefield_support",
     ]);
-    expect(deu.sub).toEqual(["inf_elastic", "arm_blitz"]);
+    expect(deu.sub).toEqual(["inf_elastic", "arm_breakthrough"]);
     // Historical AI off: Germany plays its personality (no row: the spec's).
     const off = rowPick({
       ...base,

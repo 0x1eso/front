@@ -318,3 +318,62 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     expect(pol.cl.armyXpMilli).toBe(100);
   });
 });
+
+/** The game's depth hooks with some answers replaced (lane values a test stands in for). */
+function withHooks<T extends object>(hooks: T, over: Partial<T>): T {
+  return Object.assign(Object.create(hooks) as T, over);
+}
+
+describe("P6 hooks in the country's day (spec §21.2, §4.5, §4.6)", () => {
+  test("reinforcePct speeds reinforcement; neutral is P2's", async () => {
+    const { l, id, ce, r } = await oneDivision();
+    const t = l.divisions;
+    l.setMen(r, 5_000);
+    ce.stats.reinforcePct = 100;
+    dailySustain(l, id, SUMMER);
+    // 20% of 10,500 men at full supply (P2: 10%).
+    expect(t.men[r]).toBe(5_000 + 2_100);
+  });
+
+  test("divXpGainPct and the army's medal raise battle experience", async () => {
+    const { l, id, ce, r } = await oneDivision();
+    const t = l.divisions;
+    ce.stats.divXpGainPct = 100;
+    t.lastFight[r] = fightOn(SUMMER);
+    dailySustain(l, id, SUMMER);
+    expect(t.exp[r]).toBe(6);
+    ce.stats.divXpGainPct = 0;
+    const hooks = l.depthHooks;
+    l.depthHooks = withHooks(hooks, { medalXpPct: () => 50 });
+    t.lastFight[r] = fightOn(SUMMER + 1);
+    dailySustain(l, id, SUMMER + 1);
+    // 3 × 150% = 4 (floor).
+    expect(t.exp[r]).toBe(6 + 4);
+    l.depthHooks = hooks;
+  });
+
+  test("the reinforcement order (lane D's priority) decides who gets short stock", async () => {
+    const run = async (reverse: boolean) => {
+      const { g, l, id, ce } = await oneDivision();
+      const b = placeArmy(g, "DEU", BERLIN, 1);
+      const t = l.divisions;
+      const rows = l.rowsOf(id);
+      for (const r of rows) l.addEquip(r, slot(INF1), -300);
+      ce.stock[INF1] = 90; // one division's day (10% of 900)
+      const hooks = l.depthHooks;
+      if (reverse) {
+        l.depthHooks = withHooks(hooks, {
+          reinforceOrder: () => [...rows].reverse().map((r) => t.id[r]),
+        });
+      }
+      dailySustain(l, id, SUMMER);
+      l.depthHooks = hooks;
+      void b;
+      return rows.map((r) => t.equip[r * GROUND_SLOTS + slot(INF1)]);
+    };
+    const p2 = await run(false);
+    const rev = await run(true);
+    expect(p2[0]).toBeGreaterThan(p2[1]);
+    expect(rev[1]).toBeGreaterThan(rev[0]);
+  });
+});

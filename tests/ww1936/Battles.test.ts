@@ -25,6 +25,7 @@ import {
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { landCombatShare } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { Game } from "@openfront/engine/game/Game";
 import {
@@ -547,4 +548,31 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     expect(g.ownerID(sc.vpTile(sc.region(WARSAW)!))).toBe(deu);
     expect(l.battles.has(WARSAW)).toBe(false);
   }, 60_000);
+});
+
+describe("World War 1936 P6: the doctrine tally (plan decision 12)", () => {
+  test("each fighting division adds its track share to its owner's tally once a day", async () => {
+    const { g, l, deu, pol, inf72 } = await juneWar();
+    const d = g.worldWar()!.depth;
+    const a = placeArmy(g, "DEU", 3, 2, inf72);
+    placeArmy(g, "POL", WARSAW, 1);
+    attack(l, a, WARSAW);
+    d.dayTally.fill(0);
+    stepBattles(l, g.ticks());
+    // Infantry 7 · artillery 2: 14 infantry halves, 4 support halves, per division.
+    const [inf, arm, sup] = landCombatShare(14, 0, 4);
+    expect(d.dayTally.slice(deu * 9, deu * 9 + 3)).toEqual([
+      2 * inf,
+      2 * arm,
+      2 * sup,
+    ]);
+    expect(d.dayTally.slice(pol * 9, pol * 9 + 3).some((v) => v > 0)).toBe(
+      true,
+    );
+    // More rounds the same day add nothing.
+    const once = [...d.dayTally];
+    stepBattles(l, g.ticks());
+    stepBattles(l, g.ticks());
+    expect(d.dayTally).toEqual(once);
+  });
 });
