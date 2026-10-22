@@ -290,10 +290,11 @@ export function designHeld(
   if (m.listings.some((l) => l.seller === id && l.key === key && l.count > 0)) {
     return true;
   }
+  // Lane M: a deal's deliveredMilli is the value delivered (of priceMilli).
   if (
     m.deals.some(
       (x) =>
-        x.seller === id && x.key === key && x.deliveredMilli < x.count * 1000,
+        x.seller === id && x.key === key && x.deliveredMilli < x.priceMilli,
     )
   ) {
     return true;
