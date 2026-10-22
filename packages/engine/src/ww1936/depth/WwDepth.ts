@@ -64,9 +64,8 @@ import {
   startDoctrinePick,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { energyPenaltyPct } from "@openfront/engine-lib/ww1936/EnergyRules";
-import { marketPriceMilli } from "@openfront/engine-lib/ww1936/MarketRules";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
-import { mioPoints, mioSize } from "@openfront/engine-lib/ww1936/MioRules";
+import { mioSize } from "@openfront/engine-lib/ww1936/MioRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { addStatsInto, emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
@@ -101,7 +100,6 @@ import { cipherOf, decryptOf } from "./Crypto";
 import {
   dailyDesigns,
   designInUse,
-  equipCostMilli,
   fillDesignRows,
   issueDesign,
 } from "./Designs";
@@ -114,7 +112,7 @@ import {
 import { coalDemand, dailyEnergy, energyDemand } from "./Energy";
 import { computeIntelRow } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
-import { dayCommonMarket, issueTrade } from "./Market";
+import { dayCommonMarket, issueTrade, listingPriceMilli } from "./Market";
 import {
   dailyMechanisms,
   dayCommonMech,
@@ -122,7 +120,7 @@ import {
   mixMechanismsHash,
 } from "./Mechanisms";
 import { seaRegionDay } from "./Mines";
-import { dailyMio, issueMio, mioStatsOf } from "./Mio";
+import { dailyMio, issueMio, mioDetailOf, mioStatsOf } from "./Mio";
 import {
   collabCutPp,
   intelResistancePp,
@@ -1860,7 +1858,6 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       });
     });
   }
-  const sizes = mioSizes(c);
   const sc = d.ww.scenario;
   let hydro = 0;
   for (const r of d.ww.economy.regionsOf(id)) hydro += sc.hydroOf(r);
@@ -1889,16 +1886,9 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       medalCooldown: c.cmd.medalReady.map((m) => [m[0], m[1]]),
     },
     designs,
-    mio: {
-      arch: [...c.mio.arch],
-      fundsMilli: [...c.mio.fundsMilli],
-      traits: [...c.mio.traits],
-      size: sizes,
-      points: c.mio.arch.map((a, f) =>
-        a < 0 ? 0 : mioPoints(sizes[f], c.mio.traits[f * 3 + a], a),
-      ),
-      investReady: [...c.mio.investReady],
-    },
+    // Lane M review glue 1: one value per family (the current archetype's
+    // funds and traits; investReady 1 when an invest may be made today).
+    mio: mioDetailOf(d, id, d.ww.day(d.mg.ticks())),
     intel: {
       agency: c.intel.agency,
       upgrades: c.intel.upgrades,
@@ -2027,11 +2017,8 @@ function globalDataOf(d: WwDepth): Partial<WwDepthData> {
         key: x.key,
         design: x.design,
         count: x.count,
-        priceMilli: marketPriceMilli(
-          equipCostMilli(d, x.seller, x.key),
-          0,
-          x.count,
-        ),
+        // Lane M review glue 2: the generation discount the purchase pays.
+        priceMilli: listingPriceMilli(d, x, x.count),
       })),
       deals: d.market.deals.map((x) => ({
         id: x.id,

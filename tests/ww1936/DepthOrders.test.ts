@@ -19,6 +19,12 @@ beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
 /**
+ * Kinds whose lanes check the answers in their own tests (skipped here):
+ * lane M (Task 4) kinds 20–30 (Mio, Market, Licences).
+ */
+const OWN_TESTS = (k: number): boolean => k >= 20 && k <= 30;
+
+/**
  * Lane D's answers to its samples (kinds 0–13; Germany in the preparation
  * minute: no doctrine yet, no experience, no command power, no group).
  */
@@ -83,6 +89,7 @@ describe("World War 1936 P6: the depth orders", () => {
     DEPTH_ORDER_KINDS.forEach((kind, k) => {
       const o = SAMPLES[kind];
       expect(() => WwOrderSchema.parse(o), kind).not.toThrow();
+      if (OWN_TESTS(k)) return;
       expect(
         d.issue(DEEP.tag.DEU, o as WwOrder, runner.game.ticks()),
         kind,
@@ -107,9 +114,10 @@ describe("World War 1936 P6: the depth orders", () => {
     ww.land.armies.get(1)!.priority = 2;
     const before = gameHash(runner);
     const snap = JSON.stringify(ww.depth.snapshot());
-    // The refused ones (W3's faction rule and goal are Germany's to take).
+    // The refused ones (W3's faction rule and goal are Germany's to take;
+    // the lanes listed in OWN_TESTS check theirs).
     for (const [k, kind] of DEPTH_ORDER_KINDS.entries()) {
-      if (LANE_BLOCK(k) === null) continue;
+      if (OWN_TESTS(k) || LANE_BLOCK(k) === null) continue;
       expect(
         ww.depth.issue(DEEP.tag.DEU, SAMPLES[kind] as WwOrder, 1),
         kind,

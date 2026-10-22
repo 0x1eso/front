@@ -33,6 +33,7 @@ import {
   lineRetentionBp,
 } from "../depth/Designs";
 import { licenceKeys } from "../depth/Licences";
+import { mioFamilyOfKey } from "../depth/Mio";
 import type { WwDepth } from "../depth/WwDepth";
 import { navalLineDemand } from "./NavalLines";
 import type { CountryEconomy, Line, WwEconomy } from "./WwEconomy";
@@ -131,7 +132,22 @@ export function setLineFactories(
 ): WwOrderBlock | null {
   const i = lineIndex(ce, lineId);
   if (i < 0) return "bad_line";
-  ce.lines[i].factories = factoryCount(factories);
+  const line = ce.lines[i];
+  const n = factoryCount(factories);
+  // P6 (lane M review glue 4, spec §7.1): a stopped line is staffed again
+  // only if its equipment may still be built — a line a licence's end
+  // stopped stays stopped until it is retooled.
+  if (line.factories === 0 && n > 0) {
+    const [type, gen] = EQUIP_KEYS[line.key];
+    const block = equipmentTechBlock(
+      ce.researched,
+      type,
+      gen,
+      lineDepthCtx(econ, ce),
+    );
+    if (block !== null) return block;
+  }
+  line.factories = n;
   return null;
 }
 
@@ -249,17 +265,28 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
         ce.stock[line.key]++;
       }
     }
-    line.effBp = efficiencyGrowth(line.effBp, lineCapBp(ce, cap, type));
+    line.effBp = efficiencyGrowth(
+      line.effBp,
+      lineCapBp(depth, ce, cap, line.key),
+    );
   });
 }
 
-/** P6 hook (M, spec §6.3): the line's MIO efficiency cap on top of the country's. */
-function lineCapBp(
+/**
+ * P6 hook (M, spec §6.3): the line's MIO efficiency cap on top of the
+ * country's. Lane M review glue 3: a plane design's family goes by its
+ * airframe (mioFamilyOfKey reads the design slot).
+ */
+export function lineCapBp(
+  depth: WwDepth | undefined,
   ce: CountryEconomy,
   cap: number,
-  type: EquipmentType,
+  lineKey: number,
 ): number {
-  const fam = mioFamilyOf(type);
+  const fam =
+    depth === undefined
+      ? mioFamilyOf(EQUIP_KEYS[lineKey][0])
+      : mioFamilyOfKey(depth, ce.smallID, lineKey);
   if (fam < 0) return cap;
   const key = `mioEffCapBp_${MIO_FAMILIES[fam].slice(4)}` as WwStatKey;
   const add = (ce.stats as Partial<Record<WwStatKey, number>>)[key] ?? 0;
