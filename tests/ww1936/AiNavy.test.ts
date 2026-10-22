@@ -646,10 +646,12 @@ describe("P3's war score at sea (controller addition)", () => {
     expect(aiOverseasBlend(400, twice)).toBeGreaterThanOrEqual(
       AI_WAR_SCORE_PM.aggressor,
     );
-    // The other way round, or without convoys to land an army, it is not.
+    // Out-gunned two to one, or without convoys to land an army, it is not.
+    // (Final balance: the beat's bar is 650, not 800; the plain reverse,
+    // the US fleet against Japan's, now scores 715 and clears it.)
     const weaker = aiSeaWarPm({
       ours: usPacific,
-      theirs: japan,
+      theirs: 2 * japan,
       lift: 12,
       capacity: 10,
     });
