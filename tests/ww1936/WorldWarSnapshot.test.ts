@@ -423,9 +423,14 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // and plane designs, refits, design copies and the design AI; the design
 // state in the depth, navy and economy hashes; P5's final lane: subjects
 // at peace with their overlord's side, the capitulation baseline, the
-// conference AI's shared pricing, sea volunteers): same value in three runs.
+// conference AI's shared pricing, sea volunteers): same value in three runs
+// (3aaca5d2a7c8cd58). Re-pinned after batch P6-5 (T1b: mines, night raids,
+// aces, the AI leaving depth fleets and recon groups alone, plane designs
+// in flight, decryption, admiral traits, the new navy/air stat reads, the
+// fuze and magnetron, the land traits, the occupation and capture reads, a
+// civil war's design stock): same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "3aaca5d2a7c8cd58";
+const WW1936_DIGEST = "9cccfbb7feefeb2e";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
