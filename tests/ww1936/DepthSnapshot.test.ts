@@ -69,6 +69,7 @@ import {
   order,
   step,
   stepTo,
+  takeRegion,
   warAfterPrep,
   type WwHuman,
   wwRestore,
@@ -78,7 +79,7 @@ import {
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
-const { DEU, GBR, ITA, FRA, POL } = DEEP.tag;
+const { DEU, GBR, ITA, FRA, POL, SUN, TUR } = DEEP.tag;
 const R = DEEP.region;
 const WEST = DEEP.sr.westLand;
 const CENTRAL = DEEP.sr.central;
@@ -859,6 +860,39 @@ describe("World War 1936 P6: derived depth fields (plan Task 23 Step 2)", () => 
     const o = new Oracle(runner, humans);
     await o.restore();
     o.run(40);
+    o.finish();
+  }, 120_000);
+
+  it("the intel neighbour table follows the state it is made from", async () => {
+    // Lane I's neighbour table (plan Task 5 Step 5) is the observer row's
+    // land neighbours (P1's lists) and the harbour zones the tick's first
+    // row lists (IntelLevels' tick cache, never state): a restored copy makes
+    // it afresh, the live game keeps its own, and both follow a change of
+    // control on the next row. Britain (human: a row every day) and the
+    // Soviet Union share nothing until Britain holds the Isthmus (its land
+    // borders Kiev, its harbour is on Kiev's waters); nothing else between
+    // them changes.
+    const humans: WwHuman[] = [{ clientID: HUMAN, country: "GBR" }];
+    const { runner: a } = await started(humans);
+    stepTo(a, dayTick(a, dayOf(a) + 2));
+    const row = (r: GameRunner) =>
+      [0, 1, 2, 3].map((dom) => wwOf(r).depth.intelOf(GBR, SUN, dom));
+    const before = row(a);
+    expect(before.every((v) => v < 100)).toBe(true);
+    const o = new Oracle(a, humans);
+    const b = await o.restore();
+    // Britain takes the Isthmus from Turkey (a war of theirs, in both).
+    for (const r of [a, b]) {
+      wwOf(r).setWar(GBR, TUR, r.game.ticks(), { kind: "declare" });
+      takeRegion(r.game, R.isthmus, "GBR");
+    }
+    // P1's mirror of control moves on the next day's common step; Britain's
+    // turn that day makes the row.
+    o.run(2 * 8);
+    for (const r of [a, b]) {
+      expect(wwOf(r).economy.countryNeighbours(GBR)).toContain(SUN);
+      expect(row(r)).toEqual(before.map((v) => v + 10));
+    }
     o.finish();
   }, 120_000);
 
