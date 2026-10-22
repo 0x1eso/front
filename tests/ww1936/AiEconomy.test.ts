@@ -610,6 +610,24 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect(aiResearchOrder("SUN")[0]).toBe("inf_eq_1");
   });
 
+  test("the electronics group takes nuclear physics (final balance: the atomic facility's tech)", () => {
+    // Before, it came last of every list and no AI ever built a nuclear
+    // facility. It now follows the electronics group's other techs; the
+    // United States and Britain lean to electronics, so they come to it
+    // well before Germany, which has the group only in its tail.
+    for (const tag of ["USA", "GBR", "DEU"] as CountryTag[]) {
+      const order = aiResearchOrder(tag);
+      const at = order.indexOf("nuclear_physics");
+      expect(at, tag).toBeGreaterThan(order.indexOf("computing_1"));
+      expect(at, tag).toBeLessThan(order.length - 1);
+    }
+    const usa = aiResearchOrder("USA");
+    expect(usa.indexOf("nuclear_physics")).toBeLessThan(usa.length / 3);
+    expect(usa.indexOf("nuclear_physics")).toBeLessThan(
+      aiResearchOrder("DEU").indexOf("nuclear_physics"),
+    );
+  });
+
   test("research stays within half a year of a tech's year, then nine months", () => {
     // Germany on day 0 (techs of spec §11.1): fortification_1 (P2 Task 6:
     // the construction group) and electronics_1 are 1936 techs (P6 plan
