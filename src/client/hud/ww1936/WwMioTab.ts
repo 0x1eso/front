@@ -56,13 +56,15 @@ export function renderMioTab(m: DepthIndustryModel, ui: TabUi): TemplateResult {
             >
             <span class="text-xs font-normal text-white/70"
               >${c.arch < 0
-                ? translateText("ww1936.mio.no_arch")
-                : translateText(mioArchKey(c.arch))}</span
+                ? translateText("ww1936.mio.empty")
+                : translateText(mioArchKey(c.arch), {
+                    country: ui.name(ui.me),
+                  })}</span
             >
           </span>
           <span class="flex items-center gap-2 text-xs">
             <span class="tabular-nums"
-              >${translateText("ww1936.mio.size", { n: c.size })}</span
+              >${translateText("ww1936.mio.size", { size: c.size })}</span
             >
             <span
               class="h-2 min-w-0 flex-1 overflow-hidden rounded bg-white/15"
@@ -75,13 +77,13 @@ export function renderMioTab(m: DepthIndustryModel, ui: TabUi): TemplateResult {
             </span>
             <span data-ww-mio-next class="tabular-nums text-white/80"
               >${c.maxed
-                ? translateText("ww1936.mio.max")
-                : translateText("ww1936.mio.to_next", {
+                ? ""
+                : translateText("ww1936.mio.funds", {
                     n: renderNumber(c.toNext),
                   })}</span
             >
             <span class="tabular-nums text-amber-200"
-              >${translateText("ww1936.mio.points", { n: c.points })}</span
+              >${translateText("ww1936.mio.points_left", { n: c.points })}</span
             >
           </span>
         </button>
@@ -113,7 +115,7 @@ function renderGrid(
                 archetype: a,
               })}
           >
-            ${translateText(mioArchKey(i))}
+            ${translateText(mioArchKey(i), { country: ui.name(ui.me) })}
           </button>`,
       )}
     </div>`;
@@ -141,7 +143,7 @@ function renderGrid(
                 trait: MIO_TRAITS[c.trait],
               })}
           >
-            ${translateText(mioTraitKey(c.trait))}
+            ${translateText(mioTraitKey(family, c.trait))}
           </button>`;
         }),
       )}
@@ -161,9 +163,8 @@ function renderGrid(
             >
               ${ui.armed(`${switchKey}:${a}`)
                 ? translateText("ww1936.econ.cancel_tap")
-                : translateText("ww1936.mio.switch", {
-                    name: translateText(mioArchKey(i)),
-                    pp: MIO_SWITCH_PP,
+                : translateText("ww1936.mio.change_arch", {
+                    cost: MIO_SWITCH_PP,
                   })}
             </button>`,
       )}
@@ -179,7 +180,7 @@ function renderGrid(
       >
         ${ui.armed(investKey)
           ? translateText("ww1936.econ.cancel_tap")
-          : translateText("ww1936.mio.invest", { pp: MIO_INVEST_PP })}
+          : translateText("ww1936.mio.invest", { cost: MIO_INVEST_PP })}
       </button>
     </div>
   </div>`;

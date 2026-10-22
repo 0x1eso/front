@@ -414,7 +414,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
         title=${block === null ? "" : blockText(block)}
         @click=${() => flow.start("nuke", sr)}
       >
-        ☢ ${translateText("ww1936.nuke.start")}
+        ☢ ${translateText("ww1936.nuke.drop")}
       </button>
       ${bomber === undefined
         ? nothing
@@ -424,7 +424,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
             class="h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2"
             @click=${() => flow.start("raid_bomb", bomber.id)}
           >
-            🎯 ${translateText("ww1936.raid_ui.start")}
+            🎯 ${translateText("ww1936.raid_ui.precision")}
           </button>`}
       ${active
         ? html`<button
@@ -438,7 +438,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
         : nothing}
       ${st.kind === "nuke" && st.step === "target"
         ? html`<span data-ww-hint="nuke" class="text-amber-200"
-            >${translateText("ww1936.nuke.hint_target")}</span
+            >${translateText("ww1936.nuke.pick_region")}</span
           >`
         : nothing}
       ${prev !== null && (st.step === "preview" || st.step === "ready")
@@ -448,7 +448,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
               destroyed: prev.destroyed,
               stopped: prev.stopped,
               divisions: prev.divisions,
-              risk: Math.floor(prev.interceptPm / 10),
+              pct: Math.floor(prev.interceptPm / 10),
             })}</span
           >`
         : nothing}
@@ -658,7 +658,10 @@ export class WwAirZoneCard extends LitElement implements Controller {
             this.requestUpdate();
           }}
         >
-          🌙 ${translateText("ww1936.air.night")}
+          🌙
+          ${translateText(
+            on ? "ww1936.raid_ui.night_on" : "ww1936.raid_ui.night_off",
+          )}
         </button>`
       : nothing}`;
   }

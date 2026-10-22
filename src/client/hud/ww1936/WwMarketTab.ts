@@ -7,9 +7,8 @@ import { renderNumber } from "@openfront/engine-lib/Format";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { DepthIndustryModel, ListingRow } from "./DepthIndustryModel";
+import { blockText } from "./EconomyModel";
 import { TAB_BTN, TAB_HEAD, TabUi } from "./WwTabUi";
-
-const pct = (pm: number) => `${Math.floor(pm / 10)}%`;
 
 export function renderMarketTab(
   m: DepthIndustryModel,
@@ -33,14 +32,16 @@ export function renderMarketTab(
               ui.redraw();
             }}
           >
-            ${translateText(v ? "ww1936.market.mine" : "ww1936.market.open")}
+            ${translateText(
+              v ? "ww1936.market.my_listings" : "ww1936.market.filter_all",
+            )}
           </button>`,
       )}
     </div>
     <ul class="m-0 mt-1 flex list-none flex-col gap-1 p-0">
       ${rows.length === 0
         ? html`<li class="text-xs text-white/60">
-            ${translateText("ww1936.market.none")}
+            ${translateText("ww1936.market.empty")}
           </li>`
         : rows.map((r) => renderRow(m, ui, r, r === chosen))}
     </ul>
@@ -87,7 +88,7 @@ function renderRow(
           class=${TAB_BTN}
           @click=${() => ui.send({ kind: "market_unlist", listing: r.id })}
         >
-          ${translateText("ww1936.market.unlist")}
+          ${translateText("ww1936.market.withdraw")}
         </button>`
       : nothing}
     ${open && !r.own
@@ -105,15 +106,13 @@ function renderRow(
           />
           <span data-ww-buy-preview class="tabular-nums"
             >${translateText("ww1936.market.preview", {
-              count: prev.count,
-              factories: prev.factories,
-              days: prev.days,
+              n: prev.factories,
             })}</span
           >
           ${r.blocked === null
             ? nothing
             : html`<span data-ww-block=${r.blocked} class="text-red-300"
-                >🔒 ${translateText(`ww1936.market.block.${r.blocked}`)}</span
+                >🔒 ${blockText("no_partner")}</span
               >`}
           <button
             type="button"
@@ -178,7 +177,7 @@ function renderOffer(m: DepthIndustryModel, ui: TabUi): TemplateResult {
       ?disabled=${have <= 0}
       @click=${() => ui.send({ kind: "market_list", key, count })}
     >
-      ${translateText("ww1936.market.list")}
+      ${translateText("ww1936.market.list_item")}
     </button>
   </div>`;
 }
@@ -192,17 +191,20 @@ function renderDeals(m: DepthIndustryModel, ui: TabUi): TemplateResult {
         (d) =>
           html`<li data-ww-deal=${d.id} class="flex gap-2 tabular-nums">
             <span class="min-w-0 flex-1 truncate"
-              >${translateText(
-                d.role === "buy"
-                  ? "ww1936.market.bought"
-                  : "ww1936.market.sold",
-              )}
-              ${m.keyName(d.key)} ×${d.count} · ${ui.name(d.partner)}</span
+              >${m.keyName(d.key)} ×${d.count} · ${ui.name(d.partner)}</span
             >
-            <span>${pct(d.paidPm)} / ${pct(d.deliveredPm)}</span>
             <span
-              >${translateText("ww1936.econ.days_left", {
-                n: d.daysLeft,
+              >${translateText("ww1936.market.deal_pay", {
+                pct: Math.floor(d.paidPm / 10),
+              })}
+              ·
+              ${translateText("ww1936.market.deal_delivery", {
+                pct: Math.floor(d.deliveredPm / 10),
+              })}</span
+            >
+            <span
+              >${translateText("ww1936.project_ui.days_left", {
+                days: d.daysLeft,
               })}</span
             >
           </li>`,
@@ -225,7 +227,13 @@ function renderLicences(m: DepthIndustryModel, ui: TabUi): TemplateResult {
             class="flex items-center gap-1"
           >
             <span class="min-w-0 flex-1 truncate"
-              >${ui.name(p.from)} · ${m.keyName(p.key)}</span
+              >${translateText("ww1936.licence.card_title", {
+                country: ui.name(p.from),
+              })}
+              ·
+              ${translateText("ww1936.licence.card_design", {
+                design: m.keyName(p.key),
+              })}</span
             >
             ${[true, false].map(
               (accept) =>
@@ -247,7 +255,9 @@ function renderLicences(m: DepthIndustryModel, ui: TabUi): TemplateResult {
         return html`<li data-ww-licence=${l.id} class="flex items-center gap-1">
           <span class="min-w-0 flex-1 truncate"
             >${translateText(
-              l.dir === "in" ? "ww1936.licence.held" : "ww1936.licence.granted",
+              l.dir === "in"
+                ? "ww1936.licence.received"
+                : "ww1936.licence.granted",
             )}
             · ${m.keyName(l.key)} · ${ui.name(l.partner)}</span
           >
@@ -288,7 +298,7 @@ function renderEmbargoes(m: DepthIndustryModel, ui: TabUi): TemplateResult {
                   @click=${() =>
                     ui.send({ kind: "embargo_lift", target: e.on })}
                 >
-                  ${translateText("ww1936.market.lift")}
+                  ${translateText("ww1936.market.lift_embargo")}
                 </button>`
               : nothing}
           </li>`,

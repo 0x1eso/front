@@ -406,6 +406,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       confirm: (k, act) => this.confirmTap(k, act),
       armed: (k) => this.armed(k),
       redraw: () => this.requestUpdate(),
+      me: this.game.myPlayer()?.smallID() ?? 0,
+      regionName: (r) => c.scenario.region(r)?.name ?? String(r),
       name: (id) => {
         const tag = c.scenario.tagOfSmallId(id);
         return tag === undefined ? "?" : countryName(tag);
@@ -425,7 +427,6 @@ export class WwIndustryPanel extends WwDrawerBase {
         ${translateText("ww1936.energy.line", {
           pct: e.pct,
           coal: e.coalUnits,
-          coalPower: e.coalPower,
           hydro: e.hydroPower,
           plants: e.plantPower,
           demand: e.demand,
@@ -436,7 +437,12 @@ export class WwIndustryPanel extends WwDrawerBase {
         .map(
           (r) =>
             html`<div data-ww-energy-res=${r.id} class="text-white/80">
-              ${translateText(`ww1936.res.${r.id}`)} ${signedText(r.balance)}
+              ${translateText(
+                r.id === "coal"
+                  ? "ww1936.energy.coal_line"
+                  : "ww1936.energy.uranium_line",
+                { stock: 0, gain: signedText(r.balance) },
+              )}
             </div>`,
         )}
     </div>`;

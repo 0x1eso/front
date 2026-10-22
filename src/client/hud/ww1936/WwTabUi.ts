@@ -10,6 +10,10 @@ export interface TabUi {
   redraw(): void;
   /** A country's name from its small id. */
   name(smallID: number): string;
+  /** A region's name. */
+  regionName(region: number): string;
+  /** My own small id. */
+  me: number;
   /** Small per-tab state (the card opened, the slider value). */
   pick: Record<string, number>;
 }

@@ -120,6 +120,8 @@ export class WwResearchPanel extends WwDrawerBase {
       },
       armed: (k) => this.twoTap.isArmed(k, Date.now()),
       redraw: () => this.requestUpdate(),
+      me: this.game.myPlayer()?.smallID() ?? 0,
+      regionName: (r) => sc.region(r)?.name ?? String(r),
       name: (id) => {
         const tag = sc.tagOfSmallId(id);
         return tag === undefined ? "?" : translateText(`ww1936.country.${tag}`);

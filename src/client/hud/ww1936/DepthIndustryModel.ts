@@ -61,15 +61,16 @@ import { today } from "./WorldWarModel";
 
 // ---- names (keys: lane T's ww1936.mio.*, market.*, energy.*, project_ui.*) ----
 
+// K5's content names (ww1936.mio_family / mio_arch / mio_trait / project / scientist).
 export const mioFamilyKey = (family: number) =>
-  `ww1936.mio.family.${MIO_FAMILIES[family]}`;
+  `ww1936.mio_family.${MIO_FAMILIES[family]}`;
 export const mioArchKey = (arch: number) =>
-  `ww1936.mio.arch.${["state_arsenal", "private_combine", "design_bureau"][arch]}`;
-export const mioTraitKey = (trait: number) =>
-  `ww1936.mio.trait.${MIO_TRAITS[trait]}`;
-export const projectKey = (p: SpecialProject) => `ww1936.project_ui.${p}`;
+  `ww1936.mio_arch.${["state_arsenal", "private_combine", "design_bureau"][arch]}`;
+export const mioTraitKey = (family: number, trait: number) =>
+  `ww1936.mio_trait.${MIO_FAMILIES[family]}.${MIO_TRAITS[trait]}`;
+export const projectKey = (p: SpecialProject) => `ww1936.project.${p}`;
 export const scientistKey = (spec: number) =>
-  `ww1936.project_ui.spec.${SCIENTIST_SPECS[spec]}`;
+  `ww1936.scientist.${SCIENTIST_SPECS[spec]}`;
 
 export const MIO_ICONS: readonly string[] = [
   "🪖",
@@ -732,7 +733,6 @@ export function energyLineText(e: EnergyLine): string {
   return translateText("ww1936.energy.line", {
     pct: e.pct,
     coal: e.coalUnits,
-    coalPower: e.coalPower,
     hydro: e.hydroPower,
     plants: e.plantPower,
     demand: e.demand,

@@ -12,7 +12,7 @@ import {
   projectKey,
   scientistKey,
 } from "./DepthIndustryModel";
-import { buildingName } from "./EconomyModel";
+import { blockText, buildingName } from "./EconomyModel";
 import { TAB_BTN, TAB_HEAD, TabUi } from "./WwTabUi";
 
 const stars = (n: number) => "★".repeat(Math.max(0, n));
@@ -27,7 +27,7 @@ export function renderProjectsTab(
     <ul class="m-0 flex list-none flex-wrap gap-1 p-0 text-xs">
       ${facilities.length === 0
         ? html`<li class="text-white/60">
-            ${translateText("ww1936.project_ui.no_facility")}
+            ${translateText("ww1936.project_ui.none")}
           </li>`
         : facilities.map(
             (f) =>
@@ -78,8 +78,12 @@ function renderCard(
         >
         <span class="block text-white/70"
           >${c.state === "running"
-            ? translateText("ww1936.econ.days_left", { n: c.daysLeft })
-            : translateText(`ww1936.project_ui.state_${c.state}`)}</span
+            ? translateText("ww1936.project_ui.days_left", { days: c.daysLeft })
+            : c.state === "locked"
+              ? blockText("project_locked")
+              : c.state === "done"
+                ? translateText("ww1936.project_ui.progress", { pct: 100 })
+                : translateText("ww1936.project_ui.idle")}</span
         >
       </span>
       ${c.milestones === null
@@ -98,19 +102,22 @@ function renderCard(
     ${c.uranium === null
       ? nothing
       : html`<div data-ww-input class="mt-1 text-xs tabular-nums text-white/80">
-          ${translateText("ww1936.project_ui.uranium", {
-            got: c.uranium.got,
+          ${translateText("ww1936.project_ui.input", {
+            item: translateText("ww1936.res.uranium"),
+            have: c.uranium.got,
             need: c.uranium.need,
           })}
         </div>`}
     ${c.scientist === null
       ? c.state === "running"
         ? html`<div class="mt-1 text-xs text-amber-200">
-            ${translateText("ww1936.project_ui.no_scientist")}
+            ${translateText("ww1936.project_ui.scientist", { name: "—" })}
           </div>`
         : nothing
       : html`<div data-ww-scientist class="mt-1 text-xs">
-          ${translateText(scientistKey(c.scientist.spec))}
+          ${translateText(scientistKey(c.scientist.spec), {
+            n: c.scientist.id + 1,
+          })}
           ${stars(c.scientist.skill)} ${c.scientist.matches ? "✓" : ""}
         </div>`}
     <div class="mt-1 flex flex-wrap gap-1">
@@ -152,7 +159,10 @@ function renderCard(
                   });
                 }}
               >
-                ${translateText("ww1936.project_ui.facility_at", { region })}
+                ${translateText("ww1936.project_ui.facility_row", {
+                  facility: buildingName(c.facility),
+                  region: ui.regionName(region),
+                })}
               </button>`,
           )
         : nothing}
@@ -184,7 +194,8 @@ function renderCard(
                         });
                       }}
                     >
-                      ${translateText(scientistKey(s.spec))} ${stars(s.skill)}
+                      ${translateText(scientistKey(s.spec), { n: s.id + 1 })}
+                      ${stars(s.skill)}
                     </button>`,
                 )
               : nothing}
