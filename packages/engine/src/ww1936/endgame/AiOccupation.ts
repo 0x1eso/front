@@ -45,13 +45,18 @@ export const AI_CIVIL_RES_BP = 5000;
 export const AI_CIVIL_COVER_PCT = 70;
 /** Average resistance under which an aggressor at war goes martial, bp. */
 export const AI_MARTIAL_RES_BP = 2500;
-/** Spec §17.2: garrison suppression wanted, % of the need (60 when the fronts need the troops). */
-export const AI_GARRISON_PCT = 90;
+/**
+ * Spec §17.2: garrison suppression wanted, % of the need (60 when the
+ * fronts need the troops). Final balance: 90 → 120 (release 110 → 140):
+ * divisions are whole, so a region short by a fraction of one got none
+ * and the regions' mean fulfilment sat at 42% with 90% of the total.
+ */
+export const AI_GARRISON_PCT = 120;
 export const AI_GARRISON_WAR_PCT = 60;
 /** …when the front demand is over this share of all divisions, %. */
 export const AI_FRONT_HEAVY_PCT = 80;
 /** Over this share of the need the last garrison army goes back, %. */
-export const AI_GARRISON_RELEASE_PCT = 110;
+export const AI_GARRISON_RELEASE_PCT = 140;
 /** Spec §17.2: garrison divisions in training when the need passes half the suppression. */
 export const AI_GARRISON_TRAIN_NEED_PCT = 50;
 export const AI_GARRISON_TRAIN_SHARE_PCT = 20;

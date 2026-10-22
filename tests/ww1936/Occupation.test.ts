@@ -628,7 +628,8 @@ describe("World War 1936 P5: occupation rule (spec §8)", () => {
     eg.resBp[SLOVAKIA] = 9000;
     uprisingNow(eg, SLOVAKIA, g.ticks());
     expect(ww.land.controller[SLOVAKIA]).toBe(deu);
-    expect(eg.resBp[SLOVAKIA]).toBe(5000);
+    // Final balance: resistance falls back to 30% (UPRISING_FAILED_RES_BP).
+    expect(eg.resBp[SLOVAKIA]).toBe(3000);
     expect(econ.damage.some((d) => d > 0)).toBe(true);
     expect(ww.isAtWar(deu, csk)).toBe(false);
   }, 60_000);

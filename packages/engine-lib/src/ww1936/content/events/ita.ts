@@ -23,7 +23,11 @@ export const GRAND_COUNCIL_CRISIS: Condition = all(
       of: { factionLeaderOf: T("GBR") },
     },
     { kind: "occupied_by", group: "sicily", of: T("USA") },
-    { kind: "lost_vp_ge", pct: 10 },
+    // Final balance: 10 → 25. Italy's African colonies hold 12 of its 51
+    // points, so losing two of them (or Ethiopia's counter-attack) ran the
+    // crisis and the armistice in 1939–41 in most games; 25% is all of
+    // Africa and a little more, as by July 1943.
+    { kind: "lost_vp_ge", pct: 25 },
   ),
 );
 

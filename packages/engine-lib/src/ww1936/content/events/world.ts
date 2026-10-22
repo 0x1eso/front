@@ -198,7 +198,16 @@ export const WORLD_EVENTS: EventDef[] = [
     receivers: ["ESN"],
     trigger: all(after("1936-07-01"), { kind: "at_war_with", of: T("ESR") }),
     once: "game",
-    options: [{ id: "a", ai: { base: 1 }, effects: [] }],
+    // Final balance (P5 Spain targets): the rising's recruits (the Army of
+    // Africa's levies, the Carlist and Falangist militias). Without them
+    // the Nationalists ran out of manpower by mid-1938 in most games.
+    options: [
+      {
+        id: "a",
+        ai: { base: 1 },
+        effects: [{ kind: "manpower", amount: 100_000 }],
+      },
+    ],
   },
   {
     // Fired by the German focus deu_rome_berlin (from = Germany).

@@ -248,7 +248,14 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
     [155, 95, 165],
     "europe",
   ),
-  ESN: def("Nationalist Spain", "ww1936_ESN", [195, 155, 75], "europe"),
+  // Final balance (P5 Spain targets): Nationalist Spain's points are Burgos
+  // (2) and Spanish Guinea (4), out of the Republic's reach, so at 80% a
+  // beaten Nationalist Spain never surrendered and the war ran to 1945. As
+  // the colonial empires above, the line sits under its homeland's share:
+  // 18 + war support and stability (at most +15) stays under Burgos's 33%.
+  ESN: def("Nationalist Spain", "ww1936_ESN", [195, 155, 75], "europe", {
+    surrenderPct: 18,
+  }),
   PRT: def("Portugal", "pt", [65, 145, 95], "europe"),
   IRL: def("Ireland", "ie", [90, 175, 95], "europe"),
   DNK: def("Denmark", "dk", [195, 85, 85], "europe"),
