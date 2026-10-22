@@ -36,7 +36,7 @@ import { OpenWwIndustryEvent, WwDrawerBase } from "./WwDrawer";
 type DesignerTab = "design" | "list";
 
 const BTN =
-  "h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
+  "h-7 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
 const KIND_KEYS: Readonly<Record<DesignKind, string>> = {
   tank: "ww1936.design.tab_tank",
   ship: "ww1936.design.tab_ship",
@@ -50,7 +50,6 @@ export class WwDesigner extends WwDrawerBase {
   private model: DesignerModel | null = null;
   private readonly retireTap = new TwoTap();
   private armed = "";
-  private redrawKey: readonly unknown[] = [];
 
   init() {
     super.init();
@@ -85,19 +84,31 @@ export class WwDesigner extends WwDrawerBase {
     return this.model;
   }
 
+  private seen = { depth: -1, econ: -1, pol: -1, rev: -1, tab: "", armed: "" };
+
   tick() {
     this.refitIfOpen();
     if (!this.open) return;
     const m = this.ensureModel();
-    const key = [
-      this.game?.wwDepth?.()?.version,
-      this.game?.wwEconomy?.()?.version,
-      m.rev,
-      this.tab,
-      this.armed,
-    ];
-    if (key.some((v, i) => v !== this.redrawKey[i])) {
-      this.redrawKey = key;
+    const g = this.game;
+    const depth = g?.wwDepth?.()?.version ?? 0;
+    const econ = g?.wwEconomy?.()?.version ?? 0;
+    const pol = g?.wwPolitics?.()?.version ?? 0;
+    const s = this.seen;
+    if (
+      s.depth !== depth ||
+      s.econ !== econ ||
+      s.pol !== pol ||
+      s.rev !== m.rev ||
+      s.tab !== this.tab ||
+      s.armed !== this.armed
+    ) {
+      s.depth = depth;
+      s.econ = econ;
+      s.pol = pol;
+      s.rev = m.rev;
+      s.tab = this.tab;
+      s.armed = this.armed;
       this.requestUpdate();
     }
   }
@@ -239,7 +250,7 @@ export class WwDesigner extends WwDrawerBase {
             </button>`,
         )}
       </div>
-      <div class="flex min-h-0 flex-1 gap-2 px-2 py-1">
+      <div class="flex min-h-0 flex-1 gap-2 px-2">
         <div class="relative flex min-h-0 min-w-0 flex-1 flex-col gap-1">
           ${m.draft === null
             ? html`<p class="m-0 text-xs text-white/60">
@@ -281,42 +292,45 @@ export class WwDesigner extends WwDrawerBase {
     const cards = m.slotCards();
     const d = m.draft!;
     return html`<div
-        data-ww-slot-grid
-        class="grid content-start overflow-y-auto"
-        style="grid-template-columns: repeat(2, ${DESIGNER_CARD_W}px); gap: ${DESIGNER_GAP}px"
-      >
-        ${cards.map(
-          (c) =>
-            html`<button
-              type="button"
-              data-ww-slot=${c.index}
-              class="flex flex-col justify-between overflow-hidden rounded-md border px-1.5 py-0.5 text-left ${c.open
-                ? "border-sky-400/70 bg-sky-500/15"
-                : "border-white/15 bg-white/5 hover:bg-white/10"}"
-              style="width: ${DESIGNER_CARD_W}px; height: ${DESIGNER_CARD_H}px"
-              @click=${() => m.selectSlot(c.index)}
+      data-ww-slot-grid
+      class="grid content-start overflow-y-auto"
+      style="grid-template-columns: repeat(2, ${DESIGNER_CARD_W}px); gap: ${DESIGNER_GAP}px; height: ${Math.ceil(
+        cards.length / 2,
+      ) *
+        (DESIGNER_CARD_H + DESIGNER_GAP) -
+      DESIGNER_GAP}px"
+    >
+      ${cards.map(
+        (c) =>
+          html`<button
+            type="button"
+            data-ww-slot=${c.index}
+            class="flex flex-col justify-between overflow-hidden rounded-md border px-1.5 py-0.5 text-left ${c.open
+              ? "border-sky-400/70 bg-sky-500/15"
+              : "border-white/15 bg-white/5 hover:bg-white/10"}"
+            style="width: ${DESIGNER_CARD_W}px; height: ${DESIGNER_CARD_H}px"
+            @click=${() => m.selectSlot(c.index)}
+          >
+            <span class="truncate text-[10px] leading-3 text-white/60"
+              >${slotName(d.kind, c.slotKind)}</span
             >
-              <span class="truncate text-[10px] leading-3 text-white/60"
-                >${slotName(d.kind, c.slotKind)}</span
-              >
-              <span class="truncate text-xs font-semibold leading-4"
-                >${moduleName(d.kind, c.moduleId)}</span
-              >
-              <span class="flex gap-1 truncate text-[10px] leading-3">
-                ${c.chips.length === 0
-                  ? html`<span class="text-white/40">—</span>`
-                  : c.chips.map(
-                      (x) =>
-                        html`<span class="${chipClass(x.sign)} rounded px-0.5"
-                          >${translateText(`ww1936.design.stat.${x.id}`)}
-                          ${x.text}</span
-                        >`,
-                    )}
-              </span>
-            </button>`,
-        )}
-      </div>
-      ${d.kind === "tank" ? this.renderSteppers(m) : nothing}`;
+            <span class="truncate text-xs font-semibold leading-4"
+              >${moduleName(c.moduleId)}</span
+            >
+            <span class="flex gap-1 truncate text-[10px] leading-3">
+              ${c.chips.length === 0
+                ? html`<span class="text-white/40">—</span>`
+                : c.chips.map(
+                    (x) =>
+                      html`<span class="${chipClass(x.sign)} rounded px-0.5"
+                        >${translateText(`ww1936.design.stat.${x.id}`)}
+                        ${x.text}</span
+                      >`,
+                  )}
+            </span>
+          </button>`,
+      )}
+    </div> `;
   }
 
   private renderSteppers(m: DesignerModel): TemplateResult {
@@ -330,28 +344,31 @@ export class WwDesigner extends WwDrawerBase {
       set: (n: number) => void,
     ) =>
       html`<div class="flex items-center gap-1 text-xs" data-ww-stepper=${id}>
-        <span class="w-14 truncate">${label}</span>
+        <span class="truncate">${label}</span>
         <button
           type="button"
           data-ww-step-dec
-          class="${BTN} w-9 px-0"
+          class="${BTN} h-6 w-7 px-0"
           ?disabled=${v <= 0}
           @click=${() => set(v - 1)}
         >
           −
         </button>
-        <span class="w-5 text-center">${v}</span>
+        <span class="w-4 text-center">${v}</span>
         <button
           type="button"
           data-ww-step-inc
-          class="${BTN} w-9 px-0"
+          class="${BTN} h-6 w-7 px-0"
           ?disabled=${v >= 10}
           @click=${() => set(v + 1)}
         >
           +
         </button>
       </div>`;
-    return html`<div class="flex shrink-0 flex-wrap gap-x-3 gap-y-1">
+    return html`<div
+      data-ww-steppers
+      class="flex shrink-0 items-center gap-x-2"
+    >
       ${stepper(
         "armor",
         translateText("ww1936.design.armor_step", { n: a }),
@@ -436,9 +453,14 @@ export class WwDesigner extends WwDrawerBase {
     return html`<div
       data-ww-designer-bottom
       class="flex shrink-0 flex-col gap-0.5 border-t border-white/10 px-2 py-1"
-      style="min-height: ${DESIGNER_BOTTOM_H}px"
+      style="height: ${DESIGNER_BOTTOM_H}px"
     >
-      <div class="flex items-center gap-2 text-xs">
+      <div
+        data-ww-designer-xprow
+        class="flex items-center gap-2 text-xs"
+        style="height: 24px"
+      >
+        ${d !== null && d.kind === "tank" ? this.renderSteppers(m) : nothing}
         ${d === null
           ? nothing
           : html`<span
@@ -450,7 +472,7 @@ export class WwDesigner extends WwDrawerBase {
                 have: have === null ? "?" : Math.floor(have / 1000),
               })}</span
             >`}
-        ${block !== null && d !== null
+        ${block !== null && block !== "no_xp" && d !== null
           ? html`<span
               data-ww-block=${block}
               class="min-w-0 truncate text-amber-300"
@@ -466,7 +488,7 @@ export class WwDesigner extends WwDrawerBase {
           data-ww-design-name
           type="text"
           maxlength="24"
-          class="h-9 min-w-0 flex-1 rounded-md border border-white/15 bg-black/30 px-2 text-xs"
+          class="h-8 min-w-0 flex-1 rounded-md border border-white/15 bg-black/30 px-2 text-xs"
           aria-label=${translateText("ww1936.design.name")}
           placeholder=${m.autoName()}
           .value=${d === null || d.name.startsWith("@") ? "" : d.name}
@@ -478,7 +500,7 @@ export class WwDesigner extends WwDrawerBase {
         <button
           type="button"
           data-ww-recommend
-          class=${BTN}
+          class="${BTN} h-8"
           ?disabled=${d === null}
           @click=${() => m.recommend()}
         >
@@ -487,7 +509,9 @@ export class WwDesigner extends WwDrawerBase {
         <button
           type="button"
           data-ww-design-save
-          class="${BTN} ${armed ? "border-amber-400/70 bg-amber-500/20" : ""}"
+          class="${BTN} h-8 ${armed
+            ? "border-amber-400/70 bg-amber-500/20"
+            : ""}"
           ?disabled=${d === null || block !== null}
           @click=${() => this.onSave(m)}
         >
@@ -507,6 +531,8 @@ export class WwDesigner extends WwDrawerBase {
       return;
     }
     this.eventBus.emit(new SendWwOrderIntentEvent(order));
+    // A kept draft would save a duplicate on the next confirm.
+    m.open(m.kind);
     this.tab = "list";
   }
 }

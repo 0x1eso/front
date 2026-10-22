@@ -1,6 +1,7 @@
 // World War 1936 P6 lane U2 (spec §20.5): the designer's bottom sheet, the
 // module list of one slot. One tap on a row puts the module in. It covers
 // the slot grid only; the stats column stays.
+import { slotKinds } from "@openfront/engine-lib/ww1936/DesignRules";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import {
@@ -10,10 +11,7 @@ import {
   StatChip,
 } from "./DesignerModel";
 
-export function moduleName(
-  kind: "tank" | "ship" | "plane",
-  id: string,
-): string {
+export function moduleName(id: string): string {
   if (id !== "") return translateText(`ww1936.module.${id}`);
   return translateText("ww1936.design.slot_empty");
 }
@@ -77,7 +75,7 @@ function renderRow(
   >
     <span class="flex items-center gap-1">
       <span class="min-w-0 flex-1 truncate font-semibold"
-        >${r.block === null ? "" : "🔒 "}${moduleName(kind, r.id)}</span
+        >${r.block === null ? "" : "🔒 "}${moduleName(r.id)}</span
       >
       ${diff === ""
         ? nothing
@@ -109,7 +107,7 @@ export function renderDesignSheet(
 ): TemplateResult | typeof nothing {
   const d = model.draft;
   if (d === null) return nothing;
-  const slotKind = model.slotCards()[slot]?.slotKind ?? "";
+  const slotKind = slotKinds(d)[slot] ?? "";
   return html`<div
     data-ww-design-sheet
     class="absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-lg border border-white/15 bg-gray-900/98 shadow-2xl"

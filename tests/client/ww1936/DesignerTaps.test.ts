@@ -101,6 +101,61 @@ describe("<ww-designer>", () => {
     await new Promise((r) => setTimeout(r, 400));
     await click("[data-ww-design-save]");
     expect(sent).toHaveLength(1);
+    // The draft is cleared: back on the design tab nothing can save twice.
+    (el.querySelector("[data-ww-design-kind=tank]") as HTMLElement).click();
+    await el.updateComplete;
+    expect(
+      (el.querySelector("[data-ww-design-save]") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    el.remove();
+  });
+
+  it("a 7-slot tank at 844 x 390 fits its grid, steppers and bottom bar in the drawer", async () => {
+    const { EventBus } = await import("@openfront/shared/EventBus");
+    const { WwDepthOpenEvent } =
+      await import("../../../src/client/hud/ww1936/DepthEvents");
+    await import("../../../src/client/hud/ww1936/WwDesigner");
+    Object.defineProperty(window, "innerWidth", {
+      value: 844,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 390,
+      configurable: true,
+    });
+    const bus = new EventBus();
+    const el = document.createElement("ww-designer") as HTMLElement & {
+      game: unknown;
+      eventBus: unknown;
+      updateComplete: Promise<boolean>;
+      init(): void;
+    };
+    el.game = designerGame();
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    bus.emit(new WwDepthOpenEvent("designer", { kind: "tank" }));
+    await el.updateComplete;
+    (el.querySelector("[data-ww-base=heavy_2]") as HTMLElement).click();
+    await el.updateComplete;
+    const px = (sel: string, prop: "height" | "top" | "bottom") =>
+      parseFloat((el.querySelector(sel) as HTMLElement).style[prop] || "0");
+    const slots = el.querySelectorAll("[data-ww-slot]").length;
+    expect(slots).toBe(7);
+    const aside = "[data-ww-drawer]";
+    const drawerH = 390 - px(aside, "top") - px(aside, "bottom");
+    const bars =
+      px("[data-ww-designer-bar]", "height") +
+      px("[data-ww-base-chips]", "height");
+    const bottom = px("[data-ww-designer-bottom]", "height");
+    const grid = px("[data-ww-slot-grid]", "height");
+    expect(grid).toBe(4 * 52 + 3 * 2);
+    expect(bars + grid + bottom).toBeLessThanOrEqual(drawerH);
+    // The steppers sit in the bottom bar's experience row, not under the grid.
+    expect(
+      el.querySelector("[data-ww-designer-xprow] [data-ww-steppers]"),
+    ).not.toBeNull();
+    expect(px("[data-ww-designer-xprow]", "height")).toBe(24);
     el.remove();
   });
 });

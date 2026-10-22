@@ -106,4 +106,19 @@ describe("DesignerModel", () => {
     expect(m.statRows()).toHaveLength(8);
     expect(m.block()).toBeNull();
   });
+
+  it("a copy is refused when every slot holds a design", () => {
+    const def = {
+      kind: "tank",
+      base: "light_1",
+      modules: ["", "", "", "", "", ""],
+      armorLevel: 0,
+      engineLevel: 0,
+      name: "x",
+    } as DesignDef;
+    const full = Array.from({ length: 12 }, (_, i) => saved(def, i + 1));
+    const m = new DesignerModel(designerGame({ designs: full }));
+    m.open("tank", def);
+    expect(m.block()).toBe("design_slots_full");
+  });
 });

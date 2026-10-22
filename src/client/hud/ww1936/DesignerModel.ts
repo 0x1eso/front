@@ -365,10 +365,7 @@ export class DesignerModel {
     if (b !== null) return b;
     const have = this.xpHave();
     if (have !== null && this.xpCost() * 1000 > have) return "no_xp";
-    if (
-      this.base === null &&
-      this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind]
-    ) {
+    if (this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind]) {
       return "design_slots_full";
     }
     return null;
@@ -760,8 +757,9 @@ export class DesignerModel {
   private numbers(d: DesignDef): Numbers | null {
     const key = `${d.kind}|${d.base}|${d.modules.join(",")}|${d.armorLevel ?? 0}|${d.engineLevel ?? 0}`;
     const env =
-      (this.view.wwEconomy?.()?.version ?? 0) * 4096 +
-      (this.view.wwDepth?.()?.version ?? 0);
+      (this.view.wwEconomy?.()?.version ?? 0) * 16_777_216 +
+      (this.view.wwDepth?.()?.version ?? 0) * 4096 +
+      (this.view.wwPolitics?.()?.version ?? 0);
     const m = this.memo;
     if (m !== null && m.key === key && m.env === env) return m.n;
     const n = this.computeNumbers(d);
@@ -956,12 +954,13 @@ export function autoNameOf(def: DesignDef): string {
 /** Spec §20.5 sizes, CSS px. */
 export const DESIGNER_CARD_W = 150;
 export const DESIGNER_CARD_H = 52;
-export const DESIGNER_GAP = 4;
+export const DESIGNER_GAP = 2;
 export const DESIGNER_STATS_W = 180;
 export const DESIGNER_PAD = 12;
 /** Rows of the top bar, the base chips and the bottom bar. */
-export const DESIGNER_BAR_H = 36;
-export const DESIGNER_BOTTOM_H = 56;
+export const DESIGNER_BAR_H = 32;
+/** The xp row (24, with the tank steppers) and the button row (32), plus padding. */
+export const DESIGNER_BOTTOM_H = 64;
 
 export interface DesignerLayout {
   drawerW: number;
@@ -981,7 +980,7 @@ export function designerLayout(
   vh: number,
   slots: number,
   topInset = 40,
-  bottomInset = 0,
+  bottomInset = 8,
 ): DesignerLayout {
   const drawerW = Math.min(Math.floor(vw * 0.64), 680);
   const drawerH = vh - topInset - bottomInset;
