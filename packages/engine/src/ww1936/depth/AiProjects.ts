@@ -357,7 +357,8 @@ function rocketArsenal(d: WwDepth, id: number): void {
     let best = 0;
     let bestKm = -1;
     for (const r of [...econ.regionsOf(id)].sort((a, b) => a - b)) {
-      if (land.controller[r] !== id) continue;
+      // Final review B, I3: never in Korea or Taiwan (no P6 data there).
+      if (land.controller[r] !== id || d.noStrike(r)) continue;
       const at = sc.centerTile(r);
       let km = -1;
       for (const t of enemyRegions) {

@@ -84,7 +84,7 @@ import {
 } from "../navy/AiNavy";
 import { navalPort, navalPortsOf } from "../navy/Ports";
 import { convoysOf } from "./Buildings";
-import { moveBuild, queueBuild, usedSlots } from "./Construction";
+import { moveBuild, noStrikeAt, queueBuild, usedSlots } from "./Construction";
 import { fuelCapOf } from "./Fuel";
 import { lawCtxOf, setLaw } from "./LawsRun";
 import { addLine, changeLine, moveLine, setLineFactories } from "./Production";
@@ -1852,21 +1852,26 @@ export function aiInput(
     });
   // Built only when the plan builds something.
   let regions: AiRegion[] | null = null;
+  // Final review B, I1: nothing is built in Korea or Taiwan (buildBlock
+  // refuses it), so the planner never picks one.
   const findRegions = (): AiRegion[] =>
-    econ.regionsOf(me).map((id) => {
-      const slots = econ.regionSlots(id, ce.stats.slotPct);
-      const queuedInfra = queuedInRegion(ce.queue, id).infra;
-      return {
-        region: id,
-        infra: econ.infra[id],
-        free: Math.max(0, slots - usedSlots(econ, id)),
-        infraRoom: Math.max(0, MAX_INFRA - econ.infra[id] - queuedInfra),
-        occupied: econ.isOccupied(id),
-        // P3's resource effect counts (WwEconomy.resBonus).
-        res: econ.deposits(id),
-        coastal: econ.scenario.region(id)?.coastal ?? false,
-      };
-    });
+    econ
+      .regionsOf(me)
+      .filter((id) => !noStrikeAt(econ, id))
+      .map((id) => {
+        const slots = econ.regionSlots(id, ce.stats.slotPct);
+        const queuedInfra = queuedInRegion(ce.queue, id).infra;
+        return {
+          region: id,
+          infra: econ.infra[id],
+          free: Math.max(0, slots - usedSlots(econ, id)),
+          infraRoom: Math.max(0, MAX_INFRA - econ.infra[id] - queuedInfra),
+          occupied: econ.isOccupied(id),
+          // P3's resource effect counts (WwEconomy.resBonus).
+          res: econ.deposits(id),
+          coastal: econ.scenario.region(id)?.coastal ?? false,
+        };
+      });
   const warDays = econ.warDays(me, tick);
   return {
     tag: ce.tag,

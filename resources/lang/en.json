@@ -4740,7 +4740,7 @@
         "no_sea_path": "No sea route",
         "no_slot": "No free research slot",
         "no_slots": "No free building slot",
-        "no_strike_region": "Off limits to strikes",
+        "no_strike_region": "Off limits: no strikes or construction here",
         "no_takeover": "No country to take over",
         "no_tech": "Research it first",
         "no_transport_planes": "Not enough transport planes",

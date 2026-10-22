@@ -4433,7 +4433,7 @@
         "no_sea_path": "해로가 없습니다",
         "no_slot": "빈 연구 칸이 없습니다",
         "no_slots": "남은 건물 칸이 없습니다",
-        "no_strike_region": "공격 대상에서 제외된 지역입니다",
+        "no_strike_region": "제외 지역입니다: 공격하거나 건설할 수 없습니다",
         "no_takeover": "넘겨받을 나라가 없습니다",
         "no_tech": "먼저 연구해야 합니다",
         "no_transport_planes": "수송기가 모자랍니다",
