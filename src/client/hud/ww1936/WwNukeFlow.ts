@@ -272,7 +272,8 @@ export class WwNukeFlow implements Controller {
   confirmDrop(): boolean {
     const s = this.state;
     if (s.kind !== "nuke" || s.step !== "ready") return false;
-    if (this.model.nukePreview(s.region)?.blocked != null) return false;
+    const blocked = this.model.nukePreview(s.region)?.blocked ?? null;
+    if (blocked !== null) return false;
     if (!this.twoTap.tap(this.confirmKey(), this.now())) {
       s.taps = 4;
       this.changed();
