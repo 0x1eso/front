@@ -15,6 +15,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   landSelectionOf,
   WwSelectArmyEvent,
@@ -104,6 +105,47 @@ describe("<ww-air-zone-card> (spec §18.6)", () => {
     expect(m.q("[data-ww-air-count='fighter']")!.textContent).toContain(
       "n=120,free=340",
     );
+  });
+
+  it("the night toggle reads W2's flag from the view and sends the switch", async () => {
+    const strat = AIR_TYPES.indexOf("strat_bomber");
+    const stock = new Array<number>(10).fill(0);
+    const deployed = new Array<number>(10).fill(0);
+    stock[0] = 340;
+    deployed[0] = 120;
+    stock[strat] = 60;
+    deployed[strat] = 40;
+    const dep = (night: boolean) => ({
+      id: 2,
+      owner: SID("GBR"),
+      sr: SR.central,
+      type: "strat_bomber" as const,
+      mission: "strategic_bombing" as const,
+      counts: [40, 0, 0],
+      target: 0,
+      base: REGION.london,
+      ...(night ? { night: true } : {}),
+    });
+    for (const night of [false, true]) {
+      const m = await mount({
+        air: airDetail("GBR", {
+          stock,
+          deployed,
+          bases: [{ region: REGION.london, used: 160, cap: 400, damagePm: 0 }],
+        }),
+        deployments: [dep(night)],
+      });
+      const btn = m.q("[data-ww-air-night='strat_bomber']")!;
+      expect(btn.getAttribute("aria-pressed")).toBe(String(night));
+      btn.click();
+      await m.el.updateComplete;
+      expect(m.sent).toEqual([
+        { kind: "air_night", deployment: 2, on: !night },
+      ]);
+      // Nothing changes on the client: the next view update shows it.
+      expect(btn.getAttribute("aria-pressed")).toBe(String(night));
+      document.body.innerHTML = "";
+    }
   });
 
   it("dragging sends nothing; letting go sends the one value", async () => {

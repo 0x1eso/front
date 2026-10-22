@@ -139,8 +139,6 @@ export class WwAirZoneCard extends LitElement implements Controller {
   /** Values sent but not yet back, by `${type}:${mission}`. */
   private readonly pending = new Map<string, { value: number; at: number }>();
   private shownSr = 0;
-  /** Deployments I switched to night bombing here (the engine keeps the truth). */
-  private readonly night = new Map<number, boolean>();
   private redrawKey: readonly unknown[] = [];
 
   createRenderRoot() {
@@ -645,13 +643,16 @@ export class WwAirZoneCard extends LitElement implements Controller {
     const aces = (this.game.wwDepth?.()?.acesData ?? []).filter((a) =>
       ids.has(a.deployment),
     ).length;
-    const on = deps.length > 0 && deps.every((d) => this.night.get(d.id));
+    // Night bombing is strategic bombing's (W2); the view's flag is the
+    // truth (AirDeploySummary.night, merge glue: no client-side state).
+    const raids = deps.filter((d) => d.mission === "strategic_bombing");
+    const on = raids.length > 0 && raids.every((d) => d.night === true);
     return html`${aces > 0
       ? html`<span data-ww-aces=${row.type} class="shrink-0 text-amber-300"
           >${"★".repeat(Math.min(5, aces))}</span
         >`
       : nothing}
-    ${bombers && deps.length > 0
+    ${bombers && raids.length > 0
       ? html`<button
           type="button"
           data-ww-air-night=${row.type}
@@ -660,11 +661,9 @@ export class WwAirZoneCard extends LitElement implements Controller {
             ? "border-indigo-300 bg-indigo-900/60"
             : "border-white/15 bg-white/5"}"
           @click=${() => {
-            for (const d of deps) {
-              this.night.set(d.id, !on);
+            for (const d of raids) {
               this.send({ kind: "air_night", deployment: d.id, on: !on });
             }
-            this.requestUpdate();
           }}
         >
           🌙
