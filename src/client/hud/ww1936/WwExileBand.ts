@@ -51,15 +51,20 @@ export function exileBandModel(game: WwGame): ExileBandView | null {
   );
   if (e === undefined) return null;
   const capital = e.capital > 0 ? regionName(s, e.capital) : "";
-  return {
-    text: translateText("ww1936.exile.band", {
-      host: seatName(game, e.host),
-      pct: Math.floor(e.legitBp / 100),
-      trend: e.deltaBp / 100,
-      n: e.virtualMil,
-      capital: capital || NONE,
-    }),
-  };
+  // No capital to retake: the band's last segment ("… · retake the capital:
+  // {capital}") is left out, in every language.
+  const mark = "\u0000";
+  const text = translateText("ww1936.exile.band", {
+    host: seatName(game, e.host),
+    pct: Math.floor(e.legitBp / 100),
+    trend: e.deltaBp / 100,
+    n: e.virtualMil,
+    capital: capital || mark,
+  });
+  const at = text.indexOf(mark);
+  if (at < 0) return { text };
+  const cut = text.lastIndexOf(" · ", at);
+  return { text: (cut < 0 ? text.slice(0, at) : text.slice(0, cut)).trimEnd() };
 }
 
 /**

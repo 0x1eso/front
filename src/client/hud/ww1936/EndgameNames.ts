@@ -267,17 +267,6 @@ function countryParam(game: WwGame, v: string | number): string {
 const COUNTRY_PARAMS = ["tag", "hostTag", "fromTag", "toTag"] as const;
 
 /**
- * Spec §20.8: a P5 notice's params in the viewer's words — countries by
- * their names on the screens (a civil-war slot's too), the losers, the
- * subject level, the occupation law, the reason, and the three daily
- * batches' items (plan decision 24):
- * - captured: "slot:region:n" (slot: a division's GROUND_EQUIP_KEYS index)
- *   → "Infantry equipment 640 · Artillery 22" at "Smolensk";
- * - lend-lease arrived: "from:key:n" (key: an EQUIP_KEYS index, any other
- *   fuel) → the items, from the senders;
- * - garrison short: "0:0:n" → n regions.
- */
-/**
  * Occupation notices (uprising, law, garrison): `region` is a numeric region
  * id and `law` the raw law id; return their display texts, so no one reads
  * "Uprising in 563". Only the keys present are returned.
@@ -298,6 +287,17 @@ export function occupationParams(
   return out;
 }
 
+/**
+ * Spec §20.8: a P5 notice's params in the viewer's words — countries by
+ * their names on the screens (a civil-war slot's too), the losers, the
+ * subject level, the occupation law, the reason, and the three daily
+ * batches' items (plan decision 24):
+ * - captured: "slot:region:n" (slot: a division's GROUND_EQUIP_KEYS index)
+ *   → "Infantry equipment 640 · Artillery 22" at "Smolensk";
+ * - lend-lease arrived: "from:key:n" (key: an EQUIP_KEYS index, any other
+ *   fuel) → the items, from the senders;
+ * - garrison short: "0:0:n" → n regions.
+ */
 export function endgameNoticeParams(
   message: string,
   params: Record<string, string | number>,
