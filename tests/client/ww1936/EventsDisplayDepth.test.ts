@@ -90,7 +90,11 @@ describe("World War 1936 depth notices", () => {
 
   it("the drop and the dam use the world-news colour", () => {
     const { ed } = display(true);
-    for (const key of ["ww1936_nuke_dropped", "ww1936_scorched"]) {
+    for (const key of [
+      "ww1936_nuke_dropped",
+      "ww1936_dam_destroyed",
+      "ww1936_scorched",
+    ]) {
       ed.onDisplayMessageEvent({
         type: GameUpdateType.DisplayEvent,
         message: `events_display.${key}`,
@@ -102,6 +106,10 @@ describe("World War 1936 depth notices", () => {
     const types = (
       ed as unknown as { events: { type: MessageType }[] }
     ).events.map((e) => e.type);
-    expect(types).toEqual([MessageType.NUKE_DETONATED, MessageType.WORLD_WAR]);
+    expect(types).toEqual([
+      MessageType.NUKE_DETONATED,
+      MessageType.NUKE_DETONATED,
+      MessageType.WORLD_WAR,
+    ]);
   });
 });

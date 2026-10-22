@@ -126,13 +126,69 @@ describe("DepthMiscModel", () => {
     expect(packFirst([{ x: 3, y: 0 }])).toBe(-1);
   });
 
-  it("notice params name content ids", () => {
-    const p = depthNoticeParams("events_display.ww1936_project_done", {
+  it("notice params: each id arg of the manifest is translated, other args pass", () => {
+    const args: [string, string, string][] = [
+      ["ww1936_mastery_level", "domain", "[ww1936.doctrine.tab_land]"],
+      ["ww1936_mastery_level", "track", "[ww1936.track.armor]"],
+      ["ww1936_mio_size", "mio", "[ww1936.mio_family.tank]"],
+      ["ww1936_market_sale", "item", "[ww1936.equip.infantry]"],
+      ["ww1936_licence_granted", "design", "[ww1936.base.light_1]"],
+      ["ww1936_operation_done", "op", "[ww1936.op.coup]"],
+      ["ww1936_project_done", "project", "[ww1936.project.sp_atomic]"],
+      ["ww1936_faction_goal", "goal", "[ww1936.faction_goal.fg_members]"],
+      ["ww1936_trait_unlocked", "trait", "[ww1936.general_trait.commando]"],
+    ];
+    const ids: Record<string, string> = {
+      domain: "land",
+      track: "armor",
+      mio: "tank",
+      item: "infantry",
+      design: "light_1",
+      op: "coup",
       project: "sp_atomic",
-    });
-    expect(p.project).toBe("[ww1936.project.sp_atomic]");
+      goal: "fg_members",
+      trait: "commando",
+    };
+    for (const [msg, k, want] of args) {
+      expect(
+        depthNoticeParams(`events_display.${msg}`, { [k]: ids[k] })[k],
+      ).toBe(want);
+    }
+    // A text arg (already translated) and other messages pass unchanged.
+    expect(
+      depthNoticeParams("events_display.ww1936_design_saved", {
+        name: "Tiger 2",
+      }).name,
+    ).toBe("Tiger 2");
+    expect(
+      depthNoticeParams("events_display.ww1936_licence_granted", {
+        design: "Light Tank",
+      }).design,
+    ).toBe("Light Tank");
     expect(
       depthNoticeParams("events_display.other", { project: "x" }).project,
     ).toBe("x");
+  });
+});
+
+import { TREATY_LIMITED_MODULES } from "@openfront/engine-lib/ww1936/DesignRules";
+import { renderCongressBar } from "../../../src/client/hud/ww1936/WwCongressTab";
+
+describe("U5 screens", () => {
+  it("the congress label carries its percentage once", () => {
+    const m = model("USA", (d) =>
+      d.apply({ congressBp: 4_200, fx: [], news: [] }),
+    );
+    const tpl = JSON.stringify(
+      renderCongressBar(m.congressBar()!) as unknown as object,
+    );
+    expect(tpl).toContain("ww1936.congress.support");
+    expect(tpl).toContain("pct=42");
+    expect(tpl).not.toContain('"42%"');
+  });
+
+  it("the treaty limits come from the engine-lib rule", () => {
+    expect(TREATY_LIMITED_MODULES.always).toEqual(["shbb_hull"]);
+    expect(TREATY_LIMITED_MODULES.untilEscalated).toEqual(["main_heavy"]);
   });
 });

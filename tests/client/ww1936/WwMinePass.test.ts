@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   dotCount,
   mineInstances,
+  mineVisibility,
   type MineSamples,
 } from "../../../src/client/render/gl/passes/WwMinePass";
 
@@ -38,5 +39,16 @@ describe("WwMinePass", () => {
     expect(out[2]).toBe(0);
     expect(out[4 * 4 + 2]).toBe(1);
     expect([out[0], out[1]]).toEqual([5, 0]);
+  });
+
+  it("without an intel row no enemy mine shows; a spectator sees all", () => {
+    expect(mineVisibility(2, 1, undefined, false)).toBe(-1);
+    expect(mineVisibility(2, 1, undefined, true)).toBe(1);
+    expect(mineVisibility(1, 1, undefined, false)).toBe(0);
+    const row = new Uint8Array(12);
+    row[2 * 4 + 2] = 60;
+    expect(mineVisibility(2, 1, row, false)).toBe(1);
+    row[2 * 4 + 2] = 30;
+    expect(mineVisibility(2, 1, row, false)).toBe(-1);
   });
 });

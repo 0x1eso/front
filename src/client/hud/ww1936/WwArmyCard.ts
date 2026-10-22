@@ -58,7 +58,6 @@ import {
   srName,
 } from "./NavyModel";
 import {
-  enemiesOf,
   today,
   TWO_TAP_MS,
   TwoTap,
@@ -1287,24 +1286,23 @@ export class WwArmyCard extends LitElement implements Controller {
     );
   }
 
+  /**
+   * The raid kinds. A kind starts the strike flow, which picks the target
+   * region; the building list waits for the flow to take a building (merge
+   * glue for U4: judge it with DepthMiscModel.raidTargets on that region's owner).
+   */
   private renderRaid(c: Ctx): TemplateResult[] {
     const army = c.card.row.id;
-    const m = new DepthMiscModel(this.game);
-    const me = this.game.myPlayer()?.smallID() ?? 0;
-    const enemy = enemiesOf(this.game, me)[0] ?? 0;
     return [
       renderRaidPicker(
         this.raidKind,
-        m.raidTargets(this.raidKind, enemy),
+        [],
         (k) => {
           this.raidKind = k;
-          this.requestUpdate();
-        },
-        () => {
-          // The target region is picked on the map by the strike flow.
-          this.eventBus.emit(new WwStrikeFlowEvent(this.raidKind, army));
+          this.eventBus.emit(new WwStrikeFlowEvent(k, army));
           this.panel = "main";
         },
+        () => {},
         () => (this.panel = "more"),
       ),
     ];

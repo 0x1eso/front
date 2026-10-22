@@ -64,6 +64,7 @@ import {
   regionInfo,
   shownName,
   today,
+  TWO_TAP_MS,
   WW_BAND_PX,
 } from "../ww1936/WorldWarModel";
 import {
@@ -155,8 +156,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
   @state()
   private spawnBarVisible = false;
-  /** World War 1936: the drawers open on the right. */
+  /** World War 1936 P6: the region whose [Scorch] was tapped once. */
   @state() private wwScorchArmed: number | null = null;
+  /** World War 1936: the drawers open on the right. */
   @state() private wwDrawers: ReadonlySet<WwDrawerId> = new Set();
   @state()
   private immunityBarVisible = false;
@@ -1020,6 +1022,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         ? html`<button
             type="button"
             data-ww-scorch
+            ?disabled=${act.scorchBlock !== null}
             class="h-9 rounded-md bg-red-800 px-3 text-xs font-semibold text-white hover:bg-red-700"
             @click=${(e: Event) => {
               e.stopPropagation();
@@ -1029,7 +1032,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
                   if (this.wwScorchArmed === region) {
                     this.wwScorchArmed = null;
                   }
-                }, 3000);
+                }, TWO_TAP_MS);
                 return;
               }
               this.wwScorchArmed = null;
@@ -1049,6 +1052,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         ? html`<button
             type="button"
             data-ww-rocket
+            ?disabled=${act.rocketBlock !== null}
             class="h-9 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
             @click=${(e: Event) => {
               e.stopPropagation();

@@ -26,6 +26,7 @@ import { lockedBadge, lockedReason } from "../domestic/LockReason";
 import { WwStrikeFlowEvent } from "../ww1936/DepthEvents";
 import { DepthMiscModel } from "../ww1936/DepthMiscModel";
 import { regionCard } from "../ww1936/EconomyModel";
+import { TWO_TAP_MS } from "../ww1936/WorldWarModel";
 import { OpenWwIndustryEvent } from "../ww1936/WwDrawer";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
@@ -961,7 +962,7 @@ export function wwDepthRegionElements(
           armed.region = region;
           setTimeout(() => {
             if (armed.region === region) armed.region = null;
-          }, 3000);
+          }, TWO_TAP_MS);
           return;
         }
         armed.region = null;

@@ -203,20 +203,24 @@ export function isWorldNewsNotice(message: string): boolean {
   return WORLD_NEWS.has(message);
 }
 
-/** Content-id params and the key prefix that names them. */
-const NOTICE_ID_PARAMS: Readonly<Record<string, string>> = {
-  project: "ww1936.project",
-  facility: "ww1936.facility",
-  operation: "ww1936.op",
+/**
+ * The content-id args of the depth notices (t21-keys.md) and the key
+ * prefix that names each. Other args (country, region, name, counts) come
+ * translated or numeric; an arg that is not an id is passed through.
+ */
+export const NOTICE_ID_PARAMS: Readonly<Record<string, string>> = {
+  domain: "ww1936.doctrine.tab",
+  track: "ww1936.track",
+  mio: "ww1936.mio_family",
+  item: "ww1936.equip",
+  design: "ww1936.base",
   op: "ww1936.op",
-  mission: "ww1936.intel_mission",
-  raid: "ww1936.raid",
+  project: "ww1936.project",
   goal: "ww1936.faction_goal",
-  dam: "ww1936.dam",
-  landmark: "ww1936.landmark",
-  trait: "ww1936.fm_trait",
-  building: "ww1936.building",
+  trait: "ww1936.general_trait",
 };
+
+const ID_LIKE = /^[a-z][a-z0-9_]*$/;
 
 /** Depth notices: ids in their params become the viewer's language. */
 export function depthNoticeParams(
@@ -228,8 +232,9 @@ export function depthNoticeParams(
   let out = params;
   for (const [k, prefix] of Object.entries(NOTICE_ID_PARAMS)) {
     const v = params[k];
-    if (typeof v === "string") {
-      out = { ...out, [k]: translateText(`${prefix}.${v}`) };
+    if (typeof v === "string" && ID_LIKE.test(v)) {
+      const sep = k === "domain" ? "_" : ".";
+      out = { ...out, [k]: translateText(`${prefix}${sep}${v}`) };
     }
   }
   return out;
@@ -249,6 +254,21 @@ export function packFirst(tree: readonly { x: number; y: number }[]): number {
     if (best === -1 || f.y < b.y || (f.y === b.y && f.x < b.x)) best = i;
   });
   return best;
+}
+
+const MEMO = new WeakMap<object, Map<string, { key: unknown[]; v: unknown }>>();
+
+/** Recomputes only when `key` changed: the panels redraw often, the data moves daily. */
+function memo<T>(view: object, slot: string, key: unknown[], make: () => T): T {
+  let m = MEMO.get(view);
+  if (m === undefined) MEMO.set(view, (m = new Map()));
+  const hit = m.get(slot);
+  if (hit !== undefined && hit.key.every((k, n) => k === key[n])) {
+    return hit.v as T;
+  }
+  const v = make();
+  m.set(slot, { key, v });
+  return v;
 }
 
 export class DepthMiscModel {
@@ -377,6 +397,19 @@ export class DepthMiscModel {
 
   /** The five countries that think best and the five that think worst of me. */
   relationRows(): { best: RelationRow[]; worst: RelationRow[] } {
+    return memo(
+      this.view,
+      "relations",
+      [
+        this.view.wwPolitics?.()?.version,
+        this.view.wwDepth?.()?.version,
+        this.view.worldWarScenario?.() ? today(this.view) : 0,
+      ],
+      () => this.computeRelations(),
+    );
+  }
+
+  private computeRelations(): { best: RelationRow[]; worst: RelationRow[] } {
     const i = politicsInput(this.view);
     const sc = this.view.worldWarScenario?.() ?? null;
     if (i === null || sc === null) return { best: [], worst: [] };
@@ -408,6 +441,7 @@ export class DepthMiscModel {
       (c) => c.state === 1 || c.state === 2,
     ).length;
     const day = today(this.view);
+    // TODO(lane W3): judge the lock with cfocusBlock once it is filled.
     const lockLeft = Math.max(
       0,
       Math.min(CFOCUS_LOCK_DAYS, det.mech.cfocusLock - day),
@@ -431,6 +465,20 @@ export class DepthMiscModel {
 
   /** The depth lines of a region card (landmark, dam, facility, plant, deposits, status). */
   regionLines(region: number): RegionLine[] {
+    return memo(
+      this.view,
+      "region",
+      [
+        region,
+        this.view.wwDepth?.()?.version,
+        this.view.wwEconomy?.()?.version,
+        this.view.worldWarScenario?.() ? today(this.view) : 0,
+      ],
+      () => this.computeRegionLines(region),
+    );
+  }
+
+  private computeRegionLines(region: number): RegionLine[] {
     const sc = this.view.worldWarScenario?.() ?? null;
     const d = this.view.wwDepth?.() ?? null;
     if (sc === null || d === null) return [];
@@ -556,8 +604,17 @@ export class DepthMiscModel {
       };
     }
     const me = this.me();
-    const mine = econ.controller === me;
     const noStrike = isNoStrike(sc, region);
+    // Sensitivity: the screens never offer Korea or Taiwan a strike or a scorch.
+    if (noStrike) {
+      return {
+        scorch: false,
+        rocket: false,
+        scorchBlock: "no_strike_region",
+        rocketBlock: "no_strike_region",
+      };
+    }
+    const mine = econ.controller === me;
     const eco = this.view.wwEconomy?.();
     const enemies = enemiesOf(this.view, me);
     const enemyAdjacent = sc
@@ -626,7 +683,9 @@ export class DepthMiscModel {
     });
     out.push({
       id: "priority",
-      label: `${translateText("ww1936.raid_ui.priority")} ${REINFORCE_PRIORITIES[prio] ?? "normal"}`,
+      label: translateText(
+        `ww1936.raid_ui.priority_${REINFORCE_PRIORITIES[prio] ?? "normal"}`,
+      ),
       order: {
         kind: "army_priority",
         army: armyId,

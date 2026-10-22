@@ -6,8 +6,9 @@ import type { CongressBar } from "./DepthMiscModel";
 export function renderCongressBar(bar: CongressBar): TemplateResult {
   return html`<section data-ww-congress class="mt-2">
     <div class="flex justify-between text-xs font-bold">
-      <span>${translateText("ww1936.congress.support")}</span>
-      <span data-ww-congress-pct class="tabular-nums">${bar.pct}%</span>
+      <span data-ww-congress-pct
+        >${translateText("ww1936.congress.support", { pct: bar.pct })}</span
+      >
     </div>
     <div class="relative mt-1 h-2 rounded bg-white/10">
       <div

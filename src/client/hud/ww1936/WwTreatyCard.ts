@@ -1,3 +1,4 @@
+import { TREATY_LIMITED_MODULES } from "@openfront/engine-lib/ww1936/DesignRules";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { TreatyRows } from "./DepthMiscModel";
@@ -33,12 +34,15 @@ export function renderTreaty(
       ${translateText("ww1936.treaty.limits")}
     </div>
     <ul data-ww-treaty-limit class="m-0 list-none p-0 text-xs text-white/70">
-      ${(t.escalated ? [] : ["main_heavy", "shbb_hull"]).map(
+      ${[
+        ...TREATY_LIMITED_MODULES.always,
+        ...(t.escalated ? [] : TREATY_LIMITED_MODULES.untilEscalated),
+      ].map(
         (m) =>
           html`<li>
             ${translateText("ww1936.treaty.limit_row", {
               label: translateText(`ww1936.module.${m}`),
-              value: "✗",
+              value: translateText("ww1936.treaty.banned"),
             })}
           </li>`,
       )}

@@ -21,6 +21,8 @@ const FLOATS = 4;
 export const MINE_DENSITY_DIV = 200_000;
 /** Most dots one sea region and side draw. */
 export const MINE_DOTS_MAX = 400;
+/** Map tiles the sampling scan handles a frame. */
+export const SCAN_TILES_PER_FRAME = 250_000;
 
 /** A deterministic 32-bit hash of a tile. */
 export function tileHash(t: number): number {
@@ -35,39 +37,76 @@ export interface MineSamples {
   bySr: Map<number, { area: number; tiles: Uint32Array }>;
 }
 
-/** One scan of the map: each sea region's area and up to MINE_DOTS_MAX sample tiles. */
+/**
+ * The sampling scan, spread over frames: `step` handles `budget` tiles of
+ * the map and returns true when the samples are ready.
+ */
+export class MineSampler {
+  private area = new Map<number, number>();
+  private srOf: Int32Array;
+  private picked = new Map<number, number[]>();
+  private phase = 0;
+  private at = 0;
+  samples: MineSamples | null = null;
+
+  constructor(
+    private sc: ScenarioIndex,
+    private ids: Uint16Array,
+  ) {
+    this.srOf = new Int32Array(ids.length);
+  }
+
+  step(budget: number): boolean {
+    if (this.samples !== null) return true;
+    const end = Math.min(this.ids.length, this.at + budget);
+    if (this.phase === 0) {
+      for (let t = this.at; t < end; t++) {
+        const id = this.ids[t];
+        const sr = id >= SEA_ZONE_BASE ? this.sc.zoneSr(id) : 0;
+        this.srOf[t] = sr;
+        if (sr !== 0) this.area.set(sr, (this.area.get(sr) ?? 0) + 1);
+      }
+    } else {
+      for (let t = this.at; t < end; t++) {
+        const sr = this.srOf[t];
+        if (sr === 0) continue;
+        // Expect about MINE_DOTS_MAX tiles; the hash decides which.
+        if (tileHash(t) / 4294967296 < MINE_DOTS_MAX / this.area.get(sr)!) {
+          let l = this.picked.get(sr);
+          if (l === undefined) this.picked.set(sr, (l = []));
+          l.push(t);
+        }
+      }
+    }
+    this.at = end;
+    if (end < this.ids.length) return false;
+    if (this.phase === 0) {
+      this.phase = 1;
+      this.at = 0;
+      return false;
+    }
+    const bySr = new Map<number, { area: number; tiles: Uint32Array }>();
+    for (const [sr, a] of this.area) {
+      const l = (this.picked.get(sr) ?? []).sort(
+        (x, y) => tileHash(x) - tileHash(y) || x - y,
+      );
+      bySr.set(sr, { area: a, tiles: Uint32Array.from(l) });
+    }
+    this.samples = { bySr };
+    return true;
+  }
+}
+
+/** One scan of the whole map (tests). */
 export function buildMineSamples(
   sc: ScenarioIndex,
   ids: Uint16Array,
 ): MineSamples {
-  const area = new Map<number, number>();
-  const srOf = new Int32Array(ids.length);
-  for (let t = 0; t < ids.length; t++) {
-    const id = ids[t];
-    const sr = id >= SEA_ZONE_BASE ? sc.zoneSr(id) : 0;
-    srOf[t] = sr;
-    if (sr !== 0) area.set(sr, (area.get(sr) ?? 0) + 1);
+  const s = new MineSampler(sc, ids);
+  while (!s.step(ids.length)) {
+    // each call finishes a phase
   }
-  const picked = new Map<number, number[]>();
-  for (let t = 0; t < ids.length; t++) {
-    const sr = srOf[t];
-    if (sr === 0) continue;
-    const a = area.get(sr)!;
-    // Expect about MINE_DOTS_MAX tiles; the hash decides which.
-    if (tileHash(t) / 4294967296 < MINE_DOTS_MAX / a) {
-      let l = picked.get(sr);
-      if (l === undefined) picked.set(sr, (l = []));
-      l.push(t);
-    }
-  }
-  const bySr = new Map<number, { area: number; tiles: Uint32Array }>();
-  for (const [sr, a] of area) {
-    const l = (picked.get(sr) ?? []).sort(
-      (x, y) => tileHash(x) - tileHash(y) || x - y,
-    );
-    bySr.set(sr, { area: a, tiles: Uint32Array.from(l) });
-  }
-  return { bySr };
+  return s.samples!;
 }
 
 /** How many dots `mines` of a region draw. */
@@ -104,6 +143,18 @@ export function mineInstances(
   return n;
 }
 
+/** 0 mine, 1 a known enemy's, -1 hidden: without an intel row nothing of the enemy shows (spectators see all). */
+export function mineVisibility(
+  owner: number,
+  me: number,
+  row: Uint8Array | undefined,
+  fogOff: boolean,
+): number {
+  if (owner === me) return 0;
+  if (fogOff) return 1;
+  return row !== undefined && intelBand(row[owner * 4 + ID_NAVY]) >= 2 ? 1 : -1;
+}
+
 export class WwMinePass {
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;
@@ -114,7 +165,7 @@ export class WwMinePass {
   private count = 0;
   private seenVersion = -1;
   private seenView: WwDepthView | null = null;
-  private samples: MineSamples | null = null;
+  private sampler: MineSampler | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -150,7 +201,7 @@ export class WwMinePass {
   }
 
   /** Rewrites the dots when the depth view changed. `me` is the viewer's smallID. */
-  update(depth: WwDepthView, me: number): void {
+  update(depth: WwDepthView, me: number, fogOff = me === 0): void {
     if (depth === this.seenView && depth.version === this.seenVersion) return;
     this.seenView = depth;
     this.seenVersion = depth.version;
@@ -159,17 +210,19 @@ export class WwMinePass {
       this.count = 0;
       return;
     }
-    this.samples ??= buildMineSamples(this.sc, this.ids);
+    // The map scan runs a slice a frame; the dots appear when it is done.
+    this.sampler ??= new MineSampler(this.sc, this.ids);
+    if (!this.sampler.step(SCAN_TILES_PER_FRAME)) {
+      this.seenVersion = -1;
+      return;
+    }
+    const samples = this.sampler.samples!;
     const row = depth.intelRow(me);
-    const show = (owner: number) =>
-      owner === me
-        ? 0
-        : row === undefined || intelBand(row[owner * 4 + ID_NAVY]) >= 2
-          ? 1
-          : -1;
+    // Fog (spec §8.1): no intel row, no enemy mines; spectators see all.
+    const show = (owner: number) => mineVisibility(owner, me, row, fogOff);
     this.buf.ensureCapacity(mines.length * MINE_DOTS_MAX);
     this.count = mineInstances(
-      this.samples,
+      samples,
       mines,
       this.mapW,
       show,

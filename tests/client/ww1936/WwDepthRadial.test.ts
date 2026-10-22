@@ -26,6 +26,7 @@ import {
   MenuElementParams,
   wwDepthRegionElements,
 } from "../../../src/client/hud/layers/RadialMenuElements";
+import { DepthMiscModel } from "../../../src/client/hud/ww1936/DepthMiscModel";
 import { WwDepthView } from "../../../src/client/view/WwDepthView";
 import {
   detail,
@@ -62,11 +63,17 @@ describe("the radial menu's depth entries", () => {
     expect(wwDepthRegionElements(menu(false, true))).toEqual([]);
   });
 
-  it("a no-strike region greys the rocket entry", () => {
+  it("Korea and Taiwan never offer a scorch or a rocket, in the menu or on the card", () => {
+    // Region 4 stands for a Korean region, 5 for Taiwan (901 in world1936).
     noStrike.add(4);
+    noStrike.add(5);
     const p = menu(true, true);
-    const rocket = wwDepthRegionElements(p).find((e) => e.id === "ww_rocket")!;
-    expect(rocket.disabled(p)).toBe(true);
+    expect(wwDepthRegionElements(p)).toEqual([]);
+    const act = new DepthMiscModel(p.game as never).regionActions(4);
+    expect(act.scorch).toBe(false);
+    expect(act.rocket).toBe(false);
+    expect(act.scorchBlock).toBe("no_strike_region");
+    expect(act.rocketBlock).toBe("no_strike_region");
     noStrike.clear();
   });
 

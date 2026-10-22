@@ -3,7 +3,7 @@ import {
   type RaidKind,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { html, TemplateResult } from "lit";
+import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { RaidTarget } from "./DepthMiscModel";
 import { buildingName } from "./EconomyModel";
@@ -11,7 +11,11 @@ import { buildingName } from "./EconomyModel";
 const BUTTON =
   "min-h-9 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20";
 
-/** P6 (spec §10): the raid picker — the kind, then the target building list. */
+/**
+ * P6 (spec §10): the raid picker — the kind; the building list only when
+ * `targets` is given (judged on the picked target's owner by the caller).
+ * The strike flow takes the target region.
+ */
 export function renderRaidPicker(
   kind: RaidKind,
   targets: readonly RaidTarget[],
@@ -33,22 +37,24 @@ export function renderRaidPicker(
             ${translateText(`ww1936.raid.${k}`)}
           </button>`,
       )}
-    </div>
-    <div class="flex flex-wrap gap-1">
-      ${targets.map(
-        (t) =>
-          html`<button
-            type="button"
-            data-ww-raid-target=${t.building}
-            class=${BUTTON}
-            @click=${() => onTarget(t.building)}
-          >
-            ${buildingName(t.building)}
-          </button>`,
-      )}
       <button type="button" class=${BUTTON} @click=${onClose}>
         ${translateText("common.back")}
       </button>
     </div>
+    ${targets.length === 0
+      ? nothing
+      : html`<div class="flex flex-wrap gap-1">
+          ${targets.map(
+            (t) =>
+              html`<button
+                type="button"
+                data-ww-raid-target=${t.building}
+                class=${BUTTON}
+                @click=${() => onTarget(t.building)}
+              >
+                ${buildingName(t.building)}
+              </button>`,
+          )}
+        </div>`}
   </div>`;
 }
