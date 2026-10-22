@@ -6,7 +6,9 @@
 // the coal P1 handed out first (its allocation serves the refineries' 2
 // each before the energy, plan decision 22) × 3, the hydro of the
 // controlled regions × 2, the power plants × 6, the working dams of the
-// controlled regions and the content's extra. The ratio is read as
+// controlled regions, the content's extra and (controller ruling, W1 fix
+// round 1) a domestic base for every controlled region with infrastructure,
+// capped at the demand (EnergyRules.energyBase). The ratio is read as
 // yesterday's value on the next P1 turn (mech.energyPm, plan decision 22).
 //
 // A map without the scenario v5 columns (version < 5: the P1–P5 test maps)
@@ -23,6 +25,7 @@ import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   coalWanted,
+  energyBase,
   energyRatioPm,
   energySupply,
 } from "@openfront/engine-lib/ww1936/EnergyRules";
@@ -59,6 +62,8 @@ export interface EnergyParts {
   dams: number;
   /** The content's energy effects. */
   extra: number;
+  /** The domestic base: controlled regions with infrastructure, capped at the demand. */
+  base: number;
   refineries: number;
   supply: number;
 }
@@ -74,7 +79,13 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
   const sc = d.ww.scenario;
   const demand = energyDemand(d, id);
   let hydro = 0;
-  for (const r of econ.regionsOf(id)) hydro += sc.hydroOf(r);
+  let built = 0;
+  for (const r of econ.regionsOf(id)) {
+    hydro += sc.hydroOf(r);
+    // Bombed-out infrastructure counts as the level left (P4's infraEff).
+    if ((econ.infraEff[r] ?? 0) >= 1) built++;
+  }
+  const base = energyBase(demand, built);
   const plants = econ.countryBuildings(id, "power_plant");
   const refineries = econ.countryBuildings(id, "synthetic_refinery");
   const dams = damEnergyOf(d, id, day);
@@ -86,7 +97,7 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
   } else {
     coalGot = Math.min(
       coalAvailable(d, id),
-      coalWanted(demand, hydro, plants, dams, extra, refineries),
+      coalWanted(demand, hydro, plants, dams, extra, refineries, base),
     );
   }
   const coal = Math.max(0, coalGot - COAL_PER_REFINERY * refineries);
@@ -98,8 +109,9 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
     plants,
     dams,
     extra,
+    base,
     refineries,
-    supply: energySupply(coal, hydro, plants, dams, extra),
+    supply: energySupply(coal, hydro, plants, dams, extra, base),
   };
 }
 
@@ -149,7 +161,15 @@ export function dailyEnergy(d: WwDepth, id: number, day: number): void {
 export function coalDemand(d: WwDepth, id: number): number {
   if (!energyOn(d)) return 0;
   const p = energyParts(d, id, Math.max(0, d.lastCommonDay));
-  return coalWanted(p.demand, p.hydro, p.plants, p.dams, p.extra, p.refineries);
+  return coalWanted(
+    p.demand,
+    p.hydro,
+    p.plants,
+    p.dams,
+    p.extra,
+    p.refineries,
+    p.base,
+  );
 }
 
 /** The energy effect (spec §18.3): energy added for good. */
@@ -193,6 +213,8 @@ export interface EnergyView {
   ratioPm: number;
   /** The content's energy (added as it is). */
   extra: number;
+  /** The domestic base (added as it is). */
+  base: number;
   /** P1 resources do not pile up: the day's coal and uranium (output less exports plus imports). */
   coalStock: number;
   uraniumStock: number;
@@ -211,6 +233,7 @@ export function energyView(d: WwDepth, id: number): EnergyView {
     dams: p?.dams ?? 0,
     ratioPm: d.country(id)?.mech.energyPm ?? 1000,
     extra: p?.extra ?? 0,
+    base: p?.base ?? 0,
     coalStock: resourceAvailable(d, id, COAL),
     uraniumStock: resourceAvailable(d, id, URANIUM),
   };

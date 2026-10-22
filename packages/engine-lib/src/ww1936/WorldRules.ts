@@ -113,13 +113,15 @@ export interface HarborInput {
   tech: boolean;
   /** A floating harbour already stands in the region (lane W1; absent: none). */
   deployed?: boolean;
+  /** W1 review 6: Korea and Taiwan (engine-lib isNoStrike) get no P6 device. */
+  noStrike?: boolean;
 }
 
 /**
  * Refusal of harbor_deploy (plan decision 40, spec §16.6): a coastal region
  * we control with a naval base of 2 or less, our side's supremacy of 50%
  * or more in its harbour zone's sea region, a floating harbour in stock
- * (and its tech), none standing there yet.
+ * (and its tech), none standing there yet; never a no-strike region.
  */
 export function harborBlock(i: HarborInput): "harbor_conditions" | null {
   return i.controls &&
@@ -128,7 +130,8 @@ export function harborBlock(i: HarborInput): "harbor_conditions" | null {
     i.supremacyPm >= HARBOR_SUPREMACY_PM &&
     i.stock >= 1 &&
     i.tech &&
-    i.deployed !== true
+    i.deployed !== true &&
+    i.noStrike !== true
     ? null
     : "harbor_conditions";
 }

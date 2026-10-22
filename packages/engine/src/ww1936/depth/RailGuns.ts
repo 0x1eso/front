@@ -5,9 +5,11 @@
 // fires 6 hits a round (centi 600, beside close air support) when one of
 // those divisions attacks from a region with railway level 2 or more, and
 // cuts the fort level its divisions meet by 1 (at most 2). Guns rest on a
-// poorer railway. The mirror `world.railGuns` [army, owner, guns, last
-// region] is matched daily: the guns of an army that is gone go back to the
-// stock when its owner controls the army's last region, else they are lost.
+// poorer railway. When the army goes (W1 review 3, P2's removeArmy hook),
+// its guns are lost if its last division fell in battle or stood in a
+// region another side holds; otherwise (merged, disbanded at home) they go
+// back to the stock. The mirror `world.railGuns` [army, owner, guns, last
+// region] follows the armies daily.
 // Sensitivity: no railway gun fires on a no-strike region.
 //
 // The battle reads are per round (P2's hook): an empty mirror answers at
@@ -143,33 +145,49 @@ function setMirror(d: WwDepth, a: Army): void {
 }
 
 /**
- * The common day (spec §16.5): the mirror follows the armies; a vanished
- * army's guns go back to its owner's stock when the owner controls its
- * last region, else they are lost.
+ * W1 review 3 (spec §16.5): the army is gone. Its guns are lost when its
+ * last division was destroyed in battle or stood in a region another side
+ * holds; else they go back to the owner's stock.
+ */
+export function railGunsOfRemovedArmy(
+  d: WwDepth,
+  owner: number,
+  armyId: number,
+  guns: number,
+  destroyed: boolean,
+  region: number,
+): void {
+  const m = d.world.railGuns;
+  const at = m.findIndex((x) => x[0] === armyId);
+  if (at >= 0) m.splice(at, 1);
+  const land = d.ww.land;
+  const lost =
+    destroyed ||
+    (region > 0 && !land.sameSide(owner, land.controller[region] ?? 0));
+  if (!lost && guns > 0) {
+    const ce = d.ww.economy.country(owner);
+    if (ce !== null) {
+      ce.stock[GUN_KEY] = (ce.stock[GUN_KEY] ?? 0) + guns;
+      d.ww.economy.markCountryDirty(owner);
+    }
+  }
+  d.markCountry(owner);
+}
+
+/**
+ * The common day (spec §16.5): the mirror follows the armies' guns,
+ * owners and regions (a gone army's row went with it, removeArmy's hook).
  */
 export function dayCommonRailGuns(d: WwDepth): void {
   const m = d.world.railGuns;
   if (m.length === 0) return;
   const land = d.ww.land;
   const next: [number, number, number, number][] = [];
-  for (const x of m) {
-    const [armyId, owner, guns, last] = x;
+  for (const [armyId, , , last] of m) {
     const a = land.armies.get(armyId);
-    if (a !== undefined) {
-      if (a.railGuns > 0) {
-        const region = land.armyRegion(a);
-        next.push([armyId, a.owner, a.railGuns, region > 0 ? region : last]);
-      }
-      continue;
-    }
-    if (guns > 0 && last > 0 && (land.controller[last] ?? 0) === owner) {
-      const ce = d.ww.economy.country(owner);
-      if (ce !== null) {
-        ce.stock[GUN_KEY] = (ce.stock[GUN_KEY] ?? 0) + guns;
-        d.ww.economy.markCountryDirty(owner);
-      }
-    }
-    d.markCountry(owner);
+    if (a === undefined || a.railGuns <= 0) continue;
+    const region = land.armyRegion(a);
+    next.push([armyId, a.owner, a.railGuns, region > 0 ? region : last]);
   }
   d.world.railGuns = next;
 }

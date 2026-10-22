@@ -4,7 +4,8 @@
 // division in it or next to it (or an enemy controlling a neighbour), 10
 // political power and stability −1% (P3's paths); it burns 3 days later
 // (`world.scorchQueue` [region, owner, day]) unless the region was lost
-// meanwhile (the common day drops the entry then). Burning: half the
+// meanwhile (the common day drops the entry then; the order was given, so
+// its price is not refunded — the brief and spec name no refund). Burning: half the
 // civilian factories, military factories and dockyards go (rounded down),
 // infrastructure −2, railway −2, the supply hub 0, the dam destroyed
 // (§16.4), the region's resources −50% for 180 days; both sides are told.
@@ -113,7 +114,8 @@ export function scorchNow(
   if (hub > 0) econ.addBuilding(region, "supply_hub", -hub);
   const dam = d.ww.scenario.damOf(region);
   if (dam >= 0) destroyDam(d, dam, owner, tick);
-  const until = day + SCORCH.resourceDays;
+  // 180 days, the last one inclusive.
+  const until = day + SCORCH.resourceDays - 1;
   setUntil(d.world.exhaustedUntil, region, until);
   setUntil(d.world.scorchedUntil, region, until);
   const told = [owner, ...threatsTo(d, owner, region)];

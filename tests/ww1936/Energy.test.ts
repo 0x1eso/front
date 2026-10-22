@@ -1,6 +1,8 @@
 // World War 1936 P6 lane W1 (plan Task 7 Step 1, spec §16.2): coal, energy
 // and power plants on the deep test map. The countries are human (no P1–P6
 // AI moves their numbers); demand and supply come from the DEEP facts.
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
+import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import {
   COAL_PER_REFINERY,
   ENERGY_PER_COAL,
@@ -11,9 +13,12 @@ import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { lineOutputMilli } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
+  ENERGY_BASE_PER_REGION,
+  energyBase,
   energyPenaltyPct,
   energyRatioPm,
 } from "@openfront/engine-lib/ww1936/EnergyRules";
+import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   applyEnergyEffect,
   coalAvailable,
@@ -28,10 +33,14 @@ import { stepProduction } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import path from "path";
+import { fileURLToPath } from "url";
 import { vi } from "vitest";
+import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, step, stepTo, wwRunner } from "./util";
+import { HUMAN, step, stepTo, wwGameStart, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -61,16 +70,97 @@ function nextDay(runner: Awaited<ReturnType<typeof deep>>["runner"]): void {
   while (ww.day(runner.game.ticks()) === day) step(runner);
 }
 
+let worldFilesMemo: Promise<MapFiles> | null = null;
+function worldFiles(): Promise<MapFiles> {
+  return (worldFilesMemo ??= loadMapFiles(
+    new NodeGameMapLoader(
+      path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "../../resources/maps",
+      ),
+    ),
+    GameMapType.World1936,
+    GameMapSize.Normal,
+  ));
+}
+
 describe("World War 1936 P6: coal and energy (spec §16.2)", () => {
+  it("day 0 on the world1936 map meets the controller's energy targets", async () => {
+    // Controller ruling (W1 fix round 1): ≥ 80% of the countries with
+    // factories at r ≥ 900‰, no minor below −10%, and Italy, then Japan,
+    // the majors with the least room before growth makes them short.
+    usePoliticsContent(null);
+    const runner = await createGameRunner(
+      wwGameStart({}, []),
+      undefined,
+      await worldFiles(),
+      () => {},
+    );
+    // Day 1's turns read P1's first allocation.
+    stepTo(runner, WW_PREP_TICKS + 16);
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const econ = ww.economy;
+    const day = ww.day(runner.game.ticks());
+    let factoryCountries = 0;
+    let full = 0;
+    const room = new Map<string, number>();
+    for (let id = 1; id < d.cap; id++) {
+      const ce = econ.country(id);
+      const c = d.country(id);
+      if (ce === null || c === null) continue;
+      const p = energyParts(d, id, day);
+      if (p.demand <= 0) continue;
+      factoryCountries++;
+      if (c.mech.energyPm >= 900) full++;
+      if (!ce.major) {
+        expect(
+          energyPenaltyPct(c.mech.energyPm),
+          ww.tagOf(id),
+        ).toBeGreaterThanOrEqual(-10);
+        continue;
+      }
+      const built = econ
+        .regionsOf(id)
+        .filter((r) => econ.infraEff[r] >= 1).length;
+      const coal = Math.max(
+        0,
+        coalAvailable(d, id) - COAL_PER_REFINERY * p.refineries,
+      );
+      room.set(
+        ww.tagOf(id),
+        ENERGY_BASE_PER_REGION * built +
+          p.hydro * ENERGY_PER_HYDRO +
+          p.plants * ENERGY_PER_PLANT +
+          p.dams +
+          p.extra +
+          coal * ENERGY_PER_COAL -
+          p.demand,
+      );
+    }
+    expect(factoryCountries).toBeGreaterThan(50);
+    expect(full * 100).toBeGreaterThanOrEqual(factoryCountries * 80);
+    const order = [...room].sort((a, b) => a[1] - b[1]).map(([t]) => t);
+    expect(order.slice(0, 2)).toEqual(["ITA", "JPN"]);
+  }, 120_000);
+
   it("energy shortage lowers output next day", async () => {
     const { runner, ww, id } = await deep("ITA");
     const d = ww.depth;
     const f = DEEP.factories.ITA;
     const demand = f.civ + f.mil + f.dock;
     expect(energyDemand(d, id)).toBe(demand);
-    // Italy: no coal, Rome's hydro.
+    // Italy: no coal, Rome's hydro and the domestic base (controller
+    // ruling: its regions with infrastructure, capped at the demand).
     expect(sumOf(ww, id, DEEP.coal)).toBe(0);
-    const supply = sumOf(ww, id, DEEP.hydro) * ENERGY_PER_HYDRO;
+    const built = ww.economy
+      .regionsOf(id)
+      .filter((r) => ww.economy.infraEff[r] >= 1).length;
+    const supply =
+      sumOf(ww, id, DEEP.hydro) * ENERGY_PER_HYDRO + energyBase(demand, built);
+    expect(energyParts(d, id, 0).base).toBe(
+      Math.min(demand, ENERGY_BASE_PER_REGION * built),
+    );
     const pm = energyRatioPm(demand, supply);
     expect(pm).toBeLessThan(1000);
     const notes = vi.spyOn(d, "message");
@@ -112,7 +202,8 @@ describe("World War 1936 P6: coal and energy (spec §16.2)", () => {
     expect(p.refineries).toBe(2);
     // P1's allocation (plan decision 22): the refineries' 2 each first,
     // then what the energy lacks — before any line.
-    const rest = p.hydro * ENERGY_PER_HYDRO + p.dams + p.plants * 6 + p.extra;
+    const rest =
+      p.hydro * ENERGY_PER_HYDRO + p.dams + p.plants * 6 + p.extra + p.base;
     const want =
       2 * COAL_PER_REFINERY +
       Math.ceil(Math.max(0, p.demand - rest) / ENERGY_PER_COAL);

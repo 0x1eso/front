@@ -61,9 +61,10 @@ describe("World War 1936 P6: wiring", () => {
     stepProduction(econ, ce);
     const eff = ce.lines.map((l) => l.effBp);
     ww.depth.country(DEEP.tag.ITA)!.mech.energyPm = 857;
-    expect(ww.depth.energyOutputPct(DEEP.tag.ITA)).toBe(-7);
+    // W1 fix round 1 (controller ruling): (1000 − 857) / 25 = 5.
+    expect(ww.depth.energyOutputPct(DEEP.tag.ITA)).toBe(-5);
     stepProduction(econ, ce);
-    const pct = ce.law().outputPct + ce.stats.outputPct - 7;
+    const pct = ce.law().outputPct + ce.stats.outputPct - 5;
     ce.lines.forEach((l, i) => {
       if (l.active === 0) return;
       expect(l.lastOutput).toBe(lineOutputMilli(l.active, eff[i], pct, l.fill));

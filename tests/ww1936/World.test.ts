@@ -30,7 +30,10 @@ import {
   landmarkStands,
   landmarkStatsOf,
 } from "@openfront/engine/ww1936/depth/Landmarks";
-import { scorchInputOf } from "@openfront/engine/ww1936/depth/Scorch";
+import {
+  scorchInputOf,
+  scorchNow,
+} from "@openfront/engine/ww1936/depth/Scorch";
 import {
   dayCommonWorld,
   regionStatus,
@@ -81,7 +84,8 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     // Pre-flight §C5: the world flag K3 reads.
     expect(ww.politics.gflags.get(`${DAMS[dam.index]}_destroyed`)).toBe(day);
     expect(d.world.floodUntil).toEqual(
-      flooded.map((r) => [r, day + FLOOD_DAYS]),
+      // 60 days: the row holds the last flooded day.
+      flooded.map((r) => [r, day + FLOOD_DAYS - 1]),
     );
     flooded.forEach((r, i) => {
       const want = Math.max(FLOOD.infraFloor, infra[i] - FLOOD.infraCut);
@@ -115,11 +119,47 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     destroyDam(d, dam.index, id, tick);
     floodRegions(d, flooded, day);
     expect(flooded.map((r) => econ.infra[r])).toEqual(after);
-    // 60 days on, the water is gone (the infrastructure is to rebuild).
-    dayCommonWorld(d, day + FLOOD_DAYS + 1, tick);
+    // Day 60 is the last wet one; then the water is gone (the
+    // infrastructure is to rebuild).
+    dayCommonWorld(d, day + FLOOD_DAYS - 1, tick);
+    expect(d.world.floodUntil.length).toBe(2);
+    dayCommonWorld(d, day + FLOOD_DAYS, tick);
     expect(d.world.floodUntil).toEqual([]);
     expect(regionStatus(d, dam.region).supplyPm).toBe(1000);
     expect(econ.infra[dam.region]).toBe(after[1]);
+  }, 60_000);
+
+  it("a repaired dam dries its own region and the land downstream at once (review 4)", async () => {
+    const { runner, ww, id } = await deep("GBR");
+    const d = ww.depth;
+    const dam = DEEP.dam.dam_mohne;
+    destroyDam(d, dam.index, id, runner.game.ticks());
+    expect(regionStatus(d, dam.region).supplyPm).toBe(500);
+    d.onDamRepaired(dam.region);
+    expect(d.world.damLevel[dam.index]).toBe(1);
+    expect(d.world.floodUntil).toEqual([]);
+    expect(regionStatus(d, dam.region).supplyPm).toBe(1000);
+    expect(regionStatus(d, dam.downstream[0]).moveCutPct).toBe(0);
+  }, 60_000);
+
+  it("a bomb halves supply and building in its region (S's constants, pinned)", async () => {
+    const { runner, ww } = await deep("GBR");
+    const d = ww.depth;
+    const day = ww.day(runner.game.ticks());
+    d.markNuked(DEEP.region.paris, day + 10);
+    dayCommonWorld(d, day, runner.game.ticks());
+    expect(regionStatus(d, DEEP.region.paris)).toEqual({
+      supplyPm: 500,
+      buildPct: -50,
+      moveCutPct: 0,
+      resourcePct: 0,
+    });
+    // A flood on top: a quarter.
+    floodRegions(d, [DEEP.region.paris], day);
+    dayCommonWorld(d, day, runner.game.ticks());
+    expect(regionStatus(d, DEEP.region.paris).supplyPm).toBe(250);
+    dayCommonWorld(d, day + 11, runner.game.ticks());
+    expect(d.nuked.has(DEEP.region.paris)).toBe(false);
   }, 60_000);
 
   it("scorching destroys half the factories after three days and is cancelled if the region falls", async () => {
@@ -176,7 +216,7 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     expect(d.world.scorchQueue).toEqual([]);
     const burnt = day + SCORCH_DAYS;
     expect(d.world.exhaustedUntil).toEqual([
-      [berlin, burnt + SCORCH.resourceDays],
+      [berlin, burnt + SCORCH.resourceDays - 1],
     ]);
     expect(regionStatus(d, berlin).resourcePct).toBe(SCORCH.resourcePct);
     // Munich falls before its day: nothing burns, the dam stands.
@@ -188,6 +228,14 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     expect(d.world.scorchQueue).toEqual([]);
     expect(econ.civ[munich] + econ.mil[munich]).toBe(factories);
     expect(d.world.damLevel[DEEP.dam.dam_mohne.index]).toBe(1);
+    // Burning a dam's region blows the dam (spec §16.4 / §16.7).
+    takeRegion(runner.game, munich, "DEU");
+    scorchNow(d, munich, deu, runner.game.ticks());
+    expect(d.world.damLevel[DEEP.dam.dam_mohne.index]).toBe(0);
+    expect(ww.politics.gflags.has("dam_mohne_destroyed")).toBe(true);
+    expect(d.world.floodUntil.map((x) => x[0])).toEqual(
+      [munich, ...DEEP.dam.dam_mohne.downstream].sort((x, y) => x - y),
+    );
   }, 60_000);
 
   it("a floating harbour is a level-5 hub that fades from day 61", async () => {
@@ -270,6 +318,91 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     expect(d.world.floodUntil).toEqual([]);
     expect(ww.economy.infra[munich]).toBe(infra);
     expect(ww.politics.gflags.has("dam_mohne_destroyed")).toBe(false);
+    // Nor a floating harbour (review 6): Berlin given a coast for the test.
+    const ce = ww.economy.country(deu)!;
+    ce.addTech("floating_harbor_1");
+    ce.stock[equipKey("floating_harbor", 1)] = 1;
+    const input = { ...harborInputOf(d, deu, berlin) };
+    expect(input.noStrike).toBe(true);
+    expect(
+      harborBlock({
+        ...input,
+        coastal: true,
+        supremacyPm: 1000,
+      }),
+    ).toBe("harbor_conditions");
+    expect(
+      harborBlock({
+        ...input,
+        coastal: true,
+        supremacyPm: 1000,
+        noStrike: false,
+      }),
+    ).toBeNull();
+  }, 60_000);
+
+  it("a blown dam's flood never reaches a no-strike region downstream (lane S)", async () => {
+    // Berlin, below the Möhne, stands in for Korea or Taiwan.
+    const base = depthFixture();
+    const { berlin, munich } = DEEP.region;
+    usePoliticsContent(
+      depthFixture({
+        groups: [
+          ...base.groups,
+          { id: "korea_north", regions: [berlin], owner1936: "DEU" },
+        ],
+      }),
+    );
+    const { runner, ww, id } = await deep("GBR");
+    const d = ww.depth;
+    const dam = DEEP.dam.dam_mohne;
+    expect(dam.region).toBe(munich);
+    expect(dam.downstream).toContain(berlin);
+    expect([d.noStrike(munich), d.noStrike(berlin)]).toEqual([false, true]);
+    const infra = ww.economy.infra[berlin];
+    const tick = runner.game.ticks();
+    destroyDam(d, dam.index, id, tick);
+    expect(d.world.damLevel[dam.index]).toBe(0);
+    expect(d.world.floodUntil.map((x) => x[0])).toEqual([munich]);
+    expect(ww.economy.infra[berlin]).toBe(infra);
+    expect(regionStatus(d, berlin).supplyPm).toBe(1000);
+    expect(regionStatus(d, munich).supplyPm).toBe(500);
+  }, 60_000);
+
+  it("every world list reaches the hash, row by row (review 2)", async () => {
+    const { ww } = await deep("GBR");
+    const d = ww.depth;
+    const w = d.world;
+    const base = d.hash();
+    const lists: [string, number[][], number[]][] = [
+      ["floodUntil", w.floodUntil, [DEEP.region.paris, 70]],
+      ["harbors", w.harbors, [DEEP.region.malta, DEEP.tag.GBR, 3]],
+      ["railGuns", w.railGuns, [9, DEEP.tag.GBR, 2, DEEP.region.london]],
+      ["scorchQueue", w.scorchQueue, [DEEP.region.paris, DEEP.tag.FRA, 5]],
+      ["scorchedUntil", w.scorchedUntil, [DEEP.region.paris, 200]],
+      ["exhaustedUntil", w.exhaustedUntil, [DEEP.region.paris, 200]],
+    ];
+    const seen = new Set<number>([base]);
+    for (const [name, list, row] of lists) {
+      list.push([...row]);
+      const h = d.hash();
+      expect(seen.has(h), name).toBe(false);
+      seen.add(h);
+      // Every field counts, not a sum of them.
+      for (let i = 0; i < row.length; i++) {
+        list[0][i] += 1;
+        const hi = d.hash();
+        expect(hi === h, `${name}[${i}]`).toBe(false);
+        list[0][i] -= 1;
+      }
+      // Two rows swapped in a list hash the same (sorted order).
+      list.push([row[0] + 1, ...row.slice(1)]);
+      const ab = d.hash();
+      list.reverse();
+      expect(d.hash(), name).toBe(ab);
+      list.length = 0;
+      expect(d.hash(), name).toBe(base);
+    }
   }, 60_000);
 
   it("landmarks give their stats to the controller and cost the legal owner", async () => {

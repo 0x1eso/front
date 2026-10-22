@@ -980,6 +980,8 @@ export interface WwDepthDetail {
     ratioPm: number;
     /** Lane W1: the content's energy (added as it is). */
     extra: number;
+    /** Lane W1 (controller ruling): the domestic base, controlled regions with infrastructure (added as it is). */
+    base: number;
     /** Lane W1: the day's coal and uranium (output less exports plus imports; P1 keeps no pile). */
     coalStock: number;
     uraniumStock: number;

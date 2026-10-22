@@ -142,31 +142,40 @@ describe("World War 1936 P6: railway guns (spec §16.5)", () => {
     const { runner, g, d, l, deu, ce } = await war();
     const berlin = DEEP.region.berlin;
     const munich = DEEP.region.munich;
-    ce.stock[GUN] = 3;
-    const lost = placeArmy(g, "DEU", berlin, 1);
-    const back = placeArmy(g, "DEU", munich, 1);
+    ce.stock[GUN] = 6;
     const tick = runner.game.ticks();
-    expect(
-      d.issue(deu, { kind: "railgun_assign", army: lost.id, count: 2 }, tick),
-    ).toBeNull();
-    expect(
-      d.issue(deu, { kind: "railgun_assign", army: back.id, count: 1 }, tick),
-    ).toBeNull();
-    expect(ce.stock[GUN]).toBe(0);
-    // Berlin falls with its army in it; Munich's army goes at home.
-    takeRegion(g, berlin, "POL");
-    for (const a of [lost, back]) {
+    const armed = (region: number, guns: number) => {
+      const a = placeArmy(g, "DEU", region, 1);
+      expect(
+        d.issue(deu, { kind: "railgun_assign", army: a.id, count: guns }, tick),
+      ).toBeNull();
+      return a;
+    };
+    const killAll = (a: { divisions: number[] }, destroyed: boolean) => {
       for (const id of [...a.divisions]) {
-        l.killDivision(l.divisions.rowOf(id), true);
+        l.killDivision(l.divisions.rowOf(id), destroyed);
       }
-    }
-    expect(l.armies.has(lost.id)).toBe(false);
-    expect(l.armies.has(back.id)).toBe(false);
-    const ww = g.worldWar()!;
-    const day = ww.day(runner.game.ticks());
-    while (ww.day(runner.game.ticks()) === day) step(runner);
-    step(runner);
-    expect(d.world.railGuns).toEqual([]);
+    };
+    // Destroyed in battle at home: lost (the real army, not the region).
+    const home = armed(munich, 2);
+    killAll(home, true);
+    expect(l.armies.has(home.id)).toBe(false);
+    expect(ce.stock[GUN]).toBe(4);
+    // Gone (not in battle) in a region the enemy now holds: lost.
+    const cut = armed(berlin, 1);
+    takeRegion(g, berlin, "POL");
+    killAll(cut, false);
+    expect(ce.stock[GUN]).toBe(3);
+    // Merged into another army at home: back to the stock.
+    const merged = armed(munich, 2);
+    const into = placeArmy(g, "DEU", munich, 1);
     expect(ce.stock[GUN]).toBe(1);
+    for (const id of [...merged.divisions]) l.moveToArmy(id, into);
+    expect(l.armies.has(merged.id)).toBe(false);
+    expect(ce.stock[GUN]).toBe(3);
+    // The mirror holds no gone army.
+    expect(d.world.railGuns).toEqual([]);
+    step(runner);
+    expect(ce.stock[GUN]).toBe(3);
   }, 60_000);
 });

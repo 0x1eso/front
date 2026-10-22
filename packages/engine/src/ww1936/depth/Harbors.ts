@@ -54,6 +54,7 @@ export function harborInputOf(
     stock: ce?.stock[HARBOR_KEY] ?? 0,
     tech: ce?.researched.has("floating_harbor_1") ?? false,
     deployed: d.world.harbors.some((x) => x[0] === region),
+    noStrike: d.noStrike(region),
   };
 }
 

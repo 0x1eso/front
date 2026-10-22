@@ -7,8 +7,9 @@
 // (pre-flight §C5: P3's set_gflag state, read by K3's
 // nor_heavy_water_raid) and tells the world. Its repair is P1's `build dam`
 // (the foundation's depthBuildBlock and onDamRepaired: level 1 again).
-// Sensitivity: a dam on the no-strike list is never destroyed (there are
-// none by data; the check is the rule's).
+// Sensitivity: a dam on the no-strike list is never destroyed, and a
+// flood never reaches a no-strike region downstream (floodRegions skips it;
+// there are none by data, the checks are the rule's).
 import { DAMS, FLOOD_DAYS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { FLOOD } from "@openfront/engine-lib/ww1936/WorldRules";
 import { refreshRegionStatus } from "./World";
@@ -44,7 +45,8 @@ export function destroyDam(
 }
 
 /**
- * Spec §16.4: each region floods until day + 60; a region not flooded yet
+ * Spec §16.4: each region floods for 60 days (its row holds the last
+ * flooded day, day + 59: the lists' "until" is inclusive); a region not flooded yet
  * loses 2 infrastructure (not below 1) through P1, so the effective level
  * P2 reads follows (pre-flight §D). A flooded one only lasts longer.
  */
@@ -54,7 +56,7 @@ export function floodRegions(
   day: number,
 ): void {
   const econ = d.ww.economy;
-  const until = day + FLOOD_DAYS;
+  const until = day + FLOOD_DAYS - 1;
   const list = d.world.floodUntil;
   for (const r of [...new Set(regions)].sort((a, b) => a - b)) {
     if (r <= 0 || d.noStrike(r)) continue;

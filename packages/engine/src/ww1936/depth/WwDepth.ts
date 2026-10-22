@@ -132,9 +132,14 @@ import {
   uraniumDemand,
 } from "./Projects";
 import { processRaids } from "./Raids";
-import { railGunFortCut, railGunHits } from "./RailGuns";
+import { railGunFortCut, railGunHits, railGunsOfRemovedArmy } from "./RailGuns";
 import { processRockets } from "./Rockets";
-import { dayCommonWorld, issueWorld, regionStatus } from "./World";
+import {
+  dayCommonWorld,
+  issueWorld,
+  refreshRegionStatus,
+  regionStatus,
+} from "./World";
 
 export type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 
@@ -725,6 +730,18 @@ export class WwDepth implements LandDepthHooks {
     );
   }
 
+  /** Spec §16.5 (W1 review 3): an army with railway guns is gone. */
+  onArmyRemoved(
+    owner: number,
+    armyId: number,
+    guns: number,
+    destroyed: boolean,
+    region: number,
+  ): void {
+    if (this.countries.length === 0) return;
+    railGunsOfRemovedArmy(this, owner, armyId, guns, destroyed, region);
+  }
+
   /** Spec §16.5: the fort levels the army's railway guns cut at `region`. */
   fortCut(armyId: number, region: number): number {
     return railGunFortCut(this, armyId, region);
@@ -775,8 +792,13 @@ export class WwDepth implements LandDepthHooks {
     const i = this.ww.scenario.damOf(region);
     if (i < 0 || this.world.damLevel.length === 0) return;
     this.world.damLevel[i] = 1;
-    const down = new Set(this.ww.scenario.damDownstream[i] ?? []);
+    // W1 review 4: the dam's own region dries too; the status follows now.
+    const down = new Set([
+      region,
+      ...(this.ww.scenario.damDownstream[i] ?? []),
+    ]);
     this.world.floodUntil = this.world.floodUntil.filter(([r]) => !down.has(r));
+    refreshRegionStatus(this, Math.max(0, this.lastCommonDay));
     this.markGlobal();
     const owner = this.ww.economy.controllerOf(region);
     if (owner > 0) this.markStats(owner);
@@ -1374,11 +1396,37 @@ export class WwDepth implements LandDepthHooks {
     mix(this.groups.length);
     mix(this.market.embargoes.length);
     mix(this.world.damLevel.reduce((a, l, i) => a + l * (i + 1), 0));
+    // W1 review 2: the world lists, each tagged, its length and every row's
+    // fields in sorted order (an empty list adds nothing, so a game without
+    // world devices keeps its hash).
+    const w = this.world;
+    const lists: readonly (readonly (readonly number[])[])[] = [
+      w.floodUntil,
+      w.harbors,
+      w.railGuns,
+      w.scorchQueue,
+      w.scorchedUntil,
+      w.exhaustedUntil,
+    ];
+    lists.forEach((rows, tag) => {
+      if (rows.length === 0) return;
+      mix(1_000 + tag);
+      mix(rows.length);
+      for (const row of [...rows].sort(byFields)) for (const v of row) mix(v);
+    });
     return h;
   }
 }
 
 // ---- helpers (the foundation's bodies) ----
+
+/** Rows compared field by field (the hash's fixed order). */
+function byFields(a: readonly number[], b: readonly number[]): number {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return a.length - b.length;
+}
 
 /** The inner map of `outer` at `k`, made when missing. */
 function nested<V>(
