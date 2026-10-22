@@ -47,7 +47,7 @@ export const AI_CIVIL_COVER_PCT = 70;
 export const AI_MARTIAL_RES_BP = 2500;
 /** Spec §17.2: garrison suppression wanted, % of the need (60 when the fronts need the troops). */
 export const AI_GARRISON_PCT = 90;
-export const AI_GARRISON_WAR_PCT = 60;
+export const AI_GARRISON_WAR_PCT = 75; // P5 balance (Task 18): 60 → 75
 /** …when the front demand is over this share of all divisions, %. */
 export const AI_FRONT_HEAVY_PCT = 80;
 /** Over this share of the need the last garrison army goes back, %. */

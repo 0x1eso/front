@@ -52,10 +52,10 @@ import type { WwEndgame } from "./WwEndgame";
 export const AI_AID_PERIOD_DAYS = 30;
 /** Spec §17.4: the volunteers look, every 180 days. */
 export const AI_VOLUNTEER_PERIOD_DAYS = 180;
-/** Spec §17.4: a candidate needs an item covered under 70%. */
-export const AI_LL_NEED_PM = 700;
-/** Spec §17.4: an AI sends nothing of an item it covers under 80%. */
-export const AI_LL_OWN_MIN_PM = 800;
+/** Spec §17.4: a candidate needs an item covered under 70% (P5 balance, Task 18: 85%). */
+export const AI_LL_NEED_PM = 850;
+/** Spec §17.4: an AI sends nothing of an item it covers under 80% (P5 balance, Task 18: 65%). */
+export const AI_LL_OWN_MIN_PM = 650;
 /** Spec §17.4: a major sends 15% of its month of output (one contract's most). */
 export const AI_LL_SHARE_PCT = 15;
 /** Review fix round: every AI contract of an item together, % of its month of output. */
