@@ -14,6 +14,7 @@
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
+import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
@@ -29,6 +30,7 @@ import { FleetLayoutCache, fleetLod } from "../../view/FleetTokenLayout";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
 import type { WwAirView } from "../../view/WwAirView";
+import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwLandView } from "../../view/WwLandView";
 import type { WwNavyView } from "../../view/WwNavyView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
@@ -119,6 +121,7 @@ import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
 import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
+import { WwStrikeFxPass } from "./passes/WwStrikeFxPass";
 import type { RenderSettings } from "./RenderSettings";
 import { AffiliationPalette } from "./utils/Affiliation";
 import {
@@ -287,6 +290,12 @@ export class GPURenderer {
   private landFlagsGlow = -1;
   private layerGlowSent = -1;
   private seaPasses: WwSeaPasses | null = null;
+  /** World War 1936 P6 (U4): the strike effects' scheduler and its host hooks. */
+  private strikeFx: WwStrikeFxPass | null = null;
+  private strikeSound: ((loud: boolean) => void) | null = null;
+  private strikeEdge: HTMLDivElement | null = null;
+  private congressIds: readonly number[] = [];
+  private strikeIds: readonly number[] = [];
   private readonly fleetLayout = new FleetLayoutCache();
   /** The sea or air layer's table as built, and as the pass last got it. */
   private readonly layerColors = new Uint8Array(LAYER_TABLE_SIZE * 4);
@@ -1387,7 +1396,97 @@ export class GPURenderer {
 
   /** World congress: emergency targets' borders pulse. */
   setCongressPulse(ownerIDs: readonly number[]): void {
-    this.strategicFxPass.setCongressTargets(ownerIDs);
+    this.congressIds = ownerIDs;
+    this.strategicFxPass.setCongressTargets(
+      this.strikeIds.length === 0
+        ? ownerIDs
+        : [...new Set([...ownerIDs, ...this.strikeIds])],
+    );
+  }
+
+  /** World War 1936 P6 (U4): the strike effects read `view.takeFx()`; `onSound` plays "atom-hit". */
+  setWwDepth(view: WwDepthView, onSound: (loud: boolean) => void): void {
+    this.strikeSound = onSound;
+    const sc = (): ScenarioIndex | null =>
+      this.wwAir?.scenario ?? this.wwNavy?.scenario ?? null;
+    const xy = { x: 0, y: 0 };
+    const at = (region: number): boolean => {
+      const s = sc();
+      if (s === null || s.region(region) === undefined) return false;
+      const t = s.centerTile(region);
+      xy.x = t % s.width;
+      xy.y = Math.floor(t / s.width);
+      return true;
+    };
+    this.strikeFx = new WwStrikeFxPass(
+      view,
+      {
+        regionXY: (region, out) => {
+          if (!at(region)) return false;
+          out.x = xy.x;
+          out.y = xy.y;
+          return true;
+        },
+        ownerOf: (region) => this.wwLand?.view.controller[region] ?? 0,
+        flight: (owner, fx, fy, tx, ty, planes, startMs) =>
+          this.seaPasses?.sorties.spawnStrikeFlight(
+            owner,
+            fx,
+            fy,
+            tx,
+            ty,
+            planes,
+            startMs,
+          ),
+        atomSprite: (x, y) => this.fxPass.spawnAtomSprite(x, y),
+        shockwave: (x, y) => this.fxPass.spawnAtomShockwave(x, y),
+        ring: (x, y) => this.strategicFxPass.spawnRipples([{ x, y }]),
+        stream: (x, y) => this.strategicFxPass.spawnLaunch([{ x, y }]),
+        miniExplosion: (x, y) => this.fxPass.spawnBombBlast(x, y),
+        pulse: (owners, count) => {
+          let same = count === this.strikeIds.length;
+          for (let i = 0; same && i < count; i++) {
+            same = owners[i] === this.strikeIds[i];
+          }
+          if (same) return;
+          this.strikeIds = Array.from(owners.subarray(0, count));
+          this.setCongressPulse(this.congressIds);
+        },
+        // FalloutBloomPass lights fallout tiles from the heat map; a strike
+        // leaves no tile, so there is nothing for it to fade.
+        light: () => {},
+        edgeFlash: (alpha) => this.drawStrikeEdge(alpha),
+        sound: (_name, loud) => this.strikeSound?.(loud),
+        cameraSees: (x, y) => {
+          const dpr = renderDpr();
+          const halfW = this.canvas.clientWidth / 2;
+          const halfH = this.canvas.clientHeight / 2;
+          const z = this.camera.zoom / dpr;
+          return (
+            Math.abs(x - this.camera.offsetX) * z <= halfW &&
+            Math.abs(y - this.camera.offsetY) * z <= halfH
+          );
+        },
+      },
+      () => this.wwLand?.me() ?? 0,
+    );
+  }
+
+  /** The victim's one red flash: a vignette on the screen's edges, the middle clear. */
+  private drawStrikeEdge(alpha: number): void {
+    let el = this.strikeEdge;
+    if (el === null) {
+      const host = this.canvas.parentElement;
+      if (host === null) return;
+      el = document.createElement("div");
+      el.setAttribute("data-ww-strike-edge", "");
+      el.style.cssText =
+        "position:absolute;inset:0;pointer-events:none;z-index:5;" +
+        "background:radial-gradient(ellipse at center,rgba(220,0,0,0) 70%,rgba(220,0,0,1) 100%);opacity:0";
+      host.appendChild(el);
+      this.strikeEdge = el;
+    }
+    el.style.opacity = String(alpha);
   }
 
   /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
@@ -1737,6 +1836,7 @@ export class GPURenderer {
 
     // Orbital-strike beams fall under the blast sprites.
     this.orbitalBeamPass.draw(cam);
+    this.strikeFx?.update(performance.now());
     if (pe.fx) {
       this.fxPass.tick();
       this.fxPass.draw(cam, zoom);

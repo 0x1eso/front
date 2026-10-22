@@ -77,6 +77,18 @@ export interface StrikeGlow {
   ids: number[];
 }
 
+const controllers = new WeakMap<object, WwNukeFlow>();
+
+/** The game's flow controller; made on first ask when GameRenderer has not (a card used alone). */
+export function ensureNukeFlow(game: GameView, eventBus: EventBus): WwNukeFlow {
+  let c = controllers.get(game);
+  if (c === undefined) {
+    c = new WwNukeFlow(game, eventBus);
+    c.init();
+  }
+  return c;
+}
+
 export class WwNukeFlow implements Controller {
   readonly state: StrikeFlowState;
   private readonly model: DepthIndustryModel;
@@ -89,6 +101,7 @@ export class WwNukeFlow implements Controller {
   ) {
     this.state = strikeFlowOf(game);
     this.model = new DepthIndustryModel(game);
+    controllers.set(game, this);
   }
 
   init() {
