@@ -6,9 +6,7 @@
  * 200,000 per tile. Rewritten only when the depth view changes.
  */
 
-import { ID_NAVY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { intelBand } from "@openfront/engine-lib/ww1936/IntelRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwDepthView } from "../../../view/WwDepthView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
@@ -116,7 +114,8 @@ export function dotCount(mines: number, area: number, have: number): number {
 
 /**
  * Writes the dots into `out` (x, y, kind 0 mine / 1 enemy, 0) and returns
- * how many. `show(owner)` gives 0 mine, 1 known enemy, -1 hidden.
+ * how many. A row's second column is a P4 side key (a country, or 100,000
+ * + a faction); `show(side)` gives 0 my side, 1 known enemy, -1 hidden.
  */
 export function mineInstances(
   samples: MineSamples,
@@ -143,18 +142,6 @@ export function mineInstances(
   return n;
 }
 
-/** 0 mine, 1 a known enemy's, -1 hidden: without an intel row nothing of the enemy shows (spectators see all). */
-export function mineVisibility(
-  owner: number,
-  me: number,
-  row: Uint8Array | undefined,
-  fogOff: boolean,
-): number {
-  if (owner === me) return 0;
-  if (fogOff) return 1;
-  return row !== undefined && intelBand(row[owner * 4 + ID_NAVY]) >= 2 ? 1 : -1;
-}
-
 export class WwMinePass {
   private program: WebGLProgram;
   private vao: WebGLVertexArrayObject;
@@ -165,6 +152,7 @@ export class WwMinePass {
   private count = 0;
   private seenVersion = -1;
   private seenView: WwDepthView | null = null;
+  private seenShowKey = -1;
   private sampler: MineSampler | null = null;
 
   constructor(
@@ -200,11 +188,26 @@ export class WwMinePass {
     return this.count;
   }
 
-  /** Rewrites the dots when the depth view changed. `me` is the viewer's smallID. */
-  update(depth: WwDepthView, me: number, fogOff = me === 0): void {
-    if (depth === this.seenView && depth.version === this.seenVersion) return;
+  /**
+   * Rewrites the dots when the depth view or `showKey` (the fog's stamp)
+   * changed. `show(side)`: 0 my side's, 1 a known enemy's, -1 hidden
+   * (FogModel.mineSideView at the Renderer).
+   */
+  update(
+    depth: WwDepthView,
+    show: (side: number) => number,
+    showKey: number,
+  ): void {
+    if (
+      depth === this.seenView &&
+      depth.version === this.seenVersion &&
+      showKey === this.seenShowKey
+    ) {
+      return;
+    }
     this.seenView = depth;
     this.seenVersion = depth.version;
+    this.seenShowKey = showKey;
     const mines = depth.minesData;
     if (mines.length === 0) {
       this.count = 0;
@@ -217,9 +220,6 @@ export class WwMinePass {
       return;
     }
     const samples = this.sampler.samples!;
-    const row = depth.intelRow(me);
-    // Fog (spec §8.1): no intel row, no enemy mines; spectators see all.
-    const show = (owner: number) => mineVisibility(owner, me, row, fogOff);
     this.buf.ensureCapacity(mines.length * MINE_DOTS_MAX);
     this.count = mineInstances(
       samples,

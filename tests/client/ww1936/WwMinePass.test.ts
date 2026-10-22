@@ -1,12 +1,13 @@
 // World War 1936 P6 (plan Task 14): the mine pattern's dots — density
 // mines / 200,000 per tile, mine blue, a known enemy's red, an unknown one hidden.
 import { describe, expect, it } from "vitest";
+import { FogModel } from "../../../src/client/hud/ww1936/FogModel";
 import {
   dotCount,
   mineInstances,
-  mineVisibility,
   type MineSamples,
 } from "../../../src/client/render/gl/passes/WwMinePass";
+import { fogGame, ID } from "./FogFixture";
 
 const samples: MineSamples = {
   bySr: new Map([
@@ -41,14 +42,41 @@ describe("WwMinePass", () => {
     expect([out[0], out[1]]).toEqual([5, 0]);
   });
 
-  it("without an intel row no enemy mine shows; a spectator sees all", () => {
-    expect(mineVisibility(2, 1, undefined, false)).toBe(-1);
-    expect(mineVisibility(2, 1, undefined, true)).toBe(1);
-    expect(mineVisibility(1, 1, undefined, false)).toBe(0);
-    const row = new Uint8Array(12);
-    row[2 * 4 + 2] = 60;
-    expect(mineVisibility(2, 1, row, false)).toBe(1);
-    row[2 * 4 + 2] = 30;
-    expect(mineVisibility(2, 1, row, false)).toBe(-1);
+  it("the fog judges a side key's mines: mine, a known enemy's, hidden; a faction by its best-known member", () => {
+    // Germany observes; the row's second column is a P4 side key.
+    const g = fogGame({ levels: [0, 0, 60, 0] });
+    const POL_FACTION = 100_000 + 3;
+    const politics = {
+      factionIdx: () => -1,
+      global: {
+        factions: [
+          { idx: 3, leader: ID("ITA"), members: [ID("ITA"), ID("POL")] },
+        ],
+      },
+    };
+    const fog = new FogModel({
+      ...(g.game as object),
+      wwPolitics: () => politics,
+    } as never);
+    expect(fog.mineSideView(ID("DEU"))).toBe(0);
+    expect(fog.mineSideView(ID("POL"))).toBe(1);
+    // A faction key: its best-known member (Poland, close) shows it.
+    expect(fog.mineSideView(POL_FACTION)).toBe(1);
+    g.setLevels([0, 0, 30, 0]);
+    expect(
+      new FogModel({
+        ...(g.game as object),
+        wwPolitics: () => politics,
+      } as never).mineSideView(ID("POL")),
+    ).toBe(-1);
+    expect(
+      new FogModel({
+        ...(g.game as object),
+        wwPolitics: () => politics,
+      } as never).mineSideView(POL_FACTION),
+    ).toBe(-1);
+    // A spectator sees every side's mines.
+    g.state.spectator = true;
+    expect(new FogModel(g.game as never).mineSideView(ID("POL"))).toBe(1);
   });
 });

@@ -15,6 +15,7 @@ import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { fogOfNavy } from "../../hud/ww1936/FogModel";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
@@ -1889,7 +1890,17 @@ export class GPURenderer {
         this.mapW,
       );
     }
-    border.mines.update(depth, this.wwNavy.mySmallID());
+    // U3's fog decides whose mines show (merge glue): a side key, my side
+    // blue, a known enemy red; without a fog model only my side's.
+    const fog = fogOfNavy(this.wwNavy);
+    const me = this.wwNavy.mySmallID();
+    border.mines.update(
+      depth,
+      fog === undefined
+        ? (side) => (side === me ? 0 : -1)
+        : (side) => fog.mineSideView(side),
+      fog?.stamp() ?? -1,
+    );
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {

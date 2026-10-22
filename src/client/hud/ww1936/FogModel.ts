@@ -577,6 +577,31 @@ export class FogModel {
     return fogCountLabel(n, this.sideBand(side, ID_AIR));
   }
 
+  /**
+   * P6 (U5's mine pass, merge glue): the mines of a P4 side key (a lone
+   * country's smallID, or 100,000 + a faction) as the observer sees them:
+   * 0 my side's, 1 an enemy's it knows of (naval intel close or better on
+   * the country, or on the best-known member of a faction), -1 hidden.
+   * With the fog off (spectators, the game's end) every other side shows.
+   */
+  mineSideView(side: number): 0 | 1 | -1 {
+    const me = this.me();
+    if (me !== 0 && side === this.sideOf(me)) return 0;
+    if (this.fogOff()) return 1;
+    let best = 0;
+    if (side < SIDE_BASE) {
+      best = this.bandOf(side, ID_NAVY);
+    } else {
+      const f = this.view
+        .wwPolitics?.()
+        ?.global?.factions.find((x) => x.idx === side - SIDE_BASE);
+      for (const m of f?.members ?? []) {
+        best = Math.max(best, this.bandOf(m, ID_NAVY));
+      }
+    }
+    return best >= 2 ? 1 : -1;
+  }
+
   /** The band for a side key (a lone country's smallID, or 100,000 + a faction). */
   private sideBand(side: number, domain: number): number {
     return side < SIDE_BASE
