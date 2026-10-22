@@ -119,12 +119,204 @@ export const GRAND_DOCTRINE_STATS: Readonly<
   readonly [Partial<WwStats>, Partial<WwStats>]
 >;
 
-/** Spec §3.3 L1..L5 of every sub-doctrine (D fills from the spec tables; key choice per Task 2 Step 1). */
+/**
+ * Spec §3.3 L1..L5 of every sub-doctrine (rewards pile up: level 3 has
+ * L1–L3). Keys per plan Task 2 Step 1, on the names the P2–P4 readers read;
+ * the "(approx)" rows are recorded in lane D's report (the closest key a
+ * reader has, e.g. "infantry division breakthrough" on every division's).
+ * Omitted (no key): nav_cruiser L5 range +20% (its torpedoes ride on the
+ * light-gun key) and nav_carrier_support L3 (carrier fighters × 1.5 in the
+ * sea zone's superiority).
+ */
 export const SUBDOCTRINE_REWARDS: Readonly<
   Record<Subdoctrine, readonly Partial<WwStats>[]>
-> = Object.fromEntries(
-  SUBDOCTRINES.map((s) => [s, [{}, {}, {}, {}, {}]]),
-) as Record<Subdoctrine, Partial<WwStats>[]>;
+> = {
+  // ---- Land: infantry ----
+  inf_elastic: [
+    { infDefensePct: 5 },
+    { entrenchMax: 1 },
+    { infDefensePct: 5 },
+    { recoveryPct: 10 },
+    { infDefensePct: 10, entrenchSpeedPct: 50 },
+  ],
+  inf_assault: [
+    { infAttackPct: 5 },
+    { riverPenaltyCutPct: 25 },
+    { infAttackPct: 5 },
+    // (approx) infantry divisions' breakthrough: every division's.
+    { breakthroughPct: 10 },
+    { infAttackPct: 10, fortPenaltyCutPct: 25 },
+  ],
+  inf_mass_mob: [
+    { infTrainCutPct: 10 },
+    { recruitablePct: 5 },
+    { reinforcePct: 25 },
+    { infOrg: 5 },
+    // (approx) "infantry equipment needed −10%": supply use −10%.
+    { manpowerGrowthPct: 10, supplyUsePct: -10 },
+  ],
+  // ---- Land: armour ----
+  arm_breakthrough: [
+    { armorBrkPct: 5 },
+    // (approx) armoured divisions' speed: the motorized battalions'.
+    { motSpeedPct: 5 },
+    { armorBrkPct: 10 },
+    { mechOrg: 5 },
+    { armorAttackPct: 10, fuelUsePct: -10 },
+  ],
+  arm_inf_support: [
+    { armorDefensePct: 10 },
+    // (approx) "infantry divisions with 1–2 tanks attack +5%": infantry battalions'.
+    { infAttackPct: 5 },
+    { armorRelPp: 5 },
+    { armorArmorPct: 5 },
+    // (approx) "mixed infantry–tank divisions defence +10%": infantry battalions'.
+    { infDefensePct: 10 },
+  ],
+  arm_mech: [
+    { motSpeedPct: 5 },
+    { motOrg: 5 },
+    // (approx) armoured divisions' supply use: every division's.
+    { supplyUsePct: -10 },
+    // (approx) motorized battalions' attack: the infantry family's key.
+    { infAttackPct: 10 },
+    // (approx) armour and motor divisions' readiness speed: every army's;
+    // their breakthrough is P2's mechBreakPct (armour and motor only).
+    { planSpeedPct: 25, mechBreakPct: 5 },
+  ],
+  // ---- Land: support ----
+  sup_artillery: [
+    { artillerySoftPct: 5 },
+    { artillerySoftPct: 5 },
+    // (approx) support artillery's soft attack: every artillery's.
+    { artillerySoftPct: 10 },
+    { fortPenaltyCutPct: 15 },
+    { artillerySoftPct: 10, atHardPct: 10 },
+  ],
+  sup_deep_ops: [
+    { planSpeedPct: 10 },
+    { planMaxBp: 500 },
+    // (approx) attack +5% with a bold stance: every attack.
+    { attackPct: 5 },
+    { breakthroughPct: 5 },
+    { advanceSpeedPct: 15 },
+  ],
+  sup_entrenched: [
+    { entrenchMax: 1 },
+    { engineerMulPct: 50 },
+    { defensePct: 5 },
+    { fortDefPerLevelBp: 300 },
+    { entrenchMax: 1, defensePct: 5 },
+  ],
+  // ---- Naval: surface ----
+  nav_battleline: [
+    { capitalAttackPct: 5 },
+    { positioningPct: 5 },
+    // (approx) capital ships' armour: the fleet's defence.
+    { navyDefensePct: 5 },
+    { capitalAttackPct: 5 },
+    { capitalHpPct: 10, navalDamageTakenPct: -10 },
+  ],
+  nav_cruiser: [
+    { screenAttackPct: 10 },
+    // (approx) cruisers +1 knot: the navy's speed +3% (1 of ~32 knots).
+    { navalSpeedPct: 3 },
+    { surfaceRaidPct: 10 },
+    // (approx) cruisers' detection: the fleet's.
+    { navalDetectPct: 10 },
+    // (approx) light guns and torpedoes +10%: the light-gun key.
+    { screenAttackPct: 10 },
+  ],
+  // ---- Naval: escort ----
+  nav_wolfpack: [
+    { subTorpedoPct: 5 },
+    { subVisibilityPct: -5 },
+    { convoyRaidPct: 10 },
+    { subOrg: 10 },
+    { subTorpedoPct: 10, subVisibilityPct: -10 },
+  ],
+  nav_convoy_escort: [
+    { depthChargePct: 10 },
+    { convoyEscortPct: 10 },
+    // (approx) anti-submarine detection: the fleet's.
+    { navalDetectPct: 10 },
+    { convoyLossPct: -10 },
+    { depthChargePct: 15, convoyEscortPct: 15 },
+  ],
+  // ---- Naval: carrier ----
+  nav_carrier_force: [
+    { carrierStrikePct: 5 },
+    { deckPct: 5 },
+    { navalStrikePct: 10 },
+    { carrierRoundsCut: 1 },
+    // (approx) carrier fighters' air attack: every fighter's.
+    { carrierStrikePct: 10, fighterAttackPct: 10 },
+  ],
+  nav_carrier_support: [
+    { aaPct: 10 },
+    { navalDetectPct: 10 },
+    // Carrier fighters × 1.5 in the sea zone's superiority: no key.
+    {},
+    { shoreBombardPct: 15 },
+    // (approx) carriers' HP: the fleet's defence.
+    { navyDefensePct: 10, airLossCutPct: 15 },
+  ],
+  // ---- Air: fighters ----
+  air_interceptor: [
+    // (approx) interception's air attack: every fighter's.
+    { fighterAttackPct: 5 },
+    { airDetectPct: 5 },
+    { interceptShareBp: 2500 },
+    { airDefensePct: 10 },
+    // (approx) radar detection +50‰ as air detection +5%.
+    { fighterAttackPct: 10, airDetectPct: 5 },
+  ],
+  air_escort: [
+    { fighterAttackPct: 5 },
+    { fighterAgilityPct: 5 },
+    // (approx) the zone's bomber losses: air losses.
+    { airLossCutPct: 10 },
+    // (approx) heavy fighters' air attack: every plane's.
+    { airAttackPct: 10 },
+    { fighterAttackPct: 10, airRangePct: 15 },
+  ],
+  // ---- Air: bombers ----
+  air_strategic_campaign: [
+    { stratBombPct: 5 },
+    { heavyDefensePct: 5 },
+    { nightBombBp: 1500 },
+    { stratBombPct: 10 },
+    // (approx) bombing fatigue × 1.5 as strategic bombing +10%, plus its +10%.
+    { stratBombPct: 20 },
+  ],
+  air_ground_attack: [
+    { casPct: 5 },
+    // (approx) close air support's AA losses: air losses.
+    { airLossCutPct: 10 },
+    { casPct: 10 },
+    // (approx) tactical bombers' ground attack: close air support's.
+    { casPct: 10 },
+    { casPct: 10, supPenaltyPp: 5 },
+  ],
+  // ---- Air: naval air ----
+  air_maritime_strike: [
+    { navalStrikePct: 5 },
+    // (approx) port strikes: naval strike.
+    { navalStrikePct: 10 },
+    { navalStrikePct: 10 },
+    // (approx) naval bombers' air defence: the heavy planes'.
+    { heavyDefensePct: 10 },
+    // (approx) port-strike hits +20‰ as naval strike +2%, plus its +10%.
+    { navalStrikePct: 12 },
+  ],
+  air_maritime_patrol: [
+    { navalPatrolPct: 10 },
+    { convoyEscortPct: 10 },
+    { navalPatrolPct: 15 },
+    { convoyLossPct: -5 },
+    { navalPatrolPct: 15, navalDetectPct: 10 },
+  ],
+};
 
 /** Spec §3.2–§3.3: the doctrine part of a country's stats. `levels`: mastery level per track (9). */
 export function doctrineStats(

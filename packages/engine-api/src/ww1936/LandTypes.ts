@@ -487,6 +487,9 @@ export interface GeneralData {
   /** First day it can serve, last day (-1: open). */
   from: number;
   until: number;
+  /** P6 (lane D, wave B; always sent): a field marshal (army -1 while he is), and his FM_TRAITS bits. */
+  fm?: boolean;
+  fmTraits?: number;
 }
 
 export interface DivisionData {

@@ -2398,6 +2398,8 @@ export class WwLand {
         // -1: open (no date in the roster).
         from: def?.from === undefined ? -1 : dayOfDate(def.from),
         until: def?.until === undefined ? -1 : dayOfDate(def.until),
+        fm: g.fm,
+        fmTraits: g.fmTraits,
       };
     });
     return {

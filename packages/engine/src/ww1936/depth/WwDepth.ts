@@ -171,13 +171,18 @@ const CountryDepthSchema = z.object({
     sub: zIds(),
     subLock: zIds(),
     masteryMilli: zIds(),
+    /** Lane D: the mastery level per track the owner was told of. */
     announced: zIds(),
+    /** Lane D: each track's gain on the country's last depth day, milli (screens). */
+    gain: zIds(),
   }),
   cmd: z.object({
     cpMilli: zInt(),
     spirits: zIds(),
     spiritLock: zIds(),
     medalReady: z.array(z.tuple([zInt(), zInt()])),
+    /** Lane D: [general id, the P6 terrain-trait bits the owner was told of], by general id. */
+    traitsSeen: z.array(z.tuple([zInt(), zInt()])),
   }),
   des: z.object({
     tank: z.array(DesignSlotSchema.nullable()),
@@ -1405,12 +1410,14 @@ export function emptyCountry(): CountryDepth {
       subLock: new Array<number>(9).fill(-1),
       masteryMilli: new Array<number>(9).fill(0),
       announced: new Array<number>(9).fill(0),
+      gain: new Array<number>(9).fill(0),
     },
     cmd: {
       cpMilli: 0,
       spirits: new Array<number>(7).fill(-1),
       spiritLock: new Array<number>(7).fill(-1),
       medalReady: [],
+      traitsSeen: [],
     },
     des: {
       tank: nul(WW_TANK_DESIGN_SLOTS),
@@ -1483,6 +1490,7 @@ function normalizeCountry(c: CountryDepth): CountryDepth {
   pad(c.doc.subLock, e.doc.subLock);
   pad(c.doc.masteryMilli, e.doc.masteryMilli);
   pad(c.doc.announced, e.doc.announced);
+  pad(c.doc.gain, e.doc.gain);
   pad(c.cmd.spirits, e.cmd.spirits);
   pad(c.cmd.spiritLock, e.cmd.spiritLock);
   for (const kind of DESIGN_KINDS) {
@@ -1808,6 +1816,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       subLock: [...c.doc.subLock],
       masteryMilli: [...c.doc.masteryMilli],
       gainMilli: doctrineGainMilli(d, id),
+      xp: [d.xpOf(id, 0), d.xpOf(id, 1), d.xpOf(id, 2)],
     },
     command: {
       cpMilli: c.cmd.cpMilli,
@@ -1815,6 +1824,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       spirits: [...c.cmd.spirits],
       spiritLock: [...c.cmd.spiritLock],
       medalReady: c.cmd.medalReady.map((m) => m[1]),
+      medalCooldown: c.cmd.medalReady.map((m) => [m[0], m[1]]),
     },
     designs,
     mio: {

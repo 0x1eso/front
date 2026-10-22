@@ -915,6 +915,8 @@ export interface WwDepthDetail {
     subLock: number[];
     masteryMilli: number[];
     gainMilli: number[];
+    /** Lane D (wave B): whole experience per domain — army, navy, air (always sent). */
+    xp?: number[];
   };
   command: {
     cpMilli: number;
@@ -922,6 +924,8 @@ export interface WwDepthDetail {
     spirits: number[];
     spiritLock: number[];
     medalReady: number[];
+    /** Lane D (wave B): [army id, the day it may get a medal again], by army id (always sent). */
+    medalCooldown?: [number, number][];
   };
   designs: WwDesignSlotData[];
   mio: {
