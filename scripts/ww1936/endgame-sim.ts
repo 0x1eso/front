@@ -54,6 +54,7 @@ import {
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { coveragePct } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { normalizeWorldWar1936Config } from "@openfront/engine-lib/ww1936/ModeConfig";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { aiAidDay } from "@openfront/engine/ww1936/endgame/AiAid";
@@ -287,11 +288,16 @@ export interface SimExtension {
   end(res: RunResult): void;
 }
 
+/**
+ * The lobby's config after the server's mode rules (ConfigPatch), as a
+ * real game gets it — final balance: before this the simulator ran
+ * without the lobby's defaults (ww1936Nukes on), so no atomic project.
+ */
 function startInfo(seed: string, historical: boolean): GameStartInfo {
   return {
     gameID: seed,
     lobbyCreatedAt: 0,
-    config: {
+    config: normalizeWorldWar1936Config({
       gameMap: GameMapType.World1936,
       gameMapSize: GameMapSize.Normal,
       gameMode: GameMode.FFA,
@@ -307,7 +313,8 @@ function startInfo(seed: string, historical: boolean): GameStartInfo {
       randomSpawn: false,
       worldWar1936: true,
       historicalAi: historical,
-    },
+      ww1936Nukes: true,
+    }),
     players: [],
   };
 }
