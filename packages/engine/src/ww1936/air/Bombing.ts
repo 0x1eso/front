@@ -13,6 +13,7 @@ import {
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { bombDamageMilli } from "@openfront/engine-lib/ww1936/AirRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import { nightMods } from "../depth/AirExtras";
 import {
   damageBuilding,
   damageOf,
@@ -29,13 +30,16 @@ const BOMB_KEY = "events_display.ww1936_bombed" as const;
 /**
  * The regions of strategic region `sr` strategic bombing may pick, in id
  * order: never a no-strike region (engine-lib NoStrike; P6 pre-flight).
- * Lane A2's target choice and the AI read this. Final.
+ * Lane A2's target choice and the AI read this. Final. P6 (T1b): by day
+ * or by night, the depth judge (WwDepth.noStrike: the engine-lib names
+ * and the content's P5 groups).
  */
 export function bombableRegions(air: WwAir, sr: number): number[] {
   const sc = air.ww.scenario;
   const s = sc.sr(sr);
   if (s === undefined || s.kind !== "land") return [];
-  return s.members.filter((r) => !isNoStrike(sc, r));
+  const d = air.ww.depth;
+  return s.members.filter((r) => !isNoStrike(sc, r) && !d.noStrike(r));
 }
 
 /**
@@ -207,16 +211,26 @@ export function strategicBombing(
   const econ = air.econ;
   const land = air.land;
   const slot = ((day % 30) + 30) % 30;
+  // P6 (spec §15.3): a night group's records share the flag, so a zone
+  // with no flagged record has no night raid (nightMods is not asked).
+  let night = false;
+  for (const l of bySide.values()) {
+    for (const x of l) if (x.d.night) night = true;
+  }
   for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
     const byOwner = new Map<number, number>();
     let centi = 0;
     for (const x of bySide.get(side)!) {
       const pct = econ.country(x.d.owner)?.stats.stratBombPct ?? 0;
-      const c = Math.floor(
+      const lit = Math.floor(
         (Math.floor((x.milli * x.stats.strat) / 1000) *
           Math.max(0, 100 + pct)) /
           100,
       );
+      // P6 (spec §15.3): a night raid scores ×0.6 (+ nightBombBp).
+      const c = night
+        ? Math.floor((lit * nightMods(air.ww.depth, x.d.id).bombBp) / 10_000)
+        : lit;
       if (c <= 0) continue;
       centi += c;
       byOwner.set(x.d.owner, (byOwner.get(x.d.owner) ?? 0) + c);

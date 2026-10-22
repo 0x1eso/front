@@ -25,6 +25,8 @@ import {
   WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { aceMods } from "../depth/Aces";
+import { nightMods } from "../depth/AirExtras";
 import {
   damageOf,
   effectiveBuildings,
@@ -303,6 +305,51 @@ function addLoss(
   p.by.set(by, (p.by.get(by) ?? 0) + milli);
 }
 
+/**
+ * P6 (spec §15.2): a record with a living ace fights with its air attack
+ * +10% and agility +5% (aceMods); any other record keeps P4's numbers.
+ */
+function aceStats(air: WwAir, id: number, st: PlaneStats): PlaneStats {
+  if ((air.deployments.get(id)?.ace ?? 0) === 0) return st;
+  const a = aceMods(air.ww.depth, id);
+  if (a.attackPct === 0 && a.agilityPct === 0) return st;
+  return {
+    ...st,
+    airAtk: Math.floor((st.airAtk * (100 + a.attackPct)) / 100),
+    agility: Math.floor((st.agility * (100 + a.agilityPct)) / 100),
+  };
+}
+
+/**
+ * P6 (spec §15.3): the share of its losses a night strategic bombing
+ * record takes, bp (nightMods: ×0.5, the radar-design night fighters among
+ * `shooters` not halved); 10 000 for any other record. `night`: some
+ * record over the zone flies by night (nightIn), else nothing is asked.
+ */
+function nightLossBp(
+  air: WwAir,
+  night: boolean,
+  f: AirFlight,
+  shooters?: readonly number[],
+): number {
+  if (!night || f.mission !== M_BOMB) return 10_000;
+  return nightMods(air.ww.depth, f.id, shooters).lossBp;
+}
+
+/**
+ * Some strategic bombing record over the zone carries the night flag. A
+ * night group's records share it (air_night sets them all; AirExtras
+ * syncs a record P4 adds), so a zone without one has no night raid.
+ */
+function nightIn(air: WwAir, flights: readonly AirFlight[]): boolean {
+  for (const f of flights) {
+    if (f.mission === M_BOMB && air.deployments.get(f.id)?.night === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Whether two sides are at war (some member of one with some member of the other). */
 function sidesAtWar(air: WwAir, a: number, b: number): boolean {
   if (a === b) return false;
@@ -320,7 +367,8 @@ function sidesAtWar(air: WwAir, a: number, b: number): boolean {
  * interception, its kill power goes against the sides at war with it that
  * fly here (split by their weighted sorties), each side's losses spread
  * over its deployments by weight (largest remainders), cut by the
- * victim's airLossCutPct (operational_integrity_2).
+ * victim's airLossCutPct (operational_integrity_2). P6: aces fight better
+ * (spec §15.2) and night raids take half (spec §15.3).
  */
 function airBattles(
   air: WwAir,
@@ -329,6 +377,7 @@ function airBattles(
   sides: readonly number[],
   atWar: (a: number, b: number) => boolean,
   pending: Map<number, PendingLoss>,
+  night: boolean,
 ): void {
   const sc = air.ww.scenario;
   const s = sc.sr(sr)!;
@@ -354,7 +403,10 @@ function airBattles(
       if (ce !== null) detectPct = Math.max(detectPct, ce.stats.airDetectPct);
       let kp = 0;
       f.stats.forEach(
-        (st, g) => (kp += Math.floor((f.milli[g] * st.airAtk) / 1000)),
+        (st, g) =>
+          (kp += Math.floor(
+            (f.milli[g] * aceStats(air, f.id, st).airAtk) / 1000,
+          )),
       );
       kpOf.set(f.owner, (kpOf.get(f.owner) ?? 0) + kp);
     }
@@ -386,7 +438,11 @@ function airBattles(
     for (const f of shooters) {
       f.stats.forEach((stats, g) => {
         if (f.milli[g] > 0)
-          attackers.push({ stats, milli: f.milli[g], weight: 1 });
+          attackers.push({
+            stats: aceStats(air, f.id, stats),
+            milli: f.milli[g],
+            weight: 1,
+          });
       });
     }
     // The kill power splits over the enemy sides by their weighted sorties.
@@ -398,6 +454,10 @@ function airBattles(
       return m;
     };
     const masses = enemies.map(massOf);
+    // The night factor's shooters (built once, only for a night raid).
+    let shooterIds: number[] | undefined;
+    const shooterIdsOf = (): number[] =>
+      (shooterIds ??= shooters.map((x) => x.id));
     const allMass = masses.reduce((a, b) => a + b, 0);
     if (allMass === 0) continue;
     enemies.forEach((B, bi) => {
@@ -408,7 +468,11 @@ function airBattles(
         const weight = weightOf(f);
         f.stats.forEach((stats, g) => {
           if (f.milli[g] > 0)
-            defenders.push({ stats, milli: f.milli[g], weight });
+            defenders.push({
+              stats: aceStats(air, f.id, stats),
+              milli: f.milli[g],
+              weight,
+            });
         });
       }
       let loss = airDuelMilli(attackers, defenders, det);
@@ -424,7 +488,11 @@ function airBattles(
       targets.forEach((f, i) => {
         const cut = econ.country(f.owner)?.stats.airLossCutPct ?? 0;
         const milli = Math.floor((parts[i] * (100 - Math.min(100, cut))) / 100);
-        addLoss(pending, f.id, milli, lead);
+        const nightBp =
+          night && f.mission === M_BOMB
+            ? nightLossBp(air, night, f, shooterIdsOf())
+            : 10_000;
+        addLoss(pending, f.id, Math.floor((milli * nightBp) / 10_000), lead);
       });
     });
   }
@@ -459,6 +527,7 @@ function landAntiAir(
   sr: number,
   flights: readonly AirFlight[],
   pending: Map<number, PendingLoss>,
+  night: boolean,
 ): void {
   const sc = air.ww.scenario;
   const s = sc.sr(sr);
@@ -553,7 +622,15 @@ function landAntiAir(
       continue;
     }
     const [pm, by] = rateOf(f.side, f.mission);
-    if (pm > 0) addLoss(pending, f.id, Math.floor((f.total * pm) / 1000), by);
+    if (pm <= 0) continue;
+    // P6 (spec §15.3, HOI4): the guns hit night raiders half as often.
+    const milli = Math.floor((f.total * pm) / 1000);
+    addLoss(
+      pending,
+      f.id,
+      Math.floor((milli * nightLossBp(air, night, f)) / 10_000),
+      by,
+    );
   }
 }
 
@@ -798,8 +875,9 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   };
   // ②–④
   const pending = new Map<number, PendingLoss>();
-  airBattles(air, sr, flights, sides, atWar, pending);
-  landAntiAir(air, sr, flights, pending);
+  const night = nightIn(air, flights);
+  airBattles(air, sr, flights, sides, atWar, pending, night);
+  landAntiAir(air, sr, flights, pending, night);
   const shotDown = new Map<number, number>();
   const lost = new Map<number, number>();
   takeLosses(air, pending, day, shotDown, lost);
