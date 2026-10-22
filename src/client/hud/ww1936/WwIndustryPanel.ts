@@ -440,8 +440,8 @@ export class WwIndustryPanel extends WwDrawerBase {
                 ? "ww1936.energy.coal_line"
                 : "ww1936.energy.uranium_line",
               {
-                // TODO(lane W1): energy stock
-                stock: 0,
+                // W1's stocks in the energy detail.
+                stock: r.id === "coal" ? e.coalStock : e.uraniumStock,
                 gain: signedText(r.balance),
               },
             )}

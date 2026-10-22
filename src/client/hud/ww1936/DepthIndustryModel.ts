@@ -16,7 +16,6 @@ import {
   MIO_FREE_TRAIT,
   MIO_INVEST_MILLI,
   MIO_TRAITS,
-  NUKE_MIN_BOMBERS,
   ROCKET_RANGE_KM,
   SCIENTIST_SPECS,
   SPECIAL_PROJECTS,
@@ -43,9 +42,13 @@ import {
 } from "@openfront/engine-lib/ww1936/MioRules";
 import { isNoStrike, strikeBlock } from "@openfront/engine-lib/ww1936/NoStrike";
 import {
+  nukeDropBlock,
   nukeInterceptPm,
   nukeOutcome,
   PROJECT_DEFS,
+  projectStartBlock,
+  raidBlock,
+  rocketTargetBlock,
 } from "@openfront/engine-lib/ww1936/ProjectRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { translateText } from "../../Utils";
@@ -194,6 +197,9 @@ export interface EnergyLine {
   demand: number;
   /** Below 100: the output and construction cut applies. */
   short: boolean;
+  /** W1's stocks of coal and uranium (whole units). */
+  coalStock: number;
+  uraniumStock: number;
 }
 
 // ---- projects (spec §9) ----
@@ -509,9 +515,12 @@ export class DepthIndustryModel {
       hydroPower: e.hydro * ENERGY_PER_HYDRO,
       plantPower: e.plants * ENERGY_PER_PLANT,
       damPower: e.dams,
-      supply: energySupply(e.coal, e.hydro, e.plants, e.dams, 0),
+      // W1: the extra supply and the domestic base are part of it.
+      supply: energySupply(e.coal, e.hydro, e.plants, e.dams, e.extra, e.base),
       demand: e.demand,
       short: e.ratioPm < 1000,
+      coalStock: e.coalStock,
+      uraniumStock: e.uraniumStock,
     };
   }
 
@@ -561,10 +570,18 @@ export class DepthIndustryModel {
       const def = PROJECT_DEFS[project];
       const run = d.projects.running.find((r) => r.project === project);
       const done = (d.projects.done & (1 << index)) !== 0;
-      const afterOk =
-        def.after === undefined ||
-        (d.projects.done & (1 << SPECIAL_PROJECTS.indexOf(def.after))) !== 0;
-      const techsOk = def.techs.every((t) => researched.has(t));
+      // Lane S's projectStartBlock: only "project_locked" keeps it shut;
+      // a missing or busy facility shows in the facility list.
+      const open =
+        projectStartBlock({
+          project,
+          facilityKind: def.facility,
+          facilityBusy: false,
+          techs: researched,
+          done: d.projects.done,
+          running: false,
+          nukesOn: this.nukesOn(),
+        }) !== "project_locked";
       const sci =
         run === undefined || run.scientist < 0
           ? undefined
@@ -575,7 +592,7 @@ export class DepthIndustryModel {
           ? "done"
           : run !== undefined
             ? "running"
-            : afterOk && techsOk
+            : open
               ? "available"
               : "locked",
         facility: def.facility,
@@ -635,23 +652,39 @@ export class DepthIndustryModel {
     });
   }
 
-  /** Why [Drop the bomb] is not offered over a zone, null when it is. */
-  nukeStartBlock(sr: number): WwOrderBlock | null {
+  /** My bombers over a zone (the bomb's carriers). */
+  private bombersIn(sr: number): number {
     const c = airCtx(this.view);
-    if (c === null || this.detail() === null || !this.nukesOn()) {
-      return "nuke_conditions";
-    }
-    if ((this.depth()?.summary(c.me)?.atomicStock ?? 0) <= 0) {
-      return "nuke_conditions";
-    }
-    const bombers = (["bomber", "strat_bomber"] as AirType[]).reduce(
+    if (c === null) return 0;
+    return (["bomber", "strat_bomber"] as AirType[]).reduce(
       (n, t) => n + deployedHere(c.air, c.me, sr, t, null),
       0,
     );
-    if (bombers < NUKE_MIN_BOMBERS) return "nuke_conditions";
-    return offered(this.zoneTargets(sr)).length === 0
-      ? "no_strike_region"
-      : null;
+  }
+
+  /**
+   * Why [Drop the bomb] is not offered over a zone, null when it is: the
+   * no-strike judge first (a zone whose enemy regions are all Korea or
+   * Taiwan), then lane S's nukeDropBlock for a bomber drop.
+   */
+  nukeStartBlock(sr: number): WwOrderBlock | null {
+    const c = airCtx(this.view);
+    if (c === null || this.detail() === null) return "nuke_conditions";
+    const rows = this.zoneTargets(sr);
+    if (rows.length > 0 && offered(rows).length === 0) {
+      return "no_strike_region";
+    }
+    return nukeDropBlock({
+      stock: this.depth()?.summary(c.me)?.atomicStock ?? 0,
+      atWar: rows.length > 0,
+      bombersInZone: this.bombersIn(sr),
+      nukesOn: this.nukesOn(),
+      rocket: false,
+      ballisticDone: false,
+      rocketKm: -1,
+      ballisticStock: 0,
+      noStrike: false,
+    });
   }
 
   nukePreview(region: number): NukePreview | null {
@@ -676,9 +709,23 @@ export class DepthIndustryModel {
       if (fv.visible) divisions += fv.shown;
     }
     const sr = c.scenario.srOfZoneOrRegion(region);
+    const owner = c.economy.controller[region] ?? 0;
     return {
       region,
-      blocked: strikeBlock(c.scenario, region),
+      // The no-strike judge first, then lane S's nukeDropBlock.
+      blocked:
+        strikeBlock(c.scenario, region) ??
+        nukeDropBlock({
+          stock: this.depth()?.summary(c.me)?.atomicStock ?? 0,
+          atWar: owner !== 0 && c.sides.isEnemy(c.me, owner),
+          bombersInZone: sr === 0 ? 0 : this.bombersIn(sr),
+          nukesOn: this.nukesOn(),
+          rocket: false,
+          ballisticDone: false,
+          rocketKm: -1,
+          ballisticStock: 0,
+          noStrike: isNoStrike(c.scenario, region),
+        }),
       factories,
       destroyed,
       stopped: Math.max(0, factories - destroyed),
@@ -713,11 +760,17 @@ export class DepthIndustryModel {
       c.scenario.landRegions.map((r) => r.id),
       (r) => {
         const owner = c.economy.controller[r] ?? 0;
+        // Lane S's rocketTargetBlock for the reach (no-strike rows are
+        // flagged by strikeTargets and never offered).
         return (
           owner !== 0 &&
           owner !== c.me &&
           c.sides.isEnemy(c.me, owner) &&
-          c.scenario.regionKm(site, r) <= ROCKET_RANGE_KM[kind]
+          rocketTargetBlock({
+            km: c.scenario.regionKm(site, r),
+            rangeKm: ROCKET_RANGE_KM[kind],
+            noStrike: false,
+          }) === null
         );
       },
     );
@@ -741,9 +794,24 @@ export class DepthIndustryModel {
         if (owner === 0 || owner === c.me || !c.sides.isEnemy(c.me, owner)) {
           return false;
         }
-        return kind === "raid_para"
-          ? c.scenario.regionKm(from, r) <= WW_PARA_RANGE_KM
-          : c.scenario.region(r)?.coastal === true;
+        // Lane S's raidBlock on the region's reach; the unit, the running
+        // raids and the building (a facility's intel) are the engine's and
+        // the flow's to judge.
+        return (
+          raidBlock({
+            kind,
+            unitOk: true,
+            targetOk: true,
+            reachOk:
+              kind === "raid_para"
+                ? c.scenario.regionKm(from, r) <= WW_PARA_RANGE_KM
+                : c.scenario.region(r)?.coastal === true,
+            running: 0,
+            intelClose: true,
+            facilityTarget: false,
+            noStrike: false,
+          }) === null
+        );
       },
     );
   }

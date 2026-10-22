@@ -1,12 +1,25 @@
 // World War 1936 P6 lane U4 (plan Task 13): the MIO, market and energy view models.
+import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
+import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import fs from "fs";
+import path from "path";
 import { describe, expect, it } from "vitest";
 import {
   DepthIndustryModel,
   offered,
   strikeTargets,
 } from "../../../src/client/hud/ww1936/DepthIndustryModel";
+import { REGION } from "../../ww1936/seaFixture";
 import { depthGame } from "./DepthU4Fixture";
 import { SID } from "./SeaAirFixture";
+
+const SEA_DIR = path.join(__dirname, "../../testdata/maps/ww1936sea");
+const seaData = JSON.parse(
+  fs.readFileSync(path.join(SEA_DIR, "scenario.json"), "utf8"),
+) as ReadonlyScenarioData;
+const seaBin = new Uint8Array(
+  fs.readFileSync(path.join(SEA_DIR, "regions.bin")),
+);
 
 describe("DepthIndustryModel", () => {
   it("a buy preview shows factories for 30 days", () => {
@@ -63,6 +76,42 @@ describe("DepthIndustryModel", () => {
     );
     expect(e.pct).toBe(92);
     expect(e.short).toBe(true);
+  });
+
+  it("the energy line counts W1's extra supply and domestic base, and shows the stocks", () => {
+    const g = depthGame({
+      detail: {
+        energy: {
+          demand: 84,
+          coal: 18,
+          hydro: 6,
+          plants: 1,
+          dams: 2,
+          ratioPm: 1000,
+          extra: 5,
+          base: 9,
+          coalStock: 37,
+          uraniumStock: 4,
+        },
+      },
+    });
+    const e = new DepthIndustryModel(g.game).energyLine()!;
+    expect(e.supply).toBe(54 + 12 + 6 + 2 + 5 + 9);
+    expect([e.coalStock, e.uraniumStock]).toEqual([37, 4]);
+  });
+
+  it("[Drop the bomb] is judged by lane S's nukeDropBlock: no bomb, then too few bombers", () => {
+    const sr = ScenarioIndex.fromFiles(seaData, seaBin).srOfZoneOrRegion(
+      REGION.berlin,
+    );
+    const none = depthGame({ summary: { atomicStock: 0 } });
+    expect(new DepthIndustryModel(none.game).nukeStartBlock(sr)).toBe(
+      "no_atomic",
+    );
+    const one = depthGame({ summary: { atomicStock: 1 } });
+    expect(new DepthIndustryModel(one.game).nukeStartBlock(sr)).toBe(
+      "nuke_conditions",
+    );
   });
 
   it("the trait grid marks exclusive cells", () => {
