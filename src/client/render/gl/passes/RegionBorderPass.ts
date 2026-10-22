@@ -38,6 +38,7 @@ import {
   createTexture2D,
   shaderSrc,
 } from "../utils/GlUtils";
+import type { WwMinePass } from "./WwMinePass";
 
 /** Lines start to show above this zoom (canvas px per tile)… */
 export const REGION_MIN_ZOOM = 1;
@@ -233,6 +234,8 @@ export function regionFlagBytes(
 }
 
 export class RegionBorderPass {
+  /** P6 (spec §15.1): the mine pattern, drawn with the sea layer. */
+  mines: WwMinePass | null = null;
   private program: WebGLProgram;
   private tileTex: WebGLTexture;
   private vao: WebGLVertexArrayObject;
@@ -570,5 +573,6 @@ export class RegionBorderPass {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.bindVertexArray(null);
     gl.activeTexture(gl.TEXTURE0);
+    if (this.layerKind === LAYER_SEA) this.mines?.draw(cam, tilesPerPx);
   }
 }

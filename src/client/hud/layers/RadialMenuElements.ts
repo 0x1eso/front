@@ -17,12 +17,16 @@ import { renderNumber } from "@openfront/engine-lib/Format";
 import { isStockpiledNuke } from "@openfront/engine-lib/strategic/Strategic";
 import { findClosestBy } from "@openfront/engine-lib/Util";
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { SendWwOrderIntentEvent } from "../../Transport";
 import { UIState } from "../../UIState";
 import { translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
 import { bannedBadge, bannedReason } from "../congress/BanLabels";
 import { lockedBadge, lockedReason } from "../domestic/LockReason";
+import { WwStrikeFlowEvent } from "../ww1936/DepthEvents";
+import { DepthMiscModel } from "../ww1936/DepthMiscModel";
 import { regionCard } from "../ww1936/EconomyModel";
+import { TWO_TAP_MS } from "../ww1936/WorldWarModel";
 import { OpenWwIndustryEvent } from "../ww1936/WwDrawer";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
@@ -118,6 +122,8 @@ export const COLORS = {
   embargo: "#7c3aed",
   /** The region card's "Build here" (bg-amber-700), dark enough for white text. */
   wwBuildHere: "#b45309",
+  wwScorch: "#991b1b",
+  wwRocket: "#a16207",
   tooltip: {
     cost: "#f59e0b",
     count: "#94a3b8",
@@ -923,6 +929,68 @@ export function wwBuildHereElement(
   };
 }
 
+/**
+ * World War 1936 P6 (spec §20.10): [Scorch] (two taps) and [Launch rockets]
+ * on a touch screen, where the region card is under the menu's overlay.
+ * Shown where the card would show the buttons; greyed by the engine-lib
+ * judges (scorchBlock, strikeBlock / rocketTargetBlock with NO_STRIKE).
+ */
+export function wwDepthRegionElements(
+  params: MenuElementParams,
+  armed: { region: number | null } = wwScorchArm,
+): MenuElement[] {
+  if ((params.game.worldWarScenario?.() ?? null) === null) return [];
+  if ((params.game.wwDepth?.() ?? null) === null) return [];
+  const region = params.game.worldWarScenario!()!.regionAt(params.tile);
+  const act = new DepthMiscModel(params.game as never).regionActions(region);
+  const out: MenuElement[] = [];
+  if (act.scorch) {
+    out.push({
+      id: "ww_scorch",
+      name: "ww_scorch",
+      text: translateText(
+        armed.region === region
+          ? "ww1936.region_status.scorch_confirm"
+          : "ww1936.region_status.scorch",
+      ),
+      fontSize: "12px",
+      color: COLORS.wwScorch,
+      disabled: () => act.scorchBlock !== null,
+      action: (p: MenuElementParams) => {
+        if (armed.region !== region) {
+          // The first tap arms; a second within 3 s acts.
+          armed.region = region;
+          setTimeout(() => {
+            if (armed.region === region) armed.region = null;
+          }, TWO_TAP_MS);
+          return;
+        }
+        armed.region = null;
+        p.eventBus.emit(new SendWwOrderIntentEvent({ kind: "scorch", region }));
+        p.closeMenu();
+      },
+    });
+  }
+  if (act.rocket) {
+    out.push({
+      id: "ww_rocket",
+      name: "ww_rocket",
+      text: translateText("ww1936.region_status.rocket_launch"),
+      fontSize: "12px",
+      color: COLORS.wwRocket,
+      disabled: () => act.rocketBlock !== null,
+      action: (p: MenuElementParams) => {
+        p.eventBus.emit(new WwStrikeFlowEvent("rocket", region));
+        p.closeMenu();
+      },
+    });
+  }
+  return out;
+}
+
+/** The scorch button's first tap (shared by the menu items). */
+const wwScorchArm: { region: number | null } = { region: null };
+
 export const rootMenuElement: MenuElement = {
   id: "root",
   name: "root",
@@ -962,6 +1030,7 @@ export const rootMenuElement: MenuElement = {
             // request, which can't apply to my own land.
             wwBuildHereElement(params) ?? allyRequestElement,
             buildMenuElement,
+            ...wwDepthRegionElements(params),
           ]
         : [
             // World War 1936 P2 (spec §13.2): no boats and no tile attacks

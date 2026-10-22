@@ -36,7 +36,9 @@ export type WwPoliticsTab =
   | "advisors"
   | "laws"
   | "spirits"
-  | "decisions";
+  | "decisions"
+  // P6 (spec §13.1): the United States only, beside the five.
+  | "congress";
 export const WW_POLITICS_TABS: readonly WwPoliticsTab[] = [
   "government",
   "advisors",

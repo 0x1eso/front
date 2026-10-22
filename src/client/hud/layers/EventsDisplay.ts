@@ -27,6 +27,7 @@ import { UserSettings } from "../../UserSettings";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
+import { depthNoticeParams, isWorldNewsNotice } from "../ww1936/DepthMiscModel";
 import {
   ENDGAME_NOTICES,
   endgameNoticeParams,
@@ -351,6 +352,8 @@ export class EventsDisplay extends LitElement implements Controller {
       if (typeof params.army === "number") {
         params = { ...params, army: armyName(params.army) };
       }
+      // P6 (spec §20.11): content ids of the depth notices.
+      params = depthNoticeParams(event.message, params);
       // P4 (spec §18.10): sea regions, ports, ship classes, ships, fleets.
       if (scenario !== null) {
         params = navyNoticeParams(
@@ -459,7 +462,10 @@ export class EventsDisplay extends LitElement implements Controller {
       description: description,
       createdAt: this.game.ticks(),
       highlight: true,
-      type: event.messageType,
+      // P6: the atomic drop and a dam's destruction use the world-news colour.
+      type: isWorldNewsNotice(event.message)
+        ? MessageType.NUKE_DETONATED
+        : event.messageType,
       unsafeDescription: true,
       unitView: unitView,
       // Strategic weapons: the "preparing" alert jumps to the silo (the thing

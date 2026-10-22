@@ -184,8 +184,12 @@ export class MapRenderer {
     }
     if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
-    if (this.storedWwDepth !== null && this.storedStrikeSound !== null) {
-      this.renderer?.setWwDepth(this.storedWwDepth, this.storedStrikeSound);
+    // P6: the depth view (U5's mine pattern, U4's strike effects and sound).
+    if (this.storedWwDepth !== null) {
+      this.renderer?.setWwDepth(
+        this.storedWwDepth,
+        this.storedStrikeSound ?? undefined,
+      );
     }
     if (this.storedSeaAirSelection !== null) {
       this.renderer?.setSeaAirSelection(this.storedSeaAirSelection);
@@ -493,7 +497,10 @@ export class MapRenderer {
     this.renderer?.setPeaceMap(source);
   }
 
-  /** World War 1936 P6 (plan Task 1 Step 17): the depth systems' view. */
+  /**
+   * World War 1936 P6 (plan Task 1 Step 17): the depth systems' view — U5's
+   * mine pattern, U4's strike effects (`onSound` plays the atom hit).
+   */
   setWwDepth(
     view: WwDepthView,
     onSound: (loud: boolean) => void = () => {},

@@ -25,6 +25,7 @@ import {
 import { Platform } from "../../Platform";
 import { themeProvider } from "../../theme/ThemeProvider";
 import { TransformHandler } from "../../TransformHandler";
+import { SendWwOrderIntentEvent } from "../../Transport";
 import { UserSettings } from "../../UserSettings";
 import {
   formatKeyForDisplay,
@@ -39,6 +40,8 @@ import {
   getPlayerIcons,
   IMAGE_ICON_KIND,
 } from "../PlayerIcons";
+import { WwStrikeFlowEvent } from "../ww1936/DepthEvents";
+import { DepthMiscModel } from "../ww1936/DepthMiscModel";
 import {
   buildingName,
   infraDots,
@@ -62,6 +65,7 @@ import {
   regionInfo,
   shownName,
   today,
+  TWO_TAP_MS,
   WW_BAND_PX,
 } from "../ww1936/WorldWarModel";
 import {
@@ -153,6 +157,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
   @state()
   private spawnBarVisible = false;
+  /** World War 1936 P6: the region whose [Scorch] was tapped once. */
+  @state() private wwScorchArmed: number | null = null;
   /** World War 1936: the drawers open on the right. */
   @state() private wwDrawers: ReadonlySet<WwDrawerId> = new Set();
   @state()
@@ -983,7 +989,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             >`}
       </div>
       ${this.renderRegionOccupation(tile)} ${this.renderRegionEconomy(tile)}
-      ${this.renderRegionLand(tile)} ${this.renderRegionSeaAir(tile)}`;
+      ${this.renderRegionLand(tile)} ${this.renderRegionSeaAir(tile)}
+      ${this.renderRegionDepth(tile)}`;
   }
 
   /**
@@ -1003,6 +1010,80 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       class="border-t border-white/10 px-3 py-1 text-xs text-white/80"
     >
       ${occ ?? zone}
+    </div>`;
+  }
+
+  /**
+   * World War 1936 P6 (spec §20.10): landmark, dam, facility, plant,
+   * deposits and the status days; on my own region [Scorch] (two taps),
+   * and [Launch rockets] from my rocket site.
+   */
+  private renderRegionDepth(tile: TileRef) {
+    const s = this.game.worldWarScenario();
+    if (s === null || (this.game.wwDepth?.() ?? null) === null) return "";
+    const region = s.regionAt(tile);
+    if (s.region(region) === undefined) return "";
+    const m = new DepthMiscModel(this.game);
+    const lines = m.regionLines(region);
+    const act = m.regionActions(region);
+    if (lines.length === 0 && !act.scorch) return "";
+    const armed = this.wwScorchArmed === region;
+    return html`<div
+      data-ww-region-depth
+      class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-white/80"
+    >
+      ${lines.map(
+        (l) =>
+          html`<span
+            data-ww-region-line=${l.id}
+            class=${l.tone === "warn" ? "text-red-300" : ""}
+            >${l.text}</span
+          >`,
+      )}
+      ${act.scorch && !Platform.isTouch
+        ? html`<button
+            type="button"
+            data-ww-scorch
+            ?disabled=${act.scorchBlock !== null}
+            class="h-9 rounded-md bg-red-800 px-3 text-xs font-semibold text-white hover:bg-red-700"
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              if (!armed) {
+                this.wwScorchArmed = region;
+                setTimeout(() => {
+                  if (this.wwScorchArmed === region) {
+                    this.wwScorchArmed = null;
+                  }
+                }, TWO_TAP_MS);
+                return;
+              }
+              this.wwScorchArmed = null;
+              this.eventBus.emit(
+                new SendWwOrderIntentEvent({ kind: "scorch", region }),
+              );
+            }}
+          >
+            ${translateText(
+              armed
+                ? "ww1936.region_status.scorch_confirm"
+                : "ww1936.region_status.scorch",
+            )}
+          </button>`
+        : ""}
+      ${act.rocket && !Platform.isTouch
+        ? html`<button
+            type="button"
+            data-ww-rocket
+            ?disabled=${act.rocketBlock !== null}
+            class="h-9 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this.eventBus.emit(new WwStrikeFlowEvent("rocket", region));
+            }}
+          >
+            ${translateText("ww1936.region_status.rocket_launch")}
+          </button>`
+        : ""}
     </div>`;
   }
 

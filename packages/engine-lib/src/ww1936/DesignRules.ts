@@ -45,6 +45,12 @@ import {
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_TECHS } from "./WwTechs";
 
+/** Spec §13.3: the BB / BC modules a treaty member may not use (the screens read this too). */
+export const TREATY_LIMITED_MODULES = {
+  always: ["shbb_hull"],
+  untilEscalated: ["main_heavy"],
+} as const;
+
 export interface DesignCtx {
   techs: ReadonlySet<WwTechId>;
   /** Bit i: SPECIAL_PROJECTS[i] done. */
@@ -1283,8 +1289,15 @@ export function designBlock(
       if (!has(d.tech, d.project)) return "module_locked";
     }
     if (c.treatyMember && (sb.cls === "bb" || sb.cls === "bc")) {
-      if (def.modules.includes("shbb_hull")) return "treaty_limit";
-      if (!c.treatyEscalated && def.modules.includes("main_heavy")) {
+      if (TREATY_LIMITED_MODULES.always.some((m) => def.modules.includes(m))) {
+        return "treaty_limit";
+      }
+      if (
+        !c.treatyEscalated &&
+        TREATY_LIMITED_MODULES.untilEscalated.some((m) =>
+          def.modules.includes(m),
+        )
+      ) {
         return "treaty_limit";
       }
     }

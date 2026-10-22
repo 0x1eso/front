@@ -1,4 +1,5 @@
 import type { LandOrder } from "@openfront/engine-api/Schemas";
+import { MEDALS, type RaidKind } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
@@ -18,6 +19,8 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
+import { WwStrikeFlowEvent } from "./DepthEvents";
+import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { garrisonScopes, myOccRows } from "./EndgameModel";
 import {
@@ -64,6 +67,7 @@ import {
 } from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
+import { renderRaidPicker } from "./WwRaidPicker";
 import {
   seaAirOf,
   WwSeaAirChangedEvent,
@@ -323,9 +327,17 @@ export class WwArmyCard extends LitElement implements Controller {
   @state() private refused: { id: string; block: CardBlock } | null = null;
   /**
    * The buttons shown: the orders, the "⋯" ones, the armies to merge with,
-   * or (P5) the garrison's scope.
+   * (P5) the garrison's scope, or (P6) the raid picker and the medals.
    */
-  @state() private panel: "main" | "more" | "merge" | "garrison" = "main";
+  @state() private panel:
+    | "main"
+    | "more"
+    | "merge"
+    | "garrison"
+    | "raid"
+    | "medal" = "main";
+  /** The raid kind on show in the raid picker. */
+  private raidKind: RaidKind = "raid_para";
   @state() private place: CardPlace = {
     bottom: GAP,
     right: null,
@@ -681,7 +693,11 @@ export class WwArmyCard extends LitElement implements Controller {
               ? this.renderMerge(c)
               : this.panel === "garrison"
                 ? this.renderGarrison(c)
-                : this.renderButtons(c)}
+                : this.panel === "raid"
+                  ? this.renderRaid(c)
+                  : this.panel === "medal"
+                    ? this.renderMedals(c)
+                    : this.renderButtons(c)}
       </div>
       <div class="flex shrink-0 flex-col gap-1">
         ${this.foldButton(c, false)} ${this.closeButton()}
@@ -1204,6 +1220,7 @@ export class WwArmyCard extends LitElement implements Controller {
       ),
       ...this.invadeButtons(c),
       ...this.garrisonButton(c),
+      ...this.depthButtons(c),
       this.button("back", translateText("common.back"), "←", () => {
         this.panel = "main";
       }),
@@ -1302,6 +1319,75 @@ export class WwArmyCard extends LitElement implements Controller {
         },
         { grey: block !== null, pressed: on },
       ),
+    ];
+  }
+
+  /** P6 (spec §20.10): [Raid], [Rail guns n/2], [Medal], the reinforcement priority. */
+  private depthButtons(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return new DepthMiscModel(this.game).armyButtons(army).map((b) =>
+      this.button(
+        `depth_${b.id}`,
+        b.label,
+        b.id === "raid"
+          ? "🪂"
+          : b.id === "railgun"
+            ? "🚂"
+            : b.id === "medal"
+              ? "★"
+              : "⇅",
+        () => {
+          if (b.id === "raid") this.panel = "raid";
+          else if (b.id === "medal") this.panel = "medal";
+          else if (b.order !== null) {
+            this.eventBus.emit(new SendWwOrderIntentEvent(b.order));
+          }
+        },
+      ),
+    );
+  }
+
+  /**
+   * The raid kinds. A kind starts the strike flow, which picks the target
+   * region; the building list waits for the flow to take a building (merge
+   * glue for U4: judge it with DepthMiscModel.raidTargets on that region's owner).
+   */
+  private renderRaid(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return [
+      renderRaidPicker(
+        this.raidKind,
+        [],
+        (k) => {
+          this.raidKind = k;
+          this.eventBus.emit(new WwStrikeFlowEvent(k, army));
+          this.panel = "main";
+        },
+        () => {},
+        () => (this.panel = "more"),
+      ),
+    ];
+  }
+
+  private renderMedals(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return [
+      ...MEDALS.map((medal) =>
+        this.button(
+          `medal_${medal}`,
+          translateText(`ww1936.medal.${medal}`),
+          "★",
+          () => {
+            this.eventBus.emit(
+              new SendWwOrderIntentEvent({ kind: "medal_award", army, medal }),
+            );
+            this.panel = "main";
+          },
+        ),
+      ),
+      this.button("back", translateText("common.back"), "←", () => {
+        this.panel = "more";
+      }),
     ];
   }
 
