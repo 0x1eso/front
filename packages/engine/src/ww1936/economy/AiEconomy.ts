@@ -51,6 +51,7 @@ import {
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
+  dealUnitsOf,
   exportRoomOf,
   freeResearchSlot,
   lawBlockOf,
@@ -83,7 +84,7 @@ import { convoysOf } from "./Buildings";
 import { moveBuild, queueBuild, usedSlots } from "./Construction";
 import { fuelCapOf } from "./Fuel";
 import { lawCtxOf, setLaw } from "./LawsRun";
-import { addLine, changeLine, setLineFactories } from "./Production";
+import { addLine, changeLine, moveLine, setLineFactories } from "./Production";
 import { startResearch } from "./ResearchRun";
 import { closeTrade, openTrade, tradePartners } from "./Trade";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
@@ -275,7 +276,7 @@ export function aiAirShares(
   if (tag === "GBR" && (ctx.atWar || ctx.wtBp >= 5000)) strat = 3;
   if (tag === "USA" && ctx.atWar) strat = 4;
   return {
-    fighter: 8,
+    fighter: AI_FIGHTER_SHARE[tag] ?? 8,
     heavy_fighter: 1,
     cas: ["DEU", "SUN", "JPN"].includes(tag) ? 5 : 3,
     bomber: 3,
@@ -286,6 +287,18 @@ export function aiAirShares(
     cv_naval_bomber: carrier,
   };
 }
+
+/**
+ * Task 15 (내 판단): fighter shares off the 8 — Germany's rearmament put
+ * the Luftwaffe first (it outbuilt the RAF 1936–39; at 8 its fighters were
+ * 1,340 to the Allies' 2,400 in 1939 and gone in a month), France's
+ * aircraft industry lagged (the Armée de l'Air had some 600 modern fighters
+ * in 1940).
+ */
+export const AI_FIGHTER_SHARE: Readonly<Partial<Record<CountryTag, number>>> = {
+  DEU: 12,
+  FRA: 6,
+};
 
 const AIR_EQUIPMENT: ReadonlySet<EquipmentType> = new Set(AIR_TYPES);
 
@@ -460,7 +473,10 @@ const PERSONALITY_ORDER: Readonly<Record<AiPersonality, readonly TechGroup[]>> =
 const COUNTRY_ORDER: Readonly<
   Partial<Record<CountryTag, readonly TechGroup[]>>
 > = {
-  DEU: ["tools", "armour", "school", "infantry", "air", "guns", "construction"],
+  // Task 15: the air group second (the Bf 109E): fifth, Germany flew 1936
+  // fighters against Britain's 1940 ones over France in 1939–40 and lost
+  // them at ten to one.
+  DEU: ["tools", "air", "armour", "school", "infantry", "guns", "construction"],
   SUN: ["infantry", "guns", "school", "tools", "construction", "armour"],
   GBR: [
     "construction",
@@ -893,6 +909,8 @@ export interface AiDeal {
   /** RESOURCE_IDS index. */
   res: number;
   civs: number;
+  /** Units a day it moves (Trade.units). */
+  units: number;
 }
 
 /** Everything an AI turn looks at (pre-flight R6.13), as plain data. */
@@ -966,6 +984,7 @@ export interface AiInput {
  */
 export const AI_FUEL_OIL_MAX = 30;
 const OIL = RESOURCE_IDS.indexOf("oil");
+const RUBBER = RESOURCE_IDS.indexOf("rubber");
 
 /** The trade's needs: the lines' and the fuel's oil (one unit serves both: the larger). */
 export function withFuelOil(
@@ -1502,6 +1521,13 @@ function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
 
 // ---- 5. Trade ----
 
+/**
+ * P4 Task 15 (내 판단): the fewest units a part-factory deal must bring the
+ * AI — a whole civilian factory for 1 unit is not worth it unless the
+ * lines lack only that.
+ */
+export const AI_MIN_PART_UNITS = 2;
+
 function planTrade(
   i: AiInput,
   need: readonly number[],
@@ -1523,10 +1549,9 @@ function planTrade(
   const open = new Set(i.buying.map((d) => d.seller * RESOURCE_COUNT + d.res));
   let rooms: Map<number, number[]> | null = null;
   for (let k = 0; k < RESOURCE_COUNT; k++) {
-    const missing = need[k] - available(i, k);
+    let missing = need[k] - available(i, k);
     if (missing <= 0 || budget <= 0 || payable <= 0) continue;
     rooms ??= new Map(i.partners.map((p) => [p.smallID, [...p.room]]));
-    let want = Math.ceil(missing / WW_TRADE_UNITS_PER_CIV);
     // Same faction first, then the most room, then the lower smallID.
     const ranked = [...i.partners].sort(
       (a, b) =>
@@ -1535,14 +1560,17 @@ function planTrade(
         a.smallID - b.smallID,
     );
     for (const p of ranked) {
-      if (want <= 0 || budget <= 0 || payable <= 0) break;
+      if (missing <= 0 || budget <= 0 || payable <= 0) break;
       const room = rooms.get(p.smallID)!;
+      // P4 Task 15: the last factory buys what is left (dealUnitsOf), but
+      // not a crumb of it unless that is all the lines lack.
+      if (room[k] < Math.min(missing, AI_MIN_PART_UNITS)) continue;
       const deal = p.smallID * RESOURCE_COUNT + k;
       const grows = open.has(deal);
       if (!grows && deals >= WW_MAX_TRADES) continue;
       const civs = Math.min(
-        want,
-        Math.floor(room[k] / WW_TRADE_UNITS_PER_CIV),
+        Math.ceil(missing / WW_TRADE_UNITS_PER_CIV),
+        Math.ceil(room[k] / WW_TRADE_UNITS_PER_CIV),
         budget,
         payable,
         WW_MAX_TRADE_CIVS,
@@ -1554,10 +1582,11 @@ function planTrade(
         resource: RESOURCE_IDS[k],
         civs,
       });
-      want -= civs;
+      const units = dealUnitsOf(civs, room[k]);
+      missing -= units;
       budget -= civs;
       payable -= civs;
-      room[k] -= civs * WW_TRADE_UNITS_PER_CIV;
+      room[k] -= units;
       if (!grows) {
         deals++;
         open.add(deal);
@@ -1573,7 +1602,7 @@ function planTrade(
     if (surplus < WW_TRADE_UNITS_PER_CIV) continue;
     let newest: AiDeal | null = null;
     for (const d of i.buying) {
-      if (d.res !== k || d.civs * WW_TRADE_UNITS_PER_CIV > surplus) continue;
+      if (d.res !== k || d.units > surplus) continue;
       if (newest === null || d.id > newest.id) newest = d;
     }
     if (newest !== null) orders.push({ kind: "close_trade", trade: newest.id });
@@ -1773,10 +1802,16 @@ export function aiInput(
   let paidCivs = 0;
   for (const tr of econ.trades()) {
     const k = tr.seller * RESOURCE_COUNT + tr.res;
-    sold.set(k, (sold.get(k) ?? 0) + tr.civs * WW_TRADE_UNITS_PER_CIV);
+    sold.set(k, (sold.get(k) ?? 0) + tr.units);
     if (tr.buyer === me) {
       paidCivs += tr.civs;
-      buying.push({ id: tr.id, seller: tr.seller, res: tr.res, civs: tr.civs });
+      buying.push({
+        id: tr.id,
+        seller: tr.seller,
+        res: tr.res,
+        civs: tr.civs,
+        units: tr.units,
+      });
     }
   }
   // exportRoom of every partner, from one pass over the deals; built only
@@ -1920,6 +1955,35 @@ function applyAiOrder(
 }
 
 /**
+ * P4 Task 15 (내 판단; the Luftwaffe's claim on aluminium and rubber in
+ * 1939–45): an AI's lines in three groups, each in its own order
+ * (move_line) — the infantry's kit (rifles, support equipment), then the
+ * aircraft, then the rest — so the planes draw the aluminium and rubber
+ * before the anti-air guns and the trucks; else those took them all and
+ * the air lines ran at the 20% floor from 1939.
+ */
+export function aiPlanesFirst(econ: WwEconomy, ce: CountryEconomy): void {
+  const rank = (key: number): number => {
+    const t = EQUIP_KEYS[key][0];
+    if (t === "infantry_equipment" || t === "support_equipment") return 0;
+    return AIR_EQUIPMENT.has(t) ? 1 : 2;
+  };
+  let moved = false;
+  // A stable selection sort by rank (move_line keeps the rest in order).
+  for (let j = 0; j < ce.lines.length; j++) {
+    let best = j;
+    for (let i = j + 1; i < ce.lines.length; i++) {
+      if (rank(ce.lines[i].key) < rank(ce.lines[best].key)) best = i;
+    }
+    if (best !== j) {
+      moveLine(econ, ce, ce.lines[best].id, j);
+      moved = true;
+    }
+  }
+  if (moved) econ.markCountryDirty(ce.smallID);
+}
+
+/**
  * Moves the queue's military factories to the front, then infrastructure,
  * then civilian factories, each group in its order (move_build, so the
  * progress stays with each entry).
@@ -2025,6 +2089,7 @@ export function aiEconomyTick(
   }
   // P4 spec §17.5: the naval lines and the sea and air buildings, on the turn.
   if (isAiTurn(ce.smallID, day, ce.major)) {
+    aiPlanesFirst(econ, ce);
     aiNavalLinesTurn(econ, ce, tick);
     aiP4Builds(econ, ce, day);
   }
@@ -2258,8 +2323,16 @@ function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
       )
       .map((x) => x.r);
   const anyQueued = (b: BuildingId) => ce.queue.some((q) => q.building === b);
+  // Task 15: a refinery makes rubber too — built when the lines lack it.
+  let rubberNeed = 0;
+  for (const l of ce.lines) {
+    rubberNeed += EQUIPMENT[typeOf(l.key)].resources[RUBBER] * l.active;
+  }
+  const t = ce.totals;
+  const rubberShort =
+    rubberNeed > t.produced[RUBBER] - t.exported[RUBBER] + t.imported[RUBBER];
   if (
-    ce.fuelRatioPm < AI_SYNTH_RATIO_PM &&
+    (ce.fuelRatioPm < AI_SYNTH_RATIO_PM || rubberShort) &&
     ce.researched.has("synthetic_oil_1") &&
     !anyQueued("synthetic_refinery")
   ) {

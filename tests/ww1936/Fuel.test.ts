@@ -90,12 +90,17 @@ describe("World War 1936 P4: fuel (spec §15)", () => {
     const { runner, ww, ce } = await soviets();
     settleAt(runner, 0);
     const oil = ce.totals.produced[0];
+    // P4 Task 15 (HOI4's Buna): as much rubber again.
+    const RUBBER = 2;
+    const rubber = ce.totals.produced[RUBBER];
     ww.economy.addBuilding(REGION.kiev, "synthetic_refinery", 2);
     settleAt(runner, 1);
     expect(ce.totals.produced[0]).toBe(oil + 2);
+    expect(ce.totals.produced[RUBBER]).toBe(rubber + 2);
     ce.addTech("synthetic_oil_2");
     settleAt(runner, 2);
     expect(ce.totals.produced[0]).toBe(oil + 4);
+    expect(ce.totals.produced[RUBBER]).toBe(rubber + 4);
     expect(ce.fuelGainMilli).toBe(fuelGain(oilOf(ce), ce.stats));
   });
 

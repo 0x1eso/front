@@ -1159,8 +1159,8 @@ export interface TradeOffer {
 
 /**
  * Spec §13.3: who can sell me `resource` — a trade partner (the engine's,
- * tradePartnersOf) with room for at least one factory's worth (8 a day),
- * most room first. A war declared since my last detail cuts at once (the
+ * tradePartnersOf) with any room left (P4 Task 15: the last factory buys
+ * what is left, fewer than 8 a day), most room first. A war declared since my last detail cuts at once (the
  * P0 war list is live); `canTrade`: alive and not capitulated.
  */
 export function tradeOffers(
@@ -1178,8 +1178,9 @@ export function tradeOffers(
   scenario.countries.forEach((tag, i) => {
     const id = i + 1;
     if (id === me || !canTrade(id) || !partners.has(id) || atWar(id)) return;
+    // P4 Task 15: the last factory buys what is left (dealUnitsOf).
     const room = view.summary(id)?.exportRoom[r] ?? 0;
-    if (room < WW_TRADE_UNITS_PER_CIV) return;
+    if (room < 1) return;
     out.push({ smallID: id, tag, room });
   });
   return out.sort((a, b) => b.room - a.room || a.smallID - b.smallID);
@@ -1199,7 +1200,7 @@ export interface BlockedSeller extends TradeOffer {
 }
 
 /**
- * The countries that have `resource` to sell (8 a day or more) but are not
+ * The countries that have `resource` to sell (any left) but are not
  * my partners, and why (pre-flight R7.14: no longer refused quietly): at
  * war with me, an embargo on me (`embargoed`, the seller's), or no route
  * (another faction, no shared sea zone and no land through countries at
@@ -1223,7 +1224,7 @@ export function blockedSellers(
     if (id === me || !canTrade(id)) return;
     if (partners.has(id) && !atWar(id)) return;
     const room = view.summary(id)?.exportRoom[r] ?? 0;
-    if (room < WW_TRADE_UNITS_PER_CIV) return;
+    if (room < 1) return;
     const reason: NotPartnerReason = atWar(id)
       ? "war"
       : embargoed(id)
@@ -1291,7 +1292,7 @@ export function maxTradeCivs(
     1,
     Math.min(
       WW_MAX_TRADE_CIVS,
-      Math.floor(room / WW_TRADE_UNITS_PER_CIV),
+      Math.ceil(room / WW_TRADE_UNITS_PER_CIV),
       payable,
     ),
   );
@@ -1558,7 +1559,7 @@ export function lawClosesDeals(
     return RESOURCE_IDS.some((id, r) => {
       let sold = 0;
       for (const t of detail.selling) {
-        if (t.resource === id) sold += t.civs * WW_TRADE_UNITS_PER_CIV;
+        if (t.resource === id) sold += t.units;
       }
       return sold > exportCapacity(detail.resources[r]?.produced ?? 0, pct);
     });

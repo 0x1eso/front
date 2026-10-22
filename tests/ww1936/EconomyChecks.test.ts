@@ -4,6 +4,8 @@ import {
   buildBlockOf,
   BuildCheck,
   countryGraph,
+  dealCivsOf,
+  dealUnitsOf,
   equipmentTechBlock,
   exportRoomOf,
   freeResearchSlot,
@@ -211,7 +213,17 @@ describe("shared judgements (plan decision 3)", () => {
     expect(
       openTradeBlockOf({ ...ok, buyerTrades: 20, grows: true }),
     ).toBeNull();
-    expect(openTradeBlockOf({ ...ok, room: 15 })).toBe("no_room");
+    // P4 Task 15: the last factory buys what is left (9..16 for two).
+    expect(openTradeBlockOf({ ...ok, room: 9 })).toBeNull();
+    expect(openTradeBlockOf({ ...ok, room: 8 })).toBe("no_room");
+    expect(openTradeBlockOf({ ...ok, civs: 1, room: 1 })).toBeNull();
+    expect(openTradeBlockOf({ ...ok, civs: 1, room: 0 })).toBe("no_room");
+    expect(dealUnitsOf(2, 9)).toBe(9);
+    expect(dealUnitsOf(2, 40)).toBe(16);
+    expect(dealUnitsOf(1, -3)).toBe(0);
+    expect(dealCivsOf(9)).toBe(2);
+    expect(dealCivsOf(8)).toBe(1);
+    expect(dealCivsOf(0)).toBe(0);
     expect(openTradeBlockOf({ ...ok, paidCivs: 4 })).toBe("no_civs");
     expect(exportRoomOf(40, 25, 8)).toBe(2);
     expect(exportRoomOf(40, 25, 16)).toBe(-6);

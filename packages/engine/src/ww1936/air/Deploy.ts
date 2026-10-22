@@ -111,6 +111,24 @@ function recordsUsed(air: WwAir, owner: number): number {
 }
 
 /**
+ * Derived (Task 15's perf pass): the regions with an air base, ascending,
+ * until a building changes — basesInRange scanned every region on each
+ * call.
+ */
+const baseRegionsMemo = new WeakMap<WwAir, { ver: number; list: number[] }>();
+
+function airBaseRegions(air: WwAir): readonly number[] {
+  const ver = air.econ.buildVer;
+  const hit = baseRegionsMemo.get(air);
+  if (hit !== undefined && hit.ver === ver) return hit.list;
+  const levels = air.econ.buildingArray("air_base");
+  const list: number[] = [];
+  for (let r = 1; r < levels.length; r++) if (levels[r] !== 0) list.push(r);
+  baseRegionsMemo.set(air, { ver, list });
+  return list;
+}
+
+/**
  * Spec §13.3: the working air bases `side` controls whose center is within
  * `rangeKm` of zone `sr`, nearest first (ties: the smaller region),
  * whatever room they have left.
@@ -125,7 +143,7 @@ export function basesInRange(
   const land = air.land;
   const levels = air.econ.buildingArray("air_base");
   const out: { base: number; km: number }[] = [];
-  for (let r = 1; r < levels.length; r++) {
+  for (const r of airBaseRegions(air)) {
     if (levels[r] === 0 || sc.region(r) === undefined) continue;
     const c = land.controller[r] ?? 0;
     if (c === 0 || land.sideOf(c) !== side) continue;

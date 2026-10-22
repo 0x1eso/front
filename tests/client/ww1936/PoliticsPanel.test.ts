@@ -208,6 +208,7 @@ describe("<ww-politics-panel> (P3 spec §21.4)", () => {
               seller: ID("DEU"),
               resource: "steel",
               civs: 2,
+              units: 16,
             },
           ],
         }),

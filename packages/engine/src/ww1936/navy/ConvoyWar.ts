@@ -363,6 +363,25 @@ export function convoyLossPmOf(
  * the heaviest first, comma-separated; the screens name them); and the
  * 30-day loss ring's slot for tomorrow starts over.
  */
+/** The sea strategic regions, srIdx order (static: Task 15 skips the land zones once). */
+const seaLists = new WeakMap<
+  WwNavy["scenario"],
+  readonly { id: number; idx: number }[]
+>();
+function seaRegionsOf(
+  sc: WwNavy["scenario"],
+): readonly { id: number; idx: number }[] {
+  let l = seaLists.get(sc);
+  if (l === undefined) {
+    l = sc
+      .strategicList()
+      .filter((s) => s.kind === "sea")
+      .map((s) => ({ id: s.id, idx: s.idx }));
+    seaLists.set(sc, l);
+  }
+  return l;
+}
+
 export function dailyConvoyNotices(
   navy: WwNavy,
   smallID: number,
@@ -374,8 +393,7 @@ export function dailyConvoyNotices(
   const k = smallID % WW_DAY_SPLIT;
   const lost: [number, number][] = [];
   const sunk: [number, number][] = [];
-  for (const s of navy.scenario.strategicList()) {
-    if (s.kind !== "sea") continue;
+  for (const s of seaRegionsOf(navy.scenario)) {
     const st = navy.srState[s.idx];
     if (st.lossYesterday.size === 0) continue;
     const ki = s.idx % WW_DAY_SPLIT;

@@ -334,6 +334,21 @@ export function exportRoomOf(
   return exportCapacity(produced, exportPct) - soldUnits;
 }
 
+/**
+ * P4 Task 15 (HOI4: the trade screen sells what is left, a part factory's
+ * worth for a whole factory): the units a deal of `civs` factories moves
+ * with `room` left at the seller — every factory 8, the last one what is
+ * left (at least 1; 0 when the room is gone).
+ */
+export function dealUnitsOf(civs: number, room: number): number {
+  return Math.max(0, Math.min(civs * WW_TRADE_UNITS_PER_CIV, room));
+}
+
+/** The civilian factories a deal moving `units` a day costs: ceil(units / 8). */
+export function dealCivsOf(units: number): number {
+  return Math.ceil(Math.max(0, units) / WW_TRADE_UNITS_PER_CIV);
+}
+
 /** Civilian factories a buyer can pay with: its own, less consumer goods. */
 export function payableCivs(civ: number, cgMilli: number): number {
   return Math.max(0, Math.floor((civ * 1000 - cgMilli) / 1000));
@@ -348,7 +363,7 @@ export interface TradeCheck {
   grows: boolean;
   /** Civilian factories the order adds. */
   civs: number;
-  /** exportRoomOf for the seller and the resource. */
+  /** exportRoomOf for the seller and the resource (units a day). */
   room: number;
   /** payableCivs of the buyer. */
   payable: number;
@@ -360,6 +375,10 @@ export interface TradeCheck {
 export function openTradeBlockOf(c: TradeCheck): WwOrderBlock | null {
   if (!c.partnerOk) return "no_partner";
   if (!c.grows && c.buyerTrades >= WW_MAX_TRADES) return "trades_full";
-  if (c.civs * WW_TRADE_UNITS_PER_CIV > c.room) return "no_room";
+  // P4 Task 15: every factory but the last needs its 8; the last buys
+  // what is left (spec §7.4's "≥ 8k" let no small seller sell at all).
+  if (c.room <= 0 || (c.civs - 1) * WW_TRADE_UNITS_PER_CIV >= c.room) {
+    return "no_room";
+  }
   return c.paidCivs + c.civs > c.payable ? "no_civs" : null;
 }

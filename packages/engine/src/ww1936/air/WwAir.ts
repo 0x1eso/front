@@ -211,6 +211,8 @@ export class WwAir {
   // Derived (DERIVED_FIELDS).
   private deploysBySr = new Map<number, number[]>();
   private deploysByBase = new Map<number, number[]>();
+  /** Task 15 (perf): deployment ids by owner, ascending (deploymentsOf). */
+  private deploysByOwner = new Map<number, number[]>();
   /** owner × 256 + type × 4 + gen → the stats at that stats version and tech set (pre-flight §0-7). */
   private planeStatsMemo = new Map<
     number,
@@ -376,8 +378,13 @@ export class WwAir {
     return this.deploysBySr.get(sr) ?? NO_IDS;
   }
 
+  /** The owner's deployments in id order (the Map's order). */
   deploymentsOf(owner: number): Deployment[] {
-    return [...this.deployments.values()].filter((d) => d.owner === owner);
+    const ids = this.deploysByOwner.get(owner);
+    if (ids === undefined) return [];
+    const out: Deployment[] = [];
+    for (const id of ids) out.push(this.deployments.get(id)!);
+    return out;
   }
 
   /** Planes based at a region now (capacity check, spec §13.3). */
@@ -864,17 +871,20 @@ export class WwAir {
     this.planeStatsMemo.clear();
     this.deploysBySr = new Map();
     this.deploysByBase = new Map();
+    this.deploysByOwner = new Map();
     for (const d of this.deployments.values()) this.indexDeployment(d);
   }
 
   private indexDeployment(d: Deployment): void {
     insertSorted(this.deploysBySr, d.sr, d.id);
     insertSorted(this.deploysByBase, d.base, d.id);
+    insertSorted(this.deploysByOwner, d.owner, d.id);
   }
 
   private unindexDeployment(d: Deployment): void {
     removeFrom(this.deploysBySr, d.sr, d.id);
     removeFrom(this.deploysByBase, d.base, d.id);
+    removeFrom(this.deploysByOwner, d.owner, d.id);
   }
 
   /**

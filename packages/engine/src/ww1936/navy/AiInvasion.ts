@@ -47,6 +47,7 @@ import {
   fleetRole,
   fleetRows,
   seaReach,
+  straitSig,
 } from "./AiNavy";
 import { invasionLaunchBlock } from "./Invasions";
 import { navalPort, navalPortsOf } from "./Ports";
@@ -354,7 +355,10 @@ function planInvasion(
   );
   if (ports.length === 0) return;
   const pass = navy.passable(me, true);
-  const dists = ports.map((r) => seaReach(sc, [sc.harborOf(r)], pass).dist);
+  const sig = straitSig(sc, pass);
+  const dists = ports.map(
+    (r) => seaReach(sc, [sc.harborOf(r)], pass, sig).dist,
+  );
   const ce = navy.econ.country(me)!;
   // The beat window's preparation: an ordinary army's (not all marines).
   const prep = invasionPrepDays(ce.stats, ce.researched, false, false);

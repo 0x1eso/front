@@ -281,7 +281,7 @@ describe("trade (spec §7.4–§7.5)", () => {
     ]);
   });
 
-  test("the seller's room shrinks: newest deals close first", async () => {
+  test("the seller's room shrinks: newest deals shrink, then close first", async () => {
     const { runner, econ, ww, id, ce, buy, notices } = await game();
     const sun = ce("SUN");
     const STEEL = RESOURCE_IDS.indexOf("steel");
@@ -297,7 +297,8 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(econ.trades()).toHaveLength(3);
     // Germany takes Moscow: the next day it is occupied, the Soviet step
     // finds only Kiev's 27 (21 for sale), and the day after the newest
-    // deal closes.
+    // deal gives up the 3 too many (P4 Task 15: it shrinks to what is
+    // left; Poland's one factory now buys 5 a day). Nothing closes.
     const moscow = ww.scenario.landRegions.find((r) => r.name === "Moscow")!;
     takeRegion(runner.game, moscow.id, "DEU");
     throughDay(runner, 1);
@@ -308,10 +309,45 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(dealsOf(econ)).toEqual([
       [id("DEU"), sun.smallID, "steel", 1],
       [id("ITA"), sun.smallID, "steel", 1],
+      [id("POL"), sun.smallID, "steel", 1],
     ]);
+    expect(econ.trades().map((t) => t.units)).toEqual([8, 8, 5]);
+    expect(exportRoom(econ, sun.smallID, STEEL)).toBe(0);
+    expect(notices()).toEqual([]);
+    // Limited exports sell a quarter, 6 of 27: newest first, Poland's and
+    // Italy's deals have nothing left and close; Germany's keeps 6.
+    sun.laws.trade = "limited_exports";
+    throughDay(runner, 3);
+    expect(dealsOf(econ)).toEqual([[id("DEU"), sun.smallID, "steel", 1]]);
+    expect(econ.trades()[0].units).toBe(6);
     expect(notices()).toEqual([
       { to: id("POL"), params: { sellerTag: "SUN", resource: "steel" } },
+      { to: id("ITA"), params: { sellerTag: "SUN", resource: "steel" } },
     ]);
+  });
+
+  test("the last factory buys what is left (P4 Task 15)", async () => {
+    const { runner, econ, id, ce, buy } = await game();
+    const sun = ce("SUN");
+    const deu = ce("DEU");
+    const STEEL = RESOURCE_IDS.indexOf("steel");
+    // Free trade: 28 a day for sale. Three factories ask for 24, a fourth
+    // takes the last 4 (a part factory pays a whole one, as in HOI4).
+    sun.laws.trade = "free_trade";
+    expect(buy("DEU", "SUN", "steel", 3)).toBeNull();
+    // Two more factories would need 9 or more.
+    expect(buy("DEU", "SUN", "steel", 2)).toBe("no_room");
+    expect(buy("DEU", "SUN", "steel", 1)).toBeNull();
+    expect(dealsOf(econ)).toEqual([[id("DEU"), sun.smallID, "steel", 4]]);
+    expect(econ.trades()[0].units).toBe(28);
+    expect(exportRoom(econ, sun.smallID, STEEL)).toBe(0);
+    expect(buy("DEU", "SUN", "steel")).toBe("no_room");
+    // The buyer gets the 28, the seller the 4 factories.
+    throughDay(runner, 0);
+    expect(deu.totals.imported[STEEL]).toBe(28);
+    expect(deu.totals.paidCivs).toBe(4);
+    expect(sun.totals.exported[STEEL]).toBe(28);
+    expect(sun.totals.receivedCivs).toBe(4);
   });
 
   test("the buyer cannot pay: newest close first", async () => {
@@ -378,20 +414,24 @@ describe("trade (spec §7.4–§7.5)", () => {
 
   test("a second order grows the deal", async () => {
     const { econ, id, ce, buy } = await game();
-    // Export focus: half of the Soviet 36 steel, two deals' worth.
+    // Export focus: half of the Soviet 36 steel, two deals' worth and 2.
     ce("SUN").laws.trade = "export_focus";
     expect(buy("DEU", "SUN", "steel")).toBeNull();
     expect(buy("DEU", "SUN", "steel")).toBeNull();
     expect(dealsOf(econ)).toEqual([[id("DEU"), id("SUN"), "steel", 2]]);
+    // P4 Task 15: a third factory buys the last 2; then nothing is left.
+    expect(buy("DEU", "SUN", "steel")).toBeNull();
     expect(buy("DEU", "SUN", "steel")).toBe("no_room");
-    expect(econ.trades()[0].civs).toBe(2);
+    expect(econ.trades()[0].civs).toBe(3);
+    expect(econ.trades()[0].units).toBe(18);
   });
 
   test("no deal with oneself, the dead or beyond room", async () => {
     const { econ, ww, id, p, buy, runner } = await game();
     expect(buy("DEU", "DEU", "steel")).toBe("no_partner");
-    // London's 19 tungsten under free trade: 15 for sale, one factory's 8.
-    expect(buy("ITA", "GBR", "tungsten", 2)).toBe("no_room");
+    // London's 19 tungsten under free trade: 15 for sale, two factories'
+    // worth at most (the second buys the last 7, P4 Task 15).
+    expect(buy("ITA", "GBR", "tungsten", 3)).toBe("no_room");
     expect(buy("ITA", "GBR", "tungsten", 0)).toBe("no_civs");
     // Poland pays one civilian factory at most.
     expect(buy("POL", "GBR", "rubber")).toBeNull();

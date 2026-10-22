@@ -156,6 +156,11 @@ export interface AiNavyStyle {
   surfaceRaid: boolean;
   /** Missions only in home regions (Italy: its own seas). */
   homeOnly: boolean;
+  /**
+   * Task 15: the predicted ratio ‰ a battle fleet needs to seek battle
+   * (strike, hunt, contest, invasion support); absent: AI_MAIN_ENGAGE_PM.
+   */
+  engagePm?: number;
 }
 
 export interface AiNavalInput {
@@ -217,10 +222,14 @@ export const AI_NAVY_STYLES: Readonly<
   },
   JPN: { ...STYLE_DEFAULT, order: ["carrier", "home", "raid", "trade"] },
   USA: { ...STYLE_DEFAULT, order: ["home", "trade", "carrier", "raid"] },
+  // Task 15 (내 판단): a fleet in being — battle only at 1.3 to 1. At
+  // 0.9 it sailed into every British and French fleet in the central
+  // Mediterranean and was gone by 1941 in every game.
   ITA: {
     ...STYLE_DEFAULT,
     order: ["home", "raid", "trade", "carrier"],
     homeOnly: true,
+    engagePm: 1300,
   },
   SUN: { ...STYLE_DEFAULT, order: ["home", "raid", "trade", "carrier"] },
   FRA: { ...STYLE_DEFAULT, order: ["home", "trade", "raid", "carrier"] },
@@ -346,55 +355,120 @@ export interface AiShipRow {
   orgMilli: number;
 }
 
+/**
+ * navalSideSum's running sums (Task 15's perf pass: the AI's views add
+ * ships straight from the ship table, no row objects; the same sums in any
+ * order, so the result is navalSideSum's).
+ */
+export interface SideSumAcc {
+  s: NavalSideSum;
+  n: number;
+  armor: number;
+  lp: number;
+  hp: number;
+  min: number;
+}
+
+export function newSideSumAcc(): SideSumAcc {
+  return {
+    s: {
+      count: new Array<number>(SHIP_CLASSES.length).fill(0),
+      hpMilli: 0,
+      maxHpMilli: 0,
+      orgMilli: 0,
+      light: 0,
+      heavy: 0,
+      torpedo: 0,
+      depth: 0,
+      carrierAttack: 0,
+      armor: 0,
+      lightPierce: 0,
+      heavyPierce: 0,
+      vis: 0,
+      minSpeed: 0,
+      maxSpeed: 0,
+      maneuver: 0,
+      modsBp: 0,
+    },
+    n: 0,
+    armor: 0,
+    lp: 0,
+    hp: 0,
+    min: Infinity,
+  };
+}
+
+/** Adds one ship to the sums. */
+export function addShipToSum(
+  a: SideSumAcc,
+  cls: number,
+  t: ShipStats,
+  hpMilli: number,
+  orgMilli: number,
+): void {
+  const s = a.s;
+  s.count[cls]++;
+  s.hpMilli += hpMilli;
+  s.maxHpMilli += t.hpMilli;
+  s.orgMilli += orgMilli;
+  s.light += t.light;
+  s.heavy += t.heavy;
+  s.torpedo += t.torpedo;
+  s.depth += t.depth;
+  s.carrierAttack += t.deck * 60;
+  a.armor += t.armor;
+  a.lp += t.light * t.lightPierce;
+  a.hp += t.heavy * t.heavyPierce;
+  if (cls !== SS) s.vis = Math.max(s.vis, t.vis);
+  a.min = Math.min(a.min, t.speedCentiKn);
+  s.maxSpeed = Math.max(s.maxSpeed, t.speedCentiKn);
+  a.n++;
+}
+
+/** Adds another accumulator's ships (the union's sums). */
+export function mergeSideSum(a: SideSumAcc, b: SideSumAcc): void {
+  const s = a.s;
+  const t = b.s;
+  for (let c = 0; c < s.count.length; c++) s.count[c] += t.count[c];
+  s.hpMilli += t.hpMilli;
+  s.maxHpMilli += t.maxHpMilli;
+  s.orgMilli += t.orgMilli;
+  s.light += t.light;
+  s.heavy += t.heavy;
+  s.torpedo += t.torpedo;
+  s.depth += t.depth;
+  s.carrierAttack += t.carrierAttack;
+  a.armor += b.armor;
+  a.lp += b.lp;
+  a.hp += b.hp;
+  s.vis = Math.max(s.vis, t.vis);
+  a.min = Math.min(a.min, b.min);
+  s.maxSpeed = Math.max(s.maxSpeed, t.maxSpeed);
+  a.n += b.n;
+}
+
+/** The finished NavalSideSum (a fresh object; the accumulator is spent). */
+export function finishSideSum(a: SideSumAcc): NavalSideSum {
+  const s = { ...a.s, count: [...a.s.count] };
+  s.armor = a.n === 0 ? 0 : Math.floor(a.armor / a.n);
+  s.lightPierce = s.light === 0 ? 0 : Math.floor(a.lp / s.light);
+  s.heavyPierce = s.heavy === 0 ? 0 : Math.floor(a.hp / s.heavy);
+  s.minSpeed = a.min === Infinity ? 0 : a.min;
+  return s;
+}
+
 /** Spec §9.9: one side's sums for predictNaval (carrier attack: deck × 60, as fleetPower counts it). */
 export function navalSideSum(ships: readonly AiShipRow[]): NavalSideSum {
-  const s: NavalSideSum = {
-    count: new Array<number>(SHIP_CLASSES.length).fill(0),
-    hpMilli: 0,
-    maxHpMilli: 0,
-    orgMilli: 0,
-    light: 0,
-    heavy: 0,
-    torpedo: 0,
-    depth: 0,
-    carrierAttack: 0,
-    armor: 0,
-    lightPierce: 0,
-    heavyPierce: 0,
-    vis: 0,
-    minSpeed: 0,
-    maxSpeed: 0,
-    maneuver: 0,
-    modsBp: 0,
-  };
-  let armor = 0;
-  let lp = 0;
-  let hp = 0;
-  let min = Infinity;
-  for (const x of ships) {
-    const t = x.stats;
-    s.count[x.cls]++;
-    s.hpMilli += x.hpMilli;
-    s.maxHpMilli += t.hpMilli;
-    s.orgMilli += x.orgMilli;
-    s.light += t.light;
-    s.heavy += t.heavy;
-    s.torpedo += t.torpedo;
-    s.depth += t.depth;
-    s.carrierAttack += t.deck * 60;
-    armor += t.armor;
-    lp += t.light * t.lightPierce;
-    hp += t.heavy * t.heavyPierce;
-    if (x.cls !== SS) s.vis = Math.max(s.vis, t.vis);
-    min = Math.min(min, t.speedCentiKn);
-    s.maxSpeed = Math.max(s.maxSpeed, t.speedCentiKn);
-  }
-  const n = ships.length;
-  s.armor = n === 0 ? 0 : Math.floor(armor / n);
-  s.lightPierce = s.light === 0 ? 0 : Math.floor(lp / s.light);
-  s.heavyPierce = s.heavy === 0 ? 0 : Math.floor(hp / s.heavy);
-  s.minSpeed = min === Infinity ? 0 : min;
-  return s;
+  const a = newSideSumAcc();
+  for (const x of ships) addShipToSum(a, x.cls, x.stats, x.hpMilli, x.orgMilli);
+  return finishSideSum(a);
+}
+
+/** One ship's term of fleetSupPowerMilli at a full mission and full fuel. */
+function shipSupTerm(t: ShipStats, gen: number, hpMilli: number): number {
+  if (t.hpMilli <= 0) return 0;
+  const genHpPct = GEN_HP_PCT[Math.max(0, Math.min(3, gen - 1))];
+  return Math.floor((t.supWeight * genHpPct * 10 * hpMilli) / t.hpMilli);
 }
 
 /** Spec §8.5: supremacy power at a full mission (1000‰) and full fuel. */
@@ -409,6 +483,49 @@ export function aiSupPower(ships: readonly AiShipRow[]): number {
     1000,
     1000,
   );
+}
+
+/** One ship's term of fleetPower. */
+function shipPowerTerm(t: ShipStats, hpMilli: number): number {
+  if (t.hpMilli <= 0) return 0;
+  const v =
+    3 * t.heavy +
+    t.light +
+    Math.floor((3 * t.torpedo) / 2) +
+    Math.floor(t.depth / 2) +
+    Math.floor(t.hpMilli / 30) +
+    t.deck * 60;
+  return Math.floor((v * hpMilli) / t.hpMilli);
+}
+
+/** A fleet's AI sums in one pass over its ships (no row objects). */
+export interface FleetAgg {
+  counts: number[];
+  sum: SideSumAcc;
+  /** aiSupPower of its ships. */
+  sup: number;
+  /** fleetPower of its ships. */
+  power: number;
+}
+
+export function fleetAgg(navy: WwNavy, f: Fleet): FleetAgg {
+  const t = navy.ships;
+  const counts = new Array<number>(SHIP_CLASSES.length).fill(0);
+  const sum = newSideSumAcc();
+  let sup = 0;
+  let power = 0;
+  for (const id of f.ships) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    const cls = t.cls[r];
+    const st = navy.shipStatsOf(r);
+    const hp = t.hp[r];
+    counts[cls]++;
+    addShipToSum(sum, cls, st, hp, t.org[r]);
+    sup += shipSupTerm(st, t.gen[r], hp);
+    power += shipPowerTerm(st, hp);
+  }
+  return { counts, sum, sup, power };
 }
 
 /** A neutral battle context for the AI's previews (no admirals, no doctrine). */
@@ -485,20 +602,40 @@ export interface SeaReach {
  * same. Bounded (cleared at 4,096 keys).
  */
 const reachMemo = new WeakMap<ScenarioIndex, Map<string, SeaReach>>();
+/** Static: the strait and canal edges (the only ones that close). */
+const straitEdges = new WeakMap<ScenarioIndex, readonly number[]>();
+
+/**
+ * Which strait and canal edges `passable` opens, as seaReach's key part
+ * (Task 15: an AI day works it out once, not once per home port).
+ */
+export function straitSig(
+  sc: ScenarioIndex,
+  passable: (edge: number) => boolean,
+): string {
+  let edges = straitEdges.get(sc);
+  if (edges === undefined) {
+    const l: number[] = [];
+    for (let i = 0; i < sc.seaEdgeCount(); i++) {
+      if (sc.seaEdge(i).strait >= 0) l.push(i);
+    }
+    straitEdges.set(sc, (edges = l));
+  }
+  let sig = "";
+  for (const i of edges) sig += passable(i) ? "1" : "0";
+  return sig;
+}
 
 export function seaReach(
   sc: ScenarioIndex,
   from: readonly number[],
   passable: (edge: number) => boolean,
+  sig: string = straitSig(sc, passable),
 ): SeaReach {
   let m = reachMemo.get(sc);
   if (m === undefined) {
     m = new Map();
     reachMemo.set(sc, m);
-  }
-  let sig = "";
-  for (let i = 0; i < sc.seaEdgeCount(); i++) {
-    if (sc.seaEdge(i).strait >= 0) sig += passable(i) ? "1" : "0";
   }
   const key = `${sig}|${from.join(",")}`;
   const hit = m.get(key);
@@ -665,6 +802,13 @@ const HOLD: Want = {
 /** Pure: the fleet orders of the day (spec §17.2). */
 export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
   const orders: AiNavalOrder[] = [];
+  const engagePm = input.style.engagePm ?? AI_MAIN_ENGAGE_PM;
+  // Task 15: a fleet in being (a style with its own engagePm) sends its
+  // patrols only where the enemy ships there are weaker by that margin.
+  const patrolSafe = (f: AiFleetView, r: AiSeaRegionView): boolean =>
+    input.style.engagePm === undefined ||
+    r.enemySum === null ||
+    aiPredictPm(f.sum, r.enemySum) >= engagePm;
   const fleets = [...input.fleets].sort((a, b) => a.id - b.id);
   const jit = (key: number) => aiJitterPm(input.seed, input.smallID, key);
   // ① New ships into role fleets; at war also a docked fleet no role
@@ -794,7 +938,7 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
     let ours = 0;
     for (const f of pool) {
       if (ours > 0 && ours >= need) break;
-      if (isMain(f) && aiPredictPm(f.sum, r.enemySum) < AI_MAIN_ENGAGE_PM) {
+      if (isMain(f) && aiPredictPm(f.sum, r.enemySum) < engagePm) {
         continue;
       }
       want(f, go("invasion_support", r.sr, "always", isMain(f)));
@@ -819,7 +963,7 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
         if (target === undefined || target.enemySup === 0) continue;
         want(
           f,
-          aiPredictPm(f.sum, target.enemySum) >= AI_MAIN_ENGAGE_PM
+          aiPredictPm(f.sum, target.enemySum) >= engagePm
             ? go("strike", target.sr, "always", true)
             : HOLD,
         );
@@ -827,7 +971,9 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
       for (const r of homes) {
         // Short of fuel: only the threatened home regions (Task 15).
         if (input.fuelShort && r.enemySup === 0) continue;
-        const p = byRole("patrol").find((f) => inRange(f, r.sr));
+        const p = byRole("patrol").find(
+          (f) => inRange(f, r.sr) && patrolSafe(f, r),
+        );
         if (p !== undefined) want(p, go("patrol", r.sr, "if_stronger"));
       }
     } else if (step === "trade") {
@@ -871,8 +1017,12 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
               Math.floor((a.enemyTraffic * jit(a.sr)) / 1000) ||
             a.sr - b.sr,
         );
+      const subs = byRole("sub");
       const raiders = [
-        ...byRole("sub"),
+        // Task 15: a fleet in being keeps half its submarines home.
+        ...(input.style.engagePm === undefined
+          ? subs
+          : subs.slice(0, Math.ceil(subs.length / 2))),
         ...(input.style.surfaceRaid ? byRole("patrol") : []),
       ];
       for (let round = 0; round < 2; round++) {
@@ -889,9 +1039,7 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
       for (const f of byRole("main")) {
         if (f.counts[CV] === 0) continue;
         const r = spotted.find(
-          (x) =>
-            inRange(f, x.sr) &&
-            aiPredictPm(f.sum, x.enemySum) >= AI_MAIN_ENGAGE_PM,
+          (x) => inRange(f, x.sr) && aiPredictPm(f.sum, x.enemySum) >= engagePm,
         );
         if (r !== undefined) want(f, go("strike", r.sr, "always", true));
       }
@@ -913,7 +1061,7 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
       (x) =>
         !contestedBy.has(x.sr) &&
         inRange(f, x.sr) &&
-        aiPredictPm(f.sum, x.enemySum) >= AI_MAIN_ENGAGE_PM,
+        aiPredictPm(f.sum, x.enemySum) >= engagePm,
     );
     if (r !== undefined) {
       contestedBy.add(r.sr);
@@ -924,7 +1072,7 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
     if (home === undefined) continue;
     want(
       f,
-      aiPredictPm(f.sum, home.enemySum) >= AI_MAIN_ENGAGE_PM
+      aiPredictPm(f.sum, home.enemySum) >= engagePm
         ? go("strike", home.sr, "always", true)
         : HOLD,
     );
@@ -942,14 +1090,16 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
     if (role === "patrol") {
       // Short of fuel: a patrol sails only where home is threatened.
       const r = input.fuelShort
-        ? homes.find((x) => x.enemySup > 0 && inRange(f, x.sr))
-        : (lanes.find((x) => inRange(f, x.sr)) ??
-          homes.find((x) => inRange(f, x.sr)));
+        ? homes.find(
+            (x) => x.enemySup > 0 && inRange(f, x.sr) && patrolSafe(f, x),
+          )
+        : (lanes.find((x) => inRange(f, x.sr) && patrolSafe(f, x)) ??
+          homes.find((x) => inRange(f, x.sr) && patrolSafe(f, x)));
       if (r !== undefined) {
         want(f, go("patrol", r.sr, "if_stronger"));
         continue;
       }
-    } else if (role === "sub") {
+    } else if (role === "sub" && input.style.engagePm === undefined) {
       const r = input.regions.find(
         (x) =>
           (x.enemySup > 0 || x.enemyTraffic > 0) &&
@@ -1114,32 +1264,34 @@ export function aiEnemySeaView(
     {
       sup: number;
       escort: number;
-      rows: AiShipRow[];
+      sum: SideSumAcc;
       spotted: boolean;
       raider: boolean;
     }
   >();
-  // Fleets in id order; a sea region's zones in any order give the same sums.
+  // Fleets in id order; a sea region's zones in any order give the same
+  // sums (Task 15: summed straight from the ship table, fleetAgg).
   for (const f of navy.fleets.values()) {
     if (!foes.has(f.owner)) continue;
     const sr = sc.zoneSr(f.zone);
     if (sr === 0) continue;
     let a = acc.get(sr);
     if (a === undefined) {
-      a = { sup: 0, escort: 0, rows: [], spotted: false, raider: false };
+      a = {
+        sup: 0,
+        escort: 0,
+        sum: newSideSumAcc(),
+        spotted: false,
+        raider: false,
+      };
       acc.set(sr, a);
     }
-    const fr = fleetRows(navy, f);
-    a.rows.push(...fr);
-    const sup = aiSupPower(fr);
-    a.sup += f.docked !== 0 ? Math.floor(sup / 2) : sup;
-    const counts = fleetCounts(navy, f);
+    const fa = fleetAgg(navy, f);
+    mergeSideSum(a.sum, fa.sum);
+    a.sup += f.docked !== 0 ? Math.floor(fa.sup / 2) : fa.sup;
+    const counts = fa.counts;
     const role = fleetRole(counts);
-    if (role === "patrol" || role === "escort") {
-      a.escort += fleetPower(
-        fr.map((x) => ({ stats: x.stats, hpMilli: x.hpMilli })),
-      );
-    }
+    if (role === "patrol" || role === "escort") a.escort += fa.power;
     if (navy.spotted(side, f.id)) {
       a.spotted = true;
       if (counts[SS] > 0 || capitalsOf(counts) === 0) a.raider = true;
@@ -1150,7 +1302,7 @@ export function aiEnemySeaView(
     out.set(sr, {
       sup: a.sup,
       escort: a.escort,
-      sum: navalSideSum(a.rows),
+      sum: finishSideSum(a.sum),
       spotted: a.spotted,
       raider: a.raider,
     });
@@ -1247,13 +1399,14 @@ export function aiNavalInput(
   const side = navy.sideOf(smallID);
   const tag = sc.tagOfSmallId(smallID)!;
   const pass = navy.passable(smallID, true);
+  const sig = straitSig(sc, pass);
   const dists = new Map<number, SeaReach>();
   const none: SeaReach = { dist: new Map(), sr: new Map() };
   const distFrom = (port: number) => {
     let d = dists.get(port);
     if (d === undefined) {
       const z = port === 0 ? 0 : sc.harborOf(port);
-      d = z === 0 ? none : seaReach(sc, [z], pass);
+      d = z === 0 ? none : seaReach(sc, [z], pass, sig);
       dists.set(port, d);
     }
     return d;
@@ -1305,13 +1458,13 @@ export function aiNavalInput(
     });
   }
   const views: AiFleetView[] = fleets.map((f) => {
-    const rows = fleetRows(navy, f);
+    const fa = fleetAgg(navy, f);
     const km = distFrom(f.home).sr;
     return {
       id: f.id,
-      counts: fleetCounts(navy, f),
-      supPower: aiSupPower(rows),
-      sum: navalSideSum(rows),
+      counts: fa.counts,
+      supPower: fa.sup,
+      sum: finishSideSum(fa.sum),
       home: f.home,
       docked: f.docked,
       sr: sc.zoneSr(f.zone),

@@ -676,6 +676,39 @@ function superiorityAlerts(
   }
 }
 
+/**
+ * Derived (one tick and war version, Task 15's perf pass): the sides with
+ * a member at war (past the preparation minute) with a member of side
+ * `F`, in sideList order — every zone's day asked it of every side.
+ */
+const enemySidesMemo = new WeakMap<
+  WwAir,
+  { stamp: string; m: Map<number, readonly { key: number }[]> }
+>();
+
+function enemySidesOf(air: WwAir, F: number): readonly { key: number }[] {
+  const land = air.land;
+  const stamp = `${air.mg.ticks()}|${air.ww.warVer}|${land.derivedEpoch}`;
+  let memo = enemySidesMemo.get(air);
+  if (memo === undefined || memo.stamp !== stamp) {
+    memo = { stamp, m: new Map() };
+    enemySidesMemo.set(air, memo);
+  }
+  let out = memo.m.get(F);
+  if (out === undefined) {
+    const members = land.sideMembers(F);
+    out = land
+      .sideList()
+      .filter(
+        (S) =>
+          S.key !== F &&
+          S.members.some((c) => members.some((m) => land.isEnemy(c, m))),
+      );
+    memo.m.set(F, out);
+  }
+  return out;
+}
+
 function sameNumberMap(
   a: ReadonlyMap<number, number>,
   b: ReadonlyMap<number, number>,
@@ -813,16 +846,10 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   // side flying here (the land war's penalty and movement read it).
   const enemySup = new Map<number, number>();
   const enemyPp = new Map<number, number>();
-  const land = air.land;
   for (const F of sides) {
     const v = sup.get(F) ?? 0;
     if (v <= 0) continue;
-    const members = land.sideMembers(F);
-    for (const S of land.sideList()) {
-      if (S.key === F) continue;
-      if (!S.members.some((c) => members.some((m) => land.isEnemy(c, m)))) {
-        continue;
-      }
+    for (const S of enemySidesOf(air, F)) {
       const was = enemySup.get(S.key) ?? 0;
       const fp = pp.get(F) ?? 0;
       if (v > was || (v === was && fp > (enemyPp.get(S.key) ?? 0))) {

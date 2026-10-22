@@ -48,6 +48,7 @@ import {
   type CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
+  EQUIP_KEYS,
   equipKey,
   EQUIPMENT_GENS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -182,6 +183,20 @@ function parseArgs(argv: string[]): Options {
 }
 
 const ms = (x: number) => x.toFixed(3);
+
+/**
+ * The thread's CPU time in ms (Node's threadCpuUsage; the wall clock
+ * where it is missing): the timings stay honest on a busy machine.
+ */
+type ThreadCpu = () => { user: number; system: number };
+const threadCpu = (
+  process as unknown as { threadCpuUsage?: ThreadCpu }
+).threadCpuUsage?.bind(process);
+const cpuNow = (): number => {
+  if (threadCpu === undefined) return performance.now();
+  const u = threadCpu();
+  return (u.user + u.system) / 1000;
+};
 const iso = (d: number | undefined | null) =>
   d === undefined || d === null ? "-" : formatIsoDate(dateOfDay(d));
 
@@ -394,9 +409,9 @@ async function timedParts(
     P4_PARTS.map((p) => [p, 0]),
   ) as Record<P4Part, number>;
   const time = (p: P4Part, f: () => void) => {
-    const t0 = performance.now();
+    const t0 = cpuNow();
     f();
-    cur[p] += performance.now() - t0;
+    cur[p] += cpuNow() - t0;
   };
   const alive = (id: number) => {
     const p = navy.mg.playerBySmallID(id);
@@ -699,49 +714,53 @@ async function playGame(
     message(to, key, params);
   };
   const shootDown = air.shootDown.bind(air);
+  // --trace: the traced countries' plane losses by zone, type, mission
+  // and killer since the last trace line.
+  const tracedLoss = new Map<string, number>();
   air.shootDown = (id, counts, by) => {
     const d = air.deployments.get(id);
     const n = shootDown(id, counts, by);
-    if (d !== undefined && n > 0) bump(res.airLost, tagOf(d.owner), n);
+    if (d !== undefined && n > 0) {
+      bump(res.airLost, tagOf(d.owner), n);
+      if (trace.tags.includes(tagOf(d.owner) as CountryTag)) {
+        const k = `${tagOf(d.owner)} ${AIR_TYPES[d.type]}/${AIR_MISSIONS[d.mission]}@${srName(d.sr)} by ${by === 0 ? "-" : tagOf(by)}`;
+        tracedLoss.set(k, (tracedLoss.get(k) ?? 0) + n);
+      }
+    }
     return n;
   };
 
   // ---- Timing ----
   const tickMs: number[] = [];
   const p4Ms: number[] = [];
+  const tickWall: number[] = [];
+  const p4WallMs: number[] = [];
   const parts = Object.fromEntries(
     P4_PARTS.map((p) => [p, [] as number[]]),
   ) as Record<P4Part, number[]>;
   let p4Acc = 0;
+  let p4Wall = 0;
   let flushParts: (() => void) | null = null;
   if (perf) flushParts = await timedParts(ww, parts);
   {
+    // Thread CPU for the means (honest on a busy machine), the wall clock
+    // for p99 and max (the CPU clock ticks in whole milliseconds here).
+    const timed = <T>(f: () => T): T => {
+      const a = cpuNow();
+      const w = performance.now();
+      const v = f();
+      p4Acc += cpuNow() - a;
+      p4Wall += performance.now() - w;
+      return v;
+    };
     const nt = navy.tick.bind(navy);
-    navy.tick = (t: number) => {
-      const a = performance.now();
-      nt(t);
-      p4Acc += performance.now() - a;
-    };
+    navy.tick = (t: number) => timed(() => nt(t));
     const at = air.tick.bind(air);
-    air.tick = (t: number) => {
-      const a = performance.now();
-      at(t);
-      p4Acc += performance.now() - a;
-    };
+    air.tick = (t: number) => timed(() => at(t));
     const nd = navy.takeData.bind(navy);
-    navy.takeData = () => {
-      const a = performance.now();
-      const d = nd();
-      p4Acc += performance.now() - a;
-      return d;
-    };
+    navy.takeData = () => timed(() => nd());
     const ad = air.takeData.bind(air);
-    air.takeData = () => {
-      const a = performance.now();
-      const d = ad();
-      p4Acc += performance.now() - a;
-      return d;
-    };
+    air.takeData = () => timed(() => ad());
   }
 
   // ---- Daily sampling ----
@@ -839,15 +858,20 @@ async function playGame(
   while (g.ticks() < endTick) {
     runner.addTurn({ turnNumber: g.ticks(), intents: [] });
     const before = p4Acc;
-    const a = performance.now();
+    const beforeWall = p4Wall;
+    const a = cpuNow();
+    const aw = performance.now();
     if (!runner.executeNextTick()) {
       console.log(`stopped at tick ${g.ticks()}`);
       break;
     }
-    const t = performance.now() - a;
+    const t = cpuNow() - a;
+    const tw = performance.now() - aw;
     if (g.ticks() > prepEnd) {
       tickMs.push(t);
+      tickWall.push(tw);
       p4Ms.push(p4Acc - before);
+      p4WallMs.push(p4Wall - beforeWall);
       flushParts?.();
     }
     if (navy.battles.size > 0) noteBattles();
@@ -891,7 +915,25 @@ async function playGame(
               `${AIR_TYPES[d.type]}/${AIR_MISSIONS[d.mission]}@${srName(d.sr)}:${d.counts.reduce((a, b) => a + b, 0)}`,
           );
         console.log(`    air: ${deps.join(", ") || "-"}`);
+        const stock = AIR_TYPES.map((t) => {
+          let n = 0;
+          for (let gn = 1; gn <= 3; gn++) {
+            const k = equipKey(t, gn);
+            if (k >= 0) n += ce?.stock[k] ?? 0;
+          }
+          return n > 0 ? `${t}${n}` : "";
+        })
+          .filter((x) => x !== "")
+          .join(" ");
+        console.log(`    stock: ${stock || "-"}`);
+        const lines = (ce?.lines ?? [])
+          .map((l) => `${EQUIP_KEYS[l.key].join("")}x${l.factories}@${l.fill}`)
+          .join(" ");
+        console.log(`    lines: ${lines}`);
       }
+      const top = [...tracedLoss].sort((a, b) => b[1] - a[1]).slice(0, 12);
+      for (const [k, n] of top) console.log(`    lost ${n} ${k}`);
+      tracedLoss.clear();
     }
     // Wars and the fallen.
     for (const [x, y] of watchedWars) {
@@ -1189,8 +1231,9 @@ async function playGame(
     jpHome > 0 || res.fallen.JPN !== undefined,
   );
   // Perf.
-  const sorted = [...tickMs].sort((x, y) => x - y);
-  const sorted4 = [...p4Ms].sort((x, y) => x - y);
+  // Means from the thread's CPU time; p99 and max from the wall clock.
+  const sorted = [...tickWall].sort((x, y) => x - y);
+  const sorted4 = [...p4WallMs].sort((x, y) => x - y);
   const mean = (xs: readonly number[]) =>
     xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
   res.perf = {
@@ -1203,6 +1246,8 @@ async function playGame(
   };
   if (perf) {
     res.perf.parts = {};
+    // The parts in CPU time: their means (p99 and max at the CPU clock's
+    // whole-millisecond grain say little).
     for (const p of P4_PARTS) {
       const xs = parts[p];
       const s = [...xs].sort((x, y) => x - y);

@@ -231,6 +231,7 @@ export const DERIVED_FIELDS = new Set<string>([
   "sunkThisTick",
   "deploysBySr",
   "deploysByBase",
+  "deploysByOwner",
   "planeStatsMemo",
   "airDirtyZones",
   "airDirtyDeployments",
@@ -243,6 +244,10 @@ export const DERIVED_FIELDS = new Set<string>([
   "srKmMemo",
   "portVer",
   "portBits",
+  // P4 Task 15 (perf): the building-change counter caches key on.
+  "railPortVer",
+  "buildVer",
+  "graphVer",
   "warVer",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",

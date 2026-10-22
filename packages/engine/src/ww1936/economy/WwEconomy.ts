@@ -41,7 +41,7 @@ import {
   recruitableMen,
   regionSlots,
   researchSlotCount,
-  tradeUnitsPerCiv,
+  tradeUnitsBought,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   navalStartTechs,
@@ -162,7 +162,13 @@ export interface Trade {
   seller: number;
   /** RESOURCE_IDS index. */
   res: number;
+  /** Civilian factories the buyer pays: dealCivsOf(units). */
   civs: number;
+  /**
+   * Units a day the seller gives (P4 Task 15: the last factory may buy
+   * fewer than 8, so a small seller can sell at all).
+   */
+  units: number;
 }
 
 /** The last daily step's results; state, because others read them between days. */
@@ -185,6 +191,7 @@ export interface Totals {
 }
 
 const zeros = () => new Array<number>(RESOURCE_COUNT).fill(0);
+const RUBBER = RESOURCE_IDS.indexOf("rubber");
 
 function emptyTotals(): Totals {
   return {
@@ -410,6 +417,7 @@ export const WwEconomyStateSchema = z.object({
       seller: zInt(),
       res: zInt(),
       civs: zInt(),
+      units: zInt(),
     }),
   ),
   nextTradeId: zInt(),
@@ -468,6 +476,17 @@ export class WwEconomy {
   readonly infraEff: Uint8Array;
   /** Derived (DERIVED_FIELDS): bumped when a region's naval base starts or stops working (navalPort). */
   portVer = 0;
+  /**
+   * Derived (DERIVED_FIELDS): bumped when a railway or naval-base level or
+   * its damage changes (afterBuildingChange) and at every rebuildDerived —
+   * Task 15's caches of what those levels decide (SeaSupply's side nets)
+   * key on it.
+   */
+  railPortVer = 0;
+  /** Derived (DERIVED_FIELDS): bumped at every building change (afterBuildingChange). */
+  buildVer = 0;
+  /** Derived (DERIVED_FIELDS): bumped when the country graph is rebuilt (rebuildDerived). */
+  graphVer = 0;
   private _trades: Trade[] = [];
   private nextTradeId = 1;
   private lastCommonDay = -1;
@@ -734,8 +753,12 @@ export class WwEconomy {
           ce.stats.extractionPct,
         );
       }
-      // P4 spec §15.5: synthetic oil after the infrastructure factor.
-      produced[0] += syntheticOilOf(this, ce, id, cp);
+      // P4 spec §15.5: synthetic oil after the infrastructure factor; P4
+      // Task 15 (HOI4: the synthetic refinery's rubber, Buna): as much
+      // rubber again — Germany's planes and trucks had none at war.
+      const synth = syntheticOilOf(this, ce, id, cp);
+      produced[0] += synth;
+      produced[RUBBER] += synth;
     }
     const exported = zeros();
     const imported = zeros();
@@ -747,11 +770,11 @@ export class WwEconomy {
       if (tr.buyer === ce.smallID) {
         paid += tr.civs;
         // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
-        imported[tr.res] += deliver(tr, tr.civs * tradeUnitsPerCiv(ce.stats));
+        imported[tr.res] += deliver(tr, tradeUnitsBought(tr.units, ce.stats));
       }
       if (tr.seller === ce.smallID) {
         received += tr.civs;
-        exported[tr.res] += tr.civs * WW_TRADE_UNITS_PER_CIV;
+        exported[tr.res] += tr.units;
       }
     }
     t.civ = civ;
@@ -927,6 +950,8 @@ export class WwEconomy {
    */
   afterBuildingChange(region: number, b: BuildingId): void {
     this.dirtyRegions.add(region);
+    this.buildVer++;
+    if (b === "rail" || b === "naval_base") this.railPortVer++;
     if (b === "infra") {
       this.infraEff[region] = effectiveBuildings(this, region, "infra");
     }
@@ -979,8 +1004,14 @@ export class WwEconomy {
     return this._trades;
   }
 
-  addTrade(buyer: number, seller: number, res: number, civs: number): Trade {
-    const tr = { id: this.nextTradeId++, buyer, seller, res, civs };
+  addTrade(
+    buyer: number,
+    seller: number,
+    res: number,
+    civs: number,
+    units = civs * WW_TRADE_UNITS_PER_CIV,
+  ): Trade {
+    const tr = { id: this.nextTradeId++, buyer, seller, res, civs, units };
     this._trades.push(tr);
     this.dirtyCountries.add(buyer);
     this.dirtyCountries.add(seller);
@@ -1090,8 +1121,7 @@ export class WwEconomy {
     // preparation minute's included.
     const sold = zeros();
     for (const tr of this._trades) {
-      if (tr.seller === ce.smallID)
-        sold[tr.res] += tr.civs * WW_TRADE_UNITS_PER_CIV;
+      if (tr.seller === ce.smallID) sold[tr.res] += tr.units;
     }
     return {
       smallID: ce.smallID,
@@ -1122,6 +1152,7 @@ export class WwEconomy {
       seller: tr.seller,
       resource: RESOURCE_IDS[tr.res],
       civs: tr.civs,
+      units: tr.units,
     });
     return {
       smallID: ce.smallID,
@@ -1248,7 +1279,7 @@ export class WwEconomy {
         0;
     }
     for (const tr of this._trades) {
-      h = (Math.imul(h, 31) + tr.id + tr.civs * 13) | 0;
+      h = (Math.imul(h, 31) + tr.id + tr.civs * 13 + tr.units * 7) | 0;
     }
     // P4: the new buildings and the bomb damage, only where any is.
     for (const r of this.scenario.landRegions) {
@@ -1410,6 +1441,9 @@ export class WwEconomy {
    * restore and a day whose controllers changed call it.
    */
   private rebuildDerived(): void {
+    this.railPortVer++;
+    this.buildVer++;
+    this.graphVer++;
     const g = countryGraph(
       this.scenario,
       this.controller,

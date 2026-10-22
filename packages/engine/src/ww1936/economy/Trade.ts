@@ -7,10 +7,11 @@ import { MessageType, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import {
   RESOURCE_COUNT,
   RESOURCE_IDS,
-  WW_TRADE_UNITS_PER_CIV,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  dealCivsOf,
+  dealUnitsOf,
   exportRoomOf,
   openTradeBlockOf,
   payableCivs,
@@ -41,7 +42,33 @@ export function tradePartnerBlock(
  * and of every country reached through a country at peace with the buyer.
  * A seller in it trades by land (P4 spec §10.2: no convoys).
  */
-export function landReachOf(econ: WwEconomy, buyer: number): Set<number> {
+export function landReachOf(
+  econ: WwEconomy,
+  buyer: number,
+): ReadonlySet<number> {
+  // Task 15's perf pass: kept until the country graph or a war changes
+  // (every country's deals, its convoys and its partners ask each day).
+  const stamp = `${econ.graphVer}|${econ.ww.warVer}`;
+  let memo = reachMemos.get(econ);
+  if (memo === undefined || memo.stamp !== stamp) {
+    memo = { stamp, reach: new Map() };
+    reachMemos.set(econ, memo);
+  }
+  let out = memo.reach.get(buyer);
+  if (out === undefined) {
+    out = landReachNow(econ, buyer);
+    memo.reach.set(buyer, out);
+  }
+  return out;
+}
+
+/** Derived: landReachOf by buyer, while (graph version, war version) holds. */
+const reachMemos = new WeakMap<
+  WwEconomy,
+  { stamp: string; reach: Map<number, ReadonlySet<number>> }
+>();
+
+function landReachNow(econ: WwEconomy, buyer: number): Set<number> {
   const seen = new Set<number>([buyer]);
   const queue = [buyer];
   for (let i = 0; i < queue.length; i++) {
@@ -74,7 +101,7 @@ export function partnerJudge(
     return () => "no_partner";
   }
   const buyerPlayer = b;
-  let reach: Set<number> | null = null;
+  let reach: ReadonlySet<number> | null = null;
   let sea: ((seller: number) => boolean) | null = null;
   return (seller) => {
     if (seller === buyer) return "no_partner";
@@ -102,7 +129,7 @@ export function tradeDelivery(
   econ: WwEconomy,
   buyer: number,
 ): (tr: Trade, units: number) => number {
-  let reach: Set<number> | null = null;
+  let reach: ReadonlySet<number> | null = null;
   return (tr, units) => {
     reach ??= landReachOf(econ, buyer);
     if (reach.has(tr.seller)) return units;
@@ -133,9 +160,7 @@ export function exportRoom(
   if (ce === null) return 0;
   let sold = 0;
   for (const t of econ.trades()) {
-    if (t.seller === seller && t.res === res) {
-      sold += t.civs * WW_TRADE_UNITS_PER_CIV;
-    }
+    if (t.seller === seller && t.res === res) sold += t.units;
   }
   return exportRoomOf(ce.totals.produced[res], ce.law().exportPct, sold);
 }
@@ -143,7 +168,9 @@ export function exportRoom(
 /**
  * Spec §7.4: `ce` buys `civs × 8` units a day of `res` from `seller` and
  * pays `civs` civilian factories. A deal with the same seller and resource
- * grows instead of opening a second one (the same checks apply).
+ * grows instead of opening a second one (the same checks apply). P4 Task
+ * 15 (HOI4): the last factory buys what is left of the seller's room, so
+ * the deal moves dealUnitsOf(civs, room) and costs dealCivsOf(units).
  */
 export function openTrade(
   econ: WwEconomy,
@@ -164,22 +191,25 @@ export function openTrade(
     paidCivs += tr.civs;
     if (tr.seller === seller && tr.res === res) same = tr;
   }
+  const room = exportRoom(econ, seller, res);
   const block = openTradeBlockOf({
     partnerOk: tradePartnerBlock(econ, buyer, seller) === null,
     buyerTrades,
     grows: same !== null,
     civs,
-    room: exportRoom(econ, seller, res),
+    room,
     payable: payableCivs(ce.totals.civ, ce.totals.cgMilli),
     paidCivs,
   });
   if (block !== null) return block;
+  const units = dealUnitsOf(civs, room);
   let tr: Trade;
   if (same === null) {
-    tr = econ.addTrade(buyer, seller, res, civs);
+    tr = econ.addTrade(buyer, seller, res, dealCivsOf(units), units);
   } else {
     tr = same;
-    same.civs += civs;
+    same.units += units;
+    same.civs = dealCivsOf(same.units);
     econ.markCountryDirty(buyer);
     econ.markCountryDirty(seller);
   }
@@ -233,7 +263,9 @@ function groupBy(
  * The day's common check (spec §7.5), in deal-number order: deals whose
  * partners broke (war, embargo, a cut route, capitulation, death) close;
  * then, newest first, deals past the seller's export room for that
- * resource, and deals past the civilian factories the buyer can pay.
+ * resource give up the excess (P4 Task 15: a deal shrinks to what is left
+ * and pays dealCivsOf of it; one with nothing left closes), and deals past
+ * the civilian factories the buyer can pay close.
  * The trade list is kept in id order (addTrade appends rising ids).
  */
 export function validateTrades(econ: WwEconomy, tick: number): void {
@@ -259,10 +291,20 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
         ? 0
         : exportCapacity(s.totals.produced[res], s.law().exportPct);
     let sold = 0;
-    for (const tr of deals) sold += tr.civs * WW_TRADE_UNITS_PER_CIV;
+    for (const tr of deals) sold += tr.units;
     for (let i = deals.length - 1; i >= 0 && sold > cap; i--) {
-      sold -= deals[i].civs * WW_TRADE_UNITS_PER_CIV;
-      closeBroken(econ, deals[i]);
+      const tr = deals[i];
+      const excess = sold - cap;
+      if (tr.units <= excess) {
+        sold -= tr.units;
+        closeBroken(econ, tr);
+        continue;
+      }
+      tr.units -= excess;
+      tr.civs = dealCivsOf(tr.units);
+      sold = cap;
+      econ.markCountryDirty(tr.buyer);
+      econ.markCountryDirty(seller);
     }
   }
 
