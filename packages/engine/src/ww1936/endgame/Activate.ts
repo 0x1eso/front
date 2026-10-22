@@ -165,6 +165,16 @@ export function landRegained(eg: WwEndgame, id: number, tick: number): void {
   eg.dirtyCountries.add(id);
   eg.ww.clearCapitulation(id);
   eg.wakeQueue.push(id);
+  // P5 final lane (the exile return loop, HOI4: a liberated country is not
+  // surrendered again over what it had already lost): its capitulation line
+  // counts from the victory points it holds now.
+  const ww = eg.ww;
+  let lost = 0;
+  for (const r of ww.scenario.landRegions) {
+    if ((ww.politics.legalOwner[r.id] ?? 0) !== id) continue;
+    if (ww.land.controller[r.id] !== id) lost += r.vp;
+  }
+  eg.setCapitulationBase(id, lost);
 }
 
 /** Spec §3.3-4, -6: laws, lines, stock, manpower and research. */

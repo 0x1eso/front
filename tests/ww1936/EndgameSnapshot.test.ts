@@ -386,6 +386,18 @@ describe("World War 1936 P5: the endgame snapshot oracle (Review Focus 1)", () =
     expect(wwOf(b).land.controller[R.slovakia]).toBe(csk);
   }, 120_000);
 
+  it("the capitulation baseline survives a restore and moves the hash", async () => {
+    const { runner: a, ww, eg } = await started();
+    const h0 = eg.hash();
+    eg.setCapitulationBase(id("POL"), 21);
+    expect(eg.hash()).not.toBe(h0);
+    const b = await oracle(a, [], END_MAP, 30);
+    expect(wwOf(b).endgame.capitulationBase(id("POL"))).toBe(
+      eg.capitulationBase(id("POL")),
+    );
+    void ww;
+  }, 120_000);
+
   it("the endgame hash matches across two runs", async () => {
     // Two games of one seed, AI everywhere, the same hand at the same tick
     // (a war that ends in a capitulation, a conference, an occupation).
