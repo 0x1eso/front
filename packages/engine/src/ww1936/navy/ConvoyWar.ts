@@ -18,6 +18,7 @@ import {
   raidPowerCenti,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { exploiting } from "../depth/Crypto";
 import { designPlaneP4 } from "../depth/Designs";
 import { minesConvoyLossPm } from "../depth/Mines";
 import { loseConvoys } from "../economy/Buildings";
@@ -33,6 +34,8 @@ const SS = SHIP_CLASSES.indexOf("ss");
 const DD = SHIP_CLASSES.indexOf("dd");
 const CL = SHIP_CLASSES.indexOf("cl");
 const NAVAL_STRIKE = AIR_MISSIONS.indexOf("naval_strike");
+/** P6 spec §8.7 (pre-flight A12): a raider exploiting the victim's broken codes raids it +10%. */
+const EXPLOIT_RAID_PCT = 10;
 
 /** A fleet on its mission in the region: at sea there, out of any battle. */
 function onMission(navy: WwNavy, f: Fleet, sr: number): boolean {
@@ -166,6 +169,14 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
     else l.push(m);
   }
   const sides = [...raiderSides.keys()].sort((a, b) => a - b);
+  // P6 (spec §8.7): raider m's power against country b (+10% exploiting b's codes).
+  const depth = navy.ww.depth;
+  const powVs = (m: number, b: number): number => {
+    const p = raidPow.get(m)!;
+    return exploiting(depth, m, b)
+      ? Math.floor((p * (100 + EXPLOIT_RAID_PCT)) / 100)
+      : p;
+  };
 
   // Traffic: each route through here once (a voyage where it sails now).
   const traffic = new Map<number, number>();
@@ -196,7 +207,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       const at = ms.filter((m) => land.isEnemy(m, b));
       if (at.length === 0) continue;
       let raid = 0;
-      for (const m of at) raid += raidPow.get(m)!;
+      for (const m of at) raid += powVs(m, b);
       const bSide = land.sideOf(b);
       const escort = escortOf(bSide);
       const milli = convoySinkMilli(traffic.get(b)!, raid, escort, s.area);
@@ -205,7 +216,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       let by = sinkBy.get(b);
       if (by === undefined) sinkBy.set(b, (by = new Map()));
       for (const m of at) {
-        add(by, m, Math.floor((milli * raidPow.get(m)!) / raid));
+        add(by, m, Math.floor((milli * powVs(m, b)) / raid));
       }
       for (const m of at) {
         for (const f of raidFleets.get(m) ?? []) {
@@ -229,8 +240,12 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       if (a === side.key) continue;
       let raid = 0;
       for (const m of raiderSides.get(a)!) {
-        if (side.members.some((y) => land.isEnemy(m, y)))
-          raid += raidPow.get(m)!;
+        if (!side.members.some((y) => land.isEnemy(m, y))) continue;
+        // The display rate: +10% when it exploits any member's codes.
+        const p = raidPow.get(m)!;
+        raid += side.members.some((y) => exploiting(depth, m, y))
+          ? Math.floor((p * (100 + EXPLOIT_RAID_PCT)) / 100)
+          : p;
       }
       if (raid > 0) rate += convoyLossRatePm(raid, escortOf(side.key), s.area);
     }
