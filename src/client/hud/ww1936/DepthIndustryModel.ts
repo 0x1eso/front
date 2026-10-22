@@ -58,6 +58,7 @@ import {
   resourceRows,
   ResourceRowView,
 } from "./EconomyModel";
+import { fogModelOf } from "./FogModel";
 import { today } from "./WorldWarModel";
 
 // ---- names (keys: lane T's ww1936.mio.*, market.*, energy.*, project_ui.*) ----
@@ -665,9 +666,15 @@ export class DepthIndustryModel {
     const o = nukeOutcome(civ, mil, dock, before);
     const destroyed = o.destroy.civ + o.destroy.mil + o.destroy.dock;
     const factories = civ + mil + dock;
-    const divisions = (c.land?.armiesAt(region) ?? [])
-      .filter((a) => a.owner !== c.me && c.sides.isEnemy(c.me, a.owner))
-      .reduce((n, a) => n + a.divisions, 0);
+    // Enemy divisions there as the fog shows them (U3, spec §8.9): hidden
+    // armies count nothing, the others their shown count.
+    const fog = fogModelOf(this.view);
+    let divisions = 0;
+    for (const a of c.land?.armiesAt(region) ?? []) {
+      if (a.owner === c.me || !c.sides.isEnemy(c.me, a.owner)) continue;
+      const fv = fog.armyView(a.id);
+      if (fv.visible) divisions += fv.shown;
+    }
     const sr = c.scenario.srOfZoneOrRegion(region);
     return {
       region,

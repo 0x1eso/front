@@ -202,6 +202,8 @@ describe("fog leaks (spec §8.9)", () => {
       "render/gl/passes/ArmyTokenPass.ts": "armyView",
       "render/gl/passes/FleetTokenPass.ts": "fleetView",
       "render/gl/passes/AirSortiePass.ts": "planesSeen",
+      // U4's nuke preview counts the enemy divisions in the struck region.
+      "hud/ww1936/DepthIndustryModel.ts": "armyView",
       "render/gl/LandFrame.ts": "armyView",
       "view/FleetTokenLayout.ts": "fleetView",
       "view/LandTokenLayout.ts": "armyView",
@@ -224,6 +226,21 @@ describe("fog leaks (spec §8.9)", () => {
       "render/gl/Renderer.ts",
       "render/gl/passes/PlanArrowPass.ts",
       "render/gl/passes/RegionBorderPass.ts",
+      // P6 U1/U4/U5 (batch P6-2): my own armies, groups, deployments,
+      // divisions and fleets only.
+      "hud/ww1936/DoctrineModel.ts",
+      "hud/ww1936/MultiSelect.ts",
+      "hud/ww1936/WwArmyGroupTab.ts",
+      "hud/ww1936/WwAirZoneCard.ts",
+      "hud/ww1936/WwNukeFlow.ts",
+      "hud/ww1936/DepthMiscModel.ts",
+      // P5's screens (merged before this scan): aid and takeover cards and
+      // the conference read country totals and fleet classes by design;
+      // their fog review goes with T1b's P5 swaps (pre-flight A18).
+      "hud/ww1936/EndgameModel.ts",
+      "hud/ww1936/PeaceModel.ts",
+      "hud/ww1936/WwAidTab.ts",
+      "hud/ww1936/WwTakeoverCard.ts",
     ]);
     const rel = (f: string) => path.relative(root, f).split(path.sep).join("/");
     for (const f of files) {
