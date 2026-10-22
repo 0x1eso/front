@@ -171,17 +171,49 @@ const NONE: readonly number[] = [];
 
 // ---- Routes ----
 
-/** The live route of (use, owner, ref), or null (routes are few: a scan). */
+/**
+ * Derived (Task 15's perf pass): the routes by (use, owner, ref) and by
+ * owner, in id order — findRoute and routesOf scanned every route, on
+ * every deal of every country's day. Rebuilt within the tick whenever a
+ * route comes or goes (ids only rise, so (next id, count) moves at each);
+ * a restored game builds its own (supplyRouteOf's rule).
+ */
+interface RouteIndex {
+  stamp: string;
+  byKey: Map<number, SeaRoute>;
+  byOwner: Map<number, SeaRoute[]>;
+}
+const routeIndexes = new WeakMap<WwNavy, RouteIndex>();
+
+const routeKey = (use: number, owner: number, ref: number): number =>
+  (ref * 1024 + owner) * 16 + use;
+
+function routeIndex(navy: WwNavy): RouteIndex {
+  const stamp = `${navy.mg.ticks()}|${navy.nextRouteId}|${navy.routes.size}`;
+  const hit = routeIndexes.get(navy);
+  if (hit !== undefined && hit.stamp === stamp) return hit;
+  const byKey = new Map<number, SeaRoute>();
+  const byOwner = new Map<number, SeaRoute[]>();
+  for (const r of navy.routes.values()) {
+    const k = routeKey(r.use, r.owner, r.ref);
+    if (!byKey.has(k)) byKey.set(k, r);
+    const l = byOwner.get(r.owner);
+    if (l === undefined) byOwner.set(r.owner, [r]);
+    else l.push(r);
+  }
+  const ix = { stamp, byKey, byOwner };
+  routeIndexes.set(navy, ix);
+  return ix;
+}
+
+/** The live route of (use, owner, ref), or null. */
 export function findRoute(
   navy: WwNavy,
   use: number,
   owner: number,
   ref: number,
 ): SeaRoute | null {
-  for (const r of navy.routes.values()) {
-    if (r.use === use && r.ref === ref && r.owner === owner) return r;
-  }
-  return null;
+  return routeIndex(navy).byKey.get(routeKey(use, owner, ref)) ?? null;
 }
 
 /**
@@ -260,11 +292,9 @@ export function dropRoute(navy: WwNavy, id: number): void {
   navy.markCountry(r.owner);
 }
 
-/** The routes of `owner`, by id. */
+/** The routes of `owner`, by id (a fresh list). */
 export function routesOf(navy: WwNavy, owner: number): SeaRoute[] {
-  const out: SeaRoute[] = [];
-  for (const r of navy.routes.values()) if (r.owner === owner) out.push(r);
-  return out;
+  return [...(routeIndex(navy).byOwner.get(owner) ?? [])];
 }
 
 // ---- Allocation (spec §10.1) ----

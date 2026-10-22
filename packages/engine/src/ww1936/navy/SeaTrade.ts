@@ -4,7 +4,7 @@
 // deal the land cannot carry (P1 rule 2) goes by sea, a faction's too: the
 // buyer's convoys carry it and it arrives by their share of the need.
 import { convoysForTrade } from "@openfront/engine-lib/ww1936/ConvoyRules";
-import { tradeUnitsPerCiv } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { tradeUnitsBought } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { landReachOf } from "../economy/Trade";
 import {
   convoyPath,
@@ -99,16 +99,16 @@ function convoyReach(
 }
 
 /** Units a day a trade carries (the buyer's, P3 tradeCostPct). */
-function tradeUnits(navy: WwNavy, buyer: number, civs: number): number {
+function tradeUnits(navy: WwNavy, buyer: number, units: number): number {
   const ce = navy.econ.country(buyer);
-  return ce === null ? 0 : civs * tradeUnitsPerCiv(ce.stats);
+  return ce === null ? 0 : tradeUnitsBought(units, ce.stats);
 }
 
 /** Spec §10.2: the convoys a trade route needs, ceil(units × km / 5000). */
 export function tradeNeed(navy: WwNavy, r: SeaRoute): number {
   const tr = navy.econ.trades().find((t) => t.id === r.ref);
   if (tr === undefined) return 0;
-  return convoysForTrade(tradeUnits(navy, tr.buyer, tr.civs), r.km);
+  return convoysForTrade(tradeUnits(navy, tr.buyer, tr.units), r.km);
 }
 
 /**
@@ -123,7 +123,7 @@ export function syncTradeRoutes(
   day: number,
 ): void {
   const econ = navy.econ;
-  let reach: Set<number> | null = null;
+  let reach: ReadonlySet<number> | null = null;
   const live = new Set<number>();
   for (const tr of econ.trades()) {
     if (tr.buyer !== buyer) continue;

@@ -19,6 +19,7 @@ import {
   AirType,
   WW_MAX_DEPLOY_COUNT,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -42,10 +43,31 @@ import type { WwAir } from "./WwAir";
 
 /** Spec §17.3-2: the share of each type's planes put on the demands. */
 export const AI_AIR_USE_PCT = 90;
+/**
+ * Task 15 (내 판단): the share of its fighters a country keeps over its
+ * capital (spec §17.3-2's 10% for the rest). Britain kept Fighter Command
+ * at home (Dowding's line, May 1940: a dozen squadrons went to France):
+ * at 10%, then 40%, its fighters over France gave the Allies the sky there
+ * in every game and the Luftwaffe was gone by 1941.
+ */
+export const AI_FIGHTER_HOME_PCT: Readonly<
+  Partial<Record<CountryTag, number>>
+> = { GBR: 70 };
 /** Spec §17.3-3: a zone losing more than this ‰ of its planes in 5 days… */
 export const AI_AIR_LOSS_PM = 150;
 /** …under this superiority loses its bombers. */
 export const AI_AIR_LOSS_SUP_PM = 200;
+/**
+ * Task 15 (내 판단, spec §17.3-3 for fighters): after losses there (over
+ * AI_FIGHTER_LOSS_PM of them in 5 days) under a sky below
+ * AI_FIGHTER_HOLD_SUP_PM, fighters give up a zone — superiority and
+ * interception — unless our army attacks there, it is the capital's or a
+ * beat calls; they fight where the odds are better and are there for the
+ * next offensive. Germany sent its whole fighter force over the Maginot
+ * line in the Phoney War and lost it in a month, every game.
+ */
+export const AI_FIGHTER_LOSS_PM = 50;
+export const AI_FIGHTER_HOLD_SUP_PM = 400;
 /** Spec §17.3-1 ④: strategic bombing only where we hold this much of the sky. */
 export const AI_STRAT_SUP_PM = 300;
 
@@ -121,6 +143,8 @@ export interface AiAirInput {
   current: readonly AiAirTarget[];
   /** Zones the plan may change (undefined: all; a human: its auto zones). */
   only?: readonly number[];
+  /** Task 15: percent of the fighters kept over the capital (default 100 − AI_AIR_USE_PCT). */
+  fighterHomePct?: number;
 }
 /** An order the AI gives through air.issue (the same as a player's). */
 export type AiAirOrder = AirOrder;
@@ -137,6 +161,7 @@ function demandsOf(
   i: AiAirInput,
   ti: number,
   noBombers: ReadonlySet<number>,
+  noFighters: ReadonlySet<number> = new Set(),
 ): Demand[] {
   const out: Demand[] = [];
   const missions = TYPE_MISSIONS[type] ?? [];
@@ -149,12 +174,12 @@ function demandsOf(
     for (const m of missions) {
       let w = 0;
       if (m === "air_superiority" && z.kind === "land") {
-        if (z.front) {
+        if (z.front && !noFighters.has(z.sr)) {
           w = 1 + z.enemyDivisions + Math.floor(z.enemyPlanes / 10);
         }
         w *= beat;
         if (w === 0 && z.beat) w = AI_BEAT_FACTOR;
-      } else if (m === "interception" && z.bombed) {
+      } else if (m === "interception" && z.bombed && !noFighters.has(z.sr)) {
         w = 2 + Math.floor(z.enemyPlanes / 10);
       } else if (m === "cas" && z.front && z.attacking) {
         w = 1 + z.enemyDivisions;
@@ -216,15 +241,38 @@ export function aiAirPlan(input: AiAirInput): AiAirOrder[] {
       .filter((z) => z.lossPm > AI_AIR_LOSS_PM && z.supPm < AI_AIR_LOSS_SUP_PM)
       .map((z) => z.sr),
   );
+  // Task 15: the fighters' own rule (AI_FIGHTER_HOLD_SUP_PM).
+  const noFighters = new Set(
+    input.zones
+      .filter(
+        (z) =>
+          z.lossPm > AI_FIGHTER_LOSS_PM &&
+          z.supPm < AI_FIGHTER_HOLD_SUP_PM &&
+          !z.attacking &&
+          !z.beat &&
+          z.sr !== input.capitalSr,
+      )
+      .map((z) => z.sr),
+  );
   AIR_TYPES.forEach((type, ti) => {
     if (TYPE_MISSIONS[type] === undefined) return;
     const total = input.planes[ti] ?? 0;
     if (total <= 0) return;
-    const usable = Math.floor((total * AI_AIR_USE_PCT) / 100);
     const fighter = FIGHTERS.includes(type);
+    const usePct =
+      fighter && input.fighterHomePct !== undefined
+        ? 100 - input.fighterHomePct
+        : AI_AIR_USE_PCT;
+    const usable = Math.floor((total * usePct) / 100);
     let reserve = fighter ? total - usable : 0;
     if (input.atWar) {
-      const demands = demandsOf(type, input, ti, noBombers);
+      const demands = demandsOf(
+        type,
+        input,
+        ti,
+        noBombers,
+        fighter ? noFighters : undefined,
+      );
       const given = share(
         usable,
         demands.map((d) => d.weight),
@@ -413,6 +461,37 @@ function airSharedView(air: WwAir, me: number): AirZoneShared[] {
   return out;
 }
 
+const NO_SRS: ReadonlySet<number> = new Set();
+
+/** Derived (one tick, Task 15's perf pass): the zones each country attacks in, from the land battles. */
+const attackMemo = new WeakMap<
+  WwAir,
+  { tick: number; m: Map<number, Set<number>> }
+>();
+
+function attackingSrs(air: WwAir): ReadonlyMap<number, ReadonlySet<number>> {
+  const tick = air.mg.ticks();
+  const hit = attackMemo.get(air);
+  if (hit !== undefined && hit.tick === tick) return hit.m;
+  const land = air.land;
+  const sc = air.ww.scenario;
+  const t = land.divisions;
+  const m = new Map<number, Set<number>>();
+  for (const b of land.battles.values()) {
+    const sr = sc.regionSr(b.region);
+    for (const id of b.attackers) {
+      const row = t.rowOf(id);
+      if (row < 0) continue;
+      const o = t.owner[row];
+      let set = m.get(o);
+      if (set === undefined) m.set(o, (set = new Set()));
+      set.add(sr);
+    }
+  }
+  attackMemo.set(air, { tick, m });
+  return m;
+}
+
 /** What the plan reads of `smallID`'s air war today. */
 export function aiAirInput(
   air: WwAir,
@@ -491,21 +570,18 @@ export function aiAirInput(
     mineSr.add(sr);
     if (land.encircled[r] === 1) encircledSr.add(sr);
   }
-  const attackingSr = new Set<number>();
-  const t = land.divisions;
-  for (const b of land.battles.values()) {
-    const sr = sc.regionSr(b.region);
-    if (attackingSr.has(sr)) continue;
-    if (
-      b.attackers.some((id) => {
-        const row = t.rowOf(id);
-        return row >= 0 && t.owner[row] === smallID;
-      })
-    ) {
-      attackingSr.add(sr);
-    }
-  }
+  const attackingSr = attackingSrs(air).get(smallID) ?? NO_SRS;
   const zones: AiAirZoneView[] = [];
+  // One reach row per distance (most zones are out of reach: -1).
+  const reachByKm = new Map<number, readonly boolean[]>();
+  const reachOf = (minKm: number) => {
+    let r = reachByKm.get(minKm);
+    if (r === undefined) {
+      r = range.map((km) => minKm >= 0 && minKm <= km);
+      reachByKm.set(minKm, r);
+    }
+    return r;
+  };
   for (const s of sc.strategicList()) {
     const z = air.zoneState[s.idx];
     const v = shared[s.idx];
@@ -543,11 +619,12 @@ export function aiAirInput(
       supPm: air.airSup(side, s.id),
       encircled,
       lossPm: deployed === 0 ? 0 : Math.floor((lost * 1000) / deployed),
-      reach: range.map((km) => minKm >= 0 && minKm <= km),
+      reach: reachOf(minKm),
       beat: beatSrs.has(s.id),
     });
   }
   const cap = capitalRegion(land, smallID);
+  const home = human ? undefined : AI_FIGHTER_HOME_PCT[ce.tag];
   return {
     smallID,
     day,
@@ -557,7 +634,20 @@ export function aiAirInput(
     capitalSr: cap === 0 ? 0 : sc.regionSr(cap),
     current,
     ...(only === undefined ? {} : { only }),
+    ...(home === undefined ? {} : { fighterHomePct: home }),
   };
+}
+
+/** Whether `smallID` has a plane of any type in its stock or deployed. */
+function hasPlanes(air: WwAir, smallID: number): boolean {
+  const ce = air.econ.country(smallID);
+  if (ce === null) return false;
+  for (const type of AIR_TYPES) {
+    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
+      if ((ce.stock[equipKey(type, g)] ?? 0) > 0) return true;
+    }
+  }
+  return air.deploymentsOf(smallID).some((d) => d.counts.some((c) => c > 0));
 }
 
 /** The country's AI day for its air force (an AI country's all, a human's auto zones). */
@@ -573,8 +663,12 @@ export function aiAir(air: WwAir, smallID: number, day: number): void {
   const atWar = aiAtWar(air.navy, smallID);
   if (!aiAirDue(smallID, day, atWar)) return;
   const tick = air.mg.ticks();
-  for (const o of aiAirPlan(aiAirInput(air, smallID, day, atWar, human))) {
-    air.issue(smallID, o, tick);
+  // Task 15's perf pass: no planes in the stock or out, nothing to plan
+  // (most small countries; their input was built for nothing).
+  if (hasPlanes(air, smallID)) {
+    for (const o of aiAirPlan(aiAirInput(air, smallID, day, atWar, human))) {
+      air.issue(smallID, o, tick);
+    }
   }
   if (!human) aiParadrops(air, smallID, day, atWar);
 }

@@ -12,6 +12,7 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
+import { fleetFuelDay } from "@openfront/engine/ww1936/economy/Fuel";
 import type { Fleet } from "@openfront/engine/ww1936/navy/WwNavy";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
@@ -92,8 +93,10 @@ describe("fleet movement (spec §7.3)", () => {
     expect(state(f)).toBe("on_station");
     expect(navy.fleetsIn(ZONE.east)).toEqual([id]);
     expect(f.lastSr).toBe(SR.eastern);
+    // Task 15: the day of the owner's turn that bills that tick at sea.
     const ww = runner.game.worldWar()!;
-    expect(f.seaDay).toBe(ww.day(runner.game.ticks() - 1));
+    const last = runner.game.ticks() - 1;
+    expect(f.seaDay).toBe(fleetFuelDay(navy, GBR, ww.day(last), last));
   });
 
   it("a new way part-way along an edge keeps that edge's progress", async () => {

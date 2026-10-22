@@ -300,7 +300,7 @@ export interface Fleet {
   mix: [number, number, number];
   /** Sea region it was in at the last daily step (spotting resets on a change). */
   lastSr: number;
-  /** Last day it spent a tick at sea (fuel, spec §7.3). */
+  /** The owner's country day that bills its last tick at sea (fuel, spec §7.3; Fuel.fleetFuelDay). */
   seaDay: number;
   /** Pending carrier port strike: the target port region (spec §13.4); 0 none. */
   portStrike: number;
@@ -613,6 +613,8 @@ export const WwNavyStateSchema = z.object({
 export type WwNavyState = z.infer<typeof WwNavyStateSchema>;
 
 const MISSION_HOLD = FLEET_MISSIONS.indexOf("hold");
+const MISSION_SUPPORT = FLEET_MISSIONS.indexOf("invasion_support");
+const MISSION_STRIKE = FLEET_MISSIONS.indexOf("strike");
 const ENGAGE_DEFAULT = ENGAGE_RULES.indexOf("if_stronger");
 const STATE_DOCKED = FLEET_STATES.indexOf("docked");
 
@@ -1024,6 +1026,8 @@ export class WwNavy {
     if (sunk) {
       const cn = this.country(owner);
       if (cn !== null) cn.shipsLostToday++;
+      // The ⚓ dial's lost-today badge counts every sinking (Task 15).
+      this.navyDirtyCountries.add(owner);
     }
     this.removeFleetIfEmpty(fleetId);
   }
@@ -1611,6 +1615,21 @@ export class WwNavy {
     }
     const speed = this.fleetSpeedCentiKn(f);
     const ce = this.econ.country(f.owner);
+    // Task 15: shore bombardment's guns at the owner's stats and techs,
+    // and its bombardment bonus (the screens have only their own stats):
+    // a fleet at sea on invasion support or strike (Invasions.bombardBp).
+    let guns = 0;
+    if (
+      f.docked === 0 &&
+      (f.mission === MISSION_SUPPORT || f.mission === MISSION_STRIKE)
+    ) {
+      for (const id of f.ships) {
+        const r = t.rowOf(id);
+        if (r < 0) continue;
+        const s = this.shipStatsOf(r);
+        guns += s.heavy + Math.floor(s.light / 2);
+      }
+    }
     let flags = 0;
     if ((ce?.fuelRatioPm ?? 1000) < 1000) flags |= FLEET_FLAG_LOW_FUEL;
     if (f.auto) flags |= FLEET_FLAG_AUTO;
@@ -1639,6 +1658,11 @@ export class WwNavy {
       engage: mine ? (ENGAGE_RULES[f.engage] ?? "always") : "always",
       returnAtPct: mine ? f.returnAtPct : 50,
       ships,
+      ...(guns > 0
+        ? {
+            bombard: [guns, ce?.stats.shoreBombardPct ?? 0] as [number, number],
+          }
+        : {}),
       // Lane U (the fleet card): own fleets' home, repair days, deck mix.
       ...(mine
         ? {
@@ -1809,6 +1833,8 @@ export class WwNavy {
       fuelMilli: ce.fuelMilli,
       fuelCapMilli: fuelCapOf(this.econ, ce),
       fuelRatioPm: ce.fuelRatioPm,
+      // Task 15: every ship sunk today — battles, air and port strikes.
+      lostToday: [dayStartTick(day, this.ww.prepEndTick()), cn.shipsLostToday],
       // Lane U: my landing divisions (the battle card's landing lines) and
       // my admirals' skills now.
       landing: [...this.landing.keys()]
@@ -2151,6 +2177,125 @@ export class WwNavy {
       h = (Math.imul(h, 31) + r.owner * 8 + r.use) >>> 0;
       h = (Math.imul(h, 31) + r.got) >>> 0;
     }
+    return this.hashRest(h) >>> 0;
+  }
+
+  /**
+   * P4 Task 16 (hash coverage, spec §19.5): everything else the snapshot
+   * holds, so a desync in a ship's fleet or deck, a fleet's path, mission
+   * or orders, a battle's lists, a route, a voyage, an invasion's
+   * preparation, an admiral, the convoy war's remainders or a country's
+   * name counters shows on the tick it happens rather than when it reaches
+   * the ships. Derived fields (DERIVED_FIELDS) stay out; the dead rows are
+   * zeros in every copy.
+   */
+  private hashRest(h0: number): number {
+    let h = h0 | 0;
+    const mix = (v: number) => {
+      h = (Math.imul(h, 31) + (v | 0)) | 0;
+    };
+    const fold = (xs: ArrayLike<number>, n = xs.length) => {
+      let s = n;
+      for (let i = 0; i < n; i++) s = (Math.imul(s, 33) + xs[i]) | 0;
+      mix(s);
+    };
+    const bit = (b: boolean) => (b ? 1 : 0);
+    const t = this.ships;
+    mix(t.rows);
+    for (const name of SHIP_COLUMNS) fold(t.col(name), t.rows);
+    fold(t.deck, t.rows * DECK_SLOTS);
+    for (const f of this.fleets.values()) {
+      mix(f.id);
+      mix(f.owner);
+      mix(f.nameIdx * 1024 + f.num);
+      mix(f.admiral);
+      fold(f.ships);
+      mix(f.home);
+      fold(f.path);
+      mix(f.edge);
+      mix(f.need);
+      mix(f.dest);
+      mix(f.mission * 64 + f.engage * 8 + bit(f.auto) * 4 + bit(f.newShips));
+      mix(f.missionSr);
+      mix(f.returnAtPct);
+      mix(f.sortieTarget);
+      mix(f.resumeDay);
+      fold(f.mix);
+      mix(f.lastSr);
+      mix(f.seaDay);
+      mix(f.portStrike);
+    }
+    for (const b of this.battles.values()) {
+      fold(b.sides);
+      fold(b.fleets[0]);
+      fold(b.fleets[1]);
+      fold(b.sunk[0]);
+      fold(b.sunk[1]);
+      fold(b.sunkNamed);
+      mix(b.startTick);
+    }
+    for (const r of this.routes.values()) {
+      mix(r.ref);
+      fold(r.zones);
+      mix(r.km);
+      fold(r.srs);
+      mix(r.need);
+      mix(r.nextDay);
+    }
+    for (const v of this.voyages.values()) {
+      mix(v.owner);
+      mix(v.army);
+      mix(bit(v.invasion) + bit(v.aborting) * 2);
+      fold(v.divisions);
+      mix(v.from);
+      mix(v.to);
+      mix(v.route);
+      mix(v.need);
+      mix(v.bound);
+      mix(v.departTick);
+    }
+    for (const x of this.invasions.values()) {
+      mix(x.owner);
+      mix(x.from);
+      mix(x.prepDays);
+      mix(bit(x.readySent));
+    }
+    for (const a of this.admirals.values()) {
+      mix(a.owner);
+      mix(a.level);
+      mix(a.traits);
+      mix(a.fleet);
+    }
+    for (const s of this.srState) {
+      for (const m of [s.lossRate, s.raidRest, s.lossYesterday]) {
+        mix(m.size);
+        for (const [k, v] of m) {
+          mix(k);
+          mix(v);
+        }
+      }
+      fold(s.raidedYesterday);
+      mix(s.lastDay);
+    }
+    for (const c of this.countries()) {
+      mix(c.titledAdmirals);
+      mix(c.nextFleetNum);
+      fold(c.convoyLoss);
+      mix(c.shipsLostToday);
+      fold(c.commissionedToday);
+      fold(c.nameNum);
+      fold(c.nameNext);
+    }
+    for (const [h1, delay, skip] of this.beats) {
+      mix(h1);
+      mix(delay * 2 + bit(skip));
+    }
+    mix(bit(this.beatsRolled));
+    mix(this.nextShipId);
+    mix(this.nextFleetId);
+    mix(this.nextRouteId);
+    mix(this.nextVoyageId);
+    mix(this.lastCommonDay);
     return h;
   }
 }

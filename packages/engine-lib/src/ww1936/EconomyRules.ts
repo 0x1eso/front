@@ -266,6 +266,21 @@ export function tradeUnitsPerCiv(stats: { tradeCostPct: number }): number {
   );
 }
 
+/**
+ * What a deal moving `units` a day (the seller's units) brings the buyer:
+ * P3 tradeCostPct scales each bought factory's 8 (tradeUnitsPerCiv), and a
+ * part-factory deal (P4 Task 15: the last factory may buy fewer than 8)
+ * brings its share.
+ */
+export function tradeUnitsBought(
+  units: number,
+  stats: { tradeCostPct: number },
+): number {
+  return Math.floor(
+    (Math.max(0, units) * tradeUnitsPerCiv(stats)) / WW_TRADE_UNITS_PER_CIV,
+  );
+}
+
 export function exportCapacity(produced: number, exportPct: number): number {
   return Math.floor((produced * exportPct) / 100);
 }

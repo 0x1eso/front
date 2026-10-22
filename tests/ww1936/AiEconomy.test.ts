@@ -3,6 +3,7 @@ import {
   type CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
+  EQUIP_KEYS,
   equipKey,
   RESOURCE_COUNT,
   RESOURCE_IDS,
@@ -19,6 +20,7 @@ import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_FALLBACK_AHEAD_PCT,
+  AI_FUEL_OIL_MAX,
   AI_SUPPORT_RESERVE,
   AI_SUPPORT_SHORT_PTS,
   AI_SWITCH_DAY,
@@ -29,6 +31,7 @@ import {
   AiOrder,
   aiPersonality,
   aiPlan,
+  aiPlanesFirst,
   aiReactions,
   aiReactPlan,
   aiResearchCaps,
@@ -39,7 +42,9 @@ import {
   aiSeaSchool,
   aiTechDomain,
   isAiTurn,
+  withFuelOil,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
+import { addLine, moveLine } from "@openfront/engine/ww1936/economy/Production";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
 
@@ -394,20 +399,21 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     // Spec §12.2 for a major, plus Germany's mobile-warfare lean (its
     // vehicles come out of guns and bombers, not rifles: Task 9).
     // (P2 Task 11: a major's support share is 10, out of the rifles.)
-    // P4 lane AI (spec §17.5): the planes take 17 points (fighters 8,
-    // heavy fighters 1, close support 5, naval bombers 2, transports 1;
-    // the tactical bombers' 3 are the lean's), the ground lines share the
-    // other 83 as they shared their 95 (largest remainders).
+    // P4 lane AI (spec §17.5): the planes take 21 points (fighters 12 —
+    // Task 15's AI_FIGHTER_SHARE —, heavy fighters 1, close support 5,
+    // naval bombers 2, transports 1; the tactical bombers' 3 are the
+    // lean's), the ground lines share the other 79 as they shared their 95
+    // (largest remainders).
     expect(aiLineShares("DEU", true, light, false)).toEqual({
-      infantry_equipment: 31,
+      infantry_equipment: 29,
       support_equipment: 9,
-      artillery: 9,
+      artillery: 8,
       anti_tank: 4,
       anti_air: 4,
-      motorized: 9,
+      motorized: 8,
       light_tank: 17,
       medium_tank: 0,
-      fighter: 8,
+      fighter: 12,
       bomber: 0,
       heavy_fighter: 1,
       cas: 5,
@@ -775,6 +781,40 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     ).toEqual(["conscription:extensive"]);
   });
 
+  // Task 15: the fuel's oil is bought too (its stock under half the
+  // capacity: aiInput's fuelOil); one unit serves the lines and the fuel.
+  test("buy oil for fuel", () => {
+    expect(withFuelOil(res({ oil: 4 }), 10)[RESOURCE_IDS.indexOf("oil")]).toBe(
+      10,
+    );
+    expect(withFuelOil(res({ oil: 12 }), 10)[RESOURCE_IDS.indexOf("oil")]).toBe(
+      12,
+    );
+    const partners = [
+      { smallID: 7, sameFaction: false, room: res({ oil: 80 }) },
+    ];
+    const buy = (fuelOil: number, produced = res({ oil: 2 })) =>
+      only(
+        aiPlan(
+          input({
+            freeCivMilli: 20_000,
+            payableCivs: 10,
+            partners,
+            produced,
+            fuelOil,
+          }),
+        ),
+        "open_trade",
+      );
+    // 12 oil wanted, 2 of its own: 10 to buy, two factories' worth (8 each).
+    expect(buy(12)).toEqual([
+      { kind: "open_trade", seller: 7, resource: "oil", civs: 2 },
+    ]);
+    expect(buy(0)).toEqual([]);
+    expect(buy(10, res({ oil: 10 }))).toEqual([]);
+    expect(AI_FUEL_OIL_MAX).toBe(30);
+  });
+
   test("buy what lines lack, at most 30% of free civs", () => {
     // Ten artillery factories: steel 20 (all mined), tungsten 10 (none):
     // two factories' worth of tungsten to buy.
@@ -829,9 +869,27 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
           produced: res({ steel: 20, tungsten: 10 }),
           imported: res({ steel: 24 }),
           buying: [
-            { id: 3, seller: 2, res: RESOURCE_IDS.indexOf("steel"), civs: 1 },
-            { id: 7, seller: 4, res: RESOURCE_IDS.indexOf("steel"), civs: 2 },
-            { id: 9, seller: 5, res: RESOURCE_IDS.indexOf("steel"), civs: 5 },
+            {
+              id: 3,
+              seller: 2,
+              res: RESOURCE_IDS.indexOf("steel"),
+              civs: 1,
+              units: 8,
+            },
+            {
+              id: 7,
+              seller: 4,
+              res: RESOURCE_IDS.indexOf("steel"),
+              civs: 2,
+              units: 16,
+            },
+            {
+              id: 9,
+              seller: 5,
+              res: RESOURCE_IDS.indexOf("steel"),
+              civs: 5,
+              units: 40,
+            },
           ],
         }),
       ),
@@ -1066,7 +1124,13 @@ describe("the AI economy in a game (spec §12)", () => {
     const kinds = deu.queue.map((q) => q.building);
     expect(kinds[0]).toBe("mil");
     expect(kinds.indexOf("civ")).toBe(kinds.lastIndexOf("civ"));
-    expect(kinds.slice(kinds.indexOf("civ") + 1)).toEqual([]);
+    // (Task 15: the turn's P4 builds come last — a synthetic refinery for
+    // the trucks' rubber here.)
+    expect(
+      kinds
+        .slice(kinds.indexOf("civ") + 1)
+        .filter((k) => k !== "synthetic_refinery"),
+    ).toEqual([]);
     // (It was still in front for that day's building.)
     expect(
       deu.queue.find((q) => q.building === "civ")!.progress,
@@ -1083,9 +1147,11 @@ describe("the AI economy in a game (spec §12)", () => {
     expect(deu.totals.idleMil).toBe(0);
     const start = deu.lines.map((l) => ({ ...l }));
     throughDay(runner, 0);
-    expect(deu.lines.map((l) => [l.id, l.key, l.factories])).toEqual(
-      start.map((l) => [l.id, l.key, l.factories]),
-    );
+    // (Task 15: the turn may reorder them — the kit, the planes, the rest.)
+    const byId = (
+      ls: readonly { id: number; key: number; factories: number }[],
+    ) => ls.map((l) => [l.id, l.key, l.factories]).sort((a, b) => a[0] - b[0]);
+    expect(byId(deu.lines)).toEqual(byId(start));
     // Infantry equipment heads the list and has the most.
     expect(deu.lines[0].key).toBe(equipKey("infantry_equipment", 1));
     expect(Math.max(...deu.lines.map((l) => l.factories))).toBe(
@@ -1103,6 +1169,39 @@ describe("the AI economy in a game (spec §12)", () => {
     expect(deu.lines.reduce((s, l) => s + l.factories, 0)).toBe(8);
     throughDay(runner, 6);
     expect(deu.totals.idleMil).toBe(0);
+  });
+
+  test("the aircraft lines stand after the infantry's kit and before the rest (Task 15)", async () => {
+    const { econ, ce } = await allAi();
+    const deu = ce("DEU");
+    for (const t of ["fighter_1", "cas_1", "support_eq_1"] as const) {
+      deu.addTech(t);
+    }
+    const typeOf = (id: number) =>
+      EQUIP_KEYS[deu.lines.find((l) => l.id === id)!.key][0];
+    // Support equipment at the bottom, a fighter line in the middle and a
+    // close-support line last.
+    expect(addLine(econ, deu, "support_equipment", 1, 1)).toBeNull();
+    expect(addLine(econ, deu, "fighter", 1, 1)).toBeNull();
+    const fighter = deu.lines[deu.lines.length - 1].id;
+    expect(moveLine(econ, deu, fighter, 1)).toBeNull();
+    expect(addLine(econ, deu, "cas", 1, 1)).toBeNull();
+    const before = deu.lines.map((l) => l.id);
+    const rank = (id: number) => {
+      const t = typeOf(id);
+      if (t === "infantry_equipment" || t === "support_equipment") return 0;
+      return t === "fighter" || t === "cas" ? 1 : 2;
+    };
+    const want = [0, 1, 2].flatMap((k) =>
+      before.filter((id) => rank(id) === k),
+    );
+    expect(want).not.toEqual(before);
+    aiPlanesFirst(econ, deu);
+    expect(deu.lines.map((l) => l.id)).toEqual(want);
+    expect(typeOf(want[want.length - 1])).not.toBe("cas");
+    // Already in order: nothing moves.
+    aiPlanesFirst(econ, deu);
+    expect(deu.lines.map((l) => l.id)).toEqual(want);
   });
 
   test("research slots start filled, and get filled again the day a tech is done", async () => {
@@ -1197,25 +1296,26 @@ describe("the AI economy in a game (spec §12)", () => {
     // Their first turns: day 0, each on its own tick (Italy's 2, France's 4).
     throughDay(runner, 0);
     // Italy's artillery line wants tungsten; Britain sells it across the
-    // sea. France, later on the day, finds London's room taken: its guns
-    // wait (first come, first served, as in a market).
+    // sea. France, later on the day, finds London's room mostly taken (first
+    // come, first served, as in a market): P4 Task 15, its last factory
+    // buys what is left, fewer than 8 a day.
+    const TUNGSTEN = RESOURCE_IDS.indexOf("tungsten");
     const deals = (buyer: number) =>
-      econ.trades().filter((t) => t.buyer === buyer);
+      econ.trades().filter((t) => t.buyer === buyer && t.res === TUNGSTEN);
     expect(deals(ita.smallID)).toContainEqual(
       expect.objectContaining({
         seller: gbr.smallID,
-        res: RESOURCE_IDS.indexOf("tungsten"),
+        res: TUNGSTEN,
         civs: 1,
+        units: 8,
       }),
     );
-    expect(
-      deals(fra.smallID).filter(
-        (t) => t.res === RESOURCE_IDS.indexOf("tungsten"),
-      ),
-    ).toEqual([]);
-    expect(
-      exportRoom(econ, gbr.smallID, RESOURCE_IDS.indexOf("tungsten")),
-    ).toBeLessThan(8);
+    const rest = deals(fra.smallID).filter((t) => t.seller === gbr.smallID);
+    expect(rest).toHaveLength(1);
+    expect(rest[0].civs).toBe(1);
+    expect(rest[0].units).toBeGreaterThan(0);
+    expect(rest[0].units).toBeLessThan(8);
+    expect(exportRoom(econ, gbr.smallID, TUNGSTEN)).toBe(0);
     // The plan's export room is Trade.exportRoom, partner by partner.
     for (const c of econ.countries()) {
       const i = aiInput(econ, c, econ.day(), runner.game.ticks());

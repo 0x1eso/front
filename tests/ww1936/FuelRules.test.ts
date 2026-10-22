@@ -22,6 +22,10 @@ describe("fuel rules", () => {
     expect(fuelRatioPm(0, 0)).toBe(1000);
     expect(fuelRatioPm(500, 1000)).toBe(500);
     expect(startFuelMilli(360_000, 57_500_000)).toBe(32_400_000);
+    // Task 15: at least half the capacity (an importer: Italy, no oil).
+    expect(startFuelMilli(0, 20_000_000)).toBe(10_000_000);
+    expect(startFuelMilli(72_000, 27_500_000)).toBe(13_750_000);
+    expect(startFuelMilli(3_000_000, 100_000_000)).toBe(100_000_000);
   });
 
   it("the land, naval and combat factors", () => {

@@ -2,6 +2,8 @@
 // land war, the navy and the air war write, the settlement on the country
 // turn, the capacity, the synthetic refineries' oil and the navy's day of
 // fuel at sea.
+import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   fuelCap,
   fuelGain,
@@ -91,11 +93,29 @@ export function settleFuel(
 }
 
 /**
+ * The country day that bills a tick at sea of `owner`'s fleet (Fleet.seaDay):
+ * today's when the tick comes before the owner's turn (smallID % 7), else
+ * tomorrow's. Every tick at sea belongs to exactly one turn, so a short
+ * trip across a turn is billed once (Task 15: the old "yesterday or
+ * today" window billed a trip that ended before a turn twice).
+ */
+export function fleetFuelDay(
+  navy: WwNavy,
+  owner: number,
+  day: number,
+  tick: number,
+): number {
+  const turn =
+    dayStartTick(day, navy.ww.prepEndTick()) + (owner % WW_DAY_SPLIT);
+  return tick < turn ? day : day + 1;
+}
+
+/**
  * Spec §7.3, §15.3 (pre-flight A13): the navy's fuel of the day — every
- * ship of a fleet that spent a tick at sea since the country's last day
- * (Fleet.seaDay: yesterday or today; a strike force in port never is),
- * fuel a day (no generation factor) × (100 + fuelUsePct) / 100. WwNavy's
- * country day calls it.
+ * ship of a fleet that spent a tick at sea since the country's last turn
+ * (Fleet.seaDay is this turn's day: fleetFuelDay; a strike force in port
+ * never is), fuel a day (no generation factor) × (100 + fuelUsePct) / 100.
+ * WwNavy's country day calls it.
  */
 export function noteFleetFuel(
   navy: WwNavy,
@@ -106,7 +126,7 @@ export function noteFleetFuel(
   if (ce === null) return;
   let perDay = 0;
   for (const f of navy.fleetsOf(smallID)) {
-    if (f.seaDay < 0 || f.seaDay < day - 1) continue;
+    if (f.seaDay !== day) continue;
     for (const id of f.ships) {
       const r = navy.ships.rowOf(id);
       if (r >= 0) perDay += navy.shipStatsOf(r).fuelPerDayMilli;

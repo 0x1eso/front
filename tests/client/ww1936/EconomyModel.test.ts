@@ -59,6 +59,7 @@ import {
   lineRows,
   lineShortages,
   liveWarDays,
+  maxTradeCivs,
   menText,
   NOT_PARTNER_KEYS,
   openTradeBlock,
@@ -548,9 +549,10 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     // No detail yet: nobody to buy from (the screens build no graph).
     const { view: bare } = fakeEconGame({ summaries: sellers(room) });
     expect(tradeOffers(bare, scenario, me, [], "steel")).toEqual([]);
-    // Too little to sell (under 8 a day), or out of the war: left out of both.
+    // Nothing left to sell, or out of the war: left out of both. P4 Task
+    // 15: less than a factory's 8 still sells (the last factory buys it).
     const { view } = fakeEconGame({
-      summaries: sellers((t) => (t === "FRA" ? 7 : 8)),
+      summaries: sellers((t) => (t === "FRA" ? 0 : t === "POL" ? 3 : 8)),
       details: [detail("DEU", mine)],
     });
     const fighting = (id: number) => id !== ID("ITA");
@@ -561,7 +563,7 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       ]),
     ).toEqual([
       ["SUN", 8],
-      ["POL", 8],
+      ["POL", 3],
     ]);
     expect(
       blockedSellers(view, scenario, me, [], "steel", fighting).map(
@@ -588,6 +590,19 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     // Two factories' worth of room; 9 − 3.75 → 5 factories to pay with.
     expect(openTradeBlock(view, me, seller, "steel", 2, true)).toBeNull();
     expect(openTradeBlock(view, me, seller, "steel", 3, true)).toBe("no_room");
+    expect(maxTradeCivs(view, me, 16)).toBe(2);
+    // P4 Task 15: the last factory buys what is left (17 → three factories).
+    const part = fakeEconGame({
+      summaries: [
+        summary("DEU", { civ: 9 }),
+        summary("ITA", { exportRoom: [0, 0, 0, 0, 17, 0] }),
+      ],
+      details: [detail("DEU", { consumerGoodsMilli: 3_750 })],
+    }).view;
+    expect(openTradeBlock(part, me, seller, "steel", 3, true)).toBeNull();
+    expect(openTradeBlock(part, me, seller, "steel", 4, true)).toBe("no_room");
+    expect(maxTradeCivs(part, me, 17)).toBe(3);
+    expect(maxTradeCivs(part, me, 3)).toBe(1);
     expect(openTradeBlock(view, me, seller, "steel", 1, false)).toBe(
       "no_partner",
     );
@@ -602,7 +617,14 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
           consumerGoodsMilli: 3_750,
           paidCivs: 0,
           buying: [
-            { id: 1, buyer: me, seller: ID("FRA"), resource: "oil", civs: 4 },
+            {
+              id: 1,
+              buyer: me,
+              seller: ID("FRA"),
+              resource: "oil",
+              civs: 4,
+              units: 32,
+            },
           ],
         }),
       ],
@@ -844,6 +866,7 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
           seller: ID("DEU"),
           resource: "steel",
           civs: 2,
+          units: 16,
         },
       ],
       buying: [
@@ -853,6 +876,7 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
           seller: ID("ITA"),
           resource: "oil",
           civs: 5,
+          units: 40,
         },
       ],
     });

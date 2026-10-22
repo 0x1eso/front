@@ -291,4 +291,103 @@ describe("the land cards' P4 lines are the engine's (LandSeaAir parity)", () => 
     expect(seen.fort).toBe(2);
     expect(seen.shore).toBeGreaterThan(0);
   }, 120_000);
+
+  // Task 15 (the T15 carry list): the lead gunner is an ally — France's
+  // second-generation battleships with its own bombardment bonus. The
+  // client used neutral stats and generation 1 for it; the fleet's summary
+  // now carries its guns and its owner's bonus.
+  it("shore bombardment under an ally's guns", async () => {
+    const { runner, updates } = await wwRunnerCapture(
+      {},
+      [
+        { clientID: HUMAN, country: "GBR" },
+        { clientID: "HUMAN002", country: "ITA" },
+      ],
+      SEA.map,
+    );
+    const g = runner.game;
+    warAfterPrep(runner, HUMAN, "ITA");
+    clearLand(g);
+    stockUp(g, "GBR");
+    stockUp(g, "ITA");
+    const ww = g.worldWar()!;
+    const navy = ww.navy;
+    const l = ww.land;
+    const FRA = TAG_ID.FRA;
+    expect(l.sideOf(FRA)).toBe(l.sideOf(GBR));
+    placeArmy(g, "ITA", ROME, 1);
+    landAt(navy, g, placeArmy(g, "GBR", REGION.london, 1), ROME);
+    const atSea = (owner: number, comp: [["bb" | "cl", number, number]]) => {
+      const f = navy.fleets.get(
+        navy.createFleet(
+          owner,
+          owner === FRA ? REGION.lyon : REGION.london,
+          comp,
+        ),
+      )!;
+      f.docked = 0;
+      navy.setFleetZone(f, ZONE.middle);
+      f.mission = FLEET_MISSIONS.indexOf("invasion_support");
+      f.missionSr = SR.central;
+      f.state = FLEET_STATES.indexOf("on_station");
+      navy.markFleet(f.id);
+    };
+    // Under the 25% cap, so the numbers show.
+    atSea(GBR, [["cl", 1, 1]]);
+    atSea(FRA, [["bb", 2, 2]]);
+    const fr = ww.economy.country(FRA)!;
+    fr.stats.shoreBombardPct = 40;
+    step(runner);
+    expect(l.battles.has(ROME)).toBe(true);
+    const sc = ww.scenario;
+    const navyView = new WwNavyView(
+      sc,
+      () => GBR,
+      () => l.sideOf(GBR),
+    );
+    const air = new WwAirView(
+      sc,
+      () => GBR,
+      () => l.sideOf(GBR),
+    );
+    for (const u of updates) {
+      for (const x of u.updates[GameUpdateType.WwNavy] ?? []) {
+        navyView.apply(x.data, u.tick);
+      }
+    }
+    const gb = ww.economy.country(GBR)!;
+    const p4: LandSeaAir = {
+      navy: navyView,
+      air,
+      sideOf: (id) => l.sideOf(id),
+      membersOf: (x) => l.sideMembers(x),
+      stats: () => gb.stats,
+      atWarAny: (a) => ww.hasWar(a),
+      neutralTurkey: () => false,
+    };
+    const b = l.battles.get(ROME)!;
+    const t = l.divisions;
+    let n = 0;
+    for (let r = 0; r < t.rows; r++) {
+      if (!t.alive(r) || t.battle[r] !== ROME || t.role[r] === ROLE_ATTACK) {
+        continue;
+      }
+      const engine = modInputOf(l, r, ROME, false).shoreBp;
+      expect(engine).toBeLessThan(0);
+      expect(engine).toBeGreaterThan(-2500);
+      expect(
+        shoreBpOf(
+          p4,
+          sc,
+          GBR,
+          new Set(gb.researched),
+          ROME,
+          b.attLead,
+          t.owner[r],
+        ),
+      ).toBe(engine);
+      n++;
+    }
+    expect(n).toBeGreaterThan(0);
+  }, 120_000);
 });

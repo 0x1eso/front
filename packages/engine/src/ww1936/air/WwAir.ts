@@ -210,6 +210,8 @@ export class WwAir {
   // Derived (DERIVED_FIELDS).
   private deploysBySr = new Map<number, number[]>();
   private deploysByBase = new Map<number, number[]>();
+  /** Task 15 (perf): deployment ids by owner, ascending (deploymentsOf). */
+  private deploysByOwner = new Map<number, number[]>();
   /** owner × 256 + type × 4 + gen → the stats at that stats version and tech set (pre-flight §0-7). */
   private planeStatsMemo = new Map<
     number,
@@ -372,8 +374,13 @@ export class WwAir {
     return this.deploysBySr.get(sr) ?? NO_IDS;
   }
 
+  /** The owner's deployments in id order (the Map's order). */
   deploymentsOf(owner: number): Deployment[] {
-    return [...this.deployments.values()].filter((d) => d.owner === owner);
+    const ids = this.deploysByOwner.get(owner);
+    if (ids === undefined) return [];
+    const out: Deployment[] = [];
+    for (const id of ids) out.push(this.deployments.get(id)!);
+    return out;
   }
 
   /** Planes based at a region now (capacity check, spec §13.3). */
@@ -862,17 +869,20 @@ export class WwAir {
     this.planeStatsMemo.clear();
     this.deploysBySr = new Map();
     this.deploysByBase = new Map();
+    this.deploysByOwner = new Map();
     for (const d of this.deployments.values()) this.indexDeployment(d);
   }
 
   private indexDeployment(d: Deployment): void {
     insertSorted(this.deploysBySr, d.sr, d.id);
     insertSorted(this.deploysByBase, d.base, d.id);
+    insertSorted(this.deploysByOwner, d.owner, d.id);
   }
 
   private unindexDeployment(d: Deployment): void {
     removeFrom(this.deploysBySr, d.sr, d.id);
     removeFrom(this.deploysByBase, d.base, d.id);
+    removeFrom(this.deploysByOwner, d.owner, d.id);
   }
 
   /**
@@ -923,7 +933,64 @@ export class WwAir {
       if (r !== 0) h = (Math.imul(h, 31) + c.smallID * 19 + r) >>> 0;
     }
     h = (Math.imul(h, 31) + this.planesLostTotal) >>> 0;
-    return (Math.imul(h, 31) + this.bombPointsTotal) >>> 0;
+    h = (Math.imul(h, 31) + this.bombPointsTotal) >>> 0;
+    return this.hashRest(h) >>> 0;
+  }
+
+  /**
+   * P4 Task 16 (hash coverage, spec §19.5): everything else the snapshot
+   * holds — each deployment's type, counts per generation, target, base,
+   * loss remainder and flags; each zone's enemy superiority, sorties, naval
+   * search, ASW and strike pools, fighters' superiority and its day; each
+   * country's experience and auto zones — so a desync shows on the tick it
+   * happens. Derived fields (DERIVED_FIELDS) stay out.
+   */
+  private hashRest(h0: number): number {
+    let h = h0 | 0;
+    const mix = (v: number) => {
+      h = (Math.imul(h, 31) + (v | 0)) | 0;
+    };
+    const fold = (xs: ArrayLike<number>) => {
+      let s = xs.length;
+      for (let i = 0; i < xs.length; i++) s = (Math.imul(s, 33) + xs[i]) | 0;
+      mix(s);
+    };
+    const pairs = (m: ReadonlyMap<number, number>) => {
+      mix(m.size);
+      for (const [k, v] of m) {
+        mix(k);
+        mix(v);
+      }
+    };
+    for (const d of this.deployments.values()) {
+      mix(d.owner);
+      mix(d.type);
+      fold(d.counts);
+      mix(d.target);
+      mix(d.base);
+      mix(d.lossRest);
+      mix((d.auto ? 1 : 0) + d.volunteerFor * 2);
+    }
+    for (const z of this.zoneState) {
+      pairs(z.sup);
+      pairs(z.enemySup);
+      for (const [k, v] of z.sorties) {
+        mix(k);
+        fold(v);
+      }
+      pairs(z.navalSearch);
+      pairs(z.navalAsw);
+      pairs(z.navalStrike);
+      pairs(z.fightersSup);
+      mix(z.lastDay);
+    }
+    for (const c of this.countries()) {
+      mix(c.airXpMilli);
+      fold(c.autoZones);
+    }
+    mix(this.nextDeploymentId);
+    mix(this.lastCommonDay);
+    return h;
   }
 }
 

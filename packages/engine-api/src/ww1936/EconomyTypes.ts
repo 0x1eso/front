@@ -629,6 +629,8 @@ export interface WwTradeData {
   seller: number;
   resource: ResourceId;
   civs: number;
+  /** Units a day it moves (the last factory may buy fewer than 8). */
+  units: number;
 }
 
 export interface WwResourceRow {

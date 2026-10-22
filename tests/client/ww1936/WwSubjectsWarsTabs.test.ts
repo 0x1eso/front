@@ -150,6 +150,7 @@ describe("<ww-subjects-tab> (P5 spec §20.5)", () => {
           seller: ID("ITA"),
           resource: "steel" as const,
           civs: 3,
+          units: 24,
         },
       ],
     };

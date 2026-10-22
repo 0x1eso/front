@@ -18,7 +18,10 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { zoneWeather } from "@openfront/engine/ww1936/air/AirCombat";
+import {
+  dailyAirZone,
+  zoneWeather,
+} from "@openfront/engine/ww1936/air/AirCombat";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
@@ -280,4 +283,36 @@ describe("the 50% alert (spec §18.10)", () => {
     expect(z().alertDay.get(gbr)).toBe(day + 8);
     expect(zb().alertDay.get(gbr)).toBe(day + 8);
   }, 120_000);
+
+  // Task 15 (the T15 carry list): an alert of day 0 is a day too, and a
+  // quiet zone forgets an old alert on its day, before the emptiness
+  // check (it was cleared and sent again daily until the alert aged out).
+  it("keeps a day-0 alert and forgets an old one in a quiet zone", async () => {
+    const { runner } = await wwRunnerCapture({}, GBR_ITA, SEA.map);
+    const ww = runner.game.worldWar()!;
+    warAfterPrep(runner, HUMAN, "ITA");
+    const gbr = ww.land.sideOf(TAG_ID.GBR);
+    const idx = ww.scenario.srIdxOf(SR.eastern);
+    const z = ww.air.zoneState[idx];
+    const day = ww.day(runner.game.ticks()) + 1;
+    stepTo(runner, dayStartTick(day, ww.prepEndTick()));
+    // Nobody flies over the eastern sea: an alert of 7 days ago goes.
+    z.alertDay = new Map([[gbr, day - 7]]);
+    dailyAirZone(ww.air, SR.eastern, day);
+    expect(z.alertDay.size).toBe(0);
+    // One of 6 days ago stays (the spacing holds), and a quiet zone
+    // with nothing else in it stays as it is.
+    z.alertDay = new Map([[gbr, day - 6]]);
+    const sup = z.sup;
+    dailyAirZone(ww.air, SR.eastern, day);
+    expect([...z.alertDay]).toEqual([[gbr, day - 6]]);
+    expect(z.sup).toBe(sup);
+    // Day 0 counts: superiorityAlerts keeps the zero.
+    setStock(ww, TAG_ID.GBR, "fighter", [100, 0, 0]);
+    deploy(runner, TAG_ID.GBR, SR.central, "fighter", "air_superiority", 100);
+    const c = ww.air.zoneState[ww.scenario.srIdxOf(SR.central)];
+    c.alertDay = new Map();
+    dailyAirZone(ww.air, SR.central, 0);
+    expect(c.alertDay.get(gbr)).toBe(0);
+  }, 60_000);
 });

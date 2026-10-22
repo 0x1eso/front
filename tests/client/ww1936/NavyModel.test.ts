@@ -381,5 +381,20 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
     expect(navyDial(ctx, 650).lost).toBe(3);
     // A new day began at tick 710.
     expect(navyDial(ctx, 710).lost).toBe(1);
+    // Task 15: the engine's count of the day adds air and port strikes'
+    // sinkings (it counts the battle's too); yesterday's count is ignored.
+    g.navy.apply(
+      {
+        fleets: [],
+        removedFleets: [],
+        battles: [],
+        endedBattles: [],
+        seaRegions: [],
+        details: [navyDetail("GBR", { lostToday: [710, 4] })],
+      },
+      721,
+    );
+    expect(navyDial(ctx, 710).lost).toBe(4);
+    expect(navyDial(ctx, 725).lost).toBe(0);
   });
 });

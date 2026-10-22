@@ -642,10 +642,6 @@ function superiorityAlerts(
   const sc = air.ww.scenario;
   const s = sc.sr(sr)!;
   const land = air.land;
-  // Days past the spacing are forgotten (the state stays small).
-  for (const [side, last] of [...z.alertDay]) {
-    if (day - last >= SUP_ALERT_DAYS) z.alertDay.delete(side);
-  }
   const sides = new Set<number>([...before.keys(), ...after.keys()]);
   for (const side of [...sides].sort((a, b) => a - b)) {
     const was = before.get(side) ?? 0;
@@ -663,8 +659,13 @@ function superiorityAlerts(
       if (front) told.push(c);
     }
     if (told.length === 0) continue;
-    // Map order is key order (Global Constraints): insert sorted.
-    z.alertDay = sortedMap(new Map([...z.alertDay, [side, day]]));
+    // Map order is key order (Global Constraints): insert sorted. Day 0 is
+    // a day too (sortedMap drops zeros: Task 15).
+    z.alertDay = new Map(
+      [...z.alertDay, [side, day] as [number, number]].sort(
+        (a, b) => a[0] - b[0],
+      ),
+    );
     for (const c of told) {
       air.message(c, "events_display.ww1936_air_superiority", {
         sr,
@@ -673,6 +674,39 @@ function superiorityAlerts(
       });
     }
   }
+}
+
+/**
+ * Derived (one tick and war version, Task 15's perf pass): the sides with
+ * a member at war (past the preparation minute) with a member of side
+ * `F`, in sideList order — every zone's day asked it of every side.
+ */
+const enemySidesMemo = new WeakMap<
+  WwAir,
+  { stamp: string; m: Map<number, readonly { key: number }[]> }
+>();
+
+function enemySidesOf(air: WwAir, F: number): readonly { key: number }[] {
+  const land = air.land;
+  const stamp = `${air.mg.ticks()}|${air.ww.warVer}|${land.derivedEpoch}`;
+  let memo = enemySidesMemo.get(air);
+  if (memo === undefined || memo.stamp !== stamp) {
+    memo = { stamp, m: new Map() };
+    enemySidesMemo.set(air, memo);
+  }
+  let out = memo.m.get(F);
+  if (out === undefined) {
+    const members = land.sideMembers(F);
+    out = land
+      .sideList()
+      .filter(
+        (S) =>
+          S.key !== F &&
+          S.members.some((c) => members.some((m) => land.isEnemy(c, m))),
+      );
+    memo.m.set(F, out);
+  }
+  return out;
 }
 
 function sameNumberMap(
@@ -694,9 +728,21 @@ function zoneIsEmpty(z: ZoneAirState): boolean {
     z.navalSearch.size === 0 &&
     z.navalAsw.size === 0 &&
     z.navalStrike.size === 0 &&
-    z.fightersSup.size === 0 &&
-    z.alertDay.size === 0
+    z.fightersSup.size === 0
   );
+}
+
+/**
+ * The alerts' days past the spacing are forgotten (the state stays
+ * small), first thing on the zone's day — before the emptiness check, so
+ * a quiet zone with an old alert is empty (Task 15: it was cleared and
+ * sent to the screens again every day until the alert aged out).
+ */
+function pruneAlerts(z: ZoneAirState, day: number): void {
+  if (z.alertDay.size === 0) return;
+  for (const [side, last] of [...z.alertDay]) {
+    if (day - last >= SUP_ALERT_DAYS) z.alertDay.delete(side);
+  }
 }
 
 /** Puts a key-ordered copy of `m` (non-zero values only). */
@@ -722,6 +768,7 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   const idx = sc.srIdxOf(sr);
   if (idx < 0) return;
   const z = air.zoneState[idx];
+  pruneAlerts(z, day);
   const flights = flightsOf(air, sr, day, true);
   lastFlights.set(air, { tick: air.mg.ticks(), sr, flights });
   if (flights.length === 0) {
@@ -799,16 +846,10 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
   // side flying here (the land war's penalty and movement read it).
   const enemySup = new Map<number, number>();
   const enemyPp = new Map<number, number>();
-  const land = air.land;
   for (const F of sides) {
     const v = sup.get(F) ?? 0;
     if (v <= 0) continue;
-    const members = land.sideMembers(F);
-    for (const S of land.sideList()) {
-      if (S.key === F) continue;
-      if (!S.members.some((c) => members.some((m) => land.isEnemy(c, m)))) {
-        continue;
-      }
+    for (const S of enemySidesOf(air, F)) {
       const was = enemySup.get(S.key) ?? 0;
       const fp = pp.get(F) ?? 0;
       if (v > was || (v === was && fp > (enemyPp.get(S.key) ?? 0))) {

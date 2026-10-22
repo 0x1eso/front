@@ -202,8 +202,10 @@ export function fleetShipsOf(f: FleetSummary): [ShipClass, number, number][] {
  * `attacker`'s side): the attacking side's ships at sea on invasion
  * support or strike in the sea region of the region's harbor zone (not in
  * a battle, not going home), Σ(heavy + light / 2) at the stats of the
- * country with the most guns there; never on a no-strike region. Ships
- * and stats are mine as the engine has them; others' at generation 1.
+ * country with the most guns there; never on a no-strike region. Each
+ * fleet's guns and its owner's bombardment bonus come with its summary
+ * (`bombard`, the engine's numbers: an ally's too, Task 15); without
+ * them, mine as the engine has them and others' at generation 1.
  */
 export function shoreBpOf(
   p: LandSeaAir | null,
@@ -223,17 +225,23 @@ export function shoreBpOf(
   if (defender > 0 && p.sideOf(defender) === attSide) return 0;
   const zones = new Set(s.members);
   const byOwner = new Map<number, number>();
+  const bonus = new Map<number, number>();
   for (const f of p.navy.fleets.values()) {
     if (!zones.has(f.zone) || f.docked !== 0) continue;
     if (f.mission !== "invasion_support" && f.mission !== "strike") continue;
     if (f.state === "battle" || f.state === "returning") continue;
     if (p.sideOf(f.owner) !== attSide) continue;
-    const own = f.owner === me;
-    const stats = own ? p.stats() : emptyStats();
     let guns = 0;
-    for (const [cls, gen] of fleetShipsOf(f)) {
-      const st = shipStats(cls, gen, stats, own ? techs : NO_TECHS);
-      guns += st.heavy + Math.floor(st.light / 2);
+    if (f.bombard !== undefined) {
+      guns = f.bombard[0];
+      bonus.set(f.owner, f.bombard[1]);
+    } else {
+      const own = f.owner === me;
+      const stats = own ? p.stats() : emptyStats();
+      for (const [cls, gen] of fleetShipsOf(f)) {
+        const st = shipStats(cls, gen, stats, own ? techs : NO_TECHS);
+        guns += st.heavy + Math.floor(st.light / 2);
+      }
     }
     byOwner.set(f.owner, (byOwner.get(f.owner) ?? 0) + guns);
   }
@@ -248,7 +256,15 @@ export function shoreBpOf(
     }
   }
   if (lead === 0) return 0;
-  return shoreBombardBp(total, lead === me ? p.stats() : emptyStats());
+  const leadPct = bonus.get(lead);
+  return shoreBombardBp(
+    total,
+    leadPct !== undefined
+      ? { ...emptyStats(), shoreBombardPct: leadPct }
+      : lead === me
+        ? p.stats()
+        : emptyStats(),
+  );
 }
 
 const NO_TECHS: ReadonlySet<WwTechId> = new Set();

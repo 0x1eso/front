@@ -80,11 +80,14 @@ describe("economy P4 wiring", () => {
     const ce = ww.economy.country(TAG_ID.FRA)!;
     const turn = dayStartTick(1, ww.prepEndTick()) + (TAG_ID.FRA % 7);
     stepTo(runner, turn);
+    // France has no oil; its 1936 stock (half the capacity since Task 15)
+    // is emptied, so nothing covers the need.
+    ce.fuelMilli = 0;
     noteFuelUse(ce, 1000, 0);
     expect(ce.fuelLedgerMilli).toBe(1000);
     stepTo(runner, turn + 1);
     // The settlement after research emptied the ledger the same turn
-    // (lane E): France has no oil, so nothing covered the need.
+    // (lane E): nothing covered the need.
     expect(ce.fuelLedgerMilli).toBe(0);
     expect(ce.fuelUseMilli).toEqual([1000, 0, 0]);
     expect(ce.fuelRatioPm).toBe(0);

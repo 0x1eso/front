@@ -20,13 +20,19 @@ import {
   aiOverseasBlend,
   aiOverseasWarScore,
   aiPredictPm,
+  aiRegroups,
   AiSeaRegionView,
   aiSeaWarPm,
   AiShipRow,
   aiSupPower,
+  finishSideSum,
+  fleetAgg,
   fleetCounts,
   fleetRole,
+  fleetRows,
+  mergeSideSum,
   navalSideSum,
+  newSideSumAcc,
 } from "@openfront/engine/ww1936/navy/AiNavy";
 import {
   AI_BEAT_SCORE_PM,
@@ -301,6 +307,161 @@ describe("the navy AI's plan (spec §17.2)", () => {
     ]);
   });
 
+  test("a fleet in being (Italy) seeks battle only at 1.3 to 1 (Task 15)", () => {
+    // An even fight sends the default navy out, not Italy's; a clearly
+    // weaker enemy draws both.
+    const even = navalSideSum(rows({ bb: 2, dd: 6 }));
+    const weaker = navalSideSum(rows({ dd: 4 }));
+    const main = fleet(
+      { bb: 2, dd: 6 },
+      {
+        docked: 0,
+        sr: 1001,
+        state: "on_station",
+        mission: "patrol",
+        missionSr: 1001,
+      },
+    );
+    const ita = aiNavyStyle("ITA");
+    expect(ita.engagePm).toBe(1300);
+    expect(aiPredictPm(main.sum, even)).toBeLessThan(1300);
+    expect(aiPredictPm(main.sum, even)).toBeGreaterThanOrEqual(
+      AI_MAIN_ENGAGE_PM,
+    );
+    expect(aiPredictPm(main.sum, weaker)).toBeGreaterThanOrEqual(1300);
+    const plan = (enemySum: typeof even, style = aiNavyStyle("FRA")) =>
+      aiNavalPlan(
+        input({
+          fleets: [main],
+          regions: [
+            region(1001, { home: true }),
+            region(1002, { home: true, enemySup: 500, enemySum }),
+          ],
+          style,
+        }),
+      ).filter((o) => o.kind === "fleet_mission" || o.kind === "fleet_return");
+    expect(plan(even)).toEqual([
+      { kind: "fleet_mission", fleet: main.id, mission: "strike", sr: 1002 },
+    ]);
+    expect(plan(even, ita)).toEqual([{ kind: "fleet_return", fleet: main.id }]);
+    expect(plan(weaker, ita)).toEqual([
+      { kind: "fleet_mission", fleet: main.id, mission: "strike", sr: 1002 },
+    ]);
+    // Its patrols too stay out of a home region an enemy battle fleet holds.
+    const patrol = fleet({ dd: 4, cl: 1 });
+    const patrolPlan = (style = aiNavyStyle("FRA")) =>
+      aiNavalPlan(
+        input({
+          fleets: [patrol],
+          regions: [
+            region(1002, {
+              home: true,
+              enemySup: 500,
+              enemySum: navalSideSum(rows({ bb: 2 })),
+            }),
+          ],
+          style,
+        }),
+      ).filter((o) => o.kind === "fleet_mission");
+    expect(patrolPlan()).toEqual([
+      { kind: "fleet_mission", fleet: patrol.id, mission: "patrol", sr: 1002 },
+    ]);
+    expect(patrolPlan(ita)).toEqual([]);
+    // And half its submarine flotillas raid; the rest wait at home.
+    const subs = [fleet({ ss: 8 }), fleet({ ss: 8 })];
+    const raids = (style = aiNavyStyle("FRA")) =>
+      aiNavalPlan(
+        input({
+          fleets: subs,
+          regions: [
+            region(1002, { home: true, enemyTraffic: 10 }),
+            region(1003, { home: true, enemyTraffic: 5 }),
+          ],
+          style,
+        }),
+      ).filter((o) => o.kind === "fleet_mission" && o.mission === "raid");
+    expect(raids()).toHaveLength(2);
+    expect(raids(ita)).toHaveLength(1);
+  });
+
+  // Task 15: the 1936 order of battle's submarines with screens, and a
+  // battle fleet's flotilla, sat in port all war (no role took them).
+  test("at war a fleet no role takes is regrouped", () => {
+    expect(aiRegroups(counts({ cl: 2, ss: 17 }))).toBe(true);
+    expect(aiRegroups(counts({ bb: 3, dd: 17, ss: 20 }))).toBe(true);
+    expect(aiRegroups(counts({ bb: 3, dd: 9 }))).toBe(false);
+    expect(aiRegroups(counts({ ss: 8 }))).toBe(false);
+    const mixed = fleet({ cl: 2, ss: 17 });
+    const orders = aiNavalPlan(input({ fleets: [mixed] }));
+    expect(orders).toEqual([
+      {
+        kind: "fleet_split",
+        fleet: mixed.id,
+        counts: [["ss", 10]],
+        ships: [],
+      },
+      { kind: "fleet_split", fleet: mixed.id, counts: [["ss", 7]], ships: [] },
+    ]);
+    // At peace it waits.
+    expect(
+      aiNavalPlan(input({ atWar: false, fleets: [mixed] })).some(
+        (o) => o.kind === "fleet_split",
+      ),
+    ).toBe(false);
+  });
+
+  // Task 15: with no threat at home a battle fleet goes where the enemy
+  // holds the sea, when it would win there; else it strikes from home.
+  test("a battle fleet with no threat at home contests the sea", () => {
+    const main = fleet({ bb: 2, dd: 6 });
+    const even = navalSideSum(rows({ bb: 2, dd: 2 }));
+    const strong = navalSideSum(rows({ bb: 4, dd: 8 }));
+    const plan = (enemySum: typeof even, rangeKm = 10_000) =>
+      missions(
+        aiNavalPlan(
+          input({
+            fleets: [{ ...main, rangeKm }],
+            regions: [
+              region(1001, { home: true, km: 0 }),
+              region(1002, { enemySup: 200 }),
+              region(1003, { enemySup: 600, enemySum }),
+            ],
+          }),
+        ),
+      );
+    expect(plan(even)).toEqual([`${main.id}:patrol@1003`]);
+    // Too strong there: the next contested region (nothing known there).
+    expect(plan(strong)).toEqual([`${main.id}:patrol@1002`]);
+    // Out of range: it strikes from home.
+    expect(plan(even, 100)).toEqual([`${main.id}:strike@1001`]);
+  });
+
+  // Task 15: short of fuel the fleets save it.
+  test("short of fuel, no contest and patrols only where home is threatened", () => {
+    const main = fleet({ bb: 2, dd: 6 });
+    const p = fleet({ cl: 2, dd: 3 });
+    const regions = (threat: number) => [
+      region(1001, { home: true, km: 0, enemySup: threat }),
+      region(1002, { traffic: 20 }),
+      region(1003, { enemySup: 600 }),
+    ];
+    const plan = (fuelShort: boolean, threat = 0) =>
+      missions(
+        aiNavalPlan(
+          input({ fleets: [main, p], regions: regions(threat), fuelShort }),
+        ),
+      );
+    expect(plan(false)).toEqual([
+      `${main.id}:patrol@1003`,
+      `${p.id}:patrol@1001`,
+    ]);
+    expect(plan(true)).toEqual([`${main.id}:strike@1001`]);
+    expect(plan(true, 300)).toEqual([
+      `${main.id}:strike@1001`,
+      `${p.id}:patrol@1001`,
+    ]);
+  });
+
   test("peace keeps fleets home with one training patrol", () => {
     const main = fleet(
       { bb: 2, dd: 6 },
@@ -388,6 +549,52 @@ describe("the navy AI in a game (lane AI review)", () => {
     const fresh = navy.fleetsOf(gbr).filter((f) => f.newShips);
     expect(fresh.length).toBe(1);
     expect(fresh[0].ships.length).toBe(1);
+  }, 120_000);
+
+  test("the one-pass fleet sums are the rows' sums (Task 15 perf)", async () => {
+    // Every fleet of the sea map's 1936 navies, some ships damaged: fleetAgg
+    // gives navalSideSum, aiSupPower, fleetPower and the class counts of its
+    // rows, and merged sums are the sums of the joined rows.
+    const runner = await wwRunner({}, [], SEA.map);
+    const navy = runner.game.worldWar()!.navy;
+    const t = navy.ships;
+    navy.createFleet(TAG_ID.GBR, REGION.london, [
+      ["bb", 2, 2],
+      ["cv", 2, 1],
+      ["dd", 2, 4],
+    ]);
+    navy.createFleet(TAG_ID.GBR, REGION.london, [["ss", 2, 3]]);
+    navy.createFleet(TAG_ID.ITA, REGION.rome, [
+      ["ca", 2, 1],
+      ["cl", 1, 2],
+      ["dd", 3, 3],
+    ]);
+    navy.createFleet(TAG_ID.ITA, REGION.rome, [["dd", 2, 2]]);
+    let k = 0;
+    for (const f of navy.fleets.values()) {
+      for (const id of f.ships) {
+        const r = t.rowOf(id);
+        if (r >= 0 && k++ % 3 === 0) {
+          t.hp[r] = Math.floor((t.hp[r] * 2) / 3);
+          t.org[r] = Math.floor(t.org[r] / 2);
+        }
+      }
+    }
+    const all = newSideSumAcc();
+    const allRows: AiShipRow[] = [];
+    expect(navy.fleets.size).toBeGreaterThan(3);
+    for (const f of navy.fleets.values()) {
+      const rows = fleetRows(navy, f);
+      const fa = fleetAgg(navy, f);
+      expect(fa.counts).toEqual(fleetCounts(navy, f));
+      expect(fa.sup).toBe(aiSupPower(rows));
+      expect(fa.power).toBe(fleetPower(rows));
+      expect(finishSideSum(fa.sum)).toEqual(navalSideSum(rows));
+      mergeSideSum(all, fa.sum);
+      allRows.push(...rows);
+    }
+    expect(finishSideSum(all)).toEqual(navalSideSum(allRows));
+    expect(finishSideSum(newSideSumAcc())).toEqual(navalSideSum([]));
   }, 120_000);
 });
 

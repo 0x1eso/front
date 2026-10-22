@@ -170,6 +170,8 @@ export const DERIVED_FIELDS = new Set<string>([
   // id → row index (pre-flight U16: the real field names).
   "sideOfId",
   "sideListCache",
+  // P4 Task 15 (perf): side key → side, for sideMembers.
+  "sideByKey",
   "statsCache",
   "tplCache",
   // P2 Task 11 (perf): the stats inputs each cache entry was checked
@@ -229,6 +231,7 @@ export const DERIVED_FIELDS = new Set<string>([
   "sunkThisTick",
   "deploysBySr",
   "deploysByBase",
+  "deploysByOwner",
   "planeStatsMemo",
   "airDirtyZones",
   "airDirtyDeployments",
@@ -241,6 +244,10 @@ export const DERIVED_FIELDS = new Set<string>([
   "srKmMemo",
   "portVer",
   "portBits",
+  // P4 Task 15 (perf): the building-change counter caches key on.
+  "railPortVer",
+  "buildVer",
+  "graphVer",
   "warVer",
   // World War 1936 P5 (plan Task 1 Step 9): the endgame's human index,
   // administered regions, subject / exile / war indexes, news and screens'

@@ -239,6 +239,12 @@ export interface FleetSummary {
   repairDays?: number;
   /** With a carrier: the deck mix in tenths, fighter / CAS / torpedo bomber (spec §9.6). */
   mix?: [number, number, number];
+  /**
+   * P4 Task 15, every fleet at sea: its shore bombardment guns (Σ heavy +
+   * light / 2, centi, at the owner's stats and techs) and the owner's
+   * shoreBombardPct — the battle card's bombardment at an ally's numbers.
+   */
+  bombard?: [number, number];
 }
 export interface NavalBattleSummary {
   zone: number;
@@ -323,6 +329,8 @@ export interface CountryNavyDetail {
   landing?: number[];
   /** P4 lane U: my admirals now — [id, attack, defense, maneuver, coordination, trait bits, level]. */
   admiralSkills?: [number, number, number, number, number, number, number][];
+  /** P4 Task 15: [the first tick of today, my ships sunk today by anything] (the ⚓ dial's badge). */
+  lostToday?: [number, number];
 }
 export interface WwNavyData {
   fleets: FleetSummary[];
@@ -361,7 +369,12 @@ export const WW_HIT_LIGHT_PM = 120;
 export const WW_HIT_HEAVY_PM = 100;
 export const WW_HIT_TORPEDO_PM = 70;
 export const WW_HIT_DEPTH_PM = 150;
-export const WW_HIT_CARRIER_PM = 100;
+/**
+ * Task 15 (spec §23.3's carrier duel): 100 → 150. At 100 four 1936
+ * carriers with eight destroyers broke off before their second strike
+ * against four battleships (68% of their HP and five ships lost).
+ */
+export const WW_HIT_CARRIER_PM = 150;
 export const WW_HIT_PORT_PM = 150;
 export const WW_CONVOY_SPEED_KN = 12;
 export const WW_TRADE_CONVOY_KM = 5_000;
@@ -376,7 +389,12 @@ export const WW_BEACHHEAD_CAPACITY_MILLI = 6_000;
 export const WW_RAID_CAP_PM = 30;
 export const WW_RAID_K = 60;
 export const WW_ESCORT_CUT_MAX_PM = 850;
-export const WW_ASW_K_PM = 20;
+/**
+ * Task 15 (spec §23.3 --convoy): 20 → 10. Forty destroyers sank 1.1 of
+ * thirty submarines a day at 500‰ spotting (2.3 when fully spotted);
+ * the spec's 0.3–1.0.
+ */
+export const WW_ASW_K_PM = 10;
 export const WW_ISLAND_REGION_BASE = 1343;
 export const WW_NAVY_XP_MAX_MILLI = 500_000;
 export const WW_TITLED_ADMIRAL_BASE = 200_000;

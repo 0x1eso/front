@@ -146,6 +146,13 @@ export function spotRegion(navy: WwNavy, sr: number, day: number): void {
     for (const c of st.lossYesterday.keys()) keys.add(navy.sideOf(c));
   }
   const newly: [number, number][] = [];
+  // Task 15's perf pass: each target's visibility once, not once a side.
+  const visMemo = new Map<number, { vis: number; subsOnly: boolean }>();
+  const visOf = (f: Fleet) => {
+    let v = visMemo.get(f.id);
+    if (v === undefined) visMemo.set(f.id, (v = fleetVisOf(navy, f)));
+    return v;
+  };
   for (const side of [...keys].sort((a, b) => a - b)) {
     const before = new Map(st.spot.get(side) ?? []);
     const seen = new Set<number>();
@@ -156,11 +163,17 @@ export function spotRegion(navy: WwNavy, sr: number, day: number): void {
         x === undefined ? 0 : x.surf + Math.floor(x.airSurfMilli / 1000);
       const sub =
         x === undefined ? 0 : x.sub + Math.floor(x.airSubMilli / 1000);
+      const atWar = new Map<number, boolean>();
       for (const f of targets) {
         if (navy.sideOf(f.owner) === side) continue;
-        if (!sideAtWarWith(navy, members, f.owner)) continue;
+        let w = atWar.get(f.owner);
+        if (w === undefined) {
+          w = sideAtWarWith(navy, members, f.owner);
+          atWar.set(f.owner, w);
+        }
+        if (!w) continue;
         seen.add(f.id);
-        const v = fleetVisOf(navy, f);
+        const v = visOf(f);
         const srch = v.subsOnly ? sub : surf;
         const was = before.get(f.id) ?? 0;
         const bonus = raided.has(f.id) ? WW_SPOT_RAID_BONUS_PM : 0;

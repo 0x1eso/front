@@ -13,11 +13,13 @@ import {
 } from "@openfront/engine-lib/ww1936/FuelRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
+  fleetFuelDay,
   fuelCapOf,
   noteFleetFuel,
   noteFuelUse,
 } from "@openfront/engine/ww1936/economy/Fuel";
 import type { CountryEconomy } from "@openfront/engine/ww1936/economy/WwEconomy";
+import { stepFleets } from "@openfront/engine/ww1936/navy/SeaMove";
 import { REGION, SEA, TAG_ID } from "./seaFixture";
 import { HUMAN, land, stepTo, withTestPolitics, wwRunnerCapture } from "./util";
 
@@ -88,12 +90,17 @@ describe("World War 1936 P4: fuel (spec §15)", () => {
     const { runner, ww, ce } = await soviets();
     settleAt(runner, 0);
     const oil = ce.totals.produced[0];
+    // P4 Task 15 (HOI4's Buna): as much rubber again.
+    const RUBBER = 2;
+    const rubber = ce.totals.produced[RUBBER];
     ww.economy.addBuilding(REGION.kiev, "synthetic_refinery", 2);
     settleAt(runner, 1);
     expect(ce.totals.produced[0]).toBe(oil + 2);
+    expect(ce.totals.produced[RUBBER]).toBe(rubber + 2);
     ce.addTech("synthetic_oil_2");
     settleAt(runner, 2);
     expect(ce.totals.produced[0]).toBe(oil + 4);
+    expect(ce.totals.produced[RUBBER]).toBe(rubber + 4);
     expect(ce.fuelGainMilli).toBe(fuelGain(oilOf(ce), ce.stats));
   });
 
@@ -157,14 +164,47 @@ describe("World War 1936 P4: fuel (spec §15)", () => {
     // Docked the whole time: nothing.
     noteFleetFuel(navy, SUN, 3);
     expect(ce.fuelLedgerMilli).toBe(ledger);
-    // A tick at sea yesterday or today: a day of fuel, at fuelUsePct.
-    f.seaDay = 2;
+    // A tick at sea since the last turn (seaDay: this turn's day): a day
+    // of fuel, at fuelUsePct.
+    f.seaDay = 3;
     noteFleetFuel(navy, SUN, 3);
     const day = Math.floor((perDay * (100 + ce.stats.fuelUsePct)) / 100);
     expect(ce.fuelLedgerMilli).toBe(ledger + day);
     expect(ce.fuelLedgerKinds[1]).toBe(day);
-    f.seaDay = 1;
+    // Billed by yesterday's turn already.
+    f.seaDay = 2;
     noteFleetFuel(navy, SUN, 3);
     expect(ce.fuelLedgerMilli).toBe(ledger + day);
+  });
+
+  // Task 15 (the T15 carry list): a trip that ends before the turn after
+  // it used to be billed by both turns ("yesterday or today").
+  test("a short trip across a turn is billed once", async () => {
+    const { runner, ww, ce } = await soviets();
+    const navy = ww.navy;
+    const f = navy.fleets.get(
+      navy.createFleet(SUN, REGION.kiev, [["dd", 1, 2]]),
+    )!;
+    const perDay = f.ships
+      .map((id) => navy.shipStatsOf(navy.ships.rowOf(id)).fuelPerDayMilli)
+      .reduce((a, b) => a + b, 0);
+    const day = Math.floor((perDay * (100 + ce.stats.fuelUsePct)) / 100);
+    // Ticks at sea before turn 3 bill turn 3; from turn 3 on, turn 4.
+    expect(fleetFuelDay(navy, SUN, 3, turnTick(3) - 1)).toBe(3);
+    expect(fleetFuelDay(navy, SUN, 3, turnTick(3))).toBe(4);
+    stepTo(runner, turnTick(3) - 1);
+    // Out for the tick before turn 3, docked again at the turn.
+    f.docked = 0;
+    stepFleets(navy, runner.game.ticks());
+    expect(f.seaDay).toBe(3);
+    f.docked = REGION.kiev;
+    const billed: number[] = [];
+    for (const d of [3, 4]) {
+      stepTo(runner, turnTick(d));
+      const before = ce.fuelLedgerKinds[1];
+      noteFleetFuel(navy, SUN, d);
+      billed.push(ce.fuelLedgerKinds[1] - before);
+    }
+    expect(billed).toEqual([day, 0]);
   });
 });

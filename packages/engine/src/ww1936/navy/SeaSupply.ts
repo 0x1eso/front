@@ -26,12 +26,30 @@ import {
 import { navalPort } from "./Ports";
 import type { SeaRoute, WwNavy } from "./WwNavy";
 
-// ---- Derived, per tick (a restored game builds the same) ----
+// ---- Derived (a restored game builds the same) ----
 
-interface SideSupply {
+/**
+ * What the map decides of a side's supply: kept while its stamp holds (the
+ * controllers, the sides, the buildings and the beachheads), so it is
+ * built a few times a day at most, not on every country's turn (Task 15's
+ * perf pass). Only the boot demand reads the day's supply and is summed
+ * again each tick.
+ */
+interface SideNet {
+  stamp: string;
   /** Regions a railway joins to a member's capital (P2 Supply.hubsOf's net). */
   railNet: Set<number>;
   /** Hub region → base capacity milli: the side's sea hubs and beachheads, region order. */
+  hubs: Map<number, number>;
+  /** The side's regions the hubs reach over land, BFS order, and each one's nearest hub. */
+  reached: number[];
+  nearest: number[];
+}
+
+interface SideSupply {
+  /** The net's stamp it was summed on (a change within the tick sums again). */
+  stamp: string;
+  railNet: Set<number>;
   hubs: Map<number, number>;
   /**
    * Hub → use, milli, of the side's regions short of supply whose nearest
@@ -43,7 +61,8 @@ interface SideSupply {
 }
 
 interface SupplyMemo {
-  stamp: string;
+  nets: Map<number, SideNet>;
+  tick: number;
   sides: Map<number, SideSupply>;
   routeStamp: string;
   /** Hub region → its supply routes (by id). */
@@ -55,26 +74,63 @@ const memos = new WeakMap<WwNavy, SupplyMemo>();
 function memoOf(navy: WwNavy): SupplyMemo {
   let m = memos.get(navy);
   if (m === undefined) {
-    m = { stamp: "", sides: new Map(), routeStamp: "", routes: new Map() };
+    m = {
+      nets: new Map(),
+      tick: -1,
+      sides: new Map(),
+      routeStamp: "",
+      routes: new Map(),
+    };
     memos.set(navy, m);
   }
   return m;
 }
 
-/** The side's rail net, hubs and their bootstrap demand, built once a tick. */
+/**
+ * Everything buildSideNet reads: the controllers (and the capitals they
+ * move), the factions (sides), the railway and naval-base levels and their
+ * damage, and the side's beachheads that count today.
+ */
+function netStamp(navy: WwNavy, side: number): string {
+  const land = navy.land;
+  const econ = navy.econ;
+  let s = `${land.controlChanges}|${land.derivedEpoch}|${econ.portVer}|${econ.railPortVer}`;
+  if (navy.beachhead.size > 0) {
+    const day = navy.ww.day(navy.mg.ticks());
+    for (const [r, b] of navy.beachhead) {
+      if (b.side === side) s += `|${r}:${b.until >= day ? 1 : 0}`;
+    }
+  }
+  return s;
+}
+
+/** The side's rail net, hubs and their bootstrap demand (the demand summed once a tick). */
 function sideSupply(navy: WwNavy, side: number): SideSupply {
   const land = navy.land;
   const m = memoOf(navy);
-  const stamp = `${navy.mg.ticks()}|${land.controlChanges}|${navy.econ.portVer}`;
-  if (m.stamp !== stamp) {
-    m.stamp = stamp;
+  const tick = navy.mg.ticks();
+  if (m.tick !== tick) {
+    m.tick = tick;
     m.sides = new Map();
   }
+  const stamp = netStamp(navy, side);
   let s = m.sides.get(side);
-  if (s === undefined) {
-    s = buildSide(navy, side);
-    m.sides.set(side, s);
+  if (s !== undefined && s.stamp === stamp) return s;
+  let net = m.nets.get(side);
+  if (net === undefined || net.stamp !== stamp) {
+    net = buildSideNet(navy, side, stamp);
+    m.nets.set(side, net);
   }
+  const boot = new Map<number, number>();
+  for (let i = 0; i < net.reached.length; i++) {
+    const r = net.reached[i];
+    const use = land.useMilli[r] ?? 0;
+    if (use <= 0 || (land.supplyMilli[r] ?? 0) >= use) continue;
+    const h = net.nearest[i];
+    boot.set(h, (boot.get(h) ?? 0) + use);
+  }
+  s = { stamp, railNet: net.railNet, hubs: net.hubs, boot };
+  m.sides.set(side, s);
   return s;
 }
 
@@ -91,14 +147,15 @@ function baseMilli(navy: WwNavy, region: number, side: number): number {
     : 0;
 }
 
-function buildSide(navy: WwNavy, side: number): SideSupply {
+function buildSideNet(navy: WwNavy, side: number, stamp: string): SideNet {
   const land = navy.land;
   const sc = navy.scenario;
   const ctl = land.controller;
   const members = land.sideMembers(side);
+  // A member's region (sideOf: members are the countries of the side).
   const ours = (r: number): boolean => {
     const c = ctl[r] ?? 0;
-    return c !== 0 && members.includes(c);
+    return c !== 0 && land.sideOf(c) === side;
   };
   // P2 Supply.hubsOf: the rail net from the members' capitals.
   const rail = navy.econ.rail;
@@ -136,32 +193,29 @@ function buildSide(navy: WwNavy, side: number): SideSupply {
     const base = baseMilli(navy, r, side);
     if (base > 0) hubs.set(r, base);
   }
-  // The regions short of supply, each to its nearest hub (BFS from every
-  // hub at once, hubs in region order: ties go to the smaller hub).
-  const boot = new Map<number, number>();
+  // Each of the side's regions to its nearest hub (BFS from every hub at
+  // once, hubs in region order: ties go to the smaller hub); sideSupply
+  // sums the ones short of supply.
+  const reached: number[] = [];
+  const nearest: number[] = [];
   if (hubs.size > 0) {
     const owner = new Map<number, number>();
-    const bq: number[] = [];
     for (const h of hubs.keys()) {
       owner.set(h, h);
-      bq.push(h);
+      reached.push(h);
+      nearest.push(h);
     }
-    for (let i = 0; i < bq.length; i++) {
-      const h = owner.get(bq[i])!;
-      for (const e of sc.edgesOf(bq[i])) {
+    for (let i = 0; i < reached.length; i++) {
+      const h = nearest[i];
+      for (const e of sc.edgesOf(reached[i])) {
         if (owner.has(e.to) || !ours(e.to)) continue;
         owner.set(e.to, h);
-        bq.push(e.to);
+        reached.push(e.to);
+        nearest.push(h);
       }
     }
-    for (const r of bq) {
-      const use = land.useMilli[r] ?? 0;
-      if (use <= 0 || (land.supplyMilli[r] ?? 0) >= use) continue;
-      const h = owner.get(r)!;
-      boot.set(h, (boot.get(h) ?? 0) + use);
-    }
   }
-  return { railNet, hubs, boot };
+  return { stamp, railNet, hubs, reached, nearest };
 }
 
 /** The supply route of `owner` to hub `region` (an index of the supply routes, rebuilt when routes come or go). */
@@ -297,6 +351,17 @@ export function syncSupplyRoutes(
 ): void {
   const land = navy.land;
   const sc = navy.scenario;
+  // A hub of ours is a port or a beachhead we control: with neither there
+  // is nothing to ship to (Task 15's perf pass: the side's net unbuilt).
+  if (
+    portRegionsOf(navy, owner).length === 0 &&
+    ![...navy.beachhead.keys()].some((r) => land.controller[r] === owner)
+  ) {
+    for (const r of routesOf(navy, owner)) {
+      if (r.use === USE_SUPPLY) dropRoute(navy, r.id);
+    }
+    return;
+  }
   const side = land.sideOf(owner);
   const ss = sideSupply(navy, side);
   const sources: number[] = [];

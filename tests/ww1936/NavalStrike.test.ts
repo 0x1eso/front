@@ -243,5 +243,12 @@ describe("World War 1936 P4: naval and port strikes (spec §14.9)", () => {
     // Docked ships' anti-air (× 0.5) and Rome's guns (none): 7 planes.
     expect(d.counts).toEqual([93, 0, 0]);
     expect(d.lossRest).toBe(0);
+    // Task 15: Italy's ⚓ badge counts the sinking (not only battles').
+    const ita = navy.country(f.owner)!;
+    expect(ita.shipsLostToday).toBe(1);
+    const lost = navy
+      .takeData()!
+      .details.find((x) => x.smallID === f.owner)?.lostToday;
+    expect(lost).toEqual([dayStartTick(ww.land.day(), ww.prepEndTick()), 1]);
   }, 60_000);
 });
