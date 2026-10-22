@@ -7089,6 +7089,7 @@
       "why": {
         "already_used": "이미 낸 요구입니다",
         "bad_demand": "지금은 낼 수 없는 요구입니다",
+        "claim_only": "영유권을 가진 나라만 이 주를 가져갈 수 있습니다",
         "conference_closed": "회의가 이미 끝났습니다",
         "lost_capital": "해방할 수 있는 나라가 아닙니다",
         "no_core": "그 땅에 코어가 없습니다",
@@ -7099,7 +7100,8 @@
         "no_target": "요구할 대상이 남아 있지 않습니다",
         "not_adjacent": "내가 통제하는 주와 맞닿아야 합니다",
         "not_participant": "이긴 나라만 요구할 수 있습니다",
-        "too_many_demands": "한 라운드에 요구는 최대 {max}개입니다"
+        "too_many_demands": "한 라운드에 요구는 최대 {max}개입니다",
+        "zone_only": "이 주는 점령 지구로만 둘 수 있습니다"
       }
     },
     "person": {

@@ -7396,6 +7396,7 @@
       "why": {
         "already_used": "Already demanded",
         "bad_demand": "This demand is not possible now",
+        "claim_only": "Only a country with a claim can take this region",
         "conference_closed": "The conference is closed",
         "lost_capital": "The loser is not a country that can be released",
         "no_core": "No core there",
@@ -7406,7 +7407,8 @@
         "no_target": "Nothing left to demand",
         "not_adjacent": "Must border a region you control",
         "not_participant": "Only the winning countries can make demands",
-        "too_many_demands": "At most {max} demands per round"
+        "too_many_demands": "At most {max} demands per round",
+        "zone_only": "This region can only be an occupation zone"
       }
     },
     "person": {

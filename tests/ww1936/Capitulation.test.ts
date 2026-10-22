@@ -61,6 +61,14 @@ function nextDay(runner: Awaited<ReturnType<typeof wwRunner>>): void {
   );
 }
 
+/**
+ * P5 (lane W): a capitulation opens a peace conference whose treaty may
+ * let the loser live on. With the victor played by a human who does
+ * nothing, it waits its round (300 ticks), so these tests see the
+ * capitulation's own P0–P2 effects.
+ */
+const HUMAN_DEU = [{ clientID: "HUMAN003", country: "DEU" as const }];
+
 /** Germany and Poland played by humans who do nothing. */
 const HUMAN_DEU_POL = [
   { clientID: HUMAN, country: "DEU" as const },
@@ -214,7 +222,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
   });
 
   test("a capitulation with no victor names none", async () => {
-    const { runner, updates } = await wwRunnerCapture();
+    const { runner, updates } = await wwRunnerCapture({}, HUMAN_DEU);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
@@ -238,7 +246,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
   });
 
   test("the land moves to the victor; the conquest is settled once, when the last tile moves", async () => {
-    const { runner, updates } = await wwRunnerCapture();
+    const { runner, updates } = await wwRunnerCapture({}, HUMAN_DEU);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
@@ -263,7 +271,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
   test("a tile someone else holds in a handed-over region goes with it", async () => {
     // P2 (spec §12.1, §12.5): a region's tiles follow its control, so the
     // capitulation's spread takes every tile of the loser's regions.
-    const runner = await wwRunner();
+    const runner = await wwRunner({}, HUMAN_DEU);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol, sun] = [byTag(g, "DEU"), byTag(g, "POL"), byTag(g, "SUN")];
@@ -318,7 +326,10 @@ describe("victory points and capitulation (spec §7.5)", () => {
   });
 
   test("land on its way to a country that capitulates goes on to its victor", async () => {
-    const { runner, updates } = await wwRunnerCapture();
+    const { runner, updates } = await wwRunnerCapture({}, [
+      ...HUMAN_DEU,
+      { clientID: "HUMAN004", country: "FRA" },
+    ]);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol, fra] = (["DEU", "POL", "FRA"] as const).map((t) =>
@@ -377,7 +388,10 @@ describe("victory points and capitulation (spec §7.5)", () => {
   });
 
   test("a human whose country capitulates is left watching", async () => {
-    const runner = await wwRunner({}, [{ clientID: HUMAN, country: "POL" }]);
+    const runner = await wwRunner({}, [
+      { clientID: HUMAN, country: "POL" },
+      { clientID: "HUMAN003", country: "DEU" },
+    ]);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
@@ -387,7 +401,11 @@ describe("victory points and capitulation (spec §7.5)", () => {
     nearlyFull(g, pol);
     nextDay(runner);
     step(runner, 3);
-    expect(g.playerByClientID(HUMAN)!.isAlive()).toBe(false);
+    expect(pol.isAlive()).toBe(false);
+    // P5 (lane W, spec §5.1-7): without a host the human gets a takeover
+    // card — with no candidate, it spectates (commands no country).
+    expect(ww.endgame.controlledBy(HUMAN)).toBe(0);
+    expect(g.playerByClientID(HUMAN)).toBeNull();
     expect(g.getWinner()).toBeNull();
   });
 
@@ -425,7 +443,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
   });
 
   test("land handed to the loser during its transfer goes along too", async () => {
-    const { runner, updates } = await wwRunnerCapture();
+    const { runner, updates } = await wwRunnerCapture({}, HUMAN_DEU);
     const g = runner.game;
     const ww = g.worldWar()!;
     const [deu, pol, sun] = (["DEU", "POL", "SUN"] as const).map((t) =>
