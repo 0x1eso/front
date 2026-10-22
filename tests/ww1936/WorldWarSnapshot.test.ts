@@ -408,9 +408,15 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // (W3 continuous focuses, congress, balance of power, treaty, faction
 // rules and goals, the mechanisms in the depth hash; W2 mines, aces, night
 // bombing and recon, every minefield, recon row and ace hashed; the U
-// screens add no engine state): same value in three runs.
+// screens add no engine state): same value in three runs (0763ee638cbeac6a).
+// Re-pinned after batch P6-3 (D doctrine mastery, command power, marshals
+// and army groups; M MIOs, licences and the arms market; I agencies,
+// operations and cryptology; S projects, the bomb, rockets and raids; W1
+// coal, energy, dams, rail guns, harbours and scorched earth; K5b content;
+// the AI buying the coal and uranium taken before the lines): same value in
+// three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "0763ee638cbeac6a";
+const WW1936_DIGEST = "7c4c0ca9e9c65748";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
