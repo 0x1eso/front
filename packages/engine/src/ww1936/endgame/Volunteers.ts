@@ -209,16 +209,34 @@ function arrivalOf(
   }
   // By sea: a port of the sender to a port of the host's side.
   const navy = ww.navy;
-  const ports = sc.landRegions
+  const allPorts = sc.landRegions
     .map((r) => r.id)
     .filter((r) => {
       const z = sc.harborOf(r);
       return z !== 0 && sc.zoneSr(z) !== 0 && side(r) && navalPort(ww, r);
     });
-  const zones = [...new Set(ports.map((r) => sc.harborOf(r)))].sort(
-    (x, y) => x - y,
-  );
-  const p = convoyPath(navy, from, portZonesOf(navy, from), zones);
+  // P5 final lane (Spain: Italy's volunteers landed on the Balearic Islands
+  // and never reached the front): a port joined by land to the host's
+  // front, when there is one — an island port strands them.
+  const reach = new Set<number>(front);
+  const q = [...front].sort((x, y) => x - y);
+  for (let h = 0; h < q.length; h++) {
+    for (const e of sc.edgesOf(q[h])) {
+      if (reach.has(e.to) || !side(e.to)) continue;
+      reach.add(e.to);
+      q.push(e.to);
+    }
+  }
+  const zonesOf = (rs: readonly number[]) =>
+    [...new Set(rs.map((r) => sc.harborOf(r)))].sort((x, y) => x - y);
+  const joined = allPorts.filter((r) => reach.has(r));
+  let ports = joined.length > 0 ? joined : allPorts;
+  let p = convoyPath(navy, from, portZonesOf(navy, from), zonesOf(ports));
+  if (p === null && ports !== allPorts) {
+    // No way by sea to the front's ports: any port of its side, as before.
+    ports = allPorts;
+    p = convoyPath(navy, from, portZonesOf(navy, from), zonesOf(ports));
+  }
   if (p === null) return "volunteer_conditions";
   if (freeConvoysOf(navy, from) < convoysForDivisions(navy, a.divisions)) {
     return "no_convoys";
