@@ -185,8 +185,38 @@ function bindFaction(eg: WwEndgame, s: Subject, tick: number): void {
   if (f < 0 || pol.factionIdx(s.subject) === f || !pol.living(s.subject)) {
     return;
   }
+  // P5 final lane (the empty-conference loop): never into an alliance it is
+  // at war with — joining would put it on both sides (makeSubject made its
+  // peace with the overlord's side first; a war since then keeps it out).
+  if (pol.factionMembers(f).some((m) => eg.ww.isAtWar(s.subject, m))) return;
   if (pol.factionIdx(s.subject) >= 0) leaveFaction(pol, s.subject, tick);
   joinFaction(pol, s.subject, f, tick);
+}
+
+/**
+ * P5 final lane (the empty-conference loop, HOI4: a subject fights its
+ * master's wars, never its master's side): a new subject, or one handed to
+ * another overlord, leaves every war but those against an enemy of its
+ * overlord or of the overlord's faction. A treaty's puppet that fought on
+ * the other side — still at war with the overlord's allies when it joined
+ * their faction — was dragged into new wars with its old allies every day.
+ */
+function peaceWithOverlordSide(
+  eg: WwEndgame,
+  subject: number,
+  overlord: number,
+  tick: number,
+): void {
+  const ww = eg.ww;
+  const pol = ww.politics;
+  const f = pol.factionIdx(overlord);
+  const side = f < 0 ? [overlord] : pol.factionMembers(f);
+  for (const e of [...ww.enemiesOf(subject)].sort((a, b) => a - b)) {
+    const shared = side.some((m) => m !== e && ww.isAtWar(m, e));
+    if (!shared || e === overlord || side.includes(e)) {
+      endWarBetween(pol, subject, e, tick);
+    }
+  }
 }
 
 /** The faction, and (`wars`) the overlord's ongoing wars by the level's rule. */
@@ -234,6 +264,7 @@ export function makeSubject(
     s.level = SUBJECT_LEVELS.indexOf(level);
     s.neutral = neutral;
     eg.dirtySubjects = true;
+    if (moved) peaceWithOverlordSide(eg, subject, overlord, tick);
     bind(eg, s, tick, moved || s.level < was);
     if (moved || s.level !== was) notifyLevel(eg, subject, overlord, level);
     return;
@@ -254,9 +285,7 @@ export function makeSubject(
     const ruling = pol.country(overlord)?.ruling;
     if (ruling !== undefined) setGovernment(pol, subject, ruling, tick);
   }
-  if (eg.ww.isAtWar(subject, overlord)) {
-    endWarBetween(pol, subject, overlord, tick);
-  }
+  peaceWithOverlordSide(eg, subject, overlord, tick);
   bind(eg, sub, tick, true);
   notifyLevel(eg, subject, overlord, level);
 }

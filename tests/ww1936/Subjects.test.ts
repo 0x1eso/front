@@ -31,6 +31,11 @@ import {
   tradeCivFactorPct,
 } from "@openfront/engine/ww1936/endgame/Subjects";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  createFaction,
+  joinFaction,
+  leaveFaction,
+} from "@openfront/engine/ww1936/politics/Factions";
 import { endId } from "./endFixture";
 import { subjectFixture } from "./subjectFixture";
 import {
@@ -52,7 +57,8 @@ async function started(humans: { clientID: string; country: "POL" }[] = []) {
   return { runner, g: runner.game, ww: runner.game.worldWar()! };
 }
 
-const T = (t: "DEU" | "POL" | "CSK" | "LTU" | "GBR" | "SVK") => endId(t);
+const T = (t: "DEU" | "POL" | "CSK" | "LTU" | "GBR" | "SVK" | "ITA") =>
+  endId(t);
 
 describe("World War 1936 P5: subject rules (pure)", () => {
   it("levels step up and down; up from a dominion is independence", () => {
@@ -121,6 +127,91 @@ describe("World War 1936 P5: subjects in a game", () => {
     );
     expect(ww.isAtWar(deu, pl)).toBe(true);
   });
+
+  it("a treaty's puppet from the other side makes peace with its new side (no daily wars)", async () => {
+    // The empty-conference loop (P5 final lane, seed WWEND012 1943-07): a
+    // puppet still at war with its overlord's allies joined their alliance
+    // and was dragged into new wars with its old allies every day.
+    const { runner, g, ww } = await started();
+    const eg = ww.endgame;
+    const pol = ww.politics;
+    const [deu, pl, csk, gbr, ita] = [
+      T("DEU"),
+      T("POL"),
+      T("CSK"),
+      T("GBR"),
+      T("ITA"),
+    ];
+    const day = pol.day();
+    const tick = g.ticks();
+    for (const x of [deu, pl, csk, gbr, ita]) {
+      if (pol.factionIdx(x) >= 0) leaveFaction(pol, x, tick);
+    }
+    const allies = createFaction(pol, gbr, undefined, day);
+    joinFaction(pol, pl, allies, tick);
+    const axis = createFaction(pol, deu, undefined, day);
+    joinFaction(pol, csk, axis, tick);
+    joinFaction(pol, ita, axis, tick);
+    for (const [a, b] of [
+      ["DEU", "POL"],
+      ["CSK", "POL"],
+      ["CSK", "GBR"],
+    ] as const) {
+      dropPact(g, a, b);
+    }
+    // Germany, Czechoslovakia and Italy against Poland and Britain.
+    ww.setWar(deu, pl, tick, { kind: "declare" });
+    const w = eg.warOfPair(deu, pl);
+    for (const [a, b] of [
+      [csk, pl],
+      [csk, gbr],
+      [deu, gbr],
+      [ita, pl],
+      [ita, gbr],
+    ]) {
+      ww.setWar(a, b, tick, { kind: "into", warId: w });
+    }
+    expect(ww.isAtWar(csk, gbr)).toBe(true);
+    // A treaty makes Czechoslovakia Poland's puppet.
+    makeSubject(eg, csk, pl, "puppet", false, tick);
+    expect(ww.isAtWar(csk, pl)).toBe(false);
+    expect(ww.isAtWar(csk, gbr)).toBe(false);
+    expect(pol.factionIdx(csk)).toBe(allies);
+    // It fights its master's war now: Germany and Italy, not its new allies.
+    expect(ww.isAtWar(csk, deu)).toBe(true);
+    expect(ww.isAtWar(csk, ita)).toBe(true);
+    // Days pass: no war with Czechoslovakia is made again, none on its own side.
+    const known = new Set(eg.wars.map((x) => x.id));
+    step(runner, 20 * 8);
+    const fresh = eg.wars.filter(
+      (x) => !known.has(x.id) && eg.sideIndex(x, csk) >= 0,
+    );
+    expect(fresh).toEqual([]);
+    expect(ww.isAtWar(csk, gbr) || ww.isAtWar(csk, pl)).toBe(false);
+  }, 60_000);
+
+  it("a subject at war with its overlord's ally does not join the alliance", async () => {
+    const { runner, g, ww } = await started();
+    const eg = ww.endgame;
+    const pol = ww.politics;
+    const [pl, csk, gbr] = [T("POL"), T("CSK"), T("GBR")];
+    const tick = g.ticks();
+    for (const x of [pl, csk, gbr]) {
+      if (pol.factionIdx(x) >= 0) leaveFaction(pol, x, tick);
+    }
+    const allies = createFaction(pol, gbr, undefined, pol.day());
+    joinFaction(pol, pl, allies, tick);
+    makeSubject(eg, csk, pl, "puppet", false, tick);
+    expect(pol.factionIdx(csk)).toBe(allies);
+    // Out of the alliance and at war with Britain since: its day does not
+    // put it back (it would stand on both sides).
+    leaveFaction(pol, csk, tick);
+    dropPact(g, "CSK", "GBR");
+    ww.setWar(csk, gbr, g.ticks(), { kind: "declare" });
+    step(runner, 2 * 8);
+    expect(pol.factionIdx(csk)).toBe(-1);
+    expect(subjectLine(eg, csk)?.overlord).toBe(pl);
+  }, 60_000);
 
   it("a colony follows when its overlord is declared on", async () => {
     const { g, ww } = await started();
