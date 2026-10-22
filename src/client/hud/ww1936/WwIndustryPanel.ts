@@ -432,19 +432,21 @@ export class WwIndustryPanel extends WwDrawerBase {
           demand: e.demand,
         })}
       </div>
-      ${m
-        .resourceLines()
-        .map(
-          (r) =>
-            html`<div data-ww-energy-res=${r.id} class="text-white/80">
-              ${translateText(
-                r.id === "coal"
-                  ? "ww1936.energy.coal_line"
-                  : "ww1936.energy.uranium_line",
-                { stock: 0, gain: signedText(r.balance) },
-              )}
-            </div>`,
-        )}
+      ${m.resourceLines().map(
+        (r) =>
+          html`<div data-ww-energy-res=${r.id} class="text-white/80">
+            ${translateText(
+              r.id === "coal"
+                ? "ww1936.energy.coal_line"
+                : "ww1936.energy.uranium_line",
+              {
+                // TODO(lane W1): energy stock
+                stock: 0,
+                gain: signedText(r.balance),
+              },
+            )}
+          </div>`,
+      )}
     </div>`;
   }
 

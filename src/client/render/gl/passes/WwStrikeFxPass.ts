@@ -62,6 +62,8 @@ export const PULSE_HZ = 0.5;
 export const PULSE_BRIGHTNESS = 0.5;
 export const LIGHT_MS = 20_000;
 export const LIGHT_PEAK = 0.4;
+/** The glow never covers more than this share of the shorter screen side. */
+export const GLOW_MAX_SHARE = 0.4;
 
 /** The glow t ms after the impact: LIGHT_PEAK fading to nothing over LIGHT_MS. */
 export function lightAlpha(t: number): number {

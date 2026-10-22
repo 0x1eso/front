@@ -107,6 +107,13 @@ function renderCard(
             have: c.uranium.got,
             need: c.uranium.need,
           })}
+          <span class="mt-0.5 block h-1.5 overflow-hidden rounded bg-white/15"
+            ><span
+              data-ww-input-bar
+              class="block h-full bg-emerald-400"
+              style="width:${Math.round(c.inputPm / 10)}%"
+            ></span
+          ></span>
         </div>`}
     ${c.scientist === null
       ? c.state === "running"

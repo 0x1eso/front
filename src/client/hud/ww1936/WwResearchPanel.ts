@@ -28,7 +28,13 @@ import {
   techName,
   techUnlock,
 } from "./EconomyModel";
-import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
+import {
+  countryName,
+  today,
+  TWO_TAP_MS,
+  TwoTap,
+  wwActive,
+} from "./WorldWarModel";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
 import { renderProjectsTab } from "./WwProjectsTab";
 import { TabUi } from "./WwTabUi";
@@ -124,7 +130,7 @@ export class WwResearchPanel extends WwDrawerBase {
       regionName: (r) => sc.region(r)?.name ?? String(r),
       name: (id) => {
         const tag = sc.tagOfSmallId(id);
-        return tag === undefined ? "?" : translateText(`ww1936.country.${tag}`);
+        return tag === undefined ? "?" : countryName(tag);
       },
       pick: this.tabPick,
     };

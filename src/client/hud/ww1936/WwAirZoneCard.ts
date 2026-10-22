@@ -32,7 +32,7 @@ import {
   zoneCard,
   ZoneCardData,
 } from "./AirModel";
-import { DepthIndustryModel } from "./DepthIndustryModel";
+import { DepthIndustryModel, offered } from "./DepthIndustryModel";
 import {
   blockText,
   buildingName,
@@ -408,7 +408,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
         d.owner === c.ctx.me &&
         d.sr === sr &&
         d.mission === "strategic_bombing" &&
-        model.zoneTargets(sr).length > 0,
+        offered(model.zoneTargets(sr)).length > 0,
     );
     const prev = flow.preview();
     return html`<div
@@ -469,7 +469,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
             @click=${() => flow.confirmDrop()}
           >
             ${flow.confirmArmed()
-              ? translateText("ww1936.econ.cancel_tap")
+              ? translateText("ww1936.nuke.confirm_tap")
               : translateText("ww1936.nuke.confirm")}
           </button>`
         : nothing}
@@ -498,8 +498,8 @@ export class WwAirZoneCard extends LitElement implements Controller {
               @click=${() => flow.confirmRaid()}
             >
               ${flow.raidArmed()
-                ? translateText("ww1936.econ.cancel_tap")
-                : translateText("ww1936.raid_ui.confirm")}
+                ? translateText("ww1936.raid_ui.confirm")
+                : translateText("ww1936.raid_ui.raid")}
             </button>`
         : nothing}
     </div>`;

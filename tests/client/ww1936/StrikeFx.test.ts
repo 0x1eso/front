@@ -3,6 +3,8 @@
 import { describe, expect, it } from "vitest";
 import {
   edgeWeight,
+  FLASH_INNER,
+  FLASH_MS,
   FLASH_PEAK,
   flashAlpha,
   FLIGHT_MS,
@@ -45,30 +47,22 @@ function harness(me = 2) {
 }
 
 describe("WwStrikeFxPass", () => {
-  it("a nuke effect never writes a tile", () => {
+  it("a nuke timeline calls exactly the planned sinks, in order, once each", () => {
     const h = harness();
     h.push("nuke");
     h.pass.update(0);
+    h.pass.update(FLIGHT_MS - 1);
+    expect(h.calls).toEqual(["flight"]);
     h.pass.update(FLIGHT_MS + 10);
-    // Three planes first, then ONE sprite, ONE shockwave, ONE ring, the sound.
-    expect(h.calls.filter((c) => c === "flight")).toHaveLength(1);
-    expect(h.calls.filter((c) => c === "atomSprite")).toHaveLength(1);
-    expect(h.calls.filter((c) => c === "shockwave")).toHaveLength(1);
-    expect(h.calls.filter((c) => c === "ring")).toHaveLength(1);
-    expect(h.calls).toContain("sound:atom-hit:true");
-    // Only drawing calls: nothing here can touch the map's tiles.
-    const allowed = new Set([
+    expect(h.calls.filter((c) => c !== "pulse" && c !== "light")).toEqual([
       "flight",
       "atomSprite",
       "shockwave",
       "ring",
-      "stream",
-      "miniExplosion",
-      "pulse",
-      "light",
       "sound:atom-hit:true",
     ]);
-    for (const c of h.calls) expect(allowed.has(c), c).toBe(true);
+    h.pass.update(FLIGHT_MS + 5_000);
+    expect(h.calls.filter((c) => c === "atomSprite")).toHaveLength(1);
   });
 
   it("a rocket is a stream and a small explosion without sound", () => {
@@ -79,28 +73,24 @@ describe("WwStrikeFxPass", () => {
     expect(h.calls).toEqual(["stream", "miniExplosion"]);
   });
 
-  it("the flash stays on the edges", () => {
-    // Nothing in the middle of the screen, the peak only at the border.
+  it("the flash stays on the edges and only the victim sees it", () => {
     expect(edgeWeight(0, 0)).toBe(0);
-    expect(edgeWeight(0.5, -0.5)).toBe(0);
+    expect(edgeWeight(FLASH_INNER, 0)).toBe(0);
     expect(edgeWeight(1, 0)).toBe(1);
     let peak = 0;
     for (let t = 0; t < 1_000; t += 10) peak = Math.max(peak, flashAlpha(t));
-    expect(peak).toBeLessThanOrEqual(FLASH_PEAK);
-    expect(flashAlpha(2_000)).toBe(0);
-    // Only the victim sees it, once.
-    const mine = harness(2);
-    mine.push("nuke");
-    mine.pass.update(0);
-    mine.pass.update(FLIGHT_MS + 10);
-    mine.pass.update(FLIGHT_MS + 100);
-    expect(Math.max(...mine.flashes)).toBeGreaterThan(0);
-    const other = harness(5);
-    other.push("nuke");
-    other.pass.update(0);
-    other.pass.update(FLIGHT_MS + 10);
-    other.pass.update(FLIGHT_MS + 100);
-    expect(Math.max(0, ...other.flashes)).toBe(0);
+    expect(peak).toBeCloseTo(FLASH_PEAK, 2);
+    expect(flashAlpha(FLASH_MS)).toBe(0);
+    const run = (me: number) => {
+      const h = harness(me);
+      h.push("nuke");
+      h.pass.update(0);
+      h.pass.update(FLIGHT_MS + 10);
+      h.pass.update(FLIGHT_MS + 100);
+      return Math.max(0, ...h.flashes);
+    };
+    expect(run(2)).toBeGreaterThan(0);
+    expect(run(5)).toBe(0);
   });
 
   it("the border pulse blinks at 0.5 Hz up to half brightness for 3 seconds", () => {
@@ -150,5 +140,31 @@ describe("WwStrikeFxPass light", () => {
     expect(alphas[0]).toBeGreaterThan(alphas[1]);
     expect(alphas[alphas.length - 1]).toBe(0);
     expect(alphas.filter((a) => a === 0)).toHaveLength(1);
+  });
+});
+
+describe("StrategicFxPass strike pulse input", () => {
+  it("the strike pulse brings its own brightness and ends on count 0", async () => {
+    const { StrategicFxPass } =
+      await import("../../../src/client/render/gl/passes/StrategicFxPass");
+    const gl = new Proxy(
+      {},
+      { get: () => () => ({}) },
+    ) as unknown as WebGL2RenderingContext;
+    const pass = new StrategicFxPass(gl);
+    pass.setTimeFn(() => 1_000);
+    pass.setCongressTargets([7]);
+    pass.setStrikePulse(Uint32Array.of(3), 1, 0.37);
+    pass.updatePulses();
+    expect(pass.pulseCount).toBe(2);
+    expect([pass.pulseOwners[0], pass.pulseValues[0]]).toEqual([
+      3,
+      expect.closeTo(0.37, 5),
+    ]);
+    expect(pass.pulseOwners[1]).toBe(7);
+    expect(pass.pulseValues[1]).not.toBeCloseTo(0.37, 3);
+    pass.setStrikePulse(Uint32Array.of(3), 0, 0);
+    pass.updatePulses();
+    expect(pass.pulseCount).toBe(1);
   });
 });

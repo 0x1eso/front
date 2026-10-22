@@ -27,7 +27,7 @@ import {
   offered,
   StrikeTargetRow,
 } from "./DepthIndustryModel";
-import { TWO_TAP_MIN_MS, TwoTap, wwActive } from "./WorldWarModel";
+import { TWO_TAP_MIN_MS, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 
 export type StrikeFlowKind =
   | "nuke"
@@ -319,6 +319,7 @@ export class WwNukeFlow implements Controller {
     if (!this.twoTap.tap(this.confirmKey(), this.now())) {
       s.taps = 4;
       this.changed();
+      this.redrawAtExpiry();
       return false;
     }
     this.send({ kind: "nuke_drop", region: s.region, rocket: false });
@@ -330,6 +331,14 @@ export class WwNukeFlow implements Controller {
 
   setRocketKind(kind: 0 | 1) {
     this.state.rocket = kind;
+    // The new kind reaches another distance: a target out of it is dropped.
+    if (
+      this.state.region !== 0 &&
+      !this.targets().includes(this.state.region)
+    ) {
+      this.state.region = 0;
+      this.state.step = "target";
+    }
     this.state.count = Math.max(1, Math.min(this.state.count, this.maxCount()));
     this.changed();
   }
@@ -349,7 +358,9 @@ export class WwNukeFlow implements Controller {
     if (s.kind !== "rocket" || s.step !== "setup" || s.region === 0) {
       return false;
     }
-    if (this.maxCount() <= 0) return false;
+    if (this.maxCount() <= 0 || !this.targets().includes(s.region)) {
+      return false;
+    }
     this.send({
       kind: "rocket_strike",
       site: s.from,
@@ -384,6 +395,7 @@ export class WwNukeFlow implements Controller {
     }
     if (!this.twoTap.tap(this.raidKey(), this.now())) {
       this.changed();
+      this.redrawAtExpiry();
       return false;
     }
     this.send({
@@ -395,6 +407,11 @@ export class WwNukeFlow implements Controller {
     });
     this.cancel();
     return true;
+  }
+
+  /** The armed label goes back when the second tap can no longer confirm. */
+  private redrawAtExpiry() {
+    setTimeout(() => this.changed(), TWO_TAP_MS + 50);
   }
 
   private send(order: WwOrder) {

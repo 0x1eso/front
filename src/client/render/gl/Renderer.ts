@@ -121,7 +121,11 @@ import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
 import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
-import { WwStrikeFxPass } from "./passes/WwStrikeFxPass";
+import {
+  FLASH_INNER,
+  GLOW_MAX_SHARE,
+  WwStrikeFxPass,
+} from "./passes/WwStrikeFxPass";
 import type { RenderSettings } from "./RenderSettings";
 import { AffiliationPalette } from "./utils/Affiliation";
 import {
@@ -295,8 +299,9 @@ export class GPURenderer {
   private strikeSound: ((loud: boolean) => void) | null = null;
   private strikeEdge: HTMLDivElement | null = null;
   private strikeLight: HTMLDivElement | null = null;
-  private congressIds: readonly number[] = [];
-  private strikeIds: readonly number[] = [];
+  /** Last values written to the glow and flash overlays (no style write when unchanged). */
+  private glowLast = { size: -1, left: 0, top: 0, op: -1 };
+  private edgeLastOp = -1;
   private readonly fleetLayout = new FleetLayoutCache();
   /** The sea or air layer's table as built, and as the pass last got it. */
   private readonly layerColors = new Uint8Array(LAYER_TABLE_SIZE * 4);
@@ -1397,12 +1402,7 @@ export class GPURenderer {
 
   /** World congress: emergency targets' borders pulse. */
   setCongressPulse(ownerIDs: readonly number[]): void {
-    this.congressIds = ownerIDs;
-    this.strategicFxPass.setCongressTargets(
-      this.strikeIds.length === 0
-        ? ownerIDs
-        : [...new Set([...ownerIDs, ...this.strikeIds])],
-    );
+    this.strategicFxPass.setCongressTargets(ownerIDs);
   }
 
   /** World War 1936 P6 (U4): the strike effects read `view.takeFx()`; `onSound` plays "atom-hit". */
@@ -1444,15 +1444,8 @@ export class GPURenderer {
         ring: (x, y) => this.strategicFxPass.spawnRipples([{ x, y }]),
         stream: (x, y) => this.strategicFxPass.spawnLaunch([{ x, y }]),
         miniExplosion: (x, y) => this.fxPass.spawnBombBlast(x, y),
-        pulse: (owners, count) => {
-          let same = count === this.strikeIds.length;
-          for (let i = 0; same && i < count; i++) {
-            same = owners[i] === this.strikeIds[i];
-          }
-          if (same) return;
-          this.strikeIds = Array.from(owners.subarray(0, count));
-          this.setCongressPulse(this.congressIds);
-        },
+        pulse: (owners, count, brightness) =>
+          this.strategicFxPass.setStrikePulse(owners, count, brightness),
         light: (x, y, alpha) => this.drawStrikeLight(x, y, alpha),
         edgeFlash: (alpha) => this.drawStrikeEdge(alpha),
         sound: (_name, loud) => this.strikeSound?.(loud),
@@ -1485,14 +1478,33 @@ export class GPURenderer {
       host.appendChild(el);
       this.strikeLight = el;
     }
+    const cw = this.canvas.clientWidth;
+    const ch = this.canvas.clientHeight;
     const z = this.camera.zoom / renderDpr();
-    const size = Math.max(40, 50 * z);
-    const sx = this.canvas.clientWidth / 2 + (x - this.camera.offsetX) * z;
-    const sy = this.canvas.clientHeight / 2 + (y - this.camera.offsetY) * z;
-    el.style.width = el.style.height = `${size}px`;
-    el.style.left = `${sx - size / 2}px`;
-    el.style.top = `${sy - size / 2}px`;
-    el.style.opacity = String(alpha);
+    // Never more than GLOW_MAX_SHARE of the shorter screen side, at any zoom.
+    const size = Math.round(
+      Math.min(Math.max(40, 50 * z), GLOW_MAX_SHARE * Math.min(cw, ch)),
+    );
+    const left = Math.round(cw / 2 + (x - this.camera.offsetX) * z - size / 2);
+    const top = Math.round(ch / 2 + (y - this.camera.offsetY) * z - size / 2);
+    const op = Math.round(alpha * 100);
+    const last = this.glowLast;
+    if (size !== last.size) {
+      el.style.width = el.style.height = `${size}px`;
+      last.size = size;
+    }
+    if (left !== last.left) {
+      el.style.left = `${left}px`;
+      last.left = left;
+    }
+    if (top !== last.top) {
+      el.style.top = `${top}px`;
+      last.top = top;
+    }
+    if (op !== last.op) {
+      el.style.opacity = String(op / 100);
+      last.op = op;
+    }
   }
 
   /** The victim's one red flash: a vignette on the screen's edges, the middle clear. */
@@ -1505,11 +1517,15 @@ export class GPURenderer {
       el.setAttribute("data-ww-strike-edge", "");
       el.style.cssText =
         "position:absolute;inset:0;pointer-events:none;z-index:5;" +
-        "background:radial-gradient(ellipse at center,rgba(220,0,0,0) 70%,rgba(220,0,0,1) 100%);opacity:0";
+        "background:radial-gradient(ellipse at center,rgba(220,0,0,0) " +
+        `${FLASH_INNER * 100}%,rgba(220,0,0,1) 100%);opacity:0`;
       host.appendChild(el);
       this.strikeEdge = el;
     }
-    el.style.opacity = String(alpha);
+    const op = Math.round(alpha * 100);
+    if (op === this.edgeLastOp) return;
+    this.edgeLastOp = op;
+    el.style.opacity = String(op / 100);
   }
 
   /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
