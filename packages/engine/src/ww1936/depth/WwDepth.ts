@@ -527,8 +527,12 @@ export class WwDepth implements LandDepthHooks {
   keyStatsSeq = 1;
   /** armyMods' reused query (derived scratch). */
   private modQuery: LandModQuery = { owner: 0, armyId: 0 };
-  /** sr * 64 + side → index in sea.mines. */
-  mineIndex = new Map<number, number>();
+  /**
+   * Strategic region → side → index in sea.mines (W2 review: P4 side keys
+   * are smallIDs or 100000 + faction, so no flat composite). Derived:
+   * rebuilt by reindexSparse.
+   */
+  mineIndex = new Map<number, Map<number, number>>();
   /** region → FACILITY_IDS index + 1. */
   facilityIndex = new Map<number, number>();
   /**
@@ -539,7 +543,8 @@ export class WwDepth implements LandDepthHooks {
    */
   regionStatusIndex = new Map<number, number>();
   resistBoostIndex = new Map<number, number>();
-  reconIndex = new Map<number, number>();
+  /** Side → strategic region → index in sea.reconBySide. */
+  reconIndex = new Map<number, Map<number, number>>();
   /** Pre-flight §0-3(d): what each design cache row was built from (statsVer, researched, projects done). */
   private designCacheKey = new Map<
     number,
@@ -1113,23 +1118,19 @@ export class WwDepth implements LandDepthHooks {
     this.keyStatTables.clear();
     this.keyStatsSeq++;
     this.reindexSparse();
-    this.mineIndex.clear();
     this.facilityIndex.clear();
     for (let id = 1; id < this.cap; id++) {
       if (this.countries[id] !== null && this.countries[id] !== undefined) {
         this.refreshDesignCache(id);
       }
     }
-    this.sea.mines.forEach(([sr, side], i) =>
-      this.mineIndex.set(sr * 64 + side, i),
-    );
     for (const r of this.ww.scenario.landRegions) {
       const f = facilityOf(this.ww, r.id);
       if (f > 0) this.facilityIndex.set(r.id, f);
     }
   }
 
-  /** Review E16: the §0-8 sparse tuples' indexes again (after a lane adds or removes a tuple). */
+  /** Review E16: the §0-8 sparse tuples' and the minefields' indexes again (after a lane adds or removes a tuple). */
   reindexSparse(): void {
     this.regionStatusIndex.clear();
     this.world.regionStatus.forEach((x, i) =>
@@ -1138,9 +1139,23 @@ export class WwDepth implements LandDepthHooks {
     this.resistBoostIndex.clear();
     this.resistBoost.forEach((x, i) => this.resistBoostIndex.set(x[0], i));
     this.reconIndex.clear();
-    this.sea.reconBySide.forEach((x, i) =>
-      this.reconIndex.set(x[0] * 1024 + x[1], i),
+    this.sea.reconBySide.forEach(([side, sr], i) =>
+      nested(this.reconIndex, side).set(sr, i),
     );
+    this.mineIndex.clear();
+    this.sea.mines.forEach(([sr, side], i) =>
+      nested(this.mineIndex, sr).set(side, i),
+    );
+  }
+
+  /** Index in sea.mines of `side`'s minefield in `sr`, -1 none. */
+  mineAt(sr: number, side: number): number {
+    return this.mineIndex.get(sr)?.get(side) ?? -1;
+  }
+
+  /** Index in sea.reconBySide of `side`'s recon over `sr`, -1 none. */
+  reconAt(side: number, sr: number): number {
+    return this.reconIndex.get(side)?.get(sr) ?? -1;
   }
 
   /** Every design slot's stats again, and a new KeyStatsTable on next read (pre-flight §0-3). */
@@ -1364,6 +1379,19 @@ export class WwDepth implements LandDepthHooks {
 }
 
 // ---- helpers (the foundation's bodies) ----
+
+/** The inner map of `outer` at `k`, made when missing. */
+function nested<V>(
+  outer: Map<number, Map<number, V>>,
+  k: number,
+): Map<number, V> {
+  let m = outer.get(k);
+  if (m === undefined) {
+    m = new Map<number, V>();
+    outer.set(k, m);
+  }
+  return m;
+}
 
 const EMPTY: ReadonlySet<unknown> = new Set();
 

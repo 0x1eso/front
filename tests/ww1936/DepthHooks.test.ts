@@ -364,3 +364,29 @@ describe("P6: the screens' detail numbers come from the rules (review E6)", () =
     void runner;
   });
 });
+
+describe("P6: the sparse indexes (review E16, W2)", () => {
+  it("minefields and recon are found by strategic region and side, faction sides too", async () => {
+    const { ww } = await deep("GBR");
+    const d = ww.depth;
+    const faction = 100_000 + 3;
+    // Keys that a flat sr * 64 + side would have mixed up.
+    d.sea.mines.push([DEEP.sr.central, faction, 5_000]);
+    d.sea.mines.push([DEEP.sr.central + 1, faction - 64, 7_000]);
+    d.sea.mines.push([DEEP.sr.central, DEEP.tag.ITA, 2_000]);
+    d.sea.reconBySide.push([faction, DEEP.sr.central, 4]);
+    d.sea.reconBySide.push([faction + 1, DEEP.sr.central - 1024, 9]);
+    d.world.regionStatus.push([DEEP.region.paris, 900, 80, 10, 95]);
+    d.resistBoost.push([DEEP.region.warsaw, 5]);
+    d.reindexSparse();
+    expect(d.mineAt(DEEP.sr.central, faction)).toBe(0);
+    expect(d.mineAt(DEEP.sr.central + 1, faction - 64)).toBe(1);
+    expect(d.mineAt(DEEP.sr.central, DEEP.tag.ITA)).toBe(2);
+    expect(d.mineAt(DEEP.sr.central, DEEP.tag.GBR)).toBe(-1);
+    expect(d.reconAt(faction, DEEP.sr.central)).toBe(0);
+    expect(d.reconAt(faction + 1, DEEP.sr.central - 1024)).toBe(1);
+    expect(d.reconAt(faction, DEEP.sr.central - 1024)).toBe(-1);
+    expect(d.regionStatusIndex.get(DEEP.region.paris)).toBe(0);
+    expect(d.resistBoostIndex.get(DEEP.region.warsaw)).toBe(0);
+  });
+});
