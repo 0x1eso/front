@@ -1273,8 +1273,36 @@ function crossing(
 }
 
 /**
+ * A side of `n` divisions with `s`'s per-division values (the sums
+ * scaled, the width-weighted averages kept): the fog's stand-in count.
+ */
+export function sideScaledTo(s: SideSum, n: number): SideSum {
+  if (n === s.divisions || s.divisions <= 0) return s;
+  const k = (x: number) => Math.floor((x * n) / s.divisions);
+  return {
+    divisions: n,
+    width: k(s.width),
+    soft: k(s.soft),
+    hard: k(s.hard),
+    def: k(s.def),
+    brk: k(s.brk),
+    armor: s.armor,
+    pierce: s.pierce,
+    hardnessPm: s.hardnessPm,
+    orgMilli: k(s.orgMilli),
+    hpMilli: k(s.hpMilli),
+  };
+}
+
+/**
  * Spec §9.9, §15.3-3: my army's sum against the defenders' sum in
  * `region` through predictBattle, each side with its modifiers.
+ *
+ * P6 (spec §8.9, T1b): `enemyValue` is the fog's preview count
+ * (FogModel.previewEnemyValue(count, owner)); the defenders' sum is
+ * scaled to it, so the ratio and the days never show more than the
+ * observer's intel on the region's holder. An empty region stays empty
+ * (no token shows there either).
  */
 export function attackPreview(
   view: WwLandView,
@@ -1284,6 +1312,7 @@ export function attackPreview(
   region: number,
   day: number,
   sides: LandSides = sidesOf(view),
+  enemyValue?: (count: number, owner: number) => number,
 ): AttackPreviewData | null {
   const a = myArmy(view, me, army);
   if (a === null || view.scenario.region(region) === undefined) return null;
@@ -1294,9 +1323,16 @@ export function attackPreview(
   const directions = Math.max(1, Math.min(4, origins.length));
   const { river, strait } = crossing(s, origins, region);
   const fort = economy.effectiveBuildings("fort", region);
-  const def = enemySideAt(view, economy, me, region, sides);
   const width = combatWidth(land, directions);
   const holder = view.controller[region] ?? 0;
+  const seen = enemySideAt(view, economy, me, region, sides);
+  const def =
+    enemyValue === undefined || seen.divisions <= 0
+      ? seen
+      : sideScaledTo(
+          seen,
+          enemyValue(seen.divisions, sides.sameSide(me, holder) ? 0 : holder),
+        );
   const att = divisionMods({
     ...armyInput(
       view,

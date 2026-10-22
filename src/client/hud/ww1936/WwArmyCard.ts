@@ -28,6 +28,7 @@ import { WwStrikeFlowEvent } from "./DepthEvents";
 import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { garrisonScopes, myOccRows } from "./EndgameModel";
+import { fogModelOf } from "./FogModel";
 import {
   ARMY_BUTTONS,
   ArmyButton,
@@ -908,6 +909,8 @@ export class WwArmyCard extends LitElement implements Controller {
         })}</span
       >`;
     } else if (kind === "attack" || kind === "paradrop") {
+      // P6 (spec §8.9, pre-flight A18): the defenders through the fog.
+      const fog = fogModelOf(this.game);
       const p = attackPreview(
         c.view,
         c.economy,
@@ -916,6 +919,7 @@ export class WwArmyCard extends LitElement implements Controller {
         region,
         c.day,
         sides,
+        (n, owner) => fog.previewEnemyValue(n, owner),
       );
       if (p !== null) body = this.renderAttack(name, p, compact);
     } else if (kind === "front") {

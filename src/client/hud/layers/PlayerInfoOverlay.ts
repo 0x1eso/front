@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { AllianceView } from "@openfront/engine-api/game/GameUpdates";
 import { UnitLike } from "@openfront/engine-api/game/ReadViews";
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -52,13 +53,14 @@ import {
   resourceName,
 } from "../ww1936/EconomyModel";
 import { occRegionLine, zoneLine } from "../ww1936/EndgameModel";
+import { fogModelOf } from "../ww1936/FogModel";
 import {
   landSidesOf,
   levelBoxes,
   levelDots,
   regionLandLines,
 } from "../ww1936/LandModel";
-import { regionSeaAirLines } from "../ww1936/NavyModel";
+import { fleetName, regionSeaAirLines } from "../ww1936/NavyModel";
 import {
   countryName,
   isKoreanUi,
@@ -745,7 +747,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             </div>
           </div>
           <div class="w-28 md:w-36" translate="no">
-            ${this.renderTroopBar(totalTroops, attackingTroops, maxTroops)}
+            ${this.renderTroopBar(
+              totalTroops,
+              attackingTroops,
+              maxTroops,
+              this.wwTroopLabels(player, totalTroops, maxTroops),
+            )}
           </div>
         </div>
         <!-- Right: Player identity + Units below -->
@@ -882,14 +889,41 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     </div>`;
   }
 
+  /**
+   * World War 1936 P6 (spec §8.9, pre-flight A18): another country's men
+   * and their cap are army numbers — through the fog's army band ("?", a
+   * range, or exact); null when the observer sees them exactly (its own
+   * side, spectators, the game's end, other modes).
+   */
+  private wwTroopLabels(
+    player: PlayerView,
+    total: number,
+    max: number,
+  ): [string, string] | null {
+    if (this.game.worldWarScenario() === null) return null;
+    const fog = fogModelOf(this.game);
+    const id = player.smallID();
+    if (fog.bandOf(id, ID_ARMY) >= 3) return null;
+    const label = (n: number) =>
+      fog
+        .countLabel(id, n, ID_ARMY)
+        .split("~")
+        .map((x) => (x === "?" ? x : renderTroops(Number(x))))
+        .join("~");
+    return [label(total), label(max)];
+  }
+
   private renderTroopBar(
     totalTroops: number,
     attackingTroops: number,
     maxTroops: number,
+    fogged: [string, string] | null = null,
   ) {
     const base = Math.max(maxTroops, 1);
-    const greenPercentRaw = (totalTroops / base) * 100;
-    const orangePercentRaw = (attackingTroops / base) * 100;
+    // A fogged bar stays empty: its fill would show the ratio.
+    const greenPercentRaw = fogged !== null ? 0 : (totalTroops / base) * 100;
+    const orangePercentRaw =
+      fogged !== null ? 0 : (attackingTroops / base) * 100;
 
     const greenPercent = Math.max(0, Math.min(100, greenPercentRaw));
     const orangePercent = Math.max(
@@ -916,11 +950,15 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
           class="absolute inset-0 flex items-center justify-between px-1.5 text-sm font-bold leading-none pointer-events-none"
           translate="no"
         >
-          <span class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
-            >${renderTroops(totalTroops)}</span
+          <span
+            data-troops-total
+            class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
+            >${fogged?.[0] ?? renderTroops(totalTroops)}</span
           >
-          <span class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
-            >${renderTroops(maxTroops)}</span
+          <span
+            data-troops-max
+            class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
+            >${fogged?.[1] ?? renderTroops(maxTroops)}</span
           >
         </div>
         <img
@@ -1002,7 +1040,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     const s = this.game.worldWarScenario();
     if (s === null || (this.game.wwEndgame?.() ?? null) === null) return "";
     const region = s.regionAt(tile);
-    const occ = occRegionLine(this.game, region);
+    // P6 (pre-flight A18): another side's garrison through the fog.
+    const occ = occRegionLine(this.game, region, fogModelOf(this.game));
     const zone = occ === null ? zoneLine(this.game, region) : null;
     if (occ === null && zone === null) return "";
     return html`<div
@@ -1098,31 +1137,43 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     if (s === null || economy === null) return "";
     const region = s.regionAt(tile);
     if (s.region(region) === undefined) return "";
-    const l = regionSeaAirLines(
-      s,
-      economy,
-      this.game.wwNavy?.() ?? null,
-      region,
-    );
+    const navy = this.game.wwNavy?.() ?? null;
+    const l = regionSeaAirLines(s, economy, navy, region);
+    // P6 (spec §8.9, pre-flight A18): the holder's buildings and damage at
+    // the observer's civil band (none at all when unknown), the fleets in
+    // port only when the fog shows them, their ships at the naval band.
+    const fog = fogModelOf(this.game);
+    const seen = fog.regionView(region);
+    const docked = [...(navy?.fleets.values() ?? [])]
+      .filter((f) => f.docked === region)
+      .sort((a, b) => a.id - b.id)
+      .flatMap((f) => {
+        const v = fog.fleetView(f.id);
+        return v.visible ? [{ name: fleetName(f), ships: v.shipsLabel }] : [];
+      });
     return html`<div
       data-ww-region-sea-air
       class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-white/80"
     >
-      ${l.levels.map(
-        ([b, n]) =>
-          html`<span data-ww-region-level=${b}
-            >${translateText(`ww1936.navy.region_${b}`, { n })}</span
-          >`,
-      )}
-      ${l.bombed === null
+      ${seen.buildings === "hidden"
+        ? ""
+        : l.levels.map(
+            ([b, n]) =>
+              html`<span data-ww-region-level=${b}
+                >${translateText(`ww1936.navy.region_${b}`, {
+                  n: seen.label(n),
+                })}</span
+              >`,
+          )}
+      ${l.bombed === null || seen.buildings === "hidden"
         ? ""
         : html`<span data-ww-region-bombed class="text-red-300"
             >${translateText("ww1936.navy.region_bomb_damage", {
-              n: l.bombed.stopped,
+              n: seen.label(l.bombed.stopped),
               pct: l.bombed.repairPct,
             })}</span
           >`}
-      ${l.docked.map(
+      ${docked.map(
         (d) =>
           html`<span data-ww-region-docked
             >${translateText("ww1936.navy.region_docked", {
@@ -1166,13 +1217,25 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     const region = s.regionAt(tile);
     if (s.region(region) === undefined) return "";
     const me = this.game.myPlayer()?.smallID() ?? 0;
+    const sides = landSidesOf(this.game);
     const l = regionLandLines(
       view,
       economy,
       me,
       region,
       today(this.game),
-      landSidesOf(this.game),
+      sides,
+    );
+    // P6 (spec §8.9, pre-flight A18): forts and railways at the civil
+    // band, the other side's divisions at the holder's army band (an
+    // unknown owner in my own region: my enemies' lowest).
+    const fog = fogModelOf(this.game);
+    const seen = fog.regionView(region);
+    const holder = view.controller[region] ?? 0;
+    const theirs = fog.countLabel(
+      sides.sameSide(me, holder) ? 0 : holder,
+      l.theirs,
+      ID_ARMY,
     );
     return html`<div
       data-ww-region-land
@@ -1186,16 +1249,20 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         >${translateText("ww1936.land.region_weather")}:
         ${translateText(`ww1936.weather.${l.weather}`)}</span
       >
-      <span data-ww-region-fort=${l.fort}
+      <span data-ww-region-fort=${seen.buildings === "exact" ? l.fort : "?"}
         >${translateText("ww1936.land.region_fort")}
         <span class="tracking-tighter text-amber-300"
-          >${levelBoxes(l.fort)}</span
+          >${seen.buildings === "exact"
+            ? levelBoxes(l.fort)
+            : seen.label(l.fort)}</span
         ></span
       >
-      <span data-ww-region-rail=${l.rail}
+      <span data-ww-region-rail=${seen.buildings === "exact" ? l.rail : "?"}
         >${translateText("ww1936.land.region_rail")}
         <span class="tracking-tighter text-amber-300"
-          >${levelDots(l.rail)}</span
+          >${seen.buildings === "exact"
+            ? levelDots(l.rail)
+            : seen.label(l.rail)}</span
         ></span
       >
       ${l.supplyMilli >= 0
@@ -1216,7 +1283,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       <span data-ww-region-divisions
         >${translateText("ww1936.land.region_divisions", {
           ours: l.ours,
-          theirs: l.theirs,
+          theirs,
         })}</span
       >
       ${l.encircled
@@ -1237,6 +1304,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   private renderRegionEconomy(tile: TileRef) {
     const card = regionCard(this.game, tile);
     if (card === null) return "";
+    // P6 (spec §8.9, pre-flight A18): the holder's buildings at the
+    // observer's civil band; the slots, people and deposits are the map's.
+    const seen = fogModelOf(this.game).regionView(card.id);
     return html`<div
       data-ww-region-economy
       class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-white/80"
@@ -1244,16 +1314,18 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       <span>${regionCatName(card.cat)}</span>
       <span class="tabular-nums"
         >${translateText("ww1936.econ.region_buildings", {
-          civ: card.civ,
-          mil: card.mil,
-          dock: card.dock,
+          civ: seen.label(card.civ),
+          mil: seen.label(card.mil),
+          dock: seen.label(card.dock),
           slots: card.slots,
         })}</span
       >
       <span
         >${buildingName("infra")}
         <span class="tracking-tighter text-amber-300"
-          >${infraDots(card.infra)}</span
+          >${seen.buildings === "exact"
+            ? infraDots(card.infra)
+            : seen.label(card.infra)}</span
         ></span
       >
       <span

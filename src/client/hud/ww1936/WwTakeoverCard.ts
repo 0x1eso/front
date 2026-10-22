@@ -1,3 +1,4 @@
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { WW_TAKEOVER_CARD_TICKS } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, render, TemplateResult } from "lit";
@@ -8,6 +9,7 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { WwControllerChangedEvent } from "../../view/WwEndgameView";
 import { countryFlagUrl, countryText, type NameGame } from "./EndgameNames";
+import { type FogModel, fogModelOf } from "./FogModel";
 import { enemiesOf, TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { EVENT_LAYER_CLASS } from "./WwEventCards";
@@ -54,8 +56,15 @@ export interface TakeoverCardView {
  * Spec §11.2, §20.6: my takeover card — up to three same-faction AI
  * countries (flag, name, factories, divisions, the wars they fight), the
  * time left and what happens when it runs out; null without a card.
+ *
+ * P6 (spec §8.9, T1b): a candidate's divisions go through the fog (its
+ * army band; exact for my faction and with the fog off), its factories
+ * are the leaderboard's public count.
  */
-export function takeoverCardModel(game: TakeoverGame): TakeoverCardView | null {
+export function takeoverCardModel(
+  game: TakeoverGame,
+  fog?: Pick<FogModel, "countLabel" | "fogOff">,
+): TakeoverCardView | null {
   const client = game.myClientID?.();
   const eg = game.wwEndgame?.() ?? null;
   if (!client || eg === null) return null;
@@ -84,7 +93,11 @@ export function takeoverCardModel(game: TakeoverGame): TakeoverCardView | null {
       line: translateText("ww1936.takeover.candidate", {
         country: name,
         factories: s === null ? 0 : s.civ + s.mil,
-        divisions: land?.countries.get(id)?.divisions ?? 0,
+        divisions: divisionsLabel(
+          land?.countries.get(id)?.divisions ?? 0,
+          id,
+          fog,
+        ),
       }),
       war:
         named.length === 0
@@ -104,6 +117,14 @@ export function takeoverCardModel(game: TakeoverGame): TakeoverCardView | null {
       country: rows[0].name,
     }),
   };
+}
+
+function divisionsLabel(
+  n: number,
+  id: number,
+  fog: Pick<FogModel, "countLabel" | "fogOff"> | undefined,
+): string | number {
+  return fog === undefined || fog.fogOff() ? n : fog.countLabel(id, n, ID_ARMY);
 }
 
 /**
@@ -239,7 +260,9 @@ export class WwTakeoverCard extends LitElement implements Controller {
   }
 
   private cardView(): TakeoverCardView | null {
-    return this.game ? takeoverCardModel(this.game) : null;
+    return this.game
+      ? takeoverCardModel(this.game, fogModelOf(this.game))
+      : null;
   }
 
   protected updated(): void {

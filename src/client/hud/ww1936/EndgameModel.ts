@@ -5,6 +5,7 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES, type AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -69,6 +70,7 @@ import type { GameView } from "../../view";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import { equipmentName, genName, menText } from "./EconomyModel";
 import { countryFlagUrl, countryText } from "./EndgameNames";
+import type { FogModel } from "./FogModel";
 import { regionName } from "./LandModel";
 import { fleetName } from "./NavyModel";
 import {
@@ -481,16 +483,26 @@ export function integrateRows(game: EndgameGame, me: number): IntegrateRow[] {
 export function occRegionLine(
   game: EndgameGame,
   region: number,
+  fog?: Pick<FogModel, "bandOf" | "countLabel">,
 ): string | null {
   const o = egView(game)?.occupation.get(region);
   if (o === undefined || !isLiveOcc(game, o)) return null;
+  // P6 (spec §8.9, pre-flight A18): resistance, compliance, the law and
+  // the share are public (HOI4 shows them on any occupied state); the
+  // occupier's garrison is an army number — whole divisions' worth at the
+  // observer's army band on the occupier, its coverage only when exact.
+  const hidden =
+    fog !== undefined && fog.bandOf(o.controller, ID_ARMY) < 3 ? fog : null;
   return translateText("ww1936.occ.region_line", {
     res: pctOf(o.resBp),
     target: pctOf(o.targetBp),
     comp: pctOf(o.compBp),
-    have: deciText(o.supDeci),
+    have:
+      hidden === null
+        ? deciText(o.supDeci)
+        : hidden.countLabel(o.controller, Math.round(o.supDeci / 10), ID_ARMY),
     need: deciText(o.needDeci),
-    pct: coveragePct(o.supDeci, o.needDeci),
+    pct: hidden === null ? coveragePct(o.supDeci, o.needDeci) : "?",
     share: o.factoryPct,
     law: occLawName(lawFor(game, o.controller, legalOwnerOf(game, region)).law),
   });
