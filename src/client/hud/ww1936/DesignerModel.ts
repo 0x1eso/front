@@ -375,14 +375,18 @@ export class DesignerModel {
     return this.draft === null ? 0 : designXpCost(this.base, this.draft);
   }
 
-  /** The experience in hand in milli; null when the view does not carry it (the air force's). */
+  /**
+   * The experience in hand in milli; null when the view does not carry it.
+   * The air force's comes from lane D's detail.doctrine.xp[2] (whole points).
+   */
   xpHave(): number | null {
     const kind = this.draft?.kind ?? this.kind;
     if (kind === "tank") {
       return this.view.wwLand?.()?.details.get(this.me())?.armyXpMilli ?? 0;
     }
     if (kind === "ship") return this.view.wwNavy?.()?.detail?.navyXpMilli ?? 0;
-    return null;
+    const air = this.view.wwDepth?.()?.detail(this.me())?.doctrine.xp?.[2];
+    return air === undefined ? null : air * 1000;
   }
 
   /** The experience kind's name (ww1936.design.tab_<kind>) for xp_cost. */

@@ -15,6 +15,8 @@ export interface DesignerFake {
   designs?: WwDesignSlotData[];
   /** Licence requests waiting (from, to). */
   pendingLicences?: { from: number; to: number }[];
+  /** Air force experience, whole points (lane D's detail.doctrine.xp[2]). */
+  airXp?: number;
 }
 
 export function designerGame(o: DesignerFake = {}) {
@@ -30,7 +32,11 @@ export function designerGame(o: DesignerFake = {}) {
       version: 1,
       treatyData: { members: [], escalated: false, endDay: 0 },
       marketData: { pendingLicences: o.pendingLicences ?? [] },
-      detail: () => ({ designs, projects: { done: 0 } }),
+      detail: () => ({
+        designs,
+        projects: { done: 0 },
+        doctrine: { xp: [42, 30, o.airXp ?? 200] },
+      }),
     }),
     wwLand: () => ({
       details: new Map([[1, { armyXpMilli: o.armyXp ?? 42_000 }]]),
