@@ -18,3 +18,11 @@ export function applyEnergyEffect(
   e: Extract<Effect, { kind: "energy" }>,
   actor: number,
 ): void {}
+
+/**
+ * Review E6: the country's energy demand today (spec §16.2), the energy
+ * screen's number. Lane W1 fills it with dailyEnergy's formula.
+ */
+export function energyDemand(d: WwDepth, id: number): number {
+  return 0;
+}

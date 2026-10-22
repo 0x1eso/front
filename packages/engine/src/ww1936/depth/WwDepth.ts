@@ -97,25 +97,38 @@ import {
   tricksterCutBp,
 } from "./Command";
 import { mechStatsOf } from "./ContinuousFocus";
+import { cipherOf, decryptOf } from "./Crypto";
 import {
   dailyDesigns,
+  designInUse,
   equipCostMilli,
   fillDesignRows,
   issueDesign,
 } from "./Designs";
-import { dailyDoctrine, doctrineStatsOf, issueDoctrine } from "./Doctrine";
-import { coalDemand, dailyEnergy } from "./Energy";
+import {
+  dailyDoctrine,
+  doctrineGainMilli,
+  doctrineStatsOf,
+  issueDoctrine,
+} from "./Doctrine";
+import { coalDemand, dailyEnergy, energyDemand } from "./Energy";
 import { computeIntelRow } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade } from "./Market";
 import { dailyMechanisms, dayCommonMech, issueMech } from "./Mechanisms";
 import { seaRegionDay } from "./Mines";
 import { dailyMio, issueMio, mioStatsOf } from "./Mio";
-import { collabCutPp, intelResistancePp } from "./Operations";
+import {
+  collabCutPp,
+  intelResistancePp,
+  operationSuccessPm,
+} from "./Operations";
+import { operativeCapturePm } from "./Operatives";
 import {
   dailyProjects,
   issueProjects,
   onRegionControl,
+  projectEta,
   uraniumDemand,
 } from "./Projects";
 import { processRaids } from "./Raids";
@@ -1749,7 +1762,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         origin: s.origin,
         from: s.from,
         obsolete: s.obsolete,
-        inUse: 0,
+        inUse: designInUse(d, id, kind, i + 1),
       });
     });
   }
@@ -1770,7 +1783,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       sub: [...c.doc.sub],
       subLock: [...c.doc.subLock],
       masteryMilli: [...c.doc.masteryMilli],
-      gainMilli: new Array<number>(9).fill(0),
+      gainMilli: doctrineGainMilli(d, id),
     },
     command: {
       cpMilli: c.cmd.cpMilli,
@@ -1806,7 +1819,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         mission: o.mission < 0 ? null : (INTEL_MISSION_IDS[o.mission] ?? null),
         op: o.op,
         daysLeft: Math.max(0, o.travelLeft, o.recruitLeft),
-        capturePm: 0,
+        capturePm: operativeCapturePm(d, id, o),
       })),
       operations: d.ops
         .filter((o) => o.owner === id)
@@ -1817,15 +1830,15 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
           operatives: [...o.operatives],
           startDay: o.startDay,
           endDay: o.endDay,
-          successPm: 0,
+          successPm: operationSuccessPm(d, id, o),
         })),
       cryptoTarget: c.intel.cryptoTarget,
       cryptoPm: Math.floor(
         (d.decrypted.find((x) => x.o === id && x.t === c.intel.cryptoTarget)
           ?.progressMilli ?? 0) / 1000,
       ),
-      cipher: 0,
-      decrypt: 0,
+      cipher: cipherOf(d, id),
+      decrypt: decryptOf(d, id),
       decrypted: d.decrypted
         .filter((x) => x.o === id && x.activeUntil >= 0)
         .map((x) => ({ target: x.t, activeUntil: x.activeUntil })),
@@ -1835,14 +1848,17 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         .map(([k, v]) => [k % 1024, Math.floor(v / 1000)] as [number, number]),
     },
     projects: {
-      running: c.proj.running.map((r) => ({
-        project: SPECIAL_PROJECTS[r.project] ?? "sp_atomic",
-        facility: r.facility,
-        progressPm: Math.floor(r.progressMilli / 1000),
-        daysLeft: 0,
-        scientist: r.scientist,
-        inputPm: 1000,
-      })),
+      running: c.proj.running.map((r) => {
+        const eta = projectEta(d, id, r);
+        return {
+          project: SPECIAL_PROJECTS[r.project] ?? "sp_atomic",
+          facility: r.facility,
+          progressPm: Math.floor(r.progressMilli / 1000),
+          daysLeft: eta.daysLeft,
+          scientist: r.scientist,
+          inputPm: eta.inputPm,
+        };
+      }),
       done: c.proj.done,
       scientists: c.proj.scientists.map((s) => ({
         id: s.id,
@@ -1876,7 +1892,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       treatyMember: d.mech.treaty.members.includes(id) && !d.mech.treaty.ended,
     },
     energy: {
-      demand: 0,
+      demand: energyDemand(d, id),
       coal: d.lastPriorityGot.get(id)?.[RESOURCE_IDS.indexOf("coal")] ?? 0,
       hydro,
       plants,

@@ -11,13 +11,26 @@ import {
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { divisionMods } from "@openfront/engine-lib/ww1936/CombatRules";
 import { reliabilityLossBp } from "@openfront/engine-lib/ww1936/DesignRules";
+import { masteryGain } from "@openfront/engine-lib/ww1936/DoctrineRules";
+import {
+  capturePmMilli,
+  cipherStrength,
+  decryptPower,
+  opSuccessPm,
+} from "@openfront/engine-lib/ww1936/IntelRules";
 import {
   HARBOR_COST_MILLI,
   HARBOR_LINE_CLS,
   lineCostMilli,
   navalLineClass,
 } from "@openfront/engine-lib/ww1936/NavalLineRules";
+import {
+  PROJECT_DEFS,
+  projectDayMilli,
+  scientistPct,
+} from "@openfront/engine-lib/ww1936/ProjectRules";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { designInUse } from "@openfront/engine/ww1936/depth/Designs";
 import { setEmbargo } from "@openfront/engine/ww1936/depth/Embargo";
 import { NEUTRAL_ARMY_MODS } from "@openfront/engine/ww1936/depth/WwDepth";
 import { slotBuildings } from "@openfront/engine/ww1936/economy/Construction";
@@ -270,5 +283,84 @@ describe("P6 hooks: the land war (stat keys and lane D's per-army values)", () =
     ww.economy.country(id)!.stats.advanceSpeedPct = 100;
     step(runner);
     expect(t.step[r]).toBe(base * 2);
+  });
+});
+
+describe("P6: the screens' detail numbers come from the rules (review E6)", () => {
+  it("capture risk, success, cipher, decrypt, days left, in use, mastery gain", async () => {
+    const { runner, ww, id } = await deep("DEU");
+    const d = ww.depth;
+    const c = d.country(id)!;
+    const ce = ww.economy.country(id)!;
+    ce.addTech("cryptography_1");
+    c.intel.agency = true;
+    c.intel.operatives.push({
+      uid: 7,
+      codename: 3,
+      skill: 2,
+      abroadDays: 0,
+      state: 3,
+      target: DEEP.tag.FRA,
+      mission: -1,
+      op: 1,
+      sinceDay: 0,
+      travelLeft: 0,
+      releaseDay: 0,
+      recruitLeft: 0,
+    });
+    d.ops.push({
+      uid: 1,
+      kind: 0,
+      owner: id,
+      target: DEEP.tag.FRA,
+      operatives: [7],
+      startDay: 0,
+      endDay: 30,
+    });
+    d.setNetMilli(id, DEEP.tag.FRA, 400_000);
+    c.proj.scientists.push({
+      id: 9,
+      spec: 0,
+      skill: 4,
+      sinceDay: 0,
+      project: 0,
+    });
+    c.proj.running.push({
+      project: 0,
+      facility: DEEP.region.berlin,
+      progressMilli: 500_000,
+      scientist: 9,
+    });
+    ce.stock[equipKey("tank_design", 1)] = 5;
+    d.dayTally[id * 9] = 2_000_000;
+    d.markCountry(id);
+    const data = d.takeData()!;
+    const det = data.details!.find((x) => x.smallID === id)!;
+    const o = det.intel.operatives.find((x) => x.uid === 7)!;
+    expect(o.capturePm).toBe(
+      Math.floor(capturePmMilli(true, 2, 0, false) / 1000),
+    );
+    expect(o.capturePm).toBeGreaterThan(0);
+    expect(det.intel.operations[0].successPm).toBe(
+      opSuccessPm(400, 2000, false, 0),
+    );
+    expect(det.intel.cipher).toBe(cipherStrength(1, 0, false, 0));
+    expect(det.intel.decrypt).toBe(decryptPower(true, false, false, 1, 0, 0));
+    const run = det.projects.running[0];
+    const day = projectDayMilli(
+      PROJECT_DEFS.sp_atomic.days,
+      scientistPct(4, true),
+      1000,
+      true,
+    );
+    expect(run.daysLeft).toBe(Math.ceil(500_000 / day));
+    expect(run.inputPm).toBe(1000);
+    expect(det.doctrine.gainMilli.slice(0, 3)).toEqual(
+      masteryGain([2_000_000, 0, 0], 0),
+    );
+    // A tank design slot (in use counts stock and divisions) — none saved
+    // here, so only the stock rule is checked through the helper.
+    expect(designInUse(d, id, "tank", 1)).toBe(5);
+    void runner;
   });
 });
