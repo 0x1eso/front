@@ -140,7 +140,58 @@ export function mioStats(family: number, traits: number): Partial<WwStats> {
   return o as Partial<WwStats>;
 }
 
-/** The MIO family of an equipment type (spec §6.1 table), -1 none. Ship classes and convoys → naval. M fills. */
+/** Spec §6.1: the family (MIO_FAMILIES index) of each equipment type. */
+const FAMILY_OF: Readonly<Record<string, number>> = {
+  infantry_equipment: 0,
+  support_equipment: 0,
+  motorized: 0,
+  artillery: 1,
+  anti_tank: 1,
+  anti_air: 1,
+  railway_gun: 1,
+  flying_bomb: 1,
+  ballistic_rocket: 1,
+  light_tank: 2,
+  medium_tank: 2,
+  tank_design: 2,
+  fighter: 3,
+  cas: 3,
+  naval_bomber: 3,
+  cv_fighter: 3,
+  cv_cas: 3,
+  cv_naval_bomber: 3,
+  bomber: 4,
+  heavy_fighter: 4,
+  strat_bomber: 4,
+  transport_plane: 4,
+  // Ships, convoys and the floating harbour: the dockyards' family.
+  convoy: 5,
+  floating_harbor: 5,
+  dd: 5,
+  cl: 5,
+  ca: 5,
+  bc: 5,
+  bb: 5,
+  cv: 5,
+  ss: 5,
+};
+
+/**
+ * The MIO family of an equipment type (spec §6.1 table), -1 none (the
+ * atomic bomb). Ship classes and convoys → naval. A plane design goes by
+ * its airframe (`planeDesignType`: a PLANE_BASES id — small and jet frames
+ * light, medium and large heavy — or the P4 type it flies as); without one
+ * it has no family.
+ */
 export function mioFamilyOf(type: string, planeDesignType?: string): number {
-  return -1;
+  if (type === "plane_design") {
+    if (planeDesignType === undefined) return -1;
+    if (/^(small|jet)_/.test(planeDesignType)) return 3;
+    if (/^(medium|large)_/.test(planeDesignType)) return 4;
+    const f = FAMILY_OF[planeDesignType];
+    return f === 3 || f === 4 ? f : -1;
+  }
+  return Object.prototype.hasOwnProperty.call(FAMILY_OF, type)
+    ? FAMILY_OF[type]
+    : -1;
 }

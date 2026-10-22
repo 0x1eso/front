@@ -14,6 +14,9 @@ import { gameHash, order, step, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
+/** Lane M (Task 4) filled kinds 20–30: its own tests (Mio, Market, Licences) check their answers. */
+const LANE_M = (k: number): boolean => k >= 20 && k <= 30;
+
 /** The stub's refusal of each lane (plan Task 1 Step 11). */
 const LANE_BLOCK = (k: number): string =>
   k <= 1
@@ -49,6 +52,7 @@ describe("World War 1936 P6: the depth orders", () => {
     DEPTH_ORDER_KINDS.forEach((kind, k) => {
       const o = SAMPLES[kind];
       expect(() => WwOrderSchema.parse(o), kind).not.toThrow();
+      if (LANE_M(k)) return;
       expect(
         d.issue(DEEP.tag.DEU, o as WwOrder, runner.game.ticks()),
         kind,
@@ -66,7 +70,8 @@ describe("World War 1936 P6: the depth orders", () => {
     ww.depth.markStats(DEEP.tag.GBR);
     const before = gameHash(runner);
     const snap = JSON.stringify(ww.depth.snapshot());
-    for (const kind of DEPTH_ORDER_KINDS) {
+    for (const [k, kind] of DEPTH_ORDER_KINDS.entries()) {
+      if (LANE_M(k)) continue;
       expect(
         ww.depth.issue(DEEP.tag.DEU, SAMPLES[kind] as WwOrder, 1),
         kind,
