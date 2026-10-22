@@ -6,6 +6,7 @@
 // region's center tile, not the middle of that tile); the passes draw at
 // +0.5. `zoom` is screen (CSS) pixels per tile, the TransformHandler's scale.
 import type { ArmySummary } from "@openfront/engine-api/ww1936/LandTypes";
+import { fogOfLand } from "../hud/ww1936/FogModel";
 import type { WwLandView } from "./WwLandView";
 
 export interface TokenPlacement {
@@ -111,7 +112,10 @@ export function layoutTokens(
   const lod = tokenLod(zoom);
   const armies: ArmySummary[] = [];
   const out: TokenPlacement[] = [];
+  const fog = fogOfLand(view);
   for (const a of [...view.armies.values()].sort(byId)) {
+    // P6 (spec §8.9): an army the fog hides is neither placed nor tappable.
+    if (fog !== undefined && !fog.armyView(a.id).visible) continue;
     const xy = tokenAt(view, a, tick);
     if (xy === null) continue;
     armies.push(a);
@@ -202,6 +206,7 @@ export class TokenLayoutCache {
   private readonly scratch = new FanScratch();
   private viewSeen: WwLandView | null = null;
   private version = -1;
+  private fogStamp = -1;
   private baseTick = Number.NaN;
   private lastFrac = Number.NaN;
   private lastZoom = Number.NaN;
@@ -211,7 +216,9 @@ export class TokenLayoutCache {
     const base = Math.floor(tick);
     const frac = tick - base;
     let sampled = false;
+    const fogStamp = fogOfLand(view)?.stamp() ?? -1;
     if (
+      fogStamp !== this.fogStamp ||
       view !== this.viewSeen ||
       view.version !== this.version ||
       base !== this.baseTick
@@ -246,9 +253,12 @@ export class TokenLayoutCache {
     this.viewSeen = view;
     this.version = view.version;
     this.baseTick = base;
+    const fog = fogOfLand(view);
+    this.fogStamp = fog?.stamp() ?? -1;
     const armies = this.armies;
     armies.length = 0;
     for (const a of view.armies.values()) {
+      if (fog !== undefined && !fog.armyView(a.id).visible) continue;
       if (tokenAt(view, a, base) !== null) armies.push(a);
     }
     armies.sort(byId);

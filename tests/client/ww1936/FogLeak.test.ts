@@ -20,6 +20,11 @@ import { fogModelOf } from "../../../src/client/hud/ww1936/FogModel";
 import { OpenWwBattleEvent } from "../../../src/client/hud/ww1936/LandSelection";
 import "../../../src/client/hud/ww1936/WwBattleCard";
 import type { WwBattleCard } from "../../../src/client/hud/ww1936/WwBattleCard";
+import {
+  hitToken,
+  layoutTokens,
+  TokenLayoutCache,
+} from "../../../src/client/view/LandTokenLayout";
 import { FAR, fogGame, NEAR, newFog } from "./FogFixture";
 import { army, battle, ID } from "./LandFixture";
 
@@ -109,6 +114,39 @@ describe("fog leaks (spec §8.9)", () => {
     expect(v.visible && v.shown).toBe(-1);
     expect(v.visible && v.countLabel).toBe("?");
     expect(v.visible && v.bars).toBe("gray");
+  });
+
+  it("keeps a hidden army out of the layout, the fan-out and the taps", () => {
+    const g = fogGame({
+      armies: [
+        army(1, "POL", FAR, { divisions: 5 }),
+        army(2, "POL", FAR, { divisions: 6 }),
+        army(9, "DEU", FAR, { divisions: 3 }),
+      ],
+    });
+    const f = fogModelOf(g.game as never);
+    expect(f.armyView(1).visible).toBe(false);
+    const land = g.land;
+    const cache = new TokenLayoutCache();
+    cache.update(land, 700, 4);
+    expect(cache.count).toBe(1);
+    expect(cache.indexOf(1)).toBe(-1);
+    // The visible army is not pushed off the region's centre by hidden ones.
+    const c = land.scenario.centerTile(FAR);
+    expect(cache.placements[0].y).toBeCloseTo(
+      Math.floor(c / land.scenario.width),
+    );
+    const placed = layoutTokens(land, 700, 4);
+    expect(placed.map((p) => p.army)).toEqual([9]);
+    // A tap right on the hidden army's place finds only the visible one.
+    const x = c % land.scenario.width;
+    const hit = hitToken(placed, x, placed[0].y, 5, null);
+    expect(hit).toBe(9);
+    // When sight is gained the layout follows (stamp-driven resample).
+    g.state.superiority = 700;
+    g.air.version++;
+    cache.update(land, 700, 4);
+    expect(cache.count).toBe(3);
   });
 
   it("shows the true numbers at exact band", async () => {
