@@ -84,6 +84,9 @@ export class WorldWarExecution implements Execution {
     ww.endgame.tick(ticks);
     // P3 order 6: human event cards past their deadline.
     ww.politics.tickDeadlines(ticks);
+    // P6 (review E1): the tick's pending depth stats, recomputed before the
+    // tick ends (nothing pending crosses into a snapshot).
+    ww.depth.endTick();
     const data = ww.takeData();
     if (data !== null) mg.addUpdate({ type: GameUpdateType.WorldWar, data });
     const econ = ww.economy.takeData();

@@ -51,7 +51,7 @@ describe("World War 1936 P6: the depth state in a snapshot", () => {
     d.markNuked(DEEP.region.berlin, 400);
     d.sea.mines.push([1002, DEEP.tag.ITA, 5_000]);
     d.world.damLevel[DEEP.dam.dam_mohne.index] = 0;
-    stepTo(a, 600);
+    step(a, 600);
     const b = await wwRestore(a, HUMANS, DEEP.map);
     expect(gameHash(b)).toBe(gameHash(a));
     expect(

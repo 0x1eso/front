@@ -516,8 +516,20 @@ export class WwDepth implements LandDepthHooks {
   mineIndex = new Map<number, number>();
   /** region → FACILITY_IDS index + 1. */
   facilityIndex = new Map<number, number>();
-  /** Pre-flight §0-3(d): what each design cache row was built from (statsVer, researched). */
-  private designCacheKey = new Map<number, [number, ReadonlySet<unknown>]>();
+  /**
+   * Review E16: O(1) reads of the §0-8 sparse tuples — key → index in
+   * world.regionStatus (region), resistBoost (region) and sea.reconBySide
+   * (side * 1024 + strategic region). Derived: rebuilt by reindexSparse,
+   * which a lane calls after it adds or removes a tuple.
+   */
+  regionStatusIndex = new Map<number, number>();
+  resistBoostIndex = new Map<number, number>();
+  reconIndex = new Map<number, number>();
+  /** Pre-flight §0-3(d): what each design cache row was built from (statsVer, researched, projects done). */
+  private designCacheKey = new Map<
+    number,
+    [number, ReadonlySet<unknown>, number]
+  >();
   /** Pre-flight §0-3(d): bumped on every design change of a country (P4's stats memos key on it). */
   private designVer = new Map<number, number>();
   // ---- this tick (not state) ----
@@ -544,6 +556,8 @@ export class WwDepth implements LandDepthHooks {
     );
     this.dayTally = new Array<number>(this.cap * 9).fill(0);
     this.intelLevels = new Uint8Array(this.cap * this.cap * 4);
+    // Review E12: no fog until lane I computes the rows (the stub's 100).
+    this.intelLevels.fill(100);
     this.world.damLevel = this.ww.scenario.damRegion.map((r) =>
       r > 0 ? 1 : 0,
     );
@@ -687,8 +701,12 @@ export class WwDepth implements LandDepthHooks {
   ): void {
     if (this.countries.length === 0) return;
     onRegionControl(this, region, from, to, tick);
-    if (from > 0) this.markStats(from);
-    if (to > 0) this.markStats(to);
+    // Landmark stats are the only depth stats that follow control (lane S
+    // marks its own facility losses).
+    if (this.ww.scenario.landmarksOf(region).length > 0) {
+      if (from > 0) this.markStats(from);
+      if (to > 0) this.markStats(to);
+    }
     this.facilityIndex.delete(region);
     const f = facilityOf(this.ww, region);
     if (f > 0) this.facilityIndex.set(region, f);
@@ -938,6 +956,8 @@ export class WwDepth implements LandDepthHooks {
   }
 
   markNuked(region: number, untilDay: number): void {
+    // Sensitivity (decision 34): never a no-strike region, whatever calls.
+    if (this.noStrike(region)) return;
     this.nuked.set(region, untilDay);
     this.depthDirtyGlobal = true;
   }
@@ -984,10 +1004,16 @@ export class WwDepth implements LandDepthHooks {
     if (this.depthDirtyStats.size === 0) return;
     const ids = [...this.depthDirtyStats].sort((a, b) => a - b);
     this.depthDirtyStats.clear();
-    for (const id of ids) {
-      this.ww.politics.recomputeStats(id);
-      this.refreshDesignCache(id);
-    }
+    // (The design caches follow lazily: checkDesignCache reads statsVer.)
+    for (const id of ids) this.ww.politics.recomputeStats(id);
+  }
+
+  /**
+   * Review E1 (plan decision 24): the tick's one stats recompute, at its
+   * end (WorldWarExecution), so no mark crosses a tick boundary.
+   */
+  endTick(): void {
+    this.flushStats();
   }
 
   // ---- orders (plan decision 4) ----
@@ -1017,8 +1043,11 @@ export class WwDepth implements LandDepthHooks {
     else if (k <= 51) r = issueMech(this, id, d, tick);
     else if (k <= 55) r = issueWorld(this, id, d, tick);
     else r = issueSeaAir(this, id, d, tick);
-    if (r === null) this.depthDirty.add(id);
-    this.flushStats();
+    // A refusal changes nothing (review E1): only a taken order flushes.
+    if (r === null) {
+      this.depthDirty.add(id);
+      this.flushStats();
+    }
     return r;
   }
 
@@ -1030,6 +1059,7 @@ export class WwDepth implements LandDepthHooks {
     this.designVer.clear();
     this.keyStatTables.clear();
     this.keyStatsSeq++;
+    this.reindexSparse();
     this.mineIndex.clear();
     this.facilityIndex.clear();
     for (let id = 1; id < this.cap; id++) {
@@ -1046,6 +1076,20 @@ export class WwDepth implements LandDepthHooks {
     }
   }
 
+  /** Review E16: the §0-8 sparse tuples' indexes again (after a lane adds or removes a tuple). */
+  reindexSparse(): void {
+    this.regionStatusIndex.clear();
+    this.world.regionStatus.forEach((x, i) =>
+      this.regionStatusIndex.set(x[0], i),
+    );
+    this.resistBoostIndex.clear();
+    this.resistBoost.forEach((x, i) => this.resistBoostIndex.set(x[0], i));
+    this.reconIndex.clear();
+    this.sea.reconBySide.forEach((x, i) =>
+      this.reconIndex.set(x[0] * 1024 + x[1], i),
+    );
+  }
+
   /** Every design slot's stats again, and a new KeyStatsTable on next read (pre-flight §0-3). */
   refreshDesignCache(id: number): void {
     const c = this.countries[id];
@@ -1060,7 +1104,11 @@ export class WwDepth implements LandDepthHooks {
     }
     this.designStatCache.set(id, rows);
     const ce = this.ww.economy.country(id);
-    this.designCacheKey.set(id, [ce?.statsVer ?? -1, ce?.researched ?? EMPTY]);
+    this.designCacheKey.set(id, [
+      ce?.statsVer ?? -1,
+      ce?.researched ?? EMPTY,
+      c.proj.done,
+    ]);
     this.keyStatTables.delete(id);
     this.keyStatsSeq++;
   }
@@ -1074,7 +1122,11 @@ export class WwDepth implements LandDepthHooks {
     const key = this.designCacheKey.get(id);
     const ce = this.ww.economy.country(id);
     if (key === undefined || ce === null) return;
-    if (key[0] !== ce.statsVer || key[1] !== ce.researched) {
+    if (
+      key[0] !== ce.statsVer ||
+      key[1] !== ce.researched ||
+      key[2] !== (this.countries[id]?.proj.done ?? 0)
+    ) {
       this.refreshDesignCache(id);
     }
   }
@@ -1240,6 +1292,20 @@ export class WwDepth implements LandDepthHooks {
     mix(this.sea.mines.reduce((a, m) => a + m[2], 0));
     mix(this.nuked.size);
     mix(this.market.deals.length);
+    // Review E9: the §0-8 state and the other day-driving lists, folded.
+    for (const [id, got] of this.lastPriorityGot) {
+      mix(id);
+      mix(got.reduce((a, b) => a + b, 0));
+    }
+    mix(this.sea.reconBySide.reduce((a, x) => a + x[0] + x[1] * 7 + x[2], 0));
+    mix(this.resistBoost.reduce((a, x) => a + x[0] * 7 + x[1], 0));
+    for (const x of this.world.regionStatus) {
+      mix(x[0]);
+      mix(x[1] + x[2] * 3 + x[3] * 5 + x[4] * 7);
+    }
+    mix(this.groups.length);
+    mix(this.market.embargoes.length);
+    mix(this.world.damLevel.reduce((a, l, i) => a + l * (i + 1), 0));
     return h;
   }
 }

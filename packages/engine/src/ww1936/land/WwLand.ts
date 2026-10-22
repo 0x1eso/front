@@ -717,9 +717,13 @@ interface StatsInputs {
   statsVer: number;
   /** P6 (pre-flight §0-3a): the owner's KeyStatsTable (rebuilt, never written into). */
   ks: KeyStatsTable | null;
-  /** The hooks and their keyStatsSeq `ks` was read at. */
+  /** The hooks, their keyStatsSeq and the statsVer / researched set `ks` was read at. */
   hooks: LandDepthHooks | null;
   ksSeq: number;
+  ksVer: number;
+  ksResearched: ReadonlySet<unknown> | null;
+  /** The table the epoch was made with. */
+  epochKs: KeyStatsTable | null;
   ids: number[];
   defs: TemplateDef[];
   epoch: number;
@@ -1553,43 +1557,18 @@ export class WwLand {
    * the owner.
    */
   private statsEpoch(owner: number): number {
-    let s = this.statsInputs[owner];
-    if (s === undefined) {
-      s = {
-        stats: null,
-        statsVer: -1,
-        ks: null,
-        hooks: null,
-        ksSeq: -1,
-        ids: [],
-        defs: [],
-        epoch: 0,
-      };
-      this.statsInputs[owner] = s;
-    }
+    const s = this.statsInputsOf(owner);
     const ce = this.econ.country(owner);
     const stats = ce?.stats ?? null;
     const statsVer = ce?.statsVer ?? -1;
-    // P6: the slot table is fetched again only when the hooks' tables or
-    // this country's stats moved (keyStatsSeq; the depth layer's lazy
-    // check reads statsVer).
-    const hooks = this.depthHooks;
-    let ks = s.ks;
-    if (
-      s.hooks !== hooks ||
-      s.ksSeq !== hooks.keyStatsSeq ||
-      s.statsVer !== statsVer ||
-      ks === null
-    ) {
-      ks = hooks.keyStats(owner);
-      s.hooks = hooks;
-      s.ksSeq = hooks.keyStatsSeq;
-    }
+    // P6: the slot table through the shared check (review E2); the epoch
+    // moves when it is not the one the epoch was made with.
+    const ks = this.currentKs(owner, s);
     const tpls = this.countryList[owner]?.templates ?? NO_TEMPLATES;
     let same =
       s.stats === stats &&
       s.statsVer === statsVer &&
-      s.ks === ks &&
+      s.epochKs === ks &&
       s.defs.length === tpls.length;
     for (let i = 0; same && i < tpls.length; i++) {
       same = tpls[i].def === s.defs[i] && tpls[i].id === s.ids[i];
@@ -1597,7 +1576,7 @@ export class WwLand {
     if (!same) {
       s.stats = stats;
       s.statsVer = statsVer;
-      s.ks = ks;
+      s.epochKs = ks;
       s.ids = tpls.map((x) => x.id);
       s.defs = tpls.map((x) => x.def);
       s.epoch = ++this.statsEpochSeq;
@@ -1722,7 +1701,56 @@ export class WwLand {
    * stats epoch was computed with (statsEpoch reads it first).
    */
   keyStatsOf(owner: number): KeyStatsTable {
-    return this.statsInputs[owner]?.ks ?? this.depthHooks.keyStats(owner);
+    return this.currentKs(owner, this.statsInputsOf(owner));
+  }
+
+  private statsInputsOf(owner: number): StatsInputs {
+    let s = this.statsInputs[owner];
+    if (s === undefined) {
+      s = {
+        stats: null,
+        statsVer: -1,
+        ks: null,
+        hooks: null,
+        ksSeq: -1,
+        ksVer: -1,
+        ksResearched: null,
+        epochKs: null,
+        ids: [],
+        defs: [],
+        epoch: 0,
+      };
+      this.statsInputs[owner] = s;
+    }
+    return s;
+  }
+
+  /**
+   * P6 (review E2): the owner's KeyStatsTable, re-read from the hooks when
+   * they, their keyStatsSeq, or the country's statsVer or researched set
+   * moved — the one check statsEpoch and keyStatsOf share, so no reader
+   * sees a stale table a restored game would not.
+   */
+  private currentKs(owner: number, s: StatsInputs): KeyStatsTable {
+    const hooks = this.depthHooks;
+    const ce = this.econ.country(owner);
+    const ver = ce?.statsVer ?? -1;
+    const researched = ce?.researched ?? null;
+    if (
+      s.ks === null ||
+      s.hooks !== hooks ||
+      s.ksSeq !== hooks.keyStatsSeq ||
+      s.ksVer !== ver ||
+      s.ksResearched !== researched
+    ) {
+      const ks = hooks.keyStats(owner);
+      s.ks = ks;
+      s.hooks = hooks;
+      s.ksSeq = hooks.keyStatsSeq;
+      s.ksVer = ver;
+      s.ksResearched = researched;
+    }
+    return s.ks;
   }
 
   /** P6 (plan decision 13): the country's field marshals now. */
