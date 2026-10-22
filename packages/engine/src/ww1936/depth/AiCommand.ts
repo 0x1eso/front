@@ -213,6 +213,7 @@ export function aiSpiritPlan(d: WwDepth, id: number): number[] {
 /** Spec §19.2 officer corps: each category's plan once the domain has the experience; never switched. */
 function aiSpirits(d: WwDepth, id: number, day: number): void {
   const c = d.country(id)!;
+  if (c.cmd.spirits.every((s) => s >= 0)) return;
   const plan = aiSpiritPlan(d, id);
   ARMY_SPIRIT_CATEGORIES.forEach((category, cat) => {
     if (c.cmd.spirits[cat] >= 0) return;
@@ -444,6 +445,8 @@ function aiTraits(d: WwDepth, id: number): void {
   const land = d.ww.land;
   const cl = land.country(id)!;
   const c = d.country(id)!;
+  // The cheapest trait (15) plus the reserve: nothing to buy below it.
+  if (c.cmd.cpMilli < (15 + AI_TRAIT_RESERVE_CP) * 1000) return;
   const armies = land
     .armiesOf(id)
     .filter((a) => a.general !== 0)
