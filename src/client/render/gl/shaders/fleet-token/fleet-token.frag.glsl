@@ -131,15 +131,16 @@ void main() {
       // The silhouette, darkened a little below so white reads on pale colours.
       col = over(col, vec3(0.0), 0.25 * cover(sdBox(p - vec2(-7.0, 0.0), vec2(13.5, 6.5), 3.0)));
       if (vB.x >= 0.0) col = overCell(col, p, vec2(-7.0, -1.0), 30.0, vB.x);
-      col = number(col, p, vec2(13.5, 0.5), vB.y, 17.0);
+      if (vB.y >= 0.0) col = number(col, p, vec2(13.5, 0.5), vB.y, 17.0);
 
       float dBars = sdBox(p - vec2(0.0, 16.0), vec2(22.0, 3.6), 1.0);
       col = over(col, vec3(0.0), 0.72 * cover(dBars));
       float x01 = (p.x + 21.0) / 42.0;
-      float hp = clamp(vB.z / 1000.0, 0.0, 1.0);
-      float org = clamp(vB.w / 1000.0, 0.0, 1.0);
-      col = over(col, HP, cover(sdBox(p - vec2(0.0, 14.3), vec2(21.0, 1.2), 0.0)) * step(x01, hp));
-      col = over(col, ORG, cover(sdBox(p - vec2(0.0, 17.7), vec2(21.0, 1.2), 0.0)) * step(x01, org));
+      // P6 fog: a negative bar is unknown (gray, full).
+      float hp = vB.z < 0.0 ? 1.0 : clamp(vB.z / 1000.0, 0.0, 1.0);
+      float org = vB.w < 0.0 ? 1.0 : clamp(vB.w / 1000.0, 0.0, 1.0);
+      col = over(col, vB.z < 0.0 ? vec3(0.55) : HP, cover(sdBox(p - vec2(0.0, 14.3), vec2(21.0, 1.2), 0.0)) * step(x01, hp));
+      col = over(col, vB.w < 0.0 ? vec3(0.55) : ORG, cover(sdBox(p - vec2(0.0, 17.7), vec2(21.0, 1.2), 0.0)) * step(x01, org));
 
       if (vC.x >= 0.0) col = badge(col, p, vec2(-22.0, -12.0), vC.x);
       if ((state & ST_BATTLE) != 0) col = badge(col, p, vec2(22.0, -12.0), float(CELL_BATTLE));
@@ -150,7 +151,7 @@ void main() {
       if (chosen) col = glow(col, dBox);
       col = over(col, edge, cover(dBox));
       col = over(col, terr, cover(dBox + 1.25));
-      col = number(col, p, vec2(0.0, 0.5), vB.y, 15.0);
+      if (vB.y >= 0.0) col = number(col, p, vec2(0.0, 0.5), vB.y, 15.0);
       if ((state & ST_BATTLE) != 0) {
         float d = length(p - vec2(12.0, -7.0)) - 3.2;
         col = over(col, vec3(0.1), cover(d - 1.0));
