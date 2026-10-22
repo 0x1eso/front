@@ -133,6 +133,14 @@ export const WW_WAKE_EQUIP_PCT = 50;
 export const WW_WAKE_MANPOWER_PCT = 50;
 export const WW_WAKE_TECH_LAG_YEARS = 2;
 /**
+ * P5 final lane (controller ruling): a woken country's base fuel stock,
+ * like HOI4's released nations — this % of its fuel capacity at waking.
+ * It has no oil of its own yet (no totals before its first day), so the
+ * capacity is the base plus its regions' silos: 50% is the 1936 start's
+ * floor (WW_FUEL_START_FLOOR_PM) for a country with no oil.
+ */
+export const WW_WAKE_FUEL_PCT = 50;
+/**
  * Pre-flight §0-8 (owner direction: varied outcomes): per (conference,
  * participant) the history row of HISTORY_PEACE is kept with this chance;
  * otherwise the general AI spends the points. The Korea lines are exempt.
