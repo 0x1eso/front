@@ -225,6 +225,8 @@ export class FogModel {
   /** Spectators, the game's end and replays see everything. */
   fogOff(): boolean {
     if (this.forcedOff || this.me() === 0) return true;
+    // No depth view (the mode's depth systems are off): nothing to hide by.
+    if (!this.view.wwDepth?.()) return true;
     if (this.view.gameOver?.() === true) return true;
     return this.view.isSpectator?.() === true;
   }

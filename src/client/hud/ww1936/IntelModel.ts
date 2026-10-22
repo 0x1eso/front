@@ -227,7 +227,7 @@ export class IntelModel {
       const left = operation ? operation.endDay - today : 0;
       out.push({
         uid: o.uid,
-        codename: translateText(`ww1936.codename.${o.codename}`),
+        codename: translateText(`ww1936.codename.c${o.codename}`),
         skill: o.skill,
         state: o.state,
         target: o.target,
@@ -466,14 +466,14 @@ export class IntelModel {
       if (v !== 0) lines.push({ key, value: v });
     };
     add("neighbour", row?.neighbour ? 10 : 0);
-    add("faction", sameFaction ? 10 : 0);
-    add("war", row?.atWar ? 15 : 0);
+    add("same_faction", sameFaction ? 10 : 0);
+    add("at_war", row?.atWar ? 15 : 0);
     const net =
       (d?.intel.networks ?? []).find((n) => n[0] === target)?.[1] ?? 0;
     add("network", Math.min(50, Math.floor(net / 20)));
     add("department", this.hasUpgrade(DEPARTMENT[domain]) ? 10 : 0);
     const exploit = (d?.intel.decrypted ?? []).some((x) => x.target === target);
-    add("decrypt", exploit ? (domain === ID_CIVIL ? 15 : 30) : 0);
+    add("exploiting", exploit ? (domain === ID_CIVIL ? 15 : 30) : 0);
     const known = lines.reduce((s, l) => s + l.value, 0);
     add("other", engine - known);
     return lines;

@@ -125,10 +125,10 @@ export class WwIntelPanel extends WwDrawerBase {
   render() {
     if (!this.open) return null;
     return this.renderFrame(
-      translateText("ww1936.intel.drawer_title"),
+      translateText("ww1936.intel.title"),
       html`<span aria-hidden="true">🕵</span>
         <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
-          ${translateText("ww1936.intel.drawer_title")}
+          ${translateText("ww1936.intel.title")}
         </h3>`,
       this.renderTabs(
         WW_INTEL_TABS,
@@ -207,14 +207,14 @@ export class WwIntelPanel extends WwDrawerBase {
     >
       ${ring}
       <span class="pr-4 font-semibold"
-        >${translateText(`ww1936.intel.up.${c.id}`)}</span
+        >${translateText(`ww1936.agency_up.${c.id}`)}</span
       >
       <span class="text-white/70"
         >${c.state === "locked" && c.needs !== null
-          ? translateText("ww1936.intel.up_locked", {
-              need: translateText(`ww1936.intel.up.${c.needs}`),
+          ? translateText("ww1936.intel.upgrade_locked", {
+              upgrade: translateText(`ww1936.agency_up.${c.needs}`),
             })
-          : translateText(`ww1936.intel.up_desc.${c.id}`)}</span
+          : translateText(`ww1936.agency_up_desc.${c.id}`)}</span
       >
     </button>`;
   }
@@ -279,13 +279,11 @@ export class WwIntelPanel extends WwDrawerBase {
               class="h-3 w-4 rounded-sm object-cover"
             />`}
         <span class="truncate"
-          >${translateText(`ww1936.intel.state.${c.state}`, {
-            mission:
-              c.mission === null
-                ? ""
-                : translateText(`ww1936.intel.mission.${c.mission}`),
-            days: c.daysLeft,
-          })}</span
+          >${translateText(
+            `ww1936.intel.status.${c.state === "travel" || c.state === "empty" ? (c.state === "empty" ? "idle" : "mission") : c.state}`,
+          )}${c.mission === null
+            ? ""
+            : ` · ${translateText(`ww1936.intel_mission.${c.mission}`)}`}</span
         >
       </span>
       <span class="h-1.5 rounded bg-white/10">
@@ -295,7 +293,7 @@ export class WwIntelPanel extends WwDrawerBase {
         ></span>
       </span>
       <span data-ww-risk class="text-[10px] text-white/60"
-        >${translateText("ww1936.intel.risk", { pct: c.risk })}</span
+        >${translateText("ww1936.intel.arrest_risk", { pct: c.risk })}</span
       >
     </button>`;
   }
@@ -332,7 +330,7 @@ export class WwIntelPanel extends WwDrawerBase {
     const chips = m.missionChips(f.operative, f.target);
     const ops = m.operationRows(f.target, f.operative);
     return html`<h4 class="${HEADING}">
-        ${translateText("ww1936.intel.pick_mission")}
+        ${translateText("ww1936.intel.missions")}
       </h4>
       <div data-ww-missions class="flex flex-wrap gap-1">
         ${chips.map(
@@ -353,7 +351,7 @@ export class WwIntelPanel extends WwDrawerBase {
                 this.flow = null;
               }}
             >
-              ${translateText(`ww1936.intel.mission.${c.mission}`)}
+              ${translateText(`ww1936.intel_mission.${c.mission}`)}
             </button>`,
         )}
       </div>
@@ -367,7 +365,7 @@ export class WwIntelPanel extends WwDrawerBase {
           >
             <div class="flex items-center gap-1">
               <span class="min-w-0 flex-1 font-semibold"
-                >${translateText(`ww1936.intel.op.${o.op}`)}</span
+                >${translateText(`ww1936.op.${o.op}`)}</span
               >
               <span
                 >${translateText("ww1936.intel.op_days", {
@@ -383,7 +381,7 @@ export class WwIntelPanel extends WwDrawerBase {
                   >`}
             </div>
             <div class="text-white/70">
-              ${translateText(`ww1936.intel.op_fx.${o.op}`)}
+              ${translateText(`ww1936.op_desc.${o.op}`)}
             </div>
             <div data-ww-conditions class="flex flex-wrap gap-x-2">
               ${o.conditions.map(
@@ -392,8 +390,11 @@ export class WwIntelPanel extends WwDrawerBase {
                     data-ww-cond=${c.key}
                     data-ok=${String(c.ok)}
                     class=${c.ok ? "text-green-300" : "text-red-300"}
-                    >${translateText(`ww1936.intel.op_cond.${c.key}`)}
-                    ${c.have}/${c.need} ${c.ok ? "✓" : "✗"}</span
+                    >${translateText(`ww1936.intel.op_cond_${c.key}`, {
+                      have: c.have,
+                      need: c.need,
+                    })}
+                    ${c.ok ? "✓" : "✗"}</span
                   >`,
               )}
             </div>
@@ -436,7 +437,7 @@ export class WwIntelPanel extends WwDrawerBase {
             html`<span
               data-ww-band=${b}
               aria-label=${translateText(
-                `ww1936.intel.domain.${INTEL_DOMAINS[d]}`,
+                `ww1936.intel.band.${INTEL_DOMAINS[d]}`,
               )}
               class="size-2.5 rounded-full ${BAND_COLOR[b]}"
             ></span>`,
@@ -490,7 +491,7 @@ export class WwIntelPanel extends WwDrawerBase {
         const total = lines.reduce((s, l) => s + l.value, 0);
         return html`<div data-ww-source-domain=${d} class="mb-1">
           <div class="font-semibold">
-            ${translateText(`ww1936.intel.domain.${INTEL_DOMAINS[d]}`)}
+            ${translateText(`ww1936.intel.band.${INTEL_DOMAINS[d]}`)}
             <span data-ww-level>${total}%</span>
           </div>
           ${lines.map(
@@ -524,17 +525,19 @@ export class WwIntelPanel extends WwDrawerBase {
     const nameOf = (id: number) => rows.find((r) => r.id === id)?.name ?? "";
     return html`<div data-ww-crypto class="mt-2 flex flex-col gap-1 text-xs">
       <div class="flex justify-between">
-        <span>${translateText("ww1936.intel.cipher")}</span
+        <span>${translateText("ww1936.crypto.strength")}</span
         ><span data-ww-cipher class="tabular-nums">${c.cipher}</span>
       </div>
       <div class="flex justify-between">
-        <span>${translateText("ww1936.intel.decrypt")}</span
+        <span>${translateText("ww1936.crypto.power")}</span
         ><span data-ww-decrypt class="tabular-nums">${c.decrypt}</span>
       </div>
-      <h4 class="${HEADING}">${translateText("ww1936.intel.crypto_target")}</h4>
+      <h4 class="${HEADING}">
+        ${translateText("ww1936.crypto.target", { country: nameOf(c.target) })}
+      </h4>
       ${c.target === 0
         ? html`<p class="m-0 text-white/60">
-            ${translateText("ww1936.intel.crypto_none")}
+            ${translateText("ww1936.crypto.none_target")}
           </p>`
         : html`<div data-ww-crypto-progress class="flex items-center gap-2">
             <span
@@ -547,7 +550,7 @@ export class WwIntelPanel extends WwDrawerBase {
             <span
               >${c.daysLeft === null
                 ? "—"
-                : translateText("ww1936.intel.crypto_days", {
+                : translateText("ww1936.crypto.days_left", {
                     days: c.daysLeft,
                   })}</span
             >
@@ -564,11 +567,11 @@ export class WwIntelPanel extends WwDrawerBase {
                 class=${BUTTON}
                 @click=${() => this.send(m.cryptoTargetOrder(r.id))}
               >
-                ${translateText("ww1936.intel.crypto_change")} ${r.name}
+                ${translateText("ww1936.crypto.change_target")} ${r.name}
               </button>`,
           )}
       </div>
-      <h4 class="${HEADING}">${translateText("ww1936.intel.crypto_broken")}</h4>
+      <h4 class="${HEADING}">${translateText("ww1936.crypto.broken_list")}</h4>
       ${rows
         .filter((r) => c.decrypted.some((d) => d.target === r.id))
         .map((r) => {
@@ -581,15 +584,19 @@ export class WwIntelPanel extends WwDrawerBase {
             @click=${() => this.confirm(key, m.cryptoActivateOrder(r.id))}
           >
             ${this.armed === key
-              ? translateText("ww1936.intel.op_confirm")
-              : translateText("ww1936.intel.crypto_exploit", {
-                  name: r.name,
-                  days: d.daysLeft,
-                })}
+              ? translateText("ww1936.crypto.exploit_confirm")
+              : translateText("ww1936.crypto.exploit")}
+            ${d.daysLeft > 0
+              ? html`<span class="text-white/60"
+                  >${translateText("ww1936.crypto.exploiting", {
+                    days: d.daysLeft,
+                  })}</span
+                >`
+              : nothing}
           </button>`;
         })}
       <p class="m-0 text-white/50">
-        ${translateText("ww1936.intel.crypto_log_none")}
+        ${translateText("ww1936.crypto.broken_none")}
       </p>
     </div>`;
   }
