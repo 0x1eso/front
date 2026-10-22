@@ -12,6 +12,7 @@ import {
   emptySide,
   predictBattle,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { GRAND_DOCTRINE_STATS } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import type { Game } from "@openfront/engine/game/Game";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { modInputOf } from "@openfront/engine/ww1936/land/Battles";
@@ -99,7 +100,11 @@ describe("World War 1936 P2: readiness (P2 spec §8.3)", () => {
     // GRAND_DOCTRINE_STATS' share of it).
     ce.addTech("battleplan_1");
     expect(ce.stats.planMaxBp).toBe(0);
-    grantDoctrineStats(g.worldWar()!, ce.smallID, { planMaxBp: 1000 });
+    grantDoctrineStats(
+      g.worldWar()!,
+      ce.smallID,
+      GRAND_DOCTRINE_STATS.gd_battleplan[0],
+    );
     expect(ce.stats.planMaxBp).toBe(1000);
     finishDay(runner, d0 + 40);
     expect(a.planBp).toBe(4000);

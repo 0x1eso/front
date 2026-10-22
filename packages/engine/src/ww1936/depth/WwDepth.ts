@@ -412,8 +412,25 @@ export interface ArmyDepthMods {
   fmTraits: number;
   cmdAttBp: number;
   cmdDefBp: number;
-  /** Spec §4.2 guerrilla_fighter on the army group: supply penalties halved. */
+  /** Spec §4.2 guerrilla_fighter (the army's general or its group): supply penalties halved. */
   halfSupply: boolean;
+  // Review L4 (spec §4.3, §4.5; FM_TRAIT_STATS, MEDAL_STATS): the army's
+  // non-combat command effects, read by P2 where its country stats are.
+  /** Org points added to the max org of the army's divisions (fm_inspiring). */
+  orgAdd: number;
+  /** Org recovery, percent (fm_inspiring, medal_service). */
+  recoveryPct: number;
+  /** Readiness growth, percent (fm_offensive, fm_fast_planner). */
+  planSpeedPct: number;
+  /** Readiness cap raise, bp (fm_thorough): ModInput's "fm_plan" line. */
+  planMaxBp: number;
+  /** Entrenchment speed, percent (fm_defensive). */
+  entrenchSpeedPct: number;
+  /** Supply use, percent (fm_logistics). */
+  supplyUsePct: number;
+  /** Spec §4.3: the field marshal's planning and logistics skills, added to the army general's. */
+  fmPlan: number;
+  fmLog: number;
 }
 export const NEUTRAL_ARMY_MODS: ArmyDepthMods = {
   fmAtt: 0,
@@ -422,6 +439,14 @@ export const NEUTRAL_ARMY_MODS: ArmyDepthMods = {
   cmdAttBp: 0,
   cmdDefBp: 0,
   halfSupply: false,
+  orgAdd: 0,
+  recoveryPct: 0,
+  planSpeedPct: 0,
+  planMaxBp: 0,
+  entrenchSpeedPct: 0,
+  supplyUsePct: 0,
+  fmPlan: 0,
+  fmLog: 0,
 };
 
 /** What lane D's commandLandMods is asked (pre-flight §0-2: per army, never per battle). */
@@ -485,6 +510,8 @@ export class WwDepth implements LandDepthHooks {
   keyStatTables = new Map<number, KeyStatsTable>();
   /** LandDepthHooks.keyStatsSeq: moves with every keyStatTables change (derived). */
   keyStatsSeq = 1;
+  /** armyMods' reused query (derived scratch). */
+  private modQuery: LandModQuery = { owner: 0, armyId: 0 };
   /** sr * 64 + side → index in sea.mines. */
   mineIndex = new Map<number, number>();
   /** region → FACILITY_IDS index + 1. */
@@ -607,9 +634,15 @@ export class WwDepth implements LandDepthHooks {
 
   /** Pre-flight §0-2: the army's ModInput values (lane D, O(1)). */
   armyMods(owner: number, armyId: number): ArmyDepthMods {
-    return this.countries[owner] === null || this.countries[owner] === undefined
-      ? NEUTRAL_ARMY_MODS
-      : commandLandMods(this, { owner, armyId });
+    if (this.countries[owner] === null || this.countries[owner] === undefined) {
+      return NEUTRAL_ARMY_MODS;
+    }
+    // One query object, reused (per division and round: no allocation);
+    // commandLandMods reads it and must not keep it.
+    const q = this.modQuery;
+    q.owner = owner;
+    q.armyId = armyId;
+    return commandLandMods(this, q);
   }
 
   /** The readiness cut `victim`'s enemies impose at `region` (recon W2, trickster D), bp ≤ 0. */

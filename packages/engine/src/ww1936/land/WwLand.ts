@@ -1422,7 +1422,17 @@ export class WwLand {
 
   /** Maximum org with P3's orgPct (spec §9.8). */
   orgMaxOf(row: number): number {
-    return this.rowOrgEntry(row) ? this.rowStats.orgMax[row] : 0;
+    return this.rowOrgEntry(row)
+      ? this.rowStats.orgMax[row] + this.armyOrgAddMilli(row)
+      : 0;
+  }
+
+  /** Review L4: the org the row's army adds (its field marshal; lane D), milli. */
+  private armyOrgAddMilli(row: number): number {
+    const army = this.divisions.army[row];
+    return army > 0
+      ? this.depthHooks.armyMods(this.divisions.owner[row], army).orgAdd * 1000
+      : 0;
   }
 
   /**
@@ -1438,7 +1448,9 @@ export class WwLand {
 
   /** orgMaxOf with the owner's stats epoch from statsEpochs (this pass). */
   orgMaxAt(row: number, epoch: number): number {
-    return this.rowOrgEntry(row, epoch) ? this.rowStats.orgMax[row] : 0;
+    return this.rowOrgEntry(row, epoch)
+      ? this.rowStats.orgMax[row] + this.armyOrgAddMilli(row)
+      : 0;
   }
 
   /** flagsOf with the owner's stats epoch from statsEpochs (this pass). */

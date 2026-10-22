@@ -18,6 +18,7 @@ import {
   Subdoctrine,
   SUBDOCTRINES,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type {
   BattalionId,
   SupportId,
@@ -26,6 +27,7 @@ import type {
   WwStatKey,
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { retiredTechEffects } from "./WwTechs";
 
 export function masteryLevel(milli: number): 0 | 1 | 2 | 3 | 4 | 5 {
   let l = 0;
@@ -90,45 +92,29 @@ export interface DoctrineChoice {
   sub: readonly number[];
 }
 
-/** Spec §3.2: base and completion stats of each grand doctrine (the old doctrine techs' tier 1 / tier 2 values). */
+/**
+ * Spec §3.2: base and completion stats of each grand doctrine — the old
+ * doctrine techs' tier 1 / tier 2 effects on the very keys the P2–P4
+ * readers read (pre-flight §0-5; review L1: built from the retired techs,
+ * one source). `gd_<school>` carries `<school>_1` and `<school>_2`.
+ */
 export const GRAND_DOCTRINE_STATS: Readonly<
   Record<GrandDoctrine, readonly [Partial<WwStats>, Partial<WwStats>]>
-> = {
-  gd_mobile: [{ speedPct: 10 }, { mechBreakPct: 20, mechOrg: 5 }],
-  gd_firepower: [{ artillerySoftPct: 20 }, { attackPct: 10 }],
-  gd_battleplan: [
-    { defensePct: 10, planMaxBp: 1_000 },
-    { defensePct: 10, planSpeedPct: 50, entrenchMax: 2 },
-  ],
-  gd_mass: [
-    { recruitablePct: 10, infTrainCutPct: 33 },
-    { attackPct: 5, defensePct: 5, infOrg: 10 },
-  ],
-  gd_fleet_in_being: [
-    { capitalAttackPct: 10, positioningPct: 5 },
-    { screeningPct: 15, navyDefensePct: 10 },
-  ],
-  gd_trade_interdiction: [
-    { subAttackPct: 15, subVisibilityPct: -10, convoyRaidPct: 15 },
-    { convoyRaidPct: 15, navalOrg: 10 },
-  ],
-  gd_base_strike: [
-    { carrierStrikePct: 20, carrierDeckPct: 10 },
-    { navalStrikePct: 15, carrierCycleCut: 1 },
-  ],
-  gd_strategic_destruction: [
-    { stratBombPct: 15, fighterAttackPct: 5 },
-    { stratBombPct: 15, bomberDefensePct: 15 },
-  ],
-  gd_battlefield_support: [
-    { casPct: 15, enemyAirPenaltyPp: 5 },
-    { casPct: 15, paradropPrepPct: -50 },
-  ],
-  gd_operational_integrity: [
-    { fighterAgilityPct: 10, airDetectPct: 10 },
-    { airLossCutPct: 15, navalStrikePct: 10 },
-  ],
-};
+> = Object.fromEntries(
+  GRAND_DOCTRINES.map((g) => {
+    const school = g.slice("gd_".length);
+    return [
+      g,
+      [
+        retiredTechEffects(`${school}_1` as WwTechId) as Partial<WwStats>,
+        retiredTechEffects(`${school}_2` as WwTechId) as Partial<WwStats>,
+      ],
+    ];
+  }),
+) as unknown as Record<
+  GrandDoctrine,
+  readonly [Partial<WwStats>, Partial<WwStats>]
+>;
 
 /** Spec §3.3 L1..L5 of every sub-doctrine (D fills from the spec tables; key choice per Task 2 Step 1). */
 export const SUBDOCTRINE_REWARDS: Readonly<

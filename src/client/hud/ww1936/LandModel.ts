@@ -1139,6 +1139,7 @@ export const NEUTRAL_DEPTH_INPUT: Pick<
   | "halfSupply"
   | "designFlags"
   | "artSoftPm"
+  | "fmPlanBp"
 > = {
   fmAtt: 0,
   fmDef: 0,
@@ -1150,6 +1151,7 @@ export const NEUTRAL_DEPTH_INPUT: Pick<
   halfSupply: false,
   designFlags: 0,
   artSoftPm: 0,
+  fmPlanBp: 0,
 };
 
 type P4Fields = Pick<

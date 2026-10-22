@@ -114,7 +114,7 @@ export function mioStats(family: number, traits: number): Partial<WwStats> {
       [["fighterAttackPct", 5]],
       [
         ["airRangePct", 10],
-        ["carrierDeckPct", 5],
+        ["deckPct", 5],
       ],
     ],
     [
@@ -123,7 +123,7 @@ export function mioStats(family: number, traits: number): Partial<WwStats> {
         ["stratBombPct", 8],
         ["casPct", 8],
       ],
-      [["bomberDefensePct", 8]],
+      [["heavyDefensePct", 8]],
     ],
     [
       [["navyDefensePct", 5]],

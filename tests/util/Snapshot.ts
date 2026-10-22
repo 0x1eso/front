@@ -277,6 +277,7 @@ export const DERIVED_FIELDS = new Set<string>([
   "designStatCache",
   "keyStatTables",
   "keyStatsSeq",
+  "modQuery",
   "mineIndex",
   "facilityIndex",
   "designCacheKey",

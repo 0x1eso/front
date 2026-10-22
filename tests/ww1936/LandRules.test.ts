@@ -156,6 +156,7 @@ const neutral = (over: Partial<ModInput>): ModInput => ({
   halfSupply: false,
   designFlags: 0,
   artSoftPm: 0,
+  fmPlanBp: 0,
   ...over,
 });
 

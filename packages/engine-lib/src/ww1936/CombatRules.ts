@@ -269,6 +269,12 @@ export interface ModInput {
   designFlags: number;
   /** The share of its soft attack its artillery carries, ‰ (artillery_officer). */
   artSoftPm: number;
+  /**
+   * Review L4 (preflight §D "fm_plan"): the part of the army's readiness
+   * above the country's cap that its field marshal's planMaxBp allows, bp
+   * ≥ 0 (planBp holds the rest). Shown as its own line, "fm_plan".
+   */
+  fmPlanBp: number;
 }
 
 export interface ModResult {
@@ -324,9 +330,9 @@ export function divisionMods(i: ModInput): ModResult {
   if (has(i.traits, TB("armor_expert")) && has(i.flags, TPL_ARMOR_ANY)) {
     trait += 1000;
   }
-  if (has(i.traits, TB("artillery_officer"))) {
-    trait += Math.floor((i.artSoftPm * 1000) / 1000);
-  }
+  // (An approximation: the share of the division's soft attack its
+  // artillery carries, in bp, on the whole attack line.)
+  if (has(i.traits, TB("artillery_officer"))) trait += i.artSoftPm;
   if (
     has(i.traits, TB("commando")) &&
     has(i.flags, TPL_MOUNTAIN_MAJOR | TPL_MARINE_MAJOR | TPL_PARA_ANY)
@@ -347,9 +353,16 @@ export function divisionMods(i: ModInput): ModResult {
       (i.land === "desert" ? i.tech.desertAttackPct * 100 : 0),
   );
   push(aAdd, "exp", expBp(i.exp));
-  // P6: the enemy's recon and trickster cut the readiness (never below 0).
-  const planBp = Math.max(0, i.planBp + Math.min(0, i.enemyPlanCutBp));
+  // P6: the enemy's recon and trickster cut the readiness (never below 0);
+  // the field marshal's part above the country's cap is its own line.
+  const planTotal = Math.max(
+    0,
+    i.planBp + i.fmPlanBp + Math.min(0, i.enemyPlanCutBp),
+  );
+  const fmPlanBp = Math.max(0, planTotal - i.planBp);
+  const planBp = planTotal - fmPlanBp;
   push(aAdd, "plan", planBp);
+  push(aAdd, "fm_plan", fmPlanBp);
   push(aAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
   push(
     aAdd,
@@ -422,12 +435,16 @@ export function divisionMods(i: ModInput): ModResult {
     if (i.weather === "heat" && has(i.traits, TB("desert_fox"))) w = 0;
     push(aCut, "weather", w);
   }
-  push(aCut, "excess", i.excessBp);
+  // P6 (spec §21.2, review L2): excessWidthCutPct shrinks the excess-width penalty.
+  push(
+    aCut,
+    "excess",
+    cutBy(i.excessBp, 100 - stat(i.tech, "excessWidthCutPct")),
+  );
   let supplyCut = -(1000 - Math.max(0, Math.min(1000, i.supplyPm))) * 5;
-  // P6 (spec §4.2 guerrilla_fighter): supply penalties halved.
-  if (i.halfSupply || has(i.traits, TB("guerrilla_fighter"))) {
-    supplyCut = halve(supplyCut, 1);
-  }
+  // P6 (spec §4.2 guerrilla_fighter): supply penalties halved. One source:
+  // lane D's commandLandMods sets halfSupply for the trait.
+  if (i.halfSupply) supplyCut = halve(supplyCut, 1);
   push(aCut, "supply", supplyCut);
   push(aCut, "encircled", i.encircled ? -5000 : 0);
   // P4 (spec §14.6, §15.4, §11.4).
@@ -487,6 +504,7 @@ export function divisionMods(i: ModInput): ModResult {
   }
   push(dAdd, "exp", expBp(i.exp));
   push(dAdd, "plan", planBp);
+  push(dAdd, "fm_plan", fmPlanBp);
   push(dAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
   // P6 (spec §21.2): engineerMulPct scales the engineers' line.
   push(
