@@ -47,13 +47,14 @@ const D_ANSWER: Readonly<Record<string, string | null>> = {
 
 /**
  * Lane W3 (plan Task 9): Germany's answers on day 0 — continuous focuses
- * closed, its faction's rule and goal taken (it leads the Axis), no treaty
- * to leave.
+ * closed, its faction's rule refused for want of PP (the case runs at 0 PP
+ * for lane I's intel_found), its goal taken (it leads the Axis, free), no
+ * treaty to leave.
  */
 const W3_ANSWER: readonly (string | null)[] = [
   "cfocus_locked",
   "cfocus_locked",
-  null,
+  "no_pp",
   null,
   "bad_index",
 ];
@@ -70,7 +71,7 @@ const LANE_BLOCK = (k: number): string | null =>
           ? "no_partner"
           : k <= 28
             ? "listing_bad"
-            : k <= 30
+            : k <= 31
               ? "no_pp"
               : k <= 39
                 ? "no_agency"
@@ -86,6 +87,7 @@ describe("World War 1936 P6: the depth orders", () => {
   it("every kind is valid on the wire and goes to its lane", async () => {
     const runner = await wwRunner({}, [], DEEP.map);
     const d = runner.game.worldWar()!.depth;
+    runner.game.worldWar()!.politics.country(DEEP.tag.DEU)!.ppMilli = 0;
     DEPTH_ORDER_KINDS.forEach((kind, k) => {
       const o = SAMPLES[kind];
       expect(() => WwOrderSchema.parse(o), kind).not.toThrow();
@@ -101,6 +103,8 @@ describe("World War 1936 P6: the depth orders", () => {
     const runner = await wwRunner({}, [], DEEP.map);
     step(runner, 2);
     const ww = runner.game.worldWar()!;
+    // Lane I: no PP, so intel_found is refused too.
+    ww.politics.country(DEEP.tag.DEU)!.ppMilli = 0;
     // A pending stats mark another country made is not flushed by a refusal.
     const pending = (ww.depth as unknown as { depthDirtyStats: Set<number> })
       .depthDirtyStats;

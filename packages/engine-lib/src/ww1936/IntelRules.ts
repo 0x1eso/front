@@ -3,6 +3,7 @@
 // foundation's (plan Task 1 Step 7); lane I fills opStartBlock and
 // upgradeBlock and writes the engine side (Task 5).
 import {
+  AGENCY_UPGRADE_CIVS,
   AGENCY_UPGRADES,
   AgencyUpgrade,
   ID_AIR,
@@ -340,7 +341,15 @@ export interface OpStartInput {
   halfThreshold: boolean;
 }
 
-/** Refusal of operation_start (plan decision 40). I fills (spec §8.5 conditions). */
+/**
+ * Refusal of operation_start (plan decision 40, spec §8.5 conditions), in
+ * the brief's order: the agency, the network (halved when `halfThreshold`:
+ * an exile's op_uprising at its own cores, spec §8.6), the idle operatives,
+ * the political power and the infantry equipment (both "no_pp": the list
+ * has no equipment refusal), then the operation's own situation — a captive
+ * to rescue, my occupied cores to raise, a war (collaboration) or a peace
+ * (coup) with the target.
+ */
 export function opStartBlock(
   i: OpStartInput,
 ):
@@ -350,7 +359,24 @@ export function opStartBlock(
   | "op_unavailable"
   | "no_pp"
   | null {
-  return "op_unavailable";
+  if (!i.agency) return "no_agency";
+  const def = OPERATION_DEFS[i.op];
+  const need = i.halfThreshold ? Math.floor(def.networkPm / 2) : def.networkPm;
+  if (i.networkPm < need) return "network_low";
+  if (i.operativesFree < def.operatives) return "no_operative";
+  if (i.pp < def.pp || i.infEquipment < def.infEquipment) return "no_pp";
+  switch (i.op) {
+    case "op_rescue":
+      return i.targetHasCaptive ? null : "op_unavailable";
+    case "op_uprising":
+      return i.targetControlsMyCore ? null : "op_unavailable";
+    case "op_collaboration":
+      return i.atWar ? null : "op_unavailable";
+    case "op_coup":
+      return i.atWar ? "op_unavailable" : null;
+    default:
+      return null;
+  }
 }
 
 export interface UpgradeInput {
@@ -364,9 +390,23 @@ export interface UpgradeInput {
   freeCivs: number;
 }
 
-/** Refusal of intel_upgrade (plan decision 40). I fills (spec §8.2). */
+/**
+ * Refusal of intel_upgrade (plan decision 40, spec §8.2): an agency, an
+ * upgrade not held, none in progress (one at a time), its prerequisite
+ * (UPGRADE_NEEDS; ag_crypto_2 also computing_1) — all "bad_index", the
+ * union the foundation fixed — and the two civilian factories it holds.
+ */
 export function upgradeBlock(
   i: UpgradeInput,
 ): "no_agency" | "bad_index" | "no_civs" | null {
-  return "no_agency";
+  if (!i.agency) return "no_agency";
+  if ((i.upgrades & upgradeBit(i.upgrade)) !== 0) return "bad_index";
+  if (i.inProgress) return "bad_index";
+  const need = UPGRADE_NEEDS[i.upgrade];
+  if (need !== undefined && (i.upgrades & upgradeBit(need)) === 0) {
+    return "bad_index";
+  }
+  if (i.upgrade === "ag_crypto_2" && !i.computing1) return "bad_index";
+  if (i.freeCivs < AGENCY_UPGRADE_CIVS) return "no_civs";
+  return null;
 }

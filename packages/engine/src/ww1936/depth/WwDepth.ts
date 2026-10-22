@@ -74,7 +74,7 @@ import type { Game } from "../../game/Game";
 import { aiPersonality } from "../economy/AiEconomy";
 import type { LandDepthHooks } from "../land/DepthHooks";
 import type { WorldWar } from "../WorldWar";
-import { dailyIntel, issueIntel } from "./Agency";
+import { dailyIntel, dayCommonIntel, issueIntel, mixIntel } from "./Agency";
 import { aiCommandDay } from "./AiCommand";
 import { aiDesignsDay } from "./AiDesigns";
 import { aiIntelDay } from "./AiIntel";
@@ -110,7 +110,7 @@ import {
   issueDoctrine,
 } from "./Doctrine";
 import { coalDemand, dailyEnergy, energyDemand } from "./Energy";
-import { computeIntelRow } from "./IntelLevels";
+import { computeIntelRow, intelDetailOf } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade, listingPriceMilli } from "./Market";
 import {
@@ -666,6 +666,7 @@ export class WwDepth implements LandDepthHooks {
     dayCommonMech(this, day, tick); // W3: faction goals, treaty clock, congress drift, BoP drift
     processRockets(this, day, tick); // S
     processRaids(this, day, tick); // S
+    dayCommonIntel(this, day); // I: the day's resistance table (pre-flight §0-8)
   }
 
   countryTurn(id: number, day: number, tick: number): void {
@@ -939,8 +940,18 @@ export class WwDepth implements LandDepthHooks {
   setNetMilli(o: number, t: number, v: number): void {
     const k = o * 1024 + t;
     const x = Math.max(0, Math.min(1_000_000, v));
-    if (x === 0) this.intelNet.delete(k);
-    else this.intelNet.set(k, x);
+    if (x === 0) {
+      this.intelNet.delete(k);
+      return;
+    }
+    const had = this.intelNet.has(k);
+    this.intelNet.set(k, x);
+    // Lane I: kept in key order, as a restore builds it (a new network is rare).
+    if (!had) {
+      const sorted = [...this.intelNet.entries()].sort((a, b) => a[0] - b[0]);
+      this.intelNet.clear();
+      for (const [key, val] of sorted) this.intelNet.set(key, val);
+    }
   }
 
   intelOf(o: number, t: number, domain: number): number {
@@ -1439,6 +1450,8 @@ export class WwDepth implements LandDepthHooks {
     mix(this.market.embargoes.length);
     mix(this.world.damLevel.reduce((a, l, i) => a + l * (i + 1), 0));
     h = mixMechanismsHash(h, this); // W3 (review fix): the mechanisms' state
+    // Lane I review 10: agencies, operatives, operations, codes, intel rows.
+    mixIntel(this, mix);
     return h;
   }
 }
@@ -1908,7 +1921,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         capturePm: operativeCapturePm(d, id, o),
       })),
       operations: d.ops
-        .filter((o) => o.owner === id)
+        .filter((o) => o.owner === id && o.operatives.length > 0)
         .map((o) => ({
           uid: o.uid,
           kind: INTEL_OPERATION_IDS[o.kind] ?? "op_infiltrate_army",
@@ -1925,13 +1938,12 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       ),
       cipher: cipherOf(d, id),
       decrypt: decryptOf(d, id),
-      decrypted: d.decrypted
-        .filter((x) => x.o === id && x.activeUntil >= 0)
-        .map((x) => ({ target: x.t, activeUntil: x.activeUntil })),
       networks: [...d.intelNet.entries()]
         .filter(([k]) => Math.floor(k / 1024) === id)
         .sort((a, b) => a[0] - b[0])
         .map(([k, v]) => [k % 1024, Math.floor(v / 1000)] as [number, number]),
+      // Lane I (wave B notes, lane U3's list).
+      ...intelDetailOf(d, id),
     },
     projects: {
       running: c.proj.running.map((r) => {

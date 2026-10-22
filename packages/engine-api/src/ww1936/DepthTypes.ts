@@ -947,8 +947,24 @@ export interface WwDepthDetail {
     cryptoPm: number;
     cipher: number;
     decrypt: number;
+    /** Every finished decryption (own or a sharer's, spec §8.7); activeUntil −1 when not exploiting. */
     decrypted: { target: number; activeUntil: number }[];
     networks: [number, number][];
+    // Lane I for lane U3 (wave B notes): what the intel drawer cannot rebuild.
+    /** [target, domain bits (1 << ID_ARMY, ID_NAVY, ID_AIR)] of finished infiltrations. */
+    infiltrated?: [number, number][];
+    /** The level lines [target, domain, key of ww1936.intel.src.<key>, value]; they add up to the level. */
+    levelParts?: [number, number, string, number][];
+    /** [target, counter-intelligence in half units] where not 0 (plan decision 18). */
+    targetCounter?: [number, number][];
+    /** Who exploited our codes, by the day the exploitation ended (we learn only then). */
+    decryptLog?: { target: number; day: number }[];
+    /** Days to break the current target at today's pace; −1 none. */
+    cryptoDaysLeft?: number;
+    /** [land strategic region, side, recon sorties] of my side's last day (W2's reconBySide). */
+    reconSorties?: [number, number, number][];
+    /** The land strategic regions my radar reaches (spec §8.8 air line). */
+    radarSr?: number[];
   };
   projects: {
     running: WwProjectData6[];
