@@ -25,6 +25,7 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { ringSvg } from "../domestic/Dial";
 import { COMPACT_MAX_HEIGHT, DrawerInsets } from "../domestic/DomesticPanel";
+import { DepthMiscModel, packFirst } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { FocusCanvas, FocusCanvasModel, focusIconUrl } from "./FocusCanvas";
 import {
@@ -43,6 +44,7 @@ import {
 } from "./FocusLayout";
 import { lineText } from "./PoliticsModel";
 import { TWO_TAP_MS, TwoTap, WW_BAND_PX, wwActive } from "./WorldWarModel";
+import { renderContinuousBand } from "./WwContinuousBand";
 import { WwDrawerEvent, wwDrawerInsets } from "./WwDrawer";
 
 // World War 1936 P3 (spec §21.3): the national focus drawer — on top the
@@ -203,7 +205,7 @@ export class WwFocusPanel extends LitElement implements Controller {
   @state() private compact = false;
   /** The picked card's tree position; -1: none. */
   @state() private selected = -1;
-  @state() private chip: FocusChip | null = null;
+  @state() private chip: FocusChip | "pack" | null = null;
   /** Phone, both slots filled: the chips folded behind a "▾" button, and whether its list is open. */
   @state() private chipMenu = false;
   private readonly twoTap = new TwoTap();
@@ -305,7 +307,10 @@ export class WwFocusPanel extends LitElement implements Controller {
     if (!this.shown) return;
     this.refit();
     this.pickStart();
-    const key = [this.game.wwPolitics?.()?.version];
+    const key = [
+      this.game.wwPolitics?.()?.version,
+      this.game.wwDepth?.()?.version,
+    ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
       this.requestUpdate();
@@ -367,9 +372,14 @@ export class WwFocusPanel extends LitElement implements Controller {
     if (this.selected >= 0) this.canvas?.panTo(this.selected);
   }
 
-  private pickChip(c: FocusCtx, chip: FocusChip) {
+  private pickChip(c: FocusCtx, chip: FocusChip | "pack") {
     this.chip = chip;
     this.chipMenu = false;
+    if (chip === "pack") {
+      const at = packFirst(c.tree);
+      if (at >= 0) this.canvas?.panTo(at);
+      return;
+    }
     if (chip === "all") {
       this.canvas?.showAll();
       return;
@@ -508,6 +518,7 @@ export class WwFocusPanel extends LitElement implements Controller {
               >
                 ${chips}
               </div>`}
+        ${this.renderBand()}
         <div class="relative min-h-0 flex-1">
           ${c === null
             ? nothing
@@ -525,6 +536,17 @@ export class WwFocusPanel extends LitElement implements Controller {
         </div>
       </aside>
     `;
+  }
+
+  /** The continuous-focus band over the tree (spec §12). */
+  private renderBand(): TemplateResult | typeof nothing {
+    const band = new DepthMiscModel(this.game).cfocusBand();
+    if (band === null) return nothing;
+    return renderContinuousBand(band, (id, selected) =>
+      this.send(
+        selected ? { kind: "cfocus_clear" } : { kind: "cfocus_set", id },
+      ),
+    );
   }
 
   private icon(def: FocusDef, size: string): TemplateResult {
@@ -634,7 +656,7 @@ export class WwFocusPanel extends LitElement implements Controller {
           : "bg-white/5 text-white/75 hover:bg-white/10"}"
         @click=${() => (this.chipMenu = !this.chipMenu)}
       >
-        ${translateText(CHIP_KEYS[this.chip ?? "all"])} ▾
+        ${this.chipLabel(c, this.chip ?? "all")} ▾
       </button>
       ${this.chipMenu
         ? html`<div
@@ -647,8 +669,17 @@ export class WwFocusPanel extends LitElement implements Controller {
         : nothing}`;
   }
 
+  /** A chip's text; the pack chip carries the pack's name (spec §20.10). */
+  private chipLabel(c: FocusCtx, chip: FocusChip | "pack"): string {
+    return chip === "pack"
+      ? translateText(`ww1936.cfocus_ui.pack.${c.treeId}`)
+      : translateText(CHIP_KEYS[chip]);
+  }
+
   private renderChips(c: FocusCtx, inMenu: boolean): TemplateResult {
-    return html`${FOCUS_CHIPS.map(
+    const chips: readonly (FocusChip | "pack")[] =
+      packFirst(c.tree) >= 0 ? [...FOCUS_CHIPS, "pack"] : FOCUS_CHIPS;
+    return html`${chips.map(
       (chip) =>
         html`<button
           type="button"
@@ -661,7 +692,7 @@ export class WwFocusPanel extends LitElement implements Controller {
             : "bg-white/5 text-white/75 hover:bg-white/10"}"
           @click=${() => this.pickChip(c, chip)}
         >
-          ${translateText(CHIP_KEYS[chip])}
+          ${this.chipLabel(c, chip)}
         </button>`,
     )}`;
   }

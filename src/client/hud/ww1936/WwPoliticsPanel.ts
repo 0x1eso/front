@@ -4,6 +4,11 @@ import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
+import {
+  CONGRESS_DECISIONS,
+  DepthMiscModel,
+  isBopDecision,
+} from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import {
   AdvisorSeat,
@@ -18,12 +23,16 @@ import {
   lawTab,
   politicsInput,
   type PoliticsModelInput,
+  spiritDesc,
+  spiritName,
   spiritTab,
   TextLine,
   TONE_BAR_CLASS,
   TONE_CLASS,
 } from "./PoliticsModel";
 import { today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import { renderBopBar } from "./WwBopBar";
+import { renderCongressBar } from "./WwCongressTab";
 import {
   OpenWwPoliticsEvent,
   WW_POLITICS_TABS,
@@ -86,6 +95,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
       econ?.summary(id) ?? null,
       this.game?.worldWarScenario() ? today(this.game) : 0,
       this.game?.worldWarData() ?? null,
+      this.game?.wwDepth?.()?.version ?? 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
@@ -122,9 +132,14 @@ export class WwPoliticsPanel extends WwDrawerBase {
       dead
         ? nothing
         : this.renderTabs(
-            WW_POLITICS_TABS,
+            this.tabList(),
             this.tab,
-            (t) => translateText(`ww1936.pol.tab.${t}`),
+            (t) =>
+              translateText(
+                t === "congress"
+                  ? "ww1936.congress.tab"
+                  : `ww1936.pol.tab.${t}`,
+              ),
             (t) => {
               this.tab = t;
               this.pickSeat = null;
@@ -140,10 +155,53 @@ export class WwPoliticsPanel extends WwDrawerBase {
     );
   }
 
+  private misc(): DepthMiscModel | null {
+    return this.game === undefined ? null : new DepthMiscModel(this.game);
+  }
+
+  /** The five tabs, and the congress tab for the United States. */
+  private tabList(): readonly WwPoliticsTab[] {
+    return this.misc()?.congressBar() != null
+      ? [...WW_POLITICS_TABS, "congress"]
+      : WW_POLITICS_TABS;
+  }
+
+  /** The decisions of one list, the cards of the decisions tab. */
+  private decisionCards(
+    i: PoliticsModelInput,
+    keep: (id: string) => boolean,
+  ): TemplateResult {
+    const ds = decisionTab(i)
+      .groups.flatMap((g) => g.decisions)
+      .filter((d) => keep(d.id));
+    return html`<ul class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
+      ${ds.map((d) => this.renderDecision(d))}
+    </ul>`;
+  }
+
+  private renderCongress(i: PoliticsModelInput): TemplateResult {
+    const bar = this.misc()?.congressBar() ?? null;
+    if (bar === null) return html`${nothing}`;
+    return html`${renderCongressBar(bar)}
+    ${this.decisionCards(i, (id) => CONGRESS_DECISIONS.includes(id))}`;
+  }
+
+  /** The balance-of-power bar and its decisions under the government. */
+  private renderBop(i: PoliticsModelInput): TemplateResult {
+    const m = this.misc();
+    const tag = this.game?.myPlayer()?.countryTag() ?? null;
+    const bar = tag === null ? null : (m?.bopBar(tag) ?? null);
+    if (bar === null || tag === null) return html`${nothing}`;
+    return html`${renderBopBar(bar, spiritName, spiritDesc)}
+    ${this.decisionCards(i, (id) => isBopDecision(tag, id))}`;
+  }
+
   private renderTab(i: PoliticsModelInput): TemplateResult {
     switch (this.tab) {
+      case "congress":
+        return this.renderCongress(i);
       case "government":
-        return this.renderGovernment(i);
+        return html`${this.renderGovernment(i)}${this.renderBop(i)}`;
       case "advisors":
         return this.renderAdvisors(i);
       case "laws":

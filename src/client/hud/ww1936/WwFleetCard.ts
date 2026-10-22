@@ -19,6 +19,7 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
 import { regionName } from "./LandModel";
@@ -764,7 +765,13 @@ export class WwFleetCard extends LitElement implements Controller {
     switch (this.panel) {
       case "missions":
         return [
-          ...FLEET_MISSIONS.map((m) =>
+          ...FLEET_MISSIONS.filter(
+            (m) =>
+              (m !== "lay_mines" && m !== "sweep_mines") ||
+              new DepthMiscModel(this.game)
+                .fleetChips(f.id)
+                .some((x) => x.mission === m),
+          ).map((m) =>
             this.button(
               `mission_${m}`,
               missionName(m),

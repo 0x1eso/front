@@ -14,6 +14,7 @@ import {
   DrawerInsets,
   drawerInsets,
 } from "../domestic/DomesticPanel";
+import { DepthMiscModel } from "./DepthMiscModel";
 import {
   canAct,
   factionTab,
@@ -43,7 +44,9 @@ import {
   WwDiplomacyTab,
   WwDrawerEvent,
 } from "./WwDrawer";
+import { renderFactionRules, renderRelations } from "./WwFactionRulesCard";
 import { ToggleWwDiplomacyEvent } from "./WwTopBand";
+import { renderTreaty } from "./WwTreatyCard";
 
 /** Camps listed under "if the war ended now" (mine is always added). */
 const SHOWN_CAMPS = 6;
@@ -167,6 +170,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       this.game?.wwPolitics?.()?.version ?? 0,
       this.game?.worldWarData() ?? null,
       this.game?.worldWarScenario() ? today(this.game) : 0,
+      this.game?.wwDepth?.()?.version ?? 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
@@ -422,6 +426,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     }
     const t = factionTab(i);
     const act = canAct(i);
+    const misc = new DepthMiscModel(this.game);
     return html`
       <div class=${HEADING}>${translateText("ww1936.diplo.faction.mine")}</div>
       ${t.mine === null
@@ -486,6 +491,13 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
                 )}
               </ul>`
             : nothing}`}
+      ${t.mine === null
+        ? nothing
+        : renderFactionRules(misc.factionRuleRows(), misc.goalSlots(), {
+            armed: (k) => this.armed(k),
+            tap: (k, order) => this.confirmTap(k, () => this.send(order)),
+            send: (order) => this.send(order),
+          })}
       ${t.others.length === 0
         ? nothing
         : html`<div class=${HEADING}>
@@ -617,6 +629,16 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
         "ww1936.diplo.treaties.access_received",
         t.accessReceived,
       )}
+      ${renderTreaty(
+        new DepthMiscModel(this.game).treatyRows(),
+        act,
+        this.armed("treaty_leave"),
+        () =>
+          this.confirmTap("treaty_leave", () =>
+            this.send({ kind: "treaty_leave" }),
+          ),
+        (tag) => this.flag(tag),
+      )}
     `;
   }
 
@@ -747,6 +769,12 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
         : html`<p data-ww-next class="m-0 text-xs text-white/70">
             ${nextBeat}
           </p>`}
+      ${w === null
+        ? nothing
+        : (() => {
+            const r = new DepthMiscModel(this.game).relationRows();
+            return renderRelations(r.best, r.worst, (tag) => this.flag(tag));
+          })()}
       ${w === null
         ? nothing
         : html`<div class=${HEADING}>

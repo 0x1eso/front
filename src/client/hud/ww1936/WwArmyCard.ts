@@ -1,4 +1,5 @@
 import type { LandOrder } from "@openfront/engine-api/Schemas";
+import { MEDALS, type RaidKind } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
@@ -18,6 +19,8 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
+import { WwStrikeFlowEvent } from "./DepthEvents";
+import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import {
   ARMY_BUTTONS,
@@ -55,6 +58,7 @@ import {
   srName,
 } from "./NavyModel";
 import {
+  enemiesOf,
   today,
   TWO_TAP_MS,
   TwoTap,
@@ -63,6 +67,7 @@ import {
 } from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
+import { renderRaidPicker } from "./WwRaidPicker";
 import {
   seaAirOf,
   WwSeaAirChangedEvent,
@@ -321,7 +326,9 @@ export class WwArmyCard extends LitElement implements Controller {
   /** The button tapped while it was greyed, and why. */
   @state() private refused: { id: string; block: CardBlock } | null = null;
   /** The buttons shown: the orders, the "⋯" ones, or the armies to merge with. */
-  @state() private panel: "main" | "more" | "merge" = "main";
+  @state() private panel: "main" | "more" | "merge" | "raid" | "medal" = "main";
+  /** The raid kind on show in the raid picker. */
+  private raidKind: RaidKind = "raid_para";
   @state() private place: CardPlace = {
     bottom: GAP,
     right: null,
@@ -675,7 +682,11 @@ export class WwArmyCard extends LitElement implements Controller {
             ? this.renderMore(c)
             : this.panel === "merge"
               ? this.renderMerge(c)
-              : this.renderButtons(c)}
+              : this.panel === "raid"
+                ? this.renderRaid(c)
+                : this.panel === "medal"
+                  ? this.renderMedals(c)
+                  : this.renderButtons(c)}
       </div>
       <div class="flex shrink-0 flex-col gap-1">
         ${this.foldButton(c, false)} ${this.closeButton()}
@@ -1197,6 +1208,7 @@ export class WwArmyCard extends LitElement implements Controller {
         },
       ),
       ...this.invadeButtons(c),
+      ...this.depthButtons(c),
       this.button("back", translateText("common.back"), "←", () => {
         this.panel = "main";
       }),
@@ -1247,6 +1259,76 @@ export class WwArmyCard extends LitElement implements Controller {
         },
         { grey: block !== null, pressed: on },
       ),
+    ];
+  }
+
+  /** P6 (spec §20.10): [Raid], [Rail guns n/2], [Medal], the reinforcement priority. */
+  private depthButtons(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return new DepthMiscModel(this.game).armyButtons(army).map((b) =>
+      this.button(
+        `depth_${b.id}`,
+        b.label,
+        b.id === "raid"
+          ? "🪂"
+          : b.id === "railgun"
+            ? "🚂"
+            : b.id === "medal"
+              ? "★"
+              : "⇅",
+        () => {
+          if (b.id === "raid") this.panel = "raid";
+          else if (b.id === "medal") this.panel = "medal";
+          else if (b.order !== null) {
+            this.eventBus.emit(new SendWwOrderIntentEvent(b.order));
+          }
+        },
+      ),
+    );
+  }
+
+  private renderRaid(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    const m = new DepthMiscModel(this.game);
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    const enemy = enemiesOf(this.game, me)[0] ?? 0;
+    return [
+      renderRaidPicker(
+        this.raidKind,
+        m.raidTargets(this.raidKind, enemy),
+        (k) => {
+          this.raidKind = k;
+          this.requestUpdate();
+        },
+        () => {
+          // The target region is picked on the map by the strike flow.
+          this.eventBus.emit(new WwStrikeFlowEvent(this.raidKind, army));
+          this.panel = "main";
+        },
+        () => (this.panel = "more"),
+      ),
+    ];
+  }
+
+  private renderMedals(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return [
+      ...MEDALS.map((medal) =>
+        this.button(
+          `medal_${medal}`,
+          translateText(`ww1936.medal.${medal}`),
+          "★",
+          () => {
+            this.eventBus.emit(
+              new SendWwOrderIntentEvent({ kind: "medal_award", army, medal }),
+            );
+            this.panel = "main";
+          },
+        ),
+      ),
+      this.button("back", translateText("common.back"), "←", () => {
+        this.panel = "more";
+      }),
     ];
   }
 
