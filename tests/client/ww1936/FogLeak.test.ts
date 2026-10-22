@@ -73,6 +73,12 @@ describe("fog leaks (spec §8.9)", () => {
       expect(side.textContent).not.toContain(String(n));
     }
     expect(side.textContent).toContain("n=?");
+    // The whole card, text and markup (bar widths are in style attributes).
+    for (const n of [LINE, RESERVE, WIDTH, "77.7", "64.1", "width: 80%"]) {
+      expect(side.innerHTML).not.toContain(String(n));
+    }
+    expect(side.innerHTML).toContain("bg-gray-500");
+    expect(el.querySelectorAll("[data-ww-mods='defender'] li")).toHaveLength(0);
     expect(side.querySelector("[data-ww-battle-width]")).toBeNull();
     for (const node of el.querySelectorAll("[title], [aria-label]")) {
       expect(node.getAttribute("title") ?? "").not.toContain(String(LINE));
@@ -149,6 +155,21 @@ describe("fog leaks (spec §8.9)", () => {
     expect(cache.count).toBe(3);
   });
 
+  it("draws the enemy bars in five steps at the close band", async () => {
+    const { el } = await battleCard(50);
+    const html = el.querySelector(
+      "[data-ww-battle-side='defender']",
+    )!.innerHTML;
+    expect(html).toContain("width: 80%");
+    expect(html).not.toContain("77.7");
+    expect(html).not.toContain("64.1");
+    expect(
+      el.querySelector(
+        "[data-ww-battle-side='defender'] [data-ww-battle-width]",
+      ),
+    ).toBeNull();
+  });
+
   it("shows the true numbers at exact band", async () => {
     const { el } = await battleCard(80);
     const side = el.querySelector("[data-ww-battle-side='defender']")!;
@@ -156,38 +177,89 @@ describe("fog leaks (spec §8.9)", () => {
     expect(side.querySelector("[data-ww-battle-width]")).not.toBeNull();
   });
 
-  it("no hud file reads enemy division counts directly", () => {
-    const dir = path.join(__dirname, "../../../src/client/hud/ww1936");
-    // The cards the foundation swapped to the fog model (task-1 report) must
-    // reach the battle, air-zone and fleet numbers only through it.
-    const raw: Record<string, RegExp> = {
-      "WwBattleCard.ts":
-        /\bn: (?:line|reserve)\b|b\.(?:att|def)(?:Line|Reserve)\)?\s*[^,\s]*\s*\)/,
-      "WwAirZoneCard.ts": /\.sorties\b/,
-      "WwFleetCard.ts": /preview_enemy",\s*\{\s*n: (?!fogModelOf)/,
+  it("no hud or render file reads enemy army, fleet or air data without the fog", () => {
+    const root = path.join(__dirname, "../../../src/client");
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (e.name.endsWith(".ts")) files.push(full);
+      }
     };
-    for (const [file, bad] of Object.entries(raw)) {
-      const src = fs.readFileSync(path.join(dir, file), "utf8");
-      expect(src).toContain("fogModelOf");
-      expect(bad.test(src), file).toBe(false);
+    walk(path.join(root, "hud/ww1936"));
+    walk(path.join(root, "render"));
+    for (const f of ["FleetTokenLayout.ts", "LandTokenLayout.ts"]) {
+      files.push(path.join(root, "view", f));
     }
-    // And only FogModel names the fog internals.
-    for (const f of fs.readdirSync(dir)) {
-      if (f === "FogModel.ts") continue;
-      const src = fs.readFileSync(path.join(dir, f), "utf8");
-      expect(
-        /\bfogPreviewValue\b|\bintelBand\b.*\.divisions/.test(src),
-        f,
-      ).toBe(false);
+    const reads =
+      /\.divisions\b|\b(?:att|def)(?:Line|Reserve)\b|\.armies\b|\.fleets\b|\.deployments\b|\.sorties\b/;
+    // Files that read other owners' data must ask the fog (and which call).
+    const MUST_FOG: Record<string, string> = {
+      "hud/ww1936/FogModel.ts": "armyView",
+      "hud/ww1936/WwBattleCard.ts": "bandOf",
+      "hud/ww1936/WwFleetCard.ts": "previewEnemyValue",
+      "render/gl/passes/ArmyTokenPass.ts": "armyView",
+      "render/gl/passes/FleetTokenPass.ts": "fleetView",
+      "render/gl/passes/AirSortiePass.ts": "planesSeen",
+      "render/gl/LandFrame.ts": "armyView",
+      "view/FleetTokenLayout.ts": "fleetView",
+      "view/LandTokenLayout.ts": "armyView",
+    };
+    // Files that read only my own side's data, or are the T1b swap list
+    // (WwArmyCard, WwTopBand: pre-flight A18), or draw no counts.
+    const ALLOWED = new Set([
+      "hud/ww1936/AirModel.ts",
+      "hud/ww1936/IntelModel.ts",
+      "hud/ww1936/LandModel.ts",
+      "hud/ww1936/LandSeaAir.ts",
+      "hud/ww1936/NavyModel.ts",
+      "hud/ww1936/WwAirPanel.ts",
+      "hud/ww1936/WwArmyCard.ts",
+      "hud/ww1936/WwArmyPanel.ts",
+      "hud/ww1936/WwLandController.ts",
+      "hud/ww1936/WwNavyPanel.ts",
+      "hud/ww1936/WwSeaAirController.ts",
+      "hud/ww1936/WwTopBand.ts",
+      "render/gl/Renderer.ts",
+      "render/gl/passes/PlanArrowPass.ts",
+      "render/gl/passes/RegionBorderPass.ts",
+    ]);
+    const rel = (f: string) => path.relative(root, f).split(path.sep).join("/");
+    for (const f of files) {
+      const r = rel(f);
+      const src = fs.readFileSync(f, "utf8");
+      if (!reads.test(src)) continue;
+      if (r in MUST_FOG) {
+        expect(src, `${r} must ask the fog`).toContain(MUST_FOG[r]);
+        expect(src, `${r} must import the fog`).toMatch(
+          /FogModel|fogOf|fogModelOf/,
+        );
+      } else {
+        expect(
+          ALLOWED.has(r),
+          `${r} reads enemy data: filter it or allow-list it`,
+        ).toBe(true);
+      }
     }
-    // The passes ask the fog before they make an instance.
-    const passes = path.join(__dirname, "../../../src/client/render/gl/passes");
-    for (const [file, call] of [
-      ["ArmyTokenPass.ts", "armyView"],
-      ["FleetTokenPass.ts", "fleetView"],
-      ["NavalBattleMarkerPass.ts", "navalBattleVisible"],
-    ]) {
-      expect(fs.readFileSync(path.join(passes, file), "utf8")).toContain(call);
+    // No stale entries: every listed file exists.
+    for (const r of [...ALLOWED, ...Object.keys(MUST_FOG)]) {
+      expect(fs.existsSync(path.join(root, r)), r).toBe(true);
     }
+  });
+
+  it("fogs the fleet layout, the air deployments and the paradrop flights", () => {
+    const g = fogGame({ armies: [army(1, "POL", FAR, { divisions: 4 })] });
+    const f = fogModelOf(g.game as never);
+    // Air: band 0 sees no planes, a rough band a coarse top, exact the truth.
+    expect(f.planesSeen(ID("POL"), 40)).toBe(0);
+    g.setLevels([0, 0, 0, 20]);
+    expect(f.planesSeen(ID("POL"), 40)).toBeGreaterThan(40);
+    expect(f.planesSeen(ID("POL"), 40)).not.toBe(40);
+    g.setLevels([0, 0, 0, 80]);
+    expect(f.planesSeen(ID("POL"), 40)).toBe(40);
+    // A land battle between two others, out of sight, has no marker.
+    expect(f.landBattleVisible(FAR, ID("POL"), ID("FRA"))).toBe(false);
+    expect(f.landBattleVisible(FAR, ID("DEU"), ID("POL"))).toBe(true);
   });
 });

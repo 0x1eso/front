@@ -33,6 +33,7 @@ import {
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { carpetBombPoints } from "@openfront/engine-lib/warfare/Warfare";
 import { assetUrl } from "@openfront/shared/AssetUrls";
+import { fogOfAir } from "../../../hud/ww1936/FogModel";
 import type { WwAirView } from "../../../view/WwAirView";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import {
@@ -419,7 +420,15 @@ export class AirSortiePass {
       if (s === undefined) continue;
       const base = this.baseOf(air, navy, d);
       if (base === null) continue;
-      const k = sortiePlanes(this.sortiesOf(air, zone, d, me));
+      // P6 (spec §8.9): another owner's planes through the air band.
+      const seen =
+        d.owner === me
+          ? this.sortiesOf(air, zone, d, me)
+          : (fogOfAir(air)?.planesSeen(
+              d.owner,
+              this.sortiesOf(air, zone, d, me),
+            ) ?? this.sortiesOf(air, zone, d, me));
+      const k = sortiePlanes(seen);
       let up = this.airborne.get(d.id) ?? 0;
       const look = LOOK.get(d.type)!;
       for (let i = up; i < k; i++) {

@@ -25,6 +25,7 @@ import {
   intelBand,
 } from "@openfront/engine-lib/ww1936/IntelRules";
 import type { GameView } from "../../view/GameView";
+import type { WwAirView } from "../../view/WwAirView";
 import type { WwLandView } from "../../view/WwLandView";
 import type { WwNavyView } from "../../view/WwNavyView";
 
@@ -170,10 +171,16 @@ function bucket(n: number): number {
 
 const LAND_FOG = new WeakMap<object, FogModel>();
 const NAVY_FOG = new WeakMap<object, FogModel>();
+const AIR_FOG = new WeakMap<object, FogModel>();
 
 /** The fog the army token pass filters by (undefined: nothing registered, draw all). */
 export function fogOfLand(view: WwLandView): FogModel | undefined {
   return LAND_FOG.get(view);
+}
+
+/** The fog the air sortie pass filters by. */
+export function fogOfAir(view: WwAirView): FogModel | undefined {
+  return AIR_FOG.get(view);
 }
 
 /** The fog the fleet token and naval battle passes filter by. */
@@ -185,7 +192,6 @@ export class FogModel {
   private observer = 0;
   private forcedOff = false;
 
-  private key = Number.NaN;
   private armies = new Map<number, FogArmyView>();
   private fleets = new Map<number, FogFleetView>();
   private ghostList: FogGhost[] = [];
@@ -201,19 +207,21 @@ export class FogModel {
     if (land) LAND_FOG.set(land, this);
     const navy = view.wwNavy?.();
     if (navy) NAVY_FOG.set(navy, this);
+    const air = view.wwAir?.();
+    if (air) AIR_FOG.set(air, this);
   }
 
   /** The country whose intelligence the screens show (0: none). */
   setObserver(smallID: number): void {
     if (smallID === this.observer) return;
     this.observer = smallID;
-    this.key = Number.NaN;
+    this.dirty = true;
   }
 
   /** Tests and the HUD: show everything while true. */
   forceOff(off: boolean): void {
     this.forcedOff = off;
-    this.key = Number.NaN;
+    this.dirty = true;
   }
 
   me(): number {
@@ -274,27 +282,38 @@ export class FogModel {
     return dayIndex(this.view.ticks?.() ?? 0, prep);
   }
 
-  private currentKey(): number {
-    const v = this.view;
-    return (
-      (v.wwLand?.()?.version ?? 0) +
-      (v.wwNavy?.()?.version ?? 0) +
-      (v.wwAir?.()?.version ?? 0) +
-      (v.wwDepth?.()?.version ?? 0) +
-      (v.wwPolitics?.()?.version ?? 0) +
-      this.me() * 7_919 +
-      this.today() * 1_000_003 +
-      (this.fogOff() ? 1 : 0)
-    );
-  }
+  /** The inputs of the cache, compared one by one (no sum: a reset version still shows). */
+  private readonly keyNow = [0, 0, 0, 0, 0, 0, 0, 0];
+  private keyThen: number[] | null = null;
 
   private ensure(): void {
-    const k = this.currentKey();
-    if (k === this.key) return;
-    this.key = k;
+    const v = this.view;
+    const k = this.keyNow;
+    k[0] = v.wwLand?.()?.version ?? 0;
+    k[1] = v.wwNavy?.()?.version ?? 0;
+    k[2] = v.wwAir?.()?.version ?? 0;
+    k[3] = v.wwDepth?.()?.version ?? 0;
+    k[4] = v.wwPolitics?.()?.version ?? 0;
+    k[5] = this.me();
+    k[6] = this.today();
+    k[7] = this.fogOff() ? 1 : 0;
+    const then = this.keyThen;
+    if (then !== null && !this.dirty) {
+      let same = true;
+      for (let i = 0; i < k.length; i++) {
+        if (then[i] !== k[i]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    this.dirty = false;
+    this.keyThen = k.slice();
     this.stampValue++;
     this.rebuild();
   }
+  private dirty = true;
 
   private rebuild(): void {
     const view = this.view;
@@ -498,6 +517,32 @@ export class FogModel {
   fleetView(fleetId: number): FogFleetView {
     this.ensure();
     return this.fleets.get(fleetId) ?? HIDDEN_FLEET;
+  }
+
+  /** The air view's plane count for another owner's deployment: 0 at band 0, a band's top below exact. */
+  planesSeen(owner: number, planes: number): number {
+    this.ensure();
+    if (this.fogOff()) return planes;
+    const band = this.bandOf(owner, ID_AIR);
+    if (band >= 3) return planes;
+    if (band <= 0) return 0;
+    return Math.max(1, shownAt(planes, band));
+  }
+
+  /** A land battle's marker shows when my side fights in it or one of its armies shows. */
+  landBattleVisible(
+    region: number,
+    attacker: number,
+    defender: number,
+  ): boolean {
+    this.ensure();
+    if (this.fogOff()) return true;
+    const me = this.me();
+    if (this.sameSide(me, attacker) || this.sameSide(me, defender)) return true;
+    for (const a of this.view.wwLand?.()?.armies.values() ?? []) {
+      if (a.region === region && this.armies.has(a.id)) return true;
+    }
+    return false;
   }
 
   /** A naval battle's marker shows when my side fights in it or a fleet there shows. */

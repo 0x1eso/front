@@ -7,6 +7,7 @@
  * changes; nothing is drawn without battles.
  */
 
+import { fogOfLand } from "../../../hud/ww1936/FogModel";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/battle-marker/battle-marker.frag.glsl?raw";
@@ -27,6 +28,7 @@ export class BattleMarkerPass {
   private seenView: WwLandView | null = null;
   private seenVersion = -1;
   private seenLod = -1;
+  private seenFog = -1;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -84,6 +86,7 @@ export class BattleMarkerPass {
     if (
       view === this.seenView &&
       view.version === this.seenVersion &&
+      (fogOfLand(view)?.stamp() ?? -1) === this.seenFog &&
       lod === this.seenLod
     ) {
       return;
@@ -91,8 +94,10 @@ export class BattleMarkerPass {
     this.seenView = view;
     this.seenVersion = view.version;
     this.seenLod = lod;
+    const fog = fogOfLand(view);
+    this.seenFog = fog?.stamp() ?? -1;
     const n = view.battles.size;
-    this.count = n;
+    this.count = 0;
     if (n === 0) return;
     this.buf.ensureCapacity(n);
     const f = this.buf.float32;
@@ -100,6 +105,10 @@ export class BattleMarkerPass {
     const w = sc.width;
     let o = 0;
     for (const b of view.battles.values()) {
+      // P6 (spec §8.9): a battle the player cannot see gets no marker.
+      if (fog && !fog.landBattleVisible(b.region, b.attacker, b.defender)) {
+        continue;
+      }
       const t = sc.centerTile(b.region);
       f[o] = t % w;
       f[o + 1] = Math.floor(t / w);
@@ -111,6 +120,7 @@ export class BattleMarkerPass {
       f[o + 7] = 0;
       o += FLOATS;
     }
+    this.count = o / FLOATS;
     const gl = this.gl;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, o);

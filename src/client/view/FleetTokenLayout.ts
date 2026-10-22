@@ -24,6 +24,7 @@ import type {
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { fogOfNavy } from "../hud/ww1936/FogModel";
 import { fanSlot } from "./LandTokenLayout";
 import type { WwNavyView } from "./WwNavyView";
 
@@ -286,6 +287,7 @@ export class FleetLayoutCache {
   private seenView: WwNavyView | null = null;
   private seenVersion = -1;
   private seenZoom = Number.NaN;
+  private seenFog = -1;
   private lastT = Number.NaN;
   private baseTick = Number.NaN;
 
@@ -299,6 +301,7 @@ export class FleetLayoutCache {
     const resample =
       view !== this.seenView ||
       view.version !== this.seenVersion ||
+      (fogOfNavy(view)?.stamp() ?? -1) !== this.seenFog ||
       zoom !== this.seenZoom;
     if (resample) this.sample(view, zoom);
     if (resample || tick !== this.baseTick) this.glide(view, tick);
@@ -335,7 +338,12 @@ export class FleetLayoutCache {
     this.samples++;
     const fleets = this.list;
     fleets.length = 0;
-    for (const f of view.fleets.values()) fleets.push(f);
+    // P6 (spec §8.9): a fleet the fog hides takes no slot and no fan-out place.
+    const fog = fogOfNavy(view);
+    this.seenFog = fog?.stamp() ?? -1;
+    for (const f of view.fleets.values()) {
+      if (fog === undefined || fog.fleetView(f.id).visible) fleets.push(f);
+    }
     fleets.sort((a, b) => a.id - b.id);
     const n = fleets.length;
     if (this.mode.length < n) {
