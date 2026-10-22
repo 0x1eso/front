@@ -238,9 +238,13 @@ describe("the AI's focus", { timeout: 60_000 }, () => {
         expect(path.length, t).toBeGreaterThan(20);
         for (const f of path) {
           expect(p.content.focusIdx.has(f), `${t} ${f}`).toBe(true);
-          expect(p.content.focuses[p.content.focusIdx.get(f)!].tree).toBe(
-            c.tree,
-          );
+          // A pack country (K5b: POL) plays the
+          // generic tree plus its pack's own focuses.
+          const ft = p.content.focuses[p.content.focusIdx.get(f)!].tree;
+          expect(
+            ft === c.tree || (ft === "generic" && c.tree === "pol"),
+            `${t} ${f}`,
+          ).toBe(true);
         }
       }
       for (const bp of p.content.branchPoints[c.tree] ?? []) {
