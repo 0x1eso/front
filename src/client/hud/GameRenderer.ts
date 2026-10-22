@@ -559,6 +559,8 @@ export function createRenderer(
     // P4 (plan Task 1 Step 22): the navy's and the air war's views (lane R draws them).
     const wwNavy = game.wwNavy();
     if (wwNavy !== null) view.setWwNavy(wwNavy);
+    const wwDepth = game.wwDepth();
+    if (wwDepth !== null) view.setWwDepth(wwDepth);
     const wwAir = game.wwAir();
     if (wwAir !== null) view.setWwAir(wwAir);
     if (wwNavy !== null && wwAir !== null) {

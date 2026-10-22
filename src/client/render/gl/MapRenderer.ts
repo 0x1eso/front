@@ -58,6 +58,7 @@ export class MapRenderer {
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
   /** World War 1936 P4 inputs, re-applied after a context restore. */
   private storedWwNavy: WwNavyView | null = null;
+  private storedWwDepth: WwDepthView | null = null;
   private storedWwAir: WwAirView | null = null;
   private storedSeaAirSelection: SeaAirSelection | null = null;
   private storedSeaAirGlow: SeaAirGlowSource | null = null;
@@ -177,6 +178,9 @@ export class MapRenderer {
       this.renderer?.setWwLand(...this.storedWwLand);
     }
     if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
+    if (this.storedWwDepth !== null) {
+      this.renderer?.setWwDepth(this.storedWwDepth);
+    }
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
     if (this.storedSeaAirSelection !== null) {
       this.renderer?.setSeaAirSelection(this.storedSeaAirSelection);
@@ -430,6 +434,12 @@ export class MapRenderer {
   setWwNavy(view: WwNavyView): void {
     this.storedWwNavy = view;
     this.renderer?.setWwNavy(view);
+  }
+
+  /** World War 1936 P6: the depth view (the mine pattern). */
+  setWwDepth(view: WwDepthView): void {
+    this.storedWwDepth = view;
+    this.renderer?.setWwDepth(view);
   }
 
   /** World War 1936 P4: draw the air war from `view` — sorties, wrecks, carpets, the air layer. */

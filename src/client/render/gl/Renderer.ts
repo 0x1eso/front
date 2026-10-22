@@ -29,6 +29,7 @@ import { FleetLayoutCache, fleetLod } from "../../view/FleetTokenLayout";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
 import type { WwAirView } from "../../view/WwAirView";
+import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwLandView } from "../../view/WwLandView";
 import type { WwNavyView } from "../../view/WwNavyView";
 import type { SpiralRibbon } from "../frame/SpiralTrails";
@@ -119,6 +120,7 @@ import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
 import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
+import { WwMinePass } from "./passes/WwMinePass";
 import type { RenderSettings } from "./RenderSettings";
 import { AffiliationPalette } from "./utils/Affiliation";
 import {
@@ -278,6 +280,9 @@ export class GPURenderer {
   private landClock: LandTickClock = new LandTickClock(100);
   /** World War 1936 P4 (spec §18.2): the navy, the air war, their passes. */
   private wwNavy: WwNavyView | null = null;
+  /** P6 (spec §15.1): the depth view and the mine pattern it feeds. */
+  private wwDepth: WwDepthView | null = null;
+  private wwRegionIds: Uint16Array | null = null;
   private wwAir: WwAirView | null = null;
   private seaAirSelection: SeaAirSelection | null = null;
   private seaAirGlowSource: SeaAirGlowSource | null = null;
@@ -1683,6 +1688,7 @@ export class GPURenderer {
     // P4: the sea or the air layer (spec §18.2).
     if (this.seaPasses !== null && this.regionBorderPass !== null) {
       this.syncSeaAirLayer();
+      this.syncMines();
       if (this.regionBorderPass.layer !== LAYER_NONE) {
         this.regionBorderPass.drawLayer(
           cam,
@@ -1692,6 +1698,36 @@ export class GPURenderer {
         );
       }
     }
+  }
+
+  /** P6: made on the first sea-layer frame with mines; rewritten when the depth view moves. */
+  private syncMines(): void {
+    const border = this.regionBorderPass;
+    const depth = this.wwDepth;
+    if (
+      border === null ||
+      depth === null ||
+      border.layer !== LAYER_SEA ||
+      this.wwNavy === null ||
+      this.wwRegionIds === null
+    ) {
+      return;
+    }
+    if (border.mines === null) {
+      if (depth.minesData.length === 0) return;
+      border.mines = new WwMinePass(
+        this.gl,
+        this.wwNavy.scenario,
+        this.wwRegionIds,
+        this.mapW,
+      );
+    }
+    border.mines.update(depth, this.wwNavy.mySmallID());
+  }
+
+  /** World War 1936 P6: the depth view (the mine pattern reads it). */
+  setWwDepth(view: WwDepthView): void {
+    this.wwDepth = view;
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1805,6 +1841,8 @@ export class GPURenderer {
 
   /** World War 1936 (spec §8.2): draw the lines between these region ids. */
   setRegions(regionIds: Uint16Array): void {
+    this.wwRegionIds = regionIds;
+    this.regionBorderPass?.mines?.dispose();
     this.regionBorderPass?.dispose();
     this.regionBorderPass = new RegionBorderPass(
       this.gl,
