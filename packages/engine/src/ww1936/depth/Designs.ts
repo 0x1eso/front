@@ -24,6 +24,7 @@ import {
   PlaneDesignStats,
   ShipDesignMods,
   TankDesignStats,
+  WW_PLANE_DESIGN_SLOTS,
   WW_TANK_DESIGN_SLOTS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -53,6 +54,7 @@ import {
   licenceCostPct,
   PLANE_BASE_DEFS,
   planeType,
+  reliabilityLossBp,
   shipBase,
   shipYear,
   TANK_BASE_DEFS,
@@ -857,4 +859,112 @@ export function designInUse(
   for (const r of land.rowsOf(id)) n += land.divisions.equipOf(r)[j] ?? 0;
   for (const x of land.country(id)?.trainees ?? []) n += x.equip[j] ?? 0;
   return n;
+}
+
+// ---- T1b's plane-design helpers (review E, deferred sites: P4 deploy, decks, losses) ----
+
+/**
+ * The plane design slots (1-based) whose design flies as P4 `type`, in
+ * the draw order (spec §5.4.2: the newest year first, then the lower
+ * slot). Captured and received designs fly too; obsolete ones still do.
+ */
+export function planeDesignSlotsOf(
+  d: WwDepth,
+  owner: number,
+  type: string,
+): number[] {
+  const out: [number, number][] = [];
+  for (let s = 1; s <= WW_PLANE_DESIGN_SLOTS; s++) {
+    const st = d.designStatsOf(owner, "plane", s) as PlaneDesignStats | null;
+    if (st !== null && st.type === type) out.push([s, st.year]);
+  }
+  return out.sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([s]) => s);
+}
+
+/**
+ * Takes up to `n` design planes of P4 `type` from the stock onto the
+ * deployed ledger (P1's drawPlanes for design slots), newest first;
+ * returns the planes taken per design slot (WW_PLANE_DESIGN_SLOTS long,
+ * a Deployment.dcounts / deckD shape).
+ */
+export function drawDesignPlanes(
+  d: WwDepth,
+  owner: number,
+  type: string,
+  n: number,
+): number[] {
+  const got = new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
+  const ce = d.ww.economy.country(owner);
+  if (ce === null) return got;
+  let left = Math.max(0, Math.floor(n));
+  for (const s of planeDesignSlotsOf(d, owner, type)) {
+    if (left <= 0) break;
+    const k = designEquipKey("plane_design", s);
+    const take = Math.min(left, ce.stock[k]);
+    if (take <= 0) continue;
+    ce.stock[k] -= take;
+    ce.planesDeployed[k] += take;
+    got[s - 1] = take;
+    left -= take;
+  }
+  return got;
+}
+
+/** Design planes back to the stock (a recall, a lost base, a deck's surplus): P1's returnPlanes for design slots. */
+export function returnDesignPlanes(
+  d: WwDepth,
+  owner: number,
+  counts: ArrayLike<number>,
+): void {
+  const ce = d.ww.economy.country(owner);
+  if (ce === null) return;
+  for (let s = 0; s < counts.length; s++) {
+    const c = counts[s];
+    if (c <= 0) continue;
+    const k = designEquipKey("plane_design", s + 1);
+    const back = Math.min(c, ce.planesDeployed[k]);
+    ce.planesDeployed[k] -= back;
+    ce.stock[k] += back;
+  }
+}
+
+/** Design planes lost: off the deployed ledger only (P1's losePlanes for design slots). */
+export function loseDesignPlanes(
+  d: WwDepth,
+  owner: number,
+  counts: ArrayLike<number>,
+): void {
+  const ce = d.ww.economy.country(owner);
+  if (ce === null) return;
+  for (let s = 0; s < counts.length; s++) {
+    const c = counts[s];
+    if (c <= 0) continue;
+    const k = designEquipKey("plane_design", s + 1);
+    ce.planesDeployed[k] = Math.max(0, ce.planesDeployed[k] - c);
+  }
+}
+
+/**
+ * A design slot's planes as the deployment's P4 type flies them
+ * (designPlaneAsP4 of planeStatsOfKey: the design's numbers with the
+ * country's air percentages); null for an empty slot.
+ */
+export function designPlaneP4(
+  d: WwDepth,
+  owner: number,
+  slot: number,
+  type: string,
+): PlaneStats | null {
+  const s = planeStatsOfKey(d, owner, designEquipKey("plane_design", slot));
+  return s === null ? null : designPlaneAsP4(s, type);
+}
+
+/** Spec §5.4.2: a design slot's planes' loss multiplier, bp (reliabilityLossBp; 10000 for an empty slot). */
+export function designPlaneLossBp(
+  d: WwDepth,
+  owner: number,
+  slot: number,
+): number {
+  const s = d.designStatsOf(owner, "plane", slot) as PlaneDesignStats | null;
+  return s === null ? 10_000 : reliabilityLossBp(s.relPm);
 }

@@ -40,12 +40,18 @@ import { copyDesignTo } from "@openfront/engine/ww1936/depth/DesignCopy";
 import {
   conversionCostMilli,
   designPlaneAsP4,
+  designPlaneLossBp,
+  designPlaneP4,
+  drawDesignPlanes,
   equipCostMilli,
   equipResources,
   lineRetentionBp,
+  loseDesignPlanes,
   navalLineCostMilli,
   navalLineDesignBlock,
+  planeDesignSlotsOf,
   planeStatsOfKey,
+  returnDesignPlanes,
   saveDesign,
   shipLicenceCostPct,
 } from "@openfront/engine/ww1936/depth/Designs";
@@ -628,6 +634,47 @@ describe("World War 1936 P6: plane and ship design numbers", () => {
     // Memoised until the stats move.
     expect(planeStatsOfKey(d, GBR, key)).toBe(s);
     expect(planeStatsOfKey(d, GBR, equipKey("fighter", 1))).toBeNull();
+  });
+});
+
+// T1b's plane-design helpers (draw, return, lose, numbers, reliability).
+describe("World War 1936 P6: design planes for P4's deployments", () => {
+  it("draw newest first onto the ledger, come back, are lost, fly with their numbers", async () => {
+    const { ww, d } = await game();
+    const ALL = new Set(WW_TECH_IDS);
+    const ce = ww.economy.country(GBR)!;
+    for (const t of [
+      "fighter_2",
+      "self_sealing_tanks",
+      "drop_tanks",
+    ] as const) {
+      ce.addTech(t);
+    }
+    // Slot 1 a 1936 fighter, slot 2 a 1940 one, slot 3 a bomber.
+    const f1 = { ...recommendedPlane("small_1", ALL), name: "F1" };
+    const f2 = { ...recommendedPlane("small_2", ALL), name: "F2" };
+    const b1 = { ...recommendedPlane("medium_1", ALL), name: "B1" };
+    for (const def of [f1, f2, b1]) saveDesign(d, GBR, def, 0, "own", 0, 0, 0);
+    expect(planeDesignSlotsOf(d, GBR, "fighter")).toEqual([2, 1]);
+    expect(planeDesignSlotsOf(d, GBR, "bomber")).toEqual([3]);
+    const k = (s: number) => equipKey("plane_design", s);
+    ce.stock[k(1)] = 10;
+    ce.stock[k(2)] = 4;
+    const got = drawDesignPlanes(d, GBR, "fighter", 7);
+    expect(got.slice(0, 3)).toEqual([3, 4, 0]);
+    expect(got).toHaveLength(16);
+    expect([ce.stock[k(1)], ce.planesDeployed[k(1)]]).toEqual([7, 3]);
+    expect([ce.stock[k(2)], ce.planesDeployed[k(2)]]).toEqual([0, 4]);
+    returnDesignPlanes(d, GBR, [1, 0]);
+    loseDesignPlanes(d, GBR, [0, 2]);
+    expect([ce.stock[k(1)], ce.planesDeployed[k(1)]]).toEqual([8, 2]);
+    expect([ce.stock[k(2)], ce.planesDeployed[k(2)]]).toEqual([0, 2]);
+    const p = designPlaneP4(d, GBR, 2, "fighter")!;
+    const s2 = planeStatsOfKey(d, GBR, k(2))!;
+    expect(p).toEqual(designPlaneAsP4(s2, "fighter"));
+    expect(designPlaneP4(d, GBR, 9, "fighter")).toBeNull();
+    expect(designPlaneLossBp(d, GBR, 2)).toBe(reliabilityLossBp(s2.relPm));
+    expect(designPlaneLossBp(d, GBR, 9)).toBe(10_000);
   });
 });
 
