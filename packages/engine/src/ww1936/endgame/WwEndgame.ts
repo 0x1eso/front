@@ -334,6 +334,9 @@ function cloneJson<T>(x: T): T {
 }
 
 /** spec §25.3. Lanes call these fields and methods; they never keep their own copies. */
+/** WwEndgame.war's index: war id → position in the wars list (derived; see war()). */
+const WAR_POS = new WeakMap<readonly WwWar[], Map<number, number>>();
+
 export class WwEndgame {
   readonly size: number;
   readonly regionCap: number;
@@ -613,7 +616,21 @@ export class WwEndgame {
     return Math.min(a, b) * size + Math.max(a, b);
   }
   war(id: number): WwWar | null {
-    return this.wars.find((w) => w.id === id) ?? null;
+    // Final perf lane: by an id → position index (derived, outside the
+    // snapshot graph), checked on every read: a position that no longer
+    // holds that id (wars added, ended or restored) rebuilds it, so the
+    // answer is always the first war with that id, as find gave.
+    let idx = WAR_POS.get(this.wars);
+    let pos = idx?.get(id);
+    if (pos === undefined || this.wars[pos]?.id !== id) {
+      idx = new Map();
+      for (let i = 0; i < this.wars.length; i++) {
+        if (!idx.has(this.wars[i].id)) idx.set(this.wars[i].id, i);
+      }
+      WAR_POS.set(this.wars, idx);
+      pos = idx.get(id);
+    }
+    return pos === undefined ? null : this.wars[pos];
   }
   warOfPair(a: number, b: number): number {
     return this.pairWar.get(WwEndgame.pairKey(a, b, this.size)) ?? 0;

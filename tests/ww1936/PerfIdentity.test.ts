@@ -160,6 +160,39 @@ describe("final perf lane: same answers", () => {
     );
   });
 
+  test("WwEndgame.war's index answers what find over the wars list did, through adds, removals and a new list", async () => {
+    usePoliticsContent(depthFixture());
+    const runner = await wwRunner({}, [], DEEP.map);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const eg = ww.endgame;
+    const ids = ww.land.countries().map((c) => c.smallID);
+    const check = () => {
+      const top = Math.max(0, ...eg.wars.map((w) => w.id)) + 3;
+      for (let id = -1; id <= top; id++) {
+        expect(eg.war(id), `war ${id}`).toBe(
+          eg.wars.find((w) => w.id === id) ?? null,
+        );
+      }
+    };
+    check();
+    for (const a of ids) {
+      for (const b of ids) {
+        if (a < b && !ww.land.sameSide(a, b)) ww.setWar(a, b, g.ticks());
+      }
+    }
+    expect(eg.wars.length).toBeGreaterThan(2);
+    check();
+    // Taken out of the middle (positions shift), then a new list.
+    eg.wars.splice(1, 1);
+    check();
+    eg.wars = eg.wars.filter((_, i) => i % 2 === 0);
+    check();
+    eg.wars.reverse();
+    check();
+  });
+
   test("intel rows: the skirmisher line is Command.skirmisherContact's answer for every target", async () => {
     usePoliticsContent(depthFixture());
     const DEU = DEEP.tag.DEU;
