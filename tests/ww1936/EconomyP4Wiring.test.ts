@@ -97,6 +97,11 @@ describe("economy P4 wiring", () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const ww = runner.game.worldWar()!;
     for (const ce of ww.economy.countries()) {
+      // P5's dormant slots do not start (no fuel until they wake).
+      if (ww.scenario.isDormantSlot(ce.smallID)) {
+        expect(ce.fuelMilli, ce.tag).toBe(0);
+        continue;
+      }
       const oil = ce.totals.produced[0];
       const silos = ww.economy.countryBuildings(ce.smallID, "fuel_silo");
       expect(ce.fuelMilli, ce.tag).toBe(
