@@ -21,6 +21,7 @@ import {
   RAID_KINDS,
   type RaidKind,
   REINFORCE_PRIORITIES,
+  ROCKET_RANGE_KM,
   WW_MAX_RAILGUNS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -31,8 +32,15 @@ import {
   bopBand,
   CONGRESS,
 } from "@openfront/engine-lib/ww1936/MechRules";
-import { RAID_TARGETS } from "@openfront/engine-lib/ww1936/ProjectRules";
-import { LANDMARK_STATS } from "@openfront/engine-lib/ww1936/WorldRules";
+import { isNoStrike, strikeBlock } from "@openfront/engine-lib/ww1936/NoStrike";
+import {
+  RAID_TARGETS,
+  rocketTargetBlock,
+} from "@openfront/engine-lib/ww1936/ProjectRules";
+import {
+  LANDMARK_STATS,
+  scorchBlock,
+} from "@openfront/engine-lib/ww1936/WorldRules";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
 import { fogModelOf } from "./FogModel";
@@ -43,7 +51,7 @@ import {
   relationBase,
   statLines,
 } from "./PoliticsModel";
-import { countryName, dateLabel, today } from "./WorldWarModel";
+import { countryName, dateLabel, enemiesOf, today } from "./WorldWarModel";
 
 // ---- Congress (spec §13.1) ----
 
@@ -529,15 +537,49 @@ export class DepthMiscModel {
     return out;
   }
 
-  /** Whether the region is mine to scorch, and whether I can launch rockets from it. */
-  regionActions(region: number): { scorch: boolean; rocket: boolean } {
+  /** Whether the region is mine to scorch, whether I can launch rockets from it, and the engine-lib judges' refusals. */
+  regionActions(region: number): {
+    scorch: boolean;
+    rocket: boolean;
+    scorchBlock: string | null;
+    rocketBlock: string | null;
+  } {
     const econ = this.view.wwEconomy?.()?.region(region);
     const i = politicsInput(this.view);
-    if (econ === undefined || i === null || !canAct(i)) {
-      return { scorch: false, rocket: false };
+    const sc = this.view.worldWarScenario?.() ?? null;
+    if (econ === undefined || i === null || sc === null || !canAct(i)) {
+      return {
+        scorch: false,
+        rocket: false,
+        scorchBlock: null,
+        rocketBlock: null,
+      };
     }
-    const mine = econ.controller === this.me();
-    return { scorch: mine, rocket: mine && econ.rocketSite > 0 };
+    const me = this.me();
+    const mine = econ.controller === me;
+    const noStrike = isNoStrike(sc, region);
+    const eco = this.view.wwEconomy?.();
+    const enemies = enemiesOf(this.view, me);
+    const enemyAdjacent = sc
+      .regionNeighbours(region)
+      .some((n) => enemies.includes(eco?.region(n).controller ?? 0));
+    const scorchBlockId = scorchBlock({
+      legalOwner: i.view.legalOwner[region] === me,
+      controls: mine,
+      enemyAdjacent,
+      pp: Math.floor((i.view.summary(me)?.ppMilli ?? 0) / 1000),
+      queued: false,
+      noStrike,
+    });
+    const rocketBlockId =
+      strikeBlock(sc, region) ??
+      rocketTargetBlock({ km: 0, rangeKm: ROCKET_RANGE_KM[0], noStrike });
+    return {
+      scorch: mine,
+      rocket: mine && econ.rocketSite > 0,
+      scorchBlock: scorchBlockId,
+      rocketBlock: rocketBlockId,
+    };
   }
 
   /** The army card's extra buttons ([raid], [rail guns n/2], [medal], [priority]); mine only. */
