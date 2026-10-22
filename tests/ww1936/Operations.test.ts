@@ -104,7 +104,7 @@ function runOp(
     d.nextUid = opUid(d.ww.politics.seed, pm, pass, d.nextUid);
   }
   expect(startOperation(d, GBR, op, target, uids, d.mg.ticks())).toBeNull();
-  const row = d.ops.at(-1)!;
+  const row = d.ops[d.ops.length - 1];
   dailyOperations(d, GBR, row.endDay - 1);
   expect(d.ops).toContain(row);
   dailyOperations(d, GBR, row.endDay);

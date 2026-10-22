@@ -35,6 +35,10 @@ import type {
   WwDepth,
 } from "@openfront/engine/ww1936/depth/WwDepth";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  applyEffects,
+  makeCtx,
+} from "@openfront/engine/ww1936/politics/Dispatch";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
@@ -170,7 +174,9 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     dailyOperatives(d, GBR, caught + 365);
     expect(o.state).toBe(ST_IDLE);
     expect(o.target).toBe(0);
-    expect(msg.mock.calls.at(-1)?.[1]).toBe("ww1936_operative_released");
+    expect(msg.mock.calls[msg.mock.calls.length - 1]?.[1]).toBe(
+      "ww1936_operative_released",
+    );
   });
 
   it("an agency upgrade holds two civilian factories for 90 days", async () => {
@@ -387,5 +393,26 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     for (let k = 0; k < 4; k++) {
       expect(d.intelOf(GBR, FRA, k)).toBeGreaterThanOrEqual(80);
     }
+  });
+
+  it("the intel_network, decrypt and agency effects", async () => {
+    const r = await game();
+    const ww = r.game.worldWar()!;
+    const d = ww.depth;
+    const ctx = makeCtx(ww.politics, POL, POL, DEU, r.game.ticks());
+    applyEffects(ctx, [
+      { kind: "agency", upgrade: "ag_cipher" },
+      { kind: "intel_network", on: "target", pm: 250 },
+      { kind: "decrypt", on: { tag: "DEU" }, pm: 300 },
+    ]);
+    const c = d.country(POL)!;
+    expect(c.intel.agency).toBe(true);
+    expect(c.intel.upgrades).toBe(1 << 5);
+    expect(d.netMilli(POL, DEU)).toBe(250_000);
+    expect(d.decrypted).toEqual([
+      { o: POL, t: DEU, progressMilli: 300_000, activeUntil: -1 },
+    ]);
+    applyEffects(ctx, [{ kind: "intel_network", on: "target", pm: -400 }]);
+    expect(d.netMilli(POL, DEU)).toBe(0);
   });
 });
