@@ -7,7 +7,8 @@
 // deliveredMilli is the value arrived, so the units given so far are
 // floor(count × deliveredMilli / priceMilli). P5 has no transport helper
 // on this base (its lend-lease is a stub), so every delivery is that flat
-// queue — no sea losses (reported).
+// queue — no sea losses (reported). The foundation's listing field
+// `reserved` is unused (always 0).
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import {
   MARKET_DAYS,
@@ -68,8 +69,10 @@ export function issueTrade(
 /**
  * Spec §7.2: `count` units of a listing — the seller's unit cost × the
  * generation discount (years behind the newest of its line the seller
- * makes). Merge glue: WwDepth's market view should price listings with
- * this (it passes 0 years today).
+ * makes). The market view prices listings with it too. A deliberate
+ * choice (review minor 5): the unit cost is what the item costs its
+ * seller to make — lane E's equipCostMilli, with the seller's MIO cost
+ * traits and, for a seller building under licence, the surcharge.
  */
 export function listingPriceMilli(
   d: WwDepth,
@@ -247,7 +250,11 @@ export function issueMarket(
   }
 }
 
-/** The units of a deal given to the buyer so far. */
+/**
+ * The units of a deal given to the buyer so far. (count × deliveredMilli
+ * stays below 2^53 while count² × unit cost < 9e15 — some 4 million
+ * rifles or 770,000 tanks in one deal; review minor 7.)
+ */
 function unitsGiven(x: Deal): number {
   return x.priceMilli <= 0
     ? x.count

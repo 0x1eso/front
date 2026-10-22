@@ -18,7 +18,11 @@ import type {
   DesignSlot,
   WwDepth,
 } from "@openfront/engine/ww1936/depth/WwDepth";
-import { addLine } from "@openfront/engine/ww1936/economy/Production";
+import {
+  addLine,
+  changeLine,
+  setLineFactories,
+} from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
@@ -353,5 +357,66 @@ describe("World War 1936 P6: production licences", () => {
     expect(grantLicence(d, DEU, FRA, m1, 0, day)).toBeNull();
     endLicence(d, d.market.licences[0]);
     expect(d.market.licences).toEqual([]);
+  });
+  it("a licensor's cancel stops a staffed line, and it cannot be staffed again", async () => {
+    const { ww, d, day } = await deep(["DEU", "FRA"]);
+    const econ = ww.economy;
+    const fra = econ.country(FRA)!;
+    econ.country(DEU)!.addTech("medium_tank_1");
+    const m1 = equipKey("medium_tank", 1);
+    expect(grantLicence(d, DEU, FRA, m1, 0, day)).toBeNull();
+    expect(addLine(econ, fra, "medium_tank", 1, 5)).toBeNull();
+    const line = fra.lines[fra.lines.length - 1];
+    line.active = 5;
+    // Under the licence the line's factories move freely.
+    expect(setLineFactories(econ, fra, line.id, 6)).toBeNull();
+    const id = d.market.licences[0].id;
+    expect(d.issue(DEU, { kind: "licence_cancel", licence: id }, 1)).toBeNull();
+    expect([line.factories, line.active]).toEqual([0, 0]);
+    // P1's factory order (review glue 4): a stopped line stays stopped…
+    expect(setLineFactories(econ, fra, line.id, 6)).toBe("no_tech");
+    expect(line.factories).toBe(0);
+    // …other lines are not touched by the check…
+    const other = fra.lines.find((l) => l !== line && l.factories > 0)!;
+    expect(
+      setLineFactories(econ, fra, other.id, other.factories + 1),
+    ).toBeNull();
+    // …and a retooled or self-researched line works again.
+    fra.addTech("medium_tank_1");
+    expect(setLineFactories(econ, fra, line.id, 6)).toBeNull();
+    expect(line.factories).toBe(6);
+  });
+
+  it("an AI licensee's stopped line moves to what it builds itself", async () => {
+    const { ww, d, day } = await deep(["DEU", "FRA"]);
+    const econ = ww.economy;
+    const ita = econ.country(ITA)!;
+    econ.country(DEU)!.addTech("artillery_2");
+    expect(
+      grantLicence(d, DEU, ITA, equipKey("artillery", 2), 0, day),
+    ).toBeNull();
+    const line = ita.lines.find((l) => l.key === equipKey("artillery", 1))!;
+    expect(changeLine(econ, ita, line.id, "artillery", 2)).toBeNull();
+    expect(setLineFactories(econ, ita, line.id, 3)).toBeNull();
+    const id = d.market.licences[0].id;
+    expect(d.issue(DEU, { kind: "licence_cancel", licence: id }, 1)).toBeNull();
+    // Italy builds artillery I itself: the line goes back to it, staffed.
+    expect(line.key).toBe(equipKey("artillery", 1));
+    expect(line.factories).toBe(3);
+  });
+
+  it("a licensee that can no longer pay the fee loses the licence", async () => {
+    const { ww, d, tick, day } = await deep(["DEU", "FRA"]);
+    const fra = ww.economy.country(FRA)!;
+    ww.economy.country(DEU)!.addTech("medium_tank_1");
+    expect(
+      grantLicence(d, DEU, FRA, equipKey("medium_tank", 1), 0, day),
+    ).toBeNull();
+    dayCommonMarket(d, day + 1, tick);
+    expect(d.market.licences).toHaveLength(1);
+    fra.totals.civ = 0;
+    dayCommonMarket(d, day + 2, tick);
+    expect(d.market.licences).toEqual([]);
+    expect(d.civsIn(DEU)).toBe(0);
   });
 });

@@ -35,6 +35,7 @@ import {
 } from "@openfront/engine-lib/ww1936/MarketRules";
 import { tradePaidCivs } from "../economy/Trade";
 import { opinionOf } from "../politics/Treaties";
+import { aiRetoolStopped } from "./AiMarket";
 import { copyDesignTo } from "./DesignCopy";
 import type { WwDepth } from "./WwDepth";
 
@@ -389,14 +390,18 @@ export function requestLicence(
 function stopLines(d: WwDepth, to: number, key: number): void {
   const ce = d.ww.economy.country(to);
   if (ce === null) return;
-  let stopped = false;
+  const stopped: [number, number][] = [];
   for (const line of ce.lines) {
     if (line.key !== key || line.factories === 0) continue;
+    stopped.push([line.id, line.factories]);
     line.factories = 0;
     line.active = 0;
-    stopped = true;
   }
-  if (stopped) d.ww.economy.markCountryDirty(to);
+  if (stopped.length === 0) return;
+  d.ww.economy.markCountryDirty(to);
+  // Review minor 6: an AI retools the stopped lines to what it builds
+  // itself at once (P1's AI would keep handing them factories it refuses).
+  if (!d.ww.isHumanControlled(to)) aiRetoolStopped(d, to, stopped);
 }
 
 /**
@@ -509,7 +514,9 @@ export function issueLicence(
 /**
  * The day's common step (spec §7.1): a request past its card's time is
  * refused, and one whose partners fell out too; a licence ends when the two
- * fight, an embargo stands, or either is gone.
+ * fight, an embargo stands, or either is gone. (A war ends a licence at
+ * the next common day, before that day's production — at most the rest of
+ * the declaration day; review minor 2, accepted. An embargo ends it at once.)
  */
 export function dayLicences(d: WwDepth, day: number, tick: number): void {
   void day;

@@ -15,6 +15,7 @@ import {
   dayCommonMarket,
   listingPriceMilli,
   MARKET_TRANSIT_DAYS,
+  marketList,
 } from "@openfront/engine/ww1936/depth/Market";
 import type { DesignSlot } from "@openfront/engine/ww1936/depth/WwDepth";
 import {
@@ -172,6 +173,12 @@ describe("World War 1936 P6: the arms market", () => {
       ),
     ).toBeNull();
     const id = d.market.listings[0].id;
+    // The market view shows that price (review glue 2).
+    d.takeData();
+    d.markGlobal();
+    expect(d.takeData()!.market!.listings).toEqual([
+      expect.objectContaining({ id, count: 100, priceMilli: 175_000 }),
+    ]);
     expect(
       d.issue(FRA, { kind: "market_buy", listing: id, count: 100 }, tick),
     ).toBeNull();
@@ -180,6 +187,32 @@ describe("World War 1936 P6: the arms market", () => {
       civs: 2,
       startDay: day,
     });
+  });
+
+  it("a seller conquered mid-delivery: the deal ends, the buyer keeps what arrived", async () => {
+    const { ww, d, tick, day } = await deep();
+    const pol = ww.economy.country(POL)!;
+    const fra = ww.economy.country(FRA)!;
+    const polStock = pol.stock[INF1];
+    const fraStock = fra.stock[INF1];
+    expect(marketList(d, POL, INF1, 900)).toBeNull();
+    const listing = d.market.listings[0].id;
+    expect(
+      d.issue(FRA, { kind: "market_buy", listing, count: 600 }, tick),
+    ).toBeNull();
+    for (let k = 1; k <= 15; k++) dayCommonMarket(d, day + k, tick);
+    expect(fra.stock[INF1] - fraStock).toBe(100);
+    expect(d.civsOut(FRA)).toBe(2);
+    ww.addCapitulation(POL, DEU, tick);
+    expect(ww.isActor(POL)).toBe(false);
+    dayCommonMarket(d, day + 16, tick);
+    // Nothing more arrives or is paid; what was on the road and the rest
+    // of the listing go back into the conquered seller's stock.
+    expect(d.market.deals).toEqual([]);
+    expect(d.market.listings).toEqual([]);
+    expect(d.civsOut(FRA)).toBe(0);
+    expect(fra.stock[INF1] - fraStock).toBe(100);
+    expect(pol.stock[INF1]).toBe(polStock - 100);
   });
 
   it("atomic bombs and ships cannot be listed", async () => {

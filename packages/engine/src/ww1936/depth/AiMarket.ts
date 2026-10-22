@@ -36,7 +36,7 @@ import {
   groupStock,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { aiPersonality } from "../economy/AiEconomy";
-import { changeLine } from "../economy/Production";
+import { changeLine, setLineFactories } from "../economy/Production";
 import { payPp } from "../politics/PayPp";
 import { embargoBlock, setEmbargo } from "./Embargo";
 import {
@@ -342,6 +342,51 @@ function aiUseLicences(d: WwDepth, id: number): void {
       return;
     }
   }
+}
+
+/**
+ * Lane M review minor 6: an AI's lines a licence's end stopped ([line id,
+ * factories before]) move to the newest generation it builds itself —
+ * of the same kind; a medium tank (or a tank design) falls back to light
+ * tanks, a plane design to the P4 type it flies as — and keep their
+ * factories. A line with nothing to move to stays stopped.
+ */
+export function aiRetoolStopped(
+  d: WwDepth,
+  id: number,
+  stopped: readonly (readonly [number, number])[],
+): void {
+  const econ = d.ww.economy;
+  const ce = econ.country(id);
+  if (ce === null) return;
+  for (const [lineId, factories] of stopped) {
+    const line = ce.lines.find((l) => l.id === lineId);
+    if (line === undefined) continue;
+    const [type, slot] = EQUIP_KEYS[line.key];
+    const kinds: EquipmentType[] =
+      type === "tank_design"
+        ? ["medium_tank", "light_tank"]
+        : type === "medium_tank"
+          ? ["medium_tank", "light_tank"]
+          : type === "plane_design"
+            ? planeTypeKinds(d, id, slot)
+            : [type];
+    for (const t of kinds) {
+      const gen = bestOwnGen(d, id, t);
+      if (gen === 0) continue;
+      if (changeLine(econ, ce, lineId, t, gen) !== null) continue;
+      setLineFactories(econ, ce, lineId, factories);
+      break;
+    }
+  }
+}
+
+/** The P4 type a plane design slot flies as, as a kind list (none when unknown). */
+function planeTypeKinds(d: WwDepth, id: number, slot: number): EquipmentType[] {
+  const s = d.designStatsOf(id, "plane", slot);
+  if (s === null || s.kind !== "plane") return [];
+  const t = EQUIPMENT_TYPES.find((x) => x === s.type);
+  return t === undefined ? [] : [t];
 }
 
 /**

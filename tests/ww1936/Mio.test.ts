@@ -8,8 +8,10 @@ import { MIO_FAMILIES } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   equipKey,
+  WW_TECH_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { recommendedPlane } from "@openfront/engine-lib/ww1936/DesignRules";
 import { mioFamilyOf, mioSize } from "@openfront/engine-lib/ww1936/MioRules";
 import {
   dailyMio,
@@ -19,12 +21,14 @@ import {
   mioPointsOf,
   mioStatsOf,
 } from "@openfront/engine/ww1936/depth/Mio";
+import type { DesignSlot } from "@openfront/engine/ww1936/depth/WwDepth";
+import { lineCapBp } from "@openfront/engine/ww1936/economy/Production";
 import type { Line } from "@openfront/engine/ww1936/economy/WwEconomy";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, stepTo, wwRunner } from "./util";
+import { HUMAN, step, stepTo, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -320,5 +324,89 @@ describe("World War 1936 P6: military industrial organisations", () => {
     pol.ppMilli = 49_000;
     expect(mioInvest(d, DEU, NAV, day + 400)).toBe("no_pp");
     expect(c.mio.fundsMilli[NAV * 3]).toBe(1_200_000);
+  });
+  it("the screens read one value per family (detailOf)", async () => {
+    const { d, tick, day } = await deepDeu();
+    const c = d.country(DEU)!;
+    d.issue(
+      DEU,
+      { kind: "mio_pick", family: "mio_armor", archetype: "design_bureau" },
+      tick,
+    );
+    c.mio.fundsMilli[ARM * 3 + 2] = 3_600_000;
+    c.mio.fundsMilli[ARM * 3] = 600_000; // another archetype's: not shown
+    d.markCountry(DEU);
+    const mio = d.takeData()!.details!.find((x) => x.smallID === DEU)!.mio;
+    expect(mio).toEqual(mioDetailOf(d, DEU, day));
+    expect(mio.arch).toEqual([-1, -1, 2, -1, -1, -1]);
+    expect(mio.fundsMilli).toEqual([0, 0, 3_600_000, 0, 0, 0]);
+    expect(mio.traits).toEqual([0, 0, 1 << 6, 0, 0, 0]);
+    expect(mio.size).toEqual([0, 0, 3, 0, 0, 0]);
+    expect(mio.points).toEqual([0, 0, 3, 0, 0, 0]);
+    expect(mio.investReady).toEqual([0, 0, 1, 0, 0, 0]);
+  });
+
+  it("a plane design line gets its airframe's efficiency cap", async () => {
+    const { ww, d, tick } = await deepDeu();
+    const c = d.country(DEU)!;
+    const ce = ww.economy.country(DEU)!;
+    const plane = (slot: number, base: string) => {
+      c.des.plane[slot - 1] = {
+        def: {
+          ...recommendedPlane(base, new Set(WW_TECH_IDS)),
+          name: `Plane ${slot}`,
+        } as DesignSlot["def"],
+        origin: "own",
+        from: 0,
+        fromSlot: 0,
+        obsolete: false,
+        savedDay: 0,
+      };
+      d.markDesign(DEU, "plane", slot);
+    };
+    plane(1, "small_1");
+    plane(2, "large_1");
+    d.issue(
+      DEU,
+      { kind: "mio_pick", family: "mio_air_light", archetype: "state_arsenal" },
+      tick,
+    );
+    c.mio.fundsMilli[MIO_FAMILIES.indexOf("mio_air_light") * 3] = 600_000;
+    expect(
+      d.issue(
+        DEU,
+        { kind: "mio_trait", family: "mio_air_light", trait: "p2" },
+        tick,
+      ),
+    ).toBeNull();
+    d.endTick();
+    expect(ce.stats.mioEffCapBp_air_light).toBe(500);
+    // The small airframe is a light aircraft: +5 points of cap; the large
+    // one is heavy (no trait there); a fighter line light as well.
+    expect(lineCapBp(d, ce, 5_000, equipKey("plane_design", 1))).toBe(5_500);
+    expect(lineCapBp(d, ce, 5_000, equipKey("plane_design", 2))).toBe(5_000);
+    expect(lineCapBp(d, ce, 5_000, equipKey("fighter", 1))).toBe(5_500);
+    expect(lineCapBp(d, ce, 5_000, equipKey("bomber", 1))).toBe(5_000);
+  });
+
+  it("a capitulated country's MIOs stop gaining and keep their state", async () => {
+    const { runner, ww, d, tick } = await deepDeu();
+    const c = d.country(DEU)!;
+    d.issue(
+      DEU,
+      { kind: "mio_pick", family: "mio_infantry", archetype: "state_arsenal" },
+      tick,
+    );
+    // Its rifle and truck lines fund the infantry family every day.
+    step(runner, 30);
+    const funds = c.mio.fundsMilli[INF * 3];
+    expect(funds).toBeGreaterThan(0);
+    ww.addCapitulation(DEU, DEEP.tag.FRA, runner.game.ticks());
+    expect(ww.isActor(DEU)).toBe(false);
+    step(runner, 30);
+    expect(c.mio.fundsMilli[INF * 3]).toBe(funds);
+    expect(c.mio.arch[INF]).toBe(0);
+    expect(c.mio.traits[INF * 3]).toBe(1);
+    expect(mioStatsOf(d, DEU)).toEqual({ mioCostPct_infantry: -5 });
   });
 });

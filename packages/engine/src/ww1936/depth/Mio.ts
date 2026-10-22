@@ -244,12 +244,10 @@ export function mioStatsOf(d: WwDepth, id: number): Partial<WwStats> {
 }
 
 /**
- * Merge glue for the screens (lane U4's DepthIndustryModel reads one value
- * per family): the detail's `mio` with the current archetype's funds and
- * traits per family, and `investReady` 1 when an invest may be made on
- * `day` (0 while it cools down, at the largest size or without an
- * archetype). WwDepth.detailOf should return this instead of the raw
- * 18-entry arrays.
+ * The screens' `mio` (WwDepth.detailOf; lane U4's DepthIndustryModel reads
+ * one value per family): the current archetype's funds and traits per
+ * family, and `investReady` 1 when an invest may be made on `day` (0 while
+ * it cools down, at the largest size or without an archetype).
  */
 export function mioDetailOf(
   d: WwDepth,
