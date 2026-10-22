@@ -1,0 +1,221 @@
+// World War 1936 P6 lane U4: the rocket and the three raid flows, and the
+// no-strike rule in every strike flow (Korea and Taiwan are greyed out by
+// the engine-lib judge, never offered).
+import type { WwOrder } from "@openfront/engine-api/Schemas";
+import {
+  EQUIP_KEY_COUNT,
+  equipKey,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { EventBus } from "@openfront/shared/EventBus";
+import fs from "fs";
+import path from "path";
+import { describe, expect, it } from "vitest";
+import { WwStrikeFlowEvent } from "../../../src/client/hud/ww1936/DepthEvents";
+import {
+  offered,
+  strikeTargets,
+} from "../../../src/client/hud/ww1936/DepthIndustryModel";
+import { WwNukeFlow } from "../../../src/client/hud/ww1936/WwNukeFlow";
+import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
+import { REGION } from "../../ww1936/seaFixture";
+import { depthGame } from "./DepthU4Fixture";
+import { division, landDetail } from "./LandFixture";
+import { seaDetail, SID } from "./SeaAirFixture";
+
+const SEA_DIR = path.join(__dirname, "../../testdata/maps/ww1936sea");
+const seaData = JSON.parse(
+  fs.readFileSync(path.join(SEA_DIR, "scenario.json"), "utf8"),
+) as ReadonlyScenarioData & { regions: { id: number; name: string }[] };
+const bin = new Uint8Array(fs.readFileSync(path.join(SEA_DIR, "regions.bin")));
+
+/** The sea map with some regions renamed to Korea/Taiwan names (same ids). */
+function renamed(names: Record<number, string>): ScenarioIndex {
+  const data = structuredClone(seaData);
+  for (const r of data.regions) if (names[r.id]) r.name = names[r.id];
+  return ScenarioIndex.fromFiles(data, bin);
+}
+
+function setup(alt: Record<number, string> | null) {
+  const sr = ScenarioIndex.fromFiles(seaData, bin).srOfZoneOrRegion(
+    REGION.berlin,
+  );
+  const stock = new Array<number>(EQUIP_KEY_COUNT).fill(0);
+  stock[equipKey("flying_bomb", 1)] = 5;
+  const g = depthGame({
+    wars: [
+      ["GBR", "DEU"],
+      ["GBR", "ITA"],
+    ],
+    summary: { atomicStock: 1 },
+    details: [seaDetail("GBR", { stock })],
+    landDetails: [
+      landDetail("GBR", {
+        divisions: [
+          division(70, 5, REGION.london),
+          division(71, 6, REGION.london),
+        ],
+      }),
+    ],
+    deployments: [
+      {
+        id: 7,
+        owner: SID("GBR"),
+        sr,
+        type: "strat_bomber",
+        mission: "strategic_bombing",
+        counts: [40, 0, 0],
+        target: 0,
+        base: REGION.london,
+      },
+    ],
+  });
+  const scenario = alt === null ? null : renamed(alt);
+  const game =
+    scenario === null
+      ? g.game
+      : ({ ...(g.game as object), worldWarScenario: () => scenario } as never);
+  const bus = new EventBus();
+  const sent: WwOrder[] = [];
+  bus.on(SendWwOrderIntentEvent, (e) => sent.push(e.order));
+  let t = 1_000;
+  const flow = new WwNukeFlow(game, bus, () => t);
+  flow.init();
+  return { flow, bus, sent, sr, advance: (ms: number) => (t += ms) };
+}
+
+describe("rocket and raid flows", () => {
+  it("a rocket: pick a target, set kind and count, launch", () => {
+    const m = setup(null);
+    expect(m.flow.start("rocket", REGION.paris)).toBe(true);
+    expect(m.flow.targets()).toContain(REGION.berlin);
+    m.flow.tapRegion(REGION.berlin);
+    expect(m.flow.state.step).toBe("setup");
+    m.flow.setCount(3);
+    expect(m.flow.fire()).toBe(true);
+    expect(m.sent).toEqual([
+      {
+        kind: "rocket_strike",
+        site: REGION.paris,
+        target: REGION.berlin,
+        rocket: "flying_bomb",
+        count: 3,
+      },
+    ]);
+  });
+
+  it("a paratrooper raid: the event starts it, a building is chosen, two taps send it", () => {
+    const m = setup(null);
+    m.bus.emit(new WwStrikeFlowEvent("raid_para", 5));
+    expect(m.flow.state.kind).toBe("raid_para");
+    expect(m.flow.targets()).toContain(REGION.berlin);
+    m.flow.tapRegion(REGION.berlin);
+    expect(m.flow.state.step).toBe("setup");
+    m.flow.state.building = "civ";
+    expect(m.flow.confirmRaid()).toBe(false);
+    m.advance(500);
+    expect(m.flow.confirmRaid()).toBe(true);
+    expect(m.sent).toEqual([
+      {
+        kind: "raid",
+        raid: "raid_para",
+        unit: 70,
+        target: REGION.berlin,
+        building: "civ",
+      },
+    ]);
+  });
+
+  it("a commando raid offers coastal enemy regions", () => {
+    const m = setup(null);
+    expect(m.flow.start("raid_commando", 6)).toBe(true);
+    // Rome is coastal and Italian; Berlin is not coastal.
+    expect(m.flow.targets()).toContain(REGION.rome);
+    expect(m.flow.targets()).not.toContain(REGION.berlin);
+    m.flow.tapRegion(REGION.rome);
+    m.flow.state.building = "dock";
+    m.flow.confirmRaid();
+    m.advance(500);
+    m.flow.confirmRaid();
+    expect(m.sent).toEqual([
+      {
+        kind: "raid",
+        raid: "raid_commando",
+        unit: 71,
+        target: REGION.rome,
+        building: "dock",
+      },
+    ]);
+  });
+
+  it("a raid does not start without a division", () => {
+    const m = setup(null);
+    expect(m.flow.start("raid_para", 999)).toBe(false);
+  });
+});
+
+describe("the no-strike rule in every strike flow", () => {
+  it("the real map: Korea and Taiwan 901 are greyed out by the engine-lib judge", () => {
+    const dir = path.join(__dirname, "../../../resources/maps/world1936");
+    const world = ScenarioIndex.fromFiles(
+      JSON.parse(
+        fs.readFileSync(path.join(dir, "scenario.json"), "utf8"),
+      ) as ReadonlyScenarioData,
+      new Uint8Array(fs.readFileSync(path.join(dir, "regions.bin"))),
+    );
+    const ids = world.landRegions.map((r) => r.id);
+    const rows = strikeTargets(world, ids, () => true);
+    const seoul = world.landRegions.find((r) => r.name === "Keijō (Seoul)")!;
+    for (const id of [901, seoul.id]) {
+      expect(rows.find((r) => r.region === id)?.noStrike, `${id}`).toBe(true);
+      expect(offered(rows)).not.toContain(id);
+    }
+    // The grey set is exactly the judge's.
+    for (const r of rows) expect(r.noStrike).toBe(isNoStrike(world, r.region));
+    expect(rows.filter((r) => r.noStrike).length).toBe(12);
+  });
+
+  it("bomb, rocket, bomber raid, paratrooper and commando flows never offer or take them", () => {
+    // Berlin and Rome stand in for Korea and Taiwan: renamed, the judge refuses them.
+    const names = { [REGION.berlin]: "Taiwan", [REGION.rome]: "Ryanggang" };
+    // Control: without the names every flow offers its region.
+    const ctl = setup(null);
+    expect(ctl.flow.start("nuke", ctl.sr)).toBe(true);
+    expect(ctl.flow.targets()).toContain(REGION.berlin);
+    ctl.flow.cancel();
+    expect(ctl.flow.start("rocket", REGION.paris)).toBe(true);
+    expect(ctl.flow.targets()).toContain(REGION.berlin);
+    ctl.flow.cancel();
+    expect(ctl.flow.start("raid_para", 5)).toBe(true);
+    expect(ctl.flow.targets()).toContain(REGION.berlin);
+    ctl.flow.cancel();
+    expect(ctl.flow.start("raid_commando", 6)).toBe(true);
+    expect(ctl.flow.targets()).toContain(REGION.rome);
+    ctl.flow.cancel();
+    const m = setup(names);
+    // The bomb: Berlin is the zone's only enemy region offered by the control run.
+    expect(m.flow.targets()).toEqual([]);
+    m.flow.start("nuke", m.sr);
+    expect(m.flow.targets()).not.toContain(REGION.berlin);
+    m.flow.tapRegion(REGION.berlin);
+    expect(m.flow.state.region).toBe(0);
+    m.flow.cancel();
+    m.flow.start("rocket", REGION.paris);
+    expect(m.flow.targets()).not.toContain(REGION.berlin);
+    expect(m.flow.tapRegion(REGION.berlin)).toBe(false);
+    m.flow.cancel();
+    m.flow.start("raid_bomb", 7);
+    expect(m.flow.targets()).not.toContain(REGION.berlin);
+    m.flow.cancel();
+    m.flow.start("raid_para", 5);
+    expect(m.flow.targets()).not.toContain(REGION.berlin);
+    expect(m.flow.tapRegion(REGION.berlin)).toBe(false);
+    m.flow.cancel();
+    m.flow.start("raid_commando", 6);
+    expect(m.flow.targets()).not.toContain(REGION.rome);
+    expect(m.flow.tapRegion(REGION.rome)).toBe(false);
+    expect(m.sent).toEqual([]);
+  });
+});

@@ -107,6 +107,10 @@ export class StrategicFxPass {
   readonly pulseOwners = new Uint32Array(MAX_PULSES);
   readonly pulseValues = new Float32Array(MAX_PULSES);
   pulseCount = 0;
+  /** World War 1936 P6 (U4): strike borders with their own brightness (WwStrikeFxPass owns the 3 s, 0.5 Hz shape). */
+  private readonly strikeOwners = new Uint32Array(MAX_PULSES);
+  private strikeCount = 0;
+  private strikeValue = 0;
 
   /** Time-left labels under the preparing silos; handed to WorldTextPass. */
   readonly labels: AttackTroopLabel[] = [];
@@ -192,6 +196,13 @@ export class StrategicFxPass {
     this.push(this.ripples, points);
   }
 
+  /** A nuke strike's border pulse: `count` owners at `brightness` (0..1); count 0 ends it. */
+  setStrikePulse(owners: Uint32Array, count: number, brightness: number): void {
+    this.strikeCount = Math.min(count, MAX_PULSES);
+    this.strikeValue = brightness;
+    for (let i = 0; i < this.strikeCount; i++) this.strikeOwners[i] = owners[i];
+  }
+
   /** Whether anything needs drawing or pulsing this frame. */
   isIdle(): boolean {
     return (
@@ -200,7 +211,8 @@ export class StrategicFxPass {
       this.launches.length === 0 &&
       this.intercepts.length === 0 &&
       this.ripples.length === 0 &&
-      this.congressTargets.length === 0
+      this.congressTargets.length === 0 &&
+      this.strikeCount === 0
     );
   }
 
@@ -222,6 +234,13 @@ export class StrategicFxPass {
         );
         n++;
       }
+    }
+    for (let i = 0; i < this.strikeCount; i++) {
+      if (n >= MAX_PULSES) break;
+      if (this.pulsesOwner(this.strikeOwners[i], n)) continue;
+      this.pulseOwners[n] = this.strikeOwners[i];
+      this.pulseValues[n] = this.strikeValue;
+      n++;
     }
     if (this.congressTargets.length > 0) {
       const value = congressPulse(this.timeFn());

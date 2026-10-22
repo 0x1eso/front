@@ -18,6 +18,7 @@ import { TransformHandler } from "../TransformHandler";
 import { UIState } from "../UIState";
 // The homepage loads it on demand, but the in-game instance (#game-settings)
 // is set up below, so it has to be defined by the time a game renders.
+import { PlaySoundEffectEvent } from "../sound/Sounds";
 import "../UserSettingModal";
 import type { UserSettingModal } from "../UserSettingModal";
 import { UserSettings } from "../UserSettings";
@@ -83,6 +84,7 @@ import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
 import { WwPeaceCard } from "./ww1936/WwPeaceCard";
+import { strikeFlowOf, WwNukeFlow } from "./ww1936/WwNukeFlow";
 import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import {
@@ -596,6 +598,8 @@ export function createRenderer(
   let landController: WwLandController | null = null;
   // P4 (plan decision 40): the navy's and the air war's taps, asked by the land flow.
   let seaAirController: WwSeaAirController | null = null;
+  // P6 (U4): the bomb, rocket and raid flow takes a map tap before the navy and air.
+  let nukeFlow: WwNukeFlow | null = null;
   if (wwScenario !== null) {
     view.setRegions(wwScenario.regionIds);
     // P2: the land war's tokens, battle markers and plan arrows (Task 7).
@@ -629,11 +633,12 @@ export function createRenderer(
       // Lane R's passes read the shared choice (the layer, the fleet, the
       // zone) and what a map tap may aim at glows (spec §18.3).
       view.setSeaAirSelection(seaAirController.selection);
+      nukeFlow = new WwNukeFlow(game, eventBus);
       const sa = seaAirOf(game);
       view.setSeaAirGlow({
         key: () =>
-          `${sa.draft.version}:${sa.selection.version}:${wwNavy.version}`,
-        glow: () => seaAirGlow(game),
+          `${sa.draft.version}:${sa.selection.version}:${wwNavy.version}:${strikeFlowOf(game).version}`,
+        glow: () => nukeFlow?.glow() ?? seaAirGlow(game),
       });
       // The land cards' P4 battle lines and order checks (pre-flight ruling 3).
       if (wwLand !== null) {
@@ -642,7 +647,17 @@ export function createRenderer(
     }
     if (wwLand !== null) {
       landController = new WwLandController(game, eventBus, transformHandler, {
-        seaAir: seaAirController,
+        seaAir:
+          seaAirController === null
+            ? null
+            : {
+                handleTap: (x, y, r, armyChosen) =>
+                  nukeFlow?.handleTap(x, y) === true ||
+                  seaAirController!.handleTap(x, y, r, armyChosen),
+                keepsArmy: () => seaAirController!.keepsArmy(),
+                selectFleet: (f) => seaAirController!.selectFleet(f),
+                selectZone: (z) => seaAirController!.selectZone(z),
+              },
       });
     }
     // P5 (plan Task 1 Step 14): the endgame's view (lanes U1, U2 draw it).
@@ -655,7 +670,11 @@ export function createRenderer(
     }
     // P6 (plan Task 1 Step 17): the depth systems' view (U3, U4 draw it).
     const wwDepth = game.wwDepth?.() ?? null;
-    if (wwDepth !== null) view.setWwDepth(wwDepth);
+    if (wwDepth !== null) {
+      view.setWwDepth(wwDepth, () =>
+        eventBus.emit(new PlaySoundEffectEvent("atom-hit")),
+      );
+    }
   }
 
   const layers: Controller[] = [
@@ -663,6 +682,7 @@ export function createRenderer(
     // touch fallback (the radial menu) skips a tap the land flow took.
     ...(landController === null ? [] : [landController]),
     ...(seaAirController === null ? [] : [seaAirController]),
+    ...(nukeFlow === null ? [] : [nukeFlow]),
     new WarshipSelectionController(
       game,
       landController === null ? eventBus : new LandTapBus(eventBus, game),

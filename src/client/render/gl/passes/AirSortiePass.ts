@@ -563,6 +563,23 @@ export class AirSortiePass {
     return true;
   }
 
+  /** World War 1936 P6 (WwStrikeFxPass): `planes` bombers fly out to a target and back, once. */
+  spawnStrikeFlight(
+    owner: number,
+    bx: number,
+    by: number,
+    cx: number,
+    cy: number,
+    planes: number,
+    startMs: number,
+  ): void {
+    const look = LOOK.get("strat_bomber")!;
+    const d = { id: -1, owner } as AirDeploySummary;
+    for (let i = 0; i < planes; i++) {
+      this.launch(d, look, bx, by, cx, cy, startMs + i * 250);
+    }
+  }
+
   private land(s: Sortie, i: number): void {
     s.active = false;
     this.free.push(i);

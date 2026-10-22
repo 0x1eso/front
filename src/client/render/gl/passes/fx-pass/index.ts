@@ -103,6 +103,16 @@ export class FxPass {
     }
   }
 
+  /** World War 1936 P6 (WwStrikeFxPass): the atom bomb's explosion sprite alone. */
+  spawnAtomSprite(x: number, y: number): void {
+    this.spritePass.pushFx(x, y, FX_NUKE, this.timeFn());
+  }
+
+  /** World War 1936 P6 (WwStrikeFxPass): the atom bomb's one shockwave. */
+  spawnAtomShockwave(x: number, y: number): void {
+    this.shockwavePass.pushNukeShockwave(x, y, this.settings.fx.nukeRadiusAtom);
+  }
+
   /** Expanded warfare: a compact blast (a mini explosion) where a carpet bomb landed. */
   spawnBombBlast(x: number, y: number): void {
     this.spritePass.pushFx(x, y, FX_MINI_EXPLOSION, this.timeFn());

@@ -70,6 +70,7 @@ export class MapRenderer {
   private storedPeaceMap: PeaceMapSource | null = null;
   /** World War 1936 P6: the depth view (lanes U3, U4 hand it to their passes). */
   private storedWwDepth: WwDepthView | null = null;
+  private storedStrikeSound: ((loud: boolean) => void) | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -183,6 +184,9 @@ export class MapRenderer {
     }
     if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
+    if (this.storedWwDepth !== null && this.storedStrikeSound !== null) {
+      this.renderer?.setWwDepth(this.storedWwDepth, this.storedStrikeSound);
+    }
     if (this.storedSeaAirSelection !== null) {
       this.renderer?.setSeaAirSelection(this.storedSeaAirSelection);
     }
@@ -490,8 +494,13 @@ export class MapRenderer {
   }
 
   /** World War 1936 P6 (plan Task 1 Step 17): the depth systems' view. */
-  setWwDepth(view: WwDepthView): void {
+  setWwDepth(
+    view: WwDepthView,
+    onSound: (loud: boolean) => void = () => {},
+  ): void {
     this.storedWwDepth = view;
+    this.storedStrikeSound = onSound;
+    this.renderer?.setWwDepth(view, onSound);
   }
 
   /** Set up map-layer passes from the loaded layer data. */

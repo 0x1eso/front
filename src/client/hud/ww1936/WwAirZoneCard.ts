@@ -32,7 +32,13 @@ import {
   zoneCard,
   ZoneCardData,
 } from "./AirModel";
-import { blockText, EQUIPMENT_ICONS, genName } from "./EconomyModel";
+import { DepthIndustryModel, offered } from "./DepthIndustryModel";
+import {
+  blockText,
+  buildingName,
+  EQUIPMENT_ICONS,
+  genName,
+} from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
 import { NavyGame } from "./NavyModel";
 import { WwAirZoneSelectedEvent } from "./SeaAirSelection";
@@ -45,7 +51,13 @@ import {
   samePlace,
 } from "./WwArmyCard";
 import { WwDrawerEvent } from "./WwDrawer";
+import {
+  ensureNukeFlow,
+  strikeFlowOf,
+  WwStrikeFlowChangedEvent,
+} from "./WwNukeFlow";
 import { seaAirOf, WwSeaAirChangedEvent } from "./WwSeaAirController";
+import { renderStrikePanel, strikeCardActive } from "./WwStrikeCard";
 
 /** −/+ move a slider by this many planes. */
 export const AIR_STEP = 10;
@@ -127,6 +139,8 @@ export class WwAirZoneCard extends LitElement implements Controller {
   /** Values sent but not yet back, by `${type}:${mission}`. */
   private readonly pending = new Map<string, { value: number; at: number }>();
   private shownSr = 0;
+  /** Deployments I switched to night bombing here (the engine keeps the truth). */
+  private readonly night = new Map<number, boolean>();
   private redrawKey: readonly unknown[] = [];
 
   createRenderRoot() {
@@ -135,6 +149,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
 
   init() {
     this.eventBus.on(WwSeaAirChangedEvent, () => this.redraw());
+    this.eventBus.on(WwStrikeFlowChangedEvent, () => this.requestUpdate());
     this.eventBus.on(WwDrawerEvent, () => {
       void this.updateComplete.then(() =>
         requestAnimationFrame(() => this.refit()),
@@ -156,6 +171,8 @@ export class WwAirZoneCard extends LitElement implements Controller {
     this.refit();
     const key = [
       selection.version,
+      strikeFlowOf(this.game).version,
+      this.game.wwDepth?.()?.version,
       this.game.wwAir?.()?.version,
       this.game.wwEconomy?.()?.version,
     ];
@@ -244,6 +261,14 @@ export class WwAirZoneCard extends LitElement implements Controller {
 
   render() {
     const c = this.ctx();
+    // P6 (U4): the rocket and the para / commando raid flows have their own card.
+    if (strikeCardActive(this.game)) {
+      return renderStrikePanel(
+        this.game,
+        ensureNukeFlow(this.game, this.eventBus),
+        placeStyle(zoneCardPlace()),
+      );
+    }
     if (c === null) return nothing;
     const d = c.card;
     return html`${SLIDER_STYLE}
@@ -366,7 +391,118 @@ export class WwAirZoneCard extends LitElement implements Controller {
             </li>`
           : d.rows.map((r) => this.renderRow(c, r))}
       </ul>
-      ${this.renderResult(d)}`;
+      ${this.renderStrike(c)} ${this.renderResult(d)}`;
+  }
+
+  /** P6 (spec §20.9): the bomb and precision raid buttons, and the flow's preview. */
+  private renderStrike(c: { ctx: AirCtx; card: ZoneCardData }): TemplateResult {
+    if (c.card.kind !== "land") return html`${nothing}`;
+    const model = new DepthIndustryModel(this.game);
+    const flow = ensureNukeFlow(this.game, this.eventBus);
+    const st = strikeFlowOf(this.game);
+    const sr = c.card.sr;
+    const block = model.nukeStartBlock(sr);
+    const active = st.step !== "idle";
+    const bomber = [...(this.game.wwAir?.()?.deployments.values() ?? [])].find(
+      (d) =>
+        d.owner === c.ctx.me &&
+        d.sr === sr &&
+        d.mission === "strategic_bombing" &&
+        offered(model.zoneTargets(sr)).length > 0,
+    );
+    const prev = flow.preview();
+    return html`<div
+      data-ww-strike
+      class="flex shrink-0 flex-wrap items-center gap-1"
+    >
+      <button
+        type="button"
+        data-ww-nuke-start
+        class="h-9 shrink-0 rounded-md border border-red-400/60 bg-red-950/50 px-2 disabled:opacity-40"
+        ?disabled=${block !== null}
+        title=${block === null ? "" : blockText(block)}
+        @click=${() => flow.start("nuke", sr)}
+      >
+        ☢ ${translateText("ww1936.nuke.drop")}
+      </button>
+      ${bomber === undefined
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-raid-start
+            class="h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2"
+            @click=${() => flow.start("raid_bomb", bomber.id)}
+          >
+            🎯 ${translateText("ww1936.raid_ui.precision")}
+          </button>`}
+      ${active
+        ? html`<button
+            type="button"
+            data-ww-strike-cancel
+            class="h-9 shrink-0 rounded-md border border-white/15 px-2"
+            @click=${() => flow.cancel()}
+          >
+            ${translateText("common.cancel")}
+          </button>`
+        : nothing}
+      ${st.kind === "nuke" && st.step === "target"
+        ? html`<span data-ww-hint="nuke" class="text-amber-200"
+            >${translateText("ww1936.nuke.pick_region")}</span
+          >`
+        : nothing}
+      ${prev !== null && (st.step === "preview" || st.step === "ready")
+        ? html`<span data-ww-nuke-preview class="tabular-nums text-amber-100"
+            >${translateText("ww1936.nuke.preview", {
+              factories: prev.factories,
+              destroyed: prev.destroyed,
+              stopped: prev.stopped,
+              divisions: prev.divisions,
+              pct: Math.floor(prev.interceptPm / 10),
+            })}</span
+          >`
+        : nothing}
+      ${st.kind === "nuke" && st.step === "ready"
+        ? html`<button
+            type="button"
+            data-ww-nuke-confirm
+            class="h-9 shrink-0 rounded-md border border-red-400 bg-red-900/70 px-2 font-semibold"
+            @click=${() => flow.confirmDrop()}
+          >
+            ${flow.confirmArmed()
+              ? translateText("ww1936.nuke.confirm_tap")
+              : translateText("ww1936.nuke.confirm")}
+          </button>`
+        : nothing}
+      ${st.kind === "raid_bomb" && st.step === "setup"
+        ? html`${flow
+              .raidBuildings()
+              .map(
+                (b) =>
+                  html`<button
+                    type="button"
+                    data-ww-raid-building=${b}
+                    aria-pressed=${String(st.building === b)}
+                    class="h-9 shrink-0 rounded-md border px-1.5 ${st.building ===
+                    b
+                      ? "border-sky-300 bg-sky-800/60"
+                      : "border-white/15 bg-white/5"}"
+                    @click=${() => flow.setBuilding(b)}
+                  >
+                    ${buildingName(b)}
+                  </button>`,
+              )}
+            <button
+              type="button"
+              data-ww-raid-confirm
+              class="h-9 shrink-0 rounded-md border border-red-400 bg-red-900/70 px-2 font-semibold"
+              @click=${() => flow.confirmRaid()}
+            >
+              ${flow.raidArmed()
+                ? translateText("ww1936.raid_ui.confirm")
+                : translateText("ww1936.raid_ui.raid")}
+            </button>`
+        : nothing}
+    </div>`;
   }
 
   private renderRow(
@@ -486,6 +622,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
             >
               ${translateText("ww1936.air.btn_recall")}
             </button>
+            ${this.renderNight(c, row)}
           </div>`}
       ${refused === null
         ? nothing
@@ -493,6 +630,49 @@ export class WwAirZoneCard extends LitElement implements Controller {
             🔒 ${blockText(refused)}
           </p>`}
     </li>`;
+  }
+
+  /** P6: the [Night] toggle of a bomber row's deployments and its aces' stars. */
+  private renderNight(
+    c: { ctx: AirCtx; card: ZoneCardData },
+    row: PlaneRowData,
+  ): TemplateResult {
+    const bombers = row.type === "bomber" || row.type === "strat_bomber";
+    const deps = [...(this.game.wwAir?.()?.deployments.values() ?? [])].filter(
+      (d) => d.owner === c.ctx.me && d.sr === c.card.sr && d.type === row.type,
+    );
+    const ids = new Set(deps.map((d) => d.id));
+    const aces = (this.game.wwDepth?.()?.acesData ?? []).filter((a) =>
+      ids.has(a.deployment),
+    ).length;
+    const on = deps.length > 0 && deps.every((d) => this.night.get(d.id));
+    return html`${aces > 0
+      ? html`<span data-ww-aces=${row.type} class="shrink-0 text-amber-300"
+          >${"★".repeat(Math.min(5, aces))}</span
+        >`
+      : nothing}
+    ${bombers && deps.length > 0
+      ? html`<button
+          type="button"
+          data-ww-air-night=${row.type}
+          aria-pressed=${String(on)}
+          class="h-9 shrink-0 rounded-md border px-1.5 ${on
+            ? "border-indigo-300 bg-indigo-900/60"
+            : "border-white/15 bg-white/5"}"
+          @click=${() => {
+            for (const d of deps) {
+              this.night.set(d.id, !on);
+              this.send({ kind: "air_night", deployment: d.id, on: !on });
+            }
+            this.requestUpdate();
+          }}
+        >
+          🌙
+          ${translateText(
+            on ? "ww1936.raid_ui.night_on" : "ww1936.raid_ui.night_off",
+          )}
+        </button>`
+      : nothing}`;
   }
 
   private renderResult(d: ZoneCardData): TemplateResult {
