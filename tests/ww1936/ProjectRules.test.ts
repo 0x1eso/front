@@ -6,6 +6,7 @@ import {
   milestoneCrossed,
   nukeInterceptPm,
   nukeOutcome,
+  projectBonusPct,
   projectDayMilli,
   raidSuccessPm,
   rocketHits,
@@ -22,6 +23,35 @@ describe("project rules", () => {
     expect(projectDayMilli(1_900, pct, 1_000, false)).toBe(447);
     expect(inputPm(1, 2)).toBe(500);
     expect(inputPm(0, 0)).toBe(1000);
+  });
+
+  // P6-3 glue (h): the Vemork plant's +10 (+20 with K3's nor_heavy_water).
+  it("the content's speed bonuses", () => {
+    const none = {
+      project: "sp_atomic" as const,
+      heavyWater: false,
+      radarLab: false,
+      vemork: false,
+      norHeavyWater: false,
+      quebec: false,
+    };
+    expect(projectBonusPct(none)).toBe(0);
+    expect(projectBonusPct({ ...none, vemork: true })).toBe(10);
+    expect(
+      projectBonusPct({ ...none, vemork: true, norHeavyWater: true }),
+    ).toBe(20);
+    expect(projectBonusPct({ ...none, norHeavyWater: true })).toBe(0);
+    expect(
+      projectBonusPct({
+        ...none,
+        heavyWater: true,
+        vemork: true,
+        quebec: true,
+      }),
+    ).toBe(35);
+    expect(
+      projectBonusPct({ ...none, project: "sp_jet_engine", vemork: true }),
+    ).toBe(0);
   });
 
   it("milestones crossed", () => {

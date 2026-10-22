@@ -14,13 +14,14 @@ import {
   equipKey,
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { traitBit } from "@openfront/engine-api/ww1936/LandTypes";
 import { P_RAID } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
   raidBlock,
   raidPrepDays,
 } from "@openfront/engine-lib/ww1936/ProjectRules";
 import type { Game } from "@openfront/engine/game/Game";
-import { processRaids } from "@openfront/engine/ww1936/depth/Raids";
+import { processRaids, raidAskOf } from "@openfront/engine/ww1936/depth/Raids";
 import type { WwDepth } from "@openfront/engine/ww1936/depth/WwDepth";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
@@ -149,6 +150,20 @@ describe("World War 1936 P6: raids (spec §10)", () => {
     expect(raidPrepDays("raid_para", true)).toBe(15);
     expect(raidPrepDays("raid_commando", false)).toBe(15);
     expect(raidPrepDays("raid_bomb", false)).toBe(7);
+  });
+
+  // P6-3 glue (h): lane D's assigned commando trait (GeneralsRun) is the
+  // bit raidAskOf reads from the division's army general.
+  it("a commando general cuts the raid's preparation by a quarter", async () => {
+    const { ww, d, deu, army, div } = await paraRaid();
+    const ask = () =>
+      raidAskOf(d, deu, "raid_para", div, LYON, "facility_nuclear").prepDays;
+    expect(ask()).toBe(20);
+    const gen = ww.land.country(deu)!.generals.find((x) => !x.fm)!;
+    gen.army = army.id;
+    expect(ask()).toBe(20);
+    gen.traits |= traitBit("commando");
+    expect(ask()).toBe(15);
   });
 
   it("a paradrop raid on a facility cuts its project by 15 percent", async () => {

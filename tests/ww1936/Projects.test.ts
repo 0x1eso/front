@@ -4,6 +4,7 @@
 // P1's building array, as a finished construction would.
 import {
   ATOMIC_BOMB_DAYS,
+  DAMS,
   SPECIAL_PROJECTS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -280,6 +281,42 @@ describe("World War 1936 P6: special projects (spec §9)", () => {
     expect(c.proj.running).toHaveLength(1);
     expect(run.progressMilli).toBe(kept);
     void runner;
+  });
+
+  // P6-3 glue (h): lane S's bonusPctOf reads lane W1's Vemork dam — its
+  // region held and the plant standing: +10, +20 with nor_heavy_water.
+  it("the Vemork plant speeds the atomic project while it stands", async () => {
+    const { runner, ww, d } = await france();
+    nuclearLab(ww, LYON);
+    expect(
+      d.issue(
+        FRA,
+        { kind: "project_start", project: "sp_atomic", facility: LYON },
+        1,
+      ),
+    ).toBe(null);
+    const run = d.country(FRA)!.proj.running[0];
+    const vemork = DAMS.indexOf("dam_vemork");
+    // The deep map has no Telemark: Paris stands in for the dam's region.
+    ww.scenario.damRegion[vemork] = PARIS;
+    d.world.damLevel[vemork] = 1;
+    const gain = (day: number) => {
+      d.lastPriorityGot.set(FRA, uranium(2));
+      const before = run.progressMilli;
+      dailyProjects(d, FRA, day);
+      return run.progressMilli - before;
+    };
+    const at = (pct: number) =>
+      projectDayMilli(PROJECT_DEFS.sp_atomic.days, pct, 1000, false);
+    const day = dayOf(runner);
+    expect(gain(day)).toBe(at(10));
+    ww.politics.gflags.set("nor_heavy_water", day);
+    expect(gain(day + 1)).toBe(at(20));
+    // Blown up (W1's damLevel 0): no bonus.
+    d.world.damLevel[vemork] = 0;
+    expect(gain(day + 2)).toBe(at(0));
+    expect(at(20)).toBeGreaterThan(at(10));
+    expect(at(10)).toBeGreaterThan(at(0));
   });
 
   it("losing a facility halves progress and gives the captor a blueprint", async () => {
