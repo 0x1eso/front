@@ -82,7 +82,19 @@ export function depthDetail(
       bopBand: 2,
       treatyMember: false,
     },
-    energy: { demand: 0, coal: 0, hydro: 0, plants: 0, dams: 0, ratioPm: 1000 },
+    // W1's view: domestic base, extra supply and the two stocks too.
+    energy: {
+      demand: 0,
+      coal: 0,
+      hydro: 0,
+      plants: 0,
+      dams: 0,
+      ratioPm: 1000,
+      extra: 0,
+      base: 0,
+      coalStock: 0,
+      uraniumStock: 0,
+    },
     ...over,
   };
 }

@@ -8,6 +8,7 @@ import {
   FACILITY_IDS,
   Landmark,
   RAILGUN_HIT_CENTI,
+  SCORCH_PP,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDING_TECH,
@@ -82,13 +83,26 @@ export interface ScorchInput {
   noStrike: boolean;
 }
 
-/** Refusal of scorch (plan decision 40). W1 fills (spec §16.7); a no-strike region is always refused. */
+/**
+ * Refusal of scorch (plan decision 40, spec §16.7): the no-strike list
+ * first (pre-flight §0-11), then the legal owner who controls the region,
+ * an enemy division in it or a neighbour (or an enemy controlling a
+ * neighbour), nothing already queued there, and 10 political power.
+ */
 export function scorchBlock(
   i: ScorchInput,
 ): "no_strike_region" | "scorch_conditions" | "no_pp" | null {
   if (i.noStrike) return "no_strike_region";
-  return "scorch_conditions";
+  if (!i.legalOwner || !i.controls || !i.enemyAdjacent || i.queued) {
+    return "scorch_conditions";
+  }
+  return i.pp < SCORCH_PP ? "no_pp" : null;
 }
+
+/** Spec §16.6: the highest naval base a floating harbour may go to. */
+export const HARBOR_MAX_NAVAL_BASE = 2;
+/** Spec §16.6: our side's supremacy in the harbour zone's sea region, ‰. */
+export const HARBOR_SUPREMACY_PM = 500;
 
 export interface HarborInput {
   controls: boolean;
@@ -97,11 +111,29 @@ export interface HarborInput {
   supremacyPm: number;
   stock: number;
   tech: boolean;
+  /** A floating harbour already stands in the region (lane W1; absent: none). */
+  deployed?: boolean;
+  /** W1 review 6: Korea and Taiwan (engine-lib isNoStrike) get no P6 device. */
+  noStrike?: boolean;
 }
 
-/** Refusal of harbor_deploy (plan decision 40). W1 fills (spec §16.6). */
+/**
+ * Refusal of harbor_deploy (plan decision 40, spec §16.6): a coastal region
+ * we control with a naval base of 2 or less, our side's supremacy of 50%
+ * or more in its harbour zone's sea region, a floating harbour in stock
+ * (and its tech), none standing there yet; never a no-strike region.
+ */
 export function harborBlock(i: HarborInput): "harbor_conditions" | null {
-  return "harbor_conditions";
+  return i.controls &&
+    i.coastal &&
+    i.navalBase <= HARBOR_MAX_NAVAL_BASE &&
+    i.supremacyPm >= HARBOR_SUPREMACY_PM &&
+    i.stock >= 1 &&
+    i.tech &&
+    i.deployed !== true &&
+    i.noStrike !== true
+    ? null
+    : "harbor_conditions";
 }
 
 /** The P6 buildings (spec §9.1, §16.2, §16.4). */

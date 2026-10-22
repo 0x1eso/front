@@ -64,9 +64,10 @@ describe("World War 1936 P6: wiring", () => {
     stepProduction(econ, ce);
     const eff = ce.lines.map((l) => l.effBp);
     ww.depth.country(DEEP.tag.ITA)!.mech.energyPm = 857;
-    expect(ww.depth.energyOutputPct(DEEP.tag.ITA)).toBe(-7);
+    // W1 fix round 1 (controller ruling): (1000 − 857) / 25 = 5.
+    expect(ww.depth.energyOutputPct(DEEP.tag.ITA)).toBe(-5);
     stepProduction(econ, ce);
-    const pct = ce.law().outputPct + ce.stats.outputPct - 7;
+    const pct = ce.law().outputPct + ce.stats.outputPct - 5;
     ce.lines.forEach((l, i) => {
       if (l.active === 0) return;
       expect(l.lastOutput).toBe(lineOutputMilli(l.active, eff[i], pct, l.fill));
@@ -78,9 +79,22 @@ describe("World War 1936 P6: wiring", () => {
     stepTo(runner, WW_PREP_TICKS + 10);
     const d = runner.game.worldWar()!.depth;
     expect(d.nukesOn()).toBe(true);
+    // Lane W1: coal and the energy follow the map's v5 columns, not the
+    // content (Energy.test.ts); the content-driven demand (uranium) is 0.
+    const uranium = RESOURCE_IDS.indexOf("uranium");
+    for (let id = 1; id < d.cap; id++) {
+      expect(d.priorityDemand(id)[uranium]).toBe(0);
+      expect(d.civsIn(id) - d.civsOut(id)).toBe(0);
+    }
+    for (const [, got] of d.lastPriorityGot) expect(got[uranium]).toBe(0);
+  });
+
+  it("the energy is neutral on a map without the v5 columns (lane W1)", async () => {
+    const runner = await wwRunner({}, [], MINI);
+    stepTo(runner, WW_PREP_TICKS + 10);
+    const d = runner.game.worldWar()!.depth;
     for (let id = 1; id < d.cap; id++) {
       expect(d.priorityDemand(id)).toEqual(RESOURCE_IDS.map(() => 0));
-      expect(d.civsIn(id) - d.civsOut(id)).toBe(0);
       expect(d.energyOutputPct(id)).toBe(0);
     }
     expect(d.lastPriorityGot.size).toBe(0);

@@ -73,7 +73,12 @@ const S_BLOCK: readonly string[] = [
   "bad_index",
 ];
 
-/** The stub's refusal of each lane (plan Task 1 Step 11); lane D's own answers. */
+/**
+ * The stub's refusal of each lane (plan Task 1 Step 11), now each lane's
+ * own: D (0–13), M (20–30, own tests), I (31–39), S (40–46), W3 (47–51),
+ * W1 (52–55: Germany has no railway gun, Lyon is French, Berlin has no
+ * enemy near).
+ */
 const LANE_BLOCK = (k: number): string | null =>
   k <= 13
     ? D_ANSWER[DEPTH_ORDER_KINDS[k]]
@@ -93,9 +98,13 @@ const LANE_BLOCK = (k: number): string | null =>
                   ? S_BLOCK[k - 40]
                   : k <= 51
                     ? W3_ANSWER[k - 47]
-                    : k <= 55
+                    : k <= 53
                       ? "railgun_limit"
-                      : "bad_index";
+                      : k === 54
+                        ? "harbor_conditions"
+                        : k === 55
+                          ? "scorch_conditions"
+                          : "bad_index";
 
 describe("World War 1936 P6: the depth orders", () => {
   it("every kind is valid on the wire and goes to its lane", async () => {

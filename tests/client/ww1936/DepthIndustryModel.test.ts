@@ -47,6 +47,10 @@ describe("DepthIndustryModel", () => {
           plants: 1,
           dams: 2,
           ratioPm: 920,
+          extra: 0,
+          base: 0,
+          coalStock: 0,
+          uraniumStock: 0,
         },
       },
     });

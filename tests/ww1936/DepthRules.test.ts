@@ -13,6 +13,7 @@ import {
 } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
   coalWanted,
+  energyBase,
   energyPenaltyPct,
   energyRatioPm,
   energySupply,
@@ -70,10 +71,17 @@ describe("depth rules", () => {
   it("energy", () => {
     expect(energySupply(0, 3, 0, 0, 0)).toBe(6);
     expect(energyRatioPm(7, 6)).toBe(857);
-    expect(energyPenaltyPct(857)).toBe(-7);
+    // Controller ruling (W1 fix round 1): (1000 − r) / 25, at most −40%;
+    // a domestic base per region with infrastructure, capped at the demand.
+    expect(energyPenaltyPct(857)).toBe(-5);
+    expect(energyPenaltyPct(990)).toBe(0);
+    expect(energyPenaltyPct(0)).toBe(-40);
     expect(energyRatioPm(0, 0)).toBe(1000);
     expect(energyPenaltyPct(1000)).toBe(0);
     expect(coalWanted(10, 2, 0, 0, 0, 1)).toBe(2 + 2);
+    expect(energyBase(4, 100)).toBe(4);
+    expect(energySupply(0, 3, 0, 0, 0, 2)).toBe(8);
+    expect(coalWanted(10, 2, 0, 0, 0, 1, 3)).toBe(2 + 1);
   });
 
   it("congress drift and the balance-of-power bands", () => {

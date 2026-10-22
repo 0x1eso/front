@@ -51,6 +51,18 @@ export interface LandDepthHooks {
   moveCutPct(region: number): number;
   /** A region changed controller. */
   onRegionControl(region: number, from: number, to: number, tick: number): void;
+  /**
+   * W1 review 3 (spec §16.5): an army holding railway guns is gone —
+   * `destroyed` when its last division fell in battle, `region` where that
+   * division stood (0: not known).
+   */
+  onArmyRemoved(
+    owner: number,
+    armyId: number,
+    guns: number,
+    destroyed: boolean,
+    region: number,
+  ): void;
   /** The country's division-slot numbers (plan decision 7). */
   keyStats(owner: number): KeyStatsTable;
   /**
@@ -89,6 +101,7 @@ export const NEUTRAL_DEPTH_HOOKS: LandDepthHooks = {
   supplyPm: () => 1000,
   moveCutPct: () => 0,
   onRegionControl: () => {},
+  onArmyRemoved: () => {},
   keyStats: () => STATIC_KEY_STATS,
   keyStatsSeq: 0,
 };

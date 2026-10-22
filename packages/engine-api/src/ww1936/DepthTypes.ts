@@ -989,11 +989,22 @@ export interface WwDepthDetail {
   };
   energy: {
     demand: number;
+    /** Coal units that go to the energy (× ENERGY_PER_COAL; the refineries' share is out). */
     coal: number;
+    /** Hydro units of the controlled regions (× ENERGY_PER_HYDRO). */
     hydro: number;
+    /** Working power plants (× ENERGY_PER_PLANT). */
     plants: number;
+    /** Energy of the standing dams controlled (DAM_ENERGY, added as it is). */
     dams: number;
     ratioPm: number;
+    /** Lane W1: the content's energy (added as it is). */
+    extra: number;
+    /** Lane W1 (controller ruling): the domestic base, controlled regions with infrastructure (added as it is). */
+    base: number;
+    /** Lane W1: the day's coal and uranium (output less exports plus imports; P1 keeps no pile). */
+    coalStock: number;
+    uraniumStock: number;
   };
 }
 export interface WwListingData {

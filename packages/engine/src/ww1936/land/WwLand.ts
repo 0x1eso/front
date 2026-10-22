@@ -1304,7 +1304,9 @@ export class WwLand {
     if (army !== undefined) {
       army.divisions = army.divisions.filter((d) => d !== id);
       this.dirtyArmies.add(army.id);
-      if (army.divisions.length === 0) this.removeArmy(army.id);
+      if (army.divisions.length === 0) {
+        this.removeArmy(army.id, { destroyed, region: t.region[row] });
+      }
     }
     const b = this.battles.get(t.battle[row]);
     if (b !== undefined) {
@@ -1852,10 +1854,26 @@ export class WwLand {
     return a;
   }
 
-  /** Spec §6.1: an army without divisions goes; its general is free again. */
-  removeArmy(id: number): void {
+  /**
+   * Spec §6.1: an army without divisions goes; its general is free again.
+   * P6 (W1, spec §16.5): `how` says whether its last division fell in
+   * battle and where it stood, for the railway guns it held.
+   */
+  removeArmy(
+    id: number,
+    how: { destroyed: boolean; region: number } | null = null,
+  ): void {
     const a = this.armies.get(id);
     if (a === undefined) return;
+    if (a.railGuns > 0) {
+      this.depthHooks.onArmyRemoved(
+        a.owner,
+        a.id,
+        a.railGuns,
+        how?.destroyed ?? false,
+        how?.region ?? 0,
+      );
+    }
     const g = this.country(a.owner)?.generals.find((x) => x.army === id);
     if (g !== undefined) g.army = 0;
     if (a.volunteerFor > 0) this.volunteerArmyCount--;
@@ -1873,7 +1891,12 @@ export class WwLand {
     if (old !== undefined && old !== army) {
       old.divisions = old.divisions.filter((d) => d !== divisionId);
       this.dirtyArmies.add(old.id);
-      if (old.divisions.length === 0) this.removeArmy(old.id);
+      if (old.divisions.length === 0) {
+        this.removeArmy(old.id, {
+          destroyed: false,
+          region: this.divisions.region[r],
+        });
+      }
     }
     if (!army.divisions.includes(divisionId)) {
       army.divisions.push(divisionId);
