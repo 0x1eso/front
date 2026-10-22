@@ -30,6 +30,7 @@ import { effectiveLevel } from "../economy/Buildings";
 import { applyShipDamage } from "../navy/NavalBattles";
 import { zoneFlights } from "./AirCombat";
 import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
+import { isCarrierWing, takeOffDeck } from "./Deploy";
 import { oldestFirst } from "./DesignPlanes";
 import { withFuze } from "./ProjectEffects";
 import type { Deployment, WwAir, ZoneAirState } from "./WwAir";
@@ -543,7 +544,11 @@ function takeLosses(
       n,
     );
     const counts = out.slots === null ? out.gens : [...out.gens, ...out.slots];
-    air.planesLostTotal += air.shootDown(id, counts, by);
+    const lost = air.shootDown(id, counts, by);
+    air.planesLostTotal += lost;
+    // T1b: a carrier wing's losses come off its deck too (the record
+    // mirrors the deck: without this the deck kept them, the ledger not).
+    if (lost > 0 && isCarrierWing(d)) takeOffDeck(air, d, out.gens, out.slots);
   });
 }
 

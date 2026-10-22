@@ -16,6 +16,7 @@ import {
   EQUIPMENT_GENS,
   WW_TECH_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { FLEET_STATES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { detectionPm } from "@openfront/engine-lib/ww1936/AirRules";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -30,6 +31,7 @@ import {
   dailyAirZone,
   zoneFlights,
 } from "@openfront/engine/ww1936/air/AirCombat";
+import { airMissionEffects } from "@openfront/engine/ww1936/air/AirEffects";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { dailyAirCountry } from "@openfront/engine/ww1936/air/Deploy";
 import { deploymentPlanes } from "@openfront/engine/ww1936/air/WwAir";
@@ -285,5 +287,70 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     navy.removeShip(f.ships[0], true, runner.game.ticks(), ITA);
     expect(ce.planesDeployed[KEY]).toBe(0);
     expect(ce.stock[KEY]).toBe(50 - left);
+  }, 120_000);
+  it("a carrier wing flies its deck's designs and its strike losses come off the deck", async () => {
+    const { runner, ww } = await atWar();
+    const d = ww.depth;
+    const navy = ww.navy;
+    const air = ww.air;
+    const ce = ww.economy.country(GBR)!;
+    ww.air.country(GBR)!.airXpMilli = 400_000;
+    for (const t of WW_TECH_IDS) ce.addTech(t);
+    // A small torpedo plane with the carrier gear: a carrier naval bomber.
+    const def = {
+      kind: "plane",
+      base: "small_1",
+      modules: ["w_torpedo", "", "", "m_carrier"],
+      name: "Swordfish",
+    } as Def;
+    expect(
+      d.issue(GBR, { kind: "design_save", def }, runner.game.ticks()),
+    ).toBeNull();
+    expect((d.designStatsOf(GBR, "plane", 1) as PlaneDesignStats).type).toBe(
+      "cv_naval_bomber",
+    );
+    for (const t of CARRIER_AIR_TYPES) {
+      for (let g = 1; g <= EQUIPMENT_GENS[t]; g++) ce.stock[equipKey(t, g)] = 0;
+    }
+    ce.stock[KEY] = 40;
+    const cv = navy.fleets.get(
+      navy.createFleet(GBR, DEEP.region.london, [["cv", 1, 1]]),
+    )!;
+    cv.mix = [0, 0, 10];
+    fillDecks(navy, GBR);
+    const row = navy.ships.rowOf(cv.ships[0]);
+    const onDeck = navy.ships.deckDOf(row)[0];
+    expect(onDeck).toBeGreaterThan(0);
+    // To sea, next to an Italian battle line its side has spotted.
+    const zone = ww.scenario.harborOf(DEEP.region.rome);
+    const sr = ww.scenario.zoneSr(zone);
+    for (const f of [cv]) {
+      f.docked = 0;
+      f.state = FLEET_STATES.indexOf("on_station");
+      navy.setFleetZone(f, zone);
+    }
+    const ita = navy.fleets.get(
+      navy.createFleet(ITA, DEEP.region.rome, [["bb", 1, 4]]),
+    )!;
+    ita.docked = 0;
+    ita.state = FLEET_STATES.indexOf("on_station");
+    navy.setFleetZone(ita, zone);
+    navy.setSpotPm(sr, ww.land.sideOf(GBR), ita.id, 1000);
+    const day = ww.day(runner.game.ticks());
+    dailyAirCountry(air, GBR, day);
+    const wing = air
+      .deploymentsIn(sr)
+      .map((id) => air.deployments.get(id)!)
+      .find((x) => x.owner === GBR && x.base === -cv.ships[0])!;
+    expect(AIR_MISSIONS[wing.mission]).toBe("naval_strike");
+    expect(wing.dcounts[0]).toBe(onDeck);
+    dailyAirZone(air, sr, day);
+    airMissionEffects(air, sr, day);
+    // The ships' anti-air took some; deck, record and ledger agree.
+    const left = navy.ships.deckDOf(row)[0];
+    expect(left).toBeLessThan(onDeck);
+    expect(wing.dcounts[0]).toBe(left);
+    expect(ce.planesDeployed[KEY]).toBe(left);
+    expect(ce.stock[KEY]).toBe(40 - onDeck);
   }, 120_000);
 });

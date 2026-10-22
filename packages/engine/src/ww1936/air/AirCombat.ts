@@ -37,7 +37,12 @@ import {
 import { noteFuelUse } from "../economy/Fuel";
 import { navalPort } from "../navy/Ports";
 import { radarPmAt } from "./AirSuperiority";
-import { carrierWingDeck, carrierWingDeckD, isCarrierWing } from "./Deploy";
+import {
+  carrierWingDeck,
+  carrierWingDeckD,
+  isCarrierWing,
+  takeOffDeck,
+} from "./Deploy";
 import { oldestFirst } from "./DesignPlanes";
 import {
   hasMagnetron,
@@ -781,26 +786,7 @@ function takeLosses(
     if (n <= 0) continue;
     d.lossRest -= n * 1000;
     if (deploymentPlanes(d) === 0) d.lossRest = 0;
-    if (isCarrierWing(d)) {
-      const r = air.navy.ships.rowOf(-d.base);
-      const slot = ["cv_fighter", "cv_cas", "cv_naval_bomber"].indexOf(
-        AIR_TYPES[d.type],
-      );
-      if (r >= 0 && slot >= 0) {
-        const deck = air.navy.ships.deckOf(r);
-        took.forEach((c, g) => {
-          deck[slot * 3 + g] = Math.max(0, deck[slot * 3 + g] - c);
-        });
-        // P6 (lane E): and its design planes off the deck's design slots.
-        if (tookD !== null) {
-          const deckD = air.navy.ships.deckDOf(r);
-          tookD.forEach((c, s) => {
-            deckD[s] = Math.max(0, deckD[s] - c);
-          });
-        }
-        air.navy.markFleet(air.navy.ships.fleet[r]);
-      }
-    }
+    if (isCarrierWing(d)) takeOffDeck(air, d, took, tookD);
     air.planesLostTotal += n;
     lost.set(d.owner, (lost.get(d.owner) ?? 0) + n);
     if (by > 0) shotDown.set(by, (shotDown.get(by) ?? 0) + n);

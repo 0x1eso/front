@@ -99,6 +99,34 @@ export function carrierWingDeckD(air: WwAir, d: Deployment): number[] | null {
   return deckDesignCounts(air.ww.depth, d.owner, r, AIR_TYPES[d.type]);
 }
 
+/**
+ * A carrier wing's losses off its carrier's deck (the record mirrors the
+ * deck): `gens` per generation of its type, P6 (lane E) `slots` per
+ * design slot off the deck's design planes.
+ */
+export function takeOffDeck(
+  air: WwAir,
+  d: Deployment,
+  gens: readonly number[],
+  slots: readonly number[] | null,
+): void {
+  const navy = air.navy;
+  const r = navy.ships.rowOf(-d.base);
+  const slot = deckSlotOf(d.type);
+  if (r < 0 || slot < 0) return;
+  const deck = navy.ships.deckOf(r);
+  gens.forEach((c, g) => {
+    deck[slot * 3 + g] = Math.max(0, deck[slot * 3 + g] - c);
+  });
+  if (slots !== null) {
+    const deckD = navy.ships.deckDOf(r);
+    slots.forEach((c, s) => {
+      deckD[s] = Math.max(0, deckD[s] - c);
+    });
+  }
+  navy.markFleet(navy.ships.fleet[r]);
+}
+
 /** P6 (lane E): a design slot's stock key. */
 const designKey = (slot: number) => equipKey("plane_design", slot);
 
