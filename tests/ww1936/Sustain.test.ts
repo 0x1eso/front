@@ -22,7 +22,10 @@ import {
   WEATHER,
   weatherAt,
 } from "@openfront/engine-lib/ww1936/Weather";
-import { assignGeneral } from "@openfront/engine/ww1936/land/GeneralsRun";
+import {
+  assignGeneral,
+  canServe,
+} from "@openfront/engine/ww1936/land/GeneralsRun";
 import { atSea, liftDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import {
   dailySustain,
@@ -207,7 +210,9 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     const w3 = weather(WINTER + 3);
     expect(t.men[r]).toBe(after(WEATHER[w3].attritionPm * 1000));
     // In a battle: all of it, halved by a winter specialist at the head.
-    const g = cl.generals[0];
+    // One who serves and is no field marshal (K5's start rows; P6 lane D:
+    // a marshal leads no army).
+    const g = cl.generals.find((x) => !x.fm && canServe(l, x, l.day()))!;
     g.traits |= traitBit("winter_specialist");
     expect(assignGeneral(l, cl, a.id, g.id)).toBeNull();
     t.lossMen[r] = 0;

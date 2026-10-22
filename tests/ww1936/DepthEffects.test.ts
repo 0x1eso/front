@@ -105,9 +105,11 @@ describe("World War 1936 P6: the depth effects", () => {
     expect(bopValue(d, "FRA")).toBe(v + 100);
     fx(runner, { kind: "bop", amount: 100 }, DEU); // no mechanism: nothing
     expect(bopValue(d, "FRA")).toBe(v + 100);
-    // cp: whole points of command power, kept in range.
+    // cp: whole points of command power, kept in range. (Lane D's daily
+    // gain has run since the start: count from what France holds now.)
+    const cp = c.cmd.cpMilli;
     fx(runner, { kind: "cp", amount: 5 });
-    expect(c.cmd.cpMilli).toBe(5_000);
+    expect(c.cmd.cpMilli).toBe(cp + 5_000);
     fx(runner, { kind: "cp", amount: -100 });
     expect(c.cmd.cpMilli).toBe(0);
     c.cmd.cpMilli = CP_MAX_MILLI - 1_000;

@@ -77,6 +77,10 @@ describe("generals (P2 spec §6.2)", () => {
       cl.generals.find((x) => x.roster >= 0 && GENERALS[x.roster].id === key)!;
     const rundstedt = named("rundstedt");
     const bock = named("bock");
+    // K5's START_FIELD_MARSHALS makes Rundstedt a field marshal on day 0
+    // (P6 lane D: a marshal leads no army); this P2 test moves him as a
+    // plain general.
+    rundstedt.fm = false;
     expect(first.general).toBe(rundstedt.id);
     expect(second.general).toBe(bock.id);
     // Bock to the first army: Rundstedt is free, the second has none.

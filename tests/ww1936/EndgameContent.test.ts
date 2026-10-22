@@ -73,7 +73,7 @@ describe("World War 1936 P5: endgame content", () => {
     }
   });
 
-  it("every dormant slot has its politics (popularity sums to 100, the generic tree)", () => {
+  it("every dormant slot has its politics (popularity sums to 100, the new pack's tree)", () => {
     if (DORMANT_POLITICS.length === 0) return;
     expect(DORMANT_POLITICS.map((c) => c.tag).sort()).toEqual(
       [...DORMANT_TAGS].sort(),
@@ -82,7 +82,8 @@ describe("World War 1936 P5: endgame content", () => {
       expect(c.popularity.reduce((a, b) => a + b, 0) * 100, c.tag).toBe(
         POP_TOTAL,
       );
-      expect(c.tree, c.tag).toBe("generic");
+      // P6 K5b: the dormant slots play the "new" pack (generic + pack).
+      expect(c.tree, c.tag).toBe("new");
     }
   });
 });
