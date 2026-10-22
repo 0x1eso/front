@@ -87,7 +87,7 @@ function stepOf(land: WwLand, r: number, mode: number): number {
     land.econ.infraEff[to],
     w,
     t.supply[r],
-    ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags),
+    ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags, to),
   );
   // P4 (spec §14.6, §15.4): enemy air superiority over the way, fuel.
   const air = land.hooks.airMoveFactorPm(to, land.sideOf(t.owner[r]));
@@ -133,12 +133,27 @@ export function arrive(land: WwLand, r: number, tick: number): void {
   if (mode !== MOVE_RETREAT && t.dest[r] !== to) startNextHop(land, r, tick);
 }
 
-/** Spec §6.2: the general's movement traits, bp (panzer leader, cavalry officer). */
-export function traitSpeedBp(land: WwLand, r: number, flags: number): number {
+/** P6 (spec §4.2): swamp_expert's bit. */
+const SWAMP_EXPERT = traitBit("swamp_expert");
+
+/**
+ * Spec §6.2: the general's movement traits, bp (panzer leader, cavalry
+ * officer); P6 (spec §4.2, T1b) swamp_expert +10% walking into a marsh
+ * region `to`.
+ */
+export function traitSpeedBp(
+  land: WwLand,
+  r: number,
+  flags: number,
+  to: number,
+): number {
   const army = land.armies.get(land.divisions.army[r]);
   const g = army === undefined ? null : generalOf(land, army);
   if (g === null) return 0;
   let bp = 0;
+  if ((g.traits & SWAMP_EXPERT) !== 0 && land.scenario.landOf(to) === "marsh") {
+    bp += 1000;
+  }
   if (
     (g.traits & traitBit("panzer_leader")) !== 0 &&
     (flags & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0
@@ -343,7 +358,7 @@ function walkStepInto(land: WwLand, r: number, to: number): number {
     w,
     t.supply[r],
     (ce === null ? 0 : ce.stats.speedPct * 100) +
-      traitSpeedBp(land, r, s.flags),
+      traitSpeedBp(land, r, s.flags, to),
   );
 }
 

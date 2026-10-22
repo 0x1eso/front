@@ -739,15 +739,23 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
  * retreating, advancing, on a train or at sea, and not encircled; half
  * while walking; up to the maximum. The army goes out again when a
  * division's bar moves by a percent.
+ *
+ * P6 (spec §4.2 guerrilla_fighter, T1b): an army whose general has the
+ * trait (lane D's armyMods halfSupply) recovers while encircled, and its
+ * recovery takes half the supply penalty: supply + (1000 − supply) / 2, so
+ * a cut-off division recovers at half the rate.
  */
 export function stepRecovery(land: WwLand): void {
   const t = land.divisions;
   const base = Math.floor((300 * WW_ROUND_HOUR_MILLI) / 1000);
+  // Per army key: pct × 2, + 1 when it halves supply penalties (one map).
   const pctOf = new Map<number, number>();
   // Nothing below changes a template or a tech: the epochs hold for the pass.
   const epochs = land.statsEpochs();
   for (let r = 0; r < t.rows; r++) {
-    if (t.id[r] === 0 || t.battle[r] !== 0 || t.encircled[r] !== 0) continue;
+    if (t.id[r] === 0 || t.battle[r] !== 0) continue;
+    const encircled = t.encircled[r] !== 0;
+    if (encircled && t.army[r] <= 0) continue;
     const m = t.mode[r];
     if (m !== MOVE_NONE && m !== MOVE_WALK) continue;
     const was = t.org[r];
@@ -756,23 +764,29 @@ export function stepRecovery(land: WwLand): void {
     const army = t.army[r];
     // Per army; a division without one by its owner (its tech).
     const key = army > 0 ? army : -t.owner[r];
-    let pct = pctOf.get(key);
-    if (pct === undefined) {
+    let packed = pctOf.get(key);
+    if (packed === undefined) {
       const a = land.armies.get(army);
       const g = a === undefined ? null : generalOf(land, a);
-      pct =
+      const am = army > 0 ? land.depthHooks.armyMods(t.owner[r], army) : null;
+      const p =
         100 +
         (g !== null && (g.traits & traitBit("organizer")) !== 0 ? 20 : 0) +
         (land.econ.country(t.owner[r])?.stats.recoveryPct ?? 0) +
         // Review L4: the army's field marshal and medal (lane D).
-        (army > 0 ? land.depthHooks.armyMods(t.owner[r], army).recoveryPct : 0);
-      pctOf.set(key, pct);
+        (am?.recoveryPct ?? 0);
+      packed = p * 2 + (am?.halfSupply === true ? 1 : 0);
+      pctOf.set(key, packed);
     }
+    const half = (packed & 1) !== 0;
+    if (encircled && !half) continue;
+    const pct = (packed - (packed & 1)) / 2;
     const signal =
       (land.flagsAt(r, epochs[t.owner[r]]) & TPL_SIGNAL) !== 0 ? 10 : 0;
+    let supply = Math.max(0, t.supply[r]);
+    if (half && supply < 1000) supply += Math.floor((1000 - supply) / 2);
     let gain = Math.floor(
-      (Math.floor((base * (pct + signal)) / 100) * Math.max(0, t.supply[r])) /
-        1000,
+      (Math.floor((base * (pct + signal)) / 100) * supply) / 1000,
     );
     if (m === MOVE_WALK) gain = Math.floor(gain / 2);
     if (gain <= 0) continue;
