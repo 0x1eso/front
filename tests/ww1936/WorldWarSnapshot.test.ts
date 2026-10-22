@@ -400,9 +400,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // P4 caches): same value in three runs. Batch 23 (W: Korea/Taiwan zones
 // never go back to Japan, occupation removals) leaves it as it is (three
 // runs): the pinned game has no Korea or Taiwan zone and the removals are
-// screen data.
+// screen data (8737d7c989ba2e96). Re-pinned after batch P6-1 (the P6
+// foundation T1a — depth state, clock, hooks, retired doctrine techs, the
+// 30-slot division equipment — and content K1-K5 with its Phase B: depth
+// beats, events, decisions and spirits, start doctrines and marshals):
+// same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "8737d7c989ba2e96";
+const WW1936_DIGEST = "fdfd53d422c2db36";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
