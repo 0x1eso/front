@@ -402,9 +402,14 @@ describe("human event cards", () => {
   });
 
   it("cards vanish when the country capitulates", async () => {
+    // The German victor is played too (P5 lane W): with an AI one, the peace
+    // conference ends in one tick and its treaty may revive Poland at once.
     const runner = await wwRunner(
       {},
-      [{ clientID: HUMAN, country: "POL" }],
+      [
+        { clientID: HUMAN, country: "POL" },
+        { clientID: "HUMANDEU", country: "DEU" },
+      ],
       POL,
     );
     stepTo(runner, WW_PREP_TICKS + 1);

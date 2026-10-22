@@ -98,8 +98,11 @@ describe("politics wiring", () => {
     expect(ce.stats.constructionPct).toBe(ce.tech.constructionPct);
   });
 
-  it("legal owners start as the 1936 owners and capitulation hands them to the victor", async () => {
-    const { runner, updates } = await wwRunnerCapture({}, [], POL);
+  it("legal owners start as the 1936 owners and capitulation moves control, not them", async () => {
+    // P5 (lane W, spec §5.1-2): a capitulation moves control; the legal
+    // owner stays until the peace conference decides. The German victor is
+    // played, so the conference waits its round (an AI one ends in a tick).
+    const { runner, updates } = await wwRunnerCapture({}, DEU_HUMAN, POL);
     const g = runner.game;
     const ww = g.worldWar()!;
     const p = ww.politics;
@@ -115,26 +118,24 @@ describe("politics wiring", () => {
     ww.setCapitulationGauge(pl.smallID(), WW_CAPITULATION_DAYS - 1);
     stepTo(runner, dayStart(ww.day(g.ticks()) + 1) + 1);
     expect(ww.isCapitulated(pl.smallID())).toBe(true);
+    expect(ww.endgame.conferences.map((c) => c.status)).toEqual([1]);
     for (const r of [6, 7]) {
-      expect(p.legalOwner[r]).toBe(deu.smallID());
-      expect(p.isCore(r)).toBe(false);
+      expect(ww.land.controller[r]).toBe(deu.smallID());
+      expect(p.legalOwner[r]).toBe(pl.smallID());
+      expect(p.isCore(r)).toBe(true);
     }
-    // The screens hear of the two regions.
+    // The screens heard of no legal owner change.
     const regions = updates
       .flatMap((u) => u.updates[GameUpdateType.WwPolitics] ?? [])
       .flatMap((u) => u.data.regions);
-    expect(regions).toEqual(
-      expect.arrayContaining([
-        { id: 6, legalOwner: deu.smallID() },
-        { id: 7, legalOwner: deu.smallID() },
-      ]),
-    );
-    // The P1 economy's shares read the legal owner: Germany's own now. It
-    // still holds Poland's core, so P5 §8.6 (lane O) gives the annexed
-    // share, 50% plus compliance (none yet), not P1's 100%.
+    expect(regions.filter((x) => x.id === 6 || x.id === 7)).toEqual([]);
+    // The P1 economy's shares read the legal owner: still Poland's, which
+    // fights no more (P1: not "occupied"), and P5 §8.6 (lane O) gives
+    // Germany's occupation share, 20% plus compliance (none yet) under the
+    // human's default military law.
     expect(ww.economy.shares(6)).toMatchObject({
       occupied: false,
-      controlPct: 50,
+      controlPct: 20,
     });
   });
 

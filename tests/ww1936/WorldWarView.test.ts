@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CIVIL_WAR_SLOTS,
+  COUNTRIES,
+  type CountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
@@ -128,13 +132,23 @@ describe("the World War 1936 game view", () => {
     });
     const { game, view } = await viewAndEngine();
     const ww = game.worldWar()!;
+    const cwColors: string[] = [];
     for (const p of game.allPlayers()) {
       const pv = view.playerBySmallID(p.smallID()) as PlayerView;
-      const def = COUNTRIES[ww.tagOf(p.smallID())];
+      const tag = ww.tagOf(p.smallID());
+      const def = COUNTRIES[tag];
       expect(pv.cosmetics.flag).toBe(`/flags/${def.flag}.svg`);
-      expect(pv.cosmetics.color?.color).toBe(hex(def.color));
-      expect(pv.territoryColor().toHex()).toBe(hex(def.color));
+      // P5 lane U3: a civil-war slot wears its own fixed colour, not the
+      // slots' shared gray; every other country its own.
+      const color = pv.cosmetics.color?.color ?? "";
+      if ((CIVIL_WAR_SLOTS as readonly CountryTag[]).includes(tag)) {
+        cwColors.push(color);
+        expect(color).not.toBe(hex(def.color));
+      } else expect(color).toBe(hex(def.color));
+      expect(pv.territoryColor().toHex()).toBe(color);
     }
+    expect(cwColors).toHaveLength(CIVIL_WAR_SLOTS.length);
+    expect(new Set(cwColors).size).toBe(CIVIL_WAR_SLOTS.length);
     // A settings change re-resolves them the same way.
     view.refreshPlayerCosmetics();
     const deu = view.playerBySmallID(1) as PlayerView;

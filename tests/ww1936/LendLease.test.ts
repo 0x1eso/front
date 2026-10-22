@@ -31,12 +31,14 @@ const C_ITA = "HUMANITA";
 const C_POL = "HUMANPOL";
 const INF1 = equipKey("infantry_equipment", 1);
 
-async function game() {
+/** `sunHuman`: the Soviet victor is played, so a peace conference waits. */
+async function game(sunHuman = false) {
   const { runner, updates } = await wwRunnerCapture(
     {},
     [
       { clientID: C_ITA, country: "ITA" },
       { clientID: C_POL, country: "POL" },
+      ...(sunHuman ? [{ clientID: "HUMANSUN", country: "SUN" as const }] : []),
     ],
     END_MAP,
   );
@@ -202,7 +204,10 @@ describe("World War 1936 P5: lend-lease", () => {
   });
 
   it("a contract to a country that no longer plays ends; what is on its way goes back", async () => {
-    const { runner, g, ww, eg, ita, pl, sun, stock, dayTick } = await game();
+    // The Soviet victor is played: with an AI one, lane W's conference
+    // ends the war in one tick and its treaty revives Poland on its land.
+    const { runner, g, ww, eg, ita, pl, sun, stock, dayTick } =
+      await game(true);
     expect(eg.issue(ita, llOrder(pl, 300), g.ticks())).toBeNull();
     until(runner, () => eg.inTransit.length >= 3);
     const d = ww.day(g.ticks());
