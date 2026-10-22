@@ -1,8 +1,10 @@
 // P6 lane I (plan Task 5): the intelligence levels of every country pair
 // and domain (spec §8.8, plan decisions 16, 19). The engine computes them
-// on the observer's turn for every country (the AI's operations read them)
-// and the screens filter by them (FogModel); spectators and the game's end
-// are the screens' (fogOff).
+// on the observer's turn and the screens filter by them (FogModel);
+// spectators and the game's end are the screens' (fogOff). The AI reads
+// true values (spec §8.1): an AI country's row is written on its AI rhythm
+// (plan decision 39: daily at war, every 10 days at peace), a human's
+// every day (performance, spec §22.1).
 import { WW_RADAR_RANGE_KM } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   AgencyUpgrade,
@@ -37,69 +39,116 @@ const DEPARTMENT: readonly AgencyUpgrade[] = [
   "ag_air_dept",
 ];
 
-/** What an observer's row reads once (sets of countries, its departments). */
-interface ObserverCtx {
-  o: number;
-  dept: boolean[];
-  landNb: ReadonlySet<number>;
-  seaNb: ReadonlySet<number>;
-  sharers: number[];
-  infiltrated: Map<number, number>;
-  radar: ReadonlySet<number>;
-  intelPct: number;
+// ---- derived, per tick (control and missions move during a war) ----
+
+interface TickCache {
+  tick: number;
+  /** Plays its turns (P5 isActor). */
+  actor: Uint8Array;
+  /** counter_intelligence operatives at home. */
+  counter: Uint8Array;
+  /** Harbour zones by country, countries by harbour zone. */
+  zonesOf: number[][];
+  byZone: Map<number, number[]>;
+  // Scratch of one observer's row (filled and cleared by the row).
+  nb: Uint8Array;
+  infil: Uint8Array;
+  codes: Uint8Array;
+  radar: Uint8Array;
+  ins: IntelInput[];
 }
 
-// ---- derived per tick: harbour zones by country (control moves every tick of a war) ----
+const TICK = new WeakMap<WwDepth, TickCache>();
 
-const ZONES = new WeakMap<
-  WwDepth,
-  { tick: number; byZone: Map<number, number[]>; byCountry: number[][] }
->();
-
-function harbourZones(d: WwDepth): {
-  byZone: Map<number, number[]>;
-  byCountry: number[][];
-} {
+/**
+ * The tick's cache, built by the tick's first row (a fixed point of the
+ * tick, so a restored game builds it from the same state). A screen read
+ * (`keep` false) never stores one: it would move that point.
+ */
+function tickCache(d: WwDepth, keep = true): TickCache {
   const tick = d.mg.ticks();
-  const hit = ZONES.get(d);
-  if (hit !== undefined && hit.tick === tick) return hit;
+  let c = TICK.get(d);
+  if (c !== undefined && c.tick === tick) return c;
+  if (!keep || c === undefined || c.actor.length !== d.cap) {
+    c = {
+      tick,
+      actor: new Uint8Array(d.cap),
+      counter: new Uint8Array(d.cap),
+      zonesOf: [],
+      byZone: new Map(),
+      nb: new Uint8Array(d.cap),
+      infil: new Uint8Array(d.cap),
+      codes: new Uint8Array(d.cap),
+      radar: new Uint8Array(d.cap),
+      ins: DOMAINS.map((domain) => ({
+        domain,
+        sameFaction: false,
+        neighbour: false,
+        atWar: false,
+        networkMilliPm: 0,
+        department: false,
+        infiltrated: false,
+        decrypted: false,
+        exploiting: false,
+        recon: false,
+        skirmisher: false,
+        radar: false,
+        targetCounterMissions: 0,
+        intelPct: 0,
+      })),
+    };
+    if (keep) TICK.set(d, c);
+  }
+  c.tick = tick;
+  for (let t = 1; t < d.cap; t++) {
+    c.actor[t] = d.ww.isActor(t) ? 1 : 0;
+    c.counter[t] = counterMissions(d, t);
+  }
   const sc = d.ww.scenario;
   const econ = d.ww.economy;
-  const byZone = new Map<number, number[]>();
-  const byCountry: number[][] = Array.from({ length: d.cap }, () => []);
+  c.zonesOf = Array.from({ length: d.cap }, () => []);
+  c.byZone = new Map();
   for (const r of sc.landRegions) {
     const z = sc.harborOf(r.id);
     if (z === 0) continue;
-    const c = econ.controllerOf(r.id);
-    if (c <= 0 || c >= d.cap) continue;
-    const zs = byCountry[c];
+    const owner = econ.controllerOf(r.id);
+    if (owner <= 0 || owner >= d.cap) continue;
+    const zs = c.zonesOf[owner];
     if (!zs.includes(z)) zs.push(z);
-    const cs = byZone.get(z);
-    if (cs === undefined) byZone.set(z, [c]);
-    else if (!cs.includes(c)) cs.push(c);
+    const cs = c.byZone.get(z);
+    if (cs === undefined) c.byZone.set(z, [owner]);
+    else if (!cs.includes(owner)) cs.push(owner);
   }
-  const v = { tick, byZone, byCountry };
-  ZONES.set(d, v);
-  return v;
+  return c;
 }
 
-// ---- static: a land strategic region's regions ----
+// ---- static: the land strategic regions a radar reaches ----
 
-const SR_LAND = new WeakMap<
-  ScenarioIndex,
-  { id: number; members: readonly number[] }[]
->();
+const RADAR_REACH = new WeakMap<ScenarioIndex, Map<number, number[]>>();
 
-function landSrs(
+/** The land strategic regions within 300 km × level of a radar's region (P4 radarPmAt's rule). */
+function radarReach(
   sc: ScenarioIndex,
-): { id: number; members: readonly number[] }[] {
-  let v = SR_LAND.get(sc);
+  region: number,
+  level: number,
+): number[] {
+  let m = RADAR_REACH.get(sc);
+  if (m === undefined) {
+    m = new Map();
+    RADAR_REACH.set(sc, m);
+  }
+  const key = region * 16 + Math.min(15, level);
+  let v = m.get(key);
   if (v === undefined) {
     v = sc
       .strategicList()
-      .filter((s) => s.kind === "land")
-      .map((s) => ({ id: s.id, members: s.members }));
-    SR_LAND.set(sc, v);
+      .filter(
+        (s) =>
+          s.kind === "land" &&
+          sc.srKm(region, s.id) <= WW_RADAR_RANGE_KM * level,
+      )
+      .map((s) => s.id);
+    m.set(key, v);
   }
   return v;
 }
@@ -118,84 +167,111 @@ export function radarSrOf(d: WwDepth, o: number): number[] {
     if ((levels[r] ?? 0) === 0) continue;
     const lv = effectiveLevel(econ, r, "radar");
     if (lv <= 0) continue;
-    for (const s of landSrs(sc)) {
-      if (!out.has(s.id) && sc.srKm(r, s.id) <= WW_RADAR_RANGE_KM * lv) {
-        out.add(s.id);
-      }
-    }
+    for (const s of radarReach(sc, r, lv)) out.add(s);
   }
   return [...out].sort((a, b) => a - b);
 }
 
-function radarTargets(d: WwDepth, o: number): Set<number> {
-  const out = new Set<number>();
-  const srs = radarSrOf(d, o);
-  if (srs.length === 0) return out;
-  const sc = d.ww.scenario;
+/** Fills the observer's scratch: neighbours, infiltrations, codes, radar. */
+function fillObserver(
+  d: WwDepth,
+  c: TickCache,
+  o: number,
+  sharers: number[],
+): void {
+  c.nb.fill(0);
+  c.infil.fill(0);
+  c.codes.fill(0);
+  c.radar.fill(0);
+  for (const t of d.ww.economy.countryNeighbours(o)) {
+    if (t < d.cap) c.nb[t] = 1;
+  }
+  for (const z of c.zonesOf[o] ?? []) {
+    for (const t of c.byZone.get(z) ?? []) if (t !== o) c.nb[t] = 1;
+  }
+  for (const [x, t, dom] of d.infiltrations) {
+    if (x === o && t < d.cap) c.infil[t] |= 1 << dom;
+  }
+  for (const r of d.decrypted) {
+    if (r.t >= d.cap || (r.o !== o && !sharers.includes(r.o))) continue;
+    if (decryptedOwn(d, r.o, r.t)) c.codes[r.t] |= 1;
+    if (r.o === o && exploiting(d, o, r.t)) c.codes[r.t] |= 2;
+  }
   const econ = d.ww.economy;
-  for (const id of srs) {
-    for (const r of sc.sr(id)?.members ?? []) {
-      const c = econ.controllerOf(r);
-      if (c > 0 && c !== o) out.add(c);
+  const sc = d.ww.scenario;
+  for (const s of radarSrOf(d, o)) {
+    for (const r of sc.sr(s)?.members ?? []) {
+      const t = econ.controllerOf(r);
+      if (t > 0 && t < d.cap && t !== o) c.radar[t] = 1;
     }
   }
-  return out;
 }
 
-function observerCtx(d: WwDepth, o: number): ObserverCtx {
-  const c = d.country(o);
-  const zones = harbourZones(d);
-  const seaNb = new Set<number>();
-  for (const z of zones.byCountry[o] ?? []) {
-    for (const x of zones.byZone.get(z) ?? []) if (x !== o) seaNb.add(x);
-  }
-  const infiltrated = new Map<number, number>();
-  for (const [x, t, dom] of d.infiltrations) {
-    if (x === o) infiltrated.set(t, (infiltrated.get(t) ?? 0) | (1 << dom));
-  }
-  return {
-    o,
-    dept: DEPARTMENT.map((u) => hasUp(c, u)),
-    landNb: new Set(d.ww.economy.countryNeighbours(o)),
-    seaNb,
-    sharers: intelSharers(d, o),
-    infiltrated,
-    radar: radarTargets(d, o),
-    intelPct: statOf(d, o, "intelPct"),
-  };
-}
-
-/** Spec §8.8: the four inputs of `o` on `t` (domain-specific lines set per domain). */
-function inputsOn(d: WwDepth, x: ObserverCtx, t: number): IntelInput[] {
-  const o = x.o;
+/** Spec §8.8: writes the four inputs of `o` on `t` into the scratch inputs. */
+function fillInputs(
+  d: WwDepth,
+  c: TickCache,
+  o: number,
+  t: number,
+  sharers: number[],
+  dept: readonly boolean[],
+  intelPct: number,
+): IntelInput[] {
   let net = d.netMilli(o, t);
-  let decrypted = decryptedOwn(d, o, t);
-  for (const m of x.sharers) {
+  for (const m of sharers) {
     net = Math.max(net, Math.floor(d.netMilli(m, t) / 2));
-    if (!decrypted && decryptedOwn(d, m, t)) decrypted = true;
   }
-  const base = {
-    sameFaction: d.ww.sameFaction(o, t),
-    neighbour: x.landNb.has(t) || x.seaNb.has(t),
-    atWar: d.ww.isAtWar(o, t),
-    networkMilliPm: net,
-    decrypted,
-    exploiting: exploiting(d, o, t),
-    targetCounterMissions: counterMissions(d, t),
-    intelPct: x.intelPct,
-  };
-  const mask = x.infiltrated.get(t) ?? 0;
+  const atWar = d.ww.isAtWar(o, t);
+  const neighbour = c.nb[t] === 1;
+  const sameFaction = d.ww.sameFaction(o, t);
+  const codes = c.codes[t];
+  const mask = c.infil[t];
   const recon = reconCovers(d, o, t);
-  const skirmisher = skirmisherContact(d, o, t);
-  return DOMAINS.map((dom) => ({
-    ...base,
-    domain: dom,
-    department: x.dept[dom],
-    infiltrated: (mask & (1 << dom)) !== 0,
-    recon: dom === ID_ARMY && recon,
-    skirmisher: dom === ID_ARMY && skirmisher,
-    radar: dom === ID_AIR && x.radar.has(t),
-  }));
+  // Contact needs armies side by side: a war or a border.
+  const skirmisher = (atWar || neighbour) && skirmisherContact(d, o, t);
+  const radar = c.radar[t] === 1;
+  const counter = c.counter[t];
+  for (const i of c.ins) {
+    const dom = i.domain;
+    i.sameFaction = sameFaction;
+    i.neighbour = neighbour;
+    i.atWar = atWar;
+    i.networkMilliPm = net;
+    i.department = dept[dom];
+    i.infiltrated = (mask & (1 << dom)) !== 0;
+    i.decrypted = (codes & 1) !== 0;
+    i.exploiting = (codes & 2) !== 0;
+    i.recon = dom === ID_ARMY && recon;
+    i.skirmisher = dom === ID_ARMY && skirmisher;
+    i.radar = dom === ID_AIR && radar;
+    i.targetCounterMissions = counter;
+    i.intelPct = intelPct;
+  }
+  return c.ins;
+}
+
+/** Calls `each(t, inputs)` for every living target of `o` (the scratch inputs, valid during the call). */
+function forTargets(
+  d: WwDepth,
+  o: number,
+  each: (t: number, ins: IntelInput[]) => void,
+  keep = true,
+): void {
+  const c = tickCache(d, keep);
+  const sharers = intelSharers(d, o);
+  fillObserver(d, c, o, sharers);
+  const oc = d.country(o);
+  const dept = DEPARTMENT.map((u) => hasUp(oc, u));
+  const intelPct = statOf(d, o, "intelPct");
+  for (let t = 1; t < d.cap; t++) {
+    if (t === o || c.actor[t] === 0) continue;
+    each(t, fillInputs(d, c, o, t, sharers, dept, intelPct));
+  }
+}
+
+/** Plan decision 39's rhythm for an AI row: daily at war, else every 10 days. */
+function rowDue(d: WwDepth, o: number, day: number): boolean {
+  return d.ww.isHumanControlled(o) || d.ww.hasWar(o) || day % 10 === o % 10;
 }
 
 /**
@@ -208,23 +284,18 @@ export function computeIntelRow(
   observer: number,
   day: number,
 ): void {
-  void day;
+  if (!rowDue(d, observer, day)) return;
   const row = d.intelRow(observer);
-  const x = observerCtx(d, observer);
   let changed = false;
-  for (let t = 1; t < d.cap; t++) {
-    const at = t * 4;
-    if (t === observer) {
-      for (let k = 0; k < 4; k++) {
-        if (row[at + k] !== 100) {
-          row[at + k] = 100;
-          changed = true;
-        }
-      }
-      continue;
+  const self = observer * 4;
+  for (let k = 0; k < 4; k++) {
+    if (row[self + k] !== 100) {
+      row[self + k] = 100;
+      changed = true;
     }
-    if (!d.ww.isActor(t)) continue;
-    const ins = inputsOn(d, x, t);
+  }
+  forTargets(d, observer, (t, ins) => {
+    const at = t * 4;
     for (let k = 0; k < 4; k++) {
       const v = intelLevel(ins[k]);
       if (row[at + k] !== v) {
@@ -232,7 +303,7 @@ export function computeIntelRow(
         changed = true;
       }
     }
-  }
+  });
   if (changed) d.markIntel(observer);
 }
 
@@ -274,15 +345,17 @@ export function levelPartsOf(
   d: WwDepth,
   observer: number,
 ): [number, number, string, number][] {
-  const x = observerCtx(d, observer);
   const out: [number, number, string, number][] = [];
-  for (let t = 1; t < d.cap; t++) {
-    if (t === observer || !d.ww.isActor(t)) continue;
-    const ins = inputsOn(d, x, t);
-    for (let k = 0; k < 4; k++) {
-      for (const [key, v] of levelLines(ins[k])) out.push([t, k, key, v]);
-    }
-  }
+  forTargets(
+    d,
+    observer,
+    (t, ins) => {
+      for (let k = 0; k < 4; k++) {
+        for (const [key, v] of levelLines(ins[k])) out.push([t, k, key, v]);
+      }
+    },
+    false,
+  );
   return out;
 }
 

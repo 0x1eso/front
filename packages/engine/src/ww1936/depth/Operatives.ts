@@ -211,8 +211,8 @@ export function validTarget(d: WwDepth, id: number, t: number): boolean {
 }
 
 /**
- * operative_assign (spec §8.3–§8.4): abroad after 10 days' travel (none
- * when it is there already), at home at once.
+ * operative_assign (spec §8.3–§8.4): a mission where the operative is
+ * starts at once; elsewhere (abroad, or home from abroad) after 10 days.
  */
 export function assignOperative(
   d: WwDepth,
@@ -235,16 +235,20 @@ export function assignOperative(
   if (home ? o.target !== id : !validTarget(d, id, o.target)) {
     return "bad_target";
   }
-  const there = op.state === ST_MISSION && op.target === o.target;
-  const goingThere =
-    op.state === ST_TRAVEL && op.mission >= 0 && op.target === o.target;
+  // Already there (a new mission at once), already on the way there (the
+  // trip goes on), or a trip of 10 days (home too, from abroad).
+  const inPlace =
+    op.state === ST_MISSION
+      ? op.target === o.target
+      : op.state === ST_IDLE && home;
+  const sameTrip = op.state === ST_TRAVEL && op.target === o.target;
   op.mission = INTEL_MISSIONS.indexOf(o.mission);
   op.target = o.target;
   op.sinceDay = day;
-  if (home || there) {
+  if (inPlace) {
     op.state = ST_MISSION;
     op.travelLeft = 0;
-  } else if (!goingThere) {
+  } else if (!sameTrip) {
     op.state = ST_TRAVEL;
     op.travelLeft = OPERATIVE_TRAVEL_DAYS;
   }

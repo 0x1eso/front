@@ -33,12 +33,44 @@ export function decryptRow(
   return d.decrypted.find((x) => x.o === o && x.t === t);
 }
 
-/** Spec §8.7: `o` exploits `t`'s broken codes today (fleet spotting and raiding read this after T1b). */
+/**
+ * Derived (no state): (o × 1024 + t) → activeUntil of the exploitations
+ * started, so the land war's per-round read is one lookup with no
+ * allocation (lane D reads cryptoModsVs per battle side and round). Built
+ * from WwDepth.decrypted; rebuilt when that array is another one (a
+ * restore) or after this file changes an activeUntil (markExploits).
+ */
+interface ExploitIndex {
+  rows: WwDepthState["decrypted"];
+  dirty: boolean;
+  until: Map<number, number>;
+}
+const EXPLOITS = new WeakMap<WwDepth, ExploitIndex>();
+
+function exploitIndex(d: WwDepth): ExploitIndex {
+  let x = EXPLOITS.get(d);
+  if (x === undefined || x.rows !== d.decrypted || x.dirty) {
+    const until = new Map<number, number>();
+    for (const r of d.decrypted) {
+      if (r.activeUntil >= 0) until.set(r.o * 1024 + r.t, r.activeUntil);
+    }
+    x = { rows: d.decrypted, dirty: false, until };
+    EXPLOITS.set(d, x);
+  }
+  return x;
+}
+
+function markExploits(d: WwDepth): void {
+  const x = EXPLOITS.get(d);
+  if (x !== undefined) x.dirty = true;
+}
+
+/** Spec §8.7: `o` exploits `t`'s broken codes today (fleet spotting and raiding read this after T1b). O(1). */
 export function exploiting(d: WwDepth, o: number, t: number): boolean {
-  const r = decryptRow(d, o, t);
-  return (
-    r !== undefined && r.activeUntil >= 0 && d.lastCommonDay < r.activeUntil
-  );
+  const until = exploitIndex(d).until;
+  if (until.size === 0) return false;
+  const u = until.get(o * 1024 + t);
+  return u !== undefined && d.lastCommonDay < u;
 }
 
 /** `o` broke `t`'s codes itself. */
@@ -60,7 +92,7 @@ export function decryptedFor(d: WwDepth, o: number, t: number): boolean {
   return intelSharers(d, o).some((m) => decryptedOwn(d, m, t));
 }
 
-/** Spec §8.7: the decryption bp `att` fights `def` with (attack and defence). */
+/** Spec §8.7: the decryption bp `att` fights `def` with (attack and defence). O(1), no allocation. */
 export function cryptoModsVs(d: WwDepth, att: number, def: number): number {
   return exploiting(d, att, def) ? EXPLOIT_COMBAT_BP : 0;
 }
@@ -167,6 +199,7 @@ export function activateCrypto(
     d.decrypted.push(r);
   }
   r.activeUntil = day + DECRYPT_EXPLOIT_DAYS;
+  markExploits(d);
   d.markCountry(id);
   d.markIntel(id);
   return null;
@@ -182,6 +215,7 @@ export function dailyCrypto(d: WwDepth, id: number, day: number): void {
     if (r.o !== id || r.activeUntil < 0 || day < r.activeUntil) continue;
     r.progressMilli = Math.min(r.progressMilli, DECRYPT_RESET_PM * 1000);
     r.activeUntil = -2 - r.activeUntil;
+    markExploits(d);
     d.message(r.t, "ww1936_codes_broken");
     d.markCountry(id);
     d.markCountry(r.t);

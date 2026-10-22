@@ -106,10 +106,12 @@ describe("World War 1936 P6: intelligence levels (lane I)", () => {
     const r = await game();
     const ww = r.game.worldWar()!;
     const d = ww.depth;
-    const day = ww.day(r.game.ticks());
     expect(ww.sameFaction(DEU, ITA)).toBe(true);
     expect(ww.sameFaction(DEU, TUR)).toBe(false);
-    computeIntelRow(d, DEU, day);
+    // An AI country at peace writes its row every 10 days (its own day).
+    computeIntelRow(d, DEU, 10 + (DEU % 10) + 1);
+    expect(d.intelOf(DEU, TUR, ID_ARMY)).toBe(100);
+    computeIntelRow(d, DEU, 10 + (DEU % 10));
     for (const k of [ID_CIVIL, ID_ARMY, ID_NAVY, ID_AIR]) {
       expect(d.intelOf(DEU, ITA, k)).toBeGreaterThanOrEqual(80);
       expect(d.intelOf(DEU, TUR, k)).toBeLessThan(80);
@@ -141,7 +143,7 @@ describe("World War 1936 P6: intelligence levels (lane I)", () => {
     const r = await game();
     const ww = r.game.worldWar()!;
     const d = ww.depth;
-    const day = ww.day(r.game.ticks());
+    const day = FRA % 10;
     computeIntelRow(d, FRA, day);
     const before = [0, 1, 2, 3].map((k) => d.intelOf(FRA, DEU, k));
     // A radar station in Paris: its own land zone holds Berlin and Munich.

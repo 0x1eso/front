@@ -931,8 +931,18 @@ export class WwDepth implements LandDepthHooks {
   setNetMilli(o: number, t: number, v: number): void {
     const k = o * 1024 + t;
     const x = Math.max(0, Math.min(1_000_000, v));
-    if (x === 0) this.intelNet.delete(k);
-    else this.intelNet.set(k, x);
+    if (x === 0) {
+      this.intelNet.delete(k);
+      return;
+    }
+    const had = this.intelNet.has(k);
+    this.intelNet.set(k, x);
+    // Lane I: kept in key order, as a restore builds it (a new network is rare).
+    if (!had) {
+      const sorted = [...this.intelNet.entries()].sort((a, b) => a[0] - b[0]);
+      this.intelNet.clear();
+      for (const [key, val] of sorted) this.intelNet.set(key, val);
+    }
   }
 
   intelOf(o: number, t: number, domain: number): number {
