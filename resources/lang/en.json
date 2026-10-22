@@ -7803,34 +7803,6 @@
       "zhu_de": "Zhu De",
       "zhukov": "Georgy Zhukov"
     },
-    "general_trait": {
-      "ambusher": "Ambush Master",
-      "armor_expert": "Armour Master",
-      "artillery_officer": "Gunner Officer",
-      "commando": "Raid Leader",
-      "engineer_officer": "Sapper Officer",
-      "forest_expert": "Forest Fighter",
-      "guerrilla_fighter": "Irregular Warfare",
-      "infantry_expert": "Infantry Master",
-      "skirmisher": "Scout Leader",
-      "swamp_expert": "Marsh Fighter",
-      "trickster": "Deceiver",
-      "urban_expert": "Street Fighter"
-    },
-    "general_trait_desc": {
-      "ambusher": "Attack +15% while defending. Level 3, needs Defensive Doctrine; 25 command power.",
-      "armor_expert": "Tank battalions +10% breakthrough, armoured divisions +10% attack. Level 2, needs Panzer Leader; 20 command power.",
-      "artillery_officer": "Artillery-type battalions +10% soft attack. Level 1; 15 command power.",
-      "commando": "Mountain, marine and airborne divisions +10% attack; raid preparation −25%. Level 2; 15 command power.",
-      "engineer_officer": "River and fort penalties −15%. Level 2; 15 command power.",
-      "forest_expert": "Forest and jungle: attack +10%, defence +5%. Earned by 60 days of battle there.",
-      "guerrilla_fighter": "Supply penalties halved; organisation recovers normally while encircled. Level 2; 15 command power.",
-      "infantry_expert": "Infantry divisions: attack and defence +10%. Level 2, needs Infantry Officer; 15 command power.",
-      "skirmisher": "Army intelligence on enemy armies in contact +20 points. Level 1; 15 command power.",
-      "swamp_expert": "Marshes: attack +10%, movement +10%. Earned by 60 days of marsh battles.",
-      "trickster": "Enemies facing this army lose 10 points of planning bonus. Level 3; 20 command power.",
-      "urban_expert": "Cities: attack +10%, defence +10%. Earned by 60 days of city battles."
-    },
     "gov": {
       "BRM": {
         "neutral": "State of Burma"
@@ -10484,7 +10456,7 @@
       "usa_europe_first_spirit": "Plans and shipping are geared to a landing in Europe, and the staffs work faster.",
       "usa_fortress_america": "Guarded by two oceans and ready to fight on its own ground, America is a hard target.",
       "usa_great_maneuvers": "The lessons of the great exercises are fresh, and commanders learn quickly.",
-      "usa_isolation": "The 1935 Neutrality Act and public opinion keep the country out of foreign quarrels.",
+      "usa_isolation": "The 1935 Neutrality Act and public opinion keep the country out of foreign quarrels. It lifts on the first day Congress backs the government with 50% or more.",
       "usa_isolation_cracked": "Most Americans still want no part in the war, but fewer believe the oceans will keep it away.",
       "usa_motorised_army": "An army that rides in trucks moves faster and wastes less of its supplies.",
       "usa_neutral_trade_spirit": "Exporters thrive on selling to everyone, and their profits ease the burden on the home market.",
@@ -10665,7 +10637,7 @@
       "rsAirPct": "Air research speed {value, number, ::sign-always}%",
       "rsArmorPct": "Armor research speed {value, number, ::sign-always}%",
       "rsArtilleryPct": "Artillery research speed {value, number, ::sign-always}%",
-      "rsDoctrinePct": "Doctrine research speed {value, number, ::sign-always}%",
+      "rsDoctrinePct": "Doctrine mastery speed {value, number, ::sign-always}%",
       "rsElectronicsPct": "Electronics research speed {value, number, ::sign-always}%",
       "rsIndustryPct": "Industry research speed {value, number, ::sign-always}%",
       "rsInfantryPct": "Infantry research speed {value, number, ::sign-always}%",

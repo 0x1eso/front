@@ -591,9 +591,7 @@ export const SUN_FOCUSES = [
         { kind: "has_spirit", id: "sun_purge_3" },
       ),
     ),
-    effects: [
-      { kind: "research_bonus", branch: "doctrine", pct: 100, uses: 2 },
-    ],
+    effects: [{ kind: "doctrine_mastery", domain: "land", amount: 120 }],
     ai: { base: 10 },
   },
   {

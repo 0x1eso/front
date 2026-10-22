@@ -642,7 +642,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     prereq: [["jpn_army_modernisation"]],
     effects: [
       { kind: "add_spirit", id: "jpn_night_fighting" },
-      { kind: "research_bonus", branch: "doctrine", pct: 50, uses: 1 },
+      { kind: "doctrine_mastery", domain: "land", amount: 30 },
     ],
     ai: { base: 10 },
   },
