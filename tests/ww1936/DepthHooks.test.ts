@@ -1,6 +1,7 @@
 // World War 1936 P6 (plan Task 1 Steps 12–15; review E4/E5, L4): the
 // foundation's hook bodies in P1–P5, each driven through its seam with a
 // stand-in lane value, and neutral when the lanes give nothing.
+import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -8,10 +9,15 @@ import {
   MOVE_ADVANCE,
   MOVE_NONE,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { divisionMods } from "@openfront/engine-lib/ww1936/CombatRules";
 import { reliabilityLossBp } from "@openfront/engine-lib/ww1936/DesignRules";
-import { masteryGain } from "@openfront/engine-lib/ww1936/DoctrineRules";
+import {
+  AIR_SHARE_MICRO_PER_SORTIE,
+  masteryGain,
+  NAVAL_SHARE_MICRO,
+} from "@openfront/engine-lib/ww1936/DoctrineRules";
 import {
   capturePmMilli,
   cipherStrength,
@@ -388,5 +394,52 @@ describe("P6: the sparse indexes (review E16, W2)", () => {
     expect(d.reconAt(faction, DEEP.sr.central - 1024)).toBe(-1);
     expect(d.regionStatusIndex.get(DEEP.region.paris)).toBe(0);
     expect(d.resistBoostIndex.get(DEEP.region.warsaw)).toBe(0);
+  });
+});
+
+describe("P6: the naval and air doctrine tallies (plan decision 12, spec §3.4)", () => {
+  it("ships by class, in battle or on a mission; sorties by mission", async () => {
+    const { ww, id } = await deep("GBR");
+    const d = ww.depth;
+    const tally = (track: number) => d.dayTally[id * 9 + track];
+    const cls = (c: (typeof SHIP_CLASSES)[number]) => SHIP_CLASSES.indexOf(c);
+    d.dayTally.fill(0);
+    // Surface (ca, bc, bb) → track 3; escorts (dd, cl, ss) → 4; carriers → 5.
+    d.noteNavalCombat(id, cls("bb"), true, 2);
+    d.noteNavalCombat(id, cls("ca"), false);
+    expect(tally(3)).toBe(
+      2 * NAVAL_SHARE_MICRO.surfaceBattle + NAVAL_SHARE_MICRO.surfaceMission,
+    );
+    d.noteNavalCombat(id, cls("ss"), true);
+    d.noteNavalCombat(id, cls("dd"), false, 3);
+    expect(tally(4)).toBe(
+      NAVAL_SHARE_MICRO.escortBattle + 3 * NAVAL_SHARE_MICRO.escortMission,
+    );
+    d.noteNavalCombat(id, cls("cv"), true);
+    d.noteNavalCombat(id, cls("cv"), false);
+    expect(tally(5)).toBe(
+      NAVAL_SHARE_MICRO.carrierBattle + NAVAL_SHARE_MICRO.carrierMission,
+    );
+    // Sorties: fighters → 6, bombers → 7, naval aviation → 8, others none.
+    const sorties = (m: (typeof AIR_MISSIONS)[number], n: number) =>
+      d.noteSorties(id, AIR_MISSIONS.indexOf(m), n);
+    sorties("air_superiority", 2);
+    sorties("interception", 1);
+    sorties("cas", 4);
+    sorties("strategic_bombing", 1);
+    sorties("naval_strike", 1);
+    sorties("naval_patrol", 2);
+    sorties("port_strike", 3);
+    const before = [...d.dayTally];
+    sorties("air_supply", 5);
+    sorties("recon", 5);
+    expect(d.dayTally).toEqual(before);
+    const per = AIR_SHARE_MICRO_PER_SORTIE;
+    expect([tally(6), tally(7), tally(8)]).toEqual([3 * per, 5 * per, 6 * per]);
+    // Nothing on the land tracks; another country untouched.
+    expect([tally(0), tally(1), tally(2)]).toEqual([0, 0, 0]);
+    expect(d.dayTally.slice(DEEP.tag.FRA * 9, DEEP.tag.FRA * 9 + 9)).toEqual(
+      new Array<number>(9).fill(0),
+    );
   });
 });

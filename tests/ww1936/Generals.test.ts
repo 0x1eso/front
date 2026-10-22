@@ -11,6 +11,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { traitSlots } from "@openfront/engine-lib/ww1936/CommandRules";
 import {
   GeneralDef,
   GENERALS,
@@ -332,5 +333,33 @@ describe("generals (P2 spec §6.2)", () => {
     t.lastFight[r] = fightOn(SUMMER + 1);
     dailySustain(l, id, SUMMER + 1);
     expect(g.traits & traitBit("forest_expert")).not.toBe(0);
+  });
+
+  test("P6: trait slots above level one follow traitSlots (3/4/4/5/5)", async () => {
+    const { l, id, cl, first } = await germany();
+    const t = l.divisions;
+    const g = cl.generals.find((x) => x.id === first.general)!;
+    const r = t.rowOf(first.divisions[0]);
+    t.role[r] = ROLE_DEFEND;
+    t.battle[r] = 4; // Munich: forest
+    const four =
+      traitBit("winter_specialist") |
+      traitBit("organizer") |
+      traitBit("defensive_doctrine") |
+      traitBit("desert_fox");
+    const learn = (level: number, traits: number, day: number) => {
+      g.level = level;
+      g.traits = traits;
+      g.terrainDays = [0, 0, 0, 0, 60, 0, 0];
+      t.lastFight[r] = fightOn(day);
+      dailySustain(l, id, day);
+      return (g.traits & traitBit("forest_expert")) !== 0;
+    };
+    expect([1, 2, 3, 4, 5].map(traitSlots)).toEqual([3, 4, 4, 5, 5]);
+    // Four traits: level 3 (four slots) learns none, level 4 (five) a fifth.
+    expect(learn(3, four, SUMMER + 2)).toBe(false);
+    expect(learn(4, four, SUMMER + 3)).toBe(true);
+    // Five traits at level 5: full.
+    expect(learn(5, four | traitBit("river_crosser"), SUMMER + 4)).toBe(false);
   });
 });
