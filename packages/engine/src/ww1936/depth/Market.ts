@@ -31,6 +31,7 @@ import { issueEmbargo } from "./Embargo";
 import {
   dayLicences,
   designKindOf,
+  endLicence,
   freeCivsOf,
   issueLicence,
   keyYear,
@@ -328,17 +329,51 @@ export function dayCommonMarket(d: WwDepth, day: number, tick: number): void {
       if (!d.ww.isActor(l.seller)) dropListing(d, l);
     }
   }
-  if (m.deals.length === 0) return;
-  for (const x of [...m.deals]) {
-    if (
-      !d.ww.isActor(x.buyer) ||
-      !d.ww.isActor(x.seller) ||
-      d.ww.isAtWar(x.buyer, x.seller) ||
-      d.embargoed(x.buyer, x.seller)
-    ) {
-      endDeal(d, x);
-    } else {
-      dealDay(d, x, day);
+  if (m.deals.length > 0) {
+    for (const x of [...m.deals]) {
+      if (
+        !d.ww.isActor(x.buyer) ||
+        !d.ww.isActor(x.seller) ||
+        d.ww.isAtWar(x.buyer, x.seller) ||
+        d.embargoed(x.buyer, x.seller)
+      ) {
+        endDeal(d, x);
+      } else {
+        dealDay(d, x, day);
+      }
+    }
+  }
+  settleCivs(d);
+}
+
+/**
+ * P1 spec §7.5's rule for trade deals, for the market and licences: a
+ * country that can no longer hand over the factories it owes (lost
+ * factories, a new law) ends its newest market deal, then its newest
+ * licence with a fee, until it can.
+ */
+function settleCivs(d: WwDepth): void {
+  const m = d.market;
+  if (m.deals.length === 0 && m.licences.length === 0) return;
+  const payers = new Set<number>();
+  for (const x of m.deals) if (x.paidMilli < x.priceMilli) payers.add(x.buyer);
+  for (const l of m.licences) {
+    if (!d.ww.sameFaction(l.from, l.to)) payers.add(l.to);
+  }
+  for (const id of [...payers].sort((a, b) => a - b)) {
+    for (let guard = 0; guard < 64 && freeCivsOf(d, id) < 0; guard++) {
+      const deal = [...m.deals]
+        .reverse()
+        .find((x) => x.buyer === id && x.paidMilli < x.priceMilli);
+      if (deal !== undefined) {
+        endDeal(d, deal);
+        continue;
+      }
+      const lic = [...m.licences]
+        .reverse()
+        .find((l) => l.to === id && !d.ww.sameFaction(l.from, l.to));
+      if (lic === undefined) break;
+      endLicence(d, lic);
     }
   }
 }

@@ -74,6 +74,8 @@ export const AI_LICENCE_TYPES: readonly EquipmentType[] = [
   "medium_tank",
   "artillery",
 ];
+/** A human faction leader is asked for a licence (a card on its screen) only on this rhythm. */
+export const AI_HUMAN_LICENCE_DAYS = 90;
 /** Spec §7.3: a democracy embargoes from 40% world tension… */
 export const AI_EMBARGO_WT_BP = 4_000;
 /** …its top two threats. */
@@ -125,7 +127,7 @@ export function aiMarketDay(d: WwDepth, id: number, day: number): void {
   const every = war ? 10 : 30;
   if (day % every !== id % every) return;
   aiEmbargoes(d, id);
-  aiLicences(d, id);
+  aiLicences(d, id, day);
   const need = groundNeeds(d, id);
   aiSell(d, id, need);
   if (war) aiBuy(d, id, need, day);
@@ -347,13 +349,20 @@ function aiUseLicences(d: WwDepth, id: number): void {
  * yet — the fighter, medium tank and artillery generations first, then a
  * tank design when it has none of its own. One request a run.
  */
-function aiLicences(d: WwDepth, id: number): void {
+function aiLicences(d: WwDepth, id: number, day: number): void {
   aiUseLicences(d, id);
   const pol = d.ww.politics;
   const fi = pol.factionIdx(id);
   if (fi < 0) return;
   const leader = pol.faction(fi)?.leader ?? 0;
   if (leader <= 0 || leader === id || !d.ww.isActor(leader)) return;
+  // A human leader gets a card to answer: asked at most every 90th day.
+  if (
+    d.ww.isHumanControlled(leader) &&
+    day % AI_HUMAN_LICENCE_DAYS !== id % AI_HUMAN_LICENCE_DAYS
+  ) {
+    return;
+  }
   const m = d.market;
   const held =
     m.licences.filter((l) => l.to === id).length +
