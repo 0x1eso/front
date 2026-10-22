@@ -77,18 +77,30 @@ export class NavyAirHooks implements LandSeaAirHooks {
     return this.navy.econ.country(owner)?.fuelRatioPm ?? 1000; // E
   }
   seaHubCapacity(region: number, side: number): number {
-    return seaHubCapacityMilli(this.navy, region, side); // C
+    // P6 glue (W1): a floating harbour at a base-1 or base-2 port counts too.
+    return Math.max(
+      seaHubCapacityMilli(this.navy, region, side), // C
+      this.floatingHarborMilli(region, side),
+    );
   }
   beachheadCapacity(region: number, side: number): number {
-    const b = beachheadCapacityMilli(this.navy, region, side); // I
-    // P6 hook (W1, spec §16.6): a floating harbour works as a port of its
-    // level (5 for 60 days, then down to 0 by day 120) for its controller's side.
+    return Math.max(
+      beachheadCapacityMilli(this.navy, region, side), // I
+      this.floatingHarborMilli(region, side),
+    );
+  }
+  /**
+   * P6 hook (W1, spec §16.6): a floating harbour works as a port of its
+   * level (5 for 60 days, then down to 0 by day 120) for its controller's
+   * side, milli; 0 none.
+   */
+  private floatingHarborMilli(region: number, side: number): number {
     const depth = this.navy.ww.depth as WwDepth | undefined;
-    if (depth === undefined) return b;
+    if (depth === undefined) return 0;
     const lv = harborLevelOf(depth, region);
     const c = this.navy.land.controller[region] ?? 0;
-    if (lv <= 0 || c === 0 || this.navy.land.sideOf(c) !== side) return b;
-    return Math.max(b, 4_000 + 2 * lv);
+    if (lv <= 0 || c === 0 || this.navy.land.sideOf(c) !== side) return 0;
+    return 4_000 + 2 * lv;
   }
   airSupply(region: number, side: number): number {
     return airSupplyAt(this.air, region, side); // A2

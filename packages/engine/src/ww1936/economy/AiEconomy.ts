@@ -73,6 +73,7 @@ import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
 import { isRetiredTech, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
+import type { WwDepth } from "../depth/WwDepth";
 import { capitalRegion } from "../land/LandStartRun";
 import {
   aiMainBase,
@@ -937,6 +938,12 @@ export interface AiInput {
    * the stock is under half the capacity (0 or none: nothing).
    */
   fuelOil?: number;
+  /**
+   * P6 glue (W1, S): RESOURCE_IDS-ordered units the economy takes before
+   * the lines (WwDepth.priorityDemand: the power plants' coal, the atomic
+   * project's uranium). None: nothing.
+   */
+  priorityDemand?: readonly number[];
 }
 
 /**
@@ -947,6 +954,21 @@ export interface AiInput {
 export const AI_FUEL_OIL_MAX = 30;
 const OIL = RESOURCE_IDS.indexOf("oil");
 const RUBBER = RESOURCE_IDS.indexOf("rubber");
+
+/**
+ * P6 glue (W1, S): the units taken before the lines come on top of the
+ * lines' need — without them the coal deals for the power plants read as
+ * surplus and closed the next turn.
+ */
+export function withPriorityDemand(
+  need: readonly number[],
+  priority: readonly number[] | undefined,
+): number[] {
+  const out = [...need];
+  if (priority === undefined) return out;
+  for (let k = 0; k < out.length; k++) out[k] += priority[k] ?? 0;
+  return out;
+}
 
 /** The trade's needs: the lines' and the fuel's oil (one unit serves both: the larger). */
 export function withFuelOil(
@@ -1028,7 +1050,14 @@ export function aiPlan(input: AiInput): AiPlan {
   planConstruction(input, need, orders);
   orders.push(...lines.orders);
   planResearch(input, orders);
-  planTrade(input, withFuelOil(need, input.fuelOil ?? 0), orders);
+  planTrade(
+    input,
+    withPriorityDemand(
+      withFuelOil(need, input.fuelOil ?? 0),
+      input.priorityDemand,
+    ),
+    orders,
+  );
   return orders;
 }
 
@@ -1868,6 +1897,7 @@ export function aiInput(
     docks: t.dock,
     dockTarget: aiDockTarget(ce.tag, warDays >= 0),
     fuelOil: fuelOilOf(econ, ce),
+    priorityDemand: (econ.ww.depth as WwDepth | undefined)?.priorityDemand(me),
   };
 }
 

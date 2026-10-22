@@ -38,6 +38,7 @@ import {
   dayCommonWorld,
   regionStatus,
 } from "@openfront/engine/ww1936/depth/World";
+import { seaHubCapacityMilli } from "@openfront/engine/ww1936/navy/SeaSupply";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
@@ -265,6 +266,9 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     // A level-5 sea hub: (4 + 2 × 5) supply, through the P4 hook.
     expect(harborLevelOf(d, malta)).toBe(5_000);
     expect(ww.land.hooks.beachheadCapacity(malta, side)).toBe(14_000);
+    // P6 glue (W1): a working port's sea hub takes the larger of the two.
+    expect(seaHubCapacityMilli(ww.navy, malta, side)).toBeLessThan(14_000);
+    expect(ww.land.hooks.seaHubCapacity(malta, side)).toBe(14_000);
     expect(harborInputOf(d, id, malta).deployed).toBe(true);
     const at = (age: number) => {
       d.world.harbors[0][2] = d.lastCommonDay - age;
@@ -282,6 +286,9 @@ describe("World War 1936 P6: the world devices (spec §16)", () => {
     dayCommonWorld(d, day + HARBOR_DAYS, tick);
     expect(d.world.harbors).toEqual([]);
     expect(harborLevelOf(d, malta)).toBe(0);
+    expect(ww.land.hooks.seaHubCapacity(malta, side)).toBe(
+      seaHubCapacityMilli(ww.navy, malta, side),
+    );
   }, 60_000);
 
   it("the no-strike list: no scorched earth, no dam blown, no flood (sensitivity)", async () => {

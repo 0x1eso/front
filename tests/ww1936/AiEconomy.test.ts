@@ -42,6 +42,7 @@ import {
   aiTechDomain,
   isAiTurn,
   withFuelOil,
+  withPriorityDemand,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { addLine, moveLine } from "@openfront/engine/ww1936/economy/Production";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
@@ -824,6 +825,46 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect(buy(0)).toEqual([]);
     expect(buy(10, res({ oil: 10 }))).toEqual([]);
     expect(AI_FUEL_OIL_MAX).toBe(30);
+  });
+
+  // P6 glue (W1, S): the coal and uranium taken before the lines are
+  // bought too, and a deal that only covers them is not closed as surplus.
+  test("buy the coal the power plants take before the lines", () => {
+    const coal = RESOURCE_IDS.indexOf("coal");
+    expect(withPriorityDemand(res({ coal: 4 }), res({ coal: 10 }))[coal]).toBe(
+      14,
+    );
+    expect(withPriorityDemand(res({ coal: 4 }), undefined)[coal]).toBe(4);
+    const partners = [
+      { smallID: 7, sameFaction: false, room: res({ coal: 80 }) },
+    ];
+    const plan = (over: Partial<AiInput>) =>
+      aiPlan(
+        input({
+          freeCivMilli: 20_000,
+          payableCivs: 10,
+          partners,
+          produced: res({ coal: 2 }),
+          ...over,
+        }),
+      );
+    // 18 coal for the plants, 2 of its own: 16 to buy, two factories' worth.
+    expect(
+      only(plan({ priorityDemand: res({ coal: 18 }) }), "open_trade"),
+    ).toEqual([{ kind: "open_trade", seller: 7, resource: "coal", civs: 2 }]);
+    expect(only(plan({}), "open_trade")).toEqual([]);
+    // 16 coal bought for the plants: the deal stays open.
+    const buying = [{ id: 3, seller: 7, res: coal, civs: 2, units: 16 }];
+    const imported = res({ coal: 16 });
+    expect(
+      only(
+        plan({ priorityDemand: res({ coal: 18 }), buying, imported }),
+        "close_trade",
+      ),
+    ).toEqual([]);
+    expect(only(plan({ buying, imported }), "close_trade")).toEqual([
+      { kind: "close_trade", trade: 3 },
+    ]);
   });
 
   test("buy what lines lack, at most 30% of free civs", () => {
