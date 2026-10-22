@@ -3,7 +3,7 @@
 // the views, as plain data. No Lit here: the screens render it and the
 // tests read it. Every judgement is engine-lib's (spec §18.4 "the same
 // judging function's reason"): fleetMissionBlock, invasionBlock,
-// nextLaunchDays, fleetPower, predictNaval, seaPath/edgePassable,
+// launchDaysAt, fleetPower, predictNaval, seaPath/edgePassable,
 // invasionCapacity, invasionPrepDays, divisionConvoys.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
@@ -46,10 +46,7 @@ import {
   invasionCapacity,
   invasionPrepDays,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
-import {
-  navalLineCls,
-  nextLaunchDays,
-} from "@openfront/engine-lib/ww1936/NavalLineRules";
+import { launchDaysAt } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import {
   fleetMissionBlock,
   fleetPower,
@@ -925,7 +922,7 @@ export interface LineCard {
   index: number;
   /** Progress on the next unit, 0..1. */
   progress: number;
-  /** nextLaunchDays: −1 when it makes nothing. */
+  /** launchDaysAt the view's unit cost: −1 when it makes nothing. */
   nextDays: number;
   nextName: string | null;
   portName: string;
@@ -937,7 +934,6 @@ export function lineCards(ctx: NavyCtx): LineCard[] {
   const d = ctx.navy.detail;
   if (d === null) return [];
   return d.lines.map((l, index) => {
-    const cls = navalLineCls(l.cls);
     const key =
       l.cls === "convoy" || l.cls === "floating_harbor" || l.nextName <= 0
         ? null
@@ -947,10 +943,9 @@ export function lineCards(ctx: NavyCtx): LineCard[] {
       index,
       progress:
         l.costMilli <= 0 ? 0 : Math.min(1, l.progressMilli / l.costMilli),
-      nextDays: nextLaunchDays(
-        { cls, gen: l.gen, progress: l.progressMilli },
-        l.outputMilli,
-      ),
+      // P6 T1b (lane E): the line's own unit cost (a design's modules,
+      // the naval MIO, a licence), as the engine launches it.
+      nextDays: launchDaysAt(l.costMilli, l.progressMilli, l.outputMilli),
       nextName: key === null ? null : translateText(`ww1936.ship.${key}`),
       portName: regionName(ctx.scenario, l.port),
       short: l.fill < 1000,

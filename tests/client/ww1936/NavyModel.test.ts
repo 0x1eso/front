@@ -175,7 +175,7 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
     expect(missionPreview(ctx, f, "patrol", SR.eastern).ratioPm).toBeNull();
   });
 
-  it("a line card's days to the next launch are nextLaunchDays'", () => {
+  it("a line card's days to the next launch are nextLaunchDays' (at the view's cost)", () => {
     const g = seaGame({
       navy: navyDetail("GBR", {
         lines: [
@@ -207,10 +207,33 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
             outputMilli: 0,
             fill: 400,
           },
+          // P6 T1b (lane E): a design line's unit cost is the view's
+          // (modules, MIO, licence), not the base hull's.
+          {
+            id: 3,
+            cls: "bb",
+            gen: 2,
+            docks: 8,
+            activeDocks: 8,
+            progressMilli: 5_000_000,
+            costMilli: Math.floor(
+              (lineCostMilli({ cls: 4, gen: 2, progress: 0 }) * 160) / 100,
+            ),
+            left: 1,
+            port: REGION.london,
+            nextName: 2,
+            outputMilli: 22_000,
+            fill: 1000,
+          },
         ],
       }),
     });
     const cards = lineCards(ctxOf(g));
+    const design = cards[2].line;
+    expect(cards[2].nextDays).toBe(
+      Math.ceil((design.costMilli - design.progressMilli) / 22_000),
+    );
+    expect(cards[2].nextDays).toBeGreaterThan(cards[0].nextDays);
     expect(cards[0].nextDays).toBe(
       nextLaunchDays(
         { cls: SHIP_CLASSES.indexOf("bb"), gen: 2, progress: 5_000_000 },
