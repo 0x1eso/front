@@ -1492,8 +1492,6 @@
     "ww1936_justify_started": "{country}: {target}에 대한 전쟁 명분 만들기 시작",
     "ww1936_leader_changed": "{country}의 새 지도자: {person}",
     "ww1936_ll_arrived": "랜드리스 도착: {items} ({fromTag})",
-    "ww1936_ll_blocked": "{toTag}에 대한 랜드리스가 멈췄습니다: {reason}",
-    "ww1936_ll_contract_stopped": "랜드리스 계약이 멈췄습니다: {reason}",
     "ww1936_ll_stopped_at_war": "랜드리스가 멈췄습니다: 받는 나라와 전쟁 중입니다",
     "ww1936_ll_stopped_ll_conditions": "랜드리스가 멈췄습니다: 조건이 맞지 않습니다",
     "ww1936_ll_stopped_ll_peace": "랜드리스가 멈췄습니다: 받는 나라가 전쟁 중이 아니고 세계 긴장도가 {need} 퍼센트 미만입니다",
@@ -3629,11 +3627,6 @@
       "YUG": "유고슬라비아",
       "YUN": "윈난파",
       "ZAF": "남아프리카 연방"
-    },
-    "country_state": {
-      "active": "활동 중",
-      "dormant": "잠든 나라",
-      "gone": "사라짐"
     },
     "cw_name": {
       "communist": "{country} 인민 정부",

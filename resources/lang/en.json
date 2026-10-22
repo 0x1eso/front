@@ -1591,8 +1591,6 @@
     "ww1936_justify_started": "{country} began justifying a war goal on {target}",
     "ww1936_leader_changed": "{country} has a new leader: {person}",
     "ww1936_ll_arrived": "Lend-lease arrived: {items} ({fromTag})",
-    "ww1936_ll_blocked": "Lend-lease to {toTag} is stopped: {reason}",
-    "ww1936_ll_contract_stopped": "A lend-lease contract stopped: {reason}",
     "ww1936_ll_stopped_at_war": "Lend-lease stopped: you are at war with the receiver",
     "ww1936_ll_stopped_ll_conditions": "Lend-lease stopped: its conditions are not met",
     "ww1936_ll_stopped_ll_peace": "Lend-lease stopped: the receiver is not at war and world tension is below {need}%",
@@ -3936,11 +3934,6 @@
       "YUG": "Yugoslavia",
       "YUN": "Yunnan Clique",
       "ZAF": "South Africa"
-    },
-    "country_state": {
-      "active": "Active",
-      "dormant": "Dormant",
-      "gone": "Gone"
     },
     "cw_name": {
       "communist": "People's {country}",

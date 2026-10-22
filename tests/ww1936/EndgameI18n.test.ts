@@ -1,7 +1,6 @@
 // World War 1936 P5 (plan Task 12): the endgame screens' texts and the
 // notification keys exist in en and ko with the same ICU arguments.
 import {
-  COUNTRY_STATES,
   DEMAND_KINDS,
   MEMBER_STATES,
   OCCUPATION_LAWS,
@@ -25,13 +24,14 @@ const EVENTS = [
   "garrison_short",
   "uprising",
   "ll_arrived",
-  "ll_blocked",
-  "ll_contract_stopped",
   "volunteers_arrived",
   "volunteers_recalled",
   "captured",
   "takeover",
   "spectating",
+  // Batch 21: lane S's notice; lane A's per-reason stop keys replaced
+  // ll_blocked and ll_contract_stopped (no sender: deleted).
+  "subject_restricted",
 ].map((k) => `events_display.ww1936_${k}`);
 
 const LISTS: string[] = [
@@ -45,7 +45,6 @@ const LISTS: string[] = [
   ]),
   ...SUBJECT_LEVELS.map((k) => `ww1936.subject_level.${k}`),
   ...MEMBER_STATES.map((k) => `ww1936.member_state.${k}`),
-  ...COUNTRY_STATES.map((k) => `ww1936.country_state.${k}`),
   ...["spain", "spanish_republic", "serbia"].map((k) => `ww1936.rename.${k}`),
   ...[
     "peace_conference",

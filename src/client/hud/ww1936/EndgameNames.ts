@@ -162,31 +162,34 @@ function isDormantStart(game: WwGame, id: number): boolean {
 
 // ---- Notices (spec §20.8, plan decision 24) ----
 
-/** The 20 P5 notices (plan decision 24; spec §22 params). */
-export const ENDGAME_NOTICES: ReadonlySet<string> = new Set(
-  [
-    "ww1936_exiled",
-    "ww1936_exile_returned",
-    "ww1936_exile_ended",
-    "ww1936_conference_opened",
-    "ww1936_conference_round",
-    "ww1936_conference_result",
-    "ww1936_country_created",
-    "ww1936_subject_level",
-    "ww1936_autonomy_request",
-    "ww1936_occ_law",
-    "ww1936_garrison_short",
-    "ww1936_uprising",
-    "ww1936_ll_arrived",
-    "ww1936_ll_blocked",
-    "ww1936_ll_contract_stopped",
-    "ww1936_volunteers_arrived",
-    "ww1936_volunteers_recalled",
-    "ww1936_captured",
-    "ww1936_takeover",
-    "ww1936_spectating",
-  ].map((k) => `events_display.${k}`),
-);
+/**
+ * The P5 notices the engine sends (plan decision 24; spec §22 params), by
+ * their full keys so the translation check sees each one read. Batch 21:
+ * `ww1936_subject_restricted` (lane S) added; `ww1936_ll_blocked` and
+ * `ww1936_ll_contract_stopped` gone (lane A sends one
+ * `ww1936_ll_stopped_<reason>` key per reason, which needs no params).
+ */
+export const ENDGAME_NOTICES: ReadonlySet<string> = new Set([
+  "events_display.ww1936_exiled",
+  "events_display.ww1936_exile_returned",
+  "events_display.ww1936_exile_ended",
+  "events_display.ww1936_conference_opened",
+  "events_display.ww1936_conference_round",
+  "events_display.ww1936_conference_result",
+  "events_display.ww1936_country_created",
+  "events_display.ww1936_subject_level",
+  "events_display.ww1936_subject_restricted",
+  "events_display.ww1936_autonomy_request",
+  "events_display.ww1936_occ_law",
+  "events_display.ww1936_garrison_short",
+  "events_display.ww1936_uprising",
+  "events_display.ww1936_ll_arrived",
+  "events_display.ww1936_volunteers_arrived",
+  "events_display.ww1936_volunteers_recalled",
+  "events_display.ww1936_captured",
+  "events_display.ww1936_takeover",
+  "events_display.ww1936_spectating",
+]);
 
 /**
  * Notices the engine addresses to a human's country as it leaves their
