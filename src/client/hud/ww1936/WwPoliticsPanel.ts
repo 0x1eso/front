@@ -161,7 +161,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
 
   /** The five tabs, and the congress tab for the United States. */
   private tabList(): readonly WwPoliticsTab[] {
-    return this.misc()?.congressBar() != null
+    return (this.misc()?.congressBar() ?? null) !== null
       ? [...WW_POLITICS_TABS, "congress"]
       : WW_POLITICS_TABS;
   }

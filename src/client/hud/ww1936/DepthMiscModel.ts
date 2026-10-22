@@ -247,16 +247,16 @@ export class DepthMiscModel {
   constructor(readonly view: GameView) {}
 
   private me(): number {
-    return this.view.myPlayer()?.smallID() ?? 0;
+    return this.view.myPlayer?.()?.smallID() ?? 0;
   }
 
   private myTag(): CountryTag | null {
-    return this.view.myPlayer()?.countryTag() ?? null;
+    return this.view.myPlayer?.()?.countryTag() ?? null;
   }
 
   /** The United States' congress support; null for everyone else. */
   congressBar(): CongressBar | null {
-    const d = this.view.wwDepth();
+    const d = this.view.wwDepth?.() ?? null;
     if (d === null || this.myTag() !== "USA") return null;
     const bp = d.congressBp;
     const gates: [number, string][] = [
@@ -277,7 +277,7 @@ export class DepthMiscModel {
 
   /** My country's balance-of-power bar (China, Japan, France); null otherwise. */
   bopBar(tag: string): BopBar | null {
-    const d = this.view.wwDepth();
+    const d = this.view.wwDepth?.() ?? null;
     if (d === null || this.myTag() !== tag) return null;
     const i = BOP_DEFS.findIndex((b) => b.tag === tag);
     if (i < 0) return null;
@@ -306,7 +306,7 @@ export class DepthMiscModel {
 
   /** The three faction rules of my faction; empty without one. */
   factionRuleRows(): FactionRuleRow[] {
-    const d = this.view.wwDepth();
+    const d = this.view.wwDepth?.() ?? null;
     const f = this.factionIdx();
     if (d === null || f < 0) return [];
     const leader = this.amLeader();
@@ -325,7 +325,7 @@ export class DepthMiscModel {
 
   /** My faction's three goal slots. */
   goalSlots(): GoalSlot[] {
-    const d = this.view.wwDepth();
+    const d = this.view.wwDepth?.() ?? null;
     const f = this.factionIdx();
     if (d === null || f < 0) return [];
     const row = d.factionGoalsData.find((g) => g[0] === f);
@@ -350,9 +350,9 @@ export class DepthMiscModel {
 
   /** The naval treaty: its members, whether I am one, when it ends. */
   treatyRows(): TreatyRows {
-    const d = this.view.wwDepth();
+    const d = this.view.wwDepth?.() ?? null;
     const t = d?.treatyData ?? { members: [], escalated: false, endDay: 0 };
-    const sc = this.view.worldWarScenario();
+    const sc = this.view.worldWarScenario?.() ?? null;
     const members = t.members.flatMap((id) => {
       const tag = sc?.tagOfSmallId(id);
       return tag === undefined ? [] : [{ id, tag, name: countryName(tag) }];
@@ -370,7 +370,7 @@ export class DepthMiscModel {
   /** The five countries that think best and the five that think worst of me. */
   relationRows(): { best: RelationRow[]; worst: RelationRow[] } {
     const i = politicsInput(this.view);
-    const sc = this.view.worldWarScenario();
+    const sc = this.view.worldWarScenario?.() ?? null;
     if (i === null || sc === null) return { best: [], worst: [] };
     const rows: RelationRow[] = [];
     for (const tag of sc.scenarioTags()) {
@@ -391,7 +391,7 @@ export class DepthMiscModel {
 
   /** The continuous-focus band above the tree. */
   cfocusBand(): CfocusBand | null {
-    const d = this.view.wwDepth();
+    const d = this.view.wwDepth?.() ?? null;
     const id = this.me();
     const det = d?.detail(id);
     if (det === undefined) return null;
@@ -423,8 +423,8 @@ export class DepthMiscModel {
 
   /** The depth lines of a region card (landmark, dam, facility, plant, deposits, status). */
   regionLines(region: number): RegionLine[] {
-    const sc = this.view.worldWarScenario();
-    const d = this.view.wwDepth();
+    const sc = this.view.worldWarScenario?.() ?? null;
+    const d = this.view.wwDepth?.() ?? null;
     if (sc === null || d === null) return [];
     const out: RegionLine[] = [];
     const day = today(this.view);
@@ -542,7 +542,7 @@ export class DepthMiscModel {
 
   /** The army card's extra buttons ([raid], [rail guns n/2], [medal], [priority]); mine only. */
   armyButtons(armyId: number): ArmyExtraButton[] {
-    const land = this.view.wwLand();
+    const land = this.view.wwLand?.() ?? null;
     const a = land?.armies.get(armyId);
     if (land === null || a === undefined || a.owner !== this.me()) return [];
     const det = land.details.get(this.me());
@@ -610,7 +610,7 @@ export class DepthMiscModel {
   /** The fleet card's mine chips: when a design with the module is in the owner's list. */
   fleetChips(fleetId: number): FleetChip[] {
     const f = this.view.wwNavy?.()?.fleets.get(fleetId);
-    const det = this.view.wwDepth()?.detail(this.me());
+    const det = (this.view.wwDepth?.() ?? null)?.detail(this.me());
     if (f === undefined || det === undefined || f.owner !== this.me()) {
       return [];
     }

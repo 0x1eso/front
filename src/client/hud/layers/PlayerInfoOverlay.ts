@@ -996,7 +996,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
    */
   private renderRegionDepth(tile: TileRef) {
     const s = this.game.worldWarScenario();
-    if (s === null || this.game.wwDepth?.() == null) return "";
+    if (s === null || (this.game.wwDepth?.() ?? null) === null) return "";
     const region = s.regionAt(tile);
     if (s.region(region) === undefined) return "";
     const m = new DepthMiscModel(this.game);
