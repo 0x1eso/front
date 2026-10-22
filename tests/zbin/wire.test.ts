@@ -14,6 +14,7 @@ import {
   StampedIntent,
   Turn,
 } from "@openfront/engine-api/Schemas";
+import { DEPTH_ORDER_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { replacer } from "@openfront/shared/SharedUtil";
 import {
   ClientMessage,
@@ -35,6 +36,8 @@ import {
 } from "@openfront/shared/ZbinWire";
 import { ZbDecodeError } from "@openfront/zbin";
 import { describe, expect, it } from "vitest";
+import { TEST_TANK } from "../ww1936/depthFixture";
+import { SAMPLES as DEPTH_SAMPLES } from "../ww1936/depthOrderSamples";
 
 const PLAYERS = [
   { clientID: "aB3dEf7h" },
@@ -1211,5 +1214,56 @@ describe("zbin wire: lobby list messages", () => {
     expect(() => decodeLobbyMessage(bytes.subarray(0, 2))).toThrow(
       ZbDecodeError,
     );
+  });
+});
+
+describe("zbin wire: the P6 depth orders (plan Task 1 Step 4)", () => {
+  it("round-trips every one of the 57 orders", () => {
+    expect(DEPTH_ORDER_KINDS).toHaveLength(57);
+    const [sctx, cctx] = ctxPair();
+    const msg: ServerMessage = {
+      type: "turn",
+      turn: {
+        turnNumber: 7,
+        intents: DEPTH_ORDER_KINDS.map((k) => ({
+          type: "ww_order" as const,
+          clientID: P1,
+          order: DEPTH_SAMPLES[k],
+        })),
+      },
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(msg, sctx), cctx);
+    expect(decoded).toEqual(viaJson(ServerMessageSchema, msg));
+  });
+
+  it("refuses a design name that is too long, has markup or a control or format character", () => {
+    const save = (name: string): ServerMessage => ({
+      type: "turn",
+      turn: {
+        turnNumber: 1,
+        intents: [
+          {
+            type: "ww_order",
+            clientID: P1,
+            order: { kind: "design_save", def: { ...TEST_TANK, name } },
+          },
+        ],
+      },
+    });
+    const rt = (name: string) => {
+      const [sctx, cctx] = ctxPair();
+      return decodeServerMessage(encodeServerMessage(save(name), sctx), cctx);
+    };
+    expect(() => rt("Panzer IV")).not.toThrow();
+    for (const bad of [
+      "x".repeat(25),
+      "<b>",
+      "a\u0000b",
+      " lead",
+      "trail ",
+      "‮evil",
+    ]) {
+      expect(() => rt(bad), JSON.stringify(bad)).toThrow();
+    }
   });
 });
