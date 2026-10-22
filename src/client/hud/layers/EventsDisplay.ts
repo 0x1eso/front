@@ -15,6 +15,7 @@ import {
   TargetPlayerUpdate,
   UnitIncomingUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
+import { ADMIRAL_TRAITS } from "@openfront/engine-api/ww1936/NavyTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
 import { customElement, query, state } from "lit/decorators.js";
@@ -34,7 +35,7 @@ import {
   isHandoffNotice,
 } from "../ww1936/EndgameNames";
 import { armyName, generalName, regionName } from "../ww1936/LandModel";
-import { navyNoticeParams } from "../ww1936/NavyModel";
+import { admiralName, navyNoticeParams } from "../ww1936/NavyModel";
 import { POLITICS_NOTICES, politicsParams } from "../ww1936/PoliticsModel";
 import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
@@ -347,7 +348,19 @@ export class EventsDisplay extends LitElement implements Controller {
         params = { ...params, region: regionName(scenario, params.region) };
       }
       if (typeof params.general === "number") {
-        params = { ...params, general: generalName(params.general) };
+        // P6 (lane D's trait notices): an admiral is named from the navy's
+        // roster — the notice says so (`admiral`), or its trait is an
+        // admiral's; a general from the land's.
+        const admiral =
+          params.admiral === 1 ||
+          (typeof params.trait === "string" &&
+            (ADMIRAL_TRAITS as readonly string[]).includes(params.trait));
+        params = {
+          ...params,
+          general: admiral
+            ? admiralName(params.general)
+            : generalName(params.general),
+        };
       }
       if (typeof params.army === "number") {
         params = { ...params, army: armyName(params.army) };

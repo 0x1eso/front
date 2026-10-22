@@ -99,7 +99,13 @@ describe("World War 1936 depth notices", () => {
     send("ww1936_trait_unlocked", { general: 1, trait: "trickster" });
     send("ww1936_fm_promoted", { general: 1 });
     send("ww1936_ace", { callsign: 4, state: "rise" });
-    const [trait, fm, ace] = events();
+    // An admiral's trait: the navy's roster names him.
+    send("ww1936_trait_unlocked", { general: 1, trait: "convoy_master" });
+    send("ww1936_trait_unlocked", { general: 1, admiral: 1, trait: "x" });
+    const [trait, fm, ace, adm, adm2] = events();
+    for (const a of [adm, adm2]) {
+      expect(a).toMatch(/general=\[ww1936\.(admiral\.|navy\.titled_admiral)/);
+    }
     expect(trait).toContain("general=[ww1936.general.");
     expect(trait).toContain("trait=[ww1936.trait.trickster]");
     expect(fm).toContain("general=[ww1936.general.");
