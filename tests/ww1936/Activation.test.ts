@@ -56,15 +56,21 @@ function byType(ww: WorldWar, row: number): number[] {
   return out;
 }
 
-/** What `id`'s first template needs, by EQUIPMENT_TYPES index. */
+/**
+ * What `id`'s first template needs, by EQUIPMENT_TYPES index. P6's need is
+ * by NEED_GROUPS (the equipment types, then four design-only groups): a
+ * woken country's P2 template needs none of those.
+ */
 function needOf(ww: WorldWar, id: number): readonly number[] {
   const tpl = ww.land.country(id)!.templates[0];
   const stats = ww.economy.country(id)!.stats;
-  return templateStats(
+  const need = templateStats(
     tpl.def,
     stats,
     genMixOf(new Array(GROUND_SLOTS).fill(0)),
   ).need;
+  expect(need.slice(EQUIPMENT_TYPES.length).every((n) => n === 0)).toBe(true);
+  return need.slice(0, EQUIPMENT_TYPES.length);
 }
 
 /** A region's legal owner and control to `id` (a treaty's). */

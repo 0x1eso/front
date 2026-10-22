@@ -322,7 +322,13 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
       ww.economy.countries().map((c) => c.smallID),
     );
     // Each region as the engine holds it.
+    const facilities = [
+      "facility_nuclear",
+      "facility_rocket",
+      "facility_science",
+    ] as const;
     for (const r of first.data.regions) {
+      const dam = ww.scenario.damOf(r.id);
       expect(r).toEqual({
         id: r.id,
         controller: ww.economy.controller[r.id],
@@ -342,6 +348,17 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         refinery: ww.economy.buildingArray("synthetic_refinery")[r.id],
         silo: ww.economy.buildingArray("fuel_silo")[r.id],
         damage: [],
+        // P6: its depth buildings, dam and v5 deposits.
+        coal: ww.scenario.coalOf(r.id),
+        uranium: ww.scenario.uraniumOf(r.id),
+        hydro: ww.scenario.hydroOf(r.id),
+        facility:
+          facilities.findIndex((f) => ww.economy.buildingArray(f)[r.id] > 0) +
+          1,
+        rocketSite: ww.economy.buildingArray("rocket_site")[r.id],
+        powerPlant: ww.economy.buildingArray("power_plant")[r.id],
+        dam: dam + 1,
+        damLevel: dam < 0 ? 0 : ww.depth.world.damLevel[dam],
       });
     }
   }, 60_000);
