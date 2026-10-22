@@ -400,7 +400,11 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // P4 caches): same value in three runs. Batch 23 (W: Korea/Taiwan zones
 // never go back to Japan, occupation removals) leaves it as it is (three
 // runs): the pinned game has no Korea or Taiwan zone and the removals are
-// screen data.
+// screen data. The P5 final lane (Tasks 18-20: a woken country's start
+// fuel, the air owner index after a civil war, civil-war beats unjudged,
+// the Spanish volunteer beats, the regime-crisis weight, Korea and Taiwan
+// kept out of civil wars) leaves it too (three runs): the pinned test-map
+// game wakes no country, splits none and has no such beat.
 // The controller re-pins it at every merge that changes the engine.
 const WW1936_DIGEST = "8737d7c989ba2e96";
 
