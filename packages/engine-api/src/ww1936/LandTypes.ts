@@ -391,6 +391,11 @@ export interface ArmySummary {
   symbol: number;
   /** Filled for every human country's armies; the UI shows it only when owner === me. */
   mine: ArmyMineData | null;
+  /**
+   * P5 volunteers (T1b): the country the army fights for when it is a
+   * volunteer army (absent: its owner). The fog shows it as that side's.
+   */
+  volunteerFor?: number;
 }
 
 export interface ArmyMineData {

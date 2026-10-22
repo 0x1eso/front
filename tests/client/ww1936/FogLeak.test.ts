@@ -16,17 +16,40 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
+import { render } from "lit";
+import "../../../src/client/hud/layers/PlayerInfoOverlay";
+import type { PlayerInfoOverlay } from "../../../src/client/hud/layers/PlayerInfoOverlay";
+import { occRegionLine } from "../../../src/client/hud/ww1936/EndgameModel";
 import { fogModelOf } from "../../../src/client/hud/ww1936/FogModel";
-import { OpenWwBattleEvent } from "../../../src/client/hud/ww1936/LandSelection";
+import { attackPreview } from "../../../src/client/hud/ww1936/LandModel";
+import {
+  landSelectionOf,
+  OpenWwBattleEvent,
+} from "../../../src/client/hud/ww1936/LandSelection";
+import { today } from "../../../src/client/hud/ww1936/WorldWarModel";
+import "../../../src/client/hud/ww1936/WwArmyCard";
+import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
 import "../../../src/client/hud/ww1936/WwBattleCard";
 import type { WwBattleCard } from "../../../src/client/hud/ww1936/WwBattleCard";
+import { takeoverCardModel } from "../../../src/client/hud/ww1936/WwTakeoverCard";
 import {
   hitToken,
   layoutTokens,
   TokenLayoutCache,
 } from "../../../src/client/view/LandTokenLayout";
+import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
+import { detail, region, tileOf } from "./EconomyFixture";
+import { occ } from "./EndgameFixture";
 import { FAR, fogGame, NEAR, newFog } from "./FogFixture";
-import { army, battle, ID } from "./LandFixture";
+import {
+  army,
+  battle,
+  division,
+  ID,
+  landDetail,
+  landRegion,
+} from "./LandFixture";
 
 // Numbers no label may contain by accident.
 const LINE = 137;
@@ -177,6 +200,158 @@ describe("fog leaks (spec §8.9)", () => {
     expect(side.querySelector("[data-ww-battle-width]")).not.toBeNull();
   });
 
+  it("T1b: the army card's attack preview counts the defenders through the fog", async () => {
+    const at = async (level: number) => {
+      const g = fogGame({
+        level,
+        details: [detail("DEU")],
+        armies: [
+          army(1, "DEU", 4, { divisions: 3 }),
+          army(2, "POL", NEAR, { divisions: 173 }),
+        ],
+        landDetails: [
+          landDetail("DEU", {
+            divisions: [
+              division(1, 1, 4),
+              division(2, 1, 4),
+              division(3, 1, 4),
+            ],
+          }),
+        ],
+      });
+      const el = document.createElement("ww-army-card") as WwArmyCard;
+      el.game = g.game as never;
+      el.eventBus = new EventBus();
+      document.body.appendChild(el);
+      el.init();
+      const sel = landSelectionOf(g.game as never);
+      sel.select(1);
+      sel.pending = NEAR;
+      sel.version++;
+      el.tick();
+      await el.updateComplete;
+      const ratio = el
+        .querySelector("[data-ww-preview='attack'] [data-ww-ratio]")!
+        .getAttribute("data-ww-ratio");
+      const f = fogModelOf(g.game as never);
+      const view = g.land;
+      const economy = g.game.wwEconomy();
+      const day = today(g.game as never);
+      const exact = attackPreview(view, economy, ID("DEU"), 1, NEAR, day)!;
+      const fogged = attackPreview(
+        view,
+        economy,
+        ID("DEU"),
+        1,
+        NEAR,
+        day,
+        undefined,
+        (n, o) => f.previewEnemyValue(n, o),
+      )!;
+      el.remove();
+      return { ratio: Number(ratio), exact, fogged };
+    };
+    // Band 0: the card's ratio is the fogged one (512 stand-in divisions), not the truth.
+    const hidden = await at(0);
+    expect(hidden.fogged.ratioPm).toBeLessThan(hidden.exact.ratioPm);
+    expect(hidden.ratio).not.toBe(hidden.exact.ratioPm);
+    // Exact band: the true ratio.
+    const known = await at(80);
+    expect(known.fogged.ratioPm).toBe(known.exact.ratioPm);
+    expect(known.ratio).toBe(known.exact.ratioPm);
+  });
+
+  it("T1b: the region card, the troop bar, the occupation line and the takeover card", () => {
+    const g = fogGame({
+      level: 0,
+      regions: [region(NEAR, { civ: 137, mil: 241, dock: 0, fort: 3 })],
+      landRegions: [FAR, NEAR, 7].map((id) =>
+        landRegion(id, {
+          controller: ID("POL"),
+          counts: id === NEAR ? [[ID("POL"), 173]] : [],
+        }),
+      ),
+    });
+    const overlay = document.createElement(
+      "player-info-overlay",
+    ) as PlayerInfoOverlay;
+    overlay.game = g.game as never;
+    overlay.eventBus = new EventBus();
+    const o = overlay as unknown as {
+      renderRegionLand(t: number): unknown;
+      renderRegionEconomy(t: number): unknown;
+      wwTroopLabels(p: unknown, total: number, max: number): unknown;
+    };
+    const box = document.createElement("div");
+    render(o.renderRegionLand(tileOf(NEAR)), box);
+    expect(box.querySelector("[data-ww-region-divisions]")!.textContent).toBe(
+      "[ww1936.land.region_divisions] ours=0,theirs=?",
+    );
+    expect(box.innerHTML).not.toContain("173");
+    expect(box.innerHTML).not.toContain("■■■");
+    const econ = document.createElement("div");
+    render(o.renderRegionEconomy(tileOf(NEAR)), econ);
+    for (const n of ["137", "241"]) expect(econ.innerHTML).not.toContain(n);
+    expect(econ.textContent).toContain("civ=?,mil=?,dock=?");
+    // The troop bar: Poland's men are hidden, mine are not.
+    const pol = g.game.playerBySmallID(ID("POL"));
+    expect(o.wwTroopLabels(pol, 480_000, 900_000)).toEqual(["?", "?"]);
+    expect(
+      o.wwTroopLabels(g.game.playerBySmallID(ID("DEU")), 480_000, 900_000),
+    ).toBeNull();
+    g.setLevels([0, 20, 0, 0]);
+    const rough = o.wwTroopLabels(pol, 480_000, 900_000) as string[];
+    expect(rough[0]).toContain("~");
+    expect(rough[0]).not.toContain("480");
+    // The occupation line: Poland's garrison in my Munich, at Poland's army band.
+    g.setLevels([0, 0, 0, 0]);
+    const eg = new WwEndgameView();
+    eg.apply({
+      news: [],
+      occupation: [
+        occ(4, "POL", { supDeci: 1_370, needDeci: 2_410, resBp: 4_400 }),
+      ],
+    });
+    g.land.controller[4] = ID("POL");
+    const game = { ...g.game, wwEndgame: () => eg };
+    const f = fogModelOf(g.game as never);
+    const line = occRegionLine(game as never, 4, f)!;
+    expect(line).toContain("have=?");
+    expect(line).toContain("pct=?");
+    expect(line).toContain("res=44");
+    expect(line).not.toContain("137");
+    // Exact without the fog (the occupation tab's own rows).
+    expect(occRegionLine(game as never, 4)!).toContain("have=137.0");
+    // The takeover card: a candidate's divisions at its army band (a
+    // country of my faction would be exact).
+    const tk = new WwEndgameView();
+    tk.apply({
+      news: [],
+      takeover: [
+        {
+          client: "c1",
+          from: ID("DEU"),
+          candidates: [ID("POL")],
+          deadlineTick: 900,
+        },
+      ],
+    });
+    const tg = {
+      ...g.game,
+      myClientID: () => "c1",
+      wwEndgame: () => tk,
+      wwLand: () => ({ countries: new Map([[ID("POL"), { divisions: 41 }]]) }),
+    };
+    const rows = (lv: number) => {
+      g.setLevels([0, lv, 0, 0]);
+      return takeoverCardModel(tg as never, f)!.rows[0].line;
+    };
+    expect(rows(0)).toContain("divisions=?");
+    expect(rows(0)).not.toContain("41");
+    expect(rows(80)).toContain("divisions=41");
+    expect(f.countLabel(ID("POL"), 41, ID_ARMY)).toBe("41");
+  });
+
   it("no hud or render file reads enemy army, fleet or air data without the fog", () => {
     const root = path.join(__dirname, "../../../src/client");
     const files: string[] = [];
@@ -192,6 +367,8 @@ describe("fog leaks (spec §8.9)", () => {
     for (const f of ["FleetTokenLayout.ts", "LandTokenLayout.ts"]) {
       files.push(path.join(root, "view", f));
     }
+    // T1b (pre-flight A18): the hover card shows every region and country.
+    files.push(path.join(root, "hud/layers/PlayerInfoOverlay.ts"));
     const reads =
       /\.divisions\b|\b(?:att|def)(?:Line|Reserve)\b|\.armies\b|\.fleets\b|\.deployments\b|\.sorties\b/;
     // Files that read other owners' data must ask the fog (and which call).
@@ -207,9 +384,18 @@ describe("fog leaks (spec §8.9)", () => {
       "render/gl/LandFrame.ts": "armyView",
       "view/FleetTokenLayout.ts": "fleetView",
       "view/LandTokenLayout.ts": "armyView",
+      // T1b (pre-flight A18): the P5 swaps and the P5 screens' review.
+      // The army card's attack preview (the defenders' count).
+      "hud/ww1936/WwArmyCard.ts": "previewEnemyValue",
+      // The region card (buildings, divisions, fleets in port), the
+      // troop bar and the occupation line's garrison.
+      "hud/layers/PlayerInfoOverlay.ts": "countLabel",
+      // The occupation line's garrison of another side.
+      "hud/ww1936/EndgameModel.ts": "countLabel",
+      // A candidate country's divisions.
+      "hud/ww1936/WwTakeoverCard.ts": "countLabel",
     };
-    // Files that read only my own side's data, or are the T1b swap list
-    // (WwArmyCard, WwTopBand: pre-flight A18), or draw no counts.
+    // Files that read only my own side's data, or draw no counts.
     const ALLOWED = new Set([
       "hud/ww1936/AirModel.ts",
       "hud/ww1936/IntelModel.ts",
@@ -217,11 +403,11 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/LandSeaAir.ts",
       "hud/ww1936/NavyModel.ts",
       "hud/ww1936/WwAirPanel.ts",
-      "hud/ww1936/WwArmyCard.ts",
       "hud/ww1936/WwArmyPanel.ts",
       "hud/ww1936/WwLandController.ts",
       "hud/ww1936/WwNavyPanel.ts",
       "hud/ww1936/WwSeaAirController.ts",
+      // T1b review: my divisions, my groups and the armies I picked.
       "hud/ww1936/WwTopBand.ts",
       "render/gl/Renderer.ts",
       "render/gl/passes/PlanArrowPass.ts",
@@ -234,14 +420,15 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/WwAirZoneCard.ts",
       "hud/ww1936/WwNukeFlow.ts",
       "hud/ww1936/DepthMiscModel.ts",
-      // P5's screens (merged before this scan): aid and takeover cards and
-      // the conference read country totals and fleet classes by design;
-      // their fog review goes with T1b's P5 swaps (pre-flight A18).
-      "hud/ww1936/EndgameModel.ts",
-      "hud/ww1936/PeaceModel.ts",
+      // T1b review: my volunteers, the volunteers serving in my country
+      // (my side in its battles) and what is shipped to me.
       "hud/ww1936/WwAidTab.ts",
-      "hud/ww1936/WwTakeoverCard.ts",
     ]);
+    // Files that read other countries' numbers the spec makes public
+    // (spec §8.9: conferences are public). T1b review: the conference
+    // prices a fleet share from the loser's ship classes, as the engine
+    // does, and shows only conference points and percentages.
+    const PUBLIC = new Set(["hud/ww1936/PeaceModel.ts"]);
     const rel = (f: string) => path.relative(root, f).split(path.sep).join("/");
     for (const f of files) {
       const r = rel(f);
@@ -254,13 +441,13 @@ describe("fog leaks (spec §8.9)", () => {
         );
       } else {
         expect(
-          ALLOWED.has(r),
+          ALLOWED.has(r) || PUBLIC.has(r),
           `${r} reads enemy data: filter it or allow-list it`,
         ).toBe(true);
       }
     }
     // No stale entries: every listed file exists.
-    for (const r of [...ALLOWED, ...Object.keys(MUST_FOG)]) {
+    for (const r of [...ALLOWED, ...PUBLIC, ...Object.keys(MUST_FOG)]) {
       expect(fs.existsSync(path.join(root, r)), r).toBe(true);
     }
   });

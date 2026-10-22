@@ -38,7 +38,8 @@ import {
   OCC_BLINK,
   OCC_HATCH,
 } from "../../../src/client/render/gl/passes/OccupationPass";
-import { ID } from "./EconomyFixture";
+import { WwDepthView } from "../../../src/client/view/WwDepthView";
+import { ID, scenario } from "./EconomyFixture";
 import { fakeEndGame, occ } from "./EndgameFixture";
 import { army, division, landDetail, mine, startTemplate } from "./LandFixture";
 
@@ -135,6 +136,86 @@ describe("EndgameModel (P5 spec §20.3–§20.7)", () => {
     expect(llGate(at(0, 4_500), ID("GBR"), ID("GBR"))?.key).toBe(
       "ww1936.aid.why.ll_conditions",
     );
+  });
+
+  it("the US congress under 50% holds lend-lease back first (P6 T1b)", () => {
+    // The test map has no United States: Britain stands in for it.
+    const gbr = ID("GBR");
+    const tagOf = scenario.tagOfSmallId.bind(scenario);
+    const spy = vi
+      .spyOn(scenario, "tagOfSmallId")
+      .mockImplementation((id) => (id === gbr ? "USA" : tagOf(id)));
+    try {
+      const at = (
+        congressBp: number,
+        congressLl: boolean | null = null,
+        running = false,
+      ) => {
+        const depth = new WwDepthView();
+        depth.congressBp = congressBp;
+        depth.congressLl = congressLl;
+        const r = fakeEndGame({
+          me: "GBR",
+          wars: [["FRA", "DEU"]],
+          politics: { ruling: 0, wtBp: 3_100 },
+          global: { wtBp: 3_100 },
+          // A contract of mine already running (opened at 50% or more).
+          endgame: running
+            ? {
+                aid: [
+                  {
+                    smallID: gbr,
+                    contracts: [
+                      {
+                        id: 1,
+                        to: ID("FRA"),
+                        item: "infantry_equipment",
+                        gen: 1,
+                        perMonth: 100,
+                        sentMonth: 0,
+                        arrivedMonth: 0,
+                        blocked: null,
+                      },
+                    ],
+                    incoming: [],
+                    volunteersOut: [],
+                    volunteersIn: [],
+                  },
+                ],
+              }
+            : {},
+        });
+        return { ...r.game, wwDepth: () => depth } as typeof r.game;
+      };
+      // Under 50%: the congress line comes before the democracy's tension.
+      const why = llGate(at(3_400), gbr, ID("FRA"));
+      expect(why).toEqual({
+        key: "ww1936.aid.why.congress",
+        params: { need: 50, now: 34 },
+      });
+      expect(whyText(why!)).toBe("[ww1936.aid.why.congress] need=50,now=34");
+      // At 50% the congress passes; P5's own reason is next.
+      expect(llGate(at(5_000), gbr, ID("FRA"))?.key).toBe(
+        "ww1936.aid.why.ll_tension",
+      );
+      // Support fell under 50% after a contract opened: the engine's judge
+      // (congressLl false) still refuses a new one, the running contract
+      // notwithstanding.
+      expect(llGate(at(4_000, false, true), gbr, ID("FRA"))).toEqual({
+        key: "ww1936.aid.why.congress",
+        params: { need: 50, now: 40 },
+      });
+      // The lend_lease flag (the 1941 act): let through under 50% — and
+      // P5's democracy rule sees the flag too, so nothing refuses.
+      expect(llGate(at(3_400, true), gbr, ID("FRA"))).toBeNull();
+      // Not the United States: no congress line.
+      spy.mockRestore();
+      expect(llGate(at(3_400), gbr, ID("FRA"))?.key).toBe(
+        "ww1936.aid.why.ll_tension",
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("integration waits for the engine's days of high compliance", () => {

@@ -96,6 +96,7 @@ import {
   spiritStatsOf,
   tricksterCutBp,
 } from "./Command";
+import { congressBlockFor, usaIdOf } from "./Congress";
 import { mechStatsOf } from "./ContinuousFocus";
 import { cipherOf, decryptOf } from "./Crypto";
 import {
@@ -574,6 +575,12 @@ export class WwDepth implements LandDepthHooks {
   private depthDirtyStats = new Set<number>();
   private depthDirtyDesigns: [number, DesignKind, number][] = [];
   private depthDirtyGlobal = true;
+  /**
+   * T1b: the congress-allows-lend-lease value the screens last got (a
+   * view memo, not state; null: none sent yet). The US day marks the
+   * global data again when it changes (support or the lend_lease flag).
+   */
+  congressLlSent: boolean | null = null;
   readonly cap: number;
 
   constructor(
@@ -1378,6 +1385,7 @@ export class WwDepth implements LandDepthHooks {
       }
     }
     this.depthDirtyGlobal = true;
+    this.congressLlSent = null;
   }
 
   /** Spec §21.6 order. */
@@ -2093,6 +2101,11 @@ function bopOf(d: WwDepth, id: number): [number, number, number] | undefined {
 }
 
 function globalDataOf(d: WwDepth): Partial<WwDepthData> {
+  // T1b (spec §13.1): whether the US congress lets lend-lease through now
+  // (50% support or the lend_lease flag; true without a United States).
+  const usa = usaIdOf(d);
+  const congressLl = !congressBlockFor(d, usa, usa, "lend_lease");
+  d.congressLlSent = congressLl;
   const armyGroups: WwArmyGroupData[] = d.groups.map((g) => ({
     id: g.id,
     owner: g.owner,
@@ -2162,6 +2175,7 @@ function globalDataOf(d: WwDepth): Partial<WwDepthData> {
     })),
     world,
     congressBp: d.mech.congressBp,
+    congressLl,
     bop: d.mech.bop.map((b) => [b[0], b[1]]),
     treaty: {
       members: [...d.mech.treaty.members],

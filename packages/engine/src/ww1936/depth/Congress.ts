@@ -142,6 +142,10 @@ export function congressDay(
           congressTargetBp(pol.wtBp, m.attackedUntil >= day),
         );
   setCongressBp(d, usaId, next);
+  // T1b: the screens' congress-allows-lend-lease (the flag can change
+  // with no move of support): the global data again when it differs.
+  const ll = !congressBlockFor(d, usaId, usaId, "lend_lease");
+  if (d.congressLlSent !== null && ll !== d.congressLlSent) d.markGlobal();
 }
 
 /** A `congress {pp}` effect on the US: ± percentage points. */

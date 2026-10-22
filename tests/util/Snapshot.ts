@@ -298,6 +298,8 @@ export const DERIVED_FIELDS = new Set<string>([
   "depthDirtyIntel",
   "depthDirtyDesigns",
   "depthDirtyGlobal",
+  // T1b: the congress-allows-lend-lease value the screens last got (a view memo)
+  "congressLlSent",
   "depthHooks",
   // WaterManager: per-query distance scratch, stamped so it is never cleared
   "_waterDistArr",

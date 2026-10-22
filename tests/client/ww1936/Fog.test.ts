@@ -83,6 +83,53 @@ describe("FogModel (spec §8.9)", () => {
     expect(v.visible && v.bars).toBe("exact");
   });
 
+  it("shows volunteers fighting for my side exactly, like a faction ally (T1b)", () => {
+    const g = fogGame({
+      armies: [
+        // Soviet volunteers for me (Germany) and for my ally Italy, far away.
+        army(1, "SUN", FAR, { divisions: 13, volunteerFor: ID("DEU") }),
+        army(2, "SUN", FAR, { divisions: 11, volunteerFor: ID("ITA") }),
+        // Italy itself, my faction: the existing ally rule.
+        army(3, "ITA", FAR, { divisions: 7 }),
+        // British volunteers for my enemy Poland: still fogged (and far).
+        army(4, "GBR", FAR, { divisions: 9, volunteerFor: ID("POL") }),
+        // My own army sent as volunteers to Poland's enemy elsewhere: mine.
+        army(5, "DEU", FAR, { divisions: 5, volunteerFor: ID("ITA") }),
+      ],
+    });
+    // Italy's politics summary: the same faction as mine (the ally rule).
+    const deu = g.pol.summary(ID("DEU"))!;
+    g.pol.apply(
+      {
+        countries: [{ ...deu, smallID: ID("ITA") }],
+        details: [],
+        global: null,
+        regions: [],
+        news: [],
+        cards: [],
+      } as never,
+      700,
+    );
+    const f = newFog(g);
+    const exact = (id: number, n: number) => {
+      const v = f.armyView(id);
+      expect(v.visible).toBe(true);
+      expect(v.visible && [v.countLabel, v.bars, v.composition]).toEqual([
+        String(n),
+        "exact",
+        true,
+      ]);
+    };
+    exact(1, 13);
+    exact(2, 11);
+    exact(3, 7);
+    exact(5, 5);
+    expect(f.armyView(4).visible).toBe(false);
+    // The same Soviet army without the volunteer mark: hidden, as before.
+    const h = fogGame({ armies: [army(1, "SUN", FAR, { divisions: 13 })] });
+    expect(newFog(h).armyView(1).visible).toBe(false);
+  });
+
   it("keeps a ghost 10 days where an army was last seen", () => {
     const g = fogGame({ armies: [polArmy(1, NEAR)] });
     const f = newFog(g);

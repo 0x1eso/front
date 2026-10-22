@@ -3726,6 +3726,7 @@
       "volunteers_sent": "Volunteers I sent",
       "why": {
         "at_war": "You are at war with each other",
+        "congress": "Congress support {need}% needed (now {now}%)",
         "disarmed": "Under arms limitation",
         "ll_conditions": "Lend-lease conditions are not met",
         "ll_limit": "Too many contracts",

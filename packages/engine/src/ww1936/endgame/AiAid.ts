@@ -24,7 +24,6 @@ import type { LendLeaseItem } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { GROUND_EQUIPMENT } from "@openfront/engine-api/ww1936/LandTypes";
 import { IDEO_COM, IDEO_FAS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
-  llBlock,
   llLimitBlock,
   volunteerBlock,
   volunteerCap,
@@ -40,7 +39,7 @@ import {
   contractsOf,
   EVENT_LL,
   LL_REQUESTED,
-  llIn,
+  llOrderBlock,
   markAid,
   pendingRequest,
   removeContract,
@@ -312,7 +311,8 @@ export function aiLendLease(eg: WwEndgame, id: number, day: number): void {
   }
   const major = isMajor(pol, id);
   const cands = aidCandidates(eg, id).filter(
-    (to) => llBlock(llIn(eg, id, to, day)) === null,
+    // P6 (T1b): the US congress first, as for a player's order.
+    (to) => llOrderBlock(eg, id, to, day) === null,
   );
   const plans: { item: EquipmentType; shares: LlShare[] }[] = [];
   for (const item of GROUND_EQUIPMENT) {

@@ -3419,6 +3419,7 @@
       "volunteers_sent": "내가 보낸 의용군",
       "why": {
         "at_war": "서로 전쟁 중입니다",
+        "congress": "의회 지지 {need}% 필요 (지금 {now}%)",
         "disarmed": "군비 제한 중입니다",
         "ll_conditions": "랜드리스 조건이 맞지 않습니다",
         "ll_limit": "계약이 너무 많습니다",

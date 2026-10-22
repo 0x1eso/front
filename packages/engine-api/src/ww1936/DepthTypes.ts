@@ -1085,6 +1085,8 @@ export interface WwDepthData {
   aces?: { id: number; owner: number; deployment: number; callNo: number }[];
   world?: WwDepthWorld;
   congressBp?: number;
+  /** T1b (spec §13.1): the US congress lets lend-lease through now (50% or the lend_lease flag; true without a US). */
+  congressLl?: boolean;
   bop?: [number, number][];
   treaty?: { members: number[]; escalated: boolean; endDay: number };
   factionRules?: [number, number, boolean][];

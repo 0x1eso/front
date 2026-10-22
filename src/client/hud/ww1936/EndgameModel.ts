@@ -5,6 +5,7 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES, type AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -52,6 +53,7 @@ import {
   volunteerCap,
   type VolunteerIn,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { CONGRESS } from "@openfront/engine-lib/ww1936/MechRules";
 import {
   paidCivsAt,
   subjectFlows,
@@ -68,6 +70,7 @@ import type { GameView } from "../../view";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import { equipmentName, genName, menText } from "./EconomyModel";
 import { countryFlagUrl, countryText } from "./EndgameNames";
+import type { FogModel } from "./FogModel";
 import { regionName } from "./LandModel";
 import { fleetName } from "./NavyModel";
 import {
@@ -87,7 +90,8 @@ import {
 } from "./WorldWarModel";
 
 /** What the endgame screens read from the game (a fake in tests). */
-export type EndgameGame = PolGame & Partial<Pick<GameView, "wwNavy" | "wwAir">>;
+export type EndgameGame = PolGame &
+  Partial<Pick<GameView, "wwNavy" | "wwAir" | "wwDepth">>;
 
 function egView(game: EndgameGame): WwEndgameView | null {
   return game.wwEndgame?.() ?? null;
@@ -479,16 +483,26 @@ export function integrateRows(game: EndgameGame, me: number): IntegrateRow[] {
 export function occRegionLine(
   game: EndgameGame,
   region: number,
+  fog?: Pick<FogModel, "bandOf" | "countLabel">,
 ): string | null {
   const o = egView(game)?.occupation.get(region);
   if (o === undefined || !isLiveOcc(game, o)) return null;
+  // P6 (spec §8.9, pre-flight A18): resistance, compliance, the law and
+  // the share are public (HOI4 shows them on any occupied state); the
+  // occupier's garrison is an army number — whole divisions' worth at the
+  // observer's army band on the occupier, its coverage only when exact.
+  const hidden =
+    fog !== undefined && fog.bandOf(o.controller, ID_ARMY) < 3 ? fog : null;
   return translateText("ww1936.occ.region_line", {
     res: pctOf(o.resBp),
     target: pctOf(o.targetBp),
     comp: pctOf(o.compBp),
-    have: deciText(o.supDeci),
+    have:
+      hidden === null
+        ? deciText(o.supDeci)
+        : hidden.countLabel(o.controller, Math.round(o.supDeci / 10), ID_ARMY),
     need: deciText(o.needDeci),
-    pct: coveragePct(o.supDeci, o.needDeci),
+    pct: hidden === null ? coveragePct(o.supDeci, o.needDeci) : "?",
     share: o.factoryPct,
     law: occLawName(lawFor(game, o.controller, legalOwnerOf(game, region)).law),
   });
@@ -895,16 +909,32 @@ function hasRule(
 export interface LlCheckIn extends LlIn {
   tensionPct: number;
   contracts: number;
+  /**
+   * P6 (spec §13.1, T1b): the US congress support, whole percent, when it
+   * holds lend-lease back (under 50% and no `lend_lease` flag); absent or
+   * null when it does not.
+   */
+  congressPct?: number | null;
 }
 
 /**
  * Why a lend-lease contract may not run (spec §13.2), in llBlock's order,
  * with the democracy line's numbers (spec §20.7: "Democratic government:
- * world tension 40% needed (now 31%)"); null when it may.
+ * world tension 40% needed (now 31%)"); null when it may. P6 (T1b): the
+ * US congress first, as the engine's order checks it.
  */
 export function llWhy(i: LlCheckIn): Why | null {
   if (llLimitBlock(i.contracts) !== null) {
     return { key: "ww1936.aid.why.ll_limit", params: {} };
+  }
+  if (i.congressPct !== undefined && i.congressPct !== null) {
+    return {
+      key: "ww1936.aid.why.congress",
+      params: {
+        need: Math.floor(CONGRESS.lendLease / 100),
+        now: i.congressPct,
+      },
+    };
   }
   if (llBlock(i) === null) return null;
   if (i.self || !i.bothActors) {
@@ -965,12 +995,30 @@ export function llInputs(
   const tension = tensionPct(game);
   const democracy = isDemocracy(game, me);
   const aid = myAid(game, me);
+  // P6 (W3's congress, T1b): the engine's own judge for the United States
+  // (50% support or the lend_lease flag: WwDepthView.congressLl); before
+  // it arrives, the support alone.
+  const depth = game.wwDepth?.() ?? null;
+  const usa = game.worldWarScenario()?.tagOfSmallId(me) === "USA";
+  const congressOk =
+    depth === null || !usa
+      ? true
+      : (depth.congressLl ?? depth.congressBp >= CONGRESS.lendLease);
+  const congressPct =
+    congressOk || depth === null ? null : Math.floor(depth.congressBp / 100);
   // The client does not see P3 flags: a contract of mine running under the
-  // democracy's tension mark means the lend-lease flag is set.
+  // democracy's tension mark means the lend-lease flag is set. The US's
+  // shows through its congress: let through under 50% support, it is set.
+  const usFlag =
+    usa &&
+    depth !== null &&
+    depth.congressLl === true &&
+    depth.congressBp < CONGRESS.lendLease;
   const flag =
-    democracy &&
-    tension < WW_LL_TENSION_DEMOCRACY_PCT &&
-    (aid?.contracts ?? []).some((c) => c.blocked === null);
+    usFlag ||
+    (democracy &&
+      tension < WW_LL_TENSION_DEMOCRACY_PCT &&
+      (aid?.contracts ?? []).some((c) => c.blocked === null));
   return {
     self: me === to,
     atWarWithEachOther: enemiesOf(game, me).includes(to),
@@ -981,6 +1029,7 @@ export function llInputs(
     senderLendLeaseFlag: flag,
     senderNoLendLeaseRule: hasRule(game, me, (r) => r === "no_lend_lease"),
     contracts: newContract ? (aid?.contracts.length ?? 0) : 0,
+    congressPct,
   };
 }
 

@@ -412,7 +412,14 @@ export class FogModel {
     const mySide = this.sideOf(me);
     const tick = this.view.ticks?.() ?? 0;
     for (const a of land.armies.values()) {
-      const mine = off || a.owner === me || this.sameSide(me, a.owner);
+      // The ally rule (same faction, or me) — and, T1b, a volunteer army
+      // by whom it fights for: my side's volunteers are my side's, as in
+      // their battles and the aid tab; my own sent abroad stay mine.
+      const mine =
+        off ||
+        a.owner === me ||
+        this.sameSide(me, a.owner) ||
+        (a.volunteerFor !== undefined && this.sameSide(me, a.volunteerFor));
       const band = mine ? 3 : this.bandOf(a.owner, ID_ARMY);
       if (!mine && !this.armyVisible(land, a, mySide)) {
         this.hideArmy(a.id, day);
