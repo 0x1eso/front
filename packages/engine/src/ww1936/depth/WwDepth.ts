@@ -58,6 +58,7 @@ import {
   landCombatShare,
   masteryLevel,
   NAVAL_SHARE_MICRO,
+  startDoctrinePick,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import {
   energyPenaltyPct,
@@ -71,6 +72,7 @@ import { addStatsInto, emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
+import { aiPersonality } from "../economy/AiEconomy";
 import type { LandDepthHooks } from "../land/DepthHooks";
 import type { WorldWar } from "../WorldWar";
 import { dailyIntel, issueIntel } from "./Agency";
@@ -580,6 +582,9 @@ export class WwDepth implements LandDepthHooks {
     const day = this.ww.day(ticks);
     if (day !== this.lastCommonDay) {
       this.lastCommonDay = day;
+      // Pre-flight §0-9: the seeded start choices on day 0's common step
+      // (politics.seed is set by then).
+      if (day === 0) this.startAiDoctrines();
       this.dayCommon(day, ticks);
     }
     // The P1 WwEconomy.tick split.
@@ -592,6 +597,41 @@ export class WwDepth implements LandDepthHooks {
       }
     }
     this.flushStats();
+  }
+
+  /**
+   * Spec §3.5 / §19.2 (review E3): every AI country's grand doctrines and
+   * sub-doctrines, once, on day 0 (DoctrineRules.startDoctrinePick). A
+   * human picks for themselves.
+   */
+  private startAiDoctrines(): void {
+    const content = this.ww.politics.content;
+    const historical = this.mg.config().historicalAi() === true;
+    const econ = this.ww.economy;
+    for (let id = 1; id < this.cap; id++) {
+      const c = this.countries[id];
+      if (c === null || c === undefined) continue;
+      if (isDormant(this, id) || !this.ww.isActor(id)) continue;
+      if (this.ww.isHumanControlled(id)) continue;
+      const tag = this.ww.tagOf(id);
+      const ce = econ.country(id);
+      const navy =
+        ce !== null &&
+        ce.totals.dock >= 3 &&
+        econ.regionsOf(id).some((r) => this.ww.scenario.harborOf(r) !== 0);
+      const pick = startDoctrinePick({
+        table: content.startDoctrines,
+        tag,
+        personality: aiPersonality(tag),
+        historical,
+        navy,
+        seed: this.ww.politics.seed,
+        id,
+      });
+      applyStartDoctrine(c, pick.gd, pick.sub);
+      this.markStats(id);
+      this.depthDirty.add(id);
+    }
   }
 
   dayCommon(day: number, tick: number): void {
@@ -1590,10 +1630,7 @@ function startDepthContent(d: WwDepth): void {
     if (c === null || c === undefined) continue;
     const tag = d.ww.tagOf(id);
     if (isDormant(d, id)) continue;
-    if (!d.ww.isHumanControlled(id)) {
-      const row = content.startDoctrines.find((s) => s.tag === tag);
-      if (row !== undefined) applyStartDoctrine(c, row.gd, row.sub);
-    }
+    // (The AI's doctrines come on day 0: WwDepth.startAiDoctrines.)
     const major = d.ww.economy.country(id)?.major ?? false;
     const rows = content.scientists.filter(
       (s) => s.tag === tag && (s.from === undefined || dayOfDate(s.from) <= 0),

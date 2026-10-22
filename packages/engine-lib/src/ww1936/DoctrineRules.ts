@@ -2,6 +2,8 @@
 // sub-doctrines. Mastery growth, levels, the grand-doctrine table and the
 // sum are the foundation's (plan Task 1 Step 6); lane D fills
 // SUBDOCTRINE_REWARDS from the spec tables (Task 2).
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { StartDoctrineDef } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   DOCTRINE_TRACKS,
   GD_COMPLETE_LEVELS,
@@ -27,6 +29,7 @@ import type {
   WwStatKey,
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { idHash, wwRoll } from "./Roll";
 import { retiredTechEffects } from "./WwTechs";
 
 export function masteryLevel(milli: number): 0 | 1 | 2 | 3 | 4 | 5 {
@@ -310,4 +313,77 @@ export function battalionStatPct(
 /** x × (100 + pct) / 100, rounded down; x itself at 0 (static divisions keep P2's numbers). */
 export function pctOf(x: number, pct: number): number {
   return pct === 0 ? x : Math.floor((x * (100 + Math.max(-90, pct))) / 100);
+}
+
+// ---- Start doctrines (spec §3.5, §19.2; pre-flight §0-9; review E3) ----
+
+/** The AI start pick's roll purpose. */
+export const P_START_DOCTRINE = idHash("start_doctrine");
+/** Chance an AI picks another grand doctrine of the domain than its row's, percent (games differ). */
+export const START_DOCTRINE_DEVIATION_PCT = 25;
+/** Spec §3.5 "그 밖" when the content has no personality row. */
+export const PERSONALITY_START_GD: Readonly<
+  Record<
+    "aggressor" | "democracy" | "minor",
+    readonly [GrandDoctrine, null, GrandDoctrine]
+  >
+> = {
+  aggressor: ["gd_mobile", null, "gd_battlefield_support"],
+  democracy: ["gd_battleplan", null, "gd_battlefield_support"],
+  minor: ["gd_mass", null, "gd_battlefield_support"],
+};
+
+export interface StartDoctrineInput {
+  /** K5's START_DOCTRINES (majors, then the "@aggressor" / "@democracy" / "@minor" rows). */
+  table: readonly StartDoctrineDef[];
+  tag: CountryTag;
+  personality: "aggressor" | "democracy" | "minor";
+  /** The lobby's historical AI: the country's own row; else its personality's. */
+  historical: boolean;
+  /** Coastal with ≥ 3 dockyards: a personality row takes trade interdiction at sea, else none. */
+  navy: boolean;
+  seed: number;
+  id: number;
+  /** Default START_DOCTRINE_DEVIATION_PCT (tests: 0 for the row itself). */
+  deviationPct?: number;
+}
+
+/**
+ * Spec §3.5 / §19.2: an AI country's day-0 doctrines — its row (historical
+ * AI) or its personality's (the naval rule applies), then per domain a
+ * seeded START_DOCTRINE_DEVIATION_PCT chance of another grand doctrine of
+ * that domain (sub-doctrines kept).
+ */
+export function startDoctrinePick(i: StartDoctrineInput): {
+  gd: (GrandDoctrine | null)[];
+  sub: (Subdoctrine | null)[];
+} {
+  const own = i.historical ? i.table.find((r) => r.tag === i.tag) : undefined;
+  const pRow = i.table.find((r) => r.tag === `@${i.personality}`);
+  let gd: (GrandDoctrine | null)[];
+  let sub: (Subdoctrine | null)[];
+  if (own !== undefined) {
+    gd = [...own.gd];
+    sub = [...own.sub];
+  } else {
+    gd = [...(pRow?.gd ?? PERSONALITY_START_GD[i.personality])];
+    sub = [...(pRow?.sub ?? [])];
+    gd[1] = i.navy ? "gd_trade_interdiction" : null;
+  }
+  for (let dom = 0; dom < 3; dom++) {
+    const g = gd[dom];
+    if (g === null) continue;
+    if (
+      wwRoll(i.seed, P_START_DOCTRINE, i.id, dom) % 100 >=
+      (i.deviationPct ?? START_DOCTRINE_DEVIATION_PCT)
+    ) {
+      continue;
+    }
+    const others = GRAND_DOCTRINES.filter(
+      (x, k) => GD_DOMAIN[k] === dom && x !== g,
+    );
+    gd[dom] =
+      others[wwRoll(i.seed, P_START_DOCTRINE, i.id, dom + 3) % others.length];
+  }
+  return { gd, sub };
 }
