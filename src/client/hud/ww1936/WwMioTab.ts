@@ -163,9 +163,7 @@ function renderGrid(
             >
               ${ui.armed(`${switchKey}:${a}`)
                 ? translateText("ww1936.econ.cancel_tap")
-                : translateText("ww1936.mio.change_arch", {
-                    cost: MIO_SWITCH_PP,
-                  })}
+                : `${translateText(mioArchKey(i), { country: ui.name(ui.me) })} (${MIO_SWITCH_PP})`}
             </button>`,
       )}
       <button

@@ -77,7 +77,7 @@ function renderRocket(flow: WwNukeFlow): TemplateResult {
           data-ww-rocket-kind=${ROCKET_KINDS[k]}
           aria-pressed=${String(st.rocket === k)}
           class="${BTN} ${st.rocket === k
-            ? "border-sky-300 bg-sky-800/60"
+            ? "!border-sky-300 !bg-sky-800/60"
             : ""}"
           @click=${() => flow.setRocketKind(k)}
         >
@@ -129,7 +129,7 @@ function renderRaid(flow: WwNukeFlow): TemplateResult {
             data-ww-raid-building=${b}
             aria-pressed=${String(st.building === b)}
             class="${BTN} ${st.building === b
-              ? "border-sky-300 bg-sky-800/60"
+              ? "!border-sky-300 !bg-sky-800/60"
               : ""}"
             @click=${() => flow.setBuilding(b)}
           >
