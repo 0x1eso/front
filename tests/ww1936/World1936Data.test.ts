@@ -1,5 +1,6 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
+  COUNTRIES,
   COUNTRY_TAGS,
   CountryTag,
   isDormantTag,
@@ -16,6 +17,8 @@ import {
   loadTerrainMap,
   TerrainMapData,
 } from "@openfront/engine-lib/game/TerrainMapLoader";
+import { GRAND_COUNCIL_CRISIS } from "@openfront/engine-lib/ww1936/content/events/ita";
+import { WORLD_EVENTS } from "@openfront/engine-lib/ww1936/content/events/world";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
 import path from "path";
@@ -1412,5 +1415,48 @@ describe("the world1936 coal, uranium, hydro, landmarks and dams (P6 spec §16, 
     expect(v5ById.get(nagasaki.id)!.sr).toBe(v5ById.get(800)!.sr);
     // No coal on it (decision 33: no Hashima).
     expect(v5ById.get(nagasaki.id)!.coal).toBe(0);
+  });
+});
+
+describe("the final balance's map-bound content numbers", () => {
+  test("Nationalist Spain surrenders once its mainland points fall (P2's colonial-empire line)", () => {
+    // Its points are Burgos and Spanish Guinea, which the Republic cannot
+    // reach: at 80% the civil war never ended. As France, Belgium and the
+    // Netherlands, the line is 80% of the homeland's share of its points.
+    const s = data.scenario!;
+    const own = s.landRegions.filter((r) => r.owner === "ESN" && r.vp > 0);
+    const total = own.reduce((a, r) => a + r.vp, 0);
+    const burgos = own.find((r) => r.name === "Burgos")!;
+    expect(burgos.vp).toBeGreaterThan(0);
+    expect(COUNTRIES.ESN.surrenderPct).toBe(
+      Math.round((80 * burgos.vp) / total),
+    );
+    expect(COUNTRIES.ESN.surrenderPct * total).toBeLessThan(burgos.vp * 100);
+    // The Republic keeps the default line: all its points are at home.
+    expect(COUNTRIES.ESR.surrenderPct).toBe(80);
+    // The rising brings the Nationalists their levies.
+    const rising = WORLD_EVENTS.find((e) => e.id === "esp_civil_war")!;
+    expect(rising.receivers).toEqual(["ESN"]);
+    expect(rising.options[0].effects).toContainEqual({
+      kind: "manpower",
+      amount: 100_000,
+    });
+  });
+
+  test("losing Italy's African colonies alone does not bring the Grand Council crisis", () => {
+    const s = data.scenario!;
+    const own = s.landRegions.filter((r) => r.owner === "ITA" && r.vp > 0);
+    const total = own.reduce((a, r) => a + r.vp, 0);
+    const africa = own
+      .filter((r) =>
+        ["Tripolitania", "Eritrea", "Italian Somaliland"].includes(r.name),
+      )
+      .reduce((a, r) => a + r.vp, 0);
+    expect(africa).toBeGreaterThan(0);
+    const lost = JSON.stringify(GRAND_COUNCIL_CRISIS).match(
+      /"kind":"lost_vp_ge","pct":(\d+)/,
+    );
+    expect(lost).not.toBeNull();
+    expect(Number(lost![1]) * total).toBeGreaterThan(africa * 100);
   });
 });

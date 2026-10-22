@@ -135,8 +135,10 @@ function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
     );
   let want = AI_PLANTS_QUEUED - queued;
   for (const r of home) {
+    while (want > 0 && queueBuild(econ, ce, r, "power_plant", 1) === null) {
+      want--;
+    }
     if (want <= 0) return;
-    if (queueBuild(econ, ce, r, "power_plant", 1) === null) want--;
   }
 }
 
