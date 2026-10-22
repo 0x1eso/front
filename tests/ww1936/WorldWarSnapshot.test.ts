@@ -428,9 +428,15 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // aces, the AI leaving depth fleets and recon groups alone, plane designs
 // in flight, decryption, admiral traits, the new navy/air stat reads, the
 // fuze and magnetron, the land traits, the occupation and capture reads, a
-// civil war's design stock): same value in three runs.
+// civil war's design stock): same value in three runs (9cccfbb7feefeb2e).
+// Re-pinned after the P6 final balance lane (the perf lane's navy AI
+// cadence merged in; the capped external resistance; Spain's surrender
+// lines and the rising's levies; Italy's crisis threshold; the history
+// beats' declare bar; the energy AI; the failed uprising's resistance;
+// nuclear physics in the AI's research and the US atomic sites): same
+// value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "9cccfbb7feefeb2e";
+const WW1936_DIGEST = "624f334ef94276c9";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
