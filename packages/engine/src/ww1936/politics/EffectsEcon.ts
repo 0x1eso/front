@@ -30,6 +30,8 @@ import {
   templateBlock,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { receiveKey } from "../depth/DesignCopy";
+import type { WwDepth } from "../depth/WwDepth";
 import { usedSlots } from "../economy/Construction";
 import { drawManpower, drawTemplateEquip } from "../economy/Stock";
 import { capitalRegion, newTitledGeneralState } from "../land/LandStartRun";
@@ -372,12 +374,19 @@ export function applyEconEffect(
       const te = econ.country(to);
       if (to === actor || te === null || !pol.living(to)) return;
       // The oldest generation first.
+      // P6 (lane E, spec §26): a design key becomes `to`'s copy of the design.
+      const depth = pol.ww.depth as WwDepth | undefined;
       let left = e.count;
       for (let g = 1; g <= EQUIPMENT_GENS[e.type] && left > 0; g++) {
         const key = equipKey(e.type, g);
         const k = Math.min(left, ce.stock[key]);
+        if (k <= 0) continue;
         ce.stock[key] -= k;
-        te.stock[key] += k;
+        const k2 =
+          depth === undefined
+            ? key
+            : receiveKey(depth, actor, key, to, "received");
+        if (k2 >= 0) te.stock[k2] += k;
         left -= k;
       }
       econ.markCountryDirty(to);

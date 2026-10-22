@@ -13,6 +13,7 @@ import {
   aiDesignsDay,
 } from "@openfront/engine/ww1936/depth/AiDesigns";
 import {
+  designShareType,
   equipResources,
   grantDesign,
   sameDesign,
@@ -341,5 +342,48 @@ describe("World War 1936 P6: the AI's designs", () => {
       lines: input.lines.map(({ as: _a, per: _p, ...l }) => l),
     };
     expect(addsMedium(aiPlan(raw))).toBe(true);
+  });
+
+  it("each design line counts against its own role's share (review)", async () => {
+    const { ww, d } = await game([]);
+    const id = DEEP.tag.GBR;
+    const tank = (base: string, gun: string, turret: string, n = 7) => ({
+      kind: "tank" as const,
+      base: base as "medium_1",
+      modules: [gun, turret, "", "", "", "", ""].slice(0, n) as never[],
+      armorLevel: 0,
+      engineLevel: 0,
+      name: base,
+    });
+    const defs = [
+      tank("light_1", "", "", 6),
+      tank("medium_1", "", ""),
+      tank("heavy_1", "", ""),
+      tank("medium_2", "gun_small", "turret_none"),
+      tank("medium_1", "howitzer", "turret_open"),
+      tank("medium_1", "aa_auto", "turret_open"),
+    ];
+    for (const def of defs) saveDesign(d, id, def, 0, "own", 0, 0, 0);
+    const share = (s: number) =>
+      designShareType(d, id, equipKey("tank_design", s));
+    expect([1, 2, 3, 4, 5, 6].map(share)).toEqual([
+      "light_tank",
+      "medium_tank",
+      "medium_tank",
+      "anti_tank",
+      "artillery",
+      "anti_air",
+    ]);
+    const fighter = {
+      kind: "plane" as const,
+      base: "small_1" as const,
+      modules: ["w_mg4", "w_bombs_s", "", ""] as never[],
+      name: "CAS",
+    };
+    saveDesign(d, id, fighter, 0, "own", 0, 0, 0);
+    expect(designShareType(d, id, equipKey("plane_design", 1))).toBe("cas");
+    expect(designShareType(d, id, equipKey("medium_tank", 1))).toBeNull();
+    expect(designShareType(d, id, equipKey("tank_design", 9))).toBeNull();
+    void ww;
   });
 });

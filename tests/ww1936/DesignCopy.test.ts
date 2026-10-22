@@ -20,7 +20,12 @@ import {
   receiveKey,
 } from "@openfront/engine/ww1936/depth/DesignCopy";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
+import { transferDivisionsTo } from "@openfront/engine/ww1936/land/PoliticsBridge";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  applyEffect,
+  makeCtx,
+} from "@openfront/engine/ww1936/politics/Dispatch";
 import { annexCountry } from "@openfront/engine/ww1936/politics/Territory";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
@@ -329,6 +334,54 @@ describe("World War 1936 P6: design copies", () => {
       expect(t.design[rs]).toBe(2);
       expect(d.designSlot(GBR, "ship", 2)!.def.modules).toEqual(AA_DD.modules);
       expect(ww.navy.shipStatsOf(rs).aa).toBe(aa);
+    });
+
+    it("a civil war's split and a ship transfer carry their designs too", async () => {
+      const { ww, d, div, ship } = await turkey();
+      techs(ww, GBR, ["medium_tank_1"]);
+      expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(1);
+      const land = ww.land;
+      const before = land.baseStatsOf(land.divisions.rowOf(div));
+      // P5's split path (civil war, exile): PoliticsBridge.transferDivisionsTo.
+      expect(transferDivisionsTo(land, [div], GBR)).not.toBeNull();
+      const r = land.divisions.rowOf(div);
+      expect(land.divisions.owner[r]).toBe(GBR);
+      const eq = land.divisions.equipOf(r);
+      expect([eq[GROUND_STATIC_SLOTS], eq[GROUND_STATIC_SLOTS + 1]]).toEqual([
+        0, 40,
+      ]);
+      expect(land.baseStatsOf(r).soft).toBe(before.soft);
+      // P5's ships_transfer path: WwNavy.transferShip.
+      const t = ww.navy.ships;
+      const aa = ww.navy.shipStatsOf(t.rowOf(ship)).aa;
+      ww.navy.transferShip(ship, GBR);
+      const rs = t.rowOf(ship);
+      expect(rs).toBeGreaterThanOrEqual(0);
+      expect(t.owner[rs]).toBe(GBR);
+      expect(t.design[rs]).toBe(1);
+      expect(d.designSlot(GBR, "ship", 1)!.origin).toBe("received");
+      expect(ww.navy.shipStatsOf(rs).aa).toBe(aa);
+    });
+
+    it("send_equipment hands over a design as the receiver's copy (review)", async () => {
+      const { runner, ww, d } = await turkey();
+      techs(ww, GBR, ["medium_tank_1"]);
+      expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(1);
+      const key = (s: number) => equipKey("tank_design", s);
+      const tur = ww.economy.country(TUR)!;
+      const gbr = ww.economy.country(GBR)!;
+      const had = tur.stock[key(1)];
+      applyEffect(makeCtx(ww.politics, TUR, TUR, TUR, runner.game.ticks()), {
+        kind: "send_equipment",
+        to: { tag: "GBR" },
+        type: "tank_design",
+        count: 6,
+      });
+      expect(tur.stock[key(1)]).toBe(had - 6);
+      // Britain's slot 1 is its own medium: Turkey's heavy lands in slot 2.
+      expect(gbr.stock[key(1)]).toBe(0);
+      expect(gbr.stock[key(2)]).toBe(6);
+      expect(d.designSlot(GBR, "tank", 2)!.def.base).toBe("heavy_1");
     });
 
     it("with Britain's slots full the units fall back to the nearest static equipment", async () => {

@@ -488,9 +488,12 @@ function statsOf(d: WwDepth, id: number): Partial<Record<WwStatKey, number>> {
 
 /**
  * P1's AI shares (review E4): the static type a design key counts as — a
- * light-chassis tank: light tanks, any other tank design: medium tanks
- * (as light lines count as medium once mediums exist), a plane design:
- * the P4 type it flies as; null for a static key or an empty slot.
+ * light-chassis tank: light tanks, any other tank (heavy ones too):
+ * medium tanks (as light lines count as medium once mediums exist); a
+ * tank destroyer, self-propelled gun or anti-air its role's own share
+ * (anti-tank, artillery, anti-air: the static equipment it stands for,
+ * spec §5.6's nearest static); a plane design: the P4 type it flies as;
+ * null for a static key or an empty slot.
  */
 export function designShareType(
   d: WwDepth,
@@ -505,10 +508,18 @@ export function designShareType(
       ? (t as AirType)
       : "fighter";
   }
-  return TANK_BASE_DEFS[def.base]?.weight === "light" &&
-    tankRole(def) === "tank"
-    ? "light_tank"
-    : "medium_tank";
+  switch (tankRole(def)) {
+    case "tank_destroyer":
+      return "anti_tank";
+    case "sp_artillery":
+      return "artillery";
+    case "sp_anti_air":
+      return "anti_air";
+    default:
+      return TANK_BASE_DEFS[def.base]?.weight === "light"
+        ? "light_tank"
+        : "medium_tank";
+  }
 }
 
 /** Resources per factory (RESOURCE_IDS order) of an EQUIP_KEYS index: a design's, else P1's table. */
