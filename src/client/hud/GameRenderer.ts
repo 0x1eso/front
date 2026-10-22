@@ -62,6 +62,7 @@ import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { seaAirFacts } from "./ww1936/NavyModel";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
+import { WwDesigner } from "./ww1936/WwDesigner";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
 import { WwArmyPanel } from "./ww1936/WwArmyPanel";
@@ -445,6 +446,13 @@ export function createRenderer(
   } else {
     console.error("ww air panel not found");
   }
+  const wwDesigner = document.querySelector("ww-designer");
+  if (wwDesigner instanceof WwDesigner) {
+    wwDesigner.game = game;
+    wwDesigner.eventBus = eventBus;
+  } else {
+    console.error("ww designer not found");
+  }
   const wwFleetCard = document.querySelector("ww-fleet-card");
   if (wwFleetCard instanceof WwFleetCard) {
     wwFleetCard.game = game;
@@ -650,6 +658,7 @@ export function createRenderer(
     ...(wwBattleCard instanceof WwBattleCard ? [wwBattleCard] : []),
     ...(wwNavyPanel instanceof WwNavyPanel ? [wwNavyPanel] : []),
     ...(wwAirPanel instanceof WwAirPanel ? [wwAirPanel] : []),
+    ...(wwDesigner instanceof WwDesigner ? [wwDesigner] : []),
     ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
