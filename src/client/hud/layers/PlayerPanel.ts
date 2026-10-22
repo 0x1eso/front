@@ -1155,6 +1155,8 @@ export class PlayerPanel extends LitElement implements Controller {
       i,
       other.smallID(),
       this.actions?.interaction?.canDeclareWar,
+      // Spec §8.9 (final review C I4): the info line at my civil band.
+      fogModelOf(this.g),
     );
     // Spec §16.4: one improvement per country per 180 days.
     const improvedOn = this.wwImproved.get(other.smallID());

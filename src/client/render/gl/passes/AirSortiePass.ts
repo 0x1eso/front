@@ -33,7 +33,7 @@ import {
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { carpetBombPoints } from "@openfront/engine-lib/warfare/Warfare";
 import { assetUrl } from "@openfront/shared/AssetUrls";
-import { fogOfAir } from "../../../hud/ww1936/FogModel";
+import { fogOfAir, fogOfNavy } from "../../../hud/ww1936/FogModel";
 import type { WwAirView } from "../../../view/WwAirView";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import {
@@ -418,7 +418,7 @@ export class AirSortiePass {
       const zone = air.zones.get(d.sr)!;
       const s = sc.sr(d.sr);
       if (s === undefined) continue;
-      const base = this.baseOf(air, navy, d);
+      const base = this.baseOf(air, navy, d, me);
       if (base === null) continue;
       // P6 (spec §8.9): another owner's planes through the air band.
       const seen =
@@ -494,11 +494,17 @@ export class AirSortiePass {
     return mine > 0 ? (flown * planes) / mine : 0;
   }
 
-  /** Where `d` takes off: its base region's center, or its carrier's fleet. */
+  /**
+   * Where `d` takes off: its base region's center, or its carrier's fleet.
+   * P6 (spec §8.9, final review C I5): another owner's carrier launches
+   * only from a fleet the fog shows — a hidden fleet's place never reaches
+   * the GPU (null: the deployment flies nothing).
+   */
   private baseOf(
     air: WwAirView,
     navy: WwNavyView | null,
     d: AirDeploySummary,
+    me: number,
   ): TilePoint | null {
     const sc = air.scenario;
     const W = sc.width;
@@ -516,6 +522,12 @@ export class AirSortiePass {
       let has = false;
       for (const s of f.ships) if (s.id === ship) has = true;
       if (!has) continue;
+      if (
+        d.owner !== me &&
+        fogOfNavy(navy)?.fleetView(f.id).visible === false
+      ) {
+        return null;
+      }
       const [x, y] = navy.fleetXY(f.id, 0, 0);
       p.x = ((x % W) + W) % W;
       p.y = y;

@@ -614,7 +614,9 @@ export class WwFleetCard extends LitElement implements Controller {
             ${translateText("ww1936.navy.hint_pick_zone")}</span
           >`;
         }
-        const p = missionPreview(c.ctx, f, d.mission, d.pending);
+        // P6 (final review C I6): the odds only at the exact navy band.
+        const fog = fogModelOf(this.game);
+        const p = missionPreview(c.ctx, f, d.mission, d.pending, fog);
         return html`<span
           data-ww-preview="mission"
           class="${compact
@@ -637,12 +639,16 @@ export class WwFleetCard extends LitElement implements Controller {
           <span data-ww-preview-enemy
             >${translateText("ww1936.navy.preview_enemy", {
               // P6 (plan decision 19): the enemy's power through the fog.
-              n: fogModelOf(this.game).previewEnemyValue(
-                Math.round(p.enemyPower / 100),
-                0,
-              ),
+              n: fog.previewEnemyValue(Math.round(p.enemyPower / 100), 0),
             })}</span
           >
+          ${p.oddsHidden
+            ? html`<span data-ww-preview-odds="?"
+                >${translateText("ww1936.navy.preview_odds", {
+                  ratio: "?",
+                })}</span
+              >`
+            : nothing}
           ${p.ratioPm === null
             ? nothing
             : html`<span

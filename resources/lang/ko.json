@@ -4255,6 +4255,7 @@
         "request": "가입 요청"
       },
       "info": "{ideology} 정부 · {leader} · 안정도 {stab}% · 전쟁지지도 {ws}%",
+      "info_basic": "{ideology} 정부 · {leader}",
       "relations": "관계 {n, number, ::sign-always}",
       "surrender": "항복 기준 {pct}% (잃은 승점 {lost}%)",
       "tab": {

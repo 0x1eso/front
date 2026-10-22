@@ -7,6 +7,7 @@
 // invasionCapacity, invasionPrepDays, divisionConvoys.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { ID_NAVY } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   type WwOrderBlock,
   type WwTechId,
@@ -65,6 +66,7 @@ import type { WwAirView } from "../../view/WwAirView";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { sideKeyOf, type WwNavyView } from "../../view/WwNavyView";
+import type { FogModel } from "./FogModel";
 import { armyLift, LandSides, landSidesOf, regionName } from "./LandModel";
 import {
   convoysNeed,
@@ -610,8 +612,14 @@ export interface MissionPreview {
   supPm: number;
   /** fleetPower of the enemy fleets my side spotted there. */
   enemyPower: number;
-  /** predictNaval's ratio against them (‰, ≥ 1000: we hit harder); null: none known. */
+  /** predictNaval's ratio against them (‰, ≥ 1000: we hit harder); null: none known, or hidden. */
   ratioPm: number | null;
+  /**
+   * P6 (spec §8.9, final review C I6): enemies are known but the odds are
+   * hidden — some known enemy's navy intel is below the exact band (their
+   * ships' true counts would leak through the ratio).
+   */
+  oddsHidden: boolean;
   km: number | null;
   days: number;
   fuelPerDayMilli: number;
@@ -623,12 +631,15 @@ export function missionPreview(
   f: FleetSummary,
   mission: FleetMission,
   sr: number,
+  fog?: Pick<FogModel, "bandOf">,
 ): MissionPreview {
   const n = fleetNumbers(ctx, f);
   const t = missionTargets(ctx, f, mission).find((x) => x.sr === sr);
   const km = t?.km ?? null;
   const enemies = knownEnemies(ctx, sr);
-  const theirs = sideShips(ctx, enemies);
+  const oddsHidden =
+    fog !== undefined && enemies.some((e) => fog.bandOf(e.owner, ID_NAVY) < 3);
+  const theirs = oddsHidden ? [] : sideShips(ctx, enemies);
   const ratio =
     theirs.length === 0
       ? null
@@ -645,6 +656,7 @@ export function missionPreview(
     supPm: ctx.navy.mySupremacy(sr),
     enemyPower: enemies.reduce((s, e) => s + fleetNumbers(ctx, e).power, 0),
     ratioPm: ratio,
+    oddsHidden,
     km,
     days: km === null ? 0 : daysFor(km, n.speedCentiKn),
     fuelPerDayMilli: n.fuelPerDayMilli,

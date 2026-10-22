@@ -4562,6 +4562,7 @@
         "request": "Ask to join"
       },
       "info": "{ideology} government · {leader} · stability {stab}% · war support {ws}%",
+      "info_basic": "{ideology} government · {leader}",
       "relations": "Relations {n, number, ::sign-always}",
       "surrender": "Surrender threshold {pct}% (lost victory points {lost}%)",
       "tab": {
