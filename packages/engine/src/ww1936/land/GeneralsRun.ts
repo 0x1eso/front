@@ -82,7 +82,8 @@ export function assignGeneral(
   let g: GeneralState | undefined;
   if (general !== 0) {
     g = cl.generals.find((x) => x.id === general);
-    if (g === undefined || !canServe(land, g, land.day())) {
+    // P6 (spec §4.3, lane D): a field marshal leads an army group, never an army.
+    if (g === undefined || g.fm || !canServe(land, g, land.day())) {
       return "general_unavailable";
     }
   }
@@ -261,8 +262,8 @@ export function dailyGenerals(
   // (The country's day marks it for the screens: WwLand.dailyCountry.)
 }
 
-/** Spec §6.2: a level at 100 × level experience, +1 to the most used skill below 5. */
-function levelUp(g: GeneralState): void {
+/** Spec §6.2: a level at 100 × level experience, +1 to the most used skill below 5 (P6: a field marshal's too). */
+export function levelUp(g: GeneralState): void {
   if (g.level >= GENERAL_LEVEL_MAX || g.xp < 100 * GENERAL_XP_CENTI * g.level) {
     return;
   }

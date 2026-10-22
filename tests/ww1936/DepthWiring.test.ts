@@ -32,12 +32,15 @@ describe("World War 1936 P6: wiring", () => {
     const d = ww.depth;
     const ce = ww.economy.country(DEEP.tag.DEU)!;
     const before = { ...ce.stats };
-    // A grand doctrine picked: D's doctrineStatsOf is a stub, so nothing
-    // moves yet (lane D's tests take over once it fills it).
+    // A grand doctrine picked (lane D): mobile warfare's base effect, every
+    // division's speed +10% (the retired mobile_1's), and nothing else.
     d.country(DEEP.tag.DEU)!.doc.gd[0] = 0;
     d.markStats(DEEP.tag.DEU);
     step(runner);
-    expect({ ...ce.stats }).toEqual(before);
+    expect({ ...ce.stats }).toEqual({
+      ...before,
+      speedPct: before.speedPct + 10,
+    });
     // The foundation's own line: the proximity fuze's artillery +5%.
     d.country(DEEP.tag.DEU)!.proj.done |=
       1 << SPECIAL_PROJECTS.indexOf("sp_proximity_fuze");

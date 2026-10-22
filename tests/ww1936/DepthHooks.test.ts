@@ -37,6 +37,7 @@ import {
 } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { designInUse } from "@openfront/engine/ww1936/depth/Designs";
+import { dailyDoctrine } from "@openfront/engine/ww1936/depth/Doctrine";
 import { setEmbargo } from "@openfront/engine/ww1936/depth/Embargo";
 import { NEUTRAL_ARMY_MODS } from "@openfront/engine/ww1936/depth/WwDepth";
 import { slotBuildings } from "@openfront/engine/ww1936/economy/Construction";
@@ -339,6 +340,10 @@ describe("P6: the screens' detail numbers come from the rules (review E6)", () =
     });
     ce.stock[equipKey("tank_design", 1)] = 5;
     d.dayTally[id * 9] = 2_000_000;
+    // Lane D: the detail shows the gain the country's last depth day applied
+    // (a land grand doctrine picked: without one only the base counts).
+    c.doc.gd[0] = 0;
+    dailyDoctrine(d, id, ww.day(runner.game.ticks()));
     d.markCountry(id);
     const data = d.takeData()!;
     const det = data.details!.find((x) => x.smallID === id)!;

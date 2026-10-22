@@ -3,7 +3,11 @@
 // and to dead countries.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { WwOrderSchema } from "@openfront/engine-api/Schemas";
-import { DEPTH_ORDER_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  DEPTH_ORDER_KINDS,
+  GRAND_DOCTRINES,
+  SUBDOCTRINES,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
@@ -13,6 +17,27 @@ import { gameHash, order, step, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
+
+/**
+ * Lane D's answers to its samples (kinds 0–13; Germany in the preparation
+ * minute: no doctrine yet, no experience, no command power, no group).
+ */
+const D_ANSWER: Readonly<Record<string, string | null>> = {
+  doctrine_pick: null,
+  subdoctrine_pick: null,
+  army_spirit_pick: "no_xp",
+  trait_assign: "trait_unavailable",
+  promote_fm: "no_cp",
+  ag_create: "general_unavailable",
+  ag_add: "bad_index",
+  ag_remove: "bad_index",
+  ag_disband: "bad_index",
+  ag_front: "bad_index",
+  ag_execute: "bad_index",
+  ag_auto: "bad_index",
+  medal_award: "no_cp",
+  army_priority: null,
+};
 
 /**
  * Lane W3 (plan Task 9): Germany's answers on day 0 — continuous focuses
@@ -27,33 +52,29 @@ const W3_ANSWER: readonly (string | null)[] = [
   "bad_index",
 ];
 
-/** The stub's refusal of each lane (plan Task 1 Step 11). */
+/** The stub's refusal of each lane (plan Task 1 Step 11); lane D's own answers. */
 const LANE_BLOCK = (k: number): string | null =>
-  k <= 1
-    ? "doctrine_locked"
-    : k <= 4 || k === 12 || k === 13
-      ? "no_cp"
-      : k <= 11
-        ? "group_full"
-        : k <= 19
-          ? "design_slots_full"
-          : k <= 22
-            ? "bad_index"
-            : k <= 25
-              ? "no_partner"
-              : k <= 28
-                ? "listing_bad"
-                : k <= 30
-                  ? "no_pp"
-                  : k <= 39
-                    ? "no_agency"
-                    : k <= 46
-                      ? "project_locked"
-                      : k <= 51
-                        ? W3_ANSWER[k - 47]
-                        : k <= 55
-                          ? "railgun_limit"
-                          : "bad_index";
+  k <= 13
+    ? D_ANSWER[DEPTH_ORDER_KINDS[k]]
+    : k <= 19
+      ? "design_slots_full"
+      : k <= 22
+        ? "bad_index"
+        : k <= 25
+          ? "no_partner"
+          : k <= 28
+            ? "listing_bad"
+            : k <= 30
+              ? "no_pp"
+              : k <= 39
+                ? "no_agency"
+                : k <= 46
+                  ? "project_locked"
+                  : k <= 51
+                    ? W3_ANSWER[k - 47]
+                    : k <= 55
+                      ? "railgun_limit"
+                      : "bad_index";
 
 describe("World War 1936 P6: the depth orders", () => {
   it("every kind is valid on the wire and goes to its lane", async () => {
@@ -77,6 +98,13 @@ describe("World War 1936 P6: the depth orders", () => {
     const pending = (ww.depth as unknown as { depthDirtyStats: Set<number> })
       .depthDirtyStats;
     ww.depth.markStats(DEEP.tag.GBR);
+    // Lane D: the samples would be taken by a Germany without doctrines
+    // (the first picks are free) — it holds them already, and army 1's
+    // priority is the sample's.
+    const doc = ww.depth.country(DEEP.tag.DEU)!.doc;
+    doc.gd[0] = GRAND_DOCTRINES.indexOf("gd_mobile");
+    doc.sub[0] = SUBDOCTRINES.indexOf("inf_elastic");
+    ww.land.armies.get(1)!.priority = 2;
     const before = gameHash(runner);
     const snap = JSON.stringify(ww.depth.snapshot());
     // The refused ones (W3's faction rule and goal are Germany's to take).
