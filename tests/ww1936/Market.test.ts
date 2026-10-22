@@ -4,8 +4,11 @@
 // the generation discount; what never goes on the market; embargoes that
 // close trade, licences and deals. Numbers on human countries (plan
 // decision 30), the common day called directly.
-import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { MARKET_DAYS } from "@openfront/engine-api/ww1936/DepthTypes";
+import { WwOrder, WwOrderSchema } from "@openfront/engine-api/Schemas";
+import {
+  MARKET_DAYS,
+  WW_MARKET_MAX_COUNT,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -476,5 +479,26 @@ describe("World War 1936 P6: the arms market", () => {
     expect(gameHash(runner)).toBe(before);
     expect(JSON.stringify(d.snapshot())).toBe(snap);
     expect([...ww.economy.country(DEU)!.stock]).toEqual(stock);
+  });
+
+  it("a listing never holds more than one order's cap, so buying all of it fits the schema (final review D2)", async () => {
+    const { ww, d, tick } = await deep();
+    const deu = ww.economy.country(DEU)!;
+    deu.stock[INF1] = 1_500_000;
+    const list = (count: number) =>
+      d.issue(DEU, { kind: "market_list", key: INF1, count }, tick);
+    expect(list(WW_MARKET_MAX_COUNT - 10)).toBeNull();
+    expect(list(10)).toBeNull();
+    // Full: one more unit is refused and stays in the stock.
+    expect(list(1)).toBe("listing_bad");
+    expect(deu.stock[INF1]).toBe(500_000);
+    const l = d.market.listings.find((x) => x.seller === DEU)!;
+    expect(l.count).toBe(WW_MARKET_MAX_COUNT);
+    // The whole listing is one valid order; one more is not.
+    const buy = (count: number) =>
+      WwOrderSchema.safeParse({ kind: "market_buy", listing: l.id, count })
+        .success;
+    expect(buy(l.count)).toBe(true);
+    expect(buy(l.count + 1)).toBe(false);
   });
 });

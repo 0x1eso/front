@@ -72,6 +72,7 @@ import {
   SPECIAL_PROJECTS,
   SUBDOCTRINES,
   WW_GROUP_ARMIES,
+  WW_MARKET_MAX_COUNT,
   WW_MAX_RAILGUNS,
   WW_SHIP_DESIGN_SLOTS,
 } from "./ww1936/DepthTypes";
@@ -1329,13 +1330,13 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("market_list"),
     key: zb.uint({ max: 4095 }),
-    count: zb.uint({ min: 1, max: 1_000_000 }),
+    count: zb.uint({ min: 1, max: WW_MARKET_MAX_COUNT }),
   }),
   z.object({ kind: z.literal("market_unlist"), listing: WwId }),
   z.object({
     kind: z.literal("market_buy"),
     listing: WwId,
-    count: zb.uint({ min: 1, max: 1_000_000 }),
+    count: zb.uint({ min: 1, max: WW_MARKET_MAX_COUNT }),
   }),
   z.object({ kind: z.literal("embargo"), target: WwCountry }),
   z.object({ kind: z.literal("embargo_lift"), target: WwCountry }),

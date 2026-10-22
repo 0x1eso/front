@@ -526,6 +526,12 @@ export const MIO_INVEST_MILLI = 600_000;
 export const MIO_INVEST_COOLDOWN_DAYS = 180;
 export const WW_MAX_LICENCES = 8;
 export const WW_MAX_LISTINGS = 6;
+/**
+ * The most units one market_list or market_buy order carries (the order
+ * schemas' cap); final review D2: a listing never holds more, so a buy of
+ * the whole listing always fits the schema.
+ */
+export const WW_MARKET_MAX_COUNT = 1_000_000;
 export const MARKET_DAYS = 30;
 export const EMBARGO_PP = 25;
 export const LICENCE_CARD_TICKS = 200; // 20 s at 10 ticks a second
