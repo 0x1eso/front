@@ -14,6 +14,7 @@ import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { bombDamageMilli } from "@openfront/engine-lib/ww1936/AirRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { nightMods } from "../depth/AirExtras";
+import type { WwDepth } from "../depth/WwDepth";
 import {
   damageBuilding,
   damageOf,
@@ -38,8 +39,11 @@ export function bombableRegions(air: WwAir, sr: number): number[] {
   const sc = air.ww.scenario;
   const s = sc.sr(sr);
   if (s === undefined || s.kind !== "land") return [];
-  const d = air.ww.depth;
-  return s.members.filter((r) => !isNoStrike(sc, r) && !d.noStrike(r));
+  // (A bare P4 caller may hold no depth layer: the engine-lib names then.)
+  const d = air.ww.depth as WwDepth | undefined;
+  return s.members.filter(
+    (r) => !isNoStrike(sc, r) && !(d?.noStrike(r) ?? false),
+  );
 }
 
 /**
