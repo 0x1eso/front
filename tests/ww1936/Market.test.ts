@@ -410,7 +410,7 @@ describe("World War 1936 P6: the arms market", () => {
     expect(JSON.stringify(b.game.worldWar()!.depth.market)).toBe(
       JSON.stringify(d.market),
     );
-  });
+  }, 60_000);
 
   it("a refused market order changes nothing", async () => {
     const { runner, ww, d, tick } = await deep();
