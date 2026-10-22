@@ -15,6 +15,7 @@ import { DIAL_GLOW_CLASS } from "../../../src/client/hud/domestic/Dial";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import {
+  dialBlockPx,
   WW_DIAL_BLOCK_PX,
   WW_DIAL_COLS,
   WW_DIAL_HOLD_MS,
@@ -354,7 +355,7 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
     return { ...g, el, bus, dial, controller };
   }
 
-  it("eight dials, two columns of four rows, inside a landscape phone", async () => {
+  it("the dials fit a landscape phone (three columns of four rows once the depth dials show)", async () => {
     vi.stubGlobal("innerWidth", 844);
     vi.stubGlobal("innerHeight", 390);
     const m = await mountSea({
@@ -362,9 +363,9 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
       landDetails: [],
     });
     const grid = m.el.querySelector<HTMLElement>("[data-ww-dials]")!;
-    expect(grid.dataset.cols).toBe(String(WW_DIAL_COLS));
-    expect(grid.className).toContain("grid-cols-2");
-    expect(grid.className).toContain("gap-2");
+    expect(grid.dataset.cols).toBe("3");
+    expect(grid.className).toContain("grid-cols-3");
+    expect(grid.className).toContain("gap-1.5");
     const ids = [...grid.querySelectorAll("[data-ww-dial]")].map(
       (b) => (b as HTMLElement).dataset.wwDial,
     );
@@ -378,13 +379,13 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
       "navy",
       "air",
     ]);
-    expect(WW_DIAL_COLS * WW_DIAL_ROWS).toBe(ids.length);
+    expect(WW_DIAL_COLS * WW_DIAL_ROWS).toBe(10);
     for (const b of grid.querySelectorAll("[data-ww-dial]")) {
       expect(b.className).toContain("size-11");
     }
-    // 4 × 44 + 3 × 8 + padding = 208 px: under the band, inside 390 px.
-    expect(WW_DIAL_BLOCK_PX).toBe(4 * 44 + 3 * 8 + 8);
-    expect(WW_DIAL_BLOCK_PX + 32).toBeLessThan(390);
+    // 5 × 44 + 4 × 6 + padding = 252 px on a tablet; 4 rows (202 px) on a phone.
+    expect(WW_DIAL_BLOCK_PX).toBe(5 * 44 + 4 * 6 + 8);
+    expect(dialBlockPx(true) + 32).toBeLessThan(390);
   });
 
   it("⚓: the first naval line's ring, fleets in battle in red; a tap opens the drawer", async () => {

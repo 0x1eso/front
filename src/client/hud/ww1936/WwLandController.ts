@@ -3,6 +3,7 @@
 // next one); with an army chosen, a tap on a region is an order's first
 // tap (its preview shows on the army card) and a second tap on the same
 // region gives it; a tap anywhere else cancels. Drags move the map.
+import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
   EventBus,
   EventConstructor,
@@ -12,6 +13,7 @@ import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import {
   ContextMenuEvent,
+  DragEvent,
   MouseDownEvent,
   MouseUpEvent,
   TouchEvent,
@@ -24,7 +26,9 @@ import {
   layoutTokens,
 } from "../../view/LandTokenLayout";
 import type { WwLandView } from "../../view/WwLandView";
+import { WwMultiSelectEvent } from "./DepthEvents";
 import {
+  borderRegions,
   LandSides,
   landSidesOf,
   orderBlock,
@@ -40,6 +44,11 @@ import {
   WwLandSelection,
   WwSelectArmyEvent,
 } from "./LandSelection";
+import {
+  armyGroupColorsOf,
+  MULTI_PRESS_MS,
+  multiSelectOf,
+} from "./MultiSelect";
 import { peaceMapTap } from "./PeaceModel";
 import { today, TWO_TAP_MIN_MS, wwActive } from "./WorldWarModel";
 import type { WwSeaAirController } from "./WwSeaAirController";
@@ -134,6 +143,10 @@ export class WwLandController implements Controller {
   /** When the pending region got its first tap (a double tap must not confirm). */
   private pendingAt = 0;
   private unregisterBack: (() => void) | null = null;
+  private unregisterMultiBack: (() => void) | null = null;
+  /** P6 (spec §20.4): the 500 ms press on one of my tokens, and the tap that ends it. */
+  private pressTimer: ReturnType<typeof setTimeout> | null = null;
+  private pressed = false;
 
   constructor(
     private readonly game: GameView,
@@ -160,15 +173,158 @@ export class WwLandController implements Controller {
   }
 
   init() {
-    this.eventBus.on(MouseDownEvent, (e) => (this.down = { x: e.x, y: e.y }));
+    this.eventBus.on(MouseDownEvent, (e) => {
+      this.down = { x: e.x, y: e.y };
+      this.pressStart(e.x, e.y);
+    });
+    // A map drag is no press.
+    this.eventBus.on(DragEvent, () => this.pressStop());
     this.eventBus.on(MouseUpEvent, (e) => this.tap(e.x, e.y));
     this.eventBus.on(TouchEvent, (e) => this.tap(e.x, e.y));
     this.eventBus.on(WwSelectArmyEvent, (e) => this.select(e.army));
     this.eventBus.on(WwLandModeEvent, (e) => this.setMode(e.mode));
   }
 
+  getTickIntervalMs() {
+    return 250;
+  }
+
+  /** The army group colours the token pass draws (synced when the depth view changes). */
+  tick() {
+    const view = this.game.wwLand?.() ?? null;
+    const depth = this.game.wwDepth?.() ?? null;
+    if (view !== null && depth !== null) armyGroupColorsOf(view).sync(depth);
+  }
+
+  private get multi() {
+    return multiSelectOf(this.selection);
+  }
+
+  private pressStart(x: number, y: number): void {
+    this.pressStop();
+    this.pressed = false;
+    if (this.myId() === null) return;
+    this.pressTimer = setTimeout(() => {
+      this.pressTimer = null;
+      const view = this.game.wwLand?.() ?? null;
+      const me = this.myId();
+      if (view === null || me === null) return;
+      const zoom = Math.max(1e-6, this.transform.scale);
+      const w = this.transform.screenToWorldCoordinatesFloat(x, y);
+      const mine = this.deps
+        .layout(view, this.game.ticks(), zoom)
+        .filter((p) => view.armies.get(p.army)?.owner === me);
+      const hit = this.deps.hit(mine, w.x, w.y, TAP_RADIUS_PX / zoom, null);
+      // A hold during multi-select keeps the selection.
+      if (hit === null || this.multi.active) return;
+      // The release that follows is not a tap.
+      this.pressed = true;
+      this.startMulti(hit);
+    }, MULTI_PRESS_MS);
+  }
+
+  private pressStop(): void {
+    if (this.pressTimer !== null) clearTimeout(this.pressTimer);
+    this.pressTimer = null;
+  }
+
+  /** Starts the multi-select mode with `army`; the army card steps aside. */
+  startMulti(army: number): void {
+    this.select(null);
+    this.multi.start(army);
+    this.unregisterMultiBack?.();
+    this.unregisterMultiBack = registerBackClosable(() => {
+      if (!this.multi.active) return false;
+      this.endMulti();
+      return true;
+    });
+    this.eventBus.emit(new WwMultiSelectEvent([...this.multi.armies]));
+    this.changed();
+  }
+
+  endMulti(): void {
+    this.multi.cancel();
+    this.unregisterMultiBack?.();
+    this.unregisterMultiBack = null;
+    this.eventBus.emit(new WwMultiSelectEvent([]));
+    this.changed();
+  }
+
+  /** A tap while choosing several: a token toggles, a front flow's region picks; true (the tap is ours). */
+  private multiTap(
+    view: WwLandView,
+    me: number,
+    w: { x: number; y: number },
+    zoom: number,
+  ): boolean {
+    const m = this.multi;
+    const mine = this.deps
+      .layout(view, this.game.ticks(), zoom)
+      .filter((p) => view.armies.get(p.army)?.owner === me);
+    const hit = this.deps.hit(mine, w.x, w.y, TAP_RADIUS_PX / zoom, null);
+    if (m.frontGroup === null || hit !== null) {
+      if (hit !== null && m.toggle(hit)) {
+        this.eventBus.emit(new WwMultiSelectEvent([...m.armies]));
+        if (!m.active) this.endMulti();
+      }
+      this.changed();
+      return true;
+    }
+    // The group's front: a border region, then the same region again.
+    const region = this.regionAt(view, w.x, w.y);
+    const sides = this.sides();
+    if (!borderRegions(view, me, sides).includes(region)) {
+      // Elsewhere: a front flow begun from the group tab ends; the bar's stays.
+      if (m.active) {
+        m.pending = null;
+        m.version++;
+      } else m.cancel();
+      this.changed();
+      return true;
+    }
+    const now = this.deps.now();
+    if (m.pending !== region) {
+      m.pending = region;
+      this.pendingAt = now;
+      m.version++;
+      this.changed();
+      return true;
+    }
+    if (now - this.pendingAt < TWO_TAP_MIN_MS) return true;
+    const divisions = (
+      this.game
+        .wwDepth?.()
+        ?.armyGroups()
+        .find((g) => g.id === m.frontGroup)?.armies ?? []
+    ).reduce((n, a) => n + (view.armies.get(a)?.divisions ?? 0), 0);
+    const regions = groupFront(view, me, sides, region, divisions);
+    if (regions.length > 0) {
+      this.eventBus.emit(
+        new SendWwOrderIntentEvent({
+          kind: "ag_front",
+          group: m.frontGroup,
+          frontRegions: regions,
+          enemy: 0,
+        }),
+      );
+    }
+    m.frontGroup = null;
+    m.pending = null;
+    m.version++;
+    this.changed();
+    return true;
+  }
+
   /** A short tap on the map at screen (x, y); true when the land flow took it. */
   tap(x: number, y: number): boolean {
+    this.pressStop();
+    if (this.pressed) {
+      // The release of a long press: it started the mode, it is no tap.
+      this.pressed = false;
+      this.down = null;
+      taken.set(this.game, { x, y, at: Date.now() });
+      return true;
+    }
     const down = this.down;
     this.down = null;
     // Defence in depth: InputHandler sends only taps, but a press that
@@ -205,6 +361,9 @@ export class WwLandController implements Controller {
     // P5 (lane U1, spec §20.2): the conference map mode takes every tap first.
     if (peaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     const radius = TAP_RADIUS_PX / zoom;
+    if (this.multi.active || this.multi.frontGroup !== null) {
+      return this.multiTap(view, me, w, zoom);
+    }
     // 1. One of my tokens: choose it (over a stack, the one after the chosen).
     const mine = this.deps
       .layout(view, this.game.ticks(), zoom)
@@ -384,4 +543,26 @@ export class WwLandController implements Controller {
   private changed(): void {
     this.eventBus.emit(new WwLandChangedEvent());
   }
+}
+
+/** Spec §4.3: the front a group holds from `anchor`, sized by all its divisions (ag_front splits it by army). */
+export function groupFront(
+  view: WwLandView,
+  me: number,
+  sides: LandSides,
+  anchor: number,
+  divisions: number,
+): number[] {
+  return frontOf(
+    {
+      scenario: view.scenario,
+      controller: view.controller,
+      sameSide: sides.sameSide,
+      isEnemy: sides.isEnemy,
+    },
+    me,
+    0,
+    anchor,
+    frontSize(divisions),
+  );
 }

@@ -136,7 +136,9 @@ export type WwDrawerId =
   | "politics"
   // P4 (spec §18.5, §18.7): the navy and air drawers.
   | "navy"
-  | "air";
+  | "air"
+  // P6 (spec §20.3): the doctrine drawer.
+  | "doctrine";
 
 /**
  * A World War drawer opened or closed (pre-flight R7.2): one at a time, so

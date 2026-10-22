@@ -15,6 +15,8 @@ import {
 } from "../domestic/Dial";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { airDial, AirDialModel } from "./AirModel";
+import { WwDepthOpenEvent } from "./DepthEvents";
+import { DoctrineDial, DoctrineModel, IntelDial } from "./DoctrineModel";
 import {
   IndustryDial,
   industryDial,
@@ -47,22 +49,38 @@ import { OpenWwFocusEvent } from "./WwFocusPanel";
 import { seaAirOf, WwSeaAirChangedEvent } from "./WwSeaAirController";
 
 /**
- * P4 (spec §18.1): eight dials at the bottom left, two columns of four
- * rows (size-11, 8 px apart, about 208 px tall) on every screen — one
- * column of eight would not fit a landscape phone.
+ * P6 (spec §20.2): ten dials (industry, research, army, focus, politics,
+ * diplomacy, navy, air, doctrine, intel). Two columns of five rows
+ * (size-11, 6 px apart, about 256 px tall) on a tablet or desktop; three
+ * columns of four rows (about 194 px) on a landscape phone (at most
+ * COMPACT_MAX_HEIGHT tall).
  */
-export const WW_DIAL_COLS = 2;
-export const WW_DIAL_ROWS = 4;
-/** size-11 and gap-2, in CSS px. */
+export const WW_DIAL_COUNT = 10;
+/** size-11 and gap-1.5, in CSS px. */
 export const WW_DIAL_SIZE_PX = 44;
-export const WW_DIAL_GAP_PX = 8;
+export const WW_DIAL_GAP_PX = 6;
 /** The grid's own padding, top and bottom (py-1). */
 export const WW_DIAL_PAD_PX = 4;
-/** The block of eight dials, in CSS px. */
-export const WW_DIAL_BLOCK_PX =
-  WW_DIAL_ROWS * WW_DIAL_SIZE_PX +
-  (WW_DIAL_ROWS - 1) * WW_DIAL_GAP_PX +
-  2 * WW_DIAL_PAD_PX;
+
+/** The grid the dials make: 3 × 4 on a phone in landscape, 2 × 5 elsewhere. */
+export function dialLayout(
+  compact: boolean,
+  count = WW_DIAL_COUNT,
+): { cols: number; rows: number } {
+  const cols = compact ? 3 : 2;
+  return { cols, rows: Math.ceil(count / cols) };
+}
+
+/** The block of dials, in CSS px. */
+export function dialBlockPx(compact: boolean): number {
+  const { rows } = dialLayout(compact);
+  return (
+    rows * WW_DIAL_SIZE_PX + (rows - 1) * WW_DIAL_GAP_PX + 2 * WW_DIAL_PAD_PX
+  );
+}
+export const WW_DIAL_COLS = 2;
+export const WW_DIAL_ROWS = 5;
+export const WW_DIAL_BLOCK_PX = dialBlockPx(false);
 /** A press this long on ✈ opens the air drawer (spec §18.1). */
 export const WW_DIAL_HOLD_MS = 500;
 
@@ -78,6 +96,9 @@ export interface WwDialsModel {
   /** P4 (spec §18.1); null before the navy and air views have my data. */
   navy: NavyDialModel | null;
   air: AirDialModel | null;
+  /** P6 (spec §20.2); null before my depth data. */
+  doctrine: DoctrineDial | null;
+  intel: IntelDial | null;
   /** The air layer is on (the ✈ dial is pressed). */
   airLayer: boolean;
   /** The sea layer is on. */
@@ -146,6 +167,7 @@ export class WwDials extends LitElement implements Controller {
       g.wwPolitics?.()?.version,
       g.wwNavy?.()?.version,
       g.wwAir?.()?.version,
+      g.wwDepth?.()?.version,
       seaAirOf(g).selection.version,
       today(g),
       me?.smallID() ?? 0,
@@ -200,6 +222,8 @@ export class WwDials extends LitElement implements Controller {
               ),
             ),
       air: ctx === null ? null : airDial(ctx),
+      doctrine: new DoctrineModel(this.game).dial(),
+      intel: new DoctrineModel(this.game).intelDial(),
       airLayer: seaAirOf(this.game).selection.layer === "air",
       seaLayer: seaAirOf(this.game).selection.layer === "sea",
       compact: window.innerHeight <= COMPACT_MAX_HEIGHT,
@@ -211,11 +235,15 @@ export class WwDials extends LitElement implements Controller {
     if (m === null) return nothing;
     const i = m.industry;
     const r = m.research;
+    const layout = dialLayout(m.compact);
     const grid = html`<div
       data-ww-dials
-      data-cols=${WW_DIAL_COLS}
+      data-cols=${layout.cols}
+      data-rows=${layout.rows}
       data-compact=${String(m.compact)}
-      class="grid grid-cols-2 items-start gap-2 px-1.5 py-1 text-white select-none ${m.compact
+      class="grid ${m.compact
+        ? "grid-cols-3"
+        : "grid-cols-2"} items-start gap-1.5 px-1.5 py-1 text-white select-none ${m.compact
         ? "absolute bottom-0 left-0 rounded-t-lg bg-gray-800/92"
         : ""}"
       @contextmenu=${(e: Event) => e.preventDefault()}
@@ -255,7 +283,7 @@ export class WwDials extends LitElement implements Controller {
         () => this.eventBus.emit(new OpenWwResearchEvent()),
       )}
       ${m.army === null ? nothing : this.renderArmy(m.army)}
-      ${this.renderPolitics(m)} ${this.renderSeaAir(m)}
+      ${this.renderPolitics(m)} ${this.renderSeaAir(m)} ${this.renderDepth(m)}
     </div>`;
     // The footprint the rows keep: one row of dials.
     return html`${DIAL_STYLES}
@@ -263,8 +291,8 @@ export class WwDials extends LitElement implements Controller {
       ? html`<div
           data-ww-dials-slot
           class="relative"
-          style="width: ${WW_DIAL_COLS * WW_DIAL_SIZE_PX +
-          WW_DIAL_GAP_PX +
+          style="width: ${layout.cols * WW_DIAL_SIZE_PX +
+          (layout.cols - 1) * WW_DIAL_GAP_PX +
           12}px; height: ${WW_DIAL_SIZE_PX + 2 * WW_DIAL_PAD_PX}px"
         >
           ${grid}
@@ -346,6 +374,70 @@ export class WwDials extends LitElement implements Controller {
       () => this.holdEnd(),
     );
     return html`${navy} ${air}`;
+  }
+
+  /**
+   * P6 (spec §20.2): 🎖 doctrine — the ring is the lowest army track's way
+   * to its next level; the badge glows with unpicked doctrines, else counts
+   * the trait slots you could fill. 🕵 intel — the running upgrade; a red
+   * badge for captured operatives, else the idle ones. The intel drawer is
+   * lane U3's: the dial only asks for it.
+   */
+  private renderDepth(m: WwDialsModel): TemplateResult {
+    const d = m.doctrine;
+    const i = m.intel;
+    return html`${d === null
+      ? nothing
+      : this.renderDial(
+          "doctrine",
+          d.glow ? "unpicked" : "idle",
+          translateText("ww1936.doctrine.dial"),
+          ringSvg(d.progress, "science"),
+          "🎖",
+          d.glow ? "victory" : null,
+          d.badge === null
+            ? nothing
+            : this.badge(
+                d.badge.kind,
+                d.badge.n,
+                d.badge.kind === "unpicked"
+                  ? "bg-yellow-300 text-gray-900"
+                  : "bg-amber-400 text-gray-900",
+                translateText(
+                  d.badge.kind === "unpicked"
+                    ? "ww1936.doctrine.badge_unpicked"
+                    : "ww1936.doctrine.badge_points",
+                  { n: d.badge.n },
+                ),
+              ),
+          () => this.eventBus.emit(new WwDepthOpenEvent("doctrine")),
+        )}
+    ${i === null
+      ? nothing
+      : this.renderDial(
+          "intel",
+          i.badge?.kind ?? "idle",
+          translateText("ww1936.intel.dial"),
+          ringSvg(i.progress, "cooldown"),
+          "🕵",
+          null,
+          i.badge === null
+            ? nothing
+            : this.badge(
+                i.badge.kind,
+                i.badge.n,
+                i.badge.kind === "captured"
+                  ? "bg-red-600 text-white"
+                  : "bg-white text-gray-900",
+                translateText(
+                  i.badge.kind === "captured"
+                    ? "ww1936.intel.badge_captured"
+                    : "ww1936.intel.badge_idle",
+                  { n: i.badge.n },
+                ),
+              ),
+          () => this.eventBus.emit(new WwDepthOpenEvent("intel")),
+        )}`;
   }
 
   private holdStart() {
@@ -450,7 +542,7 @@ export class WwDials extends LitElement implements Controller {
   }
 
   private renderDial(
-    id: WwDrawerId,
+    id: WwDrawerId | "intel",
     state: string,
     label: string,
     svg: TemplateResult,
