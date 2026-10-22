@@ -43,6 +43,7 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { deckDesignCounts } from "../air/DesignPlanes";
+import { withFuze } from "../air/ProjectEffects";
 import { shipDesignOf } from "../depth/Designs";
 import { admiralPct } from "./AdmiralTraits";
 import { deckAttackCenti, deckPlanes, loseStrikePlanes } from "./Carriers";
@@ -1210,7 +1211,8 @@ function strikeLossInput(
     [];
   for (const e of enemy.ships) {
     if (e.dead || t.rowOf(e.id) < 0) continue;
-    aaCenti += e.stats.aa;
+    // P6 (spec §9.3, T1b): the ship owner's proximity fuze.
+    aaCenti += withFuze(navy.ww.depth, e.owner, e.stats.aa);
     if (e.cls === "cv") {
       const d = deckPlanes(navy, e.row)[0];
       // P6 (lane E): its carrier fighter designs fly with them.

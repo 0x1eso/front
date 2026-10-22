@@ -32,6 +32,7 @@ import {
   oldestFirst,
   planeSources,
 } from "../air/DesignPlanes";
+import { withFuze } from "../air/ProjectEffects";
 import {
   designPlaneP4,
   loseDesignPlanes,
@@ -478,7 +479,10 @@ export function carrierPortStrike(
     if (d > 0) pending.set(x.id, (pending.get(x.id) ?? 0) + d);
   }
   let aaCenti = 0;
-  for (const x of targets) aaCenti += navy.shipStatsOf(x.r).aa;
+  // P6 (spec §9.3, T1b): each ship owner's proximity fuze.
+  for (const x of targets) {
+    aaCenti += withFuze(navy.ww.depth, x.owner, navy.shipStatsOf(x.r).aa);
+  }
   const sunkBy = new Map<number, number>();
   for (const x of targets) {
     const d = pending.get(x.id) ?? 0;
@@ -497,7 +501,12 @@ export function carrierPortStrike(
     }
   }
   const aaMilli =
-    aaCenti * 5 + effectiveLevel(navy.econ, port, "anti_air") * 5000;
+    aaCenti * 5 +
+    withFuze(
+      navy.ww.depth,
+      navy.land.controller[port] ?? 0,
+      effectiveLevel(navy.econ, port, "anti_air") * 5000,
+    );
   loseStrikePlanes(
     navy,
     carriers,

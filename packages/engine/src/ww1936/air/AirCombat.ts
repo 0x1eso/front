@@ -9,6 +9,7 @@ import {
   AIR_TYPES,
   PlaneStats,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { DS_RADAR } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BuildingId,
   EQUIPMENT_GENS,
@@ -38,6 +39,12 @@ import { navalPort } from "../navy/Ports";
 import { radarPmAt } from "./AirSuperiority";
 import { carrierWingDeck, carrierWingDeckD, isCarrierWing } from "./Deploy";
 import { oldestFirst } from "./DesignPlanes";
+import {
+  hasMagnetron,
+  RADAR_PATROL_MAGNETRON_PCT,
+  RADAR_PATROL_PCT,
+  withFuze,
+} from "./ProjectEffects";
 import { deploymentPlanes, deploymentSide, WwAir, ZoneAirState } from "./WwAir";
 
 /** One group of planes in a duel: its numbers and how many fly, milli planes. */
@@ -94,6 +101,32 @@ const isFighter = (type: number) => {
   const t = AIR_TYPES[type];
   return t === "fighter" || t === "heavy_fighter" || t === "cv_fighter";
 };
+
+/**
+ * P6 (lane E, spec §5.4.2): the air radar module's naval patrol — a
+ * DS_RADAR design's sorties count ×1.3 (×1.5 with the magnetron): the
+ * part above its plain sorties, which the flight's total holds once.
+ */
+function radarPatrolExtra(air: WwAir, f: AirFlight): number {
+  const gens = EQUIPMENT_GENS[AIR_TYPES[f.type]];
+  if (f.milli.length <= gens) return 0;
+  const pct = hasMagnetron(air.ww.depth, f.owner)
+    ? RADAR_PATROL_MAGNETRON_PCT
+    : RADAR_PATROL_PCT;
+  let extra = 0;
+  for (let i = gens; i < f.milli.length; i++) {
+    if (f.milli[i] <= 0) continue;
+    const flags = air.ww.depth.designStatsOf(
+      f.owner,
+      "plane",
+      i - gens + 1,
+    )?.flags;
+    if (((flags ?? 0) & DS_RADAR) !== 0) {
+      extra += Math.floor((f.milli[i] * (pct - 100)) / 100);
+    }
+  }
+  return extra;
+}
 
 /** P6 (spec §21.2, T1b): a sortie rate ‰ × (100 + sortieEffPct)%, at most one sortie a day. */
 function effWith(pct: number, pm: number): number {
@@ -609,8 +642,11 @@ function landAntiAir(
     let pmSum = 0;
     let by = 0;
     let byW = -1;
-    const add = (w: number, pm: number, who: number) => {
+    const add = (w: number, pm0: number, who: number) => {
       if (w <= 0) return;
+      // P6 (spec §9.3, T1b): the defender's proximity fuze, ×1.5 (its
+      // guns' and its divisions' anti-air).
+      const pm = withFuze(air.ww.depth, who, pm0);
       wSum += w;
       pmSum += w * pm;
       if (w > byW) {
@@ -995,7 +1031,9 @@ export function dailyAirZone(air: WwAir, sr: number, day: number): void {
     if (f.mission === M_PATROL) {
       // P6 (spec §21.2, T1b): navalPatrolPct on the search.
       const pat = ce?.stats.navalPatrolPct ?? 0;
-      const s0 = f.type === T_NAVAL_BOMBER ? f.total * 3 : f.total;
+      const s0 =
+        (f.type === T_NAVAL_BOMBER ? 3 : 1) *
+        (f.total + radarPatrolExtra(air, f));
       add(
         search,
         f.owner,

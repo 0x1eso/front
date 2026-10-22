@@ -31,6 +31,7 @@ import { applyShipDamage } from "../navy/NavalBattles";
 import { zoneFlights } from "./AirCombat";
 import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
 import { oldestFirst } from "./DesignPlanes";
+import { withFuze } from "./ProjectEffects";
 import type { Deployment, WwAir, ZoneAirState } from "./WwAir";
 
 /** Spec §14.9: the hit chance of a naval strike (ships at sea) and a port strike (docked), ‰. */
@@ -331,8 +332,12 @@ function portStrikes(
         any = true;
       }
       if (any) {
-        baseAaMilli +=
-          effectiveLevel(air.econ, port, "anti_air") * PORT_AA_LOSS_MILLI;
+        // P6 (spec §9.3, T1b): the port's holder's proximity fuze.
+        baseAaMilli += withFuze(
+          air.ww.depth,
+          air.land.controller[port] ?? 0,
+          effectiveLevel(air.econ, port, "anti_air") * PORT_AA_LOSS_MILLI,
+        );
       }
     }
     ships.sort((a, b) => a - b);
@@ -415,7 +420,8 @@ function strike(
   let aaMilli = baseAaMilli;
   const aaByOwner = new Map<number, number>();
   for (const x of targets) {
-    aaMilli += x.aa * aaLossPerCenti;
+    // P6 (spec §9.3, T1b): the ship owner's proximity fuze.
+    aaMilli += withFuze(air.ww.depth, x.owner, x.aa * aaLossPerCenti);
     aaByOwner.set(x.owner, (aaByOwner.get(x.owner) ?? 0) + x.aa);
   }
   const dmg = new Array<number>(targets.length).fill(0);

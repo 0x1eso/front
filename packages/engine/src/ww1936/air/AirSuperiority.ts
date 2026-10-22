@@ -14,6 +14,7 @@ import {
   airMoveFactorPm,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { effectiveLevel } from "../economy/Buildings";
+import { hasMagnetron, MAGNETRON_RADAR_PM } from "./ProjectEffects";
 import type { WwAir, ZoneAirState } from "./WwAir";
 
 /**
@@ -34,9 +35,13 @@ export function radarPmAt(air: WwAir, side: number, sr: number): number {
     const c = land.controller[r] ?? 0;
     if (c === 0 || land.sideOf(c) !== side) continue;
     const lv = effectiveLevel(air.econ, r, "radar");
-    if (lv <= 0 || WW_RADAR_DETECT_PM * lv <= best) continue;
-    if (sc.srKm(r, sr) <= WW_RADAR_RANGE_KM * lv)
-      best = WW_RADAR_DETECT_PM * lv;
+    // P6 (spec §9.3, T1b): the magnetron's +100‰ a level.
+    const pm =
+      (WW_RADAR_DETECT_PM +
+        (hasMagnetron(air.ww.depth, c) ? MAGNETRON_RADAR_PM : 0)) *
+      lv;
+    if (lv <= 0 || pm <= best) continue;
+    if (sc.srKm(r, sr) <= WW_RADAR_RANGE_KM * lv) best = pm;
   }
   return best;
 }
