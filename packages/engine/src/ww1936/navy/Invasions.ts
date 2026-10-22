@@ -48,6 +48,7 @@ import {
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import { minesInvasionCutPct } from "../depth/Mines";
 import { joinBattle } from "../land/Battles";
 import { enemyDivisionsIn, stopDivision } from "../land/Movement";
 import { capture } from "../land/Occupation";
@@ -881,7 +882,15 @@ export function amphibiousModsFor(
   const ce = navy.econ.country(t.owner[row]);
   if (ce === null) return null;
   const marines = (land.flagsOf(row) & TPL_MARINE_ANY) !== 0;
-  return { attackBp: -landingBp(marines, ce.researched), defenseBp: 0 };
+  // P6 (spec §15.1): enemy mines in the sea region of the target's harbour
+  // zone cut the landing, m / 100 % (at most 10%); no harbour, no cut.
+  const sr = navy.scenario.zoneSr(navy.scenario.harborOf(battleRegion));
+  const mines =
+    sr === 0 ? 0 : minesInvasionCutPct(navy.ww.depth, sr, t.owner[row]);
+  return {
+    attackBp: -landingBp(marines, ce.researched) - 100 * mines,
+    defenseBp: 0,
+  };
 }
 
 /**

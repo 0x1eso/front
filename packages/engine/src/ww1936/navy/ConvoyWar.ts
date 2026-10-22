@@ -18,6 +18,7 @@ import {
   raidPowerCenti,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { minesConvoyLossPm } from "../depth/Mines";
 import { loseConvoys } from "../economy/Buildings";
 import { takeFromRoutes, USE_VOYAGE } from "./Convoys";
 import { onConvoysLost } from "./EndgameHooks";
@@ -123,7 +124,8 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
     );
     if (p > 0) raidPow.set(m, p);
   }
-  if (raidPow.size === 0) {
+  // P6 (spec §15.1): a mined region still sinks convoys with no raider here.
+  if (raidPow.size === 0 && navy.ww.depth.mineIndex.get(sr) === undefined) {
     st.lossYesterday = new Map();
     st.raidedYesterday = [];
     st.lossRate = new Map();
@@ -237,7 +239,11 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   // The losses: the integer convoys, the remainder kept.
   const lossToday = new Map<number, number>();
   for (const b of victims) {
-    const milli = sink.get(b) ?? 0;
+    // P6 (spec §15.1): enemy mines add m / 10 ‰ of the traffic (traffic
+    // convoys × ‰ = milli-convoys). Nobody is credited for them.
+    const milli =
+      (sink.get(b) ?? 0) +
+      traffic.get(b)! * minesConvoyLossPm(navy.ww.depth, sr, b);
     if (milli <= 0) continue;
     lossToday.set(b, milli);
     const rest = (st.raidRest.get(b) ?? 0) + milli;
@@ -390,7 +396,11 @@ export function convoyLossPmOf(
   sr: number,
 ): number {
   const i = navy.scenario.srIdxOf(sr);
-  return i < 0 ? 0 : navy.lossRatePm(i, owner);
+  // P6 (spec §15.1): plus the enemy mines' convoy losses there.
+  return (
+    (i < 0 ? 0 : navy.lossRatePm(i, owner)) +
+    minesConvoyLossPm(navy.ww.depth, sr, owner)
+  );
 }
 
 /**
