@@ -21,7 +21,7 @@ export function renderFactionRules(
   if (rules.length === 0) return html`${nothing}`;
   return html`<section data-ww-faction-rules class="mt-2">
     <div class="mb-1 text-xs font-bold uppercase text-white/70">
-      ${translateText("ww1936.faction_ui.rules")}
+      ${translateText("ww1936.faction_ui.rules_title")}
     </div>
     <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
       ${rules.map((r) => {
@@ -35,13 +35,10 @@ export function renderFactionRules(
             <b class="block"
               >${translateText(`ww1936.faction_rule.${r.rule}`)}</b
             >
-            <span class="block text-white/60"
-              >${translateText(`ww1936.faction_ui.rule_desc.${r.rule}`)}</span
-            >
           </span>
           <span class=${r.on ? "text-emerald-300" : "text-white/50"}
             >${translateText(
-              r.on ? "ww1936.faction_ui.on" : "ww1936.faction_ui.off",
+              r.on ? "ww1936.faction_ui.rule_on" : "ww1936.faction_ui.rule_off",
             )}</span
           >
           ${r.canToggle
@@ -53,15 +50,19 @@ export function renderFactionRules(
                 @click=${() => ctx.tap(key, r.order)}
               >
                 ${armed
-                  ? translateText("ww1936.pol.tap_again")
-                  : translateText("ww1936.faction_ui.toggle")}
+                  ? translateText("ww1936.faction_ui.toggle_confirm")
+                  : translateText(
+                      r.on
+                        ? "ww1936.faction_ui.rule_off"
+                        : "ww1936.faction_ui.rule_on",
+                    )}
               </button>`
             : nothing}
         </li>`;
       })}
     </ul>
     <div class="mb-1 mt-2 text-xs font-bold uppercase text-white/70">
-      ${translateText("ww1936.faction_ui.goals")}
+      ${translateText("ww1936.faction_ui.goals_title")}
     </div>
     <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
       ${goals.map(

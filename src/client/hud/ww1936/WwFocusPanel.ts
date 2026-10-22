@@ -43,7 +43,13 @@ import {
   initialCenter,
 } from "./FocusLayout";
 import { lineText } from "./PoliticsModel";
-import { TWO_TAP_MS, TwoTap, WW_BAND_PX, wwActive } from "./WorldWarModel";
+import {
+  countryName,
+  TWO_TAP_MS,
+  TwoTap,
+  WW_BAND_PX,
+  wwActive,
+} from "./WorldWarModel";
 import { renderContinuousBand } from "./WwContinuousBand";
 import { WwDrawerEvent, wwDrawerInsets } from "./WwDrawer";
 
@@ -672,7 +678,9 @@ export class WwFocusPanel extends LitElement implements Controller {
   /** A chip's text; the pack chip carries the pack's name (spec §20.10). */
   private chipLabel(c: FocusCtx, chip: FocusChip | "pack"): string {
     return chip === "pack"
-      ? translateText(`ww1936.cfocus_ui.pack.${c.treeId}`)
+      ? translateText("ww1936.cfocus_ui.pack_chip", {
+          pack: countryName(this.game.myPlayer()?.countryTag() ?? "USA"),
+        })
       : translateText(CHIP_KEYS[chip]);
   }
 

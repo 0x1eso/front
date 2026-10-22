@@ -38,7 +38,10 @@ export function renderCongressBar(bar: CongressBar): TemplateResult {
         (m) =>
           html`<li class=${m.passed ? "text-emerald-300" : ""}>
             ${m.passed ? "✓" : "·"}
-            ${translateText(`ww1936.congress.gate.${m.gate}`, { pct: m.pct })}
+            ${translateText("ww1936.congress.threshold", { pct: m.pct })} ·
+            ${translateText(
+              m.passed ? "ww1936.congress.passed" : "ww1936.congress.pending",
+            )}
           </li>`,
       )}
     </ul>

@@ -30,7 +30,7 @@ import {
   TONE_BAR_CLASS,
   TONE_CLASS,
 } from "./PoliticsModel";
-import { today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import { countryName, today, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
 import { renderBopBar } from "./WwBopBar";
 import { renderCongressBar } from "./WwCongressTab";
 import {
@@ -192,7 +192,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
     const tag = this.game?.myPlayer()?.countryTag() ?? null;
     const bar = tag === null ? null : (m?.bopBar(tag) ?? null);
     if (bar === null || tag === null) return html`${nothing}`;
-    return html`${renderBopBar(bar, spiritName, spiritDesc)}
+    return html`${renderBopBar(bar, spiritName, spiritDesc, countryName(tag))}
     ${this.decisionCards(i, (id) => isBopDecision(tag, id))}`;
   }
 

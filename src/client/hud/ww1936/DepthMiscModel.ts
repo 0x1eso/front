@@ -200,6 +200,7 @@ const NOTICE_ID_PARAMS: Readonly<Record<string, string>> = {
   project: "ww1936.project",
   facility: "ww1936.facility",
   operation: "ww1936.op",
+  op: "ww1936.op",
   mission: "ww1936.intel_mission",
   raid: "ww1936.raid",
   goal: "ww1936.faction_goal",
@@ -431,7 +432,7 @@ export class DepthMiscModel {
     for (const lm of sc.landmarksOf(region)) {
       out.push({
         id: lm,
-        text: translateText("ww1936.region_status.landmark", {
+        text: translateText("ww1936.region_status.landmark_effect", {
           name: translateText(`ww1936.landmark.${lm}`),
           effect: statLines(LANDMARK_STATS[lm]).join(", "),
         }),
@@ -442,9 +443,9 @@ export class DepthMiscModel {
     if (dam >= 0) {
       out.push({
         id: "dam",
-        text: translateText("ww1936.region_status.dam", {
+        text: translateText("ww1936.region_status.dam_effect", {
           name: translateText(`ww1936.dam.${DAMS[dam]}`),
-          level:
+          effect:
             fog.buildings === "hidden"
               ? "?"
               : fog.label(d.worldData.damLevel[dam] ?? 0),
@@ -457,16 +458,18 @@ export class DepthMiscModel {
       if (econ.facility > 0) {
         out.push({
           id: "facility",
-          text: translateText(
-            `ww1936.facility.${FACILITY_IDS[econ.facility - 1]}`,
-          ),
+          text: translateText("ww1936.region_status.facility", {
+            name: translateText(
+              `ww1936.facility.${FACILITY_IDS[econ.facility - 1]}`,
+            ),
+          }),
           tone: "info",
         });
       }
       if (econ.powerPlant > 0) {
         out.push({
           id: "plant",
-          text: translateText("ww1936.region_status.plant", {
+          text: translateText("ww1936.region_status.power_plant", {
             n: fog.label(econ.powerPlant),
           }),
           tone: "info",
@@ -559,7 +562,7 @@ export class DepthMiscModel {
     if (raider) {
       out.push({
         id: "raid",
-        label: translateText("ww1936.raid_ui.btn"),
+        label: translateText("ww1936.raid_ui.raid"),
         order: null,
       });
     }
@@ -581,9 +584,7 @@ export class DepthMiscModel {
     });
     out.push({
       id: "priority",
-      label: translateText(
-        `ww1936.raid_ui.priority_${REINFORCE_PRIORITIES[prio] ?? "normal"}`,
-      ),
+      label: `${translateText("ww1936.raid_ui.priority")} ${REINFORCE_PRIORITIES[prio] ?? "normal"}`,
       order: {
         kind: "army_priority",
         army: armyId,

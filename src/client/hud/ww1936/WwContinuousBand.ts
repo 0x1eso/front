@@ -31,15 +31,13 @@ export function renderContinuousBand(
     </div>
     ${!band.open
       ? html`<span data-ww-cfocus-closed class="text-[11px] text-white/60"
-          >${translateText("ww1936.cfocus_ui.closed", {
-            done: band.done,
-            need: band.need,
+          >${translateText("ww1936.cfocus_ui.not_open", {
             date: band.unlockDate,
           })}</span
         >`
       : band.lockLeft > 0
         ? html`<span data-ww-cfocus-lock class="text-[11px] text-amber-200"
-            >${translateText("ww1936.cfocus_ui.locked", {
+            >${translateText("ww1936.cfocus_ui.locked_days", {
               days: band.lockLeft,
             })}</span
           >`

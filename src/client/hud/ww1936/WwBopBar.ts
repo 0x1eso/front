@@ -15,10 +15,11 @@ export function renderBopBar(
   bar: BopBar,
   spiritName: (id: string) => string,
   spiritDesc: (id: string) => string,
+  tagName: string,
 ): TemplateResult {
   return html`<section data-ww-bop=${bar.tag} class="mt-2">
     <div class="flex justify-between text-xs font-bold">
-      <span>${translateText(`ww1936.bop.${bar.tag}.title`)}</span>
+      <span>${translateText("ww1936.bop.track", { tag: tagName })}</span>
       <span class="tabular-nums" data-ww-bop-value
         >${bar.valuePm > 0 ? "+" : ""}${bar.valuePm / 10}</span
       >
@@ -39,9 +40,8 @@ export function renderBopBar(
         style="left: ${bar.pos * 100}%"
       ></span>
     </div>
-    <div class="flex justify-between text-[11px] text-white/60">
-      <span>${translateText(`ww1936.bop.${bar.tag}.left`)}</span>
-      <span>${translateText(`ww1936.bop.${bar.tag}.right`)}</span>
+    <div class="text-[11px] text-white/60">
+      ${translateText("ww1936.bop.band", { band: bar.band + 1 })}
     </div>
     ${bar.spirit === null
       ? nothing
