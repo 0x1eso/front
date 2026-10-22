@@ -14,6 +14,7 @@ import {
   AiFleetView,
   AiNavalInput,
   aiNavalPlan,
+  aiNavyDue,
   aiNavyStyle,
   aiOrganise,
   aiOverseas,
@@ -482,6 +483,23 @@ describe("the navy AI's plan (spec §17.2)", () => {
       { kind: "fleet_mission", fleet: p1.id, mission: "training", sr: 1001 },
       { kind: "fleet_mission", fleet: p2.id, mission: "hold", sr: 1001 },
     ]);
+  });
+
+  test("at war it plans every 2 days on its parity, at peace every 10 (cadence ruling)", () => {
+    // Final perf lane (controller ruling, 2026-10-23): half the countries
+    // plan each day at war, the other half the next.
+    for (const id of [1, 2, 7, 8]) {
+      const days = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) =>
+        aiNavyDue(id, 100 + d, true),
+      );
+      expect(days).toEqual(id % 2 === 0 ? [0, 2, 4, 6, 8] : [1, 3, 5, 7, 9]);
+      // Peace: one day in ten, a day of the same parity.
+      const peace = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) =>
+        aiNavyDue(id, 100 + d, false),
+      );
+      expect(peace).toEqual([id % 10]);
+      expect(aiNavyDue(id, 100 + (id % 10), true)).toBe(true);
+    }
   });
 
   test("a carrier fleet strikes a port only outside the no-strike list (the plan never sees one) and on a beat", () => {
