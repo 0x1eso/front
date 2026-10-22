@@ -388,7 +388,7 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // (Nagasaki, Sasebo's base, line and silo moved there), the P5 content
 // K1-K5 and its Phase B data fixes: same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "c602cf71458a0db3";
+const WW1936_DIGEST = "a5d2dcd91725919b";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
