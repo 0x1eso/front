@@ -382,4 +382,29 @@ describe("command (spec §4)", () => {
         ),
     );
   });
+
+  it("an officer corps pick costs 25 experience, a switch 50, then 90 days locked", async () => {
+    const { runner, ww, c, land, d } = await germany();
+    const ce = ww.economy.country(DEU)!;
+    land.country(DEU)!.armyXpMilli = 100_000;
+    const tick = runner.game.ticks();
+    const day = ww.day(tick);
+    const pick = (id: string, at = tick) =>
+      d.issue(
+        DEU,
+        { kind: "army_spirit_pick", category: "land_recruit", id } as never,
+        at,
+      );
+    const before = ce.stats.reinforcePct;
+    expect(pick("as_mission_command")).toBe("bad_index");
+    expect(pick("as_reserve")).toBeNull();
+    expect(d.xpOf(DEU, 0)).toBe(75);
+    expect(ce.stats.reinforcePct).toBe(before + 25);
+    expect(pick("as_conscript")).toBe("doctrine_locked");
+    const later = dayStartTick(day + 90, ww.prepEndTick());
+    expect(pick("as_conscript", later)).toBeNull();
+    expect(d.xpOf(DEU, 0)).toBe(25);
+    expect(ce.stats.reinforcePct).toBe(before);
+    expect(c.cmd.spirits[0]).toBe(0);
+  });
 });
