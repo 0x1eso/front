@@ -89,7 +89,7 @@ const ROOT = path.resolve(path.dirname(SELF), "../..");
 // ---------------------------------------------------------------------------
 // Options
 
-interface Options {
+export interface Options {
   seeds: string[];
   historical: boolean;
   until: string;
@@ -103,7 +103,7 @@ interface Options {
 
 const seedName = (i: number) => `WWEND${String(i).padStart(3, "0")}`;
 
-function parseArgs(argv: string[]): Options {
+export function parseArgs(argv: string[]): Options {
   const o: Options = {
     seeds: [],
     historical: true,
@@ -175,7 +175,7 @@ const cpuNow = (): number => {
   const u = threadCpu();
   return (u.user + u.system) / 1000;
 };
-const iso = (d: number | null | undefined) =>
+export const iso = (d: number | null | undefined) =>
   d === null || d === undefined || Number.isNaN(d)
     ? "-"
     : formatIsoDate(dateOfDay(Math.floor(d)));
@@ -202,14 +202,14 @@ const SIGNATURE_TAGS: readonly CountryTag[] = [
 ];
 const ALLIED_MAJORS: readonly CountryTag[] = ["GBR", "FRA", "USA", "SUN"];
 
-interface PerfStat {
+export interface PerfStat {
   n: number;
   mean: number;
   p99: number;
   max: number;
 }
 
-interface RunResult {
+export interface RunResult {
   seed: string;
   historical: boolean;
   until: string;
@@ -264,6 +264,29 @@ interface RunResult {
   };
 }
 
+/**
+ * A simulator that measures more (P6 depth-sim) plugs into the same game
+ * loop instead of copying it: `start` once the game exists, `tick` after
+ * every executed tick, `day` once a day after the endgame sampling (with
+ * the finished day), `end` to write its part of the result.
+ */
+export interface SimContext {
+  g: Game;
+  ww: NonNullable<ReturnType<Game["worldWar"]>>;
+  idOf: (t: CountryTag) => number;
+  tagOf: (id: number) => string;
+  /** Adds a CSV row `date,kind,a,b,c,d,e` to this run's file. */
+  row: (day: number, kind: string, ...cells: (string | number)[]) => void;
+  /** Today's game day (0 in the preparation). */
+  today: () => number;
+}
+export interface SimExtension {
+  start(ctx: SimContext): void;
+  tick?(tick: number): void;
+  day(done: number): void;
+  end(res: RunResult): void;
+}
+
 function startInfo(seed: string, historical: boolean): GameStartInfo {
   return {
     gameID: seed,
@@ -293,7 +316,7 @@ function startInfo(seed: string, historical: boolean): GameStartInfo {
  * Means in thread CPU (honest on a busy machine), p99 and max in the wall
  * clock (the CPU clock ticks in whole milliseconds here).
  */
-function stat(cpu: number[], wall: number[] = cpu): PerfStat {
+export function stat(cpu: number[], wall: number[] = cpu): PerfStat {
   if (cpu.length === 0) return { n: 0, mean: 0, p99: 0, max: 0 };
   const s = [...wall].sort((a, b) => a - b);
   let sum = 0;
@@ -374,12 +397,13 @@ function timeParts(
 // ---------------------------------------------------------------------------
 // One game
 
-async function runOne(
+export async function runOne(
   seed: string,
   historical: boolean,
   until: string,
   csvPath: string,
   perf: boolean,
+  ext?: SimExtension,
 ): Promise<RunResult> {
   const files = await loadMapFiles(
     new NodeGameMapLoader(path.join(ROOT, "resources/maps")),
@@ -420,6 +444,7 @@ async function runOne(
     csv.push([iso(day), kind, ...c].join(","));
   };
   const today = () => (ww.inPrep(g.ticks()) ? 0 : ww.day(g.ticks()));
+  ext?.start({ g, ww, idOf, tagOf, row, today });
 
   const res: RunResult = {
     seed,
@@ -728,6 +753,7 @@ async function runOne(
     const t = cpuNow() - a;
     const tw = performance.now() - aw;
     const tick = g.ticks() - 1;
+    ext?.tick?.(tick);
     if (g.ticks() > prepEnd) {
       tickMs.push(t);
       tickWall.push(tw);
@@ -888,6 +914,7 @@ async function runOne(
         w.ended.winner,
       );
     }
+    ext?.day(done);
   }
   res.seconds = Math.round((performance.now() - t0) / 1000);
   res.ticks = g.ticks();
@@ -924,6 +951,7 @@ async function runOne(
   for (const [k, v] of Object.entries(eventEg)) {
     res.perf.events[`${k}:endgame`] = stat(v, eventEgW[k]);
   }
+  ext?.end(res);
   if (csvPath !== "") fs.writeFileSync(csvPath, csv.join("\n") + "\n");
   return res;
 }
@@ -936,7 +964,7 @@ interface Check {
   ok: boolean;
 }
 
-function median(xs: number[]): number {
+export function median(xs: number[]): number {
   if (xs.length === 0) return NaN;
   const s = [...xs].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
@@ -1147,6 +1175,52 @@ function checksOff(rs: RunResult[]): Check[] {
   ];
 }
 
+/** The per-seed endgame table (P5 Task 18). */
+export function seedTable(xs: readonly RunResult[]): string {
+  return formatTable(
+    [
+      "seed",
+      "spain",
+      "POL cap",
+      "exile",
+      "FRA cap",
+      "VIC",
+      "ex41",
+      "ITA out",
+      "DEU cap",
+      "zones",
+      "occ 1942-06",
+      "upr",
+      "conf",
+      "cw",
+      "woken",
+      "signature",
+      "s",
+    ],
+    xs.map((r) => [
+      r.seed,
+      `${r.spain.winner ?? "-"} ${iso(r.spain.day)}`,
+      iso(r.poland.capDay),
+      r.poland.exile ? "y" : "n",
+      iso(r.france.capDay),
+      iso(r.france.vichyDay),
+      String(r.exiles194112),
+      `${iso(r.italy.leftDay)} ${r.italy.how ?? ""}`,
+      iso(r.germany.capDay),
+      `${r.germany.zones} ${r.germany.zoneHolders.join("/")}`,
+      r.occ194206 === null
+        ? "-"
+        : `${r.occ194206.occupier} ${r.occ194206.regions} r${Math.round(r.occ194206.resPct)} f${Math.round(r.occ194206.fulfilPct)}`,
+      String(r.uprisings.length),
+      String(r.conferences),
+      String(r.civilWars.length),
+      r.woken.map((w) => w.tag).join(" "),
+      r.signature,
+      String(r.seconds),
+    ]),
+  );
+}
+
 function report(rs: RunResult[]): void {
   rs.sort((a, b) => a.seed.localeCompare(b.seed));
   const on = rs.filter((r) => r.historical);
@@ -1157,50 +1231,7 @@ function report(rs: RunResult[]): void {
   ] as const) {
     if (xs.length === 0) continue;
     console.log(`\n== ${label}: ${xs.length} seeds ==`);
-    console.log(
-      formatTable(
-        [
-          "seed",
-          "spain",
-          "POL cap",
-          "exile",
-          "FRA cap",
-          "VIC",
-          "ex41",
-          "ITA out",
-          "DEU cap",
-          "zones",
-          "occ 1942-06",
-          "upr",
-          "conf",
-          "cw",
-          "woken",
-          "signature",
-          "s",
-        ],
-        xs.map((r) => [
-          r.seed,
-          `${r.spain.winner ?? "-"} ${iso(r.spain.day)}`,
-          iso(r.poland.capDay),
-          r.poland.exile ? "y" : "n",
-          iso(r.france.capDay),
-          iso(r.france.vichyDay),
-          String(r.exiles194112),
-          `${iso(r.italy.leftDay)} ${r.italy.how ?? ""}`,
-          iso(r.germany.capDay),
-          `${r.germany.zones} ${r.germany.zoneHolders.join("/")}`,
-          r.occ194206 === null
-            ? "-"
-            : `${r.occ194206.occupier} ${r.occ194206.regions} r${Math.round(r.occ194206.resPct)} f${Math.round(r.occ194206.fulfilPct)}`,
-          String(r.uprisings.length),
-          String(r.conferences),
-          String(r.civilWars.length),
-          r.woken.map((w) => w.tag).join(" "),
-          r.signature,
-          String(r.seconds),
-        ]),
-      ),
-    );
+    console.log(seedTable(xs));
     const checks = label === "historical AI on" ? checksOn(xs) : checksOff(xs);
     console.log(
       "\n" +
@@ -1266,10 +1297,11 @@ function runChild(
   seed: string,
   json: string,
   csvPath: string,
+  script: string,
 ): Promise<void> {
   const args = [
     ...process.execArgv,
-    SELF,
+    script,
     "--one",
     json,
     "--seeds",
@@ -1291,7 +1323,10 @@ function runChild(
   });
 }
 
-function readResults(dir: string, historical: boolean | null): RunResult[] {
+export function readResults(
+  dir: string,
+  historical: boolean | null,
+): RunResult[] {
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir)
@@ -1319,6 +1354,17 @@ async function main(): Promise<void> {
     report(readResults(o.out, null));
     return;
   }
+  const failed = await runBatch(o, SELF);
+  report(readResults(o.out, o.historical));
+  if (failed.length > 0) console.log(`\nFAILED runs: ${failed.join(" ")}`);
+}
+
+/**
+ * Runs `o.seeds`, one child process of `script` per seed (`--jobs` at
+ * once); each writes `<out>/<seed>-<on|off>.json` and `.csv`. Returns the
+ * failed seeds.
+ */
+export async function runBatch(o: Options, script: string): Promise<string[]> {
   fs.mkdirSync(o.out, { recursive: true });
   const mode = o.historical ? "on" : "off";
   let next = 0;
@@ -1330,7 +1376,13 @@ async function main(): Promise<void> {
       const s = o.seeds[next++];
       const json = path.join(o.out, `${s}-${mode}.json`);
       try {
-        await runChild(o, s, json, path.join(o.out, `${s}-${mode}.csv`));
+        await runChild(
+          o,
+          s,
+          json,
+          path.join(o.out, `${s}-${mode}.csv`),
+          script,
+        );
       } catch (e) {
         failed.push(s);
         console.error(`FAILED ${s} ${mode}: ${String(e)}`);
@@ -1344,11 +1396,13 @@ async function main(): Promise<void> {
   await Promise.all(
     Array.from({ length: Math.min(o.jobs, o.seeds.length) }, worker),
   );
-  report(readResults(o.out, o.historical));
-  if (failed.length > 0) console.log(`\nFAILED runs: ${failed.join(" ")}`);
+  return failed;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Run only as a script (depth-sim imports this file).
+if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === SELF) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
