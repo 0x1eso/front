@@ -525,17 +525,18 @@ function groupMarshal(
   return null;
 }
 
-/** Per-tick memo of tricksterCutBp (the battle's sides do not change within the tick's reads). */
+/** Per-tick memo of tricksterCutBp: region → victim's side → [the battle's size when read, cut]. */
 const tricksterMemo = new WeakMap<
   WwDepth,
-  { tick: number; cut: Map<number, Map<number, number>> }
+  { tick: number; cut: Map<number, Map<number, [number, number]>> }
 >();
 
 /**
  * Spec §4.2 trickster: −10%p readiness for `victim`'s divisions in the
  * battle at `region` when an enemy army there is led by a trickster
- * (bp ≤ 0). Memoised per tick and (region, victim's side): a pure function
- * of the tick's state, so a restored game reads the same.
+ * (bp ≤ 0). Memoised per tick, (region, victim's side) and the battle's
+ * size (a division joining reads again): a pure function of the tick's
+ * state, so a restored game reads the same.
  */
 export function tricksterCutBp(
   d: WwDepth,
@@ -552,9 +553,10 @@ export function tricksterCutBp(
     tricksterMemo.set(d, memo);
   }
   const side = land.sideOf(victim);
+  const size = b.attackers.length * 65_536 + b.defenders.length;
   let byRegion = memo.cut.get(region);
   const known = byRegion?.get(side);
-  if (known !== undefined) return known;
+  if (known !== undefined && known[0] === size) return known[1];
   let cut = 0;
   const t = land.divisions;
   let lastArmy = -1;
@@ -583,7 +585,7 @@ export function tricksterCutBp(
     byRegion = new Map();
     memo.cut.set(region, byRegion);
   }
-  byRegion.set(side, cut);
+  byRegion.set(side, [size, cut]);
   return cut;
 }
 

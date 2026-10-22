@@ -26,6 +26,7 @@ import {
   dailyCommand,
   makeMarshal,
   reinforceOrder,
+  skirmisherContact,
 } from "@openfront/engine/ww1936/depth/Command";
 import { modInputOf } from "@openfront/engine/ww1936/land/Battles";
 import { canServe } from "@openfront/engine/ww1936/land/GeneralsRun";
@@ -38,6 +39,7 @@ import {
   clearLand,
   clearStartSetup,
   placeArmy,
+  step,
   stepTo,
   wwRunner,
 } from "./util";
@@ -327,5 +329,57 @@ describe("command (spec §4)", () => {
     dailySustain(land, DEU, ww.day(tick));
     const fill = rows.map((r) => t.equip[r * GROUND_SLOTS + slot]);
     expect(fill[2]).toBeGreaterThan(fill[0]);
+  });
+
+  it("a trickster cuts the enemy's readiness; a skirmisher sees the armies next to his", async () => {
+    const { runner, ww, land, d } = await germany();
+    const g = runner.game;
+    for (const tag of ["DEU", "POL"] as const) {
+      const ce = ww.economy.country(DEEP.tag[tag])!;
+      ce.manpower = 1_000_000;
+      for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 100_000;
+    }
+    const deu = placeArmy(g, "DEU", DEEP.region.berlin, 1);
+    const pol = placeArmy(g, "POL", DEEP.region.warsaw, 1);
+    const cl = land.country(DEU)!;
+    const gen = cl.generals.find((x) => x.army === 0)!;
+    deu.general = gen.id;
+    gen.army = deu.id;
+    const POL = DEEP.tag.POL;
+    land.addBattle({
+      region: DEEP.region.warsaw,
+      sinceTick: g.ticks(),
+      round: 0,
+      attackers: [...deu.divisions],
+      defenders: [...pol.divisions],
+      attLine: [],
+      defLine: [],
+      startOrgMilli: 0,
+      lostOrgMilli: 0,
+      attLead: DEU,
+      defLead: POL,
+    });
+    expect(d.planCutBp(POL, DEEP.region.warsaw)).toBe(0);
+    gen.traits |= traitBit("trickster");
+    step(runner, 1);
+    expect(d.planCutBp(POL, DEEP.region.warsaw)).toBe(-1000);
+    // Germany's own divisions are not cut by its trickster.
+    expect(d.planCutBp(DEU, DEEP.region.warsaw)).toBe(0);
+    land.endBattle(DEEP.region.warsaw);
+    // Skirmisher (spec §8.8): Berlin touches Warsaw.
+    expect(skirmisherContact(d, DEU, POL)).toBe(false);
+    gen.traits |= traitBit("skirmisher");
+    expect(skirmisherContact(d, DEU, POL)).toBe(true);
+    // Rome is no neighbour of Berlin.
+    expect(skirmisherContact(d, DEU, DEEP.tag.ITA)).toBe(
+      land
+        .rowsOf(DEEP.tag.ITA)
+        .some((r) =>
+          [
+            DEEP.region.berlin,
+            ...ww.scenario.regionNeighbours(DEEP.region.berlin),
+          ].includes(land.divisions.region[r]),
+        ),
+    );
   });
 });
