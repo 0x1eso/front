@@ -52,6 +52,7 @@ import {
   designXpCost,
   licenceCostPct,
   PLANE_BASE_DEFS,
+  planeType,
   shipBase,
   shipYear,
   TANK_BASE_DEFS,
@@ -80,7 +81,11 @@ export const DESIGN_DOMAIN: Readonly<Record<DesignKind, Domain>> = {
   plane: 2,
 };
 
-/** Spec §5.5: the airframe size a static P4 type flies on (line conversion). */
+/**
+ * Spec §5.5: the airframe size a static P4 type flies on (line conversion).
+ * Owner: spec §5.4.2's role table read backwards (lane E's own table; it
+ * moves if P4's types or the airframes change).
+ */
 const PLANE_TYPE_SIZE: Readonly<Record<string, string>> = {
   fighter: "small",
   cv_fighter: "small",
@@ -129,6 +134,7 @@ export function issueDesign(
     case "design_save":
       return saveOrder(d, id, o.def, o.slot ?? 0, null, day);
     case "design_copy": {
+      if (o.from > DESIGN_SLOTS[o.def.kind]) return "bad_index";
       const from = d.designSlot(id, o.def.kind, o.from);
       if (from === null) return "bad_slot";
       // Spec §5.6: a captured or received design is never reworked.
@@ -138,6 +144,7 @@ export function issueDesign(
       return saveOrder(d, id, o.def, 0, from.def, day);
     }
     case "design_obsolete": {
+      if (o.slot > DESIGN_SLOTS[o.design]) return "bad_index";
       const s = d.designSlot(id, o.design, o.slot);
       if (s === null) return "bad_slot";
       if (!s.obsolete) {
@@ -148,6 +155,7 @@ export function issueDesign(
       return null;
     }
     case "design_rename": {
+      if (o.slot > DESIGN_SLOTS[o.design]) return "bad_index";
       const s = d.designSlot(id, o.design, o.slot);
       if (s === null) return "bad_slot";
       s.def.name = o.name;
@@ -184,16 +192,18 @@ function saveOrder(
   if (block !== null) return block;
   const kind = def.kind;
   if (slot !== 0) {
-    if (slot > DESIGN_SLOTS[kind]) return "bad_slot";
+    // (Review E7: "design_in_use" here reads "the slot is taken".)
+    if (slot > DESIGN_SLOTS[kind]) return "bad_index";
     if (c.des[kind][slot - 1] !== null) return "design_in_use";
   } else if (freeSlot(d, id, kind) === 0) {
     return "design_slots_full";
   }
-  if (!d.spendXp(id, DESIGN_DOMAIN[kind], designXpCost(before, def))) {
-    return "no_xp";
-  }
+  const cost = designXpCost(before, def);
+  if (d.xpOf(id, DESIGN_DOMAIN[kind]) < cost) return "no_xp";
+  // Review E5: the save first, the experience once it stands.
   const got = saveDesign(d, id, def, slot, "own", 0, 0, day);
   if (typeof got !== "number") return got;
+  d.spendXp(id, DESIGN_DOMAIN[kind], cost);
   d.message(id, "ww1936_design_saved", { name: def.name });
   return null;
 }
@@ -347,7 +357,7 @@ export function saveDesign(
   const kind = def.kind;
   const s = slot === 0 ? freeSlot(d, id, kind) : slot;
   if (s === 0) return "design_slots_full";
-  if (s < 1 || s > DESIGN_SLOTS[kind]) return "bad_slot";
+  if (s < 1 || s > DESIGN_SLOTS[kind]) return "bad_index";
   if (c.des[kind][s - 1] !== null) return "design_in_use";
   c.des[kind][s - 1] = {
     def: copyDef(def) as DesignSlot["def"],
@@ -414,9 +424,8 @@ export function equipCostMilli(d: WwDepth, id: number, key: number): number {
  * Spec §5.3.4, §6, §7.1 — a naval line's unit cost, naval industry milli:
  * P4's (lineCostMilli) × (100 + the line's ship design's module cost
  * percent) / 100 × the naval MIO cost, and for a licensed ship design the
- * licence surcharge (shipLicenceCostPct). Merge glue: P4's
- * NavalLines.stepNavalLines still reads lineCostMilli(l); it should read
- * this (a ship design costs its modules, a licence its surcharge).
+ * licence surcharge (shipLicenceCostPct). P4's NavalLines.stepNavalLines
+ * and the naval line view read it (review E3).
  */
 export function navalLineCostMilli(
   d: WwDepth,
@@ -439,7 +448,9 @@ export function navalLineCostMilli(
 /**
  * Lane M's licence rule (licenceCostPct of the item's year over the
  * newest year of the licensee's own line, 1936 at least) for a ship
- * design, which has no EQUIP_KEYS key: a "licensed" slot only; its hull
+ * design, which has no EQUIP_KEYS key. Owner: lane M's
+ * Licences.licenceCostPctFor / lineNewestYear (a copy for ships; change
+ * both together, review E12): a "licensed" slot only; its hull
  * year over the newest generation of the class the licensee researched
  * or designed itself.
  */
@@ -473,6 +484,31 @@ function statsOf(d: WwDepth, id: number): Partial<Record<WwStatKey, number>> {
   >;
 }
 
+/**
+ * P1's AI shares (review E4): the static type a design key counts as — a
+ * light-chassis tank: light tanks, any other tank design: medium tanks
+ * (as light lines count as medium once mediums exist), a plane design:
+ * the P4 type it flies as; null for a static key or an empty slot.
+ */
+export function designShareType(
+  d: WwDepth,
+  id: number,
+  key: number,
+): EquipmentType | null {
+  const def = designOfKey(d, id, key);
+  if (def === null) return null;
+  if (def.kind === "plane") {
+    const t = planeType(def);
+    return (AIR_TYPES as readonly string[]).includes(t)
+      ? (t as AirType)
+      : "fighter";
+  }
+  return TANK_BASE_DEFS[def.base]?.weight === "light" &&
+    tankRole(def) === "tank"
+    ? "light_tank"
+    : "medium_tank";
+}
+
 /** Resources per factory (RESOURCE_IDS order) of an EQUIP_KEYS index: a design's, else P1's table. */
 export function equipResources(d: WwDepth, id: number, key: number): number[] {
   const [type, gen] = EQUIP_KEYS[key];
@@ -488,8 +524,8 @@ export function equipResources(d: WwDepth, id: number, key: number): number[] {
 /**
  * Spec §5.5: the efficiency a line keeps switching keys, bp — two designs
  * by designRetentionBp (same base 90%, same role 60%); a static light or
- * medium tank and a tank design on a chassis of that weight 60%; −1:
- * P1's rule.
+ * medium tank and a tank design on a chassis of that weight 60%; plus the
+ * country's retentionBp as P1 adds it (at most 100%); −1: P1's rule.
  */
 export function lineRetentionBp(
   d: WwDepth,
@@ -499,15 +535,23 @@ export function lineRetentionBp(
 ): number {
   const a = designOfKey(d, id, fromKey);
   const b = designOfKey(d, id, toKey);
-  if (a !== null && b !== null) return designRetentionBp(a, b);
-  const des = a ?? b;
-  if (des === null || des.kind !== "tank") return -1;
-  const st = EQUIP_KEYS[a === null ? fromKey : toKey][0];
-  const w = TANK_BASE_DEFS[des.base]?.weight;
-  const same =
-    (st === "light_tank" && w === "light") ||
-    (st === "medium_tank" && w === "medium");
-  return same && tankRole(des) === "tank" ? 6_000 : -1;
+  let base: number;
+  if (a !== null && b !== null) {
+    base = designRetentionBp(a, b);
+  } else {
+    const des = a ?? b;
+    if (des === null || des.kind !== "tank") return -1;
+    const st = EQUIP_KEYS[a === null ? fromKey : toKey][0];
+    const w = TANK_BASE_DEFS[des.base]?.weight;
+    const same =
+      (st === "light_tank" && w === "light") ||
+      (st === "medium_tank" && w === "medium");
+    base = same && tankRole(des) === "tank" ? 6_000 : -1;
+  }
+  if (base < 0) return -1;
+  // Review E13: P1's retention techs add to every switch (effAfterSwitch).
+  const bonus = d.ww.economy.country(id)?.stats.retentionBp ?? 0;
+  return Math.min(10_000, base + bonus);
 }
 
 /**
@@ -629,7 +673,11 @@ export function planeStatsOfKey(
   return s;
 }
 
-/** PlaneStats.planeStats's percent lines on a design's numbers (no generation: the design is the model). */
+/**
+ * PlaneStats.planeStats's percent lines on a design's numbers (no
+ * generation: the design is the model). Owner: P4's planeStats — a copy
+ * of its atk/def/agi/naval percent lines; change both together (review E12).
+ */
 function withAirStats(b: PlaneDesignStats, st: WwStats): PlaneDesignStats {
   const t = b.type as AirType;
   const fighterLike = t === "fighter" || t === "cv_fighter";
@@ -716,12 +764,27 @@ export function navalLineDesignBlock(
   if (sb === null || sb.cls !== SHIP_CLASSES[cls] || sb.gen !== gen) {
     return "bad_line";
   }
-  if (treatyMember(d, id) && (sb.cls === "bb" || sb.cls === "bc")) {
-    const mods: readonly string[] = s.def.modules;
-    if (mods.includes("shbb_hull")) return "treaty_limit";
-    if (!treatyEscalated(d) && mods.includes("main_heavy")) {
-      return "treaty_limit";
-    }
+  return shipTreatyBlock(d, id, s.def);
+}
+
+/**
+ * Spec §13.3, the one treaty check of a ship design in use (a line, a
+ * refit, the AI's line choice; designBlock holds it at the save): a
+ * treaty member's battleship or battlecruiser design with the super-heavy
+ * hull, or with the main battery upgrade before the escalator, is
+ * "treaty_limit" — however the design came (saved, granted, licensed).
+ */
+export function shipTreatyBlock(
+  d: WwDepth,
+  id: number,
+  def: { base: string; modules: readonly string[] },
+): WwOrderBlock | null {
+  const sb = shipBase(def.base);
+  if (sb === null || (sb.cls !== "bb" && sb.cls !== "bc")) return null;
+  if (!treatyMember(d, id)) return null;
+  if (def.modules.includes("shbb_hull")) return "treaty_limit";
+  if (!treatyEscalated(d) && def.modules.includes("main_heavy")) {
+    return "treaty_limit";
   }
   return null;
 }

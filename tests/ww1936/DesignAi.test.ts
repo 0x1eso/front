@@ -13,15 +13,25 @@ import {
   aiDesignsDay,
 } from "@openfront/engine/ww1936/depth/AiDesigns";
 import {
+  equipResources,
   grantDesign,
   sameDesign,
+  saveDesign,
 } from "@openfront/engine/ww1936/depth/Designs";
 import type {
   DesignSlot,
   WwDepth,
 } from "@openfront/engine/ww1936/depth/WwDepth";
+import {
+  aiInput,
+  AiPlan,
+  aiPlan,
+} from "@openfront/engine/ww1936/economy/AiEconomy";
 import { issueNavalLineOrder } from "@openfront/engine/ww1936/economy/NavalLines";
-import { addLine } from "@openfront/engine/ww1936/economy/Production";
+import {
+  addLine,
+  changeLine,
+} from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
 import { DEEP } from "./deepFixture";
@@ -241,5 +251,95 @@ describe("World War 1936 P6: the AI's designs", () => {
     expect(list[0].def.modules).toEqual(PRESET.def.modules);
     expect(list[0].origin).toBe("own");
     expect(d.xpOf(GBR, 0)).toBe(xp);
+  });
+
+  it("an AI treaty member's battleship line never takes a granted shbb_hull design", async () => {
+    const { ww, d } = await game([]);
+    const FRA = DEEP.tag.FRA;
+    const ce = ww.economy.country(FRA)!;
+    for (const t of ["bb_2", "bb_3", "super_heavy_battleship"] as const) {
+      ce.addTech(t);
+    }
+    // No navy experience: the AI cannot save its own fit.
+    ww.navy.country(FRA)!.navyXpMilli = 0;
+    const shbb = {
+      kind: "ship" as const,
+      base: "bb_3",
+      modules: ["", "", "", "", "", "shbb_hull"],
+      name: "@grant",
+    };
+    expect(saveDesign(d, FRA, shbb, 0, "own", 0, 0, 0)).toBe(1);
+    expect(
+      issueNavalLineOrder(
+        ww.economy,
+        ce,
+        {
+          kind: "naval_line_add",
+          cls: "bb",
+          gen: 3,
+          docks: 1,
+          count: 1,
+          port: DEEP.region.lyon,
+        },
+        ww.scenario,
+      ),
+    ).toBeNull();
+    const line = ce.navalLines[ce.navalLines.length - 1];
+    let day = AI_TD_DAY;
+    while (day % 10 !== FRA % 10) day++;
+    aiDesignsDay(d, FRA, day);
+    expect(line.design).toBe(0);
+    // A legal design of the hull is taken.
+    const std = { ...shbb, modules: ["", "sec_aa", "", "", "", "floatplane"] };
+    expect(saveDesign(d, FRA, std, 0, "own", 0, 0, 0)).toBe(2);
+    aiDesignsDay(d, FRA, day + 10);
+    expect(line.design).toBe(2);
+  });
+
+  it("a design line counts against its static share: no extra medium line (review E4)", async () => {
+    usePoliticsContent(depthFixture());
+    const runner = await wwRunner(
+      {},
+      [{ clientID: HUMAN, country: "DEU" }],
+      DEEP.map,
+    );
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const ww = runner.game.worldWar()!;
+    const ce = ww.economy.country(DEU)!;
+    ce.addTech("medium_tank_1");
+    clearStartSetup(ww.economy, ce);
+    const med = {
+      kind: "tank" as const,
+      base: "medium_1" as const,
+      modules: ["", "", "", "", "", "", ""],
+      armorLevel: 0,
+      engineLevel: 0,
+      name: "Med",
+    };
+    expect(saveDesign(ww.depth, DEU, med, 0, "own", 0, 0, 0)).toBe(1);
+    expect(addLine(ww.economy, ce, "medium_tank", 1, 1)).toBeNull();
+    const line = ce.lines[0];
+    ce.totals.idleMil = 6;
+    const tick = runner.game.ticks();
+    const day = ww.day(tick);
+    const addsMedium = (orders: AiPlan) =>
+      orders.some(
+        (o) => o.kind === "add_line" && o.equipment === "medium_tank",
+      );
+    // A static medium line: the plan adds to it, no second medium line.
+    expect(addsMedium(aiPlan(aiInput(ww.economy, ce, day, tick)))).toBe(false);
+    // The line moves to the design: still none.
+    expect(changeLine(ww.economy, ce, line.id, "tank_design", 1)).toBeNull();
+    const input = aiInput(ww.economy, ce, day, tick);
+    expect(input.lines[0].as).toBe("medium_tank");
+    expect(input.lines[0].per).toEqual(equipResources(ww.depth, DEU, line.key));
+    const plan = aiPlan(input);
+    expect(addsMedium(plan)).toBe(false);
+    // Without the mapping (P1's old reading) a medium line would open.
+    const raw = {
+      ...input,
+      lines: input.lines.map(({ as: _a, per: _p, ...l }) => l),
+    };
+    expect(addsMedium(aiPlan(raw))).toBe(true);
   });
 });

@@ -6,15 +6,27 @@ import {
   FLEET_STATES,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { licenceCostPct } from "@openfront/engine-lib/ww1936/DesignRules";
 import { navalLineOutputMilli } from "@openfront/engine-lib/ww1936/NavalLineRules";
+import { lineUnitCost } from "@openfront/engine-lib/ww1936/ShipStats";
+import { copyDesignTo } from "@openfront/engine/ww1936/depth/DesignCopy";
+import {
+  navalLineCostMilli,
+  saveDesign,
+  shipTreatyBlock,
+} from "@openfront/engine/ww1936/depth/Designs";
 import {
   refitCostMilli,
   refitHolds,
 } from "@openfront/engine/ww1936/depth/Refit";
+import {
+  issueNavalLineOrder,
+  stepNavalLines,
+} from "@openfront/engine/ww1936/economy/NavalLines";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, step, stepTo, wwRunner } from "./util";
+import { grantDoctrineStats, HUMAN, step, stepTo, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -165,5 +177,85 @@ describe("World War 1936 P6: ship refits", () => {
     expect(f.docked).toBe(0);
     expect(t.refitLeft[t.rowOf(ship)]).toBe(left);
     expect(t.design[t.rowOf(ship)]).toBe(0);
+  });
+
+  it("a treaty member cannot refit to a licensed main_heavy battleship", async () => {
+    const { runner, ww, d, navy } = await game();
+    const DEU = DEEP.tag.DEU;
+    const big = {
+      kind: "ship" as const,
+      base: "bb_2",
+      modules: ["main_heavy", "", "", "", "", ""],
+      name: "Big Gun",
+    };
+    expect(saveDesign(d, DEU, big, 0, "own", 0, 0, 0)).toBe(1);
+    const lic = copyDesignTo(d, DEU, 1, "ship", GBR, "licensed")!;
+    const fid = navy.createFleet(GBR, LONDON, [["bb", 2, 1]]);
+    const ship = navy.fleets.get(fid)!.ships[0];
+    const t = navy.ships;
+    expect(
+      d.issue(
+        GBR,
+        { kind: "ship_refit", ship, slot: lic },
+        runner.game.ticks(),
+      ),
+    ).toBe("treaty_limit");
+    const r = t.rowOf(ship);
+    expect([t.design[r], t.refitTo[r], t.refitLeft[r]]).toEqual([0, 0, 0]);
+    // Outside the treaty Germany may (no refit port there: refused later).
+    expect(shipTreatyBlock(d, DEU, big)).toBeNull();
+    expect(shipTreatyBlock(d, GBR, big)).toBe("treaty_limit");
+    void ww;
+  });
+
+  it("a naval line pays its design's modules, the naval MIO cost and a licence", async () => {
+    const { ww, d, navy } = await game();
+    const ce = ww.economy.country(GBR)!;
+    grantDoctrineStats(ww, GBR, { mioCostPct_naval: -10 });
+    expect(
+      issueNavalLineOrder(
+        ww.economy,
+        ce,
+        {
+          kind: "naval_line_add",
+          cls: "dd",
+          gen: 2,
+          docks: 1,
+          count: 3,
+          port: LONDON,
+          design: 1,
+        },
+        ww.scenario,
+      ),
+    ).toBeNull();
+    const l = ce.navalLines[ce.navalLines.length - 1];
+    const hull = lineUnitCost("dd", 2) * 1000;
+    // sec_aa +5%, then the MIO's −10%.
+    const cost = Math.floor((Math.floor((hull * 105) / 100) * 90) / 100);
+    expect(navalLineCostMilli(d, GBR, l)).toBe(cost);
+    // The day's step launches at that cost, not at P4's hull cost.
+    const ships = () =>
+      navy.fleetsOf(GBR).reduce((n, f) => n + f.ships.length, 0);
+    l.activeDocks = 1;
+    l.fill = 1000;
+    l.progress = cost - 1 - navalLineOutputMilli(1, 0, 1000) * 2;
+    const n0 = ships();
+    stepNavalLines(ww.economy, ce, 0);
+    expect(ships()).toBe(n0);
+    l.progress = cost - 1;
+    stepNavalLines(ww.economy, ce, 0);
+    expect(ships()).toBe(n0 + 1);
+    // A licensed design adds its surcharge.
+    const DEU = DEEP.tag.DEU;
+    expect(saveDesign(d, DEU, AA_DD, 0, "own", 0, 0, 0)).toBe(1);
+    const lic = copyDesignTo(d, DEU, 1, "ship", GBR, "licensed")!;
+    expect(
+      navalLineCostMilli(d, GBR, {
+        cls: l.cls,
+        gen: 2,
+        progress: 0,
+        design: lic,
+      }),
+    ).toBe(Math.floor((cost * (100 + licenceCostPct(0))) / 100));
   });
 });

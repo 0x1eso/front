@@ -18,6 +18,7 @@ import { effectiveLevel } from "../economy/Buildings";
 import { lendDocks } from "../economy/NavalLines";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import type { Fleet, WwNavy } from "../navy/WwNavy";
+import { shipTreatyBlock } from "./Designs";
 import type { WwDepth } from "./WwDepth";
 
 /** Spec §5.3.4: a naval base of this level or more refits. */
@@ -65,7 +66,8 @@ function dockDayMilli(ce: CountryEconomy): number {
 }
 
 /**
- * ship_refit (spec §5.3.4): a design of the ship's class and generation,
+ * ship_refit (spec §5.3.4): a design the naval treaty allows (§13.3,
+ * "treaty_limit"), of the ship's class and generation,
  * the country's own or licensed and not obsolete, another than the one it
  * has; the ship docked in its country's naval base of level ≥ 3, not
  * refitting already, with a dockyard to borrow. The days are the cost
@@ -85,6 +87,9 @@ export function startRefit(
   const t = navy.ships;
   const r = t.rowOf(ship);
   if (r < 0 || t.owner[r] !== id) return "bad_index";
+  // Spec §13.3 (review E2): the treaty holds for a refit too.
+  const treaty = shipTreatyBlock(d, id, s.def);
+  if (treaty !== null) return treaty;
   const ce = d.ww.economy.country(id);
   const sb = shipBase(s.def.base);
   const cls = SHIP_CLASSES[t.cls[r]];
@@ -179,8 +184,10 @@ export function dailyRefits(d: WwDepth, id: number, day: number): void {
     }
     if (held) {
       holdInPort(navy, f, day);
-    } else if (done && f.resumeDay > day && f.resumeDay <= day + 2) {
-      // The refit's own hold ends with it (a battle's later day stays).
+    } else if (done && f.resumeDay === day + 1) {
+      // The refit's own hold (yesterday's day + 2) ends with it; another
+      // day (a battle's) stays. A refit done the day it began keeps its
+      // first hold: the fleet waits a day more (review E14).
       f.resumeDay = -1;
     }
   }

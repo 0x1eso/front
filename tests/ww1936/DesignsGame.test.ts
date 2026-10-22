@@ -2,39 +2,59 @@
 // real game — a human Britain on ww1936deep, the techs and experience
 // given by the test (plan decision 30).
 import type { DepthOrder, WwOrder } from "@openfront/engine-api/Schemas";
-import type { TankDesignStats } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  PLANE_BASES,
+  PlaneDesignStats,
+  TankDesignStats,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   equipKey,
+  WW_TECH_IDS,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
+  TPL_TD_DEFEND,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  SHIP_CLASSES,
+  SHIP_GENS,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { divisionMods } from "@openfront/engine-lib/ww1936/CombatRules";
 import {
   convertCost,
+  designBlock,
+  planeStats as designPlaneStats,
   designXpCost,
   licenceCostPct,
+  planeType,
+  recommendedPlane,
+  recommendedShip,
   reliabilityLossBp,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { lineUnitCost } from "@openfront/engine-lib/ww1936/ShipStats";
 import { copyDesignTo } from "@openfront/engine/ww1936/depth/DesignCopy";
 import {
   conversionCostMilli,
+  designPlaneAsP4,
   equipCostMilli,
   equipResources,
   lineRetentionBp,
   navalLineCostMilli,
   navalLineDesignBlock,
+  planeStatsOfKey,
   saveDesign,
   shipLicenceCostPct,
 } from "@openfront/engine/ww1936/depth/Designs";
 import { designCtxOf } from "@openfront/engine/ww1936/depth/WwDepth";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
-import { designLossMilli } from "@openfront/engine/ww1936/land/Battles";
+import {
+  designLossMilli,
+  modInputOf,
+} from "@openfront/engine/ww1936/land/Battles";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { vi } from "vitest";
@@ -42,11 +62,13 @@ import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import {
   clearStartSetup,
+  gameHash,
   grantDoctrineStats,
   HUMAN,
   placeArmy,
   step,
   stepTo,
+  wwRestore,
   wwRunner,
 } from "./util";
 
@@ -78,6 +100,15 @@ const MED1: Def = {
   name: "Med I",
 };
 const MED2: Def = { ...MED1, base: "medium_2", name: "Med II" };
+/** A medium II tank destroyer (the small gun, no turret). */
+const TD: Def = {
+  kind: "tank",
+  base: "medium_2",
+  modules: ["gun_small", "turret_none", "bogie", "welded", "petrol", "", ""],
+  armorLevel: 0,
+  engineLevel: 0,
+  name: "Jager",
+};
 
 /** A game past the preparation minute (the depth days run from there). */
 async function game(
@@ -105,6 +136,7 @@ const TANK_TECHS: WwTechId[] = [
   "medium_tank_2",
   "heavy_tank_1",
   "tank_radio",
+  "anti_tank_1",
 ];
 
 /** A new template of `battalions` (P2's order); its id. */
@@ -176,25 +208,58 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(addLine(ww.economy, ce, "tank_design", 1, 2)).toBeNull();
     step(runner, 90 * 15);
     expect(ce.stock[key]).toBeGreaterThan(0);
-    // Topped up for a division (the test does not wait for 80 tanks).
+    // Topped up for a division (the test does not wait for 80 tanks), and
+    // a tank destroyer design beside it (review E9a: train, then fight).
     ce.stock[key] += 100;
-    const tpl = template(ww, GBR, ["heavy_armor", "heavy_armor"]);
-    const army = placeArmy(runner.game, "GBR", LONDON, 1, tpl);
-    const r = ww.land.divisions.rowOf(army.divisions[0]);
+    expect(
+      d.issue(GBR, { kind: "design_save", def: TD }, runner.game.ticks()),
+    ).toBeNull();
+    const td = d.designStatsOf(GBR, "tank", 2) as TankDesignStats;
+    expect(td.role).toBe("tank_destroyer");
+    ce.stock[equipKey("tank_design", 2)] = 100;
+    const tpl = template(ww, GBR, ["heavy_armor", "tank_destroyer"]);
+    const land = ww.land;
+    expect(
+      land.issue(
+        GBR,
+        { kind: "train", template: tpl, count: 1, army: 0, region: 0 },
+        "player",
+      ),
+    ).toBeNull();
+    const cl = land.country(GBR)!;
+    const entry = cl.training[cl.training.length - 1].id;
+    step(runner, 12 * 15);
+    const trainee = cl.trainees.find((x) => x.entry === entry)!;
+    expect(trainee.equip[GROUND_STATIC_SLOTS]).toBeGreaterThan(0);
+    expect(land.issue(GBR, { kind: "deploy_now", entry }, "player")).toBeNull();
+    const r = land.rowsOf(GBR).find((x) => land.divisions.template[x] === tpl)!;
     const j = GROUND_STATIC_SLOTS; // design slot 1
-    expect(ww.land.divisions.equipOf(r)[j]).toBe(80);
-    // The battalion numbers are the design's (spec §5.2.6).
-    const s = ww.land.baseStatsOf(r);
-    expect(s.soft).toBe(2 * ds.soft);
-    expect(s.hard).toBe(2 * ds.hard);
-    expect(s.brk).toBe(2 * ds.brk);
-    expect(s.armor).toBe(ds.armor);
-    expect(s.speedCenti).toBe(ds.speedCenti);
-    expect(s.hardnessPm).toBe(ds.hardnessPm);
-    // Radio: +2 organisation over the battalion's 10.
-    expect(s.orgMilli).toBe(12_000);
+    const eq = land.divisions.equipOf(r);
+    expect(eq[j]).toBeGreaterThan(0);
+    expect(eq[j + 1]).toBeGreaterThan(0);
+    // The battalion numbers are the designs' (spec §5.2.6).
+    const s = land.baseStatsOf(r);
+    expect(s.soft).toBe(ds.soft + td.soft);
+    expect(s.hard).toBe(ds.hard + td.hard);
+    expect(s.brk).toBe(ds.brk + td.brk);
+    expect(s.speedCenti).toBe(Math.min(ds.speedCenti, td.speedCenti));
+    // Radio: +2 organisation over the heavy battalion's 10.
+    expect(s.orgMilli).toBe(11_000);
+    // It fights with them: the tank destroyer's +10% when defending.
+    expect(s.designFlags & TPL_TD_DEFEND).not.toBe(0);
+    const here = land.divisions.region[r];
+    const defend = modInputOf(land, r, here, false);
+    expect(defend.designFlags).toBe(s.designFlags);
+    expect(
+      divisionMods(defend).defenseLines.some((l) => l.id === "tank_destroyer"),
+    ).toBe(true);
+    expect(
+      divisionMods(modInputOf(land, r, here, true)).defenseLines.some(
+        (l) => l.id === "tank_destroyer",
+      ),
+    ).toBe(false);
     // Losses follow the design's reliability (spec §5.2.2).
-    const ks = ww.land.keyStatsOf(GBR);
+    const ks = land.keyStatsOf(GBR);
     expect(designLossMilli(ks, j, 10_000)).toBe(
       Math.floor((10_000 * reliabilityLossBp(ds.relPm)) / 10_000),
     );
@@ -440,5 +505,198 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(ctx("small_2")).toBe(-10);
     expect(ctx("medium_1")).toBe(5);
     expect(ctx("large_3")).toBe(5);
+  });
+});
+
+// Review E9b: the plane and ship numbers lane E adds to P4 (pure where it can be).
+describe("World War 1936 P6: plane and ship design numbers", () => {
+  const ALL = new Set(WW_TECH_IDS);
+  const OK = {
+    techs: ALL,
+    projects: -1,
+    treatyMember: false,
+    treatyEscalated: true,
+  };
+  const ROLES = [
+    undefined,
+    "fighter",
+    "cas",
+    "naval_bomber",
+    "heavy_fighter",
+    "bomber",
+    "strat_bomber",
+    "transport_plane",
+  ];
+
+  it("the recommended fits pass the designer's checks", () => {
+    for (const base of PLANE_BASES) {
+      for (const role of ROLES) {
+        const def = recommendedPlane(base, ALL, role);
+        expect(designBlock(def, OK), `${base} ${role}`).toBeNull();
+      }
+    }
+    expect(planeType(recommendedPlane("small_2", ALL, "cas"))).toBe("cas");
+    expect(planeType(recommendedPlane("medium_2", ALL, "naval_bomber"))).toBe(
+      "naval_bomber",
+    );
+    expect(planeType(recommendedPlane("large_1", ALL))).toBe("strat_bomber");
+    expect(planeType(recommendedPlane("medium_1", ALL))).toBe("bomber");
+    // No techs: machine guns, a fighter.
+    expect(recommendedPlane("small_1", new Set()).modules).toEqual([
+      "w_mg4",
+      "w_mg2",
+      "",
+      "",
+    ]);
+    for (const cls of SHIP_CLASSES) {
+      for (let g = 1; g <= SHIP_GENS[cls]; g++) {
+        for (const techs of [undefined, ALL]) {
+          const def = recommendedShip(`${cls}_${g}`, techs, -1);
+          expect(designBlock(def, OK), `${cls}_${g}`).toBeNull();
+        }
+      }
+    }
+    // K5's standard fits without techs; the best researched with them.
+    expect(recommendedShip("dd_1").modules).toEqual(["", "", "sec_aa", ""]);
+    expect(recommendedShip("ss_2").modules).toEqual(["", "engine_long", ""]);
+    expect(recommendedShip("cl_3", ALL).modules).toEqual([
+      "",
+      "sec_dp",
+      "",
+      "radar_adv",
+      "floatplane",
+    ]);
+    expect(recommendedShip("ss_3", ALL).modules).toEqual([
+      "torp_heavy",
+      "engine_long",
+      "snorkel",
+    ]);
+  });
+
+  it("a plane design flies as its P4 type with the design's numbers (spec §5.4.2)", () => {
+    const ctx = { techs: ALL, projects: -1, relPp: 0, costPct: 0 };
+    const fighter = designPlaneStats(recommendedPlane("small_2", ALL), ctx);
+    const p = designPlaneAsP4(fighter, "fighter");
+    expect(p.airAtk).toBe(fighter.airAttack);
+    expect(p.airDef).toBe(fighter.airDefense);
+    expect(p.agility).toBe(fighter.agility);
+    expect(p.speedKmh).toBe(fighter.speed);
+    expect(p.rangeKm).toBe(fighter.range);
+    expect([p.ground, p.strat, p.naval]).toEqual([
+      fighter.ground,
+      fighter.strategic,
+      fighter.naval,
+    ]);
+    // A fighter type's superiority weight: (attack + defence) / 3 (P4's rule).
+    expect(p.supWeightMilli).toBe(
+      Math.floor((fighter.airAttack + fighter.airDefense) / 3),
+    );
+    // Fuel: the type's (0.2 → 200) × the design's cost / the fighter's 22.
+    expect(p.fuelPerSortieMilli).toBe(
+      Math.floor((200 * fighter.costMilli) / 22_000),
+    );
+    // A jet × 1.6.
+    const jet = designPlaneStats(recommendedPlane("jet_1", ALL), ctx);
+    expect(designPlaneAsP4(jet, "fighter").fuelPerSortieMilli).toBe(
+      Math.floor((Math.floor((200 * jet.costMilli) / 22_000) * 160) / 100),
+    );
+    // A bomber: weight 100, its fuel 0.3 × cost / 30.
+    const bomber = designPlaneStats(recommendedPlane("medium_1", ALL), ctx);
+    const b = designPlaneAsP4(bomber, "bomber");
+    expect(b.supWeightMilli).toBe(100);
+    expect(b.fuelPerSortieMilli).toBe(
+      Math.floor((300 * bomber.costMilli) / 30_000),
+    );
+  });
+
+  it("a plane design key carries the country's air percentages", async () => {
+    const { ww, d } = await game();
+    const def = { ...recommendedPlane("small_1", ALL), name: "Hawk" };
+    expect(saveDesign(d, GBR, def, 0, "own", 0, 0, 0)).toBe(1);
+    const key = equipKey("plane_design", 1);
+    const base = d.designStatsOf(GBR, "plane", 1) as PlaneDesignStats;
+    expect(planeStatsOfKey(d, GBR, key)).toBe(base);
+    grantDoctrineStats(ww, GBR, {
+      airAttackPct: 10,
+      fighterAttackPct: 5,
+      airDefensePct: -10,
+    });
+    const s = planeStatsOfKey(d, GBR, key)!;
+    expect(s.airAttack).toBe(Math.floor((base.airAttack * 115) / 100));
+    expect(s.airDefense).toBe(Math.floor((base.airDefense * 90) / 100));
+    expect(s.ground).toBe(base.ground);
+    // Memoised until the stats move.
+    expect(planeStatsOfKey(d, GBR, key)).toBe(s);
+    expect(planeStatsOfKey(d, GBR, equipKey("fighter", 1))).toBeNull();
+  });
+});
+
+// Review E9c: a refit and a conversion survive a snapshot mid-way.
+describe("World War 1936 P6: designs in a snapshot", () => {
+  it("a restored game continues a refit and a converting line the same way", async () => {
+    const { runner, ww, d } = await game();
+    prepare(ww, GBR, TANK_TECHS);
+    const tick = runner.game.ticks();
+    const dd: Def = {
+      kind: "ship",
+      base: "dd_2",
+      modules: ["", "", "sec_aa", ""],
+      name: "AA",
+    };
+    expect(d.issue(GBR, { kind: "design_save", def: dd }, tick)).toBeNull();
+    const fid = ww.navy.createFleet(GBR, LONDON, [["dd", 2, 2]]);
+    const ship = ww.navy.fleets.get(fid)!.ships[0];
+    expect(
+      d.issue(GBR, { kind: "ship_refit", ship, slot: 1 }, tick),
+    ).toBeNull();
+    expect(d.issue(GBR, { kind: "design_save", def: MED1 }, tick)).toBeNull();
+    expect(d.issue(GBR, { kind: "design_save", def: MED2 }, tick)).toBeNull();
+    const ce = ww.economy.country(GBR)!;
+    clearStartSetup(ww.economy, ce);
+    expect(addLine(ww.economy, ce, "tank_design", 2, 2)).toBeNull();
+    ce.stock[equipKey("tank_design", 1)] = 200;
+    expect(
+      d.issue(
+        GBR,
+        {
+          kind: "line_convert",
+          line: ce.lines[0].id,
+          from: equipKey("tank_design", 1),
+        },
+        tick,
+      ),
+    ).toBeNull();
+    step(runner, 4 * 15);
+    const t = ww.navy.ships;
+    expect(t.refitLeft[t.rowOf(ship)]).toBeGreaterThan(0);
+    const b = await wwRestore(
+      runner,
+      [{ clientID: HUMAN, country: "GBR" }],
+      DEEP.map,
+    );
+    const rows = (r: typeof runner) => {
+      const w = r.game.worldWar()!;
+      const s = w.navy.ships;
+      const row = s.rowOf(ship);
+      const e = w.economy.country(GBR)!;
+      return JSON.stringify([
+        s.design[row],
+        s.refitTo[row],
+        s.refitLeft[row],
+        e.lines.map((l) => [l.key, l.convertFrom, l.progress, l.effBp]),
+        e.stock[equipKey("tank_design", 1)],
+        e.stock[equipKey("tank_design", 2)],
+        w.depth.country(GBR)!.des,
+      ]);
+    };
+    expect(rows(b)).toBe(rows(runner));
+    for (let i = 0; i < 20 * 15; i++) {
+      step(runner);
+      step(b);
+      expect(gameHash(b), `tick ${i}`).toBe(gameHash(runner));
+    }
+    expect(rows(b)).toBe(rows(runner));
+    // The refit finished in both.
+    expect(ww.navy.ships.design[ww.navy.ships.rowOf(ship)]).toBe(1);
   });
 });

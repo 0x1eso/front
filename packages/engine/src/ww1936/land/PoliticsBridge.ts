@@ -11,6 +11,8 @@ import {
   GENERALS,
   generalServes,
 } from "@openfront/engine-lib/ww1936/Generals";
+import { receiveDivision, remapGroundSlots } from "../depth/DesignCopy";
+import type { WwDepth } from "../depth/WwDepth";
 import { returnDivisionEquip } from "../economy/Stock";
 import { dmzRegions } from "../politics/Spirits";
 import { closeBattle, leaveBattle } from "./Battles";
@@ -302,9 +304,12 @@ export function transferCountryUnits(
   const toCe = land.econ.country(to);
   if (src === null || dst === null || toCe === null || from === to) return;
   const t = land.divisions;
+  // P6 (lane E, spec §26): design slots become `to`'s copies on the way.
+  const depth = land.ww.depth as WwDepth | undefined;
   if (mode === "disband") {
     for (let r = 0; r < t.rows; r++) {
       if (t.id[r] === 0 || t.owner[r] !== from) continue;
+      if (depth !== undefined) receiveDivision(depth, r, from, to);
       returnDivisionEquip(toCe, t.equipOf(r), t.men[r]);
       land.killDivision(r, false);
     }
@@ -313,7 +318,12 @@ export function transferCountryUnits(
     const armies = land.armiesOf(from).sort((a, b) => a.id - b.id);
     for (const a of armies) transferArmyTo(land, a, to, tplMap);
   }
-  for (const x of src.trainees) returnDivisionEquip(toCe, x.equip, x.men);
+  for (const x of src.trainees) {
+    if (depth !== undefined) {
+      remapGroundSlots(depth, x.equip, from, to, "received");
+    }
+    returnDivisionEquip(toCe, x.equip, x.men);
+  }
   src.training = [];
   src.trainees = [];
   for (const g of src.generals) g.army = 0;
@@ -427,9 +437,12 @@ function moveDivisions(
   const toCe = land.econ.country(to);
   if (src === null || dst === null || toCe === null) return;
   const t = land.divisions;
+  // P6 (lane E, spec §26): design slots become `to`'s copies on the way.
+  const depth = land.ww.depth as WwDepth | undefined;
   for (const id of [...ids].sort((x, y) => x - y)) {
     const r = t.rowOf(id);
     if (r < 0) continue;
+    if (depth !== undefined) receiveDivision(depth, r, from, to);
     if (dest === null) {
       returnDivisionEquip(toCe, t.equipOf(r), t.men[r]);
       land.killDivision(r, false);

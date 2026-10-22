@@ -20,6 +20,11 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  GROUND_EQUIP_KEYS,
+  GROUND_SLOTS,
+  GROUND_STATIC_SLOTS,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import {
   planeType,
   TANK_BASE_DEFS,
   tankRole,
@@ -161,4 +166,126 @@ export function newestGen(d: WwDepth, id: number, type: EquipmentType): number {
     if (techs.every((t) => t !== undefined && done.has(t))) return g;
   }
   return 1;
+}
+
+// ---- Spec §26 risk 1: units changing owner carry their designs (review E1) ----
+
+/**
+ * A ground equipment vector (GROUND_SLOTS: a division's or a trainee's) of
+ * `from`'s going to `to`: each tank design slot's units move to `to`'s
+ * copy of the design (receiveKey), or to the nearest static slot; units
+ * of a design `from` no longer has are lost. Static slots stay.
+ */
+export function remapGroundSlots(
+  d: WwDepth,
+  slots: number[] | Int32Array,
+  from: number,
+  to: number,
+  origin: DesignOrigin,
+): void {
+  if (from === to) return;
+  let moves: [number, number][] | null = null;
+  for (let j = GROUND_STATIC_SLOTS; j < GROUND_SLOTS; j++) {
+    const n = slots[j] ?? 0;
+    if (n <= 0) continue;
+    const k = receiveKey(d, from, GROUND_EQUIP_KEYS[j], to, origin);
+    const j2 = k < 0 ? -1 : GROUND_EQUIP_KEYS.indexOf(k);
+    (moves ??= []).push([j2, n]);
+    slots[j] = 0;
+  }
+  // (After the whole pass: a slot may receive what another one gave up.)
+  for (const [j2, n] of moves ?? []) if (j2 >= 0) slots[j2] += n;
+}
+
+/** A division of `from`'s about to become `to`'s (P3 annexation): its design slots remapped. */
+export function receiveDivision(
+  d: WwDepth,
+  row: number,
+  from: number,
+  to: number,
+  origin: DesignOrigin = "received",
+): void {
+  const land = d.ww.land;
+  const equip = land.divisions.equipOf(row);
+  let any = false;
+  for (let j = GROUND_STATIC_SLOTS; j < GROUND_SLOTS && !any; j++) {
+    any = equip[j] > 0;
+  }
+  if (!any) return;
+  remapGroundSlots(d, equip, from, to, origin);
+  land.touchDivision(row);
+}
+
+/**
+ * P3's merge of an annexed country's stockpile: every key of `from`'s
+ * stock into `to`'s, a design key through receiveKey (a copy of the
+ * design, or the nearest static key; lost when `from` no longer has it).
+ */
+export function receiveStock(
+  d: WwDepth,
+  from: number,
+  to: number,
+  origin: DesignOrigin = "received",
+): void {
+  const src = d.ww.economy.country(from);
+  const dst = d.ww.economy.country(to);
+  if (src === null || dst === null || from === to) return;
+  for (let i = 0; i < src.stock.length; i++) {
+    const n = src.stock[i];
+    if (n === 0) continue;
+    src.stock[i] = 0;
+    const k = n > 0 ? receiveKey(d, from, i, to, origin) : i;
+    if (k >= 0) dst.stock[k] += n;
+  }
+}
+
+/**
+ * A ship row of `from`'s becoming `to`'s (P4 transferShip / transferUnits,
+ * after its owner changed): its design becomes `to`'s copy of it (the
+ * base class with no slot free); a refit in hand is dropped (`to` never
+ * ordered it).
+ */
+export function receiveShip(
+  d: WwDepth,
+  row: number,
+  from: number,
+  to: number,
+  origin: DesignOrigin = "received",
+): void {
+  const t = d.ww.navy.ships;
+  if (from === to) return;
+  const was = t.design[row];
+  t.design[row] =
+    was === 0 ? 0 : (copyDesignTo(d, from, was, "ship", to, origin) ?? 0);
+  t.refitTo[row] = 0;
+  t.refitLeft[row] = 0;
+  if (t.design[row] !== was) {
+    // A different hull's numbers: no more HP than the new maximum.
+    const max = d.ww.navy.shipStatsOf(row).hpMilli;
+    if (t.hp[row] > max) t.hp[row] = max;
+  }
+}
+
+/**
+ * A ship's deck design planes back to its owner's stock (P4's returnDeck
+ * for the static deck slots): the deployed ledger and the stock, so the
+ * planes follow the stock's own path (P3's merge remaps them).
+ */
+export function returnDeckDesigns(
+  d: WwDepth,
+  owner: number,
+  row: number,
+): void {
+  const ce = d.ww.economy.country(owner);
+  if (ce === null) return;
+  const deck = d.ww.navy.ships.deckDOf(row);
+  for (let s = 0; s < deck.length; s++) {
+    const n = deck[s];
+    if (n <= 0) continue;
+    const k = equipKey("plane_design", s + 1);
+    const back = Math.min(n, ce.planesDeployed[k]);
+    ce.planesDeployed[k] -= back;
+    ce.stock[k] += back;
+    deck[s] = 0;
+  }
 }

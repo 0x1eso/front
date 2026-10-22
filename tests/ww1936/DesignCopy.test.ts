@@ -9,7 +9,10 @@ import {
   TankDesignStats,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey, WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { GROUND_STATIC_SLOTS } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  GROUND_EQUIP_KEYS,
+  GROUND_STATIC_SLOTS,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   copyDesignTo,
@@ -18,10 +21,11 @@ import {
 } from "@openfront/engine/ww1936/depth/DesignCopy";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import { annexCountry } from "@openfront/engine/ww1936/politics/Territory";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, stepTo, wwRunner } from "./util";
+import { HUMAN, placeArmy, stepTo, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -209,5 +213,159 @@ describe("World War 1936 P6: design copies", () => {
       receiveKey(d, DEU, equipKey("plane_design", 1), GBR, "received"),
     ).toBe(equipKey("fighter", newestGen(d, GBR, "fighter")));
     expect(newestGen(d, GBR, "fighter")).toBe(1);
+  });
+
+  // Review E1 (spec §26 risk 1): units changing owner carry their designs.
+  describe("an annexation", () => {
+    const TUR = DEEP.tag.TUR;
+    const HEAVY: DesignDef = {
+      kind: "tank",
+      base: "heavy_1",
+      modules: ["gun_cs", "turret_3", "bogie", "welded", "petrol", "", ""],
+      armorLevel: 1,
+      engineLevel: 0,
+      name: "Heavy",
+    };
+    const AA_DD: DesignDef = {
+      kind: "ship",
+      base: "dd_1",
+      modules: ["", "", "sec_aa", ""],
+      name: "AA",
+    };
+
+    /** Turkey: a heavy tank design (slot 1) in a division and the stock, an AA destroyer design (slot 1) on a ship. */
+    async function turkey() {
+      const g = await game();
+      const { runner, ww, d } = g;
+      techs(ww, TUR, ["medium_tank_1", "heavy_tank_1"]);
+      ww.land.country(TUR)!.armyXpMilli = 500_000;
+      expect(saveDesign(d, TUR, HEAVY, 0, "own", 0, 0, 0)).toBe(1);
+      expect(saveDesign(d, TUR, AA_DD, 0, "own", 0, 0, 0)).toBe(1);
+      const ce = ww.economy.country(TUR)!;
+      // 40 go to the division, 47 stay in the stock.
+      ce.stock[equipKey("tank_design", 1)] = 87;
+      const tpl = ww.land.country(TUR)!.nextTemplateId;
+      expect(
+        ww.land.issue(
+          TUR,
+          {
+            kind: "template_save",
+            template: 0,
+            base: 0,
+            name: "Heavy",
+            battalions: ["heavy_armor"],
+            support: [],
+          },
+          "ai",
+        ),
+      ).toBeNull();
+      const army = placeArmy(runner.game, "TUR", DEEP.region.isthmus, 1, tpl);
+      const div = army.divisions[0];
+      const fid = ww.navy.createFleet(TUR, DEEP.region.isthmus, [["dd", 1, 1]]);
+      const ship = ww.navy.fleets.get(fid)!.ships[0];
+      const t = ww.navy.ships;
+      t.design[t.rowOf(ship)] = 1;
+      return { ...g, div, ship };
+    }
+
+    it("tank-design divisions, ships and stock keep their designs under the annexer", async () => {
+      const { runner, ww, d, div, ship } = await turkey();
+      const land = ww.land;
+      const r0 = land.divisions.rowOf(div);
+      const before = land.baseStatsOf(r0);
+      expect(land.divisions.equipOf(r0)[GROUND_STATIC_SLOTS]).toBe(40);
+      const t = ww.navy.ships;
+      const aa = ww.navy.shipStatsOf(t.rowOf(ship)).aa;
+      // Britain's slot 1 holds a design of its own: the copies go to slot 2.
+      techs(ww, GBR, ["medium_tank_1"]);
+      expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(1);
+      expect(
+        saveDesign(
+          d,
+          GBR,
+          { ...AA_DD, modules: ["", "", "", ""] },
+          0,
+          "own",
+          0,
+          0,
+          0,
+        ),
+      ).toBe(1);
+      const gbr = ww.economy.country(GBR)!;
+      const gbrHad = gbr.stock[equipKey("tank_design", 2)];
+      annexCountry(
+        ww.politics,
+        GBR,
+        TUR,
+        "transfer",
+        false,
+        runner.game.ticks(),
+      );
+      const r = land.divisions.rowOf(div);
+      expect(land.divisions.owner[r]).toBe(GBR);
+      const eq = land.divisions.equipOf(r);
+      expect(eq[GROUND_STATIC_SLOTS]).toBe(0);
+      expect(eq[GROUND_STATIC_SLOTS + 1]).toBe(40);
+      const copy = d.designSlot(GBR, "tank", 2)!;
+      expect(copy.origin).toBe("received");
+      expect([copy.from, copy.fromSlot]).toEqual([TUR, 1]);
+      const after = land.baseStatsOf(r);
+      for (const k of [
+        "soft",
+        "hard",
+        "def",
+        "brk",
+        "armor",
+        "pierce",
+      ] as const) {
+        expect(after[k], k).toBe(before[k]);
+      }
+      // The stock: Turkey's 47 heavy tanks are Britain's slot-2 tanks.
+      expect(gbr.stock[equipKey("tank_design", 2)]).toBe(gbrHad + 47);
+      expect(gbr.stock[equipKey("tank_design", 1)]).toBe(0);
+      // The ship: Britain's copy of the AA destroyer, the same numbers.
+      const rs = t.rowOf(ship);
+      expect(t.owner[rs]).toBe(GBR);
+      expect(t.design[rs]).toBe(2);
+      expect(d.designSlot(GBR, "ship", 2)!.def.modules).toEqual(AA_DD.modules);
+      expect(ww.navy.shipStatsOf(rs).aa).toBe(aa);
+    });
+
+    it("with Britain's slots full the units fall back to the nearest static equipment", async () => {
+      const { runner, ww, d, div, ship } = await turkey();
+      techs(ww, GBR, ["medium_tank_1"]);
+      for (let i = 0; i < 12; i++) saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0);
+      for (let i = 0; i < 24; i++) {
+        saveDesign(
+          d,
+          GBR,
+          { ...AA_DD, modules: ["", "", "", ""] },
+          0,
+          "own",
+          0,
+          0,
+          0,
+        );
+      }
+      const gbr = ww.economy.country(GBR)!;
+      const med = equipKey("medium_tank", newestGen(d, GBR, "medium_tank"));
+      const had = gbr.stock[med];
+      annexCountry(
+        ww.politics,
+        GBR,
+        TUR,
+        "transfer",
+        false,
+        runner.game.ticks(),
+      );
+      const land = ww.land;
+      const eq = land.divisions.equipOf(land.divisions.rowOf(div));
+      // A heavy design: the medium tank (spec §5.6).
+      expect(eq[GROUND_STATIC_SLOTS]).toBe(0);
+      expect(eq[GROUND_EQUIP_KEYS.indexOf(med)]).toBe(40);
+      expect(gbr.stock[med]).toBe(had + 47);
+      // A ship with no slot: the base class.
+      expect(ww.navy.ships.design[ww.navy.ships.rowOf(ship)]).toBe(0);
+    });
   });
 });

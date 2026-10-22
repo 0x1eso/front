@@ -52,7 +52,13 @@ import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { aiPersonality } from "../economy/AiEconomy";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { DESIGN_DOMAIN, presetName, sameDesign, saveDesign } from "./Designs";
+import {
+  DESIGN_DOMAIN,
+  navalLineDesignBlock,
+  presetName,
+  sameDesign,
+  saveDesign,
+} from "./Designs";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
@@ -60,6 +66,8 @@ import type { DesignSlot, WwDepth } from "./WwDepth";
 export const AI_TD_DAY = dayOfDate("1940-01-01");
 /** Spec §19.3: … and a heavy tank line from this day. */
 export const AI_HEAVY_DAY = dayOfDate("1942-01-01");
+/** Spec §19.3: a snorkel on the AI's submarines from this day. */
+export const AI_SNORKEL_DAY = dayOfDate("1944-01-01");
 /** Spec §19.3: a reworked design (new modules) at most once a year a base. */
 export const AI_REDESIGN_DAYS = 365;
 /** The AI moves a line within this much of its efficiency cap (P1 R6.7's rule). */
@@ -93,7 +101,20 @@ function newestBase(
 /** Spec §19.3: an aggressor major (the Soviet Union aside: medium tanks first). */
 function roleMajor(d: WwDepth, id: number, ce: CountryEconomy): boolean {
   const tag = d.ww.tagOf(id);
-  return ce.major && tag !== "SUN" && aiPersonality(tag) === "aggressor";
+  return (
+    ce.major &&
+    (tag !== "SUN" || !historical(d)) &&
+    aiPersonality(tag) === "aggressor"
+  );
+}
+
+/**
+ * The historical AI (the lobby's historicalAi): the spec's country rules
+ * and K5's country presets. Off, the AI goes by its personality alone
+ * (review E10; the owner's rule: history is flavour).
+ */
+function historical(d: WwDepth): boolean {
+  return d.mg.config().historicalAi() === true;
 }
 
 /** The (base, role) pairs the AI keeps a tank design of. */
@@ -131,11 +152,13 @@ function presetFor(
   ok: (def: AiDesignPreset["def"]) => boolean,
 ): AiDesignPreset | null {
   const tag = d.ww.tagOf(id);
+  const hist = historical(d);
   let best: AiDesignPreset | null = null;
   let bestScore = -1;
   for (const p of d.ww.politics.content.aiDesignPresets) {
     if (p.def.base !== base || !ok(p.def)) continue;
-    if (p.tags !== undefined && !p.tags.includes(tag)) continue;
+    // A country's own preset is the historical AI's only.
+    if (p.tags !== undefined && (!hist || !p.tags.includes(tag))) continue;
     const from = p.from === undefined ? 0 : dayOfDate(p.from);
     if (from > day) continue;
     const score = (p.tags !== undefined ? 100_000 : 0) + Math.max(0, from);
@@ -443,35 +466,34 @@ function shipFit(
   day: number,
 ): DesignDef {
   const p = presetFor(d, id, base, day, (def) => def.kind === "ship");
-  const projects = d.country(id)?.proj.done ?? 0;
-  if (p !== null) {
-    return withoutLocked(
-      { ...p.def, name: presetName(p.id) },
-      ce.researched,
-      projects,
-    );
-  }
-  const def = recommendedShip(base);
+  const def: DesignDef =
+    p !== null
+      ? { ...p.def, name: presetName(p.id) }
+      : { ...recommendedShip(base), name: presetName(`rec_${base}`) };
   const cls = shipBase(base)?.cls ?? "dd";
   const slots: string[] = [...def.modules];
-  const tag = d.ww.tagOf(id);
   const kinds = SHIP_CLASS_SLOTS[cls];
   const put = (slot: string, m: string) => {
     const i = kinds.indexOf(slot);
     if (i >= 0 && SHIP_MODULE_DEFS[m]?.classes.includes(cls)) slots[i] = m;
   };
-  if ((tag === "GBR" || tag === "USA") && day >= AI_TD_DAY) {
+  // Spec §19.3 (history as flavour: by personality without the historical AI).
+  const tag = d.ww.tagOf(id);
+  const hist = historical(d);
+  const who = aiPersonality(tag);
+  const radar = hist ? tag === "GBR" || tag === "USA" : who === "democracy";
+  const torp = hist ? tag === "JPN" : who === "aggressor";
+  const snorkel = hist ? tag === "DEU" : who === "aggressor";
+  if (radar && day >= AI_TD_DAY) {
     put("secondary", "sec_dp");
     put("fire_control", "radar_surface");
   }
-  if (tag === "JPN") put("torpedo", "torp_heavy");
-  if (tag === "DEU" && day >= dayOfDate("1944-01-01")) {
-    put("special", "snorkel");
-  }
+  if (torp) put("torpedo", "torp_heavy");
+  if (snorkel && day >= AI_SNORKEL_DAY) put("special", "snorkel");
   return withoutLocked(
-    { ...def, modules: slots, name: presetName(`rec_${base}`) },
+    { ...def, modules: slots },
     ce.researched,
-    projects,
+    d.country(id)?.proj.done ?? 0,
   );
 }
 
@@ -486,6 +508,9 @@ function aiShipDesigns(
   ce: CountryEconomy,
   day: number,
 ): void {
+  // Review E2: a design on a line passes the line's own check (the treaty too).
+  const fits = (cls: number, gen: number, slot: number) =>
+    navalLineDesignBlock(d, id, cls, gen, slot) === null;
   for (const l of ce.navalLines) {
     if (l.cls >= SHIP_CLASSES.length) continue;
     const base = `${SHIP_CLASSES[l.cls]}_${l.gen}`;
@@ -494,7 +519,7 @@ function aiShipDesigns(
     let latest: DesignSlot | null = null;
     let latestSlot = 0;
     for (const [s, x] of usable(d, id, "ship")) {
-      if (x.def.base !== base) continue;
+      if (x.def.base !== base || !fits(l.cls, l.gen, s)) continue;
       if (sameDesign(x.def, fit)) slot = s;
       if (latest === null || x.savedDay >= latest.savedDay) {
         latest = x;
@@ -509,6 +534,30 @@ function aiShipDesigns(
     }
     // (A fit the AI cannot save yet: its latest design of the hull.)
     if (slot === 0 && latestSlot > 0) slot = latestSlot;
-    if (slot > 0 && l.design !== slot) l.design = slot;
+    // Between two ships only (a player ends a line and adds another): a
+    // line not started, or the day after a launch (its progress is the
+    // remainder, below a day's output).
+    const between = l.progress === 0 || l.progress < l.lastOutput;
+    if (slot > 0 && l.design !== slot && between && fits(l.cls, l.gen, slot)) {
+      l.design = slot;
+    }
   }
+  // Review E11: an own ship design no naval line builds goes obsolete once
+  // a newer one of its hull exists (its slot frees when no ship has it).
+  const c = d.country(id)!;
+  const newest = new Map<string, [number, number]>();
+  c.des.ship.forEach((x, i) => {
+    if (x === null || x.obsolete || x.origin !== "own") return;
+    const was = newest.get(x.def.base);
+    if (was === undefined || x.savedDay >= was[1]) {
+      newest.set(x.def.base, [i + 1, x.savedDay]);
+    }
+  });
+  c.des.ship.forEach((x, i) => {
+    if (x === null || x.obsolete || x.origin !== "own") return;
+    if (newest.get(x.def.base)?.[0] === i + 1) return;
+    if (ce.navalLines.some((l) => l.design === i + 1)) return;
+    x.obsolete = true;
+    d.markDesign(id, "ship", i + 1);
+  });
 }
