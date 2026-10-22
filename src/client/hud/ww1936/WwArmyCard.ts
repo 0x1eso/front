@@ -1,5 +1,9 @@
 import type { LandOrder } from "@openfront/engine-api/Schemas";
-import { MEDALS, type RaidKind } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  FACILITY_IDS,
+  MEDALS,
+  type RaidKind,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
@@ -10,6 +14,7 @@ import {
   WW_MAX_TARGETS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_LAUNCH_SUP_PM } from "@openfront/engine-api/ww1936/NavyTypes";
+import { RAID_TARGETS } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -1352,18 +1357,30 @@ export class WwArmyCard extends LitElement implements Controller {
    * region; the building list waits for the flow to take a building (merge
    * glue for U4: judge it with DepthMiscModel.raidTargets on that region's owner).
    */
+  /**
+   * The raid picker: the kind, then the building wanted. The building goes
+   * with WwStrikeFlowEvent; U4's flow judges it on the picked target
+   * region's owner (DepthMiscModel.raidTargets) once a region is tapped,
+   * and falls back to the first building allowed there (merge glue).
+   */
   private renderRaid(c: Ctx): TemplateResult[] {
     const army = c.card.row.id;
+    const kind = this.raidKind;
     return [
       renderRaidPicker(
-        this.raidKind,
-        [],
+        kind,
+        RAID_TARGETS[kind].map((b) => ({
+          building: b,
+          facility: (FACILITY_IDS as readonly string[]).includes(b),
+        })),
         (k) => {
           this.raidKind = k;
-          this.eventBus.emit(new WwStrikeFlowEvent(k, army));
+          this.requestUpdate();
+        },
+        (b) => {
+          this.eventBus.emit(new WwStrikeFlowEvent(kind, army, b));
           this.panel = "main";
         },
-        () => {},
         () => (this.panel = "more"),
       ),
     ];

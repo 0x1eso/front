@@ -27,6 +27,7 @@ import {
   offered,
   StrikeTargetRow,
 } from "./DepthIndustryModel";
+import { DepthMiscModel } from "./DepthMiscModel";
 import { TWO_TAP_MIN_MS, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 
 export type StrikeFlowKind =
@@ -66,6 +67,8 @@ export class StrikeFlowState {
   rocket: 0 | 1 = 0;
   count = 1;
   building: BuildingId | null = null;
+  /** Raid: the building the starter asked for (U5's picker), taken when allowed. */
+  wantBuilding: BuildingId | null = null;
   /** Para and commando raids: the division sent (resolved from the army at start). */
   unit = 0;
   pendingAt = 0;
@@ -119,7 +122,7 @@ export class WwNukeFlow implements Controller {
 
   init() {
     this.eventBus.on(WwStrikeFlowEvent, (e) => {
-      this.start(e.kind, e.from);
+      this.start(e.kind, e.from, e.building);
     });
   }
 
@@ -181,14 +184,27 @@ export class WwNukeFlow implements Controller {
     return offered(this.targetRows());
   }
 
-  /** The buildings a raid may name in the chosen region (they must stand there). */
+  /**
+   * The buildings a raid may name in the chosen region: they must stand
+   * there, and U5's DepthMiscModel.raidTargets judges them on that
+   * region's controller (facilities need close civil intel; merge glue).
+   * Nothing without a controller: never id 0 or an arbitrary enemy.
+   */
   raidBuildings(): BuildingId[] {
     const eco = this.game.wwEconomy?.();
-    if (eco === null || eco === undefined || this.state.region === 0) return [];
+    const region = this.state.region;
+    if (eco === null || eco === undefined || region === 0) return [];
     const kind = this.state.kind;
     if (!isRaidKind(kind)) return [];
+    const owner = this.game.wwLand?.()?.controller[region] ?? 0;
+    if (owner <= 0) return [];
+    const allowed = new Set(
+      new DepthMiscModel(this.game)
+        .raidTargets(kind, owner)
+        .map((t) => t.building),
+    );
     return RAID_TARGETS[kind].filter(
-      (b) => eco.effectiveBuildings(b, this.state.region) > 0,
+      (b) => allowed.has(b) && eco.effectiveBuildings(b, region) > 0,
     );
   }
 
@@ -201,7 +217,11 @@ export class WwNukeFlow implements Controller {
   // ---- steps ----
 
   /** Starts a flow; false when it may not (the card shows why). */
-  start(kind: StrikeFlowKind, from: number): boolean {
+  start(
+    kind: StrikeFlowKind,
+    from: number,
+    building: BuildingId | null = null,
+  ): boolean {
     if (this.myId() === null) return false;
     const s = this.state;
     if (kind === "nuke" && this.model.nukeStartBlock(from) !== null) {
@@ -219,6 +239,7 @@ export class WwNukeFlow implements Controller {
     s.taps = kind === "nuke" ? 1 : 0;
     s.count = 1;
     s.building = null;
+    s.wantBuilding = isRaidKind(kind) ? building : null;
     if (kind === "rocket") {
       const [flying, ballistic] = this.model.rocketStock();
       s.rocket = flying <= 0 && ballistic > 0 ? 1 : 0;
@@ -273,7 +294,13 @@ export class WwNukeFlow implements Controller {
     }
     s.region = region;
     s.step = "setup";
-    if (isRaidKind(s.kind)) s.building = this.raidBuildings()[0] ?? null;
+    if (isRaidKind(s.kind)) {
+      const list = this.raidBuildings();
+      s.building =
+        s.wantBuilding !== null && list.includes(s.wantBuilding)
+          ? s.wantBuilding
+          : (list[0] ?? null);
+    }
     this.changed();
     return true;
   }
@@ -375,6 +402,7 @@ export class WwNukeFlow implements Controller {
   // ---- raid ----
 
   setBuilding(b: BuildingId) {
+    if (!this.raidBuildings().includes(b)) return;
     this.state.building = b;
     this.changed();
   }
@@ -390,7 +418,12 @@ export class WwNukeFlow implements Controller {
   /** [Raid]: two taps. */
   confirmRaid(): boolean {
     const s = this.state;
-    if (!isRaidKind(s.kind) || s.step !== "setup" || s.building === null) {
+    if (
+      !isRaidKind(s.kind) ||
+      s.step !== "setup" ||
+      s.building === null ||
+      !this.raidBuildings().includes(s.building)
+    ) {
       return false;
     }
     if (!this.twoTap.tap(this.raidKey(), this.now())) {

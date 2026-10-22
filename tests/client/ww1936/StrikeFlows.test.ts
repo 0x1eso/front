@@ -38,6 +38,8 @@ function renamed(names: Record<number, string>): ScenarioIndex {
   return ScenarioIndex.fromFiles(data, bin);
 }
 
+type GameLike = { wwLand(): { controller: Uint16Array } | null };
+
 function setup(alt: Record<number, string> | null) {
   const sr = ScenarioIndex.fromFiles(seaData, bin).srOfZoneOrRegion(
     REGION.berlin,
@@ -108,12 +110,19 @@ describe("rocket and raid flows", () => {
 
   it("a paratrooper raid: the event starts it, a building is chosen, two taps send it", () => {
     const m = setup(null);
-    m.bus.emit(new WwStrikeFlowEvent("raid_para", 5));
+    // U5's picker names the building wanted (merge glue).
+    m.bus.emit(new WwStrikeFlowEvent("raid_para", 5, "air_base"));
     expect(m.flow.state.kind).toBe("raid_para");
     expect(m.flow.targets()).toContain(REGION.berlin);
     m.flow.tapRegion(REGION.berlin);
     expect(m.flow.state.step).toBe("setup");
-    m.flow.state.building = "civ";
+    // Judged on Berlin's controller (DepthMiscModel.raidTargets): the
+    // paratroopers' list, standing there.
+    expect(m.flow.raidBuildings()).toEqual(["air_base"]);
+    expect(m.flow.state.building).toBe("air_base");
+    // A building outside the judged list is never taken or sent.
+    m.flow.setBuilding("civ");
+    expect(m.flow.state.building).toBe("air_base");
     expect(m.flow.confirmRaid()).toBe(false);
     m.advance(500);
     expect(m.flow.confirmRaid()).toBe(true);
@@ -123,9 +132,22 @@ describe("rocket and raid flows", () => {
         raid: "raid_para",
         unit: 70,
         target: REGION.berlin,
-        building: "civ",
+        building: "air_base",
       },
     ]);
+  });
+
+  it("a raid's wanted building falls back to one allowed there; no controller, no buildings", () => {
+    const m = setup(null);
+    m.bus.emit(new WwStrikeFlowEvent("raid_para", 5, "facility_nuclear"));
+    m.flow.tapRegion(REGION.berlin);
+    expect(m.flow.state.building).toBe("air_base");
+    const land = (m.flow as unknown as { game: GameLike }).game.wwLand()!;
+    const was = land.controller[REGION.berlin];
+    land.controller[REGION.berlin] = 0;
+    expect(m.flow.raidBuildings()).toEqual([]);
+    expect(m.flow.confirmRaid()).toBe(false);
+    land.controller[REGION.berlin] = was;
   });
 
   it("a commando raid offers coastal enemy regions", () => {
