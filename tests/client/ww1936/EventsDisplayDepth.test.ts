@@ -88,6 +88,27 @@ describe("World War 1936 depth notices", () => {
     expect(out[0]).toContain("[ww1936.project.sp_atomic]");
   });
 
+  it("a trait or promotion names the general from its id; an ace its wing number", () => {
+    const { ed, events } = display(true);
+    const send = (key: string, params: Record<string, string | number>) =>
+      ed.onDisplayMessageEvent({
+        type: GameUpdateType.DisplayEvent,
+        message: `events_display.${key}`,
+        messageType: MessageType.WORLD_WAR,
+        playerID: 1,
+        params,
+      } as never);
+    send("ww1936_trait_unlocked", { general: 1, trait: "trickster" });
+    send("ww1936_fm_promoted", { general: 1 });
+    send("ww1936_ace", { callsign: 4, state: "rise" });
+    const [trait, fm, ace] = events();
+    expect(trait).toContain("general=[ww1936.general.");
+    expect(trait).toContain("trait=[ww1936.trait.trickster]");
+    expect(fm).toContain("general=[ww1936.general.");
+    expect(fm).not.toContain("name=");
+    expect(ace).toContain("callsign=[ww1936.ace.callsign] n=4");
+  });
+
   it("the drop and the dam use the world-news colour", () => {
     const { ed } = display(true);
     for (const key of [

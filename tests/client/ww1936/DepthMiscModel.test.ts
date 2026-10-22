@@ -210,24 +210,46 @@ describe("DepthMiscModel", () => {
     expect(packFirst([{ x: 3, y: 0 }])).toBe(-1);
   });
 
+  it("notice params: traits by their kind, codenames and aces by number, a design's name as sent", () => {
+    const p = (msg: string, params: Record<string, string | number>) =>
+      depthNoticeParams(`events_display.${msg}`, params);
+    expect(p("ww1936_trait_unlocked", { trait: "fm_thorough" }).trait).toBe(
+      "[ww1936.fm_trait.fm_thorough]",
+    );
+    expect(p("ww1936_trait_unlocked", { trait: "convoy_master" }).trait).toBe(
+      "[ww1936.admiral_trait.convoy_master]",
+    );
+    expect(p("ww1936_operative_captured", { codename: 7 }).codename).toBe(
+      "[ww1936.codename.c7]",
+    );
+    expect(p("ww1936_operative_released", { codename: 0 }).codename).toBe(
+      "[ww1936.codename.c0]",
+    );
+    expect(p("ww1936_ace", { callsign: 12, state: "rise" })).toEqual({
+      callsign: "[ww1936.ace.callsign] n=12",
+      state: "rise",
+    });
+    expect(p("ww1936_licence_granted", { design: "Cromwell" }).design).toBe(
+      "Cromwell",
+    );
+  });
+
   it("notice params: each id arg of the manifest is translated, other args pass", () => {
     const args: [string, string, string][] = [
       ["ww1936_mastery_level", "domain", "[ww1936.doctrine.tab_land]"],
       ["ww1936_mastery_level", "track", "[ww1936.track.armor]"],
       ["ww1936_mio_size", "mio", "[ww1936.mio_family.tank]"],
       ["ww1936_market_sale", "item", "[ww1936.equip.infantry]"],
-      ["ww1936_licence_granted", "design", "[ww1936.base.light_1]"],
       ["ww1936_operation_done", "op", "[ww1936.op.coup]"],
       ["ww1936_project_done", "project", "[ww1936.project.sp_atomic]"],
       ["ww1936_faction_goal", "goal", "[ww1936.faction_goal.fg_members]"],
-      ["ww1936_trait_unlocked", "trait", "[ww1936.general_trait.commando]"],
+      ["ww1936_trait_unlocked", "trait", "[ww1936.trait.commando]"],
     ];
     const ids: Record<string, string> = {
       domain: "land",
       track: "armor",
       mio: "tank",
       item: "infantry",
-      design: "light_1",
       op: "coup",
       project: "sp_atomic",
       goal: "fg_members",

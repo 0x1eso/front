@@ -15,6 +15,7 @@ import {
   FACILITY_IDS,
   FACTION_GOALS,
   FACTION_RULES,
+  FM_TRAITS,
   HARBOR_DAYS,
   ID_CIVIL,
   PACK_COLUMNS,
@@ -25,6 +26,7 @@ import {
   WW_MAX_RAILGUNS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { ADMIRAL_TRAITS } from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { intelBand } from "@openfront/engine-lib/ww1936/IntelRules";
 import {
@@ -217,22 +219,34 @@ export function isWorldNewsNotice(message: string): boolean {
 
 /**
  * The content-id args of the depth notices (t21-keys.md) and the key
- * prefix that names each. Other args (country, region, name, counts) come
- * translated or numeric; an arg that is not an id is passed through.
+ * prefix that names each. Other args (country, region, general, name,
+ * design, counts) come translated, resolved by EventsDisplay (countries
+ * from …Tag, regions and generals from ids) or numeric; an arg that is not
+ * an id is passed through. A design is its own name (a player's or the
+ * automatic one), never a content id.
  */
 export const NOTICE_ID_PARAMS: Readonly<Record<string, string>> = {
   domain: "ww1936.doctrine.tab",
   track: "ww1936.track",
   mio: "ww1936.mio_family",
   item: "ww1936.equip",
-  design: "ww1936.base",
   op: "ww1936.op",
   project: "ww1936.project",
   goal: "ww1936.faction_goal",
-  trait: "ww1936.general_trait",
 };
 
 const ID_LIKE = /^[a-z][a-z0-9_]*$/;
+
+/** A trait id's name key: field marshal, admiral or general (P2's keys). */
+function traitKey(id: string): string {
+  if ((FM_TRAITS as readonly string[]).includes(id)) {
+    return `ww1936.fm_trait.${id}`;
+  }
+  if ((ADMIRAL_TRAITS as readonly string[]).includes(id)) {
+    return `ww1936.admiral_trait.${id}`;
+  }
+  return `ww1936.trait.${id}`;
+}
 
 /** Depth notices: ids in their params become the viewer's language. */
 export function depthNoticeParams(
@@ -248,6 +262,23 @@ export function depthNoticeParams(
       const sep = k === "domain" ? "_" : ".";
       out = { ...out, [k]: translateText(`${prefix}${sep}${v}`) };
     }
+  }
+  if (typeof params.trait === "string" && ID_LIKE.test(params.trait)) {
+    out = { ...out, trait: translateText(traitKey(params.trait)) };
+  }
+  // Operatives go by codename number (K5's ww1936.codename.c<n>), aces by
+  // their wing's number (W2: ww1936.ace.callsign {n}).
+  if (typeof params.codename === "number") {
+    out = {
+      ...out,
+      codename: translateText(`ww1936.codename.c${params.codename}`),
+    };
+  }
+  if (typeof params.callsign === "number") {
+    out = {
+      ...out,
+      callsign: translateText("ww1936.ace.callsign", { n: params.callsign }),
+    };
   }
   return out;
 }
