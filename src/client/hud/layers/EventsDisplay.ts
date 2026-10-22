@@ -27,6 +27,11 @@ import { UserSettings } from "../../UserSettings";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
 import { optionLabel, titleText } from "../congress/CongressModel";
+import {
+  ENDGAME_NOTICES,
+  endgameNoticeParams,
+  isHandoffNotice,
+} from "../ww1936/EndgameNames";
 import { armyName, generalName, regionName } from "../ww1936/LandModel";
 import { navyNoticeParams } from "../ww1936/NavyModel";
 import { POLITICS_NOTICES, politicsParams } from "../ww1936/PoliticsModel";
@@ -313,6 +318,11 @@ export class EventsDisplay extends LitElement implements Controller {
     // (controller ruling R3): content ids name the focus, event, option,
     // decision, person, faction, ideology or treaty kind.
     if (event.message.startsWith("events_display.ww1936_")) {
+      // P5 (spec §20.8, plan decision 24): countries by their endgame
+      // names, the losers, level, law and reason, the daily batches' items.
+      if (ENDGAME_NOTICES.has(event.message)) {
+        params = endgameNoticeParams(event.message, params, this.game);
+      }
       params = POLITICS_NOTICES.has(event.message)
         ? politicsParams(params, this.game ?? undefined)
         : translateCountryParams(params);
@@ -421,7 +431,13 @@ export class EventsDisplay extends LitElement implements Controller {
     const myPlayer = this.game.myPlayer();
     if (
       event.playerID !== null &&
-      (!myPlayer || myPlayer.smallID() !== event.playerID)
+      (!myPlayer || myPlayer.smallID() !== event.playerID) &&
+      // World War 1936 P5 (spec §11.2): told as my country leaves my hands
+      // (I spectate, or play another one, by the time it shows).
+      !(
+        this.game.worldWarScenario?.() &&
+        isHandoffNotice(this.game, event.message, event.playerID)
+      )
     ) {
       return;
     }

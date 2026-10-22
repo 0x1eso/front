@@ -48,6 +48,7 @@ import {
   RESOURCE_ICONS,
   resourceName,
 } from "../ww1936/EconomyModel";
+import { occRegionLine, zoneLine } from "../ww1936/EndgameModel";
 import {
   landSidesOf,
   levelBoxes,
@@ -981,8 +982,28 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               })}</span
             >`}
       </div>
-      ${this.renderRegionEconomy(tile)} ${this.renderRegionLand(tile)}
-      ${this.renderRegionSeaAir(tile)}`;
+      ${this.renderRegionOccupation(tile)} ${this.renderRegionEconomy(tile)}
+      ${this.renderRegionLand(tile)} ${this.renderRegionSeaAir(tile)}`;
+  }
+
+  /**
+   * World War 1936 P5 (spec §20.3): an administered region's resistance
+   * (and its target), compliance, garrison, factory share and law; an
+   * occupation zone's neutral line (the 38th parallel in Korea).
+   */
+  private renderRegionOccupation(tile: TileRef) {
+    const s = this.game.worldWarScenario();
+    if (s === null || (this.game.wwEndgame?.() ?? null) === null) return "";
+    const region = s.regionAt(tile);
+    const occ = occRegionLine(this.game, region);
+    const zone = occ === null ? zoneLine(this.game, region) : null;
+    if (occ === null && zone === null) return "";
+    return html`<div
+      data-ww-region-occupation
+      class="border-t border-white/10 px-3 py-1 text-xs text-white/80"
+    >
+      ${occ ?? zone}
+    </div>`;
   }
 
   /**

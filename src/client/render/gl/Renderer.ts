@@ -81,7 +81,9 @@ import { NavalBattleMarkerPass } from "./passes/NavalBattleMarkerPass";
 import { NightCompositePass } from "./passes/NightCompositePass";
 import { NukeTelegraphPass } from "./passes/NukeTelegraphPass";
 import { NukeTrajectoryPass } from "./passes/NukeTrajectoryPass";
+import { OccupationPass, type OccupationSource } from "./passes/OccupationPass";
 import { OrbitalBeamPass } from "./passes/OrbitalBeamPass";
+import { PeaceMapPass, type PeaceMapSource } from "./passes/PeaceMapPass";
 import { PlanArrowPass } from "./passes/PlanArrowPass";
 import { PlanePass } from "./passes/PlanePass";
 import { PointLightPass } from "./passes/PointLightPass";
@@ -261,6 +263,13 @@ export class GPURenderer {
   private mapLayerPasses: Map<string, MapLayerPass> = new Map();
   /** World War 1936: region and sea-zone lines; null otherwise. */
   private regionBorderPass: RegionBorderPass | null = null;
+  /** The region ids setRegions got (the P5 map modes build on them). */
+  private regionIds: Uint16Array | null = null;
+  /** World War 1936 P5 (spec §20.2–§20.3): the occupation and peace conference map modes. */
+  private occupationSource: OccupationSource | null = null;
+  private occupationPass: OccupationPass | null = null;
+  private peaceSource: PeaceMapSource | null = null;
+  private peacePass: PeaceMapPass | null = null;
   /** World War 1936 P2: the land war; null without it. */
   private wwLand: WwLandInput | null = null;
   private wwPasses: WwLandPasses | null = null;
@@ -1692,6 +1701,19 @@ export class GPURenderer {
         );
       }
     }
+    // P5: the occupation map, then the peace conference's (it dims the rest).
+    if (this.occupationPass !== null || this.peacePass !== null) {
+      const tilesPerPx = renderDpr() / Math.max(this.camera.zoom, 1e-6);
+      const timeSec = performance.now() / 1000;
+      if (this.occupationPass !== null) {
+        this.occupationPass.sync();
+        this.occupationPass.draw(cam, tilesPerPx, timeSec);
+      }
+      if (this.peacePass !== null && this.peaceSource !== null) {
+        this.peacePass.update(this.peaceSource);
+        this.peacePass.draw(cam, tilesPerPx, timeSec);
+      }
+    }
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1814,6 +1836,52 @@ export class GPURenderer {
     );
     this.landFlagsStale = true;
     this.layerKindSent = -1;
+    this.regionIds = regionIds;
+    this.makeRegionModes();
+  }
+
+  /**
+   * World War 1936 P5 (spec §20.3): the occupation map mode reads `source`
+   * (EndgameModel.occupationMapSource) each frame; it draws only while on.
+   */
+  setOccupationMap(source: OccupationSource): void {
+    this.occupationSource = source;
+    this.makeRegionModes();
+  }
+
+  /**
+   * World War 1936 P5 (spec §20.2): the peace conference's map mode reads
+   * `source` (PeaceModel.peaceMapSource).
+   */
+  setPeaceMap(source: PeaceMapSource): void {
+    this.peaceSource = source;
+    this.makeRegionModes();
+  }
+
+  /** (Re)makes the P5 map modes' passes once both the regions and a source are in. */
+  private makeRegionModes(): void {
+    this.disposeRegionModes();
+    const ids = this.regionIds;
+    if (ids === null) return;
+    if (this.occupationSource !== null) {
+      this.occupationPass = new OccupationPass(
+        this.gl,
+        ids,
+        this.mapW,
+        this.mapH,
+        this.occupationSource,
+      );
+    }
+    if (this.peaceSource !== null) {
+      this.peacePass = new PeaceMapPass(this.gl, ids, this.mapW, this.mapH);
+    }
+  }
+
+  private disposeRegionModes(): void {
+    this.occupationPass?.dispose();
+    this.occupationPass = null;
+    this.peacePass?.dispose();
+    this.peacePass = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -2214,6 +2282,7 @@ export class GPURenderer {
     this.mapLayerPasses.clear();
     this.regionBorderPass?.dispose();
     this.regionBorderPass = null;
+    this.disposeRegionModes();
     this.disposeWwLand();
     this.disposeSeaPasses();
     if (this.terrainBytesTex) {

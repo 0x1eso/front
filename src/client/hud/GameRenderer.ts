@@ -57,10 +57,12 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { occupationMapSource } from "./ww1936/EndgameModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { seaAirFacts } from "./ww1936/NavyModel";
+import { peaceMapSource } from "./ww1936/PeaceModel";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
@@ -69,12 +71,14 @@ import { WwBattleCard } from "./ww1936/WwBattleCard";
 import { WwDials } from "./ww1936/WwDials";
 import { WwDiplomacyPanel } from "./ww1936/WwDiplomacyPanel";
 import { WwEventCards } from "./ww1936/WwEventCards";
+import { WwExileBand } from "./ww1936/WwExileBand";
 import { WwFleetCard } from "./ww1936/WwFleetCard";
 import { WwFocusPanel } from "./ww1936/WwFocusPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
+import { WwPeaceCard } from "./ww1936/WwPeaceCard";
 import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import {
@@ -82,6 +86,7 @@ import {
   seaAirOf,
   WwSeaAirController,
 } from "./ww1936/WwSeaAirController";
+import { WwTakeoverCard } from "./ww1936/WwTakeoverCard";
 import { WwTopBand } from "./ww1936/WwTopBand";
 
 export function createRenderer(
@@ -492,6 +497,30 @@ export function createRenderer(
     console.error("ww focus panel not found");
   }
 
+  // P5 (lanes U1, U3): the peace conference card, the takeover card, the
+  // band of a government in exile.
+  const wwPeaceCard = document.querySelector("ww-peace-card");
+  if (wwPeaceCard instanceof WwPeaceCard) {
+    wwPeaceCard.game = game;
+    wwPeaceCard.eventBus = eventBus;
+  } else {
+    console.error("ww peace card not found");
+  }
+  const wwTakeoverCard = document.querySelector("ww-takeover-card");
+  if (wwTakeoverCard instanceof WwTakeoverCard) {
+    wwTakeoverCard.game = game;
+    wwTakeoverCard.eventBus = eventBus;
+  } else {
+    console.error("ww takeover card not found");
+  }
+  const wwExileBand = document.querySelector("ww-exile-band");
+  if (wwExileBand instanceof WwExileBand) {
+    wwExileBand.game = game;
+    wwExileBand.eventBus = eventBus;
+  } else {
+    console.error("ww exile band not found");
+  }
+
   // World congress (spec §12): vote cards above the dials, the band under the satellite band.
   const congressCards = document.querySelector("congress-cards");
   if (congressCards instanceof CongressCards) {
@@ -588,7 +617,12 @@ export function createRenderer(
     }
     // P5 (plan Task 1 Step 14): the endgame's view (lanes U1, U2 draw it).
     const wwEndgame = game.wwEndgame?.() ?? null;
-    if (wwEndgame !== null) view.setWwEndgame(wwEndgame);
+    if (wwEndgame !== null) {
+      view.setWwEndgame(wwEndgame);
+      // P5 (spec §20.2–§20.3): the occupation and peace conference map modes.
+      view.setOccupationMap(occupationMapSource(game));
+      view.setPeaceMap(peaceMapSource(game));
+    }
   }
 
   const layers: Controller[] = [
@@ -650,8 +684,11 @@ export function createRenderer(
     ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
+    ...(wwTakeoverCard instanceof WwTakeoverCard ? [wwTakeoverCard] : []),
+    ...(wwPeaceCard instanceof WwPeaceCard ? [wwPeaceCard] : []),
     ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
     ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),
+    ...(wwExileBand instanceof WwExileBand ? [wwExileBand] : []),
     ...(wwFocusPanel instanceof WwFocusPanel ? [wwFocusPanel] : []),
     ...(congressCards instanceof CongressCards ? [congressCards] : []),
     ...(congressBand instanceof CongressBand ? [congressBand] : []),

@@ -5,6 +5,7 @@ import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { blockText } from "./EconomyModel";
+import { endgameKey, exileLine } from "./EndgameModel";
 import {
   AdvisorSeat,
   advisorTab,
@@ -30,12 +31,20 @@ import {
   WwDrawerBase,
   WwPoliticsTab,
 } from "./WwDrawer";
+import "./WwOccupationTab";
 
 const HEADING =
   "mb-1 mt-3 text-xs font-bold uppercase tracking-wide text-white/70";
 const BUTTON =
   "min-h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
 const CARD = "rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs";
+
+/** P5 (spec §20.4): P3's five tabs and the occupation tab. */
+export type PolDrawerTab = WwPoliticsTab | "occupation";
+export const POL_DRAWER_TABS: readonly PolDrawerTab[] = [
+  ...WW_POLITICS_TABS,
+  "occupation",
+];
 
 /**
  * World War 1936 P3 (spec §21.4): the politics drawer — government (leader,
@@ -49,11 +58,13 @@ const CARD = "rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs";
 @customElement("ww-politics-panel")
 export class WwPoliticsPanel extends WwDrawerBase {
   protected readonly drawerId = "politics" as const;
-  @state() private tab: WwPoliticsTab = "government";
+  @state() private tab: PolDrawerTab = "government";
   /** The advisor seat whose candidates are listed; null: none. */
   @state() private pickSeat: number | null = null;
   private readonly twoTap = new TwoTap();
   private redrawKey: readonly unknown[] = [];
+  /** Bumped with each redraw, so the occupation tab (its own element) redraws too. */
+  private stamp = 0;
 
   init() {
     super.init();
@@ -61,7 +72,7 @@ export class WwPoliticsPanel extends WwDrawerBase {
   }
 
   /** The tab on show. */
-  shownTab(): WwPoliticsTab {
+  shownTab(): PolDrawerTab {
     return this.tab;
   }
 
@@ -86,9 +97,14 @@ export class WwPoliticsPanel extends WwDrawerBase {
       econ?.summary(id) ?? null,
       this.game?.worldWarScenario() ? today(this.game) : 0,
       this.game?.worldWarData() ?? null,
+      // P5: the endgame's screens (the exile line, the occupation tab), and
+      // for "raise garrison forces" the armies.
+      this.game ? endgameKey(this.game) : 0,
+      this.tab === "occupation" ? (this.game?.wwLand?.()?.version ?? 0) : 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
+      this.stamp++;
       this.requestUpdate();
     }
   }
@@ -122,9 +138,12 @@ export class WwPoliticsPanel extends WwDrawerBase {
       dead
         ? nothing
         : this.renderTabs(
-            WW_POLITICS_TABS,
+            POL_DRAWER_TABS,
             this.tab,
-            (t) => translateText(`ww1936.pol.tab.${t}`),
+            (t) =>
+              t === "occupation"
+                ? translateText("ww1936.occ.tab")
+                : translateText(`ww1936.pol.tab.${t}`),
             (t) => {
               this.tab = t;
               this.pickSeat = null;
@@ -152,6 +171,12 @@ export class WwPoliticsPanel extends WwDrawerBase {
         return this.renderSpirits(i);
       case "decisions":
         return this.renderDecisions(i);
+      case "occupation":
+        return html`<ww-occupation-tab
+          .game=${this.game}
+          .eventBus=${this.eventBus}
+          .stamp=${this.stamp}
+        ></ww-occupation-tab>`;
     }
   }
 
@@ -174,7 +199,18 @@ export class WwPoliticsPanel extends WwDrawerBase {
   private renderGovernment(i: PoliticsModelInput): TemplateResult {
     const g = governmentTab(i);
     if (g === null) return html`${nothing}`;
+    // P5 (spec §10, §20.6): a government in exile — its seat, legitimacy
+    // and virtual factories (the exile band opens this tab).
+    const exile = exileLine(this.game, i.me);
     return html`
+      ${exile === null
+        ? nothing
+        : html`<p
+            data-ww-exile-line
+            class="m-0 mt-2 rounded-md border border-amber-300/40 bg-amber-950/40 px-2 py-1 text-xs text-amber-100"
+          >
+            🏳 ${exile}
+          </p>`}
       <section data-ww-gov class="mt-2 flex flex-col gap-1 text-xs">
         <div class="flex items-center gap-2">
           <span

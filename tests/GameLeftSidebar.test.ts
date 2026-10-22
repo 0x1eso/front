@@ -4,6 +4,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { GameLeftSidebar } from "../src/client/hud/layers/GameLeftSidebar";
 import type { PlayerStats } from "../src/client/hud/layers/PlayerStats";
 import type { TeamStats } from "../src/client/hud/layers/TeamStats";
+import { peaceUiOf } from "../src/client/hud/ww1936/PeaceModel";
 import { WwDrawerEvent } from "../src/client/hud/ww1936/WwDrawer";
 import { UserSettings } from "../src/client/UserSettings";
 import type { GameView, PlayerView } from "../src/client/view";
@@ -198,6 +199,87 @@ describe("GameLeftSidebar", () => {
     expect(shown()).toBe(true);
 
     drawer.remove();
+    sidebar.remove();
+    vi.unstubAllGlobals();
+  });
+
+  it("folds while the peace conference map mode is on, on a phone", async () => {
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    const innerHeight = window.innerHeight;
+    const game = {
+      config: () => ({
+        gameConfig: () => ({ gameMode: GameMode.FFA }),
+        maxTroops: () => 1_000,
+        congress: () => false,
+      }),
+      gameID: () => "g",
+      inSpawnPhase: () => false,
+      myPlayer: () => null,
+      numLandTiles: () => 100,
+      ticks: () => 600,
+      numTilesWithFallout: () => 0,
+      playerViews: () => [],
+      worldWarScenario: () => ({}),
+    } as unknown as GameView;
+    const bus = new EventBus();
+    const sidebar = new GameLeftSidebar();
+    sidebar.game = game;
+    sidebar.eventBus = bus;
+    document.body.append(sidebar);
+    sidebar.init();
+    sidebar.tick();
+    await sidebar.updateComplete;
+    const shown = () =>
+      !sidebar.querySelector("player-stats")!.classList.contains("hidden");
+    expect(shown()).toBe(true);
+
+    // A landscape phone (390 px tall): the map mode opens and closes the drawers.
+    Object.defineProperty(window, "innerHeight", {
+      value: 390,
+      configurable: true,
+    });
+    const ui = peaceUiOf(game);
+    ui.openMap();
+    bus.emit(new WwDrawerEvent("industry", true));
+    bus.emit(new WwDrawerEvent("industry", false));
+    await sidebar.updateComplete;
+    expect(shown()).toBe(false);
+    // Its button brings it back for this map mode.
+    (sidebar.querySelector('[role="button"]') as HTMLElement).click();
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+    sidebar.tick();
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+    // Leaving the map mode, then opening it again: it folds again.
+    ui.closeMap();
+    sidebar.tick();
+    ui.openMap();
+    sidebar.tick();
+    await sidebar.updateComplete;
+    expect(shown()).toBe(false);
+    ui.closeMap();
+    sidebar.tick();
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+
+    // A taller screen: the map mode leaves it alone.
+    Object.defineProperty(window, "innerHeight", {
+      value: 900,
+      configurable: true,
+    });
+    ui.openMap();
+    sidebar.tick();
+    await sidebar.updateComplete;
+    expect(shown()).toBe(true);
+
+    Object.defineProperty(window, "innerHeight", {
+      value: innerHeight,
+      configurable: true,
+    });
     sidebar.remove();
     vi.unstubAllGlobals();
   });

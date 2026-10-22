@@ -19,6 +19,7 @@ import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { blockText } from "./EconomyModel";
+import { garrisonScopes, myOccRows } from "./EndgameModel";
 import {
   ARMY_BUTTONS,
   ArmyButton,
@@ -307,8 +308,11 @@ export class WwArmyCard extends LitElement implements Controller {
   public eventBus: EventBus;
   /** The button tapped while it was greyed, and why. */
   @state() private refused: { id: string; block: CardBlock } | null = null;
-  /** The buttons shown: the orders, the "⋯" ones, or the armies to merge with. */
-  @state() private panel: "main" | "more" | "merge" = "main";
+  /**
+   * The buttons shown: the orders, the "⋯" ones, the armies to merge with,
+   * or (P5) the garrison's scope.
+   */
+  @state() private panel: "main" | "more" | "merge" | "garrison" = "main";
   @state() private place: CardPlace = {
     bottom: GAP,
     right: null,
@@ -662,7 +666,9 @@ export class WwArmyCard extends LitElement implements Controller {
             ? this.renderMore(c)
             : this.panel === "merge"
               ? this.renderMerge(c)
-              : this.renderButtons(c)}
+              : this.panel === "garrison"
+                ? this.renderGarrison(c)
+                : this.renderButtons(c)}
       </div>
       <div class="flex shrink-0 flex-col gap-1">
         ${this.foldButton(c, false)} ${this.closeButton()}
@@ -1184,8 +1190,57 @@ export class WwArmyCard extends LitElement implements Controller {
         },
       ),
       ...this.invadeButtons(c),
+      ...this.garrisonButton(c),
       this.button("back", translateText("common.back"), "←", () => {
         this.panel = "main";
+      }),
+    ];
+  }
+
+  /**
+   * P5 (spec §8.5, §20.7): [Garrison] while I administer occupied regions —
+   * the next panel picks which: all of them, or one legal owner's.
+   */
+  private garrisonButton(c: Ctx): TemplateResult[] {
+    if (myOccRows(this.game, c.me).length === 0) return [];
+    const on =
+      c.view.armies.get(c.card.row.id)?.mine?.order.kind === "garrison";
+    return [
+      this.button(
+        "garrison",
+        translateText("ww1936.occ.garrison"),
+        "🛡",
+        () => {
+          this.panel = "garrison";
+        },
+        { pressed: on },
+      ),
+    ];
+  }
+
+  private renderGarrison(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return [
+      ...garrisonScopes(this.game, c.me).map((s) =>
+        this.button(
+          `garrison_${s.scope}`,
+          s.name,
+          "🛡",
+          () => {
+            this.eventBus.emit(
+              new SendWwOrderIntentEvent({
+                kind: "army_garrison",
+                army,
+                scope: s.scope,
+              }),
+            );
+            this.panel = "main";
+          },
+          { wide: true },
+        ),
+      ),
+      this.button("back", translateText("common.back"), "←", () => {
+        this.panel = "more";
       }),
     ];
   }
