@@ -962,6 +962,23 @@ describe(
       expect(reserveForBeats(p, sun, d)).toBe(50);
     });
 
+    it("a civil-war beat is not judged on war odds (the rising is no choice)", async () => {
+      const list = [
+        beat("b_t_war", "DEU", { kind: "declare", target: "POL" }),
+        {
+          ...beat("b_t_rising", "DEU", { kind: "declare", target: "POL" }),
+          civil: true,
+        },
+      ];
+      const g = await aiGame(["DEU"], { beats: list });
+      const { p, id, armies } = g;
+      const deu = id("DEU");
+      // Germany far weaker than Poland: a war it would not choose.
+      armies({ DEU: 1, POL: 4 });
+      expect(aiBeatReady(p, list[0], deu)).toBe(false);
+      expect(aiBeatReady(p, list[1], deu)).toBe(true);
+    });
+
     it("a guarantee history's decision could not give is given by the order", async () => {
       // Britain's 1939 guarantee of Poland sits behind a focus it has not
       // reached: the beat ran out with the decision locked.

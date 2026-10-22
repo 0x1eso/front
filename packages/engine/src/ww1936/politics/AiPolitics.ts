@@ -1286,6 +1286,10 @@ function beatVerdict(
   a: number,
 ): { score: number; need: number } | null {
   const act = b.act;
+  // P5 final lane (balance, Spain targets): a civil-war beat is the rising
+  // itself, not a war its actor weighs — never judged on war odds (Spain's
+  // Nationalists scored 735 of the 800 bar and the war never began).
+  if (b.civil === true) return null;
   let target: CountryTag;
   let join = false;
   if (act.kind === "declare" || act.kind === "join") {
