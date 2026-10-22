@@ -111,7 +111,7 @@ import {
   doctrineStatsOf,
   issueDoctrine,
 } from "./Doctrine";
-import { coalDemand, dailyEnergy, energyDemand } from "./Energy";
+import { coalDemand, dailyEnergy, energyView } from "./Energy";
 import { computeIntelRow } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade } from "./Market";
@@ -1791,14 +1791,6 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
     });
   }
   const sizes = mioSizes(c);
-  const sc = d.ww.scenario;
-  let hydro = 0;
-  for (const r of d.ww.economy.regionsOf(id)) hydro += sc.hydroOf(r);
-  const dams = d.world.damLevel.reduce((a, lv, i) => {
-    const r = sc.damRegion[i];
-    return lv > 0 && r > 0 && d.ww.economy.controllerOf(r) === id ? a + 1 : a;
-  }, 0);
-  const plants = d.ww.economy.countryBuildings(id, "power_plant");
   return {
     smallID: id,
     doctrine: {
@@ -1915,14 +1907,8 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       bopBand: bopOf(d, id)?.[2] ?? 2,
       treatyMember: d.mech.treaty.members.includes(id) && !d.mech.treaty.ended,
     },
-    energy: {
-      demand: energyDemand(d, id),
-      coal: d.lastPriorityGot.get(id)?.[RESOURCE_IDS.indexOf("coal")] ?? 0,
-      hydro,
-      plants,
-      dams,
-      ratioPm: c.mech.energyPm,
-    },
+    // W1 (lane W1, wave B: U4 reads the coal and uranium stock).
+    energy: energyView(d, id),
   };
 }
 

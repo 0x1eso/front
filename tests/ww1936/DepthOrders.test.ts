@@ -14,7 +14,10 @@ import { gameHash, order, step, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
-/** The stub's refusal of each lane (plan Task 1 Step 11). */
+/**
+ * The stub's refusal of each lane (plan Task 1 Step 11); lane W1's own
+ * (Germany has no railway gun, Lyon is French, Berlin has no enemy near).
+ */
 const LANE_BLOCK = (k: number): string =>
   k <= 1
     ? "doctrine_locked"
@@ -38,9 +41,13 @@ const LANE_BLOCK = (k: number): string =>
                       ? "project_locked"
                       : k <= 51
                         ? "cfocus_locked"
-                        : k <= 55
+                        : k <= 53
                           ? "railgun_limit"
-                          : "bad_index";
+                          : k === 54
+                            ? "harbor_conditions"
+                            : k === 55
+                              ? "scorch_conditions"
+                              : "bad_index";
 
 describe("World War 1936 P6: the depth orders", () => {
   it("every kind is valid on the wire and goes to its lane", async () => {
