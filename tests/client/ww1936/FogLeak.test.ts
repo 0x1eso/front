@@ -736,6 +736,45 @@ describe("fog leaks (spec §8.9)", () => {
     expect(f.countLabel(ID("POL"), 41, ID_ARMY)).toBe("41");
   });
 
+  it("final review C: the region card counts volunteers by the side they fight for", () => {
+    // My (German) region 4: Soviet volunteers serving me (4 divisions) and a
+    // Polish army (3) in it.
+    const g = fogGame({
+      level: 80,
+      armies: [
+        army(1, "SUN", 4, { divisions: 4, volunteerFor: ID("DEU") }),
+        army(2, "POL", 4, { divisions: 3 }),
+      ],
+      landRegions: [FAR, NEAR, 7, 4].map((id) =>
+        landRegion(id, {
+          controller: id === 4 ? ID("DEU") : ID("POL"),
+          counts:
+            id === 4
+              ? [
+                  [ID("SUN"), 4],
+                  [ID("POL"), 3],
+                ]
+              : [],
+        }),
+      ),
+    });
+    const overlay = document.createElement(
+      "player-info-overlay",
+    ) as PlayerInfoOverlay;
+    overlay.game = g.game as never;
+    overlay.eventBus = new EventBus();
+    const box = document.createElement("div");
+    render(
+      (
+        overlay as unknown as { renderRegionLand(t: number): unknown }
+      ).renderRegionLand(tileOf(4)),
+      box,
+    );
+    expect(box.querySelector("[data-ww-region-divisions]")!.textContent).toBe(
+      "[ww1936.land.region_divisions] ours=4,theirs=3",
+    );
+  });
+
   it("no hud or render file reads enemy army, fleet or air data without the fog", () => {
     const root = path.join(__dirname, "../../../src/client");
     const files: string[] = [];
