@@ -2,7 +2,10 @@
 // foundation's hook bodies in P1–P5, each driven through its seam with a
 // stand-in lane value, and neutral when the lanes give nothing.
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
-import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  equipKey,
+  RESOURCE_IDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_STATIC_SLOTS,
   MOVE_ADVANCE,
@@ -331,6 +334,11 @@ describe("P6: the screens' detail numbers come from the rules (review E6)", () =
       progressMilli: 500_000,
       scientist: 9,
     });
+    // Lane S: the project runs in a nuclear facility on P1's uranium (2).
+    ww.economy.buildingArray("facility_nuclear")[DEEP.region.berlin] = 1;
+    const got = new Array<number>(RESOURCE_IDS.length).fill(0);
+    got[RESOURCE_IDS.indexOf("uranium")] = 2;
+    d.lastPriorityGot.set(id, got);
     ce.stock[equipKey("tank_design", 1)] = 5;
     d.dayTally[id * 9] = 2_000_000;
     d.markCountry(id);
