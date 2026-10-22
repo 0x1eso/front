@@ -122,8 +122,21 @@ const SAMPLES: Record<(typeof DEPTH_ORDER_KINDS)[number], DepthOrder> = {
   air_night: { kind: "air_night", deployment: 1, on: true },
 } as Record<(typeof DEPTH_ORDER_KINDS)[number], DepthOrder>;
 
+/**
+ * Lane W3 (plan Task 9): Germany's answers on day 0 — continuous focuses
+ * closed, its faction's rule and goal taken (it leads the Axis), no treaty
+ * to leave.
+ */
+const W3_ANSWER: readonly (string | null)[] = [
+  "cfocus_locked",
+  "cfocus_locked",
+  null,
+  null,
+  "bad_index",
+];
+
 /** The stub's refusal of each lane (plan Task 1 Step 11). */
-const LANE_BLOCK = (k: number): string =>
+const LANE_BLOCK = (k: number): string | null =>
   k <= 1
     ? "doctrine_locked"
     : k <= 4 || k === 12 || k === 13
@@ -145,7 +158,7 @@ const LANE_BLOCK = (k: number): string =>
                     : k <= 46
                       ? "project_locked"
                       : k <= 51
-                        ? "cfocus_locked"
+                        ? W3_ANSWER[k - 47]
                         : k <= 55
                           ? "railgun_limit"
                           : "bad_index";
