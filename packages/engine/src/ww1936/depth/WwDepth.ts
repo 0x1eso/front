@@ -1362,7 +1362,15 @@ export class WwDepth implements LandDepthHooks {
       mix(v);
     }
     mix(this.decrypted.reduce((a, d) => a + d.progressMilli, 0));
-    mix(this.sea.mines.reduce((a, m) => a + m[2], 0));
+    // Lane W2 review: every minefield (region, side, milli), sorted.
+    mix(this.sea.mines.length);
+    for (const [sr, side, m] of [...this.sea.mines].sort(
+      (a, b) => a[0] - b[0] || a[1] - b[1],
+    )) {
+      mix(sr);
+      mix(side);
+      mix(m);
+    }
     mix(this.nuked.size);
     mix(this.market.deals.length);
     // Review E9: the §0-8 state and the other day-driving lists, folded.
@@ -1370,7 +1378,23 @@ export class WwDepth implements LandDepthHooks {
       mix(id);
       mix(got.reduce((a, b) => a + b, 0));
     }
-    mix(this.sea.reconBySide.reduce((a, x) => a + x[0] + x[1] * 7 + x[2], 0));
+    // Lane W2 review: every recon row (region, side, sorties), sorted, and
+    // every ace (nothing mixed when there are none).
+    mix(this.sea.reconBySide.length);
+    for (const [side, sr, n] of [...this.sea.reconBySide].sort(
+      (a, b) => a[1] - b[1] || a[0] - b[0],
+    )) {
+      mix(sr);
+      mix(side);
+      mix(n);
+    }
+    for (const a of [...this.sea.aces].sort((x, y) => x.id - y.id)) {
+      mix(a.id);
+      mix(a.owner);
+      mix(a.deployment);
+      mix(a.sinceDay);
+      mix(a.callNo);
+    }
     mix(this.resistBoost.reduce((a, x) => a + x[0] * 7 + x[1], 0));
     for (const x of this.world.regionStatus) {
       mix(x[0]);

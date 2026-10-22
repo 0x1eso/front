@@ -769,6 +769,8 @@ export class WwAir {
       counts: [...d.counts],
       target: d.target,
       base: d.base,
+      // P6 (lane W2): the night flag, only when on (day records keep P4's shape).
+      ...(d.night ? { night: true } : {}),
     };
   }
 
@@ -1005,6 +1007,12 @@ export class WwAir {
       // Where and what for (P4 review).
       h = (Math.imul(h, 31) + d.id) >>> 0;
       h = (Math.imul(h, 31) + d.sr * 16 + d.mission) >>> 0;
+      // P6 lane W2 review: the night flag and the ace (only when set, so a
+      // game without them keeps its hash).
+      if (d.night || d.ace !== 0) {
+        h = (Math.imul(h, 31) + (d.night ? 1 : 0)) >>> 0;
+        h = (Math.imul(h, 31) + d.ace) >>> 0;
+      }
     }
     for (let id = 1; id < n.length; id++) {
       if (n[id] !== 0) h = (Math.imul(h, 31) + id * 7 + n[id]) >>> 0;
