@@ -22,12 +22,19 @@ vi.mock("../../../src/client/hud/ww1936/FogModel", () => ({
 import {
   DepthMiscModel,
   depthNoticeParams,
+  isBopDecision,
   packFirst,
 } from "../../../src/client/hud/ww1936/DepthMiscModel";
 import { today } from "../../../src/client/hud/ww1936/WorldWarModel";
 import { WwDepthView } from "../../../src/client/view/WwDepthView";
+import { depthDetail } from "./DepthU4Fixture";
 
-function model(tag: string, setup: (d: WwDepthView) => void, scenario = {}) {
+function model(
+  tag: string,
+  setup: (d: WwDepthView) => void,
+  scenario = {},
+  extra: Record<string, unknown> = {},
+) {
   const depth = new WwDepthView();
   setup(depth);
   const view = {
@@ -49,6 +56,7 @@ function model(tag: string, setup: (d: WwDepthView) => void, scenario = {}) {
     wwNavy: () => null,
     worldWarData: () => null,
     config: () => ({ historicalAi: () => true }),
+    ...extra,
   };
   return new DepthMiscModel(view as never);
 }
@@ -63,6 +71,82 @@ describe("DepthMiscModel", () => {
     expect(bar.marks.map((x) => x.pct)).toEqual([50, 60, 70]);
     expect(bar.marks.map((x) => x.passed)).toEqual([true, false, false]);
     expect(model("GER", () => {}).congressBar()).toBeNull();
+  });
+
+  it("balance-of-power decisions are K5's ids; only the band spirits carry bop_", () => {
+    expect(isBopDecision("CHN", "chn_central_officers")).toBe(true);
+    expect(isBopDecision("CHN", "chn_regional_appeasement")).toBe(true);
+    expect(isBopDecision("JPN", "jpn_army_budget")).toBe(true);
+    expect(isBopDecision("JPN", "jpn_navy_budget")).toBe(true);
+    expect(isBopDecision("FRA", "fra_social_reform")).toBe(true);
+    expect(isBopDecision("FRA", "fra_rearmament_act")).toBe(true);
+    expect(isBopDecision("CHN", "bop_chn_warlords")).toBe(false);
+    expect(isBopDecision("FRA", "jpn_army_budget")).toBe(false);
+    expect(isBopDecision("USA", "usa_lobby_congress")).toBe(false);
+  });
+
+  it("faction goal slots: -1 is empty, a met goal frees its slot and leaves the options", () => {
+    const politics = {
+      factionIdx: () => 0,
+      global: { factions: [{ idx: 0, leader: 1 }] },
+    };
+    // W3's row: [faction, slots, achieved]; fg_members (0) was met.
+    const m = model(
+      "DEU",
+      (d) =>
+        d.apply({ factionGoals: [[0, [-1, 4, -1], 1 << 0]], fx: [], news: [] }),
+      {},
+      { wwPolitics: () => politics },
+    );
+    const slots = m.goalSlots();
+    expect(slots.map((s) => s.goal)).toEqual([null, "fg_industry", null]);
+    expect(slots.map((s) => s.canPick)).toEqual([true, false, true]);
+    expect(slots[0].options).not.toContain("fg_members");
+    expect(slots[0].options).not.toContain("fg_industry");
+    expect(slots[0].options).toContain("fg_research");
+  });
+
+  it("the continuous-focus chips follow W3's cfocusBlock: locked days, the running one", () => {
+    const politics = { detail: () => ({ cards: [] }) };
+    const band = (lockIn: number) => {
+      const view = model("DEU", () => {}, {}, { wwPolitics: () => politics });
+      const day = today(view.view as never);
+      const d = new WwDepthView();
+      d.apply({
+        details: [
+          depthDetail("DEU", {
+            smallID: 1,
+            mech: {
+              ...depthDetail("DEU").mech,
+              cfocus: 2,
+              cfocusLock: day + lockIn,
+            },
+          }),
+        ],
+        fx: [],
+        news: [],
+      });
+      return model(
+        "DEU",
+        () => {},
+        {},
+        {
+          wwPolitics: () => politics,
+          wwDepth: () => d,
+        },
+      ).cfocusBand()!;
+    };
+    // Long past 1939-01-01: open by date. Locked for 10 days: only the
+    // running one (2) can be tapped (to clear it).
+    const locked = band(10);
+    expect(locked.open).toBe(true);
+    expect(locked.lockLeft).toBe(10);
+    expect(locked.chips.map((c) => c.disabled)).toEqual(
+      locked.chips.map((_, n) => n !== 2),
+    );
+    const free = band(0);
+    expect(free.lockLeft).toBe(0);
+    expect(free.chips.every((c) => !c.disabled)).toBe(true);
   });
 
   it("a BoP bar shows its band and spirit", () => {

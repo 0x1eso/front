@@ -30,6 +30,8 @@ import { intelBand } from "@openfront/engine-lib/ww1936/IntelRules";
 import {
   BOP_DEFS,
   bopBand,
+  cfocusBlock,
+  cfocusOpen,
   CONGRESS,
 } from "@openfront/engine-lib/ww1936/MechRules";
 import { isNoStrike, strikeBlock } from "@openfront/engine-lib/ww1936/NoStrike";
@@ -69,9 +71,19 @@ export const CONGRESS_DECISIONS: readonly string[] = [
   "usa_defense_bill",
 ];
 
-/** The balance-of-power decisions of a tag (ids start with `bop_<tag>`). */
+/**
+ * The balance-of-power decisions of each tag: K5's ids (W3 reads the same;
+ * only the band spirits carry the `bop_` prefix).
+ */
+export const BOP_DECISIONS: Readonly<Record<string, readonly string[]>> = {
+  CHN: ["chn_central_officers", "chn_regional_appeasement"],
+  JPN: ["jpn_army_budget", "jpn_navy_budget"],
+  FRA: ["fra_social_reform", "fra_rearmament_act"],
+};
+
+/** Whether `id` is one of `tag`'s balance-of-power decisions. */
 export function isBopDecision(tag: string, id: string): boolean {
-  return id.startsWith(`bop_${tag.toLowerCase()}`);
+  return BOP_DECISIONS[tag]?.includes(id) ?? false;
 }
 
 // ---- Balance of power (spec §13.2) ----
@@ -441,13 +453,14 @@ export class DepthMiscModel {
       (c) => c.state === 1 || c.state === 2,
     ).length;
     const day = today(this.view);
-    // TODO(lane W3): judge the lock with cfocusBlock once it is filled.
-    const lockLeft = Math.max(
-      0,
-      Math.min(CFOCUS_LOCK_DAYS, det.mech.cfocusLock - day),
-    );
-    const open = det.mech.cfocusOpen;
+    // W3's rules (MechRules): open after 10 focuses, on 1939-01-01 or by
+    // an effect; a pick is refused while closed, locked or already running.
+    const open = cfocusOpen(done, day, det.mech.cfocusOpen);
     const cur = det.mech.cfocus;
+    const lockUntil = det.mech.cfocusLock;
+    const lockLeft = open
+      ? Math.max(0, Math.min(CFOCUS_LOCK_DAYS, lockUntil - day))
+      : 0;
     return {
       open,
       done,
@@ -458,7 +471,12 @@ export class DepthMiscModel {
       chips: CONTINUOUS_FOCUSES.map((cid, n) => ({
         id: cid,
         selected: n === cur,
-        disabled: !open || (lockLeft > 0 && n !== cur),
+        // The running one can be cleared while open (cfocus_clear).
+        disabled:
+          n === cur
+            ? !open
+            : cfocusBlock({ open, current: cur, lockUntil, day, want: n }) !==
+              null,
       })),
     };
   }
