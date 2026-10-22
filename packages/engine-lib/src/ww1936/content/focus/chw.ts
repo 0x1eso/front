@@ -1,11 +1,336 @@
-// World War 1936 P6 — the `chw` pack's focuses (spec §11). Content lane K1
-// (plan Task 16) fills this file; the foundation registers it empty.
+// World War 1936 P6 (spec §11.4): the regional cliques' common pack (GXC,
+// YUN, SXI, XBM, SIK), 20 focuses in the spec table's order, on the pack
+// columns 20-35. Grid, left to right: the provincial army and the course
+// toward Nanjing (21-25), provincial industry (27-29), then one column per
+// clique (31-35, `countries`).
+//
+// The historical course is to keep provincial rule: the cliques fought
+// Japan beside the National Government but kept their own administrations
+// until 1944-1945. Joining the centre is the alternative, and it offers
+// China a peaceful annexation (chw_join_offer).
+// Data only (tests/ww1936/ContentPurity): the helpers come from ../helpers.
 import type {
   BranchPoint,
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { after, exists, fire, T } from "../helpers";
 
-export const CHW_FOCUSES: readonly FocusDef[] = [];
-export const CHW_PATH: readonly FocusId[] = [];
-export const CHW_BRANCHES: readonly BranchPoint[] = [];
+export const CHW_FOCUSES: FocusDef[] = [
+  {
+    id: "chw_provincial_army",
+    tree: "chw",
+    x: 23,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "infantry",
+    effects: [{ kind: "army_xp", amount: 20 }, { kind: "add_general" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_local_industry",
+    tree: "chw",
+    x: 28,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory",
+    effects: [{ kind: "build", where: { best: 1 }, building: "civ", count: 1 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_arsenal",
+    tree: "chw",
+    x: 27,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "factory_mil",
+    prereq: [["chw_local_industry"]],
+    effects: [{ kind: "build", where: { best: 1 }, building: "mil", count: 1 }],
+    ai: { base: 10 },
+  },
+  {
+    // "Regions with resources" has no region pick; the best two regions
+    // stand in (as in the P3 generic tree).
+    id: "chw_mines",
+    tree: "chw",
+    x: 28,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "mine",
+    prereq: [["chw_local_industry"]],
+    effects: [
+      { kind: "add_spirit", id: "chw_mining_drive" },
+      { kind: "infra", where: { best: 2 }, amount: 1 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_roads",
+    tree: "chw",
+    x: 29,
+    y: 1,
+    days: 70,
+    branch: "industry",
+    icon: "road",
+    prereq: [["chw_local_industry"]],
+    effects: [{ kind: "infra", where: { best: 3 }, amount: 1 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_autonomy",
+    tree: "chw",
+    x: 21,
+    y: 1,
+    days: 70,
+    branch: "politics",
+    icon: "flag",
+    prereq: [["chw_provincial_army"]],
+    exclusive: ["chw_join_center"],
+    effects: [{ kind: "add_spirit", id: "chw_provincial_rule" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_join_center",
+    tree: "chw",
+    x: 22,
+    y: 1,
+    days: 70,
+    branch: "politics",
+    icon: "handshake",
+    prereq: [["chw_provincial_army"]],
+    exclusive: ["chw_autonomy"],
+    available: exists("CHN"),
+    effects: [{ kind: "pp", amount: 50 }, fire("chw_join_offer", T("CHN"))],
+    ai: { base: 5 },
+  },
+  {
+    id: "chw_anti_japan",
+    tree: "chw",
+    x: 22,
+    y: 2,
+    days: 70,
+    branch: "diplomacy",
+    icon: "sword",
+    prereq: [["chw_join_center"]],
+    effects: [
+      {
+        kind: "if",
+        cond: { kind: "at_war_with", who: T("CHN"), of: T("JPN") },
+        then: [{ kind: "join_war", of: T("JPN") }],
+      },
+      { kind: "opinion", of: T("CHN"), value: 30, days: 365 },
+    ],
+    ai: { base: 5 },
+  },
+  {
+    id: "chw_militia",
+    tree: "chw",
+    x: 24,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "fist",
+    prereq: [["chw_provincial_army"]],
+    effects: [{ kind: "add_spirit", id: "chw_local_militia" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_guangxi_model",
+    tree: "chw",
+    x: 31,
+    y: 0,
+    days: 70,
+    branch: "politics",
+    icon: "shield",
+    countries: ["GXC"],
+    effects: [
+      { kind: "stability", pct: 5 },
+      { kind: "add_spirit", id: "chw_guangxi_levies" },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    // The French railway from Haiphong to Kunming (opened 1910).
+    id: "chw_yunnan_railway",
+    tree: "chw",
+    x: 32,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "rail",
+    countries: ["YUN"],
+    effects: [
+      { kind: "rail", where: "capital", amount: 1 },
+      { kind: "opinion", of: T("FRA"), value: 20, days: 365 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_shanxi_model",
+    tree: "chw",
+    x: 33,
+    y: 0,
+    days: 70,
+    branch: "industry",
+    icon: "factory",
+    countries: ["SXI"],
+    effects: [{ kind: "build", where: { best: 2 }, building: "civ", count: 2 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_ma_cavalry",
+    tree: "chw",
+    x: 34,
+    y: 0,
+    days: 70,
+    branch: "army",
+    icon: "sword",
+    countries: ["XBM"],
+    effects: [
+      { kind: "unlock_template", template: "chw_cavalry_brigade" },
+      {
+        kind: "divisions",
+        template: "chw_cavalry_brigade",
+        count: 2,
+        where: "capital",
+      },
+      { kind: "add_spirit", id: "chw_cavalry_tradition" },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_xinjiang_soviet",
+    tree: "chw",
+    x: 35,
+    y: 0,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    countries: ["SIK"],
+    available: exists("SUN"),
+    effects: [
+      { kind: "opinion", of: T("SUN"), value: 30, days: 365 },
+      fire("gen_diplo_lend_lease", T("SUN")),
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_xinjiang_turn",
+    tree: "chw",
+    x: 35,
+    y: 1,
+    days: 70,
+    branch: "diplomacy",
+    icon: "compass",
+    countries: ["SIK"],
+    prereq: [["chw_xinjiang_soviet"]],
+    available: after("1942-01-01"),
+    effects: [{ kind: "opinion", of: T("CHN"), value: 50, days: 365 }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_border_defense",
+    tree: "chw",
+    x: 24,
+    y: 2,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    prereq: [["chw_militia"]],
+    effects: [
+      { kind: "fort", where: { borderWith: "threat", n: 2 }, amount: 2 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_officer_school",
+    tree: "chw",
+    x: 25,
+    y: 1,
+    days: 70,
+    branch: "army",
+    icon: "medal",
+    prereq: [["chw_provincial_army"]],
+    effects: [{ kind: "add_spirit", id: "chw_provincial_academy" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_border_trade",
+    tree: "chw",
+    x: 29,
+    y: 2,
+    days: 70,
+    branch: "industry",
+    icon: "globe",
+    prereq: [["chw_roads"]],
+    effects: [{ kind: "add_spirit", id: "chw_frontier_trade" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "chw_air_wing",
+    tree: "chw",
+    x: 27,
+    y: 2,
+    days: 70,
+    branch: "air",
+    icon: "plane",
+    prereq: [["chw_arsenal"]],
+    effects: [{ kind: "equipment", type: "fighter", gen: 1, count: 30 }],
+    ai: { base: 10 },
+  },
+  {
+    // The P3 "faction" flag lets the clique found its own bloc; the bloc's
+    // name is a FACTION_NAMES row (requested, lane K1 report).
+    id: "chw_regional_power",
+    tree: "chw",
+    x: 21,
+    y: 2,
+    days: 105,
+    branch: "diplomacy",
+    icon: "crown",
+    prereq: [["chw_autonomy"]],
+    effects: [
+      { kind: "pp", amount: 100 },
+      { kind: "set_flag", flag: "can_create_faction" },
+    ],
+    ai: { base: 5 },
+  },
+];
+
+/**
+ * The historical order (spec §11.4). One path serves the five cliques: a
+ * focus outside a clique's own tree (`countries`) is not in that tree, and
+ * the focus AI skips it like a bypassed focus (lane K1 report).
+ */
+export const CHW_PATH: FocusId[] = [
+  "chw_provincial_army",
+  "chw_local_industry",
+  "chw_guangxi_model",
+  "chw_yunnan_railway",
+  "chw_shanxi_model",
+  "chw_ma_cavalry",
+  "chw_xinjiang_soviet",
+  "chw_autonomy",
+  "chw_militia",
+  "chw_arsenal",
+  "chw_officer_school",
+  "chw_mines",
+  "chw_roads",
+  "chw_border_defense",
+  "chw_air_wing",
+  "chw_border_trade",
+  "chw_xinjiang_turn",
+];
+
+export const CHW_BRANCHES: BranchPoint[] = [
+  {
+    id: "chw_course",
+    historical: "chw_autonomy",
+    alternatives: ["chw_join_center"],
+    political: true,
+  },
+];
