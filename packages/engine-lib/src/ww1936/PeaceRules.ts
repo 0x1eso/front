@@ -141,6 +141,34 @@ export const REGION_DEMAND_KINDS: ReadonlySet<DemandKind> = new Set<DemandKind>(
 );
 
 const isPart = (t: PeaceTable, id: number) => t.parts.some((x) => x.id === id);
+/**
+ * P5 final lane (perf): a stake's region → index, built once per stake
+ * array (the conference AI prices thousands of regions a round; indexOf on
+ * 150 regions each time dominated). Same answer as `stake.indexOf(r)`.
+ */
+const STAKE_INDEX = new WeakMap<
+  readonly number[],
+  { n: number; at: Map<number, number> }
+>();
+/** Whether `region` is in `stake` (the cached index: `stake.includes(region)`). */
+export function peaceStakeHas(
+  stake: readonly number[],
+  region: number,
+): boolean {
+  return stakeIndex(stake, region) >= 0;
+}
+function stakeIndex(stake: readonly number[], region: number): number {
+  let m = STAKE_INDEX.get(stake);
+  if (m === undefined || m.n !== stake.length) {
+    const at = new Map<number, number>();
+    stake.forEach((r, i) => {
+      if (!at.has(r)) at.set(r, i);
+    });
+    m = { n: stake.length, at };
+    STAKE_INDEX.set(stake, m);
+  }
+  return m.at.get(region) ?? -1;
+}
 const pairIn = (
   list: readonly (readonly [number, number])[],
   a: number,
@@ -286,7 +314,7 @@ export function peaceRegionCost(
   b: number,
   base?: number,
 ): number {
-  const i = t.stake.indexOf(region);
+  const i = stakeIndex(t.stake, region);
   const ctrl = f.controller(region);
   return demandCost(base ?? (i >= 0 ? t.base[i] : 0), {
     controls: ctrl === p,

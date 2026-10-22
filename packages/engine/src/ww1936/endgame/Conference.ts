@@ -49,6 +49,7 @@ import {
   peaceRegionCost,
   PeaceSensitivity,
   peaceSensitivity,
+  peaceStakeHas,
   PeaceTable,
   planPeaceDemand,
   REGION_DEMAND_KINDS,
@@ -64,7 +65,7 @@ import { addSpirit } from "../politics/Spirits";
 import { activateCountry, landRegained, releasableTags } from "./Activate";
 import { endCivilWar } from "./CivilWar";
 import { endExile, offerTakeover } from "./Exile";
-import { aiDemands } from "./PeaceAi";
+import { aiDemands, peaceAiShared } from "./PeaceAi";
 import { endIndependenceWar, endSubject, makeSubject } from "./Subjects";
 import {
   countryListParams,
@@ -220,7 +221,9 @@ export function regionCost(
   beneficiary: number,
   facts: PeaceFacts = peaceFacts(eg),
 ): number {
-  const base = c.stake.includes(region) ? undefined : regionBase(eg, region);
+  const base = peaceStakeHas(c.stake, region)
+    ? undefined
+    : regionBase(eg, region);
   return peaceRegionCost(facts, c, region, p, beneficiary, base);
 }
 
@@ -269,14 +272,20 @@ export function priceOf(
   d: StoredDemand,
   taken: ReadonlyMap<number, number> = takenMap(eg, c),
   ctx: PeaceCtx = peaceCtx(eg, c),
+  /** The stake regions not in `taken` (the AI passes the one it keeps; P5 final lane perf). */
+  free?: (r: number) => boolean,
 ): number {
-  const stake = new Set(c.stake);
+  let ok = free;
+  if (ok === undefined) {
+    const stake = new Set(c.stake);
+    ok = (r) => stake.has(r) && !taken.has(r);
+  }
   const plan = planPeaceDemand(
     ctx.facts,
     ctx.table,
     p,
     demandIn(d),
-    (r) => stake.has(r) && !taken.has(r),
+    ok,
     ctx.sens,
   );
   return typeof plan === "string" ? 0 : peacePlanCost(plan);
@@ -431,9 +440,11 @@ function goalsOf(
  */
 function refreshAi(eg: WwEndgame, c: Conference): void {
   for (const p of c.parts) p.human = eg.isHumanControlled(p.id);
+  // P5 final lane (perf): what every participant reads alike, once.
+  const shared = peaceAiShared(eg, c);
   c.ai = c.parts.map((p) => ({
     id: p.id,
-    demands: eg.isActor(p.id) ? aiDemands(eg, c.id, p.id) : [],
+    demands: eg.isActor(p.id) ? aiDemands(eg, c.id, p.id, shared) : [],
   }));
 }
 

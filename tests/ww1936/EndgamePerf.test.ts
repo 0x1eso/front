@@ -4,7 +4,8 @@
 // calls as stepOccupation) over a fake state of 600 regions; the civil-war
 // split is EndgameRules.splitRegionsForCivilWar on 200 regions; the AI's
 // conference demands are PeaceAi.aiDemands on the real world1936 map, 30
-// participants × 150 stake regions. Real-map timings of a whole game are
+// participants × 150 stake regions (one round start: the shared pass and
+// every participant, as refreshAi runs it). Real-map timings of a whole game are
 // in the endgame-sim `--perf` table (Task 18 report).
 //
 // Bounds: the spec's desktop budget × 3 (controller ruling: CI jitter), on
@@ -36,7 +37,10 @@ import {
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { regionBase } from "@openfront/engine/ww1936/endgame/Conference";
-import { aiDemands } from "@openfront/engine/ww1936/endgame/PeaceAi";
+import {
+  aiDemands,
+  peaceAiShared,
+} from "@openfront/engine/ww1936/endgame/PeaceAi";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -49,13 +53,6 @@ const JITTER = 3;
 const OCC_DAY_MS = 0.1 * 7;
 const SPLIT_MS = 3;
 const PEACE_AI_MS = 3;
-/**
- * Task 18 (open): PeaceAi.aiDemands misses spec §21.7's 3 ms — about
- * 2 ms a participant, 60 ms for 30 × 150 (thread CPU, load 30). Until it
- * is rebuilt, the test guards this cost from growing (× JITTER) and logs
- * the budget.
- */
-const PEACE_AI_KNOWN_MS = 40;
 
 type ThreadCpu = (prev?: NodeJS.CpuUsage) => NodeJS.CpuUsage;
 const threadCpu = (
@@ -278,18 +275,24 @@ describe("the endgame's budgets (spec §21.7)", () => {
       settled: [],
       lastRound: [],
     });
-    const conf = eg.conferences[eg.conferences.length - 1].id;
+    const c = eg.conferences[eg.conferences.length - 1];
     let demands = 0;
+    // A round start as refreshAi runs it: the shared pass, then everyone.
     const round = () => {
       demands = 0;
-      for (const id of ids) demands += aiDemands(eg, conf, id).length;
+      const shared = peaceAiShared(eg, c);
+      for (const id of ids) demands += aiDemands(eg, c.id, id, shared).length;
     };
-    round(); // warm-up
-    const ms = bestOf(5, round);
+    // Warm (the JIT), then the best of 8 batches of 4 rounds each.
+    for (let i = 0; i < 6; i++) round();
+    const ms =
+      bestOf(8, () => {
+        for (let i = 0; i < 4; i++) round();
+      }) / 4;
     console.log(
-      `conference AI, 30 × 150: ${ms.toFixed(3)} ms for ${demands} demands (spec budget ${PEACE_AI_MS} ms: ${ms <= PEACE_AI_MS ? "met" : "missed, open"})`,
+      `conference AI, 30 × 150: ${ms.toFixed(3)} ms for ${demands} demands (budget ${PEACE_AI_MS} ms)`,
     );
     expect(demands).toBeGreaterThan(30);
-    expect(ms).toBeLessThan(PEACE_AI_KNOWN_MS * JITTER);
+    expect(ms).toBeLessThan(PEACE_AI_MS * JITTER);
   }, 120_000);
 });
