@@ -57,6 +57,7 @@ import {
   WwStrikeFlowChangedEvent,
 } from "./WwNukeFlow";
 import { seaAirOf, WwSeaAirChangedEvent } from "./WwSeaAirController";
+import { renderStrikePanel, strikeCardActive } from "./WwStrikeCard";
 
 /** −/+ move a slider by this many planes. */
 export const AIR_STEP = 10;
@@ -260,6 +261,14 @@ export class WwAirZoneCard extends LitElement implements Controller {
 
   render() {
     const c = this.ctx();
+    // P6 (U4): the rocket and the para / commando raid flows have their own card.
+    if (strikeCardActive(this.game)) {
+      return renderStrikePanel(
+        this.game,
+        ensureNukeFlow(this.game, this.eventBus),
+        placeStyle(zoneCardPlace()),
+      );
+    }
     if (c === null) return nothing;
     const d = c.card;
     return html`${SLIDER_STYLE}

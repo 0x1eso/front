@@ -109,3 +109,46 @@ describe("WwStrikeFxPass", () => {
     expect(pulseBrightness(3_000)).toBe(0);
   });
 });
+
+describe("WwStrikeFxPass light", () => {
+  it("the 20 s light fades without any tile, then switches off once", async () => {
+    const { lightAlpha, LIGHT_MS, LIGHT_PEAK } =
+      await import("../../../src/client/render/gl/passes/WwStrikeFxPass");
+    expect(lightAlpha(0)).toBeCloseTo(LIGHT_PEAK, 5);
+    expect(lightAlpha(LIGHT_MS / 2)).toBeCloseTo(LIGHT_PEAK / 2, 5);
+    expect(lightAlpha(LIGHT_MS)).toBe(0);
+    const alphas: number[] = [];
+    const view = new WwDepthView();
+    const pass = new WwStrikeFxPass(
+      view,
+      {
+        regionXY: (r, out) => ((out.x = r), (out.y = r), true),
+        ownerOf: () => 0,
+        flight: () => {},
+        atomSprite: () => {},
+        shockwave: () => {},
+        ring: () => {},
+        stream: () => {},
+        miniExplosion: () => {},
+        pulse: () => {},
+        light: (_x, _y, a) => alphas.push(a),
+        edgeFlash: () => {},
+        sound: () => {},
+        cameraSees: () => false,
+      },
+      () => 1,
+    );
+    view.apply({
+      fx: [{ kind: "nuke", region: 3, from: 1, owner: 1, tick: 0 }],
+      news: [],
+    });
+    pass.update(0);
+    pass.update(FLIGHT_MS + 1);
+    pass.update(FLIGHT_MS + 10_000);
+    pass.update(FLIGHT_MS + LIGHT_MS + 100);
+    pass.update(FLIGHT_MS + LIGHT_MS + 200);
+    expect(alphas[0]).toBeGreaterThan(alphas[1]);
+    expect(alphas[alphas.length - 1]).toBe(0);
+    expect(alphas.filter((a) => a === 0)).toHaveLength(1);
+  });
+});

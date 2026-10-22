@@ -10,7 +10,10 @@
 // A region on the no-strike list (Korea, Taiwan) never glows and is never
 // taken (DepthIndustryModel.strikeTargets).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { ROCKET_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  RaidKind,
+  ROCKET_KINDS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { RAID_TARGETS } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
@@ -26,7 +29,15 @@ import {
 } from "./DepthIndustryModel";
 import { TWO_TAP_MIN_MS, TwoTap, wwActive } from "./WorldWarModel";
 
-export type StrikeFlowKind = "nuke" | "rocket" | "raid_bomb";
+export type StrikeFlowKind =
+  | "nuke"
+  | "rocket"
+  | "raid_bomb"
+  | "raid_para"
+  | "raid_commando";
+
+export const isRaidKind = (k: StrikeFlowKind | null): k is RaidKind =>
+  k === "raid_bomb" || k === "raid_para" || k === "raid_commando";
 export type StrikeStep =
   | "idle"
   /** Targets glow; nothing chosen. */
@@ -55,6 +66,8 @@ export class StrikeFlowState {
   rocket: 0 | 1 = 0;
   count = 1;
   building: BuildingId | null = null;
+  /** Para and commando raids: the division sent (resolved from the army at start). */
+  unit = 0;
   pendingAt = 0;
   version = 0;
 }
@@ -106,9 +119,7 @@ export class WwNukeFlow implements Controller {
 
   init() {
     this.eventBus.on(WwStrikeFlowEvent, (e) => {
-      if (e.kind === "nuke" || e.kind === "rocket" || e.kind === "raid_bomb") {
-        this.start(e.kind, e.from);
-      }
+      this.start(e.kind, e.from);
     });
   }
 
@@ -137,9 +148,33 @@ export class WwNukeFlow implements Controller {
         const d = this.game.wwAir?.()?.deployments.get(s.from);
         return d === undefined ? [] : this.model.zoneTargets(d.sr);
       }
+      case "raid_para":
+      case "raid_commando":
+        return this.model.raidTargets(s.kind, this.divisionRegion(s.unit));
       default:
         return [];
     }
+  }
+
+  /** Region a division stands in, 0 when unknown. */
+  private divisionRegion(unit: number): number {
+    for (const d of this.game.wwLand?.()?.details.values() ?? []) {
+      const dv = d.divisions.find((x) => x.id === unit);
+      if (dv !== undefined) return dv.region;
+    }
+    return 0;
+  }
+
+  /** `from` is an army: its first division goes; or `from` is itself a division of mine. */
+  private resolveDivision(from: number): number {
+    const me = this.myId();
+    const d = me === null ? undefined : this.game.wwLand?.()?.details.get(me);
+    if (d === undefined) return 0;
+    return (
+      d.divisions.find((x) => x.army === from)?.id ??
+      d.divisions.find((x) => x.id === from)?.id ??
+      0
+    );
   }
 
   targets(): number[] {
@@ -150,7 +185,9 @@ export class WwNukeFlow implements Controller {
   raidBuildings(): BuildingId[] {
     const eco = this.game.wwEconomy?.();
     if (eco === null || eco === undefined || this.state.region === 0) return [];
-    return RAID_TARGETS.raid_bomb.filter(
+    const kind = this.state.kind;
+    if (!isRaidKind(kind)) return [];
+    return RAID_TARGETS[kind].filter(
       (b) => eco.effectiveBuildings(b, this.state.region) > 0,
     );
   }
@@ -169,6 +206,11 @@ export class WwNukeFlow implements Controller {
     const s = this.state;
     if (kind === "nuke" && this.model.nukeStartBlock(from) !== null) {
       return false;
+    }
+    if (kind === "raid_para" || kind === "raid_commando") {
+      const unit = this.resolveDivision(from);
+      if (unit === 0) return false;
+      s.unit = unit;
     }
     s.kind = kind;
     s.from = from;
@@ -231,7 +273,7 @@ export class WwNukeFlow implements Controller {
     }
     s.region = region;
     s.step = "setup";
-    if (s.kind === "raid_bomb") s.building = this.raidBuildings()[0] ?? null;
+    if (isRaidKind(s.kind)) s.building = this.raidBuildings()[0] ?? null;
     this.changed();
     return true;
   }
@@ -337,7 +379,7 @@ export class WwNukeFlow implements Controller {
   /** [Raid]: two taps. */
   confirmRaid(): boolean {
     const s = this.state;
-    if (s.kind !== "raid_bomb" || s.step !== "setup" || s.building === null) {
+    if (!isRaidKind(s.kind) || s.step !== "setup" || s.building === null) {
       return false;
     }
     if (!this.twoTap.tap(this.raidKey(), this.now())) {
@@ -346,8 +388,8 @@ export class WwNukeFlow implements Controller {
     }
     this.send({
       kind: "raid",
-      raid: "raid_bomb",
-      unit: s.from,
+      raid: s.kind,
+      unit: s.kind === "raid_bomb" ? s.from : s.unit,
       target: s.region,
       building: s.building,
     });

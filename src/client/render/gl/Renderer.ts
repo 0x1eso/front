@@ -294,6 +294,7 @@ export class GPURenderer {
   private strikeFx: WwStrikeFxPass | null = null;
   private strikeSound: ((loud: boolean) => void) | null = null;
   private strikeEdge: HTMLDivElement | null = null;
+  private strikeLight: HTMLDivElement | null = null;
   private congressIds: readonly number[] = [];
   private strikeIds: readonly number[] = [];
   private readonly fleetLayout = new FleetLayoutCache();
@@ -1452,9 +1453,7 @@ export class GPURenderer {
           this.strikeIds = Array.from(owners.subarray(0, count));
           this.setCongressPulse(this.congressIds);
         },
-        // FalloutBloomPass lights fallout tiles from the heat map; a strike
-        // leaves no tile, so there is nothing for it to fade.
-        light: () => {},
+        light: (x, y, alpha) => this.drawStrikeLight(x, y, alpha),
         edgeFlash: (alpha) => this.drawStrikeEdge(alpha),
         sound: (_name, loud) => this.strikeSound?.(loud),
         cameraSees: (x, y) => {
@@ -1470,6 +1469,30 @@ export class GPURenderer {
       },
       () => this.wwLand?.me() ?? 0,
     );
+  }
+
+  /** The 20 s glow: a soft overlay over the struck region, moved with the camera; no tile changes. */
+  private drawStrikeLight(x: number, y: number, alpha: number): void {
+    let el = this.strikeLight;
+    if (el === null) {
+      const host = this.canvas.parentElement;
+      if (host === null) return;
+      el = document.createElement("div");
+      el.setAttribute("data-ww-strike-light", "");
+      el.style.cssText =
+        "position:absolute;pointer-events:none;z-index:4;border-radius:50%;" +
+        "background:radial-gradient(circle,rgba(255,236,180,0.9) 0%,rgba(255,200,120,0.35) 40%,rgba(255,200,120,0) 70%)";
+      host.appendChild(el);
+      this.strikeLight = el;
+    }
+    const z = this.camera.zoom / renderDpr();
+    const size = Math.max(40, 50 * z);
+    const sx = this.canvas.clientWidth / 2 + (x - this.camera.offsetX) * z;
+    const sy = this.canvas.clientHeight / 2 + (y - this.camera.offsetY) * z;
+    el.style.width = el.style.height = `${size}px`;
+    el.style.left = `${sx - size / 2}px`;
+    el.style.top = `${sy - size / 2}px`;
+    el.style.opacity = String(alpha);
   }
 
   /** The victim's one red flash: a vignette on the screen's edges, the middle clear. */
@@ -2342,6 +2365,8 @@ export class GPURenderer {
     this.victoryProjectPass.dispose();
     this.orbitalBeamPass.dispose();
     this.strategicFxPass.dispose();
+    this.strikeEdge?.remove();
+    this.strikeLight?.remove();
     this.warfareRingPass.dispose();
     this.samRadiusPass.dispose();
     this.crosshairPass.dispose();

@@ -46,8 +46,8 @@ export interface StrikeFxSinks {
   miniExplosion(x: number, y: number, nowMs: number): void;
   /** StrategicFxPass.pulseOwners: borders of these owners flash. */
   pulse(owners: Uint32Array, count: number, brightness: number): void;
-  /** FalloutBloomPass: a light that dies over `durationMs` (no tile). */
-  light(x: number, y: number, durationMs: number): void;
+  /** A soft glow over the struck region, `alpha` 0..LIGHT_PEAK, called each frame while it lasts (an overlay, no tile). */
+  light(x: number, y: number, alpha: number): void;
   /** The red flash on the screen's edges, 0..1. */
   edgeFlash(alpha: number): void;
   sound(name: "atom-hit", loud: boolean): void;
@@ -61,6 +61,12 @@ export const PULSE_MS = 3000;
 export const PULSE_HZ = 0.5;
 export const PULSE_BRIGHTNESS = 0.5;
 export const LIGHT_MS = 20_000;
+export const LIGHT_PEAK = 0.4;
+
+/** The glow t ms after the impact: LIGHT_PEAK fading to nothing over LIGHT_MS. */
+export function lightAlpha(t: number): number {
+  return t < 0 || t >= LIGHT_MS ? 0 : LIGHT_PEAK * (1 - t / LIGHT_MS);
+}
 export const FLASH_MS = 900;
 /** The strongest the edge flash gets; the middle of the screen stays clear. */
 export const FLASH_PEAK = 0.35;
@@ -119,7 +125,10 @@ export class WwStrikeFxPass {
   private seenVersion = -1;
   private flashStart = -1e9;
   private flashShown = 0;
-  private lightEnd = 0;
+  private lightStart = -1e9;
+  private lightShown = false;
+  private lightX = 0;
+  private lightY = 0;
   private pulseShown = -1;
 
   constructor(
@@ -141,7 +150,11 @@ export class WwStrikeFxPass {
 
   /** True while something is scheduled or pulsing (the Renderer may skip update otherwise). */
   busy(): boolean {
-    return this.pulseShown > 0 || this.slots.some((s) => s.kind !== K_NONE);
+    return (
+      this.pulseShown > 0 ||
+      this.lightShown ||
+      this.slots.some((s) => s.kind !== K_NONE)
+    );
   }
 
   /** Once a frame. */
@@ -156,6 +169,11 @@ export class WwStrikeFxPass {
       if (s.kind !== K_NONE && nowMs >= s.at) this.impact(s, nowMs);
     }
     this.updatePulse(nowMs);
+    const glow = lightAlpha(nowMs - this.lightStart);
+    if (glow > 0 || this.lightShown) {
+      this.sinks.light(this.lightX, this.lightY, glow);
+    }
+    this.lightShown = glow > 0;
     const a = flashAlpha(nowMs - this.flashStart);
     if (a > 0 || this.flashShown > 0) this.sinks.edgeFlash(a);
     this.flashShown = a;
@@ -231,8 +249,9 @@ export class WwStrikeFxPass {
       sk.shockwave(x, y);
       sk.ring(x, y);
       sk.sound("atom-hit", sk.cameraSees(x, y));
-      sk.light(x, y, LIGHT_MS);
-      this.lightEnd = now + LIGHT_MS;
+      this.lightStart = now;
+      this.lightX = x;
+      this.lightY = y;
       const victim = sk.ownerOf(s.region);
       this.startPulse(victim, now);
       if (victim !== 0 && victim === this.me()) this.flashStart = now;
@@ -273,10 +292,5 @@ export class WwStrikeFxPass {
       this.sinks.pulse(this.activeOwners, n, best);
     }
     this.pulseShown = n > 0 ? best : 0;
-  }
-
-  /** The 20 s light is over (the Renderer may drop it). */
-  lightOver(now: number): boolean {
-    return now >= this.lightEnd;
   }
 }

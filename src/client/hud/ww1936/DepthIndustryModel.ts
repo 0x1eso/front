@@ -30,6 +30,7 @@ import {
   EquipmentType,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { WW_PARA_RANGE_KM } from "@openfront/engine-api/ww1936/LandTypes";
 import { energySupply } from "@openfront/engine-lib/ww1936/EnergyRules";
 import {
   marketCivs,
@@ -711,6 +712,31 @@ export class DepthIndustryModel {
           c.sides.isEnemy(c.me, owner) &&
           c.scenario.regionKm(site, r) <= ROCKET_RANGE_KM[kind]
         );
+      },
+    );
+  }
+
+  /**
+   * Enemy land regions a para (WW_PARA_RANGE_KM from the division) or commando
+   * (coastal) raid may name; the no-strike judge greys Korea and Taiwan.
+   */
+  raidTargets(
+    kind: "raid_para" | "raid_commando",
+    from: number,
+  ): StrikeTargetRow[] {
+    const c = airCtx(this.view);
+    if (c === null || from === 0) return [];
+    return strikeTargets(
+      c.scenario,
+      c.scenario.landRegions.map((r) => r.id),
+      (r) => {
+        const owner = c.economy.controller[r] ?? 0;
+        if (owner === 0 || owner === c.me || !c.sides.isEnemy(c.me, owner)) {
+          return false;
+        }
+        return kind === "raid_para"
+          ? c.scenario.regionKm(from, r) <= WW_PARA_RANGE_KM
+          : c.scenario.region(r)?.coastal === true;
       },
     );
   }
