@@ -1494,33 +1494,164 @@ export function recommendedTank(
   return { kind: "tank", base, modules, armorLevel, engineLevel, name: base };
 }
 
-/** Lane E fills (spec §5.3): the base fitting of a ship class, every slot "". */
-export function recommendedShip(base: string): DesignDef {
-  const cls = shipBase(base)?.cls ?? "dd";
-  return {
-    kind: "ship",
-    base,
-    modules: SHIP_CLASS_SLOTS[cls].map(() => ""),
-    name: base,
+/**
+ * Spec §5.3 / §19.3 (lane E): a ship's standard fit. Without `techs` the
+ * fit needs no technology (anti-air secondaries, a floatplane on the big
+ * gun ships, the large hangar, the long-range submarine engine: K5's
+ * "std" presets). With `techs` (and `projects`) every slot takes the best
+ * module researched: dual-purpose guns, the newest radar or fire control,
+ * sonar, the heavy torpedo on a submarine, the snorkel.
+ */
+export function recommendedShip(
+  base: string,
+  techs?: ReadonlySet<WwTechId>,
+  projects = 0,
+): DesignDef {
+  const sb = shipBase(base);
+  const cls = sb?.cls ?? "dd";
+  const gen = sb?.gen ?? 1;
+  const ok = (id: string, slot: string) => {
+    const d = SHIP_MODULE_DEFS[id];
+    return (
+      d !== undefined &&
+      d.slot === slot &&
+      d.classes.includes(cls) &&
+      (d.gens === undefined || d.gens.includes(gen)) &&
+      (d.tech === undefined || (techs?.has(d.tech) ?? false)) &&
+      (d.project === undefined || (projects & projectBit(d.project)) !== 0)
+    );
   };
+  const best: Readonly<Record<string, readonly string[]>> = {
+    secondary: ["sec_dp", "sec_aa"],
+    fire_control: [
+      "radar_microwave",
+      "radar_adv",
+      "radar_surface",
+      "fc_improved",
+    ],
+    asw: ["asw_sonar"],
+    torpedo: cls === "ss" ? ["torp_heavy"] : [],
+    engine: ["engine_long"],
+    hangar: ["hangar_large"],
+    special: cls === "ss" ? ["snorkel"] : cls === "dd" ? [] : ["floatplane"],
+  };
+  const modules = SHIP_CLASS_SLOTS[cls].map((slot) => {
+    // The snorkel and the big gun ships' engine stay as they are without techs.
+    if (slot === "engine" && cls !== "ss") return "";
+    return firstModule(best[slot] ?? [], (id) => ok(id, slot));
+  });
+  return { kind: "ship", base, modules, name: base };
 }
 
-/** Lane E fills (spec §5.4): the first weapon the techs allow, the rest empty. */
+/**
+ * Spec §5.4 (lane E): the screen's "recommended fill" of an airframe and
+ * the AI's starting point — the P4 type it should fly as (`type`; default:
+ * a fighter on a small airframe, a tactical bomber on a medium one, a
+ * strategic bomber on a large one), each slot the first module of that
+ * role the techs allow (K5's presets in spirit). The weapon slot always
+ * holds a weapon (machine guns need no tech).
+ */
 export function recommendedPlane(
   base: string,
   techs: ReadonlySet<WwTechId>,
+  type?: string,
 ): DesignDef {
+  const size = PLANE_BASE_DEFS[base]?.size ?? "small";
+  const role =
+    type ??
+    (size === "small"
+      ? "fighter"
+      : size === "medium"
+        ? "bomber"
+        : "strat_bomber");
+  const fit = PLANE_FITS[role] ?? PLANE_FITS.fighter;
   const slots = planeSlots(base);
-  const weapon = firstModule(
-    ["w_mg4", "w_mg2"],
-    (id) =>
-      PLANE_MODULE_DEFS[id].tech === undefined ||
-      techs.has(PLANE_MODULE_DEFS[id].tech!),
-  );
-  return {
-    kind: "plane",
-    base,
-    modules: slots.map((_, i) => (i === 0 ? weapon : "")),
-    name: base,
+  const ok = (slot: string, id: string) => {
+    const d = PLANE_MODULE_DEFS[id];
+    return (
+      d !== undefined &&
+      planeSlotTakes(slot, id) &&
+      (d.sizes === undefined || d.sizes.includes(size)) &&
+      (d.bases === undefined || d.bases.includes(base)) &&
+      (d.tech === undefined || techs.has(d.tech))
+    );
   };
+  let aux = 0;
+  const modules = slots.map((slot, i) => {
+    const cands =
+      i === 0
+        ? [...fit.weapon, "w_mg4", "w_mg2"]
+        : slot === "aux"
+          ? aux++ === 0
+            ? fit.aux1
+            : fit.aux2
+          : slot === "defense"
+            ? fit.defense
+            : fit.special;
+    return firstModule(cands, (id) => ok(slot, id));
+  });
+  return { kind: "plane", base, modules, name: base };
 }
+/** Spec §5.4.2: each P4 role's candidates per slot, best first ("" when none fits). */
+const PLANE_FITS: Readonly<
+  Record<
+    string,
+    {
+      weapon: readonly string[];
+      aux1: readonly string[];
+      aux2: readonly string[];
+      defense: readonly string[];
+      special: readonly string[];
+    }
+  >
+> = {
+  fighter: {
+    weapon: ["w_cannon30", "w_hmg", "w_mg4"],
+    aux1: ["w_cannon20", "w_mg2"],
+    aux2: ["m_self_sealing"],
+    defense: [],
+    special: ["m_drop_tank"],
+  },
+  cas: {
+    weapon: ["w_rockets", "w_bombs_s"],
+    aux1: ["w_cannon20", "w_mg2"],
+    aux2: ["m_armor"],
+    defense: [],
+    special: ["m_dive_brakes"],
+  },
+  naval_bomber: {
+    weapon: ["w_torpedo"],
+    aux1: ["w_mg4", "w_mg2"],
+    aux2: ["m_self_sealing"],
+    defense: ["m_def_turret"],
+    special: ["m_drop_tank"],
+  },
+  heavy_fighter: {
+    weapon: ["w_cannon30", "w_cannon20"],
+    aux1: ["w_cannon20", "w_mg4"],
+    aux2: ["m_self_sealing"],
+    defense: ["m_armor"],
+    special: ["m_drop_tank"],
+  },
+  bomber: {
+    weapon: ["w_bombs_m"],
+    aux1: ["w_mg4", "w_mg2"],
+    aux2: ["m_self_sealing"],
+    defense: ["m_def_turret"],
+    special: ["m_bomb_sight"],
+  },
+  strat_bomber: {
+    weapon: ["w_bombs_l", "w_bombs_m"],
+    aux1: ["w_bombs_m", "w_mg2"],
+    aux2: ["m_self_sealing"],
+    defense: ["m_def_turret"],
+    special: ["m_bomb_sight"],
+  },
+  transport_plane: {
+    weapon: ["w_cargo"],
+    aux1: [],
+    aux2: [],
+    defense: ["m_def_turret"],
+    special: [],
+  },
+};

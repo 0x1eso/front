@@ -1,0 +1,213 @@
+// World War 1936 P6 lane E (plan Task 3 Step 8, spec §5.6, §26): designs
+// crossing between countries — capture, lend-lease, the fallback to the
+// nearest static equipment. The lane functions are called directly (plan
+// decision 30); P5's capture and lend-lease call receiveKey (T1b).
+import {
+  DesignDef,
+  KS_FIELDS,
+  PlaneDesignStats,
+  TankDesignStats,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import { equipKey, WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { GROUND_STATIC_SLOTS } from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  copyDesignTo,
+  newestGen,
+  receiveKey,
+} from "@openfront/engine/ww1936/depth/DesignCopy";
+import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
+import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import { DEEP } from "./deepFixture";
+import { depthFixture } from "./depthFixture";
+import { HUMAN, stepTo, wwRunner } from "./util";
+
+beforeEach(() => usePoliticsContent(depthFixture()));
+afterEach(() => usePoliticsContent(null));
+
+const GBR = DEEP.tag.GBR;
+const DEU = DEEP.tag.DEU;
+const MED1: DesignDef = {
+  kind: "tank",
+  base: "medium_1",
+  modules: ["gun_cs", "turret_2", "bogie", "welded", "petrol", "", ""],
+  armorLevel: 0,
+  engineLevel: 0,
+  name: "Med I",
+};
+const MED2: DesignDef = { ...MED1, base: "medium_2", name: "Med II" };
+const TD: DesignDef = {
+  kind: "tank",
+  base: "medium_2",
+  modules: ["gun_small", "turret_none", "bogie", "welded", "petrol", "", ""],
+  armorLevel: 2,
+  engineLevel: 1,
+  name: "Jager",
+};
+const FIGHTER: DesignDef = {
+  kind: "plane",
+  base: "small_1",
+  modules: ["w_mg4", "w_mg2", "", ""],
+  name: "Hawk",
+};
+
+async function game() {
+  const runner = await wwRunner(
+    {},
+    [
+      { clientID: HUMAN, country: "GBR" },
+      { clientID: "HUMAN002", country: "DEU" },
+    ],
+    DEEP.map,
+  );
+  stepTo(runner, WW_PREP_TICKS + 2);
+  const ww = runner.game.worldWar()!;
+  return { runner, ww, d: ww.depth };
+}
+
+function techs(ww: WorldWar, id: number, list: WwTechId[]): void {
+  const ce = ww.economy.country(id)!;
+  for (const t of list) ce.addTech(t);
+}
+
+describe("World War 1936 P6: design copies", () => {
+  it("captured enemy design is copied into a free slot", async () => {
+    const { ww, d } = await game();
+    techs(ww, DEU, ["medium_tank_1", "medium_tank_2"]);
+    expect(saveDesign(d, DEU, MED1, 0, "own", 0, 0, 0)).toBe(1);
+    expect(saveDesign(d, DEU, MED2, 0, "own", 0, 0, 0)).toBe(2);
+    // Britain holds a design of its own in slot 1 already.
+    expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(1);
+    const from = equipKey("tank_design", 2);
+    const got = receiveKey(d, DEU, from, GBR, "captured");
+    expect(got).toBe(equipKey("tank_design", 2));
+    const s = d.designSlot(GBR, "tank", 2)!;
+    expect(s.origin).toBe("captured");
+    expect(s.from).toBe(DEU);
+    expect(s.fromSlot).toBe(2);
+    expect(s.obsolete).toBe(false);
+    expect(s.def.name).toBe("Med II");
+    // The same original design is copied once (spec §5.6).
+    expect(receiveKey(d, DEU, from, GBR, "captured")).toBe(got);
+    expect(d.country(GBR)!.des.tank.filter((x) => x !== null)).toHaveLength(2);
+    // Taken again from Britain, the copy names Germany's slot as its source.
+    expect(copyDesignTo(d, GBR, 2, "tank", DEEP.tag.FRA, "captured")).toBe(1);
+    const fr = d.designSlot(DEEP.tag.FRA, "tank", 1)!;
+    expect([fr.from, fr.fromSlot]).toEqual([DEU, 2]);
+    // And back home it is Germany's own design again.
+    expect(receiveKey(d, GBR, got, DEU, "captured")).toBe(from);
+    // A static key stays; an empty design slot is lost.
+    const inf = equipKey("infantry_equipment", 1);
+    expect(receiveKey(d, DEU, inf, GBR, "captured")).toBe(inf);
+    expect(
+      receiveKey(d, DEU, equipKey("tank_design", 9), GBR, "captured"),
+    ).toBe(-1);
+  });
+
+  it("lend-leased design arrives as received design", async () => {
+    const { ww, d } = await game();
+    techs(ww, GBR, ["medium_tank_1"]);
+    expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(1);
+    const got = receiveKey(
+      d,
+      GBR,
+      equipKey("tank_design", 1),
+      DEEP.tag.FRA,
+      "received",
+    );
+    expect(got).toBe(equipKey("tank_design", 1));
+    expect(d.designSlot(DEEP.tag.FRA, "tank", 1)!.origin).toBe("received");
+    // A licence over the received copy raises it (it may be built then).
+    copyDesignTo(d, GBR, 1, "tank", DEEP.tag.FRA, "licensed");
+    expect(d.designSlot(DEEP.tag.FRA, "tank", 1)!.origin).toBe("licensed");
+    // A later capture does not lower it.
+    copyDesignTo(d, GBR, 1, "tank", DEEP.tag.FRA, "captured");
+    expect(d.designSlot(DEEP.tag.FRA, "tank", 1)!.origin).toBe("licensed");
+  });
+
+  it("received design keeps sender stats", async () => {
+    const { ww, d } = await game();
+    techs(ww, GBR, ["medium_tank_1", "medium_tank_2", "anti_tank_1"]);
+    expect(saveDesign(d, GBR, TD, 0, "own", 0, 0, 0)).toBe(1);
+    expect(saveDesign(d, GBR, FIGHTER, 0, "own", 0, 0, 0)).toBe(1);
+    // Turkey has none of the techs: the copy is the sender's design.
+    const to = DEEP.tag.TUR;
+    expect(receiveKey(d, GBR, equipKey("tank_design", 1), to, "received")).toBe(
+      equipKey("tank_design", 1),
+    );
+    expect(
+      receiveKey(d, GBR, equipKey("plane_design", 1), to, "received"),
+    ).toBe(equipKey("plane_design", 1));
+    const a = d.designStatsOf(GBR, "tank", 1) as TankDesignStats;
+    const b = d.designStatsOf(to, "tank", 1) as TankDesignStats;
+    expect(b).toEqual(a);
+    expect(a.role).toBe("tank_destroyer");
+    expect(d.designStatsOf(to, "plane", 1) as PlaneDesignStats).toEqual(
+      d.designStatsOf(GBR, "plane", 1),
+    );
+    // The receiver's divisions read the same numbers (KeyStatsTable row).
+    const j = GROUND_STATIC_SLOTS;
+    const ka = ww.land.keyStatsOf(GBR);
+    const kb = ww.land.keyStatsOf(to);
+    expect(kb.group[j]).toBe(ka.group[j]);
+    expect([...kb.stats.subarray(j * KS_FIELDS, (j + 1) * KS_FIELDS)]).toEqual([
+      ...ka.stats.subarray(j * KS_FIELDS, (j + 1) * KS_FIELDS),
+    ]);
+  });
+
+  it("full design slots fall back to the nearest static equipment", async () => {
+    const { ww, d } = await game();
+    techs(ww, DEU, [
+      "medium_tank_1",
+      "medium_tank_2",
+      "heavy_tank_1",
+      "anti_tank_1",
+    ]);
+    techs(ww, GBR, ["medium_tank_1", "medium_tank_2"]);
+    for (let i = 0; i < 12; i++) {
+      expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(i + 1);
+    }
+    for (let i = 0; i < 16; i++) {
+      expect(saveDesign(d, GBR, FIGHTER, 0, "own", 0, 0, 0)).toBe(i + 1);
+    }
+    const heavy: DesignDef = {
+      ...MED1,
+      base: "heavy_1",
+      modules: ["gun_cs", "turret_3", "bogie", "welded", "petrol", "", ""],
+    };
+    const light: DesignDef = {
+      ...MED1,
+      base: "light_1",
+      modules: ["auto20", "turret_1", "bogie", "riveted", "petrol", ""],
+    };
+    const spa: DesignDef = {
+      ...MED1,
+      modules: ["howitzer", "turret_open", "bogie", "welded", "petrol", "", ""],
+    };
+    for (const def of [MED2, heavy, light, TD, spa, FIGHTER]) {
+      saveDesign(d, DEU, def, 0, "own", 0, 0, 0);
+    }
+    const key = (slot: number) => equipKey("tank_design", slot);
+    // Britain: medium tanks of generation 2, light tanks of generation 1.
+    expect(receiveKey(d, DEU, key(1), GBR, "captured")).toBe(
+      equipKey("medium_tank", 2),
+    );
+    expect(receiveKey(d, DEU, key(2), GBR, "captured")).toBe(
+      equipKey("medium_tank", 2),
+    );
+    expect(receiveKey(d, DEU, key(3), GBR, "captured")).toBe(
+      equipKey("light_tank", 1),
+    );
+    expect(receiveKey(d, DEU, key(4), GBR, "captured")).toBe(
+      equipKey("anti_tank", newestGen(d, GBR, "anti_tank")),
+    );
+    expect(receiveKey(d, DEU, key(5), GBR, "captured")).toBe(
+      equipKey("artillery", newestGen(d, GBR, "artillery")),
+    );
+    expect(
+      receiveKey(d, DEU, equipKey("plane_design", 1), GBR, "received"),
+    ).toBe(equipKey("fighter", newestGen(d, GBR, "fighter")));
+    expect(newestGen(d, GBR, "fighter")).toBe(1);
+  });
+});

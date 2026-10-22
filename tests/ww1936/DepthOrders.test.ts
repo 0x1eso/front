@@ -14,6 +14,19 @@ import { gameHash, order, step, wwRunner } from "./util";
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
 
+/**
+ * Lane E's refusals of the samples (Germany in 1936): no medium II chassis,
+ * empty slot 1 (a copy, the flag, a name, a refit), no design on line 1.
+ */
+const DESIGN_BLOCK = [
+  "bad_base",
+  "bad_slot",
+  "bad_slot",
+  "bad_slot",
+  "bad_slot",
+  "bad_line",
+];
+
 /** The stub's refusal of each lane (plan Task 1 Step 11). */
 const LANE_BLOCK = (k: number): string =>
   k <= 1
@@ -23,7 +36,7 @@ const LANE_BLOCK = (k: number): string =>
       : k <= 11
         ? "group_full"
         : k <= 19
-          ? "design_slots_full"
+          ? DESIGN_BLOCK[k - 14]
           : k <= 22
             ? "bad_index"
             : k <= 25
