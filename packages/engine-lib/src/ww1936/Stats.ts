@@ -36,6 +36,44 @@ export function addStatsInto(
   }
 }
 
+/**
+ * Adds `p` into the partial sum `out` (a key `out` lacks starts at 0): the
+ * same numbers addStatsInto gives on a full object, without carrying every
+ * zero (final perf lane: P3's daily recompute adds the P6 parts through
+ * these sparse sums).
+ */
+export function addSparseInto(
+  out: Partial<WwStats>,
+  p: Partial<WwStats>,
+): void {
+  for (const k in p) {
+    const v = p[k as WwStatKey];
+    if (v !== undefined) out[k as WwStatKey] = (out[k as WwStatKey] ?? 0) + v;
+  }
+}
+
+/** WW_STAT_KEYS index of a stat key. */
+export const STAT_INDEX: ReadonlyMap<string, number> = new Map(
+  WW_STAT_KEYS.map((k, i) => [k, i]),
+);
+
+/**
+ * addStatsInto for a sum kept by WW_STAT_KEYS index (final perf lane: a
+ * typed array reads and writes by position, the object by name). A key
+ * that is no stat is skipped (on an object it was a stray, never read).
+ */
+export function addStatsIntoArray(
+  sum: Float64Array,
+  p: Partial<WwStats>,
+): void {
+  for (const k in p) {
+    const v = p[k as WwStatKey];
+    if (v === undefined) continue;
+    const i = STAT_INDEX.get(k);
+    if (i !== undefined) sum[i] += v;
+  }
+}
+
 export function sumStats(parts: readonly Partial<WwStats>[]): WwStats {
   const out = emptyStats();
   for (const p of parts) addStatsInto(out, p);

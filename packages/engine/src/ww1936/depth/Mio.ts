@@ -229,18 +229,46 @@ export function issueMio(
   }
 }
 
+/**
+ * Final perf lane: mioStatsOf's last answer per country, with what it was
+ * made from (each family's archetype, and its traits when there is one).
+ * mioStats is pure, so equal inputs give equal stats. Derived, never state
+ * (a restored game has new country objects and starts empty).
+ */
+const mioMemo = new WeakMap<
+  CountryDepth,
+  { sig: number[]; out: Readonly<Partial<WwStats>> }
+>();
+
 /** Plan decision 24: every family's current archetype's traits as stats (spec §6.3). */
 export function mioStatsOf(d: WwDepth, id: number): Partial<WwStats> {
   const c = d.country(id);
   if (c === null) return {};
+  const n = MIO_FAMILIES.length;
+  const memo = mioMemo.get(c);
+  if (memo !== undefined) {
+    let same = true;
+    for (let f = 0; f < n && same; f++) {
+      const a = c.mio.arch[f];
+      same =
+        memo.sig[2 * f] === a &&
+        (a < 0 || memo.sig[2 * f + 1] === c.mio.traits[f * 3 + a]);
+    }
+    if (same) return memo.out;
+  }
+  const sig: number[] = [];
   const out: Record<string, number> = {};
-  for (let f = 0; f < MIO_FAMILIES.length; f++) {
+  for (let f = 0; f < n; f++) {
     const a = c.mio.arch[f];
+    sig.push(a, a < 0 ? 0 : c.mio.traits[f * 3 + a]);
     if (a < 0) continue;
     const s = mioStats(f, c.mio.traits[f * 3 + a]) as Record<string, number>;
     for (const k of Object.keys(s)) out[k] = (out[k] ?? 0) + s[k];
   }
-  return out as Partial<WwStats>;
+  // Shared by later calls: frozen, so a caller that writes into it fails loudly.
+  const frozen = Object.freeze(out) as Readonly<Partial<WwStats>>;
+  mioMemo.set(c, { sig, out: frozen });
+  return frozen;
 }
 
 /**

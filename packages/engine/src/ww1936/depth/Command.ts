@@ -47,7 +47,7 @@ import {
   traitSlots,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
-import { addStatsInto, emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { canServe, TERRAIN_TRAITS } from "../land/GeneralsRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
@@ -684,10 +684,11 @@ export function reinforceOrder(d: WwDepth, id: number): number[] {
 export function spiritStatsOf(d: WwDepth, id: number): Partial<WwStats> {
   const c = d.country(id);
   if (c === null || c.cmd.spirits.every((s) => s < 0)) return {};
-  const out = emptyStats();
+  // Final perf lane: a sparse sum (statsPart adds only the keys set).
+  const out: Partial<WwStats> = {};
   for (const s of c.cmd.spirits) {
     if (s >= 0 && s < ARMY_SPIRITS.length) {
-      addStatsInto(out, ARMY_SPIRIT_STATS[ARMY_SPIRITS[s]]);
+      addSparseInto(out, ARMY_SPIRIT_STATS[ARMY_SPIRITS[s]]);
     }
   }
   return out;

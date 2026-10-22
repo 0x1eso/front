@@ -4,15 +4,17 @@
  * this process on the real world1936 map, every country an AI:
  *
  *   npx tsx scripts/ww1936/perf-sim.ts [--seed WWPERF01] [--until 1941-12-31]
- *       [--no-history] [--hash-every 50] [--json <file>] [--no-parts]
+ *       [--no-history] [--hash-every 50] [--json <file>] [--no-parts] [--hooks]
  *
  * Every system's share of each tick is timed through its instance methods
  * (the same calls WorldWarExecution makes): politics, the endgame clock,
  * the depth clock, the economy, the land war, the navy, the air war, the
  * endgame's order 8, the event-card deadlines, the depth end of tick, and
- * each update. The P6 hooks the other systems call on WwDepth (sea region
- * day, air zone day, rail guns, army mods, …) are timed too, so "P6" is the
- * depth clock + end of tick + update + hooks. Means are thread CPU (honest
+ * each update. "P6" is the depth clock + end of tick + update; `--hooks`
+ * also times the hooks the other systems call on WwDepth (sea region day,
+ * air zone day, rail guns, army mods, …: about 1,700 calls a tick, so the
+ * timers' own cost inflates every part that calls them — take the hooks'
+ * share from a CPU profile instead). Means are thread CPU (honest
  * on a busy machine), p99 and max the wall clock. `--hash-every N` prints
  * the WorldWar hash every N days and at the end: two builds that print the
  * same lines played the same game (the perf lane's behaviour-identity
@@ -50,6 +52,7 @@ interface Options {
   hashEvery: number;
   json: string;
   parts: boolean;
+  hooks: boolean;
 }
 
 function parseArgs(argv: string[]): Options {
@@ -60,6 +63,7 @@ function parseArgs(argv: string[]): Options {
     hashEvery: 0,
     json: "",
     parts: true,
+    hooks: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const next = () => {
@@ -85,6 +89,9 @@ function parseArgs(argv: string[]): Options {
         break;
       case "--no-parts":
         o.parts = false;
+        break;
+      case "--hooks":
+        o.hooks = true;
         break;
       default:
         throw new Error(`unknown option ${argv[i]}`);
@@ -285,7 +292,7 @@ async function main(): Promise<void> {
     ]) {
       wrap(s, "takeData", "updates");
     }
-    for (const h of DEPTH_HOOKS) wrapHook(ww.depth, h);
+    if (o.hooks) for (const h of DEPTH_HOOKS) wrapHook(ww.depth, h);
   }
   // Depth's own update, apart (part of P6's sum).
   let depthTake = 0;
