@@ -11,6 +11,7 @@ import {
   WW_TITLED_ADMIRAL_BASE,
   WW_TITLED_ADMIRAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { refitHolds } from "../depth/Refit";
 import { effectiveLevel } from "../economy/Buildings";
 import { lendDocks } from "../economy/NavalLines";
 import type { AdmiralState, Fleet, WwNavy } from "./WwNavy";
@@ -144,7 +145,8 @@ export function dailyRepair(navy: WwNavy, smallID: number, day: number): void {
       const r = t.rowOf(id);
       return r < 0 || t.hp[r] >= navy.shipStatsOf(r).hpMilli;
     });
-    if (!whole) continue;
+    // P6 (lane E): a refit holds the fleet in the repair state until done.
+    if (!whole || refitHolds(navy, f)) continue;
     f.state = ST_DOCKED;
     navy.markFleet(f.id);
   }

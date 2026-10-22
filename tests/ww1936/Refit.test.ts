@@ -165,14 +165,17 @@ describe("World War 1936 P6: ship refits", () => {
       d.issue(GBR, { kind: "ship_refit", ship, slot: 1 }, tick),
     ).toBeNull();
     const left = t.refitLeft[t.rowOf(ship)];
-    // The player sails it anyway (until T1b's port lock refuses the order).
+    // T1b's port lock refuses the player's order to sail it...
     expect(
       navy.issue(
         GBR,
         { kind: "fleet_move", fleet: fid, zone: DEEP.zone.middle },
         tick,
       ),
-    ).toBeNull();
+    ).toBe("fleet_busy");
+    // ...so the test puts it out at sea itself: the refit waits there.
+    f.docked = 0;
+    navy.setFleetZone(f, DEEP.zone.middle);
     step(runner, 3 * 15);
     expect(f.docked).toBe(0);
     expect(t.refitLeft[t.rowOf(ship)]).toBe(left);
