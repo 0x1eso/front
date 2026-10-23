@@ -680,6 +680,7 @@ describe("LandTickClock and the renderer's land war start", () => {
       landClock: new LandTickClock(100),
       paradrops: new ParadropFlights(),
       landFlagsStale: false,
+      namePass: { setTroopFog: () => {} },
     });
     const v = viewWith({}, 4990);
     (r as unknown as InstanceType<typeof GPURenderer>).setWwLand(

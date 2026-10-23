@@ -46,8 +46,6 @@ vi.mock("@openfront/engine-lib/ww1936/AirRules", async (importOriginal) => {
   };
 });
 
-import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
-import { buildBlockOf } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   allNoStrikeZone,
   deployBlock,
@@ -61,25 +59,6 @@ import { navyCtx, NavyGame } from "../../../src/client/hud/ww1936/NavyModel";
 import { REGION, SR } from "../../ww1936/seaFixture";
 import { detail, fakeEconGame, ID, scenario } from "./EconomyFixture";
 import { airDetail, sea, seaGame } from "./SeaAirFixture";
-
-/**
- * Whether engine-lib's judges carry lane E's no-strike rules (they do once
- * the two fix lanes are merged; this lane's branch has the inputs only).
- */
-const JUDGES_HAVE_NO_STRIKE =
-  buildBlockOf({ building: "civ", noStrike: true } as never) ===
-    "no_strike_region" &&
-  airDeployBlock({
-    sr: SR.eastLand,
-    srKind: "land",
-    type: "bomber",
-    mission: "strategic_bombing",
-    count: 1,
-    have: 10,
-    deploymentsUsed: 0,
-    anyBaseInRange: true,
-    allNoStrike: true,
-  } as never) === "no_strike_region";
 
 const fighting = () => false;
 
@@ -127,8 +106,8 @@ describe("the no-strike inputs on the screens (fix lanes C and E)", () => {
     expect(ASKS.map((a) => a.allNoStrike)).toEqual([true, false]);
   });
 
-  // Runs once the judges know the rule (both fix lanes merged).
-  it.runIf(JUDGES_HAVE_NO_STRIKE)(
+  // The judges carry the no-strike rule now that both fix lanes are merged.
+  it(
     "a no-strike region greys out with the engine's reason",
     () => {
       const view = berlinAsKorea();
