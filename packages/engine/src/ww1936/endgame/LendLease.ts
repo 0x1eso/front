@@ -662,7 +662,10 @@ function ship(
     gen,
     countMilli: n * 1000,
     arriveDay,
-    srs,
+    // T23 determinism lane: each shipment its own copy (a contract ships
+    // several generations the same day; a shared array is an alias a
+    // restored game does not have).
+    srs: [...srs],
     sea,
     costMilli,
   });
