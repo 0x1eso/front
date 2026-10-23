@@ -123,21 +123,13 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     expect(drawers[drawers.length - 1]).toEqual(["army", false]);
   });
 
-  it("on a short screen it steps aside when an order mode begins", async () => {
+  it("an order mode does not close it (the dock minimises the full-screen panel)", async () => {
     vi.stubGlobal("innerHeight", 360);
     const m = await mount();
     await m.click("[data-ww-army-row='1']");
     m.bus.emit(new WwLandModeEvent("move"));
     await m.el.updateComplete;
-    expect(m.q("[data-ww-drawer]")).toBeNull();
-    // On a tall screen it stays.
-    document.body.innerHTML = "";
-    vi.stubGlobal("innerHeight", 820);
-    const tall = await mount();
-    await tall.click("[data-ww-army-row='1']");
-    tall.bus.emit(new WwLandModeEvent("move"));
-    await tall.el.updateComplete;
-    expect(tall.q("[data-ww-drawer]")).not.toBeNull();
+    expect(m.q("[data-ww-drawer]")).not.toBeNull();
   });
 
   it("a row chooses its army and moves the camera; the divisions below", async () => {

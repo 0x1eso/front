@@ -468,32 +468,17 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(open()).toEqual([false, false, false]);
   });
 
-  it("keeps the map's centre and the attack ratio clear on a landscape phone", async () => {
+  it("is a full-screen panel: one top bar with the title, the tabs and the close button", async () => {
     vi.stubGlobal("innerWidth", 844);
     vi.stubGlobal("innerHeight", 390);
-    const rows = document.createElement("div");
-    rows.setAttribute("data-bottom-hud-rows", "");
-    rows.getBoundingClientRect = () =>
-      ({
-        top: 280,
-        bottom: 390,
-        left: 142,
-        right: 702,
-        width: 560,
-        height: 110,
-      }) as DOMRect;
-    document.body.appendChild(rows);
     const m = mount({ summaries: [summary("DEU")], details: [detail("DEU")] });
     await m.open("construction");
-    const style = m
-      .q<HTMLElement>("[data-ww-drawer='industry']")!
-      .getAttribute("style")!;
-    // Right of the middle, never wider than 420 px.
-    expect(style).toContain("width: min(420px, calc(50vw - 8px))");
-    // Just below the band, above the bottom rows (110 + 8).
-    expect(style).toContain("top: 40px");
-    expect(style).toContain("bottom: 118px");
-    // The tab row stays; only the list scrolls.
+    const aside = m.q<HTMLElement>("[data-ww-drawer='industry']")!;
+    const style = aside.getAttribute("style")!;
+    expect(style).toContain("inset:0");
+    // Room for the dock at the foot (it stands over the panel).
+    expect(style).toContain("var(--ww-dock-h");
+    // The list scrolls inside; the top bar stays.
     expect(m.q("[data-ww-scroll]")!.className).toContain("overflow-y-auto");
     expect(m.q("[role='tablist']")!.closest("[data-ww-scroll]")).toBeNull();
     expect(m.el.querySelector("[title]")).toBeNull();
@@ -502,28 +487,12 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       expect(tab.className).toMatch(/\bh-9\b/);
       expect(tab.className).toMatch(/\bmin-w-9\b/);
     }
-    // A short screen: the tabs share the close button's row (one fixed row,
-    // not two), so the list gets that room; the name stays for readers.
-    const head = m.q("[data-ww-drawer-head]")!;
-    expect(head.querySelector("[role='tablist']")).not.toBeNull();
-    expect(head.querySelector("[data-ww-drawer-close]")).not.toBeNull();
-    expect(m.q("[data-ww-drawer='industry'] h3")).toBeNull();
-    expect(m.q("[data-ww-drawer='industry']")!.getAttribute("aria-label")).toBe(
-      "[ww1936.econ.industry]",
-    );
-  });
-
-  it("a tall screen keeps the title row above the tabs", async () => {
-    vi.stubGlobal("innerWidth", 1180);
-    vi.stubGlobal("innerHeight", 820);
-    const m = mount({ summaries: [summary("DEU")], details: [detail("DEU")] });
-    await m.open("construction");
     const head = m.q("[data-ww-drawer-head]")!;
     expect(head.querySelector("h3")!.textContent).toContain(
       "[ww1936.econ.industry]",
     );
-    expect(head.querySelector("[role='tablist']")).toBeNull();
-    expect(m.q("[role='tablist']")!.closest("[data-ww-scroll]")).toBeNull();
+    expect(head.querySelector("[role='tablist']")).not.toBeNull();
+    expect(head.querySelector("[data-ww-drawer-close]")).not.toBeNull();
   });
 
   it("the hover card ignores the pointer over an open drawer", async () => {

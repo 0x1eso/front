@@ -15,11 +15,8 @@ import { DIAL_GLOW_CLASS } from "../../../src/client/hud/domestic/Dial";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import {
-  dialBlockPx,
-  WW_DIAL_BLOCK_PX,
-  WW_DIAL_COLS,
+  dockHeightPx,
   WW_DIAL_HOLD_MS,
-  WW_DIAL_ROWS,
 } from "../../../src/client/hud/ww1936/WwDials";
 import {
   OpenWwAirEvent,
@@ -355,18 +352,22 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
     return { ...g, el, bus, dial, controller };
   }
 
-  it("the dials fit a landscape phone (three columns of four rows once the depth dials show)", async () => {
+  it("the dock is one slim row that scrolls sideways, 40 px on a landscape phone", async () => {
     vi.stubGlobal("innerWidth", 844);
     vi.stubGlobal("innerHeight", 390);
     const m = await mountSea({
       armies: [],
       landDetails: [],
     });
-    const grid = m.el.querySelector<HTMLElement>("[data-ww-dials]")!;
-    expect(grid.dataset.cols).toBe("3");
-    expect(grid.className).toContain("grid-cols-3");
-    expect(grid.className).toContain("gap-1.5");
-    const ids = [...grid.querySelectorAll("[data-ww-dial]")].map(
+    const row = m.el.querySelector<HTMLElement>("[data-ww-dock]")!;
+    expect(row.className).toContain("overflow-x-auto");
+    expect(row.className).toContain("whitespace-nowrap");
+    expect(row.className).not.toContain("flex-wrap");
+    expect(row.style.height).toBe(`${dockHeightPx(true)}px`);
+    expect(document.documentElement.style.getPropertyValue("--ww-dock-h")).toBe(
+      "40px",
+    );
+    const ids = [...row.querySelectorAll("[data-ww-dial]")].map(
       (b) => (b as HTMLElement).dataset.wwDial,
     );
     expect(ids).toEqual([
@@ -379,13 +380,12 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
       "navy",
       "air",
     ]);
-    expect(WW_DIAL_COLS * WW_DIAL_ROWS).toBe(10);
-    for (const b of grid.querySelectorAll("[data-ww-dial]")) {
-      expect(b.className).toContain("size-11");
+    for (const b of row.querySelectorAll("[data-ww-dial]")) {
+      // An icon with a short label; a tap target of at least 36 px.
+      expect(b.className).toContain("min-w-11");
+      expect(b.className).toContain("h-full");
+      expect(b.textContent).toContain("[ww1936.dock.");
     }
-    // 5 × 44 + 4 × 6 + padding = 252 px on a tablet; 4 rows (202 px) on a phone.
-    expect(WW_DIAL_BLOCK_PX).toBe(5 * 44 + 4 * 6 + 8);
-    expect(dialBlockPx(true) + 32).toBeLessThan(390);
   });
 
   it("⚓: the first naval line's ring, fleets in battle in red; a tap opens the drawer", async () => {

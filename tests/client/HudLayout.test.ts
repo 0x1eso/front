@@ -39,13 +39,15 @@ describe("index.html bottom HUD", () => {
   it("puts the domestic dials at the left of the rows, the panel and hotbar to their right", () => {
     const rows = doc.querySelector<HTMLElement>("[data-bottom-hud-rows]")!;
     expect(rows.classList).toContain("flex-row");
-    // World War 1936 P1 (pre-flight R7.1): its dials sit right after the
-    // domestic ones, which that mode does not draw.
-    const [dials, wwDials, column] = [...rows.children];
+    // World War 1936: its dock is not in the rows; it is a slim fixed row
+    // above them, over the full-screen panels (z-[1003] > the panels' 1002).
+    const [dials, column] = [...rows.children];
     expect(dials.tagName.toLowerCase()).toBe("domestic-dials");
     expect(dials.classList).toContain("shrink-0");
-    expect(wwDials.tagName.toLowerCase()).toBe("ww-dials");
-    expect(wwDials.classList).toContain("shrink-0");
+    const wwDials = doc.querySelector("ww-dials")!;
+    expect(rows.contains(wwDials)).toBe(false);
+    expect(wwDials.classList).toContain("fixed");
+    expect(wwDials.classList).toContain("z-[1003]");
     expect(column.querySelector("control-panel")).not.toBeNull();
     expect(column.querySelector("unit-display")).not.toBeNull();
     expect(doc.querySelector("domestic-hud")).toBeNull();
@@ -85,7 +87,10 @@ describe("index.html bottom HUD", () => {
     const rows = doc.querySelector("[data-bottom-hud-rows]")!;
     const cards = doc.querySelector("congress-cards")!;
     expect(cards).not.toBeNull();
-    expect(cards.nextElementSibling).toBe(rows);
+    // The World War 1936 dock keeps a spacer between them (its height).
+    const spacer = cards.nextElementSibling!;
+    expect(spacer.hasAttribute("data-ww-dock-spacer")).toBe(true);
+    expect(spacer.nextElementSibling).toBe(rows);
     expect(
       doc
         .querySelector("satellite-band")!

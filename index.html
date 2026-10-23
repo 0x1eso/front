@@ -434,6 +434,9 @@
         <congress-cards
           class="block w-full pointer-events-none"
         ></congress-cards>
+        <!-- World War 1936: the dock (ww-dials, fixed above this HUD, z over the
+             full-screen panels) leaves this spacer, its height. -->
+        <div data-ww-dock-spacer style="height: var(--ww-dock-h, 0px)"></div>
         <!-- relative: the build-bar card opens above this whole box, so it
              never covers the attack-ratio row. data-bottom-hud-rows: the
              open domestic drawer stays above these fixed rows. -->
@@ -442,7 +445,6 @@
           class="relative flex flex-row items-end pointer-events-auto bg-gray-800/92 backdrop-blur-sm rounded-t-lg shadow-lg"
         >
           <domestic-dials class="shrink-0"></domestic-dials>
-          <ww-dials class="shrink-0"></ww-dials>
           <div class="flex flex-col flex-1 min-w-0">
             <control-panel class="block w-full"></control-panel>
             <unit-display class="block w-full"></unit-display>
@@ -464,6 +466,14 @@
         ></actionable-events>
       </div>
     </div>
+
+    <!-- World War 1936 dock: one slim row right above the troop bar; its
+         bottom is set by WwDials (above the rows, or the screen's foot while
+         a full-screen panel is open). -->
+    <ww-dials
+      class="pointer-events-none fixed left-1/2 z-[1003] -translate-x-1/2"
+      style="width: min(560px, calc(100vw - 16px)); bottom: 0"
+    ></ww-dials>
 
     <!-- Game modals and overlays -->
     <emoji-table></emoji-table>

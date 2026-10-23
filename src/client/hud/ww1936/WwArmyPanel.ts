@@ -40,7 +40,6 @@ import {
   landSelectionOf,
   OpenWwArmyEvent,
   WwArmyTab,
-  WwLandModeEvent,
   WwSelectArmyEvent,
 } from "./LandSelection";
 import {
@@ -129,17 +128,6 @@ export class WwArmyPanel extends WwDrawerBase {
     });
     this.eventBus.on(WwLandChangedEvent, () => {
       if (this.open) this.requestUpdate();
-    });
-    // On a short screen the drawer would leave the map too little room to
-    // tap the order's region: it steps aside when an order mode begins.
-    this.eventBus.on(WwLandModeEvent, (e) => {
-      if (
-        e.mode !== "none" &&
-        this.open &&
-        window.innerHeight <= COMPACT_MAX_HEIGHT
-      ) {
-        this.setOpen(false);
-      }
     });
   }
 

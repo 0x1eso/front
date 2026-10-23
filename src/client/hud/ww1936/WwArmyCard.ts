@@ -64,13 +64,7 @@ import {
   NavyGame,
   srName,
 } from "./NavyModel";
-import {
-  today,
-  TWO_TAP_MS,
-  TwoTap,
-  WW_BAND_PX,
-  wwActive,
-} from "./WorldWarModel";
+import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
 import { renderRaidPicker } from "./WwRaidPicker";
@@ -227,53 +221,21 @@ export function cardPlace(): CardPlace {
     return r !== undefined && r.width > 0 && r.height > 0 ? r : null;
   };
   const h = window.innerHeight;
+  // The dock stands right above the rows: the card clears both.
   const rows = shown("[data-bottom-hud-rows]");
-  const drawer = shown("[data-ww-drawer], [data-ww-diplomacy]");
-  const rowsTop = rows === null ? h : rows.top;
+  const dock = shown("[data-ww-dock]");
+  const rowsTop = Math.min(rows === null ? h : rows.top, dock?.top ?? h);
   const bottom = h - rowsTop + GAP;
   const maxHeight = Math.max(
     CARD_MIN_PX,
     Math.min(Math.floor(h / 4), Math.floor(rowsTop - GAP - (h * 3) / 4)),
   );
-  // P4: the risen dials (a short screen) stand above the rows' top: the
-  // card keeps right of them — or, when an open drawer leaves too little
-  // room there, sits above them (never over the 🏛 and 🌐 dials).
-  const dials = shown("[data-ww-dials][data-compact='true']");
-  if (dials !== null && dials.top < rowsTop - GAP) {
-    const end = drawer === null ? window.innerWidth - GAP : drawer.left - GAP;
-    if (end - (dials.right + GAP) >= CARD_MIN_WIDTH_PX) {
-      const left = dials.right + GAP;
-      return {
-        bottom,
-        right: null,
-        left,
-        maxWidth: Math.max(0, Math.min(560, end - left)),
-        maxHeight,
-      };
-    }
-    return {
-      bottom: h - dials.top + GAP,
-      right: null,
-      left: GAP,
-      maxWidth: Math.max(0, Math.min(560, end - GAP)),
-      maxHeight: Math.max(
-        CARD_MIN_PX,
-        Math.min(Math.floor(h / 4), dials.top - 2 * GAP - WW_BAND_PX),
-      ),
-    };
-  }
-  if (drawer === null) {
-    return {
-      bottom,
-      right: null,
-      maxWidth: Math.max(0, Math.min(560, window.innerWidth - 2 * GAP)),
-      maxHeight,
-    };
-  }
+  // A drawer is a full-screen panel (it steps aside for a map flow): the
+  // card never has to keep left of it.
   return {
     bottom,
-    right: window.innerWidth - drawer.left + GAP,
-    maxWidth: Math.max(0, Math.min(560, drawer.left - 2 * GAP)),
+    right: null,
+    maxWidth: Math.max(0, Math.min(560, window.innerWidth - 2 * GAP)),
     maxHeight,
   };
 }

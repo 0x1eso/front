@@ -12,6 +12,11 @@ import {
   drawerInsets,
 } from "../domestic/DomesticPanel";
 import { WW_BAND_PX } from "./WorldWarModel";
+import {
+  WwClosePanelEvent,
+  WwPanelMinimizedEvent,
+  wwPanelStyle,
+} from "./WwPanelMode";
 
 // World War 1936 P1 (spec §13): the events of the economy screens and the
 // frame both economy drawers share with the P0 diplomacy drawer's place.
@@ -192,6 +197,8 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   @state() protected open = false;
+  /** A map flow is on: the full-screen panel stands aside (WwPanelMode). */
+  @state() protected minimized = false;
   @state() protected insets: DrawerInsets = {
     top: WW_BAND_PX + GAP,
     right: GAP,
@@ -226,6 +233,12 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     this.eventBus.on(WwDrawerEvent, (e) => {
       if (e.open && e.drawer !== this.drawerId) this.setOpen(false);
     });
+    this.eventBus.on(WwPanelMinimizedEvent, (e) => {
+      if (this.open) this.minimized = e.minimized;
+    });
+    this.eventBus.on(WwClosePanelEvent, () => {
+      if (this.open) this.setOpen(false);
+    });
     // Back closes the drawer before it asks to leave the game.
     this.unregisterBack?.();
     this.unregisterBack = registerBackClosable(() => {
@@ -249,6 +262,7 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
   protected setOpen(open: boolean) {
     if (open === this.open) return;
     this.open = open;
+    this.minimized = false;
     if (open) {
       this.refit();
       window.addEventListener("resize", this.refit);
@@ -280,8 +294,6 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     tabs: TemplateResult | typeof nothing,
     body: TemplateResult,
   ): TemplateResult {
-    const { top, right, bottom } = this.insets;
-    const merged = this.compact && tabs !== nothing;
     const close = html`<button
       type="button"
       data-ww-drawer-close
@@ -291,31 +303,28 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     >
       ✕
     </button>`;
+    // One top bar: the title, the tabs (they scroll sideways), the close button.
     return html`
       <aside
         data-ww-drawer=${this.drawerId}
-        data-compact=${String(merged)}
+        data-compact=${String(this.compact)}
+        data-minimized=${String(this.minimized)}
         aria-label=${label}
-        class="fixed z-[1002] flex min-h-40 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
-        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px; width: ${wwDrawerWidth(
-          right,
-        )};"
+        class="fixed z-[1002] flex flex-col overflow-hidden bg-gray-900 text-sm text-white"
+        style=${wwPanelStyle(this.minimized)}
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
-        ${merged
-          ? html`<div
-              data-ww-drawer-head
-              class="flex shrink-0 items-center gap-1 border-b border-white/10 py-0.5 pl-1 pr-1"
-            >
-              ${tabs} ${close}
-            </div>`
-          : html`<div
-                data-ww-drawer-head
-                class="flex shrink-0 items-center gap-2 pl-3 pr-1 pt-1"
-              >
-                ${head} ${close}
-              </div>
-              ${tabs}`}
+        <div
+          data-ww-drawer-head
+          class="flex shrink-0 items-center gap-1 border-b border-white/10 py-0.5 pl-3 pr-1"
+        >
+          <div
+            class="flex max-w-[40%] min-w-0 shrink-0 items-center gap-2 text-sm font-bold"
+          >
+            ${head}
+          </div>
+          ${tabs === nothing ? html`<div class="flex-1"></div>` : tabs} ${close}
+        </div>
         <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           ${body}
         </div>
@@ -335,9 +344,7 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
   ): TemplateResult {
     return html`<div
       role="tablist"
-      class="flex gap-1 overflow-x-auto ${this.compact
-        ? "min-w-0 flex-1"
-        : "shrink-0 border-b border-white/10 px-2 pb-1"}"
+      class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
     >
       ${tabs.map(
         (t) =>

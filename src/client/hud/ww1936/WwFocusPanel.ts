@@ -52,6 +52,11 @@ import {
 } from "./WorldWarModel";
 import { renderContinuousBand } from "./WwContinuousBand";
 import { WwDrawerEvent, wwDrawerInsets } from "./WwDrawer";
+import {
+  WwClosePanelEvent,
+  WwPanelMinimizedEvent,
+  wwPanelStyle,
+} from "./WwPanelMode";
 
 // World War 1936 P3 (spec §21.3): the national focus drawer — on top the
 // running focus (ring, days and seconds left, two taps cancel), the queued
@@ -203,6 +208,7 @@ export class WwFocusPanel extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   @state() private shown = false;
+  @state() private minimized = false;
   @state() private insets: DrawerInsets = {
     top: WW_BAND_PX + GAP,
     right: GAP,
@@ -247,6 +253,10 @@ export class WwFocusPanel extends LitElement implements Controller {
     this.eventBus.on(WwDrawerEvent, (e) => {
       if (e.open && e.drawer !== "focus") this.setShown(false);
     });
+    this.eventBus.on(WwPanelMinimizedEvent, (e) => {
+      if (this.shown) this.minimized = e.minimized;
+    });
+    this.eventBus.on(WwClosePanelEvent, () => this.setShown(false));
     this.eventBus.on(OpenWwFocusEvent, () => this.setShown(!this.shown));
     this.unregisterBack?.();
     this.unregisterBack = registerBackClosable(() => {
@@ -280,6 +290,7 @@ export class WwFocusPanel extends LitElement implements Controller {
   private setShown(shown: boolean) {
     if (shown === this.shown) return;
     this.shown = shown;
+    this.minimized = false;
     if (shown) {
       this.refit();
       window.addEventListener("resize", this.refit);
@@ -461,7 +472,6 @@ export class WwFocusPanel extends LitElement implements Controller {
   render() {
     if (!this.shown) return null;
     const c = this.ctx();
-    const { top, right, bottom } = this.insets;
     const title = translateText("ww1936.focusui.title");
     const close = html`<button
       type="button"
@@ -482,8 +492,8 @@ export class WwFocusPanel extends LitElement implements Controller {
         data-ww-drawer="focus"
         data-compact=${String(this.compact)}
         aria-label=${title}
-        class="fixed z-[1002] flex min-h-40 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
-        style="top: ${top}px; right: ${right}px; bottom: ${bottom}px; width: min(640px, calc(60vw - ${right}px));"
+        class="fixed z-[1002] flex flex-col overflow-hidden bg-gray-900 text-sm text-white"
+        style=${wwPanelStyle(this.minimized)}
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
         ${this.compact

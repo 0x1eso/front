@@ -11,7 +11,6 @@ import {
   DIAL_GLOW_CLASS,
   DIAL_STYLES,
   DialColor,
-  ringSvg,
 } from "../domestic/Dial";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { airDial, AirDialModel } from "./AirModel";
@@ -24,7 +23,7 @@ import {
   ResearchDialModel,
 } from "./EconomyModel";
 import { armyDial, ArmyDialModel } from "./LandModel";
-import { OpenWwArmyEvent } from "./LandSelection";
+import { OpenWwArmyEvent, WwLandModeEvent } from "./LandSelection";
 import { navyCtx, navyDial, NavyDialModel, NavyGame } from "./NavyModel";
 import {
   diplomacyDial,
@@ -46,41 +45,45 @@ import {
   WwDrawerId,
 } from "./WwDrawer";
 import { OpenWwFocusEvent } from "./WwFocusPanel";
-import { seaAirOf, WwSeaAirChangedEvent } from "./WwSeaAirController";
+import { WwLandChangedEvent } from "./WwLandController";
+import { WwStrikeFlowChangedEvent } from "./WwNukeFlow";
+import {
+  WwClosePanelEvent,
+  wwMapFlowActive,
+  WwPanelMinimizedEvent,
+} from "./WwPanelMode";
+import {
+  seaAirOf,
+  WwSeaAirChangedEvent,
+  WwSeaAirModeEvent,
+} from "./WwSeaAirController";
 
 /**
- * P6 (spec §20.2): ten dials (industry, research, army, focus, politics,
- * diplomacy, navy, air, doctrine, intel). Two columns of five rows
- * (size-11, 6 px apart, about 256 px tall) on a tablet or desktop; three
- * columns of four rows (about 194 px) on a landscape phone (at most
- * COMPACT_MAX_HEIGHT tall).
+ * The dock: ten buttons (industry, research, army, focus, politics,
+ * diplomacy, navy, air, doctrine, intel) in one slim row right above the
+ * troop bar. It scrolls sideways when it does not fit. A button opens its
+ * drawer as a full-screen panel (WwDrawerBase.renderFrame).
  */
 export const WW_DIAL_COUNT = 10;
-/** size-11 and gap-1.5, in CSS px. */
-export const WW_DIAL_SIZE_PX = 44;
-export const WW_DIAL_GAP_PX = 6;
-/** The grid's own padding, top and bottom (py-1). */
-export const WW_DIAL_PAD_PX = 4;
-
-/** The grid the dials make: 3 × 4 on a phone in landscape, 2 × 5 elsewhere. */
-export function dialLayout(
-  compact: boolean,
-  count = WW_DIAL_COUNT,
-): { cols: number; rows: number } {
-  const cols = compact ? 3 : 2;
-  return { cols, rows: Math.ceil(count / cols) };
+/** The row's height in CSS px: 40 on a landscape phone, 44 elsewhere. */
+export function dockHeightPx(compact: boolean): number {
+  return compact ? 40 : 44;
 }
-
-/** The block of dials, in CSS px. */
-export function dialBlockPx(compact: boolean): number {
-  const { rows } = dialLayout(compact);
-  return (
-    rows * WW_DIAL_SIZE_PX + (rows - 1) * WW_DIAL_GAP_PX + 2 * WW_DIAL_PAD_PX
-  );
+/** A progress bar along a button's foot (0..1), tests read data-progress. */
+function progressBar(progress: number, color: DialColor): TemplateResult {
+  const p = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
+  return html`<span
+    class="pointer-events-none absolute inset-x-1.5 bottom-0.5 h-0.5 overflow-hidden rounded bg-white/15"
+    aria-hidden="true"
+    ><span
+      data-ring
+      data-progress=${p.toFixed(2)}
+      class="block h-full rounded"
+      style="width: ${Math.round(p * 100)}%; background: ${DIAL_COLORS[color]
+        .stroke}"
+    ></span
+  ></span>`;
 }
-export const WW_DIAL_COLS = 2;
-export const WW_DIAL_ROWS = 5;
-export const WW_DIAL_BLOCK_PX = dialBlockPx(false);
 /** A press this long on ✈ opens the air drawer (spec §18.1). */
 export const WW_DIAL_HOLD_MS = 500;
 
@@ -103,11 +106,7 @@ export interface WwDialsModel {
   airLayer: boolean;
   /** The sea layer is on. */
   seaLayer: boolean;
-  /**
-   * A short landscape screen: the 208 px block rises out of the bottom
-   * rows instead of making them tall, so the drawers above the rows keep
-   * their height (the cards keep right of it, WwArmyCard.cardPlace).
-   */
+  /** A short landscape screen (a phone): the row is 40 px tall. */
   compact: boolean;
 }
 
@@ -130,6 +129,10 @@ export class WwDials extends LitElement implements Controller {
   public eventBus: EventBus;
   @state() private model: WwDialsModel | null = null;
   @state() private shown: WwDrawerId | null = null;
+  /** A map flow is on: the open panel stands aside, the chip brings it back. */
+  @state() private minimized = false;
+  private flowOn = false;
+  private rowsObserver: ResizeObserver | null = null;
   private modelKey = "";
   private inputsSeen = "";
   private holdTimer: ReturnType<typeof setTimeout> | null = null;
@@ -141,15 +144,98 @@ export class WwDials extends LitElement implements Controller {
 
   init() {
     this.eventBus.on(WwDrawerEvent, (e) => {
-      if (e.open) this.shown = e.drawer;
-      else if (this.shown === e.drawer) this.shown = null;
+      if (e.open) {
+        this.shown = e.drawer;
+        this.minimized = false;
+      } else if (this.shown === e.drawer) {
+        this.shown = null;
+        this.minimized = false;
+      }
+      this.place();
     });
+    // Esc closes the open panel (before the map's own Esc), not a minimised one.
+    window.addEventListener("keydown", this.onKey, true);
+    this.flowOn = wwMapFlowActive(this.game);
+    this.eventBus.on(WwLandModeEvent, () => this.checkFlow());
+    this.eventBus.on(WwSeaAirModeEvent, () => this.checkFlow());
+    this.eventBus.on(WwStrikeFlowChangedEvent, () => this.checkFlow());
+    this.eventBus.on(WwLandChangedEvent, () => this.checkFlow());
     // The air layer is switched on the map too (a zone row, Back).
     this.eventBus.on(WwSeaAirChangedEvent, () => this.tick());
   }
 
   getTickIntervalMs() {
     return 250;
+  }
+
+  private readonly onKey = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || this.shown === null || this.minimized) return;
+    e.stopPropagation();
+    this.eventBus.emit(new WwClosePanelEvent());
+  };
+
+  /**
+   * A map flow began while a panel is open: the panel steps aside; when the
+   * flow ends it returns. A flow already on when a panel opens leaves it be.
+   */
+  private checkFlow() {
+    const on = wwMapFlowActive(this.game);
+    if (on === this.flowOn) return;
+    this.flowOn = on;
+    if (on && this.shown !== null && !this.minimized) {
+      this.setMinimized(true);
+    } else if (!on && this.minimized) {
+      this.setMinimized(false);
+    }
+  }
+
+  private setMinimized(minimized: boolean) {
+    this.minimized = minimized;
+    this.eventBus.emit(new WwPanelMinimizedEvent(minimized));
+    this.place();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (typeof ResizeObserver === "undefined") return;
+    const rows = document.querySelector("[data-bottom-hud-rows]");
+    if (rows === null) return;
+    this.rowsObserver = new ResizeObserver(() => this.place());
+    this.rowsObserver.observe(rows);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("keydown", this.onKey, true);
+    this.rowsObserver?.disconnect();
+    this.rowsObserver = null;
+    document.documentElement.style.removeProperty("--ww-dock-h");
+  }
+
+  /**
+   * The dock stands right above the troop bar (the bottom HUD's rows); with
+   * a panel open it drops to the screen's foot, over the panel. The
+   * bottom HUD keeps a spacer of its height (--ww-dock-h).
+   */
+  private place() {
+    const m = this.model;
+    const root = document.documentElement.style;
+    if (m === null) {
+      root.removeProperty("--ww-dock-h");
+      return;
+    }
+    root.setProperty("--ww-dock-h", `${dockHeightPx(m.compact)}px`);
+    const rows = document.querySelector("[data-bottom-hud-rows]");
+    const top = rows?.getBoundingClientRect().top ?? 0;
+    const above = rows === null || top <= 0 ? 0 : window.innerHeight - top;
+    this.style.bottom =
+      this.shown !== null
+        ? "env(safe-area-inset-bottom)"
+        : `${Math.max(0, above)}px`;
+  }
+
+  updated() {
+    this.place();
   }
 
   /**
@@ -180,6 +266,7 @@ export class WwDials extends LitElement implements Controller {
 
   tick() {
     if (!this.game?.worldWarScenario()) return;
+    this.checkFlow();
     const inputs = this.inputsKey();
     if (inputs === this.inputsSeen) return;
     this.inputsSeen = inputs;
@@ -235,24 +322,20 @@ export class WwDials extends LitElement implements Controller {
     if (m === null) return nothing;
     const i = m.industry;
     const r = m.research;
-    const layout = dialLayout(m.compact);
-    const grid = html`<div
+    const grid = html`<nav
       data-ww-dials
-      data-cols=${layout.cols}
-      data-rows=${layout.rows}
+      data-ww-dock
       data-compact=${String(m.compact)}
-      class="grid ${m.compact
-        ? "grid-cols-3"
-        : "grid-cols-2"} items-start gap-1.5 px-1.5 py-1 text-white select-none ${m.compact
-        ? "absolute bottom-0 left-0 rounded-t-lg bg-gray-800/92"
-        : ""}"
+      aria-label=${translateText("ww1936.dock.label")}
+      class="pointer-events-auto flex w-full items-stretch gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-t-lg bg-gray-800/95 px-1 text-white select-none"
+      style="height: ${dockHeightPx(m.compact)}px"
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       ${this.renderDial(
         "industry",
         i.queued > 0 ? "building" : "idle",
         translateText("ww1936.econ.industry"),
-        ringSvg(i.progress, i.queued > 0 ? "victory" : "grey"),
+        progressBar(i.progress, i.queued > 0 ? "victory" : "grey"),
         "🏭",
         null,
         i.idle > 0
@@ -269,7 +352,7 @@ export class WwDials extends LitElement implements Controller {
         "research",
         r.free > 0 ? "free" : "running",
         translateText("ww1936.econ.research"),
-        ringSvg(r.free > 0 && r.running === 0 ? 1 : r.progress, "science"),
+        progressBar(r.free > 0 && r.running === 0 ? 1 : r.progress, "science"),
         "🔬",
         r.free > 0 ? "science" : null,
         r.free > 0
@@ -284,20 +367,20 @@ export class WwDials extends LitElement implements Controller {
       )}
       ${m.army === null ? nothing : this.renderArmy(m.army)}
       ${this.renderPolitics(m)} ${this.renderSeaAir(m)} ${this.renderDepth(m)}
-    </div>`;
-    // The footprint the rows keep: one row of dials.
+    </nav>`;
+    const chip =
+      this.minimized && this.shown !== null
+        ? html`<button
+            type="button"
+            data-ww-panel-chip
+            class="pointer-events-auto absolute bottom-full right-2 mb-1 h-9 rounded-full border border-white/20 bg-gray-900/95 px-3 text-xs font-semibold text-white shadow-lg"
+            @click=${() => this.setMinimized(false)}
+          >
+            ↩ ${translateText("ww1936.dock.back_to_panel")}
+          </button>`
+        : nothing;
     return html`${DIAL_STYLES}
-    ${m.compact
-      ? html`<div
-          data-ww-dials-slot
-          class="relative"
-          style="width: ${layout.cols * WW_DIAL_SIZE_PX +
-          (layout.cols - 1) * WW_DIAL_GAP_PX +
-          12}px; height: ${WW_DIAL_SIZE_PX + 2 * WW_DIAL_PAD_PX}px"
-        >
-          ${grid}
-        </div>`
-      : grid}`;
+      <div class="relative w-full">${chip}${grid}</div>`;
   }
 
   /**
@@ -319,7 +402,7 @@ export class WwDials extends LitElement implements Controller {
             "ww1936.navy.dial_line",
             { pct: Math.round(n.progress * 100) },
           )}`) + (m.seaLayer ? ` · ${translateText("ww1936.navy.layer")}` : ""),
-      ringSvg(n?.progress ?? 0, "science"),
+      progressBar(n?.progress ?? 0, "science"),
       "⚓",
       null,
       n === null
@@ -350,7 +433,7 @@ export class WwDials extends LitElement implements Controller {
             "ww1936.air.dial_sup",
             { pct: Math.floor(a.supPm / 10) },
           )}`) + (m.airLayer ? ` · ${translateText("ww1936.air.layer")}` : ""),
-      ringSvg(a?.progress ?? 0, "victory"),
+      progressBar(a?.progress ?? 0, "victory"),
       "✈",
       null,
       a !== null && a.low > 0
@@ -392,7 +475,7 @@ export class WwDials extends LitElement implements Controller {
           "doctrine",
           d.glow ? "unpicked" : "idle",
           translateText("ww1936.doctrine.dial"),
-          ringSvg(d.progress, "science"),
+          progressBar(d.progress, "science"),
           "🎖",
           d.glow ? "victory" : null,
           d.badge === null
@@ -418,7 +501,7 @@ export class WwDials extends LitElement implements Controller {
           "intel",
           i.badge?.kind ?? "idle",
           translateText("ww1936.intel.dial"),
-          ringSvg(i.progress, "cooldown"),
+          progressBar(i.progress, "cooldown"),
           "🕵",
           null,
           i.badge === null
@@ -466,7 +549,7 @@ export class WwDials extends LitElement implements Controller {
           "focus",
           f.glow ? "idle" : "running",
           `${translateText("ww1936.pol.dial.focus")}: ${f.label}`,
-          ringSvg(f.progress, "victory"),
+          progressBar(f.progress, "victory"),
           "🎯",
           f.glow ? "victory" : null,
           nothing,
@@ -478,7 +561,7 @@ export class WwDials extends LitElement implements Controller {
           "politics",
           p.badge > 0 ? "decisions" : "idle",
           `${translateText("ww1936.pol.dial.politics")}: ${p.label}`,
-          ringSvg(p.progress, "political"),
+          progressBar(p.progress, "political"),
           "🏛",
           null,
           p.badge > 0
@@ -499,7 +582,7 @@ export class WwDials extends LitElement implements Controller {
           d.label === ""
             ? translateText("ww1936.pol.dial.diplomacy")
             : `${translateText("ww1936.pol.dial.diplomacy")}: ${d.label}`,
-          ringSvg(d.progress, "cooldown"),
+          progressBar(d.progress, "cooldown"),
           "🌐",
           null,
           d.badge > 0
@@ -519,7 +602,7 @@ export class WwDials extends LitElement implements Controller {
       "army",
       a.encircled > 0 ? "encircled" : a.fighting > 0 ? "fighting" : "idle",
       translateText("ww1936.land.dial"),
-      ringSvg(a.progress, a.training > 0 ? "victory" : "grey"),
+      progressBar(a.progress, a.training > 0 ? "victory" : "grey"),
       "⚔",
       null,
       a.encircled > 0
@@ -561,11 +644,12 @@ export class WwDials extends LitElement implements Controller {
       data-state=${state}
       aria-label=${label}
       aria-pressed=${String(pressed)}
-      class="relative size-11 shrink-0 rounded-full ${glow === null
+      class="relative flex h-full min-w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md px-2 pb-1 ${glow ===
+      null
         ? ""
         : DIAL_GLOW_CLASS} ${pressed
-        ? "outline-2 outline-offset-1 outline-white/80"
-        : ""}"
+        ? "bg-white/20 outline-2 outline-offset-[-2px] outline-white/80"
+        : "hover:bg-white/10"}"
       style="--dial-glow: ${DIAL_COLORS[glow ?? "grey"].glow}"
       @click=${open}
       @pointerdown=${down ?? nothing}
@@ -573,14 +657,13 @@ export class WwDials extends LitElement implements Controller {
       @pointerleave=${up ?? nothing}
       @pointercancel=${up ?? nothing}
     >
-      <span class="absolute inset-0 rounded-full">
-        ${svg}
-        <span
-          class="relative flex h-full w-full items-center justify-center text-lg leading-none"
-          >${face}</span
-        >
-      </span>
-      ${badge}
+      <span class="text-base leading-none" aria-hidden="true">${face}</span>
+      <span
+        class="max-w-16 truncate text-[10px] leading-none text-white/80"
+        aria-hidden="true"
+        >${translateText(`ww1936.dock.${id}`)}</span
+      >
+      ${svg} ${badge}
     </button>`;
   }
 
@@ -593,7 +676,7 @@ export class WwDials extends LitElement implements Controller {
     return html`<span
       data-dial-badge=${kind}
       aria-label=${label}
-      class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-0.5 ${colors} ring-1 ring-gray-900 text-[10px] font-black leading-none tabular-nums"
+      class="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full px-0.5 ${colors} ring-1 ring-gray-900 text-[10px] font-black leading-none tabular-nums"
       >${n}</span
     >`;
   }

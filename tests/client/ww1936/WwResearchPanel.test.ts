@@ -52,8 +52,7 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("on a short screen the slots open the list, the tabs share the close row", async () => {
-    // 800×360, a landscape phone: one fixed row (tabs and ✕), the rest list.
+  it("the slots open the list; the tabs share the top bar with the close button", async () => {
     vi.stubGlobal("innerWidth", 800);
     vi.stubGlobal("innerHeight", 360);
     const m = await mount({
@@ -65,26 +64,11 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(head.querySelector("[data-ww-slots]")).toBeNull();
     const slots = m.q("[data-ww-slots]")!;
     expect(slots.closest("[data-ww-scroll]")).not.toBeNull();
-    // Above the cards, still two taps to cancel.
     expect(
       slots.compareDocumentPosition(m.q("[data-ww-cards]")!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(m.q("[data-ww-slot='0']")).not.toBeNull();
-    // A tall screen: the slots stay in the head above the tabs.
-    document.body.innerHTML = "";
-    vi.stubGlobal("innerWidth", 1180);
-    vi.stubGlobal("innerHeight", 820);
-    const tall = await mount({
-      summaries: [summary("DEU")],
-      details: [detail("DEU", { slots: [running, null, null] })],
-    });
-    expect(
-      tall
-        .q("[data-ww-drawer-head] [data-ww-slots]")!
-        .closest("[data-ww-scroll]"),
-    ).toBeNull();
-    expect(tall.q("[data-ww-drawer-head] [role='tablist']")).toBeNull();
   });
 
   it("tapping an available card sends research", async () => {

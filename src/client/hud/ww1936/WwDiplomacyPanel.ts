@@ -48,6 +48,11 @@ import {
   WwDrawerEvent,
 } from "./WwDrawer";
 import { renderFactionRules, renderRelations } from "./WwFactionRulesCard";
+import {
+  WwClosePanelEvent,
+  WwPanelMinimizedEvent,
+  wwPanelStyle,
+} from "./WwPanelMode";
 import "./WwSubjectsTab";
 import { ToggleWwDiplomacyEvent } from "./WwTopBand";
 import { renderTreaty } from "./WwTreatyCard";
@@ -114,6 +119,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   @state() private open = false;
+  @state() private minimized = false;
   @state() private tab: DiploDrawerTab = "factions";
   /** P5: the aid tab's walk started from the player panel (OpenWwAidEvent). */
   @state() private aidPreset: AidPreset | null = null;
@@ -167,6 +173,10 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     this.eventBus.on(WwDrawerEvent, (e) => {
       if (e.open && e.drawer !== "diplomacy") this.setOpen(false);
     });
+    this.eventBus.on(WwPanelMinimizedEvent, (e) => {
+      if (this.open) this.minimized = e.minimized;
+    });
+    this.eventBus.on(WwClosePanelEvent, () => this.setOpen(false));
     // Back closes the drawer before it asks to leave the game.
     this.unregisterBack?.();
     this.unregisterBack = registerBackClosable(() => {
@@ -195,6 +205,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
   private setOpen(open: boolean) {
     if (open === this.open) return;
     this.open = open;
+    this.minimized = false;
     if (open) {
       this.refit();
       window.addEventListener("resize", this.refit);
@@ -255,16 +266,10 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
 
   render() {
     if (!this.open || !this.game?.worldWarScenario()) return null;
-    const { top, right, bottom } = this.insets;
-    const bottomCss = this.compact
-      ? `calc(env(safe-area-inset-bottom, 0px) + ${bottom}px)`
-      : `${bottom}px`;
     const i = politicsInput(this.game);
     const tabs = html`<div
       role="tablist"
-      class="flex min-w-0 gap-1 overflow-x-auto ${this.compact
-        ? "flex-1"
-        : "shrink-0 border-b border-white/10 px-2 pb-1"}"
+      class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
     >
       ${DIPLO_DRAWER_TABS.map(
         (t) =>
@@ -302,24 +307,20 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       <aside
         data-ww-diplomacy
         aria-label=${translateText("ww1936.panel.title")}
-        class="fixed z-[1000] flex min-h-60 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
-        style="top: ${top}px; right: ${right}px; bottom: ${bottomCss}; width: min(420px, calc(50vw - ${right}px));"
+        class="fixed z-[1002] flex flex-col overflow-hidden bg-gray-900 text-sm text-white"
+        style=${wwPanelStyle(this.minimized)}
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
-        ${this.compact
-          ? html`<div
-              class="flex shrink-0 items-center gap-1 border-b border-white/10 py-0.5 pl-1 pr-1"
-            >
-              ${tabs} ${close}
-            </div>`
-          : html`<div class="flex shrink-0 items-center gap-2 pl-3 pr-1 pt-1">
-                <span aria-hidden="true">🌐</span>
-                <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
-                  ${translateText("ww1936.panel.title")}
-                </h3>
-                ${close}
-              </div>
-              ${tabs}`}
+        <div
+          data-ww-drawer-head
+          class="flex shrink-0 items-center gap-1 border-b border-white/10 py-0.5 pl-3 pr-1"
+        >
+          <span aria-hidden="true">🌐</span>
+          <h3 class="m-0 max-w-[30%] shrink-0 truncate text-sm font-bold">
+            ${translateText("ww1936.panel.title")}
+          </h3>
+          ${tabs} ${close}
+        </div>
         <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           ${this.renderTab(i)}
         </div>

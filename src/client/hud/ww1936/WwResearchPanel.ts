@@ -193,7 +193,10 @@ export class WwResearchPanel extends WwDrawerBase {
         : this.renderCards(d, researchCards(d, this.branch, day));
     return this.renderFrame(
       translateText("ww1936.econ.research"),
-      html`<span aria-hidden="true">🔬</span> ${slots}`,
+      html`<span aria-hidden="true">🔬</span>
+        <h3 class="m-0 min-w-0 truncate text-sm font-bold">
+          ${translateText("ww1936.econ.research")}
+        </h3>`,
       this.renderTabs(
         [...TECH_BRANCHES, "projects"] as const,
         this.branch,
@@ -206,9 +209,9 @@ export class WwResearchPanel extends WwDrawerBase {
           this.refused = null;
         },
       ),
-      // On a short screen the tabs take the head's row (renderFrame): the
-      // slots open the list instead, which gets that row's room.
-      this.compact ? html`${slots}${cards}` : cards,
+      // The top bar holds the title, the tabs and the close button: the
+      // slots open the list.
+      html`${slots}${cards}`,
     );
   }
 

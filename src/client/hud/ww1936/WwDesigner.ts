@@ -32,6 +32,7 @@ import {
   slotName,
 } from "./WwDesignSheet";
 import { OpenWwIndustryEvent, WwDrawerBase } from "./WwDrawer";
+import { wwPanelStyle } from "./WwPanelMode";
 
 type DesignerTab = "design" | "list";
 
@@ -123,13 +124,11 @@ export class WwDesigner extends WwDrawerBase {
   render() {
     if (!this.open) return null;
     const m = this.ensureModel();
-    const { top, right, bottom } = this.insets;
-    const width = "min(64vw, 680px)";
     return html`<aside
       data-ww-drawer="designer"
       aria-label=${translateText("ww1936.design.title")}
-      class="fixed z-[1002] flex min-h-40 flex-col overflow-hidden rounded-lg border border-white/10 bg-gray-900/92 text-sm text-white shadow-xl"
-      style="top: ${top}px; right: ${right}px; bottom: ${bottom}px; width: ${width};"
+      class="fixed z-[1002] flex flex-col overflow-hidden bg-gray-900 text-sm text-white"
+      style=${wwPanelStyle(this.minimized)}
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       ${this.renderBar(m)}
@@ -143,6 +142,9 @@ export class WwDesigner extends WwDrawerBase {
       class="flex shrink-0 items-center gap-1 border-b border-white/10 px-1"
       style="height: ${DESIGNER_BAR_H}px"
     >
+      <span class="shrink-0 pl-2 text-sm font-bold"
+        >${translateText("ww1936.design.title")}</span
+      >
       <div role="tablist" class="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         ${DESIGN_KINDS.map(
           (k) =>

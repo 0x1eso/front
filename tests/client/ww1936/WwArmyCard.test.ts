@@ -304,7 +304,7 @@ describe("<ww-army-card> (spec §15.4)", () => {
     expect(m.q("[data-ww-preview='attack'] [data-ww-ratio]")).not.toBeNull();
   });
 
-  it("sits right above the bottom rows, and left of an open drawer", async () => {
+  it("sits right above the bottom rows and the dock, whatever drawer is open", async () => {
     vi.stubGlobal("innerWidth", 1180);
     vi.stubGlobal("innerHeight", 820);
     const rows = document.createElement("div");
@@ -323,10 +323,17 @@ describe("<ww-army-card> (spec §15.4)", () => {
     document.body.appendChild(drawer);
     m.el.tick();
     await m.el.updateComplete;
-    expect(card().getAttribute("style")).toContain("right: 436px");
-    expect(card().getAttribute("style")).toContain("max-width: 560px");
-    // Never into the map's middle half: 820 × ¾ = 615 above the rows' 712.
-    expect(card().getAttribute("style")).toContain("max-height: 97px");
+    // A drawer is a full-screen panel: the card stays centred.
+    expect(card().getAttribute("style")).toContain("left: 50%");
+    // The dock (44 px) stands on the rows: the card clears it too.
+    const dock = document.createElement("nav");
+    dock.setAttribute("data-ww-dock", "");
+    dock.getBoundingClientRect = () =>
+      ({ left: 310, top: 676, width: 560, height: 44 }) as DOMRect;
+    document.body.appendChild(dock);
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(card().getAttribute("style")).toContain("bottom: 152px");
   });
 
   it("merges only where the order checks let it", async () => {

@@ -4609,6 +4609,20 @@
         "top": "Biggest sources of tension"
       }
     },
+    "dock": {
+      "label": "Dock",
+      "back_to_panel": "Back to panel",
+      "industry": "Industry",
+      "research": "Research",
+      "army": "Army",
+      "focus": "Focus",
+      "politics": "Politics",
+      "diplomacy": "Diplomacy",
+      "navy": "Navy",
+      "air": "Air",
+      "doctrine": "Doctrine",
+      "intel": "Intel"
+    },
     "doctrine": {
       "badge_points": "{n, plural, one {# trait point} other {# trait points}} to spend",
       "badge_unpicked": "A doctrine is waiting to be chosen",

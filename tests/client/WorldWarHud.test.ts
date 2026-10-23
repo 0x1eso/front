@@ -539,11 +539,8 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     await drawer.updateComplete;
     const aside = drawer.querySelector<HTMLElement>("[data-ww-diplomacy]")!;
     expect(aside).not.toBeNull();
-    // Never wider than the space right of the screen's middle (P3: 420 px).
-    expect(aside.getAttribute("style")).toContain(
-      "min(420px, calc(50vw - 8px))",
-    );
-    expect(aside.getAttribute("style")).toContain("top: 40px");
+    // A full-screen panel (inset 0), the dock below it.
+    expect(aside.getAttribute("style")).toContain("inset:0");
     expect(
       [...drawer.querySelectorAll("[data-ww-faction]")].map((e) =>
         e.getAttribute("data-ww-faction"),
@@ -634,47 +631,19 @@ describe("the World War 1936 screens (spec §8.2)", () => {
     expect(drawer.querySelector("[data-ww-next]")).toBeNull();
   });
 
-  it("the drawer never collapses on a short landscape phone", async () => {
-    const hud = (attr: string, rect: Partial<DOMRect>) => {
-      const el = document.createElement("div");
-      el.setAttribute(attr, "");
-      el.getBoundingClientRect = () =>
-        ({ width: 100, height: 100, left: 0, right: 0, ...rect }) as DOMRect;
-      document.body.appendChild(el);
-    };
-    // The top-right stack ends 200 px down; the bottom rows start 110 px
-    // above the bottom edge.
-    hud("data-hud-top-right", { top: 0, bottom: 200 });
-    const rows = { top: 0, bottom: 0 };
-    hud("data-bottom-hud-rows", rows);
-    const open = async (height: number) => {
-      document.querySelector("ww-diplomacy-panel")?.remove();
-      vi.stubGlobal("innerHeight", height);
-      rows.top = height - 110;
-      const drawer = document.createElement(
-        "ww-diplomacy-panel",
-      ) as WwDiplomacyPanel;
-      drawer.game = fakeGame({ me: "DEU" }) as never;
-      drawer.eventBus = new EventBus();
-      document.body.appendChild(drawer);
-      drawer.init();
-      drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
-      await drawer.updateComplete;
-      return drawer.querySelector<HTMLElement>("[data-ww-diplomacy]")!;
-    };
-    // A tall screen keeps the HUD around it clear.
-    const tall = await open(800);
-    expect(tall.getAttribute("style")).toContain("top: 208px");
-    expect(tall.getAttribute("style")).toContain("bottom: 118px");
-    // 360 px tall: those insets would leave 34 px. It runs from below the
-    // band to the bottom edge instead.
-    const short = await open(360);
-    expect(short.getAttribute("style")).toContain("top: 40px");
-    expect(short.getAttribute("style")).toContain(
-      "bottom: calc(env(safe-area-inset-bottom, 0px) + 8px)",
-    );
-    // And it is never shorter than 15rem.
-    expect(short.className).toContain("min-h-60");
+  it("the diplomacy panel is full-screen on a short landscape phone too", async () => {
+    vi.stubGlobal("innerHeight", 360);
+    const drawer = document.createElement(
+      "ww-diplomacy-panel",
+    ) as WwDiplomacyPanel;
+    drawer.game = fakeGame({ me: "DEU" }) as never;
+    drawer.eventBus = new EventBus();
+    document.body.appendChild(drawer);
+    drawer.init();
+    drawer.eventBus.emit(new ToggleWwDiplomacyEvent());
+    await drawer.updateComplete;
+    const aside = drawer.querySelector<HTMLElement>("[data-ww-diplomacy]")!;
+    expect(aside.getAttribute("style")).toContain("inset:0");
   });
 
   it("the player panel declares war on the second tap within three seconds", () => {
