@@ -14,6 +14,8 @@ const BTN =
 
 /** True when this card (not the zone card) shows the active flow. */
 export function strikeCardActive(game: object): boolean {
+  // Rendered once before the HUD has its game (smoke check): not active.
+  if (!game) return false;
   const st = strikeFlowOf(game);
   return (
     st.step !== "idle" &&
