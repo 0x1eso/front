@@ -21,7 +21,11 @@ import {
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Weather } from "@openfront/engine-api/ww1936/LandTypes";
-import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
+import {
+  airDeployBlock,
+  type DeployAsk,
+} from "@openfront/engine-lib/ww1936/AirRules";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
@@ -225,6 +229,19 @@ export function basesInRange(
     .sort((a, b) => a.km - b.km || a.region - b.region);
 }
 
+/**
+ * Final review B, M2: a land zone whose every member is a no-strike region
+ * (the Korean Peninsula, Taiwan) — a strike mission there hits nothing, so
+ * the zone card greys it out (the engine's allNoStrikeZone, on isNoStrike).
+ */
+export function allNoStrikeZone(sc: ScenarioIndex, sr: number): boolean {
+  const s = sc.sr(sr);
+  if (s === undefined || s.kind !== "land" || s.members.length === 0) {
+    return false;
+  }
+  return s.members.every((region) => isNoStrike(sc, region));
+}
+
 /** airDeployBlock (spec §13.2, §14.1) on the screens' data. */
 export function deployBlock(
   ctx: AirCtx,
@@ -239,7 +256,9 @@ export function deployBlock(
   const deploymentsUsed = [...ctx.air.deployments.values()].filter(
     (d) => d.owner === ctx.me,
   ).length;
-  return airDeployBlock({
+  // Final review B, M2 (fix lane E adds `allNoStrike?` to DeployAsk; the
+  // intersection keeps this side typechecking until both lanes merge).
+  const ask: DeployAsk & { allNoStrike?: boolean } = {
     sr,
     srKind: kind,
     type,
@@ -249,7 +268,9 @@ export function deployBlock(
     deploymentsUsed,
     anyBaseInRange:
       r.value > 0 || basesInRange(ctx, sr, type).some((b) => b.used < b.cap),
-  });
+    allNoStrike: allNoStrikeZone(ctx.scenario, sr),
+  };
+  return airDeployBlock(ask);
 }
 
 /** Releasing a slider (spec §18.3-4): one order with the value let go. */
