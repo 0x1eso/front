@@ -432,9 +432,15 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned by the final perf lane (P6 Task 22 Step 3): the navy AI plans
 // every 2 days at war, staggered by country parity (the controller's
 // cadence ruling); the lane's other changes are behaviour-identical: same
-// value in three runs.
+// value in three runs (39499f3f2e97740c). Re-pinned by the final fix lane
+// E: the depth hash now folds raids, the nuke and rocket queues, the
+// market, projects, MIO choices, the energy extra and the day tallies, and
+// WorldWar's hash its last day, start VP and transfers (final review A,
+// finding 3). The lane's other changes leave this game alone: it carries
+// no human order, and the test map has none of the no-strike region ids.
+// Same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "39499f3f2e97740c";
+const WW1936_DIGEST = "83c1d27a39c37f16";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
