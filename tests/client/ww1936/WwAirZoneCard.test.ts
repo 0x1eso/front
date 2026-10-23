@@ -107,6 +107,22 @@ describe("<ww-air-zone-card> (spec §18.6)", () => {
     );
   });
 
+  it("final review C (M1): a greyed ☢ button says why when tapped (no hover title)", async () => {
+    const m = await mount();
+    m.bus.emit(new WwAirZoneSelectedEvent(SR.westLand));
+    m.el.tick();
+    await m.el.updateComplete;
+    const start = m.q("[data-ww-nuke-start]")!;
+    expect(start.getAttribute("aria-disabled")).toBe("true");
+    expect(start.hasAttribute("title")).toBe(false);
+    expect(m.q("[data-ww-nuke-why]")).toBeNull();
+    start.click();
+    await m.el.updateComplete;
+    const why = m.q("[data-ww-nuke-why]")!;
+    expect(why.textContent).toContain("🔒");
+    expect(why.textContent!.trim().length).toBeGreaterThan(2);
+  });
+
   it("the night toggle reads W2's flag from the view and sends the switch", async () => {
     const strat = AIR_TYPES.indexOf("strat_bomber");
     const stock = new Array<number>(10).fill(0);

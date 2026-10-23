@@ -120,7 +120,7 @@ export function renderDesignSheet(
       <button
         type="button"
         data-ww-sheet-close
-        class="size-8 rounded-md hover:bg-white/10"
+        class="size-9 rounded-md hover:bg-white/10"
         aria-label=${translateText("common.close")}
         @click=${close}
       >

@@ -154,6 +154,37 @@ describe("<ww-designer>", () => {
     el.remove();
   });
 
+  it("final review C (M1): a locked base chip says what it needs when tapped (no hover title)", async () => {
+    const { EventBus } = await import("@openfront/shared/EventBus");
+    const { WwDepthOpenEvent } =
+      await import("../../../src/client/hud/ww1936/DepthEvents");
+    await import("../../../src/client/hud/ww1936/WwDesigner");
+    const bus = new EventBus();
+    const el = document.createElement("ww-designer") as HTMLElement & {
+      game: unknown;
+      eventBus: unknown;
+      updateComplete: Promise<boolean>;
+      init(): void;
+    };
+    // No technology researched: the later bases are locked.
+    el.game = designerGame({ techs: [] });
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    bus.emit(new WwDepthOpenEvent("designer", { kind: "tank" }));
+    await el.updateComplete;
+    const locked = el.querySelector("[data-locked='true']") as HTMLElement;
+    expect(locked).not.toBeNull();
+    expect(locked.hasAttribute("title")).toBe(false);
+    expect(el.querySelector("[data-ww-locked-tip]")).toBeNull();
+    locked.click();
+    await el.updateComplete;
+    expect(el.querySelector("[data-ww-locked-tip]")!.textContent).toContain(
+      "[ww1936.design.module_locked]",
+    );
+    el.remove();
+  });
+
   it("the licence request card opens the industry drawer's market tab (U4's entry point)", async () => {
     const { EventBus } = await import("@openfront/shared/EventBus");
     const { WwDepthOpenEvent } =
