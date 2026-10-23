@@ -38,7 +38,9 @@ export const PERSONS_LEADERS: readonly PersonDef[] = [
     source:
       "P0 starting leader (spec §5.7), office on 1936-01-01: Head of Government (en.wikipedia List of state leaders in 1936; worldstatesmen.org)",
   },
-  // source: Prime Minister 1934-07-08 to 1936-03-09; after 1936-02-26 Japan shows titles only (spec §5.7)
+  // source: Prime Minister 1934-07-08 to 1936-03-09. Shown by title only
+  // (ww1936.leader.JPN "Prime Minister"): every Japanese person is a title
+  // (controller ruling on final review B M1).
   {
     id: "leader_jpn",
     nameKey: "ww1936.leader.JPN",
@@ -60,7 +62,9 @@ export const PERSONS_LEADERS: readonly PersonDef[] = [
       "P0 starting leader (spec §5.7), office on 1936-01-01: Prime Minister (en.wikipedia List of state leaders in 1936; worldstatesmen.org)",
   },
   // source: President of the Council 1935-06-07 to 1936-01-24; en.wikipedia, worldstatesmen.org.
-  // Note for the controller: convicted of treason by the High Court of Justice in 1945; kept per spec §5.7 and the K6 brief.
+  // Shown by title only (ww1936.leader.FRA "President of the Council"):
+  // convicted of treason in 1945, title-only by the content rules
+  // (controller ruling on final review B M1).
   {
     id: "leader_fra",
     nameKey: "ww1936.leader.FRA",
@@ -495,7 +499,9 @@ export const PERSONS_LEADERS: readonly PersonDef[] = [
     source:
       "P0 starting leader (spec §5.7), office on 1936-01-01: Regent (en.wikipedia List of state leaders in 1936; worldstatesmen.org)",
   },
-  // source: Emperor 1934-1945 (prime minister Zhang Jinghui)
+  // source: Emperor 1934-1945 (prime minister Zhang Jinghui). Shown by title
+  // only (ww1936.leader.MCK "Emperor"), as a puppet state's head
+  // (controller ruling on final review B M1).
   {
     id: "leader_mck",
     nameKey: "ww1936.leader.MCK",

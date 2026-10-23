@@ -438,6 +438,36 @@ describe("content sensitivity", () => {
     }
   });
 
+  it("Laval, Okada and Puyi are shown by title only, never by name (controller ruling on review B M1)", () => {
+    const names = [
+      /laval|라발/i,
+      /okada|오카다|keisuke|게이스케/i,
+      /puyi|pu yi|푸이|溥儀|aisin/i,
+    ];
+    // Nowhere in either language file (the start leaders' lines included).
+    for (const [lang, json] of [
+      ["en", en],
+      ["ko", ko],
+    ] as const) {
+      const text = JSON.stringify(json);
+      for (const n of names) expect(n.test(text), `${lang} ${n}`).toBe(false);
+    }
+    // Their start leader lines are the offices.
+    expect(
+      ["FRA", "JPN", "MCK"].map((t) => keyIn(en, `ww1936.leader.${t}`)),
+    ).toEqual(["President of the Council", "Prime Minister", "Emperor"]);
+    expect(
+      ["FRA", "JPN", "MCK"].map((t) => keyIn(ko, `ww1936.leader.${t}`)),
+    ).toEqual(["각료 회의 의장", "내각 총리대신", "황제"]);
+    // The same offices the title seats use.
+    expect(keyIn(en, "ww1936.title.fra_council_president")).toBe(
+      keyIn(en, "ww1936.leader.FRA"),
+    );
+    expect(keyIn(ko, "ww1936.title.jpn_prime_minister")).toBe(
+      keyIn(ko, "ww1936.leader.JPN"),
+    );
+  });
+
   it("the helpers read the language files", () => {
     expect(keyIn(en, "ww1936.econ.block.no_pp")).toBe(
       "Not enough political power",
