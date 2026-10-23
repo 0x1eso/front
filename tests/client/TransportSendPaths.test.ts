@@ -264,7 +264,8 @@ describe("Transport send paths", () => {
       // The trimmed name goes out.
       eventBus.emit(design("Tiger"));
       expect(ws.sent).toHaveLength(before + 1);
-      const last = decodeFrames(ws).at(-1) as {
+      const frames = decodeFrames(ws);
+      const last = frames[frames.length - 1] as {
         intent: { order: { def: { name: string } } };
       };
       expect(last.intent.order.def.name).toBe("Tiger");
