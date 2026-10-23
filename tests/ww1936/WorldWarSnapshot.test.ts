@@ -442,8 +442,9 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // controller's rulings on review B: the start leaders by title, Japan's
 // garrisons out of Korea and Taiwan, and the Great Purge without rewards
 // (the pinned game's Soviet Union takes it). Same value in three runs.
+// Re-pinned at the final integration merge (perf, balance, fix E, fix C): same value in three runs (a34597533afa802a).
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "6abdb1c1f7fcec54";
+const WW1936_DIGEST = "a34597533afa802a";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
