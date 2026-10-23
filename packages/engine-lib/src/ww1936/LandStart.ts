@@ -285,7 +285,10 @@ export const START_OOB: Readonly<
   ],
   // Japan: square 17, cavalry brigades 4, garrisons 4 (25). Japan has no
   // named generals (titles only): the Kwantung and home armies start under
-  // titled generals, the Korea and Taiwan garrisons under none.
+  // titled generals, the two smaller armies under none. No Japanese army
+  // starts in Korea or Taiwan (controller ruling on final review B M5, the
+  // spirit of "no Japanese base there"): the 1936 Korea garrison's two
+  // divisions stand in the Kwantung lease, the Taiwan garrison in Kyūshū.
   JPN: [
     {
       // Kwantung Army: the Kwantung lease, then Manchukuo's Jilin and
@@ -309,13 +312,13 @@ export const START_OOB: Readonly<
       titledGeneral: true,
     },
     {
-      // Korea garrison: Hamgyŏng-bukto, Seoul.
-      regions: [563, 679],
+      // The Korea garrison's divisions, moved out: Kwantung.
+      regions: [666],
       divisions: [["square", 2]],
     },
     {
-      // Taiwan garrison: Taiwan.
-      regions: [901],
+      // The Taiwan garrison, moved out: Kumamoto (Kyūshū), else Tokyo.
+      regions: [800, 758],
       divisions: [["garrison", 1]],
     },
   ],

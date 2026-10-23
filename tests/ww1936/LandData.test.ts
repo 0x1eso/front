@@ -23,6 +23,7 @@ import {
   START_OOB,
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
+import { NO_STRIKE_REGION_IDS } from "@openfront/engine-lib/ww1936/NoStrike";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { appointGeneral } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -419,6 +420,16 @@ describe("the 1936 order of battle (spec §6.4)", () => {
     }
   });
 
+  test("no army of any country starts in Korea or Taiwan (controller ruling on review B M5)", () => {
+    for (const tag of MAJOR_TAGS) {
+      for (const a of START_OOB[tag]!) {
+        for (const r of a.regions) {
+          expect(NO_STRIKE_REGION_IDS, `${tag}: ${r}`).not.toContain(r);
+        }
+      }
+    }
+  });
+
   test("only Japan's Kwantung and home armies start under titled generals", () => {
     for (const tag of MAJOR_TAGS) {
       const marked = START_OOB[tag]!.map((a) => a.titledGeneral === true);
@@ -431,8 +442,8 @@ describe("the 1936 order of battle (spec §6.4)", () => {
     expect(START_OOB.JPN!.map((a) => index.get(a.regions[0])!.name)).toEqual([
       "Kwantung",
       "Tokyo",
-      "Hamgyŏng-bukto",
-      "Taiwan",
+      "Kwantung",
+      "Kumamoto",
     ]);
   });
 
@@ -518,7 +529,8 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
     generalId("kluge"),
   ]);
   // Japan (titles only): the Kwantung Army and the home islands start under
-  // titled generals No. 1 and 2, the Korea and Taiwan garrisons under none.
+  // titled generals No. 1 and 2, the two garrisons moved out of Korea and
+  // Taiwan under none.
   const jpn = of("JPN");
   expect(jpn.armies.map((a) => a.general)).toEqual([
     titledGeneralId(jpn.id, 1),
@@ -555,13 +567,28 @@ describe("the order of battle on the real map", () => {
     expect(scenario.historicalOob).toBe(true);
     const runner = await worldRunner(await worldFiles());
     expectHistoricalOob(runner);
+    // Controller ruling on review B M5: no country's start division stands
+    // in Korea or Taiwan.
+    const l = land(runner.game);
+    const sc = runner.game.worldWar()!.scenario;
+    let rows = 0;
+    for (const tag of sc.scenarioTags()) {
+      const id = sc.smallIdOf(tag);
+      for (const r of l.rowsOf(id)) {
+        rows++;
+        expect(NO_STRIKE_REGION_IDS, `${tag}`).not.toContain(
+          l.divisions.region[r],
+        );
+      }
+    }
+    expect(rows).toBeGreaterThan(500);
   }, 120_000);
 
   test("the shipped ids still name the regions the table means", () => {
     // Fails if a map rebuild renumbers a region START_OOB uses.
     const sc = new Map(scenario.regions.map((r) => [r.id, r.name]));
     expect(
-      [335, 356, 306, 980, 1039, 809, 494, 576, 666, 758, 563, 901].map((id) =>
+      [335, 356, 306, 980, 1039, 809, 494, 576, 666, 758, 800].map((id) =>
         sc.get(id),
       ),
     ).toEqual([
@@ -575,8 +602,7 @@ describe("the order of battle on the real map", () => {
       "Roma",
       "Kwantung",
       "Tokyo",
-      "Hamgyŏng-bukto",
-      "Taiwan",
+      "Kumamoto",
     ]);
     expect(
       [329, 767, 1087, 1104, 390, 353, 497, 733, 729, 918].map((id) =>
