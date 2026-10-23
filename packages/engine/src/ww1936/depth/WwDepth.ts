@@ -68,7 +68,7 @@ import { energyPenaltyPct } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
 import { mioSize } from "@openfront/engine-lib/ww1936/MioRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
-import { addStatsInto, emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
@@ -485,6 +485,12 @@ export interface LandModQuery {
   armyId: number;
 }
 
+/** RESOURCE_IDS indices of the resources taken before the lines (priorityDemand). */
+const URANIUM = RESOURCE_IDS.indexOf("uranium");
+const COAL = RESOURCE_IDS.indexOf("coal");
+/** Spec §9.6: the proximity fuze's project index (statsPart reads it daily). */
+const PROXIMITY_FUZE = SPECIAL_PROJECTS.indexOf("sp_proximity_fuze");
+
 export class WwDepth implements LandDepthHooks {
   // ---- state (snapshot) ----
   lastCommonDay = -1;
@@ -873,8 +879,8 @@ export class WwDepth implements LandDepthHooks {
     const out = new Array<number>(RESOURCE_COUNT).fill(0);
     const c = this.countries[id];
     if (c === null || c === undefined) return out;
-    out[RESOURCE_IDS.indexOf("uranium")] = uraniumDemand(this, id);
-    out[RESOURCE_IDS.indexOf("coal")] = coalDemand(this, id);
+    out[URANIUM] = uraniumDemand(this, id);
+    out[COAL] = coalDemand(this, id);
     return out;
   }
 
@@ -1094,25 +1100,25 @@ export class WwDepth implements LandDepthHooks {
     return intelResistancePp(this, region) + nuked;
   }
 
-  /** Plan decision 24: the depth part of P3 recomputeStats (neutral before start). */
-  statsPart(id: number): WwStats {
-    const out = emptyStats();
+  /**
+   * Plan decision 24: the depth part of P3 recomputeStats (neutral before
+   * start). Final perf lane: a sparse sum (only the keys some part sets;
+   * the others are 0, which adds nothing to P3's sum).
+   */
+  statsPart(id: number): Partial<WwStats> {
+    const out: Partial<WwStats> = {};
     if (this.countries[id] === null || this.countries[id] === undefined) {
       return out;
     }
-    for (const p of [
-      doctrineStatsOf(this, id),
-      spiritStatsOf(this, id),
-      mioStatsOf(this, id),
-      mechStatsOf(this, id),
-      landmarkStatsOf(this, id),
-    ]) {
-      addStatsInto(out, p);
-    }
+    addSparseInto(out, doctrineStatsOf(this, id));
+    addSparseInto(out, spiritStatsOf(this, id));
+    addSparseInto(out, mioStatsOf(this, id));
+    addSparseInto(out, mechStatsOf(this, id));
+    addSparseInto(out, landmarkStatsOf(this, id));
     // Spec §9.6: the proximity fuze's artillery soft attack +5% (the
     // battalion step reads artillerySoftPct).
-    if (this.projectDone(id, SPECIAL_PROJECTS.indexOf("sp_proximity_fuze"))) {
-      addStatsInto(out, { artillerySoftPct: 5 });
+    if (this.projectDone(id, PROXIMITY_FUZE)) {
+      addSparseInto(out, { artillerySoftPct: 5 });
     }
     return out;
   }

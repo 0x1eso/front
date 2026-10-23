@@ -144,11 +144,52 @@ export function trackLevels(c: CountryDepth): number[] {
   return c.doc.masteryMilli.map((m) => masteryLevel(m));
 }
 
+/**
+ * Final perf lane: doctrineStatsOf's last answer per country, with what it
+ * was made from (the grand doctrines, the sub-doctrines and the track
+ * levels). doctrineStats is pure, so equal inputs give equal stats.
+ * Derived, never state (a restored game has new country objects).
+ */
+const doctrineMemo = new WeakMap<
+  CountryDepth,
+  { sig: number[]; out: Readonly<Partial<WwStats>> }
+>();
+
 /** Spec §3.2–§3.3: the doctrine part of the country's stats. */
 export function doctrineStatsOf(d: WwDepth, id: number): Partial<WwStats> {
   const c = d.country(id);
   if (c === null) return {};
-  return doctrineStats({ gd: c.doc.gd, sub: c.doc.sub }, trackLevels(c));
+  const levels = trackLevels(c);
+  const { gd, sub } = c.doc;
+  const memo = doctrineMemo.get(c);
+  if (memo !== undefined && sameSig(memo.sig, gd, sub, levels)) {
+    return memo.out;
+  }
+  const out = Object.freeze(doctrineStats({ gd, sub }, levels)) as Readonly<
+    Partial<WwStats>
+  >;
+  doctrineMemo.set(c, {
+    sig: [gd.length, ...gd, sub.length, ...sub, ...levels],
+    out,
+  });
+  return out;
+}
+
+/** Whether `sig` holds exactly these doctrines and levels (lengths too). */
+function sameSig(
+  sig: readonly number[],
+  gd: readonly number[],
+  sub: readonly number[],
+  levels: readonly number[],
+): boolean {
+  if (sig.length !== 2 + gd.length + sub.length + levels.length) return false;
+  if (sig[0] !== gd.length) return false;
+  let i = 1;
+  for (const g of gd) if (sig[i++] !== g) return false;
+  if (sig[i++] !== sub.length) return false;
+  for (const s of sub) if (sig[i++] !== s) return false;
+  for (const l of levels) if (sig[i++] !== l) return false;
+  return true;
 }
 
 /** Halves the mastery of tracks `from` .. `to` - 1 (a switch, spec §3.2–§3.3). */

@@ -214,9 +214,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     }
   }
   // Former defenders no longer in it (gone elsewhere, out of the war).
+  // (Final perf lane: a set of today's defenders, not a scan per former one.)
+  const stayed = new Set(defenders);
   for (const id of before) {
     const r = t.rowOf(id);
-    if (r >= 0 && t.battle[r] === R && !defenders.includes(id)) {
+    if (r >= 0 && t.battle[r] === R && !stayed.has(id)) {
       clearRole(land, r);
     }
   }

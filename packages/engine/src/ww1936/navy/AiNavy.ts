@@ -1532,13 +1532,18 @@ export function aiFuelShort(navy: WwNavy, smallID: number): boolean {
   );
 }
 
-/** Spec §17.1: at war daily, else every 10 days. */
+/**
+ * Spec §17.1, with the final perf lane's cadence ruling (controller,
+ * 2026-10-23; HOI-like): at war every 2 days, on the days of the country's
+ * parity (`day % 2 === smallID % 2`, so half the countries plan each day);
+ * else every 10 days (those days have the same parity).
+ */
 export function aiNavyDue(
   smallID: number,
   day: number,
   atWar: boolean,
 ): boolean {
-  return atWar || day % 10 === smallID % 10;
+  return atWar ? day % 2 === smallID % 2 : day % 10 === smallID % 10;
 }
 
 /** Whether `smallID` fights a war now (an enemy past the preparation minute). */

@@ -336,10 +336,11 @@ export function grantDoctrineStats(
     const extra = new Map<number, Partial<WwStats>>();
     const own = d.statsPart.bind(d);
     d.testStats = extra;
-    d.statsPart = (x: number): WwStats => {
+    d.statsPart = (x: number): Partial<WwStats> => {
+      // statsPart's sum is sparse (final perf lane): a key it lacks is 0.
       const s = own(x);
       for (const [k, v] of Object.entries(extra.get(x) ?? {})) {
-        s[k as keyof WwStats] += v ?? 0;
+        s[k as keyof WwStats] = (s[k as keyof WwStats] ?? 0) + (v ?? 0);
       }
       return s;
     };

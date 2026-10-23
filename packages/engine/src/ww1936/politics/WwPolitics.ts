@@ -25,6 +25,7 @@ import {
   IDEO_DEM,
   IDEO_NEU,
   IDEOLOGIES,
+  PersonDef,
   PersonId,
   RESERVE_KEYS,
   TraitDef,
@@ -65,11 +66,11 @@ import {
 } from "@openfront/engine-lib/ww1936/Roll";
 import {
   addStatsInto,
+  addStatsIntoArray,
   emptyStats,
   P6_STAT_RANGE,
   PCT_STAT_KEYS,
   statsArray,
-  zeroStats,
 } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
@@ -457,14 +458,47 @@ const STAT_PARTS = [
   // P6 (plan decision 24): the depth systems' part (ww1936.stat_src.depth).
   "depth",
 ] as const;
-/** recomputeStats' sum, reused (never state: each call starts from 0). */
-const SUM_SCRATCH: WwStats = emptyStats();
+/**
+ * recomputeStats' sum by WW_STAT_KEYS index, reused (never state: each call
+ * starts from 0). Final perf lane: a typed array, read and written by
+ * position (the same doubles, added in the same order, as the object sum
+ * it replaces).
+ */
+const SUM_SCRATCH = new Float64Array(WW_STAT_KEYS.length);
 /** Set while a sum is in SUM_SCRATCH (an exception mid-sum leaves it dirty). */
 let scratchDirty = false;
+/** recomputeStats' adder: every source into SUM_SCRATCH. */
+const addToScratch = (_part: number, p: Partial<WwStats>): void =>
+  addStatsIntoArray(SUM_SCRATCH, p);
 /** By WW_STAT_KEYS index: a …Pct key (clamped, spec §3.3). */
 const IS_PCT: readonly boolean[] = WW_STAT_KEYS.map((k) =>
   PCT_STAT_KEYS.includes(k),
 );
+
+/**
+ * General id → the persons whose `alsoGeneral` it is, from the content's
+ * person table (static content; derived once per table).
+ */
+const ALSO_GENERAL = new WeakMap<
+  ReadonlyMap<string, PersonDef>,
+  Map<string, string[]>
+>();
+function alsoGeneralIndex(
+  persons: ReadonlyMap<string, PersonDef>,
+): Map<string, string[]> {
+  let m = ALSO_GENERAL.get(persons);
+  if (m === undefined) {
+    m = new Map();
+    for (const [id, p] of persons) {
+      if (p.alsoGeneral === undefined) continue;
+      const l = m.get(p.alsoGeneral);
+      if (l === undefined) m.set(p.alsoGeneral, [id]);
+      else l.push(id);
+    }
+    ALSO_GENERAL.set(persons, m);
+  }
+  return m;
+}
 
 export class WwPolitics {
   countries: (CountryPol | null)[];
@@ -809,20 +843,21 @@ export class WwPolitics {
     const ce = this.econ.country(smallID);
     if (c === null || c === undefined || ce === null) return;
     // The scratch is all 0 between calls: the loop below empties it.
-    const total = scratchDirty ? zeroStats(SUM_SCRATCH) : SUM_SCRATCH;
+    const total = SUM_SCRATCH;
+    if (scratchDirty) total.fill(0);
     scratchDirty = true;
-    this.sumSources(c, total, null);
+    this.sumSources(c, addToScratch);
     // One pass: clamp (spec §3.3), copy what changed, empty the scratch.
     const st = c.stats;
     let changed = false;
     for (let i = 0; i < WW_STAT_KEYS.length; i++) {
-      const k = WW_STAT_KEYS[i];
-      let v = total[k];
-      total[k] = 0;
+      let v = total[i];
+      total[i] = 0;
       if (IS_PCT[i]) v = Math.max(-90, Math.min(300, v));
       // P6 (plan decision 24): the ranges of the P6 keys that are no …Pct.
       const r = P6_STAT_RANGE[i];
       if (r !== null) v = Math.max(r[0], Math.min(r[1], v));
+      const k = WW_STAT_KEYS[i];
       if (st[k] !== v) {
         st[k] = v;
         changed = true;
@@ -841,24 +876,19 @@ export class WwPolitics {
    */
   statParts(c: CountryPol): WwStats[] {
     const parts = STAT_PARTS.map(() => emptyStats());
-    this.sumSources(c, emptyStats(), parts);
+    this.sumSources(c, (part, p) => addStatsInto(parts[part], p));
     return parts;
   }
 
   /**
-   * Spec §3.3: adds every source of `c`'s stats into `total` (unclamped),
-   * and into `parts[source]` when given (STAT_PARTS order).
+   * Spec §3.3: hands every source of `c`'s stats to `add` (unclamped), with
+   * its STAT_PARTS index, in one fixed order.
    */
   private sumSources(
     c: CountryPol,
-    total: WwStats,
-    parts: WwStats[] | null,
+    add: (part: number, p: Partial<WwStats>) => void,
   ): void {
     const ce = this.econ.country(c.smallID)!;
-    const add = (part: number, p: Partial<WwStats>) => {
-      addStatsInto(total, p);
-      if (parts !== null) addStatsInto(parts[part], p);
-    };
     // The tech totals are the first 34 stats (P1 + P2 TechEffects).
     add(0, ce.tech as unknown as Partial<WwStats>);
     const lawBp =
@@ -1133,12 +1163,13 @@ export class WwPolitics {
 
   /** Plan decision 19: a person serving as an advisor somewhere is not a general meanwhile. */
   advisorHolds(generalId: string): boolean {
+    // Final perf lane: only the persons who are also this general can hold
+    // him (most generals have none: no walk over every country's advisors).
+    const persons = alsoGeneralIndex(this.content.personIdx).get(generalId);
+    if (persons === undefined) return false;
     for (const c of this.list()) {
       for (const a of c.advisors) {
-        if (a === null) continue;
-        if (this.content.personIdx.get(a)?.alsoGeneral === generalId) {
-          return true;
-        }
+        if (a !== null && persons.includes(a)) return true;
       }
     }
     return false;

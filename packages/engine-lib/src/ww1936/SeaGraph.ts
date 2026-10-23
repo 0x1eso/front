@@ -102,6 +102,58 @@ export function seaPath(
 }
 
 /**
+ * seaPath's distances from `from` to every naval zone at once (final perf
+ * lane): the same Dijkstra, run until every reachable zone is settled. A
+ * zone settles in the same step, with the same km, as a seaPath to it
+ * alone would stop on (the choice of the next zone never reads the
+ * targets), so `dist[i]` is that seaPath's `km` (Infinity: its null).
+ * Indices follow `sc.navalZones()`.
+ */
+export function seaDistances(
+  sc: ScenarioIndex,
+  from: readonly number[],
+  passable: (edge: number) => boolean,
+): Float64Array {
+  const zones = sc.navalZones();
+  const n = zones.length;
+  const at = new Map<number, number>();
+  zones.forEach((z, i) => at.set(z, i));
+  const dist = new Float64Array(n).fill(Infinity);
+  const prev = new Int32Array(n).fill(-1);
+  const done = new Uint8Array(n);
+  for (const z of from) {
+    const i = at.get(z);
+    if (i !== undefined) dist[i] = 0;
+  }
+  for (;;) {
+    let best = -1;
+    for (let i = 0; i < n; i++) {
+      if (
+        done[i] === 0 &&
+        dist[i] !== Infinity &&
+        (best < 0 || dist[i] < dist[best])
+      ) {
+        best = i;
+      }
+    }
+    if (best < 0) return dist;
+    done[best] = 1;
+    for (const { to: nz, edge } of sc.seaEdgesOf(zones[best])) {
+      const j = at.get(nz);
+      if (j === undefined || done[j] === 1 || !passable(edge)) continue;
+      const d = dist[best] + sc.seaEdge(edge).km;
+      if (
+        d < dist[j] ||
+        (d === dist[j] && prev[j] >= 0 && zones[best] < zones[prev[j]])
+      ) {
+        dist[j] = d;
+        prev[j] = best;
+      }
+    }
+  }
+}
+
+/**
  * Spec §8.1: the station zone of a sea region from where a fleet is (the
  * region's zone with the shortest sea path, ties smaller id); 0 when none.
  */

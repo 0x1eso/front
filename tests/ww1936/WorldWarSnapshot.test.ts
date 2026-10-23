@@ -428,9 +428,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // aces, the AI leaving depth fleets and recon groups alone, plane designs
 // in flight, decryption, admiral traits, the new navy/air stat reads, the
 // fuze and magnetron, the land traits, the occupation and capture reads, a
-// civil war's design stock): same value in three runs.
+// civil war's design stock): same value in three runs (9cccfbb7feefeb2e).
+// Re-pinned by the final perf lane (P6 Task 22 Step 3): the navy AI plans
+// every 2 days at war, staggered by country parity (the controller's
+// cadence ruling); the lane's other changes are behaviour-identical: same
+// value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "9cccfbb7feefeb2e";
+const WW1936_DIGEST = "39499f3f2e97740c";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
