@@ -74,8 +74,8 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     // P5 (P5 spec §18.1-5): its own tree.
     tree: "JPN",
     spirits: ["jpn_service_rivalry"],
-    // Pre-flight R7: Okada (leader_jpn) leads at the start only; after the
-    // 26 February incident Japan shows the title (spec §5.7).
+    // Pre-flight R7: leader_jpn leads at the start only, shown by its title
+    // like every Japanese person (controller ruling on review B M1).
     startLeader: "leader_jpn",
     leaders: {
       democratic: "title:jpn_prime_minister",

@@ -32,7 +32,7 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { receiveKey } from "../depth/DesignCopy";
 import type { WwDepth } from "../depth/WwDepth";
-import { usedSlots } from "../economy/Construction";
+import { noStrikeAt, usedSlots } from "../economy/Construction";
 import { drawManpower, drawTemplateEquip } from "../economy/Stock";
 import { capitalRegion, newTitledGeneralState } from "../land/LandStartRun";
 import { removeGeneral, restoreGeneral } from "../land/PoliticsBridge";
@@ -62,6 +62,8 @@ function room(
   b: BuildingId,
 ): number {
   const econ = pol.econ;
+  // Final review B, I1: no content effect builds in Korea or Taiwan either.
+  if (noStrikeAt(econ, region)) return 0;
   const max = LEVEL_MAX[b];
   if (max !== undefined) {
     if (

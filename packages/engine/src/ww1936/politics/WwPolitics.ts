@@ -610,7 +610,7 @@ export class WwPolitics {
           c.spirits.push({ id: s, untilDay: -1, addedDay: 0 });
         }
       }
-      // Controller ruling R7: startLeader first (Japan's Okada).
+      // Controller ruling R7: startLeader first (Japan's 1936 prime minister).
       c.leader =
         d?.startLeader ?? d?.leaders[ruling] ?? `title:leader_${ruling}`;
       c.stabBp = c.stabBaseBp;

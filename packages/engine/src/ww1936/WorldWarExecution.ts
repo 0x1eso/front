@@ -13,11 +13,16 @@ import type {
 import { checkCapitulations, stepTransfers } from "./Capitulation";
 
 /**
- * World War 1936 clock (spec §7; P3 spec §2.2): the preparation end, once a
- * day the capitulation check, every tick the land transfers, politics' day
- * (P3: the history beats live there), the economy (P1 spec §2), the land war
- * (P2 spec §2.2), the human event cards' deadlines, and the WorldWar,
- * WwEconomy, WwLand and WwPolitics updates when their data changed.
+ * World War 1936 clock (spec §7; P3 spec §2.2; P5 spec §2.2; P6 plan
+ * decision 3): the preparation end, then each tick in this order — once a
+ * day the capitulation check, the land transfers, politics' day and
+ * countries (P3: the history beats live there), the endgame's clock (P5),
+ * the depth systems' clock (P6), the economy (P1), the land war (P2), the
+ * navy and the air war (P4), the endgame's tick (P5: conference deadlines,
+ * takeovers, woken countries), the human event cards' deadlines (P3), the
+ * depth stats flush (P6), and the updates of every system whose data
+ * changed. Orders apply after all of this, in their executions' init
+ * (WorldWar.settleOrder drains what they leave pending).
  */
 export class WorldWarExecution implements Execution {
   private active = true;

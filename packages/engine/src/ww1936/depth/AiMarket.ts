@@ -10,6 +10,7 @@ import {
   EMBARGO_PP,
   MIO_FAMILIES,
   MIO_FREE_TRAIT,
+  WW_MARKET_MAX_COUNT,
   WW_MAX_LICENCES,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -234,7 +235,15 @@ function aiSell(d: WwDepth, id: number, n: GroundNeeds): void {
     let sell = Math.floor((oldUnits - keep) / 2);
     if (sell < AI_MIN_LISTING) continue;
     for (const k of old) {
-      const units = Math.min(sell, ce.stock[k] ?? 0);
+      // Final review D2: never past the schema cap a listing keeps.
+      const listed =
+        d.market.listings.find((l) => l.seller === id && l.key === k)?.count ??
+        0;
+      const units = Math.min(
+        sell,
+        ce.stock[k] ?? 0,
+        WW_MARKET_MAX_COUNT - listed,
+      );
       if (units < 1) continue;
       if (marketList(d, id, k, units) === null) sell -= units;
       if (sell <= 0) break;
@@ -275,7 +284,8 @@ function aiBuy(d: WwDepth, id: number, n: GroundNeeds, day: number): void {
       .sort((a, b) => b.gen - a.gen || a.per100 - b.per100 || a.l.id - b.l.id);
     const short = need - holding;
     for (const { l, per100 } of offers) {
-      let units = Math.min(l.count, short);
+      // Final review D2: one order carries at most the schema cap.
+      let units = Math.min(l.count, short, WW_MARKET_MAX_COUNT);
       if (per100 > 0) {
         units = Math.min(units, Math.floor((budget * 150_000 * 100) / per100));
       }

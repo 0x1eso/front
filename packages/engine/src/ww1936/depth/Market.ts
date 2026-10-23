@@ -12,6 +12,7 @@
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import {
   MARKET_DAYS,
+  WW_MARKET_MAX_COUNT,
   WW_MAX_LISTINGS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -107,9 +108,13 @@ export function marketListBlock(
   const ce = d.ww.economy.country(id);
   if (ce === null || (ce.stock[key] ?? 0) < count) return "listing_bad";
   const mine = d.market.listings.filter((l) => l.seller === id);
-  if (!mine.some((l) => l.key === key) && mine.length >= WW_MAX_LISTINGS) {
+  const same = mine.find((l) => l.key === key);
+  if (same === undefined && mine.length >= WW_MAX_LISTINGS) {
     return "listing_bad";
   }
+  // Final review D2: a listing holds at most WW_MARKET_MAX_COUNT units
+  // (the order schemas' cap), so buying all of it is one valid order.
+  if (count > WW_MARKET_MAX_COUNT - (same?.count ?? 0)) return "listing_bad";
   return null;
 }
 

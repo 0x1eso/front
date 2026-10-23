@@ -17,7 +17,7 @@ type CountryRow struct {
 // Patch gives the land inside a polygon to a 1936 owner (spec §4.4), only on
 // the listed modern countries / admin-1 units when those lists are set.
 // Name ([name, nameKo]) names a region that lies mostly on the patch's land
-// (Kwantung, Karafuto) instead of the admin-1 unit under it; Own keeps the
+// (Kwantung, South Sakhalin) instead of the admin-1 unit under it; Own keeps the
 // patch's land a region of its own whatever its size (Zara).
 type Patch struct {
 	Owner   string       `json:"owner"`

@@ -429,14 +429,21 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // in flight, decryption, admiral traits, the new navy/air stat reads, the
 // fuze and magnetron, the land traits, the occupation and capture reads, a
 // civil war's design stock): same value in three runs (9cccfbb7feefeb2e).
-// Re-pinned after the P6 final balance lane (the perf lane's navy AI
-// cadence merged in; the capped external resistance; Spain's surrender
-// lines and the rising's levies; Italy's crisis threshold; the history
-// beats' declare bar; the energy AI; the failed uprising's resistance;
-// nuclear physics in the AI's research and the US atomic sites): same
-// value in three runs.
+// Re-pinned by the final perf lane (P6 Task 22 Step 3): the navy AI plans
+// every 2 days at war, staggered by country parity (the controller's
+// cadence ruling); the lane's other changes are behaviour-identical: same
+// value in three runs (39499f3f2e97740c). Re-pinned by the final fix lane
+// E: the depth hash now folds raids, the nuke and rocket queues, the
+// market, projects, MIO choices, the energy extra and the day tallies, and
+// WorldWar's hash its last day, start VP and transfers (final review A,
+// finding 3). The lane's other changes leave this game alone: it carries
+// no human order, and the test map has none of the no-strike region ids.
+// Same value in three runs (83c1d27a39c37f16). Re-pinned after the
+// controller's rulings on review B: the start leaders by title, Japan's
+// garrisons out of Korea and Taiwan, and the Great Purge without rewards
+// (the pinned game's Soviet Union takes it). Same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "624f334ef94276c9";
+const WW1936_DIGEST = "6abdb1c1f7fcec54";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

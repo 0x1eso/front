@@ -788,7 +788,8 @@ export function resolveTakeovers(eg: WwEndgame, tick: number): void {
 /**
  * takeover_pick from `client` (spec §11.3; routed by clientID, since the
  * sender has no country left): one of its card's candidates, resolved at
- * order 8 of this tick.
+ * order 8 of the next tick (the order applies in its execution's init,
+ * after this tick's WorldWarExecution).
  */
 export function takeoverPick(
   eg: WwEndgame,

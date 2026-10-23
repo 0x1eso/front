@@ -954,11 +954,24 @@ func startAA(major, capital bool, dev, vp int) int {
 	return 0
 }
 
+// noStrikeRegions are world1936's no-strike regions: Korea's eleven and
+// Taiwan, held by Japan in 1936 (the fixed id list of the sensitivity
+// rulings, the same as engine-lib ww1936/NoStrike.ts). They get no start
+// base: no naval base, air base or anti-air from the formulas, and a hand
+// level there fails the build (final review B, I1: no Japanese base in
+// Korea or Taiwan). Region ids are stable, so the list is too. A var so
+// the tests can point it at their grid.
+var noStrikeRegions = map[int]bool{
+	563: true, 598: true, 604: true, 622: true, 639: true, 679: true,
+	686: true, 701: true, 732: true, 734: true, 761: true, 901: true,
+}
+
 // buildV4 writes the version 4 fields (P4 spec §3.4–3.6, §6.4, §12.1): the
 // harbours (the tool's, checked against the final tiles), the start levels
 // (the hand ones, else the formulas: a naval base min(3, 1 + dockyards) in a
 // port on a sea, the air base and anti-air of startAirBase and startAA, no
-// coastal fort; a region with a naval base is a port), each sea zone's centre, latitude, weather cell and
+// coastal fort; a region with a naval base is a port; none at all in the
+// noStrikeRegions), each sea zone's centre, latitude, weather cell and
 // strategic region, the strategic regions (every region and every zone that
 // is not a lake in exactly one) and the row table.
 func buildV4(src scenarioSrc, out *scenarioOut, ids []uint16, w, h int) error {
@@ -1012,6 +1025,12 @@ func buildV4(src scenarioSrc, out *scenarioOut, ids []uint16, w, h int) error {
 		v.AA = startAA(major[r.Owner], capital[r.ID], dev[r.Owner], r.VP)
 		if s.CoastalFort != nil {
 			v.CoastalFort = *s.CoastalFort
+		}
+		if noStrikeRegions[r.ID] {
+			if v.NavalBase > 0 && s.NavalBase != nil || v.AirBase > 0 && s.AirBase != nil || v.CoastalFort > 0 {
+				return fmt.Errorf("region %d %q is a no-strike region (Korea, Taiwan): no hand base or coastal fort", r.ID, r.Name)
+			}
+			v.NavalBase, v.AirBase, v.AA = 0, 0, 0
 		}
 		if (v.NavalBase > 0 || v.CoastalFort > 0) && v.Harbor == 0 {
 			return fmt.Errorf("region %d %q: a naval base or coastal fort but no harbour", r.ID, r.Name)

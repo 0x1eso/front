@@ -757,7 +757,8 @@ export interface CountryPoliticsDef {
   govNames?: readonly Ideology[];
   /**
    * The leader on 1936-01-01 when it is not `leaders[ruling]` (controller
-   * ruling R7: Japan's Okada, whose later neutral leader is a title).
+   * ruling R7: Japan's 1936 prime minister, whose later neutral leader is a
+   * title; shown by title too).
    */
   startLeader?: PersonId;
 }

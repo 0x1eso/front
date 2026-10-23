@@ -1133,7 +1133,10 @@ export class WwDepth implements LandDepthHooks {
 
   /**
    * Review E1 (plan decision 24): the tick's one stats recompute, at its
-   * end (WorldWarExecution), so no mark crosses a tick boundary.
+   * end (WorldWarExecution). Orders apply after that (GameImpl inits new
+   * executions after the ticks), so their marks are flushed by `issue` and
+   * by WorldWar.settleOrder when the order returns (final review A,
+   * finding 1); together no mark crosses a tick boundary.
    */
   endTick(): void {
     this.flushStats();
@@ -1536,8 +1539,131 @@ export class WwDepth implements LandDepthHooks {
         });
       });
     }
+    mixRestHash(this, mix);
     return h;
   }
+}
+
+/**
+ * Final review A, finding 3: the depth state the hash above left out, each
+ * list in a fixed order (by its id, else by its fields), so a desync there
+ * shows on the tick it happens. (intelLevels is mixIntel's.)
+ */
+function mixRestHash(d: WwDepth, mix: (v: number) => void): void {
+  const rows = (xs: readonly (readonly number[])[]) => {
+    mix(xs.length);
+    for (const row of [...xs].sort(byFields)) for (const v of row) mix(v);
+  };
+  const design = (def: DesignDef | null) =>
+    mix(def === null ? 0 : designDefHash(def));
+  // Each country: projects (done bits, running, scientists, atomic labs,
+  // blueprints), MIO choices, the energy extra.
+  for (let id = 1; id < d.cap; id++) {
+    const c = d.countries[id];
+    if (c === null || c === undefined) continue;
+    mix(3_000 + id);
+    const p = c.proj;
+    mix(p.done);
+    rows(
+      p.running.map((r) => [
+        r.project,
+        r.facility,
+        r.progressMilli,
+        r.scientist,
+      ]),
+    );
+    rows(
+      p.scientists.map((s) => [s.id, s.spec, s.skill, s.sinceDay, s.project]),
+    );
+    rows(p.atomic);
+    mix(p.blueprints);
+    mix(p.halved);
+    mix(p.nukedCount);
+    mix(p.rocketRest);
+    for (const xs of [c.mio.arch, c.mio.traits, c.mio.investReady]) {
+      mix(xs.length);
+      for (const v of xs) mix(v);
+    }
+    mix(c.mech.energyExtra);
+    mix(c.mech.shortageNoteDay);
+  }
+  // The market: listings, deals, licences, pending licences, embargoes.
+  const m = d.market;
+  mix(m.listings.length);
+  for (const l of [...m.listings].sort((a, b) => a.id - b.id)) {
+    for (const v of [l.id, l.seller, l.key, l.count, l.reserved]) mix(v);
+    design(l.design);
+  }
+  mix(m.deals.length);
+  for (const x of [...m.deals].sort((a, b) => a.id - b.id)) {
+    for (const v of [
+      x.id,
+      x.buyer,
+      x.seller,
+      x.key,
+      x.count,
+      x.priceMilli,
+      x.paidMilli,
+      x.deliveredMilli,
+      x.civs,
+      x.startDay,
+      x.endDay,
+    ]) {
+      mix(v);
+    }
+    design(x.design);
+  }
+  rows(
+    m.licences.map((l) => [
+      l.id,
+      l.from,
+      l.to,
+      l.key,
+      l.ship,
+      l.slot,
+      l.sinceDay,
+    ]),
+  );
+  rows(
+    m.pending.map((l) => [l.id, l.from, l.to, l.key, l.ship, l.deadlineTick]),
+  );
+  rows(m.embargoes);
+  // Raids by uid, the nuke and rocket queues by their fields, the nuked regions.
+  rows(
+    d.raids.map((r) => [
+      r.uid,
+      r.owner,
+      r.kind,
+      r.unit,
+      r.target,
+      r.building,
+      r.readyDay,
+    ]),
+  );
+  rows(
+    d.nukeQueue.map((q) => [
+      q.day,
+      q.owner,
+      q.region,
+      q.zone,
+      q.rocket ? 1 : 0,
+    ]),
+  );
+  rows(
+    d.rocketQueue.map((q) => [
+      q.day,
+      q.owner,
+      q.site,
+      q.target,
+      q.kind,
+      q.count,
+    ]),
+  );
+  rows([...d.nuked.entries()]);
+  // The day's tallies and one-line batches.
+  mix(d.dayTally.length);
+  for (const v of d.dayTally) mix(v);
+  rows(d.dayNotes);
 }
 
 /** Lane E review minor 8: a design's fit as one number (base, modules, levels, name). */

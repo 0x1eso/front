@@ -738,6 +738,46 @@ func TestV4FieldsAndFormulas(t *testing.T) {
 	}
 }
 
+// Final review B, I1: a no-strike region (Korea, Taiwan) gets no start
+// base from the formulas, and a hand level there fails the build.
+func TestV4NoStrikeRegionsGetNoBase(t *testing.T) {
+	old := noStrikeRegions
+	defer func() { noStrikeRegions = old }()
+	noStrikeRegions = map[int]bool{1: true, 2: true}
+	packed, ids, w, h, src := v4Grid()
+	out, _, err := buildScenario(src, ids, packed, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range out.Regions {
+		if v := r.outV4; v.NavalBase != 0 || v.AirBase != 0 || v.AA != 0 || v.CoastalFort != 0 {
+			t.Fatalf("region %d %+v", r.ID, *v)
+		}
+	}
+	// Warsaw keeps its P2 port (a dockyard on the coast): only the base goes.
+	if !out.Regions[1].Port {
+		t.Fatal("Warsaw lost its port")
+	}
+	for _, edit := range []func(s *scenarioSrc){
+		func(s *scenarioSrc) { one := 1; s.Regions[1].NavalBase = &one },
+		func(s *scenarioSrc) { one := 1; s.Regions[0].AirBase = &one },
+		func(s *scenarioSrc) { one := 1; s.Regions[1].CoastalFort = &one },
+	} {
+		packed, ids, w, h, src := v4Grid()
+		edit(&src)
+		if _, _, err := buildScenario(src, ids, packed, w, h); err == nil || !strings.Contains(err.Error(), "no-strike region") {
+			t.Fatalf("hand level: err = %v", err)
+		}
+	}
+	// A hand zero is no base: allowed.
+	packed, ids, w, h, src = v4Grid()
+	zero := 0
+	src.Regions[0].AirBase = &zero
+	if _, _, err := buildScenario(src, ids, packed, w, h); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // The tool's version 4 data must fit the final map.
 func TestV4MustMatchTheFinalTiles(t *testing.T) {
 	cases := []struct {

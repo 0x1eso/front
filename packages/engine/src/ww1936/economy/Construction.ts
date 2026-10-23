@@ -22,6 +22,7 @@ import {
   constructionProgress,
   projectSpeedPct,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import {
   DEPTH_BUILDINGS,
   depthBuildBlock,
@@ -104,6 +105,18 @@ export function usedSlots(econ: WwEconomy, region: number): number {
 }
 
 /** Why `ce` may not queue this project now; null if it may. */
+/**
+ * Final review B, I1: a no-strike region (Korea, Taiwan: engine-lib
+ * isNoStrike, and the content's no-strike groups, as WwDepth.noStrike),
+ * where nothing is built — by an order, the AI or a content effect.
+ */
+export function noStrikeAt(econ: WwEconomy, region: number): boolean {
+  const d = econ.ww.depth as WwDepth | undefined;
+  return d === undefined
+    ? isNoStrike(econ.scenario, region)
+    : d.noStrike(region);
+}
+
 export function buildBlock(
   econ: WwEconomy,
   ce: CountryEconomy,
@@ -112,6 +125,9 @@ export function buildBlock(
   count: number,
 ): WwOrderBlock | null {
   const exists = econ.scenario.region(region) !== undefined;
+  // Final review B, I1: nothing is built in Korea or Taiwan, by anyone.
+  const noStrike = noStrikeAt(econ, region);
+  if (noStrike) return "no_strike_region";
   // P3 spec §9.2 {dmz}: no fort in a demilitarised region of one's own.
   if (
     building === "fort" &&
@@ -147,6 +163,7 @@ export function buildBlock(
     researched: ce.researched,
     // P6 hook: the P6 buildings' own rules.
     depthBlock: depthBlockOf(econ, ce, region, building, count),
+    noStrike,
   });
 }
 

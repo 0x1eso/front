@@ -236,6 +236,11 @@ export interface BuildCheck {
    * buildable (a screen without the depth data).
    */
   depthBlock?: WwOrderBlock | null;
+  /**
+   * Final review B, I1: the region is a no-strike region (Korea, Taiwan;
+   * engine-lib isNoStrike), where nothing is built. Absent: not one.
+   */
+  noStrike?: boolean;
 }
 
 /** P6: the buildings whose rules live in WorldRules.depthBuildBlock. */
@@ -251,6 +256,7 @@ const DEPTH_BUILDING_SET: ReadonlySet<BuildingId> = new Set([
 /** Spec §4.3 (P4 spec §5.1, §12.1): why the project cannot be queued; null when it can. */
 export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
   if (!BUILDABLE.includes(c.building)) return "not_buildable";
+  if (c.noStrike === true) return "no_strike_region";
   if (!c.controlled) return "not_controlled";
   if (c.queueLength >= WW_MAX_QUEUE) return "queue_full";
   if (COASTAL_BUILDINGS.includes(c.building)) {

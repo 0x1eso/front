@@ -118,8 +118,12 @@ function aiBuyCoal(d: WwDepth, id: number, ce: CountryEconomy): boolean {
   return false;
 }
 
-/** A power plant in the best home region (most free slots, then infrastructure), up to AI_PLANTS_QUEUED queued. */
-function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
+/**
+ * A power plant in the best home region (most free slots, then
+ * infrastructure), up to AI_PLANTS_QUEUED queued; never in Korea or Taiwan.
+ * Exported for the tests.
+ */
+export function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
   const queued = ce.queue.filter((q) => q.building === "power_plant").length;
   if (queued >= AI_PLANTS_QUEUED) return;
   const econ = d.ww.economy;
@@ -127,9 +131,12 @@ function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
   const id = ce.smallID;
   const free = (r: number) =>
     econ.regionSlots(r, ce.stats.slotPct) - usedSlots(econ, r);
+  // Final review B, I3: never in Korea or Taiwan (no P6 data there).
   const home = econ
     .regionsOf(id)
-    .filter((r) => (pol.legalOwner[r] ?? 0) === id && free(r) > 0)
+    .filter(
+      (r) => (pol.legalOwner[r] ?? 0) === id && free(r) > 0 && !d.noStrike(r),
+    )
     .sort(
       (a, b) => free(b) - free(a) || econ.infra[b] - econ.infra[a] || a - b,
     );

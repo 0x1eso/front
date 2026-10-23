@@ -9306,8 +9306,8 @@
     },
     {
       "id": 383,
-      "name": "Karafuto",
-      "nameKo": "가라후토",
+      "name": "South Sakhalin",
+      "nameKo": "남사할린",
       "owner": "JPN",
       "vp": 0,
       "cat": "rural",
@@ -16307,8 +16307,8 @@
     },
     {
       "id": 679,
-      "name": "Keijō (Seoul)",
-      "nameKo": "경성",
+      "name": "Seoul",
+      "nameKo": "서울",
       "owner": "JPN",
       "vp": 6,
       "vpTile": [3411, 836],

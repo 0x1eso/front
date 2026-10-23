@@ -300,9 +300,9 @@ describe("strategic regions (P4 spec §3.4, scenario v4)", () => {
 
   test("the Korean Peninsula and Taiwan are neutral geographic zones of their own", () => {
     // Controller ruling 2026-10-21. The Korean regions: the land the 1936
-    // owner holds around Keijō (Seoul), joined by land edges that are not
+    // owner holds around Seoul, joined by land edges that are not
     // straits (Kwantung lies beyond Manchukuo).
-    const seoul = scenario.regions.find((r) => r.name === "Keijō (Seoul)")!;
+    const seoul = scenario.regions.find((r) => r.name === "Seoul")!;
     const korea = new Set([seoul.id]);
     const queue = [seoul.id];
     for (let k = 0; k < queue.length; k++) {

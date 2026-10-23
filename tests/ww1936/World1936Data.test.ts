@@ -21,6 +21,7 @@ import { DEPTH_BEATS } from "@openfront/engine-lib/ww1936/content/depth/beats";
 import { DEPTH_EVENTS } from "@openfront/engine-lib/ww1936/content/depth/world";
 import { GRAND_COUNCIL_CRISIS } from "@openfront/engine-lib/ww1936/content/events/ita";
 import { WORLD_EVENTS } from "@openfront/engine-lib/ww1936/content/events/world";
+import { NO_STRIKE_REGION_IDS } from "@openfront/engine-lib/ww1936/NoStrike";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
 import path from "path";
@@ -145,9 +146,9 @@ describe("the world1936 map", () => {
     ["Manila", 120.98, 14.6, "USA"],
     ["Karachi", 67.0, 24.86, "RAJ"],
     ["Rangoon", 96.16, 16.87, "RAJ"],
-    ["Keijō (Seoul)", 126.98, 37.57, "JPN"],
-    ["Taihoku", 121.56, 25.04, "JPN"],
-    ["Toyohara", 142.7, 46.95, "JPN"],
+    ["Seoul", 126.98, 37.57, "JPN"],
+    ["Taipei", 121.56, 25.04, "JPN"],
+    ["Yuzhno-Sakhalinsk", 142.7, 46.95, "JPN"],
     ["Dairen", 121.6, 38.92, "JPN"],
     ["Hsinking", 125.32, 43.88, "MCK"],
     ["Chengde", 117.9, 40.97, "MCK"],
@@ -194,7 +195,7 @@ describe("the world1936 map", () => {
     [-5.35, 36.14, "Gibraltar", "지브롤터"],
     [15.23, 44.12, "Zara", "자라"],
     [121.6, 38.92, "Kwantung", "관동주"],
-    [142.7, 46.95, "Karafuto", "가라후토"],
+    [142.7, 46.95, "South Sakhalin", "남사할린"],
     [-5.37, 35.57, "Spanish Morocco", "스페인령 모로코"],
     [45.03, 12.8, "Aden", "아덴"],
     [-0.2, 5.56, "Gold Coast", "골드코스트"],
@@ -638,8 +639,11 @@ describe("the world1936 land graph (P2 spec §3, scenario v3)", () => {
 
   test("the regions 1..1342 keep their name, owner and VP tile from v2", () => {
     // Pinned from the committed version 2 scenario.json (1,265 regions).
+    // Re-pinned after final review B renamed two regions to their neutral
+    // names: 679 Seoul (I2) and 383 South Sakhalin (M6). With their old
+    // names back the value is v2's 3722970793: nothing else moved.
     expect(v2Fingerprint(data.scenario!.landRegions)).toEqual({
-      h: 3722970793,
+      h: 828375217,
       n: 1265,
     });
   });
@@ -993,7 +997,27 @@ const v4At = (lon: number, lat: number): V4Region => {
 const v4Island = (key: string): V4Region =>
   v4ById.get(data.scenario!.landRegions.find((r) => r.island === key)!.id)!;
 
+/** Korea's eleven regions and Taiwan (engine-lib NoStrike's fixed ids). */
+const NO_STRIKE = [563, 598, 604, 622, 639, 679, 686, 701, 732, 734, 761, 901];
+
 describe("the world1936 start bases and harbours (P4 spec §3.5, §6.4, §12.1)", () => {
+  test("no base, coastal fort or anti-air in Korea or Taiwan, whoever holds them (final review B, I1)", () => {
+    expect([...NO_STRIKE_REGION_IDS]).toEqual(NO_STRIKE);
+    for (const id of NO_STRIKE) {
+      const r = v4ById.get(id)!;
+      expect(
+        [r.navalBase, r.airBase, r.aa, r.coastalFort],
+        `${id} ${data.scenario!.region(id)?.name}`,
+      ).toEqual([0, 0, 0, 0]);
+    }
+    // Japan's at the start; Seoul and Taiwan stay ports (P2's, with no base).
+    expect(NO_STRIKE.map((id) => data.scenario!.region(id)?.owner)).toEqual(
+      NO_STRIKE.map(() => "JPN"),
+    );
+    expect(data.scenario!.region(679)?.port).toBe(true);
+    expect(data.scenario!.region(901)?.port).toBe(true);
+  });
+
   test("every region on a sea has the harbour it touches most, the others 0", () => {
     const s = data.scenario!;
     const map = data.gameMap;
@@ -1060,8 +1084,11 @@ describe("the world1936 start bases and harbours (P4 spec §3.5, §6.4, §12.1)"
     // an island port without a hand base takes the formula (P4 pre-flight
     // T2: Okinawa, the Azores… are supplied by sea), and a naval base makes
     // a port, so the static port and the engine's naval-base port agree.
+    // The no-strike regions (Korea, Taiwan) are the exception: a port
+    // without a base (final review B, I1).
     const ports = s.landRegions.filter(
-      (r) => r.port && v4ById.get(r.id)!.harbor > 0,
+      (r) =>
+        r.port && v4ById.get(r.id)!.harbor > 0 && !NO_STRIKE.includes(r.id),
     );
     expect(ports.length).toBeGreaterThan(50);
     for (const r of ports) {

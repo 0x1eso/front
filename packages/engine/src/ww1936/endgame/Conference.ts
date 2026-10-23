@@ -619,7 +619,9 @@ function resolveRound(eg: WwEndgame, c: Conference): number {
         c.lastRound.push({
           by: id,
           kind: d.kind,
-          regions: res.regions,
+          // T23 determinism lane: a copy (settled holds the same array; a
+          // restored game has two).
+          regions: [...res.regions],
           target: d.target,
           ok: res.ok,
         });

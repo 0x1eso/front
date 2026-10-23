@@ -222,7 +222,20 @@ export interface DeployAsk {
   have: number;
   deploymentsUsed: number;
   anyBaseInRange: boolean;
+  /**
+   * Final review B, M2: every member of the land zone is a no-strike
+   * region (the Korean Peninsula, Taiwan), so a strike mission there hits
+   * nothing and is refused. Absent: not such a zone.
+   */
+  allNoStrike?: boolean;
 }
+
+/** The missions that strike a land zone's regions (refused over a no-strike zone). */
+export const STRIKE_AIR_MISSIONS: readonly AirMission[] = [
+  "cas",
+  "strategic_bombing",
+  "port_strike",
+];
 
 /** The judge the zone card and the engine share (spec §13.2, §14.1). */
 export function airDeployBlock(a: DeployAsk): WwOrderBlock | null {
@@ -233,6 +246,13 @@ export function airDeployBlock(a: DeployAsk): WwOrderBlock | null {
     !AIR_MISSION_TYPES[a.mission].includes(a.type)
   ) {
     return "bad_air_mission";
+  }
+  if (
+    a.count > 0 &&
+    a.allNoStrike === true &&
+    STRIKE_AIR_MISSIONS.includes(a.mission)
+  ) {
+    return "no_strike_region";
   }
   if (a.count > 0 && a.deploymentsUsed >= WW_MAX_DEPLOYMENTS) {
     return "too_many_deployments";

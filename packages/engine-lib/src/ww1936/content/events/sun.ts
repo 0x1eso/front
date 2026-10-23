@@ -68,7 +68,8 @@ export const SUN_EVENTS = [
         id: "a",
         history: true,
         ai: { base: 10 },
-        effects: [{ kind: "pp", amount: 25 }],
+        // Controller ruling on final review B M7: no reward.
+        effects: [],
       },
     ],
   },
