@@ -16,8 +16,10 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { render } from "lit";
 import "../../../src/client/hud/ww1936/WwAidTab";
 import {
+  AidActions,
   OpenWwAidEvent,
   type WwAidTab,
 } from "../../../src/client/hud/ww1936/WwAidTab";
@@ -120,6 +122,45 @@ describe("<ww-aid-tab> (P5 spec §20.5)", () => {
     ]);
     // The walk closes once sent.
     expect(step()).toBeUndefined();
+  });
+
+  it("final review C (M5): the volunteer room shows only while the gate is open", () => {
+    // Italy (at war with France, 7 divisions) and the Soviet Union (at peace).
+    const { game, land } = fakeEndGame({
+      me: "DEU",
+      wars: [["ITA", "FRA"]],
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+    });
+    land.apply(
+      {
+        armies: [],
+        removedArmies: [],
+        battles: [],
+        endedBattles: [],
+        regions: [],
+        countries: [
+          { smallID: ID("DEU"), divisions: 40 } as never,
+          { smallID: ID("ITA"), divisions: 7 } as never,
+          { smallID: ID("SUN"), divisions: 7 } as never,
+        ],
+        details: [],
+      },
+      600,
+    );
+    const label = (tag: "ITA" | "SUN") => {
+      const box = document.createElement("div");
+      render(
+        new AidActions().render(game, new EventBus(), ID(tag), () => {}),
+        box,
+      );
+      return box.querySelector("[data-ww-act='volunteers_send']")!.textContent!;
+    };
+    // Open: the room (here max(2, floor(7 / 3)) = 2).
+    expect(label("ITA")).toContain("[ww1936.aid.volunteers_cap] n=2");
+    // Closed (no war to volunteer for): no number from its army's size.
+    expect(label("SUN")).not.toContain("volunteers_cap");
+    expect(label("SUN")).toContain("[ww1936.aid.volunteers_send]");
   });
 
   it("the player panel's request starts the walk at the item", async () => {

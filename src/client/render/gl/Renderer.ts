@@ -1481,6 +1481,11 @@ export class GPURenderer {
             Math.abs(y - this.camera.offsetY) * z <= halfH
           );
         },
+        launchShown: (owner, region) => {
+          const land = this.wwLand;
+          const fog = land === null ? undefined : fogOfLand(land.view);
+          return fog?.launchSiteShown(owner, region) ?? true;
+        },
       },
       () => this.wwLand?.me() ?? 0,
     );

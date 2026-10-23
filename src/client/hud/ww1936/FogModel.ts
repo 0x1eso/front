@@ -678,6 +678,21 @@ export class FogModel {
       : this.lowestEnemyBand(domain);
   }
 
+  /**
+   * Final review C (M5): a strike's launch site (a rocket's stream, a
+   * nuke's flight) shows for my side's strikes, strikes on my side's land,
+   * and an owner known at the rough civil band or better.
+   */
+  launchSiteShown(owner: number, target: number): boolean {
+    this.ensure();
+    if (this.fogOff()) return true;
+    const me = this.me();
+    if (this.sameSide(me, owner)) return true;
+    const holder = this.view.wwLand?.()?.controller[target] ?? 0;
+    if (holder !== 0 && this.sameSide(me, holder)) return true;
+    return this.bandOf(owner, ID_CIVIL) >= 1;
+  }
+
   regionView(region: number): FogRegionView {
     this.ensure();
     if (this.fogOff()) return EXACT_REGION;

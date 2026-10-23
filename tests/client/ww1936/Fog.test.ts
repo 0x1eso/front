@@ -224,6 +224,21 @@ describe("FogModel (spec §8.9)", () => {
     expect(f.ghosts()).toHaveLength(0);
   });
 
+  it("final review C (M5): a strike's launch site shows by side and civil band", () => {
+    // Poland (at war with me, civil band 0) strikes Poland's own region 9
+    // (not mine) and my region 4.
+    const g = fogGame({ level: 0 });
+    const f = newFog(g);
+    expect(f.launchSiteShown(ID("POL"), FAR)).toBe(false);
+    expect(f.launchSiteShown(ID("POL"), 4)).toBe(true);
+    expect(f.launchSiteShown(ID("DEU"), FAR)).toBe(true);
+    g.setLevels([20, 0, 0, 0]);
+    expect(f.launchSiteShown(ID("POL"), FAR)).toBe(true);
+    g.setLevels([0, 0, 0, 0]);
+    g.state.spectator = true;
+    expect(f.launchSiteShown(ID("POL"), FAR)).toBe(true);
+  });
+
   it("keeps a ghost 10 days where an army was last seen", () => {
     const g = fogGame({ armies: [polArmy(1, NEAR)] });
     const f = newFog(g);

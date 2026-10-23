@@ -141,7 +141,7 @@ export function codenameText(n: number): string {
 
 export class IntelModel {
   private observer = 0;
-  private rowsKey = -1;
+  private rowsKey = "";
   private rowsCache: TargetRow[] = [];
   private cryptoMemo: { target: number; pm: number; day: number } | null = null;
   private cryptoRate = 0;
@@ -150,7 +150,7 @@ export class IntelModel {
 
   setObserver(smallID: number): void {
     this.observer = smallID;
-    this.rowsKey = -1;
+    this.rowsKey = "";
   }
 
   me(): number {
@@ -293,13 +293,15 @@ export class IntelModel {
     return { kind: "operative_recruit" } as WwOrder;
   }
 
-  /** Spec §20.6: at war first, then neighbours, then the rest by size (threat). */
+  /**
+   * Spec §20.6: at war first, then neighbours, then the rest by size
+   * (threat). Final review C (M5): the size is the public factory count
+   * (the leaderboard's), not the divisions — the order would rank hidden
+   * army sizes.
+   */
   targetRows(): TargetRow[] {
     const v = this.view;
-    const key =
-      (v.wwDepth?.()?.version ?? 0) * 1_000 +
-      (v.wwLand?.()?.version ?? 0) +
-      this.me() * 1_000_003;
+    const key = `${v.wwDepth?.()?.version ?? 0}:${v.wwLand?.()?.version ?? 0}:${v.wwEconomy?.()?.version ?? 0}:${this.me()}`;
     if (key === this.rowsKey) return this.rowsCache;
     this.rowsKey = key;
     const me = this.me();
@@ -351,7 +353,11 @@ export class IntelModel {
         infiltrated: infiltrating.has(id),
       });
     }
-    const size = (id: number) => land?.countries.get(id)?.divisions ?? 0;
+    const economy = v.wwEconomy?.() ?? null;
+    const size = (id: number) => {
+      const s = economy?.summary(id) ?? null;
+      return s === null ? 0 : s.civ + s.mil;
+    };
     const rank = (r: TargetRow) => (r.atWar ? 0 : r.neighbour ? 1 : 2);
     rows.sort(
       (a, b) => rank(a) - rank(b) || size(b.id) - size(a.id) || a.id - b.id,
