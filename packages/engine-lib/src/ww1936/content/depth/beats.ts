@@ -70,6 +70,21 @@ export const DEPTH_BEATS: readonly HistoryBeat[] = [
     },
     windowDays: 30,
   },
+  // The United States builds two nuclear research institutes (spec §19.6:
+  // 1942-06). Final balance: from the NDRC's founding, 1940-06-27 — by
+  // 1942 the AI had filled every US region with infrastructure 3+ with
+  // factories, so the sites never found a slot and no bomb was ever made.
+  // The project still starts with the 1942-08-13 beat below.
+  {
+    id: "b19420601_usa_atomic_sites",
+    date: "1940-06-27",
+    actor: "USA",
+    act: {
+      kind: "effects",
+      effects: [{ kind: "set_flag", flag: "hist_usa_atomic_sites" }],
+    },
+    windowDays: 60,
+  },
   // British strategic bombers fly at night from 1940-09 (spec §15.3).
   {
     id: "b19400901_gbr_night_bombing",
@@ -135,17 +150,6 @@ export const DEPTH_BEATS: readonly HistoryBeat[] = [
       effects: [{ kind: "set_flag", flag: "hist_usa_proximity_fuze" }],
     },
     windowDays: 365,
-  },
-  // The United States builds two nuclear research institutes (spec §19.6: 1942-06).
-  {
-    id: "b19420601_usa_atomic_sites",
-    date: "1942-06-01",
-    actor: "USA",
-    act: {
-      kind: "effects",
-      effects: [{ kind: "set_flag", flag: "hist_usa_atomic_sites" }],
-    },
-    windowDays: 60,
   },
   // The United States starts sp_atomic with its nuclear scientist: the Manhattan District was created on 1942-08-13 (spec §19.6).
   {

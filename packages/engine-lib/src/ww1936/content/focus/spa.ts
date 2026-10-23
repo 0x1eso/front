@@ -256,10 +256,11 @@ export const SPA_FOCUSES: FocusDef[] = [
     prereq: [["spa_mobilize"]],
     effects: [
       { kind: "unlock_template", template: "spa_navarre_brigades" },
+      // Final balance: 2 → 4 (the Republic's focuses give it 9).
       {
         kind: "divisions",
         template: "spa_navarre_brigades",
-        count: 2,
+        count: 4,
         where: "capital",
       },
     ],
@@ -276,10 +277,11 @@ export const SPA_FOCUSES: FocusDef[] = [
     countries: ["ESN"],
     effects: [
       { kind: "unlock_template", template: "spa_africa_division" },
+      // Final balance: 4 → 6 (the Republic's focuses give it 9).
       {
         kind: "divisions",
         template: "spa_africa_division",
-        count: 4,
+        count: 6,
         where: { group: "spanish_morocco" },
       },
     ],

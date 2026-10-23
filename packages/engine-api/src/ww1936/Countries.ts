@@ -242,13 +242,23 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
   }),
   LUX: def("Luxembourg", "lu", [130, 175, 225], "europe"),
   CHE: def("Switzerland", "ch", [205, 85, 85], "europe"),
+  // Final balance (P5 Spain targets): Barcelona holds 11 of the Republic's
+  // 16 points; its fall ends the Republic (as in 1939, weeks after
+  // Catalonia), as Burgos's ends Nationalist Spain below.
   ESR: def(
     "Spanish Republic",
     "Second Spanish Republic",
     [155, 95, 165],
     "europe",
+    { surrenderPct: 60 },
   ),
-  ESN: def("Nationalist Spain", "ww1936_ESN", [195, 155, 75], "europe"),
+  // Final balance (P5 Spain targets): Nationalist Spain's points are Burgos
+  // (2) and Spanish Guinea (4), out of the Republic's reach, so at 80% a
+  // beaten Nationalist Spain never surrendered and the war ran to 1945. The
+  // colonial-empire rule above: 80% of its homeland's share (2 of 6).
+  ESN: def("Nationalist Spain", "ww1936_ESN", [195, 155, 75], "europe", {
+    surrenderPct: 27,
+  }),
   PRT: def("Portugal", "pt", [65, 145, 95], "europe"),
   IRL: def("Ireland", "ie", [90, 175, 95], "europe"),
   DNK: def("Denmark", "dk", [195, 85, 85], "europe"),

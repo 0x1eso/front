@@ -199,4 +199,18 @@ describe("focus data", () => {
       ).toBe(true);
     }
   });
+
+  it("the final balance's focus numbers: the Nationalists' divisions", () => {
+    const f = (id: string) => focuses.find((x) => x.id === id)!;
+    // The Nationalists' focus divisions (6 + 4) against the Republic's (6 + 3).
+    const divisions = (id: string) =>
+      f(id)
+        .effects.filter((e) => e.kind === "divisions")
+        .reduce((n, e) => n + (e as { count: number }).count, 0);
+    expect(divisions("spa_army_of_africa")).toBe(6);
+    expect(divisions("spa_navarre_volunteers")).toBe(4);
+    expect(
+      divisions("spa_popular_army") + divisions("spa_international_brigades"),
+    ).toBe(9);
+  });
 });

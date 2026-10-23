@@ -108,7 +108,7 @@ export const AI_WAR_SCORE_PM: Readonly<Record<AiPersonality, number>> = {
  * AI takes when the war score is at least this (history pulls it below the
  * off-history bar); a join comes into a war others already fight.
  */
-export const AI_BEAT_SCORE_PM = { declare: 800, join: 600 } as const;
+export const AI_BEAT_SCORE_PM = { declare: 650, join: 600 } as const;
 /** Owner direction: a beat the AI does not like yet waits up to this many days past its day, then lapses. */
 export const AI_BEAT_WAIT_DAYS = 180;
 /** Fix round 1: a waiting war beat is planned (the land AI stages) from 7/10 of its bar. */

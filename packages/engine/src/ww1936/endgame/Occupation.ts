@@ -65,8 +65,12 @@ export const RESISTANCE_SUPPORT_SPIRIT = "gen_resistance_support";
 export const RESISTANCE_SUPPORT_UP_BP = 5;
 /** Spec §8.6: an uprising with nobody to take the region over: this damage, milli. */
 export const UPRISING_FAILED_DAMAGE_MILLI = 2000;
-/** …and resistance falls back to this, bp. */
-export const UPRISING_FAILED_RES_BP = 5000;
+/**
+ * …and resistance falls back to this, bp. Final balance: 5000 → 3000 — a
+ * region nobody could take back climbed from 50% to the 80% line in about
+ * 200 days and rose again, eight times a game in the worst regions.
+ */
+export const UPRISING_FAILED_RES_BP = 3000;
 /** Spec §8.6: an uprising division's equipment, % of its template's need. */
 export const UPRISING_EQUIP_PCT = 30;
 /** Spec §8.6: the building resistance damages first among the most numerous. */

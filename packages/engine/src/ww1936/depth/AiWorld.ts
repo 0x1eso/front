@@ -33,8 +33,14 @@ import { issueRailGun } from "./RailGuns";
 import { issueScorch, scorchInputOf, threatsTo } from "./Scorch";
 import type { WwDepth } from "./WwDepth";
 
-/** Spec §16.2: the AI acts on its energy below this ratio, ‰. */
-export const AI_ENERGY_PM = 900;
+/**
+ * Spec §16.2: the AI acts on its energy below this ratio, ‰. Final
+ * balance: 900 → 990 and up to AI_PLANTS_QUEUED plants at once (it was
+ * one): a big builder (the United States) added demand faster than one
+ * plant at a time could follow and sat at 40–50% from 1940.
+ */
+export const AI_ENERGY_PM = 990;
+export const AI_PLANTS_QUEUED = 8;
 /** Spec §16.7: the Soviet scorched earth starts in 1941. */
 export const AI_SCORCH_FROM = "1941-01-01";
 /** Spec §16.7: a region with this many factories is worth moving and burning. */
@@ -112,9 +118,10 @@ function aiBuyCoal(d: WwDepth, id: number, ce: CountryEconomy): boolean {
   return false;
 }
 
-/** A power plant in the best home region (most free slots, then infrastructure), one queued at a time. */
+/** A power plant in the best home region (most free slots, then infrastructure), up to AI_PLANTS_QUEUED queued. */
 function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
-  if (ce.queue.some((q) => q.building === "power_plant")) return;
+  const queued = ce.queue.filter((q) => q.building === "power_plant").length;
+  if (queued >= AI_PLANTS_QUEUED) return;
   const econ = d.ww.economy;
   const pol = d.ww.politics;
   const id = ce.smallID;
@@ -126,8 +133,12 @@ function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
     .sort(
       (a, b) => free(b) - free(a) || econ.infra[b] - econ.infra[a] || a - b,
     );
+  let want = AI_PLANTS_QUEUED - queued;
   for (const r of home) {
-    if (queueBuild(econ, ce, r, "power_plant", 1) === null) return;
+    while (want > 0 && queueBuild(econ, ce, r, "power_plant", 1) === null) {
+      want--;
+    }
+    if (want <= 0) return;
   }
 }
 

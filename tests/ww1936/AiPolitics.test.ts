@@ -27,6 +27,7 @@ import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_ADVISOR_ORDER,
+  AI_BEAT_SCORE_PM,
   AI_BEAT_WAIT_DAYS,
   AI_DECISION_PERIOD_DAYS,
   AI_EARLY_WAR_PCT,
@@ -832,14 +833,15 @@ describe(
         beat("b_t_war", "DEU", { kind: "declare", target: "POL" }),
       ]);
       const [deu, pl] = [id("DEU"), id("POL")];
-      armies({ DEU: 7, POL: 10 });
+      // Final balance: the bar is 650 (600 < 650).
+      armies({ DEU: 6, POL: 10 });
       runBeats(p, d, tick());
       expect(p.ww.isAtWar(deu, pl)).toBe(false);
       expect(p.beats[0].done).toBe(false);
       // Still planned meanwhile (the land AI stages for it) at 70% of the
-      // bar (700 ≥ 560), not far below it (fix round 1).
+      // bar (600 ≥ 455), not far below it (fix round 1).
       expect(p.plannedWars(deu, d + 40)).toContain(pl);
-      armies({ DEU: 5, POL: 10 });
+      armies({ DEU: 4, POL: 10 });
       expect(p.plannedWars(deu, d + 40)).not.toContain(pl);
       runBeats(p, d + AI_BEAT_WAIT_DAYS - 1, tick());
       expect(p.beats[0].done).toBe(false);
@@ -853,10 +855,10 @@ describe(
         beat("b_t_war", "DEU", { kind: "declare", target: "POL" }),
       ]);
       const [deu, pl] = [id("DEU"), id("POL")];
-      armies({ DEU: 7, POL: 10 });
+      armies({ DEU: 6, POL: 10 });
       runBeats(p, d, tick());
       expect(p.ww.isAtWar(deu, pl)).toBe(false);
-      armies({ DEU: 8, POL: 10 });
+      armies({ DEU: 7, POL: 10 });
       runBeats(p, d + 1, tick());
       expect(p.ww.isAtWar(deu, pl)).toBe(true);
       expect(p.beats[0].done).toBe(true);
@@ -869,7 +871,7 @@ describe(
       const [deu, sun, fra] = [id("DEU"), id("SUN"), id("FRA")];
       armies({ DEU: 12, SUN: 10 });
       expect(aiWarScore(p, deu, sun, false)).toBe(1200);
-      // France on Germany's border: the score halves (600 < 800).
+      // France on Germany's border: the score halves (600 < 650).
       p.ww.setWar(deu, fra, tick());
       expect(aiWarScore(p, deu, sun, false)).toBe(600);
       runBeats(p, d, tick());
@@ -902,7 +904,10 @@ describe(
           beat("b_t_join", "GBR", { kind: "join", target: "DEU" }),
         ]);
         const [gbr, deu] = [id("GBR"), id("DEU")];
-        armies({ GBR: 10, DEU: 10, ITA: 5 });
+        armies({ GBR: 9, DEU: 10, ITA: 5 });
+        expect(aiWarScore(p, gbr, deu, false)).toBeLessThan(
+          AI_BEAT_SCORE_PM.declare,
+        );
         runBeats(p, d, tick());
         expect(p.ww.isAtWar(gbr, deu)).toBe(false);
         expect(p.beats[0].done).toBe(false);

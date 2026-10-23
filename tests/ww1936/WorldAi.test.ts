@@ -7,6 +7,8 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
+  AI_ENERGY_PM,
+  AI_PLANTS_QUEUED,
   AI_SCORCH_FROM,
   aiWorldDay,
   DNIPRO_FLAG,
@@ -157,5 +159,39 @@ describe("World War 1936 P6: the AI's world devices", () => {
     expect(
       deals() > before || ce.queue.some((q) => q.building === "power_plant"),
     ).toBe(true);
+  }, 60_000);
+
+  it("an AI short of energy that coal cannot help queues several power plants at once, up to AI_PLANTS_QUEUED", async () => {
+    const runner = await wwRunner(
+      {},
+      [{ clientID: HUMAN, country: "GBR" }],
+      DEEP.map,
+    );
+    stepTo(runner, WW_PREP_TICKS + 20);
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const econ = ww.economy;
+    const ita = DEEP.tag.ITA;
+    const ce = econ.country(ita)!;
+    const rome = DEEP.region.rome;
+    // Three slots free in Rome (a power plant region holds up to three).
+    econ.addBuilding(rome, "civ", -3);
+    ce.queue = [];
+    // Short of energy, with coal enough on hand: no coal deal to open.
+    const coal = RESOURCE_IDS.indexOf("coal");
+    ce.totals.produced[coal] += 1_000;
+    const plants = () =>
+      ce.queue.filter((q) => q.building === "power_plant").length;
+    const day = dayOf("1936-02-01", ita, 1);
+    d.country(ita)!.mech.energyPm = AI_ENERGY_PM;
+    aiWorldDay(d, ita, day);
+    expect(plants()).toBe(0);
+    d.country(ita)!.mech.energyPm = AI_ENERGY_PM - 1;
+    aiWorldDay(d, ita, day);
+    // One look queues more than one (it was one at a time), never past the cap.
+    expect(plants()).toBe(Math.min(3, AI_PLANTS_QUEUED));
+    expect(plants()).toBeGreaterThan(1);
+    aiWorldDay(d, ita, day + 10);
+    expect(plants()).toBeLessThanOrEqual(AI_PLANTS_QUEUED);
   }, 60_000);
 });

@@ -3,11 +3,13 @@
 // faction-shared intelligence. Plan decision 30: a human country, the lane
 // functions called directly for the long spans, findRoll-style searches
 // for the stateless rolls.
+import { INTEL_OPERATIONS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { P_INTEL_CAPTURE } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
   capturePmMilli,
   counterHalf,
+  externalResistPp,
   opStartBlock,
   OpStartInput,
   upgradeBlock,
@@ -29,6 +31,7 @@ import {
   M_COUNTER,
   M_PROPAGANDA,
   M_SUPPORT_RES,
+  M_SUPPRESS_RES,
   ST_CAPTURED,
   ST_IDLE,
   ST_MISSION,
@@ -264,6 +267,56 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     expect(deu.stabBaseBp).toBe(4_497);
   });
 
+  it("stacked external resistance has diminishing returns, at most +25pp a region; the occupier's suppression is not capped", async () => {
+    const r = await game();
+    const ww = r.game.worldWar()!;
+    const d = ww.depth;
+    const { warsaw, krakow } = DEEP.region;
+    takeRegion(r.game, warsaw, "DEU");
+    takeRegion(r.game, krakow, "DEU");
+    const eg = ww.endgame;
+    expect(eg.isAdministered(warsaw)).toBe(true);
+    const day = ww.day(r.game.ticks());
+    eg.resBp[warsaw] = 3_000;
+    eg.resBp[krakow] = 1_000;
+    // Three countries support the resistance, 10pp each (skill 3, no core).
+    for (const [owner, uid] of [
+      [GBR, 81],
+      [FRA, 82],
+      [ITA, 83],
+    ] as const) {
+      place(d, owner, { uid, skill: 3, target: DEU, mission: M_SUPPORT_RES });
+      d.setNetMilli(owner, DEU, 1_000_000);
+    }
+    rebuildResistBoost(d);
+    // 30pp raw: 15 in full, 15 at half.
+    expect(intelResistancePp(d, warsaw)).toBe(externalResistPp(30));
+    expect(intelResistancePp(d, warsaw)).toBe(22);
+    // Poland's uprising on its own cores adds 15pp more: 45 raw, capped.
+    d.ops.push({
+      uid: 90,
+      kind: INTEL_OPERATIONS.indexOf("op_uprising"),
+      owner: POL,
+      target: DEU,
+      operatives: [],
+      startDay: day,
+      endDay: day + 60,
+    });
+    rebuildResistBoost(d);
+    expect(intelResistancePp(d, warsaw)).toBe(25);
+    expect(intelResistancePp(d, krakow)).toBe(25);
+    expect(d.resistanceAdjPp(warsaw)).toBe(25);
+    // The occupier's own suppression comes off after the cap: 25 − 5.
+    place(d, DEU, { uid: 84, skill: 3, target: DEU, mission: M_SUPPRESS_RES });
+    rebuildResistBoost(d);
+    expect(intelResistancePp(d, warsaw)).toBe(20);
+    // Suppression alone is not touched by the cap.
+    d.ops = [];
+    for (const owner of [GBR, FRA, ITA]) d.setNetMilli(owner, DEU, 0);
+    rebuildResistBoost(d);
+    expect(intelResistancePp(d, warsaw)).toBe(-5);
+  });
+
   it("an exile supports resistance at its own occupied cores with half the network threshold", async () => {
     const r = await game();
     const ww = r.game.worldWar()!;
@@ -316,9 +369,10 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     );
     d.setNetMilli(FRA, DEU, 200_000);
     rebuildResistBoost(d);
-    expect(intelResistancePp(d, warsaw)).toBe(15 + 10);
+    // Final balance: 15 + 10 stacked, the part over 15pp counts half.
+    expect(intelResistancePp(d, warsaw)).toBe(15 + 5);
     // The P5 resistance target reads it (WwDepth.resistanceAdjPp).
-    expect(d.resistanceAdjPp(warsaw)).toBe(25);
+    expect(d.resistanceAdjPp(warsaw)).toBe(20);
     // op_uprising's network floor is halved for the exile too (opStartBlock).
     const i: OpStartInput = {
       agency: true,

@@ -280,6 +280,26 @@ export function opSuccessPm(
   return Math.max(0, Math.min(950, v));
 }
 
+/**
+ * Final balance (T1b-L finding): the resistance others add to one occupied
+ * region — support_resistance from any number of countries (up to 15pp
+ * each) and op_uprising (15pp) — has HOI4-style diminishing returns: the
+ * first RESIST_EXT_FULL_PP count in full, the rest at half, at most
+ * RESIST_EXT_CAP_PP. The occupier's own suppress_resistance is not
+ * external and comes off after the cap.
+ */
+export const RESIST_EXT_FULL_PP = 15;
+export const RESIST_EXT_CAP_PP = 25;
+
+/** The external resistance a region gets for `rawPp` stacked (≥ 0), pp. */
+export function externalResistPp(rawPp: number): number {
+  if (rawPp <= RESIST_EXT_FULL_PP) return Math.max(0, rawPp);
+  return Math.min(
+    RESIST_EXT_CAP_PP,
+    RESIST_EXT_FULL_PP + Math.floor((rawPp - RESIST_EXT_FULL_PP) / 2),
+  );
+}
+
 /** Spec §8.5 op_coup: the needed share of my ideology in the target, bp. */
 export function coupNeedBp(targetStabilityBp: number): number {
   return targetStabilityBp < 5_000 ? 3_000 : 4_000;

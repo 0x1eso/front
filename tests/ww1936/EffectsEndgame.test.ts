@@ -336,8 +336,9 @@ describe("World War 1936 P5: endgame effects", { timeout: 60_000 }, () => {
       { kind: "uprising", group: "t_poland" },
     ]);
     // Lane O's uprising (batch 19 merge): Poland is not at war with
-    // Germany, so it fails and leaves resistance at 50% (was 20%).
-    expect([eg.resBp[6], eg.resBp[7]]).toEqual([5000, 0]);
+    // Germany, so it fails and leaves resistance at 30% (final balance:
+    // UPRISING_FAILED_RES_BP; it was 20% before the uprising).
+    expect([eg.resBp[6], eg.resBp[7]]).toEqual([3000, 0]);
     expect([eg.compBp[6], eg.compBp[7]]).toEqual([3000, 0]);
     expect(vi.mocked(uprisingNow).mock.calls.map((c) => c[1])).toEqual([6]);
     // Compliance stops at 80% while Poland plays on; both stay in range.
