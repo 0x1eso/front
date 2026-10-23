@@ -438,9 +438,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // WorldWar's hash its last day, start VP and transfers (final review A,
 // finding 3). The lane's other changes leave this game alone: it carries
 // no human order, and the test map has none of the no-strike region ids.
-// Same value in three runs.
+// Same value in three runs (83c1d27a39c37f16). Re-pinned after the
+// controller's rulings on review B: the start leaders by title, Japan's
+// garrisons out of Korea and Taiwan, and the Great Purge without rewards
+// (the pinned game's Soviet Union takes it). Same value in three runs.
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "83c1d27a39c37f16";
+const WW1936_DIGEST = "6abdb1c1f7fcec54";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
