@@ -83,8 +83,8 @@ import { WwIntelPanel } from "./ww1936/WwIntelPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
 import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
-import { WwPeaceCard } from "./ww1936/WwPeaceCard";
 import { strikeFlowOf, WwNukeFlow } from "./ww1936/WwNukeFlow";
+import { WwPeaceCard } from "./ww1936/WwPeaceCard";
 import { WwPoliticsPanel } from "./ww1936/WwPoliticsPanel";
 import { WwResearchPanel } from "./ww1936/WwResearchPanel";
 import {
@@ -636,8 +636,14 @@ export function createRenderer(
       nukeFlow = new WwNukeFlow(game, eventBus);
       const sa = seaAirOf(game);
       view.setSeaAirGlow({
-        key: () =>
-          `${sa.draft.version}:${sa.selection.version}:${wwNavy.version}:${strikeFlowOf(game).version}`,
+        key: (out) => {
+          out.push(
+            sa.draft.version,
+            sa.selection.version,
+            wwNavy.version,
+            strikeFlowOf(game).version,
+          );
+        },
         glow: () => nukeFlow?.glow() ?? seaAirGlow(game),
       });
       // The land cards' P4 battle lines and order checks (pre-flight ruling 3).

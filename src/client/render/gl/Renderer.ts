@@ -302,7 +302,9 @@ export class GPURenderer {
   private wwAir: WwAirView | null = null;
   private seaAirSelection: SeaAirSelection | null = null;
   private seaAirGlowSource: SeaAirGlowSource | null = null;
-  private seaAirGlowKey: string | null = null;
+  /** The glow source's versions when the glow was last asked (null: ask again). */
+  private seaAirGlowKey: number[] | null = null;
+  private readonly seaAirGlowKeyNow: number[] = [];
   private seaAirGlow: ReturnType<SeaAirGlowSource["glow"]> = null;
   private seaAirGlowVersion = 0;
   private landFlagsGlow = -1;
@@ -2267,9 +2269,21 @@ export class GPURenderer {
   /** The glow now; its version moves when it changed (asked once a frame). */
   private refreshSeaAirGlow(): void {
     const src = this.seaAirGlowSource;
-    const key = src === null ? "" : src.key();
-    if (key === this.seaAirGlowKey) return;
-    this.seaAirGlowKey = key;
+    const now = this.seaAirGlowKeyNow;
+    now.length = 0;
+    src?.key(now);
+    const then = this.seaAirGlowKey;
+    if (then !== null && then.length === now.length) {
+      let same = true;
+      for (let i = 0; i < now.length; i++) {
+        if (now[i] !== then[i]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    this.seaAirGlowKey = now.slice();
     this.seaAirGlow = src === null ? null : src.glow();
     this.seaAirGlowVersion++;
   }

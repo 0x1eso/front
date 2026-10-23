@@ -26,7 +26,6 @@ import { lockedBadge, lockedReason } from "../domestic/LockReason";
 import { WwStrikeFlowEvent } from "../ww1936/DepthEvents";
 import { DepthMiscModel } from "../ww1936/DepthMiscModel";
 import { regionCard } from "../ww1936/EconomyModel";
-import { TWO_TAP_MS } from "../ww1936/WorldWarModel";
 import { OpenWwIndustryEvent } from "../ww1936/WwDrawer";
 import { BuildItemDisplay, BuildMenu, flattenedBuildTable } from "./BuildMenu";
 import { ChatIntegration } from "./ChatIntegration";
@@ -937,7 +936,6 @@ export function wwBuildHereElement(
  */
 export function wwDepthRegionElements(
   params: MenuElementParams,
-  armed: { region: number | null } = wwScorchArm,
 ): MenuElement[] {
   if ((params.game.worldWarScenario?.() ?? null) === null) return [];
   if ((params.game.wwDepth?.() ?? null) === null) return [];
@@ -945,30 +943,33 @@ export function wwDepthRegionElements(
   const act = new DepthMiscModel(params.game as never).regionActions(region);
   const out: MenuElement[] = [];
   if (act.scorch) {
+    // Final review C (M2): the first tap opens a one-item ring (a sub-menu
+    // keeps the menu open, so the armed state shows), the second confirms.
+    // An item's action always closes the menu, which hid the old armed
+    // label on touch screens.
     out.push({
       id: "ww_scorch",
       name: "ww_scorch",
-      text: translateText(
-        armed.region === region
-          ? "ww1936.region_status.scorch_confirm"
-          : "ww1936.region_status.scorch",
-      ),
+      text: translateText("ww1936.region_status.scorch"),
       fontSize: "12px",
       color: COLORS.wwScorch,
       disabled: () => act.scorchBlock !== null,
-      action: (p: MenuElementParams) => {
-        if (armed.region !== region) {
-          // The first tap arms; a second within 3 s acts.
-          armed.region = region;
-          setTimeout(() => {
-            if (armed.region === region) armed.region = null;
-          }, TWO_TAP_MS);
-          return;
-        }
-        armed.region = null;
-        p.eventBus.emit(new SendWwOrderIntentEvent({ kind: "scorch", region }));
-        p.closeMenu();
-      },
+      subMenu: () => [
+        {
+          id: "ww_scorch_confirm",
+          name: "ww_scorch_confirm",
+          text: translateText("ww1936.region_status.scorch_confirm"),
+          fontSize: "12px",
+          color: COLORS.wwScorch,
+          disabled: () => act.scorchBlock !== null,
+          action: (p: MenuElementParams) => {
+            p.eventBus.emit(
+              new SendWwOrderIntentEvent({ kind: "scorch", region }),
+            );
+            p.closeMenu();
+          },
+        },
+      ],
     });
   }
   if (act.rocket) {
@@ -987,9 +988,6 @@ export function wwDepthRegionElements(
   }
   return out;
 }
-
-/** The scorch button's first tap (shared by the menu items). */
-const wwScorchArm: { region: number | null } = { region: null };
 
 export const rootMenuElement: MenuElement = {
   id: "root",

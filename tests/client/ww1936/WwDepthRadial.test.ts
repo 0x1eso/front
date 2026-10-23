@@ -77,6 +77,24 @@ describe("the radial menu's depth entries", () => {
     noStrike.clear();
   });
 
+  it("final review C (M2): scorch confirms in a one-item ring, so the menu stays open", async () => {
+    const p = menu(true, false);
+    const { SendWwOrderIntentEvent } =
+      await import("../../../src/client/Transport");
+    const sent: unknown[] = [];
+    p.eventBus.on(SendWwOrderIntentEvent, (e) => sent.push(e.order));
+    const scorch = wwDepthRegionElements(p)[0];
+    // No action on the first tap: it opens the ring (the menu stays open).
+    expect(scorch.action).toBeUndefined();
+    const ring = scorch.subMenu!(p);
+    expect(ring.map((e) => [e.id, e.text])).toEqual([
+      ["ww_scorch_confirm", "[ww1936.region_status.scorch_confirm]"],
+    ]);
+    ring[0].action!(p);
+    expect(sent).toEqual([{ kind: "scorch", region: 4 }]);
+    expect(p.closeMenu).toHaveBeenCalledTimes(1);
+  });
+
   it("the judges decide: the foundation's stub refuses scorch", () => {
     const p = menu(true, false);
     const scorch = wwDepthRegionElements(p)[0];
