@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ClientMsgRateLimiter } from "../../src/server/ClientMsgRateLimiter";
 
 const CLIENT_A = "clientA" as any;
@@ -73,6 +73,39 @@ describe("ClientMsgRateLimiter", () => {
       expect(limiter.check(CLIENT_A, "rejoin", SMALL)).toBe("limit");
       expect(limiter.check(CLIENT_A, "intent", SMALL)).toBe("ok");
       expect(limiter.check(CLIENT_B, "rejoin", SMALL)).toBe("ok");
+    });
+  });
+
+  // Final review D (D3): each accepted pick or Play/Spectate switch sends
+  // the whole lobby list to every member.
+  describe("lobby toggles (pick_country, spectate)", () => {
+    it("allows a few country picks a second, then limits", () => {
+      const limiter = new ClientMsgRateLimiter();
+      for (let i = 0; i < 5; i++) {
+        expect(limiter.check(CLIENT_A, "pick_country", 3)).toBe("ok");
+      }
+      expect(limiter.check(CLIENT_A, "pick_country", 3)).toBe("limit");
+      // A spectate switch shares the bucket; intents and other clients don't.
+      expect(limiter.check(CLIENT_A, "spectate", 3)).toBe("limit");
+      expect(limiter.check(CLIENT_A, "intent", SMALL)).toBe("ok");
+      expect(limiter.check(CLIENT_B, "pick_country", 3)).toBe("ok");
+    });
+
+    it("refills after a second, up to 60 a minute", () => {
+      vi.useFakeTimers();
+      try {
+        const limiter = new ClientMsgRateLimiter();
+        let ok = 0;
+        for (let s = 0; s < 30; s++) {
+          for (let i = 0; i < 5; i++) {
+            if (limiter.check(CLIENT_A, "pick_country", 3) === "ok") ok++;
+          }
+          vi.advanceTimersByTime(1_000);
+        }
+        expect(ok).toBe(60);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

@@ -20,7 +20,7 @@ export function renderContinuousBand(
             data-ww-cfocus-chip=${c.id}
             aria-pressed=${String(c.selected)}
             ?disabled=${c.disabled}
-            class="h-8 shrink-0 rounded-full px-2 text-[11px] font-semibold disabled:cursor-default ${c.selected
+            class="h-9 shrink-0 rounded-full px-2 text-[11px] font-semibold disabled:cursor-default ${c.selected
               ? "bg-amber-500/80 text-black"
               : "bg-white/5 text-white/75"}"
             @click=${() => onPick(c.id, c.selected)}

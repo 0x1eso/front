@@ -13,7 +13,11 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
-import { DesignerModel } from "../../../src/client/hud/ww1936/DesignerModel";
+import { IntentSchema } from "@openfront/engine-api/Schemas";
+import {
+  cleanDesignName,
+  DesignerModel,
+} from "../../../src/client/hud/ww1936/DesignerModel";
 import { designerGame, saved } from "./DesignerFixture";
 
 const ALL = new Set(WW_TECH_IDS);
@@ -107,6 +111,56 @@ describe("DesignerModel", () => {
     expect(m.displayName()).toBe("My tank");
     m.setName("");
     expect(m.draft!.name).toBe("@");
+  });
+
+  it("final review D (D1): a typed name is cleaned to what the server takes", () => {
+    const savedName = (typed: string) => {
+      const m = new DesignerModel(designerGame());
+      m.open("tank");
+      m.setBase("medium_2");
+      m.setName(typed);
+      expect(m.nameOk()).toBe(true);
+      m.tapSave(1_000);
+      const order = m.tapSave(2_000);
+      expect(order).not.toBeNull();
+      // The order the server parses: no kick.
+      expect(IntentSchema.safeParse({ type: "ww_order", order }).success).toBe(
+        true,
+      );
+      return (order as { def: { name: string } }).def.name;
+    };
+    // A trailing space (a Korean IME commonly leaves one) and a leading one.
+    expect(savedName("Tiger ")).toBe("Tiger");
+    expect(savedName("티거 ")).toBe("티거");
+    expect(savedName("  Königstiger")).toBe("Königstiger");
+    // Markup loses its brackets.
+    expect(savedName("<b>Tiger</b>")).toBe("bTiger/b");
+    // A ZWJ emoji loses its joiner (and a bidi override is dropped).
+    expect(savedName("🏳️‍🌈 Panzer")).toBe("🏳️🌈 Panzer");
+    expect(savedName("\u202ePanzer")).toBe("Panzer");
+    // Too long: cut to 24 at a whole character, then trimmed.
+    expect(savedName("Panzerkampfwagen VI Ausf. B")).toBe(
+      "Panzerkampfwagen VI Ausf",
+    );
+    expect(cleanDesignName("🐯".repeat(13))).toBe("🐯".repeat(12));
+    // Nothing left: the automatic name.
+    expect(cleanDesignName(" <> \u200d ")).toBe("");
+    expect(savedName(" <> ")).toBe("@");
+  });
+
+  it("final review D (D1): a name the schema refuses blocks Save", () => {
+    const m = new DesignerModel(designerGame());
+    m.open("tank");
+    m.setBase("medium_2");
+    // A name that got past setName (an old draft, a future screen).
+    m.draft = { ...m.draft!, name: "Tiger " };
+    expect(m.nameOk()).toBe(false);
+    expect(m.tapSave(1_000)).toBeNull();
+    expect(m.tapSave(2_000)).toBeNull();
+    expect(m.save()).toBeNull();
+    m.setName(m.draft.name);
+    expect(m.nameOk()).toBe(true);
+    expect(m.save()).not.toBeNull();
   });
 
   it("ship and plane designers give eight rows", () => {

@@ -626,6 +626,7 @@
     "month_sep": "September",
     "none": "None",
     "not_logged_in": "Not logged in",
+    "order_not_sent": "That order was not sent: a value in it is out of range",
     "paste": "Paste",
     "preset_max": "Max",
     "send": "Send",
@@ -4470,6 +4471,7 @@
       "armor_step": "Armour step {n}",
       "auto": "{base} {role}",
       "auto_gun": "{base} {gun} type",
+      "bad_name": "The name can't hold < or >, invisible characters or a space at either end",
       "base_locked": "Needs {tech}",
       "base_plane": "Airframe",
       "base_ship": "Hull",
@@ -4562,6 +4564,7 @@
         "request": "Ask to join"
       },
       "info": "{ideology} government · {leader} · stability {stab}% · war support {ws}%",
+      "info_basic": "{ideology} government · {leader}",
       "relations": "Relations {n, number, ::sign-always}",
       "surrender": "Surrender threshold {pct}% (lost victory points {lost}%)",
       "tab": {

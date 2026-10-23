@@ -903,14 +903,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     if (this.game.worldWarScenario() === null) return null;
     const fog = fogModelOf(this.game);
     const id = player.smallID();
-    if (fog.bandOf(id, ID_ARMY) >= 3) return null;
-    const label = (n: number) =>
-      fog
-        .countLabel(id, n, ID_ARMY)
-        .split("~")
-        .map((x) => (x === "?" ? x : renderTroops(Number(x))))
-        .join("~");
-    return [label(total), label(max)];
+    const men = fog.troopsLabel(id, total);
+    const cap = fog.troopsLabel(id, max);
+    return men === null || cap === null ? null : [men, cap];
   }
 
   private renderTroopBar(

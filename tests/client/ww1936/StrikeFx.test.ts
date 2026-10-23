@@ -14,7 +14,7 @@ import {
 } from "../../../src/client/render/gl/passes/WwStrikeFxPass";
 import { WwDepthView } from "../../../src/client/view/WwDepthView";
 
-function harness(me = 2) {
+function harness(me = 2, launchShown?: boolean) {
   const calls: string[] = [];
   const flashes: number[] = [];
   const sinks: StrikeFxSinks = {
@@ -35,6 +35,7 @@ function harness(me = 2) {
     edgeFlash: (a) => flashes.push(a),
     sound: (name, loud) => calls.push(`sound:${name}:${loud}`),
     cameraSees: () => true,
+    ...(launchShown === undefined ? {} : { launchShown: () => launchShown }),
   };
   const view = new WwDepthView();
   const pass = new WwStrikeFxPass(view, sinks, () => me);
@@ -71,6 +72,25 @@ describe("WwStrikeFxPass", () => {
     h.pass.update(0);
     h.pass.update(5_000);
     expect(h.calls).toEqual(["stream", "miniExplosion"]);
+  });
+
+  it("final review C (M5): a launch site behind the fog draws no stream or flight", () => {
+    const rocket = harness(2, false);
+    rocket.push("rocket");
+    rocket.pass.update(0);
+    rocket.pass.update(5_000);
+    expect(rocket.calls).toEqual(["miniExplosion"]);
+    const nuke = harness(2, false);
+    nuke.push("nuke");
+    nuke.pass.update(0);
+    nuke.pass.update(FLIGHT_MS + 10);
+    expect(nuke.calls).not.toContain("flight");
+    expect(nuke.calls).toContain("atomSprite");
+    const seen = harness(2, true);
+    seen.push("rocket");
+    seen.pass.update(0);
+    seen.pass.update(5_000);
+    expect(seen.calls).toEqual(["stream", "miniExplosion"]);
   });
 
   it("the flash stays on the edges and only the victim sees it", () => {

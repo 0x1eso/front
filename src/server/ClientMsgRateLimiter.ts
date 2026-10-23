@@ -9,6 +9,14 @@ const MAX_INTENT_SIZE = 2000;
 // only sends one per (re)connect, so anything beyond a handful per minute is
 // abuse.
 const REJOINS_PER_MINUTE = 5;
+// Final review D (D3): a lobby toggle — a World War 1936 country pick or
+// release (`pick_country`), or the Play/Spectate switch (`spectate`) —
+// makes the server send the whole lobby list to every member. A 3-byte
+// message would otherwise buy about a million broadcasts before the 5 MB
+// cap; a person taps a few a second at most. Both share one bucket.
+const LOBBY_TOGGLES_PER_SECOND = 5;
+const LOBBY_TOGGLES_PER_MINUTE = 60;
+const LOBBY_TOGGLES = new Set(["pick_country", "spectate"]);
 const TOTAL_BYTES = 5 * 1024 * 1024; // 5MB per client
 export type RateLimitResult = "ok" | "limit" | "kick";
 
@@ -16,6 +24,8 @@ interface ClientBucket {
   perSecond: RateLimiter;
   perMinute: RateLimiter;
   rejoinPerMinute: RateLimiter;
+  lobbyPerSecond: RateLimiter;
+  lobbyPerMinute: RateLimiter;
   totalBytes: number;
 }
 
@@ -47,6 +57,13 @@ export class ClientMsgRateLimiter {
       if (!bucket.rejoinPerMinute.tryRemoveTokens(1)) {
         return "limit";
       }
+    } else if (LOBBY_TOGGLES.has(type)) {
+      if (
+        !bucket.lobbyPerSecond.tryRemoveTokens(1) ||
+        !bucket.lobbyPerMinute.tryRemoveTokens(1)
+      ) {
+        return "limit";
+      }
     }
 
     return "ok";
@@ -68,6 +85,14 @@ export class ClientMsgRateLimiter {
       }),
       rejoinPerMinute: new RateLimiter({
         tokensPerInterval: REJOINS_PER_MINUTE,
+        interval: "minute",
+      }),
+      lobbyPerSecond: new RateLimiter({
+        tokensPerInterval: LOBBY_TOGGLES_PER_SECOND,
+        interval: "second",
+      }),
+      lobbyPerMinute: new RateLimiter({
+        tokensPerInterval: LOBBY_TOGGLES_PER_MINUTE,
         interval: "minute",
       }),
       totalBytes: 0,

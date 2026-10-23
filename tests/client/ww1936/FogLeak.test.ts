@@ -1,10 +1,11 @@
 // World War 1936 P6 (spec §8.9, §25.3): the fog must not leak. A hidden
 // enemy's numbers never reach a card's text, a tooltip or a token's data,
 // and no card reads the enemy's counts without the fog model.
+import { renderTroops } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
 import path from "path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/client/Utils")>()),
@@ -16,10 +17,18 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
-import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  ID_AIR,
+  ID_ARMY,
+  ID_NAVY,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { render } from "lit";
 import "../../../src/client/hud/layers/PlayerInfoOverlay";
 import type { PlayerInfoOverlay } from "../../../src/client/hud/layers/PlayerInfoOverlay";
+import "../../../src/client/hud/layers/PlayerPanel";
+import type { PlayerPanel } from "../../../src/client/hud/layers/PlayerPanel";
+import "../../../src/client/hud/layers/PlayerStats";
+import type { PlayerStats } from "../../../src/client/hud/layers/PlayerStats";
 import { occRegionLine } from "../../../src/client/hud/ww1936/EndgameModel";
 import { fogModelOf } from "../../../src/client/hud/ww1936/FogModel";
 import { attackPreview } from "../../../src/client/hud/ww1936/LandModel";
@@ -27,18 +36,34 @@ import {
   landSelectionOf,
   OpenWwBattleEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
+import {
+  playerActions,
+  politicsInput,
+} from "../../../src/client/hud/ww1936/PoliticsModel";
+import { WwFleetSelectedEvent } from "../../../src/client/hud/ww1936/SeaAirSelection";
 import { today } from "../../../src/client/hud/ww1936/WorldWarModel";
 import "../../../src/client/hud/ww1936/WwArmyCard";
 import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
 import "../../../src/client/hud/ww1936/WwBattleCard";
 import type { WwBattleCard } from "../../../src/client/hud/ww1936/WwBattleCard";
+import "../../../src/client/hud/ww1936/WwFleetCard";
+import type { WwFleetCard } from "../../../src/client/hud/ww1936/WwFleetCard";
+import { WwSeaAirController } from "../../../src/client/hud/ww1936/WwSeaAirController";
 import { takeoverCardModel } from "../../../src/client/hud/ww1936/WwTakeoverCard";
+import { AirSortiePass } from "../../../src/client/render/gl/passes/AirSortiePass";
+import { ShipSpriteProgram } from "../../../src/client/render/gl/passes/FleetTokenPass";
+import { preloadAtlasData } from "../../../src/client/render/gl/passes/name-pass/AtlasData";
+import { NamePass } from "../../../src/client/render/gl/passes/name-pass/index";
+import { LINES_PER_PLAYER } from "../../../src/client/render/gl/passes/name-pass/Types";
+import { createRenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import {
   hitToken,
   layoutTokens,
   TokenLayoutCache,
 } from "../../../src/client/view/LandTokenLayout";
+import { WwDepthView } from "../../../src/client/view/WwDepthView";
 import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
+import { REGION, SR, ZONE } from "../../ww1936/seaFixture";
 import { detail, region, tileOf } from "./EconomyFixture";
 import { occ } from "./EndgameFixture";
 import { FAR, fogGame, NEAR, newFog } from "./FogFixture";
@@ -50,6 +75,7 @@ import {
   landDetail,
   landRegion,
 } from "./LandFixture";
+import { fleet, sea, seaGame, ship, SID } from "./SeaAirFixture";
 
 // Numbers no label may contain by accident.
 const LINE = 137;
@@ -83,9 +109,118 @@ async function battleCard(level: number) {
   return { g, el };
 }
 
+/** A WebGL2 stand-in: enums read 0, every call returns a truthy object. */
+function fakeGL(): WebGL2RenderingContext {
+  return new Proxy(
+    {},
+    {
+      get(_t, prop) {
+        if (typeof prop !== "string") return undefined;
+        if (prop === "getParameter") return () => 256;
+        if (/^[A-Z0-9_]+$/.test(prop)) return 0;
+        return () => ({});
+      },
+    },
+  ) as WebGL2RenderingContext;
+}
+
+/**
+ * Final review C (I1): the map's name plates for Germany (me) and Poland,
+ * each with `men` troops, through the name pass's real updateNames. The
+ * troop rows it uploads, by country tag.
+ */
+function namePlateRows(
+  fog: Parameters<NamePass["setTroopFog"]>[0] | "unset",
+  men: number,
+): Record<string, string> {
+  const tags = ["DEU", "POL"] as const;
+  const players = tags.map((tag) => ({
+    smallID: ID(tag),
+    id: `P${ID(tag)}`,
+    name: tag,
+    displayName: tag,
+    clanTag: null,
+    clientID: null,
+    playerType: 0,
+    team: null,
+    isLobbyCreator: false,
+  }));
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = (() => ({})) as never;
+  const pass = new NamePass(
+    fakeGL(),
+    { mapWidth: 100, mapHeight: 100, unitTypes: [], players } as never,
+    new Float32Array(64 * 4),
+    createRenderSettings(),
+    { allianceExtensionPromptOffset: () => 0 } as never,
+  );
+  HTMLCanvasElement.prototype.getContext = getContext;
+  if (fog !== "unset") pass.setTroopFog(fog);
+  const upload = vi.spyOn(
+    NamePass.prototype as unknown as {
+      uploadStringRow(row: number, text: string): number;
+    },
+    "uploadStringRow",
+  );
+  const names = new Map(
+    players.map((p) => [p.id, { playerID: p.id, x: 10, y: 10, size: 4 }]),
+  );
+  const states = new Map(
+    players.map((p) => [
+      p.smallID,
+      { smallID: p.smallID, isAlive: true, troops: men, outgoingEmojis: [] },
+    ]),
+  );
+  pass.updateNames(names, states as never, true);
+  const rows: Record<string, string> = {};
+  // Slot i's first row is its name, the next its troops.
+  for (const [row, text] of upload.mock.calls) {
+    if (row % LINES_PER_PLAYER === 1) {
+      rows[tags[Math.floor(row / LINES_PER_PLAYER)]] = text;
+    }
+  }
+  upload.mockRestore();
+  return rows;
+}
+
 describe("fog leaks (spec §8.9)", () => {
+  beforeAll(async () => {
+    vi.stubGlobal("fetch", async () => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        JSON.parse(
+          fs.readFileSync(
+            path.join(__dirname, "../../../resources/atlases/msdf-atlas.json"),
+            "utf8",
+          ),
+        ),
+    }));
+    await preloadAtlasData();
+    vi.unstubAllGlobals();
+  });
+
   afterEach(() => {
     document.body.innerHTML = "";
+  });
+
+  it("final review C (I1): the name plates show another country's men through the fog", () => {
+    const MEN = 4_870_000;
+    const exact = renderTroops(MEN);
+    // Other modes (no fog): every plate shows the exact troops.
+    expect(namePlateRows("unset", MEN)).toEqual({ DEU: exact, POL: exact });
+    // The mode, as the renderer wires it: Poland's men at Germany's army band.
+    const g = fogGame({ level: 0 });
+    const f = fogModelOf(g.game as never);
+    const at0 = namePlateRows(() => f, MEN);
+    expect(at0.DEU).toBe(exact);
+    expect(at0.POL).toBe("?");
+    g.setLevels([0, 20, 0, 0]);
+    const rough = namePlateRows(() => f, MEN);
+    expect(rough.POL).toContain("~");
+    expect(rough.POL).not.toContain(exact);
+    g.setLevels([0, 80, 0, 0]);
+    expect(namePlateRows(() => f, MEN).POL).toBe(exact);
   });
 
   it("fog hides exact enemy counts in every card", async () => {
@@ -130,6 +265,255 @@ describe("fog leaks (spec §8.9)", () => {
       all: false,
       atomic: "hidden",
     });
+  });
+
+  it("final review C (I2): the leaderboard and the player panel keep another country's men fogged", () => {
+    const g = fogGame({ level: 0 });
+    // The leaderboard: the troop columns (maxtroops is a default) are gone
+    // in the mode, and stay in the user's choice for other games.
+    const columns = (game: unknown) => {
+      const t = document.createElement("player-stats") as PlayerStats;
+      t.game = game as never;
+      return (t as unknown as { visibleColumns(): readonly { id: string }[] })
+        .visibleColumns()
+        .map((c) => c.id);
+    };
+    const ww = columns(g.game);
+    expect(ww).not.toContain("maxtroops");
+    expect(ww).not.toContain("troops");
+    expect(ww).toContain("tiles");
+    expect(columns({ ...g.game, worldWarScenario: () => null })).toContain(
+      "maxtroops",
+    );
+    // The player panel's chips: no gold in the mode, Poland's men at my
+    // army band, mine exact.
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g.game as never;
+    const chips = (tag: "DEU" | "POL") => {
+      const box = document.createElement("div");
+      render(
+        (
+          panel as unknown as { renderResources(p: unknown): unknown }
+        ).renderResources(g.game.playerBySmallID(ID(tag))) as never,
+        box,
+      );
+      return box;
+    };
+    const exact = renderTroops(480_000);
+    const pol = chips("POL");
+    expect(pol.textContent).not.toContain(exact);
+    expect(pol.querySelector("[data-player-troops]")!.textContent).toContain(
+      "?",
+    );
+    expect(pol.textContent).not.toContain("[player_panel.gold]");
+    expect(chips("DEU").textContent).toContain(exact);
+    g.setLevels([0, 80, 0, 0]);
+    expect(chips("POL").textContent).toContain(exact);
+  });
+
+  it("final review C (I4): the player panel's politics line follows the civil band", () => {
+    const g = fogGame({ level: 0 });
+    const deu = g.pol.summary(ID("DEU"))!;
+    g.pol.apply(
+      {
+        countries: [
+          {
+            ...deu,
+            smallID: ID("POL"),
+            faction: -1,
+            stabBp: 6_100,
+            wsBp: 3_300,
+          },
+        ],
+        details: [],
+        global: null,
+        regions: [],
+        news: [],
+        cards: [],
+      } as never,
+      700,
+    );
+    const f = fogModelOf(g.game as never);
+    const i = politicsInput(g.game as never)!;
+    const info = () => playerActions(i, ID("POL"), undefined, f).info!;
+    // Unknown: the government and the leader only.
+    expect(info()).toMatch(/^\[ww1936\.diplo\.info_basic\] /);
+    for (const n of ["61", "33", "stab", "ws="])
+      expect(info()).not.toContain(n);
+    // Rough: ranges, never the numbers.
+    g.setLevels([20, 0, 0, 0]);
+    expect(info()).toContain("[ww1936.diplo.info]");
+    expect(info()).toMatch(/stab=\d+~\d+,ws=\d+~\d+/);
+    expect(info()).not.toContain("stab=61");
+    // Exact civil intel: the numbers.
+    g.setLevels([80, 0, 0, 0]);
+    expect(info()).toContain("stab=61,ws=33");
+    // My own line is always exact.
+    expect(playerActions(i, ID("DEU"), undefined, f).info).toContain("stab=50");
+    // The player panel draws the line through my fog.
+    g.setLevels([0, 0, 0, 0]);
+    const panel = document.createElement("player-panel") as PlayerPanel;
+    panel.g = g.game as never;
+    panel.eventBus = new EventBus();
+    const box = document.createElement("div");
+    render(
+      (
+        panel as unknown as { renderWwActions(p: unknown): unknown }
+      ).renderWwActions(g.game.playerBySmallID(ID("POL"))) as never,
+      box,
+    );
+    const line = box.querySelector("[data-ww-info]")!.textContent!;
+    expect(line).toContain("[ww1936.diplo.info_basic]");
+    expect(line).not.toContain("61");
+  });
+
+  it("final review C (I5): an enemy carrier's sorties never start from a fleet the fog hides", () => {
+    // Germany's carrier fleet in the western zone; I am Britain, with rough
+    // air intel on Germany (its planes show as a band) and no sighting.
+    const s = seaGame({
+      me: "GBR",
+      fleets: [
+        fleet({
+          id: 7,
+          owner: SID("DEU"),
+          zone: ZONE.west,
+          ships: [ship(77, "cv")],
+        }),
+      ],
+    });
+    const depth = new WwDepthView();
+    const row = new Array<number>((sea.countries.length + 1) * 4).fill(0);
+    row[SID("DEU") * 4 + ID_AIR] = 20;
+    depth.apply({ intel: [{ observer: SID("GBR"), row }], fx: [], news: [] });
+    const game = {
+      ...s.game,
+      wwDepth: () => depth,
+      isSpectator: () => false,
+      gameOver: () => false,
+    };
+    const f = fogModelOf(game as never);
+    expect(f.fleetView(7).visible).toBe(false);
+    const day = () => ({
+      zones: [
+        {
+          sr: SR.approaches,
+          sides: [
+            {
+              side: SID("DEU"),
+              supPm: 700,
+              sorties: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            },
+          ],
+          result: [],
+        },
+      ],
+      deployments: [
+        {
+          id: 1,
+          owner: SID("DEU"),
+          sr: SR.approaches,
+          type: "fighter" as const,
+          mission: "air_superiority" as const,
+          counts: [60],
+          target: 60,
+          // Flies from the carrier, ship 77.
+          base: -77,
+        },
+      ],
+      removedDeployments: [],
+      details: [],
+    });
+    const gl = fakeGL();
+    const fly = () => {
+      const pass = new AirSortiePass(gl, {}, new ShipSpriteProgram(gl, {}, {}));
+      s.air.apply(day());
+      pass.update(s.air, s.navy, 0, 4);
+      s.air.apply(day());
+      pass.update(s.air, s.navy, 0, 4);
+      return pass.airborneCount;
+    };
+    expect(fly()).toBe(0);
+    // The same sorties with the fog off (a spectator): from the carrier.
+    f.forceOff(true);
+    expect(fly()).toBeGreaterThan(0);
+  });
+
+  it("final review C (I6): the fleet mission preview shows its odds only at the exact navy band", async () => {
+    const preview = async (level: number) => {
+      // My (British) fleet in London; a spotted Italian fleet in the Middle
+      // Sea, at war.
+      const g = seaGame({
+        fleets: [
+          fleet({
+            id: 7,
+            zone: ZONE.west,
+            docked: REGION.london,
+            state: "docked",
+            ships: [ship(1, "bb"), ship(2, "dd")],
+          }),
+          fleet({
+            id: 9,
+            owner: SID("ITA"),
+            zone: ZONE.middle,
+            counts: [2, 0, 0, 0, 1, 0, 0],
+            ships: [],
+            flags: 1 << 2, // FLEET_FLAG_SPOTTED
+          }),
+        ],
+        wars: [["GBR", "ITA"]],
+      });
+      const depth = new WwDepthView();
+      const row = new Array<number>((sea.countries.length + 1) * 4).fill(0);
+      row[SID("ITA") * 4 + ID_NAVY] = level;
+      depth.apply({ intel: [{ observer: SID("GBR"), row }], fx: [], news: [] });
+      const game = {
+        ...g.game,
+        wwDepth: () => depth,
+        isSpectator: () => false,
+        gameOver: () => false,
+      };
+      const bus = new EventBus();
+      let now = 10_000;
+      const controller = new WwSeaAirController(game as never, bus, () => 4, {
+        layout: () => [],
+        hit: () => 0,
+        now: () => now,
+      });
+      controller.init();
+      const el = document.createElement("ww-fleet-card") as WwFleetCard;
+      el.game = game as never;
+      el.eventBus = bus;
+      document.body.appendChild(el);
+      el.init();
+      bus.emit(new WwFleetSelectedEvent(7));
+      const step = async () => {
+        el.tick();
+        await el.updateComplete;
+      };
+      await step();
+      for (const sel of [
+        "[data-ww-fleet-btn='mission']",
+        "[data-ww-fleet-btn='mission_patrol']",
+        "[data-ww-card-fold='open']",
+      ]) {
+        el.querySelector<HTMLElement>(sel)!.click();
+        await step();
+      }
+      // The Middle Sea's centre: Central Waters' preview.
+      now += 1000;
+      controller.handleTap(85, 110);
+      await step();
+      const odds = el.querySelector("[data-ww-preview-odds]");
+      el.remove();
+      return odds;
+    };
+    // Band 0: the ratio (my power / theirs) would give their true ships.
+    const hidden = (await preview(0))!;
+    expect(hidden.getAttribute("data-ww-preview-odds")).toBe("?");
+    expect(hidden.textContent).toContain("ratio=?");
+    expect((await preview(50))!.textContent).toContain("ratio=?");
+    // Exact navy intel: the true odds.
+    expect((await preview(80))!.textContent).toMatch(/ratio=\d+\.\d\d/);
   });
 
   it("gives a hidden army no token data at all", () => {
@@ -352,6 +736,45 @@ describe("fog leaks (spec §8.9)", () => {
     expect(f.countLabel(ID("POL"), 41, ID_ARMY)).toBe("41");
   });
 
+  it("final review C: the region card counts volunteers by the side they fight for", () => {
+    // My (German) region 4: Soviet volunteers serving me (4 divisions) and a
+    // Polish army (3) in it.
+    const g = fogGame({
+      level: 80,
+      armies: [
+        army(1, "SUN", 4, { divisions: 4, volunteerFor: ID("DEU") }),
+        army(2, "POL", 4, { divisions: 3 }),
+      ],
+      landRegions: [FAR, NEAR, 7, 4].map((id) =>
+        landRegion(id, {
+          controller: id === 4 ? ID("DEU") : ID("POL"),
+          counts:
+            id === 4
+              ? [
+                  [ID("SUN"), 4],
+                  [ID("POL"), 3],
+                ]
+              : [],
+        }),
+      ),
+    });
+    const overlay = document.createElement(
+      "player-info-overlay",
+    ) as PlayerInfoOverlay;
+    overlay.game = g.game as never;
+    overlay.eventBus = new EventBus();
+    const box = document.createElement("div");
+    render(
+      (
+        overlay as unknown as { renderRegionLand(t: number): unknown }
+      ).renderRegionLand(tileOf(4)),
+      box,
+    );
+    expect(box.querySelector("[data-ww-region-divisions]")!.textContent).toBe(
+      "[ww1936.land.region_divisions] ours=4,theirs=3",
+    );
+  });
+
   it("no hud or render file reads enemy army, fleet or air data without the fog", () => {
     const root = path.join(__dirname, "../../../src/client");
     const files: string[] = [];
@@ -364,21 +787,30 @@ describe("fog leaks (spec §8.9)", () => {
     };
     walk(path.join(root, "hud/ww1936"));
     walk(path.join(root, "render"));
+    // Final review C (M7): the hover card, the player panel, the
+    // leaderboard's columns and the rest of the HUD layers show every
+    // country too.
+    walk(path.join(root, "hud/layers"));
     for (const f of ["FleetTokenLayout.ts", "LandTokenLayout.ts"]) {
       files.push(path.join(root, "view", f));
     }
-    // T1b (pre-flight A18): the hover card shows every region and country.
-    files.push(path.join(root, "hud/layers/PlayerInfoOverlay.ts"));
+    // Final review C (M7): another country's men (troops) and ship counts,
+    // and its stability and war support, are fogged numbers too.
     const reads =
-      /\.divisions\b|\b(?:att|def)(?:Line|Reserve)\b|\.armies\b|\.fleets\b|\.deployments\b|\.sorties\b/;
-    // Files that read other owners' data must ask the fog (and which call).
-    const MUST_FOG: Record<string, string> = {
+      /\.divisions\b|\b(?:att|def)(?:Line|Reserve)\b|\.armies\b|\.fleets\b|\.deployments\b|\.sorties\b|\.troops\b|\btroops\(\)|\.counts\b|\bstabBp\b|\bwsBp\b/;
+    // Files that read other owners' data must ask the fog (and which
+    // calls: each one must be there).
+    const MUST_FOG: Record<string, string | string[]> = {
       "hud/ww1936/FogModel.ts": "armyView",
       "hud/ww1936/WwBattleCard.ts": "bandOf",
-      "hud/ww1936/WwFleetCard.ts": "previewEnemyValue",
+      // Final review C (I6): the enemy's power and the odds.
+      "hud/ww1936/WwFleetCard.ts": ["previewEnemyValue", "oddsHidden"],
+      // The mission preview's odds below the exact navy band.
+      "hud/ww1936/NavyModel.ts": ["oddsHidden", "ID_NAVY"],
       "render/gl/passes/ArmyTokenPass.ts": "armyView",
       "render/gl/passes/FleetTokenPass.ts": "fleetView",
-      "render/gl/passes/AirSortiePass.ts": "planesSeen",
+      // Final review C (I5): a carrier launches from a fleet the fog shows.
+      "render/gl/passes/AirSortiePass.ts": ["planesSeen", "fleetView"],
       // U4's nuke preview counts the enemy divisions in the struck region.
       "hud/ww1936/DepthIndustryModel.ts": "armyView",
       "render/gl/LandFrame.ts": "armyView",
@@ -389,11 +821,16 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/WwArmyCard.ts": "previewEnemyValue",
       // The region card (buildings, divisions, fleets in port), the
       // troop bar and the occupation line's garrison.
-      "hud/layers/PlayerInfoOverlay.ts": "countLabel",
+      "hud/layers/PlayerInfoOverlay.ts": ["countLabel", "troopsLabel"],
       // The occupation line's garrison of another side.
       "hud/ww1936/EndgameModel.ts": "countLabel",
       // A candidate country's divisions.
       "hud/ww1936/WwTakeoverCard.ts": "countLabel",
+      // Final review C (I1): the map's name plates (another country's men).
+      "render/gl/passes/name-pass/index.ts": "troopsLabel",
+      // Final review C (I2, I4): the player panel's men and politics line.
+      "hud/layers/PlayerPanel.ts": "troopsLabel",
+      "hud/ww1936/PoliticsModel.ts": "countryView",
     };
     // Files that read only my own side's data, or draw no counts.
     const ALLOWED = new Set([
@@ -401,7 +838,6 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/IntelModel.ts",
       "hud/ww1936/LandModel.ts",
       "hud/ww1936/LandSeaAir.ts",
-      "hud/ww1936/NavyModel.ts",
       "hud/ww1936/WwAirPanel.ts",
       "hud/ww1936/WwArmyPanel.ts",
       "hud/ww1936/WwLandController.ts",
@@ -423,22 +859,48 @@ describe("fog leaks (spec §8.9)", () => {
       // T1b review: my volunteers, the volunteers serving in my country
       // (my side in its battles) and what is shipped to me.
       "hud/ww1936/WwAidTab.ts",
+      // Final review C (M7): my own army's men (armyMenOf on me) and my
+      // own war support.
+      "hud/ww1936/EconomyModel.ts",
+      "hud/ww1936/WwIndustryPanel.ts",
+      // Vanilla HUD: my own troops, and the vanilla attacks, boats and
+      // donations, which the mode refuses (no attack, boat or troop
+      // donation in World War 1936).
+      "hud/layers/AlertFrame.ts",
+      "hud/layers/AttacksDisplay.ts",
+      "hud/layers/ChatModal.ts",
+      "hud/layers/ControlPanel.ts",
+      "hud/layers/EventsDisplay.ts",
+      "hud/layers/PlayerActionHandler.ts",
+      "hud/layers/RadialMenuElements.ts",
+      "hud/layers/SendResourceModal.ts",
+      "hud/layers/UnitDisplay.ts",
     ]);
     // Files that read other countries' numbers the spec makes public
     // (spec §8.9: conferences are public). T1b review: the conference
     // prices a fleet share from the loser's ship classes, as the engine
     // does, and shows only conference points and percentages.
     const PUBLIC = new Set(["hud/ww1936/PeaceModel.ts"]);
+    // Files that show a fogged number only outside the mode, with the gate
+    // that drops it in the mode (final review C I2: the leaderboard's
+    // troop columns).
+    const MODE_GATED: Record<string, string> = {
+      "hud/layers/lib/StatsColumns.ts": "worldWarHidden: true",
+    };
     const rel = (f: string) => path.relative(root, f).split(path.sep).join("/");
     for (const f of files) {
       const r = rel(f);
       const src = fs.readFileSync(f, "utf8");
       if (!reads.test(src)) continue;
       if (r in MUST_FOG) {
-        expect(src, `${r} must ask the fog`).toContain(MUST_FOG[r]);
+        for (const call of [MUST_FOG[r]].flat()) {
+          expect(src, `${r} must ask the fog (${call})`).toContain(call);
+        }
         expect(src, `${r} must import the fog`).toMatch(
           /FogModel|fogOf|fogModelOf/,
         );
+      } else if (r in MODE_GATED) {
+        expect(src, `${r} must gate the mode`).toContain(MODE_GATED[r]);
       } else {
         expect(
           ALLOWED.has(r) || PUBLIC.has(r),
@@ -446,8 +908,28 @@ describe("fog leaks (spec §8.9)", () => {
         ).toBe(true);
       }
     }
+    // Final review C (I2): every leaderboard column whose number is a
+    // country's men is dropped in the mode.
+    const columns = fs
+      .readFileSync(path.join(root, "hud/layers/lib/StatsColumns.ts"), "utf8")
+      .split("defineColumn({")
+      .slice(1);
+    const troopColumns = columns.filter((c) =>
+      /troops\(\)|maxTroops\(/.test(c.slice(0, c.indexOf("cell:"))),
+    );
+    expect(troopColumns.length).toBeGreaterThanOrEqual(2);
+    for (const c of troopColumns) {
+      expect(c, "a troop column shows in the mode").toContain(
+        "worldWarHidden: true",
+      );
+    }
     // No stale entries: every listed file exists.
-    for (const r of [...ALLOWED, ...PUBLIC, ...Object.keys(MUST_FOG)]) {
+    for (const r of [
+      ...ALLOWED,
+      ...PUBLIC,
+      ...Object.keys(MUST_FOG),
+      ...Object.keys(MODE_GATED),
+    ]) {
       expect(fs.existsSync(path.join(root, r)), r).toBe(true);
     }
   });

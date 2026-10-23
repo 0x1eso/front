@@ -11,6 +11,7 @@ import {
   CountryTag,
   isCountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
+import { ID_CIVIL } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   LAW_KINDS,
   LawKind,
@@ -66,6 +67,7 @@ import {
   describeEffects,
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
+import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
 import {
   costWith,
   factionGate,
@@ -97,6 +99,7 @@ import {
   resourceName,
 } from "./EconomyModel";
 import { occupationParams } from "./EndgameNames";
+import type { FogModel } from "./FogModel";
 import {
   countryName,
   dateLabel,
@@ -2178,25 +2181,52 @@ function targetedCard(d: WwPolDetail | null, prefix: string, other: number) {
   );
 }
 
+/** What the player panel's info line asks the fog (FogModel; a fake in tests). */
+export type CountryFog = Pick<FogModel, "countryView" | "bandOf">;
+
+/**
+ * Spec §8.9's player-panel row (final review C I4): the country's
+ * government and leader always; its stability and war support as ranges
+ * at the rough and close civil bands (never past 100%), exact at the
+ * exact band. Without a fog (the depth systems off): exact.
+ */
+function countryInfoLine(
+  o: { ruling: number; leader: string; stabBp: number; wsBp: number },
+  other: number,
+  fog: CountryFog | undefined,
+): string {
+  const ideology = ideologyName(o.ruling);
+  const leader = personName(o.leader);
+  const seen = fog?.countryView(other).stability ?? "exact";
+  if (seen === "hidden") {
+    return translateText("ww1936.diplo.info_basic", { ideology, leader });
+  }
+  const pct = (bp: number): string | number => {
+    if (seen === "exact" || fog === undefined) return pctOf(bp);
+    const label = fogCountLabel(pctOf(bp), fog.bandOf(other, ID_CIVIL));
+    const [lo, hi] = label.split("~");
+    return hi === undefined ? label : `${lo}~${Math.min(100, Number(hi))}`;
+  };
+  return translateText("ww1936.diplo.info", {
+    ideology,
+    leader,
+    stab: pct(o.stabBp),
+    ws: pct(o.wsBp),
+  });
+}
+
 export function playerActions(
   i: PoliticsModelInput,
   other: number,
   engineDeclare?: boolean,
+  fog?: CountryFog,
 ): PlayerActions {
   const s = i.view.summary(i.me);
   const d = i.view.detail(i.me);
   const o = i.view.summary(other);
   const g = i.view.global;
   const day = today(i.game);
-  const info =
-    o === null
-      ? null
-      : translateText("ww1936.diplo.info", {
-          ideology: ideologyName(o.ruling),
-          leader: personName(o.leader),
-          stab: pctOf(o.stabBp),
-          ws: pctOf(o.wsBp),
-        });
+  const info = o === null ? null : countryInfoLine(o, other, fog);
   const rel = other === i.me ? null : relationBase(i, other, i.me);
   const relations =
     rel === null ? null : translateText("ww1936.diplo.relations", { n: rel });

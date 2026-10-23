@@ -138,7 +138,16 @@ export abstract class StatsTable extends LitElement {
         (column.domesticOnly !== true || this.domesticMode) &&
         (column.strategicOnly !== true || this.strategicWeapons) &&
         (column.congressOnly !== true || this.congress) &&
+        this.shownInMode(column) &&
         (!column.isHideable || selected.includes(column.id)),
+    );
+  }
+
+  /** World War 1936 (final review C I2): the mode drops the army-size columns. */
+  private shownInMode(column: ColumnDef): boolean {
+    return (
+      column.worldWarHidden !== true ||
+      (this.game?.worldWarScenario?.() ?? null) === null
     );
   }
 
@@ -153,7 +162,21 @@ export abstract class StatsTable extends LitElement {
   }
 
   private onColumnsChanged(event: CustomEvent<ColumnId[]>) {
-    this.userSettings.setStatsColumns(this.tableKind, event.detail);
+    // The ⚙️ menu lists only this mode's columns: keep the choices it
+    // could not show (World War 1936's dropped troop columns) for the
+    // next game.
+    const offered = new Set(
+      columnsFor(this.tableKind)
+        .filter((column) => this.shownInMode(column))
+        .map((column) => column.id),
+    );
+    const kept = this.userSettings
+      .statsColumns(this.tableKind)
+      .filter((id) => !offered.has(id) && !event.detail.includes(id));
+    this.userSettings.setStatsColumns(this.tableKind, [
+      ...event.detail,
+      ...kept,
+    ]);
     this.updateStats();
   }
 
@@ -423,7 +446,7 @@ export abstract class StatsTable extends LitElement {
                 <column-picker
                   class="inline-flex"
                   .columns=${columnsFor(this.tableKind).filter(
-                    (column) => column.isHideable,
+                    (column) => column.isHideable && this.shownInMode(column),
                   )}
                   .selected=${this.userSettings.statsColumns(this.tableKind)}
                   @columns-changed=${this.onColumnsChanged}

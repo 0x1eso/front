@@ -367,7 +367,7 @@ export class WwEventCards extends LitElement implements Controller {
             ? html`<button
                 type="button"
                 data-ww-event-more-text
-                class="self-start text-sky-300 underline"
+                class="min-h-9 self-start text-sky-300 underline"
                 @click=${() => {
                   if (open) this.unfolded.delete(c.uid);
                   else this.unfolded.add(c.uid);

@@ -1,8 +1,11 @@
 // World War 1936 P6 (spec §8.9, §20.7): the fog model — the band labels,
 // the four conditions that show an enemy army, own side and spectators
 // seeing everything, and the ghost token.
+import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { ARMY_BATTLE } from "@openfront/engine-api/ww1936/LandTypes";
 import { describe, expect, it } from "vitest";
+import { FogModel } from "../../../src/client/hud/ww1936/FogModel";
+import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
 import { FAR, fogGame, NEAR, newFog } from "./FogFixture";
 import { army, battle, ID } from "./LandFixture";
 
@@ -128,6 +131,112 @@ describe("FogModel (spec §8.9)", () => {
     // The same Soviet army without the volunteer mark: hidden, as before.
     const h = fogGame({ armies: [army(1, "SUN", FAR, { divisions: 13 })] });
     expect(newFog(h).armyView(1).visible).toBe(false);
+  });
+
+  it("final review C (I3): an exile and a takeover chooser keep the fog", () => {
+    // My country (Germany) holds no land: the GameView calls me a spectator
+    // (isSpectator is !isAlive), but the endgame says whether I still play.
+    const g = fogGame({ armies: [polArmy(2, FAR)], spectator: true });
+    const eg = new WwEndgameView();
+    const deu = g.players[ID("DEU") - 1];
+    const dead = { ...deu, isAlive: () => false, hasSpawned: () => true };
+    const game = {
+      ...g.game,
+      myClientID: () => "c1",
+      wwEndgame: () => eg,
+      myPlayer: () => dead,
+    };
+    const f = new FogModel(game as never);
+    // A government in exile: it commands its escaped armies, so the fog stays.
+    eg.apply({
+      news: [],
+      exiles: [
+        {
+          smallID: ID("DEU"),
+          host: ID("ITA"),
+          legitBp: 5_000,
+          deltaBp: 0,
+          virtualMil: 5,
+          capital: 3,
+        },
+      ],
+    });
+    g.land.version++;
+    expect(f.fogOff()).toBe(false);
+    expect(f.armyView(2).visible).toBe(false);
+    expect(f.countLabel(ID("POL"), 41, ID_ARMY)).toBe("?");
+    // Picking a takeover country: the candidates and the map stay fogged.
+    eg.apply({
+      news: [],
+      exiles: [],
+      takeover: [
+        {
+          client: "c1",
+          from: ID("DEU"),
+          candidates: [ID("ITA")],
+          deadlineTick: 900,
+        },
+      ],
+    });
+    g.land.version++;
+    expect(f.fogOff()).toBe(false);
+    expect(f.armyView(2).visible).toBe(false);
+    // Out of the game (gone, no exile, no card): the spectator's full view.
+    eg.apply({ news: [], exiles: [], takeover: [] });
+    g.land.version++;
+    expect(f.fogOff()).toBe(true);
+    expect(f.armyView(2).visible).toBe(true);
+    // Spectating after the card (controller 0): the same.
+    eg.apply({ news: [], controllers: [["c1", 0]] });
+    expect(f.fogOff()).toBe(true);
+    // A replay is never fogged.
+    const r = { ...game, config: () => ({ isReplay: () => true }) };
+    eg.apply({ news: [], controllers: [], exiles: [], takeover: [] });
+    expect(new FogModel(r as never).fogOff()).toBe(true);
+  });
+
+  it("final review C (I3): a new observer does not inherit the old one's ghosts", () => {
+    const g = fogGame({ armies: [polArmy(1, NEAR)] });
+    const f = newFog(g);
+    expect(f.armyView(1).visible).toBe(true);
+    g.land.apply(
+      {
+        armies: [],
+        removedArmies: [],
+        battles: [],
+        endedBattles: [],
+        regions: [3, 4].map((id) => ({
+          id,
+          controller: ID("POL"),
+          supplyMilli: 0,
+          useMilli: 0,
+          encircled: false,
+          counts: [],
+        })),
+        countries: [],
+        details: [],
+      },
+      g.state.ticks,
+    );
+    expect(f.ghosts()).toHaveLength(1);
+    // My client takes over France (spec §11): Germany's sightings go.
+    f.setObserver(ID("FRA"));
+    expect(f.ghosts()).toHaveLength(0);
+  });
+
+  it("final review C (M5): a strike's launch site shows by side and civil band", () => {
+    // Poland (at war with me, civil band 0) strikes Poland's own region 9
+    // (not mine) and my region 4.
+    const g = fogGame({ level: 0 });
+    const f = newFog(g);
+    expect(f.launchSiteShown(ID("POL"), FAR)).toBe(false);
+    expect(f.launchSiteShown(ID("POL"), 4)).toBe(true);
+    expect(f.launchSiteShown(ID("DEU"), FAR)).toBe(true);
+    g.setLevels([20, 0, 0, 0]);
+    expect(f.launchSiteShown(ID("POL"), FAR)).toBe(true);
+    g.setLevels([0, 0, 0, 0]);
+    g.state.spectator = true;
+    expect(f.launchSiteShown(ID("POL"), FAR)).toBe(true);
   });
 
   it("keeps a ghost 10 days where an army was last seen", () => {

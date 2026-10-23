@@ -13,6 +13,7 @@ import {
   LAND_ZONE_MISSIONS,
   SEA_ZONE_MISSIONS,
   WW_AIR_BASE_CAPACITY,
+  WW_MAX_DEPLOY_COUNT,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   equipKey,
@@ -20,7 +21,11 @@ import {
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Weather } from "@openfront/engine-api/ww1936/LandTypes";
-import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
+import {
+  airDeployBlock,
+  type DeployAsk,
+} from "@openfront/engine-lib/ww1936/AirRules";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
@@ -133,7 +138,12 @@ export function idlePlanes(ctx: AirCtx, type: AirType): number {
   return d?.smallID === ctx.me ? (d.stock[AIR_TYPES.indexOf(type)] ?? 0) : 0;
 }
 
-/** Spec §18.6: a row's slider runs 0 .. deployed here on that mission + the idle reserve. */
+/**
+ * Spec §18.6: a row's slider runs 0 .. deployed here on that mission + the
+ * idle reserve — at most the order's cap (final review D, D2: the schema
+ * takes counts up to WW_MAX_DEPLOY_COUNT, and a count past it would get
+ * the sender kicked).
+ */
 export function sliderRange(
   ctx: AirCtx,
   sr: number,
@@ -142,7 +152,12 @@ export function sliderRange(
 ): { min: number; max: number; value: number; free: number } {
   const value = deployedHere(ctx.air, ctx.me, sr, type, mission);
   const free = idlePlanes(ctx, type);
-  return { min: 0, max: value + free, value, free };
+  return {
+    min: 0,
+    max: Math.min(WW_MAX_DEPLOY_COUNT, value + free),
+    value,
+    free,
+  };
 }
 
 /** The best generation I have of a type (reserve or anywhere deployed); 1 with none. */
@@ -214,6 +229,19 @@ export function basesInRange(
     .sort((a, b) => a.km - b.km || a.region - b.region);
 }
 
+/**
+ * Final review B, M2: a land zone whose every member is a no-strike region
+ * (the Korean Peninsula, Taiwan) — a strike mission there hits nothing, so
+ * the zone card greys it out (the engine's allNoStrikeZone, on isNoStrike).
+ */
+export function allNoStrikeZone(sc: ScenarioIndex, sr: number): boolean {
+  const s = sc.sr(sr);
+  if (s === undefined || s.kind !== "land" || s.members.length === 0) {
+    return false;
+  }
+  return s.members.every((region) => isNoStrike(sc, region));
+}
+
 /** airDeployBlock (spec §13.2, §14.1) on the screens' data. */
 export function deployBlock(
   ctx: AirCtx,
@@ -228,7 +256,9 @@ export function deployBlock(
   const deploymentsUsed = [...ctx.air.deployments.values()].filter(
     (d) => d.owner === ctx.me,
   ).length;
-  return airDeployBlock({
+  // Final review B, M2 (fix lane E adds `allNoStrike?` to DeployAsk; the
+  // intersection keeps this side typechecking until both lanes merge).
+  const ask: DeployAsk & { allNoStrike?: boolean } = {
     sr,
     srKind: kind,
     type,
@@ -238,7 +268,9 @@ export function deployBlock(
     deploymentsUsed,
     anyBaseInRange:
       r.value > 0 || basesInRange(ctx, sr, type).some((b) => b.used < b.cap),
-  });
+    allNoStrike: allNoStrikeZone(ctx.scenario, sr),
+  };
+  return airDeployBlock(ask);
 }
 
 /** Releasing a slider (spec §18.3-4): one order with the value let go. */
@@ -248,7 +280,13 @@ export function deployOrder(
   mission: AirMission,
   count: number,
 ): WwOrder {
-  return { kind: "air_deploy", sr, type, mission, count };
+  return {
+    kind: "air_deploy",
+    sr,
+    type,
+    mission,
+    count: Math.max(0, Math.min(WW_MAX_DEPLOY_COUNT, Math.round(count))),
+  };
 }
 
 export interface PlaneRowData {

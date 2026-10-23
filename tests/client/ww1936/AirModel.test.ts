@@ -11,10 +11,13 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   translateText: (key: string) => `[${key}]`,
 }));
 
+import { IntentSchema } from "@openfront/engine-api/Schemas";
+import { WW_MAX_DEPLOY_COUNT } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   airDial,
   basesInRange,
   deployBlock,
+  deployOrder,
   myAirBases,
   sliderRange,
   zoneCard,
@@ -68,6 +71,24 @@ describe("AirModel (spec §13, §18.6, §18.7)", () => {
       free: 340,
     });
     void FIGHTER;
+  });
+
+  it("final review D (D2): the slider and the order stop at the schema's cap", () => {
+    const { ctx } = game({
+      air: airDetail("GBR", {
+        stock: [6_000, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        deployed: [120, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        bases: [{ region: REGION.london, used: 120, cap: 400, damagePm: 0 }],
+      }),
+    });
+    const r = sliderRange(ctx, SR.central, "fighter", "air_superiority");
+    expect(r.max).toBe(WW_MAX_DEPLOY_COUNT);
+    expect(r.free).toBe(6_000);
+    const order = deployOrder(SR.central, "fighter", "air_superiority", 6_120);
+    expect(order).toMatchObject({ count: WW_MAX_DEPLOY_COUNT });
+    expect(IntentSchema.safeParse({ type: "ww_order", order }).success).toBe(
+      true,
+    );
   });
 
   it("the bases in a type's range and their use (base center → zone center)", () => {

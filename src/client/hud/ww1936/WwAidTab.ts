@@ -28,6 +28,7 @@ import {
   volunteerArmies,
   volunteerInputs,
   volunteerRoom,
+  volunteerWhy,
   type Why,
   whyText,
 } from "./EndgameModel";
@@ -632,6 +633,12 @@ export class AidActions {
     const ll = llGate(game, me, target);
     const vol = volunteerInputs(game, me, target, 0);
     const room = volunteerRoom(vol);
+    // Final review C (M5): the room comes from the target's divisions
+    // (floor(divisions / 3) for a small one), so it shows only while the
+    // volunteer gate is open — not on every country's panel, enemies too.
+    const gate = volunteerWhy(vol);
+    const gateOpen =
+      gate === null || gate.key === "ww1936.aid.why.volunteer_limit";
     // The conditions without an army's size (spec §12.1), then the room left.
     const air = airVolunteerWhy(game, me, target);
     const volBlock: Why | null =
@@ -655,10 +662,12 @@ export class AidActions {
       )}
       ${this.button(
         "volunteers_send",
-        `${translateText("ww1936.aid.volunteers_send")} · ${translateText(
-          "ww1936.aid.volunteers_cap",
-          { n: room },
-        )}`,
+        gateOpen
+          ? `${translateText("ww1936.aid.volunteers_send")} · ${translateText(
+              "ww1936.aid.volunteers_cap",
+              { n: room },
+            )}`
+          : translateText("ww1936.aid.volunteers_send"),
         volBlock,
         () => toggle("volunteers"),
         this.pick === "volunteers",

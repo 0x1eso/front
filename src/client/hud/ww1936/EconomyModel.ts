@@ -73,6 +73,7 @@ import {
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import {
   lawBlock,
   lawCost,
@@ -946,6 +947,14 @@ export function isCoreNow(
   );
 }
 
+/**
+ * Final review B, I1 (fix lane E): the judge's `noStrike` input. Lane E
+ * adds `noStrike?: boolean` to engine-lib's BuildCheck; the intersection
+ * keeps this side typechecking until both lanes are merged (it is then the
+ * same type).
+ */
+export type ScreenBuildCheck = BuildCheck & { noStrike?: boolean };
+
 /** What the engine's buildBlock checks, from the view (Construction.buildBlock). */
 export function buildCheck(
   view: WwEconomyView,
@@ -957,7 +966,7 @@ export function buildCheck(
   slotPct: number,
   fighting: (smallID: number) => boolean,
   endgame: WwEndgameView | null = null,
-): BuildCheck {
+): ScreenBuildCheck {
   const r = scenario.region(region);
   const queue = view.detail(me)?.queue ?? [];
   const queued = queuedInRegion(queue, region);
@@ -994,6 +1003,9 @@ export function buildCheck(
     coastal: r?.coastal ?? false,
     harbor: scenario.harborOf(region) !== 0,
     researched: new Set(view.detail(me)?.researched ?? []),
+    // Final review B, I1: nothing is built in Korea or Taiwan, so the build
+    // menu and the region card grey it out (the engine refused silently).
+    noStrike: isNoStrike(scenario, region),
   };
 }
 

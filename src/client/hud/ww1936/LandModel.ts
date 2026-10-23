@@ -1671,6 +1671,27 @@ export function regionLandLines(
     if (sides.sameSide(me, id)) ours += n;
     else theirs += n;
   }
+  // Final review C (T1b-L's volunteerFor): a volunteer army counts for the
+  // side it fights for, as in its battles and the fog — volunteers serving
+  // my side are ours, my side's volunteers serving another are theirs. My
+  // own volunteers abroad stay mine (FogModel's rule).
+  for (const a of view.armies.values()) {
+    if (a.region !== region || a.volunteerFor === undefined) continue;
+    if (a.owner === me) continue;
+    const byOwner = sides.sameSide(me, a.owner);
+    const byCause = sides.sameSide(me, a.volunteerFor);
+    if (byOwner === byCause) continue;
+    const n = byOwner
+      ? Math.min(ours, a.divisions)
+      : Math.min(theirs, a.divisions);
+    if (byCause) {
+      ours += n;
+      theirs -= n;
+    } else {
+      theirs += n;
+      ours -= n;
+    }
+  }
   const mySide = sides.sameSide(me, view.controller[region]);
   return {
     land: s.landOf(region),

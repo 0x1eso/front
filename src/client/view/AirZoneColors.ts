@@ -21,7 +21,12 @@ export const LAYER_FLAG_GLOW = 2;
  * (WwSeaAirController.seaAirGlow); `key` changes whenever it may.
  */
 export interface SeaAirGlowSource {
-  key(): string;
+  /**
+   * Writes the versions the glow depends on into `out` (cleared first by
+   * the caller); the glow is asked again when any differs. Numbers, so the
+   * twice-a-frame check allocates nothing (final review C M6).
+   */
+  key(out: number[]): void;
   glow(): { kind: "sea" | "land"; ids: readonly number[] } | null;
 }
 

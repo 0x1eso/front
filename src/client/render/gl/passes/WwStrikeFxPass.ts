@@ -53,6 +53,12 @@ export interface StrikeFxSinks {
   sound(name: "atom-hit", loud: boolean): void;
   /** True when the camera looks at the point. */
   cameraSees(x: number, y: number): boolean;
+  /**
+   * Final review C (M5): whether the viewer may see where `owner`'s strike
+   * on `region` started (a rocket's stream, a nuke's flight both start at
+   * the launch site); absent: always (FogModel.launchSiteShown).
+   */
+  launchShown?(owner: number, region: number): boolean;
 }
 
 export const FLIGHT_MS = 2400;
@@ -197,11 +203,13 @@ export class WwStrikeFxPass {
     s.from = fx.from;
     s.owner = fx.owner;
     s.fired = false;
+    // The launch site stays hidden behind the fog: the impact still shows.
+    const fromShown = sk.launchShown?.(fx.owner, fx.region) !== false;
     switch (fx.kind) {
       case "nuke":
         s.kind = K_NUKE;
         s.at = now + FLIGHT_MS;
-        if (sk.regionXY(fx.from, this.q)) {
+        if (fromShown && sk.regionXY(fx.from, this.q)) {
           sk.flight(
             fx.owner,
             this.q.x,
@@ -216,7 +224,7 @@ export class WwStrikeFxPass {
       case "nuke_intercepted":
         s.kind = K_INTERCEPT;
         s.at = now + FLIGHT_MS;
-        if (sk.regionXY(fx.from, this.q)) {
+        if (fromShown && sk.regionXY(fx.from, this.q)) {
           sk.flight(
             fx.owner,
             this.q.x,
@@ -231,7 +239,9 @@ export class WwStrikeFxPass {
       case "rocket":
         s.kind = K_ROCKET;
         s.at = now + ROCKET_MS;
-        if (sk.regionXY(fx.from, this.q)) sk.stream(this.q.x, this.q.y);
+        if (fromShown && sk.regionXY(fx.from, this.q)) {
+          sk.stream(this.q.x, this.q.y);
+        }
         break;
       default:
         s.kind = K_SMALL;

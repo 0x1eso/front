@@ -15,7 +15,7 @@ import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { fogOfNavy } from "../../hud/ww1936/FogModel";
+import { fogOfLand, fogOfNavy } from "../../hud/ww1936/FogModel";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
@@ -302,7 +302,9 @@ export class GPURenderer {
   private wwAir: WwAirView | null = null;
   private seaAirSelection: SeaAirSelection | null = null;
   private seaAirGlowSource: SeaAirGlowSource | null = null;
-  private seaAirGlowKey: string | null = null;
+  /** The glow source's versions when the glow was last asked (null: ask again). */
+  private seaAirGlowKey: number[] | null = null;
+  private readonly seaAirGlowKeyNow: number[] = [];
   private seaAirGlow: ReturnType<SeaAirGlowSource["glow"]> = null;
   private seaAirGlowVersion = 0;
   private landFlagsGlow = -1;
@@ -1481,6 +1483,11 @@ export class GPURenderer {
             Math.abs(y - this.camera.offsetY) * z <= halfH
           );
         },
+        launchShown: (owner, region) => {
+          const land = this.wwLand;
+          const fog = land === null ? undefined : fogOfLand(land.view);
+          return fog?.launchSiteShown(owner, region) ?? true;
+        },
       },
       () => this.wwLand?.me() ?? 0,
     );
@@ -2100,6 +2107,8 @@ export class GPURenderer {
       world: new LandFrontWorld(view, war),
     };
     this.landClock.reset(war?.ticks() ?? 0, performance.now());
+    // P6 (final review C I1): the name plates' troop rows through the fog.
+    this.namePass.setTroopFog(() => fogOfLand(view));
     const atlas = new LandAtlas(this.gl);
     this.wwPasses = {
       atlas,
@@ -2119,6 +2128,7 @@ export class GPURenderer {
     }
     this.wwPasses = null;
     this.wwLand = null;
+    this.namePass.setTroopFog(null);
     this.paradrops.reset();
   }
 
@@ -2259,9 +2269,21 @@ export class GPURenderer {
   /** The glow now; its version moves when it changed (asked once a frame). */
   private refreshSeaAirGlow(): void {
     const src = this.seaAirGlowSource;
-    const key = src === null ? "" : src.key();
-    if (key === this.seaAirGlowKey) return;
-    this.seaAirGlowKey = key;
+    const now = this.seaAirGlowKeyNow;
+    now.length = 0;
+    src?.key(now);
+    const then = this.seaAirGlowKey;
+    if (then !== null && then.length === now.length) {
+      let same = true;
+      for (let i = 0; i < now.length; i++) {
+        if (now[i] !== then[i]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+    this.seaAirGlowKey = now.slice();
     this.seaAirGlow = src === null ? null : src.glow();
     this.seaAirGlowVersion++;
   }

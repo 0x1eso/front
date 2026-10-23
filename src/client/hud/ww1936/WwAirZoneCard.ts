@@ -134,6 +134,11 @@ export class WwAirZoneCard extends LitElement implements Controller {
   /** A slider being dragged: its type and value (shown, not sent). */
   @state() private dragging: { type: AirType; value: number } | null = null;
   /** The row whose value was refused, and why. */
+  /**
+   * Final review C (M1): the zone whose greyed ☢ button was tapped — its
+   * reason shows as a line (a title is hover-only, and a phone has none).
+   */
+  @state() private nukeWhy = 0;
   @state() private refused: { type: AirType; block: WwOrderBlock } | null =
     null;
   /** Values sent but not yet back, by `${type}:${mission}`. */
@@ -416,13 +421,27 @@ export class WwAirZoneCard extends LitElement implements Controller {
       <button
         type="button"
         data-ww-nuke-start
-        class="h-9 shrink-0 rounded-md border border-red-400/60 bg-red-950/50 px-2 disabled:opacity-40"
-        ?disabled=${block !== null}
-        title=${block === null ? "" : blockText(block)}
-        @click=${() => flow.start("nuke", sr)}
+        class="h-9 shrink-0 rounded-md border border-red-400/60 bg-red-950/50 px-2 ${block ===
+        null
+          ? ""
+          : "opacity-40"}"
+        aria-disabled=${block === null ? "false" : "true"}
+        @click=${() => {
+          if (block !== null) {
+            this.nukeWhy = sr;
+            return;
+          }
+          this.nukeWhy = 0;
+          flow.start("nuke", sr);
+        }}
       >
         ☢ ${translateText("ww1936.nuke.drop")}
       </button>
+      ${block !== null && this.nukeWhy === sr
+        ? html`<span data-ww-nuke-why=${block} class="text-red-300"
+            >🔒 ${blockText(block)}</span
+          >`
+        : nothing}
       ${bomber === undefined
         ? nothing
         : html`<button

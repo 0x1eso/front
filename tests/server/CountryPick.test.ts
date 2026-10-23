@@ -64,6 +64,26 @@ describe("World War 1936 country picks (spec §8.1)", () => {
     ]);
   });
 
+  // Final review D (D3): every accepted pick sends the lobby list to all.
+  it("a client flipping its pick is rate limited (5 a second)", async () => {
+    const { game, a } = lobby();
+    for (const tag of ["DEU", null, "DEU", null, "DEU"] as const) {
+      await pick(a, tag);
+    }
+    expect(game.gameInfo().countryPicks).toEqual([
+      { clientID: a.clientID, tag: "DEU" },
+    ]);
+    // The sixth inside the second is dropped (no kick, no broadcast).
+    await pick(a, null);
+    expect(game.gameInfo().countryPicks).toEqual([
+      { clientID: a.clientID, tag: "DEU" },
+    ]);
+    // A second later the bucket has refilled.
+    vi.advanceTimersByTime(1_000);
+    await pick(a, null);
+    expect(game.gameInfo().countryPicks).toEqual([]);
+  });
+
   it("giving a country up, or turning spectator, frees it", async () => {
     const { game, a, b } = lobby();
     await pick(a, "DEU");

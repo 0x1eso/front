@@ -2,6 +2,7 @@
 import type { WwDepthDetail } from "@openfront/engine-api/ww1936/DepthTypes";
 import { describe, expect, it } from "vitest";
 import { IntelModel } from "../../../src/client/hud/ww1936/IntelModel";
+import { summary } from "./EconomyFixture";
 import { fogGame } from "./FogFixture";
 import { ID } from "./LandFixture";
 
@@ -108,6 +109,53 @@ describe("IntelModel (spec §20.6)", () => {
       mission: "build_network",
     });
     expect(m.targetRows()[0].atWar).toBe(true);
+  });
+});
+
+describe("IntelModel's target order (final review C M5)", () => {
+  it("ranks by the public factory count, never by the hidden army sizes", () => {
+    const order = (divisions: [number, number]) => {
+      const g = fogGame({
+        level: 0,
+        summaries: [
+          summary("DEU"),
+          summary("FRA", { civ: 2, mil: 1 }),
+          summary("ITA", { civ: 30, mil: 20 }),
+        ],
+      });
+      g.depth.apply({
+        countries: [
+          { smallID: ID("FRA"), agency: false } as never,
+          { smallID: ID("ITA"), agency: false } as never,
+        ],
+        details: [],
+        fx: [],
+        news: [],
+      });
+      g.land.apply(
+        {
+          armies: [],
+          removedArmies: [],
+          battles: [],
+          endedBattles: [],
+          regions: [],
+          countries: [
+            { smallID: ID("FRA"), divisions: divisions[0] } as never,
+            { smallID: ID("ITA"), divisions: divisions[1] } as never,
+          ],
+          details: [],
+        },
+        700,
+      );
+      const rows = new IntelModel(g.game as never).targetRows();
+      const fra = rows.find((r) => r.id === ID("FRA"))!;
+      const ita = rows.find((r) => r.id === ID("ITA"))!;
+      expect([fra.atWar, fra.neighbour]).toEqual([ita.atWar, ita.neighbour]);
+      return rows.filter((r) => r === fra || r === ita).map((r) => r.id);
+    };
+    // Italy has more factories: first, whatever either army's size.
+    expect(order([90, 10])).toEqual([ID("ITA"), ID("FRA")]);
+    expect(order([10, 90])).toEqual([ID("ITA"), ID("FRA")]);
   });
 });
 

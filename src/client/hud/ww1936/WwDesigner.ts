@@ -48,6 +48,13 @@ export class WwDesigner extends WwDrawerBase {
   protected readonly drawerId = "designer" as const;
   @state() private tab: DesignerTab = "design";
   private model: DesignerModel | null = null;
+  /**
+   * Final review C (M1): a tapped locked base chip's reason (the technology
+   * and its year), shown for a few seconds in the bottom bar — a title is
+   * hover-only, and a phone has none.
+   */
+  @state() private lockedTip: string | null = null;
+  private lockedTipTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly retireTap = new TwoTap();
   private armed = "";
 
@@ -238,14 +245,19 @@ export class WwDesigner extends WwDrawerBase {
               class="${BTN} ${c.selected
                 ? "border-sky-400/60 bg-sky-500/20"
                 : ""} ${c.locked ? "opacity-50" : ""}"
-              title=${c.locked && c.tech !== null
-                ? translateText("ww1936.design.module_locked", {
-                    tech: translateText(`ww1936.tech.${c.tech}`),
-                    year: c.year,
-                  })
-                : ""}
               @click=${() => {
-                if (!c.locked) m.setBase(c.id);
+                if (!c.locked) {
+                  m.setBase(c.id);
+                  return;
+                }
+                if (c.tech !== null) {
+                  this.showLockedTip(
+                    translateText("ww1936.design.module_locked", {
+                      tech: translateText(`ww1936.tech.${c.tech}`),
+                      year: c.year,
+                    }),
+                  );
+                }
               }}
             >
               ${c.locked ? "🔒 " : ""}${translateText(c.nameKey)}${c.genKey ===
@@ -449,9 +461,20 @@ export class WwDesigner extends WwDrawerBase {
     </div>`;
   }
 
+  private showLockedTip(text: string): void {
+    this.lockedTip = text;
+    if (this.lockedTipTimer !== null) clearTimeout(this.lockedTipTimer);
+    this.lockedTipTimer = setTimeout(() => {
+      this.lockedTip = null;
+      this.lockedTipTimer = null;
+    }, 3000);
+  }
+
   private renderBottom(m: DesignerModel): TemplateResult {
     const d = m.draft;
     const block = m.block();
+    // Final review D (D1): a name the order's schema refuses never saves.
+    const badName = d !== null && !m.nameOk();
     const have = m.xpHave();
     const armed = m.isSaveArmed(performance.now());
     const cost = m.xpCost();
@@ -477,7 +500,17 @@ export class WwDesigner extends WwDrawerBase {
                 have: have === null ? "?" : Math.floor(have / 1000),
               })}</span
             >`}
-        ${block !== null && block !== "no_xp" && d !== null
+        ${this.lockedTip !== null
+          ? html`<span
+              data-ww-locked-tip
+              class="min-w-0 truncate text-amber-300"
+              >🔒 ${this.lockedTip}</span
+            >`
+          : nothing}
+        ${this.lockedTip === null &&
+        block !== null &&
+        block !== "no_xp" &&
+        d !== null
           ? html`<span
               data-ww-block=${block}
               class="min-w-0 truncate text-amber-300"
@@ -486,7 +519,16 @@ export class WwDesigner extends WwDrawerBase {
                 reason: orderBlockText(block),
               })}</span
             >`
-          : nothing}
+          : this.lockedTip === null && badName
+            ? html`<span
+                data-ww-block="bad_name"
+                class="min-w-0 truncate text-amber-300"
+                >🔒
+                ${translateText("ww1936.design.save_blocked", {
+                  reason: translateText("ww1936.design.bad_name"),
+                })}</span
+              >`
+            : nothing}
       </div>
       <div class="flex items-center gap-1">
         <input
@@ -517,7 +559,7 @@ export class WwDesigner extends WwDrawerBase {
           class="${BTN} h-8 ${armed
             ? "border-amber-400/70 bg-amber-500/20"
             : ""}"
-          ?disabled=${d === null || block !== null}
+          ?disabled=${d === null || block !== null || badName}
           @click=${() => this.onSave(m)}
         >
           ${translateText(

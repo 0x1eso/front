@@ -1,7 +1,11 @@
 // World War 1936 P6 lane U4 (plan Task 13): the MIO, market and energy view models.
+import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { IntentSchema } from "@openfront/engine-api/Schemas";
+import { EQUIP_KEY_COUNT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import fs from "fs";
+import { render } from "lit";
 import path from "path";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,9 +13,13 @@ import {
   offered,
   strikeTargets,
 } from "../../../src/client/hud/ww1936/DepthIndustryModel";
+import {
+  MARKET_MAX_COUNT,
+  renderMarketTab,
+} from "../../../src/client/hud/ww1936/WwMarketTab";
 import { REGION } from "../../ww1936/seaFixture";
 import { depthGame } from "./DepthU4Fixture";
-import { SID } from "./SeaAirFixture";
+import { seaDetail, SID } from "./SeaAirFixture";
 
 const SEA_DIR = path.join(__dirname, "../../testdata/maps/ww1936sea");
 const seaData = JSON.parse(
@@ -48,6 +56,66 @@ describe("DepthIndustryModel", () => {
     expect(p.factories).toBe(4);
     expect(p.days).toBe(30);
     expect(m.buyPreview(row, 2).factories).toBe(2);
+  });
+
+  it("final review D (D2): a market order's count never passes the schema's cap", () => {
+    const stock = new Array<number>(EQUIP_KEY_COUNT).fill(0);
+    stock[0] = 3_000_000;
+    const g = depthGame({
+      details: [seaDetail("GBR", { stock, tradePartners: [SID("ITA")] })],
+      market: {
+        listings: [
+          {
+            id: 1,
+            // Italy: at peace with me (Germany, at war, may not sell to me).
+            seller: SID("ITA"),
+            key: 0,
+            design: null,
+            count: 2_500_000,
+            priceMilli: 600_000,
+          },
+        ],
+        deals: [],
+        licences: [],
+        embargoes: [],
+        pendingLicences: [],
+      },
+    });
+    const m = new DepthIndustryModel(g.game);
+    const sent: WwOrder[] = [];
+    const box = document.createElement("div");
+    const ui = {
+      send: (o: WwOrder) => sent.push(o),
+      confirm: (_k: string, act: () => void) => act(),
+      armed: () => false,
+      redraw: () => render(renderMarketTab(m, ui), box),
+      name: () => "",
+      regionName: () => "",
+      me: SID("GBR"),
+      pick: {} as Record<string, number>,
+    };
+    ui.redraw();
+    // Open the listing (its count slider starts at the whole listing), buy.
+    (box.querySelector("[data-ww-listing='1'] button") as HTMLElement).click();
+    expect(
+      (box.querySelector("[data-ww-buy-count]") as HTMLInputElement).max,
+    ).toBe(String(MARKET_MAX_COUNT));
+    const buy = box.querySelector("[data-ww-buy]") as HTMLButtonElement;
+    expect(buy.disabled).toBe(false);
+    buy.click();
+    // My offer: the whole stock by default.
+    ui.pick.mine = 1;
+    ui.redraw();
+    (box.querySelector("[data-ww-list]") as HTMLElement).click();
+    expect(sent).toEqual([
+      { kind: "market_buy", listing: 1, count: MARKET_MAX_COUNT },
+      { kind: "market_list", key: 0, count: MARKET_MAX_COUNT },
+    ]);
+    for (const order of sent) {
+      expect(IntentSchema.safeParse({ type: "ww_order", order }).success).toBe(
+        true,
+      );
+    }
   });
 
   it("the energy line adds up its sources", () => {

@@ -127,23 +127,8 @@ function divisionsLabel(
   return fog === undefined || fog.fogOff() ? n : fog.countLabel(id, n, ID_ARMY);
 }
 
-/**
- * The P0 spectate screen's question in World War 1936 P5 (spec §11): is
- * my client out of the game — spectating (no candidate), or its country
- * gone with no exile, no takeover card and no new country? An exile and a
- * human picking a country play on.
- */
-export function wwOutOfGame(game: TakeoverGame): boolean {
-  const client = game.myClientID?.();
-  const eg = game.wwEndgame?.() ?? null;
-  if (!client || eg === null) return false;
-  if (eg.controlledBy(client) === 0) return true;
-  if (eg.takeoverFor(client) !== null) return false;
-  const me = game.myPlayer();
-  return (
-    me !== null && me.hasSpawned() && !me.isAlive() && !eg.isExile(me.smallID())
-  );
-}
+/** The P0 spectate screen's question (spec §11); FogModel holds it. */
+export { wwOutOfGame } from "./FogModel";
 
 /**
  * Spec §3.6: my controller changed — every open World War drawer closes.
