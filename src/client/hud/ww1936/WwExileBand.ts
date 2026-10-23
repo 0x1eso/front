@@ -127,7 +127,7 @@ export class WwExileBand extends LitElement implements Controller {
       type="button"
       data-ww-exile-band
       aria-label=${`${m.text} — ${translateText("ww1936.exile.open_government")}`}
-      class="fixed left-1/2 z-[958] flex min-h-9 max-w-[min(90vw,560px)] -translate-x-1/2 items-center gap-2 rounded-md border border-sky-300/40 bg-gray-900/90 px-3 py-1 text-xs text-white shadow-lg"
+      class="fixed left-1/2 z-[1004] flex min-h-9 max-w-[min(90vw,560px)] -translate-x-1/2 items-center gap-2 rounded-md border border-sky-300/40 bg-gray-900/90 px-3 py-1 text-xs text-white shadow-lg"
       style="top: ${EXILE_BAND_TOP}px"
       @click=${() => this.eventBus.emit(new OpenWwPoliticsEvent("government"))}
       @contextmenu=${(e: Event) => e.preventDefault()}

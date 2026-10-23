@@ -7,6 +7,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
     params ? `[${key}]` : `[${key}]`,
 }));
 
+import fs from "fs";
 import { handleGamePopState } from "../../../src/client/BackGuard";
 import {
   landSelectionOf,
@@ -16,10 +17,12 @@ import { multiSelectOf } from "../../../src/client/hud/ww1936/MultiSelect";
 import { peaceUiOf } from "../../../src/client/hud/ww1936/PeaceModel";
 import "../../../src/client/hud/ww1936/WwDials";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
+import { EVENT_LAYER_CLASS } from "../../../src/client/hud/ww1936/WwEventCards";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
 import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
 import { strikeFlowOf } from "../../../src/client/hud/ww1936/WwNukeFlow";
 import { wwMapFlowActive } from "../../../src/client/hud/ww1936/WwPanelMode";
+import { PEACE_LAYER_CLASS } from "../../../src/client/hud/ww1936/WwPeaceCard";
 import "../../../src/client/hud/ww1936/WwResearchPanel";
 import type { WwResearchPanel } from "../../../src/client/hud/ww1936/WwResearchPanel";
 import { seaAirOf } from "../../../src/client/hud/ww1936/WwSeaAirController";
@@ -250,5 +253,32 @@ describe("the dock and the full-screen panels", () => {
     await m.settle();
     expect(m.panel("industry")).toBeNull();
     expect(m.dials.querySelector("[data-ww-panel-chip]")).toBeNull();
+  });
+
+  it("event, peace and takeover cards and the exile band draw above an open panel", async () => {
+    const m = await mount();
+    m.dial("industry").click();
+    await m.settle();
+    const z = (cls: string) => Number(/z-\[(\d+)\]/.exec(cls)![1]);
+    const panelZ = z(m.panel("industry")!.className);
+    expect(z(EVENT_LAYER_CLASS)).toBeGreaterThan(panelZ);
+    expect(z(PEACE_LAYER_CLASS)).toBeGreaterThan(panelZ);
+    const takeover = fs.readFileSync(
+      "src/client/hud/ww1936/WwTakeoverCard.ts",
+      "utf8",
+    );
+    expect(takeover).toMatch(/PEACE_LAYER_CLASS|EVENT_LAYER_CLASS/);
+    const exile = fs.readFileSync(
+      "src/client/hud/ww1936/WwExileBand.ts",
+      "utf8",
+    );
+    expect(z(/fixed left-1\/2 z-\[\d+\]/.exec(exile)![0])).toBeGreaterThan(
+      panelZ,
+    );
+    // The layers are body-level, so nothing traps them under the panel.
+    const layer = document.createElement("div");
+    layer.className = EVENT_LAYER_CLASS;
+    document.body.appendChild(layer);
+    expect(layer.parentElement).toBe(document.body);
   });
 });
