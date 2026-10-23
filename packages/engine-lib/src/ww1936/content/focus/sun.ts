@@ -39,7 +39,10 @@ export const SUN_FOCUSES = [
       { kind: "add_spirit", id: "sun_purge_1" },
       { kind: "set_flag", flag: "purge_path" },
     ],
-    ai: { base: 10 },
+    // Controller ruling on final review B M7: it pays nothing, so the AI
+    // that picks by weight no longer prefers it to the reformers (5); the
+    // historical AI still takes it as its branch point's history.
+    ai: { base: 5 },
   },
   {
     id: "sun_purge_ends",

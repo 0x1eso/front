@@ -5,11 +5,13 @@
 import type { SpiritDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const SPIRITS_SUN = [
-  // The purge in stages (sun_great_purge, then the trial events).
+  // The purge in stages (sun_great_purge, then the trial events). No stage
+  // rewards anything (controller ruling on final review B M7: the purge is
+  // never a choice that pays): only its costs to the army.
   {
     id: "sun_purge_1",
     icon: "scales",
-    stats: { ppGainPct: 15, stabilityBp: 500, driftComBp: 3, orgPct: -5 },
+    stats: { orgPct: -5 },
   },
   {
     id: "sun_purge_2",
