@@ -4303,18 +4303,18 @@
       }
     },
     "dock": {
-      "label": "하단 메뉴",
-      "back_to_panel": "패널로 돌아가기",
-      "industry": "산업",
-      "research": "연구",
-      "army": "육군",
-      "focus": "국가 목표",
-      "politics": "정치",
-      "diplomacy": "외교",
-      "navy": "해군",
       "air": "공군",
+      "army": "육군",
+      "back_to_panel": "패널로 돌아가기",
+      "diplomacy": "외교",
       "doctrine": "교리",
-      "intel": "첩보"
+      "focus": "국가 목표",
+      "industry": "산업",
+      "intel": "첩보",
+      "label": "하단 메뉴",
+      "navy": "해군",
+      "politics": "정치",
+      "research": "연구"
     },
     "doctrine": {
       "badge_points": "쓸 수 있는 특성 점 {n}개",

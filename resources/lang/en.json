@@ -4610,18 +4610,18 @@
       }
     },
     "dock": {
-      "label": "Dock",
-      "back_to_panel": "Back to panel",
-      "industry": "Industry",
-      "research": "Research",
-      "army": "Army",
-      "focus": "Focus",
-      "politics": "Politics",
-      "diplomacy": "Diplomacy",
-      "navy": "Navy",
       "air": "Air",
+      "army": "Army",
+      "back_to_panel": "Back to panel",
+      "diplomacy": "Diplomacy",
       "doctrine": "Doctrine",
-      "intel": "Intel"
+      "focus": "Focus",
+      "industry": "Industry",
+      "intel": "Intel",
+      "label": "Dock",
+      "navy": "Navy",
+      "politics": "Politics",
+      "research": "Research"
     },
     "doctrine": {
       "badge_points": "{n, plural, one {# trait point} other {# trait points}} to spend",
