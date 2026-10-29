@@ -12,8 +12,12 @@ import {
   FLEET_STATES,
   ShipClass,
 } from "@openfront/engine-api/ww1936/NavyTypes";
-import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import type {
+  EventDef,
+  HistoryBeat,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { WW_HISTORY_END_ISO } from "@openfront/engine-lib/ww1936/Pace";
 import type { Game } from "@openfront/engine/game/Game";
 import type { GameRunner } from "@openfront/engine/GameRunner";
@@ -46,9 +50,14 @@ import {
   ShipTable,
   type WwNavy,
 } from "@openfront/engine/ww1936/navy/WwNavy";
+import { reserveForBeats } from "@openfront/engine/ww1936/politics/AiPolitics";
 import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
+import {
+  beatPending,
+  runBeats,
+} from "@openfront/engine/ww1936/politics/HistoryBeats";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
@@ -369,6 +378,82 @@ describe("the historical AI plays free from 1945-09-02 (day 3,532)", () => {
       dayStartTick(END_DAY, ww.prepEndTick()),
     );
     expect(foundDay(ww.depth, DEU)).toBe(freeDay);
+  });
+
+  test("pending history beats stand down at V-J Day; done ones stay done", async () => {
+    const invite = CONTENT.decisions.find(
+      (x) => x.id === "deu_invite_balkans",
+    )!;
+    const beat = (id: string, act: HistoryBeat["act"]): HistoryBeat => ({
+      id,
+      date: "1936-01-10",
+      actor: "DEU",
+      act,
+    });
+    usePoliticsContent(
+      politicsFixture({
+        decisions: [invite],
+        beats: [
+          beat("b_pace_invite", {
+            kind: "decision",
+            id: "deu_invite_balkans",
+            target: "AUT",
+          }),
+          beat("b_pace_war", { kind: "declare", target: "POL" }),
+          beat("b_pace_done", { kind: "declare", target: "FRA" }),
+        ],
+      }),
+    );
+    // Germany is the only AI country.
+    const humans = (
+      ["FRA", "ITA", "POL", "SUN", "GBR", "AUT", "CSK", "LTU", "EST"] as const
+    ).map((country, i) => ({ clientID: `HUMAN${i + 1}`, country }));
+    const runner = await started({}, humans, POL, 1);
+    const g = runner.game;
+    const p = g.worldWar()!.politics;
+    const [deu, pl] = [byTag(g, "DEU").smallID(), byTag(g, "POL").smallID()];
+    const tick = g.ticks();
+    // Two beats due just after V-J Day, one long done.
+    const due = END_DAY + 8;
+    p.beats[0] = { fireDay: due, skipped: false, done: false };
+    p.beats[1] = { fireDay: due + 2, skipped: false, done: false };
+    p.beats[2] = { fireDay: 10, skipped: false, done: true };
+    // The day before: history still steers — the PP is kept, the decision
+    // waits for its beat, the war is planned.
+    runBeats(p, END_DAY - 1, tick);
+    expect(p.beats.map((s) => s.skipped)).toEqual([false, false, false]);
+    expect(reserveForBeats(p, deu, END_DAY - 1)).toBeGreaterThan(0);
+    expect(beatPending(p, deu, "deu_invite_balkans")).toBe(true);
+    expect(p.plannedWars(deu, END_DAY - 1)).toContain(pl);
+    // V-J Day: every beat not done stands down as skipped.
+    runBeats(p, END_DAY, tick);
+    const after = [
+      { fireDay: due, skipped: true, done: false },
+      { fireDay: due + 2, skipped: true, done: false },
+      { fireDay: 10, skipped: false, done: true },
+    ];
+    expect(p.beats).toEqual(after);
+    expect(reserveForBeats(p, deu, END_DAY)).toBe(0);
+    expect(beatPending(p, deu, "deu_invite_balkans")).toBe(false);
+    expect(p.plannedWars(deu, END_DAY)).not.toContain(pl);
+    // Their days come: neither acts, and nothing changes again.
+    runBeats(p, due + 2, tick);
+    expect(p.beats).toEqual(after);
+    expect(p.country(deu)!.taken.has("deu_invite_balkans")).toBe(false);
+    expect(g.worldWar()!.isAtWar(deu, pl)).toBe(false);
+  });
+
+  test("without historical AI the stand-down changes nothing (every beat is rolled skipped)", async () => {
+    const runner = await wwRunner({ historicalAi: false });
+    // The roll runs on the first tick (WorldWarExecution.init).
+    stepTo(runner, 2);
+    const g = runner.game;
+    const p = g.worldWar()!.politics;
+    expect(p.beats.length).toBeGreaterThan(0);
+    expect(p.beats.every((s) => s.skipped)).toBe(true);
+    const before = p.beats.map((s) => ({ ...s }));
+    runBeats(p, END_DAY, g.ticks());
+    expect(p.beats).toEqual(before);
   });
 });
 

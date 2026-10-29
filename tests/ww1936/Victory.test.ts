@@ -28,11 +28,11 @@ describe("the end of the game (spec §7.6)", () => {
     ["unlimited", { ww1936Unlimited: true }],
   ])(
     "%s: the last camp with a living major wins at once, as a team with its humans",
-    async (_name, config) => {
+    async (name, config) => {
       const { runner, updates } = await wwRunnerCapture(config, [
         { clientID: HUMAN, country: "ITA" },
       ]);
-      expect(runner.game.config().wwUnlimited()).toBe(_name === "unlimited");
+      expect(runner.game.config().wwUnlimited()).toBe(name === "unlimited");
       const g = runner.game;
       const ww = g.worldWar()!;
       step(runner);
