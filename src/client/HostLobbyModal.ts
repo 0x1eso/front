@@ -120,7 +120,10 @@ export class HostLobbyModal extends BaseModal {
   @state() private congress: boolean = false;
   @state() private conquestPercent: number | undefined = undefined;
   @state() private worldWar1936 = false;
-  @state() private historicalAi = true;
+  /** Off by default here; the engine still reads an absent key as on. */
+  @state() private historicalAi = false;
+  /** The unlimited slow-pace game (engine-lib/ww1936/Pace.ts), off by default. */
+  @state() private ww1936Unlimited = false;
   /** World War 1936 P6 (spec §9.8, plan decision 21): the atomic bomb, on by default. */
   @state() private ww1936Nukes = true;
   @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
@@ -771,6 +774,10 @@ export class HostLobbyModal extends BaseModal {
                         checked: this.historicalAi,
                       },
                       {
+                        labelKey: "ww1936.lobby.unlimited",
+                        checked: this.ww1936Unlimited,
+                      },
+                      {
                         labelKey: "ww1936.lobby.nukes",
                         checked: this.ww1936Nukes,
                       },
@@ -1220,7 +1227,8 @@ export class HostLobbyModal extends BaseModal {
     this.congress = false;
     this.conquestPercent = undefined;
     this.worldWar1936 = false;
-    this.historicalAi = true;
+    this.historicalAi = false;
+    this.ww1936Unlimited = false;
     this.ww1936Nukes = true;
     this.countryPicks = [];
     this.hostCheatsEnabled = false;
@@ -1374,6 +1382,10 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.historical_ai":
         this.historicalAi = checked;
+        this.putGameConfig();
+        break;
+      case "ww1936.lobby.unlimited":
+        this.ww1936Unlimited = checked;
         this.putGameConfig();
         break;
       case "ww1936.lobby.nukes":
@@ -1947,8 +1959,15 @@ export class HostLobbyModal extends BaseModal {
             // false so the server turns the mode off.
             worldWar1936: this.worldWar1936,
             historicalAi: this.historicalAi,
-            // P6: the atomic-bomb key only with the mode (vanilla never carries it).
-            ...(this.worldWar1936 ? { ww1936Nukes: this.ww1936Nukes } : {}),
+            // P6: the atomic-bomb key, and the unlimited game's, only with the
+            // mode (vanilla never carries them). The server drops the timer
+            // of an unlimited game.
+            ...(this.worldWar1936
+              ? {
+                  ww1936Nukes: this.ww1936Nukes,
+                  ww1936Unlimited: this.ww1936Unlimited,
+                }
+              : {}),
             congress:
               this.domesticMode &&
               this.congress &&

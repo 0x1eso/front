@@ -8104,7 +8104,9 @@
       "nukes_on": "허용",
       "pick_country": "나라 고르기",
       "pick_hint": "고르지 않은 나라는 모두 AI가 맡습니다. 다른 사람이 고른 나라는 흐리게 보입니다.",
-      "taken_by": "{name} 님이 골랐습니다"
+      "taken_by": "{name} 님이 골랐습니다",
+      "unlimited": "무제한 게임 (느린 템포)",
+      "unlimited_on": "무제한 · 1945년까지 약 3시간"
     },
     "market": {
       "buy": "사기",

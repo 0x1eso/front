@@ -290,8 +290,9 @@ describe("solo World War 1936", () => {
     modal.handleConfigOptionToggleChanged(
       toggle("game_settings.world_war_1936", true),
     );
+    // The historical AI starts off in the lobby; the player turns it on.
     modal.handleConfigOptionToggleChanged(
-      toggle("game_settings.historical_ai", false),
+      toggle("game_settings.historical_ai", true),
     );
     const root = await body(modal);
     tap(root, "FRA");
@@ -302,7 +303,7 @@ describe("solo World War 1936", () => {
     // The client loads the map named here (controller ruling T1-3).
     expect(config).toMatchObject({
       worldWar1936: true,
-      historicalAi: false,
+      historicalAi: true,
       gameMap: GameMapType.World1936,
       gameMode: GameMode.FFA,
       bots: 0,
@@ -475,10 +476,12 @@ describe("hosting World War 1936", () => {
     expect(modal.worldWar1936).toBe(true);
     expect(modal.domesticMode).toBe(false);
     expect(modal.congress).toBe(false);
-    modal.handleConfigOptionToggleChanged(
-      toggle("game_settings.historical_ai", false),
-    );
+    // The historical AI starts off in the lobby; the host turns it on.
     expect(modal.historicalAi).toBe(false);
+    modal.handleConfigOptionToggleChanged(
+      toggle("game_settings.historical_ai", true),
+    );
+    expect(modal.historicalAi).toBe(true);
     expect(putGameConfig).toHaveBeenCalledTimes(2);
   });
 

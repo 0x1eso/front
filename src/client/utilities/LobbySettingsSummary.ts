@@ -55,7 +55,9 @@ export function notableLobbySettings(
       label: translateText("game_settings.random_spawn"),
       value: enabled,
     });
-  if (c.maxTimerValue)
+  // An unlimited World War 1936 game names its length below instead.
+  const wwUnlimited = c.worldWar1936 === true && c.ww1936Unlimited === true;
+  if (c.maxTimerValue && !wwUnlimited)
     items.push({
       label: translateText("private_lobby.game_length"),
       value: renderDuration(c.maxTimerValue * 60),
@@ -118,6 +120,13 @@ export function notableLobbySettings(
       label: translateText("game_settings.historical_ai"),
       value: c.historicalAi === false ? disabled : enabled,
     });
+    // The unlimited game has no timer, so the generic row above is absent
+    // (or skipped); a timed game shows its 45 minutes there.
+    if (wwUnlimited)
+      items.push({
+        label: translateText("private_lobby.game_length"),
+        value: translateText("ww1936.lobby.unlimited_on"),
+      });
     // P6 (spec §9.8): the atomic bomb.
     items.push({
       label: translateText("ww1936.lobby.nukes"),

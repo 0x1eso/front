@@ -8411,7 +8411,9 @@
       "nukes_on": "Allowed",
       "pick_country": "Choose your country",
       "pick_hint": "Every country you leave is played by the AI. A country someone else holds is greyed out.",
-      "taken_by": "Taken by {name}"
+      "taken_by": "Taken by {name}",
+      "unlimited": "Unlimited game (slow pace)",
+      "unlimited_on": "Unlimited · about 3 hours to 1945"
     },
     "market": {
       "buy": "Buy",

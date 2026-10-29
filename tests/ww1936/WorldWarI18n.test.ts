@@ -59,6 +59,9 @@ const KEYS = [
   "ww1936.lobby.pick_country",
   "ww1936.lobby.pick_hint",
   "ww1936.lobby.taken_by",
+  // The unlimited slow-pace game (design 2026-10-29).
+  "ww1936.lobby.unlimited",
+  "ww1936.lobby.unlimited_on",
   "events_display.ww1936_prep_over",
   "events_display.ww1936_war_declared",
   "events_display.ww1936_war_joined",

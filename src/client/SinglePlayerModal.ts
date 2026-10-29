@@ -146,7 +146,10 @@ const DEFAULT_OPTIONS = {
   overtime: false,
   overtimeStartMinutes: undefined as number | undefined,
   worldWar1936: false,
-  historicalAi: true,
+  // The engine still reads an absent key as on; the lobby starts it off.
+  historicalAi: false,
+  // The unlimited slow-pace game (engine-lib/ww1936/Pace.ts), off by default.
+  ww1936Unlimited: false,
   // World War 1936 P6 (spec §9.8): the atomic bomb, on by default.
   ww1936Nukes: true,
   country: null as CountryTag | null,
@@ -249,6 +252,7 @@ export class SinglePlayerModal extends BaseModal {
     DEFAULT_OPTIONS.overtimeStartMinutes;
   @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
+  @state() private ww1936Unlimited: boolean = DEFAULT_OPTIONS.ww1936Unlimited;
   @state() private ww1936Nukes: boolean = DEFAULT_OPTIONS.ww1936Nukes;
   @state() private country: CountryTag | null = DEFAULT_OPTIONS.country;
   /** SHORT_LANDSCAPE_QUERY matches. */
@@ -623,6 +627,10 @@ export class SinglePlayerModal extends BaseModal {
                         checked: this.historicalAi,
                       },
                       {
+                        labelKey: "ww1936.lobby.unlimited",
+                        checked: this.ww1936Unlimited,
+                      },
+                      {
                         labelKey: "ww1936.lobby.nukes",
                         checked: this.ww1936Nukes,
                       },
@@ -866,6 +874,7 @@ export class SinglePlayerModal extends BaseModal {
     this.strategicWeapons = DEFAULT_OPTIONS.strategicWeapons;
     this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
+    this.ww1936Unlimited = DEFAULT_OPTIONS.ww1936Unlimited;
     this.ww1936Nukes = DEFAULT_OPTIONS.ww1936Nukes;
     this.country = DEFAULT_OPTIONS.country;
     this.congress = DEFAULT_OPTIONS.congress;
@@ -1008,6 +1017,9 @@ export class SinglePlayerModal extends BaseModal {
         break;
       case "game_settings.historical_ai":
         this.historicalAi = checked;
+        break;
+      case "ww1936.lobby.unlimited":
+        this.ww1936Unlimited = checked;
         break;
       case "ww1936.lobby.nukes":
         this.ww1936Nukes = checked;
@@ -1421,6 +1433,8 @@ export class SinglePlayerModal extends BaseModal {
               worldWar1936: true,
               historicalAi: this.historicalAi,
               ww1936Nukes: this.ww1936Nukes,
+              // Normalization below drops the timer for it.
+              ww1936Unlimited: this.ww1936Unlimited,
             }
           : {}),
       };
