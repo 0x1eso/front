@@ -4,6 +4,7 @@ import {
   StampedIntent,
   Turn,
 } from "@openfront/engine-api/Schemas";
+import { msPerTickOf } from "@openfront/engine-lib/ww1936/Pace";
 import { EventBus } from "@openfront/shared/EventBus";
 import {
   createPartialGameRecord,
@@ -90,9 +91,9 @@ export class LocalServer {
 
   start() {
     console.log("local server starting");
+    const msPerTick = this.msPerTick();
     this.turnCheckInterval = setInterval(() => {
-      const turnIntervalMs =
-        ClientEnv.turnIntervalMs() * this.replaySpeedMultiplier;
+      const turnIntervalMs = msPerTick * this.replaySpeedMultiplier;
       const backlog = Math.max(0, this.turns.length - this.turnsExecuted);
       const allowReplayBacklog =
         this.replaySpeedMultiplier === ReplaySpeedMultiplier.fastest &&
@@ -163,6 +164,21 @@ export class LocalServer {
         this.lobbyConfig.gameStartInfo.gameID,
       );
     }
+  }
+
+  /**
+   * One turn per tick of the game's length (msPerTickOf: 400 ms in the
+   * unlimited World War 1936 game, else 100). A replay's start info is
+   * built from its record (Main: toWireGameStartInfo), so it carries the
+   * record's config.
+   */
+  private msPerTick(): number {
+    const config =
+      this.lobbyConfig.gameStartInfo?.config ??
+      this.lobbyConfig.gameRecord?.info.config;
+    return config === undefined
+      ? ClientEnv.turnIntervalMs()
+      : msPerTickOf(config);
   }
 
   onMessage(clientMsg: ClientMessage) {

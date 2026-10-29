@@ -29,6 +29,7 @@ import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
 } from "@openfront/engine-lib/game/TeamAssignment";
+import { msPerTickOf, wwUnlimited } from "@openfront/engine-lib/ww1936/Pace";
 import { isAdminRole } from "@openfront/shared/ApiSchemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { GameEnv } from "@openfront/shared/configuration/Env";
@@ -162,8 +163,8 @@ export interface GameServerOptions {
 // Everything a GameServer reaches outside itself for. Production takes the
 // defaults; tests substitute the pieces they need to observe or control
 // (the archive upload, the tribe fetch, the environment) without mocking
-// modules. env and turnIntervalMs are thunks so the value is read when it
-// is used, not when the game is created.
+// modules. env and turnIntervalMs are functions so the value is read when
+// it is used, not when the game is created.
 export interface GameServerDeps {
   // Hand a finished game's record on for upload. The default stamps the
   // deployment (finalizeGameRecord) first; a test receives the record as the
@@ -175,7 +176,9 @@ export interface GameServerDeps {
   replayPending: () => number;
   fetchTribes: typeof fetchCustomTribes;
   env: () => GameEnv;
-  turnIntervalMs: () => number;
+  // One turn's wall length for a config: its tick length (msPerTickOf:
+  // 400 ms in the unlimited World War 1936 game, else 100).
+  turnIntervalMs: (gameConfig: GameConfig) => number;
   telemetry: MatchTelemetryEmitter;
   telemetryBuildHash: string;
   // This game's opaque grouping token (see mintGroupToken). Injectable only
@@ -207,7 +210,7 @@ export function defaultGameServerDeps(): GameServerDeps {
     replayPending: () => winnerReplayMetrics.pending,
     fetchTribes: selfHosted ? async () => [] : fetchCustomTribes,
     env: () => ServerEnv.env(),
-    turnIntervalMs: () => ServerEnv.turnIntervalMs(),
+    turnIntervalMs: msPerTickOf,
     telemetry: noopMatchTelemetryEmitter,
     telemetryBuildHash: "DEV",
     mintGroupToken,
@@ -224,6 +227,9 @@ export class GameServer {
   private readonly ingress: SocketIngress;
 
   private maxGameDuration = 3 * 60 * 60 * 1000; // 3 hours
+  // World War 1936, the unlimited game once started: four times slower, it
+  // reaches 1945 at about 3 hours and has no timer after that.
+  private unlimitedMaxGameDuration = 24 * 60 * 60 * 1000; // 24 hours
 
   private disconnectedTimeout = 1 * 30 * 1000; // 30 seconds
 
@@ -386,7 +392,7 @@ export class GameServer {
         buildHash: this.deps.telemetryBuildHash,
         instanceId: ServerEnv.instanceId(),
         workerId: ServerEnv.workerId(),
-        turnIntervalMs: this.deps.turnIntervalMs(),
+        turnIntervalMs: this.deps.turnIntervalMs(this.gameConfig),
       },
       this.turns.length,
     );
@@ -1211,13 +1217,16 @@ export class GameServer {
       return;
     }
     this.gameStartInfo = result.data satisfies WireGameStartInfo;
+    // Read from the config as normalized above, so a host patch made just
+    // before the start sets the pace.
+    const turnIntervalMs = this.deps.turnIntervalMs(this.gameConfig);
     this.telemetry.emit(
       "match_started",
       {
         startedAt: this._startTime,
         gameStartInfo: this.gameStartInfo,
         buildHash: this.deps.telemetryBuildHash,
-        turnIntervalMs: this.deps.turnIntervalMs(),
+        turnIntervalMs,
       },
       this.turns.length,
     );
@@ -1238,10 +1247,7 @@ export class GameServer {
     // every client receives in the start message.
     this.zbinCtx = createGameWireContext(this.gameStartInfo.players);
 
-    this.endTurnIntervalID = setInterval(
-      () => this.endTurn(),
-      this.deps.turnIntervalMs(),
-    );
+    this.endTurnIntervalID = setInterval(() => this.endTurn(), turnIntervalMs);
     this.clients.active().forEach((c) => {
       this.log.info("sending start message", {
         clientID: c.clientID,
@@ -1714,10 +1720,16 @@ export class GameServer {
         : null;
   }
 
-  // The 3 hour cap every game ends at, however it is going. Exposed so
-  // GameManager can log the timeout once, where it prunes the game.
+  // The cap every game ends at, however it is going: 3 hours, 24 once an
+  // unlimited World War 1936 game has started (its lobby still gets 3).
+  // Exposed so GameManager can log the timeout once, where it prunes the
+  // game.
   pastMaxDuration(): boolean {
-    return Date.now() > this.createdAt + this.maxGameDuration;
+    const cap =
+      this.hasStarted() && wwUnlimited(this.gameConfig)
+        ? this.unlimitedMaxGameDuration
+        : this.maxGameDuration;
+    return Date.now() > this.createdAt + cap;
   }
 
   // A pure read of the lifecycle; pruneStaleClients() is the side effect.

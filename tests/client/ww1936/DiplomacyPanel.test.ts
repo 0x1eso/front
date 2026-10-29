@@ -274,6 +274,23 @@ describe("<ww-diplomacy-panel> (P3 spec §21.5)", () => {
     expect(news[1]).toContain("[ww1936.news.news_anschluss]");
     expect(m.el.querySelectorAll("[data-ww-camp]").length).toBeGreaterThan(0);
   });
+
+  it("world: the next beat goes on V-J Day (day 3,532), when the AI stops following history", async () => {
+    const at = async (day: number) => {
+      const m = mount(
+        axis({
+          ticks: dayStartTick(day, 600),
+          global: { factions: startFactions(), nextBeatDay: 3540 },
+        }),
+      );
+      await m.open("world");
+      const next = m.q("[data-ww-next]")?.textContent ?? null;
+      m.el.remove();
+      return next;
+    };
+    expect(await at(3531)).toContain("[ww1936.diplo.world.next_beat]");
+    expect(await at(3532)).toBeNull();
+  });
 });
 
 describe("the player panel's diplomacy (P3 spec §21.5)", () => {

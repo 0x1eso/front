@@ -28,7 +28,7 @@ import {
 const archive = vi.fn(async (_record: PartialGameRecord) => {});
 
 const T0 = 1_700_000_000_000;
-const TURN_MS = 100; // ServerEnv.turnIntervalMs()
+const TURN_MS = 100; // msPerTickOf (engine-lib/ww1936/Pace.ts)
 
 describe("GameServer wire transcript", () => {
   beforeEach(() => {

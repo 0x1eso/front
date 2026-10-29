@@ -10,7 +10,15 @@ import type { GameView } from "../../view";
 import { WwControllerChangedEvent } from "../../view/WwEndgameView";
 import { countryFlagUrl, countryText, type NameGame } from "./EndgameNames";
 import { type FogModel, fogModelOf } from "./FogModel";
-import { enemiesOf, TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
+import {
+  enemiesOf,
+  TWO_TAP_MS,
+  TwoTap,
+  WW_BAND_PX,
+  type WwPaceGame,
+  wwSeconds,
+  wwWindowTicks,
+} from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { EVENT_LAYER_CLASS } from "./WwEventCards";
 
@@ -22,14 +30,15 @@ const TOP_GAP = 8;
 const ENEMIES_SHOWN = 2;
 /**
  * A pick goes on the next tick and the card goes; a card still there this
- * long after (2 s) was refused (the country fell meanwhile), and may be
- * picked again.
+ * long after (2 s, in 100 ms ticks: wwWindowTicks) was refused (the country
+ * fell meanwhile), and may be picked again.
  */
 export const PICK_WAIT_TICKS = 20;
 
 /** What the takeover card reads (a fake in tests). */
 export type TakeoverGame = NameGame &
-  Partial<Pick<GameView, "wwEconomy" | "wwLand">>;
+  Partial<Pick<GameView, "wwEconomy" | "wwLand">> &
+  WwPaceGame;
 
 export interface TakeoverRow {
   id: number;
@@ -108,11 +117,14 @@ export function takeoverCardModel(
     };
   });
   const left = Math.max(0, card.deadlineTick - game.ticks());
+  // The card's window in this game's ticks (wwRealTicks: 75 in the
+  // unlimited game), so it is 30 s either way.
+  const total = wwWindowTicks(game, WW_TAKEOVER_CARD_TICKS);
   return {
     deadlineTick: card.deadlineTick,
     rows,
-    secondsLeft: Math.ceil(left / 10),
-    fraction: Math.min(1, left / WW_TAKEOVER_CARD_TICKS),
+    secondsLeft: wwSeconds(game, left),
+    fraction: Math.min(1, left / total),
     defaultText: translateText("ww1936.takeover.default", {
       country: rows[0].name,
     }),
@@ -221,6 +233,7 @@ export class WwTakeoverCard extends LitElement implements Controller {
   tick() {
     const card = this.cardView();
     const now = this.game?.ticks() ?? 0;
+    const pace: WwPaceGame = this.game ?? {};
     const sent = this.sent;
     // The card went (taken, or its time ran out), a new one came, or the
     // engine refused the pick: the candidates come back.
@@ -228,14 +241,15 @@ export class WwTakeoverCard extends LitElement implements Controller {
       sent !== null &&
       (card === null ||
         card.deadlineTick !== sent.deadline ||
-        now - sent.tick >= PICK_WAIT_TICKS)
+        now - sent.tick >= wwWindowTicks(pace, PICK_WAIT_TICKS))
     ) {
       this.sent = null;
     }
     const key = [
       card?.deadlineTick ?? -1,
       card?.rows.map((r) => r.line + (r.war ?? "")).join("|") ?? "",
-      Math.ceil(now / 10),
+      // The second shown changes (2.5 ticks at 400 ms).
+      wwSeconds(pace, now),
       this.sent?.pick ?? 0,
     ];
     if (key.some((v, n) => v !== this.drawn[n])) {

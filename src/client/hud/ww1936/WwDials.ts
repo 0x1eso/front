@@ -1,4 +1,3 @@
-import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -33,7 +32,7 @@ import {
   politicsInput,
 } from "./PoliticsModel";
 import { WwAirLayerEvent } from "./SeaAirSelection";
-import { today, wwActive } from "./WorldWarModel";
+import { prepEndTick, today, wwActive } from "./WorldWarModel";
 import {
   OpenWwAirEvent,
   OpenWwDiplomacyEvent,
@@ -301,13 +300,7 @@ export class WwDials extends LitElement implements Controller {
       navy:
         ctx === null
           ? null
-          : navyDial(
-              ctx,
-              dayStartTick(
-                ctx.day,
-                this.game.worldWarData()?.prepEndTick ?? WW_PREP_TICKS,
-              ),
-            ),
+          : navyDial(ctx, dayStartTick(ctx.day, prepEndTick(this.game))),
       air: ctx === null ? null : airDial(ctx),
       doctrine: new DoctrineModel(this.game).dial(),
       intel: new DoctrineModel(this.game).intelDial(),

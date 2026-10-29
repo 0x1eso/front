@@ -14,7 +14,14 @@ import {
   flagUrl,
   politicsInput,
 } from "./PoliticsModel";
-import { TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
+import {
+  TWO_TAP_MS,
+  TwoTap,
+  WW_BAND_PX,
+  type WwPaceGame,
+  wwSeconds,
+  wwWindowTicks,
+} from "./WorldWarModel";
 
 /** Spec §21.6: at most this many cards open at once; the rest wait behind "+N". */
 export const MAX_SHOWN_CARDS = 2;
@@ -28,7 +35,8 @@ const TOP_GAP = 8;
 const LONG_BODY = 110;
 /**
  * A chosen option is applied on the next tick and the card goes; a card
- * still there this long after (2 s) was refused, and may be chosen again.
+ * still there this long after (2 s, in 100 ms ticks: wwWindowTicks) was
+ * refused, and may be chosen again.
  */
 export const CHOICE_WAIT_TICKS = 20;
 
@@ -124,10 +132,12 @@ export class WwEventCards extends LitElement implements Controller {
     // Forget cards that are gone (chosen, or their time ran out).
     const live = new Set(cards.map((c) => c.uid));
     const now = this.game?.ticks() ?? 0;
+    const pace: WwPaceGame = this.game ?? {};
+    const wait = wwWindowTicks(pace, CHOICE_WAIT_TICKS);
     for (const [uid, c] of [...this.chosen]) {
       // Gone: taken. Still there after a while: the engine refused it (the
       // option closed meanwhile), and the options come back.
-      if (!live.has(uid) || now - c.tick >= CHOICE_WAIT_TICKS) {
+      if (!live.has(uid) || now - c.tick >= wait) {
         this.chosen.delete(uid);
         this.requestUpdate();
       }
@@ -137,7 +147,8 @@ export class WwEventCards extends LitElement implements Controller {
     }
     const key = [
       i?.view.version ?? 0,
-      Math.ceil((this.game?.ticks() ?? 0) / 10),
+      // The second shown changes (2.5 ticks at 400 ms).
+      wwSeconds(pace, now),
       cards.length,
       // P5: the peace card above (one card under it) and its map mode.
       this.game ? peaceRole(this.game) : null,

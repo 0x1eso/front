@@ -157,9 +157,6 @@ export class ServerEnv {
     ServerEnv.publicKey = result.data.keys[0];
     return ServerEnv.publicKey;
   }
-  static turnIntervalMs(): number {
-    return 100;
-  }
   static gameCreationRate(): number {
     return ServerEnv.gameEnv === GameEnv.Dev ? 5 * 1000 : 2 * 60 * 1000;
   }

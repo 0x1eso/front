@@ -16,7 +16,7 @@ import {
   startGame,
 } from "../util/GameServerHarness";
 
-// One turn of the server clock; ServerEnv.turnIntervalMs().
+// One turn of the server clock; msPerTickOf (engine-lib/ww1936/Pace.ts).
 const TURN_MS = 100;
 
 describe("GameServer - Clan Overflow Spectator Conversion", () => {

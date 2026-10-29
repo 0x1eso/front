@@ -64,6 +64,7 @@ export function stubConfig(overrides: Partial<Config> = {}): Config {
     nukeAllianceBreakThreshold: () => 0,
     userSettings: () => ({}),
     worldWar1936: () => false,
+    msPerTick: () => 100,
     ...overrides,
   } as unknown as Config;
   return cfg;

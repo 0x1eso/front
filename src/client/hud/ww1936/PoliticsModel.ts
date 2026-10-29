@@ -68,6 +68,7 @@ import {
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
 import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   costWith,
   factionGate,
@@ -114,6 +115,7 @@ import {
   translateCountryParams,
   wwActive,
   type WwGame,
+  wwSeconds,
 } from "./WorldWarModel";
 
 /** What the politics screens read from the game (a fake in tests). */
@@ -1910,7 +1912,11 @@ export const TENSION_TICKS: readonly number[] = [25, 40, 50, 80];
 export function worldTab(i: PoliticsModelInput): WorldTab {
   const g = i.view.global;
   const wtBp = g?.wtBp ?? 0;
-  const historical = i.game.config?.().historicalAi() ?? true;
+  // As the engine's AI: it follows history until V-J Day. A fake without a
+  // config counts as on.
+  const config = i.game.config?.();
+  const historical =
+    config === undefined || historicalAiActive(config, today(i.game));
   const next = g?.nextBeatDay ?? -1;
   return {
     wtBp,
@@ -2541,7 +2547,7 @@ export function eventCardModel(
   const def = n === undefined ? null : CONTENT.events[n];
   if (def === null) return null;
   const tick = i.game.ticks();
-  const secondsLeft = Math.max(0, Math.ceil((card.deadlineTick - tick) / 10));
+  const secondsLeft = Math.max(0, wwSeconds(i.game, card.deadlineTick - tick));
   const total = Math.max(1, card.deadlineTick - card.firedTick);
   const open = new Set(card.open);
   // Spec §12.5: at the deadline the human default wins over the AI's pick;
