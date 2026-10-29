@@ -965,6 +965,28 @@ describe("zbin wire: server messages", () => {
     );
   });
 
+  it("round-trips the start of an unlimited World War 1936 game", () => {
+    const [sctx, cctx] = ctxPair();
+    const sample = SERVER_MESSAGES.find((m) => m.type === "start")!;
+    if (sample.type !== "start") throw new Error("no start sample");
+    const msg: ServerMessage = {
+      ...sample,
+      gameStartInfo: {
+        ...sample.gameStartInfo,
+        config: {
+          ...CONFIG,
+          worldWar1936: true,
+          historicalAi: true,
+          ww1936Unlimited: true,
+        },
+      },
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(msg, sctx), cctx);
+    expect(decoded).toEqual(viaJson(ServerMessageSchema, msg));
+    if (decoded.type !== "start") throw new Error("not a start message");
+    expect(decoded.gameStartInfo.config.ww1936Unlimited).toBe(true);
+  });
+
   it("keeps an empty turn under 8 bytes", () => {
     const [sctx] = ctxPair();
     const bytes = encodeServerMessage(

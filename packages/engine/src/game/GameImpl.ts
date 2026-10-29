@@ -1051,7 +1051,10 @@ export class GameImpl implements Game {
   }
 
   public elapsedGameSeconds(): number {
-    return this.ticksSinceStart() / 10;
+    // Each tick at its wall length (Config.msPerTick: longer in the unlimited
+    // World War 1936 game). Exactly ticks / 10 at 100 ms: both divisions are
+    // correctly rounded from the same exact quotient.
+    return (this.ticksSinceStart() * this.config().msPerTick()) / 1000;
   }
 
   public isNationSpawnImmunityActive(): boolean {

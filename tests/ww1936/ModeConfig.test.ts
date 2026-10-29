@@ -108,6 +108,43 @@ describe("World War 1936 settings", () => {
     expect(n.historicalAi).toBe(false);
   });
 
+  test("unlimited: no timer, and the key stays", () => {
+    const n = normalizeWorldWar1936Config(
+      testGameConfig({
+        worldWar1936: true,
+        ww1936Unlimited: true,
+        maxTimerValue: 10,
+      }),
+    );
+    expect(n.maxTimerValue).toBeUndefined();
+    expect(n.ww1936Unlimited).toBe(true);
+    expect(normalizeWorldWar1936Config(n)).toEqual(n); // idempotent
+    const cfg = new Config(
+      testGameConfig({ worldWar1936: true, ww1936Unlimited: true }),
+      false,
+    );
+    expect(cfg.maxTimerMinutes()).toBeNull();
+  });
+
+  test("timed: still 45 minutes", () => {
+    const n = normalizeWorldWar1936Config(
+      testGameConfig({ worldWar1936: true, ww1936Unlimited: false }),
+    );
+    expect(n.maxTimerValue).toBe(45);
+    expect(
+      new Config(
+        testGameConfig({ worldWar1936: true }),
+        false,
+      ).maxTimerMinutes(),
+    ).toBe(45);
+  });
+
+  test("off: the key alone changes nothing, the very same object comes back", () => {
+    const c = testGameConfig({ ww1936Unlimited: true, maxTimerValue: 10 });
+    expect(normalizeWorldWar1936Config(c)).toBe(c);
+    expect(c.maxTimerValue).toBe(10);
+  });
+
   test("applyWorldWar1936Rules edits a stored config in place", () => {
     const c = testGameConfig({ worldWar1936: true, domesticMode: true });
     applyWorldWar1936Rules(c);

@@ -57,7 +57,8 @@ export function worldWarCamps(mg: Game, ww: WorldWar): CampScore[] {
 
 /**
  * Spec §7.6: the only camp left with a living major wins at once; at the
- * time limit the best camp wins on score. Null while the game goes on.
+ * time limit the best camp wins on score (the unlimited game has none).
+ * Null while the game goes on.
  */
 export function worldWarVerdict(
   mg: Game,
@@ -69,6 +70,8 @@ export function worldWarVerdict(
   if (last !== null) {
     return { winner: campWinner(mg, last), reason: "ww_last_camp", camp: last };
   }
+  // The unlimited game has no time limit: it ends only by conquest.
+  if (mg.config().wwUnlimited()) return null;
   const minutes = mg.config().maxTimerMinutes() ?? WW_GAME_MINUTES;
   if (elapsedSeconds < minutes * 60) return null;
   const best = camps[0];

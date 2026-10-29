@@ -16,6 +16,13 @@ describe("the end of the game (spec §7.6)", () => {
     expect(win?.camp.scoreBp).toBe(3005);
   });
 
+  test("unlimited: no verdict on time while two camps live", async () => {
+    const g = (await wwRunner({ ww1936Unlimited: true })).game;
+    expect(g.config().wwUnlimited()).toBe(true);
+    expect(worldWarVerdict(g, g.worldWar()!, 45 * 60)).toBeNull();
+    expect(worldWarVerdict(g, g.worldWar()!, 10 * 3600)).toBeNull();
+  });
+
   test("the last camp with a living major wins at once, as a team with its humans", async () => {
     const { runner, updates } = await wwRunnerCapture({}, [
       { clientID: HUMAN, country: "ITA" },

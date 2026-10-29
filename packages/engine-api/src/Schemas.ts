@@ -503,6 +503,11 @@ export const GameConfigSchema = z.object({
   // World War 1936 P6 (P6 spec §9.8): the atomic bomb. The mode fills it
   // (on unless the host turned it off); nothing reads it outside the mode.
   ww1936Nukes: z.boolean().optional(),
+  // World War 1936: the unlimited game. No timer, and each tick lasts four
+  // times longer, so the war plays slower (engine-lib/ww1936/Pace.ts).
+  // Nothing reads it outside the mode. See
+  // docs/superpowers/specs/2026-10-29-ww1936-unlimited-tempo-design.md.
+  ww1936Unlimited: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

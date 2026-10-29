@@ -41,6 +41,8 @@ const COPIED_KEYS = [
   "historicalAi",
   // P6 (plan decision 21): the atomic bomb.
   "ww1936Nukes",
+  // The unlimited game (no timer, slower ticks; engine-lib/ww1936/Pace.ts).
+  "ww1936Unlimited",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a

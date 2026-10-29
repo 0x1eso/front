@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_GAME_MINUTES } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { wwUnlimited } from "./Pace";
 
 /**
  * Units the mode turns off (spec §2.2): the atom bomb returns in P6. Cities
@@ -51,7 +52,12 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
   c.bots = 0;
   c.randomSpawn = false;
   c.nations = "default";
-  c.maxTimerValue = WW_GAME_MINUTES;
+  // The unlimited game has no timer (Pace.ts); the timed one plays 45 minutes.
+  if (wwUnlimited(c)) {
+    delete c.maxTimerValue;
+  } else {
+    c.maxTimerValue = WW_GAME_MINUTES;
+  }
   c.customAllianceDuration = 0;
   c.spawnImmunityDuration = 0;
   c.historicalAi = c.historicalAi ?? true;

@@ -28,6 +28,7 @@ import {
   WARFARE_ONLY_UNITS,
 } from "../warfare/Warfare";
 import { normalizeWorldWar1936Config } from "../ww1936/ModeConfig";
+import { msPerTickOf, wwTempo, wwUnlimited } from "../ww1936/Pace";
 
 export interface NukeMagnitude {
   inner: number;
@@ -185,8 +186,9 @@ export class Config {
   cityTroopIncrease(): number {
     return 250_000;
   }
+  /** One tick's wall length: 100 ms, longer in the unlimited World War 1936 game. */
   msPerTick(): number {
-    return 100;
+    return msPerTickOf(this._gameConfig);
   }
   SAMCooldown(): number {
     return 90;
@@ -230,6 +232,16 @@ export class Config {
   /** World War 1936: nations follow the historical calendar (spec §7.4). */
   historicalAi(): boolean {
     return this.worldWar1936() && this._gameConfig.historicalAi !== false;
+  }
+
+  /** World War 1936: the unlimited game (no timer, slower ticks; Pace.ts). */
+  wwUnlimited(): boolean {
+    return wwUnlimited(this._gameConfig);
+  }
+
+  /** World War 1936: how many times longer a tick lasts (1 outside the unlimited game). */
+  wwTempo(): number {
+    return wwTempo(this._gameConfig);
   }
 
   /** Land share (percent) that wins by conquest, before any overtime drop. */
