@@ -13,6 +13,7 @@ import {
   WW_COST,
   WW_MAX_FACTIONS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   costWith,
   factionGate,
@@ -410,8 +411,8 @@ export function callToArms(
   const f = idx < 0 ? null : pol.faction(idx);
   if (f === null) return;
   const to = f.leader === a ? f.members.filter((m) => m !== a) : [f.leader];
-  const historical = pol.mg.config().historicalAi();
   const day = pol.day();
+  const historical = historicalAiActive(pol.mg.config(), day);
   for (const m of to) {
     if (m === b || !pol.living(m) || pol.ww.isAtWar(m, b)) continue;
     if (pol.sameFaction(m, b)) continue;
@@ -460,7 +461,7 @@ export function callToArmsChoice(
   target: number,
 ): string {
   const day = pol.day();
-  if (pol.mg.config().historicalAi()) {
+  if (historicalAiActive(pol.mg.config(), day)) {
     return warBeatDue(pol, to, target, day) ? "a" : "b";
   }
   const leader = pol.faction(pol.factionIdx(to))?.leader ?? 0;

@@ -21,6 +21,10 @@ import {
   WW_TRIGGER_CHECK_DAYS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
+  historicalAiActive,
+  wwRealTicks,
+} from "@openfront/engine-lib/ww1936/Pace";
+import {
   aiWeight,
   idHash,
   P_DELAY,
@@ -73,7 +77,7 @@ export function aiChooseOption(
       : 0;
   };
   const hist = e.options.findIndex((o, i) => o.history === true && open[i]);
-  if (pol.mg.config().historicalAi() && hist >= 0) {
+  if (historicalAiActive(pol.mg.config(), day) && hist >= 0) {
     if (roll % 100 < (e.historyPct ?? WW_HISTORY_EVENT_PCT)) {
       return e.options[hist].id;
     }
@@ -198,10 +202,13 @@ export function deliverEvent(
         option: old.aiOption,
       });
     }
-    const timeout =
+    // Its real 20 / 30 s at the game's pace (Pace: fewer, longer ticks unlimited).
+    const timeout = wwRealTicks(
+      pol.mg.config().gameConfig(),
       e.timeoutSec === 30
         ? WW_EVENT_TIMEOUT_LONG_TICKS
-        : WW_EVENT_TIMEOUT_TICKS;
+        : WW_EVENT_TIMEOUT_TICKS,
+    );
     const p: PendingEvent = {
       uid: pol.nextUid++,
       eventId: e.id,

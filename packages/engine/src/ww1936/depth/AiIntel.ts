@@ -117,7 +117,7 @@ function aiFound(d: WwDepth, id: number, day: number): boolean {
 /** A major's founding day. */
 export function foundDay(d: WwDepth, id: number): number {
   const tag = d.ww.tagOf(id);
-  if (d.mg.config().historicalAi() === true) {
+  if (d.ww.historicalAiNow()) {
     const row = d.ww.politics.content.agencyStarts.find((r) => r.tag === tag);
     if (row !== undefined) return dayOfDate(row.date);
   }
@@ -358,7 +358,7 @@ function aiOperation(d: WwDepth, id: number, free: Operative[]): void {
     const leader = techLeader(d, id);
     if (leader > 0) tries.push(["op_steal_blueprints", leader]);
     // Spec §19.5: never with historical AI (no regime change history lacks).
-    if (d.mg.config().historicalAi() !== true) {
+    if (!ww.historicalAiNow()) {
       const me = ww.politics.country(id);
       for (const t of [topThreat(d, id), leader]) {
         const tc = ww.politics.country(t);

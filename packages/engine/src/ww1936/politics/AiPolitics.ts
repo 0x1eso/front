@@ -42,6 +42,7 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   costWith,
   factionGate,
@@ -173,7 +174,7 @@ export function aiPoliticsTick(
   if (c === null || !pol.living(id)) return;
   if ((day + id) % AI_POLITICS_PERIOD_DAYS === 0) {
     const persona = aiPersonality(c.tag);
-    const historical = pol.mg.config().historicalAi();
+    const historical = historicalAiActive(pol.mg.config(), day);
     const budget = new Budget(pol, id, day);
     if (historical) aiHistoryGuarantees(pol, c, budget, day, tick);
     aiAdvisor(pol, c, persona, budget, day, tick);
@@ -1182,7 +1183,7 @@ export function aiWarDecision(
   const idx = pol.factionIdx(id);
   const mates = idx < 0 ? [] : pol.factionMembers(idx).filter((m) => m !== id);
   if (fightsMajorAlone(pol, id, mates)) return 0;
-  const historical = pol.mg.config().historicalAi();
+  const historical = historicalAiActive(pol.mg.config(), day);
   const need = AI_WAR_SCORE_PM[aiPersonality(c.tag)];
   for (const g of [...c.warGoals]) {
     const t = g.on;

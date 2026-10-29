@@ -25,6 +25,7 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { declareWar, declareWarBlock, joinWar } from "../Diplomacy";
 import { forceFocusNext } from "./AiFocus";
 import { AI_BEAT_WAIT_DAYS, aiBeatReady } from "./AiPolitics";
@@ -44,6 +45,20 @@ const DIPLO_ORDER = {
 
 /** Spec §18.2: every beat due by `day`, in table order; only an AI actor acts. */
 export function runBeats(pol: WwPolitics, day: number, tick: number): void {
+  // From V-J Day the AI plays free (Pace): every beat not done stands down
+  // as skipped — the state a game without historical AI rolls, which every
+  // reader of pending beats drops. Done beats stay done. Keyed to the date
+  // (a timed game ends before it); without historical AI a no-op.
+  if (!historicalAiActive(pol.mg.config(), day)) {
+    let changed = false;
+    for (const s of pol.beats) {
+      if (s.done || s.skipped) continue;
+      s.skipped = true;
+      changed = true;
+    }
+    if (changed) pol.markGlobal();
+    return;
+  }
   pol.content.beats.forEach((b, i) => {
     const s = pol.beats[i];
     if (s === undefined || s.done || s.skipped || s.fireDay > day) return;

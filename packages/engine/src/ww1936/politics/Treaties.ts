@@ -411,7 +411,7 @@ export function diploEventChoice(
   if (eventId === "gen_guarantee_called") return "a";
   const kind = ASK_OF[eventId];
   if (kind === undefined) return null;
-  if (pol.mg.config().historicalAi() && historyAsks(pol, kind, from, to)) {
+  if (pol.ww.historicalAiNow() && historyAsks(pol, kind, from, to)) {
     return "a";
   }
   return aiAcceptScore(pol, kind, from, to) >= 50 ? "a" : "b";

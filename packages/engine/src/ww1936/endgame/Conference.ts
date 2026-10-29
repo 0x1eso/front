@@ -36,6 +36,7 @@ import {
   sharePm,
   turnOrder,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import {
   CLAIM_ONLY_GROUPS,
   demandKindIndex,
@@ -87,6 +88,10 @@ export const REGION_KINDS: ReadonlySet<number> = new Set(
 export const ARMS_LIMIT_SPIRIT = "gen_arms_limit";
 
 const asc = (a: number, b: number) => a - b;
+
+/** A round's real 30 s at the game's pace (Pace: fewer, longer ticks unlimited). */
+const roundTicks = (eg: WwEndgame) =>
+  wwRealTicks(eg.mg.config().gameConfig(), WW_PEACE_ROUND_TICKS);
 
 // A war's end (Wars.checkWarEnds) opens conferences and hands civil and
 // independence wars to their lanes through these (Wars.ts stays light).
@@ -357,7 +362,7 @@ export function openConference(
     status: busy ? 0 : 1,
     doneDay: -1,
     round: 1,
-    roundEndTick: tick + WW_PEACE_ROUND_TICKS,
+    roundEndTick: tick + roundTicks(eg),
     openTick: tick,
     subs: [],
     ai: [],
@@ -530,7 +535,7 @@ export function stepConferences(eg: WwEndgame, tick: number): void {
     if (next !== undefined) {
       next.status = 1;
       next.round = 1;
-      next.roundEndTick = tick + WW_PEACE_ROUND_TICKS;
+      next.roundEndTick = tick + roundTicks(eg);
       next.subs = [];
       refreshAi(eg, next);
       eg.dirtyConf = true;
@@ -547,7 +552,7 @@ function closeRound(eg: WwEndgame, c: Conference, tick: number): void {
     return;
   }
   c.round++;
-  c.roundEndTick = tick + WW_PEACE_ROUND_TICKS;
+  c.roundEndTick = tick + roundTicks(eg);
   c.subs = [];
   refreshAi(eg, c);
   for (const p of c.parts) {

@@ -129,8 +129,11 @@ const SHIP_COLS = {
   refitTo: Uint8Array,
   /** Refit days left; a ship with > 0 stays in port like a repair. */
   refitLeft: Int16Array,
-  /** P6 (plan decision 12): the day its battle last fed the doctrine tally; -1: never. */
-  tallyDay: Int16Array,
+  /**
+   * P6 (plan decision 12): the day its battle last fed the doctrine tally;
+   * -1: never. 32-bit: an unlimited game passes day 32,767.
+   */
+  tallyDay: Int32Array,
 } as const;
 type ShipColumn = keyof typeof SHIP_COLS;
 const SHIP_COLUMNS = Object.keys(SHIP_COLS) as ShipColumn[];
@@ -162,7 +165,7 @@ export class ShipTable {
   design = new Uint8Array(0);
   refitTo = new Uint8Array(0);
   refitLeft = new Int16Array(0);
-  tallyDay = new Int16Array(0);
+  tallyDay = new Int32Array(0);
   /** WW_PLANE_DESIGN_SLOTS per row: carrier planes of each plane design slot. */
   deckD = new Int32Array(0);
   /** Derived (DERIVED_FIELDS): ship id → row. */

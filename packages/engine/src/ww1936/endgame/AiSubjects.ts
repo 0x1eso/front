@@ -109,7 +109,7 @@ function aiOverlord(eg: WwEndgame, id: number, tick: number): void {
 
 /** With historical AI: a pending history beat on the overlord's annexation or on the subject holds the annexation back. */
 function annexHeld(eg: WwEndgame, o: number, subject: number): boolean {
-  if (!eg.mg.config().historicalAi()) return false;
+  if (!eg.ww.historicalAiNow()) return false;
   const pol = eg.ww.politics;
   if (beatPending(pol, o, "gen_annex_subject")) return true;
   const tag = pol.tagOf(subject);

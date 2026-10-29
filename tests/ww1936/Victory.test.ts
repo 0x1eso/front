@@ -23,20 +23,27 @@ describe("the end of the game (spec §7.6)", () => {
     expect(worldWarVerdict(g, g.worldWar()!, 10 * 3600)).toBeNull();
   });
 
-  test("the last camp with a living major wins at once, as a team with its humans", async () => {
-    const { runner, updates } = await wwRunnerCapture({}, [
-      { clientID: HUMAN, country: "ITA" },
-    ]);
-    const g = runner.game;
-    const ww = g.worldWar()!;
-    step(runner);
-    for (const tag of ["GBR", "FRA", "SUN"] as const) {
-      ww.addCapitulation(byTag(g, tag).smallID(), 0, g.ticks());
-    }
-    step(runner, 10);
-    expect(g.getWinner()).toBe("axis");
-    const win = updates.flatMap((u) => u.updates[GameUpdateType.Win])[0];
-    expect(win.winner).toEqual(["team", "axis", HUMAN]);
-    expect(win.reason).toBe("ww_last_camp");
-  });
+  test.each([
+    ["timed", {}],
+    ["unlimited", { ww1936Unlimited: true }],
+  ])(
+    "%s: the last camp with a living major wins at once, as a team with its humans",
+    async (name, config) => {
+      const { runner, updates } = await wwRunnerCapture(config, [
+        { clientID: HUMAN, country: "ITA" },
+      ]);
+      expect(runner.game.config().wwUnlimited()).toBe(name === "unlimited");
+      const g = runner.game;
+      const ww = g.worldWar()!;
+      step(runner);
+      for (const tag of ["GBR", "FRA", "SUN"] as const) {
+        ww.addCapitulation(byTag(g, tag).smallID(), 0, g.ticks());
+      }
+      step(runner, 10);
+      expect(g.getWinner()).toBe("axis");
+      const win = updates.flatMap((u) => u.updates[GameUpdateType.Win])[0];
+      expect(win.winner).toEqual(["team", "axis", HUMAN]);
+      expect(win.reason).toBe("ww_last_camp");
+    },
+  );
 });

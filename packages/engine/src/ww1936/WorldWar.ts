@@ -16,6 +16,10 @@ import {
 import { zInt, zTiles } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
+import {
+  historicalAiActive,
+  wwRealTicks,
+} from "@openfront/engine-lib/ww1936/Pace";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
@@ -87,7 +91,8 @@ export class WorldWar {
   private _transfers: Transfer[] = [];
   /** By smallID: the capitulation gauge, 0..WW_CAPITULATION_DAYS - 1. */
   private _gauge: number[];
-  private _prepEndTick = WW_PREP_TICKS;
+  /** Set in the constructor (the game's pace); a snapshot restore overrides it. */
+  private _prepEndTick: number;
   private _lastDay = -1;
   /** Not state (DERIVED_FIELDS): whether the screens need an update. */
   private dataDirty = true;
@@ -115,6 +120,10 @@ export class WorldWar {
     private readonly mg: Game,
     readonly scenario: ScenarioIndex,
   ) {
+    // The preparation minute keeps its real 60 s at the game's pace (Pace:
+    // a quarter of the ticks in the unlimited game). First: the phases'
+    // constructors may read the day.
+    this._prepEndTick = wwRealTicks(mg.config().gameConfig(), WW_PREP_TICKS);
     this.size = scenario.countries.length + 1;
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
@@ -188,6 +197,15 @@ export class WorldWar {
 
   day(tick: number): number {
     return dayIndex(tick, this._prepEndTick);
+  }
+
+  /**
+   * The historical AI steers the AI countries now: on in the lobby and
+   * before V-J Day (Pace.historicalAiActive); from 1945-09-02 the AI plays
+   * free. Derived from the day, so no snapshot state.
+   */
+  historicalAiNow(): boolean {
+    return historicalAiActive(this.mg.config(), this.day(this.mg.ticks()));
   }
 
   tagOf(smallID: number): CountryTag {

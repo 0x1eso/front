@@ -40,6 +40,7 @@ import {
   idleOrder,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { recruitableMen } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { returnDivisionEquip, returnEquip } from "../economy/Stock";
 import { leaveBattle } from "../land/Battles";
 import { capitalRegion } from "../land/LandStartRun";
@@ -738,7 +739,9 @@ export function offerTakeover(
     client,
     from: fromSmallID,
     candidates,
-    deadlineTick: tick + WW_TAKEOVER_CARD_TICKS,
+    // Its real 30 s at the game's pace (Pace: fewer, longer ticks unlimited).
+    deadlineTick:
+      tick + wwRealTicks(eg.mg.config().gameConfig(), WW_TAKEOVER_CARD_TICKS),
     pick: 0,
   });
   eg.takeoverCards.sort((a, b) =>

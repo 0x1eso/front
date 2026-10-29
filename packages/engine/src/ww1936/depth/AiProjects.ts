@@ -211,9 +211,7 @@ export function aiProjectsDay(d: WwDepth, id: number, day: number): void {
 // ---- Projects ----
 
 function historical(d: WwDepth, id: number): boolean {
-  return (
-    d.mg.config().historicalAi() === true && HISTORY_TAGS.has(d.ww.tagOf(id))
-  );
+  return d.ww.historicalAiNow() && HISTORY_TAGS.has(d.ww.tagOf(id));
 }
 
 /** What the country wants now: the beats' flags (historical majors) or its industry. */

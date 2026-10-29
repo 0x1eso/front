@@ -114,7 +114,8 @@ function roleMajor(d: WwDepth, id: number, ce: CountryEconomy): boolean {
  * (review E10; the owner's rule: history is flavour).
  */
 function historical(d: WwDepth): boolean {
-  return d.mg.config().historicalAi() === true;
+  // From V-J Day the free AI's designs (Pace).
+  return d.ww.historicalAiNow();
 }
 
 /** The (base, role) pairs the AI keeps a tank design of. */

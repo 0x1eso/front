@@ -8,6 +8,7 @@ import {
   WW_BEAT_MAX_SKIP_AHEAD,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { inTree } from "@openfront/engine-lib/ww1936/content/registry";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   aiWeight,
   P_FOCUS,
@@ -155,7 +156,7 @@ export function aiPickFocus(
   const startable = (fid: FocusId) =>
     focusBlock(pol, id, fid, false) === null &&
     !holds(ctx, focusDef(pol, fid)!.cancelIf);
-  if (pol.mg.config().historicalAi()) {
+  if (historicalAiActive(pol.mg.config(), day)) {
     let blocked = 0;
     for (const fid of historyPath(pol, c)) {
       if (focusDef(pol, fid) === undefined || focusFinished(pol, c, fid)) {
