@@ -147,6 +147,13 @@ describe("GameServer: an unlimited game's duration cap", () => {
     expect(game.pastMaxDuration()).toBe(true);
   });
 
+  it("an unlimited lobby that never started ends after 3 hours", () => {
+    const { game } = lobby(UNLIMITED);
+    vi.setSystemTime(T0 + 3 * HOUR + 1000);
+    expect(game.hasStarted()).toBe(false);
+    expect(game.pastMaxDuration()).toBe(true);
+  });
+
   it("a timed World War 1936 game still ends after 3 hours", () => {
     const game = startedAt(TIMED);
     vi.setSystemTime(T0 + 3 * HOUR + 1000);

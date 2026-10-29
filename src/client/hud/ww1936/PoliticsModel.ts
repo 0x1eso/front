@@ -68,6 +68,7 @@ import {
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
 import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   costWith,
   factionGate,
@@ -1911,7 +1912,11 @@ export const TENSION_TICKS: readonly number[] = [25, 40, 50, 80];
 export function worldTab(i: PoliticsModelInput): WorldTab {
   const g = i.view.global;
   const wtBp = g?.wtBp ?? 0;
-  const historical = i.game.config?.().historicalAi() ?? true;
+  // As the engine's AI: it follows history until V-J Day. A fake without a
+  // config counts as on.
+  const config = i.game.config?.();
+  const historical =
+    config === undefined || historicalAiActive(config, today(i.game));
   const next = g?.nextBeatDay ?? -1;
   return {
     wtBp,

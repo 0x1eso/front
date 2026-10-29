@@ -15,7 +15,7 @@ import type {
   Condition,
   Effect,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { lawBlock } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipNameList } from "@openfront/engine-lib/ww1936/ShipNames";
@@ -40,6 +40,7 @@ import {
   politicsDial,
   politicsInput,
   politicsParams,
+  worldTab,
 } from "../../../src/client/hud/ww1936/PoliticsModel";
 import {
   diplomacyModel,
@@ -806,6 +807,21 @@ describe("PoliticsModel (P3 spec §21)", () => {
     expect(m.nextHistory).toBe(
       "[ww1936.date] year=1939,month=[ww1936.month.m09],day=1",
     );
+  });
+
+  it("the world tab's history hint ends on V-J Day, as the engine's historical AI does", () => {
+    // historicalAiActive: on until day 3,532 (1945-09-02).
+    expect(dayOfDate("1945-09-02")).toBe(3532);
+    const at = (day: number) =>
+      worldTab(
+        input({
+          ticks: dayStartTick(day, 600),
+          polSummaries: [polSummary("DEU")],
+          global: { nextBeatDay: 3540 },
+        }).i,
+      ).nextBeat;
+    expect(at(3531)).toContain("[ww1936.diplo.world.next_beat]");
+    expect(at(3532)).toBeNull();
   });
 
   it("the region line names the legal owner when someone else holds it", () => {

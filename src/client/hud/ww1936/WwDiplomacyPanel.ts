@@ -1,5 +1,6 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -777,8 +778,10 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     const m = diplomacyModel(this.game);
     const camps = m.camps.filter((c, n) => n < SHOWN_CAMPS || c.mine);
     const w = i === null ? null : worldTab(i);
+    // As the engine's AI: it follows history until V-J Day.
     const nextBeat =
-      m.nextHistory !== null && this.game.config().historicalAi()
+      m.nextHistory !== null &&
+      historicalAiActive(this.game.config(), today(this.game))
         ? translateText("ww1936.diplo.world.next_beat", {
             date: m.nextHistory,
           })

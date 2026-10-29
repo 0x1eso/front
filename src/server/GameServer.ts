@@ -227,8 +227,8 @@ export class GameServer {
   private readonly ingress: SocketIngress;
 
   private maxGameDuration = 3 * 60 * 60 * 1000; // 3 hours
-  // World War 1936, the unlimited game: four times slower, it reaches 1945
-  // at about 3 hours and has no timer after that.
+  // World War 1936, the unlimited game once started: four times slower, it
+  // reaches 1945 at about 3 hours and has no timer after that.
   private unlimitedMaxGameDuration = 24 * 60 * 60 * 1000; // 24 hours
 
   private disconnectedTimeout = 1 * 30 * 1000; // 30 seconds
@@ -1720,13 +1720,15 @@ export class GameServer {
         : null;
   }
 
-  // The cap every game ends at, however it is going: 3 hours, 24 for an
-  // unlimited World War 1936 game. Exposed so GameManager can log the
-  // timeout once, where it prunes the game.
+  // The cap every game ends at, however it is going: 3 hours, 24 once an
+  // unlimited World War 1936 game has started (its lobby still gets 3).
+  // Exposed so GameManager can log the timeout once, where it prunes the
+  // game.
   pastMaxDuration(): boolean {
-    const cap = wwUnlimited(this.gameConfig)
-      ? this.unlimitedMaxGameDuration
-      : this.maxGameDuration;
+    const cap =
+      this.hasStarted() && wwUnlimited(this.gameConfig)
+        ? this.unlimitedMaxGameDuration
+        : this.maxGameDuration;
     return Date.now() > this.createdAt + cap;
   }
 
