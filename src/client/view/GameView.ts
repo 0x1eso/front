@@ -1101,7 +1101,10 @@ export class GameView implements GameLike {
   }
 
   elapsedGameSeconds(): number {
-    return this.ticksSinceStart() / 10;
+    // As the engine's GameImpl: each tick at its wall length (Config.msPerTick:
+    // longer in the unlimited World War 1936 game). Exactly ticks / 10 at
+    // 100 ms.
+    return (this.ticksSinceStart() * this._config.msPerTick()) / 1000;
   }
 
   ticksSinceStart(): Tick {

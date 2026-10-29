@@ -114,6 +114,7 @@ import {
   translateCountryParams,
   wwActive,
   type WwGame,
+  wwSeconds,
 } from "./WorldWarModel";
 
 /** What the politics screens read from the game (a fake in tests). */
@@ -2541,7 +2542,7 @@ export function eventCardModel(
   const def = n === undefined ? null : CONTENT.events[n];
   if (def === null) return null;
   const tick = i.game.ticks();
-  const secondsLeft = Math.max(0, Math.ceil((card.deadlineTick - tick) / 10));
+  const secondsLeft = Math.max(0, wwSeconds(i.game, card.deadlineTick - tick));
   const total = Math.max(1, card.deadlineTick - card.firedTick);
   const open = new Set(card.open);
   // Spec §12.5: at the deadline the human default wins over the AI's pick;

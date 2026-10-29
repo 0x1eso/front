@@ -16,7 +16,9 @@ import {
   DeclareWarBlock,
   WW_PREP_TICKS,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { dateOfDay, dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
+import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import {
   CampScore,
   campScores,
@@ -57,6 +59,35 @@ export type WwGame = Pick<
   | "numLandTiles"
 > &
   Partial<Pick<GameView, "wwPolitics" | "wwEndgame">>;
+
+/**
+ * What a countdown reads for the game's pace: the config's tick length
+ * (msPerTick) and its GameConfig. A screen's fake may carry no config, or
+ * only part of one: a tick is then the usual 100 ms.
+ */
+export interface WwPaceGame {
+  config?: () => Partial<Config>;
+}
+
+/**
+ * `ticks` as whole seconds, rounded up, at the game's tick length
+ * (Config.msPerTick: 400 ms in the unlimited game, else 100). At 100 ms
+ * exactly Math.ceil(ticks / 10).
+ */
+export function wwSeconds(game: WwPaceGame, ticks: number): number {
+  const msPerTick = game.config?.().msPerTick?.() ?? 100;
+  return Math.ceil((ticks * msPerTick) / 1000);
+}
+
+/**
+ * A human window the engine writes in 100 ms ticks (WW_PREP_TICKS,
+ * WW_PEACE_ROUND_TICKS…), in this game's ticks: wwRealTicks, a quarter of
+ * them in the unlimited game, so it keeps its real seconds.
+ */
+export function wwWindowTicks(game: WwPaceGame, ticks: number): number {
+  const gc = game.config?.().gameConfig?.();
+  return gc === undefined ? ticks : wwRealTicks(gc, ticks);
+}
 
 export function countryName(tag: CountryTag): string {
   return translateText(`ww1936.country.${tag}`);
@@ -156,17 +187,23 @@ export function dateLabel(day: number): string {
   });
 }
 
-function prepEnd(game: WwGame): number {
-  return game.worldWarData()?.prepEndTick ?? WW_PREP_TICKS;
+/**
+ * The tick the preparation minute ends: the engine's, or before its data
+ * arrives where the engine puts it (wwRealTicks of WW_PREP_TICKS).
+ */
+export function prepEndTick(
+  game: Pick<WwGame, "worldWarData"> & WwPaceGame,
+): number {
+  return game.worldWarData()?.prepEndTick ?? wwWindowTicks(game, WW_PREP_TICKS);
 }
 
-export function today(game: WwGame): number {
-  return dayIndex(game.ticks(), prepEnd(game));
+export function today(game: WwGame & WwPaceGame): number {
+  return dayIndex(game.ticks(), prepEndTick(game));
 }
 
 /** Whole seconds of the preparation minute left; 0 once it is over. */
-export function prepSecondsLeft(game: WwGame): number {
-  return Math.max(0, Math.ceil((prepEnd(game) - game.ticks()) / 10));
+export function prepSecondsLeft(game: WwGame & WwPaceGame): number {
+  return Math.max(0, wwSeconds(game, prepEndTick(game) - game.ticks()));
 }
 
 /** smallIDs at war with `smallID`, in the order the wars began. */

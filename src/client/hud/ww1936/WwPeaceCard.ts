@@ -65,7 +65,14 @@ import {
   regionsText,
   whyText,
 } from "./PeaceModel";
-import { TWO_TAP_MS, TwoTap, WW_BAND_PX } from "./WorldWarModel";
+import {
+  TWO_TAP_MS,
+  TwoTap,
+  WW_BAND_PX,
+  type WwPaceGame,
+  wwSeconds,
+  wwWindowTicks,
+} from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 
 /** The card's width: the event cards' (spec §20.1). */
@@ -92,6 +99,22 @@ function compactScreen(): boolean {
   return (
     typeof window !== "undefined" && window.innerHeight <= COMPACT_MAX_HEIGHT
   );
+}
+
+/**
+ * A round's time bar (1 → 0) and its whole seconds left, `ticksLeft` ticks
+ * before the deadline. The round is WW_PEACE_ROUND_TICKS in this game's
+ * ticks (wwRealTicks: 75 in the unlimited game), so it is 30 s either way.
+ */
+export function peaceTimeLeft(
+  game: WwPaceGame,
+  ticksLeft: number,
+): { fraction: number; seconds: number } {
+  const total = wwWindowTicks(game, WW_PEACE_ROUND_TICKS);
+  return {
+    fraction: Math.min(ticksLeft, total) / total,
+    seconds: wwSeconds(game, ticksLeft),
+  };
 }
 
 /**
@@ -255,7 +278,8 @@ export class WwPeaceCard extends LitElement implements Controller {
     const key = [
       confRevision(conf),
       ui.version,
-      Math.ceil(game.ticks() / 10),
+      // The second shown changes (2.5 ticks at 400 ms).
+      wwSeconds(game, game.ticks()),
       this.result?.until ?? 0,
       game.wwLand?.()?.version ?? 0,
       compactScreen(),
@@ -464,11 +488,9 @@ export class WwPeaceCard extends LitElement implements Controller {
   }
 
   private timeBar(m: PeaceModel): TemplateResult {
-    const left = m.ticksLeft(this.game.ticks());
-    const pct = Math.round(
-      (Math.min(left, WW_PEACE_ROUND_TICKS) * 100) / WW_PEACE_ROUND_TICKS,
-    );
-    const s = Math.ceil(left / 10);
+    const time = peaceTimeLeft(this.game, m.ticksLeft(this.game.ticks()));
+    const pct = Math.round(time.fraction * 100);
+    const s = time.seconds;
     return html`<div class="flex items-center gap-2">
       <div class="h-1 min-w-0 flex-1 rounded bg-white/10">
         <div
