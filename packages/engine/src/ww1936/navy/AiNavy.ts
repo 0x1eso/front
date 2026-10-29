@@ -39,6 +39,7 @@ import {
   predictNaval,
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   idHash,
   P_AI_NAVY,
@@ -749,7 +750,7 @@ export function activeBeatTargets(
 ): Set<number> {
   const out = new Set<number>();
   const mg = navy.mg;
-  if (mg.config().historicalAi() !== true) return out;
+  if (!historicalAiActive(mg.config(), day)) return out;
   const p = mg.playerBySmallID(smallID);
   // P5 plan decision 7: a human controls it now.
   if (!p.isPlayer() || navy.ww.isHumanControlled(smallID)) return out;

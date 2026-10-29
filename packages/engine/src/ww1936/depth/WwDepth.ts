@@ -651,6 +651,7 @@ export class WwDepth implements LandDepthHooks {
    */
   private startAiDoctrines(): void {
     const content = this.ww.politics.content;
+    // Day 0, once: the lobby setting as is (not historicalAiNow; Pace).
     const historical = this.mg.config().historicalAi() === true;
     const econ = this.ww.economy;
     for (let id = 1; id < this.cap; id++) {

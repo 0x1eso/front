@@ -33,6 +33,7 @@ import {
   staticGenResearched,
   staticKeyYear,
 } from "@openfront/engine-lib/ww1936/MarketRules";
+import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { tradePaidCivs } from "../economy/Trade";
 import { opinionOf } from "../politics/Treaties";
 import { aiRetoolStopped } from "./AiMarket";
@@ -372,7 +373,9 @@ export function requestLicence(
       to: from,
       key,
       ship,
-      deadlineTick: tick + LICENCE_CARD_TICKS,
+      // Its real 20 s at the game's pace (Pace: fewer, longer ticks unlimited).
+      deadlineTick:
+        tick + wwRealTicks(d.mg.config().gameConfig(), LICENCE_CARD_TICKS),
     });
     d.markGlobal();
     return null;

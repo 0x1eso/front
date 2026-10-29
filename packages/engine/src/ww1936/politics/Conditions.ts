@@ -12,6 +12,7 @@ import {
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { conditionLeaves } from "@openfront/engine-lib/ww1936/Describe";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   replacedInTree,
   treePosIn,
@@ -108,7 +109,8 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
     case "date_lt":
       return ctx.day < dayOfDate(c.date);
     case "historical_ai":
-      return pol.mg.config().historicalAi();
+      // False from V-J Day: the AI plays free (Pace).
+      return historicalAiActive(pol.mg.config(), ctx.day);
     case "gflag":
       return pol.gflags.has(c.flag);
     case "wt_ge":

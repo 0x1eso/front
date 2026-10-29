@@ -40,6 +40,7 @@ export class WorldWarExecution implements Execution {
     const ww = mg.worldWar();
     // Plan decision 2: P0's stateful roll is gone; politics rolls once from the seed.
     if (ww !== null && !ww.politics.rolled()) {
+      // Day 0, once: the lobby setting as is (not historicalAiNow; Pace).
       ww.politics.roll(this.seed + 1, mg.config().historicalAi());
     }
     // P4 (pre-flight A14): the naval and air beats, once, the same seed base.

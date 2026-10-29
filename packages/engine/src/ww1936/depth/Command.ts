@@ -47,6 +47,7 @@ import {
   traitSlots,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { canServe, TERRAIN_TRAITS } from "../land/GeneralsRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
@@ -174,7 +175,7 @@ function keepMarshal(
   const rowEnds =
     key !== undefined &&
     !d.ww.isHumanControlled(id) &&
-    d.mg.config().historicalAi() === true &&
+    historicalAiActive(d.mg.config(), day) &&
     d.ww.politics.content.startFieldMarshals.some(
       (r) =>
         r.tag === tag &&

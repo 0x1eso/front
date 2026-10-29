@@ -24,6 +24,7 @@ import {
   coveragePct,
   integrateCostPp,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { templateXpCost } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { aiPersonality } from "../economy/AiEconomy";
 import { aiBorderDemand } from "../land/AiLand";
@@ -118,7 +119,7 @@ function historicalLaw(
   of: number,
   day: number,
 ): OccupationLaw | null {
-  if (eg.mg.config().historicalAi() !== true) return null;
+  if (!historicalAiActive(eg.mg.config(), day)) return null;
   const sc = eg.ww.scenario;
   for (const row of eg.ww.politics.content.occupationDefaults) {
     if (sc.smallIdOf(row.by) !== id || sc.smallIdOf(row.of) !== of) continue;

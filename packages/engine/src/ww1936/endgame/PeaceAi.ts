@@ -277,7 +277,7 @@ function historyLines(
   p: number,
 ): { L: number; dd: PeaceDefaultDemand }[] {
   const pol = eg.ww.politics;
-  if (!eg.mg.config().historicalAi()) return [];
+  if (!eg.ww.historicalAiNow()) return [];
   const out: { L: number; dd: PeaceDefaultDemand }[] = [];
   for (const L of c.losers) {
     const tag = pol.tagOf(L);

@@ -41,6 +41,7 @@ import {
   startDoctrinePick,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { aiPersonality } from "../economy/AiEconomy";
 import { canServe } from "../land/GeneralsRun";
@@ -164,7 +165,9 @@ export function startDoctrineFor(d: WwDepth, id: number): void {
     table: d.ww.politics.content.startDoctrines,
     tag,
     personality: aiPersonality(tag),
-    historical: d.mg.config().historicalAi() === true,
+    // In play (a slot woken or a country handed over at any day): from
+    // V-J Day the free AI's pick (Pace).
+    historical: d.ww.historicalAiNow(),
     navy:
       ce !== null &&
       ce.totals.dock >= 3 &&
@@ -287,7 +290,7 @@ function fmTraitFor(d: WwDepth, id: number, have: number): number {
 function aiMarshals(d: WwDepth, id: number, day: number): void {
   const land = d.ww.land;
   const cl = land.country(id)!;
-  if (d.mg.config().historicalAi() === true) {
+  if (historicalAiActive(d.mg.config(), day)) {
     const tag = d.ww.tagOf(id);
     const rows = d.ww.politics.content.startFieldMarshals.filter(
       (r) =>

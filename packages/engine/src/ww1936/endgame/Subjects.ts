@@ -15,6 +15,7 @@ import {
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { autonomyDelta } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, P_EVT, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import {
   autonomyAfter,
@@ -395,7 +396,10 @@ function aiAnswersCall(
 ): boolean {
   const pol = eg.ww.politics;
   const day = pol.day();
-  if (eg.mg.config().historicalAi() && warBeatDue(pol, id, enemy, day)) {
+  if (
+    historicalAiActive(eg.mg.config(), day) &&
+    warBeatDue(pol, id, enemy, day)
+  ) {
     return true;
   }
   return subjectCallRoll(eg, id, day) < pct;
@@ -785,10 +789,9 @@ export function upgradeChoice(
   eventId: string,
   self: number,
 ): string | null {
-  if (eventId !== "gen_subject_upgrade" || !eg.mg.config().historicalAi()) {
-    return null;
-  }
+  if (eventId !== "gen_subject_upgrade") return null;
   const day = eg.ww.politics.day();
+  if (!historicalAiActive(eg.mg.config(), day)) return null;
   const roll = wwRoll(eg.ww.politics.seed, P_EVT, idHash(eventId), self, day);
   return (roll >>> 8) % (100 + HISTORICAL_GRANT_BONUS) <
     70 + HISTORICAL_GRANT_BONUS

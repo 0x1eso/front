@@ -131,8 +131,11 @@ const COLS = {
   lossMen: Int32Array,
   /** Last day it fought (experience, generals, army XP); -1: never. */
   lastFight: Int32Array,
-  /** P6 (plan decision 12): the day its combat last fed the doctrine tally; -1: never. */
-  tallyDay: Int16Array,
+  /**
+   * P6 (plan decision 12): the day its combat last fed the doctrine tally;
+   * -1: never. 32-bit: an unlimited game passes day 32,767.
+   */
+  tallyDay: Int32Array,
 } as const;
 export type DivisionColumn = keyof typeof COLS;
 export const DIVISION_COLUMNS = Object.keys(COLS) as DivisionColumn[];
@@ -174,7 +177,7 @@ export class DivisionTable {
   front = new Uint8Array(0);
   lossMen = new Int32Array(0);
   lastFight = new Int32Array(0);
-  tallyDay = new Int16Array(0);
+  tallyDay = new Int32Array(0);
   /** GROUND_SLOTS per row, GROUND_EQUIP_KEYS order. */
   equip = new Int32Array(0);
   /** Milli-units of equipment lost but not yet taken (spec §5.5). */

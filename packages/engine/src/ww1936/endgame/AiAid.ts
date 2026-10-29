@@ -420,7 +420,7 @@ export function aiLendLease(eg: WwEndgame, id: number, day: number): void {
 export function aiVolunteers(eg: WwEndgame, id: number, tick: number): void {
   const ww = eg.ww;
   const pol = ww.politics;
-  if (pol.mg.config().historicalAi() || ww.hasWar(id)) return;
+  if (ww.historicalAiNow() || ww.hasWar(id)) return;
   const me = pol.country(id);
   if (me === null) return;
   if (

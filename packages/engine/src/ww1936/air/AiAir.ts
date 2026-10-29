@@ -28,6 +28,7 @@ import { TPL_PARA_ANY } from "@openfront/engine-api/ww1936/LandTypes";
 import { paradropBlockOf } from "@openfront/engine-lib/ww1936/AirRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { isDepthDeployment } from "../depth/AiSeaAir";
 import { effectiveBuildings, effectiveLevel } from "../economy/Buildings";
 import { capitalRegion } from "../land/LandStartRun";
@@ -710,7 +711,7 @@ function paraTemplates(land: WwAir["land"], me: number): number[] {
 /** A paradrop beat of `me`'s from its lead time to its window's end (historical AI). */
 function paraBeatAhead(air: WwAir, me: number, day: number): boolean {
   const mg = air.mg;
-  if (mg.config().historicalAi() !== true) return false;
+  if (!historicalAiActive(mg.config(), day)) return false;
   const tag = air.ww.scenario.tagOfSmallId(me);
   return NAVAL_BEATS.some((b, i) => {
     if (b.tag !== tag || b.kind !== "paradrop") return false;
