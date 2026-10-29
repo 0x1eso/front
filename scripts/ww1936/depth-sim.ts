@@ -111,6 +111,21 @@ interface DepthResult {
   p6flags: { day: number; region: number; what: string }[];
   /** Max atomic stock any country held, and who. */
   atomicStockMax: { tag: string; n: number };
+  /**
+   * Pol/Fra balance lane: every war pair that started with Germany, Poland
+   * or France in it (WorldWar.setWar; `a` declared, or joined `b`'s war).
+   */
+  wars: { day: number; a: string; b: string; kind: string }[];
+  /** The DEU–POL and DEU–FRA pairs' wars (daily): start, end (null: running at the end), and who was down when it ended. */
+  pairs: Record<
+    string,
+    {
+      start: number;
+      end: number | null;
+      foeDown: boolean;
+      deuDown: boolean;
+    }[]
+  >;
 }
 
 type DepthRun = RunResult & { depth: DepthResult };
@@ -134,6 +149,8 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
     coups: [],
     p6flags: [],
     atomicStockMax: { tag: "-", n: 0 },
+    wars: [],
+    pairs: { POL: [], FRA: [] },
   };
   const flagged = new Set<string>();
   const flag = (day: number, region: number, what: string) => {
@@ -210,6 +227,22 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
       d.addFx = (f) => {
         if (noStrike.has(f.region)) flag(ctx.today(), f.region, `fx ${f.kind}`);
         fx(f);
+      };
+      // Pol/Fra lane: the war pairs with Germany, Poland or France in them.
+      const watch = new Set(
+        ["DEU", "POL", "FRA"].map((t) => ctx.idOf(t as CountryTag)),
+      );
+      const ww = ctx.ww;
+      const setWar = ww.setWar.bind(ww);
+      ww.setWar = (a, b, tick, link) => {
+        const ok = setWar(a, b, tick, link);
+        if (ok && (watch.has(a) || watch.has(b))) {
+          const day = ctx.today();
+          const kind = link?.kind ?? "declare";
+          res.wars.push({ day, a: ctx.tagOf(a), b: ctx.tagOf(b), kind });
+          ctx.row(day, "war", ctx.tagOf(a), ctx.tagOf(b), kind);
+        }
+        return ok;
       };
       if (perfAcc !== null) timeDepth(d, perfAcc);
     },
@@ -356,6 +389,29 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
       }
       for (const q of d.raids) {
         if (noStrike.has(q.target)) flag(done, q.target, "raid");
+      }
+      // ---- Pol/Fra lane: the DEU–POL and DEU–FRA wars ----
+      const eg = ww.endgame;
+      const down = (id: number) =>
+        ww.isCapitulated(id) ||
+        eg.isExile(id) ||
+        eg.countryState(id) !== "active";
+      for (const t of ["POL", "FRA"] as CountryTag[]) {
+        const x = c.idOf(t);
+        const list = res.pairs[t];
+        const open = list.length > 0 && list[list.length - 1].end === null;
+        const war = ww.isAtWar(deu, x);
+        if (war && !open) {
+          list.push({ start: done, end: null, foeDown: false, deuDown: false });
+        } else if (!war && open) {
+          list[list.length - 1].end = done;
+        }
+        // Down while the war ran (an exile fights on: the pair stays at war).
+        if (war || open) {
+          const w = list[list.length - 1];
+          w.foeDown ||= down(x);
+          w.deuDown ||= down(deu);
+        }
       }
     },
     end(run) {
@@ -654,6 +710,27 @@ function checksOn(rs: DepthRun[]): Check[] {
     value: `${deCaps.length}/${n} (years ${deCaps.map((r) => dateOfDay(r.germany.capDay!).year).join(" ")})`,
     ok: deCaps.length >= sc(6) && deCaps.length <= sc(18),
   });
+  // Pol/Fra lane (2026-10-29 brief): the 1940 collapse and France by 1941-06.
+  const de40 = deCaps.filter((r) => r.germany.capDay! <= plBy);
+  out.push({
+    target: `Germany capitulates by 1940-12 in <= ${sc(3)}/${n}`,
+    value: `${de40.length}/${n} (${de40.map((r) => iso(r.germany.capDay)).join(" ")})`,
+    ok: de40.length <= sc(3),
+  });
+  const fr41 = dayOfDate("1941-06-30");
+  const frBy = rs.filter((r) => {
+    const d = Math.min(
+      r.france.capDay ?? Infinity,
+      r.france.vichyDay ?? Infinity,
+    );
+    return d <= fr41;
+  });
+  out.push({
+    target: `France falls by 1941-06 in ${sc(6)}-${sc(16)}/${n}`,
+    value: `${frBy.length}/${n}`,
+    ok: frBy.length >= sc(6) && frBy.length <= sc(16),
+  });
+  out.push(pairCheck(rs, "POL"));
   const zoned = deCaps.filter((r) => r.germany.zones > 0).length;
   out.push({
     target: "Germany: occupation zones in >= 50% of its capitulations",
@@ -740,11 +817,76 @@ function koreaCheck(rs: DepthRun[]): Check {
   };
 }
 
+/**
+ * Pol/Fra lane: of the DEU–`foe` wars that lasted 90 days or more (or
+ * ended sooner with `foe` down), how many saw `foe` down (capitulated, in
+ * exile or gone) while it ran. Poland's target: >= 60%; France: data.
+ */
+function pairCheck(rs: DepthRun[], foe: "POL" | "FRA"): Check {
+  let n = 0;
+  let fell = 0;
+  let deuFell = 0;
+  let wars = 0;
+  for (const r of rs) {
+    const last = dayOfDate(r.until);
+    for (const w of r.depth.pairs?.[foe] ?? []) {
+      wars++;
+      const len = (w.end ?? last) - w.start;
+      if (len < 90 && !w.foeDown) continue;
+      n++;
+      if (w.foeDown) fell++;
+      if (w.deuDown) deuFell++;
+    }
+  }
+  const pct = n === 0 ? NaN : (100 * fell) / n;
+  return {
+    target:
+      foe === "POL"
+        ? "Poland falls in >= 60% of DEU-POL wars lasting >= 90 days"
+        : "France falls in DEU-FRA wars lasting >= 90 days (data)",
+    value: `${fell}/${n} (${f1(pct)}%; DEU down in ${deuFell}; ${wars} wars in all)`,
+    ok: foe === "FRA" || (n > 0 && fell * 10 >= n * 6),
+  };
+}
+
+/** Pol/Fra lane: the wars Germany declared, per seed. */
+function deuWars(rs: DepthRun[]): string {
+  return formatTable(
+    ["seed", "DEU declared (day target)", "DEU-POL wars", "DEU-FRA wars"],
+    rs.map((r) => {
+      const p = r.depth.pairs ?? { POL: [], FRA: [] };
+      const ws = (r.depth.wars ?? []).filter(
+        (w) => w.a === "DEU" && w.kind === "declare",
+      );
+      const iv = (l: DepthResult["pairs"][string]) =>
+        l
+          .map(
+            (w) =>
+              `${iso(w.start)}..${w.end === null ? "" : iso(w.end)}${w.foeDown ? " fell" : ""}${w.deuDown ? " DEUdown" : ""}`,
+          )
+          .join(", ") || "-";
+      return [
+        r.seed,
+        ws.map((w) => `${iso(w.day)} ${w.b}`).join(", ") || "-",
+        iv(p.POL ?? []),
+        iv(p.FRA ?? []),
+      ];
+    }),
+  );
+}
+
 function checksOff(rs: DepthRun[]): Check[] {
   const conf = rs.map((r) => r.conferences);
   const cw = rs.map((r) => r.civilWars.length);
   const coups = rs.map((r) => r.depth.coups.length);
   return [
+    pairCheck(rs, "POL"),
+    pairCheck(rs, "FRA"),
+    {
+      target: "History off: France falls (capitulation or Vichy) (data)",
+      value: `${rs.filter((r) => r.france.capDay !== null || r.france.vichyDay !== null).length}/${rs.length}; Poland ${rs.filter((r) => r.poland.capDay !== null).length}/${rs.length}; Germany ${rs.filter((r) => r.germany.capDay !== null).length}/${rs.length}`,
+      ok: true,
+    },
     {
       target: "History off: >= 1 conference per game",
       value: `[${conf.join(" ")}]`,
@@ -827,6 +969,7 @@ function report(rs: DepthRun[]): void {
     console.log(`\n== ${label}: ${xs.length} seeds ==`);
     console.log(seedTable(xs));
     console.log("\n" + depthTable(xs));
+    console.log("\n" + deuWars(xs));
     const checks = label === "historical AI on" ? checksOn(xs) : checksOff(xs);
     console.log(
       "\n" +
