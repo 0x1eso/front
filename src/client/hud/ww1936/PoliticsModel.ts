@@ -13,6 +13,7 @@ import {
 } from "@openfront/engine-api/ww1936/Countries";
 import { ID_CIVIL } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  CountryLaws,
   LAW_KINDS,
   LawKind,
   LawValue,
@@ -76,12 +77,14 @@ import {
   justifyCost,
   justifyDays,
   justifyGate,
+  LAW_STABILITY_BP,
   stabilityEffects,
   tensionFor,
   warSupportEffects,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipNameKey } from "@openfront/engine-lib/ww1936/ShipNames";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -1191,11 +1194,28 @@ export interface LawStepView {
   reason: string | null;
   /** Setting it closes trade deals: two taps (P1). */
   closes: boolean;
+  /** What the law does, from the engine's law data (WwLaws, LAW_STABILITY_BP). */
+  effects: string[];
+  /** The change against the law in force; empty for the one in force. */
+  diff: LawDiffLine[];
+  /** Why it cannot be set now (cooldown, thresholds, government, PP); null if it can. */
+  blockReason: string | null;
+  /** The category's wait, when this step is not the one in force. */
+  wait: string | null;
+}
+
+export type LawTone = "good" | "bad" | "neutral";
+
+export interface LawDiffLine {
+  text: string;
+  tone: LawTone;
 }
 
 export interface LawLadderView {
   kind: LawKind;
   name: string;
+  /** One line: what this category controls. */
+  summary: string;
   wait: string | null;
   steps: LawStepView[];
 }
@@ -1241,6 +1261,121 @@ export function lawLines(
   return out;
 }
 
+// ---- Law effects, read from WwLaws (never hand-written) ----
+
+type LawField = keyof LawEffects;
+type LawLaws = CountryLaws;
+
+/** Which fields of lawEffects each category sets. */
+const LAW_FIELDS: Readonly<Record<LawKind, readonly LawField[]>> = {
+  economy: ["consumerGoodsPct", "milConstructionPct", "outputPct"],
+  trade: ["exportPct", "constructionPct", "researchPct"],
+  conscription: ["conscriptionPermille", "constructionPct", "outputPct"],
+};
+
+/** The signed fields: stat label key (ww1936.stat.*), and whether more is better. */
+const SIGNED_FIELDS: Readonly<Partial<Record<LawField, string>>> = {
+  milConstructionPct: "milConstructionPct",
+  constructionPct: "constructionPct",
+  outputPct: "outputPct",
+  researchPct: "researchPct",
+};
+
+/** The fields shown as a level, and as a change in %p; cg: no side is better. */
+const LEVEL_FIELDS: Readonly<
+  Partial<Record<LawField, { level: string; delta: string; tone: boolean }>>
+> = {
+  consumerGoodsPct: {
+    level: "ww1936.pol.law.fx.consumer_goods",
+    delta: "ww1936.stat.consumerGoodsPp",
+    tone: false,
+  },
+  exportPct: {
+    level: "ww1936.pol.law.fx.export_cap",
+    delta: "ww1936.pol.law.delta.export_cap",
+    tone: true,
+  },
+  conscriptionPermille: {
+    level: "ww1936.pol.law.fx.conscription",
+    delta: "ww1936.pol.law.delta.conscription",
+    tone: true,
+  },
+};
+
+const NEUTRAL_LAWS: LawLaws = {
+  economy: "civilian",
+  trade: "closed_economy",
+  conscription: "disarmed",
+};
+
+/** A level field's number in the unit shown (permille -> %). */
+function levelValue(f: LawField, n: number): number {
+  return f === "conscriptionPermille" ? n / 10 : n;
+}
+
+/** The fields `value` of `kind` sets, with the other categories at zero effect. */
+function ownEffects(kind: LawKind, value: LawValue): LawEffects {
+  return lawEffects({ ...NEUTRAL_LAWS, [kind]: value } as LawLaws);
+}
+
+/** The readable effect lines of one law, from the data. */
+export function lawEffectLines(kind: LawKind, value: LawValue): string[] {
+  const e = ownEffects(kind, value);
+  const out: string[] = [];
+  for (const f of LAW_FIELDS[kind]) {
+    const lv = LEVEL_FIELDS[f];
+    if (lv !== undefined) {
+      out.push(translateText(lv.level, { value: levelValue(f, e[f]) }));
+    } else if (e[f] !== 0) {
+      out.push(
+        translateText(`ww1936.stat.${SIGNED_FIELDS[f]}`, { value: e[f] }),
+      );
+    }
+  }
+  const stab = LAW_STABILITY_BP[value] ?? 0;
+  if (stab !== 0) {
+    out.push(translateText("ww1936.stat.stabilityBp", { value: stab }));
+  }
+  return out;
+}
+
+const lawToneOf = (n: number): LawTone => (n > 0 ? "good" : "bad");
+
+/** What switching from the law in force to `value` raises and lowers. */
+export function lawDiffLines(
+  kind: LawKind,
+  from: LawValue,
+  to: LawValue,
+): LawDiffLine[] {
+  const a = ownEffects(kind, from);
+  const b = ownEffects(kind, to);
+  const out: LawDiffLine[] = [];
+  for (const f of LAW_FIELDS[kind]) {
+    const d = b[f] - a[f];
+    if (d === 0) continue;
+    const lv = LEVEL_FIELDS[f];
+    if (lv !== undefined) {
+      out.push({
+        text: translateText(lv.delta, { value: levelValue(f, d) }),
+        tone: lv.tone ? lawToneOf(d) : "neutral",
+      });
+    } else {
+      out.push({
+        text: translateText(`ww1936.stat.${SIGNED_FIELDS[f]}`, { value: d }),
+        tone: lawToneOf(d),
+      });
+    }
+  }
+  const sd = (LAW_STABILITY_BP[to] ?? 0) - (LAW_STABILITY_BP[from] ?? 0);
+  if (sd !== 0) {
+    out.push({
+      text: translateText("ww1936.stat.stabilityBp", { value: sd }),
+      tone: lawToneOf(sd),
+    });
+  }
+  return out;
+}
+
 /** Null before my country's economy data arrives. */
 export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
   const econ = i.game.wwEconomy?.() ?? null;
@@ -1262,6 +1397,7 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
     return {
       kind,
       name: lawKindName(kind),
+      summary: translateText(`ww1936.pol.law.summary.${kind}`),
       wait:
         wait > 0 ? translateText("ww1936.pol.law.wait", { days: wait }) : null,
       steps: steps.map((st): LawStepView => {
@@ -1284,6 +1420,16 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
           closes:
             st.block === null &&
             lawClosesDeals(detail, summary, kind, st.value),
+          effects: lawEffectLines(kind, st.value),
+          diff: st.current
+            ? []
+            : lawDiffLines(kind, detail.laws[kind], st.value),
+          blockReason:
+            st.current || st.block === null ? null : blockText(st.block),
+          wait:
+            !st.current && wait > 0
+              ? translateText("ww1936.pol.law.wait", { days: wait })
+              : null,
         };
       }),
     };

@@ -9246,7 +9246,25 @@
         "need_war": "전쟁 중에만 가능",
         "need_ws": "전쟁지지도 {need}% 필요 (지금 {now}%)",
         "ok": "조건 충족",
-        "wait": "{days}일 대기"
+        "wait": "{days}일 대기",
+        "delta": {
+          "conscription": "징집 가능 인구 {value, number, ::sign-always}%p",
+          "export_cap": "수출 비율 {value, number, ::sign-always}%p"
+        },
+        "details": "효과 보기",
+        "details_hide": "효과 접기",
+        "diff_none": "현재 법률과 차이 없음",
+        "diff_title": "현재 법률과 비교",
+        "fx": {
+          "consumer_goods": "소비재 공장 {value}%",
+          "conscription": "징집 가능 인구 {value}%",
+          "export_cap": "산출의 {value}%까지 수출"
+        },
+        "summary": {
+          "conscription": "인구의 얼마까지 징집할 수 있는지, 그 대가로 경제와 안정도가 얼마나 깎이는지 정합니다.",
+          "economy": "산업을 소비재에 얼마나 돌리고 군수공장과 산출에 얼마나 쓸지 정합니다.",
+          "trade": "수출을 얼마나 허용하는지, 건설과 연구 속도에 미치는 영향을 정합니다."
+        }
       },
       "line": {
         "stab_base": "바탕",

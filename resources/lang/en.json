@@ -9572,11 +9572,29 @@
       "law": {
         "change": "Change",
         "cost": "{pp} political power",
+        "delta": {
+          "conscription": "Draftable population {value, number, ::sign-always}%p",
+          "export_cap": "Export share {value, number, ::sign-always}%p"
+        },
+        "details": "Show effects",
+        "details_hide": "Hide effects",
+        "diff_none": "No difference from the law in force",
+        "diff_title": "Compared with the law in force",
+        "fx": {
+          "conscription": "Draftable population {value}%",
+          "consumer_goods": "Consumer goods factories {value}%",
+          "export_cap": "Exports up to {value}% of output"
+        },
         "in_force": "In force",
         "need_tension": "World tension {need}% needed ({ideology})",
         "need_war": "Only while at war",
         "need_ws": "War support {need}% needed (now {now}%)",
         "ok": "Conditions met",
+        "summary": {
+          "conscription": "How much of the population can be drafted, and what it costs the economy and stability.",
+          "economy": "How much industry goes to consumer goods versus military factories and output.",
+          "trade": "How much you may export, and the effect on construction and research."
+        },
         "wait": "Wait {days, plural, one {# day} other {# days}}"
       },
       "line": {

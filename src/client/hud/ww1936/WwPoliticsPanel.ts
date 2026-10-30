@@ -70,6 +70,8 @@ export class WwPoliticsPanel extends WwDrawerBase {
   @state() private tab: PolDrawerTab = "government";
   /** The advisor seat whose candidates are listed; null: none. */
   @state() private pickSeat: number | null = null;
+  /** The law steps whose details are open (kind:value); the one in force opens by default. */
+  @state() private lawOpen = new Set<string>();
   private readonly twoTap = new TwoTap();
   private redrawKey: readonly unknown[] = [];
   /** Bumped with each redraw, so the occupation tab (its own element) redraws too. */
@@ -577,6 +579,9 @@ export class WwPoliticsPanel extends WwDrawerBase {
                   >${l.wait}</span
                 >`}
           </div>
+          <p data-ww-law-summary class="m-0 mb-1 text-xs text-white/70">
+            ${l.summary}
+          </p>
           <ol class="m-0 flex list-none flex-col gap-1 p-0">
             ${l.steps.map((s) => this.renderStep(l.kind, s))}
           </ol>
@@ -584,8 +589,60 @@ export class WwPoliticsPanel extends WwDrawerBase {
     )}`;
   }
 
+  private toggleLaw(key: string): void {
+    const next = new Set(this.lawOpen);
+    if (!next.delete(key)) next.add(key);
+    this.lawOpen = next;
+  }
+
+  private renderLawDetails(s: LawStepView): TemplateResult {
+    const tone = (t: string) =>
+      t === "good"
+        ? "text-emerald-300"
+        : t === "bad"
+          ? "text-red-300"
+          : "text-white/80";
+    return html`<div
+      data-ww-law-details
+      class="mt-1 flex flex-col gap-0.5 rounded border border-white/10 bg-black/30 px-2 py-1 text-xs"
+    >
+      ${s.effects.map(
+        (e) => html`<span data-ww-law-effect class="block">${e}</span>`,
+      )}
+      ${s.state === "current"
+        ? nothing
+        : html`<span class="block pt-1 text-white/60"
+              >${translateText("ww1936.pol.law.diff_title")}</span
+            >
+            ${s.diff.length === 0
+              ? html`<span class="block text-white/80"
+                  >${translateText("ww1936.pol.law.diff_none")}</span
+                >`
+              : s.diff.map(
+                  (d) =>
+                    html`<span
+                      data-ww-law-diff
+                      data-tone=${d.tone}
+                      class="block ${tone(d.tone)}"
+                      >${d.tone === "good" ? "▲" : d.tone === "bad" ? "▼" : "◆"}
+                      ${d.text}</span
+                    >`,
+                )}
+            <span class="block text-white/70">${s.cost}</span>
+            ${s.wait === null
+              ? nothing
+              : html`<span class="block text-amber-300">${s.wait}</span>`}
+            ${s.blockReason === null
+              ? nothing
+              : html`<span data-ww-law-block class="block text-red-300"
+                  >${s.blockReason}</span
+                >`}`}
+    </div>`;
+  }
+
   private renderStep(kind: LawKind, s: LawStepView): TemplateResult {
     const key = `law:${kind}:${s.value}`;
+    const open = this.lawOpen.has(key) !== (s.state === "current");
     const armed = s.closes && this.armed(key);
     const set = () => this.send({ kind: "set_law", law: kind, value: s.value });
     return html`<li>
@@ -646,6 +703,18 @@ export class WwPoliticsPanel extends WwDrawerBase {
             >`
           : nothing}
       </button>
+      <button
+        type="button"
+        data-ww-law-more=${s.value}
+        aria-expanded=${String(open)}
+        class="mt-0.5 min-h-8 w-full rounded px-2 text-left text-xs text-sky-300"
+        @click=${() => this.toggleLaw(key)}
+      >
+        ${open
+          ? translateText("ww1936.pol.law.details_hide")
+          : translateText("ww1936.pol.law.details")}
+      </button>
+      ${open ? this.renderLawDetails(s) : nothing}
     </li>`;
   }
 
