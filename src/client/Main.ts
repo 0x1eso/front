@@ -62,7 +62,11 @@ import {
   type DesktopUpdateState,
 } from "./DesktopShell";
 import "./FeaturedStream";
-import { loadGameClient, prefetchGameClient } from "./GameClientLoader";
+import {
+  claimGameClientReload,
+  loadGameClient,
+  prefetchGameClient,
+} from "./GameClientLoader";
 import "./GameModeSelector";
 import {
   GameModeSelector,
@@ -255,6 +259,9 @@ export interface JoinLobbyEvent {
   gameStartInfo?: WireGameStartInfo;
   // GameRecord exists when replaying an archived game.
   gameRecord?: GameRecord;
+  // A singleplayer game resumed from a saved game: the uncompressed snapshot
+  // the engine restores instead of starting fresh from gameStartInfo.
+  snapshot?: Uint8Array;
   source?: "public" | "private" | "host" | "matchmaking" | "singleplayer";
   publicLobbyInfo?: GameInfo | PublicGameInfo;
   // Watch without playing.
@@ -1776,7 +1783,26 @@ class Client {
       if (this.mostRecentJoinEvent !== event.timeStamp) return;
       // The URL names the singleplayer game now, which no server has.
       if (isSingleplayer) history.replaceState(null, "", "/");
-      reloadForUpdate();
+      if (claimGameClientReload()) {
+        reloadForUpdate();
+        return;
+      }
+      this.loadedJoinModal()?.close();
+      this.loadedHostModal()?.close();
+      if (
+        lobby.source === "matchmaking" &&
+        this.loadedMatchmakingModal()?.isOpen()
+      ) {
+        this.matchmakingModal.close();
+      }
+      const startingModal = document.querySelector("game-starting-modal");
+      if (startingModal instanceof GameStartingModal) {
+        startingModal.hide();
+      }
+      // handleLeaveLobby only resets the URL once a lobby handle exists.
+      history.replaceState(null, "", "/");
+      void this.handleLeaveLobby();
+      void showInGameAlert(translateText("error_modal.game_client_failed"));
       return;
     }
     const newLobbyHandle = joinLobby(this.eventBus, {
@@ -1797,6 +1823,7 @@ class Client {
           ? toWireGameStartInfo(lobby.gameRecord.info)
           : undefined),
       gameRecord: lobby.gameRecord,
+      snapshot: lobby.snapshot,
       spectator: lobby.spectator,
       creatorToken: lobby.creatorToken,
     });

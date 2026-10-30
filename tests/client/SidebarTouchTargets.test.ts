@@ -23,6 +23,7 @@ function rightGame(gameType: GameType): GameView {
     elapsedGameSeconds: () => 0,
     myPlayer: () => undefined,
     gameID: () => "test-game",
+    resumedFromSave: () => false,
   } as unknown as GameView;
 }
 

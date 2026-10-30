@@ -37,6 +37,7 @@ async function mountTutorial(
     }),
     ticks: () => 1,
     worldWarScenario: () => (worldWar ? {} : null),
+    resumedFromSave: () => false,
     inSpawnPhase: () => false,
     playerViews: () => [me],
     setOwnSpawnRing: () => {},

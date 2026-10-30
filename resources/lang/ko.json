@@ -1350,6 +1350,7 @@
     "copy_clipboard": "클립보드로 복사",
     "crashed": "게임이 튕겼습니다!",
     "desync_notice": "다른 플레이어와 동기화되지 않았습니다. 보이는 것이 다른 플레이어와 다를 수 있습니다.",
+    "game_client_failed": "게임을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요. 계속 이러면 게임을 다시 실행하세요.",
     "login_failed": "로그인에 실패했습니다. 나중에 다시 시도해 주세요.",
     "login_token_consumed": "이미 사용된 로그인 링크입니다. 이미 로그인되어 있을 수 있으니 다른 탭을 확인하세요.",
     "login_token_expired": "만료된 로그인 링크입니다. 새 로그인 링크를 요청해 주세요.",
@@ -2665,6 +2666,50 @@
   },
   "rewards_modal": {
     "title": "보상"
+  },
+  "saved_games": {
+    "code_placeholder": "공유 링크나 코드를 붙여 넣으세요",
+    "copy_link": "링크 복사",
+    "delete": "삭제",
+    "delete_confirm": "\"{name}\"을(를) 삭제할까요? 되돌릴 수 없습니다.",
+    "empty": "저장한 게임이 없습니다. 게임 메뉴에서 저장하세요.",
+    "error": {
+      "code_invalid": "공유 게임 링크나 코드가 아닙니다.",
+      "copy_failed": "링크를 복사하지 못했습니다.",
+      "download_failed": "저장한 게임을 내려받지 못했습니다. 다시 시도하세요.",
+      "list_failed": "저장한 게임 목록을 불러오지 못했습니다.",
+      "load_failed": "저장한 게임을 시작하지 못했습니다.",
+      "name_invalid": "쓸 수 없는 이름입니다.",
+      "name_not_shareable": "공유한 게임에는 이 이름을 보일 수 없습니다. 먼저 이름을 바꾸세요.",
+      "not_found": "저장한 게임이 더 이상 없습니다.",
+      "not_singleplayer": "혼자 하기 게임만 불러올 수 있습니다.",
+      "request_failed": "문제가 생겼습니다. 다시 시도하세요.",
+      "shared_not_found": "이 공유 게임을 열 수 없습니다. 삭제되었거나 비공개로 바뀌었을 수 있습니다.",
+      "unreadable": "이 버전의 게임으로는 불러올 수 없는 저장 파일입니다."
+    },
+    "link_copied": "링크를 복사했습니다",
+    "loading": "불러오는 중…",
+    "open": "열기",
+    "play": "플레이",
+    "rename": "이름 바꾸기",
+    "rename_save": "저장",
+    "save_desc": "이 게임을 계정에 저장해 나중에 이어서 하세요",
+    "save_desc_local": "이 게임을 이 브라우저에 저장해 나중에 이어서 하세요",
+    "save_label": "게임 저장",
+    "save_status": {
+      "limit": "저장 개수 한도에 도달했습니다. 먼저 혼자 하기 메뉴에서 하나를 지우세요.",
+      "not_found": "게임을 저장하지 못했습니다. 다시 시도하세요.",
+      "rejected": "이 게임은 저장할 수 없습니다.",
+      "request_failed": "게임을 저장하지 못했습니다. 다시 시도하세요.",
+      "saved": "저장했습니다. 혼자 하기 메뉴에서 찾을 수 있습니다.",
+      "saving": "저장 중…",
+      "unauthorized": "게임을 저장하려면 로그인하세요."
+    },
+    "share": "공유",
+    "shared_badge": "공유됨",
+    "shared_title": "공유된 게임",
+    "title": "저장한 게임",
+    "unshare": "공유 해제"
   },
   "select_lang": {
     "title": "언어 선택"

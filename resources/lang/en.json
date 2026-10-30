@@ -1449,6 +1449,7 @@
     "copy_clipboard": "Copy to clipboard",
     "crashed": "Game crashed!",
     "desync_notice": "You are desynced from other players. What you see might differ from other players.",
+    "game_client_failed": "The game failed to load. Check your connection and try again. If it keeps happening, restart OpenFront.",
     "login_failed": "Login failed. Please try again later.",
     "login_token_consumed": "This login link was already used. You're probably already logged in — check another tab.",
     "login_token_expired": "This login link has expired. Please request a new login link.",
@@ -2946,6 +2947,50 @@
   },
   "rewards_modal": {
     "title": "Rewards"
+  },
+  "saved_games": {
+    "code_placeholder": "Paste a shared game link or code",
+    "copy_link": "Copy link",
+    "delete": "Delete",
+    "delete_confirm": "Delete \"{name}\"? This can't be undone.",
+    "empty": "No saved games yet. Save one from the in-game menu.",
+    "error": {
+      "code_invalid": "That isn't a shared game link or code.",
+      "copy_failed": "Couldn't copy the link.",
+      "download_failed": "Couldn't download the saved game. Try again.",
+      "list_failed": "Couldn't load your saved games.",
+      "load_failed": "Couldn't start the saved game.",
+      "name_invalid": "That name isn't allowed.",
+      "name_not_shareable": "That name can't be shown on a shared game. Rename it first.",
+      "not_found": "That saved game no longer exists.",
+      "not_singleplayer": "Only singleplayer games can be loaded.",
+      "request_failed": "Something went wrong. Try again.",
+      "shared_not_found": "This shared game isn't available. It may have been deleted or made private.",
+      "unreadable": "This saved game can't be loaded by this version of the game."
+    },
+    "link_copied": "Link copied",
+    "loading": "Loading…",
+    "open": "Open",
+    "play": "Play",
+    "rename": "Rename",
+    "rename_save": "Save",
+    "save_desc": "Save this game to your account to continue it later",
+    "save_desc_local": "Save this game in this browser to continue it later",
+    "save_label": "Save game",
+    "save_status": {
+      "limit": "You've reached the saved game limit. Delete one from the Solo menu first.",
+      "not_found": "Couldn't save the game. Try again.",
+      "rejected": "This game couldn't be saved.",
+      "request_failed": "Couldn't save the game. Try again.",
+      "saved": "Saved. Find it in the Solo menu.",
+      "saving": "Saving…",
+      "unauthorized": "Sign in to save games."
+    },
+    "share": "Share",
+    "shared_badge": "Shared",
+    "shared_title": "Shared game",
+    "title": "Saved games",
+    "unshare": "Unshare"
   },
   "select_lang": {
     "title": "Select Language"
