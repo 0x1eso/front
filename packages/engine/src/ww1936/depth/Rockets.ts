@@ -155,7 +155,7 @@ function fireVolley(
     air.markCountry(victim);
   }
   air.bombPointsTotal += points;
-  air.raids.note(
+  air.raidNotes.note(
     air,
     victim,
     e.owner,

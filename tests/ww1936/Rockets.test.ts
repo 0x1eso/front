@@ -127,7 +127,7 @@ describe("World War 1936 P6: rockets (spec §9.7)", () => {
     const aa = effectiveLevel(ww.economy, LONDON, "anti_air");
     expect(aa).toBe(1);
     const taken = ww.economy.country(gbr)!.stats.bombDamageTakenPct;
-    const msg = vi.spyOn(ww.air.raids, "note");
+    const msg = vi.spyOn(ww.air.raidNotes, "note");
     const damage0 = londonDamage(ww);
     // 10 flying bombs, 4% stopped by London's guns: 9.6 → 9 hits, 600 carried.
     processRockets(d, day + 1, tick);
@@ -205,7 +205,7 @@ describe("World War 1936 P6: rockets (spec §9.7)", () => {
       count: 10,
       day: ww.day(tick),
     });
-    const msg = vi.spyOn(ww.air.raids, "note");
+    const msg = vi.spyOn(ww.air.raidNotes, "note");
     const fx = vi.spyOn(d, "addFx");
     processRockets(d, ww.day(tick) + 1, tick);
     expect(d.rocketQueue).toEqual([]);

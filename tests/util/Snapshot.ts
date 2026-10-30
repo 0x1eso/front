@@ -236,8 +236,9 @@ export const DERIVED_FIELDS = new Set<string>([
   "deploysByBase",
   "deploysByOwner",
   "planeStatsMemo",
-  // Air-raid notice memory: messages only, never hashed (RaidNotes).
-  "raids",
+  // WwAir's air-raid notice memory: messages only, never hashed
+  // (RaidNotes). Not "raids": that is WwDepth's raid state.
+  "raidNotes",
   "airDirtyZones",
   "airDirtyDeployments",
   "airDirtyCountries",

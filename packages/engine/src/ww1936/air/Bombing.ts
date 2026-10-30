@@ -271,7 +271,7 @@ export function strategicBombing(
       const done = damageRegion(econ, r, bombDamageMilli(p, aa, taken));
       const after = Math.floor((p * (1000 - Math.min(400, 80 * aa))) / 1000);
       hit.set(victim, (hit.get(victim) ?? 0) + after);
-      air.raids.note(
+      air.raidNotes.note(
         air,
         victim,
         by,

@@ -474,7 +474,7 @@ function strike(
     total += dmg[i];
     const port = portOf?.get(x.id);
     if (port !== undefined)
-      air.raids.note(air, x.owner, by, port, 0, 1, dmg[i]);
+      air.raidNotes.note(air, x.owner, by, port, 0, 1, dmg[i]);
     applyShipDamage(
       navy,
       x.id,

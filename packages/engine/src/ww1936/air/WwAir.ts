@@ -285,7 +285,7 @@ export class WwAir {
   planesLostTotal = 0;
   bombPointsTotal = 0;
   /** The air-raid notice (message-only memory, not state). */
-  readonly raids = new RaidNotes();
+  readonly raidNotes = new RaidNotes();
   private lastCommonDay = -1;
   private countryList: (CountryAir | null)[];
   // Derived (DERIVED_FIELDS).
@@ -353,7 +353,7 @@ export class WwAir {
           this.noteZoneSorties(s.id);
           this.ww.depth.airZoneDay(s.id, day, ticks);
         }
-        if (k === WW_DAY_SPLIT - 1) this.raids.flush(this, day);
+        if (k === WW_DAY_SPLIT - 1) this.raidNotes.flush(this, day);
         // ② countries: re-basing, refills, decks, AI
         for (let id = 1; id < this.countryList.length; id++) {
           if (id % WW_DAY_SPLIT === k) this.dailyCountry(id, day);

@@ -164,7 +164,7 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     }
     // The victim hears it (the day's flush): Britain bombed Berlin, one factory.
     const say = vi.spyOn(air, "message");
-    air.raids.flush(air, day);
+    air.raidNotes.flush(air, day);
     expect(say.mock.calls).toEqual([
       [
         deu,
@@ -241,11 +241,11 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     const say = vi.spyOn(air, "message");
     const fra = byTag(g, "FRA").smallID();
     // Two regions hit on one day: one notice, the heavier region first.
-    air.raids.note(air, deu, gbr, REGION.berlin, 2, 0, 2000);
-    air.raids.note(air, deu, gbr, REGION.munich, 1, 0, 1000);
+    air.raidNotes.note(air, deu, gbr, REGION.berlin, 2, 0, 2000);
+    air.raidNotes.note(air, deu, gbr, REGION.munich, 1, 0, 1000);
     // An AI victim gets nothing, and keeps nothing.
-    air.raids.note(air, fra, gbr, REGION.berlin, 3, 0, 3000);
-    air.raids.flush(air, 100);
+    air.raidNotes.note(air, fra, gbr, REGION.berlin, 3, 0, 3000);
+    air.raidNotes.flush(air, 100);
     expect(say).toHaveBeenCalledTimes(1);
     expect(say.mock.calls[0][0]).toBe(deu);
     expect(say.mock.calls[0][2]).toMatchObject({
@@ -257,17 +257,17 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     });
     // The same attacker on days 101 and 102: nothing; day 103: the totals since.
     for (const day of [101, 102]) {
-      air.raids.note(air, deu, gbr, REGION.berlin, 1, 0, 1000);
-      air.raids.flush(air, day);
+      air.raidNotes.note(air, deu, gbr, REGION.berlin, 1, 0, 1000);
+      air.raidNotes.flush(air, day);
     }
     expect(say).toHaveBeenCalledTimes(1);
-    air.raids.note(air, deu, gbr, REGION.berlin, 1, 0, 1000);
-    air.raids.flush(air, 103);
+    air.raidNotes.note(air, deu, gbr, REGION.berlin, 1, 0, 1000);
+    air.raidNotes.flush(air, 103);
     expect(say).toHaveBeenCalledTimes(2);
     expect(say.mock.calls[1][2]).toMatchObject({ f: 3, more: 0 });
     // Ships damaged by a port strike read the same way.
-    air.raids.note(air, deu, gbr, REGION.berlin, 0, 2, 500);
-    air.raids.flush(air, 106);
+    air.raidNotes.note(air, deu, gbr, REGION.berlin, 0, 2, 500);
+    air.raidNotes.flush(air, 106);
     expect(say.mock.calls[2][2]).toMatchObject({ kind: 2, s: 2 });
     expect(ww.isHumanControlled(fra)).toBe(false);
   }, 60_000);
