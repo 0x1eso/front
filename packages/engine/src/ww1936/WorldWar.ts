@@ -14,6 +14,10 @@ import {
   WW_PREP_TICKS,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { zInt, zTiles } from "@openfront/engine-lib/snapshot/SnapshotType";
+import {
+  WwAiLevel,
+  wwAiLevel,
+} from "@openfront/engine-lib/ww1936/AiDifficulty";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import {
@@ -115,6 +119,8 @@ export class WorldWar {
   readonly endgame: WwEndgame;
   /** P6 depth systems (P6 plan decision 2): after the endgame. */
   readonly depth: WwDepth;
+  /** The lobby's difficulty: the AI countries' handicaps (AiDifficulty). */
+  readonly aiLevel: WwAiLevel;
 
   constructor(
     private readonly mg: Game,
@@ -124,6 +130,7 @@ export class WorldWar {
     // a quarter of the ticks in the unlimited game). First: the phases'
     // constructors may read the day.
     this._prepEndTick = wwRealTicks(mg.config().gameConfig(), WW_PREP_TICKS);
+    this.aiLevel = wwAiLevel(mg.config().gameConfig().difficulty);
     this.size = scenario.countries.length + 1;
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);

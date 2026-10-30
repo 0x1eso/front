@@ -45,6 +45,7 @@ import {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { WW_AI_HANDICAP } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   type ContentRegistry,
@@ -909,6 +910,9 @@ export class WwPolitics {
     for (const t of this.leaderTraits(c)) this.addTrait(5, t, c, atWar, add);
     add(6, stabilityEffects(c.stabBp));
     add(6, warSupportEffects(c.wsBp));
+    // The lobby's difficulty: an AI-controlled country's handicap (none for
+    // a human, none on Normal). A takeover recomputes (WwEndgame.setControl).
+    if (!this.isHuman(c.smallID)) add(6, WW_AI_HANDICAP[this.ww.aiLevel]);
     // P6 hook (plan decision 24): doctrine, officer corps, MIOs,
     // mechanisms, landmarks (neutral before depth.start, pre-flight §0-9).
     const depth = this.ww.depth as WwDepth | undefined;

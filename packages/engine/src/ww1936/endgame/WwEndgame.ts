@@ -894,8 +894,19 @@ export class WwEndgame {
     this.controllerOf = this.controllerOf.filter(([c]) => c !== client);
     this.controllerOf.push([client, smallID]);
     this.controllerOf.sort(byClient);
+    const before = new Set(this.humanOf.keys());
     this.rebuildHumans();
     this.dirtyControllers = true;
+    // The difficulty's AI handicap follows the control (AiDifficulty): the
+    // countries that changed hands get their stats again, in id order.
+    const flipped = new Set(before);
+    for (const id of this.humanOf.keys()) {
+      if (before.has(id)) flipped.delete(id);
+      else flipped.add(id);
+    }
+    for (const id of [...flipped].sort((a, b) => a - b)) {
+      this.ww.politics.recomputeStats(id);
+    }
   }
   /** Plan decision 7: the human players' own countries, then the moved controllers. */
   rebuildHumans(): void {

@@ -197,9 +197,13 @@ describe("nation AI in World War 1936 (spec 7.7)", () => {
     expect(launches.map((l) => l.what)).toEqual(["attack DEU>FRA"]);
   });
 
-  test("the mode plays Medium whatever the lobby asked", async () => {
+  // Owner decision 2026-10-30: the lobby's difficulty sets the AI
+  // handicaps (AiDifficulty); Impossible plays as Hard.
+  test("the mode plays the lobby's difficulty, Impossible as Hard", async () => {
     const g = (await wwRunner({ difficulty: Difficulty.Easy })).game;
-    expect(g.config().gameConfig().difficulty).toBe(Difficulty.Medium);
+    expect(g.config().gameConfig().difficulty).toBe(Difficulty.Easy);
+    const h = (await wwRunner({ difficulty: Difficulty.Impossible })).game;
+    expect(h.config().gameConfig().difficulty).toBe(Difficulty.Hard);
   });
 
   test.each(["WWTEST01", "WWSEED03", "WWSEED05"])(

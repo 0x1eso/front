@@ -214,9 +214,41 @@ describe("the settings layout with the mode on", () => {
     expect(el.textContent).not.toContain("host_modal.team_count");
     expect(el.textContent).not.toContain("game_settings.disable_units");
     expect(el.querySelectorAll("fluent-slider")).toHaveLength(0);
-    // The mode plays its AI countries on Medium.
+    // The mode's own three levels, not the vanilla four.
     expect(el.textContent).not.toContain("difficulty.difficulty");
     expect(el.querySelector("difficulty-display")).toBeNull();
+    expect(el.textContent).toContain("ww1936.lobby.difficulty");
+    const options = [
+      ...el.querySelectorAll<HTMLButtonElement>("[data-ww-difficulty-option]"),
+    ];
+    expect(options.map((o) => o.dataset.wwDifficultyOption)).toEqual([
+      "easy",
+      "normal",
+      "hard",
+    ]);
+    expect(el.textContent).toContain("ww1936.lobby.difficulty_normal");
+    const picked: Difficulty[] = [];
+    el.addEventListener("difficulty-selected", (e) =>
+      picked.push(
+        (e as CustomEvent<{ difficulty: Difficulty }>).detail.difficulty,
+      ),
+    );
+    options[2].click();
+    expect(picked).toEqual([Difficulty.Hard]);
+  });
+
+  it("shows Impossible as Hard with the mode on", async () => {
+    const data = settings({ picker: html`<p></p>` });
+    data.difficulty = { selected: Difficulty.Impossible, disabled: false };
+    const el = await settingsEl(data);
+    const hard = el.querySelector(
+      '[data-ww-difficulty-option="hard"]',
+    ) as HTMLElement;
+    const easy = el.querySelector(
+      '[data-ww-difficulty-option="easy"]',
+    ) as HTMLElement;
+    expect(hard.className).toContain("bg-malibu-blue/20");
+    expect(easy.className).not.toContain("bg-malibu-blue/20");
   });
 
   it("is unchanged without the mode", async () => {
@@ -265,6 +297,9 @@ describe("solo World War 1936", () => {
     expect(text).not.toContain("game_settings.random_spawn");
     expect(text).not.toContain("game_settings.max_timer");
     expect(text).not.toContain("difficulty.difficulty");
+    // The mode's difficulty, Easy unless chosen.
+    expect(text).toContain("ww1936.lobby.difficulty");
+    expect(modal.selectedDifficulty).toBe(Difficulty.Easy);
     expect(root.querySelector("ww-country-picker")).not.toBeNull();
     expect(root.querySelector("map-picker")).toBeNull();
   });
@@ -500,6 +535,7 @@ describe("hosting World War 1936", () => {
       "host_modal.player_limit",
       "host_modal.start_delay",
       "host_modal.player_whitelist",
+      "ww1936.lobby.difficulty",
     ]) {
       expect(text).toContain(kept);
     }
@@ -628,17 +664,31 @@ describe("the lobby summary", () => {
     );
   });
 
-  it("shows no difficulty: the mode fixes it", () => {
+  it("shows the mode's own difficulty", () => {
     const labels = (c: ReturnType<typeof testGameConfig>) =>
       notableLobbySettings(c, null).map((i) => i.label);
-    // A private lobby above Easy names its difficulty, but not in the mode.
+    // A private lobby above Easy names its difficulty; the mode its own.
     expect(labels(testGameConfig({ difficulty: Difficulty.Hard }))).toContain(
       "difficulty.difficulty",
     );
-    expect(
-      labels(
-        testGameConfig({ worldWar1936: true, difficulty: Difficulty.Hard }),
-      ),
-    ).not.toContain("difficulty.difficulty");
+    const ww = (d: Difficulty) =>
+      notableLobbySettings(
+        testGameConfig({ worldWar1936: true, difficulty: d }),
+        null,
+      );
+    expect(ww(Difficulty.Hard).map((i) => i.label)).not.toContain(
+      "difficulty.difficulty",
+    );
+    for (const [d, level] of [
+      [Difficulty.Easy, "easy"],
+      [Difficulty.Medium, "normal"],
+      [Difficulty.Hard, "hard"],
+      [Difficulty.Impossible, "hard"],
+    ] as const) {
+      expect(ww(d)).toContainEqual({
+        label: "ww1936.lobby.difficulty",
+        value: `ww1936.lobby.difficulty_${level}`,
+      });
+    }
   });
 });

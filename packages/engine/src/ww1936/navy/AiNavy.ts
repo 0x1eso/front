@@ -27,6 +27,10 @@ import {
   WW_MAX_FLEET_SHIPS,
   WW_MAX_FLEETS,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  WwAiLevel,
+  wwAiWarPlanDue,
+} from "@openfront/engine-lib/ww1936/AiDifficulty";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { invasionCapacity } from "@openfront/engine-lib/ww1936/InvasionRules";
 import {
@@ -1537,14 +1541,18 @@ export function aiFuelShort(navy: WwNavy, smallID: number): boolean {
  * Spec §17.1, with the final perf lane's cadence ruling (controller,
  * 2026-10-23; HOI-like): at war every 2 days, on the days of the country's
  * parity (`day % 2 === smallID % 2`, so half the countries plan each day);
- * else every 10 days (those days have the same parity).
+ * else every 10 days (those days have the same parity). The lobby's Easy
+ * (an AI country's `level`): at war every 3 days instead (AiDifficulty).
  */
 export function aiNavyDue(
   smallID: number,
   day: number,
   atWar: boolean,
+  level: WwAiLevel = "normal",
 ): boolean {
-  return atWar ? day % 2 === smallID % 2 : day % 10 === smallID % 10;
+  if (!atWar) return day % 10 === smallID % 10;
+  if (level === "easy") return wwAiWarPlanDue(level, smallID, day);
+  return day % 2 === smallID % 2;
 }
 
 /** Whether `smallID` fights a war now (an enemy past the preparation minute). */
@@ -1567,7 +1575,9 @@ export function aiNavy(navy: WwNavy, smallID: number, day: number): void {
     );
   if (fleets.length === 0) return;
   const atWar = aiAtWar(navy, smallID);
-  if (!aiNavyDue(smallID, day, atWar)) return;
+  if (!aiNavyDue(smallID, day, atWar, human ? "normal" : navy.ww.aiLevel)) {
+    return;
+  }
   const tick = navy.mg.ticks();
   const plan = aiNavalPlan(aiNavalInput(navy, smallID, day, fleets, atWar));
   for (const o of plan) navy.issue(smallID, o, tick, "ai");

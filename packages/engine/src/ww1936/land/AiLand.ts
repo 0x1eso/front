@@ -31,6 +31,7 @@ import {
   WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
+import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
@@ -479,6 +480,10 @@ export function aiLandTick(land: WwLand, smallID: number, day: number): void {
     ai.refitTemplates();
   }
   if (!ai.daily && (day + smallID) % AI_PEACE_PERIOD_DAYS !== 0) return;
+  // The lobby's difficulty: an Easy AI plans its daily days every 3 days.
+  if (ai.daily && !ai.human && !wwAiWarPlanDue(land.ww.aiLevel, smallID, day)) {
+    return;
+  }
   ai.run();
 }
 

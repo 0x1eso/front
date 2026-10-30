@@ -14,6 +14,11 @@ import {
   DoomsdayClockSpeed,
 } from "@openfront/engine-lib/game/DoomsdayClock";
 import {
+  WW_DIFFICULTIES,
+  wwAiLevel,
+  wwDifficulty,
+} from "@openfront/engine-lib/ww1936/AiDifficulty";
+import {
   LitElement,
   SVGTemplateResult,
   TemplateResult,
@@ -237,8 +242,9 @@ export interface GameConfigSettingsData {
   };
   /**
    * World War 1936 (spec §8.1): the country picker takes the map's place,
-   * and the difficulty, mode, team, bot, nation and unit sections are hidden
-   * (the mode fixes them; the AI plays on Medium).
+   * and the mode, team, bot, nation and unit sections are hidden (the mode
+   * fixes them). The difficulty offers the mode's own three levels
+   * (engine-lib ww1936/AiDifficulty: the AI countries' handicaps).
    */
   worldWar?: { picker: TemplateResult };
 }
@@ -481,6 +487,41 @@ export class GameConfigSettings extends LitElement {
     );
   }
 
+  /** World War 1936: Easy, Normal, Hard (Impossible plays as Hard). */
+  private renderWwDifficulty(settings: GameConfigSettingsData): TemplateResult {
+    const selected = wwDifficulty(settings.difficulty.selected);
+    return renderSection(
+      DIFFICULTY_ICON,
+      "text-green-400",
+      "bg-green-500/20",
+      "ww1936.lobby.difficulty",
+      html`
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" data-ww-difficulty>
+          ${WW_DIFFICULTIES.map((value) => {
+            const level = wwAiLevel(value);
+            return html`
+              <button
+                data-ww-difficulty-option=${level}
+                @click=${() => this.handleDifficultySelect(value)}
+                class="${cardClass(
+                  selected === value,
+                  "flex flex-col items-center p-4 gap-2 h-full",
+                )}"
+              >
+                <span class="${CARD_LABEL_CLASS} text-center text-white">
+                  ${translateText(`ww1936.lobby.difficulty_${level}`)}
+                </span>
+                <span class="text-xs text-white/60 text-center normal-case">
+                  ${translateText(`ww1936.lobby.difficulty_${level}_hint`)}
+                </span>
+              </button>
+            `;
+          })}
+        </div>
+      `,
+    );
+  }
+
   render() {
     if (!this.settings) return nothing;
     const settings = this.settings;
@@ -513,7 +554,9 @@ export class GameConfigSettings extends LitElement {
               undefined,
               this.renderMapSearchInput(),
             )}
-        ${settings.worldWar ? nothing : this.renderDifficulty(settings)}
+        ${settings.worldWar
+          ? this.renderWwDifficulty(settings)
+          : this.renderDifficulty(settings)}
         ${settings.worldWar
           ? nothing
           : html`

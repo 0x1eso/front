@@ -8099,6 +8099,13 @@
       "title": "면허"
     },
     "lobby": {
+      "difficulty": "AI 난이도",
+      "difficulty_easy": "쉬움",
+      "difficulty_easy_hint": "AI 나라: 공장 생산·건설 −20%, 연구 −15%, 전투 −10%, 전쟁 계획은 3일마다",
+      "difficulty_hard": "어려움",
+      "difficulty_hard_hint": "AI 나라: 공장 생산·건설·연구 +10%",
+      "difficulty_normal": "보통",
+      "difficulty_normal_hint": "AI 나라에 보정이 없습니다",
       "nukes": "원자탄 허용",
       "nukes_off": "금지",
       "nukes_on": "허용",
