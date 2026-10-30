@@ -28,6 +28,7 @@ import {
 } from "./NavyModel";
 import { WwAirLayerEvent, WwAirZoneSelectedEvent } from "./SeaAirSelection";
 import { isCapitulated } from "./WorldWarModel";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import {
   OpenWwAirEvent,
   OpenWwIndustryEvent,
@@ -77,6 +78,8 @@ export class WwAirPanel extends WwDrawerBase {
       this.game?.wwEconomy?.()?.version,
       this.game?.wwNavy?.()?.version,
       this.tab,
+      // Automation: the head's switch.
+      autoMaskOf(this.game, this.game?.myPlayer()?.smallID() ?? 0),
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -96,7 +99,15 @@ export class WwAirPanel extends WwDrawerBase {
       html`<span aria-hidden="true">✈</span>
         <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
           ${translateText("ww1936.air.drawer_title")}
-        </h3>`,
+        </h3>
+        ${dead
+          ? nothing
+          : renderAutoSwitch(
+              "air",
+              autoMaskOf(this.game, ctx.me),
+              (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+              true,
+            )}`,
       dead
         ? nothing
         : this.renderTabs(

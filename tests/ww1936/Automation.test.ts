@@ -37,6 +37,7 @@ import {
   wwRestore,
   wwRunner,
   wwRunnerCapture,
+  type WwHuman,
 } from "./util";
 
 const today = (g: Game) => g.worldWar()!.day(g.ticks());
@@ -46,7 +47,9 @@ function finishDay(runner: GameRunner, d: number): void {
 }
 const B = "HUMAN002";
 
-async function human(humans = [{ clientID: HUMAN, country: "DEU" as const }]) {
+async function human(
+  humans: WwHuman[] = [{ clientID: HUMAN, country: "DEU" }],
+) {
   const { runner, updates } = await wwRunnerCapture(
     { historicalAi: false },
     humans,

@@ -36,6 +36,7 @@ import {
   wwActive,
 } from "./WorldWarModel";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { renderProjectsTab } from "./WwProjectsTab";
 import { TabUi } from "./WwTabUi";
 
@@ -108,6 +109,8 @@ export class WwResearchPanel extends WwDrawerBase {
     const key = [
       this.detail(),
       this.game.worldWarScenario() ? today(this.game) : 0,
+      // Automation: the head's switch.
+      autoMaskOf(this.game, this.game.myPlayer()?.smallID() ?? 0),
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -196,7 +199,13 @@ export class WwResearchPanel extends WwDrawerBase {
       html`<span aria-hidden="true">🔬</span>
         <h3 class="m-0 min-w-0 truncate text-sm font-bold">
           ${translateText("ww1936.econ.research")}
-        </h3>`,
+        </h3>
+        ${renderAutoSwitch(
+          "research",
+          autoMaskOf(this.game, me.smallID()),
+          (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+          true,
+        )}`,
       this.renderTabs(
         [...TECH_BRANCHES, "projects"] as const,
         this.branch,

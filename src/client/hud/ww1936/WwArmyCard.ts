@@ -647,7 +647,7 @@ export class WwArmyCard extends LitElement implements Controller {
               >
               ${this.renderInvasion(c)}
             </div>`}
-        ${line}
+        ${this.renderAutoCommand(c)} ${line}
       </div>
       <div
         data-ww-card-buttons=${this.panel}
@@ -1037,20 +1037,58 @@ export class WwArmyCard extends LitElement implements Controller {
     );
   }
 
+  /**
+   * Automation (owner brief 2026-10-30): [자동 지휘] — the AI holds the
+   * army's front and attacks (army_auto, P2 spec §8.5), as a clear on/off
+   * switch with its one-line hint, in place of the grid's 🤖 button.
+   */
+  private renderAutoCommand(c: Ctx): TemplateResult {
+    const on = c.card.auto;
+    const block = c.card.buttons.find((b) => b.id === "auto")?.block ?? null;
+    const state = translateText(on ? "ww1936.auto.on" : "ww1936.auto.off");
+    return html`<div class="flex min-w-0 items-center gap-1.5">
+      <button
+        type="button"
+        role="switch"
+        data-ww-army-btn="auto"
+        aria-checked=${String(on)}
+        class="flex h-9 shrink-0 items-center gap-1 rounded-md border px-1.5 font-semibold ${on
+          ? "border-emerald-400/70 bg-emerald-900/50 text-emerald-100"
+          : "border-white/15 bg-white/5 hover:bg-white/10"} ${block === null
+          ? ""
+          : "opacity-40"}"
+        @click=${() => this.tapButton(c, "auto", block)}
+      >
+        🤖 ${translateText("ww1936.auto.army")}
+        <span
+          aria-hidden="true"
+          class="relative inline-block h-3.5 w-6 rounded-full ${on
+            ? "bg-emerald-400"
+            : "bg-white/25"}"
+          ><span
+            class="absolute top-0.5 size-2.5 rounded-full bg-white ${on
+              ? "left-3"
+              : "left-0.5"}"
+          ></span
+        ></span>
+        ${state}
+      </button>
+      <span class="min-w-0 truncate text-xs text-white/60"
+        >${translateText("ww1936.auto.army_hint")}</span
+      >
+    </div>`;
+  }
+
   private renderButtons(c: Ctx): TemplateResult[] {
     const landing =
       c.navy !== null && invasionOf(c.navy, c.card.row.id) !== null;
-    return ARMY_BUTTONS.map((id) => {
+    // [자동 지휘] has its own switch row (renderAutoCommand).
+    return ARMY_BUTTONS.filter((id) => id !== "auto").map((id) => {
       // A landing in preparation takes the sea move's place.
       if (id === "sea" && landing) return this.launchButton(c);
       const block = c.card.buttons.find((b) => b.id === id)?.block ?? null;
       const mode = BUTTON_MODES[id];
-      const pressed =
-        mode !== undefined
-          ? c.sel.mode === mode
-          : id === "auto"
-            ? c.card.auto
-            : undefined;
+      const pressed = mode !== undefined ? c.sel.mode === mode : undefined;
       return this.button(
         id,
         translateText(BUTTON_KEYS[id]),

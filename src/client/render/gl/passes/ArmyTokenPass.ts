@@ -29,9 +29,11 @@ import {
 import type { TokenLayoutCache } from "../../../view/LandTokenLayout";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
+import { ARMY_AUTO } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   ATLAS_COLS,
   ATLAS_ROWS,
+  CELL_AUTO,
   CELL_QUESTION,
   CELL_TILDE,
   ICON_BATTLE,
@@ -68,6 +70,7 @@ export const ATLAS_DEFINES: Record<string, number> = {
   ICON_PARA,
   CELL_QUESTION,
   CELL_TILDE,
+  CELL_AUTO,
 };
 
 /** Fog flags in an instance's last float (army-token.frag.glsl). */
@@ -227,6 +230,7 @@ export class ArmyTokenPass {
         multi.has(layout.armies[i].id),
         groups.colorOf(layout.armies[i].id),
         fv,
+        me,
       );
     }
     if (chosen >= 0) {
@@ -239,6 +243,7 @@ export class ArmyTokenPass {
         true,
         groups.colorOf(layout.armies[chosen].id),
         fog?.armyView(layout.armies[chosen].id) ?? null,
+        me,
       );
     }
     this.count = o / FLOATS;
@@ -258,6 +263,7 @@ export class ArmyTokenPass {
     chosen: boolean,
     group: number,
     fog: FogArmyView | null,
+    me: number,
   ): number {
     const a = layout.armies[i];
     const p = layout.placements[i];
@@ -271,7 +277,8 @@ export class ArmyTokenPass {
     f[o + 6] =
       fv === null || fv.bars === "exact" ? a.strengthPm : stepPm(a.strengthPm);
     f[o + 7] = fv === null || fv.bars === "exact" ? a.orgPm : stepPm(a.orgPm);
-    f[o + 8] = a.state;
+    // Automation: the "A" mark shows on the viewer's own auto armies only.
+    f[o + 8] = a.owner === me ? a.state : a.state & ~ARMY_AUTO;
     f[o + 9] = chosen ? 1 : 0;
     f[o + 10] = 0;
     // Fog bits (FOG_*) and, above them, the army group's palette colour

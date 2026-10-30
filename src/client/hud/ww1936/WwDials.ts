@@ -32,6 +32,7 @@ import {
   politicsInput,
 } from "./PoliticsModel";
 import { WwAirLayerEvent } from "./SeaAirSelection";
+import { autoMaskOf } from "./WwAutoUi";
 import { prepEndTick, today, wwActive } from "./WorldWarModel";
 import {
   OpenWwAirEvent,
@@ -107,6 +108,8 @@ export interface WwDialsModel {
   seaLayer: boolean;
   /** A short landscape screen (a phone): the row is 40 px tall. */
   compact: boolean;
+  /** Automation: my switches (WW_AUTO_DOMAINS bits); the 🏭 says "자동" while any is on. */
+  auto: number;
 }
 
 /**
@@ -260,6 +263,7 @@ export class WwDials extends LitElement implements Controller {
       data?.wars.length ?? 0,
       data?.capitulated.length ?? 0,
       window.innerHeight <= COMPACT_MAX_HEIGHT,
+      autoMaskOf(g, me?.smallID() ?? 0),
     ].join("|");
   }
 
@@ -307,6 +311,7 @@ export class WwDials extends LitElement implements Controller {
       airLayer: seaAirOf(this.game).selection.layer === "air",
       seaLayer: seaAirOf(this.game).selection.layer === "sea",
       compact: window.innerHeight <= COMPACT_MAX_HEIGHT,
+      auto: autoMaskOf(this.game, me.smallID()),
     };
   }
 
@@ -331,14 +336,14 @@ export class WwDials extends LitElement implements Controller {
         progressBar(i.progress, i.queued > 0 ? "victory" : "grey"),
         "🏭",
         null,
-        i.idle > 0
+        html`${i.idle > 0
           ? this.badge(
               "idle",
               i.idle,
               "bg-amber-400 text-gray-900",
               translateText("ww1936.econ.idle_factories", { n: i.idle }),
             )
-          : nothing,
+          : nothing}${m.auto !== 0 ? this.autoBadge() : nothing}`,
         () => this.eventBus.emit(new OpenWwIndustryEvent()),
       )}
       ${this.renderDial(
@@ -658,6 +663,16 @@ export class WwDials extends LitElement implements Controller {
       >
       ${svg} ${badge}
     </button>`;
+  }
+
+  /** Automation: a small "자동" tag on the 🏭 while any switch is on. */
+  private autoBadge(): TemplateResult {
+    return html`<span
+      data-dial-badge="auto"
+      aria-label=${translateText("ww1936.auto.badge_label")}
+      class="absolute left-0 top-0 flex h-3.5 items-center rounded-full bg-emerald-400 px-1 text-[9px] font-black leading-none text-gray-900 ring-1 ring-gray-900"
+      >${translateText("ww1936.auto.badge")}</span
+    >`;
   }
 
   private badge(

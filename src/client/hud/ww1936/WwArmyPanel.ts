@@ -52,6 +52,7 @@ import {
 import { TRAIT_ICONS, traitsOf } from "./WwArmyCard";
 import { renderGroupTab } from "./WwArmyGroupTab";
 import { WwDrawerBase } from "./WwDrawer";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { WwLandChangedEvent } from "./WwLandController";
 import "./WwTemplateDesigner";
 
@@ -145,6 +146,8 @@ export class WwArmyPanel extends WwDrawerBase {
       this.game.wwDepth?.()?.version,
       landSelectionOf(this.game).version,
       this.game.worldWarScenario() ? today(this.game) : 0,
+      // Automation: the head's training switch.
+      autoMaskOf(this.game, this.game.myPlayer()?.smallID() ?? 0),
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -193,6 +196,13 @@ export class WwArmyPanel extends WwDrawerBase {
     const head = html`<span aria-hidden="true">⚔</span>
       <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">${label}</h3>`;
     const p = this.game.myPlayer()!;
+    const live = html`${head}
+    ${renderAutoSwitch(
+      "training",
+      autoMaskOf(this.game, c.me),
+      (o) => this.send(o),
+      true,
+    )}`;
     // P5 pre-flight §0-1: an exile still commands.
     if (!wwActive(this.game, p.smallID())) {
       return this.renderFrame(
@@ -243,7 +253,35 @@ export class WwArmyPanel extends WwDrawerBase {
         });
         break;
     }
-    return this.renderFrame(label, head, tabs, body);
+    return this.renderFrame(label, live, tabs, body);
+  }
+
+  /** Automation: every army to the AI's command, or every army back. */
+  private renderAllAuto(c: Ctx): TemplateResult {
+    const rows = armyRows(c.view, c.me);
+    const autos = rows.filter((r) => c.view.armies.get(r.id)?.mine?.auto);
+    const button = (on: boolean) =>
+      html`<button
+        type="button"
+        data-ww-army-auto-all=${on ? "on" : "off"}
+        class="h-9 flex-1 rounded-md border px-2 text-xs font-semibold ${on
+          ? "border-emerald-400/60 bg-emerald-900/40 hover:bg-emerald-900/70"
+          : "border-white/15 bg-white/5 hover:bg-white/10"}"
+        ?disabled=${on
+          ? autos.length === rows.length
+          : autos.length === 0}
+        @click=${() => this.send({ kind: "army_auto_all", on })}
+      >
+        ${on ? "🤖 " : ""}${translateText(
+          on ? "ww1936.auto.all_auto" : "ww1936.auto.all_manual",
+        )}
+      </button>`;
+    return html`<div data-ww-army-auto class="mt-2 flex gap-1">
+        ${button(true)} ${button(false)}
+      </div>
+      <p class="m-0 mt-1 text-xs leading-snug text-white/60">
+        ${translateText("ww1936.auto.army_hint")}
+      </p>`;
   }
 
   private bars(strengthPm: number, orgPm: number): TemplateResult {
@@ -278,7 +316,7 @@ export class WwArmyPanel extends WwDrawerBase {
     const rows = armyRows(c.view, c.me);
     if (rows.length === 0) return this.empty("ww1936.land.no_armies");
     const chosen = c.army;
-    return html`<ul
+    return html`${this.renderAllAuto(c)}<ul
         data-ww-armies
         class="m-0 mt-2 flex list-none flex-col gap-1 p-0"
       >
