@@ -9409,9 +9409,9 @@
         "politics_label": "Political power {pp} of {cap}"
       },
       "fac": {
-        "in_faction": "Already in ‹{faction}›",
         "ideology": "A {ideology} government does not fit ‹{faction}› ({theirs}) and shares no common enemy with it",
         "ideology_lock": "‹{faction}› only takes the leader's ideology ({ideology})",
+        "in_faction": "Already in ‹{faction}›",
         "max": "At most {max} factions",
         "minor": "Only a major power can found a faction, unless a focus grants the right first",
         "no_faction": "A national spirit forbids founding or joining factions",
