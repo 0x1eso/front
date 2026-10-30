@@ -2085,11 +2085,35 @@ export function aiReactions(ce: CountryEconomy): AiReact {
 }
 
 /**
+ * Automation (owner brief 2026-10-30): the parts of the AI's economy a
+ * human handed over — the line planner (its lines, factories, retooling,
+ * order and naval lines) and the research. Never laws, building or trade.
+ */
+export interface AiEconomyOnly {
+  lines: boolean;
+  research: boolean;
+}
+
+const LINE_ORDERS: ReadonlySet<AiOrder["kind"]> = new Set([
+  "add_line",
+  "set_line_factories",
+  "change_line",
+]);
+
+/** An order of the plan the automation runs. */
+function automated(only: AiEconomyOnly, o: AiOrder): boolean {
+  if (LINE_ORDERS.has(o.kind)) return only.lines;
+  return o.kind === "research" && only.research;
+}
+
+/**
  * An AI country's economy decisions, after the rest of its daily step: its
  * whole turn every WW_AI_PERIOD_DAYS days (spec §12), and between turns
  * only what fell free (aiReactions; Task 9 balance ruling: a finished tech
  * or factory waited up to ten days). A refused order changes nothing and
- * the others still run; a refused retooling tries the next line.
+ * the others still run; a refused retooling tries the next line. `only`
+ * (automation): a human's country, the same turns and reactions with only
+ * the handed-over orders.
  */
 export function aiEconomyTick(
   econ: WwEconomy,
@@ -2097,18 +2121,28 @@ export function aiEconomyTick(
   p: Player,
   day: number,
   tick: number,
+  only?: AiEconomyOnly,
 ): void {
   let plan: AiPlan;
   if (isAiTurn(ce.smallID, day, ce.major)) {
     plan = aiPlan(aiInput(econ, ce, day, tick));
-    // P3 spec §7.3: the turn's law waits while the PP cannot pay it, and no
-    // other law is looked at that day.
-    const target = lawTargetAt(econ, ce, day, tick);
-    if (target !== null && !canPayLaw(econ, ce, target.value)) {
-      plan = plan.filter((o) => o.kind !== "set_law");
+    if (only !== undefined) {
+      plan = plan.filter((o) => automated(only, o));
+    } else {
+      // P3 spec §7.3: the turn's law waits while the PP cannot pay it, and
+      // no other law is looked at that day.
+      const target = lawTargetAt(econ, ce, day, tick);
+      if (target !== null && !canPayLaw(econ, ce, target.value)) {
+        plan = plan.filter((o) => o.kind !== "set_law");
+      }
     }
   } else {
     const react = aiReactions(ce);
+    if (only !== undefined) {
+      react.research = react.research && only.research;
+      react.lines = react.lines && only.lines;
+      react.construction = false;
+    }
     if (!react.research && !react.lines && !react.construction) return;
     plan = aiReactPlan(aiInput(econ, ce, day, tick), react);
   }
@@ -2125,9 +2159,11 @@ export function aiEconomyTick(
   }
   // P4 spec §17.5: the naval lines and the sea and air buildings, on the turn.
   if (isAiTurn(ce.smallID, day, ce.major)) {
-    aiPlanesFirst(econ, ce);
-    aiNavalLinesTurn(econ, ce, tick);
-    aiP4Builds(econ, ce, day);
+    if (only === undefined || only.lines) {
+      aiPlanesFirst(econ, ce);
+      aiNavalLinesTurn(econ, ce, tick);
+    }
+    if (only === undefined) aiP4Builds(econ, ce, day);
   }
 }
 

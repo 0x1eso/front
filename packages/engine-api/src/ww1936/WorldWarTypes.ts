@@ -60,6 +60,34 @@ export interface CapitulationGaugeData {
   days: number;
 }
 
+/**
+ * Automation for a human's country (owner brief 2026-10-30): the domains a
+ * human may hand to the AI, each its own switch (bit i of the mask is
+ * WW_AUTO_DOMAINS[i]). Production: the AI's line planner (lines, their
+ * factories, retooling, the naval lines); research: the next tech in every
+ * slot; training: the AI's division training; air: the AI's air wings and
+ * their missions in every zone.
+ */
+export const WW_AUTO_DOMAINS = [
+  "production",
+  "research",
+  "training",
+  "air",
+] as const;
+export type WwAutoDomain = (typeof WW_AUTO_DOMAINS)[number];
+
+/** The domain's bit in an automation mask. */
+export function wwAutoBit(domain: WwAutoDomain): number {
+  return 1 << WW_AUTO_DOMAINS.indexOf(domain);
+}
+
+/** A human country's automation switches (only countries with one on). */
+export interface WwAutoData {
+  smallID: number;
+  /** WW_AUTO_DOMAINS bits (wwAutoBit). */
+  mask: number;
+}
+
 /** What the screens read (GameUpdateType.WorldWar), sent when it changed. */
 export interface WorldWarData {
   prepEndTick: number;
@@ -67,4 +95,6 @@ export interface WorldWarData {
   capitulated: CapitulationData[];
   /** Only countries whose gauge is above 0, by smallID. */
   gauges: CapitulationGaugeData[];
+  /** Automation: the countries with a switch on, by smallID (none: absent). */
+  auto?: WwAutoData[];
 }

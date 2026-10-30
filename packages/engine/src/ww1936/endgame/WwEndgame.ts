@@ -957,6 +957,9 @@ export class WwEndgame {
     }
     for (const id of [...flipped].sort((a, b) => a - b)) {
       this.ww.politics.recomputeStats(id);
+      // Automation: the AI runs the one it was given; the human starts
+      // its new country with every switch off.
+      this.ww.clearAuto(id);
     }
   }
   /** Plan decision 7: the human players' own countries, then the moved controllers. */

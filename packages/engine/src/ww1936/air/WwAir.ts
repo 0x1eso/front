@@ -387,7 +387,12 @@ export class WwAir {
     }
     dailyAirCountry(this, id, day); // A1
     // P5 plan decision 7: the AI runs a country no human controls now.
-    if (!this.ww.isHumanControlled(id) || c.autoZones.length > 0) {
+    // A human's auto zones, or (automation) its whole air force.
+    if (
+      !this.ww.isHumanControlled(id) ||
+      c.autoZones.length > 0 ||
+      this.ww.autoOn(id, "air")
+    ) {
       aiAir(this, id, day);
     }
     this.airDirtyCountries.add(id);

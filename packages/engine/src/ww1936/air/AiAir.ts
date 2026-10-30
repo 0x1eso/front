@@ -655,7 +655,11 @@ function hasPlanes(air: WwAir, smallID: number): boolean {
   return air.deploymentsOf(smallID).some((d) => d.counts.some((c) => c > 0));
 }
 
-/** The country's AI day for its air force (an AI country's all, a human's auto zones). */
+/**
+ * The country's AI day for its air force (an AI country's all, a human's
+ * auto zones; automation: a human's all, as an AI country's, without the
+ * paradrops, which raise and train paratroopers).
+ */
 export function aiAir(air: WwAir, smallID: number, day: number): void {
   const p = air.mg.playerBySmallID(smallID);
   const ca = air.country(smallID);
@@ -664,16 +668,17 @@ export function aiAir(air: WwAir, smallID: number, day: number): void {
   }
   // P5 plan decision 7: a human controls it now.
   const human = air.ww.isHumanControlled(smallID);
-  if (human && ca.autoZones.length === 0) return;
+  // Automation (owner brief 2026-10-30): every zone, as the AI plans its own.
+  const zonesOnly = human && !air.ww.autoOn(smallID, "air");
+  if (zonesOnly && ca.autoZones.length === 0) return;
   const atWar = aiAtWar(air.navy, smallID);
   if (!aiAirDue(smallID, day, atWar)) return;
   const tick = air.mg.ticks();
   // Task 15's perf pass: no planes in the stock or out, nothing to plan
   // (most small countries; their input was built for nothing).
   if (hasPlanes(air, smallID)) {
-    for (const o of aiAirPlan(aiAirInput(air, smallID, day, atWar, human))) {
-      air.issue(smallID, o, tick);
-    }
+    const input = aiAirInput(air, smallID, day, atWar, zonesOnly);
+    for (const o of aiAirPlan(input)) air.issue(smallID, o, tick);
   }
   if (!human) aiParadrops(air, smallID, day, atWar);
 }

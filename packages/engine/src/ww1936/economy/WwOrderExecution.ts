@@ -12,6 +12,13 @@ import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player } from "../../game/Game";
 import { execSnapshotType } from "../../snapshot/ExecutionSnapshot";
+import {
+  armyAutoAll,
+  autoArmyNamed,
+  autoSet,
+  handOverDomain,
+  noteArmyHandOver,
+} from "../Automation";
 import type {
   ExecRecord,
   SnapshotReader,
@@ -44,7 +51,15 @@ export function applyWwOrder(
   order: WwOrder,
   day: number,
 ): WwOrderBlock | null {
+  const ww = econ.ww;
+  const id = p.smallID();
+  // Automation (owner brief 2026-10-30): a human's own order in a domain
+  // the AI runs for it hands the domain back first, with a notice; an auto
+  // army the order takes out of auto is told after.
+  const army = ww.isActor(id) ? autoArmyNamed(ww, id, order) : 0;
+  if (ww.isActor(id)) handOverDomain(mg, ww, id, order);
   const block = applyOrder(mg, econ, p, order, day);
+  noteArmyHandOver(mg, ww, id, army);
   econ.ww.settleOrder(mg.ticks());
   return block;
 }
@@ -219,6 +234,13 @@ function applyOrder(
       // Routed by the sender's clientID (WwTakeoverPickExecution): the
       // human it comes from has no country left.
       block = "no_takeover";
+      break;
+    // Automation (owner brief 2026-10-30): the sender's own country only.
+    case "auto_set":
+      block = autoSet(econ.ww, p.smallID(), order.domain, order.on);
+      break;
+    case "army_auto_all":
+      block = armyAutoAll(econ.ww, p.smallID(), order.on);
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);

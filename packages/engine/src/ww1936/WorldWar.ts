@@ -11,7 +11,10 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   WorldWarData,
+  WW_AUTO_DOMAINS,
   WW_PREP_TICKS,
+  wwAutoBit,
+  WwAutoDomain,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { zInt, zTiles } from "@openfront/engine-lib/snapshot/SnapshotType";
 import {
@@ -50,6 +53,8 @@ export const WorldWarStateSchema = z.object({
   ),
   /** [smallID, days] of every gauge above 0; written only when not empty. */
   gauges: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** Automation: [smallID, mask] of every human country with a switch on; written only when not empty. */
+  auto: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** P1 (spec §14.3): always written; a snapshot without it is refused. */
   economy: WwEconomyStateSchema.optional(),
   /** P2 (P2 spec §16.5): always written; a snapshot without it is refused. */
@@ -95,6 +100,12 @@ export class WorldWar {
   private _transfers: Transfer[] = [];
   /** By smallID: the capitulation gauge, 0..WW_CAPITULATION_DAYS - 1. */
   private _gauge: number[];
+  /**
+   * By smallID: the automation switches a human set for its country
+   * (WW_AUTO_DOMAINS bits; owner brief 2026-10-30). Read only while a human
+   * controls the country (autoOn); a takeover clears both countries'.
+   */
+  private _auto: number[];
   /** Set in the constructor (the game's pace); a snapshot restore overrides it. */
   private _prepEndTick: number;
   private _lastDay = -1;
@@ -134,6 +145,7 @@ export class WorldWar {
     this.size = scenario.countries.length + 1;
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
+    this._auto = new Array<number>(this.size).fill(0);
     this.economy = new WwEconomy(mg, this, scenario);
     this.politics = new WwPolitics(mg, this, politicsContent());
     this.land = new WwLand(mg, this, this.economy);
@@ -317,6 +329,24 @@ export class WorldWar {
     return this.endgame.controlledBy(client);
   }
 
+  /** Automation: the country's switches (WW_AUTO_DOMAINS bits), as set. */
+  autoMask(smallID: number): number {
+    return this._auto[smallID] ?? 0;
+  }
+
+  /**
+   * Automation: the AI runs `domain` for this human's country now. An AI
+   * country's switches never count (the AI runs all of it anyway).
+   */
+  autoOn(smallID: number, domain: WwAutoDomain): boolean {
+    const m = this._auto[smallID] ?? 0;
+    return (
+      m !== 0 &&
+      (m & wwAutoBit(domain)) !== 0 &&
+      this.isHumanControlled(smallID)
+    );
+  }
+
   /** P5 plan decision 20: an exile fights as its host (the land war's side). */
   sideOwner(smallID: number): number {
     const eg = this.endgame as WwEndgame | undefined;
@@ -370,6 +400,26 @@ export class WorldWar {
   settleOrder(tick: number): void {
     this.politics.flushEvents(tick);
     this.depth.endTick();
+  }
+
+  /** Automation: sets one switch; false when it already was so (or no such country). */
+  setAuto(smallID: number, domain: WwAutoDomain, on: boolean): boolean {
+    if (smallID <= 0 || smallID >= this.size) return false;
+    const bit = wwAutoBit(domain);
+    const before = this._auto[smallID];
+    const after = on ? before | bit : before & ~bit;
+    if (after === before) return false;
+    this._auto[smallID] = after;
+    this.dataDirty = true;
+    return true;
+  }
+
+  /** Automation: every switch of the country off (a takeover either way). */
+  clearAuto(smallID: number): void {
+    if (smallID <= 0 || smallID >= this.size) return;
+    if (this._auto[smallID] === 0) return;
+    this._auto[smallID] = 0;
+    this.dataDirty = true;
   }
 
   /**
@@ -483,7 +533,21 @@ export class WorldWar {
         tick,
       })),
       gauges: this.gauges().map(([smallID, days]) => ({ smallID, days })),
+      ...(this.autos().length === 0
+        ? {}
+        : {
+            auto: this.autos().map(([smallID, mask]) => ({ smallID, mask })),
+          }),
     };
+  }
+
+  /** [smallID, mask] of every country with an automation switch on, by smallID. */
+  private autos(): [number, number][] {
+    const out: [number, number][] = [];
+    for (let id = 1; id < this.size; id++) {
+      if (this._auto[id] !== 0) out.push([id, this._auto[id]]);
+    }
+    return out;
   }
 
   /** [smallID, days] of every gauge above 0, by smallID. */
@@ -511,6 +575,10 @@ export class WorldWar {
     // Nothing while every gauge is empty.
     for (const [id, days] of this.gauges()) {
       h = (Math.imul(h, 31) + id * 257 + days + 3) | 0;
+    }
+    // Automation: nothing while every switch is off.
+    for (const [id, mask] of this.autos()) {
+      h = (Math.imul(h, 31) + id * 263 + mask + 5) | 0;
     }
     // Final review A, finding 3: the day last run, the start VP and the
     // land transfers under way, in their list order (stepTransfers walks
@@ -544,6 +612,7 @@ export class WorldWar {
 
   snapshot(): WorldWarState {
     const gauges = this.gauges();
+    const auto = this.autos();
     return {
       prepEndTick: this._prepEndTick,
       lastDay: this._lastDay,
@@ -559,6 +628,7 @@ export class WorldWar {
         next: t.next,
       })),
       ...(gauges.length === 0 ? {} : { gauges }),
+      ...(auto.length === 0 ? {} : { auto }),
       economy: this.economy.snapshot(),
       land: this.land.snapshot(),
       politics: this.politics.snapshot(),
@@ -585,6 +655,12 @@ export class WorldWar {
     }));
     this._gauge = new Array<number>(this.size).fill(0);
     for (const [id, days] of s.gauges ?? []) this._gauge[id] = days;
+    this._auto = new Array<number>(this.size).fill(0);
+    for (const [id, mask] of s.auto ?? []) {
+      if (id > 0 && id < this.size) {
+        this._auto[id] = mask & ((1 << WW_AUTO_DOMAINS.length) - 1);
+      }
+    }
     this.rebuildMatrix();
     // A restored game's screens have seen nothing yet.
     this.dataDirty = true;
