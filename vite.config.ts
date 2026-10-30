@@ -10,7 +10,7 @@ import http from "http";
 import { lookup as lookupMime } from "mrmime";
 import path from "path";
 import { fileURLToPath } from "url";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin, build as viteBuild } from "vite";
 import { createHtmlPlugin } from "vite-plugin-html";
 import { configDefaults } from "vitest/config";
 import { gameVersionOverride } from "./src/server/GameVersionOverride";
@@ -24,6 +24,12 @@ import {
   writePublicAssetManifest,
   writeRootFilesIndex,
 } from "./src/server/PublicAssetManifest";
+import {
+  languageFlags,
+  offlineAssetSizes,
+  PRECACHE_BUDGET_BYTES,
+  writeServiceWorker,
+} from "./src/server/PwaBuild";
 
 // Vite already handles these, but its good practice to define them explicitly
 const __filename = fileURLToPath(import.meta.url);
@@ -180,6 +186,39 @@ function randomWorkerCreateProxy(numWorkers: number): Plugin {
   };
 }
 
+// Bundles the service worker (src/client/pwa/sw.ts) on its own, as one
+// classic script: it must sit at the site root (its scope is "/") and share
+// no chunk with the page. PwaBuild.writeServiceWorker adds the build's data.
+async function compileServiceWorker(): Promise<string> {
+  const result = await viteBuild({
+    configFile: false,
+    root: __dirname,
+    logLevel: "warn",
+    publicDir: false,
+    envFile: false,
+    build: {
+      write: false,
+      emptyOutDir: false,
+      minify: true,
+      target: "es2020",
+      lib: {
+        entry: path.join(__dirname, "src/client/pwa/sw.ts"),
+        formats: ["iife"],
+        name: "statecraftServiceWorker",
+        fileName: () => "sw.js",
+      },
+    },
+  });
+  const outputs = Array.isArray(result) ? result : [result];
+  for (const output of outputs) {
+    if (!("output" in output)) continue;
+    for (const chunk of output.output) {
+      if (chunk.type === "chunk") return chunk.code;
+    }
+  }
+  throw new Error("the service worker build emitted no script");
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const isProduction = mode === "production";
@@ -267,7 +306,7 @@ export default defineConfig(({ mode }) => {
     writeBundle(_options, bundle) {
       viteBundleFiles = Object.keys(bundle);
     },
-    closeBundle() {
+    async closeBundle() {
       const outDir = path.join(__dirname, "static");
       copyRootPublicFiles(getPublicDir(resourcesDir), outDir);
       writeRootFilesIndex(getPublicDir(resourcesDir), outDir);
@@ -285,6 +324,20 @@ export default defineConfig(({ mode }) => {
         assetManifest[fileName] = `/${fileName}`;
       }
       writePublicAssetManifest(outDir, assetManifest);
+      // The installable app's service worker, last: it lists every file
+      // above and names the build in index.html.
+      const sw = await writeServiceWorker({
+        outDir,
+        assetManifest,
+        bundleFiles: viteBundleFiles,
+        coreFlags: languageFlags(resourcesDir),
+        compile: compileServiceWorker,
+      });
+      const mb = (sw.bytes / 1024 / 1024).toFixed(1);
+      console.log(`sw.js: build ${sw.buildId}, ${sw.files} files, ${mb} MB`);
+      if (sw.bytes > PRECACHE_BUDGET_BYTES) {
+        this.warn(`the service worker precaches ${mb} MB, over its budget`);
+      }
     },
   });
 
@@ -420,6 +473,12 @@ export default defineConfig(({ mode }) => {
 
     define: {
       __ASSET_MANIFEST__: JSON.stringify(assetManifest),
+      // Map file and flag sizes for the offline map download
+      // (src/client/pwa/OfflineMaps.ts). Production only: in dev there is no
+      // service worker, so nothing to download for.
+      __OFFLINE_SIZES__: JSON.stringify(
+        isProduction ? offlineAssetSizes(sourceDirs) : {},
+      ),
       "process.env.WEBSOCKET_URL": JSON.stringify(
         isProduction ? "" : "localhost:3000",
       ),

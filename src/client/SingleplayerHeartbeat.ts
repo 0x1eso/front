@@ -1,6 +1,7 @@
 import { GameID } from "@openfront/engine-api/Schemas";
 import { ClientEnv } from "./ClientEnv";
 import { clientPlatform } from "./ClientPlatform";
+import { isOffline } from "./pwa/OfflineState";
 
 // The server counts a game while its last beat is younger than three
 // intervals (SingleplayerPresence on the worker), so a missed beat or a
@@ -23,6 +24,8 @@ export const SINGLEPLAYER_HEARTBEAT_INTERVAL_MS = 60_000;
  */
 export function startSingleplayerHeartbeat(gameID: GameID): () => void {
   const beat = () => {
+    // Offline there is no server to count the game: skip the beat.
+    if (isOffline()) return;
     try {
       const url = `${ClientEnv.gameHttpBase(gameID)}/${ClientEnv.gameWorkerPath(gameID)}/api/singleplayer/${gameID}/heartbeat`;
       void fetch(url, {

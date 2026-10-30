@@ -31,6 +31,7 @@ import { BaseModal } from "./components/BaseModal";
 import "./components/GameConfigSettings";
 import "./components/InputCard";
 import { MEDAL_ORDER, medalIcon } from "./components/map/Medals";
+import "./components/OfflineMapsPanel";
 import "./components/SavedGamesPanel";
 import {
   type LoadSavedGameDetail,
@@ -45,6 +46,8 @@ import { GameStartingModal } from "./GameStartingModal";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
+import { mapPlayableOffline } from "./pwa/OfflineMaps";
+import { isOffline } from "./pwa/OfflineState";
 import { downloadSavedGame } from "./SavedGamesApi";
 import { isSelfHosted } from "./SelfHosted";
 import { lastUserMeResponse } from "./UserMeBroadcast";
@@ -608,6 +611,9 @@ export class SinglePlayerModal extends BaseModal {
             @open-shared-save=${(e: CustomEvent<string>) =>
               (this.sharedSaveId = e.detail)}
           ></saved-games-panel>
+          <offline-maps-panel
+            class="block mb-6 [&:empty]:hidden"
+          ></offline-maps-panel>
           <game-config-settings
             class="block"
             .sectionGapClass=${"space-y-6"}
@@ -1589,6 +1595,20 @@ export class SinglePlayerModal extends BaseModal {
 
       // Building can wait on the network (a saved game's download).
       if (attempt !== this.startAttempt) return;
+
+      // Offline, a game can only start on a map this browser has kept
+      // (played before, or downloaded from the offline maps panel).
+      const config = detail.gameStartInfo?.config;
+      if (
+        isOffline() &&
+        config !== undefined &&
+        !(await mapPlayableOffline(config))
+      ) {
+        this.overlayAttempt = 0;
+        overlay?.hide();
+        await showInGameAlert(translateText("pwa.map_not_offline"));
+        return;
+      }
 
       await this.awaitMidgameAd();
 

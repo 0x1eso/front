@@ -14,6 +14,13 @@ html.self-hosted .no-self-host {
   display: none !important;
 }
 
+/* Offline (src/client/pwa/OfflineState.ts) there is no API either: whatever
+   needs it goes too, as does anything marked .no-offline. */
+html.offline .no-self-host,
+html.offline .no-offline {
+  display: none !important;
+}
+
 @theme {
   --default-ring-width: 3px;
   --default-ring-color: var(--color-malibu-blue);

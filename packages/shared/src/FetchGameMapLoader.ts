@@ -1,6 +1,13 @@
 import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { GameMapLoader, MapData } from "./GameMapLoader";
 
+/** A map's folder under resources/maps: its enum key, lower-cased. */
+export function mapFolderName(map: GameMapType): string | undefined {
+  return Object.keys(GameMapType)
+    .find((k) => GameMapType[k as keyof typeof GameMapType] === map)
+    ?.toLowerCase();
+}
+
 export class FetchGameMapLoader implements GameMapLoader {
   private maps: Map<GameMapType, MapData>;
 
@@ -16,10 +23,7 @@ export class FetchGameMapLoader implements GameMapLoader {
       return cachedMap;
     }
 
-    const key = Object.keys(GameMapType).find(
-      (k) => GameMapType[k as keyof typeof GameMapType] === map,
-    );
-    const fileName = key?.toLowerCase();
+    const fileName = mapFolderName(map);
 
     if (!fileName) {
       throw new Error(`Unknown map: ${map}`);
