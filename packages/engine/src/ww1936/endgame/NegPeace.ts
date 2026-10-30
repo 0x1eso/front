@@ -268,7 +268,11 @@ export function aiPeaceTerms(
   const inP = (x: number) => gp.includes(x);
   const inT = (x: number) => gt.includes(x);
   const j = peaceJudgeOf(eg, w, id, target, whole, day, f);
-  const want = j.winNeed + negPeacePctValue(j, AI_NEG_AIM_PCT - j.pct);
+  // The value that lifts the target's chance to the aim (rounded up), and
+  // the room a demand has above it (rounded down).
+  const want =
+    j.winNeed + Math.ceil((j.unit * (AI_NEG_AIM_PCT - j.pct)) / 1000);
+  const room = negPeacePctValue(j, j.pct - AI_NEG_AIM_PCT) - j.winNeed;
   const t = noPeaceTerms();
   const regions = eg.ww.scenario.landRegions.map((r) => r.id);
   /**
@@ -320,11 +324,11 @@ export function aiPeaceTerms(
       t.pay = lv;
       if (sum + v >= want) sum += v;
     }
-  } else if (want < 0 && heldPm(eg, gp, gt) > heldPm(eg, gt, gp)) {
+  } else if (room > 0 && heldPm(eg, gp, gt) > heldPm(eg, gt, gp)) {
     const held = regions.filter(
       (r) => f.legalOwner(r) === target && inP(f.controller(r)),
     );
-    fill(t.take, held, (r) => negPeaceRegionValue(f, r, inP), -want, -want);
+    fill(t.take, held, (r) => negPeaceRegionValue(f, r, inP), room, room);
   }
   if (!hasPeaceTerms(t)) return null;
   return negPeaceTermsBlock(f, sens, t, id, target) === null ? t : null;
