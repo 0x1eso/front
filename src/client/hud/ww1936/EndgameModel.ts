@@ -324,8 +324,20 @@ export function summarize(rows: readonly OccRow[]): OccSummary {
 export function occupationChip(
   game: EndgameGame,
 ): { n: number; resPct: number } | null {
-  const s = summarize(myOccRows(game, myId(game)));
-  return s.regions === 0 ? null : { n: s.regions, resPct: pctOf(s.avgResBp) };
+  // Final review M6: summarize(myOccRows(…)) without the rows — the band
+  // asks it four times a second, and each row's region name is a DOM
+  // query (isKoreanUi). The same count and the same rounded mean.
+  const v = egView(game);
+  const me = myId(game);
+  if (v === null || me <= 0) return null;
+  let n = 0;
+  let res = 0;
+  for (const o of v.occupation.values()) {
+    if (o.controller !== me || !isLiveOcc(game, o)) continue;
+    n++;
+    res += o.resBp;
+  }
+  return n === 0 ? null : { n, resPct: pctOf(Math.floor(res / n)) };
 }
 
 /** The occupation law `me` applies to `of`'s land and the day its lock ends. */

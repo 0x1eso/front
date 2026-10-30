@@ -240,6 +240,9 @@ export class TokenLayoutCache {
   private prevCount = 0;
   private readonly eases = new Map<number, TokenEase>();
   private gen = 0;
+  /** A sample's points at this tick and the next (tokenXYInto). */
+  private readonly xy: [number, number] = [0, 0];
+  private readonly next: [number, number] = [0, 0];
 
   /** Lays the tokens out for fractional tick `tick`; true when a placement changed. */
   update(view: WwLandView, tick: number, zoom: number): boolean {
@@ -374,9 +377,11 @@ export class TokenLayoutCache {
     this.fogStamp = fog?.stamp() ?? -1;
     const armies = this.armies;
     armies.length = 0;
+    // Final review M6: tokenXYInto, not tokenAt — no array per army a tick.
+    const xy = this.xy;
     for (const a of view.armies.values()) {
       if (fog !== undefined && !fog.armyView(a.id).visible) continue;
-      if (tokenAt(view, a, base) !== null) armies.push(a);
+      if (view.tokenXYInto(a, base, xy)) armies.push(a);
     }
     armies.sort(byId);
     const n = armies.length;
@@ -396,16 +401,16 @@ export class TokenLayoutCache {
       this.placements.push({ army: 0, x: 0, y: 0, lod: 0 });
     }
     this.moving = false;
+    const next = this.next;
     for (let i = 0; i < n; i++) {
       const a = armies[i];
-      const xy = tokenAt(view, a, base)!;
+      view.tokenXYInto(a, base, xy);
       this.x0[i] = xy[0];
       this.y0[i] = xy[1];
       this.dx[i] = 0;
       this.dy[i] = 0;
       if (a.move === null) continue;
-      const next = tokenAt(view, a, base + 1);
-      if (next === null) continue;
+      if (!view.tokenXYInto(a, base + 1, next)) continue;
       this.dx[i] = next[0] - xy[0];
       this.dy[i] = next[1] - xy[1];
       if (this.dx[i] !== 0 || this.dy[i] !== 0) this.moving = true;

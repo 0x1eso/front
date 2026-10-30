@@ -107,14 +107,22 @@ export class WwEndgameView {
     return translateText(`ww1936.country.${tagOf(smallID)}`);
   }
 
-  /** The country `client` controls after a takeover (0: spectating); null: its own. */
+  /**
+   * The country `client` controls after a takeover (0: spectating); null: its own.
+   * (Final review M6: plain loops here and in isExile and takeoverFor —
+   * the fog asks them on every question, wwOutOfGame.)
+   */
   controlledBy(client: string): number | null {
-    for (const [c, id] of this.controllers) if (c === client) return id;
+    const cs = this.controllers;
+    for (let i = 0; i < cs.length; i++)
+      if (cs[i][0] === client) return cs[i][1];
     return null;
   }
 
   isExile(id: number): boolean {
-    return this.exiles.some((e) => e.smallID === id);
+    const es = this.exiles;
+    for (let i = 0; i < es.length; i++) if (es[i].smallID === id) return true;
+    return false;
   }
 
   subjectOf(id: number): WwSubjectView | null {
@@ -140,7 +148,10 @@ export class WwEndgameView {
   }
 
   takeoverFor(client: string): WwTakeoverView | null {
-    return this.takeover.find((t) => t.client === client) ?? null;
+    const ts = this.takeover;
+    for (let i = 0; i < ts.length; i++)
+      if (ts[i].client === client) return ts[i];
+    return null;
   }
 
   /** White peace offers made to `smallID`, oldest first. */

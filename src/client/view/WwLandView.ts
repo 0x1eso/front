@@ -65,22 +65,42 @@ export class WwLandView {
   /** Token position in tiles at `tick` (fractional): between the two centers while it moves. */
   /** The token's tile position; null for region 0 (no region). */
   tokenXY(a: ArmySummary, tick: number): [number, number] | null {
-    if (
-      a.region === 0 ||
-      (a.move !== null && (a.move.from === 0 || a.move.to === 0))
-    ) {
-      return null;
+    const out: [number, number] = [0, 0];
+    return this.tokenXYInto(a, tick, out) ? out : null;
+  }
+
+  /**
+   * tokenXY into `out` without allocating (final review M6: the fog and
+   * the token layout ask it for every army each tick); false where
+   * tokenXY gives null, `out` then untouched. The same arithmetic.
+   */
+  tokenXYInto(
+    a: ArmySummary,
+    tick: number,
+    out: [number, number] | Float64Array,
+  ): boolean {
+    const m = a.move;
+    if (a.region === 0 || (m !== null && (m.from === 0 || m.to === 0))) {
+      return false;
     }
-    const w = this.scenario.width;
-    const at = (region: number): [number, number] => {
-      const t = this.scenario.centerTile(region);
-      return [t % w, Math.floor(t / w)];
-    };
-    if (a.move === null) return at(a.region);
+    const sc = this.scenario;
+    const w = sc.width;
+    if (m === null) {
+      const t = sc.centerTile(a.region);
+      out[0] = t % w;
+      out[1] = Math.floor(t / w);
+      return true;
+    }
     const since = Math.max(0, tick - (this.armyTick.get(a.id) ?? tick));
-    const p = Math.min(1000, a.move.progPm + a.move.stepPm * since) / 1000;
-    const [x0, y0] = at(a.move.from);
-    const [x1, y1] = at(a.move.to);
-    return [x0 + (x1 - x0) * p, y0 + (y1 - y0) * p];
+    const p = Math.min(1000, m.progPm + m.stepPm * since) / 1000;
+    const t0 = sc.centerTile(m.from);
+    const x0 = t0 % w;
+    const y0 = Math.floor(t0 / w);
+    const t1 = sc.centerTile(m.to);
+    const x1 = t1 % w;
+    const y1 = Math.floor(t1 / w);
+    out[0] = x0 + (x1 - x0) * p;
+    out[1] = y0 + (y1 - y0) * p;
+    return true;
   }
 }

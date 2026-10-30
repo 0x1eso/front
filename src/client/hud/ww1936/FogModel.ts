@@ -10,13 +10,30 @@
 // versions (no allocation between two changes). Spectators, the game's end
 // and the country-less see everything (`fogOff`), as do the observer's own
 // side.
+//
+// Final review M6: a stamp change (every tick at war: the land view moves
+// each tick) rebuilds only what its inputs touch, without allocating. The
+// fleets are worked out again only when the navy, the intel, the sides,
+// the observer or the fog switch moved; the armies when the land, the air,
+// the intel, the sides, the observer, the fog switch, the day or my player
+// moved — otherwise only the moving armies' last-seen places follow the
+// tick, as a full rebuild would set them (a hidden army's ghost stands where
+// the last rebuild that showed it saw it). In a rebuild every side, band and
+// region test is worked out once (memo tables), the token views are shared
+// by (count, band), a sighting is updated in place, and the ghost list is
+// made again only when a ghost came or went. The stamp still moves at every
+// rebuild. tests/client/ww1936/FogEquivalence.test.ts replays games against
+// the old full rebuild (FogModelReference.ts) tick by tick.
 import {
   ID_AIR,
   ID_ARMY,
   ID_CIVIL,
   ID_NAVY,
 } from "@openfront/engine-api/ww1936/DepthTypes";
-import { ARMY_BATTLE } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  ARMY_BATTLE,
+  type ArmySummary,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { renderTroops } from "@openfront/engine-lib/Format";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
@@ -170,6 +187,127 @@ function bucket(n: number): number {
   return b;
 }
 
+/** Keys a memo table holds (side ids, owner × 4 + domain, region ids). */
+const MEMO_MAX = 1 << 20;
+
+/** One memo table: a value per small integer key, valid in one generation. */
+class MemoTable {
+  gen = new Int32Array(0);
+  val = new Float64Array(0);
+}
+
+/**
+ * Final review M6: a rebuild's memo tables. `next()` starts a rebuild (every
+ * entry stale); a key outside 0..MEMO_MAX is never kept (asked again).
+ */
+class FogMemo {
+  private g = 0;
+  readonly side = new MemoTable();
+  readonly level = new MemoTable();
+  readonly band = new MemoTable();
+  readonly region = new MemoTable();
+  readonly zone = new MemoTable();
+  /** Fleet ids my side spotted (the fleets pass: 1). */
+  readonly spotted = new MemoTable();
+
+  next(): void {
+    this.g++;
+  }
+
+  has(t: MemoTable, i: number): boolean {
+    return i >= 0 && i < t.gen.length && t.gen[i] === this.g && this.g > 0;
+  }
+
+  /** A key a table keeps (else the caller asks again, or keeps it elsewhere). */
+  fits(i: number): boolean {
+    return (i | 0) === i && i >= 0 && i < MEMO_MAX;
+  }
+
+  put(t: MemoTable, i: number, v: number): void {
+    if (!this.fits(i)) return;
+    if (i >= t.gen.length) {
+      const n = Math.min(MEMO_MAX, Math.max(64, i + 1, t.gen.length * 2));
+      const gen = new Int32Array(n);
+      gen.set(t.gen);
+      const val = new Float64Array(n);
+      val.set(t.val);
+      t.gen = gen;
+      t.val = val;
+    }
+    t.gen[i] = this.g;
+    t.val[i] = v;
+  }
+}
+
+type ShownArmy = Extract<FogArmyView, { visible: true }>;
+type ShownFleet = Extract<FogFleetView, { visible: true }>;
+
+/** Distinct counts a band's view table keeps before it starts over. */
+const VIEWS_KEPT = 4096;
+
+/**
+ * Final review M6: the token views by (count, band). A view is a function
+ * of the two only, so armies and fleets share one (callers read, never
+ * write, them) and a rebuild allocates none.
+ */
+class FogViews {
+  private readonly armies: Map<number, ShownArmy>[] = [0, 1, 2, 3].map(
+    () => new Map(),
+  );
+  private readonly fleets: Map<number, ShownFleet>[] = [0, 1, 2, 3].map(
+    () => new Map(),
+  );
+
+  army(count: number, band: number): ShownArmy {
+    const m = this.armies[band];
+    let v = m?.get(count);
+    if (v !== undefined) return v;
+    const shown = shownAt(count, band);
+    v = {
+      visible: true,
+      ghost: false,
+      countLabel: fogCountLabel(count, band),
+      shown,
+      approx: band > 0 && band < 3,
+      bars: band >= 3 ? "exact" : band === 2 ? "steps" : "gray",
+      general: band >= 1,
+      generalSkills: band >= 2,
+      template: band >= 2,
+      composition: band >= 3,
+    };
+    if (m !== undefined) {
+      if (m.size >= VIEWS_KEPT) m.clear();
+      m.set(count, v);
+    }
+    return v;
+  }
+
+  fleet(ships: number, band: number): ShownFleet {
+    const m = this.fleets[band];
+    let v = m?.get(ships);
+    if (v !== undefined) return v;
+    const label = fogCountLabel(ships, band);
+    v = {
+      visible: true,
+      ghost: false,
+      countLabel: label,
+      shipsLabel: label,
+      shown: shownAt(ships, band),
+      approx: band > 0 && band < 3,
+      bars: band >= 3 ? "exact" : band === 2 ? "steps" : "gray",
+      general: band >= 1,
+      generalSkills: band >= 2,
+      template: band >= 2,
+      composition: band >= 3,
+    };
+    if (m !== undefined) {
+      if (m.size >= VIEWS_KEPT) m.clear();
+      m.set(ships, v);
+    }
+    return v;
+  }
+}
+
 /** What `wwOutOfGame` reads (the game view, or a fake in tests). */
 export type OutOfGameView = Pick<GameView, "myPlayer"> &
   Partial<Pick<GameView, "myClientID" | "wwEndgame">>;
@@ -216,12 +354,15 @@ export class FogModel {
   private observer = 0;
   private forcedOff = false;
 
-  private armies = new Map<number, FogArmyView>();
-  private fleets = new Map<number, FogFleetView>();
-  private ghostList: FogGhost[] = [];
+  /** The visible armies' and fleets' views (kept across rebuilds, updated in place). */
+  private readonly armies = new Map<number, FogArmyView>();
+  private readonly fleets = new Map<number, FogFleetView>();
+  private readonly views = new FogViews();
+  private ghostList: readonly FogGhost[] = [];
   private readonly seen = new Map<number, Seen>();
   private readonly ghostUntil = new Map<number, number>();
   private readonly ghostData = new Map<number, Seen>();
+  /** Spotted fleet ids the memo cannot hold (outside 0..MEMO_MAX); empty in practice. */
   private readonly spotted = new Set<number>();
   private readonly enemyMin = [3, 3, 3, 3];
   private stampValue = 0;
@@ -318,7 +459,8 @@ export class FogModel {
 
   /** The inputs of the cache, compared one by one (no sum: a reset version still shows). */
   private readonly keyNow = [0, 0, 0, 0, 0, 0, 0, 0];
-  private keyThen: number[] | null = null;
+  private readonly keyThen = [0, 0, 0, 0, 0, 0, 0, 0];
+  private keyed = false;
 
   private ensure(): void {
     const v = this.view;
@@ -332,7 +474,7 @@ export class FogModel {
     k[6] = this.today();
     k[7] = this.fogOff() ? 1 : 0;
     const then = this.keyThen;
-    if (then !== null && !this.dirty) {
+    if (this.keyed && !this.dirty) {
       let same = true;
       for (let i = 0; i < k.length; i++) {
         if (then[i] !== k[i]) {
@@ -343,7 +485,8 @@ export class FogModel {
       if (same) return;
     }
     this.dirty = false;
-    this.keyThen = k.slice();
+    this.keyed = true;
+    for (let i = 0; i < k.length; i++) then[i] = k[i];
     this.stampValue++;
     this.rebuild();
   }
@@ -351,6 +494,25 @@ export class FogModel {
 
   /** The observer the sightings below belong to. */
   private seenBy = -1;
+
+  /**
+   * What the army and fleet passes last read (empty: run it next time). A
+   * pass whose inputs are all the same would give the same answers, so it
+   * is skipped; the armies' last-seen places still follow the tick.
+   */
+  private readonly armyInputs: unknown[] = [];
+  private readonly fleetInputs: unknown[] = [];
+  private readonly inputsNow: unknown[] = [];
+
+  /** True when `now` differs from `then`, which then takes its values. */
+  private static moved(now: unknown[], then: unknown[]): boolean {
+    let same = then.length === now.length;
+    for (let i = 0; same && i < now.length; i++) same = now[i] === then[i];
+    if (same) return false;
+    then.length = now.length;
+    for (let i = 0; i < now.length; i++) then[i] = now[i];
+    return true;
+  }
 
   private rebuild(): void {
     const view = this.view;
@@ -367,7 +529,11 @@ export class FogModel {
       this.ghostUntil.clear();
       this.ghostData.clear();
       this.ghostList = [];
+      this.moving.length = 0;
+      this.armyInputs.length = 0;
     }
+    // This rebuild's memo tables (sides, bands, regions) start empty.
+    this.memo.next();
 
     // The lowest band over the countries at war with me, by domain.
     this.enemyMin[0] = this.enemyMin[1] = this.enemyMin[2] = 3;
@@ -377,77 +543,202 @@ export class FogModel {
         const e = w.a === me ? w.b : w.b === me ? w.a : 0;
         if (e === 0) continue;
         for (let d = 0; d < 4; d++) {
-          const b = this.bandOf(e, d);
+          const b = this.bandM(e, d, off, me);
           if (b < this.enemyMin[d]) this.enemyMin[d] = b;
         }
       }
     }
 
-    this.armies = new Map();
-    if (land !== null) this.rebuildArmies(land, off, me, day);
-    this.fleets = new Map();
-    if (navy !== null) this.rebuildFleets(navy, off, me);
+    const pol = view.wwPolitics?.() ?? null;
+    const depth = view.wwDepth?.() ?? null;
+    const now = this.inputsNow;
+    if (land === null) {
+      this.armies.clear();
+      this.armyInputs.length = 0;
+      this.moving.length = 0;
+    } else {
+      const air = view.wwAir?.() ?? null;
+      now.length = 0;
+      now.push(
+        land,
+        land.version,
+        air,
+        air?.version,
+        depth,
+        depth?.version,
+        pol,
+        pol?.version,
+        me,
+        off,
+        day,
+        // The air view's side is my player's (GameView), not the observer's.
+        view.myPlayer?.()?.smallID(),
+      );
+      if (FogModel.moved(now, this.armyInputs)) {
+        this.rebuildArmies(land, off, me, day);
+      } else {
+        this.followMoving(land);
+      }
+    }
+    if (navy === null) {
+      this.fleets.clear();
+      this.fleetInputs.length = 0;
+    } else {
+      now.length = 0;
+      now.push(navy, navy.version, depth, depth?.version, pol, pol?.version);
+      now.push(me, off);
+      if (FogModel.moved(now, this.fleetInputs)) {
+        this.rebuildFleets(navy, off, me);
+      }
+    }
+  }
+
+  // ---- this rebuild's memo tables ------------------------------------------
+
+  private readonly memo = new FogMemo();
+
+  /** sideOf, once per id a rebuild. */
+  private sideM(id: number): number {
+    const m = this.memo;
+    if (m.has(m.side, id)) return m.side.val[id];
+    const v = this.sideOf(id);
+    m.put(m.side, id, v);
+    return v;
+  }
+
+  private sameSideM(a: number, b: number): boolean {
+    return a === b || this.sideM(a) === this.sideM(b);
+  }
+
+  /** levelOf with this rebuild's fog switch and observer, once per (owner, domain). */
+  private levelM(
+    owner: number,
+    domain: number,
+    off: boolean,
+    me: number,
+  ): number {
+    if (off) return 100;
+    if (owner === 0 || this.sameSideM(me, owner)) return 100;
+    const m = this.memo;
+    const i = owner * 4 + domain;
+    if (m.has(m.level, i)) return m.level.val[i];
+    const v = this.view.wwDepth?.()?.intelOf(me, owner, domain) ?? 0;
+    m.put(m.level, i, v);
+    return v;
+  }
+
+  private bandM(
+    owner: number,
+    domain: number,
+    off: boolean,
+    me: number,
+  ): number {
+    const m = this.memo;
+    const i = owner * 4 + domain;
+    if (m.has(m.band, i)) return m.band.val[i];
+    const b = intelBand(this.levelM(owner, domain, off, me));
+    m.put(m.band, i, b);
+    return b;
   }
 
   // ---- army tokens ------------------------------------------------------
 
+  /** Is (1) or (2) of armyVisible true for `region` (not 0): my side holds it or a neighbour, or my planes see it. */
+  private regionSeen(
+    land: WwLandView,
+    region: number,
+    mySide: number,
+  ): boolean {
+    const m = this.memo;
+    if (m.has(m.region, region)) return m.region.val[region] === 1;
+    const seen = this.regionSeenNow(land, region, mySide);
+    m.put(m.region, region, seen ? 1 : 0);
+    return seen;
+  }
+
+  private regionSeenNow(
+    land: WwLandView,
+    region: number,
+    mySide: number,
+  ): boolean {
+    const sc = land.scenario;
+    // (1) the province is held by my side or touches one that is.
+    if (this.sideM(land.controller[region]) === mySide) return true;
+    const nbs = sc.regionNeighbours(region);
+    for (let i = 0; i < nbs.length; i++) {
+      if (this.sideM(land.controller[nbs[i]]) === mySide) return true;
+    }
+    // (2) my recon planes or my air superiority over its land zone.
+    const sr = sc.regionSr(region);
+    if (sr <= 0) return false;
+    const m = this.memo;
+    if (m.has(m.zone, sr)) return m.zone.val[sr] === 1;
+    const seen = this.zoneSeenNow(sr);
+    m.put(m.zone, sr, seen ? 1 : 0);
+    return seen;
+  }
+
+  /** (2) of armyVisible for land zone `sr`: my air superiority, or recon over it. */
+  private zoneSeenNow(sr: number): boolean {
+    const air = this.view.wwAir?.();
+    if (air === null || air === undefined) return false;
+    if (air.mySuperiority(sr) >= SUPERIORITY_SEEN_PM) return true;
+    // Lane I's reconSorties: my side's sorties over the zone yesterday
+    // (W2's reconBySide); without them, my own recon wings stand in.
+    const sorties = this.view.wwDepth?.()?.detail(this.me())
+      ?.intel.reconSorties;
+    if (sorties !== undefined) {
+      for (let i = 0; i < sorties.length; i++) {
+        if (sorties[i][0] === sr && sorties[i][2] >= RECON_SEEN) return true;
+      }
+      return false;
+    }
+    let recon = 0;
+    for (const d of air.deployments.values()) {
+      if (d.sr !== sr || d.mission !== "recon") continue;
+      for (const c of d.counts) recon += c;
+    }
+    return recon >= RECON_SEEN;
+  }
+
+  /** `band`: my army band on its owner (bandOf(a.owner, ID_ARMY)). */
   private armyVisible(
     land: WwLandView,
     a: { owner: number; region: number; state: number },
     mySide: number,
+    band: number,
   ): boolean {
-    const sc = land.scenario;
     const region = a.region;
     // (4) its divisions fight my side.
     if ((a.state & ARMY_BATTLE) !== 0) {
       const b = land.battles.get(region);
       if (b !== undefined) {
         if (
-          this.sideKeyOfBattle(b.attacker) === mySide ||
-          this.sideKeyOfBattle(b.defender) === mySide
+          this.sideKeyOfBattleM(b.attacker) === mySide ||
+          this.sideKeyOfBattleM(b.defender) === mySide
         ) {
           return true;
         }
       }
     }
     // (3) my army intel on its country is exact.
-    if (this.bandOf(a.owner, ID_ARMY) >= 3) return true;
+    if (band >= 3) return true;
     if (region === 0) return false;
-    // (1) the province is held by my side or touches one that is.
-    if (this.sideOf(land.controller[region]) === mySide) return true;
-    for (const n of sc.regionNeighbours(region)) {
-      if (this.sideOf(land.controller[n]) === mySide) return true;
-    }
-    // (2) my recon planes or my air superiority over its land zone.
-    const air = this.view.wwAir?.();
-    if (air !== null && air !== undefined) {
-      const sr = sc.regionSr(region);
-      if (sr > 0) {
-        if (air.mySuperiority(sr) >= SUPERIORITY_SEEN_PM) return true;
-        // Lane I's reconSorties: my side's sorties over the zone yesterday
-        // (W2's reconBySide); without them, my own recon wings stand in.
-        const sorties = this.view.wwDepth?.()?.detail(this.me())
-          ?.intel.reconSorties;
-        if (sorties !== undefined) {
-          if (sorties.some((x) => x[0] === sr && x[2] >= RECON_SEEN)) {
-            return true;
-          }
-        } else {
-          let recon = 0;
-          for (const d of air.deployments.values()) {
-            if (d.sr !== sr || d.mission !== "recon") continue;
-            for (const c of d.counts) recon += c;
-          }
-          if (recon >= RECON_SEEN) return true;
-        }
-      }
-    }
-    return false;
+    // (1), (2): the region's tests, once a rebuild.
+    return this.regionSeen(land, region, mySide);
   }
 
   private sideKeyOfBattle(v: number): number {
     return v >= SIDE_BASE ? v : this.sideOf(v);
   }
+
+  private sideKeyOfBattleM(v: number): number {
+    return v >= SIDE_BASE ? v : this.sideM(v);
+  }
+
+  /** The visible enemy armies on the move: their last-seen place follows the tick. */
+  private readonly moving: ArmySummary[] = [];
+  private readonly xy: [number, number] = [0, 0];
 
   private rebuildArmies(
     land: WwLandView,
@@ -455,8 +746,12 @@ export class FogModel {
     me: number,
     day: number,
   ): void {
-    const mySide = this.sideOf(me);
+    const mySide = this.sideM(me);
     const tick = this.view.ticks?.() ?? 0;
+    const armies = this.armies;
+    const moving = this.moving;
+    moving.length = 0;
+    let ghostsMoved = false;
     for (const a of land.armies.values()) {
       // The ally rule (same faction, or me) — and, T1b, a volunteer army
       // by whom it fights for: my side's volunteers are my side's, as in
@@ -464,67 +759,101 @@ export class FogModel {
       const mine =
         off ||
         a.owner === me ||
-        this.sameSide(me, a.owner) ||
-        (a.volunteerFor !== undefined && this.sameSide(me, a.volunteerFor));
-      const band = mine ? 3 : this.bandOf(a.owner, ID_ARMY);
-      if (!mine && !this.armyVisible(land, a, mySide)) {
-        this.hideArmy(a.id, day);
+        this.sameSideM(me, a.owner) ||
+        (a.volunteerFor !== undefined && this.sameSideM(me, a.volunteerFor));
+      const band = mine ? 3 : this.bandM(a.owner, ID_ARMY, off, me);
+      if (!mine && !this.armyVisible(land, a, mySide, band)) {
+        armies.delete(a.id);
+        if (this.hideArmy(a.id, day)) ghostsMoved = true;
         continue;
       }
-      const shown = shownAt(a.divisions, band);
-      const v: FogArmyView = {
-        visible: true,
-        ghost: false,
-        countLabel: fogCountLabel(a.divisions, band),
-        shown,
-        approx: band > 0 && band < 3,
-        bars: band >= 3 ? "exact" : band === 2 ? "steps" : "gray",
-        general: band >= 1,
-        generalSkills: band >= 2,
-        template: band >= 2,
-        composition: band >= 3,
-      };
-      this.armies.set(a.id, v);
-      this.ghostUntil.delete(a.id);
-      this.ghostData.delete(a.id);
+      const v = this.views.army(a.divisions, band);
+      armies.set(a.id, v);
+      if (this.ghostUntil.size > 0) this.ghostUntil.delete(a.id);
+      if (this.ghostData.size > 0 && this.ghostData.delete(a.id)) {
+        ghostsMoved = true;
+      }
       if (mine) {
-        this.seen.delete(a.id);
+        if (this.seen.size > 0) this.seen.delete(a.id);
         continue;
       }
-      const xy = land.tokenXY(a, tick);
-      if (xy !== null) {
-        this.seen.set(a.id, {
-          owner: a.owner,
-          x: xy[0],
-          y: xy[1],
-          symbol: a.symbol,
-          shown,
-          approx: v.approx,
-          countLabel: v.countLabel,
-        });
-      }
+      this.see(land, a, tick, v);
+      if (a.move !== null) moving.push(a);
     }
     // Armies the screen no longer has are forgotten; old ghosts fade out.
-    for (const id of [...this.seen.keys()]) {
-      if (!land.armies.has(id)) this.seen.delete(id);
-    }
-    for (const id of [...this.ghostUntil.keys()]) {
-      if (!land.armies.has(id) || (this.ghostUntil.get(id) ?? 0) <= day) {
-        this.ghostUntil.delete(id);
-        this.ghostData.delete(id);
+    if (armies.size > 0) {
+      for (const id of armies.keys()) {
+        if (!land.armies.has(id)) armies.delete(id);
       }
     }
-    this.ghostList = [];
-    for (const [id, s] of this.ghostData) this.ghostList.push({ id, ...s });
+    for (const id of this.seen.keys()) {
+      if (!land.armies.has(id)) this.seen.delete(id);
+    }
+    for (const [id, until] of this.ghostUntil) {
+      if (!land.armies.has(id) || (until ?? 0) <= day) {
+        this.ghostUntil.delete(id);
+        if (this.ghostData.delete(id)) ghostsMoved = true;
+      }
+    }
+    if (ghostsMoved) {
+      const list: FogGhost[] = [];
+      for (const [id, s] of this.ghostData) list.push({ id, ...s });
+      this.ghostList = list;
+    }
   }
 
-  /** An army not visible now: if it was, it becomes a ghost for 10 days. */
-  private hideArmy(id: number, day: number): void {
+  /** The last-seen record of a visible enemy army, in place (a token at no place keeps the last). */
+  private see(
+    land: WwLandView,
+    a: ArmySummary,
+    tick: number,
+    v: ShownArmy,
+  ): void {
+    const xy = this.xy;
+    if (!land.tokenXYInto(a, tick, xy)) return;
+    const s = this.seen.get(a.id);
+    if (s === undefined) {
+      this.seen.set(a.id, {
+        owner: a.owner,
+        x: xy[0],
+        y: xy[1],
+        symbol: a.symbol,
+        shown: v.shown,
+        approx: v.approx,
+        countLabel: v.countLabel,
+      });
+      return;
+    }
+    s.owner = a.owner;
+    s.x = xy[0];
+    s.y = xy[1];
+    s.symbol = a.symbol;
+    s.shown = v.shown;
+    s.approx = v.approx;
+    s.countLabel = v.countLabel;
+  }
+
+  /**
+   * The armies' inputs did not move but the stamp did (the navy, say): a
+   * full rebuild would give every army the same answer and only move the
+   * last-seen place of the visible enemy armies on the move to this tick.
+   */
+  private followMoving(land: WwLandView): void {
+    const tick = this.view.ticks?.() ?? 0;
+    for (const a of this.moving) {
+      const v = this.armies.get(a.id);
+      if (v !== undefined && v.visible) this.see(land, a, tick, v);
+    }
+  }
+
+  /** An army not visible now: if it was, it becomes a ghost for 10 days (true: a new ghost). */
+  private hideArmy(id: number, day: number): boolean {
     const s = this.seen.get(id);
-    if (s === undefined) return;
+    if (s === undefined) return false;
     this.seen.delete(id);
     this.ghostUntil.set(id, day + GHOST_DAYS);
     this.ghostData.set(id, s);
+    return true;
   }
 
   armyView(armyId: number): FogArmyView {
@@ -541,39 +870,47 @@ export class FogModel {
   // ---- fleets -----------------------------------------------------------
 
   private rebuildFleets(navy: WwNavyView, off: boolean, me: number): void {
-    this.spotted.clear();
-    const mySide = this.sideOf(me);
+    // The fleets my side spotted, in this rebuild's memo (no set to refill).
+    const m = this.memo;
+    const spotted = this.spotted;
+    spotted.clear();
+    const mySide = this.sideM(me);
     for (const s of navy.seaRegions.values()) {
-      for (const [k, ids] of s.spotted) {
-        if (k === mySide || k === me)
-          for (const id of ids) this.spotted.add(id);
+      const sp = s.spotted;
+      for (let i = 0; i < sp.length; i++) {
+        const k = sp[i][0];
+        if (k !== mySide && k !== me) continue;
+        const ids = sp[i][1];
+        for (let j = 0; j < ids.length; j++) {
+          const id = ids[j];
+          if (m.fits(id)) m.put(m.spotted, id, 1);
+          else spotted.add(id);
+        }
       }
     }
+    const fleets = this.fleets;
     for (const f of navy.fleets.values()) {
       let ships = 0;
       for (const n of f.counts) ships += n;
-      const mine = off || f.owner === me || this.sameSide(me, f.owner);
-      const band = mine ? 3 : this.bandOf(f.owner, ID_NAVY);
+      const mine = off || f.owner === me || this.sameSideM(me, f.owner);
+      const band = mine ? 3 : this.bandM(f.owner, ID_NAVY, off, me);
       if (!mine) {
         const inBattle = navy.battles.has(f.zone);
         const dockedSeen =
-          f.docked !== 0 && this.levelOf(f.owner, ID_NAVY) >= DOCKED_SEEN_LEVEL;
-        if (!this.spotted.has(f.id) && !inBattle && !dockedSeen) continue;
+          f.docked !== 0 &&
+          this.levelM(f.owner, ID_NAVY, off, me) >= DOCKED_SEEN_LEVEL;
+        const seen = m.has(m.spotted, f.id) || spotted.has(f.id);
+        if (!seen && !inBattle && !dockedSeen) {
+          fleets.delete(f.id);
+          continue;
+        }
       }
-      const label = fogCountLabel(ships, band);
-      this.fleets.set(f.id, {
-        visible: true,
-        ghost: false,
-        countLabel: label,
-        shipsLabel: label,
-        shown: shownAt(ships, band),
-        approx: band > 0 && band < 3,
-        bars: band >= 3 ? "exact" : band === 2 ? "steps" : "gray",
-        general: band >= 1,
-        generalSkills: band >= 2,
-        template: band >= 2,
-        composition: band >= 3,
-      });
+      fleets.set(f.id, this.views.fleet(ships, band));
+    }
+    if (fleets.size > 0) {
+      for (const id of fleets.keys()) {
+        if (!navy.fleets.has(id)) fleets.delete(id);
+      }
     }
   }
 
