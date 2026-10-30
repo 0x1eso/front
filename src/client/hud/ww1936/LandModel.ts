@@ -60,12 +60,12 @@ import {
   isTitledGeneral,
   titleNoOfGeneral,
 } from "@openfront/engine-lib/ww1936/Generals";
+import type { InvasionPortWorld } from "@openfront/engine-lib/ww1936/InvasionRules";
 import {
   landOrderBlockOf,
   OrderCheckArmy,
   OrderCheckWorld,
 } from "@openfront/engine-lib/ww1936/LandOrderChecks";
-import type { InvasionPortWorld } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   edgeTicks,

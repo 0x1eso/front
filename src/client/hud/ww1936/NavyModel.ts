@@ -1226,7 +1226,10 @@ export interface InvasionPreview {
 }
 
 /** The sea km a convoy of mine sails from zone to every zone it reaches, many sources at once. */
-function seaDistMap(ctx: NavyCtx, from: readonly number[]): Map<number, number> {
+function seaDistMap(
+  ctx: NavyCtx,
+  from: readonly number[],
+): Map<number, number> {
   const sc = ctx.scenario;
   const q = passQueryOf(ctx.p4, ctx.economy, ctx.sides);
   const dist = seaDistances(sc, from, (e) =>
@@ -1394,7 +1397,8 @@ function invasionReach(ctx: NavyCtx, army: number): InvasionReach {
       }
       reach.enemyCoasts++;
       const km = dist.get(h);
-      if (km !== undefined && km <= WW_INVASION_MAX_KM) reach.targets.push(r.id);
+      if (km !== undefined && km <= WW_INVASION_MAX_KM)
+        reach.targets.push(r.id);
     }
   }
   reachMemo.set(land, { key, reach });
