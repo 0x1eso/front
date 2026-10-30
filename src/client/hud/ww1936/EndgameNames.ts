@@ -189,6 +189,10 @@ export const ENDGAME_NOTICES: ReadonlySet<string> = new Set([
   "events_display.ww1936_captured",
   "events_display.ww1936_takeover",
   "events_display.ww1936_spectating",
+  // White peace: the proposer hears the answer.
+  "events_display.ww1936_wpeace_accepted",
+  "events_display.ww1936_wpeace_refused",
+  "events_display.ww1936_wpeace_lapsed",
 ]);
 
 /**
