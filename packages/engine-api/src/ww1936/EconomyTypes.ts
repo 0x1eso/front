@@ -698,6 +698,9 @@ export const WW_ORDER_BLOCKS = [
   "peace_war_kind",
   "peace_pending",
   "peace_no_offer",
+  // Easy naval invasions (owner brief 2026-10-30), appended: no port of our
+  // side the landing force can reach over land.
+  "no_invasion_port",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

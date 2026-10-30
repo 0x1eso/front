@@ -78,7 +78,12 @@ import {
   dailyFleetHousekeeping,
   issueFleetOrder,
 } from "./Fleets";
-import { dailyInvasions, issueInvasionOrder } from "./Invasions";
+import {
+  dailyInvasions,
+  easyLanding,
+  easyWait,
+  issueInvasionOrder,
+} from "./Invasions";
 import { engageRegion, FST } from "./Missions";
 import { stepNavalBattles } from "./NavalBattles";
 import { startNavy } from "./NavyStartRun";
@@ -447,9 +452,22 @@ export interface Invasion {
   /** INVASION_STATES index. */
   state: number;
   prepDays: number;
+  /** Days of preparation done; while moving, the times the march was planned again. */
   prepDone: number;
   voyage: number;
   readySent: boolean;
+  /**
+   * Easy rules (owner brief 2026-10-30): a human controlled the country
+   * when the order was given. It marches to its port itself, prepares 20,
+   * 10 or 5 days, sails as soon as it can with no supremacy needed and
+   * never turns back for it, loses at most half at sea, lands at −40%.
+   * False: spec §11's rules (the AI's).
+   */
+  easy: boolean;
+  /** Easy: the crossing's interception losses so far, ‰ (capped). */
+  lossPm: number;
+  /** Easy: the army this landing force was split from (0: none). */
+  splitFrom: number;
 }
 
 export interface AdmiralState {
@@ -641,6 +659,9 @@ const InvasionSchema = z.object({
   prepDone: zInt(),
   voyage: zInt(),
   readySent: z.boolean(),
+  easy: z.boolean(),
+  lossPm: zInt(),
+  splitFrom: zInt(),
 });
 const AdmiralSchema = z.object({
   id: zInt(),
@@ -1490,6 +1511,17 @@ export class WwNavy {
   }
 
   /** A message to the country's human player only; `key` is the full key (events_display.ww1936_…). */
+  /**
+   * Easy naval invasions (owner brief 2026-10-30): a human controls the
+   * country now. Taken at the order (Invasion.easy keeps it): a takeover
+   * gives the new controller's orders the easy rules, the AI keeps spec
+   * §11's.
+   */
+  easyInvasion(smallID: number): boolean {
+    const p = this.mg.playerBySmallID(smallID);
+    return p.isPlayer() && this.ww.isHumanControlled(smallID);
+  }
+
   message(
     to: number,
     key: string,
@@ -1992,6 +2024,15 @@ export class WwNavy {
               sr,
               this.supremacy(this.sideOf(id), sr),
             ]),
+            // Easy invasions: the card's waiting reason, losses and split.
+            ...(x.easy
+              ? {
+                  easy: true,
+                  lossPm: x.lossPm,
+                  splitFrom: x.splitFrom,
+                  ...easyWait(this, x),
+                }
+              : {}),
           };
         }),
       admirals: [...this.admirals.values()]
@@ -2013,6 +2054,16 @@ export class WwNavy {
         .filter((d) => {
           const r = this.land.divisions.rowOf(d);
           return r >= 0 && this.land.divisions.owner[r] === id;
+        })
+        .sort((a, b) => a - b),
+      landingEasy: [...this.landing.keys()]
+        .filter((d) => {
+          const r = this.land.divisions.rowOf(d);
+          return (
+            r >= 0 &&
+            this.land.divisions.owner[r] === id &&
+            easyLanding(this, r)
+          );
         })
         .sort((a, b) => a - b),
       admiralSkills: [...this.admirals.values()]
@@ -2444,6 +2495,12 @@ export class WwNavy {
       mix(x.from);
       mix(x.prepDays);
       mix(bit(x.readySent));
+      // Easy invasions only (an AI's adds nothing: its hash stays as it was).
+      if (x.easy) {
+        mix(1);
+        mix(x.lossPm);
+        mix(x.splitFrom);
+      }
     }
     for (const a of this.admirals.values()) {
       mix(a.owner);

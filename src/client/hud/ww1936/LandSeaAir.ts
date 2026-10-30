@@ -169,12 +169,15 @@ export function landingBpsOf(
   const detail = p?.navy.detail ?? null;
   if (detail === null || detail.smallID !== me) return none;
   const marked = new Set(detail.landing ?? []);
-  if (!divisions.some((d) => marked.has(d) && divRegion(d) === region)) {
-    return none;
-  }
+  const here = divisions.filter(
+    (d) => marked.has(d) && divRegion(d) === region,
+  );
+  if (here.length === 0) return none;
+  // Easy invasions (a human's): the landing's cut is −40% (marines −20%).
+  const easy = here.some((d) => detail.landingEasy?.includes(d) ?? false);
   const lv = economy.effectiveBuildings("coastal_fort", region);
   return {
-    landingBp: -landingBp((flags & TPL_MARINE_ANY) !== 0, techs),
+    landingBp: -landingBp((flags & TPL_MARINE_ANY) !== 0, techs, easy),
     coastalFortBp:
       lv === 0 ? 0 : -coastalFortBp(lv, (flags & TPL_ENGINEER) !== 0),
   };

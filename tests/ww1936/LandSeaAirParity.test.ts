@@ -10,6 +10,7 @@ import {
   type BattalionId,
   GROUND_EQUIPMENT,
   ROLE_ATTACK,
+  TPL_MARINE_ANY,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   CONVOY_USES,
@@ -91,6 +92,11 @@ function landAt(navy: WwNavy, g: Game, a: Army, target: number): void {
   for (let i = 0; i < inv.prepDays; i++) {
     dailyInvasions(navy, owner, day, g.ticks());
   }
+  // An easy invasion sails by itself when ready: its own voyage lands.
+  if (inv.state === INVASION_STATES.indexOf("sailing")) {
+    landInvasion(navy, inv.voyage, g.ticks());
+    return;
+  }
   const l = navy.land;
   const sc = navy.scenario;
   const divs = [...a.divisions];
@@ -142,155 +148,181 @@ function landAt(navy: WwNavy, g: Game, a: Army, target: number): void {
 }
 
 describe("the land cards' P4 lines are the engine's (LandSeaAir parity)", () => {
-  it("air, fuel, landing, coastal fort and shore bombardment", async () => {
-    const { runner, updates } = await wwRunnerCapture(
-      {},
-      [
-        { clientID: HUMAN, country: "GBR" },
-        { clientID: "HUMAN002", country: "ITA" },
-      ],
-      SEA.map,
-    );
-    const g = runner.game;
-    warAfterPrep(runner, HUMAN, "ITA");
-    clearLand(g);
-    stockUp(g, "GBR");
-    stockUp(g, "ITA");
-    const ww = g.worldWar()!;
-    const navy = ww.navy;
-    const l = ww.land;
-    // British fighters over the West (Rome's land zone) for a day.
-    const gb = ww.economy.country(GBR)!;
-    gb.stock[equipKey("fighter", 1)] = 300;
-    expect(
-      ww.air.issue(
-        GBR,
-        {
-          kind: "air_deploy",
-          sr: SR.westLand,
-          type: "fighter",
-          mission: "air_superiority",
-          count: 300,
-        },
-        g.ticks(),
-      ),
-    ).toBeNull();
-    const day = ww.day(g.ticks()) + 1;
-    stepTo(
-      runner,
-      dayStartTick(day, ww.prepEndTick()) +
-        (ww.scenario.srIdxOf(SR.westLand) % 7) +
-        1,
-    );
-    expect(ww.air.airSup(l.sideOf(GBR), SR.westLand)).toBeGreaterThan(500);
-    // Italy holds Rome with infantry and a motorized division.
-    placeArmy(g, "ITA", ROME, 1);
-    const mot = template(g, "ITA", [
-      ...new Array<BattalionId>(4).fill("infantry"),
-      "motorized",
-      "motorized",
-    ]);
-    placeArmy(g, "ITA", ROME, 1, mot);
-    // Britain lands: infantry and marines, a coastal fort waits.
-    const marines = template(g, "GBR", new Array(6).fill("marine"));
-    navy.econ.buildingArray("coastal_fort")[ROME] = 1;
-    navy.econ.afterBuildingChange(ROME, "coastal_fort");
-    landAt(navy, g, placeArmy(g, "GBR", REGION.london, 1), ROME);
-    landAt(navy, g, placeArmy(g, "GBR", REGION.london, 1, marines), ROME);
-    // Four British battleships off Rome on invasion support.
-    const fid = navy.createFleet(GBR, REGION.london, [["bb", 1, 4]]);
-    const f = navy.fleets.get(fid)!;
-    f.docked = 0;
-    navy.setFleetZone(f, ZONE.middle);
-    f.mission = FLEET_MISSIONS.indexOf("invasion_support");
-    f.missionSr = SR.central;
-    f.state = FLEET_STATES.indexOf("on_station");
-    navy.markFleet(fid);
-    navy.markCountry(GBR);
-    step(runner);
-    expect(l.battles.has(ROME)).toBe(true);
-    // Italy runs short of fuel (yesterday's ratio, as both sides read it).
-    const it = ww.economy.country(ITA)!;
-    it.fuelRatioPm = 600;
+  // Easy invasions (a human's, −40% / marines −20%) and spec §11's (the
+  // AI's, −70% / −35%: the human test countries order on them by hand).
+  it.each([
+    ["easy", true],
+    ["spec §11", false],
+  ])(
+    "air, fuel, landing (%s), coastal fort and shore bombardment",
+    async (_, easy) => {
+      const { runner, updates } = await wwRunnerCapture(
+        {},
+        [
+          { clientID: HUMAN, country: "GBR" },
+          { clientID: "HUMAN002", country: "ITA" },
+        ],
+        SEA.map,
+      );
+      const g = runner.game;
+      warAfterPrep(runner, HUMAN, "ITA");
+      clearLand(g);
+      stockUp(g, "GBR");
+      stockUp(g, "ITA");
+      const ww = g.worldWar()!;
+      const navy = ww.navy;
+      const l = ww.land;
+      if (!easy) vi.spyOn(navy, "easyInvasion").mockReturnValue(false);
+      // British fighters over the West (Rome's land zone) for a day.
+      const gb = ww.economy.country(GBR)!;
+      gb.stock[equipKey("fighter", 1)] = 300;
+      expect(
+        ww.air.issue(
+          GBR,
+          {
+            kind: "air_deploy",
+            sr: SR.westLand,
+            type: "fighter",
+            mission: "air_superiority",
+            count: 300,
+          },
+          g.ticks(),
+        ),
+      ).toBeNull();
+      const day = ww.day(g.ticks()) + 1;
+      stepTo(
+        runner,
+        dayStartTick(day, ww.prepEndTick()) +
+          (ww.scenario.srIdxOf(SR.westLand) % 7) +
+          1,
+      );
+      expect(ww.air.airSup(l.sideOf(GBR), SR.westLand)).toBeGreaterThan(500);
+      // Italy holds Rome with infantry and a motorized division.
+      placeArmy(g, "ITA", ROME, 1);
+      const mot = template(g, "ITA", [
+        ...new Array<BattalionId>(4).fill("infantry"),
+        "motorized",
+        "motorized",
+      ]);
+      placeArmy(g, "ITA", ROME, 1, mot);
+      // Britain lands: infantry and marines, a coastal fort waits.
+      const marines = template(g, "GBR", new Array(6).fill("marine"));
+      navy.econ.buildingArray("coastal_fort")[ROME] = 1;
+      navy.econ.afterBuildingChange(ROME, "coastal_fort");
+      landAt(navy, g, placeArmy(g, "GBR", REGION.london, 1), ROME);
+      landAt(navy, g, placeArmy(g, "GBR", REGION.london, 1, marines), ROME);
+      // Four British battleships off Rome on invasion support.
+      const fid = navy.createFleet(GBR, REGION.london, [["bb", 1, 4]]);
+      const f = navy.fleets.get(fid)!;
+      f.docked = 0;
+      navy.setFleetZone(f, ZONE.middle);
+      f.mission = FLEET_MISSIONS.indexOf("invasion_support");
+      f.missionSr = SR.central;
+      f.state = FLEET_STATES.indexOf("on_station");
+      navy.markFleet(fid);
+      navy.markCountry(GBR);
+      step(runner);
+      expect(l.battles.has(ROME)).toBe(true);
+      // Italy runs short of fuel (yesterday's ratio, as both sides read it).
+      const it = ww.economy.country(ITA)!;
+      it.fuelRatioPm = 600;
 
-    // The British client merges what the engine sent.
-    const sc = ww.scenario;
-    const econ = new WwEconomyView(sc);
-    const navyView = new WwNavyView(
-      sc,
-      () => GBR,
-      () => l.sideOf(GBR),
-    );
-    const air = new WwAirView(
-      sc,
-      () => GBR,
-      () => l.sideOf(GBR),
-    );
-    for (const u of updates) {
-      for (const x of u.updates[GameUpdateType.WwEconomy] ?? [])
-        econ.apply(x.data);
-      for (const x of u.updates[GameUpdateType.WwNavy] ?? []) {
-        navyView.apply(x.data, u.tick);
+      // The British client merges what the engine sent.
+      const sc = ww.scenario;
+      const econ = new WwEconomyView(sc);
+      const navyView = new WwNavyView(
+        sc,
+        () => GBR,
+        () => l.sideOf(GBR),
+      );
+      const air = new WwAirView(
+        sc,
+        () => GBR,
+        () => l.sideOf(GBR),
+      );
+      for (const u of updates) {
+        for (const x of u.updates[GameUpdateType.WwEconomy] ?? [])
+          econ.apply(x.data);
+        for (const x of u.updates[GameUpdateType.WwNavy] ?? []) {
+          navyView.apply(x.data, u.tick);
+        }
+        for (const x of u.updates[GameUpdateType.WwAir] ?? [])
+          air.apply(x.data);
       }
-      for (const x of u.updates[GameUpdateType.WwAir] ?? []) air.apply(x.data);
-    }
-    const sum = econ.summary(ITA)!;
-    econ.apply({
-      countries: [{ ...sum, fuelRatioPm: it.fuelRatioPm }],
-      details: [],
-      regions: [],
-    });
-    const p4: LandSeaAir = {
-      navy: navyView,
-      air,
-      sideOf: (id) => l.sideOf(id),
-      membersOf: (s) => l.sideMembers(s),
-      stats: () => gb.stats,
-      atWarAny: (a) => ww.hasWar(a),
-      neutralTurkey: () => false,
-    };
-    const techs = new Set(gb.researched);
-    const b = l.battles.get(ROME)!;
-    const t = l.divisions;
-    const regionOf = (id: number) => t.region[t.rowOf(id)];
-    const seen = { air: 0, fuel: 0, landing: 0, fort: 0, shore: 0 };
-    for (let r = 0; r < t.rows; r++) {
-      if (!t.alive(r) || t.battle[r] !== ROME) continue;
-      const attacking = t.role[r] === ROLE_ATTACK;
-      const owner = t.owner[r];
-      const engine = modInputOf(l, r, ROME, attacking);
-      const base = l.baseStatsOf(r);
-      const flags = l.flagsOf(r);
-      const client = {
-        airBp: airBpOf(p4, sc, ROME, owner, base.airAtk),
-        fuelBp: fuelBpOf(econ, owner, base.fuelWidthPm),
-        ...(attacking && owner === GBR
-          ? landingBpsOf(p4, econ, GBR, [t.id[r]], regionOf, ROME, flags, techs)
-          : { landingBp: 0, coastalFortBp: 0 }),
-        shoreBp: attacking
-          ? 0
-          : shoreBpOf(p4, sc, GBR, techs, ROME, b.attLead, owner),
-      };
-      expect(client).toEqual({
-        airBp: engine.airBp,
-        fuelBp: engine.fuelBp,
-        landingBp: engine.landingBp,
-        coastalFortBp: engine.coastalFortBp,
-        shoreBp: engine.shoreBp,
+      const sum = econ.summary(ITA)!;
+      econ.apply({
+        countries: [{ ...sum, fuelRatioPm: it.fuelRatioPm }],
+        details: [],
+        regions: [],
       });
-      if (engine.airBp !== 0) seen.air++;
-      if (engine.fuelBp !== 0) seen.fuel++;
-      if (engine.landingBp !== 0) seen.landing++;
-      if (engine.coastalFortBp !== 0) seen.fort++;
-      if (engine.shoreBp !== 0) seen.shore++;
-    }
-    // Each line was really there on some division.
-    expect(seen.air).toBeGreaterThan(0);
-    expect(seen.fuel).toBeGreaterThan(0);
-    expect(seen.landing).toBe(2);
-    expect(seen.fort).toBe(2);
-    expect(seen.shore).toBeGreaterThan(0);
-  }, 120_000);
+      const p4: LandSeaAir = {
+        navy: navyView,
+        air,
+        sideOf: (id) => l.sideOf(id),
+        membersOf: (s) => l.sideMembers(s),
+        stats: () => gb.stats,
+        atWarAny: (a) => ww.hasWar(a),
+        neutralTurkey: () => false,
+      };
+      const techs = new Set(gb.researched);
+      const b = l.battles.get(ROME)!;
+      const t = l.divisions;
+      const regionOf = (id: number) => t.region[t.rowOf(id)];
+      const seen = { air: 0, fuel: 0, landing: 0, fort: 0, shore: 0 };
+      for (let r = 0; r < t.rows; r++) {
+        if (!t.alive(r) || t.battle[r] !== ROME) continue;
+        const attacking = t.role[r] === ROLE_ATTACK;
+        const owner = t.owner[r];
+        const engine = modInputOf(l, r, ROME, attacking);
+        const base = l.baseStatsOf(r);
+        const flags = l.flagsOf(r);
+        const client = {
+          airBp: airBpOf(p4, sc, ROME, owner, base.airAtk),
+          fuelBp: fuelBpOf(econ, owner, base.fuelWidthPm),
+          ...(attacking && owner === GBR
+            ? landingBpsOf(
+                p4,
+                econ,
+                GBR,
+                [t.id[r]],
+                regionOf,
+                ROME,
+                flags,
+                techs,
+              )
+            : { landingBp: 0, coastalFortBp: 0 }),
+          shoreBp: attacking
+            ? 0
+            : shoreBpOf(p4, sc, GBR, techs, ROME, b.attLead, owner),
+        };
+        expect(client).toEqual({
+          airBp: engine.airBp,
+          fuelBp: engine.fuelBp,
+          landingBp: engine.landingBp,
+          coastalFortBp: engine.coastalFortBp,
+          shoreBp: engine.shoreBp,
+        });
+        if (engine.airBp !== 0) seen.air++;
+        if (engine.fuelBp !== 0) seen.fuel++;
+        if (engine.landingBp !== 0) {
+          seen.landing++;
+          const marine = (flags & TPL_MARINE_ANY) !== 0;
+          expect(engine.landingBp).toBe(
+            easy ? (marine ? -2000 : -4000) : marine ? -3500 : -7000,
+          );
+        }
+        if (engine.coastalFortBp !== 0) seen.fort++;
+        if (engine.shoreBp !== 0) seen.shore++;
+      }
+      // Each line was really there on some division.
+      expect(seen.air).toBeGreaterThan(0);
+      expect(seen.fuel).toBeGreaterThan(0);
+      expect(seen.landing).toBe(2);
+      expect(seen.fort).toBe(2);
+      expect(seen.shore).toBeGreaterThan(0);
+    },
+    120_000,
+  );
 
   // Task 15 (the T15 carry list): the lead gunner is an ally — France's
   // second-generation battleships with its own bombardment bonus. The

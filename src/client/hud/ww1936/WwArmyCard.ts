@@ -522,14 +522,29 @@ export class WwArmyCard extends LitElement implements Controller {
   private renderStrip(c: Ctx, ordering: boolean): TemplateResult {
     const r = c.card.row;
     const worst = Math.min(r.strengthPm, r.orgPm);
+    // A landing's tapped coast: its card stands over the strip (the map stays free).
+    const landingCard =
+      this.refused === null &&
+      this.invading(c.sel) &&
+      seaAirOf(this.game).draft.pending !== 0;
     return html`<section
       data-ww-army-card=${r.id}
       data-collapsed="true"
       aria-label=${armyName(r.nameNo)}
-      class="fixed z-[1001] flex items-center gap-1.5 rounded-lg border border-white/15 bg-gray-900/70 p-0.5 pl-2 text-xs text-white shadow-xl"
+      class="fixed z-[1001] flex ${landingCard
+        ? "flex-wrap"
+        : ""} items-center gap-1.5 rounded-lg border border-white/15 bg-gray-900/70 p-0.5 pl-2 text-xs text-white shadow-xl"
       style=${placeStyle(this.place)}
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
+      ${landingCard
+        ? html`<div
+            data-ww-invasion-card
+            class="basis-full overflow-y-auto rounded-md bg-gray-900/90 p-1"
+          >
+            ${this.renderInvadeLine(c, false)}
+          </div>`
+        : nothing}
       <span class="shrink-0 font-bold">${armyName(r.nameNo)}</span>
       <span data-ww-army-divisions class="shrink-0 tabular-nums text-white/70"
         >${translateText("ww1936.land.divisions_of", {
@@ -550,9 +565,11 @@ export class WwArmyCard extends LitElement implements Controller {
         ></span
       ></span>
       <span data-ww-strip-line class="min-w-0 flex-1 truncate">
-        ${ordering || this.refused !== null
-          ? this.renderLine(c, true)
-          : translateText(c.card.status.key, c.card.status.params)}
+        ${landingCard
+          ? translateText("ww1936.navy.hint_invade")
+          : ordering || this.refused !== null
+            ? this.renderLine(c, true)
+            : translateText(c.card.status.key, c.card.status.params)}
       </span>
       ${c.sel.mode === "plan" ? this.executeButton(c, false) : nothing}
       ${ordering
@@ -764,26 +781,57 @@ export class WwArmyCard extends LitElement implements Controller {
     </span>`;
   }
 
-  /** P4 (spec §11.2, §18.3-5): "Landing prep 37/60 d" with its ring, or the landing's state. */
+  /**
+   * P4 (spec §11.2, §18.3-5): "Landing prep 37/60 d" with its ring, or the
+   * landing's state; an easy one's march to its port, what it waits for
+   * and its losses at sea.
+   */
   private renderInvasion(c: Ctx): TemplateResult | typeof nothing {
     const inv = c.navy === null ? null : invasionOf(c.navy, c.card.row.id);
     if (inv === null) return nothing;
-    return html`<span data-ww-invasion=${inv.state} class="text-sky-300">
-      ${prepRing(inv.prepDone, inv.prepDays)}
-      ${inv.state === "preparing"
+    const sc = c.view.scenario;
+    const state =
+      inv.state === "preparing"
         ? translateText("ww1936.navy.invasion_prep", {
             d: inv.prepDone,
             n: inv.prepDays,
           })
-        : translateText(`ww1936.invasion_state.${inv.state}`)}
-      ·
+        : inv.state === "moving"
+          ? translateText("ww1936.navy.invasion_moving", {
+              port: regionName(sc, inv.from),
+            })
+          : translateText(`ww1936.invasion_state.${inv.state}`);
+    return html`<span data-ww-invasion=${inv.state} class="text-sky-300">
+      ${inv.state === "moving" ? nothing : prepRing(inv.prepDone, inv.prepDays)}
+      ${state} ·
       ${translateText("ww1936.navy.invasion_target", {
-        region: regionName(c.view.scenario, inv.target),
+        region: regionName(sc, inv.target),
       })}
+      ${inv.wait !== undefined
+        ? html`<span data-ww-invasion-wait=${inv.wait} class="text-amber-300"
+            >·
+            ${translateText("ww1936.navy.invasion_waiting", {
+              reason: cardBlockText(inv.wait),
+            })}</span
+          >`
+        : nothing}
+      ${(inv.lossPm ?? 0) > 0
+        ? html`<span data-ww-invasion-lost class="text-red-300"
+            >·
+            ${translateText("ww1936.navy.invasion_sea_loss", {
+              pct: Math.floor((inv.lossPm ?? 0) / 10),
+            })}</span
+          >`
+        : nothing}
     </span>`;
   }
 
-  /** P4 (spec §18.3-5): the landing's hint, or the chips of the tapped coast. */
+  /**
+   * Easy invasions (spec §18.3-5): the landing's hint, or the card of the
+   * tapped coast — the start port, the route's sea regions in traffic-light
+   * colours, the expected losses, the preparation, the days to the
+   * landing, the split; the second tap confirms, a refusal says why.
+   */
   private renderInvadeLine(c: Ctx, compact: boolean): TemplateResult {
     const d = seaAirOf(this.game).draft;
     if (d.pending === 0 || c.navy === null) {
@@ -796,44 +844,77 @@ export class WwArmyCard extends LitElement implements Controller {
     const p = invasionPreview(c.navy, c.card.row.id, d.pending);
     if (p === null) return html``;
     const sc = c.view.scenario;
+    const LIGHT = {
+      green: "text-emerald-300",
+      amber: "text-amber-300",
+      red: "text-red-300",
+    } as const;
+    const DOT = { green: "🟢", amber: "🟡", red: "🔴" } as const;
     return html`<span
       data-ww-preview="invade"
-      class="${compact
-        ? "inline-flex max-w-full gap-x-2 whitespace-nowrap"
-        : "flex flex-wrap items-baseline gap-x-2"}"
+      class="flex flex-wrap items-baseline gap-x-2 ${compact
+        ? "max-w-full whitespace-normal"
+        : ""}"
     >
-      <span>⚓ ${regionName(sc, p.target)}</span>
-      ${p.route.map(
-        (r) =>
-          html`<span
-            data-ww-route-chip=${r.ok ? "ok" : "low"}
-            class=${r.ok ? "text-emerald-300" : "text-red-300"}
-            >${translateText(
-              r.ok ? "ww1936.navy.route_chip_ok" : "ww1936.navy.route_chip_low",
-              { sr: srName(sc, r.sr), pct: Math.floor(r.supPm / 10) },
-            )}</span
-          >`,
-      )}
-      <span data-ww-invasion-convoys
-        >${translateText("ww1936.navy.invasion_convoys", {
-          need: p.convoysNeed,
-          idle: p.convoysIdle,
-        })}</span
+      <span data-ww-invasion-target class="font-semibold"
+        >⚓ ${regionName(sc, p.target)}</span
       >
-      <span data-ww-invasion-days
-        >${translateText("ww1936.navy.invasion_days", { n: p.prepDays })}</span
-      >
-      <span data-ww-invasion-divisions
-        >${translateText("ww1936.navy.invasion_divisions", {
-          n: p.divisions,
-          max: p.capacity,
-        })}</span
-      >
-      ${p.block === null
-        ? html`<span data-ww-tap-again class="font-semibold text-amber-200"
-            >${translateText("ww1936.navy.invasion_confirm")}</span
-          >`
-        : this.blockLine(p.block)}
+      ${p.block !== null
+        ? this.blockLine(p.block)
+        : html`<span data-ww-invasion-from
+              >${translateText("ww1936.navy.invasion_from", {
+                port: regionName(sc, p.from),
+              })}</span
+            >
+            ${p.route.map(
+              (r) =>
+                html`<span data-ww-route-chip=${r.light} class=${LIGHT[r.light]}
+                  >${DOT[r.light]}
+                  ${translateText("ww1936.navy.route_chip_sup", {
+                    sr: srName(sc, r.sr),
+                    pct: Math.floor(r.supPm / 10),
+                  })}</span
+                >`,
+            )}
+            <span
+              data-ww-invasion-loss
+              class=${p.lossPm > 0 ? "text-red-300" : "text-emerald-300"}
+              >${translateText("ww1936.navy.invasion_loss", {
+                pct: Math.floor(p.lossPm / 10),
+              })}</span
+            >
+            <span data-ww-invasion-days
+              >${translateText("ww1936.navy.invasion_days", {
+                n: p.prepDays,
+              })}</span
+            >
+            <span data-ww-invasion-eta
+              >${translateText("ww1936.navy.invasion_eta", {
+                n: p.etaDays,
+                march: p.marchDays,
+                prep: p.prepDays,
+                sea: p.seaDays,
+              })}</span
+            >
+            <span data-ww-invasion-split=${p.stay > 0 ? "yes" : "no"}
+              >${p.stay > 0
+                ? translateText("ww1936.navy.invasion_split", {
+                    n: p.going,
+                    rest: p.stay,
+                  })
+                : translateText("ww1936.navy.invasion_no_split")}</span
+            >
+            ${p.convoysIdle < p.convoysNeed
+              ? html`<span data-ww-invasion-convoys class="text-amber-300"
+                  >${translateText("ww1936.navy.invasion_convoys_short", {
+                    need: p.convoysNeed,
+                    idle: p.convoysIdle,
+                  })}</span
+                >`
+              : nothing}
+            <span data-ww-tap-again class="font-semibold text-amber-200"
+              >${translateText("ww1936.navy.invasion_confirm")}</span
+            >`}
     </span>`;
   }
 
@@ -1038,8 +1119,9 @@ export class WwArmyCard extends LitElement implements Controller {
   }
 
   private renderButtons(c: Ctx): TemplateResult[] {
-    const landing =
-      c.navy !== null && invasionOf(c.navy, c.card.row.id) !== null;
+    // An easy invasion sails by itself: no [Launch] (spec §11's keep it).
+    const inv = c.navy === null ? null : invasionOf(c.navy, c.card.row.id);
+    const landing = inv !== null && inv.easy !== true;
     return ARMY_BUTTONS.map((id) => {
       // A landing in preparation takes the sea move's place.
       if (id === "sea" && landing) return this.launchButton(c);

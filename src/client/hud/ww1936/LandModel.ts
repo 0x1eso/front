@@ -61,6 +61,11 @@ import {
   titleNoOfGeneral,
 } from "@openfront/engine-lib/ww1936/Generals";
 import {
+  forceMarch,
+  type InvasionPortWorld,
+  landingForce,
+} from "@openfront/engine-lib/ww1936/InvasionRules";
+import {
   landOrderBlockOf,
   OrderCheckArmy,
   OrderCheckWorld,
@@ -1410,6 +1415,78 @@ function armySpeed(
     );
   }
   return speed === Number.MAX_SAFE_INTEGER ? 400 : speed;
+}
+
+/** Easy invasions: my army's landing force as the engine picks it (InvasionRules.landingForce). */
+export interface InvasionForce {
+  /** The land side of the port choice (the caller adds seaKm). */
+  world: Omit<InvasionPortWorld, "seaKm">;
+  /** The divisions that land (ids, ascending); the rest stay. */
+  force: number[];
+  /** All the army's divisions. */
+  divisions: number;
+  weightsCenti: number[];
+  allMarines: boolean;
+  /**
+   * A division fights, retreats or sails (the engine's easyBusy): no
+   * landing order now. A train ride is no bar — the march replaces it.
+   */
+  busy: boolean;
+}
+
+/**
+ * Easy invasions: the engine's landing force and the land side of its
+ * port choice (Invasions.easyPlan): the `cap` best-organised divisions
+ * when the army is bigger (landingForce), marching from where most of
+ * them stand at the slowest one's pace, by train when every one can
+ * (forceMarch). Null: not my army.
+ */
+export function invasionForce(
+  view: WwLandView,
+  economy: WwEconomyView,
+  me: number,
+  army: number,
+  cap: number,
+  sides: LandSides = sidesOf(view),
+): InvasionForce | null {
+  const a = myArmy(view, me, army);
+  if (a === null) return null;
+  const tech = techOf(economy, me);
+  const divs = divisionsOf(view, me, army);
+  const statsOf = (tpl: number) => {
+    const t = templateOf(view, me, tpl);
+    return t === null ? null : templateStats(templateDef(t), tech, GEN1);
+  };
+  const all = divs.map((d) => ({
+    ...d,
+    speedCenti: statsOf(d.template)?.speedCenti ?? 400,
+  }));
+  const force = landingForce(all, cap).sort((x, y) => x.id - y.id);
+  const s = view.scenario;
+  const ours = (r: number) => sides.sameSide(me, view.controller[r] ?? 0);
+  const railed = (r: number) => (economy.rail[r] ?? 0) >= 1;
+  return {
+    world: {
+      ...forceMarch(force, railed, tech.railSpeedPct, a.region),
+      scenario: s,
+      ours,
+      railed,
+      isPort: (r) => ours(r) && economy.navalPort(r) && s.harborOf(r) !== 0,
+    },
+    force: force.map((d) => d.id),
+    divisions: Math.max(a.divisions, divs.length),
+    weightsCenti: force.map((d) => statsOf(d.template)?.weightCenti ?? 0),
+    allMarines:
+      force.length > 0 &&
+      force.every(
+        (d) =>
+          templateOf(view, me, d.template)?.battalions.includes("marine") ??
+          false,
+      ),
+    busy:
+      divs.some((d) => d.battle !== 0) ||
+      (a.state & (ARMY_BATTLE | ARMY_RETREAT | ARMY_SEA)) !== 0,
+  };
 }
 
 /**

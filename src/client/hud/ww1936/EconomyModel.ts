@@ -619,6 +619,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   peace_war_kind: "ww1936.econ.block.peace_war_kind",
   peace_pending: "ww1936.econ.block.peace_pending",
   peace_no_offer: "ww1936.econ.block.peace_no_offer",
+  no_invasion_port: "ww1936.econ.block.no_invasion_port",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
