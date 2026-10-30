@@ -28,6 +28,7 @@ import {
   peaceOfferBlock,
   peaceOfferView,
   replyPeace,
+  stalemateDays,
   stepPeaceOffers,
 } from "@openfront/engine/ww1936/endgame/WhitePeace";
 import type { WwEndgame } from "@openfront/engine/ww1936/endgame/WwEndgame";
@@ -319,10 +320,14 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
 
   it("the AI offers only after 90 days, on a long stalemate or when losing badly", async () => {
     const { g, ww, eg } = await started();
-    const [deu, pl] = [id("DEU"), id("POL")];
+    const [deu, ita, pl] = [id("DEU"), id("ITA"), id("POL")];
     const w = oldWar(g, ww, deu, pl);
+    ww.setWar(ita, pl, g.ticks(), { kind: "into", warId: w });
     const day = ww.day(g.ticks());
     const rec = eg.war(w)!;
+    // War-weary leaders (a stalemate offer needs war support under 50%).
+    ww.politics.country(deu)!.wsBp = 3000;
+    ww.politics.country(ita)!.wsBp = 3000;
     // A front unchanged since the war began, 90 days ago: no stalemate yet.
     eg.fronts = [[w, 0, 0, rec.startDay]];
     expect(aiWantsPeace(eg, rec, deu, day)).toBe(false);
@@ -330,6 +335,12 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     rec.startDay = day - 200;
     eg.fronts = [[w, 0, 0, day - 180]];
     expect(aiWantsPeace(eg, rec, deu, day)).toBe(true);
+    // A member never leaves its side on a stalemate.
+    expect(aiWantsPeace(eg, rec, ita, day)).toBe(false);
+    // A leader still keen on the war offers nothing.
+    ww.politics.country(deu)!.wsBp = 6000;
+    expect(aiWantsPeace(eg, rec, deu, day)).toBe(false);
+    ww.politics.country(deu)!.wsBp = 3000;
     // Too young a war: no offer however stalemated.
     rec.startDay = day - WW_WHITE_PEACE_MIN_DAYS + 1;
     aiPeaceDay(eg, deu, day, g.ticks());
@@ -341,10 +352,24 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     eg.peaceOffers = [];
     // Germany holding Krakow is ahead: no stalemate offer from it…
     takeRegion(g, 7, "DEU");
-    takeRegion(g, 6, "DEU");
     expect(aiWantsPeace(eg, rec, deu, day)).toBe(false);
     // …and Poland, losing all of it, would be refused outright: none either.
+    takeRegion(g, 6, "DEU");
     expect(aiWantsPeace(eg, rec, pl, day)).toBe(false);
+  });
+
+  it("only a war with a land front stalemates", async () => {
+    const { runner, g, ww, eg } = await started();
+    const [deu, pl, est] = [id("DEU"), id("POL"), id("EST")];
+    // Germany and Poland touch; Estonia (an island here) touches nobody.
+    const wp = oldWar(g, ww, deu, pl);
+    const we = oldWar(g, ww, deu, est);
+    nextDay(runner);
+    const day = ww.day(g.ticks());
+    expect(stalemateDays(eg, wp, day)).toBeGreaterThanOrEqual(
+      WW_WHITE_PEACE_MIN_DAYS,
+    );
+    expect(stalemateDays(eg, we, day)).toBe(0);
   });
 
   it("a human target's card refuses at its deadline", async () => {

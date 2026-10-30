@@ -18,15 +18,13 @@ import {
   WwPeaceOfferView,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { z } from "zod";
 import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { countryParams } from "./Wars";
-import type { WwEndgame } from "./WwEndgame";
+import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
 // ---- The AI's rule (named thresholds; ‰ of victory points or of the surrender line) ----
 
@@ -39,7 +37,7 @@ export const AI_PEACE_LOSING_PCT = 50;
 /** Accept chance (percent) when the proposer holds all of its side's land, less in proportion. */
 export const AI_PEACE_LOST_LAND_PCT = 40;
 /** Accept chance (percent) once the front has been stalemated WW_WHITE_PEACE_STALEMATE_DAYS. */
-export const AI_PEACE_STALEMATE_PCT = 25;
+export const AI_PEACE_STALEMATE_PCT = 15;
 /** War support (bp) under which the accept chance rises… */
 export const AI_PEACE_LOW_WS_BP = 5000;
 /** …by up to this much (percent) at 0 war support. */
@@ -52,23 +50,13 @@ export const AI_PROPOSE_CAP_PM = 500;
 export const AI_PROPOSE_LOST_PM = 250;
 /** A stalemate offer only while neither side holds this much more of the other's land (‰). */
 export const AI_PROPOSE_EVEN_PM = 100;
+/** …and only from a side leader whose war support (bp) is under this (war-weary). */
+export const AI_PROPOSE_WS_BP = 5000;
 /** The front "barely changed": at most this many regions changed hands since the stalemate began. */
 export const WW_STALEMATE_REGIONS = 2;
 /** Occupation rows an offer's card shows. */
 const HELD_ROWS = 4;
 const P_WPEACE = idHash("white_peace");
-
-export const PeaceOfferSchema = z.object({
-  id: zInt(),
-  war: zInt(),
-  from: zInt(),
-  to: zInt(),
-  whole: z.boolean(),
-  sentTick: zInt(),
-  /** A human target's deadline (an AI target answers on the next tick). */
-  deadlineTick: zInt(),
-});
-export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 
 type Member = WwWar["sides"][0]["members"][number];
 const fighting = (m: Member | null): boolean =>
@@ -171,39 +159,54 @@ export function surrenderPm(eg: WwEndgame, id: number): number {
 
 // ---- The front (stalemate) ----
 
-/** Regions of side 1's legal land side 0 controls, and the other way round. */
-function frontCounts(eg: WwEndgame, w: WwWar): [number, number] {
+/**
+ * Regions of side 1's legal land side 0 controls, the other way round, and
+ * whether there is a front at all: a region side 0 controls next to one
+ * side 1 controls (a war across the sea alone has none).
+ */
+function frontCounts(eg: WwEndgame, w: WwWar): [number, number, boolean] {
   const side = new Int8Array(eg.size).fill(-1);
   for (const s of [0, 1] as const) {
     for (const m of w.sides[s].members) side[m.id] = s;
   }
+  const sideAt = (c: number) => (c > 0 && c < eg.size ? side[c] : -1);
+  const sc = eg.ww.scenario;
   const ctrl = eg.ww.land.controller;
   const legal = eg.ww.politics.legalOwner;
   let a = 0;
   let b = 0;
-  for (const r of eg.ww.scenario.landRegions) {
+  let contact = false;
+  for (const r of sc.landRegions) {
     const c = ctrl[r.id] ?? 0;
+    const sc0 = sideAt(c);
+    if (!contact && sc0 === 0) {
+      contact = sc.edgesOf(r.id).some((e) => sideAt(ctrl[e.to] ?? 0) === 1);
+    }
     const l = legal[r.id] ?? 0;
-    if (c <= 0 || l <= 0 || c === l || c >= eg.size || l >= eg.size) continue;
-    if (side[c] === 0 && side[l] === 1) a++;
-    else if (side[c] === 1 && side[l] === 0) b++;
+    if (c === l || sc0 < 0) continue;
+    const sl = sideAt(l);
+    if (sc0 === 0 && sl === 1) a++;
+    else if (sc0 === 1 && sl === 0) b++;
   }
-  return [a, b];
+  return [a, b, contact];
 }
 
 /**
  * The day's common step: each ongoing normal war's front — [war, regions
  * side 0 holds of side 1, the other way, the day it last really moved]. A
  * change of more than WW_STALEMATE_REGIONS regions since that day starts
- * the count again; a new war counts from its first day.
+ * the count again; a new war counts from its first day. A war without a
+ * front (the sides touch nowhere on land) is no stalemate: its count
+ * starts again every day.
  */
 export function stepFronts(eg: WwEndgame, day: number): void {
   const next: [number, number, number, number][] = [];
   for (const w of eg.wars) {
     if (w.ended !== null || w.kind !== "normal") continue;
-    const [a, b] = frontCounts(eg, w);
+    const [a, b, contact] = frontCounts(eg, w);
     const prev = eg.fronts.find((f) => f[0] === w.id);
-    if (prev === undefined) next.push([w.id, a, b, w.startDay]);
+    if (!contact) next.push([w.id, a, b, day]);
+    else if (prev === undefined) next.push([w.id, a, b, w.startDay]);
     else if (
       Math.abs(a - prev[1]) + Math.abs(b - prev[2]) >
       WW_STALEMATE_REGIONS
@@ -524,10 +527,12 @@ export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
 }
 
 /**
- * Whether the AI `id` wants peace in `w` with `target`: only when the
- * other side would not refuse outright, and either it is losing badly
- * (near its surrender line, or much of its land held) or the front has
- * been stalemated WW_WHITE_PEACE_STALEMATE_DAYS with neither side ahead.
+ * Whether the AI `id` wants peace in `w`: only when the other side would
+ * not refuse outright, and it is losing badly (near its surrender line,
+ * or much of its land — its side's, for a leader — held). A side leader
+ * also offers when the front has been stalemated
+ * WW_WHITE_PEACE_STALEMATE_DAYS with neither side ahead and its war
+ * support under AI_PROPOSE_WS_BP; a member never leaves on a stalemate.
  */
 export function aiWantsPeace(
   eg: WwEndgame,
@@ -549,7 +554,10 @@ export function aiWantsPeace(
   if (cap >= AI_PROPOSE_CAP_PM || st.heldByTarget >= AI_PROPOSE_LOST_PM) {
     return true;
   }
+  const ws = eg.ww.politics.country(id)?.wsBp ?? AI_PROPOSE_WS_BP;
   return (
+    whole &&
+    ws < AI_PROPOSE_WS_BP &&
     stalemateDays(eg, w.id, day) >= WW_WHITE_PEACE_STALEMATE_DAYS &&
     Math.abs(st.heldByProposer - st.heldByTarget) <= AI_PROPOSE_EVEN_PM
   );

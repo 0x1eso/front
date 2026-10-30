@@ -99,8 +99,6 @@ import {
   aiPeaceDay,
   expirePeaceTimers,
   offerPeace,
-  PeaceOffer,
-  PeaceOfferSchema,
   peaceOfferView,
   replyPeace,
   stepFronts,
@@ -254,6 +252,18 @@ const InTransitSchema = z.object({
   costMilli: zInt(),
 });
 export type InTransit = z.infer<typeof InTransitSchema>;
+/** White peace (WhitePeace.ts): a pending offer. */
+const PeaceOfferSchema = z.object({
+  id: zInt(),
+  war: zInt(),
+  from: zInt(),
+  to: zInt(),
+  whole: z.boolean(),
+  sentTick: zInt(),
+  /** A human target's deadline (an AI target answers on the next tick). */
+  deadlineTick: zInt(),
+});
+export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 export const WwEndgameStateSchema = z.object({
   gameID: z.string().max(64),
   lastCommonDay: zInt(),
