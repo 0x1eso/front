@@ -19,7 +19,7 @@ import { en, hasKey, keyIn, ko } from "./contentUtil";
 // named sinking is world news (ww1936.news.ww1936_ship_sunk_named).
 const EVENTS = [
   "air_superiority",
-  "bombed",
+  "air_raid",
   "convoys_lost",
   "convoys_sunk",
   "fleet_scuttled",

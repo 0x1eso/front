@@ -28,6 +28,7 @@ import {
   effectiveBuildings,
 } from "@openfront/engine/ww1936/economy/Buildings";
 import { computeStability } from "@openfront/engine/ww1936/politics/Stability";
+import { vi } from "vitest";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,
@@ -161,14 +162,25 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     for (const r of [1, 2, 4, 5, 10]) {
       expect(BOMBED.every((b) => damageOf(ww.economy, r, b) === 0)).toBe(true);
     }
-    // The victim hears it: Berlin, one factory stopped.
-    step(runner);
-    const told = updates
-      .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
-      .filter((m) => m.message === "events_display.ww1936_bombed");
-    expect(told.map((m) => [m.playerID, m.params])).toEqual([
-      [deu, { region: REGION.berlin, n: 1 }],
+    // The victim hears it (the day's flush): Britain bombed Berlin, one factory.
+    const say = vi.spyOn(air, "message");
+    air.raids.flush(air, day);
+    expect(say.mock.calls).toEqual([
+      [
+        deu,
+        "events_display.ww1936_air_raid",
+        {
+          attacker: gbr,
+          others: 0,
+          region: REGION.berlin,
+          more: 0,
+          kind: 1,
+          f: 1,
+          s: 0,
+        },
+      ],
     ]);
+    step(runner);
     // The victim's screens hatch Berlin: its air detail lists the region
     // with the damage outstanding.
     const details = updates
@@ -222,5 +234,41 @@ describe("World War 1936 P4: strategic bombing (spec §14.8)", () => {
     // At most −15%.
     air.country(deu)!.bombTaken.fill(100_000);
     expect(bombFatigueBp(air, deu)).toBe(-1500);
+  }, 60_000);
+
+  test("air-raid notices: aggregated, throttled, humans only", async () => {
+    const { g, ww, air, gbr, deu } = await bombingWar();
+    const say = vi.spyOn(air, "message");
+    const fra = byTag(g, "FRA").smallID();
+    // Two regions hit on one day: one notice, the heavier region first.
+    air.raids.note(air, deu, gbr, REGION.berlin, 2, 0, 2000);
+    air.raids.note(air, deu, gbr, REGION.munich, 1, 0, 1000);
+    // An AI victim gets nothing, and keeps nothing.
+    air.raids.note(air, fra, gbr, REGION.berlin, 3, 0, 3000);
+    air.raids.flush(air, 100);
+    expect(say).toHaveBeenCalledTimes(1);
+    expect(say.mock.calls[0][0]).toBe(deu);
+    expect(say.mock.calls[0][2]).toMatchObject({
+      attacker: gbr,
+      region: REGION.berlin,
+      more: 1,
+      f: 3,
+      kind: 1,
+    });
+    // The same attacker on days 101 and 102: nothing; day 103: the totals since.
+    for (const day of [101, 102]) {
+      air.raids.note(air, deu, gbr, REGION.berlin, 1, 0, 1000);
+      air.raids.flush(air, day);
+    }
+    expect(say).toHaveBeenCalledTimes(1);
+    air.raids.note(air, deu, gbr, REGION.berlin, 1, 0, 1000);
+    air.raids.flush(air, 103);
+    expect(say).toHaveBeenCalledTimes(2);
+    expect(say.mock.calls[1][2]).toMatchObject({ f: 3, more: 0 });
+    // Ships damaged by a port strike read the same way.
+    air.raids.note(air, deu, gbr, REGION.berlin, 0, 2, 500);
+    air.raids.flush(air, 106);
+    expect(say.mock.calls[2][2]).toMatchObject({ kind: 2, s: 2 });
+    expect(ww.isHumanControlled(fra)).toBe(false);
   }, 60_000);
 });

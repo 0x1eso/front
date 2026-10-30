@@ -1454,7 +1454,7 @@
     "ww1936_air_superiority": "{zone} 제공권 {dir, select, up {확보} other {상실}} ({pct}%)",
     "ww1936_annexed": "{country} 합병됨",
     "ww1936_autonomy_request": "{tag}이(가) 자치 확대를 요구합니다",
-    "ww1936_bombed": "폭격: {region} — 공장 {n}개 멈춤",
+    "ww1936_air_raid": "공습 경보: {attacker} 측{others, plural, =0 {} other { 외 #개국}}의 공격으로 {region}{more, plural, =0 {} other { 외 #곳}} 피해 — {kind, select, 2 {함선 {s}척 손상} 3 {공장 {f}개 멈춤, 함선 {s}척 손상} other {공장 {f}개 멈춤}}",
     "ww1936_built": "건물 {count}개 완성",
     "ww1936_capitulated": "{loser}이(가) {victor}에 항복했습니다",
     "ww1936_capitulated_no_victor": "{loser}이(가) 항복했습니다",

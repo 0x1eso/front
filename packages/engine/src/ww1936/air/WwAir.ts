@@ -50,6 +50,7 @@ import { airMoveFactorFor, airPenaltyFor } from "./AirSuperiority";
 import { dailyAirCountry, issueAirOrder } from "./Deploy";
 import { designSlotsFor } from "./DesignPlanes";
 import { paradropBlockFor, stepParadrops } from "./Paradrop";
+import { RaidNotes } from "./RaidNotes";
 
 export interface Deployment {
   id: number;
@@ -283,6 +284,8 @@ export class WwAir {
   nextDeploymentId = 1;
   planesLostTotal = 0;
   bombPointsTotal = 0;
+  /** The air-raid notice (message-only memory, not state). */
+  readonly raids = new RaidNotes();
   private lastCommonDay = -1;
   private countryList: (CountryAir | null)[];
   // Derived (DERIVED_FIELDS).
@@ -350,6 +353,7 @@ export class WwAir {
           this.noteZoneSorties(s.id);
           this.ww.depth.airZoneDay(s.id, day, ticks);
         }
+        if (k === WW_DAY_SPLIT - 1) this.raids.flush(this, day);
         // ② countries: re-basing, refills, decks, AI
         for (let id = 1; id < this.countryList.length; id++) {
           if (id % WW_DAY_SPLIT === k) this.dailyCountry(id, day);

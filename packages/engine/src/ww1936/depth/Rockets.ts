@@ -20,7 +20,7 @@ import {
   rocketHits,
   rocketTargetBlock,
 } from "@openfront/engine-lib/ww1936/ProjectRules";
-import { damageRegion } from "../air/Bombing";
+import { damageRegion, factoriesStopped } from "../air/Bombing";
 import { effectiveLevel } from "../economy/Buildings";
 import { enemySupPm } from "./Atomic";
 import type { WwDepth } from "./WwDepth";
@@ -146,7 +146,8 @@ function fireVolley(
   // bombs (rocketHits), and nothing stops a ballistic rocket.
   const points = h.hits * ROCKET_POINTS[kind];
   const taken = econ.country(victim)?.stats.bombDamageTakenPct ?? 0;
-  damageRegion(econ, e.target, bombDamageMilli(points, 0, taken));
+  const before = factoriesStopped(econ, e.target);
+  const done = damageRegion(econ, e.target, bombDamageMilli(points, 0, taken));
   const air = ww.air;
   const va = air.country(victim);
   if (va !== null) {
@@ -154,6 +155,15 @@ function fireVolley(
     air.markCountry(victim);
   }
   air.bombPointsTotal += points;
+  air.raids.note(
+    air,
+    victim,
+    e.owner,
+    e.target,
+    factoriesStopped(econ, e.target) - before,
+    0,
+    done,
+  );
   noteHits(d, victim, e.target, h.hits);
 }
 
@@ -165,24 +175,10 @@ function noteHits(d: WwDepth, to: number, region: number, n: number): void {
   else d.dayNotes.push([to, NOTE_ROCKETS, region, 0, n]);
 }
 
-/** Spec §20.11: one line a day to each victim — all its hits, the region hit most (ties: the smaller id). */
+/**
+ * The day's rocket rows are dropped here (the victim's line is the
+ * air-raid notice, RaidNotes, which names the attacker).
+ */
 function flushRocketNotes(d: WwDepth): void {
-  const rows = d.dayNotes.filter((x) => x[1] === NOTE_ROCKETS);
-  if (rows.length === 0) return;
   d.dayNotes = d.dayNotes.filter((x) => x[1] !== NOTE_ROCKETS);
-  const victims = [...new Set(rows.map((x) => x[0]))].sort((a, b) => a - b);
-  for (const v of victims) {
-    let n = 0;
-    let region = 0;
-    let most = -1;
-    for (const x of rows) {
-      if (x[0] !== v) continue;
-      n += x[4];
-      if (x[4] > most || (x[4] === most && x[2] < region)) {
-        most = x[4];
-        region = x[2];
-      }
-    }
-    d.message(v, "ww1936_rocket_strike", { n, region });
-  }
 }

@@ -193,6 +193,8 @@ export const ENDGAME_NOTICES: ReadonlySet<string> = new Set([
   "events_display.ww1936_wpeace_accepted",
   "events_display.ww1936_wpeace_refused",
   "events_display.ww1936_wpeace_lapsed",
+  // Air raids: the victim hears who attacked (attacker = smallID).
+  "events_display.ww1936_air_raid",
 ]);
 
 /**
@@ -271,7 +273,13 @@ function countryParam(game: WwGame, v: string | number): string {
 }
 
 /** Params that name a country (spec §22). */
-const COUNTRY_PARAMS = ["tag", "hostTag", "fromTag", "toTag"] as const;
+const COUNTRY_PARAMS = [
+  "tag",
+  "hostTag",
+  "fromTag",
+  "toTag",
+  "attacker",
+] as const;
 
 /**
  * Occupation notices (uprising, law, garrison): `region` is a numeric region

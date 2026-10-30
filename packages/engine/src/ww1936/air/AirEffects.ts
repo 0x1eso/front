@@ -321,6 +321,7 @@ function portStrikes(
           .filter((r) => s.members.includes(sc.harborOf(r)));
   for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
     const ships: number[] = [];
+    const portOf = new Map<number, number>();
     let baseAaMilli = 0;
     for (const port of ports) {
       if (isNoStrike(sc, port)) continue;
@@ -330,6 +331,7 @@ function portStrikes(
         if (f === undefined || f.docked !== port) continue;
         if (!enemyOfSide(air, side, f.owner)) continue;
         ships.push(...f.ships);
+        for (const sh of f.ships) portOf.set(sh, port);
         any = true;
       }
       if (any) {
@@ -351,6 +353,7 @@ function portStrikes(
       baseAaMilli,
       fx,
       tick,
+      portOf,
     );
   }
 }
@@ -383,6 +386,7 @@ function strike(
   baseAaMilli: number,
   fx: EffectTally,
   tick: number,
+  portOf?: ReadonlyMap<number, number>,
 ): void {
   if (shipIds.length === 0) return;
   const navy = air.navy;
@@ -468,6 +472,9 @@ function strike(
   targets.forEach((x, i) => {
     if (dmg[i] <= 0) return;
     total += dmg[i];
+    const port = portOf?.get(x.id);
+    if (port !== undefined)
+      air.raids.note(air, x.owner, by, port, 0, 1, dmg[i]);
     applyShipDamage(
       navy,
       x.id,

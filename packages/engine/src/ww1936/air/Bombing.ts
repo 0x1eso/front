@@ -26,8 +26,6 @@ import type { WwLand } from "../land/WwLand";
 import type { EffectTally, Sortie } from "./AirEffects";
 import type { WwAir } from "./WwAir";
 
-const BOMB_KEY = "events_display.ww1936_bombed" as const;
-
 /**
  * The regions of strategic region `sr` strategic bombing may pick, in id
  * order: never a no-strike region (engine-lib NoStrike; P6 pre-flight).
@@ -198,8 +196,8 @@ export function sideMembersOf(land: WwLand, side: number): readonly number[] {
  * same key); the targets are the zone's bombable regions a country at war
  * with the side controls, by industry weight; each region's damage is
  * bombDamageMilli (anti-air, the victim's bombDamageTakenPct). The
- * victim's ring gets the points after anti-air and, on its first bombing
- * of the day, one line naming the region hit hardest. The bombers' losses
+ * victim's ring gets the points after anti-air; the hits go to the
+ * air-raid notice (RaidNotes). The bombers' losses
  * to anti-air are A1's (AirCombat).
  */
 export function strategicBombing(
@@ -253,10 +251,15 @@ export function strategicBombing(
     );
     let given = 0;
     // victim → points taken after anti-air; the region hit hardest
-    const hit = new Map<
-      number,
-      { after: number; region: number; milli: number }
-    >();
+    const hit = new Map<number, number>();
+    let by = 0;
+    let byMost = -1;
+    for (const [o, c] of byOwner) {
+      if (c > byMost || (c === byMost && o < by)) {
+        by = o;
+        byMost = c;
+      }
+    }
     targets.forEach((r, i) => {
       const p = share[i];
       if (p <= 0) return;
@@ -264,18 +267,19 @@ export function strategicBombing(
       const victim = land.controller[r];
       const aa = effectiveLevel(econ, r, "anti_air");
       const taken = econ.country(victim)?.stats.bombDamageTakenPct ?? 0;
+      const before = factoriesStopped(econ, r);
       const done = damageRegion(econ, r, bombDamageMilli(p, aa, taken));
       const after = Math.floor((p * (1000 - Math.min(400, 80 * aa))) / 1000);
-      const h = hit.get(victim);
-      if (h === undefined) {
-        hit.set(victim, { after, region: r, milli: done });
-      } else {
-        h.after += after;
-        if (done > h.milli) {
-          h.region = r;
-          h.milli = done;
-        }
-      }
+      hit.set(victim, (hit.get(victim) ?? 0) + after);
+      air.raids.note(
+        air,
+        victim,
+        by,
+        r,
+        factoriesStopped(econ, r) - before,
+        0,
+        done,
+      );
     });
     if (given === 0) continue;
     air.bombPointsTotal += given;
@@ -283,19 +287,11 @@ export function strategicBombing(
       fx.bomb.set(owner, (fx.bomb.get(owner) ?? 0) + Math.floor(c / 100));
     }
     for (const victim of [...hit.keys()].sort((a, b) => a - b)) {
-      const h = hit.get(victim)!;
+      const after = hit.get(victim)!;
       const c = air.country(victim);
-      if (c === null || h.after <= 0) continue;
-      const first = c.bombTaken[slot] === 0;
-      c.bombTaken[slot] += h.after;
+      if (c === null || after <= 0) continue;
+      c.bombTaken[slot] += after;
       air.markCountry(victim);
-      // Spec §14.8, §18.10: one line a day, building damage only.
-      if (first) {
-        air.message(victim, BOMB_KEY, {
-          region: h.region,
-          n: factoriesStopped(econ, h.region),
-        });
-      }
     }
   }
 }

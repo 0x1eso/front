@@ -1553,7 +1553,7 @@
     "ww1936_air_superiority": "Air control over {zone} {dir, select, up {gained} other {lost}} ({pct}%)",
     "ww1936_annexed": "{country} has been annexed",
     "ww1936_autonomy_request": "{tag} demands more autonomy",
-    "ww1936_bombed": "Bombing: {region} — {n, plural, one {# factory stopped} other {# factories stopped}}",
+    "ww1936_air_raid": "Air raid by {attacker}{others, plural, =0 {} other { and # more}} on {region}{more, plural, =0 {} other { and # other places}}: {kind, select, 2 {{s, plural, one {# ship damaged} other {# ships damaged}}} 3 {{f, plural, one {# factory} other {# factories}} stopped, {s, plural, one {# ship damaged} other {# ships damaged}}} other {{f, plural, one {# factory stopped} other {# factories stopped}}}}",
     "ww1936_built": "{count, plural, one {# building completed} other {# buildings completed}}",
     "ww1936_capitulated": "{loser} has capitulated to {victor}",
     "ww1936_capitulated_no_victor": "{loser} has capitulated",
