@@ -5,9 +5,13 @@ import {
 } from "@openfront/shared/ApiSchemas";
 import { getApiBase } from "./Api";
 import { getAuthHeader } from "./Auth";
+import { LocalSavedGames, openIndexedDbSaves } from "./LocalSavedGames";
+import { isSelfHosted } from "./SelfHosted";
 
 // Saved singleplayer games. The API stores the gzipped bytes of a game
 // snapshot (WorkerClient.snapshot()) as they are; it never decodes them.
+// A self-hosted server has no API: there every call goes to this browser's
+// own store instead (LocalSavedGames), and nothing is shared.
 
 // A late-game World snapshot is about 2.7 MB raw. A shared save is anyone's
 // upload, so a download that inflates past this is a gzip bomb, not a game.
@@ -23,6 +27,29 @@ export type SavedGameError =
   | "rejected"
   | "not_found"
   | "request_failed";
+
+let localBackend: ReturnType<typeof openIndexedDbSaves> | null = null;
+
+/** This browser's saves, for a self-hosted server. */
+export const localSavedGames = new LocalSavedGames(
+  () => {
+    localBackend ??= openIndexedDbSaves().then(
+      (backend) => {
+        // Timed out: try again next time, the other tab may have closed.
+        if (backend === null) localBackend = null;
+        return backend;
+      },
+      (err: unknown) => {
+        localBackend = null;
+        console.warn("local saves: storage unavailable", err);
+        return null;
+      },
+    );
+    return localBackend;
+  },
+  (bytes) => gzip(bytes),
+  (bytes) => gunzip(bytes),
+);
 
 async function authedFetch(path: string, init?: RequestInit) {
   return fetch(`${getApiBase()}${path}`, {
@@ -55,6 +82,7 @@ async function parseSavedGame(
 }
 
 export async function listSavedGames(): Promise<SavedGame[] | false> {
+  if (isSelfHosted()) return localSavedGames.list();
   try {
     const res = await authedFetch("/users/@me/saved_games");
     if (!res.ok) return false;
@@ -75,6 +103,7 @@ export async function uploadSavedGame(
   snapshot: Uint8Array,
   meta: { name: string; map: string; tick: number },
 ): Promise<SavedGame | SavedGameError> {
+  if (isSelfHosted()) return localSavedGames.save(snapshot, meta);
   try {
     const params = new URLSearchParams({
       name: meta.name,
@@ -99,6 +128,7 @@ export async function updateSavedGame(
   id: string,
   update: { name?: string; public?: boolean },
 ): Promise<SavedGame | SavedGameError> {
+  if (isSelfHosted()) return localSavedGames.update(id, update);
   try {
     const res = await authedFetch(
       `/users/@me/saved_games/${encodeURIComponent(id)}`,
@@ -118,6 +148,7 @@ export async function updateSavedGame(
 export async function deleteSavedGame(
   id: string,
 ): Promise<true | SavedGameError> {
+  if (isSelfHosted()) return localSavedGames.delete(id);
   try {
     const res = await authedFetch(
       `/users/@me/saved_games/${encodeURIComponent(id)}`,
@@ -134,6 +165,8 @@ export async function deleteSavedGame(
 export async function fetchSharedSavedGame(
   id: string,
 ): Promise<SavedGame | SavedGameError> {
+  // Nothing is shared from a browser's own store.
+  if (isSelfHosted()) return "not_found";
   try {
     const res = await fetch(
       `${getApiBase()}/public/saved_games/${encodeURIComponent(id)}`,
@@ -153,6 +186,9 @@ export async function downloadSavedGame(
   id: string,
   shared: boolean,
 ): Promise<Uint8Array | SavedGameError> {
+  if (isSelfHosted()) {
+    return shared ? "not_found" : localSavedGames.download(id);
+  }
   try {
     const path = shared
       ? `/public/saved_games/${encodeURIComponent(id)}/data`

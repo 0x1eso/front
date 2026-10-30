@@ -2968,6 +2968,7 @@
     "rename": "Rename",
     "rename_save": "Save",
     "save_desc": "Save this game to your account to continue it later",
+    "save_desc_local": "Save this game in this browser to continue it later",
     "save_label": "Save game",
     "save_status": {
       "limit": "You've reached the saved game limit. Delete one from the Solo menu first.",

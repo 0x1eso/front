@@ -137,6 +137,19 @@ describe("saved-games-panel", () => {
     expect(loads).toEqual([{ id: MINE.id, shared: false }]);
   });
 
+  // A self-hosted server keeps saves in the browser: nothing to share.
+  it("offers a browser's own saves without sharing", async () => {
+    const panel = await mount({ signedIn: true, local: true });
+    await settle(panel);
+    expect(panel.querySelector(`[data-save-id="${MINE.id}"]`)).not.toBeNull();
+    expect(action(panel, MINE.id, "play")).not.toBeNull();
+    expect(action(panel, MINE.id, "rename")).not.toBeNull();
+    expect(action(panel, MINE.id, "delete")).not.toBeNull();
+    expect(action(panel, MINE.id, "toggle-share")).toBeNull();
+    expect(panel.querySelector("[data-save-code]")).toBeNull();
+    expect(panel.querySelector("[data-shared-save]")).toBeNull();
+  });
+
   it("holds Play while a game is starting", async () => {
     const panel = await mount({ signedIn: true, busy: true });
     await settle(panel);

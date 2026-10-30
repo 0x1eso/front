@@ -14,6 +14,7 @@ import {
   ToggleRenderDebugGuiEvent,
 } from "../../InputHandler";
 import { type SavedGameError, uploadSavedGame } from "../../SavedGamesApi";
+import { isSelfHosted } from "../../SelfHosted";
 import { lastUserMeResponse } from "../../UserMeBroadcast";
 import type { UserSettingModal } from "../../UserSettingModal";
 import { getMapName, translateText } from "../../Utils";
@@ -188,14 +189,16 @@ export class SettingsModal extends LitElement implements Controller {
 
   // Saves are kept on the player's account: singleplayer games only, and
   // only for a signed-in account, since a guest's saves would be lost with
-  // the browser's session.
+  // the browser's session. A self-hosted server has no accounts: its saves
+  // are kept in the browser (SavedGamesApi), for everyone.
   private canSave(): boolean {
     const game = this.game;
     return (
       game !== null &&
       game.config().gameConfig().gameType === GameType.Singleplayer &&
       !game.config().isReplay() &&
-      responseHasLinkedIdentity(lastUserMeResponse()?.response ?? false)
+      (isSelfHosted() ||
+        responseHasLinkedIdentity(lastUserMeResponse()?.response ?? false))
     );
   }
 
@@ -224,7 +227,11 @@ export class SettingsModal extends LitElement implements Controller {
     const status = this.saveStatus;
     const desc =
       status === null
-        ? translateText("saved_games.save_desc")
+        ? translateText(
+            isSelfHosted()
+              ? "saved_games.save_desc_local"
+              : "saved_games.save_desc",
+          )
         : translateText(`saved_games.save_status.${status}`);
     return html`
       <button

@@ -59,6 +59,11 @@ export function savedGameShareUrl(id: string): string {
 export class SavedGamesPanel extends LitElement {
   /** Whether to list the player's own saves (a signed-in account). */
   @property({ type: Boolean }) signedIn = false;
+  /**
+   * The saves are this browser's own (a self-hosted server, which has no
+   * accounts): nothing to share, and no shared save to open.
+   */
+  @property({ type: Boolean }) local = false;
   /** A shared save to offer, from a `#modal=single-player&save=` link. */
   @property({ attribute: false }) sharedId: string | null = null;
   /** A game is starting: no second one. */
@@ -443,14 +448,16 @@ export class SavedGamesPanel extends LitElement {
               () => this.startRename(save),
               { disabled: pending, attr: "rename" },
             )}
-        ${this.button(
-          translateText(
-            save.public ? "saved_games.unshare" : "saved_games.share",
-          ),
-          () => void this.toggleShared(save),
-          { disabled: pending, attr: "toggle-share" },
-        )}
-        ${save.public
+        ${this.local
+          ? null
+          : this.button(
+              translateText(
+                save.public ? "saved_games.unshare" : "saved_games.share",
+              ),
+              () => void this.toggleShared(save),
+              { disabled: pending, attr: "toggle-share" },
+            )}
+        ${save.public && !this.local
           ? this.button(
               translateText("saved_games.copy_link"),
               () => void this.copyLink(save.id),
@@ -519,7 +526,9 @@ export class SavedGamesPanel extends LitElement {
       </button>
       ${expanded
         ? html`<div class="mt-4 flex flex-col gap-4">
-            ${this.renderCodeForm()}${this.renderShared()}${this.renderOwn()}
+            ${this.local
+              ? null
+              : html`${this.renderCodeForm()}${this.renderShared()}`}${this.renderOwn()}
           </div>`
         : null}
     </div>`;

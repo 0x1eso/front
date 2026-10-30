@@ -599,7 +599,9 @@ export class SinglePlayerModal extends BaseModal {
         >
           <saved-games-panel
             class="block mb-6"
-            .signedIn=${responseHasLinkedIdentity(this.userMeResponse)}
+            .signedIn=${isSelfHosted() ||
+            responseHasLinkedIdentity(this.userMeResponse)}
+            .local=${isSelfHosted()}
             .sharedId=${this.sharedSaveId}
             .busy=${this.starting}
             @load-saved-game=${this.handleLoadSavedGame}
@@ -913,7 +915,11 @@ export class SinglePlayerModal extends BaseModal {
 
   protected onOpen(args?: Record<string, unknown>): void {
     const save = args?.save;
-    this.sharedSaveId = typeof save === "string" ? savedGameIdFrom(save) : null;
+    // A self-hosted server's saves stay in each browser: no shared ones.
+    this.sharedSaveId =
+      typeof save === "string" && !isSelfHosted()
+        ? savedGameIdFrom(save)
+        : null;
     // Saves made since the list last loaded (a game played in between).
     void this.querySelector("saved-games-panel")?.refresh();
     void this.loadNationCount();

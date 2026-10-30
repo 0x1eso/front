@@ -97,6 +97,21 @@ describe("in-game menu: save game", () => {
     expect(saveRow()).toBeNull();
   });
 
+  // No accounts there: the save is kept in the browser (SavedGamesApi).
+  it("is offered to everyone on a self-hosted server", async () => {
+    identity.linked = false;
+    (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG = {
+      selfHosted: true,
+    };
+    try {
+      await open(fakeGame().game);
+      expect(saveRow()).not.toBeNull();
+      expect(status()).toBe("saved_games.save_desc_local");
+    } finally {
+      delete (window as { BOOTSTRAP_CONFIG?: unknown }).BOOTSTRAP_CONFIG;
+    }
+  });
+
   it("snapshots the game and uploads it under the map's name", async () => {
     api.uploadSavedGame.mockResolvedValue({ id: "x" });
     const { game, snapshot } = fakeGame();
