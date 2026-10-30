@@ -27,6 +27,7 @@ import {
   TechBranch,
   TradeLaw,
   WW_MAX_PROJECT_COUNT,
+  WW_MAX_QUEUE,
   WW_MAX_TRADE_CIVS,
   WW_TECH_IDS,
   WW_TRADE_UNITS_PER_CIV,
@@ -1284,6 +1285,197 @@ export function noCandidateBlock(
     }
   }
   return best;
+}
+
+// ---- Auto-place ("알아서 짓기") ----
+
+/** Buildings that belong at the front (or the coast), not in the safe core. */
+const FRONT_BUILDINGS: readonly BuildingId[] = [
+  "fort",
+  "air_base",
+  "anti_air",
+  "radar",
+  "coastal_fort",
+  "naval_base",
+  "rocket_site",
+];
+/** What a unit already placed in a region costs the next one there (spread). */
+const AUTO_SPREAD_PENALTY = 35;
+
+export interface AutoPlacement {
+  region: number;
+  name: string;
+  count: number;
+}
+
+export interface AutoPlan {
+  placements: AutoPlacement[];
+  /** Units placed (the sum of the placements' counts). */
+  placed: number;
+  /** Why nothing could be placed (placements empty), else null. */
+  block: WwOrderBlock | null;
+}
+
+/**
+ * How good a region is for `building`: a safe, developed core region for
+ * the economy buildings (infrastructure, free slots, away from the front
+ * and from bombed ground), the front or the coast for the defences. A pure
+ * function of what the views read, so a screen and a test agree.
+ */
+export function autoPlaceScore(
+  view: WwEconomyView,
+  scenario: ScenarioIndex,
+  me: number,
+  region: number,
+  building: BuildingId,
+  free: number,
+  fighting: (smallID: number) => boolean,
+  endgame: WwEndgameView | null,
+): number {
+  let front = 0;
+  for (const n of scenario.regionNeighbours(region)) {
+    const c = view.controller[n];
+    if (c !== me && c !== 0 && fighting(c)) front++;
+  }
+  const bombed = view.region(region).damage.some((d) => d > 0) ? 1 : 0;
+  const infra = view.infra[region];
+  const core = isCoreNow(endgame, scenario, region, me) ? 1 : 0;
+  let score = infra * 100 + Math.min(free, 5) * 8 + core * 50;
+  if (FRONT_BUILDINGS.includes(building)) {
+    const coastal = scenario.region(region)?.coastal ? 1 : 0;
+    score += Math.min(front, 3) * 90 + coastal * 30 - infra * 60;
+    if (building === "anti_air" || building === "radar") score += bombed * 40;
+    if (building === "naval_base" || building === "coastal_fort") {
+      score += scenario.harborOf(region) !== 0 ? 40 : 0;
+    }
+  } else {
+    score -= Math.min(front, 3) * 70 + bombed * 60;
+    if (
+      building === "infra" ||
+      building === "supply_hub" ||
+      building === "rail"
+    ) {
+      score += view.rail[region] * 10 + view.hub[region] * 20;
+    }
+  }
+  return score;
+}
+
+/**
+ * Spread `total` units of `building` across the best regions that can take
+ * them, reservations counted; every placement is re-judged by buildBlock
+ * with its final count, so no order goes out that the engine would refuse.
+ */
+export function autoPlace(
+  view: WwEconomyView,
+  scenario: ScenarioIndex,
+  me: number,
+  building: BuildingId,
+  total: number,
+  slotPct: number,
+  fighting: (smallID: number) => boolean,
+  korean = false,
+  endgame: WwEndgameView | null = null,
+  depth: BuildDepthInputs | null = null,
+): AutoPlan {
+  const candidates = buildCandidates(
+    view,
+    scenario,
+    me,
+    building,
+    slotPct,
+    fighting,
+    korean,
+    endgame,
+    depth,
+  );
+  if (candidates.length === 0) {
+    return {
+      placements: [],
+      placed: 0,
+      block: noCandidateBlock(
+        view,
+        scenario,
+        me,
+        building,
+        slotPct,
+        fighting,
+        endgame,
+        depth,
+      ),
+    };
+  }
+  const base = new Map(
+    candidates.map((c) => [
+      c.id,
+      autoPlaceScore(
+        view,
+        scenario,
+        me,
+        c.id,
+        building,
+        c.free,
+        fighting,
+        endgame,
+      ),
+    ]),
+  );
+  const taken = new Map<number, number>();
+  const room = WW_MAX_QUEUE - (view.detail(me)?.queue.length ?? 0);
+  for (let i = 0; i < total; i++) {
+    let best: BuildCandidate | null = null;
+    let bestScore = 0;
+    for (const c of candidates) {
+      const t = taken.get(c.id) ?? 0;
+      if (t >= c.free || t >= WW_MAX_PROJECT_COUNT) continue;
+      // A fresh order costs a queue place.
+      if (t === 0 && taken.size >= room) continue;
+      const sc = (base.get(c.id) ?? 0) - t * AUTO_SPREAD_PENALTY;
+      if (best === null || sc > bestScore) {
+        best = c;
+        bestScore = sc;
+      }
+    }
+    if (best === null) break;
+    taken.set(best.id, (taken.get(best.id) ?? 0) + 1);
+  }
+  const placements: AutoPlacement[] = [];
+  let placed = 0;
+  for (const c of candidates) {
+    let n = taken.get(c.id) ?? 0;
+    // The final count may trip a rule the single unit did not.
+    while (
+      n > 0 &&
+      buildBlock(
+        view,
+        scenario,
+        me,
+        c.id,
+        building,
+        n,
+        slotPct,
+        fighting,
+        endgame,
+        depth,
+      ) !== null
+    ) {
+      n--;
+    }
+    if (n > 0) {
+      placements.push({ region: c.id, name: c.name, count: n });
+      placed += n;
+    }
+  }
+  placements.sort(
+    (a, b) =>
+      (base.get(b.region) ?? 0) - (base.get(a.region) ?? 0) ||
+      a.region - b.region,
+  );
+  return {
+    placements,
+    placed,
+    block: placed === 0 ? "queue_full" : null,
+  };
 }
 
 /** The most the count stepper offers for a candidate. */

@@ -28,6 +28,7 @@ import { designsButton } from "./DesignButton";
 import {
   addLineBlock,
   armyMenOf,
+  autoPlace,
   blockedSellers,
   blockText,
   buildBlock,
@@ -155,6 +156,10 @@ export class WwIndustryPanel extends WwDrawerBase {
   /** The region picked for "new construction"; null: the best candidate. */
   @state() private region: number | null = null;
   @state() private count = 1;
+  /** Auto-place: how many units one tap places (1, 5 or 10). */
+  @state() private autoCount = 1;
+  /** Auto-place: the last tap's feedback line. */
+  @state() private autoMsg: string | null = null;
   /** Every candidate region listed, not just the best few. */
   @state() private allCandidates = false;
   /** The resource row whose sellers are listed. */
@@ -571,6 +576,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   private pickBuilding(c: Ctx, building: BuildingId, slotPct: number) {
     this.building = building;
     this.count = 1;
+    this.autoMsg = null;
     this.allCandidates = false;
     if (this.region === null) return;
     const block = buildBlock(
@@ -598,6 +604,74 @@ export class WwIndustryPanel extends WwDrawerBase {
       c.depth,
     );
     if (best.length > 0) this.region = null;
+  }
+
+  /** [알아서 짓기]: the best regions for the picked building, one tap. */
+  private renderAuto(c: Ctx, slotPct: number): TemplateResult {
+    const tap = () => {
+      const plan = autoPlace(
+        c.view,
+        c.scenario,
+        c.id,
+        this.building,
+        this.autoCount,
+        slotPct,
+        c.fighting,
+        c.korean,
+        c.endgame,
+        c.depth,
+      );
+      if (plan.placed === 0) {
+        this.autoMsg = blockText(plan.block ?? "not_buildable");
+        return;
+      }
+      for (const p of plan.placements) {
+        this.send({
+          kind: "build",
+          region: p.region,
+          building: this.building,
+          count: p.count,
+        });
+      }
+      const names = plan.placements.slice(0, 3).map((p) => p.name);
+      this.autoMsg = translateText("ww1936.econ.auto_done", {
+        building: buildingName(this.building),
+        n: plan.placed,
+        regions: names.join(", ") + (plan.placements.length > 3 ? "…" : ""),
+      });
+    };
+    return html`<div data-ww-auto class="mt-1.5 flex items-center gap-1">
+        ${[1, 5, 10].map(
+          (n) =>
+            html`<button
+              type="button"
+              data-ww-auto-count=${n}
+              aria-pressed=${String(n === this.autoCount)}
+              class="${BUTTON} ${n === this.autoCount
+                ? "border-amber-300 bg-amber-900/50"
+                : ""}"
+              @click=${() => {
+                this.autoCount = n;
+              }}
+            >
+              ×${n}
+            </button>`,
+        )}
+        <button
+          type="button"
+          data-ww-auto-build
+          class="flex min-h-9 min-w-0 flex-1 items-center justify-center rounded-md border border-emerald-300/40 bg-emerald-700/80 px-2 text-xs font-semibold hover:bg-emerald-600"
+          @click=${tap}
+        >
+          ${BUILDING_ICONS[this.building]}
+          ${translateText("ww1936.econ.auto_build")}
+        </button>
+      </div>
+      ${this.autoMsg === null
+        ? nothing
+        : html`<p data-ww-auto-msg class="m-0 mt-1 text-xs text-emerald-200">
+            ${this.autoMsg}
+          </p>`}`;
   }
 
   private renderNewBuild(c: Ctx): TemplateResult {
@@ -662,6 +736,7 @@ export class WwIndustryPanel extends WwDrawerBase {
             </button>`,
         )}
       </div>
+      ${this.renderAuto(c, slotPct)}
       ${region === null
         ? // No region takes it: say why rather than show nothing.
           this.blockLine(

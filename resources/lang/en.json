@@ -4740,6 +4740,8 @@
       "add_to_queue": "Add to queue",
       "after_switch": "{n}% after switching",
       "ahead": "+{n}% (ahead of time)",
+      "auto_build": "Auto-place",
+      "auto_done": "{building} ×{n} → {regions}",
       "balance": "Balance",
       "band_label": "Factories: {civ} civilian, {mil} military · Manpower {manpower}",
       "block": {

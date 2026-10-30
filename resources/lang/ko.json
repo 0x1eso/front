@@ -4433,6 +4433,8 @@
       "add_to_queue": "대기열에 넣기",
       "after_switch": "바꾸면 {n}%",
       "ahead": "+{n}% (시대 앞섬)",
+      "auto_build": "알아서 짓기",
+      "auto_done": "{building} ×{n} → {regions}",
       "balance": "남음",
       "band_label": "공장: 민간 {civ}, 군수 {mil} · 인력 {manpower}",
       "block": {
