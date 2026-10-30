@@ -190,6 +190,44 @@ describe("World War 1936 P2 in the HUD", () => {
     ).toHaveLength(2);
   });
 
+  it("final review M6: the band redraws on what its chips show (fuel's percent only while short)", async () => {
+    const g = game({});
+    const band = document.createElement("ww-top-band") as WwTopBand;
+    band.game = g.game as never;
+    band.eventBus = new EventBus();
+    document.body.appendChild(band);
+    band.tick();
+    await band.updateComplete;
+    const fuel = () => band.querySelector<HTMLElement>("[data-ww-fuel]")!;
+    expect(fuel().dataset.wwFuel).toBe("ok");
+    const redraws = vi.spyOn(band, "render");
+    const ratio = async (fuelRatioPm: number) => {
+      g.view.apply({
+        countries: [summary("DEU", { fuelRatioPm })],
+        details: [],
+        regions: [],
+      });
+      band.tick();
+      await band.updateComplete;
+    };
+    // Not short: the percent is not on the chip, so no redraw.
+    await ratio(1_500);
+    await ratio(1_730);
+    expect(redraws).not.toHaveBeenCalled();
+    // Short: the chip turns red and its label names the percent.
+    await ratio(640);
+    expect(redraws).toHaveBeenCalledTimes(1);
+    expect(fuel().dataset.wwFuel).toBe("short");
+    expect(fuel().getAttribute("aria-label")).toContain("pct=64");
+    await ratio(610);
+    expect(redraws).toHaveBeenCalledTimes(2);
+    expect(fuel().getAttribute("aria-label")).toContain("pct=61");
+    // Nothing on the band moved: no redraw.
+    band.tick();
+    await band.updateComplete;
+    expect(redraws).toHaveBeenCalledTimes(2);
+  });
+
   it("the region card's land lines", () => {
     const g = game({
       regions: [region(3, { fort: 3 })],

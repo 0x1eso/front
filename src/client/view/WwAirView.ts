@@ -35,10 +35,15 @@ export class WwAirView {
     this.version++;
   }
 
-  /** My side's air superiority ‰ over a zone. */
+  /** My side's air superiority ‰ over a zone (a plain loop: the fog asks it per zone a tick). */
   mySuperiority(sr: number): number {
+    const sides = this.zones.get(sr)?.sides;
+    if (sides === undefined) return 0;
     const side = this.mySide();
-    return this.zones.get(sr)?.sides.find((s) => s.side === side)?.supPm ?? 0;
+    for (let i = 0; i < sides.length; i++) {
+      if (sides[i].side === side) return sides[i].supPm ?? 0;
+    }
+    return 0;
   }
 
   /** My planes of `type` deployed over a zone (every mission). */

@@ -75,6 +75,40 @@ function occupied() {
   });
 }
 
+describe("final review M6: the band's occupation chip", () => {
+  it("counts and averages as summarize(myOccRows) did, without the rows", () => {
+    // Random occupations: controllers, held or lost regions, resistance.
+    let seed = 11;
+    const rnd = (n: number) => {
+      seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+      return seed % n;
+    };
+    const tags = ["DEU", "POL", "SUN", "FRA"] as const;
+    let chips = 0;
+    for (let i = 0; i < 200; i++) {
+      const regions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(() => rnd(2));
+      const me = tags[rnd(tags.length)];
+      const { game } = fakeEndGame({
+        me,
+        control: regions.map((r) => [r, tags[rnd(tags.length)]]),
+        endgame: {
+          occupation: regions.map((r) =>
+            occ(r, tags[rnd(tags.length)], { resBp: rnd(10_001) }),
+          ),
+        },
+      });
+      const s = summarize(myOccRows(game, ID(me)));
+      const old =
+        s.regions === 0
+          ? null
+          : { n: s.regions, resPct: Math.floor(s.avgResBp / 100) };
+      expect(occupationChip(game)).toEqual(old);
+      if (old !== null) chips++;
+    }
+    expect(chips).toBeGreaterThan(20);
+  });
+});
+
 describe("EndgameModel (P5 spec §20.3–§20.7)", () => {
   it("occupation summary sums need and supply", () => {
     const { game, eg } = occupied();

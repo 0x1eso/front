@@ -211,6 +211,15 @@ export class WwTopBand extends LitElement implements Controller {
   private depth: BandDepth | null = null;
   /** The small row command power and congress move to when the band is full (the 🏛 cell opens it). */
   @state() private depthRow = false;
+  /**
+   * Final review M6: what each chip shows, as last drawn — the redraw is
+   * keyed on these (the fuel chip's percent only shows while it is short),
+   * and the last value's JSON is kept rather than made again each tick.
+   */
+  private fuelShown = "null";
+  private occShown = "null";
+  private depthShown = "null";
+  private politicsShown = "null";
   /** The multi-select bar's version, and whether its marshal list is open. */
   private multiSeen = -1;
   @state() private choosingFm = false;
@@ -329,7 +338,12 @@ export class WwTopBand extends LitElement implements Controller {
     const land = econ === null ? null : bandLand(this.game);
     const wasLand = this.land;
     const fuel = econ === null ? null : bandFuel(this.game);
-    if (JSON.stringify(fuel) !== JSON.stringify(this.fuel)) {
+    const fuelShown =
+      fuel === null
+        ? "null"
+        : `${fuel.text}|${fuel.short}|${fuel.short ? fuel.pct : ""}`;
+    if (fuelShown !== this.fuelShown) {
+      this.fuelShown = fuelShown;
       this.fuel = fuel;
       this.chipShrink = 0;
       this.requestUpdate();
@@ -345,7 +359,9 @@ export class WwTopBand extends LitElement implements Controller {
       );
     }
     const occ = occupationChip(this.game);
-    if (JSON.stringify(occ) !== JSON.stringify(this.occ)) {
+    const occShown = JSON.stringify(occ);
+    if (occShown !== this.occShown) {
+      this.occShown = occShown;
       this.occ = occ;
       this.chipShrink = 0;
       this.requestUpdate();
@@ -360,7 +376,9 @@ export class WwTopBand extends LitElement implements Controller {
       }
     }
     const depth = new DoctrineModel(this.game).band();
-    if (JSON.stringify(depth) !== JSON.stringify(this.depth)) {
+    const depthShown = JSON.stringify(depth);
+    if (depthShown !== this.depthShown) {
+      this.depthShown = depthShown;
       this.depth = depth;
       this.chipShrink = 0;
       this.requestUpdate();
@@ -373,7 +391,9 @@ export class WwTopBand extends LitElement implements Controller {
     }
     const pi = politicsInput(this.game);
     const pol = pi === null ? null : bandStats(pi);
-    if (JSON.stringify(pol) !== JSON.stringify(this.politics)) {
+    const politicsShown = JSON.stringify(pol);
+    if (politicsShown !== this.politicsShown) {
+      this.politicsShown = politicsShown;
       this.politics = pol;
       this.chipShrink = 0;
       this.requestUpdate();

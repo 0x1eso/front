@@ -54,6 +54,21 @@ export function packOccupationTable(
   out: Uint8Array = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE * 4),
 ): Uint8Array {
   out.fill(0);
+  writeOccupationCells(cells, out, null);
+  return out;
+}
+
+/**
+ * Writes `cells` into `out` as packOccupationTable does (it leaves the
+ * other texels alone) and, with `at`, notes each written texel's byte
+ * offset there; the count of offsets written.
+ */
+function writeOccupationCells(
+  cells: readonly OccupationCell[],
+  out: Uint8Array,
+  at: { offsets: Int32Array } | null,
+): number {
+  let n = 0;
   for (const c of cells) {
     if (c.region <= 0 || c.region >= FLAG_TEX_SIZE * FLAG_TEX_SIZE) continue;
     const level = Math.max(1, Math.min(OCC_LEVEL_MAX, Math.round(c.level)));
@@ -62,8 +77,17 @@ export function packOccupationTable(
     out[o + 1] = c.rgb[1];
     out[o + 2] = c.rgb[2];
     out[o + 3] = (level << 2) | (c.flags & 3);
+    if (at !== null) {
+      if (n >= at.offsets.length) {
+        const grown = new Int32Array(Math.max(64, at.offsets.length * 2));
+        grown.set(at.offsets);
+        at.offsets = grown;
+      }
+      at.offsets[n] = o;
+    }
+    n++;
   }
-  return out;
+  return n;
 }
 
 const FRAG = `#version 300 es
@@ -132,6 +156,17 @@ export class OccupationPass {
   private readonly sent = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE * 4);
   private keySent: string | null = null;
   private any = false;
+  /**
+   * Final review M6: the byte offsets of the texels the table's cells
+   * wrote, this pack's and the last one's. The table is 0 everywhere else
+   * (as packOccupationTable leaves it) and equals `sent` after each sync,
+   * so a new pack clears and compares only those texels, not the whole
+   * table — the key moves every tick while the mode is on.
+   */
+  private written = { offsets: new Int32Array(64) };
+  private writtenCount = 0;
+  private prior = { offsets: new Int32Array(64) };
+  private priorCount = 0;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -152,17 +187,51 @@ export class OccupationPass {
     this.keySent = key;
     const cells = this.source.cells();
     this.any = cells.length > 0;
-    packOccupationTable(cells, this.table);
-    if (this.tableTex !== null) {
-      let same = true;
-      for (let i = 0; same && i < this.table.length; i++) {
-        if (this.table[i] !== this.sent[i]) same = false;
-      }
-      if (same) return this.any;
-    }
+    this.pack(cells);
+    if (this.tableTex !== null && this.sameAsSent()) return this.any;
     this.sent.set(this.table);
     this.upload();
     return this.any;
+  }
+
+  /** packOccupationTable(cells, table), clearing only the last pack's texels. */
+  private pack(cells: readonly OccupationCell[]): void {
+    const t = this.table;
+    const last = this.written;
+    for (let k = 0; k < this.writtenCount; k++) {
+      const o = last.offsets[k];
+      t[o] = t[o + 1] = t[o + 2] = t[o + 3] = 0;
+    }
+    // This pack's offsets go in the other list; the last ones stay to compare.
+    this.written = this.prior;
+    this.prior = last;
+    this.priorCount = this.writtenCount;
+    this.writtenCount = writeOccupationCells(cells, t, this.written);
+  }
+
+  /** The table equals `sent`: they can differ only where this pack or the last wrote. */
+  private sameAsSent(): boolean {
+    return (
+      this.sameAt(this.written.offsets, this.writtenCount) &&
+      this.sameAt(this.prior.offsets, this.priorCount)
+    );
+  }
+
+  private sameAt(offsets: Int32Array, n: number): boolean {
+    const t = this.table;
+    const s = this.sent;
+    for (let k = 0; k < n; k++) {
+      const o = offsets[k];
+      if (
+        t[o] !== s[o] ||
+        t[o + 1] !== s[o + 1] ||
+        t[o + 2] !== s[o + 2] ||
+        t[o + 3] !== s[o + 3]
+      ) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private upload(): void {
