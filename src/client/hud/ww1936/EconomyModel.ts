@@ -7,6 +7,7 @@
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BuildingId,
   DoctrineSchool,
@@ -55,6 +56,7 @@ import {
   lawBlockOf,
   openTradeBlockOf,
   payableCivs,
+  QueuedInRegion,
   queuedInRegion,
   queuedLevels,
   regionShares,
@@ -81,6 +83,10 @@ import {
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import {
+  DEPTH_BUILDINGS,
+  depthBuildBlock,
+} from "@openfront/engine-lib/ww1936/WorldRules";
 import { lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
   techDays,
@@ -968,7 +974,84 @@ export function isCoreNow(
  */
 export type ScreenBuildCheck = BuildCheck & { noStrike?: boolean };
 
-/** What the engine's buildBlock checks, from the view (Construction.buildBlock). */
+/**
+ * P6: what the depth rules of a building read beyond the economy view
+ * (the engine's Construction.depthBlockOf). Without them a screen judges
+ * every P6 building "not_buildable" (BuildCheck.depthBlock absent).
+ */
+export interface BuildDepthInputs {
+  /** The lobby's ww1936Nukes (on unless the host turned it off). */
+  nukesOn: boolean;
+  /** SPECIAL_PROJECTS bits I finished (WwDepthDetail.projects.done). */
+  projectsDone: number;
+  /** The regions' legal owners (WwPoliticsView); null: the 1936 owners. */
+  legalOwner: ArrayLike<number> | null;
+  /**
+   * The dams' levels by DAMS index (WwDepthView.worldData, sent whenever
+   * one changes; the economy's region copy is resent only with the
+   * region); empty: the economy view's.
+   */
+  damLevel: readonly number[];
+}
+
+/** The depth inputs of `me` from the game's views (the build menu's). */
+export function buildDepthInputs(
+  game: Partial<Pick<GameView, "wwDepth" | "wwPolitics">> & {
+    config?: () => { gameConfig?: () => { ww1936Nukes?: boolean } };
+  },
+  me: number,
+): BuildDepthInputs {
+  return {
+    nukesOn: game.config?.().gameConfig?.().ww1936Nukes !== false,
+    projectsDone: game.wwDepth?.()?.detail(me)?.projects.done ?? 0,
+    legalOwner: game.wwPolitics?.()?.legalOwner ?? null,
+    damLevel: game.wwDepth?.()?.worldData.damLevel ?? [],
+  };
+}
+
+const FLYING_BOMB = SPECIAL_PROJECTS.indexOf("sp_flying_bomb");
+
+/** The engine's Construction.depthBlockOf, from the views. */
+function depthBlockOf(
+  view: WwEconomyView,
+  scenario: ScenarioIndex,
+  me: number,
+  region: number,
+  building: BuildingId,
+  count: number,
+  queued: QueuedInRegion,
+  endgame: WwEndgameView | null,
+  depth: BuildDepthInputs,
+): WwOrderBlock | null {
+  const legalOwner =
+    depth.legalOwner?.[region] ?? scenario.ownerByRegion()[region];
+  const dam = scenario.damOf(region);
+  return depthBuildBlock({
+    building,
+    count,
+    core: legalOwner === me && isCoreNow(endgame, scenario, region, me),
+    // FACILITY_IDS index + 1 of the facility built, else of the one queued.
+    facility:
+      view.facility[region] !== 0 ? view.facility[region] : queued.facility,
+    researched: new Set(view.detail(me)?.researched ?? []),
+    infra: view.infra[region],
+    nukesOn: depth.nukesOn,
+    flyingBombDone: (depth.projectsDone & (1 << FLYING_BOMB)) !== 0,
+    levelWithQueue:
+      building === "power_plant"
+        ? view.powerPlant[region] + queued.power_plant
+        : view.buildingCount(building, region) + queuedLevels(queued, building),
+    dam,
+    damLevel: dam < 0 ? 0 : (depth.damLevel[dam] ?? view.damLevel[region]),
+    damQueued: queued.dam > 0,
+  });
+}
+
+/**
+ * What the engine's buildBlock checks, from the view (Construction.buildBlock).
+ * `depth`: the P6 buildings' inputs (buildDepthInputs); null judges them
+ * not buildable.
+ */
 export function buildCheck(
   view: WwEconomyView,
   scenario: ScenarioIndex,
@@ -979,6 +1062,7 @@ export function buildCheck(
   slotPct: number,
   fighting: (smallID: number) => boolean,
   endgame: WwEndgameView | null = null,
+  depth: BuildDepthInputs | null = null,
 ): ScreenBuildCheck {
   const r = scenario.region(region);
   const queue = view.detail(me)?.queue ?? [];
@@ -1010,6 +1094,10 @@ export function buildCheck(
           view.dock[region] +
           view.refinery[region] +
           view.silo[region] +
+          // P6 (spec §9.1, §16.2): a facility and the power plants hold
+          // shared slots too (Construction.slotBuildings).
+          (view.facility[region] !== 0 ? 1 : 0) +
+          view.powerPlant[region] +
           queued.factories,
     slots: r === undefined ? 0 : regionSlots(r.cat, slotPct),
     // P4 (P4 spec §5.1, §12.1): the coast, the harbor zone, the techs.
@@ -1019,6 +1107,22 @@ export function buildCheck(
     // Final review B, I1: nothing is built in Korea or Taiwan, so the build
     // menu and the region card grey it out (the engine refused silently).
     noStrike: isNoStrike(scenario, region),
+    // P6: the depth rules' answer (absent: not buildable).
+    ...(r !== undefined && depth !== null && DEPTH_BUILDINGS.includes(building)
+      ? {
+          depthBlock: depthBlockOf(
+            view,
+            scenario,
+            me,
+            region,
+            building,
+            count,
+            queued,
+            endgame,
+            depth,
+          ),
+        }
+      : {}),
   };
 }
 
@@ -1032,6 +1136,7 @@ export function buildBlock(
   slotPct: number,
   fighting: (smallID: number) => boolean,
   endgame: WwEndgameView | null = null,
+  depth: BuildDepthInputs | null = null,
 ): WwOrderBlock | null {
   return buildBlockOf(
     buildCheck(
@@ -1044,6 +1149,7 @@ export function buildBlock(
       slotPct,
       fighting,
       endgame,
+      depth,
     ),
   );
 }
@@ -1083,6 +1189,9 @@ function levelOf(
     case "anti_air":
     case "radar":
     case "coastal_fort":
+    case "rocket_site":
+      // P6 (spec §9.1): the rocket site's level too. A dam's level is the
+      // depth state's; the engine's count of it stays 0, as here.
       return view.buildingCount(building, region);
     default:
       return 0;
@@ -1103,6 +1212,7 @@ export function buildCandidates(
   fighting: (smallID: number) => boolean,
   korean = false,
   endgame: WwEndgameView | null = null,
+  depth: BuildDepthInputs | null = null,
 ): BuildCandidate[] {
   const out: BuildCandidate[] = [];
   for (const r of scenario.landRegions) {
@@ -1117,6 +1227,7 @@ export function buildCandidates(
       slotPct,
       fighting,
       endgame,
+      depth,
     );
     if (buildBlockOf(c) !== null) continue;
     out.push({
@@ -1130,6 +1241,49 @@ export function buildCandidates(
   return out.sort(
     (a, b) => b.free - a.free || b.infra - a.infra || a.id - b.id,
   );
+}
+
+/**
+ * Why no region takes `building` when buildCandidates is empty: the
+ * commonest block among the regions I control (on a tie, the one that got
+ * there first in region order); "not_controlled" when I control none.
+ */
+export function noCandidateBlock(
+  view: WwEconomyView,
+  scenario: ScenarioIndex,
+  me: number,
+  building: BuildingId,
+  slotPct: number,
+  fighting: (smallID: number) => boolean,
+  endgame: WwEndgameView | null = null,
+  depth: BuildDepthInputs | null = null,
+): WwOrderBlock {
+  const counts = new Map<WwOrderBlock, number>();
+  let best: WwOrderBlock = "not_controlled";
+  let most = 0;
+  for (const r of scenario.landRegions) {
+    if (view.controller[r.id] !== me) continue;
+    const b = buildBlock(
+      view,
+      scenario,
+      me,
+      r.id,
+      building,
+      1,
+      slotPct,
+      fighting,
+      endgame,
+      depth,
+    );
+    if (b === null) continue;
+    const n = (counts.get(b) ?? 0) + 1;
+    counts.set(b, n);
+    if (n > most) {
+      most = n;
+      best = b;
+    }
+  }
+  return best;
 }
 
 /** The most the count stepper offers for a candidate. */

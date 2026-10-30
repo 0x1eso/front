@@ -32,6 +32,8 @@ import {
   blockText,
   buildBlock,
   buildCandidates,
+  BuildDepthInputs,
+  buildDepthInputs,
   BUILDING_ICONS,
   buildingName,
   changeLineBlock,
@@ -49,6 +51,7 @@ import {
   maxTradeCivs,
   menText,
   milliText,
+  noCandidateBlock,
   NOT_PARTNER_KEYS,
   openTradeBlock,
   paidCivsOf,
@@ -131,6 +134,8 @@ interface Ctx {
   fighting: (smallID: number) => boolean;
   /** P5: the endgame's core table (isCoreNow). */
   endgame: WwEndgameView | null;
+  /** P6: the depth rules' inputs of the build menu (buildDepthInputs). */
+  depth: BuildDepthInputs;
   /** Gone or capitulated: the engine refuses every order ("dead"). */
   dead: boolean;
 }
@@ -237,6 +242,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       korean: isKoreanUi(),
       fighting: fightingFn(game),
       endgame: game.wwEndgame?.() ?? null,
+      depth: buildDepthInputs(game, id),
       // P5 pre-flight §0-1: an exile still builds.
       dead: !wwActive(game, id),
     };
@@ -577,6 +583,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       slotPct,
       c.fighting,
       c.endgame,
+      c.depth,
     );
     if (block === null) return;
     const best = buildCandidates(
@@ -588,6 +595,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       c.fighting,
       false,
       c.endgame,
+      c.depth,
     );
     if (best.length > 0) this.region = null;
   }
@@ -603,6 +611,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       c.fighting,
       c.korean,
       c.endgame,
+      c.depth,
     );
     const region = this.region ?? candidates[0]?.id ?? null;
     const picked = candidates.find((x) => x.id === region) ?? null;
@@ -621,6 +630,7 @@ export class WwIndustryPanel extends WwDrawerBase {
             slotPct,
             c.fighting,
             c.endgame,
+            c.depth,
           );
     const r = region === null ? undefined : c.scenario.region(region);
     // On a phone the list area is short: the picked region and "Add" come
@@ -653,7 +663,19 @@ export class WwIndustryPanel extends WwDrawerBase {
         )}
       </div>
       ${region === null
-        ? nothing
+        ? // No region takes it: say why rather than show nothing.
+          this.blockLine(
+            noCandidateBlock(
+              c.view,
+              c.scenario,
+              c.id,
+              this.building,
+              slotPct,
+              c.fighting,
+              c.endgame,
+              c.depth,
+            ),
+          )
         : html`<div
               data-ww-picked=${region}
               class="mt-1.5 flex items-center gap-2"
