@@ -22,7 +22,13 @@ import {
   WW_INVASION_PREP_DAYS,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { edgeTicks, moveNeed, regionDistances } from "./MoveRules";
+import {
+  edgeTicks,
+  moveNeed,
+  moveStep,
+  railStep,
+  regionDistances,
+} from "./MoveRules";
 import type { ScenarioIndex } from "./ScenarioIndex";
 
 /** Spec §11.1: divisions one invasion may carry (10 + stat + landing craft 5 + 5). */
@@ -224,7 +230,74 @@ export function invasionBlock(a: InvasionAsk): WwOrderBlock | null {
   return null; // convoys are checked at launch (spec §11.3), not at the order
 }
 
-// ---- Easy invasions: the port the landing force sails from ----
+// ---- Easy invasions: the landing force and the port it sails from ----
+
+/** A division as the landing force's choice reads it (the engine's rows, the card's DivisionData). */
+export interface ForceDivision {
+  id: number;
+  region: number;
+  /** Org ‰ of its max (DivisionData.orgPm). */
+  orgPm: number;
+  speedCenti: number;
+}
+
+/**
+ * Easy invasions: the divisions that land — every one within the
+ * invasion limit, else the `cap` best-organised (org ‰, then the smaller
+ * id); the rest stay behind (the order splits them off).
+ */
+export function landingForce<T extends ForceDivision>(
+  divs: readonly T[],
+  cap: number,
+): T[] {
+  if (divs.length <= cap) return [...divs];
+  return [...divs]
+    .sort((x, y) => y.orgPm - x.orgPm || x.id - y.id)
+    .slice(0, Math.max(0, cap));
+}
+
+/**
+ * Easy invasions: the landing force's march, InvasionPortWorld's from,
+ * railOk, walkStep and railStep — from the region most of it stands in
+ * (ties: the smaller), at its slowest division's pace on clear ground
+ * (Movement.slowestPathStep), by train only when every division can.
+ */
+export function forceMarch(
+  force: readonly ForceDivision[],
+  railed: (region: number) => boolean,
+  railSpeedPct: number,
+  fallbackRegion = 0,
+): Pick<InvasionPortWorld, "from" | "railOk" | "walkStep" | "railStep"> {
+  const count = new Map<number, number>();
+  let speed = Infinity;
+  for (const d of force) {
+    count.set(d.region, (count.get(d.region) ?? 0) + 1);
+    speed = Math.min(speed, d.speedCenti);
+  }
+  let from = fallbackRegion;
+  let most = 0;
+  for (const [r, n] of count) {
+    if (n > most || (n === most && r < from)) {
+      from = r;
+      most = n;
+    }
+  }
+  return {
+    from,
+    railOk: force.length > 0 && force.every((d) => railed(d.region)),
+    walkStep: moveStep(
+      speed === Infinity ? DEFAULT_SPEED_CENTI : speed,
+      1,
+      "clear",
+      1000,
+      0,
+    ),
+    railStep: railStep(railSpeedPct),
+  };
+}
+
+/** Infantry's 4 km/h (Movement's DEFAULT_SPEED_CENTI). */
+const DEFAULT_SPEED_CENTI = 400;
 
 /** What pickInvasionPort reads (the engine and the army card fill it). */
 export interface InvasionPortWorld {

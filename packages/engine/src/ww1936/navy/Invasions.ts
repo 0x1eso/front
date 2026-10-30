@@ -47,15 +47,17 @@ import {
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
   easyInvasionPrepDays,
+  type ForceDivision,
+  forceMarch,
   invasionBlock,
   invasionCapacity,
   type InvasionPortPlan,
   invasionPrepDays,
   landingBp,
+  landingForce,
   pickInvasionPort,
   shoreBombardBp,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
-import { moveStep, railStep } from "@openfront/engine-lib/ww1936/MoveRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaDistances, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
@@ -317,37 +319,22 @@ function easyBusy(land: WwLand, r: number): boolean {
   );
 }
 
-/** Easy: the `n` best-organised rows (org ‰ of their max, then org, then the smaller id). */
-function bestOrganised(
+/** Easy: the rows as the shared landing-force rules read them (InvasionRules.ForceDivision). */
+function forceRows(
   land: WwLand,
   rows: readonly number[],
-  n: number,
-): number[] {
+): (ForceDivision & { row: number })[] {
   const t = land.divisions;
-  const pm = (r: number) => {
+  return rows.map((r) => {
     const max = land.orgMaxOf(r);
-    return max <= 0 ? 0 : Math.floor((t.org[r] * 1000) / max);
-  };
-  return [...rows]
-    .sort((x, y) => pm(y) - pm(x) || t.org[y] - t.org[x] || t.id[x] - t.id[y])
-    .slice(0, n);
-}
-
-/** The region most of `rows` stand in (ties: the smaller). */
-function mostIn(land: WwLand, rows: readonly number[]): number {
-  const t = land.divisions;
-  const count = new Map<number, number>();
-  for (const r of rows)
-    count.set(t.region[r], (count.get(t.region[r]) ?? 0) + 1);
-  let best = 0;
-  let n = 0;
-  for (const [reg, k] of count) {
-    if (k > n || (k === n && reg < best)) {
-      best = reg;
-      n = k;
-    }
-  }
-  return best;
+    return {
+      row: r,
+      id: t.id[r],
+      region: t.region[r],
+      orgPm: max <= 0 ? 0 : Math.floor((t.org[r] * 1000) / max),
+      speedCenti: land.baseStatsOf(r).speedCenti,
+    };
+  });
 }
 
 /** A working naval base of `owner`'s side with a harbor. */
@@ -374,7 +361,6 @@ function easyPlan(
 ): InvasionPortPlan | WwOrderBlock {
   const land = navy.land;
   const sc = navy.scenario;
-  const t = land.divisions;
   const ce = navy.econ.country(owner);
   if (ce === null) return "dead";
   const zones = sc.navalZones();
@@ -385,18 +371,13 @@ function easyPlan(
   );
   const zoneIdx = new Map<number, number>();
   zones.forEach((z, i) => zoneIdx.set(z, i));
-  let speed = Infinity;
-  for (const r of rows) speed = Math.min(speed, land.baseStatsOf(r).speedCenti);
   const railed = (r: number) => (land.econ.rail[r] ?? 0) >= 1;
   return pickInvasionPort({
+    ...forceMarch(forceRows(land, rows), railed, ce.stats.railSpeedPct),
     scenario: sc,
-    from: mostIn(land, rows),
     ours: (r) => land.sameSide(owner, land.controller[r] ?? 0),
-    railOk: rows.every((r) => railed(t.region[r])),
     railed,
     isPort: (r) => sidePort(navy, owner, r),
-    walkStep: moveStep(speed === Infinity ? 400 : speed, 1, "clear", 1000, 0),
-    railStep: railStep(ce.stats.railSpeedPct),
     seaKm: (port) => {
       const i = zoneIdx.get(sc.harborOf(port));
       const km = i === undefined ? Infinity : dist[i];
@@ -426,7 +407,7 @@ function orderEasyInvasion(
   if (sc.harborOf(target) === 0) return "not_coastal";
   if (!land.isEnemy(owner, land.controller[target])) return "not_at_war";
   const cap = invasionCapacity(ce.stats, ce.researched);
-  const force = rows.length > cap ? bestOrganised(land, rows, cap) : rows;
+  const force = landingForce(forceRows(land, rows), cap).map((d) => d.row);
   const plan = easyPlan(navy, owner, force, target);
   if (typeof plan === "string") return plan;
   const route = invasionRoute(navy, owner, plan.port, target);

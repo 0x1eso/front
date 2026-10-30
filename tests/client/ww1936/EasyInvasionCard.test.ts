@@ -2,6 +2,8 @@
 // card shows on a coast's first tap — the start port, the route's sea
 // regions in traffic-light colours, the expected losses, the preparation,
 // the days to the landing, the split — and every refusal's reason.
+import { ARMY_RAIL } from "@openfront/engine-api/ww1936/LandTypes";
+import { landingForce } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { describe, expect, it } from "vitest";
 import {
   invadeButtonBlock,
@@ -17,15 +19,25 @@ import { seaGame, SID } from "./SeaAirFixture";
 const GBR = SID("GBR");
 const ITA = SID("ITA");
 
-function britain(n: number, region: number = REGION.london) {
+function britain(
+  n: number,
+  region: number = REGION.london,
+  over: { state?: number; divisions?: ReturnType<typeof division>[] } = {},
+) {
   return seaGame({
     wars: [["GBR", "ITA"]],
-    armies: [army(1, "GBR", region, { divisions: n, mine: mine() })],
+    armies: [
+      army(1, "GBR", region, {
+        divisions: n,
+        mine: mine(),
+        state: over.state ?? 0,
+      }),
+    ],
     landDetails: [
       landDetail("GBR", {
-        divisions: Array.from({ length: n }, (_, i) =>
-          division(i + 1, 1, region),
-        ),
+        divisions:
+          over.divisions ??
+          Array.from({ length: n }, (_, i) => division(i + 1, 1, region)),
       }),
     ],
     // Italy holds the central waters; the approaches are contested.
@@ -75,6 +87,44 @@ describe("the easy landing card", () => {
     ]);
     // Twelve divisions, a limit of ten: ten land, two stay.
     expect([p.going, p.stay]).toEqual([10, 2]);
+  });
+
+  it("the start port and ETA are the landing force's (the split's best-organised), as the engine picks them", () => {
+    // Six fresh divisions in London, six in Paris of which four are worn:
+    // the whole army stands "in Paris" (a tie, the smaller id) with no
+    // port of ours by land; the ten that land stand mostly in London.
+    const divs = [
+      ...Array.from({ length: 6 }, (_, i) =>
+        division(i + 1, 1, REGION.paris, { orgPm: i < 4 ? 100 : 1000 }),
+      ),
+      ...Array.from({ length: 6 }, (_, i) => division(i + 7, 1, REGION.london)),
+    ];
+    const g = britain(12, REGION.london, { divisions: divs });
+    const ctx = navyCtx(g.game as never)!;
+    const p = invasionPreview(ctx, 1, REGION.rome)!;
+    expect(p.block).toBeNull();
+    expect([p.from, p.marchDays, p.going, p.stay]).toEqual([
+      REGION.london,
+      0,
+      10,
+      2,
+    ]);
+    // The rule both sides call: of the worn, the larger ids stay.
+    expect(
+      landingForce(
+        divs.map((d) => ({ ...d, speedCenti: 400 })),
+        10,
+      )
+        .map((d) => d.id)
+        .sort((x, y) => x - y),
+    ).toEqual([1, 2, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  it("an army riding a train may be ordered (the march replaces the ride)", () => {
+    const g = britain(2, REGION.london, { state: ARMY_RAIL });
+    const ctx = navyCtx(g.game as never)!;
+    expect(invadeButtonBlock(ctx, 1)).toBeNull();
+    expect(invasionPreview(ctx, 1, REGION.rome)!.block).toBeNull();
   });
 
   it("refusals say why", () => {

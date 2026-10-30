@@ -81,13 +81,7 @@ import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { sideKeyOf, type WwNavyView } from "../../view/WwNavyView";
 import type { FogModel } from "./FogModel";
-import {
-  armyLift,
-  invasionLandWorld,
-  LandSides,
-  landSidesOf,
-  regionName,
-} from "./LandModel";
+import { invasionForce, LandSides, landSidesOf, regionName } from "./LandModel";
 import {
   convoysNeed,
   fleetShipsOf,
@@ -1268,9 +1262,11 @@ export function invasionPreview(
   const a = land?.armies.get(army);
   if (land === null || a === undefined || a.owner !== ctx.me) return null;
   const sc = ctx.scenario;
-  const lift = armyLift(land, ctx.economy, ctx.me, army);
   const capacity = invasionCapacity(ctx.stats, ctx.techs);
-  const going = Math.min(a.divisions, capacity);
+  // The engine's landing force (the split's best-organised) and its march.
+  const f = invasionForce(land, ctx.economy, ctx.me, army, capacity, ctx.sides);
+  if (f === null) return null;
+  const going = f.force.length;
   const out: InvasionPreview = {
     army,
     target,
@@ -1278,27 +1274,26 @@ export function invasionPreview(
     routeKm: null,
     route: [],
     lossPm: 0,
-    convoysNeed: convoysNeed(lift.weightsCenti.slice(0, going)),
+    convoysNeed: convoysNeed(f.weightsCenti),
     convoysIdle: idleConvoys(ctx.navy.detail),
     prepDays: 0,
     marchDays: 0,
     seaDays: 0,
     etaDays: 0,
-    divisions: a.divisions,
+    divisions: f.divisions,
     capacity,
     going,
-    stay: a.divisions - going,
+    stay: f.divisions - going,
     block: null,
   };
   const harbor = sc.harborOf(target);
   const block = (b: WwOrderBlock) => ({ ...out, block: b });
-  if (lift.inBattle) return block("army_busy");
+  if (f.busy) return block("army_busy");
   if (harbor === 0) return block("not_coastal");
   if (!ctx.sides.isEnemy(ctx.me, ctx.economy.controller[target] ?? 0)) {
     return block("not_at_war");
   }
-  const world = invasionLandWorld(land, ctx.economy, ctx.me, army, ctx.sides);
-  if (world === null) return null;
+  const world = f.world;
   const fromTarget = seaDistMap(ctx, [harbor]);
   const plan = pickInvasionPort({
     ...world,
@@ -1335,7 +1330,7 @@ export function invasionPreview(
   const prepDays = easyInvasionPrepDays(
     ctx.stats,
     ctx.techs,
-    lift.allMarines,
+    f.allMarines,
     false,
     way.km,
   );
@@ -1378,8 +1373,15 @@ function invasionReach(ctx: NavyCtx, army: number): InvasionReach {
   if (kept !== undefined && kept.key === key) return kept.reach;
   const sc = ctx.scenario;
   const reach: InvasionReach = { ports: [], targets: [], enemyCoasts: 0 };
-  const world = invasionLandWorld(land, ctx.economy, ctx.me, army, ctx.sides);
-  if (world !== null) {
+  const world = invasionForce(
+    land,
+    ctx.economy,
+    ctx.me,
+    army,
+    invasionCapacity(ctx.stats, ctx.techs),
+    ctx.sides,
+  )?.world;
+  if (world !== undefined) {
     const walk = regionDistances(sc, world.from, world.ours, (e, to) =>
       edgeTicks(moveNeed(sc.edge(e), sc.landOf(to)), world.walkStep),
     );
@@ -1422,7 +1424,16 @@ export function invadeButtonBlock(
 ): WwOrderBlock | null {
   const land = ctx.land;
   if (land === null) return "no_army";
-  if (armyLift(land, ctx.economy, ctx.me, army).inBattle) return "army_busy";
+  const f = invasionForce(
+    land,
+    ctx.economy,
+    ctx.me,
+    army,
+    invasionCapacity(ctx.stats, ctx.techs),
+    ctx.sides,
+  );
+  if (f === null) return "no_army";
+  if (f.busy) return "army_busy";
   const reach = invasionReach(ctx, army);
   if (reach.enemyCoasts === 0) return "not_at_war";
   if (reach.ports.length === 0) return "no_invasion_port";

@@ -22,9 +22,12 @@ import {
   easyCrossingLossPm,
   easyInterceptLossPm,
   easyInvasionPrepDays,
+  forceMarch,
   invasionPrepDays,
   landingBp,
+  landingForce,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
+import { moveStep } from "@openfront/engine-lib/ww1936/MoveRules";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import type { Game } from "@openfront/engine/game/Game";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
@@ -155,6 +158,37 @@ describe("easy naval invasions (human countries)", () => {
     expect(landingBp(false, none, true)).toBe(4000);
     expect(landingBp(true, none, true)).toBe(2000);
     expect(landingBp(false, none, false)).toBe(7000);
+  });
+
+  it("the landing force and its march: one rule for the engine and the card", () => {
+    const d = (
+      id: number,
+      region: number,
+      orgPm: number,
+      speedCenti = 400,
+    ) => ({
+      id,
+      region,
+      orgPm,
+      speedCenti,
+    });
+    const divs = [
+      d(1, REGION.paris, 200),
+      d(2, REGION.paris, 1000, 300),
+      d(3, REGION.london, 900),
+      d(4, REGION.london, 900),
+      d(5, REGION.paris, 200),
+    ];
+    // Within the limit all go; over it the best-organised, ties the smaller id.
+    expect(landingForce(divs, 5)).toHaveLength(5);
+    expect(landingForce(divs, 3).map((x) => x.id)).toEqual([2, 3, 4]);
+    expect(landingForce(divs, 4).map((x) => x.id)).toEqual([2, 3, 4, 1]);
+    // From where most of the force stands, at its slowest pace.
+    const m = forceMarch(landingForce(divs, 3), () => true, 0);
+    expect(m.from).toBe(REGION.london);
+    expect(m.walkStep).toBe(moveStep(300, 1, "clear", 1000, 0));
+    expect(m.railOk).toBe(true);
+    expect(forceMarch(divs, (r) => r === REGION.london, 0).railOk).toBe(false);
   });
 
   it("one order: the march to the nearest port, preparation, the launch by itself, the landing", async () => {
