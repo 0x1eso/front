@@ -956,6 +956,14 @@ export interface AiInput {
    * project's uranium). None: nothing.
    */
   priorityDemand?: readonly number[];
+  /**
+   * Automation (a human handed its research over): every free slot takes
+   * a tech — the least early of its list when none is close to its year
+   * (as at the start, aiStartPlan), past the list any tech it may start —
+   * instead of idling until one is. None: an AI's turn, which waits
+   * (AI_MAX_AHEAD_PCT).
+   */
+  fillSlots?: boolean;
 }
 
 /**
@@ -1472,7 +1480,11 @@ function planConstruction(
 
 // ---- 4. Research ----
 
-function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
+function planResearch(
+  i: AiInput,
+  orders: AiOrder[],
+  fill = i.fillSlots === true,
+): void {
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
@@ -1505,9 +1517,9 @@ function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
           null,
     );
   /** The least early one, ties by the list (aiStartPlan's last resort). */
-  const leastAhead = () => {
+  const leastAhead = (from: readonly WwTechId[] = list) => {
     let best: WwTechId | undefined;
-    for (const t of list) {
+    for (const t of from) {
       if (researched.has(t)) continue;
       if (
         best !== undefined &&
@@ -1531,7 +1543,9 @@ function planResearch(i: AiInput, orders: AiOrder[], fill = false): void {
       pick(AI_MAX_AHEAD_PCT) ??
       pick(AI_FALLBACK_AHEAD_PCT) ??
       pick(AI_MAX_AHEAD_PCT, false) ??
-      (fill ? leastAhead() : undefined);
+      (fill ? leastAhead() : undefined) ??
+      // Automation: past the AI's own list, any tech the country may start.
+      (i.fillSlots === true ? leastAhead(WW_TECH_IDS) : undefined);
     if (tech === undefined) return;
     slots[slot] = tech;
     running[aiTechDomain(tech)]++;
@@ -2123,9 +2137,17 @@ export function aiEconomyTick(
   tick: number,
   only?: AiEconomyOnly,
 ): void {
+  // Automation: the human's slots never idle while the AI waits for a
+  // tech's year (live report 2026-10-30: every slot empty for months).
+  // Set on the object: a spread would read its lazy `partners`.
+  const input = (): AiInput => {
+    const i = aiInput(econ, ce, day, tick);
+    if (only?.research === true) i.fillSlots = true;
+    return i;
+  };
   let plan: AiPlan;
   if (isAiTurn(ce.smallID, day, ce.major)) {
-    plan = aiPlan(aiInput(econ, ce, day, tick));
+    plan = aiPlan(input());
     if (only !== undefined) {
       plan = plan.filter((o) => automated(only, o));
     } else {
@@ -2144,7 +2166,7 @@ export function aiEconomyTick(
       react.construction = false;
     }
     if (!react.research && !react.lines && !react.construction) return;
-    plan = aiReactPlan(aiInput(econ, ce, day, tick), react);
+    plan = aiReactPlan(input(), react);
   }
   for (const o of plan) {
     if (applyAiOrder(econ, ce, o, day) === null || o.kind !== "change_line") {

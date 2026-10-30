@@ -35,8 +35,8 @@ import {
   TwoTap,
   wwActive,
 } from "./WorldWarModel";
+import { autoMaskOf, autoOnIn, renderAutoSwitch } from "./WwAutoUi";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
-import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { renderProjectsTab } from "./WwProjectsTab";
 import { TabUi } from "./WwTabUi";
 
@@ -189,7 +189,21 @@ export class WwResearchPanel extends WwDrawerBase {
       );
     }
     const day = today(this.game);
-    const slots = this.renderSlots(researchSlots(d, day));
+    const rows = researchSlots(d, day);
+    const mask = autoMaskOf(this.game, me.smallID());
+    const slots = this.renderSlots(rows);
+    // Live report 2026-10-30: an empty slot waits for the player's pick
+    // (the AI fills it only while auto research is on) — say so.
+    const free = rows.filter((s) => s.tech === null && !s.paused).length;
+    const prompt =
+      free > 0 && !autoOnIn(mask, "research")
+        ? html`<p
+            data-ww-pick-prompt
+            class="m-0 mt-1 rounded-md border border-yellow-300/60 bg-yellow-900/40 px-2 py-1 text-xs font-semibold text-yellow-100"
+          >
+            👉 ${translateText("ww1936.econ.pick_prompt", { n: free })}
+          </p>`
+        : nothing;
     const cards =
       this.branch === "projects"
         ? renderProjectsTab(new DepthIndustryModel(this.game), this.tabUi())
@@ -202,7 +216,7 @@ export class WwResearchPanel extends WwDrawerBase {
         </h3>
         ${renderAutoSwitch(
           "research",
-          autoMaskOf(this.game, me.smallID()),
+          mask,
           (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
           true,
         )}`,
@@ -220,7 +234,7 @@ export class WwResearchPanel extends WwDrawerBase {
       ),
       // The top bar holds the title, the tabs and the close button: the
       // slots open the list.
-      html`${slots}${cards}`,
+      html`${slots}${prompt}${cards}`,
     );
   }
 

@@ -1,4 +1,5 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { wwAutoBit } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,7 +17,13 @@ import { OpenWwResearchEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwResearchPanel";
 import type { WwResearchPanel } from "../../../src/client/hud/ww1936/WwResearchPanel";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
-import { detail, fakeEconGame, FakeOptions, summary } from "./EconomyFixture";
+import {
+  detail,
+  fakeEconGame,
+  FakeOptions,
+  ID,
+  summary,
+} from "./EconomyFixture";
 
 async function mount(o: FakeOptions = {}) {
   const { game } = fakeEconGame(o);
@@ -93,6 +100,45 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     );
     expect(m.q("[data-ww-slot='0'] [data-ww-ahead]")).not.toBeNull();
     expect(m.el.querySelectorAll("[data-ww-slot][data-empty]")).toHaveLength(2);
+  });
+
+  // Live report 2026-10-30 ("연구 칸 비었는데 연구 안하는데?"): an empty
+  // slot waits for the player's pick unless auto research is on.
+  it("empty slots ask the player to pick, unless auto research is on", async () => {
+    const m = await mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { slots: [running, null, null] })],
+    });
+    const prompt = m.q("[data-ww-pick-prompt]")!;
+    expect(prompt.textContent).toContain("[ww1936.econ.pick_prompt] n=2");
+    // Between the slots and the cards.
+    expect(
+      m.q("[data-ww-slots]")!.compareDocumentPosition(prompt) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      prompt.compareDocumentPosition(m.q("[data-ww-cards]")!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Auto research on: the AI fills them, no prompt.
+    const data = m.el.game.worldWarData() as { auto?: unknown };
+    data.auto = [{ smallID: ID("DEU"), mask: wwAutoBit("research") }];
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(m.q("[data-ww-pick-prompt]")).toBeNull();
+    // Another domain on: research is still the player's.
+    data.auto = [{ smallID: ID("DEU"), mask: wwAutoBit("production") }];
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(m.q("[data-ww-pick-prompt]")).not.toBeNull();
+  });
+
+  it("no prompt while every slot is busy", async () => {
+    const m = await mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { slotCount: 1, slots: [running] })],
+    });
+    expect(m.q("[data-ww-pick-prompt]")).toBeNull();
   });
 
   it("a full set of slots says so", async () => {

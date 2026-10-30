@@ -4627,6 +4627,7 @@
       "occupied_note": "점령지: 공장 50%",
       "open_trade": "거래 열기",
       "per_day": "하루 {n}",
+      "pick_prompt": "빈 연구 칸 {n}개 — 아래에서 연구를 눌러 시작하세요. 자동을 켜면 AI가 골라 채웁니다",
       "population": "인구 {n}",
       "produced": "산출",
       "recruitable": "모집 가능",

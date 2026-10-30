@@ -19,9 +19,16 @@ import {
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { researchBlockOf } from "@openfront/engine-lib/ww1936/EconomyChecks";
+import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Game } from "@openfront/engine/game/Game";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { autoSet } from "@openfront/engine/ww1936/Automation";
+import {
+  AI_FALLBACK_AHEAD_PCT,
+  aiInput,
+  aiResearchOrder,
+} from "@openfront/engine/ww1936/economy/AiEconomy";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
 import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
 import {
@@ -151,6 +158,74 @@ describe("World War 1936 automation: the switches", () => {
     clearSlots(g, deu);
     finishDay(runner, d0 + 14);
     expect(filled(g, deu)).toBe(0);
+  }, 120_000);
+
+  // Live report 2026-10-30 ("연구 칸 비었는데 연구 안하는데?"): the AI's
+  // research waits for a tech's year (AI_MAX_AHEAD_PCT, at most
+  // AI_FALLBACK_AHEAD_PCT early), so a human Germany with auto research on
+  // that had done its 1936 techs sat with every slot empty for months
+  // (on the test map: Nov 1936 to Mar 1937). The hand-over fills them.
+  it("research: auto research fills every slot even when nothing is close to its year", async () => {
+    const { runner, g, ww, deu } = await human();
+    const fra = byTag(g, "FRA").smallID();
+    const d0 = today(g);
+    // Every tech of 1936 done: what is left is a year early or more.
+    for (const id of [deu, fra]) {
+      const ce = ww.economy.country(id)!;
+      for (const t of WW_TECH_IDS) {
+        if (WW_TECHS[t].year <= 1936 && WW_TECHS[t].retired !== true) {
+          ce.addTech(t);
+        }
+      }
+      clearSlots(g, id);
+    }
+    // Nothing the AI would start is left: every other tech is too early.
+    const deuCe = ww.economy.country(deu)!;
+    for (const t of WW_TECH_IDS) {
+      if (WW_TECHS[t].retired === true || deuCe.researched.has(t)) continue;
+      expect(aheadPct(WW_TECHS[t].year, d0 + 1)).toBeGreaterThan(
+        AI_FALLBACK_AHEAD_PCT,
+      );
+    }
+    setAuto(runner, "research", true);
+    finishDay(runner, d0 + 1);
+    expect(filled(g, deu)).toBe(deuCe.totals.slotCount);
+    for (const s of deuCe.slots) {
+      expect(WW_TECHS[s!.tech].year).toBeGreaterThan(1936);
+    }
+    // An AI country still waits for its techs' year (the AI's own balance,
+    // left as it was: the pinned all-AI games do not move).
+    expect(filled(g, fra)).toBe(0);
+  }, 120_000);
+
+  it("research: past the AI's own list, auto research takes any tech the country may start", async () => {
+    const { runner, g, ww, deu } = await human();
+    const ce = ww.economy.country(deu)!;
+    const coastal = aiInput(ww.economy, ce, today(g), g.ticks()).coastal;
+    const list = new Set(aiResearchOrder("DEU", coastal ?? true));
+    for (const t of list) ce.addTech(t);
+    clearSlots(g, deu);
+    const startable = () =>
+      WW_TECH_IDS.filter(
+        (t) =>
+          researchBlockOf(
+            {
+              researched: ce.researched,
+              slots: ce.slots.map((x) => x?.tech ?? null),
+              slotCount: ce.totals.slotCount,
+            },
+            t,
+          ) === null,
+      );
+    const left = startable();
+    expect(left.length).toBeGreaterThan(0);
+    for (const t of left) expect(list.has(t)).toBe(false);
+    setAuto(runner, "research", true);
+    finishDay(runner, today(g) + 1);
+    expect(filled(g, deu)).toBe(Math.min(ce.totals.slotCount, left.length));
+    for (const s of ce.slots) {
+      if (s !== null) expect(list.has(s.tech)).toBe(false);
+    }
   }, 120_000);
 
   it("training: the AI trains the human's divisions while on, not when off", async () => {

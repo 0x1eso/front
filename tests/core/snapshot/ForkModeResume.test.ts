@@ -25,6 +25,7 @@ import {
   type GameRunner,
 } from "@openfront/engine/GameRunner";
 import { readSnapshotHeader } from "@openfront/engine/snapshot/GameSnapshot";
+import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { describe, expect, test } from "vitest";
 import {
@@ -34,7 +35,15 @@ import {
   stepScripted,
   TestDataMapLoader,
 } from "../../util/ScriptedGame";
-import { byTag, HUMAN, MINI, step, stepTo, wwRunner } from "../../ww1936/util";
+import {
+  byTag,
+  HUMAN,
+  MINI,
+  order,
+  step,
+  stepTo,
+  wwRunner,
+} from "../../ww1936/util";
 
 /** The game start the Solo modal builds from a save's header. */
 function resumeStart(bytes: Uint8Array): GameStartInfo {
@@ -184,4 +193,58 @@ describe("a saved solo game resumes whole in the fork's modes", () => {
     },
     120_000,
   );
+
+  // Live report 2026-10-30 (empty research slots): a resumed World War
+  // 1936 game keeps the human's research slots, their progress and the
+  // auto research switch, shows them on the first tick, and goes on
+  // researching.
+  test("World War 1936: the research slots and auto research come back", async () => {
+    const runner = await wwRunner({ gameType: GameType.Singleplayer }, [
+      { clientID: HUMAN, country: "DEU" },
+    ]);
+    stepTo(runner, WW_PREP_TICKS + 1);
+    step(runner, 1, [
+      order(HUMAN, { kind: "auto_set", domain: "research", on: true }),
+    ]);
+    stepTo(runner, WW_PREP_TICKS + 300);
+    const deu = byTag(runner.game, "DEU").smallID();
+    const slotsOf = (r: GameRunner) =>
+      r.game
+        .worldWar()!
+        .economy.country(deu)!
+        .slots.map((s) => (s === null ? null : [s.tech, s.progress]));
+    const saved = slotsOf(runner);
+    expect(saved.length).toBeGreaterThan(0);
+    expect(saved.every((s) => s !== null && (s[1] as number) > 0)).toBe(true);
+
+    const { runner: resumed, first } = await resume(
+      runner.snapshot("DEV"),
+      MINI,
+    );
+    const ww = resumed.game.worldWar()!;
+    expect(ww.autoOn(deu, "research")).toBe(true);
+    // The first tick has run one more day step for some countries: the
+    // same techs, progress only forward.
+    const back = slotsOf(resumed);
+    expect(back.map((s) => s?.[0])).toEqual(saved.map((s) => s?.[0]));
+    back.forEach((s, i) =>
+      expect(s![1] as number).toBeGreaterThanOrEqual(saved[i]![1] as number),
+    );
+    const econ = first.updates[GameUpdateType.WwEconomy][0] as unknown as {
+      data: WwEconomyData;
+    };
+    const mine = econ.data.details.find((d) => d.smallID === deu)!;
+    expect(mine.slots.map((s) => s?.tech ?? null)).toEqual(
+      saved.map((s) => s?.[0]),
+    );
+    // Auto research still picks after the resume.
+    const ce = ww.economy.country(deu)!;
+    ce.slots.forEach((s, i) => {
+      if (s !== null) cancelResearch(ww.economy, ce, i);
+    });
+    step(resumed, 20);
+    expect(ce.slots.filter((s) => s !== null)).toHaveLength(
+      ce.totals.slotCount,
+    );
+  }, 120_000);
 });

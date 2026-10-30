@@ -4934,6 +4934,7 @@
       "occupied_note": "Occupied: factories at 50%",
       "open_trade": "Open deal",
       "per_day": "{n} a day",
+      "pick_prompt": "{n} free research slots — tap a research below to start it, or switch Auto on and the AI picks",
       "population": "Population {n}",
       "produced": "Produced",
       "recruitable": "Recruitable",
