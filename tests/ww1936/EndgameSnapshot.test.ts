@@ -451,6 +451,9 @@ describe("World War 1936 P5: derived endgame fields (Task 19 Step 2)", () => {
     "dirtyControllers",
     "dirtyTakeover",
     "firstData",
+    // Negotiated peace: the judge rows' day and the rows last sent.
+    "judgeDay",
+    "judgeSent",
   ] as const;
 
   /** A game with some of every index: wars, an exile, subjects, a moved controller, administered regions. */

@@ -452,6 +452,9 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for white peace merged with the lobby difficulty (the endgame
 // hash folds the offers, cooldowns, truces and the fronts' stalemate
 // count): same value in three runs (0c17aca792b051da; Easy cdf1bee6de94e0b5).
+// Negotiated peace (offers with terms, the judge, the AI's terms) leaves
+// both as they are: the pinned game makes no peace offer before tick
+// 13,000. Same values in three runs each.
 const WW1936_DIGEST = "0c17aca792b051da";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI

@@ -607,6 +607,8 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     const b = w === undefined ? null : whitePeaceButton(this.game, me, w);
     if (b === null || w === undefined) return nothing;
     const ui = negPeaceUiOf(this.game);
+    // The other side's leader changed while I composed: the draft goes.
+    if (ui.war === b.war && ui.target !== b.target) ui.close();
     const composer =
       b.pending || b.block !== null ? null : negPeaceComposer(this.game, me, w);
     if (composer === null && ui.war === b.war && (b.pending || b.block)) {
