@@ -115,7 +115,7 @@ describe("<ww-diplomacy-panel> (P3 spec §21.5)", () => {
       ),
     ];
     expect(invite.length).toBeGreaterThan(0);
-    invite[0].click();
+    invite.find((b) => !b.disabled)!.click();
     expect(m.sent[1]).toMatchObject({ kind: "faction_invite" });
     expect(m.q("[data-ww-act='faction_dissolve']")).not.toBeNull();
   });
@@ -146,11 +146,11 @@ describe("<ww-diplomacy-panel> (P3 spec §21.5)", () => {
     // The fascist Axis won't have a democracy (spec §15.3): its reason shows.
     expect(
       m.q("[data-ww-faction='axis'] [data-ww-act-block]")!.textContent,
-    ).toContain("[ww1936.econ.block.faction_rule]");
+    ).toContain("[ww1936.pol.fac.ideology]");
     await m.click("[data-ww-faction='allies'] [data-ww-act='faction_request']");
     expect(m.sent).toEqual([{ kind: "faction_request", target: ID("GBR") }]);
     document.body.innerHTML = "";
-    // A minor founds none.
+    // A minor founds none: the button is there, blocked, and says why.
     const minor = mount(
       axis({
         me: "POL",
@@ -160,7 +160,11 @@ describe("<ww-diplomacy-panel> (P3 spec §21.5)", () => {
       }),
     );
     await minor.open("factions");
-    expect(minor.q("[data-ww-act='faction_create']")).toBeNull();
+    const blocked = minor.q("[data-ww-act='faction_create']")!;
+    expect(blocked.disabled).toBe(true);
+    expect(blocked.parentElement!.textContent).toContain(
+      "[ww1936.pol.fac.minor]",
+    );
   });
 
   it("wars: my wars, my goals, my justification and who justifies against me", async () => {

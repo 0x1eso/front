@@ -351,12 +351,18 @@ export function guaranteeGate(
   return targetJustifiedAgainst || wtBp >= gatePct * 100;
 }
 
+/** Spec §14.4, §15.3: the world tension (percent) a government needs to create / join / invite into a faction; 0: none. */
+export function factionGateNeedPp(ruling: number, minusPp = 0): number {
+  if (ruling !== IDEO_DEM && ruling !== IDEO_NEU) return 0;
+  return Math.max(0, 40 - minusPp);
+}
+
 /** Spec §14.4, §15.3: may a government create / join / invite into a faction now? */
 export function factionGate(
   ruling: number,
   wtBp: number,
   minusPp = 0,
 ): boolean {
-  if (ruling !== IDEO_DEM && ruling !== IDEO_NEU) return true;
-  return wtBp >= Math.max(0, 40 - minusPp) * 100;
+  const need = factionGateNeedPp(ruling, minusPp);
+  return need === 0 || wtBp >= need * 100;
 }

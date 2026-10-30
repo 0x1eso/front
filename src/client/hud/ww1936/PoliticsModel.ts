@@ -11,7 +11,10 @@ import {
   CountryTag,
   isCountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
-import { ID_CIVIL } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  FACTION_RULES,
+  ID_CIVIL,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   CONSCRIPTION_LAWS,
   CountryLaws,
@@ -38,6 +41,7 @@ import {
   DecisionDef,
   DRIFT_KEYS,
   EventPicture,
+  factionIdxOfKey,
   FactionKey,
   factionKeyOf,
   IDEO_DEM,
@@ -52,6 +56,7 @@ import {
   WW_COST,
   WW_CRISIS_DAYS,
   WW_FOREVER,
+  WW_MAX_FACTIONS,
   WW_NAP_BREAK_DAYS,
   WW_PP_BASE_MILLI,
   WW_STAT_KEYS,
@@ -75,7 +80,7 @@ import { congressNeedBp } from "@openfront/engine-lib/ww1936/MechRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   costWith,
-  factionGate,
+  factionGateNeedPp,
   guaranteeGate,
   justifyCost,
   justifyDays,
@@ -1781,16 +1786,17 @@ function factionView(
 
 type LiveFaction = { id: FactionKey; leader: number; members: number[] };
 
-/**
- * Spec §15.3's ideology rule: `country`'s government is the faction's (its
- * leader's), or a non-aligned one in a non-aligned or fascist faction, or
- * they fight a common enemy. Unknown governments are left to the engine.
- */
+/** The ideology rule's fit, and whether the faction takes any government. */
 function fitsFaction(
   i: PoliticsModelInput,
   country: number,
   f: LiveFaction,
 ): boolean {
+  const idx = factionIdxOfKey(f.id);
+  const named = i.view.global?.factions.find((x) => x.idx === idx)?.name;
+  if (CONTENT.factionNames.find((n) => n.id === named)?.anyIdeology === true) {
+    return true;
+  }
   const ruling = i.view.summary(country)?.ruling;
   const theirs = i.view.summary(f.leader)?.ruling;
   if (ruling === undefined || theirs === undefined || ruling === theirs) {
@@ -1799,28 +1805,146 @@ function fitsFaction(
   if (ruling === IDEO_NEU && (theirs === IDEO_NEU || theirs === IDEO_FAS)) {
     return true;
   }
-  const enemies = new Set(enemiesOf(i.game, country));
-  return f.members.some((m) =>
-    enemiesOf(i.game, m).some((e) => enemies.has(e)),
+  const enemies = new Set(factionEnemyIds(i, f));
+  return enemiesOf(i.game, country).some((e) => enemies.has(e));
+}
+
+/** Everyone a member of `f` fights, outside it. */
+function factionEnemyIds(i: PoliticsModelInput, f: LiveFaction): number[] {
+  const out = new Set<number>();
+  for (const m of f.members) {
+    for (const e of enemiesOf(i.game, m)) {
+      if (!f.members.includes(e)) out.add(e);
+    }
+  }
+  return [...out];
+}
+
+/** A reason about `country`, led by its name when it is not the player. */
+function whose(i: PoliticsModelInput, country: number, text: string): string {
+  return country === i.me
+    ? text
+    : translateText("ww1936.pol.fac.of", {
+        country: nameOf(i.game, country),
+        reason: text,
+      });
+}
+
+/**
+ * Spec §9.1, §13.1: a spirit's `no_faction` rule or the US congress keeps
+ * `country` out of factions. Rules the screens cannot see for another
+ * country are left to the engine.
+ */
+function ruleBlock(i: PoliticsModelInput, country: number): string | null {
+  const d = country === i.me ? i.view.detail(country) : null;
+  if (hasRule(d, "no_faction")) {
+    return whose(i, country, translateText("ww1936.pol.fac.no_faction"));
+  }
+  const depth = i.game.wwDepth?.() ?? null;
+  const needBp = congressNeedBp("faction");
+  if (
+    depth !== null &&
+    i.game.worldWarScenario()?.tagOfSmallId(country) === "USA" &&
+    depth.congressBp < needBp
+  ) {
+    return translateText("ww1936.pol.law.need_congress", {
+      need: needBp / 100,
+      now: pctOf(depth.congressBp),
+    });
+  }
+  return null;
+}
+
+/** Spec §14.4: the world tension `country`'s government needs to found, join or invite. */
+function tensionBlock(i: PoliticsModelInput, country: number): string | null {
+  const d = country === i.me ? i.view.detail(country) : null;
+  const ruling = i.view.summary(country)?.ruling;
+  if (ruling === undefined) return null;
+  const needPp = factionGateNeedPp(
+    ruling,
+    ruleNumber(d, "factionGateMinusPp") ?? 0,
+  );
+  const wtBp = i.view.global?.wtBp ?? 0;
+  if (needPp === 0 || wtBp >= needPp * 100) return null;
+  return whose(
+    i,
+    country,
+    translateText("ww1936.pol.fac.tension", { need: needPp, now: pctOf(wtBp) }),
   );
 }
 
 /**
  * Spec §15.3: why `country` may not join faction `f` (an invite from its
- * leader or a request of its own); null: it may as far as the screens see.
- * `gov` is the side whose tension gate and spirit rules apply.
+ * leader or a request of its own), in the engine's order (joinBlock); null:
+ * it may as far as the screens see.
  */
 function joinBlock(
   i: PoliticsModelInput,
   country: number,
   f: LiveFaction,
-  gov: WwOrderBlock | null,
-): WwOrderBlock | null {
-  if (factionOfId(i.game, country) !== null) return "bad_target";
-  if (gov !== null) return gov;
+): string | null {
+  const own = factionOfId(i.game, country);
+  const fname = factionName(f.id, i.game);
+  if (own !== null) {
+    return whose(
+      i,
+      country,
+      translateText("ww1936.pol.fac.in_faction", {
+        faction: factionName(own, i.game),
+      }),
+    );
+  }
   const atWar = new Set(enemiesOf(i.game, country));
-  if (f.members.some((m) => atWar.has(m))) return "faction_war";
-  return fitsFaction(i, country, f) ? null : "faction_rule";
+  if (f.members.some((m) => atWar.has(m))) {
+    return whose(
+      i,
+      country,
+      translateText("ww1936.pol.fac.war_member", { faction: fname }),
+    );
+  }
+  const enemies = new Set(factionEnemyIds(i, f));
+  if (enemiesOf(i.game, country).some((e) => !enemies.has(e))) {
+    return whose(
+      i,
+      country,
+      translateText("ww1936.pol.fac.war_other", { faction: fname }),
+    );
+  }
+  if (!fitsFaction(i, country, f)) {
+    const ruling = i.view.summary(country)?.ruling ?? 3;
+    return whose(
+      i,
+      country,
+      translateText("ww1936.pol.fac.ideology", {
+        ideology: ideologyName(ruling),
+        faction: fname,
+        theirs: ideologyName(i.view.summary(f.leader)?.ruling ?? 3),
+      }),
+    );
+  }
+  const rule = ruleBlock(i, country);
+  if (rule !== null) return rule;
+  const idx = factionIdxOfKey(f.id);
+  const lock = FACTION_RULES.indexOf("fr_ideology_lock");
+  const locked =
+    i.game
+      .wwDepth?.()
+      ?.factionRulesData.some((r) => r[0] === idx && r[1] === lock && r[2]) ===
+    true;
+  if (
+    locked &&
+    i.view.summary(country)?.ruling !== i.view.summary(f.leader)?.ruling
+  ) {
+    return whose(
+      i,
+      country,
+      translateText("ww1936.pol.fac.ideology_lock", {
+        faction: fname,
+        ideology: ideologyName(i.view.summary(f.leader)?.ruling ?? 3),
+      }),
+    );
+  }
+  return tensionBlock(i, country) ?? tensionBlock(i, f.leader);
 }
 
 /** My spirits' rules (spec §9.1). */
@@ -1852,17 +1976,64 @@ function costGate(
   s: WwPolSummary | null,
   costPp: number,
   block: WwOrderBlock | null,
+  reason: string | null = null,
+  /** Say how much PP is missing instead of the bare "not enough". */
+  ppDetail = false,
 ): Gate {
+  const have = Math.floor((s?.ppMilli ?? 0) / 1000);
   return {
     cost: translateText("ww1936.pol.pp_amount", { pp: costPp }),
     pp: costPp,
     block:
-      block !== null
+      reason ??
+      (block !== null
         ? blockText(block)
         : (s?.ppMilli ?? 0) < costPp * 1000
-          ? blockText("no_pp")
-          : null,
+          ? ppDetail
+            ? translateText("ww1936.pol.fac.pp", { need: costPp, now: have })
+            : blockText("no_pp")
+          : null),
   };
+}
+
+/**
+ * Whether `me` holds the `can_create_faction` flag: a finished focus of its
+ * tree that sets it (the screens see no flags; events set none).
+ */
+function canFoundByFocus(i: PoliticsModelInput): boolean {
+  const tag = tagOf(i.game, i.me);
+  const detail = i.view.detail(i.me);
+  if (tag === null || detail === null) return false;
+  const treeId = CONTENT.countryIdx.get(tag)?.tree ?? "generic";
+  const tree = CONTENT.treeFocuses[treeId].map((n) => CONTENT.focuses[n]);
+  return detail.cards.some(
+    (c) =>
+      c.state === 1 &&
+      tree[c.idx]?.effects.some(
+        (e) => e.kind === "set_flag" && e.flag === "can_create_faction",
+      ) === true,
+  );
+}
+
+/** Why `me` may not found a faction, in the engine's order; null: it may. */
+export function createBlock(i: PoliticsModelInput): string | null {
+  const own = factionOfId(i.game, i.me);
+  if (own !== null) {
+    return translateText("ww1936.pol.fac.in_faction", {
+      faction: factionName(own, i.game),
+    });
+  }
+  const tag = tagOf(i.game, i.me);
+  if (tag !== null && !COUNTRIES[tag].major && !canFoundByFocus(i)) {
+    return translateText("ww1936.pol.fac.minor");
+  }
+  const rule = ruleBlock(i, i.me);
+  if (rule !== null) return rule;
+  const live = liveFactions(i.game).length;
+  if (live >= WW_MAX_FACTIONS) {
+    return translateText("ww1936.pol.fac.max", { max: WW_MAX_FACTIONS });
+  }
+  return tensionBlock(i, i.me);
 }
 
 export function factionTab(i: PoliticsModelInput): FactionTab {
@@ -1873,16 +2044,6 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
   const mine = mineF === null ? null : factionView(i, mineF);
   const amLeader = mine !== null && mine.leader === i.me;
   const otherFactions = all.filter((f) => f !== mineF && f.members.length > 0);
-  const gateOk = factionGate(
-    s?.ruling ?? 3,
-    i.view.global?.wtBp ?? 0,
-    ruleNumber(d, "factionGateMinusPp") ?? 0,
-  );
-  const block: WwOrderBlock | null = hasRule(d, "no_faction")
-    ? "faction_rule"
-    : !gateOk
-      ? "tension_gate"
-      : null;
   const invite: FactionTab["invite"] = [];
   const sc = i.game.worldWarScenario();
   if (amLeader && sc !== null && mineF !== null) {
@@ -1897,7 +2058,9 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
         gate: costGate(
           s,
           diploCost(d, WW_COST.factionInvite),
-          joinBlock(i, id, mineF, block),
+          null,
+          joinBlock(i, id, mineF),
+          true,
         ),
       });
     }
@@ -1911,20 +2074,27 @@ export function factionTab(i: PoliticsModelInput): FactionTab {
         ? costGate(
             s,
             diploCost(d, WW_COST.factionRequest),
-            joinBlock(i, i.me, f, block),
+            null,
+            joinBlock(i, i.me, f),
+            true,
           )
         : null,
   }));
-  const myTag = tagOf(i.game, i.me);
   return {
     mine,
     amLeader,
     others,
-    // Spec §15.3: majors found factions (a focus flag may let a minor; the
-    // screens can't see flags, so a minor's button stays hidden).
+    // Spec §15.3: the button is there for everyone outside a faction; a
+    // blocked one says why (a minor needs the focus's flag first).
     create:
-      mine === null && myTag !== null && COUNTRIES[myTag].major
-        ? costGate(s, diploCost(d, WW_COST.factionCreate), block)
+      mine === null
+        ? costGate(
+            s,
+            diploCost(d, WW_COST.factionCreate),
+            null,
+            createBlock(i),
+            true,
+          )
         : null,
     invite,
   };

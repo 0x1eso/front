@@ -9077,6 +9077,19 @@
         "politics": "정치",
         "politics_label": "정치력 {pp} / {cap}"
       },
+      "fac": {
+        "in_faction": "이미 ‹{faction}› 소속",
+        "ideology": "{ideology} 정부는 ‹{faction}›({theirs}) 이념과 맞지 않고 공동의 적도 없습니다",
+        "ideology_lock": "‹{faction}›은 지도국과 같은 이념({ideology})만 받습니다",
+        "max": "진영 수 한도 {max} 개",
+        "minor": "강대국이 아니면 중점으로 진영 창설 권한을 먼저 얻어야 합니다",
+        "no_faction": "국가 정신 때문에 진영을 만들거나 가입할 수 없습니다",
+        "of": "{country}: {reason}",
+        "pp": "정치력 {need} 필요 (현재 {now})",
+        "tension": "세계 긴장도 {need}% 필요 (현재 {now}%)",
+        "war_member": "‹{faction}› 구성원과 전쟁 중",
+        "war_other": "‹{faction}›이 치르지 않는 전쟁을 치르는 중"
+      },
       "gov": {
         "base": "바탕 {pct}%",
         "crisis": "정권 위기: 정변까지 {days}일",

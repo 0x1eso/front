@@ -9408,6 +9408,19 @@
         "politics": "Politics",
         "politics_label": "Political power {pp} of {cap}"
       },
+      "fac": {
+        "in_faction": "Already in ‹{faction}›",
+        "ideology": "A {ideology} government does not fit ‹{faction}› ({theirs}) and shares no common enemy with it",
+        "ideology_lock": "‹{faction}› only takes the leader's ideology ({ideology})",
+        "max": "At most {max} factions",
+        "minor": "Only a major power can found a faction, unless a focus grants the right first",
+        "no_faction": "A national spirit forbids founding or joining factions",
+        "of": "{country}: {reason}",
+        "pp": "{need} political power needed (now {now})",
+        "tension": "World tension {need}% needed (now {now}%)",
+        "war_member": "At war with a member of ‹{faction}›",
+        "war_other": "Fights wars that ‹{faction}› does not"
+      },
       "gov": {
         "base": "Base {pct}%",
         "crisis": "Regime crisis: {days, plural, one {# day} other {# days}} until a coup",
