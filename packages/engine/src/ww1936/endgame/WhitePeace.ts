@@ -20,9 +20,11 @@ import {
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
+import { landRegained } from "./Activate";
 import { countryParams } from "./Wars";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
@@ -52,6 +54,12 @@ export const AI_PROPOSE_LOST_PM = 250;
 export const AI_PROPOSE_EVEN_PM = 100;
 /** …and only from a side leader whose war support (bp) is under this (war-weary). */
 export const AI_PROPOSE_WS_BP = 5000;
+/**
+ * A side this many times stronger than the other (civilian + military
+ * factories of its fighting members) neither offers nor takes a stalemate
+ * peace: a lopsided colonial war goes on (Italy in Ethiopia).
+ */
+export const AI_PEACE_STRONGER_RATIO = 3;
 /** The front "barely changed": at most this many regions changed hands since the stalemate began. */
 export const WW_STALEMATE_REGIONS = 2;
 /** Occupation rows an offer's card shows. */
@@ -444,10 +452,15 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
   const until = day + WW_TRUCE_DAYS;
   const keep = (r: number) => eg.isZone(r);
   if (o.whole) {
-    // Every cross pair of those still in it keeps the truce.
-    const a = w.sides[0].members.filter((m) => fighting(m)).map((m) => m.id);
-    const b = w.sides[1].members.filter((m) => fighting(m)).map((m) => m.id);
+    // Status quo ante: those still in it, and those that capitulated
+    // without an exile (their land comes back); every cross pair keeps
+    // the truce.
+    const inIt = (m: Member) =>
+      fighting(m) || (m.state === "capitulated" && !eg.isExile(m.id));
+    const a = w.sides[0].members.filter(inIt).map((m) => m.id);
+    const b = w.sides[1].members.filter(inIt).map((m) => m.id);
     for (const [x, y] of pairsOf(eg, w)) endWarBetween(pol, x, y, tick, keep);
+    reviveCapitulated(eg, w, tick);
     for (const x of a) for (const y of b) setTruce(eg, x, y, until);
     w.ended = { day, winner: -1 };
     eg.dirtyWars = true;
@@ -472,7 +485,71 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
   pol.news("news_white_peace", countryParams(eg, { a: o.from, b: o.to }));
 }
 
+/**
+ * A whole-war white peace is status quo ante: a member that capitulated
+ * without going into exile gets back its legal regions the war's members
+ * hold (their divisions go home) and plays again — a peace conference's
+ * way with a loser's leftover land (P5 landRegained: active, its
+ * capitulation cleared, its executions at order 8), its capitulation's
+ * tile transfer stopped and its other wars' capitulated records left.
+ * Occupation zones and Korea/Taiwan stay where they are.
+ */
+function reviveCapitulated(eg: WwEndgame, w: WwWar, tick: number): void {
+  const ww = eg.ww;
+  const land = ww.land;
+  const legal = ww.politics.legalOwner;
+  const members = new Set(w.sides.flatMap((s) => s.members.map((m) => m.id)));
+  for (const s of w.sides) {
+    for (const m of s.members) {
+      if (m.state !== "capitulated" || eg.isExile(m.id)) continue;
+      const L = m.id;
+      const back = ww.scenario.landRegions
+        .map((r) => r.id)
+        .filter((r) => {
+          const c = land.controller[r] ?? 0;
+          return (
+            legal[r] === L &&
+            c !== L &&
+            members.has(c) &&
+            !eg.isZone(r) &&
+            !eg.neverAdministered.has(r)
+          );
+        });
+      if (back.length === 0) continue;
+      const tr = ww.transfers();
+      for (let i = tr.length - 1; i >= 0; i--) {
+        if (tr[i].from === L) tr.splice(i, 1);
+      }
+      for (const r of back) {
+        const from = land.controller[r] ?? 0;
+        transferRegionPeaceful(land, r, L, tick);
+        if (from !== 0) evictDivisions(land, r, from);
+      }
+      landRegained(eg, L, tick);
+      for (const x of eg.wars) {
+        if (x.ended !== null || x.id === w.id) continue;
+        if (eg.member(x, L)?.state === "capitulated") {
+          eg.setMemberState(x.id, L, "left");
+        }
+      }
+      ww.politics.markCountry(L);
+    }
+  }
+}
+
 // ---- The AI ----
+
+/** Side `s` of `w` has AI_PEACE_STRONGER_RATIO times the other's factories (or more). */
+export function muchStronger(eg: WwEndgame, w: WwWar, s: 0 | 1): boolean {
+  const factories = (x: 0 | 1) =>
+    w.sides[x].members
+      .filter((m) => fighting(m))
+      .reduce((n, m) => n + eg.factoriesOf(m.id), 0);
+  const mine = factories(s);
+  return (
+    mine > 0 && mine >= AI_PEACE_STRONGER_RATIO * factories(s === 0 ? 1 : 0)
+  );
+}
 
 /** What the AI weighs: the proposer's and the target's groups' land and lines. */
 function warState(eg: WwEndgame, w: WwWar, from: number, whole: boolean) {
@@ -505,6 +582,11 @@ export function aiAcceptPct(eg: WwEndgame, o: PeaceOffer, day: number): number {
   }
   let pct = Math.floor((surrenderPm(eg, o.to) * AI_PEACE_LOSING_PCT) / 1000);
   pct += Math.floor((st.heldByProposer * AI_PEACE_LOST_LAND_PCT) / 1000);
+  // A much stronger side takes no stalemate peace: only its own losses count.
+  const sTo = eg.sideIndex(w, o.to);
+  if (sTo !== -1 && muchStronger(eg, w, sTo)) {
+    return Math.min(AI_PEACE_MAX_PCT, pct);
+  }
   if (stalemateDays(eg, w.id, day) >= WW_WHITE_PEACE_STALEMATE_DAYS) {
     pct += AI_PEACE_STALEMATE_PCT;
   }
@@ -558,6 +640,7 @@ export function aiWantsPeace(
   return (
     whole &&
     ws < AI_PROPOSE_WS_BP &&
+    !muchStronger(eg, w, s) &&
     stalemateDays(eg, w.id, day) >= WW_WHITE_PEACE_STALEMATE_DAYS &&
     Math.abs(st.heldByProposer - st.heldByTarget) <= AI_PROPOSE_EVEN_PM
   );

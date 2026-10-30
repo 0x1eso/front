@@ -4,6 +4,7 @@
 // (ww1936end) with the end fixture.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  CS_GONE,
   WW_TRUCE_DAYS,
   WW_WHITE_PEACE_CARD_TICKS,
   WW_WHITE_PEACE_COOLDOWN_DAYS,
@@ -20,10 +21,12 @@ import { formExile } from "@openfront/engine/ww1936/endgame/Exile";
 import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
 import {
   AI_PEACE_MAX_PCT,
+  AI_PEACE_STRONGER_RATIO,
   aiAcceptPct,
   aiAccepts,
   aiPeaceDay,
   aiWantsPeace,
+  muchStronger,
   offerPeace,
   peaceOfferBlock,
   peaceOfferView,
@@ -325,9 +328,19 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     ww.setWar(ita, pl, g.ticks(), { kind: "into", warId: w });
     const day = ww.day(g.ticks());
     const rec = eg.war(w)!;
-    // War-weary leaders (a stalemate offer needs war support under 50%).
+    // War-weary leaders (a stalemate offer needs war support under 50%),
+    // sides of about equal strength.
     ww.politics.country(deu)!.wsBp = 3000;
     ww.politics.country(ita)!.wsBp = 3000;
+    for (const [x, n] of [
+      [deu, 10],
+      [ita, 5],
+      [pl, 10],
+    ]) {
+      const t = ww.economy.country(x)!.totals;
+      t.civ = n;
+      t.mil = 0;
+    }
     // A front unchanged since the war began, 90 days ago: no stalemate yet.
     eg.fronts = [[w, 0, 0, rec.startDay]];
     expect(aiWantsPeace(eg, rec, deu, day)).toBe(false);
@@ -356,6 +369,72 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     // …and Poland, losing all of it, would be refused outright: none either.
     takeRegion(g, 6, "DEU");
     expect(aiWantsPeace(eg, rec, pl, day)).toBe(false);
+  });
+
+  it("a side three times stronger neither offers nor takes a stalemate peace", async () => {
+    const { g, ww, eg } = await started();
+    const [deu, pl] = [id("DEU"), id("POL")];
+    const w = oldWar(g, ww, deu, pl);
+    const day = ww.day(g.ticks());
+    const rec = eg.war(w)!;
+    rec.startDay = day - 200;
+    eg.fronts = [[w, 0, 0, day - 180]];
+    for (const x of [deu, pl]) ww.politics.country(x)!.wsBp = 3000;
+    const factories = (x: number, n: number) => {
+      const t = ww.economy.country(x)!.totals;
+      t.civ = n;
+      t.mil = 0;
+    };
+    // Germany 30 factories to Poland's 10: three to one.
+    factories(deu, 30);
+    factories(pl, 10);
+    expect(eg.factoriesOf(deu)).toBe(AI_PEACE_STRONGER_RATIO * 10);
+    expect(muchStronger(eg, rec, 0)).toBe(true);
+    expect(aiWantsPeace(eg, rec, deu, day)).toBe(false);
+    // Poland, the weaker, still offers on the stalemate; Germany will not take it.
+    expect(aiWantsPeace(eg, rec, pl, day)).toBe(true);
+    offerPeace(eg, pl, w, deu, g.ticks());
+    expect(aiAcceptPct(eg, onlyOffer(eg), day)).toBe(0);
+    // Two to one: a stalemate peace both ways again.
+    factories(deu, 20);
+    expect(muchStronger(eg, rec, 0)).toBe(false);
+    expect(aiWantsPeace(eg, rec, deu, day)).toBe(true);
+    expect(aiAcceptPct(eg, onlyOffer(eg), day)).toBeGreaterThan(0);
+  });
+
+  it("a whole-war white peace gives a capitulated member its land back and revives it", async () => {
+    const { runner, g, ww, eg } = await started();
+    const [deu, pl, fra] = [id("DEU"), id("POL"), id("FRA")];
+    const w = oldWar(g, ww, deu, pl);
+    ww.setWar(fra, deu, g.ticks(), { kind: "into", warId: w });
+    takeRegion(g, 6, "DEU");
+    takeRegion(g, 7, "DEU");
+    // Poland capitulates with no host: P5's no-exile way (member state,
+    // its pair gone, the country gone, P0's capitulation).
+    ww.addCapitulation(pl, deu, g.ticks());
+    eg.setMemberState(w, pl, "capitulated");
+    ww.endWar(deu, pl);
+    eg.setCountryState(pl, CS_GONE);
+    const rec = eg.war(w)!;
+    expect(rec.sides[1].leader).toBe(fra);
+    expect(eg.isActor(pl)).toBe(false);
+    ww.politics.country(fra)!.ppMilli = 100_000;
+    offerPeace(eg, fra, w, deu, g.ticks());
+    replyPeace(eg, deu, onlyOffer(eg).id, true, g.ticks());
+    expect(rec.ended?.winner).toBe(-1);
+    // Status quo ante: Poland holds Warsaw and Krakow and plays again.
+    expect(ww.land.controller[6]).toBe(pl);
+    expect(ww.land.controller[7]).toBe(pl);
+    expect(eg.countryState(pl)).toBe("active");
+    expect(ww.isCapitulated(pl)).toBe(false);
+    expect(eg.isActor(pl)).toBe(true);
+    expect(eg.wakeQueue).toContain(pl);
+    expect(eg.truceUntil(deu, pl)).toBeGreaterThan(ww.day(g.ticks()));
+    // No conference is left to share it out; Poland stays alive.
+    nextDay(runner);
+    expect(eg.conferences.some((c) => c.losers.includes(pl))).toBe(false);
+    expect(eg.isActor(pl)).toBe(true);
+    expect(ww.land.controller[6]).toBe(pl);
   });
 
   it("only a war with a land front stalemates", async () => {
