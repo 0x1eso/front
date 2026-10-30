@@ -87,7 +87,7 @@ import { dailyFronts } from "./Fronts";
 import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
 import { noteLandFuel } from "./LandFuel";
 import { startLand } from "./LandStartRun";
-import { stepMovement } from "./Movement";
+import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
 import { applyArmyOrders, issueArmyOrder } from "./Orders";
 import { dmzBlocks } from "./PoliticsBridge";
@@ -2148,6 +2148,12 @@ export class WwLand {
     let state = 0;
     let slowest = -1;
     let slowestPm = Infinity;
+    // Spec §6.1: the token stands in the region most divisions are in and
+    // moves with the slowest of the divisions leaving it. A division
+    // walking anywhere else (a front slot, a straggler) leaves it there.
+    const region = this.armyRegion(a);
+    let token = -1;
+    let tokenPm = Infinity;
     const perTemplate = new Map<number, number>();
     for (const id of a.divisions) {
       const r = t.rowOf(id);
@@ -2172,6 +2178,10 @@ export class WwLand {
           slowestPm = pm;
           slowest = r;
         }
+        if (t.region[r] === region && pm < tokenPm) {
+          tokenPm = pm;
+          token = r;
+        }
       }
       if (t.battle[r] !== 0) state |= ARMY_BATTLE;
       if (t.encircled[r] !== 0) state |= ARMY_ENCIRCLED;
@@ -2183,18 +2193,22 @@ export class WwLand {
     if (a.order.kind === "invade") state |= ARMY_INVADE;
     let move: ArmySummary["move"] = null;
     let eta = -1;
-    if (slowest >= 0) {
-      const need = Math.max(1, t.need[slowest]);
+    if (token >= 0) {
+      // The pace of its next step: one that set out after this tick's
+      // steps has taken none yet, and its token glides from here on.
       move = {
-        from: t.region[slowest],
-        to: t.next[slowest],
-        progPm: slowestPm,
-        stepPm: Math.floor((t.step[slowest] * 1000) / need),
+        from: t.region[token],
+        to: t.next[token],
+        progPm: tokenPm,
+        stepPm: Math.floor(
+          (nextStepOf(this, token) * 1000) / Math.max(1, t.need[token]),
+        ),
       };
-      if (t.step[slowest] > 0) {
-        eta = Math.ceil(
-          Math.max(0, t.need[slowest] - t.prog[slowest]) / t.step[slowest],
-        );
+    }
+    if (slowest >= 0) {
+      const step = nextStepOf(this, slowest);
+      if (step > 0) {
+        eta = Math.ceil(Math.max(0, t.need[slowest] - t.prog[slowest]) / step);
       }
     }
     let bestTpl = -1;
@@ -2222,7 +2236,7 @@ export class WwLand {
       strengthPm: n === 0 ? 0 : Math.floor(strength / n),
       orgPm: orgMax <= 0 ? 0 : Math.floor((org * 1000) / orgMax),
       state,
-      region: this.armyRegion(a),
+      region,
       move,
       sum,
       symbol,

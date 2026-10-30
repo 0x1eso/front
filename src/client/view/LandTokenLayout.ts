@@ -184,12 +184,32 @@ export function battleMarkers(
     });
 }
 
+/** A token put somewhere else by a sample glides there over this many ticks… */
+export const TOKEN_EASE_TICKS = 2;
+/** …when it moved more than this (tiles; less is a frame's own glide)… */
+const TOKEN_EASE_MIN_TILES = 0.5;
+/** …and less than this (longer than any edge: a transfer, an eviction is put down at once). */
+export const TOKEN_EASE_MAX_TILES = 240;
+
+interface TokenEase {
+  /** Offset from the sampled place at `at` (tiles), shrinking to 0. */
+  ox: number;
+  oy: number;
+  at: number;
+  /** The sample that last saw its army (the others are dropped). */
+  gen: number;
+}
+
 /**
  * The renderer's token layout, frame after frame, without allocating: when
  * the view or the tick changes it samples each moving token at this tick
  * and the next (WwLandView.tokenXY), then interpolates between the two by
  * the frame's share of the tick (spec §15.2: moving tokens glide). At a
  * whole tick it equals layoutTokens.
+ *
+ * A token a sample puts elsewhere than its glide was going (its army's
+ * token region changed, its fan slot did, a summary corrected it) glides
+ * from where it was drawn over TOKEN_EASE_TICKS instead of jumping.
  */
 export class TokenLayoutCache {
   /** Exactly `count` long: never an army that left the view. */
@@ -208,8 +228,18 @@ export class TokenLayoutCache {
   private version = -1;
   private fogStamp = -1;
   private baseTick = Number.NaN;
-  private lastFrac = Number.NaN;
+  private lastTick = Number.NaN;
   private lastZoom = Number.NaN;
+  /** Each placement before its ease (the sampled place). */
+  private rawX = new Float64Array(64);
+  private rawY = new Float64Array(64);
+  /** The last frame's armies and sampled places, for the next sample. */
+  private prevIds = new Int32Array(64);
+  private prevX = new Float64Array(64);
+  private prevY = new Float64Array(64);
+  private prevCount = 0;
+  private readonly eases = new Map<number, TokenEase>();
+  private gen = 0;
 
   /** Lays the tokens out for fractional tick `tick`; true when a placement changed. */
   update(view: WwLandView, tick: number, zoom: number): boolean {
@@ -223,12 +253,16 @@ export class TokenLayoutCache {
       view.version !== this.version ||
       base !== this.baseTick
     ) {
+      // A new view starts over; a new zoom moves the fan by design.
+      if (view !== this.viewSeen) this.eases.clear();
+      this.keepSampled(view === this.viewSeen && zoom === this.lastZoom);
       this.sample(view, base);
       sampled = true;
     }
-    const glides = this.moving && frac !== this.lastFrac;
+    const glides =
+      (this.moving || this.eases.size > 0) && tick !== this.lastTick;
     if (!sampled && !glides && zoom === this.lastZoom) return false;
-    this.lastFrac = frac;
+    this.lastTick = tick;
     this.lastZoom = zoom;
     const lod = tokenLod(zoom);
     for (let i = 0; i < this.count; i++) {
@@ -246,7 +280,90 @@ export class TokenLayoutCache {
       zoom,
       this.scratch,
     );
+    for (let i = 0; i < this.count; i++) {
+      this.rawX[i] = this.placements[i].x;
+      this.rawY[i] = this.placements[i].y;
+    }
+    if (sampled) this.noteJumps(tick);
+    if (this.eases.size > 0) this.ease(tick);
     return true;
+  }
+
+  /** Keeps the last frame's sampled places (none: the next sample eases nothing). */
+  private keepSampled(keep: boolean): void {
+    this.prevCount = 0;
+    if (!keep) return;
+    const n = this.count;
+    if (this.prevIds.length < n) {
+      this.prevIds = new Int32Array(this.rawX.length);
+      this.prevX = new Float64Array(this.rawX.length);
+      this.prevY = new Float64Array(this.rawX.length);
+    }
+    for (let i = 0; i < n; i++) {
+      this.prevIds[i] = this.placements[i].army;
+      this.prevX[i] = this.rawX[i];
+      this.prevY[i] = this.rawY[i];
+    }
+    this.prevCount = n;
+  }
+
+  /**
+   * After a sample: a token whose sampled place moved by more than a
+   * frame's glide (and less than TOKEN_EASE_MAX_TILES) starts gliding from
+   * where it was drawn; eases of armies gone are dropped.
+   */
+  private noteJumps(tick: number): void {
+    const gen = ++this.gen;
+    const min2 = TOKEN_EASE_MIN_TILES * TOKEN_EASE_MIN_TILES;
+    const max2 = TOKEN_EASE_MAX_TILES * TOKEN_EASE_MAX_TILES;
+    let j = 0;
+    for (let i = 0; i < this.count; i++) {
+      const id = this.armies[i].id;
+      const e = this.eases.get(id);
+      if (e !== undefined) e.gen = gen;
+      // Both lists are by id.
+      while (j < this.prevCount && this.prevIds[j] < id) j++;
+      if (j >= this.prevCount || this.prevIds[j] !== id) continue;
+      const jx = this.prevX[j] - this.rawX[i];
+      const jy = this.prevY[j] - this.rawY[i];
+      const d2 = jx * jx + jy * jy;
+      if (d2 <= min2) continue;
+      if (d2 >= max2) {
+        this.eases.delete(id);
+        continue;
+      }
+      // From where it is drawn: the jump plus what is left of a glide.
+      const k = e === undefined ? 0 : easeLeft(e, tick);
+      const ox = jx + (e === undefined ? 0 : e.ox * k);
+      const oy = jy + (e === undefined ? 0 : e.oy * k);
+      if (e === undefined) {
+        this.eases.set(id, { ox, oy, at: tick, gen });
+      } else {
+        e.ox = ox;
+        e.oy = oy;
+        e.at = tick;
+      }
+    }
+    if (this.eases.size === 0) return;
+    for (const [id, e] of this.eases) {
+      if (e.gen !== gen) this.eases.delete(id);
+    }
+  }
+
+  /** Adds what is left of each glide; drops the finished ones. */
+  private ease(tick: number): void {
+    for (let i = 0; i < this.count; i++) {
+      const p = this.placements[i];
+      const e = this.eases.get(p.army);
+      if (e === undefined) continue;
+      const k = easeLeft(e, tick);
+      if (k <= 0) {
+        this.eases.delete(p.army);
+        continue;
+      }
+      p.x += e.ox * k;
+      p.y += e.oy * k;
+    }
   }
 
   private sample(view: WwLandView, base: number): void {
@@ -269,6 +386,8 @@ export class TokenLayoutCache {
       this.y0 = new Float64Array(cap);
       this.dx = new Float64Array(cap);
       this.dy = new Float64Array(cap);
+      this.rawX = new Float64Array(cap);
+      this.rawY = new Float64Array(cap);
     }
     // Truncate when armies left (the pool shrinks with them), grow when
     // they came; an unchanged count keeps every object.
@@ -301,4 +420,9 @@ export class TokenLayoutCache {
     }
     return -1;
   }
+}
+
+/** The share of an ease's offset left at `tick` (1 at its start, 0 when done). */
+function easeLeft(e: TokenEase, tick: number): number {
+  return Math.min(1, Math.max(0, 1 - (tick - e.at) / TOKEN_EASE_TICKS));
 }

@@ -68,10 +68,25 @@ export function stepMovement(land: WwLand, tick: number): void {
       }
     }
     const step = stepOf(land, r, mode);
+    // The screens glide the token at the summary's pace (stepPm): a new
+    // pace goes out (the first step of an edge, weather, supply).
+    if (step !== t.step[r]) land.markArmy(t.army[r]);
     t.step[r] = step;
     t.prog[r] = Math.min(t.need[r], t.prog[r] + step);
     if (t.prog[r] >= t.need[r]) arrive(land, r, tick);
   }
+}
+
+/**
+ * The step moving division `r` takes on its next tick (milli-km, or
+ * milli-ticks at sea), read only: t.step is the last one taken, still 0
+ * on an edge it set out on after this tick's steps (an arrival, a
+ * retreat). 0 on a convoy voyage (the voyage moves it).
+ */
+export function nextStepOf(land: WwLand, r: number): number {
+  const t = land.divisions;
+  if (t.mode[r] === MOVE_NONE || t.need[r] <= 0) return 0;
+  return t.step[r] > 0 ? t.step[r] : stepOf(land, r, t.mode[r]);
 }
 
 function stepOf(land: WwLand, r: number, mode: number): number {

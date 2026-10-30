@@ -37,6 +37,7 @@ import {
   fanSlot,
   hitToken,
   layoutTokens,
+  TOKEN_EASE_TICKS,
   TOKEN_STEP_PX,
   TokenLayoutCache,
   tokenLod,
@@ -293,6 +294,41 @@ describe("TokenLayoutCache (the renderer's layout)", () => {
     const mid = cache.placements[cache.indexOf(3)];
     expect(mid.x).toBeCloseTo((a.x + b.x) / 2, 9);
     expect(mid.y).toBeCloseTo((a.y + b.y) / 2, 9);
+  });
+
+  test("a token whose army's region changes glides there over TOKEN_EASE_TICKS, not at once", () => {
+    const v = viewWith({ armies: [army({ id: 1 })] }, 10);
+    const cache = new TokenLayoutCache();
+    cache.update(v, 10, 4);
+    expect(cache.placements[0]).toMatchObject({ x: 65, y: 17 });
+    // Most of its divisions are in Warsaw now (spec §6.1's token region).
+    v.apply(data({ armies: [army({ id: 1, region: WARSAW })] }), 11);
+    expect(cache.update(v, 11, 4)).toBe(true);
+    expect(cache.placements[0]).toMatchObject({ x: 65, y: 17 });
+    expect(cache.update(v, 11 + TOKEN_EASE_TICKS / 2, 4)).toBe(true);
+    expect(cache.placements[0].x).toBeCloseTo(85, 9);
+    expect(cache.placements[0].y).toBeCloseTo(21, 9);
+    expect(cache.update(v, 11 + TOKEN_EASE_TICKS, 4)).toBe(true);
+    expect(cache.placements[0]).toMatchObject({ x: 105, y: 25 });
+    // Done: standing still again, no more work.
+    expect(cache.update(v, 11 + TOKEN_EASE_TICKS + 0.5, 4)).toBe(false);
+  });
+
+  test("a token that changes fan slot glides to it", () => {
+    const zoom = 4;
+    const step = TOKEN_STEP_PX[0] / zoom;
+    const v = viewWith({ armies: [army({ id: 1 }), army({ id: 2 })] }, 10);
+    const cache = new TokenLayoutCache();
+    cache.update(v, 10, zoom);
+    expect(cache.placements[1]).toMatchObject({ army: 2, y: 17 - step });
+    // Army 1 leaves Berlin: army 2 takes the center slot.
+    v.apply(data({ removedArmies: [1] }), 11);
+    cache.update(v, 11, zoom);
+    expect(cache.placements[0]).toMatchObject({ army: 2, y: 17 - step });
+    cache.update(v, 11 + TOKEN_EASE_TICKS / 2, zoom);
+    expect(cache.placements[0].y).toBeCloseTo(17 - step / 2, 9);
+    cache.update(v, 11 + TOKEN_EASE_TICKS, zoom);
+    expect(cache.placements[0].y).toBe(17);
   });
 
   test("nothing standing still: no work until the view, the tick or the zoom changes", () => {
