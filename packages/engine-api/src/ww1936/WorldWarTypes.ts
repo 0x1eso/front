@@ -34,6 +34,8 @@ export const DECLARE_WAR_BLOCKS = [
   "exile",
   // P6 (P6 spec §13.1): the United States while Congress backs it under 60%.
   "congress",
+  // White peace: the two signed one less than WW_TRUCE_DAYS ago.
+  "truce_active",
 ] as const;
 export type DeclareWarBlock = (typeof DECLARE_WAR_BLOCKS)[number];
 

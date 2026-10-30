@@ -95,6 +95,18 @@ import {
   reparationsEconomy,
   warSummary,
 } from "./Wars";
+import {
+  aiPeaceDay,
+  expirePeaceTimers,
+  offerPeace,
+  PeaceOffer,
+  PeaceOfferSchema,
+  peaceOfferView,
+  replyPeace,
+  stepFronts,
+  stepPeaceOffers,
+  truceUntil,
+} from "./WhitePeace";
 
 const zIds = () => z.array(zInt());
 const StoredDemandSchema = z.object({
@@ -316,6 +328,12 @@ export const WwEndgameStateSchema = z.object({
   dayNotes: z.array(z.tuple([zInt(), zInt(), zInt(), zInt(), zInt()])),
   /** P5 final lane: [smallID, victory points lost when it came back] (capitulationBase). */
   capBase: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** White peace: pending offers (by id), refusal cooldowns [from, to, untilDay], truces [a, b, untilDay] (a < b), fronts [war, a, b, sinceDay]. */
+  peaceOffers: z.array(PeaceOfferSchema).optional(),
+  nextOfferId: zInt().optional(),
+  peaceCooldowns: z.array(z.tuple([zInt(), zInt(), zInt()])).optional(),
+  truces: z.array(z.tuple([zInt(), zInt(), zInt()])).optional(),
+  fronts: z.array(z.tuple([zInt(), zInt(), zInt(), zInt()])).optional(),
 });
 export type WwEndgameState = z.infer<typeof WwEndgameStateSchema>;
 
@@ -394,6 +412,15 @@ export class WwEndgame {
    * (Capitulation.checkCapitulations); a recovery lowers it, peace clears it.
    */
   capBase: [number, number][] = [];
+  /** White peace (WhitePeace.ts): pending offers, by id. */
+  peaceOffers: PeaceOffer[] = [];
+  nextOfferId = 1;
+  /** [from, to, untilDay]: `from` may not offer `to` again before untilDay. */
+  peaceCooldowns: [number, number, number][] = [];
+  /** [a, b, untilDay] (a < b): neither declares on the other before untilDay. */
+  truces: [number, number, number][] = [];
+  /** [war, regions side 0 holds of side 1, the other way, the day the front last moved]. */
+  fronts: [number, number, number, number][] = [];
 
   // ---- Derived (DERIVED_FIELDS) ----
   /** smallID → clientID of its human controller (plan decision 7). */
@@ -420,6 +447,7 @@ export class WwEndgame {
   dirtyAid = new Set<number>();
   dirtyControllers = false;
   dirtyTakeover = false;
+  dirtyPeace = false;
   firstData = true;
 
   constructor(
@@ -525,6 +553,8 @@ export class WwEndgame {
     settleSensitiveZones(this, tick); // W: Korea/Taiwan zones never go back to Japan
     dailyWarScore(this, day); // W: occupation points (spec §4.5)
     checkWarEnds(this, day, tick); // W: spec §4.4, opens conferences
+    stepFronts(this, day); // white peace: the stalemate count
+    expirePeaceTimers(this, day); // white peace: truces, cooldowns
     deliverLendLease(this, day); // A: spec §13.3
     this.dropOldWars(day);
     this.expireTimed(day);
@@ -547,6 +577,7 @@ export class WwEndgame {
       aiOccupationDay(this, id, day, tick); // O
       aiSubjectsDay(this, id, day, tick); // S
       aiAidDay(this, id, day, tick); // A
+      aiPeaceDay(this, id, day, tick); // white peace
     }
     this.flushDayNotes(id);
   }
@@ -555,6 +586,7 @@ export class WwEndgame {
   tick(tick: number): void {
     stepConferences(this, tick); // W: deadlines, AI-only conferences (plan decision 33)
     resolveTakeovers(this, tick); // X
+    stepPeaceOffers(this, tick); // white peace: AI answers, card deadlines
     wakePending(this, tick); // foundation: addCountryExecutions for wakeQueue
   }
 
@@ -584,6 +616,10 @@ export class WwEndgame {
         return "no_takeover";
       case "army_garrison":
         return garrisonOrder(this, smallID, order.army, order.scope);
+      case "peace_offer":
+        return offerPeace(this, smallID, order.war, order.target, tick);
+      case "peace_reply":
+        return replyPeace(this, smallID, order.offer, order.accept, tick);
       default:
         return "bad_index";
     }
@@ -845,6 +881,11 @@ export class WwEndgame {
       this.rebuildWarIdx();
       this.dirtyWars = true;
     }
+  }
+
+  /** White peace: the day the truce between `a` and `b` ends (0: none). */
+  truceUntil(a: number, b: number): number {
+    return truceUntil(this, a, b);
   }
 
   // ---- Capitulation baseline (P5 final lane, the exile return loop) ----
@@ -1431,6 +1472,17 @@ export class WwEndgame {
         deadlineTick: c.deadlineTick,
       }));
     }
+    if (first || this.dirtyPeace) {
+      d.peaceOffers = this.peaceOffers.map((o) => peaceOfferView(this, o));
+      d.peaceCooldowns = this.peaceCooldowns.map(
+        ([a, b, u]): [number, number, number] => [a, b, u],
+      );
+      d.truces = this.truces.map(([a, b, u]): [number, number, number] => [
+        a,
+        b,
+        u,
+      ]);
+    }
     const empty = Object.keys(d).length === 1 && d.news.length === 0;
     this.endgameNews = [];
     this.firstData = false;
@@ -1446,6 +1498,7 @@ export class WwEndgame {
     this.dirtyAid.clear();
     this.dirtyControllers = false;
     this.dirtyTakeover = false;
+    this.dirtyPeace = false;
     return empty ? null : d;
   }
 
@@ -1522,6 +1575,11 @@ export class WwEndgame {
       wakeQueue: this.wakeQueue,
       dayNotes: this.dayNotes,
       capBase: this.capBase,
+      peaceOffers: this.peaceOffers,
+      nextOfferId: this.nextOfferId,
+      peaceCooldowns: this.peaceCooldowns,
+      truces: this.truces,
+      fronts: this.fronts,
     });
   }
 
@@ -1583,6 +1641,11 @@ export class WwEndgame {
     this.wakeQueue = c.wakeQueue;
     this.dayNotes = c.dayNotes;
     this.capBase = c.capBase ?? [];
+    this.peaceOffers = c.peaceOffers ?? [];
+    this.nextOfferId = c.nextOfferId ?? 1;
+    this.peaceCooldowns = c.peaceCooldowns ?? [];
+    this.truces = c.truces ?? [];
+    this.fronts = c.fronts ?? [];
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
     this.firstData = true;
@@ -1785,6 +1848,33 @@ export class WwEndgame {
     }
     // P5 final lane: the capitulation baselines (none in most games).
     if (this.capBase.length > 0) pairs(this.capBase);
+    // White peace: offers, cooldowns, truces and the fronts' stalemate count.
+    mix(this.nextOfferId);
+    mix(this.peaceOffers.length);
+    for (const o of this.peaceOffers) {
+      mix(o.id);
+      mix(o.war);
+      mix(o.from);
+      mix(o.to);
+      mix(o.whole ? 1 : 0);
+      mix(o.sentTick);
+      mix(o.deadlineTick);
+    }
+    for (const list of [this.peaceCooldowns, this.truces]) {
+      mix(list.length);
+      for (const [a, b, u] of list) {
+        mix(a);
+        mix(b);
+        mix(u);
+      }
+    }
+    mix(this.fronts.length);
+    for (const [w, a, b, since] of this.fronts) {
+      mix(w);
+      mix(a);
+      mix(b);
+      mix(since);
+    }
     return h;
   }
 }

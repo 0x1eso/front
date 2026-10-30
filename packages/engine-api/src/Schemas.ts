@@ -1425,6 +1425,14 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     deployment: WwId,
     on: z.boolean(),
   }),
+  // White peace (EndgameTypes.WHITE_PEACE_ORDER_KINDS), appended: an offer
+  // in one of my wars to the other side's leader, and my answer to one.
+  z.object({ kind: z.literal("peace_offer"), war: WwId, target: WwCountry }),
+  z.object({
+    kind: z.literal("peace_reply"),
+    offer: WwId,
+    accept: z.boolean(),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

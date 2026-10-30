@@ -74,6 +74,9 @@ export const ENDGAME_ORDER_KINDS = [
   "army_garrison",
 ] as const;
 export type EndgameOrderKind = (typeof ENDGAME_ORDER_KINDS)[number];
+/** White peace: appended after P6's orders, both to WwEndgame.issue. */
+export const WHITE_PEACE_ORDER_KINDS = ["peace_offer", "peace_reply"] as const;
+export type WhitePeaceOrderKind = (typeof WHITE_PEACE_ORDER_KINDS)[number];
 export type LendLeaseItem = EquipmentType | "fuel";
 
 // ---- Constants (spec §2.1, §5–§15; values marked (내 판단) in the spec are final) ----
@@ -146,6 +149,20 @@ export const WW_WAKE_FUEL_PCT = 50;
  * otherwise the general AI spends the points. The Korea lines are exempt.
  */
 export const WW_PEACE_HISTORY_KEEP_PCT = 75;
+
+// ---- White peace (owner-approved plan 2026-10-30) ----
+/** A white peace may be offered once the war is this many days old. */
+export const WW_WHITE_PEACE_MIN_DAYS = 90;
+/** Political power an offer costs, paid when it is sent. */
+export const WW_WHITE_PEACE_PP = 25;
+/** After a refusal the same proposer waits this long to offer the same target again. */
+export const WW_WHITE_PEACE_COOLDOWN_DAYS = 60;
+/** A human target's card: 30 s, in 100 ms ticks (wwRealTicks: its real seconds). */
+export const WW_WHITE_PEACE_CARD_TICKS = 300;
+/** After a white peace the two may not declare war on each other for this long. */
+export const WW_TRUCE_DAYS = 365;
+/** The front between the sides counts as stalemated after this many days without a real change. */
+export const WW_WHITE_PEACE_STALEMATE_DAYS = 180;
 
 // ---- Wars (spec §4.2) ----
 /** Plan decision 8: how a pair joins the war records. */
@@ -413,6 +430,30 @@ export interface WwTakeoverView {
   candidates: number[];
   deadlineTick: number;
 }
+/** A side of a white peace offer as its card shows it (computed when it was sent). */
+export interface WwPeaceSideView {
+  /** The country that answers for the side: its leader (a separate peace: the proposer). */
+  id: number;
+  /** How far that country is to its surrender line, ‰ (1000: at it). */
+  capPm: number;
+  /** The side's share of the war's war score, ‰. */
+  scorePm: number;
+}
+/** A pending white peace offer (spec: the owner's plan, §1–§4). */
+export interface WwPeaceOfferView {
+  id: number;
+  war: number;
+  from: number;
+  to: number;
+  /** True: the whole war ends; false: a separate peace (the proposer leaves its faction). */
+  whole: boolean;
+  sentTick: number;
+  deadlineTick: number;
+  /** [proposer's side, target's side]. */
+  sides: [WwPeaceSideView, WwPeaceSideView];
+  /** Who holds how much of whose land: [holder, owner, ‰ of the owner's victory points], most first. */
+  held: [number, number, number][];
+}
 export interface WwEndgameData {
   countries?: WwCountryView[];
   controllers?: [string, number][];
@@ -435,5 +476,9 @@ export interface WwEndgameData {
   exiles?: WwExileView[];
   aid?: WwAidView[];
   takeover?: WwTakeoverView[];
+  /** White peace: every pending offer, the refusal cooldowns [from, to, untilDay] and truces [a, b, untilDay]. */
+  peaceOffers?: WwPeaceOfferView[];
+  peaceCooldowns?: [number, number, number][];
+  truces?: [number, number, number][];
   news: { id: string; params: Record<string, string | number> }[];
 }

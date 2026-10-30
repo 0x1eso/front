@@ -37,7 +37,12 @@ describe("World War 1936 P6 lists", () => {
       (o) => (o.shape.kind as { value: string }).value,
     );
     expect(DEPTH_ORDER_KINDS).toHaveLength(57);
-    expect(after(kinds, "army_garrison")).toEqual([...DEPTH_ORDER_KINDS]);
+    // White peace appends its two after them.
+    expect(after(kinds, "army_garrison")).toEqual([
+      ...DEPTH_ORDER_KINDS,
+      "peace_offer",
+      "peace_reply",
+    ]);
   });
 
   it("doctrines, spirits and modules", () => {
@@ -59,7 +64,8 @@ describe("World War 1936 P6 lists", () => {
     expect(after(WW_TECH_IDS, "military_police")).toHaveLength(33);
     expect(after(WW_TECH_IDS, "military_police")[0]).toBe("heavy_tank_1");
     // 32 (pre-flight §0-6: no_civs and no_xp existed already).
-    const blocks = after(WW_ORDER_BLOCKS, "subject_restricted");
+    // White peace appends its five after railgun_limit.
+    const blocks = after(WW_ORDER_BLOCKS, "subject_restricted").slice(0, 32);
     expect(blocks).toHaveLength(32);
     expect(blocks[0]).toBe("no_cp");
     expect(blocks[31]).toBe("railgun_limit");

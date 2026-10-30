@@ -253,13 +253,15 @@ export function transferGroup(
  * Spec §17.4 (`end_war`): the war between `a` and `b` alone ends. Regions
  * one holds that are the other's by law go back to the legal owner; armies
  * left on the other's land go home; the battles between them end;
- * controller ruling R12: they leave each other's declaredOn.
+ * controller ruling R12: they leave each other's declaredOn. `keep`: a
+ * region it says to keep stays where it is (white peace: occupation zones).
  */
 export function endWarBetween(
   pol: WwPolitics,
   a: number,
   b: number,
   tick: number,
+  keep?: (region: number) => boolean,
 ): void {
   if (a === b || !pol.ww.endWar(a, b)) return;
   const land = pol.land;
@@ -267,6 +269,7 @@ export function endWarBetween(
     const c = land.controller[r.id];
     const owner = pol.legalOwner[r.id];
     if ((c === a && owner === b) || (c === b && owner === a)) {
+      if (keep?.(r.id) === true) continue;
       transferRegionPeaceful(land, r.id, owner, tick);
     }
   }

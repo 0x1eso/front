@@ -19,6 +19,7 @@ import {
   OCCUPATION_LAWS,
   SUBJECT_LEVELS,
   WAR_KINDS,
+  WHITE_PEACE_ORDER_KINDS,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   ARMY_ORDER_KINDS,
@@ -112,11 +113,24 @@ describe("World War 1936 P5 lists", () => {
 
   it("the other appended values sit after their anchors", () => {
     // P6 (spec §13.1) appends congress.
+    // White peace appends truce_active.
     expect(after(DECLARE_WAR_BLOCKS, "isolation")).toEqual([
       "subject_restricted",
       "exile",
       "congress",
+      "truce_active",
     ]);
+    expect(after(WW_ORDER_BLOCKS, "railgun_limit")).toEqual([
+      "peace_too_early",
+      "peace_cooldown",
+      "peace_war_kind",
+      "peace_pending",
+      "peace_no_offer",
+    ]);
+    const kinds = WwOrderSchema.options.map(
+      (o) => (o.shape.kind as { value: string }).value,
+    );
+    expect(kinds.slice(-2)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");

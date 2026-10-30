@@ -66,6 +66,8 @@ export function declareWarBlock(
   if (!ww.isActor(a) || !ww.isActor(b)) return "dead";
   if (ww.sameFaction(a, b)) return "faction";
   if (ww.isAtWar(a, b)) return "at_war";
+  // White peace: a truce holds for WW_TRUCE_DAYS (joins too).
+  if (eg.truceUntil(a, b) > ww.day(tick)) return "truce_active";
   // P3 spec §14.5: the appended reasons.
   const block = declareWarRules(ww.politics, a, b, join).block;
   if (block !== null) return block;

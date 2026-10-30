@@ -692,6 +692,12 @@ export const WW_ORDER_BLOCKS = [
   "scorch_conditions",
   "harbor_conditions",
   "railgun_limit",
+  // White peace (EndgameTypes.WHITE_PEACE_ORDER_KINDS), appended.
+  "peace_too_early",
+  "peace_cooldown",
+  "peace_war_kind",
+  "peace_pending",
+  "peace_no_offer",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
