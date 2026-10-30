@@ -444,7 +444,10 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // (the pinned game's Soviet Union takes it). Same value in three runs.
 // Re-pinned at the final integration merge (perf, balance, fix E, fix C): same value in three runs (a34597533afa802a).
 // The controller re-pins it at every merge that changes the engine.
-const WW1936_DIGEST = "a34597533afa802a";
+// Re-pinned for white peace (the endgame hash folds the offers, cooldowns,
+// truces and the fronts' stalemate count): same value in three runs
+// (0c17aca792b051da).
+const WW1936_DIGEST = "0c17aca792b051da";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
