@@ -9586,6 +9586,7 @@
           "export_cap": "Exports up to {value}% of output"
         },
         "in_force": "In force",
+        "need_congress": "US Congress support {need}% needed (now {now}%)",
         "need_tension": "World tension {need}% needed ({ideology})",
         "need_war": "Only while at war",
         "need_ws": "War support {need}% needed (now {now}%)",

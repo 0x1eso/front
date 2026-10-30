@@ -13,7 +13,9 @@ import {
 } from "@openfront/engine-api/ww1936/Countries";
 import { ID_CIVIL } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  CONSCRIPTION_LAWS,
   CountryLaws,
+  ECONOMY_LAWS,
   LAW_KINDS,
   LawKind,
   LawValue,
@@ -69,6 +71,7 @@ import {
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
 import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
+import { congressNeedBp } from "@openfront/engine-lib/ww1936/MechRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   costWith,
@@ -123,7 +126,9 @@ import {
 
 /** What the politics screens read from the game (a fake in tests). */
 export type PolGame = WwGame &
-  Partial<Pick<GameView, "wwEconomy" | "wwLand" | "config" | "wwEndgame">>;
+  Partial<
+    Pick<GameView, "wwEconomy" | "wwLand" | "config" | "wwEndgame" | "wwDepth">
+  >;
 
 export interface PoliticsModelInput {
   game: PolGame;
@@ -1391,6 +1396,23 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
     ruling: pol.ruling,
     atWar: warDays >= 0,
   };
+  // The US congress holds back conscription from "limited" and the economy
+  // from "partial_mobilization" (LawsRun.lawBlockNow); null: not the US.
+  const depth = i.game.wwDepth?.() ?? null;
+  const congressBp =
+    depth !== null && i.game.worldWarScenario()?.tagOfSmallId(i.me) === "USA"
+      ? depth.congressBp
+      : null;
+  const needBp = congressNeedBp("law");
+  const congressGated = (kind: LawKind, value: LawValue): boolean =>
+    congressBp !== null &&
+    congressBp < needBp &&
+    ((kind === "conscription" &&
+      CONSCRIPTION_LAWS.indexOf(value as never) >=
+        CONSCRIPTION_LAWS.indexOf("limited")) ||
+      (kind === "economy" &&
+        ECONOMY_LAWS.indexOf(value as never) >=
+          ECONOMY_LAWS.indexOf("partial_mobilization")));
   return LAW_KINDS.map((kind) => {
     const steps = lawLadder(detail, kind, day, warDays, pol);
     const wait = steps[0]?.cooldownDays ?? 0;
@@ -1401,9 +1423,14 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
       wait:
         wait > 0 ? translateText("ww1936.pol.law.wait", { days: wait }) : null,
       steps: steps.map((st): LawStepView => {
+        const congress = !st.current && congressGated(kind, st.value);
+        const congressText = translateText("ww1936.pol.law.need_congress", {
+          need: needBp / 100,
+          now: pctOf(congressBp ?? 0),
+        });
         const state = st.current
           ? "current"
-          : st.block === null
+          : st.block === null && !congress
             ? "open"
             : "locked";
         const shown =
@@ -1415,8 +1442,16 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
           name: lawName(st.value),
           state,
           cost: translateText("ww1936.pol.law.cost", { pp: st.costPp }),
-          lines: st.current ? [] : lawLines(st.value, ctx),
-          reason: st.current || shown ? null : blockText(st.block!),
+          lines: st.current
+            ? []
+            : [
+                ...lawLines(st.value, ctx),
+                ...(congress ? [{ ok: false, text: congressText }] : []),
+              ],
+          reason:
+            st.current || shown || st.block === null
+              ? null
+              : blockText(st.block),
           closes:
             st.block === null &&
             lawClosesDeals(detail, summary, kind, st.value),
@@ -1424,8 +1459,13 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
           diff: st.current
             ? []
             : lawDiffLines(kind, detail.laws[kind], st.value),
-          blockReason:
-            st.current || st.block === null ? null : blockText(st.block),
+          blockReason: st.current
+            ? null
+            : st.block !== null
+              ? blockText(st.block)
+              : congress
+                ? congressText
+                : null,
           wait:
             !st.current && wait > 0
               ? translateText("ww1936.pol.law.wait", { days: wait })

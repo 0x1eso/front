@@ -96,4 +96,53 @@ describe("law explanations", () => {
       .steps.find((s) => s.value === "limited")!;
     expect(open.blockReason).toBeNull();
   });
+
+  it("the US congress below the law threshold blocks the high laws", () => {
+    const r = fakePolGame({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          laws: {
+            economy: "civilian",
+            trade: "export_focus",
+            conscription: "volunteer",
+          },
+        }),
+      ],
+      politics: { ruling: 3, wsBp: 9_000, wtBp: 10_000, ppMilli: 500_000 },
+    } as never);
+    // The test map has no USA: DEU stands in for it.
+    const sc = r.game.worldWarScenario();
+    const asUsa = Object.create(sc, { tagOfSmallId: { value: () => "USA" } });
+    const withCongress = (congressBp: number) => ({
+      ...r.game,
+      worldWarScenario: () => asUsa,
+      wwDepth: () => ({ congressBp }),
+    });
+    const game = withCongress(3_200);
+    const ladders = lawTab(politicsInput(game as never)!)!;
+    const step = (k: string, v: string) =>
+      ladders.find((l) => l.kind === k)!.steps.find((s) => s.value === v)!;
+    const need = "[ww1936.pol.law.need_congress] need=50,now=32";
+    for (const [k, v] of [
+      ["conscription", "limited"],
+      ["economy", "partial_mobilization"],
+    ]) {
+      expect(step(k, v).state).toBe("locked");
+      expect(step(k, v).blockReason).toBe(need);
+      expect(step(k, v).lines[step(k, v).lines.length - 1]).toEqual({
+        ok: false,
+        text: need,
+      });
+    }
+    expect(step("conscription", "volunteer").blockReason).toBeNull();
+    // At the threshold it opens.
+    const ok = withCongress(5_000);
+    const open = lawTab(politicsInput(ok as never)!)!;
+    expect(
+      open
+        .find((l) => l.kind === "conscription")!
+        .steps.find((s) => s.value === "limited")!.blockReason,
+    ).toBeNull();
+  });
 });
