@@ -97,8 +97,6 @@ const SCREEN = [
   "navy.invasion_waiting",
   "navy.invasion_sea_loss",
   "navy.route_chip_sup",
-  "navy.route_chip_ok",
-  "navy.route_chip_low",
   "air.dial_air",
   "air.tab_zones",
   "air.tab_planes",

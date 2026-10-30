@@ -126,11 +126,14 @@ describe("World War 1936 P5 lists", () => {
       "peace_war_kind",
       "peace_pending",
       "peace_no_offer",
+      "no_invasion_port",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
     );
-    expect(kinds.slice(-2)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    // The automation lane appends auto_set and army_auto_all after them.
+    expect(kinds.slice(-4, -2)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-2)).toEqual(["auto_set", "army_auto_all"]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");
