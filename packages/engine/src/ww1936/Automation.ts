@@ -1,12 +1,14 @@
 // World War 1936: automation for a human's country (owner brief
-// 2026-10-30: humans have too much to do and fall behind the AI). Four
+// 2026-10-30: humans have too much to do and fall behind the AI). Five
 // switches, one per domain (WW_AUTO_DOMAINS), let the AI routines of that
 // domain run for a human's country on the AI's own cadence: production
 // (AiEconomy's line planner and naval lines), research (AiEconomy's
-// research), training (AiLand's division training) and air (AiAir's wings
-// and missions). Each system asks WorldWar.autoOn where it runs its AI for
-// an AI country; nothing else is handed over (no laws, building, trade,
-// focus, decisions, events, diplomacy or political power).
+// research), training (AiLand's division training), air (AiAir's wings
+// and missions) and navy (AiNavy's fleets and the depth AI's mine fleets;
+// never an invasion, nor the fleets supporting one under way). Each system
+// asks WorldWar.autoOn where it runs its AI for an AI country; nothing else
+// is handed over (no laws, building, trade, focus, decisions, events,
+// diplomacy or political power).
 //
 // The hand-over: a human's own order in a domain that is on switches it off
 // first, with a notice, and then applies as usual. The same rule for an
@@ -27,7 +29,10 @@ import type { WorldWar } from "./WorldWar";
  * A human's orders by the domain they hand back. Production: what the line
  * planner decides (the military and naval lines, their factories and
  * dockyards, retooling, order, a line's design); research: the slots;
- * training: the training queue; air: placing and recalling wings.
+ * training: the training queue; air: placing and recalling wings; navy:
+ * where a fleet goes and what it does there (the orders AiNavy gives, and a
+ * move or a new home port). A fleet's admiral, its carriers' deck mix, its
+ * own auto switch and the invasions are no deployment: they stay the human's.
  */
 export const AUTO_ORDER_DOMAIN: Readonly<
   Partial<Record<WwOrder["kind"], WwAutoDomain>>
@@ -50,6 +55,15 @@ export const AUTO_ORDER_DOMAIN: Readonly<
   deploy_now: "training",
   air_deploy: "air",
   air_recall: "air",
+  fleet_mission: "navy",
+  fleet_move: "navy",
+  fleet_return: "navy",
+  fleet_base: "navy",
+  fleet_engage: "navy",
+  fleet_return_at: "navy",
+  fleet_split: "navy",
+  fleet_merge: "navy",
+  fleet_port_strike: "navy",
 };
 
 /** The hand-over notice of each domain (full keys: the translation check reads them). */
@@ -58,6 +72,7 @@ export const AUTO_OFF_NOTICE: Readonly<Record<WwAutoDomain, string>> = {
   research: "events_display.ww1936_auto_off_research",
   training: "events_display.ww1936_auto_off_training",
   air: "events_display.ww1936_auto_off_air",
+  navy: "events_display.ww1936_auto_off_navy",
 };
 
 /** An army's auto command went off by its owner's order. */

@@ -885,9 +885,12 @@ export class WwNavy {
     dailyNavyXp(this, id, day); // N2
     noteNavalMissions(this, id); // P6 hook (D, plan decision 12)
     // P5 plan decision 7: the AI runs a country no human controls now.
+    // A human's auto fleets, or (automation) its whole navy; aiInvasions
+    // never acts for a human (its invasions stay the human's own).
     if (
       !this.ww.isHumanControlled(id) ||
-      this.fleetsOf(id).some((f) => f.auto)
+      this.fleetsOf(id).some((f) => f.auto) ||
+      this.ww.autoOn(id, "navy")
     ) {
       aiNavy(this, id, day);
       aiInvasions(this, id, day);

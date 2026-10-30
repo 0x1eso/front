@@ -66,13 +66,16 @@ export interface CapitulationGaugeData {
  * WW_AUTO_DOMAINS[i]). Production: the AI's line planner (lines, their
  * factories, retooling, the naval lines); research: the next tech in every
  * slot; training: the AI's division training; air: the AI's air wings and
- * their missions in every zone.
+ * their missions in every zone; navy (appended): the AI's fleets — their sea
+ * regions, missions and rules, the mine fleets, home when damaged — never an
+ * invasion or the fleets supporting one under way.
  */
 export const WW_AUTO_DOMAINS = [
   "production",
   "research",
   "training",
   "air",
+  "navy",
 ] as const;
 export type WwAutoDomain = (typeof WW_AUTO_DOMAINS)[number];
 

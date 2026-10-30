@@ -1390,6 +1390,27 @@ export function invasionRouteSrs(navy: WwNavy, smallID: number): Set<number> {
 }
 
 const STATE_BATTLE = FLEET_STATES.indexOf("battle");
+const MISSION_SUPPORT = FLEET_MISSIONS.indexOf("invasion_support");
+
+/**
+ * Automation (navy): the fleets bound to the country's invasions under
+ * way — on invasion support in a sea region of one's route (the human's
+ * order put them there, or the AI's own support plan a day before). They
+ * are the invasion's: the AI leaves them be until it lands or ends.
+ */
+export function invasionBoundFleets(
+  navy: WwNavy,
+  smallID: number,
+): Set<number> {
+  const out = new Set<number>();
+  const own = navy.fleetsOf(smallID);
+  if (!own.some((f) => f.mission === MISSION_SUPPORT)) return out;
+  const route = invasionRouteSrs(navy, smallID);
+  for (const f of own) {
+    if (f.mission === MISSION_SUPPORT && route.has(f.missionSr)) out.add(f.id);
+  }
+  return out;
+}
 
 /** What the plan reads of `smallID`'s navy today (`fleets`: the ones it commands). */
 export function aiNavalInput(
@@ -1560,19 +1581,29 @@ export function aiAtWar(navy: WwNavy, smallID: number): boolean {
   return navy.ww.enemiesOf(smallID).some((e) => navy.land.isEnemy(smallID, e));
 }
 
-/** The country's AI day for its fleets (an AI country's all, a human's auto ones). */
+/**
+ * The country's AI day for its fleets (an AI country's all, a human's auto
+ * ones; automation: a human's all but the ones bound to its invasions).
+ */
 export function aiNavy(navy: WwNavy, smallID: number, day: number): void {
   const p = navy.mg.playerBySmallID(smallID);
   if (!p.isPlayer()) return;
   // P5 plan decision 7: a human controls it now.
   const human = navy.ww.isHumanControlled(smallID);
+  // Automation (navy switch): every fleet, as the AI plans its own, but
+  // the ones bound to an invasion under way (the invasion code's; the AI
+  // never starts or cancels a human's invasion: aiInvasions skips one).
+  const bound =
+    human && navy.ww.autoOn(smallID, "navy")
+      ? invasionBoundFleets(navy, smallID)
+      : null;
+  const commands = (f: Fleet) =>
+    !human || (bound !== null ? !bound.has(f.id) : f.auto);
   // A fleet in battle takes no orders today. P6 (spec §19.7): the mine
   // fleets are the depth AI's (AiSeaAir), never P4's.
   const fleets = navy
     .fleetsOf(smallID)
-    .filter(
-      (f) => (!human || f.auto) && f.state !== STATE_BATTLE && !isDepthFleet(f),
-    );
+    .filter((f) => commands(f) && f.state !== STATE_BATTLE && !isDepthFleet(f));
   if (fleets.length === 0) return;
   const atWar = aiAtWar(navy, smallID);
   if (!aiNavyDue(smallID, day, atWar, human ? "normal" : navy.ww.aiLevel)) {

@@ -83,7 +83,7 @@ import { aiMarketDay } from "./AiMarket";
 import { aiMechDay } from "./AiMech";
 import { aiProjectsDay } from "./AiProjects";
 import { airZoneDay, issueSeaAir, reconPlanCutBp } from "./AirExtras";
-import { aiSeaAirDay } from "./AiSeaAir";
+import { aiSeaAirDay, aiSeaMines } from "./AiSeaAir";
 import { aiWorldDay } from "./AiWorld";
 import { dailyArmyGroups, issueArmyGroup } from "./ArmyGroups";
 import { nukeCutPp, processNukeQueue } from "./Atomic";
@@ -711,6 +711,9 @@ export class WwDepth implements LandDepthHooks {
       aiWorldDay(this, id, day);
       aiSeaAirDay(this, id, day);
       aiMechDay(this, id, day);
+    } else if (this.ww.autoOn(id, "navy")) {
+      // Automation (navy switch): a human's mine fleets.
+      aiSeaMines(this, id, day);
     }
     this.depthDirty.add(id);
   }

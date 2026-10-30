@@ -44,6 +44,7 @@ import {
 } from "./NavyModel";
 import { WwFleetSelectedEvent, WwSeaLayerEvent } from "./SeaAirSelection";
 import { isCapitulated, TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import {
   OpenWwNavyEvent,
   WW_NAVY_TABS,
@@ -480,6 +481,8 @@ export class WwNavyPanel extends WwDrawerBase {
       this.game?.wwNavy?.()?.version,
       this.game?.wwEconomy?.()?.version,
       this.tab,
+      // Automation: the head's switch.
+      autoMaskOf(this.game, this.game?.myPlayer()?.smallID() ?? 0),
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -503,7 +506,15 @@ export class WwNavyPanel extends WwDrawerBase {
       html`<span aria-hidden="true">⚓</span>
         <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
           ${translateText("ww1936.navy.drawer_title")}
-        </h3>`,
+        </h3>
+        ${dead
+          ? nothing
+          : renderAutoSwitch(
+              "navy",
+              autoMaskOf(this.game, ctx.me),
+              (o) => this.send(o),
+              true,
+            )}`,
       dead
         ? nothing
         : this.renderTabs(

@@ -1,7 +1,8 @@
 // World War 1936: the automation switches on the screens (owner brief
 // 2026-10-30) — the economy drawer's "자동 운영" row, each domain drawer's
-// own switch, the dock's "자동" badge, the army drawer's [모든 군 자동] /
-// [모든 군 수동] pair, and the "A" mark on my auto armies' tokens.
+// own switch (the navy drawer's too), the dock's "자동" badge, the army
+// drawer's [모든 군 자동] / [모든 군 수동] pair, and the "A" mark on my auto
+// armies' tokens.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { ARMY_AUTO } from "@openfront/engine-api/ww1936/LandTypes";
 import { wwAutoBit } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -29,10 +30,13 @@ import "../../../src/client/hud/ww1936/WwDials";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import {
   OpenWwIndustryEvent,
+  OpenWwNavyEvent,
   OpenWwResearchEvent,
 } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
 import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
+import "../../../src/client/hud/ww1936/WwNavyPanel";
+import type { WwNavyPanel } from "../../../src/client/hud/ww1936/WwNavyPanel";
 import "../../../src/client/hud/ww1936/WwResearchPanel";
 import type { WwResearchPanel } from "../../../src/client/hud/ww1936/WwResearchPanel";
 import { ArmyTokenPass } from "../../../src/client/render/gl/passes/ArmyTokenPass";
@@ -40,6 +44,7 @@ import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { TokenLayoutCache } from "../../../src/client/view/LandTokenLayout";
 import { detail, fakeEconGame, ID, summary } from "./EconomyFixture";
 import { army, fakeLandGame, landDetail } from "./LandFixture";
+import { seaGame, SID } from "./SeaAirFixture";
 
 type Game = ReturnType<typeof fakeEconGame>["game"];
 
@@ -96,7 +101,7 @@ describe("automation on the screens", () => {
     });
   });
 
-  it("the economy drawer's 자동 운영 row: four switches with labels", async () => {
+  it("the economy drawer's 자동 운영 row: five switches with labels", async () => {
     const { game, bus, sent } = econ();
     setMask(game, wwAutoBit("training"));
     const el = wire<WwIndustryPanel>("ww-industry-panel", game, bus);
@@ -112,19 +117,24 @@ describe("automation on the screens", () => {
       "research",
       "training",
       "air",
+      "navy",
     ]);
     expect(switches.map((b) => b.getAttribute("aria-checked"))).toEqual([
       "false",
       "false",
       "true",
       "false",
+      "false",
     ]);
     expect(switches[0].textContent).toContain("[ww1936.auto.production]");
+    expect(switches[4].textContent).toContain("[ww1936.auto.navy]");
     switches[0].click();
     switches[2].click();
+    switches[4].click();
     expect(sent).toEqual([
       { kind: "auto_set", domain: "production", on: true },
       { kind: "auto_set", domain: "training", on: false },
+      { kind: "auto_set", domain: "navy", on: true },
     ]);
   });
 
@@ -142,6 +152,33 @@ describe("automation on the screens", () => {
     expect(sent).toEqual([{ kind: "auto_set", domain: "research", on: false }]);
   });
 
+  it("the navy drawer shows the navy switch in its head", async () => {
+    const g = seaGame();
+    const bus = new EventBus();
+    const sent: WwOrder[] = [];
+    bus.on(SendWwOrderIntentEvent, (e) => sent.push(e.order));
+    const el = wire<WwNavyPanel>("ww-navy-panel", g.game, bus);
+    bus.emit(new OpenWwNavyEvent("fleets"));
+    await el.updateComplete;
+    const sw = () =>
+      el
+        .querySelector("[data-ww-drawer-head]")!
+        .querySelector<HTMLButtonElement>("[data-ww-auto]")!;
+    expect(sw().dataset.wwAuto).toBe("navy");
+    expect(sw().getAttribute("aria-checked")).toBe("false");
+    expect(sw().getAttribute("aria-label")).toContain("[ww1936.auto.navy]");
+    sw().click();
+    expect(sent).toEqual([{ kind: "auto_set", domain: "navy", on: true }]);
+    // The engine's data says it is on: the head redraws with it.
+    const data = g.game.worldWarData() as { auto?: unknown };
+    data.auto = [{ smallID: SID("GBR"), mask: wwAutoBit("navy") }];
+    (el as unknown as { tick(): void }).tick();
+    await el.updateComplete;
+    expect(sw().getAttribute("aria-checked")).toBe("true");
+    sw().click();
+    expect(sent[1]).toEqual({ kind: "auto_set", domain: "navy", on: false });
+  });
+
   it("the dock's 🏭 carries a 자동 badge while any switch is on", async () => {
     const { game, bus } = econ();
     const el = wire<WwDials>("ww-dials", game, bus);
@@ -154,6 +191,11 @@ describe("automation on the screens", () => {
     el.tick();
     await el.updateComplete;
     expect(badge()!.textContent).toBe("[ww1936.auto.badge]");
+    // The navy alone says so too.
+    setMask(game, wwAutoBit("navy"));
+    el.tick();
+    await el.updateComplete;
+    expect(badge()).not.toBeNull();
     setMask(game, 0);
     el.tick();
     await el.updateComplete;

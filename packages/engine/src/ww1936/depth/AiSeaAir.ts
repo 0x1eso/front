@@ -12,6 +12,9 @@
 // P4's AI plans every fleet and deployment of an AI country: it leaves
 // these alone once T1b adds isDepthFleet / isDepthDeployment to its input
 // filters (lane W2 report).
+//
+// Automation (navy switch, a human's country): the mines only (aiSeaMines),
+// on the same days; night bombing and recon are the air's, not the navy's.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
@@ -28,7 +31,7 @@ import { RECON_SORTIES } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { isCarrierWing } from "../air/Deploy";
 import type { Deployment } from "../air/WwAir";
 import { capitalRegion } from "../land/LandStartRun";
-import { aiAtWar, invasionRouteSrs } from "../navy/AiNavy";
+import { aiAtWar, invasionBoundFleets, invasionRouteSrs } from "../navy/AiNavy";
 import { FST, MISSION } from "../navy/Missions";
 import type { Fleet } from "../navy/WwNavy";
 import { fliesAtNight, issueSeaAir } from "./AirExtras";
@@ -76,6 +79,20 @@ export function aiSeaAirDay(d: WwDepth, id: number, day: number): void {
   aiMines(d, id);
   aiNight(d, id, day);
   if ((day + id) % 5 === 0) aiRecon(d, id);
+}
+
+/**
+ * Automation (navy switch): the mine half of the depth AI for a human's
+ * country, on the AI's days — lay and sweep at war, the mine fleets home at
+ * peace. Never the fleets bound to its invasions (assignShips).
+ */
+export function aiSeaMines(d: WwDepth, id: number, day: number): void {
+  if (!d.mg.playerBySmallID(id).isPlayer()) return;
+  if (!aiAtWar(d.ww.navy, id)) {
+    if (day % 10 === id % 10) minesHome(d, id);
+    return;
+  }
+  aiMines(d, id);
 }
 
 /** The sea regions nearest the country's capital (km, then id). */
@@ -139,10 +156,16 @@ function assignShips(
 ): boolean {
   const navy = d.ww.navy;
   const t = navy.ships;
+  // Automation: a human's invasion keeps its fleets (an AI country has none
+  // to keep: the AI's own invasion support is the AI's).
+  const bound = d.ww.isHumanControlled(id)
+    ? invasionBoundFleets(navy, id)
+    : null;
   let best: Fleet | null = null;
   let bestShips: number[] = [];
   for (const f of [...navy.fleetsOf(id)].sort((a, b) => a.id - b.id)) {
     if (f.state === FST.battle || isDepthFleet(f)) continue;
+    if (bound?.has(f.id) === true) continue;
     const ships = f.ships.filter((sid) => {
       const r = t.rowOf(sid);
       return r >= 0 && (shipDesignFlags(d, r) & flag) !== 0;
@@ -333,10 +356,15 @@ function aiRecon(d: WwDepth, id: number): void {
 
 /** At peace: the mine fleets come home, the recon groups land. */
 function aiPeace(d: WwDepth, id: number): void {
+  minesHome(d, id);
+  if (reconTargets(d, id).size > 0) setRecon(d, id, new Map());
+}
+
+/** At peace: the mine fleets come home. */
+function minesHome(d: WwDepth, id: number): void {
   for (const f of [...d.ww.navy.fleetsOf(id)].sort((a, b) => a.id - b.id)) {
     if (isDepthFleet(f) && f.state !== FST.battle) {
       issueNavy(d, id, { kind: "fleet_return", fleet: f.id });
     }
   }
-  if (reconTargets(d, id).size > 0) setRecon(d, id, new Map());
 }
