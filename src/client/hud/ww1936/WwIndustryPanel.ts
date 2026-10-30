@@ -85,6 +85,7 @@ import {
 // P4 (spec §18.8): the shipyards view is the navy drawer's <ww-shipyards>.
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { DepthIndustryModel } from "./DepthIndustryModel";
+import { autoMaskOf, renderAutoRow } from "./WwAutoUi";
 import { renderMarketTab } from "./WwMarketTab";
 import { renderMioTab } from "./WwMioTab";
 import "./WwNavyPanel";
@@ -375,7 +376,11 @@ export class WwIndustryPanel extends WwDrawerBase {
               this.tick();
             },
           ),
-      c.dead ? html`${this.blockLine("dead")}` : this.renderTab(c),
+      c.dead
+        ? html`${this.blockLine("dead")}`
+        : html`${renderAutoRow(autoMaskOf(this.game, c.id), (o) =>
+            this.send(o),
+          )}${this.renderTab(c)}`,
     );
   }
 

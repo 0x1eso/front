@@ -24,6 +24,7 @@ const int ENCIRCLED = 4;
 const int RAIL = 8;
 const int SEA = 16;
 const int RETREAT = 32;
+const int AUTO = 128;
 const int PARA = 256;
 
 const vec3 FRAME = vec3(0.94, 0.93, 0.88);
@@ -160,6 +161,15 @@ void main() {
       float dIcon = length(p - iconC) - 7.5;
       col = over(col, vec3(0.1), 0.9 * cover(dIcon));
       col = overTexel(col, tIcon, cover(dIcon));
+    }
+
+    // Automation: a small "A" badge at the top-left of an auto army (mine).
+    if ((state & AUTO) != 0) {
+      vec2 autoC = vec2(-17.0, -11.0);
+      float dAuto = length(p - autoC) - 6.0;
+      vec4 tAuto = atlas(float(CELL_AUTO), (p - autoC) / 12.0 + 0.5);
+      col = over(col, vec3(0.06, 0.45, 0.30), 0.95 * cover(dAuto));
+      col = overTexel(col, tAuto, cover(dAuto));
     }
   } else if (kind < 1.5) {
     // Number chip.

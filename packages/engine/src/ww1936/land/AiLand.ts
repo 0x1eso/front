@@ -10,7 +10,8 @@
 // then, daily at war or with a calendar war near (else every 10 days),
 // garrisons, grouping, generals, fronts (or the peacetime line), attacks,
 // training and building. A human's country runs only fronts and attacks,
-// for its auto armies (spec §8.5).
+// for its auto armies (spec §8.5), and the training when its automation
+// hands that over (owner brief 2026-10-30).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -628,6 +629,8 @@ class AiDay {
    */
   readonly imminent: readonly number[];
   readonly daily: boolean;
+  /** It trains divisions: an AI country, or a human's with training automated. */
+  readonly trains: boolean;
   private sideCache: SideView | null = null;
   private standingCache = new Map<number, Map<number, number[]>>();
   private offensiveCache: Set<number> | null = null;
@@ -657,6 +660,7 @@ class AiDay {
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
     this.imminent = this.plannedWarsNow();
     this.daily = this.atWar.length > 0 || this.imminent.length > 0;
+    this.trains = !human || land.ww.autoOn(this.me, "training");
   }
 
   /** P5 plan decision 6: the country plays (an exile does). */
@@ -822,10 +826,8 @@ class AiDay {
     if (enemies.length > 0) this.fronts(enemies, garrisons);
     else if (!this.human) this.peacetime(garrisons);
     this.attacks();
-    if (!this.human) {
-      this.train(garrisons);
-      this.build(enemies);
-    }
+    if (this.trains) this.train(garrisons);
+    if (!this.human) this.build(enemies);
   }
 
   // ---- Garrisons, the reserve (spec §14.3-4, controller rulings 2 and 5) ----

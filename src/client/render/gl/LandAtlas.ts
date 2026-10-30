@@ -22,6 +22,8 @@ export const MAX_NUMBER = 24;
 /** P6 fog (spec §8.9): "?" for an unknown count and "~" marking a band's top. */
 export const CELL_QUESTION = 41;
 export const CELL_TILDE = 42;
+/** Automation: "A" on an auto army's token (the AI commands it, P2 spec §8.5). */
+export const CELL_AUTO = 43;
 export const ICON_MOVE = 48;
 export const ICON_BATTLE = 49;
 export const ICON_RAIL = 50;
@@ -252,6 +254,7 @@ export function drawLandAtlas(ctx: Ctx): void {
   for (const [cell, ch] of [
     [CELL_QUESTION, "?"],
     [CELL_TILDE, "~"],
+    [CELL_AUTO, "A"],
   ] as const) {
     const [x, y] = cellOrigin(cell);
     ctx.strokeStyle = OUTLINE;

@@ -121,7 +121,7 @@ import {
   PolOrderKind,
   WAR_GOAL_TYPES,
 } from "./ww1936/PoliticsTypes";
-import { SEA_ZONE_BASE } from "./ww1936/WorldWarTypes";
+import { SEA_ZONE_BASE, WW_AUTO_DOMAINS } from "./ww1936/WorldWarTypes";
 
 export type GameID = string;
 export type ClientID = string;
@@ -1433,6 +1433,15 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     offer: WwId,
     accept: z.boolean(),
   }),
+  // Automation for a human's own country (owner brief 2026-10-30),
+  // appended: one domain's switch (WorldWar.setAuto), and every army's
+  // auto command at once (army_auto for each, one intent).
+  z.object({
+    kind: z.literal("auto_set"),
+    domain: z.enum(WW_AUTO_DOMAINS),
+    on: z.boolean(),
+  }),
+  z.object({ kind: z.literal("army_auto_all"), on: z.boolean() }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

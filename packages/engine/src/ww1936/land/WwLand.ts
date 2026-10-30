@@ -1023,9 +1023,11 @@ export class WwLand {
     dailySustain(this, id, day);
     dailyEntrench(this, id);
     // P5 plan decision 7: the AI runs a country no human controls now.
+    // Automation: a human's auto armies, and its training when handed over.
     if (
       !this.ww.isHumanControlled(id) ||
-      this.armiesOf(id).some((a) => a.auto)
+      this.armiesOf(id).some((a) => a.auto) ||
+      this.ww.autoOn(id, "training")
     ) {
       aiLandTick(this, id, day);
     }

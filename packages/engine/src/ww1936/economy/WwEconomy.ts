@@ -718,6 +718,13 @@ export class WwEconomy {
     // P5 plan decision 7: the AI runs a country no human controls now.
     if (!this.ww.isHumanControlled(id)) {
       aiEconomyTick(this, ce, p, day, tick);
+    } else {
+      // Automation: the lines and the research a human handed to the AI.
+      const lines = this.ww.autoOn(id, "production");
+      const research = this.ww.autoOn(id, "research");
+      if (lines || research) {
+        aiEconomyTick(this, ce, p, day, tick, { lines, research });
+      }
     }
     this.dirtyCountries.add(id);
   }
