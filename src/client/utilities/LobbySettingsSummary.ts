@@ -5,6 +5,7 @@ import {
   GameType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
+import { wwAiLevel } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import { renderDuration, translateText } from "../../client/Utils";
 
 // Non-default settings worth surfacing, shared by the join modal (post-join
@@ -25,7 +26,7 @@ export function notableLobbySettings(
       label: translateText("host_modal.crowded"),
       value: enabled,
     });
-  // World War 1936 fixes the AI at Medium: no choice to show.
+  // World War 1936 names its own levels below.
   if (
     c.worldWar1936 !== true &&
     (pm?.isHardNations ||
@@ -119,6 +120,13 @@ export function notableLobbySettings(
     items.push({
       label: translateText("game_settings.historical_ai"),
       value: c.historicalAi === false ? disabled : enabled,
+    });
+    // The AI countries' handicaps (Easy when none was chosen).
+    items.push({
+      label: translateText("ww1936.lobby.difficulty"),
+      value: translateText(
+        `ww1936.lobby.difficulty_${wwAiLevel(c.difficulty)}`,
+      ),
     });
     // The unlimited game has no timer, so the generic row above is absent
     // (or skipped); a timed game shows its 45 minutes there.

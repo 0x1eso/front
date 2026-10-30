@@ -288,6 +288,15 @@ export interface SimExtension {
   end(res: RunResult): void;
 }
 
+/** The lobby difficulty a run plays: env WW_SIM_DIFFICULTY, else Medium. */
+function simDifficulty(): Difficulty {
+  const v = process.env.WW_SIM_DIFFICULTY;
+  if (v === undefined || v === "") return Difficulty.Medium;
+  const d = Object.values(Difficulty).find((x) => x === v);
+  if (d === undefined) throw new Error(`WW_SIM_DIFFICULTY: unknown ${v}`);
+  return d;
+}
+
 /**
  * The lobby's config after the server's mode rules (ConfigPatch), as a
  * real game gets it — final balance: before this the simulator ran
@@ -302,7 +311,9 @@ function startInfo(seed: string, historical: boolean): GameStartInfo {
       gameMapSize: GameMapSize.Normal,
       gameMode: GameMode.FFA,
       gameType: GameType.Private,
-      difficulty: Difficulty.Medium,
+      // The lobby's difficulty (env WW_SIM_DIFFICULTY: Easy, Medium, Hard);
+      // Medium (Normal, no AI handicap) unless set, as the sims ran so far.
+      difficulty: simDifficulty(),
       nations: "default",
       bots: 0,
       donateGold: true,

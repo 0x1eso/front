@@ -1,4 +1,8 @@
-import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
+import {
+  Difficulty,
+  GameMapSize,
+  GameMapType,
+} from "@openfront/engine-api/game/GameTypes";
 import type { StampedIntent } from "@openfront/engine-api/Schemas";
 import {
   WW_CAPITULATION_DAYS,
@@ -444,10 +448,16 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // (the pinned game's Soviet Union takes it). Same value in three runs.
 // Re-pinned at the final integration merge (perf, balance, fix E, fix C): same value in three runs (a34597533afa802a).
 // The controller re-pins it at every merge that changes the engine.
-// Re-pinned for white peace (the endgame hash folds the offers, cooldowns,
-// truces and the fronts' stalemate count): same value in three runs
-// (0c17aca792b051da).
+// The lobby difficulty (AiDifficulty) leaves the Medium game as it was.
+// Re-pinned for white peace merged with the lobby difficulty (the endgame
+// hash folds the offers, cooldowns, truces and the fronts' stalemate
+// count): same value in three runs (0c17aca792b051da; Easy cdf1bee6de94e0b5).
 const WW1936_DIGEST = "0c17aca792b051da";
+/**
+ * The same game on Easy (the lobby's default in this mode): the AI
+ * handicaps and the slower war planning. Pinned with three equal runs.
+ */
+const WW1936_EASY_DIGEST = "cdf1bee6de94e0b5";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
@@ -462,6 +472,16 @@ describe("World War 1936 stays deterministic", () => {
       h.update(`${hash(runner)},`);
     }
     expect(h.digest("hex").slice(0, 16)).toBe(WW1936_DIGEST);
+  }, 120_000);
+
+  test("the same game on Easy is pinned", async () => {
+    const runner = await wwRunner({ difficulty: Difficulty.Easy });
+    const h = createHash("sha256");
+    while (runner.game.ticks() < 13_000) {
+      step(runner);
+      h.update(`${hash(runner)},`);
+    }
+    expect(h.digest("hex").slice(0, 16)).toBe(WW1936_EASY_DIGEST);
   }, 120_000);
 
   // Plan decision 22, pre-flight U7, restored in Task 11 with the

@@ -1,5 +1,4 @@
 import {
-  Difficulty,
   GameMapSize,
   GameMapType,
   GameMode,
@@ -7,6 +6,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_GAME_MINUTES } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { wwDifficulty } from "./AiDifficulty";
 import { wwUnlimited } from "./Pace";
 
 /**
@@ -64,9 +64,9 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
   // P6 (spec §9.8, plan decision 21): the atomic bomb, on unless the host
   // turned it off (nothing reads it outside the mode).
   c.ww1936Nukes = c.ww1936Nukes ?? true;
-  // The AI plays its wars at one level in this mode (owner decision,
-  // 2026-10-20): the lobby shows no difficulty for it.
-  c.difficulty = Difficulty.Medium;
+  // The lobby's difficulty sets the AI countries' handicaps (AiDifficulty):
+  // Easy when none was chosen, Impossible plays as Hard.
+  c.difficulty = wwDifficulty(c.difficulty);
   // Faction members help each other; a neutral still gets nothing
   // (isFriendly is the faction, spec §7.2).
   c.donateGold = true;

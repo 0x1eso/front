@@ -8415,6 +8415,13 @@
       "title": "Licences"
     },
     "lobby": {
+      "difficulty": "AI difficulty",
+      "difficulty_easy": "Easy",
+      "difficulty_easy_hint": "AI countries: −20% factory output and construction, −15% research, −10% in combat; they plan their wars every 3 days",
+      "difficulty_hard": "Hard",
+      "difficulty_hard_hint": "AI countries: +10% factory output, construction and research",
+      "difficulty_normal": "Normal",
+      "difficulty_normal_hint": "The AI countries play without handicaps",
       "nukes": "Atomic bombs",
       "nukes_off": "Not allowed",
       "nukes_on": "Allowed",

@@ -40,8 +40,8 @@ describe("World War 1936 settings", () => {
       maxTimerValue: 10,
       disabledUnits: [UnitType.Warship],
       doomsdayClock: { enabled: true, speed: "fast" },
-      // Settings the mode's lobby hides.
-      difficulty: Difficulty.Easy,
+      // Settings the mode's lobby hides (the difficulty it shows: kept).
+      difficulty: Difficulty.Hard,
       donateGold: false,
       donateTroops: false,
       infiniteGold: true,
@@ -74,7 +74,7 @@ describe("World War 1936 settings", () => {
       customAllianceDuration: 0,
       spawnImmunityDuration: 0,
       historicalAi: true,
-      difficulty: Difficulty.Medium,
+      difficulty: Difficulty.Hard,
       donateGold: true,
       donateTroops: true,
       infiniteGold: false,
