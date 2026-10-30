@@ -164,6 +164,36 @@ export const WW_TRUCE_DAYS = 365;
 /** The front between the sides counts as stalemated after this many days without a real change. */
 export const WW_WHITE_PEACE_STALEMATE_DAYS = 180;
 
+// ---- Negotiated peace (owner request "7번", 2026-10-30) ----
+// A peace offer may carry terms (give or demand): regions ceded with their
+// legal ownership, reparations, subjects released. No terms: a white peace.
+/** Regions an offer may cede each way (the proposer's, the target's). */
+export const WW_NEG_PEACE_MAX_REGIONS = 12;
+/** Subjects an offer may release (both ways together). */
+export const WW_NEG_PEACE_MAX_FREE = 3;
+/** A reparations level pays level × this percent of the giver's civilian factories. */
+export const WW_NEG_REPARATIONS_STEP_PCT = 10;
+/** Reparations levels 1..this (10%, 20%, 30%); 0: none. */
+export const WW_NEG_REPARATIONS_MAX_LEVEL = 3;
+/** A negotiated peace's reparations run this long. */
+export const WW_NEG_REPARATIONS_DAYS = 365;
+/** A giver cedes at most this share (percent) of its victory points. */
+export const WW_NEG_PEACE_MAX_VP_PCT = 40;
+
+/** An offer's terms. The proposer gives `give`, `pay`; the target gives `take`, `demand`. */
+export interface WwPeaceTerms {
+  /** Regions the proposer cedes to the target (it owns them legally). */
+  give: number[];
+  /** Regions the target cedes to the proposer. */
+  take: number[];
+  /** The proposer's reparations level to the target (0..WW_NEG_REPARATIONS_MAX_LEVEL). */
+  pay: number;
+  /** The target's reparations level to the proposer. */
+  demand: number;
+  /** Subjects of the proposer or the target set free. */
+  free: number[];
+}
+
 // ---- Wars (spec §4.2) ----
 /** Plan decision 8: how a pair joins the war records. */
 export type WarLink =
@@ -453,6 +483,23 @@ export interface WwPeaceOfferView {
   sides: [WwPeaceSideView, WwPeaceSideView];
   /** Who holds how much of whose land: [holder, owner, ‰ of the owner's victory points], most first. */
   held: [number, number, number][];
+  /** Negotiated peace: the terms (null: a white peace); payK/demandK: the factories a day each level is now. */
+  terms: (WwPeaceTerms & { payK: number; demandK: number }) | null;
+}
+/**
+ * Negotiated peace: what the AI judge reads of the war for an offer from a
+ * human's country (the composer's hint; NegPeaceRules.negPeaceChance).
+ */
+export interface WwPeaceJudgeRow {
+  war: number;
+  from: number;
+  to: number;
+  /** The white peace's accept chance (percent; 0: it refuses outright). */
+  pct: number;
+  /** Value per percent of chance, in thousandths of a point. */
+  unit: number;
+  /** The extra a clearly winning side needs (points). */
+  winNeed: number;
 }
 export interface WwEndgameData {
   countries?: WwCountryView[];
@@ -480,5 +527,7 @@ export interface WwEndgameData {
   peaceOffers?: WwPeaceOfferView[];
   peaceCooldowns?: [number, number, number][];
   truces?: [number, number, number][];
+  /** Negotiated peace: the judge's war facts for each human country's possible offer. */
+  peaceJudge?: WwPeaceJudgeRow[];
   news: { id: string; params: Record<string, string | number> }[];
 }
