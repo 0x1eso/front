@@ -1,5 +1,5 @@
 // World War 1936: automation for a human's country (owner brief
-// 2026-10-30). Four switches (production, research, training, air) hand a
+// 2026-10-30). Five switches (production, research, training, air, navy) hand a
 // domain to the AI routines on their own cadence; a manual order in a
 // domain that is on hands it back with a notice; the switches are state
 // (snapshot, restore, hash) and a takeover clears them; [자동 지휘] and
@@ -53,6 +53,8 @@ function finishDay(runner: GameRunner, d: number): void {
   stepTo(runner, dayStartTick(d, WW_PREP_TICKS) + WW_DAY_SPLIT);
 }
 const B = "HUMAN002";
+/** Every switch on. */
+const ALL = (1 << WW_AUTO_DOMAINS.length) - 1;
 
 async function human(
   humans: WwHuman[] = [{ clientID: HUMAN, country: "DEU" }],
@@ -103,12 +105,13 @@ const filled = (g: Game, id: number) =>
     .slots.filter((s) => s !== null).length;
 
 describe("World War 1936 automation: the switches", () => {
-  it("auto_set is a ww_order: four domains, an on/off, nothing else", () => {
+  it("auto_set is a ww_order: five domains, an on/off, nothing else", () => {
     expect(WW_AUTO_DOMAINS).toEqual([
       "production",
       "research",
       "training",
       "air",
+      "navy",
     ]);
     expect(
       WwOrderSchema.safeParse({ kind: "auto_set", domain: "air", on: true })
@@ -281,7 +284,7 @@ describe("World War 1936 automation: the switches", () => {
   it("a manual order in a domain that is on switches it off, with a notice, and applies", async () => {
     const { runner, updates, g, ww, deu } = await human();
     for (const d of WW_AUTO_DOMAINS) setAuto(runner, d, true);
-    expect(ww.autoMask(deu)).toBe(15);
+    expect(ww.autoMask(deu)).toBe(ALL);
     clearSlots(g, deu);
     // The human picks a tech themselves before the AI's next day.
     const ce = ww.economy.country(deu)!;
@@ -301,7 +304,7 @@ describe("World War 1936 automation: the switches", () => {
     expect(ce.slots.some((s) => s?.tech === pick)).toBe(true);
     expect(notices(updates, "ww1936_auto_off_research")).toHaveLength(1);
     // The other domains stay with the AI.
-    expect(ww.autoMask(deu)).toBe(15 & ~wwAutoBit("research"));
+    expect(ww.autoMask(deu)).toBe(ALL & ~wwAutoBit("research"));
     // A line order hands production back the same way.
     step(runner, 1, [
       order(HUMAN, { kind: "remove_line", line: ce.lines[0].id }),
@@ -321,7 +324,9 @@ describe("World War 1936 automation: the switches", () => {
         value: "early_mobilization",
       }),
     ]);
-    expect(ww.autoMask(deu)).toBe(wwAutoBit("training") | wwAutoBit("air"));
+    expect(ww.autoMask(deu)).toBe(
+      wwAutoBit("training") | wwAutoBit("air") | wwAutoBit("navy"),
+    );
   }, 120_000);
 
   it("automation never declares war, joins a faction, picks a focus or spends political power", async () => {
@@ -337,7 +342,7 @@ describe("World War 1936 automation: the switches", () => {
     const deu = on.deu;
     const a = pol(on.g).country(deu)!;
     const b = pol(off.g).country(deu)!;
-    expect(on.ww.autoMask(deu)).toBe(15);
+    expect(on.ww.autoMask(deu)).toBe(ALL);
     // The AI did run the human's economy...
     expect(gameHash(on.runner)).not.toBe(gameHash(off.runner));
     // ...but nothing of politics moved.
@@ -430,8 +435,8 @@ describe("World War 1936 automation: the switches", () => {
     stepTo(runner, g.ticks() + 40);
     const restored = await wwRestore(runner, humans);
     const ww2 = restored.game.worldWar()!;
-    expect(ww2.autoMask(deu)).toBe(15);
-    expect(ww2.data().auto).toEqual([{ smallID: deu, mask: 15 }]);
+    expect(ww2.autoMask(deu)).toBe(ALL);
+    expect(ww2.data().auto).toEqual([{ smallID: deu, mask: ALL }]);
     expect(gameHash(restored)).toBe(gameHash(runner));
     // Twelve days, tick by tick: the AI's turns and reactions for the human.
     const end = g.ticks() + 12 * 30;

@@ -1,5 +1,5 @@
 // World War 1936: the automation switches on the screens (owner brief
-// 2026-10-30). The economy drawer shows the four in one "자동 운영" row;
+// 2026-10-30). The economy drawer shows the five in one "자동 운영" row;
 // each domain's own drawer shows its switch in the head; the dock's 🏭
 // carries a small "자동" badge while any is on. A tap sends one auto_set
 // for the viewer's own country (the engine knows the sender).
@@ -76,7 +76,7 @@ export function renderAutoSwitch(
   </button>`;
 }
 
-/** The economy drawer's "자동 운영" row: the four switches and a one-line hint. */
+/** The economy drawer's "자동 운영" row: every switch (WW_AUTO_DOMAINS) and a one-line hint. */
 export function renderAutoRow(
   mask: number,
   send: (o: WwOrder) => void,
