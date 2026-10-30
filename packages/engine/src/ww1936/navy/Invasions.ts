@@ -5,12 +5,19 @@
 // Lane C's voyages carry the divisions (SeaTransfer.startVoyage; its
 // stepSeaVoyages calls landInvasion on arrival). Integer arithmetic, no
 // randomness; invasions, landing marks and beachheads go in id order.
+// Easy invasions (owner brief 2026-10-30): a country a human controls at
+// the order gets one-order landings — the army marches to the nearest
+// port with a route (split to the invasion limit, the best-organised
+// first), prepares 20/10/5 days, sails by itself with no supremacy gate,
+// takes capped losses at sea instead of turning back, lands at −40%. The
+// AI's invasions keep every rule of spec §11 (Invasion.easy false).
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   type CombatMods,
   idleOrder,
   type LandOrderSource,
   MOVE_ADVANCE,
+  MOVE_NONE,
   MOVE_RAIL,
   MOVE_RETREAT,
   MOVE_SEA,
@@ -39,18 +46,27 @@ import {
   routeEffPm,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
+  easyInvasionPrepDays,
   invasionBlock,
   invasionCapacity,
+  type InvasionPortPlan,
   invasionPrepDays,
   landingBp,
+  pickInvasionPort,
   shoreBombardBp,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
+import { moveStep, railStep } from "@openfront/engine-lib/ww1936/MoveRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import { seaDistances, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { minesInvasionCutPct } from "../depth/Mines";
 import { joinBattle } from "../land/Battles";
-import { enemyDivisionsIn, stopDivision } from "../land/Movement";
+import {
+  enemyDivisionsIn,
+  findPath,
+  railPath,
+  stopDivision,
+} from "../land/Movement";
 import { capture } from "../land/Occupation";
 import { armyRows } from "../land/Plans";
 import {
@@ -60,7 +76,7 @@ import {
   landDivisions,
   liftDivisions,
 } from "../land/SeaLift";
-import type { Army } from "../land/WwLand";
+import type { Army, WwLand } from "../land/WwLand";
 import { freeConvoysOf, routeFor } from "./Convoys";
 import { navalPort } from "./Ports";
 import { startVoyage } from "./SeaTransfer";
@@ -71,6 +87,7 @@ const ST_READY = INVASION_STATES.indexOf("ready");
 const ST_SAILING = INVASION_STATES.indexOf("sailing");
 const ST_LANDING = INVASION_STATES.indexOf("landing");
 const ST_RETURNING = INVASION_STATES.indexOf("returning");
+const ST_MOVING = INVASION_STATES.indexOf("moving");
 const USE_SUPPLY = CONVOY_USES.indexOf("supply");
 const MISSION_SUPPORT = FLEET_MISSIONS.indexOf("invasion_support");
 const MISSION_STRIKE = FLEET_MISSIONS.indexOf("strike");
@@ -84,6 +101,8 @@ const LANDING_ORG_PCT = 70;
 const EVACUATION_LOSS_PM = 200;
 /** Spec §18.10: a port of naval base 5 or more taken by a landing is news to both sides. */
 const MAJOR_PORT_LEVEL = 5;
+/** Easy invasions: a march to the port is planned again at most this many times. */
+const EASY_REPLANS = 3;
 
 const MSG = {
   ready: "events_display.ww1936_invasion_ready",
@@ -92,7 +111,14 @@ const MSG = {
   failed: "events_display.ww1936_invasion_failed",
   aborted: "events_display.ww1936_invasion_aborted",
   portCaptured: "events_display.ww1936_port_captured",
+  split: "events_display.ww1936_invasion_split",
+  noPort: "events_display.ww1936_invasion_no_port",
 } as const;
+
+/** Not at sea yet: marching to its port (easy), preparing or ready. */
+function ashore(state: number): boolean {
+  return state === ST_PREPARING || state === ST_READY || state === ST_MOVING;
+}
 
 // ---- Orders (spec §11.1, §11.3) ----
 
@@ -225,10 +251,11 @@ function orderInvasion(
   const sc = navy.scenario;
   const owner = a.owner;
   const old = navy.invasions.get(a.id);
-  if (old !== undefined && old.state >= ST_SAILING) return "army_busy";
+  if (old !== undefined && !ashore(old.state)) return "army_busy";
   if (sc.region(target) === undefined) return "bad_target";
   const ce = navy.econ.country(owner);
   if (ce === null) return "dead";
+  if (navy.easyInvasion(owner)) return orderEasyInvasion(navy, a, target);
   const at = armyAtPort(navy, a);
   const route = at.inPort ? invasionRoute(navy, owner, at.from, target) : null;
   const divs = at.rows.map((r) => land.divisions.id[r]);
@@ -263,6 +290,9 @@ function orderInvasion(
     prepDone: 0,
     voyage: 0,
     readySent: false,
+    easy: false,
+    lossPm: 0,
+    splitFrom: 0,
   });
   // The army waits in the port (spec §11.2: it rests there by P2's rules).
   for (const r of at.rows) {
@@ -273,11 +303,305 @@ function orderInvasion(
   return null;
 }
 
+// ---- Easy invasions (human countries, owner brief 2026-10-30) ----
+
+/** Easy: a division that cannot march to a port now (fighting, retreating, advancing, at sea). */
+function easyBusy(land: WwLand, r: number): boolean {
+  const t = land.divisions;
+  const m = t.mode[r];
+  return (
+    t.battle[r] !== 0 ||
+    m === MOVE_RETREAT ||
+    m === MOVE_ADVANCE ||
+    m === MOVE_SEA
+  );
+}
+
+/** Easy: the `n` best-organised rows (org ‰ of their max, then org, then the smaller id). */
+function bestOrganised(
+  land: WwLand,
+  rows: readonly number[],
+  n: number,
+): number[] {
+  const t = land.divisions;
+  const pm = (r: number) => {
+    const max = land.orgMaxOf(r);
+    return max <= 0 ? 0 : Math.floor((t.org[r] * 1000) / max);
+  };
+  return [...rows]
+    .sort((x, y) => pm(y) - pm(x) || t.org[y] - t.org[x] || t.id[x] - t.id[y])
+    .slice(0, n);
+}
+
+/** The region most of `rows` stand in (ties: the smaller). */
+function mostIn(land: WwLand, rows: readonly number[]): number {
+  const t = land.divisions;
+  const count = new Map<number, number>();
+  for (const r of rows)
+    count.set(t.region[r], (count.get(t.region[r]) ?? 0) + 1);
+  let best = 0;
+  let n = 0;
+  for (const [reg, k] of count) {
+    if (k > n || (k === n && reg < best)) {
+      best = reg;
+      n = k;
+    }
+  }
+  return best;
+}
+
+/** A working naval base of `owner`'s side with a harbor. */
+function sidePort(navy: WwNavy, owner: number, region: number): boolean {
+  const land = navy.land;
+  return (
+    land.sameSide(owner, land.controller[region] ?? 0) &&
+    navalPort(navy.ww, region) &&
+    navy.scenario.harborOf(region) !== 0
+  );
+}
+
+/**
+ * Easy: the port the landing force (rows) of `owner` sails from to
+ * `target` (InvasionRules.pickInvasionPort on the engine's world: our
+ * side's regions on foot at the slowest division's clear-ground pace, or
+ * by train; the sea route over the edges convoys may take).
+ */
+function easyPlan(
+  navy: WwNavy,
+  owner: number,
+  rows: readonly number[],
+  target: number,
+): InvasionPortPlan | WwOrderBlock {
+  const land = navy.land;
+  const sc = navy.scenario;
+  const t = land.divisions;
+  const ce = navy.econ.country(owner);
+  if (ce === null) return "dead";
+  const zones = sc.navalZones();
+  const dist = seaDistances(
+    sc,
+    [sc.harborOf(target)],
+    navy.passable(owner, false),
+  );
+  const zoneIdx = new Map<number, number>();
+  zones.forEach((z, i) => zoneIdx.set(z, i));
+  let speed = Infinity;
+  for (const r of rows) speed = Math.min(speed, land.baseStatsOf(r).speedCenti);
+  const railed = (r: number) => (land.econ.rail[r] ?? 0) >= 1;
+  return pickInvasionPort({
+    scenario: sc,
+    from: mostIn(land, rows),
+    ours: (r) => land.sameSide(owner, land.controller[r] ?? 0),
+    railOk: rows.every((r) => railed(t.region[r])),
+    railed,
+    isPort: (r) => sidePort(navy, owner, r),
+    walkStep: moveStep(speed === Infinity ? 400 : speed, 1, "clear", 1000, 0),
+    railStep: railStep(ce.stats.railSpeedPct),
+    seaKm: (port) => {
+      const i = zoneIdx.get(sc.harborOf(port));
+      const km = i === undefined ? Infinity : dist[i];
+      return km === Infinity ? null : km;
+    },
+  });
+}
+
+/**
+ * Easy: the one order. The army (split to the invasion limit, the
+ * best-organised divisions going) marches to the nearest port with a
+ * route, or starts preparing when it stands there.
+ */
+function orderEasyInvasion(
+  navy: WwNavy,
+  a: Army,
+  target: number,
+): WwOrderBlock | null {
+  const land = navy.land;
+  const t = land.divisions;
+  const sc = navy.scenario;
+  const owner = a.owner;
+  const ce = navy.econ.country(owner)!;
+  const rows = armyRows(land, a);
+  if (rows.length === 0) return "no_army";
+  if (rows.some((r) => easyBusy(land, r))) return "army_busy";
+  if (sc.harborOf(target) === 0) return "not_coastal";
+  if (!land.isEnemy(owner, land.controller[target])) return "not_at_war";
+  const cap = invasionCapacity(ce.stats, ce.researched);
+  const force = rows.length > cap ? bestOrganised(land, rows, cap) : rows;
+  const plan = easyPlan(navy, owner, force, target);
+  if (typeof plan === "string") return plan;
+  const route = invasionRoute(navy, owner, plan.port, target);
+  if (route === null) return "no_sea_path";
+  let army = a;
+  let splitFrom = 0;
+  if (force.length < rows.length) {
+    const b = land.newArmy(owner);
+    if (b === null) return "too_many_armies";
+    // The rest stay behind as the army; its own invasion (if any) ends.
+    const old = navy.invasions.get(a.id);
+    if (old !== undefined) {
+      if (old.state === ST_MOVING) haltMarch(navy, old, a);
+      dropInvasion(navy, old);
+    }
+    if (a.volunteerFor > 0) land.setVolunteerFor(b, a.volunteerFor);
+    for (const r of force) land.moveToArmy(t.id[r], b);
+    b.pending = true;
+    land.markArmy(a.id);
+    army = b;
+    splitFrom = a.id;
+    navy.message(owner, MSG.split, {
+      region: target,
+      n: force.length,
+      rest: rows.length - force.length,
+    });
+  }
+  const allMarines = force.every(
+    (r) => (land.flagsOf(r) & TPL_MARINE_ANY) !== 0,
+  );
+  const there = force.every(
+    (r) =>
+      t.region[r] === plan.port &&
+      (t.mode[r] === MOVE_NONE || t.mode[r] === MOVE_WALK),
+  );
+  setSorted(navy.invasions, army.id, {
+    army: army.id,
+    owner,
+    target,
+    from: plan.port,
+    state: there ? ST_PREPARING : ST_MOVING,
+    prepDays: easyInvasionPrepDays(
+      ce.stats,
+      ce.researched,
+      allMarines,
+      amphibiousAdmiral(navy, owner, route.srs),
+      route.km,
+    ),
+    prepDone: 0,
+    voyage: 0,
+    readySent: false,
+    easy: true,
+    lossPm: 0,
+    splitFrom,
+  });
+  if (there) {
+    for (const r of force) if (t.mode[r] === MOVE_WALK) stopDivision(land, r);
+    setArmyOrder(navy, army, target);
+  } else {
+    marchTo(navy, army, plan);
+  }
+  navy.markCountry(owner);
+  return null;
+}
+
+/** Easy: the army's move order to its port (P2's army_move / army_rail, Orders.setMove). */
+function marchTo(navy: WwNavy, a: Army, plan: InvasionPortPlan): void {
+  const land = navy.land;
+  const me = land.ownerForSides(a);
+  const from = land.armyRegion(a);
+  const mode = plan.rail ? MOVE_RAIL : MOVE_WALK;
+  a.order = { ...idleOrder(), kind: "move", to: plan.port, mode };
+  a.front = [];
+  a.planBp = 0;
+  a.pending = true;
+  a.path = plan.rail
+    ? railPath(land, me, from, plan.port)
+    : findPath(land, a, from, plan.port, (r) =>
+        land.sameSide(me, land.controller[r]),
+      );
+  land.markArmy(a.id);
+}
+
+/**
+ * Easy, the owner's day of a march to the port: every division standing
+ * there starts the preparation; on its way it goes on; stopped short or
+ * the port lost, the nearest port is found again (at most EASY_REPLANS
+ * times, else it is called off). A target no longer an enemy's calls it
+ * off; a fight on the way waits.
+ */
+function dailyMarch(navy: WwNavy, inv: Invasion, a: Army): void {
+  const land = navy.land;
+  const t = land.divisions;
+  const owner = inv.owner;
+  const rows = armyRows(land, a);
+  if (rows.length === 0 || !land.isEnemy(owner, land.controller[inv.target])) {
+    navy.message(owner, MSG.aborted, { region: inv.target });
+    haltMarch(navy, inv, a);
+    dropInvasion(navy, inv);
+    return;
+  }
+  const going = a.order.kind === "move" && a.order.to === inv.from;
+  if (!going && a.order.kind !== "idle") {
+    // Another order took the army (P2's issueArmyOrder drops it first).
+    dropInvasion(navy, inv);
+    return;
+  }
+  const portOk = sidePort(navy, owner, inv.from);
+  const there = rows.every(
+    (r) =>
+      t.region[r] === inv.from && t.mode[r] === MOVE_NONE && t.battle[r] === 0,
+  );
+  if (portOk && there) {
+    inv.state = ST_PREPARING;
+    inv.prepDone = 0;
+    setArmyOrder(navy, a, inv.target);
+    return;
+  }
+  if (portOk && going) return;
+  if (rows.some((r) => easyBusy(land, r))) return;
+  const plan = easyPlan(navy, owner, rows, inv.target);
+  const route =
+    typeof plan === "string"
+      ? null
+      : invasionRoute(navy, owner, plan.port, inv.target);
+  if (
+    typeof plan === "string" ||
+    route === null ||
+    ++inv.prepDone > EASY_REPLANS
+  ) {
+    navy.message(owner, MSG.noPort, { region: inv.target });
+    haltMarch(navy, inv, a);
+    dropInvasion(navy, inv);
+    return;
+  }
+  const ce = navy.econ.country(owner)!;
+  inv.from = plan.port;
+  inv.prepDays = easyInvasionPrepDays(
+    ce.stats,
+    ce.researched,
+    rows.every((r) => (land.flagsOf(r) & TPL_MARINE_ANY) !== 0),
+    amphibiousAdmiral(navy, owner, route.srs),
+    route.km,
+  );
+  marchTo(navy, a, plan);
+}
+
+/** Easy, ready: it sails as soon as it can; a target no longer an enemy's calls it off. */
+function easyLaunch(navy: WwNavy, inv: Invasion, tick: number): void {
+  if (launchInvasion(navy, inv.army, tick) !== "not_at_war") return;
+  navy.message(inv.owner, MSG.aborted, { region: inv.target });
+  dropInvasion(navy, inv);
+}
+
+/** Easy: the invasion voyage `v` carries, while it is an easy one's (lane C's interception caps its losses). */
+export function easyCrossing(navy: WwNavy, v: Voyage): Invasion | null {
+  if (!v.invasion) return null;
+  const inv = navy.invasions.get(v.army);
+  return inv !== undefined && inv.easy && inv.voyage === v.id ? inv : null;
+}
+
+/** The screens: why an easy, ready invasion has not sailed (no convoys…); nothing when it can. */
+export function easyWait(navy: WwNavy, inv: Invasion): { wait?: WwOrderBlock } {
+  if (!inv.easy || inv.state !== ST_READY) return {};
+  const block = invasionLaunchBlock(navy, inv.army);
+  return block === null ? {} : { wait: block };
+}
+
 /** invasion_cancel: a prepared invasion goes; one at sea turns back (spec §11.3). */
 function cancelOrder(navy: WwNavy, a: Army): WwOrderBlock | null {
   const inv = navy.invasions.get(a.id);
   if (inv === undefined) return "invasion_not_ready";
-  if (inv.state === ST_PREPARING || inv.state === ST_READY) {
+  if (ashore(inv.state)) {
+    // Easy, marching: the army stops where it is.
+    if (inv.state === ST_MOVING) haltMarch(navy, inv, a);
     dropInvasion(navy, inv);
     return null;
   }
@@ -292,7 +616,7 @@ function cancelOrder(navy: WwNavy, a: Army): WwOrderBlock | null {
 export function cancelInvasion(navy: WwNavy, army: number): void {
   const inv = navy.invasions.get(army);
   if (inv === undefined) return;
-  if (inv.state === ST_PREPARING || inv.state === ST_READY) {
+  if (ashore(inv.state)) {
     navy.invasions.delete(army);
     navy.markCountry(inv.owner);
   } else if (inv.state === ST_SAILING) {
@@ -334,7 +658,8 @@ export function invasionLaunchBlock(
   const route = invasionRoute(navy, inv.owner, inv.from, inv.target);
   if (route === null || route.km > WW_INVASION_MAX_KM) return "no_sea_path";
   const side = navy.sideOf(inv.owner);
-  for (const sr of route.srs) {
+  // Easy invasions: supremacy is a risk at sea (capped losses), not a gate.
+  for (const sr of inv.easy ? [] : route.srs) {
     if (navy.supremacy(side, sr) < WW_INVASION_LAUNCH_SUP_PM) {
       return "naval_supremacy_low";
     }
@@ -398,7 +723,10 @@ export function dailyInvasions(
       navy.markCountry(smallID);
       continue;
     }
-    if (inv.state === ST_PREPARING || inv.state === ST_READY) {
+    if (inv.state === ST_MOVING) {
+      dailyMarch(navy, inv, a);
+      navy.markCountry(smallID);
+    } else if (inv.state === ST_PREPARING || inv.state === ST_READY) {
       const at = armyAtPort(navy, a);
       // Spec §11.1: the divisions left the port, or it is lost or wrecked.
       if (
@@ -418,8 +746,10 @@ export function dailyInvasions(
           inv.readySent = true;
           navy.message(smallID, MSG.ready, { region: inv.target });
         }
-        // Spec §11.2: auto armies and the AI sail as soon as they can.
-        if (ai || a.auto) launchInvasion(navy, inv.army, tick);
+        // Spec §11.2: auto armies and the AI sail as soon as they can;
+        // an easy invasion always does (no second tap).
+        if (inv.easy) easyLaunch(navy, inv, tick);
+        else if (ai || a.auto) launchInvasion(navy, inv.army, tick);
       }
       navy.markCountry(smallID);
     } else if (inv.state === ST_SAILING) {
@@ -429,6 +759,9 @@ export function dailyInvasions(
         dropInvasion(navy, inv);
         continue;
       }
+      // Easy invasions never turn back for supremacy (lane C's capped
+      // interception losses are their risk).
+      if (inv.easy) continue;
       const zone = voyageZone(navy, v);
       const sr = zone === 0 ? 0 : navy.scenario.zoneSr(zone);
       if (
@@ -822,6 +1155,11 @@ function dropInvasion(navy: WwNavy, inv: Invasion): void {
   if (a !== undefined && a.order.kind === "invade") setArmyIdle(navy, a);
 }
 
+/** Easy, marching: the army's march to the port ends where it stands. */
+function haltMarch(navy: WwNavy, inv: Invasion, a: Army): void {
+  if (a.order.kind === "move" && a.order.to === inv.from) setArmyIdle(navy, a);
+}
+
 function setArmyOrder(navy: WwNavy, a: Army, target: number): void {
   a.order = { ...idleOrder(), kind: "invade", to: target };
   a.front = [];
@@ -888,9 +1226,15 @@ export function amphibiousModsFor(
   const mines =
     sr === 0 ? 0 : minesInvasionCutPct(navy.ww.depth, sr, t.owner[row]);
   return {
-    attackBp: -landingBp(marines, ce.researched) - 100 * mines,
+    attackBp:
+      -landingBp(marines, ce.researched, easyLanding(navy, row)) - 100 * mines,
     defenseBp: 0,
   };
+}
+
+/** Easy invasions: the landing division's army lands on the easy rules (−40%, marines −20%). */
+export function easyLanding(navy: WwNavy, row: number): boolean {
+  return navy.invasions.get(navy.land.divisions.army[row])?.easy === true;
 }
 
 /**

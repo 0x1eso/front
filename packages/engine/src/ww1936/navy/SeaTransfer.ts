@@ -21,6 +21,7 @@ import {
   interceptLossPm,
   seaTransferBlock,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
+import { easyInterceptLossPm } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { loseConvoys } from "../economy/Buildings";
@@ -43,7 +44,7 @@ import {
   USE_VOYAGE,
 } from "./Convoys";
 import { onConvoysLost } from "./EndgameHooks";
-import { cancelInvasion, landInvasion } from "./Invasions";
+import { cancelInvasion, easyCrossing, landInvasion } from "./Invasions";
 import { navalPort } from "./Ports";
 import { enemySupPm, hostileSides } from "./SeaSupply";
 import type { SeaRoute, Voyage, WwNavy } from "./WwNavy";
@@ -461,11 +462,17 @@ function intercept(navy: WwNavy, v: Voyage, day: number): void {
   const idx = sc.srIdxOf(sr);
   if (idx < 0) return;
   const side = land.sideOf(v.owner);
-  const pm = interceptLossPm(
-    navy.supremacy(side, sr),
-    enemySupPm(navy, side, sr),
-  );
+  const ours = navy.supremacy(side, sr);
+  const enemy = enemySupPm(navy, side, sr);
+  // Easy invasions (owner brief 2026-10-30): the same loss below 40% too,
+  // the crossing's total capped (InvasionRules.easyInterceptLossPm).
+  const easy = easyCrossing(navy, v);
+  const pm =
+    easy === null
+      ? interceptLossPm(ours, enemy)
+      : easyInterceptLossPm(ours, enemy, easy.lossPm);
   if (pm <= 0) return;
+  if (easy !== null) easy.lossPm += pm;
   damageDivisions(land, v.divisions, pm);
   const t = land.divisions;
   for (const id of v.divisions) {

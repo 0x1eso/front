@@ -1,6 +1,7 @@
 // World War 1936 P4 — navy (docs/superpowers/specs/2026-10-20-ww1936-p4-navy-air-design.md).
 // zbin and snapshots store these lists by position: append only.
 import type { WwOrder } from "../Schemas";
+import type { WwOrderBlock } from "./EconomyTypes";
 
 export const SHIP_CLASSES = ["dd", "cl", "ca", "bc", "bb", "cv", "ss"] as const;
 export type ShipClass = (typeof SHIP_CLASSES)[number];
@@ -102,6 +103,9 @@ export const INVASION_STATES = [
   "sailing",
   "landing",
   "returning",
+  // Easy invasions (human countries, 2026-10-30), appended: the army walks
+  // or rides the train to the port it sails from.
+  "moving",
 ] as const;
 export type InvasionState = (typeof INVASION_STATES)[number];
 
@@ -302,6 +306,14 @@ export interface InvasionData {
   convoys: number;
   /** Route sea regions and our last supremacy there, ‰. */
   route: [number, number][];
+  /** Easy rules (a human controlled the country at the order; AI: absent). */
+  easy?: boolean;
+  /** Easy, ready: why it has not sailed today (no_convoys…); absent: it sails. */
+  wait?: WwOrderBlock;
+  /** Easy: the crossing's losses so far, ‰ (WW_EASY_INVASION_LOSS_CAP_PM at most). */
+  lossPm?: number;
+  /** Easy: the army the landing force was split from (0: none). */
+  splitFrom?: number;
 }
 export interface NavalLineData {
   id: number;
@@ -338,6 +350,8 @@ export interface CountryNavyDetail {
   fuelRatioPm: number;
   /** P4 lane U: my divisions with a landing mark (spec §11.4: they fight at the landing's cut). */
   landing?: number[];
+  /** Easy invasions: those of `landing` that fight at the easy cut (WW_EASY_LANDING_BP). */
+  landingEasy?: number[];
   /** P4 lane U: my admirals now — [id, attack, defense, maneuver, coordination, trait bits, level]. */
   admiralSkills?: [number, number, number, number, number, number, number][];
   /** P4 Task 15: [the first tick of today, my ships sunk today by anything] (the ⚓ dial's badge). */
@@ -395,6 +409,26 @@ export const WW_INVASION_PREP_DAYS = 60;
 export const WW_INVASION_MAX_KM = 8_000;
 export const WW_INVASION_LAUNCH_SUP_PM = 500;
 export const WW_INVASION_ABORT_SUP_PM = 400;
+// Easy naval invasions (human countries only, owner brief 2026-10-30): the
+// AI keeps spec §11's rules above.
+/** Preparation days of an easy invasion (60 for the AI). */
+export const WW_EASY_INVASION_PREP_DAYS = 20;
+/** …when every division of the landing force has a marine battalion. */
+export const WW_EASY_INVASION_MARINE_PREP_DAYS = 10;
+/** …over a short crossing (a route of WW_EASY_INVASION_SHORT_KM or less). */
+export const WW_EASY_INVASION_SHORT_PREP_DAYS = 5;
+/** A short crossing: the English Channel, the Danish straits, Sicily–Italy. */
+export const WW_EASY_INVASION_SHORT_KM = 300;
+/** At or above this supremacy ‰ a crossing loses nothing (spec §10.4's 50%). */
+export const WW_EASY_INVASION_SAFE_SUP_PM = 500;
+/** The daily loss ‰ at 0‰ supremacy, scaled down linearly to the safe level (spec §10.4: 10%). */
+export const WW_EASY_INVASION_LOSS_AT_ZERO_PM = 100;
+/** A crossing's losses stop at this share ‰ of strength and equipment. */
+export const WW_EASY_INVASION_LOSS_CAP_PM = 500;
+/** The landing's own cut of an easy invasion, bp (−40%; the AI's −70%). */
+export const WW_EASY_LANDING_BP = 4000;
+/** …with marines (−20%; the AI's −35%). */
+export const WW_EASY_LANDING_MARINE_BP = 2000;
 export const WW_BEACHHEAD_DAYS = 30;
 export const WW_BEACHHEAD_CAPACITY_MILLI = 6_000;
 export const WW_RAID_CAP_PM = 30;

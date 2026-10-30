@@ -1,5 +1,7 @@
 // World War 1936 P4 (plan Task 6 Step 8): naval invasions (P4 spec §11) on
-// the test map ww1936sea, a human Britain against a human Italy at war.
+// the test map ww1936sea, a human Britain against a human Italy at war,
+// ordering on spec §11's rules (the AI's; a human's easy invasions are
+// EasyInvasions.test.ts).
 // Lane C carries the voyages; where a test needs one at sea it builds the
 // record as C's startVoyage does (convoys bound, divisions lifted) and
 // calls landInvasion as C's stepSeaVoyages does on arrival, without
@@ -115,6 +117,9 @@ async function atWar(extra: CountryTag[] = []) {
   stockUp(g, "ITA");
   const ww = g.worldWar()!;
   expect(ww.land.isEnemy(GBR, ITA)).toBe(true);
+  // These tests pin spec §11's rules — the AI's since the easy invasions
+  // (EasyInvasions.test.ts): the human test countries order on them here.
+  vi.spyOn(ww.navy, "easyInvasion").mockReturnValue(false);
   return { runner, g, ww, navy: ww.navy, l: ww.land };
 }
 

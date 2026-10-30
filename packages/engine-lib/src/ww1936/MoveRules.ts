@@ -121,3 +121,38 @@ export function shortestPath(
   }
   return path.reverse();
 }
+
+/**
+ * shortestPath's costs from `from` to every region it reaches at once
+ * (easy invasions pick the port nearest by travel time): the same
+ * Dijkstra over regions `pass` accepts (`from` itself always), an edge at
+ * least 1 tick, run until every reachable region is settled. Region →
+ * ticks, `from` at 0; insertion order is the settling order.
+ */
+export function regionDistances(
+  scenario: ScenarioIndex,
+  from: number,
+  pass: (region: number) => boolean,
+  cost: (edge: number, to: number) => number,
+): Map<number, number> {
+  const dist = new Map<number, number>([[from, 0]]);
+  const out = new Map<number, number>();
+  const open = new RegionHeap();
+  open.push(0, from);
+  while (open.size > 0) {
+    const u = open.pop();
+    const du = open.lastDist;
+    if (out.has(u) || du !== dist.get(u)) continue;
+    out.set(u, du);
+    for (const e of scenario.edgesOf(u)) {
+      if (out.has(e.to) || !pass(e.to)) continue;
+      const nd = du + Math.max(1, cost(e.edge, e.to));
+      const old = dist.get(e.to);
+      if (old === undefined || nd < old) {
+        dist.set(e.to, nd);
+        open.push(nd, e.to);
+      }
+    }
+  }
+  return out;
+}
