@@ -63,8 +63,9 @@ export const AI_PEACE_LOW_WS_PCT = 40;
 /** The accept chance never passes this (percent). */
 export const AI_PEACE_MAX_PCT = 85;
 /**
- * Negotiated peace: the target's side's war-score lead moves its accept
- * chance down by up to this much (percent; a deficit, up).
+ * Negotiated peace: the target's side's war-score lead takes up to this
+ * much (percent) off its accept chance. A deficit adds nothing (the rule
+ * stays tight: a white peace is never likelier than before).
  */
 export const AI_PEACE_SCORE_PCT = 10;
 /** The AI offers peace when losing badly: this close to its surrender line (‰)… */
@@ -619,7 +620,7 @@ export function aiAcceptPct(eg: WwEndgame, o: PeaceOffer, day: number): number {
  * aiAcceptPct for an offer of `from` (its group: the whole side, or it and
  * its puppets) to `to` in `w`. Negotiated peace adds the war score: the
  * target's side ahead on it (its share of the war's score past half)
- * takes up to AI_PEACE_SCORE_PCT off, behind adds as much.
+ * takes up to AI_PEACE_SCORE_PCT off; behind, nothing changes.
  */
 export function acceptPct(
   eg: WwEndgame,
@@ -644,7 +645,7 @@ export function acceptPct(
       w.sides[s].members.reduce((n, m) => n + Math.max(0, m.wsMilli), 0);
     const mine = score(sTo);
     const lead = 2 * sharePm(mine, [mine, score(sTo === 0 ? 1 : 0)]) - 1000;
-    pct -= Math.trunc((lead * AI_PEACE_SCORE_PCT) / 1000);
+    if (lead > 0) pct -= Math.floor((lead * AI_PEACE_SCORE_PCT) / 1000);
   }
   pct = Math.max(0, pct);
   // A much stronger side takes no stalemate peace: only its own losses count.
