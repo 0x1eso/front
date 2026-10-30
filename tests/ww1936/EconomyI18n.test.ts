@@ -184,7 +184,13 @@ const KEYS = [
   ...DOCTRINE_SCHOOLS.map((s) => `ww1936.school.${s}`),
   ...WW_TECH_IDS.map((t) => `ww1936.tech.${t}`),
   ...EFFECTS.map((e) => `ww1936.effect.${e}`),
-  ...WW_ORDER_BLOCKS.map((b) => `ww1936.econ.block.${b}`),
+  // Negotiated peace refuses Korea and Taiwan with the conference's own
+  // reasons (EconomyModel.BLOCK_KEYS).
+  ...WW_ORDER_BLOCKS.map((b) =>
+    b === "zone_only" || b === "claim_only"
+      ? `ww1936.peace.why.${b}`
+      : `ww1936.econ.block.${b}`,
+  ),
   ...LAW_NEED.map((v) => `ww1936.econ.law_need.${v}`),
   ...ECON.map((e) => `ww1936.econ.${e}`),
   // P2 (plan Task 1 Step 22): the manpower tab's land rows (P3: today's
@@ -217,8 +223,8 @@ describe("World War 1936 P1 economy strings", () => {
     // P2, then P3's 24 (plan decision 3), then P4's 27 (P4 spec §19.3) and
     // the no-strike rule (P6 pre-flight), then P5's 15 (P5 plan decision 36),
     // then P6's 32 (P6 spec §21.4; no_civs and no_xp existed).
-    // White peace: 5 more.
-    expect(WW_ORDER_BLOCKS.length).toBe(43 + 24 + 28 + 15 + 32 + 5 + 1);
+    // White peace: 5 more; easy invasions 1; negotiated peace 5.
+    expect(WW_ORDER_BLOCKS.length).toBe(43 + 24 + 28 + 15 + 32 + 5 + 1 + 5);
   });
 
   it.each(KEYS)("%s exists in en and ko with matching placeholders", (key) => {

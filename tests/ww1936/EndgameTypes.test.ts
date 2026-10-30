@@ -127,6 +127,12 @@ describe("World War 1936 P5 lists", () => {
       "peace_pending",
       "peace_no_offer",
       "no_invasion_port",
+      // Negotiated peace appends its five.
+      "peace_bad_terms",
+      "peace_capital",
+      "peace_too_much",
+      "zone_only",
+      "claim_only",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,

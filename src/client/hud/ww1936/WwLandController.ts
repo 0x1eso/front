@@ -49,6 +49,7 @@ import {
   MULTI_PRESS_MS,
   multiSelectOf,
 } from "./MultiSelect";
+import { negPeaceMapTap } from "./NegPeaceModel";
 import { peaceMapTap } from "./PeaceModel";
 import { today, TWO_TAP_MIN_MS, wwActive } from "./WorldWarModel";
 import type { WwSeaAirController } from "./WwSeaAirController";
@@ -360,6 +361,8 @@ export class WwLandController implements Controller {
     const w = this.transform.screenToWorldCoordinatesFloat(x, y);
     // P5 (lane U1, spec §20.2): the conference map mode takes every tap first.
     if (peaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
+    // Negotiated peace: the composer's region pick mode, likewise.
+    if (negPeaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     const radius = TAP_RADIUS_PX / zoom;
     if (this.multi.active || this.multi.frontGroup !== null) {
       return this.multiTap(view, me, w, zoom);

@@ -19,6 +19,7 @@ import { DepthMiscModel } from "./DepthMiscModel";
 import type { WarCard } from "./EndgameModel";
 import { countryBadges, endgameKey } from "./EndgameModel";
 import { countryText } from "./EndgameNames";
+import { negPeaceComposer, negPeaceUiOf } from "./NegPeaceModel";
 import {
   canAct,
   factionTab,
@@ -51,6 +52,7 @@ import {
   WwDrawerEvent,
 } from "./WwDrawer";
 import { renderFactionRules, renderRelations } from "./WwFactionRulesCard";
+import { negPeaceComposerTemplate } from "./WwNegPeaceComposer";
 import {
   WwClosePanelEvent,
   WwPanelMinimizedEvent,
@@ -237,6 +239,8 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       this.tab === "aid" ? (this.game?.wwEconomy?.()?.detail(me) ?? null) : 0,
       this.tab === "aid" ? (this.game?.wwLand?.()?.version ?? 0) : 0,
       this.game?.wwDepth?.()?.version ?? 0,
+      // Negotiated peace: my draft (changed on the map, too).
+      this.game ? negPeaceUiOf(this.game).version : 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
@@ -590,45 +594,90 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
   // ---- Wars and war goals ----
 
   /**
-   * White peace (owner-approved plan §6): my ongoing war's offer button —
-   * "Whole war" when I lead my side, else "Separate peace (leaves the
-   * faction)"; two taps send it; greyed with the reason; "waiting for the
-   * answer" while my offer stands.
+   * White peace (owner-approved plan §6), negotiated peace (owner request
+   * "7번"): my ongoing war's [Offer peace] — "Whole war" when I lead my
+   * side, else "Separate peace (leaves the faction)"; greyed with the
+   * reason; "waiting for the answer" while my offer stands. It opens the
+   * composer (terms each way, the chance they accept); with no terms it
+   * sends a white peace, as before (two taps on [Send offer]).
    */
   private renderWhitePeace(c: WarCard, me: number) {
     if (c.ended || c.mySide < 0) return nothing;
     const w = this.game.wwEndgame?.()?.wars.find((x) => x.id === c.id);
     const b = w === undefined ? null : whitePeaceButton(this.game, me, w);
-    if (b === null) return nothing;
+    if (b === null || w === undefined) return nothing;
+    const ui = negPeaceUiOf(this.game);
+    // The other side's leader changed while I composed: the draft goes.
+    if (ui.war === b.war && ui.target !== b.target) ui.close();
+    const composer =
+      b.pending || b.block !== null ? null : negPeaceComposer(this.game, me, w);
+    if (composer === null && ui.war === b.war && (b.pending || b.block)) {
+      // The offer went (or can't go now): the draft goes.
+      ui.close();
+    }
     const key = `wpeace:${b.war}:${b.target}`;
     const armed = this.armed(key);
+    const redraw = () => this.requestUpdate();
     return html`<div
-      data-ww-wpeace-row=${b.war}
-      class="mt-1 flex flex-wrap items-center gap-1.5"
-    >
-      ${b.pending
-        ? html`<span data-ww-wpeace-pending class="text-xs text-amber-200"
-            >${translateText("ww1936.wpeace.pending")}</span
-          >`
-        : html`<button
-            type="button"
-            data-ww-act="peace_offer"
-            data-armed=${String(armed)}
-            class="${BUTTON} ${armed ? "ring-2 ring-red-400" : ""}"
-            ?disabled=${b.block !== null}
-            @click=${() => this.confirmTap(key, () => this.send(b.order))}
-          >
-            ${armed
-              ? translateText("ww1936.pol.tap_again")
-              : translateText("ww1936.wpeace.offer")}
-          </button>`}
-      <span class="text-xs text-white/60">${b.scope}</span>
-      ${b.block === null || b.pending
+        data-ww-wpeace-row=${b.war}
+        class="mt-1 flex flex-wrap items-center gap-1.5"
+      >
+        ${b.pending
+          ? html`<span data-ww-wpeace-pending class="text-xs text-amber-200"
+              >${translateText("ww1936.wpeace.pending")}</span
+            >`
+          : composer !== null
+            ? nothing
+            : html`<button
+                type="button"
+                data-ww-act="peace_compose"
+                class=${BUTTON}
+                ?disabled=${b.block !== null}
+                @click=${() => {
+                  ui.open(b.war, b.target);
+                  redraw();
+                }}
+              >
+                ${translateText("ww1936.wpeace.offer")}
+              </button>`}
+        <span class="text-xs text-white/60">${b.scope}</span>
+        ${b.block === null || b.pending
+          ? nothing
+          : html`<span data-ww-wpeace-block class="text-xs text-red-300"
+              >${b.block}</span
+            >`}
+      </div>
+      ${composer === null
         ? nothing
-        : html`<span data-ww-wpeace-block class="text-xs text-red-300"
-            >${b.block}</span
-          >`}
-    </div>`;
+        : negPeaceComposerTemplate(composer, {
+            armed,
+            pick: () => ui.openMap(),
+            remove: (r) => {
+              ui.remove(r);
+              redraw();
+            },
+            pay: (lv) => {
+              ui.setPay(lv);
+              redraw();
+            },
+            demand: (lv) => {
+              ui.setDemand(lv);
+              redraw();
+            },
+            free: (id) => {
+              ui.toggleFree(id);
+              redraw();
+            },
+            send: () =>
+              this.confirmTap(key, () => {
+                this.send(composer.order);
+                ui.close();
+              }),
+            cancel: () => {
+              ui.close();
+              redraw();
+            },
+          })}`;
   }
 
   private renderWars(i: PoliticsModelInput | null): TemplateResult {

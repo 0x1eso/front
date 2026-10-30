@@ -138,8 +138,13 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     // P1's 14 keys, P2's 20 (plan decision 11), the unlock line, P4's 9
     // and its 15 doctrine keys (P6 pre-flight).
     expect(Object.keys(EFFECT_KEYS)).toHaveLength(59);
+    // Negotiated peace refuses Korea and Taiwan with the conference's reasons.
     for (const b of WW_ORDER_BLOCKS)
-      expect(BLOCK_KEYS[b]).toBe(`ww1936.econ.block.${b}`);
+      expect(BLOCK_KEYS[b]).toBe(
+        b === "zone_only" || b === "claim_only"
+          ? `ww1936.peace.why.${b}`
+          : `ww1936.econ.block.${b}`,
+      );
   });
 
   it("the top band shows factories, manpower and the shortage dot", () => {

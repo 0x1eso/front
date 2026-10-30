@@ -80,6 +80,7 @@ function offer(deadlineTick: number): WwPeaceOfferView {
       { id: ID("POL"), capPm: 450, scorePm: 360 },
     ],
     held: [[ID("DEU"), ID("POL"), 350]],
+    terms: null,
   };
 }
 

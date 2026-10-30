@@ -279,6 +279,9 @@ export const DERIVED_FIELDS = new Set<string>([
   "dirtyControllers",
   "dirtyTakeover",
   "firstData",
+  // Negotiated peace: the judge rows' day and last sent rows (screens only).
+  "judgeDay",
+  "judgeSent",
   "volunteerArmyCount",
   // World War 1936 P6 (plan Task 1 Step 10): the depth systems' design and
   // key-stat caches, mine and facility indexes, cache keys and design

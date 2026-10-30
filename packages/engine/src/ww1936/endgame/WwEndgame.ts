@@ -70,6 +70,7 @@ import {
   volunteerCanEnter,
 } from "./LendLease";
 import { returnLiberated } from "./Liberation";
+import { peaceJudgeData } from "./NegPeace";
 import {
   garrisonOrder,
   integrateRegion,
@@ -252,6 +253,14 @@ const InTransitSchema = z.object({
   costMilli: zInt(),
 });
 export type InTransit = z.infer<typeof InTransitSchema>;
+/** Negotiated peace (NegPeace.ts): an offer's terms (EndgameTypes.WwPeaceTerms). */
+const PeaceTermsSchema = z.object({
+  give: zIds(),
+  take: zIds(),
+  pay: zInt(),
+  demand: zInt(),
+  free: zIds(),
+});
 /** White peace (WhitePeace.ts): a pending offer. */
 const PeaceOfferSchema = z.object({
   id: zInt(),
@@ -262,6 +271,8 @@ const PeaceOfferSchema = z.object({
   sentTick: zInt(),
   /** A human target's deadline (an AI target answers on the next tick). */
   deadlineTick: zInt(),
+  /** Negotiated peace: the terms (absent: a white peace; older snapshots have none). */
+  terms: PeaceTermsSchema.optional(),
 });
 export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 export const WwEndgameStateSchema = z.object({
@@ -459,6 +470,9 @@ export class WwEndgame {
   dirtyTakeover = false;
   dirtyPeace = false;
   firstData = true;
+  /** Negotiated peace (screens only): the day the judge rows were made, and the rows last sent (JSON). */
+  judgeDay = -1;
+  judgeSent = "";
 
   constructor(
     readonly mg: Game,
@@ -627,7 +641,14 @@ export class WwEndgame {
       case "army_garrison":
         return garrisonOrder(this, smallID, order.army, order.scope);
       case "peace_offer":
-        return offerPeace(this, smallID, order.war, order.target, tick);
+        return offerPeace(
+          this,
+          smallID,
+          order.war,
+          order.target,
+          tick,
+          order.terms,
+        );
       case "peace_reply":
         return replyPeace(this, smallID, order.offer, order.accept, tick);
       default:
@@ -1507,6 +1528,10 @@ export class WwEndgame {
         u,
       ]);
     }
+    // Negotiated peace: the judge's war facts for the humans' offers (the
+    // composer's hint), once a day and when the wars change; sent on change.
+    const judge = peaceJudgeData(this, first);
+    if (judge !== null) d.peaceJudge = judge;
     const empty = Object.keys(d).length === 1 && d.news.length === 0;
     this.endgameNews = [];
     this.firstData = false;
@@ -1883,6 +1908,16 @@ export class WwEndgame {
       mix(o.whole ? 1 : 0);
       mix(o.sentTick);
       mix(o.deadlineTick);
+      // Negotiated peace: the terms, field by field (none: a 0).
+      const t = o.terms;
+      mix(t === undefined ? 0 : 1);
+      if (t !== undefined) {
+        ids(t.give);
+        ids(t.take);
+        mix(t.pay);
+        mix(t.demand);
+        ids(t.free);
+      }
     }
     for (const list of [this.peaceCooldowns, this.truces]) {
       mix(list.length);

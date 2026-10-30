@@ -91,6 +91,9 @@ import {
 import {
   OCCUPATION_LAWS,
   WW_AIR_VOLUNTEER_MAX,
+  WW_NEG_PEACE_MAX_FREE,
+  WW_NEG_PEACE_MAX_REGIONS,
+  WW_NEG_REPARATIONS_MAX_LEVEL,
   WW_PEACE_DEMANDS_PER_ROUND,
 } from "./ww1936/EndgameTypes";
 import {
@@ -1427,7 +1430,21 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   }),
   // White peace (EndgameTypes.WHITE_PEACE_ORDER_KINDS), appended: an offer
   // in one of my wars to the other side's leader, and my answer to one.
-  z.object({ kind: z.literal("peace_offer"), war: WwId, target: WwCountry }),
+  // Negotiated peace: the offer may carry terms (none: a white peace).
+  z.object({
+    kind: z.literal("peace_offer"),
+    war: WwId,
+    target: WwCountry,
+    terms: z
+      .object({
+        give: z.array(WwRegionId).max(WW_NEG_PEACE_MAX_REGIONS),
+        take: z.array(WwRegionId).max(WW_NEG_PEACE_MAX_REGIONS),
+        pay: zb.uint({ max: WW_NEG_REPARATIONS_MAX_LEVEL }),
+        demand: zb.uint({ max: WW_NEG_REPARATIONS_MAX_LEVEL }),
+        free: z.array(WwCountry).max(WW_NEG_PEACE_MAX_FREE),
+      })
+      .optional(),
+  }),
   z.object({
     kind: z.literal("peace_reply"),
     offer: WwId,

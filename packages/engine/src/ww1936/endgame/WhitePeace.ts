@@ -16,8 +16,14 @@ import {
   WW_WHITE_PEACE_PP,
   WW_WHITE_PEACE_STALEMATE_DAYS,
   WwPeaceOfferView,
+  WwPeaceTerms,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
+import {
+  hasPeaceTerms,
+  negPeaceAccepts,
+} from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
@@ -25,6 +31,16 @@ import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { landRegained } from "./Activate";
+import {
+  aiPeaceTerms,
+  applyPeaceTerms,
+  negPeaceFacts,
+  offerValue,
+  peaceJudgeOf,
+  peaceTermsBlock,
+  peaceTermsView,
+  storedTerms,
+} from "./NegPeace";
 import { countryParams } from "./Wars";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
@@ -46,6 +62,12 @@ export const AI_PEACE_LOW_WS_BP = 5000;
 export const AI_PEACE_LOW_WS_PCT = 40;
 /** The accept chance never passes this (percent). */
 export const AI_PEACE_MAX_PCT = 85;
+/**
+ * Negotiated peace: the target's side's war-score lead takes up to this
+ * much (percent) off its accept chance. A deficit adds nothing (the rule
+ * stays tight: a white peace is never likelier than before).
+ */
+export const AI_PEACE_SCORE_PCT = 10;
 /** The AI offers peace when losing badly: this close to its surrender line (‰)… */
 export const AI_PROPOSE_CAP_PM = 500;
 /** …or the enemy holds this much of its (its side's, for a leader) land (‰). */
@@ -67,7 +89,8 @@ const HELD_ROWS = 4;
 const P_WPEACE = idHash("white_peace");
 
 type Member = WwWar["sides"][0]["members"][number];
-const fighting = (m: Member | null): boolean =>
+/** Still in the war: active or in exile. */
+export const fighting = (m: Member | null): boolean =>
   m !== null && (m.state === "active" || m.state === "exiled");
 
 /** A puppet (or integrated subject) follows its overlord: it never offers peace itself. */
@@ -91,12 +114,12 @@ function followers(eg: WwEndgame, w: WwWar, id: number): number[] {
 }
 
 /** Every member of side `s` of `w` (any state). */
-function sideIds(w: WwWar, s: 0 | 1): number[] {
+export function sideIds(w: WwWar, s: 0 | 1): number[] {
   return w.sides[s].members.map((m) => m.id);
 }
 
 /** The countries an offer makes peace for: the whole side, or the proposer and its puppets. */
-function proposerGroup(
+export function proposerGroup(
   eg: WwEndgame,
   w: WwWar,
   from: number,
@@ -323,8 +346,9 @@ export function peaceOfferBlock(
 }
 
 /**
- * peace_offer: `from` offers `target` a white peace in war `warId` — the
- * whole war when it leads its side, else a separate peace. The political
+ * peace_offer: `from` offers `target` peace in war `warId` — the whole war
+ * when it leads its side, else a separate peace — a white peace, or with
+ * `terms` (negotiated peace: checked by NegPeaceRules). The political
  * power goes now; a human target gets the card until its deadline.
  */
 export function offerPeace(
@@ -333,10 +357,14 @@ export function offerPeace(
   warId: number,
   target: number,
   tick: number,
+  terms?: WwPeaceTerms,
 ): WwOrderBlock | null {
   const day = eg.ww.day(tick);
   const block = peaceOfferBlock(eg, from, warId, target, day);
   if (block !== null) return block;
+  const stored = storedTerms(terms);
+  const bad = peaceTermsBlock(eg, from, target, stored);
+  if (bad !== null) return bad;
   const pol = eg.ww.politics;
   if (!payPp(pol, from, WW_WHITE_PEACE_PP)) return "no_pp";
   pol.markCountry(from);
@@ -357,6 +385,7 @@ export function offerPeace(
       ? tick +
         wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS)
       : tick,
+    ...(stored === undefined ? {} : { terms: stored }),
   });
   eg.dirtyPeace = true;
   return null;
@@ -417,7 +446,12 @@ function resolveOffer(
   eg.dirtyPeace = true;
   const day = eg.ww.day(tick);
   const names = countryParams(eg, { target: o.to });
-  if (!offerStands(eg, o)) {
+  // Negotiated peace: terms that no longer hold (a region changed its
+  // legal owner meanwhile) lapse the offer too.
+  if (
+    !offerStands(eg, o) ||
+    (accept && peaceTermsBlock(eg, o.from, o.to, o.terms) !== null)
+  ) {
     eg.message(o.from, "ww1936_wpeace_lapsed", names);
     return;
   }
@@ -451,6 +485,10 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
   const day = eg.ww.day(tick);
   const until = day + WW_TRUCE_DAYS;
   const keep = (r: number) => eg.isZone(r);
+  // Negotiated peace: the terms first (a ceded region is the receiver's by
+  // law, so end_war leaves it with it); the rest is status quo ante.
+  const terms = hasPeaceTerms(o.terms);
+  applyPeaceTerms(eg, o, tick);
   if (o.whole) {
     // Status quo ante: those still in it, and those that capitulated
     // without an exile (their land comes back); every cross pair keeps
@@ -482,7 +520,10 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
     }
     pol.markGlobal();
   }
-  pol.news("news_white_peace", countryParams(eg, { a: o.from, b: o.to }));
+  pol.news(
+    terms ? "news_neg_peace" : "news_white_peace",
+    countryParams(eg, { a: o.from, b: o.to }),
+  );
 }
 
 /**
@@ -572,25 +613,49 @@ function warState(eg: WwEndgame, w: WwWar, from: number, whole: boolean) {
  */
 export function aiAcceptPct(eg: WwEndgame, o: PeaceOffer, day: number): number {
   const w = eg.war(o.war);
-  if (w === null) return 0;
-  const st = warState(eg, w, o.from, o.whole);
+  return w === null ? 0 : acceptPct(eg, w, o.from, o.to, o.whole, day);
+}
+
+/**
+ * aiAcceptPct for an offer of `from` (its group: the whole side, or it and
+ * its puppets) to `to` in `w`. Negotiated peace adds the war score: the
+ * target's side ahead on it (its share of the war's score past half)
+ * takes up to AI_PEACE_SCORE_PCT off; behind, nothing changes.
+ */
+export function acceptPct(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  to: number,
+  whole: boolean,
+  day: number,
+): number {
+  const st = warState(eg, w, from, whole);
   if (
-    surrenderPm(eg, o.from) >= AI_PEACE_REFUSE_CAP_PM ||
+    surrenderPm(eg, from) >= AI_PEACE_REFUSE_CAP_PM ||
     st.heldByTarget >= AI_PEACE_REFUSE_HELD_PM
   ) {
     return 0;
   }
-  let pct = Math.floor((surrenderPm(eg, o.to) * AI_PEACE_LOSING_PCT) / 1000);
+  let pct = Math.floor((surrenderPm(eg, to) * AI_PEACE_LOSING_PCT) / 1000);
   pct += Math.floor((st.heldByProposer * AI_PEACE_LOST_LAND_PCT) / 1000);
+  const sTo = eg.sideIndex(w, to);
+  if (sTo !== -1) {
+    const score = (s: 0 | 1) =>
+      w.sides[s].members.reduce((n, m) => n + Math.max(0, m.wsMilli), 0);
+    const mine = score(sTo);
+    const lead = 2 * sharePm(mine, [mine, score(sTo === 0 ? 1 : 0)]) - 1000;
+    if (lead > 0) pct -= Math.floor((lead * AI_PEACE_SCORE_PCT) / 1000);
+  }
+  pct = Math.max(0, pct);
   // A much stronger side takes no stalemate peace: only its own losses count.
-  const sTo = eg.sideIndex(w, o.to);
   if (sTo !== -1 && muchStronger(eg, w, sTo)) {
     return Math.min(AI_PEACE_MAX_PCT, pct);
   }
   if (stalemateDays(eg, w.id, day) >= WW_WHITE_PEACE_STALEMATE_DAYS) {
     pct += AI_PEACE_STALEMATE_PCT;
   }
-  const ws = eg.ww.politics.country(o.to)?.wsBp ?? AI_PEACE_LOW_WS_BP;
+  const ws = eg.ww.politics.country(to)?.wsBp ?? AI_PEACE_LOW_WS_BP;
   if (ws < AI_PEACE_LOW_WS_BP) {
     pct += Math.floor(
       ((AI_PEACE_LOW_WS_BP - ws) * AI_PEACE_LOW_WS_PCT) / AI_PEACE_LOW_WS_BP,
@@ -599,13 +664,25 @@ export function aiAcceptPct(eg: WwEndgame, o: PeaceOffer, day: number): number {
   return Math.min(AI_PEACE_MAX_PCT, pct);
 }
 
-/** The AI target's answer: its chance against a seeded roll of the offer. */
+/** The offer's seeded roll, 0..99 (the white peace's). */
+export function offerRoll(eg: WwEndgame, o: PeaceOffer): number {
+  return (
+    (wwRoll(eg.ww.politics.seed, P_WPEACE, o.id, o.from, o.to) >>> 8) % 100
+  );
+}
+
+/**
+ * The AI target's answer (negotiated peace, NegPeaceRules): the terms'
+ * value to its side against what the war says it needs at the offer's
+ * seeded roll. A white peace (value 0) is accepted exactly when the roll
+ * is under its chance (aiAcceptPct; 0: never).
+ */
 export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
-  const pct = aiAcceptPct(eg, o, day);
-  if (pct <= 0) return false;
-  const roll =
-    (wwRoll(eg.ww.politics.seed, P_WPEACE, o.id, o.from, o.to) >>> 8) % 100;
-  return roll < pct;
+  const w = eg.war(o.war);
+  if (w === null) return false;
+  const f = negPeaceFacts(eg);
+  const j = peaceJudgeOf(eg, w, o.from, o.to, o.whole, day, f);
+  return negPeaceAccepts(j, offerValue(eg, w, o, f), offerRoll(eg, o));
 }
 
 /**
@@ -664,7 +741,9 @@ export function aiPeaceDay(
     const target = w.sides[1 - s].leader;
     if (peaceOfferBlock(eg, id, wid, target, day) !== null) continue;
     if (!aiWantsPeace(eg, w, id, day)) continue;
-    offerPeace(eg, id, wid, target, tick);
+    // Negotiated peace: the losing side gives, a side ahead may demand.
+    const terms = aiPeaceTerms(eg, w, id, target, day) ?? undefined;
+    offerPeace(eg, id, wid, target, tick, terms);
     return;
   }
 }
@@ -683,6 +762,7 @@ export function peaceOfferView(eg: WwEndgame, o: PeaceOffer): WwPeaceOfferView {
     whole: o.whole,
     sentTick: o.sentTick,
     deadlineTick: o.deadlineTick,
+    terms: peaceTermsView(eg, o),
   };
   if (w === null) return { ...base, sides: [empty, empty], held: [] };
   const sf = eg.sideIndex(w, o.from);

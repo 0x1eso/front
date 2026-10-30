@@ -701,6 +701,14 @@ export const WW_ORDER_BLOCKS = [
   // Easy naval invasions (owner brief 2026-10-30), appended: no port of our
   // side the landing force can reach over land.
   "no_invasion_port",
+  // Negotiated peace (owner request 2026-10-30), appended: terms the giver
+  // can't give, its capital, more than 40% of its victory points, and the
+  // Korea / Taiwan rules (PeaceRules.peaceRegionBlock's reasons).
+  "peace_bad_terms",
+  "peace_capital",
+  "peace_too_much",
+  "zone_only",
+  "claim_only",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

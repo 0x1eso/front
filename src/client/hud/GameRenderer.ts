@@ -64,7 +64,7 @@ import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { seaAirFacts } from "./ww1936/NavyModel";
-import { peaceMapSource } from "./ww1936/PeaceModel";
+import { wwPeaceMapSource } from "./ww1936/NegPeaceModel";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
@@ -682,7 +682,7 @@ export function createRenderer(
       view.setWwEndgame(wwEndgame);
       // P5 (spec §20.2–§20.3): the occupation and peace conference map modes.
       view.setOccupationMap(occupationMapSource(game));
-      view.setPeaceMap(peaceMapSource(game));
+      view.setPeaceMap(wwPeaceMapSource(game));
     }
     // P6 (plan Task 1 Step 17): the depth systems' view (U3, U4 draw it).
     const wwDepth = game.wwDepth?.() ?? null;
