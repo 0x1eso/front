@@ -94,6 +94,7 @@ import {
 } from "./ww1936/WwSeaAirController";
 import { WwTakeoverCard } from "./ww1936/WwTakeoverCard";
 import { WwTopBand } from "./ww1936/WwTopBand";
+import { WwWhitePeaceCard } from "./ww1936/WwWhitePeaceCard";
 
 export function createRenderer(
   inputEl: HTMLElement,
@@ -542,6 +543,14 @@ export function createRenderer(
   } else {
     console.error("ww takeover card not found");
   }
+  // White peace: a human target's card.
+  const wwWhitePeaceCard = document.querySelector("ww-white-peace-card");
+  if (wwWhitePeaceCard instanceof WwWhitePeaceCard) {
+    wwWhitePeaceCard.game = game;
+    wwWhitePeaceCard.eventBus = eventBus;
+  } else {
+    console.error("ww white peace card not found");
+  }
   const wwExileBand = document.querySelector("ww-exile-band");
   if (wwExileBand instanceof WwExileBand) {
     wwExileBand.game = game;
@@ -747,6 +756,7 @@ export function createRenderer(
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
     ...(wwTakeoverCard instanceof WwTakeoverCard ? [wwTakeoverCard] : []),
+    ...(wwWhitePeaceCard instanceof WwWhitePeaceCard ? [wwWhitePeaceCard] : []),
     ...(wwPeaceCard instanceof WwPeaceCard ? [wwPeaceCard] : []),
     ...(wwEventCards instanceof WwEventCards ? [wwEventCards] : []),
     ...(wwNewsTicker instanceof WwNewsTicker ? [wwNewsTicker] : []),

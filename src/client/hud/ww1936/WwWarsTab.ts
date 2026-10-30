@@ -54,7 +54,10 @@ function member(m: WarMemberView): TemplateResult {
   </li>`;
 }
 
-function card(c: WarCard): TemplateResult {
+/** What a war card adds under its members (white peace: my offer button). */
+export type WarCardExtra = (c: WarCard) => TemplateResult | typeof nothing;
+
+function card(c: WarCard, extra?: WarCardExtra): TemplateResult {
   const pct = c.mySharePm === null ? null : Math.floor(c.mySharePm / 10);
   return html`<li data-ww-war=${c.id} data-status=${c.status} class=${CARD}>
     <div class="flex min-w-0 items-center gap-1.5">
@@ -102,6 +105,7 @@ function card(c: WarCard): TemplateResult {
             ></div>
           </div>
         </div>`}
+    ${extra === undefined ? nothing : extra(c)}
   </li>`;
 }
 
@@ -110,11 +114,13 @@ function card(c: WarCard): TemplateResult {
  * first part — the war records: my ongoing wars, the others, my ended
  * ones; each with its name ("German–Polish War (1939)"), its kind and
  * state, both sides' members with their state and share of the side's
- * war score, and my contribution as a bar.
+ * war score, and my contribution as a bar. `extra`: what each card adds
+ * at its end (white peace: my offer button in my ongoing wars).
  */
 export function warCardsTemplate(
   game: EndgameGame,
   me: number,
+  extra?: WarCardExtra,
 ): TemplateResult {
   const cards = warCards(game, me);
   return html`<div class=${HEADING}>${translateText("ww1936.war.tab")}</div>
@@ -126,7 +132,7 @@ export function warCardsTemplate(
           data-ww-war-cards
           class="m-0 flex list-none flex-col gap-1 p-0"
         >
-          ${cards.map(card)}
+          ${cards.map((c) => card(c, extra))}
         </ul>`}`;
 }
 

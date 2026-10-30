@@ -1653,7 +1653,10 @@
     "ww1936_volunteers_recalled": "Volunteers were recalled by {fromTag}",
     "ww1936_war_declared": "{attacker} declared war on {target}{allies, plural, =0 {} one { and # ally} other { and # allies}}",
     "ww1936_war_goal_expired": "A war goal has expired",
-    "ww1936_war_joined": "{actor} entered the war against {enemy}"
+    "ww1936_war_joined": "{actor} entered the war against {enemy}",
+    "ww1936_wpeace_accepted": "{target} accepted your white peace offer",
+    "ww1936_wpeace_lapsed": "Your white peace offer to {target} lapsed: the war has changed",
+    "ww1936_wpeace_refused": "{target} refused your white peace offer: you can offer again in {days} days"
   },
   "featured_stream": {
     "expand": "Expand",
@@ -4440,7 +4443,8 @@
         "nap": "Non-aggression pact: break it first",
         "prep": "Not during the preparation minute",
         "self": "You cannot declare on yourself",
-        "subject_restricted": "A subject only fights its overlord's enemies"
+        "subject_restricted": "A subject only fights its overlord's enemies",
+        "truce_active": "A white peace truce holds: no war for a year"
       },
       "button": "Declare war",
       "confirm": "Confirm: declare war{n, plural, =0 {} one { (# more country joins)} other { (# more countries join)}}"
@@ -4780,6 +4784,11 @@
         "out_of_rocket_range": "Out of rocket range",
         "para_cooldown": "Paratroopers are not ready again yet",
         "para_range": "Out of paradrop range",
+        "peace_cooldown": "They refused your last offer: wait before offering again",
+        "peace_no_offer": "There is no such offer",
+        "peace_pending": "Your offer is still waiting for an answer",
+        "peace_too_early": "A white peace can be offered once the war is 90 days old",
+        "peace_war_kind": "Not in a civil or independence war",
         "prereq": "Needs an earlier technology",
         "project_locked": "This project is not available",
         "queue_full": "The queue is full",
@@ -8923,6 +8932,7 @@
       "news_vienna_award_2": "Second Vienna Award: northern Transylvania passes to Hungary.",
       "news_vilnius_to_lithuania": "The Soviet Union hands Vilnius to Lithuania and stations troops in the country.",
       "news_warsaw_uprising": "The Polish Home Army rises against the German garrison in Warsaw.",
+      "news_white_peace": "{a} and {b} have agreed to a white peace",
       "news_yalta": "At Yalta, the Allies settle the occupation of Germany; the Soviet Union pledges war on Japan.",
       "news_yugoslavia_partition": "Germany, Italy, Hungary and Bulgaria divide occupied Yugoslavia between them.",
       "sun_poland": "The Soviet Union invades Poland from the east",
@@ -11414,6 +11424,27 @@
       "faction_won": "The {faction} won",
       "mvp": "Most valuable",
       "your_faction": "Your faction won: the {faction}"
+    },
+    "wpeace": {
+      "accept": "Accept",
+      "block": {
+        "cooldown": "Offer again in {days} d",
+        "no_pp": "Not enough political power ({pp})",
+        "puppet": "A puppet follows its overlord",
+        "too_early": "Possible once the war is 90 days old ({days} d left)",
+        "war_kind": "Not in a civil or independence war"
+      },
+      "card_held": "{holder} holds {pct}% of {owner}",
+      "card_separate": "Separate peace: {country} alone leaves the war and its faction",
+      "card_side": "{country} · capitulation {cap}% · war score {score}%",
+      "card_title": "{country} offers a white peace",
+      "card_whole": "The whole war ends: every country on both sides makes peace",
+      "default": "If time runs out: refused",
+      "offer": "Offer white peace",
+      "pending": "Waiting for their answer",
+      "refuse": "Refuse",
+      "scope_separate": "Separate peace (leaves the faction)",
+      "scope_whole": "Whole war"
     }
   }
 }

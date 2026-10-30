@@ -16,6 +16,7 @@ import {
   drawerInsets,
 } from "../domestic/DomesticPanel";
 import { DepthMiscModel } from "./DepthMiscModel";
+import type { WarCard } from "./EndgameModel";
 import { countryBadges, endgameKey } from "./EndgameModel";
 import { countryText } from "./EndgameNames";
 import {
@@ -32,6 +33,7 @@ import {
   warGoalTab,
   worldTab,
 } from "./PoliticsModel";
+import { whitePeaceButton } from "./WhitePeaceModel";
 import {
   countryName,
   diplomacyModel,
@@ -587,11 +589,55 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
 
   // ---- Wars and war goals ----
 
+  /**
+   * White peace (owner-approved plan §6): my ongoing war's offer button —
+   * "Whole war" when I lead my side, else "Separate peace (leaves the
+   * faction)"; two taps send it; greyed with the reason; "waiting for the
+   * answer" while my offer stands.
+   */
+  private renderWhitePeace(c: WarCard, me: number) {
+    if (c.ended || c.mySide < 0) return nothing;
+    const w = this.game.wwEndgame?.()?.wars.find((x) => x.id === c.id);
+    const b = w === undefined ? null : whitePeaceButton(this.game, me, w);
+    if (b === null) return nothing;
+    const key = `wpeace:${b.war}:${b.target}`;
+    const armed = this.armed(key);
+    return html`<div
+      data-ww-wpeace-row=${b.war}
+      class="mt-1 flex flex-wrap items-center gap-1.5"
+    >
+      ${b.pending
+        ? html`<span data-ww-wpeace-pending class="text-xs text-amber-200"
+            >${translateText("ww1936.wpeace.pending")}</span
+          >`
+        : html`<button
+            type="button"
+            data-ww-act="peace_offer"
+            data-armed=${String(armed)}
+            class="${BUTTON} ${armed ? "ring-2 ring-red-400" : ""}"
+            ?disabled=${b.block !== null}
+            @click=${() => this.confirmTap(key, () => this.send(b.order))}
+          >
+            ${armed
+              ? translateText("ww1936.pol.tap_again")
+              : translateText("ww1936.wpeace.offer")}
+          </button>`}
+      <span class="text-xs text-white/60">${b.scope}</span>
+      ${b.block === null || b.pending
+        ? nothing
+        : html`<span data-ww-wpeace-block class="text-xs text-red-300"
+            >${b.block}</span
+          >`}
+    </div>`;
+  }
+
   private renderWars(i: PoliticsModelInput | null): TemplateResult {
     const m = diplomacyModel(this.game);
     // P5 (spec §20.5): the war records first, the past conferences last.
     const me = this.game.myPlayer()?.smallID() ?? 0;
-    const cards = warCardsTemplate(this.game, me);
+    const cards = warCardsTemplate(this.game, me, (c) =>
+      this.renderWhitePeace(c, me),
+    );
     const past = pastConferencesTemplate(this.game);
     const myWars = html`<div class=${HEADING}>
         ${translateText("ww1936.panel.my_wars")}

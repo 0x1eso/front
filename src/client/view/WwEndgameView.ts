@@ -13,6 +13,7 @@ import type {
   WwExileView,
   WwOccView,
   WwPeaceLogEntry,
+  WwPeaceOfferView,
   WwSubjectView,
   WwTakeoverView,
   WwWarSummary,
@@ -56,6 +57,10 @@ export class WwEndgameView {
   exiles: WwExileView[] = [];
   aid = new Map<number, WwAidView>();
   takeover: WwTakeoverView[] = [];
+  /** White peace: pending offers, refusal cooldowns [from, to, untilDay], truces [a, b, untilDay]. */
+  peaceOffers: WwPeaceOfferView[] = [];
+  peaceCooldowns: [number, number, number][] = [];
+  truces: [number, number, number][] = [];
   news: { id: string; params: Record<string, string | number> }[] = [];
 
   /** Merges one update: every present field; occupation, aid and cores by key; news appended. */
@@ -80,6 +85,9 @@ export class WwEndgameView {
     if (d.exiles !== undefined) this.exiles = d.exiles;
     for (const a of d.aid ?? []) this.aid.set(a.smallID, a);
     if (d.takeover !== undefined) this.takeover = d.takeover;
+    if (d.peaceOffers !== undefined) this.peaceOffers = d.peaceOffers;
+    if (d.peaceCooldowns !== undefined) this.peaceCooldowns = d.peaceCooldowns;
+    if (d.truces !== undefined) this.truces = d.truces;
     if (d.news.length > 0) {
       this.news = [...this.news, ...d.news].slice(-NEWS_KEEP);
     }
@@ -133,5 +141,31 @@ export class WwEndgameView {
 
   takeoverFor(client: string): WwTakeoverView | null {
     return this.takeover.find((t) => t.client === client) ?? null;
+  }
+
+  /** White peace offers made to `smallID`, oldest first. */
+  offersTo(smallID: number): WwPeaceOfferView[] {
+    return this.peaceOffers.filter((o) => o.to === smallID);
+  }
+
+  /** My pending offer in war `war`; null when none. */
+  offerFrom(smallID: number, war: number): WwPeaceOfferView | null {
+    return (
+      this.peaceOffers.find((o) => o.from === smallID && o.war === war) ?? null
+    );
+  }
+
+  /** The day `from` may offer `to` again after a refusal (0: now). */
+  cooldownUntil(from: number, to: number): number {
+    return (
+      this.peaceCooldowns.find((c) => c[0] === from && c[1] === to)?.[2] ?? 0
+    );
+  }
+
+  /** The day the truce between `a` and `b` ends (0: none). */
+  truceUntil(a: number, b: number): number {
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    return this.truces.find((t) => t[0] === lo && t[1] === hi)?.[2] ?? 0;
   }
 }

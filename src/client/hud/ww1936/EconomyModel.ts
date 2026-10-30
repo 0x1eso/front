@@ -613,6 +613,12 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   scorch_conditions: "ww1936.econ.block.scorch_conditions",
   harbor_conditions: "ww1936.econ.block.harbor_conditions",
   railgun_limit: "ww1936.econ.block.railgun_limit",
+  // White peace.
+  peace_too_early: "ww1936.econ.block.peace_too_early",
+  peace_cooldown: "ww1936.econ.block.peace_cooldown",
+  peace_war_kind: "ww1936.econ.block.peace_war_kind",
+  peace_pending: "ww1936.econ.block.peace_pending",
+  peace_no_offer: "ww1936.econ.block.peace_no_offer",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----

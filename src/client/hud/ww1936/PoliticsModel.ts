@@ -2054,6 +2054,10 @@ function declareBlockOf(
   const f = factionOfId(i.game, i.me);
   if (f !== null && f === factionOfId(i.game, other)) return "faction";
   if (enemiesOf(i.game, i.me).includes(other)) return "at_war";
+  // White peace (engine declareWarBlock): a truce holds a year.
+  if ((eg?.truceUntil(i.me, other) ?? 0) > today(i.game)) {
+    return "truce_active";
+  }
   if (napWith(i, other) !== undefined) return "nap";
   if (guarantees(i, i.me, other)) return "guarantor";
   // P5 (spec §9.1, §10): a puppet fights its overlord's enemies only; an

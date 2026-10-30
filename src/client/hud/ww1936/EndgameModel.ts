@@ -197,6 +197,10 @@ export function endgameKey(game: EndgameGame): number {
   mix(oid(v.exiles));
   mix(oid(v.occLaws));
   mix(oid(v.controllers));
+  // White peace: the offers, cooldowns and truces (the wars tab's buttons).
+  mix(oid(v.peaceOffers));
+  mix(oid(v.peaceCooldowns));
+  mix(oid(v.truces));
   mix(v.occupation.size);
   for (const o of v.occupation.values()) mix(oid(o));
   for (const a of v.aid.values()) mix(oid(a));

@@ -124,6 +124,8 @@ export const DECLARE_BLOCK_KEYS: Readonly<Record<DeclareWarBlock, string>> = {
   exile: "ww1936.declare.block.exile",
   // P6 (spec §13.1).
   congress: "ww1936.declare.block.congress",
+  // White peace: a one-year truce.
+  truce_active: "ww1936.declare.block.truce_active",
 };
 
 export function factionName(id: FactionKey, game?: WwGame): string {

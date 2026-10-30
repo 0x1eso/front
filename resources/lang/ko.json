@@ -1554,7 +1554,10 @@
     "ww1936_volunteers_recalled": "{fromTag}의 의용군이 돌아갔습니다",
     "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
     "ww1936_war_goal_expired": "전쟁 목표의 유효 기간이 끝났습니다",
-    "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다"
+    "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다",
+    "ww1936_wpeace_accepted": "{target} 측이 백지 평화 제안을 수락했습니다",
+    "ww1936_wpeace_refused": "{target} 측이 백지 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
+    "ww1936_wpeace_lapsed": "{target} 측에 보낸 백지 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -4133,7 +4136,8 @@
         "nap": "불가침 조약: 먼저 파기해야 합니다",
         "prep": "준비 시간에는 선포할 수 없습니다",
         "self": "자기 나라에는 선포할 수 없습니다",
-        "subject_restricted": "속국은 종주국의 적과만 싸울 수 있습니다"
+        "subject_restricted": "속국은 종주국의 적과만 싸울 수 있습니다",
+        "truce_active": "백지 평화 휴전 중입니다 (1년)"
       },
       "button": "선전포고",
       "confirm": "확인: 선전포고{n, plural, =0 {} other { (진영 회원 #개국도 참전)}}"
@@ -4496,7 +4500,12 @@
         "treaty_exists": "이미 맺은 상태입니다",
         "treaty_limit": "해군 조약이 막습니다",
         "volunteer_conditions": "지금은 의용군을 보낼 수 없습니다",
-        "volunteer_limit": "의용군 사단이 너무 많습니다"
+        "volunteer_limit": "의용군 사단이 너무 많습니다",
+        "peace_too_early": "전쟁 90일 이후 가능",
+        "peace_cooldown": "재제안 대기 중",
+        "peace_war_kind": "내전·독립전쟁 불가",
+        "peace_pending": "상대 응답 대기",
+        "peace_no_offer": "그런 제안이 없습니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -8619,7 +8628,8 @@
       "news_yalta": "얄타에서 연합국이 독일 점령 방안을 정하고 소련은 일본과의 전쟁을 약속했다.",
       "news_yugoslavia_partition": "독일, 이탈리아, 헝가리, 불가리아가 점령한 유고슬라비아를 나누어 가졌다.",
       "sun_poland": "소련이 동쪽에서 폴란드를 침공했다",
-      "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다."
+      "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다.",
+      "news_white_peace": "{a} 측과 {b} 측이 백지 평화에 합의했습니다"
     },
     "nuke": {
       "band": "원자탄 {n}",
@@ -11107,6 +11117,27 @@
       "faction_won": "{faction} 승리",
       "mvp": "최우수",
       "your_faction": "내 진영 승리: {faction}"
+    },
+    "wpeace": {
+      "offer": "백지 평화 제안",
+      "scope_whole": "전쟁 전체",
+      "scope_separate": "단독 강화 (진영 탈퇴)",
+      "pending": "상대 응답 대기",
+      "block": {
+        "too_early": "전쟁 90일 이후 가능 ({days} 일 남음)",
+        "cooldown": "재제안 대기 {days} 일",
+        "no_pp": "정치력 부족 ({pp})",
+        "war_kind": "내전·독립전쟁 불가",
+        "puppet": "괴뢰국은 종주국을 따릅니다"
+      },
+      "card_title": "백지 평화 제안: {country}",
+      "card_whole": "전쟁 전체가 끝납니다: 양측 모든 나라가 강화합니다",
+      "card_separate": "단독 강화: {country} 측만 전쟁과 진영에서 빠집니다",
+      "card_side": "{country} · 항복 {cap}% · 전쟁 점수 {score}%",
+      "card_held": "{holder} 측이 {owner} 측 영토 {pct}% 점령",
+      "accept": "수락",
+      "refuse": "거절",
+      "default": "시간이 지나면: 거절"
     }
   }
 }
