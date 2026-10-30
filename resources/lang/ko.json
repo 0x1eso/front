@@ -1563,9 +1563,9 @@
     "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
     "ww1936_war_goal_expired": "전쟁 목표의 유효 기간이 끝났습니다",
     "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다",
-    "ww1936_wpeace_accepted": "{target} 측이 백지 평화 제안을 수락했습니다",
-    "ww1936_wpeace_refused": "{target} 측이 백지 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
-    "ww1936_wpeace_lapsed": "{target} 측에 보낸 백지 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)"
+    "ww1936_wpeace_accepted": "{target} 측이 평화 제안을 수락했습니다",
+    "ww1936_wpeace_refused": "{target} 측이 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
+    "ww1936_wpeace_lapsed": "{target} 측에 보낸 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -4575,7 +4575,10 @@
         "peace_war_kind": "내전·독립전쟁 불가",
         "peace_pending": "상대 응답 대기",
         "peace_no_offer": "그런 제안이 없습니다",
-        "no_invasion_port": "육로로 닿는 우리 편 항구가 없습니다"
+        "no_invasion_port": "육로로 닿는 우리 편 항구가 없습니다",
+        "peace_bad_terms": "이 조건은 제안할 수 없습니다",
+        "peace_capital": "수도는 넘겨줄 수 없습니다",
+        "peace_too_much": "승점의 40% 넘게는 넘겨줄 수 없습니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -8714,7 +8717,8 @@
       "news_yugoslavia_partition": "독일, 이탈리아, 헝가리, 불가리아가 점령한 유고슬라비아를 나누어 가졌다.",
       "sun_poland": "소련이 동쪽에서 폴란드를 침공했다",
       "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다.",
-      "news_white_peace": "{a} 측과 {b} 측이 백지 평화에 합의했습니다"
+      "news_white_peace": "{a} 측과 {b} 측이 백지 평화에 합의했습니다",
+      "news_neg_peace": "{a} 측과 {b} 측이 조건부 평화 조약을 맺었습니다"
     },
     "nuke": {
       "band": "원자탄 {n}",
@@ -11204,7 +11208,7 @@
       "your_faction": "내 진영 승리: {faction}"
     },
     "wpeace": {
-      "offer": "백지 평화 제안",
+      "offer": "평화 제안",
       "scope_whole": "전쟁 전체",
       "scope_separate": "단독 강화 (진영 탈퇴)",
       "pending": "상대 응답 대기",
@@ -11222,7 +11226,35 @@
       "card_held": "{holder} 측이 {owner} 측 영토 {pct}% 점령",
       "accept": "수락",
       "refuse": "거절",
-      "default": "시간이 지나면: 거절"
+      "default": "시간이 지나면: 거절",
+      "card_title_terms": "조건부 평화 제안: {country}",
+      "card_cedes": "{country} 측 양도: {regions}",
+      "card_pays": "{country} 측 배상: 공장 {pct}% (하루 {k} 개), {days} 일간",
+      "card_frees": "{country} 측이 {subject} 측을 독립시킵니다"
+    },
+    "npeace": {
+      "title": "평화 제안: {country}",
+      "white": "조건 없음: 백지 평화",
+      "give": "내가 내주는 것",
+      "demand": "내가 요구하는 것",
+      "none": "없음",
+      "pick": "지도에서 주 선택",
+      "reparations": "배상금",
+      "rep_none": "없음",
+      "rep_level": "{pct}%",
+      "rep_line": "공장 {pct}% (하루 {k} 개, 365일)",
+      "free": "{country} 독립",
+      "chance": "상대가 받아들일 가능성: {level}",
+      "chance_low": "낮음",
+      "chance_medium": "보통",
+      "chance_high": "높음",
+      "chance_human": "상대는 사람 플레이어입니다: 직접 판단합니다",
+      "send": "제안 보내기",
+      "cancel": "취소",
+      "vp": "{country} 측 승점 {pct}% 양도 (최대 40%)",
+      "band": "내 주를 누르면 내주기, 상대 주를 누르면 요구 · {n} 개 선택",
+      "done": "완료",
+      "remove": "{region} 빼기"
     }
   }
 }

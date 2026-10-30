@@ -12,6 +12,7 @@ import type {
   WwEndgameData,
   WwExileView,
   WwOccView,
+  WwPeaceJudgeRow,
   WwPeaceLogEntry,
   WwPeaceOfferView,
   WwSubjectView,
@@ -61,6 +62,8 @@ export class WwEndgameView {
   peaceOffers: WwPeaceOfferView[] = [];
   peaceCooldowns: [number, number, number][] = [];
   truces: [number, number, number][] = [];
+  /** Negotiated peace: the AI judge's war facts for my possible offers (the composer's hint). */
+  peaceJudge: WwPeaceJudgeRow[] = [];
   news: { id: string; params: Record<string, string | number> }[] = [];
 
   /** Merges one update: every present field; occupation, aid and cores by key; news appended. */
@@ -88,6 +91,7 @@ export class WwEndgameView {
     if (d.peaceOffers !== undefined) this.peaceOffers = d.peaceOffers;
     if (d.peaceCooldowns !== undefined) this.peaceCooldowns = d.peaceCooldowns;
     if (d.truces !== undefined) this.truces = d.truces;
+    if (d.peaceJudge !== undefined) this.peaceJudge = d.peaceJudge;
     if (d.news.length > 0) {
       this.news = [...this.news, ...d.news].slice(-NEWS_KEEP);
     }
@@ -144,6 +148,13 @@ export class WwEndgameView {
   }
 
   /** White peace offers made to `smallID`, oldest first. */
+  /** Negotiated peace: the judge's facts for `from`'s offer in war `war` (null: none sent). */
+  judgeFor(from: number, war: number): WwPeaceJudgeRow | null {
+    return (
+      this.peaceJudge.find((j) => j.from === from && j.war === war) ?? null
+    );
+  }
+
   offersTo(smallID: number): WwPeaceOfferView[] {
     return this.peaceOffers.filter((o) => o.to === smallID);
   }

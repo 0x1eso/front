@@ -12,6 +12,7 @@ import {
 import { translateText } from "../../Utils";
 import { type EndgameGame, warName } from "./EndgameModel";
 import { countryFlagUrl, countryText } from "./EndgameNames";
+import { negPeaceTermsLines } from "./NegPeaceModel";
 import {
   today,
   type WwPaceGame,
@@ -114,7 +115,7 @@ export interface WhitePeaceCardView {
   /** The offer id (the card's identity). */
   id: number;
   deadlineTick: number;
-  /** "Germany offers a white peace". */
+  /** "Germany offers a white peace" (with terms: "…offers peace with terms"). */
   title: string;
   /** "German–Polish War (1939)". */
   war: string;
@@ -123,6 +124,8 @@ export interface WhitePeaceCardView {
   sides: WhitePeaceSideLine[];
   /** "Germany holds 35% of Poland" (at most four). */
   held: string[];
+  /** Negotiated peace: the terms ("Poland cedes: Krakow", "…pays 20%…"); none: a white peace. */
+  terms: string[];
   secondsLeft: number;
   /** Time left, 1 → 0. */
   fraction: number;
@@ -147,7 +150,12 @@ export function whitePeaceCardModel(
   return {
     id: o.id,
     deadlineTick: o.deadlineTick,
-    title: translateText("ww1936.wpeace.card_title", { country: from }),
+    title: translateText(
+      o.terms === null || o.terms === undefined
+        ? "ww1936.wpeace.card_title"
+        : "ww1936.wpeace.card_title_terms",
+      { country: from },
+    ),
     war: w === null ? "" : warName(game, w),
     scope: translateText(
       o.whole ? "ww1936.wpeace.card_whole" : "ww1936.wpeace.card_separate",
@@ -155,6 +163,7 @@ export function whitePeaceCardModel(
     ),
     sides: o.sides.map((s) => sideLine(game, s)),
     held: heldLines(game, o),
+    terms: negPeaceTermsLines(game, o),
     secondsLeft: wwSeconds(game, left),
     fraction: Math.min(1, left / Math.max(1, total)),
     more: offers.length - 1,

@@ -1,10 +1,12 @@
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, render, TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
+import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { negPeaceBand, negPeaceUiOf } from "./NegPeaceModel";
 import {
   whitePeaceCardModel,
   type WhitePeaceCardView,
@@ -47,6 +49,10 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
   /** The answer sent for this card (by offer id) and the tick it went. */
   private sent: { id: number; accept: boolean; tick: number } | null = null;
   private layer: HTMLDivElement | null = null;
+  /** Negotiated peace: the region pick mode's band (bottom centre). */
+  private mapLayer: HTMLDivElement | null = null;
+  private mapTemplate: TemplateResult | null = null;
+  private unregisterBack: (() => void) | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private cardTemplate: TemplateResult | null = null;
   private drawn: readonly unknown[] = [];
@@ -68,6 +74,12 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     layer.addEventListener("contextmenu", (e) => e.preventDefault());
     document.body.appendChild(layer);
     this.layer = layer;
+    const map = document.createElement("div");
+    map.setAttribute("data-ww-npeace-map-layer", "");
+    map.className = `${EVENT_LAYER_CLASS} text-white select-none`;
+    map.style.inset = "0";
+    document.body.appendChild(map);
+    this.mapLayer = map;
     window.addEventListener("resize", this.place);
     if (typeof ResizeObserver !== "undefined") {
       this.resizeObserver = new ResizeObserver(() => this.place());
@@ -88,6 +100,13 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
       this.layer.remove();
       this.layer = null;
     }
+    if (this.mapLayer !== null) {
+      render(nothing, this.mapLayer);
+      this.mapLayer.remove();
+      this.mapLayer = null;
+    }
+    this.unregisterBack?.();
+    this.unregisterBack = null;
   }
 
   init() {}
@@ -109,12 +128,26 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     ) {
       this.sent = null;
     }
+    // Negotiated peace: Back leaves the pick mode first.
+    const ui = this.game ? negPeaceUiOf(this.game) : null;
+    if (ui?.map === true && this.unregisterBack === null) {
+      this.unregisterBack = registerBackClosable(() => {
+        if (!ui.map) return false;
+        ui.closeMap();
+        this.requestUpdate();
+        return true;
+      });
+    } else if (ui?.map !== true && this.unregisterBack !== null) {
+      this.unregisterBack();
+      this.unregisterBack = null;
+    }
     const key = [
       card?.id ?? -1,
       card?.held.join("|") ?? "",
       card?.more ?? 0,
       wwSeconds(pace, now),
       this.sent?.id ?? 0,
+      ui?.map === true ? ui.version : -1,
     ];
     if (key.some((v, n) => v !== this.drawn[n])) {
       this.drawn = key;
@@ -127,6 +160,9 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
   }
 
   protected updated(): void {
+    if (this.mapLayer !== null) {
+      render(this.mapTemplate ?? nothing, this.mapLayer);
+    }
     if (this.layer === null) return;
     render(this.cardTemplate ?? nothing, this.layer);
     this.place();
@@ -149,6 +185,44 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     layer.style.left = `${Math.round(r.left)}px`;
     layer.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
   };
+
+  /** Negotiated peace: the pick mode's band above the bottom HUD — what is picked, the last tap, [Done]. */
+  private bandTemplate(): TemplateResult | null {
+    if (!this.game) return null;
+    const b = negPeaceBand(this.game);
+    if (b === null) return null;
+    const rows = document.querySelector("[data-bottom-hud-rows]");
+    const top = rows?.getBoundingClientRect().top ?? window.innerHeight;
+    const bottom = Math.round(
+      window.innerHeight - Math.min(top, window.innerHeight) + 6,
+    );
+    return html`<div
+      data-ww-npeace-band
+      class="pointer-events-auto absolute left-1/2 flex w-[min(92vw,440px)] -translate-x-1/2 flex-col gap-1 rounded-lg border border-emerald-300/80 bg-gray-900/95 px-2 py-1.5 text-xs shadow-xl"
+      style="bottom: ${bottom}px"
+    >
+      <div class="flex items-center gap-2">
+        <span class="min-w-0 flex-1">🕊 ${b.line}</span>
+        <button
+          type="button"
+          data-ww-act="npeace_done"
+          class="min-h-9 shrink-0 rounded-md border border-emerald-400/60 bg-emerald-900/40 px-3 font-semibold hover:bg-emerald-800/60"
+          @click=${() => {
+            negPeaceUiOf(this.game).closeMap();
+            this.requestUpdate();
+          }}
+        >
+          ${translateText("ww1936.npeace.done")}
+        </button>
+      </div>
+      ${b.region === ""
+        ? nothing
+        : html`<span class="text-white/70">${b.region}</span>`}
+      ${b.note === null
+        ? nothing
+        : html`<span data-ww-npeace-note class="text-red-300">${b.note}</span>`}
+    </div>`;
+  }
 
   private answer(card: WhitePeaceCardView, accept: boolean) {
     if (this.sent !== null) return;
@@ -191,6 +265,7 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
 
   render() {
     this.cardTemplate = null;
+    this.mapTemplate = this.bandTemplate();
     const c = this.cardView();
     if (c === null) return nothing;
     this.cardTemplate = html`<div
@@ -234,6 +309,14 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
         ? nothing
         : html`<ul data-ww-wpeace-held class="m-0 list-none p-0 text-white/70">
             ${c.held.map((l) => html`<li>${l}</li>`)}
+          </ul>`}
+      ${c.terms.length === 0
+        ? nothing
+        : html`<ul
+            data-ww-wpeace-terms
+            class="m-0 list-none rounded border border-amber-300/40 bg-amber-950/30 p-1 text-amber-100"
+          >
+            ${c.terms.map((l) => html`<li>${l}</li>`)}
           </ul>`}
       <div class="flex gap-1">
         ${this.button(c, true)} ${this.button(c, false)}
