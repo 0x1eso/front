@@ -32,7 +32,9 @@ import {
   SHIP_CLASSES,
   ShipClass,
   ShipStats,
-  WW_INVASION_LAUNCH_SUP_PM,
+  WW_EASY_INVASION_SAFE_SUP_PM,
+  WW_INVASION_ABORT_SUP_PM,
+  WW_INVASION_MAX_KM,
   WW_MAX_DOCKS_PER_LINE,
   WW_MAX_FLEETS,
   WW_MAX_LINE_COUNT,
@@ -43,10 +45,18 @@ import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { AdmiralDef, ADMIRALS } from "@openfront/engine-lib/ww1936/Admirals";
 import {
-  invasionBlock,
+  crossingDays,
+  easyCrossingLossPm,
+  easyInterceptLossPm,
+  easyInvasionPrepDays,
   invasionCapacity,
-  invasionPrepDays,
+  pickInvasionPort,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
+import {
+  edgeTicks,
+  moveNeed,
+  regionDistances,
+} from "@openfront/engine-lib/ww1936/MoveRules";
 import { launchDaysAt } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import {
   fleetMissionBlock,
@@ -55,6 +65,10 @@ import {
   tickMilliKm,
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import {
+  edgePassable,
+  seaDistances,
+} from "@openfront/engine-lib/ww1936/SeaGraph";
 import {
   FLEET_NAMES,
   shipNameKey,
@@ -67,12 +81,19 @@ import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { sideKeyOf, type WwNavyView } from "../../view/WwNavyView";
 import type { FogModel } from "./FogModel";
-import { armyLift, LandSides, landSidesOf, regionName } from "./LandModel";
+import {
+  armyLift,
+  invasionLandWorld,
+  LandSides,
+  landSidesOf,
+  regionName,
+} from "./LandModel";
 import {
   convoysNeed,
   fleetShipsOf,
   idleConvoys,
   LandSeaAir,
+  passQueryOf,
   seaDistancesFrom,
   seaKm,
   sideMembersOf,
@@ -1156,24 +1177,85 @@ export function freeAdmirals(ctx: NavyCtx): number[] {
     .map((a) => a.id);
 }
 
-// ---- Landings (spec §11, §18.3-5) ----
+// ---- Landings (spec §11, §18.3-5; a human's are easy invasions) ----
+
+/** A route sea region's light: green — no loss (≥ 50% or no enemy), amber — 40–50%, red — below. */
+export type SupLight = "green" | "amber" | "red";
+
+export function supLight(supPm: number, enemyPm: number): SupLight {
+  if (enemyPm <= 0 || supPm >= WW_EASY_INVASION_SAFE_SUP_PM) return "green";
+  return supPm >= WW_INVASION_ABORT_SUP_PM ? "amber" : "red";
+}
+
+/** The supremacy ‰ of the sides at war with me in a sea region (the engine's enemySupPm). */
+export function enemySupremacy(ctx: NavyCtx, sr: number): number {
+  const mine = ctx.p4.sideOf(ctx.me);
+  let e = 0;
+  for (const [k, pm] of ctx.navy.seaRegions.get(sr)?.sup ?? []) {
+    if (k === mine) continue;
+    if (ctx.p4.membersOf(k).some((m) => ctx.sides.isEnemy(ctx.me, m))) {
+      e += pm;
+    }
+  }
+  return Math.min(1000, e);
+}
 
 export interface InvasionPreview {
   army: number;
   target: number;
+  /** The start port: the nearest by travel time with a sea route (0: none). */
   from: number;
   routeKm: number | null;
-  /** The route's sea regions and my supremacy there; ok at ≥ 50% (spec §11.3). */
-  route: { sr: number; supPm: number; ok: boolean }[];
+  /** The route's sea regions: my supremacy, the daily loss there, its light. */
+  route: { sr: number; supPm: number; lossPm: number; light: SupLight }[];
+  /** The crossing's expected losses ‰ (capped at half). */
+  lossPm: number;
   convoysNeed: number;
   convoysIdle: number;
   prepDays: number;
+  /** Days marching to the port, at sea, and the whole way to the landing. */
+  marchDays: number;
+  seaDays: number;
+  etaDays: number;
   divisions: number;
   capacity: number;
+  /** Divisions that land, and those that stay (split: stay > 0). */
+  going: number;
+  stay: number;
   block: WwOrderBlock | null;
 }
 
-/** The chips of a landing's first tap: invasionBlock and the landing rules on the screens' data. */
+/** The sea km a convoy of mine sails from zone to every zone it reaches, many sources at once. */
+function seaDistMap(ctx: NavyCtx, from: readonly number[]): Map<number, number> {
+  const sc = ctx.scenario;
+  const q = passQueryOf(ctx.p4, ctx.economy, ctx.sides);
+  const dist = seaDistances(sc, from, (e) =>
+    edgePassable(sc, e, ctx.me, false, q),
+  );
+  const out = new Map<number, number>();
+  sc.navalZones().forEach((z, i) => {
+    if (dist[i] !== Infinity) out.set(z, dist[i]);
+  });
+  return out;
+}
+
+/** The km of the shortest sea edge between neighbouring zones. */
+function zoneEdgeKm(sc: ScenarioIndex, a: number, b: number): number {
+  let km = -1;
+  for (const e of sc.seaEdgesOf(a)) {
+    if (e.to !== b) continue;
+    const k = sc.seaEdge(e.edge).km;
+    if (km < 0 || k < km) km = k;
+  }
+  return Math.max(0, km);
+}
+
+/**
+ * The card of a landing's first tap (easy invasions, the engine's own
+ * judges): the start port (InvasionRules.pickInvasionPort), the route and
+ * each sea region's supremacy with its light, the expected losses, the
+ * preparation, the days to the landing, the split; the refusal's reason.
+ */
 export function invasionPreview(
   ctx: NavyCtx,
   army: number,
@@ -1184,89 +1266,144 @@ export function invasionPreview(
   if (land === null || a === undefined || a.owner !== ctx.me) return null;
   const sc = ctx.scenario;
   const lift = armyLift(land, ctx.economy, ctx.me, army);
-  const from = lift.regions[0] ?? a.region;
-  const harbor = sc.harborOf(target);
-  const way =
-    harbor === 0
-      ? null
-      : seaKm(
-          ctx.p4,
-          sc,
-          ctx.economy,
-          ctx.sides,
-          ctx.me,
-          false,
-          sc.harborOf(from),
-          [harbor],
-        );
-  const srs: number[] = [];
-  for (const z of way?.zones ?? []) {
-    const sr = sc.zoneSr(z);
-    if (sr !== 0 && !srs.includes(sr)) srs.push(sr);
-  }
   const capacity = invasionCapacity(ctx.stats, ctx.techs);
-  const need = convoysNeed(lift.weightsCenti);
-  const idle = idleConvoys(ctx.navy.detail);
-  const inPort =
-    lift.regions.length === 1 &&
-    ctx.economy.navalPort(from) &&
-    ctx.sides.sameSide(ctx.me, ctx.economy.controller[from] ?? 0);
-  return {
+  const going = Math.min(a.divisions, capacity);
+  const out: InvasionPreview = {
     army,
     target,
-    from,
-    routeKm: way?.km ?? null,
-    route: srs.map((sr) => {
-      const supPm = ctx.navy.mySupremacy(sr);
-      return { sr, supPm, ok: supPm >= WW_INVASION_LAUNCH_SUP_PM };
-    }),
-    convoysNeed: need,
-    convoysIdle: idle,
-    prepDays: invasionPrepDays(ctx.stats, ctx.techs, lift.allMarines, false),
+    from: 0,
+    routeKm: null,
+    route: [],
+    lossPm: 0,
+    convoysNeed: convoysNeed(lift.weightsCenti.slice(0, going)),
+    convoysIdle: idleConvoys(ctx.navy.detail),
+    prepDays: 0,
+    marchDays: 0,
+    seaDays: 0,
+    etaDays: 0,
     divisions: a.divisions,
     capacity,
-    block: invasionBlock({
-      divisions: a.divisions,
-      capacity,
-      allInOnePort: inPort,
-      anyInBattle: lift.inBattle,
-      targetCoastal: harbor !== 0,
-      targetEnemy: ctx.sides.isEnemy(
-        ctx.me,
-        ctx.economy.controller[target] ?? 0,
-      ),
-      routeKm: way?.km ?? null,
-      convoysFree: idle,
-      convoysNeed: need,
-    }),
+    going,
+    stay: a.divisions - going,
+    block: null,
   };
-}
-
-/** Enemy coastal regions a landing from the army's port can reach by sea (they glow, spec §18.3-5). */
-export function invasionTargets(ctx: NavyCtx, army: number): number[] {
-  const land = ctx.land;
-  if (land === null) return [];
-  const from = armyLift(land, ctx.economy, ctx.me, army).regions[0] ?? 0;
-  if (from === 0) return [];
-  const dist = seaDistancesFrom(
+  const harbor = sc.harborOf(target);
+  const block = (b: WwOrderBlock) => ({ ...out, block: b });
+  if (lift.inBattle) return block("army_busy");
+  if (harbor === 0) return block("not_coastal");
+  if (!ctx.sides.isEnemy(ctx.me, ctx.economy.controller[target] ?? 0)) {
+    return block("not_at_war");
+  }
+  const world = invasionLandWorld(land, ctx.economy, ctx.me, army, ctx.sides);
+  if (world === null) return null;
+  const fromTarget = seaDistMap(ctx, [harbor]);
+  const plan = pickInvasionPort({
+    ...world,
+    seaKm: (port) => fromTarget.get(sc.harborOf(port)) ?? null,
+  });
+  if (typeof plan === "string") return block(plan);
+  const way = seaKm(
     ctx.p4,
-    ctx.scenario,
+    sc,
     ctx.economy,
     ctx.sides,
     ctx.me,
     false,
-    ctx.scenario.harborOf(from),
+    sc.harborOf(plan.port),
+    [harbor],
   );
-  return ctx.scenario.landRegions
-    .map((r) => r.id)
-    .filter((r) => {
-      const h = ctx.scenario.harborOf(r);
-      return (
-        h !== 0 &&
-        dist.has(h) &&
-        ctx.sides.isEnemy(ctx.me, ctx.economy.controller[r] ?? 0)
-      );
-    });
+  if (way === null) return block("no_sea_path");
+  const route: InvasionPreview["route"] = [];
+  const lossOf = new Map<number, number>();
+  for (const z of way.zones) {
+    const sr = sc.zoneSr(z);
+    if (sr === 0 || lossOf.has(sr)) continue;
+    const supPm = ctx.navy.mySupremacy(sr);
+    const enemy = enemySupremacy(ctx, sr);
+    const lossPm = easyInterceptLossPm(supPm, enemy, 0);
+    lossOf.set(sr, lossPm);
+    route.push({ sr, supPm, lossPm, light: supLight(supPm, enemy) });
+  }
+  const legs = way.zones.map((z, i) => ({
+    km: i + 1 < way.zones.length ? zoneEdgeKm(sc, z, way.zones[i + 1]) : 0,
+    lossPm: lossOf.get(sc.zoneSr(z)) ?? 0,
+  }));
+  const speed = ctx.stats.navalSpeedPct;
+  const prepDays = easyInvasionPrepDays(
+    ctx.stats,
+    ctx.techs,
+    lift.allMarines,
+    false,
+    way.km,
+  );
+  const marchDays = Math.ceil((plan.ticks * 2) / 15);
+  const seaDays = crossingDays(way.km, speed);
+  return {
+    ...out,
+    from: plan.port,
+    routeKm: way.km,
+    route,
+    lossPm: easyCrossingLossPm(legs, speed),
+    prepDays,
+    marchDays,
+    seaDays,
+    etaDays: marchDays + prepDays + seaDays,
+  };
+}
+
+/** What [Invade] can reach: my side's ports the army marches to, the enemy coasts their convoys reach. */
+interface InvasionReach {
+  ports: number[];
+  targets: number[];
+  enemyCoasts: number;
+}
+
+const reachMemo = new WeakMap<object, { key: string; reach: InvasionReach }>();
+
+function invasionReach(ctx: NavyCtx, army: number): InvasionReach {
+  const none = { ports: [], targets: [], enemyCoasts: 0 };
+  const land = ctx.land;
+  if (land === null) return none;
+  const key = [
+    army,
+    land.version,
+    ctx.economy.version,
+    ctx.navy.version,
+    ctx.sides.stamp?.() ?? "",
+  ].join(":");
+  const kept = reachMemo.get(land);
+  if (kept !== undefined && kept.key === key) return kept.reach;
+  const sc = ctx.scenario;
+  const reach: InvasionReach = { ports: [], targets: [], enemyCoasts: 0 };
+  const world = invasionLandWorld(land, ctx.economy, ctx.me, army, ctx.sides);
+  if (world !== null) {
+    const walk = regionDistances(sc, world.from, world.ours, (e, to) =>
+      edgeTicks(moveNeed(sc.edge(e), sc.landOf(to)), world.walkStep),
+    );
+    for (const r of walk.keys()) if (world.isPort(r)) reach.ports.push(r);
+    reach.ports.sort((x, y) => x - y);
+    const dist = seaDistMap(
+      ctx,
+      reach.ports.map((r) => sc.harborOf(r)),
+    );
+    for (const r of sc.landRegions) {
+      const h = sc.harborOf(r.id);
+      if (h === 0) continue;
+      if (!ctx.sides.isEnemy(ctx.me, ctx.economy.controller[r.id] ?? 0)) {
+        continue;
+      }
+      reach.enemyCoasts++;
+      const km = dist.get(h);
+      if (km !== undefined && km <= WW_INVASION_MAX_KM) reach.targets.push(r.id);
+    }
+  }
+  reachMemo.set(land, { key, reach });
+  return reach;
+}
+
+/** Enemy coastal regions the army can land on — over land to a port, then by sea (they glow, spec §18.3-5). */
+export function invasionTargets(ctx: NavyCtx, army: number): number[] {
+  return invasionReach(ctx, army).targets;
 }
 
 /** My army's landing in progress, if any. */
@@ -1274,24 +1411,18 @@ export function invasionOf(ctx: NavyCtx, army: number) {
   return ctx.navy.detail?.invasions.find((x) => x.army === army) ?? null;
 }
 
-/** The army card's [Invade] button: why not, from the army's own port (no target yet). */
+/** The army card's [Invade] button: why not (no target yet) — fighting, no port reached, no enemy coast in reach. */
 export function invadeButtonBlock(
   ctx: NavyCtx,
   army: number,
 ): WwOrderBlock | null {
   const land = ctx.land;
   if (land === null) return "no_army";
-  const lift = armyLift(land, ctx.economy, ctx.me, army);
-  const from = lift.regions[0] ?? 0;
-  if (
-    lift.regions.length !== 1 ||
-    !ctx.economy.navalPort(from) ||
-    !ctx.sides.sameSide(ctx.me, ctx.economy.controller[from] ?? 0)
-  ) {
-    return "not_in_port";
-  }
-  if (lift.inBattle) return "army_busy";
-  return invasionTargets(ctx, army).length === 0 ? "not_at_war" : null;
+  if (armyLift(land, ctx.economy, ctx.me, army).inBattle) return "army_busy";
+  const reach = invasionReach(ctx, army);
+  if (reach.enemyCoasts === 0) return "not_at_war";
+  if (reach.ports.length === 0) return "no_invasion_port";
+  return reach.targets.length === 0 ? "no_sea_path" : null;
 }
 
 // ---- The ⚓ dial (spec §18.1) ----

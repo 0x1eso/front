@@ -65,6 +65,7 @@ import {
   OrderCheckArmy,
   OrderCheckWorld,
 } from "@openfront/engine-lib/ww1936/LandOrderChecks";
+import type { InvasionPortWorld } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   edgeTicks,
@@ -1410,6 +1411,48 @@ function armySpeed(
     );
   }
   return speed === Number.MAX_SAFE_INTEGER ? 400 : speed;
+}
+
+/**
+ * Easy invasions: the land side of the engine's port choice
+ * (Invasions.easyPlan → InvasionRules.pickInvasionPort) for my army — from
+ * where most of its divisions stand, on foot at the slowest one's pace on
+ * clear ground, or by train when every division can. The caller adds the
+ * sea route (seaKm). Null: not my army.
+ */
+export function invasionLandWorld(
+  view: WwLandView,
+  economy: WwEconomyView,
+  me: number,
+  army: number,
+  sides: LandSides = sidesOf(view),
+): Omit<InvasionPortWorld, "seaKm"> | null {
+  const a = myArmy(view, me, army);
+  if (a === null) return null;
+  const divs = divisionsOf(view, me, army);
+  const count = new Map<number, number>();
+  for (const d of divs) count.set(d.region, (count.get(d.region) ?? 0) + 1);
+  let from = a.region;
+  let most = 0;
+  for (const [r, n] of count) {
+    if (n > most || (n === most && r < from)) {
+      from = r;
+      most = n;
+    }
+  }
+  const s = view.scenario;
+  const ours = (r: number) => sides.sameSide(me, view.controller[r] ?? 0);
+  const railed = (r: number) => (economy.rail[r] ?? 0) >= 1;
+  return {
+    scenario: s,
+    from,
+    ours,
+    railOk: divs.length > 0 && divs.every((d) => railed(d.region)),
+    railed,
+    isPort: (r) => ours(r) && economy.navalPort(r) && s.harborOf(r) !== 0,
+    walkStep: moveStep(armySpeed(view, economy, me, army), 1, "clear", 1000, 0),
+    railStep: railStep(techOf(economy, me).railSpeedPct),
+  };
 }
 
 /**

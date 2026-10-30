@@ -298,13 +298,17 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
     const p = invasionPreview(ctxOf(g), 1, REGION.rome)!;
     expect(p.from).toBe(REGION.london);
     expect(p.routeKm).toBe(300);
+    // Easy invasions: supremacy is a risk, not a gate — with no enemy power
+    // in either region nothing is lost (green); a 300 km crossing, 5 days.
     expect(p.route).toEqual([
-      { sr: SR.approaches, supPm: 900, ok: true },
-      { sr: SR.central, supPm: 300, ok: false },
+      { sr: SR.approaches, supPm: 900, lossPm: 0, light: "green" },
+      { sr: SR.central, supPm: 300, lossPm: 0, light: "green" },
     ]);
+    expect(p.lossPm).toBe(0);
     expect(p.divisions).toBe(2);
     expect(p.capacity).toBe(10);
-    expect(p.prepDays).toBe(60);
+    expect([p.going, p.stay]).toEqual([2, 0]);
+    expect(p.prepDays).toBe(5);
     expect(p.convoysIdle).toBe(35);
     expect(p.convoysNeed).toBeGreaterThan(0);
     expect(p.block).toBeNull();

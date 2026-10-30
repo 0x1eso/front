@@ -218,7 +218,7 @@ describe("World War 1936 P1 economy strings", () => {
     // the no-strike rule (P6 pre-flight), then P5's 15 (P5 plan decision 36),
     // then P6's 32 (P6 spec §21.4; no_civs and no_xp existed).
     // White peace: 5 more.
-    expect(WW_ORDER_BLOCKS.length).toBe(43 + 24 + 28 + 15 + 32 + 5);
+    expect(WW_ORDER_BLOCKS.length).toBe(43 + 24 + 28 + 15 + 32 + 5 + 1);
   });
 
   it.each(KEYS)("%s exists in en and ko with matching placeholders", (key) => {

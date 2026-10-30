@@ -300,9 +300,18 @@ describe("the sea and air tap flows (spec §18.3)", () => {
     await redraw();
     q("[data-ww-card-fold='open']")?.click();
     await redraw();
+    // The easy landing card: start port, route lights, losses, days, split.
     const chips = q("[data-ww-preview='invade']")!;
-    expect(chips.textContent).toContain(
-      "[ww1936.navy.invasion_divisions] n=2,max=10",
+    const text = chips.textContent!.replace(/\s+/g, " ");
+    expect(text).toContain("[ww1936.navy.invasion_from] port=London");
+    expect(text).toContain("[ww1936.navy.invasion_loss] pct=0");
+    expect(text).toContain("[ww1936.navy.invasion_days] n=5");
+    expect(text).toContain(
+      "[ww1936.navy.invasion_eta] n=6,march=0,prep=5,sea=1",
+    );
+    expect(text).toContain("[ww1936.navy.invasion_no_split]");
+    expect(chips.querySelectorAll("[data-ww-route-chip='green']")).toHaveLength(
+      2,
     );
     expect(sent).toEqual([]);
     now += 1000;
@@ -357,6 +366,48 @@ describe("the sea and air tap flows (spec §18.3)", () => {
     await new Promise((r) => setTimeout(r, 400));
     q("[data-ww-army-btn='invade_cancel']")!.click();
     expect(sent[2]).toEqual({ kind: "invasion_cancel", army: 1 });
+    // An easy invasion sails by itself: no [Launch]; its march and what it
+    // waits for show on the card.
+    const easy = (over: object) =>
+      g.navy.apply(
+        {
+          fleets: [],
+          removedFleets: [],
+          battles: [],
+          endedBattles: [],
+          seaRegions: [],
+          details: [
+            navyDetail("GBR", {
+              invasions: [
+                {
+                  army: 1,
+                  target: REGION.rome,
+                  from: REGION.london,
+                  state: "ready",
+                  prepDone: 5,
+                  prepDays: 5,
+                  convoys: 0,
+                  route: [],
+                  easy: true,
+                  ...over,
+                },
+              ],
+            }),
+          ],
+        },
+        702,
+      );
+    easy({ wait: "no_convoys" });
+    await redraw();
+    q("[data-ww-army-btn='back']")?.click();
+    await redraw();
+    expect(q("[data-ww-army-btn='invade_exec']")).toBeNull();
+    expect(q("[data-ww-invasion-wait='no_convoys']")).not.toBeNull();
+    easy({ state: "moving", prepDone: 0 });
+    await redraw();
+    expect(q("[data-ww-invasion='moving']")!.textContent).toContain(
+      "[ww1936.navy.invasion_moving] port=London",
+    );
   });
 
   it("the zone card's deploy and recall", async () => {
