@@ -621,7 +621,7 @@ describe("PoliticsModel (P3 spec §21)", () => {
       polDetails: [polDetail("POL")],
       global: { factions: startFactions(), wtBp: 5_000 },
     }).i;
-    expect(factionTab(minor).create).toBeNull();
+    expect(factionTab(minor).create!.block).toBe("[ww1936.pol.fac.minor]");
     // Italy (a major) outside one may; Britain's democratic Allies don't
     // take a fascist (spec §15.3), Germany's Axis would.
     const factions = startFactions();
@@ -640,7 +640,7 @@ describe("PoliticsModel (P3 spec §21)", () => {
     expect(t.create).not.toBeNull();
     const request = (key: string) =>
       t.others.find((f) => f.key === key)!.request!.block;
-    expect(request("allies")).toBe("[ww1936.econ.block.faction_rule]");
+    expect(request("allies")).toContain("[ww1936.pol.fac.ideology]");
     expect(request("axis")).toBeNull();
   });
 
