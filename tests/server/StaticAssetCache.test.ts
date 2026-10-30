@@ -14,6 +14,11 @@ describe("StaticAssetCache", () => {
     ).toBe("public, max-age=31536000, immutable");
   });
 
+  test("has every request for the service worker revalidate", () => {
+    expect(getStaticAssetCacheControl("/sw.js")).toBe("no-cache");
+    expect(getStaticAssetCacheControl("/sw.js?v=1")).toBe("no-cache");
+  });
+
   test("does not mark other paths as immutable", () => {
     expect(getStaticAssetCacheControl("/manifest.json")).toBeUndefined();
     expect(getStaticAssetCacheControl("/api/health")).toBeUndefined();

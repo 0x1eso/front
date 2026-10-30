@@ -42,6 +42,7 @@ import {
   purchaseOutcomeMessage,
   startPurchase,
 } from "./Payments";
+import { isOffline } from "./pwa/OfflineState";
 import { STEAM_TIER_CHANGE_IN_APP } from "./SubscriptionPolicy";
 import { UserSettings } from "./UserSettings";
 import { translateText } from "./Utils";
@@ -880,6 +881,10 @@ export async function fetchCosmetics(): Promise<Cosmetics | null> {
   if (__cosmetics !== null) {
     return __cosmetics;
   }
+  // Offline (pwa/OfflineState.ts) there is no catalog to fetch, the same
+  // outcome as a failed fetch, and nothing is cached: online it is asked for
+  // again.
+  if (isOffline()) return null;
   const request = (async () => {
     try {
       const response = await fetch(cosmeticsJsonUrl(), {

@@ -2109,19 +2109,6 @@
     "unequip_all": "Unequip all",
     "unequipped_all": "Unequipped everything"
   },
-  "ios_banner": {
-    "got_it": "Got it",
-    "how": "How",
-    "later": "Later",
-    "modal_desc": "Your browser doesn't support fullscreen, but you can add this game to your Home Screen for an immersive experience:",
-    "modal_title": "Fullscreen on iOS",
-    "never": "Never",
-    "step_add_to_home_label": "Add to Home Screen",
-    "step_open": "Open from your Home Screen — launches fullscreen without the address bar",
-    "step_scroll_and_tap": "Scroll down and tap",
-    "step_share": "Tap the Share button in your browser",
-    "text": "For fullscreen, add this game to your Home Screen"
-  },
   "kick_reason": {
     "admin": "Kicked by an admin",
     "duplicate_session": "Kicked from game (you may have been playing on another tab)",
@@ -2877,6 +2864,25 @@
     "close": "Close",
     "title": "Enjoying OpenFront?",
     "visit_store": "Visit store"
+  },
+  "pwa": {
+    "install": "Install as app",
+    "ios_hint": "Share → Add to Home Screen",
+    "map_not_offline": "This map is not saved on this device for offline play. Online, download it under \"Download maps for offline\" on this screen.",
+    "offline_banner": "Offline — solo only",
+    "offline_maps": {
+      "app_preparing": "Getting the game ready to open offline…",
+      "app_ready": "The game opens without a network. Maps need downloading first.",
+      "download": "Download selected ({size})",
+      "download_none": "Choose maps to download",
+      "downloaded": "Downloaded",
+      "failed": "The download failed. Check the connection and try again.",
+      "list_failed": "Could not read the map list.",
+      "loading": "Checking what is saved…",
+      "needs_network": "Connect to the internet to download maps.",
+      "progress": "{done} / {total} ({percent}%)",
+      "title": "Download maps for offline"
+    }
   },
   "radial_menu": {
     "delete_unit_description": "Click to delete the nearest unit",

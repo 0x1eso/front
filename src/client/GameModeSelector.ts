@@ -3,7 +3,7 @@ import { PublicGames } from "@openfront/shared/WireSchemas";
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { getDesktopSessionState } from "./Auth";
-import "./components/IOSAddToHomeScreenBanner";
+import "./components/InstallAppPrompt";
 import "./components/OpenRoomsList";
 import type { OpenRoomJoinDetail } from "./components/OpenRoomsList";
 import {
@@ -20,6 +20,7 @@ import type { JoinLobbyModal } from "./JoinLobbyModal";
 import { whenModalLoaded } from "./LazyModals";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
+import { isOffline, onOfflineChange } from "./pwa/OfflineState";
 import {
   backendUnreachableConfirmed,
   isPinnedToAVersion,
@@ -274,6 +275,10 @@ export class GameModeSelector extends LitElement {
   // multiplayerAllowedForBackend for why one missed heartbeat must not dim
   // these buttons.
   @state() private backendOutage = false;
+  // No network (pwa/OfflineState.ts): only Solo works, so Create and Join
+  // are off and the room list is gone; the menu's banner says why.
+  @state() private offline = isOffline();
+  private unsubscribeOffline: (() => void) | null = null;
 
   // True from join-lobby until leave-lobby: the player is waiting in (or
   // loading into) a lobby. This socket is NOT scoped to the homepage — Main.ts
@@ -383,6 +388,8 @@ export class GameModeSelector extends LitElement {
     );
     document.addEventListener("join-lobby", this.onJoinLobby);
     document.addEventListener("leave-lobby", this.onLeaveLobby);
+    this.offline = isOffline();
+    this.unsubscribeOffline = onOfflineChange(this.onOfflineChange);
     // Pick up the current value in case username-input validated before us.
     const usernameInput = document.querySelector(
       "username-input",
@@ -412,6 +419,8 @@ export class GameModeSelector extends LitElement {
     );
     document.removeEventListener("join-lobby", this.onJoinLobby);
     document.removeEventListener("leave-lobby", this.onLeaveLobby);
+    this.unsubscribeOffline?.();
+    this.unsubscribeOffline = null;
     super.disconnectedCallback();
   }
 
@@ -445,6 +454,17 @@ export class GameModeSelector extends LitElement {
       this.closeLobbyFeed();
     } else {
       this.lobbySocket.start();
+    }
+  };
+
+  // The feed follows the network: closed while offline (it could only fail
+  // and retry), reopened when the network is back if Main still wants it.
+  private onOfflineChange = (offline: boolean) => {
+    this.offline = offline;
+    if (offline) {
+      this.closeLobbyFeed();
+    } else if (this.feedWanted) {
+      this.openLobbyFeed();
     }
   };
 
@@ -486,7 +506,7 @@ export class GameModeSelector extends LitElement {
 
   private openLobbyFeed() {
     this.feedWanted = true;
-    if (lobbyFeedSuspended(this.desktopSessionState)) {
+    if (this.offline || lobbyFeedSuspended(this.desktopSessionState)) {
       // The session may have dropped while Main had the feed stopped, in
       // which case the snapshot from before the game is still here.
       this.lobbies = null;
@@ -512,9 +532,9 @@ export class GameModeSelector extends LitElement {
   render() {
     return html`
       <div class="flex flex-col gap-3 w-full">
-        <ios-add-to-home-screen-banner
-          class="no-game-portal [&:empty]:hidden"
-        ></ios-add-to-home-screen-banner>
+        <install-app-prompt
+          class="no-game-portal flex justify-center [&:empty]:hidden"
+        ></install-app-prompt>
         ${this.renderAction(
           translateText("main.solo"),
           this.openSinglePlayerModal,
@@ -539,12 +559,14 @@ export class GameModeSelector extends LitElement {
             true,
           )}
         </div>
-        <open-rooms-list
-          .rooms=${this.lobbies?.games?.hosted ?? []}
-          .loaded=${this.lobbies !== null}
-          .disabled=${!this.inputValid}
-          @open-room-join=${this.onOpenRoomJoin}
-        ></open-rooms-list>
+        ${this.offline
+          ? nothing
+          : html`<open-rooms-list
+              .rooms=${this.lobbies?.games?.hosted ?? []}
+              .loaded=${this.lobbies !== null}
+              .disabled=${!this.inputValid}
+              @open-room-join=${this.onOpenRoomJoin}
+            ></open-rooms-list>`}
       </div>
     `;
   }
@@ -577,6 +599,10 @@ export class GameModeSelector extends LitElement {
    * merely stops being actionable.
    */
   private blockedFromApiAction(): boolean {
+    if (this.offline) {
+      showToast(translateText("pwa.offline_banner"), "red");
+      return true;
+    }
     if (
       !shouldBlockMultiplayerAction(
         this.desktopUpdateState,
@@ -630,18 +656,21 @@ export class GameModeSelector extends LitElement {
     // gated (see openSinglePlayerModal) and must never show as disabled here.
     gated: boolean = false,
   ) {
+    const offline = gated && this.offline;
     const blocked =
-      gated &&
-      shouldBlockMultiplayerAction(
-        this.desktopUpdateState,
-        this.desktopSessionState,
-        this.backendOutage,
-      );
+      offline ||
+      (gated &&
+        shouldBlockMultiplayerAction(
+          this.desktopUpdateState,
+          this.desktopSessionState,
+          this.backendOutage,
+        ));
     return html`
       <button
         @click=${onClick}
         ?disabled=${!this.inputValid}
         aria-disabled=${blocked}
+        title=${offline ? translateText("pwa.offline_banner") : nothing}
         class="${variantClass} ${blocked ? "atlas-action-blocked" : ""}"
       >
         ${icon}

@@ -3,6 +3,7 @@ import {
   isRewardClaimable,
   UserMeResponse,
 } from "@openfront/shared/ApiSchemas";
+import { getCdnBase } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { toWireGameStartInfo } from "@openfront/shared/SharedUtil";
 import {
@@ -146,6 +147,9 @@ import {
   type TurnstileApi,
   type TurnstileToken,
 } from "./TurnstileToken";
+import { captureInstallPrompt } from "./pwa/InstallPrompt";
+import { initOfflineState, isOffline } from "./pwa/OfflineState";
+import { registerServiceWorker } from "./pwa/RegisterServiceWorker";
 // Before the first userMeResponse, for the modals that load after it.
 import "./UserMeBroadcast";
 import { UserSettings } from "./UserSettings";
@@ -1446,6 +1450,12 @@ class Client {
     const lobbyId =
       pathMatch && GAME_ID_REGEX.test(pathMatch[1]) ? pathMatch[1] : null;
     if (lobbyId) {
+      // Offline (a game link opened from the installed app's cache): no game
+      // server can be reached, so stay on the menu, whose banner says why.
+      if (isOffline()) {
+        history.replaceState(null, "", homeHref());
+        return;
+      }
       const handoff =
         this.steamHandoffDeclinedFor === lobbyId
           ? "none"
@@ -2236,6 +2246,19 @@ const bootstrap = () => {
   // First, so the error hooks are in place for everything below. No-op
   // without a collector URL (see Telemetry.ts); never awaited.
   void initTelemetry();
+
+  // The installable app (src/client/pwa/): whether the page is offline
+  // before anything below decides what to show or fetch, the browser's
+  // install offer before it fires, and the service worker that keeps the
+  // app and its maps for offline play (production only).
+  initOfflineState();
+  captureInstallPrompt();
+  registerServiceWorker({
+    production: import.meta.env.PROD,
+    supported: "serviceWorker" in navigator,
+    desktopShell: isDesktopShell(),
+    cdnBase: getCdnBase(),
+  });
 
   // Prevent Safari's page-level pinch-zoom, which ignores `user-scalable=no`
   // on iOS and can softlock the HUD. See issue #2330.

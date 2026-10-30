@@ -4,6 +4,7 @@ import "./FlagPicker";
 import "./GameWordmark";
 import "./NavAccountMenu";
 import "./NavUtilityIcons";
+import "./OfflineBanner";
 
 @customElement("play-page")
 export class PlayPage extends LitElement {
@@ -75,6 +76,11 @@ export class PlayPage extends LitElement {
         <div
           class="lg:hidden shrink-0 h-[calc(env(safe-area-inset-top)+56px)]"
         ></div>
+
+        <!-- Offline, only Solo works: says so above the plate. -->
+        <offline-banner
+          class="mx-auto mt-4 w-[calc(100%-2rem)] max-w-[34rem] [&:empty]:hidden"
+        ></offline-banner>
 
         <!-- The home plate (atlas.css): who you are, and the three ways into
              a game. Statecraft is played among friends, so there is no lobby

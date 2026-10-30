@@ -1,25 +1,41 @@
 {
+  "background_color": "#f4efe4",
+  "categories": ["games", "strategy"],
+  "description": "영토 전략 게임. 앱으로 설치하면 혼자 하기는 오프라인에서도 됩니다.",
+  "dir": "ltr",
+  "display": "standalone",
   "icons": [
     {
-      "purpose": "maskable",
-      "sizes": "512x512",
-      "src": "/icons/icon512_maskable.png",
+      "purpose": "any",
+      "sizes": "192x192",
+      "src": "/icons/app-icon-192.png",
       "type": "image/png"
     },
     {
       "purpose": "any",
       "sizes": "512x512",
-      "src": "/icons/icon512_rounded.png",
+      "src": "/icons/app-icon-512.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "192x192",
+      "src": "/icons/app-icon-maskable-192.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "512x512",
+      "src": "/icons/app-icon-maskable-512.png",
       "type": "image/png"
     }
   ],
-  "orientation": "landscape",
-  "display_override": ["fullscreen", "minimal-ui"],
-  "display": "standalone",
-  "dir": "auto",
-  "lang": "en",
+  "id": "/",
+  "lang": "ko",
   "name": "Statecraft",
+  "orientation": "landscape",
+  "scope": "/",
   "short_name": "Statecraft",
   "start_url": "/",
-  "id": "/"
+  "theme_color": "#1f2a44"
 }

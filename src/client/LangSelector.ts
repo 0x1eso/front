@@ -297,6 +297,9 @@ export class LangSelector extends LitElement {
       "streaming-now",
       "tutorial-panel",
       "game-wordmark",
+      "offline-banner",
+      "install-app-prompt",
+      "offline-maps-panel",
     ];
 
     document.title = this.translateText("branding.title", { name: GAME_TITLE });

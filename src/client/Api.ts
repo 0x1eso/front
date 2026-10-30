@@ -63,6 +63,7 @@ import {
   userAuth,
 } from "./Auth";
 import { ClientEnv } from "./ClientEnv";
+import { isOffline } from "./pwa/OfflineState";
 import { ensureServerList } from "./ServerList";
 import { UserSettings } from "./UserSettings";
 
@@ -2441,6 +2442,9 @@ async function getServedConfig<T>(
   schema: z.ZodType<T>,
   fallback: unknown,
 ): Promise<T> {
+  // Offline (pwa/OfflineState.ts) the request can only fail: go straight to
+  // the bundled copy.
+  if (isOffline()) return schema.parse(fallback);
   try {
     const res = await fetch(`${getApiBase()}/${name}`, {
       headers: { Accept: "application/json" },

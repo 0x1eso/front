@@ -2005,19 +2005,6 @@
     "unequip_all": "모두 장착 해제",
     "unequipped_all": "모두 장착 해제했습니다"
   },
-  "ios_banner": {
-    "got_it": "알았습니다",
-    "how": "방법",
-    "later": "나중에",
-    "modal_desc": "현재 브라우저에서는 전체 화면을 지원하지 않지만, 더 몰입감 있는 플레이를 위해 이 게임을 홈 화면에 추가할 수 있습니다:",
-    "modal_title": "iOS에서 전체 화면 사용",
-    "never": "다시 보지 않기",
-    "step_add_to_home_label": "홈 스크린에 추가하기",
-    "step_open": "홈 화면에서 실행 — 주소창 없이 전체 화면으로 실행됩니다",
-    "step_scroll_and_tap": "아래로 스크롤한 다음 탭하세요",
-    "step_share": "브라우저의 공유 버튼을 탭하세요",
-    "text": "전체 화면을 이용하려면 이 게임을 홈 화면에 추가하세요"
-  },
   "kick_reason": {
     "admin": "관리자에 의해 추방되었습니다",
     "duplicate_session": "게임에서 추방되었습니다 (다른 탭에서 플레이 중이었을 수 있습니다)",
@@ -2624,6 +2611,25 @@
     "close": "닫기",
     "title": "OpenFront가 마음에 드시나요?",
     "visit_store": "상점 방문"
+  },
+  "pwa": {
+    "install": "앱으로 설치",
+    "ios_hint": "공유 → 홈 화면에 추가",
+    "map_not_offline": "이 맵은 이 기기에 오프라인용으로 받아 두지 않았습니다. 온라인일 때 이 화면의 \"오프라인용 맵 받기\"에서 받아 두세요.",
+    "offline_banner": "오프라인 — 혼자 하기만 가능",
+    "offline_maps": {
+      "app_preparing": "오프라인에서 열 수 있도록 준비하는 중…",
+      "app_ready": "네트워크 없이도 게임이 열립니다. 맵은 먼저 받아 두어야 합니다.",
+      "download": "선택한 맵 받기 ({size})",
+      "download_none": "받을 맵을 고르세요",
+      "downloaded": "받음",
+      "failed": "받지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+      "list_failed": "맵 목록을 읽지 못했습니다.",
+      "loading": "받아 둔 맵을 확인하는 중…",
+      "needs_network": "맵을 받으려면 인터넷에 연결하세요.",
+      "progress": "{done} / {total} ({percent}%)",
+      "title": "오프라인용 맵 받기"
+    }
   },
   "radial_menu": {
     "delete_unit_description": "클릭하여 가장 가까운 유닛을 삭제합니다",

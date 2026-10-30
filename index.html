@@ -19,6 +19,16 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
+    <meta
+      name="apple-mobile-web-app-title"
+      content="<%= typeof gameTitle !== 'undefined' ? gameTitle : '' %>"
+    />
+    <!-- The installed app's colours: the menus' ink and paper (atlas.css),
+         as in resources/manifest.json. -->
+    <meta name="theme-color" content="#1f2a44" />
+    <!-- iOS takes its home-screen icon from here (resources/public/, served
+         at the site root with a stable URL). -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- Preload styles -->
     <style>
@@ -224,6 +234,16 @@
       // A self-hosted server (SELF_HOSTED=true) has no account API:
       // styles.css hides everything marked .no-self-host, and no Turnstile
       // token is ever asked for, so its script is not loaded either.
+      // Offline (src/client/pwa/OfflineState.ts): no network, or the service
+      // worker served its cached copy of this page because the server could
+      // not be reached. Set before the first paint, so the menu never shows
+      // what it cannot do offline.
+      if (
+        navigator.onLine === false ||
+        document.querySelector('meta[name="statecraft-offline"]')
+      ) {
+        document.documentElement.classList.add("offline");
+      }
       if (window.BOOTSTRAP_CONFIG.selfHosted) {
         document.documentElement.classList.add("self-hosted");
       } else {
