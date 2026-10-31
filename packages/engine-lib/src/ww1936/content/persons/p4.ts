@@ -4,14 +4,10 @@
 // Dates: `from` inclusive, `until` exclusive (the day the person leaves the
 // office). Each line names its sources.
 //
-// Left out (spec §16.3, controller rulings), so the title cards stand in:
-// the Luftwaffe's commander-in-chief and its 1936-37 chief of staff and
-// state secretary (all convicted); the two German naval commanders-in-chief
-// (convicted at Nuremberg); the NKVD officer who headed the Soviet navy
-// 1938-39; Yakov Alksnis (Soviet air force chief 1931-37: he sat on the
-// June 1937 tribunal that sentenced Tukhachevsky and pressed for death
-// sentences, en.wikipedia Yakov Alksnis; P3's purge-trial rule, "when in
-// doubt, leave out"). Japan has no named advisors (ruling).
+// The Luftwaffe's commander-in-chief and the two German naval commanders-in-
+// chief, once left out as convicted, are restored at the end (2026-10-31).
+// Still title cards: the NKVD officer who headed the Soviet navy 1938-39 and
+// Yakov Alksnis. Japan's advisors carry real names (lang files).
 import type { PersonDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const PERSONS_P4: PersonDef[] = [
@@ -246,5 +242,50 @@ export const PERSONS_P4: PersonDef[] = [
     from: "1942-04-11",
     source:
       "Red Army Air Forces commander from 1942-04-11: en.wikipedia Commander of the Russian Air Force; globalsecurity.org Russian Air Force commanders",
+  },
+
+  // ---- Restored 2026-10-31 (the convicted commanders' exclusion was abolished) ----
+  // source: Luftwaffe commander-in-chief from 1935-03-01 (en.wikipedia Oberkommando der Luftwaffe; en.wikipedia Hermann Göring)
+  {
+    id: "deu_goering",
+    nameKey: "ww1936.person.deu_goering",
+    country: "DEU",
+    roles: ["advisor"],
+    advisor: { slot: "air_chief", traits: ["ac_superiority"] },
+    from: "1935-03-01",
+    source:
+      "Luftwaffe commander-in-chief from 1935-03-01 (en.wikipedia Oberkommando der Luftwaffe; en.wikipedia Hermann Göring)",
+  },
+  // source: Luftwaffe state secretary and inspector general (en.wikipedia Erhard Milch)
+  {
+    id: "deu_milch",
+    nameKey: "ww1936.person.deu_milch",
+    country: "DEU",
+    roles: ["advisor"],
+    advisor: { slot: "air_chief", traits: ["ac_air_defense"] },
+    source:
+      "Luftwaffe state secretary and inspector general (en.wikipedia Erhard Milch)",
+  },
+  // source: Commander-in-Chief of the Kriegsmarine to 1943-01-30 (en.wikipedia Erich Raeder)
+  {
+    id: "deu_raeder",
+    nameKey: "ww1936.person.deu_raeder",
+    country: "DEU",
+    roles: ["advisor"],
+    advisor: { slot: "navy_chief", traits: ["nc_fleet_battle"] },
+    until: "1943-01-30",
+    source:
+      "Commander-in-Chief of the Kriegsmarine to 1943-01-30 (en.wikipedia Erich Raeder)",
+  },
+  // source: Commander-in-Chief of the Kriegsmarine from 1943-01-30 (en.wikipedia Karl Dönitz)
+  {
+    id: "deu_doenitz",
+    nameKey: "ww1936.person.deu_doenitz",
+    country: "DEU",
+    roles: ["advisor"],
+    advisor: { slot: "navy_chief", traits: ["nc_raider"] },
+    from: "1943-01-30",
+    source:
+      "Commander-in-Chief of the Kriegsmarine from 1943-01-30 (en.wikipedia Karl Dönitz)",
   },
 ];

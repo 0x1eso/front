@@ -1,6 +1,6 @@
-// World War 1936 P5 — Japanese advisors (spec §19.5). Every Japanese
-// leader, minister and advisor is a title card, never a name (spec §18.1-2,
-// P3 §5.7, §8.4): these sit in the person table with a title name key, the
+// World War 1936 P5 — Japanese advisors (spec §19.5). Each card is an office
+// whose holder carries a real name since 2026-10-31 (the title-only rule was
+// abolished; the names live in the lang files under ww1936.title.jpn_*): these sit in the person table with a title name key, the
 // same shape as the P3 German titles. Office names checked against the
 // Japanese government organisation of 1936–1945: the Cabinet Planning Board
 // existed 1937-10-25 to 1943-10-31, the Navy General Staff chief bore the

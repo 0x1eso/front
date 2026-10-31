@@ -29,15 +29,10 @@ export interface GeneralDef {
 
 // Append only: a general's id in a game is its index + 1 (plan decision 17).
 // The first two rows are the foundation's seed and stay first. The rest is
-// the P2 spec §6.2 roster (Task 10): real people, facts only. Left out by
-// the principle (spec §6.2, mode rulings): every Japanese officer (Japan
-// shows titles only, controller ruling from P5 — its armies get titled
-// generals, LandStart START_OOB); anyone convicted by the IMT, the later
-// Nuremberg trials or another war-crimes court; police and secret-police
-// chiefs; commanders behind massacres or gas attacks never tried (the
-// Ethiopian and Libyan campaigns, the 1936 terror in Spain); and, when in
-// doubt, anyone the sources leave open. Titled generals fill any shortfall.
-// tests/ww1936/LandData.test.ts lists the excluded names.
+// the P2 spec §6.2 roster (Task 10): real people, facts only. The old
+// exclusion principle (Japan by title only, trial convictions, Korea or
+// Taiwan commands) was abolished 2026-10-31: the people it left out are
+// restored at the end, appended in order. Titled generals fill any shortfall.
 //
 // Dates (all checked 2026-10-21): `from` is the day of the first
 // general-officer rank (Generalmajor, brigadier general, major-general in
@@ -880,6 +875,102 @@ export const GENERALS: readonly GeneralDef[] = [
     [2, 3, 2, 2],
     [],
     "en.wikipedia Hugó Sónyi + hu.wikipedia: tábornok 1927-11-01, commander-in-chief of the Honvéd 1936-09 to 1940-03",
+  ),
+
+  // ---- Restored 2026-10-31 (the roster principle's exclusions were abolished): Germany, Italy, Spain, Japan ----
+  row(
+    "manstein",
+    "DEU",
+    [4, 4, 5, 3],
+    ["offensive_doctrine"],
+    "en.wikipedia Erich von Manstein: Generalmajor 1938-04-01, chief of staff of Army Group South 1939",
+    { from: "1938-04-01" },
+  ),
+  row(
+    "leeb",
+    "DEU",
+    [2, 5, 3, 3],
+    ["defensive_doctrine"],
+    "en.wikipedia Wilhelm Ritter von Leeb: General der Artillerie 1930, commander of Gruppenkommando 2 in 1936",
+  ),
+  row(
+    "kleist",
+    "DEU",
+    [4, 3, 3, 3],
+    ["panzer_leader"],
+    "en.wikipedia Ewald von Kleist: General der Kavallerie 1936, commander of a corps in 1939",
+  ),
+  row(
+    "list",
+    "DEU",
+    [3, 4, 3, 3],
+    ["mountaineer"],
+    "en.wikipedia Wilhelm List: General der Infanterie 1930, commander of Gruppenkommando 3 in 1936",
+  ),
+  row(
+    "kesselring",
+    "DEU",
+    [3, 3, 4, 4],
+    ["logistics_wizard"],
+    "en.wikipedia Albert Kesselring: Luftwaffe general, head of the Luftwaffe administration 1933-36, commanded Luftflotte 1 in 1939",
+    { from: "1938-01-01" },
+  ),
+  row(
+    "graziani",
+    "ITA",
+    [3, 3, 2, 3],
+    ["desert_fox"],
+    "en.wikipedia Rodolfo Graziani: Marshal of Italy 1936, Viceroy of Italian East Africa 1936-37, commanded in Libya in 1940",
+  ),
+  row(
+    "mola",
+    "ESN",
+    [3, 3, 3, 2],
+    ["infantry_officer"],
+    "en.wikipedia Emilio Mola: general de brigada, Army of the North in 1936",
+  ),
+  row(
+    "yamashita",
+    "JPN",
+    [5, 3, 4, 3],
+    ["offensive_doctrine"],
+    "en.wikipedia Yamashita Tomoyuki: major general 1930, commander of the 25th Army in 1941",
+  ),
+  row(
+    "honma",
+    "JPN",
+    [3, 3, 4, 3],
+    ["infantry_officer"],
+    "en.wikipedia Homma Masaharu: major general 1932, commander of the 14th Army in 1941",
+  ),
+  row(
+    "kuribayashi",
+    "JPN",
+    [3, 5, 4, 3],
+    ["defensive_doctrine"],
+    "en.wikipedia Kuribayashi Tadamichi: colonel in 1936, major general 1940 (year only)",
+    { from: "1940-01-01" },
+  ),
+  row(
+    "imamura",
+    "JPN",
+    [4, 3, 3, 4],
+    ["organizer"],
+    "en.wikipedia Imamura Hitoshi: major general 1932, commander of the 16th Army in 1941",
+  ),
+  row(
+    "anami",
+    "JPN",
+    [4, 4, 3, 3],
+    ["infantry_officer"],
+    "en.wikipedia Anami Korechika: major general 1934, vice minister of war 1939",
+  ),
+  row(
+    "okamura",
+    "JPN",
+    [4, 3, 4, 3],
+    ["offensive_doctrine"],
+    "en.wikipedia Okamura Yasuji: major general 1933, commander of the 11th Army in 1938",
   ),
 ];
 

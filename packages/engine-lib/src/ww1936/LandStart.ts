@@ -200,7 +200,7 @@ export interface OobArmy {
   planTargets?: readonly number[];
   /**
    * Starts under a titled general (spec §6.2) when the roster has no named
-   * one left for it: Japan shows titles only (controller ruling).
+   * one left for it (no army is marked: every major has enough names).
    */
   titledGeneral?: boolean;
 }
@@ -283,12 +283,9 @@ export const START_OOB: Readonly<
       divisions: [["binary", 24]],
     },
   ],
-  // Japan: square 17, cavalry brigades 4, garrisons 4 (25). Japan has no
-  // named generals (titles only): the Kwantung and home armies start under
-  // titled generals, the two smaller armies under none. No Japanese army
-  // starts in Korea or Taiwan (controller ruling on final review B M5, the
-  // spirit of "no Japanese base there"): the 1936 Korea garrison's two
-  // divisions stand in the Kwantung lease, the Taiwan garrison in Kyūshū.
+  // Japan: square 17, cavalry brigades 4, garrisons 4 (25). The Kwantung and
+  // home armies start under generals; the Chōsen Army (Korea) and the Taiwan
+  // Army, the 1936 garrisons, under none.
   JPN: [
     {
       // Kwantung Army: the Kwantung lease, then Manchukuo's Jilin and
@@ -299,7 +296,6 @@ export const START_OOB: Readonly<
         ["cavalry_brigade", 3],
         ["garrison", 1],
       ],
-      titledGeneral: true,
     },
     {
       // Home islands: Tokyo, Ōsaka.
@@ -309,16 +305,15 @@ export const START_OOB: Readonly<
         ["cavalry_brigade", 1],
         ["garrison", 2],
       ],
-      titledGeneral: true,
     },
     {
-      // The Korea garrison's divisions, moved out: Kwantung.
-      regions: [666],
+      // Chōsen Army: Seoul (Keijō), else P'yŏngyang.
+      regions: [679, 686],
       divisions: [["square", 2]],
     },
     {
-      // The Taiwan garrison, moved out: Kumamoto (Kyūshū), else Tokyo.
-      regions: [800, 758],
+      // Taiwan Army: Taiwan, else Tokyo.
+      regions: [901, 758],
       divisions: [["garrison", 1]],
     },
   ],
