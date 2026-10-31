@@ -5,6 +5,7 @@
 // the paths, the fronts and the weather.
 import type { LandOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import type { DesignDef } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   EQUIPMENT_TYPES,
@@ -39,6 +40,7 @@ import {
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_TARGETS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
   combatWidth,
   divisionMods,
@@ -47,6 +49,7 @@ import {
   ModInput,
   predictBattle,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { designNeedGroup } from "@openfront/engine-lib/ww1936/DesignRules";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import {
   borderRegionsOf,
@@ -80,6 +83,11 @@ import {
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import {
+  presetStatus,
+  presetsUsing,
+  TemplatePreset,
+} from "@openfront/engine-lib/ww1936/TemplatePresets";
 import {
   GEN1,
   templateBlock,
@@ -1985,4 +1993,85 @@ export function isOverseas(
   sides: LandSides = sidesOf(view),
 ): boolean {
   return borderRegionsOf(frontWorld(view, sides), me, enemy).length === 0;
+}
+
+// ---- Presets and idle equipment ----
+
+/** The NEED_GROUPS indexes of the tank designs a country has saved (heavy, td, spa, spaa count). */
+export function designGroupsOf(
+  designs: readonly { def: DesignDef }[] | undefined,
+): Set<number> {
+  const out = new Set<number>();
+  for (const d of designs ?? []) {
+    if (d.def.kind === "tank") out.add(designNeedGroup(d.def));
+  }
+  return out;
+}
+
+/** Why a preset is locked, in words: the techs' names, "needs a heavy tank design" per design-only battalion. */
+export function presetLockText(
+  preset: TemplatePreset,
+  researched: ReadonlySet<WwTechId>,
+  groups: ReadonlySet<number>,
+): string {
+  const st = presetStatus(preset, researched, groups);
+  return [
+    ...st.techs.map((t) =>
+      translateText("ww1936.land.locked_by", {
+        tech: translateText(`ww1936.tech.${t}`),
+      }),
+    ),
+    ...st.designs.map((b) =>
+      translateText("ww1936.land.needs_design", {
+        battalion: translateText(`ww1936.battalion.${b}`),
+      }),
+    ),
+  ].join(" · ");
+}
+
+/** Stock a tank type (or another type no template uses) must pass before the idle bar shows. */
+export const IDLE_TANK_MIN = 100;
+export const IDLE_OTHER_MIN = 500;
+const IDLE_TYPES: readonly EquipmentType[] = [
+  "medium_tank",
+  "light_tank",
+  "motorized",
+  "artillery",
+  "anti_tank",
+  "anti_air",
+];
+
+export interface IdleEquipment {
+  type: EquipmentType;
+  count: number;
+  /** The usable preset that would put it to use (not yet one of the templates). */
+  preset: TemplatePreset;
+}
+
+/** The first equipment type sitting idle: a tank type, or one no template's battalions use, above its threshold. */
+export function idleEquipment(
+  stock: readonly number[],
+  templates: readonly TemplateData[],
+  researched: ReadonlySet<WwTechId>,
+  groups: ReadonlySet<number>,
+): IdleEquipment | null {
+  const used = new Set<string>();
+  for (const t of templates)
+    for (const b of t.battalions) used.add(BATTALIONS[b].equip[0][0]);
+  for (const type of IDLE_TYPES) {
+    let count = 0;
+    EQUIP_KEYS.forEach(([e], k) => {
+      if (e === type) count += stock[k] ?? 0;
+    });
+    const tank = type === "light_tank" || type === "medium_tank";
+    if (count < (tank ? IDLE_TANK_MIN : IDLE_OTHER_MIN)) continue;
+    if (!tank && used.has(type)) continue;
+    const preset = presetsUsing(type).find(
+      (x) =>
+        presetStatus(x, researched, groups).usable &&
+        !templates.some((t) => t.key === x.id),
+    );
+    if (preset !== undefined) return { type, count, preset };
+  }
+  return null;
 }

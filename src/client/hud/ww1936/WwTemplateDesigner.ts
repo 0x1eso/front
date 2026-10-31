@@ -18,6 +18,12 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
+  DESIGN_ONLY_GROUP,
+  presetDef,
+  presetStatuses,
+  upgradeDef,
+} from "@openfront/engine-lib/ww1936/TemplatePresets";
+import {
   GEN1,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
@@ -34,7 +40,10 @@ import {
   techName,
 } from "./EconomyModel";
 import {
+  battalionSummary,
   designer,
+  designGroupsOf,
+  presetLockText,
   researchedOf,
   techOf,
   templateDef,
@@ -142,6 +151,7 @@ export class WwTemplateDesigner extends LitElement {
   @state() private saved: TemplateDef | null = null;
   @state() private picking: Pick | null = null;
   @state() private editingName = false;
+  @state() private presetsOpen = false;
   @state() private refused: WwOrderBlock | null = null;
   /** The template this one copies on save (its id), once [Copy] was pressed. */
   private copyOf = 0;
@@ -269,6 +279,7 @@ export class WwTemplateDesigner extends LitElement {
           have: Math.floor(land.armyXpMilli / 1000),
         })}
       </div>
+      ${this.renderToolbar(researched)} ${this.renderPresets(researched)}
       ${this.renderGrid()} ${this.renderPicker(researched)}
       ${this.renderStats(d.stats, beforeStats, d.factoryDays)}
       ${this.refused === null
@@ -281,6 +292,96 @@ export class WwTemplateDesigner extends LitElement {
           </p>`}
       ${this.renderActions(block, d.xpCost)}
     </div>`;
+  }
+
+  private groups(): Set<number> {
+    return designGroupsOf(this.game?.wwDepth?.()?.detail(this.me())?.designs);
+  }
+
+  /** [프리셋] and [구형 → 신형]. */
+  private renderToolbar(researched: ReadonlySet<WwTechId>): TemplateResult {
+    const up = upgradeDef(this.draft, researched);
+    const cls = "h-9 flex-1 rounded-md border px-2 text-xs font-semibold";
+    return html`<div class="flex gap-1">
+      <button
+        type="button"
+        data-ww-presets
+        aria-pressed=${String(this.presetsOpen)}
+        class="${cls} border-sky-400/50 bg-sky-900/40"
+        @click=${() => {
+          this.presetsOpen = !this.presetsOpen;
+          this.picking = null;
+        }}
+      >
+        ${translateText("ww1936.land.presets")}
+      </button>
+      <button
+        type="button"
+        data-ww-upgrade
+        aria-disabled=${String(up === null)}
+        class="${cls} ${up === null
+          ? "border-white/5 bg-white/5 text-white/40"
+          : "border-amber-300/60 bg-amber-800/40"}"
+        @click=${() => {
+          if (up === null) return;
+          this.draft = up;
+          this.picking = null;
+          this.refused = null;
+        }}
+      >
+        ${translateText("ww1936.land.upgrade_old_new")}
+      </button>
+    </div>`;
+  }
+
+  /** Every preset: a usable one fills the grid in one tap, a locked one says what it needs. */
+  private renderPresets(
+    researched: ReadonlySet<WwTechId>,
+  ): TemplateResult | typeof nothing {
+    if (!this.presetsOpen) return nothing;
+    const groups = this.groups();
+    return html`<ul
+      data-ww-preset-list
+      class="m-0 flex max-h-64 list-none flex-col gap-1 overflow-y-auto p-0"
+    >
+      ${presetStatuses(researched, groups).map(
+        ({ preset, status }) =>
+          html`<li>
+            <button
+              type="button"
+              data-ww-preset=${preset.id}
+              data-locked=${String(!status.usable)}
+              aria-disabled=${String(!status.usable)}
+              class="flex min-h-9 w-full flex-col rounded-md border px-2 py-1 text-left text-xs ${status.usable
+                ? "border-white/15 bg-white/5 hover:bg-white/15"
+                : "border-white/5 bg-gray-900/60 text-white/45"}"
+              @click=${() => {
+                if (!status.usable) return;
+                const def = presetDef(preset);
+                this.draft = {
+                  ...def,
+                  name: translateText(`ww1936.tpl.${preset.id}`).slice(
+                    0,
+                    WW_TEMPLATE_NAME_MAX,
+                  ),
+                };
+                this.presetsOpen = false;
+                this.picking = null;
+                this.refused = null;
+              }}
+            >
+              <span class="font-semibold"
+                >${translateText(`ww1936.tpl.${preset.id}`)}</span
+              >
+              <span class="text-[11px] text-white/60"
+                >${status.usable
+                  ? battalionSummary(presetDef(preset))
+                  : presetLockText(preset, researched, groups)}</span
+              >
+            </button>
+          </li>`,
+      )}
+    </ul>`;
   }
 
   private renderName(): TemplateResult {
@@ -446,12 +547,14 @@ export class WwTemplateDesigner extends LitElement {
       facts: string,
       missing: WwTechId | undefined,
       pick: () => void,
+      designOnly = false,
     ) =>
       html`<li>
         <button
           type="button"
           data-ww-pick=${id}
           data-locked=${String(missing !== undefined)}
+          data-design-only=${String(designOnly)}
           aria-disabled=${String(missing !== undefined)}
           class="flex min-h-9 w-full items-center gap-2 rounded-md border px-2 py-1 text-left text-xs ${missing ===
           undefined
@@ -471,6 +574,13 @@ export class WwTemplateDesigner extends LitElement {
                     tech: techName(missing),
                   })}</span
             >
+            ${designOnly
+              ? html`<span
+                  data-ww-design-only
+                  class="block truncate text-[11px] text-amber-200"
+                  >${translateText("ww1936.land.design_only")}</span
+                >`
+              : nothing}
           </span>
         </button>
       </li>`;
@@ -491,6 +601,7 @@ export class WwTemplateDesigner extends LitElement {
               } · ${translateText("ww1936.land.stat_defense")} ${b.def / 100}`,
               b.techs.find((t) => !researched.has(t)),
               () => this.setBattalion(p.index, id),
+              id in DESIGN_ONLY_GROUP,
             );
           })}
         </ul>

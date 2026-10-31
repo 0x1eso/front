@@ -8,6 +8,8 @@ import {
   SupportId,
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { isMajor, startTechs } from "./EconomyStart";
+import { presetById, presetDef, presetStatus } from "./TemplatePresets";
 
 export interface StartTemplate {
   /** ww1936.tpl.<key>. */
@@ -30,6 +32,43 @@ const tpl = (
 
 /** Spec §4.5. The first template is the one the generic order of battle uses. */
 export function startTemplates(tag: CountryTag, dev: number): StartTemplate[] {
+  const out = baseTemplates(tag, dev);
+  const researched = new Set<WwTechId>([
+    ...startTechs(tag, 0),
+    ...landStartTechs(tag, isMajor(tag), dev),
+  ]);
+  for (const id of PRESET_PICKS[tag] ??
+    (dev >= 4 ? MINOR_PICKS_4 : dev === 3 ? MINOR_PICKS_3 : MINOR_PICKS_LOW)) {
+    const x = presetById(id);
+    if (x === undefined || out.some((t) => t.key === id)) continue;
+    // Usable at the start only: its techs are in the country's start techs.
+    if (!presetStatus(x, researched, NO_DESIGNS).usable) continue;
+    out.push({ key: id, def: presetDef(x) });
+  }
+  return out;
+}
+
+const NO_DESIGNS: ReadonlySet<number> = new Set();
+/** National flavour: the presets each major adds to its 1936 templates (majors hold 4-6). */
+const PRESET_PICKS: Partial<Record<CountryTag, readonly string[]>> = {
+  DEU: ["pre_mot_infantry", "pre_anti_tank_infantry"],
+  ITA: ["pre_mot_infantry", "pre_artillery_div"],
+  JPN: ["pre_light_armored", "pre_marine_div", "pre_mot_infantry"],
+  GBR: ["pre_marine_div", "pre_mot_infantry", "pre_artillery_div"],
+  FRA: ["pre_mot_infantry", "pre_artillery_div"],
+  USA: ["pre_light_armored", "pre_marine_div", "pre_mot_infantry"],
+  SUN: ["pre_mot_infantry", "pre_artillery_div"],
+};
+/** Mid and minor nations (3-4 and 2-3 templates) by development. */
+const MINOR_PICKS_4 = [
+  "pre_engineer_infantry",
+  "pre_garrison_div",
+  "pre_artillery_div",
+];
+const MINOR_PICKS_3 = ["pre_engineer_infantry", "pre_garrison_div"];
+const MINOR_PICKS_LOW = ["pre_garrison_div"];
+
+function baseTemplates(tag: CountryTag, dev: number): StartTemplate[] {
   switch (tag) {
     case "DEU":
       return [

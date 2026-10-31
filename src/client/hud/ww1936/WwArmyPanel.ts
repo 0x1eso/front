@@ -7,9 +7,12 @@ import {
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_TEMPLATES,
   WW_MAX_TRAINING,
+  WW_TEMPLATE_NAME_MAX,
   WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
+import { presetDef } from "@openfront/engine-lib/ww1936/TemplatePresets";
+import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { GoToPositionEvent } from "../../TransformHandler";
@@ -25,8 +28,11 @@ import {
   armyRows,
   armyStatus,
   battalionSummary,
+  designer,
+  designGroupsOf,
   divisionRows,
   generalRows,
+  idleEquipment,
   regionName,
   rosterName,
   rowGeneralName,
@@ -51,8 +57,8 @@ import {
 } from "./WorldWarModel";
 import { TRAIT_ICONS, traitsOf } from "./WwArmyCard";
 import { renderGroupTab } from "./WwArmyGroupTab";
-import { WwDrawerBase } from "./WwDrawer";
 import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
+import { WwDrawerBase } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
 import "./WwTemplateDesigner";
 
@@ -267,9 +273,7 @@ export class WwArmyPanel extends WwDrawerBase {
         class="h-9 flex-1 rounded-md border px-2 text-xs font-semibold ${on
           ? "border-emerald-400/60 bg-emerald-900/40 hover:bg-emerald-900/70"
           : "border-white/15 bg-white/5 hover:bg-white/10"}"
-        ?disabled=${on
-          ? autos.length === rows.length
-          : autos.length === 0}
+        ?disabled=${on ? autos.length === rows.length : autos.length === 0}
         @click=${() => this.send({ kind: "army_auto_all", on })}
       >
         ${on ? "🤖 " : ""}${translateText(
@@ -316,10 +320,8 @@ export class WwArmyPanel extends WwDrawerBase {
     const rows = armyRows(c.view, c.me);
     if (rows.length === 0) return this.empty("ww1936.land.no_armies");
     const chosen = c.army;
-    return html`${this.renderAllAuto(c)}<ul
-        data-ww-armies
-        class="m-0 mt-2 flex list-none flex-col gap-1 p-0"
-      >
+    return html`${this.renderAllAuto(c)}
+      <ul data-ww-armies class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
         ${rows.map((r) => {
           const a = c.view.armies.get(r.id)!;
           const status = armyStatus(c.view, c.me, a, c.day);
@@ -604,7 +606,7 @@ export class WwArmyPanel extends WwDrawerBase {
       ></ww-template-designer>`;
     }
     const full = c.land.templates.length >= WW_MAX_TEMPLATES;
-    return html`${designButton(this.eventBus, "tank")}
+    return html`${designButton(this.eventBus, "tank")} ${this.renderIdle(c)}
       <ul data-ww-templates class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
         ${c.land.templates.map(
           (t) =>
@@ -654,6 +656,73 @@ export class WwArmyPanel extends WwDrawerBase {
         ${translateText("ww1936.land.new_template")}
       </button>
       ${this.refused?.key === "new_template"
+        ? html`<p data-ww-block class="m-0 mt-1 text-xs text-red-300">
+            🔒 ${this.refused.text}
+          </p>`
+        : nothing}`;
+  }
+
+  /** Equipment in stock that no template uses: a bar that adds the preset which would. */
+  private renderIdle(c: Ctx): TemplateResult | typeof nothing {
+    const researched = new Set(c.economy.detail(c.me)?.researched ?? []);
+    const groups = designGroupsOf(this.game.wwDepth?.()?.detail(c.me)?.designs);
+    const idle = idleEquipment(
+      c.economy.detail(c.me)?.stock ?? [],
+      c.land.templates,
+      researched,
+      groups,
+    );
+    if (idle === null) return nothing;
+    const name = translateText(`ww1936.tpl.${idle.preset.id}`);
+    const add = () => {
+      const def = {
+        ...presetDef(idle.preset),
+        name: name.slice(0, WW_TEMPLATE_NAME_MAX),
+      };
+      const block =
+        c.land.templates.length >= WW_MAX_TEMPLATES
+          ? "too_many_templates"
+          : designer(
+              null,
+              def,
+              techTotals(researched),
+              researched,
+              c.land.armyXpMilli,
+            ).block;
+      if (block !== null) {
+        this.refused = { key: "idle", text: blockText(block) };
+        return;
+      }
+      this.refused = null;
+      this.send({
+        kind: "template_save",
+        template: 0,
+        base: 0,
+        name: def.name,
+        battalions: [...def.battalions],
+        support: [...def.support],
+      });
+    };
+    return html`<div
+        data-ww-idle
+        class="mt-2 flex items-center gap-2 rounded-md border border-amber-300/50 bg-amber-900/30 p-1.5 text-xs"
+      >
+        <span class="min-w-0 flex-1"
+          >${translateText("ww1936.land.idle_equipment", {
+            type: equipmentName(idle.type),
+            count: idle.count,
+          })}</span
+        >
+        <button
+          type="button"
+          data-ww-idle-add
+          class="h-9 shrink-0 rounded-md border border-emerald-400/60 bg-emerald-800/50 px-2 font-semibold"
+          @click=${add}
+        >
+          ${translateText("ww1936.land.idle_make", { name })}
+        </button>
+      </div>
+      ${this.refused?.key === "idle"
         ? html`<p data-ww-block class="m-0 mt-1 text-xs text-red-300">
             🔒 ${this.refused.text}
           </p>`

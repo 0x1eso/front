@@ -7,7 +7,10 @@ import {
   equipKey,
   RESOURCE_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { WW_ARMY_XP_MAX_MILLI } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  WW_ARMY_XP_MAX_MILLI,
+  WW_MAX_TEMPLATES,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import type {
   Effect,
   RegionPick,
@@ -369,13 +372,13 @@ describe("economy and military effects", () => {
       run([{ kind: "unlock_template", template: "t_heavy" }]);
       expect(cl.templates).toHaveLength(n + 1);
     }
-    // Twelve at most.
-    while (cl.templates.length < 12) {
+    // WW_MAX_TEMPLATES at most.
+    while (cl.templates.length < WW_MAX_TEMPLATES) {
       cl.templates.push({ ...t, id: cl.nextTemplateId++, key: "" });
     }
     ce.addTech("medium_tank_1");
     run([{ kind: "unlock_template", template: "t_heavy" }]);
-    expect(cl.templates).toHaveLength(12);
+    expect(cl.templates).toHaveLength(WW_MAX_TEMPLATES);
     expect(cl.armyXpMilli).toBe(0);
   });
 

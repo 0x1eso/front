@@ -460,7 +460,7 @@ describe("templates (P2 spec §4.4)", () => {
         ),
       ),
     ).toBeNull();
-    expect(cl.templates).toHaveLength(5);
+    expect(cl.templates).toHaveLength(7);
     expect(
       issue(
         save(

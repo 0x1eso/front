@@ -27,6 +27,7 @@ import {
 import { drawManpower, drawTemplateEquip } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { borderRegions, nearestBorder } from "./Fronts";
+import { markPresetsSeen } from "./Presets";
 import type {
   Army,
   CountryLand,
@@ -153,6 +154,8 @@ export function startLand(land: WwLand): void {
     for (const st of startTemplates(cl.tag, dev)) {
       cl.templates.push({ id: cl.nextTemplateId++, key: st.key, def: st.def });
     }
+    // Presets usable now are not "new": auto-add waits for an unlock.
+    markPresetsSeen(land, cl);
     // P5 pre-flight §0-4: a dormant slot keeps its templates (to train once
     // woken) but has no generals and no 1936 army.
     if (sc.isDormantSlot(cl.smallID)) continue;

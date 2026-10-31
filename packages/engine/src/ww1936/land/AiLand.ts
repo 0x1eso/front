@@ -40,6 +40,10 @@ import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { ALL_EDGES } from "@openfront/engine-lib/ww1936/SeaGraph";
 import {
+  presetById,
+  PresetRole,
+} from "@openfront/engine-lib/ww1936/TemplatePresets";
+import {
   GEN1,
   groupStock,
   specialCap,
@@ -363,15 +367,45 @@ const ROLE_KEYS: Readonly<Record<AiRole, readonly string[]>> = {
 
 /** The role of a template by its 1936 key; any other (a player's own, colonial, garrison) counts as infantry. */
 export function roleOfTemplate(key: string): AiRole {
+  const preset = presetById(key);
+  if (preset !== undefined) return PRESET_AI_ROLE[preset.role];
   for (const role of AI_ROLES) {
     if (ROLE_KEYS[role].includes(key)) return role;
   }
   return "infantry";
 }
 
+/** The AI's training role of each preset role (the armour presets all stand for "armor"). */
+const PRESET_AI_ROLE: Readonly<Record<PresetRole, AiRole>> = {
+  infantry: "infantry",
+  elite: "infantry",
+  artillery: "infantry",
+  mountain: "mountain",
+  marine: "mountain",
+  para: "mountain",
+  cavalry: "cavalry",
+  motor: "motorized",
+  light_armor: "armor",
+  armor: "armor",
+  heavy: "armor",
+  td: "armor",
+  spg: "armor",
+  spaa: "armor",
+  mixed: "armor",
+};
+
+/** How many of a role's templates the AI mixes: the medium tank division carries most of the armour. */
+const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
+  pre_medium_armored: 4,
+  pre_light_armored: 2,
+  pre_mot_infantry: 3,
+};
+
 export interface AiTrainTemplate {
   id: number;
   key: string;
+  /** Divisions of it in the field and in training (the AI mixes a role's templates by it). */
+  have?: number;
   /** Men of one division. */
   men: number;
   /** Stock against one division's equipment: its lowest type, ‰ (at most 1000). */
@@ -433,10 +467,25 @@ export function aiTrainPlan(i: AiTrainInput): number[] {
   const counts = { ...i.counts };
   let manpower = i.manpower;
   let training = i.training;
-  const tplOf = (role: AiRole): AiTrainTemplate | undefined =>
-    role === "infantry"
-      ? i.templates[0]
-      : i.templates.find((t) => ROLE_KEYS[role].includes(t.key));
+  const tplOf = (role: AiRole): AiTrainTemplate | undefined => {
+    if (role === "infantry") return i.templates[0];
+    // The role's templates (1936 keys, presets): the one furthest below its weight that the stock and men allow (else any, so the gate below holds).
+    const own = i.templates.filter(
+      (t) => ROLE_KEYS[role].includes(t.key) || roleOfTemplate(t.key) === role,
+    );
+    const ok = (t: AiTrainTemplate) =>
+      t.fillPm >= TRAIN_FILL_PM && manpower >= t.men * TRAIN_MEN_FACTOR;
+    let best: AiTrainTemplate | undefined;
+    let bestLoad = Infinity;
+    for (const t of own.filter(ok)) {
+      const load = (t.have ?? 0) / (PRESET_AI_WEIGHT[t.key] ?? 1);
+      if (load < bestLoad) {
+        best = t;
+        bestLoad = load;
+      }
+    }
+    return best ?? own[0];
+  };
   const out: number[] = [];
   while (out.length < TRAIN_PER_DAY && training < target) {
     let total = 0;
@@ -1841,7 +1890,9 @@ class AiDay {
     // queueTraining enforces): Task 11 round 2.
     let battalions = 0;
     let special = 0;
+    const have = new Map<number, number>();
     const add = (tpl: number, n: number) => {
+      have.set(tpl, (have.get(tpl) ?? 0) + n);
       const role =
         tpl === firstId ? "infantry" : roleOfTemplate(keyOf.get(tpl) ?? "");
       counts[role] += n;
@@ -1877,6 +1928,7 @@ class AiDay {
       templates.push({
         id: tpl.id,
         key: tpl.key,
+        have: have.get(tpl.id) ?? 0,
         men: s.men,
         fillPm: this.fillPm(s.need),
       });

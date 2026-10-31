@@ -543,7 +543,7 @@ export interface WwLandData {
 export const WW_ROUND_HOUR_MILLI = 1829;
 export const WW_SPREAD_TILES_PER_TICK = 2000;
 export const WW_MAX_ARMY_DIVISIONS = 24;
-export const WW_MAX_TEMPLATES = 12;
+export const WW_MAX_TEMPLATES = 20;
 export const WW_MAX_TRAINING = 20;
 export const WW_MAX_TRAIN_COUNT = 10;
 export const WW_MAX_ARMIES = 40;
@@ -607,7 +607,7 @@ export type LandOrderSource = "player" | "ai";
  * The land war's messages (spec §15.8), full keys (pre-flight U5): every
  * sender passes one of these literally, so the translation check sees each.
  * Parameters: `count` (number), `region` (region id), `army` (the army's
- * nameNo), `general` (general id).
+ * nameNo), `general` (general id), `template` (a template key).
  */
 export const LAND_MESSAGE_KEYS = [
   "events_display.ww1936_division_ready",
@@ -618,5 +618,6 @@ export const LAND_MESSAGE_KEYS = [
   "events_display.ww1936_general_available",
   "events_display.ww1936_general_lost",
   "events_display.ww1936_no_tile_attacks",
+  "events_display.ww1936_template_added",
 ] as const;
 export type LandMessageKey = (typeof LAND_MESSAGE_KEYS)[number];

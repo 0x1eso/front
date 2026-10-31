@@ -70,6 +70,12 @@ const MODS = [
   "entrench",
 ];
 const LAND = [
+  "presets",
+  "upgrade_old_new",
+  "design_only",
+  "needs_design",
+  "idle_equipment",
+  "idle_make",
   "army_name_1",
   "army_name_2",
   "army_name_3",
@@ -169,6 +175,7 @@ const NOTICES = [
   "ww1936_general_available",
   "ww1936_general_lost",
   "ww1936_no_tile_attacks",
+  "ww1936_template_added",
 ];
 
 const KEYS = [
@@ -198,7 +205,7 @@ describe("World War 1936 P2 land war strings", () => {
   const ko = lang("ko");
 
   it("covers every template key the start builds", () => {
-    expect(TEMPLATE_KEYS.length).toBe(17);
+    expect(TEMPLATE_KEYS.length).toBe(24);
   });
 
   it.each(KEYS)("%s is in en and ko with the same placeholders", (key) => {

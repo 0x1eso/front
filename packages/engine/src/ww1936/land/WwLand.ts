@@ -91,6 +91,7 @@ import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
 import { applyArmyOrders, issueArmyOrder } from "./Orders";
 import { dmzBlocks } from "./PoliticsBridge";
+import { autoAddPresets } from "./Presets";
 import { dailySupply } from "./Supply";
 import { dailySustain } from "./Sustain";
 import {
@@ -486,6 +487,8 @@ export interface GeneralState {
 export class CountryLand {
   templates: LandTemplate[] = [];
   nextTemplateId = 1;
+  /** Bit i: template preset i (TemplatePresets) was usable when last looked at (auto-add runs once per preset). */
+  presetSeen = 0;
   training: TrainingEntry[] = [];
   trainees: Trainee[] = [];
   nextEntryId = 1;
@@ -617,6 +620,7 @@ export const WwLandStateSchema = z.object({
         }),
       ),
       nextTemplateId: zInt(),
+      presetSeen: zInt().optional(),
       training: z.array(
         z.object({
           id: zInt(),
@@ -1022,6 +1026,7 @@ export class WwLand {
     dailyFronts(this, id, day);
     dailySustain(this, id, day);
     dailyEntrench(this, id);
+    autoAddPresets(this, cl);
     // P5 plan decision 7: the AI runs a country no human controls now.
     // Automation: a human's auto armies, and its training when handed over.
     if (
@@ -2590,6 +2595,7 @@ export class WwLand {
         for (const s of tpl.def.support) mix(idHash(s));
       }
       mix(cl.nextTemplateId);
+      mix(cl.presetSeen);
       for (const e of cl.training) {
         mix(e.id);
         mix(e.template);
@@ -2701,6 +2707,7 @@ export class WwLand {
           support: [...tpl.def.support],
         })),
         nextTemplateId: cl.nextTemplateId,
+        presetSeen: cl.presetSeen,
         training: cl.training.map((e) => ({
           id: e.id,
           template: e.template,
@@ -2809,6 +2816,7 @@ export class WwLand {
         },
       }));
       cl.nextTemplateId = c.nextTemplateId;
+      cl.presetSeen = c.presetSeen ?? 0;
       cl.training = c.training.map((e) => ({
         id: e.id,
         template: e.template,

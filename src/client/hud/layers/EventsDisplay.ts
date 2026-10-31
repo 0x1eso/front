@@ -335,6 +335,12 @@ export class EventsDisplay extends LitElement implements Controller {
           tech: translateText("ww1936.tech." + params.tech),
         };
       }
+      if (typeof params.template === "string") {
+        params = {
+          ...params,
+          template: translateText("ww1936.tpl." + params.template),
+        };
+      }
       if (typeof params.resource === "string") {
         params = {
           ...params,

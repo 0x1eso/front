@@ -556,6 +556,8 @@ describe("World War 1936 P2: the land war's state", () => {
       ["armored", 0],
       ["mountain", 0],
       ["cavalry", 0],
+      ["pre_mot_infantry", 0],
+      ["pre_anti_tank_infantry", 0],
     ]);
     // Germany's whole roster (Task 10), best first; the two seed rows lead
     // the ones serving in 1936.
