@@ -44,6 +44,7 @@ import {
   WwLandSelection,
   WwSelectArmyEvent,
 } from "./LandSelection";
+import { linePeaceMapTap } from "./LinePeaceModel";
 import {
   armyGroupColorsOf,
   MULTI_PRESS_MS,
@@ -363,6 +364,8 @@ export class WwLandController implements Controller {
     if (peaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     // Negotiated peace: the composer's region pick mode, likewise.
     if (negPeaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
+    // Peace on the current line: its map names the tapped region.
+    if (linePeaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     const radius = TAP_RADIUS_PX / zoom;
     if (this.multi.active || this.multi.frontGroup !== null) {
       return this.multiTap(view, me, w, zoom);

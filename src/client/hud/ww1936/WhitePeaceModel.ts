@@ -12,6 +12,7 @@ import {
 import { translateText } from "../../Utils";
 import { type EndgameGame, warName } from "./EndgameModel";
 import { countryFlagUrl, countryText } from "./EndgameNames";
+import { lineCardSummary, type LinePeaceSummary } from "./LinePeaceModel";
 import { negPeaceTermsLines } from "./NegPeaceModel";
 import {
   today,
@@ -126,6 +127,8 @@ export interface WhitePeaceCardView {
   held: string[];
   /** Negotiated peace: the terms ("Poland cedes: Krakow", "…pays 20%…"); none: a white peace. */
   terms: string[];
+  /** Peace on the current line: what changes hands, from my side (null: another kind of offer). */
+  line: LinePeaceSummary | null;
   secondsLeft: number;
   /** Time left, 1 → 0. */
   fraction: number;
@@ -151,9 +154,11 @@ export function whitePeaceCardModel(
     id: o.id,
     deadlineTick: o.deadlineTick,
     title: translateText(
-      o.terms === null || o.terms === undefined
-        ? "ww1936.wpeace.card_title"
-        : "ww1936.wpeace.card_title_terms",
+      o.line !== undefined
+        ? "ww1936.lpeace.card_title"
+        : o.terms === null || o.terms === undefined
+          ? "ww1936.wpeace.card_title"
+          : "ww1936.wpeace.card_title_terms",
       { country: from },
     ),
     war: w === null ? "" : warName(game, w),
@@ -164,6 +169,7 @@ export function whitePeaceCardModel(
     sides: o.sides.map((s) => sideLine(game, s)),
     held: heldLines(game, o),
     terms: negPeaceTermsLines(game, o),
+    line: lineCardSummary(game, o),
     secondsLeft: wwSeconds(game, left),
     fraction: Math.min(1, left / Math.max(1, total)),
     more: offers.length - 1,

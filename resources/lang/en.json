@@ -8516,6 +8516,23 @@
       "unlimited": "Unlimited game (slow pace)",
       "unlimited_on": "Unlimited · about 3 hours to 1945"
     },
+    "lpeace": {
+      "band": "My colour: regions we gain ({n}) · their colour: regions they gain ({m}) · tap a region for its name",
+      "card_title": "{country} offers peace on the current line",
+      "empty": "No region changes hands: the same as a white peace",
+      "gain": "We gain: {regions}",
+      "lose": "We lose: {regions}",
+      "map": "Show on the map",
+      "more": "{names} and {n} more",
+      "offer": "Peace on the current line",
+      "region_gain": "{region}: we gain it",
+      "region_lose": "{region}: they gain it",
+      "region_none": "{region}: no change",
+      "rules": "Each side keeps the land it holds now, by law too. Capitals, Korea and Taiwan (except to China) go back; the land changes hands without a core.",
+      "send": "Offer the current line",
+      "title": "Peace on the current line with {country}",
+      "totals": "We gain {n} regions ({vp} VP) / lose {m} regions ({lvp} VP)"
+    },
     "market": {
       "buy": "Buy",
       "deal_delivery": "Delivery {pct}%",
@@ -8996,6 +9013,7 @@
       "news_international_brigades": "The first International Brigades form at Albacete to fight for the Spanish Republic.",
       "news_iran_armistice": "Iran orders a ceasefire; British and Soviet troops occupy the south and the north.",
       "news_italy_occupied": "German troops disarm the Italian army and occupy northern and central Italy.",
+      "news_line_peace": "{a} and {b} have made peace on the current line",
       "news_memel": "Lithuania returns the Memel Territory to Germany.",
       "news_moscow_armistice": "Finland signs an armistice with the Soviet Union and turns against the German troops in Lapland.",
       "news_moscow_peace": "The Moscow Peace ends the Winter War; Finland cedes Karelia.",

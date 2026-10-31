@@ -11,6 +11,7 @@ import type {
   WwCountryView,
   WwEndgameData,
   WwExileView,
+  WwLinePeaceRow,
   WwOccView,
   WwPeaceJudgeRow,
   WwPeaceLogEntry,
@@ -64,6 +65,8 @@ export class WwEndgameView {
   truces: [number, number, number][] = [];
   /** Negotiated peace: the AI judge's war facts for my possible offers (the composer's hint). */
   peaceJudge: WwPeaceJudgeRow[] = [];
+  /** Peace on the current line: my possible offers, settled now (the preview). */
+  linePeace: WwLinePeaceRow[] = [];
   news: { id: string; params: Record<string, string | number> }[] = [];
 
   /** Merges one update: every present field; occupation, aid and cores by key; news appended. */
@@ -92,6 +95,7 @@ export class WwEndgameView {
     if (d.peaceCooldowns !== undefined) this.peaceCooldowns = d.peaceCooldowns;
     if (d.truces !== undefined) this.truces = d.truces;
     if (d.peaceJudge !== undefined) this.peaceJudge = d.peaceJudge;
+    if (d.linePeace !== undefined) this.linePeace = d.linePeace;
     if (d.news.length > 0) {
       this.news = [...this.news, ...d.news].slice(-NEWS_KEEP);
     }
@@ -164,6 +168,11 @@ export class WwEndgameView {
     return (
       this.peaceJudge.find((j) => j.from === from && j.war === war) ?? null
     );
+  }
+
+  /** Peace on the current line: what `from`'s offer in war `war` would settle now (null: none sent). */
+  lineFor(from: number, war: number): WwLinePeaceRow | null {
+    return this.linePeace.find((r) => r.from === from && r.war === war) ?? null;
   }
 
   offersTo(smallID: number): WwPeaceOfferView[] {

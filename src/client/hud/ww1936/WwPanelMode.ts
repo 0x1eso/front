@@ -1,5 +1,6 @@
 import { GameEvent } from "@openfront/shared/EventBus";
 import { landSelectionOf } from "./LandSelection";
+import { linePeaceUiOf } from "./LinePeaceModel";
 import { multiSelectOf } from "./MultiSelect";
 import { negPeaceUiOf } from "./NegPeaceModel";
 import { peaceUiOf } from "./PeaceModel";
@@ -40,5 +41,7 @@ export function wwMapFlowActive(game: object): boolean {
   if (multi.active || multi.frontGroup !== null) return true;
   if (seaAirOf(game).draft.mode !== "none") return true;
   if (strikeFlowOf(game).step !== "idle") return true;
-  return peaceUiOf(game).map || negPeaceUiOf(game).map;
+  return (
+    peaceUiOf(game).map || negPeaceUiOf(game).map || linePeaceUiOf(game).map
+  );
 }

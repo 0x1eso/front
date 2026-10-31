@@ -6,6 +6,7 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { linePeaceBand, linePeaceUiOf } from "./LinePeaceModel";
 import { negPeaceBand, negPeaceUiOf } from "./NegPeaceModel";
 import {
   whitePeaceCardModel,
@@ -20,6 +21,7 @@ import {
   wwWindowTicks,
 } from "./WorldWarModel";
 import { EVENT_LAYER_CLASS } from "./WwEventCards";
+import { lineSummaryTemplate } from "./WwLinePeacePreview";
 
 /** A card's width: the event cards'. */
 const CARD_WIDTH = "w-[min(46vw,380px)]";
@@ -39,7 +41,10 @@ export const ANSWER_WAIT_TICKS = 20;
  * alone leaves it, each side's surrender line and war score, who holds
  * how much of whose land, a time bar (30 s; at the end it is refused) and
  * [Accept] [Refuse]. The first tap arms a button ("tap again to confirm",
- * 3 s), the second sends ww_order {peace_reply}.
+ * 3 s), the second sends ww_order {peace_reply}. Peace on the current
+ * line: the card also shows what changes hands each way and [Show on the
+ * map] (the regions in their new owner's colour; the band's [Done] or
+ * Back ends it).
  */
 @customElement("ww-white-peace-card")
 export class WwWhitePeaceCard extends LitElement implements Controller {
@@ -128,16 +133,33 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     ) {
       this.sent = null;
     }
-    // Negotiated peace: Back leaves the pick mode first.
+    // Negotiated peace: Back leaves the pick mode first (and the line's map).
     const ui = this.game ? negPeaceUiOf(this.game) : null;
-    if (ui?.map === true && this.unregisterBack === null) {
+    const lui = this.game ? linePeaceUiOf(this.game) : null;
+    // A card's line map ends with its offer.
+    if (
+      lui?.map === true &&
+      lui.offer > 0 &&
+      !(this.game.wwEndgame?.()?.peaceOffers ?? []).some(
+        (o) => o.id === lui.offer,
+      )
+    ) {
+      lui.closeMap();
+    }
+    const mapOn = ui?.map === true || lui?.map === true;
+    if (mapOn && this.unregisterBack === null) {
       this.unregisterBack = registerBackClosable(() => {
-        if (!ui.map) return false;
-        ui.closeMap();
+        if (ui?.map === true) {
+          ui.closeMap();
+        } else if (lui?.map === true) {
+          lui.closeMap();
+        } else {
+          return false;
+        }
         this.requestUpdate();
         return true;
       });
-    } else if (ui?.map !== true && this.unregisterBack !== null) {
+    } else if (!mapOn && this.unregisterBack !== null) {
       this.unregisterBack();
       this.unregisterBack = null;
     }
@@ -148,6 +170,8 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
       wwSeconds(pace, now),
       this.sent?.id ?? 0,
       ui?.map === true ? ui.version : -1,
+      card?.line?.totals ?? "",
+      lui?.version ?? -1,
     ];
     if (key.some((v, n) => v !== this.drawn[n])) {
       this.drawn = key;
@@ -190,7 +214,7 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
   private bandTemplate(): TemplateResult | null {
     if (!this.game) return null;
     const b = negPeaceBand(this.game);
-    if (b === null) return null;
+    if (b === null) return this.lineBandTemplate();
     const rows = document.querySelector("[data-bottom-hud-rows]");
     const top = rows?.getBoundingClientRect().top ?? window.innerHeight;
     const bottom = Math.round(
@@ -221,6 +245,42 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
       ${b.note === null
         ? nothing
         : html`<span data-ww-npeace-note class="text-red-300">${b.note}</span>`}
+    </div>`;
+  }
+
+  /** Peace on the current line: its map's band — what the colours mean, the tapped region, [Done]. */
+  private lineBandTemplate(): TemplateResult | null {
+    const b = linePeaceBand(this.game);
+    if (b === null) return null;
+    const rows = document.querySelector("[data-bottom-hud-rows]");
+    const top = rows?.getBoundingClientRect().top ?? window.innerHeight;
+    const bottom = Math.round(
+      window.innerHeight - Math.min(top, window.innerHeight) + 6,
+    );
+    return html`<div
+      data-ww-lpeace-band
+      class="pointer-events-auto absolute left-1/2 flex w-[min(92vw,440px)] -translate-x-1/2 flex-col gap-1 rounded-lg border border-sky-300/80 bg-gray-900/95 px-2 py-1.5 text-xs shadow-xl"
+      style="bottom: ${bottom}px"
+    >
+      <div class="flex items-center gap-2">
+        <span class="min-w-0 flex-1">🗺 ${b.line}</span>
+        <button
+          type="button"
+          data-ww-act="lpeace_done"
+          class="min-h-9 shrink-0 rounded-md border border-sky-400/60 bg-sky-900/40 px-3 font-semibold hover:bg-sky-800/60"
+          @click=${() => {
+            linePeaceUiOf(this.game).closeMap();
+            this.requestUpdate();
+          }}
+        >
+          ${translateText("ww1936.npeace.done")}
+        </button>
+      </div>
+      ${b.region === ""
+        ? nothing
+        : html`<span data-ww-lpeace-region class="text-white/70"
+            >${b.region}</span
+          >`}
     </div>`;
   }
 
@@ -310,6 +370,25 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
         : html`<ul data-ww-wpeace-held class="m-0 list-none p-0 text-white/70">
             ${c.held.map((l) => html`<li>${l}</li>`)}
           </ul>`}
+      ${c.line === null
+        ? nothing
+        : html`<div
+            data-ww-wpeace-line
+            class="flex flex-col gap-1 rounded border border-sky-300/40 bg-sky-950/30 p-1"
+          >
+            ${lineSummaryTemplate(c.line)}
+            <button
+              type="button"
+              data-ww-act="lpeace_card_map"
+              class="min-h-8 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10"
+              @click=${() => {
+                linePeaceUiOf(this.game).openMap(c.id);
+                this.requestUpdate();
+              }}
+            >
+              🗺 ${translateText("ww1936.lpeace.map")}
+            </button>
+          </div>`}
       ${c.terms.length === 0
         ? nothing
         : html`<ul

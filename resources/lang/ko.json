@@ -8728,7 +8728,8 @@
       "sun_poland": "소련이 동쪽에서 폴란드를 침공했다",
       "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다.",
       "news_white_peace": "{a} 측과 {b} 측이 백지 평화에 합의했습니다",
-      "news_neg_peace": "{a} 측과 {b} 측이 조건부 평화 조약을 맺었습니다"
+      "news_neg_peace": "{a} 측과 {b} 측이 조건부 평화 조약을 맺었습니다",
+      "news_line_peace": "{a} 측과 {b} 측이 현 점령선에서 평화에 합의했습니다"
     },
     "nuke": {
       "band": "원자탄 {n}",
@@ -11297,6 +11298,23 @@
       "band": "내 주를 누르면 내주기, 상대 주를 누르면 요구 · {n} 개 선택",
       "done": "완료",
       "remove": "{region} 빼기"
+    },
+    "lpeace": {
+      "offer": "현 점령선 평화",
+      "title": "현 점령선 평화: {country}",
+      "rules": "양측이 지금 점령한 땅을 법적으로도 그대로 갖습니다. 수도와 한국·대만(중국 제외)은 돌려주며, 넘어간 땅에는 코어가 없습니다.",
+      "totals": "우리가 얻는 지역 {n} 개 (승점 {vp}) / 잃는 지역 {m} 개 (승점 {lvp})",
+      "gain": "우리가 얻는 지역: {regions}",
+      "lose": "우리가 잃는 지역: {regions}",
+      "more": "{names} 외 {n} 개",
+      "empty": "바뀌는 지역 없음: 백지 평화와 같습니다",
+      "map": "지도에서 보기",
+      "send": "현 점령선 평화 제안",
+      "card_title": "현 점령선 평화 제안: {country}",
+      "band": "내 색: 우리가 얻는 지역 {n} 개 · 상대 색: 상대가 얻는 지역 {m} 개 · 지역을 누르면 이름이 나옵니다",
+      "region_gain": "{region}: 우리가 얻습니다",
+      "region_lose": "{region}: 상대가 얻습니다",
+      "region_none": "{region}: 그대로"
     }
   }
 }

@@ -19,6 +19,7 @@ import { DepthMiscModel } from "./DepthMiscModel";
 import type { WarCard } from "./EndgameModel";
 import { countryBadges, endgameKey } from "./EndgameModel";
 import { countryText } from "./EndgameNames";
+import { linePeacePreview, linePeaceUiOf } from "./LinePeaceModel";
 import { negPeaceComposer, negPeaceUiOf } from "./NegPeaceModel";
 import {
   canAct,
@@ -52,6 +53,7 @@ import {
   WwDrawerEvent,
 } from "./WwDrawer";
 import { renderFactionRules, renderRelations } from "./WwFactionRulesCard";
+import { linePeacePreviewTemplate } from "./WwLinePeacePreview";
 import { negPeaceComposerTemplate } from "./WwNegPeaceComposer";
 import {
   WwClosePanelEvent,
@@ -241,6 +243,8 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       this.game?.wwDepth?.()?.version ?? 0,
       // Negotiated peace: my draft (changed on the map, too).
       this.game ? negPeaceUiOf(this.game).version : 0,
+      // Peace on the current line: my preview (and its map).
+      this.game ? linePeaceUiOf(this.game).version : 0,
     ];
     if (key.some((v, n) => v !== this.redrawKey[n])) {
       this.redrawKey = key;
@@ -599,7 +603,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
    * side, else "Separate peace (leaves the faction)"; greyed with the
    * reason; "waiting for the answer" while my offer stands. It opens the
    * composer (terms each way, the chance they accept); with no terms it
-   * sends a white peace, as before (two taps on [Send offer]).
+   * sends a white peace, as before (two taps on [Send offer]). Peace on
+   * the current line (owner request 2026-10-31): [Peace on the current
+   * line] beside it opens its preview (what changes hands each way, the
+   * map, the chance they accept, two taps to send); greyed for the same
+   * reasons.
    */
   private renderWhitePeace(c: WarCard, me: number) {
     if (c.ended || c.mySide < 0) return nothing;
@@ -618,6 +626,15 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     const key = `wpeace:${b.war}:${b.target}`;
     const armed = this.armed(key);
     const redraw = () => this.requestUpdate();
+    // Peace on the current line: its preview, unless the composer took the row.
+    const lui = linePeaceUiOf(this.game);
+    if (lui.war === b.war && (lui.target !== b.target || composer !== null)) {
+      lui.close();
+    }
+    const line =
+      b.pending || b.block !== null ? null : linePeacePreview(this.game, me, w);
+    if (line === null && lui.war === b.war) lui.close();
+    const lineKey = `lpeace:${b.war}:${b.target}`;
     return html`<div
         data-ww-wpeace-row=${b.war}
         class="mt-1 flex flex-wrap items-center gap-1.5"
@@ -640,6 +657,21 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               >
                 ${translateText("ww1936.wpeace.offer")}
               </button>`}
+        ${b.pending || line !== null
+          ? nothing
+          : html`<button
+              type="button"
+              data-ww-act="lpeace_open"
+              class=${BUTTON}
+              ?disabled=${b.block !== null}
+              @click=${() => {
+                ui.close();
+                lui.open(b.war, b.target);
+                redraw();
+              }}
+            >
+              ${translateText("ww1936.lpeace.offer")}
+            </button>`}
         <span class="text-xs text-white/60">${b.scope}</span>
         ${b.block === null || b.pending
           ? nothing
@@ -675,6 +707,21 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               }),
             cancel: () => {
               ui.close();
+              redraw();
+            },
+          })}
+      ${line === null
+        ? nothing
+        : linePeacePreviewTemplate(line, {
+            armed: this.armed(lineKey),
+            map: () => lui.openMap(),
+            send: () =>
+              this.confirmTap(lineKey, () => {
+                this.send(line.order);
+                lui.close();
+              }),
+            cancel: () => {
+              lui.close();
               redraw();
             },
           })}`;
