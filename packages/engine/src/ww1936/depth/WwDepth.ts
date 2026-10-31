@@ -1849,7 +1849,10 @@ export function designCtxOf(
   return {
     techs: ce?.researched ?? new Set(),
     projects: d.countries[id]?.proj.done ?? 0,
-    relPp: stats?.[`mioRelPp_${f}` as WwStatKey] ?? 0,
+    // The doctrine's armorRelPp (arm_inf_support 3) adds to the tanks'.
+    relPp:
+      (stats?.[`mioRelPp_${f}` as WwStatKey] ?? 0) +
+      (def.kind === "tank" ? (stats?.armorRelPp ?? 0) : 0),
     costPct: stats?.[`mioCostPct_${f}` as WwStatKey] ?? 0,
   };
 }

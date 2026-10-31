@@ -37,15 +37,17 @@ export function energySupply(
   dams: number,
   extra: number,
   base = 0,
+  pct = 0,
 ): number {
-  return (
+  const raw =
     coal * ENERGY_PER_COAL +
     hydro * ENERGY_PER_HYDRO +
     plants * ENERGY_PER_PLANT +
     dams +
     extra +
-    base
-  );
+    base;
+  // The `energyPct` stat (spec §16.2): the whole supply, rounded down.
+  return pct === 0 ? raw : Math.floor((raw * (100 + pct)) / 100);
 }
 
 export function energyRatioPm(demand: number, supply: number): number {
@@ -73,10 +75,15 @@ export function coalWanted(
   extra: number,
   refineries: number,
   base = 0,
+  pct = 0,
 ): number {
   const gap = Math.max(
     0,
-    demand - energySupply(0, hydro, plants, dams, extra, base),
+    demand - energySupply(0, hydro, plants, dams, extra, base, pct),
   );
-  return refineries * COAL_PER_REFINERY + Math.ceil(gap / ENERGY_PER_COAL);
+  // A coal unit gives ENERGY_PER_COAL × (100 + pct)% (energySupply).
+  return (
+    refineries * COAL_PER_REFINERY +
+    Math.ceil((gap * 100) / (ENERGY_PER_COAL * (100 + pct)))
+  );
 }

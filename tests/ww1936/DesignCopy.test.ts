@@ -116,6 +116,27 @@ describe("World War 1936 P6: design copies", () => {
     ).toBe(-1);
   });
 
+  it("the armorRelPp stat adds reliability to tank designs only", async () => {
+    const { ww, d } = await game();
+    techs(ww, GBR, ["medium_tank_1"]);
+    expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(1);
+    expect(saveDesign(d, GBR, FIGHTER, 0, "own", 0, 0, 0)).toBe(1);
+    const rel = (kind: "tank" | "plane") =>
+      (d.designStatsOf(GBR, kind, 1) as TankDesignStats | PlaneDesignStats)
+        .relPm;
+    const tank = rel("tank");
+    const plane = rel("plane");
+    const ce = ww.economy.country(GBR)!;
+    ce.stats.armorRelPp = 5;
+    // recomputeStats bumps this when the stats change (the design cache key).
+    ce.statsVer++;
+    expect(designCtxOf(d, GBR, MED1).relPp).toBe(
+      designCtxOf(d, GBR, FIGHTER).relPp + 5,
+    );
+    expect(rel("tank")).toBe(tank + 50);
+    expect(rel("plane")).toBe(plane);
+  });
+
   it("lend-leased design arrives as received design", async () => {
     const { ww, d } = await game();
     techs(ww, GBR, ["medium_tank_1"]);

@@ -516,7 +516,15 @@ export class DepthIndustryModel {
       plantPower: e.plants * ENERGY_PER_PLANT,
       damPower: e.dams,
       // W1: the extra supply and the domestic base are part of it.
-      supply: energySupply(e.coal, e.hydro, e.plants, e.dams, e.extra, e.base),
+      supply: energySupply(
+        e.coal,
+        e.hydro,
+        e.plants,
+        e.dams,
+        e.extra,
+        e.base,
+        e.pct ?? 0,
+      ),
       demand: e.demand,
       short: e.ratioPm < 1000,
       coalStock: e.coalStock,

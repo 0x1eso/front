@@ -14,9 +14,11 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { lineOutputMilli } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   ENERGY_BASE_PER_REGION,
+  coalWanted,
   energyBase,
   energyPenaltyPct,
   energyRatioPm,
+  energySupply,
 } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
@@ -265,6 +267,29 @@ describe("World War 1936 P6: coal and energy (spec §16.2)", () => {
     const t = ww.economy.country(id)!.totals;
     expect(v.coalStock).toBe(
       Math.max(0, t.produced[COAL] - t.exported[COAL] + t.imported[COAL]),
+    );
+  }, 60_000);
+
+  it("the energyPct stat raises the supply (and lowers the coal wanted)", async () => {
+    const { runner, ww, id } = await deep("DEU");
+    const d = ww.depth;
+    const ce = ww.economy.country(id)!;
+    const day = Math.max(0, ww.day(runner.game.ticks()));
+    const before = energyParts(d, id, day);
+    const coalBefore = coalDemand(d, id);
+    expect(before.pct).toBe(0);
+    ce.stats.energyPct = 20;
+    const after = energyParts(d, id, day);
+    expect(after.pct).toBe(20);
+    expect(after.supply).toBeGreaterThan(before.supply);
+    expect(coalDemand(d, id)).toBeLessThanOrEqual(coalBefore);
+    expect(energyView(d, id).pct).toBe(20);
+    // The rule itself: +20% of the whole supply, rounded down.
+    expect(energySupply(2, 3, 1, 4, 5, 6, 20)).toBe(
+      Math.floor((energySupply(2, 3, 1, 4, 5, 6) * 120) / 100),
+    );
+    expect(coalWanted(100, 0, 0, 0, 0, 0, 0, 100)).toBeLessThan(
+      coalWanted(100, 0, 0, 0, 0, 0, 0, 0),
     );
   }, 60_000);
 });

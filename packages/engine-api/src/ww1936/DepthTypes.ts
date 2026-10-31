@@ -1008,6 +1008,8 @@ export interface WwDepthDetail {
     extra: number;
     /** Lane W1 (controller ruling): the domestic base, controlled regions with infrastructure (added as it is). */
     base: number;
+    /** The `energyPct` stat (more output from the whole supply); absent: 0. */
+    pct?: number;
     /** Lane W1: the day's coal and uranium (output less exports plus imports; P1 keeps no pile). */
     coalStock: number;
     uraniumStock: number;

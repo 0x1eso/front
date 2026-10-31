@@ -66,6 +66,8 @@ export interface EnergyParts {
   /** The domestic base: controlled regions with infrastructure, capped at the demand. */
   base: number;
   refineries: number;
+  /** The `energyPct` stat: more output from the whole supply. */
+  pct: number;
   supply: number;
 }
 
@@ -100,6 +102,7 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
     }
   }
   const base = energyBase(demand, built);
+  const pct = Math.max(-90, econ.country(id)?.stats.energyPct ?? 0);
   const dams = damEnergyOf(d, id, day);
   const extra = d.country(id)?.mech.energyExtra ?? 0;
   const got = d.lastPriorityGot.get(id);
@@ -109,7 +112,7 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
   } else {
     coalGot = Math.min(
       coalAvailable(d, id),
-      coalWanted(demand, hydro, plants, dams, extra, refineries, base),
+      coalWanted(demand, hydro, plants, dams, extra, refineries, base, pct),
     );
   }
   const coal = Math.max(0, coalGot - COAL_PER_REFINERY * refineries);
@@ -123,7 +126,8 @@ export function energyParts(d: WwDepth, id: number, day: number): EnergyParts {
     extra,
     base,
     refineries,
-    supply: energySupply(coal, hydro, plants, dams, extra, base),
+    pct,
+    supply: energySupply(coal, hydro, plants, dams, extra, base, pct),
   };
 }
 
@@ -181,6 +185,7 @@ export function coalDemand(d: WwDepth, id: number): number {
     p.extra,
     p.refineries,
     p.base,
+    p.pct,
   );
 }
 
@@ -227,6 +232,8 @@ export interface EnergyView {
   extra: number;
   /** The domestic base (added as it is). */
   base: number;
+  /** The `energyPct` stat. */
+  pct: number;
   /** P1 resources do not pile up: the day's coal and uranium (output less exports plus imports). */
   coalStock: number;
   uraniumStock: number;
@@ -246,6 +253,7 @@ export function energyView(d: WwDepth, id: number): EnergyView {
     ratioPm: d.country(id)?.mech.energyPm ?? 1000,
     extra: p?.extra ?? 0,
     base: p?.base ?? 0,
+    pct: p?.pct ?? 0,
     coalStock: resourceAvailable(d, id, COAL),
     uraniumStock: resourceAvailable(d, id, URANIUM),
   };
