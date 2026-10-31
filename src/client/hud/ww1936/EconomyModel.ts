@@ -24,6 +24,7 @@ import {
   RegionCategory,
   RESOURCE_IDS,
   ResourceId,
+  TECH_BRANCHES,
   TechBranch,
   TradeLaw,
   WW_MAX_PROJECT_COUNT,
@@ -83,7 +84,10 @@ import {
   LawCtx,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import {
+  emptyStats,
+  slotResearchSpeedPct,
+} from "@openfront/engine-lib/ww1936/Stats";
 import {
   DEPTH_BUILDINGS,
   depthBuildBlock,
@@ -1853,11 +1857,26 @@ export interface ResearchCard {
   saved: number;
 }
 
-/** Research speed bonus: electronics and the trade law (spec §9.2). */
-export function researchSpeedPct(detail: WwCountryDetail): number {
-  return (
-    techTotals(new Set(detail.researched)).researchPct +
-    lawEffects(detail.laws).researchPct
+/**
+ * Research speed % of a tech's slot, as the engine's stepResearch adds it:
+ * the branch's stat share (techs, spirits, advisors, focus), the trade law,
+ * the slot's bonus and the faction's shared research.
+ */
+export function researchSpeedPct(
+  detail: WwCountryDetail,
+  tech: WwTechId,
+  slotBonusPct = 0,
+): number {
+  const bi = TECH_BRANCHES.indexOf(WW_TECHS[tech].branch);
+  const branchPct =
+    detail.researchBranchPct[bi] ??
+    techTotals(new Set(detail.researched)).researchPct;
+  const shared = detail.sharedResearch?.find((r) => r[0] === tech)?.[1] ?? 0;
+  return slotResearchSpeedPct(
+    branchPct,
+    lawEffects(detail.laws).researchPct,
+    slotBonusPct,
+    shared,
   );
 }
 
@@ -1904,7 +1923,6 @@ export function researchCards(
     slots: slotTechs(detail),
     slotCount: detail.slotCount,
   };
-  const speed = researchSpeedPct(detail);
   // P6 plan decision 25: the retired doctrine techs are never offered.
   return WW_TECH_IDS.filter(
     (id) => WW_TECHS[id].branch === branch && WW_TECHS[id].retired !== true,
@@ -1912,8 +1930,11 @@ export function researchCards(
     const def = WW_TECHS[id];
     const days = techDays(def.year);
     const ahead = aheadPct(def.year, day);
-    const perDay = researchProgress(speed, ahead);
     const slot = detail.slots.find((s) => s?.tech === id) ?? null;
+    const perDay = researchProgress(
+      researchSpeedPct(detail, id, slot?.bonusPct ?? 0),
+      ahead,
+    );
     const keep = detail.savedResearch?.find((r) => r.tech === id) ?? null;
     const left =
       slot !== null
@@ -1952,7 +1973,6 @@ export interface SlotRow {
 
 /** The slot row (spec §13.4): each slot's tech, progress, days left and penalty. */
 export function researchSlots(detail: WwCountryDetail, day: number): SlotRow[] {
-  const speed = researchSpeedPct(detail);
   const n = Math.max(detail.slotCount, detail.slots.length);
   return Array.from({ length: n }, (_, index) => {
     const s = detail.slots[index] ?? null;
@@ -1961,7 +1981,10 @@ export function researchSlots(detail: WwCountryDetail, day: number): SlotRow[] {
       return { index, tech: null, progress: 0, daysLeft: 0, ahead: 0, paused };
     }
     const ahead = aheadPct(WW_TECHS[s.tech].year, day);
-    const perDay = researchProgress(speed, ahead);
+    const perDay = researchProgress(
+      researchSpeedPct(detail, s.tech, s.bonusPct ?? 0),
+      ahead,
+    );
     return {
       index,
       tech: s.tech,

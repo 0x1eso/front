@@ -73,6 +73,7 @@ export function detail(tag: CountryTag, over: Partial<Detail> = {}): Detail {
     lines: [],
     slotCount: 3,
     slots: [null, null, null],
+    researchBranchPct: [0, 0, 0, 0, 0, 0, 0, 0],
     researched: [
       "inf_eq_1",
       "support_eq_1",

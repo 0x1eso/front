@@ -769,6 +769,8 @@ export interface WwSlotData {
   tech: WwTechId;
   progressMilli: number;
   totalMilli: number;
+  /** The research bonus % this slot holds (absent: none). */
+  bonusPct?: number;
 }
 
 export interface WwTradeData {
@@ -800,6 +802,13 @@ export interface WwCountryDetail {
   researched: WwTechId[];
   /** Partial progress of techs that left a slot unfinished; absent when none. */
   savedResearch?: WwSlotData[];
+  /**
+   * Research speed % from the country's stats per TECH_BRANCHES order
+   * (researchPct + the branch's rs*Pct: techs, spirits, advisors, focus).
+   */
+  researchBranchPct: number[];
+  /** Faction shared research % of techs not yet researched; only non-zero ones. */
+  sharedResearch?: [WwTechId, number][];
   buying: WwTradeData[];
   selling: WwTradeData[];
   /** EQUIP_KEYS order. */

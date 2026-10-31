@@ -159,6 +159,21 @@ export const RS_STAT_OF_BRANCH: Readonly<Record<TechBranch, WwStatKey>> = {
   naval: "rsNavalPct",
 };
 
+/**
+ * One day's research speed % of a slot: the branch's stat share
+ * (`researchSpeedPct`), the trade law's, the slot's bonus and the faction's
+ * shared research. The engine's `stepResearch` and the client's ETA both
+ * add them here, so they cannot drift.
+ */
+export function slotResearchSpeedPct(
+  branchPct: number,
+  lawPct: number,
+  slotBonusPct: number,
+  sharedPct: number,
+): number {
+  return branchPct + lawPct + slotBonusPct + sharedPct;
+}
+
 /** Spec §3.4: research speed % of a branch (the law's share is added by P1). */
 export function researchSpeedPct(s: WwStats, branch: TechBranch): number {
   return s.researchPct + s[RS_STAT_OF_BRANCH[branch]];

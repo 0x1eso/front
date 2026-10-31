@@ -12,6 +12,7 @@ import {
   LawKind,
   RESOURCE_COUNT,
   RESOURCE_IDS,
+  TECH_BRANCHES,
   TRADE_LAWS,
   WW_DAY_SPLIT,
   WW_MAX_SLOTS,
@@ -65,7 +66,10 @@ import {
   START_PLANES,
   startNavyOf,
 } from "@openfront/engine-lib/ww1936/StartNavy";
-import { techStats } from "@openfront/engine-lib/ww1936/Stats";
+import {
+  researchSpeedPct,
+  techStats,
+} from "@openfront/engine-lib/ww1936/Stats";
 import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
   techDays,
@@ -75,6 +79,7 @@ import {
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { sharedResearchPct } from "../depth/FactionRules";
 import { regionStatus } from "../depth/World";
 import type { WwDepth } from "../depth/WwDepth";
 import type { WorldWar } from "../WorldWar";
@@ -1300,6 +1305,18 @@ export class WwEconomy {
     };
   }
 
+  private sharedResearchOf(
+    ce: CountryEconomy,
+  ): { sharedResearch: [WwTechId, number][] } | Record<string, never> {
+    const out: [WwTechId, number][] = [];
+    for (const id of WW_TECH_IDS) {
+      if (ce.researched.has(id)) continue;
+      const pct = sharedResearchPct(this.ww.depth, ce.smallID, id);
+      if (pct > 0) out.push([id, pct]);
+    }
+    return out.length === 0 ? {} : { sharedResearch: out };
+  }
+
   private detail(ce: CountryEconomy): WwCountryDetail {
     const t = ce.totals;
     const tradeData = (tr: Trade) => ({
@@ -1346,8 +1363,15 @@ export class WwEconomy {
               tech: s.tech,
               progressMilli: s.progress,
               totalMilli: techDays(WW_TECHS[s.tech].year) * 1000,
+              ...(s.bonusPct === undefined || s.bonusPct === 0
+                ? {}
+                : { bonusPct: s.bonusPct }),
             },
       ),
+      researchBranchPct: TECH_BRANCHES.map((b) =>
+        researchSpeedPct(ce.stats, b),
+      ),
+      ...this.sharedResearchOf(ce),
       researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
       ...(ce.savedResearch.length === 0
         ? {}

@@ -93,6 +93,7 @@ export function seaDetail(
     lines: [],
     slotCount: 3,
     slots: [null, null, null],
+    researchBranchPct: [0, 0, 0, 0, 0, 0, 0, 0],
     researched: ["fighter_1", "bomber_1"],
     buying: [],
     selling: [],

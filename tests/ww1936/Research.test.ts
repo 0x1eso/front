@@ -19,6 +19,7 @@ import {
   researchBlock,
   startResearch,
 } from "@openfront/engine/ww1936/economy/ResearchRun";
+import { researchSlots } from "../../src/client/hud/ww1936/EconomyModel";
 import {
   byTag,
   clearStartSetup,
@@ -320,5 +321,55 @@ describe("research (spec §9)", () => {
     throughDay(runner, deu, 5);
     expect(ce.slots[3]!.progress).toBeGreaterThan(paused);
     expect(messages(updates)).toEqual(told);
+  });
+
+  test("the screen's days left follow the engine's speed (stats and slot bonus)", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    throughDay(runner, deu, 0);
+    // A national spirit (a stats source the old screen formula missed).
+    const pol = econ.ww.politics!;
+    pol
+      .country(deu.smallID())!
+      .spirits.push({ id: "deu_tech_drive", untilDay: -1, addedDay: 0 });
+    pol.recomputeStats(deu.smallID());
+    expect(ce.stats.researchPct).toBeGreaterThanOrEqual(10);
+    expect(startResearch(econ, ce, "light_tank_2")).toBeNull();
+    ce.slots[0]!.bonusPct = 25;
+    (econ as unknown as { dirtyCountries: Set<number> }).dirtyCountries.add(
+      deu.smallID(),
+    );
+    const detail = econ
+      .takeData()!
+      .details.find((d) => d.smallID === deu.smallID())!;
+    const before = ce.slots[0]!.progress;
+    throughDay(runner, deu, 1);
+    const gained = ce.slots[0]!.progress - before;
+    const def = WW_TECHS.light_tank_2;
+    const speed = ce.stats.researchPct + ce.law().researchPct + 25;
+    expect(gained).toBe(researchProgress(speed, aheadPct(def.year, 1)));
+    const row = researchSlots(detail, 1)[0];
+    expect(row.daysLeft).toBe(
+      Math.ceil(
+        (techDays(def.year) * 1000 - before) /
+          researchProgress(speed, aheadPct(def.year, 1)),
+      ),
+    );
+  });
+
+  test("the screen adds a faction's shared research for that tech", async () => {
+    const { econ, deu, ce } = await germany();
+    startResearch(econ, ce, "inf_eq_2");
+    (econ as unknown as { dirtyCountries: Set<number> }).dirtyCountries.add(
+      deu.smallID(),
+    );
+    const detail = econ
+      .takeData()!
+      .details.find((d) => d.smallID === deu.smallID())!;
+    const base = researchSlots(detail, 0)[0].daysLeft;
+    const faster = researchSlots(
+      { ...detail, sharedResearch: [["inf_eq_2", 30]] },
+      0,
+    )[0].daysLeft;
+    expect(faster).toBeLessThan(base);
   });
 });
