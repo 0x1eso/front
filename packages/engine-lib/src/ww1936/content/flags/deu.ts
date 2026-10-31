@@ -3,4 +3,8 @@
 // pact_of_steel) is already in flags/base.ts.
 import type { FlagId } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
-export const FLAGS_DEU: FlagId[] = [];
+export const FLAGS_DEU: FlagId[] = [
+  "deu_war_council",
+  "deu_occupation_office",
+  "deu_resistance_circle",
+];
