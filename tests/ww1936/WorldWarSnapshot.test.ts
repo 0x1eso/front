@@ -463,20 +463,22 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // factory slots), every AI ranks its research by the new integer score
 // (seeded jitter, the either/or industry pair), the new slot focuses and
 // the wartime science decision change the AI's politics, and 108 techs
-// join the tree. Same values in three runs each (cc132c0135d92ccb; Easy
-// a2225534c1c410e2). VanillaDigest unchanged. Re-pinned in phase 2: the
+// join the tree. Same values in three runs each (07060c427dd8488b; Easy
+// b68a91ed6e1da318). VanillaDigest unchanged. Re-pinned in phase 2: the
 // new tech readers (infHardPct, artSpeedPct, recon, mines, rubber, casualty
 // return), the research cost knob 1.0 -> 1.3, Germany's earlier research
 // focuses and the 11 designer parts (AI designs) change the game.
 // Re-pinned after merging the division presets (start templates, AI armour
 // training) with the sensitivity removal (Chōsen and Taiwan armies, Korea
 // and Taiwan open to strikes and peace terms): three equal runs.
-const WW1936_DIGEST = "cc132c0135d92ccb";
+// Re-pinned after the seven major focus trees grew to ~100 focuses each
+// (new branches, forks and historical paths change the AI): three equal runs.
+const WW1936_DIGEST = "07060c427dd8488b";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "a2225534c1c410e2";
+const WW1936_EASY_DIGEST = "b68a91ed6e1da318";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

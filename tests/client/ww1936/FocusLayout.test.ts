@@ -109,7 +109,7 @@ describe("focus tree layout (spec §21.3)", () => {
 
   it("the view stays inside the tree", () => {
     const size = treeSize(DEU);
-    expect(size).toEqual({ w: 20 * GRID_W, h: 8 * GRID_H });
+    expect(size).toEqual({ w: 20 * GRID_W, h: 13 * GRID_H });
     const w = 500;
     const h = 200;
     // Zoom is clamped.

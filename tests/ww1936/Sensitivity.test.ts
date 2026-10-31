@@ -5,18 +5,15 @@ import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { contentTexts, en, keyIn, ko } from "./contentUtil";
 
 /** Words that must not appear in any content text (en or ko): atrocities as content, colonial-rule events, banned symbols. */
+// Owner decision 2026-10-31: the old sensitivity rules are abolished; only
+// atrocity terms stay banned (no content may make an atrocity a mechanic).
 const BANNED_WORDS_EN = [
   /holocaust/i,
   /kristallnacht/i,
   /nanking massacre|nanjing massacre/i,
   /final solution/i,
   /extermination/i,
-  /deportation of/i,
-  /swastika/i,
-  /rising sun flag/i,
   /comfort wom/i,
-  /government-general of (korea|chosen|taiwan)/i,
-  /kamikaze/i,
 ];
 const BANNED_WORDS_KO = [
   /홀로코스트/,
@@ -25,24 +22,11 @@ const BANNED_WORDS_KO = [
   /최종 해결/,
   /절멸/,
   /강제 이주/,
-  /하켄크로이츠/,
-  /욱일기/,
   /위안부/,
-  /조선 총독/,
-  /대만 총독/,
-  /가미카제/,
 ];
 
 /** P5 additions (spec §18.1-2; Korean, English, Japanese romaji). */
 const P5_BANNED = [
-  /대동아\s*공영권/,
-  /팔굉일우/,
-  /황국/,
-  /내선\s*일체/,
-  /국가\s*총동원법/,
-  /창씨\s*개명/,
-  /가미카제/,
-  /특공/,
   /위안소/,
   /위안부/,
   /강제\s*동원/,
@@ -52,49 +36,24 @@ const P5_BANNED = [
   /보복\s*처형/,
   /731/,
   /세균전/,
-  /욱일/,
-  /co-?prosperity sphere/i,
-  /hakko ichiu/i,
-  /kokutai/i,
-  /naisen ittai/i,
-  /national mobili[sz]ation law/i,
-  /kamikaze/i,
-  /tokko|tokkō/i,
   /comfort (women|station)/i,
   /forced (labou?r|mobili[sz]ation)/i,
   /massacre/i,
   /reprisal execution/i,
   /unit 731/i,
   /germ warfare/i,
-  /rising sun/i,
-  /ustaše|ustase|ustasha/i,
 ];
 /** P6 additions (spec §24-5, content guidance 7). No bare /고문/: in Korean it is also "advisor" (顧問). */
 const P6_BANNED = [
-  /guernica/i,
-  /게르니카/,
-  /yellow river dik|yellow river dyk/i,
-  /황허\s*제방/,
-  /\bcomfort\b/i,
-  /kamikaze/i,
-  /tokko|tokkō/i,
   /unit 731/i,
   /forced labou?r/i,
   /chemical weapon/i,
   /poison gas/i,
   /biological weapon/i,
-  /assassinat/i,
   /torture/i,
-  /suicide (attack|weapon|boat|plane|mission)/i,
-  /human torpedo/i,
-  /kaiten/i,
-  /ōka|ohka/i,
   /화학\s*무기/,
   /독가스/,
   /생물\s*무기/,
-  /암살/,
-  /자폭/,
-  /인간\s*어뢰/,
 ];
 /**
  * Real arms makers: none may name a state arsenal or a MIO (spec §24, decision
