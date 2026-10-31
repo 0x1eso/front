@@ -1593,7 +1593,12 @@ export class WwEconomy {
       ce.lawCooldownUntil = { ...c.lawCooldownUntil };
       ce.manpower = c.manpower;
       ce.casualties = c.casualties;
-      ce.stock = [...c.stock];
+      // Padded with zeros: an equipment key appended later reads 0 in an
+      // older snapshot (like WwStats).
+      ce.stock = Array.from(
+        { length: EQUIP_KEY_COUNT },
+        (_, i) => c.stock[i] ?? 0,
+      );
       ce.lines = c.lines.map((l) => ({
         ...l,
         convertFrom: l.convertFrom ?? -1,

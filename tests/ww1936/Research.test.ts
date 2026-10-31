@@ -2,7 +2,10 @@ import {
   GameUpdateType,
   GameUpdateViewData,
 } from "@openfront/engine-api/game/GameUpdates";
-import { WW_TECH_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEY_COUNT,
+  WW_TECH_IDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { addLineBlockOf } from "@openfront/engine-lib/ww1936/EconomyChecks";
@@ -371,5 +374,19 @@ describe("research (spec §9)", () => {
       0,
     )[0].daysLeft;
     expect(faster).toBeLessThan(base);
+  });
+
+  test("restoring a snapshot with a shorter stock pads it with zeros", async () => {
+    const { econ, ce } = await germany();
+    ce.stock[0] = 7;
+    const state = econ.snapshot();
+    const old = state.countries.find((c) => c.smallID === ce.smallID)!;
+    // A snapshot from before the last equipment keys were appended.
+    old.stock = old.stock.slice(0, EQUIP_KEY_COUNT - 5);
+    ce.stock.fill(99);
+    econ.restoreState(state);
+    expect(ce.stock).toHaveLength(EQUIP_KEY_COUNT);
+    expect(ce.stock[0]).toBe(7);
+    expect(ce.stock.slice(EQUIP_KEY_COUNT - 5)).toEqual([0, 0, 0, 0, 0]);
   });
 });
