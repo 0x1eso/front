@@ -39,6 +39,7 @@ import {
   linePeaceFacts,
   offerLinePeace,
 } from "@openfront/engine/ww1936/endgame/LinePeace";
+import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
 import {
   aiAcceptPct,
   offerPeace,
@@ -311,6 +312,26 @@ describe(
       nextDay(s.runner);
       expect(s.eg.isExile(pl)).toBe(false);
       expect(s.eg.countryState(pl)).toBe("active");
+    });
+
+    it("a puppet keeps what it occupies; a puppet can't offer a line itself", async () => {
+      const { g, ww, eg } = await started();
+      const [deu, pl, aut] = [id("DEU"), id("POL"), id("AUT")];
+      const w = oldWar(g, ww, deu, pl);
+      makeSubject(eg, aut, deu, "puppet", false, g.ticks());
+      ww.setWar(aut, pl, g.ticks(), { kind: "into", warId: w });
+      ww.politics.country(aut)!.ppMilli = 100_000;
+      takeRegion(g, KRAKOW, "AUT");
+      // The overlord answers for it.
+      expect(offerLinePeace(eg, aut, w, pl, g.ticks())).toBe(
+        "subject_restricted",
+      );
+      expect(offerLinePeace(eg, deu, w, pl, g.ticks())).toBeNull();
+      expect(peaceOfferView(eg, onlyOffer(eg)).line?.gain).toEqual([KRAKOW]);
+      replyPeace(eg, pl, onlyOffer(eg).id, true, g.ticks());
+      expect(ww.politics.legalOwner[KRAKOW]).toBe(aut);
+      expect(ww.land.controller[KRAKOW]).toBe(aut);
+      expect(eg.hasCore(aut, KRAKOW)).toBe(false);
     });
 
     it("an occupation zone keeps the white peace's rule", async () => {

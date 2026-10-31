@@ -455,6 +455,9 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Negotiated peace (offers with terms, the judge, the AI's terms) leaves
 // both as they are: the pinned game makes no peace offer before tick
 // 13,000. Same values in three runs each.
+// Peace on the current line (a third kind of offer, the AI's own line
+// offers, the line flag in the hash) leaves both as they are too: still no
+// peace offer of any kind before tick 13,000. Same values in three runs each.
 const WW1936_DIGEST = "0c17aca792b051da";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
