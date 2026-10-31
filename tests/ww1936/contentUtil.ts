@@ -135,7 +135,7 @@ export const CONTENT_TARGETS = {
   ITA: 47,
   JPN: 46,
   FRA: 47,
-  USA: 46,
+  USA: 98,
   events: 100,
   decisions: 36,
   spirits: 65,
