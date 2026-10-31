@@ -292,12 +292,8 @@ export function replacedInTree(
   return c.replacedIn[tree].has(id);
 }
 
-/** P6 (pre-flight §0-11): the P5 region groups whose regions are never struck. */
-export const NO_STRIKE_GROUPS: readonly string[] = [
-  "korea_north",
-  "korea_south",
-  "taiwan",
-];
+/** P6 (pre-flight §0-11): the P5 region groups never struck — none, abolished. */
+export const NO_STRIKE_GROUPS: readonly string[] = [];
 
 const push = <K, V>(m: Map<K, V[]>, k: K, v: V) => {
   const l = m.get(k);

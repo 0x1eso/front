@@ -10,8 +10,8 @@
 // backa_baranja cannot be cut out of the coarse regions and have no group;
 // porkkala uses a stand-in.
 //
-// korea_north, korea_south and taiwan appear only in the peace table and the
-// claims (spec §18.1-2, plan decision 32).
+// korea_north, korea_south and taiwan are ordinary groups (the claims use
+// taiwan; the screens name the others).
 import type { RegionGroupDef } from "../types";
 
 export const REGION_GROUPS_P5: RegionGroupDef[] = [

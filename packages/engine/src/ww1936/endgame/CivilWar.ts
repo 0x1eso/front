@@ -91,15 +91,8 @@ export function startCivilWar(
   });
   if (slotTag === undefined) return false;
   const share = civilWarShareBp(c.pop[ideo]);
-  // Owner ruling (sensitivity): Korea and Taiwan never change legal owner
-  // but by China's claim — they stay with the government, out of the split.
   const cands = sc.landRegions
-    .filter(
-      (r) =>
-        pol.legalOwner[r.id] === X &&
-        ww.land.controller[r.id] === X &&
-        !eg.neverAdministered.has(r.id),
-    )
+    .filter((r) => pol.legalOwner[r.id] === X && ww.land.controller[r.id] === X)
     .map((r) => r.id);
   const capital = capitalRegionOf(eg, X, cands);
   const tag = nameTagOf(eg, X);
@@ -193,9 +186,7 @@ export function endCivilWar(
   // legal owner, not the winner.
   const taken: { r: number; to: number }[] = [];
   for (const r of sc.landRegions) {
-    // Owner ruling (sensitivity): Korea's and Taiwan's legal owner stays;
-    // only their control goes to the winner.
-    if (pol.legalOwner[r.id] === L && !eg.neverAdministered.has(r.id)) {
+    if (pol.legalOwner[r.id] === L) {
       pol.setLegalOwner(r.id, W);
     }
     if (eg.hasCore(L, r.id)) eg.addCore(W, r.id);

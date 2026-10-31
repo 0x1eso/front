@@ -1,14 +1,9 @@
 // P5 lane W (plan Task 2): the conference AI (spec §6.9, §17.1; plan
-// decision 30). The fixed defaults first, always: Korea's 38th-parallel
-// occupation zones (owner ruling, pre-flight §0-8: control only; a zone
-// nobody intended can hold goes to a participant that can) and Taiwan to
-// the participant claiming it (CHN), or the main victor's zone when none
-// claims it. Then the history table's demands when the historical AI is on
+// decision 30). The history table's demands when the historical AI is on
 // and this participant keeps its row (≈75% per seed and conference —
 // history is a guide); then the general AI: value per point, a seeded ±10%
 // jitter, within the points and five slots, takes bundled into one slot.
-// A human's card shows the same (its own country's values). Korea's and
-// Taiwan's regions follow PeaceRules.peaceRegionBlock everywhere.
+// A human's card shows the same (its own country's values).
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   DEMAND_KINDS,
@@ -28,18 +23,14 @@ import {
   aggregateCost,
   reparationsCost,
   takeNavyCost,
-  turnOrder,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   peacePickShips,
-  peaceRegionBlock,
   peaceRegionCost,
   peaceReparationsRoom,
   peaceSettledOn,
-  peaceZoneRegions,
   TAKE_NAVY_PCT_MAX,
   TAKE_NAVY_PCT_MIN,
-  ZONE_ONLY_GROUPS,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
 import {
   idHash,
@@ -67,9 +58,6 @@ import {
 } from "./Conference";
 import type { Conference, StoredDemand, WwEndgame } from "./WwEndgame";
 
-/** The region groups of Korea (content, peace table only — decision 32): occupation zones only. */
-export const KOREA_GROUPS: readonly string[] = ZONE_ONLY_GROUPS;
-
 /**
  * Pre-flight §0-8: whether `participant` keeps the history row of
  * `loserTag` in conference `confId` (WW_PEACE_HISTORY_KEEP_PCT of seeds).
@@ -87,19 +75,17 @@ export function keepsHistoryRow(
 /**
  * P5 final lane (perf: 30 participants × 150 stake regions took 50–60 ms in
  * one tick): what every participant's AI reads alike in one pass over a
- * conference — the demand rules' context, the fixed Korea and Taiwan
- * defaults, the releasable tags, each stake region's worth and each
+ * conference — the demand rules' context, the releasable tags, each stake region's worth and each
  * loser's fleet weight a take_navy would pick. refreshAi builds it once;
  * the demands are the same as without it.
  */
 export interface PeaceAiShared {
   conf: number;
   ctx: PeaceCtx;
-  fixed: FixedDemand[];
   releasable: CountryTag[];
   worth: Map<number, number>;
   navyW: Map<number, number>;
-  losers: Map<number, { lVp: number; zoneOnly: boolean }>;
+  losers: Map<number, { lVp: number }>;
   reparations: Map<number, number>;
   legalVp: Map<number, number> | null;
 }
@@ -125,7 +111,6 @@ export function peaceAiShared(eg: WwEndgame, c: Conference): PeaceAiShared {
   return {
     conf: c.id,
     ctx,
-    fixed: fixedPlan(eg, c, takenMap(eg, c), ctx),
     releasable: releasableTags(eg, c.stake),
     worth: new Map(),
     navyW: new Map(),
@@ -164,15 +149,7 @@ export function aiDemands(
       for (const r of sd.regions) used.set(r, smallID);
     }
   };
-  // 1. Korea's zones and Taiwan (always), then the history table.
-  for (const z of sh.fixed) {
-    if (z.holder !== smallID || out.length >= WW_PEACE_DEMANDS_PER_ROUND) {
-      continue;
-    }
-    const sd = stored(z.kind, out.length, z.regions.filter(free));
-    const cost = priceOf(eg, c, smallID, sd, used, ctx, free);
-    if (cost > 0) take(sd, cost);
-  }
+  // 1. The history table.
   for (const { L, dd } of historyLines(eg, c, smallID)) {
     if (out.length >= WW_PEACE_DEMANDS_PER_ROUND) break;
     const sd = fromDefault(eg, c, L, dd, out.length, free, ctx, sh);
@@ -185,92 +162,7 @@ export function aiDemands(
   return out;
 }
 
-/** A fixed default: who asks, how, for which regions. */
-export interface FixedDemand {
-  kind: "occupation_zone" | "take_group";
-  holder: number;
-  regions: number[];
-}
-
-/**
- * The defaults every AI (and every human card) carries whatever the roll
- * (owner ruling, pre-flight §0-8; spec §6.9, §16.4):
- * - Korea: the zone lines of the losers' history rows, each to its line's
- *   participant when it may and can hold the zone (controls a region of it
- *   or one next to it), else to the holder of an earlier Korean zone, else
- *   to the strongest participant that can.
- * - Taiwan: a take for the strongest participant claiming it; with none,
- *   the main victor's occupation zone (when it can hold it).
- */
-export function fixedPlan(
-  eg: WwEndgame,
-  c: Conference,
-  used: ReadonlyMap<number, number>,
-  ctx: PeaceCtx = peaceCtx(eg, c),
-): FixedDemand[] {
-  const pol = eg.ww.politics;
-  const stake = new Set(c.stake);
-  const free = (r: number) => stake.has(r) && !used.has(r);
-  const isPart = (x: number) => c.parts.some((p) => p.id === x);
-  const strongest = turnOrder(
-    c.parts.map((p) => p.wsMilli),
-    c.parts.map((p) => p.id),
-    1,
-  ).filter((id) => eg.isActor(id));
-  const may = (h: number, kind: DemandKind, r: number) =>
-    peaceRegionBlock(ctx.sens, ctx.table, h, h, kind, r) === null;
-  const out: FixedDemand[] = [];
-  for (const L of c.losers) {
-    const lctx = makeCtx(pol, L, 0, 0, eg.mg.ticks());
-    for (const row of pol.content.peaceByLoser.get(pol.tagOf(L)) ?? []) {
-      if (!evalCondition(lctx, row.when)) continue;
-      for (const line of row.lines) {
-        if (!evalCondition(lctx, line.when)) continue;
-        for (const dd of line.demands) {
-          if (
-            dd.kind !== "occupation_zone" ||
-            !KOREA_GROUPS.includes(dd.group)
-          ) {
-            continue;
-          }
-          const regions = groupRegions(eg, dd.group).filter(free);
-          if (regions.length === 0) continue;
-          const intended = resolveSelector(lctx, line.by);
-          const can = (h: number) =>
-            isPart(h) &&
-            eg.isActor(h) &&
-            regions.every((r) => may(h, "occupation_zone", r)) &&
-            peaceZoneRegions(ctx.facts, h, regions, free).length > 0;
-          const holder =
-            [intended, ...out.map((o) => o.holder), ...strongest].find(can) ??
-            0;
-          if (holder !== 0) {
-            out.push({ kind: "occupation_zone", holder, regions });
-          }
-        }
-      }
-    }
-  }
-  const taiwan = c.stake.filter((r) => ctx.sens.claimOnly.has(r) && free(r));
-  if (taiwan.length > 0) {
-    const claimant = strongest.find((p) =>
-      taiwan.every((r) => may(p, "take_group", r)),
-    );
-    const victor = ctx.sens.mainVictor;
-    if (claimant !== undefined) {
-      out.push({ kind: "take_group", holder: claimant, regions: taiwan });
-    } else if (
-      eg.isActor(victor) &&
-      taiwan.every((r) => may(victor, "occupation_zone", r)) &&
-      peaceZoneRegions(ctx.facts, victor, taiwan, free).length > 0
-    ) {
-      out.push({ kind: "occupation_zone", holder: victor, regions: taiwan });
-    }
-  }
-  return out;
-}
-
-/** Spec §6.9: the history table's demands of `p` (historical AI on, its row kept, conditions met), Korea's aside. */
+/** Spec §6.9: the history table's demands of `p` (historical AI on, its row kept, conditions met). */
 function historyLines(
   eg: WwEndgame,
   c: Conference,
@@ -288,15 +180,7 @@ function historyLines(
       for (const line of row.lines) {
         if (!evalCondition(ctx, line.when)) continue;
         if (resolveSelector(ctx, line.by) !== p) continue;
-        for (const dd of line.demands) {
-          if (
-            dd.kind === "occupation_zone" &&
-            KOREA_GROUPS.includes(dd.group)
-          ) {
-            continue;
-          }
-          out.push({ L, dd });
-        }
+        for (const dd of line.demands) out.push({ L, dd });
       }
     }
   }
@@ -424,9 +308,6 @@ function generalAi(
     ruling === IDEO_FAS;
   const stake = new Set(c.stake);
   const free = (r: number) => stake.has(r) && !used.has(r);
-  // Korea's and Taiwan's rules (the same for a human's card).
-  const may = (kind: DemandKind, r: number, receiver = id) =>
-    peaceRegionBlock(ctx.sens, ctx.table, id, receiver, kind, r) === null;
   const claim = (r: number) => c.claims.some(([x, y]) => x === id && y === r);
   const bordersMine = (r: number) =>
     sc.regionNeighbours(r).some((n) => legal[n] === id);
@@ -507,14 +388,11 @@ function generalAi(
     });
   };
   // A one-region occupation zone's price, as priceOf → planPeaceDemand
-  // reckons it once the region is free, allowed (may) and held or bordered
+  // reckons it once the region is free and held or bordered
   // (P5 final lane perf: the same number without the plan's sets): 0 when a
   // puppet settlement locks the region.
   const zoneCost = (r: number): number => {
-    const locked =
-      peaceSettledOn(ctx.table, ctx.facts.legalOwner(r), "puppet") &&
-      !ctx.sens.zoneOnly.has(r) &&
-      !ctx.sens.claimOnly.has(r);
+    const locked = peaceSettledOn(ctx.table, ctx.facts.legalOwner(r), "puppet");
     if (locked) return 0;
     return aggregateCost(
       [peaceRegionCost(ctx.facts, ctx.table, r, id, id)],
@@ -525,13 +403,12 @@ function generalAi(
   const friends = c.parts.filter(
     (b) => b.id !== id && pol.sameFaction(id, b.id),
   );
-  // Regions (Korea: occupation zones only; Taiwan: its claimant — spec §6.9).
+  // Regions (spec §6.9).
   for (const r of c.stake) {
     if (!free(r)) continue;
-    if (may("take", r)) add("take", takeValue(r), r, stored("take", 0, [r]));
+    add("take", takeValue(r), r, stored("take", 0, [r]));
     for (const b of friends) {
       if (!eg.hasCore(b.id, r)) continue;
-      if (!may("take_for", r, b.id)) continue;
       add(
         "take_for",
         Math.floor((takeValue(r, b.id) * 60) / 100),
@@ -540,9 +417,9 @@ function generalAi(
       );
     }
     if (
-      may("occupation_zone", r) &&
       // peaceZoneRegions of one free region: held, or next to a held one.
-      (ctrl[r] === id || sc.regionNeighbours(r).some((n) => ctrl[n] === id))
+      ctrl[r] === id ||
+      sc.regionNeighbours(r).some((n) => ctrl[n] === id)
     ) {
       const pct = dem && isMajor(eg, legal[r]) ? 70 : 20;
       const v = Math.floor((takeValue(r) * pct) / 100);
@@ -557,24 +434,19 @@ function generalAi(
       }
     }
     if (
-      may("demilitarise", r) &&
       sc.regionNeighbours(r).some((n) => eg.hasCore(id, n)) &&
       bordersMine(r)
     ) {
       add("demilitarise", 20, r, stored("demilitarise", 0, [r]));
     }
   }
-  // Countries. A loser's stake points and whether it holds a Korea region
-  // legally are the same for every participant (P5 final lane perf).
-  const loserFacts = (L: number): { lVp: number; zoneOnly: boolean } => {
+  // Countries. A loser's stake points are the same for every participant (P5 final lane perf).
+  const loserFacts = (L: number): { lVp: number } => {
     let f = sh.losers.get(L);
     if (f === undefined) {
       let lVp = 0;
       for (const r of c.stake) if (legal[r] === L) lVp += sc.region(r)?.vp ?? 0;
-      const zoneOnly = c.stake.some(
-        (r) => legal[r] === L && ctx.sens.zoneOnly.has(r),
-      );
-      f = { lVp, zoneOnly };
+      f = { lVp };
       sh.losers.set(L, f);
     }
     return f;
@@ -583,7 +455,7 @@ function generalAi(
     const rest = c.stake.filter((r) => legal[r] === L && free(r));
     let restV = 0;
     for (const r of rest) restV += takeValue(r);
-    const { lVp, zoneOnly } = loserFacts(L);
+    const { lVp } = loserFacts(L);
     const major = isMajor(eg, L);
     // P5 final lane (perf): the country-wide prices priceOf → planPeaceDemand
     // would give, from the rest's region prices reckoned once (puppet,
@@ -598,8 +470,7 @@ function generalAi(
     };
     const settledOn = (...kinds: DemandKind[]) =>
       peaceSettledOn(ctx.table, L, ...kinds);
-    // Never annexed while it holds a Korea region legally (spec §6.9): zoneOnly.
-    if (aggressive && lVp * 100 < myVp * 15 && !zoneOnly) {
+    if (aggressive && lVp * 100 < myVp * 15) {
       add(
         "annex_rest",
         Math.floor((restV * 110) / 100),
@@ -698,9 +569,7 @@ function generalAi(
     const T = sc.smallIdOf(tag);
     if (T === 0) continue;
     const kind = dem ? "liberate" : "release";
-    const regs = c.stake.filter(
-      (r) => free(r) && eg.hasCore(T, r) && may(kind, r, T),
-    );
+    const regs = c.stake.filter((r) => free(r) && eg.hasCore(T, r));
     if (regs.length === 0) continue;
     let v = 0;
     for (const r of regs) v += worth(r);

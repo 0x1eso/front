@@ -524,28 +524,11 @@ export function occRegionLine(
   });
 }
 
-let koreaCache: Set<number> | null = null;
-/**
- * Spec §1.3 (owner decision 6): the 38th-parallel zones read as such —
- * control only, a neutral label, no resistance.
- */
-export function isKoreaZone(region: number): boolean {
-  if (koreaCache === null) {
-    koreaCache = new Set<number>();
-    for (const g of ["korea_north", "korea_south"]) {
-      for (const r of CONTENT.groupIdx.get(g)?.regions ?? []) koreaCache.add(r);
-    }
-  }
-  return koreaCache.has(region);
-}
-
 /** The region card's neutral zone line ("Occupation zone · USA"); null outside a zone. */
 export function zoneLine(game: EndgameGame, region: number): string | null {
   const z = egView(game)?.zones.find((x) => x.region === region);
   if (z === undefined) return null;
-  const label = translateText(
-    isKoreaZone(region) ? "ww1936.occ.zone_korea" : "ww1936.occ.zone",
-  );
+  const label = translateText("ww1936.occ.zone");
   return `${label} · ${egName(game, z.holder)}`;
 }
 

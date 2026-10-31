@@ -14,7 +14,6 @@ import {
   garrisonPending,
   garrisonPlan,
   integrateRows,
-  isKoreaZone,
   isLiveOcc,
   type LawButton,
   lawButtons,
@@ -354,14 +353,11 @@ export class WwOccupationTab extends LitElement {
       </ul>`;
   }
 
-  /** My occupation zones: control only, a neutral label (Korea: the 38th parallel). */
+  /** My occupation zones: control only, a neutral label. */
   private renderZones(game: EndgameGame, zones: ReturnType<typeof myZones>) {
     const sc = game.worldWarScenario();
     if (zones.length === 0 || sc === null) return nothing;
-    const korea = zones.every((z) => isKoreaZone(z.region));
-    return html`<div class=${HEADING}>
-        ${translateText(korea ? "ww1936.occ.zone_korea" : "ww1936.occ.zone")}
-      </div>
+    return html`<div class=${HEADING}>${translateText("ww1936.occ.zone")}</div>
       <ul
         data-ww-occ-zones
         class="m-0 flex list-none flex-wrap gap-1 p-0 text-xs"

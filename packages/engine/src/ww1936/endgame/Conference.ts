@@ -5,7 +5,6 @@
 // participants by smallID, regions by id, demands by slot.
 import {
   COUNTRIES,
-  CountryTag,
   NAMED_DORMANT_TAGS,
 } from "@openfront/engine-api/ww1936/Countries";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -38,24 +37,17 @@ import {
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import {
-  CLAIM_ONLY_GROUPS,
   demandKindIndex,
   expandPeaceDemand,
-  peaceClaimantTags,
   PeaceDemandIn,
   PeaceFacts,
   peaceMainVictor,
   peacePlanCost,
-  peaceRegionBlock,
   peaceRegionCost,
-  PeaceSensitivity,
-  peaceSensitivity,
   peaceStakeHas,
   PeaceTable,
   planPeaceDemand,
   REGION_DEMAND_KINDS,
-  SENSITIVE_EXCLUDED_TAG,
-  ZONE_ONLY_GROUPS,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { effectiveBuildings } from "../economy/Buildings";
@@ -174,30 +166,18 @@ export function peaceTable(eg: WwEndgame, c: Conference): PeaceTable {
   };
 }
 
-/** Korea's and Taiwan's rules for conference `c` (PeaceRules.peaceRegionBlock). */
-export function peaceSens(eg: WwEndgame, c: Conference): PeaceSensitivity {
-  const content = eg.ww.politics.content;
-  return peaceSensitivity(
-    (g) => content.groupIdx.get(g)?.regions ?? [],
-    eg.ww.scenario.smallIdOf(SENSITIVE_EXCLUDED_TAG),
-    peaceMainVictor(c.parts.filter((p) => eg.isActor(p.id))),
-    peaceClaimantTags(content.claims)
-      .map((tag) => eg.ww.scenario.smallIdOf(tag))
-      .filter((id) => id > 0 && eg.isActor(id)),
-  );
-}
-
 /** What one pass over a conference reads (built once per round, AI run or view). */
 export interface PeaceCtx {
   facts: PeaceFacts;
   table: PeaceTable;
-  sens: PeaceSensitivity;
+  /** The participant with the most war score still playing (0: none). */
+  mainVictor: number;
 }
 export function peaceCtx(eg: WwEndgame, c: Conference): PeaceCtx {
   return {
     facts: peaceFacts(eg),
     table: peaceTable(eg, c),
-    sens: peaceSens(eg, c),
+    mainVictor: peaceMainVictor(c.parts.filter((p) => eg.isActor(p.id))),
   };
 }
 
@@ -285,14 +265,7 @@ export function priceOf(
     const stake = new Set(c.stake);
     ok = (r) => stake.has(r) && !taken.has(r);
   }
-  const plan = planPeaceDemand(
-    ctx.facts,
-    ctx.table,
-    p,
-    demandIn(d),
-    ok,
-    ctx.sens,
-  );
+  const plan = planPeaceDemand(ctx.facts, ctx.table, p, demandIn(d), ok);
   return typeof plan === "string" ? 0 : peacePlanCost(plan);
 }
 
@@ -503,7 +476,6 @@ export function expandDemand(
         : [],
     smallIdOf: (tag) => eg.ww.scenario.smallIdOf(tag),
     hasCore: (id, r) => eg.hasCore(id, r),
-    sensitivity: peaceSens(eg, c),
   });
   return x === null
     ? null
@@ -570,16 +542,13 @@ function demandsOf(c: Conference, id: number): StoredDemand[] {
 
 /**
  * Plan decision 15 (control first): a region any of a participant's
- * demands names and that it controls now is its reservation this round —
- * when that demand may hand it to that participant at all (a Korea or
- * Taiwan region the rules refuse it reserves nothing).
+ * demands names and that it controls now is its reservation this round.
  */
 function reservations(
   eg: WwEndgame,
   c: Conference,
   order: readonly number[],
   taken: ReadonlyMap<number, number>,
-  sens: PeaceSensitivity,
 ): Map<number, number> {
   const ctrl = eg.ww.land.controller;
   const reserved = new Map<number, number>();
@@ -587,11 +556,8 @@ function reservations(
     if (!eg.isActor(id)) continue;
     for (const d of demandsOf(c, id)) {
       if (!REGION_KINDS.has(d.kind)) continue;
-      const kind = DEMAND_KINDS[d.kind];
-      const to = kind === "take_for" ? d.beneficiary : id;
       for (const r of d.regions) {
         if (taken.has(r) || reserved.has(r) || ctrl[r] !== id) continue;
-        if (peaceRegionBlock(sens, c, id, to, kind, r) !== null) continue;
         reserved.set(r, id);
       }
     }
@@ -607,7 +573,7 @@ function resolveRound(eg: WwEndgame, c: Conference): number {
   );
   const taken = takenMap(eg, c);
   const ctx = peaceCtx(eg, c);
-  const reserved = reservations(eg, c, order, taken, ctx.sens);
+  const reserved = reservations(eg, c, order, taken);
   const stake = new Set(c.stake);
   c.lastRound = [];
   let n = 0;
@@ -656,7 +622,6 @@ function tryDemand(
     p,
     demandIn(d),
     free,
-    ctx.sens,
   );
   if (typeof plan === "string") return { ok: false, regions: [] };
   const legal = eg.ww.politics.legalOwner;
@@ -787,24 +752,13 @@ export function finishConference(
     }
     eg.dirtyZones = true;
   }
-  // 6. What nobody took goes back to its loser, which lives again —
-  // except Korea and Taiwan for their 1936 owner (owner ruling): never
-  // back under its control; a zone for zoneHeir, else control stays.
+  // 6. What nobody took goes back to its loser, which lives again.
   const revived: number[] = [];
-  const owners = sensitiveOwners(eg);
   for (const L of c.losers) {
     const left: number[] = [];
     for (const r of c.stake) {
       if (pol.legalOwner[r] !== L || eg.isZone(r)) continue;
-      if (owners.get(r) !== ww.tagOf(L)) {
-        left.push(r);
-        continue;
-      }
-      const h = zoneHeir(eg, c, r, 0);
-      if (h === 0) continue;
-      eg.zones.push({ region: r, holder: h, untilDay: -1 });
-      transferRegionPeaceful(land, r, h, tick);
-      eg.dirtyZones = true;
+      left.push(r);
     }
     if (left.length === 0) {
       eg.setCountryState(L, CS_GONE);
@@ -915,79 +869,6 @@ export function finishConference(
   eg.dirtyPeaceLog = true;
   eg.dirtyWars = true;
   eg.adminDirty = true;
-}
-
-// ---- Korea and Taiwan after the treaty (owner ruling, review N4) ----
-
-/** Korea's and Taiwan's regions → their group's 1936 owner (content: JPN). */
-function sensitiveOwners(eg: WwEndgame): Map<number, CountryTag> {
-  const out = new Map<number, CountryTag>();
-  const content = eg.ww.politics.content;
-  for (const g of [...ZONE_ONLY_GROUPS, ...CLAIM_ONLY_GROUPS]) {
-    const def = content.groupIdx.get(g);
-    if (def === undefined) continue;
-    for (const r of def.regions) out.set(r, def.owner1936);
-  }
-  return out;
-}
-
-/**
- * Owner ruling: who holds a Korea or Taiwan region as a zone when its
- * holder stopped playing (`gone`), or when the treaty zoned it for nobody —
- * the other zone holder of the same kind still playing (zones in order),
- * else conference `c`'s main victor still playing; 0: nobody (its control
- * stays as it is). Never the region's 1936 owner (Japan), its legal owner
- * or the excluded country.
- */
-function zoneHeir(
-  eg: WwEndgame,
-  c: Conference | null,
-  region: number,
-  gone: number,
-): number {
-  const content = eg.ww.politics.content;
-  const korea = (r: number) =>
-    ZONE_ONLY_GROUPS.some((g) => content.groupIdx.get(g)?.regions.includes(r));
-  const owners = sensitiveOwners(eg);
-  const sc = eg.ww.scenario;
-  const tag = owners.get(region);
-  const owner1936 = tag === undefined ? 0 : sc.smallIdOf(tag);
-  const ok = (id: number) =>
-    id > 0 &&
-    id !== gone &&
-    id !== owner1936 &&
-    id !== (eg.ww.politics.legalOwner[region] ?? 0) &&
-    id !== sc.smallIdOf(SENSITIVE_EXCLUDED_TAG) &&
-    eg.isActor(id);
-  for (const z of eg.zones) {
-    if (!owners.has(z.region) || korea(z.region) !== korea(region)) continue;
-    if (ok(z.holder)) return z.holder;
-  }
-  if (c === null) return 0;
-  return peaceMainVictor(c.parts.filter((p) => ok(p.id)));
-}
-
-/**
- * Owner ruling (daily, and first in a capitulation): a Korea or Taiwan
- * zone whose holder stopped playing passes to zoneHeir (the conference
- * that zoned it gives the main victor); with nobody left it stays as it
- * is — never back under Japan.
- */
-export function settleSensitiveZones(eg: WwEndgame, tick: number): void {
-  if (eg.zones.length === 0) return;
-  const owners = sensitiveOwners(eg);
-  for (const z of eg.zones) {
-    if (!owners.has(z.region) || eg.isActor(z.holder)) continue;
-    let c: Conference | null = null;
-    for (const x of eg.conferences) {
-      if (x.status === 2 && x.stake.includes(z.region)) c = x;
-    }
-    const h = zoneHeir(eg, c, z.region, z.holder);
-    if (h === 0) continue;
-    z.holder = h;
-    transferRegionPeaceful(eg.ww.land, z.region, h, tick);
-    eg.dirtyZones = true;
-  }
 }
 
 /** Spec §6.4 disarm: 1,095 days of arms limitation; divisions past 12 disband, the weakest first. */
@@ -1163,7 +1044,7 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
     }));
   const reserved =
     c.status === 1
-      ? reservations(eg, c, order, taken, ctx.sens)
+      ? reservations(eg, c, order, taken)
       : new Map<number, number>();
   return {
     id: c.id,
@@ -1228,7 +1109,7 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
         cost: s.cost,
       };
     }),
-    mainVictor: ctx.sens.mainVictor,
+    mainVictor: ctx.mainVictor,
   };
 }
 

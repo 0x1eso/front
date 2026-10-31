@@ -790,7 +790,8 @@ export const WW_ORDER_BLOCKS = [
   "no_transport_planes",
   "air_superiority_low",
   "too_many_deployments",
-  // P6 pre-flight: engine-lib NoStrike (Korea and Taiwan are never struck).
+  // P6 pre-flight: engine-lib NoStrike. Unused: the list was abolished
+  // 2026-10-31 (append-only: the entry stays for the wire and the hash).
   "no_strike_region",
   "bad_zone",
   // P5 (P5 spec §21.3, plan decision 36), appended.
@@ -853,7 +854,8 @@ export const WW_ORDER_BLOCKS = [
   "no_invasion_port",
   // Negotiated peace (owner request 2026-10-30), appended: terms the giver
   // can't give, its capital, more than 40% of its victory points, and the
-  // Korea / Taiwan rules (PeaceRules.peaceRegionBlock's reasons).
+  // Korea / Taiwan rules. Those last two (zone_only, claim_only) are unused:
+  // abolished 2026-10-31 (append-only: they stay for the wire and the hash).
   "peace_bad_terms",
   "peace_capital",
   "peace_too_much",

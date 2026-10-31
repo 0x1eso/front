@@ -683,6 +683,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   no_transport_planes: "ww1936.econ.block.no_transport_planes",
   air_superiority_low: "ww1936.econ.block.air_superiority_low",
   too_many_deployments: "ww1936.econ.block.too_many_deployments",
+  // Unused since the no-strike list was abolished (the enum entry stays; no text).
   no_strike_region: "ww1936.econ.block.no_strike_region",
   bad_zone: "ww1936.econ.block.bad_zone",
   // P5 (spec §21.3, plan decision 36).
@@ -741,12 +742,13 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   peace_pending: "ww1936.econ.block.peace_pending",
   peace_no_offer: "ww1936.econ.block.peace_no_offer",
   no_invasion_port: "ww1936.econ.block.no_invasion_port",
-  // Negotiated peace (Korea / Taiwan: the conference's existing reasons).
+  // Negotiated peace.
   peace_bad_terms: "ww1936.econ.block.peace_bad_terms",
   peace_capital: "ww1936.econ.block.peace_capital",
   peace_too_much: "ww1936.econ.block.peace_too_much",
-  zone_only: "ww1936.peace.why.zone_only",
-  claim_only: "ww1936.peace.why.claim_only",
+  // Unused since the Korea / Taiwan peace rules were abolished (entries stay; no text).
+  zone_only: "ww1936.econ.block.zone_only",
+  claim_only: "ww1936.econ.block.claim_only",
   exclusive: "ww1936.econ.block.exclusive",
   no_project: "ww1936.econ.block.no_project",
   bonus_held: "ww1936.econ.block.bonus_held",

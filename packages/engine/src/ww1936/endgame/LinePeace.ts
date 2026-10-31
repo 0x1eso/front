@@ -34,12 +34,6 @@ import {
   NegPeaceJudge,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
-import {
-  peaceClaimantTags,
-  peaceSensitivity,
-  PeaceSensitivity,
-  SENSITIVE_EXCLUDED_TAG,
-} from "@openfront/engine-lib/ww1936/PeaceRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { payPp } from "../politics/PayPp";
@@ -85,25 +79,6 @@ export function linePeaceFacts(
 }
 
 /**
- * Korea's and Taiwan's rules for a line (the conference's sensitivity with
- * no main victor): Korea never changes hands, Taiwan only to its static
- * claimants still playing (China), the excluded country (Japan) never
- * receives either.
- */
-export function linePeaceSens(eg: WwEndgame): PeaceSensitivity {
-  const content = eg.ww.politics.content;
-  const sc = eg.ww.scenario;
-  return peaceSensitivity(
-    (g) => content.groupIdx.get(g)?.regions ?? [],
-    sc.smallIdOf(SENSITIVE_EXCLUDED_TAG),
-    0,
-    peaceClaimantTags(content.claims)
-      .map((tag) => sc.smallIdOf(tag))
-      .filter((id) => id > 0 && eg.isActor(id)),
-  );
-}
-
-/**
  * The two groups a line offer of `from` in `w` settles between: [its own,
  * the other]. The whole war: both sides' members still in it (fighting, or
  * capitulated without an exile — those the white peace revives); a
@@ -146,12 +121,7 @@ export function lineMovesOf(
   if (mine.length === 0 || theirs.length === 0) {
     return { moves: [], mine, theirs };
   }
-  const moves = linePeaceMoves(
-    f,
-    linePeaceSens(eg),
-    new Set(mine),
-    new Set(theirs),
-  );
+  const moves = linePeaceMoves(f, new Set(mine), new Set(theirs));
   return { moves, mine, theirs };
 }
 

@@ -541,7 +541,7 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
  * way with a loser's leftover land (P5 landRegained: active, its
  * capitulation cleared, its executions at order 8), its capitulation's
  * tile transfer stopped and its other wars' capitulated records left.
- * Occupation zones and Korea/Taiwan stay where they are.
+ * Occupation zones stay where they are.
  */
 function reviveCapitulated(eg: WwEndgame, w: WwWar, tick: number): void {
   const ww = eg.ww;
@@ -556,13 +556,7 @@ function reviveCapitulated(eg: WwEndgame, w: WwWar, tick: number): void {
         .map((r) => r.id)
         .filter((r) => {
           const c = land.controller[r] ?? 0;
-          return (
-            legal[r] === L &&
-            c !== L &&
-            members.has(c) &&
-            !eg.isZone(r) &&
-            !eg.neverAdministered.has(r)
-          );
+          return legal[r] === L && c !== L && members.has(c) && !eg.isZone(r);
         });
       if (back.length === 0) continue;
       const tr = ww.transfers();

@@ -5,10 +5,8 @@
 // regions are already gone is skipped and the general AI spends the rest.
 // Groups used in one row do not overlap (groups.ts).
 //
-// Korea (owner ruling, plan decision 32): no country slot and no liberation;
-// the default after Japan's defeat is the 1945 occupation line at the 38th
-// parallel — control only, the legal owner is unchanged. The Korean lines do
-// not wait for the Yalta flag, so the default holds in every game.
+// Korea has no table row: it is an ordinary part of Japan's stake, shared out
+// by the general AI and the conference's own rules.
 import { not, T } from "../helpers";
 import type { Condition, PeaceDefaultDef } from "../types";
 
@@ -235,8 +233,7 @@ export const HISTORY_PEACE: PeaceDefaultDef[] = [
       { by: T("YUG"), demands: [{ kind: "take_group", group: "istria" }] },
     ],
   },
-  // Japan, 1945: the surrender of August-September and the line at the 38th
-  // parallel in Korea (occupation zones only).
+  // Japan, 1945: the surrender of August-September.
   {
     loser: "JPN",
     lines: [
@@ -244,7 +241,6 @@ export const HISTORY_PEACE: PeaceDefaultDef[] = [
         by: T("USA"),
         demands: [
           { kind: "occupation_zone", group: "japan_home" },
-          { kind: "occupation_zone", group: "korea_south" },
           { kind: "take_group", group: "pacific_mandates" },
           { kind: "liberate", tag: "PHL" },
           { kind: "dismantle" },
@@ -256,7 +252,6 @@ export const HISTORY_PEACE: PeaceDefaultDef[] = [
         demands: [
           { kind: "take_group", group: "south_sakhalin" },
           { kind: "take_group", group: "kurils" },
-          { kind: "occupation_zone", group: "korea_north" },
           { kind: "occupation_zone", group: "kwantung" },
         ],
       },
