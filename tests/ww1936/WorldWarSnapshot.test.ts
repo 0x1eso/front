@@ -458,12 +458,19 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Peace on the current line (a third kind of offer, the AI's own line
 // offers, the line flag in the hash) leaves both as they are too: still no
 // peace offer of any kind before tick 13,000. Same values in three runs each.
-const WW1936_DIGEST = "0c17aca792b051da";
+// Re-pinned for the research overhaul phase 1 (changes §1, §2, §5): the
+// slots come from the start table and research_slot effects only (no
+// factory slots), every AI ranks its research by the new integer score
+// (seeded jitter, the either/or industry pair), the new slot focuses and
+// the wartime science decision change the AI's politics, and 108 techs
+// join the tree. Same values in three runs each (179a5cdccc7c3165; Easy
+// 828b71acd7501d52). VanillaDigest unchanged.
+const WW1936_DIGEST = "179a5cdccc7c3165";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "cdf1bee6de94e0b5";
+const WW1936_EASY_DIGEST = "828b71acd7501d52";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
