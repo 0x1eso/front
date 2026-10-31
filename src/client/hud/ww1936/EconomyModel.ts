@@ -749,6 +749,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   claim_only: "ww1936.peace.why.claim_only",
   exclusive: "ww1936.econ.block.exclusive",
   no_project: "ww1936.econ.block.no_project",
+  bonus_held: "ww1936.econ.block.bonus_held",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----

@@ -48,6 +48,8 @@ describe("World War 1936 P6 lists", () => {
       "line_peace_offer",
       // Research overhaul: the auto-research leaning.
       "research_lean",
+      // Research grants.
+      "research_grant",
     ]);
   });
 

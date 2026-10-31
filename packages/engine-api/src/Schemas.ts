@@ -83,6 +83,7 @@ import {
   LAW_VALUES,
   RESEARCH_LEANS,
   RESOURCE_IDS,
+  TECH_BRANCHES,
   WW_MAX_LINE_FACTORIES,
   WW_MAX_PROJECT_COUNT,
   WW_MAX_SLOTS,
@@ -1473,6 +1474,12 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("research_lean"),
     lean: z.enum(RESEARCH_LEANS),
+  }),
+  // Research grants (changes §6 idea 3), appended: PP for a temporary
+  // research bonus on one branch of the sender's own country.
+  z.object({
+    kind: z.literal("research_grant"),
+    branch: z.enum(TECH_BRANCHES),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

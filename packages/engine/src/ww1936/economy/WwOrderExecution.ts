@@ -33,7 +33,12 @@ import {
   removeLine,
   setLineFactories,
 } from "./Production";
-import { cancelResearch, setResearchLean, startResearch } from "./ResearchRun";
+import {
+  cancelResearch,
+  grantResearch,
+  setResearchLean,
+  startResearch,
+} from "./ResearchRun";
 import { closeTrade, openTrade } from "./Trade";
 import type { WwEconomy } from "./WwEconomy";
 
@@ -247,6 +252,9 @@ function applyOrder(
     // Research overhaul (changes §6 idea 1): the sender's own country only.
     case "research_lean":
       block = setResearchLean(econ, ce, order.lean);
+      break;
+    case "research_grant":
+      block = grantResearch(econ, ce, order.branch);
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);
