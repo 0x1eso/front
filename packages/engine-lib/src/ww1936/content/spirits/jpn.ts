@@ -85,4 +85,50 @@ export const SPIRITS_JPN: SpiritDef[] = [
     icon: "submarine",
     stats: { subAttackPct: 5 },
   },
+  // Step B (2026-10-31)
+  {
+    id: "jpn_bureaucratic_control",
+    icon: "document",
+    stats: { stabilityBp: 300, ppGainPct: 5 },
+  },
+  {
+    id: "jpn_one_party_rule",
+    icon: "megaphone",
+    stats: { ppGainPct: 10, warSupportBp: 500, stabilityBp: -200 },
+  },
+  {
+    id: "jpn_imperial_hq",
+    icon: "tower",
+    stats: { ppGainPct: 5, justifyTimePct: -10 },
+  },
+  {
+    id: "jpn_total_resistance",
+    icon: "shield",
+    stats: { warSupportBp: 1500, stabilityBp: -1500 },
+  },
+  {
+    id: "jpn_co_prosperity",
+    icon: "globe",
+    stats: { ppGainPct: 5, outputPct: 3 },
+  },
+  {
+    id: "jpn_spirit_doctrine",
+    icon: "fist",
+    stats: { recruitablePct: 10, warSupportBp: 300 },
+  },
+  {
+    id: "jpn_state_economy",
+    icon: "industry",
+    stats: { outputPct: 8, consumerGoodsPp: -3, stabilityBp: -300 },
+  },
+  {
+    id: "jpn_special_attack",
+    icon: "bomber",
+    stats: { navyAttackPct: 10, airAttackPct: 10, stabilityBp: -500 },
+  },
+  {
+    id: "jpn_fuel_discipline",
+    icon: "oil",
+    stats: { fuelUsePct: -10, stabilityBp: -200 },
+  },
 ];
